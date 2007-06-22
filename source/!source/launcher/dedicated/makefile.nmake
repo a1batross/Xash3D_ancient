@@ -1,0 +1,29 @@
+#=============================
+# Makefile to build xash utils
+# Author: Unkle Mike <xash.ru>
+#
+# Please associate .nmake files as NMAKE.EXE "/f" "%1" for build this file
+#=============================
+
+!include <win32.mak>
+
+MAINTARGET = xash
+LLDLIBS    = advapi32.lib user32.lib 
+OBJS       = $(MAINTARGET).obj
+RES       = $(MAINTARGET).rc
+
+default: $(MAINTARGET).exe
+
+$(MAINTARGET).exe: $(MAINTARGET).obj xash.res
+	$(link) $(OBJS) $(LLDLIBS) xash.res /out:"xash.exe" /subsystem:windows
+	@del $(MAINTARGET).obj $(MAINTARGET).lib $(MAINTARGET).exp $(MAINTARGET).res > nul
+	@copy $(MAINTARGET).exe D:\Xash3D\#xash.exe
+	@del $(MAINTARGET).exe
+	@echo  !!! Done !!!
+clean:
+
+.cpp.obj: 
+	$(CC) $(CFLAGS) /c $<
+
+xash.res : xash.rc
+	$(RC) $(RCFLAGS) /r xash.rc
