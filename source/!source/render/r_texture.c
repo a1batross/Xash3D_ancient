@@ -193,28 +193,16 @@ void R_ImageMipmap (byte *in, int width, int height)
 R_ImageLightScale
 ================
 */
-void R_ImageLightScale (unsigned *in, int inwidth, int inheight, bool mipmap )
+void R_ImageLightScale (unsigned *in, int inwidth, int inheight )
 {
 	int	i, c = inwidth * inheight;
 	byte	*p = (byte *)in;
 
-	if ( mipmap )
+	for (i = 0; i < c; i++, p += 4)
 	{
-		for (i=0 ; i<c ; i++, p+=4)
-		{
-			p[0] = gammatable[intensitytable[p[0]]];
-			p[1] = gammatable[intensitytable[p[1]]];
-			p[2] = gammatable[intensitytable[p[2]]];
-		}
-	}
-	else
-	{
-		for (i=0 ; i<c ; i++, p+=4)
-		{
-			p[0] = gammatable[p[0]];
-			p[1] = gammatable[p[1]];
-			p[2] = gammatable[p[2]];
-		}
+		p[0] = gammatable[p[0]];
+		p[1] = gammatable[p[1]];
+		p[2] = gammatable[p[2]];
 	}
 }
 
@@ -313,7 +301,7 @@ bool R_LoadImage32 ( unsigned *data, int width, int height, bool mipmap, int alp
 	}
 	else R_ResampleTexture (data, width, height, scaled, scaled_width, scaled_height);
           
-	R_ImageLightScale(scaled, scaled_width, scaled_height, mipmap );
+	R_ImageLightScale(scaled, scaled_width, scaled_height );
 	
 	qglTexImage2D (GL_TEXTURE_2D, 0, samples, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);
 	if (mipmap && !gl_config.sgis_generate_mipmap)
@@ -595,7 +583,6 @@ image_t *R_LoadImage(char *name, byte *pic, byte *pal, int width, int height, im
 	//don't build mips for sky & hud pics
 	if(image->type == it_pic) { mipmap = false; alpha = true; }
 	if(image->type == it_sky) mipmap = false;
-	if(image->type == it_skin) mipmap = false;//FIXME
 	
 	image->texnum = TEXNUM_IMAGES + (image - gltextures);
 	GL_Bind(image->texnum);

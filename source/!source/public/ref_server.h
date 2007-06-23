@@ -107,10 +107,10 @@ typedef struct
 
 	// collision detection
 	trace_t	(*trace) (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, edict_t *passent, int contentmask);
-	int		(*pointcontents) (vec3_t point);
+	int	(*pointcontents) (vec3_t point);
 	bool	(*inPVS) (vec3_t p1, vec3_t p2);
 	bool	(*inPHS) (vec3_t p1, vec3_t p2);
-	void		(*SetAreaPortalState) (int portalnum, bool open);
+	void	(*SetAreaPortalState) (int portalnum, bool open);
 	bool	(*AreasConnected) (int area1, int area2);
 
 	// an entity will never be sent to a client or used for collision
@@ -118,8 +118,11 @@ typedef struct
 	// solidity changes, it must be relinked.
 	void	(*linkentity) (edict_t *ent);
 	void	(*unlinkentity) (edict_t *ent);		// call before removing an interactive edict
-	int		(*BoxEdicts) (vec3_t mins, vec3_t maxs, edict_t **list,	int maxcount, int areatype);
+	int	(*BoxEdicts) (vec3_t mins, vec3_t maxs, edict_t **list,	int maxcount, int areatype);
 	void	(*Pmove) (pmove_t *pmove);		// player movement code common with client prediction
+
+	// common studio utils
+	byte	*(*getmodelhdr) (edict_t *ent);//returned a pointer on a studiohdr_t for current entity
 
 	// network messaging
 	void	(*multicast) (vec3_t origin, multicast_t to);

@@ -158,28 +158,6 @@ void COM_StripExtension (char *in, char *out)
 
 /*
 ============
-COM_FileExtension
-============
-*/
-//not used
-char *COM_FileExtension (char *in)
-{
-	static char exten[8];
-	int		i;
-
-	while (*in && *in != '.')
-		in++;
-	if (!*in)
-		return "";
-	in++;
-	for (i=0 ; i<7 && *in ; i++,in++)
-		exten[i] = *in;
-	exten[i] = 0;
-	return exten;
-}
-
-/*
-============
 COM_FileBase
 
 Extracts the base name of a file (no path, no extension, assumes '/' as path separator)

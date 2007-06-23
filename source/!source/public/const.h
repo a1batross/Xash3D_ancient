@@ -248,6 +248,7 @@ void COM_StripExtension (char *in, char *out);
 void COM_FileBase (char *in, char *out);
 void COM_FilePath (char *in, char *out);
 void COM_DefaultExtension (char *path, char *extension);
+char *COM_FileExtension (char *in);
 
 char *COM_Parse (const char **data_p);
 // data is an in/out parm, returns a parsed out token
@@ -1007,6 +1008,7 @@ typedef struct entity_state_s
 	int		event;			// impulse events -- muzzle flashes, footsteps, etc
 						// events only go out for a single frame, they
 						// are automatically cleared each frame
+	float		alpha;			// alpha value
 } entity_state_t;
 
 //==============================================

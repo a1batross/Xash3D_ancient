@@ -228,15 +228,12 @@ void R_DrawEntitiesOnList (void)
 {
 	int		i;
 
-	if (!r_drawentities->value)
-		return;
+	if (!r_drawentities->value) return;
 
 	// draw non-transparent first
-	for (i=0 ; i<r_newrefdef.num_entities ; i++)
+	for (i = 0; i < r_newrefdef.num_entities; i++)
 	{
 		currententity = &r_newrefdef.entities[i];
-		if (currententity->flags & RF_TRANSLUCENT)
-			continue;	// solid
 
 		if ( currententity->flags & RF_BEAM )
 		{
@@ -253,16 +250,16 @@ void R_DrawEntitiesOnList (void)
 			switch (currentmodel->type)
 			{
 			case mod_alias:
-				R_DrawAliasModel (currententity);
+				R_DrawAliasModel( RENDERPASS_SOLID );
 				break;
 			case mod_brush:
-				R_DrawBrushModel (currententity);
+				R_DrawBrushModel( RENDERPASS_SOLID );
 				break;
 			case mod_sprite:
-				R_SpriteDrawModel (currententity);
+				R_SpriteDrawModel( RENDERPASS_SOLID );
 				break;
 			case mod_studio:
-				R_DrawStudioModel( STUDIO_RENDER );
+				R_DrawStudioModel( RENDERPASS_SOLID );
 				break;
 			default:
 				ri.Sys_Error (ERR_DROP, "Bad modeltype");
@@ -273,12 +270,10 @@ void R_DrawEntitiesOnList (void)
 
 	// draw transparent entities
 	// we could sort these if it ever becomes a problem...
-	qglDepthMask (0);		// no z writes
-	for (i=0 ; i<r_newrefdef.num_entities ; i++)
+	qglDepthMask (0); // no z writes
+	for (i = 0; i < r_newrefdef.num_entities; i++)
 	{
 		currententity = &r_newrefdef.entities[i];
-		if (!(currententity->flags & RF_TRANSLUCENT))
-			continue;	// solid
 
 		if ( currententity->flags & RF_BEAM )
 		{
@@ -296,16 +291,16 @@ void R_DrawEntitiesOnList (void)
 			switch (currentmodel->type)
 			{
 			case mod_alias:
-				R_DrawAliasModel (currententity);
+				R_DrawAliasModel( RENDERPASS_ALPHA );
 				break;
 			case mod_brush:
-				R_DrawBrushModel (currententity);
+				R_DrawBrushModel( RENDERPASS_ALPHA );
 				break;
 			case mod_sprite:
-				R_SpriteDrawModel (currententity);
+				R_SpriteDrawModel( RENDERPASS_ALPHA );
 				break;
 			case mod_studio:
-				R_DrawStudioModel( STUDIO_RENDER );
+				R_DrawStudioModel( RENDERPASS_ALPHA );
 				break;
 			default:
 				ri.Sys_Error (ERR_DROP, "Bad modeltype");
@@ -313,7 +308,7 @@ void R_DrawEntitiesOnList (void)
 			}
 		}
 	}
-	qglDepthMask (1);		// back to writing
+	qglDepthMask (1);// back to writing
 
 }
 

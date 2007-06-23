@@ -286,7 +286,12 @@ void SV_InitGameProgs (void);
 void SV_ShutdownGameProgs (void);
 void SV_InitEdict (edict_t *e);
 
+//
+// sv_studio.c
+//
 
+byte *SV_GetModelPtr(edict_t *ent);
+int SV_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *maxs );
 
 //============================================================
 

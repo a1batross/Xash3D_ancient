@@ -565,6 +565,8 @@ void MSG_WriteDeltaEntity (entity_state_t *from, entity_state_t *to, sizebuf_t *
 	if (newentity || (to->renderfx & RF_BEAM))
 		bits |= U_OLDORIGIN;
 
+	if( to->alpha != from->alpha )
+		bits |= U_ALPHA;
 	//
 	// write the message
 	//
@@ -668,6 +670,8 @@ void MSG_WriteDeltaEntity (entity_state_t *from, entity_state_t *to, sizebuf_t *
 		MSG_WriteByte (msg, to->event);
 	if (bits & U_SOLID)
 		MSG_WriteShort (msg, to->solid);
+	if (bits & U_ALPHA)
+		MSG_WriteFloat (msg, to->alpha);
 }
 
 
@@ -1226,6 +1230,28 @@ float	crand(void)
 {
 	return (rand()&32767)* (2.0/32767) - 1;
 }
+
+/*
+============
+COM_FileExtension
+============
+*/
+char *COM_FileExtension (char *in)
+{
+	static char exten[8];
+	int		i;
+
+	while (*in && *in != '.')
+		in++;
+	if (!*in)
+		return "";
+	in++;
+	for (i=0 ; i<7 && *in ; i++,in++)
+		exten[i] = *in;
+	exten[i] = 0;
+	return exten;
+}
+
 
 char	com_token[MAX_INPUTLINE];
 

@@ -282,9 +282,10 @@ void FreeTransfers (void)
 {
 	int		i;
 
-	for (i=0 ; i<num_patches ; i++)
+	for (i = 0; i < num_patches; i++)
 	{
-		Free (patches[i].transfers);
+		if(patches[i].transfers)
+			Free (patches[i].transfers);
 		patches[i].transfers = NULL;
 	}
 }

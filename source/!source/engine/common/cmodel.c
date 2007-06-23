@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // cmodel.c -- model loading
 
 #include "engine.h"
+#include "server.h"
 
 typedef struct
 {
@@ -1765,3 +1766,70 @@ bool CM_HeadnodeVisible (int nodenum, byte *visbits)
 	return CM_HeadnodeVisible(node->children[1], visbits);
 }
 
+/*
+===============================================================================
+
+STUDIO SHARED CMODELS
+
+===============================================================================
+*/
+cmodel_t	*CM_StudioModel (char *name)
+{
+	int		i;
+	byte		*buffer;
+	cmodel_t		*out;
+	studiohdr_t	*phdr;
+	char		modname[64]; //probaly this is not better way...
+
+	if (!name[0])
+	{
+		Msg ("CM_StudioModel: NULL name, ignored\n");
+		return NULL;
+	}
+
+	if(!FS_FileExists( name ))
+	{
+		Msg ("CM_StudioModel: %s not found\n", name );
+		return NULL;
+	}
+
+	if(numcmodels > MAX_MAP_MODELS)
+	{
+		Msg ("CM_StudioModel: MAX_MAP_MODELS limit exceeded\n" );
+		return NULL;		
+	}
+
+	buffer = FS_LoadFile (name, NULL );
+	phdr = (studiohdr_t *)buffer;
+	
+	if (phdr->version != STUDIO_VERSION)
+	{
+		Msg("CM_StudioModel: %s has wrong version number (%i should be %i)", phdr->name, phdr->version, STUDIO_VERSION);
+		return NULL;
+	}
+
+          //FIXME
+          FS_FileBase( name, modname );
+          FS_DefaultExtension( modname, ".mdl" );
+          
+          for(i = 0; i < numcmodels; i++ )
+          {
+		studiohdr_t *modhead;
+		out = map_cmodels + i;
+		if(!out->extradata) continue;
+		
+		modhead = (studiohdr_t *)out->extradata;
+		if(!stricmp(modname, modhead->name))
+			return out;
+	} 
+	
+	out = &map_cmodels[++numcmodels];
+	out->extradata = buffer;
+	
+	if(!SV_StudioExtractBbox( phdr, 0, out->mins, out->maxs ))
+	{
+		VectorSet(out->mins, -32, -32, -32 );
+		VectorSet(out->maxs,  32,  32,  32 );
+	}
+	return &map_cmodels[numcmodels];
+}

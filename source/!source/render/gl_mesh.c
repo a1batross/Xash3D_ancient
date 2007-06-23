@@ -515,13 +515,17 @@ R_DrawAliasModel
 
 =================
 */
-void R_DrawAliasModel (entity_t *e)
+void R_DrawAliasModel ( int passnum )
 {
 	int			i;
 	dmdl_t		*paliashdr;
 	float		an;
 	vec3_t		bbox[8];
 	image_t		*skin;
+	entity_t 		*e = currententity;
+
+	if ( (e->flags & RF_TRANSLUCENT) && (passnum == RENDERPASS_SOLID)) return;// solid
+	if (!(e->flags & RF_TRANSLUCENT) && (passnum == RENDERPASS_ALPHA)) return;// solid
 
 	if ( !( e->flags & RF_WEAPONMODEL ) )
 	{

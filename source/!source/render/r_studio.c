@@ -20,6 +20,7 @@ matrix3x4 m_plighttransform [ MAXSTUDIOBONES ];
 matrix3x4 m_protationmatrix;
 vec3_t m_plightcolor;	//ambient light color
 vec3_t m_plightvec;		//ambleint light vector
+vec3_t m_pshadevector;	//shadow vector
 
 //lighting stuff
 vec3_t *m_pxformverts;
@@ -36,6 +37,7 @@ vec3_t g_chromeright[MAXSTUDIOBONES];	// chrome vector "right" in bone reference
 
 int m_fDoInterp;			
 int m_pStudioModelCount;
+int m_PassNum;
 model_t *m_pRenderModel;
 entity_t *m_pCurrentEntity;
 mstudiomodel_t *m_pSubModel;
@@ -979,19 +981,16 @@ void R_StudioCalcAttachments( void )
 	memcpy( m_pCurrentEntity->attachment, m_pCurrentEntity->attachment, sizeof( vec3_t ) * MAXSTUDIOATTACHMENTS );
 }
 
-static bool R_StudioCheckBBox( void )
+static bool R_StudioComputeBBox( vec3_t *bbox )
 {
-	int i, j;
-	vec3_t bbox[8];
 	vec3_t vectors[3];
-	int aggregatemask = ~0;
 	entity_t *e = m_pCurrentEntity;
 	vec3_t mins, maxs, tmp, angles;
-	int seq = m_pCurrentEntity->sequence;
-	
+	int i, seq = m_pCurrentEntity->sequence;
+
 	if(!R_ExtractBbox( seq, mins, maxs ))
 		return false;
-         
+
 	//compute a full bounding box
 	for ( i = 0; i < 8; i++ )
 	{
@@ -1006,7 +1005,7 @@ static bool R_StudioCheckBBox( void )
 
 	//rotate the bounding box
 	VectorCopy( e->angles, angles );
-	angles[YAW] = -angles[YAW];
+	angles[PITCH] = -angles[PITCH];
 	AngleVectors( angles, vectors[0], vectors[1], vectors[2] );
 
 	for ( i = 0; i < 8; i++ )
@@ -1017,7 +1016,21 @@ static bool R_StudioCheckBBox( void )
 		bbox[i][2] = DotProduct( vectors[2], tmp );
 		VectorAdd( e->origin, bbox[i], bbox[i] );
 	}
+	return true;
+}
 
+static bool R_StudioCheckBBox( void )
+{
+	int i, j;
+	vec3_t bbox[8];
+
+	int aggregatemask = ~0;
+
+	if(m_pCurrentEntity->flags & RF_WEAPONMODEL)
+		return true;          
+	if(!R_StudioComputeBBox( bbox ))
+          	return false;
+	
 	for ( i = 0; i < 8; i++ )
 	{
 		int mask = 0;
@@ -1029,7 +1042,7 @@ static bool R_StudioCheckBBox( void )
 		aggregatemask &= mask;
 	}
           
-	//Com_Printf( "aggregatemask %d\n", aggregatemask );
+	//Msg( "aggregatemask %d\n", aggregatemask );
 	if ( aggregatemask )
 		return false;
 	return true;
@@ -1144,15 +1157,17 @@ void R_StudioSetupChrome(int *pchrome, int bone, vec3_t normal)
 
 bool R_AcceptPass( int flags, int pass )
 {
-	if(pass == 0)
+	if(pass == RENDERPASS_SOLID)
 	{
 		if(!flags) return true;			// draw all
 		if(flags & STUDIO_NF_CHROME) return true;	//chrome drawing once
 		if(flags & STUDIO_NF_ADDITIVE) return false;	//draw it at second pass
 		if(flags & STUDIO_NF_TRANSPARENT) return true;	// must be draw first always
 	}	
-	if(pass == 1)
+	if(pass == RENDERPASS_ALPHA)
 	{
+		//pass for blended ents
+		if(m_pCurrentEntity->flags & RF_TRANSLUCENT) 	return true;
 		if(!flags) return false;			// skip all
 		if(flags & STUDIO_NF_TRANSPARENT) return false;	// must be draw first always
 		if(flags & STUDIO_NF_ADDITIVE) return true;	//draw it at second pass
@@ -1204,7 +1219,7 @@ void R_StudioDrawMeshes ( mstudiotexture_t * ptexture, short *pskinref, int pass
 
 		s = 1.0/(float)ptexture[pskinref[pmesh->skinref]].width;
 		t = 1.0/(float)ptexture[pskinref[pmesh->skinref]].height;
-
+		
 		GL_Bind( ptexture[pskinref[pmesh->skinref]].index );
 		qglShadeModel (GL_SMOOTH);
 		GL_TexEnv( GL_MODULATE );
@@ -1237,7 +1252,9 @@ void R_StudioDrawMeshes ( mstudiotexture_t * ptexture, short *pskinref, int pass
 					lv = &irgoggles[0];
 
 				if (flags & STUDIO_NF_ADDITIVE)//additive is self-lighting texture
-					qglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
+					qglColor4f( 1.0f, 1.0f, 1.0f, 0.8f );
+				else if(m_pCurrentEntity->flags & RF_TRANSLUCENT)
+					qglColor4f( 1.0f, 1.0f, 1.0f, m_pCurrentEntity->alpha );
 				else qglColor4f( lv[0], lv[1], lv[2], 1.0f );//get light from floor
 				av = m_pxformverts[ptricmds[0]];
 
@@ -1252,7 +1269,6 @@ void R_StudioDrawPoints ( void )
 {
 	int		i;
 	int		m_skinnum = m_pCurrentEntity->skin;
-          float		alpha = 0.0f;
 	byte		*pvertbone;
 	byte		*pnormbone;
 	vec3_t		*pstudioverts;
@@ -1276,10 +1292,6 @@ void R_StudioDrawPoints ( void )
 		VectorTransform (pstudioverts[i], m_pbonestransform[pvertbone[i]], m_pxformverts[i]);
 	}
 
-	if ( m_pCurrentEntity->flags & RF_TRANSLUCENT ) alpha = m_pCurrentEntity->alpha;
-	if ( alpha != 1.0F ) qglEnable( GL_BLEND );
-	qglColor4f( 1, 1, 1, alpha );//reset color
-
 	if (currententity->flags & RF_DEPTHHACK) // hack the depth range to prevent view model from poking into walls
 		qglDepthRange (gldepthmin, gldepthmin + 0.3 * (gldepthmax-gldepthmin));
 
@@ -1293,25 +1305,22 @@ void R_StudioDrawPoints ( void )
 		qglMatrixMode( GL_MODELVIEW );
 		qglCullFace( GL_BACK );
 	}          
-
-	if ( alpha == 1.0 ) qglEnable (GL_ALPHA_TEST);
-	else qglDisable( GL_ALPHA_TEST );
-	
-	//qglBlendFunc(GL_ZERO, GL_ZERO);
-	qglBlendFunc(GL_SRC_ALPHA, GL_ONE);
-	R_StudioDrawMeshes( ptexture, pskinref, 0 );
-	if ( alpha != 1.0F ) qglDisable( GL_BLEND );
-	qglColor4f( 1, 1, 1, 1 );
- 	qglDisable (GL_ALPHA_TEST);
-		
-	qglEnable(GL_BLEND);
-	qglBlendFunc(GL_SRC_ALPHA, GL_ONE);
-	qglColor4f( 1.0, 1.0, 1.0, 0.5 );
-	qglDepthMask(0);
-	R_StudioDrawMeshes( ptexture, pskinref, 1 );
-	qglDisable(GL_BLEND);
-	qglDepthMask(1);
-          
+	if(m_PassNum == RENDERPASS_SOLID && !(m_pCurrentEntity->flags & RF_TRANSLUCENT)) //setup for solid format
+	{
+		qglEnable (GL_ALPHA_TEST);
+		qglBlendFunc(GL_ZERO, GL_ZERO);
+                    R_StudioDrawMeshes( ptexture, pskinref, m_PassNum );
+		qglColor4f( 1, 1, 1, 1 ); //reset color
+		qglDisable(GL_ALPHA_TEST);
+	}
+	if(m_PassNum == RENDERPASS_ALPHA) //setup for alpha format
+	{
+		qglEnable(GL_BLEND);
+		qglBlendFunc(GL_SRC_ALPHA, GL_ONE);
+		R_StudioDrawMeshes( ptexture, pskinref, m_PassNum );
+		qglColor4f( 1, 1, 1, 1 ); //reset color
+		qglDisable(GL_BLEND);
+	}	
 	if (( m_pCurrentEntity->flags & RF_WEAPONMODEL ) && ( r_lefthand->value == 1.0F ) )
 	{
 		qglMatrixMode( GL_PROJECTION );
@@ -1499,11 +1508,36 @@ void R_StudioDrawAttachments( void )
 
 void R_StudioDrawHulls ( void )
 {
-	//not implemented yet
+	int i;
+	vec3_t		bbox[8];
+
+	if(m_pCurrentEntity->flags & RF_WEAPONMODEL) return;
+	if(!R_StudioComputeBBox( bbox )) return;
+
+	qglDisable( GL_CULL_FACE );
+	qglPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+	qglDisable( GL_TEXTURE_2D );
+	qglBegin( GL_TRIANGLE_STRIP );
+	for ( i = 0; i < 8; i++ )
+	{
+		qglVertex3fv( bbox[i] );
+	}
+	qglEnd();
+	qglEnable( GL_TEXTURE_2D );
+	qglPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+	qglEnable( GL_CULL_FACE );
 }
+
+extern	vec3_t lightspot;
 
 void R_StudioDrawShadow ( void )
 {
+	float		an = m_pCurrentEntity->angles[1] / 180 * M_PI;
+	
+	m_pshadevector[0] = cos(-an);
+	m_pshadevector[1] = sin(-an);
+	m_pshadevector[2] = 1;
+	VectorNormalize (m_pshadevector);
 }
 
 /*
@@ -1538,63 +1572,67 @@ StudioDrawModel
 
 ====================
 */
-void R_DrawStudioModel( int flags )
+void R_DrawStudioModel( int passnum )
 {
 	m_pCurrentEntity = currententity;
 	m_pRenderModel = m_pCurrentEntity->model;
 	m_pStudioHeader = m_pRenderModel->phdr;
           m_pTextureHeader = m_pRenderModel->thdr;
-	
+	m_PassNum = passnum;
+
 	R_StudioSetUpTransform();
 
-	if (flags & STUDIO_RENDER)
-	{
-		// see if the bounding box lets us trivially reject, also sets
-		if (!R_StudioCheckBBox()) return;
+	// see if the bounding box lets us trivially reject, also sets
+	if (!R_StudioCheckBBox()) return;
 		
-		m_pStudioModelCount++; // render data cache cookie
-                    m_pxformverts = &g_xformverts[0];
-		m_pvlightvalues = &g_lightvalues[0];
+	m_pStudioModelCount++; // render data cache cookie
+	m_pxformverts = &g_xformverts[0];
+	m_pvlightvalues = &g_lightvalues[0];
 		
-		//nothing to draw
-		if (m_pStudioHeader->numbodyparts == 0) return;
-		if ( m_pCurrentEntity->flags & RF_WEAPONMODEL && r_lefthand->value == 2) return;
-	}
+	//nothing to draw
+	if (m_pStudioHeader->numbodyparts == 0) return;
+	if ( m_pCurrentEntity->flags & RF_WEAPONMODEL && r_lefthand->value == 2) return;
 
 	if (m_pCurrentEntity->movetype == MOVETYPE_FOLLOW) 
-	{
 		R_StudioMergeBones( m_pRenderModel );
-	}
-	else
-	{
-		R_StudioSetupBones( );
-	}
+	else R_StudioSetupBones();
 
 	R_StudioSetupLighting( );
-
 	R_StudioSaveBones( );
 
-	if (flags & STUDIO_EVENTS)
-	{
-		R_StudioCalcAttachments();
-	}
+	//if (flags & STUDIO_EVENTS) R_StudioCalcAttachments();
 
-	if (flags & STUDIO_RENDER)
-	{
-		R_StudioRenderModel();
+	R_StudioRenderModel();
 
-		if (m_pCurrentEntity->weaponmodel)
-		{
-			entity_t saveent = *m_pCurrentEntity;
-                              model_t *pweaponmodel = m_pCurrentEntity->weaponmodel;
+	if (m_pCurrentEntity->weaponmodel)
+	{
+		entity_t saveent = *m_pCurrentEntity;
+		model_t *pweaponmodel = m_pCurrentEntity->weaponmodel;
 		
-			m_pStudioHeader = pweaponmodel->phdr;
+		m_pStudioHeader = pweaponmodel->phdr;
+		R_StudioMergeBones( pweaponmodel);
 
-			R_StudioMergeBones( pweaponmodel);
-
-			R_StudioRenderModel();
-			R_StudioCalcAttachments();
-			*m_pCurrentEntity = saveent;
-		}
+		R_StudioRenderModel();
+		R_StudioCalcAttachments();
+		*m_pCurrentEntity = saveent;
 	}
+
+	GL_TexEnv( GL_REPLACE );
+	qglShadeModel (GL_FLAT);
+	if (m_pCurrentEntity->flags & RF_DEPTHHACK) 
+		qglDepthRange (gldepthmin, gldepthmax);
+
+	if (gl_shadows->value && !(m_pCurrentEntity->flags & (RF_TRANSLUCENT | RF_WEAPONMODEL)))
+	{
+		qglPushMatrix();
+		R_RotateForEntity(m_pCurrentEntity);
+		qglDisable (GL_TEXTURE_2D);
+		qglEnable (GL_BLEND);
+		qglColor4f (0, 0, 0, 0.5f );
+		R_StudioDrawShadow();
+		qglEnable (GL_TEXTURE_2D);
+		qglDisable (GL_BLEND);
+		qglPopMatrix ();
+	}
+	qglColor4f (1,1,1,1);
 }

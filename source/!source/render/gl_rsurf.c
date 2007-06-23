@@ -933,16 +933,20 @@ void R_DrawInlineBModel (void)
 R_DrawBrushModel
 =================
 */
-void R_DrawBrushModel (entity_t *e)
+void R_DrawBrushModel ( int passnum )
 {
 	vec3_t		mins, maxs;
-	int			i;
-	bool	rotated;
+	int		i;
+	bool		rotated;
+	entity_t 		*e = currententity;
+
+	if ( (e->flags & RF_TRANSLUCENT) && (passnum == RENDERPASS_SOLID)) return;// solid
+	if (!(e->flags & RF_TRANSLUCENT) && (passnum == RENDERPASS_ALPHA)) return;// solid
 
 	if (currentmodel->nummodelsurfaces == 0)
 		return;
 
-	currententity = e;
+	//currententity = e;
 	gl_state.currenttextures[0] = gl_state.currenttextures[1] = -1;
 
 	if (e->angles[0] || e->angles[1] || e->angles[2])

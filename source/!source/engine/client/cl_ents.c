@@ -314,6 +314,9 @@ void CL_ParseDelta (entity_state_t *from, entity_state_t *to, int number, int bi
 
 	if (bits & U_SOLID)
 		to->solid = MSG_ReadShort (&net_message);
+
+	if (bits & U_ALPHA)
+		to->alpha = MSG_ReadFloat (&net_message);
 }
 
 /*
@@ -905,7 +908,8 @@ void CL_AddPacketEntities (frame_t *frame)
 //======
 		ent.oldframe = cent->prev.frame;
 		ent.backlerp = 1.0 - cl.lerpfrac;
-
+		ent.alpha = s1->alpha;
+		
 		if (renderfx & (RF_FRAMELERP|RF_BEAM))
 		{	// step origin discretely, because the frames
 			// do the animation properly
@@ -978,8 +982,9 @@ void CL_AddPacketEntities (frame_t *frame)
 
 		// only used for black hole model right now, FIXME: do better
 		if (renderfx == RF_TRANSLUCENT)
+		{
 			ent.alpha = 0.70;
-
+		}
 		// render effects (fullbright, translucent, etc)
 		if ((effects & EF_COLOR_SHELL))
 			ent.flags = 0;	// renderfx go on color shell entity

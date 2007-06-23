@@ -852,7 +852,7 @@ void CL_ParseTEnt (void)
 		ex->lightcolor[1] = 0.5;
 		ex->lightcolor[2] = 0.5;
 		ex->ent.model = cl_mod_explo2;
-		ex->frames = 13;
+		ex->frames = 11;
 		ex->baseframe = 0;
 		ex->ent.angles[1] = rand() % 360;
 		CL_ExplosionParticles (pos);

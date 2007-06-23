@@ -1420,7 +1420,7 @@ void SP_misc_explobox (edict_t *self)
 	//self->nextthink = level.time + 2 * FRAMETIME;
 
 	self->common_name = "Exploding Box";
-	gi.linkentity (self);
+	gi.setmodel (self, self->model);
 }
 
 

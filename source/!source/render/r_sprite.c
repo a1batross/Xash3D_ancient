@@ -275,13 +275,16 @@ mspriteframe_t *R_GetSpriteFrame (entity_t *currententity)
 }
 
 
-void R_SpriteDrawModel (entity_t *e)
+void R_SpriteDrawModel( int passnum )
 {
 	float alpha = 1.0F;
 	mspriteframe_t	*frame;
 	vec3_t		point, forward, right, up;
 	msprite_t		*psprite;
-          //float		up, down, right, left;
+	entity_t 		*e = currententity;
+
+	if ( (e->flags & RF_TRANSLUCENT) && (passnum == RENDERPASS_SOLID)) return;// solid
+	if (!(e->flags & RF_TRANSLUCENT) && (passnum == RENDERPASS_ALPHA)) return;// solid
 	
 	// don't even bother culling, because it's just a single
 	// polygon without a surface cache
@@ -291,7 +294,7 @@ void R_SpriteDrawModel (entity_t *e)
 	e->frame %= psprite->numframes;
 	frame = R_GetSpriteFrame(e);
           
-          //Com_Printf("render frame %d bindnum %d\n", e->frame, currentmodel->skins[e->frame]->texnum );
+          //Msg("render frame %d bindnum %d\n", e->frame, currentmodel->skins[e->frame]->texnum );
 	
 	switch( psprite->type )
 	{

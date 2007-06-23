@@ -166,15 +166,16 @@ void PF_setmodel (edict_t *ent, char *name)
 	int		i;
 	cmodel_t	*mod;
 
-	if (!name)
-		Com_Error (ERR_DROP, "PF_setmodel: NULL");
+	if (!name) Com_Error (ERR_DROP, "PF_setmodel: NULL");
 
 	i = SV_ModelIndex (name);
 		
 //	ent->model = name;
 	ent->s.modelindex = i;
 
-// if it is an inline model, get the size information for it
+	Msg("setmodel for %s\n", name );
+
+	// if it is an inline model, get the size information for it
 	if (name[0] == '*')
 	{
 		mod = CM_InlineModel (name);
@@ -182,7 +183,13 @@ void PF_setmodel (edict_t *ent, char *name)
 		VectorCopy (mod->maxs, ent->maxs);
 		SV_LinkEdict (ent);
 	}
-
+	else if(!stricmp(COM_FileExtension(name), "mdl" ))
+	{
+		mod = CM_StudioModel(name);
+		VectorCopy (mod->mins, ent->mins);
+		VectorCopy (mod->maxs, ent->maxs);
+		SV_LinkEdict (ent);
+	}
 }
 
 /*
@@ -346,6 +353,8 @@ void SV_InitGameProgs (void)
 	import.inPVS = PF_inPVS;
 	import.inPHS = PF_inPHS;
 	import.Pmove = Pmove;
+
+	import.getmodelhdr = SV_GetModelPtr;
 
 	import.modelindex = SV_ModelIndex;
 	import.soundindex = SV_SoundIndex;

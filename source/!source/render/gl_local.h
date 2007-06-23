@@ -39,6 +39,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define GL_COLOR_INDEX8_EXT GL_COLOR_INDEX
 #endif
 
+#define RENDERPASS_SOLID	1
+#define RENDERPASS_ALPHA	2
+
 #define Q_ftol( f ) ( long ) (f)
 
 #define SOLID_FORMAT	3
@@ -340,13 +343,13 @@ void	R_Shutdown( void );
 
 void R_RenderView (refdef_t *fd);
 void GL_ScreenShot_f (void);
-void R_DrawAliasModel (entity_t *e);
-void R_DrawStudioModel( int flags );
+void R_DrawAliasModel( int passnum );
+void R_DrawStudioModel( int passnum );
+void R_DrawBrushModel( int passnum );
+void R_SpriteDrawModel( int passnum );
 void R_StudioLoadModel (model_t *mod, void *buffer );
 void R_SpriteLoadModel( model_t *mod, void *buffer );
 char *R_ExtName( model_t *mod );
-void R_DrawBrushModel (entity_t *e);
-void R_SpriteDrawModel (entity_t *e);
 void R_DrawBeam( entity_t *e );
 void R_DrawWorld (void);
 void R_RenderDlights (void);
