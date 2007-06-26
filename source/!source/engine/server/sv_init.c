@@ -117,20 +117,15 @@ SV_CheckForSavegame
 */
 void SV_CheckForSavegame (void)
 {
-	char		name[MAX_SYSPATH];
 	file_t		*f;
-	int			i;
+	int		i;
 
-	if (sv_noreload->value)
-		return;
+	if (sv_noreload->value) return;
 
-	if (Cvar_VariableValue ("deathmatch"))
-		return;
+	if (Cvar_VariableValue ("deathmatch")) return;
 
-	Com_sprintf (name, sizeof(name), "save/current/%s.sav", sv.name);
-	f = FS_Open (name, "rb");
-	if (!f) return;		// no savegame
-
+	f = FS_Open ("save/quick.bin", "rb");
+	if (!f) return; // no savegame
 	FS_Close (f);
 
 	SV_ClearWorld ();
@@ -239,10 +234,9 @@ void SV_SpawnServer (char *server, char *spawnpoint, server_state_t serverstate,
 	//
 	SV_ClearWorld ();
 
-	for (i=1 ; i< CM_NumInlineModels() ; i++)
+	for (i = 1; i < CM_NumInlineModels(); i++)
 	{
-		Com_sprintf (sv.configstrings[CS_MODELS+1+i], sizeof(sv.configstrings[CS_MODELS+1+i]),
-			"*%i", i);
+		sprintf(sv.configstrings[CS_MODELS+1+i], "*%i", i);
 		sv.models[i+1] = CM_InlineModel (sv.configstrings[CS_MODELS+1+i]);
 	}
 

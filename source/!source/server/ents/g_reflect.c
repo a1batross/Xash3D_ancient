@@ -381,9 +381,9 @@ void AddReflection (edict_t *ent)
 			}
 			ent->reflection[i]->s.number     = ent->reflection[i] - g_edicts;
 			ent->reflection[i]->s.modelindex = ent->s.modelindex;
-			ent->reflection[i]->s.modelindex2 = ent->s.modelindex2;
-			ent->reflection[i]->s.modelindex3 = ent->s.modelindex3;
-			ent->reflection[i]->s.modelindex4 = ent->s.modelindex4;
+			ent->reflection[i]->s.weaponmodel = ent->s.weaponmodel;
+			ent->reflection[i]->s.body = ent->s.body;
+			ent->reflection[i]->s.sequence = ent->s.sequence;
 			ent->reflection[i]->s.skinnum = ent->s.skinnum;
 			ent->reflection[i]->s.frame = ent->s.frame;
 			ent->reflection[i]->s.renderfx = ent->s.renderfx;

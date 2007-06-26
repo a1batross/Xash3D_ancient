@@ -51,50 +51,52 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define SHELL_WHITE_COLOR	0xD7
 
-//TODO: Move interp varibales into new struct
+typedef struct latchedvars_s
+{
+	float		animtime;
+	float		sequencetime;
+	vec3_t		origin;
+	vec3_t		angles;		
+
+	int		sequence;
+	float		frame;
+
+	byte		blending[MAXSTUDIOBLENDS];
+	byte		seqblending[MAXSTUDIOBLENDS];
+	byte		controller[MAXSTUDIOCONTROLLERS];
+}latchedvars_t;
 
 typedef struct entity_s
 {
 	struct model_s	*model;		// opaque type outside refresh
 	struct model_s	*weaponmodel;	// opaque type outside refresh	
+
+	latchedvars_t	prev;		//previous frame values for lerping
 	
-	
-	float		angles[3];
-          float		oldangles[3];
-	
-	float		origin[3];	// also used as RF_BEAM's "from"
+	vec3_t		angles;
+	vec3_t		origin;		// also used as RF_BEAM's "from"
 	float		oldorigin[3];	// also used as RF_BEAM's "to"
 
-          double		animtime;	
-	double		oldanimtime;
+          float		animtime;	
 
 	int		frame;		// also used as RF_BEAM's diameter
-	int		oldframe;
 
 	int		body;
 	int		skin;
 	
 	float		framerate;
 	
-	byte		blending[2];
-	byte		oldblending[2];
-	byte		oldseqblending[2];
-	
+	byte		blending[MAXSTUDIOBLENDS];
 	byte		controller[MAXSTUDIOCONTROLLERS];
-	byte		oldcontroller[MAXSTUDIOCONTROLLERS];
 	byte		mouth; //TODO: move to struct
 	
           int		movetype;		//entity moving type
-	int		oldsequence;
 	int		sequence;
-	float		sequencetime;
 	float		scale;
 	
 	vec3_t		attachment[MAXSTUDIOATTACHMENTS];
 	
-	/*
-	** misc
-	*/
+	// misc
 	float		backlerp;		// 0.0 = current, 1.0 = old
 	int		skinnum;		// also used as RF_BEAM's palette index
 

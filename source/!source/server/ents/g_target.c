@@ -3496,7 +3496,7 @@ void target_failure_player_die (edict_t *player)
 	VectorClear (player->avelocity);
 	player->takedamage = DAMAGE_NO;
 	player->movetype = MOVETYPE_NONE;
-	player->s.modelindex2 = 0;	// remove linked weapon model
+	player->s.weaponmodel = 0;	// remove linked weapon model
 	player->s.sound = 0;
 	player->client->weapon_sound = 0;
 	player->svflags |= SVF_DEADMONSTER;

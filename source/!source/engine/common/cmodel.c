@@ -85,6 +85,9 @@ unsigned short	map_leafbrushes[MAX_MAP_LEAFBRUSHES];
 int			numcmodels;
 cmodel_t	map_cmodels[MAX_MAP_MODELS];
 
+int	numsmodels;
+stmodel_t	studio_models[MAX_MAP_MODELS];
+
 int			numbrushes;
 cbrush_t	map_brushes[MAX_MAP_BRUSHES];
 
@@ -1773,11 +1776,43 @@ STUDIO SHARED CMODELS
 
 ===============================================================================
 */
-cmodel_t	*CM_StudioModel (char *name)
+#define NUM_HULL_ROUNDS	22
+#define HULL_PRECISION	4
+
+word hull_table[NUM_HULL_ROUNDS] = { 0, 4, 8, 16, 18, 24, 28, 30, 32, 40, 48, 54, 56, 60, 64, 72, 80, 112, 120, 128, 140, 176 };
+
+void CM_LookUpHullSize(vec3_t size, bool down)
+{
+          int	i, j;
+	
+	for(i = 0; i < 3; i++)
+	{
+		bool negative = false;
+                    float result, value;
+
+		value = down ? floor(size[i]) : ceil(size[i]);//round it
+		if(value < 0) negative = true;
+		value = fabs(value);//make positive
+
+		//lookup hull table
+		for(j = 0; j < NUM_HULL_ROUNDS; j++)
+          	{
+			result = value - hull_table[j];
+			if(result <= HULL_PRECISION)
+			{ 
+				result = negative ? -hull_table[j] : hull_table[j];
+				break;
+			}
+		}
+		size[i] = result;//copy new value
+	}
+}
+
+stmodel_t	*CM_StudioModel (char *name)
 {
 	int		i;
 	byte		*buffer;
-	cmodel_t		*out;
+	stmodel_t		*out;
 	studiohdr_t	*phdr;
 	char		modname[64]; //probaly this is not better way...
 
@@ -1793,7 +1828,7 @@ cmodel_t	*CM_StudioModel (char *name)
 		return NULL;
 	}
 
-	if(numcmodels > MAX_MAP_MODELS)
+	if(numsmodels > MAX_MAP_MODELS)
 	{
 		Msg ("CM_StudioModel: MAX_MAP_MODELS limit exceeded\n" );
 		return NULL;		
@@ -1801,35 +1836,117 @@ cmodel_t	*CM_StudioModel (char *name)
 
 	buffer = FS_LoadFile (name, NULL );
 	phdr = (studiohdr_t *)buffer;
-	
+
+	if(phdr->id != IDSTUDIOHEADER)
+	{
+		Msg("CM_StudioModel: %s have invalid header\n", name );
+		return NULL;
+	}	
 	if (phdr->version != STUDIO_VERSION)
 	{
 		Msg("CM_StudioModel: %s has wrong version number (%i should be %i)", phdr->name, phdr->version, STUDIO_VERSION);
 		return NULL;
 	}
 
-          //FIXME
-          FS_FileBase( name, modname );
-          FS_DefaultExtension( modname, ".mdl" );
+	memset( modname, 0, sizeof(modname));
+	FS_FileBase( name, modname );
           
-          for(i = 0; i < numcmodels; i++ )
+          for(i = 0; i < numsmodels; i++ )
           {
-		studiohdr_t *modhead;
-		out = map_cmodels + i;
+		out = studio_models + i;
+
+		//probably is sprite model
 		if(!out->extradata) continue;
-		
-		modhead = (studiohdr_t *)out->extradata;
-		if(!stricmp(modname, modhead->name))
+		if(!stricmp(modname, out->name))
 			return out;
 	} 
 	
-	out = &map_cmodels[++numcmodels];
+	out = &studio_models[numsmodels];
 	out->extradata = buffer;
+	out->numframes = 0;//sprite info
+	strlcpy(out->name, modname, sizeof(out->name));
 	
-	if(!SV_StudioExtractBbox( phdr, 0, out->mins, out->maxs ))
+	if(SV_StudioExtractBbox( phdr, 0, out->mins, out->maxs ))
+	{
+		//normalize bbox
+		CM_LookUpHullSize(out->mins, true );
+		CM_LookUpHullSize(out->maxs, true );  
+	}
+	else
 	{
 		VectorSet(out->mins, -32, -32, -32 );
 		VectorSet(out->maxs,  32,  32,  32 );
 	}
-	return &map_cmodels[numcmodels];
+
+	Msg("register new model %s\n", out->name );
+	numsmodels++;
+	
+	return &studio_models[numsmodels];
+}
+
+stmodel_t	*CM_SpriteModel (char *name)
+{
+	int		i;
+	byte		*buffer;
+	stmodel_t		*out;
+	dsprite_t		*phdr;
+	char		modname[64]; //probaly this is not better way...
+
+	if (!name[0])
+	{
+		Msg ("CM_SpriteModel: NULL name, ignored\n");
+		return NULL;
+	}
+	if(!FS_FileExists( name ))
+	{
+		Msg ("CM_SpriteModel: %s not found\n", name );
+		return NULL;
+	}
+	if(numsmodels > MAX_MAP_MODELS)
+	{
+		Msg ("CM_SpriteModel: MAX_MAP_MODELS limit exceeded\n" );
+		return NULL;		
+	}
+
+	buffer = FS_LoadFile (name, NULL );
+	phdr = (dsprite_t *)buffer;
+	
+	if(phdr->ident != IDSPRITEHEADER)
+	{
+		Msg("CM_SpriteModel: %s have invalid header\n", name );
+		return NULL;
+	}
+	if(phdr->version != SPRITE_VERSION)
+	{
+		Msg("CM_SpriteModel: %s has wrong version number (%i should be %i)\n", name, phdr->version, SPRITE_VERSION);
+		return NULL;
+	}
+
+	memset( modname, 0, sizeof(modname));
+	FS_FileBase( name, modname );
+          
+          for(i = 0; i < numsmodels; i++ )
+          {
+		out = studio_models + i;
+
+		//probably is studio model
+		if(!out->numframes) continue;
+		if(!stricmp(modname, out->name))
+			return out;
+	} 
+	
+	out = &studio_models[numsmodels];
+	out->numframes = phdr->numframes;
+	strlcpy(out->name, modname, sizeof(out->name));
+
+	out->mins[0] = out->mins[1] = -phdr->width / 2;
+	out->maxs[0] = out->maxs[1] = phdr->width / 2;
+	out->mins[2] = -phdr->height / 2;
+	out->maxs[2] = phdr->height / 2;
+	Z_Free( &buffer );//no need to keep this data
+	
+	Msg("register new sprite %s\n", out->name );
+	numsmodels++;
+	
+	return &studio_models[numsmodels];
 }

@@ -506,7 +506,7 @@ void actor_attack(edict_t *self);
 void actor_switch (edict_t *self)
 {
 	self->actor_current_weapon = 1 - self->actor_current_weapon;
-	self->s.modelindex2 = self->actor_model_index[self->actor_current_weapon];
+	self->s.weaponmodel = self->actor_model_index[self->actor_current_weapon];
 	actor_ideal_range(self);
 	gi.linkentity(self);
 }
@@ -627,7 +627,7 @@ void actor_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage
 	int		n;
 
 	//Remove the weapon model and turn off weapon sound, if any
-	self->s.modelindex2 = 0;
+	self->s.weaponmodel = 0;
 	self->s.sound = 0;
 
 // check for gib
@@ -1784,7 +1784,7 @@ void actor_files ()
 			if(w_match[0]) {
 				k = (w_match[0]-1) % 2;
 				e0 = &g_edicts[actors[ (w_match[0]-k-1)/2 ].index];
-				e->s.modelindex2 = e->actor_model_index[0] = e0->actor_model_index[k];
+				e->s.weaponmodel = e->actor_model_index[0] = e0->actor_model_index[k];
 			}
 			if(w_match[1]) {
 				k = (w_match[1]-1) % 2;
@@ -1894,8 +1894,8 @@ void actor_files ()
 			sprintf(filename,"players/male/weapon.md2");
 			e->actor_model_index[k] = gi.modelindex(filename);
 		}
-		if(e->health > 0) e->s.modelindex2 = e->actor_model_index[e->actor_current_weapon];
-		else e->s.modelindex2 = 0;
+		if(e->health > 0) e->s.weaponmodel = e->actor_model_index[e->actor_current_weapon];
+		else e->s.weaponmodel = 0;
 		gi.linkentity(e);
 	}
 }

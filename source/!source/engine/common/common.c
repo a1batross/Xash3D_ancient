@@ -552,12 +552,12 @@ void MSG_WriteDeltaEntity (entity_state_t *from, entity_state_t *to, sizebuf_t *
 	
 	if ( to->modelindex != from->modelindex )
 		bits |= U_MODEL;
-	if ( to->modelindex2 != from->modelindex2 )
-		bits |= U_MODEL2;
-	if ( to->modelindex3 != from->modelindex3 )
-		bits |= U_MODEL3;
-	if ( to->modelindex4 != from->modelindex4 )
-		bits |= U_MODEL4;
+	if ( to->weaponmodel != from->weaponmodel )
+		bits |= U_WEAPONMODEL;
+	if ( to->body != from->body )
+		bits |= U_BODY;
+	if ( to->sequence != from->sequence )
+		bits |= U_SEQUENCE;
 
 	if ( to->sound != from->sound )
 		bits |= U_SOUND;
@@ -609,12 +609,12 @@ void MSG_WriteDeltaEntity (entity_state_t *from, entity_state_t *to, sizebuf_t *
 
 	if (bits & U_MODEL)
 		MSG_WriteByte (msg,	to->modelindex);
-	if (bits & U_MODEL2)
-		MSG_WriteByte (msg,	to->modelindex2);
-	if (bits & U_MODEL3)
-		MSG_WriteByte (msg,	to->modelindex3);
-	if (bits & U_MODEL4)
-		MSG_WriteByte (msg,	to->modelindex4);
+	if (bits & U_WEAPONMODEL)
+		MSG_WriteByte (msg,	to->weaponmodel);
+	if (bits & U_BODY)
+		MSG_WriteByte (msg,	to->body);
+	if (bits & U_SEQUENCE)
+		MSG_WriteByte (msg,	to->sequence);
 
 	if (bits & U_FRAME8)
 		MSG_WriteByte (msg, to->frame);

@@ -572,7 +572,7 @@ void jorg_dead (edict_t *self)
 	VectorSet (self->maxs, 16, 16, -8);
 	*/
 	
-	// Jorg is on modelindex2. Do not clear him.
+	// Jorg is on weaponmodel. Do not clear him.
 	VectorSet (self->mins, -60, -60, 0);
 	VectorSet (self->maxs, 60, 60, 72);
 	self->movetype = MOVETYPE_TOSS;
@@ -730,7 +730,7 @@ void SP_monster_jorg (edict_t *self)
 	self->movetype = MOVETYPE_STEP;
 	self->solid = SOLID_BBOX;
 	self->s.modelindex = gi.modelindex ("models/monsters/boss3/rider/tris.md2");
-	self->s.modelindex2 = gi.modelindex ("models/monsters/boss3/jorg/tris.md2");
+	self->s.weaponmodel = gi.modelindex ("models/monsters/boss3/jorg/tris.md2");
 	VectorSet (self->mins, -80, -80, 0);
 	VectorSet (self->maxs, 80, 80, 140);
 

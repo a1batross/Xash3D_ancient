@@ -40,12 +40,6 @@ BRUSH MODELS
 #define MAX_MAP_LIGHTING		0x400000
 #define MAX_MAP_VISIBILITY		0x100000
 
-typedef struct
-{
-	int	fileofs;
-	int	filelen;
-} lump_t;
-
 //lump offset
 #define LUMP_ENTITIES		0
 #define LUMP_PLANES			1
@@ -210,9 +204,16 @@ typedef struct cmodel_s
 	vec3_t	mins, maxs;
 	vec3_t	origin;		// for sounds or lights
 	int	headnode;
-
-	void	*extradata;	//for studio models
 } cmodel_t;
+
+typedef struct stmodel_s
+{
+	int	modidx;		//edict index
+	char	name[64];		//model name
+	vec3_t	mins, maxs;
+	int	numframes;	//sprite framecount
+	void	*extradata;	//for studio models
+} stmodel_t;
 
 typedef struct csurface_s
 {

@@ -270,6 +270,10 @@ SOURCE=.\server\sv_main.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\server\sv_save.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\server\sv_send.c
 # End Source File
 # Begin Source File

@@ -254,12 +254,12 @@ void CL_ParseDelta (entity_state_t *from, entity_state_t *to, int number, int bi
 
 	if (bits & U_MODEL)
 		to->modelindex = MSG_ReadByte (&net_message);
-	if (bits & U_MODEL2)
-		to->modelindex2 = MSG_ReadByte (&net_message);
-	if (bits & U_MODEL3)
-		to->modelindex3 = MSG_ReadByte (&net_message);
-	if (bits & U_MODEL4)
-		to->modelindex4 = MSG_ReadByte (&net_message);
+	if (bits & U_WEAPONMODEL)
+		to->weaponmodel = MSG_ReadByte (&net_message);
+	if (bits & U_BODY)
+		to->body = MSG_ReadByte (&net_message);
+	if (bits & U_SEQUENCE)
+		to->sequence = MSG_ReadByte (&net_message);
 		
 	if (bits & U_FRAME8)
 		to->frame = MSG_ReadByte (&net_message);
@@ -342,9 +342,9 @@ void CL_DeltaEntity (frame_t *frame, int newnum, entity_state_t *old, int bits)
 
 	// some data changes will force no lerping
 	if (state->modelindex != ent->current.modelindex
-		|| state->modelindex2 != ent->current.modelindex2
-		|| state->modelindex3 != ent->current.modelindex3
-		|| state->modelindex4 != ent->current.modelindex4
+		|| state->weaponmodel != ent->current.weaponmodel
+		|| state->body != ent->current.body
+		|| state->sequence != ent->current.sequence
 		|| abs(state->origin[0] - ent->current.origin[0]) > 512
 		|| abs(state->origin[1] - ent->current.origin[1]) > 512
 		|| abs(state->origin[2] - ent->current.origin[2]) > 512
@@ -525,12 +525,10 @@ void CL_ParsePlayerstate (frame_t *oldframe, frame_t *newframe)
 	state = &newframe->playerstate;
 
 	// clear to old value before delta parsing
-	if (oldframe)
-		*state = oldframe->playerstate;
-	else
-		memset (state, 0, sizeof(*state));
+	if (oldframe) *state = oldframe->playerstate;
+	else memset (state, 0, sizeof(*state));
 
-	flags = MSG_ReadShort (&net_message);
+	flags = MSG_ReadLong(&net_message);//four bytes
 
 	//
 	// parse the pmove_state_t
@@ -611,12 +609,27 @@ void CL_ParsePlayerstate (frame_t *oldframe, frame_t *newframe)
 		state->gunangles[2] = MSG_ReadChar (&net_message)*0.25;
 	}
 
+	if (flags & PS_WEAPONSEQUENCE)
+	{
+		state->sequence = MSG_ReadByte (&net_message);
+	}
+
+	if (flags & PS_WEAPONBODY)
+	{
+		state->gunbody = MSG_ReadByte (&net_message);
+	}
+	
+	if (flags & PS_WEAPONSKIN)
+	{
+		state->gunskin = MSG_ReadByte (&net_message);
+	}
+
 	if (flags & PS_BLEND)
 	{
-		state->blend[0] = MSG_ReadByte (&net_message)/255.0;
-		state->blend[1] = MSG_ReadByte (&net_message)/255.0;
-		state->blend[2] = MSG_ReadByte (&net_message)/255.0;
-		state->blend[3] = MSG_ReadByte (&net_message)/255.0;
+		state->blend[0] = MSG_ReadByte (&net_message) / 255.0;
+		state->blend[1] = MSG_ReadByte (&net_message) / 255.0;
+		state->blend[2] = MSG_ReadByte (&net_message) / 255.0;
+		state->blend[3] = MSG_ReadByte (&net_message) / 255.0;
 	}
 
 	if (flags & PS_FOV)
@@ -627,9 +640,8 @@ void CL_ParsePlayerstate (frame_t *oldframe, frame_t *newframe)
 
 	// parse stats
 	statbits = MSG_ReadLong (&net_message);
-	for (i=0 ; i<MAX_STATS ; i++)
-		if (statbits & (1<<i) )
-			state->stats[i] = MSG_ReadShort(&net_message);
+	for (i = 0; i < MAX_STATS; i++)
+		if (statbits & (1<<i) ) state->stats[i] = MSG_ReadShort(&net_message);
 }
 
 
@@ -737,8 +749,7 @@ void CL_ParseFrame (void)
 	// read packet entities
 	cmd = MSG_ReadByte (&net_message);
 	SHOWNET(svc_strings[cmd]);
-	if (cmd != svc_packetentities)
-		Com_Error (ERR_DROP, "CL_ParseFrame: not packetentities");
+	if (cmd != svc_packetentities) Com_Error (ERR_DROP, "CL_ParseFrame: not packetentities");
 	CL_ParsePacketEntities (old, &cl.frame);
 
 #if 0
@@ -906,10 +917,14 @@ void CL_AddPacketEntities (frame_t *frame)
 		}
 // pmm
 //======
-		ent.oldframe = cent->prev.frame;
+		//copy state to renderer
+
+		ent.prev.frame = cent->prev.frame;
 		ent.backlerp = 1.0 - cl.lerpfrac;
 		ent.alpha = s1->alpha;
-		
+		ent.body = s1->body;
+		ent.sequence = s1->sequence;		
+
 		if (renderfx & (RF_FRAMELERP|RF_BEAM))
 		{	// step origin discretely, because the frames
 			// do the animation properly
@@ -1088,56 +1103,33 @@ void CL_AddPacketEntities (frame_t *frame)
 		ent.alpha = 0;
 
 		// duplicate for linked models
-		if (s1->modelindex2)
+		if (s1->weaponmodel)
 		{
-			if (s1->modelindex2 == 255)
-			{	// custom weapon
+			if (s1->weaponmodel == 255)
+			{
+				// custom weapon
 				ci = &cl.clientinfo[s1->skinnum & 0xff];
 				i = (s1->skinnum >> 8); // 0 is default weapon model
 				if (!cl_vwep->value || i > MAX_CLIENTWEAPONMODELS - 1)
 					i = 0;
 				ent.model = ci->weaponmodel[i];
 				if (!ent.model) {
-					if (i != 0)
-						ent.model = ci->weaponmodel[0];
-					if (!ent.model)
-						ent.model = cl.baseclientinfo.weaponmodel[0];
+					if (i != 0) ent.model = ci->weaponmodel[0];
+					if (!ent.model) ent.model = cl.baseclientinfo.weaponmodel[0];
 				}
 			}
-			else
-				ent.model = cl.model_draw[s1->modelindex2];
-
-			// PMM - check for the defender sphere shell .. make it translucent
-			// replaces the previous version which used the high bit on modelindex2 to determine transparency
-			if (!Q_strcasecmp (cl.configstrings[CS_MODELS+(s1->modelindex2)], "models/items/shell/tris.md2"))
-			{
-				ent.alpha = 0.32;
-				ent.flags = RF_TRANSLUCENT;
-			}
-			// pmm
+			else ent.model = cl.model_draw[s1->weaponmodel];
 
 			V_AddEntity (&ent);
 
-			//PGM - make sure these get reset.
 			ent.flags = 0;
 			ent.alpha = 0;
-			//PGM
-		}
-		if (s1->modelindex3)
-		{
-			ent.model = cl.model_draw[s1->modelindex3];
-			V_AddEntity (&ent);
-		}
-		if (s1->modelindex4)
-		{
-			ent.model = cl.model_draw[s1->modelindex4];
-			V_AddEntity (&ent);
 		}
 
 		if ( effects & EF_POWERSCREEN )
 		{
 			ent.model = cl_mod_powerscreen;
-			ent.oldframe = 0;
+			ent.prev.frame = 0;
 			ent.frame = 0;
 			ent.flags |= (RF_TRANSLUCENT | RF_SHELL_GREEN);
 			ent.alpha = 0.30;
@@ -1303,44 +1295,39 @@ void CL_AddViewWeapon (player_state_t *ps, player_state_t *ops)
 	int			i;
 
 	// allow the gun to be completely removed
-	if (!cl_gun->value)
-		return;
+	if (!cl_gun->value) return;
 
 	// don't draw gun if in wide angle view
-	if (ps->fov > 90)
-		return;
+	if (ps->fov > 135) return;
 
 	memset (&gun, 0, sizeof(gun));
 
-	if (gun_model)
-		gun.model = gun_model;	// development tool
-	else
-		gun.model = cl.model_draw[ps->gunindex];
-	if (!gun.model)
-		return;
+	if (gun_model) gun.model = gun_model; // development tool
+	else gun.model = cl.model_draw[ps->gunindex];
+	if (!gun.model) return;
 
 	// set up gun position
-	for (i=0 ; i<3 ; i++)
+	for (i = 0; i < 3; i++)
 	{
-		gun.origin[i] = cl.refdef.vieworg[i] + ops->gunoffset[i]
-			+ cl.lerpfrac * (ps->gunoffset[i] - ops->gunoffset[i]);
-		gun.angles[i] = cl.refdef.viewangles[i] + LerpAngle (ops->gunangles[i],
-			ps->gunangles[i], cl.lerpfrac);
+		gun.origin[i] = cl.refdef.vieworg[i] + ops->gunoffset[i] + cl.lerpfrac * (ps->gunoffset[i] - ops->gunoffset[i]);
+		gun.angles[i] = cl.refdef.viewangles[i] + LerpAngle (ops->gunangles[i], ps->gunangles[i], cl.lerpfrac);
 	}
 
 	if (gun_frame)
 	{
 		gun.frame = gun_frame;	// development tool
-		gun.oldframe = gun_frame;	// development tool
+		gun.prev.frame = gun_frame;	// development tool
 	}
 	else
 	{
 		gun.frame = ps->gunframe;
-		if (gun.frame == 0)
-			gun.oldframe = 0;	// just changed weapons, don't lerp from old
-		else
-			gun.oldframe = ops->gunframe;
+		if (gun.frame == 0) gun.prev.frame = 0;	// just changed weapons, don't lerp from old
+		else gun.prev.frame = ops->gunframe;
 	}
+
+	gun.body = ps->gunbody;
+	gun.skin = ps->gunskin;
+	gun.sequence = ps->sequence;
 
 	gun.flags = RF_MINLIGHT | RF_DEPTHHACK | RF_WEAPONMODEL;
 	gun.backlerp = 1.0 - cl.lerpfrac;

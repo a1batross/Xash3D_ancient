@@ -157,9 +157,9 @@ void SaveEntProps(edict_t *e, file_t *f)
 		"   angles      = %s\n"
 		"   old_origin  = %s\n"
 		"   modelindex  = %d\n"
-		"   modelindex2 = %d\n"
-		"   modelindex3 = %d\n"
-		"   modelindex4 = %d\n"
+		"   weaponmodel = %d\n"
+		"   body        = %d\n"
+		"   sequence    = %d\n"
 		"   frame       = %d\n"
 		"   skinnum     = %d\n"
 		"   effects     = 0x%08x\n"
@@ -167,8 +167,8 @@ void SaveEntProps(edict_t *e, file_t *f)
 		"   sound       = %d\n"
 		"   event       = %d\n",
 		e->s.number,vtos(e->s.origin),vtos(e->s.angles),
-		vtos(e->s.old_origin),e->s.modelindex,e->s.modelindex2,
-		e->s.modelindex3,e->s.modelindex4,e->s.frame,
+		vtos(e->s.old_origin),e->s.modelindex,e->s.weaponmodel,
+		e->s.body,e->s.sequence,e->s.frame,
 		e->s.skinnum,e->s.effects,e->s.solid,e->s.sound,
 		e->s.event);
 	gi.fprintf(f,"inuse       = %d\n"

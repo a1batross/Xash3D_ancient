@@ -296,7 +296,7 @@ void ThrowHead (edict_t *self, char *gibname, int damage, int type)
 	strcpy(self->key_message, modelname);
 
 	self->style = type;
-	self->s.modelindex2 = 0;
+	self->s.weaponmodel = 0;
 	gi.setmodel (self, modelname);
 	self->solid = SOLID_NOT;
 	if(self->blood_type == 1)
@@ -456,6 +456,7 @@ void ThrowDebris (edict_t *self, char *modelname, float speed, vec3_t origin, in
 	strcpy(chunk->message, modelname);
 
 	// Lazarus: skin number and effects
+	chunk->s.body = skin;//FIXME
 	chunk->s.skinnum = skin;
 	chunk->s.effects |= effects;
 
@@ -1040,25 +1041,20 @@ void func_explosive_explode (edict_t *self)
 		int	r;
 
 		count = mass/25;
-		if(count > 16)
-			count = 16;
+		if(count > 16) count = 16;
 		while(count--)
 		{
 			r = (rand() % 5) + 1;
 			chunkorigin[0] = origin[0] + crandom() * size[0];
 			chunkorigin[1] = origin[1] + crandom() * size[1];
 			chunkorigin[2] = origin[2] + crandom() * size[2];
-			switch(self->gib_type) {
-			case GIB_METAL:
-				ThrowDebris (self, va("models/objects/metal_gibs/gib%i.md2",r),   2, chunkorigin, self->s.skinnum, 0); break;
-			case GIB_GLASS:
-				ThrowDebris (self, va("models/objects/glass_gibs/gib%i.md2",r),   2, chunkorigin, self->s.skinnum, EF_SPHERETRANS); break;
-			case GIB_BARREL:
-				ThrowDebris (self, va("models/objects/barrel_gibs/gib%i.md2",r),  2, chunkorigin, self->s.skinnum, 0); break;
-			case GIB_CRATE:
-				ThrowDebris (self, va("models/objects/crate_gibs/gib%i.md2",r),   2, chunkorigin, self->s.skinnum, 0); break;
-			case GIB_ROCK:
-				ThrowDebris (self, va("models/objects/rock_gibs/gib%i.md2",r),    2, chunkorigin, self->s.skinnum, 0); break;
+			switch(self->gib_type)
+			{
+			case GIB_METAL: ThrowDebris (self, "models/gibs/metal.mdl", 2, chunkorigin, r, 0); break;
+			case GIB_GLASS: ThrowDebris (self, "models/gibs/glass.mdl", 2, chunkorigin, r, EF_SPHERETRANS); break;
+			case GIB_BARREL: ThrowDebris (self, "models/gibs/barrelgib.mdl", 2, chunkorigin, r, 0); break;
+			case GIB_CRATE: ThrowDebris (self, "models/gibs/wood.mdl",  2, chunkorigin, r, 0); break;
+			case GIB_ROCK: ThrowDebris (self, "models/gibs/rock.mdl", 2, chunkorigin, r, 0); break;
 			case GIB_CRYSTAL:
 				ThrowDebris (self, va("models/objects/crystal_gibs/gib%i.md2",r), 2, chunkorigin, self->s.skinnum, 0); break;
 			case GIB_MECH:
@@ -1258,7 +1254,7 @@ void barrel_explode (edict_t *self)
 	vec3_t	save;
 	vec3_t	size;
 
-	if(self->gib_type == GIB_BARREL)
+	if( (self->gib_type > 0) && (self->gib_type < 10))
 	{
 		func_explosive_explode(self);
 		return;
@@ -1373,14 +1369,10 @@ void SP_misc_explobox (edict_t *self)
 
 	self->class_id = ENTITY_MISC_EXPLOBOX;
 	// Lazarus: can use actual barrel parts for debris:
-	if((self->spawnflags & 1) || (self->gib_type == GIB_BARREL))
+	if(self->spawnflags & 1)
 	{
-		self->gib_type = GIB_BARREL;
-		gi.modelindex ("models/objects/barrel_gibs/gib1.md2");
-		gi.modelindex ("models/objects/barrel_gibs/gib2.md2");
-		gi.modelindex ("models/objects/barrel_gibs/gib3.md2");
-		gi.modelindex ("models/objects/barrel_gibs/gib4.md2");
-		gi.modelindex ("models/objects/barrel_gibs/gib5.md2");
+		self->gib_type = GIB_GLASS;//GIB_BARREL;
+		PrecacheDebris(self->gib_type);
 	}
 	else
 	{
@@ -1388,7 +1380,7 @@ void SP_misc_explobox (edict_t *self)
 		gi.modelindex ("models/objects/debris2/tris.md2");
 		gi.modelindex ("models/objects/debris3/tris.md2");
 	}
-
+	
 	self->solid = SOLID_BBOX;
 	self->clipmask = MASK_MONSTERSOLID | MASK_PLAYERSOLID;
 	self->movetype = MOVETYPE_STEP;
@@ -1398,12 +1390,9 @@ void SP_misc_explobox (edict_t *self)
 	VectorSet (self->mins, -16, -16, 0);
 	VectorSet (self->maxs, 16, 16, 40);
 
-	if (!self->mass)
-		self->mass = 400;
-	if (!self->health)
-		self->health = 10;
-	if (!self->dmg)
-		self->dmg = 150;
+	if (!self->mass) self->mass = 400;
+	if (!self->health) self->health = 10;
+	if (!self->dmg) self->dmg = 150;
 
 	self->die = barrel_delay;
 	self->takedamage = DAMAGE_YES;
@@ -3622,18 +3611,9 @@ void PrecacheDebris(int type)
 		for(i=1;i<=5;i++)
 			gi.modelindex(va("models/objects/metal_gibs/gib%i.md2",i));
 		break;
-	case GIB_GLASS:
-		for(i=1;i<=5;i++)
-			gi.modelindex(va("models/objects/glass_gibs/gib%i.md2",i));
-		break;
-	case GIB_BARREL:
-		for(i=1;i<=5;i++)
-			gi.modelindex(va("models/objects/barrel_gibs/gib%i.md2",i));
-		break;
-	case GIB_CRATE:
-		for(i=1;i<=5;i++)
-			gi.modelindex(va("models/objects/crate_gibs/gib%i.md2",i));
-		break;
+	case GIB_GLASS: gi.modelindex("models/gibs/glass.mdl"); break;
+	case GIB_BARREL: gi.modelindex("models/gibs/barrelgib.mdl"); break;
+	case GIB_CRATE: gi.modelindex("models/gibs/wood.mdl"); break;
 	case GIB_ROCK:
 		for(i=1;i<=5;i++)
 			gi.modelindex(va("models/objects/rock_gibs/gib%i.md2",i));

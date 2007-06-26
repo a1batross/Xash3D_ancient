@@ -223,9 +223,8 @@ void ChangeWeapon (edict_t *ent)
 
 	// DWH: change weapon model index if necessary
 	if(ITEM_INDEX(ent->client->pers.weapon) == noweapon_index)
-		ent->s.modelindex2 = 0;
-	else
-		ent->s.modelindex2 = MAX_MODELS-1;
+		ent->s.weaponmodel = 0;
+	else ent->s.weaponmodel = MAX_MODELS-1;
 
 	ent->client->anim_priority = ANIM_PAIN;
 	if(ent->client->ps.pmove.pm_flags & PMF_DUCKED)
@@ -559,8 +558,7 @@ void Weapon_Generic (edict_t *ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST,
 
 		if ( ((ent->client->latched_buttons|ent->client->buttons) & BUTTONS_ATTACK) )
 		{
-			if ((!ent->client->ammo_index) || 
-				( ent->client->pers.inventory[ent->client->ammo_index] >= ent->client->pers.weapon->quantity))
+			if ((!ent->client->ammo_index) || ( ent->client->pers.inventory[ent->client->ammo_index] >= ent->client->pers.weapon->quantity))
 			{
 				ent->client->ps.gunframe = FRAME_FIRE_FIRST;
 				ent->client->weaponstate = WEAPON_FIRING;
@@ -608,7 +606,6 @@ void Weapon_Generic (edict_t *ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST,
 					}
 				}
 			}
-
 			ent->client->ps.gunframe++;
 			return;
 		}

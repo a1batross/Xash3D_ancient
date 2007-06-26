@@ -293,6 +293,13 @@ void SV_InitEdict (edict_t *e);
 byte *SV_GetModelPtr(edict_t *ent);
 int SV_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *maxs );
 
+
+//
+// sv_save.c
+//
+
+void SV_WriteSaveFile( int mode );
+
 //============================================================
 
 //

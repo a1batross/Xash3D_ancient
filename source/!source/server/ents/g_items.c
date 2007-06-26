@@ -1485,32 +1485,6 @@ gitem_t	itemlist[] =
 	// WEAPONS 
 	//
 
-/* weapon_blaster (.3 .3 1) (-16 -16 -16) (16 16 16)
-always owned, never in the world
-*/
-/*	{
-		"weapon_blaster", 
-		NULL,
-		Use_Weapon,
-		NULL,
-		Weapon_Blaster,
-		"misc/w_pkup.wav",
-		NULL, 0,
-		"models/weapons/v_glock.mdl",
-		"w_blaster",
-		"Blaster",
-		0,
-		0,
-		NULL,
-		IT_WEAPON|IT_STAY_COOP,
-		WEAP_BLASTER,
-		NULL,
-		0,
-		"weapons/blastf1a.wav misc/lasfly.wav"
-	}, */
-
-// DWH
-
 /*QUAKED weapon_blaster (.3 .3 1) (-16 -16 -16) (16 16 16)
 */
 	{

@@ -529,7 +529,7 @@ void player_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damag
 	self->takedamage = DAMAGE_YES;
 	self->movetype = MOVETYPE_TOSS;
 
-	self->s.modelindex2 = 0;	// remove linked weapon model
+	self->s.weaponmodel = 0;	// remove linked weapon model
 
 	self->s.angles[0] = 0;
 	self->s.angles[2] = 0;
@@ -1447,9 +1447,8 @@ void PutClientInServer (edict_t *ent)
 	ent->s.modelindex = MAX_MODELS-1;		// will use the skin specified model
 
 	if(ITEM_INDEX(client->pers.weapon) == noweapon_index)
-		ent->s.modelindex2 = 0;
-	else
-		ent->s.modelindex2 = MAX_MODELS-1;		// custom gun model
+		ent->s.weaponmodel = 0;
+	else ent->s.weaponmodel = MAX_MODELS - 1;	// custom gun model
 
 	// sknum is player num and weapon number
 	// weapon number will be added in changeweapon

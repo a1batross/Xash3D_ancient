@@ -32,7 +32,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define BUILDSTRING "Win32 DEBUG"
 #endif
 
-
 // many buffers use this size
 #define MAX_INPUTLINE 16384
 
@@ -226,21 +225,25 @@ enum clc_ops_e
 // plyer_state_t communication
 
 #define	PS_M_TYPE			(1<<0)
-#define	PS_M_ORIGIN			(1<<1)
+#define	PS_M_ORIGIN		(1<<1)
 #define	PS_M_VELOCITY		(1<<2)
 #define	PS_M_TIME			(1<<3)
-#define	PS_M_FLAGS			(1<<4)
+#define	PS_M_FLAGS		(1<<4)
 #define	PS_M_GRAVITY		(1<<5)
-#define	PS_M_DELTA_ANGLES	(1<<6)
-
+#define	PS_M_DELTA_ANGLES		(1<<6)
 #define	PS_VIEWOFFSET		(1<<7)
+
 #define	PS_VIEWANGLES		(1<<8)
 #define	PS_KICKANGLES		(1<<9)
 #define	PS_BLEND			(1<<10)
-#define	PS_FOV				(1<<11)
+#define	PS_FOV			(1<<11)
 #define	PS_WEAPONINDEX		(1<<12)
 #define	PS_WEAPONFRAME		(1<<13)
-#define	PS_RDFLAGS			(1<<14)
+#define	PS_WEAPONSEQUENCE		(1<<14)
+#define	PS_WEAPONBODY		(1<<15)
+
+#define	PS_WEAPONSKIN		(1<<16)
+#define	PS_RDFLAGS		(1<<17)
 
 //==============================================
 
@@ -294,11 +297,11 @@ enum clc_ops_e
 // third byte
 #define	U_SKIN8		(1<<16)
 #define	U_FRAME16		(1<<17)		// frame is a short
-#define	U_RENDERFX16	(1<<18)	// 8 + 16 = 32
+#define	U_RENDERFX16	(1<<18)		// 8 + 16 = 32
 #define	U_EFFECTS16	(1<<19)		// 8 + 16 = 32
-#define	U_MODEL2		(1<<20)		// weapons, flags, etc
-#define	U_MODEL3		(1<<21)
-#define	U_MODEL4		(1<<22)
+#define	U_WEAPONMODEL	(1<<20)		// weapons, flags, etc
+#define	U_BODY		(1<<21)
+#define	U_SEQUENCE	(1<<22)		// animation sequence
 #define	U_MOREBITS3	(1<<23)		// read one additional byte
 
 // fourth byte
@@ -529,7 +532,10 @@ CMODEL
 
 cmodel_t	*CM_LoadMap (char *name, bool clientload, unsigned *checksum);
 cmodel_t	*CM_InlineModel (char *name);	// *1, *2, etc
-cmodel_t	*CM_StudioModel (char *name); //studio models server copy
+stmodel_t	*CM_StudioModel (char *name); //studio models server copy
+stmodel_t	*CM_SpriteModel (char *name); //sprite models some info (minmaxs, numframes e.t.c)
+
+extern bool portalopen[MAX_MAP_AREAPORTALS];
 
 int			CM_NumClusters (void);
 int			CM_NumInlineModels (void);

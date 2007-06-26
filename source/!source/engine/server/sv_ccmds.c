@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "engine.h"
 #include "server.h"
+#include "savefile.h"
 
 /*
 ===============================================================================
@@ -148,37 +149,12 @@ SAVEGAME FILES
 */
 
 /*
-====================
-Log_Timestamp
-====================
-*/
-const char* CurTime( void )
-{
-	static char timestamp [128];
-	time_t crt_time;
-	const struct tm *crt_tm;
-	char timestring [64];
-
-	// Build the time stamp (ex: "Apr2007-03(23.31.55)");
-	time (&crt_time);
-	crt_tm = localtime (&crt_time);
-	strftime (timestring, sizeof (timestring), "%b%Y-%d(%H.%M.%S)", crt_tm);
-          strcpy( timestamp, timestring );
-
-	return timestamp;
-}
-
-/*
 ==============
 SV_WriteLevelFile
 
 mode: 0 - regular save, 1 - autosave, 2 - quicksave
 ==============
 */
-
-#define REGULAR	0
-#define AUTOSAVE	1
-#define QUICK	2
 
 char* LF( int mode )
 {
@@ -187,7 +163,7 @@ char* LF( int mode )
 	switch(mode)
 	{
 	case REGULAR:
-		Com_sprintf (path, sizeof(path), "save/%s/%s.bin", sv.name, CurTime());	 
+		Com_sprintf (path, sizeof(path), "save/%s/%s.bin", sv.name, SV_CurTime());	 
 		break;
 	case AUTOSAVE:
 		Com_sprintf (path, sizeof(path), "save/%s/auto.bin", sv.name );
@@ -207,7 +183,7 @@ char* SF( int mode )
 	switch(mode)
 	{
 	case REGULAR:
-		Com_sprintf (path, sizeof(path), "save/%s/%s.sav", sv.name, CurTime());	 
+		Com_sprintf (path, sizeof(path), "save/%s/%s.sav", sv.name, SV_CurTime());	 
 		break;
 	case AUTOSAVE:
 		Com_sprintf (path, sizeof(path), "save/%s/auto.sav", sv.name );
@@ -239,8 +215,11 @@ void SV_WriteLevelFile (void)
 		Com_Printf ("Failed to open %s\n", name);
 		return;
 	}
+	Msg("wirte configstrings pos %d\n", FS_Tell(f));
 	FS_Write (f, sv.configstrings, sizeof(sv.configstrings));
+	Msg("wirte portalstate pos %d\n", FS_Tell(f));
 	CM_WritePortalState (f);
+	Msg("wirte level pos %d\n", FS_Tell(f));
 	ge->WriteLevel(f);
 
 	FS_Close (f);
@@ -265,8 +244,11 @@ void SV_ReadLevelFile (void)
 		Com_Printf ("Failed to open %s\n", name);
 		return;
 	}
+	Msg("read configstrings pos %d\n", FS_Tell(f));
 	FS_Read (f, sv.configstrings, sizeof(sv.configstrings));
+	Msg("read portalstate pos %d\n", FS_Tell(f));
 	CM_ReadPortalState (f);
+	Msg("read level pos %d\n", FS_Tell(f));
 	ge->ReadLevel(f);
 
 	FS_Close (f);
@@ -307,7 +289,7 @@ void SV_WriteServerFile (bool autosave)
 	{
 		time (&aclock);
 		newtime = localtime (&aclock);
-		Com_sprintf (comment, sizeof(comment), "%s", CurTime());
+		Com_sprintf (comment, sizeof(comment), "%s", SV_CurTime());
 		strncat (comment, sv.configstrings[CS_NAME], sizeof(comment)-1-strlen(comment) );
 	}
 	else
@@ -610,6 +592,8 @@ void SV_Savegame_f (void)
 
 	// save server state
 	SV_WriteServerFile (false);
+
+	SV_WriteSaveFile( AUTOSAVE );//TEST
 
 	Com_Printf ("Done.\n");
 }

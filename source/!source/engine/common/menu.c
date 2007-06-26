@@ -3696,7 +3696,7 @@ void PlayerConfig_MenuDraw( void )
 		entity.origin[2] = 0;
 		VectorCopy( entity.origin, entity.oldorigin );
 		entity.frame = 0;
-		entity.oldframe = 0;
+		entity.prev.frame = 0;
 		entity.backlerp = 0.0;
 		entity.angles[1] = yaw++;
 		if ( ++yaw > 360 )

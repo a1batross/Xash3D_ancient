@@ -992,12 +992,13 @@ typedef struct entity_state_s
 
 	vec3_t		origin;
 	vec3_t		angles;
-	vec3_t		old_origin;		// for lerping
+	vec3_t		old_origin;		// for lerping animation
 	int		modelindex;
-	int		modelindex2;
-	int		modelindex3;
-	int		modelindex4;		// weapons, CTF flags, etc
-	int		frame;
+	int		weaponmodel;
+
+	int		body;			// sub-model selection for studiomodels
+	int		sequence;			// animation sequence
+	int		frame;			// % playback position in animation sequences (0..255)
 	int		skinnum;
 	uint		effects;			// PGM - we're filling it, so it needs to be unsigned
 	int		renderfx;
@@ -1031,16 +1032,17 @@ typedef struct
 
 	vec3_t		gunangles;
 	vec3_t		gunoffset;
-	int			gunindex;
-	int			gunframe;
+	int		gunindex;
+	int		gunframe;		// studio frame
+	int		sequence;		// stuido animation sequence
+	int		gunbody;
+	int		gunskin; 
 
 	float		blend[4];		// rgba full screen effect
 	
-	float		fov;			// horizontal field of view
-
-	int			rdflags;		// refdef flags
-
-	short		stats[MAX_STATS];		// fast status bar updates
+	float		fov;		// horizontal field of view
+	int		rdflags;		// refdef flags
+	short		stats[MAX_STATS];	// fast status bar updates
 } player_state_t;
 
 

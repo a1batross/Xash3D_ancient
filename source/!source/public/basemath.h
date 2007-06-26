@@ -39,6 +39,13 @@ _inline void VectorBound(const float min, vec3_t v, const float max)
 	v[2] = bound(min, v[2], max);
 }
 
+_inline void VectorCeil( vec3_t v)
+{
+	v[0] = ceil(v[0]);
+	v[1] = ceil(v[1]);
+	v[2] = ceil(v[2]);
+}
+
 _inline double VectorLength(vec3_t v)
 {
 	int	i;

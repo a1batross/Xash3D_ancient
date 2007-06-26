@@ -105,8 +105,7 @@ void GL_DrawAliasFrameLerp (dmdl_t *paliashdr, float backlerp)
 		+ currententity->frame * paliashdr->framesize);
 	verts = v = frame->verts;
 
-	oldframe = (daliasframe_t *)((byte *)paliashdr + paliashdr->ofs_frames 
-		+ currententity->oldframe * paliashdr->framesize);
+	oldframe = (daliasframe_t *)((byte *)paliashdr + paliashdr->ofs_frames + (int)currententity->prev.frame * paliashdr->framesize);
 	ov = oldframe->verts;
 
 	order = (int *)((byte *)paliashdr + paliashdr->ofs_glcmds);
@@ -387,24 +386,18 @@ static bool R_CullAliasModel( vec3_t bbox[8], entity_t *e )
 			currentmodel->name, e->frame);
 		e->frame = 0;
 	}
-	if ( ( e->oldframe >= paliashdr->num_frames ) || ( e->oldframe < 0 ) )
+	if ( ( e->prev.frame >= paliashdr->num_frames ) || ( e->prev.frame < 0 ) )
 	{
 		ri.Con_Printf (PRINT_ALL, "R_CullAliasModel %s: no such oldframe %d\n", 
-			currentmodel->name, e->oldframe);
-		e->oldframe = 0;
+			currentmodel->name, e->prev.frame);
+		e->prev.frame = 0;
 	}
 
-	pframe = ( daliasframe_t * ) ( ( byte * ) paliashdr + 
-		                              paliashdr->ofs_frames +
-									  e->frame * paliashdr->framesize);
+	pframe = (daliasframe_t *)((byte *)paliashdr + paliashdr->ofs_frames + e->frame * paliashdr->framesize);
+	poldframe = (daliasframe_t *)((byte *)paliashdr +  paliashdr->ofs_frames + (int)e->prev.frame * paliashdr->framesize);
 
-	poldframe = ( daliasframe_t * ) ( ( byte * ) paliashdr + 
-		                              paliashdr->ofs_frames +
-									  e->oldframe * paliashdr->framesize);
+	// compute axially aligned mins and maxs
 
-	/*
-	** compute axially aligned mins and maxs
-	*/
 	if ( pframe == poldframe )
 	{
 		for ( i = 0; i < 3; i++ )
@@ -712,16 +705,16 @@ void R_DrawAliasModel ( int passnum )
 		ri.Con_Printf (PRINT_ALL, "R_DrawAliasModel %s: no such frame %d\n",
 			currentmodel->name, currententity->frame);
 		currententity->frame = 0;
-		currententity->oldframe = 0;
+		currententity->prev.frame = 0;
 	}
 
-	if ( (currententity->oldframe >= paliashdr->num_frames)
-		|| (currententity->oldframe < 0))
+	if ( (currententity->prev.frame >= paliashdr->num_frames)
+		|| (currententity->prev.frame < 0))
 	{
 		ri.Con_Printf (PRINT_ALL, "R_DrawAliasModel %s: no such oldframe %d\n",
-			currentmodel->name, currententity->oldframe);
+			currentmodel->name, currententity->prev.frame);
 		currententity->frame = 0;
-		currententity->oldframe = 0;
+		currententity->prev.frame = 0;
 	}
 
 	if ( !r_lerpmodels->value )

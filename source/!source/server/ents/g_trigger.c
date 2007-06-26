@@ -1483,9 +1483,7 @@ void WriteTransitionEdict (file_t *f, edict_t *changelevel, edict_t *ent)
 	e.nextthink = 0;
 	e.groundentity_linkcount = 0;
 	e.s.modelindex  = 0;
-	e.s.modelindex2 = 0;
-	e.s.modelindex3 = 0;
-	e.s.modelindex4 = 0;
+	e.s.weaponmodel = 0;
 	e.noise_index = 0;
 	// If the ent is a live bad guy monster, remove him from the total
 	// monster count. He'll be added back in in the new map.

@@ -222,8 +222,8 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 {
 	int				i;
 	int				pflags;
-	player_state_t	*ps, *ops;
-	player_state_t	dummy;
+	player_state_t			*ps, *ops;
+	player_state_t			dummy;
 	int				statbits;
 
 	ps = &to->ps;
@@ -232,12 +232,9 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 		memset (&dummy, 0, sizeof(dummy));
 		ops = &dummy;
 	}
-	else
-		ops = &from->ps;
+	else ops = &from->ps;
 
-	//
 	// determine what needs to be sent
-	//
 	pflags = 0;
 
 	if (ps->pmove.pm_type != ops->pmove.pm_type)
@@ -298,13 +295,22 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 	if (ps->gunframe != ops->gunframe)
 		pflags |= PS_WEAPONFRAME;
 
+	if (ps->sequence != ops->sequence)
+		pflags |= PS_WEAPONSEQUENCE;
+
+	if (ps->gunbody != ops->gunbody)
+		pflags |= PS_WEAPONBODY;
+
+	if (ps->gunskin != ops->gunskin)
+		pflags |= PS_WEAPONSKIN;
+
 	pflags |= PS_WEAPONINDEX;
 
 	//
 	// write it
 	//
 	MSG_WriteByte (msg, svc_playerinfo);
-	MSG_WriteShort (msg, pflags);
+	MSG_WriteLong (msg, pflags);
 
 	//
 	// write the pmove_state_t
@@ -347,9 +353,9 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 	//
 	if (pflags & PS_VIEWOFFSET)
 	{
-		MSG_WriteChar (msg, ps->viewoffset[0]*4);
-		MSG_WriteChar (msg, ps->viewoffset[1]*4);
-		MSG_WriteChar (msg, ps->viewoffset[2]*4);
+		MSG_WriteChar (msg, ps->viewoffset[0] * 4);
+		MSG_WriteChar (msg, ps->viewoffset[1] * 4);
+		MSG_WriteChar (msg, ps->viewoffset[2] * 4);
 	}
 
 	if (pflags & PS_VIEWANGLES)
@@ -361,9 +367,9 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 
 	if (pflags & PS_KICKANGLES)
 	{
-		MSG_WriteChar (msg, ps->kick_angles[0]*4);
-		MSG_WriteChar (msg, ps->kick_angles[1]*4);
-		MSG_WriteChar (msg, ps->kick_angles[2]*4);
+		MSG_WriteChar (msg, ps->kick_angles[0] * 4);
+		MSG_WriteChar (msg, ps->kick_angles[1] * 4);
+		MSG_WriteChar (msg, ps->kick_angles[2] * 4);
 	}
 
 	if (pflags & PS_WEAPONINDEX)
@@ -380,6 +386,21 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 		MSG_WriteChar (msg, ps->gunangles[0]*4);
 		MSG_WriteChar (msg, ps->gunangles[1]*4);
 		MSG_WriteChar (msg, ps->gunangles[2]*4);
+	}
+
+	if (pflags & PS_WEAPONSEQUENCE)
+	{
+		MSG_WriteByte (msg, ps->sequence);
+	}
+
+	if (pflags & PS_WEAPONBODY)
+	{
+		MSG_WriteByte (msg, ps->gunbody);
+	}
+	
+	if (pflags & PS_WEAPONSKIN)
+	{
+		MSG_WriteByte (msg, ps->gunskin);
 	}
 
 	if (pflags & PS_BLEND)
@@ -416,7 +437,7 @@ void SV_WriteFrameToClient (client_t *client, sizebuf_t *msg)
 	client_frame_t		*frame, *oldframe;
 	int					lastframe;
 
-//Com_Printf ("%i -> %i\n", client->lastframe, sv.framenum);
+	//Com_Printf ("%i -> %i\n", client->lastframe, sv.framenum);
 	// this is the frame we are creating
 	frame = &client->frames[sv.framenum & UPDATE_MASK];
 

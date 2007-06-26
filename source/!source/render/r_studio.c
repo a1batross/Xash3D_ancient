@@ -545,9 +545,9 @@ void R_StudioSetUpTransform ( void )
 		// NOTE:  Because we need to interpolate multiplayer characters, the interpolation time limit
 		//  was increased to 1.0 s., which is 2x the max lag we are accounting for.
 
-		if ( ( r_newrefdef.time < m_pCurrentEntity->animtime + 1.0f ) && ( m_pCurrentEntity->animtime != m_pCurrentEntity->oldanimtime ) )
+		if ( ( r_newrefdef.time < m_pCurrentEntity->animtime + 1.0f ) && ( m_pCurrentEntity->animtime != m_pCurrentEntity->prev.animtime ) )
 		{
-			f = (r_newrefdef.time - m_pCurrentEntity->animtime) / (m_pCurrentEntity->animtime - m_pCurrentEntity->oldanimtime);
+			f = (r_newrefdef.time - m_pCurrentEntity->animtime) / (m_pCurrentEntity->animtime - m_pCurrentEntity->prev.animtime);
 			//Msg("%4.2f %.2f %.2f\n", f, m_pCurrentEntity->animtime, r_newrefdef.time);
 		}
 
@@ -562,14 +562,14 @@ void R_StudioSetUpTransform ( void )
 		}
 
 		if (pseqdesc->motiontype & STUDIO_LX )//enable interpolation only for walk\run
-			for (i = 0; i < 3; i++) modelpos[i] += (m_pCurrentEntity->origin[i] - m_pCurrentEntity->oldorigin[i]) * f;
+			for (i = 0; i < 3; i++) modelpos[i] += (m_pCurrentEntity->origin[i] - m_pCurrentEntity->prev.origin[i]) * f;
 
 		for (i = 0; i < 3; i++)
 		{
 			float ang1, ang2;
 
 			ang1 = m_pCurrentEntity->angles[i];
-			ang2 = m_pCurrentEntity->oldangles[i];
+			ang2 = m_pCurrentEntity->prev.angles[i];
 
 			d = ang1 - ang2;
 			if (d > 180) d -= 360;
@@ -611,7 +611,7 @@ float R_StudioEstimateInterpolant( void )
 {
 	float dadt = 1.0;
 
-	if ( m_fDoInterp && ( m_pCurrentEntity->animtime >= m_pCurrentEntity->oldanimtime + 0.01 ) )
+	if ( m_fDoInterp && ( m_pCurrentEntity->animtime >= m_pCurrentEntity->prev.animtime + 0.01 ) )
 	{
 		dadt = (r_newrefdef.time - m_pCurrentEntity->animtime) / 0.1;
 		if (dadt > 2.0) dadt = 2.0;
@@ -654,7 +654,7 @@ void R_StudioCalcRotations ( float pos[][3], vec4_t *q, mstudioseqdesc_t *pseqde
 	// add in programtic controllers
 	pbone = (mstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
 
-	R_StudioCalcBoneAdj( dadt, adj, m_pCurrentEntity->controller, m_pCurrentEntity->oldcontroller, m_pCurrentEntity->mouth );
+	R_StudioCalcBoneAdj( dadt, adj, m_pCurrentEntity->controller, m_pCurrentEntity->prev.controller, m_pCurrentEntity->mouth );
 
 	for (i = 0; i < m_pStudioHeader->numbones; i++, pbone++, panim++) 
 	{
@@ -752,9 +752,9 @@ void R_StudioSetupBones ( void )
 
 	f = R_StudioEstimateFrame( pseqdesc );
 
-	if (m_pCurrentEntity->oldframe > f)
+	if (m_pCurrentEntity->prev.frame > f)
 	{
-		//ri.Con_Printf(PRINT_ALL, "%f %f\n", m_pCurrentEntity->oldframe, f );
+		//ri.Con_Printf(PRINT_ALL, "%f %f\n", m_pCurrentEntity->prev.frame, f );
 	}
 
 	panim = R_StudioGetAnim( m_pRenderModel, pseqdesc );
@@ -769,7 +769,7 @@ void R_StudioSetupBones ( void )
 		R_StudioCalcRotations( pos2, q2, pseqdesc, panim, f );
 
 		dadt = R_StudioEstimateInterpolant();
-		s = (m_pCurrentEntity->blending[0] * dadt + m_pCurrentEntity->oldblending[0] * (1.0 - dadt)) / 255.0;
+		s = (m_pCurrentEntity->blending[0] * dadt + m_pCurrentEntity->prev.blending[0] * (1.0 - dadt)) / 255.0;
 
 		R_StudioSlerpBones( q, pos, q2, pos2, s );
 
@@ -781,57 +781,57 @@ void R_StudioSetupBones ( void )
 			panim += m_pStudioHeader->numbones;
 			R_StudioCalcRotations( pos4, q4, pseqdesc, panim, f );
 
-			s = (m_pCurrentEntity->blending[0] * dadt + m_pCurrentEntity->oldblending[0] * (1.0 - dadt)) / 255.0;
+			s = (m_pCurrentEntity->blending[0] * dadt + m_pCurrentEntity->prev.blending[0] * (1.0 - dadt)) / 255.0;
 			R_StudioSlerpBones( q3, pos3, q4, pos4, s );
 
-			s = (m_pCurrentEntity->blending[1] * dadt + m_pCurrentEntity->oldblending[1] * (1.0 - dadt)) / 255.0;
+			s = (m_pCurrentEntity->blending[1] * dadt + m_pCurrentEntity->prev.blending[1] * (1.0 - dadt)) / 255.0;
 			R_StudioSlerpBones( q, pos, q3, pos3, s );
 		}
 	}
 	
-	if (m_fDoInterp && m_pCurrentEntity->sequencetime && ( m_pCurrentEntity->sequencetime + 0.2 > r_newrefdef.time) && ( m_pCurrentEntity->oldsequence < m_pStudioHeader->numseq ))
+	if (m_fDoInterp && m_pCurrentEntity->prev.sequencetime && ( m_pCurrentEntity->prev.sequencetime + 0.2 > r_newrefdef.time) && ( m_pCurrentEntity->prev.sequence < m_pStudioHeader->numseq ))
 	{
 		// blend from last sequence
 		static float  pos1b[MAXSTUDIOBONES][3];
 		static vec4_t q1b[MAXSTUDIOBONES];
 		float s;
 
-		pseqdesc = (mstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->oldsequence;
+		pseqdesc = (mstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->prev.sequence;
 		panim = R_StudioGetAnim( m_pRenderModel, pseqdesc );
 		// clip prevframe
-		R_StudioCalcRotations( pos1b, q1b, pseqdesc, panim, m_pCurrentEntity->oldframe );
+		R_StudioCalcRotations( pos1b, q1b, pseqdesc, panim, m_pCurrentEntity->prev.frame );
 
 		if (pseqdesc->numblends > 1)
 		{
 			panim += m_pStudioHeader->numbones;
-			R_StudioCalcRotations( pos2, q2, pseqdesc, panim, m_pCurrentEntity->oldframe );
+			R_StudioCalcRotations( pos2, q2, pseqdesc, panim, m_pCurrentEntity->prev.frame );
 
-			s = (m_pCurrentEntity->oldseqblending[0]) / 255.0;
+			s = (m_pCurrentEntity->prev.seqblending[0]) / 255.0;
 			R_StudioSlerpBones( q1b, pos1b, q2, pos2, s );
 
 			if (pseqdesc->numblends == 4)
 			{
 				panim += m_pStudioHeader->numbones;
-				R_StudioCalcRotations( pos3, q3, pseqdesc, panim, m_pCurrentEntity->oldframe );
+				R_StudioCalcRotations( pos3, q3, pseqdesc, panim, m_pCurrentEntity->prev.frame );
 
 				panim += m_pStudioHeader->numbones;
-				R_StudioCalcRotations( pos4, q4, pseqdesc, panim, m_pCurrentEntity->oldframe );
+				R_StudioCalcRotations( pos4, q4, pseqdesc, panim, m_pCurrentEntity->prev.frame );
 
-				s = (m_pCurrentEntity->oldseqblending[0]) / 255.0;
+				s = (m_pCurrentEntity->prev.seqblending[0]) / 255.0;
 				R_StudioSlerpBones( q3, pos3, q4, pos4, s );
 
-				s = (m_pCurrentEntity->oldseqblending[1]) / 255.0;
+				s = (m_pCurrentEntity->prev.seqblending[1]) / 255.0;
 				R_StudioSlerpBones( q1b, pos1b, q3, pos3, s );
 			}
 		}
 
-		s = 1.0 - (r_newrefdef.time - m_pCurrentEntity->sequencetime) / 0.2;
+		s = 1.0 - (r_newrefdef.time - m_pCurrentEntity->prev.sequencetime) / 0.2;
 		R_StudioSlerpBones( q, pos, q1b, pos1b, s );
 	}
 	else
 	{
 		//ri.Con_Printf(PRINT_ALL, "prevframe = %4.2f\n", f);
-		m_pCurrentEntity->oldframe = f;
+		m_pCurrentEntity->prev.frame = f;
 	}
 
 	pbones = (mstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
@@ -912,7 +912,7 @@ void R_StudioMergeBones ( model_t *m_pSubModel )
 
 	f = R_StudioEstimateFrame( pseqdesc );
 
-	//if (m_pCurrentEntity->oldframe > f) ri.Con_Printf(PRINT_ALL, "%f %f\n", m_pCurrentEntity->oldframe, f );
+	//if (m_pCurrentEntity->prev.frame > f) ri.Con_Printf(PRINT_ALL, "%f %f\n", m_pCurrentEntity->prev.frame, f );
 
 	panim = R_StudioGetAnim( m_pSubModel, pseqdesc );
 	R_StudioCalcRotations( pos, q, pseqdesc, panim, f );

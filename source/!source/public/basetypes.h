@@ -45,7 +45,7 @@ typedef vec_t		vec3_t[3];
 typedef vec_t		vec4_t[4];
 typedef long		fs_offset_t;
 typedef vec_t		matrix3x4[3][4];
-
+typedef struct { int fileofs; int filelen; }lump_t;
 
 
 #define BigShort(l) ShortSwap(l)
