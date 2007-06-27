@@ -64,7 +64,7 @@ void CalcTextureReflectivity (void)
 			if(!VectorIsNull(si->color))
 			{
 				//Msg("Shader color %g %g %g\n", si->color[0], si->color[1], si->color[2]);
-				TransformColor(si->color, texture_reflectivity[i]);
+				TransformRGB(si->color, texture_reflectivity[i]);
 				texinfo[i].value = si->intensity;
 				continue;
 			}

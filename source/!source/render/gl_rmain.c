@@ -262,7 +262,7 @@ void R_DrawEntitiesOnList (void)
 				R_DrawStudioModel( RENDERPASS_SOLID );
 				break;
 			default:
-				ri.Sys_Error (ERR_DROP, "Bad modeltype");
+				ri.Sys_Error (ERR_DROP, "Bad modeltype. Pass: solid");
 				break;
 			}
 		}
@@ -303,7 +303,7 @@ void R_DrawEntitiesOnList (void)
 				R_DrawStudioModel( RENDERPASS_ALPHA );
 				break;
 			default:
-				ri.Sys_Error (ERR_DROP, "Bad modeltype");
+				ri.Sys_Error (ERR_DROP, "Bad modeltype. Pass: alpha");
 				break;
 			}
 		}

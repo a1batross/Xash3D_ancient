@@ -76,6 +76,7 @@ void FS_Init( void );
 void FS_Shutdown (void);
 
 #define Mem_Alloc(pool, size) _Mem_Alloc(pool, size, __FILE__, __LINE__)
+#define Mem_Realloc(pool, ptr, size) _Mem_Realloc(pool, ptr, size, __FILE__, __LINE__)
 #define Mem_Free(mem) _Mem_Free(mem, __FILE__, __LINE__)
 #define Mem_AllocPool(name) _Mem_AllocPool(name, __FILE__, __LINE__)
 #define Mem_FreePool(pool) _Mem_FreePool(pool, __FILE__, __LINE__)

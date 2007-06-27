@@ -877,7 +877,7 @@ void CL_ParseTEnt (void)
 		ex->ent.angles[1] = rand() % 360;
 		ex->ent.model = cl_mod_explo4;
 		ex->baseframe = 0;
-		ex->frames = 8;
+		ex->frames = 6;
 		CL_ExplosionParticles (pos);
 		S_StartSound (pos, 0, 0, cl_sfx_rockexp, 1, ATTN_NORM, 0);
 		break;
@@ -1683,8 +1683,7 @@ void CL_AddExplosions (void)
 
 		VectorCopy (ent->origin, ent->oldorigin);
 
-		if (f < 0)
-			f = 0;
+		if (f < 0) f = 0;
 		ent->frame = ex->baseframe + f + 1;
 		ent->prev.frame = ex->baseframe + f;
 		ent->backlerp = 1.0 - cl.lerpfrac;

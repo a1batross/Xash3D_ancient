@@ -13,7 +13,8 @@ SPRITE MODELS
 */
 
 //header
-#define SPRITE_VERSION	2
+#define SPRITE_VERSION_HALF	2
+#define SPRITE_VERSION_XASH	3
 #define IDSPRITEHEADER	(('P'<<24)+('S'<<16)+('D'<<8)+'I') // little-endian "IDSP"
 
 //render format
@@ -23,13 +24,13 @@ SPRITE MODELS
 #define SPR_ORIENTED		3
 #define SPR_VP_PARALLEL_ORIENTED	4
 
-#define SPR_NORMAL			0
+#define SPR_NORMAL			0 //solid sprite
 #define SPR_ADDITIVE		1
 #define SPR_INDEXALPHA		2
 #define SPR_ALPHTEST		3
+#define SPR_ADDGLOW			4 //same as additive, but without depthtest
 
 typedef enum { SPR_SINGLE = 0, SPR_GROUP } frametype_t;
-typedef enum { ST_SYNC = 0, ST_RAND } synctype_t;
 
 typedef struct
 {
@@ -41,8 +42,8 @@ typedef struct
 	int		width;
 	int		height;
 	int		numframes;
-	float		beamlength;
-	synctype_t	synctype;
+	float		framerate; //xash auto-animate
+	uint		rgbacolor; //packed rgba color
 } dsprite_t;
 
 typedef struct

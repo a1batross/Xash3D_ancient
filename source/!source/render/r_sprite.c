@@ -80,18 +80,19 @@ void *R_SpriteLoadGroup (model_t *mod, void * pin, mspriteframe_t **ppframe, int
 	pspritegroup->numframes = numframes;
 
 	*ppframe = (mspriteframe_t *)pspritegroup;
-
 	pin_intervals = (dspriteinterval_t *)(pingroup + 1);
-
 	poutintervals = Mem_Alloc(mod->mempool, numframes * sizeof (float));
 
 	pspritegroup->intervals = poutintervals;
 
-	for (i=0 ; i<numframes ; i++)
+	for (i = 0; i < numframes; i++)
 	{
 		*poutintervals = LittleFloat (pin_intervals->interval);
-		if (*poutintervals <= 0.0)
-			ri.Sys_Error (ERR_DROP, "%s has interval<=0\n", mod->name );
+		if (*poutintervals <= 0.0) 
+		{
+			*poutintervals = 0.1f;//may be out of range. use with caution
+			Msg("Warning: %s with interval <= 0.0f, was merged\n", mod->name );
+		}
 		poutintervals++;
 		pin_intervals++;
 	}
@@ -107,54 +108,64 @@ void *R_SpriteLoadGroup (model_t *mod, void * pin, mspriteframe_t **ppframe, int
 
 void R_SpriteLoadModel( model_t *mod, void *buffer )
 {
-	int		i;
-	int		version;
+	int		i, size, version, numframes;
 	dsprite_t		*pin;
+	short		*numi;
 	msprite_t		*psprite;
-	int		numframes;
-	int		size;
 	dspriteframetype_t	*pframetype;
-	int		rendertype = 0;
 	byte		pal[256][4];
-	int		sptype;
+	vec4_t		rgbacolor;
+	float		framerate;
 	
 	pin = (dsprite_t *)buffer;
 	version = LittleLong (pin->version);
 		
-	if (version != SPRITE_VERSION)
-		ri.Sys_Error (ERR_DROP, "%s has wrong version number (%i should be %i)", mod->name, version, SPRITE_VERSION);
+	switch( version )
+	{
+	case SPRITE_VERSION_HALF:
+		ResetRGBA( rgbacolor );
+		framerate = 0.0f;
+		break;
+	case SPRITE_VERSION_XASH:
+		//unpack rgba
+		rgbacolor[0] = LittleLong((pin->rgbacolor & 0x000000FF) >> 0);
+		rgbacolor[1] = LittleLong((pin->rgbacolor & 0x0000FF00) >> 8);
+		rgbacolor[2] = LittleLong((pin->rgbacolor & 0x00FF0000) >> 16);
+		rgbacolor[3] = LittleLong((pin->rgbacolor & 0xFF000000) >> 24);
 
-	sptype = LittleLong (pin->type);
-	rendertype = LittleLong (pin->texFormat);
+		TransformRGBA(rgbacolor, rgbacolor );//convert into float
+		framerate = LittleFloat (pin->framerate);
+		break;
+	default:
+		Msg("Warning: %s has wrong version number (%i should be %i or %i)", mod->name, version, SPRITE_VERSION_HALF, SPRITE_VERSION_XASH );
+		return;
+	}
+
 	numframes = LittleLong (pin->numframes);
-
 	size = sizeof (msprite_t) + (numframes - 1) * sizeof (psprite->frames);
 
 	psprite = Mem_Alloc(mod->mempool, size );
 	mod->extradata = psprite; //make link to extradata
-          psprite->type = sptype;
 	
 	psprite->type	= LittleLong(pin->type);
 	psprite->maxwidth	= LittleLong (pin->width);
 	psprite->maxheight	= LittleLong (pin->height);
-	psprite->beamlength	= LittleFloat (pin->beamlength);//remove this ?
+	psprite->rendermode = LittleLong (pin->texFormat);
+	psprite->framerate	= framerate;
 	psprite->numframes	= numframes;
-
-	mod->mins[0] = mod->mins[1] = -psprite->maxwidth/2;
-	mod->maxs[0] = mod->maxs[1] = psprite->maxwidth/2;
-	mod->mins[2] = -psprite->maxheight/2;
-	mod->maxs[2] = psprite->maxheight/2;
+          memcpy(psprite->rgba, rgbacolor, sizeof(psprite->rgba));
+	numi = (short *)(pin + 1);
 	
-	if (pin->version == SPRITE_VERSION)
+	mod->mins[0] = mod->mins[1] = -psprite->maxwidth / 2;
+	mod->maxs[0] = mod->maxs[1] = psprite->maxwidth / 2;
+	mod->mins[2] = -psprite->maxheight / 2;
+	mod->maxs[2] = psprite->maxheight / 2;
+	
+	if (LittleShort(*numi) == 256)
 	{	
-		int i;
-		short *numi = (short*)(pin+1);
-		byte *src = (unsigned char *)(numi+1);
-		
-		if (LittleShort(*numi) != 256)
-			ri.Sys_Error (ERR_DROP, "%s has unexpected number of palette colors %i (should be 256)", mod->name, numi);
+		byte *src = (byte *)(numi+1);
 
-		switch( rendertype )
+		switch( psprite->rendermode )
 		{
 		case SPR_NORMAL:
 			for (i = 0; i < 256; i++)
@@ -165,6 +176,7 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 				pal[i][3] = 0;
 			}
 			break;
+		case SPR_ADDGLOW:
 		case SPR_ADDITIVE:
 			for (i = 0; i < 256; i++)
 			{
@@ -194,16 +206,32 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 			pal[255][0] = pal[255][1] = pal[255][2] = pal[255][3] = 0;
                               break;
 		default:
-			ri.Sys_Error (ERR_DROP, "%s has unknown texFormat (%i, should be 0, 1, 2, or 3)", mod->name, rendertype);
+			for (i = 0; i < 256; i++)
+			{
+				pal[i][0] = *src++;
+				pal[i][1] = *src++;
+				pal[i][2] = *src++;
+				pal[i][3] = 0;
+			}
+			Msg("Warning: %s has unknown texFormat (%i, should be in range 0-4 )\n", mod->name, psprite->rendermode );
+			break;
 		}
 		pframetype = (dspriteframetype_t *)(src);
 	}
-		
-	if(numframes < 1)			
-		ri.Sys_Error (ERR_DROP, "%s has invalid # of frames: %d\n", mod->name, numframes );
-	
-	mod->numframes = numframes;
+	else 
+	{
+		Msg("Warning: %s has wrong number of palette colors %i (should be 256)\n", mod->name, numi);
+		return;
+	}		
+	if(numframes < 1)
+	{
+		Msg("Warning: %s has invalid # of frames: %d\n", mod->name, numframes );
+		return;
+	}	
 
+	mod->numframes = mod->numtexinfo = numframes;
+	mod->registration_sequence = registration_sequence;
+	
 	for (i = 0; i < numframes; i++ )
 	{
 		frametype_t frametype;
@@ -256,13 +284,13 @@ mspriteframe_t *R_GetSpriteFrame (entity_t *currententity)
 		numframes = pspritegroup->numframes;
 		fullinterval = pintervals[numframes-1];
 
-		time = r_newrefdef.time;
+		time = r_newrefdef.time / 1000.0f;
 
 		// when loading in Mod_LoadSpriteGroup, we guaranteed all interval values
 		// are positive, so we don't have to worry about division by 0
 		targettime = time - ((int)(time / fullinterval)) * fullinterval;
 
-		for (i=0 ; i<(numframes-1) ; i++)
+		for (i = 0; i<(numframes - 1); i++)
 		{
 			if (pintervals[i] > targettime)
 				break;
@@ -282,6 +310,8 @@ void R_SpriteDrawModel( int passnum )
 	vec3_t		point, forward, right, up;
 	msprite_t		*psprite;
 	entity_t 		*e = currententity;
+	model_t		*mod = currentmodel;
+	float		realtime = r_newrefdef.time / 1000.000f;
 
 	if ( (e->flags & RF_TRANSLUCENT) && (passnum == RENDERPASS_SOLID)) return;// solid
 	if (!(e->flags & RF_TRANSLUCENT) && (passnum == RENDERPASS_ALPHA)) return;// solid
@@ -289,17 +319,32 @@ void R_SpriteDrawModel( int passnum )
 	// don't even bother culling, because it's just a single
 	// polygon without a surface cache
 
-	psprite = (msprite_t *)currentmodel->extradata;
+	psprite = (msprite_t *)mod->extradata;
 
-	e->frame %= psprite->numframes;
+	//xash auto-animate
+	if(psprite->framerate > 0 && psprite->numframes > 1)
+	{
+		float frametime;
+
+		mod->prevanimtime = mod->animtime;
+		mod->animtime = realtime;
+		frametime = mod->animtime - mod->prevanimtime;
+		if(frametime == 0 ) return;//first call
+		
+		mod->frame += psprite->framerate * frametime;		
+		while (mod->frame > psprite->numframes) mod->frame -= psprite->numframes;
+		while (mod->frame < 0) mod->frame += psprite->numframes;
+		e->frame = mod->frame;//set properly frame
+	}
+	else e->frame = fmod(e->frame, psprite->numframes);
 	frame = R_GetSpriteFrame(e);
-          
-          //Msg("render frame %d bindnum %d\n", e->frame, currentmodel->skins[e->frame]->texnum );
 	
 	switch( psprite->type )
 	{
 	case SPR_ORIENTED:
 		AngleVectors (e->angles, forward, right, up);
+		VectorScale(forward, 0.01, forward );//offset for decals
+		VectorSubtract(e->origin, forward, e->origin );
 		break;
 	case SPR_FACING_UPRIGHT:
 		up[0] = up[1] = 0;
@@ -325,40 +370,41 @@ void R_SpriteDrawModel( int passnum )
 	}
 	
 	if ( e->flags & RF_TRANSLUCENT ) alpha = e->alpha;
-	if ( alpha != 1.0F ) qglEnable( GL_BLEND );
-	qglColor4f( 1, 1, 1, alpha );
-          
-          //qglDisable(GL_DEPTH_TEST);
+	else alpha = psprite->rgba[3];
+
+	if ( e->scale == 0 ) e->scale = 1.0f;
+	if ( alpha != 1.0f ) qglEnable( GL_BLEND );
+
+	qglColor4f( psprite->rgba[0], psprite->rgba[1], psprite->rgba[2], alpha );
+ 	if(psprite->rendermode == SPR_ADDGLOW) qglDisable(GL_DEPTH_TEST);
 	
-	GL_Bind(currentmodel->skins[e->frame]->texnum);
+	GL_Bind(currentmodel->skins[(int)e->frame]->texnum);
 	GL_TexEnv( GL_MODULATE );
 
 	if ( alpha == 1.0 ) qglEnable (GL_ALPHA_TEST);
 	else qglDisable( GL_ALPHA_TEST );
-        
+
 	qglDisable(GL_CULL_FACE);
 	qglBegin (GL_QUADS);
-          
-          qglTexCoord2f (0, 1);
-	VectorMA (e->origin, frame->down, up, point);
-	VectorMA (point, frame->left, right, point);
-	qglVertex3fv (point);
+		qglTexCoord2f (0, 0);
+		VectorMA (e->origin, frame->up * e->scale, up, point);
+		VectorMA (point, frame->left * e->scale, right, point);
+		qglVertex3fv (point);
 
-	qglTexCoord2f (0, 0);
-	VectorMA (e->origin, frame->up, up, point);
-	VectorMA (point, frame->left, right, point);
-	qglVertex3fv (point);
+		qglTexCoord2f (1, 0);
+		VectorMA (e->origin, frame->up * e->scale, up, point);
+		VectorMA (point, frame->right * e->scale, right, point);
+		qglVertex3fv (point);
 
-	qglTexCoord2f (1, 0);
-	VectorMA (e->origin, frame->up, up, point);
-	VectorMA (point, frame->right, right, point);
-	qglVertex3fv (point);
+		qglTexCoord2f (1, 1);
+		VectorMA (e->origin, frame->down * e->scale, up, point);
+		VectorMA (point, frame->right * e->scale, right, point);
+		qglVertex3fv (point);
 
-	qglTexCoord2f (1, 1);
-	VectorMA (e->origin, frame->down, up, point);
-	VectorMA (point, frame->right, right, point);
-	qglVertex3fv (point);
-	
+          	qglTexCoord2f (0, 1);
+		VectorMA (e->origin, frame->down * e->scale, up, point);
+		VectorMA (point, frame->left * e->scale, right, point);
+		qglVertex3fv (point);
 	qglEnd ();
 
 	qglDisable(GL_BLEND);
@@ -366,6 +412,7 @@ void R_SpriteDrawModel( int passnum )
 	qglEnable(GL_DEPTH_TEST);
 	GL_TexEnv( GL_REPLACE );
 
+	if(psprite->rendermode == SPR_ADDGLOW) qglEnable(GL_DEPTH_TEST);
 	if ( alpha != 1.0F ) qglDisable( GL_BLEND );
 	qglColor4f( 1, 1, 1, 1 );
 }

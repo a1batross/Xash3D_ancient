@@ -50,6 +50,7 @@ TODO:
 
 //qcc private pool
 #define Qalloc( size )	Mem_Alloc(qccpool, size )
+#define Qrealloc( ptr, size )	Mem_Realloc(qccpool, ptr, size )
 
 //loading files
 #define QCC_LoadFile(f)	PR_LoadFile(f, NULL, FT_CODE)

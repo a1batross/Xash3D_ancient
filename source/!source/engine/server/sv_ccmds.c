@@ -593,7 +593,7 @@ void SV_Savegame_f (void)
 	// save server state
 	SV_WriteServerFile (false);
 
-	SV_WriteSaveFile( AUTOSAVE );//TEST
+	//SV_WriteSaveFile( AUTOSAVE );//TEST
 
 	Com_Printf ("Done.\n");
 }

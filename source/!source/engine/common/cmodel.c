@@ -1916,9 +1916,9 @@ stmodel_t	*CM_SpriteModel (char *name)
 		Msg("CM_SpriteModel: %s have invalid header\n", name );
 		return NULL;
 	}
-	if(phdr->version != SPRITE_VERSION)
+	if(phdr->version != SPRITE_VERSION_HALF || phdr->version != SPRITE_VERSION_XASH)
 	{
-		Msg("CM_SpriteModel: %s has wrong version number (%i should be %i)\n", name, phdr->version, SPRITE_VERSION);
+		Msg("CM_SpriteModel: %s has wrong version number (%i should be %i or %i)\n", name, phdr->version, SPRITE_VERSION_HALF, SPRITE_VERSION_XASH);
 		return NULL;
 	}
 

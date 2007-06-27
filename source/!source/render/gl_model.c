@@ -179,17 +179,17 @@ model_t *Mod_ForName(char *name, bool crash)
 	unsigned *buf;
 	int		i;
 	
-	if (!name[0])
-		ri.Sys_Error (ERR_DROP, "Mod_ForName: NULL name");
+	if (!name[0]) return NULL;
 		
-	//
 	// inline models are grabbed only from worldmodel
-	//
 	if (name[0] == '*')
 	{
-		i = atoi(name+1);
+		i = atoi(name + 1);
 		if (i < 1 || !r_worldmodel || i >= r_worldmodel->numsubmodels)
-			ri.Sys_Error (ERR_DROP, "bad inline model number");
+		{
+			Msg("Warning: bad inline model number %i\n", i );
+			return NULL;
+		}
 		return &mod_inline[i];
 	}
 
@@ -226,8 +226,7 @@ model_t *Mod_ForName(char *name, bool crash)
 	buf = (unsigned *)FS_LoadFile (mod->name, &modfilelen);
 	if (!buf)
 	{
-		if (crash)
-			ri.Sys_Error (ERR_DROP, "Mod_NumForName: %s not found", mod->name);
+		if (crash) ri.Sys_Error (ERR_DROP, "Mod_NumForName: %s not found", mod->name);
 		memset (mod->name, 0, sizeof(mod->name));
 		return NULL;
 	}
@@ -257,9 +256,12 @@ model_t *Mod_ForName(char *name, bool crash)
 		Mod_LoadSpriteModel ( mod, buf );
 		break;
 	default:
-		ri.Sys_Error (ERR_DROP,"Mod_NumForName: unknown fileid for %s", mod->name);
+		//will be freed at end of registration
+		Msg("Mod_NumForName: unknown fileid for %s, unloaded\n", mod->name);
 		break;
 	}
+	Mem_Free( buf );//free buffer
+
 	return mod;
 }
 
@@ -305,6 +307,9 @@ void Mod_LoadVisibility (lump_t *l)
 		loadmodel->vis = NULL;
 		return;
 	}
+
+	//TODO: calculate fast visibility from leafs
+
 	loadmodel->vis = Mem_Alloc( loadmodel->mempool, l->filelen);
 	memcpy (loadmodel->vis, mod_base + l->fileofs, l->filelen);
 
@@ -832,56 +837,20 @@ void Mod_LoadPlanes (lump_t *l)
 
 /*
 =================
-Mod_LoadBrushModel
+Mod_SetupSubmodels
 =================
 */
-void Mod_LoadBrushModel (model_t *mod, void *buffer)
+void Mod_SetupSubmodels( model_t *mod )
 {
-	int			i;
-	dheader_t	*header;
+	int	i;
 	mmodel_t 	*bm;
 	
-	loadmodel->type = mod_brush;
-	if (loadmodel != mod_known) ri.Sys_Error (ERR_DROP, "Loaded a brush model after the world");
-
-	header = (dheader_t *)buffer;
-
-	i = LittleLong (header->version);
-	if (i != BSPMOD_VERSION)
-		ri.Sys_Error (ERR_DROP, "Mod_LoadBrushModel: %s has wrong version number (%i should be %i)", mod->name, i, BSPMOD_VERSION);
-
-// swap all the lumps
-	mod_base = (byte *)header;
-
-	for (i=0 ; i<sizeof(dheader_t)/4 ; i++)
-		((int *)header)[i] = LittleLong ( ((int *)header)[i]);
-
-// load into heap
-	
-	Mod_LoadVertexes (&header->lumps[LUMP_VERTEXES]);
-	Mod_LoadEdges (&header->lumps[LUMP_EDGES]);
-	Mod_LoadSurfedges (&header->lumps[LUMP_SURFEDGES]);
-	Mod_LoadLighting (&header->lumps[LUMP_LIGHTING]);
-	Mod_LoadPlanes (&header->lumps[LUMP_PLANES]);
-	Mod_LoadTexinfo (&header->lumps[LUMP_TEXINFO]);
-	Mod_LoadFaces (&header->lumps[LUMP_FACES]);
-	Mod_LoadMarksurfaces (&header->lumps[LUMP_LEAFFACES]);
-	Mod_LoadVisibility (&header->lumps[LUMP_VISIBILITY]);
-	Mod_LoadLeafs (&header->lumps[LUMP_LEAFS]);
-	Mod_LoadNodes (&header->lumps[LUMP_NODES]);
-	Mod_LoadSubmodels (&header->lumps[LUMP_MODELS]);
-	mod->numframes = 2;		// regular and alternate animation
-	
-//
-// set up the submodels
-//
-	for (i=0 ; i<mod->numsubmodels ; i++)
+	for (i = 0; i < mod->numsubmodels; i++ )
 	{
 		model_t	*starmod;
 
 		bm = &mod->submodels[i];
 		starmod = &mod_inline[i];
-
 		*starmod = *loadmodel;
 		
 		starmod->firstmodelsurface = bm->firstface;
@@ -894,11 +863,57 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer)
 		VectorCopy (bm->mins, starmod->mins);
 		starmod->radius = bm->radius;
 	
-		if (i == 0)
-			*loadmodel = *starmod;
-
+		if (i == 0) *loadmodel = *starmod;
 		starmod->numleafs = bm->visleafs;
 	}
+}
+
+/*
+=================
+Mod_LoadBrushModel
+=================
+*/
+void Mod_LoadBrushModel (model_t *mod, void *buffer)
+{
+	int	i;
+	dheader_t	*header;
+
+	
+	loadmodel->type = mod_brush;
+	if (loadmodel != mod_known)
+	{
+		Msg("Warning: loaded a brush model after the world\n");
+		return;
+	}
+
+	header = (dheader_t *)buffer;
+
+	i = LittleLong (header->version);
+	if (i != BSPMOD_VERSION)
+		ri.Sys_Error (ERR_DROP, "Mod_LoadBrushModel: %s has wrong version number (%i should be %i)", mod->name, i, BSPMOD_VERSION);
+
+	// swap all the lumps
+	mod_base = (byte *)header;
+
+	for (i = 0; i < sizeof(dheader_t)/4; i++) ((int *)header)[i] = LittleLong ( ((int *)header)[i]);
+
+	// load into heap
+	Mod_LoadVertexes (&header->lumps[LUMP_VERTEXES]);
+	Mod_LoadEdges (&header->lumps[LUMP_EDGES]);
+	Mod_LoadSurfedges (&header->lumps[LUMP_SURFEDGES]);
+	Mod_LoadLighting (&header->lumps[LUMP_LIGHTING]);
+	Mod_LoadPlanes (&header->lumps[LUMP_PLANES]);
+	Mod_LoadTexinfo (&header->lumps[LUMP_TEXINFO]);
+	Mod_LoadFaces (&header->lumps[LUMP_FACES]);
+	Mod_LoadMarksurfaces (&header->lumps[LUMP_LEAFFACES]);
+	Mod_LoadVisibility (&header->lumps[LUMP_VISIBILITY]);
+	Mod_LoadLeafs (&header->lumps[LUMP_LEAFS]);
+	Mod_LoadNodes (&header->lumps[LUMP_NODES]);
+	Mod_LoadSubmodels (&header->lumps[LUMP_MODELS]);
+	Mod_SetupSubmodels( mod );// set up the submodels
+
+	mod->numframes = 2;	// regular and alternate animation
+	mod->registration_sequence = registration_sequence;//register model
 }
 
 /*
@@ -927,10 +942,13 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 	pinmodel = (dmdl_t *)buffer;
 
 	version = LittleLong (pinmodel->version);
-	if (version != ALIAS_VERSION)
-		ri.Sys_Error (ERR_DROP, "%s has wrong version number (%i should be %i)",
-				 mod->name, version, ALIAS_VERSION);
+	if (version != ALIAS_VERSION) 
+	{
+		Msg("%s has wrong version number (%i should be %i)\n", mod->name, version, ALIAS_VERSION);
+		return;
+	}
 
+	mod->registration_sequence = registration_sequence;
 	mod->extradata = pheader = Mem_Alloc( mod->mempool, LittleLong(pinmodel->ofs_end));
 	memcpy(mod->extradata, buffer, LittleLong(pinmodel->ofs_end));
 	
@@ -1100,7 +1118,7 @@ struct model_s *R_RegisterModel (char *name)
 	mod = Mod_ForName (name, false);
 	if (mod)
 	{
-		mod->registration_sequence = registration_sequence;
+		//mod->registration_sequence = registration_sequence;
 
 		// register any images used by the models
 		if (mod->type == mod_alias)
@@ -1122,7 +1140,7 @@ struct model_s *R_RegisterModel (char *name)
 		}
 		else if (mod->type == mod_sprite)
 		{
-			for (i=0 ; i<mod->numframes ; i++)
+			for (i=0 ; i<mod->numtexinfo ; i++)
 				mod->skins[i]->registration_sequence = registration_sequence;
 		}
 	}
@@ -1145,7 +1163,10 @@ void R_EndRegistration (void)
 	{
 		if (!mod->name[0]) continue;
 		if (mod->registration_sequence != registration_sequence)
+		{
+			Msg("free %s\n", mod->name );
 			Mod_Free (mod);
+		}
 	}
 
 	R_ImageFreeUnused();
@@ -1164,6 +1185,7 @@ void Mod_Free (model_t *mod)
 {
 	Mem_FreePool( &mod->mempool );
 	memset (mod, 0, sizeof(*mod));
+	mod = NULL;
 }
 
 /*

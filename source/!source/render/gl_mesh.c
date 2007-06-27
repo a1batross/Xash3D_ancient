@@ -101,8 +101,7 @@ void GL_DrawAliasFrameLerp (dmdl_t *paliashdr, float backlerp)
 	int		index_xyz;
 	float	*lerp;
 
-	frame = (daliasframe_t *)((byte *)paliashdr + paliashdr->ofs_frames 
-		+ currententity->frame * paliashdr->framesize);
+	frame = (daliasframe_t *)((byte *)paliashdr + paliashdr->ofs_frames + (int)currententity->frame * paliashdr->framesize);
 	verts = v = frame->verts;
 
 	oldframe = (daliasframe_t *)((byte *)paliashdr + paliashdr->ofs_frames + (int)currententity->prev.frame * paliashdr->framesize);
@@ -312,8 +311,7 @@ void GL_DrawAliasShadow (dmdl_t *paliashdr, int posenum)
 
 	lheight = currententity->origin[2] - lightspot[2];
 
-	frame = (daliasframe_t *)((byte *)paliashdr + paliashdr->ofs_frames 
-		+ currententity->frame * paliashdr->framesize);
+	frame = (daliasframe_t *)((byte *)paliashdr + paliashdr->ofs_frames + (int)currententity->frame * paliashdr->framesize);
 	verts = frame->verts;
 
 	height = 0;
@@ -393,7 +391,7 @@ static bool R_CullAliasModel( vec3_t bbox[8], entity_t *e )
 		e->prev.frame = 0;
 	}
 
-	pframe = (daliasframe_t *)((byte *)paliashdr + paliashdr->ofs_frames + e->frame * paliashdr->framesize);
+	pframe = (daliasframe_t *)((byte *)paliashdr + paliashdr->ofs_frames + (int)e->frame * paliashdr->framesize);
 	poldframe = (daliasframe_t *)((byte *)paliashdr +  paliashdr->ofs_frames + (int)e->prev.frame * paliashdr->framesize);
 
 	// compute axially aligned mins and maxs

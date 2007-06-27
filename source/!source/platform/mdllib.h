@@ -16,6 +16,7 @@
 #define FLOAT_END		-99999.0
 #define MAGIC		123322
 #define Kalloc(size)	Mem_Alloc(studiopool, size)		
+#define Realloc(ptr, size)	Mem_Realloc(studiopool, ptr, size)
 
 typedef struct
 {
@@ -230,7 +231,8 @@ typedef struct
 typedef struct 
 {
 	int		numtris;
-	s_trianglevert_t	triangle[MAXSTUDIOTRIANGLES][3];//static
+	int		alloctris;
+	s_trianglevert_t	(*triangle)[3];
 
 	int		skinref;
 	int		numnorms;

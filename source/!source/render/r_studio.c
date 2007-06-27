@@ -94,8 +94,12 @@ image_t *R_StudioLoadTexture( model_t *mod, mstudiotexture_t *ptexture, byte *pi
 	
 	//load studio texture and bind it
 	image = R_LoadImage(ptexture->name, data, pal, width, height, it_skin, 24, alpha );
-	if(image) ptexture->index = image->texnum;
-	else Msg("Warning: %s has null texture %s\n", mod->name, ptexture->name );
+	if(!image) 
+	{
+		Msg("Warning: %s has null texture %s\n", mod->name, ptexture->name );
+		image = r_notexture;
+	}
+	ptexture->index = image->texnum;
 
 	return image;
 }
@@ -111,8 +115,11 @@ studiohdr_t *R_StudioLoadHeader( model_t *mod, unsigned *buffer )
 	phdr = (studiohdr_t *)pin;
 
 	if (phdr->version != STUDIO_VERSION)
-		ri.Sys_Error (ERR_DROP, "%s has wrong version number (%i should be %i)", phdr->name, phdr->version, STUDIO_VERSION);
-	
+	{
+		Msg("%s has wrong version number (%i should be %i)\n", phdr->name, phdr->version, STUDIO_VERSION);
+		return NULL;
+	}	
+
 	ptexture = (mstudiotexture_t *)(pin + phdr->textureindex);
 
 	if (phdr->textureindex > 0 && phdr->numtextures <= MAXSTUDIOSKINS)
@@ -129,6 +136,7 @@ void R_StudioLoadModel (model_t *mod, void *buffer)
 	studiohdr_t	*phdr = R_StudioLoadHeader( mod, buffer );
           studiohdr_t	*thdr;
 	
+	if(!phdr) return; //there were problems
 	mod->phdr = (studiohdr_t *)Mem_Alloc(mod->mempool, LittleLong(phdr->length));
           memcpy(mod->phdr, buffer, LittleLong(phdr->length));
 	
@@ -138,12 +146,14 @@ void R_StudioLoadModel (model_t *mod, void *buffer)
 		if(!buffer) ri.Sys_Error (ERR_DROP, "%s not found!\n", R_ExtName( mod )); 
 	          thdr = R_StudioLoadHeader( mod, buffer );
 
+		if(!thdr) return; //there were problems
 		mod->thdr = (studiohdr_t *)Mem_Alloc(mod->mempool, LittleLong(thdr->length));
           	memcpy(mod->thdr, buffer, LittleLong(thdr->length));
 	}
           else mod->thdr = mod->phdr; //just make link
 
 	R_StudioExtractBbox( phdr, 0, mod->mins, mod->maxs );
+	mod->registration_sequence = registration_sequence;
 }
 
 /*
@@ -490,7 +500,7 @@ mstudioanim_t *R_StudioGetAnim( model_t *m_pSubModel, mstudioseqdesc_t *pseqdesc
 
 	if (paSequences == NULL)
 	{
-		ri.Con_Printf(PRINT_ALL, "loading %s\n", pseqgroup->name );
+		Msg("loading %s\n", pseqgroup->name );
 		buf = FS_LoadFile (pseqgroup->name, &filesize);
 		if (!buf)
 		{
@@ -967,7 +977,8 @@ void R_StudioCalcAttachments( void )
 
 	if ( m_pStudioHeader->numattachments > MAXSTUDIOATTACHMENTS )
 	{
-		ri.Sys_Error (ERR_DROP, "R_StudioCalcAttachments: Too many attachments on %s\n", m_pCurrentEntity->model->name );
+		Msg("Warning: Too many attachments on %s\n", m_pCurrentEntity->model->name );
+		m_pStudioHeader->numattachments = MAXSTUDIOATTACHMENTS;//reduce it
 	}
 
 	// calculate attachment points

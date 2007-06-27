@@ -79,7 +79,7 @@ typedef struct entity_s
 
           float		animtime;	
 
-	int		frame;		// also used as RF_BEAM's diameter
+	float		frame;		// also used as RF_BEAM's diameter
 
 	int		body;
 	int		skin;

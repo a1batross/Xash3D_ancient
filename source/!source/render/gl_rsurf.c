@@ -86,7 +86,7 @@ image_t *R_TextureAnimation (mtexinfo_t *tex)
 	if (!tex->next)
 		return tex->image;
 
-	c = currententity->frame % tex->numframes;
+	c = fmod(currententity->frame, tex->numframes);
 	while (c)
 	{
 		tex = tex->next;

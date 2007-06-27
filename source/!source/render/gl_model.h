@@ -56,10 +56,12 @@ typedef struct
 typedef struct
 {
 	int		type;
+	int		rendermode;
 	int		maxwidth;
 	int		maxheight;
 	int		numframes;
-	float		beamlength; // remove?
+	float		framerate;
+	vec4_t		rgba;
 	mspriteframedesc_t	frames[1];
 } msprite_t;
 
@@ -281,6 +283,11 @@ typedef struct model_s
           studiohdr_t	*thdr;
 	
 	void	*extradata;
+
+	//sprite auto animating
+	float	frame;
+	float	animtime;
+	float	prevanimtime;
 } model_t;
 
 //============================================================================

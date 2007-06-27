@@ -9,7 +9,7 @@
 #include <sprite.h>
 
 #define MAX_BUFFER_SIZE	0x100000
-#define MAX_FRAMES		1000
+#define MAX_FRAMES		1024
 #define MAX_FRAME_DIM	512
 
 dsprite_t	sprite;
@@ -29,8 +29,7 @@ typedef struct
 	float		interval;		// only used for frames in groups
 	int		numgroupframes;	// only used by group headers
 }spritepackage_t;
-
-spritepackage_t	frames[MAX_FRAMES];
+spritepackage_t frames[MAX_FRAMES];
 
 /*
 ============
@@ -73,15 +72,26 @@ void WriteSprite (file_t *spriteouthandle)
 	spritetemp.width = LittleLong (framesmaxs[0]);
 	spritetemp.height = LittleLong (framesmaxs[1]);
 	spritetemp.numframes = LittleLong (sprite.numframes);
-	spritetemp.beamlength = LittleFloat (sprite.beamlength);
-	spritetemp.synctype = LittleFloat (sprite.synctype);
-	spritetemp.version = LittleLong (SPRITE_VERSION);
+	spritetemp.version = LittleLong (sprite.version);
 	spritetemp.ident = LittleLong (IDSPRITEHEADER);
 
+	//not write enchanced parms into hl sprite
+	switch( spritetemp.version )
+	{
+	case SPRITE_VERSION_HALF:
+		spritetemp.framerate = 0;//old beamlength
+		spritetemp.rgbacolor = 0;//old synctype
+		break;
+	case SPRITE_VERSION_XASH:
+		spritetemp.framerate = LittleFloat (sprite.framerate);
+		spritetemp.rgbacolor = LittleLong (sprite.rgbacolor);
+		break;
+	}
+          
 	FS_Write(spriteouthandle, &spritetemp, sizeof(spritetemp));
 
 	// Write out palette in 16bit mode
-	FS_Write( spriteouthandle, (void *) &cnt, sizeof(cnt) );
+	FS_Write( spriteouthandle, (void *)&cnt, sizeof(cnt));
 	FS_Write( spriteouthandle, lbmpalette, cnt * 3 );
 
 	// write out the frames
@@ -135,7 +145,7 @@ void WriteSprite (file_t *spriteouthandle)
 
 /*
 ==============
-WriteSPRFile	
+WriteSPRFile
 ==============
 */
 void WriteSPRFile (void)
@@ -159,70 +169,155 @@ void WriteSPRFile (void)
 }
 
 /*
+==============
+Load_BMP
+==============
+*/
+void Load_BMP ( char *filename )
+{
+	byteimage = ReadBMP (filename, &lbmpalette, &byteimagewidth, &byteimageheight);
+	if(!byteimage) Sys_Error( "unable to load file \"%s\"\n", filename );
+}
+
+/*
+==============
+Load_TGA
+==============
+*/
+void Load_TGA ( char *filename )
+{
+	byteimage = ReadTGA (filename, &lbmpalette, &byteimagewidth, &byteimageheight);
+	if(!byteimage) Sys_Error( "unable to load file \"%s\"\n", filename );
+}
+
+/*
 ===============
 Cmd_Type
+
+syntax: "$type preset"
 ===============
 */
 void Cmd_Type (void)
 {
 	SC_GetToken (false);
-	if (SC_MatchToken( "vp_parallel_upright" ))	sprite.type = SPR_VP_PARALLEL_UPRIGHT;
-	else if (SC_MatchToken( "facing_upright" ))	sprite.type = SPR_FACING_UPRIGHT;
-	else if (SC_MatchToken( "vp_parallel" ))	sprite.type = SPR_VP_PARALLEL;
-	else if (SC_MatchToken( "oriented" ))		sprite.type = SPR_ORIENTED;
-	else if (SC_MatchToken( "vp_parallel_oriented"))	sprite.type = SPR_VP_PARALLEL_ORIENTED;
+
+	if (SC_MatchToken( "vp_parallel_upright" )) sprite.type = SPR_VP_PARALLEL_UPRIGHT;
+	else if (SC_MatchToken( "facing_upright" )) sprite.type = SPR_FACING_UPRIGHT;
+	else if (SC_MatchToken( "vp_parallel" )) sprite.type = SPR_VP_PARALLEL;
+	else if (SC_MatchToken( "oriented" )) sprite.type = SPR_ORIENTED;
+	else if (SC_MatchToken( "vp_parallel_oriented")) sprite.type = SPR_VP_PARALLEL_ORIENTED;
 	else sprite.type = SPR_VP_PARALLEL; //default
 }
-
 
 /*
 ===============
 Cmd_Texture
+
+syntax: "$texture preset"
 ===============
 */
-void Cmd_Texture (void)
+void Cmd_Texture ( void )
 {
 	SC_GetToken (false);
 
-	if (SC_MatchToken( "additive"))		sprite.texFormat = SPR_ADDITIVE;
-	else if (SC_MatchToken( "normal"))		sprite.texFormat = SPR_NORMAL;
-	else if (SC_MatchToken( "indexalpha"))		sprite.texFormat = SPR_INDEXALPHA;
-	else if (SC_MatchToken( "alphatest"))		sprite.texFormat = SPR_ALPHTEST;
-	else sprite.texFormat = SPR_NORMAL;
+	if (SC_MatchToken( "additive")) sprite.texFormat = SPR_ADDITIVE;
+	else if (SC_MatchToken( "normal")) sprite.texFormat = SPR_NORMAL;
+	else if (SC_MatchToken( "indexalpha")) sprite.texFormat = SPR_INDEXALPHA;
+	else if (SC_MatchToken( "alphatest")) sprite.texFormat = SPR_ALPHTEST;
+	else if (SC_MatchToken( "glow")) sprite.texFormat = SPR_ADDGLOW;
+	else sprite.texFormat = SPR_NORMAL; //default
 }
 
 /*
 ===============
-Cmd_Beamlength
+Cmd_Framerate
+
+syntax: "$framerate value"
 ===============
 */
-void Cmd_Beamlength ()
+void Cmd_Framerate( void )
 {
-	sprite.beamlength = atof (SC_GetToken (false));
+	sprite.framerate = atof(SC_GetToken (false));
+	sprite.version = SPRITE_VERSION_XASH; //enchaned version
 }
 
 /*
 ===============
 Cmd_Load
+
+syntax "$load fire01.bmp"
 ===============
 */
 void Cmd_Load (void)
 {
 	static byte origpalette[256*3];
-          char *name = SC_GetToken (false);
-	
-	FS_DefaultExtension( name, ".bmp" );
-	byteimage = ReadBMP (name, &lbmpalette, &byteimagewidth, &byteimageheight);
-	if(!byteimage) Sys_Error( "unable to load file \"%s\"\n", name );
+          char *name = SC_GetToken ( false );
+	const char *ext = FS_FileExtension( name );
+	dspriteframe_t	*pframe;
+	int x, y, w, h, pix;
+	byte *screen_p;
+
+	if(!stricmp(ext, "bmp")) Load_BMP( name );
+	else if(!stricmp(ext, "tga")) Load_TGA( name );
+	else Sys_Error("unknown graphics type: \"%s\"\n", name );
 
 	if(sprite.numframes == 0) memcpy( origpalette, lbmpalette, sizeof( origpalette ));
-	else if (memcmp( origpalette, lbmpalette, sizeof( origpalette )) != 0)
+	else if (memcmp( origpalette, lbmpalette, sizeof( origpalette )))
 		Sys_Error( "bitmap \"%s\" doesn't share a pallette with the previous bitmap\n", name );	
+
+	w = byteimagewidth;
+	h = byteimageheight;
+
+	if ((w > MAX_FRAME_DIM) || (h > MAX_FRAME_DIM))
+		Sys_Error ("Sprite has a dimension longer than 256");
+
+	pframe = (dspriteframe_t *)plump;
+	frames[framecount].pdata = pframe;
+	frames[framecount].type = SPR_SINGLE;
+	frames[framecount].interval = 0.1f;
+
+	if((origin_x != 0) && (origin_y != 0))
+	{
+		//write shared origin
+		pframe->origin[0] = -origin_x;
+		pframe->origin[1] = origin_y;
+	}
+	else
+	{
+		//use center of image
+		pframe->origin[0] = -(w >> 1);
+		pframe->origin[1] = h >> 1;
+	}
+
+	pframe->width = w;
+	pframe->height = h;
+
+	//adjust maxsize
+	if (w > framesmaxs[0]) framesmaxs[0] = w;
+	if (h > framesmaxs[1]) framesmaxs[1] = h;
+
+	plump = (byte *)(pframe + 1);
+	screen_p = byteimage;
+
+	for (y = 0; y < byteimageheight; y++)
+	{
+		for (x = 0; x < byteimagewidth; x++)
+		{
+			pix = *screen_p;
+			*screen_p++ = 0;
+			*plump++ = pix;
+		}
+	}
+
+	framecount++;
+	if (framecount >= MAX_FRAMES) Sys_Error ("Too many frames in package\n");
 }
 
 /*
 ===============
 Cmd_Offset
+
+syntax: $origin "x_pos y_pos"
 ===============
 */
 
@@ -232,103 +327,46 @@ void Cmd_Offset (void)
 	origin_y = atoi(SC_GetToken (false));
 }
 
-void Cmd_Sync( void )
-{
-	sprite.synctype = ST_SYNC;
-}
-
-
 /*
 ===============
-Cmd_Frame
+Cmd_Color
+
+synatx: "$color r g b <alpha>"
 ===============
 */
-void Cmd_Frame ()
+void Cmd_Color( void )
 {
-	int		x,y,xl,yl,xh,yh,w,h;
-	byte		*screen_p, *source;
-	int		linedelta;
-	dspriteframe_t	*pframe;
-	int		pix;
+	byte r, g, b, a;
+	r = atoi(SC_GetToken (false));
+	g = atoi(SC_GetToken (false));
+	b = atoi(SC_GetToken (false));
+
+	if (SC_TryToken()) a = atoi(token);
+	else a = 0xFF;//fullbright
 	
-	xl = atoi(SC_GetToken (false));
-	yl = atoi(SC_GetToken (false));
-	w  = atoi(SC_GetToken (false));
-	h  = atoi(SC_GetToken (false));
-
-	if ((xl & 0x07) || (yl & 0x07) || (w & 0x07) || (h & 0x07))
-		Sys_Error ("Sprite dimensions not multiples of 8\n");
-
-	if ((w > MAX_FRAME_DIM) || (h > MAX_FRAME_DIM))
-		Sys_Error ("Sprite has a dimension longer than 256");
-
-	xh = xl+w;
-	yh = yl+h;
-
-	pframe = (dspriteframe_t *)plump;
-	frames[framecount].pdata = pframe;
-	frames[framecount].type = SPR_SINGLE;
-
-	if (SC_TryToken())
-	{
-		frames[framecount].interval = atof (token);
-		if (frames[framecount].interval <= 0.0)
-			Sys_Error ("Non-positive interval");
-	}
-	else frames[framecount].interval = (float)0.1;
-	
-	if (SC_TryToken())
-	{
-		pframe->origin[0] = -atoi (token);
-		pframe->origin[1] = atoi(SC_GetToken(false));
-	}
-	else if((origin_x != 0) && (origin_y != 0))
-	{
-		//write shared origin
-		pframe->origin[0] = -origin_x;
-		pframe->origin[1] = origin_y;
-	}
-	else
-	{
-		pframe->origin[0] = -(w >> 1);
-		pframe->origin[1] = h >> 1;
-	}
-
-	pframe->width = w;
-	pframe->height = h;
-
-	if (w > framesmaxs[0]) framesmaxs[0] = w;
-	if (h > framesmaxs[1]) framesmaxs[1] = h;
-	
-	plump = (byte *)(pframe + 1);
-	screen_p = byteimage + yl * byteimagewidth + xl;
-	linedelta = byteimagewidth - w;
-
-	source = plump;
-
-	for (y = yl; y < yh; y++)
-	{
-		for (x = xl; x < xh; x++)
-		{
-			pix = *screen_p;
-			*screen_p++ = 0;
-			*plump++ = pix;
-		}
-		screen_p += linedelta;
-	}
-
-	framecount++;
-	if (framecount >= MAX_FRAMES) Sys_Error ("Too many frames; increase MAX_FRAMES\n");
+	//pack into one integer
+	sprite.rgbacolor = (a<<24) + (b<<16) + (g<<8) + (r<<0);
+	sprite.version = SPRITE_VERSION_XASH; //enchaned version
 }
 
 /*
 ===============
-Cmd_GroupStart	
+Cmd_Group
+
+syntax: 
+$group
+{
+	$load fire01.bmp
+	$load fire02.bmp
+	$load fire03.bmp
+}	
 ===============
 */
-void Cmd_GroupStart (void)
+
+void Cmd_Group (void)
 {
 	int	groupframe;
+	int	is_started = 0;
 
 	groupframe = framecount++;
 
@@ -339,28 +377,25 @@ void Cmd_GroupStart (void)
 	{
 		if(!SC_GetToken (true)) Sys_Error ("End of file during group");
 
-		if (SC_MatchToken( "$frame" ))
-		{
-			Cmd_Frame ();
-			frames[groupframe].numgroupframes++;
-		}
-		else if (SC_MatchToken( "$load" ))
+		if(SC_MatchToken( "{" )) is_started = 1;
+		else if (SC_MatchToken( "}" )) break;//end of group
+		else if (SC_MatchToken("$frame")) while(SC_TryToken());//skip old stuff
+		else if (SC_MatchToken("$load" ))
 		{
 			Cmd_Load ();
-		}
-		else if (SC_MatchToken( "$groupend" ))
-		{
-			break;
-		}
-		else Sys_Error ("$frame, $load, or $groupend expected\n");
+			frames[groupframe].numgroupframes++;
+                    }
+		else if(is_started) Sys_Error("missing }\n");
+		else Sys_Error ("$frame or $load expected\n");
 	}
-
-	if (frames[groupframe].numgroupframes == 0) Sys_Error ("Empty group\n");
+	if (frames[groupframe].numgroupframes == 0) Msg("Warning: empty group\n");
 }
 
 /*
 ==============
 Cmd_Spritename
+
+syntax: "$spritename outname"
 ==============
 */
 void Cmd_Spritename (void)
@@ -390,7 +425,7 @@ void ResetSpriteInfo( void )
 	if (!lumpbuffer ) lumpbuffer = Malloc(MAX_BUFFER_SIZE * 2); // *2 for padding
 
 	plump = lumpbuffer;
-	sprite.synctype = ST_RAND; // default
+	sprite.version = SPRITE_VERSION_HALF;//normal sprite
 	sprite.type = SPR_VP_PARALLEL;
 }
 
@@ -406,22 +441,22 @@ bool ParseSpriteScript (void)
 	while (1)
 	{
 		if(!SC_GetToken (true))break;
-	
-		if (SC_MatchToken( "$load" )) Cmd_Load();
+
+		if (SC_MatchToken( "$frame" )) while(SC_TryToken());
 		else if (SC_MatchToken( "$spritename" )) Cmd_Spritename();
 		else if (SC_MatchToken( "$type" )) Cmd_Type();
 		else if (SC_MatchToken( "$texture" )) Cmd_Texture();
 		else if (SC_MatchToken( "$origin" )) Cmd_Offset();
-		else if (SC_MatchToken( "$beamlength" )) Cmd_Beamlength();
-		else if (SC_MatchToken( "$sync" )) Cmd_Sync();
-		else if (SC_MatchToken( "$frame" ))
+		else if (SC_MatchToken( "$framerate" )) Cmd_Framerate();
+		else if (SC_MatchToken( "$color" )) Cmd_Color();
+		else if (SC_MatchToken( "$load" ))
 		{
-			Cmd_Frame ();
+			Cmd_Load ();
 			sprite.numframes++;
 		}		
-		else if (SC_MatchToken( "$groupstart" ))
+		else if (SC_MatchToken( "$group" ))
 		{
-			Cmd_GroupStart ();
+			Cmd_Group ();
 			sprite.numframes++;
 		}
 		else if(SC_MatchToken( "$modelname" ))//check for studiomdl script
@@ -488,6 +523,6 @@ bool MakeSprite ( void )
 	else CompileCurrentSprite( NULL );
 	
 	if(numCompiledSprites > 1) Msg("total %d sprites compiled\n", numCompiledSprites );	
-
+	Sys_Error("");
 	return false;
 }

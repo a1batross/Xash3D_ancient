@@ -214,11 +214,27 @@ _inline void AngleVectors (vec3_t angles, vec3_t forward, vec3_t right, vec3_t u
 	}
 }
 
-_inline void TransformColor( vec3_t in, vec3_t out )
+_inline void TransformRGB( vec3_t in, vec3_t out )
 {
 	out[0] = in[0]/255.0f;
 	out[1] = in[1]/255.0f;
 	out[2] = in[2]/255.0f;
+}
+
+_inline void TransformRGBA( vec3_t in, vec3_t out )
+{
+	out[0] = in[0]/255.0f;
+	out[1] = in[1]/255.0f;
+	out[2] = in[2]/255.0f;
+	out[3] = in[3]/255.0f;
+}
+
+_inline void ResetRGBA( vec3_t in )
+{
+	in[0] = 1.0f;
+	in[1] = 1.0f;
+	in[2] = 1.0f;
+	in[3] = 1.0f;
 }
 
 _inline vec_t ColorNormalize (vec3_t in, vec3_t out)

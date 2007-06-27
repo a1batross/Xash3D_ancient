@@ -104,6 +104,23 @@ choseclump:
 	return (void *)((unsigned char *) mem + sizeof(memheader_t));
 }
 
+void *_Mem_Realloc(byte *poolptr, void *memptr, size_t size, const char *filename, int fileline)
+{
+	char *nb;
+	memheader_t *hdr;
+
+	if (size <= 0) return memptr;//no need to reallocate
+	if (!memptr) Sys_Error("Mem_Realloc: try to reallocate NULL ptr (called at %s:%i)", filename, fileline);
+	nb = _Mem_Alloc(poolptr, size, filename, fileline);
+
+	//get size of old block
+	hdr = (memheader_t *)((byte *) memptr - sizeof(memheader_t));
+	memcpy( nb, memptr, hdr->size);
+	_Mem_Free( memptr, filename, fileline);//free unused old block
+
+	return (void *)nb;
+}
+
 static void _Mem_FreeBlock(memheader_t *mem, const char *filename, int fileline)
 {
 #if MEMCLUMPING

@@ -4483,8 +4483,7 @@ void PR_GotoStatement (dstatement_t *patch2, char *labelname)
 	if (num_gotos >= max_gotos)
 	{
 		max_gotos += 8;
-		pr_gotos = realloc(pr_gotos, sizeof(*pr_gotos)*max_gotos);
-		Msg("reallocate goto\n");
+		pr_gotos = Qrealloc(pr_gotos, sizeof(*pr_gotos)*max_gotos);
 	}
 
 	strncpy(pr_gotos[num_gotos].name, labelname, sizeof(pr_gotos[num_gotos].name) -1);
@@ -5203,8 +5202,7 @@ void PR_ParseStatement (void)
 		if (num_labels >= max_labels)
 		{
 			max_labels += 8;
-			pr_labels = realloc(pr_labels, sizeof(*pr_labels)*max_labels);
-			Msg("reallocate labels\n");
+			pr_labels = Qrealloc(pr_labels, sizeof(*pr_labels)*max_labels);
 		}
 
 		strncpy(pr_labels[num_labels].name, pr_token, sizeof(pr_labels[num_labels].name) -1);
@@ -5247,8 +5245,7 @@ void PR_ParseStatement (void)
 			if (num_breaks >= max_breaks)
 			{
 				max_breaks += 8;
-				pr_breaks = realloc(pr_breaks, sizeof(*pr_breaks)*max_breaks);
-				Msg("reallocate breaks to %d\n", max_breaks );
+				pr_breaks = Qrealloc(pr_breaks, sizeof(*pr_breaks)*max_breaks);
 			}
 			pr_breaks[num_breaks] = numstatements;
 			PR_Statement (&pr_opcodes[OP_GOTO], 0, 0, NULL);
@@ -5262,8 +5259,7 @@ void PR_ParseStatement (void)
 		if (num_continues >= max_continues)
 		{
 			max_continues += 8;
-			pr_continues = realloc(pr_continues, sizeof(*pr_continues)*max_continues);
-			Msg("reallocate continue to %d\n", max_continues );
+			pr_continues = Qrealloc(pr_continues, sizeof(*pr_continues)*max_continues);
 		}
 		pr_continues[num_continues] = numstatements;
 		PR_Statement (&pr_opcodes[OP_GOTO], 0, 0, NULL);
@@ -5276,10 +5272,9 @@ void PR_ParseStatement (void)
 		if (num_cases >= max_cases)
 		{
 			max_cases += 8;
-			pr_cases = realloc(pr_cases, sizeof(*pr_cases)*max_cases);
-			pr_casesdef = realloc(pr_casesdef, sizeof(*pr_casesdef)*max_cases);
-			pr_casesdef2 = realloc(pr_casesdef2, sizeof(*pr_casesdef2)*max_cases);
-			Msg("reallocate case * 3\n");
+			pr_cases = Qrealloc(pr_cases, sizeof(*pr_cases)*max_cases);
+			pr_casesdef = Qrealloc(pr_casesdef, sizeof(*pr_casesdef)*max_cases);
+			pr_casesdef2 = Qrealloc(pr_casesdef2, sizeof(*pr_casesdef2)*max_cases);
 		}
 		pr_cases[num_cases] = numstatements;
 		pr_casesdef[num_cases] = PR_Expression (TOP_PRIORITY, false);
@@ -5291,8 +5286,7 @@ void PR_ParseStatement (void)
 				if (G_FLOAT(pr_casesdef[num_cases]->ofs) >= G_FLOAT(pr_casesdef2[num_cases]->ofs))
 					PR_ParseError(ERR_CASENOTIMMEDIATE, "Caserange statement uses backwards range\n");
 		}
-		else
-			pr_casesdef2[num_cases] = NULL;
+		else pr_casesdef2[num_cases] = NULL;
 
 		if (numstatements != pr_cases[num_cases])
 			PR_ParseError(ERR_CASENOTIMMEDIATE, "Case statements may not use formulas\n");
@@ -5305,9 +5299,9 @@ void PR_ParseStatement (void)
 		if (num_cases >= max_cases)
 		{
 			max_cases += 8;
-			pr_cases = realloc(pr_cases, sizeof(*pr_cases)*max_cases);
-			pr_casesdef = realloc(pr_casesdef, sizeof(*pr_casesdef)*max_cases);
-			pr_casesdef2 = realloc(pr_casesdef2, sizeof(*pr_casesdef2)*max_cases);
+			pr_cases = Qrealloc(pr_cases, sizeof(*pr_cases)*max_cases);
+			pr_casesdef = Qrealloc(pr_casesdef, sizeof(*pr_casesdef)*max_cases);
+			pr_casesdef2 = Qrealloc(pr_casesdef2, sizeof(*pr_casesdef2)*max_cases);
 			Msg("reallocate default case\n");
 		}
 		pr_cases[num_cases] = numstatements;
