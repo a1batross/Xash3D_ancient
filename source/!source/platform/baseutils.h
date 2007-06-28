@@ -35,7 +35,9 @@ cpuinfo_t GetCPUInformation( void );
 //internal filesystem functions
 void FS_Path (void);
 void FS_InitEditor( void );
-void FS_InitPath( char *path );
+void FS_InitRootDir( char *path );
+void FS_ClearSearchPath (void);
+void FS_AddGameHierarchy (const char *dir);
 int FS_CheckParm (const char *parm);
 void FS_LoadGameInfo( char *filename );
 void FS_FileBase (char *in, char *out);
@@ -45,12 +47,14 @@ void FS_DefaultExtension (char *path, const char *extension );
 bool FS_GetParmFromCmdLine( char *parm, char *out );
 
 
+
 //files managment (like fopen, fread etc)
 file_t *FS_Open (const char* filepath, const char* mode, bool quiet, bool nonblocking);
 fs_offset_t FS_Write (file_t* file, const void* data, size_t datasize);
 fs_offset_t FS_Read (file_t* file, void* buffer, size_t buffersize);
 int FS_VPrintf(file_t* file, const char* format, va_list ap);
 int FS_Seek (file_t* file, fs_offset_t offset, int whence);
+int FS_Gets (file_t* file, byte *string, size_t bufsize );
 int FS_Printf(file_t* file, const char* format, ...);
 fs_offset_t FS_FileSize (const char *filename);
 int FS_Print(file_t* file, const char *msg);
@@ -123,7 +127,6 @@ char *va(const char *format, ...);
 char *stristr( const char *string, const char *string2 );
 void ExtractFilePath(const char* const path, char* dest);
 byte *ReadBMP (char *filename, byte **palette, int *width, int *height);
-byte *ReadTGA (char *filename, byte **palette, int *width, int *height);
 
 extern int numthreads;
 void ThreadLock (void);

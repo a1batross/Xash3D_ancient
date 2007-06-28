@@ -30,8 +30,6 @@ SPRITE MODELS
 #define SPR_ALPHTEST		3
 #define SPR_ADDGLOW			4 //same as additive, but without depthtest
 
-typedef enum { SPR_SINGLE = 0, SPR_GROUP } frametype_t;
-
 typedef struct
 {
 	int		ident;
@@ -55,17 +53,7 @@ typedef struct
 
 typedef struct
 {
-	int		numframes;
-} dspritegroup_t;
-
-typedef struct
-{
-	float		interval;
-} dspriteinterval_t;
-
-typedef struct
-{
-	frametype_t	type;
-} dspriteframetype_t;
+	int		type;
+} frametype_t;
 
 #endif//SPRITE_H

@@ -12,17 +12,15 @@ byte *zonepool;
 
 void *_Mem_Alloc(byte *poolptr, size_t size, const char *filename, int fileline)
 {
-#if MEMCLUMPING
 	int i, j, k, needed, endbit, largest;
 	memclump_t *clump, **clumpchainpointer;
-#endif
 	memheader_t *mem;
 	mempool_t *pool = (mempool_t *)((byte *)poolptr);
 	if (size <= 0) return NULL;
 
 	if (poolptr == NULL) Sys_Error("Mem_Alloc: pool == NULL (alloc at %s:%i)", filename, fileline);
 	pool->totalsize += size;
-#if MEMCLUMPING
+
 	if (size < 4096)
 	{
 		// clumping
@@ -79,14 +77,12 @@ choseclump:
 	else
 	{
 		// big allocations are not clumped
-#endif
 		pool->realsize += sizeof(memheader_t) + size + sizeof(int);
 		mem = (memheader_t *)malloc(sizeof(memheader_t) + size + sizeof(int));
 		if (mem == NULL) Sys_Error("Mem_Alloc: out of memory (alloc at %s:%i)", filename, fileline);
-#if MEMCLUMPING
 		mem->clump = NULL;
 	}
-#endif
+
 	mem->filename = filename;
 	mem->fileline = fileline;
 	mem->size = size;
@@ -94,14 +90,14 @@ choseclump:
 	mem->sentinel1 = MEMHEADER_SENTINEL1;
 	// we have to use only a single byte for this sentinel, because it may not be aligned
 	// and some platforms can't use unaligned accesses
-	*((unsigned char *) mem + sizeof(memheader_t) + mem->size) = MEMHEADER_SENTINEL2;
+	*((byte *) mem + sizeof(memheader_t) + mem->size) = MEMHEADER_SENTINEL2;
 	// append to head of list
 	mem->next = pool->chain;
 	mem->prev = NULL;
 	pool->chain = mem;
 	if (mem->next) mem->next->prev = mem;
-	memset((void *)((unsigned char *) mem + sizeof(memheader_t)), 0, mem->size);
-	return (void *)((unsigned char *) mem + sizeof(memheader_t));
+	memset((void *)((byte *) mem + sizeof(memheader_t)), 0, mem->size);
+	return (void *)((byte *) mem + sizeof(memheader_t));
 }
 
 void *_Mem_Realloc(byte *poolptr, void *memptr, size_t size, const char *filename, int fileline)
@@ -123,11 +119,10 @@ void *_Mem_Realloc(byte *poolptr, void *memptr, size_t size, const char *filenam
 
 static void _Mem_FreeBlock(memheader_t *mem, const char *filename, int fileline)
 {
-#if MEMCLUMPING
 	int i, firstblock, endblock;
 	memclump_t *clump, **clumpchainpointer;
-#endif
 	mempool_t *pool;
+
 	if (mem->sentinel1 != MEMHEADER_SENTINEL1) Sys_Error("Mem_Free: trashed header sentinel 1 (alloc at %s:%i, free at %s:%i)", mem->filename, mem->fileline, filename, fileline);
 	if (*((unsigned char *) mem + sizeof(memheader_t) + mem->size) != MEMHEADER_SENTINEL2)
 		Sys_Error("Mem_Free: trashed header sentinel 2 (alloc at %s:%i, free at %s:%i)", mem->filename, mem->fileline, filename, fileline);
@@ -141,7 +136,6 @@ static void _Mem_FreeBlock(memheader_t *mem, const char *filename, int fileline)
 	// memheader has been unlinked, do the actual free now
 	pool->totalsize -= mem->size;
 
-#if MEMCLUMPING
 	if ((clump = mem->clump))
 	{
 		if (clump->sentinel1 != MEMCLUMP_SENTINEL)
@@ -181,12 +175,9 @@ static void _Mem_FreeBlock(memheader_t *mem, const char *filename, int fileline)
 	}
 	else
 	{
-#endif
 		pool->realsize -= sizeof(memheader_t) + mem->size + sizeof(int);
 		free(mem);
-#if MEMCLUMPING
 	}
-#endif
 }
 
 void _Mem_Free(void *data, const char *filename, int fileline)
@@ -261,7 +252,6 @@ void _Mem_CheckSentinels(void *data, const char *filename, int fileline)
 		Sys_Error("Mem_CheckSentinels: trashed header sentinel 2 (block allocated at %s:%i, sentinel check at %s:%i)", mem->filename, mem->fileline, filename, fileline);
 }
 
-#if MEMCLUMPING
 static void _Mem_CheckClumpSentinels(memclump_t *clump, const char *filename, int fileline)
 {
 	// this isn't really very useful
@@ -270,15 +260,12 @@ static void _Mem_CheckClumpSentinels(memclump_t *clump, const char *filename, in
 	if (clump->sentinel2 != MEMCLUMP_SENTINEL)
 		Sys_Error("Mem_CheckClumpSentinels: trashed sentinel 2 (sentinel check at %s:%i)", filename, fileline);
 }
-#endif
 
 void _Mem_CheckSentinelsGlobal(const char *filename, int fileline)
 {
 	memheader_t *mem;
 	mempool_t *pool;
-#if MEMCLUMPING
 	memclump_t *clump;
-#endif
 
 	for (pool = poolchain;pool;pool = pool->next)
 	{
@@ -291,11 +278,9 @@ void _Mem_CheckSentinelsGlobal(const char *filename, int fileline)
 		for (mem = pool->chain;mem;mem = mem->next)
 			_Mem_CheckSentinels((void *)((unsigned char *) mem + sizeof(memheader_t)), filename, fileline);
 
-#if MEMCLUMPING
 	for (pool = poolchain;pool;pool = pool->next)
 		for (clump = pool->clumpchain;clump;clump = clump->chain)
 			_Mem_CheckClumpSentinels(clump, filename, fileline);
-#endif
 }
 
 /*
@@ -316,6 +301,5 @@ void FreeMemory( void )
 	Mem_FreePool( &zonepool );
 
 	//abnormal freeing pools
-	if(qccpool) Mem_FreePool( &qccpool );
-	if(studiopool) Mem_FreePool( &studiopool );
+	Mem_FreePool( &studiopool );
 }

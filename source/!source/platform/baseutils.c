@@ -6,6 +6,7 @@
 #include "platform.h"
 #include <winreg.h>
 #include "baseutils.h"
+#include "blankframe.h"
 
 //=======================================================================
 //			BYTE ORDER FUNCTIONS
@@ -242,7 +243,7 @@ skip_whitespace:	// skip whitespace
 		}
 		script->script_p++;
 	}
-	else	// regular token
+	else // regular token
 	{
 		while ( *script->script_p > 32 && *script->script_p != ';')
 		{
@@ -272,7 +273,7 @@ skip_whitespace:	// skip whitespace
 line_incomplete:
 
 	//invoke error
-	return EndOfScript( false );
+	return EndOfScript( newline );
 }
  
 /*
@@ -283,7 +284,7 @@ EndOfScript
 bool EndOfScript (bool newline)
 {
 	if (!newline)
-		Sys_Error ("Line %i is incomplete\n",scriptline);
+		Sys_Error ("Line %i is incomplete\n", scriptline);
 
 	if (!strcmp (script->filename, "script buffer"))
 	{
@@ -343,23 +344,29 @@ SC_ParseToken
 Parse a token out of a string
 ==============
 */
-char *SC_ParseToken(char *data)
+char *SC_ParseToken(const char **data_p)
 {
-	int	c;
-	int	len;
-	
+	int		c, len;
+	const char	*data;
+
+	data = *data_p;
 	len = 0;
 	token[0] = 0;
 	
-	if (!data) return NULL;
+	if (!data)
+	{
+		*data_p = NULL;
+		return NULL;
+	}
 		
-	// skip whitespace
+// skip whitespace
 skipwhite:
 	while ( (c = *data) <= ' ')
 	{
 		if (c == 0)
 		{
 			endofscript = true;
+			*data_p = NULL;
 			return NULL; // end of file;
 		}
 		data++;
@@ -387,17 +394,18 @@ skipwhite:
 	if (c == '\"')
 	{
 		data++;
-		do
+		while( 1 )
 		{
 			c = *data++;
-			if (c=='\"'||c=='\0')
+			if (c=='\"'|| c== '\0')
 			{
 				token[len] = 0;
-				return data;
+				*data_p = data;
+				return token;
 			}
 			token[len] = c;
 			len++;
-		} while (1);
+		}
 	}
 
 	// parse single characters
@@ -406,7 +414,8 @@ skipwhite:
 		token[len] = c;
 		len++;
 		token[len] = 0;
-		return data+1;
+		*data_p = data;
+		return token + 1;
 	}
 
 	// parse a regular word
@@ -421,124 +430,8 @@ skipwhite:
 	} while(c > 32);
 	
 	token[len] = 0;
-	return data;
-}
-
-/*
-==============
-SC_ParseWord
-
-Parse a word out of a string
-==============
-*/
-char *SC_ParseWord( char *data )
-{
-	int	c;
-	int	len;
-	
-	len = 0;
-	token[0] = 0;
-	
-	if (!data) return NULL;
-		
-	// skip whitespace
-skipwhite:
-	while ( (c = *data) <= ' ')
-	{
-		if (c == 0)
-		{
-			endofscript = true;
-			return NULL; // end of file;
-		}
-		data++;
-	}
-	
-	// skip // comments
-	if (c=='/' && data[1] == '/')
-	{
-		while (*data && *data != '\n')
-			data++;
-		goto skipwhite;
-	}
-	
-
-	// handle quoted strings specially
-	if (c == '\"')
-	{
-		data++;
-		do
-		{
-			c = *data++;
-			if (c=='\"'||c=='\0')
-			{
-				token[len] = 0;
-				return data;
-			}
-			token[len] = c;
-			len++;
-		} while (1);
-	}
-
-	// parse numbers
-	if (c >= '0' && c <= '9')
-	{
-		if (c == '0' && data[1] == 'x')
-		{
-			//parse hex
-			token[0] = '0';
-			c='x';
-			len=1;
-			data++;
-			while( 1 )
-			{
-				//parse regular number
-				token[len] = c;
-				data++;
-				len++;
-				c = *data;
-				if ((c < '0'|| c > '9') && (c < 'a'||c > 'f') && (c < 'A'|| c > 'F') && c != '.')
-					break;
-			}
-
-		}
-		else
-		{
-			while( 1 )
-			{
-				//parse regular number
-				token[len] = c;
-				data++;
-				len++;
-				c = *data;
-				if ((c < '0'|| c > '9') && c != '.')
-					break;
-			}
-		}
-		
-		token[len] = 0;
-		return data;
-	}
-	// parse words
-	else if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_')
-	{
-		do
-		{
-			token[len] = c;
-			data++;
-			len++;
-			c = *data;
-		} while ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_');
-		
-		token[len] = 0;
-		return data;
-	}
-	else
-	{
-		token[len] = c;
-		len++;
-		token[len] = 0;
-		return data + 1;
-	}
+	*data_p = data;
+	return token;
 }
 
 /*
@@ -573,6 +466,19 @@ skip current token and jump into newline
 void SC_SkipToken( void )
 {
 	GetToken( true );
+	tokenready = true;
+}
+
+/*
+==============
+SC_FreeToken
+
+release current token to get 
+him again with SC_GetToken()
+==============
+*/
+void SC_FreeToken( void )
+{
 	tokenready = true;
 }
 
@@ -863,71 +769,92 @@ used for make sprites and models (old stuff)
 ================
 */
 
+
 byte *ReadBMP (char *filename, byte **palette, int *width, int *height)
 {
-	int i, rc = 0;
-	file_t *pfile = NULL;
-	BITMAPFILEHEADER bmfh;
-	BITMAPINFOHEADER bmih;
-	RGBQUAD rgrgbPalette[256];
+	byte  *buf_p, *pbBmpBits;
+	byte  *buf, *pb, *pbPal = NULL;
+	int i, filesize, columns, rows;
 	ULONG cbBmpBits;
-	BYTE* pbBmpBits;
-	byte  *pb, *pbPal = NULL;
 	ULONG cbPalBytes;
 	ULONG biTrueWidth;
+	bmp_t bhdr;
+
+	RGBQUAD rgrgbPalette[256];
 
 	// File exists?
-	pfile = FS_Open(filename, "rb", true, false);
-	if(!pfile) return NULL;
+	buf = buf_p = FS_LoadFile( filename, &filesize );
+	if(!buf_p)
+	{
+		//blank_frame
+		buf_p = (char *)blank_frame; 
+		filesize = sizeof(blank_frame);
+		Msg("Warning: couldn't load %s\n", filename );
+	}
+
+	bhdr.id[0] = *buf_p++;
+	bhdr.id[1] = *buf_p++;				//move pointer
+	bhdr.fileSize = LittleLong(*(long *)buf_p);		buf_p += 4;
+	bhdr.reserved0 = LittleLong(*(long *)buf_p);		buf_p += 4;
+	bhdr.bitmapDataOffset = LittleLong(*(long *)buf_p);	buf_p += 4;
+	bhdr.bitmapHeaderSize = LittleLong(*(long *)buf_p);	buf_p += 4;
+	bhdr.width = LittleLong(*(long *)buf_p);		buf_p += 4;
+	bhdr.height = LittleLong(*(long *)buf_p);		buf_p += 4;
+	bhdr.planes = LittleShort(*(short *)buf_p);		buf_p += 2;
+	bhdr.bitsPerPixel = LittleShort(*(short *)buf_p);		buf_p += 2;
+	bhdr.compression = LittleLong(*(long *)buf_p);		buf_p += 4;
+	bhdr.bitmapDataSize = LittleLong(*(long *)buf_p);		buf_p += 4;
+	bhdr.hRes = LittleLong(*(long *)buf_p);			buf_p += 4;
+	bhdr.vRes = LittleLong(*(long *)buf_p);			buf_p += 4;
+	bhdr.colors = LittleLong(*(long *)buf_p);		buf_p += 4;
+	bhdr.importantColors = LittleLong(*(long *)buf_p);	buf_p += 4;
+	memcpy( bhdr.palette, buf_p, sizeof( bhdr.palette ));
 	
-	// Read file header
-	FS_Read(pfile, &bmfh, sizeof bmfh );
-
 	// Bogus file header check
-	if (!(bmfh.bfReserved1 == 0 && bmfh.bfReserved2 == 0))
-		return NULL;
+	if (bhdr.reserved0 != 0) return NULL;
 
-	// Read info header
-	FS_Read(pfile, &bmih, sizeof bmih );
+	if (memcmp(bhdr.id, "BM", 2))
+	{
+		Msg("ReadBMP: only Windows-style BMP files supported (%s)\n", filename );
+		return NULL;
+	} 
 
 	// Bogus info header check
-	if (!(bmih.biSize == sizeof bmih && bmih.biPlanes == 1))
+	if (bhdr.fileSize != filesize)
 	{
-		Msg("ReadBMP: incorrect file size\n");
+		Msg("ReadBMP: incorrect file size %i should be %i\n", filesize, bhdr.fileSize);
 		return NULL;
           }
           
 	// Bogus bit depth?  Only 8-bit supported.
-	if (bmih.biBitCount != 8)
+	if (bhdr.bitsPerPixel != 8)
 	{
-		Msg("ReadBMP: %d not a 8 bit image\n", bmih.biBitCount );
+		Msg("ReadBMP: %d not a 8 bit image\n", bhdr.bitsPerPixel );
 		return NULL;
 	}
 	
 	// Bogus compression?  Only non-compressed supported.
-	if (bmih.biCompression != BI_RGB) 
+	if (bhdr.compression != BI_RGB) 
 	{
 		Msg("ReadBMP: it's compressed file\n");
 		return NULL;
           }
           
 	// Figure out how many entires are actually in the table
-	if (bmih.biClrUsed == 0)
+	if (bhdr.colors == 0)
 	{
-		bmih.biClrUsed = 256;
-		cbPalBytes = (1 << bmih.biBitCount) * sizeof( RGBQUAD );
+		bhdr.colors = 256;
+		cbPalBytes = (1 << bhdr.bitsPerPixel) * sizeof( RGBQUAD );
 	}
-	else cbPalBytes = bmih.biClrUsed * sizeof( RGBQUAD );
-
-	// Read palette (bmih.biClrUsed entries)
-	FS_Read(pfile, rgrgbPalette, cbPalBytes );
+	else cbPalBytes = bhdr.colors * sizeof( RGBQUAD );
+	memcpy(rgrgbPalette, &bhdr.palette, cbPalBytes );	// Read palette (bmih.biClrUsed entries)
 
 	// convert to a packed 768 byte palette
 	pbPal = Malloc(768);
 	pb = pbPal;
 
 	// Copy over used entries
-	for (i = 0; i < (int)bmih.biClrUsed; i++)
+	for (i = 0; i < (int)bhdr.colors; i++)
 	{
 		*pb++ = rgrgbPalette[i].rgbRed;
 		*pb++ = rgrgbPalette[i].rgbGreen;
@@ -935,7 +862,7 @@ byte *ReadBMP (char *filename, byte **palette, int *width, int *height)
 	}
 
 	// Fill in unused entires will 0,0,0
-	for (i = bmih.biClrUsed; i < 256; i++) 
+	for (i = bhdr.colors; i < 256; i++) 
 	{
 		*pb++ = 0;
 		*pb++ = 0;
@@ -943,46 +870,36 @@ byte *ReadBMP (char *filename, byte **palette, int *width, int *height)
 	}
 
 	// Read bitmap bits (remainder of file)
-	cbBmpBits = bmfh.bfSize - FS_Tell(pfile);
-	pb = Malloc(cbBmpBits);
-	FS_Read(pfile, pb, cbBmpBits );
+	columns = bhdr.width, rows = bhdr.height;
+	if ( rows < 0 ) rows = -rows;
+	cbBmpBits = columns * rows;
+          buf_p += 1024;//move pointer
+          
+	pb = buf_p;
 	pbBmpBits = Malloc(cbBmpBits);
 
 	// data is actually stored with the width being rounded up to a multiple of 4
-	biTrueWidth = (bmih.biWidth + 3) & ~3;
+	biTrueWidth = (bhdr.width + 3) & ~3;
 	
 	// reverse the order of the data.
-	pb += (bmih.biHeight - 1) * biTrueWidth;
-	for(i = 0; i < bmih.biHeight; i++)
+	pb += (bhdr.height - 1) * biTrueWidth;
+	for(i = 0; i < bhdr.height; i++)
 	{
 		memmove(&pbBmpBits[biTrueWidth * i], pb, biTrueWidth);
 		pb -= biTrueWidth;
 	}
 
 	pb += biTrueWidth;
-	Free(pb);
-
-	*width = bmih.biWidth;
-	*height = bmih.biHeight;
+	*width = bhdr.width;
+	*height = bhdr.height;
 
 	// Set output parameters
 	*palette = pbPal;
-	FS_Close(pfile);
+
+	//release buffer if need
+	if( buf ) Free( buf );
 
 	return pbBmpBits;
-}
-
-/*
-================
-ReadTGA
-
-used for make sprites and models (old stuff)
-================
-*/
-byte *ReadTGA (char *filename, byte **palette, int *width, int *height)
-{
-	//implement me :)
-	return NULL;
 }
 
 //=======================================================================

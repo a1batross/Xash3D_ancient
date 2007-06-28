@@ -8,7 +8,7 @@
 #include "baseutils.h"
 #include <sprite.h>
 
-#define MAX_BUFFER_SIZE	0x100000
+#define MAX_BUFFER_SIZE	((sizeof(frames) * MAX_FRAMES) + (MAX_FRAME_DIM * 2 * MAX_FRAMES))
 #define MAX_FRAMES		1024
 #define MAX_FRAME_DIM	512
 
@@ -24,11 +24,11 @@ int	origin_y;
 
 typedef struct
 {
-	frametype_t	type;		// single frame or group of frames
-	void		*pdata;		// either a dspriteframe_t or group info
-	float		interval;		// only used for frames in groups
-	int		numgroupframes;	// only used by group headers
-}spritepackage_t;
+	int		type;	// single frame or group of frames
+	void		*pdata;	// either a dspriteframe_t
+
+} spritepackage_t;
+
 spritepackage_t frames[MAX_FRAMES];
 
 /*
@@ -36,7 +36,7 @@ spritepackage_t frames[MAX_FRAMES];
 WriteFrame
 ============
 */
-void WriteFrame (file_t *spriteouthandle, int framenum)
+void WriteFrame (file_t *f, int framenum)
 {
 	dspriteframe_t	*pframe;
 	dspriteframe_t	frametemp;
@@ -47,8 +47,8 @@ void WriteFrame (file_t *spriteouthandle, int framenum)
 	frametemp.width = LittleLong (pframe->width);
 	frametemp.height = LittleLong (pframe->height);
 
-	FS_Write (spriteouthandle, &frametemp, sizeof(frametemp));
-	FS_Write (spriteouthandle, (byte *)(pframe + 1), pframe->height * pframe->width);
+	FS_Write (f, &frametemp, sizeof(frametemp));
+	FS_Write (f, (byte *)(pframe + 1), pframe->height * pframe->width);
 }
 
 
@@ -57,9 +57,9 @@ void WriteFrame (file_t *spriteouthandle, int framenum)
 WriteSprite
 ============
 */
-void WriteSprite (file_t *spriteouthandle)
+void WriteSprite (file_t *f)
 {
-	int i, groupframe, curframe;
+	int i, curframe;
 	short cnt = 256;
 	dsprite_t	spritetemp;
 
@@ -88,57 +88,20 @@ void WriteSprite (file_t *spriteouthandle)
 		break;
 	}
           
-	FS_Write(spriteouthandle, &spritetemp, sizeof(spritetemp));
+	FS_Write( f, &spritetemp, sizeof(spritetemp));
 
 	// Write out palette in 16bit mode
-	FS_Write( spriteouthandle, (void *)&cnt, sizeof(cnt));
-	FS_Write( spriteouthandle, lbmpalette, cnt * 3 );
+	FS_Write( f, (void *)&cnt, sizeof(cnt));
+	FS_Write( f, lbmpalette, cnt * 3 );
 
 	// write out the frames
 	curframe = 0;
 
 	for (i = 0; i < sprite.numframes; i++)
 	{
-		FS_Write (spriteouthandle, &frames[curframe].type, sizeof(frames[curframe].type));
-
-		if (frames[curframe].type == SPR_SINGLE)
-		{
-			// single (non-grouped) frame
-			WriteFrame (spriteouthandle, curframe);
-			curframe++;
-		}
-		else
-		{
-			int		j, numframes;
-			dspritegroup_t	dsgroup;
-			float		totinterval;
-
-			groupframe = curframe;
-			curframe++;
-			numframes = frames[groupframe].numgroupframes;
-
-			// set and write the group header
-			dsgroup.numframes = LittleLong (numframes);
-			FS_Write (spriteouthandle, &dsgroup, sizeof(dsgroup));
-
-			// write the interval array
-			totinterval = 0.0;
-
-			for (j = 0; j < numframes; j++)
-			{
-				dspriteinterval_t	temp;
-
-				totinterval += frames[groupframe+1+j].interval;
-				temp.interval = LittleFloat (totinterval);
-				FS_Write (spriteouthandle, &temp, sizeof(temp));
-			}
-
-			for (j = 0; j < numframes; j++)
-			{
-				WriteFrame (spriteouthandle, curframe);
-				curframe++;
-			}
-		}
+		FS_Write ( f, &frames[curframe].type, sizeof(frames[curframe].type));
+		WriteFrame ( f, curframe); // only single frame supported
+		curframe++;
 	}
 
 }
@@ -150,44 +113,19 @@ WriteSPRFile
 */
 void WriteSPRFile (void)
 {
-	file_t	*spriteouthandle;
+	file_t	*f;
 
 	if(sprite.numframes == 0) Sys_Error ("no frames\n");
 	if((plump - lumpbuffer) > MAX_BUFFER_SIZE)
-		Sys_Error ("Sprite package too big; increase MAX_BUFFER_SIZE");
+		Sys_Error ("Can't write %s, sprite package too big", spriteoutname );
 
-	spriteouthandle = FS_Open(spriteoutname, "wb", true, false );
+	f = FS_Open(spriteoutname, "wb", true, false );
 	Msg("writing %s\n", spriteoutname);
-	WriteSprite (spriteouthandle);
-	
-	FS_Close(spriteouthandle);
+	WriteSprite( f );
+	FS_Close( f );
 	
 	Msg("%d frame%s\n", sprite.numframes, sprite.numframes > 1 ? "s" : "" );
-	Msg("%d ungrouped frame%s, including group headers\n", framecount, framecount > 1 ? "s" : "");
-	
 	spriteoutname[0] = 0;// clear for a new sprite
-}
-
-/*
-==============
-Load_BMP
-==============
-*/
-void Load_BMP ( char *filename )
-{
-	byteimage = ReadBMP (filename, &lbmpalette, &byteimagewidth, &byteimageheight);
-	if(!byteimage) Sys_Error( "unable to load file \"%s\"\n", filename );
-}
-
-/*
-==============
-Load_TGA
-==============
-*/
-void Load_TGA ( char *filename )
-{
-	byteimage = ReadTGA (filename, &lbmpalette, &byteimagewidth, &byteimageheight);
-	if(!byteimage) Sys_Error( "unable to load file \"%s\"\n", filename );
 }
 
 /*
@@ -252,29 +190,28 @@ void Cmd_Load (void)
 {
 	static byte origpalette[256*3];
           char *name = SC_GetToken ( false );
-	const char *ext = FS_FileExtension( name );
 	dspriteframe_t	*pframe;
 	int x, y, w, h, pix;
 	byte *screen_p;
 
-	if(!stricmp(ext, "bmp")) Load_BMP( name );
-	else if(!stricmp(ext, "tga")) Load_TGA( name );
-	else Sys_Error("unknown graphics type: \"%s\"\n", name );
+	FS_DefaultExtension( name, ".bmp" );
+
+	byteimage = ReadBMP (name, &lbmpalette, &byteimagewidth, &byteimageheight);
+	if(!byteimage) Sys_Error( "unable to load file \"%s\"\n", name );
 
 	if(sprite.numframes == 0) memcpy( origpalette, lbmpalette, sizeof( origpalette ));
 	else if (memcmp( origpalette, lbmpalette, sizeof( origpalette )))
-		Sys_Error( "bitmap \"%s\" doesn't share a pallette with the previous bitmap\n", name );	
-
+		Msg("Warning: %s doesn't share a pallette with the previous frame\n", name );	
+          
 	w = byteimagewidth;
 	h = byteimageheight;
 
 	if ((w > MAX_FRAME_DIM) || (h > MAX_FRAME_DIM))
-		Sys_Error ("Sprite has a dimension longer than 256");
+		Sys_Error ("Sprite has a dimension longer than %i", MAX_FRAME_DIM);
 
 	pframe = (dspriteframe_t *)plump;
 	frames[framecount].pdata = pframe;
-	frames[framecount].type = SPR_SINGLE;
-	frames[framecount].interval = 0.1f;
+	frames[framecount].type = 0;//SPR_SINGLE
 
 	if((origin_x != 0) && (origin_y != 0))
 	{
@@ -310,6 +247,7 @@ void Cmd_Load (void)
 	}
 
 	framecount++;
+	sprite.numframes++;
 	if (framecount >= MAX_FRAMES) Sys_Error ("Too many frames in package\n");
 }
 
@@ -350,48 +288,6 @@ void Cmd_Color( void )
 }
 
 /*
-===============
-Cmd_Group
-
-syntax: 
-$group
-{
-	$load fire01.bmp
-	$load fire02.bmp
-	$load fire03.bmp
-}	
-===============
-*/
-
-void Cmd_Group (void)
-{
-	int	groupframe;
-	int	is_started = 0;
-
-	groupframe = framecount++;
-
-	frames[groupframe].type = SPR_GROUP;
-	frames[groupframe].numgroupframes = 0;
-
-	while (1)
-	{
-		if(!SC_GetToken (true)) Sys_Error ("End of file during group");
-
-		if(SC_MatchToken( "{" )) is_started = 1;
-		else if (SC_MatchToken( "}" )) break;//end of group
-		else if (SC_MatchToken("$frame")) while(SC_TryToken());//skip old stuff
-		else if (SC_MatchToken("$load" ))
-		{
-			Cmd_Load ();
-			frames[groupframe].numgroupframes++;
-                    }
-		else if(is_started) Sys_Error("missing }\n");
-		else Sys_Error ("$frame or $load expected\n");
-	}
-	if (frames[groupframe].numgroupframes == 0) Msg("Warning: empty group\n");
-}
-
-/*
 ==============
 Cmd_Spritename
 
@@ -404,9 +300,16 @@ void Cmd_Spritename (void)
 	FS_DefaultExtension( spriteoutname, ".spr" );
 }
 
+/*
+==============
+Cmd_SpriteUnknown
+
+syntax: "blabla"
+==============
+*/
 void Cmd_SpriteUnknown( void )
 {
-	Msg("Warning: bad command %s\n", token);
+	MsgDev("Warning: bad command %s\n", token);
 	while(SC_TryToken());
 }
 
@@ -422,7 +325,7 @@ void ResetSpriteInfo( void )
 	framesmaxs[0] = -9999999;
 	framesmaxs[1] = -9999999;
 
-	if (!lumpbuffer ) lumpbuffer = Malloc(MAX_BUFFER_SIZE * 2); // *2 for padding
+	if (!lumpbuffer )lumpbuffer = Malloc((MAX_BUFFER_SIZE) * 2); // *2 for padding
 
 	plump = lumpbuffer;
 	sprite.version = SPRITE_VERSION_HALF;//normal sprite
@@ -442,23 +345,13 @@ bool ParseSpriteScript (void)
 	{
 		if(!SC_GetToken (true))break;
 
-		if (SC_MatchToken( "$frame" )) while(SC_TryToken());
-		else if (SC_MatchToken( "$spritename" )) Cmd_Spritename();
-		else if (SC_MatchToken( "$type" )) Cmd_Type();
+		if (SC_MatchToken( "$spritename" )) Cmd_Spritename();
+		else if (SC_MatchToken( "$framerate" )) Cmd_Framerate();
 		else if (SC_MatchToken( "$texture" )) Cmd_Texture();
 		else if (SC_MatchToken( "$origin" )) Cmd_Offset();
-		else if (SC_MatchToken( "$framerate" )) Cmd_Framerate();
 		else if (SC_MatchToken( "$color" )) Cmd_Color();
-		else if (SC_MatchToken( "$load" ))
-		{
-			Cmd_Load ();
-			sprite.numframes++;
-		}		
-		else if (SC_MatchToken( "$group" ))
-		{
-			Cmd_Group ();
-			sprite.numframes++;
-		}
+		else if (SC_MatchToken( "$load" )) Cmd_Load();
+		else if (SC_MatchToken( "$type" )) Cmd_Type();
 		else if(SC_MatchToken( "$modelname" ))//check for studiomdl script
 		{
 			Msg("%s probably studio qc.script, skipping...\n", gs_mapname );
@@ -479,7 +372,8 @@ void ClearSprite( void )
 	origin_x = 0;
 	origin_y = 0;
 
-	memset(frames, 0, sizeof(spritepackage_t) * MAX_FRAMES );
+	memset(frames, 0, sizeof(frames));
+	if(lumpbuffer) Free( lumpbuffer );
 }
 
 bool CompileCurrentSprite( char *name )
@@ -508,6 +402,7 @@ bool MakeSprite ( void )
 	search_t	*search;
 	int i, numCompiledSprites = 0;
 
+	MsgDev("Spritegen. Ver: 0.2\n");
 	if(!FS_GetParmFromCmdLine("-qcfile", gs_mapname )) 
 	{
 		//search for all .ac files in folder		
@@ -523,6 +418,5 @@ bool MakeSprite ( void )
 	else CompileCurrentSprite( NULL );
 	
 	if(numCompiledSprites > 1) Msg("total %d sprites compiled\n", numCompiledSprites );	
-	Sys_Error("");
 	return false;
 }

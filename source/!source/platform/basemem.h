@@ -5,11 +5,6 @@
 #ifndef BASEMEMORY_H
 #define BASEMEMORY_H
 
-#ifdef NDEBUG
-#define MEMCLUMPING 1
-#endif
-
-#if MEMCLUMPING
 // give malloc padding so we can't waste most of a page at the end
 #define MEMCLUMPSIZE (65536 - 1536)
 // smallest unit we care about is this many bytes
@@ -17,7 +12,6 @@
 #define MEMBITS (MEMCLUMPSIZE / MEMUNIT)
 #define MEMBITINTS (MEMBITS / 32)
 #define MEMCLUMP_SENTINEL 0xABADCAFE
-#endif
 
 #define MEMHEADER_SENTINEL1 0xDEADF00D
 #define MEMHEADER_SENTINEL2 0xDF
@@ -30,10 +24,10 @@ typedef struct memheader_s
 	struct memheader_s	*next;
 	struct memheader_s	*prev;
 	struct mempool_s	*pool;// pool this memheader belongs to
-#if MEMCLUMPING
+
 	// clump this memheader lives in, NULL if not in a clump
 	struct memclump_s *clump;
-#endif
+
 	size_t size; // size of the memory after the header (excluding header and sentinel2)
 	const char *filename;// file name and line where Mem_Alloc was called
 	int fileline;
@@ -42,7 +36,6 @@ typedef struct memheader_s
 }
 memheader_t;
 
-#if MEMCLUMPING
 typedef struct memclump_s
 {
 	// contents of the clump
@@ -63,16 +56,13 @@ typedef struct memclump_s
 	struct memclump_s *chain;
 }
 memclump_t;
-#endif
 
 typedef struct mempool_s
 {
 	
 	unsigned int sentinel1;// should always be MEMHEADER_SENTINEL1
 	struct memheader_s *chain;// chain of individual memory allocations
-#if MEMCLUMPING
 	struct memclump_s *clumpchain;// chain of clumps (if any)
-#endif
 	size_t totalsize;// total memory allocated in this pool (inside memheaders)
 	size_t realsize;// total memory allocated in this pool (actual malloc total)
 	// updated each time the pool is displayed by memlist, shows change from previous time (unless pool was freed)

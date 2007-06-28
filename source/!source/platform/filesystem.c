@@ -114,6 +114,7 @@ typedef struct stringlist_s
 {
 	struct stringlist_s *next;
 	char		*text;
+	unsigned		flags;
 } stringlist_t;
 
 byte *fs_mempool;
@@ -435,7 +436,7 @@ int matchpattern(const char *in, const char *pattern, bool caseinsensitive)
 	return 1; // success
 }
 
-stringlist_t *stringlistappend(stringlist_t *current, char *text)
+stringlist_t *stringlistappend(stringlist_t *current, char *text, unsigned flags)
 {
 	stringlist_t *newitem;
 	size_t textlen;
@@ -445,6 +446,8 @@ stringlist_t *stringlistappend(stringlist_t *current, char *text)
 	newitem->next = NULL;
 	newitem->text = (char *)(newitem + 1);
 	memcpy(newitem->text, text, textlen);
+	newitem->flags = flags;
+
 	if (current) current->next = newitem;
 	return newitem;
 }
@@ -507,10 +510,10 @@ stringlist_t *listdirectory(const char *path)
 	if(hFile == -1)
 		return NULL;
 	// start a new chain with the the first name
-	start = current = stringlistappend(NULL, n_file.name);
+	start = current = stringlistappend(NULL, n_file.name, n_file.attrib);
 	// iterate through the directory
 	while (_findnext(hFile, &n_file) == 0)
-		current = stringlistappend(current, n_file.name);
+		current = stringlistappend(current, n_file.name, n_file.attrib);
 	_findclose(hFile);
 
 	// convert names to lowercase because windows does not care, but pattern matching code often does
@@ -626,36 +629,6 @@ void FS_Path (void)
 		if (s->pack) MsgDev("%s (%i files)\n", s->pack->filename, s->pack->numfiles);
 		else MsgDev("%s\n", s->filename);
 	}
-}
-
-/*
-================
-FS_GetBaseDir
-================
-*/
-void FS_GetBaseDir( char *pszBuffer, char *out )
-{
-	char basedir[ MAX_SYSPATH ];
-	char szBuffer[ MAX_SYSPATH ];
-	int j;
-	char *pBuffer = NULL;
-
-	strcpy( szBuffer, pszBuffer );
-
-	pBuffer = strrchr( szBuffer,'\\' );
-	if ( pBuffer ) *(pBuffer+1) = '\0';
-
-	strcpy( basedir, szBuffer );
-
-	j = strlen( basedir );
-	if (j > 0)
-	{
-		if ( ( basedir[ j-1 ] == '\\' ) || ( basedir[ j-1 ] == '/' ) )
-		{
-			basedir[ j-1 ] = 0;
-		}
-	}
-	strcpy(out, basedir);
 }
 
 /*
@@ -931,17 +904,18 @@ void FS_AddGameDirectory (const char *dir)
 			sprintf (pakfile, "%s%s", dir, current->text);
 			FS_AddPack_Fullpath(pakfile, NULL, false);
 		}
-	}
-
-	// add any PK3 package in the director
-	for (current = list; current; current = current->next)
-	{
-		if (!stricmp(FS_FileExtension(current->text), "pk3"))
+		else if (!stricmp(FS_FileExtension(current->text), "pk2"))
+		{
+			sprintf (pakfile, "%s%s", dir, current->text);
+			FS_AddPack_Fullpath(pakfile, NULL, false);
+		}
+		else if (!stricmp(FS_FileExtension(current->text), "pk3"))
 		{
 			sprintf (pakfile, "%s%s", dir, current->text);
 			FS_AddPack_Fullpath(pakfile, NULL, false);
 		}
 	}
+
 	freedirectory(list);
 
 	// Add the directory to the search path
@@ -1192,7 +1166,7 @@ void FS_Init( void )
 	}
 }
 
-void FS_InitPath( char *path )
+void FS_InitRootDir( char *path )
 {
 	char	szTemp[4096];
 
@@ -1834,6 +1808,31 @@ int FS_UnGetc (file_t* file, unsigned char c)
 	return c;
 }
 
+int FS_Gets (file_t* file, byte *string, size_t bufsize )
+{
+	int c, end = 0;
+
+	while( 1 )
+	{
+		c = FS_Getc( file );
+		if (c == '\r' || c == '\n' || c < 0)
+			break;
+		if (end < bufsize - 1)
+			string[end++] = c;
+	}
+	string[end] = 0;
+
+	// remove \n following \r
+	if (c == '\r')
+	{
+		c = FS_Getc(file);
+		if (c != '\n') FS_UnGetc(file, (byte)c);
+	}
+	MsgDev("FS_Gets: %s\n", string);
+
+	return c;
+}
+
 /*
 ====================
 FS_Seek
@@ -2107,7 +2106,7 @@ FS_Search
 Allocate and fill a search structure with information on matching filenames.
 ===========
 */
-search_t *FS_Search(const char *pattern, int caseinsensitive, int quiet)
+static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet, bool findsubdirsonly)
 {
 	search_t *search;
 	searchpath_t *searchpath;
@@ -2161,7 +2160,8 @@ search_t *FS_Search(const char *pattern, int caseinsensitive, int quiet)
 								break;
 						if (listtemp == NULL)
 						{
-							listcurrent = stringlistappend(listcurrent, temp);
+							//files in pak don't have atributes
+							listcurrent = stringlistappend(listcurrent, temp, 0 );
 							if (liststart == NULL) liststart = listcurrent;
 							if (!quiet) MsgDev("SearchPackFile: %s : %s\n", pak->filename, temp);
 						}
@@ -2185,9 +2185,13 @@ search_t *FS_Search(const char *pattern, int caseinsensitive, int quiet)
 			sprintf(netpath, "%s%s", searchpath->filename, basepath);
 			if ((dir = listdirectory(netpath)))
 			{
+				unsigned tempflags = 0;
+				
 				for (dirfile = dir;dirfile;dirfile = dirfile->next)
 				{
 					sprintf(temp, "%s%s", basepath, dirfile->text);
+					tempflags = dirfile->flags;
+
 					if (matchpattern(temp, (char *)pattern, true))
 					{
 						for (listtemp = liststart;listtemp;listtemp = listtemp->next)
@@ -2195,7 +2199,7 @@ search_t *FS_Search(const char *pattern, int caseinsensitive, int quiet)
 								break;
 						if (listtemp == NULL)
 						{
-							listcurrent = stringlistappend(listcurrent, temp);
+							listcurrent = stringlistappend(listcurrent, temp, tempflags);
 							if (liststart == NULL)
 								liststart = listcurrent;
 							if (!quiet) MsgDev("SearchDirFile: %s\n", temp);
@@ -2226,6 +2230,22 @@ search_t *FS_Search(const char *pattern, int caseinsensitive, int quiet)
 		for (listtemp = liststart;listtemp;listtemp = listtemp->next)
 		{
 			size_t textlen;
+			bool skipfile = false;
+
+			if(findsubdirsonly)
+			{
+				if(!(listtemp->flags & _A_SUBDIR)) skipfile = true;
+				else if(!strcasecmp(listtemp->text, ".")) skipfile = true;
+				else if(!strcasecmp(listtemp->text, "..")) skipfile = true;
+			}
+
+			if(skipfile)
+			{
+				//skip this file
+				search->numfilenames--;
+				continue;
+			}
+
 			search->filenames[numfiles] = search->filenamesbuffer + numchars;
 			textlen = strlen(listtemp->text) + 1;
 			memcpy(search->filenames[numfiles], listtemp->text, textlen);
@@ -2237,6 +2257,16 @@ search_t *FS_Search(const char *pattern, int caseinsensitive, int quiet)
 
 	Free(basepath);
 	return search;
+}
+
+search_t *FS_Search(const char *pattern, int caseinsensitive, int quiet)
+{
+	return _FS_Search( pattern, caseinsensitive, quiet, false );
+}
+
+search_t *FS_SearchDirs(const char *pattern, int caseinsensitive, int quiet)
+{
+	return _FS_Search( pattern, caseinsensitive, quiet, true );
 }
 
 void FS_FreeSearch(search_t *search)
@@ -2258,23 +2288,6 @@ void FS_InitMemory( void )
 	if (fs_basedir[0] && fs_basedir[strlen(fs_basedir) - 1] != '/' && fs_basedir[strlen(fs_basedir) - 1] != '\\')
 		strncat(fs_basedir, "/", sizeof(fs_basedir));
 }
-
-/*
-============
-FS_FileTime
-
-returns -1 if not present
-============
-*/
-int FS_FileTime (char *path)
-{
-	struct stat buf;
-	
-	if(stat(path, &buf) == -1)
-		return -1;
-	return buf.st_mtime;
-}
-
 
 /*
 ================

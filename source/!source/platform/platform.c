@@ -6,7 +6,6 @@
 #include "platform.h"
 #include "baseutils.h"
 #include "bsplib.h"
-#include "qcclib.h"
 
 static double start, end;
 static int app_name;
@@ -230,19 +229,19 @@ void InitPlatform ( char *funcname, int argc, char **argv )
 	else if(!strcmp(funcname, "sprite"))
 	{
 		app_name = SPRITE;
-		FS_InitPath(".");
+		FS_InitRootDir(".");
 		start = Plat_DoubleTime();
 	}
 	else if(!strcmp(funcname, "studio"))
 	{
 		app_name = STUDIO;
-		FS_InitPath(".");
+		FS_InitRootDir(".");
 		start = Plat_DoubleTime();
 	}
 	else if(!strcmp(funcname, "qcclib"))
 	{
 		app_name = QCCLIB;
-		FS_InitPath(".");
+		FS_InitRootDir(".");
 		start = Plat_DoubleTime();
 	}
 	else if(!strcmp(funcname, "host_editor"))
@@ -279,7 +278,7 @@ void PlatformFrame( void )
 		Msg ("%5.1f seconds elapsed\n", end-start);
 		break;
 	case QCCLIB:
-		MakeDAT();
+		// this does nothing
 		end = Plat_DoubleTime();
 		Msg ("%5.1f seconds elapsed\n", end-start);
 		break;

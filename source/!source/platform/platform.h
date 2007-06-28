@@ -30,6 +30,7 @@ byte *FS_LoadImage (char *filename, int *width, int *height);
 byte *FS_LoadImageData (char *filename, char *buffer, int size, int *width, int *height);
 bool FS_WriteFile (const char *filename, void *data, fs_offset_t len);
 search_t *FS_Search(const char *pattern, int caseinsensitive, int quiet);
+search_t *FS_SearchDirs(const char *pattern, int caseinsensitive, int quiet);
 
 //=====================================
 //	memory manager funcs
@@ -52,7 +53,7 @@ bool SC_MatchToken( char *match );	//match token
 char *SC_GetToken( bool newline );	//unsafe way
 bool SC_TryToken ( void );		//safe way
 void SC_SkipToken( void );
-char *SC_ParseToken( char *data );
-char *SC_ParseWord( char *data );
+void SC_FreeToken( void );
+char *SC_ParseToken(const char **data_p);
 
 #endif//BASEPLATFORM_H

@@ -6,14 +6,11 @@
 #include "mdllib.h"
 
 bool		cdset;
-bool		cdtextureset;
 
 byte		*studiopool;
 byte		*pData;
 byte		*pStart;
 char		modeloutname[MAX_SYSPATH];
-char		cddir[256];
-char		cdtexture[256];
 
 int		numrep;
 int		flip_triangles;
@@ -21,6 +18,7 @@ int		dump_hboxes;
 int		ignore_warnings;
 int		gflags;
 
+int		cdtextureset;
 int		maxseqgroupsize;
 int		split_textures;
 int		clip_texcoords;
@@ -168,7 +166,10 @@ void WriteBoneInfo( void )
 		case STUDIO_ZR:
 			pbone[j].bonecontroller[5] = i;
 			break;
-		default: Sys_Error("unknown bonecontroller type\n");
+		default: 
+			Msg("Warning: unknown bonecontroller type %i\n", bonecontroller[i].type );
+			pbone[j].bonecontroller[0] = i; //default
+			break;
 		}
 	}
 
@@ -806,7 +807,7 @@ void SimplifyModel (void)
 
 	//handle errors
 	if (iError && !(ignore_warnings)) Sys_Error("unexpected errors, stop compilation\n");
-	if (numbones >= MAXSTUDIOBONES) Sys_Error( "Too many bones used in model, used %d, max %d\n", numbones, MAXSTUDIOBONES );
+	if (numbones >= MAXSTUDIOBONES) Sys_Error( "Too many bones in model: used %d, max %d\n", numbones, MAXSTUDIOBONES );
 
 	// rename sequence bones if needed
 	for (i = 0; i < numseq; i++)
@@ -864,7 +865,11 @@ void SimplifyModel (void)
 			if (stricmp( bonecontroller[i].name, bonetable[j].name) == 0)
 				break;
 		}
-		if (j >= numbones) Sys_Error("unknown bonecontroller link '%s'\n", bonecontroller[i].name );
+		if (j >= numbones)
+		{
+			Msg("Warning: unknown bonecontroller link '%s'\n", bonecontroller[i].name );
+			j = numbones - 1;	
+		}
 		bonecontroller[i].bone = j;
 	}
 
@@ -876,7 +881,11 @@ void SimplifyModel (void)
 			if (stricmp( attachment[i].bonename, bonetable[j].name) == 0)
 				break;
 		}
-		if (j >= numbones) Sys_Error("unknown attachment link '%s'\n", attachment[i].bonename );
+		if (j >= numbones)
+		{
+			Msg("Warning: unknown attachment link '%s'\n", attachment[i].bonename );
+			j = numbones - 1;
+		}
 		attachment[i].bone = j;
 	}
 
@@ -1294,29 +1303,15 @@ void SimplifyModel (void)
 	}
 }
 
-void Grab_BMP ( char *filename, s_texture_t *ptexture )
-{
-	ptexture->ppicture = ReadBMP ( filename, (byte **)&ptexture->ppal, &ptexture->srcwidth, &ptexture->srcheight);
-	if (!ptexture->ppicture) Sys_Error("unable to load %s\n", filename );
-}
-
-void Grab_TGA ( char *filename, s_texture_t *ptexture )
-{
-	ptexture->ppicture = ReadTGA ( filename, (byte **)&ptexture->ppal, &ptexture->srcwidth, &ptexture->srcheight);
-	if (!ptexture->ppicture) Sys_Error("unable to load %s\n", filename );
-}
-
 void Grab_Skin ( s_texture_t *ptexture )
 {
 	char	filename[MAX_SYSPATH];
 
-	if(stricmp(cdtexture, ".\\" )) //default mdldec path
-		sprintf (filename, "%s/%s", cdtexture, ptexture->name);
-	else strcpy (filename, ptexture->name);
+	strcpy (filename, ptexture->name);
+	FS_DefaultExtension( filename, ".bmp" ); 
 
-	if (!stricmp( ".bmp", &filename[strlen(filename)-4])) Grab_BMP( filename, ptexture );
-	else if(!stricmp( ".tga", &filename[strlen(filename)-4])) Grab_TGA( filename, ptexture );
-	else Sys_Error("unknown graphics type: \"%s\"\n", filename );
+	ptexture->ppicture = ReadBMP ( filename, (byte **)&ptexture->ppal, &ptexture->srcwidth, &ptexture->srcheight);
+	if (!ptexture->ppicture) Sys_Error("unable to load %s\n", filename );
 }
 
 void SetSkinValues( void )
@@ -1469,14 +1464,17 @@ void Grab_Triangles( s_model_t *pmodel )
 					break;
 				}
 			}
-
-			if (texturename[0] == '\0')
+			if (strlen(texturename) < 5)//invalid name
 			{
 				// weird model problem, skip them
-				if(SC_GetToken( true )) while(SC_TryToken());
-				if(SC_GetToken( true )) while(SC_TryToken());
-				if(SC_GetToken( true )) while(SC_TryToken());
-				linecount += 3;
+				Msg("Warning: triangle with invalid texname\n");
+				for(i = 0; i < 3; i++)
+				{
+					if(!SC_GetToken( true ))
+						Sys_Error( "Unexpected EOF %s at line %d\n", filename, linecount );
+					while(SC_TryToken());
+					linecount++;
+				}
 				continue;
 			}
 		}
@@ -1585,8 +1583,7 @@ void Grab_Skeleton( s_node_t *pnodes, s_bone_t *pbones )
 			clip_rotations( pbones[index].rot ); 
 		}
 	}
-
-	Sys_Error( "Unexpected EOF at line %d\n", linecount );
+	Sys_Error( "Unexpected EOF %s at line %d\n", filename, linecount );
 }
 
 int Grab_Nodes( s_node_t *pnodes )
@@ -1619,7 +1616,7 @@ int Grab_Nodes( s_node_t *pnodes )
 			pnodes[index].mirrored = pnodes[pnodes[index].parent].mirrored;
 	}
 
-	Sys_Error( "Unexpected EOF at line %d\n", linecount );
+	Sys_Error( "Unexpected EOF %s at line %d\n", filename, linecount );
 	return 0;
 }
 
@@ -1627,10 +1624,9 @@ void Grab_Studio ( s_model_t *pmodel )
 {
           bool	load;
 
-	if(stricmp(cddir, ".\\" )) //default mdldec path
-		sprintf (filename, "%s/%s.smd", cddir, pmodel->name);
-	else sprintf (filename, "%s.smd", pmodel->name);
+	strncpy (filename, pmodel->name, sizeof(filename));
 
+	FS_DefaultExtension(filename, ".smd" );
 	load = FS_AddScript( filename );
 	if(!load)Sys_Error("unable to open %s\n", filename );
 	Msg("grabbing %s\n", filename);
@@ -1645,7 +1641,7 @@ void Grab_Studio ( s_model_t *pmodel )
 		if (SC_MatchToken( "version" ))
 		{
 			int option = atoi(SC_GetToken( false ));
-			if (option != 1) Sys_Error("bad version\n");
+			if (option != 1) Msg("Warning: %s bad version file\n", filename );
 		}
 		else if (SC_MatchToken( "nodes" ))
 		{
@@ -1663,6 +1659,13 @@ void Grab_Studio ( s_model_t *pmodel )
 	}
 }
 
+/*
+==============
+Cmd_Eyeposition
+
+syntax: $eyeposition <x> <y> <z>
+==============
+*/
 void Cmd_Eyeposition (void)
 {
 	// rotate points into frame of reference so model points down the positive x axis
@@ -1671,11 +1674,13 @@ void Cmd_Eyeposition (void)
 	eyeposition[2] = atof (SC_GetToken (false));
 }
 
-void Cmd_Flags (void)
-{
-	gflags = atoi (SC_GetToken (false));
-}
+/*
+==============
+Cmd_Modelname
 
+syntax: $modelname "outname"
+==============
+*/
 void Cmd_Modelname (void)
 {
 	strcpy (modeloutname, SC_GetToken (false));
@@ -1726,7 +1731,18 @@ int Option_Blank( void )
 	return 0;
 }
 
-void Cmd_Bodygroup( )
+/*
+==============
+Cmd_Bodygroup
+
+syntax: $bodygroup "name"
+{
+	studio "bodyref.smd"
+	blank
+}
+==============
+*/
+void Cmd_Bodygroup( void )
 {
 	int is_started = 0;
 
@@ -1750,6 +1766,13 @@ void Cmd_Bodygroup( )
 	return;
 }
 
+/*
+==============
+Cmd_Modelname
+
+syntax: $body "name" "mainref.smd"
+==============
+*/
 void Cmd_Body( void )
 {
 	int is_started = 0;
@@ -1864,18 +1887,14 @@ void Shift_Animation( s_animation_t *panim)
 	}
 }
 
-
-
 void Option_Animation ( char *name, s_animation_t *panim )
 {
 	bool	load;
 	
 	strncpy( panim->name, name, sizeof(panim->name));
+	strncpy( filename, panim->name, sizeof(filename));
 
-	if(stricmp(cddir, ".\\" )) //default mdldec path
-		sprintf (filename, "%s/%s.smd", cddir, panim->name);
-	else sprintf (filename, "%s.smd", panim->name);
-
+	FS_DefaultExtension(filename, ".smd" );
 	load = FS_AddScript( filename );
 	if(!load)Sys_Error("unable to open %s\n", filename );
 	Msg("grabbing %s\n", filename);	
@@ -1891,7 +1910,7 @@ void Option_Animation ( char *name, s_animation_t *panim )
 		else if (SC_MatchToken( "version" ))
 		{
 			int option = atoi(SC_GetToken( false ));
-			if (option != 1) Sys_Error("bad version\n");
+			if (option != 1) Msg("Warning: %s bad version file\n", filename );
 		}
 		else if (SC_MatchToken( "nodes" ))
 		{
@@ -1910,12 +1929,6 @@ void Option_Animation ( char *name, s_animation_t *panim )
 	}
 }
 
-int Option_Deform ( s_sequence_t *psequence )
-{
-	//not implemented yet
-	return 0;
-}
-
 int Option_Motion ( s_sequence_t *psequence )
 {
 	while (SC_TryToken()) psequence->motiontype |= lookupControl( token );
@@ -1925,10 +1938,12 @@ int Option_Motion ( s_sequence_t *psequence )
 int Option_Event ( s_sequence_t *psequence )
 {
 	if (psequence->numevents + 1 >= MAXSTUDIOEVENTS)
-		Sys_Error("too many events\n");
+	{
+		Msg("Warning: MAXSTUDIOEVENTS limit excedeed.\n");
+		return 0;
+	}
 
 	psequence->event[psequence->numevents].event = atoi( SC_GetToken (false));
-
 	psequence->event[psequence->numevents].frame = atoi(SC_GetToken (false));
 	psequence->numevents++;
 
@@ -1951,7 +1966,10 @@ int Option_Fps ( s_sequence_t *psequence )
 int Option_AddPivot ( s_sequence_t *psequence )
 {
 	if (psequence->numpivots + 1 >= MAXSTUDIOPIVOTS)
-		Sys_Error("too many pivot points\n");
+	{
+		Msg("Warning: MAXSTUDIOPIVOTS limit excedeed.\n");
+		return 0;
+	}
 	
 	psequence->pivot[psequence->numpivots].index = atoi(SC_GetToken (false));
 	psequence->pivot[psequence->numpivots].start = atoi(SC_GetToken (false));
@@ -1961,6 +1979,13 @@ int Option_AddPivot ( s_sequence_t *psequence )
 	return 0;
 }
 
+/*
+==============
+Cmd_Origin
+
+syntax: $origin <x> <y> <z> (z rotate)
+==============
+*/
 void Cmd_Origin (void)
 {
 	defaultadjust[0] = atof (SC_GetToken (false));
@@ -1983,11 +2008,25 @@ void Option_Rotate(void )
 	zrotation = (atof(SC_GetToken (false)) + 90) * (M_PI / 180.0);
 }
 
+/*
+==============
+Cmd_ScaleUp
+
+syntax: $scale <value>
+==============
+*/
 void Cmd_ScaleUp (void)
 {
 	default_scale = scale_up = atof (SC_GetToken (false));
 }
 
+/*
+==============
+Cmd_Rotate
+
+syntax: $rotate <value>
+==============
+*/
 void Cmd_Rotate(void)
 {
 	if (!SC_GetToken(false)) return;
@@ -1999,7 +2038,14 @@ void Option_ScaleUp (void)
 	scale_up = atof (SC_GetToken (false));
 }
 
-int Cmd_SequenceGroup( )
+/*
+==============
+Cmd_SequenceGroup
+
+syntax: $sequencegroup "name"
+==============
+*/
+int Cmd_SequenceGroup( void )
 {
 	strncpy( sequencegroup[numseqgroups].label, SC_GetToken(false), sizeof(sequencegroup[numseqgroups].label));
 	numseqgroups++;
@@ -2007,13 +2053,44 @@ int Cmd_SequenceGroup( )
 	return 0;
 }
 
-int Cmd_SequenceGroupSize( )
+/*
+==============
+Cmd_SequenceGroupSize
+
+syntax: $sequencegroupsize <kbytes>
+==============
+*/
+int Cmd_SequenceGroupSize( void )
 {
 	//in kilobytes
 	maxseqgroupsize = 1024 * atoi(SC_GetToken(false));
 	return 0;
 }
 
+/*
+==============
+Cmd_Sequence
+
+syntax: $sequence "seqname"
+{
+	(animation) "blend1.smd" "blend2.smd"	// blendings (one smdfile - normal animation)
+	event { <event> <frame> ("option") }	// event num, frame num, option string (optionally, heh...)
+	pivot <x> <y> <z>			// xyz pivot point
+	fps <framerate>			// 30.0 frames per second is default value
+	origin <x> <y> <z>			// xyz anim offset 
+	rotate <value>			// z-axis rotation value 0 - 360 deg	
+	scale <value>			// 1.0 is default size
+	loop				// loop this animation (flag)
+	frame <start> <end>			// use range(start, end) from smd file
+	blend "type" <min> <max>		// blend description types: XR, YR e.t.c and range(min-max)
+	node <number>			// link animation with node
+	transition <startnode> <endnode>	// move from start to end node
+	rtransition <startnode> <endnode>	// rotate from start to end node
+	LX				// movement flag (may be X, Y, Z, LX, LY, LZ, XR, YR, e.t.c.)
+	ACT_WALK | ACT_32 (actweight)		// act name or act number and actweight (optionally)	
+}
+==============
+*/
 int Cmd_Sequence( void )
 {
 	int i, depth = 0;
@@ -2046,7 +2123,6 @@ int Cmd_Sequence( void )
 		
 		if (SC_MatchToken( "{" )) depth++;
 		else if (SC_MatchToken( "}" )) depth--;
-		else if (SC_MatchToken("deform" )) Option_Deform( &sequence[numseq] );
 		else if (SC_MatchToken( "event" )) depth -= Option_Event( &sequence[numseq] );
 		else if (SC_MatchToken( "pivot" )) Option_AddPivot( &sequence[numseq] );
 		else if (SC_MatchToken( "fps" )) Option_Fps( &sequence[numseq] );
@@ -2092,7 +2168,14 @@ int Cmd_Sequence( void )
 		else if (i = lookupActivity( token ))
 		{
 			sequence[numseq].activity = i;
-			sequence[numseq].actweight = atoi(SC_GetToken( false ));
+			sequence[numseq].actweight = 1;//default weight
+			if(SC_TryToken())
+			{
+				//make sure what is really actweight
+				if(!SC_MatchToken("{") && !SC_MatchToken("}") && strlen(token) < 3 && atoi(token) <= 100)
+					sequence[numseq].actweight = atoi(token);
+				else SC_FreeToken();//release token
+			}
 		}
 		else
 		{
@@ -2101,9 +2184,11 @@ int Cmd_Sequence( void )
 		}
 		if (depth < 0) Sys_Error("missing {\n");
 	}
-
-	if (numblends == 0) Sys_Error("no animations found\n");
-
+	if (numblends == 0) 
+	{
+		Msg("Warning: sequence \"%s\" has no animations. skipped...\n", sequence[numseq].name);
+		return 0;
+	}
 	for (i = 0; i < numblends; i++)
 	{
 		panimation[numani] = Kalloc( sizeof( s_animation_t ));
@@ -2117,9 +2202,16 @@ int Cmd_Sequence( void )
 	sequence[numseq].numblends = numblends;
 	numseq++;
 
-	return 0;
+	return 1;
 }
 
+/*
+==============
+Cmd_Root
+
+syntax: $root "pivotname"
+==============
+*/
 int Cmd_Root (void)
 {
 	if (SC_GetToken(false))
@@ -2130,6 +2222,13 @@ int Cmd_Root (void)
 	return 1;
 }
 
+/*
+==============
+Cmd_Pivot
+
+syntax: $pivot (<index>) ("pivotname")
+==============
+*/
 int Cmd_Pivot (void)
 {
 	if (SC_GetToken (false))
@@ -2144,7 +2243,13 @@ int Cmd_Pivot (void)
 	return 1;
 }
 
+/*
+==============
+Cmd_Controller
 
+syntax: $controller "mouth"|<number> ("name") <type> <start> <end>
+==============
+*/
 int Cmd_Controller (void)
 {
 	if (SC_GetToken (false))
@@ -2178,6 +2283,13 @@ int Cmd_Controller (void)
 	return 1;
 }
 
+/*
+==============
+Cmd_BBox
+
+syntax: $bbox <mins0> <mins1> <mins2> <maxs0> <maxs1> <maxs2>
+==============
+*/
 void Cmd_BBox (void)
 {
 	bbox[0][0] = atof(SC_GetToken(false));
@@ -2188,6 +2300,13 @@ void Cmd_BBox (void)
 	bbox[1][2] = atof(SC_GetToken(false));
 }
 
+/*
+==============
+Cmd_CBox
+
+syntax: $cbox <mins0> <mins1> <mins2> <maxs0> <maxs1> <maxs2>
+==============
+*/
 void Cmd_CBox (void)
 {
 	cbox[0][0] = atof(SC_GetToken(false));
@@ -2198,17 +2317,43 @@ void Cmd_CBox (void)
 	cbox[1][2] = atof(SC_GetToken(false));
 }
 
+/*
+==============
+Cmd_Mirror
+
+syntax: $mirrorbone "name"
+==============
+*/
 void Cmd_Mirror ( void )
 {
 	strncpy( mirrored[nummirrored], SC_GetToken(false), sizeof(mirrored[nummirrored]));
 	nummirrored++;
 }
 
+/*
+==============
+Cmd_Gamma
+
+syntax: $gamma <value>
+==============
+*/
 void Cmd_Gamma ( void )
 {
 	gamma = atof(SC_GetToken(false));
 }
 
+/*
+==============
+Cmd_TextureGroup
+
+syntax: $texturegroup
+{
+{ texture1.bmp }
+{ texture2.bmp }
+{ texture3.bmp }
+}
+==============
+*/
 int Cmd_TextureGroup( void )
 {
 	int i;
@@ -2252,6 +2397,13 @@ int Cmd_TextureGroup( void )
 	return 0;
 }
 
+/*
+==============
+Cmd_Hitgroup
+
+syntax: $hitgroup <index> <name>
+==============
+*/
 int Cmd_Hitgroup( void )
 {
 	hitgroup[numhitgroups].group = atoi(SC_GetToken(false));
@@ -2261,6 +2413,13 @@ int Cmd_Hitgroup( void )
 	return 0;
 }
 
+/*
+==============
+Cmd_Hitbox
+
+syntax: $hbox <index> <name> <mins0> <mins1> <mins2> <maxs0> <maxs1> <maxs2>
+==============
+*/
 int Cmd_Hitbox( void )
 {
 	hitbox[numhitboxes].group = atoi(SC_GetToken(false));
@@ -2276,6 +2435,13 @@ int Cmd_Hitbox( void )
 	return 0;
 }
 
+/*
+==============
+Cmd_Attachment
+
+syntax: $attachment <index> <bonename> <x> <y> <z> (old stuff)
+==============
+*/
 int Cmd_Attachment( void )
 {
 	// index
@@ -2294,6 +2460,13 @@ int Cmd_Attachment( void )
 	return 0;
 }
 
+/*
+==============
+Cmd_Renamebone
+
+syntax: $renamebone <oldname> <newname>
+==============
+*/
 void Cmd_Renamebone( void )
 {
 	strcpy( renamedbone[numrenamedbones].from, SC_GetToken(false));
@@ -2306,7 +2479,7 @@ void Cmd_Renamebone( void )
 ==============
 Cmd_TexRenderMode
 
-syntax: "$texrendermode" "texture.bmp" "rendermode"
+syntax: $texrendermode "texture.bmp" "rendermode"
 ==============
 */
 void Cmd_TexRenderMode( void )
@@ -2324,6 +2497,10 @@ void Cmd_TexRenderMode( void )
 	{
 		texture[lookup_texture(tex_name)].flags |= STUDIO_NF_TRANSPARENT;
 	}
+	else if(SC_MatchToken( "blended" ))
+	{
+		texture[lookup_texture(tex_name)].flags |= STUDIO_NF_BLENDED;
+	}
 	else Msg("Texture '%s' has unknown render mode '%s'!\n", tex_name, token);
 
 }
@@ -2332,7 +2509,7 @@ void Cmd_TexRenderMode( void )
 ==============
 Cmd_Replace
 
-syntax: "$replacetexture" "oldname.bmp" "newname.bmp"
+syntax: $replacetexture "oldname.bmp" "newname.bmp"
 ==============
 */
 void Cmd_Replace( void )
@@ -2342,6 +2519,39 @@ void Cmd_Replace( void )
 	numrep++;
 }
 
+/*
+==============
+Cmd_CdSet
+
+syntax: $cd "path"
+==============
+*/
+void Cmd_CdSet( void )
+{
+	if(!cdset)
+	{
+		cdset = true;
+		FS_AddGameHierarchy( SC_GetToken (false));
+	}
+	else  Msg("Warning: $cd already set\n");
+}
+
+/*
+==============
+Cmd_CdSet
+
+syntax: $cdtexture "path"
+==============
+*/
+void Cmd_CdTextureSet( void )
+{
+	if(cdtextureset < 16) 
+	{
+		cdtextureset++;
+		FS_AddGameHierarchy( SC_GetToken (false));
+	}
+	else Msg("Warning: $cdtexture already set\n");
+}
 
 void ResetModelInfo( void )
 {
@@ -2361,14 +2571,23 @@ void ResetModelInfo( void )
 	strcpy( sequencegroup[numseqgroups].label, "default" );
 	numseqgroups = 1;
 
-	//set default sprite parms
+	FS_ClearSearchPath();//clear all $cd and $cdtexture
+
+	//set default model parms
 	FS_FileBase(gs_mapname, modeloutname );//kill path and ext
 	FS_DefaultExtension( modeloutname, ".mdl" );//set new ext
 }
 
+/*
+==============
+Cmd_StudioUnknown
+
+syntax: "blabla"
+==============
+*/
 void Cmd_StudioUnknown( void )
 {
-	Msg("Warning: bad command %s\n", token);
+	MsgDev("Warning: bad command %s\n", token);
 	while(SC_TryToken());
 }
 
@@ -2381,24 +2600,8 @@ bool ParseModelScript (void)
 		if(!SC_GetToken (true))break;
 
 		if (SC_MatchToken("$modelname")) Cmd_Modelname ();
-		else if (SC_MatchToken("$cd"))
-		{
-			if(cdset) Msg("Warning: $cd already set\n");
-			else
-			{
-				cdset = true;
-				strcpy (cddir, SC_GetToken (false));
-			}
-		}
-		else if (!strcmp (token, "$cdtexture"))
-		{
-			if(cdtextureset) Msg("Warning: $cdtexture already set\n");
-			else
-			{
-				cdtextureset = true;
-				strcpy (cdtexture, SC_GetToken (false));
-			}
-		}
+		else if (SC_MatchToken("$cd")) Cmd_CdSet();
+		else if (!strcmp (token, "$cdtexture")) Cmd_CdTextureSet();
 		else if (SC_MatchToken("$scale")) Cmd_ScaleUp ();
 		else if (SC_MatchToken("$rotate")) Cmd_Rotate();
 		else if (SC_MatchToken("$root")) Cmd_Root ();
@@ -2415,13 +2618,13 @@ bool ParseModelScript (void)
 		else if (SC_MatchToken("$cbox")) Cmd_CBox ();
 		else if (SC_MatchToken("$mirrorbone")) Cmd_Mirror ();
 		else if (SC_MatchToken("$gamma")) Cmd_Gamma ();
-		else if (SC_MatchToken("$flags")) Cmd_Flags ();
 		else if (SC_MatchToken("$texturegroup")) Cmd_TextureGroup ();
 		else if (SC_MatchToken("$hgroup")) Cmd_Hitgroup ();
 		else if (SC_MatchToken("$hbox")) Cmd_Hitbox ();
 		else if (SC_MatchToken("$attachment")) Cmd_Attachment ();
 		else if (SC_MatchToken("$externaltextures")) split_textures = 1;
 		else if (SC_MatchToken("$cliptotextures")) clip_texcoords = 1;
+		else if (SC_MatchToken("$debug")) ignore_warnings = 1;
 		else if (SC_MatchToken("$renamebone")) Cmd_Renamebone ();
 		else if (SC_MatchToken("$texrendermode")) Cmd_TexRenderMode();
 		else if (SC_MatchToken("$replacetexture")) Cmd_Replace();
@@ -2448,36 +2651,14 @@ bool ParseModelScript (void)
 void ClearModel( void )
 {
 	cdset = false;
-	cdtextureset = false;
+	cdtextureset = 0;
 
-	numrep = 0;
-	gflags = 0;
-	maxseqgroupsize = 0;
-	numseq = 0;
-	nummirrored = 0;
-	numseqgroups = 0;
-	numxnodes = 0;
-	numrenamedbones = 0;
-	totalframes = 0;
-	numbones = 0;
-	numhitboxes = 0;
-	numhitgroups = 0;
-	numattachments = 0;
-	numtextures = 0;
-	numskinref = 0;
-	numskinfamilies = 0;
-	numbonecontrollers = 0;
-	numtexturegroups = 0;
-	numcommandnodes = 0;
-	numbodyparts = 0;
-	stripcount = 0;
-	numcommands = 0;
-	linecount = 0;
-	allverts = 0;
-	alltris = 0;
-	totalseconds = 0;
-	nummodels = 0;
-	numani = 0;
+	numrep = gflags = maxseqgroupsize = numseq = nummirrored = numseqgroups = 0;
+	numxnodes = numrenamedbones = totalframes = numbones = numhitboxes = 0;
+	numhitgroups = numattachments = numtextures = numskinref = numskinfamilies = 0;
+	numbonecontrollers = numtexturegroups = numcommandnodes = numbodyparts = 0;
+	stripcount = numcommands = linecount = allverts = alltris = totalseconds = 0;
+	nummodels = numani = 0;
 
 	memset(numtexturelayers, 0, sizeof(int) * 32);
 	memset(numtexturereps, 0, sizeof(int) * 32);
@@ -2513,6 +2694,7 @@ bool MakeModel( void )
 
 	studiopool = Mem_AllocPool( "Studio" );
 
+	MsgDev("Studiomdl. Ver: 0.2\n");
 	if(!FS_GetParmFromCmdLine("-qcfile", gs_mapname )) 
 	{
 		//search for all .ac files in folder		
@@ -2529,6 +2711,5 @@ bool MakeModel( void )
 
 	if(numCompiledModels > 1) Msg("total %d models compiled\n", numCompiledModels );	
           Mem_FreePool( &studiopool );
-	
 	return 0;
 }

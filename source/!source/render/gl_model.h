@@ -42,14 +42,7 @@ typedef struct mspriteframe_s
 
 typedef struct
 {
-	int		numframes;
-	float		*intervals;
-	mspriteframe_t	*frames[1];
-} mspritegroup_t;
-
-typedef struct
-{
-	frametype_t	type;
+	int		frametype;
 	mspriteframe_t	*frameptr;
 } mspriteframedesc_t;
 

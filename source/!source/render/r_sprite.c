@@ -64,55 +64,13 @@ void *R_SpriteLoadFrame (model_t *mod, void *pin, mspriteframe_t **ppframe, int 
 	return (void *)((byte *)(pinframe+1) + size);
 }
 
-void *R_SpriteLoadGroup (model_t *mod, void * pin, mspriteframe_t **ppframe, int framenum, byte *pal )
-{
-	dspritegroup_t	*pingroup;
-	mspritegroup_t	*pspritegroup;
-	int		i, numframes;
-	dspriteinterval_t	*pin_intervals;
-	float		*poutintervals;
-	void		*ptemp;
-
-	pingroup = (dspritegroup_t *)pin;
-	numframes = LittleLong (pingroup->numframes);
-
-	pspritegroup = Mem_Alloc(mod->mempool, sizeof (mspritegroup_t) + (numframes - 1) * sizeof (pspritegroup->frames[0]));
-	pspritegroup->numframes = numframes;
-
-	*ppframe = (mspriteframe_t *)pspritegroup;
-	pin_intervals = (dspriteinterval_t *)(pingroup + 1);
-	poutintervals = Mem_Alloc(mod->mempool, numframes * sizeof (float));
-
-	pspritegroup->intervals = poutintervals;
-
-	for (i = 0; i < numframes; i++)
-	{
-		*poutintervals = LittleFloat (pin_intervals->interval);
-		if (*poutintervals <= 0.0) 
-		{
-			*poutintervals = 0.1f;//may be out of range. use with caution
-			Msg("Warning: %s with interval <= 0.0f, was merged\n", mod->name );
-		}
-		poutintervals++;
-		pin_intervals++;
-	}
-
-	ptemp = (void *)pin_intervals;
-
-	for (i = 0; i < numframes; i++ )
-	{
-		ptemp = R_SpriteLoadFrame(mod, ptemp, &pspritegroup->frames[i], framenum + i, pal);
-	}
-	return ptemp;
-}
-
 void R_SpriteLoadModel( model_t *mod, void *buffer )
 {
 	int		i, size, version, numframes;
 	dsprite_t		*pin;
 	short		*numi;
 	msprite_t		*psprite;
-	dspriteframetype_t	*pframetype;
+	frametype_t	*pframetype;
 	byte		pal[256][4];
 	vec4_t		rgbacolor;
 	float		framerate;
@@ -216,7 +174,7 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 			Msg("Warning: %s has unknown texFormat (%i, should be in range 0-4 )\n", mod->name, psprite->rendermode );
 			break;
 		}
-		pframetype = (dspriteframetype_t *)(src);
+		pframetype = (frametype_t *)(src);
 	}
 	else 
 	{
@@ -234,19 +192,16 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 	
 	for (i = 0; i < numframes; i++ )
 	{
-		frametype_t frametype;
+		int frametype;
 
 		frametype = LittleLong (pframetype->type);
-		psprite->frames[i].type = frametype;
+		psprite->frames[i].frametype = frametype;
 
-		if (frametype == SPR_SINGLE)
+		if(frametype == 0)//SPR_SINGLE
 		{
-			pframetype = (dspriteframetype_t *)R_SpriteLoadFrame(mod, pframetype + 1, &psprite->frames[i].frameptr, i, (byte *)(&pal[0][0]));
+			pframetype = (frametype_t *)R_SpriteLoadFrame(mod, pframetype + 1, &psprite->frames[i].frameptr, i, (byte *)(&pal[0][0]));
 		}
-		else if(frametype == SPR_GROUP)
-		{
-			pframetype = (dspriteframetype_t *)R_SpriteLoadGroup(mod, pframetype + 1, &psprite->frames[i].frameptr, i, (byte *)(&pal[0][0]));
-		}
+		else ri.Sys_Error(ERR_DROP, "R_SpriteLoadModel: group frames are not supported\n");
 		if(pframetype == NULL) break;                                                   
 	}
 }
@@ -259,45 +214,23 @@ R_GetSpriteFrame
 mspriteframe_t *R_GetSpriteFrame (entity_t *currententity)
 {
 	msprite_t		*psprite;
-	mspritegroup_t	*pspritegroup;
 	mspriteframe_t	*pspriteframe;
-	int		i, numframes, frame;
-	float		*pintervals, fullinterval, targettime, time;
+	int		frame;
 
 	psprite = currententity->model->extradata;
 	frame = currententity->frame;
 
 	if ((frame >= psprite->numframes) || (frame < 0))
 	{
-		Com_Printf ("R_DrawSprite: no such frame %d (%s)\n", frame, currententity->model->name);
+		Com_Printf ("R_GetSpriteFrame: no such frame %d (%s)\n", frame, currententity->model->name);
 		frame = 0;
 	}
 
-	if (psprite->frames[frame].type == SPR_SINGLE)
+	if (psprite->frames[frame].frametype == 0) //SPR_SINGLE
 	{
 		pspriteframe = psprite->frames[frame].frameptr;
 	}
-	else
-	{
-		pspritegroup = (mspritegroup_t *)psprite->frames[frame].frameptr;
-		pintervals = pspritegroup->intervals;
-		numframes = pspritegroup->numframes;
-		fullinterval = pintervals[numframes-1];
-
-		time = r_newrefdef.time / 1000.0f;
-
-		// when loading in Mod_LoadSpriteGroup, we guaranteed all interval values
-		// are positive, so we don't have to worry about division by 0
-		targettime = time - ((int)(time / fullinterval)) * fullinterval;
-
-		for (i = 0; i<(numframes - 1); i++)
-		{
-			if (pintervals[i] > targettime)
-				break;
-		}
-
-		pspriteframe = pspritegroup->frames[i];
-	}
+	else ri.Sys_Error(ERR_DROP, "R_GetSpriteFrame: group frames are not supported\n");
 
 	return pspriteframe;
 }

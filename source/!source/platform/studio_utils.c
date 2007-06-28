@@ -728,9 +728,6 @@ s_mesh_t *lookup_mesh( s_model_t *pmodel, char *texturename )
 
 s_trianglevert_t *lookup_triangle( s_mesh_t *pmesh, int index )
 {
-	if(index >= MAXSTUDIOTRIANGLES)
-		Sys_Error( "too many triangles in submodel: %d\n", index );
-
 	if (index >= pmesh->alloctris)
 	{
 		int start = pmesh->alloctris;
@@ -744,7 +741,6 @@ s_trianglevert_t *lookup_triangle( s_mesh_t *pmesh, int index )
 			pmesh->triangle = Kalloc( pmesh->alloctris * sizeof( *pmesh->triangle ));
 		}
 	}
-
 	return pmesh->triangle[index];
 }
 
@@ -842,12 +838,12 @@ int lookupActivity( char *szActivity )
 
 	for (i = 0; activity_map[i].name; i++)
 	{
-		if (stricmp( szActivity, activity_map[i].name ) == 0)
+		if (!stricmp( szActivity, activity_map[i].name ))
 			return activity_map[i].type;
 	}
 
 	// match ACT_#
-	if (strnicmp( szActivity, "ACT_", 4 ) == 0)
+	if (!strnicmp( szActivity, "ACT_", 4 ))
 		return atoi( &szActivity[4] );
 	return 0;
 }
@@ -1028,12 +1024,11 @@ void ResizeTexture( s_texture_t *ptexture )
 	ptexture->skinheight = (int)(ptexture->max_t - ptexture->min_t) + 1;
 	ptexture->size = ptexture->skinwidth * ptexture->skinheight + 256 * 3;
 
-	Msg("BMP %s [%d %d] (%.0f%%)  %6d bytes\n", ptexture->name,  ptexture->skinwidth, ptexture->skinheight, ((ptexture->skinwidth * ptexture->skinheight) / (float)(ptexture->srcwidth * ptexture->srcheight)) * 100.0, ptexture->size );
+	Msg("BMP %s [%d %d] (%.0f%%)  %6d bytes\n", ptexture->name,  ptexture->skinwidth, ptexture->skinheight, ((ptexture->skinwidth * ptexture->skinheight) / (float)(ptexture->srcwidth * ptexture->srcheight)) * 100.0f, ptexture->size );
 	
-	//TODO: tune this
-	if (ptexture->size > 640 * 480)
+	if (ptexture->size > 1024 * 1024)
 	{
-		Msg("%.0f %.0f %.0f %.0f\n", ptexture->min_s, ptexture->max_s, ptexture->min_t, ptexture->max_t );
+		Msg("%g %g %g %g\n", ptexture->min_s, ptexture->max_s, ptexture->min_t, ptexture->max_t );
 		Sys_Error("texture too large\n");
 	}
 

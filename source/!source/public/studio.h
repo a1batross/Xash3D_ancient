@@ -29,20 +29,24 @@ Studio models are position independent, so the cache manager can move them.
 #define MAXSTUDIOMODELS		32	// sub-models per model
 #define MAXSTUDIOBODYPARTS		32
 #define MAXSTUDIOGROUPS		16	// sequence groups (e.g. barney01.mdl, barney02.mdl, e.t.c)
-#define MAXSTUDIOANIMATIONS		512	// frames per sequence
-#define MAXSTUDIOMESHES		256
+#define MAXSTUDIOANIMATIONS		512	// max frames per sequence
+#define MAXSTUDIOMESHES		256	// max textures per model
 #define MAXSTUDIOEVENTS		1024
 #define MAXSTUDIOPIVOTS		256
 #define MAXSTUDIOBLENDS		2	// TODO: tune this
 #define MAXSTUDIOCONTROLLERS		32	// max controllers per model
 #define MAXSTUDIOATTACHMENTS		32	// max attachments per model
 
+// model global flags
+#define STUDIO_STATIC		0x0001	//model without anims
+#define STUDIO_RAGDOLL		0x0002	//ragdoll animation pose
+
 // lighting & rendermode options
 #define STUDIO_NF_FLATSHADE		0x0001
 #define STUDIO_NF_CHROME		0x0002
 #define STUDIO_NF_FULLBRIGHT		0x0004
-#define STUDIO_NF_RESERVED0		0x0008	//xash mdl flags
-#define STUDIO_NF_RESERVED1		0x0010	//xash mdl flags
+#define STUDIO_NF_RESERVED		0x0008	//reserved
+#define STUDIO_NF_BLENDED		0x0010
 #define STUDIO_NF_ADDITIVE		0x0020
 #define STUDIO_NF_TRANSPARENT		0x0040
 

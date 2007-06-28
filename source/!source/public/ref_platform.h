@@ -5,6 +5,8 @@
 #ifndef REF_PLATFORM_H
 #define REF_PLATFORM_H
 
+#include "ref_system.h"
+
 #define PLATFORM_VERSION		0.1
 
 typedef struct gameinfo_s
@@ -24,14 +26,6 @@ typedef struct gameinfo_s
 	
 	char key[16];
 }gameinfo_t;
-
-typedef struct fssearch_s
-{
-	int numfilenames;
-	char **filenames;
-	char *filenamesbuffer;
-}
-search_t;
 
 typedef struct platform_api_s
 {

@@ -67,8 +67,6 @@ byte *FS_LoadImageData (char *filename, char *buffer, int size, int *width, int 
 	byte *data = NULL;
 	const char *ext = FS_FileExtension(filename);
 
-	//FS_StripExtension( filename );//remove extension if needed
-
 	if(size <= 0)
 	{
 		Msg("FS_LoadImageData: %s buffer size == NULL! set correct size\n", filename );

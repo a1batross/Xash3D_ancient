@@ -15,22 +15,22 @@
 */
 typedef struct
 {
-	char id[2];
-	dword fileSize;
-	dword reserved0;
-	dword bitmapDataOffset;
-	dword bitmapHeaderSize;
-	dword width;
-	dword height;
-	word planes;
-	word bitsPerPixel;
-	dword compression;
-	dword bitmapDataSize;
-	dword hRes;
-	dword vRes;
-	dword colors;
-	dword importantColors;
-	byte palette[256][4];
+	char id[2];		//bmfh.bfType
+	dword fileSize;		//bmfh.bfSize
+	dword reserved0;		//bmfh.bfReserved1 + bmfh.bfReserved2
+	dword bitmapDataOffset;	//bmfh.bfOffBits
+	dword bitmapHeaderSize;	//bmih.biSize
+	dword width;		//bmih.biWidth
+	dword height;		//bmih.biHeight
+	word planes;		//bmih.biPlanes
+	word bitsPerPixel;		//bmih.biBitCount
+	dword compression;		//bmih.biCompression
+	dword bitmapDataSize;	//bmih.biSizeImage
+	dword hRes;		//bmih.biXPelsPerMeter
+	dword vRes;		//bmih.biYPelsPerMeter
+	dword colors;		//bmih.biClrUsed
+	dword importantColors;	//bmih.biClrImportant
+	byte palette[256][4];	//RGBQUAD palette
 } bmp_t;
 
 /*
