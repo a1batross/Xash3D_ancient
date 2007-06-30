@@ -632,16 +632,6 @@ void FS_Path (void)
 }
 
 /*
-================
-FS_GetRootDir
-================
-*/
-void FS_GetRootDir( char *out )
-{
-	GetCurrentDirectory(MAX_SYSPATH, out );
-}
-
-/*
 ============
 FS_FileBase
 
@@ -980,6 +970,24 @@ const char *FS_FileWithoutPath (const char *in)
 }
 
 /*
+============
+FS_ExtractFilePath
+============
+*/
+void FS_ExtractFilePath(const char* const path, char* dest)
+{
+	const char* src;
+	src = path + strlen(path) - 1;
+
+	// back up until a \ or the start
+	while (src != path && !PATHSEPARATOR(*(src - 1)))
+		src--;
+
+	memcpy(dest, path, src - path);
+	dest[src - path] = 0;
+}
+
+/*
 ================
 FS_ClearSearchPath
 ================
@@ -1074,7 +1082,7 @@ void FS_ResetGameInfo( void )
 	GI.gamemode = 1;
 }
 
-void FS_LoadGameInfo( char *filename )
+void FS_LoadGameInfo( const char *filename )
 {
           bool fs_modified = false;
 	bool load = false;
@@ -1086,7 +1094,7 @@ void FS_LoadGameInfo( char *filename )
 	FS_ResetGameInfo();
 	
 	//now we have bse search path and can load gameinfo.txt
-	load = FS_LoadScript( filename );
+	load = FS_LoadScript( filename, NULL, 0 );
 	
 	while( load )
 	{
@@ -1141,12 +1149,6 @@ void FS_LoadGameInfo( char *filename )
 	if(!load)Msg("FS_LoadGameInfo: can't load a %s\n", filename );
 }
 
-void FS_InitEditor( void )
-{
-	FS_ClearSearchPath();
-	FS_AddGameHierarchy( "bin" );
-}
-
 /*
 ================
 FS_Init
@@ -1172,11 +1174,13 @@ void FS_InitRootDir( char *path )
 
 	//just set cwd
 	GetModuleFileName( NULL, szTemp, MAX_SYSPATH );
-	ExtractFilePath( szTemp, szTemp );	
+	FS_ExtractFilePath( szTemp, szTemp );	
 	SetCurrentDirectory ( szTemp );
 
 	FS_ClearSearchPath();
 	FS_AddGameHierarchy( path );
+
+	FS_Path();
 }
 
 bool FS_GetParmFromCmdLine( char *parm, char *out )
@@ -1472,7 +1476,7 @@ FS_Open
 Open a file. The syntax is the same as fopen
 ====================
 */
-file_t* FS_Open (const char* filepath, const char* mode, bool quiet, bool nonblocking)
+file_t* _FS_Open (const char* filepath, const char* mode, bool quiet, bool nonblocking)
 {
 	if (FS_CheckNastyPath(filepath, false))
 	{
@@ -1495,6 +1499,10 @@ file_t* FS_Open (const char* filepath, const char* mode, bool quiet, bool nonblo
 	return FS_OpenReadFile (filepath, mode, quiet, nonblocking);
 }
 
+file_t* FS_Open (const char* filepath, const char* mode )
+{
+	return _FS_Open (filepath, mode, true, false );
+}
 
 /*
 ====================
@@ -1971,7 +1979,7 @@ byte *FS_LoadFile (const char *path, fs_offset_t *filesizeptr )
 	byte *buf = NULL;
 	fs_offset_t filesize = 0;
 
-	file = FS_Open (path, "rb", true, false);
+	file = _FS_Open (path, "rb", true, false);
 	if (file)
 	{
 		filesize = file->real_length;
@@ -1997,7 +2005,7 @@ bool FS_WriteFile (const char *filename, void *data, fs_offset_t len)
 {
 	file_t *file;
 
-	file = FS_Open (filename, "wb", false, false);
+	file = _FS_Open (filename, "wb", false, false);
 	if (!file)
 	{
 		Msg("FS_WriteFile: failed on %s\n", filename);
@@ -2085,7 +2093,7 @@ fs_offset_t FS_FileSize (const char *filename)
 	file_t	*fp;
 	int	length = 0;
 	
-	fp = FS_Open(filename, "rb", true, false );
+	fp = _FS_Open(filename, "rb", true, false );
 
 	if (fp)
 	{
@@ -2259,14 +2267,14 @@ static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet,
 	return search;
 }
 
-search_t *FS_Search(const char *pattern, int caseinsensitive, int quiet)
+search_t *FS_Search(const char *pattern, int caseinsensitive )
 {
-	return _FS_Search( pattern, caseinsensitive, quiet, false );
+	return _FS_Search( pattern, caseinsensitive, true, false );
 }
 
-search_t *FS_SearchDirs(const char *pattern, int caseinsensitive, int quiet)
+search_t *FS_SearchDirs(const char *pattern, int caseinsensitive )
 {
-	return _FS_Search( pattern, caseinsensitive, quiet, true );
+	return _FS_Search( pattern, caseinsensitive, true, true );
 }
 
 void FS_FreeSearch(search_t *search)
@@ -2308,6 +2316,50 @@ int FS_CheckParm (const char *parm)
 		if (!strcmp (parm, fs_argv[i])) return i;
 	}
 	return 0;
+}
+
+/*
+=============================================================================
+
+EXTERNAL FILESYSTEM INTERFACE
+=============================================================================
+*/
+filesystem_api_t FS_GetAPI( void )
+{
+	static filesystem_api_t	fs;
+
+	fs.api_size = sizeof(filesystem_api_t);
+
+	fs.FileBase = FS_FileBase;
+	fs.FileExists = FS_FileExists;
+	fs.FileSize = FS_FileSize;
+	fs.FileExtension = FS_FileExtension;
+	fs.FileWithoutPath = FS_FileWithoutPath;
+	fs.StripExtension = FS_StripExtension;
+	fs.StripFilePath = FS_ExtractFilePath;
+	fs.DefaultExtension = FS_DefaultExtension;
+	fs.ClearSearchPath = FS_ClearSearchPath;
+
+	fs.Search = FS_Search;
+	fs.SearchDirs = FS_SearchDirs;
+	fs.FreeSearch = FS_FreeSearch;
+
+	fs.Open = FS_Open;
+	fs.Close = FS_Close;
+	fs.Write = FS_Write;
+	fs.Read = FS_Read;
+	fs.Print = FS_Print;
+	fs.Printf = FS_Printf;
+	fs.Gets = FS_Gets;
+	fs.Seek = FS_Seek;
+	fs.Tell = FS_Tell;
+
+	fs.LoadFile = FS_LoadFile;
+	fs.WriteFile = FS_WriteFile;
+	fs.LoadImage = FS_LoadImage;
+	fs.FreeImage = FS_FreeImage;
+
+	return fs;
 }
 
 /*

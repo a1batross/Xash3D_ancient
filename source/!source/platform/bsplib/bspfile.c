@@ -375,7 +375,7 @@ void LoadBSPFileTexinfo (char *filename)
 
 	header = Malloc(sizeof(dheader_t));
 
-	f = FS_Open (filename, "rb", true, false );
+	f = FS_Open (filename, "rb" );
 	FS_Read(f, header, sizeof(dheader_t));
 	//fread (header, sizeof(dheader_t), 1, f);
 
@@ -438,7 +438,7 @@ void WriteBSPFile( void )
 	sprintf (path, "maps/%s.bsp", gs_mapname );
 	Msg ("writing %s\n", path);
 	
-	wadfile = FS_Open( path, "wb", false, false );
+	wadfile = _FS_Open( path, "wb", false, false );
 	FS_Write( wadfile, header, sizeof(dheader_t));	// overwritten later
 
 	AddLump (LUMP_PLANES, dplanes, numplanes*sizeof(dplane_t));
@@ -549,7 +549,7 @@ Parses the dentdata string into entities
 void ParseEntities (void)
 {
 	num_entities = 0;
-	if(MS_LoadScript(dentdata, entdatasize))
+	if(FS_LoadScript("entities", dentdata, entdatasize))
 		while(ParseEntity());
 }
 

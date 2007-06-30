@@ -38,8 +38,6 @@ extern bool onlyents;
 extern bool onlyvis;
 extern bool onlyrad;
 
-void MakeBSP ( void );
-
 // bsplib export functions
 void WradMain ( bool option );
 void WvisMain ( bool option );
@@ -467,7 +465,7 @@ void MakeTreePortals (tree_t *tree);
 //=============================================================================
 // shaders.c
 
-void LoadShaderInfo( void );
+int LoadShaderInfo( void );
 shader_t *FindShader( char *texture );
 
 //=============================================================================

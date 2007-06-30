@@ -24,7 +24,8 @@ void *R_SpriteLoadFrame (model_t *mod, void *pin, mspriteframe_t **ppframe, int 
 	mspriteframe_t	*pspriteframe;
 	int		width, height, size, origin[2];
 	char		name[64];
-          image_t		*image;
+	rgbdata_t		r_frame;
+	image_t		*image;
 	
 	pinframe = (dspriteframe_t *)pin;
 
@@ -37,8 +38,8 @@ void *R_SpriteLoadFrame (model_t *mod, void *pin, mspriteframe_t **ppframe, int 
 
 	*ppframe = pspriteframe;
 
-	pspriteframe->width = width;
-	pspriteframe->height = height;
+	pspriteframe->width = r_frame.width = width;
+	pspriteframe->height = r_frame.height = height;
 	origin[0] = LittleLong (pinframe->origin[0]);
 	origin[1] = LittleLong (pinframe->origin[1]);
 
@@ -47,12 +48,17 @@ void *R_SpriteLoadFrame (model_t *mod, void *pin, mspriteframe_t **ppframe, int 
 	pspriteframe->left = origin[0];
 	pspriteframe->right = width + origin[0];
           pspriteframe->texnum = 0;
+	r_frame.compression = 0;
+	r_frame.bitsperpixel = 32;
+	r_frame.alpha = true;
 	
 	//extract sprite name from path
 	ri.FS_FileBase( mod->name, name );
 	strcat(name, va("_%i", framenum));
+	r_frame.palette = pal;
+	r_frame.buffer = (byte *)(pinframe + 1);
 
-	image = R_LoadImage( name, (byte *)(pinframe + 1), pal, width, height, it_sprite, 32, true );
+	image = R_LoadImage( name, &r_frame, it_sprite );
 	
 	if(image)
 	{

@@ -8,10 +8,11 @@
 
 #include "platform.h"
 
-byte *LoadBMP( char *name, char *buffer, int filesize, int *width, int *height );
-byte *LoadPCX( char *name, char *buffer, int filesize, int *width, int *height );
-byte *LoadTGA( char *name, char *buffer, int filesize, int *width, int *height );
-byte *LoadPNG( char *name, char *buffer, int filesize, int *width, int *height );
-byte *LoadJPG( char *name, char *buffer, int filesize, int *width, int *height );
+bool LoadBMP( char *name, char *buffer, int filesize );
+bool LoadPCX( char *name, char *buffer, int filesize );
+bool LoadTGA( char *name, char *buffer, int filesize );
+bool LoadDDS( char *name, char *buffer, int filesize );
+bool LoadPNG( char *name, char *buffer, int filesize );
+bool LoadJPG( char *name, char *buffer, int filesize );
 
 #endif//IMGLIB_H

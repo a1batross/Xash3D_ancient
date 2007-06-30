@@ -85,15 +85,19 @@ Studio model loader
 */
 image_t *R_StudioLoadTexture( model_t *mod, mstudiotexture_t *ptexture, byte *pin )
 {
-	image_t *image;
-	byte *data = pin + ptexture->index; //texdata
-	byte *pal = pin + ptexture->width * ptexture->height + ptexture->index;
-	int alpha = (ptexture->flags & STUDIO_NF_TRANSPARENT) ? true : false;
-          int width = ptexture->width;
-          int height = ptexture->height;
-	
+	image_t	*image;
+	rgbdata_t	r_skin;
+
+          r_skin.width = ptexture->width;
+          r_skin.height = ptexture->height;
+	r_skin.alpha = (ptexture->flags & STUDIO_NF_TRANSPARENT) ? true : false;
+	r_skin.bitsperpixel = 24;
+	r_skin.compression = 0;
+	r_skin.palette = pin + ptexture->width * ptexture->height + ptexture->index;
+	r_skin.buffer = pin + ptexture->index; //texdata
+			
 	//load studio texture and bind it
-	image = R_LoadImage(ptexture->name, data, pal, width, height, it_skin, 24, alpha );
+	image = R_LoadImage(ptexture->name, &r_skin, it_skin );
 	if(!image) 
 	{
 		Msg("Warning: %s has null texture %s\n", mod->name, ptexture->name );

@@ -238,7 +238,7 @@ void Do_Text_Display(edict_t *activator, int flags, char *message)
 		strcat(filename,"\\maps\\");
 		strcat(filename, message);
 
-		f = gi.fopen(filename, "rb", true, false );
+		f = gi.fopen(filename, "rb" );
 		if(!f)
 		{
 			gi.dprintf("File not found:%s\n",filename);

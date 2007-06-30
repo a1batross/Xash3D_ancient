@@ -570,18 +570,19 @@ void FootStep(edict_t *ent)
 void ReadTextureSurfaceAssignments()
 {
 	file_t	*f;
+	char 	line[1024];
 
 	num_texsurfs = 0;
 
-	f = gi.fopen("scripts/texsurfs.txt","rt", true, false);
+	f = gi.fopen("scripts/texsurfs.txt","rt");
 	if(!f) return;
 
 	//UNDONE: get params with parsing fcts
-	/*while(fgets(line, sizeof(line), f) && num_texsurfs < MAX_TEX_SURF)
+	while(gi.fgets(f, line, sizeof(line)) && num_texsurfs < MAX_TEX_SURF)
 	{
 //		gi.dprintf("%d %s\n",tex_surf[num_texsurfs].step_id,tex_surf[num_texsurfs].tex);
 		num_texsurfs++;
-	}*/
+	}
 	
 	gi.fclose(f);
 }

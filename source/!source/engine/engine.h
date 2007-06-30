@@ -21,17 +21,17 @@
 #include "basemath.h"
 #include "qfiles.h"
 #include "cvar.h"
-#include <ref_platform.h>
+#include <ref_system.h>
 #include <ref_launcher.h>
 #include <ref_renderer.h>
 #include "bspmodel.h"
 #include "const.h"
 #include "common.h"
 
-extern system_api_t gSysFuncs;
-extern platform_api_t    pi;
-extern byte *zonepool;
-extern jmp_buf abortframe;
+extern stdio_api_t 		std;
+extern platform_api_t	*pi;
+extern byte		*zonepool;
+extern jmp_buf		abortframe;
 
 extern int host_debug;
 
@@ -47,36 +47,35 @@ memory manager
 #define Z_Free(data) Mem_Free(data)
 
 //malloc-free
-#define Mem_Alloc(pool,size) pi.MS_Alloc(pool, size, __FILE__, __LINE__)
-#define Mem_Free(mem) pi.MS_Free(mem, __FILE__, __LINE__)
+#define Mem_Alloc(pool,size) pi->Mem.Alloc(pool, size, __FILE__, __LINE__)
+#define Mem_Free(mem) pi->Mem.Free(mem, __FILE__, __LINE__)
 
 //Hunk_AllocName
-#define Mem_AllocPool(name) pi.MS_AllocPool(name, __FILE__, __LINE__)
-#define Mem_FreePool(pool) pi.MS_FreePool(pool, __FILE__, __LINE__)
-#define Mem_EmptyPool(pool) pi.MS_EmptyPool(pool, __FILE__, __LINE__)
+#define Mem_AllocPool(name) pi->Mem.AllocPool(name, __FILE__, __LINE__)
+#define Mem_FreePool(pool) pi->Mem.FreePool(pool, __FILE__, __LINE__)
+#define Mem_EmptyPool(pool) pi->Mem.EmptyPool(pool, __FILE__, __LINE__)
 
 /*
 ===========================================
 filesystem manager
 ===========================================
 */
-#define FS_LoadFile(name, size) pi.FS_LoadFile(name, size)
-#define FS_LoadImage(name, width, height) pi.FS_LoadFile(name, width, height)
-#define FS_Search(path) pi.FS_Search( path, true, false )
-#define FS_WriteFile(name, data, size) pi.FS_WriteFile(name, data, size )
-#define FS_Open( path, mode ) pi.FS_Open( path, mode, true, false )
-#define FS_Read( file, buffer, size ) pi.FS_Read( file, buffer, size )
-#define FS_Write( file, buffer, size ) pi.FS_Write( file, buffer, size )
-#define FS_StripExtension( path ) pi.FS_StripExtension( path )
-#define FS_DefaultExtension( path, ext ) pi.FS_DefaultExtension( path, ext )
-#define FS_FileExists( file ) pi.FS_FileExists( file )
-#define FS_Close( file ) pi.FS_Close( file )
-#define FS_FileBase( x, y ) pi.FS_FileBase( x, y )
-#define FS_Printf pi.FS_Printf
-#define FS_Seek pi.FS_Seek
-#define FS_Tell pi.FS_Tell
-#define FS_Getc pi.FS_Getc
-#define FS_UnGetc pi.FS_UnGetc
+#define FS_LoadFile(name, size) pi->Fs.LoadFile(name, size)
+#define FS_LoadImage(name, width, height) pi->Fs.LoadFile(name, width, height)
+#define FS_Search(path) pi->Fs.Search( path, true )
+#define FS_WriteFile(name, data, size) pi->Fs.WriteFile(name, data, size )
+#define FS_Open( path, mode ) pi->Fs.Open( path, mode )
+#define FS_Read( file, buffer, size ) pi->Fs.Read( file, buffer, size )
+#define FS_Write( file, buffer, size ) pi->Fs.Write( file, buffer, size )
+#define FS_StripExtension( path ) pi->Fs.StripExtension( path )
+#define FS_DefaultExtension( path, ext ) pi->Fs.DefaultExtension( path, ext )
+#define FS_FileExists( file ) pi->Fs.FileExists( file )
+#define FS_Close( file ) pi->Fs.Close( file )
+#define FS_FileBase( x, y ) pi->Fs.FileBase( x, y )
+#define FS_Printf pi->Fs.Printf
+#define FS_Seek pi->Fs.Seek
+#define FS_Tell pi->Fs.Tell
+#define FS_Gets pi->Fs.Gets
 char *FS_Gamedir( void );
 
 /*
@@ -84,8 +83,8 @@ char *FS_Gamedir( void );
 System Timer
 ===========================================
 */
-#define Sys_DoubleTime pi.DoubleTime
-#define GI pi.GameInfo()
+#define Sys_DoubleTime pi->DoubleTime
+#define GI pi->GameInfo()
 
 /*
 ===========================================
@@ -95,7 +94,7 @@ System Events
 
 #define Msg Com_Printf
 #define MsgDev Com_DPrintf
-#define WinError gSysFuncs.sys_err
+#define WinError std.error
 
 /*
 ===========================================

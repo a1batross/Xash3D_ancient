@@ -116,7 +116,7 @@ static void ParseShaderFile( char *filename )
 	char		name[128];
 	shader_t		*si;
 
-	bool load = FS_LoadScript( filename );
+	bool load = FS_LoadScript( filename, NULL, 0 );
 
 	if( load )
 	{
@@ -208,20 +208,21 @@ static void ParseShaderFile( char *filename )
 LoadShaderInfo
 ===============
 */
-void LoadShaderInfo( void )
+int LoadShaderInfo( void )
 {
 	search_t	*search;
 	int	i, numShaderFiles;
 
 	numShaderFiles = 0;
-	search = FS_Search("scripts/shaders/*.txt", true, false);
-	if (!search) return;
+	search = FS_Search("scripts/shaders/*.txt", true );
+	if (!search) return 0;
 	
 	for( i = 0; i < search->numfilenames; i++ )
 	{
 		ParseShaderFile( search->filenames[i] );
 		numShaderFiles++;
 	}
+	Free( search );
 
-	Msg( "%5i shaderInfo\n", numShaderInfo);
+	return numShaderInfo;
 }

@@ -12,7 +12,7 @@
 #include <fcntl.h>
 #include <basetypes.h>
 #include <ref_launcher.h>
-#include <ref_platform.h>
+#include <ref_system.h>
 
 //import variables
 char *(*Sys_Input ) ( void );	
@@ -43,6 +43,7 @@ static int sys_error = false;
 int CheckParm (const char *parm);
 void ParseCommandLine (LPSTR lpCmdLine);
 void UpdateEnvironmentVariables( void );
+bool GetParmFromCmdLine( char *parm, char *out );
 
 //win32 console
 void Sys_PrintW(const char *pMsg);
@@ -60,5 +61,16 @@ __inline void NullVoidWithArg( bool parm ) {}
 __inline void NullVarArgs( char *parm, ... ) {}
 __inline char *NullChar( void ) { return NULL; }
 __inline void NullInit ( char *funcname, int argc, char **argv ) {}
+
+//memory manager
+#define Mem_Alloc(pool, size) pi->Mem.Alloc(pool, size, __FILE__, __LINE__)
+#define Mem_Realloc(pool, ptr, size) pi->Mem.Realloc(pool, ptr, size, __FILE__, __LINE__)
+#define Mem_Free(mem) pi->Mem.Free(mem, __FILE__, __LINE__)
+#define Mem_AllocPool(name) pi->Mem.AllocPool(name, __FILE__, __LINE__)
+#define Mem_FreePool(pool) pi->Mem.FreePool(pool, __FILE__, __LINE__)
+#define Mem_EmptyPool(pool) pi->Mem.EmptyPool(pool, __FILE__, __LINE__)
+#define Mem_Move(dest, src, size ) pi->Mem.Move (dest, src, size, __FILE__, __LINE__)
+#define Mem_Copy(dest, src, size ) pi->Mem.Copy (dest, src, size, __FILE__, __LINE__)
+#define Mem_Check() pi->Mem.CheckSentinelsGlobal(__FILE__, __LINE__)
 
 #endif//LAUNCHER_H

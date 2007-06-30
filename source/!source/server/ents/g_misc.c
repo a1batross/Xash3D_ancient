@@ -3518,7 +3518,7 @@ int PatchDeadSoldier ()
 	if (!*gamedir->string)
 		return 0;	// we're in baseq2
 
-	if (outfile = gi.fopen (DEADSOLDIER_MODEL, "rb", true, false))
+	if (outfile = gi.fopen (DEADSOLDIER_MODEL, "rb"))
 	{
 		// output file already exists, move along
 		gi.fclose (outfile);
@@ -3547,7 +3547,7 @@ int PatchDeadSoldier ()
 
 
 	// load original model
-	if ( !(infile = gi.fopen (DEADSOLDIER_MODEL, "rb", true, false)) )
+	if ( !(infile = gi.fopen (DEADSOLDIER_MODEL, "rb")) )
 	{
 		gi.dprintf("PatchDeadSoldier: Could not find %s\n",DEADSOLDIER_MODEL);
 		return 0;
@@ -3577,7 +3577,7 @@ int PatchDeadSoldier ()
 	model.ofs_glcmds += newoffset;
 	model.ofs_end    += newoffset;
 
-	if ( !(outfile = gi.fopen (DEADSOLDIER_MODEL, "wb", true, false)) )
+	if ( !(outfile = gi.fopen (DEADSOLDIER_MODEL, "wb")) )
 	{
 		// file couldn't be created for some other reason
 		gi.dprintf ("PatchDeadSoldier: Could not save %s\n", outfilename);

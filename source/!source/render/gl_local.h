@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "basetypes.h"
 #include <basemath.h>
+#include "ref_system.h"
 #include "materials.h"
 #include "cvar.h"
 #include "qfiles.h"
@@ -407,7 +408,7 @@ byte *LoadJPG (char *filename, int *width, int *height);
 
 void R_ImageList_f (void);
 
-image_t *R_LoadImage(char *name, byte *pic, byte *pal, int width, int height, imagetype_t type, int bits, int alpha );
+image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type );
 image_t *R_FindImage (char *name, char *buffer, int size, imagetype_t type);
 
 void	R_InitTextures( void );

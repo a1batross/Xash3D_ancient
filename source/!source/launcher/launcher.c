@@ -14,6 +14,9 @@ int com_argc;
 char *com_argv[MAX_NUM_ARGVS];
 char progname[32];
 HINSTANCE	linked_dll;
+platform_api_t	*pi; //callback to utilities
+static double start, end;
+byte *mempool; //generic mempoolptr
 
 /*
 ==================
@@ -27,8 +30,7 @@ NOTE: at this day we have seven instnaces
 4. "bsplib" - three BSP compilers in one
 5. "sprite" - sprite creator (requires qc. script)
 6. "studio" - Half-Life style models creatror (requires qc. script) 
-7. "qcclib" - QuakeC compiler\decompiler utility (not implemented yet)
-8. "credits" - display credits of engine developers
+7. "credits" - display credits of engine developers
 
 This list will be expnaded in future
 ==================
@@ -70,15 +72,115 @@ void LookupInstance( const char *funcname )
 	{
 		app_name = STUDIO;
 	}
-	else if(!strcmp(progname, "qcclib"))
-	{
-		app_name = QCCLIB;
-	}
 	else if(!strcmp(progname, "credits")) //easter egg
 	{
 		app_name = CREDITS;
 	}
 	else app_name = DEFAULT;
+}
+
+/*
+==================
+PlatformInit
+
+platform.dll needs for some setup operations
+so do it manually
+==================
+*/
+void PlatformInit ( char *funcname, int argc, char **argv )
+{
+	byte bspflags = 0;
+	char mapname[64], gamedir[64];
+
+	if(pi->apiversion != PLATFORM_API_VERSION)
+		Sys_Error("mismatch version (%i should be %i)\n", pi->apiversion, PLATFORM_API_VERSION);
+	if(pi->api_size != sizeof(platform_api_t))
+		Sys_Error("mismatch interface size (%i should be %i)\n", pi->api_size, sizeof(platform_api_t));		
+
+	pi->Init();
+
+	if(!GetParmFromCmdLine("-game", gamedir ))
+		strncpy(gamedir, "xash", sizeof(gamedir));
+	if(!GetParmFromCmdLine("+map", mapname ))
+		strncpy(mapname, "newmap", sizeof(mapname));
+		
+	if(CheckParm("-vis")) bspflags |= BSP_ONLYVIS;
+	if(CheckParm("-rad")) bspflags |= BSP_ONLYRAD;
+	if(CheckParm("-full")) bspflags |= BSP_FULLCOMPILE;
+	if(CheckParm("-onlyents")) bspflags |= BSP_ONLYENTS;
+
+	switch(app_name)
+	{
+	case BSPLIB:
+	          // this does nothing
+		pi->Compile.PrepareBSP( gamedir, mapname, bspflags );
+		break;
+	case SPRITE:
+		pi->InitRootDir(".");
+		start = pi->DoubleTime();
+		break;
+	case STUDIO:
+		pi->InitRootDir(".");
+		start = pi->DoubleTime();
+		break;
+	case DEFAULT:
+		break;
+	}
+}
+
+void PlatformMain ( void )
+{
+	search_t	*search;
+	char qcfilename[64], typemod[16];
+	int i, numCompiledMods = 0;
+	bool (*CompileMod)( byte *mempool, const char *name, byte parms ) = NULL;
+	byte parms = 0; //future expansion
+
+	switch(app_name)
+	{
+	case SPRITE: 
+		CompileMod = pi->Compile.Sprite;
+		strcpy(typemod, "sprites" );
+		break;
+	case STUDIO:
+		CompileMod = pi->Compile.Studio;
+		strcpy(typemod, "models" );
+		break;
+	case BSPLIB: 
+		pi->Compile.BSP(); 
+		strcpy(typemod, "maps" );
+		break;
+	case DEFAULT:
+		strcpy(typemod, "things" );
+		break;
+	}
+	if(!CompileMod) return;//back to shutdown
+
+	mempool = Mem_AllocPool("compiler");
+	if(!GetParmFromCmdLine("-qcfile", qcfilename ))
+	{
+		//search for all .ac files in folder		
+		search = pi->Fs.Search("*.qc", true );
+		if(!search) Sys_Error("no qcfiles found in this folder!\n");
+
+		for( i = 0; i < search->numfilenames; i++ )
+		{
+			if(CompileMod( mempool, search->filenames[i], parms ))
+				numCompiledMods++;
+		}
+	}
+	else CompileMod( mempool, qcfilename, parms );
+
+	end = pi->DoubleTime();
+	Msg ("%5.1f seconds elapsed\n", end - start);
+	if(numCompiledMods > 1) Msg("total %d %s compiled\n", numCompiledMods, typemod );
+}
+
+void PlatformShutdown ( void )
+{
+	Mem_Check(); //check for leaks
+	Mem_FreePool( &mempool );
+	pi->Shutdown;
 }
 
 
@@ -89,25 +191,24 @@ Find needed library, setup and run it
 */
 void CreateInstance( void )
 {
-	system_api_t  sysapi;//import
+	stdio_api_t  std;//import
 
 	//export
-	platform_t	CreatePLAT;
-	platform_api_t	pi;
+	platform_api_t	*(*CreatePLAT)( stdio_api_t *);
 
 	host_t		CreateHOST;
 	host_api_t	hi;          
 
-	editor_t		CreateEDIT;
-	edit_api_t	ei;
+	edit_api_t	*(*CreateEDIT)( stdio_api_t *);
+	edit_api_t	*ei;
 	
 	//setup sysfuncs
-	sysapi.sys_msg = Msg;
-	sysapi.sys_dev = MsgDev;
-	sysapi.sys_err = Sys_Error;
-	sysapi.sys_exit = Sys_Exit;
-	sysapi.sys_print = Sys_Print;
-	sysapi.sys_input = Sys_Input;
+	std.printf = Msg;
+	std.dprintf = MsgDev;
+	std.error = Sys_Error;
+	std.exit = Sys_Exit;
+	std.print = Sys_Print;
+	std.input = Sys_Input;
 
 	switch(app_name)
 	{
@@ -118,7 +219,7 @@ void CreateInstance( void )
 		if ((CreateHOST = (void *)GetProcAddress( linked_dll, "CreateAPI" ) ) == 0 )
 			Sys_Error("unable to find entry point\n");
 		//set callback
-		hi = CreateHOST( sysapi );
+		hi = CreateHOST( std );
 
 		Host_Init = hi.host_init;
 		Host_Main = hi.host_main;
@@ -130,26 +231,25 @@ void CreateInstance( void )
 		if ((CreateEDIT = (void *)GetProcAddress( linked_dll, "CreateAPI" ) ) == 0 )
 			Sys_Error("unable to find entry point\n");
 		//set callback
-		ei = CreateEDIT( sysapi );
+		ei = CreateEDIT( &std );
 
-		Host_Init = ei.editor_init;
-		Host_Main = ei.editor_main;
-		Host_Free = ei.editor_free;
+		Host_Init = ei->editor_init;
+		Host_Main = ei->editor_main;
+		Host_Free = ei->editor_free;
 		break;
 	case BSPLIB:
 	case SPRITE:
 	case STUDIO:
-	case QCCLIB:
 		if (( linked_dll = LoadLibrary( "bin/platform.dll" )) == 0 )
 			Sys_Error("couldn't load platform.dll\n");
-		if ((CreatePLAT = (void *)GetProcAddress( linked_dll, "CreateAPI" ) ) == 0 )
+		if ((CreatePLAT = (void *)GetProcAddress( linked_dll, "CreateAPI" )) == 0 )
 			Sys_Error("unable to find entry point\n");
 		//set callback
-		pi = CreatePLAT( sysapi );
+		pi = CreatePLAT( &std );
 
-		Host_Init = pi.plat_init;
-		Host_Main = pi.plat_main;
-		Host_Free = pi.plat_free;
+		Host_Init = PlatformInit;
+		Host_Main = PlatformMain;
+		Host_Free = PlatformShutdown;
 		break;
 	case CREDITS:
 		//blank
@@ -164,15 +264,12 @@ void CreateInstance( void )
 	MsgDev("\"%s\" initialized\n", progname );
 
 	//hide console if needed
-	if(debug_mode)
+	switch(app_name)
 	{
-		switch(app_name)
-		{
-			case HOST_SHARED:
-			case HOST_EDITOR:
-				Sys_ShowConsole( false );
-				break;
-		}
+		case HOST_SHARED:
+		case HOST_EDITOR:
+			Sys_ShowConsole( false );
+			break;
 	}
 }
 

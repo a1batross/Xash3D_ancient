@@ -145,13 +145,14 @@ typedef struct
 	void (*MS_EmptyPool)	(byte *pool, const char *filename, int fileline);
 
 	//filesystem
-	file_t *(*fopen)		(const char* filepath, const char* mode, bool quiet, bool nonblocking);
+	file_t *(*fopen)		(const char* filepath, const char* mode);
 	fs_offset_t (*fread)	(file_t* file, void* buffer, size_t buffersize);
 	fs_offset_t (*fwrite)	(file_t* file, const void* data, size_t datasize);
 	int (*fprintf)		(file_t* file, char* fmt, ... );
 	int (*fclose)		(file_t* file);
 	int (*fseek)		(file_t* file, fs_offset_t offset, int whence);
 	fs_offset_t (*ftell)	(file_t* file);
+	int (*fgets)		(file_t* file, byte *string, size_t bufsize );
 	
 	// console variable interaction
 	cvar_t	*(*cvar) (char *var_name, char *value, int flags);

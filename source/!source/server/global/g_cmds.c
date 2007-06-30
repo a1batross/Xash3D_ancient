@@ -2297,7 +2297,7 @@ void ClientCommand (edict_t *ent)
 			vec3_t	origin;
 			int		count;
 
-			f = gi.fopen(parm,"w", true, false);
+			f = gi.fopen(parm,"w");
 			if(f) {
 				gi.fprintf(f,"Movetype codes\n"
 					      " 0 MOVETYPE_NONE\n"
@@ -2418,7 +2418,7 @@ void ClientCommand (edict_t *ent)
 	
 			GameDirRelativePath(parm,filename);
 			strcat(filename,".txt");
-			f = gi.fopen(filename,"w", true, false);
+			f = gi.fopen(filename,"w");
 //			for(i=0; i<globals.num_edicts; i++)
 //			{
 //				e = &g_edicts[i];

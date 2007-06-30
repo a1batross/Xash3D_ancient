@@ -101,7 +101,7 @@ bool EndOfScript (bool newline);
 AddScriptToStack
 ==============
 */
-bool AddScriptToStack(char *name, byte *buffer, int size)
+bool AddScriptToStack(const char *name, byte *buffer, int size)
 {
 	if (script == &scriptstack[MAX_INCLUDES - 1])
 	{
@@ -120,13 +120,15 @@ bool AddScriptToStack(char *name, byte *buffer, int size)
 	return true;
 }
 
-bool FS_LoadScript( char *filename )
+bool FS_LoadScript( const char *filename, char *buf, int size )
 {
-	int size, result;
-	byte *buf = FS_LoadFile (filename, &size );
+	int result;
+
+	if(!buf || size <= 0)
+		buf = FS_LoadFile (filename, &size );
 
 	script = scriptstack;
-	result = AddScriptToStack(filename, buf, size);
+	result = AddScriptToStack( filename, buf, size);
 	if(result)MsgDev("Load script %s\n", filename );
 
 	endofscript = false;
@@ -134,27 +136,16 @@ bool FS_LoadScript( char *filename )
 	return result;
 }
 
-bool FS_AddScript( char *filename )
+bool FS_AddScript( const char *filename, char *buf, int size )
 {
-	int size, result;
-	byte *buf = FS_LoadFile (filename, &size );
+	int result;
 
+	if(!buf || size <= 0)	
+		buf = FS_LoadFile (filename, &size );
 
 	result = AddScriptToStack(filename, buf, size);
 	if(result) MsgDev("Insert script %s\n", filename );
 
-	return result;
-}
-
-bool MS_LoadScript( char *buf, int size )
-{
-	int result;
-	
-	script = scriptstack;
-	result = AddScriptToStack("script buffer", buf, size );
-
-	endofscript = false;
-	tokenready = false;
 	return result;
 }
 
@@ -265,7 +256,7 @@ skip_whitespace:	// skip whitespace
 	if (!strcmp(token, "$include") || !strcmp(token, "#include"))
 	{
 		GetToken (false);
-		FS_AddScript(token);
+		FS_AddScript(token, NULL, 0 );
 		return GetToken (newline);
 	}
 	return true;
@@ -449,7 +440,7 @@ Match Token With
 check current token for match with user keyword
 ==============
 */
-bool SC_MatchToken( char *match )
+bool SC_MatchToken( const char *match )
 {
 	if (!strcmp( token, match ))
 		return true;
@@ -513,18 +504,54 @@ char *SC_GetToken( bool newline )
 	return NULL;
 }
 
+/*
+==============
+SC_Token
+
+return current token
+==============
+*/
+char *SC_Token( void )
+{
+	return token;
+}
+
+/*
+=============================================================================
+
+EXTERNAL PARSE STUFF INTERFACE
+=============================================================================
+*/
+scriptsystem_api_t Sc_GetAPI( void )
+{
+	static scriptsystem_api_t	sc;
+
+	sc.api_size = sizeof(scriptsystem_api_t);
+
+	sc.Load = FS_LoadScript;
+	sc.Include = FS_AddScript;
+	sc.GetToken = SC_GetToken;
+	sc.Token = SC_Token;
+	sc.TryToken = SC_TryToken;
+	sc.FreeToken = SC_FreeToken;
+	sc.SkipToken = SC_SkipToken;
+	sc.MatchToken = SC_MatchToken;
+	sc.ParseToken = SC_ParseToken;
+
+	return sc;
+}
 
 //=======================================================================
 //			GET CPU INFO
 //=======================================================================
 typedef struct register_s
 {
-	unsigned long eax;
-	unsigned long ebx;
-	unsigned long ecx;
-	unsigned long edx;
+	dword eax;
+	dword ebx;
+	dword ecx;
+	dword edx;
 	bool retval;
-}register_t;
+} register_t;
 
 static register_t cpuid(unsigned int function )
 {
@@ -555,7 +582,6 @@ static register_t cpuid(unsigned int function )
 	}
 
 	_asm popad
-          //Com_Printf("return retval %d\n", retval );
 	return local;
 }
 
@@ -588,7 +614,7 @@ bool Check3DNowTechnology(void)
 	register_t amd = cpuid( 0x80000000 );
 	
 	if( !amd.retval ) return false;
-	if ( amd.eax > 0x80000000L )
+	if( amd.eax > 0x80000000L )
 	{
 		amd = cpuid( 0x80000001 );
 		if( !amd.retval ) return false;
@@ -615,10 +641,10 @@ bool CheckFCMOVTechnology(void)
 
 bool CheckRDTSCTechnology(void)
 {
-	register_t rdtsct = cpuid(1);
+	register_t rdtsc = cpuid(1);
 
-	if( !rdtsct.retval ) return false;
-	return ( rdtsct.edx & 0x10 ) != 0;
+	if( !rdtsc.retval ) return false;
+	return ( rdtsc.edx & 0x10 ) != 0;
 }
 
 // Return the Processor's vendor identification string, or "Generic_x86" if it doesn't exist on this CPU
@@ -645,10 +671,10 @@ const char* GetProcessorVendorId()
 // Hyper-Threading Technology is necessarily enabled.
 static bool HTSupported(void)
 {
-	const unsigned int HT_BIT		= 0x10000000;	// EDX[28] - Bit 28 set indicates Hyper-Threading Technology is supported in hardware.
-	const unsigned int FAMILY_ID		= 0x0f00;		// EAX[11:8] - Bit 11 thru 8 contains family processor id
-	const unsigned int EXT_FAMILY_ID	= 0x0f00000;	// EAX[23:20] - Bit 23 thru 20 contains extended family  processor id
-	const unsigned int PENTIUM4_ID	= 0x0f00;		// Pentium 4 family processor id
+	const uint HT_BIT	= 0x10000000;	// EDX[28] - Bit 28 set indicates Hyper-Threading Technology is supported in hardware.
+	const uint FAMILY_ID = 0x0f00;	// EAX[11:8] - Bit 11 thru 8 contains family processor id
+	const uint EXT_FAMILY_ID = 0x0f00000;	// EAX[23:20] - Bit 23 thru 20 contains extended family  processor id
+	const uint PENTIUM4_ID = 0x0f00;	// Pentium 4 family processor id
 
           register_t intel1 = cpuid(0);
           register_t intel2 = cpuid(1);
@@ -663,7 +689,7 @@ static bool HTSupported(void)
 }
 
 // Returns the number of logical processors per physical processors.
-static unsigned char LogicalProcessorsPerPackage(void)
+static byte LogicalProcessorsPerPackage(void)
 {
 	const unsigned NUM_LOGICAL_BITS = 0x00FF0000; // EBX[23:16] indicate number of logical processors per package
           register_t core = cpuid(1);
@@ -671,7 +697,7 @@ static unsigned char LogicalProcessorsPerPackage(void)
 	if (!HTSupported()) return 1; 
 	if( !core.retval) return 1;
 
-	return (unsigned char) ((core.ebx & NUM_LOGICAL_BITS) >> 16);
+	return (byte)((core.ebx & NUM_LOGICAL_BITS) >> 16);
 }
 
 int64 ClockSample( void )
@@ -759,6 +785,52 @@ cpuinfo_t GetCPUInformation( void )
 
 	pi.m_szCPUID = (char*)GetProcessorVendorId();
 	return pi;
+}
+
+void Plat_InitCPU( void )
+{
+	cpuinfo_t cpu = GetCPUInformation();
+	char szFeatureString[256];
+	
+	// Compute Frequency in Mhz: 
+	char* szFrequencyDenomination = "Mhz";
+	double fFrequency = cpu.m_speed / 1000000.0;
+
+	//copy shared info
+          GI.cpufreq = (float)fFrequency;
+          GI.cpunum = cpu.m_usNumLogicCore;
+          
+	// Adjust to Ghz if nessecary:
+	if( fFrequency > 1000.0 )
+	{
+		fFrequency /= 1000.0;
+		szFrequencyDenomination = "Ghz";
+	}
+
+	strcpy( szFeatureString, cpu.m_szCPUID );
+	strcat( szFeatureString, " " );
+	
+	if( cpu.m_bMMX ) strcat(szFeatureString, "MMX " );
+	if( cpu.m_b3DNow ) strcat(szFeatureString, "3DNow " );
+	if( cpu.m_bSSE ) strcat(szFeatureString, "SSE " );
+	if( cpu.m_bSSE2 ) strcat(szFeatureString, "SSE2 " );
+	if( cpu.m_bRDTSC ) strcat(szFeatureString, "RDTSC " );
+	if( cpu.m_bCMOV ) strcat(szFeatureString, "CMOV " );
+	if( cpu.m_bFCMOV ) strcat(szFeatureString, "FCMOV " );
+
+	// Remove the trailing space.  There will always be one.
+	szFeatureString[strlen(szFeatureString)-1] = '\0';
+
+	// Dump CPU information:
+	if( cpu.m_usNumLogicCore == 1 ) Msg( "1 CPU, " );
+	else
+	{
+		char buffer[256] = "";
+		if( cpu.m_usNumPhysCore != cpu.m_usNumLogicCore )
+			sprintf(buffer, " (%i physical)", (int) cpu.m_usNumPhysCore );
+		Msg( "%i CPUs%s, ",  (int)cpu.m_usNumLogicCore, buffer );
+	}
+	Msg("Frequency: %.01f %s\nCPU Features: %s\n", fFrequency, szFrequencyDenomination, szFeatureString );
 }
 
 /*
@@ -1031,29 +1103,106 @@ void RunThreadsOn (int workcnt, bool showpacifier, void(*func)(int))
 	if (pacifier) Msg(" Done [%.2f sec]\n", end - start);
 }
 
-//=======================================================================
-//			PATH BUILDER
-//=======================================================================
-char* FlipSlashes(char* string)
+/*
+================
+Plat_DoubleTime
+================
+*/
+double Plat_DoubleTime (void)
 {
-	while (*string)
+	static int first = true;
+	static bool nohardware_timer = false;
+	static double oldtime = 0.0, curtime = 0.0;
+	double newtime;
+	
+	// LordHavoc: note to people modifying this code, 
+	// DWORD is specifically defined as an unsigned 32bit number, 
+	// therefore the 65536.0 * 65536.0 is fine.
+	if (GI.cpunum > 1 || nohardware_timer)
 	{
-		if(PATHSEPARATOR(*string))
-			*string = SYSTEM_SLASH_CHAR;
-		string++;
+		static int firsttimegettime = true;
+		// timeGetTime
+		// platform:
+		// Windows 95/98/ME/NT/2000/XP
+		// features:
+		// reasonable accuracy (millisecond)
+		// issues:
+		// wraps around every 47 days or so (but this is non-fatal to us, 
+		// odd times are rejected, only causes a one frame stutter)
+
+		// make sure the timer is high precision, otherwise different versions of
+		// windows have varying accuracy
+		if (firsttimegettime)
+		{
+			timeBeginPeriod (1);
+			firsttimegettime = false;
+		}
+
+		newtime = (double) timeGetTime () / 1000.0;
 	}
-	return string;
+	else
+	{
+		// QueryPerformanceCounter
+		// platform:
+		// Windows 95/98/ME/NT/2000/XP
+		// features:
+		// very accurate (CPU cycles)
+		// known issues:
+		// does not necessarily match realtime too well
+		// (tends to get faster and faster in win98)
+		// wraps around occasionally on some platforms
+		// (depends on CPU speed and probably other unknown factors)
+		double timescale;
+		LARGE_INTEGER PerformanceFreq;
+		LARGE_INTEGER PerformanceCount;
+
+		if (!QueryPerformanceFrequency (&PerformanceFreq))
+		{
+			Msg("No hardware timer available\n");
+			// fall back to timeGetTime
+			nohardware_timer = true;
+			return Plat_DoubleTime();
+		}
+		QueryPerformanceCounter (&PerformanceCount);
+
+		timescale = 1.0 / ((double) PerformanceFreq.LowPart + (double) PerformanceFreq.HighPart * 65536.0 * 65536.0);
+		newtime = ((double) PerformanceCount.LowPart + (double) PerformanceCount.HighPart * 65536.0 * 65536.0) * timescale;
+	}
+
+	if (first)
+	{
+		first = false;
+		oldtime = newtime;
+	}
+
+	if (newtime < oldtime)
+	{
+		// warn if it's significant
+		if (newtime - oldtime < -0.01)
+			Msg("Plat_DoubleTime: time stepped backwards (went from %f to %f, difference %f)\n", oldtime, newtime, newtime - oldtime);
+	}
+	else curtime += newtime - oldtime;
+	oldtime = newtime;
+
+	return curtime;
 }
 
-void ExtractFilePath(const char* const path, char* dest)
+/*
+=============================================================================
+
+COMPILERS PACKAGE INTERFACE
+=============================================================================
+*/
+compilers_api_t Comp_GetAPI( void )
 {
-	const char* src;
-	src = path + strlen(path) - 1;
+	static compilers_api_t cp;
 
-	// back up until a \ or the start
-	while (src != path && !PATHSEPARATOR(*(src - 1)))
-		src--;
+	cp.api_size = sizeof(compilers_api_t);
 
-	memcpy(dest, path, src - path);
-	dest[src - path] = 0;
+	cp.Studio = CompileStudioModel;
+	cp.Sprite = CompileSpriteModel;
+	cp.PrepareBSP = PrepareBSPModel;
+	cp.BSP = CompileBSPModel;
+
+	return cp;
 }

@@ -16,8 +16,7 @@
 #define BSPLIB			4	// "bsplib"
 #define SPRITE			5	// "sprite"
 #define STUDIO			6	// "studio"
-#define QCCLIB			7	// "qcclib"
-#define CREDITS			8
+#define CREDITS			7
 
 //main core interface
 typedef struct host_api_s
@@ -27,10 +26,10 @@ typedef struct host_api_s
 	void ( *host_main ) ( void );	//host frame
 	void ( *host_free ) ( void );	//close host
 
-}host_api_t;
+} host_api_t;
 
 //engine.dll handle
-typedef host_api_t (*host_t)(system_api_t);
+typedef host_api_t (*host_t)(stdio_api_t);
 
 //generic editor interface
 typedef struct edit_api_s
@@ -40,9 +39,9 @@ typedef struct edit_api_s
 	void ( *editor_main ) ( void ); //editor main cycle
 	void ( *editor_free ) ( void ); //close editor
 
-}edit_api_t;
+} edit_api_t;
 
 //editor.dll handle
-typedef edit_api_t (*editor_t)(system_api_t);
+typedef edit_api_t (*editor_t)(stdio_api_t);
 
 #endif//REF_LAUNCHER_H

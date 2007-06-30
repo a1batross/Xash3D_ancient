@@ -1144,6 +1144,18 @@ int R_Init( void *hinstance, void *hWnd )
 		ri.Con_Printf( PRINT_ALL, "...WGL_EXT_swap_control not found\n" );
 	}
 
+	if (strstr( gl_config.extensions_string, "GL_ARB_texture_compression" ))
+	{
+		qglCompressedTexImage2DARB = ( void *) qwglGetProcAddress("glCompressedTexImage2DARB");
+		qglGetCompressedTexImageARB = ( void *) qwglGetProcAddress("glGetCompressedTexImageARB");
+
+		if (!qglCompressedTexImage2DARB || !qglGetCompressedTexImageARB)
+		{
+			qglCompressedTexImage2DARB = NULL;
+			qglGetCompressedTexImageARB = NULL;
+		}
+	}
+ 
 	if ( strstr( gl_config.extensions_string, "GL_EXT_point_parameters" ) )
 	{
 		if ( gl_ext_pointparameters->value )

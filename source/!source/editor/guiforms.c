@@ -30,9 +30,9 @@ typedef struct tag_dlghdr
 	DLGTEMPLATE	*apRes[C_PAGES]; 
 }DLGHDR; 
 
-GUI_Form s_gui;
-wnd_options_t w_opts;	//window options
-platform_api_t pi;//platform utils 
+GUI_Form 			s_gui;
+wnd_options_t		w_opts;	//window options
+platform_api_t		*pi;//platform utils 
 static bool editor_init = false;
 static char textbuffer[MAX_INPUTLINE];
 
@@ -438,15 +438,15 @@ void GUI_ResetWndOptions( void )
 
 bool GUI_LoadPlatfrom( char *funcname, int argc, char **argv )
 {
-	system_api_t	sysapi;//platform callback
-	platform_t	CreatePLAT;//export
+	stdio_api_t	pistd;//platform callback
+	platform_api_t	*(*CreatePLAT)( stdio_api_t *);
 
 	//create callbacks for platform.dll
-	sysapi.sys_msg = GUI_Msg;
-	sysapi.sys_dev = GUI_MsgDev;
-	sysapi.sys_err = GUI_Error;
-	sysapi.sys_exit = gSysFuncs.sys_exit;
-	sysapi.sys_print = GUI_Print;
+	pistd.printf = GUI_Msg;
+	pistd.dprintf = GUI_MsgDev;
+	pistd.error = GUI_Error;
+	pistd.exit = std.exit;
+	pistd.print = GUI_Print;
 
 	//loading platform.dll
 	if (( platform_dll = LoadLibrary( "bin/platform.dll" )) == 0 )
@@ -459,10 +459,13 @@ bool GUI_LoadPlatfrom( char *funcname, int argc, char **argv )
 		MsgDev("platform.dll: unable to find entry point\n");
 		return false;
 	}
-	pi = CreatePLAT( sysapi );//make links
+	pi = CreatePLAT( &pistd );//make links
 	
 	//initialziing platform.dll
-	pi.plat_init( funcname, argc, argv );
+	pi->Init();
+
+	pi->Fs.ClearSearchPath();
+	pi->AddGameHierarchy( "bin" );
 
 	return true;
 }
@@ -639,7 +642,7 @@ void GUI_Msg( const char *pMsg, ... )
 	GUI_Print( text );
 
 	//echo into system console
-	gSysFuncs.sys_print( text );
+	std.print( text );
 }
 
 void GUI_MsgDev( const char *pMsg, ... )
@@ -655,7 +658,7 @@ void GUI_MsgDev( const char *pMsg, ... )
 		GUI_Print( text );
 
 		//echo into system console
-		gSysFuncs.sys_print( text );
+		std.print( text );
 	}
 }
 
@@ -670,11 +673,11 @@ void GUI_Error( const char *pMsg, ... )
 	
 	GUI_DisableMenus();
 	GUI_Print( text );
-	gSysFuncs.sys_print( text );//echo into system console
+	std.print( text );//echo into system console
 	
 	//3. waiting for user input
 	
-	//gSysFuncs.sys_exit();
+	//std.exit();
 }
 
 void GUI_CreateMenus( void )
@@ -951,7 +954,7 @@ void InitEditor ( char *funcname, int argc, char **argv )
 		int config_size;
 		int iErrors = 0;
 		
-		config_dat = (wnd_options_t *)pi.FS_LoadFile( "editor.dat", &config_size );
+		config_dat = (wnd_options_t *)pi->Fs.LoadFile( "editor.dat", &config_size );
 
 		if(config_dat) //verify our config before read
 		{
@@ -1007,7 +1010,7 @@ void EditorMain ( void )
 	}	
 
 	//save our settings
-	pi.FS_WriteFile("editor.dat", &w_opts, w_opts.csize );
+	pi->Fs.WriteFile("editor.dat", &w_opts, w_opts.csize );
 }
 
 void FreeEditor ( void )
@@ -1017,7 +1020,7 @@ void FreeEditor ( void )
 	//free platform
 	if(platform_dll)
 	{
-		pi.plat_free();
+		pi->Shutdown();
 		FreeLibrary(platform_dll);
 	}	
 

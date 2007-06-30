@@ -9,24 +9,6 @@
 
 #define PLATFORM_VERSION		0.1
 
-typedef struct gameinfo_s
-{
-	//filesystem info
-	char basedir[128];
-	char gamedir[128];
-	char title[128];
-          float version;
-	
-	int viewmode;
-	int gamemode;
-
-	//system info
-	int cpunum;
-	float cpufreq;
-	
-	char key[16];
-}gameinfo_t;
-
 typedef struct platform_api_s
 {
 	float api_version;
@@ -69,17 +51,6 @@ typedef struct platform_api_s
 	void (*FS_FileBase)		(char *in, char *out);
 
 }platform_api_t;
-
-typedef struct system_api_s
-{
-	//std events
-	void ( *sys_msg ) ( char *msg, ... );	//normal text message
-	void ( *sys_dev ) ( char *msg, ... );	//developer text message
-	void ( *sys_err ) ( char *msg, ... );	//abnormal termination with message
-	void ( *sys_exit) ( void ); //normal silent termination
-	void ( *sys_print)( char *msg ); //basic text message
-	char *(*sys_input)( void );//system console input	
-}system_api_t;
 
 //dll handle
 typedef platform_api_t (*platform_t)(system_api_t);

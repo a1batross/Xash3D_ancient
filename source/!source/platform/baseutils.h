@@ -39,7 +39,7 @@ void FS_InitRootDir( char *path );
 void FS_ClearSearchPath (void);
 void FS_AddGameHierarchy (const char *dir);
 int FS_CheckParm (const char *parm);
-void FS_LoadGameInfo( char *filename );
+void FS_LoadGameInfo( const char *filename );
 void FS_FileBase (char *in, char *out);
 void FS_InitCmdLine( int argc, char **argv );
 const char *FS_FileExtension (const char *in);
@@ -49,7 +49,8 @@ bool FS_GetParmFromCmdLine( char *parm, char *out );
 
 
 //files managment (like fopen, fread etc)
-file_t *FS_Open (const char* filepath, const char* mode, bool quiet, bool nonblocking);
+file_t *FS_Open (const char* filepath, const char* mode );
+file_t* _FS_Open (const char* filepath, const char* mode, bool quiet, bool nonblocking);
 fs_offset_t FS_Write (file_t* file, const void* data, size_t datasize);
 fs_offset_t FS_Read (file_t* file, void* buffer, size_t buffersize);
 int FS_VPrintf(file_t* file, const char* format, va_list ap);
@@ -85,6 +86,8 @@ void FS_Shutdown (void);
 #define Mem_AllocPool(name) _Mem_AllocPool(name, __FILE__, __LINE__)
 #define Mem_FreePool(pool) _Mem_FreePool(pool, __FILE__, __LINE__)
 #define Mem_EmptyPool(pool) _Mem_EmptyPool(pool, __FILE__, __LINE__)
+#define Mem_Move(dest, src, size ) _Mem_Move (dest, src, size, __FILE__, __LINE__)
+#define Mem_Copy(dest, src, size ) _Mem_Copy (dest, src, size, __FILE__, __LINE__)
 
 //only for internal use
 dword BuffBigLong (const byte *buffer);
@@ -92,12 +95,12 @@ word BuffBigShort (const byte *buffer);
 dword BuffLittleLong (const byte *buffer);
 word BuffLittleShort (const byte *buffer);
 
-system_api_t gSysFuncs;
+stdio_api_t std;
 extern gameinfo_t GI;
 
-#define Msg gSysFuncs.sys_msg
-#define MsgDev gSysFuncs.sys_dev
-#define Sys_Error gSysFuncs.sys_err
+#define Msg std.printf
+#define MsgDev std.dprintf
+#define Sys_Error std.error
 
 #define Malloc(size)	Mem_Alloc(basepool, size)  
 #define Z_Malloc(size)	Mem_Alloc(zonepool, size)  
@@ -138,7 +141,9 @@ void RunThreadsOnIndividual (int workcnt, bool showpacifier, void(*func)(int));
 _inline double I_FloatTime (void) { time_t t; time(&t); return t; }
 
 //misc
-bool MakeSprite ( void );
-bool MakeModel  ( void );
+bool CompileStudioModel ( byte *mempool, const char *name, byte parms );
+bool CompileSpriteModel ( byte *mempool, const char *name, byte parms );
+bool PrepareBSPModel ( const char *dir, const char *name, byte params );
+bool CompileBSPModel ( void );
 
 #endif//BASEUTILS_H

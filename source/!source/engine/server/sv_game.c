@@ -384,19 +384,20 @@ void SV_InitGameProgs (void)
 	import.WriteDir = PF_WriteDir;
 	import.WriteAngle = PF_WriteAngle;
 
-	import.MS_Alloc = pi.MS_Alloc;
-	import.MS_Free = pi.MS_Free;
-	import.MS_AllocPool = pi.MS_AllocPool;
-	import.MS_FreePool = pi.MS_FreePool;
-	import.MS_EmptyPool = pi.MS_EmptyPool;
+	import.MS_Alloc = pi->Mem.Alloc;
+	import.MS_Free = pi->Mem.Free;
+	import.MS_AllocPool = pi->Mem.AllocPool;
+	import.MS_FreePool = pi->Mem.FreePool;
+	import.MS_EmptyPool = pi->Mem.EmptyPool;
 
-	import.fopen = pi.FS_Open;
-	import.fread = pi.FS_Read;
-	import.fwrite = pi.FS_Write;
-	import.fprintf = FS_Printf;
-	import.fclose = pi.FS_Close;
-	import.fseek = FS_Seek;
-	import.ftell = FS_Tell;
+	import.fopen = pi->Fs.Open;
+	import.fread = pi->Fs.Read;
+	import.fwrite = pi->Fs.Write;
+	import.fprintf = pi->Fs.Printf;
+	import.fclose = pi->Fs.Close;
+	import.fseek = pi->Fs.Seek;
+	import.ftell = pi->Fs.Tell;
+	import.fgets = pi->Fs.Gets;
 
 	import.cvar = Cvar_Get;
 	import.cvar_set = Cvar_Set;

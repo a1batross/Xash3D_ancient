@@ -7,9 +7,9 @@ int	entity_num;
 bool	onlyents;
 char	path[MAX_SYSPATH];
 node_t *block_nodes[10][10];
+static double start, end;
 
 bool full_compile = false;
-
 bool onlyents = false;
 bool onlyvis = false;
 bool onlyrad = false;
@@ -298,32 +298,42 @@ void WbspMain ( bool option )
 	}
 }
 
-void MakeBSP ( void )
+bool PrepareBSPModel ( const char *dir, const char *name, byte params )
+{
+	int numshaders;
+	
+	if( dir ) strncpy(gs_basedir, dir, sizeof(gs_basedir));
+	if( name ) strncpy(gs_mapname, name, sizeof(gs_mapname));
+
+	//copy state
+	onlyents = (params & BSP_ONLYENTS) ? true : false;
+	onlyvis = (params & BSP_ONLYVIS) ? true : false ;
+	onlyrad = (params & BSP_ONLYRAD) ? true : false;
+	full_compile = (params & BSP_FULLCOMPILE) ? true : false;
+
+	//don't worry about that
+	FS_LoadGameInfo("gameinfo.txt");
+	start = Plat_DoubleTime();
+
+	numshaders = LoadShaderInfo();
+	Msg( "%5i shaderInfo\n", numshaders );
+
+	return true;
+}
+
+bool CompileBSPModel ( void )
 {
 	//must be first!
-	if( onlyents )
-	{
-		WbspMain( true );
-	}
-	else if( onlyvis && !onlyrad )
-	{
-		WvisMain ( full_compile );
-	}
-	else if( onlyrad && !onlyvis )
-	{
-		WradMain( full_compile );
-	}
+	if( onlyents ) WbspMain( true );
+	else if( onlyvis && !onlyrad ) WvisMain ( full_compile );
+	else if( onlyrad && !onlyvis ) WradMain( full_compile );
 	else if( onlyrad && onlyvis )
 	{
 		WbspMain( false );
 		WvisMain( full_compile );
 		WradMain( full_compile );
 	}
-          else
-	{
-		//just create bsp
-		WbspMain( false );
-	}
+          else WbspMain( false ); //just create bsp
 
 	if( onlyrad && onlyvis && full_compile )
 	{
@@ -335,4 +345,9 @@ void MakeBSP ( void )
 		sprintf (path, "%s/maps/%s.log", GI.gamedir, gs_mapname);
 		remove (path);
 	}
+
+	end = Plat_DoubleTime();
+	Msg ("%5.1f seconds elapsed\n", end-start);
+
+	return true;
 }

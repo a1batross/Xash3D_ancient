@@ -12,7 +12,7 @@
 
 =============================================================
 */
-bool R_LoadImage32 ( unsigned *data, byte *pal, int width, int height, bool mipmap, int alpha);
+
 int ColorIndex[16] = { 0, 31, 47, 63, 79, 95, 111, 127, 143, 159, 175, 191, 199, 207, 223, 231 };
 unsigned ColorPercent[16] = { 25, 51, 76, 102, 114, 127, 140, 153, 165, 178, 191, 204, 216, 229, 237, 247 };
 image_t gltextures[MAX_GLTEXTURES];
@@ -28,46 +28,6 @@ byte *uploadbuffer;
 int uploadbufsize;
 cvar_t *intensity;
 unsigned	d_8to24table[256];
-
-#define FILTER_SIZE 5 
-#define BLUR_FILTER 0 
-#define LIGHT_BLUR   1 
-#define EDGE_FILTER 1 
-#define EMBOSS_FILTER 3
-
-float FilterMatrix[][FILTER_SIZE][FILTER_SIZE] = 
-{ 
-	{ // regular blur 
-	{0, 0, 0, 0, 0}, 
-	{0, 1, 1, 1, 0}, 
-	{0, 1, 1, 1, 0}, 
-	{0, 1, 1, 1, 0}, 
-	{0, 0, 0, 0, 0}, 
-	}, 
-	{ // light blur 
-	{0, 0, 0, 0, 0}, 
-	{0, 1, 1, 1, 0}, 
-	{0, 1, 4, 1, 0}, 
-	{0, 1, 1, 1, 0}, 
-	{0, 0, 0, 0, 0}, 
-	}, 
-	{ // find edges 
-	{0,  0,  0,  0, 0}, 
-	{0, -1, -1, -1, 0}, 
-	{0, -1,  8, -1, 0}, 
-	{0, -1, -1, -1, 0}, 
-	{0,  0,  0,  0, 0}, 
-	}, 
-	{ // emboss  
-	{-0.7, -0.7, -0.7, -0.7, 0}, 
-	{-0.7, -0.7, -0.7,  0, 0.7}, 
-	{-0.7, -0.7,  0,  0.7, 0.7}, 
-	{-0.7,  0,  0.7,  0.7, 0.7}, 
-	{ 0,  0.7,  0.7,  0.7, 0.7}, 
-	}
-}; 
-
-
 
 static byte palette_int[] =
 {
@@ -208,125 +168,6 @@ void R_InitTextures( void )
 	}
 }
 
-/* 
-================== 
-R_FilterTexture 
-
-Applies a 5 x 5 filtering matrix to the texture, then runs it through a simulated OpenGL texture environment 
-blend with the original data to derive a new texture.  Freaky, funky, and *f--king* *fantastic*.  You can do 
-reasonable enough "fake bumpmapping" with this baby... 
-
-Filtering algorithm from http://www.student.kuleuven.ac.be/~m0216922/CG/filtering.html 
-All credit due 
-================== 
-*/
- 
-void R_FilterTexture (int filterindex, uint *data, int width, int height, float factor, float bias, bool greyscale, GLenum GLBlendOperator) 
-{ 
-	int i, x, y; 
-	int filterX, filterY; 
-	uint *temp; 
-
-	// allocate a temp buffer 
-	temp = Malloc (width * height * 4); 
-
-	for (x = 0; x < width; x++) 
-	{ 
-		for (y = 0; y < height; y++) 
-		{ 
-			float rgbFloat[3] = {0, 0, 0}; 
-
-			for (filterX = 0; filterX < FILTER_SIZE; filterX++) 
-			{ 
-				for (filterY = 0; filterY < FILTER_SIZE; filterY++) 
-				{ 
-					int imageX = (x - (FILTER_SIZE / 2) + filterX + width) % width; 
-					int imageY = (y - (FILTER_SIZE / 2) + filterY + height) % height; 
-
-					// casting's a unary operation anyway, so the othermost set of brackets in the left part 
-					// of the rvalue should not be necessary... but i'm paranoid when it comes to C... 
-					rgbFloat[0] += ((float) ((byte *) &data[imageY * width + imageX])[0]) * FilterMatrix[filterindex][filterX][filterY]; 
-					rgbFloat[1] += ((float) ((byte *) &data[imageY * width + imageX])[1]) * FilterMatrix[filterindex][filterX][filterY]; 
-					rgbFloat[2] += ((float) ((byte *) &data[imageY * width + imageX])[2]) * FilterMatrix[filterindex][filterX][filterY]; 
-				} 
-			} 
-
-			// multiply by factor, add bias, and clamp 
-			for (i = 0; i < 3; i++) 
-			{ 
-				rgbFloat[i] *= factor; 
-				rgbFloat[i] += bias; 
-
-				if (rgbFloat[i] < 0) rgbFloat[i] = 0; 
-				if (rgbFloat[i] > 255) rgbFloat[i] = 255; 
-			} 
-
-			if (greyscale) 
-			{ 
-				// NTSC greyscale conversion standard 
-				float avg = (rgbFloat[0] * 30 + rgbFloat[1] * 59 + rgbFloat[2] * 11) / 100; 
-
-				// divide by 255 so GL operations work as expected 
-				rgbFloat[0] = avg / 255.0; 
-				rgbFloat[1] = avg / 255.0; 
-				rgbFloat[2] = avg / 255.0; 
-			} 
-
-			// write to temp - first, write data in (to get the alpha channel quickly and 
-			// easily, which will be left well alone by this particular operation...!) 
-			temp[y * width + x] = data[y * width + x]; 
-
-			// now write in each element, applying the blend operator.  blend 
-			// operators are based on standard OpenGL TexEnv modes, and the 
-			// formulae are derived from the OpenGL specs (http://www.opengl.org). 
-			for (i = 0; i < 3; i++) 
-			{ 
-				// divide by 255 so GL operations work as expected 
-				float TempTarget; 
-				float SrcData = ((float) ((byte *) &data[y * width + x])[i]) / 255.0; 
-
-				switch (GLBlendOperator) 
-				{ 
-				case GL_ADD: 
-					TempTarget = rgbFloat[i] + SrcData; 
-					break; 
-				case GL_BLEND: 
-					// default is FUNC_ADD here 
-					// CsS + CdD works out as Src * Dst * 2 
-					TempTarget = rgbFloat[i] * SrcData * 2.0; 
-					break; 
-				case GL_DECAL: 
-					// same as GL_REPLACE unless there's alpha, which we ignore for this 
-				case GL_REPLACE: 
-					TempTarget = rgbFloat[i]; 
-					break; 
-				case GL_ADD_SIGNED: 
-					TempTarget = (rgbFloat[i] + SrcData) - 0.5; 
-					break; 
-				case GL_MODULATE: 
-					// same as default 
-				default: 
-					TempTarget = rgbFloat[i] * SrcData; 
-					break; 
-				} 
-
-				// multiply back by 255 to get the proper byte scale 
-				TempTarget *= 255.0; 
-
-				// bound the temp target again now, cos the operation may have thrown it out 
-				if (TempTarget < 0) TempTarget = 0; 
-				if (TempTarget > 255) TempTarget = 255; 
-				// and copy it in 
-				((byte *) &temp[y * width + x])[i] = (byte) TempTarget; 
-			} 
-		} 
-	} 
-
-	memcpy(data, temp, width * height * 4);
-	// release the temp buffer 
-	Free (temp); 
-}
-
 void R_ImageMipmap (byte *in, int width, int height)
 {
 	int		i, j;
@@ -422,44 +263,15 @@ void R_ResampleTexture (unsigned *in, int inwidth, int inheight, unsigned *out, 
 
 /*
 ===============
-R_LoadImage8to32
-===============
-*/
-bool R_LoadImage8to32 (byte *data, byte *pal, int width, int height, bool mipmap, int alpha)
-{
-	byte	*trans = imagebuffer;
-	int	i, s;
-
-	s = width*height;
-	if (s > imagebufsize/4)
-	{
-		Sys_Error("R_LoadImage8to32: image too big (%i*%i)", width, height);
-          	return false;
-          }
-	if (s&3) Sys_Error ("R_LoadImage8to32: s&3");
-	for (i=0 ; i<s ; i+=1)
-	{
-		trans[(i<<2)+0] = gammatable[pal[data[i]*4+0]];
-		trans[(i<<2)+1] = gammatable[pal[data[i]*4+1]];
-		trans[(i<<2)+2] = gammatable[pal[data[i]*4+2]];
-		trans[(i<<2)+3] = gammatable[pal[data[i]*4+3]];
-	}
-	return R_LoadImage32((uint*)trans, NULL, width, height, mipmap, true);
-}
-
-/*
-===============
 R_LoadImage32
 ===============
 */
-bool R_LoadImage32 ( unsigned *data, byte *pal, int width, int height, bool mipmap, int alpha)
+bool R_LoadImage32 ( unsigned *data, int width, int height, bool mipmap, int alpha)
 {
 	int miplevel = 0;
 	int samples;
 	unsigned	*scaled = (unsigned *)uploadbuffer;
 	int scaled_width, scaled_height;
-
-	if( pal ) return R_LoadImage8to32((byte *)data, pal, width, height, mipmap, alpha);
 	
 	scaled_width = width;
 	scaled_height = height;
@@ -477,10 +289,6 @@ bool R_LoadImage32 ( unsigned *data, byte *pal, int width, int height, bool mipm
 	{
 		qglTexParameterf(GL_TEXTURE_2D, GL_GENERATE_MIPMAP_SGIS, GL_TRUE);
 	}
-
-	// fake embossmaping
-	//if (image->type == it_wall && mipmap && r_emboss_bump->value)
-	//	R_FilterTexture (EMBOSS_FILTER, data, width, height, 1, 128, true, GL_MODULATE);
 
 	if (scaled_width == width && scaled_height == height)
 	{
@@ -527,29 +335,13 @@ done:
 	return true;
 }
 
-bool R_LoadImageDXT(byte *data, uint dxt, int width, int height, int bpp, int alpha)
-{
-	//	(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid* data);
-
-	int datasize = width * height * (bpp / 8);
-
-	if(qglCompressedTexImage2DARB)
-	{
-		qglCompressedTexImage2DARB(GL_TEXTURE_2D, 0, dxt, width, height, 0, datasize, data );
-		if (qglGetError()) Msg("Incompatable dds file\n");
-		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_max);
-		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
-	}
-
-	return true;
-}
 
 /*
 ===============
 R_LoadImage8
 ===============
 */
-bool R_LoadImage8( byte *data, byte *pal, int width, int height, bool mipmap, int alpha)
+bool R_LoadImage8( byte *data, int width, int height, bool mipmap, int alpha)
 {
 	unsigned	*trans = (unsigned *)imagebuffer;
 	int	i, s, p;
@@ -632,15 +424,37 @@ bool R_LoadImage8( byte *data, byte *pal, int width, int height, bool mipmap, in
 			trans[i] = d_8to24table[data[i]];
 		}
 	}
-	return R_LoadImage32 ( trans, NULL, width, height, mipmap, alpha);
+	return R_LoadImage32 ( trans, width, height, mipmap, alpha);
+}
+
+bool R_LoadImage8to32 (byte *data, byte *pal, int width, int height, bool mipmap, int alpha)
+{
+	byte	*trans = imagebuffer;
+	int	i, s;
+
+	s = width*height;
+	if (s > imagebufsize/4)
+	{
+		Sys_Error("R_LoadImage8to32: image too big (%i*%i)", width, height);
+          	return false;
+          }
+	if (s&3) Sys_Error ("R_LoadImage8to32: s&3");
+	for (i=0 ; i<s ; i+=1)
+	{
+		trans[(i<<2)+0] = gammatable[pal[data[i]*4+0]];
+		trans[(i<<2)+1] = gammatable[pal[data[i]*4+1]];
+		trans[(i<<2)+2] = gammatable[pal[data[i]*4+2]];
+		trans[(i<<2)+3] = gammatable[pal[data[i]*4+3]];
+	}
+	return R_LoadImage32((unsigned*)trans, width, height, mipmap, true);
 }
 
 /*
 ===============
-R_LoadImage24
+R_LoadImage8to24
 ===============
 */
-bool R_LoadImage24(byte *data, byte *pal, int width, int height, bool mipmap, int alpha)
+bool R_LoadImage8to24(byte *data, byte *pal, int width, int height, bool mipmap, int alpha)
 {
 	byte	*trans = imagebuffer;
 	int	i, s;
@@ -650,7 +464,7 @@ bool R_LoadImage24(byte *data, byte *pal, int width, int height, bool mipmap, in
 	s = width*height;
 	if (s > imagebufsize/4)
 	{
-		Msg("R_LoadImage24: image too big (%i * %i)", width, height);
+		Msg("R_LoadImage8to24: image too big (%i * %i)", width, height);
           	return false;
           }
 
@@ -659,58 +473,29 @@ bool R_LoadImage24(byte *data, byte *pal, int width, int height, bool mipmap, in
 	if (alpha)
 	{
 		noalpha = true;
-		if(pal)
+		for (i=0 ; i<s ; i++)
 		{
-			for (i=0 ; i<s ; i++)
-			{
-				p = data[i];
-				if (p == 255) noalpha = false;
-				trans[(i<<2)+0] = pal[p*3+0];
-				trans[(i<<2)+1] = pal[p*3+1];
-				trans[(i<<2)+2] = pal[p*3+2];
-				trans[(i<<2)+3] = (p==255) ? 0 : 255;
-			}
-			if (alpha && noalpha) alpha = false;
+			p = data[i];
+			if (p == 255) noalpha = false;
+			trans[(i<<2)+0] = pal[p*3+0];
+			trans[(i<<2)+1] = pal[p*3+1];
+			trans[(i<<2)+2] = pal[p*3+2];
+			trans[(i<<2)+3] = (p==255)?0:255;
 		}
-		else
-		{
-			for (i = 0; i < s; i++)
-			{
-				p = data[i];
-				if (p == 255) noalpha = false;
-				trans[(i<<2)+0] = p*3+0;
-				trans[(i<<2)+1] = p*3+1;
-				trans[(i<<2)+2] = p*3+2;
-				trans[(i<<2)+3] = (p==255) ? 0 : 255;
-			}
-			if (alpha && noalpha) alpha = false;
-		}
+		if (alpha && noalpha) alpha = false;
 	}
 	else
 	{
-		if (s&3) Sys_Error ("R_LoadImage24: s&3");
-		if(pal)
+		if (s&3) Sys_Error ("R_LoadImage8to24: s&3");
+		for (i=0 ; i<s ; i+=1)
 		{
-			for (i = 0; i < s; i+=1)
-			{
-				trans[(i<<2)+0] = pal[data[i]*3+0];
-				trans[(i<<2)+1] = pal[data[i]*3+1];
-				trans[(i<<2)+2] = pal[data[i]*3+2];
-				trans[(i<<2)+3] = 255;
-			}
-		}
-		else
-		{
-			for (i = 0; i < s; i+=1)
-			{
-				trans[(i<<2)+0] = data[i+0];
-				trans[(i<<2)+1] = data[i+1];
-				trans[(i<<2)+2] = data[i+2];
-				trans[(i<<2)+3] = 255;
-			}
+			trans[(i<<2)+0] = pal[data[i]*3+0];
+			trans[(i<<2)+1] = pal[data[i]*3+1];
+			trans[(i<<2)+2] = pal[data[i]*3+2];
+			trans[(i<<2)+3] = 255;
 		}
 	}
-	return R_LoadImage32((unsigned*)trans, NULL, width, height, mipmap, alpha);
+	return R_LoadImage32((unsigned*)trans, width, height, mipmap, alpha);
 }
 
 /*
@@ -739,7 +524,10 @@ image_t *R_FindImage (char *name, char *buffer, int size, imagetype_t type)
 	}
 
 	pic = ri.FS_LoadImage(name, buffer, size ); //loading form disk or buffer
-	image = R_LoadImage(name, pic, type );
+	if(pic)
+	{
+		image = R_LoadImage(name, pic->buffer, NULL, pic->width, pic->height, type, pic->bitsperpixel, true );
+	}
 	ri.FS_FreeImage(pic);
 
 	return image;
@@ -752,16 +540,14 @@ R_LoadImage
 This is also used as an entry point for the generated r_notexture
 ================
 */
-image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
+image_t *R_LoadImage(char *name, byte *pic, byte *pal, int width, int height, imagetype_t type, int bits, int alpha )
 {
 	image_t	*image;
-	int	i, iResult, bits;
+	int	i, iResult;
           bool	mipmap = true;
-	byte	*buf, *pal;
-	int	width, height;
 	
 	//nothing to load
-	if (!pic || !pic->buffer) return NULL;
+	if (!pic) return NULL;
 	
 	// find a free image_t
 	for (i = 0, image = gltextures; i < numgltextures; i++, image++)
@@ -788,34 +574,32 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
 	strcpy (image->name, name);
 	image->registration_sequence = registration_sequence;
 
-	buf = pic->buffer;
-	pal = pic->palette;
-	bits = pic->bitsperpixel;
-
-	image->width = width = pic->width;
-	image->height = height = pic->height;
+	image->width = width;
+	image->height = height;
 	image->type = type;
           image->paletted = pal ? true : false;
 	
 	//don't build mips for sky & hud pics
-	if(image->type == it_pic || image->type == it_sky) mipmap = false;
+	if(image->type == it_pic) { mipmap = false; alpha = true; }
+	if(image->type == it_sky) mipmap = false;
 	
 	image->texnum = TEXNUM_IMAGES + (image - gltextures);
 	GL_Bind(image->texnum);
 
-	if(pic->compression) iResult = R_LoadImageDXT( buf, pic->compression, width, height, bits, pic->alpha );
-          else
-          {
-		switch( bits )
-		{
-		case 8:	iResult = R_LoadImage8 ( buf, pal, width, height, mipmap, pic->alpha ); break;
-		case 16:  iResult = 0; break;
-		case 24:	iResult = R_LoadImage24( buf, pal, width, height, mipmap, pic->alpha ); break;
-		case 32:	iResult = R_LoadImage32( (uint*)buf, pal, width, height, mipmap, pic->alpha ); break;
-		default:
-			break;
-		}
-          }
+	if(image->paletted)
+	{
+		if(bits == 8 )iResult = 0;
+		if(bits == 16)iResult = 0;
+		if(bits == 24)iResult = R_LoadImage8to24(pic, pal, width, height, mipmap, alpha );
+		if(bits == 32)iResult = R_LoadImage8to32(pic, pal, width, height, mipmap, alpha );
+	}
+	else
+	{
+		if(bits == 8 )iResult = R_LoadImage8 ( pic, width, height, mipmap, alpha );
+		if(bits == 16)iResult = 0;
+		if(bits == 24)iResult = 0;
+		if(bits == 32)iResult = R_LoadImage32( (unsigned *)pic, width, height, mipmap, alpha );
+	}
           
 	//check for errors
 	if(!iResult)

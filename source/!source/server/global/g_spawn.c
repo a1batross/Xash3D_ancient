@@ -704,7 +704,7 @@ void LoadTransitionEnts()
 			}
 		}
 		trans_ent_filename (t_file);
-		f = gi.fopen(t_file,"rb", true, false);
+		f = gi.fopen(t_file,"rb");
 		if(!f) gi.error("LoadTransitionEnts: Cannot open %s\n",t_file);
 		else
 		{

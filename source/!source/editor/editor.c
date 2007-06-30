@@ -5,7 +5,7 @@
 
 #include "editor.h"
 
-system_api_t gSysFuncs;
+stdio_api_t std;
 
 /*
 ==================
@@ -13,15 +13,15 @@ DllMain
 
 ==================
 */
-edit_api_t DLLEXPORT CreateAPI( system_api_t sysapi )
+edit_api_t DLLEXPORT *CreateAPI( stdio_api_t *input )
 {
-	edit_api_t ei;
+	static edit_api_t ei;
 
-	gSysFuncs = sysapi;
+	std = *input;
 
 	ei.editor_init = InitEditor;
 	ei.editor_main = EditorMain;
 	ei.editor_free = FreeEditor;
 
-	return ei;
+	return &ei;
 }

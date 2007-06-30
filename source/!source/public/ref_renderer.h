@@ -240,8 +240,8 @@ typedef struct
 	// a -1 return means the file does not exist
 	// NULL can be passed for buf to just determine existance
 	byte *(*FS_LoadFile)	(const char *path, fs_offset_t *filesizeptr );
-	byte *(*FS_LoadImage)	(char *filename, int *width, int *height);
-	byte *(*FS_LoadImageData)	(char *filename, char *buffer, int size, int *width, int *height);
+	rgbdata_t *(*FS_LoadImage)	(const char *filename, char *data, int size);
+	void (*FS_FreeImage)	(rgbdata_t *pack);
 	bool (*FS_WriteFile)	(const char *filename, void *data, fs_offset_t len);
           bool (*FS_FileExists)	(const char *filename);
 	void (*FS_FileBase)		(char *in, char *out);

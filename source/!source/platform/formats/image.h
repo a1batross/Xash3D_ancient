@@ -83,6 +83,42 @@ typedef struct
 /*
 ========================================================================
 
+.DDS image format
+
+========================================================================
+*/
+#define GL_COMPRESSED_RGB_S3TC_DXT1_EXT		0x83F0
+#define GL_COMPRESSED_RGBA_S3TC_DXT1_EXT	0x83F1
+#define GL_COMPRESSED_RGBA_S3TC_DXT3_EXT	0x83F2
+#define GL_COMPRESSED_RGBA_S3TC_DXT5_EXT	0x83F3
+
+
+typedef struct
+{
+	uint	dwSize;
+	uint	dwFlags;
+	uint	dwFourCC;
+
+	uint	dwReserved[5];
+} ddspf_t;
+
+typedef struct
+{
+	uint	dwSize;
+	uint	dwFlags;
+	uint	dwHeight;
+	uint	dwWidth;
+	uint	dwPitchOrLinearSize;
+	uint	dwDepth;
+	uint	dwMipMapCount;
+	uint	dwReserved1[11];
+	ddspf_t	ddpfPixelFormat;
+	uint	ddsCaps[4];
+	uint	dwReserved2;
+} dds_t;
+/*
+========================================================================
+
 .PNG image format
 
 ========================================================================

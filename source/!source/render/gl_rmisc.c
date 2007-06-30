@@ -43,13 +43,14 @@ void R_InitParticleTexture (void)
 {
 	int		x,y;
 	byte	data[8][8][4];
+	rgbdata_t r_tex;
 
 	//
 	// particle texture
 	//
-	for (x=0 ; x<8 ; x++)
+	for (x = 0; x < 8; x++)
 	{
-		for (y=0 ; y<8 ; y++)
+		for (y = 0; y < 8; y++)
 		{
 			data[y][x][0] = 255;
 			data[y][x][1] = 255;
@@ -57,12 +58,20 @@ void R_InitParticleTexture (void)
 			data[y][x][3] = dottexture[x][y]*255;
 		}
 	}
-	r_particletexture = R_LoadImage("***particle***", (byte *)data, NULL, 8, 8, it_sprite, 32, true );
+	r_tex.width = 8;
+	r_tex.height = 8;
+	r_tex.bitsperpixel = 32;
+	r_tex.compression = 0;
+	r_tex.alpha = true;
+	r_tex.palette = NULL;
+	r_tex.buffer = (byte *)data;
+
+	r_particletexture = R_LoadImage("***particle***", &r_tex, it_sprite );
 
 	//
 	// also use this for bad textures, but without alpha
 	//
-	for (x=0 ; x<8 ; x++)
+	for (x = 0; x < 8; x++)
 	{
 		for (y=0 ; y<8 ; y++)
 		{
@@ -72,7 +81,8 @@ void R_InitParticleTexture (void)
 			data[y][x][3] = 255;
 		}
 	}
-	r_notexture = R_LoadImage("***r_notexture***", (byte *)data, NULL, 8, 8, it_wall, 32, false );
+	r_tex.alpha = false;//notexture don't have alpha
+	r_notexture = R_LoadImage("***r_notexture***", &r_tex, it_wall );
 
 	R_Bloom_InitTextures();
 }

@@ -225,7 +225,7 @@ void SVCmd_WriteIP_f (void)
 
 	gi.cprintf (NULL, PRINT_HIGH, "Writing listip.cfg.\n");
 
-	f = gi.fopen ("listip.cfg", "wb", true, false);
+	f = gi.fopen ("listip.cfg", "wb");
 	if (!f)
 	{
 		gi.cprintf (NULL, PRINT_HIGH, "Couldn't open %s\n", name);

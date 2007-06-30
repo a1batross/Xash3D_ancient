@@ -26,9 +26,9 @@ extern HWND cl_hwnd;
 
 //engine builddate
 char *buildstring = __TIME__ " " __DATE__;
-system_api_t gSysFuncs;
+stdio_api_t std;
 unsigned sys_msg_time;
-unsigned	sys_frame_time;
+unsigned sys_frame_time;
 
 bool s_win95;
 int starttime;
@@ -44,12 +44,12 @@ SYSTEM IO
 
 void Sys_Quit (void)
 {
-	gSysFuncs.sys_exit();
+	std.exit();
 }
 
 void Sys_Print(const char *pMsg)
 {
-	gSysFuncs.sys_print( (char *)pMsg );
+	std.print((char *)pMsg );
 }
 
 /*
@@ -59,7 +59,7 @@ Sys_ConsoleInput
 */
 char *Sys_ConsoleInput( void )
 {
-	return gSysFuncs.sys_input();
+	return std.input();
 }
 
 /*
@@ -259,11 +259,11 @@ DllMain
 
 ==================
 */
-host_api_t DLLEXPORT CreateAPI( system_api_t sysapi )
+host_api_t DLLEXPORT CreateAPI( stdio_api_t histd )
 {
 	host_api_t hi;
 
-	gSysFuncs = sysapi;
+	std = histd;
 
 	hi.host_init = Host_Init;
 	hi.host_main = Host_Main;

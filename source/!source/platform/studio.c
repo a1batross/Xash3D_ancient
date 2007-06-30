@@ -1627,7 +1627,7 @@ void Grab_Studio ( s_model_t *pmodel )
 	strncpy (filename, pmodel->name, sizeof(filename));
 
 	FS_DefaultExtension(filename, ".smd" );
-	load = FS_AddScript( filename );
+	load = FS_AddScript( filename, NULL, 0 );
 	if(!load)Sys_Error("unable to open %s\n", filename );
 	Msg("grabbing %s\n", filename);
 	
@@ -1895,7 +1895,7 @@ void Option_Animation ( char *name, s_animation_t *panim )
 	strncpy( filename, panim->name, sizeof(filename));
 
 	FS_DefaultExtension(filename, ".smd" );
-	load = FS_AddScript( filename );
+	load = FS_AddScript( filename, NULL, 0 );
 	if(!load)Sys_Error("unable to open %s\n", filename );
 	Msg("grabbing %s\n", filename);	
 
@@ -2666,13 +2666,13 @@ void ClearModel( void )
 	Mem_EmptyPool( studiopool );	//free all memory
 }
 
-bool CompileCurrentModel( char *name )
+bool CompileCurrentModel( const char *name )
 {
 	bool load = false;
 	
 	if(name) strcpy( gs_mapname, name );
 	FS_DefaultExtension( gs_mapname, ".qc" );
-	load = FS_LoadScript( gs_mapname );
+	load = FS_LoadScript( gs_mapname, NULL, 0 );
 	
 	if(load)
 	{
@@ -2687,29 +2687,13 @@ bool CompileCurrentModel( char *name )
 	return false;
 }
 
-bool MakeModel( void )
+bool CompileStudioModel ( byte *mempool, const char *name, byte parms )
 {
-	search_t	*search;
-	int i, numCompiledModels = 0;
-
-	studiopool = Mem_AllocPool( "Studio" );
-
-	MsgDev("Studiomdl. Ver: 0.2\n");
-	if(!FS_GetParmFromCmdLine("-qcfile", gs_mapname )) 
+	if(mempool) studiopool = mempool;
+	else
 	{
-		//search for all .ac files in folder		
-		search = FS_Search("*.qc", true, false);
-		if(!search) Sys_Error("no qcfiles found in this folder!\n");
-
-		for( i = 0; i < search->numfilenames; i++ )
-		{
-			if(CompileCurrentModel( search->filenames[i] ))
-				numCompiledModels++;
-		}
+		Msg("Studiomdl: can't allocate memory pool.\nAbort compilation\n");
+		return false;
 	}
-	else CompileCurrentModel( NULL );
-
-	if(numCompiledModels > 1) Msg("total %d models compiled\n", numCompiledModels );	
-          Mem_FreePool( &studiopool );
-	return 0;
+	return CompileCurrentModel( name );	
 }

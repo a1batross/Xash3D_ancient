@@ -444,6 +444,7 @@ void Sys_ErrorW(char *error, ...)
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		} 
+		else Sleep( 20 );
 	}
 	Sys_Exit();
 }

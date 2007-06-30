@@ -14,6 +14,7 @@
 
 dsprite_t	sprite;
 byte	*byteimage, *lbmpalette;
+byte	*spritepool;
 int	byteimagewidth, byteimageheight;
 byte	*lumpbuffer = NULL, *plump;
 char	spriteoutname[MAX_SYSPATH];
@@ -119,7 +120,7 @@ void WriteSPRFile (void)
 	if((plump - lumpbuffer) > MAX_BUFFER_SIZE)
 		Sys_Error ("Can't write %s, sprite package too big", spriteoutname );
 
-	f = FS_Open(spriteoutname, "wb", true, false );
+	f = FS_Open(spriteoutname, "wb" );
 	Msg("writing %s\n", spriteoutname);
 	WriteSprite( f );
 	FS_Close( f );
@@ -325,7 +326,7 @@ void ResetSpriteInfo( void )
 	framesmaxs[0] = -9999999;
 	framesmaxs[1] = -9999999;
 
-	if (!lumpbuffer )lumpbuffer = Malloc((MAX_BUFFER_SIZE) * 2); // *2 for padding
+	if (!lumpbuffer )lumpbuffer = Mem_Alloc(spritepool, (MAX_BUFFER_SIZE) * 2); // *2 for padding
 
 	plump = lumpbuffer;
 	sprite.version = SPRITE_VERSION_HALF;//normal sprite
@@ -376,13 +377,13 @@ void ClearSprite( void )
 	if(lumpbuffer) Free( lumpbuffer );
 }
 
-bool CompileCurrentSprite( char *name )
+bool CompileCurrentSprite( const char *name )
 {
 	bool load = false;
 	
 	if(name) strcpy( gs_mapname, name );
 	FS_DefaultExtension( gs_mapname, ".qc" );
-	load = FS_LoadScript( gs_mapname );
+	load = FS_LoadScript( gs_mapname, NULL, 0 );
 	
 	if(load)
 	{
@@ -397,26 +398,13 @@ bool CompileCurrentSprite( char *name )
 	return false;
 }
 
-bool MakeSprite ( void )
+bool CompileSpriteModel ( byte *mempool, const char *name, byte parms )
 {
-	search_t	*search;
-	int i, numCompiledSprites = 0;
-
-	MsgDev("Spritegen. Ver: 0.2\n");
-	if(!FS_GetParmFromCmdLine("-qcfile", gs_mapname )) 
+	if(mempool) spritepool = mempool;
+	else
 	{
-		//search for all .ac files in folder		
-		search = FS_Search("*.qc", true, false);
-		if(!search) Sys_Error("no qcfiles found in this folder!\n");
-
-		for( i = 0; i < search->numfilenames; i++ )
-		{
-			if(CompileCurrentSprite( search->filenames[i] ))
-				numCompiledSprites++;
-		}
+		Msg("Spritegen: can't allocate memory pool.\nAbort compilation\n");
+		return false;
 	}
-	else CompileCurrentSprite( NULL );
-	
-	if(numCompiledSprites > 1) Msg("total %d sprites compiled\n", numCompiledSprites );	
-	return false;
+	return CompileCurrentSprite( name );	
 }

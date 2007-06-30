@@ -308,7 +308,7 @@ void LoadPortals (void)
 	visplane_t	plane;
 	
 	sprintf (path, "maps/%s.prt", gs_mapname );
-	load = FS_LoadScript( path );
+	load = FS_LoadScript( path, NULL, 0 );
 	if (!load) Sys_Error ("LoadPortals: couldn't read %s\n", path);
 	Msg ("reading %s\n", path);
 	

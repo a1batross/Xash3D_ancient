@@ -1571,7 +1571,7 @@ int trigger_transition_ents (edict_t *changelevel, edict_t *self)
 	file_t		*f;
 
 	trans_ent_filename(t_file);
-	f = gi.fopen(t_file,"wb", true, false);
+	f = gi.fopen(t_file,"wb");
 	if(!f)
 	{
 		gi.dprintf("Error opening %s for writing\n",t_file);

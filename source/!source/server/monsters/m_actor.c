@@ -1812,7 +1812,7 @@ void actor_files ()
 				if(strlen(gamedir->string))
 				{
 					sprintf(filename,"sound/%s%s",path, wavname[j]);
-					f = gi.fopen(filename,"r", true, false);
+					f = gi.fopen(filename,"r");
 					if(f)
 					{
 						gi.fclose(f);
@@ -1867,7 +1867,7 @@ void actor_files ()
 			if(strlen(gamedir->string))
 			{
 				// Start in game folder
-				f = gi.fopen(filename,"r", true, false);
+				f = gi.fopen(filename,"r");
 				if(f)
 				{
 					gi.fclose(f);
@@ -1881,7 +1881,7 @@ void actor_files ()
 			if(strlen(gamedir->string))
 			{
 				// Start in game folder
-				f = gi.fopen(filename,"r", true, false);
+				f = gi.fopen(filename,"r");
 				if(f)
 				{
 					gi.fclose(f);

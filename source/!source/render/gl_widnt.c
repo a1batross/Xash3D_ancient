@@ -399,6 +399,9 @@ void ( APIENTRY * qglViewport )(GLint x, GLint y, GLsizei width, GLsizei height)
 void ( APIENTRY * qglLockArraysEXT)( int, int);
 void ( APIENTRY * qglUnlockArraysEXT) ( void );
 
+void (APIENTRY *qglCompressedTexImage2DARB)(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid* data);
+void ( APIENTRY *qglGetCompressedTexImageARB) (GLenum target, GLint lod, const GLvoid* img);
+
 BOOL ( WINAPI * qwglSwapIntervalEXT)( int interval );
 BOOL ( WINAPI * qwglGetDeviceGammaRampEXT)( unsigned char *, unsigned char *, unsigned char * );
 BOOL ( WINAPI * qwglSetDeviceGammaRampEXT)( const unsigned char *, const unsigned char *, const unsigned char * );

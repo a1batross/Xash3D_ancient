@@ -8,7 +8,7 @@
 #include <dsound.h>
 #include "engine.h"
 
-platform_api_t    pi;	//fundamental callbacks
+platform_api_t    *pi;	//fundamental callbacks
 
 byte	*zonepool;
 int	ActiveApp;
@@ -31,11 +31,16 @@ int host_debug;
 
 void Host_InitPlatform( char *funcname, int argc, char **argv )
 {
-	system_api_t  sysapi;
-          platform_t CreateAPI;
+	stdio_api_t	pistd;
+	platform_api_t	*(*CreatePLAT)( stdio_api_t *);         
 
 	//platform dll
 	COM_InitArgv (argc, argv);
+
+	//make callbacks
+	pistd.printf = Com_Printf;
+	pistd.dprintf = Com_DPrintf;
+	pistd.error = std.error;
 	
 	if (( platform_dll = LoadLibrary( "bin/platform.dll" )) == 0 )
 	{
@@ -43,24 +48,19 @@ void Host_InitPlatform( char *funcname, int argc, char **argv )
 		return;
 	}
 
-	if (( CreateAPI = (void *)GetProcAddress( platform_dll, "CreateAPI" ) ) == 0 )
+	if (( CreatePLAT = (void *)GetProcAddress( platform_dll, "CreateAPI" ) ) == 0 )
 	{
 		WinError("can't init platform.dll\n");
 		return;
 	}
-
-	//make callbacks
-	sysapi.sys_msg = Com_Printf;
-	sysapi.sys_dev = Com_DPrintf;
-	sysapi.sys_err = gSysFuncs.sys_err;
-	
-	pi = CreateAPI( sysapi );
-
-	Com_Printf("Platform.dll version %g\n", pi.api_version );
+	pi = CreatePLAT( &pistd );
+	Com_Printf("Platform.dll version %d\n", pi->apiversion );
 	
 	//initialize our platform :)
-	pi.plat_init( funcname, argc, argv );
+	pi->Init();
 
+	//TODO: init basedir here
+	pi->LoadGameInfo("gameinfo.txt");
 	zonepool = Mem_AllocPool("Zone Engine");
 }
 
@@ -69,7 +69,7 @@ void Host_FreePlatform( void )
 	if(platform_dll)
 	{
 		Mem_FreePool( &zonepool );
-		pi.plat_free();
+		pi->Shutdown();
 		FreeLibrary( platform_dll );
 	}
 }

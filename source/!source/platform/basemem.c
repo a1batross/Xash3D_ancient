@@ -283,6 +283,52 @@ void _Mem_CheckSentinelsGlobal(const char *filename, int fileline)
 			_Mem_CheckClumpSentinels(clump, filename, fileline);
 }
 
+void _Mem_Move (void *dest, void *src, size_t size, const char *filename, int fileline)
+{
+	if (src == NULL) Sys_Error("Mem_Move: src == NULL (called at %s:%i)", filename, fileline);
+	if (size <= 0) Sys_Error("Mem_Move: size <= 0 (called at %s:%i)", filename, fileline);
+	if (dest == NULL) dest = _Mem_Alloc( basepool, size, filename, fileline); //allocate room
+
+	// move block
+	memmove( dest, src, size );
+}
+
+void _Mem_Copy (void *dest, void *src, size_t size, const char *filename, int fileline)
+{
+	if (src == NULL) Sys_Error("Mem_Copy: src == NULL (called at %s:%i)", filename, fileline);
+	if (size <= 0) Sys_Error("Mem_Copy: size <= 0 (called at %s:%i)", filename, fileline);
+	if (dest == NULL) Sys_Error("Mem_Copy: dest == NULL (called at %s:%i)", filename, fileline);
+
+	//copy block
+	memcpy( dest, src, size );
+}
+
+/*
+=============================================================================
+
+EXTERNAL MEMORY MANAGER INTERFACE
+=============================================================================
+*/
+memsystem_api_t Mem_GetAPI( void )
+{
+	static memsystem_api_t	mem;
+
+	mem.api_size = sizeof(memsystem_api_t);
+
+	mem.AllocPool = _Mem_AllocPool;
+	mem.EmptyPool = _Mem_EmptyPool;
+	mem.FreePool = _Mem_FreePool;
+	mem.CheckSentinelsGlobal = _Mem_CheckSentinelsGlobal;
+
+	mem.Alloc = _Mem_Alloc;
+	mem.Realloc = _Mem_Realloc;
+	mem.Move = _Mem_Move;
+	mem.Copy = _Mem_Copy;
+	mem.Free = _Mem_Free;
+
+	return mem;
+}
+
 /*
 ========================
 Memory_Init

@@ -441,8 +441,7 @@ void Mod_LoadTexinfo (lump_t *l)
 	texinfo_t *in;
 	mtexinfo_t *out, *step;
 	int 	i, j, count;
-	char	name[MAX_QPATH];
-	int		next;
+	int	next;
 
 	in = (void *)(mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
@@ -466,7 +465,7 @@ void Mod_LoadTexinfo (lump_t *l)
 		out->image = R_FindImage (in->texture, NULL, 0, it_wall);
 		if (!out->image)
 		{
-			ri.Con_Printf (PRINT_ALL, "Couldn't load %s\n", name);
+			ri.Con_Printf(PRINT_ALL, "Couldn't load %s\n", in->texture);
 			out->image = r_notexture;
 		}
 	}

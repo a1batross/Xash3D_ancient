@@ -595,18 +595,18 @@ bool VID_LoadRefresh( char *name )
 	ri.Con_Printf = VID_Printf;
 	ri.Sys_Error = VID_Error;
 	
-	ri.FS_LoadFile = pi.FS_LoadFile;
-	ri.FS_LoadImage = pi.FS_LoadImage;
-          ri.FS_LoadImageData = pi.FS_LoadImageData;
-          ri.FS_WriteFile = pi.FS_WriteFile;
-	ri.FS_FileExists = pi.FS_FileExists;
-	ri.FS_FileBase = pi.FS_FileBase;
+	ri.FS_LoadFile = pi->Fs.LoadFile;
+	ri.FS_LoadImage = pi->Fs.LoadImage;
+          ri.FS_FreeImage = pi->Fs.FreeImage;
+          ri.FS_WriteFile = pi->Fs.WriteFile;
+	ri.FS_FileExists = pi->Fs.FileExists;
+	ri.FS_FileBase = pi->Fs.FileBase;
 	
-	ri.MS_Alloc = pi.MS_Alloc;
-	ri.MS_Free = pi.MS_Free;
-	ri.MS_AllocPool = pi.MS_AllocPool;
-	ri.MS_FreePool = pi.MS_FreePool;
-	ri.MS_EmptyPool = pi.MS_EmptyPool;
+	ri.MS_Alloc = pi->Mem.Alloc;
+	ri.MS_Free = pi->Mem.Free;
+	ri.MS_AllocPool = pi->Mem.AllocPool;
+	ri.MS_FreePool = pi->Mem.FreePool;
+	ri.MS_EmptyPool = pi->Mem.EmptyPool;
 
 	ri.gamedir = FS_Gamedir;
 	ri.title = FS_Title;

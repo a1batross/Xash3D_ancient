@@ -65,6 +65,17 @@ int CheckParm (const char *parm)
 	return 0;
 }
 
+bool GetParmFromCmdLine( char *parm, char *out )
+{
+	int argc = CheckParm( parm );
+
+	if(!argc) return false;
+	if(!out) return false;	
+
+	strcpy( out, com_argv[argc+1]);
+	return true;
+}
+
 /*
 ================
 Sys_Exit

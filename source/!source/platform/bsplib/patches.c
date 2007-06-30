@@ -17,12 +17,11 @@ CalcTextureReflectivity
 */
 void CalcTextureReflectivity (void)
 {
-	int		image_width, image_height;
 	int		j, i, texels;
 	vec3_t		color;
 	float		r, scale;
-	byte		*tex;
-          shader_t		*si;
+	shader_t		*si;
+	rgbdata_t		*tex;
 	
 	// allways set index 0 even if no textures
 	texture_reflectivity[0][0] = 0.5;
@@ -44,16 +43,16 @@ void CalcTextureReflectivity (void)
 
 		color[0] = color[1] = color[2] = 0;
 
-		// loading tga, jpg or png texture texture
-		tex = FS_LoadImage(texinfo[i].texture, &image_width, &image_height);
+		// loading tga, jpg or png texture
+		tex = FS_LoadImage(texinfo[i].texture, NULL, 0);
 		if(tex)		
 		{
-                    	texels = image_width * image_height;			
-			for (j = 0; j < texels; j++, tex += 4)
+                    	texels = tex->width * tex->height;			
+			for (j = 0; j < texels; j++, tex->buffer += 4)
 			{
-				color[0] += tex[0];
-				color[1] += tex[1];
-				color[2] += tex[2];
+				color[0] += tex->buffer[0];
+				color[1] += tex->buffer[1];
+				color[2] += tex->buffer[2];
 			}
 		}
 		else Msg("Couldn't load %s\n", texinfo[i].texture);

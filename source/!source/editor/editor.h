@@ -13,7 +13,7 @@
 #include <string.h>
 #include <basetypes.h>
 #include <ref_launcher.h>
-#include <ref_platform.h>
+#include <ref_system.h>
 
 #include "mxtk.h"
 #include "options.h"
@@ -29,7 +29,7 @@ void FreeEditor ( void );
 
 extern int com_argc;
 extern bool debug_mode;
-extern platform_api_t pi;
+extern platform_api_t *pi;
 extern char *com_argv[MAX_NUM_ARGVS];
 int CheckParm (const char *parm);
 
@@ -41,10 +41,10 @@ System Events
 void GUI_Msg( const char *pMsg, ... );
 void GUI_MsgDev( const char *pMsg, ... );
 
-extern system_api_t gSysFuncs;
+extern stdio_api_t std;
 #define Msg GUI_Msg
 #define MsgDev GUI_MsgDev
-#define Sys_Error gSysFuncs.sys_err
+#define Sys_Error std.error
 
 typedef enum {
 	Action,

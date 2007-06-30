@@ -1080,7 +1080,7 @@ int PatchMonsterModel (char *modelname)
 	if (!*gamedir->string)
 		return 0;	// we're in baseq2
 
-	if (outfile = gi.fopen (modelname, "rb", true, false))
+	if (outfile = gi.fopen (modelname, "rb"))
 	{
 		// output file already exists, move along
 		gi.fclose (outfile);
@@ -1227,7 +1227,7 @@ int PatchMonsterModel (char *modelname)
 		}
 	}
 
-	infile = gi.fopen (modelname, "rb", true, false);
+	infile = gi.fopen (modelname, "rb");
 	if(!infile)
 	{
 		gi.dprintf ("PatchMonsterModel: %s not found\n", modelname );
@@ -1255,7 +1255,7 @@ int PatchMonsterModel (char *modelname)
 	model.ofs_end    += newoffset;
 	
 	// save new model
-	if ( !(outfile = gi.fopen (modelname, "wb", true, false)) )
+	if ( !(outfile = gi.fopen (modelname, "wb")) )
 	{
 		// file couldn't be created for some other reason
 		gi.dprintf ("PatchMonsterModel: Could not save %s\n", outfilename);

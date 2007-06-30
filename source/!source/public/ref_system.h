@@ -5,6 +5,12 @@
 #ifndef REF_SYSTEM_H
 #define REF_SYSTEM_H
 
+//bsplib compile flags
+#define BSP_ONLYENTS	0x01
+#define BSP_ONLYVIS		0x02
+#define BSP_ONLYRAD		0x04
+#define BSP_FULLCOMPILE	0x08
+
 typedef struct search_s
 {
 	int	numfilenames;
@@ -17,9 +23,29 @@ typedef struct rgbdata_s
 	word	width;		// image width
 	word	height;		// image height
 	byte	bitsperpixel;	// 8-16-24-32 bits
+	word	alpha;		// has alpha pixels
+	uint	compression;	// DXT compression
 	byte	*palette;		// palette if present
 	byte	*buffer;		// image buffer
 } rgbdata_t;
+
+typedef struct gameinfo_s
+{
+	//filesystem info
+	char basedir[128];
+	char gamedir[128];
+	char title[128];
+          float version;
+	
+	int viewmode;
+	int gamemode;
+
+	//system info
+	int cpunum;
+	float cpufreq;
+	
+	char key[16];
+} gameinfo_t;
 
 /*
 ==============================================================================
@@ -27,30 +53,19 @@ typedef struct rgbdata_s
 FILESYSTEM ENGINE INTERFACE
 ==============================================================================
 */
-
-#define FS_API_VERSION	0.31	//29 functions
-
 typedef struct filesystem_api_s
 {
 	//interface validator
-	float	api_version;	//must matched with FS_API_VERSION
-	size_t	api_size;		//must matched with sizeof(filesystem_api_t)
-
-	// initialize
-	void (*Init)( void );
-	void (*Shutdown)( void );
+	size_t	api_size;		// must matched with sizeof(filesystem_api_t)
 
 	//base functions
-	void (*GetRootDir)( char *out );			// get root directory of engine
-	void (*InitRootDir)( char *path );			// init custom rootdir 
-	void (*LoadGameInfo)( const char *filename );		// gate game info from script file
 	void (*FileBase)(char *in, char *out);			// get filename without path & ext
 	bool (*FileExists)(const char *filename);		// return true if file exist
 	long (*FileSize)(const char *filename);			// same as FileExists but return filesize
-	void (*AddGameHierarchy)(const char *dir);		// add base directory in search list
 	const char *(*FileExtension)(const char *in);		// return extension of file
 	const char *(*FileWithoutPath)(const char *in);		// return file without path
 	void (*StripExtension)(char *path);			// remove extension if present
+	void (*StripFilePath)(const char* const src, char* dst);	// get file path without filename.ext
 	void (*DefaultExtension)(char *path, const char *ext );	// append extension if not present
 	void (*ClearSearchPath)( void );			// delete all search pathes
 
@@ -74,6 +89,7 @@ typedef struct filesystem_api_s
 	byte *(*LoadFile)(const char *path, long *filesize );		// load file into heap
 	bool (*WriteFile)(const char *filename, void *data, long len);	// write file into disk
 	rgbdata_t *(*LoadImage)(const char *filename, char *data, int size );	// returned rgb data image
+	void (*FreeImage)( rgbdata_t *pack );				// release image buffer
 
 } filesystem_api_t;
 
@@ -84,18 +100,10 @@ typedef struct filesystem_api_s
 MEMORY MANAGER ENGINE INTERFACE
 ==============================================================================
 */
-
-#define MEM_API_VERSION	0.26	//12 functions	
-
 typedef struct memsystem_api_s
 {
 	//interface validator
-	float	api_version;	//must matched with MEM_API_VERSION
-	size_t	api_size;		//must matched with sizeof(memsystem_api_t)
-
-	// initialize
-	void (*Init)( void );
-	void (*Shutdown)( void );
+	size_t	api_size;		// must matched with sizeof(memsystem_api_t)
 
 	// memsystem base functions
 	byte *(*AllocPool)(const char *name, const char *file, int line);	// alloc memory pool
@@ -106,9 +114,8 @@ typedef struct memsystem_api_s
 	// user simply interface
 	void *(*Alloc)(byte *pool, size_t size, const char *file, int line);			//same as malloc
 	void *(*Realloc)(byte *pool, void *mem, size_t size, const char *file, int line);	//same as realloc
-	void (*Move)(byte *pool, void *dest, void *src, size_t size, const char *file, int line);	//same as memmove
+	void (*Move)(void *dest, void *src, size_t size, const char *file, int line);		//same as memmove
 	void (*Copy)(void *dest, void *src, size_t size, const char *file, int line);		//same as memcpy
-	void (*Set)(void *mem, int value, size_t size, const char *file, int line);		//same as memset
 	void (*Free)(void *data, const char *file, int line);				//same as free
 
 } memsystem_api_t;
@@ -119,22 +126,14 @@ typedef struct memsystem_api_s
 PARSE STUFF SYSTEM INTERFACE
 ==============================================================================
 */
-
-#define SCRIPT_API_VERSION	0.42	//11 functions
-
 typedef struct scriptsystem_api_s
 {
 	//interface validator
-	float	api_version;	//must matched with SCRIPT_API_VERSION
-	size_t	api_size;		//must matched with sizeof(scriptsystem_api_t)
-
-	// initialize
-	void (*Init)( void );
-	void (*Shutdown)( void );
+	size_t	api_size;		// must matched with sizeof(scriptsystem_api_t)
 
 	//user interface
-	bool (*LoadScript)( const char *name, char *buf, int size );// load script into stack from file or bufer
-	bool (*AddScript)( const char *name, char *buf, int size );	// include script from file or buffer
+	bool (*Load)( const char *name, char *buf, int size );// load script into stack from file or bufer
+	bool (*Include)( const char *name, char *buf, int size );	// include script from file or buffer
 	char *(*GetToken)( bool newline );			// get next token on a line or newline
 	char *(*Token)( void );				// just return current token
 	bool (*TryToken)( void );				// return 1 if have token on a line 
@@ -151,24 +150,93 @@ typedef struct scriptsystem_api_s
 INTERNAL COMPILERS INTERFACE
 ==============================================================================
 */
-
-#define COMPILER_API_VERSION	0.1	//6 functions
-
 typedef struct compilers_api_s
 {
 	//interface validator
-	float	api_version;	//must matched with COMPILER_API_VERSION
-	size_t	api_size;		//must matched with sizeof(compilers_api_t)
+	size_t	api_size;		// must matched with sizeof(compilers_api_t)
 
-	// initialize
-	void (*Init)( void );
-	void (*Shutdown)( void );
-
-	bool (*CompileStudio)( byte *mempool, const char *name );		// input name of qc-script
-	bool (*CompileSprite)( byte *mempool, const char *name );		// input name of qc-script
-	bool (*CompileBSP)( const char *dir, const char *name, byte params );	// compile map in gamedir 
-	int (*LoadShaderInfo)( void );
+	bool (*Studio)( byte *mempool, const char *name, byte parms );	// input name of qc-script
+	bool (*Sprite)( byte *mempool, const char *name, byte parms );	// input name of qc-script
+	bool (*PrepareBSP)( const char *dir, const char *name, byte params );	// compile map in gamedir 
+	bool (*BSP)( void );
 
 } compilers_api_t;
+
+/*
+==============================================================================
+
+STDIO SYSTEM INTERFACE
+==============================================================================
+*/
+// that interface will never be expanded or extened. No need to check api_size anymore.
+typedef struct stdio_api_s
+{
+	//interface validator
+	size_t	api_size;		// must matched with sizeof(stdio_api_t)
+	
+	//base events
+	void (*print)( char *msg );		// basic text message
+	void (*printf)( char *msg, ... );	// normal text message
+	void (*dprintf)( char *msg, ... );	// developer text message
+	void (*error)( char *msg, ... );	// abnormal termination with message
+	void (*exit)( void );		// normal silent termination
+	char *(*input)( void );		// system console input	
+
+} stdio_api_t;
+
+/*
+==============================================================================
+
+CVAR SYSTEM INTERFACE
+==============================================================================
+*/
+typedef struct cvar_api_s
+{
+	//interface validator
+	size_t	api_size;		// must matched with sizeof(cvar_api_t)
+
+	//cvar_t *(*Register)(const char *name, const char *value, int flags, const char *description );
+	//cvar_t *(*SetString)(const char *name, char *value);
+	//void (*SetValue)(const char *name, float value);
+
+} cvar_api_t;
+
+/*
+==============================================================================
+
+PLATFORM.DLL INTERFACE
+==============================================================================
+*/
+
+#define PLATFORM_API_VERSION	2
+
+typedef struct platform_api_s
+{
+	//interface validator
+	int	apiversion;	// must matched with PLATFORM_API_VERSION
+	size_t	api_size;		// must matched with sizeof(platform_api_t)
+
+	// initialize
+	void (*Init)( void );	// init all platform systems
+	void (*Shutdown)( void );	// shutdown all platform systems
+
+	//platform systems
+	filesystem_api_t	Fs;
+	memsystem_api_t	Mem;
+	scriptsystem_api_t	Script;
+	compilers_api_t	Compile;
+
+	// path initialization
+	void (*InitRootDir)( char *path );		// init custom rootdir 
+	void (*LoadGameInfo)( const char *filename );	// gate game info from script file
+	void (*AddGameHierarchy)(const char *dir);	// add base directory in search list
+
+	//misc utils
+	double (*DoubleTime)( void );
+          gameinfo_t (*GameInfo)( void );
+
+} platform_api_t;
+
+typedef platform_api_t (*platform_t)( stdio_api_t );
 
 #endif//REF_SYSTEM_H
