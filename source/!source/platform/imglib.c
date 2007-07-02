@@ -836,7 +836,6 @@ bool LoadDDS( char *name, char *buffer, int filesize )
 		Msg("LoadDDS: invalid dds file %s\n", name );
 		return false;
 	}
-	fin += 4; //skip signature
 
 	header = Malloc(sizeof(dds_t));
 	Mem_Copy(header, fin, sizeof(dds_t));

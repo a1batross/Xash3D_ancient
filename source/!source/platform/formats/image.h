@@ -93,28 +93,41 @@ typedef struct
 #define GL_COMPRESSED_RGBA_S3TC_DXT5_EXT	0x83F3
 
 
-typedef struct
+typedef struct dds_pf_s
 {
 	uint	dwSize;
 	uint	dwFlags;
 	uint	dwFourCC;
+	uint	dwRGBBitCount;
+	uint	dwRBitMask;
+	uint	dwGBitMask;
+	uint	dwBBitMask;
+	uint	dwAlphaBitMask;
+} dds_pf_t;
 
-	uint	dwReserved[5];
-} ddspf_t;
+//  DDCAPS2
+typedef struct dds_caps_s
+{
+	uint	dwCaps1;
+	uint	dwCaps2;
+	uint	dwDDSX;
+	uint	dwReserved;
+} dds_caps_t;
 
 typedef struct
 {
-	uint	dwSize;
-	uint	dwFlags;
-	uint	dwHeight;
-	uint	dwWidth;
-	uint	dwPitchOrLinearSize;
-	uint	dwDepth;
-	uint	dwMipMapCount;
-	uint	dwReserved1[11];
-	ddspf_t	ddpfPixelFormat;
-	uint	ddsCaps[4];
-	uint	dwReserved2;
+	uint		dwMagic;
+	uint		dwSize;
+	uint		dwFlags;
+	uint		dwHeight;
+	uint		dwWidth;
+	uint		dwPitchOrLinearSize;
+	uint		dwDepth;
+	uint		dwMipMapCount;
+	uint		dwReserved1[11];
+	dds_pf_t		ddpfPixelFormat;
+	dds_caps_t	ddsCaps;
+	uint		dwReserved2;
 } dds_t;
 /*
 ========================================================================
