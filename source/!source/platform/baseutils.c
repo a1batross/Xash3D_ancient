@@ -8,14 +8,6 @@
 #include "baseutils.h"
 #include "blankframe.h"
 
-//=======================================================================
-//			BYTE ORDER FUNCTIONS
-//=======================================================================
-dword BuffBigLong (const byte *buffer){ return (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];}
-word BuffBigShort (const byte *buffer){ return (buffer[0] << 8) | buffer[1]; }
-dword BuffLittleLong (const byte *buffer){ return (buffer[3] << 24) | (buffer[2] << 16) | (buffer[1] << 8) | buffer[0];}
-word BuffLittleShort (const byte *buffer){return (buffer[1] << 8) | buffer[0];}
-
 char *strupr (char *start)
 {
 	char *in;

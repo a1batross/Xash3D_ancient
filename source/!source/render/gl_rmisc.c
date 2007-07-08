@@ -60,9 +60,9 @@ void R_InitParticleTexture (void)
 	}
 	r_tex.width = 8;
 	r_tex.height = 8;
-	r_tex.bitsperpixel = 32;
-	r_tex.compression = 0;
-	r_tex.alpha = true;
+	r_tex.type = PF_PROCEDURE_TEX;
+	r_tex.flags |= IMAGE_HAS_ALPHA;
+	r_tex.numMips = 4;
 	r_tex.palette = NULL;
 	r_tex.buffer = (byte *)data;
 
@@ -81,7 +81,7 @@ void R_InitParticleTexture (void)
 			data[y][x][3] = 255;
 		}
 	}
-	r_tex.alpha = false;//notexture don't have alpha
+	r_tex.flags &= ~IMAGE_HAS_ALPHA;//notexture don't have alpha
 	r_notexture = R_LoadImage("***r_notexture***", &r_tex, it_wall );
 
 	R_Bloom_InitTextures();

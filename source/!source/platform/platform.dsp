@@ -249,10 +249,6 @@ SOURCE=.\image.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\imglib.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\mdllib.h
 # End Source File
 # Begin Source File

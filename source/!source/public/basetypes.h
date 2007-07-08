@@ -36,19 +36,14 @@ typedef struct file_s	file_t;
 typedef struct edict_s	edict_t;
 typedef struct gclient_s	gclient_t;
 typedef float		vec_t;
-typedef byte		jboolean;
 typedef vec_t		vec3_t[3];
 typedef vec_t		vec4_t[4];
 typedef long		fs_offset_t;
 typedef vec_t		matrix3x4[3][4];
 typedef struct { int fileofs; int filelen; }lump_t;
-
-
-#define BigShort(l) ShortSwap(l)
-#define BigLong(l) LongSwap(l)
-#define LittleShort(l) (l)
-#define LittleLong(l) (l)
-#define LittleFloat(l) (l)
+typedef struct { byte r; byte g; byte b; } color24;
+typedef struct { uint b:5; uint g:6; uint r:5; } color16;
+typedef struct { byte r; byte g; byte b; byte a; } color32;
 
 #ifndef NULL
 #define NULL	((void *)0)
@@ -59,12 +54,7 @@ typedef struct { int fileofs; int filelen; }lump_t;
 #define O_NONBLOCK	0
 #endif
 
-_inline short ShortSwap (short l) { byte b1,b2; b1 = l&255; b2 = (l>>8)&255; return (b1<<8) + b2; }
-_inline int LongSwap (int l)
-{
-	byte b1,b2,b3,b4; b1 = l&255; b2 = (l>>8)&255; b3 = (l>>16)&255; b4 = (l>>24)&255;
-	return ((int)b1<<24) + ((int)b2<<16) + ((int)b3<<8) + b4;
-}
+#include "byteorder.h"
 
 #ifdef WIN32
 #define strcasecmp stricmp

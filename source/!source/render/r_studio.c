@@ -90,9 +90,9 @@ image_t *R_StudioLoadTexture( model_t *mod, mstudiotexture_t *ptexture, byte *pi
 
           r_skin.width = ptexture->width;
           r_skin.height = ptexture->height;
-	r_skin.alpha = (ptexture->flags & STUDIO_NF_TRANSPARENT) ? true : false;
-	r_skin.bitsperpixel = 24;
-	r_skin.compression = 0;
+	r_skin.flags |= (ptexture->flags & STUDIO_NF_TRANSPARENT) ? IMAGE_HAS_ALPHA : 0;
+	r_skin.type = PF_INDEXED_24;
+	r_skin.numMips = 4;
 	r_skin.palette = pin + ptexture->width * ptexture->height + ptexture->index;
 	r_skin.buffer = pin + ptexture->index; //texdata
 			

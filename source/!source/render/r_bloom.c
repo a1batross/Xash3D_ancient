@@ -106,9 +106,9 @@ void R_Bloom_InitBackUpTexture( int width, int height )
 	memset( data, 0, width * height * 4 );
 	r_bloom.width = width;
 	r_bloom.height = height;
-	r_bloom.bitsperpixel = 3;
-	r_bloom.compression = 0;
-	r_bloom.alpha = false;
+	r_bloom.type = PF_PROCEDURE_TEX;
+	r_bloom.flags = 0;
+	r_bloom.numMips = 4;
 	r_bloom.palette = NULL;
 	r_bloom.buffer = data;
 
@@ -155,9 +155,9 @@ void R_Bloom_InitEffectTexture( void )
 
 	r_bloomfx.width = BLOOM_SIZE;
 	r_bloomfx.height = BLOOM_SIZE;
-	r_bloomfx.bitsperpixel = 3;
-	r_bloomfx.compression = 0;
-	r_bloomfx.alpha = false;
+	r_bloomfx.type = PF_PROCEDURE_TEX;
+	r_bloomfx.flags = 0;
+	r_bloomfx.numMips = 4;
 	r_bloomfx.palette = NULL;
 	r_bloomfx.buffer = data;
 	r_bloomeffecttexture = R_LoadImage( "***r_bloomeffecttexture***", &r_bloomfx, it_pic );
@@ -195,11 +195,11 @@ void R_Bloom_InitTextures( void )
 	memset( data, 255, size );
 	r_bloomscr.width = screen_texture_width;
 	r_bloomscr.height = screen_texture_height;
-	r_bloomscr.bitsperpixel = 3;
-	r_bloomscr.compression = 0;
-	r_bloomscr.alpha = 0;
+	r_bloomscr.type = 0;
+	r_bloomscr.flags = 0;
 	r_bloomscr.palette = NULL;
 	r_bloomscr.buffer = (byte *)data;
+	r_bloomscr.numMips = 4;
 	r_bloomscreentexture = R_LoadImage( "***r_bloomscreentexture***", &r_bloomscr, it_pic );
 	free ( data );
 
@@ -216,11 +216,11 @@ void R_Bloom_InitTextures( void )
 		memset( data, 0, r_screendownsamplingtexture_size * r_screendownsamplingtexture_size * 4 );
 		r_downsample.width = r_screendownsamplingtexture_size;
 		r_downsample.height = r_screendownsamplingtexture_size;
-		r_downsample.bitsperpixel = 3;
-		r_downsample.compression = 0;
-		r_downsample.alpha = false;
+		r_downsample.type = PF_PROCEDURE_TEX;
+		r_downsample.flags = 0;
 		r_downsample.palette = NULL;
 		r_downsample.buffer = (byte *)data;
+		r_downsample.numMips = 4;
 		r_bloomdownsamplingtexture = R_LoadImage( "***r_bloomdownsampetexture***", &r_downsample, it_pic );
 		free ( data );
 	}

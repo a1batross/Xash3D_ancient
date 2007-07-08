@@ -11,6 +11,82 @@
 #define BSP_ONLYRAD		0x04
 #define BSP_FULLCOMPILE	0x08
 
+enum comp_format
+{
+	PF_UNKNOWN = 0,
+	PF_INDEXED_8,	// pcx or wal images with transparent color in palette
+	PF_INDEXED_24,	// studio model skins
+	PF_INDEXED_32,	// sprite 32-bit palette
+	PF_RGBA_32,	// already prepared ".bmp", ".tga" or ".jpg" image 
+	PF_ARGB_32,	// uncompressed dds image
+	PF_RGB_24,	// uncompressed dds or another 24-bit image 
+	PF_DXT1,		// nvidia DXT5 format
+	PF_DXT2,		// nvidia DXT5 format
+	PF_DXT3,		// nvidia DXT5 format
+	PF_DXT4,		// nvidia DXT5 format
+	PF_DXT5,		// nvidia DXT5 format
+	PF_3DC,
+	PF_ATI1N,		// ati 1D texture
+	PF_LUMINANCE,	// b&w dds image
+	PF_LUMINANCE_16,	// b&w hi-res image
+	PF_LUMINANCE_ALPHA, // b&w dds image with alpha channel
+	PF_RXGB,		// doom3 normal maps
+	PF_ABGR_64,
+	PF_R_16F,
+	PF_GR_32F,
+	PF_ABGR_64F,
+	PF_R_32F,
+	PF_GR_64F,
+	PF_ABGR_128F,	// super-texture
+	PF_PROCEDURE_TEX,	// internal special texture
+	PF_TOTALCOUNT,	// must be last
+};
+
+//format info table
+typedef struct
+{
+	int	format;	// pixelformat
+	char	name[8];	// used for debug
+	int	bpp;	// channels (e.g. rgb = 3, rgba = 4)
+	int	bpc;	// sizebytes (byte, short, float)
+	int	block;	// blocksize > 0 needs alternate calc
+} bpc_desc_t;
+
+static bpc_desc_t PixelFormatDescription[] =
+{
+{PF_INDEXED_8,	"pal 8",  4,  1,  0 },
+{PF_INDEXED_24,	"pal 24",	3,  1, -3 },
+{PF_INDEXED_32,	"pal 32",	4,  1, -4 },
+{PF_RGBA_32,	"RGBA",	4,  1, -4 },
+{PF_ARGB_32,	"ARGB",	4,  1, -4 },
+{PF_RGB_24,	"RGB",	3,  1, -3 },
+{PF_DXT1,		"DXT1",	4,  1,  8 },
+{PF_DXT2,		"DXT2",	4,  1, 16 },
+{PF_DXT3,		"DXT3",	4,  1, 16 },
+{PF_DXT4,		"DXT4",	4,  1, 16 },
+{PF_DXT5,		"DXT5",	4,  1, 16 },
+{PF_3DC,		"3DC",	3,  1, 16 },
+{PF_ATI1N,	"ATI1N",	1,  1,  8 },
+{PF_LUMINANCE,	"LUM 8",	1,  1, -1 },
+{PF_LUMINANCE_16,	"LUM 16",	2,  2, -2 },
+{PF_LUMINANCE_ALPHA,"LUM A",	2,  1, -2 },
+{PF_RXGB,		"RXGB",	3,  1, 16 },
+{PF_ABGR_64,	"ABGR",	4,  2, -8 },
+{PF_R_16F,	"R_16",	1,  4, -2 },
+{PF_GR_32F,	"GR_32",	2,  4, -4 },
+{PF_ABGR_64F,	"ABGR64",	4,  2, -8 },
+{PF_R_32F,	"R_32",	1,  4, -4 },
+{PF_GR_64F,	"GR_64",	2,  4, -8 },
+{PF_ABGR_128F,	"ABGR128",4,  4, -16},
+{PF_PROCEDURE_TEX,	"system",	4,  1, -32},
+{PF_UNKNOWN,	"",	0,  0,  0 },
+};
+
+#define IMAGE_CUBEMAP	0x00000001
+#define IMAGE_HAS_ALPHA	0x00000002
+#define IMAGE_PREMULT	0x00000004	// indices who need in additional premultiply
+#define IMAGE_GEN_MIPS	0x00000008	// must generate mips
+
 typedef struct search_s
 {
 	int	numfilenames;
@@ -22,9 +98,10 @@ typedef struct rgbdata_s
 {
 	word	width;		// image width
 	word	height;		// image height
-	byte	bitsperpixel;	// 8-16-24-32 bits
-	word	alpha;		// has alpha pixels
-	uint	compression;	// DXT compression
+	byte	numLayers;	// multi-layer volume
+	byte	numMips;		// mipmap count
+	uint	type;		// compression type
+	uint	flags;		// misc image flags
 	byte	*palette;		// palette if present
 	byte	*buffer;		// image buffer
 } rgbdata_t;

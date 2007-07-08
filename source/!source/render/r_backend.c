@@ -333,6 +333,25 @@ void GL_TexEnv( GLenum mode )
 
 /*
 ===============
+GL_TexFilter
+===============
+*/
+void GL_TexFilter( GLboolean mipmap )
+{
+	if (mipmap)
+	{
+		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
+		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
+	}
+	else
+	{
+		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_max);
+		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
+	}
+}
+
+/*
+===============
 GL_Bind
 ===============
 */

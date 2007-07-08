@@ -324,6 +324,7 @@ void GL_MBind( GLenum target, int texnum );
 void GL_TexEnv( GLenum value );
 void GL_EnableMultitexture( bool enable );
 void GL_SelectTexture( GLenum );
+void GL_TexFilter( GLboolean mipmap );
 
 void R_LightPoint (vec3_t p, vec3_t color);
 void R_PushDlights (void);
@@ -450,6 +451,7 @@ typedef struct
 
 	bool	allow_cds;
 	bool	sgis_generate_mipmap;
+	bool	arb_compressed_teximage;
 } glconfig_t;
 
 typedef struct
@@ -565,3 +567,8 @@ void QuaternionMatrix( vec4_t quaternion, float (*matrix)[4] );
 void QuaternionSlerp( vec4_t p, vec4_t q, float t, vec4_t qt );
 void AngleMatrix (const float *angles, float (*matrix)[4] );
 void MatrixCopy( matrix3x4 in, matrix3x4 out );
+
+uint ShortToFloat( word y );
+void R_DXTReadColor(word data, color32* out);
+void R_DXTReadColors(const byte* data, color32* out);
+void R_GetBitsFromMask(uint Mask, uint *ShiftLeft, uint *ShiftRight);

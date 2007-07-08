@@ -89,12 +89,6 @@ void FS_Shutdown (void);
 #define Mem_Move(dest, src, size ) _Mem_Move (dest, src, size, __FILE__, __LINE__)
 #define Mem_Copy(dest, src, size ) _Mem_Copy (dest, src, size, __FILE__, __LINE__)
 
-//only for internal use
-dword BuffBigLong (const byte *buffer);
-word BuffBigShort (const byte *buffer);
-dword BuffLittleLong (const byte *buffer);
-word BuffLittleShort (const byte *buffer);
-
 stdio_api_t std;
 extern gameinfo_t GI;
 

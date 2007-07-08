@@ -447,20 +447,25 @@ extern BOOL ( WINAPI * qwglSetDeviceGammaRampEXT ) ( const unsigned char *pRed, 
 #ifndef GL_ARB_texture_compression
 #define GL_ARB_texture_compression 1
 
-#define GL_COMPRESSED_ALPHA_ARB                                 0x84E9
-#define GL_COMPRESSED_LUMINANCE_ARB                             0x84EA
-#define GL_COMPRESSED_LUMINANCE_ALPHA_ARB                       0x84EB
-#define GL_COMPRESSED_INTENSITY_ARB                             0x84EC
-#define GL_COMPRESSED_RGB_ARB                                   0x84ED
-#define GL_COMPRESSED_RGBA_ARB                                  0x84EE
-#define GL_TEXTURE_COMPRESSION_HINT_ARB                         0x84EF
-#define GL_TEXTURE_COMPRESSED_IMAGE_SIZE_ARB                    0x86A0
-#define GL_TEXTURE_COMPRESSED_ARB                               0x86A1
-#define GL_NUM_COMPRESSED_TEXTURE_FORMATS_ARB                   0x86A2
-#define GL_COMPRESSED_TEXTURE_FORMATS_ARB                       0x86A3
+#define GL_COMPRESSED_RGB_S3TC_DXT1_EXT			0x83F0
+#define GL_COMPRESSED_RGBA_S3TC_DXT1_EXT		0x83F1
+#define GL_COMPRESSED_RGBA_S3TC_DXT3_EXT		0x83F2
+#define GL_COMPRESSED_RGBA_S3TC_DXT5_EXT		0x83F3
 
-extern void (APIENTRY *qglCompressedTexImage2DARB)(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid* data);
-extern void ( APIENTRY *qglGetCompressedTexImageARB) (GLenum target, GLint lod, const GLvoid* img);
+#define GL_COMPRESSED_ALPHA_ARB			0x84E9
+#define GL_COMPRESSED_LUMINANCE_ARB			0x84EA
+#define GL_COMPRESSED_LUMINANCE_ALPHA_ARB		0x84EB
+#define GL_COMPRESSED_INTENSITY_ARB			0x84EC
+#define GL_COMPRESSED_RGB_ARB				0x84ED
+#define GL_COMPRESSED_RGBA_ARB			0x84EE
+#define GL_TEXTURE_COMPRESSION_HINT_ARB			0x84EF
+#define GL_TEXTURE_COMPRESSED_IMAGE_SIZE_ARB		0x86A0
+#define GL_TEXTURE_COMPRESSED_ARB			0x86A1
+#define GL_NUM_COMPRESSED_TEXTURE_FORMATS_ARB		0x86A2
+#define GL_COMPRESSED_TEXTURE_FORMATS_ARB		0x86A3
+
+extern void (APIENTRY *qglCompressedTexImage2D)(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid* data);
+extern void ( APIENTRY *qglGetCompressedTexImage) (GLenum target, GLint lod, const GLvoid* img);
 
 #endif /* GL_ARB_texture_compression */
 

@@ -1146,14 +1146,15 @@ int R_Init( void *hinstance, void *hWnd )
 
 	if (strstr( gl_config.extensions_string, "GL_ARB_texture_compression" ))
 	{
-		qglCompressedTexImage2DARB = ( void *) qwglGetProcAddress("glCompressedTexImage2DARB");
-		qglGetCompressedTexImageARB = ( void *) qwglGetProcAddress("glGetCompressedTexImageARB");
-
-		if (!qglCompressedTexImage2DARB || !qglGetCompressedTexImageARB)
+		if (strstr( gl_config.extensions_string, "GL_EXT_texture_compression_s3tc" ))
 		{
-			qglCompressedTexImage2DARB = NULL;
-			qglGetCompressedTexImageARB = NULL;
+			qglCompressedTexImage2D = ( void *)qwglGetProcAddress("glCompressedTexImage2DARB");
+			qglGetCompressedTexImage = ( void *)qwglGetProcAddress("glGetCompressedTexImageARB");
 		}
+
+		if (qglCompressedTexImage2D && qglGetCompressedTexImage)
+			gl_config.arb_compressed_teximage = true;
+		else gl_config.arb_compressed_teximage = false;
 	}
  
 	if ( strstr( gl_config.extensions_string, "GL_EXT_point_parameters" ) )

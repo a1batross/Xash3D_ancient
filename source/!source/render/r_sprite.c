@@ -48,9 +48,9 @@ void *R_SpriteLoadFrame (model_t *mod, void *pin, mspriteframe_t **ppframe, int 
 	pspriteframe->left = origin[0];
 	pspriteframe->right = width + origin[0];
           pspriteframe->texnum = 0;
-	r_frame.compression = 0;
-	r_frame.bitsperpixel = 32;
-	r_frame.alpha = true;
+	r_frame.type = PF_INDEXED_32;
+	r_frame.numMips = 4;
+	r_frame.flags |= IMAGE_HAS_ALPHA;
 	
 	//extract sprite name from path
 	ri.FS_FileBase( mod->name, name );

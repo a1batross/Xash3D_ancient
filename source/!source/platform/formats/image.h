@@ -87,11 +87,56 @@ typedef struct
 
 ========================================================================
 */
-#define GL_COMPRESSED_RGB_S3TC_DXT1_EXT		0x83F0
-#define GL_COMPRESSED_RGBA_S3TC_DXT1_EXT	0x83F1
-#define GL_COMPRESSED_RGBA_S3TC_DXT3_EXT	0x83F2
-#define GL_COMPRESSED_RGBA_S3TC_DXT5_EXT	0x83F3
+#define DDSHEADER	((' '<<24)+('S'<<16)+('D'<<8)+'D') // little-endian "DDS "
 
+//other four-cc types
+#define TYPE_DXT1	(('1'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT1"
+#define TYPE_DXT2	(('2'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT2"
+#define TYPE_DXT3	(('3'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT3"
+#define TYPE_DXT4	(('4'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT4"
+#define TYPE_DXT5	(('5'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT5"
+
+#define TYPE_ATI1	(('1'<<24)+('I'<<16)+('T'<<8)+'A') // little-endian "ATI1"
+#define TYPE_ATI2	(('2'<<24)+('I'<<16)+('T'<<8)+'A') // little-endian "ATI2"
+
+
+#define TYPE_RXGB	(('B'<<24)+('G'<<16)+('X'<<8)+'R') // little-endian "RXGB" doom3 normalmaps
+#define TYPE_$	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'$') // little-endian "$"
+#define TYPE_o	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'o') // little-endian "o"
+#define TYPE_p	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'p') // little-endian "p"
+#define TYPE_q	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'q') // little-endian "q"
+#define TYPE_r	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'r') // little-endian "r"
+#define TYPE_s	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'s') // little-endian "s"
+#define TYPE_t	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'t') // little-endian "t"
+
+#define DDS_CAPS				0x00000001L
+#define DDS_HEIGHT				0x00000002L
+#define DDS_WIDTH				0x00000004L
+
+#define DDS_RGB				0x00000040L
+#define DDS_PIXELFORMAT			0x00001000L
+#define DDS_LUMINANCE			0x00020000L
+
+#define DDS_ALPHAPIXELS			0x00000001L
+#define DDS_ALPHA				0x00000002L
+#define DDS_FOURCC				0x00000004L
+#define DDS_PITCH				0x00000008L
+#define DDS_COMPLEX				0x00000008L
+#define DDS_TEXTURE				0x00001000L
+#define DDS_MIPMAPCOUNT			0x00020000L
+#define DDS_LINEARSIZE			0x00080000L
+#define DDS_VOLUME				0x00200000L
+#define DDS_MIPMAP				0x00400000L
+#define DDS_DEPTH				0x00800000L
+
+//support cubemap loading
+#define DDS_CUBEMAP				0x00000200L
+#define DDS_CUBEMAP_POSITIVEX			0x00000400L
+#define DDS_CUBEMAP_NEGATIVEX			0x00000800L
+#define DDS_CUBEMAP_POSITIVEY			0x00001000L
+#define DDS_CUBEMAP_NEGATIVEY			0x00002000L
+#define DDS_CUBEMAP_POSITIVEZ			0x00004000L
+#define DDS_CUBEMAP_NEGATIVEZ			0x00008000L
 
 typedef struct dds_pf_s
 {
@@ -103,104 +148,33 @@ typedef struct dds_pf_s
 	uint	dwGBitMask;
 	uint	dwBBitMask;
 	uint	dwAlphaBitMask;
-} dds_pf_t;
+} dds_pixf_t;
 
 //  DDCAPS2
 typedef struct dds_caps_s
 {
 	uint	dwCaps1;
 	uint	dwCaps2;
-	uint	dwDDSX;
-	uint	dwReserved;
+	uint	dwCaps3;
+	uint	dwCaps4;
 } dds_caps_t;
 
 typedef struct
 {
-	uint		dwMagic;
+	uint		dwIdent;		// must matched with DDSHEADER
 	uint		dwSize;
-	uint		dwFlags;
+	uint		dwFlags;		// determines what fields are valid
 	uint		dwHeight;
 	uint		dwWidth;
-	uint		dwPitchOrLinearSize;
-	uint		dwDepth;
-	uint		dwMipMapCount;
-	uint		dwReserved1[11];
-	dds_pf_t		ddpfPixelFormat;
-	dds_caps_t	ddsCaps;
-	uint		dwReserved2;
+	uint		dwLinearSize;	// Formless late-allocated optimized surface size
+	uint		dwDepth;		// depth if a volume texture
+	uint		dwMipMapCount;	// number of mip-map levels requested
+	uint		dwAlphaBitDepth;	// depth of alpha buffer requested
+	uint		dwReserved1[10];	// reserved for future expansions
+	dds_pixf_t	dsPixelFormat;
+	dds_caps_t	dsCaps;
+	uint		dwTextureStage;
 } dds_t;
-/*
-========================================================================
-
-.PNG image format
-
-========================================================================
-*/
-#define PNG_LIBPNG_VER_STRING		"1.2.4"
-
-#define PNG_COLOR_MASK_PALETTE	1
-#define PNG_COLOR_MASK_COLOR		2
-#define PNG_COLOR_MASK_ALPHA		4
-#define PNG_COLOR_TYPE_GRAY		0
-#define PNG_COLOR_TYPE_PALETTE	(PNG_COLOR_MASK_COLOR | PNG_COLOR_MASK_PALETTE)
-#define PNG_COLOR_TYPE_RGB		(PNG_COLOR_MASK_COLOR)
-#define PNG_COLOR_TYPE_RGB_ALPHA	(PNG_COLOR_MASK_COLOR | PNG_COLOR_MASK_ALPHA)
-#define PNG_COLOR_TYPE_GRAY_ALPHA	(PNG_COLOR_MASK_ALPHA)
-
-#define PNG_COLOR_TYPE_RGBA		PNG_COLOR_TYPE_RGB_ALPHA
-#define PNG_COLOR_TYPE_GA		PNG_COLOR_TYPE_GRAY_ALPHA
-#define PNG_INFO_tRNS		0x0010
-
-extern void  png_set_sig_bytes	(void*, int);
-extern int   png_sig_cmp		(const byte*, size_t, size_t);
-extern void* png_create_read_struct	(const char*, void*, void*, void*);
-extern void* png_create_info_struct	(void*);
-extern void  png_read_info		(void*, void*);
-extern void  png_set_expand		(void*);
-extern void  png_set_gray_1_2_4_to_8	(void*);
-extern void  png_set_palette_to_rgb	(void*);
-extern void  png_set_tRNS_to_alpha	(void*);
-extern void  png_set_gray_to_rgb	(void*);
-extern void  png_set_filler		(void*, unsigned int, int);
-extern void  png_read_update_info	(void*, void*);
-extern void  png_read_image		(void*, unsigned char**);
-extern void  png_read_end		(void*, void*);
-extern void  png_destroy_read_struct	(void**, void**, void**);
-extern void  png_set_read_fn		(void*, void*, void*);
-extern dword png_get_valid		(void*, void*, unsigned int);
-extern dword png_get_rowbytes		(void*, void*);
-extern byte  png_get_channels		(void*, void*);
-extern byte  png_get_bit_depth	(void*, void*);
-extern dword png_get_IHDR		(void*, void*, dword*, dword*, int *, int *, int *, int *, int *);
-extern char* png_get_libpng_ver	(void*);
-extern void  png_set_strip_16		(void*);
-
-static struct
-{
-	const byte	*tmpBuf;
-	int		tmpBuflength;
-	int		tmpi;
-	//int		FBgColor;
-	//int		FTransparent;
-	dword		FRowBytes;
-	//double		FGamma;
-	//double		FScreenGamma;
-	byte		**FRowPtrs;
-	byte		*Data;
-	//char		*Title;
-	//char		*Author;
-	//char		*Description;
-	int		BitDepth;
-	int		BytesPerPixel;
-	int		ColorType;
-	unsigned int	Height;
-	unsigned int	Width;
-	int		Interlace;
-	int		Compression;
-	int		Filter;
-	//double		LastModified;
-	//int		Transparent;
-}png_buf;
 
 /*
 ========================================================================
@@ -209,285 +183,57 @@ static struct
 
 ========================================================================
 */
-#define JPEG_LIB_VERSION  62  // Version 6b
-
-typedef void *j_common_ptr;
-typedef struct jpeg_compress_struct *j_compress_ptr;
-typedef struct jpeg_decompress_struct *j_decompress_ptr;
-typedef enum
+typedef struct huffman_table_s
 {
-	JCS_UNKNOWN,
-	JCS_GRAYSCALE,
-	JCS_RGB,
-	JCS_YCbCr,
-	JCS_CMYK,
-	JCS_YCCK
-}J_COLOR_SPACE;
+	// Huffman coding tables
+	byte	bits[16];
+	byte	hval[256];
+	byte	size[256];
+	word	code[256];
 
-typedef enum {JPEG_DUMMY1} J_DCT_METHOD;
-typedef enum {JPEG_DUMMY2} J_DITHER_MODE;
-typedef dword JDIMENSION;
+} huffman_table_t;
 
-#define JPOOL_PERMANENT	0	// lasts until master record is destroyed
-#define JPOOL_IMAGE		1	// lasts until done with image/datastream
-
-#define JPEG_EOI		0xD9	// EOI marker code
-#define JMSG_STR_PARM_MAX	80
-#define DCTSIZE2		64
-#define NUM_QUANT_TBLS	4
-#define NUM_HUFF_TBLS	4
-#define NUM_ARITH_TBLS	16
-#define MAX_COMPS_IN_SCAN	4
-#define C_MAX_BLOCKS_IN_MCU	10
-#define D_MAX_BLOCKS_IN_MCU	10
-
-struct jpeg_memory_mgr
+typedef struct jpg_s
 {
-	void* (*alloc_small) (j_common_ptr cinfo, int pool_id, size_t sizeofobject);
-	void (*alloc_large) ();
-	void (*alloc_sarray) ();
-	void (*alloc_barray) ();
-	void (*request_virt_sarray) ();
-	void (*request_virt_barray) ();
-	void (*realize_virt_arrays) ();
-	void (*access_virt_sarray) ();
-	void (*access_virt_barray) ();
-	void (*free_pool) ();
-	void (*self_destruct) ();
-	long max_memory_to_use;
-	long max_alloc_chunk;
-};
+	// Jpeg file parameter
+	file_t	*file;		// file
+	byte	*buffer;		// jpg buffer
+	
+	int	width;		// width image
+	int	height;		// height image
+	byte	*data;		// image
+	int	data_precision;	// bit per component
+	int	num_components;	// number component
+	int	restart_interval;	// restart interval
+	bool	progressive_mode;	// progressive format
 
-struct jpeg_error_mgr
-{
-	void (*error_exit) (j_common_ptr cinfo);
-	void (*emit_message) (j_common_ptr cinfo, int msg_level);
-	void (*output_message) (j_common_ptr cinfo);
-	void (*format_message) (j_common_ptr cinfo, char * buffer);
-	void (*reset_error_mgr) (j_common_ptr cinfo);
-	int msg_code;
-	union
+	struct
 	{
-		int i[8];
-		char s[JMSG_STR_PARM_MAX];
-	}msg_parm;
+		int     id;	// identifier
+		int     h;	// horizontal sampling factor
+		int     v;	// vertical sampling factor
+		int     t;	// Quantization table selector
+		int     td;	// DC table selector
+		int     ta;	// AC table selector
+	} component_info[3];
+    
+	huffman_table_t hac[4];	// AC table
+	huffman_table_t hdc[4];	// DC table
 
-	int trace_level;
-	long num_warnings;
-	const char * const * jpeg_message_table;
-	int last_jpeg_message;
-	const char * const * addon_message_table;
-	int first_addon_message;
-	int last_addon_message;
-};
+	int	qtable[4][64];	// Quantization table
 
-struct jpeg_source_mgr
-{
-	const unsigned char *next_input_byte;
-	size_t bytes_in_buffer;
+	struct
+	{
+		int     ss,se;	// progressive jpeg spectral selection
+		int     ah,al;	// progressive jpeg successive approx
+	} scan;
 
-	void (*init_source) (j_decompress_ptr cinfo);
-	jboolean (*fill_input_buffer) (j_decompress_ptr cinfo);
-	void (*skip_input_data) (j_decompress_ptr cinfo, long num_bytes);
-	jboolean (*resync_to_restart) (j_decompress_ptr cinfo, int desired);
-	void (*term_source) (j_decompress_ptr cinfo);
-};
+	int	dc[3];
+	int	curbit;
+	byte	curbyte;
 
-struct jpeg_decompress_struct
-{
-	struct jpeg_error_mgr	*err;		// USED
-	struct jpeg_memory_mgr	*mem;		// USED
+} jpg_t;
 
-	void			*progress;
-	void			*client_data;
-	jboolean			is_decompressor;
-	int			global_state;
-
-	struct jpeg_source_mgr	*src;		// USED
-	JDIMENSION		image_width;	// USED
-	JDIMENSION		image_height;	// USED
-
-	int			num_components;
-	J_COLOR_SPACE		jpeg_color_space;
-	J_COLOR_SPACE		out_color_space;
-	dword			scale_num, scale_denom;
-	double			output_gamma;
-	jboolean			buffered_image;
-	jboolean			raw_data_out;
-	J_DCT_METHOD		dct_method;
-	jboolean			do_fancy_upsampling;
-	jboolean			do_block_smoothing;
-	jboolean			quantize_colors;
-	J_DITHER_MODE		dither_mode;
-	jboolean			two_pass_quantize;
-	int			desired_number_of_colors;
-	jboolean			enable_1pass_quant;
-	jboolean			enable_external_quant;
-	jboolean			enable_2pass_quant;
-	JDIMENSION		output_width;
-	JDIMENSION		output_height;	// USED
-
-	int			out_color_components;
-	int			output_components;	// USED
-	int			rec_outbuf_height;
-	int			actual_number_of_colors;
-	void			*colormap;
-	JDIMENSION		output_scanline;	// USED
-
-	int			input_scan_number;
-	JDIMENSION		input_iMCU_row;
-	int			output_scan_number;
-	JDIMENSION		output_iMCU_row;
-	int			(*coef_bits)[DCTSIZE2];
-	void			*quant_tbl_ptrs[NUM_QUANT_TBLS];
-	void			*dc_huff_tbl_ptrs[NUM_HUFF_TBLS];
-	void			*ac_huff_tbl_ptrs[NUM_HUFF_TBLS];
-	int			data_precision;
-	void			*comp_info;
-	jboolean			progressive_mode;
-	jboolean			arith_code;
-	byte			arith_dc_L[NUM_ARITH_TBLS];
-	byte			arith_dc_U[NUM_ARITH_TBLS];
-	byte			arith_ac_K[NUM_ARITH_TBLS];
-	dword			restart_interval;
-	jboolean			saw_JFIF_marker;
-	byte			JFIF_major_version;
-	byte			JFIF_minor_version;
-	byte			density_unit;
-	word			X_density;
-	word			Y_density;
-	jboolean			saw_Adobe_marker;
-	byte			Adobe_transform;
-	jboolean			CCIR601_sampling;
-	void			*marker_list;
-	int			max_h_samp_factor;
-	int			max_v_samp_factor;
-	int			min_DCT_scaled_size;
-	JDIMENSION		total_iMCU_rows;
-	void			*sample_range_limit;
-	int			comps_in_scan;
-	void			*cur_comp_info[MAX_COMPS_IN_SCAN];
-	JDIMENSION		MCUs_per_row;
-	JDIMENSION		MCU_rows_in_scan;
-	int			blocks_in_MCU;
-	int			MCU_membership[D_MAX_BLOCKS_IN_MCU];
-	int			Ss, Se, Ah, Al;
-	int			unread_marker;
-	void			*master;
-	void			*main;
-	void			*coef;
-	void			*post;
-	void			*inputctl;
-	void			*marker;
-	void			*entropy;
-	void			*idct;
-	void			*upsample;
-	void			*cconvert;
-	void			*cquantize;
-};
-
-
-struct jpeg_compress_struct
-{
-	struct jpeg_error_mgr	*err;
-	struct jpeg_memory_mgr	*mem;
-	void			*progress;
-	void			*client_data;
-	jboolean			is_decompressor;
-	int			global_state;
-
-	void			*dest;
-	JDIMENSION		image_width;
-	JDIMENSION		image_height;
-	int			input_components;
-	J_COLOR_SPACE		in_color_space;
-	double			input_gamma;
-	int			data_precision;
-
-	int			num_components;
-	J_COLOR_SPACE		jpeg_color_space;
-	void			*comp_info;
-	void			*quant_tbl_ptrs[NUM_QUANT_TBLS];
-	void			*dc_huff_tbl_ptrs[NUM_HUFF_TBLS];
-	void			*ac_huff_tbl_ptrs[NUM_HUFF_TBLS];
-	byte			arith_dc_L[NUM_ARITH_TBLS];
-	byte			arith_dc_U[NUM_ARITH_TBLS];
-	byte			arith_ac_K[NUM_ARITH_TBLS];
-
-	int			num_scans;
-	const void		*scan_info;
-	jboolean			raw_data_in;
-	jboolean			arith_code;
-	jboolean			optimize_coding;
-	jboolean			CCIR601_sampling;
-	int			smoothing_factor;
-	J_DCT_METHOD		dct_method;
-
-	dword			restart_interval;
-	int			restart_in_rows;
-
-	jboolean			write_JFIF_header;
-	byte			JFIF_major_version;
-	byte			JFIF_minor_version;
-	byte			density_unit;
-	word			X_density;
-	word			Y_density;
-	jboolean			write_Adobe_marker;
-	JDIMENSION		next_scanline;
-
-	jboolean			progressive_mode;
-	int			max_h_samp_factor;
-	int			max_v_samp_factor;
-	JDIMENSION		total_iMCU_rows;
-	int			comps_in_scan;
-	void			*cur_comp_info[MAX_COMPS_IN_SCAN];
-	JDIMENSION		MCUs_per_row;
-	JDIMENSION		MCU_rows_in_scan;
-	int			blocks_in_MCU;
-	int			MCU_membership[C_MAX_BLOCKS_IN_MCU];
-	int			Ss, Se, Ah, Al;
-
-	void			*master;
-	void			*main;
-	void			*prep;
-	void			*coef;
-	void			*marker;
-	void			*cconvert;
-	void			*downsample;
-	void			*fdct;
-	void			*entropy;
-	void			*script_space;
-	int			script_space_size;
-};
-
-struct jpeg_destination_mgr
-{
-	byte* next_output_byte;
-	size_t free_in_buffer;
-
-	void (*init_destination) (j_compress_ptr cinfo);
-	jboolean (*empty_output_buffer) (j_compress_ptr cinfo);
-	void (*term_destination) (j_compress_ptr cinfo);
-};
-
-
-#define jpeg_create_compress(cinfo) jpeg_CreateCompress((cinfo), JPEG_LIB_VERSION, (size_t) sizeof(struct jpeg_compress_struct))
-#define jpeg_create_decompress(cinfo) jpeg_CreateDecompress((cinfo), JPEG_LIB_VERSION, (size_t) sizeof(struct jpeg_decompress_struct))
-
-extern void jpeg_CreateCompress (j_compress_ptr cinfo, int version, size_t structsize);
-extern void jpeg_CreateDecompress (j_decompress_ptr cinfo, int version, size_t structsize);
-extern void jpeg_destroy_compress (j_compress_ptr cinfo);
-extern void jpeg_destroy_decompress (j_decompress_ptr cinfo);
-extern void jpeg_finish_compress (j_compress_ptr cinfo);
-extern jboolean jpeg_finish_decompress (j_decompress_ptr cinfo);
-extern jboolean jpeg_resync_to_restart (j_decompress_ptr cinfo, int desired);
-extern int jpeg_read_header (j_decompress_ptr cinfo, jboolean require_image);
-extern JDIMENSION jpeg_read_scanlines (j_decompress_ptr cinfo, unsigned char** scanlines, JDIMENSION max_lines);
-extern void jpeg_set_defaults (j_compress_ptr cinfo);
-extern void jpeg_set_quality (j_compress_ptr cinfo, int quality, jboolean force_baseline);
-extern jboolean jpeg_start_compress (j_compress_ptr cinfo, jboolean write_all_tables);
-extern jboolean jpeg_start_decompress (j_decompress_ptr cinfo);
-extern struct jpeg_error_mgr* jpeg_std_error (struct jpeg_error_mgr *err);
-extern JDIMENSION jpeg_write_scanlines (j_compress_ptr cinfo, unsigned char** scanlines, JDIMENSION num_lines);
+static jpg_t jpg_file;
 
 #endif//IMAGE_H
