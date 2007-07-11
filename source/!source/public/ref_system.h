@@ -49,7 +49,7 @@ typedef struct
 	char	name[8];	// used for debug
 	int	bpp;	// channels (e.g. rgb = 3, rgba = 4)
 	int	bpc;	// sizebytes (byte, short, float)
-	int	block;	// blocksize > 0 needs alternate calc
+	int	block;	// blocksize < 0 needs alternate calc
 } bpc_desc_t;
 
 static bpc_desc_t PixelFormatDescription[] =
@@ -100,6 +100,7 @@ typedef struct rgbdata_s
 	word	height;		// image height
 	byte	numLayers;	// multi-layer volume
 	byte	numMips;		// mipmap count
+	byte	bitsCount;	// RGB bits count
 	uint	type;		// compression type
 	uint	flags;		// misc image flags
 	byte	*palette;		// palette if present

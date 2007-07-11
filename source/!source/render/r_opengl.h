@@ -464,6 +464,20 @@ extern BOOL ( WINAPI * qwglSetDeviceGammaRampEXT ) ( const unsigned char *pRed, 
 #define GL_NUM_COMPRESSED_TEXTURE_FORMATS_ARB		0x86A2
 #define GL_COMPRESSED_TEXTURE_FORMATS_ARB		0x86A3
 
+#define GL_BGR 0x80E0
+#define GL_BGRA 0x80E1
+
+#define GL_UNSIGNED_BYTE_2_3_3_REV 0x8362
+#define GL_UNSIGNED_SHORT_5_6_5 0x8363
+#define GL_UNSIGNED_SHORT_5_6_5_REV 0x8364
+#define GL_UNSIGNED_SHORT_4_4_4_4_REV 0x8365
+#define GL_UNSIGNED_SHORT_1_5_5_5_REV 0x8366
+#define GL_UNSIGNED_INT_8_8_8_8_REV 0x8367
+#define GL_UNSIGNED_INT_2_10_10_10_REV 0x8368
+
+#define GL_TEXTURE_MAX_LEVEL 0x813D
+#define GL_GENERATE_MIPMAP   0x8191
+
 extern void (APIENTRY *qglCompressedTexImage2D)(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid* data);
 extern void ( APIENTRY *qglGetCompressedTexImage) (GLenum target, GLint lod, const GLvoid* img);
 

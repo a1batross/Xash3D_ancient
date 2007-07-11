@@ -6,13 +6,13 @@
 --------------------Configuration: render - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\Temp\RSPD57.tmp" with contents
+Creating temporary file "C:\Temp\RSP1790.tmp" with contents
 [
 /nologo /MTd /W3 /Gm /Gi /GX /ZI /Od /I "../public" /I "../platform/formats" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\render\!debug/" /Fo"..\temp\render\!debug/" /Fd"..\temp\render\!debug/" /FD /c 
 "D:\XASH3D\src_main\!source\render\r_texture.c"
 ]
-Creating command line "cl.exe @C:\Temp\RSPD57.tmp" 
-Creating temporary file "C:\Temp\RSPD58.tmp" with contents
+Creating command line "cl.exe @C:\Temp\RSP1790.tmp" 
+Creating temporary file "C:\Temp\RSP1791.tmp" with contents
 [
 kernel32.lib user32.lib gdi32.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..\temp\render\!debug/render.pdb" /debug /machine:I386 /nodefaultlib:"libc.lib" /out:"..\temp\render\!debug/render.dll" /implib:"..\temp\render\!debug/render.lib" /pdbtype:sept /libpath:"../public/libs/" 
 "\XASH3D\src_main\!source\temp\render\!debug\gl_draw.obj"
@@ -33,16 +33,17 @@ kernel32.lib user32.lib gdi32.lib /nologo /subsystem:windows /dll /incremental:y
 "\XASH3D\src_main\!source\temp\render\!debug\r_texture.obj"
 "\XASH3D\src_main\!source\temp\render\!debug\r_utils.obj"
 ]
-Creating command line "link.exe @C:\Temp\RSPD58.tmp"
-Creating temporary file "C:\Temp\RSPD59.bat" with contents
+Creating command line "link.exe @C:\Temp\RSP1791.tmp"
+Creating temporary file "C:\Temp\RSP1792.bat" with contents
 [
 @echo off
 copy \XASH3D\src_main\!source\temp\render\!debug\render.dll "D:\Xash3D\bin\render.dll"
 ]
-Creating command line "C:\Temp\RSPD59.bat"
+Creating command line "C:\Temp\RSP1792.bat"
 Compiling...
 r_texture.c
 Linking...
+   Creating library ..\temp\render\!debug/render.lib and object ..\temp\render\!debug/render.exp
 <h3>Output Window</h3>
 Performing Custom Build Step on \XASH3D\src_main\!source\temp\render\!debug\render.dll
 Скопировано файлов:         1.

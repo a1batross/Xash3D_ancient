@@ -13,6 +13,7 @@ byte image_num_layers = 1;	// num layers in
 byte image_num_mips = 4;	// build mipmaps
 uint image_type;		// main type switcher
 uint image_flags;		// additional image flags
+byte image_bits_count;	// bits per RGBA
 
 byte *image_palette;	// palette pointer
 byte *image_rgba;		// image pointer (see image_type for details)
@@ -595,9 +596,10 @@ bool LoadTGA( char *name, char *buffer, int filesize )
 LoadDDS
 =============
 */
-uint dds_get_linear_size( int width, int height, int depth, int bpp )
+uint dds_get_linear_size( int width, int height, int depth, int rgbcount )
 {
-	uint i, block, BlockSize = 0;
+	uint i, BlockSize = 0;
+	int block, bpp;
 
 	//right calcualte blocksize
 	for(i = 0; i < PF_TOTALCOUNT; i++)
@@ -605,22 +607,24 @@ uint dds_get_linear_size( int width, int height, int depth, int bpp )
 		if(image_type == PixelFormatDescription[i].format)
 		{
 			block = PixelFormatDescription[i].block;
+			bpp = PixelFormatDescription[i].bpp;
 			break;
 		} 
 	}
 
 	if(i != PF_TOTALCOUNT) //make sure what match found
-	{
+	{                  
 		if(block == 0) BlockSize = width * height * bpp;
 		else if(block > 0) BlockSize = ((width + 3)/4) * ((height + 3)/4) * depth * block;
-		else if(block < 0) BlockSize = width * height * depth * bpp * abs(block);
+		else if(block < 0 && rgbcount > 0) BlockSize = width * height * depth * rgbcount;
+		else BlockSize = width * height * abs(block);
 	}
 	return BlockSize;
 }
 
 uint dds_get_pixelformat( dds_t *hdr )
 {
-	uint bits;
+	uint bits = hdr->dsPixelFormat.dwRGBBitCount;
 
 	// All volume textures I've seem so far didn't have the DDS_COMPLEX flag set,
 	// even though this is normally required. But because noone does set it,
@@ -662,8 +666,9 @@ uint dds_get_pixelformat( dds_t *hdr )
 		}
 		else 
 		{
-			if (hdr->dsPixelFormat.dwFlags & DDS_ALPHAPIXELS) image_type = PF_ARGB_32;
-			else image_type = PF_RGB_24;
+			if(hdr->dsPixelFormat.dwFlags & DDS_ALPHA) image_type = PF_RGB_24;
+			else if( bits == 32) image_type = PF_ABGR_64;
+			else image_type = PF_ARGB_32;
 		}
 	}
 
@@ -674,12 +679,25 @@ uint dds_get_pixelformat( dds_t *hdr )
 		Msg("Cubemap\n");
 	}
 
+	if(hdr->dsPixelFormat.dwFlags & DDS_ALPHAPIXELS)
+	{
+		// this is correct ?
+		image_flags |= IMAGE_HAS_ALPHA;
+	}
+
 	if(image_type == TYPE_DXT2 || image_type == TYPE_DXT4) 
 		image_flags |= IMAGE_PREMULT;
 
-	bits = hdr->dsPixelFormat.dwRGBBitCount / 8;
-
-	return dds_get_linear_size( image_width, image_height, image_num_layers, bits );
+	if(image_type == PF_ARGB_32 || image_type == PF_LUMINANCE || image_type == PF_LUMINANCE_16 || image_type == PF_LUMINANCE_ALPHA)
+	{
+		//store RGBA mask into one block, and get palette pointer
+		byte *tmp = image_palette = Malloc( sizeof(uint) * 4 );
+		memcpy( tmp, &hdr->dsPixelFormat.dwRBitMask, sizeof(uint)); tmp += 4;
+		memcpy( tmp, &hdr->dsPixelFormat.dwGBitMask, sizeof(uint)); tmp += 4;
+		memcpy( tmp, &hdr->dsPixelFormat.dwBBitMask, sizeof(uint)); tmp += 4;
+		memcpy( tmp, &hdr->dsPixelFormat.dwABitMask, sizeof(uint)); tmp += 4;
+	}
+	return dds_get_linear_size( image_width, image_height, image_num_layers, bits / 8 );
 }
 
 void dds_addjust_volume_texture( dds_t *hdr )
@@ -725,7 +743,7 @@ bool LoadDDS( char *name, char *buffer, int filesize )
 	header.dsPixelFormat.dwRBitMask = BuffLittleLong(fin);	fin += 4;
 	header.dsPixelFormat.dwGBitMask = BuffLittleLong(fin);	fin += 4;
 	header.dsPixelFormat.dwBBitMask = BuffLittleLong(fin);	fin += 4;
-	header.dsPixelFormat.dwAlphaBitMask = BuffLittleLong(fin);	fin += 4;
+	header.dsPixelFormat.dwABitMask = BuffLittleLong(fin);	fin += 4;
 
 	//caps
 	header.dsCaps.dwCaps1 = BuffLittleLong(fin);	fin += 4;
@@ -748,6 +766,7 @@ bool LoadDDS( char *name, char *buffer, int filesize )
 
 	image_width = header.dwWidth;
 	image_height = header.dwHeight;
+	image_bits_count = header.dsPixelFormat.dwRGBBitCount;
 	if(header.dwFlags & DDS_DEPTH) image_num_layers = header.dwDepth;
 	
 	if (image_width > 4096 || image_height > 4096 || image_width <= 0 || image_height <= 0)
@@ -798,7 +817,7 @@ bool LoadDDS( char *name, char *buffer, int filesize )
 	}
 	else 
 	{
-		image_num_mips = 1;//FIXME
+		image_num_mips = 1;
 		buffsize = header.dwLinearSize;
 	}
 
@@ -1353,6 +1372,7 @@ rgbdata_t *ImagePack( void )
 	pack->height = image_height;
 	pack->numLayers = image_num_layers;
 	pack->numMips = image_num_mips;
+	pack->bitsCount = image_bits_count;
 	pack->type = image_type;
 	pack->flags = image_flags;
 	pack->palette = image_palette;
@@ -1416,7 +1436,8 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 void FS_FreeImage( rgbdata_t *pack )
 {
 	//reset global variables
-	image_width = image_height = image_flags = 0;
+	image_width = image_height = 0;
+	image_bits_count = image_flags = 0;
 	image_num_layers = 1;
 	image_num_mips = 4;
 	image_type = PF_UNKNOWN;

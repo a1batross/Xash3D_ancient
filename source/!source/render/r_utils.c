@@ -358,6 +358,9 @@ uint ShortToFloat( word y )
 	int e = (y >> 10) & 0x0000001f;
 	int m =  y & 0x000003ff;
 
+	//float: 1 sign bit, 8 exponent bits, 23 mantissa bits
+	//half: 1 sign bit, 5 exponent bits, 10 mantissa bits
+
 	if (e == 0)
 	{
 		if (m == 0) return s << 31; // Plus or minus zero

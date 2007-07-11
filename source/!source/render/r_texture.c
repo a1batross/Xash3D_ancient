@@ -79,9 +79,10 @@ typedef struct
 	int	SizeOfFile;
 	int	numLayers;
 	int	MipCount;
+	int	BitsCount;
 
 	int	flags;
-
+	byte	*pal;
 } pixformat_desc_t;
 
 static pixformat_desc_t image_desc;
@@ -127,7 +128,8 @@ void R_ImageList_f (void)
 
 void R_SetPixelFormat( int width, int height, int depth )
 {
-	size_t	file_size, BlockSize;
+	size_t	file_size;
+	int	BlockSize;
 	
 	BlockSize = PixelFormatDescription[image_desc.format].block;
 	image_desc.bpp = PixelFormatDescription[image_desc.format].bpp;
@@ -141,16 +143,21 @@ void R_SetPixelFormat( int width, int height, int depth )
 	image_desc.SizeOfPlane = image_desc.bps * image_desc.height;
 	image_desc.SizeOfData = image_desc.SizeOfPlane * image_desc.numLayers;
 
-	if(BlockSize == 0) image_desc.SizeOfFile = image_desc.width * image_desc.height;
+	if(BlockSize == 0) image_desc.SizeOfFile = image_desc.width * image_desc.height * image_desc.bpp;
 	else if(BlockSize > 0)
 	{
 		file_size = ((image_desc.width + 3)/4) * ((image_desc.height + 3)/4) * image_desc.numLayers;
 		image_desc.SizeOfFile = file_size * BlockSize;
 	}
-	else if(BlockSize < 0)
+	else if(BlockSize < 0 && image_desc.BitsCount > 0)
 	{		
-		file_size = image_desc.width * image_desc.height * image_desc.numLayers * image_desc.bpp;
-		image_desc.SizeOfFile = file_size * abs(BlockSize); 
+		file_size = image_desc.width * image_desc.height * image_desc.numLayers * (image_desc.BitsCount / 8);
+		image_desc.SizeOfFile = file_size; 
+	}
+	else
+	{
+		file_size = image_desc.width * image_desc.height * abs(BlockSize);
+		image_desc.SizeOfFile = file_size; 
 	}
 }
 
@@ -163,8 +170,8 @@ filled additional info
 */
 void R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 {
-	int	i;
-	size_t	file_size, BlockSize;
+	int	i, BlockSize;
+	size_t	file_size;
 
 	if(!pic || !pic->buffer) return;
 		
@@ -191,6 +198,7 @@ void R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 		image_desc.bps = image_desc.width * image_desc.bpp * image_desc.bpc;
 		image_desc.SizeOfPlane = image_desc.bps * image_desc.height;
 		image_desc.SizeOfData = image_desc.SizeOfPlane * image_desc.numLayers;
+		image_desc.BitsCount = pic->bitsCount;
 
 		if(BlockSize == 0) image_desc.SizeOfFile = image_desc.width * image_desc.height;
 		else if(BlockSize > 0)
@@ -198,10 +206,15 @@ void R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 			file_size = ((image_desc.width + 3)/4) * ((image_desc.height + 3)/4) * image_desc.numLayers;
 			image_desc.SizeOfFile = file_size * BlockSize;
 		}
-		else if(BlockSize < 0)
+		else if(BlockSize < 0 && image_desc.BitsCount > 0)
 		{		
-			file_size = image_desc.width * image_desc.height * image_desc.numLayers * image_desc.bpp;
-			image_desc.SizeOfFile = file_size * abs(BlockSize); 
+			file_size = image_desc.width * image_desc.height * image_desc.numLayers * (image_desc.BitsCount / 8);
+			image_desc.SizeOfFile = file_size; 
+		}
+		else
+		{
+			file_size = image_desc.width * image_desc.height * abs(BlockSize);
+			image_desc.SizeOfFile = file_size; 
 		}
 
 		//don't build mips for sky & hud pics
@@ -210,6 +223,7 @@ void R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 
 		image_desc.MipCount = pic->numMips;
 		if(image_desc.MipCount < 1) image_desc.MipCount = 1;
+		image_desc.pal = pic->palette;
 	}	
 }
 
@@ -620,405 +634,395 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 	byte	*fin, *fout = imagebuffer;
 	byte	alphas[8], *alpha, *alphamask; 
 	int	w, h, x, y, z, i, j, k, Select; 
-	int 	samples, scaled_width, scaled_height;
-	uint	*scaled = (uint *)uploadbuffer;
+	int 	samples;
 
 	if (!data) return false;
 	fin = (byte *)data;
-	w = scaled_width = width;
-	h = scaled_height = height;
+	w = width;
+	h = height;
 	
 	switch( internalformat )
 	{
 	case PF_DXT1:
-		colours[0].a = 0xFF;
-		colours[1].a = 0xFF;
-		colours[2].a = 0xFF;
-		for (z = 0; z < image_desc.numLayers; z++)
+
+	colours[0].a = 0xFF;
+	colours[1].a = 0xFF;
+	colours[2].a = 0xFF;
+
+	for (z = 0; z < image_desc.numLayers; z++)
+	{
+		for (y = 0; y < h; y += 4)
 		{
-			for (y = 0; y < h; y += 4)
+			for (x = 0; x < w; x += 4)
 			{
-				for (x = 0; x < w; x += 4)
+				sColor0 = *((word*)fin);
+				sColor0 = LittleShort(sColor0);
+				sColor1 = *((word*)(fin + 2));
+				sColor1 = LittleShort(sColor1);
+
+				R_DXTReadColor(sColor0, colours);
+				R_DXTReadColor(sColor1, colours + 1);
+
+				bitmask = ((uint*)fin)[1];
+				bitmask = LittleLong( bitmask );
+				fin += 8;
+
+				if (sColor0 > sColor1)
 				{
-					sColor0 = *((word*)fin);
-					sColor0 = LittleShort(sColor0);
-					sColor1 = *((word*)(fin + 2));
-					sColor1 = LittleShort(sColor1);
-
-					R_DXTReadColor(sColor0, colours);
-					R_DXTReadColor(sColor1, colours + 1);
-
-					bitmask = ((uint*)fin)[1];
-					bitmask = LittleLong( bitmask );
-					fin += 8;
-
-					if (sColor0 > sColor1)
-					{
-						// Four-color block: derive the other two colors.
-						// 00 = color_0, 01 = color_1, 10 = color_2, 11 = color_3
-						// These 2-bit codes correspond to the 2-bit fields 
-						// stored in the 64-bit block.
-						colours[2].b = (2 * colours[0].b + colours[1].b + 1) / 3;
-						colours[2].g = (2 * colours[0].g + colours[1].g + 1) / 3;
-						colours[2].r = (2 * colours[0].r + colours[1].r + 1) / 3;
-						colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
-						colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
-						colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
-						colours[3].a = 0xFF;
-					}
-					else
-					{ 
-						// Three-color block: derive the other color.
-						// 00 = color_0,  01 = color_1,  10 = color_2,
-						// 11 = transparent.
-						// These 2-bit codes correspond to the 2-bit fields 
-						// stored in the 64-bit block. 
-						colours[2].b = (colours[0].b + colours[1].b) / 2;
-						colours[2].g = (colours[0].g + colours[1].g) / 2;
-						colours[2].r = (colours[0].r + colours[1].r) / 2;
-						colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
-						colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
-						colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
-						colours[3].a = 0x00;
-					}
-
-					for (j = 0, k = 0; j < 4; j++)
-					{
-						for (i = 0; i < 4; i++, k++)
-						{
-						
-							Select = (bitmask & (0x03 << k*2)) >> k*2;
-							col = &colours[Select];
-
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								uint ofs = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp;
-								fout[ofs + 0] = col->r;
-								fout[ofs + 1] = col->g;
-								fout[ofs + 2] = col->b;
-								fout[ofs + 3] = col->a;
-							}
-						}
-					}
-				}
-			}
-		}
-		break;
-	case PF_DXT2:
-	case PF_DXT3:
-		for (z = 0; z < image_desc.numLayers; z++)
-		{
-			for (y = 0; y < h; y += 4)
-			{
-				for (x = 0; x < w; x += 4)
-				{
-					alpha = fin;
-					fin += 8;
-					R_DXTReadColors(fin, colours);
-					bitmask = ((uint*)fin)[1];
-					bitmask = LittleLong(bitmask);
-					fin += 8;
-
-					// Four-color block: derive the other two colors.    
+					// Four-color block: derive the other two colors.
 					// 00 = color_0, 01 = color_1, 10 = color_2, 11 = color_3
 					// These 2-bit codes correspond to the 2-bit fields 
 					// stored in the 64-bit block.
 					colours[2].b = (2 * colours[0].b + colours[1].b + 1) / 3;
 					colours[2].g = (2 * colours[0].g + colours[1].g + 1) / 3;
 					colours[2].r = (2 * colours[0].r + colours[1].r + 1) / 3;
-					colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
-					colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
-					colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
-
-					k = 0;
-					for (j = 0; j < 4; j++)
-					{
-						for (i = 0; i < 4; i++, k++)
-						{
-							Select = (bitmask & (0x03 << k*2)) >> k*2;
-							col = &colours[Select];
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp;
-								fout[Offset + 0] = col->r;
-								fout[Offset + 1] = col->g;
-								fout[Offset + 2] = col->b;
-							}
-						}
-					}
-					for (j = 0; j < 4; j++)
-					{
-						sAlpha = alpha[2*j] + 256*alpha[2*j+1];
-						for (i = 0; i < 4; i++)
-						{
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 3;
-								fout[Offset] = sAlpha & 0x0F;
-								fout[Offset] = fout[Offset] | (fout[Offset]<<4);
-							}
-							sAlpha >>= 4;
-						}
-					}
-				}
-			}
-		}
-
-		// Can do color & alpha same as dxt3, but color is pre-multiplied 
-		// so the result will be wrong unless corrected. 
-		if(image_desc.flags & IMAGE_PREMULT) R_ImageCorrectPreMult( (uint *)fout, image_desc.SizeOfData );
-		break;
-	case PF_DXT4:
-	case PF_DXT5:
-		for (z = 0; z < image_desc.numLayers; z++)
-		{
-			for (y = 0; y < h; y += 4)
-			{
-				for (x = 0; x < w; x += 4)
-				{
-					if (y >= h || x >= w) break;
-					alphas[0] = fin[0];
-					alphas[1] = fin[1];
-					alphamask = fin + 2;
-					fin += 8;
-
-					R_DXTReadColors(fin, colours);
-					bitmask = ((uint*)fin)[1];
-					bitmask = LittleLong(bitmask);
-					fin += 8;
-
-					// Four-color block: derive the other two colors.    
-					// 00 = color_0, 01 = color_1, 10 = color_2, 11 = color_3
-					// These 2-bit codes correspond to the 2-bit fields 
-					// stored in the 64-bit block.
-					colours[2].b = (2 * colours[0].b + colours[1].b + 1) / 3;
-					colours[2].g = (2 * colours[0].g + colours[1].g + 1) / 3;
-					colours[2].r = (2 * colours[0].r + colours[1].r + 1) / 3;
-					colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
-					colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
-					colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
-
-					k = 0;
-					for (j = 0; j < 4; j++)
-					{
-						for (i = 0; i < 4; i++, k++)
-						{
-							Select = (bitmask & (0x03 << k*2)) >> k*2;
-							col = &colours[Select];
-							// only put pixels out < width or height
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp;
-								fout[Offset + 0] = col->r;
-								fout[Offset + 1] = col->g;
-								fout[Offset + 2] = col->b;
-							}
-						}
-					}
-					// 8-alpha or 6-alpha block?    
-					if (alphas[0] > alphas[1])
-					{    
-						// 8-alpha block:  derive the other six alphas.    
-						// Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
-						alphas[2] = (6 * alphas[0] + 1 * alphas[1] + 3) / 7; // bit code 010
-						alphas[3] = (5 * alphas[0] + 2 * alphas[1] + 3) / 7; // bit code 011
-						alphas[4] = (4 * alphas[0] + 3 * alphas[1] + 3) / 7; // bit code 100
-						alphas[5] = (3 * alphas[0] + 4 * alphas[1] + 3) / 7; // bit code 101
-						alphas[6] = (2 * alphas[0] + 5 * alphas[1] + 3) / 7; // bit code 110
-						alphas[7] = (1 * alphas[0] + 6 * alphas[1] + 3) / 7; // bit code 111
-					}
-					else
-					{
-						// 6-alpha block.
-						// Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
-						alphas[2] = (4 * alphas[0] + 1 * alphas[1] + 2) / 5; // Bit code 010
-						alphas[3] = (3 * alphas[0] + 2 * alphas[1] + 2) / 5; // Bit code 011
-						alphas[4] = (2 * alphas[0] + 3 * alphas[1] + 2) / 5; // Bit code 100
-						alphas[5] = (1 * alphas[0] + 4 * alphas[1] + 2) / 5; // Bit code 101
-						alphas[6] = 0x00;				// Bit code 110
-						alphas[7] = 0xFF;				// Bit code 111
-					}
-					// Note: Have to separate the next two loops,
-					// it operates on a 6-byte system.
-
-					// First three bytes
-					bits = (alphamask[0]) | (alphamask[1] << 8) | (alphamask[2] << 16);
-					for (j = 0; j < 2; j++)
-					{
-						for (i = 0; i < 4; i++)
-						{
-							// only put pixels out < width or height
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 3;
-								fout[Offset] = alphas[bits & 0x07];
-							}
-							bits >>= 3;
-						}
-					}
-					// Last three bytes
-					bits = (alphamask[3]) | (alphamask[4] << 8) | (alphamask[5] << 16);
-					for (j = 2; j < 4; j++)
-					{
-						for (i = 0; i < 4; i++)
-						{
-							// only put pixels out < width or height
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 3;
-								fout[Offset] = alphas[bits & 0x07];
-							}
-							bits >>= 3;
-						}
-					}
-				}
-			}
-		}
-		// Can do color & alpha same as dxt5, but color is pre-multiplied 
-		// so the result will be wrong unless corrected. 
-		if(image_desc.flags & IMAGE_PREMULT) R_ImageCorrectPreMult( (uint *)fout, image_desc.SizeOfData );
-		break;
-	case PF_RXGB:
-		for (z = 0; z < image_desc.numLayers; z++)
-		{
-			for (y = 0; y < h; y += 4)
-			{
-				for (x = 0; x < w; x += 4)
-				{
-					if (y >= h || x >= w) break;
-					alphas[0] = fin[0];
-					alphas[1] = fin[1];
-					alphamask = fin + 2;
-					fin += 8;
-
-					color_0 = ((color16*)fin);
-					color_1 = ((color16*)(fin+2));
-					bitmask = ((uint*)fin)[1];
-					fin += 8;
-
-					colours[0].r = color_0->r << 3;
-					colours[0].g = color_0->g << 2;
-					colours[0].b = color_0->b << 3;
-					colours[0].a = 0xFF;
-					colours[1].r = color_1->r << 3;
-					colours[1].g = color_1->g << 2;
-					colours[1].b = color_1->b << 3;
-					colours[1].a = 0xFF;
-
-					// Four-color block: derive the other two colors.    
-					// 00 = color_0, 01 = color_1, 10 = color_2, 11 = color_3
-					// These 2-bit codes correspond to the 2-bit fields 
-					// stored in the 64-bit block.
-					colours[2].b = (2 * colours[0].b + colours[1].b + 1) / 3;
-					colours[2].g = (2 * colours[0].g + colours[1].g + 1) / 3;
-					colours[2].r = (2 * colours[0].r + colours[1].r + 1) / 3;
-					colours[2].a = 0xFF;
 					colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
 					colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
 					colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
 					colours[3].a = 0xFF;
-
-					k = 0;
-					for (j = 0; j < 4; j++)
+				}
+				else
+				{ 
+					// Three-color block: derive the other color.
+					// 00 = color_0,  01 = color_1,  10 = color_2,
+					// 11 = transparent.
+					// These 2-bit codes correspond to the 2-bit fields 
+					// stored in the 64-bit block. 
+					colours[2].b = (colours[0].b + colours[1].b) / 2;
+					colours[2].g = (colours[0].g + colours[1].g) / 2;
+					colours[2].r = (colours[0].r + colours[1].r) / 2;
+					colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
+					colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
+					colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
+					colours[3].a = 0x00;
+				}
+				for (j = 0, k = 0; j < 4; j++)
+				{
+					for (i = 0; i < 4; i++, k++)
 					{
-						for (i = 0; i < 4; i++, k++)
+						Select = (bitmask & (0x03 << k*2)) >> k*2;
+						col = &colours[Select];
+
+						if (((x + i) < w) && ((y + j) < h))
 						{
-							Select = (bitmask & (0x03 << k*2)) >> k*2;
-							col = &colours[Select];
-
-							// only put pixels out < width or height
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp;
-								fout[Offset + 0] = col->r;
-								fout[Offset + 1] = col->g;
-								fout[Offset + 2] = col->b;
-							}
-						}
-					}
-
-					// 8-alpha or 6-alpha block?    
-					if (alphas[0] > alphas[1])
-					{    
-						// 8-alpha block:  derive the other six alphas.    
-						// Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
-						alphas[2] = (6 * alphas[0] + 1 * alphas[1] + 3) / 7; // bit code 010
-						alphas[3] = (5 * alphas[0] + 2 * alphas[1] + 3) / 7; // bit code 011
-						alphas[4] = (4 * alphas[0] + 3 * alphas[1] + 3) / 7; // bit code 100
-						alphas[5] = (3 * alphas[0] + 4 * alphas[1] + 3) / 7; // bit code 101
-						alphas[6] = (2 * alphas[0] + 5 * alphas[1] + 3) / 7; // bit code 110
-						alphas[7] = (1 * alphas[0] + 6 * alphas[1] + 3) / 7; // bit code 111
-					}
-					else
-					{
-						// 6-alpha block.
-						// Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
-						alphas[2] = (4 * alphas[0] + 1 * alphas[1] + 2) / 5;	// Bit code 010
-						alphas[3] = (3 * alphas[0] + 2 * alphas[1] + 2) / 5;	// Bit code 011
-						alphas[4] = (2 * alphas[0] + 3 * alphas[1] + 2) / 5;	// Bit code 100
-						alphas[5] = (1 * alphas[0] + 4 * alphas[1] + 2) / 5;	// Bit code 101
-						alphas[6] = 0x00;					// Bit code 110
-						alphas[7] = 0xFF;					// Bit code 111
-					}
-
-					// Note: Have to separate the next two loops,
-					// it operates on a 6-byte system.
-					// First three bytes
-
-					bits = *((int*)alphamask);
-					for (j = 0; j < 2; j++)
-					{
-						for (i = 0; i < 4; i++)
-						{
-							// only put pixels out < width or height
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 0;
-								fout[Offset] = alphas[bits & 0x07];
-							}
-							bits >>= 3;
-						}
-					}
-
-					// Last three bytes
-					bits = *((int*)&alphamask[3]);
-
-					for (j = 2; j < 4; j++)
-					{
-						for (i = 0; i < 4; i++)
-						{
-							// only put pixels out < width or height
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 0;
-								fout[Offset] = alphas[bits & 0x07];
-							}
-							bits >>= 3;
+							uint ofs = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp;
+							fout[ofs + 0] = col->r;
+							fout[ofs + 1] = col->g;
+							fout[ofs + 2] = col->b;
+							fout[ofs + 3] = col->a;
 						}
 					}
 				}
 			}
 		}
-		break;
+	}
+	break;
+	case PF_DXT2:
+	case PF_DXT3:
+	for (z = 0; z < image_desc.numLayers; z++)
+	{
+		for (y = 0; y < h; y += 4)
+		{
+			for (x = 0; x < w; x += 4)
+			{
+				alpha = fin;
+				fin += 8;
+				R_DXTReadColors(fin, colours);
+				bitmask = ((uint*)fin)[1];
+				bitmask = LittleLong(bitmask);
+				fin += 8;
+
+				// Four-color block: derive the other two colors.    
+				// 00 = color_0, 01 = color_1, 10 = color_2, 11 = color_3
+				// These 2-bit codes correspond to the 2-bit fields 
+				// stored in the 64-bit block.
+				colours[2].b = (2 * colours[0].b + colours[1].b + 1) / 3;
+				colours[2].g = (2 * colours[0].g + colours[1].g + 1) / 3;
+				colours[2].r = (2 * colours[0].r + colours[1].r + 1) / 3;
+				colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
+				colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
+				colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
+
+				k = 0;
+				for (j = 0; j < 4; j++)
+				{
+					for (i = 0; i < 4; i++, k++)
+					{
+						Select = (bitmask & (0x03 << k*2)) >> k*2;
+						col = &colours[Select];
+						if (((x + i) < w) && ((y + j) < h))
+						{
+							Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp;
+							fout[Offset + 0] = col->r;
+							fout[Offset + 1] = col->g;
+							fout[Offset + 2] = col->b;
+						}
+					}
+				}
+				for (j = 0; j < 4; j++)
+				{
+					sAlpha = alpha[2*j] + 256*alpha[2*j+1];
+					for (i = 0; i < 4; i++)
+					{
+						if (((x + i) < w) && ((y + j) < h))
+						{
+							Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 3;
+							fout[Offset] = sAlpha & 0x0F;
+							fout[Offset] = fout[Offset] | (fout[Offset]<<4);
+						}
+						sAlpha >>= 4;
+					}
+				}
+			}
+		}
 	}
 
-	// dds always have image if needed
-	R_RoundImageDimensions(&scaled_width, &scaled_height, true );
-
-	if (scaled_width * scaled_height > uploadbufsize/4)
+	// Can do color & alpha same as dxt3, but color is pre-multiplied 
+	// so the result will be wrong unless corrected. 
+	if(image_desc.flags & IMAGE_PREMULT) R_ImageCorrectPreMult( (uint *)fout, image_desc.SizeOfData );
+	break;
+	case PF_DXT4:
+	case PF_DXT5:
+	for (z = 0; z < image_desc.numLayers; z++)
 	{
-		Msg("qrsCompressedTexImage2D: image too big");
-		return false;
-          }
+		for (y = 0; y < h; y += 4)
+		{
+			for (x = 0; x < w; x += 4)
+			{
+				if (y >= h || x >= w) break;
+				alphas[0] = fin[0];
+				alphas[1] = fin[1];
+				alphamask = fin + 2;
+				fin += 8;
 
-	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;
-	R_ResampleTexture ((uint *)fout, width, height, scaled, scaled_width, scaled_height);
-	R_ImageLightScale(scaled, scaled_width, scaled_height ); //check for round
+				R_DXTReadColors(fin, colours);
+				bitmask = ((uint*)fin)[1];
+				bitmask = LittleLong(bitmask);
+				fin += 8;
+
+				// Four-color block: derive the other two colors.    
+				// 00 = color_0, 01 = color_1, 10 = color_2, 11 = color_3
+				// These 2-bit codes correspond to the 2-bit fields 
+				// stored in the 64-bit block.
+				colours[2].b = (2 * colours[0].b + colours[1].b + 1) / 3;
+				colours[2].g = (2 * colours[0].g + colours[1].g + 1) / 3;
+				colours[2].r = (2 * colours[0].r + colours[1].r + 1) / 3;
+				colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
+				colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
+				colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
+
+				k = 0;
+				for (j = 0; j < 4; j++)
+				{
+					for (i = 0; i < 4; i++, k++)
+					{
+						Select = (bitmask & (0x03 << k*2)) >> k*2;
+						col = &colours[Select];
+						// only put pixels out < width or height
+						if (((x + i) < w) && ((y + j) < h))
+						{
+							Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp;
+							fout[Offset + 0] = col->r;
+							fout[Offset + 1] = col->g;
+							fout[Offset + 2] = col->b;
+						}
+					}
+				}
+				// 8-alpha or 6-alpha block?    
+				if (alphas[0] > alphas[1])
+				{    
+					// 8-alpha block:  derive the other six alphas.    
+					// Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
+					alphas[2] = (6 * alphas[0] + 1 * alphas[1] + 3) / 7; // bit code 010
+					alphas[3] = (5 * alphas[0] + 2 * alphas[1] + 3) / 7; // bit code 011
+					alphas[4] = (4 * alphas[0] + 3 * alphas[1] + 3) / 7; // bit code 100
+					alphas[5] = (3 * alphas[0] + 4 * alphas[1] + 3) / 7; // bit code 101
+					alphas[6] = (2 * alphas[0] + 5 * alphas[1] + 3) / 7; // bit code 110
+					alphas[7] = (1 * alphas[0] + 6 * alphas[1] + 3) / 7; // bit code 111
+				}
+				else
+				{
+					// 6-alpha block.
+					// Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
+					alphas[2] = (4 * alphas[0] + 1 * alphas[1] + 2) / 5; // Bit code 010
+					alphas[3] = (3 * alphas[0] + 2 * alphas[1] + 2) / 5; // Bit code 011
+					alphas[4] = (2 * alphas[0] + 3 * alphas[1] + 2) / 5; // Bit code 100
+					alphas[5] = (1 * alphas[0] + 4 * alphas[1] + 2) / 5; // Bit code 101
+					alphas[6] = 0x00;				// Bit code 110
+					alphas[7] = 0xFF;				// Bit code 111
+				}
+				// Note: Have to separate the next two loops,
+				// it operates on a 6-byte system.
+
+				// First three bytes
+				bits = (alphamask[0]) | (alphamask[1] << 8) | (alphamask[2] << 16);
+				for (j = 0; j < 2; j++)
+				{
+					for (i = 0; i < 4; i++)
+					{
+						// only put pixels out < width or height
+						if (((x + i) < w) && ((y + j) < h))
+						{
+							Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 3;
+							fout[Offset] = alphas[bits & 0x07];
+						}
+						bits >>= 3;
+					}
+				}
+				// Last three bytes
+				bits = (alphamask[3]) | (alphamask[4] << 8) | (alphamask[5] << 16);
+				for (j = 2; j < 4; j++)
+				{
+					for (i = 0; i < 4; i++)
+					{
+						// only put pixels out < width or height
+						if (((x + i) < w) && ((y + j) < h))
+						{
+							Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 3;
+							fout[Offset] = alphas[bits & 0x07];
+						}
+						bits >>= 3;
+					}
+				}
+			}
+		}
+	}
+	// Can do color & alpha same as dxt5, but color is pre-multiplied 
+	// so the result will be wrong unless corrected. 
+	if(image_desc.flags & IMAGE_PREMULT) R_ImageCorrectPreMult( (uint *)fout, image_desc.SizeOfData );
+	break;
+	case PF_RXGB:
+	for (z = 0; z < image_desc.numLayers; z++)
+	{
+		for (y = 0; y < h; y += 4)
+		{
+			for (x = 0; x < w; x += 4)
+			{
+				if (y >= h || x >= w) break;
+				alphas[0] = fin[0];
+				alphas[1] = fin[1];
+				alphamask = fin + 2;
+				fin += 8;
+
+				color_0 = ((color16*)fin);
+				color_1 = ((color16*)(fin+2));
+				bitmask = ((uint*)fin)[1];
+				fin += 8;
+
+				colours[0].r = color_0->r << 3;
+				colours[0].g = color_0->g << 2;
+				colours[0].b = color_0->b << 3;
+				colours[0].a = 0xFF;
+				colours[1].r = color_1->r << 3;
+				colours[1].g = color_1->g << 2;
+				colours[1].b = color_1->b << 3;
+				colours[1].a = 0xFF;
+				// Four-color block: derive the other two colors.    
+				// 00 = color_0, 01 = color_1, 10 = color_2, 11 = color_3
+				// These 2-bit codes correspond to the 2-bit fields 
+				// stored in the 64-bit block.
+				colours[2].b = (2 * colours[0].b + colours[1].b + 1) / 3;
+				colours[2].g = (2 * colours[0].g + colours[1].g + 1) / 3;
+				colours[2].r = (2 * colours[0].r + colours[1].r + 1) / 3;
+				colours[2].a = 0xFF;
+				colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
+				colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
+				colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
+				colours[3].a = 0xFF;
+
+				k = 0;
+				for (j = 0; j < 4; j++)
+				{
+					for (i = 0; i < 4; i++, k++)
+					{
+						Select = (bitmask & (0x03 << k*2)) >> k*2;
+						col = &colours[Select];
+
+						// only put pixels out < width or height
+						if (((x + i) < w) && ((y + j) < h))
+						{
+							Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp;
+							fout[Offset + 0] = col->r;
+							fout[Offset + 1] = col->g;
+							fout[Offset + 2] = col->b;
+						}
+					}
+				}
+
+				// 8-alpha or 6-alpha block?    
+				if (alphas[0] > alphas[1])
+				{    
+					// 8-alpha block:  derive the other six alphas.    
+					// Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
+					alphas[2] = (6 * alphas[0] + 1 * alphas[1] + 3) / 7; // bit code 010
+					alphas[3] = (5 * alphas[0] + 2 * alphas[1] + 3) / 7; // bit code 011
+					alphas[4] = (4 * alphas[0] + 3 * alphas[1] + 3) / 7; // bit code 100
+					alphas[5] = (3 * alphas[0] + 4 * alphas[1] + 3) / 7; // bit code 101
+					alphas[6] = (2 * alphas[0] + 5 * alphas[1] + 3) / 7; // bit code 110
+					alphas[7] = (1 * alphas[0] + 6 * alphas[1] + 3) / 7; // bit code 111
+				}
+				else
+				{
+					// 6-alpha block.
+					// Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
+					alphas[2] = (4 * alphas[0] + 1 * alphas[1] + 2) / 5;	// Bit code 010
+					alphas[3] = (3 * alphas[0] + 2 * alphas[1] + 2) / 5;	// Bit code 011
+					alphas[4] = (2 * alphas[0] + 3 * alphas[1] + 2) / 5;	// Bit code 100
+					alphas[5] = (1 * alphas[0] + 4 * alphas[1] + 2) / 5;	// Bit code 101
+					alphas[6] = 0x00;					// Bit code 110
+					alphas[7] = 0xFF;					// Bit code 111
+				}
+
+				// Note: Have to separate the next two loops,
+				// it operates on a 6-byte system.
+				// First three bytes
+
+				bits = *((int*)alphamask);
+				for (j = 0; j < 2; j++)
+				{
+					for (i = 0; i < 4; i++)
+					{
+						// only put pixels out < width or height
+						if (((x + i) < w) && ((y + j) < h))
+						{
+							Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 0;
+							fout[Offset] = alphas[bits & 0x07];
+						}
+						bits >>= 3;
+					}
+				}
+
+				// Last three bytes
+				bits = *((int*)&alphamask[3]);
+
+				for (j = 2; j < 4; j++)
+				{
+					for (i = 0; i < 4; i++)
+					{
+						// only put pixels out < width or height
+						if (((x + i) < w) && ((y + j) < h))
+						{
+							Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 0;
+							fout[Offset] = alphas[bits & 0x07];
+						}
+						bits >>= 3;
+					}
+				}
+			}
+		}
+	}
+	break;
+	default:
+	Msg("qrsCompressedTexImage2D: invalid compression type: %s\n", PixelFormatDescription[internalformat].name );
+	return false;
+	}
+
+	// dds images always have power of two sizes
+	R_ImageLightScale((uint *)fout, width, height ); //check for round
 
 	// upload base image or miplevel
-	Msg("loading #%i [%d %d]\n", level, w, h );
 	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;
-	qglTexImage2D ( target, level, samples, w, h, border, GL_RGBA, GL_UNSIGNED_BYTE, scaled );
+	qglTexImage2D ( target, level, samples, w, h, border, GL_RGBA, GL_UNSIGNED_BYTE, fout );
 
 	if(qglGetError()) return false;
 	return true;
@@ -1048,17 +1052,18 @@ bool CompressedTexImage2D( uint target, int level, int intformat, uint width, ui
 	if(use_gl_extension)
 	{
 		qglCompressedTexImage2D(target, level, dxtformat, width, height, border, imageSize, data );
-		return qglGetError();
+		if(!qglGetError()) return true;
+		// otherwise try loading with software unpacker
 	}
 	return	qrsCompressedTexImage2D(target, level, pixformat, width, height, border, imageSize, data );
 }
 
 /*
 ===============
-R_BindImageNormal
+R_LoadTexImage
 ===============
 */
-bool R_BindImageNormal( uint *data )
+bool R_LoadTexImage( uint *data )
 {
 	int samples, miplevel = 0;
 	unsigned	*scaled = (unsigned *)uploadbuffer;
@@ -1071,7 +1076,7 @@ bool R_BindImageNormal( uint *data )
 
 	if (scaled_width * scaled_height > uploadbufsize/4)
 	{
-		Msg("R_BindImageNormal: too big");
+		Msg("R_LoadTexImage: too big");
 		return false;
           }
         
@@ -1108,42 +1113,30 @@ bool R_BindImageNormal( uint *data )
 
 /*
 ===============
-R_BindImageFast
+R_LoadImageDXT
 ===============
 */
-bool R_BindImageFast( uint format, byte *data )
+bool R_LoadImageDXT( byte *data )
 {
 	int i, size = 0;
 	int w = image_desc.width;
 	int h = image_desc.height;
 	int d = image_desc.numLayers;
+	bool mipmap;
 	
 	for( i = 0; i < image_desc.MipCount; i++, data += size )
 	{
 		R_SetPixelFormat( w, h, d );
 		size = image_desc.SizeOfFile;
 
-		if(!CompressedTexImage2D(GL_TEXTURE_2D, i, image_desc.format, w, h, 0, size, data )) break;
+		if(!CompressedTexImage2D(GL_TEXTURE_2D, i, image_desc.format, w, h, 0, size, data ))
+			break; // there were errors
 		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; //calc size of next mip
 	}
+	mipmap = (i > 1) ? true : false;
 
-	GL_TexFilter( i > 1 );
+	GL_TexFilter( mipmap );
 	return true;
-}
-
-bool R_DecompressImageDXT1( byte *buffer )
-{
-	return R_BindImageFast( GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, buffer );
-}
-
-bool R_DecompressImageDXT3( byte *buffer )
-{
-	return R_BindImageFast( GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, buffer );
-}
-
-bool R_DecompressImageDXT5( byte *buffer )
-{
-	return R_BindImageFast( GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, buffer );
 }
 
 bool R_DecompressImage3DC( byte *buffer )
@@ -1249,7 +1242,7 @@ bool R_DecompressImage3DC( byte *buffer )
 			Offset += image_desc.bps * 4;
 		}
 	}
-	return R_BindImageNormal((uint *)fout );
+	return R_LoadTexImage((uint *)fout );
 }
 
 
@@ -1321,190 +1314,100 @@ bool R_DecompressImageATI1N( byte *buffer )
 		}
 	}
 
-	return R_BindImageNormal((uint *)fout );
+	return R_LoadTexImage((uint *)fout );
 }
 
-bool R_DecompressImageRXGB( byte *buffer )
-{
-	int	x, y, z, w, h, i, j, k, Select;
-	byte	*fin, *fout = imagebuffer;
-	color16	*color_0, *color_1;
-	color32	colours[4], *col;
-	uint	bitmask, Offset;
-	byte	alphas[8], *alphamask;
-	uint	bits;
-
-	if (!buffer) return false;
-
-	fin = buffer;
-
-	w = image_desc.width;
-	h = image_desc.height;
-
-	for (z = 0; z < image_desc.numLayers; z++)
-	{
-		for (y = 0; y < h; y += 4)
-		{
-			for (x = 0; x < w; x += 4)
-			{
-				if (y >= h || x >= w) break;
-				alphas[0] = fin[0];
-				alphas[1] = fin[1];
-				alphamask = fin + 2;
-				fin += 8;
-
-				color_0 = ((color16*)fin);
-				color_1 = ((color16*)(fin+2));
-				bitmask = ((uint*)fin)[1];
-				fin += 8;
-
-				colours[0].r = color_0->r << 3;
-				colours[0].g = color_0->g << 2;
-				colours[0].b = color_0->b << 3;
-				colours[0].a = 0xFF;
-				colours[1].r = color_1->r << 3;
-				colours[1].g = color_1->g << 2;
-				colours[1].b = color_1->b << 3;
-				colours[1].a = 0xFF;
-
-				// Four-color block: derive the other two colors.    
-				// 00 = color_0, 01 = color_1, 10 = color_2, 11 = color_3
-				// These 2-bit codes correspond to the 2-bit fields 
-				// stored in the 64-bit block.
-				colours[2].b = (2 * colours[0].b + colours[1].b + 1) / 3;
-				colours[2].g = (2 * colours[0].g + colours[1].g + 1) / 3;
-				colours[2].r = (2 * colours[0].r + colours[1].r + 1) / 3;
-				colours[2].a = 0xFF;
-				colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
-				colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
-				colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
-				colours[3].a = 0xFF;
-
-				k = 0;
-				for (j = 0; j < 4; j++)
-				{
-					for (i = 0; i < 4; i++, k++)
-					{
-						Select = (bitmask & (0x03 << k*2)) >> k*2;
-						col = &colours[Select];
-
-						// only put pixels out < width or height
-						if (((x + i) < w) && ((y + j) < h))
-						{
-							Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp;
-							fout[Offset + 0] = col->r;
-							fout[Offset + 1] = col->g;
-							fout[Offset + 2] = col->b;
-						}
-					}
-				}
-
-				// 8-alpha or 6-alpha block?    
-				if (alphas[0] > alphas[1])
-				{    
-					// 8-alpha block:  derive the other six alphas.    
-					// Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
-					alphas[2] = (6 * alphas[0] + 1 * alphas[1] + 3) / 7; // bit code 010
-					alphas[3] = (5 * alphas[0] + 2 * alphas[1] + 3) / 7; // bit code 011
-					alphas[4] = (4 * alphas[0] + 3 * alphas[1] + 3) / 7; // bit code 100
-					alphas[5] = (3 * alphas[0] + 4 * alphas[1] + 3) / 7; // bit code 101
-					alphas[6] = (2 * alphas[0] + 5 * alphas[1] + 3) / 7; // bit code 110
-					alphas[7] = (1 * alphas[0] + 6 * alphas[1] + 3) / 7; // bit code 111
-				}
-				else
-				{
-					// 6-alpha block.
-					// Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
-					alphas[2] = (4 * alphas[0] + 1 * alphas[1] + 2) / 5;	// Bit code 010
-					alphas[3] = (3 * alphas[0] + 2 * alphas[1] + 2) / 5;	// Bit code 011
-					alphas[4] = (2 * alphas[0] + 3 * alphas[1] + 2) / 5;	// Bit code 100
-					alphas[5] = (1 * alphas[0] + 4 * alphas[1] + 2) / 5;	// Bit code 101
-					alphas[6] = 0x00;					// Bit code 110
-					alphas[7] = 0xFF;					// Bit code 111
-				}
-
-				// Note: Have to separate the next two loops,
-				// it operates on a 6-byte system.
-				// First three bytes
-
-				bits = *((int*)alphamask);
-				for (j = 0; j < 2; j++)
-				{
-					for (i = 0; i < 4; i++)
-					{
-						// only put pixels out < width or height
-						if (((x + i) < w) && ((y + j) < h))
-						{
-							Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 0;
-							fout[Offset] = alphas[bits & 0x07];
-						}
-						bits >>= 3;
-					}
-				}
-
-				// Last three bytes
-				bits = *((int*)&alphamask[3]);
-
-				for (j = 2; j < 4; j++)
-				{
-					for (i = 0; i < 4; i++)
-					{
-						// only put pixels out < width or height
-						if (((x + i) < w) && ((y + j) < h))
-						{
-							Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 0;
-							fout[Offset] = alphas[bits & 0x07];
-						}
-						bits >>= 3;
-					}
-				}
-			}
-		}
-	}
-	return R_BindImageNormal((uint *)fout );
-}
-
-bool R_DecompressImageFloat( byte *buffer )
+bool R_StoreImageFloat( uint target, int level, uint width, uint height, uint imageSize, const void* data )
 {
 	uint	i, *dest = (uint *)imagebuffer;
-	word	*src = (word*)buffer; 
+	word	*src = (word *)data; 
+	int	samples;
 
-	//float: 1 sign bit, 8 exponent bits, 23 mantissa bits
-	//half: 1 sign bit, 5 exponent bits, 10 mantissa bits
+	if(!data) return false;
 
-	for( i = 0; i < image_desc.SizeOfData; ++i, ++dest, ++src)
-		*dest = ShortToFloat(*src);
+	switch( PixelFormatDescription[image_desc.format].format )
+	{
+	case PF_R_32F:
+	case PF_GR_64F:
+	case PF_ABGR_128F:
+		memcpy( dest, src, image_desc.SizeOfData );
+		break;
+	case PF_R_16F:
+	case PF_GR_32F:
+	case PF_ABGR_64F:
+		for( i = 0; i < image_desc.SizeOfData; i++, src++)
+		{
+			if(!*src)
+			{
+				if(!*src) Msg("src missing\n");
+				Msg("iter %d, data %d\n", i, image_desc.SizeOfData );
+				break;
+			}
+			dest[i] = ShortToFloat(*src);
+		}
+		break;
+          }
 
-	// this is correct ?
-	return R_BindImageNormal((uint *)imagebuffer );
+	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;
+	qglTexImage2D (target, level, samples, width, height, 0, GL_RGBA, GL_FLOAT, dest );
+
+	if(qglGetError()) return false;
+	return true;
 }
 
-bool R_DecompressImageARGB( byte *buffer )
+bool R_DecompressImageFloat( byte *data )
+{
+	int i, size = 0;
+	int w = image_desc.width;
+	int h = image_desc.height;
+	int d = image_desc.numLayers;
+	bool mipmap;
+
+	for( i = 0; i < image_desc.MipCount; i++, data += size )
+	{
+		R_SetPixelFormat( w, h, d );
+		size = image_desc.SizeOfFile;
+		if(!R_StoreImageFloat(GL_TEXTURE_2D, i, w, h, size, data )) break; 
+		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; //calc size of next mip
+	}
+	mipmap = (i > 1) ? true : false;
+
+	GL_TexFilter( mipmap );
+	return true;
+}
+
+bool R_StoreImageARGB( uint target, int level, uint width, uint height, uint imageSize, const void* data )
 {
 	uint	ReadI = 0, TempBpp;
 	uint	RedL, RedR, GreenL, GreenR, BlueL, BlueR, AlphaL, AlphaR;
 	uint	r_bitmask, g_bitmask, b_bitmask, a_bitmask;
 	byte	*fin, *fout = imagebuffer;
-	int	i, w, h;
+	int	i, w, h, samples;
 
-	if (!buffer) return false;
-
-	//fixme
-	r_bitmask	= 0xFF;
-	g_bitmask = 0xFF;
-	b_bitmask = 0xFF;
-	a_bitmask = 0x00;
-
-	w = image_desc.width;
-	h = image_desc.height;
+	if (!data) return false;
+	if(image_desc.pal)
+	{
+		byte *pal = image_desc.pal;//copy ptr
+		r_bitmask	= BuffLittleLong( pal ); pal += 4;
+		g_bitmask = BuffLittleLong( pal ); pal += 4;
+		b_bitmask = BuffLittleLong( pal ); pal += 4;
+		a_bitmask = BuffLittleLong( pal ); pal += 4;
+	}
+	else
+	{
+		Msg("R_StoreImageARGB: can't get RGBA bitmask\n" );		
+		return false;
+	}
 
 	R_GetBitsFromMask(r_bitmask, &RedL, &RedR);
 	R_GetBitsFromMask(g_bitmask, &GreenL, &GreenR);
 	R_GetBitsFromMask(b_bitmask, &BlueL, &BlueR);
 	R_GetBitsFromMask(a_bitmask, &AlphaL, &AlphaR);
           
-	fin = buffer;
-	TempBpp = image_desc.bpp / 8;//FIXME
+	fin = (byte *)data;
+	w = width;
+	h = height;
+	TempBpp = image_desc.BitsCount / 8;
 
 	for (i = 0; i < image_desc.SizeOfData; i += image_desc.bpp)
 	{
@@ -1519,9 +1422,8 @@ bool R_DecompressImageARGB( byte *buffer )
 			else if (TempBpp == 2) ReadI = BuffLittleShort( fin );
 			else if (TempBpp == 3) ReadI = BuffLittleLong( fin );
 		}
-		else ReadI = fin[0] | (fin[1] << 8) | (fin[2] << 16) | (fin[3] << 24);
+		else ReadI = BuffLittleLong( fin );
 		fin += TempBpp;
-
 		fout[i] = ((ReadI & r_bitmask)>> RedR) << RedL;
 
 		if(image_desc.bpp >= 3)
@@ -1542,7 +1444,42 @@ bool R_DecompressImageARGB( byte *buffer )
 			else if (AlphaL >= 4) fout[i+1] = fout[i+1] | (fout[i+3] >> 4);
 		}
 	}
-	return R_BindImageNormal((uint *)fout );
+	// dds images always have power of two sizes
+	R_ImageLightScale((uint *)fout, width, height ); //check for round
+
+	// upload base image or miplevel
+	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;
+	qglTexImage2D ( target, level, samples, w, h, 0, GL_BGRA, GL_UNSIGNED_BYTE, fout );
+
+	if(qglGetError()) return false;
+	return true;
+}
+
+bool R_LoadImageARGB( byte *data )
+{
+	int i, size = 0;
+	int w = image_desc.width;
+	int h = image_desc.height;
+	int d = image_desc.numLayers;
+	bool mipmap, use_gl_extension = 0;
+	
+	for( i = 0; i < image_desc.MipCount; i++, data += size )
+	{
+		R_SetPixelFormat( w, h, d );
+		size = image_desc.SizeOfFile;
+
+		if(use_gl_extension)
+		{
+			qglTexImage2D( GL_TEXTURE_2D, i, GL_RGB5_A1, w, h, 0, GL_BGRA, GL_UNSIGNED_SHORT_1_5_5_5_REV, data );
+			if(qglGetError()) break; // there were errors
+		}
+		else if(!R_StoreImageARGB(GL_TEXTURE_2D, i, w, h, size, data )) break; 
+		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; //calc size of next mip
+	}
+	mipmap = (i > 1) ? true : false;
+
+	GL_TexFilter( mipmap );
+	return true;
 }
 
 
@@ -1551,13 +1488,13 @@ bool R_DecompressImageARGB( byte *buffer )
 R_LoadImage32
 ===============
 */
-bool R_LoadImage32 (byte *data, byte *pal )
+bool R_LoadImage32 (byte *data )
 {
 	byte	*trans = imagebuffer;
 	int	i, s;
 
 	//nothing to process
-	if(!pal) return R_BindImageNormal((uint*)data );
+	if(!image_desc.pal) return R_LoadTexImage((uint*)data );
 
 	s = image_desc.width * image_desc.height;
 	if (s > imagebufsize / 4)
@@ -1568,12 +1505,12 @@ bool R_LoadImage32 (byte *data, byte *pal )
 	if (s&3) Sys_Error ("R_LoadImage32: s&3");
 	for (i = 0; i < s; i++ )
 	{
-		trans[(i<<2)+0] = gammatable[pal[data[i]*4+0]];
-		trans[(i<<2)+1] = gammatable[pal[data[i]*4+1]];
-		trans[(i<<2)+2] = gammatable[pal[data[i]*4+2]];
-		trans[(i<<2)+3] = gammatable[pal[data[i]*4+3]];
+		trans[(i<<2)+0] = gammatable[image_desc.pal[data[i]*4+0]];
+		trans[(i<<2)+1] = gammatable[image_desc.pal[data[i]*4+1]];
+		trans[(i<<2)+2] = gammatable[image_desc.pal[data[i]*4+2]];
+		trans[(i<<2)+3] = gammatable[image_desc.pal[data[i]*4+3]];
 	}
-	return R_BindImageNormal((uint*)trans );
+	return R_LoadTexImage((uint*)trans );
 }
 
 /*
@@ -1581,7 +1518,7 @@ bool R_LoadImage32 (byte *data, byte *pal )
 R_LoadImage8
 ===============
 */
-bool R_LoadImage8( byte *data, byte *pal )
+bool R_LoadImage8( byte *data )
 {
 	unsigned	*trans = (unsigned *)imagebuffer;
 	int	i, s, p;
@@ -1660,7 +1597,7 @@ bool R_LoadImage8( byte *data, byte *pal )
 			trans[i] = d_8to24table[data[i]];
 		}
 	}
-	return R_BindImageNormal ( trans );
+	return R_LoadTexImage ( trans );
 }
 
 /*
@@ -1668,7 +1605,7 @@ bool R_LoadImage8( byte *data, byte *pal )
 R_LoadImage24
 ===============
 */
-bool R_LoadImage24(byte *data, byte *pal )
+bool R_LoadImage24(byte *data )
 {
 	byte	*trans = imagebuffer;
 	int	i, s;
@@ -1688,15 +1625,15 @@ bool R_LoadImage24(byte *data, byte *pal )
 	if (image_desc.flags & IMAGE_HAS_ALPHA)
 	{
 		noalpha = true;
-		if(pal)
+		if(image_desc.pal)
 		{
 			for (i=0 ; i<s ; i++)
 			{
 				p = data[i];
 				if (p == 255) noalpha = false;
-				trans[(i<<2)+0] = pal[p*3+0];
-				trans[(i<<2)+1] = pal[p*3+1];
-				trans[(i<<2)+2] = pal[p*3+2];
+				trans[(i<<2)+0] = image_desc.pal[p*3+0];
+				trans[(i<<2)+1] = image_desc.pal[p*3+1];
+				trans[(i<<2)+2] = image_desc.pal[p*3+2];
 				trans[(i<<2)+3] = (p==255) ? 0 : 255;
 			}
 			if (noalpha) image_desc.flags &= ~IMAGE_HAS_ALPHA;
@@ -1718,13 +1655,13 @@ bool R_LoadImage24(byte *data, byte *pal )
 	else
 	{
 		if (s & 3) Sys_Error ("R_LoadImage24: s&3");
-		if(pal)
+		if(image_desc.pal)
 		{
 			for (i = 0; i < s; i+=1)
 			{
-				trans[(i<<2)+0] = pal[data[i]*3+0];
-				trans[(i<<2)+1] = pal[data[i]*3+1];
-				trans[(i<<2)+2] = pal[data[i]*3+2];
+				trans[(i<<2)+0] = image_desc.pal[data[i]*3+0];
+				trans[(i<<2)+1] = image_desc.pal[data[i]*3+1];
+				trans[(i<<2)+2] = image_desc.pal[data[i]*3+2];
 				trans[(i<<2)+3] = 255;
 			}
 		}
@@ -1739,7 +1676,7 @@ bool R_LoadImage24(byte *data, byte *pal )
 			}
 		}
 	}
-	return R_BindImageNormal((uint*)trans );
+	return R_LoadTexImage((uint*)trans );
 }
 
 /*
@@ -1829,31 +1766,31 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
 
 	switch(pic->type)
 	{
-	case PF_INDEXED_8:	iResult = R_LoadImage8 ( pic->buffer, pic->palette ); break;
-	case PF_INDEXED_24:	iResult = R_LoadImage24( pic->buffer, pic->palette ); break;
-	case PF_INDEXED_32: iResult = R_LoadImage32( pic->buffer, pic->palette ); break;
-	case PF_R_32F:
-	case PF_GR_64F:
-	case PF_RGBA_32:
-	case PF_ABGR_64:
+	case PF_INDEXED_8:	iResult = R_LoadImage8 ( pic->buffer ); break;
+	case PF_INDEXED_24:	iResult = R_LoadImage24( pic->buffer ); break;
+	case PF_INDEXED_32: iResult = R_LoadImage32( pic->buffer ); break;
 	case PF_PROCEDURE_TEX:
-	case PF_ABGR_128F: iResult = R_BindImageNormal((uint*)pic->buffer ); break;	
-	case PF_RGB_24: iResult = R_LoadImage24( pic->buffer,pic->palette ); break;
-	case PF_LUMINANCE_ALPHA:
+	case PF_RGBA_32:
+	case PF_ABGR_64: iResult = R_LoadTexImage((uint*)pic->buffer ); break;	
+	case PF_RGB_24: iResult = R_LoadImage24( pic->buffer ); break;
+	case PF_LUMINANCE:
 	case PF_LUMINANCE_16:
-	case PF_LUMINANCE: iResult = R_BindImageNormal((uint*)pic->buffer ); break; //FIXME
-	case PF_ARGB_32: iResult = R_DecompressImageARGB( pic->buffer ); break;
-	case PF_DXT1: iResult = R_DecompressImageDXT1( pic->buffer ); break;
+	case PF_LUMINANCE_ALPHA:
+	case PF_ARGB_32: iResult = R_LoadImageARGB( pic->buffer ); break;
+	case PF_RXGB:
+	case PF_DXT1:
 	case PF_DXT2:
-	case PF_DXT3: iResult = R_DecompressImageDXT3( pic->buffer ); break;
+	case PF_DXT3:
 	case PF_DXT4:
-	case PF_DXT5: iResult = R_DecompressImageDXT5( pic->buffer ); break;
-	case PF_3DC: iResult = R_DecompressImage3DC( pic->buffer ); break;
+	case PF_DXT5: iResult = R_LoadImageDXT( pic->buffer ); break;
 	case PF_ATI1N: iResult = R_DecompressImageATI1N( pic->buffer ); break;
-	case PF_RXGB: iResult = R_DecompressImageRXGB( pic->buffer ); break;
+	case PF_3DC: iResult = R_DecompressImage3DC( pic->buffer ); break;
 	case PF_R_16F:
+	case PF_R_32F:
 	case PF_GR_32F:
-	case PF_ABGR_64F: iResult = R_DecompressImageFloat( pic->buffer ); break;
+	case PF_GR_64F:
+	case PF_ABGR_64F:
+	case PF_ABGR_128F: iResult = R_DecompressImageFloat( pic->buffer ); break;
 	case PF_UNKNOWN: image = r_notexture; break;
 	}
           

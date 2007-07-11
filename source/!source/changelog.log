@@ -1,11 +1,27 @@
 
 1. Имплементация DDS загрузчика
 {
-	DXT1 - форматы DXT1a и DXT1c - настроить оба типа загрузчиков
-	подключить загрузку мипмапов		OK
-	подключить загрузку мипмапов для софт-загрузчика
+  -dxt1c   ok
+  -dxt1a   ok
+  -dxt3    ok
+  -dxt5    ok
+  -u1555   ok
+  -u4444   ok
+  -u565    ok
+  -u8888   ok
+  -u888    ok
+  -u555    ok
+  -a8      ok
+  -v8u8    ok
+  -v16u16  ok
+  -fp32x4  ok  
+  -dxt5nm  ok
+  -g16r16  ok
 
-
+  -fp32    bad    
+  -fp16x4  bad
+  -g16r16f bad
+  -A8L8    bad
 
 Xash Studio:
 
@@ -22,7 +38,7 @@ global
 
 render.dll
 1. упорядочить типы загрузки
-
+2. избавиться от LightImageScale
 
 engine.dll
 1. Добавить dedicated режим			OK

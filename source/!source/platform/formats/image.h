@@ -147,7 +147,7 @@ typedef struct dds_pf_s
 	uint	dwRBitMask;
 	uint	dwGBitMask;
 	uint	dwBBitMask;
-	uint	dwAlphaBitMask;
+	uint	dwABitMask;
 } dds_pixf_t;
 
 //  DDCAPS2
