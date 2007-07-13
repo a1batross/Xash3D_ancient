@@ -88,6 +88,7 @@ cvar_t	*r_lerpmodels;
 cvar_t	*r_lefthand;
 
 cvar_t	*r_lightlevel;	// FIXME: This is a HACK to get the client's light level
+cvar_t	*r_emboss_bump;
 
 cvar_t	*gl_nosubimage;
 cvar_t	*gl_allow_software;
@@ -324,7 +325,7 @@ void GL_DrawParticles( int num_particles, const particle_t particles[], const un
 	float			scale;
 	byte			color[4];
 
-    GL_Bind(r_particletexture->texnum);
+    GL_Bind(r_particletexture->texnum[0]);
 	qglDepthMask( GL_FALSE );		// no z buffering
 	qglEnable( GL_BLEND );
 	GL_TexEnv( GL_MODULATE );
@@ -918,8 +919,9 @@ void R_Register( void )
 	r_speeds = ri.Cvar_Get ("r_speeds", "0", 0);
 
 	r_lightlevel = ri.Cvar_Get ("r_lightlevel", "0", 0);
+	r_emboss_bump = ri.Cvar_Get ("r_emboss_bump", "0", 0);
 
-    	r_motionblur_intens = ri.Cvar_Get( "r_motionblur_intens", "0.65", CVAR_ARCHIVE );
+ 	r_motionblur_intens = ri.Cvar_Get( "r_motionblur_intens", "0.65", CVAR_ARCHIVE );
 	r_motionblur = ri.Cvar_Get( "r_motionblur", "0", CVAR_ARCHIVE );
 
 	gl_nosubimage = ri.Cvar_Get( "gl_nosubimage", "0", 0 );

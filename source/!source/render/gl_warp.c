@@ -25,7 +25,7 @@ extern	model_t	*loadmodel;
 char	skyname[MAX_QPATH];
 float	skyrotate;
 vec3_t	skyaxis;
-image_t	*sky_images[6];
+image_t	*sky_image;
 
 msurface_t	*warpface;
 
@@ -582,7 +582,7 @@ qglPushMatrix ();
 qglTranslatef (r_origin[0], r_origin[1], r_origin[2]);
 qglRotatef (r_newrefdef.time * skyrotate, skyaxis[0], skyaxis[1], skyaxis[2]);
 
-	for (i=0 ; i<6 ; i++)
+	for (i = 0; i < 6; i++)
 	{
 		if (skyrotate)
 		{	// hack, forces full sky to draw when rotating
@@ -596,7 +596,7 @@ qglRotatef (r_newrefdef.time * skyrotate, skyaxis[0], skyaxis[1], skyaxis[2]);
 		|| skymins[1][i] >= skymaxs[1][i])
 			continue;
 
-		GL_Bind (sky_images[skytexorder[i]]->texnum);
+		GL_Bind (sky_image->texnum[skytexorder[i]]);
 
 		qglBegin (GL_QUADS);
 		MakeSkyVec (skymins[0][i], skymins[1][i], i);
@@ -614,45 +614,35 @@ glEnable (GL_DEPTH_TEST);
 #endif
 }
 
-
 /*
 ============
 R_SetSky
 ============
 */
-// 3dstudio environment map names
-char	*suf[6] = {"rt", "bk", "lf", "ft", "up", "dn"};
 void R_SetSky (char *name, float rotate, vec3_t axis)
 {
-	int		i;
 	char	pathname[MAX_QPATH];
 
 	strncpy (skyname, name, sizeof(skyname)-1);
 	skyrotate = rotate;
 	VectorCopy (axis, skyaxis);
 
-	for (i=0 ; i<6 ; i++)
+	// chop down rotating skies for less memory
+	if (gl_skymip->value || skyrotate) gl_picmip->value += 6;
+
+	sprintf (pathname, "base_sky/%s", skyname);
+	sky_image = R_FindImage (pathname, NULL, 0, it_sky);
+	if (!sky_image) sky_image = r_notexture;
+
+	if (gl_skymip->value || skyrotate)
+	{	// take less memory
+		gl_picmip->value -= 6;
+		sky_min = 1.0/256;
+		sky_max = 255.0/256;
+	}
+	else	
 	{
-		// chop down rotating skies for less memory
-		if (gl_skymip->value || skyrotate)
-			gl_picmip->value++;
-
-		sprintf (pathname, "base_sky/%s%s", skyname, suf[i]);
-
-		sky_images[i] = R_FindImage (pathname, NULL, 0, it_sky);
-		if (!sky_images[i])
-			sky_images[i] = r_notexture;
-
-		if (gl_skymip->value || skyrotate)
-		{	// take less memory
-			gl_picmip->value--;
-			sky_min = 1.0/256;
-			sky_max = 255.0/256;
-		}
-		else	
-		{
-			sky_min = 1.0/512;
-			sky_max = 511.0/512;
-		}
+		sky_min = 1.0/512;
+		sky_max = 511.0/512;
 	}
 }

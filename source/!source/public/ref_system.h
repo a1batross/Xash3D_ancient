@@ -25,19 +25,14 @@ enum comp_format
 	PF_DXT3,		// nvidia DXT5 format
 	PF_DXT4,		// nvidia DXT5 format
 	PF_DXT5,		// nvidia DXT5 format
-	PF_3DC,
-	PF_ATI1N,		// ati 1D texture
+	PF_ATI1N,		// ati 1N texture
+	PF_ATI2N,		// ati 2N texture
 	PF_LUMINANCE,	// b&w dds image
 	PF_LUMINANCE_16,	// b&w hi-res image
 	PF_LUMINANCE_ALPHA, // b&w dds image with alpha channel
 	PF_RXGB,		// doom3 normal maps
-	PF_ABGR_64,
-	PF_R_16F,
-	PF_GR_32F,
-	PF_ABGR_64F,
-	PF_R_32F,
-	PF_GR_64F,
-	PF_ABGR_128F,	// super-texture
+	PF_ABGR_64,	// uint image
+	PF_ABGR_128F,	// float image
 	PF_PROCEDURE_TEX,	// internal special texture
 	PF_TOTALCOUNT,	// must be last
 };
@@ -55,8 +50,8 @@ typedef struct
 static bpc_desc_t PixelFormatDescription[] =
 {
 {PF_INDEXED_8,	"pal 8",  4,  1,  0 },
-{PF_INDEXED_24,	"pal 24",	3,  1, -3 },
-{PF_INDEXED_32,	"pal 32",	4,  1, -4 },
+{PF_INDEXED_24,	"pal 24",	3,  1,  0 },
+{PF_INDEXED_32,	"pal 32",	4,  1,  0 },
 {PF_RGBA_32,	"RGBA",	4,  1, -4 },
 {PF_ARGB_32,	"ARGB",	4,  1, -4 },
 {PF_RGB_24,	"RGB",	3,  1, -3 },
@@ -65,18 +60,13 @@ static bpc_desc_t PixelFormatDescription[] =
 {PF_DXT3,		"DXT3",	4,  1, 16 },
 {PF_DXT4,		"DXT4",	4,  1, 16 },
 {PF_DXT5,		"DXT5",	4,  1, 16 },
-{PF_3DC,		"3DC",	3,  1, 16 },
 {PF_ATI1N,	"ATI1N",	1,  1,  8 },
+{PF_ATI2N,	"3DC",	3,  1, 16 },
 {PF_LUMINANCE,	"LUM 8",	1,  1, -1 },
 {PF_LUMINANCE_16,	"LUM 16",	2,  2, -2 },
 {PF_LUMINANCE_ALPHA,"LUM A",	2,  1, -2 },
 {PF_RXGB,		"RXGB",	3,  1, 16 },
 {PF_ABGR_64,	"ABGR",	4,  2, -8 },
-{PF_R_16F,	"R_16",	1,  4, -2 },
-{PF_GR_32F,	"GR_32",	2,  4, -4 },
-{PF_ABGR_64F,	"ABGR64",	4,  2, -8 },
-{PF_R_32F,	"R_32",	1,  4, -4 },
-{PF_GR_64F,	"GR_64",	2,  4, -8 },
 {PF_ABGR_128F,	"ABGR128",4,  4, -16},
 {PF_PROCEDURE_TEX,	"system",	4,  1, -32},
 {PF_UNKNOWN,	"",	0,  0,  0 },
@@ -86,6 +76,13 @@ static bpc_desc_t PixelFormatDescription[] =
 #define IMAGE_HAS_ALPHA	0x00000002
 #define IMAGE_PREMULT	0x00000004	// indices who need in additional premultiply
 #define IMAGE_GEN_MIPS	0x00000008	// must generate mips
+
+#define CUBEMAP_POSITIVEX	0x00000400L
+#define CUBEMAP_NEGATIVEX	0x00000800L
+#define CUBEMAP_POSITIVEY	0x00001000L
+#define CUBEMAP_NEGATIVEY	0x00002000L
+#define CUBEMAP_POSITIVEZ	0x00004000L
+#define CUBEMAP_NEGATIVEZ	0x00008000L
 
 typedef struct search_s
 {

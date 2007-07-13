@@ -62,7 +62,7 @@ void *R_SpriteLoadFrame (model_t *mod, void *pin, mspriteframe_t **ppframe, int 
 	
 	if(image)
 	{
-		pspriteframe->texnum = image->texnum;
+		pspriteframe->texnum = image->texnum[0];
 		mod->skins[framenum] = image;
           }
           else Msg("Warning: %s has null frame %d\n", image->name, framenum );
@@ -317,7 +317,7 @@ void R_SpriteDrawModel( int passnum )
 	qglColor4f( psprite->rgba[0], psprite->rgba[1], psprite->rgba[2], alpha );
  	if(psprite->rendermode == SPR_ADDGLOW) qglDisable(GL_DEPTH_TEST);
 	
-	GL_Bind(currentmodel->skins[(int)e->frame]->texnum);
+	GL_Bind(currentmodel->skins[(int)e->frame]->texnum[0]);
 	GL_TexEnv( GL_MODULATE );
 
 	if ( alpha == 1.0 ) qglEnable (GL_ALPHA_TEST);

@@ -103,7 +103,7 @@ image_t *R_StudioLoadTexture( model_t *mod, mstudiotexture_t *ptexture, byte *pi
 		Msg("Warning: %s has null texture %s\n", mod->name, ptexture->name );
 		image = r_notexture;
 	}
-	ptexture->index = image->texnum;
+	ptexture->index = image->texnum[0];
 
 	return image;
 }

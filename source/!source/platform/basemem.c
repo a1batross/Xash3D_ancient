@@ -111,7 +111,7 @@ void *_Mem_Realloc(byte *poolptr, void *memptr, size_t size, const char *filenam
 
 	//get size of old block
 	hdr = (memheader_t *)((byte *) memptr - sizeof(memheader_t));
-	memcpy( nb, memptr, hdr->size);
+	_Mem_Copy( nb, memptr, hdr->size, filename, fileline );
 	_Mem_Free( memptr, filename, fileline);//free unused old block
 
 	return (void *)nb;

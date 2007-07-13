@@ -195,7 +195,7 @@ void GL_TextureMode( char *string )
 	{
 		if (glt->type != it_pic && glt->type != it_sky )
 		{
-			GL_Bind (glt->texnum);
+			GL_Bind (glt->texnum[0]);
 			qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
 			qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
 		}
@@ -359,8 +359,8 @@ void GL_Bind (int texnum)
 {
 	extern	image_t	*draw_chars;
 
-	if (gl_nobind->value && draw_chars)		// performance evaluation option
-		texnum = draw_chars->texnum;
+	if (gl_nobind->value && draw_chars) // performance evaluation option
+		texnum = draw_chars->texnum[0];
 	if ( gl_state.currenttextures[gl_state.currenttmu] == texnum)
 		return;
 	gl_state.currenttextures[gl_state.currenttmu] = texnum;

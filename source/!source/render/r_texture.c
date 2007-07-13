@@ -68,18 +68,19 @@ float FilterMatrix[][FILTER_SIZE][FILTER_SIZE] =
 
 typedef struct
 {
-	int	format;
-	int	width;
-	int	height;
-	int	bpp;
-	int	bpc;
-	int	bps;
-	int	SizeOfPlane;
-	int	SizeOfData;
-	int	SizeOfFile;
-	int	numLayers;
-	int	MipCount;
-	int	BitsCount;
+	int		format;
+	int		width;
+	int		height;
+	int		bpp;
+	int		bpc;
+	int		bps;
+	int		SizeOfPlane;
+	int		SizeOfData;
+	int		SizeOfFile;
+	int		numLayers;
+	int		MipCount;
+	int		BitsCount;
+	imagetype_t	type;
 
 	int	flags;
 	byte	*pal;
@@ -111,7 +112,7 @@ void R_ImageList_f (void)
 
 	for (i = 0, image = gltextures; i < numgltextures; i++, image++)
 	{
-		if (image->texnum <= 0) continue;
+		if (image->texnum[0] <= 0) continue;
 		switch (image->type)
 		{
 		case it_skin: Msg( "Skin"); break;
@@ -159,6 +160,9 @@ void R_SetPixelFormat( int width, int height, int depth )
 		file_size = image_desc.width * image_desc.height * abs(BlockSize);
 		image_desc.SizeOfFile = file_size; 
 	}
+
+	if (image_desc.width * image_desc.height > imagebufsize / 4)// warning
+		Msg("R_SetPixelFormat: image too big (%i*%i)", image_desc.width, image_desc.height);
 }
 
 /*
@@ -194,13 +198,14 @@ void R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 		image_desc.width = pic->width;
 		image_desc.height = pic->height;
 		image_desc.flags = pic->flags;
+		image_desc.type = type;
 
 		image_desc.bps = image_desc.width * image_desc.bpp * image_desc.bpc;
 		image_desc.SizeOfPlane = image_desc.bps * image_desc.height;
 		image_desc.SizeOfData = image_desc.SizeOfPlane * image_desc.numLayers;
 		image_desc.BitsCount = pic->bitsCount;
 
-		if(BlockSize == 0) image_desc.SizeOfFile = image_desc.width * image_desc.height;
+		if(BlockSize == 0) image_desc.SizeOfFile = image_desc.width * image_desc.height * image_desc.bpp;
 		else if(BlockSize > 0)
 		{
 			file_size = ((image_desc.width + 3)/4) * ((image_desc.height + 3)/4) * image_desc.numLayers;
@@ -237,9 +242,12 @@ void R_GetPalette (void)
 	unsigned	v;
 	int	i, r, g, b;
 	byte	*pal = palette_int;
+	rgbdata_t *pic = ri.FS_LoadImage("colormap", NULL, 0 );
+	if(pic && pic->palette) pal = pic->palette;
+	ri.FS_FreeImage( pic );
 
 	//used by particle system once only
-	for (i=0 ; i<256 ; i++)
+	for (i = 0; i < 256; i++)
 	{
 		r = pal[i*3+0];
 		g = pal[i*3+1];
@@ -257,7 +265,7 @@ R_ShutdownTextures
 */
 void R_ShutdownTextures (void)
 {
-	int		i;
+	int		i, k;
 	image_t	*image;
 
 	for (i = 0, image = gltextures; i < numgltextures; i++, image++)
@@ -266,7 +274,9 @@ void R_ShutdownTextures (void)
 		if (!image->registration_sequence) continue;
 
 		// free it
-		qglDeleteTextures (1, &image->texnum);
+		if(image->type == it_sky || image->type == it_cubemap)
+			for(k = 0; k < 6; k++) qglDeleteTextures (1, &image->texnum[k] );
+		else qglDeleteTextures (1, &image->texnum[0] );
 		memset (image, 0, sizeof(*image));
 	}
 }
@@ -1044,7 +1054,7 @@ bool CompressedTexImage2D( uint target, int level, int intformat, uint width, ui
 		default: use_gl_extension = false; break;
 		}
 	}
-	//else
+	else
 	{
 		use_gl_extension = false;
 	}	
@@ -1083,8 +1093,8 @@ bool R_LoadTexImage( uint *data )
 	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;
 
 	// fake embossmaping
-	//if (image->type == it_wall && mipmap && r_emboss_bump->value)
-	//	R_FilterTexture (EMBOSS_FILTER, data, width, height, 1, 128, true, GL_MODULATE);
+	if (image_desc.type == it_wall && mipmap && r_emboss_bump->value)
+		R_FilterTexture (EMBOSS_FILTER, data, scaled_width, scaled_height, 1, 128, true, GL_MODULATE);
 
 	R_ResampleTexture (data, image_desc.width, image_desc.height, scaled, scaled_width, scaled_height);
 	
@@ -1139,7 +1149,7 @@ bool R_LoadImageDXT( byte *data )
 	return true;
 }
 
-bool R_DecompressImage3DC( byte *buffer )
+bool R_DecompressImageATI2N( byte *buffer )
 {
 	int	x, y, z, w, h, i, j, k, t1, t2;
 	byte	*fin, *fin2, *fout = imagebuffer;
@@ -1319,35 +1329,13 @@ bool R_DecompressImageATI1N( byte *buffer )
 
 bool R_StoreImageFloat( uint target, int level, uint width, uint height, uint imageSize, const void* data )
 {
-	uint	i, *dest = (uint *)imagebuffer;
+	float	*dest = (float *)imagebuffer;
 	word	*src = (word *)data; 
 	int	samples;
 
 	if(!data) return false;
 
-	switch( PixelFormatDescription[image_desc.format].format )
-	{
-	case PF_R_32F:
-	case PF_GR_64F:
-	case PF_ABGR_128F:
-		memcpy( dest, src, image_desc.SizeOfData );
-		break;
-	case PF_R_16F:
-	case PF_GR_32F:
-	case PF_ABGR_64F:
-		for( i = 0; i < image_desc.SizeOfData; i++, src++)
-		{
-			if(!*src)
-			{
-				if(!*src) Msg("src missing\n");
-				Msg("iter %d, data %d\n", i, image_desc.SizeOfData );
-				break;
-			}
-			dest[i] = ShortToFloat(*src);
-		}
-		break;
-          }
-
+	memcpy( dest, src, image_desc.SizeOfData );
 	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;
 	qglTexImage2D (target, level, samples, width, height, 0, GL_RGBA, GL_FLOAT, dest );
 
@@ -1491,17 +1479,11 @@ R_LoadImage32
 bool R_LoadImage32 (byte *data )
 {
 	byte	*trans = imagebuffer;
-	int	i, s;
+	int	i, s = image_desc.width * image_desc.height;
 
 	//nothing to process
 	if(!image_desc.pal) return R_LoadTexImage((uint*)data );
 
-	s = image_desc.width * image_desc.height;
-	if (s > imagebufsize / 4)
-	{
-		Msg("R_LoadImage32: image too big (%i*%i)", image_desc.width, image_desc.height);
-          	return false;
-          }
 	if (s&3) Sys_Error ("R_LoadImage32: s&3");
 	for (i = 0; i < s; i++ )
 	{
@@ -1520,83 +1502,34 @@ R_LoadImage8
 */
 bool R_LoadImage8( byte *data )
 {
-	unsigned	*trans = (unsigned *)imagebuffer;
-	int	i, s, p;
-	bool	noalpha;
-	s = image_desc.width * image_desc.height;
+	uint	*trans = (uint *)imagebuffer;
+	int	i, p, s = image_desc.width * image_desc.height;
 
-	if (s > imagebufsize/4)
+	for (i=0 ; i<s ; i++)
 	{
-		Msg("R_LoadImage8: image too big (%i * %i)", image_desc.width, image_desc.height);
-		return false;
+		p = data[i];
+		trans[i] = d_8to24table[p];
+
+		if (p == 255)
+		{
+			// transparent, so scan around for another color
+			// to avoid alpha fringes
+			// FIXME: do a full flood fill so mips work...
+			if (i > image_desc.width && data[i-image_desc.width] != 255)
+				p = data[i - image_desc.width];
+			else if (i < s-image_desc.width && data[i+image_desc.width] != 255)
+				p = data[i + image_desc.width];
+			else if (i > 0 && data[i - 1] != 255) p = data[i-1];
+			else if (i < s-1 && data[i+1] != 255) p = data[i+1];
+			else p = 0;
+
+			// copy rgb components
+			((byte *)&trans[i])[0] = ((byte *)&d_8to24table[p])[0];
+			((byte *)&trans[i])[1] = ((byte *)&d_8to24table[p])[1];
+			((byte *)&trans[i])[2] = ((byte *)&d_8to24table[p])[2];
+		}
 	}
 
-	// if there are no transparent pixels, make it a 3 component
-	// texture even if it was specified as otherwise
-	if (image_desc.flags & IMAGE_HAS_ALPHA)
-	{
-		noalpha = true;
-		for (i = 0; i < s; i++)
-		{
-			p = data[i];
-			if (p == 255)
-			{
-				noalpha = false;
-				trans[i] = 0;
-			}
-			else trans[i] = d_8to24table[p];
-		}
-
-		if(noalpha) image_desc.flags &= ~IMAGE_HAS_ALPHA;
-
-		switch( 1 )//FIXME
-		{
-		case 2:
-			for (i=0 ; i<s ; i++)
-			{
-				p = data[i];
-				if (p == 0) trans[i] &= 0x00ffffff;
-				else if( p & 1 )
-				{
-					trans[i] &= 0x00ffffff;
-					trans[i] |= ( ( int )( 255 * 0.5 ) ) << 24;
-				}
-				else trans[i] |= 0xff000000;
-			}
-			break;
-		case 3:
-			for (i=0 ; i<s ; i++)
-			{
-				p = data[i];
-				if (p == 0) trans[i] &= 0x00ffffff;
-			}
-			break;
-		case 4:
-			for (i=0 ; i<s ; i++)
-			{
-				p = data[i];
-				trans[i] = d_8to24table[ColorIndex[p>>4]] & 0x00ffffff;
-				trans[i] |= ( int )ColorPercent[p&15] << 24;
-				//trans[i] = 0x7fff0000;
-			}
-			break;
-		default:	break;
-		}
-	}
-	else
-	{
-		for (i = (s & ~3) - 4; i >= 0; i -= 4)
-		{
-			trans[i] = d_8to24table[data[i]];
-			trans[i+1] = d_8to24table[data[i+1]];
-			trans[i+2] = d_8to24table[data[i+2]];
-			trans[i+3] = d_8to24table[data[i+3]];
-		}
-		for (i = s & ~3; i < s; i++)//wow, funky
-		{
-			trans[i] = d_8to24table[data[i]];
-		}
-	}
 	return R_LoadTexImage ( trans );
 }
 
@@ -1608,17 +1541,9 @@ R_LoadImage24
 bool R_LoadImage24(byte *data )
 {
 	byte	*trans = imagebuffer;
-	int	i, s;
+	int	i, s = image_desc.width * image_desc.height;
 	bool	noalpha;
 	int	p;
-
-	s = image_desc.width * image_desc.height;
-
-	if(s > imagebufsize / 4)
-	{
-		Msg("R_LoadImage24: image too big (%i * %i)", image_desc.width, image_desc.height);
-          	return false;
-          }
 
 	// if there are no transparent pixels, make it a 3 component
 	// texture even if it was specified as otherwise
@@ -1654,7 +1579,7 @@ bool R_LoadImage24(byte *data )
 	}
 	else
 	{
-		if (s & 3) Sys_Error ("R_LoadImage24: s&3");
+		if (s&3) Sys_Error ("R_LoadImage24: s&3");
 		if(image_desc.pal)
 		{
 			for (i = 0; i < s; i+=1)
@@ -1722,15 +1647,17 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
 {
 	image_t	*image;
           bool	iResult = true;
-	int	i, width, height;
+	int	i, numsides = 1, width, height;
+	uint	offset = 0;
+	byte	*buf;
 	
 	//nothing to load
 	if (!pic || !pic->buffer) return NULL;
-	
+
 	// find a free image_t
 	for (i = 0, image = gltextures; i < numgltextures; i++, image++)
 	{
-		if (!image->texnum) break;
+		if (!image->texnum[0]) break;
 	}
 	if (i == numgltextures)
 	{
@@ -1752,48 +1679,53 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
 	strcpy (image->name, name);
 	image->registration_sequence = registration_sequence;
 
+	if(pic->flags & IMAGE_CUBEMAP) numsides = 6;
+
 	image->width = width = pic->width;
 	image->height = height = pic->height;
 	image->type = type;
           image->paletted = pic->palette ? true : false;
-	image->texnum = TEXNUM_IMAGES + (image - gltextures);
-	GL_Bind(image->texnum);
-		
+          buf = pic->buffer;
+
 	//fill image_desc
 	R_GetPixelFormat( pic, type );
 
-	DevMsg("loading %s ... ", name );
-
-	switch(pic->type)
+	for(i = 0; i < numsides; i++, buf += offset )
 	{
-	case PF_INDEXED_8:	iResult = R_LoadImage8 ( pic->buffer ); break;
-	case PF_INDEXED_24:	iResult = R_LoadImage24( pic->buffer ); break;
-	case PF_INDEXED_32: iResult = R_LoadImage32( pic->buffer ); break;
-	case PF_PROCEDURE_TEX:
-	case PF_RGBA_32:
-	case PF_ABGR_64: iResult = R_LoadTexImage((uint*)pic->buffer ); break;	
-	case PF_RGB_24: iResult = R_LoadImage24( pic->buffer ); break;
-	case PF_LUMINANCE:
-	case PF_LUMINANCE_16:
-	case PF_LUMINANCE_ALPHA:
-	case PF_ARGB_32: iResult = R_LoadImageARGB( pic->buffer ); break;
-	case PF_RXGB:
-	case PF_DXT1:
-	case PF_DXT2:
-	case PF_DXT3:
-	case PF_DXT4:
-	case PF_DXT5: iResult = R_LoadImageDXT( pic->buffer ); break;
-	case PF_ATI1N: iResult = R_DecompressImageATI1N( pic->buffer ); break;
-	case PF_3DC: iResult = R_DecompressImage3DC( pic->buffer ); break;
-	case PF_R_16F:
-	case PF_R_32F:
-	case PF_GR_32F:
-	case PF_GR_64F:
-	case PF_ABGR_64F:
-	case PF_ABGR_128F: iResult = R_DecompressImageFloat( pic->buffer ); break;
-	case PF_UNKNOWN: image = r_notexture; break;
-	}
-          
+		image->texnum[i] = TEXNUM_IMAGES + numgltextures++;
+		GL_Bind(image->texnum[i]);
+		
+		R_SetPixelFormat( image_desc.width, image_desc.height, image_desc.numLayers );
+		offset = image_desc.SizeOfFile;// move pointer
+		
+		DevMsg("loading %s ... ", name );
+
+		switch(pic->type)
+		{
+		case PF_INDEXED_8:	iResult = R_LoadImage8 ( buf ); break;
+		case PF_INDEXED_24:	iResult = R_LoadImage24( buf ); break;
+		case PF_INDEXED_32: iResult = R_LoadImage32( buf ); break;
+		case PF_PROCEDURE_TEX:
+		case PF_RGBA_32:
+		case PF_ABGR_64: iResult = R_LoadTexImage((uint*)buf ); break;	
+		case PF_RGB_24: iResult = R_LoadImage24( buf ); break;
+		case PF_LUMINANCE:
+		case PF_LUMINANCE_16:
+		case PF_LUMINANCE_ALPHA:
+		case PF_ARGB_32: iResult = R_LoadImageARGB( buf ); break;
+		case PF_RXGB:
+		case PF_DXT1:
+		case PF_DXT2:
+		case PF_DXT3:
+		case PF_DXT4:
+		case PF_DXT5: iResult = R_LoadImageDXT( buf ); break;
+		case PF_ATI1N: iResult = R_DecompressImageATI1N( buf ); break;
+		case PF_ATI2N: iResult = R_DecompressImageATI2N( buf ); break;
+		case PF_ABGR_128F: iResult = R_DecompressImageFloat( buf ); break;
+		case PF_UNKNOWN: image = r_notexture; break;
+		}
+	}          
+
 	//check for errors
 	if(!iResult)
 	{
@@ -1815,20 +1747,22 @@ will be freed.
 */
 void R_ImageFreeUnused(void)
 {
-	int		i;
+	int	i, k;
 	image_t	*image;
 
 	// never free r_notexture or particle texture
 	r_notexture->registration_sequence = registration_sequence;
 	r_particletexture->registration_sequence = registration_sequence;
 
-	for (i=0, image=gltextures ; i<numgltextures ; i++, image++)
+	for (i = 0, image = gltextures; i < numgltextures; i++, image++)
 	{
 		// used this sequence
 		if (image->registration_sequence == registration_sequence) continue;
 		if (!image->registration_sequence) continue; // free image_t slot
 		if (image->type == it_pic) continue; // don't free pics
-		qglDeleteTextures (1, &image->texnum);// free it
+		if (image->type == it_sky || image->type == it_cubemap)
+			for(k = 0; k < 6; k++) qglDeleteTextures (1, &image->texnum[k] );
+		else qglDeleteTextures (1, &image->texnum[0] );
 		memset (image, 0, sizeof(*image));
 	}
 }

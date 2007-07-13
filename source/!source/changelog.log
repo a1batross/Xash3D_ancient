@@ -1,28 +1,3 @@
-
-1. Имплементация DDS загрузчика
-{
-  -dxt1c   ok
-  -dxt1a   ok
-  -dxt3    ok
-  -dxt5    ok
-  -u1555   ok
-  -u4444   ok
-  -u565    ok
-  -u8888   ok
-  -u888    ok
-  -u555    ok
-  -a8      ok
-  -v8u8    ok
-  -v16u16  ok
-  -fp32x4  ok  
-  -dxt5nm  ok
-  -g16r16  ok
-
-  -fp32    bad    
-  -fp16x4  bad
-  -g16r16f bad
-  -A8L8    bad
-
 Xash Studio:
 
 1.Мессага анимации Viewmodel			OK
@@ -37,8 +12,11 @@ global
 2. Сделать валидатор game-директорий
 
 render.dll
-1. упорядочить типы загрузки
-2. избавиться от LightImageScale
+1. убрать все типы float, кроме ABGR128		OK
+2. Избавиться от pcx совсем
+3. упорядочить типы загрузки
+4. избавиться от LightImageScale
+
 
 engine.dll
 1. Добавить dedicated режим			OK
@@ -56,6 +34,7 @@ launcher.dll
 platform.dll
 1. разобраться наконец с записью файлов
 2. переписать LoadJPG чтобы он читал из буффера	OK
+3. переписать загрузчик, чтобы он грузил кубемапы в один буффер	OK
 
 
 	studiomdl - апгрейд до версии 0.2

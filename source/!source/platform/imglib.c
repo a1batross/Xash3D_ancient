@@ -14,10 +14,12 @@ byte image_num_mips = 4;	// build mipmaps
 uint image_type;		// main type switcher
 uint image_flags;		// additional image flags
 byte image_bits_count;	// bits per RGBA
+size_t image_size;		// image rgba size
+uint image_ptr;
 
 byte *image_palette;	// palette pointer
 byte *image_rgba;		// image pointer (see image_type for details)
-
+byte *image_cubemap;	// cubemap pack
 
 /*
 ==============
@@ -82,10 +84,11 @@ bool LoadBMP( char *name, char *buffer, int filesize )
 	image_height = rows;
 	image_num_layers = 1;
 	image_type = PF_RGBA_32;
+	image_size = numPixels * 4;
 
 	if(bmpHeader.bitsPerPixel == 32) image_flags |= IMAGE_HAS_ALPHA;
 
-	bmpRGBA = Malloc( numPixels * 4 );
+	bmpRGBA = Malloc( image_size );
 	image_rgba = bmpRGBA;
 
 	for ( row = rows-1; row >= 0; row-- )
@@ -153,8 +156,7 @@ LoadPCX
 bool LoadPCX( char *name, char *buffer, int filesize )
 {
 	pcx_t pcx;
-	byte *pbuf, *pix;
-	byte *palette, *fin, *enddata;
+	byte *pix, *palette, *fin, *enddata;
 	int x, y, dataByte, runLength;
 
 	if (filesize < (int)sizeof(pcx) + 768)
@@ -197,9 +199,9 @@ bool LoadPCX( char *name, char *buffer, int filesize )
 		Mem_Copy( image_palette, palette, 768 );
 	}	
 
-	pix = image_rgba = (byte *)Malloc(image_width * image_height * 4);
+	image_size = image_width * image_height * 4;
+	pix = image_rgba = (byte *)Malloc( image_size );
 	if (!image_rgba) return false;
-	pbuf = image_rgba + image_width * image_height * 3;
 	enddata = palette;
 
 	for (y = 0; y <= pcx.ymax && fin < enddata; y++, pix += pcx.xmax + 1)
@@ -363,7 +365,8 @@ bool LoadTGA( char *name, char *buffer, int filesize )
 	}
 
 	image_flags |= alphabits ? IMAGE_HAS_ALPHA : 0;
-	image_rgba = Malloc(image_width * image_height * 4);
+	image_size = image_width * image_height * 4;
+	image_rgba = Malloc( image_size );
 
 	if (!image_rgba)
 	{
@@ -622,7 +625,7 @@ uint dds_get_linear_size( int width, int height, int depth, int rgbcount )
 	return BlockSize;
 }
 
-uint dds_get_pixelformat( dds_t *hdr )
+void dds_get_pixelformat( dds_t *hdr )
 {
 	uint bits = hdr->dsPixelFormat.dwRGBBitCount;
 
@@ -641,14 +644,9 @@ uint dds_get_pixelformat( dds_t *hdr )
 		case TYPE_DXT4: image_type = PF_DXT4; break;
 		case TYPE_DXT5: image_type = PF_DXT5; break;
 		case TYPE_ATI1: image_type = PF_ATI1N; break;
-		case TYPE_ATI2: image_type = PF_3DC; break;
+		case TYPE_ATI2: image_type = PF_ATI2N; break;
 		case TYPE_RXGB: image_type = PF_RXGB; break;
 		case TYPE_$: image_type = PF_ABGR_64; break;
-		case TYPE_o: image_type = PF_R_16F; break;
-		case TYPE_p: image_type = PF_GR_32F; break;
-		case TYPE_q: image_type = PF_ABGR_64F; break;
-		case TYPE_r: image_type = PF_R_32F; break;
-		case TYPE_s: image_type = PF_GR_64F; break;
 		case TYPE_t: image_type = PF_ABGR_128F; break;
 		default: image_type = PF_UNKNOWN; break;
 		}
@@ -666,27 +664,33 @@ uint dds_get_pixelformat( dds_t *hdr )
 		}
 		else 
 		{
-			if(hdr->dsPixelFormat.dwFlags & DDS_ALPHA) image_type = PF_RGB_24;
+			if(hdr->dsPixelFormat.dwFlags & DDS_ALPHA) 
+			{
+				image_type = PF_RGB_24;
+				image_flags |= IMAGE_HAS_ALPHA;
+			}
 			else if( bits == 32) image_type = PF_ABGR_64;
 			else image_type = PF_ARGB_32;
 		}
 	}
 
 	// setup additional flags
-	if( hdr->dwFlags & DDS_COMPLEX )
+	if( hdr->dsCaps.dwCaps1 & DDS_COMPLEX )
 	{
-		image_flags |= (hdr->dsPixelFormat.dwFlags & DDS_CUBEMAP) ? IMAGE_CUBEMAP : 0;
-		Msg("Cubemap\n");
+		image_flags |= (hdr->dsCaps.dwCaps2 & DDS_CUBEMAP) ? IMAGE_CUBEMAP : 0;
 	}
 
-	if(hdr->dsPixelFormat.dwFlags & DDS_ALPHAPIXELS)
+	if(hdr->dsPixelFormat.dwFlags & DDS_ALPHAPIXELS || image_type == PF_DXT1)//fixme
 	{
-		// this is correct ?
 		image_flags |= IMAGE_HAS_ALPHA;
 	}
 
 	if(image_type == TYPE_DXT2 || image_type == TYPE_DXT4) 
 		image_flags |= IMAGE_PREMULT;
+
+	if(hdr->dwFlags & DDS_MIPMAPCOUNT)
+		image_num_mips = hdr->dwMipMapCount;
+	else image_num_mips = 1;
 
 	if(image_type == PF_ARGB_32 || image_type == PF_LUMINANCE || image_type == PF_LUMINANCE_16 || image_type == PF_LUMINANCE_ALPHA)
 	{
@@ -697,7 +701,6 @@ uint dds_get_pixelformat( dds_t *hdr )
 		memcpy( tmp, &hdr->dsPixelFormat.dwBBitMask, sizeof(uint)); tmp += 4;
 		memcpy( tmp, &hdr->dsPixelFormat.dwABitMask, sizeof(uint)); tmp += 4;
 	}
-	return dds_get_linear_size( image_width, image_height, image_num_layers, bits / 8 );
 }
 
 void dds_addjust_volume_texture( dds_t *hdr )
@@ -710,11 +713,66 @@ void dds_addjust_volume_texture( dds_t *hdr )
 	hdr->dwLinearSize = dds_get_linear_size( hdr->dwWidth, hdr->dwHeight, hdr->dwDepth, bits );
 }
 
+uint dds_calc_mipmap_size( dds_t *hdr ) 
+{
+	uint buffsize = 0;
+	int w = hdr->dwWidth;
+	int h = hdr->dwHeight;
+	int d = hdr->dwDepth;
+	int i, mipsize = 0;
+	int bits = hdr->dsPixelFormat.dwRGBBitCount / 8;
+		
+	//now correct buffer size
+	for( i = 0; i < image_num_mips; i++, buffsize += mipsize )
+	{
+		mipsize = dds_get_linear_size( w, h, d, bits );
+		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1;
+	}
+	return buffsize;
+}
+
+uint dds_calc_size( char *name, dds_t *hdr, uint filesize ) 
+{
+	uint buffsize = 0;
+	int w = image_width;
+	int h = image_height;
+	int d = image_num_layers;
+	int bits = hdr->dsPixelFormat.dwRGBBitCount / 8;
+
+	if(hdr->dsCaps.dwCaps2 & DDS_CUBEMAP) 
+	{
+		// cubemap w*h always match for all sides
+		buffsize = dds_calc_mipmap_size( hdr ) * 6;
+	}
+	else if(hdr->dwFlags & DDS_MIPMAPCOUNT)
+	{
+		// if mipcount > 1
+		buffsize = dds_calc_mipmap_size( hdr );
+	}
+	else if(hdr->dwFlags & (DDS_LINEARSIZE | DDS_PITCH))
+	{
+		// just in case (no need, really)
+		buffsize = hdr->dwLinearSize;
+	}
+	else 
+	{
+		// pretty solution for microsoft bug
+		buffsize = dds_calc_mipmap_size( hdr );
+	}
+
+	if(filesize != buffsize) //main check
+	{
+		Msg("LoadDDS: %s probably corrupted(%i should be %i\n", name, buffsize, filesize );
+		return 0;
+	}
+	return buffsize;
+}
+
 bool LoadDDS( char *name, char *buffer, int filesize )
 {
 	dds_t	header;
 	byte	*fin;
-	uint	i, BlockSize, buffsize = 0;
+	uint	i;
 
 	fin = buffer;
 
@@ -775,7 +833,7 @@ bool LoadDDS( char *name, char *buffer, int filesize )
 		return false;
 	}
 
-	BlockSize = dds_get_pixelformat( &header );// and image type too
+	dds_get_pixelformat( &header );// and image type too :)
 	dds_addjust_volume_texture( &header );
 
 	if (image_type == PF_UNKNOWN) 
@@ -784,46 +842,14 @@ bool LoadDDS( char *name, char *buffer, int filesize )
 		return false; //unknown type
 	}
 
-	// Microsoft bug, they're not following their own documentation.
-	if (!(header.dwFlags & (DDS_LINEARSIZE | DDS_PITCH)) || header.dwLinearSize == 0)
-	{
-		header.dwFlags |= DDS_LINEARSIZE;
-		header.dwLinearSize = BlockSize;
-		if (header.dwLinearSize < 8) header.dwLinearSize = 8;
-	}
+	image_size = dds_calc_size( name, &header, filesize - 128 ); 
+	if(image_size == 0) return false;
 
-	Msg("Loading dds %s, type: %s\n", name, PixelFormatDescription[image_type-1].name );
-
-	if(header.dwFlags & DDS_MIPMAPCOUNT) 
-	{
-		int w = image_width;
-		int h = image_height;
-		int d = image_num_layers;
-		int i, mipsize = 0;
-		int bits = header.dsPixelFormat.dwRGBBitCount / 8;
-		image_num_mips = header.dwMipMapCount;
-
-		//now correct buffer size
-		for( i = 0; i < image_num_mips; i++, buffsize += mipsize )
-		{
-			mipsize = dds_get_linear_size( w, h, d, bits );
-			w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1;
-		}
-		if((filesize - 128) != buffsize)
-		{
-			Msg("LoadDDS: %s have corrupt mipmaps\n", name );
-			return false;
-		}
-	}
-	else 
-	{
-		image_num_mips = 1;
-		buffsize = header.dwLinearSize;
-	}
+	Msg("loading %s, %s\n", name, PixelFormatDescription[image_type -1].name );
 
 	// dds files will be uncompressed on a render. requires minimal of info for set this
-	image_rgba = Malloc( buffsize ); 
-	Mem_Copy( image_rgba, fin, buffsize );
+	image_rgba = Malloc( image_size ); 
+	Mem_Copy( image_rgba, fin, image_size );
 
 	return true;
 }
@@ -1047,24 +1073,6 @@ int jpeg_readmarkers( void )
 				break;
 			case 0xC1:  // Extended sequetial, Huffman
 			case 0xC2:  // Progressive, Huffman            
-				jpg_file.data_precision = jpeg_read_byte();
-				jpg_file.height = jpeg_read_word();
-				jpg_file.width = jpeg_read_word();
-				jpg_file.num_components = 2 + 3 * jpeg_read_byte();
-				if(length - 4 != jpg_file.num_components)
-				{
-					Msg("%d == %d\n", length, jpg_file.num_components );
-					return 0;
-				}
-				for(i = 0; i < jpg_file.num_components; i++)
-				{
-					jpg_file.component_info[i].id = jpeg_read_byte();
-					j = jpeg_read_byte();
-					jpg_file.component_info[i].h = (j >> 4) & 0x0F;
-					jpg_file.component_info[i].v = j & 0x0F;
-					jpg_file.component_info[i].t = jpeg_read_byte();
-				}
-				break;
 			case 0xC3:  // Lossless, Huffman
 			case 0xC5:  // Differential sequential, Huffman
 			case 0xC6:  // Differential progressive, Huffman
@@ -1329,7 +1337,8 @@ bool LoadJPG(char *name, char *buffer, int filesize )
 		return false;
 	}	
 
-	jpg_file.data = Malloc(jpg_file.width * jpg_file.height * 4);
+	image_size = jpg_file.width * jpg_file.height * 4;
+	jpg_file.data = Malloc(image_size);
 	if(!jpg_file.data) return false;
 
 	jpeg_decompress();
@@ -1351,16 +1360,16 @@ imageformat_t;
 
 imageformat_t image_formats[] =
 {
-	{"textures/%s.dds", LoadDDS},
-	{"textures/%s.tga", LoadTGA},
-	{"textures/%s.bmp", LoadBMP},
-	{"textures/%s.jpg", LoadJPG},
-	{"textures/%s.pcx", LoadPCX},
-	{"%s.dds", LoadDDS},
-	{"%s.tga", LoadTGA},
-	{"%s.bmp", LoadBMP},
-	{"%s.jpg", LoadJPG},
-	{"%s.pcx", LoadPCX},
+	{"textures/%s%s.dds", LoadDDS},
+	{"textures/%s%s.tga", LoadTGA},
+	{"textures/%s%s.bmp", LoadBMP},
+	{"textures/%s%s.jpg", LoadJPG},
+	{"textures/%s%s.pcx", LoadPCX},
+	{"%s%s.dds", LoadDDS},
+	{"%s%s.tga", LoadTGA},
+	{"%s%s.bmp", LoadBMP},
+	{"%s%s.jpg", LoadJPG},
+	{"%s%s.pcx", LoadPCX},
 	{NULL, NULL}
 };
 
@@ -1376,9 +1385,21 @@ rgbdata_t *ImagePack( void )
 	pack->type = image_type;
 	pack->flags = image_flags;
 	pack->palette = image_palette;
-	pack->buffer = image_rgba;
+
+	if(image_cubemap) pack->buffer = image_cubemap;
+	else pack->buffer = image_rgba;
 
 	return pack;
+}
+
+void AddImageToPack( void )
+{
+	if(!image_cubemap) image_cubemap = Malloc( image_size );
+	else image_cubemap = Mem_Realloc( basepool, image_cubemap, image_ptr + image_size );
+
+	Mem_Copy(image_cubemap + image_ptr, image_rgba, image_size );
+	image_ptr += image_size; //move to next
+	Free( image_rgba ); //memmove aren't help us
 }
 
 /*
@@ -1392,17 +1413,18 @@ loading and unpack to rgba any known image
 rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 {
 	imageformat_t	*format;
+	char *suf[6] = {"rt", "bk", "lf", "ft", "up", "dn"};
 	char path[128], loadname[128], texname[128];
-	int filesize = 0;
+	int i, filesize = 0;
 	byte *f;
 
-	memcpy( loadname, filename, sizeof(loadname));
+	memcpy( loadname, filename, sizeof(loadname)-1);
 	FS_StripExtension( loadname );//remove extension if needed
 
 	// now try all the formats in the selected list
-	for (format = image_formats;format->formatstring; format++)
+	for (format = image_formats; format->formatstring; format++)
 	{
-		sprintf (path, format->formatstring, loadname);
+		sprintf (path, format->formatstring, loadname, "" );
 		f = FS_LoadFile( path, &filesize );
 		if(f && filesize > 0)
 		{
@@ -1413,6 +1435,33 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 				return ImagePack(); //loaded
 		}
 	}
+
+	// maybe it skybox or cubemap ?
+	for(i = 0; i < 6; i++)
+	{
+		for (format = image_formats; format->formatstring; format++)
+		{
+			sprintf (path, format->formatstring, loadname, suf[i] );
+			f = FS_LoadFile( path, &filesize );
+			if(f && filesize > 0)
+			{
+				//this name will be used only for
+				//tell user about a imageload problems 
+				FS_FileBase( path, texname );
+				if( format->loadfunc(texname, f, filesize ))
+				{
+					Msg("loading %s\n", path );
+					AddImageToPack(); //added
+				}
+			}
+		}
+          }
+
+	if(image_cubemap && image_ptr > 0) 
+	{
+		image_flags |= IMAGE_CUBEMAP; //now it's cubemap pack
+		return ImagePack();
+	}          
 
 	// try to load image from const buffer (e.g. const byte blank_frame )
 	memcpy( texname, filename, sizeof(texname));
@@ -1435,6 +1484,13 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 
 void FS_FreeImage( rgbdata_t *pack )
 {
+	if( pack )
+	{
+		if( pack->buffer ) Free( pack->buffer );
+		if( pack->palette ) Free( pack->palette );
+		Free( pack );
+	}
+
 	//reset global variables
 	image_width = image_height = 0;
 	image_bits_count = image_flags = 0;
@@ -1443,10 +1499,7 @@ void FS_FreeImage( rgbdata_t *pack )
 	image_type = PF_UNKNOWN;
 	image_palette = NULL;
 	image_rgba = NULL;
-	
-	if( !pack ) return;
-	
-	if( pack->buffer ) Free( pack->buffer );
-	if( pack->palette ) Free( pack->palette );
-	Free( pack );
+	image_cubemap = NULL;
+	image_ptr = 0;
+	image_size = 0;
 }

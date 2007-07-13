@@ -684,7 +684,7 @@ void R_DrawAliasModel ( int passnum )
 	}
 	if (!skin)
 		skin = r_notexture;	// fallback...
-	GL_Bind(skin->texnum);
+	GL_Bind(skin->texnum[0]);
 
 	// draw it
 

@@ -40,7 +40,7 @@ void Draw_InitLocal (void)
 	// load console characters (don't bilerp characters)
 	draw_chars = R_FindImage ("base_menu/conchars.tga", def_font, sizeof(def_font), it_pic);
 
-	GL_Bind( draw_chars->texnum );
+	GL_Bind( draw_chars->texnum[0] );
 	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
@@ -80,7 +80,7 @@ void Draw_Char (int x, int y, int num)
 	fcol = col*0.0625;
 	size = 0.0625;
 
-	GL_Bind (draw_chars->texnum);
+	GL_Bind (draw_chars->texnum[0]);
 
 	VA_SetElem2(tex_array[0],fcol, frow);
 	VA_SetElem2(vert_array[0],x, y);
@@ -147,7 +147,7 @@ void Draw_StretchPic (int x, int y, int w, int h, char *pic)
 	gl = Draw_FindPic (pic);
 	if (!gl) return;
 
-	GL_Bind (gl->texnum);
+	GL_Bind (gl->texnum[0]);
 	qglBegin (GL_QUADS);
 	qglTexCoord2f (0, 0);
 	qglVertex2f (x, y);
@@ -173,7 +173,7 @@ void Draw_Pic (int x, int y, char *pic)
 	gl = Draw_FindPic (pic);
 	if (!gl) return;
 
-	GL_Bind (gl->texnum);
+	GL_Bind (gl->texnum[0]);
 	qglBegin (GL_QUADS);
 	qglTexCoord2f (0, 0);
 	qglVertex2f (x, y);
@@ -201,7 +201,7 @@ void Draw_TileClear (int x, int y, int w, int h, char *pic)
 	image = Draw_FindPic (pic);
 	if (!image) return;
 
-	GL_Bind (image->texnum);
+	GL_Bind (image->texnum[0]);
 	qglBegin (GL_QUADS);
 	qglTexCoord2f (x/64.0, y/64.0);
 	qglVertex2f (x, y);

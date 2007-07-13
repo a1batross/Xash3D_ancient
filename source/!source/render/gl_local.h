@@ -144,8 +144,17 @@ typedef enum
 	it_sprite,
 	it_wall,
 	it_pic,
-	it_sky
+	it_sky,
+	it_cubemap,
 } imagetype_t;
+
+// texnum supported cubemaps
+// 0 = rt or normal image
+// 1 = bk
+// 2 = lf
+// 3 = ft
+// 4 = up
+// 5 = dn
 
 typedef struct image_s
 {
@@ -154,17 +163,16 @@ typedef struct image_s
 	int		width, height;		// source image
 	int		registration_sequence;	// 0 = free
 	struct msurface_s	*texturechain;		// for sort-by-texture world drawing
-	int		texnum;			// gl texture binding
+	int		texnum[6];		// gl texture binding
 	bool 		paletted;
 
 	//new stuff starts here
 } image_t;
 
 #define	TEXNUM_LIGHTMAPS	1024
-#define	TEXNUM_SCRAPS		1152
-#define	TEXNUM_IMAGES		1153
-
-#define		MAX_GLTEXTURES	1024
+#define	TEXNUM_SCRAPS	1152
+#define	TEXNUM_IMAGES	1152
+#define	MAX_GLTEXTURES	1024
 
 //===================================================================
 
@@ -267,6 +275,8 @@ extern  cvar_t	*r_bloom_intensity;
 extern  cvar_t	*r_bloom_darken;
 extern  cvar_t	*r_bloom_sample_size;
 extern  cvar_t	*r_bloom_fast_sample;
+
+extern	cvar_t	*r_emboss_bump;
 
 extern	cvar_t	*r_motionblur_intens;
 extern	cvar_t	*r_motionblur;
