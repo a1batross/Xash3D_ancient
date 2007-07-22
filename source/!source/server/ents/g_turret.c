@@ -157,7 +157,7 @@ void turret_breach_fire (edict_t *self)
 				gi.WriteByte (svc_muzzleflash);
 				gi.WriteShort (self-g_edicts);
 				gi.WriteByte (MZ_RAILGUN);
-				gi.multicast (start, MULTICAST_PVS);
+				gi.multicast (start, MSG_PVS);
 
 				self->delay = level.time + self->wait;
 
@@ -211,7 +211,7 @@ void turret_breach_fire (edict_t *self)
 				gi.WriteByte (svc_muzzleflash);
 				gi.WriteShort (self-g_edicts);
 				gi.WriteByte (MZ_MACHINEGUN);
-				gi.multicast (start, MULTICAST_PVS);
+				gi.multicast (start, MSG_PVS);
 				self->delay = level.time; // No delay on machinegun
 				break;
 			}
@@ -228,7 +228,7 @@ void turret_breach_fire (edict_t *self)
 				gi.WriteByte (svc_muzzleflash2);
 				gi.WriteShort (self - g_edicts);
 				gi.WriteByte (MZ2_GUNNER_GRENADE_1);
-				gi.multicast (start, MULTICAST_PVS);
+				gi.multicast (start, MSG_PVS);
 				self->delay = level.time + self->wait;
 				break;
 			}

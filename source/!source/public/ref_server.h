@@ -80,8 +80,15 @@ struct edict_s
 //
 // functions provided by the main engine
 //
-typedef struct
+typedef struct game_import_s
 {
+	//shared xash systems
+	filesystem_api_t	Fs;
+	vfilesystem_api_t	VFs;
+	memsystem_api_t	Mem;
+	scriptsystem_api_t	Script;
+	compilers_api_t	Compile;
+
 	// special messages
 	void	(*bprintf) (int printlevel, char *fmt, ...);
 	void	(*dprintf) (char *fmt, ...);
@@ -125,7 +132,7 @@ typedef struct
 	byte	*(*getmodelhdr) (edict_t *ent);//returned a pointer on a studiohdr_t for current entity
 
 	// network messaging
-	void	(*multicast) (vec3_t origin, multicast_t to);
+	void	(*multicast) (vec3_t origin, msgtype_t to);
 	void	(*unicast) (edict_t *ent, bool reliable);
 	void	(*WriteChar) (int c);
 	void	(*WriteByte) (int c);
@@ -136,23 +143,6 @@ typedef struct
 	void	(*WritePosition) (vec3_t pos);	// some fractional bits
 	void	(*WriteDir) (vec3_t pos);		// single byte encoded, very coarse
 	void	(*WriteAngle) (float f);
-
-	//memory manager
-	void *(*MS_Alloc)		(byte *pool, size_t size, const char *filename, int fileline); 
-	void (*MS_Free)		(void *data, const char *filename, int fileline);
-	byte *(*MS_AllocPool)	(const char *name, const char *filename, int fileline);
-	void (*MS_FreePool)		(byte **pool, const char *filename, int fileline);
-	void (*MS_EmptyPool)	(byte *pool, const char *filename, int fileline);
-
-	//filesystem
-	file_t *(*fopen)		(const char* filepath, const char* mode);
-	fs_offset_t (*fread)	(file_t* file, void* buffer, size_t buffersize);
-	fs_offset_t (*fwrite)	(file_t* file, const void* data, size_t datasize);
-	int (*fprintf)		(file_t* file, char* fmt, ... );
-	int (*fclose)		(file_t* file);
-	int (*fseek)		(file_t* file, fs_offset_t offset, int whence);
-	fs_offset_t (*ftell)	(file_t* file);
-	int (*fgets)		(file_t* file, byte *string, size_t bufsize );
 	
 	// console variable interaction
 	cvar_t	*(*cvar) (char *var_name, char *value, int flags);
@@ -174,7 +164,7 @@ typedef struct
 //
 // functions exported by the game subsystem
 //
-typedef struct
+typedef struct game_export_s
 {
 	int			apiversion;
 
@@ -198,6 +188,8 @@ typedef struct
 	// loaded with SpawnEntities
 	void		(*WriteLevel) (file_t *f);
 	void		(*ReadLevel) (file_t *f);
+
+	void		(*WriteLump) (file_t *f, int lumpnum);
 
 	bool		(*ClientConnect) (edict_t *ent, char *userinfo);
 	void		(*ClientBegin) (edict_t *ent);

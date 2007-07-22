@@ -183,7 +183,7 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 					gi.WritePosition (tr.endpos);
 					gi.WriteDir (tr.plane.normal);
 					gi.WriteByte (color);
-					gi.multicast (tr.endpos, MULTICAST_PVS);
+					gi.multicast (tr.endpos, MSG_PVS);
 				}
 
 				// change bullet's course when it enters water
@@ -219,7 +219,7 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 					gi.WriteByte (te_impact);
 					gi.WritePosition (tr.endpos);
 					gi.WriteDir (tr.plane.normal);
-					gi.multicast (tr.endpos, MULTICAST_PVS);
+					gi.multicast (tr.endpos, MSG_PVS);
 
 					if(level.num_reflectors)
 						ReflectSparks(te_impact,tr.endpos,tr.plane.normal);
@@ -254,7 +254,7 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 		gi.WriteByte (TE_BUBBLETRAIL);
 		gi.WritePosition (water_start);
 		gi.WritePosition (tr.endpos);
-		gi.multicast (pos, MULTICAST_PVS);
+		gi.multicast (pos, MSG_PVS);
 	}
 }
 
@@ -330,7 +330,7 @@ void blaster_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *
 		else
 			gi.WriteDir (plane->normal);
 
-		gi.multicast (self->s.origin, MULTICAST_PVS);
+		gi.multicast (self->s.origin, MSG_PVS);
 
 		if(level.num_reflectors)
 		{
@@ -582,7 +582,7 @@ static void Grenade_Explode (edict_t *ent)
 	}
 	gi.WriteByte (type);
 	gi.WritePosition (origin);
-	gi.multicast (ent->s.origin, MULTICAST_PHS);
+	gi.multicast (ent->s.origin, MSG_PHS);
 
 	if(level.num_reflectors)
 		ReflectExplosion (type,origin);
@@ -1009,7 +1009,7 @@ void rocket_touch (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *su
 		type = TE_ROCKET_EXPLOSION;
 	gi.WriteByte (type);
 	gi.WritePosition (origin);
-	gi.multicast (ent->s.origin, MULTICAST_PHS);
+	gi.multicast (ent->s.origin, MSG_PHS);
 
 	if(level.num_reflectors)
 		ReflectExplosion(type,origin);
@@ -1037,7 +1037,7 @@ static void rocket_explode (edict_t *ent)
 		type = TE_ROCKET_EXPLOSION;
 	gi.WriteByte (type);
 	gi.WritePosition (origin);
-	gi.multicast (ent->s.origin, MULTICAST_PVS);
+	gi.multicast (ent->s.origin, MSG_PVS);
 
 	if(level.num_reflectors)
 		ReflectExplosion(type,origin);
@@ -1224,7 +1224,7 @@ void fire_rail (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick
 	gi.WriteByte (TE_RAILTRAIL);
 	gi.WritePosition (start);
 	gi.WritePosition (tr.endpos);
-	gi.multicast (self->s.origin, MULTICAST_PHS);
+	gi.multicast (self->s.origin, MSG_PHS);
 
 	if (level.num_reflectors)
 		ReflectTrail(TE_RAILTRAIL,start,tr.endpos);
@@ -1235,7 +1235,7 @@ void fire_rail (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick
 		gi.WriteByte (TE_RAILTRAIL);
 		gi.WritePosition (start);
 		gi.WritePosition (tr.endpos);
-		gi.multicast (tr.endpos, MULTICAST_PHS);
+		gi.multicast (tr.endpos, MSG_PHS);
 	}
 
 	if (self->client)
@@ -1281,7 +1281,7 @@ void bfg_explode (edict_t *self)
 			gi.WriteByte (svc_temp_entity);
 			gi.WriteByte (TE_BFG_EXPLOSION);
 			gi.WritePosition (ent->s.origin);
-			gi.multicast (ent->s.origin, MULTICAST_PHS);
+			gi.multicast (ent->s.origin, MSG_PHS);
 
 			if(level.num_reflectors)
 				ReflectExplosion(TE_BFG_EXPLOSION,ent->s.origin);
@@ -1331,7 +1331,7 @@ void bfg_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf
 	gi.WriteByte (svc_temp_entity);
 	gi.WriteByte (TE_BFG_BIGEXPLOSION);
 	gi.WritePosition (self->s.origin);
-	gi.multicast (self->s.origin, MULTICAST_PVS);
+	gi.multicast (self->s.origin, MSG_PVS);
 
 	if(level.num_reflectors)
 		ReflectExplosion(TE_BFG_BIGEXPLOSION,self->s.origin);
@@ -1397,7 +1397,7 @@ void bfg_think (edict_t *self)
 				gi.WritePosition (tr.endpos);
 				gi.WriteDir (tr.plane.normal);
 				gi.WriteByte (self->s.skinnum);
-				gi.multicast (tr.endpos, MULTICAST_PVS);
+				gi.multicast (tr.endpos, MSG_PVS);
 				break;
 			}
 
@@ -1409,7 +1409,7 @@ void bfg_think (edict_t *self)
 		gi.WriteByte (TE_BFG_LASER);
 		gi.WritePosition (self->s.origin);
 		gi.WritePosition (tr.endpos);
-		gi.multicast (self->s.origin, MULTICAST_PHS);
+		gi.multicast (self->s.origin, MSG_PHS);
 
 		if(level.num_reflectors)
 			ReflectTrail(TE_BFG_LASER,self->s.origin,tr.endpos);

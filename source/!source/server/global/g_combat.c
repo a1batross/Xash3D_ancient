@@ -170,7 +170,7 @@ void SpawnDamage (int type, vec3_t origin, vec3_t normal)
 	gi.WriteByte (type);
 	gi.WritePosition (origin);
 	gi.WriteDir (normal);
-	gi.multicast (origin, MULTICAST_PVS);
+	gi.multicast (origin, MSG_PVS);
 
 	if(level.num_reflectors)
 		ReflectSparks(type,origin,normal);

@@ -2488,6 +2488,8 @@ bool CreateMapsList( void )
 
 		if(fp)
 		{
+			int num_spawnpoints = 0;
+
 			memset(buf, 0, 1024);
 			FS_Read(fp, buf, 1024);
 			if (!memcmp(buf, "IBSP", 4))
@@ -2507,6 +2509,8 @@ bool CreateMapsList( void )
 				}
 				if(entities)
 				{
+					bool	have_title = false;
+					
 					data = entities;
 					while( 1 )
 					{
@@ -2520,12 +2524,21 @@ bool CreateMapsList( void )
 							keyname[l] = com_token[k+l];
 						keyname[l] = 0;
 						if (!COM_Parse(&data)) break;
-						if (!strcmp(keyname, "message"))
+
+						if (!strcmp(keyname, "message") && !have_title)
 						{
 							// get the message contents
 							strlcpy(message, com_token, sizeof(message));
-							break;
+							have_title = true;//get title once only
 						}
+						else if(!strcmp(keyname, "classname"))
+						{
+							if(!strcmp(com_token, "info_player_deatchmatch"))
+								num_spawnpoints++;
+							else if(!strcmp(com_token, "info_player_start"))
+								num_spawnpoints++;
+						}
+						if(num_spawnpoints > 0) break;//valid map
 					}
 				}
 			}
@@ -2538,7 +2551,7 @@ bool CreateMapsList( void )
 			strlcat(buffer, string, sizeof(string));//add new string
 		}
 	}
-	if( t )Z_Free(t);
+	if( t ) Z_Free(t);
 
 	//write generated maps.txt
 	result = FS_WriteFile("scripts/maps.txt", buffer, strlen(buffer));

@@ -66,7 +66,7 @@ void ReflectExplosion (int type, vec3_t origin)
 		gi.WriteByte (svc_temp_entity);
 		gi.WriteByte (type);
 		gi.WritePosition (org);
-		gi.multicast (org, MULTICAST_PHS);
+		gi.multicast (org, MSG_PHS);
 	}
 }
 
@@ -131,7 +131,7 @@ void ReflectTrail (int type, vec3_t start, vec3_t end)
 		gi.WriteByte (type);
 		gi.WritePosition (p1);
 		gi.WritePosition (p2);
-		gi.multicast (p1, MULTICAST_PHS);
+		gi.multicast (p1, MSG_PHS);
 	}
 }
 
@@ -198,7 +198,7 @@ void ReflectSteam (vec3_t origin,vec3_t movedir,int count,int sounds,int speed, 
 		gi.WriteByte (sounds&0xff);
 		gi.WriteShort (speed);
 		gi.WriteLong (wait);
-		gi.multicast (org, MULTICAST_PHS);
+		gi.multicast (org, MSG_PHS);
 	}
 }
 
@@ -265,7 +265,7 @@ void ReflectSparks (int type,vec3_t origin,vec3_t movedir)
 		gi.WritePosition(org);
 		if(type != TE_CHAINFIST_SMOKE) 
 			gi.WriteDir(dir);
-		gi.multicast(org, MULTICAST_PHS);
+		gi.multicast(org, MSG_PHS);
 
 	}
 }

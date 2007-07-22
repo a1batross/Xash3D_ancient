@@ -6,13 +6,29 @@
 --------------------Configuration: render - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\Temp\RSP19D.tmp" with contents
+Creating temporary file "C:\Temp\RSP563.tmp" with contents
 [
 /nologo /MTd /W3 /Gm /Gi /GX /ZI /Od /I "../public" /I "../platform/formats" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\render\!debug/" /Fo"..\temp\render\!debug/" /Fd"..\temp\render\!debug/" /FD /c 
+"D:\XASH3D\src_main\!source\render\gl_draw.c"
+"D:\XASH3D\src_main\!source\render\gl_light.c"
+"D:\XASH3D\src_main\!source\render\gl_mesh.c"
+"D:\XASH3D\src_main\!source\render\gl_model.c"
+"D:\XASH3D\src_main\!source\render\gl_rmain.c"
+"D:\XASH3D\src_main\!source\render\gl_rmisc.c"
+"D:\XASH3D\src_main\!source\render\gl_rsurf.c"
+"D:\XASH3D\src_main\!source\render\gl_warp.c"
+"D:\XASH3D\src_main\!source\render\gl_widnt.c"
+"D:\XASH3D\src_main\!source\render\glw_imp.c"
+"D:\XASH3D\src_main\!source\render\r_backend.c"
+"D:\XASH3D\src_main\!source\render\r_bloom.c"
+"D:\XASH3D\src_main\!source\render\r_bspmod.c"
+"D:\XASH3D\src_main\!source\render\r_sprite.c"
+"D:\XASH3D\src_main\!source\render\r_studio.c"
 "D:\XASH3D\src_main\!source\render\r_texture.c"
+"D:\XASH3D\src_main\!source\render\r_utils.c"
 ]
-Creating command line "cl.exe @C:\Temp\RSP19D.tmp" 
-Creating temporary file "C:\Temp\RSP19E.tmp" with contents
+Creating command line "cl.exe @C:\Temp\RSP563.tmp" 
+Creating temporary file "C:\Temp\RSP564.tmp" with contents
 [
 kernel32.lib user32.lib gdi32.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..\temp\render\!debug/render.pdb" /debug /machine:I386 /nodefaultlib:"libc.lib" /out:"..\temp\render\!debug/render.dll" /implib:"..\temp\render\!debug/render.lib" /pdbtype:sept /libpath:"../public/libs/" 
 "\XASH3D\src_main\!source\temp\render\!debug\gl_draw.obj"
@@ -33,16 +49,34 @@ kernel32.lib user32.lib gdi32.lib /nologo /subsystem:windows /dll /incremental:y
 "\XASH3D\src_main\!source\temp\render\!debug\r_texture.obj"
 "\XASH3D\src_main\!source\temp\render\!debug\r_utils.obj"
 ]
-Creating command line "link.exe @C:\Temp\RSP19E.tmp"
-Creating temporary file "C:\Temp\RSP19F.bat" with contents
+Creating command line "link.exe @C:\Temp\RSP564.tmp"
+Creating temporary file "C:\Temp\RSP565.bat" with contents
 [
 @echo off
 copy \XASH3D\src_main\!source\temp\render\!debug\render.dll "D:\Xash3D\bin\render.dll"
 ]
-Creating command line "C:\Temp\RSP19F.bat"
+Creating command line "C:\Temp\RSP565.bat"
 Compiling...
+gl_draw.c
+gl_light.c
+gl_mesh.c
+gl_model.c
+gl_rmain.c
+gl_rmisc.c
+gl_rsurf.c
+gl_warp.c
+gl_widnt.c
+glw_imp.c
+r_backend.c
+r_bloom.c
+r_bspmod.c
+r_sprite.c
+r_studio.c
 r_texture.c
+r_utils.c
+Generating Code...
 Linking...
+   Creating library ..\temp\render\!debug/render.lib and object ..\temp\render\!debug/render.exp
 <h3>Output Window</h3>
 Performing Custom Build Step on \XASH3D\src_main\!source\temp\render\!debug\render.dll
 Скопировано файлов:         1.

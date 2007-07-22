@@ -49,6 +49,7 @@ platform_api_t DLLEXPORT *CreateAPI ( stdio_api_t *input )
 
 	//get interfaces
 	pi.Fs = FS_GetAPI();
+	pi.VFs = VFS_GetAPI();
 	pi.Mem = Mem_GetAPI();
 	pi.Script = Sc_GetAPI();
 	pi.Compile = Comp_GetAPI();

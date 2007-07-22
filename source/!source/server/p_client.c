@@ -1244,7 +1244,7 @@ void spectator_respawn (edict_t *ent)
 		gi.WriteByte (svc_muzzleflash);
 		gi.WriteShort (ent-g_edicts);
 		gi.WriteByte (MZ_LOGIN);
-		gi.multicast (ent->s.origin, MULTICAST_PVS);
+		gi.multicast (ent->s.origin, MSG_PVS);
 
 		// hold in place briefly
 		ent->client->ps.pmove.pm_flags = PMF_TIME_TELEPORT;
@@ -1565,7 +1565,7 @@ void ClientBeginDeathmatch (edict_t *ent)
 		gi.WriteByte (svc_muzzleflash);
 		gi.WriteShort (ent-g_edicts);
 		gi.WriteByte (MZ_LOGIN);
-		gi.multicast (ent->s.origin, MULTICAST_PVS);
+		gi.multicast (ent->s.origin, MSG_PVS);
 	}
 
 	gi.bprintf (PRINT_HIGH, "%s entered the game\n", ent->client->pers.netname);
@@ -1638,7 +1638,7 @@ void ClientBegin (edict_t *ent)
 			gi.WriteByte (svc_muzzleflash);
 			gi.WriteShort (ent-g_edicts);
 			gi.WriteByte (MZ_LOGIN);
-			gi.multicast (ent->s.origin, MULTICAST_PVS);
+			gi.multicast (ent->s.origin, MSG_PVS);
 
 			gi.bprintf (PRINT_HIGH, "%s entered the game\n", ent->client->pers.netname);
 		}
@@ -1862,7 +1862,7 @@ void ClientDisconnect (edict_t *ent)
 	gi.WriteByte (svc_muzzleflash);
 	gi.WriteShort (ent-g_edicts);
 	gi.WriteByte (MZ_LOGOUT);
-	gi.multicast (ent->s.origin, MULTICAST_PVS);
+	gi.multicast (ent->s.origin, MSG_PVS);
 
 	gi.unlinkentity (ent);
 	ent->s.modelindex = 0;

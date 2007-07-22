@@ -1,0 +1,47 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: launcher - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\Temp\RSP558.tmp" with contents
+[
+/nologo /MTd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "../public" /I "../platform/formats" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\launcher\!debug/" /Fo"..\temp\launcher\!debug/" /Fd"..\temp\launcher\!debug/" /FD /GZ /c 
+"D:\XASH3D\src_main\!source\launcher\console.c"
+"D:\XASH3D\src_main\!source\launcher\launcher.c"
+"D:\XASH3D\src_main\!source\launcher\utils.c"
+]
+Creating command line "cl.exe @C:\Temp\RSP558.tmp" 
+Creating temporary file "C:\Temp\RSP559.tmp" with contents
+[
+kernel32.lib user32.lib gdi32.lib advapi32.lib /nologo /dll /incremental:yes /pdb:"..\temp\launcher\!debug/launcher.pdb" /debug /machine:I386 /out:"..\temp\launcher\!debug/launcher.dll" /implib:"..\temp\launcher\!debug/launcher.lib" /pdbtype:sept 
+"\XASH3D\src_main\!source\temp\launcher\!debug\console.obj"
+"\XASH3D\src_main\!source\temp\launcher\!debug\launcher.obj"
+"\XASH3D\src_main\!source\temp\launcher\!debug\utils.obj"
+]
+Creating command line "link.exe @C:\Temp\RSP559.tmp"
+Creating temporary file "C:\Temp\RSP55A.bat" with contents
+[
+@echo off
+copy \XASH3D\src_main\!source\temp\launcher\!debug\launcher.dll "D:\Xash3D\bin\launcher.dll"
+]
+Creating command line "C:\Temp\RSP55A.bat"
+Compiling...
+console.c
+launcher.c
+utils.c
+Generating Code...
+Linking...
+<h3>Output Window</h3>
+Performing Custom Build Step on \XASH3D\src_main\!source\temp\launcher\!debug\launcher.dll
+Скопировано файлов:         1.
+
+
+
+<h3>Results</h3>
+launcher.dll - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

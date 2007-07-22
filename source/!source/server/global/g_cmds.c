@@ -149,7 +149,7 @@ void laser_sight_think(edict_t *laser)
 
 void SaveEntProps(edict_t *e, file_t *f)
 {
-	gi.fprintf(f,
+	gi.Fs.Printf(f,
 		"================================\n"
 		"entity_state_t\n"
 		"   number      = %d\n"
@@ -171,7 +171,7 @@ void SaveEntProps(edict_t *e, file_t *f)
 		e->s.body,e->s.sequence,e->s.frame,
 		e->s.skinnum,e->s.effects,e->s.solid,e->s.sound,
 		e->s.event);
-	gi.fprintf(f,"inuse       = %d\n"
+	gi.Fs.Printf(f,"inuse       = %d\n"
 		"linkcount   = %d\n"
 		"svflags     = 0x%08x\n"
 		"mins        = %s\n"
@@ -184,7 +184,7 @@ void SaveEntProps(edict_t *e, file_t *f)
 		e->inuse,e->linkcount,e->svflags,vtos(e->mins),
 		vtos(e->maxs),vtos(e->absmin),vtos(e->absmax),
 		vtos(e->size),e->solid,e->clipmask);
-	gi.fprintf(f,"movetype    = 0x%08x\n"
+	gi.Fs.Printf(f,"movetype    = 0x%08x\n"
 		"flags       = 0x%08x\n"
 		"freetime    = %g\n"
 		"message     = %s\n"
@@ -205,7 +205,7 @@ void SaveEntProps(edict_t *e, file_t *f)
 		e->classname,e->spawnflags,e->timestamp,e->angle,e->target,
 		e->targetname,e->killtarget,e->team,e->pathtarget,e->deathtarget,
 		e->combattarget,e->dmgteam);
-	gi.fprintf(f,"speed       = %g\n"
+	gi.Fs.Printf(f,"speed       = %g\n"
 		"accel       = %g\n"
 		"decel       = %g\n"
 		"movedir     = %s\n"
@@ -228,7 +228,7 @@ void SaveEntProps(edict_t *e, file_t *f)
 		e->mass,e->air_finished,e->gravity,e->yaw_speed,e->ideal_yaw,
 		e->pitch_speed,e->ideal_pitch,e->ideal_roll,e->roll,
 		(e->groundentity ? e->groundentity->classname : "None") );
-	gi.fprintf(f,"touch_debounce_time  = %g\n"
+	gi.Fs.Printf(f,"touch_debounce_time  = %g\n"
 		"pain_debounce_time   = %g\n"
 		"damage_debounce_time = %g\n"
 		"gravity_debounce_time= %g\n"
@@ -237,7 +237,7 @@ void SaveEntProps(edict_t *e, file_t *f)
 		e->touch_debounce_time,e->pain_debounce_time,
 		e->damage_debounce_time,e->gravity_debounce_time,
 		e->fly_sound_debounce_time,e->last_move_time);
-	gi.fprintf(f,"health      = %d\n"
+	gi.Fs.Printf(f,"health      = %d\n"
 		"max_health  = %d\n"
 		"gib_health  = %d\n"
 		"deadflag    = %d\n"
@@ -247,7 +247,7 @@ void SaveEntProps(edict_t *e, file_t *f)
 		"powerarmor_time=%g\n",
 		e->health,e->max_health,e->gib_health,e->deadflag,e->show_hostile,
 		e->health2,e->mass2,e->powerarmor_time);
-	gi.fprintf(f,"viewheight  = %d\n"
+	gi.Fs.Printf(f,"viewheight  = %d\n"
 		"takedamage  = %d\n"
 		"dmg         = %d\n"
 		"radius_dmg  = %d\n"
@@ -256,7 +256,7 @@ void SaveEntProps(edict_t *e, file_t *f)
 		"count       = %d\n",
 		e->viewheight,e->takedamage,e->dmg,e->radius_dmg,e->dmg_radius,
 		e->sounds,e->count);
-	gi.fprintf(f,"noise_index = %d\n"
+	gi.Fs.Printf(f,"noise_index = %d\n"
 		"noise_index2= %d\n"
 		"volume      = %d\n"
 		"attenuation = %g\n"
@@ -273,12 +273,12 @@ void SaveEntProps(edict_t *e, file_t *f)
 		e->noise_index,e->noise_index2,e->volume,e->attenuation,
 		e->wait,e->delay,e->random,e->starttime,e->endtime,e->teleport_time,
 		e->watertype,e->waterlevel,vtos(e->move_origin),vtos(e->move_angles));
-	gi.fprintf(f,"light_level = %d\n"
+	gi.Fs.Printf(f,"light_level = %d\n"
 		"style       = %d\n",
 		e->light_level,e->style);
-	gi.fprintf(f,"enemy = %s\n",(e->enemy ? e->enemy->classname : "NULL"));
-	gi.fprintf(f,"enemy->inuse? %s\n",(e->enemy && e->enemy->inuse ? "Y" : "N"));
-	gi.fprintf(f,"moveinfo_t\n"
+	gi.Fs.Printf(f,"enemy = %s\n",(e->enemy ? e->enemy->classname : "NULL"));
+	gi.Fs.Printf(f,"enemy->inuse? %s\n",(e->enemy && e->enemy->inuse ? "Y" : "N"));
+	gi.Fs.Printf(f,"moveinfo_t\n"
 		"   start_origin    = %s\n"
 		"   start_angles    = %s\n"
 		"   end_origin      = %s\n"
@@ -308,7 +308,7 @@ void SaveEntProps(edict_t *e, file_t *f)
 		e->moveinfo.state,vtos(e->moveinfo.dir),e->moveinfo.current_speed,
 		e->moveinfo.move_speed,e->moveinfo.next_speed,
 		e->moveinfo.remaining_distance,e->moveinfo.decel_distance);
-	gi.fprintf(f,"monsterinfo\n"
+	gi.Fs.Printf(f,"monsterinfo\n"
 		"   aiflags          = 0x%08x\n"
 		"   nextframe        = %d\n"
 		"   scale            = %g\n"
@@ -1453,19 +1453,19 @@ void DrawBBox(edict_t *ent)
 	gi.WriteByte (TE_DEBUGTRAIL);
 	gi.WritePosition (p1);
 	gi.WritePosition (p2);
-	gi.multicast (p1, MULTICAST_ALL);
+	gi.multicast (p1, MSG_ALL);
 	VectorSet(p2,origin[0]+ent->mins[0],origin[1]+ent->maxs[1],origin[2]+ent->mins[2]);
 	gi.WriteByte (svc_temp_entity);
 	gi.WriteByte (TE_DEBUGTRAIL);
 	gi.WritePosition (p1);
 	gi.WritePosition (p2);
-	gi.multicast (p1, MULTICAST_ALL);
+	gi.multicast (p1, MSG_ALL);
 	VectorSet(p2,origin[0]+ent->maxs[0],origin[1]+ent->mins[1],origin[2]+ent->mins[2]);
 	gi.WriteByte (svc_temp_entity);
 	gi.WriteByte (TE_DEBUGTRAIL);
 	gi.WritePosition (p1);
 	gi.WritePosition (p2);
-	gi.multicast (p1, MULTICAST_ALL);
+	gi.multicast (p1, MSG_ALL);
 
 	VectorSet(p1,origin[0]+ent->maxs[0],origin[1]+ent->maxs[1],origin[2]+ent->mins[2]);
 	VectorSet(p2,origin[0]+ent->maxs[0],origin[1]+ent->maxs[1],origin[2]+ent->maxs[2]);
@@ -1473,19 +1473,19 @@ void DrawBBox(edict_t *ent)
 	gi.WriteByte (TE_DEBUGTRAIL);
 	gi.WritePosition (p1);
 	gi.WritePosition (p2);
-	gi.multicast (p1, MULTICAST_ALL);
+	gi.multicast (p1, MSG_ALL);
 	VectorSet(p2,origin[0]+ent->maxs[0],origin[1]+ent->mins[1],origin[2]+ent->mins[2]);
 	gi.WriteByte (svc_temp_entity);
 	gi.WriteByte (TE_DEBUGTRAIL);
 	gi.WritePosition (p1);
 	gi.WritePosition (p2);
-	gi.multicast (p1, MULTICAST_ALL);
+	gi.multicast (p1, MSG_ALL);
 	VectorSet(p2,origin[0]+ent->mins[0],origin[1]+ent->maxs[1],origin[2]+ent->mins[2]);
 	gi.WriteByte (svc_temp_entity);
 	gi.WriteByte (TE_DEBUGTRAIL);
 	gi.WritePosition (p1);
 	gi.WritePosition (p2);
-	gi.multicast (p1, MULTICAST_ALL);
+	gi.multicast (p1, MSG_ALL);
 
 	VectorSet(p1,origin[0]+ent->maxs[0],origin[1]+ent->mins[1],origin[2]+ent->maxs[2]);
 	VectorSet(p2,origin[0]+ent->maxs[0],origin[1]+ent->mins[1],origin[2]+ent->mins[2]);
@@ -1493,19 +1493,19 @@ void DrawBBox(edict_t *ent)
 	gi.WriteByte (TE_DEBUGTRAIL);
 	gi.WritePosition (p1);
 	gi.WritePosition (p2);
-	gi.multicast (p1, MULTICAST_ALL);
+	gi.multicast (p1, MSG_ALL);
 	VectorSet(p2,origin[0]+ent->maxs[0],origin[1]+ent->maxs[1],origin[2]+ent->maxs[2]);
 	gi.WriteByte (svc_temp_entity);
 	gi.WriteByte (TE_DEBUGTRAIL);
 	gi.WritePosition (p1);
 	gi.WritePosition (p2);
-	gi.multicast (p1, MULTICAST_ALL);
+	gi.multicast (p1, MSG_ALL);
 	VectorSet(p2,origin[0]+ent->mins[0],origin[1]+ent->mins[1],origin[2]+ent->maxs[2]);
 	gi.WriteByte (svc_temp_entity);
 	gi.WriteByte (TE_DEBUGTRAIL);
 	gi.WritePosition (p1);
 	gi.WritePosition (p2);
-	gi.multicast (p1, MULTICAST_ALL);
+	gi.multicast (p1, MSG_ALL);
 
 	VectorSet(p1,origin[0]+ent->mins[0],origin[1]+ent->maxs[1],origin[2]+ent->maxs[2]);
 	VectorSet(p2,origin[0]+ent->mins[0],origin[1]+ent->maxs[1],origin[2]+ent->mins[2]);
@@ -1513,19 +1513,19 @@ void DrawBBox(edict_t *ent)
 	gi.WriteByte (TE_DEBUGTRAIL);
 	gi.WritePosition (p1);
 	gi.WritePosition (p2);
-	gi.multicast (p1, MULTICAST_ALL);
+	gi.multicast (p1, MSG_ALL);
 	VectorSet(p2,origin[0]+ent->mins[0],origin[1]+ent->mins[1],origin[2]+ent->maxs[2]);
 	gi.WriteByte (svc_temp_entity);
 	gi.WriteByte (TE_DEBUGTRAIL);
 	gi.WritePosition (p1);
 	gi.WritePosition (p2);
-	gi.multicast (p1, MULTICAST_ALL);
+	gi.multicast (p1, MSG_ALL);
 	VectorSet(p2,origin[0]+ent->maxs[0],origin[1]+ent->maxs[1],origin[2]+ent->maxs[2]);
 	gi.WriteByte (svc_temp_entity);
 	gi.WriteByte (TE_DEBUGTRAIL);
 	gi.WritePosition (p1);
 	gi.WritePosition (p2);
-	gi.multicast (p1, MULTICAST_ALL);
+	gi.multicast (p1, MSG_ALL);
 }
 void Cmd_Bbox_f (edict_t *ent)
 {
@@ -1668,7 +1668,7 @@ void forcewall_think(edict_t *self)
 	gi.WritePosition (self->pos1);
 	gi.WritePosition (self->pos2);
 	gi.WriteByte  (self->style);
-	gi.multicast (self->s.origin, MULTICAST_PVS);
+	gi.multicast (self->s.origin, MSG_PVS);
 	self->nextthink = level.time + FRAMETIME;
 }
 
@@ -2297,9 +2297,10 @@ void ClientCommand (edict_t *ent)
 			vec3_t	origin;
 			int		count;
 
-			f = gi.fopen(parm,"w");
-			if(f) {
-				gi.fprintf(f,"Movetype codes\n"
+			f = gi.Fs.Open(parm,"w");
+			if( f )
+			{
+				gi.Fs.Printf(f,"Movetype codes\n"
 					      " 0 MOVETYPE_NONE\n"
 						  " 1 MOVETYPE_NOCLIP\n"
 						  " 2 MOVETYPE_PUSH       (most moving brush models)\n"
@@ -2314,12 +2315,12 @@ void ClientCommand (edict_t *ent)
 						  "11 MOVETYPE_PUSHABLE   (Lazarus func_pushable)\n"
 						  "12 MOVETYPE_DEBRIS     (Lazarus target_rocks)\n"
 						  "13 MOVETYPE_RAIN       (Lazarus precipitation)\n\n");
-				gi.fprintf(f,"Solid codes\n"
+				gi.Fs.Printf(f,"Solid codes\n"
 					      " 0 SOLID_NOT       no interaction with other objects\n"
 						  " 1 SOLID_TRIGGER   trigger fields, pickups\n"
 						  " 2 SOLID_BBOX      solid point entities\n"
 						  " 3 SOLID_BSP       brush models\n\n");
-				gi.fprintf(f,"CONTENT_ codes (clipmask)\n"
+				gi.Fs.Printf(f,"CONTENT_ codes (clipmask)\n"
 					      " 0x00000001 SOLID\n"
 						  " 0x00000002 WINDOW\n"
 						  " 0x00000004 AUX\n"
@@ -2342,34 +2343,39 @@ void ClientCommand (edict_t *ent)
 						  " 0x08000000 DETAIL\n"
 						  " 0x10000000 TRANSLUCENT\n"
 						  " 0x20000000 LADDER\n\n");
-				gi.fprintf(f,"NOTE: \"freed\" indicates an empty slot in the edicts array.\n\n");
+				gi.Fs.Printf(f,"NOTE: \"freed\" indicates an empty slot in the edicts array.\n\n");
 
-				gi.fprintf(f,"============================================================\n");
+				gi.Fs.Printf(f,"============================================================\n");
 				count = 0;
-				for(i=0, e=&g_edicts[0]; i<globals.num_edicts; i++, e++) {
+				for(i = 0, e = &g_edicts[0]; i < globals.num_edicts; i++, e++)
+				{
 					VectorAdd(e->s.origin,e->origin_offset,origin);
-					gi.fprintf(f,"entity #%d, classname = %s at %s, velocity = %s\n",i,e->classname,vtos(origin),vtos(e->velocity));
-					gi.fprintf(f,"health=%d, mass=%d, dmg=%d, wait=%g, angles=%s\n",e->health, e->mass, e->dmg, e->wait, vtos(e->s.angles));
-					gi.fprintf(f,"targetname=%s, target=%s, spawnflags=0x%04x\n",e->targetname,e->target,e->spawnflags);
-					gi.fprintf(f,"absmin,absmax,size=%s, %s, %s\n",vtos(e->absmin),vtos(e->absmax),vtos(e->size));
-					gi.fprintf(f,"groundentity=%s\n",(e->groundentity ? e->groundentity->classname : "NULL"));
+					gi.Fs.Printf(f,"entity #%d, classname = %s at %s, velocity = %s\n",i,e->classname,vtos(origin),vtos(e->velocity));
+					gi.Fs.Printf(f,"health=%d, mass=%d, dmg=%d, wait=%g, angles=%s\n",e->health, e->mass, e->dmg, e->wait, vtos(e->s.angles));
+					gi.Fs.Printf(f,"targetname=%s, target=%s, spawnflags=0x%04x\n",e->targetname,e->target,e->spawnflags);
+					gi.Fs.Printf(f,"absmin,absmax,size=%s, %s, %s\n",vtos(e->absmin),vtos(e->absmax),vtos(e->size));
+					gi.Fs.Printf(f,"groundentity=%s\n",(e->groundentity ? e->groundentity->classname : "NULL"));
 					if(e->classname)
 					{
 						// class-specific output
 						if(e->class_id == ENTITY_TARGET_CHANGELEVEL)
-							gi.fprintf(f,"map=%s\n",e->map);
+							gi.Fs.Printf(f,"map=%s\n",e->map);
 					}
-					gi.fprintf(f,"movetype=%d, solid=%d, clipmask=0x%08x\n",e->movetype,e->solid,e->clipmask);
-					gi.fprintf(f,"================================================================================\n");
+					gi.Fs.Printf(f,"movetype=%d, solid=%d, clipmask=0x%08x\n",e->movetype,e->solid,e->clipmask);
+					gi.Fs.Printf(f,"================================================================================\n");
 					if(e->inuse) count++;
 				}
-				gi.fprintf(f,"Total number of entities = %d\n",count);
-				gi.fclose(f);
+				gi.Fs.Printf(f,"Total number of entities = %d\n",count);
+				gi.Fs.Close(f);
 				gi.dprintf("done!\n");
-			} else {
+			} 
+			else
+			{
 				gi.dprintf("Error opening %s\n",parm);
 			}
-		} else {
+		}
+		else
+		{
 			gi.dprintf("syntax: entlist <filename>\n");
 		}
 	}
@@ -2418,14 +2424,12 @@ void ClientCommand (edict_t *ent)
 	
 			GameDirRelativePath(parm,filename);
 			strcat(filename,".txt");
-			f = gi.fopen(filename,"w");
-//			for(i=0; i<globals.num_edicts; i++)
-//			{
-//				e = &g_edicts[i];
-				SaveEntProps(e,f);
-//			}
-			gi.fclose(f);
-		} else {
+			f = gi.Fs.Open(filename,"w");
+			SaveEntProps(e, f);
+			gi.Fs.Close(f);
+		}
+		else
+		{
 			gi.dprintf("syntax: properties <filename>\n");
 		}
 	}

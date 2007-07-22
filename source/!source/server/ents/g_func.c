@@ -4216,7 +4216,7 @@ void force_wall_think(edict_t *self)
 		gi.WritePosition (self->pos1);
 		gi.WritePosition (self->pos2);
 		gi.WriteByte  (self->style);
-		gi.multicast (self->offset, MULTICAST_PVS);
+		gi.multicast (self->offset, MSG_PVS);
 	}
 
 	self->think = force_wall_think;

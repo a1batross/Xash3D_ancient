@@ -96,7 +96,7 @@ void SV_WriteSaveFile( int mode )
 
 	file_t	*savfile;
 	
-	switch(mode)
+	switch( mode )
 	{
 	case QUICK: 
 		sprintf (path, "save/quick.bin" );

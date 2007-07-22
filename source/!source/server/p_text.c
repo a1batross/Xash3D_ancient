@@ -238,15 +238,15 @@ void Do_Text_Display(edict_t *activator, int flags, char *message)
 		strcat(filename,"\\maps\\");
 		strcat(filename, message);
 
-		f = gi.fopen(filename, "rb" );
+		f = gi.Fs.Open(filename, "rb" );
 		if(!f)
 		{
 			gi.dprintf("File not found:%s\n",filename);
 			return;
 		}
-		gi.fseek(f, 0, SEEK_END);
-		L = gi.ftell (f);
-		gi.fseek(f, 0, SEEK_SET);
+		gi.Fs.Seek(f, 0, SEEK_END);
+		L = gi.Fs.Tell (f);
+		gi.Fs.Seek(f, 0, SEEK_SET);
 		hnd->allocated = L+128;
 		hnd->buffer = malloc(hnd->allocated);
 		if(!hnd->buffer)
@@ -256,8 +256,8 @@ void Do_Text_Display(edict_t *activator, int flags, char *message)
 			return;
 		}
 		memset(hnd->buffer, 0, hnd->allocated);
-		gi.fread(f, hnd->buffer, L);
-		gi.fclose(f);
+		gi.Fs.Read(f, hnd->buffer, L);
+		gi.Fs.Close(f);
 	}
 	else
 	{

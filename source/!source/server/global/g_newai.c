@@ -10,7 +10,7 @@
 		gi.WriteByte (TE_DEBUGTRAIL);
 		gi.WritePosition (pt1);
 		gi.WritePosition (pt2);
-		gi.multicast (pt1, MULTICAST_PVS);	
+		gi.multicast (pt1, MSG_PVS);	
 
 		self->nextthink = level.time + 10;
 */
@@ -1240,7 +1240,7 @@ void drawbbox (edict_t *self)
 			gi.WriteByte (TE_DEBUGTRAIL);
 			gi.WritePosition (pt[starts[i]]);
 			gi.WritePosition (pt[lines[i][j]]);
-			gi.multicast (pt[starts[i]], MULTICAST_ALL);	
+			gi.multicast (pt[starts[i]], MSG_ALL);	
 		}
 	}
 
@@ -1252,7 +1252,7 @@ void drawbbox (edict_t *self)
 	gi.WriteByte (TE_DEBUGTRAIL);
 	gi.WritePosition (self->s.origin);
 	gi.WritePosition (newbox);
-	gi.multicast (self->s.origin, MULTICAST_PVS);	
+	gi.multicast (self->s.origin, MSG_PVS);	
 	VectorClear (newbox);
 
 	VectorMA (self->s.origin, 50, r, newbox);
@@ -1260,7 +1260,7 @@ void drawbbox (edict_t *self)
 	gi.WriteByte (TE_DEBUGTRAIL);
 	gi.WritePosition (self->s.origin);
 	gi.WritePosition (newbox);
-	gi.multicast (self->s.origin, MULTICAST_PVS);	
+	gi.multicast (self->s.origin, MSG_PVS);	
 	VectorClear (newbox);
 
 	VectorMA (self->s.origin, 50, u, newbox);
@@ -1268,7 +1268,7 @@ void drawbbox (edict_t *self)
 	gi.WriteByte (TE_DEBUGTRAIL);
 	gi.WritePosition (self->s.origin);
 	gi.WritePosition (newbox);
-	gi.multicast (self->s.origin, MULTICAST_PVS);	
+	gi.multicast (self->s.origin, MSG_PVS);	
 	VectorClear (newbox);
 }
 

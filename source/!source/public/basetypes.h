@@ -33,6 +33,7 @@ typedef unsigned long	dword;
 typedef unsigned int	uint;
 typedef signed __int64	int64;
 typedef struct file_s	file_t;
+typedef struct vfile_s	vfile_t;
 typedef struct edict_s	edict_t;
 typedef struct gclient_s	gclient_t;
 typedef float		vec_t;

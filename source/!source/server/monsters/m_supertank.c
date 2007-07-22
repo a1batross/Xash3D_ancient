@@ -653,7 +653,7 @@ void BossExplode (edict_t *self)
 	gi.WriteByte (svc_temp_entity);
 	gi.WriteByte (TE_EXPLOSION1);
 	gi.WritePosition (org);
-	gi.multicast (self->s.origin, MULTICAST_PVS);
+	gi.multicast (self->s.origin, MSG_PVS);
 
 	if (level.num_reflectors)
 		ReflectExplosion (TE_EXPLOSION1, self->s.origin);

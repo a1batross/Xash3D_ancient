@@ -37,6 +37,17 @@ enum comp_format
 	PF_TOTALCOUNT,	// must be last
 };
 
+typedef enum
+{
+	MSG_ONE,
+	MSG_ALL,
+	MSG_PHS,
+	MSG_PVS,
+	MSG_ALL_R,
+	MSG_PHS_R,
+	MSG_PVS_R,
+} msgtype_t;
+
 //format info table
 typedef struct
 {
@@ -150,7 +161,7 @@ typedef struct filesystem_api_s
 	void (*FreeSearch)( search_t *search );			// free search results
 
 	//file low-level operations
-	file_t *(*Open)(const char* path, const char* mode);		// same as fread but see trough pakfile
+	file_t *(*Open)(const char* path, const char* mode);		// same as fopen
 	int (*Close)(file_t* file);					// same as fclose
 	long (*Write)(file_t* file, const void* data, size_t datasize);	// same as fwrite
 	long (*Read)(file_t* file, void* buffer, size_t buffersize);	// same as fread, can see trough pakfile
@@ -168,6 +179,20 @@ typedef struct filesystem_api_s
 
 } filesystem_api_t;
 
+typedef struct vfilesystem_api_s
+{
+	//interface validator
+	size_t	api_size;		// must matched with sizeof(vfilesystem_api_t)
+
+	//file low-level operations
+	vfile_t *(*Open)(file_t* file, const char* mode);			// virtual fopen
+	int (*Close)(vfile_t* file);					// free buffer or write dump
+	long (*Write)(vfile_t* file, const void* data, size_t datasize);	// write into buffer
+	long (*Read)(vfile_t* file, void* buffer, size_t buffersize);	// read from buffer
+	int (*Seek)(vfile_t* file, fs_offset_t offset, int whence);		// fseek, can seek in packfiles too
+	long (*Tell)(vfile_t* file);					// like a ftell
+
+} vfilesystem_api_t;
 
 /*
 ==============================================================================
@@ -218,6 +243,29 @@ typedef struct scriptsystem_api_s
 	char *(*ParseToken)(const char **data_p);		// parse token from char buffer
 
 } scriptsystem_api_t;
+
+/*
+==============================================================================
+
+NETWORK MESSAGES INTERFACE
+==============================================================================
+*/
+
+typedef struct message_api_s
+{
+	void (*Begin)( msgtype_t type, int dest, vec3_t origin, edict_t *ent, bool reliable );
+	void (*WriteChar) (int c);
+	void (*WriteByte) (int c);
+	void (*WriteShort) (int c);
+	void (*WriteLong) (int c);
+	void (*WriteFloat) (float f);
+	void (*WriteString) (char *s);
+	void (*WriteCoord) (vec3_t pos);	// some fractional bits
+	void (*WriteDir) (vec3_t pos);	// single byte encoded, very coarse
+	void (*WriteAngle) (float f);
+	void (*End)( void );		//marker of end message
+
+} message_api_t;
 
 /*
 ==============================================================================
@@ -297,6 +345,7 @@ typedef struct platform_api_s
 
 	//platform systems
 	filesystem_api_t	Fs;
+	vfilesystem_api_t	VFs;
 	memsystem_api_t	Mem;
 	scriptsystem_api_t	Script;
 	compilers_api_t	Compile;

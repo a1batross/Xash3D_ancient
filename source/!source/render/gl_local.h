@@ -460,7 +460,6 @@ typedef struct
 	const char *extensions_string;
 
 	bool	allow_cds;
-	bool	sgis_generate_mipmap;
 	bool	arb_compressed_teximage;
 } glconfig_t;
 

@@ -227,7 +227,7 @@ void PF_Configstring (int index, char *val)
 		MSG_WriteShort (&sv.multicast, index);
 		MSG_WriteString (&sv.multicast, val);
 
-		SV_Multicast (vec3_origin, MULTICAST_ALL_R);
+		SV_Multicast (vec3_origin, MSG_ALL_R);
 	}
 }
 
@@ -346,6 +346,12 @@ void SV_InitGameProgs (void)
 	if (ge) SV_ShutdownGameProgs ();
 
 	// load a new game dll
+	import.Fs = pi->Fs;
+	import.VFs = pi->VFs;
+	import.Mem = pi->Mem;
+	import.Script = pi->Script;
+	import.Compile = pi->Compile;
+
 	import.multicast = SV_Multicast;
 	import.unicast = PF_Unicast;
 	import.bprintf = SV_BroadcastPrintf;
@@ -383,21 +389,6 @@ void SV_InitGameProgs (void)
 	import.WritePosition = PF_WritePos;
 	import.WriteDir = PF_WriteDir;
 	import.WriteAngle = PF_WriteAngle;
-
-	import.MS_Alloc = pi->Mem.Alloc;
-	import.MS_Free = pi->Mem.Free;
-	import.MS_AllocPool = pi->Mem.AllocPool;
-	import.MS_FreePool = pi->Mem.FreePool;
-	import.MS_EmptyPool = pi->Mem.EmptyPool;
-
-	import.fopen = pi->Fs.Open;
-	import.fread = pi->Fs.Read;
-	import.fwrite = pi->Fs.Write;
-	import.fprintf = pi->Fs.Printf;
-	import.fclose = pi->Fs.Close;
-	import.fseek = pi->Fs.Seek;
-	import.ftell = pi->Fs.Tell;
-	import.fgets = pi->Fs.Gets;
 
 	import.cvar = Cvar_Get;
 	import.cvar_set = Cvar_Set;

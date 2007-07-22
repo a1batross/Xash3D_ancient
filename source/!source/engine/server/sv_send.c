@@ -143,7 +143,7 @@ void SV_BroadcastCommand (char *fmt, ...)
 
 	MSG_WriteByte (&sv.multicast, svc_stufftext);
 	MSG_WriteString (&sv.multicast, string);
-	SV_Multicast (NULL, MULTICAST_ALL_R);
+	SV_Multicast (NULL, MSG_ALL_R);
 }
 
 
@@ -159,7 +159,7 @@ MULTICAST_PVS	send to clients potentially visible from org
 MULTICAST_PHS	send to clients potentially hearable from org
 =================
 */
-void SV_Multicast (vec3_t origin, multicast_t to)
+void SV_Multicast (vec3_t origin, msgtype_t to)
 {
 	client_t	*client;
 	byte		*mask;
@@ -170,7 +170,7 @@ void SV_Multicast (vec3_t origin, multicast_t to)
 
 	reliable = false;
 
-	if (to != MULTICAST_ALL_R && to != MULTICAST_ALL)
+	if (to != MSG_ALL_R && to != MSG_ALL)
 	{
 		leafnum = CM_PointLeafnum (origin);
 		area1 = CM_LeafArea (leafnum);
@@ -187,29 +187,32 @@ void SV_Multicast (vec3_t origin, multicast_t to)
 	
 	switch (to)
 	{
-	case MULTICAST_ALL_R:
+	case MSG_ALL_R:
 		reliable = true;	// intentional fallthrough
-	case MULTICAST_ALL:
+	case MSG_ALL:
 		leafnum = 0;
 		mask = NULL;
 		break;
 
-	case MULTICAST_PHS_R:
+	case MSG_PHS_R:
 		reliable = true;	// intentional fallthrough
-	case MULTICAST_PHS:
+	case MSG_PHS:
 		leafnum = CM_PointLeafnum (origin);
 		cluster = CM_LeafCluster (leafnum);
 		mask = CM_ClusterPHS (cluster);
 		break;
 
-	case MULTICAST_PVS_R:
+	case MSG_PVS_R:
 		reliable = true;	// intentional fallthrough
-	case MULTICAST_PVS:
+	case MSG_PVS:
 		leafnum = CM_PointLeafnum (origin);
 		cluster = CM_LeafCluster (leafnum);
 		mask = CM_ClusterPVS (cluster);
 		break;
-
+	case MSG_ONE:
+		//implement me
+		return;
+		break;
 	default:
 		mask = NULL;
 		Com_Error (ERR_FATAL, "SV_Multicast: bad to:%i", to);
@@ -363,17 +366,13 @@ void SV_StartSound (vec3_t origin, edict_t *entity, int channel,
 
 	if (channel & CHAN_RELIABLE)
 	{
-		if (use_phs)
-			SV_Multicast (origin, MULTICAST_PHS_R);
-		else
-			SV_Multicast (origin, MULTICAST_ALL_R);
+		if (use_phs) SV_Multicast (origin, MSG_PHS_R);
+		else SV_Multicast (origin, MSG_ALL_R);
 	}
 	else
 	{
-		if (use_phs)
-			SV_Multicast (origin, MULTICAST_PHS);
-		else
-			SV_Multicast (origin, MULTICAST_ALL);
+		if (use_phs) SV_Multicast (origin, MSG_PHS);
+		else SV_Multicast (origin, MSG_ALL);
 	}
 }           
 

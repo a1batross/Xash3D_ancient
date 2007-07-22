@@ -20,6 +20,7 @@
 #include "cvar.h"
 #include "qfiles.h"
 #include "const.h"
+#include "ref_system.h"
 #include "ref_server.h"
 #include "p_menu.h"
 #include "p_text.h"
@@ -31,16 +32,16 @@
 extern byte *zone_level;
 extern byte *zone_game;
 
-#define FreeTag(data) gi.Mem_Free(data)
+#define FreeTag(data) gi.Mem.Free(data)
 
 //malloc-free
-#define Mem_Alloc(pool,size) gi.MS_Alloc(pool, size, __FILE__, __LINE__)
-#define Mem_Free(mem) gi.MS_Free(mem, __FILE__, __LINE__)
+#define Mem_Alloc(pool,size) gi.Mem.Alloc(pool, size, __FILE__, __LINE__)
+#define Mem_Free(mem) gi.Mem.Free(mem, __FILE__, __LINE__)
 
 //Hunk_AllocName
-#define Mem_AllocPool(name) gi.MS_AllocPool(name, __FILE__, __LINE__)
-#define Mem_FreePool(pool) gi.MS_FreePool(pool, __FILE__, __LINE__)
-#define Mem_EmptyPool(pool) gi.MS_EmptyPool(pool, __FILE__, __LINE__)
+#define Mem_AllocPool(name) gi.Mem.AllocPool(name, __FILE__, __LINE__)
+#define Mem_FreePool(pool) gi.Mem.FreePool(pool, __FILE__, __LINE__)
+#define Mem_EmptyPool(pool) gi.Mem.EmptyPool(pool, __FILE__, __LINE__)
 
 void *TagMalloc (int size, int tag);
 void FreeTags (int tag);

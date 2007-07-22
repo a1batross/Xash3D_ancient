@@ -26,7 +26,7 @@ void TraceAimPoint(vec3_t start,vec3_t target)
 	gi.WriteByte (TE_DEBUGTRAIL);
 	gi.WritePosition (start);
 	gi.WritePosition (target);
-	gi.multicast (start, MULTICAST_ALL);
+	gi.multicast (start, MSG_ALL);
 }
 void ActorTarget(edict_t *self, vec3_t target)
 {
@@ -163,7 +163,7 @@ void actorShotgun (edict_t *self)
 	gi.WriteByte(svc_temp_entity);
 	gi.WriteByte(TE_CHAINFIST_SMOKE);
 	gi.WritePosition(start);
-	gi.multicast(start, MULTICAST_PVS);
+	gi.multicast(start, MSG_PVS);
 	gi.positioned_sound(start,self,CHAN_WEAPON,gi.soundindex("weapons/shotgf1b.wav"),1,ATTN_NORM,0);
 
 	if(self->flash)
@@ -219,7 +219,7 @@ void actorSuperShotgun (edict_t *self)
 	gi.WriteByte(svc_temp_entity);
 	gi.WriteByte(TE_CHAINFIST_SMOKE);
 	gi.WritePosition(start);
-	gi.multicast(start, MULTICAST_PVS);
+	gi.multicast(start, MSG_PVS);
 	gi.positioned_sound(start,self,CHAN_WEAPON,gi.soundindex("weapons/sshotf1b.wav"),1,ATTN_NORM,0);
 
 	if(self->flash)
@@ -266,7 +266,7 @@ void actorMachineGun (edict_t *self)
 	gi.WriteByte(svc_temp_entity);
 	gi.WriteByte(TE_CHAINFIST_SMOKE);
 	gi.WritePosition(start);
-	gi.multicast(start, MULTICAST_PVS);
+	gi.multicast(start, MSG_PVS);
 	gi.positioned_sound(start,self,CHAN_WEAPON,gi.soundindex(va("weapons/machgf%db.wav",self->actor_gunframe % 5 + 1)),1,ATTN_NORM,0);
 
 	if(self->flash)
@@ -290,7 +290,7 @@ void actorMachineGun (edict_t *self)
 		gi.WriteByte(svc_temp_entity);
 		gi.WriteByte(TE_CHAINFIST_SMOKE);
 		gi.WritePosition(start);
-		gi.multicast(start, MULTICAST_PVS);
+		gi.multicast(start, MSG_PVS);
 	}
 }
 
@@ -345,7 +345,7 @@ void actorChaingun (edict_t *self)
 	gi.WriteByte(svc_temp_entity);
 	gi.WriteByte(TE_CHAINFIST_SMOKE);
 	gi.WritePosition(start);
-	gi.multicast(start, MULTICAST_PVS);
+	gi.multicast(start, MSG_PVS);
 	gi.positioned_sound(start,self,CHAN_WEAPON,gi.soundindex(va("weapons/machgf%db.wav",self->actor_gunframe % 5 + 1)),1,ATTN_NORM,0);
 
 	if(self->flash)
@@ -370,7 +370,7 @@ void actorChaingun (edict_t *self)
 		gi.WriteByte(svc_temp_entity);
 		gi.WriteByte(TE_CHAINFIST_SMOKE);
 		gi.WritePosition(start);
-		gi.multicast(start, MULTICAST_PVS);
+		gi.multicast(start, MSG_PVS);
 	}
 }
 

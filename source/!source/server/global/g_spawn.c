@@ -704,7 +704,7 @@ void LoadTransitionEnts()
 			}
 		}
 		trans_ent_filename (t_file);
-		f = gi.fopen(t_file,"rb");
+		f = gi.Fs.Open(t_file,"rb");
 		if(!f) gi.error("LoadTransitionEnts: Cannot open %s\n",t_file);
 		else
 		{
@@ -751,7 +751,7 @@ void LoadTransitionEnts()
 				}
 				ent->s.renderfx |= RF_IR_VISIBLE;
 			}
-			gi.fclose(f);
+			gi.Fs.Close(f);
 		}
 	}
 }

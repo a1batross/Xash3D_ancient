@@ -92,7 +92,7 @@ image_t *R_StudioLoadTexture( model_t *mod, mstudiotexture_t *ptexture, byte *pi
           r_skin.height = ptexture->height;
 	r_skin.flags |= (ptexture->flags & STUDIO_NF_TRANSPARENT) ? IMAGE_HAS_ALPHA : 0;
 	r_skin.type = PF_INDEXED_24;
-	r_skin.numMips = 4;
+	r_skin.numMips = 1;
 	r_skin.palette = pin + ptexture->width * ptexture->height + ptexture->index;
 	r_skin.buffer = pin + ptexture->index; //texdata
 			
@@ -147,8 +147,9 @@ void R_StudioLoadModel (model_t *mod, void *buffer)
 	if (phdr->numtextures == 0)
 	{
 		buffer = FS_LoadFile ( R_ExtName( mod ), NULL );//use buffer again
-		if(!buffer) ri.Sys_Error (ERR_DROP, "%s not found!\n", R_ExtName( mod )); 
-	          thdr = R_StudioLoadHeader( mod, buffer );
+		if(buffer) thdr = R_StudioLoadHeader( mod, buffer );
+		else Msg ("Warning: textures for %s not found!\n", mod->name ); 
+	          
 
 		if(!thdr) return; //there were problems
 		mod->thdr = (studiohdr_t *)Mem_Alloc(mod->mempool, LittleLong(thdr->length));
@@ -1057,7 +1058,6 @@ static bool R_StudioCheckBBox( void )
 		aggregatemask &= mask;
 	}
           
-	//Msg( "aggregatemask %d\n", aggregatemask );
 	if ( aggregatemask )
 		return false;
 	return true;
@@ -1310,7 +1310,7 @@ void R_StudioDrawPoints ( void )
 	if (currententity->flags & RF_DEPTHHACK) // hack the depth range to prevent view model from poking into walls
 		qglDepthRange (gldepthmin, gldepthmin + 0.3 * (gldepthmax-gldepthmin));
 
-	if ( ( m_pCurrentEntity->flags & RF_WEAPONMODEL ) && ( r_lefthand->value == 1.0F ) )
+	if (( m_pCurrentEntity->flags & RF_WEAPONMODEL ) && ( r_lefthand->value == 1.0F ))
 	{
 		qglMatrixMode( GL_PROJECTION );
 		qglPushMatrix();
@@ -1336,7 +1336,7 @@ void R_StudioDrawPoints ( void )
 		qglColor4f( 1, 1, 1, 1 ); //reset color
 		qglDisable(GL_BLEND);
 	}	
-	if (( m_pCurrentEntity->flags & RF_WEAPONMODEL ) && ( r_lefthand->value == 1.0F ) )
+	if (( m_pCurrentEntity->flags & RF_WEAPONMODEL ) && ( r_lefthand->value == 1.0F ))
 	{
 		qglMatrixMode( GL_PROJECTION );
 		qglPopMatrix();

@@ -176,8 +176,8 @@ Loads in a model for the given name
 model_t *Mod_ForName(char *name, bool crash)
 {
 	model_t	*mod;
-	unsigned *buf;
-	int		i;
+	uint	*buf;
+	int	i;
 	
 	if (!name[0]) return NULL;
 		
@@ -190,27 +190,27 @@ model_t *Mod_ForName(char *name, bool crash)
 			Msg("Warning: bad inline model number %i\n", i );
 			return NULL;
 		}
+		// prolonge registration
+		mod_inline[i].registration_sequence = registration_sequence;
 		return &mod_inline[i];
 	}
 
-	//
 	// search the currently loaded models
-	//
-	for (i=0 , mod=mod_known ; i<mod_numknown ; i++, mod++)
+	for (i = 0, mod = mod_known; i < mod_numknown; i++, mod++)
 	{
-		if (!mod->name[0])
-			continue;
-		if (!strcmp (mod->name, name) )
+		if (!mod->name[0]) continue;
+		if (!strcmp (mod->name, name))
+		{
+			// prolonge registration
+			mod->registration_sequence = registration_sequence;
 			return mod;
+		}
 	}
 	
-	//
 	// find a free model slot spot
-	//
-	for (i=0 , mod=mod_known ; i<mod_numknown ; i++, mod++)
+	for (i = 0, mod = mod_known; i < mod_numknown; i++, mod++)
 	{
-		if (!mod->name[0])
-			break;	// free spot
+		if (!mod->name[0]) break;// free spot
 	}
 	if (i == mod_numknown)
 	{
@@ -220,10 +220,8 @@ model_t *Mod_ForName(char *name, bool crash)
 	}
 	strcpy (mod->name, name);
 	
-	//
 	// load the file
-	//
-	buf = (unsigned *)FS_LoadFile (mod->name, &modfilelen);
+	buf = (uint *)FS_LoadFile (mod->name, &modfilelen);
 	if (!buf)
 	{
 		if (crash) ri.Sys_Error (ERR_DROP, "Mod_NumForName: %s not found", mod->name);
@@ -240,7 +238,6 @@ model_t *Mod_ForName(char *name, bool crash)
 	//
 
 	// call the apropriate loader
-	
 	switch (LittleLong(*(unsigned *)buf))
 	{
 	case IDALIASHEADER:
@@ -257,7 +254,7 @@ model_t *Mod_ForName(char *name, bool crash)
 		break;
 	default:
 		//will be freed at end of registration
-		Msg("Mod_NumForName: unknown fileid for %s, unloaded\n", mod->name);
+		Msg("Mod_NumForName: unknown file id for %s, unloaded\n", mod->name);
 		break;
 	}
 	Mem_Free( buf );//free buffer
@@ -1117,8 +1114,6 @@ struct model_s *R_RegisterModel (char *name)
 	mod = Mod_ForName (name, false);
 	if (mod)
 	{
-		//mod->registration_sequence = registration_sequence;
-
 		// register any images used by the models
 		if (mod->type == mod_alias)
 		{
@@ -1129,7 +1124,7 @@ struct model_s *R_RegisterModel (char *name)
 		}
 		else if (mod->type == mod_brush)
 		{
-			for (i=0 ; i<mod->numtexinfo ; i++)
+			for (i = 0; i < mod->numtexinfo; i++)
 				mod->texinfo[i].image->registration_sequence = registration_sequence;
 		}
 		else if (mod->type == mod_studio)
@@ -1158,7 +1153,7 @@ void R_EndRegistration (void)
 	int	i;
 	model_t	*mod;
 
-	for (i=0, mod=mod_known ; i<mod_numknown ; i++, mod++)
+	for (i = 0, mod = mod_known; i < mod_numknown; i++, mod++)
 	{
 		if (!mod->name[0]) continue;
 		if (mod->registration_sequence != registration_sequence)
@@ -1167,7 +1162,6 @@ void R_EndRegistration (void)
 			Mod_Free (mod);
 		}
 	}
-
 	R_ImageFreeUnused();
 }
 

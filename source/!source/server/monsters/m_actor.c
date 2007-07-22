@@ -1729,15 +1729,14 @@ typedef struct
 
 void actor_files ()
 {
-	char			path[256];
-	char			filename[256];
-	int				s_match, w_match[2];
-	int				i, j, k;
-	int				num_actors = 0;
+	char		path[256];
+	char		filename[256];
+	int		s_match, w_match[2];
+	int		i, j, k;
+	int		num_actors = 0;
 	actorlist		actors[MAX_EDICTS];
-	cvar_t			*basedir, *cddir, *gamedir;
-	edict_t			*e, *e0;
-	file_t			*f;
+	cvar_t		*basedir, *cddir, *gamedir;
+	edict_t		*e, *e0;
 
 	if(deathmatch->value)
 		return;
@@ -1812,10 +1811,8 @@ void actor_files ()
 				if(strlen(gamedir->string))
 				{
 					sprintf(filename,"sound/%s%s",path, wavname[j]);
-					f = gi.fopen(filename,"r");
-					if(f)
+					if(gi.Fs.FileExists(filename))
 					{
-						gi.fclose(f);
 						strcpy(filename, path);
 						strcat(filename, wavname[j]);
 						e->actor_sound_index[j] = gi.soundindex(filename);
@@ -1867,10 +1864,8 @@ void actor_files ()
 			if(strlen(gamedir->string))
 			{
 				// Start in game folder
-				f = gi.fopen(filename,"r");
-				if(f)
+				if(gi.Fs.FileExists(filename))
 				{
-					gi.fclose(f);
 					e->actor_model_index[k] = gi.modelindex(filename);
 					continue;
 				}
@@ -1881,10 +1876,8 @@ void actor_files ()
 			if(strlen(gamedir->string))
 			{
 				// Start in game folder
-				f = gi.fopen(filename,"r");
-				if(f)
+				if(gi.Fs.FileExists(filename))
 				{
-					gi.fclose(f);
 					e->actor_model_index[k] = gi.modelindex(filename);
 					continue;
 				}

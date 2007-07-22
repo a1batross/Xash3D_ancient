@@ -49,7 +49,7 @@ void *R_SpriteLoadFrame (model_t *mod, void *pin, mspriteframe_t **ppframe, int 
 	pspriteframe->right = width + origin[0];
           pspriteframe->texnum = 0;
 	r_frame.type = PF_INDEXED_32;
-	r_frame.numMips = 4;
+	r_frame.numMips = 1;
 	r_frame.flags |= IMAGE_HAS_ALPHA;
 	
 	//extract sprite name from path

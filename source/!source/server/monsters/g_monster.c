@@ -82,7 +82,7 @@ void monster_fire_bullet (edict_t *self, vec3_t start, vec3_t dir, int damage, i
 	gi.WriteByte (svc_muzzleflash2);
 	gi.WriteShort (self - g_edicts);
 	gi.WriteByte (flashtype);
-	gi.multicast (start, MULTICAST_PVS);
+	gi.multicast (start, MSG_PVS);
 }
 
 void monster_fire_shotgun (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int hspread, int vspread, int count, int flashtype)
@@ -92,7 +92,7 @@ void monster_fire_shotgun (edict_t *self, vec3_t start, vec3_t aimdir, int damag
 	gi.WriteByte (svc_muzzleflash2);
 	gi.WriteShort (self - g_edicts);
 	gi.WriteByte (flashtype);
-	gi.multicast (start, MULTICAST_PVS);
+	gi.multicast (start, MSG_PVS);
 }
 
 void monster_fire_blaster (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, int flashtype, int effect)
@@ -102,7 +102,7 @@ void monster_fire_blaster (edict_t *self, vec3_t start, vec3_t dir, int damage, 
 	gi.WriteByte (svc_muzzleflash2);
 	gi.WriteShort (self - g_edicts);
 	gi.WriteByte (flashtype);
-	gi.multicast (start, MULTICAST_PVS);
+	gi.multicast (start, MSG_PVS);
 }	
 
 void monster_fire_grenade (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int speed, int flashtype)
@@ -112,7 +112,7 @@ void monster_fire_grenade (edict_t *self, vec3_t start, vec3_t aimdir, int damag
 	gi.WriteByte (svc_muzzleflash2);
 	gi.WriteShort (self - g_edicts);
 	gi.WriteByte (flashtype);
-	gi.multicast (start, MULTICAST_PVS);
+	gi.multicast (start, MSG_PVS);
 }
 
 void monster_fire_rocket (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, int flashtype, edict_t *homing_target)
@@ -122,7 +122,7 @@ void monster_fire_rocket (edict_t *self, vec3_t start, vec3_t dir, int damage, i
 	gi.WriteByte (svc_muzzleflash2);
 	gi.WriteShort (self - g_edicts);
 	gi.WriteByte (flashtype);
-	gi.multicast (start, MULTICAST_PVS);
+	gi.multicast (start, MSG_PVS);
 }	
 
 void monster_fire_railgun (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int flashtype)
@@ -132,7 +132,7 @@ void monster_fire_railgun (edict_t *self, vec3_t start, vec3_t aimdir, int damag
 	gi.WriteByte (svc_muzzleflash2);
 	gi.WriteShort (self - g_edicts);
 	gi.WriteByte (flashtype);
-	gi.multicast (start, MULTICAST_PVS);
+	gi.multicast (start, MSG_PVS);
 }
 
 void monster_fire_bfg (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int speed, int kick, float damage_radius, int flashtype)
@@ -142,7 +142,7 @@ void monster_fire_bfg (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 	gi.WriteByte (svc_muzzleflash2);
 	gi.WriteShort (self - g_edicts);
 	gi.WriteByte (flashtype);
-	gi.multicast (start, MULTICAST_PVS);
+	gi.multicast (start, MSG_PVS);
 }
 
 
@@ -1077,17 +1077,14 @@ int PatchMonsterModel (char *modelname)
 
 	// get game (moddir) name
 	gamedir = gi.cvar("game", "", 0);
-	if (!*gamedir->string)
-		return 0;	// we're in baseq2
+	if (!*gamedir->string) return 0; // we're in baseq2
 
-	if (outfile = gi.fopen (modelname, "rb"))
+	if (outfile = gi.Fs.Open (modelname, "rb"))
 	{
 		// output file already exists, move along
-		gi.fclose (outfile);
-//		gi.dprintf ("PatchMonsterModel: Could not save %s, file already exists\n", outfilename);
+		gi.Fs.Close (outfile);
 		return 0;
 	}
-
 
 	numskins = 8;
 	// special cases
@@ -1102,138 +1099,93 @@ int PatchMonsterModel (char *modelname)
 		numskins = 24;
 	}
 
-	for (j=0; j<numskins; j++)
+	for (j = 0; j < numskins; j++)
 	{
 		memset (skins[j], 0, MAX_SKINNAME);
 		strcpy( skins[j], modelname );
 		p = strstr( skins[j], "tris.md2" );
 		if(!p)
 		{
-			gi.fclose (outfile);
+			gi.Fs.Close (outfile);
 			gi.dprintf( "Error patching %s\n",modelname);
 			return 0;
 		}
 		*p = 0;
 		if(is_soldier)
 		{
-			switch (j) {
-			case 0:
-				strcat (skins[j], "skin_lt.pcx"); break;
-			case 1:
-				strcat (skins[j], "skin_ltp.pcx"); break;
-			case 2:
-				strcat (skins[j], "skin.pcx"); break;
-			case 3:
-				strcat (skins[j], "pain.pcx"); break;
-			case 4:
-				strcat (skins[j], "skin_ss.pcx"); break;
-			case 5:
-				strcat (skins[j], "skin_ssp.pcx"); break;
-			case 6:
-				strcat (skins[j], "custom1_lt.pcx"); break;
-			case 7:
-				strcat (skins[j], "custompain1_lt.pcx"); break;
-			case 8:
-				strcat (skins[j], "custom1.pcx"); break;
-			case 9:
-				strcat (skins[j], "custompain1.pcx"); break;
-			case 10:
-				strcat (skins[j], "custom1_ss.pcx"); break;
-			case 11:
-				strcat (skins[j], "custompain1_ss.pcx"); break;
-			case 12:
-				strcat (skins[j], "custom2_lt.pcx"); break;
-			case 13:
-				strcat (skins[j], "custompain2_lt.pcx"); break;
-			case 14:
-				strcat (skins[j], "custom2.pcx"); break;
-			case 15:
-				strcat (skins[j], "custompain2.pcx"); break;
-			case 16:
-				strcat (skins[j], "custom2_ss.pcx"); break;
-			case 17:
-				strcat (skins[j], "custompain2_ss.pcx"); break;
-			case 18:
-				strcat (skins[j], "custom3_lt.pcx"); break;
-			case 19:
-				strcat (skins[j], "custompain3_lt.pcx"); break;
-			case 20:
-				strcat (skins[j], "custom3.pcx"); break;
-			case 21:
-				strcat (skins[j], "custompain3.pcx"); break;
-			case 22:
-				strcat (skins[j], "custom3_ss.pcx"); break;
-			case 23:
-				strcat (skins[j], "custompain3_ss.pcx"); break;
+			switch (j)
+			{
+			case 0: strcat (skins[j], "skin_lt.pcx"); break;
+			case 1: strcat (skins[j], "skin_ltp.pcx"); break;
+			case 2: strcat (skins[j], "skin.pcx"); break;
+			case 3: strcat (skins[j], "pain.pcx"); break;
+			case 4: strcat (skins[j], "skin_ss.pcx"); break;
+			case 5: strcat (skins[j], "skin_ssp.pcx"); break;
+			case 6: strcat (skins[j], "custom1_lt.pcx"); break;
+			case 7: strcat (skins[j], "custompain1_lt.pcx"); break;
+			case 8: strcat (skins[j], "custom1.pcx"); break;
+			case 9: strcat (skins[j], "custompain1.pcx"); break;
+			case 10: strcat (skins[j], "custom1_ss.pcx"); break;
+			case 11: strcat (skins[j], "custompain1_ss.pcx"); break;
+			case 12: strcat (skins[j], "custom2_lt.pcx"); break;
+			case 13: strcat (skins[j], "custompain2_lt.pcx"); break;
+			case 14: strcat (skins[j], "custom2.pcx"); break;
+			case 15: strcat (skins[j], "custompain2.pcx"); break;
+			case 16: strcat (skins[j], "custom2_ss.pcx"); break;
+			case 17: strcat (skins[j], "custompain2_ss.pcx"); break;
+			case 18: strcat (skins[j], "custom3_lt.pcx"); break;
+			case 19: strcat (skins[j], "custompain3_lt.pcx"); break;
+			case 20: strcat (skins[j], "custom3.pcx"); break;
+			case 21: strcat (skins[j], "custompain3.pcx"); break;
+			case 22: strcat (skins[j], "custom3_ss.pcx"); break;
+			case 23: strcat (skins[j], "custompain3_ss.pcx"); break;
 			}
 		}
 		else if(is_tank)
 		{
-			switch (j) {
-			case 0:
-				strcat (skins[j], "skin.pcx"); break;
-			case 1:
-				strcat (skins[j], "pain.pcx"); break;
-			case 2:
-				strcat (skins[j], "../ctank/skin.pcx"); break;
-			case 3:
-				strcat (skins[j], "../ctank/pain.pcx"); break;
-			case 4:
-				strcat (skins[j], "custom1.pcx"); break;
-			case 5:
-				strcat (skins[j], "custompain1.pcx"); break;
-			case 6:
-				strcat (skins[j], "../ctank/custom1.pcx"); break;
-			case 7:
-				strcat (skins[j], "../ctank/custompain1.pcx"); break;
-			case 8:
-				strcat (skins[j], "custom2.pcx"); break;
-			case 9:
-				strcat (skins[j], "custompain2.pcx"); break;
-			case 10:
-				strcat (skins[j], "../ctank/custom2.pcx"); break;
-			case 11:
-				strcat (skins[j], "../ctank/custompain2.pcx"); break;
-			case 12:
-				strcat (skins[j], "custom3.pcx"); break;
-			case 13:
-				strcat (skins[j], "custompain3.pcx"); break;
-			case 14:
-				strcat (skins[j], "../ctank/custom3.pcx"); break;
-			case 15:
-				strcat (skins[j], "../ctank/custompain3.pcx"); break;
+			switch (j) 
+			{
+			case 0: strcat (skins[j], "skin.pcx"); break;
+			case 1: strcat (skins[j], "pain.pcx"); break;
+			case 2: strcat (skins[j], "../ctank/skin.pcx"); break;
+			case 3: strcat (skins[j], "../ctank/pain.pcx"); break;
+			case 4: strcat (skins[j], "custom1.pcx"); break;
+			case 5: strcat (skins[j], "custompain1.pcx"); break;
+			case 6: strcat (skins[j], "../ctank/custom1.pcx"); break;
+			case 7: strcat (skins[j], "../ctank/custompain1.pcx"); break;
+			case 8: strcat (skins[j], "custom2.pcx"); break;
+			case 9: strcat (skins[j], "custompain2.pcx"); break;
+			case 10: strcat (skins[j], "../ctank/custom2.pcx"); break;
+			case 11: strcat (skins[j], "../ctank/custompain2.pcx"); break;
+			case 12: strcat (skins[j], "custom3.pcx"); break;
+			case 13: strcat (skins[j], "custompain3.pcx"); break;
+			case 14: strcat (skins[j], "../ctank/custom3.pcx"); break;
+			case 15: strcat (skins[j], "../ctank/custompain3.pcx"); break;
 			}
 		}
 		else
 		{
-			switch (j) {
-			case 0:
-				strcat (skins[j], "skin.pcx"); break;
-			case 1:
-				strcat (skins[j], "pain.pcx"); break;
-			case 2:
-				strcat (skins[j], "custom1.pcx"); break;
-			case 3:
-				strcat (skins[j], "custompain1.pcx"); break;
-			case 4:
-				strcat (skins[j], "custom2.pcx"); break;
-			case 5:
-				strcat (skins[j], "custompain2.pcx"); break;
-			case 6:
-				strcat (skins[j], "custom3.pcx"); break;
-			case 7:
-				strcat (skins[j], "custompain3.pcx"); break;
+			switch (j)
+			{
+			case 0: strcat (skins[j], "skin.pcx"); break;
+			case 1: strcat (skins[j], "pain.pcx"); break;
+			case 2: strcat (skins[j], "custom1.pcx"); break;
+			case 3: strcat (skins[j], "custompain1.pcx"); break;
+			case 4: strcat (skins[j], "custom2.pcx"); break;
+			case 5: strcat (skins[j], "custompain2.pcx"); break;
+			case 6: strcat (skins[j], "custom3.pcx"); break;
+			case 7: strcat (skins[j], "custompain3.pcx"); break;
 			}
 		}
 	}
 
-	infile = gi.fopen (modelname, "rb");
+	infile = gi.Fs.Open (modelname, "rb");
 	if(!infile)
 	{
 		gi.dprintf ("PatchMonsterModel: %s not found\n", modelname );
 		return 0;
 	}
-	gi.fread (infile, &model, sizeof (dmdl_t));
+	gi.Fs.Read (infile, &model, sizeof (dmdl_t));
 	
 	datasize = model.ofs_end - model.ofs_skins;
 	if ( !(data = malloc (datasize)) )	// make sure freed locally
@@ -1241,8 +1193,8 @@ int PatchMonsterModel (char *modelname)
 		gi.dprintf ("PatchMonsterModel: Could not allocate memory for model\n");
 		return 0;
 	}
-	gi.fread (infile, data, datasize * sizeof (byte));
-	gi.fclose (infile);
+	gi.Fs.Read (infile, data, datasize * sizeof (byte));
+	gi.Fs.Close (infile);
 	
 	// update model info
 	model.num_skins = numskins;
@@ -1255,7 +1207,7 @@ int PatchMonsterModel (char *modelname)
 	model.ofs_end    += newoffset;
 	
 	// save new model
-	if ( !(outfile = gi.fopen (modelname, "wb")) )
+	if (!(outfile = gi.Fs.Open (modelname, "wb")) )
 	{
 		// file couldn't be created for some other reason
 		gi.dprintf ("PatchMonsterModel: Could not save %s\n", outfilename);
@@ -1263,11 +1215,11 @@ int PatchMonsterModel (char *modelname)
 		return 0;
 	}
 	
-	gi.fwrite (outfile, &model, sizeof (dmdl_t));
-	gi.fwrite (outfile, skins, sizeof (char) * newoffset);
-	gi.fwrite (outfile, data, sizeof (byte) * datasize);
+	gi.Fs.Write (outfile, &model, sizeof (dmdl_t));
+	gi.Fs.Write (outfile, skins, sizeof (char) * newoffset);
+	gi.Fs.Write (outfile, data, sizeof (byte) * datasize);
 	
-	gi.fclose (outfile);
+	gi.Fs.Close (outfile);
 	gi.dprintf ("PatchMonsterModel: Saved %s\n", outfilename);
 	free (data);
 	return 1;

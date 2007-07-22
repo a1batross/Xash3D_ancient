@@ -59,7 +59,7 @@ void item_die(edict_t *self,edict_t *inflictor, edict_t *attacker, int damage, v
 	gi.WriteByte (svc_temp_entity);
 	gi.WriteByte (TE_EXPLOSION1);
 	gi.WritePosition (self->s.origin);
-	gi.multicast (self->s.origin, MULTICAST_PVS);
+	gi.multicast (self->s.origin, MSG_PVS);
 
 	if (level.num_reflectors)
 		ReflectExplosion (TE_EXPLOSION1, self->s.origin);

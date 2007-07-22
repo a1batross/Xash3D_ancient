@@ -225,22 +225,22 @@ void SVCmd_WriteIP_f (void)
 
 	gi.cprintf (NULL, PRINT_HIGH, "Writing listip.cfg.\n");
 
-	f = gi.fopen ("listip.cfg", "wb");
+	f = gi.Fs.Open ("listip.cfg", "wb");
 	if (!f)
 	{
 		gi.cprintf (NULL, PRINT_HIGH, "Couldn't open %s\n", name);
 		return;
 	}
 	
-	gi.fprintf(f, "set filterban %d\n", (int)filterban->value);
+	gi.Fs.Printf(f, "set filterban %d\n", (int)filterban->value);
 
-	for (i=0 ; i<numipfilters ; i++)
+	for (i = 0; i < numipfilters; i++)
 	{
 		*(unsigned *)b = ipfilters[i].compare;
-		gi.fprintf (f, "sv addip %i.%i.%i.%i\n", b[0], b[1], b[2], b[3]);
+		gi.Fs.Printf (f, "sv addip %i.%i.%i.%i\n", b[0], b[1], b[2], b[3]);
 	}
 	
-	gi.fclose (f);
+	gi.Fs.Close (f);
 }
 
 /*

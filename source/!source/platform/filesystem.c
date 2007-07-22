@@ -52,12 +52,14 @@ struct file_s
 
 typedef struct vfile_s
 {
-	char		name[64];
-	char		*buff;
-	int		buffsize;
-	int		ofs;
-	int		maxofs;
-} vfile_t;
+	byte		*buff;
+	file_t		*file;// ptr to real stream
+	int		mode;
+
+	fs_offset_t	buffsize;
+	fs_offset_t	length;
+	fs_offset_t	offset;
+};
 
 typedef struct pk3_s
 {
@@ -131,7 +133,6 @@ char fs_basedir[ MAX_SYSPATH ]; //base directory of game
 char fs_gamedir[ MAX_SYSPATH ]; //game current directory
 char gs_basedir[ MAX_SYSPATH ]; //initial dir before loading gameinfo.txt (used for compilers too)
 char gs_mapname[ 64 ]; //used for compilers only
-vfile_t vfs_file[ 32 ];//maximum of virtal files allocated at he moment
 
 //command ilne parms
 int fs_argc;
@@ -2369,69 +2370,151 @@ VIRTUAL FILE SYSTEM - WRITE DATA INTO MEMORY
 
 =============================================================================
 */
-int VFS_OpenWrite (char *filename, int maxsize)
+vfile_t *VFS_Open(file_t* real_file, const char* mode)
 {
-	int i;
-	for (i = 0; i < 32; i++)
+	vfile_t *file = (vfile_t *)Mem_Alloc (fs_mempool, sizeof (*file));
+
+	// If the file is opened in "write", "append", or "read/write" mode
+	if (mode[0] == 'w')
 	{
-		if (!vfs_file[i].buff)
-		{
-			strcpy(vfs_file[i].name, filename);
-			vfs_file[i].buffsize = maxsize;
-			vfs_file[i].maxofs = 0;
-			vfs_file[i].ofs = 0;
-			vfs_file[i].buff = Mem_Alloc(fs_mempool, (vfs_file[i].buffsize));
-			return i;
-		}
+		file->file = real_file;
+		file->buffsize = (64 * 1024); // will be resized if need
+		file->buff = Mem_Alloc(fs_mempool, (file->buffsize));
+		file->length = 0;
+		file->offset = 0;
+		file->mode = O_WRONLY;
 	}
+	else if (mode[0] == 'r')
+	{
+		int curpos, endpos;
 
-	Sys_Error("Too many open files on file %s", filename );
-	return -1;
-}
+		file->file = real_file;
 
-static void VFS_ResizeBuf(int hand, int newsize)
-{
-	char *nb;
+		curpos = FS_Tell(file->file);
+		FS_Seek(file->file, 0, SEEK_END);
+		endpos = FS_Tell(file->file);
+		FS_Seek(file->file, curpos, SEEK_SET);
 
-	if (vfs_file[hand].buffsize >= newsize)
-		return;//already big enough
+		file->buffsize = endpos - curpos;
+		file->buff = Mem_Alloc(fs_mempool, (file->buffsize));
 
-	nb = Mem_Alloc (fs_mempool, newsize);
-	memcpy(nb, vfs_file[hand].buff, vfs_file[hand].maxofs);
-	Free(vfs_file[hand].buff);
-	vfs_file[hand].buff = nb;
-	vfs_file[hand].buffsize = newsize;
-}
-
-void VFS_Write( int hand, void *buf, long count )
-{
-	if (vfs_file[hand].ofs +count >= vfs_file[hand].buffsize)
-		VFS_ResizeBuf(hand, vfs_file[hand].ofs + count+(64*1024));
-
-	memcpy(&vfs_file[hand].buff[vfs_file[hand].ofs], buf, count);
-	vfs_file[hand].ofs+=count;
-	if (vfs_file[hand].ofs > vfs_file[hand].maxofs)
-		vfs_file[hand].maxofs = vfs_file[hand].ofs;
-}
-
-int VFS_Seek( int hand, int ofs, int mode )
-{
-	if (mode == SEEK_CUR) return vfs_file[hand].ofs;
+		FS_Read (file->file, file->buff, file->buffsize);		
+		file->length = file->buffsize;
+		file->offset = 0;
+		file->mode = O_RDONLY;
+	}
 	else
 	{
-		VFS_ResizeBuf(hand, ofs + 1024);
-		vfs_file[hand].ofs = ofs;
-		if (vfs_file[hand].ofs > vfs_file[hand].maxofs)
-			vfs_file[hand].maxofs = vfs_file[hand].ofs;
-		return 0;
+		Msg("VFS_Open: unsupported mode %s\n", mode );
+		return NULL;
 	}
+	return file;
 }
 
-void VFS_Close( int hand )
+fs_offset_t VFS_Read( vfile_t* file, void* buffer, size_t buffersize)
+{
+	if (buffersize == 0) return 0;
+
+	//check for enough room
+	if(file->offset >= file->length)
+	{
+		return -1; //hit EOF
+	}
+	if(file->offset + buffersize <= file->length)
+	{
+		Mem_Copy( buffer, file->buff + file->offset, buffersize );
+		file->offset += buffersize;
+	}
+	else
+	{
+		int reduced_size = file->length - file->offset;
+		Mem_Copy( buffer, file->buff + file->offset, reduced_size );
+		file->offset += reduced_size;
+		Msg("VFS_Read: warning, vfs buffer is out\n");
+	}
+	return 1;
+}
+
+fs_offset_t VFS_Write( vfile_t *file, const void *buf, size_t size )
+{
+	if(!file) return -1;
+
+	if (file->offset + size >= file->buffsize)
+	{
+		int newsize = file->offset + size * (64 * 1024);
+
+		//reallocate buffer now
+		file->buff = Mem_Realloc(fs_mempool, file->buff, newsize );		
+		file->length = newsize; //merge file length
+	}
+
+	// write into buffer
+	Mem_Copy(file->buff + file->offset, (byte *)buf, size );
+	file->offset += size;
+
+	if (file->offset > file->length) 
+		file->length = file->offset;
+
+	return file->length;
+}
+
+fs_offset_t VFS_Tell (vfile_t* file)
+{
+	return file->offset;
+}
+
+int VFS_Seek( vfile_t *file, fs_offset_t offset, int whence )
+{
+	// Compute the file offset
+	switch (whence)
+	{
+		case SEEK_CUR:
+			offset += file->offset;
+			break;
+		case SEEK_SET:
+			break;
+		case SEEK_END:
+			offset += file->length;
+			break;
+		default: 
+			return -1;
+	}
+
+	if (offset < 0 || offset > (long)file->length) return -1;
+
+	file->offset = offset;
+	return 0;
+}
+
+int VFS_Close( vfile_t *file )
 {
 	//write real file into disk
-	FS_WriteFile(vfs_file[hand].name, vfs_file[hand].buff, vfs_file[hand].maxofs);	
+	FS_Write (file->file, file->buff, file->length);
 
-	Free(vfs_file[hand].buff);
-	vfs_file[hand].buff = NULL;
+	Free( file->buff );
+	Free( file ); //himself
+
+	return 0;
+}
+
+/*
+=============================================================================
+
+VIRTUAL FILESYSTEM INTERFACE
+=============================================================================
+*/
+vfilesystem_api_t VFS_GetAPI( void )
+{
+	static vfilesystem_api_t	vfs;
+
+	vfs.api_size = sizeof(vfilesystem_api_t);
+
+	vfs.Open = VFS_Open;
+	vfs.Close = VFS_Close;
+	vfs.Write = VFS_Write;
+	vfs.Read = VFS_Read;
+	vfs.Seek = VFS_Seek;
+	vfs.Tell = VFS_Tell;
+
+	return vfs;
 }

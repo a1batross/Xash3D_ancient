@@ -1008,7 +1008,7 @@ void G_SetClientEffects (edict_t *ent)
 			gi.WriteByte (TE_FLASHLIGHT);
 			gi.WritePosition (end);
 			gi.WriteShort (ent - g_edicts);
-			gi.multicast (end, MULTICAST_PVS);
+			gi.multicast (end, MSG_PVS);
 
 		}
 	}

@@ -13,7 +13,7 @@ void Use_Target_Tent (edict_t *self, edict_t *other, edict_t *activator)
 	gi.WriteByte (svc_temp_entity);
 	gi.WriteByte (self->style);
 	gi.WritePosition (self->s.origin);
-	gi.multicast (self->s.origin, MULTICAST_PVS);
+	gi.multicast (self->s.origin, MSG_PVS);
 
 	self->count--;
 	if(!self->count) {
@@ -297,7 +297,7 @@ void target_explosion_explode (edict_t *self)
 	gi.WriteByte (svc_temp_entity);
 	gi.WriteByte (TE_EXPLOSION1);
 	gi.WritePosition (self->s.origin);
-	gi.multicast (self->s.origin, MULTICAST_PHS);
+	gi.multicast (self->s.origin, MSG_PHS);
 
 	if(level.num_reflectors)
 		ReflectExplosion (TE_EXPLOSION1,self->s.origin);
@@ -567,7 +567,7 @@ void use_target_splash (edict_t *self, edict_t *other, edict_t *activator)
 	gi.WritePosition (self->s.origin);
 	gi.WriteDir (self->movedir);
 	gi.WriteByte (self->sounds);
-	gi.multicast (self->s.origin, MULTICAST_PVS);
+	gi.multicast (self->s.origin, MSG_PVS);
 	if (self->dmg)
 		T_RadiusDamage (self, activator, self->dmg, NULL, self->dmg+40, MOD_SPLASH, -0.5);
 }
@@ -691,7 +691,7 @@ void use_target_blaster (edict_t *self, edict_t *other, edict_t *activator)
 		gi.WriteByte (svc_muzzleflash);
 		gi.WriteShort (self-g_edicts);
 		gi.WriteByte (MZ_RAILGUN);
-		gi.multicast (start, MULTICAST_PVS);
+		gi.multicast (start, MSG_PVS);
 	}
 	else if(self->sounds == 2)
 	{
@@ -714,7 +714,7 @@ void use_target_blaster (edict_t *self, edict_t *other, edict_t *activator)
 		gi.WriteByte(svc_temp_entity);
 		gi.WriteByte(TE_CHAINFIST_SMOKE);
 		gi.WritePosition(start);
-		gi.multicast(start, MULTICAST_PVS);
+		gi.multicast(start, MSG_PVS);
 		gi.positioned_sound(start,self,CHAN_WEAPON,gi.soundindex(va("weapons/machgf%db.wav",rand() % 5 + 1)),1,ATTN_NORM,0);
 	}
 	else if(self->sounds == 6)
@@ -723,7 +723,7 @@ void use_target_blaster (edict_t *self, edict_t *other, edict_t *activator)
 		gi.WriteByte (svc_muzzleflash2);
 		gi.WriteShort (self - g_edicts);
 		gi.WriteByte (MZ2_GUNNER_GRENADE_1);
-		gi.multicast (start, MULTICAST_PVS);
+		gi.multicast (start, MSG_PVS);
 	}
 	else {
 		fire_blaster (self, start, movedir, self->dmg, self->speed, effect, MOD_TARGET_BLASTER);
@@ -1091,7 +1091,7 @@ void target_laser_ps_think (edict_t *self)
 				gi.WritePosition (tr.endpos);
 				gi.WriteDir (tr.plane.normal);
 				gi.WriteByte (self->s.skinnum);
-				gi.multicast (tr.endpos, MULTICAST_PVS);
+				gi.multicast (tr.endpos, MSG_PVS);
 			}
 			break;
 		}
@@ -1212,7 +1212,7 @@ void target_laser_think (edict_t *self)
 				gi.WritePosition (tr.endpos);
 				gi.WriteDir (tr.plane.normal);
 				gi.WriteByte (self->s.skinnum);
-				gi.multicast (tr.endpos, MULTICAST_PVS);
+				gi.multicast (tr.endpos, MSG_PVS);
 			}
 			break;
 		}
@@ -2142,7 +2142,7 @@ void target_effect_at (edict_t *self, edict_t *activator)
 	gi.WriteByte (self->style);
 	gi.WritePosition (self->s.origin);
 	gi.WriteShort (self - g_edicts);
-	gi.multicast (self->s.origin, MULTICAST_PVS);
+	gi.multicast (self->s.origin, MSG_PVS);
 }
 /* Poor man's target_steam
   TE_STEAM           40
@@ -2170,7 +2170,7 @@ void target_effect_steam (edict_t *self, edict_t *activator)
 	gi.WriteByte (self->sounds&0xff);
 	gi.WriteShort ( (int)(self->speed) );
 	gi.WriteLong ( (int)(wait) );
-	gi.multicast (self->s.origin, MULTICAST_PVS);
+	gi.multicast (self->s.origin, MSG_PVS);
 
 	if(level.num_reflectors)
 		ReflectSteam (self->s.origin,self->movedir,self->count,self->sounds,(int)(self->speed),wait,nextid);
@@ -2194,7 +2194,7 @@ void target_effect_splash (edict_t *self, edict_t *activator)
 	gi.WritePosition(self->s.origin);
 	gi.WriteDir(self->movedir);
 	gi.WriteByte(self->sounds);
-	gi.multicast(self->s.origin, MULTICAST_PVS);
+	gi.multicast(self->s.origin, MSG_PVS);
 }
 
 //======================================================
@@ -2234,7 +2234,7 @@ void target_effect_trail (edict_t *self, edict_t *activator)
 	if(self->style == TE_GRAPPLE_CABLE) {
 		gi.WritePosition(vec3_origin);
 	}
-	gi.multicast(self->s.origin, MULTICAST_PVS);
+	gi.multicast(self->s.origin, MSG_PVS);
 
 	if(level.num_reflectors)
 	{
@@ -2262,7 +2262,7 @@ void target_effect_lightning(edict_t *self, edict_t *activator)
 	gi.WriteShort (self - g_edicts);		// source entity
 	gi.WritePosition (target->s.origin);
 	gi.WritePosition (self->s.origin);
-	gi.multicast (self->s.origin, MULTICAST_PVS);
+	gi.multicast (self->s.origin, MSG_PVS);
 }
 //===========================================================================
 /*
@@ -2295,7 +2295,7 @@ void target_effect_sparks (edict_t *self, edict_t *activator)
 	gi.WritePosition(self->s.origin);
 	if(self->style != TE_CHAINFIST_SMOKE) 
 		gi.WriteDir(self->movedir);
-	gi.multicast(self->s.origin, MULTICAST_PVS);
+	gi.multicast(self->s.origin, MSG_PVS);
 
 	if(level.num_reflectors)
 		ReflectSparks(self->style,self->s.origin,self->movedir);
@@ -2331,7 +2331,7 @@ void target_effect_explosion (edict_t *self, edict_t *activator)
 	gi.WriteByte(svc_temp_entity);
 	gi.WriteByte(self->style);
 	gi.WritePosition(self->s.origin);
-	gi.multicast(self->s.origin, MULTICAST_PHS);
+	gi.multicast(self->s.origin, MSG_PHS);
 
 	if (level.num_reflectors)
 		ReflectExplosion (self->style, self->s.origin);
@@ -2357,7 +2357,7 @@ void target_effect_tunnel_sparks (edict_t *self, edict_t *activator)
 		gi.WritePosition (origin);
 		gi.WriteDir (vec3_origin);
 		gi.WriteByte (self->sounds + (rand()&7));  // color
-		gi.multicast (self->s.origin, MULTICAST_PVS);
+		gi.multicast (self->s.origin, MSG_PVS);
 	}
 }
 //===============================================================================
@@ -2369,7 +2369,7 @@ void target_effect_widowbeam(edict_t *self, edict_t *activator)
 	gi.WriteByte (TE_WIDOWBEAMOUT);
 	gi.WriteShort (20001);
 	gi.WritePosition (self->s.origin);
-	gi.multicast (self->s.origin, MULTICAST_PVS);
+	gi.multicast (self->s.origin, MSG_PVS);
 }
 //===============================================================================
 
@@ -2721,14 +2721,14 @@ void target_attractor_think_single(edict_t *self)
 			gi.WriteShort(self-g_edicts);
 			gi.WritePosition(self->s.origin);
 			gi.WritePosition(new_origin);
-			gi.multicast(self->s.origin, MULTICAST_PVS);
+			gi.multicast(self->s.origin, MSG_PVS);
 			break;
 		case 2:
 			gi.WriteByte(svc_temp_entity);
 			gi.WriteByte(TE_BFG_LASER);
 			gi.WritePosition(self->s.origin);
 			gi.WritePosition(new_origin);
-			gi.multicast(self->s.origin, MULTICAST_PVS);
+			gi.multicast(self->s.origin, MSG_PVS);
 		}
 	}
 

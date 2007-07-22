@@ -825,15 +825,12 @@ void SV_ServerRecord_f (void)
 	// setup a buffer to catch all multicasts
 	SZ_Init (&svs.demo_multicast, svs.demo_multicast_buf, sizeof(svs.demo_multicast_buf));
 
-	//
 	// write a single giant fake message with all the startup info
-	//
 	SZ_Init (&buf, buf_data, sizeof(buf_data));
 
-	//
 	// serverdata needs to go over for all types of servers
 	// to make sure the protocol is right, and to set the gamedir
-	//
+
 	// send the serverdata
 	MSG_WriteByte (&buf, svc_serverdata);
 	MSG_WriteLong (&buf, PROTOCOL_VERSION);
@@ -846,12 +843,14 @@ void SV_ServerRecord_f (void)
 	MSG_WriteString (&buf, sv.configstrings[CS_NAME]);
 
 	for (i=0 ; i<MAX_CONFIGSTRINGS ; i++)
+	{
 		if (sv.configstrings[i][0])
 		{
 			MSG_WriteByte (&buf, svc_configstring);
 			MSG_WriteShort (&buf, i);
 			MSG_WriteString (&buf, sv.configstrings[i]);
 		}
+	}
 
 	// write it to the demo file
 	Com_DPrintf ("signon message length: %i\n", buf.cursize);
@@ -879,7 +878,7 @@ void SV_ServerStop_f (void)
 	}
 	FS_Close (svs.demofile);
 	svs.demofile = NULL;
-	Com_Printf ("Recording completed.\n");
+	Com_Printf ("Completed demo.\n");
 }
 
 
@@ -895,7 +894,7 @@ void SV_KillServer_f (void)
 {
 	if (!svs.initialized) return;
 	SV_Shutdown ("Server was killed.\n", false);
-	NET_Config ( false );	// close network sockets
+	NET_Config ( false ); // close network sockets
 }
 
 /*
@@ -912,7 +911,6 @@ void SV_ServerCommand_f (void)
 		Com_Printf ("No game loaded.\n");
 		return;
 	}
-
 	ge->ServerCommand();
 }
 
@@ -936,17 +934,13 @@ void SV_InitOperatorCommands (void)
 	Cmd_AddCommand ("gamemap", SV_GameMap_f);
 	Cmd_AddCommand ("setmaster", SV_SetMaster_f);
 
-	if ( dedicated->value )
-		Cmd_AddCommand ("say", SV_ConSay_f);
+	if ( dedicated->value ) Cmd_AddCommand ("say", SV_ConSay_f);
 
 	Cmd_AddCommand ("serverrecord", SV_ServerRecord_f);
 	Cmd_AddCommand ("serverstop", SV_ServerStop_f);
-
 	Cmd_AddCommand ("save", SV_Savegame_f);
 	Cmd_AddCommand ("load", SV_Loadgame_f);
-
 	Cmd_AddCommand ("killserver", SV_KillServer_f);
-
 	Cmd_AddCommand ("sv", SV_ServerCommand_f);
 }
 

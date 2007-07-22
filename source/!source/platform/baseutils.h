@@ -69,10 +69,12 @@ int FS_Getc (file_t* file);
 bool FS_Eof( file_t* file);
 
 //virtual files managment
-int VFS_OpenWrite (char *filename, int maxsize);
-void VFS_Write( int hand, void *buf, long count );
-int VFS_Seek( int hand, int ofs, int mode );
-void VFS_Close( int hand );
+vfile_t *VFS_Open(file_t* real_file, const char* mode);
+fs_offset_t VFS_Write( vfile_t *file, const void *buf, size_t size );
+fs_offset_t VFS_Read(vfile_t* file, void* buffer, size_t buffersize);
+int VFS_Seek( vfile_t *file, fs_offset_t offset, int whence );
+fs_offset_t VFS_Tell (vfile_t* file);
+int VFS_Close( vfile_t *file );
 
 void InitMemory (void); //must be init first at application
 void FreeMemory( void );

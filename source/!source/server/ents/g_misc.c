@@ -497,7 +497,7 @@ void BecomeExplosion1 (edict_t *self)
 	gi.WriteByte (svc_temp_entity);
 	gi.WriteByte (TE_EXPLOSION1);
 	gi.WritePosition (self->s.origin);
-	gi.multicast (self->s.origin, MULTICAST_PVS);
+	gi.multicast (self->s.origin, MSG_PVS);
 
 	if (level.num_reflectors)
 		ReflectExplosion (TE_EXPLOSION1, self->s.origin);
@@ -511,7 +511,7 @@ void BecomeExplosion2 (edict_t *self)
 	gi.WriteByte (svc_temp_entity);
 	gi.WriteByte (TE_EXPLOSION2);
 	gi.WritePosition (self->s.origin);
-	gi.multicast (self->s.origin, MULTICAST_PVS);
+	gi.multicast (self->s.origin, MSG_PVS);
 
 	if (level.num_reflectors)
 		ReflectExplosion (TE_EXPLOSION2, self->s.origin);
@@ -1111,7 +1111,7 @@ void func_explosive_explode (edict_t *self)
         gi.WriteByte (svc_temp_entity);
         gi.WriteByte (TE_EXPLOSION1);
         gi.WritePosition (self->s.origin);
-        gi.multicast (self->s.origin, MULTICAST_PVS);
+        gi.multicast (self->s.origin, MSG_PVS);
     }
 	VectorClear(self->s.origin);
 	VectorClear(self->velocity);
@@ -1426,7 +1426,7 @@ void misc_blackhole_use (edict_t *ent, edict_t *other, edict_t *activator)
 	gi.WriteByte (svc_temp_entity);
 	gi.WriteByte (TE_BOSSTPORT);
 	gi.WritePosition (ent->s.origin);
-	gi.multicast (ent->s.origin, MULTICAST_PVS);
+	gi.multicast (ent->s.origin, MSG_PVS);
 	*/
 	G_FreeEdict (ent);
 }
@@ -1877,7 +1877,7 @@ void misc_viper_bomb_touch (edict_t *self, edict_t *other, cplane_t *plane, csur
 		gi.WriteByte (svc_temp_entity);
 		gi.WriteByte (TE_EXPLOSION2);
 		gi.WritePosition (self->s.origin);
-		gi.multicast (self->s.origin, MULTICAST_PVS);
+		gi.multicast (self->s.origin, MSG_PVS);
 
 		if (level.num_reflectors)
 			ReflectExplosion (TE_EXPLOSION2, self->s.origin);
@@ -2681,7 +2681,7 @@ void teleporter_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_
 			gi.WriteByte(svc_temp_entity);
 			gi.WriteByte(TE_TELEPORT_EFFECT);
 			gi.WritePosition(origin);
-			gi.multicast(origin, MULTICAST_PHS);
+			gi.multicast(origin, MSG_PHS);
 		}
 		gi.positioned_sound(origin,self,CHAN_AUTO,self->noise_index,1,1,0);
 	}
@@ -2890,7 +2890,7 @@ void misc_light_think (edict_t *self)
 	gi.WriteByte (TE_FLASHLIGHT);
 	gi.WritePosition (self->s.origin);
 	gi.WriteShort (self - g_edicts);
-	gi.multicast (self->s.origin, MULTICAST_PVS);
+	gi.multicast (self->s.origin, MSG_PVS);
 	self->nextthink = level.time + FRAMETIME;
 }
 
@@ -2965,7 +2965,7 @@ void drop_splash(edict_t *drop)
 	gi.WritePosition (drop->s.origin);
 	gi.WriteDir (up);
 	gi.WriteByte (drop->owner->sounds);
-	gi.multicast (drop->s.origin, MULTICAST_PVS);
+	gi.multicast (drop->s.origin, MSG_PVS);
 	drop_add_to_chain(drop);
 }
 
@@ -3505,25 +3505,20 @@ int PatchDeadSoldier ()
 	cvar_t		*gamedir;
 	char		skins[NUM_SKINS][MAX_SKINNAME];	// skin entries
 	char		outfilename[MAX_OSPATH];
-	int			j;
+	int		j;
 	file_t		*infile;
 	file_t		*outfile;
 	dmdl_t		model;				// model header
 	byte		*data;				// model data
-	int			datasize;			// model data size (bytes)
-	int			newoffset;			// model data offset (after skins)
+	int		datasize;			// model data size (bytes)
+	int		newoffset;			// model data offset (after skins)
 
 	// get game (moddir) name
 	gamedir = gi.cvar("game", "", 0);
-	if (!*gamedir->string)
-		return 0;	// we're in baseq2
+	if (!*gamedir->string) return 0; // we're in baseq2
 
-	if (outfile = gi.fopen (DEADSOLDIER_MODEL, "rb"))
-	{
-		// output file already exists, move along
-		gi.fclose (outfile);
+	if (gi.Fs.FileExists(DEADSOLDIER_MODEL))
 		return 0;
-	}
 
 	for (j = 0; j < NUM_SKINS; j++)
 		memset (skins[j], 0, MAX_SKINNAME);
@@ -3547,14 +3542,14 @@ int PatchDeadSoldier ()
 
 
 	// load original model
-	if ( !(infile = gi.fopen (DEADSOLDIER_MODEL, "rb")) )
+	if ( !(infile = gi.Fs.Open (DEADSOLDIER_MODEL, "rb")) )
 	{
 		gi.dprintf("PatchDeadSoldier: Could not find %s\n",DEADSOLDIER_MODEL);
 		return 0;
 	}
 	else
 	{
-		gi.fread (infile, &model, sizeof (dmdl_t));
+		gi.Fs.Read (infile, &model, sizeof (dmdl_t));
 	
 		datasize = model.ofs_end - model.ofs_skins;
 		if ( !(data = malloc (datasize)) )	// make sure freed locally
@@ -3562,8 +3557,8 @@ int PatchDeadSoldier ()
 			gi.dprintf ("PatchMonsterModel: Could not allocate memory for model\n");
 			return 0;
 		}
-		gi.fread (infile, data, sizeof (byte) * datasize);
-		gi.fclose (infile);
+		gi.Fs.Read (infile, data, sizeof (byte) * datasize);
+		gi.Fs.Close (infile);
 	}
 	
 	// update model info
@@ -3577,7 +3572,7 @@ int PatchDeadSoldier ()
 	model.ofs_glcmds += newoffset;
 	model.ofs_end    += newoffset;
 
-	if ( !(outfile = gi.fopen (DEADSOLDIER_MODEL, "wb")) )
+	if (!(outfile = gi.Fs.Open (DEADSOLDIER_MODEL, "wb")) )
 	{
 		// file couldn't be created for some other reason
 		gi.dprintf ("PatchDeadSoldier: Could not save %s\n", outfilename);
@@ -3585,12 +3580,12 @@ int PatchDeadSoldier ()
 		return 0;
 	}
 	
-	gi.fwrite (outfile, &model, sizeof (dmdl_t));
-	gi.fwrite (outfile, skins, sizeof (char)*(model.num_skins*MAX_SKINNAME));
+	gi.Fs.Write (outfile, &model, sizeof (dmdl_t));
+	gi.Fs.Write (outfile, skins, sizeof (char)*(model.num_skins*MAX_SKINNAME));
 	data += MAX_SKINNAME;
-	gi.fwrite (outfile, data, sizeof (byte)*datasize);
+	gi.Fs.Write (outfile, data, sizeof (byte)*datasize);
 	
-	gi.fclose (outfile);
+	gi.Fs.Close (outfile);
 	gi.dprintf ("PatchDeadSoldier: Saved %s\n", outfilename);
 	free (data);
 	return 1;
@@ -3608,7 +3603,7 @@ void PrecacheDebris(int type)
 		gi.modelindex ("models/objects/debris3/tris.md2");
 		break;
 	case GIB_METAL:
-		for(i=1;i<=5;i++)
+		for(i = 1; i <=5; i++)
 			gi.modelindex(va("models/objects/metal_gibs/gib%i.md2",i));
 		break;
 	case GIB_GLASS: gi.modelindex("models/gibs/glass.mdl"); break;

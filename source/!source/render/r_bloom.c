@@ -3,6 +3,7 @@
 //		     r_bloom.c - lighting post process effect
 //=======================================================================
 
+#include <assert.h>
 #include "gl_local.h"
 
 static float Diamond8x[8][8] =
@@ -103,12 +104,11 @@ void R_Bloom_InitBackUpTexture( int width, int height )
 	rgbdata_t	r_bloom;
 	
 	data = Malloc( width * height * 4 );
-	memset( data, 0, width * height * 4 );
 	r_bloom.width = width;
 	r_bloom.height = height;
 	r_bloom.type = PF_PROCEDURE_TEX;
 	r_bloom.flags = 0;
-	r_bloom.numMips = 4;
+	r_bloom.numMips = 1;
 	r_bloom.palette = NULL;
 	r_bloom.buffer = data;
 
@@ -150,19 +150,18 @@ void R_Bloom_InitEffectTexture( void )
 	if( BLOOM_SIZE != (int)r_bloom_sample_size->value )
 		ri.Cvar_SetValue ("r_bloom_sample_size", BLOOM_SIZE);
 
-	data = malloc( BLOOM_SIZE * BLOOM_SIZE * 4 );
-	memset( data, 0, BLOOM_SIZE * BLOOM_SIZE * 4 );
+	data = Malloc( BLOOM_SIZE * BLOOM_SIZE * 4 );
 
 	r_bloomfx.width = BLOOM_SIZE;
 	r_bloomfx.height = BLOOM_SIZE;
 	r_bloomfx.type = PF_PROCEDURE_TEX;
 	r_bloomfx.flags = 0;
-	r_bloomfx.numMips = 4;
+	r_bloomfx.numMips = 1;
 	r_bloomfx.palette = NULL;
 	r_bloomfx.buffer = data;
 	r_bloomeffecttexture = R_LoadImage( "***r_bloomeffecttexture***", &r_bloomfx, it_pic );
 	
-	free ( data );
+	Free ( data );
 }
 
 /*
@@ -180,28 +179,20 @@ void R_Bloom_InitTextures( void )
 	for (screen_texture_width = 1; screen_texture_width < vid.width; screen_texture_width *= 2);
 	for (screen_texture_height = 1; screen_texture_height < vid.height; screen_texture_height *= 2);
 
-	//disable blooms if we can't handle a texture of that size
-/*	if( screen_texture_width > gl_config.maxTextureSize ||
-		screen_texture_height > glConfig.maxTextureSize ) {
-		screen_texture_width = screen_texture_height = 0;
-		Cvar_SetValue ("r_bloom", 0);
-		Com_Printf( "WARNING: 'R_InitBloomScreenTexture' too high resolution for Light Bloom. Effect disabled\n" );
-		return;
-	}*/
-
 	//init the screen texture
 	size = screen_texture_width * screen_texture_height * 4;
-	data = malloc( size );
+	data = Malloc( size );
 	memset( data, 255, size );
+
 	r_bloomscr.width = screen_texture_width;
 	r_bloomscr.height = screen_texture_height;
-	r_bloomscr.type = 0;
+	r_bloomscr.type = PF_PROCEDURE_TEX;
 	r_bloomscr.flags = 0;
 	r_bloomscr.palette = NULL;
 	r_bloomscr.buffer = (byte *)data;
-	r_bloomscr.numMips = 4;
+	r_bloomscr.numMips = 1;
 	r_bloomscreentexture = R_LoadImage( "***r_bloomscreentexture***", &r_bloomscr, it_pic );
-	free ( data );
+	Free ( data );
 
 	//validate bloom size and init the bloom effect texture
 	R_Bloom_InitEffectTexture ();
@@ -212,17 +203,16 @@ void R_Bloom_InitTextures( void )
 	if( vid.width > (BLOOM_SIZE * 2) && !r_bloom_fast_sample->value )
 	{
 		r_screendownsamplingtexture_size = (int)(BLOOM_SIZE * 2);
-		data = malloc( r_screendownsamplingtexture_size * r_screendownsamplingtexture_size * 4 );
-		memset( data, 0, r_screendownsamplingtexture_size * r_screendownsamplingtexture_size * 4 );
+		data = Malloc( r_screendownsamplingtexture_size * r_screendownsamplingtexture_size * 4 );
 		r_downsample.width = r_screendownsamplingtexture_size;
 		r_downsample.height = r_screendownsamplingtexture_size;
 		r_downsample.type = PF_PROCEDURE_TEX;
 		r_downsample.flags = 0;
 		r_downsample.palette = NULL;
 		r_downsample.buffer = (byte *)data;
-		r_downsample.numMips = 4;
+		r_downsample.numMips = 1;
 		r_bloomdownsamplingtexture = R_LoadImage( "***r_bloomdownsampetexture***", &r_downsample, it_pic );
-		free ( data );
+		Free ( data );
 	}
 
 	//Init the screen backup texture
@@ -274,10 +264,10 @@ void R_Bloom_GeneratexDiamonds( void )
 	//set up sample size workspace
 	qglViewport( 0, 0, sample_width, sample_height );
 	qglMatrixMode( GL_PROJECTION );
-    qglLoadIdentity ();
+	qglLoadIdentity ();
 	qglOrtho(0, sample_width, sample_height, 0, -10, 100);
 	qglMatrixMode( GL_MODELVIEW );
-    qglLoadIdentity ();
+	qglLoadIdentity ();
 
 	//copy small scene into r_bloomeffecttexture
 	GL_Bind(r_bloomeffecttexture->texnum[0]);
@@ -346,10 +336,10 @@ void R_Bloom_GeneratexDiamonds( void )
 	//restore full screen workspace
 	qglViewport( 0, 0, vid.width, vid.height );
 	qglMatrixMode( GL_PROJECTION );
-    qglLoadIdentity ();
+	qglLoadIdentity ();
 	qglOrtho(0, vid.width, vid.height, 0, -10, 100);
 	qglMatrixMode( GL_MODELVIEW );
-    qglLoadIdentity ();
+	qglLoadIdentity ();
 }											
 
 /*

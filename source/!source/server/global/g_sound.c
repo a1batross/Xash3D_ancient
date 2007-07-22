@@ -574,17 +574,17 @@ void ReadTextureSurfaceAssignments()
 
 	num_texsurfs = 0;
 
-	f = gi.fopen("scripts/texsurfs.txt","rt");
+	f = gi.Fs.Open("scripts/texsurfs.txt","rt");
 	if(!f) return;
 
 	//UNDONE: get params with parsing fcts
-	while(gi.fgets(f, line, sizeof(line)) && num_texsurfs < MAX_TEX_SURF)
+	while(gi.Fs.Gets(f, line, sizeof(line)) && num_texsurfs < MAX_TEX_SURF)
 	{
 //		gi.dprintf("%d %s\n",tex_surf[num_texsurfs].step_id,tex_surf[num_texsurfs].tex);
 		num_texsurfs++;
 	}
 	
-	gi.fclose(f);
+	gi.Fs.Close(f);
 }
 
 /* All other footstep-related code is in p_view.c. Short version: replace all 

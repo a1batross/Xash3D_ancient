@@ -1571,7 +1571,7 @@ int trigger_transition_ents (edict_t *changelevel, edict_t *self)
 	file_t		*f;
 
 	trans_ent_filename(t_file);
-	f = gi.fopen(t_file,"wb");
+	f = gi.Fs.Open(t_file,"wb");
 	if(!f)
 	{
 		gi.dprintf("Error opening %s for writing\n",t_file);
@@ -1699,7 +1699,7 @@ int trigger_transition_ents (edict_t *changelevel, edict_t *self)
 		ent->inuse = false;
 	}
 
-	gi.fclose(f);
+	gi.Fs.Close(f);
 	return total;
 }
 
