@@ -1,5 +1,6 @@
 
 // game.h -- game dll information visible to server
+#include "savefile.h"
 
 #define	GAME_API_VERSION	3
 
@@ -177,19 +178,10 @@ typedef struct game_export_s
 	// each new level entered will cause a call to SpawnEntities
 	void		(*SpawnEntities) (char *mapname, char *entstring, char *spawnpoint);
 
-	// Read/Write Game is for storing persistant cross level information
-	// about the world state and the clients.
-	// WriteGame is called every time a level is exited.
-	// ReadGame is called on a loadgame.
-	void		(*WriteGame) (file_t *f, bool autosave);
-	void		(*ReadGame) (file_t *f);
+	void		(*WriteLump) (dsavehdr_t *hdr, file_t *f, int lumpnum);
 
-	// ReadLevel is called after the default map information has been
-	// loaded with SpawnEntities
-	void		(*WriteLevel) (file_t *f);
-	void		(*ReadLevel) (file_t *f);
-
-	void		(*WriteLump) (file_t *f, int lumpnum);
+	void		(*Sav_LoadGame)(byte *base, lump_t *l);
+	void		(*Sav_LoadLevel)(byte *base, lump_t *l);
 
 	bool		(*ClientConnect) (edict_t *ent, char *userinfo);
 	void		(*ClientBegin) (edict_t *ent);

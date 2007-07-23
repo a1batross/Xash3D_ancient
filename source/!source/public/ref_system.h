@@ -185,6 +185,7 @@ typedef struct vfilesystem_api_s
 	size_t	api_size;		// must matched with sizeof(vfilesystem_api_t)
 
 	//file low-level operations
+	vfile_t *(*Create)(byte *buffer, size_t buffsize);		// create virtual stream
 	vfile_t *(*Open)(file_t* file, const char* mode);			// virtual fopen
 	int (*Close)(vfile_t* file);					// free buffer or write dump
 	long (*Write)(vfile_t* file, const void* data, size_t datasize);	// write into buffer

@@ -17,19 +17,18 @@ SAVE FILE
 #define QUICK	2
 
 //header
-#define SAVE_VERSION	1
+#define SAVE_VERSION	2
 #define IDSAVEHEADER	(('E'<<24)+('V'<<16)+('A'<<8)+'S') // little-endian "SAVE"
 
-#define LUMP_SNAPSHOT	0	// jpg image snapshot
-#define LUMP_COMMENTS	1	// map comments
-#define LUMP_MAPCMDS	2	// map commands
-#define LUMP_GAMECVARS	3	// contain game comment and all cvar state
-#define LUMP_GAMELOCAL	4	// server.dll game_locals_t struct and players info
-#define LUMP_GAMETRANS	5	// level transition info
-#define LUMP_CFGSTRING	6	// client info strings
-#define LUMP_AREASTATE	7	// area portals state
-#define LUMP_ENTSSTATE	8	// server.dll state of all entities
-#define LUMP_HEADER		9	// header 
+#define LUMP_COMMENTS	0	// map comments
+#define LUMP_CFGSTRING	1	// client info strings
+#define LUMP_AREASTATE	2	// area portals state
+#define LUMP_GAMELEVEL	3	// server.dll game_locals_t struct and players info
+#define LUMP_MAPCMDS	4	// map commands
+#define LUMP_GAMECVARS	5	// contain game comment and all cvar state
+#define LUMP_GAMELOCAL	6	// server.dll game_locals_t struct and players info
+#define LUMP_SNAPSHOT	7	// dxt image snapshot
+#define LUMP_HEADER		8	// header 
 
 typedef struct
 {

@@ -2022,13 +2022,13 @@ bool	m_savevalid[MAX_SAVEGAMES];
 void Create_Savestrings (void)
 {
 	int		i;
-	file_t	*f;
-	char	name[MAX_SYSPATH];
+	file_t		*f;
+	char		name[MAX_SYSPATH];
+	search_t		*t = FS_Search( "save/*.bin" );
 
-	for (i=0 ; i<MAX_SAVEGAMES ; i++)
+	for (i = 0; i < t->numfilenames; i++)
 	{
-		Com_sprintf (name, sizeof(name), "save/save%i/server.ssv", i);
-		f = FS_Open (name, "rb");
+		f = FS_Open (t->filenames[i], "rb");
 		if (!f)
 		{
 			strcpy (m_savestrings[i], "<EMPTY>");
@@ -2064,10 +2064,10 @@ void LoadGame_MenuInit( void )
 
 	for ( i = 0; i < MAX_SAVEGAMES; i++ )
 	{
-		s_loadgame_actions[i].generic.name			= m_savestrings[i];
-		s_loadgame_actions[i].generic.flags			= QMF_LEFT_JUSTIFY;
-		s_loadgame_actions[i].generic.localdata[0]	= i;
-		s_loadgame_actions[i].generic.callback		= LoadGameCallback;
+		s_loadgame_actions[i].generic.name = m_savestrings[i];
+		s_loadgame_actions[i].generic.flags = QMF_LEFT_JUSTIFY;
+		s_loadgame_actions[i].generic.localdata[0] = i;
+		s_loadgame_actions[i].generic.callback = LoadGameCallback;
 
 		s_loadgame_actions[i].generic.x = 0;
 		s_loadgame_actions[i].generic.y = ( i ) * 10;

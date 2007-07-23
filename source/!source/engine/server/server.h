@@ -155,20 +155,21 @@ typedef struct
 
 typedef struct
 {
-	bool	initialized;				// sv_init has completed
-	int			realtime;					// always increasing, no clamping, etc
+	bool		initialized;				// sv_init has completed
+	int		realtime;					// always increasing, no clamping, etc
 
 	char		mapcmd[MAX_TOKEN_CHARS];	// ie: *intro.cin+base 
+	char		comment[MAX_TOKEN_CHARS];	// map name, e.t.c. 
 
-	int			spawncount;					// incremented each server start
+	int		spawncount;					// incremented each server start
 											// used to check late spawns
 
-	client_t	*clients;					// [maxclients->value];
-	int			num_client_entities;		// maxclients->value*UPDATE_BACKUP*MAX_PACKET_ENTITIES
-	int			next_client_entities;		// next client_entity to use
+	client_t		*clients;				// [maxclients->value];
+	int		num_client_entities;	// maxclients->value*UPDATE_BACKUP*MAX_PACKET_ENTITIES
+	int		next_client_entities;	// next client_entity to use
 	entity_state_t	*client_entities;		// [num_client_entities]
 
-	int			last_heartbeat;
+	int		last_heartbeat;
 
 	challenge_t	challenges[MAX_CHALLENGES];	// to prevent invalid IPs from connecting
 
@@ -264,7 +265,7 @@ void SV_ExecuteClientMessage (client_t *cl);
 //
 // sv_ccmds.c
 //
-void SV_ReadLevelFile (void);
+void SV_ReadLevelFile ( int mode );
 void SV_Status_f (void);
 
 //

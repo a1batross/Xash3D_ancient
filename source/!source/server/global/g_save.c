@@ -432,7 +432,7 @@ void InitGame (void)
 
 //=========================================================
 
-void WriteField1 (file_t *f, field_t *field, byte *base)
+void WriteField1 (vfile_t *f, field_t *field, byte *base)
 {
 	void		*p;
 	int		len;
@@ -500,7 +500,7 @@ void WriteField1 (file_t *f, field_t *field, byte *base)
 }
 
 
-void WriteField2 (file_t *f, field_t *field, byte *base)
+void WriteField2 (vfile_t *f, field_t *field, byte *base)
 {
 	int			len;
 	void		*p;
@@ -515,13 +515,13 @@ void WriteField2 (file_t *f, field_t *field, byte *base)
 		if ( *(char **)p )
 		{
 			len = strlen(*(char **)p) + 1;
-			gi.Fs.Write (f, *(char **)p, len);
+			gi.VFs.Write (f, *(char **)p, len);
 		}
 		break;
 	}
 }
 
-void ReadField (file_t *f, field_t *field, byte *base)
+void ReadField (vfile_t *f, field_t *field, byte *base)
 {
 	void		*p;
 	int			len;
@@ -546,7 +546,7 @@ void ReadField (file_t *f, field_t *field, byte *base)
 		else
 		{
 			*(char **)p = TagMalloc (len, TAG_LEVEL);
-			gi.Fs.Read (f, *(char **)p, len);
+			gi.VFs.Read (f, *(char **)p, len);
 		}
 		break;
 	case F_EDICT:
@@ -599,7 +599,7 @@ WriteClient
 All pointer variables (except function pointers) must be handled specially.
 ==============
 */
-void WriteClient (file_t *f, gclient_t *client)
+void WriteClient (vfile_t *f, gclient_t *client)
 {
 	field_t		*field;
 	gclient_t		temp;
@@ -614,7 +614,7 @@ void WriteClient (file_t *f, gclient_t *client)
 	}
 
 	// write the block
-	gi.Fs.Write (f, &temp, sizeof(temp));
+	gi.VFs.Write (f, &temp, sizeof(temp));
 
 	// now write any allocated data following the edict
 	for (field = clientfields; field->name; field++)
@@ -630,11 +630,11 @@ ReadClient
 All pointer variables (except function pointers) must be handled specially.
 ==============
 */
-void ReadClient (file_t *f, gclient_t *client)
+void ReadClient (vfile_t *f, gclient_t *client)
 {
 	field_t		*field;
 
-	gi.Fs.Read (f, client, sizeof(*client));
+	gi.VFs.Read (f, client, sizeof(*client));
 
 	client->pers.spawn_landmark = false;
 	client->pers.spawn_levelchange = false;
@@ -658,7 +658,7 @@ A single player death will automatically restore from the
 last save position.
 ============
 */
-void WriteGame (file_t *f, bool autosave)
+void WriteGame (vfile_t *f, bool autosave)
 {
 	int	i;
 	char	str[16];
@@ -670,17 +670,17 @@ void WriteGame (file_t *f, bool autosave)
           
 	memset (str, 0, sizeof(str));
 	strcpy (str, __DATE__ );
-	gi.Fs.Write (f, str, sizeof(str));
+	gi.VFs.Write (f, str, sizeof(str));
 
 	game.autosaved = autosave;
-	gi.Fs.Write (f, &game, sizeof(game));
+	gi.VFs.Write (f, &game, sizeof(game));
 	game.autosaved = false;
 
 	for (i = 0; i < game.maxclients; i++)
 		WriteClient (f, &game.clients[i]);
 }
 
-void ReadGame (file_t *f)
+void ReadGame (vfile_t *f)
 {
 	int	i;
 	char	str[16];
@@ -689,17 +689,17 @@ void ReadGame (file_t *f)
 
 	FreeTags (TAG_GAME);
 
-	gi.Fs.Read (f, str, sizeof(str));
+	gi.VFs.Read (f, str, sizeof(str));
 	if (strcmp (str, __DATE__))
 	{
-		gi.Fs.Close (f);
+		gi.VFs.Close (f);
 		gi.error ("Savegame from an older version.\n");
 	}
 
 	g_edicts =  TagMalloc (game.maxentities * sizeof(g_edicts[0]), TAG_GAME);
 	globals.edicts = g_edicts;
 
-	gi.Fs.Read (f, &game, sizeof(game));
+	gi.VFs.Read (f, &game, sizeof(game));
 	game.clients = TagMalloc (game.maxclients * sizeof(game.clients[0]), TAG_GAME);
 	for (i = 0; i < game.maxclients; i++) ReadClient (f, &game.clients[i]);
 }
@@ -714,7 +714,7 @@ WriteEdict
 All pointer variables (except function pointers) must be handled specially.
 ==============
 */
-void WriteEdict (file_t *f, edict_t *ent)
+void WriteEdict (vfile_t *f, edict_t *ent)
 {
 	field_t		*field;
 	edict_t		temp;
@@ -729,7 +729,7 @@ void WriteEdict (file_t *f, edict_t *ent)
 	}
 
 	// write the block
-	gi.Fs.Write (f, &temp, sizeof(temp));
+	gi.VFs.Write (f, &temp, sizeof(temp));
 
 	// now write any allocated data following the edict
 	for (field = fields; field->name; field++)
@@ -746,10 +746,10 @@ WriteLevelLocals
 All pointer variables (except function pointers) must be handled specially.
 ==============
 */
-void WriteLevelLocals (file_t *f)
+void WriteLevelLocals (vfile_t *f)
 {
 	field_t		*field;
-	level_locals_t		temp;
+	level_locals_t	temp;
 
 	// all of the ints, floats, and vectors stay as they are
 	temp = level;
@@ -761,7 +761,7 @@ void WriteLevelLocals (file_t *f)
 	}
 
 	// write the block
-	gi.Fs.Write (f, &temp, sizeof(temp));
+	gi.VFs.Write (f, &temp, sizeof(temp));
 
 	// now write any allocated data following the edict
 	for (field = levelfields; field->name; field++)
@@ -778,11 +778,11 @@ ReadEdict
 All pointer variables (except function pointers) must be handled specially.
 ==============
 */
-void ReadEdict (file_t *f, edict_t *ent)
+void ReadEdict (vfile_t *f, edict_t *ent)
 {
 	field_t		*field;
 
-	gi.Fs.Read (f, ent, sizeof(*ent));
+	gi.VFs.Read (f, ent, sizeof(*ent));
 
 	for (field = fields; field->name; field++)
 	{
@@ -797,11 +797,11 @@ ReadLevelLocals
 All pointer variables (except function pointers) must be handled specially.
 ==============
 */
-void ReadLevelLocals (file_t *f)
+void ReadLevelLocals (vfile_t *f)
 {
 	field_t		*field;
 
-	gi.Fs.Read (f, &level, sizeof(level));
+	gi.VFs.Read (f, &level, sizeof(level));
 
 	for (field = levelfields; field->name; field++)
 	{
@@ -815,9 +815,9 @@ WriteLevel
 
 =================
 */
-void WriteLevel (file_t *f)
+void WriteLevel (vfile_t *f)
 {
-	int		i;
+	int	i;
 	edict_t	*ent;
 	void	*base;
 
@@ -825,11 +825,11 @@ void WriteLevel (file_t *f)
 
 	// write out edict size for checking
 	i = sizeof(edict_t);
-	gi.Fs.Write (f, &i, sizeof(i));
+	gi.VFs.Write (f, &i, sizeof(i));
 
 	// write out a function pointer for checking
 	base = (void *)InitGame;
-	gi.Fs.Write (f, &base, sizeof(base));
+	gi.VFs.Write (f, &base, sizeof(base));
 
 	// write out level_locals_t
 	WriteLevelLocals (f);
@@ -857,17 +857,17 @@ void WriteLevel (file_t *f)
 				e.nextthink = 0;
 			}
 			e.stream = NULL;
-			gi.Fs.Write (f, &i, sizeof(i));
+			gi.VFs.Write (f, &i, sizeof(i));
 			WriteEdict (f, &e);
 		}
 		else
 		{
-			gi.Fs.Write (f, &i, sizeof(i));
+			gi.VFs.Write (f, &i, sizeof(i));
 			WriteEdict (f, ent);
 		}
 	}
 	i = -1;
-	gi.Fs.Write (f, &i, sizeof(i));
+	gi.VFs.Write (f, &i, sizeof(i));
 }
 
 
@@ -888,12 +888,12 @@ No clients are connected yet.
 =================
 */
 void LoadTransitionEnts();
-void ReadLevel (file_t *f)
+void ReadLevel (vfile_t *f)
 {
 	int		entnum;
 	int		i;
-	void	*base;
-	edict_t	*ent;
+	void		*base;
+	edict_t		*ent;
 
 	if(developer->value) gi.dprintf ("==== ReadLevel ====\n");
 
@@ -902,19 +902,19 @@ void ReadLevel (file_t *f)
 	FreeTags (TAG_LEVEL);
 
 	// wipe all the entities
-	memset (g_edicts, 0, game.maxentities*sizeof(g_edicts[0]));
+	memset (g_edicts, 0, game.maxentities * sizeof(g_edicts[0]));
 	globals.num_edicts = maxclients->value+1;
 
 	// check edict size
-	gi.Fs.Read (f, &i, sizeof(i));
+	gi.VFs.Read (f, &i, sizeof(i));
 	if (i != sizeof(edict_t))
 	{
-		gi.Fs.Close (f);
+		gi.VFs.Close (f);
 		gi.error ("ReadLevel: mismatched edict size");
 	}
 
 	// check function pointer base address
-	gi.Fs.Read (f, &base, sizeof(base));
+	gi.VFs.Read (f, &base, sizeof(base));
 
 	// load the level locals
 	ReadLevelLocals (f);
@@ -922,9 +922,9 @@ void ReadLevel (file_t *f)
 	// load all the entities
 	while (1)
 	{
-		if (!gi.Fs.Read (f, &entnum, sizeof(entnum)))
+		if (!gi.VFs.Read (f, &entnum, sizeof(entnum)))
 		{
-			gi.Fs.Close (f);
+			gi.VFs.Close (f);
 			gi.error ("ReadLevel: failed to read entnum");
 		}
 		if (entnum == -1) break;
@@ -939,10 +939,10 @@ void ReadLevel (file_t *f)
 		gi.linkentity (ent);
 	}
 
-	gi.Fs.Close (f);
+	gi.VFs.Close (f);
 
 	// mark all clients as unconnected
-	for (i=0 ; i<maxclients->value ; i++)
+	for (i = 0; i < maxclients->value; i++)
 	{
 		ent = &g_edicts[i+1];
 		ent->client = game.clients + i;
@@ -950,12 +950,10 @@ void ReadLevel (file_t *f)
 	}
 
 	// do any load time things at this point
-	for (i=0 ; i<globals.num_edicts ; i++)
+	for (i = 0; i < globals.num_edicts; i++)
 	{
 		ent = &g_edicts[i];
-
-		if (!ent->inuse)
-			continue;
+		if (!ent->inuse) continue;
 
 		// fire any cross-level triggers
 		if (ent->class_id == ENTITY_TARGET_CROSSLEVEL_TARGET)
@@ -968,4 +966,53 @@ void ReadLevel (file_t *f)
 		LoadTransitionEnts();
 		actor_files();
 	}
+}
+
+void WriteLump (dsavehdr_t *hdr, file_t *f, int lumpnum)
+{
+	lump_t	*lump;
+	vfile_t	*vf;
+
+	vf = gi.VFs.Open( f, "w" );
+
+	switch( lumpnum )
+	{
+	case LUMP_GAMELEVEL: WriteLevel( vf ); break;
+	case LUMP_GAMELOCAL: WriteGame( vf, false ); break;//FIXME 
+	default:
+		gi.dprintf("unsupported lump num\n");
+		return;
+	}
+
+	lump = &hdr->lumps[lumpnum];
+	lump->fileofs = LittleLong( gi.Fs.Tell(f));
+	lump->filelen = LittleLong( gi.VFs.Tell(vf));
+	gi.VFs.Close( vf ); //write into disk
+}
+
+void Sav_LoadGame (byte *base, lump_t *l)
+{
+	vfile_t	*vf;
+	byte	*in;
+
+	in = (void *)(base + l->fileofs);
+	if (l->filelen % sizeof(*in)) gi.error("Sav_LoadGame: funny lump size\n" );
+
+	vf = gi.VFs.Create(in, l->filelen );
+
+	ReadGame( vf );
+	gi.VFs.Close( vf );	
+}
+
+void Sav_LoadLevel (byte *base, lump_t *l)
+{
+	vfile_t	*vf;
+	byte	*in;
+
+	in = (void *)(base + l->fileofs);
+	if (l->filelen % sizeof(*in)) gi.error( "Sav_LoadLevel: funny lump size\n" );
+
+	vf = gi.VFs.Create(in, l->filelen );
+
+	ReadLevel( vf );
 }

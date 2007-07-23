@@ -2370,6 +2370,20 @@ VIRTUAL FILE SYSTEM - WRITE DATA INTO MEMORY
 
 =============================================================================
 */
+vfile_t *VFS_Create(byte *buffer, size_t buffsize)
+{
+	vfile_t *file = (vfile_t *)Mem_Alloc (fs_mempool, sizeof (*file));
+
+	file->file = NULL; //no real stream
+	file->length = file->buffsize = buffsize;
+	file->buff = Mem_Alloc(fs_mempool, (file->buffsize));	
+	file->offset = 0;
+	file->mode = O_RDONLY;
+	Mem_Copy(file->buff, buffer, buffsize );
+
+	return file;
+}
+
 vfile_t *VFS_Open(file_t* real_file, const char* mode)
 {
 	vfile_t *file = (vfile_t *)Mem_Alloc (fs_mempool, sizeof (*file));
@@ -2441,11 +2455,14 @@ fs_offset_t VFS_Write( vfile_t *file, const void *buf, size_t size )
 
 	if (file->offset + size >= file->buffsize)
 	{
-		int newsize = file->offset + size * (64 * 1024);
+		int newsize = file->offset + size + (64 * 1024);
 
-		//reallocate buffer now
-		file->buff = Mem_Realloc(fs_mempool, file->buff, newsize );		
-		file->length = newsize; //merge file length
+		if (file->buffsize < newsize)
+		{
+			//reallocate buffer now
+			file->buff = Mem_Realloc(fs_mempool, file->buff, newsize );		
+			file->buffsize = newsize; //merge buffsize
+		}
 	}
 
 	// write into buffer
@@ -2488,8 +2505,13 @@ int VFS_Seek( vfile_t *file, fs_offset_t offset, int whence )
 
 int VFS_Close( vfile_t *file )
 {
-	//write real file into disk
-	FS_Write (file->file, file->buff, file->length);
+	if(!file) return -1;
+
+	if(file->mode == O_WRONLY)
+	{
+		// write real file into disk
+		FS_Write (file->file, file->buff, (file->length + 3) & ~3);// align
+	}
 
 	Free( file->buff );
 	Free( file ); //himself
@@ -2509,6 +2531,7 @@ vfilesystem_api_t VFS_GetAPI( void )
 
 	vfs.api_size = sizeof(vfilesystem_api_t);
 
+	vfs.Create = VFS_Create;
 	vfs.Open = VFS_Open;
 	vfs.Close = VFS_Close;
 	vfs.Write = VFS_Write;

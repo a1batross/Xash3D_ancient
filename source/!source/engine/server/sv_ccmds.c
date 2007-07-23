@@ -147,55 +147,6 @@ SAVEGAME FILES
 
 ===============================================================================
 */
-
-/*
-==============
-SV_WriteLevelFile
-
-mode: 0 - regular save, 1 - autosave, 2 - quicksave
-==============
-*/
-
-char* LF( int mode )
-{
-	static char path[MAX_SYSPATH];
-
-	switch(mode)
-	{
-	case REGULAR:
-		Com_sprintf (path, sizeof(path), "save/%s/%s.bin", sv.name, SV_CurTime());	 
-		break;
-	case AUTOSAVE:
-		Com_sprintf (path, sizeof(path), "save/%s/auto.bin", sv.name );
-		break;
-	case QUICK:
-		Com_sprintf (path, sizeof(path), "save/quick.bin" );
-		break;
-	}
-
-	return path;
-}
-
-char* SF( int mode )
-{
-	static char path[MAX_SYSPATH];
-
-	switch(mode)
-	{
-	case REGULAR:
-		Com_sprintf (path, sizeof(path), "save/%s/%s.sav", sv.name, SV_CurTime());	 
-		break;
-	case AUTOSAVE:
-		Com_sprintf (path, sizeof(path), "save/%s/auto.sav", sv.name );
-		break;
-	case QUICK:
-		Com_sprintf (path, sizeof(path), "save/quick.sav" );
-		break;
-	}
-
-	return path;
-}
-
 /*
 ==============
 SV_WriteLevelFile
@@ -204,189 +155,7 @@ SV_WriteLevelFile
 */
 void SV_WriteLevelFile (void)
 {
-	char	name[MAX_OSPATH];
-	file_t	*f;
-
-	Com_DPrintf("SV_WriteLevelFile()\n");
-          
-	f = FS_Open(LF( QUICK ), "wb");
-	if (!f)
-	{
-		Com_Printf ("Failed to open %s\n", name);
-		return;
-	}
-	Msg("wirte configstrings pos %d\n", FS_Tell(f));
-	FS_Write (f, sv.configstrings, sizeof(sv.configstrings));
-	Msg("wirte portalstate pos %d\n", FS_Tell(f));
-	CM_WritePortalState (f);
-	Msg("wirte level pos %d\n", FS_Tell(f));
-	ge->WriteLevel(f);
-
-	FS_Close (f);
 }
-
-/*
-==============
-SV_ReadLevelFile
-
-==============
-*/
-void SV_ReadLevelFile (void)
-{
-	char	name[MAX_OSPATH];
-	file_t	*f;
-
-	Com_DPrintf("SV_ReadLevelFile()\n");
-
-	f = FS_Open(LF( QUICK ), "rb");
-	if (!f)
-	{
-		Com_Printf ("Failed to open %s\n", name);
-		return;
-	}
-	Msg("read configstrings pos %d\n", FS_Tell(f));
-	FS_Read (f, sv.configstrings, sizeof(sv.configstrings));
-	Msg("read portalstate pos %d\n", FS_Tell(f));
-	CM_ReadPortalState (f);
-	Msg("read level pos %d\n", FS_Tell(f));
-	ge->ReadLevel(f);
-
-	FS_Close (f);
-}
-
-/*
-==============
-SV_WriteServerFile
-
-==============
-*/
-void SV_WriteServerFile (bool autosave)
-{
-	file_t	*f;
-	cvar_t	*var;
-	char	name[MAX_OSPATH], string[128];
-	char	comment[32];
-	time_t	aclock;
-	struct tm	*newtime;
-	int	mode;
-
-	Com_DPrintf("SV_WriteServerFile(%s)\n", autosave ? "true" : "false");
-
-	if(autosave)mode = AUTOSAVE;
-	else mode = QUICK;
-	
-	f = FS_Open (SF(mode), "wb");
-	if (!f)
-	{
-		Com_Printf ("Couldn't write %s\n", name);
-		return;
-	}
-
-	// write the comment field
-	memset (comment, 0, sizeof(comment));
-
-	if (!autosave)
-	{
-		time (&aclock);
-		newtime = localtime (&aclock);
-		Com_sprintf (comment, sizeof(comment), "%s", SV_CurTime());
-		strncat (comment, sv.configstrings[CS_NAME], sizeof(comment)-1-strlen(comment) );
-	}
-	else
-	{	// autosaved
-		Com_sprintf (comment, sizeof(comment), "ENTERING %s", sv.configstrings[CS_NAME]);
-	}
-
-	FS_Write (f, comment, sizeof(comment));
-
-	// write the mapcmd
-	FS_Write (f, svs.mapcmd, sizeof(svs.mapcmd));
-
-	// write all CVAR_LATCH cvars
-	// these will be things like coop, skill, deathmatch, etc
-	for (var = cvar_vars; var; var = var->next)
-	{
-		if (!(var->flags & CVAR_LATCH))
-			continue;
-		if (strlen(var->name) >= sizeof(name)-1 || strlen(var->string) >= sizeof(string)-1)
-		{
-			Com_Printf ("Cvar too long: %s = %s\n", var->name, var->string);
-			continue;
-		}
-
-		memset (name, 0, sizeof(name));
-		memset (string, 0, sizeof(string));
-		strcpy (name, var->name);
-		strcpy (string, var->string);
-		FS_Write (f, name, sizeof(name));
-		FS_Write (f, string, sizeof(string));
-	}
-          FS_Write(f, "§", 1 );//end of cvars
-
-	ge->WriteGame (f, autosave);
-	FS_Close (f);
-}
-
-/*
-==============
-SV_ReadServerFile
-
-==============
-*/
-void SV_ReadServerFile (void)
-{
-	file_t	*f;
-	char	name[MAX_OSPATH], string[128];
-	char	comment[32];
-	char	mapcmd[MAX_TOKEN_CHARS];
-
-	Com_DPrintf("SV_ReadServerFile()\n");
-
-	f = FS_Open (SF(QUICK), "rb");
-	if (!f)
-	{
-		Com_Printf ("Couldn't read %s\n", name);
-		return;
-	}
-	// read the comment field
-	FS_Read (f, comment, sizeof(comment));
-
-	// read the mapcmd
-	FS_Read (f, mapcmd, sizeof(mapcmd));
-
-	// read all CVAR_LATCH cvars
-	// these will be things like coop, skill, deathmatch, etc
-	while (1)
-	{
-		if (!FS_Read (f, name, sizeof(name)))
-			break;
-		if(name[0] == '§')
-		{
-			int curpos = FS_Tell(f);
-                              curpos -= sizeof(name);
-			curpos++;//skip § character
-			FS_Seek(f, curpos, SEEK_SET);
-			break;
-		}
-		FS_Read (f, string, sizeof(string));
-		Com_DPrintf ("Set %s = %s\n", name, string);
-		Cvar_ForceSet (name, string);
-	}
-
-	// start a new game fresh with new cvars
-	SV_InitGame ();
-
-	strcpy (svs.mapcmd, mapcmd);
-
-	ge->ReadGame (f);
-	FS_Close (f);
-}
-
-
-//=========================================================
-
-
-
 
 /*
 ==================
@@ -444,7 +213,7 @@ void SV_GameMap_f (void)
 			// when the level is re-entered, the clients will spawn
 			// at spawn points instead of occupying body shells
 			savedInuse = Z_Malloc(maxclients->value * sizeof(bool));
-			for (i=0,cl=svs.clients ; i<maxclients->value; i++,cl++)
+			for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
 			{
 				savedInuse[i] = cl->edict->inuse;
 				cl->edict->inuse = false;
@@ -453,7 +222,7 @@ void SV_GameMap_f (void)
 			SV_WriteLevelFile ();
 
 			// we must restore these for clients to transfer over correctly
-			for (i=0,cl=svs.clients ; i<maxclients->value; i++,cl++)
+			for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
 				cl->edict->inuse = savedInuse[i];
 			Z_Free (savedInuse);
 		}
@@ -528,7 +297,7 @@ void SV_Loadgame_f (void)
 		Com_Printf ("Bad savedir.\n");
 	}
 
-	SV_ReadServerFile ();
+	SV_ReadSaveFile( REGULAR ); //TEST
 
 	// go to the map
 	sv.state = ss_dead;		// don't save current level when changing
@@ -583,17 +352,12 @@ void SV_Savegame_f (void)
 		Com_Printf ("Bad savedir.\n");
 	}
 
-	Com_Printf ("Saving game...\n");
+	Com_Printf ("Saving game... %s\n", Cmd_Argv(1));
 
 	// archive current level, including all client edicts.
 	// when the level is reloaded, they will be shells awaiting
 	// a connecting client
-	SV_WriteLevelFile ();
-
-	// save server state
-	SV_WriteServerFile (false);
-
-	//SV_WriteSaveFile( AUTOSAVE );//TEST
+	SV_WriteSaveFile( REGULAR );//TEST
 
 	Com_Printf ("Done.\n");
 }
@@ -621,8 +385,7 @@ void SV_Kick_f (void)
 		return;
 	}
 
-	if (!SV_SetPlayer ())
-		return;
+	if (!SV_SetPlayer ()) return;
 
 	SV_BroadcastPrintf (PRINT_HIGH, "%s was kicked\n", sv_client->name);
 	// print directly, because the dropped client won't get the
@@ -653,10 +416,9 @@ void SV_Status_f (void)
 
 	Com_Printf ("num score ping name            lastmsg address               qport \n");
 	Com_Printf ("--- ----- ---- --------------- ------- --------------------- ------\n");
-	for (i=0,cl=svs.clients ; i<maxclients->value; i++,cl++)
+	for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
 	{
-		if (!cl->state)
-			continue;
+		if (!cl->state) continue;
 		Com_Printf ("%3i ", i);
 		Com_Printf ("%5i ", cl->edict->client->ps.stats[STAT_FRAGS]);
 

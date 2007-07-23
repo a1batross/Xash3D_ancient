@@ -6,59 +6,13 @@
 --------------------Configuration: engine - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\Temp\RSP588.tmp" with contents
+Creating temporary file "C:\Temp\RSPCBC.tmp" with contents
 [
 /nologo /MTd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "prvm" /I "common" /I "server" /I "client" /I "../public" /I "../platform/formats" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\engine\!debug/" /Fo"..\temp\engine\!debug/" /Fd"..\temp\engine\!debug/" /FD /c 
-"D:\XASH3D\src_main\!source\engine\cd_win.c"
-"D:\XASH3D\src_main\!source\engine\client\cl_cin.c"
-"D:\XASH3D\src_main\!source\engine\client\cl_ents.c"
-"D:\XASH3D\src_main\!source\engine\client\cl_fx.c"
-"D:\XASH3D\src_main\!source\engine\client\cl_input.c"
-"D:\XASH3D\src_main\!source\engine\client\cl_inv.c"
-"D:\XASH3D\src_main\!source\engine\client\cl_main.c"
-"D:\XASH3D\src_main\!source\engine\client\cl_newfx.c"
-"D:\XASH3D\src_main\!source\engine\client\cl_parse.c"
-"D:\XASH3D\src_main\!source\engine\client\cl_pred.c"
-"D:\XASH3D\src_main\!source\engine\client\cl_scrn.c"
-"D:\XASH3D\src_main\!source\engine\client\cl_tent.c"
-"D:\XASH3D\src_main\!source\engine\client\cl_view.c"
-"D:\XASH3D\src_main\!source\engine\common\cmd.c"
-"D:\XASH3D\src_main\!source\engine\common\cmodel.c"
-"D:\XASH3D\src_main\!source\engine\common\common.c"
-"D:\XASH3D\src_main\!source\engine\common\console.c"
-"D:\XASH3D\src_main\!source\engine\common\crc.c"
-"D:\XASH3D\src_main\!source\engine\common\cvar.c"
-"D:\XASH3D\src_main\!source\engine\host.c"
-"D:\XASH3D\src_main\!source\engine\in_win.c"
-"D:\XASH3D\src_main\!source\engine\common\keys.c"
-"D:\XASH3D\src_main\!source\server\m_flash.c"
-"D:\XASH3D\src_main\!source\engine\common\md4.c"
-"D:\XASH3D\src_main\!source\engine\common\menu.c"
-"D:\XASH3D\src_main\!source\engine\common\net_chan.c"
-"D:\XASH3D\src_main\!source\engine\net_wins.c"
-"D:\XASH3D\src_main\!source\engine\common\pmove.c"
-"D:\XASH3D\src_main\!source\engine\common\q_shared.c"
-"D:\XASH3D\src_main\!source\engine\common\qmenu.c"
-"D:\XASH3D\src_main\!source\engine\snd_dma.c"
-"D:\XASH3D\src_main\!source\engine\snd_mem.c"
-"D:\XASH3D\src_main\!source\engine\snd_mix.c"
-"D:\XASH3D\src_main\!source\engine\snd_win.c"
-"D:\XASH3D\src_main\!source\engine\server\sv_ccmds.c"
-"D:\XASH3D\src_main\!source\engine\server\sv_ents.c"
-"D:\XASH3D\src_main\!source\engine\server\sv_game.c"
-"D:\XASH3D\src_main\!source\engine\server\sv_init.c"
-"D:\XASH3D\src_main\!source\engine\server\sv_main.c"
 "D:\XASH3D\src_main\!source\engine\server\sv_save.c"
-"D:\XASH3D\src_main\!source\engine\server\sv_send.c"
-"D:\XASH3D\src_main\!source\engine\server\sv_studio.c"
-"D:\XASH3D\src_main\!source\engine\server\sv_user.c"
-"D:\XASH3D\src_main\!source\engine\server\sv_world.c"
-"D:\XASH3D\src_main\!source\engine\system.c"
-"D:\XASH3D\src_main\!source\engine\vid_dll.c"
-"D:\XASH3D\src_main\!source\engine\vid_menu.c"
 ]
-Creating command line "cl.exe @C:\Temp\RSP588.tmp" 
-Creating temporary file "C:\Temp\RSP589.tmp" with contents
+Creating command line "cl.exe @C:\Temp\RSPCBC.tmp" 
+Creating temporary file "C:\Temp\RSPCBD.tmp" with contents
 [
 winmm.lib wsock32.lib kernel32.lib user32.lib gdi32.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..\temp\engine\!debug/engine.pdb" /debug /machine:I386 /out:"..\temp\engine\!debug/engine.dll" /implib:"..\temp\engine\!debug/engine.lib" /pdbtype:sept 
 "\XASH3D\src_main\!source\temp\engine\!debug\cd_win.obj"
@@ -109,69 +63,16 @@ winmm.lib wsock32.lib kernel32.lib user32.lib gdi32.lib /nologo /subsystem:windo
 "\XASH3D\src_main\!source\temp\engine\!debug\vid_dll.obj"
 "\XASH3D\src_main\!source\temp\engine\!debug\vid_menu.obj"
 ]
-Creating command line "link.exe @C:\Temp\RSP589.tmp"
-Creating temporary file "C:\Temp\RSP58A.bat" with contents
+Creating command line "link.exe @C:\Temp\RSPCBD.tmp"
+Creating temporary file "C:\Temp\RSPCBE.bat" with contents
 [
 @echo off
 copy \XASH3D\src_main\!source\temp\engine\!debug\engine.dll "D:\Xash3D\bin\engine.dll"
 ]
-Creating command line "C:\Temp\RSP58A.bat"
+Creating command line "C:\Temp\RSPCBE.bat"
 Compiling...
-cd_win.c
-cl_cin.c
-cl_ents.c
-cl_fx.c
-cl_input.c
-cl_inv.c
-cl_main.c
-cl_newfx.c
-cl_parse.c
-cl_pred.c
-cl_scrn.c
-cl_tent.c
-cl_view.c
-cmd.c
-cmodel.c
-common.c
-console.c
-crc.c
-cvar.c
-host.c
-Generating Code...
-Compiling...
-in_win.c
-keys.c
-m_flash.c
-md4.c
-menu.c
-net_chan.c
-net_wins.c
-pmove.c
-q_shared.c
-qmenu.c
-snd_dma.c
-snd_mem.c
-snd_mix.c
-snd_win.c
-sv_ccmds.c
-d:\xash3d\src_main\!source\engine\server\sv_ccmds.c(166) : warning C4013: 'SV_CurTime' undefined; assuming extern returning int
-sv_ents.c
-sv_game.c
-sv_init.c
-sv_main.c
 sv_save.c
-Generating Code...
-Compiling...
-sv_send.c
-sv_studio.c
-sv_user.c
-sv_world.c
-system.c
-vid_dll.c
-vid_menu.c
-Generating Code...
 Linking...
-   Creating library ..\temp\engine\!debug/engine.lib and object ..\temp\engine\!debug/engine.exp
 <h3>Output Window</h3>
 Performing Custom Build Step on \XASH3D\src_main\!source\temp\engine\!debug\engine.dll
 Скопировано файлов:         1.
@@ -179,7 +80,7 @@ Performing Custom Build Step on \XASH3D\src_main\!source\temp\engine\!debug\engi
 
 
 <h3>Results</h3>
-engine.dll - 0 error(s), 1 warning(s)
+engine.dll - 0 error(s), 0 warning(s)
 </pre>
 </body>
 </html>

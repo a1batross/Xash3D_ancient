@@ -116,10 +116,9 @@ void ClientDisconnect (edict_t *ent);
 void ClientBegin (edict_t *ent);
 void ClientCommand (edict_t *ent);
 void RunEntity (edict_t *ent);
-void WriteGame (file_t *f, bool autosave);
-void ReadGame (file_t *f);
-void WriteLevel (file_t *f);
-void ReadLevel (file_t *f);
+void WriteLump (dsavehdr_t *hdr, file_t *f, int lumpnum);
+void Sav_LoadGame (byte *base, lump_t *l);
+void Sav_LoadLevel (byte *base, lump_t *l);
 void InitGame (void);
 void G_RunFrame (void);
 
@@ -191,10 +190,9 @@ game_export_t DLLEXPORT *ServerAPI (game_import_t *import)
 	globals.Shutdown = ShutdownGame;
 	globals.SpawnEntities = SpawnEntities;
 
-	globals.WriteGame = WriteGame;
-	globals.ReadGame = ReadGame;
-	globals.WriteLevel = WriteLevel;
-	globals.ReadLevel = ReadLevel;
+	globals.WriteLump = WriteLump;
+	globals.Sav_LoadGame = Sav_LoadGame;
+	globals.Sav_LoadLevel = Sav_LoadLevel;
 
 	globals.ClientThink = ClientThink;
 	globals.ClientConnect = ClientConnect;

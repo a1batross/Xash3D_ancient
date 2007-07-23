@@ -55,6 +55,8 @@ memory manager
 #define Mem_FreePool(pool) pi->Mem.FreePool(pool, __FILE__, __LINE__)
 #define Mem_EmptyPool(pool) pi->Mem.EmptyPool(pool, __FILE__, __LINE__)
 
+#define Mem_Copy(dest, src, size) pi->Mem.Copy(dest, src, size, __FILE__, __LINE__) 
+
 /*
 ===========================================
 filesystem manager

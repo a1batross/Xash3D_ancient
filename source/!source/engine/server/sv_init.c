@@ -117,21 +117,18 @@ SV_CheckForSavegame
 */
 void SV_CheckForSavegame (void)
 {
-	file_t		*f;
 	int		i;
 
 	if (sv_noreload->value) return;
 
 	if (Cvar_VariableValue ("deathmatch")) return;
 
-	f = FS_Open ("save/quick.bin", "rb");
-	if (!f) return; // no savegame
-	FS_Close (f);
+	if(!FS_FileExists("save/quick.bin")) return;
 
 	SV_ClearWorld ();
 
 	// get configstrings and areaportals
-	SV_ReadLevelFile ();
+	SV_ReadLevelFile ( REGULAR );
 
 	if (!sv.loadgame)
 	{	// coming back to a level after being in a different
@@ -143,9 +140,8 @@ void SV_CheckForSavegame (void)
 		server_state_t		previousState;		// PGM
 
 		previousState = sv.state;				// PGM
-		sv.state = ss_loading;					// PGM
-		for (i=0 ; i<100 ; i++)
-			ge->RunFrame ();
+		sv.state = ss_loading;				// PGM
+		for (i = 0; i < 100; i++) ge->RunFrame ();
 
 		sv.state = previousState;				// PGM
 	}
