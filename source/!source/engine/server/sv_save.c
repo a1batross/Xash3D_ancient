@@ -25,7 +25,7 @@ const char* SV_CurTime( void )
 	// Build the time stamp (ex: "Apr2007-03(23.31.55)");
 	time (&crt_time);
 	crt_tm = localtime (&crt_time);
-	strftime (timestring, sizeof (timestring), "%b%Y-%d(%H.%M.%S)", crt_tm);
+	strftime (timestring, sizeof (timestring), "%b%d-%Y (%H:%M)", crt_tm);
           strcpy( timestamp, timestring );
 
 	return timestamp;
@@ -89,35 +89,24 @@ SV_WriteSaveFile
 =============
 */
 
-void SV_WriteSaveFile( int mode )
+void SV_WriteSaveFile( char *name )
 {
 	char		path[MAX_SYSPATH];
 	char		comment[32];
 	dsavehdr_t	*header;
 	file_t		*savfile;
 	
-	switch( mode )
-	{
-	case QUICK: 
-		sprintf (path, "save/quick.bin" );
-		sprintf (comment, "Quick save %s", sv.configstrings[CS_NAME]);
-		break;
-	case AUTOSAVE:
-		sprintf (path, "save/auto.bin" );
-		sprintf (comment, "Autosave %s", sv.configstrings[CS_NAME]);
-		break;
-	case REGULAR:
-		sprintf (path, "save/%s.bin", SV_CurTime());
-		sprintf (comment, "%s - %s", sv.configstrings[CS_NAME], SV_CurTime());
-		break;
-	}
-          
+	sprintf (path, "save/%s.bin", name );
+
 	savfile = FS_Open( path, "wb");
 	if (!savfile)
 	{
 		MsgDev ("Failed to open %s\n", path );
 		return;
 	}
+
+	MsgDev ("Saving game... %s\n", name );
+	sprintf (comment, "%s - %s", sv.configstrings[CS_NAME], SV_CurTime());
 
 	header = (dsavehdr_t *)Z_Malloc( sizeof(dsavehdr_t));
 	header->ident = LittleLong (IDSAVEHEADER);
@@ -137,7 +126,6 @@ void SV_WriteSaveFile( int mode )
 	FS_Seek( savfile, 0, SEEK_SET );
 	FS_Write( savfile, header, sizeof(dsavehdr_t));
 	FS_Close( savfile );
-
 	Z_Free( header );
 }
 
@@ -206,6 +194,7 @@ void Sav_LoadAreaPortals( lump_t *l )
 
 	size = l->filelen / sizeof(*in);
 	Mem_Copy(portalopen, in, size);
+	CM_FloodAreaConnections ();
 }
 
 /*
@@ -213,26 +202,14 @@ void Sav_LoadAreaPortals( lump_t *l )
 SV_ReadSaveFile
 =============
 */
-void SV_ReadSaveFile( int mode )
+void SV_ReadSaveFile( char *name )
 {
 	char		path[MAX_SYSPATH];
 	dsavehdr_t	*header;
 	byte		*savfile;
 	int		i, id, size;
-	
-	switch( mode )
-	{
-	case QUICK: 
-		sprintf (path, "save/quick.bin" );
-		break;
-	case AUTOSAVE:
-		sprintf (path, "save/auto.bin" );
-		break;
-	case REGULAR:
-		sprintf (path, "save/%s.bin", SV_CurTime());
-		break;
-	}
 
+	sprintf (path, "save/%s.bin", name );
 	savfile = FS_LoadFile(path, &size );
 
 	if(!savfile)
@@ -263,26 +240,14 @@ void SV_ReadSaveFile( int mode )
 SV_ReadLevelFile
 =============
 */
-void SV_ReadLevelFile( int mode )
+void SV_ReadLevelFile( char *name )
 {
 	char		path[MAX_SYSPATH];
 	dsavehdr_t	*header;
 	byte		*savfile;
 	int		i, id, size;
-	
-	switch( mode )
-	{
-	case QUICK: 
-		sprintf (path, "save/quick.bin" );
-		break;
-	case AUTOSAVE:
-		sprintf (path, "save/%s/auto.bin", sv.name );
-		break;
-	case REGULAR:
-		sprintf (path, "save/%s/%s.bin", sv.name, SV_CurTime());
-		break;
-	}
 
+	sprintf (path, "save/%s.bin", name );
 	savfile = FS_LoadFile(path, &size );
 
 	if(!savfile)
@@ -303,4 +268,36 @@ void SV_ReadLevelFile( int mode )
 	Sav_LoadCfgString(&header->lumps[LUMP_CFGSTRING]);
 	Sav_LoadAreaPortals(&header->lumps[LUMP_AREASTATE]);
 	ge->Sav_LoadLevel( sav_base, &header->lumps[LUMP_GAMELEVEL] );
+}
+
+bool Menu_ReadComment( char *comment, int savenum )
+{
+	dsavehdr_t	*header;
+	byte		*savfile;
+	int		i, id, size;
+
+	if(!comment) return false;
+	savfile = FS_LoadFile(va("save/save%i.bin", savenum), &size );
+
+	if(!savfile) 
+	{
+		strlcpy( comment, "<EMPTY>", 32 );
+		return false;
+	}
+
+	header = (dsavehdr_t *)savfile;
+	i = LittleLong (header->version);
+	id = LittleLong (header->ident);
+
+	if(id != IDSAVEHEADER || i != SAVE_VERSION)
+	{
+		strlcpy( comment, "<CORRUPTED>", 32 );
+		return false;
+	}
+
+	sav_base = (byte *)header;
+	Sav_LoadComment(&header->lumps[LUMP_COMMENTS]);
+	strlcpy( comment, svs.comment, 32 );
+
+	return true;
 }

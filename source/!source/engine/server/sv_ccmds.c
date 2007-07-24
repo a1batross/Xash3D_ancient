@@ -166,7 +166,7 @@ Puts the server in demo mode on a specific map/cinematic
 */
 void SV_DemoMap_f (void)
 {
-	SV_Map (true, Cmd_Argv(1), false );
+	SV_Map (true, Cmd_Argv(1), NULL, false );
 }
 
 /*
@@ -229,7 +229,7 @@ void SV_GameMap_f (void)
 	}
 
 	// start up the next map
-	SV_Map (false, Cmd_Argv(1), false );
+	SV_Map (false, Cmd_Argv(1), NULL, false );
 
 	// archive server state
 	strncpy (svs.mapcmd, Cmd_Argv(1), sizeof(svs.mapcmd)-1);
@@ -281,27 +281,18 @@ SV_Loadgame_f
 */
 void SV_Loadgame_f (void)
 {
-	char	*dir;
-
 	if (Cmd_Argc() != 2)
 	{
 		Com_Printf ("USAGE: loadgame <directory>\n");
 		return;
 	}
 
-	Com_Printf ("Loading game...\n");
-
-	dir = Cmd_Argv(1);
-	if (strstr (dir, "..") || strstr (dir, "/") || strstr (dir, "\\") )
-	{
-		Com_Printf ("Bad savedir.\n");
-	}
-
-	SV_ReadSaveFile( REGULAR ); //TEST
+	Msg("Loading game... %s\n", Cmd_Argv(1));
+	SV_ReadSaveFile( Cmd_Argv(1) );
 
 	// go to the map
 	sv.state = ss_dead;		// don't save current level when changing
-	SV_Map (false, svs.mapcmd, true);
+	SV_Map (false, svs.mapcmd, Cmd_Argv(1), true);
 }
 
 
@@ -314,8 +305,6 @@ SV_Savegame_f
 */
 void SV_Savegame_f (void)
 {
-	char	*dir;
-
 	if (sv.state != ss_game)
 	{
 		Com_Printf ("You must be in a game to save.\n");
@@ -346,18 +335,10 @@ void SV_Savegame_f (void)
 		return;
 	}
 
-	dir = Cmd_Argv(1);
-	if (strstr (dir, "..") || strstr (dir, "/") || strstr (dir, "\\") )
-	{
-		Com_Printf ("Bad savedir.\n");
-	}
-
-	Com_Printf ("Saving game... %s\n", Cmd_Argv(1));
-
 	// archive current level, including all client edicts.
 	// when the level is reloaded, they will be shells awaiting
 	// a connecting client
-	SV_WriteSaveFile( REGULAR );//TEST
+	SV_WriteSaveFile( Cmd_Argv(1) );
 
 	Com_Printf ("Done.\n");
 }

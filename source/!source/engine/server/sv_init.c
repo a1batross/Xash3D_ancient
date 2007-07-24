@@ -115,20 +115,25 @@ void SV_CreateBaseline (void)
 SV_CheckForSavegame
 =================
 */
-void SV_CheckForSavegame (void)
+void SV_CheckForSavegame (char *savename )
 {
 	int		i;
+	char		name[MAX_SYSPATH];
 
 	if (sv_noreload->value) return;
-
 	if (Cvar_VariableValue ("deathmatch")) return;
+	if (!savename) return;
 
-	if(!FS_FileExists("save/quick.bin")) return;
-
+	sprintf (name, "save/%s.bin", savename );
+	if(!FS_FileExists(name))
+	{
+		Msg("can't find %s\n", savename );
+		return;
+	}
 	SV_ClearWorld ();
 
 	// get configstrings and areaportals
-	SV_ReadLevelFile ( REGULAR );
+	SV_ReadLevelFile ( savename );
 
 	if (!sv.loadgame)
 	{	// coming back to a level after being in a different
@@ -157,21 +162,18 @@ clients along with it.
 
 ================
 */
-void SV_SpawnServer (char *server, char *spawnpoint, server_state_t serverstate, bool attractloop, bool loadgame)
+void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_state_t serverstate, bool attractloop, bool loadgame)
 {
-	int			i;
-	unsigned	checksum;
+	uint	i, checksum;
 
-	if (attractloop)
-		Cvar_Set ("paused", "0");
+	if (attractloop) Cvar_Set ("paused", "0");
 
-	Com_Printf ("------- Server Initialization -------\n");
+	Msg("------- Server Initialization -------\n");
 
-	Com_DPrintf ("SpawnServer: %s\n",server);
+	MsgDev ("SpawnServer: %s\n",server);
 	if (sv.demofile) FS_Close (sv.demofile);
 
-	svs.spawncount++;		// any partially connected client will be
-							// restarted
+	svs.spawncount++; // any partially connected client will be restarted
 	sv.state = ss_dead;
 	Com_SetServerState (sv.state);
 
@@ -195,7 +197,6 @@ void SV_SpawnServer (char *server, char *spawnpoint, server_state_t serverstate,
 	}
 
 	SZ_Init (&sv.multicast, sv.multicast_buf, sizeof(sv.multicast_buf));
-
 	strcpy (sv.name, server);
 
 	// leave slots at start for clients only
@@ -218,16 +219,12 @@ void SV_SpawnServer (char *server, char *spawnpoint, server_state_t serverstate,
 	}
 	else
 	{
-		Com_sprintf (sv.configstrings[CS_MODELS+1],sizeof(sv.configstrings[CS_MODELS+1]),
-			"maps/%s.bsp", server);
+		Com_sprintf (sv.configstrings[CS_MODELS+1],sizeof(sv.configstrings[CS_MODELS+1]), "maps/%s.bsp", server);
 		sv.models[1] = CM_LoadMap (sv.configstrings[CS_MODELS+1], false, &checksum);
 	}
-	Com_sprintf (sv.configstrings[CS_MAPCHECKSUM],sizeof(sv.configstrings[CS_MAPCHECKSUM]),
-		"%i", checksum);
+	Com_sprintf (sv.configstrings[CS_MAPCHECKSUM],sizeof(sv.configstrings[CS_MAPCHECKSUM]), "%i", checksum);
 
-	//
 	// clear physics interaction links
-	//
 	SV_ClearWorld ();
 
 	for (i = 1; i < CM_NumInlineModels(); i++)
@@ -260,7 +257,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, server_state_t serverstate,
 	SV_CreateBaseline ();
 
 	// check for a savegame
-	SV_CheckForSavegame ();
+	SV_CheckForSavegame ( savename );
 
 	// set serverinfo variable
 	Cvar_FullSet ("mapname", sv.name, CVAR_SERVERINFO | CVAR_NOSET);
@@ -372,12 +369,12 @@ another level:
 	map tram.cin+jail_e3
 ======================
 */
-void SV_Map (bool attractloop, char *levelstring, bool loadgame)
+void SV_Map (bool attractloop, char *levelstring, char *savename, bool loadgame)
 {
-	char	level[MAX_QPATH];
 	char	*ch;
-	int		l;
-	char	spawnpoint[MAX_QPATH];
+	int	l;
+	char	level[MAX_QPATH], spawnpoint[MAX_QPATH];
+	const char *ext = FS_FileExtension(levelstring);
 
 	sv.loadgame = loadgame;
 	sv.attractloop = attractloop;
@@ -391,10 +388,9 @@ void SV_Map (bool attractloop, char *levelstring, bool loadgame)
 	if (ch)
 	{
 		*ch = 0;
-			Cvar_Set ("nextserver", va("gamemap \"%s\"", ch+1));
+		Cvar_Set ("nextserver", va("gamemap \"%s\"", ch + 1));
 	}
-	else
-		Cvar_Set ("nextserver", "");
+	else Cvar_Set ("nextserver", "");
 
 	//ZOID special hack for end game screen in coop mode
 	if (Cvar_VariableValue ("coop") && !Q_stricmp(level, "victory.pcx"))
@@ -405,40 +401,38 @@ void SV_Map (bool attractloop, char *levelstring, bool loadgame)
 	if (ch)
 	{
 		*ch = 0;
-		strcpy (spawnpoint, ch+1);
+		strcpy (spawnpoint, ch + 1);
 	}
-	else
-		spawnpoint[0] = 0;
+	else spawnpoint[0] = 0;
           
 	// skip the end-of-unit flag if necessary
-	if (level[0] == '*')
-		strcpy (level, level+1);
+	if (level[0] == '*') strcpy (level, level+1);
 
 	l = strlen(level);
-	if (l > 4 && !strcmp (level+l-4, ".cin") )
+	if (!strcmp(ext, "cin"))
 	{
-		SCR_BeginLoadingPlaque ();			// for local system
+		SCR_BeginLoadingPlaque (); // for local system
 		SV_BroadcastCommand ("changing\n");
-		SV_SpawnServer (level, spawnpoint, ss_cinematic, attractloop, loadgame);
+		SV_SpawnServer (level, spawnpoint, NULL, ss_cinematic, attractloop, loadgame);
 	}
-	else if (l > 4 && !strcmp (level+l-4, ".dm2") )
+	else if (!strcmp(ext, "dm2"))
 	{
-		SCR_BeginLoadingPlaque ();			// for local system
+		SCR_BeginLoadingPlaque (); // for local system
 		SV_BroadcastCommand ("changing\n");
-		SV_SpawnServer (level, spawnpoint, ss_demo, attractloop, loadgame);
+		SV_SpawnServer (level, spawnpoint, NULL, ss_demo, attractloop, loadgame);
 	}
-	else if (l > 4 && !strcmp (level+l-4, ".pcx") )
+	else if (!strcmp(ext, "pcx"))
 	{
-		SCR_BeginLoadingPlaque ();			// for local system
+		SCR_BeginLoadingPlaque (); // for local system
 		SV_BroadcastCommand ("changing\n");
-		SV_SpawnServer (level, spawnpoint, ss_pic, attractloop, loadgame);
+		SV_SpawnServer (level, spawnpoint, NULL, ss_pic, attractloop, loadgame);
 	}
 	else
 	{
-		SCR_BeginLoadingPlaque ();			// for local system
+		SCR_BeginLoadingPlaque (); // for local system
 		SV_BroadcastCommand ("changing\n");
 		SV_SendClientMessages ();
-		SV_SpawnServer (level, spawnpoint, ss_game, attractloop, loadgame);
+		SV_SpawnServer (level, spawnpoint, savename, ss_game, attractloop, loadgame);
 		Cbuf_CopyToDefer ();
 	}
           

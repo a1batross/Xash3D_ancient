@@ -71,6 +71,7 @@ filesystem manager
 #define FS_Write( file, buffer, size ) pi->Fs.Write( file, buffer, size )
 #define FS_StripExtension( path ) pi->Fs.StripExtension( path )
 #define FS_DefaultExtension( path, ext ) pi->Fs.DefaultExtension( path, ext )
+#define FS_FileExtension( ext ) pi->Fs.FileExtension( ext )
 #define FS_FileExists( file ) pi->Fs.FileExists( file )
 #define FS_Close( file ) pi->Fs.Close( file )
 #define FS_FileBase( x, y ) pi->Fs.FileBase( x, y )

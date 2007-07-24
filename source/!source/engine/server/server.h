@@ -227,7 +227,7 @@ void Master_Packet (void);
 // sv_init.c
 //
 void SV_InitGame (void);
-void SV_Map (bool attractloop, char *levelstring, bool loadgame);
+void SV_Map (bool attractloop, char *levelstring, char *savename, bool loadgame);
 
 
 //
@@ -265,7 +265,6 @@ void SV_ExecuteClientMessage (client_t *cl);
 //
 // sv_ccmds.c
 //
-void SV_ReadLevelFile ( int mode );
 void SV_Status_f (void);
 
 //
@@ -299,8 +298,9 @@ int SV_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *m
 // sv_save.c
 //
 
-void SV_WriteSaveFile( int mode );
-
+void SV_WriteSaveFile( char *name );
+void SV_ReadSaveFile( char *name );
+void SV_ReadLevelFile( char *name );
 //============================================================
 
 //

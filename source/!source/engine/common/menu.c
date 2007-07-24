@@ -2011,35 +2011,22 @@ LOADGAME MENU
 
 #define	MAX_SAVEGAMES	15
 
-static menuframework_s	s_savegame_menu;
+bool Menu_ReadComment( char *title, int savenum );
 
+static menuframework_s	s_savegame_menu;
 static menuframework_s	s_loadgame_menu;
 static menuaction_s		s_loadgame_actions[MAX_SAVEGAMES];
 
-char		m_savestrings[MAX_SAVEGAMES][32];
-bool	m_savevalid[MAX_SAVEGAMES];
+char m_savestrings[MAX_SAVEGAMES][32];
+bool m_savevalid[MAX_SAVEGAMES];
 
 void Create_Savestrings (void)
 {
-	int		i;
-	file_t		*f;
-	char		name[MAX_SYSPATH];
-	search_t		*t = FS_Search( "save/*.bin" );
+	int	i;
 
-	for (i = 0; i < t->numfilenames; i++)
+	for (i = 0; i < MAX_SAVEGAMES; i++)
 	{
-		f = FS_Open (t->filenames[i], "rb");
-		if (!f)
-		{
-			strcpy (m_savestrings[i], "<EMPTY>");
-			m_savevalid[i] = false;
-		}
-		else
-		{
-			FS_Read (f, m_savestrings[i], sizeof(m_savestrings[i]));
-			FS_Close (f);
-			m_savevalid[i] = true;
-		}
+		m_savevalid[i] = Menu_ReadComment(m_savestrings[i], i);
 	}
 }
 
@@ -2075,7 +2062,6 @@ void LoadGame_MenuInit( void )
 			s_loadgame_actions[i].generic.y += 10;
 
 		s_loadgame_actions[i].generic.type = MTYPE_ACTION;
-
 		Menu_AddItem( &s_loadgame_menu, &s_loadgame_actions[i] );
 	}
 }
@@ -2141,16 +2127,14 @@ void SaveGame_MenuInit( void )
 	Create_Savestrings();
 
 	// don't include the autosave slot
-	for ( i = 0; i < MAX_SAVEGAMES-1; i++ )
+	for ( i = 0; i < MAX_SAVEGAMES - 1; i++ )
 	{
 		s_savegame_actions[i].generic.name = m_savestrings[i+1];
 		s_savegame_actions[i].generic.localdata[0] = i+1;
 		s_savegame_actions[i].generic.flags = QMF_LEFT_JUSTIFY;
 		s_savegame_actions[i].generic.callback = SaveGameCallback;
-
 		s_savegame_actions[i].generic.x = 0;
 		s_savegame_actions[i].generic.y = ( i ) * 10;
-
 		s_savegame_actions[i].generic.type = MTYPE_ACTION;
 
 		Menu_AddItem( &s_savegame_menu, &s_savegame_actions[i] );

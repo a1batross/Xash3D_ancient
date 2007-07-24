@@ -11,11 +11,6 @@
 SAVE FILE
 ==============================================================================
 */
-//save mode
-#define REGULAR	0
-#define AUTOSAVE	1
-#define QUICK	2
-
 //header
 #define SAVE_VERSION	2
 #define IDSAVEHEADER	(('E'<<24)+('V'<<16)+('A'<<8)+'S') // little-endian "SAVE"

@@ -931,14 +931,14 @@ ROGUE - VERSIONS
 // the server to all connected clients.
 // Each config string can be at most MAX_QPATH characters.
 //
-#define	CS_NAME				0
-#define	CS_CDTRACK			1
-#define	CS_SKY				2
-#define	CS_SKYAXIS			3		// %f %f %f format
+#define	CS_NAME			0
+#define	CS_CDTRACK		1
+#define	CS_SKY			2
+#define	CS_SKYAXIS		3		// %f %f %f format
 #define	CS_SKYROTATE		4
 #define	CS_STATUSBAR		5		// display program string
 
-#define CS_AIRACCEL			29		// air acceleration control
+#define	CS_AIRACCEL		29		// air acceleration control
 #define	CS_MAXCLIENTS		30
 #define	CS_MAPCHECKSUM		31		// for catching cheater maps
 
@@ -948,8 +948,8 @@ ROGUE - VERSIONS
 #define	CS_LIGHTS			(CS_IMAGES+MAX_IMAGES)
 #define	CS_ITEMS			(CS_LIGHTS+MAX_LIGHTSTYLES)
 #define	CS_PLAYERSKINS		(CS_ITEMS+MAX_ITEMS)
-#define CS_GENERAL			(CS_PLAYERSKINS+MAX_CLIENTS)
-#define	MAX_CONFIGSTRINGS	(CS_GENERAL+MAX_GENERAL)
+#define	CS_GENERAL		(CS_PLAYERSKINS+MAX_CLIENTS)
+#define	MAX_CONFIGSTRINGS		(CS_GENERAL+MAX_GENERAL)
 
 
 //==============================================

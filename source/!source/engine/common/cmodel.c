@@ -80,7 +80,7 @@ cleaf_t		map_leafs[MAX_MAP_LEAFS];
 int			emptyleaf, solidleaf;
 
 int			numleafbrushes;
-unsigned short	map_leafbrushes[MAX_MAP_LEAFBRUSHES];
+word	map_leafbrushes[MAX_MAP_LEAFBRUSHES];
 
 int			numcmodels;
 cmodel_t	map_cmodels[MAX_MAP_MODELS];
@@ -110,14 +110,10 @@ mapsurface_t	nullsurface;
 
 int			floodvalid;
 
-bool	portalopen[MAX_MAP_AREAPORTALS];
+byte	portalopen[MAX_MAP_AREAPORTALS];
 
 
 cvar_t		*map_noareas;
-
-void	CM_InitBoxHull (void);
-void	FloodAreaConnections (void);
-
 
 int		c_pointcontents;
 int		c_traces, c_brush_traces;
@@ -565,7 +561,7 @@ cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum)
 		if (!clientload)
 		{
 			memset (portalopen, 0, sizeof(portalopen));
-			FloodAreaConnections ();
+			CM_FloodAreaConnections ();
 		}
 		return &map_cmodels[0];		// still have the right version
 	}
@@ -624,7 +620,7 @@ cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum)
 	CM_InitBoxHull ();
 
 	memset (portalopen, 0, sizeof(portalopen));
-	FloodAreaConnections ();
+	CM_FloodAreaConnections ();
 
 	strcpy (map_name, name);
 
@@ -1629,7 +1625,7 @@ FloodAreaConnections
 
 ====================
 */
-void	FloodAreaConnections (void)
+void CM_FloodAreaConnections (void)
 {
 	int		i;
 	carea_t	*area;
@@ -1640,27 +1636,27 @@ void	FloodAreaConnections (void)
 	floodnum = 0;
 
 	// area 0 is not used
-	for (i=1 ; i<numareas ; i++)
+	for (i = 1; i < numareas; i++)
 	{
 		area = &map_areas[i];
-		if (area->floodvalid == floodvalid)
-			continue;		// already flooded into
+
+		// already flooded into
+		if (area->floodvalid == floodvalid) continue;
 		floodnum++;
 		FloodArea_r (area, floodnum);
 	}
-
 }
 
-void	CM_SetAreaPortalState (int portalnum, bool open)
+void CM_SetAreaPortalState (int portalnum, bool open)
 {
 	if (portalnum > numareaportals)
 		Com_Error (ERR_DROP, "areaportal > numareaportals");
 
 	portalopen[portalnum] = open;
-	FloodAreaConnections ();
+	CM_FloodAreaConnections ();
 }
 
-bool	CM_AreasConnected (int area1, int area2)
+bool CM_AreasConnected (int area1, int area2)
 {
 	if (map_noareas->value)
 		return true;
@@ -1709,33 +1705,6 @@ int CM_WriteAreaBits (byte *buffer, int area)
 	}
 
 	return bytes;
-}
-
-
-/*
-===================
-CM_WritePortalState
-
-Writes the portal state to a savegame file
-===================
-*/
-void	CM_WritePortalState (file_t *f)
-{
-	FS_Write (f, portalopen, sizeof(portalopen));
-}
-
-/*
-===================
-CM_ReadPortalState
-
-Reads the portal state from a savegame file
-and recalculates the area connections
-===================
-*/
-void	CM_ReadPortalState (file_t *f)
-{
-	FS_Read (f, portalopen, sizeof(portalopen));
-	FloodAreaConnections ();
 }
 
 /*
