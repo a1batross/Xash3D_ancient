@@ -81,6 +81,25 @@ void SV_AddCvarLump( dsavehdr_t *hdr, file_t *f )
 	Z_Free( dout );
 }
 
+void SV_AddCStrLump( dsavehdr_t *hdr, file_t *f )
+{
+	int	i, strsize, bufsize = 0;
+	char	*csbuffer = Z_Malloc( MAX_CONFIGSTRINGS * MAX_QPATH );
+
+	//pack the cfg string data
+	for(i = 0; i < MAX_CONFIGSTRINGS; i++)
+	{
+		strsize = strlen(sv.configstrings[i]);
+		if(strsize > MAX_QPATH) strsize = MAX_QPATH; //critical stuff
+		strsize++;
+
+		strlcpy(csbuffer + bufsize, sv.configstrings[i], strsize ); 
+		bufsize += strsize;
+	}	
+	SV_AddSaveLump( hdr, f, LUMP_CFGSTRING, csbuffer, bufsize );
+	Z_Free( csbuffer ); // free memory
+}
+
 byte	*sav_base;
 
 /*
@@ -115,7 +134,7 @@ void SV_WriteSaveFile( char *name )
           
 	//write lumps
 	SV_AddSaveLump( header, savfile, LUMP_COMMENTS, comment, sizeof(comment));
-	SV_AddSaveLump( header, savfile, LUMP_CFGSTRING, sv.configstrings, sizeof(sv.configstrings));
+          SV_AddCStrLump( header, savfile );
 	SV_AddSaveLump( header, savfile, LUMP_AREASTATE, portalopen, sizeof(portalopen));
 	ge->WriteLump ( header, savfile, LUMP_GAMELEVEL);
 	SV_AddSaveLump( header, savfile, LUMP_MAPCMDS, svs.mapcmd, sizeof(svs.mapcmd));
@@ -174,13 +193,19 @@ void Sav_LoadMapCmds( lump_t *l )
 void Sav_LoadCfgString( lump_t *l )
 {
 	char	*in;
-	int	size;
+	int	i, len = 0;
 
 	in = (void *)(sav_base + l->fileofs);
 	if (l->filelen % sizeof(*in)) Com_Error (ERR_DROP, "Sav_LoadCfgString: funny lump size\n" );
 
-	size = l->filelen / sizeof(*in);
-	strlcpy((char *)sv.configstrings, in, size );
+	//unpack the cfg string data
+	for(i = 0; i < MAX_CONFIGSTRINGS; i++)
+	{
+		len = 0;
+		while(*in != '\0') { in++, len++; };
+		if(!in) break; //corrupted lump ?
+		strlcpy(sv.configstrings[i], in, len ); 
+	}
 }
 
 void Sav_LoadAreaPortals( lump_t *l )

@@ -213,15 +213,14 @@ void PF_Configstring (int index, char *val)
 	if (index < 0 || index >= MAX_CONFIGSTRINGS)
 		Com_Error (ERR_DROP, "configstring: bad index %i value %s\n", index, val);
 
-	if (!val)
-		val = "";
+	if (!val) val = "";
 
 	// change the string in sv
 	strcpy (sv.configstrings[index], val);
 
-	
 	if (sv.state != ss_loading)
-	{	// send the update to everyone
+	{
+		// send the update to everyone
 		SZ_Clear (&sv.multicast);
 		MSG_WriteChar (&sv.multicast, svc_configstring);
 		MSG_WriteShort (&sv.multicast, index);

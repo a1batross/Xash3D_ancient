@@ -964,225 +964,164 @@ void SpawnEntities (char *mapname, char *entities, char *spawnpoint)
 
 #endif
 
-#ifdef WESQ2
-
 char *single_statusbar = 
-"yb	-24 "
-
-// pressure
-"if 18 "
-"   xv 0 "
-"	num 5 19 "
-"	xv	90 "
-"   pic 18 "
-"endif "
-
-// temperature
-"if 20 "
-"   xv 200 "
-"	num 5 21 "
-"	xv 290 "
-"   pic 20 "
-"endif "
-
-// vehicle speed
-"if 22 "
-"	yb -90 "
-"	xv 128 "
-"	pic 22 "
-"endif "
-
-;
-
-char *dm_statusbar = 
-"yb	-24 "
-
-// pressure
-"if 18 "
-"	xv	80 "
-"   pic 18 "
-"   xv 106 "
-"	num 5 19 "
-"endif "
-
-// temperature
-"if 20 "
-"	xv	220 "
-"   pic 20 "
-"   xv 246 "
-"	num 5 21 "
-"endif "
-
-// vehicle speed
-"if 22 "
-"	yb -90 "
-"	xv 128 "
-"	pic 22 "
-"endif "
-;
-
-#else
-
-char *single_statusbar = 
-"yb	-24 "
+"yb -24 "
 
 // health
-"xv	0 "
+"xv 0 "
 "hnum "
-"xv	50 "
+"xv 50 "
 "pic 0 "
 
 // ammo
 "if 2 "
-"	xv	100 "
-"	anum "
-"	xv	150 "
-"	pic 2 "
-"endif "
+"{ xv 100 "
+"anum "
+"xv 150 "
+"pic 2 "
+"} "
 
 // armor
 "if 4 "
-"	xv	200 "
-"	rnum "
-"	xv	250 "
-"	pic 4 "
-"endif "
+"{ xv 200 "
+"rnum "
+"xv 250 "
+"pic 4 "
+"} "
 
 // selected item
 "if 6 "
-"	xv	296 "
-"	pic 6 "
-"endif "
+"{ xv 296 "
+"pic 6 "
+"} "
 
-"yb	-50 "
+"yb -50 "
 
 // picked up item
 "if 7 "
-"	xv	0 "
-"	pic 7 "
-"	xv	26 "
-"	yb	-42 "
-"	stat_string 8 "
-"	yb	-50 "
-"endif "
+"{ xv 0 "
+"pic 7 "
+"xv 26 "
+"yb -42 "
+"stat_string 8 "
+"yb -50 "
+"} "
 
 // timer (was xv 262)
 "if 9 "
-"	xv	230 "
-"	num	4 10 "
-"	xv	296 "
-"	pic	9 "
-"endif "
+"{ xv 230 "
+"num 4 10 "
+"xv 296 "
+"pic 9 "
+"} "
 
 //  help / weapon icon 
 "if 11 "
-"	xv	148 "
-"	pic	11 "
-"endif "
+"{ xv 148 "
+"pic 11 "
+"} "
 
 // vehicle speed
 "if 22 "
-"	yb -90 "
-"	xv 128 "
-"	pic 22 "
-"endif "
+"{ yb -90 "
+"xv 128 "
+"pic 22 "
+"} "
 
 // zoom
 "if 23 "
-"   yv 0 "
-"   xv 0 "
-"   pic 23 "
-"endif "
+"{ yv 0 "
+"xv 0 "
+"pic 23 "
+"} "
 ;
 
 
 char *dm_statusbar =
-"yb	-24 "
+"yb -24 "
 
 // health
-"xv	0 "
+"xv 0 "
 "hnum "
-"xv	50 "
+"xv 50 "
 "pic 0 "
 
 // ammo
 "if 2 "
-"	xv	100 "
-"	anum "
-"	xv	150 "
-"	pic 2 "
-"endif "
+"{ xv 100 "
+"anum "
+"xv 150 "
+"pic 2 "
+"} "
 
 // armor
 "if 4 "
-"	xv	200 "
-"	rnum "
-"	xv	250 "
-"	pic 4 "
-"endif "
+"{ xv 200 "
+"rnum "
+"xv 250 "
+"pic 4 "
+"} "
 
 // selected item
 "if 6 "
-"	xv	296 "
-"	pic 6 "
-"endif "
+"{ xv 296 "
+"pic 6 "
+"} "
 
-"yb	-50 "
+"yb -50 "
 
 // picked up item
 "if 7 "
-"	xv	0 "
-"	pic 7 "
-"	xv	26 "
-"	yb	-42 "
-"	stat_string 8 "
-"	yb	-50 "
-"endif "
+"{ xv 0 "
+"pic 7 "
+"xv 26 "
+"yb -42 "
+"stat_string 8 "
+"yb -50 "
+"} "
 
 // timer
 "if 9 "
-"	xv	230 "
-"	num	4 10 "
-"	xv	296 "
-"	pic	9 "
-"endif "
+"{ xv 230 "
+"num 4 10 "
+"xv 296 "
+"pic 9 "
+"} "
 
 //  help / weapon icon 
 "if 11 "
-"	xv	148 "
-"	pic	11 "
-"endif "
+"{ xv 148 "
+"pic 11 "
+"} "
 
 //  frags
-"xr	-50 "
+"xr -50 "
 "yt 2 "
 "num 3 14 "
 
 // spectator
 "if 17 "
-  "xv 0 "
-  "yb -58 "
-  "string2 \"SPECTATOR MODE\" "
-"endif "
+"{ xv 0 "
+"yb -58 "
+"string2 \"SPECTATOR MODE\" "
+"} "
 
 // chase camera
 "if 16 "
-  "xv 0 "
-  "yb -68 "
-  "string \"Chasing\" "
-  "xv 64 "
-  "stat_string 16 "
-"endif "
+"{ xv 0 "
+"yb -68 "
+"string \"Chasing\" "
+"xv 64 "
+"stat_string 16 "
+"} "
 
 // vehicle speed
 "if 22 "
-"	yb -90 "
-"	xv 128 "
-"	pic 22 "
-"endif "
+"{ yb -90 "
+"xv 128 "
+"pic 22 "
+"} "
 ;
-
-#endif	// ifdef WESQ2
 
 /*QUAKED worldspawn (0 0 0) ?
 
