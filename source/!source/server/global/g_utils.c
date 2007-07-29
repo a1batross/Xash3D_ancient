@@ -100,7 +100,7 @@ skipwhite:
 
 	if (len == MAX_TOKEN_CHARS)
 	{
-//		Com_Printf ("Token exceeded %i chars, discarded.\n", MAX_TOKEN_CHARS);
+		gi.dprintf ("Token exceeded %i chars, discarded.\n", MAX_TOKEN_CHARS);
 		len = 0;
 	}
 	com_token[len] = 0;
@@ -1168,7 +1168,7 @@ void Info_RemoveKey (char *s, char *key)
 
 	if (strstr (key, "\\"))
 	{
-//		Com_Printf ("Can't use a key with a \\\n");
+		gi.dprintf ("Can't use a key with a \\\n");
 		return;
 	}
 
@@ -1236,25 +1236,25 @@ void Info_SetValueForKey (char *s, char *key, char *value)
 
 	if (strstr (key, "\\") || strstr (value, "\\") )
 	{
-		Com_Printf ("Can't use keys or values with a \\\n");
+		gi.dprintf ("Can't use keys or values with a \\\n");
 		return;
 	}
 
 	if (strstr (key, ";") )
 	{
-		Com_Printf ("Can't use keys or values with a semicolon\n");
+		gi.dprintf ("Can't use keys or values with a semicolon\n");
 		return;
 	}
 
 	if (strstr (key, "\"") || strstr (value, "\"") )
 	{
-		Com_Printf ("Can't use keys or values with a \"\n");
+		gi.dprintf ("Can't use keys or values with a \"\n");
 		return;
 	}
 
 	if (strlen(key) > MAX_INFO_KEY-1 || strlen(value) > MAX_INFO_KEY-1)
 	{
-		Com_Printf ("Keys and values must be < 64 characters.\n");
+		gi.dprintf ("Keys and values must be < 64 characters.\n");
 		return;
 	}
 	Info_RemoveKey (s, key);
@@ -1265,7 +1265,7 @@ void Info_SetValueForKey (char *s, char *key, char *value)
 
 	if (strlen(newi) + strlen(s) > maxsize)
 	{
-		Com_Printf ("Info string length exceeded\n");
+		gi.dprintf ("Info string length exceeded\n");
 		return;
 	}
 

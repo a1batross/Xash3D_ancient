@@ -863,9 +863,9 @@ PARTICLE MANAGEMENT
 
 /*
 // THIS HAS BEEN RELOCATED TO CLIENT.H
-typedef struct particle_s
+typedef struct cparticle_s
 {
-	struct particle_s	*next;
+	struct cparticle_s	*next;
 
 	float		time;
 

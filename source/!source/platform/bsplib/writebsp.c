@@ -324,7 +324,7 @@ void SetLightStyles (void)
 {
 	int		stylenum;
 	char	*t;
-	entity_t	*e;
+	bsp_entity_t	*e;
 	int		i, j;
 	char	value[10];
 	char	lighttargets[MAX_SWITCHED_LIGHTS][64];
@@ -494,7 +494,7 @@ void BeginModel (void)
 	int			start, end;
 	mapbrush_t	*b;
 	int			j;
-	entity_t	*e;
+	bsp_entity_t	*e;
 	vec3_t		mins, maxs;
 
 	if (nummodels == MAX_MAP_MODELS) Sys_Error ("MAX_MAP_MODELS");

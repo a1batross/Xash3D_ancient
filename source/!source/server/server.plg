@@ -6,6 +6,236 @@
 --------------------Configuration: server - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
+Creating temporary file "C:\Temp\RSPDE3.tmp" with contents
+[
+/nologo /MTd /W3 /Gm /Gi /GX /ZI /Od /I ".\\" /I ".\monsters" /I ".\ents" /I ".\global" /I "../public" /I "../public/libs" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\server\!debug/" /Fo"..\temp\server\!debug/" /Fd"..\temp\server\!debug/" /FD /c 
+"D:\XASH3D\src_main\!source\server\global\g_ai.c"
+"D:\XASH3D\src_main\!source\server\ents\g_camera.c"
+"D:\XASH3D\src_main\!source\server\global\g_chase.c"
+"D:\XASH3D\src_main\!source\server\global\g_cmds.c"
+"D:\XASH3D\src_main\!source\server\global\g_combat.c"
+"D:\XASH3D\src_main\!source\server\ents\g_crane.c"
+"D:\XASH3D\src_main\!source\server\ents\g_fog.c"
+"D:\XASH3D\src_main\!source\server\ents\g_func.c"
+"D:\XASH3D\src_main\!source\server\ents\g_items.c"
+"D:\XASH3D\src_main\!source\server\global\g_jetpack.c"
+"D:\XASH3D\src_main\!source\server\ents\g_lights.c"
+"D:\XASH3D\src_main\!source\server\ents\g_lock.c"
+"D:\XASH3D\src_main\!source\server\global\g_main.c"
+"D:\XASH3D\src_main\!source\server\ents\g_misc.c"
+"D:\XASH3D\src_main\!source\server\ents\g_model.c"
+"D:\XASH3D\src_main\!source\server\monsters\g_monster.c"
+"D:\XASH3D\src_main\!source\server\ents\g_mtrain.c"
+"D:\XASH3D\src_main\!source\server\global\g_newai.c"
+"D:\XASH3D\src_main\!source\server\ents\g_pendulum.c"
+"D:\XASH3D\src_main\!source\server\global\g_phys.c"
+"D:\XASH3D\src_main\!source\server\ents\g_reflect.c"
+"D:\XASH3D\src_main\!source\server\global\g_save.c"
+"D:\XASH3D\src_main\!source\server\global\g_sound.c"
+"D:\XASH3D\src_main\!source\server\global\g_spawn.c"
+"D:\XASH3D\src_main\!source\server\global\g_svcmds.c"
+"D:\XASH3D\src_main\!source\server\ents\g_target.c"
+"D:\XASH3D\src_main\!source\server\ents\g_thing.c"
+"D:\XASH3D\src_main\!source\server\ents\g_tracktrain.c"
+"D:\XASH3D\src_main\!source\server\ents\g_trigger.c"
+"D:\XASH3D\src_main\!source\server\ents\g_turret.c"
+"D:\XASH3D\src_main\!source\server\global\g_utils.c"
+"D:\XASH3D\src_main\!source\server\ents\g_vehicle.c"
+"D:\XASH3D\src_main\!source\server\ents\g_weapon.c"
+"D:\XASH3D\src_main\!source\server\ents\g_wes.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_actor.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_actor_weap.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_berserk.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_boss2.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_boss3.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_boss31.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_boss32.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_brain.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_chick.c"
+"D:\XASH3D\src_main\!source\server\m_flash.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_flipper.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_float.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_flyer.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_gladiator.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_gunner.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_hover.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_infantry.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_insane.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_medic.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_move.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_mutant.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_parasite.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_soldier.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_supertank.c"
+"D:\XASH3D\src_main\!source\server\monsters\m_tank.c"
+"D:\XASH3D\src_main\!source\server\p_chase.c"
+"D:\XASH3D\src_main\!source\server\p_client.c"
+"D:\XASH3D\src_main\!source\server\p_hud.c"
+"D:\XASH3D\src_main\!source\server\p_menu.c"
+"D:\XASH3D\src_main\!source\server\p_text.c"
+"D:\XASH3D\src_main\!source\server\p_trail.c"
+"D:\XASH3D\src_main\!source\server\p_view.c"
+"D:\XASH3D\src_main\!source\server\p_weapon.c"
+]
+Creating command line "cl.exe @C:\Temp\RSPDE3.tmp" 
+Creating temporary file "C:\Temp\RSPDE4.tmp" with contents
+[
+kernel32.lib user32.lib winmm.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..\temp\server\!debug/server.pdb" /debug /machine:I386 /out:"..\temp\render\!debug/server.dll" /implib:"..\temp\server\!debug/server.lib" 
+"\XASH3D\src_main\!source\temp\server\!debug\g_ai.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_camera.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_chase.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_cmds.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_combat.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_crane.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_fog.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_func.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_items.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_jetpack.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_lights.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_lock.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_main.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_misc.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_model.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_monster.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_mtrain.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_newai.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_pendulum.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_phys.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_reflect.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_save.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_sound.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_spawn.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_svcmds.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_target.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_thing.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_tracktrain.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_trigger.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_turret.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_utils.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_vehicle.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_weapon.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\g_wes.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_actor.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_actor_weap.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_berserk.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_boss2.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_boss3.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_boss31.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_boss32.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_brain.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_chick.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_flash.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_flipper.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_float.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_flyer.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_gladiator.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_gunner.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_hover.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_infantry.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_insane.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_medic.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_move.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_mutant.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_parasite.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_soldier.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_supertank.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\m_tank.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\p_chase.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\p_client.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\p_hud.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\p_menu.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\p_text.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\p_trail.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\p_view.obj"
+"\XASH3D\src_main\!source\temp\server\!debug\p_weapon.obj"
+]
+Creating command line "link.exe @C:\Temp\RSPDE4.tmp"
+Creating temporary file "C:\Temp\RSPDE5.bat" with contents
+[
+@echo off
+copy \XASH3D\src_main\!source\temp\render\!debug\server.dll "D:\Xash3D\xash\bin\server.dll"
+]
+Creating command line "C:\Temp\RSPDE5.bat"
+Compiling...
+g_ai.c
+g_camera.c
+g_chase.c
+g_cmds.c
+g_combat.c
+g_crane.c
+g_fog.c
+g_func.c
+g_items.c
+g_jetpack.c
+g_lights.c
+g_lock.c
+g_main.c
+g_misc.c
+g_model.c
+g_monster.c
+g_mtrain.c
+g_newai.c
+g_pendulum.c
+g_phys.c
+Generating Code...
+Compiling...
+g_reflect.c
+g_save.c
+g_sound.c
+g_spawn.c
+g_svcmds.c
+g_target.c
+g_thing.c
+g_tracktrain.c
+g_trigger.c
+g_turret.c
+g_utils.c
+g_vehicle.c
+g_weapon.c
+g_wes.c
+m_actor.c
+m_actor_weap.c
+m_berserk.c
+m_boss2.c
+m_boss3.c
+m_boss31.c
+Generating Code...
+Compiling...
+m_boss32.c
+m_brain.c
+m_chick.c
+m_flash.c
+m_flipper.c
+m_float.c
+m_flyer.c
+m_gladiator.c
+m_gunner.c
+m_hover.c
+m_infantry.c
+m_insane.c
+m_medic.c
+m_move.c
+m_mutant.c
+m_parasite.c
+m_soldier.c
+m_supertank.c
+m_tank.c
+p_chase.c
+Generating Code...
+Compiling...
+p_client.c
+p_hud.c
+p_menu.c
+p_text.c
+p_trail.c
+p_view.c
+p_weapon.c
+Generating Code...
+Linking...
+   Creating library ..\temp\server\!debug/server.lib and object ..\temp\server\!debug/server.exp
+<h3>Output Window</h3>
+Performing Custom Build Step on \XASH3D\src_main\!source\temp\render\!debug\server.dll
+Скопировано файлов:         1.
 
 
 

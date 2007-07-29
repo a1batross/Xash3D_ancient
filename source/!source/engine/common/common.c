@@ -110,7 +110,7 @@ void Com_Error (int code, char *fmt, ...)
 	static char	msg[MAXPRINTMSG];
 	static	bool	recursive;
 
-	if (recursive) WinError ("recursive error after: %s", msg);
+	if (recursive) std.error ("recursive error after: %s", msg);
 	recursive = true;
 
 	va_start (argptr,fmt);
@@ -125,7 +125,7 @@ void Com_Error (int code, char *fmt, ...)
 	}
 	else if (code == ERR_DROP)
 	{
-		Com_Printf ("********************\nERROR: %s\n********************\n", msg);
+		Msg ("********************\nERROR: %s\n********************\n", msg);
 		SV_Shutdown (va("Server crashed: %s\n", msg), false);
 		CL_Drop ();
 		recursive = false;
@@ -144,7 +144,7 @@ void Com_Error (int code, char *fmt, ...)
 		logfile = NULL;
 	}
 
-	WinError ("%s", msg);
+	std.error("%s", msg);
 }
 
 /*
@@ -194,7 +194,7 @@ void Com_Printf (char *fmt, ...)
 ================
 Com_DPrintf
 
-A Com_Printf that only shows up if the "developer" cvar is set
+A Msg that only shows up if the "developer" cvar is set
 ================
 */
 void Com_DPrintf (char *fmt, ...)
@@ -208,7 +208,7 @@ void Com_DPrintf (char *fmt, ...)
 	vsprintf (msg,fmt,argptr);
 	va_end (argptr);
 	
-	Com_Printf ("%s", msg);
+	Msg ("%s", msg);
 }
 
 /*
@@ -907,7 +907,7 @@ void *SZ_GetSpace (sizebuf_t *buf, int length)
 		if (length > buf->maxsize)
 			Com_Error (ERR_FATAL, "SZ_GetSpace: %i is > full buffer size", length);
 			
-		Com_Printf ("SZ_GetSpace: overflow\n");
+		Msg ("SZ_GetSpace: overflow\n");
 		SZ_Clear (buf); 
 		buf->overflowed = true;
 	}
@@ -1071,11 +1071,11 @@ void Info_Print (char *s)
 		}
 		else
 			*o = 0;
-		Com_Printf ("%s", key);
+		Msg ("%s", key);
 
 		if (!*s)
 		{
-			Com_Printf ("MISSING VALUE\n");
+			Msg ("MISSING VALUE\n");
 			return;
 		}
 
@@ -1087,7 +1087,7 @@ void Info_Print (char *s)
 
 		if (*s)
 			s++;
-		Com_Printf ("%s\n", value);
+		Msg ("%s\n", value);
 	}
 }
 
@@ -1107,7 +1107,7 @@ For proxy protecting
 */
 byte	COM_BlockSequenceCheckByte (byte *base, int length, int sequence, int challenge)
 {
-	WinError("COM_BlockSequenceCheckByte called\n");
+	Sys_Error("COM_BlockSequenceCheckByte called\n");
 	return 0;
 }
 
@@ -1194,7 +1194,7 @@ byte	COM_BlockSequenceCRCByte (byte *base, int length, int sequence)
 	unsigned short crc;
 
 
-	if (sequence < 0) WinError("sequence < 0, this shouldn't happen\n");
+	if (sequence < 0) Sys_Error("sequence < 0, this shouldn't happen\n");
 
 	p = chktbl + (sequence % (sizeof(chktbl) - 4));
 
@@ -1334,7 +1334,7 @@ skipwhite:
 
 	if (len == MAX_TOKEN_CHARS)
 	{
-//		Com_Printf ("Token exceeded %i chars, discarded.\n", MAX_TOKEN_CHARS);
+//		Msg ("Token exceeded %i chars, discarded.\n", MAX_TOKEN_CHARS);
 		len = 0;
 	}
 	com_token[len] = 0;
@@ -1432,7 +1432,7 @@ void Info_RemoveKey (char *s, char *key)
 
 	if (strstr (key, "\\"))
 	{
-//		Com_Printf ("Can't use a key with a \\\n");
+//		Msg ("Can't use a key with a \\\n");
 		return;
 	}
 
@@ -1500,25 +1500,25 @@ void Info_SetValueForKey (char *s, char *key, char *value)
 
 	if (strstr (key, "\\") || strstr (value, "\\") )
 	{
-		Com_Printf ("Can't use keys or values with a \\\n");
+		Msg ("Can't use keys or values with a \\\n");
 		return;
 	}
 
 	if (strstr (key, ";") )
 	{
-		Com_Printf ("Can't use keys or values with a semicolon\n");
+		Msg ("Can't use keys or values with a semicolon\n");
 		return;
 	}
 
 	if (strstr (key, "\"") || strstr (value, "\"") )
 	{
-		Com_Printf ("Can't use keys or values with a \"\n");
+		Msg ("Can't use keys or values with a \"\n");
 		return;
 	}
 
 	if (strlen(key) > MAX_INFO_KEY-1 || strlen(value) > MAX_INFO_KEY-1)
 	{
-		Com_Printf ("Keys and values must be < 64 characters.\n");
+		Msg ("Keys and values must be < 64 characters.\n");
 		return;
 	}
 	Info_RemoveKey (s, key);
@@ -1529,7 +1529,7 @@ void Info_SetValueForKey (char *s, char *key, char *value)
 
 	if (strlen(newi) + strlen(s) > maxsize)
 	{
-		Com_Printf ("Info string length exceeded\n");
+		Msg ("Info string length exceeded\n");
 		return;
 	}
 

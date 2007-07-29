@@ -418,7 +418,7 @@ void R_BlendLightmaps (void)
 				// try uploading the block now
 				if ( !LM_AllocBlock( smax, tmax, &surf->dlight_s, &surf->dlight_t ) )
 				{
-					ri.Sys_Error( ERR_FATAL, "Consecutive calls to LM_AllocBlock(%d,%d) failed (dynamic)\n", smax, tmax );
+					Sys_Error("Consecutive calls to LM_AllocBlock(%d,%d) failed (dynamic)\n", smax, tmax );
 				}
 
 				base = gl_lms.lightmap_buffer;
@@ -1386,7 +1386,7 @@ static void LM_UploadBlock( bool dynamic )
 					   GL_UNSIGNED_BYTE, 
 					   gl_lms.lightmap_buffer );
 		if ( ++gl_lms.current_lightmap_texture == MAX_LIGHTMAPS )
-			ri.Sys_Error( ERR_DROP, "LM_UploadBlock() - MAX_LIGHTMAPS exceeded\n" );
+			Sys_Error("LM_UploadBlock() - MAX_LIGHTMAPS exceeded\n" );
 	}
 }
 
@@ -1525,7 +1525,7 @@ void GL_CreateSurfaceLightmap (msurface_t *surf)
 		LM_InitBlock();
 		if ( !LM_AllocBlock( smax, tmax, &surf->light_s, &surf->light_t ) )
 		{
-			ri.Sys_Error( ERR_FATAL, "Consecutive calls to LM_AllocBlock(%d,%d) failed\n", smax, tmax );
+			Sys_Error("Consecutive calls to LM_AllocBlock(%d,%d) failed\n", smax, tmax );
 		}
 	}
 

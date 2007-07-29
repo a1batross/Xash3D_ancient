@@ -5,37 +5,7 @@
 #ifndef CVAR_H
 #define CVAR_H
 
-#define CVAR_ARCHIVE	1	// set to cause it to be saved to vars.rc
-#define CVAR_USERINFO	2	// added to userinfo  when changed
-#define CVAR_SERVERINFO	4	// added to serverinfo when changed
-#define CVAR_NOSET		8	// don't allow change from console at all, but can be set from the command line
-#define CVAR_LATCH		16	// save changes until server restart
-
-#define CVAR_MAXFLAGSVAL	31	//maximum number of flags
-
-// nothing outside the Cvar_*() functions should modify these fields!
-typedef struct cvar_s
-{
-	int	flags;
-	char	*name;
-
-	char	*string;
-	char	*description;
-	int	integer;
-	float	value;
-	float	vector[3];
-	char	*defstring;
-
-	struct cvar_s *next;
-	struct cvar_s *hash;
-
-	//FIXME: remove these old variables
-	char	*latched_string;	// for CVAR_LATCH vars
-	bool	modified;		// set each time the cvar is changed
-} cvar_t;
-
 extern	cvar_t	*cvar_vars;
-
 cvar_t *Cvar_FindVar (char *var_name);
 
 cvar_t *Cvar_Get (char *var_name, char *value, int flags);

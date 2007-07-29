@@ -121,7 +121,7 @@ ProcessWorldModel
 */
 void ProcessWorldModel (void)
 {
-	entity_t	*e;
+	bsp_entity_t	*e;
 	tree_t		*tree;
 	bool	leaked;
 	bool	optimize;
@@ -211,7 +211,7 @@ ProcessSubModel
 */
 void ProcessSubModel (void)
 {
-	entity_t	*e;
+	bsp_entity_t	*e;
 	int			start, end;
 	tree_t		*tree;
 	bspbrush_t	*list;

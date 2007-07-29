@@ -968,7 +968,7 @@ void ReadLevel (vfile_t *f)
 	}
 }
 
-void WriteLump (dsavehdr_t *hdr, file_t *f, int lumpnum)
+void WriteLump (dsavehdr_t *hdr, file_t *f, int lumpnum, bool autosave)
 {
 	lump_t	*lump;
 	vfile_t	*vf;
@@ -990,7 +990,7 @@ void WriteLump (dsavehdr_t *hdr, file_t *f, int lumpnum)
 	gi.VFs.Close( vf ); //write into disk
 }
 
-void Sav_LoadGame (byte *base, lump_t *l)
+void ReadLump (byte *base, lump_t *l, int lumpnum)
 {
 	vfile_t	*vf;
 	byte	*in;
@@ -1000,19 +1000,19 @@ void Sav_LoadGame (byte *base, lump_t *l)
 
 	vf = gi.VFs.Create(in, l->filelen );
 
-	ReadGame( vf );
-	gi.VFs.Close( vf );	
-}
+	switch( lumpnum )
+	{
+	case LUMP_GAMELEVEL:
+		ReadLevel( vf ); //no need to closed
+		break;
+	case LUMP_GAMELOCAL: 
+		ReadGame( vf );
+		gi.VFs.Close( vf );
+		break; 
+	default:
+		gi.dprintf("unsupported lump num\n");
+		return;
+	}
 
-void Sav_LoadLevel (byte *base, lump_t *l)
-{
-	vfile_t	*vf;
-	byte	*in;
 
-	in = (void *)(base + l->fileofs);
-	if (l->filelen % sizeof(*in)) gi.error( "Sav_LoadLevel: funny lump size\n" );
-
-	vf = gi.VFs.Create(in, l->filelen );
-
-	ReadLevel( vf );
 }

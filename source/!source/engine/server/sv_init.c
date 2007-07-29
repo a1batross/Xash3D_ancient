@@ -262,7 +262,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 	// set serverinfo variable
 	Cvar_FullSet ("mapname", sv.name, CVAR_SERVERINFO | CVAR_NOSET);
 
-	Com_Printf ("-------------------------------------\n");
+	Msg ("-------------------------------------\n");
 }
 
 /*
@@ -297,7 +297,7 @@ void SV_InitGame (void)
 
 	if (Cvar_VariableValue ("coop") && Cvar_VariableValue ("deathmatch"))
 	{
-		Com_Printf("Deathmatch and Coop both set, disabling Coop\n");
+		Msg("Deathmatch and Coop both set, disabling Coop\n");
 		Cvar_FullSet ("coop", "0",  CVAR_SERVERINFO | CVAR_LATCH);
 	}
 

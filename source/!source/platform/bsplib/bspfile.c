@@ -470,7 +470,7 @@ void WriteBSPFile( void )
 //============================================
 
 int num_entities;
-entity_t entities[MAX_MAP_ENTITIES];
+bsp_entity_t entities[MAX_MAP_ENTITIES];
 
 void StripTrailing (char *e)
 {
@@ -517,7 +517,7 @@ ParseEntity
 bool ParseEntity (void)
 {
 	epair_t	*e;
-	entity_t	*mapent;
+	bsp_entity_t	*mapent;
 
 	if (!SC_GetToken (true)) return false;
 
@@ -600,7 +600,7 @@ void UnparseEntities (void)
 	entdatasize = end - buf + 1;
 }
 
-void SetKeyValue (entity_t *ent, char *key, char *value)
+void SetKeyValue (bsp_entity_t *ent, char *key, char *value)
 {
 	epair_t	*ep;
 	
@@ -618,7 +618,7 @@ void SetKeyValue (entity_t *ent, char *key, char *value)
 	ep->value = copystring(value);
 }
 
-char *ValueForKey (entity_t *ent, char *key)
+char *ValueForKey (bsp_entity_t *ent, char *key)
 {
 	epair_t	*ep;
 	
@@ -628,7 +628,7 @@ char *ValueForKey (entity_t *ent, char *key)
 	return "";
 }
 
-vec_t FloatForKey (entity_t *ent, char *key)
+vec_t FloatForKey (bsp_entity_t *ent, char *key)
 {
 	char	*k;
 	
@@ -636,7 +636,7 @@ vec_t FloatForKey (entity_t *ent, char *key)
 	return atof(k);
 }
 
-void GetVectorForKey (entity_t *ent, char *key, vec3_t vec)
+void GetVectorForKey (bsp_entity_t *ent, char *key, vec3_t vec)
 {
 	char	*k;
 	double	v1, v2, v3;

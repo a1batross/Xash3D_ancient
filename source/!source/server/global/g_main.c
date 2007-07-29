@@ -116,9 +116,8 @@ void ClientDisconnect (edict_t *ent);
 void ClientBegin (edict_t *ent);
 void ClientCommand (edict_t *ent);
 void RunEntity (edict_t *ent);
-void WriteLump (dsavehdr_t *hdr, file_t *f, int lumpnum);
-void Sav_LoadGame (byte *base, lump_t *l);
-void Sav_LoadLevel (byte *base, lump_t *l);
+void WriteLump (dsavehdr_t *hdr, file_t *f, int lumpnum, bool autosave);
+void ReadLump (byte *base, lump_t *l, int lumpnum);
 void InitGame (void);
 void G_RunFrame (void);
 
@@ -191,8 +190,7 @@ game_export_t DLLEXPORT *ServerAPI (game_import_t *import)
 	globals.SpawnEntities = SpawnEntities;
 
 	globals.WriteLump = WriteLump;
-	globals.Sav_LoadGame = Sav_LoadGame;
-	globals.Sav_LoadLevel = Sav_LoadLevel;
+	globals.ReadLump = ReadLump;
 
 	globals.ClientThink = ClientThink;
 	globals.ClientConnect = ClientConnect;
@@ -227,33 +225,6 @@ game_export_t DLLEXPORT *ServerAPI (game_import_t *import)
           
 	return &globals;
 }
-
-#ifndef GAME_HARD_LINKED
-void Sys_Error (char *error, ...)
-{
-	va_list		argptr;
-	char		text[1024];
-
-	va_start (argptr, error);
-	vsprintf (text, error, argptr);
-	va_end (argptr);
-
-	gi.error (ERR_FATAL, "%s", text);
-}
-
-void Com_Printf (char *msg, ...)
-{
-	va_list		argptr;
-	char		text[1024];
-
-	va_start (argptr, msg);
-	vsprintf (text, msg, argptr);
-	va_end (argptr);
-
-	gi.dprintf ("%s", text);
-}
-
-#endif
 
 /*
 =================

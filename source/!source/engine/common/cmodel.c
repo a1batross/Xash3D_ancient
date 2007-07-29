@@ -852,7 +852,7 @@ void CM_BoxLeafnums_r (int nodenum)
 		{
 			if (leaf_count >= leaf_maxcount)
 			{
-//				Com_Printf ("CM_BoxLeafnums_r: overflow\n");
+//				Msg ("CM_BoxLeafnums_r: overflow\n");
 				return;
 			}
 			leaf_list[leaf_count++] = -1 - nodenum;
@@ -1556,7 +1556,7 @@ void CM_DecompressVis (byte *in, byte *out)
 		if ((out_p - out) + c > row)
 		{
 			c = row - (out_p - out);
-			Com_DPrintf ("warning: Vis decompression overrun\n");
+			MsgDev ("warning: Vis decompression overrun\n");
 		}
 		while (c)
 		{

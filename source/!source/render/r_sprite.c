@@ -53,7 +53,7 @@ void *R_SpriteLoadFrame (model_t *mod, void *pin, mspriteframe_t **ppframe, int 
 	r_frame.flags |= IMAGE_HAS_ALPHA;
 	
 	//extract sprite name from path
-	ri.FS_FileBase( mod->name, name );
+	FS_FileBase( mod->name, name );
 	strcat(name, va("_%i", framenum));
 	r_frame.palette = pal;
 	r_frame.buffer = (byte *)(pinframe + 1);
@@ -207,7 +207,7 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 		{
 			pframetype = (frametype_t *)R_SpriteLoadFrame(mod, pframetype + 1, &psprite->frames[i].frameptr, i, (byte *)(&pal[0][0]));
 		}
-		else ri.Sys_Error(ERR_DROP, "R_SpriteLoadModel: group frames are not supported\n");
+		else Sys_Error("R_SpriteLoadModel: group frames are not supported\n");
 		if(pframetype == NULL) break;                                                   
 	}
 }
@@ -228,7 +228,7 @@ mspriteframe_t *R_GetSpriteFrame (entity_t *currententity)
 
 	if ((frame >= psprite->numframes) || (frame < 0))
 	{
-		Com_Printf ("R_GetSpriteFrame: no such frame %d (%s)\n", frame, currententity->model->name);
+		Msg("R_GetSpriteFrame: no such frame %d (%s)\n", frame, currententity->model->name);
 		frame = 0;
 	}
 
@@ -236,7 +236,7 @@ mspriteframe_t *R_GetSpriteFrame (entity_t *currententity)
 	{
 		pspriteframe = psprite->frames[frame].frameptr;
 	}
-	else ri.Sys_Error(ERR_DROP, "R_GetSpriteFrame: group frames are not supported\n");
+	else Sys_Error("R_GetSpriteFrame: group frames are not supported\n");
 
 	return pspriteframe;
 }

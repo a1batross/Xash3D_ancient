@@ -45,7 +45,7 @@ void SV_SetMaster_f (void)
 	// only dedicated servers send heartbeats
 	if (!dedicated->value)
 	{
-		Com_Printf ("Only dedicated servers use masters.\n");
+		Msg ("Only dedicated servers use masters.\n");
 		return;
 	}
 
@@ -63,15 +63,15 @@ void SV_SetMaster_f (void)
 
 		if (!NET_StringToAdr (Cmd_Argv(i), &master_adr[i]))
 		{
-			Com_Printf ("Bad address: %s\n", Cmd_Argv(i));
+			Msg ("Bad address: %s\n", Cmd_Argv(i));
 			continue;
 		}
 		if (master_adr[slot].port == 0)
 			master_adr[slot].port = BigShort (PORT_MASTER);
 
-		Com_Printf ("Master server at %s\n", NET_AdrToString (master_adr[slot]));
+		Msg ("Master server at %s\n", NET_AdrToString (master_adr[slot]));
 
-		Com_Printf ("Sending a ping.\n");
+		Msg ("Sending a ping.\n");
 
 		Netchan_OutOfBandPrint (NS_SERVER, master_adr[slot], "ping");
 
@@ -108,7 +108,7 @@ bool SV_SetPlayer (void)
 		idnum = atoi(Cmd_Argv(1));
 		if (idnum < 0 || idnum >= maxclients->value)
 		{
-			Com_Printf ("Bad client slot: %i\n", idnum);
+			Msg ("Bad client slot: %i\n", idnum);
 			return false;
 		}
 
@@ -116,7 +116,7 @@ bool SV_SetPlayer (void)
 		sv_player = sv_client->edict;
 		if (!sv_client->state)
 		{
-			Com_Printf ("Client %i is not active\n", idnum);
+			Msg ("Client %i is not active\n", idnum);
 			return false;
 		}
 		return true;
@@ -135,26 +135,8 @@ bool SV_SetPlayer (void)
 		}
 	}
 
-	Com_Printf ("Userid %s is not on the server\n", s);
+	Msg ("Userid %s is not on the server\n", s);
 	return false;
-}
-
-
-/*
-===============================================================================
-
-SAVEGAME FILES
-
-===============================================================================
-*/
-/*
-==============
-SV_WriteLevelFile
-
-==============
-*/
-void SV_WriteLevelFile (void)
-{
 }
 
 /*
@@ -196,11 +178,11 @@ void SV_GameMap_f (void)
 
 	if (Cmd_Argc() != 2)
 	{
-		Com_Printf ("USAGE: gamemap <map>\n");
+		Msg ("USAGE: gamemap <map>\n");
 		return;
 	}
 
-	Com_DPrintf("SV_GameMap(%s)\n", Cmd_Argv(1));
+	MsgDev("SV_GameMap(%s)\n", Cmd_Argv(1));
 
 	// check for clearing the current savegame
 	map = Cmd_Argv(1);
@@ -219,7 +201,7 @@ void SV_GameMap_f (void)
 				cl->edict->inuse = false;
 			}
 
-			SV_WriteLevelFile ();
+			SV_WriteSaveFile( "save0" ); //autosave
 
 			// we must restore these for clients to transfer over correctly
 			for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
@@ -255,7 +237,7 @@ void SV_Map_f (void)
 		Com_sprintf (expanded, sizeof(expanded), "maps/%s.bsp", map);
 		if (!FS_LoadFile (expanded, NULL))
 		{
-			Com_Printf ("Can't find %s\n", expanded);
+			Msg ("Can't find %s\n", expanded);
 			return;
 		}
 	}
@@ -283,7 +265,7 @@ void SV_Loadgame_f (void)
 {
 	if (Cmd_Argc() != 2)
 	{
-		Com_Printf ("USAGE: loadgame <directory>\n");
+		Msg ("USAGE: loadgame <directory>\n");
 		return;
 	}
 
@@ -307,31 +289,31 @@ void SV_Savegame_f (void)
 {
 	if (sv.state != ss_game)
 	{
-		Com_Printf ("You must be in a game to save.\n");
+		Msg ("You must be in a game to save.\n");
 		return;
 	}
 
 	if (Cmd_Argc() != 2)
 	{
-		Com_Printf ("USAGE: savegame <directory>\n");
+		Msg ("USAGE: savegame <directory>\n");
 		return;
 	}
 
 	if (Cvar_VariableValue("deathmatch"))
 	{
-		Com_Printf ("Can't savegame in a deathmatch\n");
+		Msg ("Can't savegame in a deathmatch\n");
 		return;
 	}
 
 	if (!strcmp (Cmd_Argv(1), "current"))
 	{
-		Com_Printf ("Can't save to 'current'\n");
+		Msg ("Can't save to 'current'\n");
 		return;
 	}
 
 	if (maxclients->value == 1 && svs.clients[0].edict->client->ps.stats[STAT_HEALTH] <= 0)
 	{
-		Com_Printf ("\nCan't savegame while dead!\n");
+		Msg ("\nCan't savegame while dead!\n");
 		return;
 	}
 
@@ -340,7 +322,7 @@ void SV_Savegame_f (void)
 	// a connecting client
 	SV_WriteSaveFile( Cmd_Argv(1) );
 
-	Com_Printf ("Done.\n");
+	Msg ("Done.\n");
 }
 
 //===============================================================
@@ -356,13 +338,13 @@ void SV_Kick_f (void)
 {
 	if (!svs.initialized)
 	{
-		Com_Printf ("No server running.\n");
+		Msg ("No server running.\n");
 		return;
 	}
 
 	if (Cmd_Argc() != 2)
 	{
-		Com_Printf ("Usage: kick <userid>\n");
+		Msg ("Usage: kick <userid>\n");
 		return;
 	}
 
@@ -390,47 +372,47 @@ void SV_Status_f (void)
 	int			ping;
 	if (!svs.clients)
 	{
-		Com_Printf ("No server running.\n");
+		Msg ("No server running.\n");
 		return;
 	}
-	Com_Printf ("map              : %s\n", sv.name);
+	Msg ("map              : %s\n", sv.name);
 
-	Com_Printf ("num score ping name            lastmsg address               qport \n");
-	Com_Printf ("--- ----- ---- --------------- ------- --------------------- ------\n");
+	Msg ("num score ping name            lastmsg address               qport \n");
+	Msg ("--- ----- ---- --------------- ------- --------------------- ------\n");
 	for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
 	{
 		if (!cl->state) continue;
-		Com_Printf ("%3i ", i);
-		Com_Printf ("%5i ", cl->edict->client->ps.stats[STAT_FRAGS]);
+		Msg ("%3i ", i);
+		Msg ("%5i ", cl->edict->client->ps.stats[STAT_FRAGS]);
 
 		if (cl->state == cs_connected)
-			Com_Printf ("CNCT ");
+			Msg ("CNCT ");
 		else if (cl->state == cs_zombie)
-			Com_Printf ("ZMBI ");
+			Msg ("ZMBI ");
 		else
 		{
 			ping = cl->ping < 9999 ? cl->ping : 9999;
-			Com_Printf ("%4i ", ping);
+			Msg ("%4i ", ping);
 		}
 
-		Com_Printf ("%s", cl->name);
+		Msg ("%s", cl->name);
 		l = 16 - strlen(cl->name);
 		for (j=0 ; j<l ; j++)
-			Com_Printf (" ");
+			Msg (" ");
 
-		Com_Printf ("%7i ", svs.realtime - cl->lastmessage );
+		Msg ("%7i ", svs.realtime - cl->lastmessage );
 
 		s = NET_AdrToString ( cl->netchan.remote_address);
-		Com_Printf ("%s", s);
+		Msg ("%s", s);
 		l = 22 - strlen(s);
 		for (j=0 ; j<l ; j++)
-			Com_Printf (" ");
+			Msg (" ");
 		
-		Com_Printf ("%5i", cl->netchan.qport);
+		Msg ("%5i", cl->netchan.qport);
 
-		Com_Printf ("\n");
+		Msg ("\n");
 	}
-	Com_Printf ("\n");
+	Msg ("\n");
 }
 
 /*
@@ -488,7 +470,7 @@ SV_Serverinfo_f
 */
 void SV_Serverinfo_f (void)
 {
-	Com_Printf ("Server info settings:\n");
+	Msg ("Server info settings:\n");
 	Info_Print (Cvar_Serverinfo());
 }
 
@@ -504,15 +486,15 @@ void SV_DumpUser_f (void)
 {
 	if (Cmd_Argc() != 2)
 	{
-		Com_Printf ("Usage: info <userid>\n");
+		Msg ("Usage: info <userid>\n");
 		return;
 	}
 
 	if (!SV_SetPlayer ())
 		return;
 
-	Com_Printf ("userinfo\n");
-	Com_Printf ("--------\n");
+	Msg ("userinfo\n");
+	Msg ("--------\n");
 	Info_Print (sv_client->userinfo);
 
 }
@@ -536,19 +518,19 @@ void SV_ServerRecord_f (void)
 
 	if (Cmd_Argc() != 2)
 	{
-		Com_Printf ("serverrecord <demoname>\n");
+		Msg ("serverrecord <demoname>\n");
 		return;
 	}
 
 	if (svs.demofile)
 	{
-		Com_Printf ("Already recording.\n");
+		Msg ("Already recording.\n");
 		return;
 	}
 
 	if (sv.state != ss_game)
 	{
-		Com_Printf ("You must be in a level to record.\n");
+		Msg ("You must be in a level to record.\n");
 		return;
 	}
 
@@ -557,11 +539,11 @@ void SV_ServerRecord_f (void)
 	//
 	Com_sprintf (name, sizeof(name), "demos/%s.dm2", Cmd_Argv(1));
 
-	Com_Printf ("recording to %s.\n", name);
+	Msg ("recording to %s.\n", name);
 	svs.demofile = FS_Open (name, "wb");
 	if (!svs.demofile)
 	{
-		Com_Printf ("ERROR: couldn't open.\n");
+		Msg ("ERROR: couldn't open.\n");
 		return;
 	}
 
@@ -596,7 +578,7 @@ void SV_ServerRecord_f (void)
 	}
 
 	// write it to the demo file
-	Com_DPrintf ("signon message length: %i\n", buf.cursize);
+	MsgDev ("signon message length: %i\n", buf.cursize);
 	len = LittleLong (buf.cursize);
 	FS_Write (svs.demofile, &len, 4);
 	FS_Write (svs.demofile, buf.data, buf.cursize);
@@ -616,12 +598,12 @@ void SV_ServerStop_f (void)
 {
 	if (!svs.demofile)
 	{
-		Com_Printf ("Not doing a serverrecord.\n");
+		Msg ("Not doing a serverrecord.\n");
 		return;
 	}
 	FS_Close (svs.demofile);
 	svs.demofile = NULL;
-	Com_Printf ("Completed demo.\n");
+	Msg ("Completed demo.\n");
 }
 
 
@@ -651,7 +633,7 @@ void SV_ServerCommand_f (void)
 {
 	if (!ge)
 	{
-		Com_Printf ("No game loaded.\n");
+		Msg ("No game loaded.\n");
 		return;
 	}
 	ge->ServerCommand();

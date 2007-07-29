@@ -8,13 +8,13 @@
 #include <dsound.h>
 #include "engine.h"
 
-platform_api_t    *pi;	//fundamental callbacks
+platform_exp_t    *pi;	//fundamental callbacks
 
 byte	*zonepool;
 int	ActiveApp;
 bool	Minimized;
 bool	is_dedicated;
-extern unsigned sys_msg_time;
+extern	uint sys_msg_time;
 
 void Key_Init (void);
 void SCR_EndLoadingPlaque (void);
@@ -31,30 +31,37 @@ int host_debug;
 
 void Host_InitPlatform( char *funcname, int argc, char **argv )
 {
-	stdio_api_t	pistd;
-	platform_api_t	*(*CreatePLAT)( stdio_api_t *);         
+	stdinout_api_t	pistd;
+	platform_exp_t	*(*CreatePLAT)( stdinout_api_t *);         
 
 	//platform dll
 	COM_InitArgv (argc, argv);
 
 	//make callbacks
-	pistd.printf = Com_Printf;
-	pistd.dprintf = Com_DPrintf;
-	pistd.error = std.error;
+	pistd.printf = Msg;
+	pistd.dprintf = MsgDev;
+	pistd.error = Sys_Error;
 	
 	if (( platform_dll = LoadLibrary( "bin/platform.dll" )) == 0 )
 	{
-		WinError( "Couldn't load platform.dll\n" );
+		Sys_Error( "Couldn't load platform.dll\n" );
 		return;
 	}
 
 	if (( CreatePLAT = (void *)GetProcAddress( platform_dll, "CreateAPI" ) ) == 0 )
 	{
-		WinError("can't init platform.dll\n");
+		Sys_Error("can't init platform.dll\n");
 		return;
 	}
 	pi = CreatePLAT( &pistd );
-	Com_Printf("Platform.dll version %d\n", pi->apiversion );
+
+	if(pi->apiversion != PLATFORM_API_VERSION)
+		Sys_Error("mismatch version (%i should be %i)\n", pi->apiversion, PLATFORM_API_VERSION);
+
+	if(pi->api_size != sizeof(platform_exp_t))
+		Sys_Error("mismatch interface size (%i should be %i)\n", pi->api_size, sizeof(platform_exp_t));
+
+	Msg("Platform.dll version %d\n", pi->apiversion );
 	
 	//initialize our platform :)
 	pi->Init();
@@ -84,7 +91,7 @@ void Host_Init (char *funcname, int argc, char **argv)
 	char	*s;
 
 	global_hInstance = (HINSTANCE)GetModuleHandle( NULL );
-	if (setjmp (abortframe)) WinError ("Error during initialization");
+	if (setjmp (abortframe)) Sys_Error ("Error during initialization");
           
           if(!strcmp(funcname, "host_dedicated"))is_dedicated = true;
 	
@@ -154,7 +161,7 @@ void Host_Init (char *funcname, int argc, char **argv)
 		SCR_EndLoadingPlaque ();
 	}
 
-	Com_Printf ("====== %s Initialized ======\n\n", GI.title);	
+	Msg ("====== %s Initialized ======\n\n", GI.title);	
 }
 
 /*
@@ -198,7 +205,7 @@ void Host_Frame (double time)
 		extern	int c_traces, c_brush_traces;
 		extern	int	c_pointcontents;
 
-		Com_Printf ("%4i traces  %4i points\n", c_traces, c_pointcontents);
+		Msg ("%4i traces  %4i points\n", c_traces, c_pointcontents);
 		c_traces = 0;
 		c_brush_traces = 0;
 		c_pointcontents = 0;
@@ -231,7 +238,7 @@ void Host_Frame (double time)
 		rf = time_after_ref - time_before_ref;
 		sv -= gm;
 		cl -= rf;
-		Com_Printf ("all:%.3f sv:%.3f gm:%.3f cl:%.3f rf:%.3f\n", all, sv, gm, cl, rf);
+		Msg ("all:%.3f sv:%.3f gm:%.3f cl:%.3f rf:%.3f\n", all, sv, gm, cl, rf);
 	}	
 }
 
@@ -268,7 +275,7 @@ void Host_Main( void )
 			newtime = Sys_Milliseconds ();
 			time = newtime - oldtime;
 		} while (time < 1);
-//			Con_Printf ("time:%5.2f - %5.2f = %5.2f\n", newtime, oldtime, time);
+//			Msg ("time:%5.2f - %5.2f = %5.2f\n", newtime, oldtime, time);
 
 		_controlfp( _PC_24, _MCW_PC );
 		Host_Frame (time);

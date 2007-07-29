@@ -13,7 +13,7 @@ every surface must be divided into at least two patches each axis
 */
 
 patch_t	*face_patches[MAX_MAP_FACES];
-entity_t	*face_entity[MAX_MAP_FACES];
+bsp_entity_t	*face_entity[MAX_MAP_FACES];
 patch_t	patches[MAX_PATCHES];
 unsigned	num_patches;
 

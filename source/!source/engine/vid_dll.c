@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include ".\client\client.h"
 
 // Structure containing functions exported from refresh DLL
-refexport_t	re;
+renderer_exp_t	re;
 
 cvar_t *win_noalttab;
 
@@ -112,44 +112,33 @@ DLL GLUE
 
 ==========================================================================
 */
-
-#define	MAXPRINTMSG	4096
-void VID_Printf (int print_level, char *fmt, ...)
+void VID_Error (char *fmt, ...)
 {
 	va_list		argptr;
-	char		msg[MAXPRINTMSG];
+	char		msg[MAX_INPUTLINE];
 	static bool	inupdate;
 	
-	va_start (argptr,fmt);
-	vsprintf (msg,fmt,argptr);
+	va_start (argptr, fmt);
+	vsprintf (msg, fmt, argptr);
 	va_end (argptr);
 
-	if (print_level == PRINT_ALL)
-	{
-		Com_Printf ("%s", msg);
-	}
-	else if ( print_level == PRINT_DEVELOPER )
-	{
-		Com_DPrintf ("%s", msg);
-	}
-	else if ( print_level == PRINT_ALERT )
-	{
-		MessageBox( 0, msg, "PRINT_ALERT", MB_ICONWARNING );
-		OutputDebugString( msg );
-	}
+	Com_Error (ERR_DROP, "%s", msg);
 }
 
-void VID_Error (int err_level, char *fmt, ...)
+stdinout_api_t VID_GetStdio( void )
 {
-	va_list		argptr;
-	char		msg[MAXPRINTMSG];
-	static bool	inupdate;
-	
-	va_start (argptr,fmt);
-	vsprintf (msg,fmt,argptr);
-	va_end (argptr);
+	static stdinout_api_t	io;
 
-	Com_Error (err_level,"%s", msg);
+	io.api_size = sizeof(stdinout_api_t); 
+
+	io.print = Sys_Print;
+	io.printf = Msg;
+	io.dprintf = MsgDev;
+	io.error = VID_Error;
+          io.exit = Sys_Quit;
+          io.input = Sys_ConsoleInput;
+
+	return io;
 }
 
 //==========================================================================
@@ -569,8 +558,8 @@ VID_LoadRefresh
 */
 bool VID_LoadRefresh( char *name )
 {
-	refimport_t	ri;
-	GetRefAPI_t	GetRefAPI;
+	renderer_imp_t	ri;
+	renderer_t	CreateRENDER;
 	
 	if ( reflib_active )
 	{
@@ -578,35 +567,28 @@ bool VID_LoadRefresh( char *name )
 		VID_FreeReflib ();
 	}
 
-	Com_Printf( "------- Loading %s -------\n", name );
+	Msg( "------- Loading %s -------\n", name );
           
 	if ( ( reflib_library = LoadLibrary( name ) ) == 0 )
 	{
-		Com_Printf( "LoadLibrary(\"%s\") failed\n", name );
+		Msg( "LoadLibrary(\"%s\") failed\n", name );
 
 		return false;
 	}
+
+	// load a new game dll
+	ri.Fs = pi->Fs;
+	ri.VFs = pi->VFs;
+	ri.Mem = pi->Mem;
+	ri.Script = pi->Script;
+	ri.Compile = pi->Compile;
+	ri.Stdio = VID_GetStdio();
 
 	ri.Cmd_AddCommand = Cmd_AddCommand;
 	ri.Cmd_RemoveCommand = Cmd_RemoveCommand;
 	ri.Cmd_Argc = Cmd_Argc;
 	ri.Cmd_Argv = Cmd_Argv;
 	ri.Cmd_ExecuteText = Cbuf_ExecuteText;
-	ri.Con_Printf = VID_Printf;
-	ri.Sys_Error = VID_Error;
-	
-	ri.FS_LoadFile = pi->Fs.LoadFile;
-	ri.FS_LoadImage = pi->Fs.LoadImage;
-          ri.FS_FreeImage = pi->Fs.FreeImage;
-          ri.FS_WriteFile = pi->Fs.WriteFile;
-	ri.FS_FileExists = pi->Fs.FileExists;
-	ri.FS_FileBase = pi->Fs.FileBase;
-	
-	ri.MS_Alloc = pi->Mem.Alloc;
-	ri.MS_Free = pi->Mem.Free;
-	ri.MS_AllocPool = pi->Mem.AllocPool;
-	ri.MS_FreePool = pi->Mem.FreePool;
-	ri.MS_EmptyPool = pi->Mem.EmptyPool;
 
 	ri.gamedir = FS_Gamedir;
 	ri.title = FS_Title;
@@ -620,12 +602,12 @@ bool VID_LoadRefresh( char *name )
           // studio callbacks
           ri.StudioEvent = CL_StudioEvent;
 	
-	if ( ( GetRefAPI = (void *) GetProcAddress( reflib_library, "GetRefAPI" ) ) == 0 )
+	if ( ( CreateRENDER = (void *) GetProcAddress( reflib_library, "CreateAPI" ) ) == 0 )
 		Com_Error( ERR_FATAL, "GetProcAddress failed on %s", name );
 
-	re = GetRefAPI( ri );
+	re = CreateRENDER( ri );
 
-	if (re.api_version != REF_API_VERSION)
+	if (re.apiversion != RENDERER_API_VERSION)
 	{
 		VID_FreeReflib ();
 		Com_Error (ERR_FATAL, "%s has incompatible api_version", name);
@@ -638,7 +620,7 @@ bool VID_LoadRefresh( char *name )
 		return false;
 	}
 
-	Com_Printf( "------------------------------------\n");
+	Msg( "------------------------------------\n");
 	reflib_active = true;
 
 //======

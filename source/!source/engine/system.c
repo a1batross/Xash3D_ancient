@@ -26,13 +26,12 @@ extern HWND cl_hwnd;
 
 //engine builddate
 char *buildstring = __TIME__ " " __DATE__;
-stdio_api_t std;
-unsigned sys_msg_time;
-unsigned sys_frame_time;
+stdinout_api_t std;
+uint sys_msg_time;
+uint sys_frame_time;
 
 bool s_win95;
 int starttime;
-static int sys_error = false;
 
 /*
 ===============================================================================
@@ -41,6 +40,18 @@ SYSTEM IO
 
 ===============================================================================
 */
+void Sys_Error( char *msg, ... )
+{
+	va_list		argptr;
+	char		fmt[MAX_INPUTLINE];
+	static bool	inupdate;
+	
+	va_start (argptr, msg);
+	vsprintf (fmt, msg, argptr);
+	va_end (argptr);
+
+	Com_Error (ERR_FATAL, "%s", fmt);
+}
 
 void Sys_Quit (void)
 {
@@ -77,10 +88,10 @@ void Sys_Init (void)
 
 	vinfo.dwOSVersionInfoSize = sizeof(vinfo);
 
-	if (!GetVersionEx (&vinfo)) WinError ("Couldn't get OS info");
+	if (!GetVersionEx (&vinfo)) Sys_Error ("Couldn't get OS info");
 
-	if (vinfo.dwMajorVersion < 4) WinError ("%s requires windows version 4 or greater", GI.title);
-	if (vinfo.dwPlatformId == VER_PLATFORM_WIN32s) WinError ("%s doesn't run on Win32s", GI.title);
+	if (vinfo.dwMajorVersion < 4) Sys_Error ("%s requires windows version 4 or greater", GI.title);
+	if (vinfo.dwPlatformId == VER_PLATFORM_WIN32s) Sys_Error ("%s doesn't run on Win32s", GI.title);
 	else if ( vinfo.dwPlatformId == VER_PLATFORM_WIN32_WINDOWS ) s_win95 = true;
 }
 
@@ -232,13 +243,13 @@ void *Sys_GetGameAPI (const char* procname, void *parms)
 		
 		if (game_library)
 		{
-			Com_DPrintf ("LoadLibrary (%s)\n", basepath );
+			MsgDev ("LoadLibrary (%s)\n", basepath );
 			
 			if (( GetGameAPI = (void *)GetProcAddress( game_library, procname )) == 0 )
 				Sys_UnloadGame();
 			else break;
 		}
-		else Com_Printf("Can't loading %s\n", gamedll->filenames[i] );
+		else Msg("Can't loading %s\n", gamedll->filenames[i] );
 	}
 
 	GetGameAPI = (void *)GetProcAddress (game_library, procname );
@@ -259,7 +270,7 @@ DllMain
 
 ==================
 */
-host_api_t DLLEXPORT CreateAPI( stdio_api_t histd )
+host_api_t DLLEXPORT CreateAPI( stdinout_api_t histd )
 {
 	host_api_t hi;
 

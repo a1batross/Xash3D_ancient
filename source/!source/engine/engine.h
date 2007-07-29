@@ -20,16 +20,16 @@
 #include "basetypes.h"
 #include "basemath.h"
 #include "qfiles.h"
-#include "cvar.h"
 #include <ref_system.h>
 #include <ref_launcher.h>
 #include <ref_renderer.h>
 #include "bspmodel.h"
 #include "const.h"
 #include "common.h"
+#include "cvar.h"
 
-extern stdio_api_t 		std;
-extern platform_api_t	*pi;
+extern stdinout_api_t	std;
+extern platform_exp_t	*pi;
 extern byte		*zonepool;
 extern jmp_buf		abortframe;
 
@@ -97,7 +97,7 @@ System Events
 
 #define Msg Com_Printf
 #define MsgDev Com_DPrintf
-#define WinError std.error
+void Sys_Error( char *msg, ... );
 
 /*
 ===========================================

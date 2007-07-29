@@ -62,10 +62,10 @@ GL_Strings_f
 */
 void GL_Strings_f( void )
 {
-	ri.Con_Printf (PRINT_ALL, "GL_VENDOR: %s\n", gl_config.vendor_string );
-	ri.Con_Printf (PRINT_ALL, "GL_RENDERER: %s\n", gl_config.renderer_string );
-	ri.Con_Printf (PRINT_ALL, "GL_VERSION: %s\n", gl_config.version_string );
-	ri.Con_Printf (PRINT_ALL, "GL_EXTENSIONS: %s\n", gl_config.extensions_string );
+	Msg("GL_VENDOR: %s\n", gl_config.vendor_string );
+	Msg("GL_RENDERER: %s\n", gl_config.renderer_string );
+	Msg("GL_VERSION: %s\n", gl_config.version_string );
+	Msg("GL_EXTENSIONS: %s\n", gl_config.extensions_string );
 }
 
 #define GLSTATE_DISABLE_ALPHATEST
@@ -183,7 +183,7 @@ void GL_TextureMode( char *string )
 
 	if (i == NUM_GL_MODES)
 	{
-		ri.Con_Printf (PRINT_ALL, "bad filter name\n");
+		Msg("bad filter name\n");
 		return;
 	}
 
@@ -219,7 +219,7 @@ void GL_TextureAlphaMode( char *string )
 
 	if (i == NUM_GL_ALPHA_MODES)
 	{
-		ri.Con_Printf (PRINT_ALL, "bad alpha texture mode name\n");
+		Msg("bad alpha texture mode name\n");
 		return;
 	}
 
@@ -243,7 +243,7 @@ void GL_TextureSolidMode( char *string )
 
 	if (i == NUM_GL_SOLID_MODES)
 	{
-		ri.Con_Printf (PRINT_ALL, "bad solid texture mode name\n");
+		Msg("bad solid texture mode name\n");
 		return;
 	}
 
@@ -549,8 +549,8 @@ void VID_UpdateGamma(bool force, int rampsize)
 			if (vid_gammarampsize != rampsize || !vid_gammaramps)
 			{
 				vid_gammarampsize = rampsize;
-				if (vid_gammaramps) Free(vid_gammaramps);
-				vid_gammaramps = (word *)Malloc(6 * vid_gammarampsize * sizeof(word));
+				if (vid_gammaramps) Z_Free(vid_gammaramps);
+				vid_gammaramps = (word *)Z_Malloc(6 * vid_gammarampsize * sizeof(word));
 				vid_systemgammaramps = vid_gammaramps + 3 * vid_gammarampsize;
 			}
 			VID_GetGamma(vid_systemgammaramps, vid_gammarampsize);

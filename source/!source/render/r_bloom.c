@@ -103,7 +103,7 @@ void R_Bloom_InitBackUpTexture( int width, int height )
 	byte	*data;
 	rgbdata_t	r_bloom;
 	
-	data = Malloc( width * height * 4 );
+	data = Z_Malloc( width * height * 4 );
 	r_bloom.width = width;
 	r_bloom.height = height;
 	r_bloom.type = PF_PROCEDURE_TEX;
@@ -114,7 +114,7 @@ void R_Bloom_InitBackUpTexture( int width, int height )
 
 	r_screenbackuptexture_size = width;
 	r_bloombackuptexture = R_LoadImage( "***r_bloombackuptexture***", &r_bloom, it_pic );
-	Free ( data );
+	Z_Free ( data );
 }
 
 /*
@@ -150,7 +150,7 @@ void R_Bloom_InitEffectTexture( void )
 	if( BLOOM_SIZE != (int)r_bloom_sample_size->value )
 		ri.Cvar_SetValue ("r_bloom_sample_size", BLOOM_SIZE);
 
-	data = Malloc( BLOOM_SIZE * BLOOM_SIZE * 4 );
+	data = Z_Malloc( BLOOM_SIZE * BLOOM_SIZE * 4 );
 
 	r_bloomfx.width = BLOOM_SIZE;
 	r_bloomfx.height = BLOOM_SIZE;
@@ -161,7 +161,7 @@ void R_Bloom_InitEffectTexture( void )
 	r_bloomfx.buffer = data;
 	r_bloomeffecttexture = R_LoadImage( "***r_bloomeffecttexture***", &r_bloomfx, it_pic );
 	
-	Free ( data );
+	Z_Free ( data );
 }
 
 /*
@@ -181,7 +181,7 @@ void R_Bloom_InitTextures( void )
 
 	//init the screen texture
 	size = screen_texture_width * screen_texture_height * 4;
-	data = Malloc( size );
+	data = Z_Malloc( size );
 	memset( data, 255, size );
 
 	r_bloomscr.width = screen_texture_width;
@@ -192,7 +192,7 @@ void R_Bloom_InitTextures( void )
 	r_bloomscr.buffer = (byte *)data;
 	r_bloomscr.numMips = 1;
 	r_bloomscreentexture = R_LoadImage( "***r_bloomscreentexture***", &r_bloomscr, it_pic );
-	Free ( data );
+	Z_Free ( data );
 
 	//validate bloom size and init the bloom effect texture
 	R_Bloom_InitEffectTexture ();
@@ -203,7 +203,7 @@ void R_Bloom_InitTextures( void )
 	if( vid.width > (BLOOM_SIZE * 2) && !r_bloom_fast_sample->value )
 	{
 		r_screendownsamplingtexture_size = (int)(BLOOM_SIZE * 2);
-		data = Malloc( r_screendownsamplingtexture_size * r_screendownsamplingtexture_size * 4 );
+		data = Z_Malloc( r_screendownsamplingtexture_size * r_screendownsamplingtexture_size * 4 );
 		r_downsample.width = r_screendownsamplingtexture_size;
 		r_downsample.height = r_screendownsamplingtexture_size;
 		r_downsample.type = PF_PROCEDURE_TEX;
@@ -212,7 +212,7 @@ void R_Bloom_InitTextures( void )
 		r_downsample.buffer = (byte *)data;
 		r_downsample.numMips = 1;
 		r_bloomdownsamplingtexture = R_LoadImage( "***r_bloomdownsampetexture***", &r_downsample, it_pic );
-		Free ( data );
+		Z_Free ( data );
 	}
 
 	//Init the screen backup texture

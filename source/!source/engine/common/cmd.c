@@ -95,7 +95,7 @@ void Cbuf_AddText (char *text)
 
 	if (cmd_text.cursize + l >= cmd_text.maxsize)
 	{
-		Com_Printf ("Cbuf_AddText: overflow\n");
+		Msg ("Cbuf_AddText: overflow\n");
 		return;
 	}
 	SZ_Write (&cmd_text, text, strlen (text));
@@ -375,17 +375,17 @@ void Cmd_Exec_f (void)
 
 	if (Cmd_Argc () != 2)
 	{
-		Com_Printf ("exec <filename> : execute a script file\n");
+		Msg ("exec <filename> : execute a script file\n");
 		return;
 	}
 
 	f = FS_LoadFile (Cmd_Argv(1), &len );
 	if (!f)
 	{
-		Com_Printf ("couldn't exec %s\n",Cmd_Argv(1));
+		Msg ("couldn't exec %s\n",Cmd_Argv(1));
 		return;
 	}
-	Com_Printf ("execing %s\n",Cmd_Argv(1));
+	Msg ("execing %s\n",Cmd_Argv(1));
 	
 	// the file doesn't have a trailing 0, so we need to copy it off
 	f2 = Z_Malloc(len + 1);
@@ -410,8 +410,8 @@ void Cmd_Echo_f (void)
 	int		i;
 	
 	for (i=1 ; i<Cmd_Argc() ; i++)
-		Com_Printf ("%s ",Cmd_Argv(i));
-	Com_Printf ("\n");
+		Msg ("%s ",Cmd_Argv(i));
+	Msg ("\n");
 }
 
 /*
@@ -430,16 +430,16 @@ void Cmd_Alias_f (void)
 
 	if (Cmd_Argc() == 1)
 	{
-		Com_Printf ("Current alias commands:\n");
+		Msg ("Current alias commands:\n");
 		for (a = cmd_alias ; a ; a=a->next)
-			Com_Printf ("%s : %s\n", a->name, a->value);
+			Msg ("%s : %s\n", a->name, a->value);
 		return;
 	}
 
 	s = Cmd_Argv(1);
 	if (strlen(s) >= MAX_ALIAS_NAME)
 	{
-		Com_Printf ("Alias name is too long\n");
+		Msg ("Alias name is too long\n");
 		return;
 	}
 
@@ -553,7 +553,7 @@ char *Cmd_MacroExpandString (char *text)
 	len = strlen (scan);
 	if (len >= MAX_STRING_CHARS)
 	{
-		Com_Printf ("Line exceeded %i chars, discarded.\n", MAX_STRING_CHARS);
+		Msg ("Line exceeded %i chars, discarded.\n", MAX_STRING_CHARS);
 		return NULL;
 	}
 
@@ -579,7 +579,7 @@ char *Cmd_MacroExpandString (char *text)
 		len += j;
 		if (len >= MAX_STRING_CHARS)
 		{
-			Com_Printf ("Expanded line exceeded %i chars, discarded.\n", MAX_STRING_CHARS);
+			Msg ("Expanded line exceeded %i chars, discarded.\n", MAX_STRING_CHARS);
 			return NULL;
 		}
 
@@ -593,14 +593,14 @@ char *Cmd_MacroExpandString (char *text)
 
 		if (++count == 100)
 		{
-			Com_Printf ("Macro expansion loop, discarded.\n");
+			Msg ("Macro expansion loop, discarded.\n");
 			return NULL;
 		}
 	}
 
 	if (inquote)
 	{
-		Com_Printf ("Line has unmatched quote, discarded.\n");
+		Msg ("Line has unmatched quote, discarded.\n");
 		return NULL;
 	}
 
@@ -694,7 +694,7 @@ void	Cmd_AddCommand (char *cmd_name, xcommand_t function)
 // fail if the command is a variable name
 	if (Cvar_VariableString(cmd_name)[0])
 	{
-		Com_Printf ("Cmd_AddCommand: %s already defined as a var\n", cmd_name);
+		Msg ("Cmd_AddCommand: %s already defined as a var\n", cmd_name);
 		return;
 	}
 	
@@ -703,7 +703,7 @@ void	Cmd_AddCommand (char *cmd_name, xcommand_t function)
 	{
 		if (!strcmp (cmd_name, cmd->name))
 		{
-			Com_Printf ("Cmd_AddCommand: %s already defined\n", cmd_name);
+			Msg ("Cmd_AddCommand: %s already defined\n", cmd_name);
 			return;
 		}
 	}
@@ -730,7 +730,7 @@ void	Cmd_RemoveCommand (char *cmd_name)
 		cmd = *back;
 		if (!cmd)
 		{
-			Com_Printf ("Cmd_RemoveCommand: %s not added\n", cmd_name);
+			Msg ("Cmd_RemoveCommand: %s not added\n", cmd_name);
 			return;
 		}
 		if (!strcmp (cmd_name, cmd->name))
@@ -840,7 +840,7 @@ void	Cmd_ExecuteString (char *text)
 		{
 			if (++alias_count == ALIAS_LOOP_COUNT)
 			{
-				Com_Printf ("ALIAS_LOOP_COUNT\n");
+				Msg ("ALIAS_LOOP_COUNT\n");
 				return;
 			}
 			Cbuf_InsertText (a->value);
@@ -868,8 +868,8 @@ void Cmd_List_f (void)
 
 	i = 0;
 	for (cmd=cmd_functions ; cmd ; cmd=cmd->next, i++)
-		Com_Printf ("%s\n", cmd->name);
-	Com_Printf ("%i commands\n", i);
+		Msg ("%s\n", cmd->name);
+	Msg ("%i commands\n", i);
 }
 
 /*

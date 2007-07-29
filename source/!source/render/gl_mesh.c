@@ -380,14 +380,12 @@ static bool R_CullAliasModel( vec3_t bbox[8], entity_t *e )
 
 	if ( ( e->frame >= paliashdr->num_frames ) || ( e->frame < 0 ) )
 	{
-		ri.Con_Printf (PRINT_ALL, "R_CullAliasModel %s: no such frame %d\n", 
-			currentmodel->name, e->frame);
+		Msg("R_CullAliasModel %s: no such frame %d\n", currentmodel->name, e->frame);
 		e->frame = 0;
 	}
 	if ( ( e->prev.frame >= paliashdr->num_frames ) || ( e->prev.frame < 0 ) )
 	{
-		ri.Con_Printf (PRINT_ALL, "R_CullAliasModel %s: no such oldframe %d\n", 
-			currentmodel->name, e->prev.frame);
+		Msg("R_CullAliasModel %s: no such oldframe %d\n", currentmodel->name, e->prev.frame);
 		e->prev.frame = 0;
 	}
 
@@ -697,20 +695,16 @@ void R_DrawAliasModel ( int passnum )
 	}
 
 
-	if ( (currententity->frame >= paliashdr->num_frames) 
-		|| (currententity->frame < 0) )
+	if ( (currententity->frame >= paliashdr->num_frames) || (currententity->frame < 0) )
 	{
-		ri.Con_Printf (PRINT_ALL, "R_DrawAliasModel %s: no such frame %d\n",
-			currentmodel->name, currententity->frame);
+		Msg("R_DrawAliasModel %s: no such frame %d\n", currentmodel->name, currententity->frame);
 		currententity->frame = 0;
 		currententity->prev.frame = 0;
 	}
 
-	if ( (currententity->prev.frame >= paliashdr->num_frames)
-		|| (currententity->prev.frame < 0))
+	if ( (currententity->prev.frame >= paliashdr->num_frames) || (currententity->prev.frame < 0))
 	{
-		ri.Con_Printf (PRINT_ALL, "R_DrawAliasModel %s: no such oldframe %d\n",
-			currentmodel->name, currententity->prev.frame);
+		Msg("R_DrawAliasModel %s: no such oldframe %d\n", currentmodel->name, currententity->prev.frame);
 		currententity->frame = 0;
 		currententity->prev.frame = 0;
 	}

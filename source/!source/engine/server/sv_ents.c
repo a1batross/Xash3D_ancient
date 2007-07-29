@@ -437,7 +437,7 @@ void SV_WriteFrameToClient (client_t *client, sizebuf_t *msg)
 	client_frame_t		*frame, *oldframe;
 	int					lastframe;
 
-	//Com_Printf ("%i -> %i\n", client->lastframe, sv.framenum);
+	//Msg ("%i -> %i\n", client->lastframe, sv.framenum);
 	// this is the frame we are creating
 	frame = &client->frames[sv.framenum & UPDATE_MASK];
 
@@ -448,7 +448,7 @@ void SV_WriteFrameToClient (client_t *client, sizebuf_t *msg)
 	}
 	else if (sv.framenum - client->lastframe >= (UPDATE_BACKUP - 3) )
 	{	// client hasn't gotten a good message through in a long time
-//		Com_Printf ("%s: Delta request from out-of-date packet.\n", client->name);
+//		Msg ("%s: Delta request from out-of-date packet.\n", client->name);
 		oldframe = NULL;
 		lastframe = -1;
 	}
@@ -675,7 +675,7 @@ void SV_BuildClientFrame (client_t *client)
 		state = &svs.client_entities[svs.next_client_entities%svs.num_client_entities];
 		if (ent->s.number != e)
 		{
-			Com_DPrintf ("FIXING ENT->S.NUMBER!!!\n");
+			MsgDev ("FIXING ENT->S.NUMBER!!!\n");
 			ent->s.number = e;
 		}
 		*state = ent->s;

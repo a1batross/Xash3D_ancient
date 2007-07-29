@@ -522,7 +522,7 @@ bool MakeBrushWindings (mapbrush_t *ob)
 ParseBrush
 =================
 */
-void ParseBrush (entity_t *mapent)
+void ParseBrush (bsp_entity_t *mapent)
 {
 	mapbrush_t	*b;
 	int		i,j, k;
@@ -842,7 +842,7 @@ adds them to the world's brush list.
 Used by func_group and func_areaportal
 ================
 */
-void MoveBrushesToWorld (entity_t *mapent)
+void MoveBrushesToWorld (bsp_entity_t *mapent)
 {
 	int			newbrushes;
 	int			worldbrushes;
@@ -882,7 +882,7 @@ ParseMapEntity
 */
 bool	ParseMapEntity (void)
 {
-	entity_t	*mapent;
+	bsp_entity_t	*mapent;
 	epair_t		*e;
 	side_t		*s;
 	int			i, j;

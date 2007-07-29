@@ -132,7 +132,7 @@ cvar_t *Cvar_Get (char *var_name, char *var_value, int flags)
 	{
 		if (!Cvar_InfoValidate (var_name))
 		{
-			Com_Printf("invalid info cvar name\n");
+			Msg("invalid info cvar name\n");
 			return NULL;
 		}
 	}
@@ -151,7 +151,7 @@ cvar_t *Cvar_Get (char *var_name, char *var_value, int flags)
 	{
 		if (!Cvar_InfoValidate (var_value))
 		{
-			Com_Printf("invalid info cvar value\n");
+			Msg("invalid info cvar value\n");
 			return NULL;
 		}
 	}
@@ -190,7 +190,7 @@ cvar_t *Cvar_Set2 (char *var_name, char *value, bool force)
 	{
 		if (!Cvar_InfoValidate (value))
 		{
-			Com_Printf("invalid info cvar value\n");
+			Msg("invalid info cvar value\n");
 			return var;
 		}
 	}
@@ -199,7 +199,7 @@ cvar_t *Cvar_Set2 (char *var_name, char *value, bool force)
 	{
 		if (var->flags & CVAR_NOSET)
 		{
-			Com_Printf ("%s is write protected.\n", var_name);
+			Msg ("%s is write protected.\n", var_name);
 			return var;
 		}
 
@@ -219,7 +219,7 @@ cvar_t *Cvar_Set2 (char *var_name, char *value, bool force)
 
 			if (Com_ServerState())
 			{
-				Com_Printf ("%s will be changed for next game.\n", var_name);
+				Msg ("%s will be changed for next game.\n", var_name);
 				var->latched_string = CopyString(value);
 			}
 			else
@@ -362,7 +362,7 @@ bool Cvar_Command (void)
 // perform a variable print or set
 	if (Cmd_Argc() == 1)
 	{
-		Com_Printf ("\"%s\" is \"%s\"\n", v->name, v->string);
+		Msg ("\"%s\" is \"%s\"\n", v->name, v->string);
 		return true;
 	}
 
@@ -386,7 +386,7 @@ void Cvar_Set_f (void)
 	c = Cmd_Argc();
 	if (c != 3 && c != 4)
 	{
-		Com_Printf ("usage: set <variable> <value> [u / s]\n");
+		Msg ("usage: set <variable> <value> [u / s]\n");
 		return;
 	}
 
@@ -398,7 +398,7 @@ void Cvar_Set_f (void)
 			flags = CVAR_SERVERINFO;
 		else
 		{
-			Com_Printf ("flags can only be 'u' or 's'\n");
+			Msg ("flags can only be 'u' or 's'\n");
 			return;
 		}
 		Cvar_FullSet (Cmd_Argv(1), Cmd_Argv(2), flags);
@@ -449,26 +449,26 @@ void Cvar_List_f (void)
 	for (var = cvar_vars ; var ; var = var->next, i++)
 	{
 		if (var->flags & CVAR_ARCHIVE)
-			Com_Printf ("*");
+			Msg ("*");
 		else
-			Com_Printf (" ");
+			Msg (" ");
 		if (var->flags & CVAR_USERINFO)
-			Com_Printf ("U");
+			Msg ("U");
 		else
-			Com_Printf (" ");
+			Msg (" ");
 		if (var->flags & CVAR_SERVERINFO)
-			Com_Printf ("S");
+			Msg ("S");
 		else
-			Com_Printf (" ");
+			Msg (" ");
 		if (var->flags & CVAR_NOSET)
-			Com_Printf ("-");
+			Msg ("-");
 		else if (var->flags & CVAR_LATCH)
-			Com_Printf ("L");
+			Msg ("L");
 		else
-			Com_Printf (" ");
-		Com_Printf (" %s \"%s\"\n", var->name, var->string);
+			Msg (" ");
+		Msg (" %s \"%s\"\n", var->name, var->string);
 	}
-	Com_Printf ("%i cvars\n", i);
+	Msg ("%i cvars\n", i);
 }
 
 

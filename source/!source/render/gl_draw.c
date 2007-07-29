@@ -230,8 +230,11 @@ void Draw_Fill (int x, int y, int w, int h, int c)
 		byte		v[4];
 	} color;
 
-	if ( (unsigned)c > 255)
-		ri.Sys_Error (ERR_FATAL, "Draw_Fill: bad color");
+	if ((unsigned) c > 255) 
+	{
+		Msg("Draw_Fill: bad color %i", c );
+		c = 255;
+	}
 
 	qglDisable (GL_TEXTURE_2D);
 

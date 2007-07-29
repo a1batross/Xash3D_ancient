@@ -72,7 +72,7 @@ void PF_dprintf (char *fmt, ...)
 	vsprintf (msg, fmt, argptr);
 	va_end (argptr);
 
-	Com_Printf ("%s", msg);
+	Msg ("%s", msg);
 }
 
 
@@ -103,7 +103,7 @@ void PF_cprintf (edict_t *ent, int level, char *fmt, ...)
 	if (ent)
 		SV_ClientPrintf (svs.clients+(n-1), level, "%s", msg);
 	else
-		Com_Printf ("%s", msg);
+		Msg ("%s", msg);
 }
 
 

@@ -70,7 +70,7 @@ bool	CL_CheckOrDownloadFile (char *filename)
 
 	if (strstr (filename, ".."))
 	{
-		Com_Printf ("Refusing to download a path with ..\n");
+		Msg ("Refusing to download a path with ..\n");
 		return true;
 	}
 
@@ -105,13 +105,13 @@ bool	CL_CheckOrDownloadFile (char *filename)
 		cls.download = fp;
 
 		// give the server an offset to start the download
-		Com_Printf ("Resuming %s\n", cls.downloadname);
+		Msg ("Resuming %s\n", cls.downloadname);
 		MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
 		MSG_WriteString (&cls.netchan.message, va("download %s %i", cls.downloadname, len));
 	}
 	else
 	{
-		Com_Printf ("Downloading %s\n", cls.downloadname);
+		Msg ("Downloading %s\n", cls.downloadname);
 		MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
 		MSG_WriteString (&cls.netchan.message, va("download %s", cls.downloadname));
 	}
@@ -134,7 +134,7 @@ void	CL_Download_f (void)
 
 	if (Cmd_Argc() != 2)
 	{
-		Com_Printf("Usage: download <filename>\n");
+		Msg("Usage: download <filename>\n");
 		return;
 	}
 
@@ -142,19 +142,19 @@ void	CL_Download_f (void)
 
 	if (strstr (filename, ".."))
 	{
-		Com_Printf ("Refusing to download a path with ..\n");
+		Msg ("Refusing to download a path with ..\n");
 		return;
 	}
 
 	if (FS_LoadFile (filename, NULL))
 	{
 		// it exists, no need to download
-		Com_Printf("File already exists.\n");
+		Msg("File already exists.\n");
 		return;
 	}
 
 	strcpy (cls.downloadname, filename);
-	Com_Printf ("Downloading %s\n", cls.downloadname);
+	Msg ("Downloading %s\n", cls.downloadname);
 
 	// download to a temp name, and only rename
 	// to the real name when done, so if interrupted
@@ -209,7 +209,7 @@ void CL_ParseDownload (void)
 	percent = MSG_ReadByte (&net_message);
 	if (size == -1)
 	{
-		Com_Printf ("Server does not have this file.\n");
+		Msg ("Server does not have this file.\n");
 		if (cls.download)
 		{
 			// if here, we tried to resume a file but the server said no
@@ -229,7 +229,7 @@ void CL_ParseDownload (void)
 		if (!cls.download)
 		{
 			net_message.readcount += size;
-			Com_Printf ("Failed to open %s\n", cls.downloadtempname);
+			Msg ("Failed to open %s\n", cls.downloadtempname);
 			CL_RequestNextDownload ();
 			return;
 		}
@@ -258,7 +258,7 @@ void CL_ParseDownload (void)
 		CL_DownloadFileName(newn, sizeof(newn), cls.downloadname);
 		r = rename (oldn, newn);
 		if (r)
-			Com_Printf ("failed to rename.\n");
+			Msg ("failed to rename.\n");
 
 		cls.download = NULL;
 		cls.downloadpercent = 0;
@@ -288,7 +288,7 @@ void CL_ParseServerData (void)
 	char	*str;
 	int		i;
 	
-	Com_DPrintf ("Serverdata packet received.\n");
+	MsgDev ("Serverdata packet received.\n");
 //
 // wipe the client_state_t struct
 //
@@ -326,8 +326,8 @@ void CL_ParseServerData (void)
 	else
 	{
 		// seperate the printfs so the server message can have a color
-		Com_Printf("\n\n\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n\n");
-		Com_Printf ("%c%s\n", 2, str);
+		Msg("\n\n\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n\n");
+		Msg ("%c%s\n", 2, str);
 
 		// need to prep refresh at next oportunity
 		cl.refresh_prepped = false;
@@ -629,7 +629,7 @@ void CL_ParseStartSoundPacket(void)
 void SHOWNET(char *s)
 {
 	if (cl_shownet->value>=2)
-		Com_Printf ("%3i:%s\n", net_message.readcount-1, s);
+		Msg ("%3i:%s\n", net_message.readcount-1, s);
 }
 
 /*
@@ -647,9 +647,9 @@ void CL_ParseServerMessage (void)
 // if recording demos, copy the message out
 //
 	if (cl_shownet->value == 1)
-		Com_Printf ("%i ",net_message.cursize);
+		Msg ("%i ",net_message.cursize);
 	else if (cl_shownet->value >= 2)
-		Com_Printf ("------------------\n");
+		Msg ("------------------\n");
 
 
 //
@@ -674,7 +674,7 @@ void CL_ParseServerMessage (void)
 		if (cl_shownet->value>=2)
 		{
 			if (!svc_strings[cmd])
-				Com_Printf ("%3i:BAD CMD %i\n", net_message.readcount-1,cmd);
+				Msg ("%3i:BAD CMD %i\n", net_message.readcount-1,cmd);
 			else
 				SHOWNET(svc_strings[cmd]);
 		}
@@ -687,7 +687,7 @@ void CL_ParseServerMessage (void)
 			break;
 			
 		case svc_nop:
-//			Com_Printf ("svc_nop\n");
+//			Msg ("svc_nop\n");
 			break;
 			
 		case svc_disconnect:
@@ -695,7 +695,7 @@ void CL_ParseServerMessage (void)
 			break;
 
 		case svc_reconnect:
-			Com_Printf ("Server disconnected, reconnecting\n");
+			Msg ("Server disconnected, reconnecting\n");
 			if (cls.download)
 			{
 				//ZOID, close download
@@ -713,7 +713,7 @@ void CL_ParseServerMessage (void)
 				S_StartLocalSound ("misc/talk.wav");
 				con.ormask = 128;
 			}
-			Com_Printf ("%s", MSG_ReadString (&net_message));
+			Msg ("%s", MSG_ReadString (&net_message));
 			con.ormask = 0;
 			break;
 			
@@ -723,7 +723,7 @@ void CL_ParseServerMessage (void)
 			
 		case svc_stufftext:
 			s = MSG_ReadString (&net_message);
-			Com_DPrintf ("stufftext: %s\n", s);
+			MsgDev ("stufftext: %s\n", s);
 			Cbuf_AddText (s);
 			break;
 			

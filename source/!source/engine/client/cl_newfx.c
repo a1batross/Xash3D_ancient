@@ -564,7 +564,7 @@ void CL_Heatbeam (vec3_t start, vec3_t forward)
 
 	VectorScale (vec, step, vec);
 
-//	Com_Printf ("%f\n", ltime);
+//	Msg ("%f\n", ltime);
 	rstep = M_PI/10.0;
 	for (i=start_pt ; i<len ; i+=step)
 	{
@@ -685,7 +685,7 @@ void CL_Heatbeam (vec3_t start, vec3_t end)
 
 	VectorScale (vec, step, vec);
 
-//	Com_Printf ("%f\n", ltime);
+//	Msg ("%f\n", ltime);
 	rstep = M_PI/12.0;
 	for (i=start_pt ; i<len ; i+=step)
 	{

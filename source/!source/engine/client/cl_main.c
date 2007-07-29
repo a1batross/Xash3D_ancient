@@ -135,7 +135,7 @@ void CL_Stop_f (void)
 
 	if (!cls.demorecording)
 	{
-		Com_Printf ("Not recording a demo.\n");
+		Msg ("Not recording a demo.\n");
 		return;
 	}
 
@@ -145,7 +145,7 @@ void CL_Stop_f (void)
 	FS_Close (cls.demofile);
 	cls.demofile = NULL;
 	cls.demorecording = false;
-	Com_Printf ("Stopped demo.\n");
+	Msg ("Stopped demo.\n");
 }
 
 /*
@@ -169,19 +169,19 @@ void CL_Record_f (void)
 
 	if (Cmd_Argc() != 2)
 	{
-		Com_Printf ("record <demoname>\n");
+		Msg ("record <demoname>\n");
 		return;
 	}
 
 	if (cls.demorecording)
 	{
-		Com_Printf ("Already recording.\n");
+		Msg ("Already recording.\n");
 		return;
 	}
 
 	if (cls.state != ca_active)
 	{
-		Com_Printf ("You must be in a level to record.\n");
+		Msg ("You must be in a level to record.\n");
 		return;
 	}
 
@@ -190,11 +190,11 @@ void CL_Record_f (void)
 	//
 	Com_sprintf (name, sizeof(name), "demos/%s.dm2", Cmd_Argv(1));
 
-	Com_Printf ("recording to %s.\n", name);
+	Msg ("recording to %s.\n", name);
 	cls.demofile = FS_Open (name, "wb");
 	if (!cls.demofile)
 	{
-		Com_Printf ("ERROR: couldn't open.\n");
+		Msg ("ERROR: couldn't open.\n");
 		return;
 	}
 	cls.demorecording = true;
@@ -287,7 +287,7 @@ void Cmd_ForwardToServer (void)
 	cmd = Cmd_Argv(0);
 	if (cls.state <= ca_connected || *cmd == '-' || *cmd == '+')
 	{
-		Com_Printf ("Unknown command \"%s\"\n", cmd);
+		Msg ("Unknown command \"%s\"\n", cmd);
 		return;
 	}
 
@@ -326,11 +326,11 @@ void CL_Setenv_f( void )
 
 		if ( env )
 		{
-			Com_Printf( "%s=%s\n", Cmd_Argv(1), env );
+			Msg( "%s=%s\n", Cmd_Argv(1), env );
 		}
 		else
 		{
-			Com_Printf( "%s undefined\n", Cmd_Argv(1), env );
+			Msg( "%s undefined\n", Cmd_Argv(1), env );
 		}
 	}
 }
@@ -345,7 +345,7 @@ void CL_ForwardToServer_f (void)
 {
 	if (cls.state != ca_connected && cls.state != ca_active)
 	{
-		Com_Printf ("Can't \"%s\", not connected\n", Cmd_Argv(0));
+		Msg ("Can't \"%s\", not connected\n", Cmd_Argv(0));
 		return;
 	}
 	
@@ -423,7 +423,7 @@ void CL_SendConnectPacket (void)
 
 	if (!NET_StringToAdr (cls.servername, &adr))
 	{
-		Com_Printf ("Bad server address\n");
+		Msg ("Bad server address\n");
 		cls.connect_time = 0;
 		return;
 	}
@@ -469,7 +469,7 @@ void CL_CheckForResend (void)
 
 	if (!NET_StringToAdr (cls.servername, &adr))
 	{
-		Com_Printf ("Bad server address\n");
+		Msg ("Bad server address\n");
 		cls.state = ca_disconnected;
 		return;
 	}
@@ -478,7 +478,7 @@ void CL_CheckForResend (void)
 
 	cls.connect_time = cls.realtime;	// for retransmit requests
 
-	Com_Printf ("Connecting to %s...\n", cls.servername);
+	Msg ("Connecting to %s...\n", cls.servername);
 
 	Netchan_OutOfBandPrint (NS_CLIENT, adr, "getchallenge\n");
 }
@@ -496,7 +496,7 @@ void CL_Connect_f (void)
 
 	if (Cmd_Argc() != 2)
 	{
-		Com_Printf ("usage: connect <server>\n");
+		Msg ("usage: connect <server>\n");
 		return;	
 	}
 	
@@ -537,7 +537,7 @@ void CL_Rcon_f (void)
 
 	if (!rcon_client_password->string)
 	{
-		Com_Printf ("You must set 'rcon_password' before\n"
+		Msg ("You must set 'rcon_password' before\n"
 					"issuing an rcon command.\n");
 		return;
 	}
@@ -567,7 +567,7 @@ void CL_Rcon_f (void)
 	{
 		if (!strlen(rcon_address->string))
 		{
-			Com_Printf ("You must either be connected,\n"
+			Msg ("You must either be connected,\n"
 						"or set the 'rcon_address' cvar\n"
 						"to issue rcon commands\n");
 
@@ -624,7 +624,7 @@ void CL_Disconnect (void)
 		
 		time = Sys_Milliseconds () - cl.timedemo_start;
 		if (time > 0)
-			Com_Printf ("%i frames, %3.1f seconds: %3.1f fps\n", cl.timedemo_frames,
+			Msg ("%i frames, %3.1f seconds: %3.1f fps\n", cl.timedemo_frames,
 			time/1000.0, cl.timedemo_frames*1000.0 / time);
 	}
 
@@ -683,7 +683,7 @@ void CL_Packet_f (void)
 
 	if (Cmd_Argc() != 3)
 	{
-		Com_Printf ("packet <destination> <contents>\n");
+		Msg ("packet <destination> <contents>\n");
 		return;
 	}
 
@@ -691,7 +691,7 @@ void CL_Packet_f (void)
 
 	if (!NET_StringToAdr (Cmd_Argv(1), &adr))
 	{
-		Com_Printf ("Bad address\n");
+		Msg ("Bad address\n");
 		return;
 	}
 	if (!adr.port)
@@ -734,7 +734,7 @@ void CL_Changing_f (void)
 
 	SCR_BeginLoadingPlaque ();
 	cls.state = ca_connected;	// not active anymore, but not disconnected
-	Com_Printf ("\nChanging map...\n");
+	Msg ("\nChanging map...\n");
 }
 
 
@@ -754,7 +754,7 @@ void CL_Reconnect_f (void)
 
 	S_StopAllSounds ();
 	if (cls.state == ca_connected) {
-		Com_Printf ("reconnecting...\n");
+		Msg ("reconnecting...\n");
 		cls.state = ca_connected;
 		MSG_WriteChar (&cls.netchan.message, clc_stringcmd);
 		MSG_WriteString (&cls.netchan.message, "new");		
@@ -769,7 +769,7 @@ void CL_Reconnect_f (void)
 			cls.connect_time = -99999; // fire immediately
 
 		cls.state = ca_connecting;
-		Com_Printf ("reconnecting...\n");
+		Msg ("reconnecting...\n");
 	}
 }
 
@@ -786,7 +786,7 @@ void CL_ParseStatusMessage (void)
 
 	s = MSG_ReadString(&net_message);
 
-	Com_Printf ("%s\n", s);
+	Msg ("%s\n", s);
 	M_AddToServerList (net_from, s);
 }
 
@@ -808,7 +808,7 @@ void CL_PingServers_f (void)
 	NET_Config (true);		// allow remote
 
 	// send a broadcast packet
-	Com_Printf ("pinging broadcast...\n");
+	Msg ("pinging broadcast...\n");
 
 	noudp = Cvar_Get ("noudp", "0", CVAR_NOSET);
 	if (!noudp->value)
@@ -834,10 +834,10 @@ void CL_PingServers_f (void)
 		if (!adrstring || !adrstring[0])
 			continue;
 
-		Com_Printf ("pinging %s...\n", adrstring);
+		Msg ("pinging %s...\n", adrstring);
 		if (!NET_StringToAdr (adrstring, &adr))
 		{
-			Com_Printf ("Bad address: %s\n", adrstring);
+			Msg ("Bad address: %s\n", adrstring);
 			continue;
 		}
 		if (!adr.port)
@@ -862,7 +862,7 @@ void CL_Skins_f (void)
 	{
 		if (!cl.configstrings[CS_PLAYERSKINS+i][0])
 			continue;
-		Com_Printf ("client %i: %s\n", i, cl.configstrings[CS_PLAYERSKINS+i]); 
+		Msg ("client %i: %s\n", i, cl.configstrings[CS_PLAYERSKINS+i]); 
 		SCR_UpdateScreen ();
 		Sys_SendKeyEvents ();	// pump message loop
 		CL_ParseClientinfo (i);
@@ -891,14 +891,14 @@ void CL_ConnectionlessPacket (void)
 
 	c = Cmd_Argv(0);
 
-	Com_Printf ("%s: %s\n", NET_AdrToString (net_from), c);
+	Msg ("%s: %s\n", NET_AdrToString (net_from), c);
 
 	// server connection
 	if (!strcmp(c, "client_connect"))
 	{
 		if (cls.state == ca_connected)
 		{
-			Com_Printf ("Dup connect received.  Ignored.\n");
+			Msg ("Dup connect received.  Ignored.\n");
 			return;
 		}
 		Netchan_Setup (NS_CLIENT, &cls.netchan, net_from, cls.quakePort);
@@ -920,7 +920,7 @@ void CL_ConnectionlessPacket (void)
 	{
 		if (!NET_IsLocalAddress(net_from))
 		{
-			Com_Printf ("Command packet from remote host.  Ignored.\n");
+			Msg ("Command packet from remote host.  Ignored.\n");
 			return;
 		}
 		Sys_AppActivate ();
@@ -933,7 +933,7 @@ void CL_ConnectionlessPacket (void)
 	if (!strcmp(c, "print"))
 	{
 		s = MSG_ReadString (&net_message);
-		Com_Printf ("%s", s);
+		Msg ("%s", s);
 		return;
 	}
 
@@ -959,7 +959,7 @@ void CL_ConnectionlessPacket (void)
 		return;
 	}
 
-	Com_Printf ("Unknown command.\n");
+	Msg ("Unknown command.\n");
 }
 
 
@@ -975,7 +975,7 @@ void CL_DumpPackets (void)
 {
 	while (NET_GetPacket (NS_CLIENT, &net_from, &net_message))
 	{
-		Com_Printf ("dumnping a packet\n");
+		Msg ("dumnping a packet\n");
 	}
 }
 
@@ -988,7 +988,7 @@ void CL_ReadPackets (void)
 {
 	while (NET_GetPacket (NS_CLIENT, &net_from, &net_message))
 	{
-//	Com_Printf ("packet\n");
+//	Msg ("packet\n");
 		//
 		// remote command packet
 		//
@@ -1003,7 +1003,7 @@ void CL_ReadPackets (void)
 
 		if (net_message.cursize < 8)
 		{
-			Com_Printf ("%s: Runt packet\n",NET_AdrToString(net_from));
+			Msg ("%s: Runt packet\n",NET_AdrToString(net_from));
 			continue;
 		}
 
@@ -1012,8 +1012,7 @@ void CL_ReadPackets (void)
 		//
 		if (!NET_CompareAdr (net_from, cls.netchan.remote_address))
 		{
-			Com_DPrintf ("%s:sequenced packet without connection\n"
-				,NET_AdrToString(net_from));
+			MsgDev ("%s:sequenced packet without connection\n",NET_AdrToString(net_from));
 			continue;
 		}
 		if (!Netchan_Process(&cls.netchan, &net_message))
@@ -1029,7 +1028,7 @@ void CL_ReadPackets (void)
 	{
 		if (++cl.timeoutcount > 5)	// timeoutcount saves debugger
 		{
-			Com_Printf ("\nServer connection timed out.\n");
+			Msg ("\nServer connection timed out.\n");
 			CL_Disconnect ();
 			return;
 		}
@@ -1080,7 +1079,7 @@ CL_Userinfo_f
 */
 void CL_Userinfo_f (void)
 {
-	Com_Printf ("User info settings:\n");
+	Msg ("User info settings:\n");
 	Info_Print (Cvar_Userinfo());
 }
 
@@ -1561,7 +1560,7 @@ void CL_WriteConfiguration (void)
 	f = FS_Open ("config.cfg", "w");
 	if (!f)
 	{
-		Com_Printf ("Couldn't write config.cfg.\n");
+		Msg ("Couldn't write config.cfg.\n");
 		return;
 	}
 

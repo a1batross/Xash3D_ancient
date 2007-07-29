@@ -727,7 +727,7 @@ int				numdlights;
 FindTargetEntity
 ==================
 */
-entity_t *FindTargetEntity (char *target)
+bsp_entity_t *FindTargetEntity (char *target)
 {
 	int		i;
 	char	*n;
@@ -757,7 +757,7 @@ void CreateDirectLights (void)
 	directlight_t	*dl;
 	dleaf_t	*leaf;
 	int		cluster;
-	entity_t	*e, *e2;
+	bsp_entity_t	*e, *e2;
 	char	*name;
 	char	*target;
 	float	angle;

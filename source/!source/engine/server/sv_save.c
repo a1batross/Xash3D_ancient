@@ -8,6 +8,8 @@
 #include "server.h"
 #include "savefile.h"
 
+byte	*sav_base;
+
 /*
 ====================
 CurTime()
@@ -41,11 +43,40 @@ void SV_AddSaveLump( dsavehdr_t *hdr, file_t *f, int lumpnum, void *data, int le
 	FS_Write(f, data, (len + 3) & ~3 );
 }
 
+size_t COM_PackString( byte *buffer, int pos, char *string )
+{
+	int strsize;
+
+	if(!buffer || !string) return 0;
+
+	strsize = strlen( string );
+	if(strsize > MAX_QPATH) strsize = MAX_QPATH; //critical stuff
+	strsize++; //get space for terminator	
+
+	strlcpy(buffer + pos, string, strsize ); 
+	return pos + strsize;
+}
+
+size_t COM_UnpackString( byte *buffer, int pos, char *string )
+{
+	int	strsize = 0;
+	char	*in;
+
+	if(!buffer || !string) return 0;
+	in = buffer + pos;
+
+	do { in++, strsize++; } while(*in != '\0' && in != NULL );
+
+	strlcpy( string, in - (strsize - 1), strsize ); 
+	return pos + strsize;
+}
+
 void SV_AddCvarLump( dsavehdr_t *hdr, file_t *f )
 {
 	cvar_t	*var;
+	int	bufsize = 1; // null terminator 
 	int	numsavedcvars = 0;
-	dsavecvar_t *dcvars, *dout;
+	char	*cvbuffer;
 	
 	for(var = cvar_vars; var; var = var->next)
 	{
@@ -58,7 +89,7 @@ void SV_AddCvarLump( dsavehdr_t *hdr, file_t *f )
 		numsavedcvars++;
 	}
 
-	dout = dcvars = (dsavecvar_t *)Z_Malloc( numsavedcvars * sizeof(dsavecvar_t));
+	cvbuffer = (char *)Z_Malloc( numsavedcvars * MAX_QPATH );
 
 	//second pass
 	for(var = cvar_vars; var; var = var->next)
@@ -70,37 +101,28 @@ void SV_AddCvarLump( dsavehdr_t *hdr, file_t *f )
 			continue;
 		}
 
-		strlcpy(dcvars->name, var->name, sizeof(dcvars->name));
-		strlcpy(dcvars->value, var->string, sizeof(dcvars->value));
-		dcvars++;
+		bufsize = COM_PackString(cvbuffer, bufsize, var->name ); 
+		bufsize = COM_PackString(cvbuffer, bufsize, var->string );
 	}
 
-	Msg("numcvars %d\n", numsavedcvars );
-
-	SV_AddSaveLump( hdr, f, LUMP_GAMECVARS, dout, numsavedcvars * sizeof(dsavecvar_t));
-	Z_Free( dout );
+	SV_AddSaveLump( hdr, f, LUMP_GAMECVARS, cvbuffer, bufsize );
+	Z_Free( cvbuffer );
 }
 
 void SV_AddCStrLump( dsavehdr_t *hdr, file_t *f )
 {
-	int	i, strsize, bufsize = 0;
+	int	i, bufsize = 1; //null terminator
 	char	*csbuffer = Z_Malloc( MAX_CONFIGSTRINGS * MAX_QPATH );
 
 	//pack the cfg string data
 	for(i = 0; i < MAX_CONFIGSTRINGS; i++)
 	{
-		strsize = strlen(sv.configstrings[i]);
-		if(strsize > MAX_QPATH) strsize = MAX_QPATH; //critical stuff
-		strsize++;
-
-		strlcpy(csbuffer + bufsize, sv.configstrings[i], strsize ); 
-		bufsize += strsize;
+		bufsize = COM_PackString(csbuffer, bufsize, sv.configstrings[i] ); 
 	}	
 	SV_AddSaveLump( hdr, f, LUMP_CFGSTRING, csbuffer, bufsize );
 	Z_Free( csbuffer ); // free memory
 }
 
-byte	*sav_base;
 
 /*
 =============
@@ -114,7 +136,9 @@ void SV_WriteSaveFile( char *name )
 	char		comment[32];
 	dsavehdr_t	*header;
 	file_t		*savfile;
+	bool		autosave = false;
 	
+	if(!strcmp(name, "save0")) autosave = true;
 	sprintf (path, "save/%s.bin", name );
 
 	savfile = FS_Open( path, "wb");
@@ -136,10 +160,10 @@ void SV_WriteSaveFile( char *name )
 	SV_AddSaveLump( header, savfile, LUMP_COMMENTS, comment, sizeof(comment));
           SV_AddCStrLump( header, savfile );
 	SV_AddSaveLump( header, savfile, LUMP_AREASTATE, portalopen, sizeof(portalopen));
-	ge->WriteLump ( header, savfile, LUMP_GAMELEVEL);
+	ge->WriteLump ( header, savfile, LUMP_GAMELEVEL, autosave );
 	SV_AddSaveLump( header, savfile, LUMP_MAPCMDS, svs.mapcmd, sizeof(svs.mapcmd));
 	SV_AddCvarLump( header, savfile );
-	ge->WriteLump ( header, savfile, LUMP_GAMELOCAL );
+	ge->WriteLump ( header, savfile, LUMP_GAMELOCAL, autosave );
 	
 	//merge header
 	FS_Seek( savfile, 0, SEEK_SET );
@@ -163,17 +187,17 @@ void Sav_LoadComment( lump_t *l )
 void Sav_LoadCvars( lump_t *l )
 {
 	char	name[64], string[64];
-	int	size, curpos = 0;
+	int	size, pos = 0;
 	byte	*in;
 
 	in = (void *)(sav_base + l->fileofs);
 	if (l->filelen % sizeof(*in)) Com_Error (ERR_DROP, "Sav_LoadCvars: funny lump size\n" );
 	size = l->filelen / sizeof(*in);
 
-	while(curpos < size)
+	while(pos < size)
 	{
-		strlcpy( name, in + curpos, MAX_OSPATH ); curpos += 64;
-		strlcpy( string, in + curpos, 128 ); curpos += 64;
+		pos = COM_UnpackString( in, pos, name );  
+		pos = COM_UnpackString( in, pos, string );  
 		Cvar_ForceSet (name, string);
 	}
 }
@@ -193,7 +217,7 @@ void Sav_LoadMapCmds( lump_t *l )
 void Sav_LoadCfgString( lump_t *l )
 {
 	char	*in;
-	int	i, len = 0;
+	int	i, pos = 0;
 
 	in = (void *)(sav_base + l->fileofs);
 	if (l->filelen % sizeof(*in)) Com_Error (ERR_DROP, "Sav_LoadCfgString: funny lump size\n" );
@@ -201,10 +225,7 @@ void Sav_LoadCfgString( lump_t *l )
 	//unpack the cfg string data
 	for(i = 0; i < MAX_CONFIGSTRINGS; i++)
 	{
-		len = 0;
-		while(*in != '\0') { in++, len++; };
-		if(!in) break; //corrupted lump ?
-		strlcpy(sv.configstrings[i], in, len ); 
+		pos = COM_UnpackString( in, pos, sv.configstrings[i] );  
 	}
 }
 
@@ -257,7 +278,7 @@ void SV_ReadSaveFile( char *name )
 	
 	SV_InitGame (); // start a new game fresh with new cvars
 	Sav_LoadMapCmds(&header->lumps[LUMP_MAPCMDS]);
-	ge->Sav_LoadGame( sav_base, &header->lumps[LUMP_GAMELOCAL] );
+	ge->ReadLump( sav_base, &header->lumps[LUMP_GAMELOCAL], LUMP_GAMELOCAL );
 }
 
 /*
@@ -292,7 +313,7 @@ void SV_ReadLevelFile( char *name )
 
 	Sav_LoadCfgString(&header->lumps[LUMP_CFGSTRING]);
 	Sav_LoadAreaPortals(&header->lumps[LUMP_AREASTATE]);
-	ge->Sav_LoadLevel( sav_base, &header->lumps[LUMP_GAMELEVEL] );
+	ge->ReadLump( sav_base, &header->lumps[LUMP_GAMELEVEL], LUMP_GAMELEVEL );
 }
 
 bool Menu_ReadComment( char *comment, int savenum )

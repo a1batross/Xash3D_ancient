@@ -61,7 +61,7 @@ R_StudioInit
 */
 void R_StudioInit( void )
 {
-	ri.Con_Printf (PRINT_DEVELOPER, "Init Xash Studio. ver: %g\n", STUDIO_API_VERSION);
+	MsgDev("Init Xash Studio. ver: %g\n", STUDIO_API_VERSION);
 
 	//get developer value
 	r_developer = ri.Cvar_Get( "developer", "0", 0 );
@@ -252,7 +252,7 @@ void R_StudioCalcBoneAdj( float dadt, float *adj, const byte *pcontroller1, cons
 			value = mouthopen / 64.0;
 			if (value > 1.0) value = 1.0;				
 			value = (1.0 - value) * pbonecontroller[j].start + value * pbonecontroller[j].end;
-			// ri.Con_Printf(PRINT_ALL, "%d %f\n", mouthopen, value );
+			// Msg("%d %f\n", mouthopen, value );
 		}
 		else if (i <= MAXSTUDIOCONTROLLERS )
 		{
@@ -278,7 +278,7 @@ void R_StudioCalcBoneAdj( float dadt, float *adj, const byte *pcontroller1, cons
 				if (value > 1.0) value = 1.0;
 				value = (1.0 - value) * pbonecontroller[j].start + value * pbonecontroller[j].end;
 			}
-			// ri.Con_Printf( PRINT_ALL, "%d %d %f : %f\n", m_pCurrentEntity->curstate.controller[j], m_pCurrentEntity->latched.prevcontroller[j], value, dadt );
+			// Msg("%d %d %f : %f\n", m_pCurrentEntity->curstate.controller[j], m_pCurrentEntity->latched.prevcontroller[j], value, dadt );
 		}
 
 		switch(pbonecontroller[j].type & STUDIO_TYPES)
@@ -509,7 +509,7 @@ mstudioanim_t *R_StudioGetAnim( model_t *m_pSubModel, mstudioseqdesc_t *pseqdesc
 		buf = FS_LoadFile (pseqgroup->name, &filesize);
 		if (!buf)
 		{
-			ri.Sys_Error (ERR_DROP, "R_StudioGetAnim: %s not found", pseqgroup->name);
+			Sys_Error("R_StudioGetAnim: %s not found", pseqgroup->name);
 			memset (pseqgroup->name, 0, sizeof(pseqgroup->name));
 			return NULL;
 		}
@@ -675,7 +675,7 @@ void R_StudioCalcRotations ( float pos[][3], vec4_t *q, mstudioseqdesc_t *pseqde
 	{
 		R_StudioCalcBoneQuaterion( frame, s, pbone, panim, adj, q[i] );
 		R_StudioCalcBonePosition( frame, s, pbone, panim, adj, pos[i] );
-		// if (0 && i == 0) ri.Con_Printf("%d %d %d %d\n", m_pCurrentEntity->sequence, frame, j, k );
+		// if (0 && i == 0) Msg("%d %d %d %d\n", m_pCurrentEntity->sequence, frame, j, k );
 	}
 
 	if (pseqdesc->motiontype & STUDIO_X) pos[pseqdesc->motionbone][0] = 0.0;
@@ -769,7 +769,7 @@ void R_StudioSetupBones ( void )
 
 	if (m_pCurrentEntity->prev.frame > f)
 	{
-		//ri.Con_Printf(PRINT_ALL, "%f %f\n", m_pCurrentEntity->prev.frame, f );
+		//Msg("%f %f\n", m_pCurrentEntity->prev.frame, f );
 	}
 
 	panim = R_StudioGetAnim( m_pRenderModel, pseqdesc );
@@ -845,7 +845,7 @@ void R_StudioSetupBones ( void )
 	}
 	else
 	{
-		//ri.Con_Printf(PRINT_ALL, "prevframe = %4.2f\n", f);
+		//Msg("prevframe = %4.2f\n", f);
 		m_pCurrentEntity->prev.frame = f;
 	}
 
@@ -927,7 +927,7 @@ void R_StudioMergeBones ( model_t *m_pSubModel )
 
 	f = R_StudioEstimateFrame( pseqdesc );
 
-	//if (m_pCurrentEntity->prev.frame > f) ri.Con_Printf(PRINT_ALL, "%f %f\n", m_pCurrentEntity->prev.frame, f );
+	//if (m_pCurrentEntity->prev.frame > f) Msg("%f %f\n", m_pCurrentEntity->prev.frame, f );
 
 	panim = R_StudioGetAnim( m_pSubModel, pseqdesc );
 	R_StudioCalcRotations( pos, q, pseqdesc, panim, f );

@@ -32,7 +32,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <basemath.h>
 #include "ref_system.h"
 #include "materials.h"
-#include "cvar.h"
 #include "qfiles.h"
 #include "const.h"
 
@@ -51,8 +50,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define DLLEXPORT __declspec(dllexport)
 #define WINDOW_STYLE (WS_OVERLAPPED|WS_BORDER|WS_CAPTION|WS_VISIBLE)
 
-#include "ref_renderer.h"
-
 #include "r_opengl.h"
 
 #define	REF_VERSION		"GL 0.01"
@@ -63,17 +60,17 @@ memory manager
 ===========================================
 */
 //z_malloc-free
-#define Malloc(size) Mem_Alloc(r_temppool, size)
-#define Free(data) Mem_Free(data)
+#define Z_Malloc(size) Mem_Alloc(r_temppool, size)
+#define Z_Free(data) Mem_Free(data)
 
 //malloc-free
-#define Mem_Alloc(pool,size) ri.MS_Alloc(pool, size, __FILE__, __LINE__)
-#define Mem_Free(mem) ri.MS_Free(mem, __FILE__, __LINE__)
+#define Mem_Alloc(pool,size) ri.Mem.Alloc(pool, size, __FILE__, __LINE__)
+#define Mem_Free(mem) ri.Mem.Free(mem, __FILE__, __LINE__)
 
 //Hunk_AllocName
-#define Mem_AllocPool(name) ri.MS_AllocPool(name, __FILE__, __LINE__)
-#define Mem_FreePool(pool) ri.MS_FreePool(pool, __FILE__, __LINE__)
-#define Mem_EmptyPool(pool) ri.MS_EmptyPool(pool, __FILE__, __LINE__)
+#define Mem_AllocPool(name) ri.Mem.AllocPool(name, __FILE__, __LINE__)
+#define Mem_FreePool(pool) ri.Mem.FreePool(pool, __FILE__, __LINE__)
+#define Mem_EmptyPool(pool) ri.Mem.EmptyPool(pool, __FILE__, __LINE__)
 
 extern byte *r_temppool;
 
@@ -84,16 +81,33 @@ void PerpendicularVector( vec3_t dst, const vec3_t src );
 void R_ConcatRotations (float in1[3][3], float in2[3][3], float out[3][3]);
 void R_ConcatTransforms (float in1[3][4], float in2[3][4], float out[3][4]);
 
-void Sys_Error (char *error, ...);
-void Com_Printf (char *msg, ...);
-void Com_DPrintf (char *fmt, ...);
+#define Msg ri.Stdio.printf
+#define MsgDev ri.Stdio.dprintf
+#define Sys_Error ri.Stdio.error
 
-#ifndef Msg
-#define Msg Com_Printf
-#define DevMsg Com_DPrintf
-#endif
-
-#define FS_LoadFile ri.FS_LoadFile
+/*
+===========================================
+filesystem manager
+===========================================
+*/
+#define FS_LoadFile(name, size) ri.Fs.LoadFile(name, size)
+#define FS_LoadImage(name, data, size) ri.Fs.LoadImage(name, data, size)
+#define FS_FreeImage(data) ri.Fs.FreeImage(data)
+#define FS_Search(path) ri.Fs.Search( path, true )
+#define FS_WriteFile(name, data, size) ri.Fs.WriteFile(name, data, size )
+#define FS_Open( path, mode ) ri.Fs.Open( path, mode )
+#define FS_Read( file, buffer, size ) ri.Fs.Read( file, buffer, size )
+#define FS_Write( file, buffer, size ) ri.Fs.Write( file, buffer, size )
+#define FS_StripExtension( path ) ri.Fs.StripExtension( path )
+#define FS_DefaultExtension( path, ext ) ri.Fs.DefaultExtension( path, ext )
+#define FS_FileExtension( ext ) ri.Fs.FileExtension( ext )
+#define FS_FileExists( file ) ri.Fs.FileExists( file )
+#define FS_Close( file ) ri.Fs.Close( file )
+#define FS_FileBase( x, y ) ri.Fs.FileBase( x, y )
+#define FS_Printf ri.Fs.Printf
+#define FS_Seek ri.Fs.Seek
+#define FS_Tell ri.Fs.Tell
+#define FS_Gets ri.Fs.Gets
 char *FS_Gamedir( void );
 char *FS_Title( void );
 
@@ -543,7 +557,7 @@ IMPORTED FUNCTIONS
 ====================================================================
 */
 
-extern	refimport_t	ri;
+extern renderer_imp_t	ri;
 
 /*
 ====================================================================

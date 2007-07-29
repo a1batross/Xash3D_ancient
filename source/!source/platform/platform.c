@@ -12,7 +12,7 @@ gameinfo_t Plat_GameInfo( void )
 	return GI;
 }
 
-void InitPlatform ( void )
+bool InitPlatform ( void )
 {
 	InitMemory();
 	Plat_InitCPU();
@@ -26,6 +26,8 @@ void InitPlatform ( void )
 	if(FS_GetParmFromCmdLine("-ambient", parm ))
 		ambient = atof(parm) * 128;
 	*/
+
+	return true;
 }
 
 void ClosePlatform ( void )
@@ -34,15 +36,15 @@ void ClosePlatform ( void )
 	FreeMemory();
 }
 
-platform_api_t DLLEXPORT *CreateAPI ( stdio_api_t *input )
+platform_exp_t DLLEXPORT *CreateAPI ( stdinout_api_t *input )
 {
-	static platform_api_t pi;
+	static platform_exp_t pi;
 
 	std = *input;
 
 	//generic functions
 	pi.apiversion = PLATFORM_API_VERSION;
-	pi.api_size = sizeof(platform_api_t);
+	pi.api_size = sizeof(platform_exp_t);
 
 	pi.Init = InitPlatform;
 	pi.Shutdown = ClosePlatform;

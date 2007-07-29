@@ -22,9 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //define	PARANOID			// speed sapping error checking
 
 #include "engine.h"
-
-#include "ref_renderer.h"
-
 #include "vid.h"
 #include "screen.h"
 #include "sound.h"
@@ -53,12 +50,12 @@ typedef struct
 	entity_state_t	current;
 	entity_state_t	prev;			// will always be valid, but might just be a copy of current
 
-	int			serverframe;		// if not current, this ent isn't in the frame
+	int		serverframe;		// if not current, this ent isn't in the frame
 
-	int			trailcount;			// for diminishing grenade trails
+	int		trailcount;			// for diminishing grenade trails
 	vec3_t		lerp_origin;		// for trails (variable hz)
 
-	int			fly_stoptime;
+	int		fly_stoptime;
 } centity_t;
 
 #define MAX_CLIENTWEAPONMODELS		20		// PGM -- upped from 16 to fit the chainfist vwep
@@ -349,9 +346,9 @@ void CL_ParticleEffect3 (vec3_t org, vec3_t dir, int color, int count);
 
 // ========
 // PGM
-typedef struct particle_s
+typedef struct cparticle_s
 {
-	struct particle_s	*next;
+	struct cparticle_s	*next;
 
 	float		time;
 
@@ -446,7 +443,7 @@ void CL_ParseLayout (void);
 //
 // cl_main
 //
-extern	refexport_t	re;		// interface to refresh .dll
+extern renderer_exp_t	re;
 
 void CL_Init (void);
 

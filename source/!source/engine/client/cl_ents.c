@@ -58,7 +58,7 @@ void CL_ClearProjectiles (void)
 
 	for (i = 0; i < MAX_PROJECTILES; i++) {
 //		if (cl_projectiles[i].present)
-//			Com_DPrintf("PROJ: %d CLEARED\n", cl_projectiles[i].num);
+//			MsgDev("PROJ: %d CLEARED\n", cl_projectiles[i].num);
 		cl_projectiles[i].present = false;
 	}
 }
@@ -428,7 +428,7 @@ void CL_ParsePacketEntities (frame_t *oldframe, frame_t *newframe)
 		while (oldnum < newnum)
 		{	// one or more entities from the old packet are unchanged
 			if (cl_shownet->value == 3)
-				Com_Printf ("   unchanged: %i\n", oldnum);
+				Msg ("   unchanged: %i\n", oldnum);
 			CL_DeltaEntity (newframe, oldnum, oldstate, 0);
 			
 			oldindex++;
@@ -445,9 +445,9 @@ void CL_ParsePacketEntities (frame_t *oldframe, frame_t *newframe)
 		if (bits & U_REMOVE)
 		{	// the entity present in oldframe is not in the current frame
 			if (cl_shownet->value == 3)
-				Com_Printf ("   remove: %i\n", newnum);
+				Msg ("   remove: %i\n", newnum);
 			if (oldnum != newnum)
-				Com_Printf ("U_REMOVE: oldnum != newnum\n");
+				Msg ("U_REMOVE: oldnum != newnum\n");
 
 			oldindex++;
 
@@ -464,7 +464,7 @@ void CL_ParsePacketEntities (frame_t *oldframe, frame_t *newframe)
 		if (oldnum == newnum)
 		{	// delta from previous state
 			if (cl_shownet->value == 3)
-				Com_Printf ("   delta: %i\n", newnum);
+				Msg ("   delta: %i\n", newnum);
 			CL_DeltaEntity (newframe, newnum, oldstate, bits);
 
 			oldindex++;
@@ -482,7 +482,7 @@ void CL_ParsePacketEntities (frame_t *oldframe, frame_t *newframe)
 		if (oldnum > newnum)
 		{	// delta from baseline
 			if (cl_shownet->value == 3)
-				Com_Printf ("   baseline: %i\n", newnum);
+				Msg ("   baseline: %i\n", newnum);
 			CL_DeltaEntity (newframe, newnum, &cl_entities[newnum].baseline, bits);
 			continue;
 		}
@@ -493,7 +493,7 @@ void CL_ParsePacketEntities (frame_t *oldframe, frame_t *newframe)
 	while (oldnum != 99999)
 	{	// one or more entities from the old packet are unchanged
 		if (cl_shownet->value == 3)
-			Com_Printf ("   unchanged: %i\n", oldnum);
+			Msg ("   unchanged: %i\n", oldnum);
 		CL_DeltaEntity (newframe, oldnum, oldstate, 0);
 		
 		oldindex++;
@@ -696,7 +696,7 @@ void CL_ParseFrame (void)
 		cl.surpressCount = MSG_ReadByte (&net_message);
 
 	if (cl_shownet->value == 3)
-		Com_Printf ("   frame:%i  delta:%i\n", cl.frame.serverframe,
+		Msg ("   frame:%i  delta:%i\n", cl.frame.serverframe,
 		cl.frame.deltaframe);
 
 	// If the frame is delta compressed from data that we
@@ -714,16 +714,16 @@ void CL_ParseFrame (void)
 		old = &cl.frames[cl.frame.deltaframe & UPDATE_MASK];
 		if (!old->valid)
 		{	// should never happen
-			Com_Printf ("Delta from invalid frame (not supposed to happen!).\n");
+			Msg ("Delta from invalid frame (not supposed to happen!).\n");
 		}
 		if (old->serverframe != cl.frame.deltaframe)
 		{	// The frame that the server did the delta from
 			// is too old, so we can't reconstruct it properly.
-			Com_Printf ("Delta frame too old.\n");
+			Msg ("Delta frame too old.\n");
 		}
 		else if (cl.parse_entities - old->parse_entities > MAX_PARSE_ENTITIES-128)
 		{
-			Com_Printf ("Delta parse_entities too old.\n");
+			Msg ("Delta parse_entities too old.\n");
 		}
 		else
 			cl.frame.valid = true;	// valid delta parse
@@ -1437,14 +1437,14 @@ void CL_AddEntities (void)
 	if (cl.time > cl.frame.servertime)
 	{
 		if (cl_showclamp->value)
-			Com_Printf ("high clamp %i\n", cl.time - cl.frame.servertime);
+			Msg ("high clamp %i\n", cl.time - cl.frame.servertime);
 		cl.time = cl.frame.servertime;
 		cl.lerpfrac = 1.0;
 	}
 	else if (cl.time < cl.frame.servertime - 100)
 	{
 		if (cl_showclamp->value)
-			Com_Printf ("low clamp %i\n", cl.frame.servertime-100 - cl.time);
+			Msg ("low clamp %i\n", cl.frame.servertime-100 - cl.time);
 		cl.time = cl.frame.servertime - 100;
 		cl.lerpfrac = 0;
 	}

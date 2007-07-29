@@ -74,7 +74,7 @@ typedef struct
 	// only valid for func_areaportals
 	int		areaportalnum;
 	int		portalareas[2];
-} entity_t;
+} bsp_entity_t;
 
 typedef struct
 {
@@ -192,7 +192,7 @@ typedef struct node_s
 	bspbrush_t		*brushlist;	// fragments of all brushes in this leaf
 	int				contents;	// OR of all brush contents
 	int				occupied;	// 1 or greater can reach entity
-	entity_t		*occupant;	// for leak file testing
+	bsp_entity_t		*occupant;	// for leak file testing
 	int				cluster;	// for portalfile writing
 	int				area;		// for areaportals
 	struct portal_s	*portals;	// also on nodes during construction
@@ -294,17 +294,17 @@ typedef struct
 } threaddata_t;
 
 extern	int		num_entities;
-extern	entity_t		entities[MAX_MAP_ENTITIES];
+extern	bsp_entity_t		entities[MAX_MAP_ENTITIES];
 
 void ParseEntities (void);
 void UnparseEntities (void);
 
-void SetKeyValue (entity_t *ent, char *key, char *value);
-char *ValueForKey (entity_t *ent, char *key);
+void SetKeyValue (bsp_entity_t *ent, char *key, char *value);
+char *ValueForKey (bsp_entity_t *ent, char *key);
 // will return "" if not present
 
-vec_t FloatForKey (entity_t *ent, char *key);
-void  GetVectorForKey (entity_t *ent, char *key, vec3_t vec);
+vec_t FloatForKey (bsp_entity_t *ent, char *key);
+void  GetVectorForKey (bsp_entity_t *ent, char *key, vec3_t vec);
 epair_t *ParseEpair (void);
 
 
@@ -388,7 +388,7 @@ int TexinfoForBrushTexture (plane_t *plane, brush_texture_t *bt, vec3_t origin);
 
 void FindGCD (int *v);
 
-mapbrush_t *Brush_LoadEntity (entity_t *ent);
+mapbrush_t *Brush_LoadEntity (bsp_entity_t *ent);
 int	PlaneTypeForNormal (vec3_t normal);
 bool	MakeBrushPlanes (mapbrush_t *b);
 int	FindIntPlane (int *inormal, int *iorigin);
@@ -621,7 +621,7 @@ typedef struct patch_s
 } patch_t;
 
 extern	patch_t		*face_patches[MAX_MAP_FACES];
-extern	entity_t	*face_entity[MAX_MAP_FACES];
+extern	bsp_entity_t	*face_entity[MAX_MAP_FACES];
 extern	vec3_t		face_offset[MAX_MAP_FACES];		// for rotating bmodels
 extern	patch_t		patches[MAX_PATCHES];
 extern	unsigned	num_patches;

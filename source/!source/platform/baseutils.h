@@ -91,7 +91,7 @@ void FS_Shutdown (void);
 #define Mem_Move(dest, src, size ) _Mem_Move (dest, src, size, __FILE__, __LINE__)
 #define Mem_Copy(dest, src, size ) _Mem_Copy (dest, src, size, __FILE__, __LINE__)
 
-stdio_api_t std;
+stdinout_api_t std;
 extern gameinfo_t GI;
 
 #define Msg std.printf

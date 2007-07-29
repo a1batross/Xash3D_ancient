@@ -62,11 +62,11 @@ void SV_New_f (void)
 	int			playernum;
 	edict_t		*ent;
 
-	Com_DPrintf ("New() from %s\n", sv_client->name);
+	MsgDev ("New() from %s\n", sv_client->name);
 
 	if (sv_client->state != cs_connected)
 	{
-		Com_Printf ("New not valid -- already spawned\n");
+		Msg ("New not valid -- already spawned\n");
 		return;
 	}
 
@@ -126,18 +126,18 @@ void SV_Configstrings_f (void)
 {
 	int			start;
 
-	Com_DPrintf ("Configstrings() from %s\n", sv_client->name);
+	MsgDev ("Configstrings() from %s\n", sv_client->name);
 
 	if (sv_client->state != cs_connected)
 	{
-		Com_Printf ("configstrings not valid -- already spawned\n");
+		Msg ("configstrings not valid -- already spawned\n");
 		return;
 	}
 
 	// handle the case of a level changing while a client was connecting
 	if ( atoi(Cmd_Argv(1)) != svs.spawncount )
 	{
-		Com_Printf ("SV_Configstrings_f from different level\n");
+		Msg ("SV_Configstrings_f from different level\n");
 		SV_New_f ();
 		return;
 	}
@@ -183,18 +183,18 @@ void SV_Baselines_f (void)
 	entity_state_t	nullstate;
 	entity_state_t	*base;
 
-	Com_DPrintf ("Baselines() from %s\n", sv_client->name);
+	MsgDev ("Baselines() from %s\n", sv_client->name);
 
 	if (sv_client->state != cs_connected)
 	{
-		Com_Printf ("baselines not valid -- already spawned\n");
+		Msg ("baselines not valid -- already spawned\n");
 		return;
 	}
 	
 	// handle the case of a level changing while a client was connecting
 	if ( atoi(Cmd_Argv(1)) != svs.spawncount )
 	{
-		Com_Printf ("SV_Baselines_f from different level\n");
+		Msg ("SV_Baselines_f from different level\n");
 		SV_New_f ();
 		return;
 	}
@@ -238,12 +238,12 @@ SV_Begin_f
 */
 void SV_Begin_f (void)
 {
-	Com_DPrintf ("Begin() from %s\n", sv_client->name);
+	MsgDev ("Begin() from %s\n", sv_client->name);
 
 	// handle the case of a level changing while a client was connecting
 	if ( atoi(Cmd_Argv(1)) != svs.spawncount )
 	{
-		Com_Printf ("SV_Begin_f from different level\n");
+		Msg ("SV_Begin_f from different level\n");
 		SV_New_f ();
 		return;
 	}
@@ -346,7 +346,7 @@ void SV_BeginDownload_f(void)
 
 	if (!sv_client->download)
 	{
-		Com_DPrintf ("Couldn't download %s to %s\n", name, sv_client->name);
+		MsgDev ("Couldn't download %s to %s\n", name, sv_client->name);
 		if (sv_client->download)
 		{
 			sv_client->download = NULL;
@@ -359,7 +359,7 @@ void SV_BeginDownload_f(void)
 	}
 
 	SV_NextDownload_f ();
-	Com_DPrintf ("Downloading %s to %s\n", name, sv_client->name);
+	MsgDev ("Downloading %s to %s\n", name, sv_client->name);
 }
 
 
@@ -425,11 +425,11 @@ to the next server,
 void SV_Nextserver_f (void)
 {
 	if ( atoi(Cmd_Argv(1)) != svs.spawncount ) {
-		Com_DPrintf ("Nextserver() from wrong level, from %s\n", sv_client->name);
+		MsgDev ("Nextserver() from wrong level, from %s\n", sv_client->name);
 		return;		// leftover from last server
 	}
 
-	Com_DPrintf ("Nextserver() from %s\n", sv_client->name);
+	MsgDev ("Nextserver() from %s\n", sv_client->name);
 
 	SV_Nextserver ();
 }
@@ -505,7 +505,7 @@ void SV_ClientThink (client_t *cl, usercmd_t *cmd)
 
 	if (cl->commandMsec < 0 && sv_enforcetime->value )
 	{
-		Com_DPrintf ("commandMsec underflow from %s\n", cl->name);
+		MsgDev ("commandMsec underflow from %s\n", cl->name);
 		return;
 	}
 
@@ -547,7 +547,7 @@ void SV_ExecuteClientMessage (client_t *cl)
 	{
 		if (net_message.readcount > net_message.cursize)
 		{
-			Com_Printf ("SV_ReadClientMessage: badread\n");
+			Msg ("SV_ReadClientMessage: badread\n");
 			SV_DropClient (cl);
 			return;
 		}	
@@ -559,7 +559,7 @@ void SV_ExecuteClientMessage (client_t *cl)
 		switch (c)
 		{
 		default:
-			Com_Printf ("SV_ReadClientMessage: unknown command char\n");
+			Msg ("SV_ReadClientMessage: unknown command char\n");
 			SV_DropClient (cl);
 			return;
 						
@@ -606,7 +606,7 @@ void SV_ExecuteClientMessage (client_t *cl)
 
 			if (calculatedChecksum != checksum)
 			{
-				Com_DPrintf ("Failed command checksum for %s (%d != %d)/%d\n", 
+				MsgDev ("Failed command checksum for %s (%d != %d)/%d\n", 
 					cl->name, calculatedChecksum, checksum, 
 					cl->netchan.incoming_sequence);
 				return;
@@ -620,7 +620,7 @@ void SV_ExecuteClientMessage (client_t *cl)
 
 //if (net_drop > 2)
 
-//	Com_Printf ("drop %i\n", net_drop);
+//	Msg ("drop %i\n", net_drop);
 					while (net_drop > 2)
 					{
 						SV_ClientThink (cl, &cl->lastcmd);

@@ -239,7 +239,7 @@ void MakePatchForFace (int fn, winding_t *w)
 }
 
 
-entity_t *EntityForModel (int modnum)
+bsp_entity_t *EntityForModel (int modnum)
 {
 	int		i;
 	char	*s;
@@ -270,7 +270,7 @@ void MakePatches (void)
 	winding_t	*w;
 	dmodel_t	*mod;
 	vec3_t		origin;
-	entity_t	*ent;
+	bsp_entity_t	*ent;
 
 	Msg("%i faces\n", numfaces);
 

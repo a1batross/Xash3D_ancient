@@ -17,7 +17,6 @@
 
 #include "basetypes.h"
 #include "basemath.h"
-#include "cvar.h"
 #include "qfiles.h"
 #include "const.h"
 #include "ref_system.h"

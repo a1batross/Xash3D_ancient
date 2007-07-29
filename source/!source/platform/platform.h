@@ -17,7 +17,7 @@
 //=====================================
 //	platform export
 //=====================================
-void InitPlatform ( void );
+bool InitPlatform ( void );
 void ClosePlatform ( void );
 void Plat_InitCPU( void );
 double Plat_DoubleTime( void );

@@ -2562,7 +2562,7 @@ void StartServer_MenuInit( void )
 	** load the list of map names
 	*/
 	if(!FS_FileExists("scripts/maps.txt") && !CreateMapsList())
-		WinError("maps not found\n");
+		Sys_Error("maps not found\n");
 
 	fp = FS_Open( "scripts/maps.txt", "rb" );
 	FS_Seek(fp, 0, SEEK_END);

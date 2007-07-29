@@ -5,7 +5,7 @@
 
 #include "editor.h"
 
-stdio_api_t std;
+stdinout_api_t std;
 
 /*
 ==================
@@ -13,7 +13,7 @@ DllMain
 
 ==================
 */
-edit_api_t DLLEXPORT *CreateAPI( stdio_api_t *input )
+edit_api_t DLLEXPORT *CreateAPI( stdinout_api_t *input )
 {
 	static edit_api_t ei;
 

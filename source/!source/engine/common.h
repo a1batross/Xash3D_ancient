@@ -664,7 +664,6 @@ void	*Sys_GetGameAPI (const char* procname, void *parms);
 void	Sys_CreateConsole( void );
 char	*Sys_ConsoleInput (void);
 void	Sys_SendKeyEvents (void);
-void	Sys_Error (char *error, ...);
 void	Sys_Quit (void);
 char	*Sys_GetClipboardData( void );
 

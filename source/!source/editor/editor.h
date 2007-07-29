@@ -29,7 +29,7 @@ void FreeEditor ( void );
 
 extern int com_argc;
 extern bool debug_mode;
-extern platform_api_t *pi;
+extern platform_exp_t *pi;
 extern char *com_argv[MAX_NUM_ARGVS];
 int CheckParm (const char *parm);
 
@@ -41,7 +41,7 @@ System Events
 void GUI_Msg( const char *pMsg, ... );
 void GUI_MsgDev( const char *pMsg, ... );
 
-extern stdio_api_t std;
+extern stdinout_api_t std;
 #define Msg GUI_Msg
 #define MsgDev GUI_MsgDev
 #define Sys_Error std.error

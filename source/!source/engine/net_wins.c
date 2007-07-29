@@ -365,13 +365,13 @@ bool	NET_GetPacket (netsrc_t sock, netadr_t *net_from, sizebuf_t *net_message)
 			if (err == WSAEWOULDBLOCK)
 				continue;
 			if (err == WSAEMSGSIZE) {
-				Com_Printf ("Warning:  Oversize packet from %s\n",
+				Msg ("Warning:  Oversize packet from %s\n",
 						NET_AdrToString(*net_from));
 				continue;
 			}
 
 			if (dedicated->value)	// let dedicated servers continue after errors
-				Com_Printf ("NET_GetPacket: %s from %s\n", NET_ErrorString(),
+				Msg ("NET_GetPacket: %s from %s\n", NET_ErrorString(),
 						NET_AdrToString(*net_from));
 			else
 				Com_Error (ERR_DROP, "NET_GetPacket: %s from %s", 
@@ -381,7 +381,7 @@ bool	NET_GetPacket (netsrc_t sock, netadr_t *net_from, sizebuf_t *net_message)
 
 		if (ret == net_message->maxsize)
 		{
-			Com_Printf ("Oversize packet from %s\n", NET_AdrToString (*net_from));
+			Msg ("Oversize packet from %s\n", NET_AdrToString (*net_from));
 			continue;
 		}
 
@@ -450,20 +450,18 @@ void NET_SendPacket (netsrc_t sock, int length, void *data, netadr_t to)
 
 		if (dedicated->value)	// let dedicated servers continue after errors
 		{
-			Com_Printf ("NET_SendPacket ERROR: %s to %s\n", NET_ErrorString(),
+			Msg ("NET_SendPacket ERROR: %s to %s\n", NET_ErrorString(),
 				NET_AdrToString (to));
 		}
 		else
 		{
 			if (err == WSAEADDRNOTAVAIL)
 			{
-				Com_DPrintf ("NET_SendPacket Warning: %s : %s\n", 
-						NET_ErrorString(), NET_AdrToString (to));
+				MsgDev ("NET_SendPacket Warning: %s : %s\n", NET_ErrorString(), NET_AdrToString (to));
 			}
 			else
 			{
-				Com_Error (ERR_DROP, "NET_SendPacket ERROR: %s to %s\n", 
-						NET_ErrorString(), NET_AdrToString (to));
+				Com_Error (ERR_DROP, "NET_SendPacket ERROR: %s to %s\n",  NET_ErrorString(), NET_AdrToString (to));
 			}
 		}
 	}
@@ -490,21 +488,21 @@ int NET_IPSocket (char *net_interface, int port)
 	{
 		err = WSAGetLastError();
 		if (err != WSAEAFNOSUPPORT)
-			Com_Printf ("WARNING: UDP_OpenSocket: socket: %s", NET_ErrorString());
+			Msg ("WARNING: UDP_OpenSocket: socket: %s", NET_ErrorString());
 		return 0;
 	}
 
 	// make it non-blocking
 	if (ioctlsocket (newsocket, FIONBIO, &_true) == -1)
 	{
-		Com_Printf ("WARNING: UDP_OpenSocket: ioctl FIONBIO: %s\n", NET_ErrorString());
+		Msg ("WARNING: UDP_OpenSocket: ioctl FIONBIO: %s\n", NET_ErrorString());
 		return 0;
 	}
 
 	// make it broadcast capable
 	if (setsockopt(newsocket, SOL_SOCKET, SO_BROADCAST, (char *)&i, sizeof(i)) == -1)
 	{
-		Com_Printf ("WARNING: UDP_OpenSocket: setsockopt SO_BROADCAST: %s\n", NET_ErrorString());
+		Msg ("WARNING: UDP_OpenSocket: setsockopt SO_BROADCAST: %s\n", NET_ErrorString());
 		return 0;
 	}
 
@@ -522,7 +520,7 @@ int NET_IPSocket (char *net_interface, int port)
 
 	if( bind (newsocket, (void *)&address, sizeof(address)) == -1)
 	{
-		Com_Printf ("WARNING: UDP_OpenSocket: bind: %s\n", NET_ErrorString());
+		Msg ("WARNING: UDP_OpenSocket: bind: %s\n", NET_ErrorString());
 		closesocket (newsocket);
 		return 0;
 	}
@@ -599,21 +597,21 @@ int NET_IPXSocket (int port)
 	{
 		err = WSAGetLastError();
 		if (err != WSAEAFNOSUPPORT)
-			Com_Printf ("WARNING: IPX_Socket: socket: %s\n", NET_ErrorString());
+			Msg ("WARNING: IPX_Socket: socket: %s\n", NET_ErrorString());
 		return 0;
 	}
 
 	// make it non-blocking
 	if (ioctlsocket (newsocket, FIONBIO, &_true) == -1)
 	{
-		Com_Printf ("WARNING: IPX_Socket: ioctl FIONBIO: %s\n", NET_ErrorString());
+		Msg ("WARNING: IPX_Socket: ioctl FIONBIO: %s\n", NET_ErrorString());
 		return 0;
 	}
 
 	// make it broadcast capable
 	if (setsockopt(newsocket, SOL_SOCKET, SO_BROADCAST, (char *)&_true, sizeof(_true)) == -1)
 	{
-		Com_Printf ("WARNING: IPX_Socket: setsockopt SO_BROADCAST: %s\n", NET_ErrorString());
+		Msg ("WARNING: IPX_Socket: setsockopt SO_BROADCAST: %s\n", NET_ErrorString());
 		return 0;
 	}
 
@@ -627,7 +625,7 @@ int NET_IPXSocket (int port)
 
 	if( bind (newsocket, (void *)&address, sizeof(address)) == -1)
 	{
-		Com_Printf ("WARNING: IPX_Socket: bind: %s\n", NET_ErrorString());
+		Msg ("WARNING: IPX_Socket: bind: %s\n", NET_ErrorString());
 		closesocket (newsocket);
 		return 0;
 	}
@@ -773,7 +771,7 @@ void NET_Init (void)
 	if (r)
 		Com_Error (ERR_FATAL,"Winsock initialization failed.");
 
-	Com_Printf("Winsock Initialized\n");
+	Msg("Winsock Initialized\n");
 
 	noudp = Cvar_Get ("noudp", "0", CVAR_NOSET);
 	noipx = Cvar_Get ("noipx", "0", CVAR_NOSET);

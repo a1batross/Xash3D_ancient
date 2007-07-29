@@ -137,12 +137,12 @@ void GL_ScreenShot_f (void)
 		picname[5] = i/10 + '0'; 
 		picname[6] = i%10 + '0'; 
 		sprintf (checkname, "screenshots/%s", picname);
-		if(!ri.FS_FileExists( checkname )) break; // file doesn't exist
+		if(!FS_FileExists( checkname )) break; // file doesn't exist
 	} 
 	
 	if (i == 100) 
 	{
-		ri.Con_Printf (PRINT_ALL, "SCR_ScreenShot_f: Couldn't create a file\n"); 
+		Msg("SCR_ScreenShot_f: Couldn't create a file\n"); 
 		return;
  	}
           
@@ -169,8 +169,8 @@ void GL_ScreenShot_f (void)
 		buffer[i+2] = temp;
 	}
 
-	ri.FS_WriteFile( checkname, buffer, c );
+	FS_WriteFile( checkname, buffer, c );
 
 	Mem_Free(buffer);
-	ri.Con_Printf (PRINT_ALL, "Wrote %s\n", picname);
+	Msg("Wrote %s\n", picname);
 }

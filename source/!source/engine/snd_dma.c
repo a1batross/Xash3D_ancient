@@ -93,17 +93,17 @@ void S_SoundInfo_f(void)
 {
 	if (!sound_started)
 	{
-		Com_Printf ("sound system not started\n");
+		Msg ("sound system not started\n");
 		return;
 	}
 	
-    Com_Printf("%5d stereo\n", dma.channels - 1);
-    Com_Printf("%5d samples\n", dma.samples);
-    Com_Printf("%5d samplepos\n", dma.samplepos);
-    Com_Printf("%5d samplebits\n", dma.samplebits);
-    Com_Printf("%5d submission_chunk\n", dma.submission_chunk);
-    Com_Printf("%5d speed\n", dma.speed);
-    Com_Printf("0x%x dma buffer\n", dma.buffer);
+    Msg("%5d stereo\n", dma.channels - 1);
+    Msg("%5d samples\n", dma.samples);
+    Msg("%5d samplepos\n", dma.samplepos);
+    Msg("%5d samplebits\n", dma.samplebits);
+    Msg("%5d submission_chunk\n", dma.submission_chunk);
+    Msg("%5d speed\n", dma.speed);
+    Msg("0x%x dma buffer\n", dma.buffer);
 }
 
 
@@ -117,11 +117,11 @@ void S_Init (void)
 {
 	cvar_t	*cv;
 
-	Com_Printf("\n------- sound initialization -------\n");
+	Msg("\n------- sound initialization -------\n");
 
 	cv = Cvar_Get ("s_initsound", "1", 0);
 	if (!cv->value)
-		Com_Printf ("not initializing.\n");
+		Msg ("not initializing.\n");
 	else
 	{
 		s_volume = Cvar_Get ("s_volume", "0.7", CVAR_ARCHIVE);
@@ -148,12 +148,12 @@ void S_Init (void)
 		soundtime = 0;
 		paintedtime = 0;
 
-		Com_Printf ("sound sampling rate: %i\n", dma.speed);
+		Msg ("sound sampling rate: %i\n", dma.speed);
 
 		S_StopAllSounds ();
 	}
 
-	Com_Printf("------------------------------------\n");
+	Msg("------------------------------------\n");
 }
 
 
@@ -553,7 +553,7 @@ void S_IssuePlaysound (playsound_t *ps)
 	sfxcache_t	*sc;
 
 	if (s_show->value)
-		Com_Printf ("Issue %i\n", ps->begin);
+		Msg ("Issue %i\n", ps->begin);
 	// pick a channel to play on
 	ch = S_PickChannel(ps->entnum, ps->entchannel);
 	if (!ch)
@@ -745,7 +745,7 @@ int S_StartLocalSound (char *sound)
 	sfx = S_RegisterSound (sound);
 	if (!sfx)
 	{
-		Com_Printf ("S_StartLocalSound: can't cache %s\n", sound);
+		Msg ("S_StartLocalSound: can't cache %s\n", sound);
 		return false;
 	}
 	S_StartSound (NULL, cl.playernum+1, 0, sfx, 1, 1, 0);
@@ -922,7 +922,7 @@ void S_RawSamples (int samples, int rate, int width, int channels, byte *data)
 		s_rawend = paintedtime;
 	scale = (float)rate / dma.speed;
 
-//Com_Printf ("%i < %i < %i\n", soundtime, paintedtime, s_rawend);
+//Msg ("%i < %i < %i\n", soundtime, paintedtime, s_rawend);
 	if (channels == 2 && width == 2)
 	{
 		if (scale == 1.0)
@@ -1070,11 +1070,11 @@ void S_Update(vec3_t origin, vec3_t forward, vec3_t right, vec3_t up)
 		for (i=0 ; i<MAX_CHANNELS; i++, ch++)
 			if (ch->sfx && (ch->leftvol || ch->rightvol) )
 			{
-				Com_Printf ("%3i %3i %s\n", ch->leftvol, ch->rightvol, ch->sfx->name);
+				Msg ("%3i %3i %s\n", ch->leftvol, ch->rightvol, ch->sfx->name);
 				total++;
 			}
 		
-		Com_Printf ("----(%i)---- painted: %i\n", total, paintedtime);
+		Msg ("----(%i)---- painted: %i\n", total, paintedtime);
 	}
 
 // mix some sound
@@ -1130,7 +1130,7 @@ void S_Update_(void)
 // check to make sure that we haven't overshot
 	if (paintedtime < soundtime)
 	{
-		Com_DPrintf ("S_Update_ : overflow\n");
+		MsgDev ("S_Update_ : overflow\n");
 		paintedtime = soundtime;
 	}
 
@@ -1198,19 +1198,19 @@ void S_SoundList(void)
 			size = sc->length*sc->width*(sc->stereo+1);
 			total += size;
 			if (sc->loopstart >= 0)
-				Com_Printf ("L");
+				Msg ("L");
 			else
-				Com_Printf (" ");
-			Com_Printf("(%2db) %6i : %s\n",sc->width*8,  size, sfx->name);
+				Msg (" ");
+			Msg("(%2db) %6i : %s\n",sc->width*8,  size, sfx->name);
 		}
 		else
 		{
 			if (sfx->name[0] == '*')
-				Com_Printf("  placeholder : %s\n", sfx->name);
+				Msg("  placeholder : %s\n", sfx->name);
 			else
-				Com_Printf("  not loaded  : %s\n", sfx->name);
+				Msg("  not loaded  : %s\n", sfx->name);
 		}
 	}
-	Com_Printf ("Total resident: %i\n", total);
+	Msg ("Total resident: %i\n", total);
 }
 

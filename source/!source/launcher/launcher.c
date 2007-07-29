@@ -14,7 +14,7 @@ int com_argc;
 char *com_argv[MAX_NUM_ARGVS];
 char progname[32];
 HINSTANCE	linked_dll;
-platform_api_t	*pi; //callback to utilities
+platform_exp_t	*pi; //callback to utilities
 static double start, end;
 byte *mempool; //generic mempoolptr
 
@@ -94,8 +94,8 @@ void PlatformInit ( char *funcname, int argc, char **argv )
 
 	if(pi->apiversion != PLATFORM_API_VERSION)
 		Sys_Error("mismatch version (%i should be %i)\n", pi->apiversion, PLATFORM_API_VERSION);
-	if(pi->api_size != sizeof(platform_api_t))
-		Sys_Error("mismatch interface size (%i should be %i)\n", pi->api_size, sizeof(platform_api_t));		
+	if(pi->api_size != sizeof(platform_exp_t))
+		Sys_Error("mismatch interface size (%i should be %i)\n", pi->api_size, sizeof(platform_exp_t));		
 
 	pi->Init();
 
@@ -191,15 +191,15 @@ Find needed library, setup and run it
 */
 void CreateInstance( void )
 {
-	stdio_api_t  std;//import
+	stdinout_api_t  std;//import
 
 	//export
-	platform_api_t	*(*CreatePLAT)( stdio_api_t *);
+	platform_exp_t	*(*CreatePLAT)( stdinout_api_t *);
 
 	host_t		CreateHOST;
 	host_api_t	hi;          
 
-	edit_api_t	*(*CreateEDIT)( stdio_api_t *);
+	edit_api_t	*(*CreateEDIT)( stdinout_api_t *);
 	edit_api_t	*ei;
 	
 	//setup sysfuncs

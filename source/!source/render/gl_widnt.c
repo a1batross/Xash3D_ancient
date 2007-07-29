@@ -3049,7 +3049,7 @@ bool QGL_Init( const char *dllname )
 		char *buf = NULL;
 
 		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &buf, 0, NULL);
-		ri.Con_Printf( PRINT_ALL, "%s\n", buf );
+		Msg("%s\n", buf );
 		return false;
 	}
 

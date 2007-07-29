@@ -207,7 +207,7 @@ void PM_StepSlideMove_ (void)
 		}
 		else
 		{
-//			Con_Printf ("clip velocity, numplanes == %i\n",numplanes);
+//			Msg ("clip velocity, numplanes == %i\n",numplanes);
 			VectorCopy (vec3_origin, pml.velocity);
 			break;
 		}
@@ -236,7 +236,7 @@ void PM_StepSlideMove_ (void)
 		{	// go along the crease
 			if (numplanes != 2)
 			{
-//				Con_Printf ("clip velocity, numplanes == %i\n",numplanes);
+//				Msg ("clip velocity, numplanes == %i\n",numplanes);
 				VectorCopy (vec3_origin, pml.velocity);
 				break;
 			}
@@ -1118,7 +1118,7 @@ void PM_SnapPosition (void)
 
 	// go back to the last position
 	VectorCopy (pml.previous_origin, pm->s.origin);
-//	Com_DPrintf ("using previous_origin\n");
+//	MsgDev ("using previous_origin\n");
 }
 
 #if 0
@@ -1157,7 +1157,7 @@ void PM_InitialSnapPosition (void)
 		}
 	}
 
-	Com_DPrintf ("Bad InitialSnapPosition\n");
+	MsgDev ("Bad InitialSnapPosition\n");
 }
 #else
 /*
@@ -1191,7 +1191,7 @@ void PM_InitialSnapPosition(void)
 		}
 	}
 
-	Com_DPrintf ("Bad InitialSnapPosition\n");
+	MsgDev ("Bad InitialSnapPosition\n");
 }
 
 #endif

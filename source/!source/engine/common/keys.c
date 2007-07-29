@@ -284,7 +284,7 @@ void Key_Console (int key)
 			Cbuf_AddText (key_lines[edit_line]+1);	// valid command
 
 		Cbuf_AddText ("\n");
-		Com_Printf ("%s\n",key_lines[edit_line]);
+		Msg ("%s\n",key_lines[edit_line]);
 		edit_line = (edit_line + 1) & 31;
 		history_line = edit_line;
 		key_lines[edit_line][0] = ']';
@@ -535,14 +535,14 @@ void Key_Unbind_f (void)
 
 	if (Cmd_Argc() != 2)
 	{
-		Com_Printf ("unbind <key> : remove commands from a key\n");
+		Msg ("unbind <key> : remove commands from a key\n");
 		return;
 	}
 	
 	b = Key_StringToKeynum (Cmd_Argv(1));
 	if (b==-1)
 	{
-		Com_Printf ("\"%s\" isn't a valid key\n", Cmd_Argv(1));
+		Msg ("\"%s\" isn't a valid key\n", Cmd_Argv(1));
 		return;
 	}
 
@@ -573,22 +573,22 @@ void Key_Bind_f (void)
 
 	if (c < 2)
 	{
-		Com_Printf ("bind <key> [command] : attach a command to a key\n");
+		Msg ("bind <key> [command] : attach a command to a key\n");
 		return;
 	}
 	b = Key_StringToKeynum (Cmd_Argv(1));
 	if (b==-1)
 	{
-		Com_Printf ("\"%s\" isn't a valid key\n", Cmd_Argv(1));
+		Msg ("\"%s\" isn't a valid key\n", Cmd_Argv(1));
 		return;
 	}
 
 	if (c == 2)
 	{
 		if (keybindings[b])
-			Com_Printf ("\"%s\" = \"%s\"\n", Cmd_Argv(1), keybindings[b] );
+			Msg ("\"%s\" = \"%s\"\n", Cmd_Argv(1), keybindings[b] );
 		else
-			Com_Printf ("\"%s\" is not bound\n", Cmd_Argv(1) );
+			Msg ("\"%s\" is not bound\n", Cmd_Argv(1) );
 		return;
 	}
 	
@@ -633,7 +633,7 @@ void Key_Bindlist_f (void)
 
 	for (i=0 ; i<256 ; i++)
 		if (keybindings[i] && keybindings[i][0])
-			Com_Printf ("%s \"%s\"\n", Key_KeynumToString(i), keybindings[i]);
+			Msg ("%s \"%s\"\n", Key_KeynumToString(i), keybindings[i]);
 }
 
 
@@ -764,7 +764,7 @@ void Key_Event (int key, bool down, unsigned time)
 			return;	// ignore most autorepeats
 			
 		if (key >= 200 && !keybindings[key])
-			Com_Printf ("%s is unbound, hit F4 to set.\n", Key_KeynumToString (key) );
+			Msg ("%s is unbound, hit F4 to set.\n", Key_KeynumToString (key) );
 	}
 	else
 	{

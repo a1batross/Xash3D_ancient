@@ -32,7 +32,7 @@ typedef struct tag_dlghdr
 
 GUI_Form 			s_gui;
 wnd_options_t		w_opts;	//window options
-platform_api_t		*pi;//platform utils 
+platform_exp_t		*pi;//platform utils 
 static bool editor_init = false;
 static char textbuffer[MAX_INPUTLINE];
 
@@ -438,8 +438,8 @@ void GUI_ResetWndOptions( void )
 
 bool GUI_LoadPlatfrom( char *funcname, int argc, char **argv )
 {
-	stdio_api_t	pistd;//platform callback
-	platform_api_t	*(*CreatePLAT)( stdio_api_t *);
+	stdinout_api_t	pistd;//platform callback
+	platform_exp_t	*(*CreatePLAT)( stdinout_api_t *);
 
 	//create callbacks for platform.dll
 	pistd.printf = GUI_Msg;

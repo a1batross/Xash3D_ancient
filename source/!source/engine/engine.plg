@@ -6,13 +6,25 @@
 --------------------Configuration: engine - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\Temp\RSP1491.tmp" with contents
+Creating temporary file "C:\Temp\RSPE5D.tmp" with contents
 [
 /nologo /MTd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "prvm" /I "common" /I "server" /I "client" /I "../public" /I "../platform/formats" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\engine\!debug/" /Fo"..\temp\engine\!debug/" /Fd"..\temp\engine\!debug/" /FD /c 
-"D:\XASH3D\src_main\!source\engine\server\sv_save.c"
+"D:\XASH3D\src_main\!source\engine\common\console.c"
+"D:\XASH3D\src_main\!source\engine\common\cvar.c"
+"D:\XASH3D\src_main\!source\engine\common\keys.c"
+"D:\XASH3D\src_main\!source\engine\common\net_chan.c"
+"D:\XASH3D\src_main\!source\engine\common\q_shared.c"
+"D:\XASH3D\src_main\!source\engine\server\sv_ccmds.c"
+"D:\XASH3D\src_main\!source\engine\server\sv_ents.c"
+"D:\XASH3D\src_main\!source\engine\server\sv_game.c"
+"D:\XASH3D\src_main\!source\engine\server\sv_init.c"
+"D:\XASH3D\src_main\!source\engine\server\sv_main.c"
+"D:\XASH3D\src_main\!source\engine\server\sv_send.c"
+"D:\XASH3D\src_main\!source\engine\server\sv_user.c"
+"D:\XASH3D\src_main\!source\engine\server\sv_world.c"
 ]
-Creating command line "cl.exe @C:\Temp\RSP1491.tmp" 
-Creating temporary file "C:\Temp\RSP1492.tmp" with contents
+Creating command line "cl.exe @C:\Temp\RSPE5D.tmp" 
+Creating temporary file "C:\Temp\RSPE5E.tmp" with contents
 [
 winmm.lib wsock32.lib kernel32.lib user32.lib gdi32.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..\temp\engine\!debug/engine.pdb" /debug /machine:I386 /out:"..\temp\engine\!debug/engine.dll" /implib:"..\temp\engine\!debug/engine.lib" /pdbtype:sept 
 "\XASH3D\src_main\!source\temp\engine\!debug\cd_win.obj"
@@ -63,15 +75,28 @@ winmm.lib wsock32.lib kernel32.lib user32.lib gdi32.lib /nologo /subsystem:windo
 "\XASH3D\src_main\!source\temp\engine\!debug\vid_dll.obj"
 "\XASH3D\src_main\!source\temp\engine\!debug\vid_menu.obj"
 ]
-Creating command line "link.exe @C:\Temp\RSP1492.tmp"
-Creating temporary file "C:\Temp\RSP1493.bat" with contents
+Creating command line "link.exe @C:\Temp\RSPE5E.tmp"
+Creating temporary file "C:\Temp\RSPE5F.bat" with contents
 [
 @echo off
 copy \XASH3D\src_main\!source\temp\engine\!debug\engine.dll "D:\Xash3D\bin\engine.dll"
 ]
-Creating command line "C:\Temp\RSP1493.bat"
+Creating command line "C:\Temp\RSPE5F.bat"
 Compiling...
-sv_save.c
+console.c
+cvar.c
+keys.c
+net_chan.c
+q_shared.c
+sv_ccmds.c
+sv_ents.c
+sv_game.c
+sv_init.c
+sv_main.c
+sv_send.c
+sv_user.c
+sv_world.c
+Generating Code...
 Linking...
 <h3>Output Window</h3>
 Performing Custom Build Step on \XASH3D\src_main\!source\temp\engine\!debug\engine.dll

@@ -602,7 +602,7 @@ void FloodPortals_r (node_t *node, int dist)
 PlaceOccupant
 =============
 */
-bool PlaceOccupant (node_t *headnode, vec3_t origin, entity_t *occupant)
+bool PlaceOccupant (node_t *headnode, vec3_t origin, bsp_entity_t *occupant)
 {
 	node_t	*node;
 	vec_t	d;
@@ -709,7 +709,7 @@ void FloodAreas_r (node_t *node)
 	portal_t	*p;
 	int			s;
 	bspbrush_t	*b;
-	entity_t	*e;
+	bsp_entity_t	*e;
 
 	if (node->contents == CONTENTS_AREAPORTAL)
 	{
@@ -800,7 +800,7 @@ area set, flood fill out from there
 void SetAreaPortalAreas_r (node_t *node)
 {
 	bspbrush_t	*b;
-	entity_t	*e;
+	bsp_entity_t	*e;
 
 	if (node->planenum != PLANENUM_LEAF)
 	{
@@ -834,7 +834,7 @@ EmitAreaPortals
 void EmitAreaPortals (node_t *headnode)
 {
 	int				i, j;
-	entity_t		*e;
+	bsp_entity_t		*e;
 	dareaportal_t	*dp;
 
 	if (c_areas > MAX_MAP_AREAS)

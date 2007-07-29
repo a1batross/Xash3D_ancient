@@ -240,9 +240,9 @@ void R_GetPalette (void)
 	uint	v;
 	int	i, r, g, b;
 	byte	*pal = palette_int;
-	rgbdata_t *pic = ri.FS_LoadImage("colormap", NULL, 0 );
+	rgbdata_t *pic = FS_LoadImage("colormap", NULL, 0 );
 	if(pic && pic->palette) pal = pic->palette;
-	ri.FS_FreeImage( pic );
+	FS_FreeImage( pic );
 
 	//used by particle system once only
 	for (i = 0; i < 256; i++)
@@ -354,7 +354,7 @@ void R_FilterTexture (int filterindex, uint *data, int width, int height, float 
 	uint *temp; 
 
 	// allocate a temp buffer 
-	temp = Malloc (width * height * 4); 
+	temp = Z_Malloc (width * height * 4); 
 
 	for (x = 0; x < width; x++) 
 	{ 
@@ -449,7 +449,7 @@ void R_FilterTexture (int filterindex, uint *data, int width, int height, float 
 	} 
 
 	memcpy(data, temp, width * height * 4);
-	Free (temp); // release the temp buffer
+	Z_Free (temp); // release the temp buffer
 }
 
 /*
@@ -1580,9 +1580,9 @@ image_t *R_FindImage (char *name, char *buffer, int size, imagetype_t type)
 		}
 	}
 
-	pic = ri.FS_LoadImage(name, buffer, size ); //loading form disk or buffer
+	pic = FS_LoadImage(name, buffer, size ); //loading form disk or buffer
 	image = R_LoadImage(name, pic, type ); //upload into video buffer
-	ri.FS_FreeImage(pic ); //free image
+	FS_FreeImage(pic ); //free image
 
 	return image;
 }
@@ -1645,7 +1645,7 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
 		R_SetPixelFormat( image_desc.width, image_desc.height, image_desc.numLayers );
 		offset = image_desc.SizeOfFile;// move pointer
 		
-		DevMsg("loading %s ... ", name );
+		MsgDev("loading %s ... ", name );
 
 		switch(pic->type)
 		{

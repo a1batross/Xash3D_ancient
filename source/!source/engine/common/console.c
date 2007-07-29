@@ -149,17 +149,17 @@ void Con_Dump_f (void)
 
 	if (Cmd_Argc() != 2)
 	{
-		Com_Printf ("usage: condump <filename>\n");
+		Msg ("usage: condump <filename>\n");
 		return;
 	}
 
 	Com_sprintf (name, sizeof(name), "%s.txt", Cmd_Argv(1));
 
-	Com_Printf ("Dumped console text to %s.\n", name);
+	Msg ("Dumped console text to %s.\n", name);
 	f = FS_Open (name, "w");
 	if (!f)
 	{
-		Com_Printf ("ERROR: couldn't open.\n");
+		Msg ("ERROR: couldn't open.\n");
 		return;
 	}
 
@@ -305,7 +305,7 @@ void Con_Init (void)
 
 	Con_CheckResize ();
 	
-	Com_Printf ("Console initialized.\n");
+	Msg ("Console initialized.\n");
 
 //
 // register our commands

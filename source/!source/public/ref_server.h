@@ -178,10 +178,8 @@ typedef struct game_export_s
 	// each new level entered will cause a call to SpawnEntities
 	void		(*SpawnEntities) (char *mapname, char *entstring, char *spawnpoint);
 
-	void		(*WriteLump) (dsavehdr_t *hdr, file_t *f, int lumpnum);
-
-	void		(*Sav_LoadGame)(byte *base, lump_t *l);
-	void		(*Sav_LoadLevel)(byte *base, lump_t *l);
+	void		(*WriteLump) (dsavehdr_t *hdr, file_t *f, int lumpnum, bool autosave);
+	void		(*ReadLump)  (byte *base, lump_t *l, int lumpnum);
 
 	bool		(*ClientConnect) (edict_t *ent, char *userinfo);
 	void		(*ClientBegin) (edict_t *ent);

@@ -78,25 +78,25 @@ static LONG WINAPI ConWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 		else Sys_Exit(); //otherwise
 		return 0;
 	case WM_CTLCOLORSTATIC:
-		if ( ( HWND ) lParam == s_wcd.hwndBuffer )
+		if (( HWND )lParam == s_wcd.hwndBuffer )
 		{
-			SetBkColor( ( HDC ) wParam, RGB( 0x90, 0x90, 0x90 ) );
-			SetTextColor( ( HDC ) wParam, RGB( 0xff, 0xff, 0xff ) );
+			SetBkColor( ( HDC ) wParam, RGB( 0x90, 0x90, 0x90 ));
+			SetTextColor( ( HDC ) wParam, RGB( 0xff, 0xff, 0xff ));
 			return ( long ) s_wcd.hbrEditBackground;
 		}
-		else if ( ( HWND ) lParam == s_wcd.hwndErrorBox )
+		else if (( HWND )lParam == s_wcd.hwndErrorBox )
 		{
 			if ( s_timePolarity & 1 )
 			{
-				SetBkColor( ( HDC ) wParam, RGB( 0x80, 0x80, 0x80 ) );
-				SetTextColor( ( HDC ) wParam, RGB( 0xff, 0x0, 0x00 ) );
+				SetBkColor(( HDC )wParam, RGB( 0x80, 0x80, 0x80 ));
+				SetTextColor(( HDC )wParam, RGB( 0xff, 0x0, 0x00 ));
 			}
 			else
 			{
-				SetBkColor( ( HDC ) wParam, RGB( 0x80, 0x80, 0x80 ) );
-				SetTextColor( ( HDC ) wParam, RGB( 0x00, 0x0, 0x00 ) );
+				SetBkColor(( HDC )wParam, RGB( 0x80, 0x80, 0x80 ));
+				SetTextColor(( HDC )wParam, RGB( 0x00, 0x0, 0x00 ));
 			}
-			return ( long ) s_wcd.hbrErrorBackground;
+			return ( long )s_wcd.hbrErrorBackground;
 		}
 		break;
 	case WM_COMMAND:

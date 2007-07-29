@@ -338,7 +338,7 @@ SOURCE=.\common\const.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\public\cvar.h
+SOURCE=.\common\cvar.h
 # End Source File
 # Begin Source File
 
