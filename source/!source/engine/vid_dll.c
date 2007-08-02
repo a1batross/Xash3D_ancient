@@ -135,7 +135,7 @@ stdinout_api_t VID_GetStdio( void )
 	io.printf = Msg;
 	io.dprintf = MsgDev;
 	io.error = VID_Error;
-          io.exit = Sys_Quit;
+          io.exit = Com_Quit;
           io.input = Sys_ConsoleInput;
 
 	return io;
@@ -273,13 +273,9 @@ MainWndProc
 main window procedure
 ====================
 */
-LONG WINAPI MainWndProc (
-    HWND    hWnd,
-    UINT    uMsg,
-    WPARAM  wParam,
-    LPARAM  lParam)
+LONG WINAPI MainWndProc ( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	LONG			lRet = 0;
+	LONG	lRet = 0;
 
 	if ( uMsg == MSH_MOUSEWHEEL )
 	{
@@ -293,7 +289,7 @@ LONG WINAPI MainWndProc (
 			Key_Event( K_MWHEELDOWN, true, sys_msg_time );
 			Key_Event( K_MWHEELDOWN, false, sys_msg_time );
 		}
-        return DefWindowProc (hWnd, uMsg, wParam, lParam);
+		return DefWindowProc (hWnd, uMsg, wParam, lParam);
 	}
 
 	switch (uMsg)
@@ -322,17 +318,15 @@ LONG WINAPI MainWndProc (
 		cl_hwnd = hWnd;
 
 		MSH_MOUSEWHEEL = RegisterWindowMessage("MSWHEEL_ROLLMSG"); 
-        return DefWindowProc (hWnd, uMsg, wParam, lParam);
+		return DefWindowProc (hWnd, uMsg, wParam, lParam);
 
 	case WM_PAINT:
 		SCR_DirtyScreen ();	// force entire screen to update next frame
-        return DefWindowProc (hWnd, uMsg, wParam, lParam);
-
+		return DefWindowProc (hWnd, uMsg, wParam, lParam);
 	case WM_DESTROY:
 		// let sound and input know about this?
 		cl_hwnd = NULL;
-        return DefWindowProc (hWnd, uMsg, wParam, lParam);
-
+		return DefWindowProc (hWnd, uMsg, wParam, lParam);
 	case WM_ACTIVATE:
 		{
 			int	fActive, fMinimized;
@@ -343,11 +337,9 @@ LONG WINAPI MainWndProc (
 
 			AppActivate( fActive != WA_INACTIVE, fMinimized);
 
-			if ( reflib_active )
-				re.AppActivate( !( fActive == WA_INACTIVE ) );
+			if ( reflib_active ) re.AppActivate( !( fActive == WA_INACTIVE ) );
 		}
-        return DefWindowProc (hWnd, uMsg, wParam, lParam);
-
+		return DefWindowProc (hWnd, uMsg, wParam, lParam);
 	case WM_MOVE:
 		{
 			int		xPos, yPos;
@@ -375,10 +367,9 @@ LONG WINAPI MainWndProc (
 					IN_Activate (true);
 			}
 		}
-        return DefWindowProc (hWnd, uMsg, wParam, lParam);
-
-// this is complicated because Win32 seems to pack multiple mouse events into
-// one update sometimes, so we always check all states and look for events
+		return DefWindowProc (hWnd, uMsg, wParam, lParam);
+	// this is complicated because Win32 seems to pack multiple mouse events into
+	// one update sometimes, so we always check all states and look for events
 	case WM_LBUTTONDOWN:
 	case WM_LBUTTONUP:
 	case WM_RBUTTONDOWN:
@@ -405,9 +396,8 @@ LONG WINAPI MainWndProc (
 		break;
 
 	case WM_SYSCOMMAND:
-		if ( wParam == SC_SCREENSAVE )
-			return 0;
-        return DefWindowProc (hWnd, uMsg, wParam, lParam);
+		if ( wParam == SC_SCREENSAVE ) return 0;
+		return DefWindowProc (hWnd, uMsg, wParam, lParam);
 	case WM_SYSKEYDOWN:
 		if ( wParam == 13 )
 		{
@@ -421,12 +411,10 @@ LONG WINAPI MainWndProc (
 	case WM_KEYDOWN:
 		Key_Event( MapKey( lParam ), true, sys_msg_time);
 		break;
-
 	case WM_SYSKEYUP:
 	case WM_KEYUP:
 		Key_Event( MapKey( lParam ), false, sys_msg_time);
 		break;
-
 	case MM_MCINOTIFY:
 		{
 			LONG CDAudio_MessageHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -435,11 +423,11 @@ LONG WINAPI MainWndProc (
 		break;
 
 	default:	// pass all unhandled messages to DefWindowProc
-        return DefWindowProc (hWnd, uMsg, wParam, lParam);
-    }
+		return DefWindowProc (hWnd, uMsg, wParam, lParam);
+	}
 
-    /* return 0 if handled message, 1 if not */
-    return DefWindowProc( hWnd, uMsg, wParam, lParam );
+	// return 0 if handled message, 1 if not
+	return DefWindowProc( hWnd, uMsg, wParam, lParam );
 }
 
 /*

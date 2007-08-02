@@ -218,7 +218,11 @@ SOURCE=.\common\net_chan.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\net_wins.c
+SOURCE=.\common\net_msg.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\net_wins.c
 # End Source File
 # Begin Source File
 

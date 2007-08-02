@@ -55,6 +55,7 @@ platform_exp_t DLLEXPORT *CreateAPI ( stdinout_api_t *input )
 	pi.Mem = Mem_GetAPI();
 	pi.Script = Sc_GetAPI();
 	pi.Compile = Comp_GetAPI();
+	pi.Info = Info_GetAPI();
 
 	pi.InitRootDir = FS_InitRootDir;
 	pi.LoadGameInfo = FS_LoadGameInfo;

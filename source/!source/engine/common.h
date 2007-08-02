@@ -52,11 +52,12 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 typedef struct sizebuf_s
 {
 	bool	allowoverflow;	// if false, do a Com_Error
-	bool	overflowed;		// set to true if the buffer size failed
+	bool	overflowed;	// set to true if the buffer size failed
 	byte	*data;
-	int		maxsize;
-	int		cursize;
-	int		readcount;
+	int	maxsize;
+	int	cursize;
+	int	readcount;
+	int	errorcount;		// cause by errors
 } sizebuf_t;
 
 void SZ_Init (sizebuf_t *buf, byte *data, int length);
@@ -70,21 +71,39 @@ void SZ_Print (sizebuf_t *buf, char *data);	// strcats onto the sizebuf
 struct usercmd_s;
 struct entity_state_s;
 
-void MSG_WriteChar (sizebuf_t *sb, int c);
-void MSG_WriteByte (sizebuf_t *sb, int c);
-void MSG_WriteShort (sizebuf_t *sb, int c);
-void MSG_WriteLong (sizebuf_t *sb, int c);
-void MSG_WriteFloat (sizebuf_t *sb, float f);
-void MSG_WriteString (sizebuf_t *sb, char *s);
-void MSG_WriteCoord (sizebuf_t *sb, float f);
-void MSG_WritePos (sizebuf_t *sb, vec3_t pos);
-void MSG_WriteAngle (sizebuf_t *sb, float f);
-void MSG_WriteAngle16 (sizebuf_t *sb, float f);
-void MSG_WriteUnterminatedString (sizebuf_t *sb, const char *s);
-void MSG_WriteDeltaUsercmd (sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd);
-void MSG_WriteDeltaEntity (struct entity_state_s *from, struct entity_state_s *to, sizebuf_t *msg, bool force, bool newentity);
-void MSG_WriteDir (sizebuf_t *sb, vec3_t vector);
-void MSG_WriteVector (sizebuf_t *sb, float *v );
+void _MSG_WriteChar (sizebuf_t *sb, int c, const char *filename, int fileline);
+void _MSG_WriteByte (sizebuf_t *sb, int c, const char *filename, int fileline);
+void _MSG_WriteShort (sizebuf_t *sb, int c, const char *filename, int fileline);
+void _MSG_WriteWord (sizebuf_t *sb, int c, const char *filename, int fileline);
+void _MSG_WriteLong (sizebuf_t *sb, int c, const char *filename, int fileline);
+void _MSG_WriteFloat (sizebuf_t *sb, float f, const char *filename, int fileline);
+void _MSG_WriteString (sizebuf_t *sb, char *s, const char *filename, int fileline);
+void _MSG_WriteCoord (sizebuf_t *sb, float f, const char *filename, int fileline);
+void _MSG_WritePos (sizebuf_t *sb, vec3_t pos, const char *filename, int fileline);
+void _MSG_WriteAngle (sizebuf_t *sb, float f, const char *filename, int fileline);
+void _MSG_WriteAngle16 (sizebuf_t *sb, float f, const char *filename, int fileline);
+void _MSG_WriteUnterminatedString (sizebuf_t *sb, const char *s, const char *filename, int fileline);
+void _MSG_WriteDeltaUsercmd (sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd, const char *filename, int fileline);
+void _MSG_WriteDeltaEntity (struct entity_state_s *from, struct entity_state_s *to, sizebuf_t *msg, bool force, bool newentity, const char *filename, int fileline);
+void _MSG_WriteDir (sizebuf_t *sb, vec3_t vector, const char *filename, int fileline);
+void _MSG_WriteVector (sizebuf_t *sb, float *v, const char *filename, int fileline);
+
+#define MSG_WriteChar(x,y) _MSG_WriteChar (x, y, __FILE__, __LINE__);
+#define MSG_WriteByte(x,y) _MSG_WriteByte (x, y, __FILE__, __LINE__);
+#define MSG_WriteShort(x,y) _MSG_WriteShort (x, y, __FILE__, __LINE__);
+#define MSG_WriteWord(x,y) _MSG_WriteWord (x, y, __FILE__, __LINE__);
+#define MSG_WriteLong(x,y) _MSG_WriteLong (x, y, __FILE__, __LINE__);
+#define MSG_WriteFloat(x, y) _MSG_WriteFloat (x, y, __FILE__, __LINE__);
+#define MSG_WriteString(x,y) _MSG_WriteString (x, y, __FILE__, __LINE__);
+#define MSG_WriteCoord(x, y) _MSG_WriteCoord (x, y, __FILE__, __LINE__);
+#define MSG_WritePos(x, y) _MSG_WritePos (x, y, __FILE__, __LINE__);
+#define MSG_WriteAngle(x, y) _MSG_WriteAngle (x, y, __FILE__, __LINE__);
+#define MSG_WriteAngle16(x, y) _MSG_WriteAngle16 (x, y, __FILE__, __LINE__);
+#define MSG_WriteUnterminatedString(x, y) _MSG_WriteUnterminatedString (x, y, __FILE__, __LINE__);
+#define MSG_WriteDeltaUsercmd(x, y, z) _MSG_WriteDeltaUsercmd (x, y, z, __FILE__, __LINE__);
+#define MSG_WriteDeltaEntity(x, y, z, t, m) _MSG_WriteDeltaEntity (x, y, z, t, m, __FILE__, __LINE__);
+#define MSG_WriteDir(x, y) _MSG_WriteDir (x, y, __FILE__, __LINE__);
+#define MSG_WriteVector(x, Y) _MSG_WriteVector (x, y, __FILE__, __LINE__);
 
 void	MSG_BeginReading (sizebuf_t *sb);
 
@@ -113,7 +132,6 @@ int	COM_Argc (void);
 char *COM_Argv (int arg);	// range and null checked
 void COM_ClearArgv (int arg);
 int COM_CheckParm (char *parm);
-void COM_AddParm (char *parm);
 
 void COM_Init (void);
 void COM_InitArgv (int argc, char **argv);
@@ -310,8 +328,6 @@ enum clc_ops_e
 #define	U_SOUND		(1<<26)
 #define	U_SOLID		(1<<27)
 #define	U_ALPHA		(1<<28)		//alpha value
-
-extern char com_token[MAX_INPUTLINE];
 
 /*
 ==============================================================

@@ -580,38 +580,33 @@ char *ED_ParseEdict (char *data, edict_t *ent)
 	init = false;
 	memset (&st, 0, sizeof(st));
 
-// go through all the dictionary pairs
+	// go through all the dictionary pairs
 	while (1)
 	{	
-	// parse key
+		// parse key
 		com_token = COM_Parse (&data);
-		if (com_token[0] == '}')
-			break;
-		if (!data)
-			gi.error ("ED_ParseEntity: EOF without closing brace");
+		if (com_token[0] == '}') break;
+		if (!data) gi.error ("ED_ParseEntity: EOF without closing brace");
 
 		strncpy (keyname, com_token, sizeof(keyname)-1);
 		
-	// parse value	
+		// parse value	
 		com_token = COM_Parse (&data);
-		if (!data)
-			gi.error ("ED_ParseEntity: EOF without closing brace");
+		if (!data) gi.error ("ED_ParseEntity: EOF without closing brace");
 
 		if (com_token[0] == '}')
 			gi.error ("ED_ParseEntity: closing brace without data");
 
 		init = true;	
 
-	// keynames with a leading underscore are used for utility comments,
-	// and are immediately discarded by quake
-		if (keyname[0] == '_')
-			continue;
+		// keynames with a leading underscore are used for utility comments,
+		// and are immediately discarded by quake
+		if (keyname[0] == '_') continue;
 
 		ED_ParseField (keyname, com_token, ent);
 	}
 
-	if (!init)
-		memset (ent, 0, sizeof(*ent));
+	if (!init) memset (ent, 0, sizeof(*ent));
 
 	return data;
 }

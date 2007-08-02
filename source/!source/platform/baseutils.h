@@ -105,7 +105,7 @@ extern gameinfo_t GI;
 extern char fs_rootdir[ MAX_SYSPATH ];	//root directory of engine
 extern char fs_basedir[ MAX_SYSPATH ];	//base directory of game
 extern char fs_gamedir[ MAX_SYSPATH ];	//game current directory
-extern char token[ MAX_SYSPATH ];
+extern char token[ MAX_INPUTLINE ];
 extern char gs_mapname[ 64 ];
 extern char gs_basedir[ MAX_SYSPATH ];
 extern char g_TXcommand;

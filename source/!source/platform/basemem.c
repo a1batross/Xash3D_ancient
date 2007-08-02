@@ -295,8 +295,7 @@ void _Mem_Move (void *dest, void *src, size_t size, const char *filename, int fi
 
 void _Mem_Copy (void *dest, void *src, size_t size, const char *filename, int fileline)
 {
-	if (src == NULL) Sys_Error("Mem_Copy: src == NULL (called at %s:%i)", filename, fileline);
-	if (size <= 0) Sys_Error("Mem_Copy: size <= 0 (called at %s:%i)", filename, fileline);
+	if (src == NULL || size <= 0) return; //nothing to copy
 	if (dest == NULL) Sys_Error("Mem_Copy: dest == NULL (called at %s:%i)", filename, fileline);
 
 	//copy block

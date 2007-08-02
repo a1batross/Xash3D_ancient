@@ -81,12 +81,13 @@ bool	CL_CheckOrDownloadFile (char *filename)
 	}
 
 	strcpy (cls.downloadname, filename);
+	strcpy (cls.downloadtempname, filename);
 
 	// download to a temp name, and only rename
 	// to the real name when done, so if interrupted
 	// a runt file wont be left
-	COM_StripExtension (cls.downloadname, cls.downloadtempname);
-	strcat (cls.downloadtempname, ".tmp");
+	FS_StripExtension (cls.downloadtempname);
+	FS_DefaultExtension(cls.downloadtempname, ".tmp");
 
 //ZOID
 	// check to see if we already have a tmp for this file, if so, try to resume
@@ -154,13 +155,20 @@ void	CL_Download_f (void)
 	}
 
 	strcpy (cls.downloadname, filename);
+	strcpy (cls.downloadtempname, filename);
+
 	Msg ("Downloading %s\n", cls.downloadname);
 
 	// download to a temp name, and only rename
 	// to the real name when done, so if interrupted
 	// a runt file wont be left
-	COM_StripExtension (cls.downloadname, cls.downloadtempname);
-	strcat (cls.downloadtempname, ".tmp");
+
+
+	// download to a temp name, and only rename
+	// to the real name when done, so if interrupted
+	// a runt file wont be left
+	FS_StripExtension (cls.downloadtempname);
+	FS_DefaultExtension(cls.downloadtempname, ".tmp");
 
 	MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
 	MSG_WriteString (&cls.netchan.message,
@@ -425,7 +433,7 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 
 		// if we don't have the skin and the model wasn't male,
 		// see if the male has it (this is for CTF's skins)
- 		if (!ci->skin && Q_stricmp(model_name, "male"))
+ 		if (!ci->skin && strcasecmp(model_name, "male"))
 		{
 			// change model to male
 			strcpy(model_name, "male");

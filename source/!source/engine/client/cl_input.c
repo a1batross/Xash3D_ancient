@@ -513,9 +513,13 @@ void CL_SendCmd (void)
 	// let the server know what the last frame we
 	// got was, so the next message can be delta compressed
 	if (cl_nodelta->value || !cl.frame.valid || cls.demowaiting)
+	{
 		MSG_WriteLong (&buf, -1);	// no compression
+	}
 	else
+	{
 		MSG_WriteLong (&buf, cl.frame.serverframe);
+	}
 
 	// send this and the previous cmds in the message, so
 	// if the last packet was dropped, it can be recovered

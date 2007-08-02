@@ -845,8 +845,6 @@ bool LoadDDS( char *name, char *buffer, int filesize )
 	image_size = dds_calc_size( name, &header, filesize - 128 ); 
 	if(image_size == 0) return false;
 
-	Msg("loading %s, %s\n", name, PixelFormatDescription[image_type -1].name );
-
 	// dds files will be uncompressed on a render. requires minimal of info for set this
 	image_rgba = Malloc( image_size ); 
 	Mem_Copy( image_rgba, fin, image_size );
@@ -1449,10 +1447,7 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 				//tell user about a imageload problems 
 				FS_FileBase( path, texname );
 				if( format->loadfunc(texname, f, filesize ))
-				{
-					Msg("loading %s\n", path );
 					AddImageToPack(); //added
-				}
 			}
 		}
           }

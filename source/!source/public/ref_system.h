@@ -389,6 +389,26 @@ typedef struct memsystem_api_s
 /*
 ==============================================================================
 
+INFOSTRING MANAGER ENGINE INTERFACE
+==============================================================================
+*/
+typedef struct infostring_api_s
+{
+	//interface validator
+	size_t	api_size;		// must matched with sizeof(infostring_api_t)
+
+	void (*Print) (char *s);
+	bool (*Validate) (char *s);
+	void (*RemoveKey) (char *s, char *key);
+	char *(*ValueForKey) (char *s, char *key);
+	void (*SetValueForKey) (char *s, char *key, char *value);
+
+} infostring_api_t;
+
+
+/*
+==============================================================================
+
 PARSE STUFF SYSTEM INTERFACE
 ==============================================================================
 */
@@ -513,6 +533,7 @@ typedef struct platform_exp_s
 	memsystem_api_t	Mem;
 	scriptsystem_api_t	Script;
 	compilers_api_t	Compile;
+	infostring_api_t	Info;
 
 	// path initialization
 	void (*InitRootDir)( char *path );		// init custom rootdir 

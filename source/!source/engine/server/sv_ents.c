@@ -193,10 +193,13 @@ void SV_EmitPacketEntities (client_frame_t *from, client_frame_t *to, sizebuf_t 
 				MSG_WriteByte (msg,	(bits>>8)&255 );
 
 			if (bits & U_NUMBER16)
+			{
 				MSG_WriteShort (msg, oldnum);
+			}
 			else
+			{
 				MSG_WriteByte (msg, oldnum);
-
+			}
 			oldindex++;
 			continue;
 		}
@@ -221,7 +224,7 @@ SV_WritePlayerstateToClient
 void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, sizebuf_t *msg)
 {
 	int				i;
-	int				pflags;
+	int				pflags = 0;
 	player_state_t			*ps, *ops;
 	player_state_t			dummy;
 	int				statbits;
@@ -235,8 +238,6 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 	else ops = &from->ps;
 
 	// determine what needs to be sent
-	pflags = 0;
-
 	if (ps->pmove.pm_type != ops->pmove.pm_type)
 		pflags |= PS_M_TYPE;
 

@@ -1005,10 +1005,13 @@ void SV_FinalMessage (char *message, bool reconnect)
 	MSG_WriteString (&net_message, message);
 
 	if (reconnect)
+	{
 		MSG_WriteByte (&net_message, svc_reconnect);
+	}
 	else
+	{
 		MSG_WriteByte (&net_message, svc_disconnect);
-
+	}
 	// send it twice
 	// stagger the packets to crutch operating system limited buffers
 

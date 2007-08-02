@@ -182,7 +182,7 @@ void PF_setmodel (edict_t *ent, char *name)
 		VectorCopy (mod->maxs, ent->maxs);
 		SV_LinkEdict (ent);
 	}
-	else if(!stricmp(COM_FileExtension(name), "mdl" ))
+	else if(!stricmp(FS_FileExtension(name), "mdl" ))
 	{
 		if(stmod = CM_StudioModel(name))
 		{
@@ -191,7 +191,7 @@ void PF_setmodel (edict_t *ent, char *name)
 			SV_LinkEdict (ent);
 		}
 	}
-	else if(!stricmp(COM_FileExtension(name), "spr" ))
+	else if(!stricmp(FS_FileExtension(name), "spr" ))
 	{
 		if(stmod = CM_SpriteModel(name))
 		{
@@ -350,6 +350,7 @@ void SV_InitGameProgs (void)
 	import.Mem = pi->Mem;
 	import.Script = pi->Script;
 	import.Compile = pi->Compile;
+	import.Info = pi->Info;
 
 	import.multicast = SV_Multicast;
 	import.unicast = PF_Unicast;

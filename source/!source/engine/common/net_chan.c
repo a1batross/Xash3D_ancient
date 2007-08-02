@@ -95,6 +95,8 @@ void Netchan_Init (void)
 	// pick a port value that should be nice and random
 	port = Sys_Milliseconds() & 0xffff;
 
+	Msg("netchan port %d\n", port );
+
 	showpackets = Cvar_Get ("showpackets", "0", 0);
 	showdrop = Cvar_Get ("showdrop", "0", 0);
 	qport = Cvar_Get ("qport", va("%i", port), CVAR_NOSET);
@@ -250,8 +252,7 @@ void Netchan_Transmit (netchan_t *chan, int length, byte *data)
 	MSG_WriteLong (&send, w2);
 
 	// send the qport if we are a client
-	if (chan->sock == NS_CLIENT)
-		MSG_WriteShort (&send, qport->value);
+	if (chan->sock == NS_CLIENT) MSG_WriteWord (&send, qport->value);
 
 // copy the reliable message to the packet first
 	if (send_reliable)

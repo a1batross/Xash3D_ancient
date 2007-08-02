@@ -89,6 +89,7 @@ typedef struct game_import_s
 	memsystem_api_t	Mem;
 	scriptsystem_api_t	Script;
 	compilers_api_t	Compile;
+	infostring_api_t	Info;
 
 	// special messages
 	void	(*bprintf) (int printlevel, char *fmt, ...);

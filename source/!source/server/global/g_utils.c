@@ -19,96 +19,6 @@ void FreeTags (int tag)
 	else gi.dprintf("Warning: try to free unknown tag\n");
 }
 
-/*
-==============
-COM_Parse
-
-Parse a token out of a string
-==============
-*/
-
-char	com_token[MAX_INPUTLINE];
-//sued by engine\server
-char *COM_Parse (const char **data_p)
-{
-	int		c;
-	int		len;
-	const char	*data;
-
-	data = *data_p;
-	len = 0;
-	com_token[0] = 0;
-	
-	if (!data)
-	{
-		*data_p = NULL;
-		return NULL;
-	}
-		
-// skip whitespace
-skipwhite:
-	while ( (c = *data) <= ' ')
-	{
-		if (c == 0)
-		{
-			*data_p = NULL;
-			return NULL;
-		}
-		data++;
-	}
-	
-// skip // comments
-	if (c=='/' && data[1] == '/')
-	{
-		while (*data && *data != '\n')
-			data++;
-		goto skipwhite;
-	}
-
-// handle quoted strings specially
-	if (c == '\"')
-	{
-		data++;
-		while (1)
-		{
-			c = *data++;
-			if (c=='\"' || !c)
-			{
-				com_token[len] = 0;
-				*data_p = data;
-				return com_token;
-			}
-			if (len < MAX_TOKEN_CHARS)
-			{
-				com_token[len] = c;
-				len++;
-			}
-		}
-	}
-
-// parse a regular word
-	do
-	{
-		if (len < MAX_TOKEN_CHARS)
-		{
-			com_token[len] = c;
-			len++;
-		}
-		data++;
-		c = *data;
-	} while (c>32);
-
-	if (len == MAX_TOKEN_CHARS)
-	{
-		gi.dprintf ("Token exceeded %i chars, discarded.\n", MAX_TOKEN_CHARS);
-		len = 0;
-	}
-	com_token[len] = 0;
-
-	*data_p = data;
-	return com_token;
-}
-
 void G_ProjectSource (vec3_t point, vec3_t distance, vec3_t forward, vec3_t right, vec3_t result)
 {
 	result[0] = point[0] + forward[0] * distance[0] + right[0] * distance[1];
@@ -824,23 +734,17 @@ bool KillBox (edict_t *ent)
 
 void AnglesNormalize(vec3_t vec)
 {
-	while(vec[0] > 180)
-		vec[0] -= 360;
-	while(vec[0] < -180)
-		vec[0] += 360;
-	while(vec[1] > 360)
-		vec[1] -= 360;
-	while(vec[1] < 0)
-		vec[1] += 360;
+	while(vec[0] > 180) vec[0] -= 360;
+	while(vec[0] < -180) vec[0] += 360;
+	while(vec[1] > 360) vec[1] -= 360;
+	while(vec[1] < 0) vec[1] += 360;
 }
 
 float SnapToEights(float x)
 {
 	x *= 8.0;
-	if (x > 0.0)
-		x += 0.5;
-	else
-		x -= 0.5;
+	if (x > 0.0) x += 0.5;
+	else x -= 0.5;
 	return 0.125 * (int)x;
 }
 
@@ -865,8 +769,7 @@ bool point_infront (edict_t *self, vec3_t point)
 	VectorNormalize (vec);
 	dot = DotProduct (vec, forward);
 	
-	if (dot > 0.3)
-		return true;
+	if (dot > 0.3) return true;
 	return false;
 }
 
@@ -998,9 +901,11 @@ void GameDirRelativePath(char *filename, char *output)
 	strcpy(output, filename );
 }
 
-/* Lazarus: G_UseTarget is similar to G_UseTargets, but only triggers
-            a single target rather than all entities matching target
-			criteria. It *does*, however, kill all killtargets */
+/*
+Lazarus: G_UseTarget is similar to G_UseTargets, but only triggers
+a single target rather than all entities matching target
+criteria. It *does*, however, kill all killtargets
+*/
 
 void Think_Delay_Single (edict_t *ent)
 {
@@ -1095,189 +1000,4 @@ void G_UseTarget (edict_t *ent, edict_t *activator, edict_t *target)
 			return;
 		}
 	}
-}
-
-
-/*
-=====================================================================
-
-  INFO STRINGS
-
-=====================================================================
-*/
-
-/*
-===============
-Info_ValueForKey
-
-Searches the string for the given
-key and returns the associated value, or an empty string.
-===============
-*/
-
-//used by engine\server
-char *Info_ValueForKey (char *s, char *key)
-{
-	char	pkey[512];
-	static	char value[2][512];	// use two buffers so compares
-								// work without stomping on each other
-	static	int	valueindex;
-	char	*o;
-	
-	valueindex ^= 1;
-	if (*s == '\\')
-		s++;
-	while (1)
-	{
-		o = pkey;
-		while (*s != '\\')
-		{
-			if (!*s)
-				return "";
-			*o++ = *s++;
-		}
-		*o = 0;
-		s++;
-
-		o = value[valueindex];
-
-		while (*s != '\\' && *s)
-		{
-			if (!*s)
-				return "";
-			*o++ = *s++;
-		}
-		*o = 0;
-
-		if (!strcmp (key, pkey) )
-			return value[valueindex];
-
-		if (!*s)
-			return "";
-		s++;
-	}
-}
-
-//used by engine\server
-void Info_RemoveKey (char *s, char *key)
-{
-	char	*start;
-	char	pkey[512];
-	char	value[512];
-	char	*o;
-
-	if (strstr (key, "\\"))
-	{
-		gi.dprintf ("Can't use a key with a \\\n");
-		return;
-	}
-
-	while (1)
-	{
-		start = s;
-		if (*s == '\\')
-			s++;
-		o = pkey;
-		while (*s != '\\')
-		{
-			if (!*s)
-				return;
-			*o++ = *s++;
-		}
-		*o = 0;
-		s++;
-
-		o = value;
-		while (*s != '\\' && *s)
-		{
-			if (!*s)
-				return;
-			*o++ = *s++;
-		}
-		*o = 0;
-
-		if (!strcmp (key, pkey) )
-		{
-			strcpy (start, s);	// remove this part
-			return;
-		}
-
-		if (!*s)
-			return;
-	}
-
-}
-
-
-/*
-==================
-Info_Validate
-
-Some characters are illegal in info strings because they
-can mess up the server's parsing
-==================
-*/
-//used by engine\server
-bool Info_Validate (char *s)
-{
-	if (strstr (s, "\""))
-		return false;
-	if (strstr (s, ";"))
-		return false;
-	return true;
-}
-
-//used by engine\server
-void Info_SetValueForKey (char *s, char *key, char *value)
-{
-	char	newi[MAX_INFO_STRING], *v;
-	int		c;
-	int		maxsize = MAX_INFO_STRING;
-
-	if (strstr (key, "\\") || strstr (value, "\\") )
-	{
-		gi.dprintf ("Can't use keys or values with a \\\n");
-		return;
-	}
-
-	if (strstr (key, ";") )
-	{
-		gi.dprintf ("Can't use keys or values with a semicolon\n");
-		return;
-	}
-
-	if (strstr (key, "\"") || strstr (value, "\"") )
-	{
-		gi.dprintf ("Can't use keys or values with a \"\n");
-		return;
-	}
-
-	if (strlen(key) > MAX_INFO_KEY-1 || strlen(value) > MAX_INFO_KEY-1)
-	{
-		gi.dprintf ("Keys and values must be < 64 characters.\n");
-		return;
-	}
-	Info_RemoveKey (s, key);
-	if (!value || !strlen(value))
-		return;
-
-	sprintf (newi, "\\%s\\%s", key, value);
-
-	if (strlen(newi) + strlen(s) > maxsize)
-	{
-		gi.dprintf ("Info string length exceeded\n");
-		return;
-	}
-
-	// only copy ascii values
-	s += strlen(s);
-	v = newi;
-	while (*v)
-	{
-		c = *v++;
-		c &= 127;		// strip high bits
-		if (c >= 32 && c < 127)
-			*s++ = c;
-	}
-	*s = 0;
 }

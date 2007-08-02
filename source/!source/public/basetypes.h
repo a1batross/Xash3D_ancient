@@ -19,6 +19,10 @@
 #define MAX_STRING		256
 #define MAX_SYSPATH		1024
 #define MAX_INPUTLINE	16384
+#define MAX_INFO_KEY	64
+#define MAX_INFO_VALUE	64
+#define MAX_INFO_STRING	512
+
 #define STRING_COLOR_TAG	'^'
 #define IsColorString(p)	( p && *(p) == STRING_COLOR_TAG && *((p)+1) && *((p)+1) != STRING_COLOR_TAG )
 

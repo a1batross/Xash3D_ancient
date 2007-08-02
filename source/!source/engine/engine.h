@@ -83,6 +83,24 @@ char *FS_Gamedir( void );
 
 /*
 ===========================================
+scriptsystem manager
+===========================================
+*/
+#define COM_Parse(data) pi->Script.ParseToken(data)
+
+/*
+===========================================
+infostring manager
+===========================================
+*/
+#define Info_Print(x) pi->Info.Print
+#define Info_Validate(x) pi->Info.Validate(x)
+#define Info_RemoveKey(x, y) pi->Info.RemoveKey(x,y)
+#define Info_ValueForKey(x,y) pi->Info.ValueForKey(x,y)
+#define Info_SetValueForKey(x,y,z) pi->Info.SetValueForKey(x,y,z)
+
+/*
+===========================================
 System Timer
 ===========================================
 */

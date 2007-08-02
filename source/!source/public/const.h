@@ -204,12 +204,6 @@ extern vec3_t vec3_origin;
 #define Q_ftol( f ) ( long ) (f)
 #define DotProduct(x,y)			(x[0]*y[0]+x[1]*y[1]+x[2]*y[2])
 
-// just in case you do't want to use the macros
-vec_t _DotProduct (vec3_t v1, vec3_t v2);
-void _VectorSubtract (vec3_t veca, vec3_t vecb, vec3_t out);
-void _VectorAdd (vec3_t veca, vec3_t vecb, vec3_t out);
-void _VectorCopy (vec3_t in, vec3_t out);
-
 void ClearBounds (vec3_t mins, vec3_t maxs);
 void AddPointToBounds (vec3_t v, vec3_t mins, vec3_t maxs);
 void CrossProduct (vec3_t v1, vec3_t v2, vec3_t cross);
@@ -230,38 +224,15 @@ void PerpendicularVector( vec3_t dst, const vec3_t src );
 void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );
 
 
-//=============================================
-
-char *COM_SkipPath (char *pathname);
-void COM_StripExtension (char *in, char *out);
-void COM_FileBase (char *in, char *out);
-void COM_FilePath (char *in, char *out);
-void COM_DefaultExtension (char *path, char *extension);
-char *COM_FileExtension (char *in);
-
-char *COM_Parse (const char **data_p);
-// data is an in/out parm, returns a parsed out token
 
 void Com_sprintf (char *dest, int size, char *fmt, ...);
-
 void Com_PageInMemory (byte *buffer, int size);
-
-//=============================================
-
-// portable case insensitive compare
-int Q_stricmp (char *s1, char *s2);
-int Q_strcasecmp (char *s1, char *s2);
-int Q_strncasecmp (char *s1, char *s2, int n);
 
 //=============================================
 
 //
 // key / value info strings
 //
-#define	MAX_INFO_KEY		64
-#define	MAX_INFO_VALUE		64
-#define	MAX_INFO_STRING		512
-
 char *Info_ValueForKey (char *s, char *key);
 void Info_RemoveKey (char *s, char *key);
 void Info_SetValueForKey (char *s, char *key, char *value);

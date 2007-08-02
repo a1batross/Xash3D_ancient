@@ -42,6 +42,19 @@ extern byte *zone_game;
 #define Mem_FreePool(pool) gi.Mem.FreePool(pool, __FILE__, __LINE__)
 #define Mem_EmptyPool(pool) gi.Mem.EmptyPool(pool, __FILE__, __LINE__)
 
+#define COM_Parse(data) gi.Script.ParseToken(data)
+
+/*
+===========================================
+infostring manager
+===========================================
+*/
+#define Info_Print(x) gi.Info.Print
+#define Info_Validate(x) gi.Info.Validate(x)
+#define Info_RemoveKey(x, y) gi.Info.RemoveKey(x,y)
+#define Info_ValueForKey(x,y) gi.Info.ValueForKey(x,y)
+#define Info_SetValueForKey(x,y,z) gi.Info.SetValueForKey(x,y,z)
+
 void *TagMalloc (int size, int tag);
 void FreeTags (int tag);
 

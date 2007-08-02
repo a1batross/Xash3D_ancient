@@ -2214,7 +2214,7 @@ void JoinServerFunc( void *self )
 
 	index = ( menuaction_s * ) self - s_joinserver_server_actions;
 
-	if ( Q_stricmp( local_server_names[index], NO_SERVER_STRING ) == 0 )
+	if ( strcasecmp( local_server_names[index], NO_SERVER_STRING ) == 0 )
 		return;
 
 	if (index >= m_num_servers)
@@ -2412,21 +2412,21 @@ void StartServerActionFunc( void *self )
 	spot = NULL;
 	if (s_rules_box.curvalue == 1)		// PGM
 	{
- 		if(Q_stricmp(startmap, "bunk1") == 0)
+ 		if(strcasecmp(startmap, "bunk1") == 0)
   			spot = "start";
- 		else if(Q_stricmp(startmap, "mintro") == 0)
+ 		else if(strcasecmp(startmap, "mintro") == 0)
   			spot = "start";
- 		else if(Q_stricmp(startmap, "fact1") == 0)
+ 		else if(strcasecmp(startmap, "fact1") == 0)
   			spot = "start";
- 		else if(Q_stricmp(startmap, "power1") == 0)
+ 		else if(strcasecmp(startmap, "power1") == 0)
   			spot = "pstart";
- 		else if(Q_stricmp(startmap, "biggun") == 0)
+ 		else if(strcasecmp(startmap, "biggun") == 0)
   			spot = "bstart";
- 		else if(Q_stricmp(startmap, "hangar1") == 0)
+ 		else if(strcasecmp(startmap, "hangar1") == 0)
   			spot = "unitstart";
- 		else if(Q_stricmp(startmap, "city1") == 0)
+ 		else if(strcasecmp(startmap, "city1") == 0)
   			spot = "unitstart";
- 		else if(Q_stricmp(startmap, "boss1") == 0)
+ 		else if(strcasecmp(startmap, "boss1") == 0)
 			spot = "bosstart";
 	}
 
@@ -2494,12 +2494,15 @@ bool CreateMapsList( void )
 				if(entities)
 				{
 					bool	have_title = false;
+					char	*com_token;
 					
 					data = entities;
 					while( 1 )
 					{
 						int l;
-						if (!COM_Parse(&data)) break;
+						com_token = COM_Parse(&data); 
+
+						if (!com_token) break;
 						if (com_token[0] == '{') continue;
 						if (com_token[0] == '}') break;
 						// skip leading whitespace
@@ -2507,7 +2510,9 @@ bool CreateMapsList( void )
 						for (l = 0;l < (int)sizeof(keyname) - 1 && com_token[k+l] && com_token[k+l] > ' ';l++)
 							keyname[l] = com_token[k+l];
 						keyname[l] = 0;
-						if (!COM_Parse(&data)) break;
+
+						com_token = COM_Parse(&data);
+						if (!com_token) break;
 
 						if (!strcmp(keyname, "message") && !have_title)
 						{
@@ -3544,7 +3549,7 @@ bool PlayerConfig_MenuInit( void )
 	for ( i = 0; i < s_numplayermodels; i++ )
 	{
 		s_pmnames[i] = s_pmi[i].displayname;
-		if ( Q_stricmp( s_pmi[i].directory, currentdirectory ) == 0 )
+		if ( strcasecmp( s_pmi[i].directory, currentdirectory ) == 0 )
 		{
 			int j;
 
@@ -3552,7 +3557,7 @@ bool PlayerConfig_MenuInit( void )
 
 			for ( j = 0; j < s_pmi[i].nskins; j++ )
 			{
-				if ( Q_stricmp( s_pmi[i].skindisplaynames[j], currentskin ) == 0 )
+				if ( strcasecmp( s_pmi[i].skindisplaynames[j], currentskin ) == 0 )
 				{
 					currentskinindex = j;
 					break;
