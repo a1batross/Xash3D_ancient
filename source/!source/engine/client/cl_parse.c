@@ -139,7 +139,7 @@ void	CL_Download_f (void)
 		return;
 	}
 
-	Com_sprintf(filename, sizeof(filename), "%s", Cmd_Argv(1));
+	sprintf(filename, "%s", Cmd_Argv(1));
 
 	if (strstr (filename, ".."))
 	{
@@ -393,10 +393,10 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 
 	if (cl_noskins->value || *s == 0)
 	{
-		Com_sprintf (model_filename, sizeof(model_filename), "players/male/tris.md2");
-		Com_sprintf (weapon_filename, sizeof(weapon_filename), "players/male/weapon.md2");
-		Com_sprintf (skin_filename, sizeof(skin_filename), "players/male/grunt.pcx");
-		Com_sprintf (ci->iconname, sizeof(ci->iconname), "/players/male/grunt_i.pcx");
+		sprintf (model_filename, "players/male/tris.md2");
+		sprintf (weapon_filename, "players/male/weapon.md2");
+		sprintf (skin_filename, "players/male/grunt.pcx");
+		sprintf (ci->iconname, "/players/male/grunt_i.pcx");
 		ci->model = re.RegisterModel (model_filename);
 		memset(ci->weaponmodel, 0, sizeof(ci->weaponmodel));
 		ci->weaponmodel[0] = re.RegisterModel (weapon_filename);
@@ -418,17 +418,17 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 		strcpy (skin_name, s + strlen(model_name) + 1);
 
 		// model file
-		Com_sprintf (model_filename, sizeof(model_filename), "players/%s/tris.md2", model_name);
+		sprintf (model_filename, "players/%s/tris.md2", model_name);
 		ci->model = re.RegisterModel (model_filename);
 		if (!ci->model)
 		{
 			strcpy(model_name, "male");
-			Com_sprintf (model_filename, sizeof(model_filename), "players/male/tris.md2");
+			sprintf (model_filename, "players/male/tris.md2");
 			ci->model = re.RegisterModel (model_filename);
 		}
 
 		// skin file
-		Com_sprintf (skin_filename, sizeof(skin_filename), "players/%s/%s.pcx", model_name, skin_name);
+		sprintf (skin_filename, "players/%s/%s.pcx", model_name, skin_name);
 		ci->skin = re.RegisterSkin (skin_filename);
 
 		// if we don't have the skin and the model wasn't male,
@@ -437,11 +437,11 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 		{
 			// change model to male
 			strcpy(model_name, "male");
-			Com_sprintf (model_filename, sizeof(model_filename), "players/male/tris.md2");
+			sprintf (model_filename, "players/male/tris.md2");
 			ci->model = re.RegisterModel (model_filename);
 
 			// see if the skin exists for the male model
-			Com_sprintf (skin_filename, sizeof(skin_filename), "players/%s/%s.pcx", model_name, skin_name);
+			sprintf (skin_filename, "players/%s/%s.pcx", model_name, skin_name);
 			ci->skin = re.RegisterSkin (skin_filename);
 		}
 
@@ -449,17 +449,17 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 		// it, so default to grunt
 		if (!ci->skin) {
 			// see if the skin exists for the male model
-			Com_sprintf (skin_filename, sizeof(skin_filename), "players/%s/grunt.pcx", model_name, skin_name);
+			sprintf (skin_filename, "players/%s/grunt.pcx", model_name, skin_name);
 			ci->skin = re.RegisterSkin (skin_filename);
 		}
 
 		// weapon file
 		for (i = 0; i < num_cl_weaponmodels; i++) {
-			Com_sprintf (weapon_filename, sizeof(weapon_filename), "players/%s/%s", model_name, cl_weaponmodels[i]);
+			sprintf (weapon_filename, "players/%s/%s", model_name, cl_weaponmodels[i]);
 			ci->weaponmodel[i] = re.RegisterModel(weapon_filename);
 			if (!ci->weaponmodel[i] && strcmp(model_name, "cyborg") == 0) {
 				// try male
-				Com_sprintf (weapon_filename, sizeof(weapon_filename), "players/male/%s", cl_weaponmodels[i]);
+				sprintf (weapon_filename, "players/male/%s", cl_weaponmodels[i]);
 				ci->weaponmodel[i] = re.RegisterModel(weapon_filename);
 			}
 			if (!cl_vwep->value)
@@ -467,7 +467,7 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 		}
 
 		// icon file
-		Com_sprintf (ci->iconname, sizeof(ci->iconname), "/players/%s/%s_i.pcx", model_name, skin_name);
+		sprintf (ci->iconname, "/players/%s/%s_i.pcx", model_name, skin_name);
 		ci->icon = re.RegisterPic (ci->iconname);
 	}
 

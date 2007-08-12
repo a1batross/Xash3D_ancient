@@ -20,7 +20,7 @@ BRUSH MODELS
 #define MAX_KEY			32
 #define MAX_MAP_AREAS		256
 #define MAX_VALUE			1024
-#define MAX_MAP_MODELS		1024
+#define MAX_MAP_MODELS		2048	// mesh models and sprites too
 #define MAX_MAP_AREAPORTALS		1024
 #define MAX_MAP_ENTITIES		2048
 #define MAX_MAP_TEXINFO		8192
@@ -201,19 +201,16 @@ typedef struct cplane_s
 
 typedef struct cmodel_s
 {
-	vec3_t	mins, maxs;
-	vec3_t	origin;		// for sounds or lights
-	int	headnode;
-} cmodel_t;
-
-typedef struct stmodel_s
-{
 	int	modidx;		//edict index
 	char	name[64];		//model name
-	vec3_t	mins, maxs;
+
+	vec3_t	mins, maxs;	// boundbox
+	vec3_t	origin;		// for sounds or lights
+	int	headnode;		// bsp info
+
 	int	numframes;	//sprite framecount
 	void	*extradata;	//for studio models
-} stmodel_t;
+} cmodel_t;
 
 typedef struct csurface_s
 {

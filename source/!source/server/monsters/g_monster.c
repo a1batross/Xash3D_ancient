@@ -61,7 +61,7 @@ bool M_SetDeath(edict_t *self, mmove_t **deathmoves)
 		if(self->monsterinfo.currentmove->endfunc)
 			self->monsterinfo.currentmove->endfunc(self);
 		self->s.frame = move->lastframe;
-		self->s.skinnum |= 1;
+		self->s.skin |= 1;
 		return true;
 	}
 	return false;
@@ -700,9 +700,9 @@ bool monster_start (edict_t *self)
 	if(!self->max_health)
 		self->max_health = self->health;
 	if (self->health < (self->max_health / 2))
-		self->s.skinnum |= 1;
+		self->s.skin |= 1;
 	else
-		self->s.skinnum &= ~1;
+		self->s.skin &= ~1;
 	self->clipmask = MASK_MONSTERSOLID;
 
 	if(self->monsterinfo.flies > 1.0)

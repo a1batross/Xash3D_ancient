@@ -1396,7 +1396,7 @@ void bfg_think (edict_t *self)
 				gi.WriteByte (4);
 				gi.WritePosition (tr.endpos);
 				gi.WriteDir (tr.plane.normal);
-				gi.WriteByte (self->s.skinnum);
+				gi.WriteByte (self->s.skin);
 				gi.multicast (tr.endpos, MSG_PVS);
 				break;
 			}

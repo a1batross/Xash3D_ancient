@@ -165,7 +165,6 @@ void PF_setmodel (edict_t *ent, char *name)
 {
 	int		i;
 	cmodel_t		*mod;
-	stmodel_t		*stmod;
 	
 	if (!name) Com_Error (ERR_DROP, "PF_setmodel: NULL");
 
@@ -174,31 +173,13 @@ void PF_setmodel (edict_t *ent, char *name)
 //	ent->model = name;
 	ent->s.modelindex = i;
 
-	// if it is an inline model, get the size information for it
-	if (name[0] == '*')
+	mod = CM_LoadModel (name);
+
+	if(mod)	// hull setup
 	{
-		mod = CM_InlineModel (name);
 		VectorCopy (mod->mins, ent->mins);
 		VectorCopy (mod->maxs, ent->maxs);
 		SV_LinkEdict (ent);
-	}
-	else if(!stricmp(FS_FileExtension(name), "mdl" ))
-	{
-		if(stmod = CM_StudioModel(name))
-		{
-			VectorCopy (stmod->mins, ent->mins);
-			VectorCopy (stmod->maxs, ent->maxs);
-			SV_LinkEdict (ent);
-		}
-	}
-	else if(!stricmp(FS_FileExtension(name), "spr" ))
-	{
-		if(stmod = CM_SpriteModel(name))
-		{
-			VectorCopy (stmod->mins, ent->mins);
-			VectorCopy (stmod->maxs, ent->maxs);
-			SV_LinkEdict (ent);
-		}
 	}
 }
 

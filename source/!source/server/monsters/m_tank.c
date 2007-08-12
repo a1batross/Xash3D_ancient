@@ -270,7 +270,7 @@ mmove_t	tank_move_pain3 = {FRAME_pain301, FRAME_pain316, tank_frames_pain3, tank
 void tank_pain (edict_t *self, edict_t *other, float kick, int damage)
 {
 	if (self->health < (self->max_health / 2))
-			self->s.skinnum |= 1;
+			self->s.skin |= 1;
 
 	if (damage <= 10)
 		return;
@@ -872,11 +872,11 @@ void SP_monster_tank (edict_t *self)
 
 	// Lazarus: special purpose skins
 	if (strcmp(self->classname, "monster_tank_commander") == 0)
-		self->s.skinnum = 2;
+		self->s.skin = 2;
 	if ( self->style )
 	{
 		PatchMonsterModel("models/monsters/tank/tris.md2");
-		self->s.skinnum += self->style * 4;
+		self->s.skin += self->style * 4;
 	}
 
 	self->s.modelindex = gi.modelindex ("models/monsters/tank/tris.md2");

@@ -1090,7 +1090,7 @@ void target_laser_ps_think (edict_t *self)
 				gi.WriteByte (count);
 				gi.WritePosition (tr.endpos);
 				gi.WriteDir (tr.plane.normal);
-				gi.WriteByte (self->s.skinnum);
+				gi.WriteByte (self->s.skin);
 				gi.multicast (tr.endpos, MSG_PVS);
 			}
 			break;
@@ -1211,7 +1211,7 @@ void target_laser_think (edict_t *self)
 				gi.WriteByte (count);
 				gi.WritePosition (tr.endpos);
 				gi.WriteDir (tr.plane.normal);
-				gi.WriteByte (self->s.skinnum);
+				gi.WriteByte (self->s.skin);
 				gi.multicast (tr.endpos, MSG_PVS);
 			}
 			break;
@@ -1268,31 +1268,18 @@ void target_laser_start (edict_t *self)
 	self->movetype = MOVETYPE_NONE;
 	self->solid = SOLID_NOT;
 	self->s.renderfx |= RF_BEAM|RF_TRANSLUCENT;
-	self->s.modelindex = 1;			// must be non-zero
+	self->s.modelindex = 1; // must be non-zero
 
 	// set the beam diameter
 	if (self->mass > 1)
 		self->s.frame = self->mass;
 	else if(self->spawnflags & 64)
 		self->s.frame = 16;
-	else
-		self->s.frame = 4;
+	else self->s.frame = 4;
 
-	// set the color
-	if (self->spawnflags & 2)
-		self->s.skinnum = 0xf2f2f0f0;
-	else if (self->spawnflags & 4)
-		self->s.skinnum = 0xd0d1d2d3;
-	else if (self->spawnflags & 8)
-		self->s.skinnum = 0xf3f3f1f1;
-	else if (self->spawnflags & 16)
-		self->s.skinnum = 0xdcdddedf;
-	else if (self->spawnflags & 32)
-		self->s.skinnum = 0xe0e1e2e3;
+	// color will be loaded from xash sprite info
 
-
-	if (!self->dmg)
-		self->dmg = 1;
+	if (!self->dmg) self->dmg = 1;
 	VectorSet (self->mins, -8, -8, -8);
 	VectorSet (self->maxs, 8, 8, 8);
 
@@ -4024,7 +4011,7 @@ void clone (edict_t *self, edict_t *other, edict_t *activator)
 	child->pain         = parent->pain;
 	child->die          = parent->die;
 	child->s.effects    = parent->s.effects;
-	child->s.skinnum    = parent->s.skinnum;
+	child->s.skin    = parent->s.skin;
 	child->item         = parent->item;
 	child->moveinfo.sound_start  = parent->moveinfo.sound_start;
 	child->moveinfo.sound_middle = parent->moveinfo.sound_middle;

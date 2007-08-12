@@ -163,7 +163,6 @@ void Netchan_Setup (netsrc_t sock, netchan_t *chan, netadr_t adr, int qport)
 	chan->outgoing_sequence = 1;
 
 	SZ_Init (&chan->message, chan->message_buf, sizeof(chan->message_buf));
-	chan->message.allowoverflow = true;
 }
 
 
@@ -254,20 +253,19 @@ void Netchan_Transmit (netchan_t *chan, int length, byte *data)
 	// send the qport if we are a client
 	if (chan->sock == NS_CLIENT) MSG_WriteWord (&send, qport->value);
 
-// copy the reliable message to the packet first
+	// copy the reliable message to the packet first
 	if (send_reliable)
 	{
 		SZ_Write (&send, chan->reliable_buf, chan->reliable_length);
 		chan->last_reliable_sequence = chan->outgoing_sequence;
 	}
 	
-// add the unreliable part if space is available
+	// add the unreliable part if space is available
 	if (send.maxsize - send.cursize >= length)
 		SZ_Write (&send, data, length);
-	else
-		Msg ("Netchan_Transmit: dumped unreliable\n");
+	else MsgDev ("Netchan_Transmit: dumped unreliable\n");
 
-// send the datagram
+	// send the datagram
 	NET_SendPacket (chan->sock, send.cursize, send.data, chan->remote_address);
 
 	if (showpackets->value)

@@ -216,26 +216,22 @@ void _MSG_WriteDeltaEntity (entity_state_t *from, entity_state_t *to, sizebuf_t 
 	if ( to->angles[1] != from->angles[1] ) bits |= U_ANGLE2;
 	if ( to->angles[2] != from->angles[2] ) bits |= U_ANGLE3;
 		
-	if ( to->skinnum != from->skinnum )
+	if ( to->skin != from->skin ) 
 	{
-		if ((uint)to->skinnum < 256) bits |= U_SKIN8;
-		else if ((uint)to->skinnum < 65536) bits |= U_SKIN16;
-		else bits |= (U_SKIN8 | U_SKIN16);
-	}
-		
+		if (to->skin < 256) bits |= U_SKIN8;
+		else bits |= U_SKIN16;
+	}		
 	if ( to->frame != from->frame )
 	{
 		if (to->frame < 256) bits |= U_FRAME8;
 		else bits |= U_FRAME16;
 	}
-
 	if ( to->effects != from->effects )
 	{
 		if (to->effects < 256) bits |= U_EFFECTS8;
 		else if (to->effects < 32768) bits |= U_EFFECTS16;
 		else bits |= U_EFFECTS8 | U_EFFECTS16;
 	}
-	
 	if ( to->renderfx != from->renderfx )
 	{
 		if (to->renderfx < 256) bits |= U_RENDERFX8;
@@ -244,7 +240,7 @@ void _MSG_WriteDeltaEntity (entity_state_t *from, entity_state_t *to, sizebuf_t 
 	}
 	
 	if ( to->solid != from->solid ) bits |= U_SOLID;
-	if ( to->event  ) bits |= U_EVENT; // event is not delta compressed, just 0 compressed
+	if ( to->event ) bits |= U_EVENT; // event is not delta compressed, just 0 compressed
 	
 	if ( to->modelindex != from->modelindex ) bits |= U_MODEL;
 	if ( to->weaponmodel != from->weaponmodel ) bits |= U_WEAPONMODEL;
@@ -288,16 +284,12 @@ void _MSG_WriteDeltaEntity (entity_state_t *from, entity_state_t *to, sizebuf_t 
 
 	if (bits & U_MODEL) _MSG_WriteByte (msg, to->modelindex, filename, fileline);
 	if (bits & U_WEAPONMODEL) _MSG_WriteByte (msg, to->weaponmodel, filename, fileline);
-	if (bits & U_BODY) _MSG_WriteByte (msg,	to->body, filename, fileline);
-	if (bits & U_SEQUENCE) _MSG_WriteByte (msg, to->sequence, filename, fileline);
 
 	if (bits & U_FRAME8) _MSG_WriteByte (msg, to->frame, filename, fileline);
 	if (bits & U_FRAME16) _MSG_WriteShort (msg, to->frame, filename, fileline);
 
-	if ((bits & U_SKIN8) && (bits & U_SKIN16))
-		_MSG_WriteLong (msg, to->skinnum, filename, fileline); // used for laser colors
-	else if (bits & U_SKIN8) _MSG_WriteByte (msg, to->skinnum, filename, fileline);
-	else if (bits & U_SKIN16) _MSG_WriteShort (msg, to->skinnum, filename, fileline);
+	if (bits & U_SKIN8 ) _MSG_WriteByte (msg, to->skin, filename, fileline);
+	if (bits & U_SKIN16) _MSG_WriteShort (msg, to->skin, filename, fileline);
 
 	if ( (bits & (U_EFFECTS8|U_EFFECTS16)) == (U_EFFECTS8|U_EFFECTS16))
 		_MSG_WriteLong (msg, to->effects, filename, fileline);
@@ -324,10 +316,12 @@ void _MSG_WriteDeltaEntity (entity_state_t *from, entity_state_t *to, sizebuf_t 
 		_MSG_WriteCoord (msg, to->old_origin[2], filename, fileline);
 	}
 
-	if (bits & U_SOUND) _MSG_WriteByte (msg, to->sound, filename, fileline);
-	if (bits & U_EVENT) _MSG_WriteByte (msg, to->event, filename, fileline);
+	if (bits & U_SEQUENCE) _MSG_WriteByte (msg, to->sequence, filename, fileline);
 	if (bits & U_SOLID) _MSG_WriteShort (msg, to->solid, filename, fileline);
 	if (bits & U_ALPHA) _MSG_WriteFloat (msg, to->alpha, filename, fileline);
+	if (bits & U_SOUND) _MSG_WriteByte (msg, to->sound, filename, fileline);
+	if (bits & U_EVENT) _MSG_WriteByte (msg, to->event, filename, fileline);
+	if (bits & U_BODY) _MSG_WriteByte (msg,	to->body, filename, fileline);
 }
 
 /*
@@ -562,13 +556,10 @@ void *SZ_GetSpace (sizebuf_t *buf, int length)
 	
 	if (buf->cursize + length > buf->maxsize)
 	{
-		if (!buf->allowoverflow)
-			Com_Error (ERR_DROP, "SZ_GetSpace: overflow without allowoverflow set");
-		
 		if (length > buf->maxsize)
 			Com_Error (ERR_DROP, "SZ_GetSpace: %i is > full buffer size", length);
 			
-		Msg ("SZ_GetSpace: overflow\n");
+		Msg ("SZ_GetSpace: overflow [cursize %d maxsize %d]\n", buf->cursize + length, buf->maxsize );
 		SZ_Clear (buf); 
 		buf->overflowed = true;
 	}

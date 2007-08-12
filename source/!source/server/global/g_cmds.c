@@ -161,7 +161,7 @@ void SaveEntProps(edict_t *e, file_t *f)
 		"   body        = %d\n"
 		"   sequence    = %d\n"
 		"   frame       = %d\n"
-		"   skinnum     = %d\n"
+		"   skin     = %d\n"
 		"   effects     = 0x%08x\n"
 		"   solid       = 0x%08x\n"
 		"   sound       = %d\n"
@@ -169,7 +169,7 @@ void SaveEntProps(edict_t *e, file_t *f)
 		e->s.number,vtos(e->s.origin),vtos(e->s.angles),
 		vtos(e->s.old_origin),e->s.modelindex,e->s.weaponmodel,
 		e->s.body,e->s.sequence,e->s.frame,
-		e->s.skinnum,e->s.effects,e->s.solid,e->s.sound,
+		e->s.skin,e->s.effects,e->s.solid,e->s.sound,
 		e->s.event);
 	gi.Fs.Printf(f,"inuse       = %d\n"
 		"linkcount   = %d\n"
@@ -2782,19 +2782,19 @@ void ClientCommand (edict_t *ent)
 		}
 		else if (!strcasecmp(cmd,"sk")) {
 			edict_t *viewing;
-			int		skinnum;
+			int		skin;
 
 			viewing = LookingAt(ent,0,NULL,NULL);
 			if(!viewing) 
 				return;
 
 			if(parm) {
-				skinnum = atoi(parm);
-				viewing->s.skinnum = skinnum;
+				skin = atoi(parm);
+				viewing->s.skin = skin;
 				gi.linkentity(viewing);
 			}
 			else
-				gi.dprintf("Currently using skin #%i\n",viewing->s.skinnum);
+				gi.dprintf("Currently using skin #%i\n",viewing->s.skin);
 
 		}
 		else if(!strcasecmp(cmd,"spawn"))

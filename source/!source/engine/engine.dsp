@@ -230,10 +230,6 @@ SOURCE=.\common\pmove.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\q_shared.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\common\qmenu.c
 # End Source File
 # Begin Source File

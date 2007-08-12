@@ -257,7 +257,7 @@ void R_DrawEntitiesOnList (void)
 				R_DrawBrushModel( RENDERPASS_SOLID );
 				break;
 			case mod_sprite:
-				R_SpriteDrawModel( RENDERPASS_SOLID );
+				R_DrawSpriteModel( RENDERPASS_SOLID );
 				break;
 			case mod_studio:
 				R_DrawStudioModel( RENDERPASS_SOLID );
@@ -298,7 +298,7 @@ void R_DrawEntitiesOnList (void)
 				R_DrawBrushModel( RENDERPASS_ALPHA );
 				break;
 			case mod_sprite:
-				R_SpriteDrawModel( RENDERPASS_ALPHA );
+				R_DrawSpriteModel( RENDERPASS_ALPHA );
 				break;
 			case mod_studio:
 				R_DrawStudioModel( RENDERPASS_ALPHA );
@@ -309,7 +309,7 @@ void R_DrawEntitiesOnList (void)
 			}
 		}
 	}
-	qglDepthMask (1);// back to writing
+	qglDepthMask(1);// back to writing
 
 }
 

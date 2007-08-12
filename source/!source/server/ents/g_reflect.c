@@ -384,7 +384,7 @@ void AddReflection (edict_t *ent)
 			ent->reflection[i]->s.weaponmodel = ent->s.weaponmodel;
 			ent->reflection[i]->s.body = ent->s.body;
 			ent->reflection[i]->s.sequence = ent->s.sequence;
-			ent->reflection[i]->s.skinnum = ent->s.skinnum;
+			ent->reflection[i]->s.skin = ent->s.skin;
 			ent->reflection[i]->s.frame = ent->s.frame;
 			ent->reflection[i]->s.renderfx = ent->s.renderfx;
 			ent->reflection[i]->s.effects = ent->s.effects;

@@ -234,7 +234,7 @@ void SV_Map_f (void)
 	map = Cmd_Argv(1);
 	if (!strstr (map, "."))
 	{
-		Com_sprintf (expanded, sizeof(expanded), "maps/%s.bsp", map);
+		sprintf (expanded, "maps/%s.bsp", map);
 		if (!FS_LoadFile (expanded, NULL))
 		{
 			Msg ("Can't find %s\n", expanded);
@@ -534,10 +534,8 @@ void SV_ServerRecord_f (void)
 		return;
 	}
 
-	//
 	// open the demo file
-	//
-	Com_sprintf (name, sizeof(name), "demos/%s.dm2", Cmd_Argv(1));
+	sprintf (name, "demos/%s.dm2", Cmd_Argv(1));
 
 	Msg ("recording to %s.\n", name);
 	svs.demofile = FS_Open (name, "wb");

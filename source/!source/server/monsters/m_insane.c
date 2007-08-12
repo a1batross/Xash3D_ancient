@@ -460,7 +460,7 @@ void insane_pain (edict_t *self, edict_t *other, float kick, int damage)
 	int	l,r;
 
 //	if (self->health < (self->max_health / 2))
-//		self->s.skinnum = 1;
+//		self->s.skin = 1;
 
 	if (level.time < self->pain_debounce_time)
 		return;
@@ -658,7 +658,7 @@ void SP_misc_insane (edict_t *self)
 
 	self->common_name = "Insane Marine";
 //@@
-//	self->s.skinnum = skin;
+//	self->s.skin = skin;
 //	skin++;
 //	if (skin > 12)
 //		skin = 0;
@@ -685,6 +685,6 @@ void SP_misc_insane (edict_t *self)
 	else
 	{
 		walkmonster_start (self);
-		self->s.skinnum = rand()%3;
+		self->s.skin = rand()%3;
 	}
 }

@@ -42,7 +42,7 @@ void SV_BeginDemoserver (void)
 {
 	char		name[MAX_OSPATH];
 
-	Com_sprintf (name, sizeof(name), "demos/%s", sv.name);
+	sprintf (name, "demos/%s", sv.name);
 	sv.demofile = FS_Open(name, "rb" );
 	if (!sv.demofile)
 		Com_Error (ERR_DROP, "Couldn't open %s\n", name);

@@ -395,7 +395,7 @@ void soldier_pain (edict_t *self, edict_t *other, float kick, int damage)
 	int		n;
 
 	if (self->health < (self->max_health / 2))
-		self->s.skinnum |= 1;
+		self->s.skin |= 1;
 
 	if (level.time < self->pain_debounce_time)
 	{
@@ -406,7 +406,7 @@ void soldier_pain (edict_t *self, edict_t *other, float kick, int damage)
 
 	self->pain_debounce_time = level.time + 3;
 
-	n = self->s.skinnum | 1;
+	n = self->s.skin | 1;
 	if (n == 1)
 		gi.sound (self, CHAN_VOICE, sound_pain_light, 1, ATTN_NORM, 0);
 	else if (n == 3)
@@ -452,9 +452,9 @@ void soldier_fire (edict_t *self, int flash_number)
 	float	r, u;
 	int		flash_index;
 
-	if (self->s.skinnum < 2)
+	if (self->s.skin < 2)
 		flash_index = blaster_flash[flash_number];
-	else if (self->s.skinnum < 4)
+	else if (self->s.skin < 4)
 		flash_index = shotgun_flash[flash_number];
 	else
 		flash_index = machinegun_flash[flash_number];
@@ -497,12 +497,12 @@ void soldier_fire (edict_t *self, int flash_number)
 		VectorNormalize (aim);
 	}
 
-	if (self->s.skinnum <= 1)
+	if (self->s.skin <= 1)
 	{
 		// Lazarus: make bolt speed skill level dependent
 		monster_fire_blaster (self, start, aim, 5, 600 + 100*skill->value, flash_index, EF_BLASTER);
 	}
-	else if (self->s.skinnum <= 3)
+	else if (self->s.skin <= 3)
 	{
 		monster_fire_shotgun (self, start, aim, 2, 1, DEFAULT_SHOTGUN_HSPREAD, DEFAULT_SHOTGUN_VSPREAD, DEFAULT_SHOTGUN_COUNT, flash_index);
 	}
@@ -529,7 +529,7 @@ void soldier_fire1 (edict_t *self)
 
 void soldier_attack1_refire1 (edict_t *self)
 {
-	if (self->s.skinnum > 1)
+	if (self->s.skin > 1)
 		return;
 
 	if (self->enemy->health <= 0)
@@ -543,7 +543,7 @@ void soldier_attack1_refire1 (edict_t *self)
 
 void soldier_attack1_refire2 (edict_t *self)
 {
-	if (self->s.skinnum < 2)
+	if (self->s.skin < 2)
 		return;
 
 	if (self->enemy->health <= 0)
@@ -579,7 +579,7 @@ void soldier_fire2 (edict_t *self)
 
 void soldier_attack2_refire1 (edict_t *self)
 {
-	if (self->s.skinnum > 1)
+	if (self->s.skin > 1)
 		return;
 
 	if (self->enemy->health <= 0)
@@ -593,7 +593,7 @@ void soldier_attack2_refire1 (edict_t *self)
 
 void soldier_attack2_refire2 (edict_t *self)
 {
-	if (self->s.skinnum < 2)
+	if (self->s.skin < 2)
 		return;
 
 	if (self->enemy->health <= 0)
@@ -768,7 +768,7 @@ mmove_t soldier_move_attack6 = {FRAME_runs01, FRAME_runs14, soldier_frames_attac
 
 void soldier_attack(edict_t *self)
 {
-	if (self->s.skinnum < 4)
+	if (self->s.skin < 4)
 	{
 		if (random() < 0.5)
 			self->monsterinfo.currentmove = &soldier_move_attack1;
@@ -1168,13 +1168,13 @@ void soldier_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int dama
 // regular death
 	self->deadflag = DEAD_DEAD;
 	self->takedamage = DAMAGE_YES;
-	self->s.skinnum |= 1;
+	self->s.skin |= 1;
 
-	if (self->s.skinnum == 1)
+	if (self->s.skin == 1)
 		gi.sound (self, CHAN_VOICE, sound_death_light, 1, ATTN_NORM, 0);
-	else if (self->s.skinnum == 3)
+	else if (self->s.skin == 3)
 		gi.sound (self, CHAN_VOICE, sound_death, 1, ATTN_NORM, 0);
-	else // (self->s.skinnum == 5)
+	else // (self->s.skin == 5)
 		gi.sound (self, CHAN_VOICE, sound_death_ss, 1, ATTN_NORM, 0);
 
 	if (fabs((self->s.origin[2] + self->viewheight) - point[2]) <= 4)
@@ -1311,7 +1311,7 @@ void SP_monster_soldier_light (edict_t *self)
 		self->gib_health = -30;
 
 	// Lazarus: custom skins
-	self->s.skinnum = 0 + 6*self->style;
+	self->s.skin = 0 + 6*self->style;
 	SP_monster_soldier_x (self);
 
 }
@@ -1339,7 +1339,7 @@ void SP_monster_soldier (edict_t *self)
 		self->gib_health = -30;
 
 	// Lazarus: custom skins
-	self->s.skinnum = 2 + 6*self->style;
+	self->s.skin = 2 + 6*self->style;
 	SP_monster_soldier_x (self);
 
 }
@@ -1367,7 +1367,7 @@ void SP_monster_soldier_ss (edict_t *self)
 		self->gib_health = -30;
 
 	// Lazarus: custom skins
-	self->s.skinnum = 4 + 6*self->style;
+	self->s.skin = 4 + 6*self->style;
 	SP_monster_soldier_x (self);
 
 }

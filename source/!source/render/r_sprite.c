@@ -242,7 +242,7 @@ mspriteframe_t *R_GetSpriteFrame (entity_t *currententity)
 }
 
 
-void R_SpriteDrawModel( int passnum )
+void R_DrawSpriteModel( int passnum )
 {
 	float alpha = 1.0F;
 	mspriteframe_t	*frame;

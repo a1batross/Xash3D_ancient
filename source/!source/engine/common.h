@@ -51,7 +51,6 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 
 typedef struct sizebuf_s
 {
-	bool	allowoverflow;	// if false, do a Com_Error
 	bool	overflowed;	// set to true if the buffer size failed
 	byte	*data;
 	int	maxsize;
@@ -299,7 +298,7 @@ enum clc_ops_e
 #define	U_ANGLE2		(1<<2)
 #define	U_ANGLE3		(1<<3)
 #define	U_FRAME8		(1<<4)		// frame is a byte
-#define	U_EVENT		(1<<5)
+#define	U_SKIN8		(1<<5)
 #define	U_REMOVE		(1<<6)		// REMOVE this entity, don't add it
 #define	U_MOREBITS1	(1<<7)		// read one additional byte
 
@@ -313,7 +312,7 @@ enum clc_ops_e
 #define	U_MOREBITS2	(1<<15)		// read one additional byte
 
 // third byte
-#define	U_SKIN8		(1<<16)
+#define	U_SKIN16		(1<<16)
 #define	U_FRAME16		(1<<17)		// frame is a short
 #define	U_RENDERFX16	(1<<18)		// 8 + 16 = 32
 #define	U_EFFECTS16	(1<<19)		// 8 + 16 = 32
@@ -324,10 +323,11 @@ enum clc_ops_e
 
 // fourth byte
 #define	U_OLDORIGIN	(1<<24)		// FIXME: get rid of this
-#define	U_SKIN16		(1<<25)
-#define	U_SOUND		(1<<26)
-#define	U_SOLID		(1<<27)
-#define	U_ALPHA		(1<<28)		//alpha value
+#define	U_SOUND		(1<<25)
+#define	U_SOLID		(1<<26)
+#define	U_ALPHA		(1<<27)		// alpha value
+#define	U_EVENT		(1<<28)		// remove this
+#define	U_MOREBITS4	(1<<31)		// read one additional byte
 
 /*
 ==============================================================
@@ -449,8 +449,8 @@ NET
 
 #define	PORT_ANY	-1
 
-#define	MAX_MSGLEN		1400		// max length of a message
-#define	PACKET_HEADER	10			// two ints and a short
+#define	MAX_MSGLEN		1600		// max length of a message
+#define	PACKET_HEADER		10		// two ints and a short
 
 typedef enum {NA_LOOPBACK, NA_BROADCAST, NA_IP, NA_IPX, NA_BROADCAST_IPX} netadrtype_t;
 
@@ -548,8 +548,7 @@ CMODEL
 
 cmodel_t	*CM_LoadMap (char *name, bool clientload, unsigned *checksum);
 cmodel_t	*CM_InlineModel (char *name);	// *1, *2, etc
-stmodel_t	*CM_StudioModel (char *name); //studio models server copy
-stmodel_t	*CM_SpriteModel (char *name); //sprite models some info (minmaxs, numframes e.t.c)
+cmodel_t	*CM_LoadModel (char *name);
 
 extern byte portalopen[MAX_MAP_AREAPORTALS];
 

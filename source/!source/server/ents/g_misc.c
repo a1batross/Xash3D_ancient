@@ -2,7 +2,7 @@
 
 #include "g_local.h"
 
-int	gibsthisframe=0;
+int gibsthisframe=0;
 int lastgibframe=0;
 
 #define GIB_METAL   1
@@ -10,10 +10,9 @@ int lastgibframe=0;
 #define GIB_BARREL  3
 #define GIB_CRATE   4
 #define GIB_ROCK    5
-#define GIB_CRYSTAL 6
-#define GIB_MECH    7
-#define GIB_WOOD    8
-#define GIB_TECH    9
+#define GIB_MECH    6
+#define GIB_WOOD    7
+#define GIB_TECH    8
 
 void FadeThink(edict_t *ent)
 {
@@ -276,7 +275,7 @@ void ThrowHead (edict_t *self, char *gibname, int damage, int type)
 	char	modelname[256];
 	char	*p;
 
-	self->s.skinnum = 0;
+	self->s.skin = 0;
 	self->s.frame = 0;
 	VectorClear (self->mins);
 	VectorClear (self->maxs);
@@ -377,12 +376,12 @@ void ThrowClientHead (edict_t *self, int damage)
 	if (rand()&1)
 	{
 		gibname = "models/objects/gibs/head2/tris.md2";
-		self->s.skinnum = 1;		// second skin is player
+		self->s.skin = 1;		// second skin is player
 	}
 	else
 	{
 		gibname = "models/objects/gibs/skull/tris.md2";
-		self->s.skinnum = 0;
+		self->s.skin = 0;
 	}
 
 	self->s.origin[2] += 32;
@@ -426,7 +425,7 @@ void debris_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damag
 	G_FreeEdict (self);
 }
 
-void ThrowDebris (edict_t *self, char *modelname, float speed, vec3_t origin, int skin, int effects)
+void ThrowDebris (edict_t *self, char *modelname, float speed, vec3_t origin, int body, int effects)
 {
 	edict_t	*chunk;
 	vec3_t	v;
@@ -452,12 +451,11 @@ void ThrowDebris (edict_t *self, char *modelname, float speed, vec3_t origin, in
 	chunk->die = debris_die;
 
 	// Lazarus: Preserve model name for level changes:
-	chunk->message = TagMalloc (strlen(modelname)+1,TAG_LEVEL);
+	chunk->message = TagMalloc (strlen(modelname) + 1,TAG_LEVEL);
 	strcpy(chunk->message, modelname);
 
 	// Lazarus: skin number and effects
-	chunk->s.body = skin;//FIXME
-	chunk->s.skinnum = skin;
+	chunk->s.body = body;
 	chunk->s.effects |= effects;
 
 	gi.linkentity (chunk);
@@ -1030,8 +1028,7 @@ void func_explosive_explode (edict_t *self)
 	VectorScale (size, 0.5, size);
 
 	mass = self->mass;
-	if (!mass)
-		mass = 75;
+	if (!mass) mass = 75;
 
 	// Lazarus: Use traditional debris for gib_type=0, but non-zero gib_type gives equal 
 	// weight to all models.
@@ -1055,14 +1052,9 @@ void func_explosive_explode (edict_t *self)
 			case GIB_BARREL: ThrowDebris (self, "models/gibs/barrelgib.mdl", 2, chunkorigin, r, 0); break;
 			case GIB_CRATE: ThrowDebris (self, "models/gibs/wood.mdl",  2, chunkorigin, r, 0); break;
 			case GIB_ROCK: ThrowDebris (self, "models/gibs/rock.mdl", 2, chunkorigin, r, 0); break;
-			case GIB_CRYSTAL:
-				ThrowDebris (self, va("models/objects/crystal_gibs/gib%i.md2",r), 2, chunkorigin, self->s.skinnum, 0); break;
-			case GIB_MECH:
-				ThrowDebris (self, va("models/objects/mech_gibs/gib%i.md2",r),    2, chunkorigin, self->s.skinnum, 0); break;
-			case GIB_WOOD:
-				ThrowDebris (self, va("models/objects/wood_gibs/gib%i.md2",r),    2, chunkorigin, self->s.skinnum, 0); break;
-			case GIB_TECH:
-				ThrowDebris (self, va("models/objects/tech_gibs/gib%i.md2",r),    2, chunkorigin, self->s.skinnum, 0); break;
+			case GIB_MECH: ThrowDebris (self, "models/gibs/flesh.mdl", 2, chunkorigin, r, 0); break;
+			case GIB_WOOD: ThrowDebris (self, "models/gibs/wood.mdl", 2, chunkorigin, r, 0); break;
+			case GIB_TECH: ThrowDebris (self, "models/gibs/computer.mdl", 2, chunkorigin, r, 0); break;
 			}
 		}
 	}
@@ -1275,77 +1267,81 @@ void barrel_explode (edict_t *self)
 	org[0] = self->s.origin[0] + crandom() * size[0];
 	org[1] = self->s.origin[1] + crandom() * size[1];
 	org[2] = self->s.origin[2] + crandom() * size[2];
-	ThrowDebris (self, "models/objects/debris1/tris.md2", spd, org, 0, 0);
+	ThrowDebris (self, "models/gibs/cinder.mdl", spd, org, 6, 0);
 	org[0] = self->s.origin[0] + crandom() * size[0];
 	org[1] = self->s.origin[1] + crandom() * size[1];
 	org[2] = self->s.origin[2] + crandom() * size[2];
-	ThrowDebris (self, "models/objects/debris1/tris.md2", spd, org, 0, 0);
+	ThrowDebris (self, "models/gibs/cinder.mdl", spd, org, 7, 0);
 
 	// bottom corners
 	spd = 1.75 * (float)self->dmg / 200.0;
 	VectorCopy (self->absmin, org);
 	org[2] += 2;
-	ThrowDebris (self, "models/objects/debris3/tris.md2", spd, org, 0, 0);
+	ThrowDebris (self, "models/gibs/cinder.mdl", spd, org, 8, 0);
 	VectorCopy (self->absmin, org);
 	org[0] += self->size[0];
 	org[2] += 2;
-	ThrowDebris (self, "models/objects/debris3/tris.md2", spd, org, 0, 0);
+	ThrowDebris (self, "models/gibs/cinder.mdl", spd, org, 5, 0);
 	VectorCopy (self->absmin, org);
 	org[1] += self->size[1];
 	org[2] += 2;
-	ThrowDebris (self, "models/objects/debris3/tris.md2", spd, org, 0, 0);
+	ThrowDebris (self, "models/gibs/cinder.mdl", spd, org, 8, 0);
 	VectorCopy (self->absmin, org);
 	org[0] += self->size[0];
 	org[1] += self->size[1];
 	org[2] += 2;
-	ThrowDebris (self, "models/objects/debris3/tris.md2", spd, org, 0, 0);
+	ThrowDebris (self, "models/gibs/cinder.mdl", spd, org, 5, 0);
 
 	// a bunch of little chunks
 	spd = 2 * self->dmg / 200;
 	org[0] = self->s.origin[0] + crandom() * size[0];
 	org[1] = self->s.origin[1] + crandom() * size[1];
 	org[2] = self->s.origin[2] + crandom() * size[2];
-	ThrowDebris (self, "models/objects/debris2/tris.md2", spd, org, 0, 0);
+	ThrowDebris (self, "models/gibs/cinder.mdl", spd, org, 0, 0);
 	org[0] = self->s.origin[0] + crandom() * size[0];
 	org[1] = self->s.origin[1] + crandom() * size[1];
 	org[2] = self->s.origin[2] + crandom() * size[2];
-	ThrowDebris (self, "models/objects/debris2/tris.md2", spd, org, 0, 0);
+	ThrowDebris (self, "models/gibs/cinder.mdl", spd, org, 1, 0);
 	org[0] = self->s.origin[0] + crandom() * size[0];
 	org[1] = self->s.origin[1] + crandom() * size[1];
 	org[2] = self->s.origin[2] + crandom() * size[2];
-	ThrowDebris (self, "models/objects/debris2/tris.md2", spd, org, 0, 0);
+	ThrowDebris (self, "models/gibs/cinder.mdl", spd, org, 2, 0);
 	org[0] = self->s.origin[0] + crandom() * size[0];
 	org[1] = self->s.origin[1] + crandom() * size[1];
 	org[2] = self->s.origin[2] + crandom() * size[2];
-	ThrowDebris (self, "models/objects/debris2/tris.md2", spd, org, 0, 0);
+	ThrowDebris (self, "models/gibs/cinder.mdl", spd, org, 3, 0);
 	org[0] = self->s.origin[0] + crandom() * size[0];
 	org[1] = self->s.origin[1] + crandom() * size[1];
 	org[2] = self->s.origin[2] + crandom() * size[2];
-	ThrowDebris (self, "models/objects/debris2/tris.md2", spd, org, 0, 0);
+	ThrowDebris (self, "models/gibs/cinder.mdl", spd, org, 2, 0);
 	org[0] = self->s.origin[0] + crandom() * size[0];
 	org[1] = self->s.origin[1] + crandom() * size[1];
 	org[2] = self->s.origin[2] + crandom() * size[2];
-	ThrowDebris (self, "models/objects/debris2/tris.md2", spd, org, 0, 0);
+	ThrowDebris (self, "models/gibs/cinder.mdl", spd, org, 1, 0);
 	org[0] = self->s.origin[0] + crandom() * size[0];
 	org[1] = self->s.origin[1] + crandom() * size[1];
 	org[2] = self->s.origin[2] + crandom() * size[2];
-	ThrowDebris (self, "models/objects/debris2/tris.md2", spd, org, 0, 0);
+	ThrowDebris (self, "models/gibs/cinder.mdl", spd, org, 3, 0);
 	org[0] = self->s.origin[0] + crandom() * size[0];
 	org[1] = self->s.origin[1] + crandom() * size[1];
 	org[2] = self->s.origin[2] + crandom() * size[2];
-	ThrowDebris (self, "models/objects/debris2/tris.md2", spd, org, 0, 0);
+	ThrowDebris (self, "models/gibs/cinder.mdl", spd, org, 0, 0);
 
 	// Lazarus: use targets
 	G_UseTargets (self, self->activator);
 
 	// Lazarus: added case for no damage
-	if(self->dmg) {
-		if (self->groundentity) {
+	if(self->dmg)
+	{
+		if (self->groundentity)
+		{
 			self->s.origin[2] = self->absmin[2] + 2;
 			BecomeExplosion2 (self);
-		} else
-			BecomeExplosion1 (self);
-	} else {
+		}
+		else BecomeExplosion1 (self);
+	}
+	else
+	{
 		gi.sound (self, CHAN_VOICE, gi.soundindex ("tank/thud.wav"), 1, ATTN_NORM, 0);
 		G_FreeEdict (self);
 	}
@@ -1369,18 +1365,10 @@ void SP_misc_explobox (edict_t *self)
 
 	self->class_id = ENTITY_MISC_EXPLOBOX;
 	// Lazarus: can use actual barrel parts for debris:
-	if(self->spawnflags & 1)
-	{
-		self->gib_type = GIB_GLASS;//GIB_BARREL;
-		PrecacheDebris(self->gib_type);
-	}
-	else
-	{
-		gi.modelindex ("models/objects/debris1/tris.md2");
-		gi.modelindex ("models/objects/debris2/tris.md2");
-		gi.modelindex ("models/objects/debris3/tris.md2");
-	}
-	
+
+	self->gib_type = GIB_BARREL;
+
+	PrecacheDebris(self->gib_type);
 	self->solid = SOLID_BBOX;
 	self->clipmask = MASK_MONSTERSOLID | MASK_PLAYERSOLID;
 	self->movetype = MOVETYPE_STEP;
@@ -1730,7 +1718,7 @@ void SP_misc_deadsoldier (edict_t *ent)
 	if(ent->style)
 	{
 		PatchDeadSoldier();
-		ent->s.skinnum = ent->style;
+		ent->s.skin = ent->style;
 	}
 	ent->common_name = "Dead Marine";
 	gi.linkentity (ent);
@@ -2781,7 +2769,7 @@ void SP_misc_teleporter (edict_t *ent)
 
 	if(!(ent->spawnflags & 4)) {
 		gi.setmodel (ent, "models/objects/dmspot/tris.md2");
-		ent->s.skinnum = 1;
+		ent->s.skin = 1;
 		if(!(ent->spawnflags & 1)) {
 			ent->s.effects = EF_TELEPORTER;
 			ent->s.sound = gi.soundindex ("world/amb10.wav");
@@ -2873,7 +2861,7 @@ void SP_misc_teleporter_dest (edict_t *ent)
 {
 	ent->class_id = ENTITY_MISC_TELEPORTER_DEST;
 	gi.setmodel (ent, "models/objects/dmspot/tris.md2");
-	ent->s.skinnum = 0;
+	ent->s.skin = 0;
 	ent->solid = SOLID_BBOX;
 	VectorSet (ent->mins, -32, -32, -24);
 	VectorSet (ent->maxs, 32, 32, -16);
@@ -3593,41 +3581,16 @@ int PatchDeadSoldier ()
 
 void PrecacheDebris(int type)
 {
-	int	i;
-
 	switch(type)
 	{
-	case 0:
-		gi.modelindex ("models/objects/debris1/tris.md2");
-		gi.modelindex ("models/objects/debris2/tris.md2");
-		gi.modelindex ("models/objects/debris3/tris.md2");
-		break;
-	case GIB_METAL:
-		for(i = 1; i <=5; i++)
-			gi.modelindex(va("models/objects/metal_gibs/gib%i.md2",i));
-		break;
-	case GIB_GLASS: gi.modelindex("models/gibs/glass.mdl"); break;
-	case GIB_BARREL: gi.modelindex("models/gibs/barrelgib.mdl"); break;
+	case GIB_ROCK: gi.modelindex("models/gibs/rock.mdl"); break;
 	case GIB_CRATE: gi.modelindex("models/gibs/wood.mdl"); break;
-	case GIB_ROCK:
-		for(i=1;i<=5;i++)
-			gi.modelindex(va("models/objects/rock_gibs/gib%i.md2",i));
-		break;
-	case GIB_CRYSTAL:
-		for(i=1;i<=5;i++)
-			gi.modelindex(va("models/objects/crystal_gibs/gib%i.md2",i));
-		break;
-	case GIB_MECH:
-		for(i=1;i<=5;i++)
-			gi.modelindex(va("models/objects/mech_gibs/gib%i.md2",i));
-		break;
-	case GIB_WOOD:
-		for(i=1;i<=5;i++)
-			gi.modelindex(va("models/objects/wood_gibs/gib%i.md2",i));
-		break;
-	case GIB_TECH:
-		for(i=1;i<=5;i++)
-			gi.modelindex(va("models/objects/tech_gibs/gib%i.md2",i));
-		break;
+	case GIB_GLASS: gi.modelindex("models/gibs/glass.mdl"); break;
+	case GIB_METAL: gi.modelindex("models/gibs/metal.mdl"); break;
+	case GIB_BARREL: gi.modelindex("models/gibs/barrelgib.mdl"); break;
+	case GIB_MECH: gi.modelindex("models/gibs/flesh.mdl"); break;
+	case GIB_WOOD: gi.modelindex("models/gibs/wood.mdl"); break;
+	case GIB_TECH: gi.modelindex("models/gibs/computer.mdl"); break;
+	default: gi.modelindex("models/gibs/cinder.mdl"); break;
 	}
 }

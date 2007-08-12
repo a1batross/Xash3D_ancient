@@ -525,7 +525,7 @@ void actor_pain (edict_t *self, edict_t *other, float kick, int damage)
 
 	// DWH: Players don't have pain skins!
 //	if (self->health < (self->max_health / 2))
-//		self->s.skinnum = 1;
+//		self->s.skin = 1;
 
 	// Stop weapon sound, if any
 	self->s.sound = 0;
@@ -1526,7 +1526,7 @@ void SP_misc_actor (edict_t *self)
 
 	// We've built the misc_actor model to include the standard
 	// Q2 male skins, specified with the style key. Default=grunt
-	self->s.skinnum = self->style;
+	self->s.skin = self->style;
 
 	// actors always start in a dormant state, they *must* be used to get going
 	self->use = actor_use;
@@ -1543,7 +1543,7 @@ void SP_misc_actor (edict_t *self)
 	self->flash->model = "models/objects/flash/tris.md2";
 	gi.setmodel(self->flash,self->flash->model);
 	self->flash->solid = SOLID_NOT;
-	self->flash->s.skinnum = 0;
+	self->flash->s.skin = 0;
 	self->flash->s.effects = EF_PLASMA;
 	self->flash->s.renderfx = RF_FULLBRIGHT;
 	self->flash->svflags |= SVF_NOCLIENT;

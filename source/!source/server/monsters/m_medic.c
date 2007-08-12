@@ -595,7 +595,7 @@ mmove_t medic_move_pain2 = {FRAME_painb1, FRAME_painb15, medic_frames_pain2, med
 void medic_pain (edict_t *self, edict_t *other, float kick, int damage)
 {
 	if (self->health < (self->max_health / 2))
-		self->s.skinnum |= 1;
+		self->s.skin |= 1;
 
 	if (level.time < self->pain_debounce_time)
 		return;
@@ -1209,7 +1209,7 @@ void SP_monster_medic (edict_t *self)
 	if ( self->style )
 	{
 		PatchMonsterModel("models/monsters/medic/tris.md2");
-		self->s.skinnum = self->style * 2;
+		self->s.skin = self->style * 2;
 	}
 	
 	self->s.modelindex = gi.modelindex ("models/monsters/medic/tris.md2");

@@ -1296,13 +1296,13 @@ void SpawnItem (edict_t *ent, gitem_t *item)
 		ent->count = item->quantity;
 		ent->style = item->tag;
 	}
-	if(ent->spawnflags & NO_STUPID_SPINNING) {
+	if(ent->spawnflags & NO_STUPID_SPINNING)
+	{
 		ent->s.effects &= ~EF_ROTATE;
 		ent->s.renderfx &= ~RF_GLOW;
 	}
 
-	if (ent->model)
-		gi.modelindex (ent->model);
+	if (ent->model) gi.modelindex (ent->model);
 }
 
 //======================================================================

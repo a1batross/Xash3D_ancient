@@ -114,8 +114,9 @@ sfxcache_t *S_LoadSound (sfx_t *s)
 	if (sc)
 		return sc;
 
-//Msg ("S_LoadSound: %x\n", (int)stackbuf);
-// load it in
+	//Msg ("S_LoadSound: %x\n", (int)stackbuf);
+
+	// load it in
 	if (s->truename)
 		name = s->truename;
 	else
@@ -123,10 +124,9 @@ sfxcache_t *S_LoadSound (sfx_t *s)
 
 	if (name[0] == '#')
 		strcpy(namebuffer, &name[1]);
-	else
-		Com_sprintf (namebuffer, sizeof(namebuffer), "sound/%s", name);
+	else sprintf (namebuffer, "sound/%s", name);
 
-//	Msg ("loading %s\n",namebuffer);
+	//Msg ("loading %s\n",namebuffer);
 
 	data = FS_LoadFile (namebuffer, &size);
 

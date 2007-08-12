@@ -395,12 +395,11 @@ SV_SendClientDatagram
 bool SV_SendClientDatagram (client_t *client)
 {
 	byte		msg_buf[MAX_MSGLEN];
-	sizebuf_t	msg;
+	sizebuf_t		msg;
 
 	SV_BuildClientFrame (client);
 
 	SZ_Init (&msg, msg_buf, sizeof(msg_buf));
-	msg.allowoverflow = true;
 
 	// send over all the relevant entity_state_t
 	// and the player_state_t

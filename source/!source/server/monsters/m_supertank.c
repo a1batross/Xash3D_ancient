@@ -434,7 +434,7 @@ void supertank_pain (edict_t *self, edict_t *other, float kick, int damage)
 {
 
 	if (self->health < (self->max_health / 2))
-			self->s.skinnum |= 1;
+			self->s.skin |= 1;
 
 	if (level.time < self->pain_debounce_time)
 			return;
@@ -691,7 +691,7 @@ void SP_monster_supertank (edict_t *self)
 	if ( (self->spawnflags & SF_MONSTER_SPECIAL) && self->style )
 	{
 		PatchMonsterModel("models/monsters/boss1/tris.md2");
-		self->s.skinnum = self->style * 2;
+		self->s.skin = self->style * 2;
 	}
 
 	sound_pain1 = gi.soundindex ("bosstank/btkpain1.wav");
@@ -711,7 +711,7 @@ void SP_monster_supertank (edict_t *self)
 	if ( self->style )
 	{
 		PatchMonsterModel("models/monsters/boss1/tris.md2");
-		self->s.skinnum = self->style * 2;
+		self->s.skin = self->style * 2;
 	}
 	
 	self->s.modelindex = gi.modelindex ("models/monsters/boss1/tris.md2");

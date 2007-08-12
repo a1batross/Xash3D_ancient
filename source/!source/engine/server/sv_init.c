@@ -219,10 +219,10 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 	}
 	else
 	{
-		Com_sprintf (sv.configstrings[CS_MODELS+1],sizeof(sv.configstrings[CS_MODELS+1]), "maps/%s.bsp", server);
+		sprintf (sv.configstrings[CS_MODELS+1], "maps/%s.bsp", server);
 		sv.models[1] = CM_LoadMap (sv.configstrings[CS_MODELS+1], false, &checksum);
 	}
-	Com_sprintf (sv.configstrings[CS_MAPCHECKSUM],sizeof(sv.configstrings[CS_MAPCHECKSUM]), "%i", checksum);
+	sprintf (sv.configstrings[CS_MAPCHECKSUM],"%i", checksum);
 
 	// clear physics interaction links
 	SV_ClearWorld ();
@@ -337,7 +337,7 @@ void SV_InitGame (void)
 
 	// heartbeats will always be sent to the id master
 	svs.last_heartbeat = -99999;		// send immediately
-	Com_sprintf(idmaster, sizeof(idmaster), "192.246.40.37:%i", PORT_MASTER);
+	sprintf(idmaster, "192.246.40.37:%i", PORT_MASTER);
 	NET_StringToAdr (idmaster, &master_adr[0]);
 
 	// init game

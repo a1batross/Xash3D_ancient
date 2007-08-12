@@ -256,7 +256,7 @@ mmove_t parasite_move_pain1 = {FRAME_pain101, FRAME_pain111, parasite_frames_pai
 void parasite_pain (edict_t *self, edict_t *other, float kick, int damage)
 {
 	if (self->health < (self->max_health / 2))
-		self->s.skinnum |= 1;
+		self->s.skin |= 1;
 
 	if (level.time < self->pain_debounce_time)
 		return;
@@ -544,7 +544,7 @@ void SP_monster_parasite (edict_t *self)
 	if ( self->style )
 	{
 		PatchMonsterModel("models/monsters/parasite/tris.md2");
-		self->s.skinnum = self->style * 2;
+		self->s.skin = self->style * 2;
 	}
 
 	self->s.modelindex = gi.modelindex ("models/monsters/parasite/tris.md2");

@@ -666,7 +666,6 @@ void VID_CheckChanges (void)
 		cl.refresh_prepped = false;
 		cls.disable_screen = true;
 
-		//Com_sprintf( name, sizeof(name), "bin/render.dll", vid_ref->string );
 		if ( !VID_LoadRefresh( "bin/render.dll" ) )
 		{
 			if ( strcmp (vid_ref->string, "soft") == 0 )

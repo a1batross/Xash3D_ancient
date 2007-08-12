@@ -497,7 +497,7 @@ void mutant_pain (edict_t *self, edict_t *other, float kick, int damage)
 	float	r;
 
 	if (self->health < (self->max_health / 2))
-		self->s.skinnum |= 1;
+		self->s.skin |= 1;
 
 	if (level.time < self->pain_debounce_time)
 		return;
@@ -605,7 +605,7 @@ void mutant_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damag
 	gi.sound (self, CHAN_VOICE, sound_death, 1, ATTN_NORM, 0);
 	self->deadflag = DEAD_DEAD;
 	self->takedamage = DAMAGE_YES;
-	self->s.skinnum = 1;
+	self->s.skin = 1;
 
 	if (random() < 0.5)
 		self->monsterinfo.currentmove = &mutant_move_death1;
@@ -667,7 +667,7 @@ void SP_monster_mutant (edict_t *self)
 	if ( self->style )
 	{
 		PatchMonsterModel("models/monsters/mutant/tris.md2");
-		self->s.skinnum = self->style * 2;
+		self->s.skin = self->style * 2;
 	}
 	
 	self->s.modelindex = gi.modelindex ("models/monsters/mutant/tris.md2");

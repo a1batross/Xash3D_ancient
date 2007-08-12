@@ -252,7 +252,7 @@ void chick_pain (edict_t *self, edict_t *other, float kick, int damage)
 	float	r;
 
 	if (self->health < (self->max_health / 2))
-		self->s.skinnum |= 1;
+		self->s.skin |= 1;
 
 	if (level.time < self->pain_debounce_time)
 		return;
@@ -731,7 +731,7 @@ void SP_monster_chick (edict_t *self)
 	if ( self->style )
 	{
 		PatchMonsterModel("models/monsters/bitch/tris.md2");
-		self->s.skinnum = self->style * 2;
+		self->s.skin = self->style * 2;
 	}
 
 	self->s.modelindex = gi.modelindex ("models/monsters/bitch/tris.md2");

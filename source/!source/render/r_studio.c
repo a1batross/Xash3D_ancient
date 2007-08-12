@@ -1266,15 +1266,11 @@ void R_StudioDrawMeshes ( mstudiotexture_t * ptexture, short *pskinref, int pass
 				if ( r_newrefdef.rdflags & RDF_IRGOGGLES && m_pCurrentEntity->flags & RF_IR_VISIBLE)
 					lv = &irgoggles[0];
 
-				if(m_pCurrentEntity->flags & RF_TRANSLUCENT)
-				{
-					Msg("%s %g\n", m_pCurrentEntity->model->name, m_pCurrentEntity->alpha );
-					qglColor4f( 1.0f, 1.0f, 1.0f, m_pCurrentEntity->alpha );
-				}
-				else qglColor4f( lv[0], lv[1], lv[2], 1.0f );//get light from floor
-
 				if (flags & STUDIO_NF_ADDITIVE)//additive is self-lighting texture
 					qglColor4f( 1.0f, 1.0f, 1.0f, 0.8f );
+				else if(m_pCurrentEntity->flags & RF_TRANSLUCENT)
+					qglColor4f( 1.0f, 1.0f, 1.0f, m_pCurrentEntity->alpha );
+				else qglColor4f( lv[0], lv[1], lv[2], 1.0f );//get light from floor
 
 				av = m_pxformverts[ptricmds[0]];
 

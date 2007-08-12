@@ -273,7 +273,7 @@ mmove_t gunner_move_pain1 = {FRAME_pain101, FRAME_pain118, gunner_frames_pain1, 
 void gunner_pain (edict_t *self, edict_t *other, float kick, int damage)
 {
 	if (self->health < (self->max_health / 2))
-		self->s.skinnum |= 1;
+		self->s.skin |= 1;
 
 	if (level.time < self->pain_debounce_time)
 		return;
@@ -759,7 +759,7 @@ void SP_monster_gunner (edict_t *self)
 	if ( self->style )
 	{
 		PatchMonsterModel("models/monsters/gunner/tris.md2");
-		self->s.skinnum = self->style * 2;
+		self->s.skin = self->style * 2;
 	}
 	
 	self->s.modelindex = gi.modelindex ("models/monsters/gunner/tris.md2");

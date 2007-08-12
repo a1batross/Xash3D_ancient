@@ -1452,7 +1452,7 @@ void PutClientInServer (edict_t *ent)
 
 	// sknum is player num and weapon number
 	// weapon number will be added in changeweapon
-	ent->s.skinnum = ent - g_edicts - 1;
+	ent->s.skin = ent - g_edicts - 1;
 
 	ent->s.frame = 0;
 	VectorCopy (spawn_origin, ent->s.origin);
@@ -1518,7 +1518,7 @@ void PutClientInServer (edict_t *ent)
 		client->newweapon        = NULL;
 		client->machinegun_shots = 0;
 		i = ((client->pers.weapon->weapmodel & 0xff) << 8);
-		ent->s.skinnum = (ent - g_edicts - 1) | i;
+		ent->s.skin = (ent - g_edicts - 1) | i;
 		if (client->pers.weapon->ammo)
 			client->ammo_index = ITEM_INDEX(FindItem(client->pers.weapon->ammo));
 		else

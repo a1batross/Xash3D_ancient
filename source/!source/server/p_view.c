@@ -460,7 +460,6 @@ void SV_CalcBlend (edict_t *ent)
 	}
 
 	// add for powerups
-
 #ifdef JETPACK_MOD
 	if ( ent->client->jetpack )
 	{

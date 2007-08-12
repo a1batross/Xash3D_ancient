@@ -206,7 +206,7 @@ Returns the entity number and the header bits
 =================
 */
 int	bitcounts[32];	/// just for protocol profiling
-int CL_ParseEntityBits (unsigned *bits)
+int CL_ParseEntityBits (uint *bits)
 {
 	unsigned	b, total;
 	int			i;
@@ -230,14 +230,11 @@ int CL_ParseEntityBits (unsigned *bits)
 	}
 
 	// count the bits for net profiling
-	for (i=0 ; i<32 ; i++)
-		if (total&(1<<i))
-			bitcounts[i]++;
+	for (i = 0; i < 32; i++)
+		if (total&(1<<i)) bitcounts[i]++;
 
-	if (total & U_NUMBER16)
-		number = MSG_ReadShort (&net_message);
-	else
-		number = MSG_ReadByte (&net_message);
+	if (total & U_NUMBER16) number = MSG_ReadShort (&net_message);
+	else number = MSG_ReadByte (&net_message);
 
 	*bits = total;
 
@@ -259,71 +256,44 @@ void CL_ParseDelta (entity_state_t *from, entity_state_t *to, int number, int bi
 	VectorCopy (from->origin, to->old_origin);
 	to->number = number;
 
-	if (bits & U_MODEL)
-		to->modelindex = MSG_ReadByte (&net_message);
-	if (bits & U_WEAPONMODEL)
-		to->weaponmodel = MSG_ReadByte (&net_message);
-	if (bits & U_BODY)
-		to->body = MSG_ReadByte (&net_message);
-	if (bits & U_SEQUENCE)
-		to->sequence = MSG_ReadByte (&net_message);
+	if (bits & U_MODEL) to->modelindex = MSG_ReadByte (&net_message);
+	if (bits & U_WEAPONMODEL) to->weaponmodel = MSG_ReadByte (&net_message);
 		
-	if (bits & U_FRAME8)
-		to->frame = MSG_ReadByte (&net_message);
-	if (bits & U_FRAME16)
-		to->frame = MSG_ReadShort (&net_message);
+	if (bits & U_FRAME8 ) to->frame = MSG_ReadByte (&net_message);
+	if (bits & U_FRAME16) to->frame = MSG_ReadShort (&net_message);
 
-	if ((bits & U_SKIN8) && (bits & U_SKIN16))		//used for laser colors
-		to->skinnum = MSG_ReadLong(&net_message);
-	else if (bits & U_SKIN8)
-		to->skinnum = MSG_ReadByte(&net_message);
-	else if (bits & U_SKIN16)
-		to->skinnum = MSG_ReadShort(&net_message);
+	if (bits & U_SKIN8 ) to->skin = MSG_ReadByte(&net_message);
+	if (bits & U_SKIN16) to->skin = MSG_ReadShort(&net_message);
 
 	if ( (bits & (U_EFFECTS8|U_EFFECTS16)) == (U_EFFECTS8|U_EFFECTS16) )
 		to->effects = MSG_ReadLong(&net_message);
-	else if (bits & U_EFFECTS8)
-		to->effects = MSG_ReadByte(&net_message);
-	else if (bits & U_EFFECTS16)
-		to->effects = MSG_ReadShort(&net_message);
+	else if (bits & U_EFFECTS8 ) to->effects = MSG_ReadByte(&net_message);
+	else if (bits & U_EFFECTS16) to->effects = MSG_ReadShort(&net_message);
 
 	if ( (bits & (U_RENDERFX8|U_RENDERFX16)) == (U_RENDERFX8|U_RENDERFX16) )
 		to->renderfx = MSG_ReadLong(&net_message);
-	else if (bits & U_RENDERFX8)
-		to->renderfx = MSG_ReadByte(&net_message);
-	else if (bits & U_RENDERFX16)
-		to->renderfx = MSG_ReadShort(&net_message);
+	else if (bits & U_RENDERFX8 ) to->renderfx = MSG_ReadByte(&net_message);
+	else if (bits & U_RENDERFX16) to->renderfx = MSG_ReadShort(&net_message);
 
-	if (bits & U_ORIGIN1)
-		to->origin[0] = MSG_ReadCoord (&net_message);
-	if (bits & U_ORIGIN2)
-		to->origin[1] = MSG_ReadCoord (&net_message);
-	if (bits & U_ORIGIN3)
-		to->origin[2] = MSG_ReadCoord (&net_message);
+	if (bits & U_ORIGIN1) to->origin[0] = MSG_ReadCoord (&net_message);
+	if (bits & U_ORIGIN2) to->origin[1] = MSG_ReadCoord (&net_message);
+	if (bits & U_ORIGIN3) to->origin[2] = MSG_ReadCoord (&net_message);
 		
-	if (bits & U_ANGLE1)
-		to->angles[0] = MSG_ReadAngle(&net_message);
-	if (bits & U_ANGLE2)
-		to->angles[1] = MSG_ReadAngle(&net_message);
-	if (bits & U_ANGLE3)
-		to->angles[2] = MSG_ReadAngle(&net_message);
+	if (bits & U_ANGLE1) to->angles[0] = MSG_ReadAngle(&net_message);
+	if (bits & U_ANGLE2) to->angles[1] = MSG_ReadAngle(&net_message);
+	if (bits & U_ANGLE3) to->angles[2] = MSG_ReadAngle(&net_message);
 
-	if (bits & U_OLDORIGIN)
-		MSG_ReadPos (&net_message, to->old_origin);
+	if (bits & U_OLDORIGIN) MSG_ReadPos (&net_message, to->old_origin);
 
-	if (bits & U_SOUND)
-		to->sound = MSG_ReadByte (&net_message);
+	if (bits & U_SEQUENCE) to->sequence = MSG_ReadByte (&net_message);
+	if (bits & U_SOLID) to->solid = MSG_ReadShort (&net_message);
+	if (bits & U_ALPHA) to->alpha = MSG_ReadFloat (&net_message);
+	
+	if (bits & U_SOUND) to->sound = MSG_ReadByte (&net_message);
+	if (bits & U_EVENT) to->event = MSG_ReadByte (&net_message);
+	else to->event = 0;
 
-	if (bits & U_EVENT)
-		to->event = MSG_ReadByte (&net_message);
-	else
-		to->event = 0;
-
-	if (bits & U_SOLID)
-		to->solid = MSG_ReadShort (&net_message);
-
-	if (bits & U_ALPHA)
-		to->alpha = MSG_ReadFloat (&net_message);
+	if (bits & U_BODY) to->body = MSG_ReadByte (&net_message);
 }
 
 /*
@@ -825,19 +795,20 @@ struct model_s *S_RegisterSexedModel (entity_state_t *ent, char *base)
 	if (!model[0])
 		strcpy(model, "male");
 
-	Com_sprintf (buffer, sizeof(buffer), "players/%s/%s", model, base+1);
+	sprintf (buffer, "players/%s/%s", model, base+1);
 	mdl = re.RegisterModel(buffer);
 	if (!mdl) {
 		// not found, try default weapon model
-		Com_sprintf (buffer, sizeof(buffer), "players/%s/weapon.md2", model);
+		sprintf (buffer, "players/%s/weapon.md2", model);
 		mdl = re.RegisterModel(buffer);
-		if (!mdl) {
+		if (!mdl)
+		{
 			// no, revert to the male model
-			Com_sprintf (buffer, sizeof(buffer), "players/%s/%s", "male", base+1);
+			sprintf (buffer, "players/%s/%s", "male", base+1);
 			mdl = re.RegisterModel(buffer);
 			if (!mdl) {
 				// last try, default male weapon.md2
-				Com_sprintf (buffer, sizeof(buffer), "players/male/weapon.md2");
+				sprintf (buffer, "players/male/weapon.md2");
 				mdl = re.RegisterModel(buffer);
 			}
 		} 
@@ -951,9 +922,9 @@ void CL_AddPacketEntities (frame_t *frame)
 	
 		// tweak the color of beams
 		if ( renderfx & RF_BEAM )
-		{	// the four beam colors are encoded in 32 bits of skinnum (hack)
+		{	// the four beam colors are encoded in 32 bits of skin (hack)
 			ent.alpha = 0.30;
-			ent.skinnum = (s1->skinnum >> ((rand() % 4)*8)) & 0xff;
+			ent.skin = (s1->skin >> ((rand() % 4)*8)) & 0xff;
 			ent.model = NULL;
 		}
 		else
@@ -961,8 +932,8 @@ void CL_AddPacketEntities (frame_t *frame)
 			// set skin
 			if (s1->modelindex == 255)
 			{	// use custom player skin
-				ent.skinnum = 0;
-				ci = &cl.clientinfo[s1->skinnum & 0xff];
+				ent.skin = 0;
+				ci = &cl.clientinfo[s1->skin & 0xff];
 				ent.image = ci->skin;
 				ent.model = ci->model;
 				if (!ent.image || !ent.model)
@@ -996,7 +967,7 @@ void CL_AddPacketEntities (frame_t *frame)
 			}
 			else
 			{
-				ent.skinnum = s1->skinnum;
+				ent.skin = s1->skin;
 				ent.image = NULL;
 				ent.model = cl.model_draw[s1->modelindex];
 			}
@@ -1105,7 +1076,7 @@ void CL_AddPacketEntities (frame_t *frame)
 		}
 
 		ent.image = NULL;		// never use a custom skin on others
-		ent.skinnum = 0;
+		ent.skin = 0;
 		ent.flags = 0;
 		ent.alpha = 0;
 
@@ -1115,8 +1086,8 @@ void CL_AddPacketEntities (frame_t *frame)
 			if (s1->weaponmodel == 255)
 			{
 				// custom weapon
-				ci = &cl.clientinfo[s1->skinnum & 0xff];
-				i = (s1->skinnum >> 8); // 0 is default weapon model
+				ci = &cl.clientinfo[s1->skin & 0xff];
+				i = (s1->skin >> 8); // 0 is default weapon model
 				if (!cl_vwep->value || i > MAX_CLIENTWEAPONMODELS - 1)
 					i = 0;
 				ent.model = ci->weaponmodel[i];

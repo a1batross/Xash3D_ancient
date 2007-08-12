@@ -69,26 +69,24 @@ cbrushside_t map_brushsides[MAX_MAP_BRUSHSIDES];
 int			numtexinfo;
 mapsurface_t	map_surfaces[MAX_MAP_TEXINFO];
 
-int			numplanes;
+int	numplanes;
 cplane_t	map_planes[MAX_MAP_PLANES+6];		// extra for box hull
 
-int			numnodes;
-cnode_t		map_nodes[MAX_MAP_NODES+6];		// extra for box hull
+int	numnodes;
+cnode_t	map_nodes[MAX_MAP_NODES+6];		// extra for box hull
 
-int			numleafs = 1;	// allow leaf funcs to be called without a map
-cleaf_t		map_leafs[MAX_MAP_LEAFS];
-int			emptyleaf, solidleaf;
+int	numleafs = 1;	// allow leaf funcs to be called without a map
+cleaf_t	map_leafs[MAX_MAP_LEAFS];
+int	emptyleaf, solidleaf;
 
-int			numleafbrushes;
+int	numleafbrushes;
 word	map_leafbrushes[MAX_MAP_LEAFBRUSHES];
 
-int			numcmodels;
+int	numcmodels;
+int	numsmodels; //numcmodels+numsmodels
 cmodel_t	map_cmodels[MAX_MAP_MODELS];
 
-int	numsmodels;
-stmodel_t	studio_models[MAX_MAP_MODELS];
-
-int			numbrushes;
+int	numbrushes;
 cbrush_t	map_brushes[MAX_MAP_BRUSHES];
 
 int			numvisibility;
@@ -138,17 +136,15 @@ void CMod_LoadSubmodels (lump_t *l)
 {
 	dmodel_t	*in;
 	cmodel_t	*out;
-	int			i, j, count;
+	int	i, j, count;
 
 	in = (void *)(cmod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
 		Com_Error (ERR_DROP, "MOD_LoadBmodel: funny lump size");
 	count = l->filelen / sizeof(*in);
 
-	if (count < 1)
-		Com_Error (ERR_DROP, "Map with no models");
-	if (count > MAX_MAP_MODELS)
-		Com_Error (ERR_DROP, "Map has too many models");
+	if (count < 1) Com_Error (ERR_DROP, "Map with no models");
+	if (count > MAX_MAP_MODELS) Com_Error (ERR_DROP, "Map has too many models");
 
 	numcmodels = count;
 
@@ -156,8 +152,9 @@ void CMod_LoadSubmodels (lump_t *l)
 	{
 		out = &map_cmodels[i];
 
-		for (j=0 ; j<3 ; j++)
-		{	// spread the mins / maxs by a pixel
+		for (j = 0; j < 3; j++)
+		{
+			// spread the mins / maxs by a pixel
 			out->mins[j] = LittleFloat (in->mins[j]) - 1;
 			out->maxs[j] = LittleFloat (in->maxs[j]) + 1;
 			out->origin[j] = LittleFloat (in->origin[j]);
@@ -634,28 +631,28 @@ CM_InlineModel
 */
 cmodel_t	*CM_InlineModel (char *name)
 {
-	int		num;
+	int num = atoi (name + 1);
 
-	if (!name || name[0] != '*')
-		Com_Error (ERR_DROP, "CM_InlineModel: bad name");
-	num = atoi (name+1);
 	if (num < 1 || num >= numcmodels)
-		Com_Error (ERR_DROP, "CM_InlineModel: bad number");
+	{
+		Msg("CM_InlineModel: bad number %d\n", num );
+		return NULL;
+	}
 
 	return &map_cmodels[num];
 }
 
-int		CM_NumClusters (void)
+int CM_NumClusters (void)
 {
 	return numclusters;
 }
 
-int		CM_NumInlineModels (void)
+int CM_NumInlineModels (void)
 {
 	return numcmodels;
 }
 
-char	*CM_EntityString (void)
+char *CM_EntityString (void)
 {
 	return map_entitystring;
 }
@@ -896,7 +893,7 @@ int	CM_BoxLeafnums_headnode (vec3_t mins, vec3_t maxs, int *list, int listsize, 
 	return leaf_count;
 }
 
-int	CM_BoxLeafnums (vec3_t mins, vec3_t maxs, int *list, int listsize, int *topnode)
+int CM_BoxLeafnums (vec3_t mins, vec3_t maxs, int *list, int listsize, int *topnode)
 {
 	return CM_BoxLeafnums_headnode (mins, maxs, list,
 		listsize, map_cmodels[0].headnode, topnode);
@@ -1777,52 +1774,28 @@ void CM_LookUpHullSize(vec3_t size, bool down)
 	}
 }
 
-stmodel_t	*CM_StudioModel (char *name)
+cmodel_t *CM_StudioModel (char *name, byte *buffer)
 {
-	int		i;
-	byte		*buffer;
-	stmodel_t		*out;
+	int		i = numcmodels;	// studiomodels starting after bmodels
+	int		max_models = numcmodels + numsmodels;
+	cmodel_t		*out;
 	studiohdr_t	*phdr;
-	char		modname[64]; //probaly this is not better way...
+	char		modname[64];	// probaly this is not better way...
 
-	if (!name[0])
-	{
-		Msg ("CM_StudioModel: NULL name, ignored\n");
-		return NULL;
-	}
-
-	if(!FS_FileExists( name ))
-	{
-		Msg ("CM_StudioModel: %s not found\n", name );
-		return NULL;
-	}
-
-	if(numsmodels > MAX_MAP_MODELS)
-	{
-		Msg ("CM_StudioModel: MAX_MAP_MODELS limit exceeded\n" );
-		return NULL;		
-	}
-
-	buffer = FS_LoadFile (name, NULL );
 	phdr = (studiohdr_t *)buffer;
 
-	if(phdr->id != IDSTUDIOHEADER)
-	{
-		Msg("CM_StudioModel: %s have invalid header\n", name );
-		return NULL;
-	}	
 	if (phdr->version != STUDIO_VERSION)
 	{
 		Msg("CM_StudioModel: %s has wrong version number (%i should be %i)", phdr->name, phdr->version, STUDIO_VERSION);
 		return NULL;
 	}
-
+           
 	memset( modname, 0, sizeof(modname));
 	FS_FileBase( name, modname );
           
-          for(i = 0; i < numsmodels; i++ )
+	for(i = 0; i < max_models; i++ )
           {
-		out = studio_models + i;
+		out = map_cmodels + i;
 
 		//probably is sprite model
 		if(!out->extradata) continue;
@@ -1830,9 +1803,9 @@ stmodel_t	*CM_StudioModel (char *name)
 			return out;
 	} 
 	
-	out = &studio_models[numsmodels];
+	out = &map_cmodels[max_models];
 	out->extradata = buffer;
-	out->numframes = 0;//sprite info
+	out->numframes = 0;//reset sprite info
 	strlcpy(out->name, modname, sizeof(out->name));
 	
 	if(SV_StudioExtractBbox( phdr, 0, out->mins, out->maxs ))
@@ -1843,6 +1816,7 @@ stmodel_t	*CM_StudioModel (char *name)
 	}
 	else
 	{
+		// default size
 		VectorSet(out->mins, -32, -32, -32 );
 		VectorSet(out->maxs,  32,  32,  32 );
 	}
@@ -1850,41 +1824,19 @@ stmodel_t	*CM_StudioModel (char *name)
 	Msg("register new model %s\n", out->name );
 	numsmodels++;
 	
-	return &studio_models[numsmodels];
+	return out;
 }
 
-stmodel_t	*CM_SpriteModel (char *name)
+cmodel_t *CM_SpriteModel (char *name, byte *buffer)
 {
-	int		i;
-	byte		*buffer;
-	stmodel_t		*out;
+	int		i = numcmodels;
+	int		max_models = numcmodels + numsmodels;
+	cmodel_t		*out;
 	dsprite_t		*phdr;
 	char		modname[64]; //probaly this is not better way...
 
-	if (!name[0])
-	{
-		Msg ("CM_SpriteModel: NULL name, ignored\n");
-		return NULL;
-	}
-	if(!FS_FileExists( name ))
-	{
-		Msg ("CM_SpriteModel: %s not found\n", name );
-		return NULL;
-	}
-	if(numsmodels > MAX_MAP_MODELS)
-	{
-		Msg ("CM_SpriteModel: MAX_MAP_MODELS limit exceeded\n" );
-		return NULL;		
-	}
-
-	buffer = FS_LoadFile (name, NULL );
 	phdr = (dsprite_t *)buffer;
 	
-	if(phdr->ident != IDSPRITEHEADER)
-	{
-		Msg("CM_SpriteModel: %s have invalid header\n", name );
-		return NULL;
-	}
 	if(phdr->version != SPRITE_VERSION_HALF || phdr->version != SPRITE_VERSION_XASH)
 	{
 		Msg("CM_SpriteModel: %s has wrong version number (%i should be %i or %i)\n", name, phdr->version, SPRITE_VERSION_HALF, SPRITE_VERSION_XASH);
@@ -1894,9 +1846,9 @@ stmodel_t	*CM_SpriteModel (char *name)
 	memset( modname, 0, sizeof(modname));
 	FS_FileBase( name, modname );
           
-          for(i = 0; i < numsmodels; i++ )
+	for(i = 0; i < max_models; i++ )
           {
-		out = studio_models + i;
+		out = map_cmodels + i;
 
 		//probably is studio model
 		if(!out->numframes) continue;
@@ -1904,7 +1856,7 @@ stmodel_t	*CM_SpriteModel (char *name)
 			return out;
 	} 
 	
-	out = &studio_models[numsmodels];
+	out = &map_cmodels[max_models];
 	out->numframes = phdr->numframes;
 	strlcpy(out->name, modname, sizeof(out->name));
 
@@ -1912,10 +1864,48 @@ stmodel_t	*CM_SpriteModel (char *name)
 	out->maxs[0] = out->maxs[1] = phdr->width / 2;
 	out->mins[2] = -phdr->height / 2;
 	out->maxs[2] = phdr->height / 2;
-	Z_Free( &buffer );//no need to keep this data
 	
 	Msg("register new sprite %s\n", out->name );
 	numsmodels++;
 	
-	return &studio_models[numsmodels];
+	return out;
+}
+
+cmodel_t *CM_LoadModel (char *name)
+{
+	byte		*buffer;
+	cmodel_t		*mod = NULL;
+
+	if (!name[0])
+	{
+		Msg ("CM_LoadModel: NULL name, ignored\n");
+		return NULL;
+	}
+
+	if(name[0] == '*') return CM_InlineModel (name);
+	if(!FS_FileExists( name ))
+	{
+		Msg ("CM_LoadModel: %s not found\n", name );
+		return NULL;
+	}
+	if(numcmodels + numsmodels > MAX_MAP_MODELS)
+	{
+		Msg ("CM_LoadModel: MAX_MAP_MODELS limit exceeded\n" );
+		return NULL;		
+	}
+	
+	buffer = FS_LoadFile (name, NULL );
+
+	// call the apropriate loader
+	switch (LittleLong(*(uint *)buffer))
+	{
+	case IDSTUDIOHEADER:
+		mod = CM_StudioModel( name, buffer );
+		break;
+	case IDSPRITEHEADER:
+		mod = CM_SpriteModel( name, buffer );
+		break;
+	}
+
+	return mod;
 }

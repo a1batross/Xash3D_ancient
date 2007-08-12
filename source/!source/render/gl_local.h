@@ -372,7 +372,7 @@ void GL_ScreenShot_f (void);
 void R_DrawAliasModel( int passnum );
 void R_DrawStudioModel( int passnum );
 void R_DrawBrushModel( int passnum );
-void R_SpriteDrawModel( int passnum );
+void R_DrawSpriteModel( int passnum );
 void R_StudioLoadModel (model_t *mod, void *buffer );
 void R_SpriteLoadModel( model_t *mod, void *buffer );
 char *R_ExtName( model_t *mod );

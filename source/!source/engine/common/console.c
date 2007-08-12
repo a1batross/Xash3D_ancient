@@ -153,7 +153,7 @@ void Con_Dump_f (void)
 		return;
 	}
 
-	Com_sprintf (name, sizeof(name), "%s.txt", Cmd_Argv(1));
+	sprintf (name, "%s.txt", Cmd_Argv(1));
 
 	Msg ("Dumped console text to %s.\n", name);
 	f = FS_Open (name, "w");
@@ -583,12 +583,12 @@ void Con_DrawConsole (float frac)
 	if (lines > viddef.height)
 		lines = viddef.height;
 
-// draw the background
+	// draw the background
 	re.DrawStretchPic (0, -viddef.height+lines, viddef.width, viddef.height, "conback");
 	SCR_AddDirtyPoint (0,0);
 	SCR_AddDirtyPoint (viddef.width-1,lines-1);
 
-	Com_sprintf (version, sizeof(version), "v%4.2f", VERSION);
+	sprintf (version, "v%4.2f", VERSION);
 	for (x=0 ; x<5 ; x++)
 		re.DrawChar (viddef.width-44+x*8, lines-12, 128 + version[x] );
 

@@ -706,7 +706,7 @@ void G_FindCraneParts()
 			cable->s.origin[2] = hoist->absmax[2] - 2;
 			cable->model = "models/cable/tris.md2";
 			gi.setmodel(cable,cable->model);
-			cable->s.skinnum = 0;
+			cable->s.skin = 0;
 			length = hoist->absmax[2]-1 - hook->absmax[2];
 			frame = (int)(length/CABLE_SEGMENT);
 			if((frame+1)*CABLE_SEGMENT < length) frame++;

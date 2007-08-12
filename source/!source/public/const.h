@@ -225,7 +225,6 @@ void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, 
 
 
 
-void Com_sprintf (char *dest, int size, char *fmt, ...);
 void Com_PageInMemory (byte *buffer, int size);
 
 //=============================================
@@ -956,10 +955,10 @@ typedef struct entity_state_s
 	int		modelindex;
 	int		weaponmodel;
 
-	int		body;			// sub-model selection for studiomodels
-	int		sequence;			// animation sequence
-	int		frame;			// % playback position in animation sequences (0..255)
-	int		skinnum;
+	short		skin;			// skin for studiomodels
+	short		frame;			// % playback position in animation sequences (0..512)
+	byte		body;			// sub-model selection for studiomodels
+	byte		sequence;			// animation sequence (0 - 255)
 	uint		effects;			// PGM - we're filling it, so it needs to be unsigned
 	int		renderfx;
 	int		solid;			// for client side prediction, 8*(bits 0-4) is x/y radius
