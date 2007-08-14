@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <basetypes.h>
-#include <ref_launcher.h>
 #include <ref_system.h>
 
 #include "mxtk.h"

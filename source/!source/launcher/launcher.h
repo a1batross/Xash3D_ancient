@@ -11,7 +11,6 @@
 #include <winreg.h>
 #include <fcntl.h>
 #include <basetypes.h>
-#include <ref_launcher.h>
 #include <ref_system.h>
 
 //import variables
@@ -33,6 +32,7 @@ void ( *Host_Free ) ( void );	//close host
 extern HINSTANCE base_hInstance;
 extern HINSTANCE linked_dll;
 extern bool debug_mode;
+extern bool log_active;
 extern int com_argc;
 extern char *com_argv[MAX_NUM_ARGVS];
 extern bool console_read_only;
@@ -40,6 +40,7 @@ extern bool show_always;
 char *va(const char *format, ...);
 static int sys_error = false;
 
+const char* Log_Timestamp( void );
 int CheckParm (const char *parm);
 void ParseCommandLine (LPSTR lpCmdLine);
 void UpdateEnvironmentVariables( void );

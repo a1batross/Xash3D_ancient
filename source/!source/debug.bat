@@ -54,5 +54,5 @@ if exist server\server.plg del /f /q server\server.plg
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading
 cd D:\Xash3D\
-xash.exe +map lighttest
+xash.exe -game valve +map lighttest
 :done

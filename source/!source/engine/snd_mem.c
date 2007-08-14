@@ -117,25 +117,14 @@ sfxcache_t *S_LoadSound (sfx_t *s)
 	//Msg ("S_LoadSound: %x\n", (int)stackbuf);
 
 	// load it in
-	if (s->truename)
-		name = s->truename;
-	else
-		name = s->name;
+	if (s->truename) name = s->truename;
+	else name = s->name;
 
-	if (name[0] == '#')
-		strcpy(namebuffer, &name[1]);
+	if (name[0] == '#') strcpy(namebuffer, &name[1]);
 	else sprintf (namebuffer, "sound/%s", name);
-
-	//Msg ("loading %s\n",namebuffer);
-
 	data = FS_LoadFile (namebuffer, &size);
 
-	if (!data)
-	{
-		MsgDev ("Couldn't load %s\n", namebuffer);
-		return NULL;
-	}
-
+	if (!data) return NULL;
 	info = GetWavinfo (s->name, data, size);
 	if (info.channels != 1)
 	{

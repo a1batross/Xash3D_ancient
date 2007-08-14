@@ -240,7 +240,13 @@ void *Sys_GetGameAPI (const char* procname, void *parms)
 	{
 		sprintf(basepath, "%s/%s", GI.gamedir, gamedll->filenames[i]);
 		game_library = LoadLibrary ( basepath );
-		
+
+		if (!game_library)
+		{
+			sprintf(basepath, "%s/%s", GI.basedir, gamedll->filenames[i]);		
+			game_library = LoadLibrary ( basepath );
+                    }
+
 		if (game_library)
 		{
 			MsgDev ("LoadLibrary (%s)\n", basepath );
@@ -270,15 +276,15 @@ DllMain
 
 ==================
 */
-host_api_t DLLEXPORT CreateAPI( stdinout_api_t histd )
+launcher_exp_t DLLEXPORT CreateAPI( stdinout_api_t histd )
 {
-	host_api_t hi;
+	static launcher_exp_t Host;
 
 	std = histd;
 
-	hi.host_init = Host_Init;
-	hi.host_main = Host_Main;
-	hi.host_free = Host_Free;
+	Host.Init = Host_Init;
+	Host.Main = Host_Main;
+	Host.Free = Host_Free;
 
-	return hi;
+	return Host;
 }

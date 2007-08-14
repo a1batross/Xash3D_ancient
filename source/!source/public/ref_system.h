@@ -8,9 +8,13 @@
 #include "studio.h"
 #include "sprite.h"
 #include "bspmodel.h" 
+#include "version.h"
+
 
 #define RENDERER_API_VERSION	4
 #define PLATFORM_API_VERSION	2
+#define LAUNCHER_API_VERSION	2
+
 
 //bsplib compile flags
 #define BSP_ONLYENTS	0x01
@@ -322,7 +326,6 @@ typedef struct filesystem_api_s
 
 	//built-in search interface
 	search_t *(*Search)(const char *pattern, int casecmp );	// returned list of found files
-	search_t *(*SearchDirs)(const char *pattern, int casecmp );	// returned list of found directories
 	void (*FreeSearch)( search_t *search );			// free search results
 
 	//file low-level operations
@@ -513,6 +516,24 @@ typedef struct cvar_api_s
 /*
 ==============================================================================
 
+LAUNCHER.DLL INTERFACE
+==============================================================================
+*/
+typedef struct launcher_exp_s
+{
+	//interface validator
+	int	apiversion;	// must matched with LAUNCHER_API_VERSION
+	size_t	api_size;		// must matched with sizeof(launcher_api_t)
+
+	void ( *Init ) ( char *funcname, int argc, char **argv ); // init host
+	void ( *Main ) ( void ); // host frame
+	void ( *Free ) ( void ); // close host
+
+} launcher_exp_t;
+
+/*
+==============================================================================
+
 PLATFORM.DLL INTERFACE
 ==============================================================================
 */
@@ -524,7 +545,7 @@ typedef struct platform_exp_s
 	size_t	api_size;		// must matched with sizeof(platform_api_t)
 
 	// initialize
-	bool (*Init)( void );	// init all platform systems
+	bool (*Init)( int argc, char **argv );	// init all platform systems
 	void (*Shutdown)( void );	// shutdown all platform systems
 
 	//platform systems
@@ -556,8 +577,8 @@ RENDERER.DLL INTERFACE
 typedef struct renderer_exp_s
 {
 	//interface validator
-	int	apiversion;	// must matched with PLATFORM_API_VERSION
-	size_t	api_size;		// must matched with sizeof(platform_api_t)
+	int	apiversion;	// must matched with RENDERER_API_VERSION
+	size_t	api_size;		// must matched with sizeof(renderer_exp_t)
 
 	// initialize
 	bool (*Init)( void *hInstance, void *WndProc );	// init all renderer systems
@@ -631,5 +652,6 @@ typedef struct renderer_imp_s
 // this is the only function actually exported at the linker level
 typedef renderer_exp_t (*renderer_t)( renderer_imp_t );
 typedef platform_exp_t (*platform_t)( stdinout_api_t );
+typedef launcher_exp_t (*launcher_t)( stdinout_api_t );
 
 #endif//REF_SYSTEM_H

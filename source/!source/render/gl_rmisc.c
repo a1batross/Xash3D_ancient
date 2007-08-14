@@ -61,7 +61,7 @@ void R_InitParticleTexture (void)
 	r_tex.width = 8;
 	r_tex.height = 8;
 	r_tex.type = PF_PROCEDURE_TEX;
-	r_tex.flags |= IMAGE_HAS_ALPHA;
+	r_tex.flags = IMAGE_HAS_ALPHA;
 	r_tex.numMips = 1;
 	r_tex.palette = NULL;
 	r_tex.buffer = (byte *)data;

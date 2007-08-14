@@ -335,7 +335,7 @@ void CL_ParseServerData (void)
 	{
 		// seperate the printfs so the server message can have a color
 		Msg("\n\n\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n\n");
-		Msg ("%c%s\n", 2, str);
+		Msg ("^3%s\n", str);
 
 		// need to prep refresh at next oportunity
 		cl.refresh_prepped = false;

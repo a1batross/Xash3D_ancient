@@ -12,12 +12,11 @@
 #include "image.h"
 #include "basemem.h"
 #include <ref_system.h>
-#include <ref_launcher.h>
 
 //=====================================
 //	platform export
 //=====================================
-bool InitPlatform ( void );
+bool InitPlatform ( int argc, char **argv );
 void ClosePlatform ( void );
 void Plat_InitCPU( void );
 double Plat_DoubleTime( void );

@@ -21,8 +21,6 @@
 #include "basemath.h"
 #include "qfiles.h"
 #include <ref_system.h>
-#include <ref_launcher.h>
-#include <ref_renderer.h>
 #include "bspmodel.h"
 #include "const.h"
 #include "common.h"

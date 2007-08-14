@@ -50,7 +50,7 @@ void *R_SpriteLoadFrame (model_t *mod, void *pin, mspriteframe_t **ppframe, int 
           pspriteframe->texnum = 0;
 	r_frame.type = PF_INDEXED_32;
 	r_frame.numMips = 1;
-	r_frame.flags |= IMAGE_HAS_ALPHA;
+	r_frame.flags = IMAGE_HAS_ALPHA;
 	
 	//extract sprite name from path
 	FS_FileBase( mod->name, name );
@@ -195,7 +195,7 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 
 	mod->numframes = mod->numtexinfo = numframes;
 	mod->registration_sequence = registration_sequence;
-	
+
 	for (i = 0; i < numframes; i++ )
 	{
 		int frametype;

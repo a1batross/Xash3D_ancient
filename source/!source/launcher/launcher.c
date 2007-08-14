@@ -8,7 +8,23 @@
 
 static int app_name;
 bool hooked_out = false;
+bool log_active = false;
 bool show_always = true;
+char dllname[64];
+
+//app name
+typedef enum 
+{
+	DEFAULT =	0,	// host_init( funcname *arg ) same much as:
+	HOST_SHARED,	// "host_shared"
+	HOST_DEDICATED,	// "host_dedicated"
+	HOST_EDITOR,	// "host_editor"
+	HOST_COMPILERS,	// marker
+	BSPLIB,		// "bsplib"
+	SPRITE,		// "sprite"
+	STUDIO,		// "studio"
+	CREDITS,		// misc
+};
 
 int com_argc;
 char *com_argv[MAX_NUM_ARGVS];
@@ -47,11 +63,13 @@ void LookupInstance( const char *funcname )
 		console_read_only = true;
 		//don't show console as default
 		if(!debug_mode) show_always = false;
+		strcpy(dllname, "bin/engine.dll" );
 	}
 	else if(!strcmp(progname, "host_dedicated"))
 	{
 		app_name = HOST_DEDICATED;
 		console_read_only = false;
+		strcpy(dllname, "bin/engine.dll" );
 	}
 	else if(!strcmp(progname, "host_editor"))
 	{
@@ -59,18 +77,22 @@ void LookupInstance( const char *funcname )
 		console_read_only = true;
 		//don't show console as default
 		if(!debug_mode) show_always = false;
+		strcpy(dllname, "bin/editor.dll" );
 	}
 	else if(!strcmp(progname, "bsplib"))
 	{
 		app_name = BSPLIB;
+		strcpy(dllname, "bin/platform.dll" );
 	}
 	else if(!strcmp(progname, "sprite"))
 	{
 		app_name = SPRITE;
+		strcpy(dllname, "bin/platform.dll" );
 	}
 	else if(!strcmp(progname, "studio"))
 	{
 		app_name = STUDIO;
+		strcpy(dllname, "bin/platform.dll" );
 	}
 	else if(!strcmp(progname, "credits")) //easter egg
 	{
@@ -97,7 +119,7 @@ void PlatformInit ( char *funcname, int argc, char **argv )
 	if(pi->api_size != sizeof(platform_exp_t))
 		Sys_Error("mismatch interface size (%i should be %i)\n", pi->api_size, sizeof(platform_exp_t));		
 
-	pi->Init();
+	pi->Init( argc, argv );
 
 	if(!GetParmFromCmdLine("-game", gamedir ))
 		strncpy(gamedir, "xash", sizeof(gamedir));
@@ -154,6 +176,7 @@ void PlatformMain ( void )
 		strcpy(typemod, "things" );
 		break;
 	}
+
 	if(!CompileMod) return;//back to shutdown
 
 	mempool = Mem_AllocPool("compiler");
@@ -191,16 +214,14 @@ Find needed library, setup and run it
 */
 void CreateInstance( void )
 {
+	
 	stdinout_api_t  std;//import
 
 	//export
 	platform_exp_t	*(*CreatePLAT)( stdinout_api_t *);
 
-	host_t		CreateHOST;
-	host_api_t	hi;          
-
-	edit_api_t	*(*CreateEDIT)( stdinout_api_t *);
-	edit_api_t	*ei;
+	launcher_t	CreateHost;
+	launcher_exp_t	Host;          
 	
 	//setup sysfuncs
 	std.printf = Msg;
@@ -214,36 +235,25 @@ void CreateInstance( void )
 	{
 	case HOST_SHARED:
 	case HOST_DEDICATED:
-		if (( linked_dll = LoadLibrary( "bin/engine.dll" )) == 0 )
-			Sys_Error("couldn't load engine.dll\n");
-		if ((CreateHOST = (void *)GetProcAddress( linked_dll, "CreateAPI" ) ) == 0 )
-			Sys_Error("unable to find entry point\n");
-		//set callback
-		hi = CreateHOST( std );
+	case HOST_EDITOR:		
+		if (( linked_dll = LoadLibrary( dllname )) == 0 )
+			Sys_Error("CreateInstance: couldn't load %s\n", dllname );
+		if ((CreateHost = (void *)GetProcAddress( linked_dll, "CreateAPI" ) ) == 0 )
+			Sys_Error("CreateInstance: %s has no valid entry point\n", dllname );
 
-		Host_Init = hi.host_init;
-		Host_Main = hi.host_main;
-		Host_Free = hi.host_free;
-		break;
-	case HOST_EDITOR:
-		if (( linked_dll = LoadLibrary( "bin/editor.dll" )) == 0 )
-			Sys_Error("couldn't load editor.dll\n");
-		if ((CreateEDIT = (void *)GetProcAddress( linked_dll, "CreateAPI" ) ) == 0 )
-			Sys_Error("unable to find entry point\n");
 		//set callback
-		ei = CreateEDIT( &std );
-
-		Host_Init = ei->editor_init;
-		Host_Main = ei->editor_main;
-		Host_Free = ei->editor_free;
+		Host = CreateHost( std );
+		Host_Init = Host.Init;
+		Host_Main = Host.Main;
+		Host_Free = Host.Free;
 		break;
 	case BSPLIB:
 	case SPRITE:
 	case STUDIO:
 		if (( linked_dll = LoadLibrary( "bin/platform.dll" )) == 0 )
-			Sys_Error("couldn't load platform.dll\n");
+			Sys_Error("CreateInstance: couldn't load bin/platform.dll\n");
 		if ((CreatePLAT = (void *)GetProcAddress( linked_dll, "CreateAPI" )) == 0 )
-			Sys_Error("unable to find entry point\n");
+			Sys_Error("CreateInstance: bin/platform.dll has no valid entry point\n");
 		//set callback
 		pi = CreatePLAT( &std );
 
@@ -255,13 +265,12 @@ void CreateInstance( void )
 		//blank
 		break;
 	case DEFAULT:
-		Sys_Error("unsupported instance\n");		
+		Sys_Error("CreateInstance: unsupported instance\n");		
 		break;
 	}
 
 	//that's all right, mr. freeman
 	Host_Init( progname, com_argc, com_argv );//init our host now!
-	MsgDev("\"%s\" initialized\n", progname );
 
 	//hide console if needed
 	switch(app_name)
@@ -293,32 +302,21 @@ void API_Reset( void )
 	MsgDev = NullVarArgs;
 }
 
-void Sys_LastError( void )
-{
-	//Sys_Error( GetLastError() );
-}
-
-
 void API_SetConsole( void )
 {
-	if( hooked_out && app_name > HOST_EDITOR)
+	if( !hooked_out && app_name < HOST_COMPILERS)
 	{
-		Sys_Print = printf;
-	}
-          else
-          {
 		Sys_InitConsole = Sys_CreateConsoleW;
 		Sys_FreeConsole = Sys_DestroyConsoleW;
           	Sys_ShowConsole = Sys_ShowConsoleW;
 		Sys_Print = Sys_PrintW;
 		Sys_Input = Sys_InputW;
 	}
-
-	Sys_Error = Sys_ErrorW;
-	//unexpected_handler = Sys_LastError;
+	else Sys_Print = printf;
 
 	Msg = Sys_MsgW;
 	MsgDev = Sys_MsgDevW;
+	Sys_Error = Sys_ErrorW;
 }
 
 
@@ -326,7 +324,7 @@ void InitLauncher( char *funcname )
 {
 	HANDLE hStdout;
 	
-	API_Reset();//filled std api
+	API_Reset();//filled stdinout api
 	
 	//get current hInstance first
 	base_hInstance = (HINSTANCE)GetModuleHandle( NULL );
@@ -335,6 +333,7 @@ void InitLauncher( char *funcname )
 	hStdout = GetStdHandle (STD_OUTPUT_HANDLE);
 
 	if(CheckParm ("-debug")) debug_mode = true;
+	if(CheckParm ("-log")) log_active = true;
 	if(abs((short)hStdout) < 100) hooked_out = false;
 	else hooked_out = true;
           
@@ -344,15 +343,16 @@ void InitLauncher( char *funcname )
 	API_SetConsole(); //initialize system console
 	Sys_InitConsole();
 
+	// set working directory
 	UpdateEnvironmentVariables();
 
-	MsgDev("launcher.dll version %g\n", LAUNCHER_VERSION );
+	// first text message into console or log
+	Msg("\n------- Loading bin/launcher.dll [%g] -------\n\n", LAUNCHER_VERSION );
 	CreateInstance();
 
 	//NOTE: host will working in loop mode and never returned
 	//control without reason
 	Host_Main();//ok, starting host
-
 	Sys_Exit();//normal quit from appilcation
 }
 
@@ -366,7 +366,6 @@ DLLEXPORT int CreateAPI( char *funcname, LPSTR lpCmdLine )
 {
 	//parse and copy args into local array
 	ParseCommandLine( lpCmdLine );
-	
 	InitLauncher( funcname );
 
 	return 0;

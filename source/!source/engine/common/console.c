@@ -358,13 +358,12 @@ void Con_Print (char *txt)
 	if (!con.initialized)
 		return;
 
-	if (txt[0] == 1 || txt[0] == 2)
+	if (txt[0] == '^' && txt[1] == '3') // default Darkplace color code
 	{
-		mask = 128;		// go to colored text
-		txt++;
+		mask = 128;	// go to colored text
+		txt += 2;
 	}
-	else
-		mask = 0;
+	else mask = 0;
 
 
 	while ( (c = *txt) )

@@ -2537,7 +2537,7 @@ bool CreateMapsList( void )
 
 			//make string
 			sprintf(string, "%s \"%s\"\r", mapname, message );
-			strlcat(buffer, string, sizeof(string));//add new string
+			strcat(buffer, string);//add new string
 		}
 	}
 	if( t ) Z_Free(t);
@@ -2596,8 +2596,8 @@ void StartServer_MenuInit( void )
 
 	for ( i = 0; i < nummaps; i++ )
 	{
-    char  shortname[MAX_TOKEN_CHARS];
-    char  longname[MAX_TOKEN_CHARS];
+		char  shortname[MAX_TOKEN_CHARS];
+		char  longname[MAX_TOKEN_CHARS];
 		char  scratch[200];
 		int		j, l;
 

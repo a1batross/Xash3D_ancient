@@ -22,7 +22,6 @@ void SCR_EndLoadingPlaque (void);
 HINSTANCE	global_hInstance;
 HINSTANCE	platform_dll;
 
-cvar_t	*logfile_active;	// 1 = buffer log, 2 = flush after each print
 cvar_t	*timescale;
 cvar_t	*fixedtime;
 cvar_t	*showtrace;
@@ -36,6 +35,7 @@ void Host_InitPlatform( char *funcname, int argc, char **argv )
 
 	//platform dll
 	COM_InitArgv (argc, argv);
+	if (COM_CheckParm ("-debug")) host_debug = 1;
 
 	//make callbacks
 	pistd.printf = Msg;
@@ -60,11 +60,9 @@ void Host_InitPlatform( char *funcname, int argc, char **argv )
 
 	if(pi->api_size != sizeof(platform_exp_t))
 		Sys_Error("mismatch interface size (%i should be %i)\n", pi->api_size, sizeof(platform_exp_t));
-
-	Msg("Platform.dll version %d\n", pi->apiversion );
 	
 	//initialize our platform :)
-	pi->Init();
+	pi->Init( argc, argv );
 
 	//TODO: init basedir here
 	pi->LoadGameInfo("gameinfo.txt");
@@ -94,8 +92,9 @@ void Host_Init (char *funcname, int argc, char **argv)
 	if (setjmp (abortframe)) Sys_Error ("Error during initialization");
           
           if(!strcmp(funcname, "host_dedicated"))is_dedicated = true;
-	
 	Host_InitPlatform( funcname, argc, argv );
+
+	Msg("\n------- Loading bin/engine.dll [%g] -------\n\n", ENGINE_VERSION );
 	
 	Cbuf_Init ();
 
@@ -127,7 +126,6 @@ void Host_Init (char *funcname, int argc, char **argv)
 	developer = Cvar_Get ("developer", "0", 0);
 	timescale = Cvar_Get ("timescale", "1", 0);
 	fixedtime = Cvar_Get ("fixedtime", "0", 0);
-	logfile_active = Cvar_Get ("logfile", "0", 0);
 	showtrace = Cvar_Get ("showtrace", "0", 0);
 	if(is_dedicated) dedicated = Cvar_Get ("dedicated", "1", CVAR_NOSET);
 	else dedicated = Cvar_Get ("dedicated", "0", CVAR_NOSET);
@@ -135,8 +133,6 @@ void Host_Init (char *funcname, int argc, char **argv)
 	s = va("%4.2f %s %s %s", VERSION, "x86", __DATE__, BUILDSTRING);
 	Cvar_Get ("version", s, CVAR_SERVERINFO|CVAR_NOSET);
 
-
-	if (developer->value || COM_CheckParm ("-debug")) host_debug = 1;
 	if (dedicated->value) Cmd_AddCommand ("quit", Com_Quit);
 
 	Sys_Init();

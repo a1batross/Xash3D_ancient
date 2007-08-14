@@ -1099,9 +1099,7 @@ void Plat_InitCPU( void )
 		szFrequencyDenomination = "Ghz";
 	}
 
-	strcpy( szFeatureString, cpu.m_szCPUID );
-	strcat( szFeatureString, " " );
-	
+	strcpy(szFeatureString, "" ); 
 	if( cpu.m_bMMX ) strcat(szFeatureString, "MMX " );
 	if( cpu.m_b3DNow ) strcat(szFeatureString, "3DNow " );
 	if( cpu.m_bSSE ) strcat(szFeatureString, "SSE " );
@@ -1114,15 +1112,15 @@ void Plat_InitCPU( void )
 	szFeatureString[strlen(szFeatureString)-1] = '\0';
 
 	// Dump CPU information:
-	if( cpu.m_usNumLogicCore == 1 ) Msg( "1 CPU, " );
+	if( cpu.m_usNumLogicCore == 1 ) Msg( "CPU: %s [1 core]. Frequency: %.01f %s\n", cpu.m_szCPUID, fFrequency, szFrequencyDenomination );
 	else
 	{
 		char buffer[256] = "";
 		if( cpu.m_usNumPhysCore != cpu.m_usNumLogicCore )
 			sprintf(buffer, " (%i physical)", (int) cpu.m_usNumPhysCore );
-		Msg( "%i CPUs%s, ",  (int)cpu.m_usNumLogicCore, buffer );
+		Msg( "CPU: %s [%i core's %s]. Frequency: %.01f %s\n ", cpu.m_szCPUID, (int)cpu.m_usNumLogicCore, buffer, fFrequency, szFrequencyDenomination );
 	}
-	Msg("Frequency: %.01f %s\nCPU Features: %s\n", fFrequency, szFrequencyDenomination, szFeatureString );
+	MsgDev("CPU Features: %s\n", szFeatureString );
 }
 
 /*

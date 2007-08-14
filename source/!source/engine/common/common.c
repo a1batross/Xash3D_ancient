@@ -30,14 +30,12 @@ int	com_argc;
 char	*com_argv[MAX_NUM_ARGVS+1];
 int	realtime;
 
-file_t	*logfile;
 file_t	*log_stats_file;
 
 cvar_t	*host_speeds;
 cvar_t	*log_stats;
 cvar_t	*developer;
 cvar_t	*dedicated;
-extern	cvar_t *logfile_active;
 
 int	server_state;
 
@@ -138,12 +136,6 @@ void Com_Error (int code, char *fmt, ...)
 		CL_Shutdown ();
 	}
 
-	if (logfile)
-	{
-		FS_Close (logfile);
-		logfile = NULL;
-	}
-
 	std.error("%s", msg);
 }
 
@@ -176,17 +168,6 @@ void Com_Printf (char *fmt, ...)
 	}
 		
 	Con_Print (msg);
-          
-	// logfile
-	if (logfile_active && logfile_active->value)
-	{
-		if (!logfile)
-		{
-			if (logfile_active->value > 1) logfile = FS_Open ("console.log", "a");
-			else logfile = FS_Open ("console.log", "w");
-		}
-		if (logfile) FS_Printf (logfile, "%s", msg);
-	}
 }
 
 
@@ -223,12 +204,6 @@ void Com_Quit (void)
 {
 	SV_Shutdown ("Server quit\n", false);
 	CL_Shutdown ();
-
-	if (logfile)
-	{
-		FS_Close (logfile);
-		logfile = NULL;
-	}
 
 	Sys_Quit ();
 }

@@ -13,15 +13,15 @@ DllMain
 
 ==================
 */
-edit_api_t DLLEXPORT *CreateAPI( stdinout_api_t *input )
+launcher_exp_t DLLEXPORT CreateAPI( stdinout_api_t input )
 {
-	static edit_api_t ei;
+	static launcher_exp_t Editor;
 
-	std = *input;
+	std = input;
 
-	ei.editor_init = InitEditor;
-	ei.editor_main = EditorMain;
-	ei.editor_free = FreeEditor;
+	Editor.Init = InitEditor;
+	Editor.Main = EditorMain;
+	Editor.Free = FreeEditor;
 
-	return &ei;
+	return Editor;
 }

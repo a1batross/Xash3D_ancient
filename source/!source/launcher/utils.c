@@ -3,11 +3,33 @@
 //			utils.c - shared launcher utils
 //=======================================================================
 
+#include <time.h>
 #include "launcher.h"
 
 char sys_rootdir[ MAX_SYSPATH ];
 bool debug_mode = false;
 bool console_read_only = true;
+
+/*
+====================
+Log_Timestamp
+====================
+*/
+const char* Log_Timestamp( void )
+{
+	static char timestamp [128];
+	time_t crt_time;
+	const struct tm *crt_tm;
+	char timestring [64];
+
+	// Build the time stamp (ex: "Apr03 2007 [23:31:55]");
+	time (&crt_time);
+	crt_tm = localtime (&crt_time);
+	strftime (timestring, sizeof (timestring), "%b%d %Y [%H:%M:%S]", crt_tm);
+          strcpy( timestamp, timestring );
+
+	return timestamp;
+}
 
 /*
 ==================
@@ -168,25 +190,22 @@ void GetBaseDir( char *pszBuffer, char *out )
 
 void ReadEnvironmentVariables( char *pPath )
 {
+	// get basepath from registry
 	REG_GetValue(HKEY_LOCAL_MACHINE, "System\\CurrentControlSet\\Control\\Session Manager\\Environment", "Xash3D", pPath );
-	MsgDev( "Get environment variables\n" );
 }
 
 void SaveEnvironmentVariables( char *pPath )
 {
-	Msg("Path from registry is invalid, registry path was updated!\n");
+	// save new path
 	REG_SetValue(HKEY_LOCAL_MACHINE, "System\\CurrentControlSet\\Control\\Session Manager\\Environment", "Xash3D", pPath );
 	SendMessageTimeout( HWND_BROADCAST, WM_SETTINGCHANGE, 0, 0, SMTO_NORMAL, 10, NULL);//system update message
-	MsgDev("Update environment variables\n" );
 }
 
 static void BuildPath( char *pPath, char *pOut )
 {
-	static int level;
+	// set working directory
 	SetCurrentDirectory ( pPath );
 	sprintf( pOut, "%s\\bin\\launcher.dll", pPath );
-	MsgDev( "step%d: %s\n", level, pPath );
-	level++;
 }
 
 void UpdateEnvironmentVariables( void )

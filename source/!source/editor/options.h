@@ -10,7 +10,7 @@
 typedef struct wnd_options_s
 {
 	int	id;	//must be "IDRV"
-	int	version;
+	float	version;
 	size_t	csize;
 	float	con_scale;
 	float	exp_scale;

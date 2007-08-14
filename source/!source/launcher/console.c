@@ -6,6 +6,7 @@
 #include "launcher.h"
 
 HINSTANCE	base_hInstance;
+FILE	*logfile;
 
 /*
 ===============================================================================
@@ -203,9 +204,9 @@ void Sys_PrintW(const char *pMsg)
 			b[1] = '\n';
 			b += 2;
 		}
-		else if ( IsColorString( &msg[i] ) )
+		else if ( IsColorString( &msg[i] ))
 		{
-			i++;
+			i++; //skip color suffix
 		}
 		else
 		{
@@ -223,6 +224,24 @@ void Sys_PrintW(const char *pMsg)
 	{
 		SendMessage( s_wcd.hwndBuffer, EM_SETSEL, 0, -1 );
 		s_totalChars = bufLen;
+	}
+
+	// logfile
+	if (log_active)
+	{
+		if (!logfile) 
+		{
+			logfile = fopen ("engine.log", "w");
+			fprintf (logfile, "=======================================================================\n" );
+			fprintf (logfile, "\t\tXash3D started at %s\n", Log_Timestamp());
+			fprintf (logfile, "=======================================================================\n");
+			
+		}
+		if (logfile) 
+		{
+			fprintf (logfile, "%s", msg );
+			fflush (logfile); // force it to save every time
+		}
 	}
 
 	// put this text into the windows console
@@ -385,6 +404,15 @@ void Sys_DestroyConsoleW( void )
 		ShowWindow( s_wcd.hWnd, SW_HIDE );
 		DestroyWindow( s_wcd.hWnd );
 		s_wcd.hWnd = 0;
+	}
+
+	if (logfile)
+	{
+		fprintf (logfile, "\n=======================================================================" );
+		fprintf (logfile, "\n\t\tXash3D stopped at %s\n", Log_Timestamp());
+		fprintf (logfile, "=======================================================================");
+		fclose (logfile);
+		logfile = NULL;
 	}
 
 	UnregisterClass (SYSCONSOLE, base_hInstance);

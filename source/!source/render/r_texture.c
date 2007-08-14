@@ -1645,7 +1645,7 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
 		R_SetPixelFormat( image_desc.width, image_desc.height, image_desc.numLayers );
 		offset = image_desc.SizeOfFile;// move pointer
 		
-		MsgDev("loading %s ... ", name );
+		MsgDev("loading %s [%s] \n", name, PixelFormatDescription[image_desc.format].name );
 
 		switch(pic->type)
 		{

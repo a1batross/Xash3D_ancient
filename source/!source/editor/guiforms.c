@@ -462,7 +462,7 @@ bool GUI_LoadPlatfrom( char *funcname, int argc, char **argv )
 	pi = CreatePLAT( &pistd );//make links
 	
 	//initialziing platform.dll
-	pi->Init();
+	pi->Init( argc, argv );
 
 	pi->Fs.ClearSearchPath();
 	pi->AddGameHierarchy( "bin" );

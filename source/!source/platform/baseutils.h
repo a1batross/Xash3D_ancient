@@ -79,7 +79,7 @@ int VFS_Close( vfile_t *file );
 void InitMemory (void); //must be init first at application
 void FreeMemory( void );
 
-void FS_Init( void );
+void FS_Init( int argc, char **argv );
 void FS_Shutdown (void);
 
 #define Mem_Alloc(pool, size) _Mem_Alloc(pool, size, __FILE__, __LINE__)

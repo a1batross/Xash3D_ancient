@@ -3,44 +3,9 @@
 <pre>
 <h1>Build Log</h1>
 <h3>
---------------------Configuration: editor - Win32 Debug--------------------
+--------------------Configuration: editor - Win32 Release--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating command line "rc.exe /l 0x409 /fo"..\temp\editor\!debug/editor.res" /d "_DEBUG" "D:\XASH3D\src_main\!source\editor\editor.rc"" 
-Creating temporary file "C:\Temp\RSP5CC.tmp" with contents
-[
-/nologo /MTd /W3 /Gm /Gi /GX /ZI /Od /I "../public" /I "../platform/formats" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\editor\!debug/" /Fo"..\temp\editor\!debug/" /Fd"..\temp\editor\!debug/" /FD /GZ /c 
-"D:\XASH3D\src_main\!source\editor\editor.c"
-"D:\XASH3D\src_main\!source\editor\guiutils.c"
-"D:\XASH3D\src_main\!source\editor\guiforms.c"
-]
-Creating command line "cl.exe @C:\Temp\RSP5CC.tmp" 
-Creating temporary file "C:\Temp\RSP5CD.tmp" with contents
-[
-kernel32.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib /nologo /dll /incremental:yes /pdb:"..\temp\editor\!debug/editor.pdb" /debug /machine:I386 /out:"..\temp\editor\!debug/editor.dll" /implib:"..\temp\editor\!debug/editor.lib" /pdbtype:sept 
-"\XASH3D\src_main\!source\temp\editor\!debug\editor.obj"
-"\XASH3D\src_main\!source\temp\editor\!debug\guiutils.obj"
-"\XASH3D\src_main\!source\temp\editor\!debug\guiforms.obj"
-"\XASH3D\src_main\!source\temp\editor\!debug\editor.res"
-]
-Creating command line "link.exe @C:\Temp\RSP5CD.tmp"
-Creating temporary file "C:\Temp\RSP5CE.bat" with contents
-[
-@echo off
-copy \XASH3D\src_main\!source\temp\editor\!debug\editor.dll "D:\Xash3D\bin\editor.dll"
-]
-Creating command line "C:\Temp\RSP5CE.bat"
-Compiling resources...
-Compiling...
-editor.c
-guiutils.c
-guiforms.c
-Generating Code...
-Linking...
-   Creating library ..\temp\editor\!debug/editor.lib and object ..\temp\editor\!debug/editor.exp
-<h3>Output Window</h3>
-Performing Custom Build Step on \XASH3D\src_main\!source\temp\editor\!debug\editor.dll
-Скопировано файлов:         1.
 
 
 

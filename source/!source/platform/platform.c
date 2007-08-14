@@ -12,12 +12,14 @@ gameinfo_t Plat_GameInfo( void )
 	return GI;
 }
 
-bool InitPlatform ( void )
+bool InitPlatform ( int argc, char **argv )
 {
+	Msg("\n------- Loading bin/platform.dll [%g] -------\n\n", PLATFORM_VERSION );
+
 	InitMemory();
 	Plat_InitCPU();
 	ThreadSetDefault();
-	FS_Init();
+	FS_Init( argc, argv );
 
 	/*
 	if(FS_GetParmFromCmdLine("-bounce", parm ))
