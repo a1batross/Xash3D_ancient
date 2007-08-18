@@ -1,19 +1,8 @@
-Лог:
-Максимально упорядочить сообщения, привести к единому формату:
-
-Loading "bin/launcher.dll" [Launcher, ver 0.2]
-Loading "maps/base1.bsp" [Outer Base, ver 47]
-Loading "models/gibs/crate.mdl" [Crate, ver 11]
-Loading "textures/sky/sky.dxt" [DXT1]
-Loading "sprites/
-
-Инфа - просто сообщение
-Ошибка\предупреждение
-Имя функции: суть ошибки\предупреждения
-
 //==================================================
 //		FIXME
 //==================================================
+Заменить все нелогичные Com_Error\Sys_Error на варнинги
+
 render.dll
 1. убрать все типы float, кроме ABGR128		OK
 2. Избавиться от pcx совсем
@@ -26,6 +15,7 @@ engine.dll
 2. убить все ссылки на .md2(заменить на mdl)
 3. подгрузка дллок из base\game директории	OK
 4. переписать парсинг scripts\maps.txt
+5. убить поддержку cd
 
 launcher.dll
 1. перенести лог в лаунчер			OK

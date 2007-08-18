@@ -1553,7 +1553,7 @@ void CM_DecompressVis (byte *in, byte *out)
 		if ((out_p - out) + c > row)
 		{
 			c = row - (out_p - out);
-			MsgDev ("warning: Vis decompression overrun\n");
+			MsgWarn("CM_DecompressVis: decompression overrun\n");
 		}
 		while (c)
 		{

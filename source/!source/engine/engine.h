@@ -113,6 +113,7 @@ System Events
 
 #define Msg Com_Printf
 #define MsgDev Com_DPrintf
+#define MsgWarn Com_DWarnf
 void Sys_Error( char *msg, ... );
 
 /*

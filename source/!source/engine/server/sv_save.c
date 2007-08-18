@@ -144,7 +144,7 @@ void SV_WriteSaveFile( char *name )
 	savfile = FS_Open( path, "wb");
 	if (!savfile)
 	{
-		MsgDev ("Failed to open %s\n", path );
+		MsgWarn("SV_WriteSaveFile: failed to open %s\n", path );
 		return;
 	}
 

@@ -454,11 +454,11 @@ void NET_SendPacket (netsrc_t sock, int length, void *data, netadr_t to)
 		{
 			if (err == WSAEADDRNOTAVAIL)
 			{
-				MsgDev ("NET_SendPacket Warning: %s : %s\n", NET_ErrorString(), NET_AdrToString (to));
+				MsgWarn("NET_SendPacket: %s : %s\n", NET_ErrorString(), NET_AdrToString (to));
 			}
 			else
 			{
-				Com_Error (ERR_DROP, "NET_SendPacket ERROR: %s to %s\n",  NET_ErrorString(), NET_AdrToString (to));
+				Com_Error (ERR_DROP, "NET_SendPacket ERROR: %s to %s\n", NET_ErrorString(), NET_AdrToString(to));
 			}
 		}
 	}

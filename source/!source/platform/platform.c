@@ -14,21 +14,21 @@ gameinfo_t Plat_GameInfo( void )
 
 bool InitPlatform ( int argc, char **argv )
 {
-	Msg("\n------- Loading bin/platform.dll [%g] -------\n\n", PLATFORM_VERSION );
+	char	parm[64];
+
+	Msg("------- Loading bin/platform.dll [%g] -------\n", PLATFORM_VERSION );
 
 	InitMemory();
 	Plat_InitCPU();
 	ThreadSetDefault();
 	FS_Init( argc, argv );
 
-	/*
+	// HACKHACK - bsplib additional cmds
 	if(FS_GetParmFromCmdLine("-bounce", parm ))
 			numbounce = atoi(parm);
 
 	if(FS_GetParmFromCmdLine("-ambient", parm ))
 		ambient = atof(parm) * 128;
-	*/
-
 	return true;
 }
 
@@ -38,11 +38,11 @@ void ClosePlatform ( void )
 	FreeMemory();
 }
 
-platform_exp_t DLLEXPORT *CreateAPI ( stdinout_api_t *input )
+platform_exp_t DLLEXPORT *CreateAPI ( stdinout_api_t input )
 {
 	static platform_exp_t pi;
 
-	std = *input;
+	std = input;
 
 	//generic functions
 	pi.apiversion = PLATFORM_API_VERSION;

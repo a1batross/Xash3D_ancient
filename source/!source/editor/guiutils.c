@@ -120,7 +120,7 @@ void GUI_AddAccelerator(int key, int flags, int cmd)
 		g_AccelTable[g_numAccel].cmd = cmd;
 		g_numAccel++;
 	}
-	else MsgDev("Warning: can't register hotkey! Hokey limit exceed\n");
+	else MsgWarn("GUI_AddAccelerator: can't register hotkey! Hokey limit exceed\n");
 }
 
 /*
@@ -134,8 +134,7 @@ void GUI_CreateAccelTable( void )
 {
 	//create accel table
 	g_hAccel = CreateAcceleratorTable (g_AccelTable, g_numAccel);
-
-	if(!g_hAccel)MsgDev("Warning: can't create accel table\n");
+	if(!g_hAccel) MsgWarn("GUI_CreateAccelTable: can't create accel table\n");
 }
 
 /*

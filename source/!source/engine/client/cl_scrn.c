@@ -153,7 +153,7 @@ void SCR_DrawDebugGraph (void)
 
 	x = scr_vrect.x;
 	y = scr_vrect.y+scr_vrect.height;
-	re.DrawFill (x, y-scr_graphheight->value,
+	re->DrawFill (x, y-scr_graphheight->value,
 		w, scr_graphheight->value, 8);
 
 	for (a=0 ; a<w ; a++)
@@ -166,7 +166,7 @@ void SCR_DrawDebugGraph (void)
 		if (v < 0)
 			v += scr_graphheight->value * (1+(int)(-v/scr_graphheight->value));
 		h = (int)v % (int)scr_graphheight->value;
-		re.DrawFill (x+w-1-a, y - h, 1,	h, color);
+		re->DrawFill (x+w-1-a, y - h, 1,	h, color);
 	}
 }
 
@@ -276,7 +276,7 @@ void SCR_DrawCenterString (void)
 		SCR_AddDirtyPoint (x, y);
 		for (j=0 ; j<l ; j++, x+=8)
 		{
-			re.DrawChar (x, y, start[j]);	
+			re->DrawChar (x, y, start[j]);	
 			if (!remaining--)
 				return;
 		}
@@ -394,7 +394,7 @@ void SCR_Sky_f (void)
 		axis[2] = 1;
 	}
 
-	re.SetSky (Cmd_Argv(1), rotate, axis);
+	re->SetSky (Cmd_Argv(1), rotate, axis);
 }
 
 //============================================================================
@@ -443,7 +443,7 @@ void SCR_DrawNet (void)
 		< CMD_BACKUP-1)
 		return;
 
-	re.DrawPic (scr_vrect.x+64, scr_vrect.y, "net");
+	re->DrawPic (scr_vrect.x+64, scr_vrect.y, "net");
 }
 
 /*
@@ -461,7 +461,7 @@ void SCR_DrawString (char *str)
           length = strlen(string);
 	xoffset = (length * 8)/2;
           
-	re.DrawString((viddef.width)/2 - xoffset, viddef.height/2 + 8, string ); 
+	re->DrawString((viddef.width)/2 - xoffset, viddef.height/2 + 8, string ); 
 }
 
 /*
@@ -545,7 +545,7 @@ void SCR_DrawConsole (void)
 	if (cls.state != ca_active || !cl.refresh_prepped)
 	{	// connected, but can't render
 		Con_DrawConsole (0.5);
-		re.DrawFill (0, viddef.height/2, viddef.width, viddef.height/2, 0);
+		re->DrawFill (0, viddef.height/2, viddef.width, viddef.height/2, 0);
 		return;
 	}
 
@@ -571,9 +571,7 @@ void SCR_BeginLoadingPlaque (void)
 {
 	S_StopAllSounds ();
 	cl.sound_prepped = false;		// don't play ambients
-	CDAudio_Stop ();
-	if (cls.disable_screen)
-		return;
+	if (cls.disable_screen) return;
 	if (developer->value)
 		return;
 	if (cls.state == ca_disconnected)
@@ -643,13 +641,13 @@ void SCR_TimeRefresh_f (void)
 
 	if (Cmd_Argc() == 2)
 	{	// run without page flipping
-		re.BeginFrame( 0 );
+		re->BeginFrame( 0 );
 		for (i=0 ; i<128 ; i++)
 		{
 			cl.refdef.viewangles[1] = i/128.0*360.0;
-			re.RenderFrame (&cl.refdef);
+			re->RenderFrame (&cl.refdef);
 		}
-		re.EndFrame();
+		re->EndFrame();
 	}
 	else
 	{
@@ -657,9 +655,9 @@ void SCR_TimeRefresh_f (void)
 		{
 			cl.refdef.viewangles[1] = i/128.0*360.0;
 
-			re.BeginFrame( 0 );
-			re.RenderFrame (&cl.refdef);
-			re.EndFrame();
+			re->BeginFrame( 0 );
+			re->RenderFrame (&cl.refdef);
+			re->EndFrame();
 		}
 	}
 
@@ -750,28 +748,28 @@ void SCR_TileClear (void)
 	if (clear.y1 < top)
 	{	// clear above view screen
 		i = clear.y2 < top-1 ? clear.y2 : top-1;
-		re.DrawTileClear (clear.x1 , clear.y1,
+		re->DrawTileClear (clear.x1 , clear.y1,
 			clear.x2 - clear.x1 + 1, i - clear.y1+1, "backtile");
 		clear.y1 = top;
 	}
 	if (clear.y2 > bottom)
 	{	// clear below view screen
 		i = clear.y1 > bottom+1 ? clear.y1 : bottom+1;
-		re.DrawTileClear (clear.x1, i,
+		re->DrawTileClear (clear.x1, i,
 			clear.x2-clear.x1+1, clear.y2-i+1, "backtile");
 		clear.y2 = bottom;
 	}
 	if (clear.x1 < left)
 	{	// clear left of view screen
 		i = clear.x2 < left-1 ? clear.x2 : left-1;
-		re.DrawTileClear (clear.x1, clear.y1,
+		re->DrawTileClear (clear.x1, clear.y1,
 			i-clear.x1+1, clear.y2 - clear.y1 + 1, "backtile");
 		clear.x1 = left;
 	}
 	if (clear.x2 > right)
 	{	// clear left of view screen
 		i = clear.x1 > right+1 ? clear.x1 : right+1;
-		re.DrawTileClear (i, clear.y1,
+		re->DrawTileClear (i, clear.y1,
 			clear.x2-i+1, clear.y2 - clear.y1 + 1, "backtile");
 		clear.x2 = right;
 	}
@@ -856,7 +854,7 @@ void DrawHUDString (char *string, int x, int y, int centerwidth, int xor)
 			x = margin;
 		for (i=0 ; i<width ; i++)
 		{
-			re.DrawChar (x, y, line[i]^xor);
+			re->DrawChar (x, y, line[i]^xor);
 			x += 8;
 		}
 		if (*string)
@@ -904,7 +902,7 @@ void SCR_DrawField (int x, int y, int color, int width, int value)
 		else
 			frame = *ptr -'0';
 
-		re.DrawPic (x,y,sb_nums[color][frame]);
+		re->DrawPic (x,y,sb_nums[color][frame]);
 		x += CHAR_WIDTH;
 		ptr++;
 		l--;
@@ -925,7 +923,7 @@ void SCR_TouchPics (void)
 
 	for (i=0 ; i<2 ; i++)
 		for (j=0 ; j<11 ; j++)
-			re.RegisterPic (sb_nums[i][j]);
+			re->RegisterPic (sb_nums[i][j]);
 
 	if (crosshair->value)
 	{
@@ -933,7 +931,7 @@ void SCR_TouchPics (void)
 			crosshair->value = 3;
 
 		sprintf (crosshair_pic, "ch%i", (int)(crosshair->value));
-		re.DrawGetPicSize (&crosshair_width, &crosshair_height, crosshair_pic);
+		re->DrawGetPicSize (&crosshair_width, &crosshair_height, crosshair_pic);
 		if (!crosshair_width)
 			crosshair_pic[0] = 0;
 	}
@@ -1015,7 +1013,7 @@ void SCR_ExecuteLayoutString (char *s)
 			{
 				SCR_AddDirtyPoint (x, y);
 				SCR_AddDirtyPoint (x+23, y+23);
-				re.DrawPic (x, y, cl.configstrings[CS_IMAGES+value]);
+				re->DrawPic (x, y, cl.configstrings[CS_IMAGES+value]);
 			}
 			continue;
 		}
@@ -1054,7 +1052,7 @@ void SCR_ExecuteLayoutString (char *s)
 
 			if (!ci->icon)
 				ci = &cl.baseclientinfo;
-			re.DrawPic (x, y, ci->iconname);
+			re->DrawPic (x, y, ci->iconname);
 			continue;
 		}
 		if (!strcmp(token, "ctf"))
@@ -1096,7 +1094,7 @@ void SCR_ExecuteLayoutString (char *s)
 			token = COM_Parse (&s);
 			SCR_AddDirtyPoint (x, y);
 			SCR_AddDirtyPoint (x+23, y+23);
-			re.DrawPic (x, y, token);
+			re->DrawPic (x, y, token);
 			continue;
 		}
 		if (!strcmp(token, "num"))
@@ -1121,7 +1119,7 @@ void SCR_ExecuteLayoutString (char *s)
 			else color = 1;
 
 			if (cl.frame.playerstate.stats[STAT_FLASHES] & 1)
-				re.DrawPic (x, y, "field_3");
+				re->DrawPic (x, y, "field_3");
 
 			SCR_DrawField (x, y, color, width, value);
 			continue;
@@ -1138,7 +1136,7 @@ void SCR_ExecuteLayoutString (char *s)
 			else continue; // negative number = don't show
 
 			if (cl.frame.playerstate.stats[STAT_FLASHES] & 4)
-				re.DrawPic (x, y, "field_3");
+				re->DrawPic (x, y, "field_3");
 
 			SCR_DrawField (x, y, color, width, value);
 			continue;
@@ -1155,7 +1153,7 @@ void SCR_ExecuteLayoutString (char *s)
 			color = 0; // green
 
 			if (cl.frame.playerstate.stats[STAT_FLASHES] & 2)
-				re.DrawPic (x, y, "field_3");
+				re->DrawPic (x, y, "field_3");
 
 			SCR_DrawField (x, y, color, width, value);
 			continue;
@@ -1305,11 +1303,11 @@ void SCR_UpdateScreen (void)
 
 	for ( i = 0; i < numframes; i++ )
 	{
-		re.BeginFrame( separation[i] );
+		re->BeginFrame( separation[i] );
 
 		if (scr_draw_loading == 2)
 		{	//  loading plaque over black screen
-			re.CinematicSetPalette(NULL);
+			re->CinematicSetPalette(NULL);
 			scr_draw_loading = false;
 			SCR_DrawString( "loading" );
 		} 
@@ -1321,28 +1319,28 @@ void SCR_UpdateScreen (void)
 			{
 				if (cl.cinematicpalette_active)
 				{
-					re.CinematicSetPalette(NULL);
+					re->CinematicSetPalette(NULL);
 					cl.cinematicpalette_active = false;
 				}
 				M_Draw ();
-//				re.EndFrame();
+//				re->EndFrame();
 //				return;
 			}
 			else if (cls.key_dest == key_console)
 			{
 				if (cl.cinematicpalette_active)
 				{
-					re.CinematicSetPalette(NULL);
+					re->CinematicSetPalette(NULL);
 					cl.cinematicpalette_active = false;
 				}
 				SCR_DrawConsole ();
-//				re.EndFrame();
+//				re->EndFrame();
 //				return;
 			}
 			else
 			{
 				SCR_DrawCinematic();
-//				re.EndFrame();
+//				re->EndFrame();
 //				return;
 			}
 		}
@@ -1352,7 +1350,7 @@ void SCR_UpdateScreen (void)
 			// make sure the game palette is active
 			if (cl.cinematicpalette_active)
 			{
-				re.CinematicSetPalette(NULL);
+				re->CinematicSetPalette(NULL);
 				cl.cinematicpalette_active = false;
 			}
 
@@ -1388,5 +1386,5 @@ void SCR_UpdateScreen (void)
 			SCR_DrawLoading ();
 		}
 	}
-	re.EndFrame();
+	re->EndFrame();
 }

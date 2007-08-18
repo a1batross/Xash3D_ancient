@@ -263,7 +263,7 @@ void Netchan_Transmit (netchan_t *chan, int length, byte *data)
 	// add the unreliable part if space is available
 	if (send.maxsize - send.cursize >= length)
 		SZ_Write (&send, data, length);
-	else MsgDev ("Netchan_Transmit: dumped unreliable\n");
+	else MsgWarn("Netchan_Transmit: dumped unreliable\n");
 
 	// send the datagram
 	NET_SendPacket (chan->sock, send.cursize, send.data, chan->remote_address);

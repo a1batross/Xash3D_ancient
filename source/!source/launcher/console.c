@@ -283,6 +283,20 @@ void Sys_MsgDevW( const char *pMsg, ... )
 	}
 }
 
+void Sys_MsgWarnW( const char *pMsg, ... )
+{
+	va_list		argptr;
+	char text[MAX_INPUTLINE];
+	
+	if(debug_mode)
+	{
+		va_start (argptr, pMsg);
+		vsprintf (text, pMsg, argptr);
+		va_end (argptr);
+		Sys_Print( text );
+	}
+}
+
 /*
 ================
 Sys_CreateConsoleW
@@ -450,7 +464,6 @@ void Sys_ErrorW(char *error, ...)
 	char		text[MAX_INPUTLINE];
          
 	if(sys_error) return; //don't multiple executes
-	Sys_Print( "Error: " );
 	
 	va_start (argptr, error);
 	vsprintf (text, error, argptr);

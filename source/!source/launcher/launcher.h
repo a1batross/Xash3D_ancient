@@ -20,6 +20,7 @@ void ( *Sys_Print )( char *msg );
 void ( *Sys_InitConsole )( void );
 void ( *Sys_FreeConsole )( void );
 void ( *MsgDev )( char *msg, ... );
+void ( *MsgWarn )( char *msg, ... );
 void ( *Sys_Error )( char *msg, ... );
 void ( *Sys_ShowConsole )( bool show );
 void Sys_Exit( void ); //static
@@ -50,6 +51,7 @@ bool GetParmFromCmdLine( char *parm, char *out );
 void Sys_PrintW(const char *pMsg);
 void Sys_MsgW( const char *pMsg, ... );
 void Sys_MsgDevW( const char *pMsg, ... );
+void Sys_MsgWarnW( const char *pMsg, ... );
 void Sys_CreateConsoleW( void );
 void Sys_DestroyConsoleW( void );
 void Sys_ShowConsoleW( bool show );

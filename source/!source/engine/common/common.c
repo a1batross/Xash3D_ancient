@@ -166,7 +166,6 @@ void Com_Printf (char *fmt, ...)
 		strcat (rd_buffer, msg);
 		return;
 	}
-		
 	Con_Print (msg);
 }
 
@@ -175,10 +174,31 @@ void Com_Printf (char *fmt, ...)
 ================
 Com_DPrintf
 
-A Msg that only shows up if the "developer" cvar is set
+A Msg that only shows up in debug mode
 ================
 */
 void Com_DPrintf (char *fmt, ...)
+{
+	va_list		argptr;
+	char		msg[MAXPRINTMSG];
+		
+	if (!host_debug) return; // don't confuse non-developers with techie stuff...
+
+	va_start (argptr,fmt);
+	vsprintf (msg,fmt,argptr);
+	va_end (argptr);
+	
+	Msg ("%s", msg);
+}
+
+/*
+================
+Com_DWarnf
+
+A Warning that only shows up in debug mode
+================
+*/
+void Com_DWarnf (char *fmt, ...)
 {
 	va_list		argptr;
 	char		msg[MAXPRINTMSG];

@@ -158,7 +158,7 @@ void SCR_StopCinematic (void)
 	}
 	if (cl.cinematicpalette_active)
 	{
-		re.CinematicSetPalette(NULL);
+		re->CinematicSetPalette(NULL);
 		cl.cinematicpalette_active = false;
 	}
 	if (cl.cinematic_file)
@@ -539,21 +539,21 @@ bool SCR_DrawCinematic (void)
 
 	if (cls.key_dest == key_menu)
 	{	// blank screen and pause if menu is up
-		re.CinematicSetPalette(NULL);
+		re->CinematicSetPalette(NULL);
 		cl.cinematicpalette_active = false;
 		return true;
 	}
 
 	if (!cl.cinematicpalette_active)
 	{
-		re.CinematicSetPalette(cl.cinematicpalette);
+		re->CinematicSetPalette(cl.cinematicpalette);
 		cl.cinematicpalette_active = true;
 	}
 
 	if (!cin.pic)
 		return true;
 
-	re.DrawStretchRaw (0, 0, viddef.width, viddef.height,
+	re->DrawStretchRaw (0, 0, viddef.width, viddef.height,
 		cin.width, cin.height, cin.pic);
 
 	return true;
@@ -571,9 +571,6 @@ void SCR_PlayCinematic (char *arg)
 	byte	*palette;
 	char	name[MAX_OSPATH], *dot;
 	int		old_khz;
-
-	// make sure CD isn't playing music
-	CDAudio_Stop();
 
 	cl.cinematicframe = 0;
 	dot = strstr (arg, ".");

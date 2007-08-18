@@ -266,7 +266,7 @@ void CL_PrepRefresh (void)
 	// register models, pics, and skins
 	Msg ("Map: %s\r", mapname); 
 	SCR_UpdateScreen ();
-	re.BeginRegistration (mapname);
+	re->BeginRegistration (mapname);
 	Msg ("                                     \r");
 
 	// precache status bar pics
@@ -299,7 +299,7 @@ void CL_PrepRefresh (void)
 		} 
 		else
 		{
-			cl.model_draw[i] = re.RegisterModel (cl.configstrings[CS_MODELS+i]);
+			cl.model_draw[i] = re->RegisterModel (cl.configstrings[CS_MODELS+i]);
 			if (name[0] == '*')
 				cl.model_clip[i] = CM_InlineModel (cl.configstrings[CS_MODELS+i]);
 			else
@@ -313,7 +313,7 @@ void CL_PrepRefresh (void)
 	SCR_UpdateScreen ();
 	for (i=1 ; i<MAX_IMAGES && cl.configstrings[CS_IMAGES+i][0] ; i++)
 	{
-		cl.image_precache[i] = re.RegisterPic (cl.configstrings[CS_IMAGES+i]);
+		cl.image_precache[i] = re->RegisterPic (cl.configstrings[CS_IMAGES+i]);
 		Sys_SendKeyEvents ();	// pump message loop
 	}
 	
@@ -336,11 +336,11 @@ void CL_PrepRefresh (void)
 	SCR_UpdateScreen ();
 	rotate = atof (cl.configstrings[CS_SKYROTATE]);
 	sscanf (cl.configstrings[CS_SKYAXIS], "%f %f %f", &axis[0], &axis[1], &axis[2]);
-	re.SetSky (cl.configstrings[CS_SKY], rotate, axis);
+	re->SetSky (cl.configstrings[CS_SKY], rotate, axis);
 	Msg ("                                     \r");
 
 	// the renderer can now free unneeded stuff
-	re.EndRegistration ();
+	re->EndRegistration ();
 
 	// clear any lines of console text
 	Con_ClearNotify ();
@@ -348,9 +348,6 @@ void CL_PrepRefresh (void)
 	SCR_UpdateScreen ();
 	cl.refresh_prepped = true;
 	cl.force_refdef = true;	// make sure we have a valid refdef
-
-	// start the cd track
-	CDAudio_Play (atoi(cl.configstrings[CS_CDTRACK]), true);
 }
 
 /*
@@ -404,7 +401,7 @@ void V_Gun_Model_f (void)
 		return;
 	}
 	sprintf (name, "models/%s/tris.md2", Cmd_Argv(1));
-	gun_model = re.RegisterModel (name);
+	gun_model = re->RegisterModel (name);
 }
 
 //============================================================================
@@ -429,7 +426,7 @@ void SCR_DrawCrosshair (void)
 	if (!crosshair_pic[0])
 		return;
 
-	re.DrawPic (scr_vrect.x + ((scr_vrect.width - crosshair_width)>>1)
+	re->DrawPic (scr_vrect.x + ((scr_vrect.width - crosshair_width)>>1)
 	, scr_vrect.y + ((scr_vrect.height - crosshair_height)>>1), crosshair_pic);
 }
 
@@ -534,7 +531,7 @@ void V_RenderView( float stereo_separation )
 	}
 
 	cl.refdef.rdflags |= RDF_BLOOM;
-	re.RenderFrame (&cl.refdef);
+	re->RenderFrame (&cl.refdef);
 	if (cl_stats->value)
 		Msg ("ent:%i  lt:%i  part:%i\n", r_numentities, r_numdlights, r_numparticles);
 	if ( log_stats->value && ( log_stats_file != 0 ) )

@@ -1538,9 +1538,9 @@ CreateAPI
 
 @@@@@@@@@@@@@@@@@@@@@
 */
-renderer_exp_t DLLEXPORT CreateAPI (renderer_imp_t rimp )
+renderer_exp_t DLLEXPORT *CreateAPI(renderer_imp_t rimp )
 {
-	renderer_exp_t	re;
+	static renderer_exp_t re;
 
 	ri = rimp;
 
@@ -1576,7 +1576,7 @@ renderer_exp_t DLLEXPORT CreateAPI (renderer_imp_t rimp )
 
 	re.AppActivate = GLimp_AppActivate;
 
-	return re;
+	return &re;
 }
 
 char *FS_Gamedir( void )

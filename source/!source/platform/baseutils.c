@@ -266,8 +266,7 @@ EndOfScript
 */
 bool EndOfScript (bool newline)
 {
-	if (!newline)
-		Sys_Error ("Line %i is incomplete\n", scriptline);
+	if (!newline) Sys_Error ("Line %i is incomplete\n", scriptline);
 
 	if (!strcmp (script->filename, "script buffer"))
 	{

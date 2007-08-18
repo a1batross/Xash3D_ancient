@@ -333,6 +333,8 @@ void SV_InitGameProgs (void)
 	import.Compile = pi->Compile;
 	import.Info = pi->Info;
 
+	import.GameInfo = pi->GameInfo;
+
 	import.multicast = SV_Multicast;
 	import.unicast = PF_Unicast;
 	import.bprintf = SV_BroadcastPrintf;

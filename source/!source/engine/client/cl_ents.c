@@ -63,11 +63,8 @@ void CL_ClearProjectiles (void)
 {
 	int i;
 
-	for (i = 0; i < MAX_PROJECTILES; i++) {
-//		if (cl_projectiles[i].present)
-//			MsgDev("PROJ: %d CLEARED\n", cl_projectiles[i].num);
+	for (i = 0; i < MAX_PROJECTILES; i++) 
 		cl_projectiles[i].present = false;
-	}
 }
 
 /*
@@ -796,20 +793,20 @@ struct model_s *S_RegisterSexedModel (entity_state_t *ent, char *base)
 		strcpy(model, "male");
 
 	sprintf (buffer, "players/%s/%s", model, base+1);
-	mdl = re.RegisterModel(buffer);
+	mdl = re->RegisterModel(buffer);
 	if (!mdl) {
 		// not found, try default weapon model
 		sprintf (buffer, "players/%s/weapon.md2", model);
-		mdl = re.RegisterModel(buffer);
+		mdl = re->RegisterModel(buffer);
 		if (!mdl)
 		{
 			// no, revert to the male model
 			sprintf (buffer, "players/%s/%s", "male", base+1);
-			mdl = re.RegisterModel(buffer);
+			mdl = re->RegisterModel(buffer);
 			if (!mdl) {
 				// last try, default male weapon.md2
 				sprintf (buffer, "players/male/weapon.md2");
-				mdl = re.RegisterModel(buffer);
+				mdl = re->RegisterModel(buffer);
 			}
 		} 
 	}
@@ -948,18 +945,18 @@ void CL_AddPacketEntities (frame_t *frame)
 				{
 					if(!strncmp((char *)ent.image, "players/male", 12))
 					{
-						ent.image = re.RegisterSkin ("players/male/disguise.pcx");
-						ent.model = re.RegisterModel ("players/male/tris.md2");
+						ent.image = re->RegisterSkin ("players/male/disguise.pcx");
+						ent.model = re->RegisterModel ("players/male/tris.md2");
 					}
 					else if(!strncmp((char *)ent.image, "players/female", 14))
 					{
-						ent.image = re.RegisterSkin ("players/female/disguise.pcx");
-						ent.model = re.RegisterModel ("players/female/tris.md2");
+						ent.image = re->RegisterSkin ("players/female/disguise.pcx");
+						ent.model = re->RegisterModel ("players/female/tris.md2");
 					}
 					else if(!strncmp((char *)ent.image, "players/cyborg", 14))
 					{
-						ent.image = re.RegisterSkin ("players/cyborg/disguise.pcx");
-						ent.model = re.RegisterModel ("players/cyborg/tris.md2");
+						ent.image = re->RegisterSkin ("players/cyborg/disguise.pcx");
+						ent.model = re->RegisterModel ("players/cyborg/tris.md2");
 					}
 				}
 //PGM

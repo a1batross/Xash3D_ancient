@@ -627,7 +627,7 @@ void CL_Disconnect (void)
 	}
 
 	VectorClear (cl.refdef.blend);
-	re.CinematicSetPalette(NULL);
+	re->CinematicSetPalette(NULL);
 
 	M_ForceMenuOff ();
 
@@ -1010,7 +1010,7 @@ void CL_ReadPackets (void)
 		//
 		if (!NET_CompareAdr (net_from, cls.netchan.remote_address))
 		{
-			MsgDev ("%s:sequenced packet without connection\n",NET_AdrToString(net_from));
+			MsgWarn("CL_ReadPackets: %s:sequenced packet without connection\n",NET_AdrToString(net_from));
 			continue;
 		}
 		if (!Netchan_Process(&cls.netchan, &net_message))
@@ -1740,8 +1740,6 @@ void CL_Frame (int msec)
 
 	// update audio
 	S_Update (cl.refdef.vieworg, cl.v_forward, cl.v_right, cl.v_up);
-	
-	CDAudio_Update();
 
 	// advance local effects for next frame
 	CL_RunDLights ();
@@ -1801,7 +1799,6 @@ void CL_Init (void)
 	SCR_Init ();
 	cls.disable_screen = true;	// don't draw yet
 
-	CDAudio_Init ();
 	CL_InitLocal ();
 	IN_Init ();
 
@@ -1832,7 +1829,6 @@ void CL_Shutdown(void)
 
 	CL_WriteConfiguration (); 
 
-	CDAudio_Shutdown ();
 	S_Shutdown();
 	IN_Shutdown ();
 	VID_Shutdown();

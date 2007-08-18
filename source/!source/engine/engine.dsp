@@ -114,10 +114,6 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;hpj;bat;for;f90"
 # Begin Source File
 
-SOURCE=.\cd_win.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\client\cl_cin.c
 # End Source File
 # Begin Source File
@@ -315,10 +311,6 @@ SOURCE=..\public\basetypes.h
 # Begin Source File
 
 SOURCE=.\common\bspfile.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\cdaudio.h
 # End Source File
 # Begin Source File
 

@@ -1544,7 +1544,7 @@ void Grab_Triangles( s_model_t *pmodel )
 			tcount++;
 		}
 	}
-	if (vmin[2] != 0.0) MsgDev("lowest vector at %f\n", vmin[2] );
+	if (vmin[2] != 0.0) MsgWarn("Grab_Triangles: lowest vector at %f\n", vmin[2] );
 }
 
 void Grab_Skeleton( s_node_t *pnodes, s_bone_t *pbones )
@@ -2587,7 +2587,7 @@ syntax: "blabla"
 */
 void Cmd_StudioUnknown( void )
 {
-	MsgDev("Warning: bad command %s\n", token);
+	MsgWarn("Cmd_StudioUnknown: skip command \"%s\"\n", token);
 	while(SC_TryToken());
 }
 

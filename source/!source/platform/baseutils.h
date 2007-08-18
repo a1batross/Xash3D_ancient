@@ -96,6 +96,7 @@ extern gameinfo_t GI;
 
 #define Msg std.printf
 #define MsgDev std.dprintf
+#define MsgWarn std.wprintf
 #define Sys_Error std.error
 
 #define Malloc(size)	Mem_Alloc(basepool, size)  

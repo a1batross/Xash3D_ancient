@@ -397,11 +397,11 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 		sprintf (weapon_filename, "players/male/weapon.md2");
 		sprintf (skin_filename, "players/male/grunt.pcx");
 		sprintf (ci->iconname, "/players/male/grunt_i.pcx");
-		ci->model = re.RegisterModel (model_filename);
+		ci->model = re->RegisterModel (model_filename);
 		memset(ci->weaponmodel, 0, sizeof(ci->weaponmodel));
-		ci->weaponmodel[0] = re.RegisterModel (weapon_filename);
-		ci->skin = re.RegisterSkin (skin_filename);
-		ci->icon = re.RegisterPic (ci->iconname);
+		ci->weaponmodel[0] = re->RegisterModel (weapon_filename);
+		ci->skin = re->RegisterSkin (skin_filename);
+		ci->icon = re->RegisterPic (ci->iconname);
 	}
 	else
 	{
@@ -419,17 +419,17 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 
 		// model file
 		sprintf (model_filename, "players/%s/tris.md2", model_name);
-		ci->model = re.RegisterModel (model_filename);
+		ci->model = re->RegisterModel (model_filename);
 		if (!ci->model)
 		{
 			strcpy(model_name, "male");
 			sprintf (model_filename, "players/male/tris.md2");
-			ci->model = re.RegisterModel (model_filename);
+			ci->model = re->RegisterModel (model_filename);
 		}
 
 		// skin file
 		sprintf (skin_filename, "players/%s/%s.pcx", model_name, skin_name);
-		ci->skin = re.RegisterSkin (skin_filename);
+		ci->skin = re->RegisterSkin (skin_filename);
 
 		// if we don't have the skin and the model wasn't male,
 		// see if the male has it (this is for CTF's skins)
@@ -438,11 +438,11 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 			// change model to male
 			strcpy(model_name, "male");
 			sprintf (model_filename, "players/male/tris.md2");
-			ci->model = re.RegisterModel (model_filename);
+			ci->model = re->RegisterModel (model_filename);
 
 			// see if the skin exists for the male model
 			sprintf (skin_filename, "players/%s/%s.pcx", model_name, skin_name);
-			ci->skin = re.RegisterSkin (skin_filename);
+			ci->skin = re->RegisterSkin (skin_filename);
 		}
 
 		// if we still don't have a skin, it means that the male model didn't have
@@ -450,17 +450,17 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 		if (!ci->skin) {
 			// see if the skin exists for the male model
 			sprintf (skin_filename, "players/%s/grunt.pcx", model_name, skin_name);
-			ci->skin = re.RegisterSkin (skin_filename);
+			ci->skin = re->RegisterSkin (skin_filename);
 		}
 
 		// weapon file
 		for (i = 0; i < num_cl_weaponmodels; i++) {
 			sprintf (weapon_filename, "players/%s/%s", model_name, cl_weaponmodels[i]);
-			ci->weaponmodel[i] = re.RegisterModel(weapon_filename);
+			ci->weaponmodel[i] = re->RegisterModel(weapon_filename);
 			if (!ci->weaponmodel[i] && strcmp(model_name, "cyborg") == 0) {
 				// try male
 				sprintf (weapon_filename, "players/male/%s", cl_weaponmodels[i]);
-				ci->weaponmodel[i] = re.RegisterModel(weapon_filename);
+				ci->weaponmodel[i] = re->RegisterModel(weapon_filename);
 			}
 			if (!cl_vwep->value)
 				break; // only one when vwep is off
@@ -468,7 +468,7 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 
 		// icon file
 		sprintf (ci->iconname, "/players/%s/%s_i.pcx", model_name, skin_name);
-		ci->icon = re.RegisterPic (ci->iconname);
+		ci->icon = re->RegisterPic (ci->iconname);
 	}
 
 	// must have loaded all data types to be valud
@@ -529,14 +529,13 @@ void CL_ParseConfigString (void)
 		CL_SetLightstyle (i - CS_LIGHTS);
 	else if (i == CS_CDTRACK)
 	{
-		if (cl.refresh_prepped)
-			CDAudio_Play (atoi(cl.configstrings[CS_CDTRACK]), true);
+		Msg("unsupported command\n");
 	}
 	else if (i >= CS_MODELS && i < CS_MODELS+MAX_MODELS)
 	{
 		if (cl.refresh_prepped)
 		{
-			cl.model_draw[i-CS_MODELS] = re.RegisterModel (cl.configstrings[i]);
+			cl.model_draw[i-CS_MODELS] = re->RegisterModel (cl.configstrings[i]);
 			if (cl.configstrings[i][0] == '*')
 				cl.model_clip[i-CS_MODELS] = CM_InlineModel (cl.configstrings[i]);
 			else
@@ -551,7 +550,7 @@ void CL_ParseConfigString (void)
 	else if (i >= CS_IMAGES && i < CS_IMAGES+MAX_MODELS)
 	{
 		if (cl.refresh_prepped)
-			cl.image_precache[i-CS_IMAGES] = re.RegisterPic (cl.configstrings[i]);
+			cl.image_precache[i-CS_IMAGES] = re->RegisterPic (cl.configstrings[i]);
 	}
 	else if (i >= CS_PLAYERSKINS && i < CS_PLAYERSKINS+MAX_CLIENTS)
 	{
@@ -647,22 +646,14 @@ CL_ParseServerMessage
 */
 void CL_ParseServerMessage (void)
 {
-	int			cmd;
+	int		i, cmd;
 	char		*s;
-	int			i;
 
-//
-// if recording demos, copy the message out
-//
-	if (cl_shownet->value == 1)
-		Msg ("%i ",net_message.cursize);
-	else if (cl_shownet->value >= 2)
-		Msg ("------------------\n");
+	// if recording demos, copy the message out
+	if (cl_shownet->value == 1) Msg ("%i ",net_message.cursize);
+	else if (cl_shownet->value >= 2) Msg ("------------------\n");
 
-
-//
-// parse the message
-//
+	// parse the message
 	while (1)
 	{
 		if (net_message.readcount > net_message.cursize)
@@ -679,19 +670,17 @@ void CL_ParseServerMessage (void)
 			break;
 		}
 
-		if (cl_shownet->value>=2)
+		if (cl_shownet->value >= 2)
 		{
-			if (!svc_strings[cmd])
-				Msg ("%3i:BAD CMD %i\n", net_message.readcount-1,cmd);
-			else
-				SHOWNET(svc_strings[cmd]);
+			if (!svc_strings[cmd]) Msg ("%3i:BAD CMD %i\n", net_message.readcount - 1, cmd);
+			else SHOWNET(svc_strings[cmd]);
 		}
 	
-	// other commands
+		// other commands
 		switch (cmd)
 		{
 		default:
-			Com_Error (ERR_DROP,"CL_ParseServerMessage: Illegible server message\n");
+			Com_Error (ERR_DROP, "CL_ParseServerMessage: Illegible server message\n");
 			break;
 			
 		case svc_nop:
@@ -731,7 +720,6 @@ void CL_ParseServerMessage (void)
 			
 		case svc_stufftext:
 			s = MSG_ReadString (&net_message);
-			MsgDev ("stufftext: %s\n", s);
 			Cbuf_AddText (s);
 			break;
 			

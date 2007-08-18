@@ -31,7 +31,7 @@ int host_debug;
 void Host_InitPlatform( char *funcname, int argc, char **argv )
 {
 	stdinout_api_t	pistd;
-	platform_exp_t	*(*CreatePLAT)( stdinout_api_t *);         
+	platform_t	CreatePlat;         
 
 	//platform dll
 	COM_InitArgv (argc, argv);
@@ -40,6 +40,7 @@ void Host_InitPlatform( char *funcname, int argc, char **argv )
 	//make callbacks
 	pistd.printf = Msg;
 	pistd.dprintf = MsgDev;
+	pistd.wprintf = MsgWarn;
 	pistd.error = Sys_Error;
 	
 	if (( platform_dll = LoadLibrary( "bin/platform.dll" )) == 0 )
@@ -48,12 +49,12 @@ void Host_InitPlatform( char *funcname, int argc, char **argv )
 		return;
 	}
 
-	if (( CreatePLAT = (void *)GetProcAddress( platform_dll, "CreateAPI" ) ) == 0 )
+	if (( CreatePlat = (void *)GetProcAddress( platform_dll, "CreateAPI" ) ) == 0 )
 	{
 		Sys_Error("can't init platform.dll\n");
 		return;
 	}
-	pi = CreatePLAT( &pistd );
+	pi = CreatePlat( pistd );
 
 	if(pi->apiversion != PLATFORM_API_VERSION)
 		Sys_Error("mismatch version (%i should be %i)\n", pi->apiversion, PLATFORM_API_VERSION);
@@ -94,7 +95,7 @@ void Host_Init (char *funcname, int argc, char **argv)
           if(!strcmp(funcname, "host_dedicated"))is_dedicated = true;
 	Host_InitPlatform( funcname, argc, argv );
 
-	Msg("\n------- Loading bin/engine.dll [%g] -------\n\n", ENGINE_VERSION );
+	Msg("------- Loading bin/engine.dll [%g] -------\n", ENGINE_VERSION );
 	
 	Cbuf_Init ();
 
@@ -156,8 +157,6 @@ void Host_Init (char *funcname, int argc, char **argv)
 		// so drop the loading plaque
 		SCR_EndLoadingPlaque ();
 	}
-
-	Msg ("====== %s Initialized ======\n\n", GI.title);	
 }
 
 /*

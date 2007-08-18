@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include ".\client\client.h"
 
 // Structure containing functions exported from refresh DLL
-renderer_exp_t	re;
+renderer_exp_t	*re;
 
 cvar_t *win_noalttab;
 
@@ -246,7 +246,6 @@ void AppActivate(BOOL fActive, BOOL minimize)
 	if (!ActiveApp)
 	{
 		IN_Activate (false);
-		CDAudio_Activate (false);
 		S_Activate (false);
 
 		if ( win_noalttab->value )
@@ -257,7 +256,6 @@ void AppActivate(BOOL fActive, BOOL minimize)
 	else
 	{
 		IN_Activate (true);
-		CDAudio_Activate (true);
 		S_Activate (true);
 		if ( win_noalttab->value )
 		{
@@ -337,7 +335,7 @@ LONG WINAPI MainWndProc ( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			AppActivate( fActive != WA_INACTIVE, fMinimized);
 
-			if ( reflib_active ) re.AppActivate( !( fActive == WA_INACTIVE ) );
+			if ( reflib_active ) re->AppActivate( !( fActive == WA_INACTIVE ) );
 		}
 		return DefWindowProc (hWnd, uMsg, wParam, lParam);
 	case WM_MOVE:
@@ -415,13 +413,6 @@ LONG WINAPI MainWndProc ( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_KEYUP:
 		Key_Event( MapKey( lParam ), false, sys_msg_time);
 		break;
-	case MM_MCINOTIFY:
-		{
-			LONG CDAudio_MessageHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-			lRet = CDAudio_MessageHandler (hWnd, uMsg, wParam, lParam);
-		}
-		break;
-
 	default:	// pass all unhandled messages to DefWindowProc
 		return DefWindowProc (hWnd, uMsg, wParam, lParam);
 	}
@@ -547,11 +538,11 @@ VID_LoadRefresh
 bool VID_LoadRefresh( char *name )
 {
 	renderer_imp_t	ri;
-	renderer_t	CreateRENDER;
+	renderer_t	CreateRender;
 	
 	if ( reflib_active )
 	{
-		re.Shutdown();
+		re->Shutdown();
 		VID_FreeReflib ();
 	}
 
@@ -590,20 +581,20 @@ bool VID_LoadRefresh( char *name )
           // studio callbacks
           ri.StudioEvent = CL_StudioEvent;
 	
-	if ( ( CreateRENDER = (void *) GetProcAddress( reflib_library, "CreateAPI" ) ) == 0 )
+	if ( ( CreateRender = (void *) GetProcAddress( reflib_library, "CreateAPI" ) ) == 0 )
 		Com_Error( ERR_FATAL, "GetProcAddress failed on %s", name );
 
-	re = CreateRENDER( ri );
+	re = CreateRender( ri );
 
-	if (re.apiversion != RENDERER_API_VERSION)
+	if (re->apiversion != RENDERER_API_VERSION)
 	{
 		VID_FreeReflib ();
 		Com_Error (ERR_FATAL, "%s has incompatible api_version", name);
 	}
           
-	if ( re.Init( global_hInstance, MainWndProc ) == -1 )
+	if ( re->Init( global_hInstance, MainWndProc ) == -1 )
 	{
-		re.Shutdown();
+		re->Shutdown();
 		VID_FreeReflib ();
 		return false;
 	}
@@ -748,7 +739,7 @@ void VID_Shutdown (void)
 {
 	if ( reflib_active )
 	{
-		re.Shutdown ();
+		re->Shutdown ();
 		VID_FreeReflib ();
 	}
 }

@@ -818,7 +818,7 @@ static bool FS_AddPack_Fullpath(const char *pakfile, bool *already_loaded, bool 
 	}
 	else
 	{
-		MsgDev("unable to load pak \"%s\"\n", pakfile);
+		MsgWarn("FS_AddPack_Fullpath: unable to load pak \"%s\"\n", pakfile);
 		return false;
 	}
 }
@@ -850,7 +850,7 @@ bool FS_AddPack(const char *pakfile, bool *already_loaded, bool keep_plain_dirs)
 	search = FS_FindFile(pakfile, &index, true);
 	if(!search || search->pack)
 	{
-		MsgDev("could not find pak \"%s\"\n", pakfile);
+		MsgWarn("FS_AddPack: could not find pak \"%s\"\n", pakfile);
 		return false;
 	}
 	sprintf(fullpath, "%s%s", search->filename, pakfile);
@@ -1517,7 +1517,6 @@ file_t* _FS_Open (const char* filepath, const char* mode, bool quiet, bool nonbl
 
 		// Open the file on disk directly
 		sprintf (real_path, "%s/%s", fs_gamedir, filepath);
-		Msg("create path %s\n", real_path );
 		FS_CreatePath (real_path);// Create directories up to the file
 		return FS_SysOpen (real_path, mode, nonblocking);
 	}
@@ -2035,11 +2034,10 @@ bool FS_WriteFile (const char *filename, void *data, fs_offset_t len)
 	file = _FS_Open (filename, "wb", false, false);
 	if (!file)
 	{
-		Msg("FS_WriteFile: failed on %s\n", filename);
+		MsgWarn("FS_WriteFile: failed on %s\n", filename);
 		return false;
 	}
 
-	MsgDev("FS_WriteFile: %s\n", filename);
 	FS_Write (file, data, len);
 	FS_Close (file);
 	return true;
@@ -2222,7 +2220,7 @@ static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet 
 			sprintf(netpath, "%s%s", searchpath->filename, basepath);
 			stringlistinit(&dirlist);
 			listdirectory(&dirlist, netpath);
-			for (dirlistindex = 0;dirlistindex < dirlist.numstrings;dirlistindex++)
+			for (dirlistindex = 0; dirlistindex < dirlist.numstrings; dirlistindex++)
 			{
 				sprintf(temp, "%s%s", basepath, dirlist.strings[dirlistindex]);
 				if (matchpattern(temp, (char *)pattern, true))
@@ -2415,7 +2413,7 @@ vfile_t *VFS_Open(file_t* real_file, const char* mode)
 	}
 	else
 	{
-		Msg("VFS_Open: unsupported mode %s\n", mode );
+		MsgWarn("VFS_Open: unsupported mode %s\n", mode );
 		return NULL;
 	}
 	return file;
@@ -2440,7 +2438,7 @@ fs_offset_t VFS_Read( vfile_t* file, void* buffer, size_t buffersize)
 		int reduced_size = file->length - file->offset;
 		Mem_Copy( buffer, file->buff + file->offset, reduced_size );
 		file->offset += reduced_size;
-		Msg("VFS_Read: warning, vfs buffer is out\n");
+		MsgWarn("VFS_Read: vfs buffer is out\n");
 	}
 	return 1;
 }

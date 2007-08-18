@@ -249,8 +249,6 @@ void *Sys_GetGameAPI (const char* procname, void *parms)
 
 		if (game_library)
 		{
-			MsgDev ("LoadLibrary (%s)\n", basepath );
-			
 			if (( GetGameAPI = (void *)GetProcAddress( game_library, procname )) == 0 )
 				Sys_UnloadGame();
 			else break;
@@ -259,12 +257,12 @@ void *Sys_GetGameAPI (const char* procname, void *parms)
 	}
 
 	GetGameAPI = (void *)GetProcAddress (game_library, procname );
+
 	if (!GetGameAPI)
 	{
 		Sys_UnloadGame ();		
 		return NULL;
 	}
-
 	return GetGameAPI (parms);
 }
 
@@ -276,7 +274,7 @@ DllMain
 
 ==================
 */
-launcher_exp_t DLLEXPORT CreateAPI( stdinout_api_t histd )
+launcher_exp_t DLLEXPORT *CreateAPI( stdinout_api_t histd )
 {
 	static launcher_exp_t Host;
 
@@ -286,5 +284,5 @@ launcher_exp_t DLLEXPORT CreateAPI( stdinout_api_t histd )
 	Host.Main = Host_Main;
 	Host.Free = Host_Free;
 
-	return Host;
+	return &Host;
 }

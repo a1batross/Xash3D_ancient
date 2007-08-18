@@ -39,10 +39,12 @@ System Events
 */
 void GUI_Msg( const char *pMsg, ... );
 void GUI_MsgDev( const char *pMsg, ... );
+void GUI_MsgWarn( const char *pMsg, ... );
 
 extern stdinout_api_t std;
 #define Msg GUI_Msg
 #define MsgDev GUI_MsgDev
+#define MsgWarn GUI_MsgWarn
 #define Sys_Error std.error
 
 typedef enum {

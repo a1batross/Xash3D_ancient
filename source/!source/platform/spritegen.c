@@ -403,7 +403,7 @@ bool CompileSpriteModel ( byte *mempool, const char *name, byte parms )
 	if(mempool) spritepool = mempool;
 	else
 	{
-		Msg("Spritegen: can't allocate memory pool.\nAbort compilation\n");
+		MsgWarn("Spritegen: can't allocate memory pool.\nAbort compilation\n");
 		return false;
 	}
 	return CompileCurrentSprite( name );	

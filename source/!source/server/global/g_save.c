@@ -259,8 +259,7 @@ is loaded.
 void ReadTextureSurfaceAssignments();
 void InitGame (void)
 {
-	gi.dprintf ("==== InitGame (Lazarus) ====\n");
-	gi.dprintf("by Mr. Hyde & Mad Dog\ne-mail: rascal@vicksburg.com\n\n");
+	gi.dprintf ("====== Init %s ======\n\n", GameTitle );
 
 	//init main memory pools
 	zone_level = Mem_AllocPool("Zone Level");

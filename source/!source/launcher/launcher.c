@@ -19,7 +19,6 @@ typedef enum
 	HOST_SHARED,	// "host_shared"
 	HOST_DEDICATED,	// "host_dedicated"
 	HOST_EDITOR,	// "host_editor"
-	HOST_COMPILERS,	// marker
 	BSPLIB,		// "bsplib"
 	SPRITE,		// "sprite"
 	STUDIO,		// "studio"
@@ -218,14 +217,14 @@ void CreateInstance( void )
 	stdinout_api_t  std;//import
 
 	//export
-	platform_exp_t	*(*CreatePLAT)( stdinout_api_t *);
-
+	platform_t	CreatePlat;
 	launcher_t	CreateHost;
-	launcher_exp_t	Host;          
+	launcher_exp_t	*Host;          
 	
 	//setup sysfuncs
 	std.printf = Msg;
 	std.dprintf = MsgDev;
+	std.wprintf = MsgWarn;
 	std.error = Sys_Error;
 	std.exit = Sys_Exit;
 	std.print = Sys_Print;
@@ -243,20 +242,19 @@ void CreateInstance( void )
 
 		//set callback
 		Host = CreateHost( std );
-		Host_Init = Host.Init;
-		Host_Main = Host.Main;
-		Host_Free = Host.Free;
+		Host_Init = Host->Init;
+		Host_Main = Host->Main;
+		Host_Free = Host->Free;
 		break;
 	case BSPLIB:
 	case SPRITE:
 	case STUDIO:
-		if (( linked_dll = LoadLibrary( "bin/platform.dll" )) == 0 )
-			Sys_Error("CreateInstance: couldn't load bin/platform.dll\n");
-		if ((CreatePLAT = (void *)GetProcAddress( linked_dll, "CreateAPI" )) == 0 )
-			Sys_Error("CreateInstance: bin/platform.dll has no valid entry point\n");
+		if (( linked_dll = LoadLibrary( dllname )) == 0 )
+			Sys_Error("CreateInstance: couldn't load %s\n", dllname );
+		if ((CreatePlat = (void *)GetProcAddress( linked_dll, "CreateAPI" )) == 0 )
+			Sys_Error("CreateInstance: %s has no valid entry point\n", dllname );
 		//set callback
-		pi = CreatePLAT( &std );
-
+		pi = CreatePlat( std );
 		Host_Init = PlatformInit;
 		Host_Main = PlatformMain;
 		Host_Free = PlatformShutdown;
@@ -300,22 +298,27 @@ void API_Reset( void )
 
 	Msg = NullVarArgs;
 	MsgDev = NullVarArgs;
+	MsgWarn = NullVarArgs;
 }
 
 void API_SetConsole( void )
 {
-	if( !hooked_out && app_name < HOST_COMPILERS)
+	if( hooked_out && app_name > HOST_EDITOR)
 	{
+		Sys_Print = printf;
+	}
+          else
+          {
 		Sys_InitConsole = Sys_CreateConsoleW;
 		Sys_FreeConsole = Sys_DestroyConsoleW;
           	Sys_ShowConsole = Sys_ShowConsoleW;
 		Sys_Print = Sys_PrintW;
 		Sys_Input = Sys_InputW;
 	}
-	else Sys_Print = printf;
 
 	Msg = Sys_MsgW;
 	MsgDev = Sys_MsgDevW;
+	MsgWarn = Sys_MsgWarnW;
 	Sys_Error = Sys_ErrorW;
 }
 
@@ -347,13 +350,13 @@ void InitLauncher( char *funcname )
 	UpdateEnvironmentVariables();
 
 	// first text message into console or log
-	Msg("\n------- Loading bin/launcher.dll [%g] -------\n\n", LAUNCHER_VERSION );
+	Msg("------- Loading bin/launcher.dll [%g] -------\n", LAUNCHER_VERSION );
 	CreateInstance();
 
-	//NOTE: host will working in loop mode and never returned
-	//control without reason
-	Host_Main();//ok, starting host
-	Sys_Exit();//normal quit from appilcation
+	// NOTE: host will working in loop mode and never returned
+	// control without reason
+	Host_Main();	// ok, starting host
+	Sys_Exit();	// normal quit from appilcation
 }
 
 /*

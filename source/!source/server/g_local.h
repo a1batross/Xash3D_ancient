@@ -44,6 +44,8 @@ extern byte *zone_game;
 
 #define COM_Parse(data) gi.Script.ParseToken(data)
 
+#define GameTitle gi.GameInfo().title
+
 /*
 ===========================================
 infostring manager

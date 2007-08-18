@@ -13,7 +13,7 @@ DllMain
 
 ==================
 */
-launcher_exp_t DLLEXPORT CreateAPI( stdinout_api_t input )
+launcher_exp_t DLLEXPORT *CreateAPI( stdinout_api_t input )
 {
 	static launcher_exp_t Editor;
 
@@ -23,5 +23,5 @@ launcher_exp_t DLLEXPORT CreateAPI( stdinout_api_t input )
 	Editor.Main = EditorMain;
 	Editor.Free = FreeEditor;
 
-	return Editor;
+	return &Editor;
 }

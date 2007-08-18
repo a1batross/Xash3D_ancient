@@ -558,12 +558,7 @@ void SV_BuildClientFrame (client_t *client)
 	byte	*bitvector;
 
 	clent = client->edict;
-	if (!clent->client)
-		return;		// not in game yet
-
-#if 0
-	numprojs = 0; // no projectiles yet
-#endif
+	if (!clent->client) return;// not in game yet
 
 	// this is the frame we are creating
 	frame = &client->frames[sv.framenum & UPDATE_MASK];
@@ -667,23 +662,17 @@ void SV_BuildClientFrame (client_t *client)
 			}
 		}
 
-#if 0
-		if (SV_AddProjectileUpdate(ent))
-			continue; // added as a special projectile
-#endif
-
 		// add it to the circular client_entities array
-		state = &svs.client_entities[svs.next_client_entities%svs.num_client_entities];
+		state = &svs.client_entities[svs.next_client_entities % svs.num_client_entities];
 		if (ent->s.number != e)
 		{
-			MsgDev ("FIXING ENT->S.NUMBER!!!\n");
-			ent->s.number = e;
+			MsgWarn ("SV_BuildClientFrame: invalid ent->s.number %d\n", ent->s.number );
+			ent->s.number = e; // ptr to current entity such as entnumber
 		}
 		*state = ent->s;
 
 		// don't mark players missiles as solid
-		if (ent->owner == client->edict)
-			state->solid = 0;
+		if (ent->owner == client->edict) state->solid = 0;
 
 		svs.next_client_entities++;
 		frame->num_entities++;

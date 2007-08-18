@@ -50,9 +50,6 @@ char m_nCachedBoneNames[ MAXSTUDIOBONES ][ 32 ];
 matrix3x4 m_rgCachedBonesTransform [ MAXSTUDIOBONES ];
 matrix3x4 m_rgCachedLightTransform [ MAXSTUDIOBONES ];
 
-//studio cvars
-cvar_t *r_developer;
-
 /*
 ====================
 R_StudioInit
@@ -61,17 +58,10 @@ R_StudioInit
 */
 void R_StudioInit( void )
 {
-	MsgDev("Init Xash Studio. ver: %g\n", STUDIO_API_VERSION);
-
-	//get developer value
-	r_developer = ri.Cvar_Get( "developer", "0", 0 );
-
-	m_pBodyPart	= NULL;
-	m_pRenderModel	= NULL;
-	m_pStudioHeader	= NULL;
-          m_pCurrentEntity	= NULL;
-	
-	//TODO:make included interface for studio
+	m_pBodyPart = NULL;
+	m_pRenderModel  = NULL;
+	m_pStudioHeader = NULL;
+          m_pCurrentEntity = NULL;
 }
 
 void R_StudioShutdown( void )

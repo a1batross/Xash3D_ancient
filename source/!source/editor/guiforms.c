@@ -424,7 +424,7 @@ void GUI_ResetWndOptions( void )
 	
 	//reset options
 	w_opts.id = IDEDITORHEADER;
-	w_opts.version = EDITOR_VERSION;
+	w_opts.version = (int)EDITOR_VERSION;
 	w_opts.csize = sizeof(wnd_options_t);
 	w_opts.show_console = true;
 	w_opts.con_scale = 6L;
@@ -439,11 +439,12 @@ void GUI_ResetWndOptions( void )
 bool GUI_LoadPlatfrom( char *funcname, int argc, char **argv )
 {
 	stdinout_api_t	pistd;//platform callback
-	platform_exp_t	*(*CreatePLAT)( stdinout_api_t *);
+	platform_t	CreatePlat;
 
 	//create callbacks for platform.dll
 	pistd.printf = GUI_Msg;
 	pistd.dprintf = GUI_MsgDev;
+	pistd.wprintf = GUI_MsgWarn;
 	pistd.error = GUI_Error;
 	pistd.exit = std.exit;
 	pistd.print = GUI_Print;
@@ -451,15 +452,15 @@ bool GUI_LoadPlatfrom( char *funcname, int argc, char **argv )
 	//loading platform.dll
 	if (( platform_dll = LoadLibrary( "bin/platform.dll" )) == 0 )
 	{
-		MsgDev("couldn't find platform.dll\n");
+		GUI_Error("couldn't find platform.dll\n");
 		return false;	
 	}
-	if ((CreatePLAT = (void *)GetProcAddress( platform_dll, "CreateAPI" ) ) == 0 )
+	if ((CreatePlat = (void *)GetProcAddress( platform_dll, "CreateAPI" ) ) == 0 )
 	{
-		MsgDev("platform.dll: unable to find entry point\n");
+		GUI_Error("platform.dll has no valid entry point\n");
 		return false;
 	}
-	pi = CreatePLAT( &pistd );//make links
+	pi = CreatePlat( pistd );//make links
 	
 	//initialziing platform.dll
 	pi->Init( argc, argv );
@@ -662,6 +663,23 @@ void GUI_MsgDev( const char *pMsg, ... )
 	}
 }
 
+void GUI_MsgWarn( const char *pMsg, ... )
+{
+	va_list		argptr;
+	char text[MAX_INPUTLINE];
+	
+	if(debug_mode)
+	{
+		va_start (argptr, pMsg);
+		vsprintf (text, pMsg, argptr);
+		va_end (argptr);
+		GUI_Print( text );
+
+		//echo into system console
+		std.print( text );
+	}
+}
+
 void GUI_Error( const char *pMsg, ... )
 {
 	va_list		argptr;
@@ -800,7 +818,7 @@ void GUI_UpdateDefault( WPARAM wParam )
 		break;
 	case IDM_ABOUT:
 		if(!w_opts.show_console) GUI_ShowConsole();
-		Msg("Xash Resource Editor. Ver %d\n", EDITOR_VERSION );
+		Msg("Xash Resource Editor. Ver %g\n", EDITOR_VERSION );
 		Msg("Copyright XashXT Group 2007 ©.\n");		
 		break;
 	}
@@ -840,7 +858,7 @@ void GUI_HotKeys( WPARAM wParam )
 			GUI_HideConsole(); 
 		break;
 	default:
-		MsgDev("call unused hotkey\n");
+		MsgWarn("GUI_HotKeys: call unused hotkey %d\n", LOWORD(wParam));
 		break; 
 	}
 }
@@ -907,7 +925,8 @@ void InitEditor ( char *funcname, int argc, char **argv )
 	WNDCLASS wc;
 	RECT rect;
           int WNDSTYLE = WS_OVERLAPPEDWINDOW;
-
+	int iErrors = 0;
+	
 	memset( &wc, 0, sizeof( wc ));
 
 	com_argc = argc;
@@ -952,7 +971,6 @@ void InitEditor ( char *funcname, int argc, char **argv )
 	{
 		wnd_options_t *config_dat;
 		int config_size;
-		int iErrors = 0;
 		
 		config_dat = (wnd_options_t *)pi->Fs.LoadFile( "editor.dat", &config_size );
 
@@ -960,24 +978,24 @@ void InitEditor ( char *funcname, int argc, char **argv )
 		{
 			if(config_dat->id != IDEDITORHEADER)
 			{
-				MsgDev("warning: editor.dat mismath header!\n");
+				MsgWarn("InitEditor: editor.dat have mismath header!\n");
 				iErrors++;
 			}
-			if(config_dat->version != EDITOR_VERSION)
+			if(config_dat->version != (int)EDITOR_VERSION)
 			{
-				MsgDev("warning: editor.dat mismath version!\n");
+				MsgWarn("InitEditor: editor.dat have mismath version!\n");
 				iErrors++;
 			}
 			if(config_dat->csize != config_size)
 			{
-				MsgDev("warning: editor.dat mismath size!\n");
+				MsgWarn("InitEditor: editor.dat have mismath size!\n");
 				iErrors++;
 			}
 			//copy settings into main structure
 			if(!iErrors) memcpy( &w_opts, config_dat, sizeof(w_opts));
 		}
 	}
-	else GUI_Error("Error: could't load platform.dll\n");
+	else iErrors++;
 
 	GUI_CreateEditorWindow();
 	GUI_CreateMenus();
@@ -987,11 +1005,12 @@ void InitEditor ( char *funcname, int argc, char **argv )
 	if(w_opts.show_console) GUI_ShowConsole(); 
 	else GUI_HideConsole();
 	
+	if(iErrors) GUI_DisableMenus(); // apply error
 	GUI_ExecuteBuffer(); //show all messages
 	
 	//end of all initializations
 	ShowWindow(s_gui.hWnd, SW_SHOWDEFAULT);
-	MsgDev("editor initialized\n");
+	MsgDev("------- Xash Recource Editor ver. %g initialized -------\n", EDITOR_VERSION );
 }
 
 void EditorMain ( void )
@@ -1009,8 +1028,11 @@ void EditorMain ( void )
 		}
 	}	
 
-	//save our settings
-	pi->Fs.WriteFile("editor.dat", &w_opts, w_opts.csize );
+	if(platform_dll)
+	{
+		// save our settings
+		pi->Fs.WriteFile("editor.dat", &w_opts, w_opts.csize );
+	}
 }
 
 void FreeEditor ( void )

@@ -169,8 +169,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 	if (attractloop) Cvar_Set ("paused", "0");
 
 	Msg("------- Server Initialization -------\n");
-
-	MsgDev ("SpawnServer: %s\n",server);
+	MsgDev ("SpawnServer: %s\n", server);
 	if (sv.demofile) FS_Close (sv.demofile);
 
 	svs.spawncount++; // any partially connected client will be restarted

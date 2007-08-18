@@ -57,8 +57,7 @@ void *_Mem_Alloc(byte *poolptr, size_t size, const char *filename, int fileline)
 		}
 		pool->realsize += sizeof(memclump_t);
 		clump = malloc(sizeof(memclump_t));
-		if (clump == NULL)
-			Sys_Error("Mem_Alloc: out of memory (alloc at %s:%i)", filename, fileline);
+		if (clump == NULL) Sys_Error("Mem_Alloc: out of memory (alloc at %s:%i)", filename, fileline);
 		memset(clump, 0, sizeof(memclump_t));
 		*clumpchainpointer = clump;
 		clump->sentinel1 = MEMCLUMP_SENTINEL;
@@ -68,11 +67,10 @@ void *_Mem_Alloc(byte *poolptr, size_t size, const char *filename, int fileline)
 		clump->largestavailable = MEMBITS - needed;
 		j = 0;
 choseclump:
-		mem = (memheader_t *)((unsigned char *) clump->block + j * MEMUNIT);
+		mem = (memheader_t *)((byte *) clump->block + j * MEMUNIT);
 		mem->clump = clump;
 		clump->blocksinuse += needed;
-		for (i = j + needed;j < i;j++)
-			clump->bits[j >> 5] |= (1 << (j & 31));
+		for (i = j + needed;j < i;j++) clump->bits[j >> 5] |= (1 << (j & 31));
 	}
 	else
 	{
@@ -106,7 +104,7 @@ void *_Mem_Realloc(byte *poolptr, void *memptr, size_t size, const char *filenam
 	memheader_t *hdr;
 
 	if (size <= 0) return memptr;//no need to reallocate
-	if (!memptr) Sys_Error("Mem_Realloc: try to reallocate NULL ptr (called at %s:%i)", filename, fileline);
+	if (!memptr) Sys_Error("Mem_Realloc: memptr == NULL (called at %s:%i)", filename, fileline);
 	nb = _Mem_Alloc(poolptr, size, filename, fileline);
 
 	//get size of old block
@@ -285,8 +283,7 @@ void _Mem_CheckSentinelsGlobal(const char *filename, int fileline)
 
 void _Mem_Move (void *dest, void *src, size_t size, const char *filename, int fileline)
 {
-	if (src == NULL) Sys_Error("Mem_Move: src == NULL (called at %s:%i)", filename, fileline);
-	if (size <= 0) Sys_Error("Mem_Move: size <= 0 (called at %s:%i)", filename, fileline);
+	if (src == NULL || size <= 0) return;
 	if (dest == NULL) dest = _Mem_Alloc( basepool, size, filename, fileline); //allocate room
 
 	// move block

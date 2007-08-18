@@ -83,6 +83,7 @@ void R_ConcatTransforms (float in1[3][4], float in2[3][4], float out[3][4]);
 
 #define Msg ri.Stdio.printf
 #define MsgDev ri.Stdio.dprintf
+#define MsgWarn ri.Stdio.wprintf
 #define Sys_Error ri.Stdio.error
 
 /*

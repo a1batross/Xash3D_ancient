@@ -99,6 +99,9 @@ typedef struct game_import_s
 	void	(*sound) (edict_t *ent, int channel, int soundindex, float volume, float attenuation, float timeofs);
 	void	(*positioned_sound) (vec3_t origin, edict_t *ent, int channel, int soundinedex, float volume, float attenuation, float timeofs);
 
+	// get game info
+	gameinfo_t (*GameInfo)( void );
+
 	// config strings hold all the index strings, the lightstyles,
 	// and misc data like the sky definition and cdtrack.
 	// All of the current configstrings are sent to clients when

@@ -1124,19 +1124,19 @@ void S_Update_(void)
 	if (!dma.buffer)
 		return;
 
-// Updates DMA time
+	// Updates DMA time
 	GetSoundtime();
 
-// check to make sure that we haven't overshot
+	// check to make sure that we haven't overshot
 	if (paintedtime < soundtime)
 	{
-		MsgDev ("S_Update_ : overflow\n");
+		MsgWarn("S_Update_: overflow\n");
 		paintedtime = soundtime;
 	}
 
-// mix ahead of current position
+	// mix ahead of current position
 	endtime = soundtime + s_mixahead->value * dma.speed;
-//endtime = (soundtime + 4096) & ~4095;
+	//endtime = (soundtime + 4096) & ~4095;
 
 	// mix to an even submission block size
 	endtime = (endtime + dma.submission_chunk-1)

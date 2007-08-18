@@ -59,10 +59,8 @@ This will be sent on the initial connection and upon each server load.
 void SV_New_f (void)
 {
 	char		*gamedir;
-	int			playernum;
+	int		playernum;
 	edict_t		*ent;
-
-	MsgDev ("New() from %s\n", sv_client->name);
 
 	if (sv_client->state != cs_connected)
 	{
@@ -77,10 +75,8 @@ void SV_New_f (void)
 		return;
 	}
 
-	//
 	// serverdata needs to go over for all types of servers
 	// to make sure the protocol is right, and to set the gamedir
-	//
 	gamedir = Cvar_VariableString ("gamedir");
 
 	// send the serverdata
@@ -92,16 +88,13 @@ void SV_New_f (void)
 
 	if (sv.state == ss_cinematic || sv.state == ss_pic)
 		playernum = -1;
-	else
-		playernum = sv_client - svs.clients;
+	else playernum = sv_client - svs.clients;
 	MSG_WriteShort (&sv_client->netchan.message, playernum);
 
 	// send full levelname
 	MSG_WriteString (&sv_client->netchan.message, sv.configstrings[CS_NAME]);
 
-	//
 	// game server
-	// 
 	if (sv.state == ss_game)
 	{
 		// set up the entity for the client
@@ -125,8 +118,6 @@ SV_Configstrings_f
 void SV_Configstrings_f (void)
 {
 	int			start;
-
-	MsgDev ("Configstrings() from %s\n", sv_client->name);
 
 	if (sv_client->state != cs_connected)
 	{
@@ -183,8 +174,6 @@ void SV_Baselines_f (void)
 	entity_state_t	nullstate;
 	entity_state_t	*base;
 
-	MsgDev ("Baselines() from %s\n", sv_client->name);
-
 	if (sv_client->state != cs_connected)
 	{
 		Msg ("baselines not valid -- already spawned\n");
@@ -238,8 +227,6 @@ SV_Begin_f
 */
 void SV_Begin_f (void)
 {
-	MsgDev ("Begin() from %s\n", sv_client->name);
-
 	// handle the case of a level changing while a client was connecting
 	if ( atoi(Cmd_Argv(1)) != svs.spawncount )
 	{
@@ -252,7 +239,6 @@ void SV_Begin_f (void)
 	
 	// call the game begin function
 	ge->ClientBegin (sv_player);
-
 	Cbuf_InsertFromDefer ();
 }
 
@@ -346,7 +332,7 @@ void SV_BeginDownload_f(void)
 
 	if (!sv_client->download)
 	{
-		MsgDev ("Couldn't download %s to %s\n", name, sv_client->name);
+		MsgWarn("SV_BeginDownload_f: couldn't download %s to %s\n", name, sv_client->name);
 		if (sv_client->download)
 		{
 			sv_client->download = NULL;
@@ -424,13 +410,11 @@ to the next server,
 */
 void SV_Nextserver_f (void)
 {
-	if ( atoi(Cmd_Argv(1)) != svs.spawncount ) {
-		MsgDev ("Nextserver() from wrong level, from %s\n", sv_client->name);
-		return;		// leftover from last server
+	if ( atoi(Cmd_Argv(1)) != svs.spawncount )
+	{
+		MsgWarn("SV_Nextserver_f: loading wrong level, from %s\n", sv_client->name);
+		return; // leftover from last server
 	}
-
-	MsgDev ("Nextserver() from %s\n", sv_client->name);
-
 	SV_Nextserver ();
 }
 
@@ -447,17 +431,11 @@ ucmd_t ucmds[] =
 	{"configstrings", SV_Configstrings_f},
 	{"baselines", SV_Baselines_f},
 	{"begin", SV_Begin_f},
-
 	{"nextserver", SV_Nextserver_f},
-
 	{"disconnect", SV_Disconnect_f},
-
-	// issued by hand at client consoles	
 	{"info", SV_ShowServerinfo_f},
-
 	{"download", SV_BeginDownload_f},
 	{"nextdl", SV_NextDownload_f},
-
 	{NULL, NULL}
 };
 
@@ -473,19 +451,17 @@ void SV_ExecuteUserCommand (char *s)
 	Cmd_TokenizeString (s, true);
 	sv_player = sv_client->edict;
 
-//	SV_BeginRedirect (RD_CLIENT);
-
-	for (u=ucmds ; u->name ; u++)
+	for (u = ucmds; u->name; u++)
+	{
 		if (!strcmp (Cmd_Argv(0), u->name) )
 		{
-			u->func ();
+			u->func();
 			break;
 		}
+	}
 
 	if (!u->name && sv.state == ss_game)
 		ge->ClientCommand (sv_player);
-
-//	SV_EndRedirect ();
 }
 
 /*
@@ -496,25 +472,18 @@ USER CMD EXECUTION
 ===========================================================================
 */
 
-
-
 void SV_ClientThink (client_t *cl, usercmd_t *cmd)
-
 {
 	cl->commandMsec -= cmd->msec;
 
 	if (cl->commandMsec < 0 && sv_enforcetime->value )
 	{
-		MsgDev ("commandMsec underflow from %s\n", cl->name);
+		MsgWarn("SV_ClientThink: commandMsec underflow from %s\n", cl->name);
 		return;
 	}
-
 	ge->ClientThink (cl->edict, cmd);
 }
 
-
-
-#define	MAX_STRINGCMDS	8
 /*
 ===================
 SV_ExecuteClientMessage
@@ -522,10 +491,12 @@ SV_ExecuteClientMessage
 The current net_message is parsed for the given client
 ===================
 */
+#define	MAX_STRINGCMDS	8
+
 void SV_ExecuteClientMessage (client_t *cl)
 {
 	int		c;
-	char	*s;
+	char		*s;
 
 	usercmd_t	nullcmd;
 	usercmd_t	oldest, oldcmd, newcmd;
@@ -547,22 +518,21 @@ void SV_ExecuteClientMessage (client_t *cl)
 	{
 		if (net_message.readcount > net_message.cursize)
 		{
-			Msg ("SV_ReadClientMessage: badread\n");
+			MsgWarn("SV_ReadClientMessage: bad read\n");
 			SV_DropClient (cl);
 			return;
 		}	
 
 		c = MSG_ReadByte (&net_message);
-		if (c == -1)
-			break;
+		if (c == -1) break;
 				
 		switch (c)
 		{
 		default:
-			Msg ("SV_ReadClientMessage: unknown command char\n");
+			MsgWarn("SV_ReadClientMessage: unknown command char\n");
 			SV_DropClient (cl);
 			return;
-						
+					
 		case clc_nop:
 			break;
 
@@ -572,18 +542,18 @@ void SV_ExecuteClientMessage (client_t *cl)
 			break;
 
 		case clc_move:
-			if (move_issued)
-				return;		// someone is trying to cheat...
+			if (move_issued) return; // someone is trying to cheat...
 
 			move_issued = true;
 			checksumIndex = net_message.readcount;
 			checksum = MSG_ReadByte (&net_message);
 			lastframe = MSG_ReadLong (&net_message);
-			if (lastframe != cl->lastframe) {
+			if (lastframe != cl->lastframe)
+			{
 				cl->lastframe = lastframe;
-				if (cl->lastframe > 0) {
-					cl->frame_latency[cl->lastframe&(LATENCY_COUNTS-1)] = 
-						svs.realtime - cl->frames[cl->lastframe & UPDATE_MASK].senttime;
+				if (cl->lastframe > 0)
+				{
+					cl->frame_latency[cl->lastframe&(LATENCY_COUNTS-1)] = svs.realtime - cl->frames[cl->lastframe & UPDATE_MASK].senttime;
 				}
 			}
 
@@ -599,16 +569,11 @@ void SV_ExecuteClientMessage (client_t *cl)
 			}
 
 			// if the checksum fails, ignore the rest of the packet
-			calculatedChecksum = COM_BlockSequenceCRCByte (
-				net_message.data + checksumIndex + 1,
-				net_message.readcount - checksumIndex - 1,
-				cl->netchan.incoming_sequence);
+			calculatedChecksum = COM_BlockSequenceCRCByte(net_message.data + checksumIndex + 1, net_message.readcount - checksumIndex - 1, cl->netchan.incoming_sequence);
 
 			if (calculatedChecksum != checksum)
 			{
-				MsgDev ("Failed command checksum for %s (%d != %d)/%d\n", 
-					cl->name, calculatedChecksum, checksum, 
-					cl->netchan.incoming_sequence);
+				MsgWarn("SV_ExecuteClientMessage: failed command checksum for %s (%d != %d)/%d\n", cl->name, calculatedChecksum, checksum,  cl->netchan.incoming_sequence);
 				return;
 			}
 
@@ -617,26 +582,16 @@ void SV_ExecuteClientMessage (client_t *cl)
 				net_drop = cl->netchan.dropped;
 				if (net_drop < 20)
 				{
-
-//if (net_drop > 2)
-
-//	Msg ("drop %i\n", net_drop);
 					while (net_drop > 2)
 					{
 						SV_ClientThink (cl, &cl->lastcmd);
-
 						net_drop--;
 					}
-					if (net_drop > 1)
-						SV_ClientThink (cl, &oldest);
-
-					if (net_drop > 0)
-						SV_ClientThink (cl, &oldcmd);
-
+					if (net_drop > 1) SV_ClientThink (cl, &oldest);
+					if (net_drop > 0) SV_ClientThink (cl, &oldcmd);
 				}
 				SV_ClientThink (cl, &newcmd);
 			}
-
 			cl->lastcmd = newcmd;
 			break;
 
@@ -644,11 +599,8 @@ void SV_ExecuteClientMessage (client_t *cl)
 			s = MSG_ReadString (&net_message);
 
 			// malicious users may try using too many string commands
-			if (++stringCmdCount < MAX_STRINGCMDS)
-				SV_ExecuteUserCommand (s);
-
-			if (cl->state == cs_zombie)
-				return;	// disconnect command
+			if (++stringCmdCount < MAX_STRINGCMDS) SV_ExecuteUserCommand (s);
+			if (cl->state == cs_zombie) return; // disconnect command
 			break;
 		}
 	}

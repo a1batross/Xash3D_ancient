@@ -182,8 +182,6 @@ void SV_GameMap_f (void)
 		return;
 	}
 
-	MsgDev("SV_GameMap(%s)\n", Cmd_Argv(1));
-
 	// check for clearing the current savegame
 	map = Cmd_Argv(1);
 	if (map[0] != '*')
@@ -576,7 +574,6 @@ void SV_ServerRecord_f (void)
 	}
 
 	// write it to the demo file
-	MsgDev ("signon message length: %i\n", buf.cursize);
 	len = LittleLong (buf.cursize);
 	FS_Write (svs.demofile, &len, 4);
 	FS_Write (svs.demofile, buf.data, buf.cursize);
@@ -596,7 +593,7 @@ void SV_ServerStop_f (void)
 {
 	if (!svs.demofile)
 	{
-		Msg ("Not doing a serverrecord.\n");
+		Msg ("Not doing a record.\n");
 		return;
 	}
 	FS_Close (svs.demofile);

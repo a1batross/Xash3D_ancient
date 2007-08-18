@@ -146,11 +146,6 @@ Responds with all the info that qplug or qspy can see
 void SVC_Status (void)
 {
 	Netchan_OutOfBandPrint (NS_SERVER, net_from, "print\n%s", SV_StatusString());
-#if 0
-	Com_BeginRedirect (RD_PACKET, sv_outputbuf, SV_OUTPUTBUF_LENGTH, SV_FlushRedirect);
-	Msg (SV_StatusString());
-	Com_EndRedirect ();
-#endif
 }
 
 /*
@@ -278,18 +273,17 @@ void SVC_DirectConnect (void)
 
 	adr = net_from;
 
-	MsgDev ("SVC_DirectConnect ()\n");
+	MsgDev ("SVC_DirectConnect()\n");
 
 	version = atoi(Cmd_Argv(1));
 	if (version != PROTOCOL_VERSION)
 	{
 		Netchan_OutOfBandPrint (NS_SERVER, adr, "print\nServer is version %4.2f.\n", VERSION);
-		MsgDev ("    rejected connect from version %i\n", version);
+		MsgWarn ("SVC_DirectConnect: rejected connect from version %i\n", version);
 		return;
 	}
 
 	qport = atoi(Cmd_Argv(2));
-
 	challenge = atoi(Cmd_Argv(3));
 
 	strncpy (userinfo, Cmd_Argv(4), sizeof(userinfo)-1);
@@ -343,7 +337,7 @@ void SVC_DirectConnect (void)
 		{
 			if (!NET_IsLocalAddress (adr) && (svs.realtime - cl->lastconnect) < ((int)sv_reconnect_limit->value * 1000))
 			{
-				MsgDev ("%s:reconnect rejected : too soon\n", NET_AdrToString (adr));
+				MsgWarn("SVC_DirectConnect: %s:reconnect rejected : too soon\n", NET_AdrToString (adr));
 				return;
 			}
 			Msg ("%s:reconnect\n", NET_AdrToString (adr));
@@ -354,7 +348,7 @@ void SVC_DirectConnect (void)
 
 	// find a client slot
 	newcl = NULL;
-	for (i=0,cl=svs.clients ; i<maxclients->value ; i++,cl++)
+	for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
 	{
 		if (cl->state == cs_free)
 		{
@@ -365,7 +359,7 @@ void SVC_DirectConnect (void)
 	if (!newcl)
 	{
 		Netchan_OutOfBandPrint (NS_SERVER, adr, "print\nServer is full.\n");
-		MsgDev ("Rejected a connection.\n");
+		MsgDev("SVC_DirectConnect: Rejected a connection.\n");
 		return;
 	}
 
@@ -385,11 +379,9 @@ gotnewcl:
 	if (!(ge->ClientConnect (ent, userinfo)))
 	{
 		if (*Info_ValueForKey (userinfo, "rejmsg")) 
-			Netchan_OutOfBandPrint (NS_SERVER, adr, "print\n%s\nConnection refused.\n",  
-				Info_ValueForKey (userinfo, "rejmsg"));
-		else
-			Netchan_OutOfBandPrint (NS_SERVER, adr, "print\nConnection refused.\n" );
-		MsgDev ("Game rejected a connection.\n");
+			Netchan_OutOfBandPrint (NS_SERVER, adr, "print\n%s\nConnection refused.\n", Info_ValueForKey (userinfo, "rejmsg"));
+		else Netchan_OutOfBandPrint (NS_SERVER, adr, "print\nConnection refused.\n" );
+		MsgWarn("SVC_DirectConnect: Game rejected a connection.\n");
 		return;
 	}
 
@@ -436,11 +428,8 @@ void SVC_RemoteCommand (void)
 
 	i = Rcon_Validate ();
 
-	if (i == 0)
-		Msg ("Bad rcon from %s:\n%s\n", NET_AdrToString (net_from), net_message.data+4);
-	else
-		Msg ("Rcon from %s:\n%s\n", NET_AdrToString (net_from), net_message.data+4);
-
+	if (i == 0) Msg ("Bad rcon from %s:\n%s\n", NET_AdrToString (net_from), net_message.data+4);
+	else Msg ("Rcon from %s:\n%s\n", NET_AdrToString (net_from), net_message.data+4);
 	Com_BeginRedirect (RD_PACKET, sv_outputbuf, SV_OUTPUTBUF_LENGTH, SV_FlushRedirect);
 
 	if (!Rcon_Validate ())
@@ -459,7 +448,6 @@ void SVC_RemoteCommand (void)
 
 		Cmd_ExecuteString (remaining);
 	}
-
 	Com_EndRedirect ();
 }
 
@@ -479,32 +467,23 @@ void SV_ConnectionlessPacket (void)
 	char	*c;
 
 	MSG_BeginReading (&net_message);
-	MSG_ReadLong (&net_message);		// skip the -1 marker
+	MSG_ReadLong (&net_message);// skip the -1 marker
 
 	s = MSG_ReadStringLine (&net_message);
 
 	Cmd_TokenizeString (s, false);
 
 	c = Cmd_Argv(0);
-	MsgDev ("Packet %s : %s\n", NET_AdrToString(net_from), c);
+	MsgWarn("SV_ConnectionlessPacket: %s : %s\n", NET_AdrToString(net_from), c);
 
-	if (!strcmp(c, "ping"))
-		SVC_Ping ();
-	else if (!strcmp(c, "ack"))
-		SVC_Ack ();
-	else if (!strcmp(c,"status"))
-		SVC_Status ();
-	else if (!strcmp(c,"info"))
-		SVC_Info ();
-	else if (!strcmp(c,"getchallenge"))
-		SVC_GetChallenge ();
-	else if (!strcmp(c,"connect"))
-		SVC_DirectConnect ();
-	else if (!strcmp(c, "rcon"))
-		SVC_RemoteCommand ();
-	else
-		Msg ("bad connectionless packet from %s:\n%s\n"
-		, NET_AdrToString (net_from), s);
+	if (!strcmp(c, "ping")) SVC_Ping ();
+	else if (!strcmp(c, "ack")) SVC_Ack ();
+	else if (!strcmp(c,"status")) SVC_Status ();
+	else if (!strcmp(c,"info")) SVC_Info ();
+	else if (!strcmp(c,"getchallenge")) SVC_GetChallenge ();
+	else if (!strcmp(c,"connect")) SVC_DirectConnect ();
+	else if (!strcmp(c, "rcon")) SVC_RemoteCommand ();
+	else Msg ("bad connectionless packet from %s:\n%s\n", NET_AdrToString (net_from), s);
 }
 
 

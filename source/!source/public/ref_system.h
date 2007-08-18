@@ -77,7 +77,7 @@ typedef enum
 	MSG_ALL,
 	MSG_PHS,
 	MSG_PVS,
-	MSG_ALL_R,
+	MSG_ALL_R,	// reliable
 	MSG_PHS_R,
 	MSG_PVS_R,
 } msgtype_t;
@@ -490,6 +490,7 @@ typedef struct stdinout_api_s
 	void (*print)( char *msg );		// basic text message
 	void (*printf)( char *msg, ... );	// normal text message
 	void (*dprintf)( char *msg, ... );	// developer text message
+	void (*wprintf)( char *msg, ... );	// warning text message
 	void (*error)( char *msg, ... );	// abnormal termination with message
 	void (*exit)( void );		// normal silent termination
 	char *(*input)( void );		// system console input	
@@ -563,7 +564,7 @@ typedef struct platform_exp_s
 
 	//misc utils
 	double (*DoubleTime)( void );
-          gameinfo_t (*GameInfo)( void );
+	gameinfo_t (*GameInfo)( void );
 
 } platform_exp_t;
 
@@ -650,8 +651,8 @@ typedef struct renderer_imp_s
 
 
 // this is the only function actually exported at the linker level
-typedef renderer_exp_t (*renderer_t)( renderer_imp_t );
-typedef platform_exp_t (*platform_t)( stdinout_api_t );
-typedef launcher_exp_t (*launcher_t)( stdinout_api_t );
+typedef renderer_exp_t *(*renderer_t)( renderer_imp_t );
+typedef platform_exp_t *(*platform_t)( stdinout_api_t );
+typedef launcher_exp_t *(*launcher_t)( stdinout_api_t );
 
 #endif//REF_SYSTEM_H

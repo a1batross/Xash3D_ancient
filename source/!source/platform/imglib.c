@@ -21,6 +21,16 @@ byte *image_palette;	// palette pointer
 byte *image_rgba;		// image pointer (see image_type for details)
 byte *image_cubemap;	// cubemap pack
 
+bool ImageValidSize( char *name )
+{
+	if(image_width > 4096 || image_height > 4096 || image_width <= 0 || image_height <= 0)
+	{
+		MsgWarn( "ImageValidSize: (%s) image size out of range [%dx%d]\n", name, image_width, image_height );
+		return false;
+	}
+	return true;
+}
+
 /*
 ==============
 LoadBMP
@@ -54,24 +64,20 @@ bool LoadBMP( char *name, char *buffer, int filesize )
 	memcpy( bmpHeader.palette, buf_p, sizeof( bmpHeader.palette ));
 	if ( bmpHeader.bitsPerPixel == 8 ) buf_p += 1024;
 
-	if ( bmpHeader.id[0] != 'B' && bmpHeader.id[1] != 'M' )
-	{ 
-		MsgDev( "LoadBMP: only Windows-style BMP files supported (%s)\n", name );
-		return false;
-	}
+	if ( bmpHeader.id[0] != 'B' && bmpHeader.id[1] != 'M' ) return false; // it's not a bmp file, just skip it
 	if ( bmpHeader.fileSize != filesize )
 	{
-		MsgDev( "LoadBMP: header size does not match file size (%d vs. %d) (%s)\n", bmpHeader.fileSize, filesize, name );
+		MsgWarn( "LoadBMP: (%s) declared filesize does not match real filesize (%d vs. %d)\n", name, bmpHeader.fileSize, filesize );
 		return false;
 	}
 	if ( bmpHeader.compression != 0 )
 	{
-		MsgDev( "LoadBMP: only uncompressed BMP files supported (%s)\n", name );
+		MsgWarn( "LoadBMP: (%s) compressed BMP files is not supported\n", name );
 		return false;
 	}
 	if ( bmpHeader.bitsPerPixel < 8 )
 	{
-		MsgDev( "LoadBMP: monochrome and 4-bit BMP files not supported (%s)\n", name );
+		MsgWarn( "LoadBMP: (%s) unsupported monochrome format\n", name );
 		return false;
 	}
 
@@ -87,6 +93,7 @@ bool LoadBMP( char *name, char *buffer, int filesize )
 	image_size = numPixels * 4;
 
 	if(bmpHeader.bitsPerPixel == 32) image_flags |= IMAGE_HAS_ALPHA;
+	if(!ImageValidSize( name )) return false;
 
 	bmpRGBA = Malloc( image_size );
 	image_rgba = bmpRGBA;
@@ -140,7 +147,7 @@ bool LoadBMP( char *name, char *buffer, int filesize )
 				*pixbuf++ = alpha;
 				break;
 			default:
-				MsgDev("LoadBMP: illegal pixel_size '%d' in file '%s'\n", bmpHeader.bitsPerPixel, name );
+				MsgWarn("LoadBMP: (%s) have illegal pixel size '%d'\n", name, bmpHeader.bitsPerPixel );
 				return false;
 			}
 		}
@@ -159,15 +166,18 @@ bool LoadPCX( char *name, char *buffer, int filesize )
 	byte *pix, *palette, *fin, *enddata;
 	int x, y, dataByte, runLength;
 
+
+	fin = buffer;
+	Mem_Copy(&pcx, fin, sizeof(pcx));
+	fin += sizeof(pcx);
+
+	// probably it's not pcx file
+	if (pcx.manufacturer != 0x0a || pcx.version != 5 || pcx.encoding != 1 ) return false;
 	if (filesize < (int)sizeof(pcx) + 768)
 	{
-		MsgDev("LoadPCX: Bad file %s\n", name );
+		MsgWarn("LoadPCX: file (%s) have invalid size\n", name );
 		return false;
 	}
-	fin = buffer;
-	
-	memcpy(&pcx, fin, sizeof(pcx));
-	fin += sizeof(pcx);
 
 	pcx.xmax = LittleShort (pcx.xmax);
 	pcx.xmin = LittleShort (pcx.xmin);
@@ -180,12 +190,13 @@ bool LoadPCX( char *name, char *buffer, int filesize )
 
 	image_width = pcx.xmax + 1 - pcx.xmin;
 	image_height = pcx.ymax + 1 - pcx.ymin;
-	
-	if (pcx.manufacturer != 0x0a || pcx.version != 5 || pcx.encoding != 1 || pcx.bits_per_pixel != 8 || image_width > 4096 || image_height > 4096 || image_width <= 0 || image_height <= 0)
+
+	if( pcx.bits_per_pixel != 8 )
 	{
-		MsgDev("LoadPCX: Bad file %s\n", name );
+		MsgWarn("LoadPCX: (%s) have illegal pixel size '%d'\n", name, pcx.bits_per_pixel );
 		return false;
 	}
+	if(!ImageValidSize( name )) return false;
 
 	palette = buffer + filesize - 768;
 
@@ -201,7 +212,6 @@ bool LoadPCX( char *name, char *buffer, int filesize )
 
 	image_size = image_width * image_height * 4;
 	pix = image_rgba = (byte *)Malloc( image_size );
-	if (!image_rgba) return false;
 	enddata = palette;
 
 	for (y = 0; y <= pcx.ymax && fin < enddata; y++, pix += pcx.xmax + 1)
@@ -248,22 +258,18 @@ bool LoadTGA( char *name, char *buffer, int filesize )
 	targa_header.colormap_type = *fin++;
 	targa_header.image_type = *fin++;
 
-	targa_header.colormap_index = BuffLittleShort( fin );	fin += 2;
-	targa_header.colormap_length = BuffLittleShort( fin );	fin += 2;
+	targa_header.colormap_index = BuffLittleShort( fin ); fin += 2;
+	targa_header.colormap_length = BuffLittleShort( fin ); fin += 2;
 	targa_header.colormap_size = *fin++;
-	targa_header.x_origin = BuffLittleShort( fin );		fin += 2;
-	targa_header.y_origin = BuffLittleShort( fin );		fin += 2;
-	targa_header.width = image_width = BuffLittleShort( fin );	fin += 2;
+	targa_header.x_origin = BuffLittleShort( fin ); fin += 2;
+	targa_header.y_origin = BuffLittleShort( fin ); fin += 2;
+	targa_header.width = image_width = BuffLittleShort( fin ); fin += 2;
 	targa_header.height = image_height = BuffLittleShort( fin );fin += 2;
-	
-	if (image_width > 4096 || image_height > 4096 || image_width <= 0 || image_height <= 0)
-	{
-		Msg("LoadTGA: invalid size\n");
-		return false;
-	}
+
+	if(!ImageValidSize( name )) return false;
 
 	image_num_layers = 1;
-	image_type = PF_RGBA_32;//always exctracted to 32-bit buffer
+	image_type = PF_RGBA_32; //always exctracted to 32-bit buffer
 
 	targa_header.pixel_size = *fin++;
 	targa_header.attributes = *fin++;
@@ -279,12 +285,12 @@ bool LoadTGA( char *name, char *buffer, int filesize )
 	{
 		if (targa_header.colormap_length > 256)
 		{
-			MsgDev("LoadTGA: only up to 256 colormap_length supported\n");
+			MsgWarn("LoadTGA: (%s) have unsupported colormap type ( more than 256 bytes)\n", name );
 			return false;
 		}
 		if (targa_header.colormap_index)
 		{
-			MsgDev("LoadTGA: colormap_index not supported\n");
+			MsgWarn("LoadTGA: (%s) have unspported indexed colormap\n", name );
 			return false;
 		}
 		image_palette = Malloc(256*4);
@@ -312,10 +318,10 @@ bool LoadTGA( char *name, char *buffer, int filesize )
 		}
 		else
 		{
-			MsgDev("LoadTGA: Only 32 and 24 bit colormap_size supported\n");
+			MsgWarn("LoadTGA: (%s) have unsupported colormap size (valid is 32 or 24 bit)\n", name );
 			return false;
 		}
-		Mem_Copy(image_palette, palette, 256*4 );//copy palette
+		Mem_Copy(image_palette, palette, 256 * 4 ); //copy palette
 	}
 
 	// check our pixel_size restrictions according to image_type
@@ -324,7 +330,7 @@ bool LoadTGA( char *name, char *buffer, int filesize )
 	case 2:
 		if (targa_header.pixel_size != 24 && targa_header.pixel_size != 32)
 		{
-			MsgDev("LoadTGA: only 24bit and 32bit pixel sizes supported for type 2 and type 10 images\n");
+			MsgWarn("LoadTGA: (%s) have unsupported pixel size '%d', for type '%d'\n", name, targa_header.pixel_size, targa_header.image_type );
 			return false;
 		}
 		break;
@@ -341,18 +347,18 @@ bool LoadTGA( char *name, char *buffer, int filesize )
 	case 1:
 		if (targa_header.pixel_size != 8)
 		{
-			MsgDev("LoadTGA: only 8bit pixel size for type 1, 3, 9, and 11 images supported\n");
+			MsgWarn("LoadTGA: (%s) have unsupported pixel size '%d', for type '%d'\n", name, targa_header.pixel_size, targa_header.image_type );
 			return false;
 		}
 		break;
 	default:
-		MsgDev("LoadTGA: Only type 1, 2, 3, 9, 10, and 11 targa RGB images supported, image_type = %i\n", targa_header.image_type);
+		MsgWarn("LoadTGA: (%s) is unsupported image type '%i'\n", name, targa_header.image_type);
 		return false;
 	}
 
 	if (targa_header.attributes & 0x10)
 	{
-		MsgDev("LoadTGA: origin must be in top left or bottom left, top right and bottom right are not supported\n");
+		MsgWarn("LoadTGA: (%s): top right and bottom right origin are not supported\n", name );
 		return false;
 	}
 
@@ -360,19 +366,13 @@ bool LoadTGA( char *name, char *buffer, int filesize )
 	alphabits = targa_header.attributes & 0x0F;
 	if (alphabits != 8 && alphabits != 0)
 	{
-		MsgDev("LoadTGA: only 0 or 8 attribute (alpha) bits supported\n");
+		MsgWarn("LoadTGA: (%s) have invalid attributes '%i'\n", name, alphabits );
 		return false;
 	}
 
 	image_flags |= alphabits ? IMAGE_HAS_ALPHA : 0;
 	image_size = image_width * image_height * 4;
 	image_rgba = Malloc( image_size );
-
-	if (!image_rgba)
-	{
-		MsgDev("LoadTGA: not enough memory for %i by %i image\n", image_width, image_height);
-		return false;
-	}
 
 	// If bit 5 of attributes isn't set, the image has been stored from bottom to top
 	if ((targa_header.attributes & 0x20) == 0)
@@ -587,9 +587,7 @@ bool LoadTGA( char *name, char *buffer, int filesize )
 			}
 		}
 		break;
-	default:
-		// unknown image_type
-		break;
+	default:  break; // unknown image_type
 	}
 	return true;
 }
@@ -680,7 +678,7 @@ void dds_get_pixelformat( dds_t *hdr )
 		image_flags |= (hdr->dsCaps.dwCaps2 & DDS_CUBEMAP) ? IMAGE_CUBEMAP : 0;
 	}
 
-	if(hdr->dsPixelFormat.dwFlags & DDS_ALPHAPIXELS || image_type == PF_DXT1)//fixme
+	if(hdr->dsPixelFormat.dwFlags & DDS_ALPHAPIXELS)
 	{
 		image_flags |= IMAGE_HAS_ALPHA;
 	}
@@ -762,8 +760,8 @@ uint dds_calc_size( char *name, dds_t *hdr, uint filesize )
 
 	if(filesize != buffsize) //main check
 	{
-		Msg("LoadDDS: %s probably corrupted(%i should be %i\n", name, buffsize, filesize );
-		return 0;
+		MsgWarn("LoadDDS: (%s) probably corrupted(%i should be %i)\n", name, buffsize, filesize );
+		return false;
 	}
 	return buffsize;
 }
@@ -777,16 +775,17 @@ bool LoadDDS( char *name, char *buffer, int filesize )
 	fin = buffer;
 
 	//swap header
-	header.dwIdent = BuffLittleLong(fin);		fin += 4;
-	header.dwSize = BuffLittleLong(fin);		fin += 4;
-	header.dwFlags = BuffLittleLong(fin);		fin += 4;
-	header.dwHeight = BuffLittleLong(fin);		fin += 4;
-	header.dwWidth = BuffLittleLong(fin);		fin += 4;
-	header.dwLinearSize = BuffLittleLong(fin);	fin += 4;
-	header.dwDepth = BuffLittleLong(fin);		fin += 4;
-	header.dwMipMapCount = BuffLittleLong(fin);	fin += 4;
-	header.dwAlphaBitDepth = BuffLittleLong(fin);	fin += 4;
+	header.dwIdent = BuffLittleLong(fin); fin += 4;
+	header.dwSize = BuffLittleLong(fin); fin += 4;
+	header.dwFlags = BuffLittleLong(fin); fin += 4;
+	header.dwHeight = BuffLittleLong(fin); fin += 4;
+	header.dwWidth = BuffLittleLong(fin); fin += 4;
+	header.dwLinearSize = BuffLittleLong(fin); fin += 4;
+	header.dwDepth = BuffLittleLong(fin); fin += 4;
+	header.dwMipMapCount = BuffLittleLong(fin); fin += 4;
+	header.dwAlphaBitDepth = BuffLittleLong(fin); fin += 4;
 
+	// skip unused stuff
 	for (i = 0; i < 10; i++) 
 	{
 		header.dwReserved1[i] = BuffLittleLong(fin);
@@ -794,31 +793,31 @@ bool LoadDDS( char *name, char *buffer, int filesize )
 	}
 
 	//pixel format
-	header.dsPixelFormat.dwSize = BuffLittleLong(fin);	fin += 4;
-	header.dsPixelFormat.dwFlags = BuffLittleLong(fin);	fin += 4;
-	header.dsPixelFormat.dwFourCC = BuffLittleLong(fin);	fin += 4;
-	header.dsPixelFormat.dwRGBBitCount = BuffLittleLong(fin);	fin += 4;
-	header.dsPixelFormat.dwRBitMask = BuffLittleLong(fin);	fin += 4;
-	header.dsPixelFormat.dwGBitMask = BuffLittleLong(fin);	fin += 4;
-	header.dsPixelFormat.dwBBitMask = BuffLittleLong(fin);	fin += 4;
-	header.dsPixelFormat.dwABitMask = BuffLittleLong(fin);	fin += 4;
+	header.dsPixelFormat.dwSize = BuffLittleLong(fin); fin += 4;
+	header.dsPixelFormat.dwFlags = BuffLittleLong(fin); fin += 4;
+	header.dsPixelFormat.dwFourCC = BuffLittleLong(fin); fin += 4;
+	header.dsPixelFormat.dwRGBBitCount = BuffLittleLong(fin); fin += 4;
+	header.dsPixelFormat.dwRBitMask = BuffLittleLong(fin); fin += 4;
+	header.dsPixelFormat.dwGBitMask = BuffLittleLong(fin); fin += 4;
+	header.dsPixelFormat.dwBBitMask = BuffLittleLong(fin); fin += 4;
+	header.dsPixelFormat.dwABitMask = BuffLittleLong(fin); fin += 4;
 
 	//caps
-	header.dsCaps.dwCaps1 = BuffLittleLong(fin);	fin += 4;
-	header.dsCaps.dwCaps2 = BuffLittleLong(fin);	fin += 4;
-	header.dsCaps.dwCaps3 = BuffLittleLong(fin);	fin += 4;
-	header.dsCaps.dwCaps4 = BuffLittleLong(fin);	fin += 4;
-	header.dwTextureStage = BuffLittleLong(fin);	fin += 4;
+	header.dsCaps.dwCaps1 = BuffLittleLong(fin); fin += 4;
+	header.dsCaps.dwCaps2 = BuffLittleLong(fin); fin += 4;
+	header.dsCaps.dwCaps3 = BuffLittleLong(fin); fin += 4;
+	header.dsCaps.dwCaps4 = BuffLittleLong(fin); fin += 4;
+	header.dwTextureStage = BuffLittleLong(fin); fin += 4;
 
 	if(header.dwIdent != DDSHEADER) return false; // it's not a dds file, just skip it
 	if(header.dwSize != sizeof(dds_t) - 4 ) // size of the structure (minus MagicNum)
 	{
-		Msg("LoadDDS: %s has corrupt dds header\n", name );
+		MsgWarn("LoadDDS: (%s) have corrupt header\n", name );
 		return false;
 	}
 	if(header.dsPixelFormat.dwSize != sizeof(dds_pixf_t)) // size of the structure
 	{
-		Msg("LoadDDS: %s has corrupt pixelformat header\n", name );
+		MsgWarn("LoadDDS: (%s) have corrupt pixelformat header\n", name );
 		return false;
 	}
 
@@ -826,24 +825,19 @@ bool LoadDDS( char *name, char *buffer, int filesize )
 	image_height = header.dwHeight;
 	image_bits_count = header.dsPixelFormat.dwRGBBitCount;
 	if(header.dwFlags & DDS_DEPTH) image_num_layers = header.dwDepth;
-	
-	if (image_width > 4096 || image_height > 4096 || image_width <= 0 || image_height <= 0)
-	{
-		Msg("LoadDDS: %s has invalid size\n", name );
-		return false;
-	}
+	if(!ImageValidSize( name )) return false;
 
 	dds_get_pixelformat( &header );// and image type too :)
 	dds_addjust_volume_texture( &header );
 
 	if (image_type == PF_UNKNOWN) 
 	{
-		Msg("LoadDDS: %s has unknown compression type\n", name );
+		MsgWarn("LoadDDS: (%s) have unsupported compression type\n", name );
 		return false; //unknown type
 	}
 
 	image_size = dds_calc_size( name, &header, filesize - 128 ); 
-	if(image_size == 0) return false;
+	if(image_size == 0) return false; // just in case
 
 	// dds files will be uncompressed on a render. requires minimal of info for set this
 	image_rgba = Malloc( image_size ); 
@@ -886,7 +880,7 @@ int jpeg_read_bit( void )
 		{
 			while(jpg_file.curbyte == 0xFF) jpeg_read_byte();
 			if(jpg_file.curbyte >= 0xD0 && jpg_file.curbyte <= 0xD7)
-				memset(jpg_file.dc,0,sizeof(int) * 3);
+				memset(jpg_file.dc, 0, sizeof(int) * 3);
 			if(jpg_file.curbyte == 0) jpg_file.curbyte = 0xFF;
 			else jpeg_read_byte();
 		}
@@ -1140,7 +1134,6 @@ int jpeg_readmarkers( void )
 						}
 					}
 				}
-
 				jpg_file.scan.ss = jpeg_read_byte();
 				jpg_file.scan.se = jpeg_read_byte();
 				k = jpeg_read_byte();
@@ -1166,7 +1159,8 @@ void jpeg_decompress( void )
 	int X, Y, H, V, plane, scaleh[3], scalev[3];
     	static float vector[64], dct[64];
     
-	static const int jpeg_zigzag[64] = {
+	static const int jpeg_zigzag[64] = 
+	{
 	0,  1,  5,  6,  14, 15, 27, 28,
 	2,  4,  7,  13, 16, 26, 29, 42,
 	3,  8,  12, 17, 25, 30, 41, 43,
@@ -1178,7 +1172,8 @@ void jpeg_decompress( void )
 	};
 
 	// 1.0, k = 0; cos(k * PI / 16) * sqrt(2), k = 1...7
-	static const float aanscale[8] = {
+	static const float aanscale[8] =
+	{
 	1.0, 1.387039845, 1.306562965, 1.175875602,
 	1.0, 0.785694958, 0.541196100, 0.275899379
 	};
@@ -1320,24 +1315,15 @@ bool LoadJPG(char *name, char *buffer, int filesize )
 	memset(&jpg_file, 0, sizeof(jpg_file));
 	jpg_file.buffer = buffer;
 
-	if(!jpeg_readmarkers())//read header
-	{
-		Msg("LoadJPG: readmarkers did not find jpg\n");
-		return false;
-	}
+	if(!jpeg_readmarkers()) return false; // it's not a jpg file, just skip it
+
 	image_width = jpg_file.width;
 	image_height = jpg_file.height;
 	image_type = PF_RGBA_32;
-
-	if (image_width > 4096 || image_height > 4096 || image_width <= 0 || image_height <= 0)
-	{
-		Msg("LoadJPG: invalid size\n");
-		return false;
-	}	
+	if(!ImageValidSize( name )) return false;
 
 	image_size = jpg_file.width * jpg_file.height * 4;
 	jpg_file.data = Malloc(image_size);
-	if(!jpg_file.data) return false;
 
 	jpeg_decompress();
 	if(jpg_file.num_components == 1) jpeg_gray2rgba();        
@@ -1360,13 +1346,13 @@ imageformat_t image_formats[] =
 {
 	{"textures/%s%s.dds", LoadDDS},
 	{"textures/%s%s.tga", LoadTGA},
-	{"textures/%s%s.bmp", LoadBMP},
 	{"textures/%s%s.jpg", LoadJPG},
+	{"textures/%s%s.bmp", LoadBMP},
 	{"textures/%s%s.pcx", LoadPCX},
 	{"%s%s.dds", LoadDDS},
 	{"%s%s.tga", LoadTGA},
-	{"%s%s.bmp", LoadBMP},
 	{"%s%s.jpg", LoadJPG},
+	{"%s%s.bmp", LoadBMP},
 	{"%s%s.pcx", LoadPCX},
 	{NULL, NULL}
 };
@@ -1416,7 +1402,7 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 	int i, filesize = 0;
 	byte *f;
 
-	memcpy( loadname, filename, sizeof(loadname)-1);
+	strncpy( loadname, filename, sizeof(loadname)-1);
 	FS_StripExtension( loadname );//remove extension if needed
 
 	// now try all the formats in the selected list
@@ -1426,8 +1412,7 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 		f = FS_LoadFile( path, &filesize );
 		if(f && filesize > 0)
 		{
-			//this name will be used only for
-			//tell user about a imageload problems 
+			// this name will be used only for tell user about a imageload problems 
 			FS_FileBase( path, texname );
 			if( format->loadfunc(texname, f, filesize ))
 				return ImagePack(); //loaded
@@ -1443,8 +1428,7 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 			f = FS_LoadFile( path, &filesize );
 			if(f && filesize > 0)
 			{
-				//this name will be used only for
-				//tell user about a imageload problems 
+				// this name will be used only for tell user about a imageload problems 
 				FS_FileBase( path, texname );
 				if( format->loadfunc(texname, f, filesize ))
 					AddImageToPack(); //added
@@ -1459,21 +1443,20 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 	}          
 
 	// try to load image from const buffer (e.g. const byte blank_frame )
-	memcpy( texname, filename, sizeof(texname));
+	strncpy( texname, filename, sizeof(texname) - 1);
 
 	for (format = image_formats; format->formatstring; format++)
 	{
 		if(buffer && buffsize > 0)
 		{
-			//this name will be used only for
-			//tell user about a imageload problems 
+			//this name will be used only for tell user about a imageload problems 
 			FS_FileBase( loadname, texname );
 			if( format->loadfunc(texname, buffer, buffsize ))
 				return ImagePack(); //loaded
 		}
 	}
 
-	MsgDev("couldn't load %s\n", texname );
+	MsgWarn("FS_LoadImage: couldn't load (%s)\n", texname );
 	return NULL;
 }
 
