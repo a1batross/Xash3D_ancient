@@ -15,17 +15,13 @@ char		modeloutname[MAX_SYSPATH];
 int		numrep;
 int		flip_triangles;
 int		dump_hboxes;
-int		ignore_warnings;
 int		gflags;
 
 int		cdtextureset;
-int		maxseqgroupsize;
-int		split_textures;
 int		clip_texcoords;
 int		numseq;
 int		nummirrored;
 int		numani;
-int		numseqgroups;
 int		numxnodes;
 int		numrenamedbones;
 int		totalframes = 0;
@@ -82,6 +78,7 @@ char		mirrored[MAXSTUDIOSRCBONES][64];
 s_mesh_t		*pmesh;
 studiohdr_t	*phdr;
 studioseqhdr_t	*pseqhdr;
+s_sequencegroup_t	sequencegroup;
 s_trianglevert_t	(*triangles)[3];
 s_model_t		*model[MAXSTUDIOMODELS];
 s_bbox_t		hitbox[MAXSTUDIOSRCBONES];
@@ -94,7 +91,6 @@ s_bonetable_t	bonetable[MAXSTUDIOSRCBONES];
 s_attachment_t	attachment[MAXSTUDIOSRCBONES];
 s_renamebone_t	renamedbone[MAXSTUDIOSRCBONES];
 s_animation_t	*panimation[MAXSTUDIOANIMATIONS];
-s_sequencegroup_t	sequencegroup[MAXSTUDIOSEQUENCES];
 s_bonecontroller_t	bonecontroller[MAXSTUDIOSRCBONES];
 
 /*
@@ -312,17 +308,14 @@ void WriteSequenceInfo( void )
 
 	// save sequence group info
 	pseqgroup = (mstudioseqgroup_t *)pData;
-	phdr->numseqgroups = numseqgroups;
+	phdr->numseqgroups = 1;
 	phdr->seqgroupindex = (pData - pStart);
-	pData += phdr->numseqgroups * sizeof( mstudioseqgroup_t );
+	pData += sizeof( mstudioseqgroup_t );
 
 	ALIGN( pData );
 
-	for(i = 0; i < numseqgroups; i++) 
-	{
-		strcpy( pseqgroup[i].label, sequencegroup[i].label );
-		strcpy( pseqgroup[i].name, sequencegroup[i].name );
-	}
+	strcpy( pseqgroup->label, sequencegroup.label );
+	strcpy( pseqgroup->name, sequencegroup.name );
 
 	// save transition graph
 	ptransition = (byte *)pData;
@@ -347,9 +340,6 @@ byte *WriteAnimations( byte *pData, byte *pStart, int group )
 
 	mstudioanim_t	*panim;
 	mstudioanimvalue_t	*panimvalue;
-
-	// hack for seqgroup 0
-	// pseqgroup->data = (pData - pStart);
 
 	for (i = 0; i < numseq; i++) 
 	{
@@ -383,7 +373,7 @@ byte *WriteAnimations( byte *pData, byte *pStart, int group )
 							}
 						}
 					}
-					if (((byte *)panimvalue - (byte *)panim) > 65535)
+					if (((byte *)panimvalue - (byte *)panim) > 0xffff)
 						Sys_Error("sequence \"%s\" is greater than 64K\n", sequence[i].name );
 					panim++;
 				}
@@ -598,59 +588,10 @@ WriteMDLFile
 */
 void WriteMDLFile (void)
 {
-	int	i, total = 0;
+	int	total = 0;
 
 	pStart = Kalloc( FILEBUFFER );
-
 	FS_StripExtension( modeloutname ); 
-
-	for (i = 1; i < numseqgroups; i++)
-	{
-		// write the non-default sequence group data to separate files
-		char groupname[128], localname[128];
-		sprintf( groupname, "%s%02d.mdl", modeloutname, i );
-
-		Msg("writing %s\n", groupname);
-
-		pseqhdr = (studioseqhdr_t *)pStart;
-		pseqhdr->id = IDSEQGRPHEADER;
-		pseqhdr->version = STUDIO_VERSION;
-		pData = pStart + sizeof( studioseqhdr_t ); 
-		pData = WriteAnimations( pData, pStart, i );
-
-		FS_FileBase( groupname, localname );
-		sprintf( sequencegroup[i].name, "models\\%s.mdl", localname );
-		strcpy( pseqhdr->name, sequencegroup[i].name );
-		pseqhdr->length = pData - pStart;
-
-		FS_WriteFile( groupname, pStart, pseqhdr->length );
-
-		Msg("total     %6d\n", pseqhdr->length );
-		memset( pStart, 0, pseqhdr->length );
-	}
-
-	if (split_textures)
-	{
-		// write textures out to a separate file
-		char texname[128];
-
-		sprintf( texname, "%sT.mdl", modeloutname );
-		Msg ("writing %s\n", texname);
-
-		phdr = (studiohdr_t *)pStart;
-		phdr->id = IDSTUDIOHEADER;
-		phdr->version = STUDIO_VERSION;
-
-		pData = (byte *)phdr + sizeof( studiohdr_t );
-		WriteTextures( );
-		phdr->length = pData - pStart;
-	
-		FS_WriteFile( texname, pStart, phdr->length );
-		
-		Msg("textures  %6d bytes\n", phdr->length );
-		memset( pStart, 0, phdr->length );
-		pData = pStart;
-	}
 
 	// write the model output file
 	FS_DefaultExtension( modeloutname, ".mdl" );
@@ -685,14 +626,10 @@ void WriteMDLFile (void)
 	Msg("models    %6d bytes\n", pData - pStart - total );
 	total  = pData - pStart;
 
-	if (!split_textures)
-	{
-		WriteTextures();
-		Msg("textures  %6d bytes\n", pData - pStart - total );
-	}
+	WriteTextures();
+	Msg("textures  %6d bytes\n", pData - pStart - total );
 
 	phdr->length = pData - pStart;
-
 	FS_WriteFile( modeloutname, pStart, phdr->length );
 	Msg("total     %6d\n", phdr->length );
 }
@@ -794,7 +731,7 @@ void SimplifyModel (void)
 
 					if (n != m)
 					{
-						Msg("illegal parent bone replacement in model \"%s\"\n\t\"%s\" has \"%s\", previously was \"%s\"\n", model[i]->name, model[i]->node[j].name, (n != -1) ? bonetable[n].name : "ROOT", (m != -1) ? bonetable[m].name : "ROOT" );
+						MsgWarn("SimplifyModel: illegal parent bone replacement in model \"%s\"\n\t\"%s\" has \"%s\", previously was \"%s\"\n", model[i]->name, model[i]->node[j].name, (n != -1) ? bonetable[n].name : "ROOT", (m != -1) ? bonetable[m].name : "ROOT" );
 						iError++;
 					}
 				}
@@ -806,7 +743,7 @@ void SimplifyModel (void)
 	}
 
 	//handle errors
-	if (iError && !(ignore_warnings)) Sys_Error("unexpected errors, stop compilation\n");
+	if (iError && !(host_debug)) Sys_Error("Unexpected errors, stop compilation\nRun with parm \"-debug\" to avoid this");
 	if (numbones >= MAXSTUDIOBONES) Sys_Error( "Too many bones in model: used %d, max %d\n", numbones, MAXSTUDIOBONES );
 
 	// rename sequence bones if needed
@@ -845,7 +782,7 @@ void SimplifyModel (void)
 
 				if (strcmp(szAnim, szNode))
 				{
-					Msg("illegal parent bone replacement in sequence \"%s\"\n\t\"%s\" has \"%s\", reference has \"%s\"\n", sequence[i].name, sequence[i].panim[0]->node[j].name, szAnim, szNode );
+					MsgWarn("SimplifyModel: illegal parent bone replacement in sequence \"%s\"\n\t\"%s\" has \"%s\", reference has \"%s\"\n", sequence[i].name, sequence[i].panim[0]->node[j].name, szAnim, szNode );
 					iError++;
 				}
 				sequence[i].panim[0]->bonemap[j] = k;
@@ -855,7 +792,7 @@ void SimplifyModel (void)
 	}
 	
 	//handle errors
-	if (iError && !(ignore_warnings)) Sys_Error("unexpected errors, stop compilation\n");
+	if (iError && !(host_debug)) Sys_Error("unexpected errors, stop compilation\nRun with parm \"-debug\" to avoid this");
 
 	// link bonecontrollers
 	for (i = 0; i < numbonecontrollers; i++)
@@ -867,7 +804,7 @@ void SimplifyModel (void)
 		}
 		if (j >= numbones)
 		{
-			Msg("Warning: unknown bonecontroller link '%s'\n", bonecontroller[i].name );
+			MsgWarn("SimplifyModel: unknown bonecontroller link '%s'\n", bonecontroller[i].name );
 			j = numbones - 1;	
 		}
 		bonecontroller[i].bone = j;
@@ -883,7 +820,7 @@ void SimplifyModel (void)
 		}
 		if (j >= numbones)
 		{
-			Msg("Warning: unknown attachment link '%s'\n", attachment[i].bonename );
+			MsgWarn("SimplifyModel: unknown attachment link '%s'\n", attachment[i].bonename );
 			j = numbones - 1;
 		}
 		attachment[i].bone = j;
@@ -908,7 +845,11 @@ void SimplifyModel (void)
 				break;
 			}
 		}
-		if (k >= numbones) Sys_Error( "cannot find bone %s for hitgroup %d\n", hitgroup[j].name, hitgroup[j].group );
+		if (k >= numbones)
+		{
+			MsgWarn( "SimplifyModel: cannot find bone %s for hitgroup %d\n", hitgroup[j].name, hitgroup[j].group );
+			continue;
+		}
 	}
 
 	for (k = 0; k < numbones; k++)
@@ -993,7 +934,11 @@ void SimplifyModel (void)
 					break;
 				}
 			}
-			if (k >= numbones) Sys_Error( "cannot find bone %s for bbox\n", hitbox[j].name );
+			if (k >= numbones) 
+			{
+				MsgWarn("SimplifyModel: cannot find bone %s for bbox\n", hitbox[j].name );
+				continue;
+			}
 		}
 	}
 
@@ -1250,7 +1195,9 @@ void SimplifyModel (void)
 
 						sequence[i].panim[q]->numanim[j][k] = pvalue - data;
 						if (sequence[i].panim[q]->numanim[j][k] == 2 && value[0] == 0)
+						{
 							sequence[i].panim[q]->numanim[j][k] = 0;
+						}
 						else
 						{
 							sequence[i].panim[q]->anim[j][k] = Kalloc( (pvalue - data) * sizeof( mstudioanimvalue_t ));
@@ -1259,46 +1206,6 @@ void SimplifyModel (void)
 					}
 				}
 			}
-		}
-	}
-
-	// auto groups
-	if (numseqgroups == 1 && maxseqgroupsize < 1024 * 1024) 
-	{	
-		int current = 0;
-
-		numseqgroups = 2;
-
-		for (i = 0; i < numseq; i++)
-		{
-			int accum = 0;
-
-			if (sequence[i].activity == 0)
-			{
-				for (q = 0; q < sequence[i].numblends; q++)
-				{
-					for (j = 0; j < numbones; j++)
-					{
-						for (k = 0; k < 6; k++)
-						{
-							accum += sequence[i].panim[q]->numanim[j][k] * sizeof( mstudioanimvalue_t );
-						}
-					}
-				}
-				accum += sequence[i].numblends * numbones * sizeof( mstudioanim_t );
-			
-				if (current && current + accum > maxseqgroupsize)
-				{
-					numseqgroups++;
-					current = accum;
-				}
-				else
-				{
-					current += accum;
-				}
-				sequence[i].seqgroup = numseqgroups - 1;
-			}
-			else sequence[i].seqgroup = 0;
 		}
 	}
 }
@@ -1445,10 +1352,10 @@ void Grab_Triangles( s_model_t *pmodel )
 		linecount++;
 		
 		if(SC_MatchToken( "end" )) break;//triangles end
-		else if(!stricmp( ".bmp", &token[strlen(token)-4]))
+		else if(!stricmp( ".bmp", &SC_Token()[strlen(SC_Token())-4]))
 		{
 			//probably is texture name
-			strcpy( texturename, token );
+			strcpy( texturename, SC_Token());
 		
 			// funky texture overrides
 			for (i = 0; i < numrep; i++)  
@@ -1467,7 +1374,7 @@ void Grab_Triangles( s_model_t *pmodel )
 			if (strlen(texturename) < 5)//invalid name
 			{
 				// weird model problem, skip them
-				Msg("Warning: triangle with invalid texname\n");
+				MsgWarn("Grab_Triangles: triangle with invalid texname\n");
 				for(i = 0; i < 3; i++)
 				{
 					if(!SC_GetToken( true ))
@@ -1492,7 +1399,7 @@ void Grab_Triangles( s_model_t *pmodel )
 				else ptriv = lookup_triangle( pmesh, pmesh->numtris ) + j;
 
 				//grab triangle info
-				bone = atoi(token);
+				bone = atoi(SC_Token());
 				p.org[0] = atof(SC_GetToken( false ));
 				p.org[1] = atof(SC_GetToken( false ));
 				p.org[2] = atof(SC_GetToken( false ));
@@ -1501,6 +1408,9 @@ void Grab_Triangles( s_model_t *pmodel )
 				normal.org[2] = atof(SC_GetToken( false ));
 				ptriv->u = atof(SC_GetToken( false ));
 				ptriv->v = atof(SC_GetToken( false ));
+
+				// skip MilkShape additional info
+				while(SC_TryToken()); 
 		                                        
 				//translate triangles
 				if (bone < 0 || bone >= pmodel->numbones) 
@@ -1562,13 +1472,13 @@ void Grab_Skeleton( s_node_t *pnodes, s_bone_t *pbones )
 		{
 			//check time
 			time += atoi(SC_GetToken( false ));
-			if(time > 0) Msg("Grab_Skeleton: Warning! An animation file is probably used as a reference\n"); 
+			if(time > 0) MsgWarn("Grab_Skeleton: Warning! An animation file is probably used as a reference\n"); 
 			continue;
 		}
                     else
                     {
 			//grab skeleton info
-			index = atoi( token );
+			index = atoi( SC_Token());
 			pbones[index].pos[0] = atof(SC_GetToken( false ));
 			pbones[index].pos[1] = atof(SC_GetToken( false ));
 			pbones[index].pos[2] = atof(SC_GetToken( false ));
@@ -1602,7 +1512,7 @@ int Grab_Nodes( s_node_t *pnodes )
 		//end of nodes description
 		if(SC_MatchToken( "end" )) return numbones + 1;
 		
-		index = atoi(token); //read bone index (we already have filled token)
+		index = atoi(SC_Token()); //read bone index (we already have filled token)
 		strcpy( name, SC_GetToken( false ));
 		parent = atoi(SC_GetToken( false )); //read bone parent
 
@@ -1628,7 +1538,7 @@ void Grab_Studio ( s_model_t *pmodel )
 
 	FS_DefaultExtension(filename, ".smd" );
 	load = FS_AddScript( filename, NULL, 0 );
-	if(!load)Sys_Error("unable to open %s\n", filename );
+	if(!load) Sys_Error("unable to open %s\n", filename );
 	Msg("grabbing %s\n", filename);
 	
 	linecount = 0;
@@ -1641,7 +1551,7 @@ void Grab_Studio ( s_model_t *pmodel )
 		if (SC_MatchToken( "version" ))
 		{
 			int option = atoi(SC_GetToken( false ));
-			if (option != 1) Msg("Warning: %s bad version file\n", filename );
+			if (option != 1) MsgWarn("Grab_Studio: %s bad version file\n", filename );
 		}
 		else if (SC_MatchToken( "nodes" ))
 		{
@@ -1655,7 +1565,7 @@ void Grab_Studio ( s_model_t *pmodel )
 		{
 			Grab_Triangles( pmodel );
 		}
-		else Msg("unknown studio command %s at line %d\n", token, linecount );
+		else MsgWarn("Grab_Studio: unknown studio command %s at line %d\n", SC_Token(), linecount );
 	}
 }
 
@@ -1693,7 +1603,7 @@ void Option_Studio( void )
 	model[nummodels] = Kalloc( sizeof( s_model_t ));
 	bodypart[numbodyparts].pmodel[bodypart[numbodyparts].nummodels] = model[nummodels];
 
-	strncpy( model[nummodels]->name, token, sizeof(model[nummodels]->name));
+	strncpy( model[nummodels]->name, SC_Token(), sizeof(model[nummodels]->name));
 
 	flip_triangles = 1;
 	scale_up = default_scale;
@@ -1750,7 +1660,7 @@ void Cmd_Bodygroup( void )
 
 	if (numbodyparts == 0) bodypart[numbodyparts].base = 1;
 	else bodypart[numbodyparts].base = bodypart[numbodyparts-1].base * bodypart[numbodyparts-1].nummodels;
-	strncpy( bodypart[numbodyparts].name, token, sizeof(bodypart[numbodyparts].name));
+	strncpy( bodypart[numbodyparts].name, SC_Token(), sizeof(bodypart[numbodyparts].name));
 
 	while( 1 )
 	{
@@ -1781,7 +1691,7 @@ void Cmd_Body( void )
 	if (numbodyparts == 0) bodypart[numbodyparts].base = 1;
 	else bodypart[numbodyparts].base = bodypart[numbodyparts-1].base * bodypart[numbodyparts-1].nummodels;
 
-	strncpy(bodypart[numbodyparts].name, token, sizeof(bodypart[numbodyparts].name));
+	strncpy(bodypart[numbodyparts].name, SC_Token(), sizeof(bodypart[numbodyparts].name));
 	Option_Studio();
 
 	numbodyparts++;
@@ -1823,7 +1733,7 @@ void Grab_Animation( s_animation_t *panim)
 		}
                     else
                     {
-			index = atoi(token);
+			index = atoi(SC_Token());
 			pos[0] = atof(SC_GetToken( false ));
 			pos[1] = atof(SC_GetToken( false ));
 			pos[2] = atof(SC_GetToken( false ));
@@ -1923,7 +1833,7 @@ void Option_Animation ( char *name, s_animation_t *panim )
 		}
 		else 
 		{
-			Msg("unknown studio command : %s\n", token );
+			MsgWarn("Option_Animation: unknown studio command : %s\n", SC_Token() );
 			while(SC_TryToken());//skip other tokens at line
 		}
 	}
@@ -1931,7 +1841,7 @@ void Option_Animation ( char *name, s_animation_t *panim )
 
 int Option_Motion ( s_sequence_t *psequence )
 {
-	while (SC_TryToken()) psequence->motiontype |= lookupControl( token );
+	while (SC_TryToken()) psequence->motiontype |= lookupControl( SC_Token());
 	return 0;
 }
 
@@ -1939,7 +1849,7 @@ int Option_Event ( s_sequence_t *psequence )
 {
 	if (psequence->numevents + 1 >= MAXSTUDIOEVENTS)
 	{
-		Msg("Warning: MAXSTUDIOEVENTS limit excedeed.\n");
+		MsgWarn("Option_Event: MAXSTUDIOEVENTS limit excedeed.\n");
 		return 0;
 	}
 
@@ -1951,7 +1861,7 @@ int Option_Event ( s_sequence_t *psequence )
 	if (SC_TryToken())
 	{
 		if (SC_MatchToken( "}" )) return 1; // opps, hit the end
-		strcpy( psequence->event[psequence->numevents-1].options, token );// found an option
+		strcpy( psequence->event[psequence->numevents-1].options, SC_Token());// found an option
 	}
 	return 0;
 }
@@ -1992,7 +1902,7 @@ void Cmd_Origin (void)
 	defaultadjust[1] = atof (SC_GetToken (false));
 	defaultadjust[2] = atof (SC_GetToken (false));
 
-	if (SC_TryToken()) defaultzrotation = (atof( token ) + 90) * (M_PI / 180.0);
+	if (SC_TryToken()) defaultzrotation = (atof( SC_Token()) + 90) * (M_PI / 180.0);
 }
 
 
@@ -2030,41 +1940,12 @@ syntax: $rotate <value>
 void Cmd_Rotate(void)
 {
 	if (!SC_GetToken(false)) return;
-	zrotation = (atof(token) + 90) * (M_PI / 180.0);
+	zrotation = (atof(SC_Token()) + 90) * (M_PI / 180.0);
 }
 
 void Option_ScaleUp (void)
 {
 	scale_up = atof (SC_GetToken (false));
-}
-
-/*
-==============
-Cmd_SequenceGroup
-
-syntax: $sequencegroup "name"
-==============
-*/
-int Cmd_SequenceGroup( void )
-{
-	strncpy( sequencegroup[numseqgroups].label, SC_GetToken(false), sizeof(sequencegroup[numseqgroups].label));
-	numseqgroups++;
-
-	return 0;
-}
-
-/*
-==============
-Cmd_SequenceGroupSize
-
-syntax: $sequencegroupsize <kbytes>
-==============
-*/
-int Cmd_SequenceGroupSize( void )
-{
-	//in kilobytes
-	maxseqgroupsize = 1024 * atoi(SC_GetToken(false));
-	return 0;
 }
 
 /*
@@ -2101,7 +1982,7 @@ int Cmd_Sequence( void )
 
 	if(!SC_GetToken(false)) return 0;
 
-	strncpy( sequence[numseq].name, token, sizeof(sequence[numseq].name));
+	strncpy( sequence[numseq].name, SC_Token(), sizeof(sequence[numseq].name));
 	
 	VectorCopy( defaultadjust, adjust );
 	scale_up = default_scale;
@@ -2109,7 +1990,7 @@ int Cmd_Sequence( void )
 	//set default values
 	zrotation = defaultzrotation;
 	sequence[numseq].fps = 30.0;
-	sequence[numseq].seqgroup = numseqgroups - 1;
+	sequence[numseq].seqgroup = 0;
 	sequence[numseq].blendstart[0] = 0.0;
 	sequence[numseq].blendend[0] = 1.0;
 
@@ -2156,37 +2037,37 @@ int Cmd_Sequence( void )
 			sequence[numseq].exitnode = atoi(SC_GetToken( false ));
 			sequence[numseq].nodeflags |= 1;
 		}
-		else if (lookupControl( token ) != -1)
+		else if (lookupControl( SC_Token()) != -1)
 		{
-			sequence[numseq].motiontype |= lookupControl( token );
+			sequence[numseq].motiontype |= lookupControl( SC_Token());
 		}
 		else if (SC_MatchToken( "animation" ))
 		{
 			strncpy( smdfilename[numblends], SC_GetToken( false ), sizeof(smdfilename[numblends]));
 			numblends++;
 		}
-		else if (i = lookupActivity( token ))
+		else if (i = lookupActivity( SC_Token()))
 		{
 			sequence[numseq].activity = i;
 			sequence[numseq].actweight = 1;//default weight
 			if(SC_TryToken())
 			{
 				//make sure what is really actweight
-				if(!SC_MatchToken("{") && !SC_MatchToken("}") && strlen(token) < 3 && atoi(token) <= 100)
-					sequence[numseq].actweight = atoi(token);
+				if(!SC_MatchToken("{") && !SC_MatchToken("}") && strlen(SC_Token()) < 3 && atoi(SC_Token()) <= 100)
+					sequence[numseq].actweight = atoi(SC_Token());
 				else SC_FreeToken();//release token
 			}
 		}
 		else
 		{
-			strncpy( smdfilename[numblends], token, sizeof(smdfilename[numblends]));
+			strncpy( smdfilename[numblends], SC_Token(), sizeof(smdfilename[numblends]));
 			numblends++;
 		}
-		if (depth < 0) Sys_Error("missing {\n");
 	}
+
 	if (numblends == 0) 
 	{
-		Msg("Warning: sequence \"%s\" has no animations. skipped...\n", sequence[numseq].name);
+		MsgWarn("Cmd_Sequence: \"%s\" has no animations. skipped...\n", sequence[numseq].name);
 		return 0;
 	}
 	for (i = 0; i < numblends; i++)
@@ -2216,7 +2097,7 @@ int Cmd_Root (void)
 {
 	if (SC_GetToken(false))
 	{
-		strncpy( pivotname[0], token, sizeof(pivotname));
+		strncpy( pivotname[0], SC_Token(), sizeof(pivotname));
 		return 0;
 	}
 	return 1;
@@ -2233,10 +2114,10 @@ int Cmd_Pivot (void)
 {
 	if (SC_GetToken (false))
 	{
-		int index = atoi(token);
+		int index = atoi(SC_Token());
 		if (SC_GetToken(false))
 		{
-			strncpy( pivotname[index], token, sizeof(pivotname[index]));
+			strncpy( pivotname[index], SC_Token(), sizeof(pivotname[index]));
 			return 0;
 		}
 	}
@@ -2256,16 +2137,16 @@ int Cmd_Controller (void)
 	{
 		//mouth is hardcoded at four controller
 		if (SC_MatchToken( "mouth" )) bonecontroller[numbonecontrollers].index = 4;
-		else bonecontroller[numbonecontrollers].index = atoi(token);
+		else bonecontroller[numbonecontrollers].index = atoi(SC_Token());
 
 		if (SC_GetToken(false))
 		{
-			strncpy( bonecontroller[numbonecontrollers].name, token, sizeof(bonecontroller[numbonecontrollers].name));
+			strncpy( bonecontroller[numbonecontrollers].name, SC_Token(), sizeof(bonecontroller[numbonecontrollers].name));
 
 			SC_GetToken(false);
-			if ((bonecontroller[numbonecontrollers].type = lookupControl(token)) == -1) 
+			if ((bonecontroller[numbonecontrollers].type = lookupControl(SC_Token())) == -1) 
 			{
-				Msg("Cmd_Controller: unknown bonecontroller type '%s'\n", token );
+				MsgWarn("Cmd_Controller: unknown bonecontroller type '%s'\n", SC_Token() );
 				return 0;
 			}
 
@@ -2361,8 +2242,12 @@ int Cmd_TextureGroup( void )
 	int index = 0;
 	int group = 0;
 
-	if (numtextures == 0) Sys_Error( "texturegroups must follow model loading\n");
-
+	if (numtextures == 0) 
+	{
+		MsgWarn("Cmd_TextureGroup: texturegroups must follow model loading\n");
+		return 0;
+	}
+          
 	if (!SC_GetToken(false)) return 0;
 	if (numskinref == 0) numskinref = numtextures;
 
@@ -2370,7 +2255,7 @@ int Cmd_TextureGroup( void )
 	{
 		if(!SC_GetToken(true))
 		{
-                              if (depth) Sys_Error("missing }\n" );
+                              if (depth)MsgWarn("missing }\n");
 			break;
                     }
 
@@ -2384,7 +2269,7 @@ int Cmd_TextureGroup( void )
 		}
 		else if (depth == 2)
 		{
-			i = lookup_texture( token );
+			i = lookup_texture( SC_Token());
 			texturegroup[numtexturegroups][group][index] = i;
 			if (group != 0) texture[i].parent = texturegroup[numtexturegroups][0][index];
 			index++;
@@ -2501,7 +2386,7 @@ void Cmd_TexRenderMode( void )
 	{
 		texture[lookup_texture(tex_name)].flags |= STUDIO_NF_BLENDED;
 	}
-	else Msg("Texture '%s' has unknown render mode '%s'!\n", tex_name, token);
+	else MsgWarn("Cmd_TexRenderMode: texture '%s' have unknown render mode '%s'!\n", tex_name, SC_Token());
 
 }
 
@@ -2561,16 +2446,12 @@ void ResetModelInfo( void )
 	numrep = 0;
 	gamma = 1.8;
 	flip_triangles = 1;
-	maxseqgroupsize = 1024 * 1024;
 	normal_blend = cos( 2.0 * (M_PI / 180.0));
 
 	//make an option
 	dump_hboxes = 0;
-	ignore_warnings = 0;
 
-	strcpy( sequencegroup[numseqgroups].label, "default" );
-	numseqgroups = 1;
-
+	strcpy( sequencegroup.label, "default" );
 	FS_ClearSearchPath();//clear all $cd and $cdtexture
 
 	//set default model parms
@@ -2587,7 +2468,7 @@ syntax: "blabla"
 */
 void Cmd_StudioUnknown( void )
 {
-	MsgWarn("Cmd_StudioUnknown: skip command \"%s\"\n", token);
+	MsgWarn("Cmd_StudioUnknown: skip command \"%s\"\n", SC_Token());
 	while(SC_TryToken());
 }
 
@@ -2601,7 +2482,7 @@ bool ParseModelScript (void)
 
 		if (SC_MatchToken("$modelname")) Cmd_Modelname ();
 		else if (SC_MatchToken("$cd")) Cmd_CdSet();
-		else if (!strcmp (token, "$cdtexture")) Cmd_CdTextureSet();
+		else if (SC_MatchToken("$cdtexture")) Cmd_CdTextureSet();
 		else if (SC_MatchToken("$scale")) Cmd_ScaleUp ();
 		else if (SC_MatchToken("$rotate")) Cmd_Rotate();
 		else if (SC_MatchToken("$root")) Cmd_Root ();
@@ -2610,8 +2491,6 @@ bool ParseModelScript (void)
 		else if (SC_MatchToken("$body")) Cmd_Body();
 		else if (SC_MatchToken("$bodygroup")) Cmd_Bodygroup();
 		else if (SC_MatchToken("$sequence")) Cmd_Sequence ();
-		else if (SC_MatchToken("$sequencegroup")) Cmd_SequenceGroup ();
-		else if (SC_MatchToken("$sequencegroupsize")) Cmd_SequenceGroupSize ();
 		else if (SC_MatchToken("$eyeposition")) Cmd_Eyeposition ();
 		else if (SC_MatchToken("$origin")) Cmd_Origin ();
 		else if (SC_MatchToken("$bbox")) Cmd_BBox ();
@@ -2622,9 +2501,7 @@ bool ParseModelScript (void)
 		else if (SC_MatchToken("$hgroup")) Cmd_Hitgroup ();
 		else if (SC_MatchToken("$hbox")) Cmd_Hitbox ();
 		else if (SC_MatchToken("$attachment")) Cmd_Attachment ();
-		else if (SC_MatchToken("$externaltextures")) split_textures = 1;
 		else if (SC_MatchToken("$cliptotextures")) clip_texcoords = 1;
-		else if (SC_MatchToken("$debug")) ignore_warnings = 1;
 		else if (SC_MatchToken("$renamebone")) Cmd_Renamebone ();
 		else if (SC_MatchToken("$texrendermode")) Cmd_TexRenderMode();
 		else if (SC_MatchToken("$replacetexture")) Cmd_Replace();
@@ -2653,7 +2530,7 @@ void ClearModel( void )
 	cdset = false;
 	cdtextureset = 0;
 
-	numrep = gflags = maxseqgroupsize = numseq = nummirrored = numseqgroups = 0;
+	numrep = gflags = numseq = nummirrored = 0;
 	numxnodes = numrenamedbones = totalframes = numbones = numhitboxes = 0;
 	numhitgroups = numattachments = numtextures = numskinref = numskinfamilies = 0;
 	numbonecontrollers = numtexturegroups = numcommandnodes = numbodyparts = 0;

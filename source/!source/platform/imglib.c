@@ -119,7 +119,7 @@ bool LoadBMP( char *name, char *buffer, int filesize )
 				*pixbuf++ = 0xff;
 				break;
 			case 16:
-				shortPixel = * ( unsigned short *)pixbuf;
+				shortPixel = *(word*)pixbuf;
 				pixbuf += 2;
 				*pixbuf++ = ( shortPixel & ( 31 << 10 ) ) >> 7;
 				*pixbuf++ = ( shortPixel & ( 31 << 5 ) ) >> 2;

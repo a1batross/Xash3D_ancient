@@ -27,7 +27,7 @@ char	inbase[32], outbase[32];
 
 int	fakeplanes;			// created planes for origin offset 
 
-int	numbounce = 8;
+int	numbounce;
 bool	extrasamples;
 
 float	subdiv = 64;
@@ -382,7 +382,7 @@ void BounceLight (void)
 		}
 	}
 
-	for (i=0 ; i<numbounce ; i++)
+	for (i = 0; i < numbounce; i++)
 	{
 		RunThreadsOnIndividual (num_patches, false, ShootLight);
 		added = CollectLight ();
@@ -465,6 +465,13 @@ void WradMain ( bool option )
 	}
 
 	Msg("---- Radiocity ---- [%s]\n", extrasamples ? "extra" : "normal" );
+
+	if( extrasamples ) 
+	{
+		numbounce = 8;
+		ambient = 100; //FIXME: check result
+	}
+	else numbounce = 3;
 	
 	ParseEntities ();
 	CalcTextureReflectivity ();

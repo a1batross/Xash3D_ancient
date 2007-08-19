@@ -1,30 +1,4 @@
 #include "g_local.h"
-
-//#define DISABLE_FOG
-
-#ifdef DISABLE_FOG
-void Fog_Init()
-{
-}
-void Fog(vec3_t viewpoint)
-{
-}
-void Fog_Off()
-{
-}
-void SP_trigger_fog(edict_t *self)
-{
-	G_FreeEdict(self);
-}
-void SP_target_fog(edict_t *self)
-{
-	G_FreeEdict(self);
-}
-void Cmd_Fog_f(edict_t *ent)
-{
-}
-#else
-
 #include <windows.h>
 #define __MSC__
 #include <gl/gl.h>
@@ -354,7 +328,6 @@ void GlideFogTable()
 	float	w, dw4;
 
 	if(!hGlide) return;
-	if(strcmp(gl_driver->string,"3dfxgl") || strcmp(vid_ref->string,"gl") ) return;
 	if(last_software_frame + 10 > level.framenum) return;
 	if(last_opengl_frame   + 10 > level.framenum) return;
 
@@ -517,18 +490,8 @@ void Fog(vec3_t viewpoint)
 	edict_t	*triggerfog;
 	edict_t	*player = &g_edicts[1];
 
-	if(!gl_driver || !vid_ref)
-		return;
-
 	if(deathmatch->value || coop->value)
 		return;
-
-	if(stricmp(vid_ref->string,"gl"))
-	{
-		last_software_frame = level.framenum;
-		level.active_fog = 0;
-		return;
-	}
 
 	InTriggerFog = false;
 	if(level.trigger_fogs)
@@ -943,24 +906,3 @@ void SP_trigger_fog (edict_t *self)
 	gi.setmodel (self, self->model);
 	gi.linkentity(self);
 }
-#endif
-
-/*
-void SetChromakey()
-{
-	if(!gl_driver || !vid_ref)
-		return;
-
-	if(stricmp(vid_ref->string,"gl"))
-		return;
-
-	if(!strcmp(gl_driver->string,"3dfxgl"))
-	{
-		Glide_grChromakeyMode(GR_CHROMAKEY_ENABLE);
-		Glide_grChromakeyValue(0xFF);
-	}
-	else
-	{
-	}
-}
-*/

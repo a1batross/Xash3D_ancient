@@ -758,10 +758,9 @@ extern	cvar_t	*rotate_distance;
 extern	cvar_t	*s_primary;
 extern	cvar_t	*shift_distance;
 extern	cvar_t	*sv_maxgibs;
-extern  cvar_t  *tpp;			  // third person perspective
+extern	cvar_t	*tpp;			  // third person perspective
 extern	cvar_t	*tpp_auto;
 extern	cvar_t	*turn_rider;
-extern	cvar_t	*vid_ref;
 extern	cvar_t	*zoomrate;
 extern	cvar_t	*zoomsnap;
 

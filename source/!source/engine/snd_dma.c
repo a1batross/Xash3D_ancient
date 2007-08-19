@@ -207,34 +207,31 @@ sfx_t *S_FindName (char *name, bool create)
 	int		i;
 	sfx_t	*sfx;
 
-	if (!name)
-		Com_Error (ERR_FATAL, "S_FindName: NULL\n");
-	if (!name[0])
-		Com_Error (ERR_FATAL, "S_FindName: empty name\n");
-
-	if (strlen(name) >= MAX_QPATH)
-		Com_Error (ERR_FATAL, "Sound name too long: %s", name);
+	if (!name || !name[0]) return NULL;
 
 	// see if already loaded
-	for (i=0 ; i < num_sfx ; i++)
+	for (i = 0; i < num_sfx; i++)
+	{
 		if (!strcmp(known_sfx[i].name, name))
 		{
 			return &known_sfx[i];
 		}
-
-	if (!create)
-		return NULL;
+	}
+	if (!create) return NULL;
 
 	// find a free sfx
-	for (i=0 ; i < num_sfx ; i++)
+	for (i = 0; i < num_sfx; i++)
+	{
 		if (!known_sfx[i].name[0])
-//			registration_sequence < s_registration_sequence)
 			break;
-
+	}
 	if (i == num_sfx)
 	{
 		if (num_sfx == MAX_SFX)
-			Com_Error (ERR_FATAL, "S_FindName: out of sfx_t");
+		{
+			MsgWarn("S_FindName: MAX_SFX limit exceeded\n");
+			return NULL;
+		}
 		num_sfx++;
 	}
 	
@@ -270,7 +267,10 @@ sfx_t *S_AliasName (char *aliasname, char *truename)
 	if (i == num_sfx)
 	{
 		if (num_sfx == MAX_SFX)
-			Com_Error (ERR_FATAL, "S_FindName: out of sfx_t");
+		{
+			MsgWarn("S_AliasName: MAX_SFX limit exceeded\n");
+			return NULL;		
+		}
 		num_sfx++;
 	}
 	
@@ -306,14 +306,11 @@ sfx_t *S_RegisterSound (char *name)
 {
 	sfx_t	*sfx;
 
-	if (!sound_started)
-		return NULL;
+	if (!sound_started) return NULL;
 
 	sfx = S_FindName (name, true);
 	sfx->registration_sequence = s_registration_sequence;
-
-	if (!s_registering)
-		S_LoadSound (sfx);
+	if (!s_registering) S_LoadSound (sfx);
 
 	return sfx;
 }

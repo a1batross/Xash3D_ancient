@@ -554,8 +554,7 @@ void SV_CalcBlend (edict_t *ent)
 		float alpha;
 
 		// Turn off fade for dead software players or they won't see menu
-		if((ent->health <= 0) && (stricmp(vid_ref->string,"gl")))
-			ent->client->fadein = 0;
+		if(ent->health <= 0) ent->client->fadein = 0;
 
 		if(ent->client->fadein > level.framenum)
 		{
@@ -580,8 +579,7 @@ void SV_CalcBlend (edict_t *ent)
 						 ent->client->fadecolor[2],
 						 alpha, ent->client->ps.blend);
 		}
-		else
-			ent->client->fadein = 0;
+		else ent->client->fadein = 0;
 	}
 }
 

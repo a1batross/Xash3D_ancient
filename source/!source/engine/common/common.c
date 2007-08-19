@@ -406,7 +406,11 @@ byte COM_BlockSequenceCRCByte (byte *base, int length, int sequence)
 	word	crc;
 	byte	*p, chkb[60 + 4];
 
-	if (sequence < 0) Sys_Error("sequence < 0, this shouldn't happen\n");
+	if (sequence < 0) 
+	{
+		MsgWarn("COM_BlockSequenceCRCByte: sequence < 0, this shouldn't happen\n");
+		sequence = abs(sequence);
+	}
 
 	p = chktbl + (sequence % (sizeof(chktbl) - 4));
 

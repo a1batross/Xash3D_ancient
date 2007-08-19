@@ -44,18 +44,12 @@ void Host_InitPlatform( char *funcname, int argc, char **argv )
 	pistd.error = Sys_Error;
 	
 	if (( platform_dll = LoadLibrary( "bin/platform.dll" )) == 0 )
-	{
 		Sys_Error( "Couldn't load platform.dll\n" );
-		return;
-	}
 
 	if (( CreatePlat = (void *)GetProcAddress( platform_dll, "CreateAPI" ) ) == 0 )
-	{
-		Sys_Error("can't init platform.dll\n");
-		return;
-	}
-	pi = CreatePlat( pistd );
+		Sys_Error("CreateInstance: %s has no valid entry point\n", "platform.dll" );
 
+	pi = CreatePlat( pistd );
 	if(pi->apiversion != PLATFORM_API_VERSION)
 		Sys_Error("mismatch version (%i should be %i)\n", pi->apiversion, PLATFORM_API_VERSION);
 
@@ -90,8 +84,6 @@ void Host_Init (char *funcname, int argc, char **argv)
 	char	*s;
 
 	global_hInstance = (HINSTANCE)GetModuleHandle( NULL );
-	if (setjmp (abortframe)) Sys_Error ("Error during initialization");
-          
           if(!strcmp(funcname, "host_dedicated"))is_dedicated = true;
 	Host_InitPlatform( funcname, argc, argv );
 
@@ -111,11 +103,8 @@ void Host_Init (char *funcname, int argc, char **argv)
 	Cbuf_AddEarlyCommands (false);
 	Cbuf_Execute ();
 
-	//FS_InitFilesystem ();
-
 	Cbuf_AddText ("exec default.cfg\n");
 	Cbuf_AddText ("exec config.cfg\n");
-
 	Cbuf_AddEarlyCommands (true);
 	Cbuf_Execute ();
 
@@ -270,7 +259,6 @@ void Host_Main( void )
 			newtime = Sys_Milliseconds ();
 			time = newtime - oldtime;
 		} while (time < 1);
-//			Msg ("time:%5.2f - %5.2f = %5.2f\n", newtime, oldtime, time);
 
 		_controlfp( _PC_24, _MCW_PC );
 		Host_Frame (time);

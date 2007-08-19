@@ -28,15 +28,16 @@ typedef struct vrect_s
 
 typedef struct
 {
-	int		width, height;			// coordinates from main game
+	int	width, height;		// coordinates from main game
 } viddef_t;
 
-extern	viddef_t	viddef;				// global video state
+extern	viddef_t	viddef; // global video state
 
 // Video module initialisation etc
 void	VID_Init (void);
-void	VID_Shutdown (void);
-void	VID_CheckChanges (void);
+void	VID_InitRenderer(void);
+void	VID_FreeRenderer(void);
+void	VID_CheckChanges(void);
 
 void	VID_MenuInit( void );
 void	VID_MenuDraw( void );

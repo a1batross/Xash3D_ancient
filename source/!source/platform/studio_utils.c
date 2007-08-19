@@ -717,7 +717,7 @@ s_mesh_t *lookup_mesh( s_model_t *pmodel, char *texturename )
 			return pmodel->pmesh[i];
 	}
 	
-	if (i >= MAXSTUDIOMESHES) Sys_Error( "too many textures in model: \"%s\"\n", pmodel->name );
+	if (i >= MAXSTUDIOMESHES) Sys_Error( "too many meshes in model: \"%s\"\n", pmodel->name );
 
 	pmodel->nummesh = i + 1;
 	pmodel->pmesh[i] = Kalloc( sizeof( s_mesh_t ) );

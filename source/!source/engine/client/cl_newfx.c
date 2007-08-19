@@ -24,8 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 extern cparticle_t	*active_particles, *free_particles;
 extern cparticle_t	particles[MAX_PARTICLES];
-extern int			cl_numparticles;
-extern cvar_t		*vid_ref;
+extern int	cl_numparticles;
 
 extern void MakeNormalVectors (vec3_t forward, vec3_t right, vec3_t up);
 
@@ -96,14 +95,6 @@ CL_ColorFlash - flash of light
 void CL_ColorFlash (vec3_t pos, int ent, int intensity, float r, float g, float b)
 {
 	cdlight_t	*dl;
-
-	if((vidref_val == VIDREF_SOFT) && ((r < 0) || (g<0) || (b<0)))
-	{
-		intensity = -intensity;
-		r = -r;
-		g = -g;
-		b = -b;
-	}
 
 	dl = CL_AllocDlight (ent);
 	VectorCopy (pos,  dl->origin);
@@ -547,24 +538,18 @@ void CL_Heatbeam (vec3_t start, vec3_t forward)
 	VectorSubtract (end, start, vec);
 	len = VectorNormalize (vec);
 
-	// FIXME - pmm - these might end up using old values?
-//	MakeNormalVectors (vec, right, up);
 	VectorCopy (cl.v_right, right);
 	VectorCopy (cl.v_up, up);
-	if (vidref_val == VIDREF_GL)
-	{ // GL mode
-		VectorMA (move, -0.5, right, move);
-		VectorMA (move, -0.5, up, move);
-	}
-	// otherwise assume SOFT
+	VectorMA (move, -0.5, right, move);
+	VectorMA (move, -0.5, up, move);
 
+	// otherwise assume SOFT
 	ltime = (float) cl.time/1000.0;
 	start_pt = fmod(ltime*96.0,step);
 	VectorMA (move, start_pt, vec, move);
 
 	VectorScale (vec, step, vec);
 
-//	Msg ("%f\n", ltime);
 	rstep = M_PI/10.0;
 	for (i=start_pt ; i<len ; i+=step)
 	{

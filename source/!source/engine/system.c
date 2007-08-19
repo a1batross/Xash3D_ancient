@@ -30,7 +30,6 @@ stdinout_api_t std;
 uint sys_msg_time;
 uint sys_frame_time;
 
-bool s_win95;
 int starttime;
 
 /*
@@ -89,10 +88,7 @@ void Sys_Init (void)
 	vinfo.dwOSVersionInfoSize = sizeof(vinfo);
 
 	if (!GetVersionEx (&vinfo)) Sys_Error ("Couldn't get OS info");
-
 	if (vinfo.dwMajorVersion < 4) Sys_Error ("%s requires windows version 4 or greater", GI.title);
-	if (vinfo.dwPlatformId == VER_PLATFORM_WIN32s) Sys_Error ("%s doesn't run on Win32s", GI.title);
-	else if ( vinfo.dwPlatformId == VER_PLATFORM_WIN32_WINDOWS ) s_win95 = true;
 }
 
 /*
@@ -199,68 +195,68 @@ GAME DLL
 
 ========================================================================
 */
-
-HINSTANCE	game_library;
-
 /*
 =================
 Sys_UnloadGame
 =================
 */
-void Sys_UnloadGame (void)
+void Sys_UnloadGame( void *hinstance )
 {
-	if (!FreeLibrary (game_library))
-		Com_Error (ERR_FATAL, "FreeLibrary failed for game library");
-	game_library = NULL;
+	if(!hinstance) return;
+	FreeLibrary(hinstance);
+	hinstance = NULL;
 }
 
 /*
 =================
-Sys_GetGameAPI
+Sys_LoadGame
 
 Loads the game dll
 =================
 */
-void *Sys_GetGameAPI (const char* procname, void *parms)
+void *Sys_LoadGame (const char* procname, void *hinstance, void *parms)
 {
 	void	*(*GetGameAPI) (void *);
 	char	basepath[MAX_SYSPATH];
 	search_t	*gamedll;
           int	i;
 	
-	if (game_library)
-		Com_Error (ERR_FATAL, "Sys_GetGameAPI without Sys_UnloadingGame");
+	Sys_UnloadGame( hinstance );
 
 	//find server.dll
 	gamedll = FS_Search( "bin/*.dll" );
-	if(!gamedll) Com_Error (ERR_DROP, "can't found game DLL");
+	if(!gamedll) 
+	{
+		Com_Error (ERR_DROP, "Can't find game.dll\n");
+		return NULL;
+	}
 
 	// now run through the search paths
 	for( i = 0; i < gamedll->numfilenames; i++ )
 	{
 		sprintf(basepath, "%s/%s", GI.gamedir, gamedll->filenames[i]);
-		game_library = LoadLibrary ( basepath );
+		hinstance = LoadLibrary ( basepath );
 
-		if (!game_library)
+		if (!hinstance)
 		{
 			sprintf(basepath, "%s/%s", GI.basedir, gamedll->filenames[i]);		
-			game_library = LoadLibrary ( basepath );
+			hinstance = LoadLibrary ( basepath );
                     }
 
-		if (game_library)
+		if (hinstance)
 		{
-			if (( GetGameAPI = (void *)GetProcAddress( game_library, procname )) == 0 )
-				Sys_UnloadGame();
+			if (( GetGameAPI = (void *)GetProcAddress( hinstance, procname )) == 0 )
+				Sys_UnloadGame( hinstance );
 			else break;
 		}
-		else Msg("Can't loading %s\n", gamedll->filenames[i] );
+		else MsgWarn("Can't loading %s\n", gamedll->filenames[i] );
 	}
 
-	GetGameAPI = (void *)GetProcAddress (game_library, procname );
+	GetGameAPI = (void *)GetProcAddress (hinstance, procname );
 
 	if (!GetGameAPI)
 	{
-		Sys_UnloadGame ();		
+		Sys_UnloadGame( hinstance );
 		return NULL;
 	}
 	return GetGameAPI (parms);

@@ -104,7 +104,6 @@ cvar_t	*s_primary;
 cvar_t	*shift_distance;
 cvar_t	*sv_maxgibs;
 cvar_t	*turn_rider;
-cvar_t	*vid_ref;
 cvar_t	*zoomrate;
 cvar_t	*zoomsnap;
 
@@ -206,7 +205,6 @@ game_export_t DLLEXPORT *ServerAPI (game_import_t *import)
 	globals.edict_size = sizeof(edict_t);
           
 	gl_driver = gi.cvar ("gl_driver", "", 0);
-	vid_ref = gi.cvar ("vid_ref", "", 0);
 	gl_driver_fog = gi.cvar ("gl_driver_fog", "opengl32", CVAR_NOSET | CVAR_ARCHIVE);
 
 	Fog_Init();

@@ -111,7 +111,7 @@ extern char gs_mapname[ 64 ];
 extern char gs_basedir[ MAX_SYSPATH ];
 extern char g_TXcommand;
 extern bool endofscript;
-
+extern bool host_debug;
 
 extern int fs_argc;
 extern char **fs_argv;

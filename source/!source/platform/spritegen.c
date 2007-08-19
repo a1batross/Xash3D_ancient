@@ -116,7 +116,7 @@ void WriteSPRFile (void)
 {
 	file_t	*f;
 
-	if(sprite.numframes == 0) Sys_Error ("no frames\n");
+	if(sprite.numframes == 0) Sys_Error ("%s have no frames\n", spriteoutname );
 	if((plump - lumpbuffer) > MAX_BUFFER_SIZE)
 		Sys_Error ("Can't write %s, sprite package too big", spriteoutname );
 
@@ -189,20 +189,20 @@ syntax "$load fire01.bmp"
 */
 void Cmd_Load (void)
 {
-	static byte origpalette[256*3];
-          char *name = SC_GetToken ( false );
+	static byte	origpalette[256*3];
+          char *name	= SC_GetToken ( false );
 	dspriteframe_t	*pframe;
-	int x, y, w, h, pix;
-	byte *screen_p;
+	int		x, y, w, h, pix;
+	byte		*screen_p;
 
 	FS_DefaultExtension( name, ".bmp" );
 
 	byteimage = ReadBMP (name, &lbmpalette, &byteimagewidth, &byteimageheight);
 	if(!byteimage) Sys_Error( "unable to load file \"%s\"\n", name );
 
-	if(sprite.numframes == 0) memcpy( origpalette, lbmpalette, sizeof( origpalette ));
+	if(sprite.numframes == 0) Mem_Copy( origpalette, lbmpalette, sizeof( origpalette ));
 	else if (memcmp( origpalette, lbmpalette, sizeof( origpalette )))
-		Msg("Warning: %s doesn't share a pallette with the previous frame\n", name );	
+		MsgWarn("Cmd_Load: %s doesn't share a pallette with the previous frame\n", name );	
           
 	w = byteimagewidth;
 	h = byteimageheight;
@@ -280,7 +280,7 @@ void Cmd_Color( void )
 	g = atoi(SC_GetToken (false));
 	b = atoi(SC_GetToken (false));
 
-	if (SC_TryToken()) a = atoi(token);
+	if (SC_TryToken()) a = atoi(SC_Token());
 	else a = 0xFF;//fullbright
 	
 	//pack into one integer
@@ -310,7 +310,7 @@ syntax: "blabla"
 */
 void Cmd_SpriteUnknown( void )
 {
-	MsgDev("Warning: bad command %s\n", token);
+	MsgWarn("Cmd_SpriteUnknown: bad command %s\n", SC_Token());
 	while(SC_TryToken());
 }
 

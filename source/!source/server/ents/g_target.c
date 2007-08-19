@@ -3550,25 +3550,16 @@ void use_target_failure (edict_t *self, edict_t *other, edict_t *activator)
 		gi.sound (activator, CHAN_VOICE|CHAN_RELIABLE, self->noise_index, 1, ATTN_NORM, 0);
 
 	self->target_ent = activator;
-	if(stricmp(vid_ref->string,"gl"))
-	{
-		self->flags = 12;
-		self->think = target_failure_fade_lights;
-		self->nextthink = level.time + FRAMETIME;
-	}
-	else
-	{
-		activator->client->fadestart= level.framenum;
-		activator->client->fadein   = level.framenum + 40;
-		activator->client->fadehold = activator->client->fadein + 100000;
-		activator->client->fadeout  = 0;
-		activator->client->fadecolor[0] = 0;
-		activator->client->fadecolor[1] = 0;
-		activator->client->fadecolor[2] = 0;
-		activator->client->fadealpha    = 1.0;
-		self->think = target_failure_think;
-		self->nextthink = level.time + 4;
-	}
+	activator->client->fadestart= level.framenum;
+	activator->client->fadein   = level.framenum + 40;
+	activator->client->fadehold = activator->client->fadein + 100000;
+	activator->client->fadeout  = 0;
+	activator->client->fadecolor[0] = 0;
+	activator->client->fadecolor[1] = 0;
+	activator->client->fadecolor[2] = 0;
+	activator->client->fadealpha    = 1.0;
+	self->think = target_failure_think;
+	self->nextthink = level.time + 4;
 	activator->deadflag = DEAD_FROZEN;
 	gi.linkentity(activator);
 }

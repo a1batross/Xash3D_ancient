@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "server.h"
 
 game_export_t	*ge;
-extern HINSTANCE game_library;
+HINSTANCE sv_library;
 
 /*
 ===============
@@ -305,7 +305,7 @@ void SV_ShutdownGameProgs (void)
 {
 	if (!ge) return;
 	ge->Shutdown ();
-	Sys_UnloadGame ();
+	Sys_UnloadGame ( sv_library );
 	ge = NULL;
 }
 
@@ -387,7 +387,7 @@ void SV_InitGameProgs (void)
 	import.AreasConnected = CM_AreasConnected;
 
 	//find server.dll
-	ge = (game_export_t *)Sys_GetGameAPI ("ServerAPI", &import);
+	ge = (game_export_t *)Sys_LoadGame("ServerAPI", sv_library, &import);
 	
 	if (!ge) Com_Error (ERR_DROP, "failed to load game DLL");
 	if (ge->apiversion != GAME_API_VERSION)

@@ -36,6 +36,8 @@ extern bool debug_mode;
 extern bool log_active;
 extern int com_argc;
 extern char *com_argv[MAX_NUM_ARGVS];
+extern char sys_rootdir[ MAX_SYSPATH ];
+extern char log_path[256];
 extern bool console_read_only;
 extern bool show_always;
 char *va(const char *format, ...);

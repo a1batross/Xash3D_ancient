@@ -7,6 +7,7 @@
 
 HINSTANCE	base_hInstance;
 FILE	*logfile;
+char	log_path[256];
 
 /*
 ===============================================================================
@@ -231,7 +232,7 @@ void Sys_PrintW(const char *pMsg)
 	{
 		if (!logfile) 
 		{
-			logfile = fopen ("engine.log", "w");
+			logfile = fopen ( log_path, "w");
 			fprintf (logfile, "=======================================================================\n" );
 			fprintf (logfile, "\t\tXash3D started at %s\n", Log_Timestamp());
 			fprintf (logfile, "=======================================================================\n");

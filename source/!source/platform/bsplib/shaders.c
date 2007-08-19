@@ -129,7 +129,7 @@ static void ParseShaderFile( char *filename )
 		if ( !SC_GetToken( true )) break;
 
 		si = AllocShaderInfo();
-		strcpy( si->name, token );
+		strcpy( si->name, SC_Token() );
 		SC_GetToken( true );
 		
 		if(!SC_MatchToken( "{" ))
@@ -141,31 +141,31 @@ static void ParseShaderFile( char *filename )
 		while ( 1 )
 		{
 			if ( !SC_GetToken( true ) )break;
-			if ( !strcmp( token, "}" ) ) break;
+			if ( !strcmp( SC_Token(), "}" ) ) break;
 
 			// skip internal braced sections
-			if ( !strcmp( token, "{" ) )
+			if ( !strcmp( SC_Token(), "{" ) )
 			{
 				si->hasPasses = true;
 				while ( 1 )
 				{
 					if ( !SC_GetToken( true )) break;
-					if ( !strcmp( token, "}" )) break;
+					if ( !strcmp( SC_Token(), "}" )) break;
 				}
 				continue;
 			}
 
-			if ( !stricmp( token, "nextframe" ))
+			if ( !stricmp( SC_Token(), "nextframe" ))
 			{                              
 				SC_GetToken( false );
-				strcpy(si->nextframe, token );
+				strcpy(si->nextframe, SC_Token() );
 			}
-			if ( !stricmp( token, "surfaceparm" ))
+			if ( !stricmp( SC_Token(), "surfaceparm" ))
 			{
 				SC_GetToken( false );
 				for ( i = 0 ; i < numInfoParms ; i++ )
 				{
-					if ( !stricmp( token, infoParms[i].name ))
+					if ( !stricmp( SC_Token(), infoParms[i].name ))
 					{
 						si->surfaceFlags |= infoParms[i].surfaceFlags;
 						si->contents |= infoParms[i].contents;
@@ -177,26 +177,26 @@ static void ParseShaderFile( char *filename )
 				continue;
 			}
 			// light color <value> <value> <value>
-			if ( !stricmp( token, "radiocity" )  )
+			if ( !stricmp( SC_Token(), "radiocity" )  )
 			{
 				SC_GetToken( false );
-				si->color[0] = atof( token );
+				si->color[0] = atof( SC_Token() );
 				SC_GetToken( false );
-				si->color[1] = atof( token );
+				si->color[1] = atof( SC_Token() );
 				SC_GetToken( false );
-				si->color[2] = atof( token );
+				si->color[2] = atof( SC_Token() );
 				continue;
 			}
 
 			// light intensity <value>
-			if ( !stricmp( token, "intensity" ))
+			if ( !stricmp( SC_Token(), "intensity" ))
 			{
 				SC_GetToken( false );
-				si->intensity = atoi( token );
+				si->intensity = atoi( SC_Token() );
 				continue;
 			}
 
-			// ignore all other tokens on the line
+			// ignore all other SC_Token()s on the line
 			while (SC_TryToken());
 		}			
 	}

@@ -20,7 +20,7 @@ if errorlevel 1 set BUILD_ERROR=1
 %MSDEV% platform/platform.dsp %CONFIG%"platform - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
-%MSDEV% render/render.dsp %CONFIG%"render - Win32 Debug" %build_target%
+%MSDEV% renderer/renderer.dsp %CONFIG%"renderer - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
 %MSDEV% server/server.dsp %CONFIG%"server - Win32 Debug" %build_target%
@@ -48,7 +48,7 @@ rem //delete log files
 if exist engine\engine.plg del /f /q engine\engine.plg
 if exist launcher\launcher.plg del /f /q launcher\launcher.plg
 if exist platform\platform.plg del /f /q platform\platform.plg
-if exist render\render.plg del /f /q render\render.plg
+if exist renderer\renderer.plg del /f /q renderer\renderer.plg
 if exist server\server.plg del /f /q server\server.plg
 
 echo 	     Build succeeded!

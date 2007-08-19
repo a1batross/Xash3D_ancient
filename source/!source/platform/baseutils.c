@@ -97,7 +97,7 @@ bool AddScriptToStack(const char *name, byte *buffer, int size)
 {
 	if (script == &scriptstack[MAX_INCLUDES - 1])
 	{
-		Msg("script file exceeded limit %d", MAX_INCLUDES );
+		MsgWarn("AddScriptToStack: script file limit exceeded %d\n", MAX_INCLUDES );
 		return false;
 	}
           if(!buffer || !size) return false;
@@ -105,7 +105,7 @@ bool AddScriptToStack(const char *name, byte *buffer, int size)
 	script++;
 	strcpy (script->filename, name );
 	script->buffer = buffer;
-	script->line = 1;
+	script->line = scriptline = 1;
 	script->script_p = script->buffer;
 	script->end_p = script->buffer + size;
 
@@ -121,7 +121,6 @@ bool FS_LoadScript( const char *filename, char *buf, int size )
 
 	script = scriptstack;
 	result = AddScriptToStack( filename, buf, size);
-	if(result)MsgDev("Load script %s\n", filename );
 
 	endofscript = false;
 	tokenready = false;
@@ -130,15 +129,9 @@ bool FS_LoadScript( const char *filename, char *buf, int size )
 
 bool FS_AddScript( const char *filename, char *buf, int size )
 {
-	int result;
-
-	if(!buf || size <= 0)	
+	if(!buf || size <= 0)
 		buf = FS_LoadFile (filename, &size );
-
-	result = AddScriptToStack(filename, buf, size);
-	if(result) MsgDev("Insert script %s\n", filename );
-
-	return result;
+	return AddScriptToStack(filename, buf, size);
 }
 
 /*
@@ -165,6 +158,7 @@ skip_whitespace:	// skip whitespace
 	{
 		if (script->script_p >= script->end_p)
 			return EndOfScript (newline);
+
 		if (*script->script_p++ == '\n')
 		{
 			if (!newline) goto line_incomplete;
@@ -180,13 +174,15 @@ skip_whitespace:	// skip whitespace
 	{
 		if (!newline) goto line_incomplete;
 
-		//ets+++
+		// ets+++
 		if (*script->script_p == '/') script->script_p++;
 		if (script->script_p[1] == 'T' && script->script_p[2] == 'X')
 			g_TXcommand = script->script_p[3];//TX#"-style comment
 		while (*script->script_p++ != '\n')
+		{
 			if (script->script_p >= script->end_p)
 				return EndOfScript (newline);
+		}
 		goto skip_whitespace;
 	}
 
@@ -194,12 +190,17 @@ skip_whitespace:	// skip whitespace
 	if (script->script_p[0] == '/' && script->script_p[1] == '*')
 	{
 		if (!newline) goto line_incomplete;
-		script->script_p+=2;
+
+		script->script_p += 2;
 		while (script->script_p[0] != '*' && script->script_p[1] != '/')
 		{
-			script->script_p++;
 			if (script->script_p >= script->end_p)
 				return EndOfScript (newline);
+			if (*script->script_p++ == '\n')
+			{
+				if (!newline) goto line_incomplete;
+				scriptline = script->line++;
+			}
 		}
 		script->script_p += 2;
 		goto skip_whitespace;
@@ -216,7 +217,7 @@ skip_whitespace:	// skip whitespace
 		{
 			if (token_p == &token[MAX_SYSPATH - 1])
 			{
-				Msg("GetToken: Token too large on line %i\n", scriptline);
+				MsgWarn("GetToken: Token too large on line %i\n", scriptline);
 				break;
 			}
 			
@@ -232,7 +233,7 @@ skip_whitespace:	// skip whitespace
 		{
 			if (token_p == &token[MAX_SYSPATH - 1])
 			{
-				Msg("GetToken: Token too large on line %i\n",scriptline);
+				MsgWarn("GetToken: Token too large on line %i\n",scriptline);
 				break;
 			}
 		
@@ -254,7 +255,6 @@ skip_whitespace:	// skip whitespace
 	return true;
 
 line_incomplete:
-
 	//invoke error
 	return EndOfScript( newline );
 }
@@ -266,8 +266,11 @@ EndOfScript
 */
 bool EndOfScript (bool newline)
 {
-	if (!newline) Sys_Error ("Line %i is incomplete\n", scriptline);
-
+	if (!newline) 
+	{
+		scriptline = script->line;
+		Sys_Error ("%s: line %i is incomplete\n", script->filename, scriptline);
+	}
 	if (!strcmp (script->filename, "script buffer"))
 	{
 		endofscript = true;
@@ -283,8 +286,6 @@ bool EndOfScript (bool newline)
 	script--;
 	scriptline = script->line;
 	endofscript = true;
-
-	MsgDev("returning to %s\n", script->filename);
 
 	return false;
 }
@@ -325,100 +326,6 @@ SC_ParseToken
 Parse a token out of a string
 ==============
 */
-
-#if 0
-char *SC_ParseToken(const char **data_p)
-{
-	int		c, len;
-	const char	*data;
-
-	data = *data_p;
-	len = 0;
-	token[0] = 0;
-	
-	if (!data)
-	{
-		*data_p = NULL;
-		return NULL;
-	}
-		
-// skip whitespace
-skipwhite:
-	while ( (c = *data) <= ' ')
-	{
-		if (c == 0)
-		{
-			endofscript = true;
-			*data_p = NULL;
-			return NULL; // end of file;
-		}
-		data++;
-	}
-	
-	// skip // comments
-	if (c=='/' && data[1] == '/')
-	{
-		while (*data && *data != '\n')
-			data++;
-		goto skipwhite;
-	}
-
-	// skip /* comments
-	if (c=='/' && data[1] == '*')
-	{
-		while (data[1] && (data[0] != '*' || data[1] != '/'))
-			data++;
-		data += 2;
-		goto skipwhite;
-	}
-	
-
-	// handle quoted strings specially
-	if (c == '\"')
-	{
-		data++;
-		while( 1 )
-		{
-			c = *data++;
-			if (c=='\"'|| c== '\0')
-			{
-				token[len] = 0;
-				*data_p = data;
-				return token;
-			}
-			token[len] = c;
-			len++;
-		}
-	}
-
-	// parse single characters
-	if (c == '{' || c == '}'|| c == ')' || c == '(' || c == '\'' || c == ':' || c == ',')
-	{
-		token[len] = c;
-		len++;
-		token[len] = 0;
-		*data_p = data;
-		return token + 1;
-	}
-
-	// parse a regular word
-	do
-	{
-		token[len] = c;
-		data++;
-		len++;
-		c = *data;
-		if (c == '{' || c == '}'|| c == ')'|| c == '(' || c == '\'' || c == ':' || c == '\"' || c == ',')
-			break;
-	} while(c > 32);
-	
-	token[len] = 0;
-	*data_p = data;
-	return token;
-}
-
-#else
-
 char *SC_ParseToken(const char **data_p)
 {
 	int		c;
@@ -435,8 +342,8 @@ char *SC_ParseToken(const char **data_p)
 		return NULL;
 	}
 		
-// skip whitespace
-skipwhite:
+
+skipwhite: // skip whitespace
 	while ( (c = *data) <= ' ')
 	{
 		if (c == 0)
@@ -447,7 +354,7 @@ skipwhite:
 		data++;
 	}
 	
-// skip // comments
+	// skip // comments
 	if (c=='/' && data[1] == '/')
 	{
 		while (*data && *data != '\n')
@@ -455,7 +362,7 @@ skipwhite:
 		goto skipwhite;
 	}
 
-// handle quoted strings specially
+	// handle quoted strings specially
 	if (c == '\"')
 	{
 		data++;
@@ -476,7 +383,7 @@ skipwhite:
 		}
 	}
 
-// parse a regular word
+	// parse a regular word
 	do
 	{
 		if (len < MAX_OSPATH)
@@ -488,17 +395,12 @@ skipwhite:
 		c = *data;
 	} while (c > 32);
 
-	if (len == MAX_OSPATH)
-	{
-//		Msg ("Token exceeded %i chars, discarded.\n", MAX_TOKEN_CHARS);
-		len = 0;
-	}
+	if (len == MAX_OSPATH) len = 0;
 	token[len] = 0;
 
 	*data_p = data;
 	return token;
 }
-#endif
 
 /*
 =============================================================================
@@ -1130,16 +1032,15 @@ used for make sprites and models (old stuff)
 ================
 */
 
-
 byte *ReadBMP (char *filename, byte **palette, int *width, int *height)
 {
-	byte  *buf_p, *pbBmpBits;
-	byte  *buf, *pb, *pbPal = NULL;
-	int i, filesize, columns, rows;
-	ULONG cbBmpBits;
-	ULONG cbPalBytes;
-	ULONG biTrueWidth;
-	bmp_t bhdr;
+	byte	*buf_p, *pbBmpBits;
+	byte	*buf, *pb, *pbPal = NULL;
+	int	i, filesize, columns, rows;
+	dword	cbBmpBits;
+	dword	cbPalBytes;
+	dword	biTrueWidth;
+	bmp_t	bhdr;
 
 	RGBQUAD rgrgbPalette[256];
 
@@ -1150,7 +1051,7 @@ byte *ReadBMP (char *filename, byte **palette, int *width, int *height)
 		//blank_frame
 		buf_p = (char *)blank_frame; 
 		filesize = sizeof(blank_frame);
-		Msg("Warning: couldn't load %s\n", filename );
+		MsgWarn("ReadBMP: couldn't load %s, use blank image\n", filename );
 	}
 
 	bhdr.id[0] = *buf_p++;
@@ -1176,21 +1077,21 @@ byte *ReadBMP (char *filename, byte **palette, int *width, int *height)
 
 	if (memcmp(bhdr.id, "BM", 2))
 	{
-		Msg("ReadBMP: only Windows-style BMP files supported (%s)\n", filename );
+		MsgWarn("ReadBMP: only Windows-style BMP files supported (%s)\n", filename );
 		return NULL;
 	} 
 
 	// Bogus info header check
 	if (bhdr.fileSize != filesize)
 	{
-		Msg("ReadBMP: incorrect file size %i should be %i\n", filesize, bhdr.fileSize);
+		MsgWarn("ReadBMP: incorrect file size %i should be %i\n", filesize, bhdr.fileSize);
 		return NULL;
           }
           
 	// Bogus bit depth?  Only 8-bit supported.
 	if (bhdr.bitsPerPixel != 8)
 	{
-		Msg("ReadBMP: %d not a 8 bit image\n", bhdr.bitsPerPixel );
+		MsgWarn("ReadBMP: %d not a 8 bit image\n", bhdr.bitsPerPixel );
 		return NULL;
 	}
 	
@@ -1281,15 +1182,23 @@ static int enter;
 void ThreadLock (void)
 {
 	if (!threaded) return;
+	if (enter) 
+	{
+		MsgWarn("ThreadLock: recursive call\n");
+		return;
+	}
 	EnterCriticalSection (&crit);
-	if (enter) Sys_Error ("Recursive ThreadLock\n");
 	enter = 1;
 }
 
 void ThreadUnlock (void)
 {
 	if (!threaded) return;
-	if (!enter) Sys_Error ("ThreadUnlock without lock\n");
+	if (!enter) 
+	{
+		MsgWarn("ThreadUnlock: must call ThreadLock first\n");
+		return;
+	}
 	enter = 0;
 	LeaveCriticalSection (&crit);
 }
@@ -1327,7 +1236,7 @@ void ThreadWorkerFunction (int threadnum)
 
 	while (1)
 	{
-		work = GetThreadWork ();
+		work = GetThreadWork();
 		if (work == -1) break;
 		workfunction(work);
 	}
@@ -1342,7 +1251,7 @@ void ThreadSetDefault (void)
 		if (numthreads < 1 || numthreads > MAX_THREADS)
 			numthreads = 1;
 	}
-	MsgDev("%i thread%s\n", numthreads, numthreads== 1 ? "" : "s" );
+	MsgDev("%i thread%s\n", numthreads, numthreads == 1 ? "" : "s" );
 }
 
 void RunThreadsOnIndividual (int workcnt, bool showpacifier, void(*func)(int))

@@ -41,7 +41,6 @@ glwstate_t glw_state;
 static char wndname[128];
 
 extern cvar_t *vid_fullscreen;
-extern cvar_t *vid_ref;
 
 static bool VerifyDriver( void )
 {
@@ -427,14 +426,7 @@ bool GLimp_InitGL (void)
 		gl_state.stereo_enabled = false;
 	}
 
-	/*
-	** figure out if we're running on a minidriver or not
-	*/
-	if ( strstr( gl_driver->string, "opengl32" ) != 0 )
-		glw_state.minidriver = false;
-	else
-		glw_state.minidriver = true;
-
+	glw_state.minidriver = false;
 	/*
 	** Get a DC for the specified window
 	*/

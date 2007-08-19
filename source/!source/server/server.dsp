@@ -54,11 +54,11 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386
-# ADD LINK32 kernel32.lib user32.lib winmm.lib /nologo /subsystem:windows /dll /pdb:none /machine:I386 /out:"..\temp\render\!release/server.dll"
+# ADD LINK32 kernel32.lib user32.lib winmm.lib /nologo /subsystem:windows /dll /pdb:none /machine:I386
 # SUBTRACT LINK32 /debug
 # Begin Custom Build
-TargetDir=\XASH3D\src_main\!source\temp\render\!release
-InputPath=\XASH3D\src_main\!source\temp\render\!release\server.dll
+TargetDir=\XASH3D\src_main\!source\temp\server\!release
+InputPath=\XASH3D\src_main\!source\temp\server\!release\server.dll
 SOURCE="$(InputPath)"
 
 "D:\Xash3D\xash\bin\server.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -91,11 +91,11 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /debug /machine:I386
-# ADD LINK32 kernel32.lib user32.lib winmm.lib /nologo /subsystem:windows /dll /debug /machine:I386 /out:"..\temp\render\!debug/server.dll"
+# ADD LINK32 kernel32.lib user32.lib winmm.lib /nologo /subsystem:windows /dll /debug /machine:I386
 # SUBTRACT LINK32 /incremental:no /map
 # Begin Custom Build
-TargetDir=\XASH3D\src_main\!source\temp\render\!debug
-InputPath=\XASH3D\src_main\!source\temp\render\!debug\server.dll
+TargetDir=\XASH3D\src_main\!source\temp\server\!debug
+InputPath=\XASH3D\src_main\!source\temp\server\!debug\server.dll
 SOURCE="$(InputPath)"
 
 "D:\Xash3D\xash\bin\server.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"

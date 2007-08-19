@@ -7,6 +7,8 @@
 #include "baseutils.h"
 #include "bsplib.h"
 
+bool host_debug = false;
+
 gameinfo_t Plat_GameInfo( void )
 {
 	return GI;
@@ -14,8 +16,6 @@ gameinfo_t Plat_GameInfo( void )
 
 bool InitPlatform ( int argc, char **argv )
 {
-	char	parm[64];
-
 	Msg("------- Loading bin/platform.dll [%g] -------\n", PLATFORM_VERSION );
 
 	InitMemory();
@@ -23,12 +23,9 @@ bool InitPlatform ( int argc, char **argv )
 	ThreadSetDefault();
 	FS_Init( argc, argv );
 
-	// HACKHACK - bsplib additional cmds
-	if(FS_GetParmFromCmdLine("-bounce", parm ))
-			numbounce = atoi(parm);
+	if(FS_CheckParm("-debug"))
+		host_debug = true;
 
-	if(FS_GetParmFromCmdLine("-ambient", parm ))
-		ambient = atof(parm) * 128;
 	return true;
 }
 

@@ -112,7 +112,6 @@ cvar_t	*r_motionblur;
 cvar_t	*gl_log;
 cvar_t	*gl_bitdepth;
 cvar_t	*gl_drawbuffer;
-cvar_t  *gl_driver;
 cvar_t	*gl_lightmap;
 cvar_t	*gl_shadows;
 cvar_t	*gl_mode;
@@ -148,7 +147,6 @@ cvar_t	*gl_3dlabs_broken;
 
 cvar_t	*vid_fullscreen;
 cvar_t	*vid_gamma;
-cvar_t	*vid_ref;
 
 /*
 =================
@@ -961,7 +959,6 @@ void R_Register( void )
 	gl_polyblend = ri.Cvar_Get ("gl_polyblend", "1", 0);
 	gl_flashblend = ri.Cvar_Get ("gl_flashblend", "0", 0);
 	gl_playermip = ri.Cvar_Get ("gl_playermip", "0", 0);
-	gl_driver = ri.Cvar_Get( "gl_driver", "opengl32", CVAR_ARCHIVE );
 	gl_texturemode = ri.Cvar_Get( "gl_texturemode", "GL_LINEAR_MIPMAP_NEAREST", CVAR_ARCHIVE );
 	gl_texturealphamode = ri.Cvar_Get( "gl_texturealphamode", "default", CVAR_ARCHIVE );
 	gl_texturesolidmode = ri.Cvar_Get( "gl_texturesolidmode", "default", CVAR_ARCHIVE );
@@ -984,7 +981,6 @@ void R_Register( void )
 
 	vid_fullscreen = ri.Cvar_Get( "vid_fullscreen", "0", CVAR_ARCHIVE );
 	vid_gamma = ri.Cvar_Get( "vid_gamma", "1.0", CVAR_ARCHIVE );
-	vid_ref = ri.Cvar_Get( "vid_ref", "soft", CVAR_ARCHIVE );
 
 	ri.Cmd_AddCommand( "imagelist", R_ImageList_f );
 	ri.Cmd_AddCommand( "screenshot", GL_ScreenShot_f );
@@ -1072,18 +1068,17 @@ int R_Init( void *hinstance, void *hWnd )
 	R_Register();
 
 	// initialize our QGL dynamic bindings
-	if ( !QGL_Init( gl_driver->string ) )
+	if ( !QGL_Init( "opengl32" ) )
 	{
 		QGL_Shutdown();
-		Msg("R_Init() - could not load \"%s\"\n", gl_driver->string );
-		return -1;
+		return false;
 	}
 
 	// initialize OS-specific parts of OpenGL
 	if ( !GLimp_Init( hinstance, hWnd ) )
 	{
 		QGL_Shutdown();
-		return -1;
+		return false;
 	}
 
 	// set our "safe" modes
@@ -1094,9 +1089,10 @@ int R_Init( void *hinstance, void *hWnd )
 	{
 		QGL_Shutdown();
         		Msg( "R_Init() - could not R_SetMode()\n" );
-		return -1;
+		return false;
 	}
 
+	Msg("------- Loading bin/renderer.dll [%g] -------\n", RENDERER_VERSION );
 	ri.Vid_MenuInit();
 	
 	//get our various GL strings
@@ -1302,17 +1298,6 @@ void R_BeginFrame( float camera_separation )
 {
 
 	gl_state.camera_separation = camera_separation;
-
-	/*
-	** change modes if necessary
-	*/
-	if ( gl_mode->modified || vid_fullscreen->modified )
-	{	// FIXME: only restart if CDS is required
-		cvar_t	*ref;
-
-		ref = ri.Cvar_Get ("vid_ref", "gl", 0);
-		ref->modified = true;
-	}
 
 	if ( gl_log->modified )
 	{

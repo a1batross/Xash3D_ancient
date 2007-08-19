@@ -61,5 +61,6 @@ bool SC_TryToken ( void );		//safe way
 void SC_SkipToken( void );
 void SC_FreeToken( void );
 char *SC_ParseToken(const char **data_p);
+char *SC_Token( void );
 
 #endif//BASEPLATFORM_H

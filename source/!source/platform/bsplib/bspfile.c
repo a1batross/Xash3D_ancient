@@ -495,11 +495,11 @@ epair_t *ParseEpair (void)
 
 	e = Malloc (sizeof(epair_t));
 	
-	if (strlen(token) >= MAX_KEY - 1) Sys_Error ("ParseEpar: token too long");
-	e->key = copystring(token);
+	if (strlen(SC_Token()) >= MAX_KEY - 1) Sys_Error ("ParseEpar: token too long");
+	e->key = copystring(SC_Token());
 	SC_GetToken (false);
-	if (strlen(token) >= MAX_VALUE - 1) Sys_Error ("ParseEpar: token too long");
-	e->value = copystring(token);
+	if (strlen(SC_Token()) >= MAX_VALUE - 1) Sys_Error ("ParseEpar: token too long");
+	e->value = copystring(SC_Token());
 
 	// strip trailing spaces
 	StripTrailing (e->key);

@@ -27,8 +27,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // Structure containing functions exported from refresh DLL
 renderer_exp_t	*re;
 
-cvar_t *win_noalttab;
-
 extern HWND		cl_hwnd;
 extern bool		ActiveApp, Minimized;
 extern HINSTANCE		global_hInstance;
@@ -41,15 +39,15 @@ static UINT MSH_MOUSEWHEEL;
 
 // Console variables that we need to access from this module
 cvar_t		*vid_gamma;
-cvar_t		*vid_ref;			// Name of Refresh DLL loaded
+cvar_t		*vid_ref;				// Name of Refresh DLL loaded
 cvar_t		*vid_xpos;			// X coordinate of window position
 cvar_t		*vid_ypos;			// Y coordinate of window position
 cvar_t		*vid_fullscreen;
 
 // Global variables used internally by this module
-viddef_t	viddef;				// global video state; used by other modules
-HINSTANCE	reflib_library;		// Handle to refresh DLL 
-bool	reflib_active = 0;
+viddef_t		viddef;			// global video state; used by other modules
+HINSTANCE		renderer_dll;		// Handle to refresh DLL 
+bool		reflib_active = 0;
 
 HWND        cl_hwnd;            // Main window handle for life of program
 
@@ -57,53 +55,8 @@ HWND        cl_hwnd;            // Main window handle for life of program
 
 LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam );
 
-static bool s_alttab_disabled;
 
 extern	unsigned	sys_msg_time;
-
-/*
-** WIN32 helper functions
-*/
-extern bool s_win95;
-
-static void WIN_DisableAltTab( void )
-{
-	if ( s_alttab_disabled )
-		return;
-
-	if ( s_win95 )
-	{
-		BOOL old;
-
-		SystemParametersInfo( SPI_SCREENSAVERRUNNING, 1, &old, 0 );
-	}
-	else
-	{
-		RegisterHotKey( 0, 0, MOD_ALT, VK_TAB );
-		RegisterHotKey( 0, 1, MOD_ALT, VK_RETURN );
-	}
-	s_alttab_disabled = true;
-}
-
-static void WIN_EnableAltTab( void )
-{
-	if ( s_alttab_disabled )
-	{
-		if ( s_win95 )
-		{
-			BOOL old;
-
-			SystemParametersInfo( SPI_SCREENSAVERRUNNING, 0, &old, 0 );
-		}
-		else
-		{
-			UnregisterHotKey( 0, 0 );
-			UnregisterHotKey( 0, 1 );
-		}
-
-		s_alttab_disabled = false;
-	}
-}
 
 /*
 ==========================================================================
@@ -247,20 +200,11 @@ void AppActivate(BOOL fActive, BOOL minimize)
 	{
 		IN_Activate (false);
 		S_Activate (false);
-
-		if ( win_noalttab->value )
-		{
-			WIN_EnableAltTab();
-		}
 	}
 	else
 	{
 		IN_Activate (true);
 		S_Activate (true);
-		if ( win_noalttab->value )
-		{
-			WIN_DisableAltTab();
-		}
 	}
 }
 
@@ -454,16 +398,13 @@ typedef struct vidmode_s
 vidmode_t vid_modes[] =
 {
 	{ "Mode 0: 320x240",   320, 240,   0 },
-	{ "Mode 1: 400x300",   400, 300,   1 },
-	{ "Mode 2: 512x384",   512, 384,   2 },
-	{ "Mode 3: 640x480",   640, 480,   3 },
-	{ "Mode 4: 800x600",   800, 600,   4 },
-	{ "Mode 5: 960x720",   960, 720,   5 },
-	{ "Mode 6: 1024x768",  1024, 768,  6 },
-	{ "Mode 7: 1152x864",  1152, 864,  7 },
-	{ "Mode 8: 1280x960",  1280, 960, 8 },
-	{ "Mode 9: 1600x1200", 1600, 1200, 9 },
-	{ "Mode 10: 2048x1536", 2048, 1536, 10 }
+	{ "Mode 1: 640x480",   640, 480,   1 },
+	{ "Mode 2: 800x600",   800, 600,   2 },
+	{ "Mode 3: 1024x768",  1024, 768,  3 },
+	{ "Mode 4: 1280x960",  1280, 960,  4 },
+	{ "Mode 5: 1280x1024", 1280, 1024, 5 },
+	{ "Mode 6: 1600x1200", 1600, 1200, 6 },
+	{ "Mode 7: 2048x1536", 2048, 1536, 7 }
 };
 
 bool VID_GetModeInfo( int *width, int *height, int mode )
@@ -513,10 +454,9 @@ void VID_NewWindow ( int width, int height)
 
 void VID_FreeReflib (void)
 {
-	if ( !FreeLibrary( reflib_library ) )
-		Com_Error( ERR_FATAL, "Reflib FreeLibrary failed" );
+	FreeLibrary( renderer_dll );
 	memset (&re, 0, sizeof(re));
-	reflib_library = NULL;
+	renderer_dll = NULL;
 	reflib_active  = false;
 }
 
@@ -532,30 +472,16 @@ char *FS_Title( void )
 
 /*
 ==============
-VID_LoadRefresh
+VID_InitRenderer
 ==============
 */
-bool VID_LoadRefresh( char *name )
+void VID_InitRenderer( void )
 {
 	renderer_imp_t	ri;
 	renderer_t	CreateRender;
 	
-	if ( reflib_active )
-	{
-		re->Shutdown();
-		VID_FreeReflib ();
-	}
+	VID_FreeRenderer();
 
-	Msg( "------- Loading %s -------\n", name );
-          
-	if ( ( reflib_library = LoadLibrary( name ) ) == 0 )
-	{
-		Msg( "LoadLibrary(\"%s\") failed\n", name );
-
-		return false;
-	}
-
-	// load a new game dll
 	ri.Fs = pi->Fs;
 	ri.VFs = pi->VFs;
 	ri.Mem = pi->Mem;
@@ -580,42 +506,25 @@ bool VID_LoadRefresh( char *name )
           
           // studio callbacks
           ri.StudioEvent = CL_StudioEvent;
+          
+	if(( renderer_dll = LoadLibrary( "bin/renderer.dll" )) == 0 )
+		Sys_Error( "Couldn't load renderer.dll\n" );
 	
-	if ( ( CreateRender = (void *) GetProcAddress( reflib_library, "CreateAPI" ) ) == 0 )
-		Com_Error( ERR_FATAL, "GetProcAddress failed on %s", name );
+	if ( ( CreateRender = (void *) GetProcAddress( renderer_dll, "CreateAPI" )) == 0 )
+		Sys_Error( "CreateInstance: %s has no valid entry point", "renderer.dll" );
 
 	re = CreateRender( ri );
 
-	if (re->apiversion != RENDERER_API_VERSION)
-	{
-		VID_FreeReflib ();
-		Com_Error (ERR_FATAL, "%s has incompatible api_version", name);
-	}
+	if(re->apiversion != RENDERER_API_VERSION)
+		Sys_Error("mismatch version (%i should be %i)\n", re->apiversion, RENDERER_API_VERSION);
+
+	if(re->api_size != sizeof(renderer_exp_t))
+		Sys_Error("mismatch interface size (%i should be %i)\n", re->api_size, sizeof(renderer_exp_t));
           
-	if ( re->Init( global_hInstance, MainWndProc ) == -1 )
-	{
-		re->Shutdown();
-		VID_FreeReflib ();
-		return false;
-	}
+	if(!re->Init( global_hInstance, MainWndProc ))
+		Sys_Error("can't init renderer.dll\n");
 
-	Msg( "------------------------------------\n");
 	reflib_active = true;
-
-//======
-//PGM
-	vidref_val = VIDREF_OTHER;
-	if(vid_ref)
-	{
-		if(!strcmp (vid_ref->string, "gl"))
-			vidref_val = VIDREF_GL;
-		else if(!strcmp(vid_ref->string, "soft"))
-			vidref_val = VIDREF_SOFT;
-	}
-//PGM
-//======
-
-	return true;
 }
 
 /*
@@ -629,22 +538,9 @@ update the rendering DLL and/or video mode to match.
 */
 void VID_CheckChanges (void)
 {
-	if ( win_noalttab->modified )
-	{
-		if ( win_noalttab->value )
-		{
-			WIN_DisableAltTab();
-		}
-		else
-		{
-			WIN_EnableAltTab();
-		}
-		win_noalttab->modified = false;
-	}
-
 	if ( vid_ref->modified )
 	{
-		cl.force_refdef = true;		// can't use a paused refdef
+		cl.force_refdef = true; // can't use a paused refdef
 		S_StopAllSounds();
 	}
 	while (vid_ref->modified)
@@ -657,26 +553,11 @@ void VID_CheckChanges (void)
 		cl.refresh_prepped = false;
 		cls.disable_screen = true;
 
-		if ( !VID_LoadRefresh( "bin/render.dll" ) )
-		{
-			if ( strcmp (vid_ref->string, "soft") == 0 )
-				Com_Error (ERR_FATAL, "Couldn't fall back to software refresh!");
-			Cvar_Set( "vid_ref", "soft" );
-
-			/*
-			** drop the console if we fail to load a refresh
-			*/
-			if ( cls.key_dest != key_console )
-			{
-				Con_ToggleConsole_f();
-			}
-		}
+		VID_InitRenderer();
 		cls.disable_screen = false;
 	}
 
-	/*
-	** update our window position
-	*/
+	// update our window position
 	if ( vid_xpos->modified || vid_ypos->modified )
 	{
 		if (!vid_fullscreen->value)
@@ -695,47 +576,26 @@ VID_Init
 void VID_Init (void)
 {
 	/* Create the video variables so we know how to start the graphics drivers */
-	vid_ref = Cvar_Get ("vid_ref", "soft", CVAR_ARCHIVE);
+	vid_ref = Cvar_Get ("vid_ref", "gl", CVAR_ARCHIVE);
 	vid_xpos = Cvar_Get ("vid_xpos", "3", CVAR_ARCHIVE);
 	vid_ypos = Cvar_Get ("vid_ypos", "22", CVAR_ARCHIVE);
 	vid_fullscreen = Cvar_Get ("vid_fullscreen", "0", CVAR_ARCHIVE);
 	vid_gamma = Cvar_Get( "vid_gamma", "1", CVAR_ARCHIVE );
-	win_noalttab = Cvar_Get( "win_noalttab", "0", CVAR_ARCHIVE );
 
 	/* Add some console commands that we want to handle */
 	Cmd_AddCommand ("vid_restart", VID_Restart_f);
 	Cmd_AddCommand ("vid_front", VID_Front_f);
-
-	/*
-	** this is a gross hack but necessary to clamp the mode for 3Dfx
-	*/
-#if 0
-	{
-		cvar_t *gl_driver = Cvar_Get( "gl_driver", "opengl32", 0 );
-		cvar_t *gl_mode = Cvar_Get( "gl_mode", "3", 0 );
-
-		if ( stricmp( gl_driver->string, "3dfxgl" ) == 0 )
-		{
-			Cvar_SetValue( "gl_mode", 3 );
-			viddef.width  = 640;
-			viddef.height = 480;
-		}
-	}
-#endif
-
-	/* Disable the 3Dfx splash screen */
-	putenv("FX_GLIDE_NO_SPLASH=0");
 		
-	/* Start the graphics mode and load refresh DLL */
+	// Start the graphics mode and load refresh DLL
 	VID_CheckChanges();
 }
 
 /*
 ============
-VID_Shutdown
+VID_FreeRenderer
 ============
 */
-void VID_Shutdown (void)
+void VID_FreeRenderer (void)
 {
 	if ( reflib_active )
 	{

@@ -1506,7 +1506,7 @@ file_t* _FS_Open (const char* filepath, const char* mode, bool quiet, bool nonbl
 {
 	if (FS_CheckNastyPath(filepath, false))
 	{
-		Sys_Error("FS_Open(\"%s\", \"%s\", %s): nasty filename rejected\n", filepath, mode, quiet ? "true" : "false");
+		MsgWarn("FS_Open: (\"%s\", \"%s\"): nasty filename rejected\n", filepath, mode );
 		return NULL;
 	}
 

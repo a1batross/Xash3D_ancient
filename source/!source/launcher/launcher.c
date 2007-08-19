@@ -63,12 +63,14 @@ void LookupInstance( const char *funcname )
 		//don't show console as default
 		if(!debug_mode) show_always = false;
 		strcpy(dllname, "bin/engine.dll" );
+		strcpy(log_path, "engine.log" ); // xash3d root directory
 	}
 	else if(!strcmp(progname, "host_dedicated"))
 	{
 		app_name = HOST_DEDICATED;
 		console_read_only = false;
 		strcpy(dllname, "bin/engine.dll" );
+		strcpy(log_path, "engine.log" ); // xash3d root directory
 	}
 	else if(!strcmp(progname, "host_editor"))
 	{
@@ -77,21 +79,25 @@ void LookupInstance( const char *funcname )
 		//don't show console as default
 		if(!debug_mode) show_always = false;
 		strcpy(dllname, "bin/editor.dll" );
+		strcpy(log_path, "editor.log" ); // xash3d root directory
 	}
 	else if(!strcmp(progname, "bsplib"))
 	{
 		app_name = BSPLIB;
 		strcpy(dllname, "bin/platform.dll" );
+		strcpy(log_path, "bsplib.log" ); // xash3d root directory
 	}
 	else if(!strcmp(progname, "sprite"))
 	{
 		app_name = SPRITE;
 		strcpy(dllname, "bin/platform.dll" );
+		sprintf(log_path, "%s/spritegen.log", sys_rootdir ); // same as .exe file
 	}
 	else if(!strcmp(progname, "studio"))
 	{
 		app_name = STUDIO;
 		strcpy(dllname, "bin/platform.dll" );
+		sprintf(log_path, "%s/studiomdl.log", sys_rootdir ); // same as .exe file
 	}
 	else if(!strcmp(progname, "credits")) //easter egg
 	{
@@ -339,15 +345,14 @@ void InitLauncher( char *funcname )
 	if(CheckParm ("-log")) log_active = true;
 	if(abs((short)hStdout) < 100) hooked_out = false;
 	else hooked_out = true;
+
+	UpdateEnvironmentVariables(); // set working directory
           
 	//init launcher
 	LookupInstance( funcname );
 	HOST_MakeStubs();//make sure what all functions are filled
 	API_SetConsole(); //initialize system console
 	Sys_InitConsole();
-
-	// set working directory
-	UpdateEnvironmentVariables();
 
 	// first text message into console or log
 	Msg("------- Loading bin/launcher.dll [%g] -------\n", LAUNCHER_VERSION );

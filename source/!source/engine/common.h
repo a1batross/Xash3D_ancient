@@ -673,9 +673,8 @@ void	Sys_Init (void);
 void	Sys_Print(const char *pMsg);
 void	Sys_AppActivate (void);
 
-void	Sys_UnloadGame (void);
-void	*Sys_GetGameAPI (const char* procname, void *parms);
-// loads the game dll and calls the api init function
+void	*Sys_LoadGame (const char* procname, void *hinstance, void *parms);
+void	Sys_UnloadGame ( void *hinstance );
 
 void	Sys_CreateConsole( void );
 char	*Sys_ConsoleInput (void);

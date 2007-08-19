@@ -3044,7 +3044,7 @@ bool QGL_Init( const char *dllname )
 		putenv( envbuffer );
 	}
 
-	if ( ( glw_state.hinstOpenGL = LoadLibrary( dllname ) ) == 0 )
+	if (( glw_state.hinstOpenGL = LoadLibrary( dllname ) ) == 0 )
 	{
 		char *buf = NULL;
 
