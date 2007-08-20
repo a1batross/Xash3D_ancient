@@ -275,7 +275,7 @@ int PlaneFromPoints (vec_t *p0, vec_t *p1, vec_t *p2)
 BrushContents
 ===========
 */
-int	BrushContents (mapbrush_t *b)
+int BrushContents (mapbrush_t *b)
 {
 	int			contents;
 	side_t		*s;
@@ -285,7 +285,7 @@ int	BrushContents (mapbrush_t *b)
 	s = &b->original_sides[0];
 	contents = s->contents;
 	trans = texinfo[s->texinfo].flags;
-	for (i=1 ; i<b->numsides ; i++, s++)
+	for (i = 1; i < b->numsides; i++, s++)
 	{
 		s = &b->original_sides[i];
 		trans |= texinfo[s->texinfo].flags;

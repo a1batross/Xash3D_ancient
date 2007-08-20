@@ -754,13 +754,7 @@ void Key_Event (int key, bool down, unsigned time)
 	if (down)
 	{
 		key_repeats[key]++;
-		if (key != K_BACKSPACE 
-			&& key != K_PAUSE 
-			&& key != K_PGUP 
-			&& key != K_KP_PGUP 
-			&& key != K_PGDN
-			&& key != K_KP_PGDN
-			&& key_repeats[key] > 1)
+		if (key != K_BACKSPACE && key != K_PAUSE && key != K_PGUP && key != K_KP_PGUP && key != K_PGDN && key != K_KP_PGDN && key_repeats[key] > 1)
 			return;	// ignore most autorepeats
 			
 		if (key >= 200 && !keybindings[key])
@@ -777,25 +771,23 @@ void Key_Event (int key, bool down, unsigned time)
 	// console key is hardcoded, so the user can never unbind it
 	if (key == '`' || key == '~')
 	{
-		if (!down)
-			return;
-		Con_ToggleConsole_f ();
+		if (!down) return;
+		Con_ToggleConsole_f();
 		return;
 	}
 
 	// any key during the attract mode will bring up the menu
-	if (cl.attractloop && cls.key_dest != key_menu &&
-		!(key >= K_F1 && key <= K_F12))
+	if (cl.attractloop && cls.key_dest != key_menu && !(key >= K_F1 && key <= K_F12))
 		key = K_ESCAPE;
 
 	// menu key is hardcoded, so the user can never unbind it
 	if (key == K_ESCAPE)
 	{
-		if (!down)
-			return;
+		if (!down) return;
 
 		if (cl.frame.playerstate.stats[STAT_LAYOUTS] && cls.key_dest == key_game)
-		{	// put away help computer / inventory
+		{	
+			// put away help computer / inventory
 			Cbuf_AddText ("cmd putaway\n");
 			return;
 		}
@@ -812,7 +804,8 @@ void Key_Event (int key, bool down, unsigned time)
 			M_Menu_Main_f ();
 			break;
 		default:
-			Com_Error (ERR_FATAL, "Bad cls.key_dest");
+			MsgWarn("Key_Event: bad cls.key_dest\n");
+			break;
 		}
 		return;
 	}
@@ -831,13 +824,12 @@ void Key_Event (int key, bool down, unsigned time)
 			anykeydown = 0;
 	}
 
-//
-// key up events only generate commands if the game key binding is
-// a button command (leading + sign).  These will occur even in console mode,
-// to keep the character from continuing an action started before a console
-// switch.  Button commands include the kenum as a parameter, so multiple
-// downs can be matched with ups
-//
+	// key up events only generate commands if the game key binding is
+	// a button command (leading + sign).  These will occur even in console mode,
+	// to keep the character from continuing an action started before a console
+	// switch.  Button commands include the kenum as a parameter, so multiple
+	// downs can be matched with ups
+
 	if (!down)
 	{
 		kb = keybindings[key];
@@ -858,18 +850,15 @@ void Key_Event (int key, bool down, unsigned time)
 		return;
 	}
 
-//
-// if not a consolekey, send to the interpreter no matter what mode is
-//
-	if ( (cls.key_dest == key_menu && menubound[key])
-	|| (cls.key_dest == key_console && !consolekeys[key])
-	|| (cls.key_dest == key_game && ( cls.state == ca_active || !consolekeys[key] ) ) )
+	// if not a consolekey, send to the interpreter no matter what mode is
+	if ( (cls.key_dest == key_menu && menubound[key]) || (cls.key_dest == key_console && !consolekeys[key]) || (cls.key_dest == key_game && ( cls.state == ca_active || !consolekeys[key] )))
 	{
 		kb = keybindings[key];
 		if (kb)
 		{
 			if (kb[0] == '+')
-			{	// button commands add keynum and time as a parm
+			{	
+				// button commands add keynum and time as a parm
 				sprintf (cmd, "%s %i %i\n", kb, key, time);
 				Cbuf_AddText (cmd);
 			}
@@ -882,11 +871,9 @@ void Key_Event (int key, bool down, unsigned time)
 		return;
 	}
 
-	if (!down)
-		return;		// other systems only care about key down events
+	if (!down) return; // other systems only care about key down events
 
-	if (shift_down)
-		key = keyshift[key];
+	if (shift_down) key = keyshift[key];
 
 	switch (cls.key_dest)
 	{
@@ -896,13 +883,13 @@ void Key_Event (int key, bool down, unsigned time)
 	case key_menu:
 		M_Keydown (key);
 		break;
-
 	case key_game:
 	case key_console:
 		Key_Console (key);
 		break;
 	default:
-		Com_Error (ERR_FATAL, "Bad cls.key_dest");
+		MsgWarn("Key_Event: bad cls.key_dest\n");
+		break;
 	}
 }
 

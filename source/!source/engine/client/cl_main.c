@@ -1799,6 +1799,7 @@ void CL_Init (void)
 	SCR_Init ();
 	cls.disable_screen = true;	// don't draw yet
 
+	CL_InitGameProgs();
 	CL_InitLocal ();
 	IN_Init ();
 

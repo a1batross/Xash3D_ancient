@@ -27,11 +27,11 @@ and produces a little explosion*/
 
 void Jet_BecomeExplosion( edict_t *ent, int damage )
 {
-	gi.WriteByte( svc_temp_entity );
-	gi.WriteByte( TE_EXPLOSION1 );
-	/*TE_EXPLOSION2 is possible too*/
-	gi.WritePosition( ent->s.origin );
-	gi.multicast( ent->s.origin, MSG_PVS );
+	MESSAGE_BEGIN( svc_temp_entity );
+		WRITE_BYTE( TE_EXPLOSION1 ); // TE_EXPLOSION2 is possible too
+		WRITE_COORD( ent->s.origin );
+	MESSAGE_SEND( MSG_PVS, ent->s.origin, NULL );
+
 	gi.sound( ent, CHAN_BODY, gi.soundindex("misc/udeath.wav"), 1, ATTN_NORM, 0 );
 
 	if (level.num_reflectors)
@@ -88,11 +88,12 @@ void Jet_ApplySparks ( edict_t *ent )
 	VectorAdd (pack_pos, ent->s.origin, pack_pos);
 	pack_pos[2] += 6;
 	VectorScale (forward, -50, jet_vector);
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_SPARKS);
-	gi.WritePosition (pack_pos);
-	gi.WriteDir (jet_vector);
-	gi.multicast (pack_pos, MSG_PVS);
+
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_SPARKS);
+		WRITE_COORD (pack_pos);
+		WRITE_DIR (jet_vector);
+	MESSAGE_SEND (MSG_PVS, pack_pos, NULL);
 
 	if(level.num_reflectors)
 		ReflectSparks(TE_SPARKS,pack_pos,jet_vector);

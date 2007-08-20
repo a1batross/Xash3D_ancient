@@ -56,10 +56,10 @@ static int	quad_drop_timeout_hack;
 // Lazarus: damageable pickups
 void item_die(edict_t *self,edict_t *inflictor, edict_t *attacker, int damage, vec3_t point)
 {
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_EXPLOSION1);
-	gi.WritePosition (self->s.origin);
-	gi.multicast (self->s.origin, MSG_PVS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_EXPLOSION1);
+		WRITE_COORD (self->s.origin);
+	MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
 
 	if (level.num_reflectors)
 		ReflectExplosion (TE_EXPLOSION1, self->s.origin);

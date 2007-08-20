@@ -338,8 +338,7 @@ void MSG_BeginReading (sizebuf_t *msg)
 void MSG_EndReading (sizebuf_t *msg)
 {
 	if(!msg->errorcount) return;
-
-	Msg("MSG_EndReading: received with errors\n");
+	MsgWarn("MSG_EndReading: received with errors\n");
 }
 
 // returns -1 if no more characters are available

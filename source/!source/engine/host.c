@@ -87,7 +87,7 @@ void Host_Init (char *funcname, int argc, char **argv)
           if(!strcmp(funcname, "host_dedicated"))is_dedicated = true;
 	Host_InitPlatform( funcname, argc, argv );
 
-	Msg("------- Loading bin/engine.dll [%g] -------\n", ENGINE_VERSION );
+	Msg("------- Loading bin/engine.dll   [%g] -------\n", ENGINE_VERSION );
 	
 	Cbuf_Init ();
 

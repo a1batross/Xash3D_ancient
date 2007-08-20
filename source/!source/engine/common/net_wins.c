@@ -406,29 +406,28 @@ void NET_SendPacket (netsrc_t sock, int length, void *data, netadr_t to)
 	if (to.type == NA_BROADCAST)
 	{
 		net_socket = ip_sockets[sock];
-		if (!net_socket)
-			return;
+		if (!net_socket) return;
 	}
 	else if (to.type == NA_IP)
 	{
 		net_socket = ip_sockets[sock];
-		if (!net_socket)
-			return;
+		if (!net_socket) return;
 	}
 	else if (to.type == NA_IPX)
 	{
 		net_socket = ipx_sockets[sock];
-		if (!net_socket)
-			return;
+		if (!net_socket) return;
 	}
 	else if (to.type == NA_BROADCAST_IPX)
 	{
 		net_socket = ipx_sockets[sock];
-		if (!net_socket)
-			return;
+		if (!net_socket) return;
 	}
 	else
-		Com_Error (ERR_FATAL, "NET_SendPacket: bad address type");
+	{
+		MsgWarn("NET_SendPacket: bad address type\n");
+		return;
+	}
 
 	NetadrToSockadr (&to, &addr);
 
@@ -553,14 +552,12 @@ void NET_OpenIP (void)
 			}
 		}
 		ip_sockets[NS_SERVER] = NET_IPSocket (ip->string, port);
-		if (!ip_sockets[NS_SERVER] && dedicated)
-			Com_Error (ERR_FATAL, "Couldn't allocate dedicated server IP port");
+		if (!ip_sockets[NS_SERVER] && dedicated) Sys_Error("Couldn't allocate dedicated server IP port");
 	}
 
 
 	// dedicated servers don't need client ports
-	if (dedicated)
-		return;
+	if (dedicated) return;
 
 	if (!ip_sockets[NS_CLIENT])
 	{
@@ -764,9 +761,7 @@ void NET_Init (void)
 	wVersionRequested = MAKEWORD(1, 1); 
 
 	r = WSAStartup (MAKEWORD(1, 1), &winsockdata);
-
-	if (r)
-		Com_Error (ERR_FATAL,"Winsock initialization failed.");
+	if(r) Sys_Error("Winsock initialization failed.");
 
 	Msg("Winsock Initialized\n");
 

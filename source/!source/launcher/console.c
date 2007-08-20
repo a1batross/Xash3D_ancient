@@ -166,7 +166,7 @@ WIN32 IO
 ================
 Sys_PrintW
 
-print into win32 console
+print into window console
 ================
 */
 void Sys_PrintW(const char *pMsg)
@@ -249,6 +249,19 @@ void Sys_PrintW(const char *pMsg)
 	SendMessage( s_wcd.hwndBuffer, EM_LINESCROLL, 0, 0xffff );
 	SendMessage( s_wcd.hwndBuffer, EM_SCROLLCARET, 0, 0 );
 	SendMessage( s_wcd.hwndBuffer, EM_REPLACESEL, 0, (LPARAM) buffer );
+}
+
+/*
+================
+Sys_PrintA
+
+print into cmd32 console
+================
+*/
+void Sys_PrintA(const char *pMsg)
+{
+	printf( pMsg );
+	fflush (stdout); //refresh message
 }
 
 /*

@@ -49,10 +49,10 @@ typedef struct
 {
 	int		entity;
 	int		dest_entity;
-	struct model_s	*model;
+	model_t		*model;
 	int		endtime;
-	vec3_t	offset;
-	vec3_t	start, end;
+	vec3_t		offset;
+	vec3_t		start, end;
 } beam_t;
 beam_t		cl_beams[MAX_BEAMS];
 //PMM - added this for player-linked beams.  Currently only used by the plasma beam
@@ -96,26 +96,20 @@ struct sfx_s	*cl_sfx_watrexp;
 struct sfx_s	*cl_sfx_plasexp;
 struct sfx_s	*cl_sfx_footsteps[4];
 
-struct model_s	*cl_mod_explode;
-struct model_s	*cl_mod_smoke;
-struct model_s	*cl_mod_flash;
-struct model_s	*cl_mod_parasite_segment;
-struct model_s	*cl_mod_grapple_cable;
-struct model_s	*cl_mod_parasite_tip;
-struct model_s	*cl_mod_explo2;
-struct model_s	*cl_mod_explo4;
-struct model_s	*cl_mod_bfg_explo;
-struct model_s	*cl_mod_powerscreen;
-// RAFAEL
-struct model_s	*cl_mod_plasmaexplo;
+model_t	*cl_mod_explode;
+model_t	*cl_mod_smoke;
+model_t	*cl_mod_flash;
+model_t	*cl_mod_laser;
+model_t	*cl_mod_explo2;
+model_t	*cl_mod_explo4;
+model_t	*cl_mod_bfg_explo;
+model_t	*cl_mod_plasmaexplo;
 
 //ROGUE
 struct sfx_s	*cl_sfx_lightning;
 struct sfx_s	*cl_sfx_disrexp;
-struct model_s	*cl_mod_lightning;
-struct model_s	*cl_mod_heatbeam;
-struct model_s	*cl_mod_monster_heatbeam;
-struct model_s	*cl_mod_explo4_big;
+model_t	*cl_mod_lightning;
+model_t	*cl_mod_explo4_big;
 
 //ROGUE
 /*
@@ -172,39 +166,21 @@ CL_RegisterTEntModels
 */
 void CL_RegisterTEntModels (void)
 {
-	cl_mod_explode = re->RegisterModel ("models/objects/explode/tris.md2");
-	cl_mod_smoke = re->RegisterModel ("models/objects/smoke/tris.md2");
-	cl_mod_flash = re->RegisterModel ("models/objects/flash/tris.md2");
-	cl_mod_parasite_segment = re->RegisterModel ("models/monsters/parasite/segment/tris.md2");
-	cl_mod_grapple_cable = re->RegisterModel ("models/ctf/segment/tris.md2");
-	cl_mod_parasite_tip = re->RegisterModel ("models/monsters/parasite/tip/tris.md2");
+	cl_mod_explode = re->RegisterModel ("sprites/explode01.spr");
+	cl_mod_smoke = re->RegisterModel ("sprites/blacksmoke.spr");
+	cl_mod_flash = re->RegisterModel ("sprites/s_flash.spr");
+	cl_mod_laser = re->RegisterModel ("sprite/laserbeam.spr");
 	cl_mod_explo2 = re->RegisterModel ("sprites/s_explo2.spr");
 	cl_mod_explo4 = re->RegisterModel ("sprites/s_explod.spr");
 	cl_mod_bfg_explo = re->RegisterModel ("sprites/s_bfg2.spr");
-	cl_mod_powerscreen = re->RegisterModel ("models/items/armor/effect/tris.md2");
 
-re->RegisterModel ("models/objects/laser/tris.md2");
-re->RegisterModel ("models/objects/grenade2/tris.md2");
-re->RegisterModel ("models/weapons/v_machn/tris.md2");
-re->RegisterModel ("models/weapons/v_handgr/tris.md2");
-re->RegisterModel ("models/weapons/v_shotg2/tris.md2");
-re->RegisterModel ("models/objects/gibs/bone/tris.md2");
-re->RegisterModel ("models/objects/gibs/sm_meat/tris.md2");
-re->RegisterModel ("models/objects/gibs/bone2/tris.md2");
-// RAFAEL
-// re->RegisterModel ("models/objects/blaser/tris.md2");
+	re->RegisterPic ("w_machinegun");
+	re->RegisterPic ("a_bullets");
+	re->RegisterPic ("i_health");
+	re->RegisterPic ("a_grenades");
 
-re->RegisterPic ("w_machinegun");
-re->RegisterPic ("a_bullets");
-re->RegisterPic ("i_health");
-re->RegisterPic ("a_grenades");
-
-//ROGUE
 	cl_mod_explo4_big = re->RegisterModel ("sprites/s_explo3.spr");
-	cl_mod_lightning = re->RegisterModel ("models/proj/lightning/tris.md2");
-	cl_mod_heatbeam = re->RegisterModel ("models/proj/beam/tris.md2");
-	cl_mod_monster_heatbeam = re->RegisterModel ("models/proj/widowbeam/tris.md2");
-//ROGUE
+	cl_mod_lightning = re->RegisterModel ("sprites/lgtning.spr");
 }	
 
 /*
@@ -277,7 +253,7 @@ void CL_SmokeAndFlash(vec3_t origin)
 	ex = CL_AllocExplosion ();
 	VectorCopy (origin, ex->ent.origin);
 	ex->type = ex_flash;
-	ex->ent.flags = RF_FULLBRIGHT;
+	ex->ent.flags = RF_TRANSLUCENT;
 	ex->frames = 2;
 	ex->start = cl.frame.servertime - 100;
 	ex->ent.model = cl_mod_flash;
@@ -297,7 +273,6 @@ void CL_ParseParticles (void)
 	MSG_ReadDir (&net_message, dir);
 
 	color = MSG_ReadByte (&net_message);
-
 	count = MSG_ReadByte (&net_message);
 
 	CL_ParticleEffect (pos, dir, color, count);
@@ -308,7 +283,7 @@ void CL_ParseParticles (void)
 CL_ParseBeam
 =================
 */
-int CL_ParseBeam (struct model_s *model)
+int CL_ParseBeam (model_t *model)
 {
 	int		ent;
 	vec3_t	start, end;
@@ -356,7 +331,7 @@ int CL_ParseBeam (struct model_s *model)
 CL_ParseBeam2
 =================
 */
-int CL_ParseBeam2 (struct model_s *model)
+int CL_ParseBeam2 (model_t *model)
 {
 	int		ent;
 	vec3_t	start, end, offset;
@@ -410,7 +385,7 @@ CL_ParsePlayerBeam
   - adds to the cl_playerbeam array instead of the cl_beams array
 =================
 */
-int CL_ParsePlayerBeam (struct model_s *model)
+int CL_ParsePlayerBeam (model_t *model)
 {
 	int		ent;
 	vec3_t	start, end, offset;
@@ -421,25 +396,10 @@ int CL_ParsePlayerBeam (struct model_s *model)
 	
 	MSG_ReadPos (&net_message, start);
 	MSG_ReadPos (&net_message, end);
-	// PMM - network optimization
-	if (model == cl_mod_heatbeam)
-	{
-		offset[0] = 2;
-		offset[1] = 7;
-		offset[2] = -3;
-	}
-	else if (model == cl_mod_monster_heatbeam)
-	{
-		model = cl_mod_heatbeam;
-		VectorSet(offset, 0,0,0 );
-	}
-	else
-		MSG_ReadPos (&net_message, offset);
+	MSG_ReadPos (&net_message, offset);
 
-//	Msg ("end- %f %f %f\n", end[0], end[1], end[2]);
-
-// override any beam with the same entity
-// PMM - For player beams, we only want one per player (entity) so..
+	// override any beam with the same entity
+	// PMM - For player beams, we only want one per player (entity) so..
 	for (i=0, b=cl_playerbeams ; i< MAX_BEAMS ; i++, b++)
 	{
 		if (b->entity == ent)
@@ -478,7 +438,7 @@ int CL_ParsePlayerBeam (struct model_s *model)
 CL_ParseLightning
 =================
 */
-int CL_ParseLightning (struct model_s *model)
+int CL_ParseLightning (model_t *model)
 {
 	int		srcEnt, destEnt;
 	vec3_t	start, end;
@@ -946,7 +906,7 @@ void CL_ParseTEnt (void)
 
 	case TE_PARASITE_ATTACK:
 	case TE_MEDIC_CABLE_ATTACK:
-		ent = CL_ParseBeam (cl_mod_parasite_segment);
+		ent = CL_ParseBeam (cl_mod_laser);
 		break;
 
 	case TE_BOSSTPORT:			// boss teleporting to station
@@ -956,7 +916,6 @@ void CL_ParseTEnt (void)
 		break;
 
 	case TE_GRAPPLE_CABLE:
-		ent = CL_ParseBeam2 (cl_mod_grapple_cable);
 		break;
 
 	// RAFAEL
@@ -1097,11 +1056,9 @@ void CL_ParseTEnt (void)
 		break;
 
 	case TE_HEATBEAM:
-		ent = CL_ParsePlayerBeam (cl_mod_heatbeam);
 		break;
 
 	case TE_MONSTER_HEATBEAM:
-		ent = CL_ParsePlayerBeam (cl_mod_monster_heatbeam);
 		break;
 
 	case TE_HEATBEAM_SPARKS:
@@ -1355,12 +1312,9 @@ void CL_AddPlayerBeams (void)
 	float		yaw, pitch;
 	float		forward;
 	float		len, steps;
-	int			framenum;
 	float		model_length;
 	
 	float		hand_multiplier;
-	frame_t		*oldframe;
-	player_state_t	*ps, *ops;
 
 //PMM
 	if (hand)
@@ -1381,73 +1335,19 @@ void CL_AddPlayerBeams (void)
 // update beams
 	for (i=0, b=cl_playerbeams ; i< MAX_BEAMS ; i++, b++)
 	{
-		vec3_t		f,r,u;
 		if (!b->model || b->endtime < cl.time)
 			continue;
 
-		if(cl_mod_heatbeam && (b->model == cl_mod_heatbeam))
+		// if coming from the player, update the start position
+		if (b->entity == cl.playernum+1)	// entity 0 is the world
 		{
-
-			// if coming from the player, update the start position
-			if (b->entity == cl.playernum+1)	// entity 0 is the world
-			{	
-				// set up gun position
-				// code straight out of CL_AddViewWeapon
-				ps = &cl.frame.playerstate;
-				j = (cl.frame.serverframe - 1) & UPDATE_MASK;
-				oldframe = &cl.frames[j];
-				if (oldframe->serverframe != cl.frame.serverframe-1 || !oldframe->valid)
-					oldframe = &cl.frame;		// previous frame was dropped or involid
-				ops = &oldframe->playerstate;
-				for (j=0 ; j<3 ; j++)
-				{
-					b->start[j] = cl.refdef.vieworg[j] + ops->gunoffset[j]
-						+ cl.lerpfrac * (ps->gunoffset[j] - ops->gunoffset[j]);
-				}
-				VectorMA (b->start, (hand_multiplier * b->offset[0]), cl.v_right, org);
-				VectorMA (     org, b->offset[1], cl.v_forward, org);
-				VectorMA (     org, b->offset[2], cl.v_up, org);
-				if ((hand) && (hand->value == 2)) {
-					VectorMA (org, -1, cl.v_up, org);
-				}
-				// FIXME - take these out when final
-				VectorCopy (cl.v_right, r);
-				VectorCopy (cl.v_forward, f);
-				VectorCopy (cl.v_up, u);
-
-			}
-			else
-				VectorCopy (b->start, org);
+			VectorCopy (cl.refdef.vieworg, b->start);
+			b->start[2] -= 22;	// adjust for view height
 		}
-		else
-		{
-			// if coming from the player, update the start position
-			if (b->entity == cl.playernum+1)	// entity 0 is the world
-			{
-				VectorCopy (cl.refdef.vieworg, b->start);
-				b->start[2] -= 22;	// adjust for view height
-			}
-			VectorAdd (b->start, b->offset, org);
-		}
+		VectorAdd (b->start, b->offset, org);
 
-	// calculate pitch and yaw
+		// calculate pitch and yaw
 		VectorSubtract (b->end, org, dist);
-
-//PMM
-		if(cl_mod_heatbeam && (b->model == cl_mod_heatbeam) && (b->entity == cl.playernum+1))
-		{
-			vec_t len;
-
-			len = VectorLength (dist);
-			VectorScale (f, len, dist);
-			VectorMA (dist, (hand_multiplier * b->offset[0]), r, dist);
-			VectorMA (dist, b->offset[1], f, dist);
-			VectorMA (dist, b->offset[2], u, dist);
-			if ((hand) && (hand->value == 2)) {
-				VectorMA (org, -1, cl.v_up, org);
-			}
-		}
-//PMM
 
 		if (dist[1] == 0 && dist[0] == 0)
 		{
@@ -1459,7 +1359,7 @@ void CL_AddPlayerBeams (void)
 		}
 		else
 		{
-	// PMM - fixed to correct for pitch of 0
+			// PMM - fixed to correct for pitch of 0
 			if (dist[0])
 				yaw = (atan2(dist[1], dist[0]) * 180 / M_PI);
 			else if (dist[1] > 0)
@@ -1475,52 +1375,11 @@ void CL_AddPlayerBeams (void)
 				pitch += 360.0;
 		}
 		
-		if (cl_mod_heatbeam && (b->model == cl_mod_heatbeam))
-		{
-			if (b->entity != cl.playernum+1)
-			{
-				framenum = 2;
-//				Msg ("Third person\n");
-				ent.angles[0] = -pitch;
-				ent.angles[1] = yaw + 180.0;
-				ent.angles[2] = 0;
-//				Msg ("%f %f - %f %f %f\n", -pitch, yaw+180.0, b->offset[0], b->offset[1], b->offset[2]);
-				AngleVectors(ent.angles, f, r, u);
-					
-				// if it's a non-origin offset, it's a player, so use the hardcoded player offset
-				if (!VectorCompare (b->offset, vec3_origin))
-				{
-					VectorMA (org, -(b->offset[0])+1, r, org);
-					VectorMA (org, -(b->offset[1]), f, org);
-					VectorMA (org, -(b->offset[2])-10, u, org);
-				}
-				else
-				{
-					// if it's a monster, do the particle effect
-					CL_MonsterPlasma_Shell(b->start);
-				}
-			}
-			else
-			{
-				framenum = 1;
-			}
-		}
-
-		// if it's the heatbeam, draw the particle effect
-		if ((cl_mod_heatbeam && (b->model == cl_mod_heatbeam) && (b->entity == cl.playernum+1)))
-		{
-			CL_Heatbeam (org, dist);
-		}
-
-	// add new entities for the beams
+		// add new entities for the beams
 		d = VectorNormalize(dist);
 
 		memset (&ent, 0, sizeof(ent));
-		if (b->model == cl_mod_heatbeam)
-		{
-			model_length = 32.0;
-		}
-		else if (b->model == cl_mod_lightning)
+		if (b->model == cl_mod_lightning)
 		{
 			model_length = 35.0;
 			d-= 20.0;  // correction so it doesn't end in middle of tesla
@@ -1555,18 +1414,7 @@ void CL_AddPlayerBeams (void)
 		{
 			VectorCopy (org, ent.origin);
 			ent.model = b->model;
-			if(cl_mod_heatbeam && (b->model == cl_mod_heatbeam))
-			{
-//				ent.flags = RF_FULLBRIGHT|RF_TRANSLUCENT;
-//				ent.alpha = 0.3;
-				ent.flags = RF_FULLBRIGHT;
-				ent.angles[0] = -pitch;
-				ent.angles[1] = yaw + 180.0;
-				ent.angles[2] = (int)(cl.time*1000) % 360;
-//				ent.angles[2] = rand()%360;
-				ent.frame = framenum;
-			}
-			else if (b->model == cl_mod_lightning)
+			if (b->model == cl_mod_lightning)
 			{
 				ent.flags = RF_FULLBRIGHT;
 				ent.angles[0] = -pitch;

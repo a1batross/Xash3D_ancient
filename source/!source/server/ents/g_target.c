@@ -10,10 +10,10 @@ Fire an origin based temp entity event to the clients.
 */
 void Use_Target_Tent (edict_t *self, edict_t *other, edict_t *activator)
 {
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (self->style);
-	gi.WritePosition (self->s.origin);
-	gi.multicast (self->s.origin, MSG_PVS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (self->style);
+		WRITE_COORD (self->s.origin);
+	MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
 
 	self->count--;
 	if(!self->count) {
@@ -294,10 +294,10 @@ void target_explosion_explode (edict_t *self)
 {
 	float		save;
 
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_EXPLOSION1);
-	gi.WritePosition (self->s.origin);
-	gi.multicast (self->s.origin, MSG_PHS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_EXPLOSION1);
+		WRITE_COORD (self->s.origin);
+	MESSAGE_SEND (MSG_PHS, self->s.origin, NULL);
 
 	if(level.num_reflectors)
 		ReflectExplosion (TE_EXPLOSION1,self->s.origin);
@@ -561,13 +561,13 @@ Set "sounds" to one of the following:
 
 void use_target_splash (edict_t *self, edict_t *other, edict_t *activator)
 {
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_SPLASH);
-	gi.WriteByte (self->count);
-	gi.WritePosition (self->s.origin);
-	gi.WriteDir (self->movedir);
-	gi.WriteByte (self->sounds);
-	gi.multicast (self->s.origin, MSG_PVS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_SPLASH);
+		WRITE_BYTE (self->count);
+		WRITE_COORD (self->s.origin);
+		WRITE_DIR (self->movedir);
+		WRITE_BYTE (self->sounds);
+	MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
 	if (self->dmg)
 		T_RadiusDamage (self, activator, self->dmg, NULL, self->dmg+40, MOD_SPLASH, -0.5);
 }
@@ -688,10 +688,10 @@ void use_target_blaster (edict_t *self, edict_t *other, edict_t *activator)
 	if(self->sounds == 1)
 	{
 		fire_rail (self, start, movedir, self->dmg, 0);
-		gi.WriteByte (svc_muzzleflash);
-		gi.WriteShort (self-g_edicts);
-		gi.WriteByte (MZ_RAILGUN);
-		gi.multicast (start, MSG_PVS);
+		MESSAGE_BEGIN (svc_muzzleflash);
+			WRITE_SHORT (self-g_edicts);
+			WRITE_BYTE (MZ_RAILGUN);
+		MESSAGE_SEND (MSG_PVS, start, NULL);
 	}
 	else if(self->sounds == 2)
 	{
@@ -711,21 +711,22 @@ void use_target_blaster (edict_t *self, edict_t *other, edict_t *activator)
 	else if(self->sounds == 5)
 	{
 		fire_bullet(self, start, movedir, self->dmg, 2, 0, 0, MOD_TARGET_BLASTER);
-		gi.WriteByte(svc_temp_entity);
-		gi.WriteByte(TE_CHAINFIST_SMOKE);
-		gi.WritePosition(start);
-		gi.multicast(start, MSG_PVS);
+		MESSAGE_BEGIN(svc_temp_entity);
+			WRITE_BYTE(TE_CHAINFIST_SMOKE);
+			WRITE_COORD(start);
+		MESSAGE_SEND(MSG_PVS, start, NULL);
 		gi.positioned_sound(start,self,CHAN_WEAPON,gi.soundindex(va("weapons/machgf%db.wav",rand() % 5 + 1)),1,ATTN_NORM,0);
 	}
 	else if(self->sounds == 6)
 	{
 		fire_grenade(self, start, movedir, self->dmg, self->speed, 2.5, self->dmg+40);
-		gi.WriteByte (svc_muzzleflash2);
-		gi.WriteShort (self - g_edicts);
-		gi.WriteByte (MZ2_GUNNER_GRENADE_1);
-		gi.multicast (start, MSG_PVS);
+		MESSAGE_BEGIN (svc_muzzleflash2);
+			WRITE_SHORT (self - g_edicts);
+			WRITE_BYTE (MZ2_GUNNER_GRENADE_1);
+		MESSAGE_SEND (MSG_PVS, start, NULL);
 	}
-	else {
+	else
+	{
 		fire_blaster (self, start, movedir, self->dmg, self->speed, effect, MOD_TARGET_BLASTER);
 		gi.sound (self, CHAN_VOICE, self->noise_index, 1, ATTN_NORM, 0);
 	}
@@ -1085,13 +1086,13 @@ void target_laser_ps_think (edict_t *self)
 			if ((self->spawnflags & 0x80000000) && (self->style != 3))
 			{
 				self->spawnflags &= ~0x80000000;
-				gi.WriteByte (svc_temp_entity);
-				gi.WriteByte (TE_LASER_SPARKS);
-				gi.WriteByte (count);
-				gi.WritePosition (tr.endpos);
-				gi.WriteDir (tr.plane.normal);
-				gi.WriteByte (self->s.skin);
-				gi.multicast (tr.endpos, MSG_PVS);
+				MESSAGE_BEGIN (svc_temp_entity);
+					WRITE_BYTE (TE_LASER_SPARKS);
+					WRITE_BYTE (count);
+					WRITE_COORD (tr.endpos);
+					WRITE_DIR (tr.plane.normal);
+					WRITE_BYTE (self->s.skin);
+				MESSAGE_SEND (MSG_PVS, tr.endpos, NULL);
 			}
 			break;
 		}
@@ -1206,13 +1207,13 @@ void target_laser_think (edict_t *self)
 			if ((self->spawnflags & 0x80000000) && (self->style != 3))
 			{
 				self->spawnflags &= ~0x80000000;
-				gi.WriteByte (svc_temp_entity);
-				gi.WriteByte (TE_LASER_SPARKS);
-				gi.WriteByte (count);
-				gi.WritePosition (tr.endpos);
-				gi.WriteDir (tr.plane.normal);
-				gi.WriteByte (self->s.skin);
-				gi.multicast (tr.endpos, MSG_PVS);
+				MESSAGE_BEGIN (svc_temp_entity);
+					WRITE_BYTE (TE_LASER_SPARKS);
+					WRITE_BYTE (count);
+					WRITE_COORD (tr.endpos);
+					WRITE_DIR (tr.plane.normal);
+					WRITE_BYTE (self->s.skin);
+				MESSAGE_SEND (MSG_PVS, tr.endpos, NULL);
 			}
 			break;
 		}
@@ -2125,11 +2126,11 @@ TE_FORCEWALL,          37  ??
 */
 void target_effect_at (edict_t *self, edict_t *activator)
 {
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (self->style);
-	gi.WritePosition (self->s.origin);
-	gi.WriteShort (self - g_edicts);
-	gi.multicast (self->s.origin, MSG_PVS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (self->style);
+		WRITE_COORD (self->s.origin);
+		WRITE_SHORT (self - g_edicts);
+	MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
 }
 /* Poor man's target_steam
   TE_STEAM           40
@@ -2148,16 +2149,16 @@ void target_effect_steam (edict_t *self, edict_t *activator)
 		nextid = nextid %20000;
 	nextid++;
 
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (self->style);
-	gi.WriteShort (nextid);
-	gi.WriteByte (self->count);
-	gi.WritePosition (self->s.origin);
-	gi.WriteDir (self->movedir);
-	gi.WriteByte (self->sounds&0xff);
-	gi.WriteShort ( (int)(self->speed) );
-	gi.WriteLong ( (int)(wait) );
-	gi.multicast (self->s.origin, MSG_PVS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (self->style);
+		WRITE_SHORT (nextid);
+		WRITE_BYTE (self->count);
+		WRITE_COORD (self->s.origin);
+		WRITE_DIR (self->movedir);
+		WRITE_BYTE (self->sounds&0xff);
+		WRITE_SHORT ( (int)(self->speed) );
+		WRITE_LONG ( (int)(wait) );
+	MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
 
 	if(level.num_reflectors)
 		ReflectSteam (self->s.origin,self->movedir,self->count,self->sounds,(int)(self->speed),wait,nextid);
@@ -2175,13 +2176,13 @@ moving in (movedir) direction.
 //=========================================================================
 void target_effect_splash (edict_t *self, edict_t *activator)
 {
-	gi.WriteByte(svc_temp_entity);
-	gi.WriteByte(self->style);
-	gi.WriteByte(self->count);
-	gi.WritePosition(self->s.origin);
-	gi.WriteDir(self->movedir);
-	gi.WriteByte(self->sounds);
-	gi.multicast(self->s.origin, MSG_PVS);
+	MESSAGE_BEGIN(svc_temp_entity);
+		WRITE_BYTE(self->style);
+		WRITE_BYTE(self->count);
+		WRITE_COORD(self->s.origin);
+		WRITE_DIR(self->movedir);
+		WRITE_BYTE(self->sounds);
+	MESSAGE_SEND(MSG_PVS, self->s.origin, NULL);
 }
 
 //======================================================
@@ -2210,25 +2211,24 @@ void target_effect_trail (edict_t *self, edict_t *activator)
 	target = G_Find(NULL,FOFS(targetname),self->target);
 	if(!target) return;
 
-	gi.WriteByte(svc_temp_entity);
-	gi.WriteByte(self->style);
-	if((self->style == TE_PARASITE_ATTACK) || (self->style==TE_MEDIC_CABLE_ATTACK) ||
-	   (self->style == TE_HEATBEAM)        || (self->style==TE_MONSTER_HEATBEAM)   ||
-	   (self->style == TE_GRAPPLE_CABLE)                                             )
-		gi.WriteShort(self-g_edicts);
-	gi.WritePosition(self->s.origin);
-	gi.WritePosition(target->s.origin);
-	if(self->style == TE_GRAPPLE_CABLE) {
-		gi.WritePosition(vec3_origin);
-	}
-	gi.multicast(self->s.origin, MSG_PVS);
+	MESSAGE_BEGIN(svc_temp_entity);
+		WRITE_BYTE(self->style);
+		if((self->style == TE_PARASITE_ATTACK) || (self->style==TE_MEDIC_CABLE_ATTACK) || (self->style == TE_HEATBEAM) || (self->style==TE_MONSTER_HEATBEAM) || (self->style == TE_GRAPPLE_CABLE))
+		{
+			WRITE_SHORT(self-g_edicts);
+		}
+		WRITE_COORD(self->s.origin);
+		WRITE_COORD(target->s.origin);
+		if(self->style == TE_GRAPPLE_CABLE)
+		{
+			WRITE_COORD(vec3_origin);
+		}
+	MESSAGE_SEND(MSG_PVS, self->s.origin, NULL);
 
 	if(level.num_reflectors)
 	{
-		if((self->style == TE_RAILTRAIL) || (self->style == TE_BUBBLETRAIL) ||
-		   (self->style == TE_BFG_LASER) || (self->style == TE_DEBUGTRAIL)  ||
-		   (self->style == TE_BUBBLETRAIL2))
-		   ReflectTrail(self->style,self->s.origin,target->s.origin);
+		if((self->style == TE_RAILTRAIL) || (self->style == TE_BUBBLETRAIL) || (self->style == TE_BFG_LASER) || (self->style == TE_DEBUGTRAIL) || (self->style == TE_BUBBLETRAIL2))
+			ReflectTrail(self->style,self->s.origin,target->s.origin);
 	}
 }
 //===========================================================================
@@ -2243,13 +2243,13 @@ void target_effect_lightning(edict_t *self, edict_t *activator)
 	target = G_Find(NULL,FOFS(targetname),self->target);
 	if(!target) return;
 
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (self->style);
-	gi.WriteShort (target - g_edicts);		// destination entity
-	gi.WriteShort (self - g_edicts);		// source entity
-	gi.WritePosition (target->s.origin);
-	gi.WritePosition (self->s.origin);
-	gi.multicast (self->s.origin, MSG_PVS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (self->style);
+		WRITE_SHORT (target - g_edicts);		// destination entity
+		WRITE_SHORT (self - g_edicts);		// source entity
+		WRITE_COORD (target->s.origin);
+		WRITE_COORD (self->s.origin);
+	MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
 }
 //===========================================================================
 /*
@@ -2277,12 +2277,12 @@ Broadcasts to all in Potentially Visible Set from vector (origin)
 //======================================================
 void target_effect_sparks (edict_t *self, edict_t *activator)
 {
-	gi.WriteByte(svc_temp_entity);
-	gi.WriteByte(self->style);
-	gi.WritePosition(self->s.origin);
-	if(self->style != TE_CHAINFIST_SMOKE) 
-		gi.WriteDir(self->movedir);
-	gi.multicast(self->s.origin, MSG_PVS);
+	MESSAGE_BEGIN(svc_temp_entity);
+		WRITE_BYTE(self->style);
+		WRITE_COORD(self->s.origin);
+		if(self->style != TE_CHAINFIST_SMOKE) 
+			WRITE_DIR(self->movedir);
+	MESSAGE_SEND(MSG_PVS, self->s.origin, NULL);
 
 	if(level.num_reflectors)
 		ReflectSparks(self->style,self->s.origin,self->movedir);
@@ -2315,10 +2315,10 @@ Potentially Hearable set from vector (origin)
 //==============================================================================
 void target_effect_explosion (edict_t *self, edict_t *activator)
 {
-	gi.WriteByte(svc_temp_entity);
-	gi.WriteByte(self->style);
-	gi.WritePosition(self->s.origin);
-	gi.multicast(self->s.origin, MSG_PHS);
+	MESSAGE_BEGIN(svc_temp_entity);
+		WRITE_BYTE(self->style);
+		WRITE_COORD(self->s.origin);
+	MESSAGE_SEND(MSG_PHS, self->s.origin, NULL);
 
 	if (level.num_reflectors)
 		ReflectExplosion (self->style, self->s.origin);
@@ -2332,19 +2332,19 @@ void target_effect_explosion (edict_t *self, edict_t *activator)
 void target_effect_tunnel_sparks (edict_t *self, edict_t *activator)
 {
 	vec3_t	origin;
-	int		i;
+	int	i;
 
 	VectorCopy(self->s.origin,origin);
-	for (i=0; i<self->count; i++)
+	for (i = 0; i < self->count; i++)
 	{
 		origin[2] += (self->speed * 0.01) * (i + random());
-		gi.WriteByte (svc_temp_entity);
-		gi.WriteByte (self->style);
-		gi.WriteByte (1);
-		gi.WritePosition (origin);
-		gi.WriteDir (vec3_origin);
-		gi.WriteByte (self->sounds + (rand()&7));  // color
-		gi.multicast (self->s.origin, MSG_PVS);
+		MESSAGE_BEGIN (svc_temp_entity);
+			WRITE_BYTE (self->style);
+			WRITE_BYTE (1);
+			WRITE_COORD (origin);
+			WRITE_DIR (vec3_origin);
+			WRITE_BYTE (self->sounds + (rand()&7));  // color
+		MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
 	}
 }
 //===============================================================================
@@ -2352,11 +2352,11 @@ void target_effect_tunnel_sparks (edict_t *self, edict_t *activator)
 */
 void target_effect_widowbeam(edict_t *self, edict_t *activator)
 {
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_WIDOWBEAMOUT);
-	gi.WriteShort (20001);
-	gi.WritePosition (self->s.origin);
-	gi.multicast (self->s.origin, MSG_PVS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_WIDOWBEAMOUT);
+		WRITE_SHORT (20001);
+		WRITE_COORD (self->s.origin);
+	MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
 }
 //===============================================================================
 
@@ -2701,21 +2701,22 @@ void target_attractor_think_single(edict_t *self)
 			VectorMA(targ_org,FRAMETIME,target->velocity,new_origin);
 		}
 		
-		switch(self->sounds) {
+		switch(self->sounds)
+		{
 		case 1:
-			gi.WriteByte(svc_temp_entity);
-			gi.WriteByte(TE_MEDIC_CABLE_ATTACK);
-			gi.WriteShort(self-g_edicts);
-			gi.WritePosition(self->s.origin);
-			gi.WritePosition(new_origin);
-			gi.multicast(self->s.origin, MSG_PVS);
+			MESSAGE_BEGIN(svc_temp_entity);
+				WRITE_BYTE(TE_MEDIC_CABLE_ATTACK);
+				WRITE_SHORT(self-g_edicts);
+				WRITE_COORD(self->s.origin);
+				WRITE_COORD(new_origin);
+			MESSAGE_SEND(MSG_PVS, self->s.origin, NULL);
 			break;
 		case 2:
-			gi.WriteByte(svc_temp_entity);
-			gi.WriteByte(TE_BFG_LASER);
-			gi.WritePosition(self->s.origin);
-			gi.WritePosition(new_origin);
-			gi.multicast(self->s.origin, MSG_PVS);
+			MESSAGE_BEGIN(svc_temp_entity);
+				WRITE_BYTE(TE_BFG_LASER);
+				WRITE_COORD(self->s.origin);
+				WRITE_COORD(new_origin);
+			MESSAGE_SEND(MSG_PVS, self->s.origin, NULL);
 		}
 	}
 

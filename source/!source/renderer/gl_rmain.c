@@ -1048,11 +1048,11 @@ R_Init
 */
 int R_Init( void *hinstance, void *hWnd )
 {	
-	char renderer_buffer[1000];
-	char vendor_buffer[1000];
+	char		renderer_buffer[1000];
+	char		vendor_buffer[1000];
 	int		err;
 	int		j;
-	extern float r_turbsin[256];
+	extern float	r_turbsin[256];
           
 	r_temppool = Mem_AllocPool( "Render Memory" );
 	
@@ -1061,10 +1061,7 @@ int R_Init( void *hinstance, void *hWnd )
 		r_turbsin[j] *= 0.5;
 	}
 
-	Msg("ref_gl version: %i\n", RENDERER_API_VERSION );
-
 	R_GetPalette ();
-
 	R_Register();
 
 	// initialize our QGL dynamic bindings
@@ -1088,7 +1085,7 @@ int R_Init( void *hinstance, void *hWnd )
 	if ( !R_SetMode () )
 	{
 		QGL_Shutdown();
-        		Msg( "R_Init() - could not R_SetMode()\n" );
+        		MsgWarn("R_Init: could not R_SetMode()\n" );
 		return false;
 	}
 
@@ -1494,7 +1491,7 @@ void R_DrawBeam( entity_t *e )
 R_RegisterSkin
 ===============
 */
-struct image_s *R_RegisterSkin (char *name)
+image_t *R_RegisterSkin (char *name)
 {
 	return R_FindImage (name, NULL, 0, it_skin);
 }
@@ -1503,13 +1500,13 @@ struct image_s *R_RegisterSkin (char *name)
 
 
 void R_BeginRegistration (char *map);
-struct model_s *R_RegisterModel (char *name);
+model_t	*R_RegisterModel (char *name);
 void R_SetSky (char *name, float rotate, vec3_t axis);
 void	R_EndRegistration (void);
 
 void	R_RenderFrame (refdef_t *fd);
 
-struct image_s	*Draw_FindPic (char *name);
+image_t	*Draw_FindPic (char *name);
 
 void	Draw_Pic (int x, int y, char *name);
 void	Draw_Char (int x, int y, int c);

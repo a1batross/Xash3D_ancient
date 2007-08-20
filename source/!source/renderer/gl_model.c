@@ -1102,7 +1102,7 @@ R_RegisterModel
 
 @@@@@@@@@@@@@@@@@@@@@
 */
-struct model_s *R_RegisterModel (char *name)
+model_t *R_RegisterModel (char *name)
 {
 	model_t		*mod;
 	int		i;

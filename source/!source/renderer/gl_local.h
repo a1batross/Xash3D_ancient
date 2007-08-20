@@ -182,7 +182,7 @@ typedef struct image_s
 	bool 		paletted;
 
 	//new stuff starts here
-} image_t;
+};
 
 #define	TEXNUM_LIGHTMAPS	1024
 #define	TEXNUM_SCRAPS	1152
@@ -426,10 +426,7 @@ void	R_SwapBuffers( int );
 void	R_SetPalette ( const unsigned char *palette);
 void	R_GetPalette (void);
 
-struct image_s *R_RegisterSkin (char *name);
-
-byte *LoadTGA (char *filename, int *width, int *height);
-byte *LoadJPG (char *filename, int *width, int *height);
+image_t	*R_RegisterSkin (char *name);
 
 void R_ImageList_f (void);
 

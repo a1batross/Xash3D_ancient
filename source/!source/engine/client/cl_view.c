@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // development tools for weapons
 //
 int			gun_frame;
-struct model_s	*gun_model;
+model_t			*gun_model;
 
 //=============
 
@@ -278,7 +278,7 @@ void CL_PrepRefresh (void)
 	CL_RegisterTEntModels ();
 
 	num_cl_weaponmodels = 1;
-	strcpy(cl_weaponmodels[0], "weapon.md2");
+	strcpy(cl_weaponmodels[0], "weapon.mdl");
 
 	for (i=1 ; i<MAX_MODELS && cl.configstrings[CS_MODELS+i][0] ; i++)
 	{
@@ -386,8 +386,7 @@ void V_Gun_Next_f (void)
 void V_Gun_Prev_f (void)
 {
 	gun_frame--;
-	if (gun_frame < 0)
-		gun_frame = 0;
+	if (gun_frame < 0) gun_frame = 0;
 	Msg ("frame %i\n", gun_frame);
 }
 
@@ -400,7 +399,7 @@ void V_Gun_Model_f (void)
 		gun_model = NULL;
 		return;
 	}
-	sprintf (name, "models/%s/tris.md2", Cmd_Argv(1));
+	sprintf (name, "models/weapons/v_%s.mdl", Cmd_Argv(1));
 	gun_model = re->RegisterModel (name);
 }
 

@@ -87,9 +87,10 @@ typedef struct game_import_s
 	filesystem_api_t	Fs;
 	vfilesystem_api_t	VFs;
 	memsystem_api_t	Mem;
-	scriptsystem_api_t	Script;
-	compilers_api_t	Compile;
+	scriptsystem_api_t	Script;		// basic script-machine
+	compilers_api_t	Compile;		// compilers callback
 	infostring_api_t	Info;
+	message_write_t	Msg;		// network messaging
 
 	// special messages
 	void	(*bprintf) (int printlevel, char *fmt, ...);
@@ -111,9 +112,9 @@ typedef struct game_import_s
 	void	(*error) (char *fmt, ...);
 
 	// the *index functions create configstrings and some internal server state
-	int		(*modelindex) (char *name);
-	int		(*soundindex) (char *name);
-	int		(*imageindex) (char *name);
+	int	(*modelindex) (char *name);
+	int	(*soundindex) (char *name);
+	int	(*imageindex) (char *name);
 
 	void	(*setmodel) (edict_t *ent, char *name);
 
@@ -135,19 +136,6 @@ typedef struct game_import_s
 
 	// common studio utils
 	byte	*(*getmodelhdr) (edict_t *ent);//returned a pointer on a studiohdr_t for current entity
-
-	// network messaging
-	void	(*multicast) (vec3_t origin, msgtype_t to);
-	void	(*unicast) (edict_t *ent, bool reliable);
-	void	(*WriteChar) (int c);
-	void	(*WriteByte) (int c);
-	void	(*WriteShort) (int c);
-	void	(*WriteLong) (int c);
-	void	(*WriteFloat) (float f);
-	void	(*WriteString) (char *s);
-	void	(*WritePosition) (vec3_t pos);	// some fractional bits
-	void	(*WriteDir) (vec3_t pos);		// single byte encoded, very coarse
-	void	(*WriteAngle) (float f);
 	
 	// console variable interaction
 	cvar_t	*(*cvar) (char *var_name, char *value, int flags);
@@ -215,4 +203,4 @@ typedef struct game_export_s
 } game_export_t;
 
 //dll handle
-typedef game_export_t (*ref_server_t)(game_import_t);
+typedef game_export_t (*server_api_t)(game_import_t);

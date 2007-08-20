@@ -1192,14 +1192,13 @@ void spectator_respawn (edict_t *ent)
 
 	if (ent->client->pers.spectator) {
 		char *value = Info_ValueForKey (ent->client->pers.userinfo, "spectator");
-		if (*spectator_password->string && 
-			strcmp(spectator_password->string, "none") && 
-			strcmp(spectator_password->string, value)) {
+		if (*spectator_password->string && strcmp(spectator_password->string, "none") && strcmp(spectator_password->string, value)) 
+		{
 			gi.cprintf(ent, PRINT_HIGH, "Spectator password incorrect.\n");
 			ent->client->pers.spectator = false;
-			gi.WriteByte (svc_stufftext);
-			gi.WriteString ("spectator 0\n");
-			gi.unicast(ent, true);
+			MESSAGE_BEGIN (svc_stufftext);
+				WRITE_STRING ("spectator 0\n");
+			MESSAGE_SEND(MSG_ONE_R, NULL, ent);
 			return;
 		}
 
@@ -1208,16 +1207,19 @@ void spectator_respawn (edict_t *ent)
 			if (g_edicts[i].inuse && g_edicts[i].client->pers.spectator)
 				numspec++;
 
-		if (numspec >= maxspectators->value) {
+		if (numspec >= maxspectators->value)
+		{
 			gi.cprintf(ent, PRINT_HIGH, "Server spectator limit is full.");
 			ent->client->pers.spectator = false;
 			// reset his spectator var
-			gi.WriteByte (svc_stufftext);
-			gi.WriteString ("spectator 0\n");
-			gi.unicast(ent, true);
+			MESSAGE_BEGIN (svc_stufftext);
+			WRITE_STRING ("spectator 0\n");
+			MESSAGE_SEND(MSG_ONE_R, NULL, ent);
 			return;
 		}
-	} else {
+	}
+	else
+	{
 		// he was a spectator and wants to join the game
 		// he must have the right password
 		char *value = Info_ValueForKey (ent->client->pers.userinfo, "password");
@@ -1225,9 +1227,9 @@ void spectator_respawn (edict_t *ent)
 			strcmp(password->string, value)) {
 			gi.cprintf(ent, PRINT_HIGH, "Password incorrect.\n");
 			ent->client->pers.spectator = true;
-			gi.WriteByte (svc_stufftext);
-			gi.WriteString ("spectator 1\n");
-			gi.unicast(ent, true);
+			MESSAGE_BEGIN (svc_stufftext);
+				WRITE_STRING ("spectator 1\n");
+			MESSAGE_SEND(MSG_ONE_R, NULL, ent );
 			return;
 		}
 	}
@@ -1241,10 +1243,10 @@ void spectator_respawn (edict_t *ent)
 	// add a teleportation effect
 	if (!ent->client->pers.spectator)  {
 		// send effect
-		gi.WriteByte (svc_muzzleflash);
-		gi.WriteShort (ent-g_edicts);
-		gi.WriteByte (MZ_LOGIN);
-		gi.multicast (ent->s.origin, MSG_PVS);
+		MESSAGE_BEGIN (svc_muzzleflash);
+			WRITE_SHORT (ent-g_edicts);
+			WRITE_BYTE (MZ_LOGIN);
+		MESSAGE_SEND (MSG_PVS, ent->s.origin, NULL);
 
 		// hold in place briefly
 		ent->client->ps.pmove.pm_flags = PMF_TIME_TELEPORT;
@@ -1562,10 +1564,10 @@ void ClientBeginDeathmatch (edict_t *ent)
 	else
 	{
 		// send effect
-		gi.WriteByte (svc_muzzleflash);
-		gi.WriteShort (ent-g_edicts);
-		gi.WriteByte (MZ_LOGIN);
-		gi.multicast (ent->s.origin, MSG_PVS);
+		MESSAGE_BEGIN (svc_muzzleflash);
+			WRITE_SHORT (ent-g_edicts);
+			WRITE_BYTE (MZ_LOGIN);
+		MESSAGE_SEND (MSG_PVS, ent->s.origin, NULL);
 	}
 
 	gi.bprintf (PRINT_HIGH, "%s entered the game\n", ent->client->pers.netname);
@@ -1635,10 +1637,10 @@ void ClientBegin (edict_t *ent)
 		// send effect if in a multiplayer game
 		if (game.maxclients > 1)
 		{
-			gi.WriteByte (svc_muzzleflash);
-			gi.WriteShort (ent-g_edicts);
-			gi.WriteByte (MZ_LOGIN);
-			gi.multicast (ent->s.origin, MSG_PVS);
+			MESSAGE_BEGIN (svc_muzzleflash);
+				WRITE_SHORT (ent-g_edicts);
+				WRITE_BYTE (MZ_LOGIN);
+			MESSAGE_SEND (MSG_PVS, ent->s.origin, NULL);
 
 			gi.bprintf (PRINT_HIGH, "%s entered the game\n", ent->client->pers.netname);
 		}
@@ -1859,10 +1861,10 @@ void ClientDisconnect (edict_t *ent)
 	gi.bprintf (PRINT_HIGH, "%s disconnected\n", ent->client->pers.netname);
 
 	// send effect
-	gi.WriteByte (svc_muzzleflash);
-	gi.WriteShort (ent-g_edicts);
-	gi.WriteByte (MZ_LOGOUT);
-	gi.multicast (ent->s.origin, MSG_PVS);
+	MESSAGE_BEGIN (svc_muzzleflash);
+		WRITE_SHORT (ent-g_edicts);
+		WRITE_BYTE (MZ_LOGOUT);
+	MESSAGE_SEND (MSG_PVS, ent->s.origin, NULL);
 
 	gi.unlinkentity (ent);
 	ent->s.modelindex = 0;

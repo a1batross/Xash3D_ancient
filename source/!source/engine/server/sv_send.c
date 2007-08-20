@@ -135,117 +135,122 @@ void SV_BroadcastCommand (char *fmt, ...)
 	va_list		argptr;
 	char		string[1024];
 	
-	if (!sv.state)
-		return;
+	if (!sv.state) return;
 	va_start (argptr,fmt);
 	vsprintf (string, fmt,argptr);
 	va_end (argptr);
 
-	MSG_WriteByte (&sv.multicast, svc_stufftext);
+	MSG_Begin(svc_stufftext);
 	MSG_WriteString (&sv.multicast, string);
-	SV_Multicast (NULL, MSG_ALL_R);
+	MSG_Send(MSG_ALL_R, NULL, NULL);
 }
 
 
 /*
 =================
-SV_Multicast
+SV_Send
 
 Sends the contents of sv.multicast to a subset of the clients,
 then clears sv.multicast.
 
+MULTICAST_ONE	send to one client (ent can't be NULL)
 MULTICAST_ALL	same as broadcast (origin can be NULL)
 MULTICAST_PVS	send to clients potentially visible from org
 MULTICAST_PHS	send to clients potentially hearable from org
 =================
 */
-void SV_Multicast (vec3_t origin, msgtype_t to)
+void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename, int fileline)
 {
-	client_t	*client;
-	byte		*mask;
-	int			leafnum, cluster;
-	int			j;
-	bool	reliable;
-	int			area1, area2;
+	byte		*mask = NULL;
+	int		leafnum = 0, cluster = 0;
+	int		area1 = 0, area2 = 0;
+	int		j, numclients = maxclients->value;
+	client_t		*client, *current = svs.clients;
+	bool		reliable = false;
 
-	reliable = false;
-
-	if (to != MSG_ALL_R && to != MSG_ALL)
+	/*if(origin == NULL || ent == NULL) 
 	{
-		leafnum = CM_PointLeafnum (origin);
-		area1 = CM_LeafArea (leafnum);
-	}
-	else
-	{
-		leafnum = 0;	// just to avoid compiler warnings
-		area1 = 0;
-	}
+		if(to == MSG_ONE || to == MSG_ONE_R)
+			Msg("MSG_Send: ent == NULL (called at %s:%i)\n", filename, fileline);
+		else Msg("MSG_Send: origin == NULL (called at %s:%i)\n", filename, fileline);
+		return;
+	}*/
 
 	// if doing a serverrecord, store everything
-	if (svs.demofile)
-		SZ_Write (&svs.demo_multicast, sv.multicast.data, sv.multicast.cursize);
+	if (svs.demofile) SZ_Write (&svs.demo_multicast, sv.multicast.data, sv.multicast.cursize);
 	
 	switch (to)
 	{
 	case MSG_ALL_R:
 		reliable = true;	// intentional fallthrough
 	case MSG_ALL:
-		leafnum = 0;
-		mask = NULL;
+		// nothing to sort	
 		break;
-
 	case MSG_PHS_R:
 		reliable = true;	// intentional fallthrough
 	case MSG_PHS:
+		if(origin == NULL) return;
 		leafnum = CM_PointLeafnum (origin);
 		cluster = CM_LeafCluster (leafnum);
 		mask = CM_ClusterPHS (cluster);
+		area1 = CM_LeafArea (leafnum);
 		break;
-
 	case MSG_PVS_R:
 		reliable = true;	// intentional fallthrough
 	case MSG_PVS:
+		if(origin == NULL) return;
 		leafnum = CM_PointLeafnum (origin);
 		cluster = CM_LeafCluster (leafnum);
 		mask = CM_ClusterPVS (cluster);
+		area1 = CM_LeafArea (leafnum);
 		break;
+	case MSG_ONE_R:
+		reliable = true;	// intentional fallthrough
 	case MSG_ONE:
-		//implement me
-		return;
+		if(ent == NULL) return;
+		j = NUM_FOR_EDICT(ent);
+		if (j < 1 || j > numclients) return;
+		current = svs.clients + (j - 1);
+		numclients = 1; // send to one
 		break;
 	default:
-		mask = NULL;
-		Com_Error (ERR_FATAL, "SV_Multicast: bad to:%i", to);
+		MsgWarn("MSG_Send: bad destination: %i (called at %s:%i)\n", to, filename, fileline);
+		return;
 	}
 
-	// send the data to all relevent clients
-	for (j = 0, client = svs.clients; j < maxclients->value; j++, client++)
+	// send the data to all relevent clients (or once only)
+	for (j = 0, client = current; j < numclients; j++, client++)
 	{
-		if (client->state == cs_free || client->state == cs_zombie)
-			continue;
-		if (client->state != cs_spawned && !reliable)
-			continue;
+		if (client->state == cs_free || client->state == cs_zombie) continue;
+		if (client->state != cs_spawned && !reliable) continue;
 
 		if (mask)
 		{
-			leafnum = CM_PointLeafnum (client->edict->s.origin);
-			cluster = CM_LeafCluster (leafnum);
 			area2 = CM_LeafArea (leafnum);
-			if (!CM_AreasConnected (area1, area2))
-				continue;
-			if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7)) ) ) )
-				continue;
+			cluster = CM_LeafCluster (leafnum);
+			leafnum = CM_PointLeafnum (client->edict->s.origin);
+			if (!CM_AreasConnected (area1, area2)) continue;
+			if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7))))) continue;
 		}
 
-		if (reliable)
-			SZ_Write (&client->netchan.message, sv.multicast.data, sv.multicast.cursize);
-		else
-			SZ_Write (&client->datagram, sv.multicast.data, sv.multicast.cursize);
+		if (reliable) SZ_Write (&client->netchan.message, sv.multicast.data, sv.multicast.cursize);
+		else SZ_Write (&client->datagram, sv.multicast.data, sv.multicast.cursize);
 	}
-
 	SZ_Clear (&sv.multicast);
 }
 
+/*
+=================
+MSG_Begin
+
+Misc helper function
+=================
+*/
+
+void _MSG_Begin( int dest, const char *filename, int fileline )
+{
+	_MSG_WriteChar (&sv.multicast, dest, filename, fileline );
+}
 
 /*  
 ==================
@@ -273,59 +278,50 @@ If origin is NULL, the origin is determined from the entity origin
 or the midpoint of the entity box for bmodels.
 ==================
 */  
-void SV_StartSound (vec3_t origin, edict_t *entity, int channel,
-					int soundindex, float volume,
-					float attenuation, float timeofs)
+void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int soundindex, float volume, float attenuation, float timeofs)
 {       
-	int			sendchan;
-    int			flags;
-    int			i;
-	int			ent;
+	int		i, ent, flags, sendchan;
 	vec3_t		origin_v;
-	bool	use_phs;
+	bool		use_phs;
 
 	if (volume < 0 || volume > 1.0)
-		Com_Error (ERR_FATAL, "SV_StartSound: volume = %f", volume);
-
+	{
+		MsgWarn("SV_StartSound: volume = %f\n", volume);
+		volume = bound(0, volume, 1.0);
+	}
 	if (attenuation < 0 || attenuation > 4)
-		Com_Error (ERR_FATAL, "SV_StartSound: attenuation = %f", attenuation);
-
-//	if (channel < 0 || channel > 15)
-//		Com_Error (ERR_FATAL, "SV_StartSound: channel = %i", channel);
-
+	{
+		MsgWarn("SV_StartSound: attenuation = %f\n", attenuation);
+		attenuation = bound(0, volume, 4);
+	}
 	if (timeofs < 0 || timeofs > 0.255)
-		Com_Error (ERR_FATAL, "SV_StartSound: timeofs = %f", timeofs);
-
+	{
+		MsgWarn("SV_StartSound: timeofs = %f\n", timeofs);
+		timeofs = bound(0, timeofs, 0.255 );
+	}
 	ent = NUM_FOR_EDICT(entity);
 
-	if (channel & 8)	// no PHS flag
+	if (channel & 8) // no PHS flag
 	{
 		use_phs = false;
 		channel &= 7;
 	}
-	else
-		use_phs = true;
-
+	else use_phs = true;
 	sendchan = (ent<<3) | (channel&7);
 
 	flags = 0;
-	if (volume != DEFAULT_SOUND_PACKET_VOLUME)
-		flags |= SND_VOLUME;
-	if (attenuation != DEFAULT_SOUND_PACKET_ATTENUATION)
-		flags |= SND_ATTENUATION;
+	if (volume != DEFAULT_SOUND_PACKET_VOLUME) flags |= SND_VOLUME;
+	if (attenuation != DEFAULT_SOUND_PACKET_ATTENUATION) flags |= SND_ATTENUATION;
 
 	// the client doesn't know that bmodels have weird origins
 	// the origin can also be explicitly set
-	if ( (entity->svflags & SVF_NOCLIENT)
-		|| (entity->solid == SOLID_BSP) 
-		|| origin )
+	if ( (entity->svflags & SVF_NOCLIENT) || (entity->solid == SOLID_BSP) || origin )
 		flags |= SND_POS;
 
 	// always send the entity number for channel overrides
 	flags |= SND_ENT;
 
-	if (timeofs)
-		flags |= SND_OFFSET;
+	if (timeofs) flags |= SND_OFFSET;
 
 	// use the entity origin unless it is a bmodel or explicitly specified
 	if (!origin)
@@ -333,8 +329,10 @@ void SV_StartSound (vec3_t origin, edict_t *entity, int channel,
 		origin = origin_v;
 		if (entity->solid == SOLID_BSP)
 		{
-			for (i=0 ; i<3 ; i++)
+			for (i = 0; i < 3; i++)
+			{
 				origin_v[i] = entity->s.origin[i]+0.5*(entity->mins[i]+entity->maxs[i]);
+			}
 		}
 		else
 		{
@@ -342,37 +340,41 @@ void SV_StartSound (vec3_t origin, edict_t *entity, int channel,
 		}
 	}
 
-	MSG_WriteByte (&sv.multicast, svc_sound);
+	MSG_Begin(svc_sound);
 	MSG_WriteByte (&sv.multicast, flags);
 	MSG_WriteByte (&sv.multicast, soundindex);
 
-	if (flags & SND_VOLUME)
-		MSG_WriteByte (&sv.multicast, volume*255);
-	if (flags & SND_ATTENUATION)
-		MSG_WriteByte (&sv.multicast, attenuation*64);
-	if (flags & SND_OFFSET)
-		MSG_WriteByte (&sv.multicast, timeofs*1000);
-
-	if (flags & SND_ENT)
-		MSG_WriteShort (&sv.multicast, sendchan);
-
-	if (flags & SND_POS)
-		MSG_WritePos (&sv.multicast, origin);
+	if (flags & SND_VOLUME) MSG_WriteByte (&sv.multicast, volume*255);
+	if (flags & SND_ATTENUATION) MSG_WriteByte (&sv.multicast, attenuation*64);
+	if (flags & SND_OFFSET) MSG_WriteByte (&sv.multicast, timeofs*1000);
+	if (flags & SND_ENT) MSG_WriteShort (&sv.multicast, sendchan);
+	if (flags & SND_POS) MSG_WritePos (&sv.multicast, origin);
 
 	// if the sound doesn't attenuate,send it to everyone
 	// (global radio chatter, voiceovers, etc)
-	if (attenuation == ATTN_NONE)
-		use_phs = false;
+	if (attenuation == ATTN_NONE) use_phs = false;
 
 	if (channel & CHAN_RELIABLE)
 	{
-		if (use_phs) SV_Multicast (origin, MSG_PHS_R);
-		else SV_Multicast (origin, MSG_ALL_R);
+		if(use_phs) 
+		{
+			MSG_Send (MSG_PHS_R, origin, NULL);
+		}
+		else 
+		{
+			MSG_Send(MSG_ALL_R, origin, NULL );
+		}
 	}
 	else
 	{
-		if (use_phs) SV_Multicast (origin, MSG_PHS);
-		else SV_Multicast (origin, MSG_ALL);
+		if(use_phs) 
+		{
+			MSG_Send (MSG_PHS, origin, NULL);
+		}
+		else
+		{
+			MSG_Send (MSG_ALL, origin, NULL);
+		}
 	}
 }           
 

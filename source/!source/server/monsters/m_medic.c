@@ -1019,12 +1019,12 @@ void medic_cable_attack (edict_t *self)
 	VectorNormalize(f);
 	VectorMA(start,16,f,start);
 
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_MEDIC_CABLE_ATTACK);
-	gi.WriteShort (self - g_edicts);
-	gi.WritePosition (start);
-	gi.WritePosition (end);
-	gi.multicast (self->s.origin, MSG_PVS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_MEDIC_CABLE_ATTACK);
+		WRITE_SHORT (self - g_edicts);
+		WRITE_COORD (start);
+		WRITE_COORD (end);
+	MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
 }
 
 void medic_hook_retract (edict_t *self)

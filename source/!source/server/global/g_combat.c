@@ -166,11 +166,11 @@ added color for monster blood
 */
 void SpawnDamage (int type, vec3_t origin, vec3_t normal)
 {
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (type);
-	gi.WritePosition (origin);
-	gi.WriteDir (normal);
-	gi.multicast (origin, MSG_PVS);
+	MESSAGE_BEGIN(svc_temp_entity);
+		WRITE_BYTE (type);
+		WRITE_COORD (origin);
+		WRITE_DIR (normal);
+	MESSAGE_SEND (MSG_PVS, origin, NULL);
 
 	if(level.num_reflectors)
 		ReflectSparks(type,origin,normal);

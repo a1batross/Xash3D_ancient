@@ -461,7 +461,11 @@ int SV_HullForEntity (edict_t *ent)
 		// explicit hulls in the BSP model
 		model = sv.models[ ent->s.modelindex ];
 
-		if (!model) Com_Error (ERR_FATAL, "MOVETYPE_PUSH with a non bsp model");
+		if (!model) 
+		{
+			MsgWarn("SV_HullForEntity: movetype_push with a non bsp model\n");
+			return -1;
+		}
 		return model->headnode;
 	}
 

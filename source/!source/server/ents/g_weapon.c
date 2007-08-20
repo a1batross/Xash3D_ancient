@@ -177,13 +177,13 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 
 				if (color != SPLASH_UNKNOWN)
 				{
-					gi.WriteByte (svc_temp_entity);
-					gi.WriteByte (TE_SPLASH);
-					gi.WriteByte (8);
-					gi.WritePosition (tr.endpos);
-					gi.WriteDir (tr.plane.normal);
-					gi.WriteByte (color);
-					gi.multicast (tr.endpos, MSG_PVS);
+					MESSAGE_BEGIN (svc_temp_entity);
+						WRITE_BYTE (TE_SPLASH);
+						WRITE_BYTE (8);
+						WRITE_COORD (tr.endpos);
+						WRITE_DIR (tr.plane.normal);
+						WRITE_BYTE (color);
+					MESSAGE_SEND (MSG_PVS, tr.endpos, NULL);
 				}
 
 				// change bullet's course when it enters water
@@ -215,11 +215,11 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 			{
 				if (strncmp (tr.surface->name, "skyname", 3) != 0)
 				{
-					gi.WriteByte (svc_temp_entity);
-					gi.WriteByte (te_impact);
-					gi.WritePosition (tr.endpos);
-					gi.WriteDir (tr.plane.normal);
-					gi.multicast (tr.endpos, MSG_PVS);
+					MESSAGE_BEGIN (svc_temp_entity);
+						WRITE_BYTE (te_impact);
+						WRITE_COORD (tr.endpos);
+						WRITE_DIR (tr.plane.normal);
+					MESSAGE_SEND (MSG_PVS, tr.endpos, NULL);
 
 					if(level.num_reflectors)
 						ReflectSparks(te_impact,tr.endpos,tr.plane.normal);
@@ -250,11 +250,11 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 		VectorAdd (water_start, tr.endpos, pos);
 		VectorScale (pos, 0.5, pos);
 
-		gi.WriteByte (svc_temp_entity);
-		gi.WriteByte (TE_BUBBLETRAIL);
-		gi.WritePosition (water_start);
-		gi.WritePosition (tr.endpos);
-		gi.multicast (pos, MSG_PVS);
+		MESSAGE_BEGIN (svc_temp_entity);
+			WRITE_BYTE (TE_BUBBLETRAIL);
+			WRITE_COORD (water_start);
+			WRITE_COORD (tr.endpos);
+		MESSAGE_SEND (MSG_PVS, pos, NULL);
 	}
 }
 
@@ -322,15 +322,12 @@ void blaster_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *
 	}
 	else
 	{
-		gi.WriteByte (svc_temp_entity);
-		gi.WriteByte (TE_BLASTER);
-		gi.WritePosition (self->s.origin);
-		if (!plane)
-			gi.WriteDir (vec3_origin);
-		else
-			gi.WriteDir (plane->normal);
-
-		gi.multicast (self->s.origin, MSG_PVS);
+		MESSAGE_BEGIN (svc_temp_entity);
+			WRITE_BYTE (TE_BLASTER);
+			WRITE_COORD (self->s.origin);
+			if (!plane) WRITE_DIR (vec3_origin);
+			else WRITE_DIR (plane->normal);
+		MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
 
 		if(level.num_reflectors)
 		{
@@ -565,24 +562,20 @@ static void Grenade_Explode (edict_t *ent)
 	T_RadiusDamage(ent, ent->owner, ent->dmg, ent->enemy, ent->dmg_radius, mod, -0.5);
 
 	VectorMA (ent->s.origin, -0.02, ent->velocity, origin);
-	gi.WriteByte (svc_temp_entity);
-	if (ent->waterlevel)
-	{
-		if (ent->groundentity)
-			type = TE_GRENADE_EXPLOSION_WATER;
+	MESSAGE_BEGIN (svc_temp_entity);
+		if (ent->waterlevel)
+		{
+			if (ent->groundentity) type = TE_GRENADE_EXPLOSION_WATER;
+			else type = TE_ROCKET_EXPLOSION_WATER;
+		}
 		else
-			type = TE_ROCKET_EXPLOSION_WATER;
-	}
-	else
-	{
-		if (ent->groundentity)
-			type = TE_GRENADE_EXPLOSION;
-		else
-			type = TE_ROCKET_EXPLOSION;
-	}
-	gi.WriteByte (type);
-	gi.WritePosition (origin);
-	gi.multicast (ent->s.origin, MSG_PHS);
+		{
+			if (ent->groundentity) type = TE_GRENADE_EXPLOSION;
+			else type = TE_ROCKET_EXPLOSION;
+		}
+		WRITE_BYTE (type);
+		WRITE_COORD (origin);
+	MESSAGE_SEND (MSG_PHS, ent->s.origin, NULL);
 
 	if(level.num_reflectors)
 		ReflectExplosion (type,origin);
@@ -1002,14 +995,12 @@ void rocket_touch (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *su
 	else
 		T_RadiusDamage(ent, ent->owner, ent->radius_dmg, other, ent->dmg_radius, MOD_R_SPLASH, -0.5);
 
-	gi.WriteByte (svc_temp_entity);
-	if (ent->waterlevel)
-		type = TE_ROCKET_EXPLOSION_WATER;
-	else
-		type = TE_ROCKET_EXPLOSION;
-	gi.WriteByte (type);
-	gi.WritePosition (origin);
-	gi.multicast (ent->s.origin, MSG_PHS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		if (ent->waterlevel) type = TE_ROCKET_EXPLOSION_WATER;
+		else type = TE_ROCKET_EXPLOSION;
+		WRITE_BYTE (type);
+		WRITE_COORD (origin);
+	MESSAGE_SEND (MSG_PHS, ent->s.origin, NULL);
 
 	if(level.num_reflectors)
 		ReflectExplosion(type,origin);
@@ -1030,14 +1021,12 @@ static void rocket_explode (edict_t *ent)
 
 	T_RadiusDamage(ent, ent->owner, ent->radius_dmg, NULL, ent->dmg_radius, MOD_R_SPLASH, -0.5);
 
-	gi.WriteByte (svc_temp_entity);
-	if (ent->waterlevel)
-		type = TE_ROCKET_EXPLOSION_WATER;
-	else
-		type = TE_ROCKET_EXPLOSION;
-	gi.WriteByte (type);
-	gi.WritePosition (origin);
-	gi.multicast (ent->s.origin, MSG_PVS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		if (ent->waterlevel) type = TE_ROCKET_EXPLOSION_WATER;
+		else type = TE_ROCKET_EXPLOSION;
+		WRITE_BYTE (type);
+		WRITE_COORD (origin);
+	MESSAGE_SEND (MSG_PVS, ent->s.origin, NULL);
 
 	if(level.num_reflectors)
 		ReflectExplosion(type,origin);
@@ -1220,22 +1209,22 @@ void fire_rail (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick
 	}
 
 	// send gun puff / flash
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_RAILTRAIL);
-	gi.WritePosition (start);
-	gi.WritePosition (tr.endpos);
-	gi.multicast (self->s.origin, MSG_PHS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_RAILTRAIL);
+		WRITE_COORD (start);
+		WRITE_COORD (tr.endpos);
+	MESSAGE_SEND (MSG_PHS, self->s.origin, NULL);
 
 	if (level.num_reflectors)
 		ReflectTrail(TE_RAILTRAIL,start,tr.endpos);
 
 	if (water)
 	{
-		gi.WriteByte (svc_temp_entity);
-		gi.WriteByte (TE_RAILTRAIL);
-		gi.WritePosition (start);
-		gi.WritePosition (tr.endpos);
-		gi.multicast (tr.endpos, MSG_PHS);
+		MESSAGE_BEGIN (svc_temp_entity);
+			WRITE_BYTE (TE_RAILTRAIL);
+			WRITE_COORD (start);
+			WRITE_COORD (tr.endpos);
+		MESSAGE_SEND (MSG_PHS, tr.endpos, NULL);
 	}
 
 	if (self->client)
@@ -1261,27 +1250,22 @@ void bfg_explode (edict_t *self)
 		ent = NULL;
 		while ((ent = findradius(ent, self->s.origin, self->dmg_radius)) != NULL)
 		{
-			if (!ent->takedamage)
-				continue;
-			if (ent == self->owner)
-				continue;
-			if (!CanDamage (ent, self))
-				continue;
-			if (!CanDamage (ent, self->owner))
-				continue;
+			if (!ent->takedamage) continue;
+			if (ent == self->owner) continue;
+			if (!CanDamage (ent, self)) continue;
+			if (!CanDamage (ent, self->owner)) continue;
 
 			VectorAdd (ent->mins, ent->maxs, v);
 			VectorMA (ent->s.origin, 0.5, v, v);
 			VectorSubtract (self->s.origin, v, v);
 			dist = VectorLength(v);
 			points = self->radius_dmg * (1.0 - sqrt(dist/self->dmg_radius));
-			if (ent == self->owner)
-				points = points * 0.5;
+			if (ent == self->owner) points = points * 0.5;
 
-			gi.WriteByte (svc_temp_entity);
-			gi.WriteByte (TE_BFG_EXPLOSION);
-			gi.WritePosition (ent->s.origin);
-			gi.multicast (ent->s.origin, MSG_PHS);
+			MESSAGE_BEGIN (svc_temp_entity);
+				WRITE_BYTE (TE_BFG_EXPLOSION);
+				WRITE_COORD (ent->s.origin);
+			MESSAGE_SEND (MSG_PHS, ent->s.origin, NULL);
 
 			if(level.num_reflectors)
 				ReflectExplosion(TE_BFG_EXPLOSION,ent->s.origin);
@@ -1328,10 +1312,10 @@ void bfg_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf
 	self->nextthink = level.time + FRAMETIME;
 	self->enemy = other;
 
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_BFG_BIGEXPLOSION);
-	gi.WritePosition (self->s.origin);
-	gi.multicast (self->s.origin, MSG_PVS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_BFG_BIGEXPLOSION);
+		WRITE_COORD (self->s.origin);
+	MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
 
 	if(level.num_reflectors)
 		ReflectExplosion(TE_BFG_BIGEXPLOSION,self->s.origin);
@@ -1391,13 +1375,13 @@ void bfg_think (edict_t *self)
 			// if we hit something that's not a monster or player we're done
 			if (!(tr.ent->svflags & SVF_MONSTER) && (!tr.ent->client))
 			{
-				gi.WriteByte (svc_temp_entity);
-				gi.WriteByte (TE_LASER_SPARKS);
-				gi.WriteByte (4);
-				gi.WritePosition (tr.endpos);
-				gi.WriteDir (tr.plane.normal);
-				gi.WriteByte (self->s.skin);
-				gi.multicast (tr.endpos, MSG_PVS);
+				MESSAGE_BEGIN (svc_temp_entity);
+					WRITE_BYTE (TE_LASER_SPARKS);
+					WRITE_BYTE (4);
+					WRITE_COORD (tr.endpos);
+					WRITE_DIR (tr.plane.normal);
+					WRITE_BYTE (self->s.skin);
+				MESSAGE_SEND (MSG_PVS, tr.endpos, NULL);
 				break;
 			}
 
@@ -1405,11 +1389,11 @@ void bfg_think (edict_t *self)
 			VectorCopy (tr.endpos, start);
 		}
 
-		gi.WriteByte (svc_temp_entity);
-		gi.WriteByte (TE_BFG_LASER);
-		gi.WritePosition (self->s.origin);
-		gi.WritePosition (tr.endpos);
-		gi.multicast (self->s.origin, MSG_PHS);
+		MESSAGE_BEGIN (svc_temp_entity);
+			WRITE_BYTE (TE_BFG_LASER);
+			WRITE_COORD (self->s.origin);
+			WRITE_COORD (tr.endpos);
+		MESSAGE_SEND (MSG_PHS, self->s.origin, NULL);
 
 		if(level.num_reflectors)
 			ReflectTrail(TE_BFG_LASER,self->s.origin,tr.endpos);

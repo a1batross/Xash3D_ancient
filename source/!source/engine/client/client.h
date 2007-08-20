@@ -63,11 +63,11 @@ typedef struct
 {
 	char	name[MAX_QPATH];
 	char	cinfo[MAX_QPATH];
-	struct image_s	*skin;
-	struct image_s	*icon;
+	image_t	*skin;
+	image_t	*icon;
 	char	iconname[MAX_QPATH];
-	struct model_s	*model;
-	struct model_s	*weaponmodel[MAX_CLIENTWEAPONMODELS];
+	model_t	*model;
+	model_t	*weaponmodel[MAX_CLIENTWEAPONMODELS];
 } clientinfo_t;
 
 extern char cl_weaponmodels[MAX_CLIENTWEAPONMODELS][MAX_QPATH];
@@ -151,11 +151,11 @@ typedef struct
 	//
 	// locally derived information from server state
 	//
-	struct model_s	*model_draw[MAX_MODELS];
+	model_t		*model_draw[MAX_MODELS];
 	struct cmodel_s	*model_clip[MAX_MODELS];
 
 	struct sfx_s	*sound_precache[MAX_SOUNDS];
-	struct image_s	*image_precache[MAX_IMAGES];
+	image_t		*image_precache[MAX_IMAGES];
 
 	clientinfo_t	clientinfo[MAX_CLIENTS];
 	clientinfo_t	baseclientinfo;
@@ -455,6 +455,11 @@ void CL_Snd_Restart_f (void);
 void CL_RequestNextDownload (void);
 
 //
+// cl_game
+//
+void CL_InitGameProgs (void);
+
+//
 // cl_input
 //
 typedef struct
@@ -508,7 +513,7 @@ void CL_Download_f (void);
 // cl_view.c
 //
 extern	int			gun_frame;
-extern	struct model_s	*gun_model;
+extern	model_t			*gun_model;
 
 void V_Init (void);
 void V_RenderView( float stereo_separation );

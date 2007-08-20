@@ -50,6 +50,7 @@ void UpdateEnvironmentVariables( void );
 bool GetParmFromCmdLine( char *parm, char *out );
 
 //win32 console
+void Sys_PrintA(const char *pMsg);
 void Sys_PrintW(const char *pMsg);
 void Sys_MsgW( const char *pMsg, ... );
 void Sys_MsgDevW( const char *pMsg, ... );

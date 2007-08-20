@@ -6,11 +6,11 @@
 //===============================
 
 /*
-		gi.WriteByte (svc_temp_entity);
-		gi.WriteByte (TE_DEBUGTRAIL);
-		gi.WritePosition (pt1);
-		gi.WritePosition (pt2);
-		gi.multicast (pt1, MSG_PVS);	
+		MESSAGE_BEGIN (svc_temp_entity);
+			WRITE_BYTE (TE_DEBUGTRAIL);
+			WRITE_COORD (pt1);
+			WRITE_COORD (pt2);
+		MESSAGE_SEND (MSG_PVS, pt1, NULL);	
 
 		self->nextthink = level.time + 10;
 */
@@ -1236,11 +1236,11 @@ void drawbbox (edict_t *self)
 	{
 		for (j=0; j<= 2; j++)
 		{
-			gi.WriteByte (svc_temp_entity);
-			gi.WriteByte (TE_DEBUGTRAIL);
-			gi.WritePosition (pt[starts[i]]);
-			gi.WritePosition (pt[lines[i][j]]);
-			gi.multicast (pt[starts[i]], MSG_ALL);	
+			MESSAGE_BEGIN (svc_temp_entity);
+				WRITE_BYTE (TE_DEBUGTRAIL);
+				WRITE_COORD (pt[starts[i]]);
+				WRITE_COORD (pt[lines[i][j]]);
+			MESSAGE_SEND (MSG_ALL, pt[starts[i]], NULL);	
 		}
 	}
 
@@ -1248,27 +1248,27 @@ void drawbbox (edict_t *self)
 	AngleVectors (dir, f, r, u);
 
 	VectorMA (self->s.origin, 50, f, newbox);
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_DEBUGTRAIL);
-	gi.WritePosition (self->s.origin);
-	gi.WritePosition (newbox);
-	gi.multicast (self->s.origin, MSG_PVS);	
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_DEBUGTRAIL);
+		WRITE_COORD (self->s.origin);
+		WRITE_COORD (newbox);
+	MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);	
 	VectorClear (newbox);
 
 	VectorMA (self->s.origin, 50, r, newbox);
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_DEBUGTRAIL);
-	gi.WritePosition (self->s.origin);
-	gi.WritePosition (newbox);
-	gi.multicast (self->s.origin, MSG_PVS);	
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_DEBUGTRAIL);
+		WRITE_COORD (self->s.origin);
+		WRITE_COORD (newbox);
+	MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);	
 	VectorClear (newbox);
 
 	VectorMA (self->s.origin, 50, u, newbox);
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_DEBUGTRAIL);
-	gi.WritePosition (self->s.origin);
-	gi.WritePosition (newbox);
-	gi.multicast (self->s.origin, MSG_PVS);	
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_DEBUGTRAIL);
+		WRITE_COORD (self->s.origin);
+		WRITE_COORD (newbox);
+	MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);	
 	VectorClear (newbox);
 }
 

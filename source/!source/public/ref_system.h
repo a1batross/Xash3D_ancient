@@ -77,7 +77,8 @@ typedef enum
 	MSG_ALL,
 	MSG_PHS,
 	MSG_PVS,
-	MSG_ALL_R,	// reliable
+	MSG_ONE_R,	// reliable
+	MSG_ALL_R,
 	MSG_PHS_R,
 	MSG_PVS_R,
 } msgtype_t;
@@ -239,8 +240,8 @@ typedef struct latchedvars_s
 
 typedef struct entity_s
 {
-	struct model_s	*model;		// opaque type outside refresh
-	struct model_s	*weaponmodel;	// opaque type outside refresh	
+	model_t		*model;		// opaque type outside refresh
+	model_t		*weaponmodel;	// opaque type outside refresh	
 
 	latchedvars_t	prev;		//previous frame values for lerping
 	
@@ -272,7 +273,7 @@ typedef struct entity_s
 	int		lightstyle;	// for flashing entities
 	float		alpha;		// ignore if RF_TRANSLUCENT isn't set
 
-	struct image_s	*image;		// NULL for inline skin
+	image_t		*image;		// NULL for inline skin
 	int		flags;
 
 } entity_t;
@@ -440,21 +441,43 @@ NETWORK MESSAGES INTERFACE
 ==============================================================================
 */
 
-typedef struct message_api_s
+typedef struct message_write_s
 {
-	void (*Begin)( msgtype_t type, int dest, vec3_t origin, edict_t *ent, bool reliable );
+	//interface validator
+	size_t	api_size;				// must matched with sizeof(message_write_t)
+	
+	void (*Begin)( int dest );			// marker of start message
 	void (*WriteChar) (int c);
 	void (*WriteByte) (int c);
+	void (*WriteWord) (int c);
 	void (*WriteShort) (int c);
 	void (*WriteLong) (int c);
 	void (*WriteFloat) (float f);
 	void (*WriteString) (char *s);
-	void (*WriteCoord) (vec3_t pos);	// some fractional bits
-	void (*WriteDir) (vec3_t pos);	// single byte encoded, very coarse
+	void (*WriteCoord) (vec3_t pos);		// some fractional bits
+	void (*WriteDir) (vec3_t pos);		// single byte encoded, very coarse
 	void (*WriteAngle) (float f);
-	void (*End)( void );		//marker of end message
+	void (*Send)( msgtype_t type, vec3_t origin, edict_t *ent );// end of message
+} message_write_t;
 
-} message_api_t;
+typedef struct message_read_s
+{
+	//interface validator
+	size_t	api_size;				// must matched with sizeof(message_read_t)
+	
+	void (*Begin)( void );			// begin reading
+	int (*ReadChar) ( void );
+	int (*ReadByte) ( void );
+	int (*ReadLong) ( void );
+	int (*ReadShort) ( void );
+	float *(*ReadDir) ( void );			// return value from anorms.h
+	float (*ReadFloat) ( void );
+	float (*ReadAngle) ( void );
+	void *(*ReadData) (int len );
+	float *(*ReadCoord) ( void );			// x, y, z coords
+	char *(*ReadString) ( bool line );		// get line once only
+	void (*End)( void );			// message received
+} message_read_t;
 
 /*
 ==============================================================================
@@ -586,9 +609,9 @@ typedef struct renderer_exp_s
 	void (*Shutdown)( void );	// shutdown all renderer systems
 
 	void	(*BeginRegistration) (char *map);
-	struct model_s *(*RegisterModel) (char *name);
-	struct image_s *(*RegisterSkin) (char *name);
-	struct image_s *(*RegisterPic) (char *name);
+	model_t	*(*RegisterModel) (char *name);
+	image_t	*(*RegisterSkin) (char *name);
+	image_t	*(*RegisterPic) (char *name);
 	void	(*SetSky) (char *name, float rotate, vec3_t axis);
 	void	(*EndRegistration) (void);
 

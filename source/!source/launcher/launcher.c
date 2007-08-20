@@ -311,7 +311,7 @@ void API_SetConsole( void )
 {
 	if( hooked_out && app_name > HOST_EDITOR)
 	{
-		Sys_Print = printf;
+		Sys_Print = Sys_PrintA;
 	}
           else
           {

@@ -992,7 +992,8 @@ void G_SetClientEffects (edict_t *ent)
 				ent->client->flashlight = false;
 			}
 		}
-		if(ent->client->flashlight) {
+		if(ent->client->flashlight)
+		{
 			AngleVectors (ent->s.angles, forward, right, up);
 			VectorSet(offset, 0, 0, ent->viewheight-8);
 			G_ProjectSource (ent->s.origin, offset, forward, right, start);
@@ -1001,11 +1002,11 @@ void G_SetClientEffects (edict_t *ent)
 			if (tr.fraction != 1)
 				VectorMA(tr.endpos,-4,forward,end);
 			VectorCopy(tr.endpos,end);
-			gi.WriteByte (svc_temp_entity);
-			gi.WriteByte (TE_FLASHLIGHT);
-			gi.WritePosition (end);
-			gi.WriteShort (ent - g_edicts);
-			gi.multicast (end, MSG_PVS);
+			MESSAGE_BEGIN (svc_temp_entity);
+				WRITE_BYTE (TE_FLASHLIGHT);
+				WRITE_COORD (end);
+				WRITE_SHORT (ent - g_edicts);
+			MESSAGE_SEND (MSG_PVS, end, NULL);
 
 		}
 	}
@@ -1253,9 +1254,9 @@ void WhatsIt(edict_t *ent)
 		return;
 
 	sprintf(string, "xv 0 yb -68 cstring2 \"%s\" ", ent->client->whatsit);
-	gi.WriteByte (svc_layout);
-	gi.WriteString (string);
-	gi.unicast(ent,true);
+	MESSAGE_BEGIN (svc_layout);
+		WRITE_STRING (string);
+	MESSAGE_SEND(MSG_ONE_R, NULL, ent );
 }
 
 void ClientEndServerFrame (edict_t *ent)
@@ -1399,7 +1400,7 @@ void ClientEndServerFrame (edict_t *ent)
 				Text_Update(ent);
 			else
 				DeathmatchScoreboardMessage (ent, ent->enemy);
-			gi.unicast (ent, false);
+			MESSAGE_SEND (MSG_ONE, NULL, ent );
 		}
 		else if(ent->client->whatsit)
 			WhatsIt(ent);

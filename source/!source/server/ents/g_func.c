@@ -4211,12 +4211,12 @@ void force_wall_think(edict_t *self)
 {
 	if(!self->wait)
 	{
-		gi.WriteByte (svc_temp_entity);
-		gi.WriteByte (TE_FORCEWALL);
-		gi.WritePosition (self->pos1);
-		gi.WritePosition (self->pos2);
-		gi.WriteByte  (self->style);
-		gi.multicast (self->offset, MSG_PVS);
+		MESSAGE_BEGIN (svc_temp_entity);
+			WRITE_BYTE (TE_FORCEWALL);
+			WRITE_COORD (self->pos1);
+			WRITE_COORD (self->pos2);
+			WRITE_BYTE  (self->style);
+		MESSAGE_SEND (MSG_PVS, self->offset, NULL);
 	}
 
 	self->think = force_wall_think;

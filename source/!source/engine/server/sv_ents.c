@@ -131,17 +131,10 @@ void SV_EmitPacketEntities (client_frame_t *from, client_frame_t *to, sizebuf_t 
 	int		from_num_entities;
 	int		bits;
 
-#if 0
-	if (numprojs)
-		MSG_WriteByte (msg, svc_packetentities2);
-	else
-#endif
-		MSG_WriteByte (msg, svc_packetentities);
+	MSG_WriteByte (msg, svc_packetentities);
 
-	if (!from)
-		from_num_entities = 0;
-	else
-		from_num_entities = from->num_entities;
+	if (!from) from_num_entities = 0;
+	else from_num_entities = from->num_entities;
 
 	newindex = 0;
 	oldindex = 0;
@@ -503,15 +496,14 @@ void SV_FatPVS (vec3_t org)
 	byte	*src;
 	vec3_t	mins, maxs;
 
-	for (i=0 ; i<3 ; i++)
+	for (i = 0; i < 3; i++)
 	{
 		mins[i] = org[i] - 8;
 		maxs[i] = org[i] + 8;
 	}
 
 	count = CM_BoxLeafnums (mins, maxs, leafs, 64, NULL);
-	if (count < 1)
-		Com_Error (ERR_FATAL, "SV_FatPVS: count < 1");
+	if (count < 1) Com_Error (ERR_DROP, "SV_FatPVS: count < 1");
 	longs = (CM_NumClusters()+31)>>5;
 
 	// convert leafs to clusters

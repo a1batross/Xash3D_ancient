@@ -158,12 +158,10 @@ void Text_Update(edict_t *ent)
 		}
 		alt = false;
 	}
-//	if(strlen(string) > 1000)
-//		gi.dprintf("WARNING: formatted string length (%d) > 1000\n",strlen(string));
 
-	gi.WriteByte (svc_layout);
-	gi.WriteString (string);
-	gi.unicast (ent, true);
+	MESSAGE_BEGIN (svc_layout);
+		WRITE_STRING (string);
+	MESSAGE_SEND (MSG_ONE_R, NULL, ent );
 }
 
 void Text_Next(edict_t *ent)

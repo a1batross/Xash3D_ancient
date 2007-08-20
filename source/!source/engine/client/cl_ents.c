@@ -21,9 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client.h"
 
-
-extern	struct model_s	*cl_mod_powerscreen;
-
 /*
 =========================================================================
 
@@ -761,11 +758,11 @@ INTERPOLATE BETWEEN FRAMES TO GET RENDERING PARMS
 ==========================================================================
 */
 
-struct model_s *S_RegisterSexedModel (entity_state_t *ent, char *base)
+model_t *S_RegisterSexedModel (entity_state_t *ent, char *base)
 {
 	int				n;
 	char			*p;
-	struct model_s	*mdl;
+	model_t			*mdl;
 	char			model[MAX_QPATH];
 	char			buffer[MAX_QPATH];
 
@@ -826,7 +823,7 @@ void CL_AddPacketEntities (frame_t *frame)
 	centity_t			*cent;
 	int					autoanim;
 	clientinfo_t		*ci;
-	unsigned int		effects, renderfx;
+	uint		effects, renderfx;
 
 	// bonus items rotate at a fixed rate
 	autorotate = anglemod(cl.time/10);
@@ -1095,16 +1092,6 @@ void CL_AddPacketEntities (frame_t *frame)
 
 			ent.flags = 0;
 			ent.alpha = 0;
-		}
-
-		if ( effects & EF_POWERSCREEN )
-		{
-			ent.model = cl_mod_powerscreen;
-			ent.prev.frame = 0;
-			ent.frame = 0;
-			ent.flags |= (RF_TRANSLUCENT | RF_SHELL_GREEN);
-			ent.alpha = 0.30;
-			V_AddEntity (&ent);
 		}
 
 		// add automatic particle trails

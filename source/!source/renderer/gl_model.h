@@ -281,7 +281,7 @@ typedef struct model_s
 	float	frame;
 	float	animtime;
 	float	prevanimtime;
-} model_t;
+};
 
 //============================================================================
 

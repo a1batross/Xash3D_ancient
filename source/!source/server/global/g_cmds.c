@@ -988,18 +988,17 @@ void Cmd_Inven_f (edict_t *ent)
 
 	cl->showinventory = true;
 
-	gi.WriteByte (svc_inventory);
-	for (i=0 ; i<MAX_ITEMS ; i++)
+	MESSAGE_BEGIN (svc_inventory);
+	for (i = 0; i < MAX_ITEMS; i++)
 	{
 		// Don't show "No Weapon" or "Homing Missile Launcher" in inventory
 		if((i == noweapon_index) || (i == hml_index))
-			gi.WriteShort (0);
+			WRITE_SHORT (0);
 		else if((i == fuel_index) && (ent->client->jetpack_infinite))
-			gi.WriteShort (0);
-		else
-			gi.WriteShort (cl->pers.inventory[i]);
+			WRITE_SHORT (0);
+		else WRITE_SHORT (cl->pers.inventory[i]);
 	}
-	gi.unicast (ent, true);
+	MESSAGE_SEND(MSG_ONE_R, NULL, ent );
 }
 
 /*
@@ -1449,83 +1448,103 @@ void DrawBBox(edict_t *ent)
 	VectorCopy(ent->s.origin,origin);
 	VectorSet(p1,origin[0]+ent->mins[0],origin[1]+ent->mins[1],origin[2]+ent->mins[2]);
 	VectorSet(p2,origin[0]+ent->mins[0],origin[1]+ent->mins[1],origin[2]+ent->maxs[2]);
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_DEBUGTRAIL);
-	gi.WritePosition (p1);
-	gi.WritePosition (p2);
-	gi.multicast (p1, MSG_ALL);
+
+	MESSAGE_BEGIN(svc_temp_entity);
+		WRITE_BYTE (TE_DEBUGTRAIL);
+		WRITE_COORD (p1);
+		WRITE_COORD (p2);
+	MESSAGE_SEND (MSG_ALL, p1, NULL);
+
 	VectorSet(p2,origin[0]+ent->mins[0],origin[1]+ent->maxs[1],origin[2]+ent->mins[2]);
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_DEBUGTRAIL);
-	gi.WritePosition (p1);
-	gi.WritePosition (p2);
-	gi.multicast (p1, MSG_ALL);
+
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_DEBUGTRAIL);
+		WRITE_COORD (p1);
+		WRITE_COORD (p2);
+	MESSAGE_SEND (MSG_ALL, p1, NULL);
+
 	VectorSet(p2,origin[0]+ent->maxs[0],origin[1]+ent->mins[1],origin[2]+ent->mins[2]);
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_DEBUGTRAIL);
-	gi.WritePosition (p1);
-	gi.WritePosition (p2);
-	gi.multicast (p1, MSG_ALL);
+
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_DEBUGTRAIL);
+		WRITE_COORD (p1);
+		WRITE_COORD (p2);
+	MESSAGE_SEND(MSG_ALL, p1, NULL);
 
 	VectorSet(p1,origin[0]+ent->maxs[0],origin[1]+ent->maxs[1],origin[2]+ent->mins[2]);
 	VectorSet(p2,origin[0]+ent->maxs[0],origin[1]+ent->maxs[1],origin[2]+ent->maxs[2]);
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_DEBUGTRAIL);
-	gi.WritePosition (p1);
-	gi.WritePosition (p2);
-	gi.multicast (p1, MSG_ALL);
+
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_DEBUGTRAIL);
+		WRITE_COORD (p1);
+		WRITE_COORD (p2);
+	MESSAGE_SEND (MSG_ALL, p1, NULL);
+
 	VectorSet(p2,origin[0]+ent->maxs[0],origin[1]+ent->mins[1],origin[2]+ent->mins[2]);
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_DEBUGTRAIL);
-	gi.WritePosition (p1);
-	gi.WritePosition (p2);
-	gi.multicast (p1, MSG_ALL);
+
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_DEBUGTRAIL);
+		WRITE_COORD (p1);
+		WRITE_COORD (p2);
+	MESSAGE_SEND (MSG_ALL, p1, NULL);
+
 	VectorSet(p2,origin[0]+ent->mins[0],origin[1]+ent->maxs[1],origin[2]+ent->mins[2]);
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_DEBUGTRAIL);
-	gi.WritePosition (p1);
-	gi.WritePosition (p2);
-	gi.multicast (p1, MSG_ALL);
+
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_DEBUGTRAIL);
+		WRITE_COORD (p1);
+		WRITE_COORD (p2);
+	MESSAGE_SEND (MSG_ALL, p1, NULL);
 
 	VectorSet(p1,origin[0]+ent->maxs[0],origin[1]+ent->mins[1],origin[2]+ent->maxs[2]);
 	VectorSet(p2,origin[0]+ent->maxs[0],origin[1]+ent->mins[1],origin[2]+ent->mins[2]);
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_DEBUGTRAIL);
-	gi.WritePosition (p1);
-	gi.WritePosition (p2);
-	gi.multicast (p1, MSG_ALL);
+
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_DEBUGTRAIL);
+		WRITE_COORD (p1);
+		WRITE_COORD (p2);
+	MESSAGE_SEND (MSG_ALL, p1, NULL);
+
 	VectorSet(p2,origin[0]+ent->maxs[0],origin[1]+ent->maxs[1],origin[2]+ent->maxs[2]);
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_DEBUGTRAIL);
-	gi.WritePosition (p1);
-	gi.WritePosition (p2);
-	gi.multicast (p1, MSG_ALL);
+
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_DEBUGTRAIL);
+		WRITE_COORD (p1);
+		WRITE_COORD (p2);
+	MESSAGE_SEND(MSG_ALL, p1, NULL);
+
 	VectorSet(p2,origin[0]+ent->mins[0],origin[1]+ent->mins[1],origin[2]+ent->maxs[2]);
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_DEBUGTRAIL);
-	gi.WritePosition (p1);
-	gi.WritePosition (p2);
-	gi.multicast (p1, MSG_ALL);
+
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_DEBUGTRAIL);
+		WRITE_COORD (p1);
+		WRITE_COORD (p2);
+	MESSAGE_SEND (MSG_ALL, p1, NULL);
 
 	VectorSet(p1,origin[0]+ent->mins[0],origin[1]+ent->maxs[1],origin[2]+ent->maxs[2]);
 	VectorSet(p2,origin[0]+ent->mins[0],origin[1]+ent->maxs[1],origin[2]+ent->mins[2]);
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_DEBUGTRAIL);
-	gi.WritePosition (p1);
-	gi.WritePosition (p2);
-	gi.multicast (p1, MSG_ALL);
+
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_DEBUGTRAIL);
+		WRITE_COORD (p1);
+		WRITE_COORD (p2);
+	MESSAGE_SEND (MSG_ALL, p1, NULL);
+
 	VectorSet(p2,origin[0]+ent->mins[0],origin[1]+ent->mins[1],origin[2]+ent->maxs[2]);
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_DEBUGTRAIL);
-	gi.WritePosition (p1);
-	gi.WritePosition (p2);
-	gi.multicast (p1, MSG_ALL);
+
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_DEBUGTRAIL);
+		WRITE_COORD (p1);
+		WRITE_COORD (p2);
+	MESSAGE_SEND (MSG_ALL, p1, NULL);
+
 	VectorSet(p2,origin[0]+ent->maxs[0],origin[1]+ent->maxs[1],origin[2]+ent->maxs[2]);
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_DEBUGTRAIL);
-	gi.WritePosition (p1);
-	gi.WritePosition (p2);
-	gi.multicast (p1, MSG_ALL);
+
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_DEBUGTRAIL);
+		WRITE_COORD (p1);
+		WRITE_COORD (p2);
+	MESSAGE_SEND (MSG_ALL, p1, NULL);
 }
 void Cmd_Bbox_f (edict_t *ent)
 {
@@ -1663,12 +1682,13 @@ void decoy_think(edict_t *self)
 
 void forcewall_think(edict_t *self)
 {
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_FORCEWALL);
-	gi.WritePosition (self->pos1);
-	gi.WritePosition (self->pos2);
-	gi.WriteByte  (self->style);
-	gi.multicast (self->s.origin, MSG_PVS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_FORCEWALL);
+		WRITE_COORD (self->pos1);
+		WRITE_COORD (self->pos2);
+		WRITE_BYTE  (self->style);
+	MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
+
 	self->nextthink = level.time + FRAMETIME;
 }
 

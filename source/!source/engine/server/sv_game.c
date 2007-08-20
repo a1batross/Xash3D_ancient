@@ -28,36 +28,6 @@ HINSTANCE sv_library;
 
 /*
 ===============
-PF_Unicast
-
-Sends the contents of the mutlicast buffer to a single client
-===============
-*/
-void PF_Unicast (edict_t *ent, bool reliable)
-{
-	int		p;
-	client_t	*client;
-
-	if (!ent)
-		return;
-
-	p = NUM_FOR_EDICT(ent);
-	if (p < 1 || p > maxclients->value)
-		return;
-
-	client = svs.clients + (p-1);
-
-	if (reliable)
-		SZ_Write (&client->netchan.message, sv.multicast.data, sv.multicast.cursize);
-	else
-		SZ_Write (&client->datagram, sv.multicast.data, sv.multicast.cursize);
-
-	SZ_Clear (&sv.multicast);
-}
-
-
-/*
-===============
 PF_dprintf
 
 Debug print to server console
@@ -128,9 +98,9 @@ void PF_centerprintf (edict_t *ent, char *fmt, ...)
 	vsprintf (msg, fmt, argptr);
 	va_end (argptr);
 
-	MSG_WriteByte (&sv.multicast,svc_centerprint);
-	MSG_WriteString (&sv.multicast,msg);
-	PF_Unicast (ent, true);
+	MSG_Begin( svc_centerprint );
+	MSG_WriteString (&sv.multicast, msg);
+	MSG_Send(MSG_ONE_R, NULL, ent );
 }
 
 
@@ -203,26 +173,49 @@ void PF_Configstring (int index, char *val)
 	{
 		// send the update to everyone
 		SZ_Clear (&sv.multicast);
-		MSG_WriteChar (&sv.multicast, svc_configstring);
+		MSG_Begin(svc_configstring);
 		MSG_WriteShort (&sv.multicast, index);
 		MSG_WriteString (&sv.multicast, val);
-
-		SV_Multicast (vec3_origin, MSG_ALL_R);
+		MSG_Send(MSG_ALL_R, vec3_origin, NULL );
 	}
 }
 
 
 
-void PF_WriteChar (int c) {MSG_WriteChar (&sv.multicast, c);}
-void PF_WriteByte (int c) {MSG_WriteByte (&sv.multicast, c);}
-void PF_WriteShort (int c) {MSG_WriteShort (&sv.multicast, c);}
-void PF_WriteLong (int c) {MSG_WriteLong (&sv.multicast, c);}
-void PF_WriteFloat (float f) {MSG_WriteFloat (&sv.multicast, f);}
-void PF_WriteString (char *s) {MSG_WriteString (&sv.multicast, s);}
-void PF_WritePos (vec3_t pos) {MSG_WritePos (&sv.multicast, pos);}
-void PF_WriteDir (vec3_t dir) {MSG_WriteDir (&sv.multicast, dir);}
-void PF_WriteAngle (float f) {MSG_WriteAngle (&sv.multicast, f);}
+void PF_Begin( int dest )	{ MSG_Begin( dest ); }
+void PF_WriteChar (int c)	{ MSG_WriteChar (&sv.multicast, c);	}
+void PF_WriteByte (int c)	{ MSG_WriteByte (&sv.multicast, c);	}
+void PF_WriteShort (int c)	{ MSG_WriteShort (&sv.multicast, c);	}
+void PF_WriteWord (int c)	{ MSG_WriteWord (&sv.multicast, c);	}
+void PF_WriteLong (int c)	{ MSG_WriteLong (&sv.multicast, c);	}
+void PF_WriteFloat (float f)	{ MSG_WriteFloat (&sv.multicast, f);	}
+void PF_WriteString (char *s) { MSG_WriteString (&sv.multicast, s);	}
+void PF_WriteCoord(vec3_t pos){ MSG_WritePos (&sv.multicast, pos);	}
+void PF_WriteDir (vec3_t dir) { MSG_WriteDir (&sv.multicast, dir);	}
+void PF_WriteAngle (float f)	{ MSG_WriteAngle (&sv.multicast, f);	}
+void PF_Send( msgtype_t to, vec3_t org, edict_t *ent ) { MSG_Send( to, org, ent ); }
 
+message_write_t Msg_GetAPI( void )
+{
+	static message_write_t	Msg;
+
+	Msg.api_size = sizeof(message_write_t);
+
+	Msg.Begin = PF_Begin;
+	Msg.WriteChar = PF_WriteChar;
+	Msg.WriteByte = PF_WriteByte;
+	Msg.WriteWord = PF_WriteWord;
+	Msg.WriteShort = PF_WriteShort;
+	Msg.WriteLong = PF_WriteLong;
+	Msg.WriteFloat = PF_WriteFloat;
+	Msg.WriteString = PF_WriteString;
+	Msg.WriteCoord = PF_WriteCoord;
+	Msg.WriteDir = PF_WriteDir;
+	Msg.WriteAngle = PF_WriteAngle;
+	Msg.Send = PF_Send;
+
+	return Msg;
+}
 
 /*
 =================
@@ -286,8 +279,7 @@ bool PF_inPHS (vec3_t p1, vec3_t p2)
 
 void PF_StartSound (edict_t *entity, int channel, int sound_num, float volume, float attenuation, float timeofs)
 {
-	if (!entity)
-		return;
+	if (!entity) return;
 	SV_StartSound (NULL, entity, channel, sound_num, volume, attenuation, timeofs);
 }
 
@@ -332,11 +324,10 @@ void SV_InitGameProgs (void)
 	import.Script = pi->Script;
 	import.Compile = pi->Compile;
 	import.Info = pi->Info;
+	import.Msg = Msg_GetAPI();
 
 	import.GameInfo = pi->GameInfo;
 
-	import.multicast = SV_Multicast;
-	import.unicast = PF_Unicast;
 	import.bprintf = SV_BroadcastPrintf;
 	import.dprintf = PF_dprintf;
 	import.cprintf = PF_cprintf;
@@ -362,16 +353,6 @@ void SV_InitGameProgs (void)
 	import.configstring = PF_Configstring;
 	import.sound = PF_StartSound;
 	import.positioned_sound = SV_StartSound;
-
-	import.WriteChar = PF_WriteChar;
-	import.WriteByte = PF_WriteByte;
-	import.WriteShort = PF_WriteShort;
-	import.WriteLong = PF_WriteLong;
-	import.WriteFloat = PF_WriteFloat;
-	import.WriteString = PF_WriteString;
-	import.WritePosition = PF_WritePos;
-	import.WriteDir = PF_WriteDir;
-	import.WriteAngle = PF_WriteAngle;
 
 	import.cvar = Cvar_Get;
 	import.cvar_set = Cvar_Set;

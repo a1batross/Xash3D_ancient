@@ -182,7 +182,8 @@ void Cbuf_ExecuteText (int exec_when, char *text)
 		Cbuf_AddText (text);
 		break;
 	default:
-		Com_Error (ERR_FATAL, "Cbuf_ExecuteText: bad exec_when");
+		MsgWarn("Cbuf_ExecuteText: bad execute target\n");
+		break;
 	}
 }
 

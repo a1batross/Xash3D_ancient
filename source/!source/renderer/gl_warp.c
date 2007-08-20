@@ -229,19 +229,11 @@ void EmitWaterPolys (msurface_t *fa)
 			os = v[3];
 			ot = v[4];
 
-#if !id386
 			s = os + r_turbsin[(int)((ot*0.125+r_newrefdef.time) * TURBSCALE) & 255];
-#else
-			s = os + r_turbsin[Q_ftol( ((ot*0.125+rdt) * TURBSCALE) ) & 255];
-#endif
 			s += scroll;
 			s *= (1.0/64);
 
-#if !id386
 			t = ot + r_turbsin[(int)((os*0.125+rdt) * TURBSCALE) & 255];
-#else
-			t = ot + r_turbsin[Q_ftol( ((os*0.125+rdt) * TURBSCALE) ) & 255];
-#endif
 			t *= (1.0/64);
 
 			qglTexCoord2f (s, t);
@@ -517,33 +509,27 @@ void R_ClearSkyBox (void)
 void MakeSkyVec (float s, float t, int axis)
 {
 	vec3_t		v, b;
-	int			j, k;
+	int		j, k;
 
 	b[0] = s*2300;
 	b[1] = t*2300;
 	b[2] = 2300;
 
-	for (j=0 ; j<3 ; j++)
+	for (j = 0; j < 3; j++)
 	{
 		k = st_to_vec[axis][j];
-		if (k < 0)
-			v[j] = -b[-k - 1];
-		else
-			v[j] = b[k - 1];
+		if (k < 0) v[j] = -b[-k - 1];
+		else v[j] = b[k - 1];
 	}
 
 	// avoid bilerp seam
 	s = (s+1)*0.5;
 	t = (t+1)*0.5;
 
-	if (s < sky_min)
-		s = sky_min;
-	else if (s > sky_max)
-		s = sky_max;
-	if (t < sky_min)
-		t = sky_min;
-	else if (t > sky_max)
-		t = sky_max;
+	if (s < sky_min) s = sky_min;
+	else if (s > sky_max) s = sky_max;
+	if (t < sky_min) t = sky_min;
+	else if (t > sky_max) t = sky_max;
 
 	t = 1.0 - t;
 	qglTexCoord2f (s, t);
@@ -555,30 +541,28 @@ void MakeSkyVec (float s, float t, int axis)
 R_DrawSkyBox
 ==============
 */
-int	skytexorder[6] = {0,2,1,3,4,5};
+int skytexorder[6] = {0,2,1,3,4,5};
 void R_DrawSkyBox (void)
 {
 	int		i;
 
 #if 0
-qglEnable (GL_BLEND);
-GL_TexEnv( GL_MODULATE );
-qglColor4f (1,1,1,0.5);
-qglDisable (GL_DEPTH_TEST);
+	qglEnable (GL_BLEND);
+	GL_TexEnv( GL_MODULATE );
+	qglColor4f (1,1,1,0.5);
+	qglDisable (GL_DEPTH_TEST);
 #endif
 	if (skyrotate)
 	{	// check for no sky at all
-		for (i=0 ; i<6 ; i++)
-			if (skymins[0][i] < skymaxs[0][i]
-			&& skymins[1][i] < skymaxs[1][i])
+		for (i = 0; i < 6; i++)
+			if (skymins[0][i] < skymaxs[0][i] && skymins[1][i] < skymaxs[1][i])
 				break;
-		if (i == 6)
-			return;		// nothing visible
+		if (i == 6) return;	// nothing visible
 	}
 
-qglPushMatrix ();
-qglTranslatef (r_origin[0], r_origin[1], r_origin[2]);
-qglRotatef (r_newrefdef.time * skyrotate, skyaxis[0], skyaxis[1], skyaxis[2]);
+	qglPushMatrix ();
+	qglTranslatef (r_origin[0], r_origin[1], r_origin[2]);
+	qglRotatef (r_newrefdef.time * skyrotate, skyaxis[0], skyaxis[1], skyaxis[2]);
 
 	for (i = 0; i < 6; i++)
 	{
@@ -603,12 +587,13 @@ qglRotatef (r_newrefdef.time * skyrotate, skyaxis[0], skyaxis[1], skyaxis[2]);
 		MakeSkyVec (skymaxs[0][i], skymins[1][i], i);
 		qglEnd ();
 	}
-qglPopMatrix ();
+	qglPopMatrix ();
+
 #if 0
-glDisable (GL_BLEND);
-glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-glColor4f (1,1,1,0.5);
-glEnable (GL_DEPTH_TEST);
+	glDisable (GL_BLEND);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	glColor4f (1,1,1,0.5);
+	glEnable (GL_DEPTH_TEST);
 #endif
 }
 
@@ -633,7 +618,8 @@ void R_SetSky (char *name, float rotate, vec3_t axis)
 	if (!sky_image) sky_image = r_notexture;
 
 	if (gl_skymip->value || skyrotate)
-	{	// take less memory
+	{	
+		// take less memory
 		gl_picmip->value -= 6;
 		sky_min = 1.0/256;
 		sky_max = 255.0/256;

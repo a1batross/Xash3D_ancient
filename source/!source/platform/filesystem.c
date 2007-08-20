@@ -1147,8 +1147,6 @@ void FS_LoadGameInfo( const char *filename )
 			strcpy(GI.key, SC_GetToken( false ));
 	}
 	if(fs_modified) FS_Rescan(); //create new filesystem
-
-	FS_Path(); //debug
 }
 
 /*

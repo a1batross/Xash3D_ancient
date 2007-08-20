@@ -50,12 +50,13 @@ int SV_FindIndex (char *name, int start, int max, bool create)
 	strncpy (sv.configstrings[start+i], name, sizeof(sv.configstrings[i]));
 
 	if (sv.state != ss_loading)
-	{	// send the update to everyone
+	{	
+		// send the update to everyone
 		SZ_Clear (&sv.multicast);
-		MSG_WriteChar (&sv.multicast, svc_configstring);
+		MSG_Begin(svc_configstring);
 		MSG_WriteShort (&sv.multicast, start+i);
 		MSG_WriteString (&sv.multicast, name);
-		SV_Multicast (vec3_origin, MSG_ALL_R);
+		MSG_Send(MSG_ALL_R, vec3_origin, NULL );
 	}
 
 	return i;

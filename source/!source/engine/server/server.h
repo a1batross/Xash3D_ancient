@@ -56,7 +56,7 @@ typedef struct
 	entity_state_t	baselines[MAX_EDICTS];
 
 	// the multicast buffer is used to send a message to a set of clients
-	// it is only used to marshall data until SV_Multicast is called
+	// it is only used to marshall data until SV_Message is called
 	sizebuf_t	multicast;
 	byte		multicast_buf[MAX_MSGLEN];
 
@@ -247,8 +247,6 @@ void SV_FlushRedirect (int sv_redirected, char *outputbuf);
 
 void SV_DemoCompleted (void);
 void SV_SendClientMessages (void);
-
-void SV_Multicast (vec3_t origin, msgtype_t to);
 void SV_StartSound (vec3_t origin, edict_t *entity, int channel,
 					int soundindex, float volume,
 					float attenuation, float timeofs);

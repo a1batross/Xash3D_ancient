@@ -126,6 +126,10 @@ SOURCE=.\client\cl_fx.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\client\cl_game.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\client\cl_input.c
 # End Source File
 # Begin Source File

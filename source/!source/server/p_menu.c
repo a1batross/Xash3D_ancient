@@ -9,7 +9,8 @@ void PMenu_Open(edict_t *ent, pmenu_t *entries, int cur, int num)
 	if (!ent->client)
 		return;
 
-	if (ent->client->menu) {
+	if (ent->client->menu)
+	{
 		gi.dprintf("warning, ent already has a menu\n");
 		PMenu_Close(ent);
 	}
@@ -19,24 +20,23 @@ void PMenu_Open(edict_t *ent, pmenu_t *entries, int cur, int num)
 	hnd->entries = entries;
 	hnd->num = num;
 
-	if (cur < 0 || !entries[cur].SelectFunc) {
+	if (cur < 0 || !entries[cur].SelectFunc)
+	{
 		for (i = 0, p = entries; i < num; i++, p++)
 			if (p->SelectFunc)
 				break;
-	} else
-		i = cur;
+	}
+	else i = cur;
 
-	if (i >= num)
-		hnd->cur = -1;
-	else
-		hnd->cur = i;
+	if (i >= num) hnd->cur = -1;
+	else hnd->cur = i;
 
 	ent->client->showscores = true;
 	ent->client->inmenu = true;
 	ent->client->menu = hnd;
 
 	PMenu_Update(ent);
-	gi.unicast (ent, true);
+	MESSAGE_SEND (MSG_ONE_R, NULL, ent );
 }
 
 void PMenu_Close(edict_t *ent)
@@ -96,8 +96,8 @@ void PMenu_Update(edict_t *ent)
 		alt = false;
 	}
 
-	gi.WriteByte (svc_layout);
-	gi.WriteString (string);
+	MESSAGE_BEGIN (svc_layout);
+	WRITE_STRING (string);
 }
 
 void PMenu_Next(edict_t *ent)
@@ -129,7 +129,7 @@ void PMenu_Next(edict_t *ent)
 	hnd->cur = i;
 
 	PMenu_Update(ent);
-	gi.unicast (ent, true);
+	MESSAGE_SEND (MSG_ONE_R, NULL, ent );
 }
 
 void PMenu_Prev(edict_t *ent)
@@ -163,7 +163,7 @@ void PMenu_Prev(edict_t *ent)
 	hnd->cur = i;
 
 	PMenu_Update(ent);
-	gi.unicast (ent, true);
+	MESSAGE_SEND (MSG_ONE_R, NULL, ent);
 }
 
 void PMenu_Select(edict_t *ent)
@@ -171,15 +171,15 @@ void PMenu_Select(edict_t *ent)
 	pmenuhnd_t *hnd;
 	pmenu_t *p;
 
-	if (!ent->client->menu) {
+	if (!ent->client->menu)
+	{
 		gi.dprintf("warning:  ent has no menu\n");
 		return;
 	}
 
 	hnd = ent->client->menu;
 
-	if (hnd->cur < 0)
-		return; // no selectable entries
+	if (hnd->cur < 0) return; // no selectable entries
 
 	p = hnd->entries + hnd->cur;
 

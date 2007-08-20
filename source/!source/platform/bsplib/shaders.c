@@ -41,6 +41,8 @@ infoParm_t infoParms[] =
 	{"sky",		SURF_SKY,		CONTENTS_NONE,		0}, // emit light from environment map
 	{"hint",		SURF_HINT,	CONTENTS_NONE,		0}, // use as a primary splitter
 	{"skip",		SURF_SKIP,	CONTENTS_NONE,		0}, // use as a secondary splitter
+	{"null",		SURF_NULL,	CONTENTS_SOLID,		0},
+	{"mirror",	SURF_MIRROR,	CONTENTS_SOLID,		0},
 
 	// server attributes
 	{"slick",		SURF_SLICK,	CONTENTS_NONE,		0},

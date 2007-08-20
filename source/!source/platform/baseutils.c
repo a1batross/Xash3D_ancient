@@ -1251,7 +1251,6 @@ void ThreadSetDefault (void)
 		if (numthreads < 1 || numthreads > MAX_THREADS)
 			numthreads = 1;
 	}
-	MsgDev("%i thread%s\n", numthreads, numthreads == 1 ? "" : "s" );
 }
 
 void RunThreadsOnIndividual (int workcnt, bool showpacifier, void(*func)(int))
@@ -1291,7 +1290,7 @@ void RunThreadsOn (int workcnt, bool showpacifier, void(*func)(int))
 			threadhandle[i] = CreateThread( NULL, 0, (LPTHREAD_START_ROUTINE)func, (LPVOID)i, 0, &threadid[i]);
 		}
 
-		for (i=0 ; i<numthreads ; i++)
+		for (i = 0; i < numthreads; i++)
 			WaitForSingleObject (threadhandle[i], INFINITE);
 	}
 	DeleteCriticalSection (&crit);

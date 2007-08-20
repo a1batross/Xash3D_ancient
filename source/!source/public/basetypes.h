@@ -40,6 +40,8 @@ typedef struct file_s	file_t;
 typedef struct vfile_s	vfile_t;
 typedef struct edict_s	edict_t;
 typedef struct gclient_s	gclient_t;
+typedef struct image_s	image_t;
+typedef struct model_s	model_t;
 typedef float		vec_t;
 typedef vec_t		vec3_t[3];
 typedef vec_t		vec4_t[4];

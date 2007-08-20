@@ -492,10 +492,10 @@ void SP_debris (edict_t *debris)
 
 void BecomeExplosion1 (edict_t *self)
 {
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_EXPLOSION1);
-	gi.WritePosition (self->s.origin);
-	gi.multicast (self->s.origin, MSG_PVS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_EXPLOSION1);
+		WRITE_COORD (self->s.origin);
+	MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
 
 	if (level.num_reflectors)
 		ReflectExplosion (TE_EXPLOSION1, self->s.origin);
@@ -506,10 +506,10 @@ void BecomeExplosion1 (edict_t *self)
 
 void BecomeExplosion2 (edict_t *self)
 {
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_EXPLOSION2);
-	gi.WritePosition (self->s.origin);
-	gi.multicast (self->s.origin, MSG_PVS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_EXPLOSION2);
+		WRITE_COORD (self->s.origin);
+	MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
 
 	if (level.num_reflectors)
 		ReflectExplosion (TE_EXPLOSION2, self->s.origin);
@@ -1098,21 +1098,24 @@ void func_explosive_explode (edict_t *self)
 		G_FreeEdict (self);
 
 /*  with these:
-    if (self->dmg)
-    {
-        gi.WriteByte (svc_temp_entity);
-        gi.WriteByte (TE_EXPLOSION1);
-        gi.WritePosition (self->s.origin);
-        gi.multicast (self->s.origin, MSG_PVS);
-    }
+
+	if (self->dmg)
+	{
+		MESSAGE_BEGIN (svc_temp_entity);
+			WRITE_BYTE (TE_EXPLOSION1);
+			WRITE_COORD (self->s.origin);
+		MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
+	}
 	VectorClear(self->s.origin);
 	VectorClear(self->velocity);
-    self->solid = SOLID_NOT;
-    self->svflags |= SVF_NOCLIENT;
-    self->think = func_explosive_respawn;
-    self->nextthink = level.time + 10; // substitute whatever value you want here
+	self->solid = SOLID_NOT;
+	self->svflags |= SVF_NOCLIENT;
+	self->think = func_explosive_respawn;
+	self->nextthink = level.time + 10; // substitute whatever value you want here
 	self->use = NULL;
-	gi.linkentity(self); */
+	gi.linkentity(self);
+*/
+
 }
 
 void func_explosive_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point)
@@ -1411,10 +1414,10 @@ void SP_misc_explobox (edict_t *self)
 void misc_blackhole_use (edict_t *ent, edict_t *other, edict_t *activator)
 {
 	/*
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_BOSSTPORT);
-	gi.WritePosition (ent->s.origin);
-	gi.multicast (ent->s.origin, MSG_PVS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_BOSSTPORT);
+		WRITE_COORD (ent->s.origin);
+	MESSAGE_SEND (MSG_PVS, ent->s.origin, NULL);
 	*/
 	G_FreeEdict (ent);
 }
@@ -1862,10 +1865,10 @@ void misc_viper_bomb_touch (edict_t *self, edict_t *other, cplane_t *plane, csur
 
 	if(self->spawnflags & 1)
 	{
-		gi.WriteByte (svc_temp_entity);
-		gi.WriteByte (TE_EXPLOSION2);
-		gi.WritePosition (self->s.origin);
-		gi.multicast (self->s.origin, MSG_PVS);
+		MESSAGE_BEGIN (svc_temp_entity);
+			WRITE_BYTE (TE_EXPLOSION2);
+			WRITE_COORD (self->s.origin);
+		MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
 
 		if (level.num_reflectors)
 			ReflectExplosion (TE_EXPLOSION2, self->s.origin);
@@ -2666,10 +2669,10 @@ void teleporter_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_
 
 		if(!(self->spawnflags & 16))
 		{
-			gi.WriteByte(svc_temp_entity);
-			gi.WriteByte(TE_TELEPORT_EFFECT);
-			gi.WritePosition(origin);
-			gi.multicast(origin, MSG_PHS);
+			MESSAGE_BEGIN(svc_temp_entity);
+				WRITE_BYTE(TE_TELEPORT_EFFECT);
+				WRITE_COORD(origin);
+			MESSAGE_SEND(MSG_PHS, origin, NULL);
 		}
 		gi.positioned_sound(origin,self,CHAN_AUTO,self->noise_index,1,1,0);
 	}
@@ -2874,11 +2877,11 @@ void SP_misc_teleporter_dest (edict_t *ent)
 void misc_light_think (edict_t *self)
 {
 	if(self->spawnflags & START_OFF) return;
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_FLASHLIGHT);
-	gi.WritePosition (self->s.origin);
-	gi.WriteShort (self - g_edicts);
-	gi.multicast (self->s.origin, MSG_PVS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_FLASHLIGHT);
+		WRITE_COORD (self->s.origin);
+		WRITE_SHORT (self - g_edicts);
+	MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
 	self->nextthink = level.time + FRAMETIME;
 }
 
@@ -2947,13 +2950,13 @@ void drop_add_to_chain(edict_t *drop)
 void drop_splash(edict_t *drop)
 {
 	vec3_t	up = {0,0,1};
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_LASER_SPARKS);
-	gi.WriteByte (drop->owner->mass2);
-	gi.WritePosition (drop->s.origin);
-	gi.WriteDir (up);
-	gi.WriteByte (drop->owner->sounds);
-	gi.multicast (drop->s.origin, MSG_PVS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_LASER_SPARKS);
+		WRITE_BYTE (drop->owner->mass2);
+		WRITE_COORD (drop->s.origin);
+		WRITE_DIR (up);
+		WRITE_BYTE (drop->owner->sounds);
+	MESSAGE_SEND (MSG_PVS, drop->s.origin, NULL);
 	drop_add_to_chain(drop);
 }
 

@@ -154,10 +154,10 @@ void turret_breach_fire (edict_t *self)
 				gi.positioned_sound (start, self, CHAN_WEAPON, gi.soundindex("weapons/railgf1a.wav"), 1, ATTN_NORM, 0);
 
 				//ed - muzzleflash ? on a turret ? Yeah baby
-				gi.WriteByte (svc_muzzleflash);
-				gi.WriteShort (self-g_edicts);
-				gi.WriteByte (MZ_RAILGUN);
-				gi.multicast (start, MSG_PVS);
+				MESSAGE_BEGIN (svc_muzzleflash);
+					WRITE_SHORT (self-g_edicts);
+					WRITE_BYTE (MZ_RAILGUN);
+				MESSAGE_SEND (MSG_PVS, start, NULL);
 
 				self->delay = level.time + self->wait;
 
@@ -208,10 +208,10 @@ void turret_breach_fire (edict_t *self)
 			{
 				// "wait" = damage for machinegun - default = 2
 				fire_bullet (owner, start, forward, self->wait, 4, DEFAULT_BULLET_HSPREAD, DEFAULT_BULLET_VSPREAD, MOD_MACHINEGUN);
-				gi.WriteByte (svc_muzzleflash);
-				gi.WriteShort (self-g_edicts);
-				gi.WriteByte (MZ_MACHINEGUN);
-				gi.multicast (start, MSG_PVS);
+				MESSAGE_BEGIN (svc_muzzleflash);
+					WRITE_SHORT (self-g_edicts);
+					WRITE_BYTE (MZ_MACHINEGUN);
+				MESSAGE_SEND (MSG_PVS, start, NULL);
 				self->delay = level.time; // No delay on machinegun
 				break;
 			}
@@ -225,10 +225,10 @@ void turret_breach_fire (edict_t *self)
 			case 7: // Grenade launcher
 			{
 				fire_grenade (owner, start, forward, 50, self->fog_far, 2.5, 90);
-				gi.WriteByte (svc_muzzleflash2);
-				gi.WriteShort (self - g_edicts);
-				gi.WriteByte (MZ2_GUNNER_GRENADE_1);
-				gi.multicast (start, MSG_PVS);
+				MESSAGE_BEGIN (svc_muzzleflash2);
+					WRITE_SHORT (self - g_edicts);
+					WRITE_BYTE (MZ2_GUNNER_GRENADE_1);
+				MESSAGE_SEND (MSG_PVS, start, NULL);
 				self->delay = level.time + self->wait;
 				break;
 			}

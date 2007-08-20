@@ -57,6 +57,8 @@
 #define SURF_NODRAW			0x80	// don't bother referencing the texture
 #define SURF_HINT			0x100	// make a primary bsp splitter
 #define SURF_SKIP			0x200	// completely ignore, allowing non-closed brushes
+#define SURF_NULL			0x400	// remove face after compile
+#define SURF_MIRROR			0x800	// remove face after compile
 #define SURF_METAL			0x00000400  // metal floor
 #define SURF_DIRT			0x00000800  // dirt, sand, rock
 #define SURF_VENT			0x00001000  // ventillation duct

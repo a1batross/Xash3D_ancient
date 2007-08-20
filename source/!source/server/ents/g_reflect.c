@@ -63,10 +63,10 @@ void ReflectExplosion (int type, vec3_t origin)
 		if(org[2] < mirror->absmin[2]) continue;
 		if(org[2] > mirror->absmax[2]) continue;
 
-		gi.WriteByte (svc_temp_entity);
-		gi.WriteByte (type);
-		gi.WritePosition (org);
-		gi.multicast (org, MSG_PHS);
+		MESSAGE_BEGIN (svc_temp_entity);
+			WRITE_BYTE (type);
+			WRITE_COORD (org);
+		MESSAGE_SEND (MSG_PHS, org, NULL);
 	}
 }
 
@@ -127,11 +127,11 @@ void ReflectTrail (int type, vec3_t start, vec3_t end)
 		// If p1 is within func_reflect, we assume p2 is also. If map is constructed 
 		// properly this should always be true.
 
-		gi.WriteByte (svc_temp_entity);
-		gi.WriteByte (type);
-		gi.WritePosition (p1);
-		gi.WritePosition (p2);
-		gi.multicast (p1, MSG_PHS);
+		MESSAGE_BEGIN (svc_temp_entity);
+			WRITE_BYTE (type);
+			WRITE_COORD (p1);
+			WRITE_COORD (p2);
+		MESSAGE_SEND (MSG_PHS, p1, NULL);
 	}
 }
 
@@ -189,16 +189,16 @@ void ReflectSteam (vec3_t origin,vec3_t movedir,int count,int sounds,int speed, 
 		if(org[2] < mirror->absmin[2]) continue;
 		if(org[2] > mirror->absmax[2]) continue;
 
-		gi.WriteByte (svc_temp_entity);
-		gi.WriteByte (TE_STEAM);
-		gi.WriteShort (nextid);
-		gi.WriteByte (count);
-		gi.WritePosition (org);
-		gi.WriteDir (dir);
-		gi.WriteByte (sounds&0xff);
-		gi.WriteShort (speed);
-		gi.WriteLong (wait);
-		gi.multicast (org, MSG_PHS);
+		MESSAGE_BEGIN (svc_temp_entity);
+			WRITE_BYTE (TE_STEAM);
+			WRITE_SHORT (nextid);
+			WRITE_BYTE (count);
+			WRITE_COORD (org);
+			WRITE_DIR (dir);
+			WRITE_BYTE (sounds&0xff);
+			WRITE_SHORT (speed);
+			WRITE_LONG (wait);
+		MESSAGE_SEND (MSG_PHS, org, NULL);
 	}
 }
 
@@ -260,12 +260,14 @@ void ReflectSparks (int type,vec3_t origin,vec3_t movedir)
 		if(org[2] < mirror->absmin[2]) continue;
 		if(org[2] > mirror->absmax[2]) continue;
 
-		gi.WriteByte(svc_temp_entity);
-		gi.WriteByte(type);
-		gi.WritePosition(org);
-		if(type != TE_CHAINFIST_SMOKE) 
-			gi.WriteDir(dir);
-		gi.multicast(org, MSG_PHS);
+		MESSAGE_BEGIN(svc_temp_entity);
+			WRITE_BYTE(type);
+			WRITE_COORD(org);
+			if(type != TE_CHAINFIST_SMOKE)
+			{ 
+				WRITE_DIR(dir);
+			}
+		MESSAGE_SEND(MSG_PHS, org, NULL);
 
 	}
 }

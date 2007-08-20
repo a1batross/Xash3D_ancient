@@ -62,11 +62,30 @@ void FreeTags (int tag);
 
 // protocol bytes that can be directly added to messages
 #define	svc_muzzleflash		1
-#define	svc_muzzleflash2	2
+#define	svc_muzzleflash2		2
 #define	svc_temp_entity		3
-#define	svc_layout			4
+#define	svc_layout		4
 #define	svc_inventory		5
 #define	svc_stufftext		11
+
+/*
+===========================================
+network messaging manager
+===========================================
+*/
+
+#define MESSAGE_BEGIN(x) gi.Msg.Begin(x)
+#define WRITE_CHAR(x) gi.Msg.WriteChar(x)
+#define WRITE_BYTE(x) gi.Msg.WriteByte(x)
+#define WRITE_WORD(x) gi.Msg.WriteWord(x)
+#define WRITE_SHORT(x) gi.Msg.WriteShort(x)
+#define WRITE_LONG(x) gi.Msg.WriteLong(x)
+#define WRITE_FLOAT(x) gi.Msg.WriteFloat(x)
+#define WRITE_STRING(x) gi.Msg.WriteString(x)
+#define WRITE_COORD(x) gi.Msg.WriteCoord(x)
+#define WRITE_DIR(x) gi.Msg.WriteDir(x)
+#define WRITE_ANGLE(x) gi.Msg.WriteAngler(x)
+#define MESSAGE_SEND(x,y,z) gi.Msg.Send(x,y,z)
 
 //==================================================================
 

@@ -753,9 +753,9 @@ float SnapToEights(float x)
 
 void stuffcmd(edict_t *pent, char *pszCommand)
 {
-	gi.WriteByte(svc_stufftext);
-	gi.WriteString(pszCommand);
-	gi.unicast(pent, true);
+	MESSAGE_BEGIN(svc_stufftext);
+		WRITE_STRING(pszCommand);
+	MESSAGE_SEND(MSG_ONE_R, NULL, pent);
 }
 
 bool point_infront (edict_t *self, vec3_t point)

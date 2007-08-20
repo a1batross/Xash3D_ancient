@@ -1,8 +1,8 @@
 // vis.c
 #include "bsplib.h"
 
-int			numportals;
-int			portalclusters;
+int		numportals;
+int		portalclusters;
 
 char		inbase[32];
 char		outbase[32];
@@ -10,15 +10,15 @@ char		outbase[32];
 visportal_t	*portals;
 leaf_t		*leafs;
 
-int			c_portaltest, c_portalpass, c_portalcheck;
+int		c_portaltest, c_portalpass, c_portalcheck;
 
 byte		*uncompressedvis;
 
 byte	*vismap, *vismap_p, *vismap_end;	// past visfile
-int		originalvismapsize;
+int	originalvismapsize;
 
-int		leafbytes;				// (portalclusters+63)>>3
-int		leaflongs;
+int	leafbytes;				// (portalclusters+63)>>3
+int	leaflongs;
 
 int		portalbytes, portallongs;
 
@@ -27,6 +27,7 @@ bool		fastvis;
 int		testlevel = 2;
 
 int		totalvis;
+int		totalphs;
 
 visportal_t	*sorted_portals[MAX_MAP_PORTALS*2];
 
@@ -379,7 +380,6 @@ void LoadPortals (void)
 		
 			for (k = 0; k < 3; k++) w->points[j][k] = v[k];
 		}
-		//Msg("\n");
 		
 		// calc plane
 		PlaneFromWinding (w, &plane);
@@ -418,6 +418,49 @@ void LoadPortals (void)
 	}
 }
 
+void ClusterPHS( int clusternum )
+{
+	int	j, k, l, index;
+	int	bitbyte;
+	long	*dest, *src;
+	byte	*scan;
+	byte	uncompressed[MAX_MAP_LEAFS/8];
+	byte	compressed[MAX_MAP_LEAFS/8];
+	
+	scan = uncompressedvis + clusternum * leafbytes;
+	Mem_Copy (uncompressed, scan, leafbytes);
+	for (j = 0; j < leafbytes; j++)
+	{
+		bitbyte = scan[j];
+		if (!bitbyte) continue;
+		for (k = 0; k < 8; k++)
+		{
+			if (! (bitbyte & (1<<k))) continue;
+			// OR this pvs row into the phs
+			index = ((j<<3)+k);
+			if (index >= portalclusters)
+				Sys_Error ("Bad bit in PVS");	// pad bits should be 0
+			src = (long *)(uncompressedvis + index*leafbytes);
+			dest = (long *)uncompressed;
+			for (l = 0; l < leaflongs; l++) ((long *)uncompressed)[l] |= src[l];
+		}
+	}
+	for (j = 0; j < portalclusters; j++)
+		if (uncompressed[j>>3] & (1<<(j&7)) )
+			totalphs++;
+
+	// compress the bit string
+	j = CompressVis (uncompressed, compressed);
+
+	dest = (long *)vismap_p;
+	vismap_p += j;
+		
+	if (vismap_p > vismap_end)
+		Sys_Error ("Vismap expansion overflow");
+
+	dvis->bitofs[clusternum][DVIS_PHS] = (byte *)dest-vismap;
+	Mem_Copy (dest, compressed, j);	
+} 
 
 /*
 ================
@@ -429,55 +472,9 @@ by ORing together all the PVS visible from a leaf
 */
 void CalcPHS (void)
 {
-	int	i, j, k, l, index;
-	int	bitbyte;
-	long	*dest, *src;
-	byte	*scan;
-	int	count;
-	byte	uncompressed[MAX_MAP_LEAFS/8];
-	byte	compressed[MAX_MAP_LEAFS/8];
-
 	Msg ("Building PHS...\n");
-
-	count = 0;
-	for (i=0 ; i<portalclusters ; i++)
-	{
-		scan = uncompressedvis + i*leafbytes;
-		memcpy (uncompressed, scan, leafbytes);
-		for (j = 0; j < leafbytes; j++)
-		{
-			bitbyte = scan[j];
-			if (!bitbyte) continue;
-			for (k=0 ; k<8 ; k++)
-			{
-				if (! (bitbyte & (1<<k))) continue;
-				// OR this pvs row into the phs
-				index = ((j<<3)+k);
-				if (index >= portalclusters)
-					Sys_Error ("Bad bit in PVS");	// pad bits should be 0
-				src = (long *)(uncompressedvis + index*leafbytes);
-				dest = (long *)uncompressed;
-				for (l = 0; l < leaflongs; l++) ((long *)uncompressed)[l] |= src[l];
-			}
-		}
-		for (j = 0; j < portalclusters; j++)
-			if (uncompressed[j>>3] & (1<<(j&7)) )
-				count++;
-
-		// compress the bit string
-		j = CompressVis (uncompressed, compressed);
-
-		dest = (long *)vismap_p;
-		vismap_p += j;
-		
-		if (vismap_p > vismap_end)
-			Sys_Error ("Vismap expansion overflow");
-
-		dvis->bitofs[i][DVIS_PHS] = (byte *)dest-vismap;
-		memcpy (dest, compressed, j);	
-	}
-
-	Msg("Average clusters hearable: %i\n", count/portalclusters);
+	RunThreadsOnIndividual (portalclusters, true, ClusterPHS);
+	Msg("Average clusters hearable: %i\n", totalphs/portalclusters);
 }
 
 /*

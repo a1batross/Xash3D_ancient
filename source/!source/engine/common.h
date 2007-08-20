@@ -70,6 +70,7 @@ void SZ_Print (sizebuf_t *buf, char *data);	// strcats onto the sizebuf
 struct usercmd_s;
 struct entity_state_s;
 
+void _MSG_Begin ( int dest, const char *filename, int fileline );
 void _MSG_WriteChar (sizebuf_t *sb, int c, const char *filename, int fileline);
 void _MSG_WriteByte (sizebuf_t *sb, int c, const char *filename, int fileline);
 void _MSG_WriteShort (sizebuf_t *sb, int c, const char *filename, int fileline);
@@ -86,7 +87,9 @@ void _MSG_WriteDeltaUsercmd (sizebuf_t *sb, struct usercmd_s *from, struct userc
 void _MSG_WriteDeltaEntity (struct entity_state_s *from, struct entity_state_s *to, sizebuf_t *msg, bool force, bool newentity, const char *filename, int fileline);
 void _MSG_WriteDir (sizebuf_t *sb, vec3_t vector, const char *filename, int fileline);
 void _MSG_WriteVector (sizebuf_t *sb, float *v, const char *filename, int fileline);
+void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename, int fileline);
 
+#define MSG_Begin( x ) _MSG_Begin( x, __FILE__, __LINE__);
 #define MSG_WriteChar(x,y) _MSG_WriteChar (x, y, __FILE__, __LINE__);
 #define MSG_WriteByte(x,y) _MSG_WriteByte (x, y, __FILE__, __LINE__);
 #define MSG_WriteShort(x,y) _MSG_WriteShort (x, y, __FILE__, __LINE__);
@@ -102,7 +105,8 @@ void _MSG_WriteVector (sizebuf_t *sb, float *v, const char *filename, int fileli
 #define MSG_WriteDeltaUsercmd(x, y, z) _MSG_WriteDeltaUsercmd (x, y, z, __FILE__, __LINE__);
 #define MSG_WriteDeltaEntity(x, y, z, t, m) _MSG_WriteDeltaEntity (x, y, z, t, m, __FILE__, __LINE__);
 #define MSG_WriteDir(x, y) _MSG_WriteDir (x, y, __FILE__, __LINE__);
-#define MSG_WriteVector(x, Y) _MSG_WriteVector (x, y, __FILE__, __LINE__);
+#define MSG_WriteVector(x, y) _MSG_WriteVector (x, y, __FILE__, __LINE__);
+#define MSG_Send(x, y, z) _MSG_Send(x, y, z, __FILE__, __LINE__);
 
 void	MSG_BeginReading (sizebuf_t *sb);
 
@@ -612,9 +616,9 @@ MISC
 */
 
 
-#define	ERR_FATAL	0		// exit the entire game with a popup window
-#define	ERR_DROP	1		// print to console and disconnect from game
-#define	ERR_QUIT	2		// not an error, just a normal exit
+#define	ERR_FATAL		0		// exit the entire game with a popup window
+#define	ERR_DROP		1		// print to console and disconnect from game
+#define	ERR_DISCONNECT	2		// not an error, just a normal exit
 
 #define	EXEC_NOW	0		// don't return until completed
 #define	EXEC_INSERT	1		// insert at current position, but don't run yet

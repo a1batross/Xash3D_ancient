@@ -11,10 +11,10 @@ boss3
 
 void Use_Boss3 (edict_t *ent, edict_t *other, edict_t *activator)
 {
-	gi.WriteByte (svc_temp_entity);
-	gi.WriteByte (TE_BOSSTPORT);
-	gi.WritePosition (ent->s.origin);
-	gi.multicast (ent->s.origin, MSG_PVS);
+	MESSAGE_BEGIN (svc_temp_entity);
+		WRITE_BYTE (TE_BOSSTPORT);
+		WRITE_COORD (ent->s.origin);
+	MESSAGE_SEND (MSG_PVS, ent->s.origin, NULL);
 	G_FreeEdict (ent);
 }
 
