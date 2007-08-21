@@ -858,11 +858,10 @@ void CM_BoxLeafnums_r (int nodenum)
 	
 		node = &map_nodes[nodenum];
 		plane = node->plane;
-//		s = BoxOnPlaneSide (leaf_mins, leaf_maxs, plane);
-		s = BOX_ON_PLANE_SIDE(leaf_mins, leaf_maxs, plane);
-		if (s == 1)
+		s = BoxOnPlaneSide(leaf_mins, leaf_maxs, plane);
+		if (s == SIDE_BACK) 
 			nodenum = node->children[0];
-		else if (s == 2)
+		else if (s == SIDE_ON)
 			nodenum = node->children[1];
 		else
 		{	// go down both
@@ -1441,7 +1440,7 @@ rotating entities
 #endif
 
 
-trace_t		CM_TransformedBoxTrace (vec3_t start, vec3_t end,
+trace_t CM_TransformedBoxTrace (vec3_t start, vec3_t end,
 						  vec3_t mins, vec3_t maxs,
 						  int headnode, int brushmask,
 						  vec3_t origin, vec3_t angles)
@@ -1563,10 +1562,10 @@ void CM_DecompressVis (byte *in, byte *out)
 	} while (out_p - out < row);
 }
 
-byte	pvsrow[MAX_MAP_LEAFS/8];
-byte	phsrow[MAX_MAP_LEAFS/8];
+byte pvsrow[MAX_MAP_LEAFS/8];
+byte phsrow[MAX_MAP_LEAFS/8];
 
-byte	*CM_ClusterPVS (int cluster)
+byte *CM_ClusterPVS (int cluster)
 {
 	if (cluster == -1)
 		memset (pvsrow, 0, (numclusters+7)>>3);
@@ -1575,7 +1574,7 @@ byte	*CM_ClusterPVS (int cluster)
 	return pvsrow;
 }
 
-byte	*CM_ClusterPHS (int cluster)
+byte *CM_ClusterPHS (int cluster)
 {
 	if (cluster == -1)
 		memset (phsrow, 0, (numclusters+7)>>3);
@@ -1786,7 +1785,7 @@ cmodel_t *CM_StudioModel (char *name, byte *buffer)
 
 	if (phdr->version != STUDIO_VERSION)
 	{
-		Msg("CM_StudioModel: %s has wrong version number (%i should be %i)", phdr->name, phdr->version, STUDIO_VERSION);
+		MsgWarn("CM_StudioModel: %s has wrong version number (%i should be %i)", phdr->name, phdr->version, STUDIO_VERSION);
 		return NULL;
 	}
            
@@ -1821,9 +1820,7 @@ cmodel_t *CM_StudioModel (char *name, byte *buffer)
 		VectorSet(out->maxs,  32,  32,  32 );
 	}
 
-	Msg("register new model %s\n", out->name );
 	numsmodels++;
-	
 	return out;
 }
 
@@ -1839,7 +1836,7 @@ cmodel_t *CM_SpriteModel (char *name, byte *buffer)
 	
 	if(phdr->version != SPRITE_VERSION_HALF || phdr->version != SPRITE_VERSION_XASH)
 	{
-		Msg("CM_SpriteModel: %s has wrong version number (%i should be %i or %i)\n", name, phdr->version, SPRITE_VERSION_HALF, SPRITE_VERSION_XASH);
+		MsgWarn("CM_SpriteModel: %s has wrong version number (%i should be %i or %i)\n", name, phdr->version, SPRITE_VERSION_HALF, SPRITE_VERSION_XASH);
 		return NULL;
 	}
 
@@ -1865,9 +1862,7 @@ cmodel_t *CM_SpriteModel (char *name, byte *buffer)
 	out->mins[2] = -phdr->height / 2;
 	out->maxs[2] = phdr->height / 2;
 	
-	Msg("register new sprite %s\n", out->name );
 	numsmodels++;
-	
 	return out;
 }
 
@@ -1878,19 +1873,19 @@ cmodel_t *CM_LoadModel (char *name)
 
 	if (!name[0])
 	{
-		Msg ("CM_LoadModel: NULL name, ignored\n");
+		MsgWarn("CM_LoadModel: NULL name, ignored\n");
 		return NULL;
 	}
 
 	if(name[0] == '*') return CM_InlineModel (name);
 	if(!FS_FileExists( name ))
 	{
-		Msg ("CM_LoadModel: %s not found\n", name );
+		MsgWarn("CM_LoadModel: %s not found\n", name );
 		return NULL;
 	}
 	if(numcmodels + numsmodels > MAX_MAP_MODELS)
 	{
-		Msg ("CM_LoadModel: MAX_MAP_MODELS limit exceeded\n" );
+		MsgWarn("CM_LoadModel: MAX_MAP_MODELS limit exceeded\n" );
 		return NULL;		
 	}
 	

@@ -7,11 +7,6 @@ int	c_nonvis;
 int	c_active_brushes;
 vec_t	microvolume = 1.0;
 
-// if a brush just barely pokes onto the other side,
-// let it slide by without chopping
-#define	PLANESIDE_EPSILON	0.001
-//0.1
-
 #define	PSIDE_FRONT			1
 #define	PSIDE_BACK			2
 #define	PSIDE_BOTH			(PSIDE_FRONT|PSIDE_BACK)
@@ -360,9 +355,9 @@ int Q_BoxOnPlaneSide (vec3_t mins, vec3_t maxs, plane_t *plane)
 	if (plane->type < 3)
 	{
 		side = 0;
-		if (maxs[plane->type] > plane->dist+PLANESIDE_EPSILON)
+		if (maxs[plane->type] > plane->dist+EQUAL_EPSILON)
 			side |= PSIDE_FRONT;
-		if (mins[plane->type] < plane->dist-PLANESIDE_EPSILON)
+		if (mins[plane->type] < plane->dist-EQUAL_EPSILON)
 			side |= PSIDE_BACK;
 		return side;
 	}
@@ -386,9 +381,9 @@ int Q_BoxOnPlaneSide (vec3_t mins, vec3_t maxs, plane_t *plane)
 	dist1 = DotProduct (plane->normal, corners[0]) - plane->dist;
 	dist2 = DotProduct (plane->normal, corners[1]) - plane->dist;
 	side = 0;
-	if (dist1 >= PLANESIDE_EPSILON)
+	if (dist1 >= EQUAL_EPSILON)
 		side = PSIDE_FRONT;
-	if (dist2 < PLANESIDE_EPSILON)
+	if (dist2 < EQUAL_EPSILON)
 		side |= PSIDE_BACK;
 
 	return side;
@@ -494,9 +489,9 @@ int	TestBrushToPlanenum (bspbrush_t *brush, int planenum,
 			if (d < d_back)
 				d_back = d;
 
-			if (d > 0.1) // PLANESIDE_EPSILON)
+			if (d > 0.1) // EQUAL_EPSILON)
 				front = 1;
-			if (d < -0.1) // PLANESIDE_EPSILON)
+			if (d < -0.1) // EQUAL_EPSILON)
 				back = 1;
 		}
 		if (front && back)
@@ -885,12 +880,12 @@ void SplitBrush (bspbrush_t *brush, int planenum,
 				d_back = d;
 		}
 	}
-	if (d_front < 0.1) // PLANESIDE_EPSILON)
+	if (d_front < 0.1) // EQUAL_EPSILON)
 	{	// only on back
 		*back = CopyBrush (brush);
 		return;
 	}
-	if (d_back > -0.1) // PLANESIDE_EPSILON)
+	if (d_back > -0.1) // EQUAL_EPSILON)
 	{	// only on front
 		*front = CopyBrush (brush);
 		return;
@@ -902,7 +897,7 @@ void SplitBrush (bspbrush_t *brush, int planenum,
 	for (i=0 ; i<brush->numsides && w ; i++)
 	{
 		plane2 = &mapplanes[brush->sides[i].planenum ^ 1];
-		ChopWindingInPlace (&w, plane2->normal, plane2->dist, 0); // PLANESIDE_EPSILON);
+		ChopWindingInPlace (&w, plane2->normal, plane2->dist, 0); // EQUAL_EPSILON);
 	}
 
 	if (!w || WindingIsTiny (w) )
@@ -938,7 +933,7 @@ void SplitBrush (bspbrush_t *brush, int planenum,
 		if (!w)
 			continue;
 		ClipWindingEpsilon (w, plane->normal, plane->dist,
-			0 /*PLANESIDE_EPSILON*/, &cw[0], &cw[1]);
+			0 /*EQUAL_EPSILON*/, &cw[0], &cw[1]);
 		for (j=0 ; j<2 ; j++)
 		{
 			if (!cw[j])

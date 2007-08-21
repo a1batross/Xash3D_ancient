@@ -400,18 +400,17 @@ void ClipSkyPolygon (int nump, vec3_t vecs, int stage)
 	for (i=0, v = vecs ; i<nump ; i++, v+=3)
 	{
 		d = DotProduct (v, norm);
-		if (d > ON_EPSILON)
+		if (d > EQUAL_EPSILON)
 		{
 			front = true;
 			sides[i] = SIDE_FRONT;
 		}
-		else if (d < -ON_EPSILON)
+		else if (d < -EQUAL_EPSILON)
 		{
 			back = true;
 			sides[i] = SIDE_BACK;
 		}
-		else
-			sides[i] = SIDE_ON;
+		else sides[i] = SIDE_ON;
 		dists[i] = d;
 	}
 

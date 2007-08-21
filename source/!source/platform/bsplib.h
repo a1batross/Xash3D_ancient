@@ -437,7 +437,6 @@ winding_t	*BaseWindingForPlane (vec3_t normal, vec_t dist);
 void	CheckWinding (winding_t *w);
 void	WindingPlane (winding_t *w, vec3_t normal, vec_t *dist);
 void	RemoveColinearPoints (winding_t *w);
-int	WindingOnPlaneSide (winding_t *w, vec3_t normal, vec_t dist);
 void	FreeWinding (winding_t *w);
 void	WindingBounds (winding_t *w, vec3_t mins, vec3_t maxs);
 void	ChopWindingInPlace (winding_t **w, vec3_t normal, vec_t dist, vec_t epsilon);

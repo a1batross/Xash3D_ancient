@@ -2,8 +2,6 @@
 
 #include "bsplib.h"
 
-#define	ON_EPSILON	0.1
-
 typedef struct tnode_s
 {
 	int		type;
@@ -109,7 +107,7 @@ int TestLine_r (int node, vec3_t start, vec3_t stop)
 	if (front >= -ON_EPSILON && back >= -ON_EPSILON)
 		return TestLine_r (tnode->children[0], start, stop);
 	
-	if (front < ON_EPSILON && back < ON_EPSILON)
+	if (front < EQUAL_EPSILON && back < ON_EPSILON)
 		return TestLine_r (tnode->children[1], start, stop);
 
 	side = front < 0;
@@ -243,7 +241,7 @@ bool _TestLine (vec3_t start, vec3_t stop)
 			continue;
 		}
 		
-		if (front < ON_EPSILON && back < ON_EPSILON)
+		if (front < EQUAL_EPSILON && back < ON_EPSILON)
 //		if (front <= 0 && back <= 0)
 		{
 			node = tnode->children[1];

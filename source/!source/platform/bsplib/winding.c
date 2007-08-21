@@ -299,9 +299,13 @@ void	ClipWindingEpsilon (winding_t *in, vec3_t normal, vec_t dist,
 		dot -= dist;
 		dists[i] = dot;
 		if (dot > epsilon)
+		{
 			sides[i] = SIDE_FRONT;
+		}
 		else if (dot < -epsilon)
+		{
 			sides[i] = SIDE_BACK;
+		}
 		else
 		{
 			sides[i] = SIDE_ON;
@@ -547,44 +551,3 @@ void CheckWinding (winding_t *w)
 		}
 	}
 }
-
-
-/*
-============
-WindingOnPlaneSide
-============
-*/
-int		WindingOnPlaneSide (winding_t *w, vec3_t normal, vec_t dist)
-{
-	bool	front, back;
-	int			i;
-	vec_t		d;
-
-	front = false;
-	back = false;
-	for (i=0 ; i<w->numpoints ; i++)
-	{
-		d = DotProduct (w->p[i], normal) - dist;
-		if (d < -ON_EPSILON)
-		{
-			if (front)
-				return SIDE_CROSS;
-			back = true;
-			continue;
-		}
-		if (d > ON_EPSILON)
-		{
-			if (back)
-				return SIDE_CROSS;
-			front = true;
-			continue;
-		}
-	}
-
-	if (back)
-		return SIDE_BACK;
-	if (front)
-		return SIDE_FRONT;
-	return SIDE_ON;
-}
-

@@ -162,9 +162,11 @@ bool R_CullBox (vec3_t mins, vec3_t maxs)
 	if (r_nocull->value)
 		return false;
 
-	for (i=0 ; i<4 ; i++)
-		if ( BOX_ON_PLANE_SIDE(mins, maxs, &frustum[i]) == 2)
+	for (i = 0; i < 4; i++)
+	{
+		if ( BoxOnPlaneSide(mins, maxs, &frustum[i]) == SIDE_ON)
 			return true;
+	}
 	return false;
 }
 
