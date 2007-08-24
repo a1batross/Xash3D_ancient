@@ -303,14 +303,7 @@ void SV_CalcViewOffset (edict_t *ent)
 	// absolutely bound offsets
 	// so the view can never be outside the player box
 
-	if(ent->client->chasetoggle) {
-		VectorSet (v, 0, 0, 0);
-		if(ent->client->chasecam != NULL) {
-			ent->client->ps.pmove.origin[0] = ent->client->chasecam->s.origin[0]*8;
-			ent->client->ps.pmove.origin[1] = ent->client->chasecam->s.origin[1]*8;
-			ent->client->ps.pmove.origin[2] = ent->client->chasecam->s.origin[2]*8;
-		}
-	} else if(ent->client->spycam) {
+	if(ent->client->spycam) {
 		VectorSet (v, 0, 0, 0);
         VectorCopy (ent->client->spycam->s.angles, ent->client->ps.viewangles); 
 		if(ent->client->spycam->svflags & SVF_MONSTER)
@@ -421,14 +414,7 @@ void SV_CalcBlend (edict_t *ent)
 		ent->client->ps.blend[2] = ent->client->ps.blend[3] = 0;
 
 	// add for contents
-	if (ent->client->chasetoggle)
-	{
-		VectorCopy (ent->client->chasecam->s.origin, vieworg);
-	}
-	else
-	{
-		VectorAdd (ent->s.origin, ent->client->ps.viewoffset, vieworg);
-	}
+	VectorAdd (ent->s.origin, ent->client->ps.viewoffset, vieworg);
 	contents = gi.pointcontents (vieworg);
 	if (contents & (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER) )
 		ent->client->ps.rdflags |= RDF_UNDERWATER;
@@ -460,23 +446,6 @@ void SV_CalcBlend (edict_t *ent)
 	}
 
 	// add for powerups
-#ifdef JETPACK_MOD
-	if ( ent->client->jetpack )
-	{
-		remaining = ent->client->pers.inventory[fuel_index];
-		// beginning to fade if 4 secs or less
-		if (remaining > 40)
-		{
-			if ( ((level.framenum % 6) == 0) && ( level.framenum - ent->client->jetpack_activation > 30 ) )
-			{
-				if (ent->client->jetpack_thrusting && (level.framenum - ent->client->jetpack_start_thrust > 10))
-					gi.sound (ent, CHAN_AUTO, gi.soundindex("jetpack/revrun.wav"), 1, ATTN_NORM, 0);
-				gi.sound (ent, CHAN_GIZMO, gi.soundindex("jetpack/running.wav"), 1, ATTN_NORM, 0);
-			}
-		}
-	}
-#endif // #ifdef JETPACK_MOD
-
 	if (ent->client->quad_framenum > level.framenum)
 	{
 		remaining = ent->client->quad_framenum - level.framenum;
@@ -646,9 +615,6 @@ void P_FallingDamage (edict_t *ent)
 	if (ent->movetype == MOVETYPE_NOCLIP)
 		return;
 
-	if (ent->client->jetpack && ent->client->ucmd.upmove > 0)
-		return;
-
 	if ((ent->client->oldvelocity[2] < 0) && (ent->velocity[2] > ent->client->oldvelocity[2]) && (!ent->groundentity))
 	{
 		delta = ent->client->oldvelocity[2];
@@ -670,17 +636,7 @@ void P_FallingDamage (edict_t *ent)
 	if (ent->waterlevel == 1)
 		delta *= 0.5;
 
-	if (delta < 1)
-		return;
-
-	// Lazarus: Changed here to NOT play footstep sounds if ent isn't on the ground.
-	//          So player will no longer play footstep sounds when descending a ladder.
-	if (delta < 15 )
-	{
-		if (!(ent->watertype & CONTENTS_MUD) && !ent->vehicle && !ent->turret && ent->groundentity)
-			FootStep(ent);
-		return;
-	}
+	if (delta < 1) return;
 
 	ent->client->fall_value = delta*0.5;
 	if (ent->client->fall_value > 40)
@@ -691,15 +647,6 @@ void P_FallingDamage (edict_t *ent)
 	{
 		if (ent->health > 0)
 		{
-
-/*			This change plays the correct sexed sounds while in
-			third person view
-
-			if (delta >= 55)
-				ent->s.event = EV_FALLFAR;
-			else
-				ent->s.event = EV_FALL;
-*/
 			if (delta >= 55)
 				gi.sound(ent,CHAN_VOICE,gi.soundindex("*fall1.wav"),1.0,ATTN_NORM,0);
 			else
@@ -821,18 +768,6 @@ void P_WorldEffects (void)
 	//
 	if (waterlevel == 3)
 	{
-#ifdef JETPACK_MOD
-		if ( current_player->client->jetpack )
-		{
-			if ( (current_player->watertype & (CONTENTS_LAVA|CONTENTS_SLIME)) && !(current_player->flags & FL_GODMODE ) ) // blow up in lava/slime
-				T_Damage (current_player, world, world, vec3_origin, current_player->s.origin, vec3_origin, current_player->health+1, 0, DAMAGE_NO_ARMOR, 0);
-			else
-			{
-				gitem_t	*jetpack = FindItem("jetpack");
-				Use_Jet (current_player, jetpack);			// shut down in water
-			}
-		}
-#endif
 		// breather or envirosuit give air
 		if (breather || envirosuit)
 		{
@@ -1025,12 +960,7 @@ void G_SetClientEvent (edict_t *ent)
 
 	if ( ent->groundentity )
 	{
-		if (!ent->waterlevel && ( xyspeed > 225) && !ent->vehicle)
-		{
-			if ( (int)(current_client->bobtime+bobmove) != bobcycle )
-				FootStep(ent);
-		}
-		else if( ent->in_mud && (ent->waterlevel == 1) && (xyspeed > 40))
+		if( ent->in_mud && (ent->waterlevel == 1) && (xyspeed > 40))
 		{
 			if ( (level.framenum % 10) == 0 )
 			{
@@ -1039,12 +969,6 @@ void G_SetClientEvent (edict_t *ent)
 				else
 					gi.sound(ent, CHAN_BODY, gi.soundindex("mud/wade_mud2.wav"), 1, ATTN_NORM, 0);
 			}
-		}
-		else if( world->effects & FX_WORLDSPAWN_STEPSOUNDS )
-		{
-			if(  ( (ent->waterlevel == 1) || (ent->waterlevel == 2) ) && ( xyspeed > 100 ) )
-				if ( (int)(current_client->bobtime+bobmove) != bobcycle )
-					FootStep(ent);
 		}
 	}
 	else
@@ -1065,23 +989,12 @@ void G_SetClientEvent (edict_t *ent)
 						int	r;
 						r = rand() & 1 + ent->client->leftfoot*2;
 						ent->client->leftfoot = 1 - ent->client->leftfoot;
-						if(qFMOD_Footsteps)
+						switch (r)
 						{
-							switch (r){
-							case 0: PlayFootstep(ent,FOOTSTEP_LADDER1); break;
-							case 1: PlayFootstep(ent,FOOTSTEP_LADDER3); break;
-							case 2: PlayFootstep(ent,FOOTSTEP_LADDER2); break;
-							case 3: PlayFootstep(ent,FOOTSTEP_LADDER4); break;
-							}
-						}
-						else
-						{
-							switch (r){
-							case 0:	gi.sound(ent,CHAN_VOICE,gi.soundindex("player/pl_ladder1.wav"),1.0,ATTN_NORM,0); break;
-							case 1: gi.sound(ent,CHAN_VOICE,gi.soundindex("player/pl_ladder3.wav"),1.0,ATTN_NORM,0); break;
-							case 2:	gi.sound(ent,CHAN_VOICE,gi.soundindex("player/pl_ladder2.wav"),1.0,ATTN_NORM,0); break;
-							case 3:	gi.sound(ent,CHAN_VOICE,gi.soundindex("player/pl_ladder4.wav"),1.0,ATTN_NORM,0); break;
-							}
+						case 0:	gi.sound(ent,CHAN_VOICE,gi.soundindex("player/pl_ladder1.wav"),1.0,ATTN_NORM,0); break;
+						case 1: gi.sound(ent,CHAN_VOICE,gi.soundindex("player/pl_ladder3.wav"),1.0,ATTN_NORM,0); break;
+						case 2:	gi.sound(ent,CHAN_VOICE,gi.soundindex("player/pl_ladder2.wav"),1.0,ATTN_NORM,0); break;
+						case 3:	gi.sound(ent,CHAN_VOICE,gi.soundindex("player/pl_ladder4.wav"),1.0,ATTN_NORM,0); break;
 						}
 					}
 				}
@@ -1120,8 +1033,6 @@ void G_SetClientSound (edict_t *ent)
 
 	if (ent->waterlevel && (ent->watertype&(CONTENTS_LAVA|CONTENTS_SLIME)) )
 		ent->s.sound = snd_fry;
-	else if ( ent->client->jetpack && (ent->client->pers.inventory[fuel_index] < 40 ))
-		ent->s.sound = gi.soundindex("jetpack/stutter.wav");
 	else if (strcmp(weap, "weapon_railgun") == 0)
 		ent->s.sound = gi.soundindex("weapons/rg_hum.wav");
 	else if (strcmp(weap, "weapon_bfg") == 0)
@@ -1372,8 +1283,6 @@ void ClientEndServerFrame (edict_t *ent)
 		G_SetSpectatorStats(ent);
 	else
 		G_SetStats (ent);
-	G_CheckChaseStats(ent);
-
 	G_SetClientEvent (ent);
 
 	G_SetClientEffects (ent);
@@ -1396,8 +1305,6 @@ void ClientEndServerFrame (edict_t *ent)
 		{
 			if (ent->client->menu)
 				PMenu_Update(ent);
-			else if (ent->client->textdisplay)
-				Text_Update(ent);
 			else
 				DeathmatchScoreboardMessage (ent, ent->enemy);
 			MESSAGE_SEND (MSG_ONE, NULL, ent );
@@ -1405,11 +1312,5 @@ void ClientEndServerFrame (edict_t *ent)
 		else if(ent->client->whatsit)
 			WhatsIt(ent);
 	}
-
-	// tpp
-	if (ent->client->chasetoggle == 1)
-		CheckChasecam_Viewent(ent);
-	// end tpp
-
 }
 

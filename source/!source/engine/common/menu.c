@@ -1596,121 +1596,6 @@ static const char *xatcredits[] =
 	0
 };
 
-static const char *roguecredits[] =
-{
-	"+QUAKE II MISSION PACK 2: GROUND ZERO",
-	"+BY",
-	"+ROGUE ENTERTAINMENT, INC.",
-	"",
-	"+PRODUCED BY",
-	"Jim Molinets",
-	"",
-	"+PROGRAMMING",
-	"Peter Mack",
-	"Patrick Magruder",
-	"",
-	"+LEVEL DESIGN",
-	"Jim Molinets",
-	"Cameron Lamprecht",
-	"Berenger Fish",
-	"Robert Selitto",
-	"Steve Tietze",
-	"Steve Thoms",
-	"",
-	"+ART DIRECTION",
-	"Rich Fleider",
-	"",
-	"+ART",
-	"Rich Fleider",
-	"Steve Maines",
-	"Won Choi",
-	"",
-	"+ANIMATION SEQUENCES",
-	"Creat Studios",
-	"Steve Maines",
-	"",
-	"+ADDITIONAL LEVEL DESIGN",
-	"Rich Fleider",
-	"Steve Maines",
-	"Peter Mack",
-	"",
-	"+SOUND",
-	"James Grunke",
-	"",
-	"+GROUND ZERO THEME",
-	"+AND",
-	"+MUSIC BY",
-	"Sonic Mayhem",
-	"",
-	"+VWEP MODELS",
-	"Brent \"Hentai\" Dill",
-	"",
-	"",
-	"",
-	"+SPECIAL THANKS",
-	"+TO",
-	"+OUR FRIENDS AT ID SOFTWARE",
-	"",
-	"John Carmack",
-	"John Cash",
-	"Brian Hook",
-	"Adrian Carmack",
-	"Kevin Cloud",
-	"Paul Steed",
-	"Tim Willits",
-	"Christian Antkow",
-	"Paul Jaquays",
-	"Brandon James",
-	"Todd Hollenshead",
-	"Barrett (Bear) Alexander",
-	"Katherine Anna Kang",
-	"Donna Jackson",
-	"Dave \"Zoid\" Kirsch",
-	"",
-	"",
-	"",
-	"+THANKS TO ACTIVISION",
-	"+IN PARTICULAR:",
-	"",
-	"Marty Stratton",
-	"Henk Hartong",
-	"Mitch Lasky",
-	"Steve Rosenthal",
-	"Steve Elwell",
-	"",
-	"+AND THE GAME TESTERS",
-	"",
-	"The Ranger Clan",
-	"Dave \"Zoid\" Kirsch",
-	"Nihilistic Software",
-	"Robert Duffy",
-	"",
-	"And Countless Others",
-	"",
-	"",
-	"",
-	"Quake II Mission Pack 2: Ground Zero",
-	"(tm) (C)1998 Id Software, Inc. All",
-	"Rights Reserved. Developed by Rogue",
-	"Entertainment, Inc. for Id Software,",
-	"Inc. Distributed by Activision Inc.",
-	"under license. Quake(R) is a",
-	"registered trademark of Id Software,",
-	"Inc. Quake II Mission Pack 2: Ground",
-	"Zero(tm), Quake II(tm), the Id",
-	"Software name, the \"Q II\"(tm) logo",
-	"and id(tm) logo are trademarks of Id",
-	"Software, Inc. Activision(R) is a",
-	"registered trademark of Activision,",
-	"Inc. Rogue(R) is a registered",
-	"trademark of Rogue Entertainment,",
-	"Inc. All other trademarks and trade",
-	"names are properties of their",
-	"respective owners.",
-	0
-};
-
-
 void M_Credits_MenuDraw( void )
 {
 	int i, y;
@@ -2354,44 +2239,10 @@ void StartServerActionFunc( void *self )
 	Cvar_SetValue ("timelimit", ClampCvar( 0, timelimit, timelimit ) );
 	Cvar_SetValue ("fraglimit", ClampCvar( 0, fraglimit, fraglimit ) );
 	Cvar_Set("hostname", s_hostname_field.buffer );
-//	Cvar_SetValue ("deathmatch", !s_rules_box.curvalue );
-//	Cvar_SetValue ("coop", s_rules_box.curvalue );
-
-//PGM
-	if(s_rules_box.curvalue < 2)
-	{
-		Cvar_SetValue ("deathmatch", !s_rules_box.curvalue );
-		Cvar_SetValue ("coop", s_rules_box.curvalue );
-		Cvar_SetValue ("gamerules", 0 );
-	}
-	else
-	{
-		Cvar_SetValue ("deathmatch", 1 );	// deathmatch is always true for rogue games, right?
-		Cvar_SetValue ("coop", 0 );			// FIXME - this might need to depend on which game we're running
-		Cvar_SetValue ("gamerules", s_rules_box.curvalue );
-	}
-//PGM
+	Cvar_SetValue ("deathmatch", !s_rules_box.curvalue );
+	Cvar_SetValue ("coop", s_rules_box.curvalue );
 
 	spot = NULL;
-	if (s_rules_box.curvalue == 1)		// PGM
-	{
- 		if(strcasecmp(startmap, "bunk1") == 0)
-  			spot = "start";
- 		else if(strcasecmp(startmap, "mintro") == 0)
-  			spot = "start";
- 		else if(strcasecmp(startmap, "fact1") == 0)
-  			spot = "start";
- 		else if(strcasecmp(startmap, "power1") == 0)
-  			spot = "pstart";
- 		else if(strcasecmp(startmap, "biggun") == 0)
-  			spot = "bstart";
- 		else if(strcasecmp(startmap, "hangar1") == 0)
-  			spot = "unitstart";
- 		else if(strcasecmp(startmap, "city1") == 0)
-  			spot = "unitstart";
- 		else if(strcasecmp(startmap, "boss1") == 0)
-			spot = "bosstart";
-	}
 
 	if (spot)
 	{
@@ -2745,13 +2596,6 @@ static menulist_s	s_allow_exit_box;
 static menulist_s	s_infinite_ammo_box;
 static menulist_s	s_fixed_fov_box;
 static menulist_s	s_quad_drop_box;
-
-//ROGUE
-static menulist_s	s_no_mines_box;
-static menulist_s	s_no_nukes_box;
-static menulist_s	s_stack_double_box;
-static menulist_s	s_no_spheres_box;
-//ROGUE
 
 static void DMFlagCallback( void *self )
 {

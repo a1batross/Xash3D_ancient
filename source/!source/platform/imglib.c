@@ -1397,7 +1397,7 @@ loading and unpack to rgba any known image
 rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 {
 	imageformat_t	*format;
-	char *suf[6] = {"rt", "bk", "lf", "ft", "up", "dn"};
+	char *suf[6] = {"ft", "bk", "rt", "lf", "up", "dn"};
 	char path[128], loadname[128], texname[128];
 	int i, filesize = 0;
 	byte *f;

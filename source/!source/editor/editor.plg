@@ -6,6 +6,15 @@
 --------------------Configuration: editor - Win32 Release--------------------
 </h3>
 <h3>Command Lines</h3>
+Creating temporary file "C:\Temp\RSP1F64.bat" with contents
+[
+@echo off
+copy \XASH3D\src_main\!source\temp\editor\!release\editor.dll "D:\Xash3D\bin\editor.dll"
+]
+Creating command line "C:\Temp\RSP1F64.bat"
+<h3>Output Window</h3>
+Performing Custom Build Step on \XASH3D\src_main\!source\temp\editor\!release\editor.dll
+Скопировано файлов:         1.
 
 
 

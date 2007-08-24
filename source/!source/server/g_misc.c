@@ -17,13 +17,12 @@ int lastgibframe=0;
 void FadeThink(edict_t *ent)
 {
 	ent->count++;
-	if (ent->count==2)
+	if (ent->count == 2)
 	{
 		G_FreeEdict(ent);
 		return;
 	}
-	ent->s.effects |= EF_SPHERETRANS;
-	ent->nextthink=level.time+0.5;
+	ent->nextthink=level.time + 0.5;
 	gi.linkentity(ent);
 }
 void FadeDieThink (edict_t *ent)
@@ -280,8 +279,6 @@ void ThrowHead (edict_t *self, char *gibname, int damage, int type)
 	VectorClear (self->mins);
 	VectorClear (self->maxs);
 
-	DeleteReflection(self,-1);
-
 	strcpy(modelname,gibname);
 	p = strstr(modelname,"models/objects/gibs/");
 	if(p && self->gib_type)
@@ -335,19 +332,6 @@ void ThrowHead (edict_t *self, char *gibname, int damage, int type)
 	self->think = FadeDieThink;
 	self->nextthink = level.time + 8 + random()*10;
 
-	// Lazarus: If head owner was part of a movewith chain,
-	//          remove from the chain and repair the chain
-	//          if necessary
-	if(self->movewith) {
-		edict_t	*e;
-		edict_t	*parent=NULL;
-		int		i;
-		for(i=1; i<globals.num_edicts && !parent; i++) {
-			e = g_edicts + i;
-			if(e->movewith_next == self) parent=e;
-		}
-		if(parent) parent->movewith_next = self->movewith_next;
-	}
 	gi.linkentity (self);
 }
 
@@ -497,9 +481,6 @@ void BecomeExplosion1 (edict_t *self)
 		WRITE_COORD (self->s.origin);
 	MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
 
-	if (level.num_reflectors)
-		ReflectExplosion (TE_EXPLOSION1, self->s.origin);
-
 	G_FreeEdict (self);
 }
 
@@ -510,9 +491,6 @@ void BecomeExplosion2 (edict_t *self)
 		WRITE_BYTE (TE_EXPLOSION2);
 		WRITE_COORD (self->s.origin);
 	MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
-
-	if (level.num_reflectors)
-		ReflectExplosion (TE_EXPLOSION2, self->s.origin);
 
 	G_FreeEdict (self);
 }
@@ -621,7 +599,6 @@ Makes this the target of a monster and it will head here
 when first activated before going after the activator.  If
 hold is selected, it will stay here.
 */
-void tracktrain_drive(edict_t *train, edict_t *other);
 void point_combat_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	edict_t	*activator;
@@ -664,30 +641,20 @@ void point_combat_touch (edict_t *self, edict_t *other, cplane_t *plane, csurfac
 
 	if (self->pathtarget)
 	{
-		if (self->spawnflags & 2)
-		{
-			edict_t	*train;
-			train = G_PickTarget(self->pathtarget);
-			if(train)
-				tracktrain_drive(train,other);
-		}
-		else
-		{
-			char *savetarget;
+		char *savetarget;
 			
-			savetarget = self->target;
-			self->target = self->pathtarget;
-			if (other->enemy && other->enemy->client)
-				activator = other->enemy;
-			else if (other->oldenemy && other->oldenemy->client)
-				activator = other->oldenemy;
-			else if (other->activator && other->activator->client)
-				activator = other->activator;
-			else
-				activator = other;
-			G_UseTargets (self, activator);
-			self->target = savetarget;
-		}
+		savetarget = self->target;
+		self->target = self->pathtarget;
+		if (other->enemy && other->enemy->client)
+			activator = other->enemy;
+		else if (other->oldenemy && other->oldenemy->client)
+			activator = other->oldenemy;
+		else if (other->activator && other->activator->client)
+			activator = other->activator;
+		else
+			activator = other;
+		G_UseTargets (self, activator);
+		self->target = savetarget;
 	}
 }
 
@@ -1048,7 +1015,7 @@ void func_explosive_explode (edict_t *self)
 			switch(self->gib_type)
 			{
 			case GIB_METAL: ThrowDebris (self, "models/gibs/metal.mdl", 2, chunkorigin, r, 0); break;
-			case GIB_GLASS: ThrowDebris (self, "models/gibs/glass.mdl", 2, chunkorigin, r, EF_SPHERETRANS); break;
+			case GIB_GLASS: ThrowDebris (self, "models/gibs/glass.mdl", 2, chunkorigin, r, 0); break;
 			case GIB_BARREL: ThrowDebris (self, "models/gibs/barrelgib.mdl", 2, chunkorigin, r, 0); break;
 			case GIB_CRATE: ThrowDebris (self, "models/gibs/wood.mdl",  2, chunkorigin, r, 0); break;
 			case GIB_ROCK: ThrowDebris (self, "models/gibs/rock.mdl", 2, chunkorigin, r, 0); break;
@@ -1676,7 +1643,6 @@ void misc_deadsoldier_flieson(edict_t *self)
 	self->s.sound = gi.soundindex ("infantry/inflies1.wav");
 }
 
-int PatchDeadSoldier ();
 void SP_misc_deadsoldier (edict_t *ent)
 {
 	if (deathmatch->value)
@@ -1718,119 +1684,9 @@ void SP_misc_deadsoldier (edict_t *ent)
 	ent->die = misc_deadsoldier_die;
 	ent->monsterinfo.aiflags |= AI_GOOD_GUY;
 
-	if(ent->style)
-	{
-		PatchDeadSoldier();
-		ent->s.skin = ent->style;
-	}
 	ent->common_name = "Dead Marine";
 	gi.linkentity (ent);
 }
-
-/*QUAKED misc_viper (1 .5 0) (-16 -16 0) (16 16 32)
-This is the Viper for the flyby bombing.
-It is trigger_spawned, so you must have something use it for it to show up.
-There must be a path for it to follow once it is activated.
-
-"speed"		How fast the Viper should fly
-*/
-
-extern void train_use (edict_t *self, edict_t *other, edict_t *activator);
-extern void func_train_find (edict_t *self);
-
-void viper_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point )
-{
-	edict_t	*e, *next;
-
-	if(self->deathtarget)
-	{
-		self->target = self->deathtarget;
-		G_UseTargets (self, attacker);
-	}
-
-	e = self->movewith_next;
-	while(e) {
-		next = e->movewith_next;
-		if(e->solid == SOLID_NOT) {
-			e->nextthink = 0;
-			G_FreeEdict(e);
-		} else
-			BecomeExplosion1 (e);
-		e = next;
-	}
-
-	self->enemy = inflictor;
-	self->activator = attacker;
-	func_explosive_explode (self);
-}
-
-void misc_viper_use  (edict_t *self, edict_t *other, edict_t *activator)
-{
-	self->svflags &= ~SVF_NOCLIENT;
-	self->use = train_use;
-	train_use (self, other, activator);
-}
-
-void SP_misc_viper (edict_t *ent)
-{
-	if (!ent->target)
-	{
-		gi.dprintf ("misc_viper without a target at %s\n", vtos(ent->absmin));
-		G_FreeEdict (ent);
-		return;
-	}
-
-	ent->class_id = ENTITY_MISC_VIPER;
-	if (!ent->speed)
-		ent->speed = 300;
-
-	ent->movetype = MOVETYPE_PUSH;
-	ent->s.modelindex = gi.modelindex ("models/ships/viper/tris.md2");
-
-	// Lazarus - allow ship to be destroyed if positive health value
-	if(ent->health > 0)
-	{
-		ent->solid = SOLID_BBOX;
-		VectorSet (ent->mins, -32, -24, -12);
-		VectorSet (ent->maxs,  32,  24,  16);
-		ent->takedamage = DAMAGE_YES;
-		ent->die = viper_die;
-		if(!ent->dmg)
-			ent->dmg = 200;
-		if(!ent->mass)
-			ent->mass = 800;
-	}
-	else
-	{
-		ent->solid = SOLID_NOT;
-		VectorSet (ent->mins, -16, -16, 0);
-		VectorSet (ent->maxs, 16, 16, 32);
-	}
-
-	// Lazarus - TRAIN_SMOOTH forces trains to go directly to Move_Done from
-	//           Move_Final rather than slowing down (if necessary) for one
-	//           frame.
-	if (ent->spawnflags & TRAIN_SMOOTH)
-		ent->smooth_movement = true;
-	else
-		ent->smooth_movement = false;
-
-	ent->think = func_train_find;
-	ent->nextthink = level.time + FRAMETIME;
-
-	if(ent->spawnflags & TRAIN_START_ON)
-		ent->use = train_use;
-	else
-	{
-		ent->use = misc_viper_use;
-		ent->svflags |= SVF_NOCLIENT;
-	}
-	ent->moveinfo.accel = ent->moveinfo.decel = ent->moveinfo.speed = ent->speed;
-
-	ent->common_name = "Viper";
-	gi.linkentity (ent);
-}
-
 
 /*QUAKED misc_bigviper (1 .5 0) (-176 -120 -24) (176 120 72) 
 This is a large stationary viper as seen in Paul's intro
@@ -1870,9 +1726,6 @@ void misc_viper_bomb_touch (edict_t *self, edict_t *other, cplane_t *plane, csur
 			WRITE_COORD (self->s.origin);
 		MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
 
-		if (level.num_reflectors)
-			ReflectExplosion (TE_EXPLOSION2, self->s.origin);
-		
 		self->svflags   |= SVF_NOCLIENT;
 		self->solid      = SOLID_NOT;
 		self->use        = misc_viper_bomb_use;
@@ -1993,85 +1846,6 @@ void SP_misc_viper_bomb (edict_t *self)
 	self->common_name = "Bomb";
 	gi.linkentity (self);
 }
-
-
-/*QUAKED misc_strogg_ship (1 .5 0) (-16 -16 0) (16 16 32)
-This is a Storgg ship for the flybys.
-It is trigger_spawned, so you must have something use it for it to show up.
-There must be a path for it to follow once it is activated.
-
-"speed"		How fast it should fly
-*/
-
-extern void train_use (edict_t *self, edict_t *other, edict_t *activator);
-extern void func_train_find (edict_t *self);
-
-void misc_strogg_ship_use  (edict_t *self, edict_t *other, edict_t *activator)
-{
-	self->svflags &= ~SVF_NOCLIENT;
-	self->use = train_use;
-	train_use (self, other, activator);
-}
-
-void SP_misc_strogg_ship (edict_t *ent)
-{
-	if (!ent->target)
-	{
-		gi.dprintf ("%s without a target at %s\n", ent->classname, vtos(ent->absmin));
-		G_FreeEdict (ent);
-		return;
-	}
-
-	ent->class_id = ENTITY_MISC_STROGG_SHIP;
-	if (!ent->speed)
-		ent->speed = 300;
-
-	ent->movetype = MOVETYPE_PUSH;
-	ent->s.modelindex = gi.modelindex ("models/ships/strogg1/tris.md2");
-	// Lazarus - allow ship to be destroyed if positive health value
-	if(ent->health > 0)
-	{
-		ent->solid = SOLID_BBOX;
-		VectorSet (ent->mins, -58, -60, -40);
-		VectorSet (ent->maxs,  72,  60,  38);
-		ent->takedamage = DAMAGE_YES;
-		ent->die = viper_die;
-		if(!ent->dmg)
-			ent->dmg = 200;
-		if(!ent->mass)
-			ent->mass = 1200;
-	}
-	else
-	{
-		ent->solid = SOLID_NOT;
-		VectorSet (ent->mins, -16, -16, 0);
-		VectorSet (ent->maxs, 16, 16, 32);
-	}
-
-	// Lazarus - TRAIN_SMOOTH forces trains to go directly to Move_Done from
-	//           Move_Final rather than slowing down (if necessary) for one
-	//           frame.
-	if (ent->spawnflags & TRAIN_SMOOTH)
-		ent->smooth_movement = true;
-	else
-		ent->smooth_movement = false;
-
-	ent->think = func_train_find;
-	ent->nextthink = level.time + FRAMETIME;
-
-	if(ent->spawnflags & TRAIN_START_ON)
-		ent->use = train_use;
-	else
-	{
-		ent->use = misc_strogg_ship_use;
-		ent->svflags |= SVF_NOCLIENT;
-	}
-	ent->moveinfo.accel = ent->moveinfo.decel = ent->moveinfo.speed = ent->speed;
-
-	ent->common_name = "Strogg Ship";
-	gi.linkentity (ent);
-}
-
 
 /*QUAKED misc_satellite_dish (1 .5 0) (-64 -64 0) (64 64 128)
 */
@@ -2452,9 +2226,35 @@ void SP_func_clock (edict_t *self)
  trigger_transition with same name as teleporter can be used to 
  teleport multiple non-player entities
 ================================================================== */
+bool HasSpawnFunction(edict_t *ent)
+{
+	spawn_t	*s;
+	gitem_t	*item;
+	int		i;
+
+	if(!ent->classname)
+		return false;
+
+	// check item spawn functions
+	for (i=0,item=itemlist ; i<game.num_items ; i++,item++)
+	{
+		if (!item->classname)
+			continue;
+		if (!strcmp(item->classname, ent->classname))
+			return true;
+	}
+	// check normal spawn functions
+	for (s=spawns ; s->name ; s++)
+	{
+		if (!strcmp(s->name, ent->classname))
+			return true;
+	}
+	return false;
+}
+
 void teleport_transition_ents (edict_t *transition, edict_t *teleporter, edict_t *destination)
 {
-	extern entlist_t DoNotMove;
+	entlist_t			DoNotMove;
 	int			i, j;
 	int			total=0;
 	bool	nogo=false;
@@ -2480,7 +2280,6 @@ void teleport_transition_ents (edict_t *transition, edict_t *teleporter, edict_t
 		// Pass up owned entities not owned by the player on this pass...
 		// get 'em next pass so we'll know whether owner is in our list
 		if(ent->owner && !ent->owner->client) continue;
-		if(ent->movewith) continue;
 		if(ent->solid == SOLID_BSP) continue;
 		if((ent->solid == SOLID_TRIGGER) && !FindItemByClassname(ent->classname)) continue;
 		// Do not under any circumstances move these entities:
@@ -2527,7 +2326,6 @@ void teleport_transition_ents (edict_t *transition, edict_t *teleporter, edict_t
 		if(!ent->inuse) continue;
 		if(!ent->owner) continue;
 		if(ent->owner->client) continue;
-		if(ent->movewith) continue;
 		if(ent->solid == SOLID_BSP) continue;
 		if((ent->solid == SOLID_TRIGGER) && !FindItemByClassname(ent->classname)) continue;
 		// Do not under any circumstances move these entities:
@@ -2667,13 +2465,6 @@ void teleporter_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_
 		vec3_t	origin;
 		VectorMA(self->mins,0.5,self->size,origin);
 
-		if(!(self->spawnflags & 16))
-		{
-			MESSAGE_BEGIN(svc_temp_entity);
-				WRITE_BYTE(TE_TELEPORT_EFFECT);
-				WRITE_COORD(origin);
-			MESSAGE_SEND(MSG_PHS, origin, NULL);
-		}
 		gi.positioned_sound(origin,self,CHAN_AUTO,self->noise_index,1,1,0);
 	}
 	other->s.event = EV_PLAYER_TELEPORT;
@@ -2802,8 +2593,6 @@ void SP_misc_teleporter (edict_t *ent)
 		trig->solid = SOLID_TRIGGER;
 	trig->target = ent->target;
 	trig->owner = ent;
-	// Lazarus
-	trig->movewith = ent->movewith;
 	VectorCopy (ent->s.origin, trig->s.origin);
 	VectorSet (trig->mins, -8, -8, 8);
 	VectorSet (trig->maxs, 8, 8, 24);
@@ -2898,10 +2687,7 @@ void SP_misc_light (edict_t *self)
 {
 	self->class_id = ENTITY_MISC_LIGHT;
 	self->use = misc_light_use;
-	if(self->movewith)
-		self->movetype = MOVETYPE_PUSH;
-	else
-		self->movetype = MOVETYPE_NONE;
+	self->movetype = MOVETYPE_NONE;
 	self->think = misc_light_think;
 	if (!(self->spawnflags & START_OFF))
 		self->nextthink = level.time + 2*FRAMETIME;
@@ -2927,20 +2713,13 @@ TARGET_PRECIPITATION
 void drop_add_to_chain(edict_t *drop)
 {
 	edict_t	*owner = drop->owner;
-	edict_t *parent;
 
 	if(!owner || !owner->inuse || !(owner->spawnflags & SF_WEATHER_STARTON))
 	{
 		G_FreeEdict(drop);
 		return;
 	}
-	parent = owner;
-	while(parent->child)
-		parent = parent->child;
-	parent->child = drop;
-	drop->child = NULL;
 	drop->svflags |= SVF_NOCLIENT;
-	drop->s.effects &= ~EF_SPHERETRANS;
 	drop->s.renderfx &= ~RF_TRANSLUCENT;
 	VectorClear(drop->velocity);
 	VectorClear(drop->avelocity);
@@ -2965,7 +2744,6 @@ void leaf_fade2(edict_t *ent)
 	ent->count++;
 	if (ent->count == 1)
 	{
-		ent->s.effects |= EF_SPHERETRANS;
 		ent->nextthink=level.time+0.5;
 		gi.linkentity(ent);
 	}
@@ -3006,40 +2784,29 @@ void spawn_precipitation(edict_t *self, vec3_t org, vec3_t dir, float speed)
 {
 	edict_t *drop;
 
-	if(self->child)
+	drop = G_Spawn();
+	if(self->style == STYLE_WEATHER_BIGRAIN)
+		drop->s.modelindex = gi.modelindex ("models/objects/drop/heavy.md2");
+	else if(self->style == STYLE_WEATHER_SNOW)
+		drop->s.modelindex = gi.modelindex ("models/objects/snow/tris.md2");
+	else if(self->style == STYLE_WEATHER_LEAF)
 	{
-		// Then we already have a currently unused, invisible drop available
-		drop = self->child;
-		self->child = drop->child;
-		drop->child = NULL;
-		drop->svflags &= ~SVF_NOCLIENT;
-		drop->groundentity = NULL;
-	}
-	else
-	{
-		drop = G_Spawn();
-		if(self->style == STYLE_WEATHER_BIGRAIN)
-			drop->s.modelindex = gi.modelindex ("models/objects/drop/heavy.md2");
-		else if(self->style == STYLE_WEATHER_SNOW)
-			drop->s.modelindex = gi.modelindex ("models/objects/snow/tris.md2");
-		else if(self->style == STYLE_WEATHER_LEAF)
-		{
-			float	r=random();
-			if(r < 0.33)
-				drop->s.modelindex = gi.modelindex ("models/objects/leaf1/tris.md2");
-			else if(r < 0.66)
-				drop->s.modelindex = gi.modelindex ("models/objects/leaf2/tris.md2");
-			else
-				drop->s.modelindex = gi.modelindex ("models/objects/leaf3/tris.md2");
-			VectorSet(drop->mins,-1,-1,-1);
-			VectorSet(drop->maxs, 1, 1, 1);
-		}
-		else if(self->style == STYLE_WEATHER_USER)
-			drop->s.modelindex = gi.modelindex(self->usermodel);
+		float	r=random();
+		if(r < 0.33)
+			drop->s.modelindex = gi.modelindex ("models/objects/leaf1/tris.md2");
+		else if(r < 0.66)
+			drop->s.modelindex = gi.modelindex ("models/objects/leaf2/tris.md2");
 		else
-			drop->s.modelindex = gi.modelindex ("models/objects/drop/tris.md2");
-		drop->classname = "rain drop";
+			drop->s.modelindex = gi.modelindex ("models/objects/leaf3/tris.md2");
+		VectorSet(drop->mins,-1,-1,-1);
+		VectorSet(drop->maxs, 1, 1, 1);
 	}
+	else if(self->style == STYLE_WEATHER_USER)
+		drop->s.modelindex = gi.modelindex(self->usermodel);
+	else
+		drop->s.modelindex = gi.modelindex ("models/objects/drop/tris.md2");
+	drop->classname = "rain drop";
+
 	if(self->gravity > 0. || self->attenuation > 0 )
 		drop->movetype = MOVETYPE_DEBRIS;
 	else
@@ -3087,7 +2854,6 @@ void spawn_precipitation(edict_t *self, vec3_t org, vec3_t dir, float speed)
 	}
 	else
 	{
-		drop->s.effects |= EF_SPHERETRANS;
 		drop->avelocity[YAW] = self->yaw_speed;
 	}
 	if(self->spawnflags & SF_WEATHER_START_FADE)
@@ -3169,18 +2935,6 @@ void target_precipitation_use (edict_t *ent, edict_t *other, edict_t *activator)
 		// already on; turn it off
 		ent->nextthink = 0;
 		ent->spawnflags &= ~SF_WEATHER_STARTON;
-		if(ent->child)
-		{
-			edict_t	*child, *parent;
-			child = ent->child;
-			ent->child = NULL;
-			while(child)
-			{
-				parent = child;
-				child = parent->child;
-				G_FreeEdict(parent);
-			}
-		}
 	}
 	else
 	{
@@ -3377,18 +3131,6 @@ void target_fountain_use (edict_t *ent, edict_t *other, edict_t *activator)
 		// already on; turn it off
 		ent->nextthink = 0;
 		ent->spawnflags &= ~SF_WEATHER_STARTON;
-		if(ent->child)
-		{
-			edict_t	*child, *parent;
-			child = ent->child;
-			ent->child = NULL;
-			while(child)
-			{
-				parent = child;
-				child = parent->child;
-				G_FreeEdict(parent);
-			}
-		}
 	}
 	else
 	{
@@ -3476,110 +3218,6 @@ void SP_target_fountain (edict_t *ent)
 	ent->density = ent->count;
 
 	gi.linkentity (ent);
-}
-//
-/*=============================================================================
-
-MISC_DEADSOLDIER MODEL PATCH
-
-==============================================================================*/
-
-#define NUM_SKINS		16
-#define MAX_SKINNAME	64
-#define DEADSOLDIER_MODEL "models/deadbods/dude/tris.md2"
-
-#include <direct.h>
-#include "pak.h"
-
-int PatchDeadSoldier ()
-{
-	cvar_t		*gamedir;
-	char		skins[NUM_SKINS][MAX_SKINNAME];	// skin entries
-	char		outfilename[MAX_OSPATH];
-	int		j;
-	file_t		*infile;
-	file_t		*outfile;
-	dmdl_t		model;				// model header
-	byte		*data;				// model data
-	int		datasize;			// model data size (bytes)
-	int		newoffset;			// model data offset (after skins)
-
-	// get game (moddir) name
-	gamedir = gi.cvar("game", "", 0);
-	if (!*gamedir->string) return 0; // we're in baseq2
-
-	if (gi.Fs.FileExists(DEADSOLDIER_MODEL))
-		return 0;
-
-	for (j = 0; j < NUM_SKINS; j++)
-		memset (skins[j], 0, MAX_SKINNAME);
-
-	sprintf (skins[0],  "models/deadbods/dude/dead1.pcx");
-	sprintf (skins[1],	"players/male/cipher.pcx");
-	sprintf (skins[2],	"players/male/claymore.pcx");
-	sprintf (skins[3],	"players/male/flak.pcx");
-	sprintf (skins[4],	"players/male/grunt.pcx");
-	sprintf (skins[5],	"players/male/howitzer.pcx");
-	sprintf (skins[6],	"players/male/major.pcx");
-	sprintf (skins[7],	"players/male/nightops.pcx");
-	sprintf (skins[8],	"players/male/pointman.pcx");
-	sprintf (skins[9],	"players/male/psycho.pcx");
-	sprintf (skins[10],	"players/male/rampage.pcx");
-	sprintf (skins[11], "players/male/razor.pcx");
-	sprintf (skins[12], "players/male/recon.pcx");
-	sprintf (skins[13], "players/male/scout.pcx");
-	sprintf (skins[14], "players/male/sniper.pcx");
-	sprintf (skins[15], "players/male/viper.pcx");
-
-
-	// load original model
-	if ( !(infile = gi.Fs.Open (DEADSOLDIER_MODEL, "rb")) )
-	{
-		gi.dprintf("PatchDeadSoldier: Could not find %s\n",DEADSOLDIER_MODEL);
-		return 0;
-	}
-	else
-	{
-		gi.Fs.Read (infile, &model, sizeof (dmdl_t));
-	
-		datasize = model.ofs_end - model.ofs_skins;
-		if ( !(data = malloc (datasize)) )	// make sure freed locally
-		{
-			gi.dprintf ("PatchMonsterModel: Could not allocate memory for model\n");
-			return 0;
-		}
-		gi.Fs.Read (infile, data, sizeof (byte) * datasize);
-		gi.Fs.Close (infile);
-	}
-	
-	// update model info
-	model.num_skins = NUM_SKINS;
-	
-	// Already had 1 skin, so new offset doesn't include that one
-	newoffset = (model.num_skins-1) * MAX_SKINNAME;
-	model.ofs_st     += newoffset;
-	model.ofs_tris   += newoffset;
-	model.ofs_frames += newoffset;
-	model.ofs_glcmds += newoffset;
-	model.ofs_end    += newoffset;
-
-	if (!(outfile = gi.Fs.Open (DEADSOLDIER_MODEL, "wb")) )
-	{
-		// file couldn't be created for some other reason
-		gi.dprintf ("PatchDeadSoldier: Could not save %s\n", outfilename);
-		free (data);
-		return 0;
-	}
-	
-	gi.Fs.Write (outfile, &model, sizeof (dmdl_t));
-	gi.Fs.Write (outfile, skins, sizeof (char)*(model.num_skins*MAX_SKINNAME));
-	data += MAX_SKINNAME;
-	gi.Fs.Write (outfile, data, sizeof (byte)*datasize);
-	
-	gi.Fs.Close (outfile);
-	gi.dprintf ("PatchDeadSoldier: Saved %s\n", outfilename);
-	free (data);
-	return 1;
 }
 
 void PrecacheDebris(int type)

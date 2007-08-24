@@ -109,7 +109,6 @@ findradius2
 
 Returns entities that have origins within a spherical area
 
-ROGUE - tweaks for performance for tesla specific code
 only returns entities that can be damaged
 only returns entities that are SVF_DAMAGEABLE
 
@@ -133,8 +132,6 @@ edict_t *findradius2 (edict_t *from, vec3_t org, float rad)
 		if (from->solid == SOLID_NOT)
 			continue;
 		if (!from->takedamage)
-			continue;
-		if (!(from->svflags & SVF_DAMAGEABLE))
 			continue;
 		for (j=0 ; j<3 ; j++)
 			eorg[j] = org[j] - (from->s.origin[j] + (from->mins[j] + from->maxs[j])*0.5);
@@ -579,18 +576,6 @@ void G_FreeEdict (edict_t *ed)
 {
 	// Lazarus - if part of a movewith chain, remove from
 	// the chain and repair broken links
-	if(ed->movewith) {
-		edict_t	*e;
-		edict_t	*parent=NULL;
-		int		i;
-
-		for(i=1; i<globals.num_edicts && !parent; i++) {
-			e = g_edicts + i;
-			if(e->movewith_next == ed) parent=e;
-		}
-		if(parent) parent->movewith_next = ed->movewith_next;
-	}
-
 	gi.unlinkentity (ed);		// unlink from world
 
 	// Lazarus: In SP we no longer reserve slots for bodyque's
@@ -615,10 +600,6 @@ void G_FreeEdict (edict_t *ed)
 		ed->flash->freetime  = level.time;
 		ed->flash->inuse     = false;
 	}
-
-	// Lazarus: reflections
-	if (!(ed->flags & FL_REFLECT))
-		DeleteReflection(ed,-1);
 
 	memset (ed, 0, sizeof(*ed));
 	ed->classname = "freed";
@@ -656,8 +637,6 @@ void	G_TouchTriggers (edict_t *ent)
 		if (!hit->inuse)
 			continue;
 		if (!hit->touch)
-			continue;
-		if (ent->client && ent->client->spycam && !(hit->svflags & SVF_TRIGGER_CAMOWNER))
 			continue;
 		hit->touch (hit, ent, NULL, NULL);
 	}
@@ -799,13 +778,7 @@ edict_t	*LookingAt(edict_t *ent, int filter, vec3_t endpos, float *range)
 		return NULL;
 	}
 	VectorClear(end);
-	if(ent->client->chasetoggle)
-	{
-		AngleVectors(ent->client->v_angle, forward, NULL, NULL);
-		VectorCopy(ent->client->chasecam->s.origin,start);
-		ignore = ent->client->chasecam;
-	}
-	else if(ent->client->spycam)
+	if(ent->client->spycam)
 	{
 		AngleVectors(ent->client->ps.viewangles, forward, NULL, NULL);
 		VectorCopy(ent->s.origin,start);
@@ -1000,4 +973,428 @@ void G_UseTarget (edict_t *ent, edict_t *activator, edict_t *target)
 			return;
 		}
 	}
+}
+
+/*
+=============
+visible
+
+returns 1 if the entity is visible to self, even if not infront ()
+=============
+*/
+bool visible (edict_t *self, edict_t *other)
+{
+	vec3_t	spot1;
+	vec3_t	spot2;
+	trace_t	trace;
+
+	VectorCopy (self->s.origin, spot1);
+	spot1[2] += self->viewheight;
+	VectorCopy (other->s.origin, spot2);
+	spot2[2] += other->viewheight;
+	trace = gi.trace (spot1, vec3_origin, vec3_origin, spot2, self, MASK_OPAQUE);
+
+	// Lazarus: Take fog into account for monsters
+
+	if ( (trace.fraction == 1.0) || (trace.ent == other))
+	{
+		self->monsterinfo.visibility = 1.0;
+		return true;
+	}
+	return false;
+}
+
+
+/*
+=============
+infront
+
+returns 1 if the entity is in front (in sight) of self
+=============
+*/
+bool infront (edict_t *self, edict_t *other)
+{
+	vec3_t	vec;
+	float	dot;
+	vec3_t	forward;
+	
+	AngleVectors (self->s.angles, forward, NULL, NULL);
+	VectorSubtract (other->s.origin, self->s.origin, vec);
+	VectorNormalize (vec);
+	dot = DotProduct (vec, forward);
+
+	if (dot > 0.3)
+		return true;
+	return false;
+}
+
+void T_Damage (edict_t *in_targ, edict_t *inflictor, edict_t *in_attacker, vec3_t dir, vec3_t point, vec3_t normal, int damage, int knockback, int dflags, int mod)
+{
+	gclient_t	*client;
+	int			take;
+	int			save;
+	int			te_sparks;
+	edict_t		*attacker;
+	edict_t		*targ;
+
+	targ = in_targ;
+
+	if (!targ || !targ->inuse)
+		return;
+
+	if (!targ->takedamage)
+		return;
+
+	if (!in_attacker)
+		attacker = world;
+	else
+		attacker = in_attacker;
+
+
+	// If targ is a fake player for the real player viewing camera, get that player
+	// out of the camera and do the damage to him
+	if (targ->class_id == ENTITY_CAMPLAYER) {
+		if(targ->target_ent && targ->target_ent->client && targ->target_ent->client->spycam)
+		{
+			if(attacker->enemy == targ)
+			{
+				attacker->enemy = targ->target_ent;
+				attacker->goalentity = NULL;
+				attacker->movetarget = NULL;
+			}
+			targ = targ->target_ent;
+			if(attacker->svflags & SVF_MONSTER)
+			{
+				if(attacker->spawnflags & SF_MONSTER_GOODGUY)
+				{
+					if(attacker->enemy == targ)
+					{
+						attacker->enemy = NULL;
+						attacker->monsterinfo.aiflags &= ~AI_FOLLOW_LEADER;
+						attacker->monsterinfo.attack_finished = 0;
+						attacker->monsterinfo.pausetime = level.time + 100000000;
+						if(attacker->monsterinfo.stand)
+							attacker->monsterinfo.stand(attacker);
+					}
+				}
+			}
+		}
+		else
+			return;	// don't damage target_monitor camplayer
+	}
+	// friendly fire avoidance
+	// if enabled you can't hurt teammates (but you can hurt yourself)
+	// knockback still occurs
+	if ((targ != attacker) && ((deathmatch->value && ((int)(dmflags->value) & (DF_MODELTEAMS | DF_SKINTEAMS))) || coop->value))
+	{
+		if (OnSameTeam (targ, attacker))
+		{
+			if ((int)(dmflags->value) & DF_NO_FRIENDLY_FIRE)
+				damage = 0;
+			else
+				mod |= MOD_FRIENDLY_FIRE;
+		}
+	}
+	meansOfDeath = mod;
+
+	// easy mode takes half damage
+	if (skill->value == 0 && deathmatch->value == 0 && targ->client)
+	{
+		damage *= 0.5;
+		if (!damage)
+			damage = 1;
+	}
+
+	client = targ->client;
+
+	if (dflags & DAMAGE_BULLET)
+		te_sparks = TE_BULLET_SPARKS;
+	else
+		te_sparks = TE_SPARKS;
+
+	VectorNormalize(dir);
+
+// bonus damage for suprising a monster
+	if (!(dflags & DAMAGE_RADIUS) && (targ->svflags & SVF_MONSTER) && (attacker->client) && (!targ->enemy) && (targ->health > 0))
+		damage *= 2;
+
+	if (targ->flags & FL_NO_KNOCKBACK)
+		knockback = 0;
+
+// Lazarus: If monster is currently chasing a "thing" and mod is a laser,
+//          ignore knockback to give poor guy a chance to vamoose.
+	if (targ->movetarget && (targ->movetarget->class_id == ENTITY_THING) && (mod == MOD_TARGET_LASER))
+		knockback = 0;
+
+// figure momentum add
+	if (!(dflags & DAMAGE_NO_KNOCKBACK))
+	{
+		// Lazarus: Added MOVETYPE_TOSS to no knockback (pickup items and dead bodies)
+		if ((knockback) && (targ->movetype != MOVETYPE_NONE) && (targ->movetype != MOVETYPE_BOUNCE) && (targ->movetype != MOVETYPE_PUSH) && (targ->movetype != MOVETYPE_STOP) && (targ->movetype != MOVETYPE_TOSS))
+		{
+			vec3_t	kvel;
+			float	mass;
+
+			if (targ->mass < 50)
+				mass = 50;
+			else
+				mass = targ->mass;
+
+			if (targ->client  && attacker == targ)
+			{
+				VectorScale (dir, 1600.0 * (float)knockback / mass, kvel);	// the rocket jump hack...
+			}
+			else
+			{
+				VectorScale (dir, 500.0 * (float)knockback / mass, kvel);
+                              }
+			VectorAdd (targ->velocity, kvel, targ->velocity);
+		}
+	}
+
+	take = damage;
+	save = 0;
+
+	// check for invincibility
+	if ((client && client->invincible_framenum > level.framenum ) && !(dflags & DAMAGE_NO_PROTECTION))
+	{
+		if (targ->pain_debounce_time < level.time)
+		{
+			gi.sound(targ, CHAN_ITEM, gi.soundindex("items/protect4.wav"), 1, ATTN_NORM, 0);
+			targ->pain_debounce_time = level.time + 2;
+		}
+		take = 0;
+		save = damage;
+	}
+
+	// do the damage
+	if (take)
+	{
+		if(targ->client)
+		{
+			if(in_targ != targ)
+			{
+				// Then player has taken the place of whatever was originally
+				// damaged, as in switching from func_monitor usage. Limit
+				// damage so that player isn't killed, and make him temporarily
+				// invincible
+				targ->health = max(2,targ->health - take);
+				targ->client->invincible_framenum = level.framenum+2;
+				targ->pain_debounce_time = max(targ->pain_debounce_time,level.time+0.3);
+			}
+			else if(level.framenum - targ->client->startframe > 30)
+				targ->health = targ->health - take;
+			else if(targ->health > 10)
+				targ->health = max(10,targ->health - take);
+		}
+		else
+		{
+			// Lazarus: For func_explosive target, check spawnflags and, if needed,
+			//          damage type
+			if(targ->class_id == ENTITY_FUNC_EXPLOSIVE)
+			{
+				bool good_damage = true;
+
+				if(targ->spawnflags & 8)  // explosion only
+				{
+					good_damage = false;
+					if(mod == MOD_GRENADE)     good_damage = true;
+					if(mod == MOD_G_SPLASH)    good_damage = true;
+					if(mod == MOD_ROCKET)      good_damage = true;
+					if(mod == MOD_R_SPLASH)    good_damage = true;
+					if(mod == MOD_BFG_BLAST)   good_damage = true;
+					if(mod == MOD_HANDGRENADE) good_damage = true;
+					if(mod == MOD_HG_SPLASH)   good_damage = true;
+					if(mod == MOD_EXPLOSIVE)   good_damage = true;
+					if(mod == MOD_BARREL)      good_damage = true;
+					if(mod == MOD_BOMB)        good_damage = true;
+				}
+				if(!good_damage) return;
+			}
+
+			targ->health = targ->health - take;
+		}
+
+		if (targ->health <= 0)
+		{
+			if ((targ->svflags & SVF_MONSTER) || (client))
+				targ->flags |= FL_NO_KNOCKBACK;
+			Killed (targ, inflictor, attacker, take, point);
+			return;
+		}
+	}
+
+	if (client)
+	{
+		if (!(targ->flags & FL_GODMODE) && (take))
+			targ->pain (targ, attacker, knockback, take);
+	}
+	else if (take)
+	{
+		if (targ->pain)
+			targ->pain (targ, attacker, knockback, take);
+	}
+
+	// add to the damage inflicted on a player this frame
+	// the total will be turned into screen blends and view angle kicks
+	// at the end of the frame
+	if (client)
+	{
+		client->damage_parmor += 10;
+		client->damage_armor += 10;
+		client->damage_blood += take;
+		client->damage_knockback += knockback;
+		VectorCopy (point, client->damage_from);
+	}
+}
+
+
+/*
+============
+T_RadiusDamage
+
+Lazarus adds dmg_slope to alter the radius damage equation. (Standard Q2 = -0.5)
+============
+*/
+void T_RadiusDamage (edict_t *inflictor, edict_t *attacker, float damage, edict_t *ignore, float radius, int mod, double dmg_slope)
+{
+	float	points;
+	edict_t	*ent = NULL;
+	vec3_t	v;
+	vec3_t	dir;
+
+	while ((ent = findradius(ent, inflictor->s.origin, radius)) != NULL)
+	{
+		if (ent == ignore)
+			continue;
+		if (!ent->takedamage)
+			continue;
+
+		VectorAdd (ent->mins, ent->maxs, v);
+		VectorMA (ent->s.origin, 0.5, v, v);
+		VectorSubtract (inflictor->s.origin, v, v);
+		points = damage + dmg_slope * VectorLength (v);
+		if (ent == attacker)
+			points = points * 0.5;
+		if (points > 0)
+		{
+			if (CanDamage (ent, inflictor))
+			{
+				VectorSubtract (ent->s.origin, inflictor->s.origin, dir);
+				T_Damage (ent, inflictor, attacker, dir, inflictor->s.origin, vec3_origin, (int)points, (int)points, DAMAGE_RADIUS, mod);
+			}
+		}
+	}
+}
+
+/*
+============
+Killed
+============
+*/
+void misc_deadsoldier_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point);
+void Killed (edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point)
+{
+	if (targ->health < -999) targ->health = -999;
+
+	targ->enemy = attacker;
+
+	if ((targ->svflags & SVF_MONSTER) && (targ->deadflag != DEAD_DEAD))
+	{
+		if (!(targ->monsterinfo.aiflags & AI_GOOD_GUY) )
+		{
+			level.killed_monsters++;
+			if (coop->value && attacker->client)
+				attacker->client->resp.score++;
+			// medics won't heal monsters that they kill themselves
+			if (attacker->class_id == ENTITY_MONSTER_MEDIC)
+				targ->owner = attacker;
+		}
+	}
+
+	if (targ->movetype == MOVETYPE_PUSH || targ->movetype == MOVETYPE_STOP || targ->movetype == MOVETYPE_NONE)
+	{	// doors, triggers, etc
+		targ->die (targ, inflictor, attacker, damage, point);
+		return;
+	}
+
+	if (inflictor->movetype == MOVETYPE_PUSH)
+	{
+		// Lazarus - Die function won't gib NO_GIB monsters... blow 'em up
+		if((targ->die != misc_deadsoldier_die) && (targ->spawnflags & SF_MONSTER_NOGIB))
+		{
+			BecomeExplosion1(targ);
+			return;
+		}
+	}
+	targ->die (targ, inflictor, attacker, damage, point);
+}
+
+/*
+============
+CanDamage
+
+Returns true if the inflictor can directly damage the target.  Used for
+explosions and melee attacks.
+============
+*/
+bool CanDamage (edict_t *targ, edict_t *inflictor)
+{
+	vec3_t	dest;
+	trace_t	trace;
+
+// bmodels need special checking because their origin is 0,0,0
+	if (targ->movetype == MOVETYPE_PUSH)
+	{
+		VectorAdd (targ->absmin, targ->absmax, dest);
+		VectorScale (dest, 0.5, dest);
+		trace = gi.trace (inflictor->s.origin, vec3_origin, vec3_origin, dest, inflictor, MASK_SOLID);
+		if (trace.fraction == 1.0)
+			return true;
+		if (trace.ent == targ)
+			return true;
+		return false;
+	}
+	
+	trace = gi.trace (inflictor->s.origin, vec3_origin, vec3_origin, targ->s.origin, inflictor, MASK_SOLID);
+	if (trace.fraction == 1.0 || trace.ent == targ)
+		return true;
+
+	// Lazarus: This is kinda cheesy, but avoids doing goofy things in a map to make this work. If a LOS
+	//          from inflictor to targ is blocked by a func_tracktrain, AND the targ is riding/driving
+	//          the tracktrain, go ahead and hurt him.
+
+	if(trace.ent && (trace.ent->flags & FL_TRACKTRAIN) && ((trace.ent->owner == targ) || (targ->groundentity == trace.ent)) )
+		return true;
+
+	VectorCopy (targ->s.origin, dest);
+	dest[0] += 15.0;
+	dest[1] += 15.0;
+	trace = gi.trace (inflictor->s.origin, vec3_origin, vec3_origin, dest, inflictor, MASK_SOLID);
+	if (trace.fraction == 1.0 || trace.ent == targ)
+		return true;
+
+	VectorCopy (targ->s.origin, dest);
+	dest[0] += 15.0;
+	dest[1] -= 15.0;
+	trace = gi.trace (inflictor->s.origin, vec3_origin, vec3_origin, dest, inflictor, MASK_SOLID);
+	if (trace.fraction == 1.0 || trace.ent == targ)
+		return true;
+
+	VectorCopy (targ->s.origin, dest);
+	dest[0] -= 15.0;
+	dest[1] += 15.0;
+	trace = gi.trace (inflictor->s.origin, vec3_origin, vec3_origin, dest, inflictor, MASK_SOLID);
+	if (trace.fraction == 1.0 || trace.ent == targ)
+		return true;
+
+	VectorCopy (targ->s.origin, dest);
+	dest[0] -= 15.0;
+	dest[1] -= 15.0;
+	trace = gi.trace (inflictor->s.origin, vec3_origin, vec3_origin, dest, inflictor, MASK_SOLID);
+	if (trace.fraction == 1.0 || trace.ent == targ)
+		return true;
+
+
+	return false;
 }

@@ -114,243 +114,39 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;hpj;bat;for;f90"
 # Begin Source File
 
-SOURCE=.\global\g_ai.c
+SOURCE=.\g_cmds.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\ents\g_camera.c
+SOURCE=.\g_items.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\global\g_chase.c
+SOURCE=.\g_main.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\global\g_cmds.c
+SOURCE=.\g_misc.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\global\g_combat.c
+SOURCE=.\g_phys.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\ents\g_crane.c
+SOURCE=.\g_save.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\ents\g_fog.c
+SOURCE=.\g_spawn.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\ents\g_func.c
+SOURCE=.\g_svcmds.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\ents\g_items.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\global\g_jetpack.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ents\g_lights.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ents\g_lock.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\global\g_main.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ents\g_misc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ents\g_model.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\g_monster.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ents\g_mtrain.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\global\g_newai.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ents\g_pendulum.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\global\g_phys.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ents\g_reflect.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\global\g_save.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\global\g_sound.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\global\g_spawn.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\global\g_svcmds.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ents\g_target.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ents\g_thing.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ents\g_tracktrain.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ents\g_trigger.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ents\g_turret.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\global\g_utils.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ents\g_vehicle.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ents\g_weapon.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ents\g_wes.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_actor.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_actor_weap.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_berserk.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_boss2.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_boss3.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_boss31.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_boss32.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_brain.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_chick.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\m_flash.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_flipper.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_float.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_flyer.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_gladiator.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_gunner.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_hover.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_infantry.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_insane.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_medic.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_move.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_mutant.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_parasite.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_soldier.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_supertank.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_tank.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\p_chase.c
+SOURCE=.\g_utils.c
 # End Source File
 # Begin Source File
 
@@ -363,14 +159,6 @@ SOURCE=.\p_hud.c
 # Begin Source File
 
 SOURCE=.\p_menu.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\p_text.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\p_trail.c
 # End Source File
 # Begin Source File
 
@@ -390,119 +178,15 @@ SOURCE=..\common\const.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\global\fmod.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\g_local.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\game.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_actor.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_berserk.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_boss2.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_boss31.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_boss32.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_brain.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_chick.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_flipper.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_float.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_flyer.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_gladiator.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_gunner.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_hover.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_infantry.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_insane.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_medic.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_mutant.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_parasite.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_player.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_rider.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_soldier.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_supertank.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\monsters\m_tank.h
+SOURCE=.\m_player.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\p_menu.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\p_text.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\pak.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"

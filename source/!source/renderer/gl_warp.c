@@ -540,7 +540,18 @@ void MakeSkyVec (float s, float t, int axis)
 R_DrawSkyBox
 ==============
 */
-int skytexorder[6] = {0,2,1,3,4,5};
+int skytexorder[6] = {4, 5, 1, 0, 2, 3}; //var. 1
+
+uint RemapSides[6] = 
+{
+	0,	// ft
+	2,	// bk
+	4,	// rt
+	5,	// lf
+	1,	// up
+	3,	// dn
+};
+
 void R_DrawSkyBox (void)
 {
 	int		i;

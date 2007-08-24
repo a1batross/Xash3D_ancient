@@ -101,18 +101,14 @@ field_t	fields[] =
 	{"maxpitch", STOFS(maxpitch), F_FLOAT, FFL_SPAWNTEMP},
 	{"nextmap", STOFS(nextmap), F_LSTRING, FFL_SPAWNTEMP},
 
-	// Lazarus additions
-	{"actor_current_weapon", FOFS(actor_current_weapon), F_INT},
 	{"aiflags", FOFS(monsterinfo.aiflags), F_INT},
 	{"alpha", FOFS(alpha), F_FLOAT},
 	{"axis", FOFS(axis), F_INT},
-	{"base_radius", FOFS(base_radius), F_FLOAT},
 	{"bleft", FOFS(bleft), F_VECTOR},
 	{"blood_type", FOFS(blood_type), F_INT},
 	{"bob", FOFS(bob), F_FLOAT},
 	{"bobframe", FOFS(bobframe), F_INT},
 	{"busy", FOFS(busy), F_INT},
-	{"child", FOFS(child), F_EDICT},
 	{"class_id", FOFS(class_id), F_INT},
 	{"color", FOFS(color), F_VECTOR},
 	{"crane_beam", FOFS(crane_beam), F_EDICT, FFL_NOSPAWN},
@@ -129,21 +125,12 @@ field_t	fields[] =
 	{"datafile", FOFS(datafile), F_LSTRING},
 	{"deadflag", FOFS(deadflag), F_INT},
 	{"density", FOFS(density), F_FLOAT},
-	{"destroytarget", FOFS(destroytarget), F_LSTRING},
 	{"dmgteam", FOFS(dmgteam), F_LSTRING},
-	{"do_not_rotate", FOFS(do_not_rotate), F_INT},
 	{"duration", FOFS(duration), F_FLOAT},
 	{"effects", FOFS(effects), F_INT},
 	{"fadein", FOFS(fadein), F_FLOAT},
 	{"fadeout", FOFS(fadeout), F_FLOAT},
 	{"flies", FOFS(monsterinfo.flies), F_FLOAT},
-	{"fog_color", FOFS(fog_color), F_VECTOR},
-	{"fog_density", FOFS(fog_density), F_FLOAT},
-	{"fog_far", FOFS(fog_far), F_FLOAT},
-	{"fog_model", FOFS(fog_model), F_INT},
-	{"fog_near", FOFS(fog_near), F_FLOAT},
-	{"fogclip", FOFS(fogclip), F_INT},
-	{"followtarget", FOFS(followtarget), F_LSTRING},
 	{"frame", FOFS(s.frame), F_INT},
 	{"framenumbers", FOFS(framenumbers), F_INT},
 	{"gib_health", FOFS(gib_health), F_INT},
@@ -158,10 +145,6 @@ field_t	fields[] =
 	{"max_health", FOFS(max_health), F_INT},
 	{"max_range", FOFS(monsterinfo.max_range), F_FLOAT},
 	{"moreflags", FOFS(moreflags), F_INT},
-	{"movewith", FOFS(movewith), F_LSTRING},
-	{"movewith_ent", FOFS(movewith_ent), F_EDICT},
-	{"movewith_next", FOFS(movewith_next), F_EDICT},
-	{"movewith_offset", FOFS(movewith_offset), F_VECTOR},
 	{"move_to", FOFS(move_to), F_LSTRING},
 	{"muzzle", FOFS(muzzle), F_VECTOR},
 	{"muzzle2", FOFS(muzzle2), F_VECTOR},
@@ -173,7 +156,6 @@ field_t	fields[] =
 	{"org_mins", FOFS(org_mins), F_VECTOR},
 	{"org_size", FOFS(org_size), F_VECTOR},
 	{"owner_id", FOFS(owner_id), F_INT},
-	{"parent_attach_angles", FOFS(parent_attach_angles), F_VECTOR},
 	{"pitch_speed", FOFS(pitch_speed), F_FLOAT},
 	{"powerarmor", FOFS(powerarmor), F_INT},
 	{"prev_grenade", FOFS(prev_grenade), F_EDICT, FFL_NOSPAWN},
@@ -192,30 +174,12 @@ field_t	fields[] =
 	{"target2", FOFS(target2), F_LSTRING},
 	{"tright", FOFS(tright), F_VECTOR},
 	{"turn_rider", FOFS(turn_rider), F_INT},
-	{"turret", FOFS(turret), F_EDICT},
 	{"usermodel", FOFS(usermodel), F_LSTRING},
 	{"vehicle", FOFS(vehicle), F_EDICT, FFL_NOSPAWN},
 	{"viewer", FOFS(viewer), F_EDICT},
 	{"viewheight", FOFS(viewheight), F_INT},
-	{"viewmessage", FOFS(viewmessage), F_LSTRING},
 	{"yaw_speed", FOFS(yaw_speed), F_FLOAT},
 
-	// ROGUE
-	{"bad_area", FOFS(bad_area), F_EDICT},
-	// while the hint_path stuff could be reassembled on the fly, no reason to be different
-	{"hint_chain", FOFS(hint_chain), F_EDICT},
-	{"monster_hint_chain", FOFS(monster_hint_chain), F_EDICT},
-	{"target_hint_chain", FOFS(target_hint_chain), F_EDICT},
-	//
-	{"goal_hint", FOFS(monsterinfo.goal_hint), F_EDICT},
-	{"badMedic1", FOFS(monsterinfo.badMedic1), F_EDICT},
-	{"badMedic2", FOFS(monsterinfo.badMedic2), F_EDICT},
-	{"last_player_enemy", FOFS(monsterinfo.last_player_enemy), F_EDICT},
-	{"commander", FOFS(monsterinfo.commander), F_EDICT},
-	{"blocked", FOFS(monsterinfo.blocked), F_MMOVE, FFL_NOSPAWN},
-	{"duck", FOFS(monsterinfo.duck), F_MMOVE, FFL_NOSPAWN},
-	{"unduck", FOFS(monsterinfo.unduck), F_MMOVE, FFL_NOSPAWN},
-	{"sidestep", FOFS(monsterinfo.sidestep), F_MMOVE, FFL_NOSPAWN},
 	{0, 0, 0, 0}
 
 };
@@ -229,10 +193,6 @@ field_t	levelfields[] =
 	{"sound_entity", LLOFS(sound_entity), F_EDICT},
 	{"sound2_entity", LLOFS(sound2_entity), F_EDICT},
 
-	// ROGUE
-	{"disguise_violator", LLOFS(disguise_violator), F_EDICT},
-	// ROGUE
-
 	{NULL, 0, F_INT}
 };
 
@@ -241,8 +201,6 @@ field_t	clientfields[] =
 	{"pers.weapon", CLOFS(pers.weapon), F_ITEM},
 	{"pers.lastweapon", CLOFS(pers.lastweapon), F_ITEM},
 	{"newweapon", CLOFS(newweapon), F_ITEM},
-	{"chasecam", CLOFS(chasecam), F_EDICT},
-	{"oldplayer", CLOFS(oldplayer), F_EDICT},
 
 	{NULL, 0, F_INT}
 };
@@ -256,7 +214,6 @@ only happens when a new game is started or a save game
 is loaded.
 ============
 */
-void ReadTextureSurfaceAssignments();
 void InitGame (void)
 {
 	gi.dprintf ("====== Init %s ======\n\n", GameTitle );
@@ -316,31 +273,21 @@ void InitGame (void)
 	// dm map list
 	sv_maplist = gi.cvar ("sv_maplist", "", 0);
 
-	// Lazarus
-	actorchicken = gi.cvar("actorchicken", "1", CVAR_SERVERINFO|CVAR_LATCH);
-	actorjump = gi.cvar("actorjump", "1", CVAR_SERVERINFO|CVAR_LATCH);
-	actorscram = gi.cvar("actorscram", "1", CVAR_SERVERINFO|CVAR_LATCH);
 	alert_sounds = gi.cvar("alert_sounds", "0", CVAR_SERVERINFO|CVAR_LATCH);
-	allow_fog = gi.cvar ("allow_fog", "1", CVAR_ARCHIVE);
 	cd_loopcount = gi.cvar("cd_loopcount","4",0);
 	cl_gun = gi.cvar("cl_gun", "1", 0);
 	corpse_fade = gi.cvar("corpse_fade", "0", CVAR_SERVERINFO|CVAR_LATCH);
 	corpse_fadetime = gi.cvar("corpse_fadetime", "20", 0);
 	crosshair = gi.cvar("crosshair", "1", 0);
-	fmod_nomusic = gi.cvar("fmod_nomusic", "0", CVAR_ARCHIVE);
-	footstep_sounds = gi.cvar("footstep_sounds", "0", CVAR_SERVERINFO|CVAR_LATCH);
 	fov = gi.cvar("fov", "90", 0);
 	hand = gi.cvar("hand", "0", 0);
 	jetpack_weenie = gi.cvar("jetpack_weenie", "0", CVAR_SERVERINFO);
 	joy_pitchsensitivity = gi.cvar("joy_pitchsensitivity", "1", 0);
 	joy_yawsensitivity = gi.cvar("joy_yawsensitivity", "-1", 0);
 	jump_kick = gi.cvar("jump_kick", "0", CVAR_SERVERINFO|CVAR_LATCH);
-	lights = gi.cvar("lights", "1", 0);
-	lightsmin = gi.cvar("lightsmin", "a", CVAR_SERVERINFO);
 	m_pitch = gi.cvar("m_pitch", "0.022", 0);
 	m_yaw = gi.cvar("m_yaw", "0.022", 0);
 	monsterjump = gi.cvar("monsterjump", "1", CVAR_SERVERINFO|CVAR_LATCH);
-	packet_fmod_playback = gi.cvar("packet_fmod_playback", "0", CVAR_SERVERINFO);
 	player_vampire = gi.cvar("player_vampire", "0", CVAR_SERVERINFO|CVAR_LATCH);
 	rocket_strafe = gi.cvar("rocket_strafe", "0", 0);
 	s_primary = gi.cvar("s_primary", "0", 0);
@@ -394,9 +341,6 @@ void InitGame (void)
 		}
 	}
 
-	tpp = gi.cvar ("tpp", "0", CVAR_ARCHIVE);
-	tpp_auto = gi.cvar ("tpp_auto", "1", 0);
-	crossh = gi.cvar ("crossh", "1", 0);
 	allow_download = gi.cvar("allow_download", "0", 0);
 
 	// If this is an SP game and "readout" is not set, force allow_download off
@@ -425,9 +369,6 @@ void InitGame (void)
 	game.maxclients = maxclients->value;
 	game.clients = TagMalloc (game.maxclients * sizeof(game.clients[0]), TAG_GAME);
 	globals.num_edicts = game.maxclients+1;
-
-	if(footstep_sounds->value)
-		ReadTextureSurfaceAssignments();
 }
 
 //=========================================================
@@ -839,32 +780,8 @@ void WriteLevel (vfile_t *f)
 	{
 		ent = &g_edicts[i];
 		if (!ent->inuse) continue;
-		if (ent->class_id == ENTITY_TARGET_PLAYBACK)
-		{
-			edict_t	e;
-			memcpy(&e, ent, sizeof(edict_t));
-			if(FMOD_IsPlaying(ent))
-			{
-				e.think = target_playback_delayed_restart;
-				e.nextthink = level.time + 1.0;
-				// A misuse of groundentity_linkcount, but
-				// maybe nobody is watching.
-				e.groundentity_linkcount = g_edicts[1].linkcount;
-			}
-			else
-			{
-				e.think = NULL;
-				e.nextthink = 0;
-			}
-			e.stream = NULL;
-			gi.VFs.Write (f, &i, sizeof(i));
-			WriteEdict (f, &e);
-		}
-		else
-		{
-			gi.VFs.Write (f, &i, sizeof(i));
-			WriteEdict (f, ent);
-		}
+		gi.VFs.Write (f, &i, sizeof(i));
+		WriteEdict (f, ent);
 	}
 	i = -1;
 	gi.VFs.Write (f, &i, sizeof(i));
@@ -887,7 +804,6 @@ calling ReadLevel.
 No clients are connected yet.
 =================
 */
-void LoadTransitionEnts();
 void ReadLevel (vfile_t *f)
 {
 	int		entnum;
@@ -958,13 +874,6 @@ void ReadLevel (vfile_t *f)
 		// fire any cross-level triggers
 		if (ent->class_id == ENTITY_TARGET_CROSSLEVEL_TARGET)
 			ent->nextthink = level.time + ent->delay;
-	}
-
-	// DWH: Load transition entities
-	if(game.transition_ents)
-	{
-		LoadTransitionEnts();
-		actor_files();
 	}
 }
 

@@ -67,14 +67,6 @@ typedef struct
 } laser_t;
 laser_t		cl_lasers[MAX_LASERS];
 
-//ROGUE
-cl_sustain_t	cl_sustains[MAX_SUSTAINS];
-//ROGUE
-
-//PGM
-extern void CL_TeleportParticles (vec3_t org);
-//PGM
-
 void CL_BlasterParticles (vec3_t org, vec3_t dir);
 void CL_ExplosionParticles (vec3_t org);
 void CL_BFGExplosionParticles (vec3_t org);
@@ -105,13 +97,6 @@ model_t	*cl_mod_explo4;
 model_t	*cl_mod_bfg_explo;
 model_t	*cl_mod_plasmaexplo;
 
-//ROGUE
-struct sfx_s	*cl_sfx_lightning;
-struct sfx_s	*cl_sfx_disrexp;
-model_t	*cl_mod_lightning;
-model_t	*cl_mod_explo4_big;
-
-//ROGUE
 /*
 =================
 CL_RegisterTEntSounds
@@ -123,7 +108,6 @@ void CL_RegisterTEntSounds (void)
 	char	name[MAX_QPATH];
 
 	// PMM - version stuff
-//	Msg ("%s\n", ROGUE_VERSION_STRING);
 	// PMM
 	cl_sfx_ric1 = S_RegisterSound ("world/ric1.wav");
 	cl_sfx_ric2 = S_RegisterSound ("world/ric2.wav");
@@ -148,15 +132,6 @@ void CL_RegisterTEntSounds (void)
 		sprintf (name, "player/step%i.wav", i+1);
 		cl_sfx_footsteps[i] = S_RegisterSound (name);
 	}
-
-//PGM
-	cl_sfx_lightning = S_RegisterSound ("weapons/tesla.wav");
-	cl_sfx_disrexp = S_RegisterSound ("weapons/disrupthit.wav");
-	// version stuff
-//	sprintf (name, "weapons/sound%d.wav", ROGUE_VERSION_ID);
-//	if (name[0] == 'w')
-//		name[0] = 'W';
-//PGM
 }	
 
 /*
@@ -178,9 +153,6 @@ void CL_RegisterTEntModels (void)
 	re->RegisterPic ("a_bullets");
 	re->RegisterPic ("i_health");
 	re->RegisterPic ("a_grenades");
-
-	cl_mod_explo4_big = re->RegisterModel ("sprites/s_explo3.spr");
-	cl_mod_lightning = re->RegisterModel ("sprites/lgtning.spr");
 }	
 
 /*
@@ -193,11 +165,6 @@ void CL_ClearTEnts (void)
 	memset (cl_beams, 0, sizeof(cl_beams));
 	memset (cl_explosions, 0, sizeof(cl_explosions));
 	memset (cl_lasers, 0, sizeof(cl_lasers));
-
-//ROGUE
-	memset (cl_playerbeams, 0, sizeof(cl_playerbeams));
-	memset (cl_sustains, 0, sizeof(cl_sustains));
-//ROGUE
 }
 
 /*
@@ -378,61 +345,6 @@ int CL_ParseBeam2 (model_t *model)
 	return ent;
 }
 
-// ROGUE
-/*
-=================
-CL_ParsePlayerBeam
-  - adds to the cl_playerbeam array instead of the cl_beams array
-=================
-*/
-int CL_ParsePlayerBeam (model_t *model)
-{
-	int		ent;
-	vec3_t	start, end, offset;
-	beam_t	*b;
-	int		i;
-	
-	ent = MSG_ReadShort (&net_message);
-	
-	MSG_ReadPos (&net_message, start);
-	MSG_ReadPos (&net_message, end);
-	MSG_ReadPos (&net_message, offset);
-
-	// override any beam with the same entity
-	// PMM - For player beams, we only want one per player (entity) so..
-	for (i=0, b=cl_playerbeams ; i< MAX_BEAMS ; i++, b++)
-	{
-		if (b->entity == ent)
-		{
-			b->entity = ent;
-			b->model = model;
-			b->endtime = cl.time + 200;
-			VectorCopy (start, b->start);
-			VectorCopy (end, b->end);
-			VectorCopy (offset, b->offset);
-			return ent;
-		}
-	}
-
-// find a free beam
-	for (i=0, b=cl_playerbeams ; i< MAX_BEAMS ; i++, b++)
-	{
-		if (!b->model || b->endtime < cl.time)
-		{
-			b->entity = ent;
-			b->model = model;
-			b->endtime = cl.time + 100;		// PMM - this needs to be 100 to prevent multiple heatbeams
-			VectorCopy (start, b->start);
-			VectorCopy (end, b->end);
-			VectorCopy (offset, b->offset);
-			return ent;
-		}
-	}
-	Msg ("beam list overflow!\n");	
-	return ent;
-}
-//rogue
-
 /*
 =================
 CL_ParseLightning
@@ -518,138 +430,6 @@ void CL_ParseLaser (int colors)
 	}
 }
 
-//=============
-//ROGUE
-void CL_ParseSteam (void)
-{
-	vec3_t	pos, dir;
-	int		id, i;
-	int		r;
-	int		cnt;
-	int		color;
-	int		magnitude;
-	cl_sustain_t	*s, *free_sustain;
-
-	id = MSG_ReadShort (&net_message);		// an id of -1 is an instant effect
-	if (id != -1) // sustains
-	{
-//			Msg ("Sustain effect id %d\n", id);
-		free_sustain = NULL;
-		for (i=0, s=cl_sustains; i<MAX_SUSTAINS; i++, s++)
-		{
-			if (s->id == 0)
-			{
-				free_sustain = s;
-				break;
-			}
-		}
-		if (free_sustain)
-		{
-			s->id = id;
-			s->count = MSG_ReadByte (&net_message);
-			MSG_ReadPos (&net_message, s->org);
-			MSG_ReadDir (&net_message, s->dir);
-			r = MSG_ReadByte (&net_message);
-			s->color = r & 0xff;
-			s->magnitude = MSG_ReadShort (&net_message);
-			s->endtime = cl.time + MSG_ReadLong (&net_message);
-			s->think = CL_ParticleSteamEffect2;
-			s->thinkinterval = 100;
-			s->nextthink = cl.time;
-		}
-		else
-		{
-//				Msg ("No free sustains!\n");
-			// FIXME - read the stuff anyway
-			cnt = MSG_ReadByte (&net_message);
-			MSG_ReadPos (&net_message, pos);
-			MSG_ReadDir (&net_message, dir);
-			r = MSG_ReadByte (&net_message);
-			magnitude = MSG_ReadShort (&net_message);
-			magnitude = MSG_ReadLong (&net_message); // really interval
-		}
-	}
-	else // instant
-	{
-		cnt = MSG_ReadByte (&net_message);
-		MSG_ReadPos (&net_message, pos);
-		MSG_ReadDir (&net_message, dir);
-		r = MSG_ReadByte (&net_message);
-		magnitude = MSG_ReadShort (&net_message);
-		color = r & 0xff;
-		CL_ParticleSteamEffect (pos, dir, color, cnt, magnitude);
-//		S_StartSound (pos,  0, 0, cl_sfx_lashit, 1, ATTN_NORM, 0);
-	}
-}
-
-void CL_ParseWidow (void)
-{
-	vec3_t	pos;
-	int		id, i;
-	cl_sustain_t	*s, *free_sustain;
-
-	id = MSG_ReadShort (&net_message);
-
-	free_sustain = NULL;
-	for (i=0, s=cl_sustains; i<MAX_SUSTAINS; i++, s++)
-	{
-		if (s->id == 0)
-		{
-			free_sustain = s;
-			break;
-		}
-	}
-	if (free_sustain)
-	{
-		s->id = id;
-		MSG_ReadPos (&net_message, s->org);
-		s->endtime = cl.time + 2100;
-		s->think = CL_Widowbeamout;
-		s->thinkinterval = 1;
-		s->nextthink = cl.time;
-	}
-	else // no free sustains
-	{
-		// FIXME - read the stuff anyway
-		MSG_ReadPos (&net_message, pos);
-	}
-}
-
-void CL_ParseNuke (void)
-{
-	vec3_t	pos;
-	int		i;
-	cl_sustain_t	*s, *free_sustain;
-
-	free_sustain = NULL;
-	for (i=0, s=cl_sustains; i<MAX_SUSTAINS; i++, s++)
-	{
-		if (s->id == 0)
-		{
-			free_sustain = s;
-			break;
-		}
-	}
-	if (free_sustain)
-	{
-		s->id = 21000;
-		MSG_ReadPos (&net_message, s->org);
-		s->endtime = cl.time + 1000;
-		s->think = CL_Nukeblast;
-		s->thinkinterval = 1;
-		s->nextthink = cl.time;
-	}
-	else // no free sustains
-	{
-		// FIXME - read the stuff anyway
-		MSG_ReadPos (&net_message, pos);
-	}
-}
-
-//ROGUE
-//=============
-
-
 /*
 =================
 CL_ParseTEnt
@@ -666,7 +446,6 @@ void CL_ParseTEnt (void)
 	int		color;
 	int		r;
 	int		ent;
-	int		magnitude;
 
 	type = MSG_ReadByte (&net_message);
 
@@ -843,10 +622,8 @@ void CL_ParseTEnt (void)
 		break;
 	
 	case TE_EXPLOSION1:
-	case TE_EXPLOSION1_BIG:						// PMM
 	case TE_ROCKET_EXPLOSION:
 	case TE_ROCKET_EXPLOSION_WATER:
-	case TE_EXPLOSION1_NP:						// PMM
 		MSG_ReadPos (&net_message, pos);
 
 		ex = CL_AllocExplosion ();
@@ -859,13 +636,10 @@ void CL_ParseTEnt (void)
 		ex->lightcolor[1] = 0.5;
 		ex->lightcolor[2] = 0.5;
 		ex->ent.angles[1] = rand() % 360;
-		if (type != TE_EXPLOSION1_BIG)				// PMM
-			ex->ent.model = cl_mod_explo4;			// PMM
-		else ex->ent.model = cl_mod_explo4_big;
+		ex->ent.model = cl_mod_explo4;			// PMM
 		ex->baseframe = 0;
 		ex->frames = 8;
-		if ((type != TE_EXPLOSION1_BIG) && (type != TE_EXPLOSION1_NP))		// PMM
-			CL_ExplosionParticles (pos);									// PMM
+		CL_ExplosionParticles (pos);									// PMM
 		if (type == TE_ROCKET_EXPLOSION_WATER)
 			S_StartSound (pos, 0, 0, cl_sfx_watrexp, 1, ATTN_NORM, 0);
 		else
@@ -947,71 +721,10 @@ void CL_ParseTEnt (void)
 		CL_ParticleEffect2 (pos, dir, 0xdf, 30);
 		break;
 
-	// RAFAEL
-	case TE_TUNNEL_SPARKS:
-		cnt = MSG_ReadByte (&net_message);
-		MSG_ReadPos (&net_message, pos);
-		MSG_ReadDir (&net_message, dir);
-		color = MSG_ReadByte (&net_message);
-		CL_ParticleEffect3 (pos, dir, color, cnt);
-		break;
-
-//=============
-//PGM
-		// PMM -following code integrated for flechette (different color)
-	case TE_BLASTER2:			// green blaster hitting wall
-	case TE_FLECHETTE:			// flechette
-		MSG_ReadPos (&net_message, pos);
-		MSG_ReadDir (&net_message, dir);
-		
-		// PMM
-		if (type == TE_BLASTER2)
-			CL_BlasterParticles2 (pos, dir, 0xd0);
-		else
-			CL_BlasterParticles2 (pos, dir, 0x6f); // 75
-
-		ex = CL_AllocExplosion ();
-		VectorCopy (pos, ex->ent.origin);
-		ex->ent.angles[0] = acos(dir[2])/M_PI*180;
-	// PMM - fixed to correct for pitch of 0
-		if (dir[0])
-			ex->ent.angles[1] = atan2(dir[1], dir[0])/M_PI*180;
-		else if (dir[1] > 0)
-			ex->ent.angles[1] = 90;
-		else if (dir[1] < 0)
-			ex->ent.angles[1] = 270;
-		else
-			ex->ent.angles[1] = 0;
-
-		ex->type = ex_misc;
-		ex->ent.flags = RF_FULLBRIGHT|RF_TRANSLUCENT;
-
-		// PMM
-		if (type == TE_BLASTER2)
-			ex->ent.skinnum = 1;
-		else // flechette
-			ex->ent.skinnum = 2;
-
-		ex->start = cl.frame.servertime - 100;
-		ex->light = 150;
-		// PMM
-		if (type == TE_BLASTER2)
-			ex->lightcolor[1] = 1;
-		else // flechette
-		{
-			ex->lightcolor[0] = 0.19;
-			ex->lightcolor[1] = 0.41;
-			ex->lightcolor[2] = 0.75;
-		}
-		ex->ent.model = cl_mod_explode;
-		ex->frames = 4;
-		S_StartSound (pos,  0, 0, cl_sfx_lashit, 1, ATTN_NORM, 0);
-		break;
-
-
-	case TE_LIGHTNING:
-		ent = CL_ParseLightning (cl_mod_lightning);
-		S_StartSound (NULL, ent, CHAN_WEAPON, cl_sfx_lightning, 1, ATTN_NORM, 0);
+	case TE_FLASHLIGHT:
+		MSG_ReadPos(&net_message, pos);
+		ent = MSG_ReadShort(&net_message);
+		CL_Flashlight(ent, pos);
 		break;
 
 	case TE_DEBUGTRAIL:
@@ -1020,138 +733,14 @@ void CL_ParseTEnt (void)
 		CL_DebugTrail (pos, pos2);
 		break;
 
-	case TE_PLAIN_EXPLOSION:
+	// RAFAEL
+	case TE_TUNNEL_SPARKS:
+		cnt = MSG_ReadByte (&net_message);
 		MSG_ReadPos (&net_message, pos);
-
-		ex = CL_AllocExplosion ();
-		VectorCopy (pos, ex->ent.origin);
-		ex->type = ex_poly;
-		ex->ent.flags = RF_FULLBRIGHT;
-		ex->start = cl.frame.servertime - 100;
-		ex->light = 350;
-		ex->lightcolor[0] = 1.0;
-		ex->lightcolor[1] = 0.5;
-		ex->lightcolor[2] = 0.5;
-		ex->ent.angles[1] = rand() % 360;
-		ex->ent.model = cl_mod_explo4;
-		ex->baseframe = 0;
-		ex->frames = 6;
-		if (type == TE_ROCKET_EXPLOSION_WATER)
-			S_StartSound (pos, 0, 0, cl_sfx_watrexp, 1, ATTN_NORM, 0);
-		else
-			S_StartSound (pos, 0, 0, cl_sfx_rockexp, 1, ATTN_NORM, 0);
-		break;
-
-	case TE_FLASHLIGHT:
-		MSG_ReadPos(&net_message, pos);
-		ent = MSG_ReadShort(&net_message);
-		CL_Flashlight(ent, pos);
-		break;
-
-	case TE_FORCEWALL:
-		MSG_ReadPos(&net_message, pos);
-		MSG_ReadPos(&net_message, pos2);
+		MSG_ReadDir (&net_message, dir);
 		color = MSG_ReadByte (&net_message);
-		CL_ForceWall(pos, pos2, color);
+		CL_ParticleEffect3 (pos, dir, color, cnt);
 		break;
-
-	case TE_HEATBEAM:
-		break;
-
-	case TE_MONSTER_HEATBEAM:
-		break;
-
-	case TE_HEATBEAM_SPARKS:
-//		cnt = MSG_ReadByte (&net_message);
-		cnt = 50;
-		MSG_ReadPos (&net_message, pos);
-		MSG_ReadDir (&net_message, dir);
-//		r = MSG_ReadByte (&net_message);
-//		magnitude = MSG_ReadShort (&net_message);
-		r = 8;
-		magnitude = 60;
-		color = r & 0xff;
-		CL_ParticleSteamEffect (pos, dir, color, cnt, magnitude);
-		S_StartSound (pos,  0, 0, cl_sfx_lashit, 1, ATTN_NORM, 0);
-		break;
-	
-	case TE_HEATBEAM_STEAM:
-//		cnt = MSG_ReadByte (&net_message);
-		cnt = 20;
-		MSG_ReadPos (&net_message, pos);
-		MSG_ReadDir (&net_message, dir);
-//		r = MSG_ReadByte (&net_message);
-//		magnitude = MSG_ReadShort (&net_message);
-//		color = r & 0xff;
-		color = 0xe0;
-		magnitude = 60;
-		CL_ParticleSteamEffect (pos, dir, color, cnt, magnitude);
-		S_StartSound (pos,  0, 0, cl_sfx_lashit, 1, ATTN_NORM, 0);
-		break;
-
-	case TE_STEAM:
-		CL_ParseSteam();
-		break;
-
-	case TE_BUBBLETRAIL2:
-//		cnt = MSG_ReadByte (&net_message);
-		cnt = 8;
-		MSG_ReadPos (&net_message, pos);
-		MSG_ReadPos (&net_message, pos2);
-		CL_BubbleTrail2 (pos, pos2, cnt);
-		S_StartSound (pos,  0, 0, cl_sfx_lashit, 1, ATTN_NORM, 0);
-		break;
-
-	case TE_MOREBLOOD:
-		MSG_ReadPos (&net_message, pos);
-		MSG_ReadDir (&net_message, dir);
-		CL_ParticleEffect (pos, dir, 0xe8, 250);
-		break;
-
-	case TE_CHAINFIST_SMOKE:
-		dir[0]=0; dir[1]=0; dir[2]=1;
-		MSG_ReadPos(&net_message, pos);
-		CL_ParticleSmokeEffect (pos, dir, 0, 20, 20);
-		break;
-
-	case TE_ELECTRIC_SPARKS:
-		MSG_ReadPos (&net_message, pos);
-		MSG_ReadDir (&net_message, dir);
-//		CL_ParticleEffect (pos, dir, 109, 40);
-		CL_ParticleEffect (pos, dir, 0x75, 40);
-		//FIXME : replace or remove this sound
-		S_StartSound (pos, 0, 0, cl_sfx_lashit, 1, ATTN_NORM, 0);
-		break;
-
-	case TE_TRACKER_EXPLOSION:
-		MSG_ReadPos (&net_message, pos);
-		CL_ColorFlash (pos, 0, 150, -1, -1, -1);
-		CL_ColorExplosionParticles (pos, 0, 1);
-//		CL_Tracker_Explode (pos);
-		S_StartSound (pos, 0, 0, cl_sfx_disrexp, 1, ATTN_NORM, 0);
-		break;
-
-	case TE_TELEPORT_EFFECT:
-	case TE_DBALL_GOAL:
-		MSG_ReadPos (&net_message, pos);
-		CL_TeleportParticles (pos);
-		break;
-
-	case TE_WIDOWBEAMOUT:
-		CL_ParseWidow ();
-		break;
-
-	case TE_NUKEBLAST:
-		CL_ParseNuke ();
-		break;
-
-	case TE_WIDOWSPLASH:
-		MSG_ReadPos (&net_message, pos);
-		CL_WidowSplash (pos);
-		break;
-//PGM
-//==============
-
 	default:
 		Com_Error (ERR_DROP, "CL_ParseTEnt: bad type");
 	}
@@ -1221,214 +810,18 @@ void CL_AddBeams (void)
 		d = VectorNormalize(dist);
 
 		memset (&ent, 0, sizeof(ent));
-		if (b->model == cl_mod_lightning)
-		{
-			model_length = 35.0;
-			d-= 20.0;  // correction so it doesn't end in middle of tesla
-		}
-		else
-		{
-			model_length = 30.0;
-		}
+		model_length = 30.0;
 		steps = ceil(d/model_length);
 		len = (d-model_length)/(steps-1);
 
-		// PMM - special case for lightning model .. if the real length is shorter than the model,
-		// flip it around & draw it from the end to the start.  This prevents the model from going
-		// through the tesla mine (instead it goes through the target)
-		if ((b->model == cl_mod_lightning) && (d <= model_length))
-		{
-//			Msg ("special case\n");
-			VectorCopy (b->end, ent.origin);
-			// offset to push beam outside of tesla model (negative because dist is from end to start
-			// for this beam)
-//			for (j=0 ; j<3 ; j++)
-//				ent.origin[j] -= dist[j]*10.0;
-			ent.model = b->model;
-			ent.flags = RF_FULLBRIGHT;
-			ent.angles[0] = pitch;
-			ent.angles[1] = yaw;
-			ent.angles[2] = rand()%360;
-			V_AddEntity (&ent);			
-			return;
-		}
 		while (d > 0)
 		{
 			VectorCopy (org, ent.origin);
 			ent.model = b->model;
-			if (b->model == cl_mod_lightning)
-			{
-				ent.flags = RF_FULLBRIGHT;
-				ent.angles[0] = -pitch;
-				ent.angles[1] = yaw + 180.0;
-				ent.angles[2] = rand()%360;
-			}
-			else
-			{
-				ent.angles[0] = pitch;
-				ent.angles[1] = yaw;
-				ent.angles[2] = rand()%360;
-			}
-			
-//			Msg("B: %d -> %d\n", b->entity, b->dest_entity);
-			V_AddEntity (&ent);
-
-			for (j=0 ; j<3 ; j++)
-				org[j] += dist[j]*len;
-			d -= model_length;
-		}
-	}
-}
-
-
-/*
-//				Msg ("Endpoint:  %f %f %f\n", b->end[0], b->end[1], b->end[2]);
-//				Msg ("Pred View Angles:  %f %f %f\n", cl.predicted_angles[0], cl.predicted_angles[1], cl.predicted_angles[2]);
-//				Msg ("Act View Angles: %f %f %f\n", cl.refdef.viewangles[0], cl.refdef.viewangles[1], cl.refdef.viewangles[2]);
-//				VectorCopy (cl.predicted_origin, b->start);
-//				b->start[2] += 22;	// adjust for view height
-//				if (fabs(cl.refdef.vieworg[2] - b->start[2]) >= 10) {
-//					b->start[2] = cl.refdef.vieworg[2];
-//				}
-
-//				Msg ("Time:  %d %d %f\n", cl.time, cls.realtime, cls.frametime);
-*/
-
-extern cvar_t *hand;
-
-/*
-=================
-ROGUE - draw player locked beams
-CL_AddPlayerBeams
-=================
-*/
-void CL_AddPlayerBeams (void)
-{
-	int			i,j;
-	beam_t		*b;
-	vec3_t		dist, org;
-	float		d;
-	entity_t	ent;
-	float		yaw, pitch;
-	float		forward;
-	float		len, steps;
-	float		model_length;
-	
-	float		hand_multiplier;
-
-//PMM
-	if (hand)
-	{
-		if (hand->value == 2)
-			hand_multiplier = 0;
-		else if (hand->value == 1)
-			hand_multiplier = -1;
-		else
-			hand_multiplier = 1;
-	}
-	else 
-	{
-		hand_multiplier = 1;
-	}
-//PMM
-
-// update beams
-	for (i=0, b=cl_playerbeams ; i< MAX_BEAMS ; i++, b++)
-	{
-		if (!b->model || b->endtime < cl.time)
-			continue;
-
-		// if coming from the player, update the start position
-		if (b->entity == cl.playernum+1)	// entity 0 is the world
-		{
-			VectorCopy (cl.refdef.vieworg, b->start);
-			b->start[2] -= 22;	// adjust for view height
-		}
-		VectorAdd (b->start, b->offset, org);
-
-		// calculate pitch and yaw
-		VectorSubtract (b->end, org, dist);
-
-		if (dist[1] == 0 && dist[0] == 0)
-		{
-			yaw = 0;
-			if (dist[2] > 0)
-				pitch = 90;
-			else
-				pitch = 270;
-		}
-		else
-		{
-			// PMM - fixed to correct for pitch of 0
-			if (dist[0])
-				yaw = (atan2(dist[1], dist[0]) * 180 / M_PI);
-			else if (dist[1] > 0)
-				yaw = 90;
-			else
-				yaw = 270;
-			if (yaw < 0)
-				yaw += 360;
-	
-			forward = sqrt (dist[0]*dist[0] + dist[1]*dist[1]);
-			pitch = (atan2(dist[2], forward) * -180.0 / M_PI);
-			if (pitch < 0)
-				pitch += 360.0;
-		}
-		
-		// add new entities for the beams
-		d = VectorNormalize(dist);
-
-		memset (&ent, 0, sizeof(ent));
-		if (b->model == cl_mod_lightning)
-		{
-			model_length = 35.0;
-			d-= 20.0;  // correction so it doesn't end in middle of tesla
-		}
-		else
-		{
-			model_length = 30.0;
-		}
-		steps = ceil(d/model_length);
-		len = (d-model_length)/(steps-1);
-
-		// PMM - special case for lightning model .. if the real length is shorter than the model,
-		// flip it around & draw it from the end to the start.  This prevents the model from going
-		// through the tesla mine (instead it goes through the target)
-		if ((b->model == cl_mod_lightning) && (d <= model_length))
-		{
-//			Msg ("special case\n");
-			VectorCopy (b->end, ent.origin);
-			// offset to push beam outside of tesla model (negative because dist is from end to start
-			// for this beam)
-//			for (j=0 ; j<3 ; j++)
-//				ent.origin[j] -= dist[j]*10.0;
-			ent.model = b->model;
-			ent.flags = RF_FULLBRIGHT;
 			ent.angles[0] = pitch;
 			ent.angles[1] = yaw;
 			ent.angles[2] = rand()%360;
-			V_AddEntity (&ent);			
-			return;
-		}
-		while (d > 0)
-		{
-			VectorCopy (org, ent.origin);
-			ent.model = b->model;
-			if (b->model == cl_mod_lightning)
-			{
-				ent.flags = RF_FULLBRIGHT;
-				ent.angles[0] = -pitch;
-				ent.angles[1] = yaw + 180.0;
-				ent.angles[2] = rand()%360;
-			}
-			else
-			{
-				ent.angles[0] = pitch;
-				ent.angles[1] = yaw;
-				ent.angles[2] = rand()%360;
-			}
 			
-//			Msg("B: %d -> %d\n", b->entity, b->dest_entity);
 			V_AddEntity (&ent);
 
 			for (j=0 ; j<3 ; j++)
@@ -1558,25 +951,6 @@ void CL_AddLasers (void)
 	}
 }
 
-/* PMM - CL_Sustains */
-void CL_ProcessSustain ()
-{
-	cl_sustain_t	*s;
-	int				i;
-
-	for (i=0, s=cl_sustains; i< MAX_SUSTAINS; i++, s++)
-	{
-		if (s->id)
-			if ((s->endtime >= cl.time) && (cl.time >= s->nextthink))
-			{
-//				Msg ("think %d %d %d\n", cl.time, s->nextthink, s->thinkinterval);
-				s->think (s);
-			}
-			else if (s->endtime < cl.time)
-				s->id = 0;
-	}
-}
-
 /*
 =================
 CL_AddTEnts
@@ -1585,10 +959,6 @@ CL_AddTEnts
 void CL_AddTEnts (void)
 {
 	CL_AddBeams ();
-	// PMM - draw plasma beams
-	CL_AddPlayerBeams ();
 	CL_AddExplosions ();
 	CL_AddLasers ();
-	// PMM - set up sustain
-	CL_ProcessSustain();
 }

@@ -62,7 +62,6 @@ cvar_t	*actorjump;
 cvar_t	*actorscram;
 cvar_t	*alert_sounds;
 cvar_t	*allow_download;
-cvar_t	*allow_fog;			// Set to 0 for no fog
 cvar_t	*bounce_bounce;
 cvar_t	*bounce_minv;
 cvar_t	*cd_loopcount;
@@ -71,12 +70,10 @@ cvar_t	*corpse_fade;
 cvar_t	*corpse_fadetime;
 cvar_t	*crosshair;
 cvar_t	*developer;
-cvar_t	*fmod_nomusic;
 cvar_t	*footstep_sounds;
 cvar_t	*fov;
 cvar_t	*gl_clear;
 cvar_t	*gl_driver;
-cvar_t	*gl_driver_fog;
 cvar_t	*hand;
 cvar_t	*jetpack_weenie;
 cvar_t	*joy_pitchsensitivity;
@@ -90,12 +87,9 @@ cvar_t	*lazarus_joyp;
 cvar_t	*lazarus_joyy;
 cvar_t	*lazarus_pitch;
 cvar_t	*lazarus_yaw;
-cvar_t	*lights;
-cvar_t	*lightsmin;
 cvar_t	*m_pitch;
 cvar_t	*m_yaw;
 cvar_t	*monsterjump;
-cvar_t	*packet_fmod_playback;
 cvar_t	*player_vampire;
 cvar_t	*readout;
 cvar_t	*rocket_strafe;
@@ -113,7 +107,6 @@ bool ClientConnect (edict_t *ent, char *userinfo);
 void ClientUserinfoChanged (edict_t *ent, char *userinfo);
 void ClientDisconnect (edict_t *ent);
 void ClientBegin (edict_t *ent);
-void ClientCommand (edict_t *ent);
 void RunEntity (edict_t *ent);
 void WriteLump (dsavehdr_t *hdr, file_t *f, int lumpnum, bool autosave);
 void ReadLump (byte *base, lump_t *l, int lumpnum);
@@ -131,10 +124,6 @@ void ShutdownGame (void)
 		gi.cvar_forceset("cd_loopcount", va("%d",lazarus_cd_loop->value));
 		gi.cvar_forceset("gl_clear", va("%d", lazarus_gl_clear->value));
 	}
-	// Lazarus: Turn off fog if it's on
-	if(!dedicated->value) Fog_Off();
-	// and shut down FMOD
-	FMOD_Shutdown();
 
 	//free main memory pools
 	Mem_FreePool(&zone_level);
@@ -205,9 +194,6 @@ game_export_t DLLEXPORT *ServerAPI (game_import_t *import)
 	globals.edict_size = sizeof(edict_t);
           
 	gl_driver = gi.cvar ("gl_driver", "", 0);
-	gl_driver_fog = gi.cvar ("gl_driver_fog", "opengl32", CVAR_NOSET | CVAR_ARCHIVE);
-
-	Fog_Init();
 
 	developer = gi.cvar("developer", "0", CVAR_SERVERINFO);
 	readout   = gi.cvar("readout", "0", CVAR_SERVERINFO);
@@ -242,38 +228,6 @@ void ClientEndServerFrames (void)
 		if (!ent->inuse || !ent->client)
 			continue;
 		ClientEndServerFrame (ent);
-	}
-
-	//reflection stuff -- modified from psychospaz' original code
-	if (level.num_reflectors)
-	{
-		ent = &g_edicts[0];
-		for (i=0 ; i<globals.num_edicts ; i++, ent++) //pointers, not as slow as you think
-		{
-			if (!ent->inuse)
-				continue;
-			if (!ent->s.modelindex)
-				continue;
-//			if (ent->s.effects & EF_ROTATE)
-//				continue;
-			if (ent->flags & FL_REFLECT)
-				continue;
-			if (!ent->client && (ent->svflags & SVF_NOCLIENT))
-				continue;
-			if (ent->client && !ent->client->chasetoggle && (ent->svflags & SVF_NOCLIENT))
-				continue;
-			if (ent->svflags&SVF_MONSTER && ent->solid!=SOLID_BBOX)
-				continue;
-			if ( (ent->solid == SOLID_BSP) && (ent->movetype != MOVETYPE_PUSHABLE))
-				continue;
-			if (ent->client && ent->client->resp.spectator)
-				continue;
-			if (ent->client && player_vampire->value)
-				continue;
-			if (ent->s.renderfx & RF_VAMPIRE)
-				continue;
-			AddReflection(ent);	
-		}
 	}
 }
 
@@ -479,11 +433,7 @@ void G_RunFrame (void)
 
 	level.time = level.framenum*FRAMETIME;
 
-	// choose a client for monsters to target this frame
-	AI_SetSightClient ();
-
 	// exit intermissions
-
 	if (level.exitintermission)
 	{
 		ExitLevel ();
@@ -522,10 +472,6 @@ void G_RunFrame (void)
 
 		G_RunEntity (ent);
 	}
-
-	// FMOD stuff:
-	if ( (level.num_3D_sounds > 0) && (game.maxclients == 1))
-		FMOD_UpdateListenerPos();
 
 	// see if it is time to end a deathmatch
 	CheckDMRules ();

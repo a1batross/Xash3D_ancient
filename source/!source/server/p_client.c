@@ -6,7 +6,6 @@
 #define MUD3     0.08
 
 void ClientUserinfoChanged (edict_t *ent, char *userinfo);
-void SP_misc_teleporter_dest (edict_t *ent);
 
 //
 // Gross, ugly, disgustuing hack section
@@ -112,7 +111,6 @@ void SP_info_player_deathmatch(edict_t *self)
 		G_FreeEdict (self);
 		return;
 	}
-	SP_misc_teleporter_dest (self);
 	self->class_id = ENTITY_INFO_PLAYER_DEATHMATCH;
 }
 
@@ -500,29 +498,10 @@ void player_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damag
 {
 	int		n;
 
-	// tpp
-	if (self->client->chasetoggle)
-	{
-		ChasecamRemove (self, OPTION_OFF);
-		self->client->pers.chasetoggle = 1;
-	}
-	else
-		self->client->pers.chasetoggle = 0;
-	// end tpp
-
 	self->client->pers.spawn_landmark = false; // paranoia check
 	self->client->pers.spawn_levelchange = false;
 	self->client->zooming = 0;
 	self->client->zoomed = false;
-	SetSensitivities(self,true);
-
-	if(self->client->spycam)
-		camera_off(self);
-
-	if(self->turret)
-		turret_disengage(self->turret);
-
-	if(self->client->textdisplay) Text_Close(self);
 
 	VectorClear (self->avelocity);
 
@@ -615,19 +594,6 @@ void player_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damag
 			gi.sound (self, CHAN_VOICE, gi.soundindex(va("*death%i.wav", (rand()%4)+1)), 1, ATTN_NORM, 0);
 		}
 	}
-
-#ifdef JETPACK_MOD
-	if ( self->client->jetpack )
-	{
-		Jet_BecomeExplosion( self, damage );
-		/*stop jetting when dead*/
-		self->client->jetpack_framenum = 0;
-		self->client->jetpack = false;
-		// DWH: force player to gib
-		self->health = self->gib_health-1;
-	}
-#endif
-
 	self->deadflag = DEAD_DEAD;
 	gi.linkentity (self);
 
@@ -757,10 +723,6 @@ void InitClientPersistant (gclient_t *client, int style)
 	client->pers.fire_mode      = 0;  // Lazarus alternate fire mode
 
 	client->pers.connected = true;
-// tpp
-	//Default chasecam to tpp setting
-    client->pers.chasetoggle = tpp->value;
-// end tpp
 
 	// Lazarus
 	client->zooming = 0;
@@ -798,9 +760,6 @@ void SaveClientData (void)
 		ent = &g_edicts[1+i];
 		if (!ent->inuse)
 			continue;
-		// tpp
-		game.clients[i].pers.chasetoggle = ent->client->pers.chasetoggle;
-        // end tpp
 		game.clients[i].pers.newweapon = ent->client->newweapon;
 		game.clients[i].pers.health = ent->health;
 		game.clients[i].pers.max_health = ent->max_health;
@@ -1145,17 +1104,6 @@ void CopyToBodyQue (edict_t *ent)
 
 void respawn (edict_t *self)
 {
-	// tpp
-	if (self->crosshair)
-		G_FreeEdict(self->crosshair);
-	self->crosshair = NULL;
-	if (self->client->oldplayer)
-		G_FreeEdict (self->client->oldplayer);
-	self->client->oldplayer = NULL;
-	if (self->client->chasecam)
-		G_FreeEdict (self->client->chasecam);
-	self->client->chasecam = NULL;
-	// end tpp
 	if (deathmatch->value || coop->value)
 	{
 		// spectator's don't leave bodies
@@ -1274,6 +1222,7 @@ a deathmatch.
 */
 void PutClientInServer (edict_t *ent)
 {
+	gitem_t				*newweapon;	
 	extern	int			nostatus;
 	vec3_t				mins = {-16, -16, -24};
 	vec3_t				maxs = {16, 16, 32};
@@ -1281,11 +1230,6 @@ void PutClientInServer (edict_t *ent)
 	vec3_t				spawn_origin, spawn_angles, spawn_viewangles;
 	gclient_t			*client;
 	int		i;
-	// tpp
-	int					chasetoggle;
-	gitem_t				*newweapon;
-    char				userinfo[MAX_INFO_STRING];
-	// end tpp
 	bool			spawn_landmark;
 	bool			spawn_levelchange;
 	int					spawn_gunframe;
@@ -1304,9 +1248,6 @@ void PutClientInServer (edict_t *ent)
 
 	index = ent-g_edicts-1;
 	client = ent->client;
-	// tpp
-	chasetoggle = client->pers.chasetoggle;
-    // end tpp
 	newweapon = client->pers.newweapon;
 	spawn_landmark   = client->pers.spawn_landmark;
 	spawn_levelchange= client->pers.spawn_levelchange;
@@ -1354,11 +1295,6 @@ void PutClientInServer (edict_t *ent)
 	{
 		memset (&resp, 0, sizeof(resp));
 	}
-	// tpp
-	// A bug in Q2 that you couldn't see without thirdpp
-	memcpy (userinfo, client->pers.userinfo, sizeof(userinfo));
-	ClientUserinfoChanged (ent, userinfo);
-	// end tpp
 
 	// clear everything but the persistant data
 	saved = client->pers;
@@ -1370,9 +1306,6 @@ void PutClientInServer (edict_t *ent)
 		SelectStartWeapon(client,spawn_style);
 
 	client->resp = resp;
-	// tpp
-	client->pers.chasetoggle = chasetoggle;
-	// end tpp
 	client->pers.newweapon = newweapon;
 
 	// copy some data from the client to the entity
@@ -1402,11 +1335,6 @@ void PutClientInServer (edict_t *ent)
 	ent->watertype = 0;
 	ent->flags &= ~FL_NO_KNOCKBACK;
 	ent->svflags &= ~SVF_DEADMONSTER;
-	// tpp
-	ent->svflags &= ~SVF_NOCLIENT;
-	// turn on prediction
-	ent->client->ps.pmove.pm_flags &= ~PMF_NO_PREDICTION;
-	// end tpp
 	ent->client->spycam = NULL;
 	ent->client->camplayer = NULL;
 
@@ -1478,20 +1406,7 @@ void PutClientInServer (edict_t *ent)
 		VectorCopy(ent->s.angles,    client->ps.viewangles);
 	VectorCopy (client->ps.viewangles, client->v_angle);
 
-	// spawn a spectator
-	if (client->pers.spectator) {
-		client->chase_target = NULL;
-
-		client->resp.spectator = true;
-
-		ent->movetype = MOVETYPE_NOCLIP;
-		ent->solid = SOLID_NOT;
-		ent->svflags |= SVF_NOCLIENT;
-		ent->client->ps.gunindex = 0;
-		gi.linkentity (ent);
-		return;
-	} else
-		client->resp.spectator = false;
+	client->resp.spectator = false;
 
 	// DWH:
 	client->flashlight = false;
@@ -1504,14 +1419,7 @@ void PutClientInServer (edict_t *ent)
 
 	gi.linkentity (ent);
 
-	// tpp
-	client->chasetoggle = 0;
-	// If chasetoggle set then turn on (delayed start of 5 frames - 0.5s)
-	if(client->pers.chasetoggle)
-		client->delayedstart = 5;
-	// end tpp
-
-	if(spawn_levelchange && !client->pers.chasetoggle && !client->pers.newweapon)
+	if(spawn_levelchange && !client->pers.newweapon)
 	{
 		// we already had a weapon when the level changed... no need to bring it up
 		int	i;
@@ -1600,8 +1508,6 @@ void ClientBegin (edict_t *ent)
 		return;
 	}
 
-	Fog_Off();
-
 	stuffcmd(ent,"alias +zoomin zoomin;alias -zoomin zoominstop\n");
 	stuffcmd(ent,"alias +zoomout zoomout;alias -zoomout zoomoutstop\n");
 	stuffcmd(ent,"alias +zoom zoomon;alias -zoom zoomoff\n");
@@ -1643,35 +1549,6 @@ void ClientBegin (edict_t *ent)
 			MESSAGE_SEND (MSG_PVS, ent->s.origin, NULL);
 
 			gi.bprintf (PRINT_HIGH, "%s entered the game\n", ent->client->pers.netname);
-		}
-	}
-
-	// DWH
-	SetSensitivities(ent,true);
-
-	if (game.maxclients == 1)
-	{
-		// For SP games, check for monsters who were mad at player
-		// in previous level and have changed levels with the player
-		edict_t	*monster;
-		for(i=2; i<globals.num_edicts; i++)
-		{
-			monster = &g_edicts[i];
-			if(!monster->inuse)
-				continue;
-			if(!(monster->svflags & SVF_MONSTER))
-				continue;
-			if(monster->health <= 0)
-				continue;
-			if(monster->monsterinfo.aiflags & AI_RESPAWN_FINDPLAYER)
-			{
-				monster->monsterinfo.aiflags &= ~AI_RESPAWN_FINDPLAYER;
-				if(!monster->enemy)
-				{
-					monster->enemy = ent;
-					FoundTarget(monster);
-				}
-			}
 		}
 	}
 
@@ -1845,18 +1722,10 @@ void ClientDisconnect (edict_t *ent)
 	if (!ent->client)
 		return;
 
-	// tpp
-	if(ent->client->chasetoggle)
-		ChasecamRemove(ent,OPTION_OFF);
-	// end tpp
-
 	// DWH
 	ent->client->zooming = 0;
 	ent->client->zoomed = false;
-	SetSensitivities(ent,true);
 	// end DWH
-
-	if(ent->client->textdisplay) Text_Close(ent);
 
 	gi.bprintf (PRINT_HIGH, "%s disconnected\n", ent->client->pers.netname);
 
@@ -1872,9 +1741,6 @@ void ClientDisconnect (edict_t *ent)
 	ent->inuse = false;
 	ent->classname = "disconnected";
 	ent->client->pers.connected = false;
-
-	if(ent->client->spycam)
-		camera_off(ent);
 
 	playernum = ent-g_edicts-1;
 	gi.configstring (CS_PLAYERSKINS+playernum, "");
@@ -1945,10 +1811,6 @@ void RemovePush(edict_t *ent)
 	ent->client->push->activator = NULL;
 	ent->client->push = NULL;
 	ent->client->ps.pmove.pm_flags &= ~PMF_NO_PREDICTION;
-	// If tpp is NOT always on, and auto-switch for func_pushables IS on,
-	// and we're currently in third-person view, switch it off
-	if(!tpp->value && tpp_auto->value && ent->client->chasetoggle)
-		Cmd_Chasecam_Toggle(ent);
 }
 
 void ClientPushPushable(edict_t *ent)
@@ -1972,348 +1834,14 @@ void ClientPushPushable(edict_t *ent)
 		}
 		else if(dist > 0)
 		{
-			if(!box->speaker)
-				box->s.sound = box->noise_index;
-			box_walkmove( box, vectoyaw(v), dist );
+			if(!box->speaker) box->s.sound = box->noise_index;
+			//box_walkmove( box, vectoyaw(v), dist );
 		}
 		else
 			box->s.sound = 0;
 	}
 	else
 		RemovePush(ent);
-}
-
-void ClientSpycam(edict_t *ent)
-{
-	gclient_t	*client = ent->client;
-	edict_t		*camera = ent->client->spycam;
-	pmove_t		pm;
-	bool	is_actor;
-	trace_t		tr;
-	vec3_t		forward, left, up;
-	vec3_t		dir, start;
-	float		dist;
-	int			i;
-
-	memset (&pm, 0, sizeof(pm));
-	if(client->ucmd.sidemove && level.time > ent->last_move_time + 1)
-	{
-		camera->flags &= ~FL_ROBOT;
-		if(camera->viewer == ent)
-			camera->viewer = NULL;
-		if(client->ucmd.sidemove > 0)
-			camera = G_FindNextCamera(camera,client->monitor);
-		else
-			camera = G_FindPrevCamera(camera,client->monitor);
-		
-		if(camera)
-		{
-			if(!camera->viewer)
-				camera->viewer = ent;
-			client->spycam = camera;
-			VectorAdd(camera->s.origin,camera->move_origin,ent->s.origin);
-			if(camera->viewmessage)
-				gi.centerprintf(ent,camera->viewmessage);
-			ent->last_move_time = level.time;
-		}
-		else
-			camera = client->spycam;
-		if(camera->monsterinfo.aiflags & AI_ACTOR)
-		{
-			camera->flags |= FL_ROBOT;
-			if(camera->monsterinfo.aiflags & AI_FOLLOW_LEADER)
-			{
-				camera->monsterinfo.aiflags &= ~AI_FOLLOW_LEADER;
-				camera->monsterinfo.old_leader  = NULL;
-				camera->monsterinfo.leader      = NULL;
-				camera->movetarget = camera->goalentity = NULL;
-				camera->monsterinfo.stand(camera);
-			}
-		}
-	}
-	if((camera->svflags & SVF_MONSTER) && (camera->monsterinfo.aiflags & AI_ACTOR))
-		is_actor = true;
-	else
-		is_actor = false;
-	if(camera->enemy && (camera->enemy->deadflag || !camera->enemy->inuse))
-		camera->enemy = NULL;
-	AngleVectors(camera->s.angles,forward,left,up);
-
-	if(is_actor && !camera->enemy)
-	{
-		if((abs(client->ucmd.forwardmove) > 199) && (camera->groundentity))
-		{
-			// walk/run
-			
-			edict_t	*thing;
-			vec3_t	end;
-			float	dist;
-
-			thing  = camera->vehicle;
-			
-			VectorMA(camera->s.origin,8192,forward,end);
-			tr = gi.trace(camera->s.origin,camera->mins,camera->maxs,end,camera,MASK_SOLID);
-			if(client->ucmd.forwardmove < 0)
-			{
-				trace_t	back;
-				VectorMA(camera->s.origin,-8192,forward,end);
-				back = gi.trace(camera->s.origin,camera->mins,camera->maxs,end,camera,MASK_SOLID);
-				VectorSubtract(back.endpos,camera->s.origin,end);
-				dist = VectorLength(end);
-				VectorCopy(tr.endpos,end);
-			}
-			else
-			{
-				VectorSubtract(tr.endpos,camera->s.origin,end);
-				dist = VectorLength(end) - 8;
-				VectorMA(camera->s.origin,dist,forward,end);
-			}
-			if(dist > 8)
-			{
-				if(!thing || !thing->inuse || (thing->class_id != ENTITY_THING))
-					thing = camera->vehicle = SpawnThing();
-				thing->touch_debounce_time = level.time + 5.0;
-				thing->target_ent = camera;
-				VectorCopy(end,thing->s.origin);
-				ED_CallSpawn(thing);
-				camera->monsterinfo.aiflags |= AI_CHASE_THING;
-				camera->monsterinfo.aiflags &= ~(AI_CHICKEN | AI_STAND_GROUND);
-				camera->monsterinfo.pausetime = 0;
-				camera->movetarget = camera->goalentity = thing;
-				camera->monsterinfo.old_leader = NULL;
-				camera->monsterinfo.leader = thing;
-				VectorSubtract (thing->s.origin, camera->s.origin, dir);
-				camera->ideal_yaw = vectoyaw(dir);
-				if(client->ucmd.forwardmove > 300)
-					actor_run(camera);
-				else if(client->ucmd.forwardmove > 199)
-					actor_walk(camera);
-				else if(client->ucmd.forwardmove < -300)
-					actor_run_back(camera);
-				else
-					actor_walk_back(camera);
-			}
-			else if(thing)
-			{
-				camera->monsterinfo.aiflags &= ~AI_CHASE_THING;
-				camera->movetarget = camera->goalentity = NULL;
-				G_FreeEdict(thing);
-				camera->vehicle = NULL;
-				actor_stand(camera);
-			}
-		}
-		if((client->ucmd.forwardmove == 0) && (camera->groundentity))
-		{
-			// stop
-			edict_t	*thing = camera->vehicle;
-			if(thing)
-			{
-				camera->monsterinfo.aiflags &= ~AI_CHASE_THING;
-				camera->movetarget = camera->goalentity = NULL;
-				G_FreeEdict(thing);
-				camera->vehicle = NULL;
-				actor_stand(camera);
-			}
-		}
-		
-		if(client->ucmd.upmove)
-		{
-			if((client->ucmd.upmove > 0) && camera->groundentity && !camera->waterlevel)
-			{
-				// jump
-				if(client->ucmd.forwardmove > 300)
-					VectorScale(forward,400,camera->velocity);
-				else if(client->ucmd.forwardmove > 199)
-					VectorScale(forward,200,camera->velocity);
-				else if(client->ucmd.forwardmove < -300)
-					VectorScale(forward,-400,camera->velocity);
-				else if(client->ucmd.forwardmove < -199)
-					VectorScale(forward,-200,camera->velocity);
-				camera->velocity[2] = 250;
-				camera->monsterinfo.savemove = camera->monsterinfo.currentmove;
-				actor_jump(camera);
-				camera->groundentity = NULL;
-			}
-			else if((client->ucmd.upmove < 0) && (camera->groundentity) && !(camera->monsterinfo.aiflags & AI_CROUCH))
-			{
-				// crouch
-				if( (camera->monsterinfo.currentmove == &actor_move_walk)   ||
-					(camera->monsterinfo.currentmove == &actor_move_run)    ||
-					(camera->monsterinfo.currentmove == &actor_move_run_bad)  )
-				{
-					camera->monsterinfo.currentmove = &actor_move_crouchwalk;
-					camera->maxs[2] -= 28;
-					camera->viewheight -= 28;
-					camera->move_origin[2] -= 28;
-					camera->monsterinfo.aiflags |= AI_CROUCH;
-				}
-				else if( (camera->monsterinfo.currentmove == &actor_move_walk_back) ||
-						 (camera->monsterinfo.currentmove == &actor_move_run_back)     )
-				{
-					camera->monsterinfo.currentmove = &actor_move_crouchwalk_back;
-					camera->maxs[2] -= 28;
-					camera->viewheight -= 28;
-					camera->move_origin[2] -= 28;
-					camera->monsterinfo.aiflags |= AI_CROUCH;
-				}
-				else if (camera->monsterinfo.currentmove == &actor_move_stand)
-				{
-					camera->monsterinfo.currentmove = &actor_move_crouch;
-					camera->maxs[2] -= 28;
-					camera->viewheight -= 28;
-					camera->move_origin[2] -= 28;
-					camera->monsterinfo.aiflags |= AI_CROUCH;
-				}
-			}
-		}
-		if( (client->ucmd.upmove >= 0) && (camera->monsterinfo.aiflags & AI_CROUCH))
-		{
-			// come out of crouch
-			camera->maxs[2] += 28;
-			camera->viewheight += 28;
-			camera->move_origin[2] += 28;
-			camera->monsterinfo.aiflags &= ~AI_CROUCH;
-			if(camera->monsterinfo.currentmove == &actor_move_crouchwalk)
-				actor_walk(camera);
-			else if(camera->monsterinfo.currentmove == &actor_move_crouchwalk_back)
-				actor_walk_back(camera);
-			else if(camera->monsterinfo.currentmove == &actor_move_crouch)
-				actor_stand(camera);
-		}
-	}
-
-	client->ps.pmove.pm_type = PM_FREEZE;
-	if(camera->viewer == ent) {
-		if( (client->old_owner_angles[0] != client->ucmd.angles[0]) ||
-			(client->old_owner_angles[1] != client->ucmd.angles[1])   )
-		{
-			// Give game a bit of time to catch up after player
-			// causes ucmd pitch angle to roll over... otherwise
-			// we'll hit on the above test even though player
-			// hasn't hit +lookup/+lookdown
-			float	delta;
-			delta = level.time - camera->touch_debounce_time;
-			if( delta < 0 || delta > 1.0)
-			{
-				if(is_actor)
-				{
-					float	diff;
-					diff = SHORT2ANGLE(client->ucmd.angles[1] - client->old_owner_angles[1]);
-					if(diff < -180)
-						diff += 360;
-					if(diff > 180)
-						diff -= 360;
-					camera->ideal_yaw += diff;
-					if((abs(diff) > 100) && camera->vehicle)
-					{
-						vec3_t	angles;
-						vec3_t	end, f;
-						VectorSet(angles,0,camera->ideal_yaw,0);
-						AngleVectors(angles,f,NULL,NULL);
-						VectorMA(camera->s.origin,8192,f,end);
-						tr = gi.trace(camera->s.origin,camera->mins,camera->maxs,end,camera,MASK_SOLID);
-						VectorCopy(tr.endpos,camera->vehicle->s.origin);
-						camera->vehicle->touch_debounce_time = level.time + 5.0;
-						gi.linkentity(camera->vehicle);
-					}
-					ai_turn(camera,0.);
-					diff = SHORT2ANGLE(client->ucmd.angles[0]-client->old_owner_angles[0]);
-					if(diff < -180)
-						diff += 360;
-					if(diff > 180)
-						diff -= 360;
-					camera->move_angles[0] += diff;
-					client->old_owner_angles[0] = client->ucmd.angles[0];
-					client->old_owner_angles[1] = client->ucmd.angles[1];
-				}
-			}
-		}
-		if ( client->ucmd.buttons & BUTTON_ATTACK && camera->sounds >= 0 ) {
-			if (level.time >= camera->monsterinfo.attack_finished) {
-				client->latched_buttons &= ~BUTTON_ATTACK;
-				if(camera->class_id == ENTITY_TURRET_BREACH)
-				{
-					if(camera->sounds==5 || camera->sounds==6)
-						camera->monsterinfo.attack_finished = level.time;
-					else
-						camera->monsterinfo.attack_finished = level.time + 1.0;
-					turret_breach_fire(camera);
-				}
-				else if(is_actor)
-				{
-					int	weapon = camera->actor_weapon[camera->actor_current_weapon];
-					if(!camera->enemy)
-					{
-						edict_t	*target;
-						target = LookingAt(ent,0,NULL,NULL);
-						if(target && target->takedamage && (target != client->camplayer))
-						{
-							if(camera->vehicle)
-							{
-								// Currently following "thing" - turn that off
-								camera->monsterinfo.aiflags &= ~AI_CHASE_THING;
-								camera->movetarget = camera->goalentity = NULL;
-								G_FreeEdict(camera->vehicle);
-								camera->vehicle = NULL;
-							}
-							camera->enemy = target;
-							actor_fire(camera);
-							camera->enemy = NULL;
-							if(camera->monsterinfo.aiflags & AI_HOLD_FRAME)
-								camera->monsterinfo.attack_finished = level.time + FRAMETIME;
-							else
-								camera->monsterinfo.attack_finished = level.time + 1.0;
-						}
-					}
-				}
-			}
-		}
-		if(client->zoomed) {
-			camera->touch_debounce_time = 
-				max(camera->touch_debounce_time, level.time + 1.0);
-		}
-	}
-
-	VectorMA(camera->s.origin, camera->move_origin[0],forward,start);
-	VectorMA(start,           -camera->move_origin[1],left,   start);
-	VectorMA(start,            camera->move_origin[2],up,     start);
-	
-	tr = gi.trace(camera->s.origin, NULL, NULL, start, camera, MASK_SOLID);
-	if(tr.fraction < 1.0)
-	{
-		VectorSubtract(tr.endpos,camera->s.origin,dir);
-		dist = VectorNormalize(dir) - 2;
-		if(dist < 0) dist = 0.;
-		VectorMA(camera->s.origin,dist,dir,start);
-	}
-	VectorCopy(start,ent->s.origin);
-	VectorCopy(camera->velocity,ent->velocity);
-	
-	client->resp.cmd_angles[0] = SHORT2ANGLE(client->ucmd.angles[0]);
-	client->resp.cmd_angles[1] = SHORT2ANGLE(client->ucmd.angles[1]);
-	client->resp.cmd_angles[2] = SHORT2ANGLE(client->ucmd.angles[2]);
-	
-	memset (&pm, 0, sizeof(pm));
-	pm.s = client->ps.pmove;
-	for (i=0 ; i<3 ; i++) {
-		pm.s.origin[i] = ent->s.origin[i]*8;
-		client->ps.pmove.delta_angles[i] = 
-			ANGLE2SHORT(client->ps.viewangles[i] - client->resp.cmd_angles[i]);
-	}
-	if (memcmp(&client->old_pmove, &pm.s, sizeof(pm.s)))
-		pm.snapinitial = true;
-	pm.cmd = client->ucmd;
-	pm.trace = PM_trace;	// adds default parms
-	pm.pointcontents = gi.pointcontents;
-	
-	gi.Pmove (&pm);
-	
-	gi.linkentity (ent);
-//	client->old_owner_angles[0] = client->ucmd.angles[0];
-//	client->old_owner_angles[1] = client->ucmd.angles[1];
-	
-	G_TouchTriggers (ent); // we'll only allow touching trigger_look with "Cam Owner" SF
-	
 }
 /*
 ==============
@@ -2353,8 +1881,6 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	if( (ent->in_mud)               ||
 		(ent->client->push)         ||
 		(ent->vehicle)              ||
-		(ent->client->chasetoggle)  ||
-		(ent->turret)               ||
 		(ent->client->spycam)       ||
 		(ground_speed > 0)            )
 		ent->client->ps.pmove.pm_flags |= PMF_NO_PREDICTION;
@@ -2373,101 +1899,11 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	}
 	VectorCopy(ent->s.origin,view);
 	view[2] += ent->viewheight;
-	Fog(view);
-
-// MUD - get mud level
-	if(level.mud_puddles)
-	{
-		edict_t	*mud;
-
-		ent->in_mud = 0;
-		for(i=game.maxclients+1; i<globals.num_edicts && !ent->in_mud; i++)
-		{
-			mud = &g_edicts[i];
-			if(!mud->inuse) continue;
-			if(!(mud->svflags & SVF_MUD)) continue;
-			if(ent->absmin[0] > mud->absmax[0]) continue;
-			if(ent->absmin[1] > mud->absmax[1]) continue;
-			if(ent->absmin[2] > mud->absmax[2]) continue;
-			if(ent->absmax[0] < mud->absmin[0]) continue;
-			if(ent->absmax[1] < mud->absmin[1]) continue;
-			if(ent->absmax[2] < mud->absmin[2]) continue;
-			ent->in_mud = 1;
-			if(ent->s.origin[2] < mud->absmax[2])
-				ent->in_mud = 2;
-			if(ent->s.origin[2] + ent->viewheight < mud->absmax[2])
-				ent->in_mud = 3;
-		}
-	}
-
-// USE - special actions taken when +use is pressed
-	if(!client->use && (ucmd->buttons & BUTTON_USE))
-	{
-		// use key was NOT pressed, but now is
-		client->use = 1;
-		if(client->spycam)
-			camera_off(ent);
-		else
-		{
-			edict_t *viewing;
-			vec3_t	intersect;
-			float	range;
-
-			viewing = LookingAt(ent,0,intersect,&range);
-			if(viewing && viewing->classname)
-			{
-				if(viewing->class_id == ENTITY_CRANE_CONTROL)
-					crane_control_action(viewing,ent,intersect);
-				if(viewing->class_id == ENTITY_TARGET_LOCK_DIGIT)
-					lock_digit_increment(viewing,ent);
-				if((viewing->class_id == ENTITY_FUNC_TRAINBUTTON) && (viewing->spawnflags & 1))
-					trainbutton_use(viewing,ent,ent);
-				if((viewing->class_id == ENTITY_FUNC_MONITOR) && (range <= 100)) {
-					use_camera(viewing,ent,ent);
-					if(client->spycam && client->spycam->viewer == ent) {
-						client->old_owner_angles[0] = ucmd->angles[0];
-						client->old_owner_angles[1] = ucmd->angles[1];
-					}
-				}
-				if(viewing->monsterinfo.aiflags & AI_ACTOR)
-				{
-					if(viewing->monsterinfo.aiflags & AI_FOLLOW_LEADER)
-					{
-						viewing->monsterinfo.aiflags    &= ~AI_FOLLOW_LEADER;
-						viewing->monsterinfo.old_leader  = NULL;
-						viewing->monsterinfo.leader      = NULL;
-						viewing->movetarget = viewing->goalentity = NULL;
-						viewing->monsterinfo.stand(viewing);
-					}
-					else
-					{
-						vec3_t	dir;
-						viewing->monsterinfo.aiflags |= AI_FOLLOW_LEADER;
-						viewing->monsterinfo.leader   = ent;
-						VectorSubtract(ent->s.origin,viewing->s.origin,dir);
-						viewing->ideal_yaw = vectoyaw(dir);
-						if(fabs(viewing->s.angles[YAW] - viewing->ideal_yaw) < 90)
-							actor_salute(viewing);
-					}
-				}
-			}
-		}
-	}
-
-	if(ucmd->buttons & BUTTON_USE)
-		client->use = 1;
-	else
-		client->use = 0;
 
 	if( client->push )
 	{
 		// currently pushing or pulling a func_pushable
-		if( !client->use )
-		{
-			// whoops - released USE key
-			RemovePush(ent);
-		}
-		else if( (!ent->groundentity) && (ent->waterlevel==0 || client->push->waterlevel == 0 ) )
+		if( (!ent->groundentity) && (ent->waterlevel==0 || client->push->waterlevel == 0 ) )
 		{
 			// oops, we fall down
 			RemovePush(ent);
@@ -2485,19 +1921,9 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 		}
 	}
 
-	if(ent->turret && ucmd->upmove > 10)
-		turret_disengage(ent->turret);
-
-// INTERMISSION
+	// INTERMISSION
 	if (level.intermissiontime)
 	{
-		// tpp
-		if (client->chasetoggle)
-			ChasecamRemove (ent, OPTION_OFF);
-		// end tpp
-		// Lazarus spycam
-		if (client->spycam)
-			camera_off(ent);
 		client->ps.pmove.pm_type = PM_FREEZE;
 		// can exit intermission after five seconds
 		if (level.time > level.intermissiontime + 5.0 
@@ -2530,35 +1956,6 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 		return;
 	}
 
-// THIRDPERSON VIEW in/out
-// if NOT pushing something AND in third person AND use key is pressed,
-// move viewpoint in/out
-	if(client->chasetoggle && !client->push) {
-		if ((ucmd->buttons & BUTTON_USE) && (!deathmatch->value))
-		{
-			client->use = 1;
-			if ((ucmd->forwardmove < 0) && (client->zoom < 100))
-				client->zoom++;
-			else if ((ucmd->forwardmove > 0) && (client->zoom > -40))
-				client->zoom--;
-			ucmd->forwardmove = 0;
-			ucmd->sidemove = 0;
-		}
-		else if (client->use)
-		{
-			//client->zoom = 0;
-			if (client->oldplayer)
-			{
-				// set angles
-				for (i=0 ; i<3 ; i++)
-				{
-					ent->client->ps.pmove.delta_angles[i] = ANGLE2SHORT(ent->client->oldplayer->s.angles[i] - ent->client->resp.cmd_angles[i]);
-				}
-			}
-			client->use = 0;
-		}
-	}
-
 // ZOOM
 	if (client->zooming) {
 		client->pers.hand = 2;
@@ -2586,117 +1983,25 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 		}
 	}
 
-// SPYCAM
-	if (client->spycam) {
-		ClientSpycam(ent);
-		return; // no movement while in cam
-    } // END SPYCAM
-
 	pm_passent = ent;
 
-	// Lazarus: developer item movement
-	if(client->use && client->shift_dir)
-		ShiftItem(ent, client->shift_dir);
+	// set up for pmove
+	memset (&pm, 0, sizeof(pm));
 
-	if (client->chase_target) {
+	if (ent->movetype == MOVETYPE_NOCLIP)
+		client->ps.pmove.pm_type = PM_SPECTATOR;
+	else if (ent->s.modelindex != MAX_MODELS-1)
+		client->ps.pmove.pm_type = PM_GIB;
+	else if (ent->deadflag)
+		client->ps.pmove.pm_type = PM_DEAD;
+	else
+		client->ps.pmove.pm_type = PM_NORMAL;
+	if(level.time > ent->gravity_debounce_time)
+		client->ps.pmove.gravity = sv_gravity->value;
+	else
+		client->ps.pmove.gravity = 0;
 
-		client->resp.cmd_angles[0] = SHORT2ANGLE(ucmd->angles[0]);
-		client->resp.cmd_angles[1] = SHORT2ANGLE(ucmd->angles[1]);
-		client->resp.cmd_angles[2] = SHORT2ANGLE(ucmd->angles[2]);
-
-	} else {
-
-		// set up for pmove
-		memset (&pm, 0, sizeof(pm));
-
-		if (ent->movetype == MOVETYPE_NOCLIP)
-			client->ps.pmove.pm_type = PM_SPECTATOR;
-		else if (ent->s.modelindex != MAX_MODELS-1)
-			client->ps.pmove.pm_type = PM_GIB;
-		else if (ent->deadflag)
-			client->ps.pmove.pm_type = PM_DEAD;
-		else
-			client->ps.pmove.pm_type = PM_NORMAL;
-
-		if(level.time > ent->gravity_debounce_time)
-			client->ps.pmove.gravity = sv_gravity->value;
-		else
-			client->ps.pmove.gravity = 0;
-
-#ifdef JETPACK_MOD
-		if ( client->jetpack )
-		{
-			if( (ucmd->upmove != 0) || (ucmd->forwardmove != 0) || (ucmd->sidemove != 0) )
-			{
-				if(ucmd->upmove > 0 || !ent->groundentity)
-				{
-					if(!client->jetpack_thrusting)
-					{
-						gi.sound (ent, CHAN_AUTO, gi.soundindex("jetpack/rev.wav"), 1, ATTN_NORM, 0);
-						client->jetpack_start_thrust = level.framenum;
-					}
-					client->jetpack_thrusting = true;
-				}
-				else
-					client->jetpack_thrusting = false;
-			}
-			else
-				client->jetpack_thrusting = false;
-
-			if(client->jetpack_framenum + client->pers.inventory[fuel_index] > level.framenum)
-			{
-				if(jetpack_weenie->value)
-				{
-					Jet_ApplyJet( ent, ucmd );
-					if(client->jetpack_framenum < level.framenum)
-					{
-						if(!client->jetpack_infinite)
-							client->pers.inventory[fuel_index] -= 10;
-						client->jetpack_framenum = level.framenum + 10;
-					}
-				}
-				else
-				{
-					if(client->jetpack_thrusting)
-						Jet_ApplyJet( ent, ucmd );
-					if(client->jetpack_framenum <= level.framenum)
-					{
-						if(client->jetpack_thrusting)
-						{
-							if(!client->jetpack_infinite)
-								client->pers.inventory[fuel_index] -= 11;
-							client->jetpack_framenum = level.framenum + 10;
-						}
-						else
-						{
-							if(!client->jetpack_infinite)
-								client->pers.inventory[fuel_index]--;
-							client->jetpack_framenum = level.framenum + 10;
-						}
-					}
-					if(ucmd->upmove == 0)
-					{
-						// accelerate to 75% gravity in 2 seconds
-						float	gravity;
-						float	g_max = 0.75 * sv_gravity->value;
-
-						gravity = g_max * (level.framenum - client->jetpack_last_thrust)/20;
-						if(gravity > g_max) gravity = g_max;
-						client->ps.pmove.gravity = (short)gravity;
-					}
-					else
-						client->jetpack_last_thrust = level.framenum;
-				}
-			}
-			else
-			{
-				client->jetpack = false;
-				ent->s.frame = FRAME_jump2;	// reset from stand to avoid goofiness
-			}
-		}
-#endif    // #ifdef JETPACK_MOD
-
-		pm.s = client->ps.pmove;
+	pm.s = client->ps.pmove;
 
 		for (i=0 ; i<3 ; i++)
 		{
@@ -2736,15 +2041,6 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 		client->resp.cmd_angles[0] = SHORT2ANGLE(ucmd->angles[0]);
 		client->resp.cmd_angles[1] = SHORT2ANGLE(ucmd->angles[1]);
 		client->resp.cmd_angles[2] = SHORT2ANGLE(ucmd->angles[2]);
-
-#ifdef JETPACK_MOD
-		if ( client->jetpack && jetpack_weenie->value )
-		{
-			if( pm.groundentity )		// are we on ground
-				if ( Jet_AvoidGround(ent) )	// then lift us if possible
-					pm.groundentity = NULL;		// now we are no longer on ground
-		}
-#endif
 
 // MUD - "correct" Pmove physics
 		if(pm.waterlevel && ent->in_mud)
@@ -2821,7 +2117,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 			ent->in_mud = 0;
 // end MUD
 
-		if (ent->groundentity && !pm.groundentity && (pm.cmd.upmove >= 10) && (pm.waterlevel == 0) && !client->jetpack)
+		if (ent->groundentity && !pm.groundentity && (pm.cmd.upmove >= 10) && (pm.waterlevel == 0))
 		{
 			gi.sound(ent, CHAN_VOICE, gi.soundindex("*jump1.wav"), 1, ATTN_NORM, 0);
 			PlayerNoise(ent, ent->s.origin, PNOISE_SELF);
@@ -2866,11 +2162,6 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 			VectorCopy (pm.viewangles, client->ps.viewangles);
 		}
 
-#ifdef JETPACK_MOD
-		if ( client->jetpack && !(ucmd->buttons & BUTTONS_ATTACK))
-			ent->s.frame = FRAME_stand20;
-#endif
-
 		gi.linkentity (ent);
 
 		if (ent->movetype != MOVETYPE_NOCLIP)
@@ -2896,7 +2187,6 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 					other->touch (other, ent, NULL, NULL);
 			}
 		}
-	}
 
 	client->oldbuttons = client->buttons;
 	client->buttons = ucmd->buttons;
@@ -2913,12 +2203,6 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 
 			client->latched_buttons = 0;
 
-			if (client->chase_target) {
-				client->chase_target = NULL;
-				client->ps.pmove.pm_flags &= ~PMF_NO_PREDICTION;
-			} else
-				GetChaseTarget(ent);
-
 		} else if (!client->weapon_thunk) {
 			client->weapon_thunk = true;
 			Think_Weapon (ent);
@@ -2929,29 +2213,14 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 		if (ucmd->upmove >= 10) {
 			if (!(client->ps.pmove.pm_flags & PMF_JUMP_HELD)) {
 				client->ps.pmove.pm_flags |= PMF_JUMP_HELD;
-				if (client->chase_target)
-					ChaseNext(ent);
-				else
-					GetChaseTarget(ent);
 			}
 		} else
 			client->ps.pmove.pm_flags &= ~PMF_JUMP_HELD;
 	}
 
-	// update chase cam if being followed
-	for (i = 1; i <= maxclients->value; i++) {
-		other = g_edicts + i;
-		if (other->inuse && other->client->chase_target == ent)
-			UpdateChaseCam(other);
-	}
-
 	if(client->push != NULL)
 	{
-		if(client->use &&
-			( (ucmd->forwardmove != 0) || (ucmd->sidemove != 0) ) )
-			ClientPushPushable(ent);
-		else
-			client->push->s.sound = 0;
+		client->push->s.sound = 0;
 	}
 
 }
@@ -2979,13 +2248,6 @@ void ClientBeginServerFrame (edict_t *ent)
 	if(client->spycam)
 		client = client->camplayer->client;
 
-	// tpp
-	if (client->delayedstart > 0)
-		client->delayedstart--;
-	if (client->delayedstart == 1)
-		ChasecamStart (ent);
-	// end tpp
-
 	if (deathmatch->value &&
 		client->pers.spectator != client->resp.spectator &&
 		(level.time - client->respawn_time) >= 5) {
@@ -3004,18 +2266,6 @@ void ClientBeginServerFrame (edict_t *ent)
 		// wait for any button just going down
 		if ( level.time > client->respawn_time)
 		{
-			// tpp
-	        if (ent->crosshair)
-				G_FreeEdict(ent->crosshair);
-			ent->crosshair = NULL;
-			if (ent->client->oldplayer)
-				G_FreeEdict (ent->client->oldplayer);
-			ent->client->oldplayer = NULL;
-			if (ent->client->chasecam)
-				G_FreeEdict (ent->client->chasecam);
-			ent->client->chasecam = NULL;
-			// end tpp
-
 			// in deathmatch, only wait for attack button
 			if (deathmatch->value)
 				buttonMask = BUTTONS_ATTACK;
@@ -3031,13 +2281,6 @@ void ClientBeginServerFrame (edict_t *ent)
 		}
 		return;
 	}
-
-	// add player trail so monsters can follow
-	// Lazarus: Don't add player trail for players in camera or notarget players
-	if (!deathmatch->value && !client->spycam && !(ent->flags & FL_NOTARGET))
-		if (!visible (ent, PlayerTrail_LastSpot() ) )
-			PlayerTrail_Add (ent->s.old_origin);
-
 	client->latched_buttons = 0;
 }
 

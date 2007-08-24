@@ -335,91 +335,6 @@ void SaveEntProps(edict_t *e, file_t *f)
 		e->monsterinfo.power_armor_power,e->monsterinfo.min_range);
 }
 
-void ShiftItem(edict_t *ent, int direction)
-{
-	vec3_t      end, forward, start;
-	vec3_t		move;
-
-	edict_t		*target;
-
-	if(!ent->client) return;
-
-	target = LookingAt(ent,0,NULL,NULL);
-	if(!target) return;
-
-	ent->client->shift_dir = direction;
-	
-	VectorClear(move);
-	VectorCopy(ent->s.origin,start);
-	VectorAdd(target->s.origin,target->origin_offset,end);
-	VectorSubtract(end,start,forward);
-	VectorNormalize(forward);
-	VectorScale(forward,shift_distance->value,forward);
-	if(direction & 1)
-	{
-		if(fabs(forward[0]) > fabs(forward[1]))
-			move[1] += forward[0];
-		else
-			move[0] -= forward[1];
-	}
-	if(direction & 2)
-	{
-		if(fabs(forward[0]) > fabs(forward[1]))
-			move[1] -= forward[0];
-		else
-			move[0] += forward[1];
-	}
-	if(direction & 4)
-	{
-		if(fabs(forward[0]) > fabs(forward[1]))
-			move[0] += forward[0];
-		else
-			move[1] += forward[1];
-	}
-	if(direction & 8)
-	{
-		if(fabs(forward[0]) > fabs(forward[1]))
-			move[0] -= forward[0];
-		else
-			move[1] -= forward[1];
-	}
-	if(direction & 16)
-		move[2] += shift_distance->value;
-
-	if(direction & 32)
-		move[2] -= shift_distance->value;
-
-	if(direction & 64) {
-		if( target->movetype == MOVETYPE_TOSS     ||
-			target->movetype == MOVETYPE_BOUNCE   ||
-			target->movetype == MOVETYPE_STEP     ||
-			target->movetype == MOVETYPE_PUSHABLE ||
-			target->movetype == MOVETYPE_DEBRIS      ) {
-			M_droptofloor(target);
-		}
-	}
-
-	if(direction & 128) {
-		target->s.angles[PITCH] += rotate_distance->value;
-		if(target->s.angles[PITCH] > 360) target->s.angles[PITCH] -= 360;
-		if(target->s.angles[PITCH] <   0) target->s.angles[PITCH] += 360;
-	}
-	if(direction & 256) {
-		target->s.angles[YAW] += rotate_distance->value;
-		if(target->s.angles[YAW] > 360) target->s.angles[YAW] -= 360;
-		if(target->s.angles[YAW] <   0) target->s.angles[YAW] += 360;
-	}
-	if(direction & 512) {
-		target->s.angles[ROLL] += rotate_distance->value;
-		if(target->s.angles[ROLL] > 360) target->s.angles[ROLL] -= 360;
-		if(target->s.angles[ROLL] <   0) target->s.angles[ROLL] += 360;
-	}
-
-	VectorAdd(target->s.origin,move,target->s.origin);
-	if(!(direction & 64)) target->gravity_debounce_time = level.time + 1.0;
-	gi.linkentity(target);
-}
-
 char *ClientTeam (edict_t *ent)
 {
 	char		*p;
@@ -470,14 +385,9 @@ void SelectNextItem (edict_t *ent, int itflags)
 
 	cl = ent->client;
 
-	if (cl->menu) {
+	if (cl->menu)
+	{
 		PMenu_Next(ent);
-		return;
-	} else if (cl->textdisplay) {
-		Text_Next (ent);
-		return;
-	} else if (cl->chase_target) {
-		ChaseNext(ent);
 		return;
 	}
 
@@ -508,14 +418,9 @@ void SelectPrevItem (edict_t *ent, int itflags)
 
 	cl = ent->client;
 
-	if (cl->menu) {
+	if (cl->menu)
+	{
 		PMenu_Prev(ent);
-		return;
-	} else if (cl->textdisplay) {
-		Text_Prev (ent);
-		return;
-	} else if (cl->chase_target) {
-		ChasePrev(ent);
 		return;
 	}
 
@@ -576,34 +481,6 @@ void Cmd_Give_f (edict_t *ent)
 	}
 
 	name = gi.args();
-
-	if(!strcasecmp(name,"jetpack"))
-	{
-		if(!developer->value)
-		{
-			gi.cprintf(ent, PRINT_HIGH, "Jetpack not available via give cheat\n");
-			return;
-		}
-		else
-		{
-			gitem_t *fuel;
-			fuel = FindItem("fuel");
-			Add_Ammo(ent,fuel,500);
-		}
-
-	}
-	if(!developer->value)
-	{
-		if( !strcasecmp(name,"flashlight")      ||
-			!strcasecmp(name,"fuel")            ||
-			!strcasecmp(name,"homing missiles") ||
-			!strcasecmp(name,"stasis generator")   )
-		{
-
-			gi.cprintf(ent, PRINT_HIGH, "%s not available via give cheat\n",name);
-			return;
-		}
-	}
 
 	if (strcasecmp(name, "all") == 0)
 		give_all = true;
@@ -874,29 +751,6 @@ void Cmd_Use_f (edict_t *ent)
 		return;
 	}
 	index = ITEM_INDEX(it);
-#ifdef JETPACK_MOD
-	if(!stricmp(s,"jetpack"))
-	{
-		// Special case - turns on/off
-		if(!ent->client->jetpack)
-		{
-			if(ent->waterlevel > 0)
-				return;
-			if(!ent->client->pers.inventory[index])
-			{
-				gi.cprintf(ent, PRINT_HIGH, "Out of item: %s\n", s);
-				return;
-			}
-			else if(ent->client->pers.inventory[fuel_index] <= 0)
-			{
-				gi.cprintf(ent, PRINT_HIGH, "No fuel for: %s\n", s);
-				return;
-			}
-		}
-		it->use(ent,it);
-		return;
-	}
-#endif
 	if (!stricmp(s,"stasis generator"))
 	{
 		// Special case - turn freeze off if already on
@@ -968,15 +822,9 @@ void Cmd_Inven_f (edict_t *ent)
 	cl->showscores = false;
 	cl->showhelp = false;
 
-	if (cl->menu) {
-		PMenu_Close(ent);
-		ent->client->update_chase = true;
-		return;
-	}
-
-	if (cl->textdisplay)
+	if (cl->menu)
 	{
-		Text_Close(ent);
+		PMenu_Close(ent);
 		return;
 	}
 
@@ -993,8 +841,6 @@ void Cmd_Inven_f (edict_t *ent)
 	{
 		// Don't show "No Weapon" or "Homing Missile Launcher" in inventory
 		if((i == noweapon_index) || (i == hml_index))
-			WRITE_SHORT (0);
-		else if((i == fuel_index) && (ent->client->jetpack_infinite))
 			WRITE_SHORT (0);
 		else WRITE_SHORT (cl->pers.inventory[i]);
 	}
@@ -1029,23 +875,6 @@ void Cmd_InvUse_f (edict_t *ent)
 		gi.cprintf (ent, PRINT_HIGH, "Item is not usable.\n");
 		return;
 	}
-
-#ifdef JETPACK_MOD
-	if(!stricmp(it->classname,"item_jetpack"))
-	{
-		if(!ent->client->jetpack)
-		{
-			if(ent->waterlevel > 0)
-				return;
-			if(ent->client->pers.inventory[fuel_index] <= 0)
-			{
-				gi.cprintf(ent, PRINT_HIGH, "No fuel for jetpack\n" );
-				return;
-			}
-		}
-	}
-#endif
-	
 	it->use (ent, it);
 }
 
@@ -1202,9 +1031,6 @@ void Cmd_PutAway_f (edict_t *ent)
 
 	if (ent->client->menu)
 		PMenu_Close(ent);
-	if (ent->client->textdisplay)
-		Text_Close(ent);
-	ent->client->update_chase = true;
 }
 
 
@@ -1633,62 +1459,8 @@ void Cmd_attack2_f(edict_t *ent, bool bOn)
 	}
 }
 
-void decoy_die(edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point)
-{
-	BecomeExplosion1(self);
-}
-
-void decoy_think(edict_t *self)
-{
-	if(self->s.frame < 0 || self->s.frame > 39)
-	{
-		self->s.frame = 0;
-	}
-	else
-	{
-		self->s.frame++;
-		if(self->s.frame > 39)
-			self->s.frame = 0;
-	}
-
-	// Every 2 seconds, make visible monsters mad at me
-	if(level.framenum % 20 == 0)
-	{
-		edict_t	*e;
-		int		i;
-
-		for(i=game.maxclients+1; i<globals.num_edicts; i++)
-		{
-			e = &g_edicts[i];
-			if(!e->inuse)
-				continue;
-			if(!(e->svflags & SVF_MONSTER))
-				continue;
-			if(e->monsterinfo.aiflags & AI_GOOD_GUY)
-				continue;
-			if(!visible(e,self))
-				continue;
-			if(e->enemy == self)
-				continue;
-			e->enemy = e->goalentity = self;
-			e->monsterinfo.aiflags |= AI_TARGET_ANGER;
-			FoundTarget (e);
-		}
-	}
-
-	self->nextthink = level.time + FRAMETIME;
-	gi.linkentity(self);
-}
-
 void forcewall_think(edict_t *self)
 {
-	MESSAGE_BEGIN (svc_temp_entity);
-		WRITE_BYTE (TE_FORCEWALL);
-		WRITE_COORD (self->pos1);
-		WRITE_COORD (self->pos2);
-		WRITE_BYTE  (self->style);
-	MESSAGE_SEND (MSG_PVS, self->s.origin, NULL);
-
 	self->nextthink = level.time + FRAMETIME;
 }
 
@@ -1784,322 +1556,11 @@ void ForcewallOff(edict_t *player)
 	G_FreeEdict(tr.ent);
 }
 
-#ifdef WESQ2
-
-void DeleteItem(edict_t *ent)
-{
-	edict_t		*target;
-
-	target = LookingAt(ent,LOOKAT_NOWORLD,NULL,NULL);
-	if(!target) return;
-	if(target->my_spawn != 0)
-	{
-		SpawnedItem[target->my_spawn-1].classname[0] = 0;
-		if(target->my_spawn == NumSpawnedItems)
-			NumSpawnedItems--;
-	}
-	G_FreeEdict(target);
-
-}
-/*
-=================
-GetEntFilename
-=================
-*/
-void GetEntFilename(char *filename)
-{
-	cvar_t	*game;
-	game = gi.cvar("game", "", CVAR_SERVERINFO| CVAR_LATCH);
-	strcpy(filename,game->string);
-	strcat(filename,"/maps/");
-	strcat(filename,level.mapname);
-	strcat(filename,".ent");
-}
-
-/*
-=================
-SaveItems
-Saves items spawned with "spawn" console command to a file with same name
-as map and ".ent" extension. This file is read by SpawnEntities the next
-time the map is run.
-=================
-*/
-void SaveItems()
-{
-	file_t	*f;
-	char	filename[256];
-	int		i;
-	int		count;
-
-	if(NumSpawnedItems == 0) return;
-
-	GetEntFilename(filename);
-	f = gi.fopen(filename,"w", true, false);
-	count = 0;
-	for(i=0; i<NumSpawnedItems; i++)
-	{
-		if(!strlen(SpawnedItem[i].classname)) continue;
-		gi.fprintf(f,"%s %f %f %f %f\n",
-			SpawnedItem[i].classname,SpawnedItem[i].origin[0],
-			SpawnedItem[i].origin[1],SpawnedItem[i].origin[2],
-			SpawnedItem[i].angle);
-		count++;
-	}
-	gi.fclose(f);
-	gi.dprintf("%d spawned item(s) saved to %s\n",count,filename);
-
-}
-
-int SpawnSlot()
-{
-	// Find available slot in SpawnedItems array
-	int	i;
-
-	if(!NumSpawnedItems) return 0;
-	for(i=0; i<NumSpawnedItems; i++)
-	{
-		if(!strlen(SpawnedItem[i].classname)) return i;
-	}
-	return NumSpawnedItems;
-}
-/*
-====================================
-FindThickness
-Starting from end position of input trace,
-find thickness of solid in direction
-perpendicular to the surface tr.endpos
-lies on.
-====================================
-*/
-vec_t	FindThickness(trace_t tr)
-{
-	int			contents;
-	int			i;
-	vec_t		thickness;
-	vec3_t		front, forward, v;
-
-	VectorCopy(tr.endpos,front);
-	VectorCopy(tr.plane.normal,forward);
-	VectorNegate(forward,forward); // point into the wall
-
-	// Test every 0.5 units for up to 256 units for a point that is NOT in a solid.
-	for(i=1; i<512; i++)
-	{
-		thickness = i*0.5;
-		VectorMA(front,thickness,forward,v);
-		contents = gi.pointcontents(v);
-		if(!(contents && CONTENTS_SOLID))
-		{
-			thickness = (i-1)*0.5;
-			break;
-		}
-	}
-	if(i >= 512) thickness = 0.;
-	return thickness;
-}
-/*
-==============================
-GetMaterialPropertyFromTexture
-==============================
-*/
-void GetMaterialPropertyFromTexture(char *texture,char *matl)
-{
-	if(!texture)
-		strcpy(matl,"Unknown material");
-	else if(strstr(texture,"con") != NULL)
-		strcpy(matl,"concrete");
-	else if(strstr(texture,"wood") != NULL)
-		strcpy(matl,"wood");
-	else if(!strcasecmp(texture,"smd/gray"))
-		strcpy(matl,"light metal");
-	else if(strstr(texture,"corr") != NULL)
-		strcpy(matl,"corrugated metal");
-	else if(strstr(texture,"met") != NULL)
-		strcpy(matl,"steel");
-	else if(strstr(texture,"rock") != NULL)
-		strcpy(matl,"solid rock");
-	else if((strstr(texture,"wnd") != NULL) || (strstr(texture,"wind") != NULL))
-		strcpy(matl,"unbreakable window");
-	else
-		sprintf(matl,"Unknown material, texture=%s",texture);
-}
-
-
-/*
-=================================
-Cmd_Identify_f
-identifies brush/entity looked at
-=================================
-*/
-void Cmd_Identify_f (edict_t *ent)
-{
-	extern vec3_t MOVEDIR_UP;
-	extern vec3_t MOVEDIR_DOWN;
-	char		matl[64];
-	char		message[1024];
-	char		append[256];
-	trace_t		tr;
-	vec3_t      end, forward, start;
-	vec_t		thickness;
-
-	if (ent->client->textdisplay)
-		Text_Close(ent);
-	
-	VectorCopy(ent->s.origin,start);
-	start[2] += ent->viewheight;
-	AngleVectors(ent->client->v_angle, forward, NULL, NULL);
-	VectorMA(start, 8192, forward, end);
-	tr = gi.trace (start, NULL, NULL, end, ent, MASK_SHOT);
-	if (tr.fraction == 1.0)
-	{
-		// too far away
-		gi.sound (ent, CHAN_AUTO, gi.soundindex ("misc/talk1.wav"), 1, ATTN_NORM, 0);
-		return;
-	}
-	else if(!tr.ent)
-	{
-		// no hit
-		gi.sound (ent, CHAN_AUTO, gi.soundindex ("misc/talk1.wav"), 1, ATTN_NORM, 0);
-		return;
-	}
-	else if(strcasecmp(tr.ent->classname,"worldspawn"))
-	{
-		// not a world brush
-		thickness = FindThickness(tr);
-		if(tr.ent->datafile)
-			Do_Text_Display(ent,1,tr.ent->datafile);
-		else
-		{
-			GetMaterialPropertyFromTexture(tr.surface->name,matl);
-			if(!strcasecmp(tr.ent->classname,"func_door_rotating"))
-			{
-				int		axis;
-
-				axis = 1;
-				if(tr.ent->spawnflags &  64) axis = 2;
-				if(tr.ent->spawnflags & 128) axis = 0;
-				// Don't even try to report door width for doors not parallel to x or y
-				if(tr.plane.normal[0] == 0)
-				{
-					sprintf(message,"%s-hand door\nmaterial = %s\n"
-						"thickness = %i inches\nwidth = %i inches\nheight = %i inches",
-						(tr.ent->pos2[axis] > 0 ? "Right" : "Left"), matl,
-						(int)thickness,
-						(int)(tr.ent->absmax[0]-tr.ent->absmin[0]),
-						(int)(tr.ent->absmax[2]-tr.ent->absmin[2]));
-				}
-				else if(tr.plane.normal[1] == 0)
-				{
-					sprintf(message,"%s-hand door\nmaterial = %s\n"
-						"thickness = %i inches\nwidth = %i inches\nheight = %i inches",
-						(tr.ent->pos2[axis] > 0 ? "Right" : "Left"), matl,
-						(int)thickness,
-						(int)(tr.ent->absmax[1]-tr.ent->absmin[1]),
-						(int)(tr.ent->absmax[2]-tr.ent->absmin[2]));
-				}
-				else
-				{
-					sprintf(message,"%s-hand door\nmaterial = %s\n"
-							"thickness = %i inches\nheight = %i inches",
-						(tr.ent->pos2[axis] > 0 ? "Right" : "Left"), matl,
-						(int)thickness,(int)(tr.ent->absmax[2]-tr.ent->absmin[2]));
-				}
-			}
-			else if(!strcasecmp(tr.ent->classname,"func_door"))
-			{
-				char	direction[16];
-
-				if(VectorCompare(tr.ent->movedir,MOVEDIR_UP))
-					strcpy(direction,"up");
-				else if(VectorCompare(tr.ent->movedir,MOVEDIR_DOWN))
-					strcpy(direction,"down");
-				else
-				{
-					vec_t	dot;
-					dot = DotProduct(tr.plane.normal,tr.ent->movedir);
-					if(dot > 0)
-						strcpy(direction,"to right");
-					else if(dot < 0)
-						strcpy(direction,"to left");
-					else
-					{
-						vec3_t	cross;
-						CrossProduct(tr.plane.normal,tr.ent->movedir,cross);
-						if(cross[2] > 0)
-							strcpy(direction,"to right");
-						else
-							strcpy(direction,"to left");
-					}
-				}
-				sprintf(message,"sliding door, opens %s\n"
-						"material = %s\nthickness = %i inches\n",
-						direction,matl,(int)thickness);
-				if(tr.plane.normal[0] == 0)
-				{
-					sprintf(append,"width = %i inches\n",
-						(int)(tr.ent->absmax[0]-tr.ent->absmin[0]));
-					strcat(message,append);
-				}
-				else if(tr.plane.normal[1] == 0)
-				{
-					sprintf(append,"width = %i inches\n",
-						(int)(tr.ent->absmax[1]-tr.ent->absmin[1]));
-					strcat(message,append);
-				}
-				sprintf(append,"height = %i inches\n",
-					(int)(tr.ent->absmax[2]-tr.ent->absmin[2]));
-				strcat(message,append);
-			}
-			else if(!strcasecmp(tr.ent->classname,"func_explosive"))
-			{
-				if(tr.contents & CONTENTS_TRANSLUCENT)
-					sprintf(message,"Breakable window\n");
-				else
-					sprintf(message,"Breakable/Explodable object\n",
-									"damage when broken = %d\n",tr.ent->dmg);
-				sprintf(append,"thickness = %i inches\n",(int)thickness);
-				strcat(message,append);
-			}
-			else if(!strcasecmp(tr.ent->classname,"func_pushable"))
-				sprintf(message,"Pushable crate\nweight = %d lb",tr.ent->mass);
-			else if(!strcasecmp(tr.ent->classname,"misc_bomb"))
-				sprintf(message,"%d lb charge\n",tr.ent->mass);
-			else if(!strcasecmp(tr.ent->classname,"misc_tank1"))
-				strcpy(message,"200 gallon tank\n");
-			else if(!strcasecmp(tr.ent->classname,"misc_tank2"))
-				strcpy(message,"5000 gallon tank\n");
-			else
-			{
-				strcpy(message,tr.ent->classname);
-			}
-			Do_Text_Display(ent,2,message);
-		}
-		return;
-	}
-
-	GetMaterialPropertyFromTexture(tr.surface->name,matl);
-
-	thickness = FindThickness(tr);
-
-	if(thickness > 0.)
-		sprintf(message,"%s\nthickness = %g inches\n",matl,thickness);
-	else
-		sprintf(message,"%s\nunknown thickness\n",matl);
-
-	Do_Text_Display(ent, 2, message);
-}
-#endif
-
 /*
 =================
 ClientCommand
 =================
 */
-void Restart_FMOD(edict_t *self)
-{
-	FMOD_Init();
-	G_FreeEdict(self);
-}
 void ClientCommand (edict_t *ent)
 {
 	char	*cmd;
@@ -2195,19 +1656,6 @@ void ClientCommand (edict_t *ent)
 #endif
 #endif
 
-	// ==================== fog stuff =========================
-	else if (developer->value && !strcasecmp(cmd,"fog"))
-		Cmd_Fog_f(ent);
-	else if (developer->value && !strncasecmp(cmd, "fog_", 4))
-		Cmd_Fog_f(ent);
-	// ================ end fog stuff =========================
-
-	// tpp
-	else if (strcasecmp (cmd, "thirdperson") == 0) {
-		Cmd_Chasecam_Toggle (ent);
-		tpp->value = ent->client->chasetoggle;
-	}
-
 	// alternate attack mode
 	else if (!strcasecmp(cmd,"attack2_off"))
 		Cmd_attack2_f(ent,false);
@@ -2216,7 +1664,7 @@ void ClientCommand (edict_t *ent)
 
 	// zoom
 	else if (!strcasecmp(cmd, "zoomin")) {
-		if(!deathmatch->value && !coop->value && !ent->client->chasetoggle) {
+		if(!deathmatch->value && !coop->value) {
 			if(ent->client->ps.fov > 5) {
 				if(cl_gun->value)
 					stuffcmd(ent,"cl_gun 0\n");
@@ -2227,7 +1675,7 @@ void ClientCommand (edict_t *ent)
 		}
 	}
 	else if (!strcasecmp(cmd, "zoomout")) {
-		if(!deathmatch->value && !coop->value && !ent->client->chasetoggle) {
+		if(!deathmatch->value && !coop->value) {
 			if(ent->client->ps.fov < ent->client->original_fov) {
 				if(cl_gun->value)
 					stuffcmd(ent,"cl_gun 0\n");
@@ -2238,7 +1686,7 @@ void ClientCommand (edict_t *ent)
 		}
 	}
 	else if (!strcasecmp(cmd, "zoom")) {
-		if(!deathmatch->value && !coop->value && !ent->client->chasetoggle) {
+		if(!deathmatch->value && !coop->value) {
 			if(!parm) {
 				gi.dprintf("syntax: zoom [0/1]  (0=off, 1=on)\n");
 			} else if(!atoi(parm)) {
@@ -2258,7 +1706,7 @@ void ClientCommand (edict_t *ent)
 		}
 	}
 	else if (!strcasecmp(cmd, "zoomoff")) {
-		if(!deathmatch->value && !coop->value && !ent->client->chasetoggle) {
+		if(!deathmatch->value && !coop->value) {
 			if(ent->client->zoomed && !ent->client->zooming) {
 				ent->client->ps.fov = ent->client->original_fov;
 				ent->client->zooming = 0;
@@ -2268,7 +1716,7 @@ void ClientCommand (edict_t *ent)
 		}
 	}
 	else if (!strcasecmp(cmd, "zoomon")) {
-		if(!deathmatch->value && !coop->value && !ent->client->chasetoggle) {
+		if(!deathmatch->value && !coop->value) {
 			if(!ent->client->zoomed && !ent->client->zooming) {
 				ent->client->ps.fov = zoomsnap->value;
 				ent->client->pers.hand = 2;
@@ -2281,7 +1729,7 @@ void ClientCommand (edict_t *ent)
 		}
 	}
 	else if (!strcasecmp(cmd, "zoominstop")) {
-		if(!deathmatch->value && !coop->value && !ent->client->chasetoggle) {
+		if(!deathmatch->value && !coop->value) {
 			if(ent->client->zooming > 0) {
 				ent->client->zooming = 0;
 				if(ent->client->ps.fov == ent->client->original_fov) {
@@ -2295,7 +1743,7 @@ void ClientCommand (edict_t *ent)
 		}
 	}
 	else if (!strcasecmp(cmd, "zoomoutstop")) {
-		if(!deathmatch->value && !coop->value && !ent->client->chasetoggle) {
+		if(!deathmatch->value && !coop->value) {
 			if(ent->client->zooming < 0) {
 				ent->client->zooming = 0;
 				if(ent->client->ps.fov == ent->client->original_fov) {
@@ -2399,38 +1847,6 @@ void ClientCommand (edict_t *ent)
 			gi.dprintf("syntax: entlist <filename>\n");
 		}
 	}
-	else if(!strcasecmp(cmd, "playsound"))
-	{
-		vec3_t	pos = {0, 0, 0};
-		vec3_t	vel = {0, 0, 0};
-		if(s_primary->value)
-		{
-			gi.dprintf("target_playback requires s_primary be set to 0.\n"
-				       "At the console type:\n"
-					   "s_primary 0;sound_restart\n");
-			return;
-		}
-		if(parm)
-		{
-			edict_t *temp;
-
-			strlwr(parm);
-			temp = G_Spawn();
-			temp->message = parm;
-			temp->volume = 255;
-
-			if( strstr(parm,".mod") ||
-				strstr(parm,".s3m") ||
-				strstr(parm,".xm")  ||
-				strstr(parm,".mid")   )
-				temp->spawnflags |= 8;
-
-			FMOD_PlaySound(temp);
-			G_FreeEdict(temp);
-		}
-		else
-			gi.dprintf("syntax: playsound <soundfile>, path relative to gamedir\n");
-	}
 	else if(!strcasecmp(cmd, "properties"))
 	{
 		if(parm) {
@@ -2452,22 +1868,6 @@ void ClientCommand (edict_t *ent)
 		{
 			gi.dprintf("syntax: properties <filename>\n");
 		}
-	}
-	else if(!strcasecmp(cmd,"go"))
-	{
-		edict_t *viewing;
-		float	range;
-
-		viewing = LookingAt(ent,0,NULL,&range);
-		if(range > 512)
-			return;
-		if(!(viewing->monsterinfo.aiflags & AI_ACTOR))
-			return;
-		if(viewing->enemy)
-			return;
-		if(!(viewing->monsterinfo.aiflags & AI_FOLLOW_LEADER))
-			return;
-		actor_moveit(ent,viewing);
 	}
 	else if(!strcasecmp(cmd,"hud"))
 	{
@@ -2546,26 +1946,10 @@ void ClientCommand (edict_t *ent)
 			gi.dprintf("syntax: whereis <classname>\n");
 	}
 
-	else if(!strcasecmp(cmd,"sound_restart"))
-	{
-		// replacement for snd_restart to get around DirectSound/FMOD problem
-		edict_t	*temp;
-		FMOD_Shutdown();
-		stuffcmd(ent,"snd_restart\n");
-		temp = G_Spawn();
-		temp->think = Restart_FMOD;
-		temp->nextthink = level.time + 2;
-	}
-
-#ifdef WESQ2
-	else {
-#else
 	// debugging/developer stuff
-	else if(developer->value) {
-#endif
-		if (!strcasecmp(cmd,"lightswitch"))
-			ToggleLights();
-		else if (!strcasecmp(cmd,"bbox"))
+	else if(developer->value)
+	{
+		if (!strcasecmp(cmd,"bbox"))
 			Cmd_Bbox_f (ent);
 		else if(!strcasecmp(cmd,"forcewall"))
 		{
@@ -2580,12 +1964,7 @@ void ClientCommand (edict_t *ent)
 			if(level.freeze)
 				level.freeze = false;
 			else
-			{
-				if(ent->client->jetpack)
-					gi.dprintf("Cannot use freeze while using jetpack\n");
-				else
-					level.freeze = true;
-			}
+				level.freeze = true;
 		}
 		else if (strcasecmp (cmd, "goto") == 0)
 		{
@@ -2659,45 +2038,7 @@ void ClientCommand (edict_t *ent)
 			if(!count)
 				gi.dprintf("None found\n");
 		}
-		else if (!strcasecmp(cmd,"hint_test"))
-		{
-			edict_t *viewing;
-			int		result;
-			viewing = LookingAt(ent,LOOKAT_MD2,NULL,NULL);
-			if(!viewing)
-				return;
-			if(viewing->monsterinfo.aiflags & AI_HINT_TEST)
-			{
-				viewing->monsterinfo.aiflags &= ~AI_HINT_TEST;
-				gi.dprintf("%s (%s): Back to my normal self now.\n",
-					viewing->classname,viewing->targetname);
-				return;
-			}
-			if(!(viewing->svflags & SVF_MONSTER))
-				gi.dprintf("hint_test is only valid for monsters and actors.\n");
-			result = HintTestStart(viewing);
-			switch(result)
-			{
-			case -1:
-				gi.dprintf("%s (%s): I cannot see any hint_paths from here.\n");
-				break;
-			case  0:
-				gi.dprintf("This map does not contain hint_paths.\n");
-				break;
-			case  1:
-				gi.dprintf("%s (%s) searching for hint_path %s at %s. %s\n",
-			 			viewing->classname, (viewing->targetname ? viewing->targetname : "<noname>"),
-						(viewing->movetarget->targetname ? viewing->movetarget->targetname : "<noname>"),
-						vtos(viewing->movetarget->s.origin),
-						visible(viewing,viewing->movetarget) ? "I see it." : "I don't see it.");
-				break;
-			default: gi.dprintf("Unknown error\n");
-			}
-		}
 		else if (!strcasecmp(cmd,"id")) {
-#ifdef WESQ2
-			Cmd_Identify_f(ent);
-#else
 			edict_t *viewing;
 			vec3_t	origin;
 			float	range;
@@ -2711,72 +2052,6 @@ void ClientCommand (edict_t *ent)
 			gi.dprintf("absmin,absmax,size=%s, %s, %s, range=%g\n",vtos(viewing->absmin),vtos(viewing->absmax),vtos(viewing->size),range);
 			gi.dprintf("groundentity=%s\n",(viewing->groundentity ? viewing->groundentity->classname : "NULL"));
 			gi.dprintf("movedir=%g %g %g",viewing->movedir[0],viewing->movedir[1],viewing->movedir[2]);
-#endif
-		}
-		else if (!strcasecmp(cmd, "item_left"))
-			ShiftItem(ent,1);
-		else if (!strcasecmp(cmd, "item_right"))
-			ShiftItem(ent,2);
-		else if (!strcasecmp(cmd, "item_forward"))
-			ShiftItem(ent,4);
-		else if (!strcasecmp(cmd, "item_back"))
-			ShiftItem(ent,8);
-		else if (!strcasecmp(cmd, "item_up"))
-			ShiftItem(ent,16);
-		else if (!strcasecmp(cmd, "item_down"))
-			ShiftItem(ent,32);
-		else if (!strcasecmp(cmd, "item_drop"))
-			ShiftItem(ent,64);
-		else if (!strcasecmp(cmd, "item_pitch"))
-			ShiftItem(ent,128);
-		else if (!strcasecmp(cmd, "item_yaw"))
-			ShiftItem(ent,256);
-		else if (!strcasecmp(cmd, "item_roll"))
-			ShiftItem(ent,512);
-		else if (!strcasecmp(cmd, "item_release"))
-			ent->client->shift_dir = 0;
-#ifdef WESQ2
-		else if (!strcasecmp(cmd, "delete_item"))
-			DeleteItem(ent);
-		else if (!strcasecmp(cmd, "save_items"))
-			SaveItems();
-#endif
-		else if(!strcasecmp(cmd,"medic_test"))
-		{
-			extern	int	medic_test;
-			if(parm)
-				medic_test = atoi(parm);
-			else if(medic_test)
-				medic_test = 0;
-			else
-				medic_test = 1;
-			gi.dprintf("medic_test is %s\n",(medic_test ? "on" : "off"));
-		}
-		else if (strstr(cmd, "muzzle")) {
-			edict_t	*viewing;
-			viewing = LookingAt(ent,0,NULL,NULL);
-			if(!viewing)
-				return;
-			if(!viewing->classname)
-				return;
-			if(!(viewing->monsterinfo.aiflags & AI_ACTOR))
-				return;
-			if(gi.argc() < 2)
-			{
-				gi.dprintf("Muzzle offset=%g, %g, %g\n",
-					viewing->muzzle[0],viewing->muzzle[1],viewing->muzzle[2]);
-			}
-			else
-			{
-				if(!strcasecmp(cmd,"muzzlex"))
-					viewing->muzzle[0] = atof(gi.argv(1));
-				else if(!strcasecmp(cmd,"muzzley"))
-					viewing->muzzle[1] = atof(gi.argv(1));
-				else if(!strcasecmp(cmd,"muzzlez"))
-					viewing->muzzle[2] = atof(gi.argv(1));
-				else
-					gi.dprintf("Syntax: muzzle[x|y|z] <value>\n");
-			}
 		}
 		else if(!strcasecmp(cmd,"range"))
 		{
@@ -2821,16 +2096,6 @@ void ClientCommand (edict_t *ent)
 		{
 			edict_t	*e;
 			vec3_t	forward;
-#ifdef WESQ2
-			int		iSpawn;
-
-			iSpawn = SpawnSlot();
-			if(iSpawn >= MAX_SPAWNED_ITEMS)
-			{
-				gi.sound (ent, CHAN_AUTO, gi.soundindex ("misc/talk1.wav"), 1, ATTN_NORM, 0);
-				return;
-			}
-#endif
 			if(!parm)
 			{
 				gi.dprintf("syntax: spawn <classname>\n");
@@ -2843,67 +2108,6 @@ void ClientCommand (edict_t *ent)
 			VectorMA(ent->s.origin,128,forward,e->s.origin);
 			e->s.angles[YAW] = ent->s.angles[YAW];
 			ED_CallSpawn(e);
-#ifdef WESQ2
-			e->my_spawn = iSpawn+1;
-			strcpy(SpawnedItem[iSpawn].classname,e->classname);
-			VectorCopy(e->s.origin,SpawnedItem[iSpawn].origin);
-			SpawnedItem[iSpawn].angle = e->s.angles[1];
-			if(iSpawn == NumSpawnedItems) NumSpawnedItems++;
-#endif
-		}
-		else if(!strcasecmp(cmd,"spawngoodguy"))
-		{
-			edict_t	*e;
-			vec3_t	forward;
-		
-			if(gi.argc() < 3)
-			{
-				gi.dprintf("syntax: spawngoodguy <modelname> <weapon>\n");
-				return;
-			}
-			e = G_Spawn();
-			e->classname = TagMalloc(12,TAG_LEVEL);
-			strcpy(e->classname,"misc_actor");
-			e->usermodel = gi.argv(1);
-			e->sounds = atoi(gi.argv(2));
-			e->spawnflags = SF_MONSTER_GOODGUY;
-			AngleVectors(ent->client->v_angle,forward,NULL,NULL);
-			VectorMA(ent->s.origin,128,forward,e->s.origin);
-			e->s.origin[2] = max(e->s.origin[2],ent->s.origin[2] + 8);
-			e->s.angles[YAW] = ent->s.angles[YAW];
-			ED_CallSpawn(e);
-			actor_files();
-		}
-		else if(!strcasecmp(cmd,"spawnself"))
-		{
-			edict_t	*decoy;
-			vec3_t	forward;
-
-			decoy = G_Spawn();
-			decoy->classname    = "fakeplayer";
-			memcpy(&decoy->s,&ent->s,sizeof(entity_state_t));
-			decoy->s.number     = decoy-g_edicts;
-			decoy->s.frame      = ent->s.frame; 
-			AngleVectors(ent->client->v_angle,forward,NULL,NULL);
-			VectorMA(ent->s.origin,64,forward,decoy->s.origin);
-			decoy->s.angles[YAW] = ent->s.angles[YAW]; 
-			decoy->takedamage   = DAMAGE_AIM;
-			decoy->flags        = (ent->flags & FL_NOTARGET);
-			decoy->movetype     = MOVETYPE_TOSS;
-			decoy->viewheight   = ent->viewheight;
-			decoy->mass         = ent->mass;
-			decoy->solid        = SOLID_BBOX;
-			decoy->deadflag     = DEAD_NO;
-			decoy->clipmask     = MASK_PLAYERSOLID;
-			decoy->health       = ent->health;
-			decoy->light_level  = ent->light_level;
-			decoy->think        = decoy_think;
-			decoy->monsterinfo.aiflags = AI_GOOD_GUY;
-			decoy->die          = decoy_die;
-			decoy->nextthink    = level.time + FRAMETIME;
-			VectorCopy(ent->mins,decoy->mins);
-			VectorCopy(ent->maxs,decoy->maxs);
-			gi.linkentity (decoy); 
 		}
 		else if (!strcasecmp(cmd,"stepleft")) {
 			vec3_t	left;
@@ -2912,33 +2116,12 @@ void ClientCommand (edict_t *ent)
 			VectorMA(ent->s.origin,4,left,ent->s.origin);
 			gi.linkentity(ent);
 		}
-		else if (!strcasecmp(cmd,"switch")) {
-			extern mmove_t	actor_move_switch;
-			edict_t *viewing;
-
-			viewing = LookingAt(ent,0,NULL,NULL);
-			if(!viewing)
-				return;
-			if(!(viewing->monsterinfo.aiflags & AI_ACTOR))
-			{
-				gi.dprintf("Must be a misc_actor\n");
-				return;
-			}
-			viewing->monsterinfo.currentmove = &actor_move_switch;
-		}
 		else if(!strcasecmp(cmd,"texture")) {
 			trace_t	tr;
 			vec3_t	forward, start, end;
 
-			if(ent->client->chasetoggle)
-			{
-				VectorCopy(ent->client->chasecam->s.origin,start);
-			}
-			else
-			{
-				VectorCopy(ent->s.origin, start);
-				start[2] += ent->viewheight;
-			}
+			VectorCopy(ent->s.origin, start);
+			start[2] += ent->viewheight;
 			AngleVectors(ent->client->v_angle, forward, NULL, NULL);
 			VectorMA(start, 8192, forward, end);
 			tr = gi.trace(start,NULL,NULL,end,ent,MASK_ALL);
@@ -2973,10 +2156,4 @@ void ClientCommand (edict_t *ent)
 			Cmd_Say_f (ent, false, true);
 	}
 	// end debugging stuff
-
-#ifndef WESQ2
-	else	// anything that doesn't match a command will be a chat
-		Cmd_Say_f (ent, false, true);
-#endif
-
 }

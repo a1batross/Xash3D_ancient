@@ -163,11 +163,11 @@ typedef enum
 	it_cubemap,
 } imagetype_t;
 
-// texnum supported cubemaps
-// 0 = rt or normal image
+// texnum cubemap order
+// 0 = ft or normal image
 // 1 = bk
-// 2 = lf
-// 3 = ft
+// 2 = rt
+// 3 = lf
 // 4 = up
 // 5 = dn
 

@@ -868,25 +868,8 @@ void CL_AddPacketEntities (frame_t *frame)
 			effects |= EF_COLOR_SHELL;
 			renderfx |= RF_SHELL_BLUE;
 		}
-//======
-// PMM
-		if (effects & EF_DOUBLE)
-		{
-			effects &= ~EF_DOUBLE;
-			effects |= EF_COLOR_SHELL;
-			renderfx |= RF_SHELL_DOUBLE;
-		}
 
-		if (effects & EF_HALF_DAMAGE)
-		{
-			effects &= ~EF_HALF_DAMAGE;
-			effects |= EF_COLOR_SHELL;
-			renderfx |= RF_SHELL_HALF_DAM;
-		}
-// pmm
-//======
 		//copy state to renderer
-
 		ent.prev.frame = cent->prev.frame;
 		ent.backlerp = 1.0 - cl.lerpfrac;
 		ent.alpha = s1->alpha;
@@ -1017,11 +1000,6 @@ void CL_AddPacketEntities (frame_t *frame)
 				V_AddLight (ent.origin, 225, 1.0, 0.1, 0.1);
 			else if (effects & EF_FLAG2)
 				V_AddLight (ent.origin, 225, 0.1, 0.1, 1.0);
-			else if (effects & EF_TAGTRAIL)						//PGM
-				V_AddLight (ent.origin, 225, 1.0, 1.0, 0.0);	//PGM
-			else if (effects & EF_TRACKERTRAIL)					//PGM
-				V_AddLight (ent.origin, 225, -1.0, -1.0, -1.0);	//PGM
-
 			continue;
 		}
 
@@ -1041,17 +1019,6 @@ void CL_AddPacketEntities (frame_t *frame)
 			ent.flags |= RF_TRANSLUCENT;
 			ent.alpha = 0.6;
 		}
-
-		if (effects & EF_SPHERETRANS)
-		{
-			ent.flags |= RF_TRANSLUCENT;
-			// PMM - *sigh*  yet more EF overloading
-			if (effects & EF_TRACKERTRAIL)
-				ent.alpha = 0.6;
-			else
-				ent.alpha = 0.3;
-		}
-//pmm
 
 		// add to refresh list
 		V_AddEntity (&ent);
@@ -1106,26 +1073,12 @@ void CL_AddPacketEntities (frame_t *frame)
 			// EF_BLASTER | EF_TRACKER is a special case for EF_BLASTER2... Cheese!
 			else if (effects & EF_BLASTER)
 			{
-//				CL_BlasterTrail (cent->lerp_origin, ent.origin);
-//PGM
-				if (effects & EF_TRACKER)	// lame... problematic?
-				{
-					CL_BlasterTrail2 (cent->lerp_origin, ent.origin);
-					V_AddLight (ent.origin, 200, 0, 1, 0);		
-				}
-				else
-				{
-					CL_BlasterTrail (cent->lerp_origin, ent.origin);
-					V_AddLight (ent.origin, 200, 1, 1, 0);
-				}
-//PGM
+				CL_BlasterTrail (cent->lerp_origin, ent.origin);
+				V_AddLight (ent.origin, 200, 1, 1, 0);
 			}
 			else if (effects & EF_HYPERBLASTER)
 			{
-				if (effects & EF_TRACKER)						// PGM	overloaded for blaster2.
-					V_AddLight (ent.origin, 200, 0, 1, 0);		// PGM
-				else											// PGM
-					V_AddLight (ent.origin, 200, 1, 1, 0);
+				V_AddLight (ent.origin, 200, 1, 1, 0);
 			}
 			else if (effects & EF_GIB)
 			{
@@ -1172,60 +1125,7 @@ void CL_AddPacketEntities (frame_t *frame)
 				CL_FlagTrail (cent->lerp_origin, ent.origin, 115);
 				V_AddLight (ent.origin, 225, 0.1, 0.1, 1);
 			}
-//======
-//ROGUE
-			else if (effects & EF_TAGTRAIL)
-			{
-				CL_TagTrail (cent->lerp_origin, ent.origin, 220);
-				V_AddLight (ent.origin, 225, 1.0, 1.0, 0.0);
-			}
-			else if (effects & EF_TRACKERTRAIL)
-			{
-				if (effects & EF_TRACKER)
-				{
-					float intensity;
-
-					intensity = 50 + (500 * (sin(cl.time/500.0) + 1.0));
-					V_AddLight (ent.origin, intensity, -1.0, -1.0, -1.0);
-				}
-				else
-				{
-					CL_Tracker_Shell (cent->lerp_origin);
-					V_AddLight (ent.origin, 155, -1.0, -1.0, -1.0);
-				}
-			}
-			else if (effects & EF_TRACKER)
-			{
-				CL_TrackerTrail (cent->lerp_origin, ent.origin, 0);
-				V_AddLight (ent.origin, 200, -1, -1, -1);
-			}
-			// RAFAEL
-			else if (effects & EF_GREENGIB)
-			{
-				CL_DiminishingTrail (cent->lerp_origin, ent.origin, cent, effects);				
-			}
-			// RAFAEL
-			else if (effects & EF_IONRIPPER)
-			{
-				CL_IonripperTrail (cent->lerp_origin, ent.origin);
-				V_AddLight (ent.origin, 100, 1, 0.5, 0.5);
-			}
-			// RAFAEL
-			else if (effects & EF_BLUEHYPERBLASTER)
-			{
-				V_AddLight (ent.origin, 200, 0, 0, 1);
-			}
-			// RAFAEL
-			else if (effects & EF_PLASMA)
-			{
-				if (effects & EF_ANIM_ALLFAST)
-				{
-					CL_BlasterTrail (cent->lerp_origin, ent.origin);
-				}
-				V_AddLight (ent.origin, 130, 1, 0.5, 0.5);
-			}
 		}
-
 		VectorCopy (ent.origin, cent->lerp_origin);
 	}
 }

@@ -202,10 +202,6 @@ SOURCE=.\common\keys.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\server\m_flash.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\common\md4.c
 # End Source File
 # Begin Source File

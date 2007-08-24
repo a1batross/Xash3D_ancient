@@ -1587,6 +1587,7 @@ image_t *R_FindImage (char *name, char *buffer, int size, imagetype_t type)
 	return image;
 }
 
+
 /*
 ================
 R_LoadImage

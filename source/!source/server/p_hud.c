@@ -1,14 +1,5 @@
 #include "g_local.h"
 
-#ifdef WESQ2
-int				gNumTargets;
-int				gNumCharges;
-float			gTargetSpacing;
-vec3_t			gWorld;
-PRESSURE_TEMP	*PT;
-EXPLOSIVE		*TNT;
-#endif
-
 /*
 ======================================================================
 
@@ -45,10 +36,6 @@ void MoveClientToIntermission (edict_t *ent)
 	ent->s.effects = 0;
 	ent->s.sound = 0;
 	ent->solid = SOLID_NOT;
-
-#ifdef JETPACK_MOD
-	ent->client->jetpack_framenum = 0;
-#endif
 
 	// add the layout
 
@@ -268,9 +255,6 @@ void Cmd_Score_f (edict_t *ent)
 	if (ent->client->menu)
 		PMenu_Close(ent);
 
-	if (ent->client->textdisplay)
-		Text_Close(ent);
-
 	if (!deathmatch->value && !coop->value)
 		return;
 
@@ -437,53 +421,6 @@ G_SetStats
 extern void WhatsIt(edict_t *ent);
 void G_SetStats (edict_t *ent)
 {
-
-#ifdef WESQ2
-	int		i;
-	int		N;
-	float	dist, dx, dy, dz;
-	float	DSum, P, T;
-
-	if(gNumTargets) {
-		N = 0;
-		DSum = 0;
-		for(i=0; i<gNumTargets; i++) {
-			dx = fabs(ent->s.origin[0] - PT[i].loc[0]); if(dx > gTargetSpacing) continue;
-			dy = fabs(ent->s.origin[1] - PT[i].loc[1]); if(dy > gTargetSpacing) continue;
-			dz = fabs(ent->s.origin[2] - PT[i].loc[2]); if(dz > gTargetSpacing) continue;
-			dist = sqrt( dx*dx + dy*dy + dz*dz );
-			if(dist > gTargetSpacing) continue;
-			DSum += dist;
-			P = PT[i].pressure; // only holds if only 1 target found
-			T = PT[i].temperature;
-			N++;
-		}
-		if(N > 1) {
-			P = 0; T = 0;
-			for(i=0; i<gNumTargets; i++) {
-				dx = fabs(ent->s.origin[0] - PT[i].loc[0]); if(dx > gTargetSpacing) continue;
-				dy = fabs(ent->s.origin[1] - PT[i].loc[1]); if(dy > gTargetSpacing) continue;
-				dz = fabs(ent->s.origin[2] - PT[i].loc[2]); if(dz > gTargetSpacing) continue;
-				dist = sqrt( dx*dx + dy*dy + dz*dz );
-				if(dist > gTargetSpacing) continue;
-				P += PT[i].pressure * (DSum - dist)/DSum;
-				T += PT[i].temperature * (DSum - dist)/DSum;
-			}
-		}
-		if(N) {
-			ent->client->ps.stats[STAT_PRESSURE_ICON]    = gi.imageindex("i_press");
-			ent->client->ps.stats[STAT_PRESSURE]         = (int)(P*10+5)/10;
-			ent->client->ps.stats[STAT_TEMPERATURE_ICON] = gi.imageindex("i_temp");
-			ent->client->ps.stats[STAT_TEMPERATURE]      = (int)(T*10+5)/10;
-		}
-		else {
-			ent->client->ps.stats[STAT_PRESSURE_ICON]    = 0;
-			ent->client->ps.stats[STAT_TEMPERATURE_ICON] = 0;
-		}
-	}
-
-#else
-
 	gitem_t		*item;
 	int			index, cells;
 	int			power_armor_type;
@@ -574,16 +511,6 @@ void G_SetStats (edict_t *ent)
 		ent->client->ps.stats[STAT_TIMER_ICON] = gi.imageindex ("p_rebreather");
 		ent->client->ps.stats[STAT_TIMER] = (ent->client->breather_framenum - level.framenum)/10;
 	}
-#ifdef JETPACK_MOD
-	else if ( (ent->client->jetpack) &&
-			  (!ent->client->jetpack_infinite) &&
-			  (ent->client->pers.inventory[fuel_index] >= 0) &&
-		      (ent->client->pers.inventory[fuel_index] < 100000))
-	{
-		ent->client->ps.stats[STAT_TIMER_ICON] = gi.imageindex("p_jet");
-		ent->client->ps.stats[STAT_TIMER] = ent->client->pers.inventory[fuel_index];
-	}
-#endif
 	else if (level.freeze)
 	{
 		ent->client->ps.stats[STAT_TIMER_ICON] = gi.imageindex ("p_freeze");
@@ -604,8 +531,6 @@ void G_SetStats (edict_t *ent)
 		ent->client->ps.stats[STAT_SELECTED_ICON] = gi.imageindex (itemlist[ent->client->pers.selected_item].icon);
 
 	ent->client->ps.stats[STAT_SELECTED_ITEM] = ent->client->pers.selected_item;
-
-#endif
 
 	// Lazarus vehicle/tracktrain
 	if(ent->vehicle && !(ent->vehicle->spawnflags & 16))
@@ -665,8 +590,6 @@ void G_SetStats (edict_t *ent)
 	if(!ent->client->ps.stats[STAT_LAYOUTS] && ent->client->whatsit)
 		ent->client->ps.stats[STAT_LAYOUTS] |= 1;
 
-#ifndef WESQ2
-
 	//
 	// frags
 	//
@@ -689,26 +612,6 @@ void G_SetStats (edict_t *ent)
 		ent->client->ps.stats[STAT_ZOOM] = gi.imageindex("zoom");
 	else
 		ent->client->ps.stats[STAT_ZOOM] = 0;
-#endif
-}
-
-/*
-===============
-G_CheckChaseStats
-===============
-*/
-void G_CheckChaseStats (edict_t *ent)
-{
-	int i;
-	gclient_t *cl;
-
-	for (i = 1; i <= maxclients->value; i++) {
-		cl = g_edicts[i].client;
-		if (!g_edicts[i].inuse || cl->chase_target != ent)
-			continue;
-		memcpy(cl->ps.stats, ent->client->ps.stats, sizeof(cl->ps.stats));
-		G_SetSpectatorStats(g_edicts + i);
-	}
 }
 
 /*
@@ -720,8 +623,7 @@ void G_SetSpectatorStats (edict_t *ent)
 {
 	gclient_t *cl = ent->client;
 
-	if (!cl->chase_target)
-		G_SetStats (ent);
+	G_SetStats (ent);
 
 	cl->ps.stats[STAT_SPECTATOR] = 1;
 
@@ -732,10 +634,6 @@ void G_SetSpectatorStats (edict_t *ent)
 	if (cl->showinventory && cl->pers.health > 0)
 		cl->ps.stats[STAT_LAYOUTS] |= 2;
 
-	if (cl->chase_target && cl->chase_target->inuse)
-		cl->ps.stats[STAT_CHASE] = CS_PLAYERSKINS + 
-			(cl->chase_target - g_edicts) - 1;
-	else
-		cl->ps.stats[STAT_CHASE] = 0;
+	cl->ps.stats[STAT_CHASE] = 0;
 }
 
