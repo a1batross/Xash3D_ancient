@@ -1,6 +1,6 @@
 // g_weapon.c
 
-#include "g_local.h"
+#include "baseentity.h"
 #include "m_player.h"
 
 

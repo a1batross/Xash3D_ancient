@@ -1,6 +1,6 @@
 // g_misc.c
 
-#include "g_local.h"
+#include "baseentity.h"
 
 int gibsthisframe=0;
 int lastgibframe=0;
@@ -168,7 +168,7 @@ void ThrowGib (edict_t *self, char *gibname, int damage, int type)
 
 	gib = G_Spawn();
 
-	gib->classname = TagMalloc (4,TAG_LEVEL);
+	gib->classname = (char *)TagMalloc (4,TAG_LEVEL);
 	strcpy(gib->classname,"gib");
 
 	// Lazarus: mapper-definable gib class
@@ -181,7 +181,7 @@ void ThrowGib (edict_t *self, char *gibname, int damage, int type)
 	}
 
 	// Save gibname and type for level transition gibs
-	gib->key_message = TagMalloc (strlen(modelname)+1,TAG_LEVEL);
+	gib->key_message = (char *)TagMalloc (strlen(modelname)+1,TAG_LEVEL);
 	strcpy(gib->key_message, modelname);
 	gib->style = type;
 
@@ -288,7 +288,7 @@ void ThrowHead (edict_t *self, char *gibname, int damage, int type)
 	}
 
 	// Save gibname and type for level transition gibs
-	self->key_message = TagMalloc (strlen(modelname)+1,TAG_LEVEL);
+	self->key_message = (char *)TagMalloc (strlen(modelname)+1,TAG_LEVEL);
 	strcpy(self->key_message, modelname);
 
 	self->style = type;
@@ -435,7 +435,7 @@ void ThrowDebris (edict_t *self, char *modelname, float speed, vec3_t origin, in
 	chunk->die = debris_die;
 
 	// Lazarus: Preserve model name for level changes:
-	chunk->message = TagMalloc (strlen(modelname) + 1,TAG_LEVEL);
+	chunk->message = (char *)TagMalloc (strlen(modelname) + 1,TAG_LEVEL);
 	strcpy(chunk->message, modelname);
 
 	// Lazarus: skin number and effects
@@ -2201,7 +2201,7 @@ void SP_func_clock (edict_t *self)
 
 	func_clock_reset (self);
 
-	self->message = TagMalloc (CLOCK_MESSAGE_SIZE, TAG_LEVEL);
+	self->message = (char *)TagMalloc (CLOCK_MESSAGE_SIZE, TAG_LEVEL);
 
 	self->think = func_clock_think;
 
@@ -2985,7 +2985,7 @@ void SP_target_precipitation (edict_t *ent)
 			G_FreeEdict(ent);
 			return;
 		}
-		buffer = TagMalloc(strlen(ent->usermodel)+10,TAG_LEVEL);
+		buffer = (char *)TagMalloc(strlen(ent->usermodel)+10,TAG_LEVEL);
 		if(strstr(ent->usermodel,".spr"))
 			sprintf(buffer, "sprites/%s", ent->usermodel);
 		else
@@ -3181,7 +3181,7 @@ void SP_target_fountain (edict_t *ent)
 		G_FreeEdict(ent);
 		return;
 	}
-	buffer = TagMalloc(strlen(ent->usermodel)+10,TAG_LEVEL);
+	buffer = (char *)TagMalloc(strlen(ent->usermodel)+10,TAG_LEVEL);
 	if(strstr(ent->usermodel,".spr"))
 		sprintf(buffer, "sprites/%s", ent->usermodel);
 	else

@@ -1,5 +1,5 @@
 
-#include "g_local.h"
+#include "baseentity.h"
 #include "m_player.h"
 
 static	edict_t		*current_player;

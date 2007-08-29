@@ -18,7 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 #include "client.h"
-#include <image.h>
 
 typedef struct
 {
@@ -28,15 +27,15 @@ typedef struct
 
 typedef struct
 {
-	bool	restart_sound;
+	bool		restart_sound;
 	int		s_rate;
 	int		s_width;
 	int		s_channels;
 
 	int		width;
 	int		height;
-	byte	*pic;
-	byte	*pic_pending;
+	byte		*pic;
+	byte		*pic_pending;
 
 	// order 1 huffman stuff
 	int		*hnodes1;	// [256][256][2];
@@ -47,97 +46,6 @@ typedef struct
 } cinematics_t;
 
 cinematics_t	cin;
-
-/*
-=================================================================
-
-PCX LOADING
-
-=================================================================
-*/
-
-
-/*
-==============
-SCR_LoadPCX
-==============
-*/
-void SCR_LoadPCX (char *filename, byte **pic, byte **palette, int *width, int *height)
-{
-	byte	*raw;
-	pcx_t	*pcx;
-	int		x, y;
-	int		len;
-	int		dataByte, runLength;
-	byte	*out, *pix;
-
-	*pic = NULL;
-
-	//
-	// load the file
-	//
-	raw = FS_LoadFile (filename, &len);
-	if (!raw) return;// Msg ("Bad pcx file %s\n", filename);
-
-	//
-	// parse the PCX file
-	//
-	pcx = (pcx_t *)raw;
-	raw = &pcx->data;
-
-	if (pcx->manufacturer != 0x0a || pcx->version != 5 || pcx->encoding != 1 || pcx->bits_per_pixel != 8 || pcx->xmax >= 640 || pcx->ymax >= 480)
-	{
-		Msg ("Bad pcx file %s\n", filename);
-		return;
-	}
-
-	out = Z_Malloc ( (pcx->ymax+1) * (pcx->xmax+1) );
-
-	*pic = out;
-
-	pix = out;
-
-	if (palette)
-	{
-		*palette = Z_Malloc(768);
-		memcpy (*palette, (byte *)pcx + len - 768, 768);
-	}
-
-	if (width)
-		*width = pcx->xmax+1;
-	if (height)
-		*height = pcx->ymax+1;
-
-	for (y=0 ; y<=pcx->ymax ; y++, pix += pcx->xmax+1)
-	{
-		for (x=0 ; x<=pcx->xmax ; )
-		{
-			dataByte = *raw++;
-
-			if((dataByte & 0xC0) == 0xC0)
-			{
-				runLength = dataByte & 0x3F;
-				dataByte = *raw++;
-			}
-			else
-				runLength = 1;
-
-			while(runLength-- > 0)
-				pix[x++] = dataByte;
-		}
-
-	}
-
-	if ( raw - (byte *)pcx > len)
-	{
-		Msg ("PCX file %s was malformed", filename);
-		Z_Free (*pic);
-		*pic = NULL;
-	}
-}
-
-//=============================================================
-
 /*
 ==================
 SCR_StopCinematic
@@ -538,8 +446,9 @@ bool SCR_DrawCinematic (void)
 	}
 
 	if (cls.key_dest == key_menu)
-	{	// blank screen and pause if menu is up
-		re->CinematicSetPalette(NULL);
+	{	
+		// blank screen and pause if menu is up
+		re->CinematicSetPalette( NULL );
 		cl.cinematicpalette_active = false;
 		return true;
 	}
@@ -553,8 +462,7 @@ bool SCR_DrawCinematic (void)
 	if (!cin.pic)
 		return true;
 
-	re->DrawStretchRaw (0, 0, viddef.width, viddef.height,
-		cin.width, cin.height, cin.pic);
+	re->DrawStretchRaw (0, 0, viddef.width, viddef.height, cin.width, cin.height, cin.pic);
 
 	return true;
 }
@@ -568,30 +476,34 @@ SCR_PlayCinematic
 void SCR_PlayCinematic (char *arg)
 {
 	int		width, height;
-	byte	*palette;
-	char	name[MAX_OSPATH], *dot;
+	byte		*palette;
+	char		name[MAX_OSPATH];
 	int		old_khz;
+	rgbdata_t		*pic = NULL;
+	const char	*ext = FS_FileExtension( arg );
 
 	cl.cinematicframe = 0;
-	dot = strstr (arg, ".");
-	if (dot && !strcmp (dot, ".pcx"))
-	{	// static pcx image
-		sprintf (name, "pics/%s", arg);
-		SCR_LoadPCX (name, &cin.pic, &palette, &cin.width, &cin.height);
-		cl.cinematicframe = -1;
-		cl.cinematictime = 1;
-		SCR_EndLoadingPlaque ();
-		cls.state = ca_active;
-		if (!cin.pic)
+
+	if (!strcmp (ext, "pcx"))
+	{	
+		pic = FS_LoadImage( va("textures/base_menu/%s", arg), NULL, 0 );
+
+		if(pic)
 		{
-			Msg ("%s not found.\n", name);
-			cl.cinematictime = 0;
+			cin.pic = pic->buffer;
+			palette = pic->palette;
+			cin.width = pic->width;
+			cin.height = pic->height;
+
+			cl.cinematicframe = -1;
+			cl.cinematictime = 1;
+
+			SCR_EndLoadingPlaque ();
+
+			cls.state = ca_active;
+			Mem_Copy (cl.cinematicpalette, palette, sizeof(cl.cinematicpalette));
 		}
-		else
-		{
-			memcpy (cl.cinematicpalette, palette, sizeof(cl.cinematicpalette));
-			Z_Free (palette);
-		}
+		else Com_Error (ERR_DROP, "%s not found.\n", arg );
 		return;
 	}
 
@@ -599,7 +511,6 @@ void SCR_PlayCinematic (char *arg)
 	cl.cinematic_file = FS_Open(name, "rb" );
 	if (!cl.cinematic_file)
 	{
-//		Com_Error (ERR_DROP, "Cinematic %s not found.\n", name);
 		SCR_FinishCinematic ();
 		cl.cinematictime = 0;	// done
 		return;

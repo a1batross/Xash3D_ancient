@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PLATFORM_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /Ob0 /I "./" /I "./bsplib/" /I "../public" /I "./formats" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /Ob0 /I "./" /I "../public" /I "./bsplib/" /I "./qcclib" /I "./mdllib" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -79,7 +79,7 @@ SOURCE="$(InputPath)"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PLATFORM_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "./bsplib/" /I "../public" /I "./formats" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "../public" /I "./bsplib/" /I "./qcclib" /I "./mdllib" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /GZ /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -173,11 +173,27 @@ SOURCE=.\bsplib\portals.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\qcclib\pr_comp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\qcclib\pr_lex.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\bsplib\prtfile.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\bsplib\qbsp3.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\qcclib\qcc_utils.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\qcclib\qccmain.c
 # End Source File
 # Begin Source File
 
@@ -197,11 +213,11 @@ SOURCE=.\spritegen.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\studio.c
+SOURCE=.\mdllib\studio.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\studio_utils.c
+SOURCE=.\mdllib\studio_utils.c
 # End Source File
 # Begin Source File
 
@@ -237,11 +253,15 @@ SOURCE=.\basemem.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib.h
+SOURCE=.\baseutils.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\qcclib\cmdlib.h
+SOURCE=.\blankframe.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\bsplib.h
 # End Source File
 # Begin Source File
 
@@ -249,7 +269,7 @@ SOURCE=.\image.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\mdllib.h
+SOURCE=.\mdllib\mdllib.h
 # End Source File
 # Begin Source File
 
@@ -257,11 +277,15 @@ SOURCE=.\platform.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\public\ref_platform.h
+SOURCE=.\qcclib\qcclib.h
 # End Source File
 # Begin Source File
 
 SOURCE=..\public\ref_system.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\zip32.h
 # End Source File
 # Begin Source File
 

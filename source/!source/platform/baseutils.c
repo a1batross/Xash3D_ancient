@@ -6,7 +6,11 @@
 #include "platform.h"
 #include <winreg.h>
 #include "baseutils.h"
+#include "bsplib.h"
+#include "mdllib.h"
+#include "qcclib.h"
 #include "blankframe.h"
+
 
 char *strupr (char *start)
 {
@@ -329,27 +333,28 @@ Parse a token out of a string
 char *SC_ParseToken(const char **data_p)
 {
 	int		c;
-	int		len;
+	int		len = 0;
 	const char	*data;
-
-	data = *data_p;
-	len = 0;
-	token[0] = 0;
 	
-	if (!data)
+	token[0] = 0;
+	data = *data_p;
+	
+	if (!data) 
 	{
+		endofscript = true;
 		*data_p = NULL;
 		return NULL;
-	}
-		
+	}		
 
-skipwhite: // skip whitespace
+	// skip whitespace
+skipwhite:
 	while ( (c = *data) <= ' ')
 	{
 		if (c == 0)
 		{
+			endofscript = true;
 			*data_p = NULL;
-			return NULL;
+			return NULL; // end of file;
 		}
 		data++;
 	}
@@ -362,46 +367,188 @@ skipwhite: // skip whitespace
 		goto skipwhite;
 	}
 
+	// skip /* comments
+	if (c=='/' && data[1] == '*')
+	{
+		while (data[1] && (data[0] != '*' || data[1] != '/'))
+			data++;
+		data += 2;
+		goto skipwhite;
+	}
+	
+
 	// handle quoted strings specially
 	if (c == '\"')
 	{
 		data++;
-		while (1)
+		while(1)
 		{
 			c = *data++;
-			if (c=='\"' || !c)
+			if (c=='\"'||c=='\0')
 			{
 				token[len] = 0;
 				*data_p = data;
 				return token;
 			}
-			if (len < MAX_OSPATH)
-			{
-				token[len] = c;
-				len++;
-			}
+			token[len] = c;
+			len++;
 		}
+	}
+
+	// parse single characters
+	if (c == '{' || c == '}'|| c == ')' || c == '(' || c == '\'' || c == ':' || c == ',')
+	{
+		token[len] = c;
+		data++;
+		len++;
+		token[len] = 0;
+		*data_p = data;
+		return token;
 	}
 
 	// parse a regular word
 	do
 	{
-		if (len < MAX_OSPATH)
-		{
-			token[len] = c;
-			len++;
-		}
+		token[len] = c;
 		data++;
+		len++;
 		c = *data;
-	} while (c > 32);
-
-	if (len == MAX_OSPATH) len = 0;
+		if (c == '{' || c == '}'|| c == ')'|| c == '(' || c == '\'' || c == ':' || c == ',')
+			break;
+	} while(c > 32);
+	
 	token[len] = 0;
-
 	*data_p = data;
 	return token;
 }
 
+/*
+==============
+SC_ParseWord
+
+Parse a word out of a string
+==============
+*/
+char *SC_ParseWord( const char **data_p )
+{
+	int		c;
+	int		len = 0;
+	const char	*data;
+	
+	token[0] = 0;
+	data = *data_p;
+	
+	if (!data)
+	{
+		*data_p = NULL;
+		return NULL;
+	}
+		
+	// skip whitespace
+skipwhite:
+	while ( (c = *data) <= ' ')
+	{
+		if (c == 0)
+		{
+			*data_p = NULL;
+			endofscript = true;
+			return NULL; // end of file;
+		}
+		data++;
+	}
+	
+	// skip // comments
+	if (c=='/' && data[1] == '/')
+	{
+		while (*data && *data != '\n')
+			data++;
+		goto skipwhite;
+	}
+	
+
+	// handle quoted strings specially
+	if (c == '\"')
+	{
+		data++;
+		do
+		{
+			c = *data++;
+			if (c=='\"' || c=='\0')
+			{
+				token[len] = 0;
+				*data_p = data;
+				return token;
+			}
+			token[len] = c;
+			len++;
+		} while (1);
+	}
+
+	// parse numbers
+	if (c >= '0' && c <= '9')
+	{
+		if (c == '0' && data[1] == 'x')
+		{
+			//parse hex
+			token[0] = '0';
+			c='x';
+			len=1;
+			data++;
+			while( 1 )
+			{
+				//parse regular number
+				token[len] = c;
+				data++;
+				len++;
+				c = *data;
+				if ((c < '0'|| c > '9') && (c < 'a'||c > 'f') && (c < 'A'|| c > 'F') && c != '.')
+					break;
+			}
+
+		}
+		else
+		{
+			while( 1 )
+			{
+				//parse regular number
+				token[len] = c;
+				data++;
+				len++;
+				c = *data;
+				if ((c < '0'|| c > '9') && c != '.')
+					break;
+			}
+		}
+		
+		token[len] = 0;
+		*data_p = data;
+		return token;
+	}
+
+	// parse words
+	else if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_')
+	{
+		do
+		{
+			token[len] = c;
+			data++;
+			len++;
+			c = *data;
+		} while ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_');
+		
+		token[len] = 0;
+		*data_p = data;
+		return token;
+	}
+	else
+	{
+		token[len] = c;
+		len++;
+		token[len] = 0;
+		*data_p = data;
+		return token;
+	}
+}
 /*
 =============================================================================
 
@@ -514,7 +661,8 @@ scriptsystem_api_t Sc_GetAPI( void )
 	sc.SkipToken = SC_SkipToken;
 	sc.MatchToken = SC_MatchToken;
 	sc.ParseToken = SC_ParseToken;
-
+	sc.ParseWord = SC_ParseWord;
+	
 	return sc;
 }
 
@@ -1400,6 +1548,8 @@ compilers_api_t Comp_GetAPI( void )
 	cp.Sprite = CompileSpriteModel;
 	cp.PrepareBSP = PrepareBSPModel;
 	cp.BSP = CompileBSPModel;
+	cp.PrepareDAT = PrepareDATProgs;
+	cp.DAT = CompileDATProgs;
 
 	return cp;
 }

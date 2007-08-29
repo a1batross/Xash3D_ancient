@@ -1,4 +1,4 @@
-#include "g_local.h"
+#include "baseentity.h"
 
 void SP_info_player_start (edict_t *ent);
 void SP_info_player_deathmatch (edict_t *ent);
@@ -72,14 +72,14 @@ void ED_CallSpawn (edict_t *ent)
 ED_NewString
 =============
 */
-char *ED_NewString (char *string)
+char *ED_NewString (const char *string)
 {
 	char	*newb, *new_p;
 	int		i,l;
 	
 	l = strlen(string) + 1;
 
-	newb = TagMalloc (l, TAG_LEVEL);
+	newb = (char *)TagMalloc (l, TAG_LEVEL);
 
 	new_p = newb;
 
@@ -111,7 +111,7 @@ Takes a key/value pair and sets the binary values
 in an edict
 ===============
 */
-void ED_ParseField (char *key, char *value, edict_t *ent)
+void ED_ParseField (char *key, const char *value, edict_t *ent)
 {
 	field_t	*f;
 	byte	*b;
@@ -169,7 +169,7 @@ ed should be a properly initialized empty edict.
 */
 char *ED_ParseEdict (char *data, edict_t *ent)
 {
-	bool	init;
+	bool		init;
 	char		keyname[256];
 	char		*com_token;
 
@@ -204,7 +204,7 @@ char *ED_ParseEdict (char *data, edict_t *ent)
 
 	if (!init) memset (ent, 0, sizeof(*ent));
 
-	return data;
+	return (char *)data;
 }
 
 
@@ -278,7 +278,7 @@ void SpawnEntities (char *mapname, char *entities, char *spawnpoint)
 	edict_t		*ent;
 	int			inhibit;
 	char		*com_token;
-	int			i;
+	int		i;
 	float		skill_level;
 	extern int	max_modelindex;
 	extern int	max_soundindex;
@@ -319,8 +319,7 @@ void SpawnEntities (char *mapname, char *entities, char *spawnpoint)
 	{
 		// parse the opening brace	
 		com_token = COM_Parse (&entities);
-		if (!entities)
-			break;
+		if (!entities) break;
 		if (com_token[0] != '{')
 			gi.error ("ED_LoadFromFile: found %s when expecting {",com_token);
 

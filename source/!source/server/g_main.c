@@ -1,5 +1,5 @@
 
-#include "g_local.h"
+#include "baseentity.h"
 
 game_locals_t	game;
 level_locals_t	level;

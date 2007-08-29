@@ -1,7 +1,6 @@
 // g_utils.c -- misc utility functions for game module
 
-#include "g_local.h"
-
+#include "baseentity.h"
 
 void *TagMalloc (int size, int tag)
 {
@@ -510,7 +509,7 @@ char *G_CopyString (char *in)
 {
 	char	*out;
 	
-	out = TagMalloc (strlen(in)+1, TAG_LEVEL);
+	out = (char *)TagMalloc (strlen(in)+1, TAG_LEVEL);
 	strcpy (out, in);
 	return out;
 }
@@ -1178,7 +1177,7 @@ void T_Damage (edict_t *in_targ, edict_t *inflictor, edict_t *in_attacker, vec3_
 				// damaged, as in switching from func_monitor usage. Limit
 				// damage so that player isn't killed, and make him temporarily
 				// invincible
-				targ->health = max(2,targ->health - take);
+				targ->health = max(2, targ->health - take);
 				targ->client->invincible_framenum = level.framenum+2;
 				targ->pain_debounce_time = max(targ->pain_debounce_time,level.time+0.3);
 			}

@@ -104,13 +104,16 @@ void *_Mem_Realloc(byte *poolptr, void *memptr, size_t size, const char *filenam
 	memheader_t *hdr;
 
 	if (size <= 0) return memptr;//no need to reallocate
-	if (!memptr) Sys_Error("Mem_Realloc: memptr == NULL (called at %s:%i)", filename, fileline);
 	nb = _Mem_Alloc(poolptr, size, filename, fileline);
 
-	//get size of old block
-	hdr = (memheader_t *)((byte *) memptr - sizeof(memheader_t));
-	_Mem_Copy( nb, memptr, hdr->size, filename, fileline );
-	_Mem_Free( memptr, filename, fileline);//free unused old block
+	if (memptr) //first allocate?
+	{ 
+		//get size of old block
+		hdr = (memheader_t *)((byte *) memptr - sizeof(memheader_t));
+		_Mem_Copy( nb, memptr, hdr->size, filename, fileline );
+		_Mem_Free( memptr, filename, fileline);//free unused old block
+          }
+	else MsgWarn("Mem_Realloc: memptr == NULL (called at %s:%i)\n", filename, fileline);
 
 	return (void *)nb;
 }

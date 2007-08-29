@@ -2380,6 +2380,13 @@ vfile_t *VFS_Open(file_t* real_file, const char* mode)
 {
 	vfile_t *file = (vfile_t *)Mem_Alloc (fs_mempool, sizeof (*file));
 
+	if(!real_file)
+	{
+		Free( file );
+		MsgWarn("VFS_Open: can't open NULL handle\n" );
+		return NULL;
+	} 
+
 	// If the file is opened in "write", "append", or "read/write" mode
 	if (mode[0] == 'w')
 	{
@@ -2420,6 +2427,7 @@ vfile_t *VFS_Open(file_t* real_file, const char* mode)
 fs_offset_t VFS_Read( vfile_t* file, void* buffer, size_t buffersize)
 {
 	if (buffersize == 0) return 0;
+	if (!file) return 0;
 
 	//check for enough room
 	if(file->offset >= file->length)
@@ -2469,11 +2477,14 @@ fs_offset_t VFS_Write( vfile_t *file, const void *buf, size_t size )
 
 fs_offset_t VFS_Tell (vfile_t* file)
 {
+	if (!file) return -1;
 	return file->offset;
 }
 
 int VFS_Seek( vfile_t *file, fs_offset_t offset, int whence )
 {
+	if (!file) return -1;
+
 	// Compute the file offset
 	switch (whence)
 	{
@@ -2499,7 +2510,7 @@ int VFS_Close( vfile_t *file )
 {
 	if(!file) return -1;
 
-	if(file->mode == O_WRONLY)
+	if(file->file && file->mode == O_WRONLY)
 	{
 		// write real file into disk
 		FS_Write (file->file, file->buff, (file->length + 3) & ~3);// align

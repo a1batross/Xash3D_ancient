@@ -12,7 +12,7 @@
 #define PUP(a) *(a)++
 
 typedef byte* (*alloc_func)();
-typedef void   (*free_func)();
+typedef void  (*free_func) ();
 
 typedef struct
 {
@@ -89,34 +89,34 @@ struct inflate_state
 	int		wrap;		// bit 0 true for zlib, bit 1 true for gzip
 	int		havedict;		// true if dictionary provided
 	int		flags;		// gzip header method and flags (0 if zlib)
-	unsigned		dmax;		// zlib header max distance (INFLATE_STRICT)
-	unsigned long	check;		// protected copy of check value
-	unsigned long	total;		// protected copy of output count
+	uint		dmax;		// zlib header max distance (INFLATE_STRICT)
+	dword		check;		// protected copy of check value
+	dword		total;		// protected copy of output count
 	gz_headerp	head;		// where to save gzip header information
 					// sliding window
-	unsigned		wbits;		// log base 2 of requested window size
-	unsigned		wsize;		// window size or zero if not using window
-	unsigned		whave;		// valid bytes in the window
-	unsigned		write;		// window write index
+	uint		wbits;		// log base 2 of requested window size
+	uint		wsize;		// window size or zero if not using window
+	uint		whave;		// valid bytes in the window
+	uint		write;		// window write index
 	byte		*window;		// allocated sliding window, if needed
 					// bit accumulator
 	dword		hold;		// input bit accumulator
-	unsigned		bits;		// number of bits in "in"
+	uint		bits;		// number of bits in "in"
 					// for string and stored block copying
-	unsigned		length;		// literal or length of data to copy
-	unsigned		offset;		// distance back to copy string from
+	uint		length;		// literal or length of data to copy
+	uint		offset;		// distance back to copy string from
 					// for table and code decoding
-	unsigned		extra;		// extra bits needed
+	uint		extra;		// extra bits needed
 					// fixed and dynamic code tables
 	code const	*lencode;		// starting table for length/literal codes
 	code const	*distcode;	// starting table for distance codes
-	unsigned		lenbits;		// index bits for lencode
-	unsigned		distbits;		// index bits for distcode
+	uint		lenbits;		// index bits for lencode
+	uint		distbits;		// index bits for distcode
 					// dynamic table building
-	unsigned		ncode;		// number of code length code lengths
-	unsigned		nlen;		// number of length code lengths
-	unsigned		ndist;		// number of distance code lengths
-	unsigned		have;		// number of code lengths in lens[]
+	uint		ncode;		// number of code length code lengths
+	uint		nlen;		// number of length code lengths
+	uint		ndist;		// number of distance code lengths
+	uint		have;		// number of code lengths in lens[]
 	code		*next;		// next available space in codes[]
 	word		lens[320];	// temporary storage for code lengths
 	word		work[288];	// work area for code table building
@@ -163,7 +163,7 @@ typedef z_stream *z_streamp;
 #define Z_DEFLATED		8
 
 //exported functions
-unsigned long crc32(unsigned long crc, const unsigned char *buf, unsigned len);	//crc32
+unsigned long crc32(dword crc, const byte *buf, uint len);// crc32
 unsigned long adler32(dword adler, const byte *buf, dword len);
 extern int inflate(z_streamp strm, int flush);
 extern int inflateEnd(z_streamp strm);

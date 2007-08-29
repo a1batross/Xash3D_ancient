@@ -403,6 +403,7 @@ typedef struct
 
 } level_locals_t;
 
+extern level_locals_t	level;
 
 // spawn_temp_t is only used to hold entity field values that
 // can be set from the editor, but aren't actualy present

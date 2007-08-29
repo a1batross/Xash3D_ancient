@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir "."
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /c
-# ADD CPP /nologo /W3 /GX /O2 /I ".\\" /I ".\monsters" /I ".\ents" /I ".\global" /I "../public" /I "../public/libs" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I ".\\" /I ".\gamerules" /I ".\ents" /I ".\global" /I "../public" /I "../public/libs" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -80,7 +80,7 @@ SOURCE="$(InputPath)"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir "."
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /c
-# ADD CPP /nologo /MTd /W3 /Gm /Gi /GX /ZI /Od /I ".\\" /I ".\monsters" /I ".\ents" /I ".\global" /I "../public" /I "../public/libs" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /c
+# ADD CPP /nologo /MTd /W3 /Gm /Gi /GX /ZI /Od /I ".\\" /I ".\gamerules" /I ".\ents" /I ".\global" /I "../public" /I "../public/libs" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -112,6 +112,10 @@ SOURCE="$(InputPath)"
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;hpj;bat;for;f90"
+# Begin Source File
+
+SOURCE=.\client.c
+# End Source File
 # Begin Source File
 
 SOURCE=.\g_cmds.c
@@ -172,6 +176,10 @@ SOURCE=.\p_weapon.c
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl;fi;fd"
+# Begin Source File
+
+SOURCE=.\baseentity.h
+# End Source File
 # Begin Source File
 
 SOURCE=..\common\const.h

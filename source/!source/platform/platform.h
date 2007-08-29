@@ -9,9 +9,13 @@
 #include <setjmp.h>
 #include <windows.h>
 #include <basetypes.h>
+typedef int bool;
+
 #include "image.h"
 #include "basemem.h"
 #include <ref_system.h>
+
+#include "basemem.h"
 
 //=====================================
 //	platform export
@@ -55,12 +59,13 @@ void _Mem_Copy (void *dest, void *src, size_t size, const char *filename, int fi
 //=====================================
 bool FS_LoadScript( const char *name, char *buf, int size );
 bool FS_AddScript( const char *name, char *buf, int size );
-bool SC_MatchToken( const char *match );//match token
-char *SC_GetToken( bool newline );	//unsafe way
-bool SC_TryToken ( void );		//safe way
+bool SC_MatchToken( const char *match ); // match token
+char *SC_GetToken( bool newline );	// unsafe way
+bool SC_TryToken ( void );		// safe way
 void SC_SkipToken( void );
 void SC_FreeToken( void );
-char *SC_ParseToken(const char **data_p);
+char *SC_ParseToken(const char **data_p );
+char *SC_ParseWord( const char **data_p );
 char *SC_Token( void );
 
 #endif//BASEPLATFORM_H

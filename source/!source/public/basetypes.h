@@ -8,6 +8,9 @@
 #pragma warning(disable : 4244)	// MIPS
 #pragma warning(disable : 4018)	// signed/unsigned mismatch
 #pragma warning(disable : 4305)	// truncation from const double to float
+#pragma warning(disable : 4201)		// nameless struct/union
+#pragma warning(disable : 4514)		// unreferenced inline function removed
+#pragma warning(disable : 4100)		// unreferenced formal parameter
 
 #define DLLEXPORT	__declspec(dllexport)
 #define DLLIMPORT	__declspec(dllimport)
@@ -30,8 +33,8 @@
 #define YAW		1
 #define ROLL		2
 
+typedef enum{false, true}	bool;
 typedef unsigned char 	byte;
-typedef enum {false, true}	bool;
 typedef unsigned short	word;
 typedef unsigned long	dword;
 typedef unsigned int	uint;
@@ -39,9 +42,13 @@ typedef signed __int64	int64;
 typedef struct file_s	file_t;
 typedef struct vfile_s	vfile_t;
 typedef struct edict_s	edict_t;
-typedef struct gclient_s	gclient_t;
+typedef int		func_t;
 typedef struct image_s	image_t;
 typedef struct model_s	model_t;
+typedef int		string_t;
+typedef struct gclient_s	gclient_t;
+typedef int		progsnum_t;
+typedef struct progfuncs_s	progfuncs_t;
 typedef float		vec_t;
 typedef vec_t		vec3_t[3];
 typedef vec_t		vec4_t[4];
@@ -55,7 +62,6 @@ typedef struct { byte r; byte g; byte b; byte a; } color32;
 #ifndef NULL
 #define NULL	((void *)0)
 #endif
-
 
 #ifndef O_NONBLOCK
 #define O_NONBLOCK	0

@@ -61,7 +61,7 @@ filesystem manager
 ===========================================
 */
 #define FS_LoadFile(name, size) pi->Fs.LoadFile(name, size)
-#define FS_LoadImage(name, width, height) pi->Fs.LoadFile(name, width, height)
+#define FS_LoadImage(name, data, size) pi->Fs.LoadImage(name, data, size)
 #define FS_Search(path) pi->Fs.Search( path, true )
 #define FS_WriteFile(name, data, size) pi->Fs.WriteFile(name, data, size )
 #define FS_Open( path, mode ) pi->Fs.Open( path, mode )
@@ -73,6 +73,7 @@ filesystem manager
 #define FS_FileExists( file ) pi->Fs.FileExists( file )
 #define FS_Close( file ) pi->Fs.Close( file )
 #define FS_FileBase( x, y ) pi->Fs.FileBase( x, y )
+#define FS_Find( x ) pi->Fs.Search( x, false )
 #define FS_Printf pi->Fs.Printf
 #define FS_Seek pi->Fs.Seek
 #define FS_Tell pi->Fs.Tell
@@ -85,6 +86,7 @@ scriptsystem manager
 ===========================================
 */
 #define COM_Parse(data) pi->Script.ParseToken(data)
+#define COM_Token pi->Script.Token
 
 /*
 ===========================================

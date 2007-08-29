@@ -10,7 +10,10 @@ static int app_name;
 bool hooked_out = false;
 bool log_active = false;
 bool show_always = true;
+bool about_mode = false;
 char dllname[64];
+
+const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t          All Rights Reserved\n\n\t           Visit www.xash.ru\n";
 
 //app name
 typedef enum 
@@ -20,6 +23,7 @@ typedef enum
 	HOST_DEDICATED,	// "host_dedicated"
 	HOST_EDITOR,	// "host_editor"
 	BSPLIB,		// "bsplib"
+	QCCLIB,		// "qcclib"
 	SPRITE,		// "sprite"
 	STUDIO,		// "studio"
 	CREDITS,		// misc
@@ -43,6 +47,7 @@ NOTE: at this day we have seven instnaces
 2. "host_dedicated" - dedicated server
 3. "host_editor" - resource editor
 4. "bsplib" - three BSP compilers in one
+5. "qcclib" - quake c complier
 5. "sprite" - sprite creator (requires qc. script)
 6. "studio" - Half-Life style models creatror (requires qc. script) 
 7. "credits" - display credits of engine developers
@@ -87,6 +92,12 @@ void LookupInstance( const char *funcname )
 		strcpy(dllname, "bin/platform.dll" );
 		strcpy(log_path, "bsplib.log" ); // xash3d root directory
 	}
+	else if(!strcmp(progname, "qcclib"))
+	{
+		app_name = QCCLIB;
+		strcpy(dllname, "bin/platform.dll" );
+		sprintf(log_path, "%s/compile.log", sys_rootdir ); // same as .exe file
+	}
 	else if(!strcmp(progname, "sprite"))
 	{
 		app_name = SPRITE;
@@ -102,6 +113,7 @@ void LookupInstance( const char *funcname )
 	else if(!strcmp(progname, "credits")) //easter egg
 	{
 		app_name = CREDITS;
+		about_mode = true;
 	}
 	else app_name = DEFAULT;
 }
@@ -116,8 +128,8 @@ so do it manually
 */
 void PlatformInit ( char *funcname, int argc, char **argv )
 {
-	byte bspflags = 0;
-	char mapname[64], gamedir[64];
+	byte bspflags = 0, qccflags = 0;
+	char source[64], gamedir[64];
 
 	if(pi->apiversion != PLATFORM_API_VERSION)
 		Sys_Error("mismatch version (%i should be %i)\n", pi->apiversion, PLATFORM_API_VERSION);
@@ -128,19 +140,29 @@ void PlatformInit ( char *funcname, int argc, char **argv )
 
 	if(!GetParmFromCmdLine("-game", gamedir ))
 		strncpy(gamedir, "xash", sizeof(gamedir));
-	if(!GetParmFromCmdLine("+map", mapname ))
-		strncpy(mapname, "newmap", sizeof(mapname));
+	if(!GetParmFromCmdLine("+map", source ))
+		strncpy(source, "newmap", sizeof(source));
+	if(!GetParmFromCmdLine("+dat", source ))
+		strncpy(source, "progs", sizeof(source));
 		
 	if(CheckParm("-vis")) bspflags |= BSP_ONLYVIS;
 	if(CheckParm("-rad")) bspflags |= BSP_ONLYRAD;
 	if(CheckParm("-full")) bspflags |= BSP_FULLCOMPILE;
 	if(CheckParm("-onlyents")) bspflags |= BSP_ONLYENTS;
 
+	if(CheckParm("-progdefs")) qccflags |= QCC_PROGDEFS;
+	if(CheckParm("/O0")) qccflags |= QCC_OPT_LEVEL_0;
+	if(CheckParm("/O1")) qccflags |= QCC_OPT_LEVEL_1;
+	if(CheckParm("/O2")) qccflags |= QCC_OPT_LEVEL_2;
+	if(CheckParm("/O2")) qccflags |= QCC_OPT_LEVEL_3;
+
 	switch(app_name)
 	{
 	case BSPLIB:
-	          // this does nothing
-		pi->Compile.PrepareBSP( gamedir, mapname, bspflags );
+		pi->Compile.PrepareBSP( gamedir, source, bspflags );
+		break;
+	case QCCLIB:
+		pi->Compile.PrepareDAT( gamedir, source, qccflags );	
 		break;
 	case SPRITE:
 		pi->InitRootDir(".");
@@ -176,6 +198,10 @@ void PlatformMain ( void )
 	case BSPLIB: 
 		pi->Compile.BSP(); 
 		strcpy(typemod, "maps" );
+		break;
+	case QCCLIB: 
+		pi->Compile.DAT(); 
+		strcpy(typemod, "progs" );
 		break;
 	case DEFAULT:
 		strcpy(typemod, "things" );
@@ -235,7 +261,10 @@ void CreateInstance( void )
 	std.exit = Sys_Exit;
 	std.print = Sys_Print;
 	std.input = Sys_Input;
-
+          
+	// first text message into console or log
+	if(app_name != CREDITS) Msg("------- Loading bin/launcher.dll [%g] -------\n", LAUNCHER_VERSION );
+	
 	switch(app_name)
 	{
 	case HOST_SHARED:
@@ -253,6 +282,7 @@ void CreateInstance( void )
 		Host_Free = Host->Free;
 		break;
 	case BSPLIB:
+	case QCCLIB:
 	case SPRITE:
 	case STUDIO:
 		if (( linked_dll = LoadLibrary( dllname )) == 0 )
@@ -266,7 +296,7 @@ void CreateInstance( void )
 		Host_Free = PlatformShutdown;
 		break;
 	case CREDITS:
-		//blank
+		Sys_Error( (char *)show_credits );
 		break;
 	case DEFAULT:
 		Sys_Error("CreateInstance: unsupported instance\n");		
@@ -354,8 +384,6 @@ void InitLauncher( char *funcname )
 	API_SetConsole(); //initialize system console
 	Sys_InitConsole();
 
-	// first text message into console or log
-	Msg("------- Loading bin/launcher.dll [%g] -------\n", LAUNCHER_VERSION );
 	CreateInstance();
 
 	// NOTE: host will working in loop mode and never returned

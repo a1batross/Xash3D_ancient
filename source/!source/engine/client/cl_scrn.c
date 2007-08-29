@@ -579,7 +579,7 @@ void SCR_BeginLoadingPlaque (void)
 	if (cls.key_dest == key_console)
 		return;
 	if (cl.cinematictime > 0)
-		scr_draw_loading = 2;	// clear to balack first
+		scr_draw_loading = 2;	// clear to black first
 	else
 		scr_draw_loading = 1;
 	SCR_UpdateScreen ();
@@ -947,7 +947,7 @@ void SCR_ExecuteLayoutString (char *s)
 {
 	int		x, y;
 	int		value;
-	char	*token;
+	char		*token;
 	int		width;
 	int		index;
 	clientinfo_t	*ci;
@@ -955,8 +955,7 @@ void SCR_ExecuteLayoutString (char *s)
 	if (cls.state != ca_active || !cl.refresh_prepped)
 		return;
 
-	if (!s[0])
-		return;
+	if (!s[0]) return;
 
 	x = 0;
 	y = 0;
@@ -1195,7 +1194,8 @@ void SCR_ExecuteLayoutString (char *s)
 			continue;
 		}
 		if (!strcmp(token, "if"))
-		{	// draw a number
+		{	
+			// draw a number
 			token = COM_Parse (&s);
 			value = cl.frame.playerstate.stats[atoi(token)];
 
@@ -1306,7 +1306,8 @@ void SCR_UpdateScreen (void)
 		re->BeginFrame( separation[i] );
 
 		if (scr_draw_loading == 2)
-		{	//  loading plaque over black screen
+		{	
+			//  loading plaque over black screen
 			re->CinematicSetPalette(NULL);
 			scr_draw_loading = false;
 			SCR_DrawString( "loading" );

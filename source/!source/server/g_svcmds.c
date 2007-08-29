@@ -1,5 +1,5 @@
 
-#include "g_local.h"
+#include "baseentity.h"
 
 
 void	Svcmd_Test_f (void)

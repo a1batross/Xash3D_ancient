@@ -1,6 +1,6 @@
 // g_phys.c
 
-#include "g_local.h"
+#include "baseentity.h"
 
 bool	wasonground;
 bool	onconveyor;
@@ -859,7 +859,7 @@ retry:
 		}
 
 		// if blocked by player AND on a conveyor
-		if (hit->client && onconveyor)
+		if (hit && hit->client && onconveyor)
 		{
 			vec3_t	player_dest;
 			trace_t	ptrace;

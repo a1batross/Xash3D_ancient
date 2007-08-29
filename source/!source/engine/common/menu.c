@@ -2272,7 +2272,7 @@ bool CreateMapsList( void )
 		
 		int p = 0, lumpofs = 0, lumplen = 0;
 		char *entities = NULL;
-		const char *data = NULL;
+		char *data = NULL;
 		char mapname[32];
 		char message[64];
 		char string[96];
@@ -2418,11 +2418,11 @@ void StartServer_MenuInit( void )
 		char  scratch[200];
 		int		j, l;
 
-		strcpy( shortname, COM_Parse( &s ) );
+		strcpy( shortname, COM_Parse( &s ));
 		l = strlen(shortname);
 		for (j=0 ; j<l ; j++)
 			shortname[j] = toupper(shortname[j]);
-		strcpy( longname, COM_Parse( &s ) );
+		strcpy( longname, COM_Parse( &s ));
 		sprintf( scratch, "%s\n%s", longname, shortname );
 
 		mapnames[i] = Z_Malloc( strlen( scratch ) + 1 );
@@ -3677,10 +3677,9 @@ void M_Draw (void)
 	SCR_DirtyScreen ();
 
 	// dim everything behind it down
-	if (cl.cinematictime > 0)
-		re->DrawFill (0,0,viddef.width, viddef.height, 0);
-	else
-		re->DrawFadeScreen ();
+	if (cl.cinematictime > 0) 
+		re->DrawFill (0, 0, viddef.width, viddef.height, 0);
+	else re->DrawFadeScreen ();
 
 	m_drawfunc ();
 

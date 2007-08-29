@@ -26,9 +26,6 @@ if errorlevel 1 set BUILD_ERROR=1
 %MSDEV% server/server.dsp %CONFIG%"server - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
-%MSDEV% client/client.dsp %CONFIG%"client - Win32 Debug" %build_target%
-if errorlevel 1 set BUILD_ERROR=1
-
 if "%BUILD_ERROR%"=="" goto build_ok
 
 echo *********************
@@ -53,7 +50,6 @@ if exist launcher\launcher.plg del /f /q launcher\launcher.plg
 if exist platform\platform.plg del /f /q platform\platform.plg
 if exist renderer\renderer.plg del /f /q renderer\renderer.plg
 if exist server\server.plg del /f /q server\server.plg
-if exist client\client.plg del /f /q client\client.plg
 
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading

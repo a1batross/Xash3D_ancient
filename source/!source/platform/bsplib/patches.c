@@ -28,7 +28,7 @@ void CalcTextureReflectivity (void)
 	texture_reflectivity[0][1] = 0.5;
 	texture_reflectivity[0][2] = 0.5;
 
-	for (i=0 ; i<numtexinfo ; i++)
+	for (i = 0; i < numtexinfo; i++)
 	{
 		// see if an earlier texinfo allready got the value
 		for (j=0 ; j<i ; j++)
@@ -47,22 +47,39 @@ void CalcTextureReflectivity (void)
 		tex = FS_LoadImage(texinfo[i].texture, NULL, 0);
 		if(tex)		
 		{
-                    	texels = tex->width * tex->height;			
-			for (j = 0; j < texels; j++, tex->buffer += 4)
+			texels = tex->width * tex->height;
+
+			switch(tex->type)
 			{
-				color[0] += tex->buffer[0];
-				color[1] += tex->buffer[1];
-				color[2] += tex->buffer[2];
+			case PF_RGBA_32:
+			case PF_ABGR_64:
+				for (j = 0; j < texels; j++, tex->buffer += 4)
+				{
+					color[0] += tex->buffer[0];
+					color[1] += tex->buffer[1];
+					color[2] += tex->buffer[2];
+				}
+				break;
+			case PF_RGB_24:
+				for (j = 0; j < texels; j++, tex->buffer += 3)
+				{
+					color[0] += tex->buffer[0];
+					color[1] += tex->buffer[1];
+					color[2] += tex->buffer[2];
+				}
+				break;			
+			default:
+				MsgWarn("Can't calculate reflectivity for %s\n", texinfo[i].texture);
+				break;
 			}
 		}
-		else Msg("Couldn't load %s\n", texinfo[i].texture);
+		else MsgWarn("Couldn't load %s\n", texinfo[i].texture);
 
 		//try also get direct values from shader
 		if(si = FindShader( texinfo[i].texture ))
 		{						
 			if(!VectorIsNull(si->color))
 			{
-				//Msg("Shader color %g %g %g\n", si->color[0], si->color[1], si->color[2]);
 				TransformRGB(si->color, texture_reflectivity[i]);
 				texinfo[i].value = si->intensity;
 				continue;

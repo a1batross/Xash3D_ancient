@@ -22,6 +22,13 @@
 #define BSP_ONLYRAD		0x04
 #define BSP_FULLCOMPILE	0x08
 
+//qcclib compile flags
+#define QCC_PROGDEFS	0x01
+#define QCC_OPT_LEVEL_0	0x02
+#define QCC_OPT_LEVEL_1	0x04
+#define QCC_OPT_LEVEL_2	0x08
+#define QCC_OPT_LEVEL_3	0x10
+
 #define MAX_DLIGHTS		32
 #define MAX_ENTITIES	128
 #define MAX_PARTICLES	4096
@@ -424,7 +431,8 @@ typedef struct scriptsystem_api_s
 	void (*FreeToken)( void );				// free current token to may get it again
 	void (*SkipToken)( void );				// skip current token and jump into newline
 	bool (*MatchToken)( const char *match );		// compare current token with user keyword
-	char *(*ParseToken)(const char **data_p);		// parse token from char buffer
+	char *(*ParseToken)(const char **data );		// parse token from char buffer
+	char *(*ParseWord)( const char **data );		// parse word from char buffer
 
 } scriptsystem_api_t;
 
@@ -488,7 +496,8 @@ typedef struct compilers_api_s
 	bool (*Sprite)( byte *mempool, const char *name, byte parms );	// input name of qc-script
 	bool (*PrepareBSP)( const char *dir, const char *name, byte params );	// compile map in gamedir 
 	bool (*BSP)( void );
-
+	bool (*PrepareDAT)( const char *dir, const char *name, byte params );	// compile dat in gamedir 
+	bool (*DAT)( void );
 } compilers_api_t;
 
 /*

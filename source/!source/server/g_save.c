@@ -1,5 +1,5 @@
 
-#include "g_local.h"
+#include "baseentity.h"
 
 #define Function(f) {#f, f}
 
@@ -180,7 +180,7 @@ field_t	fields[] =
 	{"viewheight", FOFS(viewheight), F_INT},
 	{"yaw_speed", FOFS(yaw_speed), F_FLOAT},
 
-	{0, 0, 0, 0}
+	{0, 0, F_INT, 0}
 
 };
 
@@ -361,13 +361,13 @@ void InitGame (void)
 
 	// initialize all entities for this game
 	game.maxentities = maxentities->value;
-	g_edicts =  TagMalloc (game.maxentities * sizeof(g_edicts[0]), TAG_GAME);
+	g_edicts =  (edict_t *)TagMalloc (game.maxentities * sizeof(g_edicts[0]), TAG_GAME);
 	globals.edicts = g_edicts;
 	globals.max_edicts = game.maxentities;
 
 	// initialize all clients for this game
 	game.maxclients = maxclients->value;
-	game.clients = TagMalloc (game.maxclients * sizeof(game.clients[0]), TAG_GAME);
+	game.clients = (gclient_t *)TagMalloc (game.maxclients * sizeof(game.clients[0]), TAG_GAME);
 	globals.num_edicts = game.maxclients+1;
 }
 
@@ -486,7 +486,7 @@ void ReadField (vfile_t *f, field_t *field, byte *base)
 		if (!len) *(char **)p = NULL;
 		else
 		{
-			*(char **)p = TagMalloc (len, TAG_LEVEL);
+			*(char **)p = (char *)TagMalloc (len, TAG_LEVEL);
 			gi.VFs.Read (f, *(char **)p, len);
 		}
 		break;
@@ -637,11 +637,11 @@ void ReadGame (vfile_t *f)
 		gi.error ("Savegame from an older version.\n");
 	}
 
-	g_edicts =  TagMalloc (game.maxentities * sizeof(g_edicts[0]), TAG_GAME);
+	g_edicts =  (edict_t *)TagMalloc (game.maxentities * sizeof(g_edicts[0]), TAG_GAME);
 	globals.edicts = g_edicts;
 
 	gi.VFs.Read (f, &game, sizeof(game));
-	game.clients = TagMalloc (game.maxclients * sizeof(game.clients[0]), TAG_GAME);
+	game.clients = (gclient_t *)TagMalloc (game.maxclients * sizeof(game.clients[0]), TAG_GAME);
 	for (i = 0; i < game.maxclients; i++) ReadClient (f, &game.clients[i]);
 }
 
@@ -904,7 +904,7 @@ void ReadLump (byte *base, lump_t *l, int lumpnum)
 	vfile_t	*vf;
 	byte	*in;
 
-	in = (void *)(base + l->fileofs);
+	in = (byte *)(base + l->fileofs);
 	if (l->filelen % sizeof(*in)) gi.error("Sav_LoadGame: funny lump size\n" );
 
 	vf = gi.VFs.Create(in, l->filelen );

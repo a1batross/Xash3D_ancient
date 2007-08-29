@@ -324,9 +324,10 @@ void Sys_CreateConsoleW( void )
 	WNDCLASS wc;
 	RECT rect;
 	int nHeight;
-	int swidth, sheight;
-	int DEDSTYLE = WS_POPUPWINDOW | WS_CAPTION;// | WS_MINIMIZEBOX;
+	int swidth, sheight, fontsize;
+	int DEDSTYLE = WS_POPUPWINDOW | WS_CAPTION;
 	int CONSTYLE = WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_BORDER | WS_EX_CLIENTEDGE | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY;
+	char Title[32], FontName[32];
 
 	memset( &wc, 0, sizeof( wc ) );
 
@@ -342,13 +343,27 @@ void Sys_CreateConsoleW( void )
 	wc.lpszClassName = SYSCONSOLE;
 
 	if (!RegisterClass (&wc) ) return;
-	
-	if(console_read_only)
+
+	if(about_mode)
+	{
+		CONSTYLE &= ~WS_VSCROLL;
+		rect.left = 0;
+		rect.right = 536;
+		rect.top = 0;
+		rect.bottom = 280;
+		strcpy(Title, "" );
+		strcpy(FontName, "Arial" );
+		fontsize = 16;
+	}
+	else if(console_read_only)
 	{
 		rect.left = 0;
 		rect.right = 536;
 		rect.top = 0;
 		rect.bottom = 364;
+		strcpy(Title, "Xash Console" );
+		strcpy(FontName, "Fixedsys" );
+		fontsize = 8;
 	}
 	else
 	{
@@ -356,6 +371,9 @@ void Sys_CreateConsoleW( void )
 		rect.right = 540;
 		rect.top = 0;
 		rect.bottom = 392;
+		strcpy(Title, "Xash Dedicated Console" );
+		strcpy(FontName, "Fixedsys" );
+		fontsize = 8;
 	}
 	AdjustWindowRect( &rect, DEDSTYLE, FALSE );
 
@@ -367,14 +385,13 @@ void Sys_CreateConsoleW( void )
 	s_wcd.windowWidth = rect.right - rect.left;
 	s_wcd.windowHeight = rect.bottom - rect.top;
 
-	s_wcd.hWnd = CreateWindowEx( WS_EX_DLGMODALFRAME, SYSCONSOLE, "Xash Console", DEDSTYLE, ( swidth - 600 ) / 2, ( sheight - 450 ) / 2 , rect.right - rect.left + 1, rect.bottom - rect.top + 1, NULL, NULL, base_hInstance, NULL );
-
+	s_wcd.hWnd = CreateWindowEx( WS_EX_DLGMODALFRAME, SYSCONSOLE, Title, DEDSTYLE, ( swidth - 600 ) / 2, ( sheight - 450 ) / 2 , rect.right - rect.left + 1, rect.bottom - rect.top + 1, NULL, NULL, base_hInstance, NULL );
 	if ( s_wcd.hWnd == NULL ) return;
 
 	// create fonts
 	hDC = GetDC( s_wcd.hWnd );
-	nHeight = -MulDiv( 8, GetDeviceCaps( hDC, LOGPIXELSY), 72);
-	s_wcd.hfBufferFont = CreateFont( nHeight, 0, 0, 0, FW_LIGHT, 0, 0, 0, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, FF_MODERN | FIXED_PITCH, "Fixedsys" );
+	nHeight = -MulDiv( fontsize, GetDeviceCaps( hDC, LOGPIXELSY), 72);
+	s_wcd.hfBufferFont = CreateFont( nHeight, 0, 0, 0, FW_LIGHT, 0, 0, 0, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, FF_MODERN | FIXED_PITCH, FontName );
 	ReleaseDC( s_wcd.hWnd, hDC );
 
 	if(!console_read_only)
@@ -389,7 +406,7 @@ void Sys_CreateConsoleW( void )
 	// create the scrollbuffer
 	GetClientRect(s_wcd.hWnd, &rect);
 
-	s_wcd.hwndBuffer = CreateWindowEx(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE, "edit", NULL, CONSTYLE, 0, 0, rect.right - rect.left, 365, s_wcd.hWnd, ( HMENU )EDIT_ID, base_hInstance, NULL );
+	s_wcd.hwndBuffer = CreateWindowEx(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE, "edit", NULL, CONSTYLE, 0, 0, rect.right - rect.left, min(365, rect.bottom), s_wcd.hWnd, ( HMENU )EDIT_ID, base_hInstance, NULL );
 	SendMessage( s_wcd.hwndBuffer, WM_SETFONT, ( WPARAM ) s_wcd.hfBufferFont, 0 );
 
 	if(!console_read_only)

@@ -541,11 +541,11 @@ Cmd_MacroExpandString
 char *Cmd_MacroExpandString (char *text)
 {
 	int		i, j, count, len;
-	bool	inquote;
-	char	*scan;
-	static	char	expanded[MAX_STRING_CHARS];
-	char	temporary[MAX_STRING_CHARS];
-	char	*token, *start;
+	bool		inquote;
+	char		*scan;
+	static		char	expanded[MAX_STRING_CHARS];
+	char		temporary[MAX_STRING_CHARS];
+	char		*token, *start;
 
 	inquote = false;
 	scan = text;
@@ -559,19 +559,16 @@ char *Cmd_MacroExpandString (char *text)
 
 	count = 0;
 
-	for (i=0 ; i<len ; i++)
+	for (i = 0; i < len; i++)
 	{
-		if (scan[i] == '"')
-			inquote ^= 1;
-		if (inquote)
-			continue;	// don't expand inside quotes
-		if (scan[i] != '$')
-			continue;
+		if (scan[i] == '"') inquote ^= 1;
+		if (inquote) continue; // don't expand inside quotes
+		if (scan[i] != '$') continue;
+
 		// scan out the complete macro
-		start = scan+i+1;
+		start = scan + i + 1;
 		token = COM_Parse (&start);
-		if (!start)
-			continue;
+		if (!start) continue;
 	
 		token = Cvar_VariableString (token);
 
@@ -621,22 +618,20 @@ void Cmd_TokenizeString (char *text, bool macroExpand)
 	int		i;
 	char	*token;
 
-// clear the args from the last string
-	for (i=0 ; i<cmd_argc ; i++)
-		Z_Free (cmd_argv[i]);
+	// clear the args from the last string
+	for (i = 0; i < cmd_argc; i++) Z_Free (cmd_argv[i]);
 		
 	cmd_argc = 0;
 	cmd_args[0] = 0;
 	
 	// macro expand the text
-	if (macroExpand)
-		text = Cmd_MacroExpandString (text);
-	if (!text)
-		return;
+	if (macroExpand) text = Cmd_MacroExpandString (text);
+	
+	if (!text) return;
 
 	while (1)
 	{
-// skip whitespace up to a /n
+		// skip whitespace up to a /n
 		while (*text && *text <= ' ' && *text != '\n')
 		{
 			text++;
@@ -648,8 +643,7 @@ void Cmd_TokenizeString (char *text, bool macroExpand)
 			break;
 		}
 
-		if (!*text)
-			return;
+		if (!*text) return;
 
 		// set cmd_args to everything after the first arg
 		if (cmd_argc == 1)
@@ -668,9 +662,8 @@ void Cmd_TokenizeString (char *text, bool macroExpand)
 		}
 			
 		token = COM_Parse (&text);
-		if (!text)
-			return;
-
+		if (!text) return;
+                    
 		if (cmd_argc < MAX_STRING_TOKENS)
 		{
 			cmd_argv[cmd_argc] = Z_Malloc (strlen(token)+1);

@@ -1385,13 +1385,13 @@ void R_BeginFrame( float camera_separation )
 R_SetPalette
 =============
 */
-unsigned r_rawpalette[256];
+uint r_rawpalette[256];
 
-void R_SetPalette ( const unsigned char *palette)
+void R_SetPalette ( const byte *palette)
 {
 	int		i;
 
-	byte *rp = ( byte * ) r_rawpalette;
+	byte *rp = (byte *)r_rawpalette;
 
 	if ( palette )
 	{
@@ -1407,16 +1407,16 @@ void R_SetPalette ( const unsigned char *palette)
 	{
 		for ( i = 0; i < 256; i++ )
 		{
-			rp[i*4+0] = d_8to24table[i] & 0xff;
+			rp[i*4+0] = ( d_8to24table[i] >> 0 ) & 0xff;
 			rp[i*4+1] = ( d_8to24table[i] >> 8 ) & 0xff;
-			rp[i*4+2] = ( d_8to24table[i] >> 16 ) & 0xff;
+			rp[i*4+2] = ( d_8to24table[i] >> 16) & 0xff;
 			rp[i*4+3] = 0xff;
 		}
 	}
 
 	qglClearColor (0,0,0,0);
 	qglClear (GL_COLOR_BUFFER_BIT);
-	qglClearColor (1,0, 0.5 , 0.5);
+	qglClearColor (1, 0, 0.5, 0.5);
 }
 
 /*

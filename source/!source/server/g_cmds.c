@@ -1,4 +1,4 @@
-#include "g_local.h"
+#include "baseentity.h"
 #include "m_player.h"
 
 int	nostatus = 0;
@@ -2102,7 +2102,7 @@ void ClientCommand (edict_t *ent)
 				return;
 			}
 			e = G_Spawn();
-			e->classname = TagMalloc(strlen(parm)+1,TAG_LEVEL);
+			e->classname = (char *)TagMalloc(strlen(parm)+1,TAG_LEVEL);
 			strcpy(e->classname,parm);
 			AngleVectors(ent->client->v_angle,forward,NULL,NULL);
 			VectorMA(ent->s.origin,128,forward,e->s.origin);

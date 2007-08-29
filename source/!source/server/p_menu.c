@@ -1,4 +1,4 @@
-#include "g_local.h"
+#include "baseentity.h"
 
 void PMenu_Open(edict_t *ent, pmenu_t *entries, int cur, int num)
 {
@@ -15,7 +15,7 @@ void PMenu_Open(edict_t *ent, pmenu_t *entries, int cur, int num)
 		PMenu_Close(ent);
 	}
 
-	hnd = malloc(sizeof(*hnd));
+	hnd = (pmenuhnd_t *)malloc(sizeof(*hnd));
 
 	hnd->entries = entries;
 	hnd->num = num;

@@ -11,6 +11,8 @@
 #include <winreg.h>
 #include <fcntl.h>
 #include <basetypes.h>
+typedef int bool;
+
 #include <ref_system.h>
 
 //import variables
@@ -40,6 +42,7 @@ extern char sys_rootdir[ MAX_SYSPATH ];
 extern char log_path[256];
 extern bool console_read_only;
 extern bool show_always;
+extern bool about_mode;
 char *va(const char *format, ...);
 static int sys_error = false;
 

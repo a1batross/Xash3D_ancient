@@ -6,6 +6,8 @@
 #include "platform.h"
 #include "baseutils.h"
 #include "bsplib.h"
+#include "mdllib.h"
+#include "qcclib.h"
 
 bool host_debug = false;
 

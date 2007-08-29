@@ -1,13 +1,12 @@
-#include "g_local.h"
+#include "baseentity.h"
 
-
-bool	Pickup_Weapon (edict_t *ent, edict_t *other);
 void		Use_Weapon (edict_t *ent, gitem_t *inv);
 void		Drop_Weapon (edict_t *ent, gitem_t *inv);
 
 void Weapon_Blaster (edict_t *ent);
 void Weapon_HyperBlaster (edict_t *ent);
 void Weapon_Null(edict_t *ent);
+bool Pickup_Weapon (edict_t *ent, edict_t *other);
 
 gitem_armor_t jacketarmor_info	= { 25,  50, .30, .00, ARMOR_JACKET};
 gitem_armor_t combatarmor_info	= { 50, 100, .60, .30, ARMOR_COMBAT};
@@ -673,18 +672,6 @@ bool Pickup_Health (edict_t *ent, edict_t *other)
 
 int ArmorIndex (edict_t *ent)
 {
-	if (!ent->client)
-		return 0;
-
-	if (ent->client->pers.inventory[jacket_armor_index] > 0)
-		return jacket_armor_index;
-
-	if (ent->client->pers.inventory[combat_armor_index] > 0)
-		return combat_armor_index;
-
-	if (ent->client->pers.inventory[body_armor_index] > 0)
-		return body_armor_index;
-
 	return 0;
 }
 
@@ -1439,7 +1426,6 @@ void SP_item_health (edict_t *self)
 	self->class_id = ENTITY_ITEM_HEALTH;
 	self->model = "models/items/healing/medium/tris.md2";
 	self->count = 10;
-//	SpawnItem (self, FindItem ("Health"));
 	SpawnItem (self, FindItemByClassname ("item_health"));
 	gi.soundindex ("items/n_health.wav");
 }
