@@ -7063,6 +7063,7 @@ def_t *PR_GetDef (type_t *type, char *name, def_t *scope, bool allocate, int arr
 	{
 		def->nextlocal = pr.localvars;
 		pr.localvars = def;
+		def->local = true;
 	}
 
 	return def;

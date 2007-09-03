@@ -618,12 +618,11 @@ void CL_Disconnect (void)
 
 	if (cl_timedemo && cl_timedemo->value)
 	{
-		int	time;
+		float	time;
 		
-		time = Sys_Milliseconds () - cl.timedemo_start;
+		time = Sys_DoubleTime() - cl.timedemo_start;
 		if (time > 0)
-			Msg ("%i frames, %3.1f seconds: %3.1f fps\n", cl.timedemo_frames,
-			time/1000.0, cl.timedemo_frames*1000.0 / time);
+			Msg ("%i frames, %3.1f seconds: %3.1f fps\n", cl.timedemo_frames, time, cl.timedemo_frames / time);
 	}
 
 	VectorClear (cl.refdef.blend);
@@ -1021,8 +1020,7 @@ void CL_ReadPackets (void)
 	//
 	// check timeout
 	//
-	if (cls.state >= ca_connected
-	 && cls.realtime - cls.netchan.last_received > cl_timeout->value*1000)
+	if (cls.state >= ca_connected && cls.realtime - cls.netchan.last_received > cl_timeout->value)
 	{
 		if (++cl.timeoutcount > 5)	// timeoutcount saves debugger
 		{
@@ -1413,7 +1411,7 @@ CL_InitLocal
 void CL_InitLocal (void)
 {
 	cls.state = ca_disconnected;
-	cls.realtime = Sys_Milliseconds ();
+	cls.realtime = Sys_DoubleTime();
 	CL_InitInput ();
 
 	adr0 = Cvar_Get( "adr0", "", CVAR_ARCHIVE );
@@ -1678,44 +1676,36 @@ CL_Frame
 
 ==================
 */
-void CL_Frame (int msec)
+void CL_Frame (float time)
 {
-	static int	extratime;
-	static int  lasttimecalled;
+	static float	extratime;
+	static float	lasttimecalled;
 
-	if (dedicated->value)
-		return;
+	if (dedicated->value) return;
 
-	extratime += msec;
+	extratime += time;
 
 	if (!cl_timedemo->value)
 	{
-		if (cls.state == ca_connected && extratime < 100)
-			return;			// don't flood packets out while connecting
-		if (extratime < 1000/cl_maxfps->value)
-			return;			// framerate is too high
+		if (cls.state == ca_connected && extratime < 0.1f)
+			return;	// don't flood packets out while connecting
+		if (extratime < 1.0f / cl_maxfps->value)
+			return; // framerate is too high
 	}
 
 	// let the mouse activate or deactivate
 	IN_Frame ();
 
 	// decide the simulation time
-	cls.frametime = extratime/1000.0;
+	cls.frametime = extratime;
 	cl.time += extratime;
-	cls.realtime = curtime;
+	cls.realtime = Sys_DoubleTime();
 
 	extratime = 0;
-#if 0
-	if (cls.frametime > (1.0 / cl_minfps->value))
-		cls.frametime = (1.0 / cl_minfps->value);
-#else
-	if (cls.frametime > (1.0 / 5))
-		cls.frametime = (1.0 / 5);
-#endif
+	if (cls.frametime > (1.0 / 5)) cls.frametime = (1.0 / 5);
 
 	// if in the debugger last frame, don't timeout
-	if (msec > 5000)
-		cls.netchan.last_received = Sys_Milliseconds ();
+	if (time > 1.0f) cls.netchan.last_received = Sys_DoubleTime();
 
 	// fetch results from server
 	CL_ReadPackets ();
@@ -1732,11 +1722,9 @@ void CL_Frame (int msec)
 		CL_PrepRefresh ();
 
 	// update the screen
-	if (host_speeds->value)
-		time_before_ref = Sys_Milliseconds ();
+	if (host_speeds->value) time_before_ref = Sys_DoubleTime();
 	SCR_UpdateScreen ();
-	if (host_speeds->value)
-		time_after_ref = Sys_Milliseconds ();
+	if (host_speeds->value) time_after_ref = Sys_DoubleTime();
 
 	// update audio
 	S_Update (cl.refdef.vieworg, cl.v_forward, cl.v_right, cl.v_up);
@@ -1748,27 +1736,6 @@ void CL_Frame (int msec)
 	SCR_RunConsole ();
 
 	cls.framecount++;
-
-	if ( log_stats->value )
-	{
-		if ( cls.state == ca_active )
-		{
-			if ( !lasttimecalled )
-			{
-				lasttimecalled = Sys_Milliseconds();
-				if ( log_stats_file )
-					FS_Printf( log_stats_file, "0\n" );
-			}
-			else
-			{
-				int now = Sys_Milliseconds();
-
-				if ( log_stats_file )
-					FS_Printf( log_stats_file, "%d\n", now - lasttimecalled );
-				lasttimecalled = now;
-			}
-		}
-	}
 }
 
 

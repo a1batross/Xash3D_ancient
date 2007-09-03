@@ -24,30 +24,120 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 server_static_t	svs;				// persistant server info
 server_t		sv;					// local server
 
+#define REQFIELDS (sizeof(reqfields) / sizeof(prvm_fieldvars_t))
+
+prvm_fieldvars_t reqfields[] = 
+{
+	{0,	2,	"modelindex"},
+	{1,	3,	"absmin"},
+	{1,	2,	"absmin_x"},
+	{2,	2,	"absmin_y"},
+	{3,	2,	"absmin_z"},
+	{4,	3,	"absmax"},
+	{7,	2,	"ltime"},
+	{8,	2,	"movetype"},
+	{9,	2,	"solid"},
+	{10,	3,	"origin"},
+	{13,	3,	"oldorigin"},
+	{16,	3,	"velocity"},
+	{19,	3,	"angles"},
+	{22,	3,	"avelocity"},
+	{25,	3,	"punchangle"},
+	{28,	1,	"classname"},
+	{29,	1,	"model"},
+	{30,	2,	"frame"},
+	{31,	2,	"skin"},
+	{32,	2,	"body"},
+	{33,	2,	"effects"},
+	{34,	2,	"sequence"},
+	{35,	2,	"renderfx"},
+	{36,	3,	"mins"},
+	{39,	3,	"maxs"},
+	{42,	3,	"size"},
+	{45,	6,	"touch"},
+	{46,	6,	"use"},
+	{47,	6,	"think"},
+	{48,	6,	"blocked"},
+	{49,	2,	"nextthink"},
+	{50,	4,	"groundentity"},
+	{51,	2,	"health"},
+	{52,	2,	"frags"},
+	{53,	2,	"weapon"},
+	{54,	1,	"weaponmodel"},
+	{55,	2,	"weaponframe"},
+	{56,	2,	"currentammo"},
+	{57,	2,	"ammo_shells"},
+	{58,	2,	"ammo_nails"},
+	{59,	2,	"ammo_rockets"},
+	{60,	2,	"ammo_cells"},
+	{61,	2,	"items"},
+	{62,	2,	"takedamage"},
+	{63,	4,	"chain"},
+	{64,	2,	"deadflag"},
+	{65,	3,	"view_ofs"},
+	{68,	2,	"button0"},
+	{69,	2,	"button1"},
+	{70,	2,	"button2"},
+	{71,	2,	"impulse"},
+	{72,	2,	"fixangle"},
+	{73,	3,	"v_angle"},
+	{76,	2,	"idealpitch"},
+	{77,	1,	"netname"},
+	{78,	4,	"enemy"},
+	{79,	2,	"flags"},
+	{80,	2,	"colormap"},
+	{81,	2,	"team"},
+	{82,	2,	"max_health"},
+	{83,	2,	"teleport_time"},
+	{84,	2,	"armortype"},
+	{85,	2,	"armorvalue"},
+	{86,	2,	"waterlevel"},
+	{87,	2,	"watertype"},
+	{88,	2,	"ideal_yaw"},
+	{89,	2,	"yaw_speed"},
+	{90,	4,	"aiment"},
+	{91,	4,	"goalentity"},
+	{92,	2,	"spawnflags"},
+	{93,	1,	"target"},
+	{94,	1,	"targetname"},
+	{95,	2,	"dmg_take"},
+	{96,	2,	"dmg_save"},
+	{97,	4,	"dmg_inflictor"},
+	{98,	4,	"owner"},
+	{99,	3,	"movedir"},
+	{102,	1,	"message"},
+	{103,	2,	"sounds"},
+	{104,	1,	"noise"},
+	{105,	1,	"noise1"},
+	{106,	1,	"noise2"},
+	{107,	1,	"noise3"}
+};
+
 /*
 ================
 SV_FindIndex
 
 ================
 */
-int SV_FindIndex (char *name, int start, int max, bool create)
+int SV_FindIndex (const char *name, int start, int end, bool create)
 {
 	int		i;
 	
-	if (!name || !name[0])
-		return 0;
+	if (!name || !name[0]) return 0;
 
-	for (i=1 ; i<max && sv.configstrings[start+i][0] ; i++)
-		if (!strcmp(sv.configstrings[start+i], name))
+	for (i = 1; i < end && sv.configstrings[start + i][0]; i++)
+		if(!strcmp(sv.configstrings[start + i], name))
 			return i;
+	if (!create) return 0;
 
-	if (!create)
+	if (i == end) 
+	{
+		MsgWarn ("SV_FindIndex: %d out range [%d - %d]\n", start, end );
 		return 0;
+	}
 
-	if (i == max)
-		Com_Error (ERR_DROP, "*Index: overflow");
-
-	strncpy (sv.configstrings[start+i], name, sizeof(sv.configstrings[i]));
+	// register new resource
+	strncpy (sv.configstrings[start + i], name, sizeof(sv.configstrings[i]));
 
 	if (sv.state != ss_loading)
 	{	
@@ -55,25 +145,24 @@ int SV_FindIndex (char *name, int start, int max, bool create)
 		SZ_Clear (&sv.multicast);
 		MSG_Begin(svc_configstring);
 		MSG_WriteShort (&sv.multicast, start+i);
-		MSG_WriteString (&sv.multicast, name);
+		MSG_WriteString (&sv.multicast, (char *)name);
 		MSG_Send(MSG_ALL_R, vec3_origin, NULL );
 	}
-
 	return i;
 }
 
 
-int SV_ModelIndex (char *name)
+int SV_ModelIndex (const char *name)
 {
 	return SV_FindIndex (name, CS_MODELS, MAX_MODELS, true);
 }
 
-int SV_SoundIndex (char *name)
+int SV_SoundIndex (const char *name)
 {
 	return SV_FindIndex (name, CS_SOUNDS, MAX_SOUNDS, true);
 }
 
-int SV_ImageIndex (char *name)
+int SV_ImageIndex (const char *name)
 {
 	return SV_FindIndex (name, CS_IMAGES, MAX_IMAGES, true);
 }
@@ -90,26 +179,74 @@ baseline will be transmitted
 */
 void SV_CreateBaseline (void)
 {
-	edict_t			*svent;
+	prvm_edict_t			*svent;
 	int				entnum;	
 
-	for (entnum = 1; entnum < ge->num_edicts ; entnum++)
+	for (entnum = 1; entnum < prog->num_edicts; entnum++)
 	{
-		svent = EDICT_NUM(entnum);
-		if (!svent->inuse)
-			continue;
-		if (!svent->s.modelindex && !svent->s.sound && !svent->s.effects)
-			continue;
-		svent->s.number = entnum;
+		svent = PRVM_EDICT_NUM(entnum);
 
-		//
+		if (!svent->priv.sv->free) continue;
+		if (!svent->priv.sv->state.modelindex && !svent->priv.sv->state.sound && !svent->priv.sv->state.effects)
+			continue;
+
+		svent->priv.sv->state.number = entnum;
+
+		if (entnum > maxclients->value && !svent->fields.sv->modelindex)
+			continue;
+
+		// create entity baseline
+		VectorCopy (svent->fields.sv->origin, svent->priv.sv->state.origin);
+		VectorCopy (svent->priv.sv->state.origin, svent->priv.sv->state.old_origin);
+		VectorCopy (svent->fields.sv->angles, svent->priv.sv->state.angles);
+		svent->priv.sv->state.frame = (int)svent->fields.sv->frame;
+		svent->priv.sv->state.skin = (int)svent->fields.sv->skin;
+		svent->priv.sv->state.body = (int)svent->fields.sv->body;
+		svent->priv.sv->state.sequence = (int)svent->fields.sv->sequence;
+		svent->priv.sv->state.effects = (int)svent->fields.sv->effects;
+		svent->priv.sv->state.renderfx = (int)svent->fields.sv->renderfx;
+		svent->priv.sv->state.solid = (int)svent->fields.sv->solid;
+
+		if (entnum > 0 && entnum <= maxclients->value)
+		{
+			svent->priv.sv->state.modelindex = SV_ModelIndex("progs/player.mdl");
+		}
+		else
+		{
+			svent->priv.sv->state.modelindex = (int)svent->fields.sv->modelindex;
+		}
+
 		// take current state as baseline
-		//
-		VectorCopy (svent->s.origin, svent->s.old_origin);
-		sv.baselines[entnum] = svent->s;
+		sv.baselines[entnum] = svent->priv.sv->state;
 	}
 }
 
+/*
+================
+SV_SaveSpawnparms
+
+Grabs the current state of each client for saving across the
+transition to another level
+================
+*/
+void SV_SaveSpawnparms (void)
+{
+	int		i, j;
+
+	svs.serverflags = (int)prog->globals.server->serverflags;
+
+	for (i = 0, sv_client = svs.clients; i < maxclients->value; i++, sv_client++)
+	{
+		if (sv_client->state != cs_spawned)
+			continue;
+
+		// call the progs to get default spawn parms for the new client
+		prog->globals.server->self = PRVM_EDICT_TO_PROG(sv_client->edict);
+		PRVM_ExecuteProgram (prog->globals.server->SetChangeParms, "QC function SetChangeParms is missing");
+		for (j = 0; j < NUM_SPAWN_PARMS; j++)
+			sv_client->spawn_parms[j] = prog->globals.server->parm[j];
+	}
+}
 
 /*
 =================
@@ -118,7 +255,6 @@ SV_CheckForSavegame
 */
 void SV_CheckForSavegame (char *savename )
 {
-	int		i;
 	char		name[MAX_SYSPATH];
 
 	if (sv_noreload->value) return;
@@ -135,22 +271,6 @@ void SV_CheckForSavegame (char *savename )
 
 	// get configstrings and areaportals
 	SV_ReadLevelFile ( savename );
-
-	if (!sv.loadgame)
-	{	// coming back to a level after being in a different
-		// level, so run it for ten seconds
-
-		// rlava2 was sending too many lightstyles, and overflowing the
-		// reliable data. temporarily changing the server state to loading
-		// prevents these from being passed down.
-		server_state_t		previousState;		// PGM
-
-		previousState = sv.state;				// PGM
-		sv.state = ss_loading;				// PGM
-		for (i = 0; i < 100; i++) ge->RunFrame ();
-
-		sv.state = previousState;				// PGM
-	}
 }
 
 
@@ -165,7 +285,8 @@ clients along with it.
 */
 void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_state_t serverstate, bool attractloop, bool loadgame)
 {
-	uint	i, checksum;
+	uint		i, checksum;
+	prvm_edict_t	*ent;
 
 	if (attractloop) Cvar_Set ("paused", "0");
 
@@ -200,7 +321,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 	strcpy (sv.name, server);
 
 	// leave slots at start for clients only
-	for (i=0 ; i<maxclients->value ; i++)
+	for (i=0 ; i < maxclients->value ; i++)
 	{
 		// needs to reconnect
 		if (svs.clients[i].state > cs_connected)
@@ -208,7 +329,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 		svs.clients[i].lastframe = -1;
 	}
 
-	sv.time = 1000;
+	sv.time = 1;
 	
 	strcpy (sv.name, server);
 	strcpy (sv.configstrings[CS_NAME], server);
@@ -219,7 +340,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 	}
 	else
 	{
-		sprintf (sv.configstrings[CS_MODELS+1], "maps/%s.bsp", server);
+		strcpy (sv.configstrings[CS_MODELS+1], server);
 		sv.models[1] = CM_LoadMap (sv.configstrings[CS_MODELS+1], false, &checksum);
 	}
 	sprintf (sv.configstrings[CS_MAPCHECKSUM],"%i", checksum);
@@ -233,6 +354,8 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 		sv.models[i+1] = CM_InlineModel (sv.configstrings[CS_MODELS+1+i]);
 	}
 
+	SV_VM_Setup();
+
 	//
 	// spawn the rest of the entities on the map
 	//	
@@ -242,12 +365,46 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 	sv.state = ss_loading;
 	Com_SetServerState (sv.state);
 
-	// load and spawn all other entities
-	ge->SpawnEntities ( sv.name, CM_EntityString(), spawnpoint );
+	SV_VM_Begin();
+
+	sv.moved_edicts = (prvm_edict_t **)PRVM_Alloc(prog->max_edicts * sizeof(prvm_edict_t *));
+	*prog->time = sv.time;
+
+	ent = PRVM_EDICT_NUM(0);
+	memset (ent->fields.sv, 0, prog->progs->entityfields * 4);
+	ent->priv.sv->free = false;
+	ent->fields.sv->model = PRVM_SetEngineString(sv.configstrings[CS_MODELS]);
+	ent->fields.sv->modelindex = 1; // world model
+	ent->fields.sv->solid = SOLID_BSP;
+	ent->fields.sv->movetype = MOVETYPE_PUSH;
+
+	prog->globals.server->mapname = PRVM_SetEngineString(sv.name);
+
+	// serverflags are for cross level information (sigils)
+	prog->globals.server->serverflags = svs.serverflags;
+
+	// we need to reset the spawned flag on all connected clients here so that
+	// their thinks don't run during startup (before PutClientInServer)
+	// we also need to set up the client entities now
+	// and we need to set the ->edict pointers to point into the progs edicts
+	for (i = 0, sv_client = svs.clients; i < maxclients->value; i++, sv_client++)
+	{
+		sv_client->state = cs_connected;
+		sv_client->edict = PRVM_EDICT_NUM(i + 1);
+		sv_client->edict->priv.sv->client = Z_Malloc(sizeof(player_state_t));
+		ent->priv.sv->state.number = i + 1;
+		memset (&sv_client->lastcmd, 0, sizeof(sv_client->lastcmd));
+		PRVM_ED_ClearEdict(sv_client->edict);
+	}
+	
+	PRVM_ED_LoadFromFile (CM_EntityString());
 
 	// run two frames to allow everything to settle
-	ge->RunFrame ();
-	ge->RunFrame ();
+	for (i = 0; i < 2; i++)
+	{
+		sv.frametime = 0.1f;
+		SV_Physics();
+	}
 
 	// all precaches are complete
 	sv.state = serverstate;
@@ -256,8 +413,15 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 	// create a baseline for more efficient communications
 	SV_CreateBaseline ();
 
+	// call the progs to get default spawn parms for the new client
+	// set self to world to intentionally cause errors with broken SetNewParms code in some mods
+	prog->globals.server->self = 0;
+	PRVM_ExecuteProgram (prog->globals.server->SetNewParms, "QC function SetNewParms is missing");
+	for (i = 0; i < NUM_SPAWN_PARMS; i++)
+		sv_client->spawn_parms[i] = prog->globals.server->parm[i];
+
 	// check for a savegame
-	SV_CheckForSavegame ( savename );
+//SV_CheckForSavegame ( savename );
 
 	// set serverinfo variable
 	Cvar_FullSet ("mapname", sv.name, CVAR_SERVERINFO | CVAR_NOSET);
@@ -274,8 +438,8 @@ A brand new game has been started
 */
 void SV_InitGame (void)
 {
-	int		i;
-	edict_t	*ent;
+	//int		i;
+	//prvm_edict_t	*ent;
 	char	idmaster[32];
 
 	if (svs.initialized)
@@ -328,9 +492,9 @@ void SV_InitGame (void)
 	}
 
 	svs.spawncount = rand();
-	svs.clients = Z_Malloc (sizeof(client_t)*maxclients->value);
-	svs.num_client_entities = maxclients->value*UPDATE_BACKUP*64;
-	svs.client_entities = Z_Malloc (sizeof(entity_state_t)*svs.num_client_entities);
+	svs.clients = Z_Malloc (sizeof(client_t) * maxclients->value);
+	svs.num_client_entities = maxclients->value * UPDATE_BACKUP * 64;
+	svs.client_entities = Z_Malloc(sizeof(entity_state_t) * svs.num_client_entities);
 
 	// init network stuff
 	NET_Config ( (maxclients->value > 1) );
@@ -339,17 +503,6 @@ void SV_InitGame (void)
 	svs.last_heartbeat = -99999;		// send immediately
 	sprintf(idmaster, "192.246.40.37:%i", PORT_MASTER);
 	NET_StringToAdr (idmaster, &master_adr[0]);
-
-	// init game
-	SV_InitGameProgs ();
-
-	for (i = 0; i < maxclients->value; i++)
-	{
-		ent = EDICT_NUM(i + 1);
-		ent->s.number = i + 1;
-		svs.clients[i].edict = ent;
-		memset (&svs.clients[i].lastcmd, 0, sizeof(svs.clients[i].lastcmd));
-	}
 }
 
 
@@ -437,4 +590,146 @@ void SV_Map (bool attractloop, char *levelstring, char *savename, bool loadgame)
 	}
           
 	SV_BroadcastCommand ("reconnect\n");
+}
+
+void SV_VM_BeginIncreaseEdicts(void)
+{
+	int		i;
+	prvm_edict_t	*ent;
+
+	PRVM_Free( sv.moved_edicts );
+	sv.moved_edicts = (prvm_edict_t **)PRVM_Alloc(prog->max_edicts * sizeof(prvm_edict_t *));
+
+	// links don't survive the transition, so unlink everything
+	for (i = 0, ent = prog->edicts;i < prog->max_edicts;i++, ent++)
+	{
+		if (!ent->priv.sv->free) SV_UnlinkEdict(prog->edicts + i);
+		memset(&ent->priv.sv->clusternums, 0, sizeof(ent->priv.sv->clusternums));
+	}
+	SV_ClearWorld();
+}
+
+void SV_VM_EndIncreaseEdicts(void)
+{
+	int		i;
+	prvm_edict_t	*ent;
+
+	for (i = 0, ent = prog->edicts;i < prog->max_edicts;i++, ent++)
+	{
+		// link every entity except world
+		if (!ent->priv.sv->free) SV_LinkEdict(ent);
+	}
+}
+
+void SV_VM_InitEdict(prvm_edict_t *e)
+{
+	int num = PRVM_NUM_FOR_EDICT(e) - 1;
+	e->priv.sv->move = false; // don't move on first frame
+
+	// set here additional player effects: model, skin, etc...
+}
+
+void SV_VM_FreeEdict(prvm_edict_t *ed)
+{
+	SV_UnlinkEdict (ed);		// unlink from world bsp
+
+	ed->fields.sv->model = 0;
+	ed->fields.sv->takedamage = 0;
+	ed->fields.sv->modelindex = 0;
+	ed->fields.sv->colormap = 0;
+	ed->fields.sv->skin = 0;
+	ed->fields.sv->frame = 0;
+	VectorClear(ed->fields.sv->origin);
+	VectorClear(ed->fields.sv->angles);
+	ed->fields.sv->nextthink = -1;
+	ed->fields.sv->solid = 0;
+}
+
+void SV_VM_CountEdicts( void )
+{
+	int		i;
+	prvm_edict_t	*ent;
+	int		active = 0, models = 0, solid = 0, step = 0;
+
+	for (i = 0; i < prog->num_edicts; i++)
+	{
+		ent = PRVM_EDICT_NUM(i);
+		if (ent->priv.sv->free)
+			continue;
+		active++;
+		if (ent->fields.sv->solid) solid++;
+		if (ent->fields.sv->model) models++;
+		if (ent->fields.sv->movetype == MOVETYPE_STEP) step++;
+	}
+
+	Msg("num_edicts:%3i\n", prog->num_edicts);
+	Msg("active    :%3i\n", active);
+	Msg("view      :%3i\n", models);
+	Msg("touch     :%3i\n", solid);
+	Msg("step      :%3i\n", step);
+}
+
+bool SV_VM_LoadEdict(prvm_edict_t *ent)
+{
+	int current_skill = (int)Cvar_VariableValue ("skill");
+
+	// remove things from different skill levels or deathmatch
+	if(Cvar_VariableValue ("deathmatch"))
+	{
+		if (((int)ent->fields.sv->spawnflags & SPAWNFLAG_NOT_DEATHMATCH))
+		{
+			return false;
+		}
+	}
+	else if ((current_skill <= 0 && ((int)ent->fields.sv->spawnflags & SPAWNFLAG_NOT_EASY  )) || (current_skill == 1 && ((int)ent->fields.sv->spawnflags & SPAWNFLAG_NOT_MEDIUM)) || (current_skill >= 2 && ((int)ent->fields.sv->spawnflags & SPAWNFLAG_NOT_HARD  )))
+	{
+		return false;
+	}
+	return true;
+}
+
+void SV_VM_Setup( void )
+{
+	PRVM_Begin;
+	PRVM_InitProg( PRVM_SERVERPROG );
+
+	// allocate the mempools
+	// TODO: move the magic numbers/constants into #defines [9/13/2006 Black]
+	prog->progs_mempool = Mem_AllocPool("Server Progs" );
+	prog->builtins = vm_sv_builtins;
+	prog->numbuiltins = vm_sv_numbuiltins;
+	prog->max_edicts = 512;
+	prog->limit_edicts = MAX_EDICTS;
+	prog->reserved_edicts = maxclients->value;
+	prog->edictprivate_size = sizeof(server_edict_t);
+	prog->name = "server";
+	prog->extensionstring = "";
+	prog->loadintoworld = true;
+
+	prog->begin_increase_edicts = SV_VM_BeginIncreaseEdicts;
+	prog->end_increase_edicts = SV_VM_EndIncreaseEdicts;
+	prog->init_edict = SV_VM_InitEdict;
+	prog->free_edict = SV_VM_FreeEdict;
+	prog->count_edicts = SV_VM_CountEdicts;
+	prog->load_edict = SV_VM_LoadEdict;
+	prog->init_cmd = VM_Cmd_Init;
+	prog->reset_cmd = VM_Cmd_Reset;
+	prog->error_cmd = VM_Error;
+
+	// TODO: add a requiredfuncs list (ask LH if this is necessary at all)
+	PRVM_LoadProgs( "server.dat", 0, NULL, REQFIELDS, reqfields );
+	PRVM_End;
+}
+
+void SV_VM_Begin(void)
+{
+	PRVM_Begin;
+	PRVM_SetProg( PRVM_SERVERPROG );
+
+	*prog->time = (float)sv.time;
+}
+
+void SV_VM_End(void)
+{
+	PRVM_End;
 }

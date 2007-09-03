@@ -244,13 +244,13 @@ mspriteframe_t *R_GetSpriteFrame (entity_t *currententity)
 
 void R_DrawSpriteModel( int passnum )
 {
-	float alpha = 1.0F;
+	float		alpha= 1.0F;
 	mspriteframe_t	*frame;
 	vec3_t		point, forward, right, up;
 	msprite_t		*psprite;
 	entity_t 		*e = currententity;
 	model_t		*mod = currentmodel;
-	float		realtime = r_newrefdef.time / 1000.000f;
+	float		realtime = r_newrefdef.time;
 
 	if ( (e->flags & RF_TRANSLUCENT) && (passnum == RENDERPASS_SOLID)) return;// solid
 	if (!(e->flags & RF_TRANSLUCENT) && (passnum == RENDERPASS_ALPHA)) return;// solid
@@ -281,7 +281,7 @@ void R_DrawSpriteModel( int passnum )
 	switch( psprite->type )
 	{
 	case SPR_ORIENTED:
-		AngleVectors (e->angles, forward, right, up);
+		AngleVectorsRight(e->angles, forward, right, up);
 		VectorScale(forward, 0.01, forward );//offset for decals
 		VectorSubtract(e->origin, forward, e->origin );
 		break;

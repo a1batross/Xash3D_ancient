@@ -135,7 +135,7 @@ void SV_BroadcastCommand (char *fmt, ...)
 	va_list		argptr;
 	char		string[1024];
 	
-	if (!sv.state) return;
+	if (sv.state != ss_loading) return;
 	va_start (argptr,fmt);
 	vsprintf (string, fmt,argptr);
 	va_end (argptr);
@@ -159,7 +159,7 @@ MULTICAST_PVS	send to clients potentially visible from org
 MULTICAST_PHS	send to clients potentially hearable from org
 =================
 */
-void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename, int fileline)
+void _MSG_Send (msgtype_t to, vec3_t origin, prvm_edict_t *ent, const char *filename, int fileline)
 {
 	byte		*mask = NULL;
 	int		leafnum = 0, cluster = 0;
@@ -208,7 +208,7 @@ void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename,
 		reliable = true;	// intentional fallthrough
 	case MSG_ONE:
 		if(ent == NULL) return;
-		j = NUM_FOR_EDICT(ent);
+		j = PRVM_NUM_FOR_EDICT(ent);
 		if (j < 1 || j > numclients) return;
 		current = svs.clients + (j - 1);
 		numclients = 1; // send to one
@@ -228,9 +228,9 @@ void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename,
 		{
 			area2 = CM_LeafArea (leafnum);
 			cluster = CM_LeafCluster (leafnum);
-			leafnum = CM_PointLeafnum (client->edict->s.origin);
+			leafnum = CM_PointLeafnum (client->edict->priv.sv->state.origin);
 			if (!CM_AreasConnected (area1, area2)) continue;
-			if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7))))) continue;
+			if ( mask && (!(mask[cluster>>3] & (1<<(cluster & 7))))) continue;
 		}
 
 		if (reliable) SZ_Write (&client->netchan.message, sv.multicast.data, sv.multicast.cursize);
@@ -278,7 +278,7 @@ If origin is NULL, the origin is determined from the entity origin
 or the midpoint of the entity box for bmodels.
 ==================
 */  
-void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int soundindex, float volume, float attenuation, float timeofs)
+void SV_StartSound (vec3_t origin, prvm_edict_t *entity, int channel, int soundindex, float volume, float attenuation, float timeofs)
 {       
 	int		i, ent, flags, sendchan;
 	vec3_t		origin_v;
@@ -299,7 +299,7 @@ void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int soundindex,
 		MsgWarn("SV_StartSound: timeofs = %f\n", timeofs);
 		timeofs = bound(0, timeofs, 0.255 );
 	}
-	ent = NUM_FOR_EDICT(entity);
+	ent = PRVM_NUM_FOR_EDICT(entity);
 
 	if (channel & 8) // no PHS flag
 	{
@@ -315,7 +315,7 @@ void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int soundindex,
 
 	// the client doesn't know that bmodels have weird origins
 	// the origin can also be explicitly set
-	if ( (entity->svflags & SVF_NOCLIENT) || (entity->solid == SOLID_BSP) || origin )
+	if ( (entity->priv.sv->flags & SVF_NOCLIENT) || (entity->priv.sv->solid == SOLID_BSP) || origin )
 		flags |= SND_POS;
 
 	// always send the entity number for channel overrides
@@ -327,16 +327,16 @@ void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int soundindex,
 	if (!origin)
 	{
 		origin = origin_v;
-		if (entity->solid == SOLID_BSP)
+		if (entity->priv.sv->solid == SOLID_BSP)
 		{
 			for (i = 0; i < 3; i++)
 			{
-				origin_v[i] = entity->s.origin[i]+0.5*(entity->mins[i]+entity->maxs[i]);
+				origin_v[i] = entity->priv.sv->state.origin[i]+0.5*(entity->priv.sv->mins[i]+entity->priv.sv->maxs[i]);
 			}
 		}
 		else
 		{
-			VectorCopy (entity->s.origin, origin_v);
+			VectorCopy (entity->priv.sv->state.origin, origin_v);
 		}
 	}
 
@@ -490,9 +490,9 @@ SV_SendClientMessages
 */
 void SV_SendClientMessages (void)
 {
-	int			i;
-	client_t	*c;
-	int			msglen;
+	int		i;
+	client_t		*c;
+	int		msglen;
 	byte		msgbuf[MAX_MSGLEN];
 
 	msglen = 0;
@@ -500,8 +500,7 @@ void SV_SendClientMessages (void)
 	// read the next demo message if needed
 	if (sv.state == ss_demo && sv.demofile)
 	{
-		if (sv_paused->value)
-			msglen = 0;
+		if (sv_paused->value) msglen = 0;
 		else
 		{
 			// get the next message
@@ -527,10 +526,9 @@ void SV_SendClientMessages (void)
 	}
 
 	// send a message to each connected client
-	for (i=0, c = svs.clients ; i<maxclients->value; i++, c++)
+	for (i = 0, c = svs.clients; i < maxclients->value; i++, c++)
 	{
-		if (!c->state)
-			continue;
+		if (!c->state) continue;
 		// if the reliable message overflowed,
 		// drop the client
 		if (c->netchan.message.overflowed)
@@ -541,23 +539,19 @@ void SV_SendClientMessages (void)
 			SV_DropClient (c);
 		}
 
-		if (sv.state == ss_cinematic 
-			|| sv.state == ss_demo 
-			|| sv.state == ss_pic
-			)
+		if (sv.state == ss_cinematic || sv.state == ss_demo || sv.state == ss_pic)
 			Netchan_Transmit (&c->netchan, msglen, msgbuf);
 		else if (c->state == cs_spawned)
 		{
 			// don't overrun bandwidth
 			if (SV_RateDrop (c))
 				continue;
-
 			SV_SendClientDatagram (c);
 		}
 		else
 		{
-	// just update reliable	if needed
-			if (c->netchan.message.cursize	|| curtime - c->netchan.last_sent > 1000 )
+			// just update reliable	if needed
+			if (c->netchan.message.cursize || curtime - c->netchan.last_sent > 1.0f)
 				Netchan_Transmit (&c->netchan, 0, NULL);
 		}
 	}

@@ -538,7 +538,7 @@ char		*Cmd_Args (void)
 Cmd_MacroExpandString
 ======================
 */
-char *Cmd_MacroExpandString (char *text)
+char *Cmd_MacroExpandString (const char *text)
 {
 	int		i, j, count, len;
 	bool		inquote;
@@ -548,7 +548,7 @@ char *Cmd_MacroExpandString (char *text)
 	char		*token, *start;
 
 	inquote = false;
-	scan = text;
+	scan = (char *)text;
 
 	len = strlen (scan);
 	if (len >= MAX_STRING_CHARS)
@@ -613,10 +613,10 @@ Parses the given string into command line tokens.
 $Cvars will be expanded unless they are in a quoted token
 ============
 */
-void Cmd_TokenizeString (char *text, bool macroExpand)
+void Cmd_TokenizeString (const char *text, bool macroExpand)
 {
 	int		i;
-	char	*token;
+	char		*token;
 
 	// clear the args from the last string
 	for (i = 0; i < cmd_argc; i++) Z_Free (cmd_argv[i]);
@@ -741,16 +741,15 @@ void	Cmd_RemoveCommand (char *cmd_name)
 Cmd_Exists
 ============
 */
-bool	Cmd_Exists (char *cmd_name)
+bool Cmd_Exists (const char *cmd_name)
 {
 	cmd_function_t	*cmd;
 
-	for (cmd=cmd_functions ; cmd ; cmd=cmd->next)
+	for (cmd = cmd_functions; cmd; cmd = cmd->next)
 	{
 		if (!strcmp (cmd_name,cmd->name))
 			return true;
 	}
-
 	return false;
 }
 
@@ -800,7 +799,7 @@ A complete command line has been parsed, so try to execute it
 FIXME: lookupnoadd the token to speed search?
 ============
 */
-void	Cmd_ExecuteString (char *text)
+void Cmd_ExecuteString (const char *text)
 {	
 	cmd_function_t	*cmd;
 	cmdalias_t		*a;

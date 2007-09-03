@@ -999,7 +999,7 @@ void LoadMapFile (void)
 	nummapbrushsides = 0;
 	num_entities = 0;
 	
-	if(!load) Sys_Error("can't loading map file\n");
+	if(!load) Sys_Error("can't loading map file %s\n", path );
 	Msg ("reading %s\n", path);
 	
 	while (ParseMapEntity ()){}

@@ -24,7 +24,8 @@ if errorlevel 1 set BUILD_ERROR=1
 %MSDEV% renderer/renderer.dsp %CONFIG%"renderer - Win32 Release" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
-%MSDEV% server/server.dsp %CONFIG%"server - Win32 Release" %build_target%
+resource\qcclib.exe -O3
+if errorlevel 0 copy resource\server.dat D:\Xash3D\xash\server.dat
 if errorlevel 1 set BUILD_ERROR=1
 
 if "%BUILD_ERROR%"=="" goto build_ok

@@ -505,7 +505,7 @@ Scroll it up or down
 */
 void SCR_RunConsole (void)
 {
-// decide on the height of the console
+	// decide on the height of the console
 	if (cls.key_dest == key_console)
 		scr_conlines = 0.5;		// half screen
 	else
@@ -513,14 +513,14 @@ void SCR_RunConsole (void)
 	
 	if (scr_conlines < scr_con_current)
 	{
-		scr_con_current -= scr_conspeed->value*cls.frametime;
+		scr_con_current -= scr_conspeed->value * cls.frametime * 1000;
 		if (scr_conlines > scr_con_current)
 			scr_con_current = scr_conlines;
 
 	}
 	else if (scr_conlines > scr_con_current)
 	{
-		scr_con_current += scr_conspeed->value*cls.frametime;
+		scr_con_current += scr_conspeed->value * cls.frametime * 1000;
 		if (scr_conlines < scr_con_current)
 			scr_con_current = scr_conlines;
 	}
@@ -583,7 +583,7 @@ void SCR_BeginLoadingPlaque (void)
 	else
 		scr_draw_loading = 1;
 	SCR_UpdateScreen ();
-	cls.disable_screen = Sys_Milliseconds ();
+	cls.disable_screen = Sys_DoubleTime();
 	cls.disable_servercount = cl.servercount;
 }
 
@@ -631,18 +631,19 @@ int entitycmpfnc( const entity_t *a, const entity_t *b )
 void SCR_TimeRefresh_f (void)
 {
 	int		i;
-	int		start, stop;
-	float	time;
+	float		start, stop;
+	float		time;
 
 	if ( cls.state != ca_active )
 		return;
 
-	start = Sys_Milliseconds ();
+	start = Sys_DoubleTime();
 
 	if (Cmd_Argc() == 2)
-	{	// run without page flipping
+	{	
+		// run without page flipping
 		re->BeginFrame( 0 );
-		for (i=0 ; i<128 ; i++)
+		for (i = 0; i < 128; i++)
 		{
 			cl.refdef.viewangles[1] = i/128.0*360.0;
 			re->RenderFrame (&cl.refdef);
@@ -661,8 +662,8 @@ void SCR_TimeRefresh_f (void)
 		}
 	}
 
-	stop = Sys_Milliseconds ();
-	time = (stop-start)/1000.0;
+	stop = Sys_DoubleTime();
+	time = (stop-start);
 	Msg ("%f seconds (%f fps)\n", time, 128/time);
 }
 
@@ -1268,7 +1269,7 @@ void SCR_UpdateScreen (void)
 	// do nothing at all
 	if (cls.disable_screen)
 	{
-		if (Sys_Milliseconds() - cls.disable_screen > 120000)
+		if (Sys_DoubleTime() - cls.disable_screen > 120.0f)
 		{
 			cls.disable_screen = 0;
 			Msg ("Loading plaque timed out.\n");

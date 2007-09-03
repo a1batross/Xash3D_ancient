@@ -28,22 +28,19 @@ jmp_buf abortframe;
 
 int	com_argc;
 char	*com_argv[MAX_NUM_ARGVS+1];
-int	realtime;
-
-file_t	*log_stats_file;
+double	realtime;
 
 cvar_t	*host_speeds;
-cvar_t	*log_stats;
 cvar_t	*developer;
 cvar_t	*dedicated;
 
 int	server_state;
 
 // host_speeds times
-int	time_before_game;
-int	time_after_game;
-int	time_before_ref;
-int	time_after_ref;
+float	time_before_game;
+float	time_after_game;
+float	time_before_ref;
+float	time_after_ref;
 
 
 /*
@@ -317,9 +314,9 @@ void COM_InitArgv (int argc, char **argv)
 	}
 }
 
-char *CopyString (char *in)
+char *CopyString (const char *in)
 {
-	char	*out;
+	char *out;
 	
 	out = Z_Malloc (strlen(in)+1);
 	strcpy (out, in);

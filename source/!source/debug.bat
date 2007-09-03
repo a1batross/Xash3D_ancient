@@ -23,7 +23,7 @@ if errorlevel 1 set BUILD_ERROR=1
 %MSDEV% renderer/renderer.dsp %CONFIG%"renderer - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
-%MSDEV% server/server.dsp %CONFIG%"server - Win32 Debug" %build_target%
+resource\qcclib.exe
 if errorlevel 1 set BUILD_ERROR=1
 
 if "%BUILD_ERROR%"=="" goto build_ok
@@ -50,6 +50,7 @@ if exist launcher\launcher.plg del /f /q launcher\launcher.plg
 if exist platform\platform.plg del /f /q platform\platform.plg
 if exist renderer\renderer.plg del /f /q renderer\renderer.plg
 if exist server\server.plg del /f /q server\server.plg
+if exist resource\server.dat copy resource\server.dat D:\Xash3D\xash\server.dat
 
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading

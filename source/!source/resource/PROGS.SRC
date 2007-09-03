@@ -1,0 +1,49 @@
+// +-----+
+// |Progs|
+// +-----+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-+
+// | Scratch                                   Http://www.admdev.com/scratch |
+// +=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-+
+// | This file contains all a list of QuakeC files to compile into the final |
+// | output file (progs.dat by default)                                      |
+// +=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-==-=-=-+
+
+server.dat                                        // Output File
+
+defs.c					// Definitions
+main.c					// Main subroutines
+damage.c
+player.c
+client.c					// Client subroutines
+dummys.c					// Null spawn functions
+ents/internal.c				// Entity Management
+ents/lights.c				// Light Entities
+ents/ambient.c				// Ambient Sounds
+ents/ccam.c				// Chasecam Effect
+
+//TRIGGERS
+ents/triggers/triggers.c			// Ambient Sounds
+ents/triggers/trigger_generic.c
+ents/triggers/trigger_once.c
+ents/triggers/trigger_sequence.c
+ents/triggers/trigger_message.c
+ents/triggers/trigger_counter.c
+ents/triggers/trigger_setviewpoint.c
+ents/triggers/trigger_teleport.c
+ents/triggers/trigger_hurt.c
+ents/triggers/trigger_push.c
+ents/triggers/trigger_changelevel.c
+ents/triggers/trigger_setskill.c
+ents/triggers/trigger_secret.c
+
+//FUNCS
+ents/funcs/funcs.c
+ents/funcs/func_mover.c
+ents/funcs/func_door.c
+ents/funcs/func_button.c
+ents/funcs/func_path_corner.c
+ents/funcs/func_train.c
+
+//ITEMS
+ents/items/items.c
+
+impulses.c				// Should ALWAYS remain at bottom.

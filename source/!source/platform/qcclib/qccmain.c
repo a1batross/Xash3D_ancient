@@ -11,7 +11,8 @@ extern int optres_test1;
 extern int optres_test2;
 
 int writeasm;
-
+int level;
+	
 cachedsourcefile_t *sourcefile;
 bool PR_SimpleGetToken (void);
 void PR_LexWhitespace (void);
@@ -553,14 +554,14 @@ void PR_WriteData (int crc)
 		}
 
 		//compression of blocks?
-		if (compressoutput)		progs.blockscompressed |=1;		//statements
-		if (compressoutput)		progs.blockscompressed |=2;		//defs
-		if (compressoutput)		progs.blockscompressed |=4;		//fields
-		if (compressoutput)		progs.blockscompressed |=8;		//functions
-		if (compressoutput)		progs.blockscompressed |=16;	//strings
-		if (compressoutput)		progs.blockscompressed |=32;	//globals
-		if (compressoutput)		progs.blockscompressed |=64;	//line numbers
-		if (compressoutput)		progs.blockscompressed |=128;	//types
+		if (compressoutput)	progs.blockscompressed |=1;		//statements
+		if (compressoutput)	progs.blockscompressed |=2;		//defs
+		if (compressoutput)	progs.blockscompressed |=4;		//fields
+		if (compressoutput)	progs.blockscompressed |=8;		//functions
+		if (compressoutput)	progs.blockscompressed |=16;		//strings
+		if (compressoutput)	progs.blockscompressed |=32;		//globals
+		if (compressoutput)	progs.blockscompressed |=64;		//line numbers
+		if (compressoutput)	progs.blockscompressed |=128;		//types
 		//include a type block?
 		types = debugtarget;//!!PR_CheckCompConstDefined("TYPES");	//useful for debugging and saving (maybe, anyway...).
 
@@ -621,9 +622,7 @@ void PR_WriteData (int crc)
 		}
 		if (def->references <= 0)
 		{
-			if (def->constant) PR_Warning(WARN_NOTREFERENCEDCONST, strings + def->s_file, def->s_line, "%s  no references", def->name);
-			else PR_Warning(WARN_NOTREFERENCED, strings + def->s_file, def->s_line, "%s  no references", def->name);
-
+			if(def->local) PR_Warning(WARN_NOTREFERENCED, strings + def->s_file, def->s_line, "'%s' : unreferenced local variable", def->name);
 			if (opt_unreferenced && def->type->type != ev_field)
 			{
 				optres_unreferenced++;
@@ -2060,7 +2059,6 @@ void PR_FinishCompile(void);
 void PR_SetDefaultProperties (void)
 {
 	extern int ForcedCRC;
-	int level;
 	int i;
 
 	Hash_InitTable(&compconstantstable, MAX_CONSTANTS, Qalloc(BytesForBuckets(MAX_CONSTANTS)));
@@ -2279,13 +2277,10 @@ void PR_main ( void ) //as part of the quake engine
 	}
 	else *qccmsourcedir = '\0';
           
-          //autoprototype = true;
-	
 	PR_InitData ();
 	PR_BeginCompilation (Qalloc (0x100000), 0x100000);
 
 	sprintf (qccmprogsdat, "%sprogs.src", qccmsourcedir);
-	Msg ("Source file: %s\n", qccmprogsdat);
 	qccmsrc = QCC_LoadFile (qccmprogsdat);
 
 	if (writeasm)
@@ -2299,7 +2294,10 @@ void PR_main ( void ) //as part of the quake engine
 
 	pr_file_p = SC_ParseToken(&qccmsrc);
 	strcpy (destfile, token);
-	Msg ("outputfile: %s\n", destfile);
+	FS_StripExtension( token );
+
+	// msvc6.0 style message
+	Msg("--------------------Configuration: %s - Vm16 %s--------------------\n", token, level <= 0 ? "Debug" : "Release" ); 
 	
 	pr_dumpasm = false;
 	currentchunk = NULL;
@@ -2322,6 +2320,7 @@ void PR_ContinueCompile(void)
 			qccmsrc = originalqccmsrc;
 			PR_SetDefaultProperties();
 			autoprototype = false;
+			Msg("Compiling...\n");
 			return;
 		}
 		PR_FinishCompile();
@@ -2356,13 +2355,12 @@ void PR_ContinueCompile(void)
 		break;
 	}
 	strcat (qccmfilename, s);
-	if (autoprototype) Msg ("prototyping %s\n", qccmfilename);
-	else Msg ("compiling %s\n", qccmfilename);
+	Msg ("%s\n", qccmfilename);
 
 	qccmsrc2 = QCC_LoadFile (qccmfilename);
 	if(!PR_CompileFile (qccmsrc2, qccmfilename))
 	{
-		Msg("Compile errors limit exceeded %i, stop compilation\n", MAX_ERRORS);
+		Msg("error count exceeds  %i; stopping compilation\n", MAX_ERRORS);
 		Sys_Error("%s - %i error(s), %i warning(s)\n", destfile, pr_error_count, pr_warning_count);
 	}
 }
@@ -2383,8 +2381,6 @@ void PR_FinishCompile(void)
 	
 	// report / copy the data files
 	PR_CopyFiles ();
-
-	Msg ("Compile Complete\n\n");
 
 	if (optres_shortenifnots) Msg("optres_shortenifnots %i\n", optres_shortenifnots);
 	if (optres_overlaptemps) Msg("optres_overlaptemps %i\n", optres_overlaptemps);
@@ -2411,7 +2407,7 @@ void PR_FinishCompile(void)
 	if (optres_test1) Msg("optres_test1 %i\n", optres_test1);
 	if (optres_test2) Msg("optres_test2 %i\n", optres_test2);
 	
-	Msg("numtemps %i\n", numtemps);
+	Msg ("Скопировано файлов:         1.\n\n");// enigma from M$ :)
 	Msg("%s - %i error(s), %i warning(s)\n", destfile, pr_error_count, pr_warning_count);
 
 	qcc_compileactive = false;
@@ -2431,6 +2427,8 @@ bool CompileDATProgs ( void )
 {
 	PR_main();
 
+	if (autoprototype) Msg ("Prototyping...\n");
+	else Msg("Compiling...\n");
 	while(qcc_compileactive)
 		PR_ContinueCompile();
 

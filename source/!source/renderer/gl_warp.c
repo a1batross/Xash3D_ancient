@@ -213,13 +213,12 @@ void EmitWaterPolys (msurface_t *fa)
 	int			i;
 	float		s, t, os, ot;
 	float		scroll;
-	float		rdt = r_newrefdef.time;
 
 	if (fa->texinfo->flags & SURF_FLOWING)
-		scroll = -64 * ( (r_newrefdef.time*0.5) - (int)(r_newrefdef.time*0.5) );
+		scroll = -64 * ( (r_newrefdef.time * 0.5) - (int)(r_newrefdef.time * 0.5));
 	else
 		scroll = 0;
-	for (bp=fa->polys ; bp ; bp=bp->next)
+	for (bp = fa->polys; bp; bp = bp->next)
 	{
 		p = bp;
 
@@ -229,11 +228,11 @@ void EmitWaterPolys (msurface_t *fa)
 			os = v[3];
 			ot = v[4];
 
-			s = os + r_turbsin[(int)((ot*0.125+r_newrefdef.time) * TURBSCALE) & 255];
+			s = os + r_turbsin[(int)((ot * 0.125 + r_newrefdef.time) * TURBSCALE) & 255];
 			s += scroll;
 			s *= (1.0/64);
 
-			t = ot + r_turbsin[(int)((os*0.125+rdt) * TURBSCALE) & 255];
+			t = ot + r_turbsin[(int)((os * 0.125 + r_newrefdef.time) * TURBSCALE) & 255];
 			t *= (1.0/64);
 
 			qglTexCoord2f (s, t);

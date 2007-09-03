@@ -414,7 +414,7 @@ void COM_FileBase (char *in, char *out);
 void	Draw_GetPicSize (int *w, int *h, char *name);
 void	Draw_Pic (int x, int y, char *name);
 void	Draw_StretchPic (int x, int y, int w, int h, char *name);
-void	Draw_Char (int x, int y, int c);
+void	Draw_Char (float x, float y, int c);
 void	Draw_String (int x, int y, char *str);
 void	Draw_TileClear (int x, int y, int w, int h, char *name);
 void	Draw_Fill (int x, int y, int w, int h, int c);

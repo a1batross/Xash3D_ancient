@@ -717,9 +717,9 @@ void	NET_Config (bool multiplayer)
 }
 
 // sleeps msec or until net socket is ready
-void NET_Sleep(int msec)
+void NET_Sleep(float time)
 {
-    struct timeval timeout;
+    	struct timeval timeout;
 	fd_set	fdset;
 	extern cvar_t *dedicated;
 	int i;
@@ -738,8 +738,8 @@ void NET_Sleep(int msec)
 		if (ipx_sockets[NS_SERVER] > i)
 			i = ipx_sockets[NS_SERVER];
 	}
-	timeout.tv_sec = msec/1000;
-	timeout.tv_usec = (msec%1000)*1000;
+	timeout.tv_sec = time;
+	timeout.tv_usec = fmod(time, 1.0f) * 1.0f;
 	select(i+1, &fdset, NULL, NULL, &timeout);
 }
 

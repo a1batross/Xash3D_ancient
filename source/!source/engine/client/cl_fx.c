@@ -69,7 +69,7 @@ void CL_RunLightStyles (void)
 	int		i;
 	clightstyle_t	*ls;
 
-	ofs = cl.time / 100;
+	ofs = cl.time * 0.1;
 	if (ofs == lastofs)
 		return;
 	lastofs = ofs;
@@ -257,7 +257,7 @@ void CL_ParseMuzzleFlash (void)
 
 	dl = CL_AllocDlight (i);
 	VectorCopy (pl->current.origin,  dl->origin);
-	AngleVectors (pl->current.angles, fv, rv, NULL);
+	AngleVectorsRight(pl->current.angles, fv, rv, NULL);
 	VectorMA (dl->origin, 18, fv, dl->origin);
 	VectorMA (dl->origin, 16, rv, dl->origin);
 	if (silenced)
@@ -398,7 +398,7 @@ void CL_ParseMuzzleFlash2 (void)
 	flash_number = MSG_ReadByte (&net_message);
 
 	// locate the origin
-	AngleVectors (cl_entities[ent].current.angles, forward, right, NULL);
+	AngleVectorsRight(cl_entities[ent].current.angles, forward, right, NULL);
 	origin[0] = cl_entities[ent].current.origin[0] + forward[0] + right[0];
 	origin[1] = cl_entities[ent].current.origin[1] + forward[1] + right[1];
 	origin[2] = cl_entities[ent].current.origin[2] + forward[2] + right[2];
@@ -1607,7 +1607,7 @@ void CL_FlyParticles (vec3_t origin, int count)
 	}
 
 
-	ltime = (float)cl.time / 1000.0;
+	ltime = cl.time;
 	for (i=0 ; i<count ; i+=2)
 	{
 		angle = ltime * avelocities[i][0];
@@ -1706,7 +1706,7 @@ void CL_BfgParticles (entity_t *ent)
 	}
 
 
-	ltime = (float)cl.time / 1000.0;
+	ltime = cl.time;
 	for (i=0 ; i<NUMVERTEXNORMALS ; i++)
 	{
 		angle = ltime * avelocities[i][0];

@@ -59,12 +59,17 @@ typedef struct sizebuf_s
 	int	errorcount;		// cause by errors
 } sizebuf_t;
 
-void SZ_Init (sizebuf_t *buf, byte *data, int length);
-void SZ_Clear (sizebuf_t *buf);
-void *SZ_GetSpace (sizebuf_t *buf, int length);
-void SZ_Write (sizebuf_t *buf, void *data, int length);
-void SZ_Print (sizebuf_t *buf, char *data);	// strcats onto the sizebuf
+void _SZ_Init (sizebuf_t *buf, byte *data, int length, const char *filename, int fileline);
+void _SZ_Write (sizebuf_t *buf, void *data, int length, const char *filename, int fileline);
+void *_SZ_GetSpace (sizebuf_t *buf, int length, const char *filename, int fileline);
+void _SZ_Print (sizebuf_t *buf, char *data, const char *filename, int fileline);
+void _SZ_Clear (sizebuf_t *buf, const char *filename, int fileline);
 
+#define SZ_Init(buf, data, length) _SZ_Init( buf, data, length, __FILE__, __LINE__)
+#define SZ_Write(buf, data, length) _SZ_Write( buf, data, length, __FILE__, __LINE__)
+#define SZ_Print(buf, data ) _SZ_Print( buf, data, __FILE__, __LINE__)
+#define SZ_GetSpace(buf, length) _SZ_GetSpace( buf, length, __FILE__, __LINE__)
+#define SZ_Clear(buf) _SZ_Clear( buf, __FILE__, __LINE__)
 //============================================================================
 
 struct usercmd_s;
@@ -87,26 +92,26 @@ void _MSG_WriteDeltaUsercmd (sizebuf_t *sb, struct usercmd_s *from, struct userc
 void _MSG_WriteDeltaEntity (struct entity_state_s *from, struct entity_state_s *to, sizebuf_t *msg, bool force, bool newentity, const char *filename, int fileline);
 void _MSG_WriteDir (sizebuf_t *sb, vec3_t vector, const char *filename, int fileline);
 void _MSG_WriteVector (sizebuf_t *sb, float *v, const char *filename, int fileline);
-void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename, int fileline);
+void _MSG_Send (msgtype_t to, vec3_t origin, prvm_edict_t *ent, const char *filename, int fileline);
 
-#define MSG_Begin( x ) _MSG_Begin( x, __FILE__, __LINE__);
-#define MSG_WriteChar(x,y) _MSG_WriteChar (x, y, __FILE__, __LINE__);
-#define MSG_WriteByte(x,y) _MSG_WriteByte (x, y, __FILE__, __LINE__);
-#define MSG_WriteShort(x,y) _MSG_WriteShort (x, y, __FILE__, __LINE__);
-#define MSG_WriteWord(x,y) _MSG_WriteWord (x, y, __FILE__, __LINE__);
-#define MSG_WriteLong(x,y) _MSG_WriteLong (x, y, __FILE__, __LINE__);
-#define MSG_WriteFloat(x, y) _MSG_WriteFloat (x, y, __FILE__, __LINE__);
-#define MSG_WriteString(x,y) _MSG_WriteString (x, y, __FILE__, __LINE__);
-#define MSG_WriteCoord(x, y) _MSG_WriteCoord (x, y, __FILE__, __LINE__);
-#define MSG_WritePos(x, y) _MSG_WritePos (x, y, __FILE__, __LINE__);
-#define MSG_WriteAngle(x, y) _MSG_WriteAngle (x, y, __FILE__, __LINE__);
-#define MSG_WriteAngle16(x, y) _MSG_WriteAngle16 (x, y, __FILE__, __LINE__);
-#define MSG_WriteUnterminatedString(x, y) _MSG_WriteUnterminatedString (x, y, __FILE__, __LINE__);
-#define MSG_WriteDeltaUsercmd(x, y, z) _MSG_WriteDeltaUsercmd (x, y, z, __FILE__, __LINE__);
-#define MSG_WriteDeltaEntity(x, y, z, t, m) _MSG_WriteDeltaEntity (x, y, z, t, m, __FILE__, __LINE__);
-#define MSG_WriteDir(x, y) _MSG_WriteDir (x, y, __FILE__, __LINE__);
-#define MSG_WriteVector(x, y) _MSG_WriteVector (x, y, __FILE__, __LINE__);
-#define MSG_Send(x, y, z) _MSG_Send(x, y, z, __FILE__, __LINE__);
+#define MSG_Begin( x ) _MSG_Begin( x, __FILE__, __LINE__)
+#define MSG_WriteChar(x,y) _MSG_WriteChar (x, y, __FILE__, __LINE__)
+#define MSG_WriteByte(x,y) _MSG_WriteByte (x, y, __FILE__, __LINE__)
+#define MSG_WriteShort(x,y) _MSG_WriteShort (x, y, __FILE__, __LINE__)
+#define MSG_WriteWord(x,y) _MSG_WriteWord (x, y, __FILE__, __LINE__)
+#define MSG_WriteLong(x,y) _MSG_WriteLong (x, y, __FILE__, __LINE__)
+#define MSG_WriteFloat(x, y) _MSG_WriteFloat (x, y, __FILE__, __LINE__)
+#define MSG_WriteString(x,y) _MSG_WriteString (x, y, __FILE__, __LINE__)
+#define MSG_WriteCoord(x, y) _MSG_WriteCoord (x, y, __FILE__, __LINE__)
+#define MSG_WritePos(x, y) _MSG_WritePos (x, y, __FILE__, __LINE__)
+#define MSG_WriteAngle(x, y) _MSG_WriteAngle (x, y, __FILE__, __LINE__)
+#define MSG_WriteAngle16(x, y) _MSG_WriteAngle16 (x, y, __FILE__, __LINE__)
+#define MSG_WriteUnterminatedString(x, y) _MSG_WriteUnterminatedString (x, y, __FILE__, __LINE__)
+#define MSG_WriteDeltaUsercmd(x, y, z) _MSG_WriteDeltaUsercmd (x, y, z, __FILE__, __LINE__)
+#define MSG_WriteDeltaEntity(x, y, z, t, m) _MSG_WriteDeltaEntity (x, y, z, t, m, __FILE__, __LINE__)
+#define MSG_WriteDir(x, y) _MSG_WriteDir (x, y, __FILE__, __LINE__)
+#define MSG_WriteVector(x, y) _MSG_WriteVector (x, y, __FILE__, __LINE__)
+#define MSG_Send(x, y, z) _MSG_Send(x, y, z, __FILE__, __LINE__)
 
 void	MSG_BeginReading (sizebuf_t *sb);
 
@@ -139,7 +144,7 @@ int COM_CheckParm (char *parm);
 void COM_Init (void);
 void COM_InitArgv (int argc, char **argv);
 
-char *CopyString (char *in);
+char *CopyString (const char *in);
 
 //============================================================================
 
@@ -414,7 +419,7 @@ void	Cmd_AddCommand (char *cmd_name, xcommand_t function);
 // as a clc_stringcmd instead of executed locally
 void	Cmd_RemoveCommand (char *cmd_name);
 
-bool Cmd_Exists (char *cmd_name);
+bool Cmd_Exists (const char *cmd_name);
 // used by the cvar code to check for cvar / command name overlap
 
 char 	*Cmd_CompleteCommand (char *partial);
@@ -428,11 +433,11 @@ char	*Cmd_Args (void);
 // functions. Cmd_Argv () will return an empty string, not a NULL
 // if arg > argc, so string operations are always safe.
 
-void	Cmd_TokenizeString (char *text, bool macroExpand);
+void Cmd_TokenizeString (const char *text, bool macroExpand);
 // Takes a null terminated string.  Does not need to be /n terminated.
 // breaks the string up into arg tokens.
 
-void	Cmd_ExecuteString (char *text);
+void Cmd_ExecuteString (const char *text);
 // Parses a single line of text into arguments and tries to execute it
 // as if it was typed at the console
 
@@ -457,33 +462,32 @@ NET
 #define	PACKET_HEADER		10		// two ints and a short
 
 typedef enum {NA_LOOPBACK, NA_BROADCAST, NA_IP, NA_IPX, NA_BROADCAST_IPX} netadrtype_t;
-
 typedef enum {NS_CLIENT, NS_SERVER} netsrc_t;
 
 typedef struct
 {
 	netadrtype_t	type;
 
-	byte	ip[4];
-	byte	ipx[10];
+	byte		ip[4];
+	byte		ipx[10];
 
-	unsigned short	port;
+	word		port;
 } netadr_t;
 
-void		NET_Init (void);
-void		NET_Shutdown (void);
+void	NET_Init (void);
+void	NET_Shutdown (void);
 
-void		NET_Config (bool multiplayer);
+void	NET_Config (bool multiplayer);
 
 bool	NET_GetPacket (netsrc_t sock, netadr_t *net_from, sizebuf_t *net_message);
-void		NET_SendPacket (netsrc_t sock, int length, void *data, netadr_t to);
+void	NET_SendPacket (netsrc_t sock, int length, void *data, netadr_t to);
 
 bool	NET_CompareAdr (netadr_t a, netadr_t b);
 bool	NET_CompareBaseAdr (netadr_t a, netadr_t b);
 bool	NET_IsLocalAddress (netadr_t adr);
-char		*NET_AdrToString (netadr_t a);
+char	*NET_AdrToString (netadr_t a);
 bool	NET_StringToAdr (char *s, netadr_t *a);
-void		NET_Sleep(int msec);
+void	NET_Sleep(float time);
 
 //============================================================================
 
@@ -499,8 +503,8 @@ typedef struct
 
 	int			dropped;			// between last packet and previous
 
-	int			last_received;		// for timeouts
-	int			last_sent;			// for retransmits
+	float			last_received;		// for timeouts
+	float			last_sent;		// for retransmits
 
 	netadr_t	remote_address;
 	int			qport;				// qport value to write when transmitting
@@ -517,16 +521,16 @@ typedef struct
 	int			last_reliable_sequence;		// sequence number of last send
 
 // reliable staging and holding areas
-	sizebuf_t	message;		// writing buffer to send to server
-	byte		message_buf[MAX_MSGLEN-16];		// leave space for header
+	sizebuf_t			message;				// writing buffer to send to server
+	byte			message_buf[MAX_MSGLEN - 16];		// leave space for header
 
 // message is copied to this buffer when it is first transfered
 	int			reliable_length;
-	byte		reliable_buf[MAX_MSGLEN-16];	// unacked reliable message
+	byte			reliable_buf[MAX_MSGLEN - 16];	// unacked reliable message
 } netchan_t;
 
-extern	netadr_t	net_from;
-extern	sizebuf_t	net_message;
+extern	netadr_t		net_from;
+extern	sizebuf_t		net_message;
 extern	byte		net_message_buffer[MAX_MSGLEN];
 
 
@@ -648,15 +652,12 @@ float	crand(void);	// -1 to 1
 extern	cvar_t	*developer;
 extern	cvar_t	*dedicated;
 extern	cvar_t	*host_speeds;
-extern	cvar_t	*log_stats;
-
-extern	file_t *log_stats_file;
 
 // host_speeds times
-extern	int		time_before_game;
-extern	int		time_after_game;
-extern	int		time_before_ref;
-extern	int		time_after_ref;
+extern	float		time_before_game;
+extern	float		time_after_game;
+extern	float		time_before_ref;
+extern	float		time_after_ref;
 
 #define NUMVERTEXNORMALS	162
 extern	vec3_t	bytedirs[NUMVERTEXNORMALS];
@@ -697,12 +698,12 @@ CLIENT / SERVER SYSTEMS
 void CL_Init (void);
 void CL_Drop (void);
 void CL_Shutdown (void);
-void CL_Frame (int msec);
+void CL_Frame (float time);
 void Con_Print (char *text);
 void SCR_BeginLoadingPlaque (void);
 
 void SV_Init (void);
 void SV_Shutdown (char *finalmsg, bool reconnect);
-void SV_Frame (int msec);
+void SV_Frame (float time);
 
 #endif//COMMON_H

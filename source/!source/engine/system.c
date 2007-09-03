@@ -28,9 +28,8 @@ extern HWND cl_hwnd;
 char *buildstring = __TIME__ " " __DATE__;
 stdinout_api_t std;
 uint sys_msg_time;
-uint sys_frame_time;
-
-int starttime;
+float sys_frame_time;
+double curtime;
 
 /*
 ===============================================================================
@@ -83,8 +82,6 @@ void Sys_Init (void)
 {
 	OSVERSIONINFO	vinfo;
 
-	timeBeginPeriod( 1 );
-
 	vinfo.dwOSVersionInfoSize = sizeof(vinfo);
 
 	if (!GetVersionEx (&vinfo)) Sys_Error ("Couldn't get OS info");
@@ -109,9 +106,8 @@ void Sys_SendKeyEvents (void)
 		TranslateMessage (&msg);
 		DispatchMessage (&msg);
 	}
-
 	// grab frame time 
-	sys_frame_time = timeGetTime();	// FIXME: should this be at start?
+	sys_frame_time = Sys_DoubleTime();
 }
 
 
@@ -143,30 +139,6 @@ char *Sys_GetClipboardData( void )
 		CloseClipboard();
 	}
 	return data;
-}
-
-
-/*
-================
-Sys_Milliseconds
-================
-*/
-int	curtime;
-int Sys_Milliseconds (void)
-{
-	static int		base;
-	static bool	initialized = false;
-          
-          //return (int)(pi.DoubleTime() * 1000);
-	
-	if (!initialized)
-	{	// let base retain 16 bits of effectively random data
-		base = timeGetTime() & 0xffff0000;
-		initialized = true;
-	}
-	curtime = timeGetTime() - base;
-
-	return curtime;
 }
 
 /*

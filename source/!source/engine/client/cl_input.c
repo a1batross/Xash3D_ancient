@@ -94,7 +94,7 @@ void KeyDown (kbutton_t *b)
 	c = Cmd_Argv(2);
 	b->downtime = atoi(c);
 	if (!b->downtime)
-		b->downtime = sys_frame_time - 100;
+		b->downtime = (uint)sys_frame_time - 0.1;
 
 	b->state |= 1 + 2;	// down + impulse down
 }
@@ -354,8 +354,7 @@ void CL_FinishMove (usercmd_t *cmd)
 
 	// send milliseconds of time to apply the move
 	ms = cls.frametime * 1000;
-	if (ms > 250)
-		ms = 100;		// time was unreasonable
+	if (ms > 250) ms = 100; // time was unreasonable
 	cmd->msec = ms;
 
 	CL_ClampPitch ();
@@ -483,7 +482,7 @@ void CL_SendCmd (void)
 
 	if ( cls.state == ca_connected)
 	{
-		if (cls.netchan.message.cursize || curtime - cls.netchan.last_sent > 1000 )
+		if (cls.netchan.message.cursize || curtime - cls.netchan.last_sent > 1.0f )
 			Netchan_Transmit (&cls.netchan, 0, buf.data);	
 		return;
 	}
@@ -498,7 +497,7 @@ void CL_SendCmd (void)
 	}
 
 	if (cmd->buttons && cl.cinematictime > 0 && !cl.attractloop 
-		&& cls.realtime - cl.cinematictime > 1000)
+		&& cls.realtime - cl.cinematictime > 1.0f)
 	{	// skip the rest of the cinematic
 		SCR_FinishCinematic ();
 	}

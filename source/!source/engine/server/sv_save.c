@@ -65,7 +65,7 @@ size_t COM_UnpackString( byte *buffer, int pos, char *string )
 	if(!buffer || !string) return 0;
 	in = buffer + pos;
 
-	do { in++, strsize++; } while(*in != '\0' && in != NULL );
+	do { in++, strsize++; } while(in && *in != '\0');
 
 	strlcpy( string, in - (strsize - 1), strsize ); 
 	return pos + strsize;
@@ -160,10 +160,10 @@ void SV_WriteSaveFile( char *name )
 	SV_AddSaveLump( header, savfile, LUMP_COMMENTS, comment, sizeof(comment));
           SV_AddCStrLump( header, savfile );
 	SV_AddSaveLump( header, savfile, LUMP_AREASTATE, portalopen, sizeof(portalopen));
-	ge->WriteLump ( header, savfile, LUMP_GAMELEVEL, autosave );
+//ge->WriteLump ( header, savfile, LUMP_GAMELEVEL, autosave );
 	SV_AddSaveLump( header, savfile, LUMP_MAPCMDS, svs.mapcmd, sizeof(svs.mapcmd));
 	SV_AddCvarLump( header, savfile );
-	ge->WriteLump ( header, savfile, LUMP_GAMELOCAL, autosave );
+//ge->WriteLump ( header, savfile, LUMP_GAMELOCAL, autosave );
 	
 	//merge header
 	FS_Seek( savfile, 0, SEEK_SET );
@@ -278,7 +278,7 @@ void SV_ReadSaveFile( char *name )
 	
 	SV_InitGame (); // start a new game fresh with new cvars
 	Sav_LoadMapCmds(&header->lumps[LUMP_MAPCMDS]);
-	ge->ReadLump( sav_base, &header->lumps[LUMP_GAMELOCAL], LUMP_GAMELOCAL );
+//ge->ReadLump( sav_base, &header->lumps[LUMP_GAMELOCAL], LUMP_GAMELOCAL );
 }
 
 /*
@@ -313,7 +313,7 @@ void SV_ReadLevelFile( char *name )
 
 	Sav_LoadCfgString(&header->lumps[LUMP_CFGSTRING]);
 	Sav_LoadAreaPortals(&header->lumps[LUMP_AREASTATE]);
-	ge->ReadLump( sav_base, &header->lumps[LUMP_GAMELEVEL], LUMP_GAMELEVEL );
+//ge->ReadLump( sav_base, &header->lumps[LUMP_GAMELEVEL], LUMP_GAMELEVEL );
 }
 
 bool Menu_ReadComment( char *comment, int savenum )

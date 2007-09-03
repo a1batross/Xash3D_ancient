@@ -11,6 +11,7 @@ bool hooked_out = false;
 bool log_active = false;
 bool show_always = true;
 bool about_mode = false;
+bool sys_error = false;
 char dllname[64];
 
 const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t          All Rights Reserved\n\n\t           Visit www.xash.ru\n";
@@ -138,30 +139,29 @@ void PlatformInit ( char *funcname, int argc, char **argv )
 
 	pi->Init( argc, argv );
 
-	if(!GetParmFromCmdLine("-game", gamedir ))
-		strncpy(gamedir, "xash", sizeof(gamedir));
-	if(!GetParmFromCmdLine("+map", source ))
-		strncpy(source, "newmap", sizeof(source));
-	if(!GetParmFromCmdLine("+dat", source ))
-		strncpy(source, "progs", sizeof(source));
-		
-	if(CheckParm("-vis")) bspflags |= BSP_ONLYVIS;
-	if(CheckParm("-rad")) bspflags |= BSP_ONLYRAD;
-	if(CheckParm("-full")) bspflags |= BSP_FULLCOMPILE;
-	if(CheckParm("-onlyents")) bspflags |= BSP_ONLYENTS;
-
-	if(CheckParm("-progdefs")) qccflags |= QCC_PROGDEFS;
-	if(CheckParm("/O0")) qccflags |= QCC_OPT_LEVEL_0;
-	if(CheckParm("/O1")) qccflags |= QCC_OPT_LEVEL_1;
-	if(CheckParm("/O2")) qccflags |= QCC_OPT_LEVEL_2;
-	if(CheckParm("/O2")) qccflags |= QCC_OPT_LEVEL_3;
-
 	switch(app_name)
 	{
 	case BSPLIB:
+		if(!GetParmFromCmdLine("-game", gamedir ))
+			strncpy(gamedir, "xash", sizeof(gamedir));
+		if(!GetParmFromCmdLine("+map", source ))
+			strncpy(source, "newmap", sizeof(source));
+		if(CheckParm("-vis")) bspflags |= BSP_ONLYVIS;
+		if(CheckParm("-rad")) bspflags |= BSP_ONLYRAD;
+		if(CheckParm("-full")) bspflags |= BSP_FULLCOMPILE;
+		if(CheckParm("-onlyents")) bspflags |= BSP_ONLYENTS;
+
 		pi->Compile.PrepareBSP( gamedir, source, bspflags );
 		break;
 	case QCCLIB:
+		if(!GetParmFromCmdLine("+dat", source ))
+			strncpy(source, "progs", sizeof(source));
+		if(CheckParm("-progdefs")) qccflags |= QCC_PROGDEFS;
+		if(CheckParm("/O0")) qccflags |= QCC_OPT_LEVEL_0;
+		if(CheckParm("/O1")) qccflags |= QCC_OPT_LEVEL_1;
+		if(CheckParm("/O2")) qccflags |= QCC_OPT_LEVEL_2;
+		if(CheckParm("/O2")) qccflags |= QCC_OPT_LEVEL_3;
+
 		pi->Compile.PrepareDAT( gamedir, source, qccflags );	
 		break;
 	case SPRITE:

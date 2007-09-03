@@ -41,6 +41,7 @@ a internal virtual machine like as QuakeC, but it has more extensions
 
 #define MAX_PARMS		8
 
+// 16-bit mode
 #define dstatement_t	dstatement16_t
 #define ddef_t		ddef16_t		//these should be the same except the string type
 
@@ -320,14 +321,14 @@ enum {
 typedef struct statement16_s
 {
 	word		op;
-	word		a,b,c;
+	short		a,b,c;
 
 } dstatement16_t;
 
 typedef struct statement32_s
 {
 	dword		op;
-	dword		a,b,c;
+	long		a,b,c;
 
 } dstatement32_t;
 

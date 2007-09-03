@@ -737,7 +737,7 @@ Called by the system between frames for both key up and key down events
 Should NOT be called during an interrupt!
 ===================
 */
-void Key_Event (int key, bool down, unsigned time)
+void Key_Event (int key, bool down, uint msec)
 {
 	char	*kb;
 	char	cmd[1024];
@@ -835,7 +835,7 @@ void Key_Event (int key, bool down, unsigned time)
 		kb = keybindings[key];
 		if (kb && kb[0] == '+')
 		{
-			sprintf (cmd, "-%s %i %i\n", kb+1, key, time);
+			sprintf (cmd, "-%s %i %i\n", kb+1, key, msec);
 			Cbuf_AddText (cmd);
 		}
 		if (keyshift[key] != key)
@@ -843,7 +843,7 @@ void Key_Event (int key, bool down, unsigned time)
 			kb = keybindings[keyshift[key]];
 			if (kb && kb[0] == '+')
 			{
-				sprintf (cmd, "-%s %i %i\n", kb+1, key, time);
+				sprintf (cmd, "-%s %i %i\n", kb+1, key, msec);
 				Cbuf_AddText (cmd);
 			}
 		}
@@ -859,7 +859,7 @@ void Key_Event (int key, bool down, unsigned time)
 			if (kb[0] == '+')
 			{	
 				// button commands add keynum and time as a parm
-				sprintf (cmd, "%s %i %i\n", kb, key, time);
+				sprintf (cmd, "%s %i %i\n", kb, key, msec);
 				Cbuf_AddText (cmd);
 			}
 			else

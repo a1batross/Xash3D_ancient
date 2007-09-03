@@ -7,6 +7,7 @@
 #include <windows.h>
 #include <dsound.h>
 #include "engine.h"
+#include "progsvm.h"
 
 platform_exp_t    *pi;	//fundamental callbacks
 
@@ -15,6 +16,8 @@ int	ActiveApp;
 bool	Minimized;
 bool	is_dedicated;
 extern	uint sys_msg_time;
+
+dword	host_framecount = 0;
 
 void Key_Init (void);
 void SCR_EndLoadingPlaque (void);
@@ -96,6 +99,8 @@ void Host_Init (char *funcname, int argc, char **argv)
           
 	Key_Init ();
 
+	PRVM_Init();
+
 	// we need to add the early commands twice, because
 	// a basedir or cddir needs to be set before execing
 	// config files, but we want other parms to override
@@ -112,7 +117,6 @@ void Host_Init (char *funcname, int argc, char **argv)
 	Cmd_AddCommand ("error", Com_Error_f);
 
 	host_speeds = Cvar_Get ("host_speeds", "0", 0);
-	log_stats = Cvar_Get ("log_stats", "0", 0);
 	developer = Cvar_Get ("developer", "0", 0);
 	timescale = Cvar_Get ("timescale", "1", 0);
 	fixedtime = Cvar_Get ("fixedtime", "0", 0);
@@ -160,30 +164,6 @@ void Host_Frame (double time)
 
 	if (setjmp (abortframe) ) return; // an ERR_DROP was thrown
 
-	if ( log_stats->modified )
-	{
-		log_stats->modified = false;
-		if ( log_stats->value )
-		{
-			if ( log_stats_file )
-			{
-				FS_Close( log_stats_file );
-				log_stats_file = 0;
-			}
-			log_stats_file = FS_Open( "stats.log", "w" );
-			if ( log_stats_file )
-				FS_Printf( log_stats_file, "entities,dlights,parts,frame time\n" );
-		}
-		else
-		{
-			if ( log_stats_file )
-			{
-				FS_Close( log_stats_file );
-				log_stats_file = 0;
-			}
-		}
-	}
-
 	if (showtrace->value)
 	{
 		extern	int c_traces, c_brush_traces;
@@ -198,10 +178,10 @@ void Host_Frame (double time)
 	do
 	{
 		s = Sys_ConsoleInput ();
-		if (s) Cbuf_AddText (va("%s\n",s));
+		if(s) Cbuf_AddText (va("%s\n",s));
 	} while (s);
 	Cbuf_Execute ();
-
+	
 	if (host_speeds->value) time_before = Sys_DoubleTime();
 
 	SV_Frame (time);
@@ -211,6 +191,7 @@ void Host_Frame (double time)
 	CL_Frame (time);
 
 	if (host_speeds->value) time_after = Sys_DoubleTime();		
+
 	if (host_speeds->value)
 	{
 		double all, sv, gm, cl, rf;
@@ -234,9 +215,9 @@ Host_Main
 void Host_Main( void )
 {
 	MSG	msg;
-	int	time, oldtime, newtime;
+	float	oldtime, newtime;
 
-	oldtime = Sys_Milliseconds ();
+	oldtime = Sys_DoubleTime(); //first call
 
 	// main window message loop
 	while (1)
@@ -244,7 +225,7 @@ void Host_Main( void )
 		// if at a full screen console, don't update unless needed
 		if (Minimized || (dedicated && dedicated->value) )
 		{
-			Sleep (1);
+			Sleep(1);
 		}
 
 		while (PeekMessage (&msg, NULL, 0, 0, PM_NOREMOVE))
@@ -254,15 +235,11 @@ void Host_Main( void )
 			TranslateMessage (&msg);
    			DispatchMessage (&msg);
 		}
-		do
-		{
-			newtime = Sys_Milliseconds ();
-			time = newtime - oldtime;
-		} while (time < 1);
 
-		_controlfp( _PC_24, _MCW_PC );
-		Host_Frame (time);
+		newtime = Sys_DoubleTime();
+		curtime = newtime - oldtime;
 
+		Host_Frame (curtime);
 		oldtime = newtime;
 	}
 }

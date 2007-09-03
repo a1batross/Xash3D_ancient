@@ -109,17 +109,17 @@ S_TransferPaintBuffer
 
 ===================
 */
-void S_TransferPaintBuffer(int endtime)
+void S_TransferPaintBuffer(float endtime)
 {
 	int 	out_idx;
-	int 	count;
+	float 	count;
 	int 	out_mask;
 	int 	*p;
 	int 	step;
-	int		val;
-	unsigned long *pbuf;
+	int	val;
+	dword	*pbuf;
 
-	pbuf = (unsigned long *)dma.buffer;
+	pbuf = (dword*)dma.buffer;
 
 	if (s_testsound->value)
 	{
@@ -129,7 +129,7 @@ void S_TransferPaintBuffer(int endtime)
 		// write a fixed sine wave
 		count = (endtime - paintedtime);
 		for (i=0 ; i<count ; i++)
-			paintbuffer[i].left = paintbuffer[i].right = sin((paintedtime+i)*0.1)*20000*256;
+			paintbuffer[i].left = paintbuffer[i].right = sin((paintedtime+i)*0.1)*20*256;
 	}
 
 
@@ -142,7 +142,7 @@ void S_TransferPaintBuffer(int endtime)
 		p = (int *) paintbuffer;
 		count = (endtime - paintedtime) * dma.channels;
 		out_mask = dma.samples - 1; 
-		out_idx = paintedtime * dma.channels & out_mask;
+		out_idx = (int)(paintedtime * dma.channels) & out_mask;
 		step = 3 - dma.channels;
 
 		if (dma.samplebits == 16)
@@ -190,18 +190,18 @@ CHANNEL MIXING
 void S_PaintChannelFrom8 (channel_t *ch, sfxcache_t *sc, int endtime, int offset);
 void S_PaintChannelFrom16 (channel_t *ch, sfxcache_t *sc, int endtime, int offset);
 
-void S_PaintChannels(int endtime)
+void S_PaintChannels(float endtime)
 {
-	int 	i;
-	int 	end;
-	channel_t *ch;
+	int 		i;
+	float 		end;
+	channel_t		*ch;
 	sfxcache_t	*sc;
-	int		ltime, count;
+	float		ltime, count;
 	playsound_t	*ps;
 
 	snd_vol = s_volume->value*256;
 
-//Msg ("%i to %i\n", paintedtime, endtime);
+	//Msg ("%i to %i\n", paintedtime, endtime);
 	while (paintedtime < endtime)
 	{
 	// if paintbuffer is smaller than DMA buffer
@@ -221,12 +221,11 @@ void S_PaintChannels(int endtime)
 				continue;
 			}
 
-			if (ps->begin < end)
-				end = ps->begin;		// stop here
+			if (ps->begin < end) end = ps->begin;// stop here
 			break;
 		}
 
-	// clear the paint buffer
+		// clear the paint buffer
 		if (s_rawend < paintedtime)
 		{
 //			Msg ("clear\n");
@@ -242,7 +241,7 @@ void S_PaintChannels(int endtime)
 			for (i=paintedtime ; i<stop ; i++)
 			{
 				s = i&(MAX_RAW_SAMPLES-1);
-				paintbuffer[i-paintedtime] = s_rawsamples[s];
+				paintbuffer[(int)(i - paintedtime)] = s_rawsamples[s];
 			}
 //		if (i != end)
 //			Msg ("partial stream\n");
@@ -250,8 +249,8 @@ void S_PaintChannels(int endtime)
 //			Msg ("full stream\n");
 			for ( ; i<end ; i++)
 			{
-				paintbuffer[i-paintedtime].left =
-				paintbuffer[i-paintedtime].right = 0;
+				paintbuffer[(int)(i - paintedtime)].left =
+				paintbuffer[(int)(i - paintedtime)].right = 0;
 			}
 		}
 

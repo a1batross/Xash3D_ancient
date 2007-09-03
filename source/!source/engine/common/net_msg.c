@@ -536,29 +536,37 @@ void MSG_ReadData (sizebuf_t *msg_read, void *data, int len)
 =======================
 */
 
-void SZ_Init (sizebuf_t *buf, byte *data, int length)
+void _SZ_Init (sizebuf_t *buf, byte *data, int length, const char *filename, int fileline)
 {
 	memset (buf, 0, sizeof(*buf));
+
+	if(buf == NULL) Sys_Error("SZ_Clear: sizebuf == NULL (called at %s:%i)\n", filename, fileline );
+	if(data == NULL) Sys_Error("SZ_Init: data == NULL (called at %s:%i)\n", filename, fileline );
+	if(length <= 0) Sys_Error("SZ_Init: length <= 0 (called at %s:%i)\n", filename, fileline );	
+
 	buf->data = data;
 	buf->maxsize = length;
 }
 
-void SZ_Clear (sizebuf_t *buf)
+void _SZ_Clear (sizebuf_t *buf, const char *filename, int fileline)
 {
+	if(buf == NULL) Sys_Error("SZ_Clear: sizebuf == NULL (called at %s:%i)\n", filename, fileline );
+	if(buf->overflowed) MsgWarn("SZ_Clear: clearing buffer was overflowed\n");
+
 	buf->cursize = 0;
 	buf->overflowed = false;
 }
 
-void *SZ_GetSpace (sizebuf_t *buf, int length)
+void *_SZ_GetSpace (sizebuf_t *buf, int length, const char *filename, int fileline)
 {
 	void	*data;
 	
 	if (buf->cursize + length > buf->maxsize)
 	{
 		if (length > buf->maxsize)
-			Com_Error (ERR_DROP, "SZ_GetSpace: %i is > full buffer size", length);
+			Sys_Error("SZ_GetSpace: buf->cursize[%d] + length[%d] > buf->maxsize[%d](called at %s:%i)\n", buf->cursize, length, buf->maxsize, filename, fileline );
 			
-		Msg ("SZ_GetSpace: overflow [cursize %d maxsize %d]\n", buf->cursize + length, buf->maxsize );
+		Msg ("SZ_GetSpace: overflow [cursize %d maxsize %d](called at %s:%i)\n", buf->cursize + length, buf->maxsize, filename, fileline );
 		SZ_Clear (buf); 
 		buf->overflowed = true;
 	}
@@ -568,20 +576,20 @@ void *SZ_GetSpace (sizebuf_t *buf, int length)
 	return data;
 }
 
-void SZ_Write (sizebuf_t *buf, void *data, int length)
+void _SZ_Write (sizebuf_t *buf, void *data, int length, const char *filename, int fileline)
 {
-	Mem_Copy(SZ_GetSpace(buf, length), data, length);		
+	pi->Mem.Copy(_SZ_GetSpace(buf, length, filename, fileline), data, length, filename, fileline);		
 }
 
-void SZ_Print (sizebuf_t *buf, char *data)
+void _SZ_Print (sizebuf_t *buf, char *data, const char *filename, int fileline)
 {
 	int		len;
 	
 	len = strlen(data) + 1;
 	if (buf->cursize)
 	{
-		if (buf->data[buf->cursize - 1]) Mem_Copy ((byte *)SZ_GetSpace(buf, len),data,len); //no trailing 0
-		else Mem_Copy ((byte *)SZ_GetSpace(buf, len-1)-1,data,len); // write over trailing 0
+		if (buf->data[buf->cursize - 1]) pi->Mem.Copy((byte *)_SZ_GetSpace(buf, len, filename, fileline), data, len, filename, fileline); // no trailing 0
+		else pi->Mem.Copy((byte *)_SZ_GetSpace(buf, len - 1, filename, fileline) - 1, data, len, filename, fileline); // write over trailing 0
 	}
-	else Mem_Copy ((byte *)SZ_GetSpace(buf, len),data,len);
+	else pi->Mem.Copy((byte *)_SZ_GetSpace(buf, len, filename, fileline), data, len, filename, fileline);
 }

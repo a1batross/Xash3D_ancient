@@ -286,7 +286,7 @@ typedef struct
 	float		vieworg[3];
 	float		viewangles[3];
 	float		blend[4];		// rgba 0-1 full screen blend
-	float		time;		// time is used to auto animate
+	double		time;		// time is used to auto animate
 	int		rdflags;		// RDF_UNDERWATER, etc
 
 	byte		*areabits;	// if not NULL, only areas with set bits will be drawn
@@ -439,51 +439,6 @@ typedef struct scriptsystem_api_s
 /*
 ==============================================================================
 
-NETWORK MESSAGES INTERFACE
-==============================================================================
-*/
-
-typedef struct message_write_s
-{
-	//interface validator
-	size_t	api_size;				// must matched with sizeof(message_write_t)
-	
-	void (*Begin)( int dest );			// marker of start message
-	void (*WriteChar) (int c);
-	void (*WriteByte) (int c);
-	void (*WriteWord) (int c);
-	void (*WriteShort) (int c);
-	void (*WriteLong) (int c);
-	void (*WriteFloat) (float f);
-	void (*WriteString) (char *s);
-	void (*WriteCoord) (vec3_t pos);		// some fractional bits
-	void (*WriteDir) (vec3_t pos);		// single byte encoded, very coarse
-	void (*WriteAngle) (float f);
-	void (*Send)( msgtype_t type, vec3_t origin, edict_t *ent );// end of message
-} message_write_t;
-
-typedef struct message_read_s
-{
-	//interface validator
-	size_t	api_size;				// must matched with sizeof(message_read_t)
-	
-	void (*Begin)( void );			// begin reading
-	int (*ReadChar) ( void );
-	int (*ReadByte) ( void );
-	int (*ReadLong) ( void );
-	int (*ReadShort) ( void );
-	float *(*ReadDir) ( void );			// return value from anorms.h
-	float (*ReadFloat) ( void );
-	float (*ReadAngle) ( void );
-	void *(*ReadData) (int len );
-	float *(*ReadCoord) ( void );			// x, y, z coords
-	char *(*ReadString) ( bool line );		// get line once only
-	void (*End)( void );			// message received
-} message_read_t;
-
-/*
-==============================================================================
-
 INTERNAL COMPILERS INTERFACE
 ==============================================================================
 */
@@ -623,7 +578,7 @@ typedef struct renderer_exp_s
 	void	(*DrawGetPicSize) (int *w, int *h, char *name);	// will return 0 0 if not found
 	void	(*DrawPic) (int x, int y, char *name);
 	void	(*DrawStretchPic) (int x, int y, int w, int h, char *name);
-	void	(*DrawChar) (int x, int y, int c);
+	void	(*DrawChar) (float x, float y, int c);
 	void	(*DrawString) (int x, int y, char *str);
 	void	(*DrawTileClear) (int x, int y, int w, int h, char *name);
 	void	(*DrawFill) (int x, int y, int w, int h, int c);

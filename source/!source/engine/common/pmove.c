@@ -312,7 +312,7 @@ void PM_Friction (void)
 	{
 		friction = pm_friction;
 		control = speed < pm_stopspeed ? pm_stopspeed : speed;
-		drop += control*friction*pml.frametime;
+		drop += control*friction * pml.frametime;
 	}
 
 	// apply water friction
@@ -1083,7 +1083,7 @@ void PM_ClampAngles (void)
 		else if (pm->viewangles[PITCH] < 271 && pm->viewangles[PITCH] >= 180)
 			pm->viewangles[PITCH] = 271;
 	}
-	AngleVectors (pm->viewangles, pml.forward, pml.right, pml.up);
+	AngleVectorsRight (pm->viewangles, pml.forward, pml.right, pml.up);
 }
 
 /*
@@ -1198,7 +1198,7 @@ void Pmove (pmove_t *pmove)
 				angles[PITCH] = angles[PITCH] - 360;
 			angles[PITCH] /= 3;
 
-			AngleVectors (angles, pml.forward, pml.right, pml.up);
+			AngleVectorsRight (angles, pml.forward, pml.right, pml.up);
 			PM_AirMove ();
 		}
 	}

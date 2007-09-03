@@ -207,14 +207,15 @@ typedef struct def_s
 	type_t		*type;
 	char		*name;
 	struct def_s	*next;
-	struct def_s	*nextlocal;	//provides a chain of local variables
-	gofs_t		ofs;                //for the opt_locals_marshalling optimisation.
+	struct def_s	*nextlocal;	// provides a chain of local variables
+	gofs_t		ofs;                // for the opt_locals_marshalling optimisation.
 	struct def_s	*scope;		// function the var was defined in, or NULL
 	int		initialized;	// 1 when a declaration included "= immediate"
 	int		constant;		// 1 says we can use the value over and over again
+	bool		local;		// 1 indices local variable		
 
 	int		references;
-	int		timescalled;	//part of the opt_stripfunctions optimisation.
+	int		timescalled;	// part of the opt_stripfunctions optimisation.
 
 	int		s_file;
 	int		s_line;
@@ -390,6 +391,7 @@ typedef enum {
 	ERR_INVALIDSTRINGIMMEDIATE,
 	ERR_BADCHARACTURECODE,
 	ERR_BADPARMS,
+	ERR_EXCEEDERRCOUNT,
 
 	WARN_MAX,
 };

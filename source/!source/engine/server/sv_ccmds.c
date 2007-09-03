@@ -195,15 +195,15 @@ void SV_GameMap_f (void)
 			savedInuse = Z_Malloc(maxclients->value * sizeof(bool));
 			for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
 			{
-				savedInuse[i] = cl->edict->inuse;
-				cl->edict->inuse = false;
+				savedInuse[i] = cl->edict->priv.sv->free;
+				cl->edict->priv.sv->free = false;
 			}
 
 			SV_WriteSaveFile( "save0" ); //autosave
 
 			// we must restore these for clients to transfer over correctly
 			for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
-				cl->edict->inuse = savedInuse[i];
+				cl->edict->priv.sv->free = savedInuse[i];
 			Z_Free (savedInuse);
 		}
 	}
@@ -225,23 +225,28 @@ For development work
 */
 void SV_Map_f (void)
 {
-	char	*map;
-	char	expanded[MAX_QPATH];
+	char	level_path[MAX_QPATH];
 
-	// if not a pcx, demo, or cinematic, check to make sure the level exists
-	map = Cmd_Argv(1);
-	if (!strstr (map, "."))
+	sprintf(level_path, "maps/%s", Cmd_Argv(1));
+	FS_DefaultExtension(level_path, ".bsp" ); 
+
+	if (FS_FileExists(level_path))
 	{
-		sprintf (expanded, "maps/%s.bsp", map);
-		if (!FS_LoadFile (expanded, NULL))
-		{
-			Msg ("Can't find %s\n", expanded);
-			return;
-		}
-	}
+		sv.state = ss_dead;	// don't save current level when changing
 
-	sv.state = ss_dead;		// don't save current level when changing
-	SV_GameMap_f ();
+		SV_InitGame ();
+		Cvar_Set ("nextserver", ""); //reset demoloop
+
+		SCR_BeginLoadingPlaque (); // for local system
+		SV_BroadcastCommand ("changing\n");
+		SV_SendClientMessages ();
+		SV_SpawnServer (level_path, NULL, NULL, ss_game, false, false);
+		Cbuf_CopyToDefer ();
+		
+		SV_BroadcastCommand ("reconnect\n");
+		strncpy (svs.mapcmd, Cmd_Argv(1), sizeof(svs.mapcmd) - 1); // archive server state
+	}
+	else Msg ("Can't loading %s\n", level_path);
 }
 
 /*
@@ -309,7 +314,7 @@ void SV_Savegame_f (void)
 		return;
 	}
 
-	if (maxclients->value == 1 && svs.clients[0].edict->client->ps.stats[STAT_HEALTH] <= 0)
+	if (maxclients->value == 1 && svs.clients[0].edict->priv.sv->client->stats[STAT_HEALTH] <= 0)
 	{
 		Msg ("\nCan't savegame while dead!\n");
 		return;
@@ -381,7 +386,7 @@ void SV_Status_f (void)
 	{
 		if (!cl->state) continue;
 		Msg ("%3i ", i);
-		Msg ("%5i ", cl->edict->client->ps.stats[STAT_FRAGS]);
+		Msg ("%5i ", cl->edict->priv.sv->client->stats[STAT_FRAGS]);
 
 		if (cl->state == cs_connected)
 			Msg ("CNCT ");
@@ -617,23 +622,6 @@ void SV_KillServer_f (void)
 	NET_Config ( false ); // close network sockets
 }
 
-/*
-===============
-SV_ServerCommand_f
-
-Let the game dll handle a command
-===============
-*/
-void SV_ServerCommand_f (void)
-{
-	if (!ge)
-	{
-		Msg ("No game loaded.\n");
-		return;
-	}
-	ge->ServerCommand();
-}
-
 //===========================================================
 
 /*
@@ -661,6 +649,5 @@ void SV_InitOperatorCommands (void)
 	Cmd_AddCommand ("save", SV_Savegame_f);
 	Cmd_AddCommand ("load", SV_Loadgame_f);
 	Cmd_AddCommand ("killserver", SV_KillServer_f);
-	Cmd_AddCommand ("sv", SV_ServerCommand_f);
 }
 

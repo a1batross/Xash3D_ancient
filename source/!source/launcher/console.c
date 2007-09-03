@@ -260,7 +260,7 @@ print into cmd32 console
 */
 void Sys_PrintA(const char *pMsg)
 {
-	printf( pMsg );
+	fprintf (stdout, pMsg );
 	fflush (stdout); //refresh message
 }
 
@@ -509,7 +509,7 @@ void Sys_ErrorW(char *error, ...)
 	SetFocus( s_wcd.hWnd );
 
 	// wait for the user to quit
-	while(msg.message != WM_QUIT)
+	while(!hooked_out && msg.message != WM_QUIT)
 	{
 		if(PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
         		{

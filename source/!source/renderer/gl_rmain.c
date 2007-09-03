@@ -499,7 +499,7 @@ void R_SetupFrame (void)
 // build the transformation matrix for the given view angles
 	VectorCopy (r_newrefdef.vieworg, r_origin);
 
-	AngleVectors (r_newrefdef.viewangles, vforward, vright, vup);
+	AngleVectorsRight(r_newrefdef.viewangles, vforward, vright, vup);
 
 // current viewcluster
 	if ( !( r_newrefdef.rdflags & RDF_NOWORLDMODEL ) )
@@ -1511,7 +1511,7 @@ void	R_RenderFrame (refdef_t *fd);
 image_t	*Draw_FindPic (char *name);
 
 void	Draw_Pic (int x, int y, char *name);
-void	Draw_Char (int x, int y, int c);
+void	Draw_Char (float x, float y, int c);
 void	Draw_TileClear (int x, int y, int w, int h, char *name);
 void	Draw_Fill (int x, int y, int w, int h, int c);
 void	Draw_FadeScreen (void);

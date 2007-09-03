@@ -2197,10 +2197,8 @@ void PR_Warning (int type, char *file, int line, char *error, ...)
 	va_end (argptr);
 
 	PR_PrintScope();
-	if (file)
-		Msg ("%s:%i: warning: %s\n", file, line, string);
-	else
-		Msg ("warning: %s\n", string);
+	if (file) Msg ("%s(%i) : warning C%i: %s\n", file, line, type, string);
+	else Msg ("warning C%i: %s\n", type, string);
 	pr_warning_count++;
 }
 

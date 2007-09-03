@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /Ob0 /I "./" /I "prvm" /I "common" /I "server" /I "client" /I "../public" /I "../platform/formats" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /Ob0 /I "./" /I "prvm" /I "common" /I "server" /I "client" /I "../public" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -80,7 +80,7 @@ SOURCE="$(InputPath)"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /c
-# ADD CPP /nologo /MTd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "prvm" /I "common" /I "server" /I "client" /I "../public" /I "../platform/formats" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /c
+# ADD CPP /nologo /MTd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "prvm" /I "common" /I "server" /I "client" /I "../public" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -91,7 +91,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386
-# ADD LINK32 winmm.lib wsock32.lib kernel32.lib user32.lib gdi32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /pdbtype:sept
+# ADD LINK32 gdi32.lib winmm.lib kernel32.lib user32.lib wsock32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /pdbtype:sept
 # SUBTRACT LINK32 /incremental:no /map /nodefaultlib
 # Begin Custom Build
 TargetDir=\XASH3D\src_main\!source\temp\engine\!debug
@@ -266,6 +266,10 @@ SOURCE=.\server\sv_main.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\server\sv_phys.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\server\sv_save.c
 # End Source File
 # Begin Source File
@@ -295,6 +299,18 @@ SOURCE=.\vid_dll.c
 # Begin Source File
 
 SOURCE=.\vid_menu.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\prvm\vm_cmds.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\prvm\vm_edict.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\prvm\vm_exec.c
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -334,6 +350,10 @@ SOURCE=.\common\cvar.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\prvm\edict.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\engine.h
 # End Source File
 # Begin Source File
@@ -347,6 +367,14 @@ SOURCE=.\common\keys.h
 # Begin Source File
 
 SOURCE=..\public\platform.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\prvm\progdefs.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\prvm\progsvm.h
 # End Source File
 # Begin Source File
 
@@ -375,6 +403,14 @@ SOURCE=.\sound.h
 # Begin Source File
 
 SOURCE=.\common\vid.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\prvm\vm_cmds.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\prvm\vm_exec.h
 # End Source File
 # End Group
 # End Target

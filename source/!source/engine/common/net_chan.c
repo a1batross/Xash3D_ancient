@@ -93,7 +93,7 @@ void Netchan_Init (void)
 	int		port;
 
 	// pick a port value that should be nice and random
-	port = Sys_Milliseconds() & 0xffff;
+	port = RANDOM_LONG(1, 65535);
 
 	Msg("netchan port %d\n", port );
 

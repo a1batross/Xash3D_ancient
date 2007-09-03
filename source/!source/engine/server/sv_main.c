@@ -41,9 +41,18 @@ cvar_t *allow_download_models;
 cvar_t *allow_download_sounds;
 cvar_t *allow_download_maps;
 
-cvar_t *sv_airaccelerate;
+cvar_t	*sv_airaccelerate;
+cvar_t	*sv_wateraccelerate;
+cvar_t	*sv_accelerate;
+cvar_t	*sv_maxvelocity;
+cvar_t	*sv_maxspeed;
+cvar_t	*sv_friction;
+cvar_t	*sv_gravity;
+cvar_t	*sv_rollangle;
+cvar_t	*sv_rollspeed;
 
 cvar_t	*sv_noreload;			// don't reload level state when reentering
+
 
 cvar_t	*maxclients;			// FIXME: rename sv_maxclients
 cvar_t	*sv_showclamp;
@@ -77,7 +86,7 @@ void SV_DropClient (client_t *drop)
 	{
 		// call the prog function for removing a client
 		// this will remove the body, among other things
-		ge->ClientDisconnect (drop->edict);
+//ge->ClientDisconnect (drop->edict);
 	}
 
 	if (drop->download)
@@ -124,7 +133,7 @@ char	*SV_StatusString (void)
 		cl = &svs.clients[i];
 		if (cl->state == cs_connected || cl->state == cs_spawned )
 		{
-			sprintf (player, "%i %i \"%s\"\n", cl->edict->client->ps.stats[STAT_FRAGS], cl->ping, cl->name);
+			sprintf (player, "%i %i \"%s\"\n", cl->edict->priv.sv->client->stats[STAT_FRAGS], cl->ping, cl->name);
 			playerLength = strlen(player);
 			if (statusLength + playerLength >= sizeof(status) )
 				break;		// can't hold any more
@@ -265,7 +274,7 @@ void SVC_DirectConnect (void)
 	int			i;
 	client_t	*cl, *newcl;
 	client_t	temp;
-	edict_t		*ent;
+	prvm_edict_t		*ent;
 	int			edictnum;
 	int			version;
 	int			qport;
@@ -335,7 +344,7 @@ void SVC_DirectConnect (void)
 			&& ( cl->netchan.qport == qport 
 			|| adr.port == cl->netchan.remote_address.port ) )
 		{
-			if (!NET_IsLocalAddress (adr) && (svs.realtime - cl->lastconnect) < ((int)sv_reconnect_limit->value * 1000))
+			if (!NET_IsLocalAddress (adr) && (svs.realtime - cl->lastconnect) < ((int)sv_reconnect_limit->value))
 			{
 				MsgWarn("SVC_DirectConnect: %s:reconnect rejected : too soon\n", NET_AdrToString (adr));
 				return;
@@ -371,19 +380,23 @@ gotnewcl:
 	sv_client = newcl;
 	edictnum = (newcl - svs.clients) + 1;
 
-	ent = EDICT_NUM(edictnum);
+	ent = PRVM_EDICT_NUM(edictnum);
 	newcl->edict = ent;
 	newcl->challenge = challenge; // save challenge for checksumming
 
-	// get the game a chance to reject this connection or modify the userinfo
-	if (!(ge->ClientConnect (ent, userinfo)))
-	{
+	prog->globals.server->time = sv.time;
+	prog->globals.server->self = PRVM_EDICT_TO_PROG(sv_client->edict);
+	PRVM_ExecuteProgram (prog->globals.server->ClientConnect, "QC function ClientConnect is missing");
+	PRVM_ExecuteProgram (prog->globals.server->PutClientInServer, "QC function PutClientInServer is missing");
+
+	//if (!(ge->ClientConnect (ent, userinfo)))
+	/*{
 		if (*Info_ValueForKey (userinfo, "rejmsg")) 
 			Netchan_OutOfBandPrint (NS_SERVER, adr, "print\n%s\nConnection refused.\n", Info_ValueForKey (userinfo, "rejmsg"));
 		else Netchan_OutOfBandPrint (NS_SERVER, adr, "print\nConnection refused.\n" );
 		MsgWarn("SVC_DirectConnect: Game rejected a connection.\n");
 		return;
-	}
+	}*/
 
 	// parse some info from the info strings
 	strncpy (newcl->userinfo, userinfo, sizeof(newcl->userinfo)-1);
@@ -535,7 +548,7 @@ void SV_CalcPings (void)
 #endif
 
 		// let the game dll know about the ping
-		cl->edict->client->ping = cl->ping;
+//cl->edict->client->ping = cl->ping;
 	}
 }
 
@@ -595,7 +608,7 @@ void SV_ReadPackets (void)
 		qport = MSG_ReadShort (&net_message) & 0xffff;
 
 		// check for packets from connected clients
-		for (i=0, cl=svs.clients ; i<maxclients->value ; i++,cl++)
+		for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
 		{
 			if (cl->state == cs_free)
 				continue;
@@ -610,7 +623,8 @@ void SV_ReadPackets (void)
 			}
 
 			if (Netchan_Process(&cl->netchan, &net_message))
-			{	// this is a valid, sequenced packet, so process it
+			{	
+				// this is a valid, sequenced packet, so process it
 				if (cl->state != cs_zombie)
 				{
 					cl->lastmessage = svs.realtime;	// don't timeout
@@ -645,17 +659,15 @@ void SV_CheckTimeouts (void)
 	int			droppoint;
 	int			zombiepoint;
 
-	droppoint = svs.realtime - 1000*timeout->value;
-	zombiepoint = svs.realtime - 1000*zombietime->value;
+	droppoint = svs.realtime - timeout->value;
+	zombiepoint = svs.realtime - zombietime->value;
 
 	for (i=0,cl=svs.clients ; i<maxclients->value ; i++,cl++)
 	{
 		// message times may be wrong across a changelevel
-		if (cl->lastmessage > svs.realtime)
-			cl->lastmessage = svs.realtime;
+		if (cl->lastmessage > svs.realtime) cl->lastmessage = svs.realtime;
 
-		if (cl->state == cs_zombie
-		&& cl->lastmessage < zombiepoint)
+		if (cl->state == cs_zombie && cl->lastmessage < zombiepoint)
 		{
 			cl->state = cs_free;	// can now be reused
 			continue;
@@ -680,16 +692,15 @@ player processing happens outside RunWorldFrame
 */
 void SV_PrepWorldFrame (void)
 {
-	edict_t	*ent;
+	prvm_edict_t	*ent;
 	int		i;
 
-	for (i=0 ; i<ge->num_edicts ; i++, ent++)
+	for (i = 0; i < prog->num_edicts ; i++, ent++)
 	{
-		ent = EDICT_NUM(i);
+		ent = PRVM_EDICT_NUM(i);
 		// events only last for a single message
-		ent->s.event = 0;
+		ent->priv.sv->state.event = 0;
 	}
-
 }
 
 
@@ -700,20 +711,20 @@ SV_RunGameFrame
 */
 void SV_RunGameFrame (void)
 {
-	if (host_speeds->value)
-		time_before_game = Sys_Milliseconds ();
+	if (host_speeds->value) time_before_game = Sys_DoubleTime();
 
 	// we always need to bump framenum, even if we
 	// don't run the world, otherwise the delta
 	// compression can get confused when a client
 	// has the "current" frame
+
 	sv.framenum++;
-	sv.time = sv.framenum*100;
+	sv.time = sv.framenum * 0.1;
 
 	// don't run if paused
 	if (!sv_paused->value || maxclients->value > 1)
 	{
-		ge->RunFrame ();
+		SV_Physics();
 
 		// never get more than one tic behind
 		if (sv.time < svs.realtime)
@@ -724,9 +735,7 @@ void SV_RunGameFrame (void)
 		}
 	}
 
-	if (host_speeds->value)
-		time_after_game = Sys_Milliseconds ();
-
+	if (host_speeds->value) time_after_game = Sys_DoubleTime();
 }
 
 /*
@@ -735,22 +744,24 @@ SV_Frame
 
 ==================
 */
-void SV_Frame (int msec)
+void SV_Frame (float time)
 {
 	time_before_game = time_after_game = 0;
 
 	// if server is not active, do nothing
-	if (!svs.initialized)
-		return;
+	if (!svs.initialized) return;
 
-    svs.realtime += msec;
+    	svs.realtime += time;
 
 	// keep the random time dependent
 	rand ();
 
+	// setup the VM frame
+	SV_VM_Begin();
+
 	// check timeouts
 	SV_CheckTimeouts ();
-
+	
 	// get packets from clients
 	SV_ReadPackets ();
 
@@ -758,11 +769,10 @@ void SV_Frame (int msec)
 	if (!sv_timedemo->value && svs.realtime < sv.time)
 	{
 		// never let the time get too far off
-		if (sv.time - svs.realtime > 100)
+		if (sv.time - svs.realtime > 0.1)
 		{
-			if (sv_showclamp->value)
-				Msg ("sv lowclamp\n");
-			svs.realtime = sv.time - 100;
+			if (sv_showclamp->value) Msg ("sv lowclamp\n");
+			svs.realtime = sv.time - 0.1;
 		}
 		NET_Sleep(sv.time - svs.realtime);
 		return;
@@ -789,6 +799,8 @@ void SV_Frame (int msec)
 	// clear teleport flags, etc for next frame
 	SV_PrepWorldFrame ();
 
+	// end the server VM frame
+	SV_VM_End();
 }
 
 //============================================================================
@@ -819,7 +831,7 @@ void Master_Heartbeat (void)
 	if (svs.last_heartbeat > svs.realtime)
 		svs.last_heartbeat = svs.realtime;
 
-	if (svs.realtime - svs.last_heartbeat < HEARTBEAT_SECONDS*1000)
+	if (svs.realtime - svs.last_heartbeat < HEARTBEAT_SECONDS)
 		return;		// not time to send yet
 
 	svs.last_heartbeat = svs.realtime;
@@ -828,12 +840,14 @@ void Master_Heartbeat (void)
 	string = SV_StatusString();
 
 	// send to group master
-	for (i=0 ; i<MAX_MASTERS ; i++)
+	for (i = 0; i < MAX_MASTERS; i++)
+	{
 		if (master_adr[i].port)
 		{
 			Msg ("Sending heartbeat to %s\n", NET_AdrToString (master_adr[i]));
 			Netchan_OutOfBandPrint (NS_SERVER, master_adr[i], "heartbeat\n%s", string);
 		}
+	}
 }
 
 /*
@@ -848,7 +862,7 @@ void Master_Shutdown (void)
 	int			i;
 
 	// pgm post3.19 change, cvar pointer not validated before dereferencing
-	if (!dedicated || !dedicated->value)
+	if (!dedicated && !dedicated->value)
 		return;		// only dedicated servers send heartbeats
 
 	// pgm post3.19 change, cvar pointer not validated before dereferencing
@@ -882,7 +896,7 @@ void SV_UserinfoChanged (client_t *cl)
 	int		i;
 
 	// call prog code to allow overrides
-	ge->ClientUserinfoChanged (cl->edict, cl->userinfo);
+//ge->ClientUserinfoChanged (cl->edict, cl->userinfo);
 	
 	// name for C code
 	strncpy (cl->name, Info_ValueForKey (cl->userinfo, "name"), sizeof(cl->name)-1);
@@ -952,7 +966,16 @@ void SV_Init (void)
 
 	sv_noreload = Cvar_Get ("sv_noreload", "0", 0);
 
-	sv_airaccelerate = Cvar_Get("sv_airaccelerate", "0", CVAR_LATCH);
+	sv_wateraccelerate = Cvar_Get("sv_wateraccelerate", "-1", CVAR_ARCHIVE);
+	sv_airaccelerate = Cvar_Get("sv_airaccelerate", "-1", CVAR_ARCHIVE);
+	sv_accelerate = Cvar_Get("sv_accelerate", "10", CVAR_ARCHIVE);
+	sv_maxvelocity = Cvar_Get("sv_maxvelocity", "2000", CVAR_ARCHIVE );
+	sv_maxspeed = Cvar_Get("sv_maxspeed", "320", CVAR_ARCHIVE);
+	sv_friction = Cvar_Get("sv_friction", "4", CVAR_ARCHIVE);
+	sv_gravity = Cvar_Get("sv_gravity", "800", CVAR_ARCHIVE);
+
+	sv_rollangle = Cvar_Get("sv_rollangle", "2", CVAR_ARCHIVE);
+	sv_rollspeed = Cvar_Get("sv_rollspeed", "200", CVAR_ARCHIVE);
 
 	public_server = Cvar_Get ("public", "0", 0);
 
@@ -1018,7 +1041,7 @@ void SV_Shutdown (char *finalmsg, bool reconnect)
 	if (svs.clients) SV_FinalMessage (finalmsg, reconnect);
 
 	Master_Shutdown ();
-	SV_ShutdownGameProgs ();
+//SV_ShutdownGameProgs ();
 
 	// free current level
 	if (sv.demofile) FS_Close (sv.demofile);

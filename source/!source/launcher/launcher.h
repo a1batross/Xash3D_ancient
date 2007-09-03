@@ -36,6 +36,7 @@ extern HINSTANCE base_hInstance;
 extern HINSTANCE linked_dll;
 extern bool debug_mode;
 extern bool log_active;
+extern bool hooked_out;
 extern int com_argc;
 extern char *com_argv[MAX_NUM_ARGVS];
 extern char sys_rootdir[ MAX_SYSPATH ];
@@ -43,8 +44,8 @@ extern char log_path[256];
 extern bool console_read_only;
 extern bool show_always;
 extern bool about_mode;
+extern bool sys_error;
 char *va(const char *format, ...);
-static int sys_error = false;
 
 const char* Log_Timestamp( void );
 int CheckParm (const char *parm);

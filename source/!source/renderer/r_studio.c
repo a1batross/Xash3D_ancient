@@ -1012,7 +1012,7 @@ static bool R_StudioComputeBBox( vec3_t *bbox )
 	//rotate the bounding box
 	VectorCopy( e->angles, angles );
 	angles[PITCH] = -angles[PITCH];
-	AngleVectors( angles, vectors[0], vectors[1], vectors[2] );
+	AngleVectorsRight( angles, vectors[0], vectors[1], vectors[2] );
 
 	for ( i = 0; i < 8; i++ )
 	{

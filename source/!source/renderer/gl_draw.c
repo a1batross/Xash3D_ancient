@@ -60,18 +60,16 @@ void Draw_String (int x, int y, char *str)
 	}
 }
 
-void Draw_Char (int x, int y, int num)
+void Draw_Char (float x, float y, int num)
 {
-	int				row, col;
-	float			frow, fcol, size;
+	int		row, col;
+	float		frow, fcol, size;
 
 	num &= 255;
 	
-	if ( (num&127) == 32 )
-		return;		// space
+	if ( (num & 127) == 32 ) return;// space
 
-	if (y <= -8)
-		return;			// totally off screen
+	if (y <= -8) return; // totally off screen
 
 	row = num>>4;
 	col = num&15;

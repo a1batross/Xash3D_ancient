@@ -207,6 +207,15 @@ typedef struct cmodel_s
 	vec3_t	mins, maxs;	// boundbox
 	vec3_t	origin;		// for sounds or lights
 	int	headnode;		// bsp info
+	
+	vec3_t	normalmins;	// bounding box at angles '0 0 0'
+	vec3_t	normalmaxs;
+	
+	vec3_t	yawmins;		// bounding box if yaw angle is not 0, but pitch and roll are used
+	vec3_t	yawmaxs;
+	
+	vec3_t	rotatedmins;	// bounding box if pitch or roll are used
+	vec3_t	rotatedmaxs;
 
 	int	numframes;	//sprite framecount
 	void	*extradata;	//for studio models

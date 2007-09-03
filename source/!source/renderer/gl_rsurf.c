@@ -117,10 +117,10 @@ glpoly_t *WaterWarpPolyVerts (glpoly_t *p)
 	out->numverts = p->numverts;
 	v = p->verts[0];
 	nv = out->verts[0];
-	for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE, nv+=VERTEXSIZE)
+	for (i = 0; i < p->numverts; i++, v+= VERTEXSIZE, nv+=VERTEXSIZE)
 	{
-		nv[0] = v[0] + 4*sin(v[1]*0.05+r_newrefdef.time)*sin(v[2]*0.05+r_newrefdef.time);
-		nv[1] = v[1] + 4*sin(v[0]*0.05+r_newrefdef.time)*sin(v[2]*0.05+r_newrefdef.time);
+		nv[0] = v[0] + 4*sin(v[1] * 0.05 + r_newrefdef.time) * sin(v[2] * 0.05 + r_newrefdef.time);
+		nv[1] = v[1] + 4*sin(v[0] * 0.05 + r_newrefdef.time) * sin(v[2] * 0.05 + r_newrefdef.time);
 
 		nv[2] = v[2];
 		nv[3] = v[3];
@@ -207,13 +207,12 @@ void DrawGLFlowingPoly (msurface_t *fa)
 
 	p = fa->polys;
 
-	scroll = -64 * ( (r_newrefdef.time / 40.0) - (int)(r_newrefdef.time / 40.0) );
-	if(scroll == 0.0)
-		scroll = -64.0;
+	scroll = -64 * ((r_newrefdef.time * 0.4) - (int)(r_newrefdef.time * 0.4) );
+	if(scroll == 0.0) scroll = -64.0;
 
 	qglBegin (GL_POLYGON);
 	v = p->verts[0];
-	for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
+	for (i = 0; i < p->numverts; i++, v+= VERTEXSIZE)
 	{
 		qglTexCoord2f ((v[3] + scroll), v[4]);
 		qglVertex3fv (v);
@@ -762,9 +761,8 @@ dynamic:
 		{
 			float scroll;
 		
-			scroll = -64 * ( (r_newrefdef.time / 40.0) - (int)(r_newrefdef.time / 40.0) );
-			if(scroll == 0.0)
-				scroll = -64.0;
+			scroll = -64 * ( (r_newrefdef.time * 0.4) - (int)(r_newrefdef.time * 0.4) );
+			if(scroll == 0.0) scroll = -64.0;
 
 			for ( p = surf->polys; p; p = p->chain )
 			{
@@ -810,7 +808,7 @@ dynamic:
 		{
 			float scroll;
 		
-			scroll = -64 * ( (r_newrefdef.time / 40.0) - (int)(r_newrefdef.time / 40.0) );
+			scroll = -64 * ((r_newrefdef.time * 0.4) - (int)(r_newrefdef.time * 0.4));
 			if(scroll == 0.0)
 				scroll = -64.0;
 
@@ -978,7 +976,7 @@ void R_DrawBrushModel ( int passnum )
 		vec3_t	forward, right, up;
 
 		VectorCopy (modelorg, temp);
-		AngleVectors (e->angles, forward, right, up);
+		AngleVectorsRight(e->angles, forward, right, up);
 		modelorg[0] = DotProduct (temp, forward);
 		modelorg[1] = -DotProduct (temp, right);
 		modelorg[2] = DotProduct (temp, up);
@@ -1193,7 +1191,7 @@ void R_DrawWorld (void)
 
 	// auto cycle the world frame for texture animation
 	memset (&ent, 0, sizeof(ent));
-	ent.frame = (int)(r_newrefdef.time*2);
+	ent.frame = (int)(r_newrefdef.time * 0.5);
 	currententity = &ent;
 
 	gl_state.currenttextures[0] = gl_state.currenttextures[1] = -1;
