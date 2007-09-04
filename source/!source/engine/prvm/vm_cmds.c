@@ -537,7 +537,7 @@ dprint(...[string])
 void VM_dprint (void)
 {
 	char string[VM_STRINGTEMP_LENGTH];
-	if (developer->value)
+	if (host.debug)
 	{
 		VM_VarString(0, string, sizeof(string));
 		Msg("%s", string);
@@ -705,12 +705,12 @@ void VM_remove (void)
 	ed = PRVM_G_EDICT(OFS_PARM0);
 	if( PRVM_NUM_FOR_EDICT(ed) <= prog->reserved_edicts )
 	{
-		if (developer->value >= 1)
+		if (host.developer >= D_INFO)
 			VM_Warning( "VM_remove: tried to remove the null entity or a reserved entity!\n" );
 	}
 	else if( ed->priv.ed->free )
 	{
-		if (developer->value >= 1)
+		if (host.developer >= D_INFO)
 			VM_Warning( "VM_remove: tried to remove an already freed entity!\n" );
 	}
 	else
@@ -1486,13 +1486,13 @@ void VM_fopen(void)
 	if (prog->openfiles[filenum] == NULL)
 	{
 		PRVM_G_FLOAT(OFS_RETURN) = -1;
-		if (developer->value >= 100)
+		if (host.developer >= D_WARN)
 			VM_Warning("VM_fopen: %s: %s mode %s failed\n", PRVM_NAME, filename, modestring);
 	}
 	else
 	{
 		PRVM_G_FLOAT(OFS_RETURN) = filenum;
-		if (developer->value >= 100)
+		if (host.developer >= D_WARN)
 			Msg("VM_fopen: %s: %s mode %s opened as #%i\n", PRVM_NAME, filename, modestring, filenum);
 	}
 }
@@ -1524,7 +1524,7 @@ void VM_fclose(void)
 	}
 	FS_Close(prog->openfiles[filenum]);
 	prog->openfiles[filenum] = NULL;
-	if (developer->value >= 100)
+	if (host.developer >= D_WARN)
 		Msg("VM_fclose: %s: #%i closed\n", PRVM_NAME, filenum);
 }
 
@@ -1558,7 +1558,7 @@ void VM_fgets(void)
 
 	c = FS_Gets (prog->openfiles[filenum], string, VM_STRINGTEMP_LENGTH );
 
-	if (developer->value >= 100) Msg("fgets: %s: %s\n", PRVM_NAME, string);
+	if (host.developer >= D_WARN) Msg("fgets: %s: %s\n", PRVM_NAME, string);
 
 	if (c >= 0) PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString(string);
 	else PRVM_G_INT(OFS_RETURN) = 0;
@@ -1594,7 +1594,7 @@ void VM_fputs(void)
 	VM_VarString(1, string, sizeof(string));
 	if ((stringlength = (int)strlen(string)))
 		FS_Write(prog->openfiles[filenum], string, stringlength);
-	if (developer->value >= 100)
+	if (host.developer >= D_WARN)
 		Msg("fputs: %s: %s\n", PRVM_NAME, string);
 }
 

@@ -43,7 +43,7 @@ void SV_SetMaster_f (void)
 	int		i, slot;
 
 	// only dedicated servers send heartbeats
-	if (!dedicated->value)
+	if (host.type == HOST_NORMAL)
 	{
 		Msg ("Only dedicated servers use masters.\n");
 		return;
@@ -52,11 +52,11 @@ void SV_SetMaster_f (void)
 	// make sure the server is listed public
 	Cvar_Set ("public", "1");
 
-	for (i=1 ; i<MAX_MASTERS ; i++)
-		memset (&master_adr[i], 0, sizeof(master_adr[i]));
+	for (i = 1; i < MAX_MASTERS; i++) memset (&master_adr[i], 0, sizeof(master_adr[i]));
 
-	slot = 1;		// slot 0 will always contain the id master
-	for (i=1 ; i<Cmd_Argc() ; i++)
+	slot = 1;	// slot 0 will always contain the id master
+
+	for (i = 1; i < Cmd_Argc(); i++)
 	{
 		if (slot == MAX_MASTERS)
 			break;
@@ -642,7 +642,10 @@ void SV_InitOperatorCommands (void)
 	Cmd_AddCommand ("gamemap", SV_GameMap_f);
 	Cmd_AddCommand ("setmaster", SV_SetMaster_f);
 
-	if ( dedicated->value ) Cmd_AddCommand ("say", SV_ConSay_f);
+	if (host.type == HOST_DEDICATED) 
+	{
+		Cmd_AddCommand ("say", SV_ConSay_f);
+	}
 
 	Cmd_AddCommand ("serverrecord", SV_ServerRecord_f);
 	Cmd_AddCommand ("serverstop", SV_ServerStop_f);

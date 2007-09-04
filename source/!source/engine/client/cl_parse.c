@@ -296,14 +296,13 @@ void CL_ParseServerData (void)
 	char	*str;
 	int		i;
 	
-	MsgDev ("Serverdata packet received.\n");
-//
-// wipe the client_state_t struct
-//
+	MsgDev (D_INFO, "Serverdata packet received.\n");
+
+	// wipe the client_state_t struct
 	CL_ClearState ();
 	cls.state = ca_connected;
 
-// parse protocol version number
+	// parse protocol version number
 	i = MSG_ReadLong (&net_message);
 	cls.serverProtocol = i;
 

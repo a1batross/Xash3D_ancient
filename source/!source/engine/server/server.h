@@ -362,7 +362,7 @@ int SV_PointContents (vec3_t p);
 
 trace_t SV_Trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, prvm_edict_t *passedict, int contentmask);
 trace_t SV_TraceToss (prvm_edict_t *tossent, prvm_edict_t *ignore);
-trace_t SV_ClipMoveToEntity(prvm_edict_t *ent, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int contentsmask);
+trace_t SV_ClipMoveToEntity(prvm_edict_t *ent, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int contentsmask);
 
 // mins and maxs are relative
 

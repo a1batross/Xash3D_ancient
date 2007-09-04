@@ -31,17 +31,7 @@ char	*com_argv[MAX_NUM_ARGVS+1];
 double	realtime;
 
 cvar_t	*host_speeds;
-cvar_t	*developer;
-cvar_t	*dedicated;
-
 int	server_state;
-
-// host_speeds times
-float	time_before_game;
-float	time_after_game;
-float	time_before_ref;
-float	time_after_ref;
-
 
 /*
 ============================================================================
@@ -111,7 +101,9 @@ void Com_Error (int code, char *fmt, ...)
 	va_start (argptr,fmt);
 	vsprintf (msg,fmt,argptr);
 	va_end (argptr);
-	
+
+	host.state = HOST_ERROR;	
+
 	if (code == ERR_DISCONNECT)
 	{
 		CL_Drop ();
@@ -171,21 +163,23 @@ void Com_Printf (char *fmt, ...)
 ================
 Com_DPrintf
 
-A Msg that only shows up in debug mode
+A Msg that only shows up in developer mode > 0
 ================
 */
-void Com_DPrintf (char *fmt, ...)
+void Com_DPrintf (int level, char *fmt, ...)
 {
 	va_list		argptr;
 	char		msg[MAXPRINTMSG];
 		
-	if (!host_debug) return; // don't confuse non-developers with techie stuff...
-
-	va_start (argptr,fmt);
-	vsprintf (msg,fmt,argptr);
-	va_end (argptr);
+	// don't confuse non-developers with techie stuff...	
+	if(host.developer >= level)
+	{
+		va_start (argptr,fmt);
+		vsprintf (msg,fmt,argptr);
+		va_end (argptr);
 	
-	Msg ("%s", msg);
+		Msg ("%s", msg);
+	}
 }
 
 /*
@@ -200,7 +194,8 @@ void Com_DWarnf (char *fmt, ...)
 	va_list		argptr;
 	char		msg[MAXPRINTMSG];
 		
-	if (!host_debug) return; // don't confuse non-developers with techie stuff...
+	// don't confuse non-developers with techie stuff...
+	if (!host.debug) return;
 
 	va_start (argptr,fmt);
 	vsprintf (msg,fmt,argptr);
@@ -249,25 +244,34 @@ void Com_SetServerState (int state)
 
 /*
 ================
-COM_CheckParm
+CheckParm
 
 Returns the position (1 to argc-1) in the program's argument list
 where the given parameter apears, or 0 if not present
 ================
 */
-int COM_CheckParm (char *parm)
+int CheckParm (const char *parm)
 {
-	int		i;
-	
-	for (i=1 ; i<com_argc ; i++)
+	int i;
+
+	for (i = 1; i < com_argc; i++ )
 	{
-		if (!com_argv[i])
-			continue;               // NEXTSTEP sometimes clears appkit vars.
-		if (!strcmp (parm,com_argv[i]))
-			return i;
+		// NEXTSTEP sometimes clears appkit vars.
+		if (!com_argv[i]) continue;
+		if (!strcmp (parm, com_argv[i])) return i;
 	}
-		
 	return 0;
+}
+
+bool _GetParmFromCmdLine( char *parm, char *out, size_t size )
+{
+	int argc = CheckParm( parm );
+
+	if(!argc) return false;
+	if(!out) return false;	
+
+	strncpy( out, com_argv[argc+1], size );
+	return true;
 }
 
 int COM_Argc (void)
@@ -297,7 +301,8 @@ COM_InitArgv
 */
 void COM_InitArgv (int argc, char **argv)
 {
-	int		i;
+	int	i;
+	char	dev_level[4];
 
 	if (argc > MAX_NUM_ARGVS)
 	{
@@ -312,6 +317,12 @@ void COM_InitArgv (int argc, char **argv)
 			com_argv[i] = "";
 		else com_argv[i] = argv[i];
 	}
+
+	// determine debug and developer mode
+	if (CheckParm ("-debug")) host.debug = true;
+
+	if(GetParmFromCmdLine("-dev", dev_level ))
+		host.developer = atoi(dev_level);
 }
 
 char *CopyString (const char *in)

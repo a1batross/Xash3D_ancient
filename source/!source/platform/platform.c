@@ -18,7 +18,7 @@ gameinfo_t Plat_GameInfo( void )
 
 bool InitPlatform ( int argc, char **argv )
 {
-	Msg("------- Loading bin/platform.dll [%g] -------\n", PLATFORM_VERSION );
+	MsgDev(D_INFO, "------- Loading bin/platform.dll [%g] -------\n", PLATFORM_VERSION );
 
 	InitMemory();
 	Plat_InitCPU();

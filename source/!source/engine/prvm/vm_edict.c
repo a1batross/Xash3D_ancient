@@ -759,7 +759,7 @@ For debugging
 =============
 */
 // 2 possibilities : 1. just displaying the active edict count
-//					 2. making a function pointer [x]
+//		 2. making a function pointer [x]
 void PRVM_ED_Count_f (void)
 {
 	int		i;
@@ -866,7 +866,7 @@ void PRVM_ED_ParseGlobals (const char *data)
 		key = PRVM_ED_FindGlobal (keyname);
 		if (!key)
 		{
-			MsgDev("'%s' is not a global on %s\n", keyname, PRVM_NAME);
+			MsgDev(D_INFO, "'%s' is not a global on %s\n", keyname, PRVM_NAME);
 			continue;
 		}
 
@@ -946,7 +946,7 @@ bool PRVM_ED_ParseEpair(prvm_edict_t *ent, ddef_t *key, const char *s)
 			s++;
 		i = atoi(s);
 		if (i >= prog->limit_edicts)
-			Msg("PRVM_ED_ParseEpair: ev_entity reference too large (edict %u >= MAX_EDICTS %u) on %s\n", (unsigned int)i, (unsigned int)MAX_EDICTS, PRVM_NAME);
+			MsgDev(D_WARN, "PRVM_ED_ParseEpair: ev_entity reference too large (edict %u >= MAX_EDICTS %u) on %s\n", (uint)i, (uint)MAX_EDICTS, PRVM_NAME);
 		while (i >= prog->max_edicts)
 			PRVM_MEM_IncreaseEdicts();
 			//SV_IncreaseEdicts();
@@ -960,7 +960,7 @@ bool PRVM_ED_ParseEpair(prvm_edict_t *ent, ddef_t *key, const char *s)
 		def = PRVM_ED_FindField(s);
 		if (!def)
 		{
-			MsgDev("PRVM_ED_ParseEpair: Can't find field %s in %s\n", s, PRVM_NAME);
+			MsgDev(D_WARN, "PRVM_ED_ParseEpair: Can't find field %s in %s\n", s, PRVM_NAME);
 			return false;
 		}
 		val->_int = def->ofs;
@@ -970,14 +970,14 @@ bool PRVM_ED_ParseEpair(prvm_edict_t *ent, ddef_t *key, const char *s)
 		func = PRVM_ED_FindFunction(s);
 		if (!func)
 		{
-			Msg("PRVM_ED_ParseEpair: Can't find function %s in %s\n", s, PRVM_NAME);
+			MsgDev(D_WARN, "PRVM_ED_ParseEpair: Can't find function %s in %s\n", s, PRVM_NAME);
 			return false;
 		}
 		val->function = func - prog->functions;
 		break;
 
 	default:
-		Msg("PRVM_ED_ParseEpair: Unknown key->type %i for key \"%s\" on %s\n", key->type, PRVM_GetString(key->s_name), PRVM_NAME);
+		MsgDev(D_WARN, "PRVM_ED_ParseEpair: Unknown key->type %i for key \"%s\" on %s\n", key->type, PRVM_GetString(key->s_name), PRVM_NAME);
 		return false;
 	}
 	return true;
@@ -1011,9 +1011,8 @@ void PRVM_ED_EdictSet_f(void)
 	ed = PRVM_EDICT_NUM(atoi(Cmd_Argv(2)));
 
 	if((key = PRVM_ED_FindField(Cmd_Argv(3))) == 0)
-		Msg("Key %s not found !\n", Cmd_Argv(3));
-	else
-		PRVM_ED_ParseEpair(ed, key, Cmd_Argv(4));
+		MsgWarn("Key %s not found !\n", Cmd_Argv(3));
+	else PRVM_ED_ParseEpair(ed, key, Cmd_Argv(4));
 
 	PRVM_End;
 }
@@ -1036,14 +1035,14 @@ const char *PRVM_ED_ParseEdict (const char *data, prvm_edict_t *ent)
 
 	init = false;
 
-// go through all the dictionary pairs
+	// go through all the dictionary pairs
 	while (1)
 	{
 		// parse key
 		if (!COM_Parse(&data))
 			PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
 
-		MsgDev("Key: \"%s\"", COM_Token());
+		MsgDev(D_INFO, "Key: \"%s\"", COM_Token());
 		if (COM_Token()[0] == '}') break;
 		
 		strncpy (keyname, COM_Token(), sizeof(keyname));
@@ -1059,7 +1058,7 @@ const char *PRVM_ED_ParseEdict (const char *data, prvm_edict_t *ent)
 		// parse value
 		if (!COM_Parse(&data))
 			PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
-		MsgDev(" \"%s\"\n", COM_Token());
+		MsgDev(D_INFO, " \"%s\"\n", COM_Token());
 
 		if (COM_Token()[0] == '}')
 			PRVM_ERROR ("PRVM_ED_ParseEdict: closing brace without data");
@@ -1077,7 +1076,7 @@ const char *PRVM_ED_ParseEdict (const char *data, prvm_edict_t *ent)
 		key = PRVM_ED_FindField (keyname);
 		if (!key)
 		{
-			MsgDev("%s: '%s' is not a field\n", PRVM_NAME, keyname);
+			MsgDev(D_INFO, "%s: '%s' is not a field\n", PRVM_NAME, keyname);
 			continue;
 		}
 
@@ -1157,8 +1156,11 @@ void PRVM_ED_LoadFromFile (const char *data)
 			string_t handle =  *(string_t*)&((unsigned char*)ent->fields.vp)[PRVM_ED_FindFieldOffset("classname")];
 			if (!handle)
 			{
-				Con_Print("No classname for:\n");
-				PRVM_ED_Print(ent);
+				if(host.debug)
+				{
+					MsgWarn("No classname for:\n");
+					PRVM_ED_Print(ent);
+				}
 				PRVM_ED_Free (ent);
 				continue;
 			}
@@ -1168,9 +1170,9 @@ void PRVM_ED_LoadFromFile (const char *data)
 
 			if (!func)
 			{
-				if (1) // don't confuse non-developers with errors
+				if(host.debug)
 				{
-					Msg("No spawn function for:\n");
+					MsgWarn("No spawn function for:\n");
 					PRVM_ED_Print(ent);
 				}
 				PRVM_ED_Free (ent);
@@ -1187,7 +1189,7 @@ void PRVM_ED_LoadFromFile (const char *data)
 			died++;
 	}
 
-	MsgDev("%s: %i new entities parsed, %i new inhibited, %i (%i new) spawned (whereas %i removed self, %i stayed)\n", PRVM_NAME, parsed, inhibited, prog->num_edicts, spawned, died, spawned - died);
+	MsgDev(D_INFO, "%s: %i new entities parsed, %i new inhibited, %i (%i new) spawned (whereas %i removed self, %i stayed)\n", PRVM_NAME, parsed, inhibited, prog->num_edicts, spawned, died, spawned - died);
 }
 
 /*
@@ -1273,7 +1275,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 	if (prog->progs == NULL || filesize < (fs_offset_t)sizeof(dprograms_t))
 		PRVM_ERROR ("PRVM_LoadProgs: couldn't load %s for %s", filename, PRVM_NAME);
 
-	MsgDev("%s programs occupy %iK.\n", PRVM_NAME, filesize/1024);
+	MsgDev(D_INFO, "%s programs occupy %iK.\n", PRVM_NAME, filesize/1024);
 
 	prog->filecrc = CRC_Block((unsigned char *)prog->progs, filesize);
 
@@ -1481,7 +1483,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 				PRVM_ERROR("PRVM_LoadProgs: out of bounds global index (statement %d) in %s", i, PRVM_NAME);
 			break;
 		default:
-			MsgDev("PRVM_LoadProgs: unknown opcode %d at statement %d in %s\n", st->op, i, PRVM_NAME);
+			MsgDev(D_WARN, "PRVM_LoadProgs: unknown opcode %d at statement %d in %s\n", st->op, i, PRVM_NAME);
 			break;
 		}
 	}
@@ -1900,8 +1902,7 @@ int PRVM_SetEngineString(const char *s)
 		if (prog->knownstrings[i] == s)
 			return -1 - i;
 	// new unknown engine string
-	if (developer->value >= 100)
-		Msg("new engine string %p\n", s);
+	MsgDev(D_WARN, "new engine string %p\n", s);
 	for (i = prog->firstfreeknownstring;i < prog->numknownstrings;i++)
 		if (!prog->knownstrings[i])
 			break;

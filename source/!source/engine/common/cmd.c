@@ -234,7 +234,7 @@ void Cbuf_Execute (void)
 			memmove (text, text+i, cmd_text.cursize);
 		}
 
-// execute the command line
+		// execute the command line
 		Cmd_ExecuteString (line);
 		
 		if (cmd_wait)
@@ -301,7 +301,7 @@ bool Cbuf_AddLateCommands (void)
 	int		argc;
 	bool	ret;
 
-// build the combined string to parse from
+	// build the combined string to parse from
 	s = 0;
 	argc = COM_Argc();
 	for (i=1 ; i<argc ; i++)
@@ -320,7 +320,7 @@ bool Cbuf_AddLateCommands (void)
 			strcat (text, " ");
 	}
 	
-// pull out the commands
+	// pull out the commands
 	build = Z_Malloc (s+1);
 	build[0] = 0;
 	
@@ -344,8 +344,7 @@ bool Cbuf_AddLateCommands (void)
 	}
 
 	ret = (build[0] != 0);
-	if (ret)
-		Cbuf_AddText (build);
+	if (ret) Cbuf_AddText (build);
 	
 	Z_Free (text);
 	Z_Free (build);

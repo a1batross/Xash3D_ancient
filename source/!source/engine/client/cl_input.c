@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 cvar_t	*cl_nodelta;
 
-extern	unsigned	sys_frame_time;
 unsigned	frame_msec;
 unsigned	old_sys_frame_time;
 
@@ -94,7 +93,7 @@ void KeyDown (kbutton_t *b)
 	c = Cmd_Argv(2);
 	b->downtime = atoi(c);
 	if (!b->downtime)
-		b->downtime = (uint)sys_frame_time - 0.1;
+		b->downtime = host.cl_timer - 100;
 
 	b->state |= 1 + 2;	// down + impulse down
 }
@@ -194,8 +193,8 @@ float CL_KeyState (kbutton_t *key)
 
 	if (key->state)
 	{	// still down
-		msec += sys_frame_time - key->downtime;
-		key->downtime = sys_frame_time;
+		msec += host.cl_timer - key->downtime;
+		key->downtime = host.cl_timer;
 	}
 
 #if 0
@@ -206,10 +205,8 @@ float CL_KeyState (kbutton_t *key)
 #endif
 
 	val = (float)msec / frame_msec;
-	if (val < 0)
-		val = 0;
-	if (val > 1)
-		val = 1;
+	if (val < 0) val = 0;
+	if (val > 1) val = 1;
 
 	return val;
 }
@@ -377,11 +374,9 @@ usercmd_t CL_CreateCmd (void)
 {
 	usercmd_t	cmd;
 
-	frame_msec = sys_frame_time - old_sys_frame_time;
-	if (frame_msec < 1)
-		frame_msec = 1;
-	if (frame_msec > 200)
-		frame_msec = 200;
+	frame_msec = host.cl_timer - old_sys_frame_time;
+	if (frame_msec < 1) frame_msec = 1;
+	if (frame_msec > 200) frame_msec = 200;
 	
 	// get basic movement from keyboard
 	CL_BaseMove (&cmd);
@@ -391,9 +386,9 @@ usercmd_t CL_CreateCmd (void)
 
 	CL_FinishMove (&cmd);
 
-	old_sys_frame_time = sys_frame_time;
+	old_sys_frame_time = host.cl_timer;
 
-//cmd.impulse = cls.framecount;
+	//cmd.impulse = cls.framecount;
 
 	return cmd;
 }
@@ -482,7 +477,7 @@ void CL_SendCmd (void)
 
 	if ( cls.state == ca_connected)
 	{
-		if (cls.netchan.message.cursize || curtime - cls.netchan.last_sent > 1.0f )
+		if (cls.netchan.message.cursize || host.realtime - cls.netchan.last_sent > 1.0f )
 			Netchan_Transmit (&cls.netchan, 0, buf.data);	
 		return;
 	}

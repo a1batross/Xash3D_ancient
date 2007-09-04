@@ -418,8 +418,13 @@ GUI Acellerators
 
 void GUI_ResetWndOptions( void )
 {
+	char	dev_level[4];
+
 	//get info about debug mode
 	if(CheckParm ("-debug")) debug_mode = true;	
+	if(GetParmFromCmdLine("-dev", dev_level ))
+		dev_mode = atoi(dev_level);
+
 	s_gui.gHinst = (HINSTANCE) GetModuleHandle( NULL );
 	
 	//reset options
@@ -646,12 +651,12 @@ void GUI_Msg( const char *pMsg, ... )
 	std.print( text );
 }
 
-void GUI_MsgDev( const char *pMsg, ... )
+void GUI_MsgDev( int level, const char *pMsg, ... )
 {
 	va_list		argptr;
 	char text[MAX_INPUTLINE];
 	
-	if(debug_mode)
+	if(dev_mode >= level)
 	{
 		va_start (argptr, pMsg);
 		vsprintf (text, pMsg, argptr);
@@ -1010,7 +1015,7 @@ void InitEditor ( char *funcname, int argc, char **argv )
 	
 	//end of all initializations
 	ShowWindow(s_gui.hWnd, SW_SHOWDEFAULT);
-	MsgDev("------- Xash Recource Editor ver. %g initialized -------\n", EDITOR_VERSION );
+	MsgDev(D_INFO, "------- Xash Recource Editor ver. %g initialized -------\n", EDITOR_VERSION );
 }
 
 void EditorMain ( void )

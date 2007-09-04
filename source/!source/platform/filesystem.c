@@ -353,7 +353,7 @@ pack_t *FS_LoadPackPK3 (const char *packfile)
 		return NULL;
 	}
 
-	MsgDev("Adding packfile %s (%i files)\n", packfile, real_nb_files);
+	MsgDev(D_INFO, "Adding packfile %s (%i files)\n", packfile, real_nb_files);
 	return pack;
 }
 
@@ -612,11 +612,11 @@ void FS_Path (void)
 {
 	searchpath_t *s;
 
-	MsgDev("Current search path:\n");
-	for (s=fs_searchpaths ; s ; s=s->next)
+	MsgDev(D_INFO, "Current search path:\n");
+	for (s = fs_searchpaths; s; s = s->next)
 	{
-		if (s->pack) MsgDev("%s (%i files)\n", s->pack->filename, s->pack->numfiles);
-		else MsgDev("%s\n", s->filename);
+		if (s->pack) MsgDev(D_INFO, "%s (%i files)\n", s->pack->filename, s->pack->numfiles);
+		else MsgDev(D_INFO, "%s\n", s->filename);
 	}
 }
 
@@ -733,7 +733,7 @@ pack_t *FS_LoadPackPAK (const char *packfile)
 	}
 
 	Free(info);
-	MsgDev("Adding packfile %s (%i files)\n", packfile, numpackfiles);
+	MsgDev(D_INFO, "Adding packfile %s (%i files)\n", packfile, numpackfiles);
 	return pack;
 }
 
@@ -1426,7 +1426,7 @@ static searchpath_t *FS_FindFile (const char *name, int* index, bool quiet)
 				// Found it
 				if (!diff)
 				{
-					if (!quiet) MsgDev("FS_FindFile: %s in %s\n", pak->files[middle].name, pak->filename);
+					if (!quiet) MsgDev(D_INFO, "FS_FindFile: %s in %s\n", pak->files[middle].name, pak->filename);
 					if (index != NULL) *index = middle;
 					return search;
 				}
@@ -1442,14 +1442,14 @@ static searchpath_t *FS_FindFile (const char *name, int* index, bool quiet)
 			sprintf(netpath, "%s%s", search->filename, name);
 			if (FS_SysFileExists(netpath))
 			{
-				if (!quiet) MsgDev("FS_FindFile: %s\n", netpath);
+				if (!quiet) MsgDev(D_INFO, "FS_FindFile: %s\n", netpath);
 				if (index != NULL) *index = -1;
 				return search;
 			}
 		}
 	}
 
-	if (!quiet) MsgDev("FS_FindFile: can't find %s\n", name);
+	if (!quiet) MsgDev(D_WARN, "FS_FindFile: can't find %s\n", name);
 	if (index != NULL) *index = -1;
 
 	return NULL;
@@ -1860,7 +1860,7 @@ int FS_Gets (file_t* file, byte *string, size_t bufsize )
 		c = FS_Getc(file);
 		if (c != '\n') FS_UnGetc(file, (byte)c);
 	}
-	MsgDev("FS_Gets: %s\n", string);
+	MsgDev(D_INFO, "FS_Gets: %s\n", string);
 
 	return c;
 }
@@ -2193,7 +2193,7 @@ static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet 
 						if (resultlistindex == resultlist.numstrings)
 						{
 							stringlistappend(&resultlist, temp);
-							if (!quiet) MsgDev("SearchPackFile: %s : %s\n", pak->filename, temp);
+							if (!quiet) MsgDev(D_INFO, "SearchPackFile: %s : %s\n", pak->filename, temp);
 						}
 					}
 					// strip off one path element at a time until empty
@@ -2229,7 +2229,7 @@ static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet 
 					if (resultlistindex == resultlist.numstrings)
 					{
 						stringlistappend(&resultlist, temp);
-						if (!quiet) MsgDev("SearchDirFile: %s\n", temp);
+						if (!quiet) MsgDev(D_INFO, "SearchDirFile: %s\n", temp);
 					}
 				}
 			}

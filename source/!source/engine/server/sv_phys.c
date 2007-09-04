@@ -66,7 +66,7 @@ trace_t SV_TraceToss (prvm_edict_t *tossent, prvm_edict_t *ignore)
 		VectorMA (tossent->fields.sv->angles, 0.05, tossent->fields.sv->avelocity, tossent->fields.sv->angles);
 		VectorScale (tossent->fields.sv->velocity, 0.05, move);
 		VectorAdd (tossent->fields.sv->origin, move, end);
-		trace = SV_Trace(tossent->fields.sv->origin, tossent->fields.sv->mins, tossent->fields.sv->maxs, end, tossent, MASK_ALL );
+		trace = SV_Trace(tossent->fields.sv->origin, tossent->fields.sv->mins, tossent->fields.sv->maxs, end, tossent, MASK_SOLID );
 		VectorCopy (trace.endpos, tossent->fields.sv->origin);
 
 		if (trace.fraction < 1) break;
@@ -89,7 +89,7 @@ returns true if the entity is in solid currently
 */
 int SV_TestEntityPosition (prvm_edict_t *ent)
 {
-	trace_t trace = SV_Trace(ent->fields.sv->origin, ent->fields.sv->mins, ent->fields.sv->maxs, ent->fields.sv->origin, ent, MASK_ALL);
+	trace_t trace = SV_Trace(ent->fields.sv->origin, ent->fields.sv->mins, ent->fields.sv->maxs, ent->fields.sv->origin, ent, MASK_SOLID);
 
 	if (trace.contents & MASK_SOLID)
 		return true;
@@ -233,7 +233,7 @@ int SV_FlyMove (prvm_edict_t *ent, float time, float *stepnormal)
 			break;
 
 		VectorMA(ent->fields.sv->origin, time_left, ent->fields.sv->velocity, end);
-		trace = SV_Trace(ent->fields.sv->origin, ent->fields.sv->mins, ent->fields.sv->maxs, end, ent, 0);
+		trace = SV_Trace(ent->fields.sv->origin, ent->fields.sv->mins, ent->fields.sv->maxs, end, ent, MASK_SOLID);
 
 		// break if it moved the entire distance
 		if (trace.fraction == 1)
@@ -389,7 +389,7 @@ trace_t SV_PushEntity (prvm_edict_t *ent, vec3_t push, bool failonbmodelstartsol
 
 	VectorAdd (ent->fields.sv->origin, push, end);
 
-	trace = SV_Trace(ent->fields.sv->origin, ent->fields.sv->mins, ent->fields.sv->maxs, end, ent, 0 );
+	trace = SV_Trace(ent->fields.sv->origin, ent->fields.sv->mins, ent->fields.sv->maxs, end, ent, MASK_SOLID );
 	
 	if (trace.startstuck && failonbmodelstartsolid) return trace;
 	VectorCopy (trace.endpos, ent->fields.sv->origin);

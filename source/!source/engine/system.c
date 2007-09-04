@@ -27,9 +27,6 @@ extern HWND cl_hwnd;
 //engine builddate
 char *buildstring = __TIME__ " " __DATE__;
 stdinout_api_t std;
-uint sys_msg_time;
-float sys_frame_time;
-double curtime;
 
 /*
 ===============================================================================
@@ -97,17 +94,18 @@ Send Key_Event calls
 */
 void Sys_SendKeyEvents (void)
 {
-    MSG        msg;
+	MSG        msg;
 
 	while (PeekMessage (&msg, NULL, 0, 0, PM_NOREMOVE))
 	{
 		if (!GetMessage (&msg, NULL, 0, 0)) Sys_Quit ();
-		sys_msg_time = msg.time;
+		host.sv_timer = msg.time;
 		TranslateMessage (&msg);
 		DispatchMessage (&msg);
 	}
+
 	// grab frame time 
-	sys_frame_time = Sys_DoubleTime();
+	host.cl_timer = timeGetTime();	// FIXME: should this be at start?
 }
 
 

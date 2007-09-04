@@ -462,7 +462,7 @@ void CL_CheckForResend (void)
 	if (cls.state != ca_connecting)
 		return;
 
-	if (cls.realtime - cls.connect_time < 3000)
+	if (cls.realtime - cls.connect_time < 3.0f)
 		return;
 
 	if (!NET_StringToAdr (cls.servername, &adr))
@@ -616,15 +616,6 @@ void CL_Disconnect (void)
 	if (cls.state == ca_disconnected)
 		return;
 
-	if (cl_timedemo && cl_timedemo->value)
-	{
-		float	time;
-		
-		time = Sys_DoubleTime() - cl.timedemo_start;
-		if (time > 0)
-			Msg ("%i frames, %3.1f seconds: %3.1f fps\n", cl.timedemo_frames, time, cl.timedemo_frames / time);
-	}
-
 	VectorClear (cl.refdef.blend);
 	re->CinematicSetPalette(NULL);
 
@@ -726,8 +717,7 @@ void CL_Changing_f (void)
 {
 	//ZOID
 	//if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
-	if (cls.download)
-		return;
+	if (cls.download) return;
 
 	SCR_BeginLoadingPlaque ();
 	cls.state = ca_connected;	// not active anymore, but not disconnected
@@ -761,7 +751,7 @@ void CL_Reconnect_f (void)
 	if (*cls.servername) {
 		if (cls.state >= ca_connected) {
 			CL_Disconnect();
-			cls.connect_time = cls.realtime - 1500;
+			cls.connect_time = cls.realtime - 1.5f;
 		} else
 			cls.connect_time = -99999; // fire immediately
 
@@ -1411,7 +1401,8 @@ CL_InitLocal
 void CL_InitLocal (void)
 {
 	cls.state = ca_disconnected;
-	cls.realtime = Sys_DoubleTime();
+	cls.realtime = 1.0f;
+
 	CL_InitInput ();
 
 	adr0 = Cvar_Get( "adr0", "", CVAR_ARCHIVE );
@@ -1424,9 +1415,9 @@ void CL_InitLocal (void)
 	adr7 = Cvar_Get( "adr7", "", CVAR_ARCHIVE );
 	adr8 = Cvar_Get( "adr8", "", CVAR_ARCHIVE );
 
-//
-// register our variables
-//
+	//
+	// register our variables
+	//
 	cl_stereo_separation = Cvar_Get( "cl_stereo_separation", "0.4", CVAR_ARCHIVE );
 	cl_stereo = Cvar_Get( "cl_stereo", "0", 0 );
 
@@ -1681,7 +1672,7 @@ void CL_Frame (float time)
 	static float	extratime;
 	static float	lasttimecalled;
 
-	if (dedicated->value) return;
+	if (host.type == HOST_DEDICATED) return;
 
 	extratime += time;
 
@@ -1722,9 +1713,7 @@ void CL_Frame (float time)
 		CL_PrepRefresh ();
 
 	// update the screen
-	if (host_speeds->value) time_before_ref = Sys_DoubleTime();
 	SCR_UpdateScreen ();
-	if (host_speeds->value) time_after_ref = Sys_DoubleTime();
 
 	// update audio
 	S_Update (cl.refdef.vieworg, cl.v_forward, cl.v_right, cl.v_up);
@@ -1748,8 +1737,8 @@ CL_Init
 */
 void CL_Init (void)
 {
-	if (dedicated->value)
-		return;		// nothing running on the client
+	// nothing running on the client
+	if (host.type == HOST_DEDICATED) return; 
 
 	// all archived variables will now be loaded
 

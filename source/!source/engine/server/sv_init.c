@@ -291,7 +291,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 	if (attractloop) Cvar_Set ("paused", "0");
 
 	Msg("------- Server Initialization -------\n");
-	MsgDev ("SpawnServer: %s\n", server);
+	MsgDev (D_INFO, "SpawnServer: %s\n", server);
 	if (sv.demofile) FS_Close (sv.demofile);
 
 	svs.spawncount++; // any partially connected client will be restarted
@@ -467,10 +467,9 @@ void SV_InitGame (void)
 
 	// dedicated servers are can't be single player and are usually DM
 	// so unless they explicity set coop, force it to deathmatch
-	if (dedicated->value)
+	if (host.type == HOST_DEDICATED)
 	{
-		if (!Cvar_VariableValue ("coop"))
-			Cvar_FullSet ("deathmatch", "1",  CVAR_SERVERINFO | CVAR_LATCH);
+		if (!Cvar_VariableValue ("coop")) Cvar_FullSet ("deathmatch", "1",  CVAR_SERVERINFO | CVAR_LATCH);
 	}
 
 	// init clients

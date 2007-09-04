@@ -9,15 +9,13 @@
 #include "engine.h"
 #include "progsvm.h"
 
-platform_exp_t    *pi;	//fundamental callbacks
+platform_exp_t	*pi;	// fundamental callbacks
+host_parm_t	host;	// host parms
 
 byte	*zonepool;
 int	ActiveApp;
-bool	Minimized;
-bool	is_dedicated;
-extern	uint sys_msg_time;
 
-dword	host_framecount = 0;
+// host params
 
 void Key_Init (void);
 void SCR_EndLoadingPlaque (void);
@@ -29,16 +27,10 @@ cvar_t	*timescale;
 cvar_t	*fixedtime;
 cvar_t	*showtrace;
 
-int host_debug;
-
 void Host_InitPlatform( char *funcname, int argc, char **argv )
 {
 	stdinout_api_t	pistd;
 	platform_t	CreatePlat;         
-
-	//platform dll
-	COM_InitArgv (argc, argv);
-	if (COM_CheckParm ("-debug")) host_debug = 1;
 
 	//make callbacks
 	pistd.printf = Msg;
@@ -86,19 +78,23 @@ void Host_Init (char *funcname, int argc, char **argv)
 {
 	char	*s;
 
+	host.state = HOST_INIT;	//initialzation started
+
 	global_hInstance = (HINSTANCE)GetModuleHandle( NULL );
-          if(!strcmp(funcname, "host_dedicated"))is_dedicated = true;
+
+	if(!strcmp(funcname, "host_dedicated")) host.type = HOST_DEDICATED;
+	else if(!strcmp(funcname, "host_shared")) host.type = HOST_NORMAL;
+	else host.type = HOST_OFFLINE; // launcher can loading engine for some reasons
+
+	COM_InitArgv (argc, argv); // init host.debug & host.developer here
 	Host_InitPlatform( funcname, argc, argv );
 
-	Msg("------- Loading bin/engine.dll   [%g] -------\n", ENGINE_VERSION );
+	MsgDev(D_INFO, "------- Loading bin/engine.dll   [%g] -------\n", ENGINE_VERSION );
 	
-	Cbuf_Init ();
-
-	Cmd_Init ();
-	Cvar_Init ();
-          
-	Key_Init ();
-
+	Cbuf_Init();
+	Cmd_Init();
+	Cvar_Init();
+	Key_Init();
 	PRVM_Init();
 
 	// we need to add the early commands twice, because
@@ -117,17 +113,17 @@ void Host_Init (char *funcname, int argc, char **argv)
 	Cmd_AddCommand ("error", Com_Error_f);
 
 	host_speeds = Cvar_Get ("host_speeds", "0", 0);
-	developer = Cvar_Get ("developer", "0", 0);
 	timescale = Cvar_Get ("timescale", "1", 0);
 	fixedtime = Cvar_Get ("fixedtime", "0", 0);
 	showtrace = Cvar_Get ("showtrace", "0", 0);
-	if(is_dedicated) dedicated = Cvar_Get ("dedicated", "1", CVAR_NOSET);
-	else dedicated = Cvar_Get ("dedicated", "0", CVAR_NOSET);
 
 	s = va("%4.2f %s %s %s", VERSION, "x86", __DATE__, BUILDSTRING);
 	Cvar_Get ("version", s, CVAR_SERVERINFO|CVAR_NOSET);
 
-	if (dedicated->value) Cmd_AddCommand ("quit", Com_Quit);
+	if (host.type == HOST_DEDICATED) 
+	{
+		Cmd_AddCommand ("quit", Com_Quit);
+	}
 
 	Sys_Init();
           
@@ -138,10 +134,10 @@ void Host_Init (char *funcname, int argc, char **argv)
 	CL_Init();
 
 	// add + commands from command line
-	if (!Cbuf_AddLateCommands ())
+	if (!Cbuf_AddLateCommands())
 	{
 		// if the user didn't give any commands, run default action
-		if (!dedicated->value) Cbuf_AddText ("d1\n");
+		if(host.type == HOST_NORMAL) Cbuf_AddText ("d1\n");
 		else Cbuf_AddText ("dedicated_start\n");
 		Cbuf_Execute ();
 	}
@@ -160,7 +156,6 @@ Host_Frame
 void Host_Frame (double time)
 {
 	char	*s;
-	static double	time_before, time_between, time_after;
 
 	if (setjmp (abortframe) ) return; // an ERR_DROP was thrown
 
@@ -182,29 +177,10 @@ void Host_Frame (double time)
 	} while (s);
 	Cbuf_Execute ();
 	
-	if (host_speeds->value) time_before = Sys_DoubleTime();
-
 	SV_Frame (time);
-
-	if (host_speeds->value) time_between = Sys_DoubleTime();		
-
 	CL_Frame (time);
 
-	if (host_speeds->value) time_after = Sys_DoubleTime();		
-
-	if (host_speeds->value)
-	{
-		double all, sv, gm, cl, rf;
-
-		all = time_after - time_before;
-		sv = time_between - time_before;
-		cl = time_after - time_between;
-		gm = time_after_game - time_before_game;
-		rf = time_after_ref - time_before_ref;
-		sv -= gm;
-		cl -= rf;
-		Msg ("all:%.3f sv:%.3f gm:%.3f cl:%.3f rf:%.3f\n", all, sv, gm, cl, rf);
-	}	
+	host.framecount++;
 }
 
 /*
@@ -214,32 +190,34 @@ Host_Main
 */
 void Host_Main( void )
 {
-	MSG	msg;
-	float	oldtime, newtime;
+	MSG		msg;
+	static double	oldtime, newtime;
 
+	host.state = HOST_FRAME;
 	oldtime = Sys_DoubleTime(); //first call
 
 	// main window message loop
-	while (1)
+	while (host.type != HOST_OFFLINE)
 	{
 		// if at a full screen console, don't update unless needed
-		if (Minimized || (dedicated && dedicated->value) )
+		if (host.type == HOST_DEDICATED )
 		{
-			Sleep(1);
+			Sleep( 1 );
 		}
-
+                    else if(host.state == HOST_SLEEP) Sleep( 100 ); 
+		
 		while (PeekMessage (&msg, NULL, 0, 0, PM_NOREMOVE))
 		{
 			if (!GetMessage (&msg, NULL, 0, 0)) Com_Quit ();
-			sys_msg_time = msg.time;
+			host.sv_timer = msg.time;
 			TranslateMessage (&msg);
    			DispatchMessage (&msg);
 		}
 
 		newtime = Sys_DoubleTime();
-		curtime = newtime - oldtime;
+		host.realtime = newtime - oldtime;
 
-		Host_Frame (curtime);
+		Host_Frame (host.realtime);
 		oldtime = newtime;
 	}
 }
@@ -252,6 +230,9 @@ Host_Shutdown
 */
 void Host_Free (void)
 {
+	host.state = HOST_SHUTDOWN;
+	
+	SV_Shutdown ("Server shutdown\n", false);
 	CL_Shutdown ();
 	Host_FreePlatform();
 }

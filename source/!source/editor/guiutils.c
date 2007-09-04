@@ -6,6 +6,7 @@
 #include "editor.h"
 
 bool debug_mode = false;
+int dev_mode = 0;
 int com_argc;
 char *com_argv[MAX_NUM_ARGVS];
 /*
@@ -27,6 +28,17 @@ int CheckParm (const char *parm)
 		if (!strcmp (parm, com_argv[i])) return i;
 	}
 	return 0;
+}
+
+bool _GetParmFromCmdLine( char *parm, char *out, size_t size )
+{
+	int argc = CheckParm( parm );
+
+	if(!argc) return false;
+	if(!out) return false;	
+
+	strncpy( out, com_argv[argc+1], size );
+	return true;
 }
 
 // search case-insensitive for string2 in string

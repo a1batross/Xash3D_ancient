@@ -408,10 +408,6 @@ SOURCE=.\common\vid.h
 
 SOURCE=.\prvm\vm_cmds.h
 # End Source File
-# Begin Source File
-
-SOURCE=.\prvm\vm_exec.h
-# End Source File
 # End Group
 # End Target
 # End Project

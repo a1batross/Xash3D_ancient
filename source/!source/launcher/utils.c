@@ -9,6 +9,7 @@
 char sys_rootdir[ MAX_SYSPATH ];
 bool debug_mode = false;
 bool console_read_only = true;
+int dev_mode = 0;
 
 /*
 ====================
@@ -29,6 +30,16 @@ const char* Log_Timestamp( void )
           strcpy( timestamp, timestring );
 
 	return timestamp;
+}
+
+float CalcEngineVersion( void )
+{
+	return LAUNCHER_VERSION + PLATFORM_VERSION + RENDERER_VERSION + ENGINE_VERSION;
+}
+
+float CalcEditorVersion( void )
+{
+	return LAUNCHER_VERSION + PLATFORM_VERSION + RENDERER_VERSION + EDITOR_VERSION;
 }
 
 /*
@@ -87,14 +98,14 @@ int CheckParm (const char *parm)
 	return 0;
 }
 
-bool GetParmFromCmdLine( char *parm, char *out )
+bool _GetParmFromCmdLine( char *parm, char *out, size_t size )
 {
 	int argc = CheckParm( parm );
 
 	if(!argc) return false;
 	if(!out) return false;	
 
-	strcpy( out, com_argv[argc+1]);
+	strncpy( out, com_argv[argc+1], size );
 	return true;
 }
 

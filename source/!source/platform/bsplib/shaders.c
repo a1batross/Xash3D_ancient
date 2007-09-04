@@ -123,7 +123,7 @@ static void ParseShaderFile( char *filename )
 	if( load )
 	{
 		FS_FileBase( filename, name );
-		MsgDev("Adding shader: %s.txt\n", name );
+		MsgDev(D_INFO, "Adding shader: %s.txt\n", name );
           }
           
 	while ( load )

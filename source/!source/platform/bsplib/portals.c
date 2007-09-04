@@ -867,8 +867,8 @@ void EmitAreaPortals (node_t *headnode)
 		dareas[i].numareaportals = numareaportals - dareas[i].firstareaportal;
 	}
 
-	MsgDev("%5i numareas\n", numareas);
-	MsgDev("%5i numareaportals\n", numareaportals);
+	MsgDev(D_INFO, "%5i numareas\n", numareas);
+	MsgDev(D_INFO, "%5i numareaportals\n", numareaportals);
 }
 
 /*

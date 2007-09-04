@@ -99,19 +99,20 @@ void SV_BroadcastPrintf (int level, char *fmt, ...)
 	va_end (argptr);
 	
 	// echo to console
-	if (dedicated->value)
+	if (host.type == HOST_DEDICATED)
 	{
 		char	copy[1024];
 		int		i;
 		
 		// mask off high bits
-		for (i=0 ; i<1023 && string[i] ; i++)
-			copy[i] = string[i]&127;
-		copy[i] = 0;
+		for (i = 0; i < 1023 && string[i]; i++)
+			copy[i] = string[i] & 127;
+
+		copy[i] = 0; //write null terminator
 		Msg ("%s", copy);
 	}
 
-	for (i=0, cl = svs.clients ; i<maxclients->value; i++, cl++)
+	for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
 	{
 		if (level < cl->messagelevel)
 			continue;
@@ -551,7 +552,7 @@ void SV_SendClientMessages (void)
 		else
 		{
 			// just update reliable	if needed
-			if (c->netchan.message.cursize || curtime - c->netchan.last_sent > 1.0f)
+			if (c->netchan.message.cursize || host.realtime - c->netchan.last_sent > 1.0f)
 				Netchan_Transmit (&c->netchan, 0, NULL);
 		}
 	}

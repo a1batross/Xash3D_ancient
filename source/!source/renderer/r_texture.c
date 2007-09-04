@@ -563,7 +563,7 @@ void GL_GenerateMipmaps( void )
 	if( image_desc.flags & IMAGE_GEN_MIPS )
 	{
 		qglTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP_SGIS, GL_TRUE);
-		if(qglGetError()) MsgWarn("R_LoadTexImage: can't create mip levels\n");
+		if(qglGetError()) MsgDev(D_WARN, "R_LoadTexImage: can't create mip levels\n");
 	}
 }
 
@@ -961,7 +961,7 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 		}
 		break;
 	default:
-		MsgWarn("qrsCompressedTexImage2D: invalid compression type: %s\n", PixelFormatDescription[internalformat].name );
+		MsgDev(D_WARN, "qrsCompressedTexImage2D: invalid compression type: %s\n", PixelFormatDescription[internalformat].name );
 		return false;
 	}
 
@@ -1227,7 +1227,7 @@ bool qrsDecompressImageATI( uint target, int level, int internalformat, uint wid
 		}
 		break;
 	default:
-		MsgWarn("qrsDecompressImageATI: invalid compression type: %s\n", PixelFormatDescription[internalformat].name );
+		MsgDev(D_WARN, "qrsDecompressImageATI: invalid compression type: %s\n", PixelFormatDescription[internalformat].name );
 		return false;
 	}
 
@@ -1326,7 +1326,7 @@ bool R_StoreImageARGB( uint target, int level, uint width, uint height, uint ima
 	}
 	else
 	{
-		MsgWarn("R_StoreImageARGB: can't get RGBA bitmask\n" );		
+		MsgDev(D_ERROR, "R_StoreImageARGB: can't get RGBA bitmask\n" );		
 		return false;
 	}
 
@@ -1429,7 +1429,7 @@ bool R_LoadImage32 (byte *data )
 
 	if (s&3)
 	{
-		MsgWarn("R_LoadImage32: s&3\n");
+		MsgDev(D_ERROR, "R_LoadImage32: s&3\n");
 		return false;
 	}
 	for (i = 0; i < s; i++ )
@@ -1528,7 +1528,7 @@ bool R_LoadImage24(byte *data )
 	{
 		if (s&3) 
 		{
-			MsgWarn("R_LoadImage24: s&3\n");
+			MsgDev(D_ERROR, "R_LoadImage24: s&3\n");
 			return false;
 		}
 		if(image_desc.pal)
@@ -1615,14 +1615,14 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
 	{
 		if (numgltextures == MAX_GLTEXTURES)
 		{
-			MsgWarn("R_LoadImage: gl_textures limit is out\n");
+			MsgDev(D_ERROR, "R_LoadImage: gl_textures limit is out\n");
 			return NULL;
 		}
 		numgltextures++;
 	}
 	image = &gltextures[i];
 
-	if (strlen(name) >= sizeof(image->name)) MsgWarn( "R_LoadImage: \"%s\" is too long", name);
+	if (strlen(name) >= sizeof(image->name)) MsgDev( D_WARN, "R_LoadImage: \"%s\" is too long", name);
 
 	strncpy (image->name, name, sizeof(image->name));
 	image->registration_sequence = registration_sequence;
@@ -1646,7 +1646,7 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
 		R_SetPixelFormat( image_desc.width, image_desc.height, image_desc.numLayers );
 		offset = image_desc.SizeOfFile;// move pointer
 		
-		// MsgDev("loading %s [%s] \n", name, PixelFormatDescription[image_desc.format].name );
+		MsgDev(D_INFO, "loading %s [%s] \n", name, PixelFormatDescription[image_desc.format].name );
 
 		switch(pic->type)
 		{

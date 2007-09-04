@@ -84,7 +84,14 @@ typedef enum
 	MSG_PVS_R,
 } msgtype_t;
 
-//format info table
+enum dev_level
+{
+	D_INFO = 1,	// "-developer 1", shows various system messages
+	D_WARN,		// "-developer 2", shows not critical system warnings, same as MsgWarn
+	D_ERROR,		// "-developer 3", shows critical warnings 
+};
+
+// format info table
 typedef struct
 {
 	int	format;	// pixelformat
@@ -465,16 +472,16 @@ STDIO SYSTEM INTERFACE
 typedef struct stdinout_api_s
 {
 	//interface validator
-	size_t	api_size;			// must matched with sizeof(stdinout_api_t)
+	size_t	api_size;				// must matched with sizeof(stdinout_api_t)
 	
 	//base events
-	void (*print)( char *msg );		// basic text message
-	void (*printf)( char *msg, ... );	// normal text message
-	void (*dprintf)( char *msg, ... );	// developer text message
-	void (*wprintf)( char *msg, ... );	// warning text message
-	void (*error)( char *msg, ... );	// abnormal termination with message
-	void (*exit)( void );		// normal silent termination
-	char *(*input)( void );		// system console input	
+	void (*print)( char *msg );			// basic text message
+	void (*printf)( char *msg, ... );		// normal text message
+	void (*dprintf)( int level, char *msg, ... );	// developer text message
+	void (*wprintf)( char *msg, ... );		// warning text message
+	void (*error)( char *msg, ... );		// abnormal termination with message
+	void (*exit)( void );			// normal silent termination
+	char *(*input)( void );			// system console input	
 
 } stdinout_api_t;
 

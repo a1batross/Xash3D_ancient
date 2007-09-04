@@ -217,33 +217,7 @@ void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal );
 void PerpendicularVector( vec3_t dst, const vec3_t src );
 void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );
 
-
-
 void Com_PageInMemory (byte *buffer, int size);
-
-//=============================================
-
-//
-// key / value info strings
-//
-char *Info_ValueForKey (char *s, char *key);
-void Info_RemoveKey (char *s, char *key);
-void Info_SetValueForKey (char *s, char *key, char *value);
-bool Info_Validate (char *s);
-
-/*
-==============================================================
-
-SYSTEM SPECIFIC
-
-==============================================================
-*/
-
-extern double curtime;
-
-void Sys_Error (char *error, ...);
-void Com_Printf (char *msg, ...);
-void Com_DPrintf (char *fmt, ...);
 
 /*
 ==============================================================

@@ -148,7 +148,7 @@ void SV_WriteSaveFile( char *name )
 		return;
 	}
 
-	MsgDev ("Saving game... %s\n", name );
+	MsgDev (D_INFO, "Saving game... %s\n", name );
 	sprintf (comment, "%s - %s", sv.configstrings[CS_NAME], SV_CurTime());
 
 	header = (dsavehdr_t *)Z_Malloc( sizeof(dsavehdr_t));

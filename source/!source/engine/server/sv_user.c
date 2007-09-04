@@ -356,7 +356,7 @@ void SV_BeginDownload_f(void)
 	}
 
 	SV_NextDownload_f ();
-	MsgDev ("Downloading %s to %s\n", name, sv_client->name);
+	MsgDev(D_INFO, "Downloading %s to %s\n", name, sv_client->name);
 }
 
 

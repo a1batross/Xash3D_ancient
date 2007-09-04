@@ -570,20 +570,19 @@ SCR_BeginLoadingPlaque
 void SCR_BeginLoadingPlaque (void)
 {
 	S_StopAllSounds ();
-	cl.sound_prepped = false;		// don't play ambients
+	cl.sound_prepped = false;			// don't play ambients
 	if (cls.disable_screen) return;
-	if (developer->value)
-		return;
-	if (cls.state == ca_disconnected)
-		return;	// if at console, don't bring up the plaque
+	if (host.developer) return;
+
+	if (cls.state == ca_disconnected) return;	// if at console, don't bring up the plaque
 	if (cls.key_dest == key_console)
 		return;
 	if (cl.cinematictime > 0)
-		scr_draw_loading = 2;	// clear to black first
-	else
-		scr_draw_loading = 1;
-	SCR_UpdateScreen ();
-	cls.disable_screen = Sys_DoubleTime();
+		scr_draw_loading = 2;		// clear to black first
+	else scr_draw_loading = 1;
+	SCR_UpdateScreen();
+
+	cls.disable_screen = cls.realtime;
 	cls.disable_servercount = cl.servercount;
 }
 
@@ -1269,7 +1268,7 @@ void SCR_UpdateScreen (void)
 	// do nothing at all
 	if (cls.disable_screen)
 	{
-		if (Sys_DoubleTime() - cls.disable_screen > 120.0f)
+		if (cls.realtime - cls.disable_screen > 120.0f)
 		{
 			cls.disable_screen = 0;
 			Msg ("Loading plaque timed out.\n");

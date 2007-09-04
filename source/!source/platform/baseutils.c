@@ -1161,15 +1161,15 @@ void Plat_InitCPU( void )
 	szFeatureString[strlen(szFeatureString)-1] = '\0';
 
 	// Dump CPU information:
-	if( cpu.m_usNumLogicCore == 1 ) Msg( "CPU: %s [1 core]. Frequency: %.01f %s\n", cpu.m_szCPUID, fFrequency, szFrequencyDenomination );
+	if( cpu.m_usNumLogicCore == 1 ) MsgDev( D_INFO, "CPU: %s [1 core]. Frequency: %.01f %s\n", cpu.m_szCPUID, fFrequency, szFrequencyDenomination );
 	else
 	{
 		char buffer[256] = "";
 		if( cpu.m_usNumPhysCore != cpu.m_usNumLogicCore )
 			sprintf(buffer, " (%i physical)", (int) cpu.m_usNumPhysCore );
-		Msg( "CPU: %s [%i core's %s]. Frequency: %.01f %s\n ", cpu.m_szCPUID, (int)cpu.m_usNumLogicCore, buffer, fFrequency, szFrequencyDenomination );
+		MsgDev(D_INFO, "CPU: %s [%i core's %s]. Frequency: %.01f %s\n ", cpu.m_szCPUID, (int)cpu.m_usNumLogicCore, buffer, fFrequency, szFrequencyDenomination );
 	}
-	MsgDev("CPU Features: %s\n", szFeatureString );
+	MsgDev(D_INFO, "CPU Features: %s\n", szFeatureString );
 }
 
 /*

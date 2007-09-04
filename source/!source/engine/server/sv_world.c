@@ -580,28 +580,8 @@ trace_t SV_Trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, prvm_edict
 	return clip.trace;
 }
 
-trace_t SV_ClipMoveToEntity(prvm_edict_t *ent, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int contentsmask)
+trace_t SV_ClipMoveToEntity(prvm_edict_t *ent, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int contentsmask)
 {
-	moveclip_t	clip;
-
-	memset( &clip, 0, sizeof(moveclip_t));
-	
-	clip.passedict = ent;
-	clip.contentmask = contentsmask;
-	
-	VectorCopy(start, clip.start);
-	VectorCopy(end, clip.end);
-
-	VectorCopy(mins, clip.mins);
-	VectorCopy(maxs, clip.maxs);
-	VectorCopy(mins, clip.mins2);
-	VectorCopy(maxs, clip.maxs2);
-
-	// create the bounding box of the entire move
-	SV_TraceBounds ( clip.start, clip.mins2, clip.maxs2, clip.end, clip.boxmins, clip.boxmaxs );
-
-	// all prepares finished			
-	SV_ClipMoveToEntities( &clip );
-
-	return clip.trace;
+	// correct ??
+	return CM_BoxTrace(start, end, mins, maxs, ent->priv.sv->headnode, contentsmask);
 }

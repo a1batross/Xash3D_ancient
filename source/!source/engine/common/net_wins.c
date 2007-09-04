@@ -367,12 +367,9 @@ bool	NET_GetPacket (netsrc_t sock, netadr_t *net_from, sizebuf_t *net_message)
 				continue;
 			}
 
-			if (dedicated->value)	// let dedicated servers continue after errors
-				Msg ("NET_GetPacket: %s from %s\n", NET_ErrorString(),
-						NET_AdrToString(*net_from));
-			else
-				Com_Error (ERR_DROP, "NET_GetPacket: %s from %s", 
-						NET_ErrorString(), NET_AdrToString(*net_from));
+			if (host.type == HOST_DEDICATED) // let dedicated servers continue after errors
+				Msg ("NET_GetPacket: %s from %s\n", NET_ErrorString(), NET_AdrToString(*net_from));
+			else Com_Error (ERR_DROP, "NET_GetPacket: %s from %s", NET_ErrorString(), NET_AdrToString(*net_from));
 			continue;
 		}
 
@@ -444,10 +441,9 @@ void NET_SendPacket (netsrc_t sock, int length, void *data, netadr_t to)
 		if ((err == WSAEADDRNOTAVAIL) && ((to.type == NA_BROADCAST) || (to.type == NA_BROADCAST_IPX)))
 			return;
 
-		if (dedicated->value)	// let dedicated servers continue after errors
+		if (host.type == HOST_DEDICATED) // let dedicated servers continue after errors
 		{
-			Msg ("NET_SendPacket ERROR: %s to %s\n", NET_ErrorString(),
-				NET_AdrToString (to));
+			Msg ("NET_SendPacket ERROR: %s to %s\n", NET_ErrorString(), NET_AdrToString (to));
 		}
 		else
 		{
@@ -533,12 +529,9 @@ NET_OpenIP
 void NET_OpenIP (void)
 {
 	cvar_t	*ip;
-	int		port;
-	int		dedicated;
+	int	port;
 
 	ip = Cvar_Get ("ip", "localhost", CVAR_NOSET);
-
-	dedicated = Cvar_VariableValue ("dedicated");
 
 	if (!ip_sockets[NS_SERVER])
 	{
@@ -552,12 +545,13 @@ void NET_OpenIP (void)
 			}
 		}
 		ip_sockets[NS_SERVER] = NET_IPSocket (ip->string, port);
-		if (!ip_sockets[NS_SERVER] && dedicated) Sys_Error("Couldn't allocate dedicated server IP port");
+		if (!ip_sockets[NS_SERVER] && host.type == HOST_DEDICATED)
+			Sys_Error("Couldn't allocate dedicated server IP port");
 	}
 
 
 	// dedicated servers don't need client ports
-	if (dedicated) return;
+	if (host.type == HOST_DEDICATED) return;
 
 	if (!ip_sockets[NS_CLIENT])
 	{
@@ -636,9 +630,6 @@ NET_OpenIPX
 void NET_OpenIPX (void)
 {
 	int		port;
-	int		dedicated;
-
-	dedicated = Cvar_VariableValue ("dedicated");
 
 	if (!ipx_sockets[NS_SERVER])
 	{
@@ -655,8 +646,7 @@ void NET_OpenIPX (void)
 	}
 
 	// dedicated servers don't need client ports
-	if (dedicated)
-		return;
+	if (host.type == HOST_DEDICATED) return;
 
 	if (!ipx_sockets[NS_CLIENT])
 	{
@@ -681,7 +671,7 @@ NET_Config
 A single player game will only use the loopback code
 ====================
 */
-void	NET_Config (bool multiplayer)
+void NET_Config (bool multiplayer)
 {
 	int		i;
 	static	bool	old_config;
@@ -719,24 +709,23 @@ void	NET_Config (bool multiplayer)
 // sleeps msec or until net socket is ready
 void NET_Sleep(float time)
 {
-    	struct timeval timeout;
-	fd_set	fdset;
-	extern cvar_t *dedicated;
-	int i;
+    	struct timeval	timeout;
+	fd_set		fdset;
+	int		i = 0;
 
-	if (!dedicated || !dedicated->value)
-		return; // we're not a server, just run full speed
-
+	// we're not a server, just run full speed
+	if (host.type == HOST_NORMAL) return; 
 	FD_ZERO(&fdset);
-	i = 0;
-	if (ip_sockets[NS_SERVER]) {
+
+	if (ip_sockets[NS_SERVER])
+	{
 		FD_SET(ip_sockets[NS_SERVER], &fdset); // network socket
 		i = ip_sockets[NS_SERVER];
 	}
-	if (ipx_sockets[NS_SERVER]) {
+	if (ipx_sockets[NS_SERVER])
+	{
 		FD_SET(ipx_sockets[NS_SERVER], &fdset); // network socket
-		if (ipx_sockets[NS_SERVER] > i)
-			i = ipx_sockets[NS_SERVER];
+		if (ipx_sockets[NS_SERVER] > i) i = ipx_sockets[NS_SERVER];
 	}
 	timeout.tv_sec = time;
 	timeout.tv_usec = fmod(time, 1.0f) * 1.0f;

@@ -1104,8 +1104,8 @@ void GetSoundtime(void)
 
 void S_Update_(void)
 {
-	unsigned        endtime;
-	int				samps;
+	uint		endtime;
+	int		samps;
 
 	if (!sound_started)
 		return;
@@ -1121,7 +1121,7 @@ void S_Update_(void)
 	// check to make sure that we haven't overshot
 	if (paintedtime < soundtime)
 	{
-		MsgWarn("S_Update_: overflow\n");
+		MsgWarn("S_Update_: overflow [%g]\n", soundtime - paintedtime);
 		paintedtime = soundtime;
 	}
 

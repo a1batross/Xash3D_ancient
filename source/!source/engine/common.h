@@ -136,10 +136,9 @@ void	MSG_ReadData (sizebuf_t *sb, void *buffer, int size);
 //============================================================================
 
 
-int	COM_Argc (void);
+int COM_Argc (void);
 char *COM_Argv (int arg);	// range and null checked
 void COM_ClearArgv (int arg);
-int COM_CheckParm (char *parm);
 
 void COM_Init (void);
 void COM_InitArgv (int argc, char **argv);
@@ -628,20 +627,17 @@ MISC
 #define	EXEC_INSERT	1		// insert at current position, but don't run yet
 #define	EXEC_APPEND	2		// add to end of the command buffer
 
-#define	PRINT_ALL		0
-#define PRINT_DEVELOPER	1	// only print when "developer 1"
+void Com_BeginRedirect (int target, char *buffer, int buffersize, void (*flush));
+void Com_EndRedirect (void);
+void Com_Printf (char *fmt, ...);
+void Com_DPrintf (int level, char *fmt, ...);
+void Com_DWarnf (char *fmt, ...);
+void Com_Error (int code, char *fmt, ...);
+void Com_Error_f ( void );
+void Com_Quit (void);
 
-void		Com_BeginRedirect (int target, char *buffer, int buffersize, void (*flush));
-void		Com_EndRedirect (void);
-void 		Com_Printf (char *fmt, ...);
-void 		Com_DPrintf (char *fmt, ...);
-void 		Com_DWarnf (char *fmt, ...);
-void 		Com_Error (int code, char *fmt, ...);
-void		Com_Error_f ( void );
-void 		Com_Quit (void);
-
-int			Com_ServerState (void);		// this should have just been a cvar...
-void		Com_SetServerState (int state);
+int Com_ServerState (void);		// this should have just been a cvar...
+void Com_SetServerState (int state);
 
 unsigned	Com_BlockChecksum (void *buffer, int length);
 byte		COM_BlockSequenceCRCByte (byte *base, int length, int sequence);
@@ -649,15 +645,7 @@ byte		COM_BlockSequenceCRCByte (byte *base, int length, int sequence);
 float	frand(void);	// 0 to 1
 float	crand(void);	// -1 to 1
 
-extern	cvar_t	*developer;
-extern	cvar_t	*dedicated;
 extern	cvar_t	*host_speeds;
-
-// host_speeds times
-extern	float		time_before_game;
-extern	float		time_after_game;
-extern	float		time_before_ref;
-extern	float		time_after_ref;
 
 #define NUMVERTEXNORMALS	162
 extern	vec3_t	bytedirs[NUMVERTEXNORMALS];

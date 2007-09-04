@@ -27,10 +27,13 @@ void EditorMain ( void );
 void FreeEditor ( void );
 
 extern int com_argc;
+extern int dev_mode;
 extern bool debug_mode;
 extern platform_exp_t *pi;
 extern char *com_argv[MAX_NUM_ARGVS];
 int CheckParm (const char *parm);
+bool _GetParmFromCmdLine( char *parm, char *out, size_t size );
+#define GetParmFromCmdLine( parm, out ) _GetParmFromCmdLine( parm, out, sizeof(out)) 
 
 /*
 ===========================================
@@ -38,7 +41,7 @@ System Events
 ===========================================
 */
 void GUI_Msg( const char *pMsg, ... );
-void GUI_MsgDev( const char *pMsg, ... );
+void GUI_MsgDev( int level, const char *pMsg, ... );
 void GUI_MsgWarn( const char *pMsg, ... );
 
 extern stdinout_api_t std;

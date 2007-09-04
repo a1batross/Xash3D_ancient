@@ -34,7 +34,47 @@ extern jmp_buf		abortframe;
 
 extern int host_debug;
 
-int Sys_Milliseconds (void);
+typedef enum
+{
+	HOST_INIT,	// initalize operations
+	HOST_FRAME,	// host running
+	HOST_SHUTDOWN,	// shutdown operations	
+	HOST_ERROR,	// host stopped by error
+	HOST_SLEEP,	// sleeped by different reason, e.g. minimize window
+	HOST_NOFOCUS,	// same as HOST_FRAME, but disable mouse and joy
+
+} host_state;
+
+typedef enum
+{
+	HOST_OFFLINE,	// host not running
+	HOST_NORMAL,	// normal mode
+	HOST_DEDICATED,	// dedicated mode
+} host_mode;
+
+typedef struct host_parm_s
+{
+	host_state	state;		// global host state
+	host_mode		type;		// running at
+
+	bool		debug;		// show all warnings mode
+	int		developer;	// show all developer's message
+
+	bool		paused;		// freeze server
+
+	dword		framecount;	// global framecount
+	double		realtime;		// host realtime
+	uint		sv_timer;		// SV_Input msg time
+	uint		cl_timer;		// CL_Input msg time
+
+	uint		maxclients;	// host max clients
+
+} host_parm_t;
+
+extern host_parm_t host;
+
+bool _GetParmFromCmdLine( char *parm, char *out, size_t size );
+#define GetParmFromCmdLine( parm, out ) _GetParmFromCmdLine( parm, out, sizeof(out)) 
 
 /*
 ===========================================

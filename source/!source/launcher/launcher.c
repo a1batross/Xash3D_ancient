@@ -13,6 +13,7 @@ bool show_always = true;
 bool about_mode = false;
 bool sys_error = false;
 char dllname[64];
+char caption[64];
 
 const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t          All Rights Reserved\n\n\t           Visit www.xash.ru\n";
 
@@ -70,6 +71,7 @@ void LookupInstance( const char *funcname )
 		if(!debug_mode) show_always = false;
 		strcpy(dllname, "bin/engine.dll" );
 		strcpy(log_path, "engine.log" ); // xash3d root directory
+		strcpy(caption, va("Xash3D ver.%g", CalcEngineVersion()));
 	}
 	else if(!strcmp(progname, "host_dedicated"))
 	{
@@ -77,6 +79,7 @@ void LookupInstance( const char *funcname )
 		console_read_only = false;
 		strcpy(dllname, "bin/engine.dll" );
 		strcpy(log_path, "engine.log" ); // xash3d root directory
+		strcpy(caption, va("Xash3D Dedicated Server ver.%g", CalcEngineVersion()));
 	}
 	else if(!strcmp(progname, "host_editor"))
 	{
@@ -86,35 +89,41 @@ void LookupInstance( const char *funcname )
 		if(!debug_mode) show_always = false;
 		strcpy(dllname, "bin/editor.dll" );
 		strcpy(log_path, "editor.log" ); // xash3d root directory
+		strcpy(caption, va("Xash3D Editor ver.%g", CalcEditorVersion()));
 	}
 	else if(!strcmp(progname, "bsplib"))
 	{
 		app_name = BSPLIB;
 		strcpy(dllname, "bin/platform.dll" );
 		strcpy(log_path, "bsplib.log" ); // xash3d root directory
+		strcpy(caption, "Xash3D BSP Compiler");
 	}
 	else if(!strcmp(progname, "qcclib"))
 	{
 		app_name = QCCLIB;
 		strcpy(dllname, "bin/platform.dll" );
 		sprintf(log_path, "%s/compile.log", sys_rootdir ); // same as .exe file
+		strcpy(caption, "Xash3D QuakeC Compiler");
 	}
 	else if(!strcmp(progname, "sprite"))
 	{
 		app_name = SPRITE;
 		strcpy(dllname, "bin/platform.dll" );
 		sprintf(log_path, "%s/spritegen.log", sys_rootdir ); // same as .exe file
+		strcpy(caption, "Xash3D Sprite Compiler");
 	}
 	else if(!strcmp(progname, "studio"))
 	{
 		app_name = STUDIO;
 		strcpy(dllname, "bin/platform.dll" );
 		sprintf(log_path, "%s/studiomdl.log", sys_rootdir ); // same as .exe file
+		strcpy(caption, "Xash3D Studio Models Compiler");
 	}
 	else if(!strcmp(progname, "credits")) //easter egg
 	{
 		app_name = CREDITS;
 		about_mode = true;
+		strcpy(caption, "About");
 	}
 	else app_name = DEFAULT;
 }
@@ -263,7 +272,7 @@ void CreateInstance( void )
 	std.input = Sys_Input;
           
 	// first text message into console or log
-	if(app_name != CREDITS) Msg("------- Loading bin/launcher.dll [%g] -------\n", LAUNCHER_VERSION );
+	if(app_name != CREDITS) MsgDev(D_INFO, "------- Loading bin/launcher.dll [%g] -------\n", LAUNCHER_VERSION );
 	
 	switch(app_name)
 	{
@@ -325,7 +334,7 @@ void HOST_MakeStubs( void )
 
 void API_Reset( void )
 {
-	Sys_InitConsole = NullVoid;
+	Sys_InitConsole = NullVoidWithName;
 	Sys_FreeConsole = NullVoid;
           Sys_ShowConsole = NullVoidWithArg;
 	
@@ -333,7 +342,7 @@ void API_Reset( void )
 	Sys_Error = NullVarArgs;
 
 	Msg = NullVarArgs;
-	MsgDev = NullVarArgs;
+	MsgDev = NullVarArgs2;
 	MsgWarn = NullVarArgs;
 }
 
@@ -361,7 +370,8 @@ void API_SetConsole( void )
 
 void InitLauncher( char *funcname )
 {
-	HANDLE hStdout;
+	HANDLE	hStdout;
+	char	dev_level[4];
 	
 	API_Reset();//filled stdinout api
 	
@@ -375,6 +385,8 @@ void InitLauncher( char *funcname )
 	if(CheckParm ("-log")) log_active = true;
 	if(abs((short)hStdout) < 100) hooked_out = false;
 	else hooked_out = true;
+	if(GetParmFromCmdLine("-dev", dev_level ))
+		dev_mode = atoi(dev_level);
 
 	UpdateEnvironmentVariables(); // set working directory
           
@@ -382,7 +394,7 @@ void InitLauncher( char *funcname )
 	LookupInstance( funcname );
 	HOST_MakeStubs();//make sure what all functions are filled
 	API_SetConsole(); //initialize system console
-	Sys_InitConsole();
+	Sys_InitConsole( caption );
 
 	CreateInstance();
 

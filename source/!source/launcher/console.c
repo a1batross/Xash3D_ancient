@@ -260,8 +260,8 @@ print into cmd32 console
 */
 void Sys_PrintA(const char *pMsg)
 {
-	fprintf (stdout, pMsg );
-	fflush (stdout); //refresh message
+	fprintf(stdout, pMsg );
+	fflush(stdout); //refresh message
 }
 
 /*
@@ -283,12 +283,12 @@ void Sys_MsgW( const char *pMsg, ... )
 	Sys_Print( text );
 }
 
-void Sys_MsgDevW( const char *pMsg, ... )
+void Sys_MsgDevW( int level, const char *pMsg, ... )
 {
 	va_list		argptr;
 	char text[MAX_INPUTLINE];
 	
-	if(debug_mode)
+	if(dev_mode >= level)
 	{
 		va_start (argptr, pMsg);
 		vsprintf (text, pMsg, argptr);
@@ -318,7 +318,7 @@ Sys_CreateConsoleW
 create win32 console
 ================
 */
-void Sys_CreateConsoleW( void )
+void Sys_CreateConsoleW( const char *caption )
 {
 	HDC hDC;
 	WNDCLASS wc;
@@ -351,7 +351,6 @@ void Sys_CreateConsoleW( void )
 		rect.right = 536;
 		rect.top = 0;
 		rect.bottom = 280;
-		strcpy(Title, "" );
 		strcpy(FontName, "Arial" );
 		fontsize = 16;
 	}
@@ -361,7 +360,6 @@ void Sys_CreateConsoleW( void )
 		rect.right = 536;
 		rect.top = 0;
 		rect.bottom = 364;
-		strcpy(Title, "Xash Console" );
 		strcpy(FontName, "Fixedsys" );
 		fontsize = 8;
 	}
@@ -371,10 +369,11 @@ void Sys_CreateConsoleW( void )
 		rect.right = 540;
 		rect.top = 0;
 		rect.bottom = 392;
-		strcpy(Title, "Xash Dedicated Console" );
 		strcpy(FontName, "Fixedsys" );
 		fontsize = 8;
 	}
+
+	strcpy(Title, caption );
 	AdjustWindowRect( &rect, DEDSTYLE, FALSE );
 
 	hDC = GetDC( GetDesktopWindow() );

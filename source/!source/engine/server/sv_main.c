@@ -252,7 +252,7 @@ void SVC_GetChallenge (void)
 		// overwrite the oldest
 		svs.challenges[oldest].challenge = rand() & 0x7fff;
 		svs.challenges[oldest].adr = net_from;
-		svs.challenges[oldest].time = curtime;
+		svs.challenges[oldest].time = host.realtime;
 		i = oldest;
 	}
 
@@ -282,7 +282,7 @@ void SVC_DirectConnect (void)
 
 	adr = net_from;
 
-	MsgDev ("SVC_DirectConnect()\n");
+	MsgDev (D_INFO, "SVC_DirectConnect()\n");
 
 	version = atoi(Cmd_Argv(1));
 	if (version != PROTOCOL_VERSION)
@@ -368,7 +368,7 @@ void SVC_DirectConnect (void)
 	if (!newcl)
 	{
 		Netchan_OutOfBandPrint (NS_SERVER, adr, "print\nServer is full.\n");
-		MsgDev("SVC_DirectConnect: Rejected a connection.\n");
+		MsgDev(D_INFO, "SVC_DirectConnect: Rejected a connection.\n");
 		return;
 	}
 
@@ -711,8 +711,6 @@ SV_RunGameFrame
 */
 void SV_RunGameFrame (void)
 {
-	if (host_speeds->value) time_before_game = Sys_DoubleTime();
-
 	// we always need to bump framenum, even if we
 	// don't run the world, otherwise the delta
 	// compression can get confused when a client
@@ -734,8 +732,6 @@ void SV_RunGameFrame (void)
 			svs.realtime = sv.time;
 		}
 	}
-
-	if (host_speeds->value) time_after_game = Sys_DoubleTime();
 }
 
 /*
@@ -746,8 +742,6 @@ SV_Frame
 */
 void SV_Frame (float time)
 {
-	time_before_game = time_after_game = 0;
-
 	// if server is not active, do nothing
 	if (!svs.initialized) return;
 
@@ -819,9 +813,8 @@ void Master_Heartbeat (void)
 	char		*string;
 	int			i;
 
-	// pgm post3.19 change, cvar pointer not validated before dereferencing
-	if (!dedicated || !dedicated->value)
-		return;		// only dedicated servers send heartbeats
+	// only dedicated servers send heartbeats
+	if (host.type == HOST_NORMAL) return;
 
 	// pgm post3.19 change, cvar pointer not validated before dereferencing
 	if (!public_server || !public_server->value)
@@ -861,22 +854,21 @@ void Master_Shutdown (void)
 {
 	int			i;
 
-	// pgm post3.19 change, cvar pointer not validated before dereferencing
-	if (!dedicated && !dedicated->value)
-		return;		// only dedicated servers send heartbeats
+	if (host.type == HOST_NORMAL) return; // only dedicated servers send heartbeats
 
 	// pgm post3.19 change, cvar pointer not validated before dereferencing
 	if (!public_server || !public_server->value)
 		return;		// a private dedicated game
 
 	// send to group master
-	for (i=0 ; i<MAX_MASTERS ; i++)
+	for ( i = 0; i < MAX_MASTERS; i++)
+	{
 		if (master_adr[i].port)
 		{
-			if (i > 0)
-				Msg ("Sending heartbeat to %s\n", NET_AdrToString (master_adr[i]));
+			if (i > 0) Msg ("Sending heartbeat to %s\n", NET_AdrToString (master_adr[i]));
 			Netchan_OutOfBandPrint (NS_SERVER, master_adr[i], "shutdown");
 		}
+	}
 }
 
 //============================================================================

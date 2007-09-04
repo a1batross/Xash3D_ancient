@@ -1002,7 +1002,7 @@ bool R_SetMode (void)
 
 	if ( vid_fullscreen->modified && !gl_config.allow_cds )
 	{
-		Msg("R_SetMode() - CDS not allowed with this driver\n" );
+		MsgWarn("R_SetMode: CDS not allowed with this driver\n" );
 		ri.Cvar_SetValue( "vid_fullscreen", !vid_fullscreen->value );
 		vid_fullscreen->modified = false;
 	}
@@ -1022,7 +1022,7 @@ bool R_SetMode (void)
 		{
 			ri.Cvar_SetValue( "vid_fullscreen", 0);
 			vid_fullscreen->modified = false;
-			Msg("R_SetMode() - fullscreen unavailable in this mode\n" );
+			MsgWarn("R_SetMode: fullscreen unavailable in this mode\n" );
 			if ( ( err = GLimp_SetMode( &vid.width, &vid.height, gl_mode->value, false ) ) == rserr_ok )
 				return true;
 		}
@@ -1030,13 +1030,13 @@ bool R_SetMode (void)
 		{
 			ri.Cvar_SetValue( "gl_mode", gl_state.prev_mode );
 			gl_mode->modified = false;
-			Msg("R_SetMode() - invalid mode\n" );
+			MsgWarn("R_SetMode: invalid mode\n" );
 		}
 
 		// try setting it back to something safe
 		if ( ( err = GLimp_SetMode( &vid.width, &vid.height, gl_state.prev_mode, false ) ) != rserr_ok )
 		{
-			Msg("R_SetMode() - could not revert to safe mode\n" );
+			MsgWarn("R_SetMode: could not revert to safe mode\n" );
 			return false;
 		}
 	}
@@ -1091,18 +1091,18 @@ int R_Init( void *hinstance, void *hWnd )
 		return false;
 	}
 
-	Msg("------- Loading bin/renderer.dll [%g] -------\n", RENDERER_VERSION );
+	MsgDev(D_INFO, "------- Loading bin/renderer.dll [%g] -------\n", RENDERER_VERSION );
 	ri.Vid_MenuInit();
 	
 	//get our various GL strings
 	gl_config.vendor_string = qglGetString (GL_VENDOR);
-	MsgDev("GL_VENDOR: %s\n", gl_config.vendor_string );
+	MsgDev(D_INFO, "GL_VENDOR: %s\n", gl_config.vendor_string );
 	gl_config.renderer_string = qglGetString (GL_RENDERER);
-	MsgDev("GL_RENDERER: %s\n", gl_config.renderer_string );
+	MsgDev(D_INFO, "GL_RENDERER: %s\n", gl_config.renderer_string );
 	gl_config.version_string = qglGetString (GL_VERSION);
-	MsgDev("GL_VERSION: %s\n", gl_config.version_string );
+	MsgDev(D_INFO, "GL_VERSION: %s\n", gl_config.version_string );
 	gl_config.extensions_string = qglGetString (GL_EXTENSIONS);
-	MsgDev("GL_EXTENSIONS: %s\n", gl_config.extensions_string );
+	MsgDev(D_INFO, "GL_EXTENSIONS: %s\n", gl_config.extensions_string );
 
 	strcpy( renderer_buffer, gl_config.renderer_string );
 	strlwr( renderer_buffer );
@@ -1125,20 +1125,20 @@ int R_Init( void *hinstance, void *hWnd )
 	*/
 	if ( strstr( gl_config.extensions_string, "GL_EXT_compiled_vertex_array" ) || strstr( gl_config.extensions_string, "GL_SGI_compiled_vertex_array" ) )
 	{
-		MsgDev("...enabling GL_EXT_compiled_vertex_array\n" );
+		MsgDev(D_INFO, "...enabling GL_EXT_compiled_vertex_array\n" );
 		qglLockArraysEXT = ( void * ) qwglGetProcAddress( "glLockArraysEXT" );
 		qglUnlockArraysEXT = ( void * ) qwglGetProcAddress( "glUnlockArraysEXT" );
 	}
-	else MsgDev("...GL_EXT_compiled_vertex_array not found\n" );
+	else MsgDev(D_WARN, "...GL_EXT_compiled_vertex_array not found\n" );
 
 	if ( strstr( gl_config.extensions_string, "WGL_EXT_swap_control" ) )
 	{
 		qwglSwapIntervalEXT = ( BOOL (WINAPI *)(int)) qwglGetProcAddress( "wglSwapIntervalEXT" );
-		Msg("...enabling WGL_EXT_swap_control\n" );
+		MsgDev(D_INFO, "...enabling WGL_EXT_swap_control\n" );
 	}
 	else
 	{
-		Msg("...WGL_EXT_swap_control not found\n" );
+		MsgDev(D_WARN, "...WGL_EXT_swap_control not found\n" );
 	}
 
 	if (strstr( gl_config.extensions_string, "GL_ARB_texture_compression" ))
@@ -1160,23 +1160,23 @@ int R_Init( void *hinstance, void *hWnd )
 		{
 			qglPointParameterfEXT = ( void (APIENTRY *)( GLenum, GLfloat ) ) qwglGetProcAddress( "glPointParameterfEXT" );
 			qglPointParameterfvEXT = ( void (APIENTRY *)( GLenum, const GLfloat * ) ) qwglGetProcAddress( "glPointParameterfvEXT" );
-			Msg("...using GL_EXT_point_parameters\n" );
+			MsgDev(D_INFO, "...using GL_EXT_point_parameters\n" );
 		}
 		else
 		{
-			Msg("...ignoring GL_EXT_point_parameters\n" );
+			MsgDev(D_INFO, "...ignoring GL_EXT_point_parameters\n" );
 		}
 	}
 	else
 	{
-		Msg("...GL_EXT_point_parameters not found\n" );
+		MsgDev(D_WARN, "...GL_EXT_point_parameters not found\n" );
 	}
 
 	if ( strstr( gl_config.extensions_string, "GL_ARB_multitexture" ) )
 	{
 		if ( gl_ext_multitexture->value )
 		{
-			MsgDev("...using GL_ARB_multitexture\n" );
+			MsgDev(D_INFO, "...using GL_ARB_multitexture\n" );
 			qglMTexCoord2fSGIS = ( void * ) qwglGetProcAddress( "glMultiTexCoord2fARB" );
 			qglActiveTextureARB = ( void * ) qwglGetProcAddress( "glActiveTextureARB" );
 			qglClientActiveTextureARB = ( void * ) qwglGetProcAddress( "glClientActiveTextureARB" );
@@ -1185,33 +1185,33 @@ int R_Init( void *hinstance, void *hWnd )
 		}
 		else
 		{
-			MsgDev("...ignoring GL_ARB_multitexture\n" );
+			MsgDev(D_INFO, "...ignoring GL_ARB_multitexture\n" );
 		}
 	}
 	else
 	{
-		Msg("...GL_ARB_multitexture not found\n" );
+		MsgDev(D_WARN, "...GL_ARB_multitexture not found\n" );
 	}
 
 	if ( strstr( gl_config.extensions_string, "GL_NV_texture_rectangle" ) )
 	{
-		Msg("...using GL_NV_texture_rectangle\n");
+		MsgDev(D_INFO, "...using GL_NV_texture_rectangle\n");
 		gl_state.nv_tex_rectangle = true;
 	}
 	else
 	{
-		Msg("...GL_NV_texture_rectangle not found\n");
+		MsgDev(D_WARN, "...GL_NV_texture_rectangle not found\n");
 		gl_state.nv_tex_rectangle = false;
 	}
 
 	if ( strstr( gl_config.extensions_string, "GL_EXT_texture_rectangle" ) )
 	{
-		Msg("...using GL_EXT_texture_rectangle\n");
+		MsgDev(D_INFO, "...using GL_EXT_texture_rectangle\n");
 		gl_state.ati_tex_rectangle = true;
 	}
 	else
 	{
-		Msg("...GL_EXT_texture_rectangle not found\n");
+		MsgDev(D_WARN, "...GL_EXT_texture_rectangle not found\n");
 		gl_state.ati_tex_rectangle = false;
 	}
 
@@ -1219,11 +1219,11 @@ int R_Init( void *hinstance, void *hWnd )
 	{
 		if ( qglActiveTextureARB )
 		{
-			Msg("...GL_SGIS_multitexture deprecated in favor of ARB_multitexture\n" );
+			MsgDev(D_INFO, "...GL_SGIS_multitexture deprecated in favor of ARB_multitexture\n" );
 		}
 		else if ( gl_ext_multitexture->value )
 		{
-			Msg("...using GL_SGIS_multitexture\n" );
+			MsgDev(D_INFO, "...using GL_SGIS_multitexture\n" );
 			qglMTexCoord2fSGIS = ( void * ) qwglGetProcAddress( "glMTexCoord2fSGIS" );
 			qglSelectTextureSGIS = ( void * ) qwglGetProcAddress( "glSelectTextureSGIS" );
 			GL_TEXTURE0 = GL_TEXTURE0_SGIS;
@@ -1231,21 +1231,18 @@ int R_Init( void *hinstance, void *hWnd )
 		}
 		else
 		{
-			Msg("...ignoring GL_SGIS_multitexture\n" );
+			MsgDev(D_INFO, "...ignoring GL_SGIS_multitexture\n" );
 		}
 	}
 	else
 	{
-		Msg("...GL_SGIS_multitexture not found\n" );
+		MsgDev(D_WARN, "...GL_SGIS_multitexture not found\n" );
 	}
 
 	GL_SetDefaultState();
 
 	// draw our stereo patterns
-
-#if 0 // commented out until H3D pays us the money they owe us
 	GL_DrawStereoPattern();
-#endif
 
 	R_InitTextures();
 	Mod_Init ();
@@ -1254,7 +1251,7 @@ int R_Init( void *hinstance, void *hWnd )
           R_StudioInit();
 	
 	err = qglGetError();
-	if ( err != GL_NO_ERROR ) Msg("glGetError() = 0x%x\n", err);
+	if ( err != GL_NO_ERROR ) MsgWarn("glGetError = 0x%x\n", err);
 
 	return 1;
 }
