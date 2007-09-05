@@ -731,18 +731,17 @@ void PRVM_ED_PrintEdict_f (void)
 
 	if(Cmd_Argc() != 3)
 	{
-		Con_Print("prvm_edict <program name> <edict number>\n");
+		Msg("prvm_edict <program name> <edict number>\n");
 		return;
 	}
 
 	PRVM_Begin;
-	if(!PRVM_SetProgFromString(Cmd_Argv(1)))
-		return;
+	if(!PRVM_SetProgFromString(Cmd_Argv(1))) return;
 
 	i = atoi (Cmd_Argv(2));
 	if (i >= prog->num_edicts)
 	{
-		Con_Print("Bad edict number\n");
+		Msg("Bad edict number\n");
 		PRVM_End;
 		return;
 	}
@@ -1029,7 +1028,7 @@ Used for initial level load and for savegames.
 const char *PRVM_ED_ParseEdict (const char *data, prvm_edict_t *ent)
 {
 	ddef_t *key;
-	bool init;
+	bool init, newline;
 	char keyname[256];
 	size_t n;
 
@@ -1042,8 +1041,9 @@ const char *PRVM_ED_ParseEdict (const char *data, prvm_edict_t *ent)
 		if (!COM_Parse(&data))
 			PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
 
-		MsgDev(D_INFO, "Key: \"%s\"", COM_Token());
-		if (COM_Token()[0] == '}') break;
+		newline = (COM_Token()[0] == '}') ? true : false;
+		if(!newline) MsgDev(D_INFO, "Key: \"%s\"", COM_Token());
+		else break;
 		
 		strncpy (keyname, COM_Token(), sizeof(keyname));
 
@@ -1121,8 +1121,7 @@ void PRVM_ED_LoadFromFile (const char *data)
 	while (1)
 	{
 		// parse the opening brace
-		if (!COM_Parse(&data))
-			break;
+		if (!COM_Parse(&data)) break;
 		if (COM_Token()[0] != '{')
 			PRVM_ERROR ("PRVM_ED_LoadFromFile: %s: found %s when expecting {", PRVM_NAME, COM_Token());
 
@@ -1153,7 +1152,7 @@ void PRVM_ED_LoadFromFile (const char *data)
 		// immediately call spawn function, but only if there is a self global and a classname
 		if(prog->self && prog->flag & PRVM_FE_CLASSNAME)
 		{
-			string_t handle =  *(string_t*)&((unsigned char*)ent->fields.vp)[PRVM_ED_FindFieldOffset("classname")];
+			string_t handle =  *(string_t*)&((byte*)ent->fields.vp)[PRVM_ED_FindFieldOffset("classname")];
 			if (!handle)
 			{
 				if(host.debug)

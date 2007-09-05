@@ -106,7 +106,7 @@ bool SV_SetPlayer (void)
 	if (s[0] >= '0' && s[0] <= '9')
 	{
 		idnum = atoi(Cmd_Argv(1));
-		if (idnum < 0 || idnum >= maxclients->value)
+		if (idnum < 0 || idnum >= host.maxclients)
 		{
 			Msg ("Bad client slot: %i\n", idnum);
 			return false;
@@ -123,7 +123,7 @@ bool SV_SetPlayer (void)
 	}
 
 	// check for a name match
-	for (i=0,cl=svs.clients ; i<maxclients->value; i++,cl++)
+	for (i=0,cl=svs.clients ; i < host.maxclients; i++,cl++)
 	{
 		if (!cl->state)
 			continue;
@@ -192,8 +192,8 @@ void SV_GameMap_f (void)
 			// clear all the client inuse flags before saving so that
 			// when the level is re-entered, the clients will spawn
 			// at spawn points instead of occupying body shells
-			savedInuse = Z_Malloc(maxclients->value * sizeof(bool));
-			for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
+			savedInuse = Z_Malloc(host.maxclients * sizeof(bool));
+			for (i = 0, cl = svs.clients; i < host.maxclients; i++, cl++)
 			{
 				savedInuse[i] = cl->edict->priv.sv->free;
 				cl->edict->priv.sv->free = false;
@@ -202,7 +202,7 @@ void SV_GameMap_f (void)
 			SV_WriteSaveFile( "save0" ); //autosave
 
 			// we must restore these for clients to transfer over correctly
-			for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
+			for (i = 0, cl = svs.clients; i < host.maxclients; i++, cl++)
 				cl->edict->priv.sv->free = savedInuse[i];
 			Z_Free (savedInuse);
 		}
@@ -239,11 +239,11 @@ void SV_Map_f (void)
 
 		SCR_BeginLoadingPlaque (); // for local system
 		SV_BroadcastCommand ("changing\n");
+
 		SV_SendClientMessages ();
 		SV_SpawnServer (level_path, NULL, NULL, ss_game, false, false);
 		Cbuf_CopyToDefer ();
-		
-		SV_BroadcastCommand ("reconnect\n");
+		//SV_BroadcastCommand ("reconnect\n");
 		strncpy (svs.mapcmd, Cmd_Argv(1), sizeof(svs.mapcmd) - 1); // archive server state
 	}
 	else Msg ("Can't loading %s\n", level_path);
@@ -314,7 +314,7 @@ void SV_Savegame_f (void)
 		return;
 	}
 
-	if (maxclients->value == 1 && svs.clients[0].edict->priv.sv->client->stats[STAT_HEALTH] <= 0)
+	if (host.maxclients == 1 && svs.clients[0].edict->priv.sv->client->stats[STAT_HEALTH] <= 0)
 	{
 		Msg ("\nCan't savegame while dead!\n");
 		return;
@@ -382,7 +382,7 @@ void SV_Status_f (void)
 
 	Msg ("num score ping name            lastmsg address               qport \n");
 	Msg ("--- ----- ---- --------------- ------- --------------------- ------\n");
-	for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
+	for (i = 0, cl = svs.clients; i < host.maxclients; i++, cl++)
 	{
 		if (!cl->state) continue;
 		Msg ("%3i ", i);
@@ -403,7 +403,7 @@ void SV_Status_f (void)
 		for (j=0 ; j<l ; j++)
 			Msg (" ");
 
-		Msg ("%7i ", svs.realtime - cl->lastmessage );
+		Msg ("%g ", svs.realtime - cl->lastmessage );
 
 		s = NET_AdrToString ( cl->netchan.remote_address);
 		Msg ("%s", s);
@@ -444,7 +444,7 @@ void SV_ConSay_f(void)
 
 	strcat(text, p);
 
-	for (j = 0, client = svs.clients; j < maxclients->value; j++, client++)
+	for (j = 0, client = svs.clients; j < host.maxclients; j++, client++)
 	{
 		if (client->state != cs_spawned)
 			continue;

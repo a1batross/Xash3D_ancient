@@ -128,7 +128,7 @@ char	*SV_StatusString (void)
 	strcat (status, "\n");
 	statusLength = strlen(status);
 
-	for (i=0 ; i<maxclients->value ; i++)
+	for (i=0 ; i<host.maxclients ; i++)
 	{
 		cl = &svs.clients[i];
 		if (cl->state == cs_connected || cl->state == cs_spawned )
@@ -182,7 +182,7 @@ void SVC_Info (void)
 	int		i, count;
 	int		version;
 
-	if (maxclients->value == 1)
+	if (host.maxclients == 1)
 		return;		// ignore in single player
 
 	version = atoi (Cmd_Argv(1));
@@ -192,11 +192,11 @@ void SVC_Info (void)
 	else
 	{
 		count = 0;
-		for (i=0 ; i<maxclients->value ; i++)
+		for (i=0 ; i<host.maxclients ; i++)
 			if (svs.clients[i].state >= cs_connected)
 				count++;
 
-		sprintf (string, "%16s %8s %2i/%2i\n", hostname->string, sv.name, count, (int)maxclients->value);
+		sprintf (string, "%16s %8s %2i/%2i\n", hostname->string, sv.name, count, (int)host.maxclients);
 	}
 
 	Netchan_OutOfBandPrint (NS_SERVER, net_from, "info\n%s", string);
@@ -336,7 +336,7 @@ void SVC_DirectConnect (void)
 	memset (newcl, 0, sizeof(client_t));
 
 	// if there is already a slot for this ip, reuse it
-	for (i=0,cl=svs.clients ; i<maxclients->value ; i++,cl++)
+	for (i=0,cl=svs.clients ; i<host.maxclients ; i++,cl++)
 	{
 		if (cl->state == cs_free)
 			continue;
@@ -357,7 +357,7 @@ void SVC_DirectConnect (void)
 
 	// find a client slot
 	newcl = NULL;
-	for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
+	for (i = 0, cl = svs.clients; i < host.maxclients; i++, cl++)
 	{
 		if (cl->state == cs_free)
 		{
@@ -387,7 +387,6 @@ gotnewcl:
 	prog->globals.server->time = sv.time;
 	prog->globals.server->self = PRVM_EDICT_TO_PROG(sv_client->edict);
 	PRVM_ExecuteProgram (prog->globals.server->ClientConnect, "QC function ClientConnect is missing");
-	PRVM_ExecuteProgram (prog->globals.server->PutClientInServer, "QC function PutClientInServer is missing");
 
 	//if (!(ge->ClientConnect (ent, userinfo)))
 	/*{
@@ -515,7 +514,7 @@ void SV_CalcPings (void)
 	client_t	*cl;
 	int			total, count;
 
-	for (i=0 ; i<maxclients->value ; i++)
+	for (i=0 ; i<host.maxclients ; i++)
 	{
 		cl = &svs.clients[i];
 		if (cl->state != cs_spawned )
@@ -566,16 +565,16 @@ void SV_GiveMsec (void)
 	int			i;
 	client_t	*cl;
 
-	if (sv.framenum & 15)
-		return;
+	if (sv.framenum & 15) return;
 
-	for (i=0 ; i<maxclients->value ; i++)
+	for (i = 0; i < host.maxclients; i++)
 	{
 		cl = &svs.clients[i];
+
 		if (cl->state == cs_free )
 			continue;
 		
-		cl->commandMsec = 1800;		// 1600 + some slop
+		cl->commandMsec = 1800; // 1600 + some slop
 	}
 }
 
@@ -608,7 +607,7 @@ void SV_ReadPackets (void)
 		qport = MSG_ReadShort (&net_message) & 0xffff;
 
 		// check for packets from connected clients
-		for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
+		for (i = 0, cl = svs.clients; i < host.maxclients; i++, cl++)
 		{
 			if (cl->state == cs_free)
 				continue;
@@ -634,7 +633,7 @@ void SV_ReadPackets (void)
 			break;
 		}
 		
-		if (i != maxclients->value)
+		if (i != host.maxclients)
 			continue;
 	}
 }
@@ -662,7 +661,7 @@ void SV_CheckTimeouts (void)
 	droppoint = svs.realtime - timeout->value;
 	zombiepoint = svs.realtime - zombietime->value;
 
-	for (i=0,cl=svs.clients ; i<maxclients->value ; i++,cl++)
+	for (i=0,cl=svs.clients ; i<host.maxclients ; i++,cl++)
 	{
 		// message times may be wrong across a changelevel
 		if (cl->lastmessage > svs.realtime) cl->lastmessage = svs.realtime;
@@ -703,37 +702,6 @@ void SV_PrepWorldFrame (void)
 	}
 }
 
-
-/*
-=================
-SV_RunGameFrame
-=================
-*/
-void SV_RunGameFrame (void)
-{
-	// we always need to bump framenum, even if we
-	// don't run the world, otherwise the delta
-	// compression can get confused when a client
-	// has the "current" frame
-
-	sv.framenum++;
-	sv.time = sv.framenum * 0.1;
-
-	// don't run if paused
-	if (!sv_paused->value || maxclients->value > 1)
-	{
-		SV_Physics();
-
-		// never get more than one tic behind
-		if (sv.time < svs.realtime)
-		{
-			if (sv_showclamp->value)
-				Msg ("sv highclamp\n");
-			svs.realtime = sv.time;
-		}
-	}
-}
-
 /*
 ==================
 SV_Frame
@@ -745,7 +713,7 @@ void SV_Frame (float time)
 	// if server is not active, do nothing
 	if (!svs.initialized) return;
 
-    	svs.realtime += time;
+    	svs.realtime += host.realtime;
 
 	// keep the random time dependent
 	rand ();
@@ -779,7 +747,7 @@ void SV_Frame (float time)
 	SV_GiveMsec ();
 
 	// let everything in the world think and move
-	SV_RunGameFrame ();
+	SV_Physics();
 
 	// send messages back to the clients that had packets read this frame
 	SV_SendClientMessages ();
@@ -942,8 +910,7 @@ void SV_Init (void)
 	Cvar_Get ("timelimit", "0", CVAR_SERVERINFO);
 	Cvar_Get ("cheats", "0", CVAR_SERVERINFO|CVAR_LATCH);
 	Cvar_Get ("protocol", va("%i", PROTOCOL_VERSION), CVAR_SERVERINFO|CVAR_NOSET);;
-	maxclients = Cvar_Get ("maxclients", "1", CVAR_SERVERINFO | CVAR_LATCH);
-	hostname = Cvar_Get ("hostname", "noname", CVAR_SERVERINFO | CVAR_ARCHIVE);
+	hostname = Cvar_Get ("hostname", "unnamed", CVAR_SERVERINFO | CVAR_ARCHIVE);
 	timeout = Cvar_Get ("timeout", "125", 0);
 	zombietime = Cvar_Get ("zombietime", "2", 0);
 	sv_showclamp = Cvar_Get ("showclamp", "0", 0);
@@ -1007,12 +974,12 @@ void SV_FinalMessage (char *message, bool reconnect)
 	// send it twice
 	// stagger the packets to crutch operating system limited buffers
 
-	for (i=0, cl = svs.clients ; i<maxclients->value ; i++, cl++)
+	for (i=0, cl = svs.clients ; i<host.maxclients ; i++, cl++)
 		if (cl->state >= cs_connected)
 			Netchan_Transmit (&cl->netchan, net_message.cursize
 			, net_message.data);
 
-	for (i=0, cl = svs.clients ; i<maxclients->value ; i++, cl++)
+	for (i=0, cl = svs.clients ; i<host.maxclients ; i++, cl++)
 		if (cl->state >= cs_connected)
 			Netchan_Transmit (&cl->netchan, net_message.cursize
 			, net_message.data);

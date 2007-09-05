@@ -23,8 +23,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 cvar_t	*cl_nodelta;
 
-unsigned	frame_msec;
-unsigned	old_sys_frame_time;
+uint	frame_msec;
+uint	old_sys_frame_time;
 
 /*
 ===============================================================================
@@ -335,19 +335,14 @@ void CL_FinishMove (usercmd_t *cmd)
 	int		ms;
 	int		i;
 
-//
-// figure button bits
-//	
-	if ( in_attack.state & 3 )
-		cmd->buttons |= BUTTON_ATTACK;
+	// figure button bits
+	if ( in_attack.state & 3 ) cmd->buttons |= BUTTON_ATTACK;
 	in_attack.state &= ~2;
 	
-	if (in_use.state & 3)
-		cmd->buttons |= BUTTON_USE;
+	if (in_use.state & 3) cmd->buttons |= BUTTON_USE;
 	in_use.state &= ~2;
 
-	if (anykeydown && cls.key_dest == key_game)
-		cmd->buttons |= BUTTON_ANY;
+	if (anykeydown && cls.key_dest == key_game) cmd->buttons |= BUTTON_ANY;
 
 	// send milliseconds of time to apply the move
 	ms = cls.frametime * 1000;
@@ -355,13 +350,12 @@ void CL_FinishMove (usercmd_t *cmd)
 	cmd->msec = ms;
 
 	CL_ClampPitch ();
-	for (i=0 ; i<3 ; i++)
-		cmd->angles[i] = ANGLE2SHORT(cl.viewangles[i]);
+	for (i = 0; i < 3; i++) cmd->angles[i] = ANGLE2SHORT(cl.viewangles[i]);
 
 	cmd->impulse = in_impulse;
 	in_impulse = 0;
 
-// send the ambient light level at the player's current position
+	// send the ambient light level at the player's current position
 	cmd->lightlevel = (byte)cl_lightlevel->value;
 }
 

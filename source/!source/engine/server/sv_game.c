@@ -146,7 +146,7 @@ void PF_setmodel( void )
 
 	i = SV_ModelIndex(PRVM_G_STRING(OFS_PARM1));
 	e->fields.sv->model = PRVM_SetEngineString(sv.configstrings[CS_MODELS+i]);
-	e->fields.sv->modelindex = i;
+	e->fields.sv->modelindex = e->priv.sv->state.modelindex = i;
 
 	mod = CM_LoadModel(sv.configstrings[CS_MODELS+i]);
 	if(mod) SetMinMaxSize( e, mod->mins, mod->maxs, false );
@@ -169,7 +169,7 @@ void PF_sprint (void)
 
 	num = PRVM_G_EDICTNUM(OFS_PARM0);
 
-	if (num < 1 || num > maxclients->value || svs.clients[num - 1].state != cs_spawned)
+	if (num < 1 || num > host.maxclients || svs.clients[num - 1].state != cs_spawned)
 	{
 		VM_Warning("tried to centerprint to a non-client\n");
 		return;
@@ -199,7 +199,7 @@ void PF_centerprint (void)
 
 	num = PRVM_G_EDICTNUM(OFS_PARM0);
 
-	if(num < 1 || num > maxclients->value || svs.clients[num-1].state != cs_spawned)
+	if(num < 1 || num > host.maxclients || svs.clients[num-1].state != cs_spawned)
 	{
 		VM_Warning("tried to centerprint to a non-client\n");
 		return;
@@ -460,8 +460,8 @@ int PF_newcheckclient (int check)
 	vec3_t	org;
 
 	// cycle to the next one
-	check = bound(1, check, maxclients->value);
-	if (check == maxclients->value) i = 1;
+	check = bound(1, check, host.maxclients);
+	if (check == host.maxclients) i = 1;
 	else i = check + 1;
 
 	for (;; i++)
@@ -469,7 +469,7 @@ int PF_newcheckclient (int check)
 		// count the cost
 		prog->xfunction->builtinsprofile++;
 		// wrap around
-		if (i == maxclients->value + 1) i = 1;
+		if (i == host.maxclients + 1) i = 1;
 		// look up the client's edict
 		ent = PRVM_EDICT_NUM(i);
 		// check if it is to be ignored, but never ignore the one we started on (prevent infinite loop)
@@ -609,7 +609,6 @@ void SV_ConfigString (int index, const char *val)
 	// change the string in sv
 	strcpy (sv.configstrings[index], val);
 
-	Msg("SV_ConfigString[%i]\"%s\"\n", index, val );
 	if (sv.state != ss_loading)
 	{
 		// send the update to everyone
@@ -648,7 +647,7 @@ void PF_stuffcmd (void)
 	char		string[VM_STRINGTEMP_LENGTH];
 
 	entnum = PRVM_G_EDICTNUM(OFS_PARM0);
-	if (entnum < 1 || entnum > maxclients->value || svs.clients[entnum-1].state != cs_spawned)
+	if (entnum < 1 || entnum > host.maxclients || svs.clients[entnum-1].state != cs_spawned)
 	{
 		VM_Warning("Can't stuffcmd to a non-client\n");
 		return;
@@ -1186,7 +1185,7 @@ void PF_setspawnparms (void)
 
 	ent = PRVM_G_EDICT(OFS_PARM0);
 	i = PRVM_NUM_FOR_EDICT(ent);
-	if (i < 1 || i > maxclients->value || svs.clients[i-1].state != cs_spawned)
+	if (i < 1 || i > host.maxclients || svs.clients[i-1].state != cs_spawned)
 	{
 		Msg("tried to setspawnparms on a non-client\n");
 		return;
@@ -1280,7 +1279,7 @@ void PF_clientcommand (void)
 
 	//find client for this entity
 	i = (PRVM_NUM_FOR_EDICT(PRVM_G_EDICT(OFS_PARM0)) - 1);
-	if (i < 0 || i >= maxclients->value || svs.clients[i].state != cs_spawned)
+	if (i < 0 || i >= host.maxclients || svs.clients[i].state != cs_spawned)
 	{
 		Msg("PF_clientcommand: entity is not a client\n");
 		return;
@@ -1296,7 +1295,7 @@ void PF_dropclient (void)
 {
 	int clientnum = PRVM_G_EDICTNUM(OFS_PARM0) - 1;
 
-	if (clientnum < 0 || clientnum >= maxclients->value)
+	if (clientnum < 0 || clientnum >= host.maxclients)
 	{
 		VM_Warning("dropclient: not a client\n");
 		return;
@@ -1317,7 +1316,7 @@ void PF_spawnclient (void)
 	prog->xfunction->builtinsprofile += 2;
 	ed = prog->edicts;
 
-	for (i = 0;i < maxclients->value; i++)
+	for (i = 0;i < host.maxclients; i++)
 	{
 		if (svs.clients[i].state != cs_spawned)
 		{
@@ -1336,7 +1335,7 @@ void PF_clienttype (void)
 {
 	int clientnum = PRVM_G_EDICTNUM(OFS_PARM0) - 1;
 
-	if (clientnum < 0 || clientnum >= maxclients->value)
+	if (clientnum < 0 || clientnum >= host.maxclients)
 		PRVM_G_FLOAT(OFS_RETURN) = 3;
 	else if (svs.clients[clientnum].state == cs_spawned)
 		PRVM_G_FLOAT(OFS_RETURN) = 0;

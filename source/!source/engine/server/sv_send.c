@@ -112,7 +112,7 @@ void SV_BroadcastPrintf (int level, char *fmt, ...)
 		Msg ("%s", copy);
 	}
 
-	for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
+	for (i = 0, cl = svs.clients; i < host.maxclients; i++, cl++)
 	{
 		if (level < cl->messagelevel)
 			continue;
@@ -136,7 +136,7 @@ void SV_BroadcastCommand (char *fmt, ...)
 	va_list		argptr;
 	char		string[1024];
 	
-	if (sv.state != ss_loading) return;
+	if (!sv.state) return;
 	va_start (argptr,fmt);
 	vsprintf (string, fmt,argptr);
 	va_end (argptr);
@@ -165,7 +165,7 @@ void _MSG_Send (msgtype_t to, vec3_t origin, prvm_edict_t *ent, const char *file
 	byte		*mask = NULL;
 	int		leafnum = 0, cluster = 0;
 	int		area1 = 0, area2 = 0;
-	int		j, numclients = maxclients->value;
+	int		j, numclients = host.maxclients;
 	client_t		*client, *current = svs.clients;
 	bool		reliable = false;
 
@@ -229,7 +229,7 @@ void _MSG_Send (msgtype_t to, vec3_t origin, prvm_edict_t *ent, const char *file
 		{
 			area2 = CM_LeafArea (leafnum);
 			cluster = CM_LeafCluster (leafnum);
-			leafnum = CM_PointLeafnum (client->edict->priv.sv->state.origin);
+			leafnum = CM_PointLeafnum (client->edict->fields.sv->origin);
 			if (!CM_AreasConnected (area1, area2)) continue;
 			if ( mask && (!(mask[cluster>>3] & (1<<(cluster & 7))))) continue;
 		}
@@ -316,7 +316,7 @@ void SV_StartSound (vec3_t origin, prvm_edict_t *entity, int channel, int soundi
 
 	// the client doesn't know that bmodels have weird origins
 	// the origin can also be explicitly set
-	if ( (entity->priv.sv->flags & SVF_NOCLIENT) || (entity->priv.sv->solid == SOLID_BSP) || origin )
+	if (((int)entity->fields.sv->flags & SVF_NOCLIENT) || (entity->fields.sv->solid == SOLID_BSP) || origin )
 		flags |= SND_POS;
 
 	// always send the entity number for channel overrides
@@ -328,16 +328,16 @@ void SV_StartSound (vec3_t origin, prvm_edict_t *entity, int channel, int soundi
 	if (!origin)
 	{
 		origin = origin_v;
-		if (entity->priv.sv->solid == SOLID_BSP)
+		if (entity->fields.sv->solid == SOLID_BSP)
 		{
 			for (i = 0; i < 3; i++)
 			{
-				origin_v[i] = entity->priv.sv->state.origin[i]+0.5*(entity->priv.sv->mins[i]+entity->priv.sv->maxs[i]);
+				origin_v[i] = entity->fields.sv->origin[i]+0.5*(entity->fields.sv->mins[i]+entity->fields.sv->maxs[i]);
 			}
 		}
 		else
 		{
-			VectorCopy (entity->priv.sv->state.origin, origin_v);
+			VectorCopy (entity->fields.sv->origin, origin_v);
 		}
 	}
 
@@ -419,7 +419,8 @@ bool SV_SendClientDatagram (client_t *client)
 	SZ_Clear (&client->datagram);
 
 	if (msg.overflowed)
-	{	// must have room left for the packet header
+	{	
+		// must have room left for the packet header
 		Msg ("WARNING: msg overflowed for %s\n", client->name);
 		SZ_Clear (&msg);
 	}
@@ -492,7 +493,6 @@ SV_SendClientMessages
 void SV_SendClientMessages (void)
 {
 	int		i;
-	client_t		*c;
 	int		msglen;
 	byte		msgbuf[MAX_MSGLEN];
 
@@ -527,34 +527,37 @@ void SV_SendClientMessages (void)
 	}
 
 	// send a message to each connected client
-	for (i = 0, c = svs.clients; i < maxclients->value; i++, c++)
+	for (i = 0, sv_client = svs.clients; i < host.maxclients; i++, sv_client++)
 	{
-		if (!c->state) continue;
-		// if the reliable message overflowed,
-		// drop the client
-		if (c->netchan.message.overflowed)
+		if (sv_client->state == cs_free) continue;
+
+		// if the reliable message overflowed, drop the client
+		if (sv_client->netchan.message.overflowed)
 		{
-			SZ_Clear (&c->netchan.message);
-			SZ_Clear (&c->datagram);
-			SV_BroadcastPrintf (PRINT_HIGH, "%s overflowed\n", c->name);
-			SV_DropClient (c);
+			SZ_Clear (&sv_client->netchan.message);
+			SZ_Clear (&sv_client->datagram);
+			SV_BroadcastPrintf (PRINT_HIGH, "%s overflowed\n", sv_client->name);
+			SV_DropClient (sv_client);
 		}
 
 		if (sv.state == ss_cinematic || sv.state == ss_demo || sv.state == ss_pic)
-			Netchan_Transmit (&c->netchan, msglen, msgbuf);
-		else if (c->state == cs_spawned)
+		{
+			Netchan_Transmit (&sv_client->netchan, msglen, msgbuf);
+		}
+		else if (sv_client->state == cs_spawned)
 		{
 			// don't overrun bandwidth
-			if (SV_RateDrop (c))
-				continue;
-			SV_SendClientDatagram (c);
+			if (SV_RateDrop (sv_client)) continue;
+			SV_SendClientDatagram (sv_client);
 		}
 		else
 		{
-			// just update reliable	if needed
-			if (c->netchan.message.cursize || host.realtime - c->netchan.last_sent > 1.0f)
-				Netchan_Transmit (&c->netchan, 0, NULL);
+			// just update reliable if needed
+			if (sv_client->netchan.message.cursize || host.realtime - sv_client->netchan.last_sent > 1.0f)
+				Netchan_Transmit (&sv_client->netchan, 0, NULL);
 		}
 	}
 }
+
+
 

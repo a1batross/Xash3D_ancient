@@ -179,15 +179,16 @@ void VM_bprint (void)
 {
 	char string[VM_STRINGTEMP_LENGTH];
 
+	VM_VarString(0, string, sizeof(string));
+
 	if(sv.state != ss_game)
 	{
-		VM_Warning("VM_bprint: game is not server(%s) !\n", PRVM_NAME);
+		Con_Print( string );
+//VM_Warning("VM_bprint: game is not server(%s) !\n", PRVM_NAME);
 		return;
 	}
 
-	VM_VarString(0, string, sizeof(string));
-	//SV_BroadcastPrintf(PRINT_HIGH, string);
-	Msg(string);
+	SV_BroadcastPrintf(PRINT_HIGH, string);
 }
 
 /*
@@ -206,7 +207,7 @@ void VM_sprint( void )
 
 	//find client for this entity
 	num = (int)PRVM_G_FLOAT(OFS_PARM0);
-	if (sv.state != ss_game || num < 0 || num >= maxclients->value || !svs.clients[num].state != cs_spawned)
+	if (sv.state != ss_game || num < 0 || num >= host.maxclients || !svs.clients[num].state != cs_spawned)
 	{
 		VM_Warning("VM_sprint: %s: invalid client or server is not active !\n", PRVM_NAME);
 		return;
@@ -1759,7 +1760,7 @@ void VM_clcommand (void)
 	VM_SAFEPARMCOUNT(2, VM_clcommand);
 
 	i = (int)PRVM_G_FLOAT(OFS_PARM0);
-	if (sv.state != ss_game  || i < 0 || i >= maxclients->value || svs.clients[i].state != cs_spawned)
+	if (sv.state != ss_game  || i < 0 || i >= host.maxclients || svs.clients[i].state != cs_spawned)
 	{
 		VM_Warning("VM_clientcommand: %s: invalid client/server is not active !\n", PRVM_NAME);
 		return;
@@ -1897,7 +1898,7 @@ void VM_clientcount(void)
 {
 	VM_SAFEPARMCOUNT(0,VM_clientcount);
 
-	PRVM_G_FLOAT(OFS_RETURN) = maxclients->value;
+	PRVM_G_FLOAT(OFS_RETURN) = host.maxclients;
 }
 
 /*

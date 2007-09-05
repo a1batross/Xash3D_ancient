@@ -163,7 +163,7 @@ void SV_EmitPacketEntities (client_frame_t *from, client_frame_t *to, sizebuf_t 
 			// in any bytes being emited if the entity has not changed at all
 			// note that players are always 'newentities', this updates their oldorigin always
 			// and prevents warping
-			MSG_WriteDeltaEntity (oldent, newent, msg, false, newent->number <= maxclients->value);
+			MSG_WriteDeltaEntity (oldent, newent, msg, false, newent->number <= host.maxclients);
 			oldindex++;
 			newindex++;
 			continue;
@@ -230,7 +230,7 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 	// determine what needs to be sent
 	if (ps->pmove.pm_type != ops->pmove.pm_type) pflags |= PS_M_TYPE;
 	if (!VectorICompare(ps->pmove.origin, ops->pmove.origin)) pflags |= PS_M_ORIGIN;
-	if (!VectorICompare(ps->pmove.velocity, ops->pmove.velocity))  pflags |= PS_M_VELOCITY;
+	if (!VectorICompare(ps->pmove.velocity, ops->pmove.velocity)) pflags |= PS_M_VELOCITY;
 	if (ps->pmove.pm_time != ops->pmove.pm_time) pflags |= PS_M_TIME;
 	if (ps->pmove.pm_flags != ops->pmove.pm_flags) pflags |= PS_M_FLAGS;
 	if (ps->pmove.gravity != ops->pmove.gravity) pflags |= PS_M_GRAVITY;
@@ -325,7 +325,7 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 		MSG_WriteByte (msg, ps->blend[2] * 255);
 		MSG_WriteByte (msg, ps->blend[3] * 255);
 	}
-	if (pflags & PS_FOV) MSG_WriteByte (msg, ps->fov);
+	if (pflags & PS_FOV) MSG_WriteFloat (msg, ps->fov);
 	if (pflags & PS_RDFLAGS) MSG_WriteByte (msg, ps->rdflags);
 
 	// send stats
@@ -470,7 +470,6 @@ void SV_BuildClientFrame (client_t *client)
 	prvm_edict_t	*clent;
 	client_frame_t	*frame;
 	entity_state_t	*state;
-	player_state_t	local_state;
 	int		l;
 	int		clientarea, clientcluster;
 	int		leafnum;
@@ -480,30 +479,13 @@ void SV_BuildClientFrame (client_t *client)
 
 	clent = client->edict;
 	if (!clent->priv.sv->client) return;// not in game yet
-          
-          memset(&local_state, 0, sizeof(player_state_t));
-	
-	// copy player state from prvm fields
-	VectorSet(local_state.viewoffset, 0, 0, -72 );
-          local_state.fov = 90;
-          local_state.pmove.pm_type = PM_SPECTATOR;
-          local_state.pmove.pm_time = 14;
-          local_state.pmove.gravity = 800;
-          
-          for( i = 0; i < 3; i++)
-          	local_state.pmove.origin[i] = (short)clent->fields.sv->origin[i]; 
-          for( i = 0; i < 3; i++)
-          	local_state.pmove.velocity[i] = (short)clent->fields.sv->velocity[i];
-          
-	clent->priv.sv->client = &local_state;
+
 	// this is the frame we are creating
 	frame = &client->frames[sv.framenum & UPDATE_MASK];
-
 	frame->senttime = svs.realtime; // save it for ping calc later
 
 	// find the client's PVS
-	for (i = 0; i < 3; i++)
-		org[i] = clent->priv.sv->client->pmove.origin[i]*0.125 + clent->priv.sv->client->viewoffset[i];
+	for (i = 0; i < 3; i++) org[i] = clent->priv.sv->client->pmove.origin[i]*0.125 + clent->priv.sv->client->viewoffset[i];
 
 	leafnum = CM_PointLeafnum (org);
 	clientarea = CM_LeafArea (leafnum);
@@ -515,7 +497,6 @@ void SV_BuildClientFrame (client_t *client)
 	// grab the current player_state_t
 	frame->ps = *clent->priv.sv->client;
 
-
 	SV_FatPVS (org);
 	clientphs = CM_ClusterPHS (clientcluster);
 
@@ -525,16 +506,15 @@ void SV_BuildClientFrame (client_t *client)
 
 	c_fullsend = 0;
 
-	for (e = 1; e < prog->num_edicts ; e++)
+	ent = PRVM_NEXT_EDICT(prog->edicts);
+	for (e = 1; e < prog->num_edicts; e++, ent = PRVM_NEXT_EDICT(ent))
 	{
-		ent = PRVM_EDICT_NUM(e);
-
 		// ignore ents without visible models
-		if (ent->priv.sv->flags & SVF_NOCLIENT)
+		if ((int)ent->fields.sv->flags & SVF_NOCLIENT)
 			continue;
 
 		// ignore ents without visible models unless they have an effect
-		if (!ent->priv.sv->state.modelindex && !ent->priv.sv->state.effects && !ent->priv.sv->state.sound && !ent->priv.sv->state.event)
+		if (!(int)ent->fields.sv->modelindex && !(int)ent->fields.sv->effects)
 			continue;
 
 		// ignore if not touching a PV leaf
@@ -542,14 +522,18 @@ void SV_BuildClientFrame (client_t *client)
 		{
 			// check area
 			if (!CM_AreasConnected (clientarea, ent->priv.sv->areanum))
-			{	// doors can legally straddle two areas, so
+			{	
+				// doors can legally straddle two areas, so
 				// we may need to check another one
 				if (!ent->priv.sv->areanum2 || !CM_AreasConnected (clientarea, ent->priv.sv->areanum2))
-					continue;	// blocked by a door
+				{
+					//Msg("blocked by a door [%i]\n", ent->priv.sv->state.number);
+					//continue;	// blocked by a door
+				}
 			}
 
 			// beams just check one point for PHS
-			if (ent->priv.sv->state.renderfx & RF_BEAM)
+			if ((int)ent->fields.sv->renderfx & RF_BEAM)
 			{
 				l = ent->priv.sv->clusternums[0];
 				if ( !(clientphs[l >> 3] & (1 << (l&7) )) )
@@ -563,11 +547,11 @@ void SV_BuildClientFrame (client_t *client)
 				{
 					bitvector = fatpvs;	//clientphs;
 				}
-				else
-					bitvector = fatpvs;
+				else bitvector = fatpvs;
 
 				if (ent->priv.sv->num_clusters == -1)
-				{	// too many leafs for individual check, go by headnode
+				{	
+					// too many leafs for individual check, go by headnode
 					if (!CM_HeadnodeVisible (ent->priv.sv->headnode, bitvector))
 						continue;
 					c_fullsend++;
@@ -581,18 +565,21 @@ void SV_BuildClientFrame (client_t *client)
 							break;
 					}
 					if (i == ent->priv.sv->num_clusters)
-						continue;		// not visible
+					{
+						//Msg("i == ent->priv.sv->num_clusters\n");
+						//continue;		// not visible
+					}
 				}
 
-				if (!ent->priv.sv->state.modelindex)
-				{	// don't send sounds if they will be attenuated away
+				if (!(int)ent->fields.sv->modelindex)
+				{	
+					// don't send sounds if they will be attenuated away
 					vec3_t	delta;
 					float	len;
 
-					VectorSubtract (org, ent->priv.sv->state.origin, delta);
+					VectorSubtract (org, ent->fields.sv->origin, delta);
 					len = VectorLength (delta);
-					if (len > 400)
-						continue;
+					if (len > 400) continue;
 				}
 			}
 		}
@@ -604,10 +591,22 @@ void SV_BuildClientFrame (client_t *client)
 			MsgWarn ("SV_BuildClientFrame: invalid ent->priv.sv->state.number %d\n", ent->priv.sv->state.number );
 			ent->priv.sv->state.number = e; // ptr to current entity such as entnumber
 		}
+
+		// copy state from fields
+		VectorCopy (ent->fields.sv->origin, ent->priv.sv->state.origin);
+		VectorCopy (ent->fields.sv->angles, ent->priv.sv->state.angles);
+		ent->priv.sv->state.frame = (int)ent->fields.sv->frame;
+		ent->priv.sv->state.skin = (int)ent->fields.sv->skin;
+		ent->priv.sv->state.body = (int)ent->fields.sv->body;
+		ent->priv.sv->state.sequence = (int)ent->fields.sv->sequence;
+		ent->priv.sv->state.effects = (int)ent->fields.sv->effects;
+		ent->priv.sv->state.renderfx = (int)ent->fields.sv->renderfx;
+		ent->priv.sv->state.solid = (int)ent->fields.sv->solid;
+
 		*state = ent->priv.sv->state;
 
 		// don't mark players missiles as solid
-		if (ent->priv.sv->owner == client->edict->priv.sv) state->solid = 0;
+		if(PRVM_PROG_TO_EDICT(ent->fields.sv->owner) == client->edict) state->solid = 0;
 
 		svs.next_client_entities++;
 		frame->num_entities++;
@@ -649,7 +648,7 @@ void SV_RecordDemoMessage (void)
 	while (e < prog->num_edicts) 
 	{
 		// ignore ents without visible models unless they have an effect
-		if (ent->priv.sv->free && ent->priv.sv->state.number && (ent->priv.sv->state.modelindex || ent->priv.sv->state.effects || ent->priv.sv->state.sound || ent->priv.sv->state.event) && !(ent->priv.sv->flags & SVF_NOCLIENT))
+		if (ent->priv.sv->free && ent->priv.sv->state.number && (ent->fields.sv->modelindex || ent->fields.sv->effects || ent->priv.sv->state.sound || ent->priv.sv->state.event) && !((int)ent->fields.sv->flags & SVF_NOCLIENT))
 			MSG_WriteDeltaEntity (&nostate, &ent->priv.sv->state, &buf, false, true);
 		e++;
 		ent = PRVM_EDICT_NUM(e);
@@ -667,3 +666,4 @@ void SV_RecordDemoMessage (void)
 	FS_Write (svs.demofile, buf.data, buf.cursize);
 }
 
+                                  

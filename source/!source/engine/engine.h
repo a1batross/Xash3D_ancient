@@ -64,6 +64,7 @@ typedef struct host_parm_s
 
 	dword		framecount;	// global framecount
 	double		realtime;		// host realtime
+	float		frametime;	// frametime (default 0.1)
 	uint		sv_timer;		// SV_Input msg time
 	uint		cl_timer;		// CL_Input msg time
 

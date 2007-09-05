@@ -81,8 +81,31 @@ void Sys_Init (void)
 
 	vinfo.dwOSVersionInfoSize = sizeof(vinfo);
 
+	timeBeginPeriod( 1 );
+
 	if (!GetVersionEx (&vinfo)) Sys_Error ("Couldn't get OS info");
 	if (vinfo.dwMajorVersion < 4) Sys_Error ("%s requires windows version 4 or greater", GI.title);
+}
+
+/*
+================
+Sys_Milliseconds
+================
+*/
+int Sys_Milliseconds ( void )
+{
+	int		sys_curtime;
+	static int	sys_timeBase;
+	static bool	init = false;
+
+	if (!init)
+	{
+		sys_timeBase = timeGetTime();
+		init = true;
+	}
+	sys_curtime = timeGetTime() - sys_timeBase;
+
+	return sys_curtime;
 }
 
 /*

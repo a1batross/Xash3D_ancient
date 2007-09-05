@@ -6,13 +6,13 @@
 --------------------Configuration: engine - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\Temp\RSP199.tmp" with contents
+Creating temporary file "C:\Temp\RSP451.tmp" with contents
 [
 /nologo /MTd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "prvm" /I "common" /I "server" /I "client" /I "../public" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\engine\!debug/" /Fo"..\temp\engine\!debug/" /Fd"..\temp\engine\!debug/" /FD /c 
-"D:\XASH3D\src_main\!source\engine\server\sv_phys.c"
+"D:\XASH3D\src_main\!source\engine\system.c"
 ]
-Creating command line "cl.exe @C:\Temp\RSP199.tmp" 
-Creating temporary file "C:\Temp\RSP19A.tmp" with contents
+Creating command line "cl.exe @C:\Temp\RSP451.tmp" 
+Creating temporary file "C:\Temp\RSP452.tmp" with contents
 [
 gdi32.lib winmm.lib kernel32.lib user32.lib wsock32.lib /nologo /subsystem:windows /dll /incremental:yes /pdb:"..\temp\engine\!debug/engine.pdb" /debug /machine:I386 /out:"..\temp\engine\!debug/engine.dll" /implib:"..\temp\engine\!debug/engine.lib" /pdbtype:sept 
 "\XASH3D\src_main\!source\temp\engine\!debug\cl_cin.obj"
@@ -66,15 +66,15 @@ gdi32.lib winmm.lib kernel32.lib user32.lib wsock32.lib /nologo /subsystem:windo
 "\XASH3D\src_main\!source\temp\engine\!debug\vm_edict.obj"
 "\XASH3D\src_main\!source\temp\engine\!debug\vm_exec.obj"
 ]
-Creating command line "link.exe @C:\Temp\RSP19A.tmp"
-Creating temporary file "C:\Temp\RSP19B.bat" with contents
+Creating command line "link.exe @C:\Temp\RSP452.tmp"
+Creating temporary file "C:\Temp\RSP453.bat" with contents
 [
 @echo off
 copy \XASH3D\src_main\!source\temp\engine\!debug\engine.dll "D:\Xash3D\bin\engine.dll"
 ]
-Creating command line "C:\Temp\RSP19B.bat"
+Creating command line "C:\Temp\RSP453.bat"
 Compiling...
-sv_phys.c
+system.c
 Linking...
 <h3>Output Window</h3>
 Performing Custom Build Step on \XASH3D\src_main\!source\temp\engine\!debug\engine.dll

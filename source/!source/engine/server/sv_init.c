@@ -187,12 +187,12 @@ void SV_CreateBaseline (void)
 		svent = PRVM_EDICT_NUM(entnum);
 
 		if (!svent->priv.sv->free) continue;
-		if (!svent->priv.sv->state.modelindex && !svent->priv.sv->state.sound && !svent->priv.sv->state.effects)
+		if (!(int)svent->fields.sv->modelindex && !(int)svent->priv.sv->state.sound && !(int)svent->fields.sv->effects)
 			continue;
 
 		svent->priv.sv->state.number = entnum;
 
-		if (entnum > maxclients->value && !svent->fields.sv->modelindex)
+		if (entnum > host.maxclients && !(int)svent->fields.sv->modelindex)
 			continue;
 
 		// create entity baseline
@@ -207,7 +207,7 @@ void SV_CreateBaseline (void)
 		svent->priv.sv->state.renderfx = (int)svent->fields.sv->renderfx;
 		svent->priv.sv->state.solid = (int)svent->fields.sv->solid;
 
-		if (entnum > 0 && entnum <= maxclients->value)
+		if (entnum > 0 && entnum <= host.maxclients)
 		{
 			svent->priv.sv->state.modelindex = SV_ModelIndex("progs/player.mdl");
 		}
@@ -235,7 +235,7 @@ void SV_SaveSpawnparms (void)
 
 	svs.serverflags = (int)prog->globals.server->serverflags;
 
-	for (i = 0, sv_client = svs.clients; i < maxclients->value; i++, sv_client++)
+	for (i = 0, sv_client = svs.clients; i < host.maxclients; i++, sv_client++)
 	{
 		if (sv_client->state != cs_spawned)
 			continue;
@@ -317,11 +317,17 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 		pm_airaccelerate = 0;
 	}
 
+	SV_VM_Setup();
+
 	SZ_Init (&sv.multicast, sv.multicast_buf, sizeof(sv.multicast_buf));
+
 	strcpy (sv.name, server);
+	strcpy (sv.configstrings[CS_NAME], server);
+
+	SV_VM_Begin();
 
 	// leave slots at start for clients only
-	for (i=0 ; i < maxclients->value ; i++)
+	for (i = 0; i < host.maxclients; i++)
 	{
 		// needs to reconnect
 		if (svs.clients[i].state > cs_connected)
@@ -329,10 +335,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 		svs.clients[i].lastframe = -1;
 	}
 
-	sv.time = 1;
-	
-	strcpy (sv.name, server);
-	strcpy (sv.configstrings[CS_NAME], server);
+	sv.state = ss_loading;
 
 	if (serverstate != ss_game)
 	{
@@ -354,22 +357,6 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 		sv.models[i+1] = CM_InlineModel (sv.configstrings[CS_MODELS+1+i]);
 	}
 
-	SV_VM_Setup();
-
-	//
-	// spawn the rest of the entities on the map
-	//	
-
-	// precache and static commands can be issued during
-	// map initialization
-	sv.state = ss_loading;
-	Com_SetServerState (sv.state);
-
-	SV_VM_Begin();
-
-	sv.moved_edicts = (prvm_edict_t **)PRVM_Alloc(prog->max_edicts * sizeof(prvm_edict_t *));
-	*prog->time = sv.time;
-
 	ent = PRVM_EDICT_NUM(0);
 	memset (ent->fields.sv, 0, prog->progs->entityfields * 4);
 	ent->priv.sv->free = false;
@@ -377,8 +364,13 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 	ent->fields.sv->modelindex = 1; // world model
 	ent->fields.sv->solid = SOLID_BSP;
 	ent->fields.sv->movetype = MOVETYPE_PUSH;
-
+          
 	prog->globals.server->mapname = PRVM_SetEngineString(sv.name);
+	Com_SetServerState (sv.state);
+
+	// spawn the rest of the entities on the map
+	sv.moved_edicts = (prvm_edict_t **)PRVM_Alloc(prog->max_edicts * sizeof(prvm_edict_t *));
+	*prog->time = sv.time = 1.0;
 
 	// serverflags are for cross level information (sigils)
 	prog->globals.server->serverflags = svs.serverflags;
@@ -387,7 +379,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 	// their thinks don't run during startup (before PutClientInServer)
 	// we also need to set up the client entities now
 	// and we need to set the ->edict pointers to point into the progs edicts
-	for (i = 0, sv_client = svs.clients; i < maxclients->value; i++, sv_client++)
+	for (i = 0, sv_client = svs.clients; i < host.maxclients; i++, sv_client++)
 	{
 		sv_client->state = cs_connected;
 		sv_client->edict = PRVM_EDICT_NUM(i + 1);
@@ -399,6 +391,10 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 	
 	PRVM_ED_LoadFromFile (CM_EntityString());
 
+	// all precaches are complete
+	sv.state = serverstate;
+	Com_SetServerState (sv.state);
+
 	// run two frames to allow everything to settle
 	for (i = 0; i < 2; i++)
 	{
@@ -406,27 +402,15 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 		SV_Physics();
 	}
 
-	// all precaches are complete
-	sv.state = serverstate;
-	Com_SetServerState (sv.state);
-
 	// create a baseline for more efficient communications
 	SV_CreateBaseline ();
-
-	// call the progs to get default spawn parms for the new client
-	// set self to world to intentionally cause errors with broken SetNewParms code in some mods
-	prog->globals.server->self = 0;
-	PRVM_ExecuteProgram (prog->globals.server->SetNewParms, "QC function SetNewParms is missing");
-	for (i = 0; i < NUM_SPAWN_PARMS; i++)
-		sv_client->spawn_parms[i] = prog->globals.server->parm[i];
-
-	// check for a savegame
-//SV_CheckForSavegame ( savename );
 
 	// set serverinfo variable
 	Cvar_FullSet ("mapname", sv.name, CVAR_SERVERINFO | CVAR_NOSET);
 
 	Msg ("-------------------------------------\n");
+	
+	SV_VM_End();
 }
 
 /*
@@ -475,28 +459,25 @@ void SV_InitGame (void)
 	// init clients
 	if (Cvar_VariableValue ("deathmatch"))
 	{
-		if (maxclients->value <= 1)
-			Cvar_FullSet ("maxclients", "8", CVAR_SERVERINFO | CVAR_LATCH);
-		else if (maxclients->value > MAX_CLIENTS)
-			Cvar_FullSet ("maxclients", va("%i", MAX_CLIENTS), CVAR_SERVERINFO | CVAR_LATCH);
+		if (host.maxclients <= 1) host.maxclients = 8;
+		else if (host.maxclients > MAX_CLIENTS) host.maxclients = MAX_CLIENTS;
 	}
 	else if (Cvar_VariableValue ("coop"))
 	{
-		if (maxclients->value <= 1 || maxclients->value > 4)
-			Cvar_FullSet ("maxclients", "4", CVAR_SERVERINFO | CVAR_LATCH);
+		if (host.maxclients <= 1 || host.maxclients > 4) host.maxclients = 4;
 	}
 	else	// non-deathmatch, non-coop is one player
 	{
-		Cvar_FullSet ("maxclients", "1", CVAR_SERVERINFO | CVAR_LATCH);
+		host.maxclients = 1;
 	}
 
 	svs.spawncount = rand();
-	svs.clients = Z_Malloc (sizeof(client_t) * maxclients->value);
-	svs.num_client_entities = maxclients->value * UPDATE_BACKUP * 64;
+	svs.clients = Z_Malloc (sizeof(client_t) * host.maxclients);
+	svs.num_client_entities = host.maxclients * UPDATE_BACKUP * 64;
 	svs.client_entities = Z_Malloc(sizeof(entity_state_t) * svs.num_client_entities);
 
 	// init network stuff
-	NET_Config ( (maxclients->value > 1) );
+	NET_Config ( (host.maxclients > 1) );
 
 	// heartbeats will always be sent to the id master
 	svs.last_heartbeat = -99999;		// send immediately
@@ -699,7 +680,7 @@ void SV_VM_Setup( void )
 	prog->numbuiltins = vm_sv_numbuiltins;
 	prog->max_edicts = 512;
 	prog->limit_edicts = MAX_EDICTS;
-	prog->reserved_edicts = maxclients->value;
+	prog->reserved_edicts = host.maxclients;
 	prog->edictprivate_size = sizeof(server_edict_t);
 	prog->name = "server";
 	prog->extensionstring = "";
@@ -725,7 +706,7 @@ void SV_VM_Begin(void)
 	PRVM_Begin;
 	PRVM_SetProg( PRVM_SERVERPROG );
 
-	*prog->time = (float)sv.time;
+	*prog->time = sv.time;
 }
 
 void SV_VM_End(void)

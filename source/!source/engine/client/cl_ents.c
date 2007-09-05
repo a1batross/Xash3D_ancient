@@ -323,7 +323,8 @@ void CL_DeltaEntity (frame_t *frame, int newnum, entity_state_t *old, int bits)
 	}
 
 	if (ent->serverframe != cl.frame.serverframe - 1)
-	{	// wasn't in last update, so initialize some things
+	{	
+		// wasn't in last update, so initialize some things
 		ent->trailcount = 1024;		// for diminishing rocket / grenade trails
 		// duplicate the current state so lerping doesn't hurt anything
 		ent->prev = *state;
@@ -600,7 +601,7 @@ void CL_ParsePlayerstate (frame_t *oldframe, frame_t *newframe)
 	}
 
 	if (flags & PS_FOV)
-		state->fov = MSG_ReadByte (&net_message);
+		state->fov = MSG_ReadFloat (&net_message);
 
 	if (flags & PS_RDFLAGS)
 		state->rdflags = MSG_ReadByte (&net_message);
@@ -738,9 +739,8 @@ void CL_ParseFrame (void)
 			cl.predicted_origin[1] = cl.frame.playerstate.pmove.origin[1]*0.125;
 			cl.predicted_origin[2] = cl.frame.playerstate.pmove.origin[2]*0.125;
 			VectorCopy (cl.frame.playerstate.viewangles, cl.predicted_angles);
-			if (cls.disable_servercount != cl.servercount
-				&& cl.refresh_prepped)
-				SCR_EndLoadingPlaque ();	// get rid of loading plaque
+			if (cls.disable_servercount != cl.servercount && cl.refresh_prepped)
+				SCR_EndLoadingPlaque (); // get rid of loading plaque
 		}
 		cl.sound_prepped = true;	// can start mixing ambient sounds
 	

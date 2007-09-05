@@ -717,6 +717,8 @@ void NET_Sleep(float time)
 	if (host.type == HOST_NORMAL) return; 
 	FD_ZERO(&fdset);
 
+	Msg("NET_Sleep: sleep time %g\n", time );
+
 	if (ip_sockets[NS_SERVER])
 	{
 		FD_SET(ip_sockets[NS_SERVER], &fdset); // network socket

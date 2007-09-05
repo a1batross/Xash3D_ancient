@@ -265,7 +265,7 @@ void() PutClientInServer =
 	self.classname = "player";           // I'm a player!
 	self.health = self.max_health = 100; // My health (and my max) is 100
 	self.takedamage = DAMAGE_AIM;        // I can be fired at
-	self.solid = SOLID_SLIDEBOX;         // Things sort of 'slide' past me
+	self.solid = SOLID_BBOX;         // Things sort of 'slide' past me
 	self.movetype = MOVETYPE_WALK;       // Yep, I want to walk.
 	self.flags = FL_CLIENT;              // Yes, I'm a client.
 
@@ -273,10 +273,12 @@ void() PutClientInServer =
 	self.angles = spawn_spot.angles;     // Face the angle the spawnspot indicates
 	self.fixangle = TRUE;                // Turn this way immediately
 
-	setmodel (self, "progs/player.mdl"); // Set my player to the player model
+	dprint("PutClientInServer()\n");
+
+	setmodel (self, "models/player.mdl"); // Set my player to the player model
 	setsize (self, VEC_HULL_MIN, VEC_HULL_MAX); // Set my size
 
-	self.view_ofs = '0 0 22';            // Center my view
+	self.view_ofs = '0 0 72';            // Center my view
 	
 	if (self.aflag)
 		CCamChasePlayer ();

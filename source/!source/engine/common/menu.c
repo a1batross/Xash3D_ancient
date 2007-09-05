@@ -84,7 +84,7 @@ void M_PushMenu ( void (*draw) (void), const char *(*key) (int k) )
 {
 	int		i;
 
-	if (Cvar_VariableValue ("maxclients") == 1 && Com_ServerState ())
+	if (host.maxclients == 1 && Com_ServerState ())
 		Cvar_Set ("paused", "1");
 
 	// if this menu is already present, drop back to that level
@@ -2086,7 +2086,8 @@ void StartServerActionFunc( void *self )
 	timelimit	= atoi( s_timelimit_field.buffer );
 	fraglimit	= atoi( s_fraglimit_field.buffer );
 
-	Cvar_SetValue( "maxclients", ClampCvar( 0, maxclients, maxclients ) );
+	host.maxclients = maxclients;
+
 	Cvar_SetValue ("timelimit", ClampCvar( 0, timelimit, timelimit ) );
 	Cvar_SetValue ("fraglimit", ClampCvar( 0, fraglimit, fraglimit ) );
 	Cvar_Set("hostname", s_hostname_field.buffer );
@@ -2346,10 +2347,8 @@ void StartServer_MenuInit( void )
 	s_maxclients_field.generic.statusbar = NULL;
 	s_maxclients_field.length = 3;
 	s_maxclients_field.visible_length = 3;
-	if ( Cvar_VariableValue( "maxclients" ) == 1 )
-		strcpy( s_maxclients_field.buffer, "8" );
-	else 
-		strcpy( s_maxclients_field.buffer, Cvar_VariableString("maxclients") );
+	if ( host.maxclients == 1 ) strcpy( s_maxclients_field.buffer, "8" );
+	else strcpy( s_maxclients_field.buffer, "32" ); // just for test
 
 	s_hostname_field.generic.type = MTYPE_FIELD;
 	s_hostname_field.generic.name = "hostname";

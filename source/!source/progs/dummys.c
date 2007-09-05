@@ -94,6 +94,7 @@ void barrel_spawn(string netname1, string model1, string deathmessage, float dam
 {
 	local float oldz;
 
+	bprint("barrel_spawn\n");
 	precache_model (model1);
 	precache_sound ("weapons/r_exp3.wav");
 

@@ -1173,7 +1173,8 @@ void Pmove (pmove_t *pmove)
 		// teleport pause stays exactly in place
 	}
 	else if (pm->s.pm_flags & PMF_TIME_WATERJUMP)
-	{	// waterjump has no control, but falls
+	{	
+		// waterjump has no control, but falls
 		pml.velocity[2] -= pm->s.gravity * pml.frametime;
 		if (pml.velocity[2] < 0)
 		{	// cancel as soon as we are falling down again

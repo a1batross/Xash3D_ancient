@@ -48,7 +48,7 @@ typedef struct
 	bool		attractloop;		// running cinematics and demos for the local system only
 	bool		loadgame;			// client begins should reuse existing entity
 
-	float		time;			// always sv.framenum * 100 msec
+	float		time;			// always sv.framenum * 0.1 sec
 	float		frametime;
 	float		lastchecktime;
 	int		framenum;
@@ -73,16 +73,13 @@ typedef struct
 	bool	timedemo;		// don't time sync
 } server_t;
 
-#define EDICT_NUM(n) ((edict_t *)((byte *)ge->edicts + ge->edict_size * (n) ))
-#define NUM_FOR_EDICT(e) ( ((byte *)(e) - (byte *)ge->edicts ) / ge->edict_size)
-
 typedef enum
 {
 	cs_free,		// can be reused for a new connection
-	cs_zombie,		// client has been disconnected, but don't reuse
-					// connection for a couple seconds
+	cs_zombie,	// client has been disconnected, but don't reuse
+			// connection for a couple seconds
 	cs_connected,	// has been assigned to a client_t, but not in game yet
-	cs_spawned		// client is fully in game
+	cs_spawned	// client is fully in game
 } client_state_t;
 
 typedef struct
@@ -135,8 +132,8 @@ typedef struct client_s
 	int			downloadsize;		// total bytes (can't use EOF because of paks)
 	int			downloadcount;		// bytes sent
 
-	int			lastmessage;		// sv.framenum when packet was last received
-	int			lastconnect;
+	float			lastmessage;		// sv.framenum when packet was last received
+	float			lastconnect;
 
 	int			challenge;		// challenge of this user, randomly generated
 
@@ -177,8 +174,8 @@ typedef struct
 	int		spawncount;					// incremented each server start
 											// used to check late spawns
 
-	client_t		*clients;				// [maxclients->value];
-	int		num_client_entities;	// maxclients->value*UPDATE_BACKUP*MAX_PACKET_ENTITIES
+	client_t		*clients;				// [host.maxclients];
+	int		num_client_entities;	// host.maxclients * UPDATE_BACKUP * MAX_PACKET_ENTITIES
 	int		next_client_entities;	// next client_entity to use
 	entity_state_t	*client_entities;		// [num_client_entities]
 
@@ -214,7 +211,6 @@ extern	server_static_t	svs;				// persistant server info
 extern	server_t		sv;					// local server
 
 extern	cvar_t		*sv_paused;
-extern	cvar_t		*maxclients;
 extern	cvar_t		*sv_noreload;			// don't reload level state when reentering
 extern	cvar_t		*sv_airaccelerate;		// don't reload level state when reentering
 											// development tool

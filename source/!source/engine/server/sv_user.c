@@ -31,7 +31,6 @@ extern cvar_t *sv_rollspeed;
 
 prvm_edict_t	*sv_player;
 static bool	onground;
-static usercmd_t	cmd;
 static vec3_t	wishdir, forward, right, up;
 static float	wishspeed;
 
@@ -238,6 +237,8 @@ SV_Begin_f
 */
 void SV_Begin_f (void)
 {
+	int	i;
+
 	// handle the case of a level changing while a client was connecting
 	if ( atoi(Cmd_Argv(1)) != svs.spawncount )
 	{
@@ -247,9 +248,22 @@ void SV_Begin_f (void)
 	}
 
 	sv_client->state = cs_spawned;
-	
-	// call the game begin function
-//ge->ClientBegin (sv_player);
+
+	if(!sv_player->priv.sv->free)
+	{	
+		// call the game begin function
+		prog->globals.server->time = sv.time;
+		prog->globals.server->self = PRVM_EDICT_TO_PROG(sv_client->edict);
+		PRVM_ExecuteProgram (prog->globals.server->PutClientInServer, "QC function PutClientInServer is missing");
+	}
+	for (i = 0; i < 3; i++)
+	{
+		sv_player->priv.sv->client->pmove.origin[i] = sv_player->fields.sv->origin[i]*8.0;
+		//ent->client->ps.pmove.velocity[i] = ent->velocity[i]*8.0;
+	}
+          sv_player->priv.sv->client->gunindex = SV_ModelIndex("models/weapons/v_glock.mdl" );
+	sv_player->priv.sv->client->fov = 90;
+
 	Cbuf_InsertFromDefer ();
 }
 
@@ -482,18 +496,72 @@ USER CMD EXECUTION
 
 ===========================================================================
 */
-void SV_ClientRun (client_t *cl, usercmd_t *curcmd)
+
+trace_t PM_trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end)
 {
-	sv_client = cl;
-          cmd = *curcmd;
+	return SV_Trace (start, mins, maxs, end, sv_client->edict, MASK_SOLID);
+}
+
+void SV_ClientRun (client_t *cl, usercmd_t *cmd)
+{
+	pmove_t		pm;
+	int		i;
+
+	sv_client	= cl;
  
-	cl->commandMsec -= curcmd->msec;
+	cl->commandMsec -= cmd->msec;
 
 	if (cl->commandMsec < 0 && sv_enforcetime->value )
 	{
 		MsgWarn("SV_ClientThink: commandMsec underflow from %s\n", cl->name);
 		return;
 	}
+          
+	// set up for pmove
+	memset (&pm, 0, sizeof(pm));
+	cl->edict->priv.sv->client->pmove.pm_flags |= PMF_NO_PREDICTION;
+
+	if (cl->edict->fields.sv->movetype == MOVETYPE_NOCLIP)
+		cl->edict->priv.sv->client->pmove.pm_type = PM_SPECTATOR;
+	else if (cl->edict->fields.sv->movetype == MOVETYPE_WALK)
+		cl->edict->priv.sv->client->pmove.pm_type = PM_NORMAL;
+	else if (cl->edict->fields.sv->movetype == MOVETYPE_NONE)
+		cl->edict->priv.sv->client->pmove.pm_type = PM_FREEZE;
+	cl->edict->priv.sv->client->pmove.gravity = 0;
+
+	pm.s = cl->edict->priv.sv->client->pmove;
+
+	for (i = 0; i < 3; i++)
+	{
+		pm.s.origin[i] = cl->edict->priv.sv->state.origin[i] * 8;
+		pm.s.velocity[i] = cl->edict->fields.sv->velocity[i] * 8;
+	}
+	pm.cmd = *cmd;
+
+	pm.trace = PM_trace; // adds default parms
+	pm.pointcontents = SV_PointContents;
+
+	Pmove (&pm); //run pmove
+	
+	// save results of pmove
+	cl->edict->priv.sv->client->pmove = pm.s;
+	
+	Msg("org after pmove [%i %i %i]\n", pm.s.origin[0], pm.s.origin[1], pm.s.origin[2] );
+
+	for (i = 0; i < 3; i++)
+	{
+		cl->edict->priv.sv->state.origin[i] = (float)pm.s.origin[i]*0.125;
+		cl->edict->fields.sv->velocity[i] = (float)pm.s.velocity[i]*0.125;
+	}
+	VectorCopy (pm.mins, cl->edict->fields.sv->mins);
+	VectorCopy (pm.maxs, cl->edict->fields.sv->maxs);
+
+	VectorCopy (pm.viewangles, cl->edict->fields.sv->v_angle);
+	VectorCopy (pm.viewangles, cl->edict->priv.sv->client->viewangles);
+	VectorCopy(cl->edict->fields.sv->view_ofs, cl->edict->priv.sv->client->viewoffset );
+
+	SV_LinkEdict( cl->edict );
+
 	//SV_ClientThink();
 }
 
@@ -624,8 +692,8 @@ void SV_AirMove (void)
 	wishvel[1] = sv_client->edict->fields.sv->angles[1];
 	AngleVectorsRight (wishvel, forward, right, up);
 
-	fmove = cmd.forwardmove;
-	smove = cmd.sidemove;
+	fmove = 0;//cmd.forwardmove;
+	smove = 0;//cmd.sidemove;
 
 	// hack to not let you back into teleporter
 	if (sv.time < sv_client->edict->fields.sv->teleport_time && fmove < 0)
@@ -635,7 +703,7 @@ void SV_AirMove (void)
 		wishvel[i] = forward[i]*fmove + right[i]*smove;
 
 	if ((int)sv_client->edict->fields.sv->movetype != MOVETYPE_WALK)
-		wishvel[2] += cmd.upmove;
+		wishvel[2] += fmove;
 
 	VectorCopy (wishvel, wishdir);
 	wishspeed = VectorNormalize(wishdir);
@@ -678,7 +746,7 @@ void SV_WaterMove (void)
 	// user intentions
 	AngleVectorsRight (sv_client->edict->fields.sv->v_angle, forward, right, up);
 
-	for (i = 0; i < 3; i++)
+	/*for (i = 0; i < 3; i++)
 		wishvel[i] = forward[i]*cmd.forwardmove + right[i]*cmd.sidemove;
 
 	if (!cmd.forwardmove && !cmd.sidemove && !cmd.upmove)
@@ -686,6 +754,7 @@ void SV_WaterMove (void)
 	else
 		wishvel[2] += cmd.upmove;
 
+	*/
 	wishspeed = VectorLength(wishvel);
 	if (wishspeed > sv_maxspeed->value)
 	{
@@ -756,9 +825,6 @@ void SV_ClientThink (void)
 
 	// if dead, behave differently
 	if (sv_client->edict->fields.sv->health <= 0) return;
-
-	cmd = sv_client->lastcmd;
-	sv_client->commandMsec -= cmd.msec;
 
 	// angles
 	// show 1/3 the pitch angle and all the roll angle

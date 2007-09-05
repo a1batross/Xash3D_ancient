@@ -1224,6 +1224,15 @@ void SV_PhysicsStep (prvm_edict_t *ent)
 
 void SV_PhysicsClient(prvm_edict_t *ent)
 {
+	int	i;
+
+	/*for (i = 0; i < 3; i++)
+	{
+		ent->priv.sv->client->pmove.origin[i] = ent->priv.sv->state.origin[i];
+		ent->priv.sv->client->pmove.velocity[i] = ent->fields.sv->velocity[i];
+	}*/
+	return;
+
 	SV_ApplyClientMove();
 	SV_CheckVelocity(ent); // make sure the velocity is sane (not a NaN)
 	SV_ClientThink();
@@ -1352,6 +1361,15 @@ void SV_Physics (void)
 	int i;
 	prvm_edict_t *ent;
 
+	// we always need to bump framenum, even if we
+	// don't run the world, otherwise the delta
+	// compression can get confused when a client
+	// has the "current" frame
+	sv.framenum++;
+	sv.frametime = sv.framenum * 0.1;
+
+	if(sv_paused->value && host.maxclients == 1) return;
+
 	// let the progs know that a new frame has started
 	prog->globals.server->self = PRVM_EDICT_TO_PROG(prog->edicts);
 	prog->globals.server->other = PRVM_EDICT_TO_PROG(prog->edicts);
@@ -1360,7 +1378,7 @@ void SV_Physics (void)
 	PRVM_ExecuteProgram (prog->globals.server->StartFrame, "QC function StartFrame is missing");
 
 	// run physics on the client entities
-	for (i = 1, ent = PRVM_EDICT_NUM(i), sv_client = svs.clients; i <= maxclients->value; i++, ent = PRVM_NEXT_EDICT(ent), sv_client++)
+	for (i = 1, ent = PRVM_EDICT_NUM(i), sv_client = svs.clients; i <= host.maxclients; i++, ent = PRVM_NEXT_EDICT(ent), sv_client++)
 	{
 		if (!ent->priv.sv->free)
 		{
@@ -1370,18 +1388,19 @@ void SV_Physics (void)
 			else SV_PhysicsClient(ent);
 		}
 	}
+	
 	for (;i < prog->num_edicts; i++, ent = PRVM_NEXT_EDICT(ent))
 	{
-		if (!ent->priv.sv->free)
-			SV_PhysicsEntity(ent);
+		if (!ent->priv.sv->free) SV_PhysicsEntity(ent);
 	}
+
 	prog->globals.server->self = PRVM_EDICT_TO_PROG(prog->edicts);
 	prog->globals.server->other = PRVM_EDICT_TO_PROG(prog->edicts);
 	prog->globals.server->time = sv.time;
 	PRVM_ExecuteProgram (prog->globals.server->EndFrame, "QC function EndFrame is missing");
 
 	// decrement prog->num_edicts if the highest number entities died
-	for (;PRVM_EDICT_NUM(prog->num_edicts - 1)->priv.sv->free;prog->num_edicts--);
+	for ( ;PRVM_EDICT_NUM(prog->num_edicts - 1)->priv.sv->free; prog->num_edicts-- );
 
 	sv.time += sv.frametime;
 }

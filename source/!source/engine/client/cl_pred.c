@@ -214,8 +214,9 @@ void CL_PredictMovement (void)
 		return;
 
 	if (!cl_predict->value || (cl.frame.playerstate.pmove.pm_flags & PMF_NO_PREDICTION))
-	{	// just set angles
-		for (i=0 ; i<3 ; i++)
+	{	
+		// just set angles
+		for (i = 0; i < 3; i++)
 		{
 			cl.predicted_angles[i] = cl.viewangles[i] + SHORT2ANGLE(cl.frame.playerstate.pmove.delta_angles[i]);
 		}

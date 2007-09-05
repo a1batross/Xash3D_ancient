@@ -229,24 +229,20 @@ float	FL_JUMPRELEASED			= 4096;	// for jump debouncing
 
 // edict.movetype values
 float	MOVETYPE_NONE			= 0;	// never moves
-float   MOVETYPE_ANGLENOCLIP    = 1;
-float   MOVETYPE_ANGLECLIP              = 2;
+float	MOVETYPE_NOCLIP			= 1;
+float	MOVETYPE_PUSH			= 2;	// no clip to world, push and crush
 float	MOVETYPE_WALK			= 3;	// players only
 float	MOVETYPE_STEP			= 4;	// discrete, not real time unless fall
 float	MOVETYPE_FLY			= 5;
 float	MOVETYPE_TOSS			= 6;	// gravity
-float	MOVETYPE_PUSH			= 7;	// no clip to world, push and crush
-float	MOVETYPE_NOCLIP			= 8;
-float	MOVETYPE_FLYMISSILE		= 9;	// fly with extra size against monsters
-float	MOVETYPE_BOUNCE			= 10;
-float	MOVETYPE_BOUNCEMISSILE	= 11;	// bounce with extra size
+float	MOVETYPE_BOUNCE			= 7;
+float	MOVETYPE_FOLLOW			= 8;	// attached models
 
 // edict.solid values
 float	SOLID_NOT				= 0;	// no interaction with other objects
 float	SOLID_TRIGGER			= 1;	// touch on edge, but not blocking
-float	SOLID_BBOX				= 2;	// touch on edge, block
-float	SOLID_SLIDEBOX			= 3;	// touch on edge, but not an onground
-float	SOLID_BSP				= 4;	// bsp clip, touch on edge, block
+float	SOLID_BBOX			= 2;	// touch on edge, block
+float	SOLID_BSP				= 3;	// bsp clip, touch on edge, block
 
 // range values
 float	RANGE_MELEE				= 0;
