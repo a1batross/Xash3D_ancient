@@ -736,7 +736,7 @@ void SV_Frame (float time)
 			if (sv_showclamp->value) Msg ("sv lowclamp\n");
 			svs.realtime = sv.time - 0.1;
 		}
-		NET_Sleep(sv.time - svs.realtime);
+		NET_Sleep((sv.time - svs.realtime) * 0.001);
 		return;
 	}
 

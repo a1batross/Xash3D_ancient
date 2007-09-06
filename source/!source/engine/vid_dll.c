@@ -462,6 +462,12 @@ char *FS_Title( void )
 	return GI.title;
 }
 
+cvar_t *VID_Cvar_Set (const char *var_name, const char *value)
+{
+	return Cvar_Set( var_name, value );
+}
+
+
 /*
 ==============
 VID_InitRenderer
@@ -490,7 +496,7 @@ void VID_InitRenderer( void )
 	ri.gamedir = FS_Gamedir;
 	ri.title = FS_Title;
 	ri.Cvar_Get = Cvar_Get;
-	ri.Cvar_Set = Cvar_Set;
+	ri.Cvar_Set = VID_Cvar_Set;
 	ri.Cvar_SetValue = Cvar_SetValue;
 	ri.Vid_GetModeInfo = VID_GetModeInfo;
 	ri.Vid_MenuInit = VID_MenuInit;

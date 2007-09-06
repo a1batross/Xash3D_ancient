@@ -48,7 +48,7 @@ cvar_t *Cvar_FindVar (const char *var_name)
 {
 	cvar_t	*var;
 	
-	for (var=cvar_vars ; var ; var=var->next)
+	for (var = cvar_vars; var; var = var->next)
 		if (!strcmp (var_name, var->name))
 			return var;
 
@@ -93,16 +93,15 @@ Cvar_CompleteVariable
 char *Cvar_CompleteVariable (char *partial)
 {
 	cvar_t		*cvar;
-	int			len;
+	int		len;
 	
 	len = strlen(partial);
 	
-	if (!len)
-		return NULL;
+	if (!len) return NULL;
 		
 	// check exact match
 	for (cvar=cvar_vars ; cvar ; cvar=cvar->next)
-		if (!strcmp (partial,cvar->name))
+		if (!strcmp (partial, cvar->name))
 			return cvar->name;
 
 	// check partial match
@@ -177,12 +176,9 @@ Cvar_Set2
 cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 {
 	cvar_t	*var;
-
+	
 	var = Cvar_FindVar (var_name);
-	if (!var)
-	{	// create it
-		return Cvar_Get (var_name, value, 0);
-	}
+	if (!var) return Cvar_Get (var_name, value, 0); // create it
 
 	if (var->flags & (CVAR_USERINFO | CVAR_SERVERINFO))
 	{
@@ -242,13 +238,13 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 
 	var->modified = true;
 
-	if (var->flags & CVAR_USERINFO)
-		userinfo_modified = true;	// transmit at next oportunity
+	// transmit at next oportunity
+	if (var->flags & CVAR_USERINFO) userinfo_modified = true;	
 	
-	Z_Free (var->string);	// free the old value string
+	Z_Free (var->string); // free the old value string
 	
 	var->string = CopyString(value);
-	var->value = atof (var->string);
+	var->value = atof(var->string);
 
 	return var;
 }
@@ -268,7 +264,7 @@ cvar_t *Cvar_ForceSet (const char *var_name, const char *value)
 Cvar_Set
 ============
 */
-cvar_t *Cvar_Set (const char *var_name, const char *value)
+cvar_t *_Cvar_Set (const char *var_name, const char *value, const char *filename, int fileline)
 {
 	return Cvar_Set2 (var_name, value, false);
 }
@@ -350,14 +346,13 @@ Handles variable inspection and changing from the console
 */
 bool Cvar_Command (void)
 {
-	cvar_t			*v;
-
-// check variables
+	cvar_t	*v;
+	
+	// check variables
 	v = Cvar_FindVar (Cmd_Argv(0));
-	if (!v)
-		return false;
+	if (!v) return false;
 		
-// perform a variable print or set
+	// perform a variable print or set
 	if (Cmd_Argc() == 1)
 	{
 		Msg ("\"%s\" is \"%s\"\n", v->name, v->string);
@@ -390,10 +385,8 @@ void Cvar_Set_f (void)
 
 	if (c == 4)
 	{
-		if (!strcmp(Cmd_Argv(3), "u"))
-			flags = CVAR_USERINFO;
-		else if (!strcmp(Cmd_Argv(3), "s"))
-			flags = CVAR_SERVERINFO;
+		if (!strcmp(Cmd_Argv(3), "u")) flags = CVAR_USERINFO;
+		else if (!strcmp(Cmd_Argv(3), "s")) flags = CVAR_SERVERINFO;
 		else
 		{
 			Msg ("flags can only be 'u' or 's'\n");
@@ -401,8 +394,7 @@ void Cvar_Set_f (void)
 		}
 		Cvar_FullSet (Cmd_Argv(1), Cmd_Argv(2), flags);
 	}
-	else
-		Cvar_Set (Cmd_Argv(1), Cmd_Argv(2));
+	else Cvar_Set (Cmd_Argv(1), Cmd_Argv(2));
 }
 
 
@@ -473,7 +465,7 @@ void Cvar_List_f (void)
 bool userinfo_modified;
 
 
-char	*Cvar_BitInfo (int bit)
+char *Cvar_BitInfo (int bit)
 {
 	static char	info[MAX_INFO_STRING];
 	cvar_t	*var;
@@ -489,13 +481,13 @@ char	*Cvar_BitInfo (int bit)
 }
 
 // returns an info string containing all the CVAR_USERINFO cvars
-char	*Cvar_Userinfo (void)
+char *Cvar_Userinfo (void)
 {
 	return Cvar_BitInfo (CVAR_USERINFO);
 }
 
 // returns an info string containing all the CVAR_SERVERINFO cvars
-char	*Cvar_Serverinfo (void)
+char *Cvar_Serverinfo (void)
 {
 	return Cvar_BitInfo (CVAR_SERVERINFO);
 }

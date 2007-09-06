@@ -87,6 +87,43 @@ void SetMinMaxSize (prvm_edict_t *e, float *min, float *max, bool rotate)
 	SV_LinkEdict (e);
 }
 
+
+//test for stats
+void PF_SetStats( void )
+{
+	prvm_edict_t	*e;	
+	int		stat_num;
+	const char	*string;
+	short		value;
+
+	e = PRVM_G_EDICT(OFS_PARM0);
+
+	if(!e->priv.sv->client) return;
+	
+	stat_num = (int)PRVM_G_FLOAT(OFS_PARM1);
+
+	if(stat_num < 0 || stat_num > MAX_STATS) return;
+
+	string = PRVM_G_STRING(OFS_PARM2);
+
+	switch(stat_num)
+	{
+	case STAT_HEALTH_ICON:
+		value = SV_ImageIndex( string );
+		break;
+	case STAT_HEALTH:
+		value = atoi( string );
+		break;
+	case STAT_HELPICON:
+		value = SV_ImageIndex( string );
+		break;		
+	default:
+		MsgWarn("unknown stat type %d\n", stat_num );
+		return;
+	}
+	e->priv.sv->client->stats[stat_num] = value;
+}
+
 /*
 =================
 PF_setsize
@@ -1391,7 +1428,7 @@ PF_lightstyle,				// #35 void(float style, string value) lightstyle
 VM_rint,					// #36 float(float v) rint
 VM_floor,					// #37 float(float v) floor
 VM_ceil,					// #38 float(float v) ceil
-NULL,					// #39
+PF_SetStats,				// #39 void(entity e, float f, string stats) setstats
 PF_checkbottom,				// #40 float(entity e) checkbottom
 PF_pointcontents,				// #41 float(vector v) pointcontents
 NULL,					// #42

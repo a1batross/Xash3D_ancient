@@ -295,9 +295,7 @@ void CL_BaseMove (usercmd_t *cmd)
 		cmd->forwardmove -= cl_forwardspeed->value * CL_KeyState (&in_back);
 	}	
 
-//
-// adjust for speed key / running
-//
+	// adjust for speed key / running
 	if ( (in_speed.state & 1) ^ (int)(cl_run->value) )
 	{
 		cmd->forwardmove *= 2;
@@ -369,8 +367,7 @@ usercmd_t CL_CreateCmd (void)
 	usercmd_t	cmd;
 
 	frame_msec = host.cl_timer - old_sys_frame_time;
-	if (frame_msec < 1) frame_msec = 1;
-	if (frame_msec > 200) frame_msec = 200;
+	frame_msec = bound(1, frame_msec, 200);
 	
 	// get basic movement from keyboard
 	CL_BaseMove (&cmd);

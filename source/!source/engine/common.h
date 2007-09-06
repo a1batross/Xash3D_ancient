@@ -486,7 +486,7 @@ bool	NET_CompareBaseAdr (netadr_t a, netadr_t b);
 bool	NET_IsLocalAddress (netadr_t adr);
 char	*NET_AdrToString (netadr_t a);
 bool	NET_StringToAdr (char *s, netadr_t *a);
-void	NET_Sleep(float time);
+void	NET_Sleep(int msec);
 
 //============================================================================
 
@@ -502,13 +502,13 @@ typedef struct
 
 	int			dropped;			// between last packet and previous
 
-	float			last_received;		// for timeouts
-	float			last_sent;		// for retransmits
+	int			last_received;		// for timeouts
+	int			last_sent;		// for retransmits
 
 	netadr_t	remote_address;
 	int			qport;				// qport value to write when transmitting
 
-// sequencing variables
+	// sequencing variables
 	int			incoming_sequence;
 	int			incoming_acknowledged;
 	int			incoming_reliable_acknowledged;	// single bit

@@ -85,6 +85,7 @@ void Sys_Init (void)
 
 	if (!GetVersionEx (&vinfo)) Sys_Error ("Couldn't get OS info");
 	if (vinfo.dwMajorVersion < 4) Sys_Error ("%s requires windows version 4 or greater", GI.title);
+	srand(time(NULL));
 }
 
 /*
@@ -118,6 +119,8 @@ Send Key_Event calls
 void Sys_SendKeyEvents (void)
 {
 	MSG        msg;
+
+	rand();
 
 	while (PeekMessage (&msg, NULL, 0, 0, PM_NOREMOVE))
 	{

@@ -601,7 +601,7 @@ void CL_ParsePlayerstate (frame_t *oldframe, frame_t *newframe)
 	}
 
 	if (flags & PS_FOV)
-		state->fov = MSG_ReadFloat (&net_message);
+		state->fov = MSG_ReadByte (&net_message);
 
 	if (flags & PS_RDFLAGS)
 		state->rdflags = MSG_ReadByte (&net_message);

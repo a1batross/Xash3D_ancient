@@ -166,6 +166,7 @@ void(float style, string value) lightstyle	= #35;
 float(float v) rint				= #36;		// round to nearest int
 float(float v) floor			= #37;		// largest integer <= v
 float(float v) ceil				= #38;		// smallest integer >= v
+void(entity e, float f, string stats) setstats	= #39;
 float(entity e) checkbottom			= #40;		// true if self is on ground
 float(vector v) pointcontents			= #41;		// returns a CONTENT_*
 float(float f) fabs				= #43;
@@ -212,6 +213,33 @@ void(entity e) setspawnparms			= #78;	// set parm1... to the
 
 float	FALSE					= 0;
 float 	TRUE					= 1;
+
+// newdefines
+#define CS_STATUSBAR				5
+
+#define CS_MAXCLIENTS				30
+
+#define	STAT_HEALTH_ICON		0
+#define	STAT_HEALTH		1.0
+#define	STAT_AMMO_ICON		2
+#define	STAT_AMMO			3
+#define	STAT_ARMOR_ICON		4
+#define	STAT_ARMOR		5
+#define	STAT_SELECTED_ICON		6
+#define	STAT_PICKUP_ICON		7
+#define	STAT_PICKUP_STRING		8
+#define	STAT_TIMER_ICON		9
+#define	STAT_TIMER		10
+#define	STAT_HELPICON		11
+#define	STAT_SELECTED_ITEM		12
+#define	STAT_LAYOUTS		13
+#define	STAT_FRAGS		14
+#define	STAT_FLASHES		15		// cleared each frame, 1 = health, 2 = armor
+#define	STAT_CHASE		16
+#define	STAT_SPECTATOR		17
+#define	STAT_SPEED		22
+#define	STAT_ZOOM			23
+#define	MAX_STATS			32
 
 // edict.flags
 float	FL_FLY					= 1;

@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 typedef struct link_s
 {
 	struct link_s	*prev, *next;
-	int		entitynumber;
+	int		entnum;		// get edict by number
 } link_t;
 
 typedef struct server_edict_s

@@ -107,19 +107,18 @@ typedef void (*prvm_builtin_t) (void);
 // NOTE: external code has to create and free the mempools but everything else is done by prvm !
 typedef struct prvm_prog_s
 {
-	dprograms_t			*progs;
-	mfunction_t			*functions;
-	char				*strings;
-	int				stringssize;
-	ddef_t				*fielddefs;
-	ddef_t				*globaldefs;
-	dstatement_t			*statements;
-	int				edict_size;	// in bytes
-	int				edictareasize;	// LordHavoc: in bytes (for bound checking)
+	dprograms_t	*progs;
+	mfunction_t	*functions;
+	char		*strings;
+	int		stringssize;
+	ddef_t		*fielddefs;
+	ddef_t		*globaldefs;
+	dstatement_t	*statements;
+	int		edict_size;	// in bytes
+	int		edictareasize;	// in bytes (for bound checking)
 
-	int				*statement_linenums;// NULL if not available
-
-	double				*statement_profile; // only incremented if prvm_statementprofiling is on
+	int		*statement_linenums;// NULL if not available
+	double		*statement_profile; // only incremented if prvm_statementprofiling is on
 
 	union
 	{
@@ -127,117 +126,117 @@ typedef struct prvm_prog_s
 		globalvars_t		*server;
 	} globals;
 
-	int				maxknownstrings;
-	int				numknownstrings;
+	int		maxknownstrings;
+	int		numknownstrings;
+
 	// this is updated whenever a string is removed or added
 	// (simple optimization of the free string search)
-	int				firstfreeknownstring;
-	const char			**knownstrings;
-	unsigned char			*knownstrings_freeable;
-	const char			***stringshash;
+	int		firstfreeknownstring;
+	const char	**knownstrings;
+	byte		*knownstrings_freeable;
+	const char	***stringshash;
 
 	// all memory allocations related to this vm_prog (code, edicts, strings)
-	byte				*progs_mempool; // [INIT]
+	byte		*progs_mempool;	// [INIT]
 
-	prvm_builtin_t			*builtins; // [INIT]
-	int				numbuiltins; // [INIT]
+	prvm_builtin_t	*builtins;	// [INIT]
+	int		numbuiltins;	// [INIT]
 
-	int				argc;
+	int		argc;
 
-	int				trace;
-	mfunction_t			*xfunction;
-	int				xstatement;
+	int		trace;
+	mfunction_t	*xfunction;
+	int		xstatement;
 
 	// stacktrace writes into stack[MAX_STACK_DEPTH]
 	// thus increase the array, so depth wont be overwritten
-	prvm_stack_t			stack[PRVM_MAX_STACK_DEPTH+1];
-	int				depth;
+	prvm_stack_t	stack[PRVM_MAX_STACK_DEPTH + 1];
+	int		depth;
 
-	int				localstack[PRVM_LOCALSTACK_SIZE];
-	int				localstack_used;
+	int		localstack[PRVM_LOCALSTACK_SIZE];
+	int		localstack_used;
 
-	word				filecrc;
+	word		filecrc;
 
 	//============================================================================
 	// until this point everything also exists (with the pr_ prefix) in the old vm
 
-	file_t				*openfiles[PRVM_MAX_OPENFILES];
-	search_t				*opensearches[PRVM_MAX_OPENSEARCHES];
+	file_t		*openfiles[PRVM_MAX_OPENFILES];
+	search_t		*opensearches[PRVM_MAX_OPENSEARCHES];
 
 	// copies of some vars that were former read from sv
-	int				num_edicts;
+	int		num_edicts;
 	// number of edicts for which space has been (should be) allocated
-	int				max_edicts; // [INIT]
+	int		max_edicts;	// [INIT]
 	// used instead of the constant MAX_EDICTS
-	int				limit_edicts; // [INIT]
+	int		limit_edicts;	// [INIT]
 
 	// number of reserved edicts (allocated from 1)
-	int				reserved_edicts; // [INIT]
+	int		reserved_edicts;	// [INIT]
 
-	prvm_edict_t			*edicts;
-	void				*edictsfields;
-	void				*edictprivate;
+	prvm_edict_t	*edicts;
+	void		*edictsfields;
+	void		*edictprivate;
 
 	// size of the engine private struct
-	int				edictprivate_size; // [INIT]
+	int		edictprivate_size;	// [INIT]
 
 	// has to be updated every frame - so the vm time is up-to-date
 	// AK changed so time will point to the time field (if there is one) else it points to _time
 	// actually should be double, but qc doesnt support it
-	float				*time;
-	float				_time;
+	float		*time;
+	float		_time;
 
 	// allow writing to world entity fields, this is set by server init and
 	// cleared before first server frame
-	bool				allowworldwrites;
+	bool		protect_world;
 
 	// name of the prog, e.g. "Server", "Client" or "Menu" (used for text output)
-	char				*name; // [INIT]
+	char		*name;		// [INIT]
 
 	// flag - used to store general flags like PRVM_GE_SELF, etc.
-	int				flag;
+	int		flag;
 
-	char				*extensionstring; // [INIT]
+	char		*extensionstring;	// [INIT]
 
-	bool				loadintoworld; // [INIT]
+	bool		loadintoworld;	// [INIT]
 
 	// used to indicate whether a prog is loaded
-	bool				loaded;
-
-// now passes as parameter of PRVM_LoadProgs
-//	char				**required_func;
-//	int					numrequiredfunc;
+	bool		loaded;
 
 	//============================================================================
 
-	ddef_t				*self; // if self != 0 then there is a global self
+	ddef_t		*self; // if self != 0 then there is a global self
 
 	//============================================================================
 	// function pointers
 
-	void				(*begin_increase_edicts)(void); // [INIT] used by PRVM_MEM_Increase_Edicts
-	void				(*end_increase_edicts)(void); // [INIT]
+	void		(*begin_increase_edicts)(void); // [INIT] used by PRVM_MEM_Increase_Edicts
+	void		(*end_increase_edicts)(void); // [INIT]
 
-	void				(*init_edict)(prvm_edict_t *edict); // [INIT] used by PRVM_ED_ClearEdict
-	void				(*free_edict)(prvm_edict_t *ed); // [INIT] used by PRVM_ED_Free
+	void		(*init_edict)(prvm_edict_t *edict); // [INIT] used by PRVM_ED_ClearEdict
+	void		(*free_edict)(prvm_edict_t *ed); // [INIT] used by PRVM_ED_Free
 
-	void				(*count_edicts)(void); // [INIT] used by PRVM_ED_Count_f
+	void		(*count_edicts)(void); // [INIT] used by PRVM_ED_Count_f
 
-	bool				(*load_edict)(prvm_edict_t *ent); // [INIT] used by PRVM_ED_LoadFromFile
+	bool		(*load_edict)(prvm_edict_t *ent); // [INIT] used by PRVM_ED_LoadFromFile
 
-	void				(*init_cmd)(void); // [INIT] used by PRVM_InitProg
-	void				(*reset_cmd)(void); // [INIT] used by PRVM_ResetProg
+	void		(*init_cmd)(void);	// [INIT] used by PRVM_InitProg
+	void		(*reset_cmd)(void);	// [INIT] used by PRVM_ResetProg
 
-	void				(*error_cmd)(const char *format, ...); // [INIT]
+	void		(*error_cmd)(const char *format, ...); // [INIT]
 
 } prvm_prog_t;
 
 extern prvm_prog_t *prog;
 
-#define PRVM_MAXPROGS 3
-#define PRVM_SERVERPROG	0 // actually not used at the moment
-#define PRVM_CLIENTPROG	1
-#define PRVM_MENUPROG	2
+enum
+{
+	PRVM_SERVERPROG = 0,
+	PRVM_CLIENTPROG,
+	PRVM_MENUPROG,
+	PRVM_MAXPROGS,	// must be last			
+};
 
 extern prvm_prog_t prvm_prog_list[PRVM_MAXPROGS];
 
@@ -291,7 +290,9 @@ void PRVM_Crash (void);
 int PRVM_ED_FindFieldOffset(const char *field);
 int PRVM_ED_FindGlobalOffset(const char *global);
 ddef_t *PRVM_ED_FindField (const char *name);
+ddef_t *PRVM_ED_FindGlobal (const char *name);
 mfunction_t *PRVM_ED_FindFunction (const char *name);
+func_t PRVM_ED_FindFunctionOffset(const char *function);
 
 void PRVM_MEM_IncreaseEdicts(void);
 
@@ -310,27 +311,19 @@ void PRVM_ED_ParseGlobals (const char *data);
 void PRVM_ED_LoadFromFile (const char *data);
 
 prvm_edict_t *PRVM_EDICT_NUM_ERROR(int n, char *filename, int fileline);
-#define	PRVM_EDICT_NUM(n) (((n) >= 0 && (n) < prog->max_edicts) ? prog->edicts + (n) : PRVM_EDICT_NUM_ERROR(n, __FILE__, __LINE__))
-#define	PRVM_EDICT_NUM_UNSIGNED(n) (((n) < prog->max_edicts) ? prog->edicts + (n) : PRVM_EDICT_NUM_ERROR(n, __FILE__, __LINE__))
-#define	PRVM_EDICT_FROM_AREA(l) ((prvm_edict_t *)((byte *)l - (int)&(((prvm_edict_t *)0)->priv.sv->area)))
-
-//int NUM_FOR_EDICT_ERROR(prvm_edict_t *e);
+#define PRVM_EDICT_NUM(n) (((n) >= 0 && (n) < prog->max_edicts) ? prog->edicts + (n) : PRVM_EDICT_NUM_ERROR(n, __FILE__, __LINE__))
+#define PRVM_EDICT_NUM_UNSIGNED(n) (((n) < prog->max_edicts) ? prog->edicts + (n) : PRVM_EDICT_NUM_ERROR(n, __FILE__, __LINE__))
 #define PRVM_NUM_FOR_EDICT(e) ((int)((prvm_edict_t *)(e) - prog->edicts))
-//int PRVM_NUM_FOR_EDICT(prvm_edict_t *e);
-
-#define	PRVM_NEXT_EDICT(e) ((e) + 1)
-
+#define PRVM_NEXT_EDICT(e) ((e) + 1)
 #define PRVM_EDICT_TO_PROG(e) (PRVM_NUM_FOR_EDICT(e))
-//int PRVM_EDICT_TO_PROG(prvm_edict_t *e);
 #define PRVM_PROG_TO_EDICT(n) (PRVM_EDICT_NUM(n))
-//prvm_edict_t *PRVM_PROG_TO_EDICT(int n);
 
 //============================================================================
 
 #define	PRVM_G_FLOAT(o) (prog->globals.generic[o])
 #define	PRVM_G_INT(o) (*(int *)&prog->globals.generic[o])
 #define	PRVM_G_EDICT(o) (PRVM_PROG_TO_EDICT(*(int *)&prog->globals.generic[o]))
-#define PRVM_G_EDICTNUM(o) PRVM_NUM_FOR_EDICT(PRVM_G_EDICT(o))
+#define	PRVM_G_EDICTNUM(o) PRVM_NUM_FOR_EDICT(PRVM_G_EDICT(o))
 #define	PRVM_G_VECTOR(o) (&prog->globals.generic[o])
 #define	PRVM_G_STRING(o) (PRVM_GetString(*(string_t *)&prog->globals.generic[o]))
 //#define	PRVM_G_FUNCTION(o) (*(func_t *)&prog->globals.generic[o])
@@ -341,7 +334,7 @@ prvm_edict_t *PRVM_EDICT_NUM_ERROR(int n, char *filename, int fileline);
 //#define	PRVM_E_VECTOR(e,o) (&((float*)e->fields.vp)[o])
 #define	PRVM_E_STRING(e,o) (PRVM_GetString(*(string_t *)&((float*)e->fields.vp)[o]))
 
-extern	int		prvm_type_size[8]; // for consistency : I think a goal of this sub-project is to
+extern int prvm_type_size[8]; // for consistency : I think a goal of this sub-project is to
 // make the new vm mostly independent from the old one, thus if it's necessary, I copy everything
 
 void PRVM_Init_Exec(void);
@@ -356,28 +349,13 @@ void PRVM_FreeString(int num);
 
 //============================================================================
 
-// used as replacement for a prog stack
-//#define PRVM_DEBUGPRSTACK
-
-#ifdef PRVM_DEBUGPRSTACK
-#define PRVM_Begin  if(prog != 0) Con_Printf("prog not 0(prog = %i) in file: %s line: %i!\n", PRVM_GetProgNr(), __FILE__, __LINE__)
-#define PRVM_End	prog = 0
-#else
 #define PRVM_Begin
 #define PRVM_End	prog = 0
-#endif
-
-//#define PRVM_SAFENAME
-#ifndef PRVM_SAFENAME
-#	define PRVM_NAME	(prog->name)
-#else
-#	define PRVM_NAME	(prog->name ? prog->name : "Unknown prog name")
-#endif
+#define PRVM_NAME	(prog->name ? prog->name : "unnamed.dat")
 
 // helper macro to make function pointer calls easier
-#define PRVM_GCALL(func)	if(prog->func) prog->func
-
-#define PRVM_ERROR		prog->error_cmd
+#define PRVM_GCALL(func) if(prog->func) prog->func
+#define PRVM_ERROR prog->error_cmd
 
 // other prog handling functions
 bool PRVM_SetProgFromString(const char *str);
@@ -396,7 +374,7 @@ void PRVM_ResetProg(void);
 
 bool PRVM_ProgLoaded(int prognr);
 
-int	PRVM_GetProgNr(void);
+int PRVM_GetProgNr(void);
 
 void VM_Warning(const char *fmt, ...);
 void VM_Error(const char *fmt, ...);

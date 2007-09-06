@@ -26,7 +26,7 @@ prvm_prog_t *prog;
 
 static prvm_prog_t prog_list[PRVM_MAXPROGS];
 
-int		prvm_type_size[8] = {1,sizeof(string_t)/4,1,3,1,1,sizeof(func_t)/4,sizeof(void *)/4};
+int prvm_type_size[8] = {1, sizeof(string_t)/4,1,3,1,1, sizeof(func_t)/4, sizeof(void *)/4};
 
 ddef_t *PRVM_ED_FieldAtOfs(int ofs);
 bool PRVM_ED_ParseEpair(prvm_edict_t *ent, ddef_t *key, const char *s);
@@ -120,19 +120,25 @@ int PRVM_ED_FindFieldOffset(const char *field)
 {
 	ddef_t *d;
 	d = PRVM_ED_FindField(field);
-	if (!d)
-		return 0;
-	return d->ofs*4;
+	if (!d) return 0;
+	return d->ofs * 4;
 }
 
-ddef_t*	PRVM_ED_FindGlobal(const char *name);
 int PRVM_ED_FindGlobalOffset(const char *global)
 {
 	ddef_t *d;
 	d = PRVM_ED_FindGlobal(global);
-	if (!d)
+	if (!d) return 0;
+	return d->ofs * 4;
+}
+
+func_t PRVM_ED_FindFunctionOffset(const char *function)
+{
+	mfunction_t *f;
+	f = PRVM_ED_FindFunction(function);
+	if (!f)
 		return 0;
-	return d->ofs*4;
+	return (func_t)(f - prog->functions);
 }
 
 bool PRVM_ProgLoaded(int prognr)
@@ -226,7 +232,7 @@ prvm_edict_t *PRVM_ED_Alloc (void)
 	// AK:	changed i=svs.maxclients+1
 	// AK:	changed so the edict 0 wont spawn -> used as reserved/world entity
 	//		although the menu/client has no world
-	for (i = prog->reserved_edicts + 1;i < prog->num_edicts;i++)
+	for (i = prog->reserved_edicts + 1; i < prog->num_edicts; i++)
 	{
 		e = PRVM_EDICT_NUM(i);
 		// the first couple seconds of server time can involve a lot of
@@ -948,10 +954,8 @@ bool PRVM_ED_ParseEpair(prvm_edict_t *ent, ddef_t *key, const char *s)
 			MsgDev(D_WARN, "PRVM_ED_ParseEpair: ev_entity reference too large (edict %u >= MAX_EDICTS %u) on %s\n", (uint)i, (uint)MAX_EDICTS, PRVM_NAME);
 		while (i >= prog->max_edicts)
 			PRVM_MEM_IncreaseEdicts();
-			//SV_IncreaseEdicts();
-		// if SV_IncreaseEdicts was called the base pointer needs to be updated
-		if (ent)
-			val = (prvm_eval_t *)((int *)ent->fields.vp + key->ofs);
+		// if IncreaseEdicts was called the base pointer needs to be updated
+		if (ent) val = (prvm_eval_t *)((int *)ent->fields.vp + key->ofs);
 		val->edict = PRVM_EDICT_TO_PROG(PRVM_EDICT_NUM((int)i));
 		break;
 
@@ -1131,8 +1135,7 @@ void PRVM_ED_LoadFromFile (const char *data)
 			prog->loadintoworld = false;
 			ent = PRVM_EDICT_NUM(0);
 		}
-		else
-			ent = PRVM_ED_Alloc();
+		else ent = PRVM_ED_Alloc();
 
 		// clear it
 		if (ent != prog->edicts)	// hack
@@ -1508,8 +1511,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 	if(PRVM_ED_FindField ("classname"))
 		prog->flag |= PRVM_FE_CLASSNAME;
 
-	if(PRVM_ED_FindField ("nextthink") && PRVM_ED_FindField ("frame") && PRVM_ED_FindField ("think")
-		&& prog->flag && prog->self)
+	if(PRVM_ED_FindField ("nextthink") && PRVM_ED_FindField ("frame") && PRVM_ED_FindField ("think") && prog->flag && prog->self)
 		prog->flag |= PRVM_OP_STATE;
 
 	PRVM_GCALL(init_cmd)();
@@ -1830,48 +1832,6 @@ prvm_edict_t *PRVM_EDICT_NUM_ERROR(int n, char *filename, int fileline)
 	return NULL;
 }
 
-/*
-int NUM_FOR_EDICT_ERROR(prvm_edict_t *e)
-{
-	PRVM_ERROR ("PRVM_NUM_FOR_EDICT: bad pointer %p (world is %p, entity number would be %i)", e, prog->edicts, e - prog->edicts);
-	return 0;
-}
-
-int PRVM_NUM_FOR_EDICT(prvm_edict_t *e)
-{
-	int n;
-	n = e - prog->edicts;
-	if ((unsigned int)n >= prog->limit_edicts)
-		Host_Error ("PRVM_NUM_FOR_EDICT: bad pointer");
-	return n;
-}
-
-//int NoCrash_NUM_FOR_EDICT(prvm_edict_t *e)
-//{
-//	return e - prog->edicts;
-//}
-
-//#define	PRVM_EDICT_TO_PROG(e) ((unsigned char *)(((prvm_edict_t *)e)->v) - (unsigned char *)(prog->edictsfields))
-//#define PRVM_PROG_TO_EDICT(e) (prog->edicts + ((e) / (progs->entityfields * 4)))
-int PRVM_EDICT_TO_PROG(prvm_edict_t *e)
-{
-	int n;
-	n = e - prog->edicts;
-	if ((unsigned int)n >= (unsigned int)prog->max_edicts)
-		Host_Error("PRVM_EDICT_TO_PROG: invalid edict %8p (number %i compared to world at %8p)", e, n, prog->edicts);
-	return n;// EXPERIMENTAL
-	//return (unsigned char *)e->v - (unsigned char *)prog->edictsfields;
-}
-prvm_edict_t *PRVM_PROG_TO_EDICT(int n)
-{
-	if ((unsigned int)n >= (unsigned int)prog->max_edicts)
-		Host_Error("PRVM_PROG_TO_EDICT: invalid edict number %i", n);
-	return prog->edicts + n; // EXPERIMENTAL
-	//return prog->edicts + ((n) / (progs->entityfields * 4));
-}
-*/
-
-
 const char *PRVM_GetString(int num)
 {
 	if (num >= 0 && num < prog->stringssize)
@@ -1901,7 +1861,7 @@ int PRVM_SetEngineString(const char *s)
 		if (prog->knownstrings[i] == s)
 			return -1 - i;
 	// new unknown engine string
-	MsgDev(D_WARN, "new engine string %p\n", s);
+	MsgDev(D_WARN, "new engine string %p\n", s );
 	for (i = prog->firstfreeknownstring;i < prog->numknownstrings;i++)
 		if (!prog->knownstrings[i])
 			break;

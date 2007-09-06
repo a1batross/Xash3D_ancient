@@ -707,7 +707,7 @@ void NET_Config (bool multiplayer)
 }
 
 // sleeps msec or until net socket is ready
-void NET_Sleep(float time)
+void NET_Sleep(int msec)
 {
     	struct timeval	timeout;
 	fd_set		fdset;
@@ -716,8 +716,6 @@ void NET_Sleep(float time)
 	// we're not a server, just run full speed
 	if (host.type == HOST_NORMAL) return; 
 	FD_ZERO(&fdset);
-
-	Msg("NET_Sleep: sleep time %g\n", time );
 
 	if (ip_sockets[NS_SERVER])
 	{
@@ -729,8 +727,8 @@ void NET_Sleep(float time)
 		FD_SET(ipx_sockets[NS_SERVER], &fdset); // network socket
 		if (ipx_sockets[NS_SERVER] > i) i = ipx_sockets[NS_SERVER];
 	}
-	timeout.tv_sec = time;
-	timeout.tv_usec = fmod(time, 1.0f) * 1.0f;
+	timeout.tv_sec = msec/1000;
+	timeout.tv_usec = (msec%1000) * 1000;
 	select(i+1, &fdset, NULL, NULL, &timeout);
 }
 

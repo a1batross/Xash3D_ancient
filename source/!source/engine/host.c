@@ -214,8 +214,12 @@ void Host_Main( void )
    			DispatchMessage (&msg);
 		}
 
-		newtime = Sys_DoubleTime();
-		host.realtime = newtime - oldtime;
+		do
+		{
+			newtime = Sys_DoubleTime();
+			host.realtime = newtime - oldtime;
+
+		} while (host.realtime < 0.001);
 
 		Host_Frame (host.realtime);
 		oldtime = newtime;

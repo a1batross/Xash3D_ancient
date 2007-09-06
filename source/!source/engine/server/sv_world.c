@@ -65,8 +65,9 @@ void RemoveLink (link_t *l)
 	l->prev->next = l->next;
 }
 
-void InsertLinkBefore (link_t *l, link_t *before)
+void InsertLinkBefore (link_t *l, link_t *before, int entnum)
 {
+	l->entnum = entnum;
 	l->next = before;
 	l->prev = before->prev;
 	l->prev->next = l;
@@ -166,7 +167,11 @@ void SV_LinkEdict (prvm_edict_t *ent)
 
 	if (ent->priv.sv->area.prev) SV_UnlinkEdict (ent); // unlink from old position
 	if (ent == prog->edicts) return; // don't add the world
-	if (!ent->priv.sv->free) return;
+	if (ent->priv.sv->free) 
+	{
+		Msg("Can't link entity [%d]\n", ent->priv.sv->state.number ); 
+		return;
+	}
 
 	// set the size
 	VectorSubtract (ent->fields.sv->maxs, ent->fields.sv->mins, ent->fields.sv->size);
@@ -217,7 +222,8 @@ void SV_LinkEdict (prvm_edict_t *ent)
 		}
 	}
 	else
-	{	// normal
+	{	
+		// normal
 		VectorAdd (ent->fields.sv->origin, ent->fields.sv->mins, ent->fields.sv->absmin);	
 		VectorAdd (ent->fields.sv->origin, ent->fields.sv->maxs, ent->fields.sv->absmax);
 	}
@@ -309,8 +315,9 @@ void SV_LinkEdict (prvm_edict_t *ent)
 	}
 	
 	// link it in	
-	if (ent->fields.sv->solid == SOLID_TRIGGER) InsertLinkBefore (&ent->priv.sv->area, &node->trigger_edicts);
-	else InsertLinkBefore (&ent->priv.sv->area, &node->solid_edicts);
+	if (ent->fields.sv->solid == SOLID_TRIGGER) 
+		InsertLinkBefore (&ent->priv.sv->area, &node->trigger_edicts, PRVM_NUM_FOR_EDICT(ent));
+	else InsertLinkBefore (&ent->priv.sv->area, &node->solid_edicts, PRVM_NUM_FOR_EDICT(ent));
 
 }
 
@@ -335,7 +342,7 @@ void SV_AreaEdicts_r (areanode_t *node)
 	for (l = start->next; l != start; l = next)
 	{
 		next = l->next;
-		check = PRVM_EDICT_FROM_AREA(l);
+		check = PRVM_EDICT_NUM_UNSIGNED(l->entnum);
 
 		if (check->fields.sv->solid == SOLID_NOT) continue; // deactivated
 		if (check->fields.sv->absmin[0] > area_maxs[0] || check->fields.sv->absmin[1] > area_maxs[1] || check->fields.sv->absmin[2] > area_maxs[2]
@@ -355,10 +362,8 @@ void SV_AreaEdicts_r (areanode_t *node)
 	if (node->axis == -1) return;	// terminal node
 
 	// recurse down both sides
-	if ( area_maxs[node->axis] > node->dist )
-		SV_AreaEdicts_r ( node->children[0] );
-	if ( area_mins[node->axis] < node->dist )
-		SV_AreaEdicts_r ( node->children[1] );
+	if ( area_maxs[node->axis] > node->dist ) SV_AreaEdicts_r ( node->children[0] );
+	if ( area_mins[node->axis] < node->dist ) SV_AreaEdicts_r ( node->children[1] );
 }
 
 /*

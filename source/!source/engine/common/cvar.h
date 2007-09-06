@@ -13,7 +13,8 @@ cvar_t *Cvar_Get (const char *var_name, const char *value, int flags);
 // if it exists, the value will not be changed, but flags will be ORed in
 // that allows variables to be unarchived without needing bitflags
 
-cvar_t 	*Cvar_Set (const char *var_name, const char *value);
+#define Cvar_Set(name, val) _Cvar_Set (name, val, __FILE__, __LINE__)
+cvar_t *_Cvar_Set (const char *var_name, const char *value, const char *filename, int fileline);
 // will create the variable if it doesn't exist
 
 cvar_t *Cvar_ForceSet (const char *var_name, const char *value);

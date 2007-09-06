@@ -83,6 +83,18 @@ void() GetLevelParms =
 void() StartFrame = {};
 void() EndFrame = {};
 
+// hud program string
+string single_statusbar = 
+"yb -24 xv 0 hnum xv 50 pic 0 \
+if 2 { xv 100 anum xv 150 pic 2 } \
+if 4 { xv 200 rnum xv 250 pic 4 } \
+if 6 { xv 296 pic 6 } yb -50 \
+if 7 { xv 0 pic 7 xv 26 yb -42 stat_string 8 yb -50 } \
+if 9 { xv 230 num 4 10 xv 296 pic 9 } \
+if 11 { xv 148 pic 11 } \
+if 22 { yb -90 xv 128 pic 22 } \
+if 23 { yv 0 xv 0 pic 23 }";
+
 /*
 ===============
 |WORLDSPAWN():|
@@ -92,11 +104,13 @@ This function is called when the world spawns.
 =================================================================================
 */
 
-void() worldspawn = 
+void worldspawn( void ) 
 {
 	precaches(); 
 	LightStyles_setup();
-};
+	configstring (CS_MAXCLIENTS, "1" );
+	configstring (CS_STATUSBAR, single_statusbar );
+}
 
 /*
 ==============

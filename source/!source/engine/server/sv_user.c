@@ -258,8 +258,8 @@ void SV_Begin_f (void)
 	}
 	for (i = 0; i < 3; i++)
 	{
-		sv_player->priv.sv->client->pmove.origin[i] = sv_player->fields.sv->origin[i]*8.0;
-		//ent->client->ps.pmove.velocity[i] = ent->velocity[i]*8.0;
+		sv_player->priv.sv->client->pmove.origin[i] = sv_player->priv.sv->state.origin[i] = sv_player->fields.sv->origin[i]*8.0;
+		sv_player->priv.sv->client->pmove.velocity[i] = sv_player->fields.sv->velocity[i]*8.0;
 	}
           sv_player->priv.sv->client->gunindex = SV_ModelIndex("models/weapons/v_glock.mdl" );
 	sv_player->priv.sv->client->fov = 90;
@@ -533,13 +533,15 @@ void SV_ClientRun (client_t *cl, usercmd_t *cmd)
 
 	for (i = 0; i < 3; i++)
 	{
-		pm.s.origin[i] = cl->edict->priv.sv->state.origin[i] * 8;
+		pm.s.origin[i] = cl->edict->fields.sv->origin[i] * 8;
 		pm.s.velocity[i] = cl->edict->fields.sv->velocity[i] * 8;
 	}
 	pm.cmd = *cmd;
 
 	pm.trace = PM_trace; // adds default parms
 	pm.pointcontents = SV_PointContents;
+
+	Msg("org before pmove [%i %i %i]\n", pm.s.origin[0], pm.s.origin[1], pm.s.origin[2] );
 
 	Pmove (&pm); //run pmove
 	
@@ -550,8 +552,9 @@ void SV_ClientRun (client_t *cl, usercmd_t *cmd)
 
 	for (i = 0; i < 3; i++)
 	{
-		cl->edict->priv.sv->state.origin[i] = (float)pm.s.origin[i]*0.125;
-		cl->edict->fields.sv->velocity[i] = (float)pm.s.velocity[i]*0.125;
+		cl->edict->priv.sv->state.old_origin[i] = pm.s.origin[i]*0.125;
+		cl->edict->fields.sv->origin[i] = pm.s.origin[i]*0.125;
+		cl->edict->fields.sv->velocity[i] = pm.s.velocity[i]*0.125;
 	}
 	VectorCopy (pm.mins, cl->edict->fields.sv->mins);
 	VectorCopy (pm.maxs, cl->edict->fields.sv->maxs);
@@ -888,7 +891,7 @@ void SV_ExecuteClientMessage (client_t *cl)
 	int		stringCmdCount;
 	int		checksum, calculatedChecksum;
 	int		checksumIndex;
-	bool	move_issued;
+	bool		move_issued;
 	int		lastframe;
 
 	sv_client = cl;
@@ -960,7 +963,9 @@ void SV_ExecuteClientMessage (client_t *cl)
 				MsgWarn("SV_ExecuteClientMessage: failed command checksum for %s (%d != %d)/%d\n", cl->name, calculatedChecksum, checksum,  cl->netchan.incoming_sequence);
 				return;
 			}
-
+                              
+                              //Msg("sv_paused->value %g\n", sv_paused->value );
+			
 			if (!sv_paused->value)
 			{
 				net_drop = cl->netchan.dropped;
@@ -989,3 +994,4 @@ void SV_ExecuteClientMessage (client_t *cl)
 		}
 	}
 }
+

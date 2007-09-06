@@ -325,7 +325,7 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 		MSG_WriteByte (msg, ps->blend[2] * 255);
 		MSG_WriteByte (msg, ps->blend[3] * 255);
 	}
-	if (pflags & PS_FOV) MSG_WriteFloat (msg, ps->fov);
+	if (pflags & PS_FOV) MSG_WriteByte (msg, ps->fov);
 	if (pflags & PS_RDFLAGS) MSG_WriteByte (msg, ps->rdflags);
 
 	// send stats
@@ -526,10 +526,7 @@ void SV_BuildClientFrame (client_t *client)
 				// doors can legally straddle two areas, so
 				// we may need to check another one
 				if (!ent->priv.sv->areanum2 || !CM_AreasConnected (clientarea, ent->priv.sv->areanum2))
-				{
-					//Msg("blocked by a door [%i]\n", ent->priv.sv->state.number);
-					//continue;	// blocked by a door
-				}
+					continue;	// blocked by a door
 			}
 
 			// beams just check one point for PHS
@@ -565,10 +562,7 @@ void SV_BuildClientFrame (client_t *client)
 							break;
 					}
 					if (i == ent->priv.sv->num_clusters)
-					{
-						//Msg("i == ent->priv.sv->num_clusters\n");
-						//continue;		// not visible
-					}
+						continue;	// not visible
 				}
 
 				if (!(int)ent->fields.sv->modelindex)
@@ -588,7 +582,7 @@ void SV_BuildClientFrame (client_t *client)
 		state = &svs.client_entities[svs.next_client_entities % svs.num_client_entities];
 		if (ent->priv.sv->state.number != e)
 		{
-			MsgWarn ("SV_BuildClientFrame: invalid ent->priv.sv->state.number %d\n", ent->priv.sv->state.number );
+			MsgWarn ("SV_BuildClientFrame: invalid ent->priv.sv->state.number %d (must be %d)\n", ent->priv.sv->state.number, e );
 			ent->priv.sv->state.number = e; // ptr to current entity such as entnumber
 		}
 
@@ -648,7 +642,7 @@ void SV_RecordDemoMessage (void)
 	while (e < prog->num_edicts) 
 	{
 		// ignore ents without visible models unless they have an effect
-		if (ent->priv.sv->free && ent->priv.sv->state.number && (ent->fields.sv->modelindex || ent->fields.sv->effects || ent->priv.sv->state.sound || ent->priv.sv->state.event) && !((int)ent->fields.sv->flags & SVF_NOCLIENT))
+		if (!ent->priv.sv->free && ent->priv.sv->state.number && ((int)ent->fields.sv->modelindex || ent->fields.sv->effects || ent->priv.sv->state.sound || ent->priv.sv->state.event) && !((int)ent->fields.sv->flags & SVF_NOCLIENT))
 			MSG_WriteDeltaEntity (&nostate, &ent->priv.sv->state, &buf, false, true);
 		e++;
 		ent = PRVM_EDICT_NUM(e);

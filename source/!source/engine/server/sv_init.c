@@ -186,7 +186,11 @@ void SV_CreateBaseline (void)
 	{
 		svent = PRVM_EDICT_NUM(entnum);
 
-		if (!svent->priv.sv->free) continue;
+		if (svent->priv.sv->free) 
+		{
+			Msg("Can't create baseline for entity [%d]\n", entnum ); 
+			continue;
+		}
 		if (!(int)svent->fields.sv->modelindex && !(int)svent->priv.sv->state.sound && !(int)svent->fields.sv->effects)
 			continue;
 
@@ -336,6 +340,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 	}
 
 	sv.state = ss_loading;
+	prog->protect_world = false;
 
 	if (serverstate != ss_game)
 	{
@@ -394,6 +399,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 	// all precaches are complete
 	sv.state = serverstate;
 	Com_SetServerState (sv.state);
+          prog->protect_world = true;
 
 	// run two frames to allow everything to settle
 	for (i = 0; i < 2; i++)
@@ -583,7 +589,7 @@ void SV_VM_BeginIncreaseEdicts(void)
 	// links don't survive the transition, so unlink everything
 	for (i = 0, ent = prog->edicts;i < prog->max_edicts;i++, ent++)
 	{
-		if (!ent->priv.sv->free) SV_UnlinkEdict(prog->edicts + i);
+		if (!ent->priv.sv->free) SV_UnlinkEdict(prog->edicts + i); //free old entity
 		memset(&ent->priv.sv->clusternums, 0, sizeof(ent->priv.sv->clusternums));
 	}
 	SV_ClearWorld();

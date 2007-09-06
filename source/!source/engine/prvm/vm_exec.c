@@ -702,7 +702,7 @@ chooseexecprogram:
 				PRVM_ERROR("%s attempted to address an invalid field (%i) in an edict", PRVM_NAME, OPB->_int);
 				return;
 			}
-			if (OPA->edict == 0 && !prog->allowworldwrites)
+			if (OPA->edict == 0 && prog->protect_world)
 			{
 				prog->xfunction->profile += (st - startst);
 				prog->xstatement = st - prog->statements;
@@ -710,7 +710,7 @@ chooseexecprogram:
 				return;
 			}
 			ed = PRVM_PROG_TO_EDICT(OPA->edict);
-			OPC->_int = (unsigned char *)((int *)ed->fields.vp + OPB->_int) - (unsigned char *)prog->edictsfields;
+			OPC->_int = (byte *)((int *)ed->fields.vp + OPB->_int) - (unsigned char *)prog->edictsfields;
 			break;
 
 		case OP_LOAD_F:

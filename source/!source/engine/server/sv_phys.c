@@ -1224,15 +1224,6 @@ void SV_PhysicsStep (prvm_edict_t *ent)
 
 void SV_PhysicsClient(prvm_edict_t *ent)
 {
-	int	i;
-
-	/*for (i = 0; i < 3; i++)
-	{
-		ent->priv.sv->client->pmove.origin[i] = ent->priv.sv->state.origin[i];
-		ent->priv.sv->client->pmove.velocity[i] = ent->fields.sv->velocity[i];
-	}*/
-	return;
-
 	SV_ApplyClientMove();
 	SV_CheckVelocity(ent); // make sure the velocity is sane (not a NaN)
 	SV_ClientThink();
@@ -1356,10 +1347,26 @@ void SV_PhysicsEntity(prvm_edict_t *ent)
 	}
 }
 
+void ClientEndServerFrame (prvm_edict_t *ent)
+{
+	int		i;
+
+	return;
+
+	for (i = 0; i < 3; i++)
+	{
+		ent->priv.sv->state.old_origin[i] = ent->priv.sv->state.origin[i];
+		ent->priv.sv->client->pmove.origin[i] = ent->priv.sv->state.origin[i]*8.0;
+		ent->priv.sv->client->pmove.velocity[i] = ent->fields.sv->velocity[i]*8.0;
+	}
+
+}
+
 void SV_Physics (void)
 {
 	int i;
-	prvm_edict_t *ent;
+	prvm_edict_t	*ent;
+
 
 	// we always need to bump framenum, even if we
 	// don't run the world, otherwise the delta
@@ -1378,20 +1385,23 @@ void SV_Physics (void)
 	PRVM_ExecuteProgram (prog->globals.server->StartFrame, "QC function StartFrame is missing");
 
 	// run physics on the client entities
-	for (i = 1, ent = PRVM_EDICT_NUM(i), sv_client = svs.clients; i <= host.maxclients; i++, ent = PRVM_NEXT_EDICT(ent), sv_client++)
+	for (i = 1, sv_client = svs.clients; i < host.maxclients; i++, sv_client++)
 	{
-		if (!ent->priv.sv->free)
-		{
-			// don't do physics on disconnected clients, FrikBot relies on this
-			if (sv_client->state != cs_spawned)
-				memset(&sv_client->lastcmd, 0, sizeof(sv_client->lastcmd));
-			else SV_PhysicsClient(ent);
-		}
+		if (sv_client->edict->priv.sv->free) continue;
+		ClientEndServerFrame (sv_client->edict);
+				
+		// don't do physics on disconnected clients, FrikBot relies on this
+		if (sv_client->state != cs_spawned)
+			memset(&sv_client->lastcmd, 0, sizeof(sv_client->lastcmd));
+		else SV_PhysicsClient(sv_client->edict);
+
 	}
 	
-	for (;i < prog->num_edicts; i++, ent = PRVM_NEXT_EDICT(ent))
+	for (i = 1;i < prog->num_edicts; i++)
 	{
-		if (!ent->priv.sv->free) SV_PhysicsEntity(ent);
+		ent = PRVM_EDICT_NUM( i );
+		if (ent->priv.sv->free) continue;
+		SV_PhysicsEntity(ent);
 	}
 
 	prog->globals.server->self = PRVM_EDICT_TO_PROG(prog->edicts);

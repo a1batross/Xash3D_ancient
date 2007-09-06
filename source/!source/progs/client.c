@@ -184,7 +184,6 @@ void() ClientConnect =
 {
 	pprint(self, " has", " joined the game.");
 	configstring (2, "sky"); //CS_SKY
-	configstring (30, "4" ); //CS_MAXCLIENTS
 }; 
 
 /*
@@ -278,7 +277,9 @@ void() PutClientInServer =
 	setmodel (self, "models/player.mdl"); // Set my player to the player model
 	setsize (self, VEC_HULL_MIN, VEC_HULL_MAX); // Set my size
 
-	self.view_ofs = '0 0 72';            // Center my view
+	self.view_ofs = '0 0 22';            // Center my view
+
+	setsize(self, '-16 -16 -32', '16 16 32' );
 	
 	if (self.aflag)
 		CCamChasePlayer ();
@@ -287,7 +288,11 @@ void() PutClientInServer =
 
 	self.th_pain = PlayerPain;
 	self.th_die = PlayerDie;
-	
+
+	setstats( self, STAT_HEALTH_ICON, "i_health");
+	setstats( self, STAT_HEALTH, ftos(self.health));
+	//setstats( self, STAT_HELPICON, "i_help");
+		
 	GetLevelParms();
 };
 

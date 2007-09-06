@@ -196,7 +196,7 @@ void SV_GameMap_f (void)
 			for (i = 0, cl = svs.clients; i < host.maxclients; i++, cl++)
 			{
 				savedInuse[i] = cl->edict->priv.sv->free;
-				cl->edict->priv.sv->free = false;
+				cl->edict->priv.sv->free = true;
 			}
 
 			SV_WriteSaveFile( "save0" ); //autosave
@@ -243,7 +243,7 @@ void SV_Map_f (void)
 		SV_SendClientMessages ();
 		SV_SpawnServer (level_path, NULL, NULL, ss_game, false, false);
 		Cbuf_CopyToDefer ();
-		//SV_BroadcastCommand ("reconnect\n");
+//FIXME//SV_BroadcastCommand ("reconnect\n");
 		strncpy (svs.mapcmd, Cmd_Argv(1), sizeof(svs.mapcmd) - 1); // archive server state
 	}
 	else Msg ("Can't loading %s\n", level_path);
