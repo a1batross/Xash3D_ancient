@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 renderer_exp_t	*re;
 
 extern HWND		cl_hwnd;
+extern bool		ActiveApp, Minimized;
 extern HINSTANCE		global_hInstance;
 
 #ifndef WM_MOUSEWHEEL
@@ -53,6 +54,9 @@ HWND        cl_hwnd;            // Main window handle for life of program
 #define VID_NUM_MODES ( sizeof( vid_modes ) / sizeof( vid_modes[0] ) )
 
 LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam );
+
+
+extern	unsigned	sys_msg_time;
 
 /*
 ==========================================================================
@@ -179,24 +183,28 @@ int MapKey (int key)
 	}
 }
 
-void AppActivate(bool fActive, bool fMinimize)
+void AppActivate(BOOL fActive, BOOL minimize)
 {
-	if(fActive && !fMinimize) host.state = HOST_FRAME; 
-	else if(fMinimize) host.state = HOST_SLEEP;
-	else host.state = HOST_NOFOCUS;
+	Minimized = minimize;
 
 	Key_ClearStates();
 
-	// minimize/restore mouse-capture on demand
-	if(host.state == HOST_FRAME)
-	{
-		IN_Activate (true);
-		S_Activate (true);
-	}
+	// we don't want to act like we're active if we're minimized
+	if (fActive && !Minimized)
+		ActiveApp = true;
 	else
+		ActiveApp = false;
+
+	// minimize/restore mouse-capture on demand
+	if (!ActiveApp)
 	{
 		IN_Activate (false);
 		S_Activate (false);
+	}
+	else
+	{
+		IN_Activate (true);
+		S_Activate (true);
 	}
 }
 
@@ -215,13 +223,13 @@ LONG WINAPI MainWndProc ( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		if ( ( ( int ) wParam ) > 0 )
 		{
-			Key_Event( K_MWHEELUP, true, host.sv_timer );
-			Key_Event( K_MWHEELUP, false, host.sv_timer );
+			Key_Event( K_MWHEELUP, true, sys_msg_time );
+			Key_Event( K_MWHEELUP, false, sys_msg_time );
 		}
 		else
 		{
-			Key_Event( K_MWHEELDOWN, true, host.sv_timer );
-			Key_Event( K_MWHEELDOWN, false, host.sv_timer );
+			Key_Event( K_MWHEELDOWN, true, sys_msg_time );
+			Key_Event( K_MWHEELDOWN, false, sys_msg_time );
 		}
 		return DefWindowProc (hWnd, uMsg, wParam, lParam);
 	}
@@ -235,13 +243,13 @@ LONG WINAPI MainWndProc ( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		*/
 		if ( ( short ) HIWORD( wParam ) > 0 )
 		{
-			Key_Event( K_MWHEELUP, true, host.sv_timer );
-			Key_Event( K_MWHEELUP, false, host.sv_timer );
+			Key_Event( K_MWHEELUP, true, sys_msg_time );
+			Key_Event( K_MWHEELUP, false, sys_msg_time );
 		}
 		else
 		{
-			Key_Event( K_MWHEELDOWN, true, host.sv_timer );
-			Key_Event( K_MWHEELDOWN, false, host.sv_timer );
+			Key_Event( K_MWHEELDOWN, true, sys_msg_time );
+			Key_Event( K_MWHEELDOWN, false, sys_msg_time );
 		}
 		break;
 
@@ -297,7 +305,7 @@ LONG WINAPI MainWndProc ( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				Cvar_SetValue( "vid_ypos", yPos + r.top);
 				vid_xpos->modified = false;
 				vid_ypos->modified = false;
-				if (host.state == HOST_FRAME)
+				if (ActiveApp)
 					IN_Activate (true);
 			}
 		}
@@ -343,11 +351,11 @@ LONG WINAPI MainWndProc ( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 		// fall through
 	case WM_KEYDOWN:
-		Key_Event( MapKey( lParam ), true, host.sv_timer);
+		Key_Event( MapKey( lParam ), true, sys_msg_time);
 		break;
 	case WM_SYSKEYUP:
 	case WM_KEYUP:
-		Key_Event( MapKey( lParam ), false, host.sv_timer);
+		Key_Event( MapKey( lParam ), false, sys_msg_time);
 		break;
 	default:	// pass all unhandled messages to DefWindowProc
 		return DefWindowProc (hWnd, uMsg, wParam, lParam);
@@ -462,12 +470,6 @@ char *FS_Title( void )
 	return GI.title;
 }
 
-cvar_t *VID_Cvar_Set (const char *var_name, const char *value)
-{
-	return Cvar_Set( var_name, value );
-}
-
-
 /*
 ==============
 VID_InitRenderer
@@ -496,7 +498,7 @@ void VID_InitRenderer( void )
 	ri.gamedir = FS_Gamedir;
 	ri.title = FS_Title;
 	ri.Cvar_Get = Cvar_Get;
-	ri.Cvar_Set = VID_Cvar_Set;
+	ri.Cvar_Set = Cvar_Set;
 	ri.Cvar_SetValue = Cvar_SetValue;
 	ri.Vid_GetModeInfo = VID_GetModeInfo;
 	ri.Vid_MenuInit = VID_MenuInit;

@@ -125,7 +125,7 @@ void CL_ClipMoveToEntities ( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end,
 		if (trace.allsolid || trace.startsolid ||
 		trace.fraction < tr->fraction)
 		{
-			trace.ent = (prvm_edict_t *)ent;
+			trace.ent = (struct edict_s *)ent;
 		 	if (tr->startsolid)
 			{
 				*tr = trace;
@@ -145,14 +145,14 @@ void CL_ClipMoveToEntities ( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end,
 CL_PMTrace
 ================
 */
-trace_t CL_PMTrace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end)
+trace_t		CL_PMTrace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end)
 {
 	trace_t	t;
 
 	// check against world
 	t = CM_BoxTrace (start, end, mins, maxs, 0, MASK_PLAYERSOLID);
 	if (t.fraction < 1.0)
-		t.ent = (prvm_edict_t *)1;
+		t.ent = (struct edict_s *)1;
 
 	// check all other solid models
 	CL_ClipMoveToEntities (start, mins, maxs, end, &t);
@@ -214,9 +214,8 @@ void CL_PredictMovement (void)
 		return;
 
 	if (!cl_predict->value || (cl.frame.playerstate.pmove.pm_flags & PMF_NO_PREDICTION))
-	{	
-		// just set angles
-		for (i = 0; i < 3; i++)
+	{	// just set angles
+		for (i=0 ; i<3 ; i++)
 		{
 			cl.predicted_angles[i] = cl.viewangles[i] + SHORT2ANGLE(cl.frame.playerstate.pmove.delta_angles[i]);
 		}

@@ -976,7 +976,7 @@ void R_DrawBrushModel ( int passnum )
 		vec3_t	forward, right, up;
 
 		VectorCopy (modelorg, temp);
-		AngleVectorsRight(e->angles, forward, right, up);
+		AngleVectors(e->angles, forward, right, up);
 		modelorg[0] = DotProduct (temp, forward);
 		modelorg[1] = -DotProduct (temp, right);
 		modelorg[2] = DotProduct (temp, up);

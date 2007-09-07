@@ -33,13 +33,12 @@ _inline void VectorScale(const vec3_t a, const float b, vec3_t c){c[0]=b*a[0];c[
 #define VectorSet(v, x, y, z) {v[0] = x; v[1] = y; v[2] = z;}
 #define VectorClear(x) {x[0] = x[1] = x[2] = 0;}
 #define VectorNegate(x, y) {y[0] =-x[0]; y[1]=-x[1]; y[2]=-x[2];}
-_inline float anglemod(const float a){return(360.0/65536) * ((int)(a*(65536/360.0)) & 65535);}
-
 #define VectorM(scale1, b1, c) ((c)[0] = (scale1) * (b1)[0],(c)[1] = (scale1) * (b1)[1],(c)[2] = (scale1) * (b1)[2])
+#define VectorMA(a, scale, b, c) ((c)[0] = (a)[0] + (scale) * (b)[0],(c)[1] = (a)[1] + (scale) * (b)[1],(c)[2] = (a)[2] + (scale) * (b)[2])
 #define VectorMAM(scale1, b1, scale2, b2, c) ((c)[0] = (scale1) * (b1)[0] + (scale2) * (b2)[0],(c)[1] = (scale1) * (b1)[1] + (scale2) * (b2)[1],(c)[2] = (scale1) * (b1)[2] + (scale2) * (b2)[2])
 #define VectorMAMAM(scale1, b1, scale2, b2, scale3, b3, c) ((c)[0] = (scale1) * (b1)[0] + (scale2) * (b2)[0] + (scale3) * (b3)[0],(c)[1] = (scale1) * (b1)[1] + (scale2) * (b2)[1] + (scale3) * (b3)[1],(c)[2] = (scale1) * (b1)[2] + (scale2) * (b2)[2] + (scale3) * (b3)[2])
 #define VectorMAMAMAM(scale1, b1, scale2, b2, scale3, b3, scale4, b4, c) ((c)[0] = (scale1) * (b1)[0] + (scale2) * (b2)[0] + (scale3) * (b3)[0] + (scale4) * (b4)[0],(c)[1] = (scale1) * (b1)[1] + (scale2) * (b2)[1] + (scale3) * (b3)[1] + (scale4) * (b4)[1],(c)[2] = (scale1) * (b1)[2] + (scale2) * (b2)[2] + (scale3) * (b3)[2] + (scale4) * (b4)[2])
-
+_inline float anglemod(const float a){return(360.0/65536) * ((int)(a*(65536/360.0)) & 65535);}
 
 _inline void VectorBound(const float min, vec3_t v, const float max)
 {
@@ -130,13 +129,6 @@ _inline void VectorIRotate (const vec3_t in1, const matrix3x4 in2, vec3_t out)
 	out[2] = in1[0] * in2[0][2] + in1[1] * in2[1][2] + in1[2] * in2[2][2];
 }
 
-_inline void VectorMA (vec3_t va, double scale, vec3_t vb, vec3_t vc)
-{
-	vc[0] = va[0] + scale * vb[0];
-	vc[1] = va[1] + scale * vb[1];
-	vc[2] = va[2] + scale * vb[2];
-}
-
 _inline void CrossProduct (vec3_t v1, vec3_t v2, vec3_t cross)
 {
 	cross[0] = v1[1]*v2[2] - v1[2]*v2[1];
@@ -177,7 +169,7 @@ _inline void VectorVectors(vec3_t forward, vec3_t right, vec3_t up)
 	CrossProduct(right, forward, up);
 }
 
-_inline void AngleVectorsRight(vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
+_inline void AngleVectors (vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 {
 	float		angle;
 	static float	sr, sp, sy, cr, cp, cy;
@@ -199,45 +191,21 @@ _inline void AngleVectorsRight(vec3_t angles, vec3_t forward, vec3_t right, vec3
 		forward[1] = cp*sy;
 		forward[2] = -sp;
 	}
-	if (right || up)
+	if (right)
 	{
-		if (angles[ROLL])
-		{
-			angle = angles[ROLL] * (M_PI*2 / 360);
-			sr = sin(angle);
-			cr = cos(angle);
-			if (right)
-			{
-				right[0] = -1*(sr*sp*cy+cr*-sy);
-				right[1] = -1*(sr*sp*sy+cr*cy);
-				right[2] = -1*(sr*cp);
-			}
-			if (up)
-			{
-				up[0] = (cr*sp*cy+-sr*-sy);
-				up[1] = (cr*sp*sy+-sr*cy);
-				up[2] = cr*cp;
-			}
-		}
-		else
-		{
-			if (right)
-			{
-				right[0] = sy;
-				right[1] = -cy;
-				right[2] = 0;
-			}
-			if (up)
-			{
-				up[0] = (sp*cy);
-				up[1] = (sp*sy);
-				up[2] = cp;
-			}
-		}
+		right[0] = (-1*sr*sp*cy+-1*cr*-sy);
+		right[1] = (-1*sr*sp*sy+-1*cr*cy);
+		right[2] = -1*sr*cp;
+	}
+	if (up)
+	{
+		up[0] = (cr*sp*cy+-sr*-sy);
+		up[1] = (cr*sp*sy+-sr*cy);
+		up[2] = cr*cp;
 	}
 }
 
-_inline void AngleVectorsLeft(const vec3_t angles, vec3_t forward, vec3_t left, vec3_t up)
+_inline void AngleVectorsFLU(const vec3_t angles, vec3_t forward, vec3_t left, vec3_t up)
 {
 	float		angle;
 	static float	sr, sp, sy, cr, cp, cy;

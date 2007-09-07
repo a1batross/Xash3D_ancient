@@ -125,7 +125,7 @@ void GL_DrawAliasFrameLerp (dmdl_t *paliashdr, float backlerp)
 
 	// move should be the delta back to the previous frame * backlerp
 	VectorSubtract (currententity->oldorigin, currententity->origin, delta);
-	AngleVectorsRight(currententity->angles, vectors[0], vectors[1], vectors[2]);
+	AngleVectors(currententity->angles, vectors[0], vectors[1], vectors[2]);
 
 	move[0] = DotProduct (delta, vectors[0]);	// forward
 	move[1] = -DotProduct (delta, vectors[1]);	// left
@@ -454,7 +454,7 @@ static bool R_CullAliasModel( vec3_t bbox[8], entity_t *e )
 	*/
 	VectorCopy( e->angles, angles );
 	angles[YAW] = -angles[YAW];
-	AngleVectorsRight( angles, vectors[0], vectors[1], vectors[2] );
+	AngleVectors( angles, vectors[0], vectors[1], vectors[2] );
 
 	for ( i = 0; i < 8; i++ )
 	{

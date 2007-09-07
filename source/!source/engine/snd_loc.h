@@ -28,7 +28,7 @@ typedef struct
 
 typedef struct
 {
-	float 		length;
+	int 		length;
 	int 		loopstart;
 	int 		speed;			// not needed, because converted on load?
 	int 		width;
@@ -39,7 +39,7 @@ typedef struct
 typedef struct sfx_s
 {
 	char 		name[MAX_QPATH];
-	int		registration_sequence;
+	int			registration_sequence;
 	sfxcache_t	*cache;
 	char 		*truename;
 } sfx_t;
@@ -53,21 +53,21 @@ typedef struct playsound_s
 	sfx_t		*sfx;
 	float		volume;
 	float		attenuation;
-	int		entnum;
-	int		entchannel;
-	bool		fixed_origin;	// use origin field instead of entnum's origin
+	int			entnum;
+	int			entchannel;
+	bool	fixed_origin;	// use origin field instead of entnum's origin
 	vec3_t		origin;
-	float		begin;			// begin on this sample
+	unsigned	begin;			// begin on this sample
 } playsound_t;
 
 typedef struct
 {
-	int		channels;
-	int		samples;				// mono samples in buffer
-	int		submission_chunk;		// don't mix less than this #
-	int		samplepos;				// in mono samples
-	int		samplebits;
-	int		speed;
+	int			channels;
+	int			samples;				// mono samples in buffer
+	int			submission_chunk;		// don't mix less than this #
+	int			samplepos;				// in mono samples
+	int			samplebits;
+	int			speed;
 	byte		*buffer;
 } dma_t;
 
@@ -75,18 +75,18 @@ typedef struct
 typedef struct
 {
 	sfx_t		*sfx;			// sfx number
-	int		leftvol;		// 0-255 volume
-	int		rightvol;		// 0-255 volume
-	float		end;			// end time in global paintsamples
+	int			leftvol;		// 0-255 volume
+	int			rightvol;		// 0-255 volume
+	int			end;			// end time in global paintsamples
 	int 		pos;			// sample position in sfx
-	int		looping;		// where to loop, -1 = no looping OBSOLETE?
-	int		entnum;			// to allow overriding a specific sound
-	int		entchannel;		//
+	int			looping;		// where to loop, -1 = no looping OBSOLETE?
+	int			entnum;			// to allow overriding a specific sound
+	int			entchannel;		//
 	vec3_t		origin;			// only use if fixed_origin is set
 	vec_t		dist_mult;		// distance multiplier (attenuation/clipK)
-	int		master_vol;		// 0-255 master volume
-	bool		fixed_origin;	// use origin instead of fetching entnum's origin
-	bool		autosound;		// from an entity->sound, cleared each frame
+	int			master_vol;		// 0-255 master volume
+	bool	fixed_origin;	// use origin instead of fetching entnum's origin
+	bool	autosound;		// from an entity->sound, cleared each frame
 } channel_t;
 
 typedef struct
@@ -126,8 +126,8 @@ void	SNDDMA_Submit(void);
 #define	MAX_CHANNELS			32
 extern	channel_t   channels[MAX_CHANNELS];
 
-extern	float	paintedtime;
-extern	float	s_rawend;
+extern	int		paintedtime;
+extern	int		s_rawend;
 extern	vec3_t	listener_origin;
 extern	vec3_t	listener_forward;
 extern	vec3_t	listener_right;
@@ -155,7 +155,7 @@ sfxcache_t *S_LoadSound (sfx_t *s);
 
 void S_IssuePlaysound (playsound_t *ps);
 
-void S_PaintChannels(float endtime);
+void S_PaintChannels(int endtime);
 
 // picks a channel based on priorities, empty slots, number of channels
 channel_t *S_PickChannel(int entnum, int entchannel);

@@ -19,7 +19,8 @@ int SV_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *m
 	return 1;
 }
 
-byte *SV_GetModelPtr(prvm_edict_t *ent)
+byte *SV_GetModelPtr(edict_t *ent)
 {
+	if(!ent) return NULL;
 	return NULL;
 }

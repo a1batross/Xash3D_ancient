@@ -137,12 +137,10 @@ extern char chat_buffer[];
 extern	int chat_bufferlen;
 extern	bool	chat_team;
 
-void Key_Event (int key, bool down, uint msec);
+void Key_Event (int key, bool down, unsigned time);
 void Key_Init (void);
 void Key_WriteBindings (file_t *f);
 void Key_SetBinding (int keynum, char *binding);
 void Key_ClearStates (void);
-char *Key_KeynumToString (int keynum);
-int Key_StringToKeynum (char *str);
 int Key_GetKey (void);
 

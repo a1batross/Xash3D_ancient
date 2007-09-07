@@ -439,7 +439,8 @@ SCR_DrawNet
 */
 void SCR_DrawNet (void)
 {
-	if (cls.netchan.outgoing_sequence - cls.netchan.incoming_acknowledged < CMD_BACKUP-1)
+	if (cls.netchan.outgoing_sequence - cls.netchan.incoming_acknowledged 
+		< CMD_BACKUP-1)
 		return;
 
 	re->DrawPic (scr_vrect.x+64, scr_vrect.y, "net");
@@ -504,7 +505,7 @@ Scroll it up or down
 */
 void SCR_RunConsole (void)
 {
-	// decide on the height of the console
+// decide on the height of the console
 	if (cls.key_dest == key_console)
 		scr_conlines = 0.5;		// half screen
 	else
@@ -512,14 +513,14 @@ void SCR_RunConsole (void)
 	
 	if (scr_conlines < scr_con_current)
 	{
-		scr_con_current -= scr_conspeed->value * cls.frametime * 1000;
+		scr_con_current -= scr_conspeed->value*cls.frametime;
 		if (scr_conlines > scr_con_current)
 			scr_con_current = scr_conlines;
 
 	}
 	else if (scr_conlines > scr_con_current)
 	{
-		scr_con_current += scr_conspeed->value * cls.frametime * 1000;
+		scr_con_current += scr_conspeed->value*cls.frametime;
 		if (scr_conlines < scr_con_current)
 			scr_con_current = scr_conlines;
 	}
@@ -569,19 +570,20 @@ SCR_BeginLoadingPlaque
 void SCR_BeginLoadingPlaque (void)
 {
 	S_StopAllSounds ();
-	cl.sound_prepped = false;			// don't play ambients
+	cl.sound_prepped = false;		// don't play ambients
 	if (cls.disable_screen) return;
-	if (host.developer) return;
-
-	if (cls.state == ca_disconnected) return;	// if at console, don't bring up the plaque
+	if (developer->value)
+		return;
+	if (cls.state == ca_disconnected)
+		return;	// if at console, don't bring up the plaque
 	if (cls.key_dest == key_console)
 		return;
 	if (cl.cinematictime > 0)
-		scr_draw_loading = 2;		// clear to black first
-	else scr_draw_loading = 1;
-	SCR_UpdateScreen();
-
-	cls.disable_screen = cls.realtime;
+		scr_draw_loading = 2;	// clear to black first
+	else
+		scr_draw_loading = 1;
+	SCR_UpdateScreen ();
+	cls.disable_screen = Sys_Milliseconds ();
 	cls.disable_servercount = cl.servercount;
 }
 
@@ -629,19 +631,18 @@ int entitycmpfnc( const entity_t *a, const entity_t *b )
 void SCR_TimeRefresh_f (void)
 {
 	int		i;
-	float		start, stop;
-	float		time;
+	int		start, stop;
+	float	time;
 
 	if ( cls.state != ca_active )
 		return;
 
-	start = Sys_DoubleTime();
+	start = Sys_Milliseconds ();
 
 	if (Cmd_Argc() == 2)
-	{	
-		// run without page flipping
+	{	// run without page flipping
 		re->BeginFrame( 0 );
-		for (i = 0; i < 128; i++)
+		for (i=0 ; i<128 ; i++)
 		{
 			cl.refdef.viewangles[1] = i/128.0*360.0;
 			re->RenderFrame (&cl.refdef);
@@ -660,8 +661,8 @@ void SCR_TimeRefresh_f (void)
 		}
 	}
 
-	stop = Sys_DoubleTime();
-	time = (stop-start);
+	stop = Sys_Milliseconds ();
+	time = (stop-start)/1000.0;
 	Msg ("%f seconds (%f fps)\n", time, 128/time);
 }
 
@@ -1267,7 +1268,7 @@ void SCR_UpdateScreen (void)
 	// do nothing at all
 	if (cls.disable_screen)
 	{
-		if (cls.realtime - cls.disable_screen > 120.0f)
+		if (Sys_Milliseconds() - cls.disable_screen > 120000)
 		{
 			cls.disable_screen = 0;
 			Msg ("Loading plaque timed out.\n");

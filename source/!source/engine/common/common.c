@@ -28,10 +28,23 @@ jmp_buf abortframe;
 
 int	com_argc;
 char	*com_argv[MAX_NUM_ARGVS+1];
-double	realtime;
+int	realtime;
+
+file_t	*log_stats_file;
 
 cvar_t	*host_speeds;
+cvar_t	*log_stats;
+cvar_t	*developer;
+cvar_t	*dedicated;
+
 int	server_state;
+
+// host_speeds times
+int	time_before_game;
+int	time_after_game;
+int	time_before_ref;
+int	time_after_ref;
+
 
 /*
 ============================================================================
@@ -101,9 +114,7 @@ void Com_Error (int code, char *fmt, ...)
 	va_start (argptr,fmt);
 	vsprintf (msg,fmt,argptr);
 	va_end (argptr);
-
-	host.state = HOST_ERROR;	
-
+	
 	if (code == ERR_DISCONNECT)
 	{
 		CL_Drop ();
@@ -163,7 +174,7 @@ void Com_Printf (char *fmt, ...)
 ================
 Com_DPrintf
 
-A Msg that only shows up in developer mode > 0
+A Msg that only shows up in debug mode
 ================
 */
 void Com_DPrintf (int level, char *fmt, ...)
@@ -301,7 +312,7 @@ COM_InitArgv
 */
 void COM_InitArgv (int argc, char **argv)
 {
-	int	i;
+	int		i;
 	char	dev_level[4];
 
 	if (argc > MAX_NUM_ARGVS)
@@ -325,9 +336,9 @@ void COM_InitArgv (int argc, char **argv)
 		host.developer = atoi(dev_level);
 }
 
-char *CopyString (const char *in)
+char *CopyString (char *in)
 {
-	char *out;
+	char	*out;
 	
 	out = Z_Malloc (strlen(in)+1);
 	strcpy (out, in);

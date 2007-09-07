@@ -21,7 +21,6 @@
 #include "basemath.h"
 #include "qfiles.h"
 #include <ref_system.h>
-#include "vprogs.h"
 #include "bspmodel.h"
 #include "const.h"
 #include "common.h"
@@ -31,8 +30,6 @@ extern stdinout_api_t	std;
 extern platform_exp_t	*pi;
 extern byte		*zonepool;
 extern jmp_buf		abortframe;
-
-extern int host_debug;
 
 typedef enum
 {
@@ -73,6 +70,8 @@ typedef struct host_parm_s
 } host_parm_t;
 
 extern host_parm_t host;
+
+int Sys_Milliseconds (void);
 
 bool _GetParmFromCmdLine( char *parm, char *out, size_t size );
 #define GetParmFromCmdLine( parm, out ) _GetParmFromCmdLine( parm, out, sizeof(out)) 
@@ -117,7 +116,6 @@ filesystem manager
 #define FS_FileBase( x, y ) pi->Fs.FileBase( x, y )
 #define FS_Find( x ) pi->Fs.Search( x, false )
 #define FS_Printf pi->Fs.Printf
-#define FS_Print pi->Fs.Print
 #define FS_Seek pi->Fs.Seek
 #define FS_Tell pi->Fs.Tell
 #define FS_Gets pi->Fs.Gets
@@ -169,11 +167,5 @@ Host Interface
 void Host_Init ( char *funcname, int argc, char **argv );
 void Host_Main ( void );
 void Host_Free ( void );
-
-//
-// in_win.c
-//
-extern int mouse_x, mouse_y, old_mouse_x, old_mouse_y, mx_accum, my_accum;
-
 
 #endif//ENGINE_H

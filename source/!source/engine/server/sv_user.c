@@ -22,17 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "engine.h"
 #include "server.h"
 
-extern cvar_t *sv_maxspeed;
-extern cvar_t *sv_accelerate;
-extern cvar_t *sv_wateraccelerate;
-extern cvar_t *sv_friction;
-extern cvar_t *sv_rollangle;
-extern cvar_t *sv_rollspeed;
-
-prvm_edict_t	*sv_player;
-static bool	onground;
-static vec3_t	wishdir, forward, right, up;
-static float	wishspeed;
+edict_t	*sv_player;
 
 /*
 ============================================================
@@ -70,7 +60,7 @@ void SV_New_f (void)
 {
 	char		*gamedir;
 	int		playernum;
-	prvm_edict_t		*ent;
+	edict_t		*ent;
 
 	if (sv_client->state != cs_connected)
 	{
@@ -108,8 +98,8 @@ void SV_New_f (void)
 	if (sv.state == ss_game)
 	{
 		// set up the entity for the client
-		ent = PRVM_EDICT_NUM(playernum+1);
-		ent->priv.sv->state.number = playernum+1;
+		ent = EDICT_NUM(playernum+1);
+		ent->s.number = playernum+1;
 		sv_client->edict = ent;
 		memset (&sv_client->lastcmd, 0, sizeof(sv_client->lastcmd));
 
@@ -204,8 +194,7 @@ void SV_Baselines_f (void)
 
 	// write a packet full of data
 
-	while ( sv_client->netchan.message.cursize <  MAX_MSGLEN/2
-		&& start < MAX_EDICTS)
+	while ( sv_client->netchan.message.cursize <  MAX_MSGLEN/2 && start < MAX_EDICTS)
 	{
 		base = &sv.baselines[start];
 		if (base->modelindex || base->sound || base->effects)
@@ -237,8 +226,6 @@ SV_Begin_f
 */
 void SV_Begin_f (void)
 {
-	int	i;
-
 	// handle the case of a level changing while a client was connecting
 	if ( atoi(Cmd_Argv(1)) != svs.spawncount )
 	{
@@ -248,22 +235,9 @@ void SV_Begin_f (void)
 	}
 
 	sv_client->state = cs_spawned;
-
-	if(!sv_player->priv.sv->free)
-	{	
-		// call the game begin function
-		prog->globals.server->time = sv.time;
-		prog->globals.server->self = PRVM_EDICT_TO_PROG(sv_client->edict);
-		PRVM_ExecuteProgram (prog->globals.server->PutClientInServer, "QC function PutClientInServer is missing");
-	}
-	for (i = 0; i < 3; i++)
-	{
-		sv_player->priv.sv->client->pmove.origin[i] = sv_player->priv.sv->state.origin[i] = sv_player->fields.sv->origin[i]*8.0;
-		sv_player->priv.sv->client->pmove.velocity[i] = sv_player->fields.sv->velocity[i]*8.0;
-	}
-          sv_player->priv.sv->client->gunindex = SV_ModelIndex("models/weapons/v_glock.mdl" );
-	sv_player->priv.sv->client->fov = 90;
-
+	
+	// call the game begin function
+	SV_ClientBegin(sv_player);
 	Cbuf_InsertFromDefer ();
 }
 
@@ -370,7 +344,7 @@ void SV_BeginDownload_f(void)
 	}
 
 	SV_NextDownload_f ();
-	MsgDev(D_INFO, "Downloading %s to %s\n", name, sv_client->name);
+	MsgDev (D_INFO, "Downloading %s to %s\n", name, sv_client->name);
 }
 
 
@@ -485,8 +459,8 @@ void SV_ExecuteUserCommand (char *s)
 		}
 	}
 
-//if (!u->name && sv.state == ss_game)
-//ge->ClientCommand (sv_player);
+	if (!u->name && sv.state == ss_game)
+		SV_ClientCommand(sv_player);
 }
 
 /*
@@ -497,18 +471,8 @@ USER CMD EXECUTION
 ===========================================================================
 */
 
-trace_t PM_trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end)
+void SV_ClientThink (client_t *cl, usercmd_t *cmd)
 {
-	return SV_Trace (start, mins, maxs, end, sv_client->edict, MASK_SOLID);
-}
-
-void SV_ClientRun (client_t *cl, usercmd_t *cmd)
-{
-	pmove_t		pm;
-	int		i;
-
-	sv_client	= cl;
- 
 	cl->commandMsec -= cmd->msec;
 
 	if (cl->commandMsec < 0 && sv_enforcetime->value )
@@ -516,359 +480,7 @@ void SV_ClientRun (client_t *cl, usercmd_t *cmd)
 		MsgWarn("SV_ClientThink: commandMsec underflow from %s\n", cl->name);
 		return;
 	}
-          
-	// set up for pmove
-	memset (&pm, 0, sizeof(pm));
-	cl->edict->priv.sv->client->pmove.pm_flags |= PMF_NO_PREDICTION;
-
-	if (cl->edict->fields.sv->movetype == MOVETYPE_NOCLIP)
-		cl->edict->priv.sv->client->pmove.pm_type = PM_SPECTATOR;
-	else if (cl->edict->fields.sv->movetype == MOVETYPE_WALK)
-		cl->edict->priv.sv->client->pmove.pm_type = PM_NORMAL;
-	else if (cl->edict->fields.sv->movetype == MOVETYPE_NONE)
-		cl->edict->priv.sv->client->pmove.pm_type = PM_FREEZE;
-	cl->edict->priv.sv->client->pmove.gravity = 0;
-
-	pm.s = cl->edict->priv.sv->client->pmove;
-
-	for (i = 0; i < 3; i++)
-	{
-		pm.s.origin[i] = cl->edict->fields.sv->origin[i] * 8;
-		pm.s.velocity[i] = cl->edict->fields.sv->velocity[i] * 8;
-	}
-	pm.cmd = *cmd;
-
-	pm.trace = PM_trace; // adds default parms
-	pm.pointcontents = SV_PointContents;
-
-	Msg("org before pmove [%i %i %i]\n", pm.s.origin[0], pm.s.origin[1], pm.s.origin[2] );
-
-	Pmove (&pm); //run pmove
-	
-	// save results of pmove
-	cl->edict->priv.sv->client->pmove = pm.s;
-	
-	Msg("org after pmove [%i %i %i]\n", pm.s.origin[0], pm.s.origin[1], pm.s.origin[2] );
-
-	for (i = 0; i < 3; i++)
-	{
-		cl->edict->priv.sv->state.old_origin[i] = pm.s.origin[i]*0.125;
-		cl->edict->fields.sv->origin[i] = pm.s.origin[i]*0.125;
-		cl->edict->fields.sv->velocity[i] = pm.s.velocity[i]*0.125;
-	}
-	VectorCopy (pm.mins, cl->edict->fields.sv->mins);
-	VectorCopy (pm.maxs, cl->edict->fields.sv->maxs);
-
-	VectorCopy (pm.viewangles, cl->edict->fields.sv->v_angle);
-	VectorCopy (pm.viewangles, cl->edict->priv.sv->client->viewangles);
-	VectorCopy(cl->edict->fields.sv->view_ofs, cl->edict->priv.sv->client->viewoffset );
-
-	SV_LinkEdict( cl->edict );
-
-	//SV_ClientThink();
-}
-
-/*
-===============
-SV_CalcRoll
-
-===============
-*/
-float SV_CalcRoll (vec3_t angles, vec3_t velocity)
-{
-	float	sign;
-	float	side;
-	float	value;
-	
-	side = DotProduct (velocity, right);
-	sign = side < 0 ? -1 : 1;
-	side = fabs(side);
-	
-	value = sv_rollangle->value;
-
-	if (side < sv_rollspeed->value)
-		side = side * value / sv_rollspeed->value;
-	else side = value;
-	
-	return side*sign;
-	
-}
-
-
-/*
-==================
-SV_UserFriction
-
-==================
-*/
-void SV_UserFriction (void)
-{
-	float speed, newspeed, control, friction;
-	vec3_t start, stop;
-	trace_t trace;
-
-	speed = sqrt(sv_client->edict->fields.sv->velocity[0]*sv_client->edict->fields.sv->velocity[0]+sv_client->edict->fields.sv->velocity[1]*sv_client->edict->fields.sv->velocity[1]);
-	if (!speed) return;
-
-	// if the leading edge is over a dropoff, increase friction
-	start[0] = stop[0] = sv_client->edict->fields.sv->origin[0] + sv_client->edict->fields.sv->velocity[0]/speed*16;
-	start[1] = stop[1] = sv_client->edict->fields.sv->origin[1] + sv_client->edict->fields.sv->velocity[1]/speed*16;
-	start[2] = sv_client->edict->fields.sv->origin[2] + sv_client->edict->fields.sv->mins[2];
-	stop[2] = start[2] - 34;
-
-	trace = SV_Trace (start, vec3_origin, vec3_origin, stop, sv_client->edict, MASK_SOLID );
-
-	if (trace.fraction == 1.0) friction = sv_friction->value * 2;
-	else friction = sv_friction->value;
-
-	// apply friction
-
-	control = max(speed, 100);
-	newspeed = speed - sv.frametime * control * friction;
-
-	if (newspeed < 0) newspeed = 0;
-	else newspeed /= speed;
-
-	VectorScale(sv_client->edict->fields.sv->velocity, newspeed, sv_client->edict->fields.sv->velocity);
-}
-
-/*
-==============
-SV_Accelerate
-==============
-*/
-void SV_Accelerate (void)
-{
-	int i;
-	float addspeed, accelspeed, currentspeed;
-
-	currentspeed = DotProduct (sv_client->edict->fields.sv->velocity, wishdir);
-	addspeed = wishspeed - currentspeed;
-	if (addspeed <= 0) return;
-	accelspeed = sv_accelerate->value * sv.frametime * wishspeed;
-
-	if (accelspeed > addspeed) accelspeed = addspeed;
-
-	for (i = 0; i < 3; i++) sv_client->edict->fields.sv->velocity[i] += accelspeed * wishdir[i];
-}
-
-void SV_AirAccelerate (vec3_t wishveloc)
-{
-	int i;
-	float addspeed, wishspd, accelspeed, currentspeed;
-
-	wishspd = VectorNormalize (wishveloc);
-	if (wishspd > sv_maxspeed->value / 10) wishspd = sv_maxspeed->value / 10;
-	currentspeed = DotProduct (sv_client->edict->fields.sv->velocity, wishveloc);
-	addspeed = wishspd - currentspeed;
-	if (addspeed <= 0) return;
-	accelspeed = (sv_airaccelerate->value < 0 ? sv_accelerate->value : sv_airaccelerate->value) * wishspeed * sv.frametime;
-	if (accelspeed > addspeed) accelspeed = addspeed;
-
-	for (i = 0; i < 3; i++) sv_client->edict->fields.sv->velocity[i] += accelspeed*wishveloc[i];
-}
-
-void DropPunchAngle (void)
-{
-	float len;
-
-	len = VectorNormalize(sv_client->edict->fields.sv->punchangle);
-
-	len -= 10 * sv.frametime;
-	if (len < 0) len = 0;
-	VectorScale (sv_client->edict->fields.sv->punchangle, len, sv_client->edict->fields.sv->punchangle);
-}
-
-/*
-===================
-SV_AirMove
-
-===================
-*/
-void SV_AirMove (void)
-{
-	int	i;
-	vec3_t	wishvel;
-	float	fmove, smove, temp;
-
-	wishvel[0] = wishvel[2] = 0;
-	wishvel[1] = sv_client->edict->fields.sv->angles[1];
-	AngleVectorsRight (wishvel, forward, right, up);
-
-	fmove = 0;//cmd.forwardmove;
-	smove = 0;//cmd.sidemove;
-
-	// hack to not let you back into teleporter
-	if (sv.time < sv_client->edict->fields.sv->teleport_time && fmove < 0)
-		fmove = 0;
-
-	for (i=0 ; i<3 ; i++)
-		wishvel[i] = forward[i]*fmove + right[i]*smove;
-
-	if ((int)sv_client->edict->fields.sv->movetype != MOVETYPE_WALK)
-		wishvel[2] += fmove;
-
-	VectorCopy (wishvel, wishdir);
-	wishspeed = VectorNormalize(wishdir);
-	if (wishspeed > sv_maxspeed->value)
-	{
-		temp = sv_maxspeed->value/wishspeed;
-		VectorScale (wishvel, temp, wishvel);
-		wishspeed = sv_maxspeed->value;
-	}
-
-	if (sv_client->edict->fields.sv->movetype == MOVETYPE_NOCLIP)
-	{
-		// noclip
-		VectorCopy (wishvel, sv_client->edict->fields.sv->velocity);
-	}
-	else if (onground && (!(sv_client->edict->fields.sv->button2)))
-	{
-		SV_UserFriction ();
-		SV_Accelerate ();
-	}
-	else
-	{
-		// not on ground, so little effect on velocity
-		SV_AirAccelerate (wishvel);
-	}
-}
-
-/*
-===================
-SV_WaterMove
-
-===================
-*/
-void SV_WaterMove (void)
-{
-	int	i;
-	vec3_t	wishvel;
-	float	speed, newspeed, wishspeed, addspeed, accelspeed, temp;
-
-	// user intentions
-	AngleVectorsRight (sv_client->edict->fields.sv->v_angle, forward, right, up);
-
-	/*for (i = 0; i < 3; i++)
-		wishvel[i] = forward[i]*cmd.forwardmove + right[i]*cmd.sidemove;
-
-	if (!cmd.forwardmove && !cmd.sidemove && !cmd.upmove)
-		wishvel[2] -= 60;		// drift towards bottom
-	else
-		wishvel[2] += cmd.upmove;
-
-	*/
-	wishspeed = VectorLength(wishvel);
-	if (wishspeed > sv_maxspeed->value)
-	{
-		temp = sv_maxspeed->value/wishspeed;
-		VectorScale (wishvel, temp, wishvel);
-		wishspeed = sv_maxspeed->value;
-	}
-	wishspeed *= 0.7;
-
-	// water friction
-	speed = VectorLength(sv_client->edict->fields.sv->velocity);
-	if (speed)
-	{
-		newspeed = speed - sv.frametime * speed * -1;
-		if (newspeed < 0)
-			newspeed = 0;
-		temp = newspeed/speed;
-		VectorScale(sv_client->edict->fields.sv->velocity, temp, sv_client->edict->fields.sv->velocity);
-	}
-	else
-		newspeed = 0;
-
-	// water acceleration
-	if (!wishspeed)
-		return;
-
-	addspeed = wishspeed - newspeed;
-	if (addspeed <= 0)
-		return;
-
-	VectorNormalize (wishvel);
-	accelspeed = (sv_wateraccelerate->value < 0 ? sv_accelerate->value : sv_wateraccelerate->value) * wishspeed * sv.frametime;
-	if (accelspeed > addspeed) accelspeed = addspeed;
-
-	for (i = 0; i < 3; i++) sv_client->edict->fields.sv->velocity[i] += accelspeed * wishvel[i];
-}
-
-void SV_WaterJump (void)
-{
-	if (sv.time > sv_client->edict->fields.sv->teleport_time || !sv_client->edict->fields.sv->waterlevel)
-	{
-		sv_client->edict->fields.sv->flags = (int)sv_client->edict->fields.sv->flags & ~FL_WATERJUMP;
-		sv_client->edict->fields.sv->teleport_time = 0;
-	}
-	sv_client->edict->fields.sv->velocity[0] = sv_client->edict->fields.sv->movedir[0];
-	sv_client->edict->fields.sv->velocity[1] = sv_client->edict->fields.sv->movedir[1];
-}
-
-
-/*
-===================
-SV_ClientThink
-
-the move fields specify an intended velocity in pix/sec
-the angle fields specify an exact angular motion in degrees
-===================
-*/
-void SV_ClientThink (void)
-{
-	vec3_t v_angle;
-
-	if (sv_client->edict->fields.sv->movetype == MOVETYPE_NONE)
-		return;
-
-	onground = (int)sv_client->edict->fields.sv->flags & FL_ONGROUND;
-
-	DropPunchAngle ();
-
-	// if dead, behave differently
-	if (sv_client->edict->fields.sv->health <= 0) return;
-
-	// angles
-	// show 1/3 the pitch angle and all the roll angle
-	VectorAdd (sv_client->edict->fields.sv->v_angle, sv_client->edict->fields.sv->punchangle, v_angle);
-	sv_client->edict->fields.sv->angles[ROLL] = SV_CalcRoll (sv_client->edict->fields.sv->angles, sv_client->edict->fields.sv->velocity)*4;
-	if (!sv_client->edict->fields.sv->fixangle)
-	{
-		sv_client->edict->fields.sv->angles[PITCH] = -v_angle[PITCH]/3;
-		sv_client->edict->fields.sv->angles[YAW] = v_angle[YAW];
-	}
-
-	if ( (int)sv_client->edict->fields.sv->flags & FL_WATERJUMP )
-	{
-		SV_WaterJump ();
-		return;
-	}
-
-	// walk
-	if ((sv_client->edict->fields.sv->waterlevel >= 2) && (sv_client->edict->fields.sv->movetype != MOVETYPE_NOCLIP))
-	{
-		SV_WaterMove();
-		return;
-	}
-
-	SV_AirMove();
-}
-
-void SV_ApplyClientMove (void)
-{
-	usercmd_t *move = &sv_client->lastcmd;
-
-	if (!move->msec) return;
-
-	// set the edict fields
-	sv_client->edict->fields.sv->button0 = move->buttons & 1;
-	sv_client->edict->fields.sv->button2 = (move->buttons & 2)>>1;
-	if (move->impulse) sv_client->edict->fields.sv->impulse = move->impulse;
-
-	// only send the impulse to qc once
-	move->impulse = 0;
-	VectorCopy(sv_client->edict->priv.sv->client->viewangles, sv_client->edict->fields.sv->v_angle);
+	ClientThink (cl->edict, cmd);
 }
 
 /*
@@ -885,13 +497,13 @@ void SV_ExecuteClientMessage (client_t *cl)
 	int		c;
 	char		*s;
 
-	usercmd_t		nullcmd;
-	usercmd_t		oldest, oldcmd, newcmd;
+	usercmd_t	nullcmd;
+	usercmd_t	oldest, oldcmd, newcmd;
 	int		net_drop;
 	int		stringCmdCount;
 	int		checksum, calculatedChecksum;
 	int		checksumIndex;
-	bool		move_issued;
+	bool	move_issued;
 	int		lastframe;
 
 	sv_client = cl;
@@ -963,9 +575,7 @@ void SV_ExecuteClientMessage (client_t *cl)
 				MsgWarn("SV_ExecuteClientMessage: failed command checksum for %s (%d != %d)/%d\n", cl->name, calculatedChecksum, checksum,  cl->netchan.incoming_sequence);
 				return;
 			}
-                              
-                              //Msg("sv_paused->value %g\n", sv_paused->value );
-			
+
 			if (!sv_paused->value)
 			{
 				net_drop = cl->netchan.dropped;
@@ -973,13 +583,13 @@ void SV_ExecuteClientMessage (client_t *cl)
 				{
 					while (net_drop > 2)
 					{
-						SV_ClientRun (cl, &cl->lastcmd);
+						SV_ClientThink (cl, &cl->lastcmd);
 						net_drop--;
 					}
-					if (net_drop > 1) SV_ClientRun (cl, &oldest);
-					if (net_drop > 0) SV_ClientRun (cl, &oldcmd);
+					if (net_drop > 1) SV_ClientThink (cl, &oldest);
+					if (net_drop > 0) SV_ClientThink (cl, &oldcmd);
 				}
-				SV_ClientRun (cl, &newcmd);
+				SV_ClientThink (cl, &newcmd);
 			}
 			cl->lastcmd = newcmd;
 			break;

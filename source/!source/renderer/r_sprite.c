@@ -281,7 +281,7 @@ void R_DrawSpriteModel( int passnum )
 	switch( psprite->type )
 	{
 	case SPR_ORIENTED:
-		AngleVectorsRight(e->angles, forward, right, up);
+		AngleVectors(e->angles, forward, right, up);
 		VectorScale(forward, 0.01, forward );//offset for decals
 		VectorSubtract(e->origin, forward, e->origin );
 		break;

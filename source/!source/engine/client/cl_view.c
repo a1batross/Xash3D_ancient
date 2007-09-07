@@ -360,10 +360,16 @@ float CalcFov (float fov_x, float width, float height)
 	float	a;
 	float	x;
 
-	fov_x = bound(1, fov_x, 180);
-	x = width / tan(fov_x / 360 * M_PI);
-	a = atan (height / x);
-	a = a * 360/M_PI;
+	if (fov_x < 1 || fov_x > 179)
+	{
+		Com_Error (ERR_DROP, "Bad fov: %f", fov_x);
+	}
+
+	x = width/tan(fov_x/360*M_PI);
+
+	a = atan (height/x);
+
+	a = a*360/M_PI;
 
 	return a;
 }
@@ -439,6 +445,13 @@ void V_RenderView( float stereo_separation )
 	if (!cl.refresh_prepped)
 		return;			// still loading
 
+	if (cl_timedemo->value)
+	{
+		if (!cl.timedemo_start)
+			cl.timedemo_start = Sys_DoubleTime();
+		cl.timedemo_frames++;
+	}
+
 	// an invalid frame will just use the exact previous refdef
 	// we can't use the old frame if the video mode has changed, though...
 	if ( cl.frame.valid && (cl.force_refdef || !cl_paused->value) )
@@ -487,7 +500,7 @@ void V_RenderView( float stereo_separation )
 		cl.refdef.width = scr_vrect.width;
 		cl.refdef.height = scr_vrect.height;
 		cl.refdef.fov_y = CalcFov (cl.refdef.fov_x, cl.refdef.width, cl.refdef.height);
-		cl.refdef.time = cl.time;
+		cl.refdef.time = (cl.time * 0.001); // render use realtime now
 
 		cl.refdef.areabits = cl.frame.areabits;
 
@@ -520,6 +533,9 @@ void V_RenderView( float stereo_separation )
 	re->RenderFrame (&cl.refdef);
 	if (cl_stats->value)
 		Msg ("ent:%i  lt:%i  part:%i\n", r_numentities, r_numdlights, r_numparticles);
+	if ( log_stats->value && ( log_stats_file != 0 ) )
+		FS_Printf( log_stats_file, "%i,%i,%i,",r_numentities, r_numdlights, r_numparticles);
+
 
 	SCR_AddDirtyPoint (scr_vrect.x, scr_vrect.y);
 	SCR_AddDirtyPoint (scr_vrect.x+scr_vrect.width-1,

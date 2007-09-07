@@ -34,11 +34,11 @@ Encode a client frame onto the network channel
 // because there can be a lot of projectiles, there is a special
 // network protocol for them
 #define	MAX_PROJECTILES		64
-prvm_edict_t	*projectiles[MAX_PROJECTILES];
+edict_t	*projectiles[MAX_PROJECTILES];
 int		numprojs;
 cvar_t  *sv_projectiles;
 
-bool SV_AddProjectileUpdate (prvm_edict_t *ent)
+bool SV_AddProjectileUpdate (edict_t *ent)
 {
 	if (!sv_projectiles)
 		sv_projectiles = Cvar_Get("sv_projectiles", "1", 0);
@@ -59,7 +59,7 @@ void SV_EmitProjectileUpdate (sizebuf_t *msg)
 {
 	byte	bits[16];	// [modelindex] [48 bits] xyz p y 12 12 12 8 8 [entitynum] [e2]
 	int		n, i;
-	prvm_edict_t	*ent;
+	edict_t	*ent;
 	int		x, y, z, p, yaw;
 	int len;
 
@@ -157,31 +157,29 @@ void SV_EmitPacketEntities (client_frame_t *from, client_frame_t *to, sizebuf_t 
 		}
 
 		if (newnum == oldnum)
-		{	
-			// delta update from old position
+		{	// delta update from old position
 			// because the force parm is false, this will not result
 			// in any bytes being emited if the entity has not changed at all
 			// note that players are always 'newentities', this updates their oldorigin always
 			// and prevents warping
-			MSG_WriteDeltaEntity (oldent, newent, msg, false, newent->number <= host.maxclients);
+			MSG_WriteDeltaEntity (oldent, newent, msg, false, newent->number <= maxclients->value);
 			oldindex++;
 			newindex++;
 			continue;
 		}
 
 		if (newnum < oldnum)
-		{	
-			// this is a new entity, send it from the baseline
+		{	// this is a new entity, send it from the baseline
 			MSG_WriteDeltaEntity (&sv.baselines[newnum], newent, msg, true, true);
 			newindex++;
 			continue;
 		}
 
 		if (newnum > oldnum)
-		{	
-			// the old entity isn't present in the new message
+		{	// the old entity isn't present in the new message
 			bits = U_REMOVE;
-			if (oldnum >= 256) bits |= U_NUMBER16 | U_MOREBITS1;
+			if (oldnum >= 256)
+				bits |= U_NUMBER16 | U_MOREBITS1;
 
 			MSG_WriteByte (msg,	bits&255 );
 			if (bits & 0x0000ff00)
@@ -201,6 +199,11 @@ void SV_EmitPacketEntities (client_frame_t *from, client_frame_t *to, sizebuf_t 
 	}
 
 	MSG_WriteShort (msg, 0);	// end of packetentities
+
+#if 0
+	if (numprojs)
+		SV_EmitProjectileUpdate(msg);
+#endif
 }
 
 
@@ -228,32 +231,86 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 	else ops = &from->ps;
 
 	// determine what needs to be sent
-	if (ps->pmove.pm_type != ops->pmove.pm_type) pflags |= PS_M_TYPE;
-	if (!VectorICompare(ps->pmove.origin, ops->pmove.origin)) pflags |= PS_M_ORIGIN;
-	if (!VectorICompare(ps->pmove.velocity, ops->pmove.velocity)) pflags |= PS_M_VELOCITY;
-	if (ps->pmove.pm_time != ops->pmove.pm_time) pflags |= PS_M_TIME;
-	if (ps->pmove.pm_flags != ops->pmove.pm_flags) pflags |= PS_M_FLAGS;
-	if (ps->pmove.gravity != ops->pmove.gravity) pflags |= PS_M_GRAVITY;
-	if (!VectorICompare(ps->pmove.delta_angles, ops->pmove.delta_angles)) pflags |= PS_M_DELTA_ANGLES;
-	if (!VectorCompare(ps->viewoffset, ops->viewoffset)) pflags |= PS_VIEWOFFSET;
-	if (!VectorCompare(ps->viewangles, ops->viewangles)) pflags |= PS_VIEWANGLES;
-	if (!VectorCompare(ps->kick_angles, ops->kick_angles)) pflags |= PS_KICKANGLES;
-	if (!VectorCompare(ps->blend, ops->blend)) pflags |= PS_BLEND;
-	if (ps->fov != ops->fov) pflags |= PS_FOV;
-	if (ps->rdflags != ops->rdflags) pflags |= PS_RDFLAGS;
-	if (ps->gunframe != ops->gunframe) pflags |= PS_WEAPONFRAME;
-	if (ps->sequence != ops->sequence) pflags |= PS_WEAPONSEQUENCE;
-	if (ps->gunbody != ops->gunbody) pflags |= PS_WEAPONBODY;
-	if (ps->gunskin != ops->gunskin) pflags |= PS_WEAPONSKIN;
+	if (ps->pmove.pm_type != ops->pmove.pm_type)
+		pflags |= PS_M_TYPE;
+
+	if (ps->pmove.origin[0] != ops->pmove.origin[0]
+		|| ps->pmove.origin[1] != ops->pmove.origin[1]
+		|| ps->pmove.origin[2] != ops->pmove.origin[2] )
+		pflags |= PS_M_ORIGIN;
+
+	if (ps->pmove.velocity[0] != ops->pmove.velocity[0]
+		|| ps->pmove.velocity[1] != ops->pmove.velocity[1]
+		|| ps->pmove.velocity[2] != ops->pmove.velocity[2] )
+		pflags |= PS_M_VELOCITY;
+
+	if (ps->pmove.pm_time != ops->pmove.pm_time)
+		pflags |= PS_M_TIME;
+
+	if (ps->pmove.pm_flags != ops->pmove.pm_flags)
+		pflags |= PS_M_FLAGS;
+
+	if (ps->pmove.gravity != ops->pmove.gravity)
+		pflags |= PS_M_GRAVITY;
+
+	if (ps->pmove.delta_angles[0] != ops->pmove.delta_angles[0]
+		|| ps->pmove.delta_angles[1] != ops->pmove.delta_angles[1]
+		|| ps->pmove.delta_angles[2] != ops->pmove.delta_angles[2] )
+		pflags |= PS_M_DELTA_ANGLES;
+
+
+	if (ps->viewoffset[0] != ops->viewoffset[0]
+		|| ps->viewoffset[1] != ops->viewoffset[1]
+		|| ps->viewoffset[2] != ops->viewoffset[2] )
+		pflags |= PS_VIEWOFFSET;
+
+	if (ps->viewangles[0] != ops->viewangles[0]
+		|| ps->viewangles[1] != ops->viewangles[1]
+		|| ps->viewangles[2] != ops->viewangles[2] )
+		pflags |= PS_VIEWANGLES;
+
+	if (ps->kick_angles[0] != ops->kick_angles[0]
+		|| ps->kick_angles[1] != ops->kick_angles[1]
+		|| ps->kick_angles[2] != ops->kick_angles[2] )
+		pflags |= PS_KICKANGLES;
+
+	if (ps->blend[0] != ops->blend[0]
+		|| ps->blend[1] != ops->blend[1]
+		|| ps->blend[2] != ops->blend[2]
+		|| ps->blend[3] != ops->blend[3] )
+		pflags |= PS_BLEND;
+
+	if (ps->fov != ops->fov)
+		pflags |= PS_FOV;
+
+	if (ps->rdflags != ops->rdflags)
+		pflags |= PS_RDFLAGS;
+
+	if (ps->gunframe != ops->gunframe)
+		pflags |= PS_WEAPONFRAME;
+
+	if (ps->sequence != ops->sequence)
+		pflags |= PS_WEAPONSEQUENCE;
+
+	if (ps->gunbody != ops->gunbody)
+		pflags |= PS_WEAPONBODY;
+
+	if (ps->gunskin != ops->gunskin)
+		pflags |= PS_WEAPONSKIN;
 
 	pflags |= PS_WEAPONINDEX;
 
+	//
 	// write it
+	//
 	MSG_WriteByte (msg, svc_playerinfo);
 	MSG_WriteLong (msg, pflags);
 
+	//
 	// write the pmove_state_t
-	if (pflags & PS_M_TYPE) MSG_WriteByte (msg, ps->pmove.pm_type);
+	//
+	if (pflags & PS_M_TYPE)
+		MSG_WriteByte (msg, ps->pmove.pm_type);
 
 	if (pflags & PS_M_ORIGIN)
 	{
@@ -269,9 +326,14 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 		MSG_WriteShort (msg, ps->pmove.velocity[2]);
 	}
 
-	if (pflags & PS_M_TIME) MSG_WriteByte (msg, ps->pmove.pm_time);
-	if (pflags & PS_M_FLAGS) MSG_WriteByte (msg, ps->pmove.pm_flags);
-	if (pflags & PS_M_GRAVITY) MSG_WriteShort (msg, ps->pmove.gravity);
+	if (pflags & PS_M_TIME)
+		MSG_WriteByte (msg, ps->pmove.pm_time);
+
+	if (pflags & PS_M_FLAGS)
+		MSG_WriteByte (msg, ps->pmove.pm_flags);
+
+	if (pflags & PS_M_GRAVITY)
+		MSG_WriteShort (msg, ps->pmove.gravity);
 
 	if (pflags & PS_M_DELTA_ANGLES)
 	{
@@ -280,7 +342,9 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 		MSG_WriteShort (msg, ps->pmove.delta_angles[2]);
 	}
 
+	//
 	// write the rest of the player_state_t
+	//
 	if (pflags & PS_VIEWOFFSET)
 	{
 		MSG_WriteChar (msg, ps->viewoffset[0] * 4);
@@ -302,7 +366,11 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 		MSG_WriteChar (msg, ps->kick_angles[2] * 4);
 	}
 
-	if (pflags & PS_WEAPONINDEX) MSG_WriteByte (msg, ps->gunindex);
+	if (pflags & PS_WEAPONINDEX)
+	{
+		MSG_WriteByte (msg, ps->gunindex);
+	}
+
 	if (pflags & PS_WEAPONFRAME)
 	{
 		MSG_WriteByte (msg, ps->gunframe);
@@ -314,35 +382,42 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 		MSG_WriteChar (msg, ps->gunangles[2]*4);
 	}
 
-	if (pflags & PS_WEAPONSEQUENCE) MSG_WriteByte (msg, ps->sequence);
-	if (pflags & PS_WEAPONBODY) MSG_WriteByte (msg, ps->gunbody);
-	if (pflags & PS_WEAPONSKIN) MSG_WriteByte (msg, ps->gunskin);
+	if (pflags & PS_WEAPONSEQUENCE)
+	{
+		MSG_WriteByte (msg, ps->sequence);
+	}
+
+	if (pflags & PS_WEAPONBODY)
+	{
+		MSG_WriteByte (msg, ps->gunbody);
+	}
+	
+	if (pflags & PS_WEAPONSKIN)
+	{
+		MSG_WriteByte (msg, ps->gunskin);
+	}
 
 	if (pflags & PS_BLEND)
 	{
-		MSG_WriteByte (msg, ps->blend[0] * 255);
-		MSG_WriteByte (msg, ps->blend[1] * 255);
-		MSG_WriteByte (msg, ps->blend[2] * 255);
-		MSG_WriteByte (msg, ps->blend[3] * 255);
+		MSG_WriteByte (msg, ps->blend[0]*255);
+		MSG_WriteByte (msg, ps->blend[1]*255);
+		MSG_WriteByte (msg, ps->blend[2]*255);
+		MSG_WriteByte (msg, ps->blend[3]*255);
 	}
-	if (pflags & PS_FOV) MSG_WriteByte (msg, ps->fov);
-	if (pflags & PS_RDFLAGS) MSG_WriteByte (msg, ps->rdflags);
+	if (pflags & PS_FOV)
+		MSG_WriteByte (msg, ps->fov);
+	if (pflags & PS_RDFLAGS)
+		MSG_WriteByte (msg, ps->rdflags);
 
 	// send stats
 	statbits = 0;
-	for (i = 0; i < MAX_STATS; i++)
-	{
+	for (i=0 ; i<MAX_STATS ; i++)
 		if (ps->stats[i] != ops->stats[i])
 			statbits |= 1<<i;
-	}
-	
 	MSG_WriteLong (msg, statbits);
-
-	for (i = 0; i < MAX_STATS; i++)
-	{
-		if(statbits & (1<<i) )
+	for (i=0 ; i<MAX_STATS ; i++)
+		if (statbits & (1<<i) )
 			MSG_WriteShort (msg, ps->stats[i]);
-	}
 }
 
 
@@ -361,21 +436,18 @@ void SV_WriteFrameToClient (client_t *client, sizebuf_t *msg)
 	frame = &client->frames[sv.framenum & UPDATE_MASK];
 
 	if (client->lastframe <= 0)
-	{	
-		// client is asking for a retransmit
+	{	// client is asking for a retransmit
 		oldframe = NULL;
 		lastframe = -1;
 	}
 	else if (sv.framenum - client->lastframe >= (UPDATE_BACKUP - 3) )
-	{	
-		// client hasn't gotten a good message through in a long time
+	{	// client hasn't gotten a good message through in a long time
 //		Msg ("%s: Delta request from out-of-date packet.\n", client->name);
 		oldframe = NULL;
 		lastframe = -1;
 	}
 	else
-	{	
-		// we have a valid message to delta from
+	{	// we have a valid message to delta from
 		oldframe = &client->frames[client->lastframe & UPDATE_MASK];
 		lastframe = client->lastframe;
 	}
@@ -465,27 +537,29 @@ copies off the playerstat and areabits.
 void SV_BuildClientFrame (client_t *client)
 {
 	int		e, i;
-	vec3_t		org;
-	prvm_edict_t	*ent;
-	prvm_edict_t	*clent;
+	vec3_t	org;
+	edict_t	*ent;
+	edict_t	*clent;
 	client_frame_t	*frame;
 	entity_state_t	*state;
 	int		l;
 	int		clientarea, clientcluster;
 	int		leafnum;
 	int		c_fullsend;
-	byte		*clientphs;
-	byte		*bitvector;
+	byte	*clientphs;
+	byte	*bitvector;
 
 	clent = client->edict;
-	if (!clent->priv.sv->client) return;// not in game yet
+	if (!clent->client) return;// not in game yet
 
 	// this is the frame we are creating
 	frame = &client->frames[sv.framenum & UPDATE_MASK];
+
 	frame->senttime = svs.realtime; // save it for ping calc later
 
 	// find the client's PVS
-	for (i = 0; i < 3; i++) org[i] = clent->priv.sv->client->pmove.origin[i]*0.125 + clent->priv.sv->client->viewoffset[i];
+	for (i=0 ; i<3 ; i++)
+		org[i] = clent->client->ps.pmove.origin[i]*0.125 + clent->client->ps.viewoffset[i];
 
 	leafnum = CM_PointLeafnum (org);
 	clientarea = CM_LeafArea (leafnum);
@@ -495,7 +569,8 @@ void SV_BuildClientFrame (client_t *client)
 	frame->areabytes = CM_WriteAreaBits (frame->areabits, clientarea);
 
 	// grab the current player_state_t
-	frame->ps = *clent->priv.sv->client;
+	frame->ps = clent->client->ps;
+
 
 	SV_FatPVS (org);
 	clientphs = CM_ClusterPHS (clientcluster);
@@ -506,33 +581,34 @@ void SV_BuildClientFrame (client_t *client)
 
 	c_fullsend = 0;
 
-	ent = PRVM_NEXT_EDICT(prog->edicts);
-	for (e = 1; e < prog->num_edicts; e++, ent = PRVM_NEXT_EDICT(ent))
+	for (e = 1; e < ge->num_edicts ; e++)
 	{
+		ent = EDICT_NUM(e);
+
 		// ignore ents without visible models
-		if ((int)ent->fields.sv->flags & SVF_NOCLIENT)
+		if (ent->svflags & SVF_NOCLIENT)
 			continue;
 
 		// ignore ents without visible models unless they have an effect
-		if (!(int)ent->fields.sv->modelindex && !(int)ent->fields.sv->effects)
+		if (!ent->s.modelindex && !ent->s.effects && !ent->s.sound && !ent->s.event)
 			continue;
 
 		// ignore if not touching a PV leaf
 		if (ent != clent)
 		{
 			// check area
-			if (!CM_AreasConnected (clientarea, ent->priv.sv->areanum))
-			{	
-				// doors can legally straddle two areas, so
+			if (!CM_AreasConnected (clientarea, ent->areanum))
+			{	// doors can legally straddle two areas, so
 				// we may need to check another one
-				if (!ent->priv.sv->areanum2 || !CM_AreasConnected (clientarea, ent->priv.sv->areanum2))
-					continue;	// blocked by a door
+				if (!ent->areanum2
+					|| !CM_AreasConnected (clientarea, ent->areanum2))
+					continue;		// blocked by a door
 			}
 
 			// beams just check one point for PHS
-			if ((int)ent->fields.sv->renderfx & RF_BEAM)
+			if (ent->s.renderfx & RF_BEAM)
 			{
-				l = ent->priv.sv->clusternums[0];
+				l = ent->clusternums[0];
 				if ( !(clientphs[l >> 3] & (1 << (l&7) )) )
 					continue;
 			}
@@ -540,67 +616,55 @@ void SV_BuildClientFrame (client_t *client)
 			{
 				// FIXME: if an ent has a model and a sound, but isn't
 				// in the PVS, only the PHS, clear the model
-				if (ent->priv.sv->state.sound)
+				if (ent->s.sound)
 				{
 					bitvector = fatpvs;	//clientphs;
 				}
-				else bitvector = fatpvs;
+				else
+					bitvector = fatpvs;
 
-				if (ent->priv.sv->num_clusters == -1)
-				{	
-					// too many leafs for individual check, go by headnode
-					if (!CM_HeadnodeVisible (ent->priv.sv->headnode, bitvector))
+				if (ent->num_clusters == -1)
+				{	// too many leafs for individual check, go by headnode
+					if (!CM_HeadnodeVisible (ent->headnode, bitvector))
 						continue;
 					c_fullsend++;
 				}
 				else
 				{	// check individual leafs
-					for (i=0 ; i < ent->priv.sv->num_clusters ; i++)
+					for (i=0 ; i < ent->num_clusters ; i++)
 					{
-						l = ent->priv.sv->clusternums[i];
+						l = ent->clusternums[i];
 						if (bitvector[l >> 3] & (1 << (l&7) ))
 							break;
 					}
-					if (i == ent->priv.sv->num_clusters)
-						continue;	// not visible
+					if (i == ent->num_clusters)
+						continue;		// not visible
 				}
 
-				if (!(int)ent->fields.sv->modelindex)
-				{	
-					// don't send sounds if they will be attenuated away
+				if (!ent->s.modelindex)
+				{	// don't send sounds if they will be attenuated away
 					vec3_t	delta;
 					float	len;
 
-					VectorSubtract (org, ent->fields.sv->origin, delta);
+					VectorSubtract (org, ent->s.origin, delta);
 					len = VectorLength (delta);
-					if (len > 400) continue;
+					if (len > 400)
+						continue;
 				}
 			}
 		}
 
 		// add it to the circular client_entities array
 		state = &svs.client_entities[svs.next_client_entities % svs.num_client_entities];
-		if (ent->priv.sv->state.number != e)
+		if (ent->s.number != e)
 		{
-			MsgWarn ("SV_BuildClientFrame: invalid ent->priv.sv->state.number %d (must be %d)\n", ent->priv.sv->state.number, e );
-			ent->priv.sv->state.number = e; // ptr to current entity such as entnumber
+			MsgWarn ("SV_BuildClientFrame: invalid ent->s.number %d\n", ent->s.number );
+			ent->s.number = e; // ptr to current entity such as entnumber
 		}
-
-		// copy state from fields
-		VectorCopy (ent->fields.sv->origin, ent->priv.sv->state.origin);
-		VectorCopy (ent->fields.sv->angles, ent->priv.sv->state.angles);
-		ent->priv.sv->state.frame = (int)ent->fields.sv->frame;
-		ent->priv.sv->state.skin = (int)ent->fields.sv->skin;
-		ent->priv.sv->state.body = (int)ent->fields.sv->body;
-		ent->priv.sv->state.sequence = (int)ent->fields.sv->sequence;
-		ent->priv.sv->state.effects = (int)ent->fields.sv->effects;
-		ent->priv.sv->state.renderfx = (int)ent->fields.sv->renderfx;
-		ent->priv.sv->state.solid = (int)ent->fields.sv->solid;
-
-		*state = ent->priv.sv->state;
+		*state = ent->s;
 
 		// don't mark players missiles as solid
-		if(PRVM_PROG_TO_EDICT(ent->fields.sv->owner) == client->edict) state->solid = 0;
+		if (ent->owner == client->edict) state->solid = 0;
 
 		svs.next_client_entities++;
 		frame->num_entities++;
@@ -619,7 +683,7 @@ Used for recording footage for merged or assembled demos
 void SV_RecordDemoMessage (void)
 {
 	int			e;
-	prvm_edict_t		*ent;
+	edict_t		*ent;
 	entity_state_t	nostate;
 	sizebuf_t	buf;
 	byte		buf_data[32768];
@@ -638,14 +702,18 @@ void SV_RecordDemoMessage (void)
 	MSG_WriteByte (&buf, svc_packetentities);
 
 	e = 1;
-	ent = PRVM_EDICT_NUM(e);
-	while (e < prog->num_edicts) 
+	ent = EDICT_NUM(e);
+	while (e < ge->num_edicts) 
 	{
 		// ignore ents without visible models unless they have an effect
-		if (!ent->priv.sv->free && ent->priv.sv->state.number && ((int)ent->fields.sv->modelindex || ent->fields.sv->effects || ent->priv.sv->state.sound || ent->priv.sv->state.event) && !((int)ent->fields.sv->flags & SVF_NOCLIENT))
-			MSG_WriteDeltaEntity (&nostate, &ent->priv.sv->state, &buf, false, true);
+		if (ent->inuse &&
+			ent->s.number && 
+			(ent->s.modelindex || ent->s.effects || ent->s.sound || ent->s.event) && 
+			!(ent->svflags & SVF_NOCLIENT))
+			MSG_WriteDeltaEntity (&nostate, &ent->s, &buf, false, true);
+
 		e++;
-		ent = PRVM_EDICT_NUM(e);
+		ent = EDICT_NUM(e);
 	}
 
 	MSG_WriteShort (&buf, 0);		// end of packetentities
@@ -660,4 +728,3 @@ void SV_RecordDemoMessage (void)
 	FS_Write (svs.demofile, buf.data, buf.cursize);
 }
 
-                                  

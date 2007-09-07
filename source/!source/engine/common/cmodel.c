@@ -36,19 +36,19 @@ typedef struct
 
 typedef struct
 {
-	int		contents;
-	int		cluster;
-	int		area;
-	word		firstleafbrush;
-	word		numleafbrushes;
+	int			contents;
+	int			cluster;
+	int			area;
+	unsigned short	firstleafbrush;
+	unsigned short	numleafbrushes;
 } cleaf_t;
 
 typedef struct
 {
-	int		contents;
-	int		numsides;
-	int		firstbrushside;
-	int		checkcount;		// to avoid repeated testings
+	int			contents;
+	int			numsides;
+	int			firstbrushside;
+	int			checkcount;		// to avoid repeated testings
 } cbrush_t;
 
 typedef struct
@@ -926,7 +926,7 @@ Handles offseting and rotation of the end points for moving and
 rotating entities
 ==================
 */
-int CM_TransformedPointContents (vec3_t p, int headnode, vec3_t origin, vec3_t angles)
+int	CM_TransformedPointContents (vec3_t p, int headnode, vec3_t origin, vec3_t angles)
 {
 	vec3_t		p_l;
 	vec3_t		temp;
@@ -940,7 +940,7 @@ int CM_TransformedPointContents (vec3_t p, int headnode, vec3_t origin, vec3_t a
 	if (headnode != box_headnode && 
 	(angles[0] || angles[1] || angles[2]) )
 	{
-		AngleVectorsRight (angles, forward, right, up);
+		AngleVectors (angles, forward, right, up);
 
 		VectorCopy (p_l, temp);
 		p_l[0] = DotProduct (temp, forward);
@@ -978,15 +978,16 @@ bool	trace_ispoint;		// optimized case
 CM_ClipBoxToBrush
 ================
 */
-void CM_ClipBoxToBrush (vec3_t mins, vec3_t maxs, vec3_t p1, vec3_t p2, trace_t *trace, cbrush_t *brush)
+void CM_ClipBoxToBrush (vec3_t mins, vec3_t maxs, vec3_t p1, vec3_t p2,
+					  trace_t *trace, cbrush_t *brush)
 {
-	int		i, j;
-	cplane_t		*plane, *clipplane;
+	int			i, j;
+	cplane_t	*plane, *clipplane;
 	float		dist;
 	float		enterfrac, leavefrac;
 	vec3_t		ofs;
 	float		d1, d2;
-	bool		getout, startout;
+	bool	getout, startout;
 	float		f;
 	cbrushside_t	*side, *leadside;
 
@@ -994,7 +995,8 @@ void CM_ClipBoxToBrush (vec3_t mins, vec3_t maxs, vec3_t p1, vec3_t p2, trace_t 
 	leavefrac = 1;
 	clipplane = NULL;
 
-	if (!brush->numsides) return;
+	if (!brush->numsides)
+		return;
 
 	c_brush_traces++;
 
@@ -1002,7 +1004,7 @@ void CM_ClipBoxToBrush (vec3_t mins, vec3_t maxs, vec3_t p1, vec3_t p2, trace_t 
 	startout = false;
 	leadside = NULL;
 
-	for (i = 0; i < brush->numsides; i++)
+	for (i=0 ; i<brush->numsides ; i++)
 	{
 		side = &map_brushsides[brush->firstbrushside+i];
 		plane = side->plane;
@@ -1010,17 +1012,17 @@ void CM_ClipBoxToBrush (vec3_t mins, vec3_t maxs, vec3_t p1, vec3_t p2, trace_t 
 		// FIXME: special case for axial
 
 		if (!trace_ispoint)
-		{	
-			// general box case
+		{	// general box case
 
 			// push the plane out apropriately for mins/maxs
 
 			// FIXME: use signbits into 8 way lookup for each mins/maxs
-			for (j = 0; j < 3; j++)
+			for (j=0 ; j<3 ; j++)
 			{
 				if (plane->normal[j] < 0)
 					ofs[j] = maxs[j];
-				else ofs[j] = mins[j];
+				else
+					ofs[j] = mins[j];
 			}
 			dist = DotProduct (ofs, plane->normal);
 			dist = plane->dist - dist;
@@ -1033,13 +1035,17 @@ void CM_ClipBoxToBrush (vec3_t mins, vec3_t maxs, vec3_t p1, vec3_t p2, trace_t 
 		d1 = DotProduct (p1, plane->normal) - dist;
 		d2 = DotProduct (p2, plane->normal) - dist;
 
-		if (d2 > 0) getout = true;	// endpoint is not in solid
-		if (d1 > 0) startout = true;
+		if (d2 > 0)
+			getout = true;	// endpoint is not in solid
+		if (d1 > 0)
+			startout = true;
 
 		// if completely in front of face, no intersection
-		if (d1 > 0 && d2 >= d1) return;
+		if (d1 > 0 && d2 >= d1)
+			return;
 
-		if (d1 <= 0 && d2 <= 0) continue;
+		if (d1 <= 0 && d2 <= 0)
+			continue;
 
 		// crosses face
 		if (d1 > d2)
@@ -1054,23 +1060,25 @@ void CM_ClipBoxToBrush (vec3_t mins, vec3_t maxs, vec3_t p1, vec3_t p2, trace_t 
 		}
 		else
 		{	// leave
-			f = (d1 + DIST_EPSILON) / (d1-d2);
-			if (f < leavefrac) leavefrac = f;
+			f = (d1+DIST_EPSILON) / (d1-d2);
+			if (f < leavefrac)
+				leavefrac = f;
 		}
 	}
 
 	if (!startout)
-	{	
-		// original point was inside brush
+	{	// original point was inside brush
 		trace->startsolid = true;
-		if (!getout) trace->allsolid = true;
+		if (!getout)
+			trace->allsolid = true;
 		return;
 	}
 	if (enterfrac < leavefrac)
 	{
 		if (enterfrac > -1 && enterfrac < trace->fraction)
 		{
-			if (enterfrac < 0) enterfrac = 0;
+			if (enterfrac < 0)
+				enterfrac = 0;
 			trace->fraction = enterfrac;
 			trace->plane = *clipplane;
 			trace->surface = &(leadside->surface->c);
@@ -1184,7 +1192,7 @@ void CM_TestInLeaf (int leafnum)
 	if ( !(leaf->contents & trace_contents))
 		return;
 	// trace line against all brushes in the leaf
-	for (k = 0; k < leaf->numleafbrushes; k++)
+	for (k=0 ; k<leaf->numleafbrushes ; k++)
 	{
 		brushnum = map_leafbrushes[leaf->firstleafbrush+k];
 		b = &map_brushes[brushnum];
@@ -1192,7 +1200,7 @@ void CM_TestInLeaf (int leafnum)
 			continue;	// already checked this brush in another leaf
 		b->checkcount = checkcount;
 
-		if (!(b->contents & trace_contents))
+		if ( !(b->contents & trace_contents))
 			continue;
 		CM_TestBoxInBrush (trace_mins, trace_maxs, trace_start, &trace_trace, b);
 		if (!trace_trace.fraction)
@@ -1331,12 +1339,15 @@ return;
 CM_BoxTrace
 ==================
 */
-trace_t CM_BoxTrace (vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int headnode, int brushmask)
+trace_t		CM_BoxTrace (vec3_t start, vec3_t end,
+						  vec3_t mins, vec3_t maxs,
+						  int headnode, int brushmask)
 {
 	int		i;
 
-	checkcount++;	// for multi-check avoidance
-	c_traces++;	// for statistics, may be zeroed
+	checkcount++;		// for multi-check avoidance
+
+	c_traces++;			// for statistics, may be zeroed
 
 	// fill in a default trace
 	memset (&trace_trace, 0, sizeof(trace_trace));
@@ -1352,24 +1363,26 @@ trace_t CM_BoxTrace (vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int hea
 	VectorCopy (mins, trace_mins);
 	VectorCopy (maxs, trace_maxs);
 
+	//
 	// check for position test special case
+	//
 	if (start[0] == end[0] && start[1] == end[1] && start[2] == end[2])
 	{
 		int		leafs[1024];
 		int		i, numleafs;
-		vec3_t		c1, c2;
+		vec3_t	c1, c2;
 		int		topnode;
 
 		VectorAdd (start, mins, c1);
 		VectorAdd (start, maxs, c2);
-		for (i = 0; i < 3; i++)
+		for (i=0 ; i<3 ; i++)
 		{
 			c1[i] -= 1;
 			c2[i] += 1;
 		}
 
 		numleafs = CM_BoxLeafnums_headnode (c1, c2, leafs, 1024, headnode, &topnode);
-		for (i = 0; i < numleafs; i++)
+		for (i=0 ; i<numleafs ; i++)
 		{
 			CM_TestInLeaf (leafs[i]);
 			if (trace_trace.allsolid)
@@ -1379,7 +1392,9 @@ trace_t CM_BoxTrace (vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int hea
 		return trace_trace;
 	}
 
+	//
 	// check for point special case
+	//
 	if (mins[0] == 0 && mins[1] == 0 && mins[2] == 0
 		&& maxs[0] == 0 && maxs[1] == 0 && maxs[2] == 0)
 	{
@@ -1394,7 +1409,9 @@ trace_t CM_BoxTrace (vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int hea
 		trace_extents[2] = -mins[2] > maxs[2] ? -mins[2] : maxs[2];
 	}
 
+	//
 	// general sweeping through world
+	//
 	CM_RecursiveHullCheck (headnode, 0, 1, start, end);
 
 	if (trace_trace.fraction == 1)
@@ -1403,7 +1420,7 @@ trace_t CM_BoxTrace (vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int hea
 	}
 	else
 	{
-		for (i = 0; i < 3; i++)
+		for (i=0 ; i<3 ; i++)
 			trace_trace.endpos[i] = start[i] + trace_trace.fraction * (end[i] - start[i]);
 	}
 	return trace_trace;
@@ -1423,7 +1440,10 @@ rotating entities
 #endif
 
 
-trace_t CM_TransformedBoxTrace (vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int headnode, int brushmask, vec3_t origin, vec3_t angles)
+trace_t CM_TransformedBoxTrace (vec3_t start, vec3_t end,
+						  vec3_t mins, vec3_t maxs,
+						  int headnode, int brushmask,
+						  vec3_t origin, vec3_t angles)
 {
 	trace_t		trace;
 	vec3_t		start_l, end_l;
@@ -1437,14 +1457,15 @@ trace_t CM_TransformedBoxTrace (vec3_t start, vec3_t end, vec3_t mins, vec3_t ma
 	VectorSubtract (end, origin, end_l);
 
 	// rotate start and end into the models frame of reference
-	if (headnode != box_headnode && !VectorIsNull(angles))
+	if (headnode != box_headnode && 
+	(angles[0] || angles[1] || angles[2]) )
 		rotated = true;
 	else
 		rotated = false;
 
 	if (rotated)
 	{
-		AngleVectorsRight (angles, forward, right, up);
+		AngleVectors (angles, forward, right, up);
 
 		VectorCopy (start_l, temp);
 		start_l[0] = DotProduct (temp, forward);
@@ -1465,7 +1486,7 @@ trace_t CM_TransformedBoxTrace (vec3_t start, vec3_t end, vec3_t mins, vec3_t ma
 		// FIXME: figure out how to do this with existing angles
 		VectorCopy( angles, a );
 		VectorNegate ( a, a );
-		AngleVectorsRight (a, forward, right, up);
+		AngleVectors (a, forward, right, up);
 
 		VectorCopy (trace.plane.normal, temp);
 		trace.plane.normal[0] = DotProduct (temp, forward);
@@ -1720,15 +1741,15 @@ STUDIO SHARED CMODELS
 
 ===============================================================================
 */
-#define HULL_PRECISION	4	// precision factor
+#define NUM_HULL_ROUNDS	22
+#define HULL_PRECISION	4
 
-word hull_table[] = { 0, 4, 8, 16, 18, 24, 28, 30, 32, 40, 48, 54, 56, 60, 64, 72, 80, 112, 120, 128, 140, 176 };
-#define NUM_HULL_ROUNDS (sizeof(hull_table) / sizeof(word))
+word hull_table[NUM_HULL_ROUNDS] = { 0, 4, 8, 16, 18, 24, 28, 30, 32, 40, 48, 54, 56, 60, 64, 72, 80, 112, 120, 128, 140, 176 };
 
 void CM_LookUpHullSize(vec3_t size, bool down)
 {
           int	i, j;
-
+	
 	for(i = 0; i < 3; i++)
 	{
 		bool negative = false;
@@ -1748,14 +1769,7 @@ void CM_LookUpHullSize(vec3_t size, bool down)
 				break;
 			}
 		}
-
-		if(j == NUM_HULL_ROUNDS)
-		{
-			//catch an error
-			MsgWarn("CM_LookUpHullSize: hull size[%d] is too big, reset value to default\n", i );
-			size[i] = 16; //default value
-		}
-		else size[i] = result;//copy new value
+		size[i] = result;//copy new value
 	}
 }
 
@@ -1805,7 +1819,7 @@ cmodel_t *CM_StudioModel (char *name, byte *buffer)
 		VectorSet(out->mins, -32, -32, -32 );
 		VectorSet(out->maxs,  32,  32,  32 );
 	}
-          
+
 	numsmodels++;
 	return out;
 }

@@ -44,6 +44,8 @@ typedef struct vfile_s	vfile_t;
 typedef struct image_s	image_t;
 typedef struct model_s	model_t;
 typedef int		func_t;
+typedef struct edict_s	edict_t;
+typedef struct gclient_s	gclient_t;
 typedef int		string_t;
 typedef int		progsnum_t;
 typedef struct progfuncs_s	progfuncs_t;

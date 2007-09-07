@@ -65,7 +65,7 @@ size_t COM_UnpackString( byte *buffer, int pos, char *string )
 	if(!buffer || !string) return 0;
 	in = buffer + pos;
 
-	do { in++, strsize++; } while(in && *in != '\0');
+	do { in++, strsize++; } while(*in != '\0' && in != NULL );
 
 	strlcpy( string, in - (strsize - 1), strsize ); 
 	return pos + strsize;

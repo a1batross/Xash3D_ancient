@@ -364,7 +364,7 @@ CL_Pause_f
 void CL_Pause_f (void)
 {
 	// never pause in multiplayer
-	if (host.maxclients > 1 || !Com_ServerState ())
+	if (Cvar_VariableValue ("maxclients") > 1 || !Com_ServerState ())
 	{
 		Cvar_SetValue ("paused", 0);
 		return;
@@ -462,7 +462,7 @@ void CL_CheckForResend (void)
 	if (cls.state != ca_connecting)
 		return;
 
-	if (cls.realtime - cls.connect_time < 3.0f)
+	if (cls.realtime - cls.connect_time < 3000)
 		return;
 
 	if (!NET_StringToAdr (cls.servername, &adr))
@@ -616,6 +616,16 @@ void CL_Disconnect (void)
 	if (cls.state == ca_disconnected)
 		return;
 
+	if (cl_timedemo && cl_timedemo->value)
+	{
+		int	time;
+		
+		time = Sys_Milliseconds () - cl.timedemo_start;
+		if (time > 0)
+			Msg ("%i frames, %3.1f seconds: %3.1f fps\n", cl.timedemo_frames,
+			time/1000.0, cl.timedemo_frames*1000.0 / time);
+	}
+
 	VectorClear (cl.refdef.blend);
 	re->CinematicSetPalette(NULL);
 
@@ -717,7 +727,8 @@ void CL_Changing_f (void)
 {
 	//ZOID
 	//if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
-	if (cls.download) return;
+	if (cls.download)
+		return;
 
 	SCR_BeginLoadingPlaque ();
 	cls.state = ca_connected;	// not active anymore, but not disconnected
@@ -751,7 +762,7 @@ void CL_Reconnect_f (void)
 	if (*cls.servername) {
 		if (cls.state >= ca_connected) {
 			CL_Disconnect();
-			cls.connect_time = cls.realtime - 1.5f;
+			cls.connect_time = cls.realtime - 1500;
 		} else
 			cls.connect_time = -99999; // fire immediately
 
@@ -1010,7 +1021,8 @@ void CL_ReadPackets (void)
 	//
 	// check timeout
 	//
-	if (cls.state >= ca_connected && cls.realtime - cls.netchan.last_received > cl_timeout->value)
+	if (cls.state >= ca_connected
+	 && cls.realtime - cls.netchan.last_received > cl_timeout->value*1000)
 	{
 		if (++cl.timeoutcount > 5)	// timeoutcount saves debugger
 		{
@@ -1401,8 +1413,7 @@ CL_InitLocal
 void CL_InitLocal (void)
 {
 	cls.state = ca_disconnected;
-	cls.realtime = Sys_DoubleTime();
-
+	cls.realtime = Sys_Milliseconds ();
 	CL_InitInput ();
 
 	adr0 = Cvar_Get( "adr0", "", CVAR_ARCHIVE );
@@ -1415,9 +1426,9 @@ void CL_InitLocal (void)
 	adr7 = Cvar_Get( "adr7", "", CVAR_ARCHIVE );
 	adr8 = Cvar_Get( "adr8", "", CVAR_ARCHIVE );
 
-	//
-	// register our variables
-	//
+//
+// register our variables
+//
 	cl_stereo_separation = Cvar_Get( "cl_stereo_separation", "0.4", CVAR_ARCHIVE );
 	cl_stereo = Cvar_Get( "cl_stereo", "0", 0 );
 
@@ -1606,8 +1617,9 @@ void CL_FixCvarCheats (void)
 	int			i;
 	cheatvar_t	*var;
 
-	if(!strcmp(cl.configstrings[CS_MAXCLIENTS], "1") || !cl.configstrings[CS_MAXCLIENTS][0] )
-		return;	// single player can cheat
+	if ( !strcmp(cl.configstrings[CS_MAXCLIENTS], "1") 
+		|| !cl.configstrings[CS_MAXCLIENTS][0] )
+		return;		// single player can cheat
 
 	// find all the cvars if we haven't done it yet
 	if (!numcheatvars)
@@ -1666,36 +1678,44 @@ CL_Frame
 
 ==================
 */
-void CL_Frame (float time)
+void CL_Frame (int msec)
 {
-	static float	extratime;
-	static float	lasttimecalled;
+	static int	extratime;
+	static int  lasttimecalled;
 
-	if (host.type == HOST_DEDICATED) return;
+	if (dedicated->value)
+		return;
 
-	extratime += time;
+	extratime += msec;
 
 	if (!cl_timedemo->value)
 	{
-		if (cls.state == ca_connected && extratime < 0.1f)
-			return;	// don't flood packets out while connecting
-		if (extratime < 1.0f / cl_maxfps->value)
-			return; // framerate is too high
+		if (cls.state == ca_connected && extratime < 100)
+			return;			// don't flood packets out while connecting
+		if (extratime < 1000/cl_maxfps->value)
+			return;			// framerate is too high
 	}
 
 	// let the mouse activate or deactivate
 	IN_Frame ();
 
 	// decide the simulation time
-	cls.frametime = extratime;
+	cls.frametime = extratime/1000.0;
 	cl.time += extratime;
-	cls.realtime = Sys_DoubleTime();
+	cls.realtime = curtime;
 
 	extratime = 0;
-	if (cls.frametime > (1.0 / 5)) cls.frametime = (1.0 / 5);
+#if 0
+	if (cls.frametime > (1.0 / cl_minfps->value))
+		cls.frametime = (1.0 / cl_minfps->value);
+#else
+	if (cls.frametime > (1.0 / 5))
+		cls.frametime = (1.0 / 5);
+#endif
 
 	// if in the debugger last frame, don't timeout
-	if (time > 1.0f) cls.netchan.last_received = Sys_DoubleTime();
+	if (msec > 5000)
+		cls.netchan.last_received = Sys_Milliseconds ();
 
 	// fetch results from server
 	CL_ReadPackets ();
@@ -1712,7 +1732,11 @@ void CL_Frame (float time)
 		CL_PrepRefresh ();
 
 	// update the screen
+	if (host_speeds->value)
+		time_before_ref = Sys_Milliseconds ();
 	SCR_UpdateScreen ();
+	if (host_speeds->value)
+		time_after_ref = Sys_Milliseconds ();
 
 	// update audio
 	S_Update (cl.refdef.vieworg, cl.v_forward, cl.v_right, cl.v_up);
@@ -1724,6 +1748,27 @@ void CL_Frame (float time)
 	SCR_RunConsole ();
 
 	cls.framecount++;
+
+	if ( log_stats->value )
+	{
+		if ( cls.state == ca_active )
+		{
+			if ( !lasttimecalled )
+			{
+				lasttimecalled = Sys_Milliseconds();
+				if ( log_stats_file )
+					FS_Printf( log_stats_file, "0\n" );
+			}
+			else
+			{
+				int now = Sys_Milliseconds();
+
+				if ( log_stats_file )
+					FS_Printf( log_stats_file, "%d\n", now - lasttimecalled );
+				lasttimecalled = now;
+			}
+		}
+	}
 }
 
 
@@ -1736,8 +1781,8 @@ CL_Init
 */
 void CL_Init (void)
 {
-	// nothing running on the client
-	if (host.type == HOST_DEDICATED) return; 
+	if (dedicated->value)
+		return;		// nothing running on the client
 
 	// all archived variables will now be loaded
 
@@ -1754,7 +1799,6 @@ void CL_Init (void)
 	SCR_Init ();
 	cls.disable_screen = true;	// don't draw yet
 
-	CL_InitGameProgs();
 	CL_InitLocal ();
 	IN_Init ();
 

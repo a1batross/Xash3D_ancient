@@ -23,8 +23,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 cvar_t	*cl_nodelta;
 
-uint	frame_msec;
-uint	old_sys_frame_time;
+extern	unsigned	sys_frame_time;
+unsigned	frame_msec;
+unsigned	old_sys_frame_time;
 
 /*
 ===============================================================================
@@ -93,7 +94,7 @@ void KeyDown (kbutton_t *b)
 	c = Cmd_Argv(2);
 	b->downtime = atoi(c);
 	if (!b->downtime)
-		b->downtime = host.cl_timer - 100;
+		b->downtime = sys_frame_time - 100;
 
 	b->state |= 1 + 2;	// down + impulse down
 }
@@ -193,8 +194,8 @@ float CL_KeyState (kbutton_t *key)
 
 	if (key->state)
 	{	// still down
-		msec += host.cl_timer - key->downtime;
-		key->downtime = host.cl_timer;
+		msec += sys_frame_time - key->downtime;
+		key->downtime = sys_frame_time;
 	}
 
 #if 0
@@ -205,8 +206,10 @@ float CL_KeyState (kbutton_t *key)
 #endif
 
 	val = (float)msec / frame_msec;
-	if (val < 0) val = 0;
-	if (val > 1) val = 1;
+	if (val < 0)
+		val = 0;
+	if (val > 1)
+		val = 1;
 
 	return val;
 }
@@ -295,7 +298,9 @@ void CL_BaseMove (usercmd_t *cmd)
 		cmd->forwardmove -= cl_forwardspeed->value * CL_KeyState (&in_back);
 	}	
 
-	// adjust for speed key / running
+//
+// adjust for speed key / running
+//
 	if ( (in_speed.state & 1) ^ (int)(cl_run->value) )
 	{
 		cmd->forwardmove *= 2;
@@ -333,27 +338,34 @@ void CL_FinishMove (usercmd_t *cmd)
 	int		ms;
 	int		i;
 
-	// figure button bits
-	if ( in_attack.state & 3 ) cmd->buttons |= BUTTON_ATTACK;
+//
+// figure button bits
+//	
+	if ( in_attack.state & 3 )
+		cmd->buttons |= BUTTON_ATTACK;
 	in_attack.state &= ~2;
 	
-	if (in_use.state & 3) cmd->buttons |= BUTTON_USE;
+	if (in_use.state & 3)
+		cmd->buttons |= BUTTON_USE;
 	in_use.state &= ~2;
 
-	if (anykeydown && cls.key_dest == key_game) cmd->buttons |= BUTTON_ANY;
+	if (anykeydown && cls.key_dest == key_game)
+		cmd->buttons |= BUTTON_ANY;
 
 	// send milliseconds of time to apply the move
 	ms = cls.frametime * 1000;
-	if (ms > 250) ms = 100; // time was unreasonable
+	if (ms > 250)
+		ms = 100;		// time was unreasonable
 	cmd->msec = ms;
 
 	CL_ClampPitch ();
-	for (i = 0; i < 3; i++) cmd->angles[i] = ANGLE2SHORT(cl.viewangles[i]);
+	for (i=0 ; i<3 ; i++)
+		cmd->angles[i] = ANGLE2SHORT(cl.viewangles[i]);
 
 	cmd->impulse = in_impulse;
 	in_impulse = 0;
 
-	// send the ambient light level at the player's current position
+// send the ambient light level at the player's current position
 	cmd->lightlevel = (byte)cl_lightlevel->value;
 }
 
@@ -366,8 +378,11 @@ usercmd_t CL_CreateCmd (void)
 {
 	usercmd_t	cmd;
 
-	frame_msec = host.cl_timer - old_sys_frame_time;
-	frame_msec = bound(1, frame_msec, 200);
+	frame_msec = sys_frame_time - old_sys_frame_time;
+	if (frame_msec < 1)
+		frame_msec = 1;
+	if (frame_msec > 200)
+		frame_msec = 200;
 	
 	// get basic movement from keyboard
 	CL_BaseMove (&cmd);
@@ -377,9 +392,9 @@ usercmd_t CL_CreateCmd (void)
 
 	CL_FinishMove (&cmd);
 
-	old_sys_frame_time = host.cl_timer;
+	old_sys_frame_time = sys_frame_time;
 
-	//cmd.impulse = cls.framecount;
+//cmd.impulse = cls.framecount;
 
 	return cmd;
 }
@@ -468,7 +483,7 @@ void CL_SendCmd (void)
 
 	if ( cls.state == ca_connected)
 	{
-		if (cls.netchan.message.cursize || host.realtime - cls.netchan.last_sent > 1.0f )
+		if (cls.netchan.message.cursize || curtime - cls.netchan.last_sent > 1000 )
 			Netchan_Transmit (&cls.netchan, 0, buf.data);	
 		return;
 	}
@@ -483,7 +498,7 @@ void CL_SendCmd (void)
 	}
 
 	if (cmd->buttons && cl.cinematictime > 0 && !cl.attractloop 
-		&& cls.realtime - cl.cinematictime > 1.0f)
+		&& cls.realtime - cl.cinematictime > 1000)
 	{	// skip the rest of the cinematic
 		SCR_FinishCinematic ();
 	}

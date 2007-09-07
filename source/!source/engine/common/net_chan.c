@@ -93,7 +93,7 @@ void Netchan_Init (void)
 	int		port;
 
 	// pick a port value that should be nice and random
-	port = RANDOM_LONG(1, 65535);
+	port = Sys_Milliseconds() & 0xffff;
 
 	Msg("netchan port %d\n", port );
 
@@ -158,7 +158,7 @@ void Netchan_Setup (netsrc_t sock, netchan_t *chan, netadr_t adr, int qport)
 	chan->sock = sock;
 	chan->remote_address = adr;
 	chan->qport = qport;
-	chan->last_received = host.realtime * 1000;
+	chan->last_received = curtime;
 	chan->incoming_sequence = 0;
 	chan->outgoing_sequence = 1;
 
@@ -218,11 +218,12 @@ void Netchan_Transmit (netchan_t *chan, int length, byte *data)
 	bool	send_reliable;
 	unsigned	w1, w2;
 
-	// check for message overflow
+// check for message overflow
 	if (chan->message.overflowed)
 	{
 		chan->fatal_error = true;
-		Msg ("%s:Outgoing message overflow\n", NET_AdrToString (chan->remote_address));
+		Msg ("%s:Outgoing message overflow\n"
+			, NET_AdrToString (chan->remote_address));
 		return;
 	}
 
@@ -230,21 +231,21 @@ void Netchan_Transmit (netchan_t *chan, int length, byte *data)
 
 	if (!chan->reliable_length && chan->message.cursize)
 	{
-		Mem_Copy (chan->reliable_buf, chan->message_buf, chan->message.cursize);
+		memcpy (chan->reliable_buf, chan->message_buf, chan->message.cursize);
 		chan->reliable_length = chan->message.cursize;
 		chan->message.cursize = 0;
 		chan->reliable_sequence ^= 1;
 	}
 
 
-	// write the packet header
+// write the packet header
 	SZ_Init (&send, send_buf, sizeof(send_buf));
 
 	w1 = ( chan->outgoing_sequence & ~(1<<31) ) | (send_reliable<<31);
 	w2 = ( chan->incoming_sequence & ~(1<<31) ) | (chan->incoming_reliable_sequence<<31);
 
 	chan->outgoing_sequence++;
-	chan->last_sent = host.realtime * 1000;
+	chan->last_sent = curtime;
 
 	MSG_WriteLong (&send, w1);
 	MSG_WriteLong (&send, w2);
@@ -297,9 +298,9 @@ bool Netchan_Process (netchan_t *chan, sizebuf_t *msg)
 {
 	unsigned	sequence, sequence_ack;
 	unsigned	reliable_ack, reliable_message;
-	int	qport;
+	int			qport;
 
-	// get sequence numbers		
+// get sequence numbers		
 	MSG_BeginReading (msg);
 	sequence = MSG_ReadLong (msg);
 	sequence_ack = MSG_ReadLong (msg);
@@ -351,22 +352,22 @@ bool Netchan_Process (netchan_t *chan, sizebuf_t *msg)
 	if (chan->dropped > 0)
 	{
 		if (showdrop->value)
-			Msg ("%s:Dropped %i packets at %i\n", 
-			NET_AdrToString (chan->remote_address), 
-			chan->dropped, 
-			sequence);
+			Msg ("%s:Dropped %i packets at %i\n"
+			, NET_AdrToString (chan->remote_address)
+			, chan->dropped
+			, sequence);
 	}
 
-	//
-	// if the current outgoing reliable message has been acknowledged
-	// clear the buffer to make way for the next
-	//
+//
+// if the current outgoing reliable message has been acknowledged
+// clear the buffer to make way for the next
+//
 	if (reliable_ack == chan->reliable_sequence)
 		chan->reliable_length = 0;	// it has been received
 	
-	//
-	// if this message contains a reliable message, bump incoming_reliable_sequence 
-	//
+//
+// if this message contains a reliable message, bump incoming_reliable_sequence 
+//
 	chan->incoming_sequence = sequence;
 	chan->incoming_acknowledged = sequence_ack;
 	chan->incoming_reliable_acknowledged = reliable_ack;
@@ -375,10 +376,10 @@ bool Netchan_Process (netchan_t *chan, sizebuf_t *msg)
 		chan->incoming_reliable_sequence ^= 1;
 	}
 
-	//
-	// the message can now be read from the current message pointer
-	//
-	chan->last_received = host.realtime * 1000;
+//
+// the message can now be read from the current message pointer
+//
+	chan->last_received = curtime;
 
 	return true;
 }

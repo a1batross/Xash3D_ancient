@@ -79,10 +79,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define	PRINT_HIGH			2		// critical messages
 #define	PRINT_CHAT			3		// chat messages
 
-#define	SPAWNFLAG_NOT_EASY			256
-#define	SPAWNFLAG_NOT_MEDIUM		512
-#define	SPAWNFLAG_NOT_HARD			1024
-#define	SPAWNFLAG_NOT_DEATHMATCH		2048
+#define	SPAWNFLAG_NOT_EASY			0x00000100
+#define	SPAWNFLAG_NOT_MEDIUM		0x00000200
+#define	SPAWNFLAG_NOT_HARD			0x00000400
+#define	SPAWNFLAG_NOT_DEATHMATCH	0x00000800
 
 // entity_state_t->renderfx flags
 #define	RF_MINLIGHT		1		// allways have some light (viewmodel)
@@ -148,29 +148,23 @@ typedef enum
 	WEAPON_FIRING
 } weaponstate_t;
 
-typedef enum
-{
-	SOLID_NOT,		// no interaction with other objects
-	SOLID_TRIGGER,		// only touch when inside, after moving
-	SOLID_BBOX,		// touch on edge
-	SOLID_BSP			// bsp clip, touch on edge
-} solid_t;
-
-typedef enum
-{
-	MOVETYPE_NONE = 0,		// never moves, but can collide
-	MOVETYPE_NOCLIP,		// origin and angles change with no interaction
-	MOVETYPE_PUSH,		// no clip to world, push on box contact
-	MOVETYPE_WALK,		// player case
-	MOVETYPE_STEP,		// monster case (get rid of this)
-	MOVETYPE_FLY,		// ignore gravity
-	MOVETYPE_TOSS,		// gravity
-	MOVETYPE_BOUNCE,
-	MOVETYPE_FOLLOW,		// attached models
-	MOVETYPE_COMPLEX,		// complex moving ents (parent system)
-	MOVETYPE_RAGDOLL,		// npc ragdoll (not implemented yet)
-
-} movetype_t;
+#define MOVETYPE_NONE		0	// never moves
+#define MOVETYPE_NOCLIP		1	// origin and angles change with no interaction
+#define MOVETYPE_PUSH		2	// no clip to world, push on box contact
+#define MOVETYPE_STOP		3	// no clip to world, stops on box contact
+#define MOVETYPE_WALK		4	// gravity
+#define MOVETYPE_STEP		5	// gravity, special edge handling
+#define MOVETYPE_FLY		6
+#define MOVETYPE_TOSS		7	// gravity
+#define MOVETYPE_FLYMISSILE		8	// extra size to monsters
+#define MOVETYPE_BOUNCE		9
+#define MOVETYPE_FOLLOW		10	// attached models
+#define MOVETYPE_VEHICLE		11
+#define MOVETYPE_PUSHABLE		12
+#define MOVETYPE_DEBRIS		13	// non-solid debris that can still hurt you
+#define MOVETYPE_RAIN		14	// identical to MOVETYPE_FLYMISSILE, but doesn't cause splash noises when touching water.
+#define MOVETYPE_PENDULUM		15	// same as MOVETYPE_PUSH, but used only for pendulums to grab special-case problems
+#define MOVETYPE_CONVEYOR		16
 
 /*
 ==============================================================
@@ -217,7 +211,29 @@ void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal );
 void PerpendicularVector( vec3_t dst, const vec3_t src );
 void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );
 
+
+
 void Com_PageInMemory (byte *buffer, int size);
+
+//=============================================
+
+//
+// key / value info strings
+//
+char *Info_ValueForKey (char *s, char *key);
+void Info_RemoveKey (char *s, char *key);
+void Info_SetValueForKey (char *s, char *key, char *value);
+bool Info_Validate (char *s);
+
+/*
+==============================================================
+
+SYSTEM SPECIFIC
+
+==============================================================
+*/
+
+extern	int	curtime;		// time returned by last Sys_Milliseconds
 
 /*
 ==============================================================
@@ -247,16 +263,14 @@ COLLISION DETECTION
 // a trace is returned when a box is swept through the world
 typedef struct
 {
-	bool		allsolid;		// if true, plane is not valid
-	bool		startsolid;	// if true, the initial point was in a solid area
-	bool		startstuck;	// if true, the initial point was stuck into SOLID_BSP model
-
-	float		fraction;		// time completed, 1.0 = didn't hit anything
+	bool	allsolid;	// if true, plane is not valid
+	bool	startsolid;	// if true, the initial point was in a solid area
+	float		fraction;	// time completed, 1.0 = didn't hit anything
 	vec3_t		endpos;		// final position
-	cplane_t		plane;		// surface normal at impact
-	csurface_t	*surface;		// surface hit
-	int		contents;		// contents on other side of surface hit
-	prvm_edict_t	*ent;		// not set by CM_*() functions
+	cplane_t	plane;		// surface normal at impact
+	csurface_t	*surface;	// surface hit
+	int			contents;	// contents on other side of surface hit
+	struct edict_s	*ent;		// not set by CM_*() functions
 } trace_t;
 
 
@@ -298,7 +312,7 @@ typedef struct
 	byte		pm_time;		// each unit = 8 ms
 	short		gravity;
 	short		delta_angles[3];	// add to command angles to get view direction
-					// changed by spawns, rotating objects, and teleporters
+									// changed by spawns, rotating objects, and teleporters
 } pmove_state_t;
 
 
@@ -324,7 +338,6 @@ typedef struct usercmd_s
 	short	forwardmove, sidemove, upmove;
 	byte	impulse;		// remove?
 	byte	lightlevel;		// light level the player is standing on
-
 } usercmd_t;
 
 
@@ -340,14 +353,14 @@ typedef struct
 
 	// results (out)
 	int			numtouch;
-	prvm_edict_t	*touchents[MAXTOUCH];
+	struct edict_s	*touchents[MAXTOUCH];
 
 	vec3_t		viewangles;			// clamped
 	float		viewheight;
 
 	vec3_t		mins, maxs;			// bounding box size
 
-	prvm_edict_t	*groundentity;
+	struct edict_s	*groundentity;
 	int			watertype;
 	int			waterlevel;
 
@@ -790,16 +803,16 @@ typedef struct
 
 	// these fields do not need to be communicated bit-precise
 
-	vec3_t		viewangles;	// for fixed views
-	vec3_t		viewoffset;	// add to pmovestate->origin
+	vec3_t		viewangles;		// for fixed views
+	vec3_t		viewoffset;		// add to pmovestate->origin
 	vec3_t		kick_angles;	// add to view direction to get render angles
-					// set by weapon kicks, pain effects, etc
+								// set by weapon kicks, pain effects, etc
 
 	vec3_t		gunangles;
 	vec3_t		gunoffset;
 	int		gunindex;
 	int		gunframe;		// studio frame
-	int		sequence;		// studio animation sequence
+	int		sequence;		// stuido animation sequence
 	int		gunbody;
 	int		gunskin; 
 

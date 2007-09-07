@@ -81,7 +81,7 @@ void CL_Flashlight (int ent, vec3_t pos)
 	VectorCopy (pos,  dl->origin);
 	dl->radius = 400;
 	dl->minlight = 250;
-	dl->die = cl.time + 0.1;
+	dl->die = cl.time + 100;
 	dl->color[0] = 1;
 	dl->color[1] = 1;
 	dl->color[2] = 1;
@@ -100,7 +100,7 @@ void CL_ColorFlash (vec3_t pos, int ent, int intensity, float r, float g, float 
 	VectorCopy (pos,  dl->origin);
 	dl->radius = intensity;
 	dl->minlight = 250;
-	dl->die = cl.time + 0.1;
+	dl->die = cl.time + 100;
 	dl->color[0] = r;
 	dl->color[1] = g;
 	dl->color[2] = b;
@@ -453,7 +453,7 @@ void CL_Heatbeam (vec3_t start, vec3_t end)
 	VectorMA (move, -1, up, move);
 
 	VectorScale (vec, step, vec);
-	ltime = cl.time;
+	ltime = (float) cl.time/1000.0;
 
 //	for (i=0 ; i<len ; i++)
 	for (i=0 ; i<len ; i+=step)
@@ -544,7 +544,7 @@ void CL_Heatbeam (vec3_t start, vec3_t forward)
 	VectorMA (move, -0.5, up, move);
 
 	// otherwise assume SOFT
-	ltime = cl.time;
+	ltime = (float) cl.time/1000.0;
 	start_pt = fmod(ltime*96.0,step);
 	VectorMA (move, start_pt, vec, move);
 
@@ -664,7 +664,7 @@ void CL_Heatbeam (vec3_t start, vec3_t end)
 	}
 /*
 
-	ltime = cl.time;
+	ltime = (float) cl.time/1000.0;
 	start_pt = fmod(ltime*16.0,step);
 	VectorMA (move, start_pt, vec, move);
 
@@ -740,7 +740,7 @@ void CL_ParticleSteamEffect (vec3_t org, vec3_t dir, int color, int count, int m
 	vec3_t		r, u;
 
 //	vectoangles2 (dir, angle_dir);
-//	AngleVectorsRight (angle_dir, f, r, u);
+//	AngleVectors (angle_dir, f, r, u);
 
 	MakeNormalVectors (dir, r, u);
 
@@ -797,7 +797,7 @@ void CL_TrackerTrail (vec3_t start, vec3_t end, int particleColor)
 
 	VectorCopy(vec, forward);
 	vectoangles2 (forward, angle_dir);
-	AngleVectorsRight (angle_dir, forward, right, up);
+	AngleVectors (angle_dir, forward, right, up);
 
 	dec = 3;
 	VectorScale (vec, 3, vec);

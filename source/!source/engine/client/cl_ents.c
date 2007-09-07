@@ -323,8 +323,7 @@ void CL_DeltaEntity (frame_t *frame, int newnum, entity_state_t *old, int bits)
 	}
 
 	if (ent->serverframe != cl.frame.serverframe - 1)
-	{	
-		// wasn't in last update, so initialize some things
+	{	// wasn't in last update, so initialize some things
 		ent->trailcount = 1024;		// for diminishing rocket / grenade trails
 		// duplicate the current state so lerping doesn't hurt anything
 		ent->prev = *state;
@@ -657,7 +656,7 @@ void CL_ParseFrame (void)
 
 	cl.frame.serverframe = MSG_ReadLong (&net_message);
 	cl.frame.deltaframe = MSG_ReadLong (&net_message);
-	cl.frame.servertime = cl.frame.serverframe * 0.1;
+	cl.frame.servertime = cl.frame.serverframe*100;
 
 	// BIG HACK to let old demos continue to work
 	if (cls.serverProtocol != 26)
@@ -700,8 +699,8 @@ void CL_ParseFrame (void)
 	// clamp time 
 	if (cl.time > cl.frame.servertime)
 		cl.time = cl.frame.servertime;
-	else if (cl.time < cl.frame.servertime - 0.1)
-		cl.time = cl.frame.servertime - 0.1;
+	else if (cl.time < cl.frame.servertime - 100)
+		cl.time = cl.frame.servertime - 100;
 
 	// read areabits
 	len = MSG_ReadByte (&net_message);
@@ -739,8 +738,9 @@ void CL_ParseFrame (void)
 			cl.predicted_origin[1] = cl.frame.playerstate.pmove.origin[1]*0.125;
 			cl.predicted_origin[2] = cl.frame.playerstate.pmove.origin[2]*0.125;
 			VectorCopy (cl.frame.playerstate.viewangles, cl.predicted_angles);
-			if (cls.disable_servercount != cl.servercount && cl.refresh_prepped)
-				SCR_EndLoadingPlaque (); // get rid of loading plaque
+			if (cls.disable_servercount != cl.servercount
+				&& cl.refresh_prepped)
+				SCR_EndLoadingPlaque ();	// get rid of loading plaque
 		}
 		cl.sound_prepped = true;	// can start mixing ambient sounds
 	
@@ -829,7 +829,7 @@ void CL_AddPacketEntities (frame_t *frame)
 	autorotate = anglemod(cl.time/10);
 
 	// brush models can auto animate their frames
-	autoanim = 2 * cl.time;
+	autoanim = 2*cl.time/1000;
 
 	memset (&ent, 0, sizeof(ent));
 
@@ -850,7 +850,7 @@ void CL_AddPacketEntities (frame_t *frame)
 		else if (effects & EF_ANIM_ALL)
 			ent.frame = autoanim;
 		else if (effects & EF_ANIM_ALLFAST)
-			ent.frame = cl.time * 0.1;
+			ent.frame = cl.time / 100;
 		else
 			ent.frame = s1->frame;
 
@@ -974,7 +974,7 @@ void CL_AddPacketEntities (frame_t *frame)
 				vec3_t forward;
 				vec3_t start;
 
-				AngleVectorsRight(ent.angles, forward, NULL, NULL);
+				AngleVectors (ent.angles, forward, NULL, NULL);
 				VectorMA (ent.origin, 64, forward, start);
 				V_AddLight (start, 100, 1, 0, 0);
 			}
@@ -1231,7 +1231,8 @@ void CL_CalcViewValues (void)
 
 		// smooth out stair climbing
 		delta = cls.realtime - cl.predicted_step_time;
-		if (delta < 0.1) cl.refdef.vieworg[2] -= cl.predicted_step * (0.1 - delta) * 100;
+		if (delta < 100)
+			cl.refdef.vieworg[2] -= cl.predicted_step * (100 - delta) * 0.01;
 	}
 	else
 	{	// just use interpolated values
@@ -1256,7 +1257,7 @@ void CL_CalcViewValues (void)
 	for (i=0 ; i<3 ; i++)
 		cl.refdef.viewangles[i] += LerpAngle (ops->kick_angles[i], ps->kick_angles[i], lerp);
 
-	AngleVectorsRight(cl.refdef.viewangles, cl.v_forward, cl.v_right, cl.v_up);
+	AngleVectors (cl.refdef.viewangles, cl.v_forward, cl.v_right, cl.v_up);
 
 	// interpolate field of view
 	cl.refdef.fov_x = ops->fov + lerp * (ps->fov - ops->fov);
@@ -1288,14 +1289,15 @@ void CL_AddEntities (void)
 		cl.time = cl.frame.servertime;
 		cl.lerpfrac = 1.0;
 	}
-	else if (cl.time < cl.frame.servertime - 0.1)
+	else if (cl.time < cl.frame.servertime - 100)
 	{
 		if (cl_showclamp->value)
-			Msg ("low clamp %i\n", cl.frame.servertime - 0.1 - cl.time);
-		cl.time = cl.frame.servertime - 0.1;
+			Msg ("low clamp %i\n", cl.frame.servertime-100 - cl.time);
+		cl.time = cl.frame.servertime - 100;
 		cl.lerpfrac = 0;
 	}
-	else cl.lerpfrac = 1.0 - (cl.frame.servertime - cl.time) * 100;
+	else
+		cl.lerpfrac = 1.0 - (cl.frame.servertime - cl.time) * 0.01;
 
 	if (cl_timedemo->value)
 		cl.lerpfrac = 1.0;

@@ -499,7 +499,7 @@ void R_SetupFrame (void)
 // build the transformation matrix for the given view angles
 	VectorCopy (r_newrefdef.vieworg, r_origin);
 
-	AngleVectorsRight(r_newrefdef.viewangles, vforward, vright, vup);
+	AngleVectors(r_newrefdef.viewangles, vforward, vright, vup);
 
 // current viewcluster
 	if ( !( r_newrefdef.rdflags & RDF_NOWORLDMODEL ) )

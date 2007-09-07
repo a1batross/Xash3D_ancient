@@ -53,8 +53,8 @@ vec3_t		listener_up;
 
 bool	s_registering;
 
-float		soundtime;	// sample PAIRS
-float   		paintedtime; 	// sample PAIRS
+int			soundtime;		// sample PAIRS
+int   		paintedtime; 	// sample PAIRS
 
 // during registration it is possible to have more sounds
 // than could actually be referenced during gameplay,
@@ -80,7 +80,7 @@ cvar_t		*s_mixahead;
 cvar_t		*s_primary;
 
 
-float		s_rawend;
+int		s_rawend;
 portable_samplepair_t	s_rawsamples[MAX_RAW_SAMPLES];
 
 
@@ -120,7 +120,8 @@ void S_Init (void)
 	Msg("\n------- sound initialization -------\n");
 
 	cv = Cvar_Get ("s_initsound", "1", 0);
-	if (!cv->value) Msg ("not initializing.\n");
+	if (!cv->value)
+		Msg ("not initializing.\n");
 	else
 	{
 		s_volume = Cvar_Get ("s_volume", "0.7", CVAR_ARCHIVE);
@@ -136,7 +137,8 @@ void S_Init (void)
 		Cmd_AddCommand("soundlist", S_SoundList);
 		Cmd_AddCommand("soundinfo", S_SoundInfo_f);
 
-		if (!SNDDMA_Init()) return;
+		if (!SNDDMA_Init())
+			return;
 
 		S_InitScaletable ();
 
@@ -147,6 +149,7 @@ void S_Init (void)
 		paintedtime = 0;
 
 		Msg ("sound sampling rate: %i\n", dma.speed);
+
 		S_StopAllSounds ();
 	}
 
@@ -163,7 +166,8 @@ void S_Shutdown(void)
 	int		i;
 	sfx_t	*sfx;
 
-	if (!sound_started) return;
+	if (!sound_started)
+		return;
 
 	SNDDMA_Shutdown();
 
@@ -177,10 +181,13 @@ void S_Shutdown(void)
 	// free all sounds
 	for (i=0, sfx=known_sfx ; i < num_sfx ; i++,sfx++)
 	{
-		if (!sfx->name[0]) continue;
-		if (sfx->cache) Z_Free (sfx->cache);
+		if (!sfx->name[0])
+			continue;
+		if (sfx->cache)
+			Z_Free (sfx->cache);
 		memset (sfx, 0, sizeof(*sfx));
 	}
+
 	num_sfx = 0;
 }
 
@@ -195,7 +202,7 @@ S_FindName
 
 ==================
 */
-sfx_t *S_FindName (const char *name, bool create)
+sfx_t *S_FindName (char *name, bool create)
 {
 	int		i;
 	sfx_t	*sfx;
@@ -295,7 +302,7 @@ S_RegisterSound
 
 ==================
 */
-sfx_t *S_RegisterSound (const char *name)
+sfx_t *S_RegisterSound (char *name)
 {
 	sfx_t	*sfx;
 
@@ -364,19 +371,18 @@ S_PickChannel
 */
 channel_t *S_PickChannel(int entnum, int entchannel)
 {
-	int			ch_idx;
-	int			first_to_die;
-	float			life_left;
+    int			ch_idx;
+    int			first_to_die;
+    int			life_left;
 	channel_t	*ch;
 
 	if (entchannel<0)
 		Com_Error (ERR_DROP, "S_PickChannel: entchannel<0");
 
-	// Check for replacement sound, or find the best one to replace
-	first_to_die = -1;
-	life_left = 32768.0;
-
-	for (ch_idx = 0; ch_idx < MAX_CHANNELS; ch_idx++)
+// Check for replacement sound, or find the best one to replace
+    first_to_die = -1;
+    life_left = 0x7fffffff;
+    for (ch_idx=0 ; ch_idx < MAX_CHANNELS ; ch_idx++)
     {
 		if (entchannel != 0		// channel 0 never overrides
 		&& channels[ch_idx].entnum == entnum
@@ -686,16 +692,16 @@ void S_StartSound(vec3_t origin, int entnum, int entchannel, sfx_t *sfx, float f
 	ps->sfx = sfx;
 
 	// drift s_beginofs
-	start = cl.frame.servertime * dma.speed + s_beginofs;
+	start = cl.frame.servertime * 0.001 * dma.speed + s_beginofs;
 	if (start < paintedtime)
 	{
 		start = paintedtime;
-		s_beginofs = start - (cl.frame.servertime * dma.speed);
+		s_beginofs = start - (cl.frame.servertime * 0.001 * dma.speed);
 	}
 	else if (start > paintedtime + 0.3 * dma.speed)
 	{
 		start = paintedtime + 0.1 * dma.speed;
-		s_beginofs = start - (cl.frame.servertime * dma.speed);
+		s_beginofs = start - (cl.frame.servertime * 0.001 * dma.speed);
 	}
 	else
 	{
@@ -726,7 +732,7 @@ void S_StartSound(vec3_t origin, int entnum, int entchannel, sfx_t *sfx, float f
 S_StartLocalSound
 ==================
 */
-int S_StartLocalSound (const char *sound)
+int S_StartLocalSound (char *sound)
 {
 	sfx_t	*sfx;
 
@@ -886,7 +892,7 @@ void S_AddLoopSounds (void)
 		ch->rightvol = right_total;
 		ch->autosound = true;	// remove next frame
 		ch->sfx = sfx;
-		ch->pos = fmod(paintedtime, sc->length);
+		ch->pos = paintedtime % sc->length;
 		ch->end = paintedtime + sc->length - ch->pos;
 	}
 }
@@ -920,7 +926,7 @@ void S_RawSamples (int samples, int rate, int width, int channels, byte *data)
 		{	// optimized case
 			for (i=0 ; i<samples ; i++)
 			{
-				dst = (int)s_rawend & (MAX_RAW_SAMPLES - 1);
+				dst = s_rawend&(MAX_RAW_SAMPLES-1);
 				s_rawend++;
 				s_rawsamples[dst].left =
 				    LittleShort(((short *)data)[i*2]) << 8;
@@ -935,7 +941,7 @@ void S_RawSamples (int samples, int rate, int width, int channels, byte *data)
 				src = i*scale;
 				if (src >= samples)
 					break;
-				dst = (int)s_rawend & (MAX_RAW_SAMPLES-1);
+				dst = s_rawend&(MAX_RAW_SAMPLES-1);
 				s_rawend++;
 				s_rawsamples[dst].left =
 				    LittleShort(((short *)data)[src*2]) << 8;
@@ -951,7 +957,7 @@ void S_RawSamples (int samples, int rate, int width, int channels, byte *data)
 			src = i*scale;
 			if (src >= samples)
 				break;
-			dst = (int)s_rawend & (MAX_RAW_SAMPLES-1);
+			dst = s_rawend&(MAX_RAW_SAMPLES-1);
 			s_rawend++;
 			s_rawsamples[dst].left =
 			    LittleShort(((short *)data)[src]) << 8;
@@ -966,7 +972,7 @@ void S_RawSamples (int samples, int rate, int width, int channels, byte *data)
 			src = i*scale;
 			if (src >= samples)
 				break;
-			dst = (int)s_rawend & (MAX_RAW_SAMPLES-1);
+			dst = s_rawend&(MAX_RAW_SAMPLES-1);
 			s_rawend++;
 			s_rawsamples[dst].left =
 			    ((char *)data)[src*2] << 16;
@@ -981,7 +987,7 @@ void S_RawSamples (int samples, int rate, int width, int channels, byte *data)
 			src = i*scale;
 			if (src >= samples)
 				break;
-			dst = (int)s_rawend & (MAX_RAW_SAMPLES-1);
+			dst = s_rawend&(MAX_RAW_SAMPLES-1);
 			s_rawend++;
 			s_rawsamples[dst].left =
 			    (((byte *)data)[src]-128) << 16;
@@ -1104,8 +1110,8 @@ void GetSoundtime(void)
 
 void S_Update_(void)
 {
-	uint		endtime;
-	int		samps;
+	unsigned        endtime;
+	int				samps;
 
 	if (!sound_started)
 		return;
@@ -1121,7 +1127,7 @@ void S_Update_(void)
 	// check to make sure that we haven't overshot
 	if (paintedtime < soundtime)
 	{
-		MsgWarn("S_Update_: overflow [%g]\n", soundtime - paintedtime);
+		MsgWarn("S_Update_: overflow\n");
 		paintedtime = soundtime;
 	}
 

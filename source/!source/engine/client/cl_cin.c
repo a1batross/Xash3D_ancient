@@ -402,17 +402,17 @@ void SCR_RunCinematic (void)
 
 	if (cls.key_dest != key_game)
 	{	// pause if menu or console is up
-		cl.cinematictime = cls.realtime - cl.cinematicframe/14;
+		cl.cinematictime = cls.realtime - cl.cinematicframe*1000/14;
 		return;
 	}
 
-	frame = (cls.realtime - cl.cinematictime)*14.0;
+	frame = (cls.realtime - cl.cinematictime)*14.0/1000;
 	if (frame <= cl.cinematicframe)
 		return;
 	if (frame > cl.cinematicframe+1)
 	{
 		Msg ("Dropped frame: %i > %i\n", frame, cl.cinematicframe+1);
-		cl.cinematictime = cls.realtime - cl.cinematicframe/14;
+		cl.cinematictime = cls.realtime - cl.cinematicframe*1000/14;
 	}
 	if (cin.pic)
 		Z_Free (cin.pic);
@@ -546,5 +546,5 @@ void SCR_PlayCinematic (char *arg)
 
 	cl.cinematicframe = 0;
 	cin.pic = SCR_ReadNextFrame ();
-	cl.cinematictime = cls.realtime;
+	cl.cinematictime = Sys_Milliseconds ();
 }

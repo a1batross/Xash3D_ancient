@@ -43,7 +43,7 @@ void SV_SetMaster_f (void)
 	int		i, slot;
 
 	// only dedicated servers send heartbeats
-	if (host.type == HOST_NORMAL)
+	if (!dedicated->value)
 	{
 		Msg ("Only dedicated servers use masters.\n");
 		return;
@@ -52,11 +52,11 @@ void SV_SetMaster_f (void)
 	// make sure the server is listed public
 	Cvar_Set ("public", "1");
 
-	for (i = 1; i < MAX_MASTERS; i++) memset (&master_adr[i], 0, sizeof(master_adr[i]));
+	for (i=1 ; i<MAX_MASTERS ; i++)
+		memset (&master_adr[i], 0, sizeof(master_adr[i]));
 
-	slot = 1;	// slot 0 will always contain the id master
-
-	for (i = 1; i < Cmd_Argc(); i++)
+	slot = 1;		// slot 0 will always contain the id master
+	for (i=1 ; i<Cmd_Argc() ; i++)
 	{
 		if (slot == MAX_MASTERS)
 			break;
@@ -106,7 +106,7 @@ bool SV_SetPlayer (void)
 	if (s[0] >= '0' && s[0] <= '9')
 	{
 		idnum = atoi(Cmd_Argv(1));
-		if (idnum < 0 || idnum >= host.maxclients)
+		if (idnum < 0 || idnum >= maxclients->value)
 		{
 			Msg ("Bad client slot: %i\n", idnum);
 			return false;
@@ -123,7 +123,7 @@ bool SV_SetPlayer (void)
 	}
 
 	// check for a name match
-	for (i=0,cl=svs.clients ; i < host.maxclients; i++,cl++)
+	for (i=0,cl=svs.clients ; i<maxclients->value; i++,cl++)
 	{
 		if (!cl->state)
 			continue;
@@ -192,18 +192,18 @@ void SV_GameMap_f (void)
 			// clear all the client inuse flags before saving so that
 			// when the level is re-entered, the clients will spawn
 			// at spawn points instead of occupying body shells
-			savedInuse = Z_Malloc(host.maxclients * sizeof(bool));
-			for (i = 0, cl = svs.clients; i < host.maxclients; i++, cl++)
+			savedInuse = Z_Malloc(maxclients->value * sizeof(bool));
+			for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
 			{
-				savedInuse[i] = cl->edict->priv.sv->free;
-				cl->edict->priv.sv->free = true;
+				savedInuse[i] = cl->edict->inuse;
+				cl->edict->inuse = false;
 			}
 
 			SV_WriteSaveFile( "save0" ); //autosave
 
 			// we must restore these for clients to transfer over correctly
-			for (i = 0, cl = svs.clients; i < host.maxclients; i++, cl++)
-				cl->edict->priv.sv->free = savedInuse[i];
+			for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
+				cl->edict->inuse = savedInuse[i];
 			Z_Free (savedInuse);
 		}
 	}
@@ -225,28 +225,23 @@ For development work
 */
 void SV_Map_f (void)
 {
-	char	level_path[MAX_QPATH];
+	char	*map;
+	char	expanded[MAX_QPATH];
 
-	sprintf(level_path, "maps/%s", Cmd_Argv(1));
-	FS_DefaultExtension(level_path, ".bsp" ); 
-
-	if (FS_FileExists(level_path))
+	// if not a pcx, demo, or cinematic, check to make sure the level exists
+	map = Cmd_Argv(1);
+	if (!strstr (map, "."))
 	{
-		sv.state = ss_dead;	// don't save current level when changing
-
-		SV_InitGame ();
-		Cvar_Set ("nextserver", ""); //reset demoloop
-
-		SCR_BeginLoadingPlaque (); // for local system
-		SV_BroadcastCommand ("changing\n");
-
-		SV_SendClientMessages ();
-		SV_SpawnServer (level_path, NULL, NULL, ss_game, false, false);
-		Cbuf_CopyToDefer ();
-//FIXME//SV_BroadcastCommand ("reconnect\n");
-		strncpy (svs.mapcmd, Cmd_Argv(1), sizeof(svs.mapcmd) - 1); // archive server state
+		sprintf (expanded, "maps/%s.bsp", map);
+		if (!FS_LoadFile (expanded, NULL))
+		{
+			Msg ("Can't find %s\n", expanded);
+			return;
+		}
 	}
-	else Msg ("Can't loading %s\n", level_path);
+
+	sv.state = ss_dead;		// don't save current level when changing
+	SV_GameMap_f ();
 }
 
 /*
@@ -314,7 +309,7 @@ void SV_Savegame_f (void)
 		return;
 	}
 
-	if (host.maxclients == 1 && svs.clients[0].edict->priv.sv->client->stats[STAT_HEALTH] <= 0)
+	if (maxclients->value == 1 && svs.clients[0].edict->client->ps.stats[STAT_HEALTH] <= 0)
 	{
 		Msg ("\nCan't savegame while dead!\n");
 		return;
@@ -382,11 +377,11 @@ void SV_Status_f (void)
 
 	Msg ("num score ping name            lastmsg address               qport \n");
 	Msg ("--- ----- ---- --------------- ------- --------------------- ------\n");
-	for (i = 0, cl = svs.clients; i < host.maxclients; i++, cl++)
+	for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
 	{
 		if (!cl->state) continue;
 		Msg ("%3i ", i);
-		Msg ("%5i ", cl->edict->priv.sv->client->stats[STAT_FRAGS]);
+		Msg ("%5i ", cl->edict->client->ps.stats[STAT_FRAGS]);
 
 		if (cl->state == cs_connected)
 			Msg ("CNCT ");
@@ -403,7 +398,7 @@ void SV_Status_f (void)
 		for (j=0 ; j<l ; j++)
 			Msg (" ");
 
-		Msg ("%g ", svs.realtime - cl->lastmessage );
+		Msg ("%7i ", svs.realtime - cl->lastmessage );
 
 		s = NET_AdrToString ( cl->netchan.remote_address);
 		Msg ("%s", s);
@@ -444,7 +439,7 @@ void SV_ConSay_f(void)
 
 	strcat(text, p);
 
-	for (j = 0, client = svs.clients; j < host.maxclients; j++, client++)
+	for (j = 0, client = svs.clients; j < maxclients->value; j++, client++)
 	{
 		if (client->state != cs_spawned)
 			continue;
@@ -622,6 +617,22 @@ void SV_KillServer_f (void)
 	NET_Config ( false ); // close network sockets
 }
 
+/*
+===============
+SV_ServerCommand_f
+
+Let the game dll handle a command
+===============
+*/
+void SV_ServerCommand_f (void)
+{
+	if (!ge)
+	{
+		Msg ("No game loaded.\n");
+		return;
+	}
+}
+
 //===========================================================
 
 /*
@@ -642,15 +653,13 @@ void SV_InitOperatorCommands (void)
 	Cmd_AddCommand ("gamemap", SV_GameMap_f);
 	Cmd_AddCommand ("setmaster", SV_SetMaster_f);
 
-	if (host.type == HOST_DEDICATED) 
-	{
-		Cmd_AddCommand ("say", SV_ConSay_f);
-	}
+	if ( dedicated->value ) Cmd_AddCommand ("say", SV_ConSay_f);
 
 	Cmd_AddCommand ("serverrecord", SV_ServerRecord_f);
 	Cmd_AddCommand ("serverstop", SV_ServerStop_f);
 	Cmd_AddCommand ("save", SV_Savegame_f);
 	Cmd_AddCommand ("load", SV_Loadgame_f);
 	Cmd_AddCommand ("killserver", SV_KillServer_f);
+	Cmd_AddCommand ("sv", SV_ServerCommand_f);
 }
 

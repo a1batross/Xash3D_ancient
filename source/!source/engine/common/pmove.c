@@ -312,7 +312,7 @@ void PM_Friction (void)
 	{
 		friction = pm_friction;
 		control = speed < pm_stopspeed ? pm_stopspeed : speed;
-		drop += control*friction * pml.frametime;
+		drop += control*friction*pml.frametime;
 	}
 
 	// apply water friction
@@ -1083,7 +1083,7 @@ void PM_ClampAngles (void)
 		else if (pm->viewangles[PITCH] < 271 && pm->viewangles[PITCH] >= 180)
 			pm->viewangles[PITCH] = 271;
 	}
-	AngleVectorsRight (pm->viewangles, pml.forward, pml.right, pml.up);
+	AngleVectors (pm->viewangles, pml.forward, pml.right, pml.up);
 }
 
 /*
@@ -1173,8 +1173,7 @@ void Pmove (pmove_t *pmove)
 		// teleport pause stays exactly in place
 	}
 	else if (pm->s.pm_flags & PMF_TIME_WATERJUMP)
-	{	
-		// waterjump has no control, but falls
+	{	// waterjump has no control, but falls
 		pml.velocity[2] -= pm->s.gravity * pml.frametime;
 		if (pml.velocity[2] < 0)
 		{	// cancel as soon as we are falling down again
@@ -1199,7 +1198,7 @@ void Pmove (pmove_t *pmove)
 				angles[PITCH] = angles[PITCH] - 360;
 			angles[PITCH] /= 3;
 
-			AngleVectorsRight (angles, pml.forward, pml.right, pml.up);
+			AngleVectors (angles, pml.forward, pml.right, pml.up);
 			PM_AirMove ();
 		}
 	}

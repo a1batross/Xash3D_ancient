@@ -27,6 +27,10 @@ extern HWND cl_hwnd;
 //engine builddate
 char *buildstring = __TIME__ " " __DATE__;
 stdinout_api_t std;
+uint sys_msg_time;
+uint sys_frame_time;
+
+int starttime;
 
 /*
 ===============================================================================
@@ -79,34 +83,12 @@ void Sys_Init (void)
 {
 	OSVERSIONINFO	vinfo;
 
-	vinfo.dwOSVersionInfoSize = sizeof(vinfo);
-
 	timeBeginPeriod( 1 );
+
+	vinfo.dwOSVersionInfoSize = sizeof(vinfo);
 
 	if (!GetVersionEx (&vinfo)) Sys_Error ("Couldn't get OS info");
 	if (vinfo.dwMajorVersion < 4) Sys_Error ("%s requires windows version 4 or greater", GI.title);
-	srand(time(NULL));
-}
-
-/*
-================
-Sys_Milliseconds
-================
-*/
-int Sys_Milliseconds ( void )
-{
-	int		sys_curtime;
-	static int	sys_timeBase;
-	static bool	init = false;
-
-	if (!init)
-	{
-		sys_timeBase = timeGetTime();
-		init = true;
-	}
-	sys_curtime = timeGetTime() - sys_timeBase;
-
-	return sys_curtime;
 }
 
 /*
@@ -118,20 +100,18 @@ Send Key_Event calls
 */
 void Sys_SendKeyEvents (void)
 {
-	MSG        msg;
-
-	rand();
+    MSG        msg;
 
 	while (PeekMessage (&msg, NULL, 0, 0, PM_NOREMOVE))
 	{
 		if (!GetMessage (&msg, NULL, 0, 0)) Sys_Quit ();
-		host.sv_timer = msg.time;
+		sys_msg_time = msg.time;
 		TranslateMessage (&msg);
 		DispatchMessage (&msg);
 	}
 
 	// grab frame time 
-	host.cl_timer = timeGetTime();	// FIXME: should this be at start?
+	sys_frame_time = timeGetTime();	// FIXME: should this be at start?
 }
 
 
@@ -165,6 +145,28 @@ char *Sys_GetClipboardData( void )
 	return data;
 }
 
+
+/*
+================
+Sys_Milliseconds
+================
+*/
+int	curtime;
+int Sys_Milliseconds (void)
+{
+	static int	sys_timeBase;
+	static bool	init = false;
+
+	if (!init)
+	{
+		sys_timeBase = timeGetTime();
+		init = true;
+	}
+	curtime = timeGetTime() - sys_timeBase;
+
+	return curtime;
+}
+
 /*
 ==============================================================================
 
@@ -182,80 +184,6 @@ void Sys_AppActivate (void)
 {
 	ShowWindow ( cl_hwnd, SW_RESTORE);
 	SetForegroundWindow ( cl_hwnd );
-}
-
-/*
-========================================================================
-
-GAME DLL
-
-========================================================================
-*/
-/*
-=================
-Sys_UnloadGame
-=================
-*/
-void Sys_UnloadGame( void *hinstance )
-{
-	if(!hinstance) return;
-	FreeLibrary(hinstance);
-	hinstance = NULL;
-}
-
-/*
-=================
-Sys_LoadGame
-
-Loads the game dll
-=================
-*/
-void *Sys_LoadGame (const char* procname, void *hinstance, void *parms)
-{
-	void	*(*GetGameAPI) (void *);
-	char	basepath[MAX_SYSPATH];
-	search_t	*gamedll;
-          int	i;
-	
-	Sys_UnloadGame( hinstance );
-
-	//find server.dll
-	gamedll = FS_Search( "bin/*.dll" );
-	if(!gamedll) 
-	{
-		Com_Error (ERR_DROP, "Can't find game.dll\n");
-		return NULL;
-	}
-
-	// now run through the search paths
-	for( i = 0; i < gamedll->numfilenames; i++ )
-	{
-		sprintf(basepath, "%s/%s", GI.gamedir, gamedll->filenames[i]);
-		hinstance = LoadLibrary ( basepath );
-
-		if (!hinstance)
-		{
-			sprintf(basepath, "%s/%s", GI.basedir, gamedll->filenames[i]);		
-			hinstance = LoadLibrary ( basepath );
-                    }
-
-		if (hinstance)
-		{
-			if (( GetGameAPI = (void *)GetProcAddress( hinstance, procname )) == 0 )
-				Sys_UnloadGame( hinstance );
-			else break;
-		}
-		else MsgWarn("Can't loading %s\n", gamedll->filenames[i] );
-	}
-
-	GetGameAPI = (void *)GetProcAddress (hinstance, procname );
-
-	if (!GetGameAPI)
-	{
-		Sys_UnloadGame( hinstance );
-		return NULL;
-	}
-	return GetGameAPI (parms);
 }
 
 //=======================================================================
