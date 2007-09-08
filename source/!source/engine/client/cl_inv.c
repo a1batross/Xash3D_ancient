@@ -126,10 +126,12 @@ void CL_DrawInventory (void)
 		sprintf (string, "%6s %3i %s", bind, cl.inventory[item],
 			cl.configstrings[CS_ITEMS+item] );
 		if (item != selected)
+		{
 			SetStringHighBit (string);
+		}
 		else	// draw a blinky cursor by the selected item
 		{
-			if ( (int)(cls.realtime*10) & 1)
+			if ( (int)(cls.realtime * 5.0f) & 1)
 				re->DrawChar (x-8, y, 15);
 		}
 		Inv_DrawString (x, y, string);

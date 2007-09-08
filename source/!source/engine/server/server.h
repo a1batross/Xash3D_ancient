@@ -56,8 +56,9 @@ typedef struct
 	bool	attractloop;		// running cinematics and demos for the local system only
 	bool	loadgame;			// client begins should reuse existing entity
 
-	unsigned	time;				// always sv.framenum * 100 msec
-	int			framenum;
+	float		time;				// always sv.framenum * 100 msec
+	int		framenum;
+	float		frametime;
 
 	char		name[MAX_QPATH];			// map name, or cinematic name
 	struct cmodel_s		*models[MAX_MODELS];
@@ -168,7 +169,7 @@ typedef struct
 typedef struct
 {
 	bool		initialized;				// sv_init has completed
-	int		realtime;					// always increasing, no clamping, etc
+	float		realtime;					// always increasing, no clamping, etc
 
 	char		mapcmd[MAX_TOKEN_CHARS];	// ie: *intro.cin+base 
 	char		comment[MAX_TOKEN_CHARS];	// map name, e.t.c. 

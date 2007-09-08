@@ -653,10 +653,10 @@ extern	cvar_t	*log_stats;
 extern	file_t *log_stats_file;
 
 // host_speeds times
-extern	int		time_before_game;
-extern	int		time_after_game;
-extern	int		time_before_ref;
-extern	int		time_after_ref;
+extern	float		time_before_game;
+extern	float		time_after_game;
+extern	float		time_before_ref;
+extern	float		time_after_ref;
 
 #define NUMVERTEXNORMALS	162
 extern	vec3_t	bytedirs[NUMVERTEXNORMALS];
@@ -697,12 +697,12 @@ CLIENT / SERVER SYSTEMS
 void CL_Init (void);
 void CL_Drop (void);
 void CL_Shutdown (void);
-void CL_Frame (int msec);
+void CL_Frame (float time);
 void Con_Print (char *text);
 void SCR_BeginLoadingPlaque (void);
 
 void SV_Init (void);
 void SV_Shutdown (char *finalmsg, bool reconnect);
-void SV_Frame (int msec);
+void SV_Frame (float time);
 
 #endif//COMMON_H

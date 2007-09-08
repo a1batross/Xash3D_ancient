@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "engine.h"
 #include "./client/client.h"
 
-extern	unsigned	sys_msg_time;
 extern HWND	cl_hwnd;
 extern bool	ActiveApp, Minimized;
 
@@ -245,19 +244,19 @@ void IN_MouseEvent (int mstate)
 	if (!mouseinitialized)
 		return;
 
-// perform button actions
+	// perform button actions
 	for (i=0 ; i<mouse_buttons ; i++)
 	{
 		if ( (mstate & (1<<i)) &&
 			!(mouse_oldbuttonstate & (1<<i)) )
 		{
-			Key_Event (K_MOUSE1 + i, true, sys_msg_time);
+			Key_Event (K_MOUSE1 + i, true, host.sv_timer);
 		}
 
 		if ( !(mstate & (1<<i)) &&
 			(mouse_oldbuttonstate & (1<<i)) )
 		{
-				Key_Event (K_MOUSE1 + i, false, sys_msg_time);
+				Key_Event (K_MOUSE1 + i, false, host.sv_timer);
 		}
 	}	
 		

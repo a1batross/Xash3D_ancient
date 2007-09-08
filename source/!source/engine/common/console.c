@@ -468,7 +468,7 @@ void Con_DrawInput (void)
 	text = key_lines[edit_line];
 	
 // add the cursor frame
-	text[key_linepos] = 10+((int)(cls.realtime>>8)&1);
+	text[key_linepos] = 10+((int)(cls.realtime * 4.0f)&1);
 	
 // fill out remainder with spaces
 	for (i=key_linepos+1 ; i< con.linewidth ; i++)
@@ -499,24 +499,23 @@ Draws the last few lines of output transparently over the game top
 void Con_DrawNotify (void)
 {
 	int		x, v;
-	char	*text;
+	char		*text;
 	int		i;
-	int		time;
-	char	*s;
+	float		time;
+	char		*s;
 	int		skip;
 
 	v = 0;
-	for (i= con.current-NUM_CON_TIMES+1 ; i<=con.current ; i++)
+	for (i = con.current - NUM_CON_TIMES + 1; i <= con.current; i++)
 	{
-		if (i < 0)
-			continue;
+		if (i < 0) continue;
 		time = con.times[i % NUM_CON_TIMES];
 		if (time == 0)
 			continue;
 		time = cls.realtime - time;
-		if (time > con_notifytime->value*1000)
+		if (time > con_notifytime->value)
 			continue;
-		text = con.text + (i % con.totallines)*con.linewidth;
+		text = con.text + (i % con.totallines) * con.linewidth;
 		
 		for (x = 0 ; x < con.linewidth ; x++)
 			re->DrawChar ( (x+1)<<3, v, text[x]);
@@ -547,7 +546,7 @@ void Con_DrawNotify (void)
 			re->DrawChar ( (x+skip)<<3, v, s[x]);
 			x++;
 		}
-		re->DrawChar ( (x+skip)<<3, v, 10+((cls.realtime>>8)&1));
+		re->DrawChar ( (x+skip)<<3, v, 10 + ((int)(cls.realtime* 4.0f)&1));
 		v += 8;
 	}
 	

@@ -14,7 +14,6 @@ host_parm_t	host;	// host parms
 byte	*zonepool;
 int	ActiveApp;
 bool	Minimized;
-extern	uint sys_msg_time;
 
 void Key_Init (void);
 void SCR_EndLoadingPlaque (void);
@@ -223,6 +222,7 @@ void Host_Frame (double time)
 		cl -= rf;
 		Msg ("all:%.3f sv:%.3f gm:%.3f cl:%.3f rf:%.3f\n", all, sv, gm, cl, rf);
 	}	
+	host.framecount++;
 }
 
 /*
@@ -232,10 +232,10 @@ Host_Main
 */
 void Host_Main( void )
 {
-	MSG	msg;
-	int	time, oldtime, newtime;
+	MSG		msg;
+	static double	oldtime, newtime;
 
-	oldtime = Sys_Milliseconds ();
+	oldtime = Sys_DoubleTime(); //first call
 
 	// main window message loop
 	while (1)
@@ -249,18 +249,19 @@ void Host_Main( void )
 		while (PeekMessage (&msg, NULL, 0, 0, PM_NOREMOVE))
 		{
 			if (!GetMessage (&msg, NULL, 0, 0)) Com_Quit ();
-			sys_msg_time = msg.time;
+			host.sv_timer = msg.time;
 			TranslateMessage (&msg);
    			DispatchMessage (&msg);
 		}
-		do
+	         //	do
 		{
-			newtime = Sys_Milliseconds ();
-			time = newtime - oldtime;
-		} while (time < 1);
+			newtime = Sys_DoubleTime();
+			host.realtime = newtime - oldtime;
 
-		_controlfp( _PC_24, _MCW_PC );
-		Host_Frame (time);
+		} //while (host.realtime < 0.001);
+
+		//_controlfp( _PC_24, _MCW_PC );
+		Host_Frame (host.realtime);
 
 		oldtime = newtime;
 	}
@@ -274,6 +275,7 @@ Host_Shutdown
 */
 void Host_Free (void)
 {
+	SV_Shutdown ("Server shutdown\n", false);
 	CL_Shutdown ();
 	Host_FreePlatform();
 }

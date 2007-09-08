@@ -1483,7 +1483,7 @@ double Plat_DoubleTime (void)
 			firsttimegettime = false;
 		}
 
-		newtime = (double) timeGetTime () / 1000.0;
+		newtime = (double)timeGetTime () * 0.001;
 	}
 	else
 	{

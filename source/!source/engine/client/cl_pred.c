@@ -262,10 +262,10 @@ void CL_PredictMovement (void)
 	oldframe = (ack-2) & (CMD_BACKUP-1);
 	oldz = cl.predicted_origins[oldframe][2];
 	step = pm.s.origin[2] - oldz;
-	if (step > 63 && step < 160 && (pm.s.pm_flags & PMF_ON_GROUND) )
+	if (step > 63 && step < 160 && (pm.s.pm_flags & PMF_ON_GROUND))
 	{
 		cl.predicted_step = step * 0.125;
-		cl.predicted_step_time = cls.realtime - cls.frametime * 500;
+		cl.predicted_step_time = cls.realtime - cls.frametime * 0.5f;
 	}
 
 

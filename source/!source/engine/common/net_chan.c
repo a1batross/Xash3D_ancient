@@ -158,7 +158,7 @@ void Netchan_Setup (netsrc_t sock, netchan_t *chan, netadr_t adr, int qport)
 	chan->sock = sock;
 	chan->remote_address = adr;
 	chan->qport = qport;
-	chan->last_received = curtime;
+	chan->last_received = host.realtime * 1000;
 	chan->incoming_sequence = 0;
 	chan->outgoing_sequence = 1;
 
@@ -245,7 +245,7 @@ void Netchan_Transmit (netchan_t *chan, int length, byte *data)
 	w2 = ( chan->incoming_sequence & ~(1<<31) ) | (chan->incoming_reliable_sequence<<31);
 
 	chan->outgoing_sequence++;
-	chan->last_sent = curtime;
+	chan->last_sent = host.realtime * 1000;
 
 	MSG_WriteLong (&send, w1);
 	MSG_WriteLong (&send, w2);
@@ -379,7 +379,7 @@ bool Netchan_Process (netchan_t *chan, sizebuf_t *msg)
 //
 // the message can now be read from the current message pointer
 //
-	chan->last_received = curtime;
+	chan->last_received = host.realtime * 1000;
 
 	return true;
 }

@@ -556,8 +556,8 @@ void SV_SendClientMessages (void)
 		}
 		else
 		{
-	// just update reliable	if needed
-			if (c->netchan.message.cursize	|| curtime - c->netchan.last_sent > 1000 )
+			// just update reliable if needed
+			if (c->netchan.message.cursize || (host.realtime * 1000) - c->netchan.last_sent > 1000 )
 				Netchan_Transmit (&c->netchan, 0, NULL);
 		}
 	}

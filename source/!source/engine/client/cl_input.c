@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 cvar_t	*cl_nodelta;
 
-extern	unsigned	sys_frame_time;
 unsigned	frame_msec;
 unsigned	old_sys_frame_time;
 
@@ -94,7 +93,7 @@ void KeyDown (kbutton_t *b)
 	c = Cmd_Argv(2);
 	b->downtime = atoi(c);
 	if (!b->downtime)
-		b->downtime = sys_frame_time - 100;
+		b->downtime = host.cl_timer - 100;
 
 	b->state |= 1 + 2;	// down + impulse down
 }
@@ -194,8 +193,8 @@ float CL_KeyState (kbutton_t *key)
 
 	if (key->state)
 	{	// still down
-		msec += sys_frame_time - key->downtime;
-		key->downtime = sys_frame_time;
+		msec += host.cl_timer - key->downtime;
+		key->downtime = host.cl_timer;
 	}
 
 #if 0
@@ -378,7 +377,7 @@ usercmd_t CL_CreateCmd (void)
 {
 	usercmd_t	cmd;
 
-	frame_msec = sys_frame_time - old_sys_frame_time;
+	frame_msec = host.cl_timer - old_sys_frame_time;
 	if (frame_msec < 1)
 		frame_msec = 1;
 	if (frame_msec > 200)
@@ -392,7 +391,7 @@ usercmd_t CL_CreateCmd (void)
 
 	CL_FinishMove (&cmd);
 
-	old_sys_frame_time = sys_frame_time;
+	old_sys_frame_time = host.cl_timer;
 
 //cmd.impulse = cls.framecount;
 
@@ -470,7 +469,7 @@ void CL_SendCmd (void)
 	// save this command off for prediction
 	i = cls.netchan.outgoing_sequence & (CMD_BACKUP-1);
 	cmd = &cl.cmds[i];
-	cl.cmd_time[i] = cls.realtime;	// for netgraph ping calculation
+	cl.cmd_time[i] = cls.realtime; // for netgraph ping calculation
 
 	*cmd = CL_CreateCmd ();
 
@@ -483,7 +482,7 @@ void CL_SendCmd (void)
 
 	if ( cls.state == ca_connected)
 	{
-		if (cls.netchan.message.cursize || curtime - cls.netchan.last_sent > 1000 )
+		if (cls.netchan.message.cursize || (host.realtime * 1000) - cls.netchan.last_sent > 1000 )
 			Netchan_Transmit (&cls.netchan, 0, buf.data);	
 		return;
 	}
@@ -497,8 +496,7 @@ void CL_SendCmd (void)
 		MSG_WriteString (&cls.netchan.message, Cvar_Userinfo() );
 	}
 
-	if (cmd->buttons && cl.cinematictime > 0 && !cl.attractloop 
-		&& cls.realtime - cl.cinematictime > 1000)
+	if (cmd->buttons && cl.cinematictime > 0 && !cl.attractloop && cls.realtime - cl.cinematictime > 1.0f)
 	{	// skip the rest of the cinematic
 		SCR_FinishCinematic ();
 	}

@@ -245,7 +245,7 @@ void SVC_GetChallenge (void)
 		// overwrite the oldest
 		svs.challenges[oldest].challenge = rand() & 0x7fff;
 		svs.challenges[oldest].adr = net_from;
-		svs.challenges[oldest].time = curtime;
+		svs.challenges[oldest].time = svs.realtime * 1000;
 		i = oldest;
 	}
 
@@ -399,8 +399,8 @@ gotnewcl:
 	newcl->state = cs_connected;
 	
 	SZ_Init (&newcl->datagram, newcl->datagram_buf, sizeof(newcl->datagram_buf) );
-	newcl->lastmessage = svs.realtime;	// don't timeout
-	newcl->lastconnect = svs.realtime;
+	newcl->lastmessage = svs.realtime * 1000;	// don't timeout
+	newcl->lastconnect = svs.realtime * 1000;
 }
 
 int Rcon_Validate (void)
@@ -615,7 +615,7 @@ void SV_ReadPackets (void)
 			{	// this is a valid, sequenced packet, so process it
 				if (cl->state != cs_zombie)
 				{
-					cl->lastmessage = svs.realtime;	// don't timeout
+					cl->lastmessage = svs.realtime * 1000;	// don't timeout
 					SV_ExecuteClientMessage (cl);
 				}
 			}
@@ -644,26 +644,26 @@ void SV_CheckTimeouts (void)
 {
 	int		i;
 	client_t	*cl;
-	int			droppoint;
-	int			zombiepoint;
+	float			droppoint;
+	float			zombiepoint;
 
-	droppoint = svs.realtime - 1000*timeout->value;
-	zombiepoint = svs.realtime - 1000*zombietime->value;
+	droppoint = svs.realtime - timeout->value;
+	zombiepoint = svs.realtime - zombietime->value;
 
 	for (i=0,cl=svs.clients ; i<maxclients->value ; i++,cl++)
 	{
 		// message times may be wrong across a changelevel
-		if (cl->lastmessage > svs.realtime)
-			cl->lastmessage = svs.realtime;
+		if (cl->lastmessage > svs.realtime * 1000)
+			cl->lastmessage = svs.realtime * 1000;
 
 		if (cl->state == cs_zombie
-		&& cl->lastmessage < zombiepoint)
+		&& cl->lastmessage < zombiepoint * 1000)
 		{
 			cl->state = cs_free;	// can now be reused
 			continue;
 		}
 		if ( (cl->state == cs_connected || cl->state == cs_spawned) 
-			&& cl->lastmessage < droppoint)
+			&& cl->lastmessage < droppoint * 1000)
 		{
 			SV_BroadcastPrintf (PRINT_HIGH, "%s timed out\n", cl->name);
 			SV_DropClient (cl); 
@@ -703,14 +703,14 @@ SV_RunGameFrame
 void SV_RunGameFrame (void)
 {
 	if (host_speeds->value)
-		time_before_game = Sys_Milliseconds ();
+		time_before_game = Sys_DoubleTime();
 
 	// we always need to bump framenum, even if we
 	// don't run the world, otherwise the delta
 	// compression can get confused when a client
 	// has the "current" frame
 	sv.framenum++;
-	sv.time = sv.framenum*100;
+	sv.time = sv.framenum * 0.1f;
 
 	// don't run if paused
 	if (!sv_paused->value || maxclients->value > 1)
@@ -727,7 +727,7 @@ void SV_RunGameFrame (void)
 	}
 
 	if (host_speeds->value)
-		time_after_game = Sys_Milliseconds ();
+		time_after_game = Sys_DoubleTime ();
 
 }
 
@@ -737,7 +737,7 @@ SV_Frame
 
 ==================
 */
-void SV_Frame (int msec)
+void SV_Frame (float time)
 {
 	time_before_game = time_after_game = 0;
 
@@ -745,7 +745,7 @@ void SV_Frame (int msec)
 	if (!svs.initialized)
 		return;
 
-    svs.realtime += msec;
+	svs.realtime += time;
 
 	// keep the random time dependent
 	rand ();
@@ -760,13 +760,13 @@ void SV_Frame (int msec)
 	if (!sv_timedemo->value && svs.realtime < sv.time)
 	{
 		// never let the time get too far off
-		if (sv.time - svs.realtime > 100)
+		if (sv.time - svs.realtime > 0.1f)
 		{
 			if (sv_showclamp->value)
 				Msg ("sv lowclamp\n");
-			svs.realtime = sv.time - 100;
+			svs.realtime = sv.time - 0.1f;
 		}
-		NET_Sleep(sv.time - svs.realtime);
+		NET_Sleep((sv.time - svs.realtime) * 1000);
 		return;
 	}
 
@@ -818,13 +818,13 @@ void Master_Heartbeat (void)
 		return;		// a private dedicated game
 
 	// check for time wraparound
-	if (svs.last_heartbeat > svs.realtime)
+	if (svs.last_heartbeat > (svs.realtime * 1000))
 		svs.last_heartbeat = svs.realtime;
 
-	if (svs.realtime - svs.last_heartbeat < HEARTBEAT_SECONDS*1000)
+	if ((svs.realtime* 1000) - svs.last_heartbeat < HEARTBEAT_SECONDS*1000)
 		return;		// not time to send yet
 
-	svs.last_heartbeat = svs.realtime;
+	svs.last_heartbeat = svs.realtime * 1000;
 
 	// send the same string that we would give for a status OOB command
 	string = SV_StatusString();

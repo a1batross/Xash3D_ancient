@@ -28,7 +28,6 @@ jmp_buf abortframe;
 
 int	com_argc;
 char	*com_argv[MAX_NUM_ARGVS+1];
-int	realtime;
 
 file_t	*log_stats_file;
 
@@ -40,10 +39,10 @@ cvar_t	*dedicated;
 int	server_state;
 
 // host_speeds times
-int	time_before_game;
-int	time_after_game;
-int	time_before_ref;
-int	time_after_ref;
+float	time_before_game;
+float	time_after_game;
+float	time_before_ref;
+float	time_after_ref;
 
 
 /*

@@ -27,10 +27,6 @@ extern HWND cl_hwnd;
 //engine builddate
 char *buildstring = __TIME__ " " __DATE__;
 stdinout_api_t std;
-uint sys_msg_time;
-uint sys_frame_time;
-
-int starttime;
 
 /*
 ===============================================================================
@@ -105,13 +101,13 @@ void Sys_SendKeyEvents (void)
 	while (PeekMessage (&msg, NULL, 0, 0, PM_NOREMOVE))
 	{
 		if (!GetMessage (&msg, NULL, 0, 0)) Sys_Quit ();
-		sys_msg_time = msg.time;
+		host.sv_timer = msg.time;
 		TranslateMessage (&msg);
 		DispatchMessage (&msg);
 	}
 
 	// grab frame time 
-	sys_frame_time = timeGetTime();	// FIXME: should this be at start?
+	host.cl_timer = timeGetTime();	// FIXME: should this be at start?
 }
 
 
@@ -151,10 +147,10 @@ char *Sys_GetClipboardData( void )
 Sys_Milliseconds
 ================
 */
-int	curtime;
 int Sys_Milliseconds (void)
 {
 	static int	sys_timeBase;
+	static int	sys_curtime;
 	static bool	init = false;
 
 	if (!init)
@@ -162,9 +158,9 @@ int Sys_Milliseconds (void)
 		sys_timeBase = timeGetTime();
 		init = true;
 	}
-	curtime = timeGetTime() - sys_timeBase;
+	sys_curtime = timeGetTime() - sys_timeBase;
 
-	return curtime;
+	return sys_curtime;
 }
 
 /*

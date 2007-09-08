@@ -425,7 +425,7 @@ void M_Main_Draw (void)
 	strlcat( litname, "_sel", 80 );
 	re->DrawPic( xoffset, ystart + m_main_cursor * 40 + 13, litname );
 
-	M_DrawCursor( xoffset - 25, ystart + m_main_cursor * 40 + 11, (int)(cls.realtime / 100)%NUM_CURSOR_FRAMES );
+	M_DrawCursor( xoffset - 25, ystart + m_main_cursor * 40 + 11, (int)(cls.realtime * 8.0f) % NUM_CURSOR_FRAMES );
 
 	re->DrawGetPicSize( &w, &h, "m_main_plaque" );
 	re->DrawPic( xoffset - 30 - w, ystart, "m_main_plaque" );
@@ -689,7 +689,7 @@ static void KeyCursorDrawFunc( menuframework_s *menu )
 	if ( bind_grab )
 		re->DrawChar( menu->x, menu->y + menu->cursor * 9, '=' );
 	else
-		re->DrawChar( menu->x, menu->y + menu->cursor * 9, 12 + ( ( int ) ( Sys_Milliseconds() / 250 ) & 1 ) );
+		re->DrawChar( menu->x, menu->y + menu->cursor * 9, 12 + (( int ) (cls.realtime * 5.0f) & 1 ));
 }
 
 static void DrawKeyBindingFunc( void *self )
@@ -1363,7 +1363,7 @@ END GAME MENU
 
 =============================================================================
 */
-static int credits_start_time;
+static float credits_start_time;
 static const char **credits;
 static char *creditsIndex[256];
 static char *creditsBuffer;
@@ -1455,147 +1455,6 @@ static const char *idcredits[] =
 	0
 };
 
-static const char *xatcredits[] =
-{
-	"+QUAKE II MISSION PACK: THE RECKONING",
-	"+BY",
-	"+XATRIX ENTERTAINMENT, INC.",
-	"",
-	"+DESIGN AND DIRECTION",
-	"Drew Markham",
-	"",
-	"+PRODUCED BY",
-	"Greg Goodrich",
-	"",
-	"+PROGRAMMING",
-	"Rafael Paiz",
-	"",
-	"+LEVEL DESIGN / ADDITIONAL GAME DESIGN",
-	"Alex Mayberry",
-	"",
-	"+LEVEL DESIGN",
-	"Mal Blackwell",
-	"Dan Koppel",
-	"",
-	"+ART DIRECTION",
-	"Michael \"Maxx\" Kaufman",
-	"",
-	"+COMPUTER GRAPHICS SUPERVISOR AND",
-	"+CHARACTER ANIMATION DIRECTION",
-	"Barry Dempsey",
-	"",
-	"+SENIOR ANIMATOR AND MODELER",
-	"Jason Hoover",
-	"",
-	"+CHARACTER ANIMATION AND",
-	"+MOTION CAPTURE SPECIALIST",
-	"Amit Doron",
-	"",
-	"+ART",
-	"Claire Praderie-Markham",
-	"Viktor Antonov",
-	"Corky Lehmkuhl",
-	"",
-	"+INTRODUCTION ANIMATION",
-	"Dominique Drozdz",
-	"",
-	"+ADDITIONAL LEVEL DESIGN",
-	"Aaron Barber",
-	"Rhett Baldwin",
-	"",
-	"+3D CHARACTER ANIMATION TOOLS",
-	"Gerry Tyra, SA Technology",
-	"",
-	"+ADDITIONAL EDITOR TOOL PROGRAMMING",
-	"Robert Duffy",
-	"",
-	"+ADDITIONAL PROGRAMMING",
-	"Ryan Feltrin",
-	"",
-	"+PRODUCTION COORDINATOR",
-	"Victoria Sylvester",
-	"",
-	"+SOUND DESIGN",
-	"Gary Bradfield",
-	"",
-	"+MUSIC BY",
-	"Sonic Mayhem",
-	"",
-	"",
-	"",
-	"+SPECIAL THANKS",
-	"+TO",
-	"+OUR FRIENDS AT ID SOFTWARE",
-	"",
-	"John Carmack",
-	"John Cash",
-	"Brian Hook",
-	"Adrian Carmack",
-	"Kevin Cloud",
-	"Paul Steed",
-	"Tim Willits",
-	"Christian Antkow",
-	"Paul Jaquays",
-	"Brandon James",
-	"Todd Hollenshead",
-	"Barrett (Bear) Alexander",
-	"Dave \"Zoid\" Kirsch",
-	"Donna Jackson",
-	"",
-	"",
-	"",
-	"+THANKS TO ACTIVISION",
-	"+IN PARTICULAR:",
-	"",
-	"Marty Stratton",
-	"Henk \"The Original Ripper\" Hartong",
-	"Kevin Kraff",
-	"Jamey Gottlieb",
-	"Chris Hepburn",
-	"",
-	"+AND THE GAME TESTERS",
-	"",
-	"Tim Vanlaw",
-	"Doug Jacobs",
-	"Steven Rosenthal",
-	"David Baker",
-	"Chris Campbell",
-	"Aaron Casillas",
-	"Steve Elwell",
-	"Derek Johnstone",
-	"Igor Krinitskiy",
-	"Samantha Lee",
-	"Michael Spann",
-	"Chris Toft",
-	"Juan Valdes",
-	"",
-	"+THANKS TO INTERGRAPH COMPUTER SYTEMS",
-	"+IN PARTICULAR:",
-	"",
-	"Michael T. Nicolaou",
-	"",
-	"",
-	"Quake II Mission Pack: The Reckoning",
-	"(tm) (C)1998 Id Software, Inc. All",
-	"Rights Reserved. Developed by Xatrix",
-	"Entertainment, Inc. for Id Software,",
-	"Inc. Distributed by Activision Inc.",
-	"under license. Quake(R) is a",
-	"registered trademark of Id Software,",
-	"Inc. Quake II Mission Pack: The",
-	"Reckoning(tm), Quake II(tm), the Id",
-	"Software name, the \"Q II\"(tm) logo",
-	"and id(tm) logo are trademarks of Id",
-	"Software, Inc. Activision(R) is a",
-	"registered trademark of Activision,",
-	"Inc. Xatrix(R) is a registered",
-	"trademark of Xatrix Entertainment,",
-	"Inc. All other trademarks and trade",
-	"names are properties of their",
-	"respective owners.",
-	0
-};
-
 void M_Credits_MenuDraw( void )
 {
 	int i, y;
@@ -1603,7 +1462,7 @@ void M_Credits_MenuDraw( void )
 	/*
 	** draw the credits
 	*/
-	for ( i = 0, y = viddef.height - ( ( cls.realtime - credits_start_time ) / 40.0F ); credits[i] && y < viddef.height; y += 10, i++ )
+	for ( i = 0, y = viddef.height - (( cls.realtime - credits_start_time ) * 40.0F ); credits[i] && y < viddef.height; y += 10, i++ )
 	{
 		int j, stringoffset = 0;
 		int bold = false;
@@ -1635,8 +1494,7 @@ void M_Credits_MenuDraw( void )
 		}
 	}
 
-	if ( y < 0 )
-		credits_start_time = cls.realtime;
+	if ( y < 0 ) credits_start_time = cls.realtime;
 }
 
 const char *M_Credits_Key( int key )
@@ -3488,7 +3346,7 @@ void PlayerConfig_MenuDraw( void )
 	refdef.height = 168;
 	refdef.fov_x = 40;
 	refdef.fov_y = CalcFov( refdef.fov_x, refdef.width, refdef.height );
-	refdef.time = cls.realtime*0.001;
+	refdef.time = cls.realtime;
 
 	if ( s_pmi[s_player_model_box.curvalue].skindisplaynames )
 	{
