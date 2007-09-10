@@ -481,9 +481,9 @@ void		NET_SendPacket (netsrc_t sock, int length, void *data, netadr_t to);
 bool	NET_CompareAdr (netadr_t a, netadr_t b);
 bool	NET_CompareBaseAdr (netadr_t a, netadr_t b);
 bool	NET_IsLocalAddress (netadr_t adr);
-char		*NET_AdrToString (netadr_t a);
+char	*NET_AdrToString (netadr_t a);
 bool	NET_StringToAdr (char *s, netadr_t *a);
-void		NET_Sleep(int msec);
+void	NET_Sleep(int msec);
 
 //============================================================================
 
@@ -493,19 +493,19 @@ void		NET_Sleep(int msec);
 
 typedef struct
 {
-	bool	fatal_error;
+	bool			fatal_error;
 
-	netsrc_t	sock;
+	netsrc_t			sock;
 
 	int			dropped;			// between last packet and previous
 
-	int			last_received;		// for timeouts
-	int			last_sent;			// for retransmits
+	float			last_received;		// for timeouts
+	float			last_sent;		// for retransmits
 
-	netadr_t	remote_address;
-	int			qport;				// qport value to write when transmitting
+	netadr_t			remote_address;
+	int			qport;			// qport value to write when transmitting
 
-// sequencing variables
+	// sequencing variables
 	int			incoming_sequence;
 	int			incoming_acknowledged;
 	int			incoming_reliable_acknowledged;	// single bit
@@ -516,13 +516,13 @@ typedef struct
 	int			reliable_sequence;			// single bit
 	int			last_reliable_sequence;		// sequence number of last send
 
-// reliable staging and holding areas
-	sizebuf_t	message;		// writing buffer to send to server
-	byte		message_buf[MAX_MSGLEN-16];		// leave space for header
+	// reliable staging and holding areas
+	sizebuf_t			message;				// writing buffer to send to server
+	byte			message_buf[MAX_MSGLEN-16];		// leave space for header
 
-// message is copied to this buffer when it is first transfered
+	// message is copied to this buffer when it is first transfered
 	int			reliable_length;
-	byte		reliable_buf[MAX_MSGLEN-16];	// unacked reliable message
+	byte			reliable_buf[MAX_MSGLEN-16];		// unacked reliable message
 } netchan_t;
 
 extern	netadr_t	net_from;

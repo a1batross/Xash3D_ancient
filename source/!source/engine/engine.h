@@ -145,7 +145,7 @@ infostring manager
 System Timer
 ===========================================
 */
-#define Sys_DoubleTime pi->DoubleTime
+double Sys_DoubleTime( void );
 #define GI pi->GameInfo()
 
 /*

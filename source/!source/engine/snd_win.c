@@ -30,10 +30,10 @@ extern HWND cl_hwnd;
 HRESULT (WINAPI *pDirectSoundCreate)(GUID FAR *lpGUID, LPDIRECTSOUND FAR *lplpDS, IUnknown FAR *pUnkOuter);
 
 // 64K is > 1 second at 16-bit, 22050 Hz
-#define	WAV_BUFFERS				64
+#define	WAV_BUFFERS			64
 #define	WAV_MASK				0x3F
-#define	WAV_BUFFER_SIZE			0x0400
-#define SECONDARY_BUFFER_SIZE	0x10000
+#define	WAV_BUFFER_SIZE			0x0800
+#define	SECONDARY_BUFFER_SIZE		0x100000
 
 typedef enum {SIS_SUCCESS, SIS_FAILURE, SIS_NOTAVAIL} sndinitstat;
 

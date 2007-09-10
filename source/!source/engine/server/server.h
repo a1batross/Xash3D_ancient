@@ -92,12 +92,12 @@ typedef enum
 
 typedef struct
 {
-	int					areabytes;
-	byte				areabits[MAX_MAP_AREAS/8];		// portalarea visibility bits
+	int  			areabytes;
+	byte 			areabits[MAX_MAP_AREAS/8];		// portalarea visibility bits
 	player_state_t		ps;
-	int					num_entities;
-	int					first_entity;		// into the circular sv_packet_entities[]
-	int					senttime;			// for ping calculations
+	int  			num_entities;
+	int  			first_entity;		// into the circular sv_packet_entities[]
+	float			senttime;			// for ping calculations
 } client_frame_t;
 
 #define	LATENCY_COUNTS	16
@@ -107,40 +107,40 @@ typedef struct client_s
 {
 	client_state_t	state;
 
-	char			userinfo[MAX_INFO_STRING];		// name, etc
+	char		userinfo[MAX_INFO_STRING];		// name, etc
 
-	int				lastframe;			// for delta compression
+	int		lastframe;			// for delta compression
 	usercmd_t		lastcmd;			// for filling in big drops
 
-	int				commandMsec;		// every seconds this is reset, if user
+	int		commandMsec;		// every seconds this is reset, if user
 										// commands exhaust it, assume time cheating
 
-	int				frame_latency[LATENCY_COUNTS];
-	int				ping;
+	int		frame_latency[LATENCY_COUNTS];
+	int		ping;
 
-	int				message_size[RATE_MESSAGES];	// used to rate drop packets
-	int				rate;
-	int				surpressCount;		// number of messages rate supressed
+	int		message_size[RATE_MESSAGES];	// used to rate drop packets
+	int		rate;
+	int		surpressCount;		// number of messages rate supressed
 
-	edict_t			*edict;				// EDICT_NUM(clientnum+1)
-	char			name[32];			// extracted from userinfo, high bits masked
-	int				messagelevel;		// for filtering printed messages
+	edict_t		*edict;				// EDICT_NUM(clientnum+1)
+	char		name[32];			// extracted from userinfo, high bits masked
+	int		messagelevel;		// for filtering printed messages
 
 	// The datagram is written to by sound calls, prints, temp ents, etc.
 	// It can be harmlessly overflowed.
 	sizebuf_t		datagram;
-	byte			datagram_buf[MAX_MSGLEN];
+	byte		datagram_buf[MAX_MSGLEN];
 
 	client_frame_t	frames[UPDATE_BACKUP];	// updates can be delta'd from here
 
-	byte			*download;			// file being downloaded
-	int				downloadsize;		// total bytes (can't use EOF because of paks)
-	int				downloadcount;		// bytes sent
+	byte		*download;			// file being downloaded
+	int		downloadsize;		// total bytes (can't use EOF because of paks)
+	int		downloadcount;		// bytes sent
 
-	int				lastmessage;		// sv.framenum when packet was last received
-	int				lastconnect;
+	float		lastmessage;		// sv.framenum when packet was last received
+	float		lastconnect;
 
-	int				challenge;			// challenge of this user, randomly generated
+	int		challenge;			// challenge of this user, randomly generated
 
 	netchan_t		netchan;
 } client_t;
@@ -160,9 +160,9 @@ typedef struct client_s
 
 typedef struct
 {
-	netadr_t	adr;
-	int			challenge;
-	int			time;
+	netadr_t		adr;
+	int		challenge;
+	float		time;
 } challenge_t;
 
 
@@ -182,13 +182,13 @@ typedef struct
 	int		next_client_entities;	// next client_entity to use
 	entity_state_t	*client_entities;		// [num_client_entities]
 
-	int		last_heartbeat;
+	float		last_heartbeat;
 
 	challenge_t	challenges[MAX_CHALLENGES];	// to prevent invalid IPs from connecting
 
 	// serverrecord values
 	file_t		*demofile;
-	sizebuf_t	demo_multicast;
+	sizebuf_t		demo_multicast;
 	byte		demo_multicast_buf[MAX_MSGLEN];
 } server_static_t;
 

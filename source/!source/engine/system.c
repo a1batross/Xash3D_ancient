@@ -58,6 +58,13 @@ void Sys_Print(const char *pMsg)
 	std.print((char *)pMsg );
 }
 
+double Sys_DoubleTime( void )
+{
+	// precision timer
+	host.realtime = pi->DoubleTime();
+	return host.realtime;
+}
+
 /*
 ================
 Sys_ConsoleInput
@@ -96,7 +103,7 @@ Send Key_Event calls
 */
 void Sys_SendKeyEvents (void)
 {
-    MSG        msg;
+	MSG        msg;
 
 	while (PeekMessage (&msg, NULL, 0, 0, PM_NOREMOVE))
 	{
@@ -108,6 +115,9 @@ void Sys_SendKeyEvents (void)
 
 	// grab frame time 
 	host.cl_timer = timeGetTime();	// FIXME: should this be at start?
+
+	// keep the random time dependent
+	rand();
 }
 
 

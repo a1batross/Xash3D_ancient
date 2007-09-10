@@ -78,7 +78,7 @@ void SV_SetMaster_f (void)
 		slot++;
 	}
 
-	svs.last_heartbeat = -9999999;
+	svs.last_heartbeat = -99999.0f;
 }
 
 
@@ -398,7 +398,7 @@ void SV_Status_f (void)
 		for (j=0 ; j<l ; j++)
 			Msg (" ");
 
-		Msg ("%7i ", svs.realtime - cl->lastmessage );
+		Msg ("%.7f ", svs.realtime - cl->lastmessage );
 
 		s = NET_AdrToString ( cl->netchan.remote_address);
 		Msg ("%s", s);
@@ -455,7 +455,7 @@ SV_Heartbeat_f
 */
 void SV_Heartbeat_f (void)
 {
-	svs.last_heartbeat = -9999999;
+	svs.last_heartbeat = -99999.0f;
 }
 
 

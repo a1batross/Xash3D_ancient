@@ -223,10 +223,10 @@ void SVC_GetChallenge (void)
 {
 	int		i;
 	int		oldest;
-	int		oldestTime;
+	float		oldestTime;
 
 	oldest = 0;
-	oldestTime = 0x7fffffff;
+	oldestTime = 2147483647.0f;
 
 	// see if we already have a challenge for this ip
 	for (i = 0 ; i < MAX_CHALLENGES ; i++)
@@ -245,7 +245,7 @@ void SVC_GetChallenge (void)
 		// overwrite the oldest
 		svs.challenges[oldest].challenge = rand() & 0x7fff;
 		svs.challenges[oldest].adr = net_from;
-		svs.challenges[oldest].time = svs.realtime * 1000;
+		svs.challenges[oldest].time = svs.realtime;
 		i = oldest;
 	}
 
@@ -263,15 +263,15 @@ A connection request that did not come from the master
 void SVC_DirectConnect (void)
 {
 	char		userinfo[MAX_INFO_STRING];
-	netadr_t	adr;
-	int			i;
-	client_t	*cl, *newcl;
-	client_t	temp;
+	netadr_t		adr;
+	int		i;
+	client_t		*cl, *newcl;
+	client_t		temp;
 	edict_t		*ent;
-	int			edictnum;
-	int			version;
-	int			qport;
-	int			challenge;
+	int		edictnum;
+	int		version;
+	int		qport;
+	int		challenge;
 
 	adr = net_from;
 
@@ -329,15 +329,13 @@ void SVC_DirectConnect (void)
 	memset (newcl, 0, sizeof(client_t));
 
 	// if there is already a slot for this ip, reuse it
-	for (i=0,cl=svs.clients ; i<maxclients->value ; i++,cl++)
+	for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
 	{
 		if (cl->state == cs_free)
 			continue;
-		if (NET_CompareBaseAdr (adr, cl->netchan.remote_address)
-			&& ( cl->netchan.qport == qport 
-			|| adr.port == cl->netchan.remote_address.port ) )
+		if (NET_CompareBaseAdr (adr, cl->netchan.remote_address) && ( cl->netchan.qport == qport || adr.port == cl->netchan.remote_address.port))
 		{
-			if (!NET_IsLocalAddress (adr) && (svs.realtime - cl->lastconnect) < ((int)sv_reconnect_limit->value * 1000))
+			if (!NET_IsLocalAddress (adr) && (svs.realtime - cl->lastconnect) < sv_reconnect_limit->value)
 			{
 				MsgWarn("SVC_DirectConnect: %s:reconnect rejected : too soon\n", NET_AdrToString (adr));
 				return;
@@ -399,8 +397,8 @@ gotnewcl:
 	newcl->state = cs_connected;
 	
 	SZ_Init (&newcl->datagram, newcl->datagram_buf, sizeof(newcl->datagram_buf) );
-	newcl->lastmessage = svs.realtime * 1000;	// don't timeout
-	newcl->lastconnect = svs.realtime * 1000;
+	newcl->lastmessage = svs.realtime;	// don't timeout
+	newcl->lastconnect = svs.realtime;
 }
 
 int Rcon_Validate (void)
@@ -615,7 +613,7 @@ void SV_ReadPackets (void)
 			{	// this is a valid, sequenced packet, so process it
 				if (cl->state != cs_zombie)
 				{
-					cl->lastmessage = svs.realtime * 1000;	// don't timeout
+					cl->lastmessage = svs.realtime;	// don't timeout
 					SV_ExecuteClientMessage (cl);
 				}
 			}
@@ -653,17 +651,16 @@ void SV_CheckTimeouts (void)
 	for (i=0,cl=svs.clients ; i<maxclients->value ; i++,cl++)
 	{
 		// message times may be wrong across a changelevel
-		if (cl->lastmessage > svs.realtime * 1000)
-			cl->lastmessage = svs.realtime * 1000;
+		if (cl->lastmessage > svs.realtime)
+			cl->lastmessage = svs.realtime;
 
 		if (cl->state == cs_zombie
-		&& cl->lastmessage < zombiepoint * 1000)
+		&& cl->lastmessage < zombiepoint)
 		{
 			cl->state = cs_free;	// can now be reused
 			continue;
 		}
-		if ( (cl->state == cs_connected || cl->state == cs_spawned) 
-			&& cl->lastmessage < droppoint * 1000)
+		if ( (cl->state == cs_connected || cl->state == cs_spawned) && cl->lastmessage < droppoint)
 		{
 			SV_BroadcastPrintf (PRINT_HIGH, "%s timed out\n", cl->name);
 			SV_DropClient (cl); 
@@ -803,7 +800,7 @@ Send a message to the master every few minutes to
 let it know we are alive, and log information
 ================
 */
-#define	HEARTBEAT_SECONDS	300
+#define	HEARTBEAT_SECONDS	300.0f
 void Master_Heartbeat (void)
 {
 	char		*string;
@@ -815,27 +812,28 @@ void Master_Heartbeat (void)
 
 	// pgm post3.19 change, cvar pointer not validated before dereferencing
 	if (!public_server || !public_server->value)
-		return;		// a private dedicated game
+		return;	// a private dedicated game
 
 	// check for time wraparound
-	if (svs.last_heartbeat > (svs.realtime * 1000))
-		svs.last_heartbeat = svs.realtime;
+	if (svs.last_heartbeat > svs.realtime) svs.last_heartbeat = svs.realtime;
 
-	if ((svs.realtime* 1000) - svs.last_heartbeat < HEARTBEAT_SECONDS*1000)
+	if (svs.realtime - svs.last_heartbeat < HEARTBEAT_SECONDS)
 		return;		// not time to send yet
 
-	svs.last_heartbeat = svs.realtime * 1000;
+	svs.last_heartbeat = svs.realtime;
 
 	// send the same string that we would give for a status OOB command
 	string = SV_StatusString();
 
 	// send to group master
-	for (i=0 ; i<MAX_MASTERS ; i++)
+	for (i = 0; i < MAX_MASTERS; i++)
+	{
 		if (master_adr[i].port)
 		{
 			Msg ("Sending heartbeat to %s\n", NET_AdrToString (master_adr[i]));
 			Netchan_OutOfBandPrint (NS_SERVER, master_adr[i], "heartbeat\n%s", string);
 		}
+	}
 }
 
 /*

@@ -208,7 +208,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 		svs.clients[i].lastframe = -1;
 	}
 
-	sv.time = 1000;
+	sv.time = 1.0f;
 	
 	strcpy (sv.name, server);
 	strcpy (sv.configstrings[CS_NAME], server);
@@ -336,7 +336,7 @@ void SV_InitGame (void)
 	NET_Config ( (maxclients->value > 1) );
 
 	// heartbeats will always be sent to the id master
-	svs.last_heartbeat = -99999;		// send immediately
+	svs.last_heartbeat = -99999.0f; // send immediately
 	sprintf(idmaster, "192.246.40.37:%i", PORT_MASTER);
 	NET_StringToAdr (idmaster, &master_adr[0]);
 

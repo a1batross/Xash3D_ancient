@@ -153,7 +153,7 @@ void SV_CheckGround (edict_t *ent)
 	vec3_t		point;
 	trace_t		trace;
 
-	if((sv.time * 0.001) < ent->gravity_debounce_time)
+	if(sv.time < ent->gravity_debounce_time)
 		return;
 
 	if (ent->flags & (FL_SWIM|FL_FLY)) return;
@@ -238,7 +238,7 @@ void SV_FallingDamage (edict_t *ent)
 
 	fall_value = delta*0.5;
 	if (fall_value > 40) fall_value = 40;
-	fall_time = (sv.time * 0.001) + 0.3; //FALL_TIME
+	fall_time = sv.time + 0.3f; //FALL_TIME
 
 	if (delta > 30)
 	{
@@ -750,7 +750,7 @@ bool SV_RunThink (edict_t *ent)
 	thinktime = ent->nextthink;
 	if(thinktime <= 0) return true;
 
-	if(thinktime > (sv.time * 0.001) + 0.001)
+	if(thinktime > sv.time + 0.001)
 		return true;
 	
 	ent->nextthink = 0;
@@ -1232,7 +1232,7 @@ SV_AddGravity
 */
 void SV_AddGravity (edict_t *ent)
 {
-	if((sv.time * 0.001) > ent->gravity_debounce_time)
+	if(sv.time > ent->gravity_debounce_time)
 		ent->velocity[2] -= ent->gravity * sv_gravity->value * 0.1;
 }
 

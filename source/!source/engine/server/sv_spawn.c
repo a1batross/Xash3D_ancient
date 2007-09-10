@@ -123,7 +123,7 @@ void SP_misc_explobox (edict_t *self)
 	self->monsterinfo.aiflags = AI_NOSTEP;
 
 	self->think = SV_DropToFloor;
-	self->nextthink = (sv.time * 0.001) + 0.5 * 0.1f;
+	self->nextthink = sv.time + 0.5;
 	
 	PF_setmodel (self, self->model);
 }

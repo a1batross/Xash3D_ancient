@@ -333,6 +333,8 @@ void COM_InitArgv (int argc, char **argv)
 
 	if(GetParmFromCmdLine("-dev", dev_level ))
 		host.developer = atoi(dev_level);
+
+	srand(time(NULL)); // init random generator
 }
 
 char *CopyString (char *in)

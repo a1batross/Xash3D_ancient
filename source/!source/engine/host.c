@@ -144,6 +144,7 @@ void Host_Init (char *funcname, int argc, char **argv)
 		// so drop the loading plaque
 		SCR_EndLoadingPlaque ();
 	}
+	Sys_DoubleTime(); // initialize timer
 }
 
 /*
@@ -233,9 +234,9 @@ Host_Main
 void Host_Main( void )
 {
 	MSG		msg;
-	static double	oldtime, newtime;
+	static double	time, oldtime, newtime;
 
-	oldtime = Sys_DoubleTime(); //first call
+	oldtime = host.realtime;
 
 	// main window message loop
 	while (1)
@@ -253,16 +254,14 @@ void Host_Main( void )
 			TranslateMessage (&msg);
    			DispatchMessage (&msg);
 		}
-	         //	do
+	         	do
 		{
 			newtime = Sys_DoubleTime();
-			host.realtime = newtime - oldtime;
+			time = newtime - oldtime;
 
-		} //while (host.realtime < 0.001);
+		} while (time < 0.001);
 
-		//_controlfp( _PC_24, _MCW_PC );
-		Host_Frame (host.realtime);
-
+		Host_Frame (time); // engine frame
 		oldtime = newtime;
 	}
 }

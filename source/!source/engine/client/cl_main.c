@@ -1023,7 +1023,7 @@ void CL_ReadPackets (void)
 	//
 	// check timeout
 	//
-	if (cls.state >= ca_connected && (cls.realtime * 1000) - cls.netchan.last_received > cl_timeout->value * 1000)
+	if (cls.state >= ca_connected && cls.realtime - cls.netchan.last_received > cl_timeout->value)
 	{
 		if (++cl.timeoutcount > 5)	// timeoutcount saves debugger
 		{
@@ -1702,13 +1702,12 @@ void CL_Frame (float time)
 	// decide the simulation time
 	cls.frametime = extratime;
 	cl.time += extratime;
-	cls.realtime = Sys_DoubleTime();
+	cls.realtime = host.realtime;
 
 	extratime = 0;
 
 	// if in the debugger last frame, don't timeout
-	if (time > 5.0f)
-		cls.netchan.last_received = Sys_DoubleTime() * 1000.0f;
+	if (time > 5.0f) cls.netchan.last_received = host.realtime;
 
 	// fetch results from server
 	CL_ReadPackets ();
