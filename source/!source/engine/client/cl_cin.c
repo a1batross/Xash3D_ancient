@@ -356,7 +356,7 @@ byte *SCR_ReadNextFrame (void)
 	FS_Read (cl.cinematic_file, &size, 4);
 	size = LittleLong(size);
 	if (size > sizeof(compressed) || size < 1)
-		Com_Error (ERR_DROP, "Bad compressed frame size");
+		Host_Error("Bad compressed frame size\n");
 	FS_Read (cl.cinematic_file, compressed, size);
 
 	// read sound
@@ -503,7 +503,7 @@ void SCR_PlayCinematic (char *arg)
 			cls.state = ca_active;
 			Mem_Copy (cl.cinematicpalette, palette, sizeof(cl.cinematicpalette));
 		}
-		else Com_Error (ERR_DROP, "%s not found.\n", arg );
+		else Host_Error("%s not found.\n", arg );
 		return;
 	}
 

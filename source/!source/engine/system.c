@@ -35,17 +35,19 @@ SYSTEM IO
 
 ===============================================================================
 */
-void Sys_Error( char *msg, ... )
+void Sys_Error( const char *error, ... )
 {
+	char		syserror1[MAX_INPUTLINE];
 	va_list		argptr;
-	char		fmt[MAX_INPUTLINE];
-	static bool	inupdate;
 	
-	va_start (argptr, msg);
-	vsprintf (fmt, msg, argptr);
-	va_end (argptr);
+	va_start( argptr, error );
+	vsprintf( syserror1, error, argptr );
+	va_end( argptr );
 
-	Com_Error (ERR_FATAL, "%s", fmt);
+	SV_Shutdown(va("Server fatal crashed: %s\n", syserror1), false);
+	CL_Shutdown();
+
+	std.error("%s", syserror1);
 }
 
 void Sys_Quit (void)
@@ -65,6 +67,13 @@ double Sys_DoubleTime( void )
 	return host.realtime;
 }
 
+void Sys_Sleep(int milliseconds)
+{
+	if (milliseconds < 1)
+		milliseconds = 1;
+	Sleep(milliseconds);
+}
+
 /*
 ================
 Sys_ConsoleInput
@@ -73,25 +82,6 @@ Sys_ConsoleInput
 char *Sys_ConsoleInput( void )
 {
 	return std.input();
-}
-
-/*
-================
-Sys_Init
-
-move to launcher.dll
-================
-*/
-void Sys_Init (void)
-{
-	OSVERSIONINFO	vinfo;
-
-	timeBeginPeriod( 1 );
-
-	vinfo.dwOSVersionInfoSize = sizeof(vinfo);
-
-	if (!GetVersionEx (&vinfo)) Sys_Error ("Couldn't get OS info");
-	if (vinfo.dwMajorVersion < 4) Sys_Error ("%s requires windows version 4 or greater", GI.title);
 }
 
 /*
@@ -126,6 +116,7 @@ void Sys_SendKeyEvents (void)
 ================
 Sys_GetClipboardData
 
+FIXME: move to launcher.dll
 ================
 */
 char *Sys_GetClipboardData( void )
@@ -172,6 +163,73 @@ int Sys_Milliseconds (void)
 
 	return sys_curtime;
 }
+
+/*
+===============================================================================
+
+DLL MANAGEMENT
+
+===============================================================================
+*/
+void Sys_UnloadLibrary (void* handle)
+{
+	if (handle == NULL) return;
+
+	FreeLibrary (handle);
+	handle = NULL;
+}
+
+void* Sys_GetProcAddress (void *handle, const char* name)
+{
+	return (void *)GetProcAddress (handle, name);
+}
+
+bool Sys_LoadLibrary (const char** dllnames, void* handle, const dllfunc_t *fcts)
+{
+	const dllfunc_t *func;
+	HMODULE dllhandle = 0;
+	unsigned int i;
+
+	if (handle == NULL)
+		return false;
+
+	// Initializations
+	for (func = fcts; func && func->name != NULL; func++)
+		*func->func = NULL;
+
+	// Try every possible name
+	Con_Printf ("Trying to load library...");
+	for (i = 0; dllnames[i] != NULL; i++)
+	{
+		Con_Printf (" \"%s\"", dllnames[i]);
+		dllhandle = LoadLibrary (dllnames[i]);
+		if (dllhandle) break;
+	}
+
+	// No DLL found
+	if (! dllhandle)
+	{
+		Con_Printf(" - failed.\n");
+		return false;
+	}
+
+	Con_Printf(" - loaded.\n");
+
+	// Get the function adresses
+	for (func = fcts; func && func->name != NULL; func++)
+	{
+		if (!(*func->func = (void *) Sys_GetProcAddress (dllhandle, func->name)))
+		{
+			Con_Printf ("Missing function \"%s\" - broken library!\n", func->name);
+			Sys_UnloadLibrary (&dllhandle);
+			return false;
+		}
+	}
+
+	handle = dllhandle;
+	return true;
+}
+
 
 /*
 ==============================================================================

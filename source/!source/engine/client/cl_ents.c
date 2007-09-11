@@ -384,18 +384,17 @@ void CL_ParsePacketEntities (frame_t *oldframe, frame_t *newframe)
 	{
 		newnum = CL_ParseEntityBits (&bits);
 		if (newnum >= MAX_EDICTS)
-			Com_Error (ERR_DROP,"CL_ParsePacketEntities: bad number:%i", newnum);
+			Host_Error("CL_ParsePacketEntities: bad number:%i\n", newnum);
 
 		if (net_message.readcount > net_message.cursize)
-			Com_Error (ERR_DROP,"CL_ParsePacketEntities: end of message");
+			Host_Error("CL_ParsePacketEntities: end of message\n");
 
-		if (!newnum)
-			break;
+		if (!newnum) break;
 
 		while (oldnum < newnum)
-		{	// one or more entities from the old packet are unchanged
-			if (cl_shownet->value == 3)
-				Msg ("   unchanged: %i\n", oldnum);
+		{	
+			// one or more entities from the old packet are unchanged
+			if (cl_shownet->value == 3) Msg ("   unchanged: %i\n", oldnum);
 			CL_DeltaEntity (newframe, oldnum, oldstate, 0);
 			
 			oldindex++;
@@ -709,20 +708,15 @@ void CL_ParseFrame (void)
 	// read playerinfo
 	cmd = MSG_ReadByte (&net_message);
 	SHOWNET(svc_strings[cmd]);
-	if (cmd != svc_playerinfo)
-		Com_Error (ERR_DROP, "CL_ParseFrame: not playerinfo");
+	if (cmd != svc_playerinfo) Host_Error("CL_ParseFrame: not playerinfo\n");
 	CL_ParsePlayerstate (old, &cl.frame);
 
 	// read packet entities
 	cmd = MSG_ReadByte (&net_message);
 	SHOWNET(svc_strings[cmd]);
-	if (cmd != svc_packetentities) Com_Error (ERR_DROP, "CL_ParseFrame: not packetentities");
+	if (cmd != svc_packetentities) Host_Error("CL_ParseFrame: not packetentities\n");
 	CL_ParsePacketEntities (old, &cl.frame);
 
-#if 0
-	if (cmd == svc_packetentities2)
-		CL_ParseProjectiles();
-#endif
 
 	// save the frame off in the backup array for later delta comparisons
 	cl.frames[cl.frame.serverframe & UPDATE_MASK] = cl.frame;
@@ -1333,7 +1327,7 @@ void CL_GetEntitySoundOrigin (int ent, vec3_t org)
 	centity_t	*old;
 
 	if (ent < 0 || ent >= MAX_EDICTS)
-		Com_Error (ERR_DROP, "CL_GetEntitySoundOrigin: bad ent");
+		Host_Error("CL_GetEntitySoundOrigin: entity out of range\n");
 	old = &cl_entities[ent];
 	VectorCopy (old->lerp_origin, org);
 

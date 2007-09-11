@@ -257,7 +257,7 @@ void CreateInstance( void )
 	
 	stdinout_api_t  std;//import
 
-	//export
+	// export
 	platform_t	CreatePlat;
 	launcher_t	CreateHost;
 	launcher_exp_t	*Host;          
@@ -284,7 +284,7 @@ void CreateInstance( void )
 		if ((CreateHost = (void *)GetProcAddress( linked_dll, "CreateAPI" ) ) == 0 )
 			Sys_Error("CreateInstance: %s has no valid entry point\n", dllname );
 
-		//set callback
+		// set callback
 		Host = CreateHost( std );
 		Host_Init = Host->Init;
 		Host_Main = Host->Main;
@@ -298,14 +298,14 @@ void CreateInstance( void )
 			Sys_Error("CreateInstance: couldn't load %s\n", dllname );
 		if ((CreatePlat = (void *)GetProcAddress( linked_dll, "CreateAPI" )) == 0 )
 			Sys_Error("CreateInstance: %s has no valid entry point\n", dllname );
-		//set callback
+		// set callback
 		pi = CreatePlat( std );
 		Host_Init = PlatformInit;
 		Host_Main = PlatformMain;
 		Host_Free = PlatformShutdown;
 		break;
 	case CREDITS:
-		Sys_Error( (char *)show_credits );
+		Sys_Error((char *)show_credits ); // simply method to show credits :)
 		break;
 	case DEFAULT:
 		Sys_Error("CreateInstance: unsupported instance\n");		
@@ -370,19 +370,21 @@ void API_SetConsole( void )
 
 void InitLauncher( char *funcname )
 {
-	HANDLE	hStdout;
-	char	dev_level[4];
+	HANDLE		hStdout;
+	char		dev_level[4];
+	OSVERSIONINFO	vinfo;
 	
 	API_Reset();//filled stdinout api
 	
-	//get current hInstance first
+	// get current hInstance first
 	base_hInstance = (HINSTANCE)GetModuleHandle( NULL );
-
-	//check for hooked out
-	hStdout = GetStdHandle (STD_OUTPUT_HANDLE);
+	vinfo.dwOSVersionInfoSize = sizeof(vinfo);
+	hStdout = GetStdHandle (STD_OUTPUT_HANDLE); // check for hooked out
 
 	if(CheckParm ("-debug")) debug_mode = true;
 	if(CheckParm ("-log")) log_active = true;
+
+	// ugly hack to get pipeline state, but it works
 	if(abs((short)hStdout) < 100) hooked_out = false;
 	else hooked_out = true;
 	if(GetParmFromCmdLine("-dev", dev_level ))
@@ -390,18 +392,21 @@ void InitLauncher( char *funcname )
 
 	UpdateEnvironmentVariables(); // set working directory
           
-	//init launcher
+	// init launcher
 	LookupInstance( funcname );
 	HOST_MakeStubs();//make sure what all functions are filled
 	API_SetConsole(); //initialize system console
 	Sys_InitConsole( caption );
 
+	if(!GetVersionEx (&vinfo)) Sys_Error ("InitLauncher: Couldn't get OS info\n");
+	if(vinfo.dwMajorVersion < 4) Sys_Error ("InitLauncher: Win%d is not supported\n", vinfo.dwMajorVersion );
+
 	CreateInstance();
 
 	// NOTE: host will working in loop mode and never returned
 	// control without reason
-	Host_Main();	// ok, starting host
-	Sys_Exit();	// normal quit from appilcation
+	Host_Main(); // ok, starting host
+	Sys_Exit(); // normal quit from appilcation
 }
 
 /*
@@ -412,7 +417,12 @@ Base Entry Point
 
 DLLEXPORT int CreateAPI( char *funcname, LPSTR lpCmdLine )
 {
-	//parse and copy args into local array
+	MEMORYSTATUS	lpBuffer;
+
+	lpBuffer.dwLength = sizeof(MEMORYSTATUS);
+	GlobalMemoryStatus (&lpBuffer);
+
+	// parse and copy args into local array
 	ParseCommandLine( lpCmdLine );
 	InitLauncher( funcname );
 

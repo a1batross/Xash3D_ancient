@@ -51,7 +51,7 @@ size_t COM_PackString( byte *buffer, int pos, char *string )
 
 	strsize = strlen( string );
 	if(strsize > MAX_QPATH) strsize = MAX_QPATH; //critical stuff
-	strsize++; //get space for terminator	
+	strsize++; // get space for terminator	
 
 	strlcpy(buffer + pos, string, strsize ); 
 	return pos + strsize;
@@ -178,7 +178,7 @@ void Sav_LoadComment( lump_t *l )
 	int	size;
 
 	in = (void *)(sav_base + l->fileofs);
-	if (l->filelen % sizeof(*in)) Com_Error (ERR_DROP, "Sav_LoadComment: funny lump size\n" );
+	if (l->filelen % sizeof(*in)) Host_Error("Sav_LoadComment: funny lump size\n" );
 
 	size = l->filelen / sizeof(*in);
 	strlcpy(svs.comment, in, size );
@@ -191,7 +191,7 @@ void Sav_LoadCvars( lump_t *l )
 	byte	*in;
 
 	in = (void *)(sav_base + l->fileofs);
-	if (l->filelen % sizeof(*in)) Com_Error (ERR_DROP, "Sav_LoadCvars: funny lump size\n" );
+	if (l->filelen % sizeof(*in)) Host_Error("Sav_LoadCvars: funny lump size\n" );
 	size = l->filelen / sizeof(*in);
 
 	while(pos < size)
@@ -208,7 +208,7 @@ void Sav_LoadMapCmds( lump_t *l )
 	int	size;
 
 	in = (void *)(sav_base + l->fileofs);
-	if (l->filelen % sizeof(*in)) Com_Error (ERR_DROP, "Sav_LoadMapCmds: funny lump size\n" );
+	if (l->filelen % sizeof(*in)) Host_Error("Sav_LoadMapCmds: funny lump size\n" );
 
 	size = l->filelen / sizeof(*in);
 	strncpy (svs.mapcmd, in, size );
@@ -220,7 +220,7 @@ void Sav_LoadCfgString( lump_t *l )
 	int	i, pos = 0;
 
 	in = (void *)(sav_base + l->fileofs);
-	if (l->filelen % sizeof(*in)) Com_Error (ERR_DROP, "Sav_LoadCfgString: funny lump size\n" );
+	if (l->filelen % sizeof(*in)) Host_Error("Sav_LoadCfgString: funny lump size\n" );
 
 	//unpack the cfg string data
 	for(i = 0; i < MAX_CONFIGSTRINGS; i++)
@@ -236,7 +236,7 @@ void Sav_LoadAreaPortals( lump_t *l )
 	int	size;
 
 	in = (void *)(sav_base + l->fileofs);
-	if (l->filelen % sizeof(*in)) Com_Error (ERR_DROP, "Sav_LoadAreaPortals: funny lump size\n" );
+	if (l->filelen % sizeof(*in)) Host_Error("Sav_LoadAreaPortals: funny lump size\n" );
 
 	size = l->filelen / sizeof(*in);
 	Mem_Copy(portalopen, in, size);
@@ -268,8 +268,8 @@ void SV_ReadSaveFile( char *name )
 	i = LittleLong (header->version);
 	id = LittleLong (header->ident);
 
-	if(id != IDSAVEHEADER) Com_Error(ERR_DROP, "SV_ReadSaveFile: file %s is corrupted\n", path );
-	if (i != SAVE_VERSION) Com_Error(ERR_DROP, "file %s from an older save version\n", path );
+	if(id != IDSAVEHEADER) Host_Error("SV_ReadSaveFile: file %s is corrupted\n", path );
+	if (i != SAVE_VERSION) Host_Error("file %s from an older save version\n", path );
 
 	sav_base = (byte *)header;
 
@@ -306,8 +306,8 @@ void SV_ReadLevelFile( char *name )
 	i = LittleLong (header->version);
 	id = LittleLong (header->ident);
 
-	if(id != IDSAVEHEADER) Com_Error(ERR_DROP, "SV_ReadSaveFile: file %s is corrupted\n", path );
-	if (i != SAVE_VERSION) Com_Error(ERR_DROP, "file %s from an older save version\n", path );
+	if(id != IDSAVEHEADER) Host_Error("SV_ReadSaveFile: file %s is corrupted\n", path );
+	if (i != SAVE_VERSION) Host_Error("file %s from an older save version\n", path );
 
 	sav_base = (byte *)header;
 

@@ -25,11 +25,11 @@
 #include "const.h"
 #include "common.h"
 #include "cvar.h"
+#include "console.h"
 
 extern stdinout_api_t	std;
 extern platform_exp_t	*pi;
 extern byte		*zonepool;
-extern jmp_buf		abortframe;
 
 typedef enum
 {
@@ -49,6 +49,15 @@ typedef enum
 	HOST_DEDICATED,	// dedicated mode
 } host_mode;
 
+typedef struct host_redirect_s
+{
+	int	target;
+	char	*buffer;
+	int	buffersize;
+	void	(*flush)(int target, char *buffer);
+
+} host_redirect_t;
+
 typedef struct host_parm_s
 {
 	host_state	state;		// global host state
@@ -59,6 +68,8 @@ typedef struct host_parm_s
 
 	bool		paused;		// freeze server
 
+	jmp_buf		abortframe;	// abort current frame
+
 	dword		framecount;	// global framecount
 	double		realtime;		// host realtime
 	float		frametime;	// frametime (default 0.1)
@@ -67,11 +78,9 @@ typedef struct host_parm_s
 
 	uint		maxclients;	// host max clients
 
+	host_redirect_t	rd;
+
 } host_parm_t;
-
-extern host_parm_t host;
-
-int Sys_Milliseconds (void);
 
 bool _GetParmFromCmdLine( char *parm, char *out, size_t size );
 #define GetParmFromCmdLine( parm, out ) _GetParmFromCmdLine( parm, out, sizeof(out)) 
@@ -154,18 +163,30 @@ System Events
 ===========================================
 */
 
-#define Msg Com_Printf
-#define MsgDev Com_DPrintf
-#define MsgWarn Com_DWarnf
-void Sys_Error( char *msg, ... );
-
+#define Msg Con_Printf
+#define MsgDev Con_DPrintf
+#define MsgWarn Con_DWarnf
 /*
 ===========================================
 Host Interface
 ===========================================
 */
+extern host_parm_t host;
 void Host_Init ( char *funcname, int argc, char **argv );
 void Host_Main ( void );
 void Host_Free ( void );
+void Host_Error( const char *error, ... );
+void Host_AbortCurrentFrame( void );
+
+
+// host cmds
+void Host_Error_f( void );
+
+/*
+===========================================
+System utilites
+===========================================
+*/
+void Sys_Error( const char *msg, ... );
 
 #endif//ENGINE_H

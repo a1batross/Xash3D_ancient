@@ -202,8 +202,8 @@ void _MSG_WriteDeltaEntity (entity_state_t *from, entity_state_t *to, sizebuf_t 
 {
 	int	bits = 0;
 
-	if (!to->number) Com_Error (ERR_DROP, "Unset entity number");
-	if (to->number >= MAX_EDICTS) Com_Error (ERR_DROP, "Entity number >= MAX_EDICTS");
+	if (!to->number) Host_Error("Unset entity number\n");
+	if (to->number >= MAX_EDICTS) Host_Error("Entity number >= MAX_EDICTS\n");
 
 	// send an update
 	if (to->number >= 256) bits |= U_NUMBER16; // number8 is implicit otherwise
@@ -556,7 +556,7 @@ void *SZ_GetSpace (sizebuf_t *buf, int length)
 	if (buf->cursize + length > buf->maxsize)
 	{
 		if (length > buf->maxsize)
-			Com_Error (ERR_DROP, "SZ_GetSpace: %i is > full buffer size", length);
+			Host_Error("SZ_GetSpace: %i is > full buffer size\n", length);
 			
 		Msg ("SZ_GetSpace: overflow [cursize %d maxsize %d]\n", buf->cursize + length, buf->maxsize );
 		SZ_Clear (buf); 

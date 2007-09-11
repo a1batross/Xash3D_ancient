@@ -240,12 +240,11 @@ void Key_Console (int key)
 		break;
 	}
 
-	if ( ( toupper( key ) == 'V' && keydown[K_CTRL] ) ||
-		 ( ( ( key == K_INS ) || ( key == K_KP_INS ) ) && keydown[K_SHIFT] ) )
+	if (( toupper( key ) == 'V' && keydown[K_CTRL]) || ((( key == K_INS ) || ( key == K_KP_INS )) && keydown[K_SHIFT] ))
 	{
 		char *cbd;
 		
-		if ( ( cbd = Sys_GetClipboardData() ) != 0 )
+		if (( cbd = Sys_GetClipboardData()) != 0 )
 		{
 			int i;
 
@@ -261,7 +260,7 @@ void Key_Console (int key)
 				strcat( key_lines[edit_line], cbd );
 				key_linepos += i;
 			}
-			free( cbd );
+			Z_Free( cbd );
 		}
 
 		return;

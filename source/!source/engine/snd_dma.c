@@ -376,8 +376,7 @@ channel_t *S_PickChannel(int entnum, int entchannel)
     int			life_left;
 	channel_t	*ch;
 
-	if (entchannel<0)
-		Com_Error (ERR_DROP, "S_PickChannel: entchannel<0");
+	if (entchannel<0) Host_Error("S_PickChannel: entchannel < 0\n");
 
 // Check for replacement sound, or find the best one to replace
     first_to_die = -1;

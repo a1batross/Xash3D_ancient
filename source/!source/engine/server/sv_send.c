@@ -516,8 +516,7 @@ void SV_SendClientMessages (void)
 				SV_DemoCompleted ();
 				return;
 			}
-			if (msglen > MAX_MSGLEN)
-				Com_Error (ERR_DROP, "SV_SendClientMessages: msglen > MAX_MSGLEN");
+			if (msglen > MAX_MSGLEN) Host_Error("SV_SendClientMessages: msglen > MAX_MSGLEN\n");
 			if(!FS_Read (sv.demofile, msgbuf, msglen))
 			{
 				SV_DemoCompleted ();

@@ -44,8 +44,7 @@ void SV_BeginDemoserver (void)
 
 	sprintf (name, "demos/%s", sv.name);
 	sv.demofile = FS_Open(name, "rb" );
-	if (!sv.demofile)
-		Com_Error (ERR_DROP, "Couldn't open %s\n", name);
+	if (!sv.demofile) Host_Error("Couldn't open %s\n", name);
 }
 
 /*

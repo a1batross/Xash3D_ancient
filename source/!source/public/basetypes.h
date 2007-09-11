@@ -59,6 +59,7 @@ typedef struct { int fileofs; int filelen; }lump_t;
 typedef struct { byte r; byte g; byte b; } color24;
 typedef struct { uint b:5; uint g:6; uint r:5; } color16;
 typedef struct { byte r; byte g; byte b; byte a; } color32;
+typedef struct { const char *name; void **func; } dllfunc_t;
 
 #ifndef NULL
 #define NULL	((void *)0)

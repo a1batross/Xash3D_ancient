@@ -2116,7 +2116,7 @@ void StartServerActionFunc( void *self )
 	M_ForceMenuOff ();
 }
 
-bool CreateMapsList( void )
+bool Menu_CreateMapsList( void )
 {
 	char *buffer;
 	search_t	*t = FS_Search( "maps/*.bsp" );
@@ -2124,7 +2124,7 @@ bool CreateMapsList( void )
 
 	if(!t) return result;
 
-	buffer = Z_Malloc( t->numfilenames * 2 * 96 );//fmt: mapname "maptitle"/r
+	buffer = Z_Malloc( t->numfilenames * 2 * 96 );
 	for(i = 0; i < t->numfilenames; i++)
 	{
 		
@@ -2194,12 +2194,13 @@ bool CreateMapsList( void )
 						}
 						else if(!strcmp(keyname, "classname"))
 						{
+							// check for bsp model or prefab
 							if(!strcmp(com_token, "info_player_deatchmatch"))
 								num_spawnpoints++;
 							else if(!strcmp(com_token, "info_player_start"))
 								num_spawnpoints++;
 						}
-						if(num_spawnpoints > 0) break;//valid map
+						if(num_spawnpoints > 0) break;// valid map
 					}
 				}
 			}
@@ -2208,14 +2209,14 @@ bool CreateMapsList( void )
 			if(fp) FS_Close(fp);
 
 			//make string
-			sprintf(string, "%s \"%s\"\r", mapname, message );
-			strcat(buffer, string);//add new string
+			sprintf(string, "%s \"%s\"\r", mapname, message );// format: mapname "maptitle"/r
+			strcat(buffer, string); // add new string
 		}
 	}
-	if( t ) Z_Free(t);
+	if( t ) Z_Free(t); //free search result
 
-	//write generated maps.txt
-	result = FS_WriteFile("scripts/maps.txt", buffer, strlen(buffer));
+	// write generated maps.lst
+	result = FS_WriteFile("scripts/maps.lst", buffer, strlen(buffer));
           if( buffer ) Z_Free(buffer);
 	return result;
 }
@@ -2235,16 +2236,14 @@ void StartServer_MenuInit( void )
 	int i;
 	file_t *fp;
 
-	/*
-	** load the list of map names
-	*/
-	if(!FS_FileExists("scripts/maps.txt") && !CreateMapsList())
+	// create new maplist if not exist
+	if(!FS_FileExists("scripts/maps.lst") && !Menu_CreateMapsList())
 	{
 		MsgWarn("StartServer_MenuInit: maps.lst not found\n");
 		return;
 	}
 
-	fp = FS_Open( "scripts/maps.txt", "rb" );
+	fp = FS_Open( "scripts/maps.lst", "rb" );
 	FS_Seek(fp, 0, SEEK_END);
 	length = FS_Tell(fp);
 	FS_Seek(fp, 0, SEEK_SET);
@@ -2261,8 +2260,7 @@ void StartServer_MenuInit( void )
 		i++;
 	}
 
-	if ( nummaps == 0 )
-		Com_Error( ERR_DROP, "no maps in maps.lst\n" );
+	if ( nummaps == 0 ) Host_Error( "no maps in maps.lst\n" );
 
 	mapnames = Z_Malloc( sizeof( char * ) * ( nummaps + 1 ) );
 	memset( mapnames, 0, sizeof( char * ) * ( nummaps + 1 ) );

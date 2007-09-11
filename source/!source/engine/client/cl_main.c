@@ -388,7 +388,7 @@ void CL_Quit_f (void)
 ================
 CL_Drop
 
-Called after an ERR_DROP was thrown
+Called after an Host_Error was thrown
 ================
 */
 void CL_Drop (void)
@@ -402,7 +402,7 @@ void CL_Drop (void)
 
 	// drop loading plaque unless this is the initial game start
 	if (cls.disable_servercount != -1)
-		SCR_EndLoadingPlaque ();	// get rid of loading plaque
+		SCR_EndLoadingPlaque (); // get rid of loading plaque
 }
 
 
@@ -606,7 +606,7 @@ CL_Disconnect
 
 Goes from a connected state to full screen console state
 Sends a disconnect message to the server
-This is also called on Com_Error, so it shouldn't cause any errors
+This is also called on Host_Error, so it shouldn't cause any errors
 =====================
 */
 void CL_Disconnect (void)
@@ -659,7 +659,7 @@ void CL_Disconnect (void)
 
 void CL_Disconnect_f (void)
 {
-	Com_Error (ERR_DROP, "Disconnected from server");
+	Host_Error("Disconnected from server\n");
 }
 
 
@@ -1317,10 +1317,9 @@ void CL_RequestNextDownload (void)
 		precache_check = ENV_CNT + 1;
 
 		CM_LoadMap (cl.configstrings[CS_MODELS+1], true, &map_checksum);
-
 		if (map_checksum != atoi(cl.configstrings[CS_MAPCHECKSUM]))
 		{
-			Com_Error (ERR_DROP, "Local map version differs from server: %i != '%s'\n", map_checksum, cl.configstrings[CS_MAPCHECKSUM]);
+			Host_Error("Local map version differs from server: %i != '%s'\n", map_checksum, cl.configstrings[CS_MAPCHECKSUM]);
 			return;
 		}
 	}
@@ -1804,20 +1803,20 @@ void CL_Init (void)
 ===============
 CL_Shutdown
 
-FIXME: this is a callback from Sys_Quit and Com_Error.  It would be better
+FIXME: this is a callback from Sys_Quit and Host_Error.  It would be better
 to run quit through here before the final handoff to the sys code.
 ===============
 */
 void CL_Shutdown(void)
 {
-	static bool isdown = false;
+	static bool recursive = false;
 	
-	if (isdown)
+	if (recursive)
 	{
-		printf ("recursive shutdown\n");
+		MsgDev(D_WARN, "CL_Shutdown: recursive shutdown\n");
 		return;
 	}
-	isdown = true;
+	recursive = true;
 
 	CL_WriteConfiguration (); 
 

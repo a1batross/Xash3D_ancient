@@ -44,8 +44,7 @@ int SV_FindIndex (char *name, int start, int max, bool create)
 	if (!create)
 		return 0;
 
-	if (i == max)
-		Com_Error (ERR_DROP, "*Index: overflow");
+	if (i == max) Host_Error("SV_FindIndex: limit exceeded\n");
 
 	strncpy (sv.configstrings[start+i], name, sizeof(sv.configstrings[i]));
 

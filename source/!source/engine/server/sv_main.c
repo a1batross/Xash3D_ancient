@@ -51,14 +51,39 @@ cvar_t	*maxclients;			// FIXME: rename sv_maxclients
 cvar_t	*sv_showclamp;
 
 cvar_t	*hostname;
-cvar_t	*public_server;			// should heartbeats be sent
+cvar_t	*public_server; // should heartbeats be sent
 
-cvar_t	*sv_reconnect_limit;	// minimum seconds between connect messages
+cvar_t	*sv_reconnect_limit;// minimum seconds between connect messages
 
 void Master_Shutdown (void);
 
+static int rd_target;
+static char *rd_buffer;
+static int rd_buffersize;
+static void (*rd_flush)(int target, char *buffer);
 
 //============================================================================
+void SVC_BeginRedirect (int target, char *buffer, int buffersize, void (*flush))
+{
+	if (!target || !buffer || !buffersize || !flush) return;
+
+	host.rd.target = target;
+	host.rd.buffer = buffer;
+	host.rd.buffersize = buffersize;
+	host.rd.flush = flush;
+
+	*host.rd.buffer = 0;
+}
+
+void SVC_EndRedirect (void)
+{
+	host.rd.flush(rd_target, rd_buffer);
+
+	host.rd.target = 0;
+	host.rd.buffer = NULL;
+	host.rd.buffersize = 0;
+	host.rd.flush = NULL;
+}
 
 
 /*
@@ -108,7 +133,7 @@ SV_StatusString
 Builds the string that is sent as heartbeats and status replies
 ===============
 */
-char	*SV_StatusString (void)
+char *SV_StatusString (void)
 {
 	char	player[1024];
 	static char	status[MAX_MSGLEN - 16];
@@ -424,31 +449,27 @@ Redirect all printfs
 void SVC_RemoteCommand (void)
 {
 	int		i;
-	char	remaining[1024];
+	char		remaining[1024];
 
 	i = Rcon_Validate ();
 
-	if (i == 0) Msg ("Bad rcon from %s:\n%s\n", NET_AdrToString (net_from), net_message.data+4);
-	else Msg ("Rcon from %s:\n%s\n", NET_AdrToString (net_from), net_message.data+4);
-	Com_BeginRedirect (RD_PACKET, sv_outputbuf, SV_OUTPUTBUF_LENGTH, SV_FlushRedirect);
+	if (i == 0) MsgDev(D_INFO, "Bad rcon from %s:\n%s\n", NET_AdrToString (net_from), net_message.data + 4);
+	else MsgDev(D_INFO, "Rcon from %s:\n%s\n", NET_AdrToString (net_from), net_message.data + 4);
+	SVC_BeginRedirect (RD_PACKET, sv_outputbuf, SV_OUTPUTBUF_LENGTH, SV_FlushRedirect);
 
-	if (!Rcon_Validate ())
-	{
-		Msg ("Bad rcon_password.\n");
-	}
+	if (!Rcon_Validate()) Msg("Bad rcon_password.\n");
 	else
 	{
 		remaining[0] = 0;
 
-		for (i=2 ; i<Cmd_Argc() ; i++)
+		for (i = 2; i < Cmd_Argc(); i++)
 		{
 			strcat (remaining, Cmd_Argv(i) );
 			strcat (remaining, " ");
 		}
-
 		Cmd_ExecuteString (remaining);
 	}
-	Com_EndRedirect ();
+	SVC_EndRedirect ();
 }
 
 /*

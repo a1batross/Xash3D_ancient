@@ -49,7 +49,7 @@ void Host_InitPlatform( char *funcname, int argc, char **argv )
 	if(pi->api_size != sizeof(platform_exp_t))
 		Sys_Error("mismatch interface size (%i should be %i)\n", pi->api_size, sizeof(platform_exp_t));
 	
-	//initialize our platform :)
+	// initialize our platform :)
 	pi->Init( argc, argv );
 
 	//TODO: init basedir here
@@ -65,6 +65,18 @@ void Host_FreePlatform( void )
 		pi->Shutdown();
 		FreeLibrary( platform_dll );
 	}
+}
+
+/*
+================
+Host_AbortCurrentFrame
+
+aborts the current host frame and goes on with the next one
+================
+*/
+void Host_AbortCurrentFrame( void )
+{
+	longjmp(host.abortframe, 1);
 }
 
 /*
@@ -107,7 +119,7 @@ void Host_Init (char *funcname, int argc, char **argv)
 	Cbuf_Execute ();
 
 	// init commands and vars
-	Cmd_AddCommand ("error", Com_Error_f);
+	Cmd_AddCommand ("error", Host_Error_f);
 
 	host_speeds = Cvar_Get ("host_speeds", "0", 0);
 	log_stats = Cvar_Get ("log_stats", "0", 0);
@@ -122,9 +134,7 @@ void Host_Init (char *funcname, int argc, char **argv)
 	Cvar_Get ("version", s, CVAR_SERVERINFO|CVAR_NOSET);
 
 	if (dedicated->value) Cmd_AddCommand ("quit", Com_Quit);
-
-	Sys_Init();
-          
+        
 	NET_Init ();
 	Netchan_Init ();
           
@@ -154,10 +164,10 @@ Host_Frame
 */
 void Host_Frame (double time)
 {
-	char	*s;
+	char		*s;
 	static double	time_before, time_between, time_after;
 
-	if (setjmp (abortframe) ) return; // an ERR_DROP was thrown
+	if (setjmp(host.abortframe)) return;
 
 	if ( log_stats->modified )
 	{
@@ -233,7 +243,6 @@ Host_Main
 */
 void Host_Main( void )
 {
-	MSG		msg;
 	static double	time, oldtime, newtime;
 
 	oldtime = host.realtime;
@@ -245,14 +254,6 @@ void Host_Main( void )
 		if (Minimized || (dedicated && dedicated->value) )
 		{
 			Sleep (1);
-		}
-
-		while (PeekMessage (&msg, NULL, 0, 0, PM_NOREMOVE))
-		{
-			if (!GetMessage (&msg, NULL, 0, 0)) Com_Quit ();
-			host.sv_timer = msg.time;
-			TranslateMessage (&msg);
-   			DispatchMessage (&msg);
 		}
 	         	do
 		{
@@ -277,4 +278,44 @@ void Host_Free (void)
 	SV_Shutdown ("Server shutdown\n", false);
 	CL_Shutdown ();
 	Host_FreePlatform();
+}
+
+/*
+=================
+Host_Error
+=================
+*/
+void Host_Error( const char *error, ... )
+{
+	static char	hosterror1[MAX_INPUTLINE];
+	static char	hosterror2[MAX_INPUTLINE];
+	static bool	recursive = false;
+	va_list		argptr;
+
+	va_start( argptr, error );
+	vsprintf( hosterror1, error, argptr );
+	va_end( argptr );
+
+	if (host.framecount < 3 || host.state == HOST_SHUTDOWN)
+		Sys_Error ("%s", hosterror1 );
+	else Msg("Host_Error: %s", hosterror1);
+
+	if(recursive)
+	{ 
+		Msg("Host_Error: recursive %s", hosterror2);
+		Sys_Error ("%s", hosterror1);
+	}
+	recursive = true;
+	strlcpy(hosterror2, hosterror1, sizeof(hosterror2));
+
+	SV_Shutdown (va("Server crashed: %s", hosterror1), false);
+	CL_Drop(); // drop clients
+
+	recursive = false;
+	Host_AbortCurrentFrame();
+}
+
+void Host_Error_f( void )
+{
+	Host_Error( "%s\n", Cmd_Argv(1));
 }

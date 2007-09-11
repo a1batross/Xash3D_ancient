@@ -438,7 +438,18 @@ void GUI_ResetWndOptions( void )
 	w_opts.font_size = 7;
 	strcpy(w_opts.fontname, "Courier");
 	w_opts.font_type = CFM_BOLD | CFM_FACE | CFM_COLOR;
-	w_opts.font_color = RGB(0,0,0);
+	w_opts.font_color = RGB(0, 0, 0);
+
+	w_opts.width = s_gui.width;
+	w_opts.height = s_gui.height;
+}
+
+void GUI_LoadWndOptions( wnd_options_t *settings )
+{
+	memcpy( &w_opts, settings, sizeof(w_opts));
+
+	s_gui.width = w_opts.width;
+	s_gui.height = w_opts.height;
 }
 
 bool GUI_LoadPlatfrom( char *funcname, int argc, char **argv )
@@ -894,17 +905,20 @@ static LRESULT CALLBACK WndProc (HWND hwnd, UINT uMessage, WPARAM wParam, LPARAM
 			int con_w, con_h, con_y;
 			int exp_w, exp_h, coffs;
 			RECT rect;
-
+			GetWindowRect(s_gui.hWnd, &rect);
+			w_opts.width = rect.right - rect.left;
+			w_opts.height = rect.bottom - rect.top;
 			GetClientRect(s_gui.hWnd, &rect);
-			con_h = (rect.bottom - rect.top) / w_opts.con_scale;	//console scale factor
-			con_y = rect.bottom - rect.top - con_h;			//console hight
+
+			con_h = (rect.bottom - rect.top) / w_opts.con_scale;	// console scale factor
+			con_y = rect.bottom - rect.top - con_h;			// console hight
 			con_w = rect.right - rect.left;
 
 			if(s_gui.hConsole && IsWindowVisible(s_gui.hConsole)) coffs = con_h;
                               else coffs = 0;
 
-			exp_w = (rect.right - rect.left) / w_opts.exp_scale;	//explorer scale factor
-			exp_h = rect.bottom - rect.top - coffs;			//explorer height
+			exp_w = (rect.right - rect.left) / w_opts.exp_scale;	// explorer scale factor
+			exp_h = rect.bottom - rect.top - coffs;			// explorer height
 			
 			//make me sure what handle is valid
 			if(s_gui.hConsole) SetWindowPos(s_gui.hConsole, NULL, 0, con_y, con_w, con_h, 0);
@@ -936,7 +950,6 @@ void InitEditor ( char *funcname, int argc, char **argv )
 
 	com_argc = argc;
 	memcpy(com_argv, argv, MAX_NUM_ARGVS );
-	GUI_ResetWndOptions();//load default settings
 	
 	wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 	wc.lpfnWndProc = WndProc;
@@ -952,7 +965,7 @@ void InitEditor ( char *funcname, int argc, char **argv )
 	if (!wc.hIcon) wc.hIcon = LoadIcon (NULL, IDI_WINLOGO);
 	if (!RegisterClass (&wc)) Sys_Error("Can't create editor window\n");
 
-	//move window into center of screen
+	// move window into center of screen
 	rect.left = 0;
 	rect.right = MAIN_WND_WIDTH;
 	rect.top = 0;
@@ -970,6 +983,7 @@ void InitEditor ( char *funcname, int argc, char **argv )
           s_gui.top = ( s_gui.scr_width - MAIN_WND_WIDTH ) / 2;
           s_gui.bottom = ( s_gui.scr_height - MAIN_WND_HEIGHT ) / 2;
 
+	GUI_ResetWndOptions(); // load default settings
 	InitCommonControls ();
           
 	if(GUI_LoadPlatfrom( funcname, argc, argv )) //load config
@@ -997,7 +1011,7 @@ void InitEditor ( char *funcname, int argc, char **argv )
 				iErrors++;
 			}
 			//copy settings into main structure
-			if(!iErrors) memcpy( &w_opts, config_dat, sizeof(w_opts));
+			if(!iErrors) GUI_LoadWndOptions( config_dat );
 		}
 	}
 	else iErrors++;
@@ -1042,9 +1056,10 @@ void EditorMain ( void )
 
 void FreeEditor ( void )
 {
-	//free richedit32
+	// free richedit32
 	if (s_gui.richedit) FreeLibrary( s_gui.richedit );
-	//free platform
+
+	// free platform
 	if(platform_dll)
 	{
 		pi->Shutdown();

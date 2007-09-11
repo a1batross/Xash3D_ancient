@@ -64,7 +64,7 @@ void PF_cprintf (edict_t *ent, int level, char *fmt, ...)
 	{
 		n = NUM_FOR_EDICT(ent);
 		if (n < 1 || n > maxclients->value)
-			Com_Error (ERR_DROP, "cprintf to a non-client");
+			Host_Error("cprintf to a non-client\n");
 	}
 
 	va_start (argptr,fmt);
@@ -93,7 +93,7 @@ void PF_centerprintf (edict_t *ent, char *fmt, ...)
 	
 	n = NUM_FOR_EDICT(ent);
 	if (n < 1 || n > maxclients->value)
-		return;	// Com_Error (ERR_DROP, "centerprintf to a non-client");
+		return;
 
 	va_start (argptr,fmt);
 	vsprintf (msg, fmt, argptr);
@@ -121,7 +121,7 @@ void PF_error (char *fmt, ...)
 	vsprintf (msg, fmt, argptr);
 	va_end (argptr);
 
-	Com_Error (ERR_DROP, "Game Error: %s", msg);
+	Host_Error("Game Error: %s\n", msg);
 }
 
 
@@ -137,13 +137,11 @@ void PF_setmodel (edict_t *ent, char *name)
 	int		i;
 	cmodel_t		*mod;
 	
-	if (!name) Com_Error (ERR_DROP, "PF_setmodel: NULL");
+	if (!name) Host_Error("PF_setmodel: NULL\n");
 
 	i = SV_ModelIndex (name);
 		
-//	ent->model = name;
 	ent->s.modelindex = i;
-
 	mod = CM_LoadModel (name);
 
 	if(mod)	// hull setup
@@ -163,7 +161,7 @@ PF_Configstring
 void PF_Configstring (int index, char *val)
 {
 	if (index < 0 || index >= MAX_CONFIGSTRINGS)
-		Com_Error (ERR_DROP, "configstring: bad index %i value %s\n", index, val);
+		Host_Error("PF_Configstring: bad index %i value %s\n", index, val);
 
 	if (!val) val = "";
 

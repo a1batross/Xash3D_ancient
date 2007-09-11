@@ -297,22 +297,16 @@ void CL_ParseServerData (void)
 	int		i;
 	
 	MsgDev (D_INFO, "Serverdata packet received.\n");
-//
-// wipe the client_state_t struct
-//
+
+	// wipe the client_state_t struct
 	CL_ClearState ();
 	cls.state = ca_connected;
 
-// parse protocol version number
+	// parse protocol version number
 	i = MSG_ReadLong (&net_message);
 	cls.serverProtocol = i;
 
-	// BIG HACK to let demos from release work with the 3.0x patch!!!
-	if (Com_ServerState() && PROTOCOL_VERSION == 34)
-	{
-	}
-	else if (i != PROTOCOL_VERSION)
-		Com_Error (ERR_DROP,"Server returned version %i, not %i", i, PROTOCOL_VERSION);
+	if (i != PROTOCOL_VERSION) Host_Error("Server returned version %i, not %i", i, PROTOCOL_VERSION);
 
 	cl.servercount = MSG_ReadLong (&net_message);
 	cl.attractloop = MSG_ReadByte (&net_message);
@@ -328,7 +322,8 @@ void CL_ParseServerData (void)
 	str = MSG_ReadString (&net_message);
 
 	if (cl.playernum == -1)
-	{	// playing a cinematic or showing a pic, not a level
+	{	
+		// playing a cinematic or showing a pic, not a level
 		SCR_PlayCinematic (str);
 	}
 	else
@@ -514,8 +509,7 @@ void CL_ParseConfigString (void)
 	char	olds[MAX_QPATH];
 
 	i = MSG_ReadShort (&net_message);
-	if (i < 0 || i >= MAX_CONFIGSTRINGS)
-		Com_Error (ERR_DROP, "configstring > MAX_CONFIGSTRINGS");
+	if (i < 0 || i >= MAX_CONFIGSTRINGS) Host_Error("configstring > MAX_CONFIGSTRINGS\n");
 	s = MSG_ReadString(&net_message);
 
 	strncpy (olds, cl.configstrings[i], sizeof(olds));
@@ -603,11 +597,11 @@ void CL_ParseStartSoundPacket(void)
 		ofs = 0;
 
 	if (flags & SND_ENT)
-	{	// entity reletive
+	{	
+		// entity reletive
 		channel = MSG_ReadShort(&net_message); 
 		ent = channel>>3;
-		if (ent > MAX_EDICTS)
-			Com_Error (ERR_DROP,"CL_ParseStartSoundPacket: ent = %i", ent);
+		if (ent > MAX_EDICTS) Host_Error("CL_ParseStartSoundPacket: ent out of range\n" );
 
 		channel &= 7;
 	}
@@ -658,7 +652,7 @@ void CL_ParseServerMessage (void)
 	{
 		if (net_message.readcount > net_message.cursize)
 		{
-			Com_Error (ERR_DROP,"CL_ParseServerMessage: Bad server message");
+			Host_Error("CL_ParseServerMessage: Bad server message\n");
 			break;
 		}
 
@@ -680,7 +674,7 @@ void CL_ParseServerMessage (void)
 		switch (cmd)
 		{
 		default:
-			Com_Error (ERR_DROP, "CL_ParseServerMessage: Illegible server message\n");
+			Host_Error("CL_ParseServerMessage: Illegible server message %d\n", cmd );
 			break;
 			
 		case svc_nop:
@@ -688,7 +682,8 @@ void CL_ParseServerMessage (void)
 			break;
 			
 		case svc_disconnect:
-			Com_Error (ERR_DISCONNECT,"Server disconnected\n");
+			CL_Drop ();
+			Host_AbortCurrentFrame();
 			break;
 
 		case svc_reconnect:
@@ -772,7 +767,7 @@ void CL_ParseServerMessage (void)
 		case svc_playerinfo:
 		case svc_packetentities:
 		case svc_deltapacketentities:
-			Com_Error (ERR_DROP, "Out of place frame data");
+			Host_Error("Out of place frame data\n");
 			break;
 		}
 	}

@@ -194,8 +194,7 @@ bool Field_Key( menufield_s *f, int key )
 	/*
 	** support pasting from the clipboard
 	*/
-	if ( ( toupper( key ) == 'V' && keydown[K_CTRL] ) ||
-		 ( ( ( key == K_INS ) || ( key == K_KP_INS ) ) && keydown[K_SHIFT] ) )
+	if ( ( toupper( key ) == 'V' && keydown[K_CTRL] ) || ((( key == K_INS ) || ( key == K_KP_INS )) && keydown[K_SHIFT] ))
 	{
 		char *cbd;
 		
@@ -209,7 +208,7 @@ bool Field_Key( menufield_s *f, int key )
 			if ( f->visible_offset < 0 )
 				f->visible_offset = 0;
 
-			free( cbd );
+			Z_Free( cbd );
 		}
 		return true;
 	}

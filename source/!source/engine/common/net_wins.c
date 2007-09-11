@@ -361,18 +361,15 @@ bool	NET_GetPacket (netsrc_t sock, netadr_t *net_from, sizebuf_t *net_message)
 
 			if (err == WSAEWOULDBLOCK)
 				continue;
-			if (err == WSAEMSGSIZE) {
-				Msg ("Warning:  Oversize packet from %s\n",
-						NET_AdrToString(*net_from));
+			if (err == WSAEMSGSIZE)
+			{
+				MsgWarn("NET_GetPacket: Oversize packet from %s\n", NET_AdrToString(*net_from));
 				continue;
 			}
 
-			if (dedicated->value)	// let dedicated servers continue after errors
-				Msg ("NET_GetPacket: %s from %s\n", NET_ErrorString(),
-						NET_AdrToString(*net_from));
-			else
-				Com_Error (ERR_DROP, "NET_GetPacket: %s from %s", 
-						NET_ErrorString(), NET_AdrToString(*net_from));
+			if (dedicated->value) // let dedicated servers continue after errors
+				Msg ("NET_GetPacket: %s from %s\n", NET_ErrorString(), NET_AdrToString(*net_from));
+			else Host_Error("NET_GetPacket: %s from %s\n", NET_ErrorString(), NET_AdrToString(*net_from));
 			continue;
 		}
 
@@ -446,8 +443,7 @@ void NET_SendPacket (netsrc_t sock, int length, void *data, netadr_t to)
 
 		if (dedicated->value)	// let dedicated servers continue after errors
 		{
-			Msg ("NET_SendPacket ERROR: %s to %s\n", NET_ErrorString(),
-				NET_AdrToString (to));
+			Msg ("NET_SendPacket ERROR: %s to %s\n", NET_ErrorString(), NET_AdrToString (to));
 		}
 		else
 		{
@@ -457,7 +453,7 @@ void NET_SendPacket (netsrc_t sock, int length, void *data, netadr_t to)
 			}
 			else
 			{
-				Com_Error (ERR_DROP, "NET_SendPacket ERROR: %s to %s\n", NET_ErrorString(), NET_AdrToString(to));
+				Host_Error("NET_SendPacket: %s to %s\n", NET_ErrorString(), NET_AdrToString(to));
 			}
 		}
 	}
@@ -474,11 +470,11 @@ NET_Socket
 */
 int NET_IPSocket (char *net_interface, int port)
 {
-	int					newsocket;
+	int		newsocket;
 	struct sockaddr_in	address;
-	bool			_true = true;
-	int					i = 1;
-	int					err;
+	bool		_true = true;
+	int		i = 1;
+	int		err;
 
 	if ((newsocket = socket (PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
 	{

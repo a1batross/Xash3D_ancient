@@ -91,14 +91,14 @@ void CL_RunLightStyles (void)
 
 void CL_SetLightstyle (int i)
 {
-	char	*s;
+	char		*s;
 	int		j, k;
 
 	s = cl.configstrings[i+CS_LIGHTS];
 
 	j = strlen (s);
 	if (j >= MAX_QPATH)
-		Com_Error (ERR_DROP, "svc_lightstyle length=%i", j);
+		Host_Error("CL_SetLightStyle: lightstyle %s is too long\n", s );
 
 	cl_lightstyle[i].length = j;
 
@@ -247,7 +247,7 @@ void CL_ParseMuzzleFlash (void)
 
 	i = MSG_ReadShort (&net_message);
 	if (i < 1 || i >= MAX_EDICTS)
-		Com_Error (ERR_DROP, "CL_ParseMuzzleFlash: bad entity");
+		Host_Error("CL_ParseMuzzleFlash: entity out of range\n");
 
 	weapon = MSG_ReadByte (&net_message);
 	silenced = weapon & MZ_SILENCED;
@@ -393,7 +393,7 @@ void CL_ParseMuzzleFlash2 (void)
 
 	ent = MSG_ReadShort (&net_message);
 	if (ent < 1 || ent >= MAX_EDICTS)
-		Com_Error (ERR_DROP, "CL_ParseMuzzleFlash2: bad entity");
+		Host_Error("CL_ParseMuzzleFlash2: entity out of range\n");
 
 	flash_number = MSG_ReadByte (&net_message);
 

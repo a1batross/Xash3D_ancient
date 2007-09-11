@@ -23,7 +23,6 @@
 #define Run32( prog ) return CreateMain32()( #prog, lpCmdLine )
 
 //console format
-typedef int (*main_t)( char *funcname, int argc, char **argv );
 typedef int (*winmain_t)( char *funcname, LPSTR lpCmdLine );
 char szSearch[ 5 ][ 1024 ];
 char szFsPath[ 4096 ];
@@ -101,15 +100,15 @@ winmain_t CreateMain32( void )
 		main = (winmain_t)GetProcAddress( hmain, "CreateAPI" );
 		if(!main)
 		{
-			MessageBox( 0, "unable to find entry point", "Error", MB_OK );
-			exit(1);
-			return 0; //make compiller happy
+			MessageBox( 0, "Unable to load the launcher.dll", "Error", MB_OK );
+			exit( 1 );
 		}
 		return main;
 	}
 
-	MessageBox( 0, "unable to load the launcher.dll", "Error", MB_OK );
-	exit(1);
+	MessageBox( 0, "Unable to load the launcher.dll", "Error", MB_OK );
+	exit( 1 );
+
 	return 0; //make compiller happy
 }
 

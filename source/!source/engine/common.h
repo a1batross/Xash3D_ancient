@@ -614,26 +614,10 @@ MISC
 
 ==============================================================
 */
-
-
-#define	ERR_FATAL		0		// exit the entire game with a popup window
-#define	ERR_DROP		1		// print to console and disconnect from game
-#define	ERR_DISCONNECT	2		// not an error, just a normal exit
-
 #define	EXEC_NOW	0		// don't return until completed
 #define	EXEC_INSERT	1		// insert at current position, but don't run yet
 #define	EXEC_APPEND	2		// add to end of the command buffer
 
-#define	PRINT_ALL		0
-#define PRINT_DEVELOPER	1	// only print when "developer 1"
-
-void		Com_BeginRedirect (int target, char *buffer, int buffersize, void (*flush));
-void		Com_EndRedirect (void);
-void 		Com_Printf (char *fmt, ...);
-void 		Com_DPrintf (int level, char *fmt, ...);
-void 		Com_DWarnf (char *fmt, ...);
-void 		Com_Error (int code, char *fmt, ...);
-void		Com_Error_f ( void );
 void 		Com_Quit (void);
 
 int		Com_ServerState (void);		// this should have just been a cvar...

@@ -67,13 +67,12 @@ void VID_Error (char *fmt, ...)
 {
 	va_list		argptr;
 	char		msg[MAX_INPUTLINE];
-	static bool	inupdate;
 	
 	va_start (argptr, fmt);
 	vsprintf (msg, fmt, argptr);
 	va_end (argptr);
 
-	Com_Error (ERR_DROP, "%s", msg);
+	Host_Error("%s", msg);
 }
 
 stdinout_api_t VID_GetStdio( void )

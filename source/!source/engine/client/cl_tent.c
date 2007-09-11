@@ -742,7 +742,7 @@ void CL_ParseTEnt (void)
 		CL_ParticleEffect3 (pos, dir, color, cnt);
 		break;
 	default:
-		Com_Error (ERR_DROP, "CL_ParseTEnt: bad type");
+		Host_Error("CL_ParseTEnt: bad type\n");
 	}
 }
 

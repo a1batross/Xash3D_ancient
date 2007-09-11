@@ -503,25 +503,25 @@ void SV_FatPVS (vec3_t org)
 	}
 
 	count = CM_BoxLeafnums (mins, maxs, leafs, 64, NULL);
-	if (count < 1) Com_Error (ERR_DROP, "SV_FatPVS: count < 1");
+	if (count < 1) Host_Error("SV_FatPVS: count < 1\n");
 	longs = (CM_NumClusters()+31)>>5;
 
 	// convert leafs to clusters
-	for (i=0 ; i<count ; i++)
-		leafs[i] = CM_LeafCluster(leafs[i]);
+	for (i = 0; i < count; i++) leafs[i] = CM_LeafCluster(leafs[i]);
 
-	memcpy (fatpvs, CM_ClusterPVS(leafs[0]), longs<<2);
+	Mem_Copy(fatpvs, CM_ClusterPVS(leafs[0]), longs<<2);
+
 	// or in all the other leaf bits
-	for (i=1 ; i<count ; i++)
+	for (i = 1; i < count; i++)
 	{
-		for (j=0 ; j<i ; j++)
+		for (j = 0; j < i; j++)
+		{
 			if (leafs[i] == leafs[j])
 				break;
-		if (j != i)
-			continue;		// already have the cluster we want
+		}
+		if (j != i) continue; // already have the cluster we want
 		src = CM_ClusterPVS(leafs[i]);
-		for (j=0 ; j<longs ; j++)
-			((long *)fatpvs)[j] |= ((long *)src)[j];
+		for (j = 0; j < longs; j++) ((long *)fatpvs)[j] |= ((long *)src)[j];
 	}
 }
 

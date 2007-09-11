@@ -16,12 +16,15 @@ typedef struct wnd_options_s
 	float	exp_scale;
 	bool	show_console;
 
-	//system font variables
+	// system font variables
 	int	font_size;//console font size
 	char	fontname[32]; //default as "Courier"
 	int	font_type;
 	int	font_color;
+
+	int	width;
+	int	height;
 	
-}wnd_options_t;
+} wnd_options_t;
 
 #endif//OPTIONS_H

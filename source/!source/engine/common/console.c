@@ -305,11 +305,9 @@ void Con_Init (void)
 
 	Con_CheckResize ();
 	
-	Msg ("Console initialized.\n");
+	MsgDev(D_INFO, "Console initialized.\n");
 
-//
-// register our commands
-//
+	// register our commands
 	con_notifytime = Cvar_Get ("con_notifytime", "3", 0);
 
 	Cmd_AddCommand ("toggleconsole", Con_ToggleConsole_f);
@@ -333,8 +331,7 @@ void Con_Linefeed (void)
 	if (con.display == con.current)
 		con.display++;
 	con.current++;
-	memset (&con.text[(con.current%con.totallines)*con.linewidth]
-	, ' ', con.linewidth);
+	memset (&con.text[(con.current%con.totallines)*con.linewidth], ' ', con.linewidth);
 }
 
 /*
@@ -353,10 +350,23 @@ void Con_Print (char *txt)
 	static int	cr;
 	int		mask;
 
-	Sys_Print(txt);
+	Sys_Print( txt ); // make sure what all messages will be stored in log
 
-	if (!con.initialized)
+	if (host.rd.target)
+	{
+		if((strlen (txt) + strlen(host.rd.buffer)) > (host.rd.buffersize - 1))
+		{
+			if(host.rd.flush)
+			{
+				host.rd.flush(host.rd.target, host.rd.buffer);
+				*host.rd.buffer = 0;
+			}
+		}
+		strcat (host.rd.buffer, txt);
 		return;
+	}
+
+	if (!con.initialized) return;
 
 	if (txt[0] == '^' && txt[1] == '3') // default Darkplace color code
 	{
@@ -368,12 +378,12 @@ void Con_Print (char *txt)
 
 	while ( (c = *txt) )
 	{
-	// count word length
+		// count word length
 		for (l=0 ; l< con.linewidth ; l++)
 			if ( txt[l] <= ' ')
 				break;
 
-	// word wrap
+		// word wrap
 		if (l != con.linewidth && (con.x + l > con.linewidth) )
 			con.x = 0;
 
@@ -417,6 +427,71 @@ void Con_Print (char *txt)
 	}
 }
 
+/*
+=============
+Con_Printf
+
+Both client and server can use this, and it will output
+to the apropriate place.
+=============
+*/
+void Con_Printf (char *fmt, ...)
+{
+	va_list		argptr;
+	char		msg[MAX_INPUTLINE];
+
+	va_start (argptr, fmt);
+	vsprintf (msg, fmt, argptr);
+	va_end (argptr);
+
+	Con_Print (msg);
+}
+
+
+/*
+================
+Con_DPrintf
+
+A Msg that only shows up in developer mode
+================
+*/
+void Con_DPrintf (int level, char *fmt, ...)
+{
+	va_list		argptr;
+	char		msg[MAX_INPUTLINE];
+		
+	// don't confuse non-developers with techie stuff...	
+	if(host.developer >= level)
+	{
+		va_start (argptr,fmt);
+		vsprintf (msg,fmt,argptr);
+		va_end (argptr);
+	
+		Con_Print (msg);
+	}
+}
+
+/*
+================
+Con_DWarnf
+
+A Warning that only shows up in debug mode
+================
+*/
+void Con_DWarnf (char *fmt, ...)
+{
+	va_list		argptr;
+	char		msg[MAX_INPUTLINE];
+		
+	// don't confuse non-developers with techie stuff...
+	if (!host.debug) return;
+
+	va_start (argptr,fmt);
+	vsprintf (msg,fmt,argptr);
+	va_end (argptr);
+	
+	Con_Print (msg);
+}
 
 /*
 ==============
