@@ -5,6 +5,7 @@
 
 #include <time.h>
 #include "launcher.h"
+#include "basemath.h"
 
 char sys_rootdir[ MAX_SYSPATH ];
 bool debug_mode = false;
@@ -111,6 +112,19 @@ bool _GetParmFromCmdLine( char *parm, char *out, size_t size )
 
 /*
 ================
+Sys_Sleep
+
+freeze application for some time
+================
+*/
+void Sys_Sleep( int msec)
+{
+	msec = bound(1, msec, 1000 );
+	Sleep( msec );
+}
+
+/*
+================
 Sys_Exit
 
 NOTE: we must prepare engine to shutdown
@@ -119,13 +133,125 @@ before call this
 */
 void Sys_Exit (void)
 {
-	//prepare host to close
+	// prepare host to close
 	Host_Free();
-
-	if(linked_dll) FreeLibrary(linked_dll);
+	Sys_FreeLibrary( linked_dll );
 
 	Sys_FreeConsole();	
 	exit(sys_error);
+}
+//=======================================================================
+//			DLL'S MANAGER SYSTEM
+//=======================================================================
+bool Sys_LoadLibrary ( dll_info_t *dll )
+{
+	const dllfunc_t	*func;
+	bool		native_lib;
+	char		errorstring[MAX_QPATH];
+
+	// check errors
+	if(!dll) return false;	// invalid desc
+	if(!dll->name) return false;	// nothing to load
+
+	if(dll->fcts) 
+	{
+		// lookup export table
+		for (func = dll->fcts; func && func->name != NULL; func++)
+			*func->func = NULL;
+		native_lib = false;
+	}
+	else native_lib = true;
+
+	dll->link = LoadLibrary (va("bin/%s", dll->name));
+
+	// No DLL found
+	if (!dll->link) 
+	{
+		sprintf(errorstring, "Sys_LoadLibrary: couldn't load %s\n", dll->name );
+		goto error;
+	}
+
+	if(native_lib)
+	{
+		if((dll->main = (void *)GetProcAddress(dll->link, dll->entry )) == 0)
+		{
+			sprintf(errorstring, "Sys_LoadLibrary: %s has no valid entry point\n", dll->name );
+			goto error;
+		}
+	}
+	else
+	{
+		// Get the function adresses
+		for(func = dll->fcts; func && func->name != NULL; func++)
+		{
+			if (!(*func->func = (void *)GetProcAddress(dll->link, func->name)))
+			{
+				sprintf(errorstring, "Sys_LoadLibrary: %s missing or invalid function (%s)\n", dll->name, func->name );
+				goto error;
+			}
+		}
+	}
+
+	if( native_lib )
+	{
+		generic_api_t *check = NULL;
+
+		// NOTE: native dlls must support null import!
+		// e.g. see platform.c for details
+		check = (void *)dll->main( NULL );
+
+		if(!check) 
+		{
+			sprintf(errorstring, "Sys_LoadLibrary: \"%s\" have no export\n", dll->name );
+			goto error;
+		}
+		if(check->apiversion != dll->apiversion)
+		{
+			sprintf(errorstring, "Sys_LoadLibrary: mismatch version (%i should be %i)\n", check->apiversion, dll->apiversion);
+			goto error;
+		}
+		if(check->api_size != dll->api_size)
+		{
+			sprintf(errorstring, "Sys_LoadLibrary: mismatch interface size (%i should be %i)\n", check->api_size, dll->api_size);
+			goto error;
+		}	
+	}
+	return true;
+error:
+	Sys_FreeLibrary ( dll ); // trying to free 
+	if(dll->crash) Sys_Error( errorstring );
+	else Msg( errorstring );			
+
+	return false;
+}
+
+bool Sys_FreeLibrary ( dll_info_t *dll )
+{
+	if(!dll || !dll->link) // invalid desc or alredy freed
+		return false;
+
+	FreeLibrary (dll->link);
+	dll->link = NULL;
+
+	return true;
+}
+
+void Sys_WaitForQuit( void )
+{
+	MSG		msg;
+
+	ZeroMemory(&msg, sizeof(msg));
+
+	// wait for the user to quit
+	while(!hooked_out && msg.message != WM_QUIT)
+	{
+		if(PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
+        		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		} 
+		else Sys_Sleep( 20 );
+	}
 }
 
 //=======================================================================
@@ -232,26 +358,26 @@ void UpdateEnvironmentVariables( void )
 	ReadEnvironmentVariables( szTemp );
 	GetCurrentDirectory(MAX_SYSPATH, sys_rootdir );
 	
-	//if both values is math - no run additional tests		
+	// if both values is math - no run additional tests		
 	if(stricmp(sys_rootdir, szTemp ))
 	{
-		//path from registry have higher priority than current working directory
-		//because user can execute launcher from random place or from a bat-file
-                    //so, set current working directory as path from registry and test it
+		// Step1: path from registry have higher priority than current working directory
+		// because user can execute launcher from random place or from a bat-file
+                    // so, set current working directory as path from registry and test it
 
 		BuildPath( szTemp, szPath );
-		if(!SysFileExists( szPath )) //engine root dir has been moved to other place?
+		if(!SysFileExists( szPath )) // Step2: engine root dir has been moved to other place?
 		{
 			BuildPath( sys_rootdir, szPath );
-			if(!SysFileExists( szPath )) //directly execute from bin directory?
+			if(!SysFileExists( szPath )) // Step3: directly execute from bin directory?
 			{
-				//step4: create last test for bin directory
+				// Step4: create last test for bin directory
 			          GetBaseDir( sys_rootdir, szTemp );
 				BuildPath( szTemp, szPath );
 				if(!SysFileExists( szPath )) //make exception
 				{
-					//big bada-boom: engine was moved and launcher was running from other place
-					//step5: so, path form registry is invalid, current path is no valid
+					// big bada-boom: engine was moved and launcher running from other place
+					// step5: so, path form registry is invalid, current path is no valid
 					Sys_Error("Invalid root directory!\n");
 				}
 				else SaveEnvironmentVariables( szTemp );

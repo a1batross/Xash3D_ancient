@@ -1519,11 +1519,14 @@ CreateAPI
 
 @@@@@@@@@@@@@@@@@@@@@
 */
-renderer_exp_t DLLEXPORT *CreateAPI(renderer_imp_t rimp )
+renderer_exp_t DLLEXPORT *CreateAPI(renderer_imp_t *rimp )
 {
 	static renderer_exp_t re;
 
-	ri = rimp;
+	// Sys_LoadLibrary can create fake instance, to check
+	// api version and api size, but first argument will be 0
+	// and always make exception, run simply check for avoid it
+	if(rimp) ri = *rimp;
 
 	re.apiversion = RENDERER_API_VERSION;
 	re.api_size = sizeof(renderer_exp_t);

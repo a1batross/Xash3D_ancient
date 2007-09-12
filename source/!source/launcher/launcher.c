@@ -12,10 +12,14 @@ bool log_active = false;
 bool show_always = true;
 bool about_mode = false;
 bool sys_error = false;
-char dllname[64];
 char caption[64];
 
 const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t          All Rights Reserved\n\n\t           Visit www.xash.ru\n";
+
+dll_info_t platform_dll = { "platform.dll", NULL, "CreateAPI", NULL, NULL, true, PLATFORM_API_VERSION, sizeof(platform_exp_t) };
+dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, LAUNCHER_API_VERSION, sizeof(launcher_exp_t) };
+dll_info_t editor_dll = { "editor.dll", NULL, "CreateAPI", NULL, NULL, true, LAUNCHER_API_VERSION, sizeof(launcher_exp_t) };
+dll_info_t *linked_dll; // generic hinstance
 
 //app name
 typedef enum 
@@ -31,13 +35,13 @@ typedef enum
 	CREDITS,		// misc
 };
 
-int com_argc;
-char *com_argv[MAX_NUM_ARGVS];
-char progname[32];
-HINSTANCE	linked_dll;
-platform_exp_t	*pi; //callback to utilities
+int	com_argc;
+char	*com_argv[MAX_NUM_ARGVS];
+char	progname[32];	// limit of funcname
+platform_exp_t	*pi;	// callback to utilities
 static double start, end;
-byte *mempool; //generic mempoolptr
+byte	*mempool;		// generic mempoolptr
+
 
 /*
 ==================
@@ -60,7 +64,7 @@ This list will be expnaded in future
 void LookupInstance( const char *funcname )
 {
 	//memeber name
-	strcpy( progname, funcname );
+	strncpy( progname, funcname, sizeof(progname));
 
 	//lookup all instances
 	if(!strcmp(progname, "host_shared"))
@@ -69,7 +73,7 @@ void LookupInstance( const char *funcname )
 		console_read_only = true;
 		//don't show console as default
 		if(!debug_mode) show_always = false;
-		strcpy(dllname, "bin/engine.dll" );
+		linked_dll = &engine_dll;	// pointer to engine.dll info
 		strcpy(log_path, "engine.log" ); // xash3d root directory
 		strcpy(caption, va("Xash3D ver.%g", CalcEngineVersion()));
 	}
@@ -77,7 +81,7 @@ void LookupInstance( const char *funcname )
 	{
 		app_name = HOST_DEDICATED;
 		console_read_only = false;
-		strcpy(dllname, "bin/engine.dll" );
+		linked_dll = &engine_dll;	// pointer to engine.dll info
 		strcpy(log_path, "engine.log" ); // xash3d root directory
 		strcpy(caption, va("Xash3D Dedicated Server ver.%g", CalcEngineVersion()));
 	}
@@ -87,45 +91,66 @@ void LookupInstance( const char *funcname )
 		console_read_only = true;
 		//don't show console as default
 		if(!debug_mode) show_always = false;
-		strcpy(dllname, "bin/editor.dll" );
+		linked_dll = &editor_dll;	// pointer to editor.dll info
 		strcpy(log_path, "editor.log" ); // xash3d root directory
 		strcpy(caption, va("Xash3D Editor ver.%g", CalcEditorVersion()));
 	}
 	else if(!strcmp(progname, "bsplib"))
 	{
 		app_name = BSPLIB;
-		strcpy(dllname, "bin/platform.dll" );
+		linked_dll = &platform_dll;	// pointer to platform.dll info
 		strcpy(log_path, "bsplib.log" ); // xash3d root directory
 		strcpy(caption, "Xash3D BSP Compiler");
 	}
 	else if(!strcmp(progname, "qcclib"))
 	{
 		app_name = QCCLIB;
-		strcpy(dllname, "bin/platform.dll" );
+		linked_dll = &platform_dll;	// pointer to platform.dll info
 		sprintf(log_path, "%s/compile.log", sys_rootdir ); // same as .exe file
 		strcpy(caption, "Xash3D QuakeC Compiler");
 	}
 	else if(!strcmp(progname, "sprite"))
 	{
 		app_name = SPRITE;
-		strcpy(dllname, "bin/platform.dll" );
+		linked_dll = &platform_dll;	// pointer to platform.dll info
 		sprintf(log_path, "%s/spritegen.log", sys_rootdir ); // same as .exe file
 		strcpy(caption, "Xash3D Sprite Compiler");
 	}
 	else if(!strcmp(progname, "studio"))
 	{
 		app_name = STUDIO;
-		strcpy(dllname, "bin/platform.dll" );
+		linked_dll = &platform_dll;	// pointer to platform.dll info
 		sprintf(log_path, "%s/studiomdl.log", sys_rootdir ); // same as .exe file
 		strcpy(caption, "Xash3D Studio Models Compiler");
 	}
 	else if(!strcmp(progname, "credits")) //easter egg
 	{
 		app_name = CREDITS;
+		linked_dll = NULL;	// no need to loading library
 		about_mode = true;
 		strcpy(caption, "About");
 	}
 	else app_name = DEFAULT;
+}
+
+stdinout_api_t *Get_StdAPI( void )
+{
+	static stdinout_api_t std;
+
+	// setup sysfuncs
+	std.printf = Msg;
+	std.dprintf = MsgDev;
+	std.wprintf = MsgWarn;
+	std.error = Sys_Error;
+	std.exit = Sys_Exit;
+	std.print = Sys_Print;
+	std.input = Sys_Input;
+	std.sleep = Sys_Sleep;
+
+	std.LoadLibrary = Sys_LoadLibrary;
+	std.FreeLibrary = Sys_FreeLibrary;
+
+	return &std;
 }
 
 /*
@@ -140,11 +165,6 @@ void PlatformInit ( char *funcname, int argc, char **argv )
 {
 	byte bspflags = 0, qccflags = 0;
 	char source[64], gamedir[64];
-
-	if(pi->apiversion != PLATFORM_API_VERSION)
-		Sys_Error("mismatch version (%i should be %i)\n", pi->apiversion, PLATFORM_API_VERSION);
-	if(pi->api_size != sizeof(platform_exp_t))
-		Sys_Error("mismatch interface size (%i should be %i)\n", pi->api_size, sizeof(platform_exp_t));		
 
 	pi->Init( argc, argv );
 
@@ -192,7 +212,7 @@ void PlatformMain ( void )
 	char qcfilename[64], typemod[16];
 	int i, numCompiledMods = 0;
 	bool (*CompileMod)( byte *mempool, const char *name, byte parms ) = NULL;
-	byte parms = 0; //future expansion
+	byte parms = 0; // future expansion
 
 	switch(app_name)
 	{
@@ -243,7 +263,7 @@ void PlatformShutdown ( void )
 {
 	Mem_Check(); //check for leaks
 	Mem_FreePool( &mempool );
-	pi->Shutdown;
+	pi->Shutdown();
 }
 
 
@@ -254,38 +274,25 @@ Find needed library, setup and run it
 */
 void CreateInstance( void )
 {
-	
-	stdinout_api_t  std;//import
-
 	// export
 	platform_t	CreatePlat;
 	launcher_t	CreateHost;
 	launcher_exp_t	*Host;          
-	
-	//setup sysfuncs
-	std.printf = Msg;
-	std.dprintf = MsgDev;
-	std.wprintf = MsgWarn;
-	std.error = Sys_Error;
-	std.exit = Sys_Exit;
-	std.print = Sys_Print;
-	std.input = Sys_Input;
           
 	// first text message into console or log
 	if(app_name != CREDITS) MsgDev(D_INFO, "------- Loading bin/launcher.dll [%g] -------\n", LAUNCHER_VERSION );
-	
+
+	Sys_LoadLibrary( linked_dll ); // loading library if need
+
 	switch(app_name)
 	{
 	case HOST_SHARED:
 	case HOST_DEDICATED:
 	case HOST_EDITOR:		
-		if (( linked_dll = LoadLibrary( dllname )) == 0 )
-			Sys_Error("CreateInstance: couldn't load %s\n", dllname );
-		if ((CreateHost = (void *)GetProcAddress( linked_dll, "CreateAPI" ) ) == 0 )
-			Sys_Error("CreateInstance: %s has no valid entry point\n", dllname );
+		CreateHost = (void *)linked_dll->main;
 
 		// set callback
-		Host = CreateHost( std );
+		Host = CreateHost( Get_StdAPI());
 		Host_Init = Host->Init;
 		Host_Main = Host->Main;
 		Host_Free = Host->Free;
@@ -294,28 +301,28 @@ void CreateInstance( void )
 	case QCCLIB:
 	case SPRITE:
 	case STUDIO:
-		if (( linked_dll = LoadLibrary( dllname )) == 0 )
-			Sys_Error("CreateInstance: couldn't load %s\n", dllname );
-		if ((CreatePlat = (void *)GetProcAddress( linked_dll, "CreateAPI" )) == 0 )
-			Sys_Error("CreateInstance: %s has no valid entry point\n", dllname );
+		CreatePlat = (void *)linked_dll->main;
+		
 		// set callback
-		pi = CreatePlat( std );
+		pi = CreatePlat(Get_StdAPI());
 		Host_Init = PlatformInit;
 		Host_Main = PlatformMain;
 		Host_Free = PlatformShutdown;
 		break;
 	case CREDITS:
-		Sys_Error((char *)show_credits ); // simply method to show credits :)
+		Sys_Print( show_credits );
+		Sys_WaitForQuit();
+		Sys_Exit();
 		break;
 	case DEFAULT:
 		Sys_Error("CreateInstance: unsupported instance\n");		
 		break;
 	}
 
-	//that's all right, mr. freeman
-	Host_Init( progname, com_argc, com_argv );//init our host now!
+	// that's all right, mr. freeman
+	Host_Init( progname, com_argc, com_argv );// init our host now!
 
-	//hide console if needed
+	// hide console if needed
 	switch(app_name)
 	{
 		case HOST_SHARED:
@@ -374,7 +381,7 @@ void InitLauncher( char *funcname )
 	char		dev_level[4];
 	OSVERSIONINFO	vinfo;
 	
-	API_Reset();//filled stdinout api
+	API_Reset();// fill stdinout api
 	
 	// get current hInstance first
 	base_hInstance = (HINSTANCE)GetModuleHandle( NULL );

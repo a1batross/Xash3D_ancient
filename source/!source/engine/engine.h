@@ -166,6 +166,8 @@ System Events
 #define Msg Con_Printf
 #define MsgDev Con_DPrintf
 #define MsgWarn Con_DWarnf
+#define Sys_LoadLibrary std.LoadLibrary
+#define Sys_FreeLibrary std.FreeLibrary
 /*
 ===========================================
 Host Interface

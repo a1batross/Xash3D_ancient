@@ -597,7 +597,7 @@ void SV_PutClientInServer (edict_t *ent)
 	VectorCopy (ent->s.origin, ent->s.old_origin);
 
 	// set the delta angle
-	for (i=0 ; i<3 ; i++)
+	for (i = 0; i < 3; i++)
 	{
 		client->ps.pmove.delta_angles[i] = ANGLE2SHORT(spawn_angles[i]);
 	}
@@ -662,9 +662,10 @@ void SV_CalcGunOffset (edict_t *ent)
 	}
 
 	ent->client->ps.gunangles[PITCH] = xyspeed * bobfracsin * 0.005;
+	ent->client->ps.viewoffset[2] = 22;
 
 	// gun angles from delta movement
-	for (i=0 ; i<3 ; i++)
+	for (i = 0; i < 3; i++)
 	{
 		delta = ent->client->oldviewangles[i] - ent->client->ps.viewangles[i];
 		if (delta > 180) delta -= 360;
@@ -964,8 +965,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 
 	ent->client->ps.pmove.pm_flags &= ~PMF_NO_PREDICTION;
 
-	VectorCopy(ent->s.origin,view);
-	view[2] += 22;
+	VectorCopy(ent->s.origin, view);
 
 	pm_passent = ent;
 
@@ -975,7 +975,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	if (ent->movetype == MOVETYPE_NOCLIP) client->ps.pmove.pm_type = PM_SPECTATOR;
 	else if (ent->s.modelindex != MAX_MODELS - 1) client->ps.pmove.pm_type = PM_GIB;
 	else client->ps.pmove.pm_type = PM_NORMAL;
-	client->ps.pmove.gravity = 0;
+	client->ps.pmove.gravity = sv_gravity->value;
 
 	pm.s = client->ps.pmove;
 
@@ -1000,7 +1000,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	client->ps.pmove = pm.s;
 	client->old_pmove = pm.s;
 
-	for (i=0 ; i<3 ; i++)
+	for (i = 0; i < 3; i++)
 	{
 		ent->s.origin[i] = pm.s.origin[i]*0.125;
 		ent->velocity[i] = pm.s.velocity[i]*0.125;

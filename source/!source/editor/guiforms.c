@@ -20,7 +20,6 @@
 static MSG msg;
 static window_t g_MainWindow;
 static window_t g_IdleWindow;
-HINSTANCE platform_dll;
  
 typedef struct tag_dlghdr
 { 
@@ -35,6 +34,7 @@ wnd_options_t		w_opts;	//window options
 platform_exp_t		*pi;//platform utils 
 static bool editor_init = false;
 static char textbuffer[MAX_INPUTLINE];
+dll_info_t platform_dll = { "platform.dll", NULL, "CreateAPI", NULL, NULL, false, PLATFORM_API_VERSION, sizeof(platform_exp_t) };
 
 /*
 =============================================================================
@@ -464,19 +464,20 @@ bool GUI_LoadPlatfrom( char *funcname, int argc, char **argv )
 	pistd.error = GUI_Error;
 	pistd.exit = std.exit;
 	pistd.print = GUI_Print;
+	pistd.input = std.input;
+	pistd.sleep = std.sleep;
+
+	pistd.LoadLibrary = std.LoadLibrary;
+	pistd.FreeLibrary = std.FreeLibrary;
 
 	//loading platform.dll
-	if (( platform_dll = LoadLibrary( "bin/platform.dll" )) == 0 )
+	if (!Sys_LoadLibrary( &platform_dll ))
 	{
 		GUI_Error("couldn't find platform.dll\n");
 		return false;	
 	}
-	if ((CreatePlat = (void *)GetProcAddress( platform_dll, "CreateAPI" ) ) == 0 )
-	{
-		GUI_Error("platform.dll has no valid entry point\n");
-		return false;
-	}
-	pi = CreatePlat( pistd );//make links
+	CreatePlat = (void *)platform_dll.main;
+	pi = CreatePlat( &pistd );//make links
 	
 	//initialziing platform.dll
 	pi->Init( argc, argv );
@@ -1047,7 +1048,7 @@ void EditorMain ( void )
 		}
 	}	
 
-	if(platform_dll)
+	if(platform_dll.link)
 	{
 		// save our settings
 		pi->Fs.WriteFile("editor.dat", &w_opts, w_opts.csize );
@@ -1060,10 +1061,10 @@ void FreeEditor ( void )
 	if (s_gui.richedit) FreeLibrary( s_gui.richedit );
 
 	// free platform
-	if(platform_dll)
+	if(platform_dll.link)
 	{
 		pi->Shutdown();
-		FreeLibrary(platform_dll);
+		Sys_FreeLibrary(&platform_dll);
 	}	
 
 	GUI_RemoveAccelTable();

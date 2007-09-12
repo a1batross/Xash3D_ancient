@@ -136,7 +136,8 @@ void SV_CheckForSavegame (char *savename )
 	SV_ReadLevelFile ( savename );
 
 	if (!sv.loadgame)
-	{	// coming back to a level after being in a different
+	{	
+		// coming back to a level after being in a different
 		// level, so run it for ten seconds
 
 		// rlava2 was sending too many lightstyles, and overflowing the
@@ -146,7 +147,7 @@ void SV_CheckForSavegame (char *savename )
 
 		previousState = sv.state;				// PGM
 		sv.state = ss_loading;				// PGM
-		for (i = 0; i < 100; i++) SV_RunFrame ();
+		for (i = 0; i < 100; i++) SV_RunFrame();
 
 		sv.state = previousState;				// PGM
 	}

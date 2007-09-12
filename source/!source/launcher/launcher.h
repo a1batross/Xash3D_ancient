@@ -18,22 +18,26 @@ typedef int bool;
 //import variables
 char *(*Sys_Input ) ( void );	
 void ( *Msg )( char *msg, ... );
-void ( *Sys_Print )( char *msg );
+void ( *Sys_Print )( const char *msg );
 void ( *Sys_InitConsole )( const char *caption );
 void ( *Sys_FreeConsole )( void );
 void ( *MsgDev )( int level, char *msg, ... );
 void ( *MsgWarn )( char *msg, ... );
 void ( *Sys_Error )( char *msg, ... );
 void ( *Sys_ShowConsole )( bool show );
-void Sys_Exit( void ); //static
+void Sys_Exit( void ); // static
+void Sys_Sleep( int msec);
+bool Sys_LoadLibrary ( dll_info_t *dll ); // load library 
+bool Sys_FreeLibrary ( dll_info_t *dll ); // free library
+void Sys_WaitForQuit( void ); // waiting for 'ESC' or close command
 
-//export variables
-void ( *Host_Init ) ( char *funcname, int argc, char **argv ); //init host
-void ( *Host_Main ) ( void );	//host frame
-void ( *Host_Free ) ( void );	//close host
+// export variables
+void ( *Host_Init ) ( char *funcname, int argc, char **argv ); // init host
+void ( *Host_Main ) ( void );	// host frame
+void ( *Host_Free ) ( void );	// close host
 
-extern HINSTANCE base_hInstance;
-extern HINSTANCE linked_dll;
+extern HINSTANCE	base_hInstance;
+extern dll_info_t	*linked_dll;
 extern bool debug_mode;
 extern bool log_active;
 extern bool hooked_out;

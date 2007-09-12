@@ -656,16 +656,8 @@ NON-PORTABLE SYSTEM SERVICES
 
 ==============================================================
 */
-
-void	Sys_Init (void);
 void	Sys_Print(const char *pMsg);
-void	Sys_AppActivate (void);
-
-void	*Sys_LoadGame (const char* procname, void *hinstance, void *parms);
-void	Sys_UnloadGame ( void *hinstance );
-
-void	Sys_CreateConsole( void );
-char	*Sys_ConsoleInput (void);
+char	*Sys_ConsoleInput( void );
 void	Sys_SendKeyEvents (void);
 void	Sys_Quit (void);
 char	*Sys_GetClipboardData( void );

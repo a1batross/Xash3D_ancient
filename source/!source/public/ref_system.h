@@ -179,6 +179,24 @@ typedef struct gameinfo_s
 
 } gameinfo_t;
 
+typedef struct dll_info_s
+{
+	// generic interface
+	const char	*name;		// library name
+	const dllfunc_t	*fcts;		// list of dll exports	
+	const char	*entry;		// entrypoint name (internal libs only)
+	void		*link;		// hinstance of loading library
+
+	// xash dlls entrypoint
+	void		*(*main)( void* );	// point type (e.g. platform_t)
+	bool		crash;		// crash if dll not found
+
+	// xash dlls validator
+	int		apiversion;	// generic api version
+	size_t		api_size;		// generic interface size
+
+} dll_info_t;
+
 #define CVAR_ARCHIVE	1	// set to cause it to be saved to vars.rc
 #define CVAR_USERINFO	2	// added to userinfo  when changed
 #define CVAR_SERVERINFO	4	// added to serverinfo when changed
@@ -310,6 +328,20 @@ typedef struct
 	particle_t	*particles;
 
 } refdef_t;
+
+/*
+==============================================================================
+
+GENERIC INTERFACE
+==============================================================================
+*/
+typedef struct generic_api_s
+{
+	// interface validator
+	int	apiversion;	// must matched with *_API_VERSION
+	size_t	api_size;		// must matched with sizeof(*_api_t)
+
+} generic_api_t;
 
 /*
 ==============================================================================
@@ -468,20 +500,24 @@ typedef struct compilers_api_s
 STDIO SYSTEM INTERFACE
 ==============================================================================
 */
-// that interface will never be expanded or extened. No need to check api_size anymore.
 typedef struct stdinout_api_s
 {
 	//interface validator
 	size_t	api_size;				// must matched with sizeof(stdinout_api_t)
 	
-	//base events
+	// base events
 	void (*print)( char *msg );			// basic text message
-	void (*printf)( char *msg, ... );		// normal text message
+	void (*printf)( char *msg, ... );		// formatted text message
 	void (*dprintf)( int level, char *msg, ... );	// developer text message
 	void (*wprintf)( char *msg, ... );		// warning text message
 	void (*error)( char *msg, ... );		// abnormal termination with message
 	void (*exit)( void );			// normal silent termination
 	char *(*input)( void );			// system console input	
+	void (*sleep)( int msec );			// sleep for some msec
+
+	// xash dll loading system
+	bool (*LoadLibrary)( dll_info_t *dll );		// load library 
+	bool (*FreeLibrary)( dll_info_t *dll );		// free library
 
 } stdinout_api_t;
 
@@ -639,8 +675,8 @@ typedef struct renderer_imp_s
 
 
 // this is the only function actually exported at the linker level
-typedef renderer_exp_t *(*renderer_t)( renderer_imp_t );
-typedef platform_exp_t *(*platform_t)( stdinout_api_t );
-typedef launcher_exp_t *(*launcher_t)( stdinout_api_t );
+typedef renderer_exp_t *(*renderer_t)( renderer_imp_t* );
+typedef platform_exp_t *(*platform_t)( stdinout_api_t* );
+typedef launcher_exp_t *(*launcher_t)( stdinout_api_t* );
 
 #endif//REF_SYSTEM_H

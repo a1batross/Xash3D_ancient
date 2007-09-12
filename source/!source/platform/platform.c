@@ -37,11 +37,14 @@ void ClosePlatform ( void )
 	FreeMemory();
 }
 
-platform_exp_t DLLEXPORT *CreateAPI ( stdinout_api_t input )
+platform_exp_t DLLEXPORT *CreateAPI ( stdinout_api_t *input )
 {
 	static platform_exp_t pi;
 
-	std = input;
+	// Sys_LoadLibrary can create fake instance, to check
+	// api version and api size, but first argument will be 0
+	// and always make exception, run simply check for avoid it
+	if(input) std = *input;
 
 	//generic functions
 	pi.apiversion = PLATFORM_API_VERSION;

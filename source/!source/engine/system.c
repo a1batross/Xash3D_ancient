@@ -22,12 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <windows.h>
 #include "engine.h"
 
-extern HWND cl_hwnd;
-
-//engine builddate
-char *buildstring = __TIME__ " " __DATE__;
-stdinout_api_t std;
-
 /*
 ===============================================================================
 
@@ -67,13 +61,6 @@ double Sys_DoubleTime( void )
 	return host.realtime;
 }
 
-void Sys_Sleep(int milliseconds)
-{
-	if (milliseconds < 1)
-		milliseconds = 1;
-	Sleep(milliseconds);
-}
-
 /*
 ================
 Sys_ConsoleInput
@@ -104,13 +91,8 @@ void Sys_SendKeyEvents (void)
 	}
 
 	// grab frame time 
-	host.cl_timer = timeGetTime();	// FIXME: should this be at start?
-
-	// keep the random time dependent
-	rand();
+	host.cl_timer = host.realtime * 1000;	// FIXME: should this be at start?
 }
-
-
 
 /*
 ================
@@ -142,127 +124,23 @@ char *Sys_GetClipboardData( void )
 	return data;
 }
 
-
-/*
-================
-Sys_Milliseconds
-================
-*/
-int Sys_Milliseconds (void)
-{
-	static int	sys_timeBase;
-	static int	sys_curtime;
-	static bool	init = false;
-
-	if (!init)
-	{
-		sys_timeBase = timeGetTime();
-		init = true;
-	}
-	sys_curtime = timeGetTime() - sys_timeBase;
-
-	return sys_curtime;
-}
-
-/*
-===============================================================================
-
-DLL MANAGEMENT
-
-===============================================================================
-*/
-void Sys_UnloadLibrary (void* handle)
-{
-	if (handle == NULL) return;
-
-	FreeLibrary (handle);
-	handle = NULL;
-}
-
-void* Sys_GetProcAddress (void *handle, const char* name)
-{
-	return (void *)GetProcAddress (handle, name);
-}
-
-bool Sys_LoadLibrary (const char** dllnames, void* handle, const dllfunc_t *fcts)
-{
-	const dllfunc_t *func;
-	HMODULE dllhandle = 0;
-	unsigned int i;
-
-	if (handle == NULL)
-		return false;
-
-	// Initializations
-	for (func = fcts; func && func->name != NULL; func++)
-		*func->func = NULL;
-
-	// Try every possible name
-	Con_Printf ("Trying to load library...");
-	for (i = 0; dllnames[i] != NULL; i++)
-	{
-		Con_Printf (" \"%s\"", dllnames[i]);
-		dllhandle = LoadLibrary (dllnames[i]);
-		if (dllhandle) break;
-	}
-
-	// No DLL found
-	if (! dllhandle)
-	{
-		Con_Printf(" - failed.\n");
-		return false;
-	}
-
-	Con_Printf(" - loaded.\n");
-
-	// Get the function adresses
-	for (func = fcts; func && func->name != NULL; func++)
-	{
-		if (!(*func->func = (void *) Sys_GetProcAddress (dllhandle, func->name)))
-		{
-			Con_Printf ("Missing function \"%s\" - broken library!\n", func->name);
-			Sys_UnloadLibrary (&dllhandle);
-			return false;
-		}
-	}
-
-	handle = dllhandle;
-	return true;
-}
-
-
-/*
-==============================================================================
-
- WINDOWS CRAP
-
-==============================================================================
-*/
-
-/*
-=================
-Sys_AppActivate
-=================
-*/
-void Sys_AppActivate (void)
-{
-	ShowWindow ( cl_hwnd, SW_RESTORE);
-	SetForegroundWindow ( cl_hwnd );
-}
-
-//=======================================================================
-
 /*
 ==================
 DllMain
 
 ==================
 */
-launcher_exp_t DLLEXPORT *CreateAPI( stdinout_api_t histd )
+launcher_exp_t DLLEXPORT *CreateAPI( stdinout_api_t *input )
 {
-	static launcher_exp_t Host;
+         	static launcher_exp_t Host;
 
-	std = histd;
+	// Sys_LoadLibrary can create fake instance, to check
+	// api version and api size, but first argument will be 0
+	// and always make exception, run simply check for avoid it
+	if(input) std = *input;
+
+	Host.apiversion = LAUNCHER_API_VERSION;
+	Host.api_size = sizeof(launcher_exp_t);
 
 	Host.Init = Host_Init;
 	Host.Main = Host_Main;

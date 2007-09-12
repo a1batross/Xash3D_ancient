@@ -10,16 +10,18 @@
 
 platform_exp_t    	*pi;	// fundamental callbacks
 host_parm_t	host;	// host parms
+stdinout_api_t	std;
 
 byte	*zonepool;
 int	ActiveApp;
 bool	Minimized;
+char	*buildstring = __TIME__ " " __DATE__;
 
 void Key_Init (void);
 void SCR_EndLoadingPlaque (void);
 
 HINSTANCE	global_hInstance;
-HINSTANCE	platform_dll;
+dll_info_t platform_dll = { "platform.dll", NULL, "CreateAPI", NULL, NULL, true, PLATFORM_API_VERSION, sizeof(platform_exp_t) };
 
 cvar_t	*timescale;
 cvar_t	*fixedtime;
@@ -27,8 +29,8 @@ cvar_t	*showtrace;
 
 void Host_InitPlatform( char *funcname, int argc, char **argv )
 {
-	stdinout_api_t	pistd;
-	platform_t	CreatePlat;         
+	static stdinout_api_t	pistd;
+	platform_t		CreatePlat;         
 
 	//make callbacks
 	pistd.printf = Msg;
@@ -36,18 +38,10 @@ void Host_InitPlatform( char *funcname, int argc, char **argv )
 	pistd.wprintf = MsgWarn;
 	pistd.error = Sys_Error;
 	
-	if (( platform_dll = LoadLibrary( "bin/platform.dll" )) == 0 )
-		Sys_Error( "Couldn't load platform.dll\n" );
+	Sys_LoadLibrary( &platform_dll );
 
-	if (( CreatePlat = (void *)GetProcAddress( platform_dll, "CreateAPI" ) ) == 0 )
-		Sys_Error("CreateInstance: %s has no valid entry point\n", "platform.dll" );
-
-	pi = CreatePlat( pistd );
-	if(pi->apiversion != PLATFORM_API_VERSION)
-		Sys_Error("mismatch version (%i should be %i)\n", pi->apiversion, PLATFORM_API_VERSION);
-
-	if(pi->api_size != sizeof(platform_exp_t))
-		Sys_Error("mismatch interface size (%i should be %i)\n", pi->api_size, sizeof(platform_exp_t));
+	CreatePlat = (void *)platform_dll.main;
+	pi = CreatePlat( &pistd );
 	
 	// initialize our platform :)
 	pi->Init( argc, argv );
@@ -59,11 +53,11 @@ void Host_InitPlatform( char *funcname, int argc, char **argv )
 
 void Host_FreePlatform( void )
 {
-	if(platform_dll)
+	if(platform_dll.link)
 	{
 		Mem_FreePool( &zonepool );
 		pi->Shutdown();
-		FreeLibrary( platform_dll );
+		Sys_FreeLibrary( &platform_dll );
 	}
 }
 
@@ -204,10 +198,13 @@ void Host_Frame (double time)
 		c_pointcontents = 0;
 	}
 
+
+	rand(); // keep the random time dependent
+
 	do
 	{
 		s = Sys_ConsoleInput ();
-		if (s) Cbuf_AddText (va("%s\n",s));
+		if(s) Cbuf_AddText (va("%s\n",s));
 	} while (s);
 	Cbuf_Execute ();
 
@@ -243,6 +240,7 @@ Host_Main
 */
 void Host_Main( void )
 {
+	MSG		msg;
 	static double	time, oldtime, newtime;
 
 	oldtime = host.realtime;
@@ -255,7 +253,16 @@ void Host_Main( void )
 		{
 			Sleep (1);
 		}
-	         	do
+
+		while (PeekMessage (&msg, NULL, 0, 0, PM_NOREMOVE))
+		{
+			if (!GetMessage (&msg, NULL, 0, 0)) Com_Quit ();
+			host.sv_timer = msg.time;
+			TranslateMessage (&msg);
+   			DispatchMessage (&msg);
+		}
+
+		do
 		{
 			newtime = Sys_DoubleTime();
 			time = newtime - oldtime;

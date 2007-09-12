@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // cl_main.c  -- client main loop
 
+#include <windows.h>
 #include "client.h"
 
 cvar_t	*freelook;
@@ -99,7 +100,7 @@ extern	cvar_t *allow_download_players;
 extern	cvar_t *allow_download_models;
 extern	cvar_t *allow_download_sounds;
 extern	cvar_t *allow_download_maps;
-
+extern	HWND cl_hwnd;
 //======================================================================
 
 
@@ -923,7 +924,8 @@ void CL_ConnectionlessPacket (void)
 			Msg ("Command packet from remote host.  Ignored.\n");
 			return;
 		}
-		Sys_AppActivate ();
+		ShowWindow ( cl_hwnd, SW_RESTORE);
+		SetForegroundWindow ( cl_hwnd );
 		s = MSG_ReadString (&net_message);
 		Cbuf_AddText (s);
 		Cbuf_AddText ("\n");

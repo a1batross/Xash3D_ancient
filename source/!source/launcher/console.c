@@ -230,7 +230,7 @@ void Sys_PrintW(const char *pMsg)
 	// logfile
 	if (log_active)
 	{
-		if (!logfile) 
+		if (!logfile && strlen(log_path)) 
 		{
 			logfile = fopen ( log_path, "w");
 			fprintf (logfile, "=======================================================================\n" );
@@ -490,7 +490,6 @@ before call this
 void Sys_ErrorW(char *error, ...)
 {
 	va_list		argptr;
-	MSG		msg;
 	char		text[MAX_INPUTLINE];
          
 	if(sys_error) return; //don't multiple executes
@@ -503,19 +502,9 @@ void Sys_ErrorW(char *error, ...)
 	
 	Sys_ShowConsole( true );
 	Sys_Print( text ); //print error message
-
-	ZeroMemory(&msg, sizeof(msg));
+	
 	SetFocus( s_wcd.hWnd );
 
-	// wait for the user to quit
-	while(!hooked_out && msg.message != WM_QUIT)
-	{
-		if(PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
-        		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		} 
-		else Sleep( 20 );
-	}
+	Sys_WaitForQuit();
 	Sys_Exit();
 }

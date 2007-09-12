@@ -46,7 +46,7 @@ cvar_t		*vid_fullscreen;
 
 // Global variables used internally by this module
 viddef_t		viddef;			// global video state; used by other modules
-HINSTANCE		renderer_dll;		// Handle to refresh DLL 
+dll_info_t	renderer_dll = { "renderer.dll", NULL, "CreateAPI", NULL, NULL, true, RENDERER_API_VERSION, sizeof(renderer_exp_t) };
 bool		reflib_active = 0;
 
 HWND        cl_hwnd;            // Main window handle for life of program
@@ -451,9 +451,9 @@ void VID_NewWindow ( int width, int height)
 
 void VID_FreeReflib (void)
 {
-	FreeLibrary( renderer_dll );
+	Sys_FreeLibrary( &renderer_dll );
+
 	memset (&re, 0, sizeof(re));
-	renderer_dll = NULL;
 	reflib_active  = false;
 }
 
@@ -474,8 +474,8 @@ VID_InitRenderer
 */
 void VID_InitRenderer( void )
 {
-	renderer_imp_t	ri;
-	renderer_t	CreateRender;
+	static renderer_imp_t	ri;
+	renderer_t		CreateRender;
 	
 	VID_FreeRenderer();
 
@@ -504,22 +504,12 @@ void VID_InitRenderer( void )
           // studio callbacks
           ri.StudioEvent = CL_StudioEvent;
           
-	if(( renderer_dll = LoadLibrary( "bin/renderer.dll" )) == 0 )
-		Sys_Error( "Couldn't load renderer.dll\n" );
+	Sys_LoadLibrary( &renderer_dll );
 	
-	if ( ( CreateRender = (void *) GetProcAddress( renderer_dll, "CreateAPI" )) == 0 )
-		Sys_Error( "CreateInstance: %s has no valid entry point", "renderer.dll" );
-
-	re = CreateRender( ri );
-
-	if(re->apiversion != RENDERER_API_VERSION)
-		Sys_Error("mismatch version (%i should be %i)\n", re->apiversion, RENDERER_API_VERSION);
-
-	if(re->api_size != sizeof(renderer_exp_t))
-		Sys_Error("mismatch interface size (%i should be %i)\n", re->api_size, sizeof(renderer_exp_t));
+	CreateRender = (void *)renderer_dll.main;
+	re = CreateRender( &ri );
           
-	if(!re->Init( global_hInstance, MainWndProc ))
-		Sys_Error("can't init renderer.dll\n");
+	if(!re->Init( global_hInstance, MainWndProc )) Sys_Error("can't init renderer.dll\n");
 
 	reflib_active = true;
 }

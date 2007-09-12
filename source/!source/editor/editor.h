@@ -49,6 +49,8 @@ extern stdinout_api_t std;
 #define MsgDev GUI_MsgDev
 #define MsgWarn GUI_MsgWarn
 #define Sys_Error std.error
+#define Sys_LoadLibrary std.LoadLibrary
+#define Sys_FreeLibrary std.FreeLibrary
 
 typedef enum {
 	Action,

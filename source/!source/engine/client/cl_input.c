@@ -92,8 +92,8 @@ void KeyDown (kbutton_t *b)
 	// save timestamp
 	c = Cmd_Argv(2);
 	b->downtime = atoi(c);
-	if (!b->downtime)
-		b->downtime = host.cl_timer - 100;
+
+	if (!b->downtime) b->downtime = host.cl_timer - 100;
 
 	b->state |= 1 + 2;	// down + impulse down
 }
