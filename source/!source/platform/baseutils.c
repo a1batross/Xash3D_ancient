@@ -11,6 +11,22 @@
 #include "qcclib.h"
 #include "blankframe.h"
 
+static uint  (_stdcall *qtimeBeginPeriod) ( uint period );
+static dword (_stdcall *qtimeGetTime) ( void );
+
+static dllfunc_t winmm_funcs[] =
+{
+	{"timeBeginPeriod",	(void **) &qtimeBeginPeriod },
+	{"timeGetTime",	(void **) &qtimeGetTime },
+	{ NULL, NULL }
+};
+
+dll_info_t winmm_dll = { "winmm.dll", winmm_funcs, "", NULL, NULL, true, 0, 0 };
+
+void Plat_LinkDlls( void )
+{
+	//Sys_LoadLibrary( &winmm_dll );
+}
 
 char *strupr (char *start)
 {

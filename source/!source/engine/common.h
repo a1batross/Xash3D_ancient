@@ -618,8 +618,6 @@ MISC
 #define	EXEC_INSERT	1		// insert at current position, but don't run yet
 #define	EXEC_APPEND	2		// add to end of the command buffer
 
-void 		Com_Quit (void);
-
 int		Com_ServerState (void);		// this should have just been a cvar...
 void		Com_SetServerState (int state);
 

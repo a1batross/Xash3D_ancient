@@ -140,6 +140,7 @@ void Sys_Exit (void)
 	Sys_FreeConsole();	
 	exit(sys_error);
 }
+
 //=======================================================================
 //			DLL'S MANAGER SYSTEM
 //=======================================================================
@@ -152,6 +153,9 @@ bool Sys_LoadLibrary ( dll_info_t *dll )
 	// check errors
 	if(!dll) return false;	// invalid desc
 	if(!dll->name) return false;	// nothing to load
+	if(dll->link) return true;	// already loaded
+
+	MsgDev(D_ERROR, "Sys_LoadLibrary: Loading %s", dll->name );
 
 	if(dll->fcts) 
 	{
@@ -162,7 +166,8 @@ bool Sys_LoadLibrary ( dll_info_t *dll )
 	}
 	else native_lib = true;
 
-	dll->link = LoadLibrary (va("bin/%s", dll->name));
+	if(!dll->link) dll->link = LoadLibrary ( va("bin/%s", dll->name));
+	if(!dll->link) dll->link = LoadLibrary ( dll->name ); // environment pathes
 
 	// No DLL found
 	if (!dll->link) 
@@ -210,17 +215,21 @@ bool Sys_LoadLibrary ( dll_info_t *dll )
 			sprintf(errorstring, "Sys_LoadLibrary: mismatch version (%i should be %i)\n", check->apiversion, dll->apiversion);
 			goto error;
 		}
+		else MsgDev(D_ERROR, " [%d]", check->apiversion ); 
 		if(check->api_size != dll->api_size)
 		{
 			sprintf(errorstring, "Sys_LoadLibrary: mismatch interface size (%i should be %i)\n", check->api_size, dll->api_size);
 			goto error;
 		}	
 	}
+          MsgDev(D_ERROR, " - ok\n");
+
 	return true;
 error:
+	MsgDev(D_ERROR, " - failed\n");
 	Sys_FreeLibrary ( dll ); // trying to free 
 	if(dll->crash) Sys_Error( errorstring );
-	else Msg( errorstring );			
+	else MsgDev( D_INFO, errorstring );			
 
 	return false;
 }

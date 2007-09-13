@@ -38,20 +38,12 @@ void Sys_Error( const char *error, ... )
 	vsprintf( syserror1, error, argptr );
 	va_end( argptr );
 
+	host.state = HOST_ERROR;
+
 	SV_Shutdown(va("Server fatal crashed: %s\n", syserror1), false);
 	CL_Shutdown();
 
 	std.error("%s", syserror1);
-}
-
-void Sys_Quit (void)
-{
-	std.exit();
-}
-
-void Sys_Print(const char *pMsg)
-{
-	std.print((char *)pMsg );
 }
 
 double Sys_DoubleTime( void )
@@ -59,16 +51,6 @@ double Sys_DoubleTime( void )
 	// precision timer
 	host.realtime = pi->DoubleTime();
 	return host.realtime;
-}
-
-/*
-================
-Sys_ConsoleInput
-================
-*/
-char *Sys_ConsoleInput( void )
-{
-	return std.input();
 }
 
 /*

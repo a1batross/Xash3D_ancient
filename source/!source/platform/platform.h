@@ -23,6 +23,7 @@ typedef int bool;
 bool InitPlatform ( int argc, char **argv );
 void ClosePlatform ( void );
 void Plat_InitCPU( void );
+void Plat_LinkDlls( void );
 double Plat_DoubleTime( void );
 
 filesystem_api_t FS_GetAPI( void );

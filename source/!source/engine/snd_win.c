@@ -24,10 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client.h"
 #include "snd_loc.h"
 
-#define iDirectSoundCreate(a,b,c)	pDirectSoundCreate(a,b,c)
-
 extern HWND cl_hwnd;
-HRESULT (WINAPI *pDirectSoundCreate)(GUID FAR *lpGUID, LPDIRECTSOUND FAR *lplpDS, IUnknown FAR *pUnkOuter);
 
 // 64K is > 1 second at 16-bit, 22050 Hz
 #define	WAV_BUFFERS			64
@@ -39,20 +36,26 @@ typedef enum {SIS_SUCCESS, SIS_FAILURE, SIS_NOTAVAIL} sndinitstat;
 
 cvar_t	*s_wavonly;
 
-static bool	dsound_init;
-static bool	wav_init;
-static bool	snd_firsttime = true, snd_isdirect, snd_iswave;
-static bool	primary_format_set;
+static bool dsound_init;
+static bool wav_init;
+static bool snd_firsttime = true, snd_isdirect, snd_iswave;
+static bool primary_format_set;
 
 // starts at 0 for disabled
-static int	snd_buffer_count = 0;
-static int	sample16;
-static int	snd_sent, snd_completed;
+static int snd_buffer_count = 0;
+static int sample16;
+static int snd_sent, snd_completed;
 
-/* 
- * Global variables. Must be visible to window-procedure function 
- *  so it can unlock and free the data block after it has been played. 
- */ 
+// Global variables. Must be visible to window-procedure function 
+// so it can unlock and free the data block after it has been played. 
+static HRESULT (_stdcall *pDirectSoundCreate)( GUID* lpGUID, LPDIRECTSOUND* lplpDS, IUnknown* pUnkOuter );
+
+static dllfunc_t dsound_funcs[] =
+{
+	{"DirectSoundCreate", (void **) &pDirectSoundCreate },
+	{ NULL, NULL }
+};
+dll_info_t dsound_dll = { "dsound.dll", dsound_funcs, NULL, NULL, NULL, false, 0, 0 }; 
 
 
 HANDLE		hData;
@@ -356,39 +359,17 @@ sndinitstat SNDDMA_InitDirect (void)
 	dma.channels = 2;
 	dma.samplebits = 16;
 
-	if (s_khz->value == 44)
-		dma.speed = 44100;
-	if (s_khz->value == 22)
-		dma.speed = 22050;
-	else
-		dma.speed = 11025;
+	if (s_khz->value == 44) dma.speed = 44100;
+	if (s_khz->value == 22) dma.speed = 22050;
+	else dma.speed = 11025;
 
 	Msg( "Initializing DirectSound\n");
 
-	if ( !hInstDS )
-	{
-		MsgDev(D_INFO, "...loading dsound.dll: " );
-
-		hInstDS = LoadLibrary("dsound.dll");
-		
-		if (hInstDS == NULL)
-		{
-			MsgDev (D_INFO, "failed\n");
-			return SIS_FAILURE;
-		}
-
-		MsgDev (D_INFO, "ok\n");
-		pDirectSoundCreate = (void *)GetProcAddress(hInstDS,"DirectSoundCreate");
-
-		if (!pDirectSoundCreate)
-		{
-			MsgDev (D_ERROR, "*** couldn't get DS proc addr ***\n");
-			return SIS_FAILURE;
-		}
-	}
+	if(!Sys_LoadLibrary( &dsound_dll ))
+		return SIS_FAILURE;
 
 	MsgDev(D_INFO,  "...creating DS object: " );
-	while ( ( hresult = iDirectSoundCreate( NULL, &pDS, NULL ) ) != DS_OK )
+	while ( ( hresult = pDirectSoundCreate( NULL, &pDS, NULL ) ) != DS_OK )
 	{
 		if (hresult != DSERR_ALLOCATED)
 		{

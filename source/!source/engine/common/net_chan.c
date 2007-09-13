@@ -80,7 +80,7 @@ cvar_t		*qport;
 
 netadr_t	net_from;
 sizebuf_t	net_message;
-byte		net_message_buffer[MAX_MSGLEN];
+byte	net_message_buffer[MAX_MSGLEN];
 
 /*
 ===============
@@ -96,7 +96,6 @@ void Netchan_Init (void)
 	port = RANDOM_LONG(1, 65535);
 
 	Msg("netchan port %d\n", port );
-
 	showpackets = Cvar_Get ("showpackets", "0", 0);
 	showdrop = Cvar_Get ("showdrop", "0", 0);
 	qport = Cvar_Get ("qport", va("%i", port), CVAR_NOSET);

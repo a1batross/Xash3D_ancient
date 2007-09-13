@@ -127,7 +127,7 @@ void Host_Init (char *funcname, int argc, char **argv)
 	s = va("%4.2f %s %s %s", VERSION, "x86", __DATE__, BUILDSTRING);
 	Cvar_Get ("version", s, CVAR_SERVERINFO|CVAR_NOSET);
 
-	if (dedicated->value) Cmd_AddCommand ("quit", Com_Quit);
+	if (dedicated->value) Cmd_AddCommand ("quit", Sys_Quit);
         
 	NET_Init ();
 	Netchan_Init ();
@@ -256,7 +256,7 @@ void Host_Main( void )
 
 		while (PeekMessage (&msg, NULL, 0, 0, PM_NOREMOVE))
 		{
-			if (!GetMessage (&msg, NULL, 0, 0)) Com_Quit ();
+			if (!GetMessage (&msg, NULL, 0, 0)) Sys_Quit ();
 			host.sv_timer = msg.time;
 			TranslateMessage (&msg);
    			DispatchMessage (&msg);
@@ -272,6 +272,8 @@ void Host_Main( void )
 		Host_Frame (time); // engine frame
 		oldtime = newtime;
 	}
+
+	host.state = HOST_SHUTDOWN;
 }
 
 
@@ -282,9 +284,12 @@ Host_Shutdown
 */
 void Host_Free (void)
 {
-	SV_Shutdown ("Server shutdown\n", false);
-	CL_Shutdown ();
-	Host_FreePlatform();
+	if(host.state != HOST_ERROR)
+	{
+		SV_Shutdown ("Server shutdown\n", false);
+		CL_Shutdown ();
+	}
+	Host_FreePlatform ();
 }
 
 /*

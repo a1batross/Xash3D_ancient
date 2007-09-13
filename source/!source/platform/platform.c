@@ -22,6 +22,8 @@ bool InitPlatform ( int argc, char **argv )
 
 	InitMemory();
 	Plat_InitCPU();
+	Plat_LinkDlls();
+
 	ThreadSetDefault();
 	FS_Init( argc, argv );
 

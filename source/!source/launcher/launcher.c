@@ -236,7 +236,6 @@ void PlatformMain ( void )
 		strcpy(typemod, "things" );
 		break;
 	}
-
 	if(!CompileMod) return;//back to shutdown
 
 	mempool = Mem_AllocPool("compiler");

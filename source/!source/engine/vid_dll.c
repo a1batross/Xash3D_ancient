@@ -63,18 +63,6 @@ DLL GLUE
 
 ==========================================================================
 */
-void VID_Error (char *fmt, ...)
-{
-	va_list		argptr;
-	char		msg[MAX_INPUTLINE];
-	
-	va_start (argptr, fmt);
-	vsprintf (msg, fmt, argptr);
-	va_end (argptr);
-
-	Host_Error("%s", msg);
-}
-
 stdinout_api_t VID_GetStdio( void )
 {
 	static stdinout_api_t	io;
@@ -84,9 +72,12 @@ stdinout_api_t VID_GetStdio( void )
 	io.print = Sys_Print;
 	io.printf = Msg;
 	io.dprintf = MsgDev;
-	io.error = VID_Error;
-          io.exit = Com_Quit;
-          io.input = Sys_ConsoleInput;
+	io.error = Host_Error;
+	io.exit = Sys_Quit;
+	io.input = Sys_ConsoleInput;
+	io.sleep = Sys_Sleep;
+	io.LoadLibrary = Sys_LoadLibrary;
+	io.FreeLibrary = Sys_FreeLibrary;
 
 	return io;
 }

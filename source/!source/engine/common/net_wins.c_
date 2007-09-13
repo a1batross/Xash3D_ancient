@@ -28,13 +28,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 typedef struct
 {
 	byte	data[MAX_MSGLEN];
-	int	datalen;
+	int		datalen;
 } loopmsg_t;
 
 typedef struct
 {
 	loopmsg_t	msgs[MAX_LOOPBACK];
-	int	get, send;
+	int			get, send;
 } loopback_t;
 
 
@@ -43,61 +43,12 @@ static cvar_t	*noudp;
 static cvar_t	*noipx;
 
 loopback_t	loopbacks[2];
-int		ip_sockets[2];
-int		ipx_sockets[2];
-
-// wsock32.dll exports
-static int (_stdcall *pWSACleanup)( void );
-static word (_stdcall *pNtohs)( word netshort );
-static int (_stdcall *pWSAGetLastError)( void );
-static int (_stdcall *pCloseSocket)( SOCKET s );
-static word (_stdcall *pHtons)( word hostshort );
-static dword (_stdcall *pInet_Addr)( const char* cp );
-static SOCKET (_stdcall *pSocket)( int af, int type, int protocol );
-static struct hostent *(_stdcall *pGetHostByName)( const char* name );
-static int (_stdcall *pIoctlSocket)( SOCKET s, long cmd, dword* argp );
-static int (_stdcall *pWSAStartup)( word wVersionRequired, LPWSADATA lpWSAData );
-static int (_stdcall *pBind)( SOCKET s, const struct sockaddr* addr, int namelen );
-static int (_stdcall *pSetSockopt)( SOCKET s, int level, int optname, const char* optval, int optlen );
-static int (_stdcall *pRecvFrom)( SOCKET s, char* buf, int len, int flags, struct sockaddr* from, int* fromlen );
-static int (_stdcall *pSendTo)( SOCKET s, const char* buf, int len, int flags, const struct sockaddr* to, int tolen );
-static int (_stdcall *pSelect)( int nfds, fd_set* readfds, fd_set* writefds, fd_set* exceptfds, const struct timeval* timeout );
-
-static dllfunc_t winsock_funcs[] =
-{
-	{"bind", (void **) &pBind },
-	{"ntohs",	(void **) &pNtohs },
-	{"htons", (void **) &pHtons },
-	{"socket", (void **) &pSocket },
-	{"select", (void **) &pSelect },
-	{"sendto", (void **) &pSendTo },
-	{"recvfrom", (void **) &pRecvFrom },
-	{"inet_addr", (void **) &pInet_Addr },
-	{"WSAStartup", (void **) &pWSAStartup },
-	{"WSACleanup", (void **) &pWSACleanup },
-	{"setsockopt", (void **) &pSetSockopt },
-	{"ioctlsocket", (void **) &pIoctlSocket },
-	{"closesocket", (void **) &pCloseSocket },
-	{"gethostbyname", (void **) &pGetHostByName },
-	{"WSAGetLastError", (void **) &pWSAGetLastError },
-	{ NULL, NULL }
-};
-
-dll_info_t winsock_dll = { "wsock32.dll", winsock_funcs, NULL, NULL, NULL, true, 0, 0 };
+int			ip_sockets[2];
+int			ipx_sockets[2];
 
 char *NET_ErrorString (void);
 
 //=============================================================================
-
-void NET_OpenWinSock( void )
-{
-	Sys_LoadLibrary( &winsock_dll ); 	
-}
-
-void NET_FreeWinSock( void )
-{
-	Sys_FreeLibrary( &winsock_dll );
-}
 
 void NetadrToSockadr (netadr_t *a, struct sockaddr *s)
 {
@@ -149,7 +100,7 @@ void SockadrToNetadr (struct sockaddr *s, netadr_t *a)
 }
 
 
-bool	NET_CompareAdr (netadr_t a, netadr_t b)
+bool NET_CompareAdr (netadr_t a, netadr_t b)
 {
 	if (a.type != b.type)
 		return false;
@@ -209,8 +160,8 @@ char *NET_AdrToString (netadr_t a)
 	static char s[64];
 
 	if (a.type == NA_LOOPBACK) sprintf (s, "loopback");
-	else if (a.type == NA_IP) sprintf (s, "%i.%i.%i.%i:%i", a.ip[0], a.ip[1], a.ip[2], a.ip[3], pNtohs(a.port));
-	else sprintf (s, "%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%i", a.ipx[0], a.ipx[1], a.ipx[2], a.ipx[3], a.ipx[4], a.ipx[5], a.ipx[6], a.ipx[7], a.ipx[8], a.ipx[9], pNtohs(a.port));
+	else if (a.type == NA_IP) sprintf (s, "%i.%i.%i.%i:%i", a.ip[0], a.ip[1], a.ip[2], a.ip[3], ntohs(a.port));
+	else sprintf (s, "%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%i", a.ipx[0], a.ipx[1], a.ipx[2], a.ipx[3], a.ipx[4], a.ipx[5], a.ipx[6], a.ipx[7], a.ipx[8], a.ipx[9], ntohs(a.port));
 
 	return s;
 }
@@ -257,7 +208,7 @@ bool	NET_StringToSockaddr (char *s, struct sockaddr *sadr)
 		DO(17, sa_nodenum[4]);
 		DO(19, sa_nodenum[5]);
 		sscanf (&s[22], "%u", &val);
-		((struct sockaddr_ipx *)sadr)->sa_socket = pHtons((unsigned short)val);
+		((struct sockaddr_ipx *)sadr)->sa_socket = htons((unsigned short)val);
 	}
 	else
 	{
@@ -271,16 +222,16 @@ bool	NET_StringToSockaddr (char *s, struct sockaddr *sadr)
 			if (*colon == ':')
 			{
 				*colon = 0;
-				((struct sockaddr_in *)sadr)->sin_port = pHtons((short)atoi(colon+1));	
+				((struct sockaddr_in *)sadr)->sin_port = htons((short)atoi(colon+1));	
 			}
 		
 		if (copy[0] >= '0' && copy[0] <= '9')
 		{
-			*(int *)&((struct sockaddr_in *)sadr)->sin_addr = pInet_Addr(copy);
+			*(int *)&((struct sockaddr_in *)sadr)->sin_addr = inet_addr(copy);
 		}
 		else
 		{
-			if (! (h = pGetHostByName(copy)) )
+			if (! (h = gethostbyname(copy)) )
 				return 0;
 			*(int *)&((struct sockaddr_in *)sadr)->sin_addr = *(int *)h->h_addr_list[0];
 		}
@@ -399,14 +350,14 @@ bool	NET_GetPacket (netsrc_t sock, netadr_t *net_from, sizebuf_t *net_message)
 			continue;
 
 		fromlen = sizeof(from);
-		ret = pRecvFrom (net_socket, net_message->data, net_message->maxsize
+		ret = recvfrom (net_socket, net_message->data, net_message->maxsize
 			, 0, (struct sockaddr *)&from, &fromlen);
 
 		SockadrToNetadr (&from, net_from);
 
 		if (ret == -1)
 		{
-			err = pWSAGetLastError();
+			err = WSAGetLastError();
 
 			if (err == WSAEWOULDBLOCK)
 				continue;
@@ -477,10 +428,10 @@ void NET_SendPacket (netsrc_t sock, int length, void *data, netadr_t to)
 
 	NetadrToSockadr (&to, &addr);
 
-	ret = pSendTo (net_socket, data, length, 0, &addr, sizeof(addr) );
+	ret = sendto (net_socket, data, length, 0, &addr, sizeof(addr) );
 	if (ret == -1)
 	{
-		int err = pWSAGetLastError();
+		int err = WSAGetLastError();
 
 		// wouldblock is silent
 		if (err == WSAEWOULDBLOCK)
@@ -525,23 +476,23 @@ int NET_IPSocket (char *net_interface, int port)
 	int		i = 1;
 	int		err;
 
-	if ((newsocket = pSocket (PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+	if ((newsocket = socket (PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
 	{
-		err = pWSAGetLastError();
+		err = WSAGetLastError();
 		if (err != WSAEAFNOSUPPORT)
 			Msg ("WARNING: UDP_OpenSocket: socket: %s", NET_ErrorString());
 		return 0;
 	}
 
 	// make it non-blocking
-	if (pIoctlSocket (newsocket, FIONBIO, &_true) == -1)
+	if (ioctlsocket (newsocket, FIONBIO, &_true) == -1)
 	{
 		Msg ("WARNING: UDP_OpenSocket: ioctl FIONBIO: %s\n", NET_ErrorString());
 		return 0;
 	}
 
 	// make it broadcast capable
-	if (pSetSockopt(newsocket, SOL_SOCKET, SO_BROADCAST, (char *)&i, sizeof(i)) == -1)
+	if (setsockopt(newsocket, SOL_SOCKET, SO_BROADCAST, (char *)&i, sizeof(i)) == -1)
 	{
 		Msg ("WARNING: UDP_OpenSocket: setsockopt SO_BROADCAST: %s\n", NET_ErrorString());
 		return 0;
@@ -555,14 +506,14 @@ int NET_IPSocket (char *net_interface, int port)
 	if (port == PORT_ANY)
 		address.sin_port = 0;
 	else
-		address.sin_port = pHtons((short)port);
+		address.sin_port = htons((short)port);
 
 	address.sin_family = AF_INET;
 
-	if( pBind (newsocket, (void *)&address, sizeof(address)) == -1)
+	if( bind (newsocket, (void *)&address, sizeof(address)) == -1)
 	{
 		Msg ("WARNING: UDP_OpenSocket: bind: %s\n", NET_ErrorString());
-		pCloseSocket (newsocket);
+		closesocket (newsocket);
 		return 0;
 	}
 
@@ -632,23 +583,23 @@ int NET_IPXSocket (int port)
 	int					_true = 1;
 	int					err;
 
-	if ((newsocket = pSocket (PF_IPX, SOCK_DGRAM, NSPROTO_IPX)) == -1)
+	if ((newsocket = socket (PF_IPX, SOCK_DGRAM, NSPROTO_IPX)) == -1)
 	{
-		err = pWSAGetLastError();
+		err = WSAGetLastError();
 		if (err != WSAEAFNOSUPPORT)
 			Msg ("WARNING: IPX_Socket: socket: %s\n", NET_ErrorString());
 		return 0;
 	}
 
 	// make it non-blocking
-	if (pIoctlSocket (newsocket, FIONBIO, &_true) == -1)
+	if (ioctlsocket (newsocket, FIONBIO, &_true) == -1)
 	{
 		Msg ("WARNING: IPX_Socket: ioctl FIONBIO: %s\n", NET_ErrorString());
 		return 0;
 	}
 
 	// make it broadcast capable
-	if (pSetSockopt(newsocket, SOL_SOCKET, SO_BROADCAST, (char *)&_true, sizeof(_true)) == -1)
+	if (setsockopt(newsocket, SOL_SOCKET, SO_BROADCAST, (char *)&_true, sizeof(_true)) == -1)
 	{
 		Msg ("WARNING: IPX_Socket: setsockopt SO_BROADCAST: %s\n", NET_ErrorString());
 		return 0;
@@ -660,12 +611,12 @@ int NET_IPXSocket (int port)
 	if (port == PORT_ANY)
 		address.sa_socket = 0;
 	else
-		address.sa_socket = pHtons((short)port);
+		address.sa_socket = htons((short)port);
 
-	if( pBind (newsocket, (void *)&address, sizeof(address)) == -1)
+	if( bind (newsocket, (void *)&address, sizeof(address)) == -1)
 	{
 		Msg ("WARNING: IPX_Socket: bind: %s\n", NET_ErrorString());
-		pCloseSocket (newsocket);
+		closesocket (newsocket);
 		return 0;
 	}
 
@@ -713,7 +664,8 @@ void NET_OpenIPX (void)
 				port = PORT_ANY;
 		}
 		ipx_sockets[NS_CLIENT] = NET_IPXSocket (port);
-		if (!ipx_sockets[NS_CLIENT]) ipx_sockets[NS_CLIENT] = NET_IPXSocket (PORT_ANY);
+		if (!ipx_sockets[NS_CLIENT])
+			ipx_sockets[NS_CLIENT] = NET_IPXSocket (PORT_ANY);
 	}
 }
 
@@ -741,12 +693,12 @@ void	NET_Config (bool multiplayer)
 		{
 			if (ip_sockets[i])
 			{
-				pCloseSocket (ip_sockets[i]);
+				closesocket (ip_sockets[i]);
 				ip_sockets[i] = 0;
 			}
 			if (ipx_sockets[i])
 			{
-				pCloseSocket (ipx_sockets[i]);
+				closesocket (ipx_sockets[i]);
 				ipx_sockets[i] = 0;
 			}
 		}
@@ -784,7 +736,7 @@ void NET_Sleep(int msec)
 	}
 	timeout.tv_sec = msec/1000;
 	timeout.tv_usec = (msec%1000)*1000;
-	pSelect(i+1, &fdset, NULL, NULL, &timeout);
+	select(i+1, &fdset, NULL, NULL, &timeout);
 }
 
 //===================================================================
@@ -800,12 +752,11 @@ NET_Init
 void NET_Init (void)
 {
 	WORD	wVersionRequested; 
-	int	r;
+	int		r;
 
 	wVersionRequested = MAKEWORD(1, 1); 
-	NET_OpenWinSock(); // loading wsock32.dll
 
-	r = pWSAStartup (MAKEWORD(1, 1), &winsockdata);
+	r = WSAStartup (MAKEWORD(1, 1), &winsockdata);
 	if(r) Sys_Error("Winsock initialization failed.");
 
 	Msg("Winsock Initialized\n");
@@ -822,11 +773,11 @@ void NET_Init (void)
 NET_Shutdown
 ====================
 */
-void NET_Shutdown (void)
+void	NET_Shutdown (void)
 {
 	NET_Config (false);	// close sockets
-	pWSACleanup ();
-	NET_FreeWinSock();
+
+	WSACleanup ();
 }
 
 
@@ -839,7 +790,7 @@ char *NET_ErrorString (void)
 {
 	int		code;
 
-	code = pWSAGetLastError ();
+	code = WSAGetLastError ();
 	switch (code)
 	{
 	case WSAEINTR: return "WSAEINTR";

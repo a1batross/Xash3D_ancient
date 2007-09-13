@@ -43,23 +43,6 @@ float	time_before_game;
 float	time_after_game;
 float	time_before_ref;
 float	time_after_ref;
-
-/*
-=============
-Com_Quit
-
-Both client and server can use this, and it will
-do the apropriate things.
-=============
-*/
-void Com_Quit (void)
-{
-	SV_Shutdown ("Server quit\n", false);
-	CL_Shutdown ();
-
-	Sys_Quit ();
-}
-
 /*
 ==================
 Com_ServerState

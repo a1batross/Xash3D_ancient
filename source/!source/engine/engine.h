@@ -168,6 +168,12 @@ System Events
 #define MsgWarn Con_DWarnf
 #define Sys_LoadLibrary std.LoadLibrary
 #define Sys_FreeLibrary std.FreeLibrary
+#define Sys_Sleep std.sleep
+#define Sys_Print std.print
+#define Sys_Quit std.exit
+#define Sys_ConsoleInput std.input
+
+
 /*
 ===========================================
 Host Interface

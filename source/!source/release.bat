@@ -56,5 +56,5 @@ if exist progs\server.dat copy progs\server.dat D:\Xash3D\xash\server.dat
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading
 cd D:\Xash3D\
-xash.exe -game valve +map skytest -debug
+xash.exe -game valve +map skytest -debug -log
 :done
