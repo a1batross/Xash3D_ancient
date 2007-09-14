@@ -91,7 +91,7 @@ void FS_Shutdown (void);
 #define Mem_Move(dest, src, size ) _Mem_Move (dest, src, size, __FILE__, __LINE__)
 #define Mem_Copy(dest, src, size ) _Mem_Copy (dest, src, size, __FILE__, __LINE__)
 
-stdinout_api_t std;
+extern stdlib_api_t std;
 extern gameinfo_t GI;
 
 #define Msg std.printf
@@ -123,9 +123,7 @@ extern byte *studiopool;
 
 //misc common functions
 char *copystring(char *s);
-char *strupr (char *start);
 char *strlower (char *start);
-char* FlipSlashes(char* string);
 char *va(const char *format, ...);
 char *stristr( const char *string, const char *string2 );
 void ExtractFilePath(const char* const path, char* dest);

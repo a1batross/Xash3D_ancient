@@ -10,6 +10,7 @@
 #include "qcclib.h"
 
 bool host_debug = false;
+stdlib_api_t std;
 
 gameinfo_t Plat_GameInfo( void )
 {
@@ -18,7 +19,7 @@ gameinfo_t Plat_GameInfo( void )
 
 bool InitPlatform ( int argc, char **argv )
 {
-	MsgDev(D_INFO, "------- Loading bin/platform.dll [%g] -------\n", PLATFORM_VERSION );
+	MsgDev(D_INFO, "------- Loading bin/common.dll [%g] -------\n", COMMON_VERSION );
 
 	InitMemory();
 	Plat_InitCPU();
@@ -39,9 +40,9 @@ void ClosePlatform ( void )
 	FreeMemory();
 }
 
-platform_exp_t DLLEXPORT *CreateAPI ( stdinout_api_t *input )
+common_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input )
 {
-	static platform_exp_t pi;
+	static common_exp_t		Com;
 
 	// Sys_LoadLibrary can create fake instance, to check
 	// api version and api size, but first argument will be 0
@@ -49,27 +50,27 @@ platform_exp_t DLLEXPORT *CreateAPI ( stdinout_api_t *input )
 	if(input) std = *input;
 
 	//generic functions
-	pi.apiversion = PLATFORM_API_VERSION;
-	pi.api_size = sizeof(platform_exp_t);
+	Com.apiversion = COMMON_API_VERSION;
+	Com.api_size = sizeof(common_exp_t);
 
-	pi.Init = InitPlatform;
-	pi.Shutdown = ClosePlatform;
+	Com.Init = InitPlatform;
+	Com.Shutdown = ClosePlatform;
 
 	//get interfaces
-	pi.Fs = FS_GetAPI();
-	pi.VFs = VFS_GetAPI();
-	pi.Mem = Mem_GetAPI();
-	pi.Script = Sc_GetAPI();
-	pi.Compile = Comp_GetAPI();
-	pi.Info = Info_GetAPI();
+	Com.Fs = FS_GetAPI();
+	Com.VFs = VFS_GetAPI();
+	Com.Mem = Mem_GetAPI();
+	Com.Script = Sc_GetAPI();
+	Com.Compile = Comp_GetAPI();
+	Com.Info = Info_GetAPI();
 
-	pi.InitRootDir = FS_InitRootDir;
-	pi.LoadGameInfo = FS_LoadGameInfo;
-	pi.AddGameHierarchy = FS_AddGameHierarchy;
+	Com.InitRootDir = FS_InitRootDir;
+	Com.LoadGameInfo = FS_LoadGameInfo;
+	Com.AddGameHierarchy = FS_AddGameHierarchy;
 
 	//timer
-	pi.DoubleTime = Plat_DoubleTime;
-	pi.GameInfo = Plat_GameInfo;
+	Com.DoubleTime = Plat_DoubleTime;
+	Com.GameInfo = Plat_GameInfo;
 	
-	return &pi;
+	return &Com;
 }

@@ -99,4 +99,6 @@ _inline char *va(const char *format, ...)
 	return s;
 }
 
+#define bound(min, num, max) ((num) >= (min) ? ((num) < (max) ? (num) : (max)) : (min))
+
 #endif//BASETYPES_H

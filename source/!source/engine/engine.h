@@ -27,8 +27,8 @@
 #include "cvar.h"
 #include "console.h"
 
-extern stdinout_api_t	std;
-extern platform_exp_t	*pi;
+extern stdlib_api_t		std;
+extern common_exp_t		*Com;
 extern byte		*zonepool;
 
 typedef enum
@@ -95,39 +95,39 @@ memory manager
 #define Z_Free(data) Mem_Free(data)
 
 //malloc-free
-#define Mem_Alloc(pool,size) pi->Mem.Alloc(pool, size, __FILE__, __LINE__)
-#define Mem_Free(mem) pi->Mem.Free(mem, __FILE__, __LINE__)
+#define Mem_Alloc(pool,size) Com->Mem.Alloc(pool, size, __FILE__, __LINE__)
+#define Mem_Free(mem) Com->Mem.Free(mem, __FILE__, __LINE__)
 
 //Hunk_AllocName
-#define Mem_AllocPool(name) pi->Mem.AllocPool(name, __FILE__, __LINE__)
-#define Mem_FreePool(pool) pi->Mem.FreePool(pool, __FILE__, __LINE__)
-#define Mem_EmptyPool(pool) pi->Mem.EmptyPool(pool, __FILE__, __LINE__)
+#define Mem_AllocPool(name) Com->Mem.AllocPool(name, __FILE__, __LINE__)
+#define Mem_FreePool(pool) Com->Mem.FreePool(pool, __FILE__, __LINE__)
+#define Mem_EmptyPool(pool) Com->Mem.EmptyPool(pool, __FILE__, __LINE__)
 
-#define Mem_Copy(dest, src, size) pi->Mem.Copy(dest, src, size, __FILE__, __LINE__) 
+#define Mem_Copy(dest, src, size) Com->Mem.Copy(dest, src, size, __FILE__, __LINE__) 
 
 /*
 ===========================================
 filesystem manager
 ===========================================
 */
-#define FS_LoadFile(name, size) pi->Fs.LoadFile(name, size)
-#define FS_LoadImage(name, data, size) pi->Fs.LoadImage(name, data, size)
-#define FS_Search(path) pi->Fs.Search( path, true )
-#define FS_WriteFile(name, data, size) pi->Fs.WriteFile(name, data, size )
-#define FS_Open( path, mode ) pi->Fs.Open( path, mode )
-#define FS_Read( file, buffer, size ) pi->Fs.Read( file, buffer, size )
-#define FS_Write( file, buffer, size ) pi->Fs.Write( file, buffer, size )
-#define FS_StripExtension( path ) pi->Fs.StripExtension( path )
-#define FS_DefaultExtension( path, ext ) pi->Fs.DefaultExtension( path, ext )
-#define FS_FileExtension( ext ) pi->Fs.FileExtension( ext )
-#define FS_FileExists( file ) pi->Fs.FileExists( file )
-#define FS_Close( file ) pi->Fs.Close( file )
-#define FS_FileBase( x, y ) pi->Fs.FileBase( x, y )
-#define FS_Find( x ) pi->Fs.Search( x, false )
-#define FS_Printf pi->Fs.Printf
-#define FS_Seek pi->Fs.Seek
-#define FS_Tell pi->Fs.Tell
-#define FS_Gets pi->Fs.Gets
+#define FS_LoadFile(name, size) Com->Fs.LoadFile(name, size)
+#define FS_LoadImage(name, data, size) Com->Fs.LoadImage(name, data, size)
+#define FS_Search(path) Com->Fs.Search( path, true )
+#define FS_WriteFile(name, data, size) Com->Fs.WriteFile(name, data, size )
+#define FS_Open( path, mode ) Com->Fs.Open( path, mode )
+#define FS_Read( file, buffer, size ) Com->Fs.Read( file, buffer, size )
+#define FS_Write( file, buffer, size ) Com->Fs.Write( file, buffer, size )
+#define FS_StripExtension( path ) Com->Fs.StripExtension( path )
+#define FS_DefaultExtension( path, ext ) Com->Fs.DefaultExtension( path, ext )
+#define FS_FileExtension( ext ) Com->Fs.FileExtension( ext )
+#define FS_FileExists( file ) Com->Fs.FileExists( file )
+#define FS_Close( file ) Com->Fs.Close( file )
+#define FS_FileBase( x, y ) Com->Fs.FileBase( x, y )
+#define FS_Find( x ) Com->Fs.Search( x, false )
+#define FS_Printf Com->Fs.Printf
+#define FS_Seek Com->Fs.Seek
+#define FS_Tell Com->Fs.Tell
+#define FS_Gets Com->Fs.Gets
 char *FS_Gamedir( void );
 
 /*
@@ -135,19 +135,19 @@ char *FS_Gamedir( void );
 scriptsystem manager
 ===========================================
 */
-#define COM_Parse(data) pi->Script.ParseToken(data)
-#define COM_Token pi->Script.Token
+#define COM_Parse(data) Com->Script.ParseToken(data)
+#define COM_Token Com->Script.Token
 
 /*
 ===========================================
 infostring manager
 ===========================================
 */
-#define Info_Print(x) pi->Info.Print
-#define Info_Validate(x) pi->Info.Validate(x)
-#define Info_RemoveKey(x, y) pi->Info.RemoveKey(x,y)
-#define Info_ValueForKey(x,y) pi->Info.ValueForKey(x,y)
-#define Info_SetValueForKey(x,y,z) pi->Info.SetValueForKey(x,y,z)
+#define Info_Print(x) Com->Info.Print
+#define Info_Validate(x) Com->Info.Validate(x)
+#define Info_RemoveKey(x, y) Com->Info.RemoveKey(x,y)
+#define Info_ValueForKey(x,y) Com->Info.ValueForKey(x,y)
+#define Info_SetValueForKey(x,y,z) Com->Info.SetValueForKey(x,y,z)
 
 /*
 ===========================================
@@ -155,7 +155,7 @@ System Timer
 ===========================================
 */
 double Sys_DoubleTime( void );
-#define GI pi->GameInfo()
+#define GI Com->GameInfo()
 
 /*
 ===========================================

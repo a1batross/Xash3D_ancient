@@ -422,7 +422,7 @@ void M_Main_Draw (void)
 			re->DrawPic( xoffset, ystart + i * 40 + 13, names[i] );
 	}
 	strcpy( litname, names[m_main_cursor] );
-	strlcat( litname, "_sel", 80 );
+	strncat( litname, "_sel", 80 );
 	re->DrawPic( xoffset, ystart + m_main_cursor * 40 + 13, litname );
 
 	M_DrawCursor( xoffset - 25, ystart + m_main_cursor * 40 + 11, (int)(cls.realtime * 8.0f) % NUM_CURSOR_FRAMES );
@@ -2140,7 +2140,7 @@ bool Menu_CreateMapsList( void )
 		
 		fp = FS_Open(t->filenames[i], "rb");
 		FS_FileBase( t->filenames[i], mapname );
-		strlcpy(message, "No Title", 64);
+		strncpy(message, "No Title", 64);
 
 		if(fp)
 		{
@@ -2189,7 +2189,7 @@ bool Menu_CreateMapsList( void )
 						if (!strcmp(keyname, "message") && !have_title)
 						{
 							// get the message contents
-							strlcpy(message, com_token, sizeof(message));
+							strncpy(message, com_token, sizeof(message));
 							have_title = true;//get title once only
 						}
 						else if(!strcmp(keyname, "classname"))
@@ -3017,7 +3017,7 @@ static bool IconOfSkinExists( char *skin, char **pcxfiles, int npcxfiles )
 
 	strcpy( scratch, skin );
 	*strrchr( scratch, '.' ) = 0;
-	strlcat( scratch, "_i.pcx", 1024 );
+	strncat( scratch, "_i.pcx", 1024 );
 
 	for ( i = 0; i < npcxfiles; i++ )
 	{
@@ -3066,13 +3066,13 @@ static bool PlayerConfig_ScanDirectories( void )
 
 		// verify the existence of tris.md2
 		strcpy( scratch, dirnames[i] );
-		strlcat( scratch, "/tris.md2", 1024 );
+		strncat( scratch, "/tris.md2", 1024 );
 		
 		if(!FS_FileExists( scratch )) continue;
 		
 		// verify the existence of at least one pcx skin
 		strcpy( scratch, dirnames[i] );
-		strlcat( scratch, "/*.pcx", 1024 );
+		strncat( scratch, "/*.pcx", 1024 );
 
 		search2 = FS_Search( scratch );
 
@@ -3349,7 +3349,6 @@ void PlayerConfig_MenuDraw( void )
 	if ( s_pmi[s_player_model_box.curvalue].skindisplaynames )
 	{
 		static int yaw;
-		int maxframe = 29;
 		entity_t entity;
 
 		memset( &entity, 0, sizeof( entity ) );

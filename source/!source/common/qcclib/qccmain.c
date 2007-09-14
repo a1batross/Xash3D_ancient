@@ -38,7 +38,7 @@ int numtemps;
 
 void PR_ResetErrorScope(void);
 
-bool	compressoutput;
+bool compressoutput = false;
 
 bool newstylesource;
 char		destfile[1024];
@@ -337,33 +337,12 @@ void PR_PrintGlobals (void)
 	}
 }
 
-int encode(int len, int method, char *in, int handle);
 int WriteSourceFiles(vfile_t *h, dprograms_t *progs, bool sourceaswell)
 {
 	includeddatafile_t *idf;
 	cachedsourcefile_t *f;
 	int num=0;
 	int ofs;
-
-	/*
-	for (f = sourcefile; f ; f=f->next)
-	{
-		if (f->type == FT_CODE && !sourceaswell)
-			continue;
-
-		VFS_Write(h, f->filename, strlen(f->filename)+1);
-		i = LittleLong(f->size);
-		VFS_Write(h, &i, sizeof(int));
-
-		i = LittleLong(encrpytmode);
-		VFS_Write(h, &i, sizeof(int));
-
-		if (encrpytmode)
-			for (i = 0; i < f->size; i++)
-				f->file[i] ^= 0xA5;
-
-		VFS_Write(h, f->file, f->size);
-	}*/
 
 	for (f = sourcefile,num=0; f ; f=f->next)
 	{
@@ -372,8 +351,7 @@ int WriteSourceFiles(vfile_t *h, dprograms_t *progs, bool sourceaswell)
 
 		num++;
 	}
-	if (!num)
-		return 0;
+	if (!num) return 0;
 	idf = Qalloc(sizeof(includeddatafile_t)*num);
 	for (f = sourcefile,num=0; f ; f=f->next)
 	{
@@ -2078,6 +2056,7 @@ void PR_SetDefaultProperties (void)
 		PR_DefineName("OP_COMP_GLOBALS");
 		PR_DefineName("OP_COMP_LINES");
 		PR_DefineName("OP_COMP_TYPES");
+		compressoutput = true; //enable compression
 	}
 
 	if (FS_CheckParm("/O0") || FS_CheckParm("-O0"))
@@ -2088,8 +2067,7 @@ void PR_SetDefaultProperties (void)
 		level = 2;
 	else if (FS_CheckParm("/O3") || FS_CheckParm("-O3"))
 		level = 3;
-	else
-		level = -1;
+	else level = -1;
 
 	if (level == -1)
 	{
@@ -2112,7 +2090,7 @@ void PR_SetDefaultProperties (void)
 		}
 	}
 
-	targetformat = QCF_STANDARD;
+	//targetformat = QCF_STANDARD;
 
 
 	//enable all warnings
@@ -2172,7 +2150,6 @@ void PR_main ( void ) //as part of the quake engine
 	maxtypeinfos	= 16384;
 	MAX_CONSTANTS	= 2048;
 
-	compressoutput = 0;
 	strcpy(v_copyright, "This file was created with ForeThought's modified QuakeC compiler\nThanks to ID Software");
 
 	for (p = 0; compiler_flag[p].enabled; p++)

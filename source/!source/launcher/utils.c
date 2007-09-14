@@ -35,12 +35,12 @@ const char* Log_Timestamp( void )
 
 float CalcEngineVersion( void )
 {
-	return LAUNCHER_VERSION + PLATFORM_VERSION + RENDERER_VERSION + ENGINE_VERSION;
+	return LAUNCHER_VERSION + COMMON_VERSION + RENDER_VERSION + ENGINE_VERSION;
 }
 
 float CalcEditorVersion( void )
 {
-	return LAUNCHER_VERSION + PLATFORM_VERSION + RENDERER_VERSION + EDITOR_VERSION;
+	return LAUNCHER_VERSION + COMMON_VERSION + RENDER_VERSION + EDITOR_VERSION;
 }
 
 /*
@@ -147,7 +147,7 @@ void Sys_Exit (void)
 bool Sys_LoadLibrary ( dll_info_t *dll )
 {
 	const dllfunc_t	*func;
-	bool		native_lib;
+	bool		native_lib = false;
 	char		errorstring[MAX_QPATH];
 
 	// check errors
@@ -162,9 +162,8 @@ bool Sys_LoadLibrary ( dll_info_t *dll )
 		// lookup export table
 		for (func = dll->fcts; func && func->name != NULL; func++)
 			*func->func = NULL;
-		native_lib = false;
 	}
-	else native_lib = true;
+	else if( dll->entry) native_lib = true;
 
 	if(!dll->link) dll->link = LoadLibrary ( va("bin/%s", dll->name));
 	if(!dll->link) dll->link = LoadLibrary ( dll->name ); // environment pathes
@@ -178,7 +177,7 @@ bool Sys_LoadLibrary ( dll_info_t *dll )
 
 	if(native_lib)
 	{
-		if((dll->main = (void *)GetProcAddress(dll->link, dll->entry )) == 0)
+		if((dll->main = Sys_GetProcAddress(dll, dll->entry )) == 0)
 		{
 			sprintf(errorstring, "Sys_LoadLibrary: %s has no valid entry point\n", dll->name );
 			goto error;
@@ -189,7 +188,7 @@ bool Sys_LoadLibrary ( dll_info_t *dll )
 		// Get the function adresses
 		for(func = dll->fcts; func && func->name != NULL; func++)
 		{
-			if (!(*func->func = (void *)GetProcAddress(dll->link, func->name)))
+			if (!(*func->func = Sys_GetProcAddress(dll, func->name)))
 			{
 				sprintf(errorstring, "Sys_LoadLibrary: %s missing or invalid function (%s)\n", dll->name, func->name );
 				goto error;
@@ -234,11 +233,20 @@ error:
 	return false;
 }
 
+void* Sys_GetProcAddress ( dll_info_t *dll, const char* name )
+{
+	if(!dll || !dll->link) // invalid desc
+		return NULL;
+
+	return (void *)GetProcAddress (dll->link, name);
+}
+
 bool Sys_FreeLibrary ( dll_info_t *dll )
 {
 	if(!dll || !dll->link) // invalid desc or alredy freed
 		return false;
 
+	MsgDev(D_ERROR, "Sys_FreeLibrary: Unloading %s\n", dll->name );
 	FreeLibrary (dll->link);
 	dll->link = NULL;
 

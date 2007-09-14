@@ -325,12 +325,7 @@ void FreeSound (void)
 		pDS->lpVtbl->Release( pDS );
 	}
 
-	if ( hInstDS )
-	{
-		MsgDev(D_INFO, "...freeing DSOUND.DLL\n" );
-		FreeLibrary( hInstDS );
-		hInstDS = NULL;
-	}
+	Sys_FreeLibrary( &dsound_dll );
 
 	pDS = NULL;
 	pDSBuf = NULL;

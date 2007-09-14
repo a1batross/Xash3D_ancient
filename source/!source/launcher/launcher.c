@@ -4,7 +4,6 @@
 //=======================================================================
 
 #include "launcher.h"
-#include <math.h>
 
 static int app_name;
 bool hooked_out = false;
@@ -16,7 +15,7 @@ char caption[64];
 
 const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t          All Rights Reserved\n\n\t           Visit www.xash.ru\n";
 
-dll_info_t platform_dll = { "platform.dll", NULL, "CreateAPI", NULL, NULL, true, PLATFORM_API_VERSION, sizeof(platform_exp_t) };
+dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, COMMON_API_VERSION, sizeof(common_exp_t) };
 dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, LAUNCHER_API_VERSION, sizeof(launcher_exp_t) };
 dll_info_t editor_dll = { "editor.dll", NULL, "CreateAPI", NULL, NULL, true, LAUNCHER_API_VERSION, sizeof(launcher_exp_t) };
 dll_info_t *linked_dll; // generic hinstance
@@ -35,12 +34,12 @@ typedef enum
 	CREDITS,		// misc
 };
 
-int	com_argc;
-char	*com_argv[MAX_NUM_ARGVS];
-char	progname[32];	// limit of funcname
-platform_exp_t	*pi;	// callback to utilities
-static double start, end;
-byte	*mempool;		// generic mempoolptr
+int		com_argc;
+char		*com_argv[MAX_NUM_ARGVS];
+char		progname[32];	// limit of funcname
+common_exp_t	*Com;		// callback to utilities
+static double	start, end;
+byte		*mempool;		// generic mempoolptr
 
 
 /*
@@ -98,28 +97,28 @@ void LookupInstance( const char *funcname )
 	else if(!strcmp(progname, "bsplib"))
 	{
 		app_name = BSPLIB;
-		linked_dll = &platform_dll;	// pointer to platform.dll info
+		linked_dll = &common_dll;	// pointer to common.dll info
 		strcpy(log_path, "bsplib.log" ); // xash3d root directory
 		strcpy(caption, "Xash3D BSP Compiler");
 	}
 	else if(!strcmp(progname, "qcclib"))
 	{
 		app_name = QCCLIB;
-		linked_dll = &platform_dll;	// pointer to platform.dll info
+		linked_dll = &common_dll;	// pointer to common.dll info
 		sprintf(log_path, "%s/compile.log", sys_rootdir ); // same as .exe file
 		strcpy(caption, "Xash3D QuakeC Compiler");
 	}
 	else if(!strcmp(progname, "sprite"))
 	{
 		app_name = SPRITE;
-		linked_dll = &platform_dll;	// pointer to platform.dll info
+		linked_dll = &common_dll;	// pointer to common.dll info
 		sprintf(log_path, "%s/spritegen.log", sys_rootdir ); // same as .exe file
 		strcpy(caption, "Xash3D Sprite Compiler");
 	}
 	else if(!strcmp(progname, "studio"))
 	{
 		app_name = STUDIO;
-		linked_dll = &platform_dll;	// pointer to platform.dll info
+		linked_dll = &common_dll;	// pointer to common.dll info
 		sprintf(log_path, "%s/studiomdl.log", sys_rootdir ); // same as .exe file
 		strcpy(caption, "Xash3D Studio Models Compiler");
 	}
@@ -133,9 +132,9 @@ void LookupInstance( const char *funcname )
 	else app_name = DEFAULT;
 }
 
-stdinout_api_t *Get_StdAPI( void )
+stdlib_api_t *Get_StdAPI( void )
 {
-	static stdinout_api_t std;
+	static stdlib_api_t std;
 
 	// setup sysfuncs
 	std.printf = Msg;
@@ -149,24 +148,25 @@ stdinout_api_t *Get_StdAPI( void )
 
 	std.LoadLibrary = Sys_LoadLibrary;
 	std.FreeLibrary = Sys_FreeLibrary;
+	std.GetProcAddress = Sys_GetProcAddress;
 
 	return &std;
 }
 
 /*
 ==================
-PlatformInit
+CommonInit
 
 platform.dll needs for some setup operations
 so do it manually
 ==================
 */
-void PlatformInit ( char *funcname, int argc, char **argv )
+void CommonInit ( char *funcname, int argc, char **argv )
 {
 	byte bspflags = 0, qccflags = 0;
 	char source[64], gamedir[64];
 
-	pi->Init( argc, argv );
+	Com->Init( argc, argv );
 
 	switch(app_name)
 	{
@@ -180,7 +180,7 @@ void PlatformInit ( char *funcname, int argc, char **argv )
 		if(CheckParm("-full")) bspflags |= BSP_FULLCOMPILE;
 		if(CheckParm("-onlyents")) bspflags |= BSP_ONLYENTS;
 
-		pi->Compile.PrepareBSP( gamedir, source, bspflags );
+		Com->Compile.PrepareBSP( gamedir, source, bspflags );
 		break;
 	case QCCLIB:
 		if(!GetParmFromCmdLine("+dat", source ))
@@ -191,22 +191,22 @@ void PlatformInit ( char *funcname, int argc, char **argv )
 		if(CheckParm("/O2")) qccflags |= QCC_OPT_LEVEL_2;
 		if(CheckParm("/O2")) qccflags |= QCC_OPT_LEVEL_3;
 
-		pi->Compile.PrepareDAT( gamedir, source, qccflags );	
+		Com->Compile.PrepareDAT( gamedir, source, qccflags );	
 		break;
 	case SPRITE:
-		pi->InitRootDir(".");
-		start = pi->DoubleTime();
+		Com->InitRootDir(".");
+		start = Com->DoubleTime();
 		break;
 	case STUDIO:
-		pi->InitRootDir(".");
-		start = pi->DoubleTime();
+		Com->InitRootDir(".");
+		start = Com->DoubleTime();
 		break;
 	case DEFAULT:
 		break;
 	}
 }
 
-void PlatformMain ( void )
+void CommonMain ( void )
 {
 	search_t	*search;
 	char qcfilename[64], typemod[16];
@@ -217,19 +217,19 @@ void PlatformMain ( void )
 	switch(app_name)
 	{
 	case SPRITE: 
-		CompileMod = pi->Compile.Sprite;
+		CompileMod = Com->Compile.Sprite;
 		strcpy(typemod, "sprites" );
 		break;
 	case STUDIO:
-		CompileMod = pi->Compile.Studio;
+		CompileMod = Com->Compile.Studio;
 		strcpy(typemod, "models" );
 		break;
 	case BSPLIB: 
-		pi->Compile.BSP(); 
+		Com->Compile.BSP(); 
 		strcpy(typemod, "maps" );
 		break;
 	case QCCLIB: 
-		pi->Compile.DAT(); 
+		Com->Compile.DAT(); 
 		strcpy(typemod, "progs" );
 		break;
 	case DEFAULT:
@@ -242,7 +242,7 @@ void PlatformMain ( void )
 	if(!GetParmFromCmdLine("-qcfile", qcfilename ))
 	{
 		//search for all .ac files in folder		
-		search = pi->Fs.Search("*.qc", true );
+		search = Com->Fs.Search("*.qc", true );
 		if(!search) Sys_Error("no qcfiles found in this folder!\n");
 
 		for( i = 0; i < search->numfilenames; i++ )
@@ -253,16 +253,16 @@ void PlatformMain ( void )
 	}
 	else CompileMod( mempool, qcfilename, parms );
 
-	end = pi->DoubleTime();
+	end = Com->DoubleTime();
 	Msg ("%5.1f seconds elapsed\n", end - start);
 	if(numCompiledMods > 1) Msg("total %d %s compiled\n", numCompiledMods, typemod );
 }
 
-void PlatformShutdown ( void )
+void CommonShutdown ( void )
 {
 	Mem_Check(); //check for leaks
 	Mem_FreePool( &mempool );
-	pi->Shutdown();
+	Com->Shutdown();
 }
 
 
@@ -274,7 +274,7 @@ Find needed library, setup and run it
 void CreateInstance( void )
 {
 	// export
-	platform_t	CreatePlat;
+	common_t		CreateCom;
 	launcher_t	CreateHost;
 	launcher_exp_t	*Host;          
           
@@ -300,13 +300,13 @@ void CreateInstance( void )
 	case QCCLIB:
 	case SPRITE:
 	case STUDIO:
-		CreatePlat = (void *)linked_dll->main;
+		CreateCom = (void *)linked_dll->main;
 		
 		// set callback
-		pi = CreatePlat(Get_StdAPI());
-		Host_Init = PlatformInit;
-		Host_Main = PlatformMain;
-		Host_Free = PlatformShutdown;
+		Com = CreateCom(Get_StdAPI());
+		Host_Init = CommonInit;
+		Host_Main = CommonMain;
+		Host_Free = CommonShutdown;
 		break;
 	case CREDITS:
 		Sys_Print( show_credits );
@@ -374,13 +374,20 @@ void API_SetConsole( void )
 }
 
 
-void InitLauncher( char *funcname )
+void RunLauncher( char *funcname )
 {
 	HANDLE		hStdout;
-	char		dev_level[4];
 	OSVERSIONINFO	vinfo;
+	MEMORYSTATUS	lpBuffer;
+	char		dev_level[4];
+
+	lpBuffer.dwLength = sizeof(MEMORYSTATUS);
+	GlobalMemoryStatus (&lpBuffer);
+
+	// parse and copy args into local array
+	ParseCommandLine(GetCommandLine());
 	
-	API_Reset();// fill stdinout api
+	API_Reset();// fill stdlib api
 	
 	// get current hInstance first
 	base_hInstance = (HINSTANCE)GetModuleHandle( NULL );
@@ -421,16 +428,9 @@ Base Entry Point
 =================
 */
 
-DLLEXPORT int CreateAPI( char *funcname, LPSTR lpCmdLine )
+DLLEXPORT int CreateAPI( char *funcname )
 {
-	MEMORYSTATUS	lpBuffer;
-
-	lpBuffer.dwLength = sizeof(MEMORYSTATUS);
-	GlobalMemoryStatus (&lpBuffer);
-
-	// parse and copy args into local array
-	ParseCommandLine( lpCmdLine );
-	InitLauncher( funcname );
+	RunLauncher( funcname );
 
 	return 0;
 }

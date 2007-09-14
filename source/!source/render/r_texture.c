@@ -1635,7 +1635,7 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
           image->paletted = pic->palette ? true : false;
           buf = pic->buffer;
 
-	//fill image_desc
+	// fill image_desc
 	R_GetPixelFormat( pic, type );
 
 	for(i = 0; i < numsides; i++, buf += offset )
@@ -1646,7 +1646,7 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
 		R_SetPixelFormat( image_desc.width, image_desc.height, image_desc.numLayers );
 		offset = image_desc.SizeOfFile;// move pointer
 		
-		MsgDev(D_INFO, "loading %s [%s] \n", name, PixelFormatDescription[image_desc.format].name );
+		MsgDev(D_LOAD, "loading %s [%s] \n", name, PixelFormatDescription[image_desc.format].name );
 
 		switch(pic->type)
 		{

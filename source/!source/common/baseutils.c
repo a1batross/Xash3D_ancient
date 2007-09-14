@@ -28,18 +28,6 @@ void Plat_LinkDlls( void )
 	//Sys_LoadLibrary( &winmm_dll );
 }
 
-char *strupr (char *start)
-{
-	char *in;
-	in = start;
-	while (*in)
-	{
-		*in = toupper(*in);
-		in++;
-	}
-	return start;
-}
-
 char *strlower (char *start)
 {
 	char *in;

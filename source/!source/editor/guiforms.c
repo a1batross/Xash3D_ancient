@@ -31,10 +31,12 @@ typedef struct tag_dlghdr
 
 GUI_Form 			s_gui;
 wnd_options_t		w_opts;	//window options
-platform_exp_t		*pi;//platform utils 
+common_exp_t		*com;	//common utils 
 static bool editor_init = false;
 static char textbuffer[MAX_INPUTLINE];
-dll_info_t platform_dll = { "platform.dll", NULL, "CreateAPI", NULL, NULL, false, PLATFORM_API_VERSION, sizeof(platform_exp_t) };
+dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, false, COMMON_API_VERSION, sizeof(common_exp_t) };
+dll_info_t richedit_dll = { "riched32.dll", NULL, NULL, NULL, NULL, false, 0, 0 };
+
 
 /*
 =============================================================================
@@ -454,36 +456,37 @@ void GUI_LoadWndOptions( wnd_options_t *settings )
 
 bool GUI_LoadPlatfrom( char *funcname, int argc, char **argv )
 {
-	stdinout_api_t	pistd;//platform callback
-	platform_t	CreatePlat;
+	stdlib_api_t	io; //common callback
+	common_t		CreatePlat;
 
-	//create callbacks for platform.dll
-	pistd.printf = GUI_Msg;
-	pistd.dprintf = GUI_MsgDev;
-	pistd.wprintf = GUI_MsgWarn;
-	pistd.error = GUI_Error;
-	pistd.exit = std.exit;
-	pistd.print = GUI_Print;
-	pistd.input = std.input;
-	pistd.sleep = std.sleep;
+	// create callbacks for common.dll
+	io.printf = GUI_Msg;
+	io.dprintf = GUI_MsgDev;
+	io.wprintf = GUI_MsgWarn;
+	io.error = GUI_Error;
+	io.exit = std.exit;
+	io.print = GUI_Print;
+	io.input = std.input;
+	io.sleep = std.sleep;
 
-	pistd.LoadLibrary = std.LoadLibrary;
-	pistd.FreeLibrary = std.FreeLibrary;
-
-	//loading platform.dll
-	if (!Sys_LoadLibrary( &platform_dll ))
+	io.LoadLibrary = std.LoadLibrary;
+	io.FreeLibrary = std.FreeLibrary;
+          io.GetProcAddress = std.GetProcAddress;
+	
+	// loading common.dll
+	if (!Sys_LoadLibrary( &common_dll ))
 	{
-		GUI_Error("couldn't find platform.dll\n");
+		GUI_Error("couldn't find common.dll\n");
 		return false;	
 	}
-	CreatePlat = (void *)platform_dll.main;
-	pi = CreatePlat( &pistd );//make links
+	CreatePlat = (void *)common_dll.main;
+	com = CreatePlat( &io );//make links
 	
-	//initialziing platform.dll
-	pi->Init( argc, argv );
+	//initialziing common.dll
+	com->Init( argc, argv );
 
-	pi->Fs.ClearSearchPath();
-	pi->AddGameHierarchy( "bin" );
+	com->Fs.ClearSearchPath();
+	com->AddGameHierarchy( "bin" );
 
 	return true;
 }
@@ -495,30 +498,29 @@ HWND GUI_CreateConsole( bool readonly )
 		WS_VSCROLL | ES_LEFT | ES_WANTRETURN | ES_MULTILINE | ES_AUTOVSCROLL;
 
 	if (readonly) dwStyle |= ES_READONLY;
-	if (!s_gui.richedit) s_gui.richedit = LoadLibrary("riched32.dll");
+	Sys_LoadLibrary( &richedit_dll );
 
-	newwnd = CreateWindowEx(WS_EX_CLIENTEDGE, s_gui.richedit ? RICHEDIT_CLASS:"EDIT", "",
+	newwnd = CreateWindowEx(WS_EX_CLIENTEDGE, richedit_dll.link ? RICHEDIT_CLASS : "EDIT", "",
 		dwStyle, 0, 0, 0, 0, s_gui.hWnd, NULL, s_gui.gHinst, NULL);
 
 	if (!newwnd)
 	{
 		//fall back to the earlier version
-		newwnd = CreateWindowEx(WS_EX_CLIENTEDGE, s_gui.richedit ? RICHEDIT_CLASS10A : "EDIT", "",
+		newwnd = CreateWindowEx(WS_EX_CLIENTEDGE, richedit_dll.link ? RICHEDIT_CLASS10A : "EDIT", "",
 		dwStyle, 0, 0, 0, 0, s_gui.hWnd, NULL, s_gui.gHinst, NULL);
 
 	}
 	if (!newwnd)
 	{
-		//we don't have RICHEDIT installed properly
-		FreeLibrary(s_gui.richedit);
-		s_gui.richedit = NULL;
+		// we don't have RICHEDIT installed properly
+		Sys_FreeLibrary( &richedit_dll );
 
 		newwnd = CreateWindowEx(WS_EX_CLIENTEDGE, "EDIT", "", dwStyle, 0, 0, 0, 0,
 		s_gui.hWnd, NULL, s_gui.gHinst, NULL);
 	}
 
 	GUI_SetFont( newwnd );
-	if (s_gui.richedit) SendMessage(newwnd, EM_EXLIMITTEXT, 0, 1<<20);
+	if (richedit_dll.link) SendMessage(newwnd, EM_EXLIMITTEXT, 0, 1<<20);
 
 	return newwnd;
 }
@@ -992,7 +994,7 @@ void InitEditor ( char *funcname, int argc, char **argv )
 		wnd_options_t *config_dat;
 		int config_size;
 		
-		config_dat = (wnd_options_t *)pi->Fs.LoadFile( "editor.dat", &config_size );
+		config_dat = (wnd_options_t *)com->Fs.LoadFile( "editor.dat", &config_size );
 
 		if(config_dat) //verify our config before read
 		{
@@ -1048,23 +1050,23 @@ void EditorMain ( void )
 		}
 	}	
 
-	if(platform_dll.link)
+	if(common_dll.link)
 	{
 		// save our settings
-		pi->Fs.WriteFile("editor.dat", &w_opts, w_opts.csize );
+		com->Fs.WriteFile("editor.dat", &w_opts, w_opts.csize );
 	}
 }
 
 void FreeEditor ( void )
 {
 	// free richedit32
-	if (s_gui.richedit) FreeLibrary( s_gui.richedit );
+	Sys_FreeLibrary( &richedit_dll );
 
-	// free platform
-	if(platform_dll.link)
+	// free common
+	if(common_dll.link)
 	{
-		pi->Shutdown();
-		Sys_FreeLibrary(&platform_dll);
+		com->Shutdown();
+		Sys_FreeLibrary(&common_dll);
 	}	
 
 	GUI_RemoveAccelTable();

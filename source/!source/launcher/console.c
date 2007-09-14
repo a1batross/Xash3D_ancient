@@ -45,8 +45,33 @@ typedef struct
 	int		status;
 	int		windowWidth, windowHeight;
 	WNDPROC		SysInputLineWndProc;
-}WinConData;
+} WinConData;
 static WinConData s_wcd;
+
+// gdi32 export table 
+static HDC (_stdcall *pGetDC)(HWND);
+static int (_stdcall *pReleaseDC)(HWND,HDC);
+static bool (_stdcall *pDeleteObject)(HGDIOBJ);
+static int (_stdcall *pGetDeviceCaps)(HDC,int);
+static HBRUSH(_stdcall *pCreateSolidBrush)(COLORREF);
+static COLORREF (_stdcall *pSetBkColor)(HDC,COLORREF);
+static COLORREF (_stdcall *pSetTextColor)(HDC,COLORREF);
+static HFONT (_stdcall *pCreateFont)(int,int,int,int,int,dword,dword,dword,dword,dword,dword,dword,dword,LPCSTR);
+
+static dllfunc_t gdi32_funcs[] =
+{
+	{"GetDC", (void **) &pGetDC },
+	{"ReleaseDC", (void **) &pReleaseDC },		
+	{"SetBkColor", (void **) &pSetBkColor },
+	{"CreateFontA", (void **) &pCreateFont },
+	{"DeleteObject", (void **) &pDeleteObject },
+	{"SetTextColor", (void **) &pSetTextColor },
+	{"GetDeviceCaps", (void **) &pGetDeviceCaps },
+	{"CreateSolidBrush", (void **) &pCreateSolidBrush },
+	{ NULL, NULL }
+};
+
+dll_info_t gdi32_dll = { /*"gdi32.dll"*/NULL, gdi32_funcs, NULL, NULL, NULL, true, 0, 0 };
 
 void Sys_ShowConsoleW( bool show )
 {
@@ -342,8 +367,9 @@ void Sys_CreateConsoleW( const char *caption )
 	wc.lpszMenuName  = 0;
 	wc.lpszClassName = SYSCONSOLE;
 
-	if (!RegisterClass (&wc) ) return;
-
+	Sys_LoadLibrary( &gdi32_dll );
+	if (!RegisterClass (&wc)) return;
+ 
 	if(about_mode)
 	{
 		CONSTYLE &= ~WS_VSCROLL;
@@ -460,6 +486,7 @@ void Sys_DestroyConsoleW( void )
 	}
 
 	UnregisterClass (SYSCONSOLE, base_hInstance);
+	Sys_FreeLibrary( &gdi32_dll );
 }
 
 /*

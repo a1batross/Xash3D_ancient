@@ -24,7 +24,7 @@ void R_Clear (void);
 
 viddef_t	vid;
 
-renderer_imp_t	ri;
+render_imp_t	ri;
 
 byte *r_temppool;
 
@@ -1091,7 +1091,7 @@ int R_Init( void *hinstance, void *hWnd )
 		return false;
 	}
 
-	MsgDev(D_INFO, "------- Loading bin/renderer.dll [%g] -------\n", RENDERER_VERSION );
+	MsgDev(D_INFO, "------- Loading bin/render.dll [%g] -------\n", RENDER_VERSION );
 	ri.Vid_MenuInit();
 	
 	//get our various GL strings
@@ -1519,17 +1519,17 @@ CreateAPI
 
 @@@@@@@@@@@@@@@@@@@@@
 */
-renderer_exp_t DLLEXPORT *CreateAPI(renderer_imp_t *rimp )
+render_exp_t DLLEXPORT *CreateAPI(render_imp_t *rimp )
 {
-	static renderer_exp_t re;
+	static render_exp_t re;
 
 	// Sys_LoadLibrary can create fake instance, to check
 	// api version and api size, but first argument will be 0
 	// and always make exception, run simply check for avoid it
 	if(rimp) ri = *rimp;
 
-	re.apiversion = RENDERER_API_VERSION;
-	re.api_size = sizeof(renderer_exp_t);
+	re.apiversion = RENDER_API_VERSION;
+	re.api_size = sizeof(render_exp_t);
 
 	re.BeginRegistration = R_BeginRegistration;
 	re.RegisterModel = R_RegisterModel;

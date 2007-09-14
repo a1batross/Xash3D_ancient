@@ -49,7 +49,7 @@ void Sys_Error( const char *error, ... )
 double Sys_DoubleTime( void )
 {
 	// precision timer
-	host.realtime = pi->DoubleTime();
+	host.realtime = Com->DoubleTime();
 	return host.realtime;
 }
 
@@ -112,7 +112,7 @@ DllMain
 
 ==================
 */
-launcher_exp_t DLLEXPORT *CreateAPI( stdinout_api_t *input )
+launcher_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input )
 {
          	static launcher_exp_t Host;
 

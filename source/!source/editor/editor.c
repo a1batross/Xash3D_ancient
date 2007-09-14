@@ -5,7 +5,7 @@
 
 #include "editor.h"
 
-stdinout_api_t std;
+stdlib_api_t std;
 
 /*
 ==================
@@ -13,7 +13,7 @@ DllMain
 
 ==================
 */
-launcher_exp_t DLLEXPORT *CreateAPI( stdinout_api_t *input )
+launcher_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input )
 {
 	static launcher_exp_t Editor;
 

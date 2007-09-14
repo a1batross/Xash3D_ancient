@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "EDITOR_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /Ob0 /I "../public" /I "../platform/formats" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /Ob0 /I "../public" /I "../platform/formats" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -54,10 +54,10 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib /nologo /dll /machine:I386
+# ADD LINK32 msvcrt.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib /nologo /dll /machine:I386 /nodefaultlib:"libc.lib"
 # Begin Custom Build
-TargetDir=\Xash3D\src_main\!source\temp\editor\!release
-InputPath=\Xash3D\src_main\!source\temp\editor\!release\editor.dll
+TargetDir=\XASH3D\src_main\!source\temp\editor\!release
+InputPath=\XASH3D\src_main\!source\temp\editor\!release\editor.dll
 SOURCE="$(InputPath)"
 
 "D:\Xash3D\bin\editor.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -79,7 +79,7 @@ SOURCE="$(InputPath)"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "EDITOR_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /Gi /GX /ZI /Od /I "../public" /I "../platform/formats" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "../public" /I "../platform/formats" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /GZ /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -90,10 +90,10 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
+# ADD LINK32 msvcrt.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"msvcrtd.lib" /pdbtype:sept
 # Begin Custom Build
-TargetDir=\Xash3D\src_main\!source\temp\editor\!debug
-InputPath=\Xash3D\src_main\!source\temp\editor\!debug\editor.dll
+TargetDir=\XASH3D\src_main\!source\temp\editor\!debug
+InputPath=\XASH3D\src_main\!source\temp\editor\!debug\editor.dll
 SOURCE="$(InputPath)"
 
 "D:\Xash3D\bin\editor.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -120,11 +120,11 @@ SOURCE=.\editor.rc
 # End Source File
 # Begin Source File
 
-SOURCE=.\guiutils.c
+SOURCE=.\guiforms.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\guiforms.c
+SOURCE=.\guiutils.c
 # End Source File
 # End Group
 # Begin Group "Header Files"

@@ -11,8 +11,8 @@
 #include "version.h"
 
 
-#define RENDERER_API_VERSION	4
-#define PLATFORM_API_VERSION	2
+#define RENDER_API_VERSION	4
+#define COMMON_API_VERSION	2
 #define LAUNCHER_API_VERSION	2
 
 
@@ -86,9 +86,10 @@ typedef enum
 
 enum dev_level
 {
-	D_INFO = 1,	// "-developer 1", shows various system messages
-	D_WARN,		// "-developer 2", shows not critical system warnings, same as MsgWarn
-	D_ERROR,		// "-developer 3", shows critical warnings 
+	D_INFO = 1,	// "-dev 1", shows various system messages
+	D_WARN,		// "-dev 2", shows not critical system warnings, same as MsgWarn
+	D_ERROR,		// "-dev 3", shows critical warnings 
+	D_LOAD,		// "-dev 4", display info about loading recources
 };
 
 // format info table
@@ -188,7 +189,7 @@ typedef struct dll_info_s
 	void		*link;		// hinstance of loading library
 
 	// xash dlls entrypoint
-	void		*(*main)( void* );	// point type (e.g. platform_t)
+	void		*(*main)( void* );	// point type (e.g. common_t)
 	bool		crash;		// crash if dll not found
 
 	// xash dlls validator
@@ -500,10 +501,10 @@ typedef struct compilers_api_s
 STDIO SYSTEM INTERFACE
 ==============================================================================
 */
-typedef struct stdinout_api_s
+typedef struct stdilib_api_s
 {
 	//interface validator
-	size_t	api_size;				// must matched with sizeof(stdinout_api_t)
+	size_t	api_size;				// must matched with sizeof(stdlib_api_t)
 	
 	// base events
 	void (*print)( char *msg );			// basic text message
@@ -518,8 +519,9 @@ typedef struct stdinout_api_s
 	// xash dll loading system
 	bool (*LoadLibrary)( dll_info_t *dll );		// load library 
 	bool (*FreeLibrary)( dll_info_t *dll );		// free library
+	void*(*GetProcAddress)( dll_info_t *dll, const char* name ); // gpa
 
-} stdinout_api_t;
+} stdlib_api_t;
 
 /*
 ==============================================================================
@@ -559,21 +561,21 @@ typedef struct launcher_exp_s
 /*
 ==============================================================================
 
-PLATFORM.DLL INTERFACE
+COMMON.DLL INTERFACE
 ==============================================================================
 */
 
-typedef struct platform_exp_s
+typedef struct common_exp_s
 {
 	//interface validator
-	int	apiversion;	// must matched with PLATFORM_API_VERSION
-	size_t	api_size;		// must matched with sizeof(platform_api_t)
+	int	apiversion;	// must matched with COMMON_API_VERSION
+	size_t	api_size;		// must matched with sizeof(common_api_t)
 
 	// initialize
-	bool (*Init)( int argc, char **argv );	// init all platform systems
-	void (*Shutdown)( void );	// shutdown all platform systems
+	bool (*Init)( int argc, char **argv );	// init all common systems
+	void (*Shutdown)( void );	// shutdown all common systems
 
-	//platform systems
+	//common systems
 	filesystem_api_t	Fs;
 	vfilesystem_api_t	VFs;
 	memsystem_api_t	Mem;
@@ -590,24 +592,24 @@ typedef struct platform_exp_s
 	double (*DoubleTime)( void );
 	gameinfo_t (*GameInfo)( void );
 
-} platform_exp_t;
+} common_exp_t;
 
 /*
 ==============================================================================
 
-RENDERER.DLL INTERFACE
+RENDER.DLL INTERFACE
 ==============================================================================
 */
 
-typedef struct renderer_exp_s
+typedef struct render_exp_s
 {
 	//interface validator
-	int	apiversion;	// must matched with RENDERER_API_VERSION
-	size_t	api_size;		// must matched with sizeof(renderer_exp_t)
+	int	apiversion;	// must matched with RENDER_API_VERSION
+	size_t	api_size;		// must matched with sizeof(render_exp_t)
 
 	// initialize
-	bool (*Init)( void *hInstance, void *WndProc );	// init all renderer systems
-	void (*Shutdown)( void );	// shutdown all renderer systems
+	bool (*Init)( void *hInstance, void *WndProc );	// init all render systems
+	void (*Shutdown)( void );	// shutdown all render systems
 
 	void	(*BeginRegistration) (char *map);
 	model_t	*(*RegisterModel) (char *name);
@@ -637,9 +639,9 @@ typedef struct renderer_exp_s
 
 	void	(*AppActivate)( bool activate );		// ??
 
-} renderer_exp_t;
+} render_exp_t;
 
-typedef struct renderer_imp_s
+typedef struct render_imp_s
 {
 	//shared xash systems
 	filesystem_api_t	Fs;
@@ -647,7 +649,7 @@ typedef struct renderer_imp_s
 	memsystem_api_t	Mem;
 	scriptsystem_api_t	Script;
 	compilers_api_t	Compile;
-	stdinout_api_t	Stdio;
+	stdlib_api_t	Stdio;
 
 	void	(*Cmd_AddCommand) (char *name, void(*cmd)(void));
 	void	(*Cmd_RemoveCommand) (char *name);
@@ -671,12 +673,12 @@ typedef struct renderer_imp_s
 	void	(*Vid_MenuInit)( void );
 	void	(*Vid_NewWindow)( int width, int height );
 
-} renderer_imp_t;
+} render_imp_t;
 
 
 // this is the only function actually exported at the linker level
-typedef renderer_exp_t *(*renderer_t)( renderer_imp_t* );
-typedef platform_exp_t *(*platform_t)( stdinout_api_t* );
-typedef launcher_exp_t *(*launcher_t)( stdinout_api_t* );
+typedef render_exp_t *(*render_t)( render_imp_t* );
+typedef common_exp_t *(*common_t)( stdlib_api_t* );
+typedef launcher_exp_t *(*launcher_t)( stdlib_api_t* );
 
 #endif//REF_SYSTEM_H

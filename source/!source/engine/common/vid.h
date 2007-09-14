@@ -35,8 +35,8 @@ extern	viddef_t	viddef; // global video state
 
 // Video module initialisation etc
 void	VID_Init (void);
-void	VID_InitRenderer(void);
-void	VID_FreeRenderer(void);
+void	VID_InitRender(void);
+void	VID_FreeRender(void);
 void	VID_CheckChanges(void);
 
 void	VID_MenuInit( void );

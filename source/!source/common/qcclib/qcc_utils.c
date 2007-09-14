@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "qcclib.h"
+#include "zip32.h"
 
 void Hash_InitTable(hashtable_t *table, int numbucks, void *mem)
 {
@@ -265,18 +266,27 @@ PR_decode
 char *PR_decode(int complen, int len, int method, char *info, char *buffer)
 {
 	int i;
-	if (method == 0)	//copy
+	if (method == 0)	 // copy
 	{
 		if (complen != len) Sys_Error("lengths do not match");
 		memcpy(buffer, info, len);		
 	}
-	else if (method == 1)//encryption
+	else if (method == 1)// encryption
 	{
 		if (complen != len) Sys_Error("lengths do not match");
 		for (i = 0; i < len; i++) buffer[i] = info[i] ^ 0xA5;		
 	}
-	else Sys_Error("Bad file encryption routine\n");
+	else if (method == 2)// compression (ZLIB)
+	{
+		z_stream strm = {info, complen, 0, buffer, len, 0, NULL, NULL, NULL, NULL, NULL, Z_BINARY, 0, 0 };
+		inflateInit( &strm );
 
+		// decompress it in one go.
+		if (Z_STREAM_END != inflate( &strm, Z_FINISH ))
+			Sys_Error("Failed block decompression\n");
+		inflateEnd( &strm );
+	}
+	else Sys_Error("PR_decode: Bad file encryption routine\n");
 
 	return buffer;
 }
@@ -288,21 +298,44 @@ PR_encode
 */
 int PR_encode(int len, int method, char *in, vfile_t *handle)
 {
-	int i;
-	if (method == 0) //copy
+	int i = 0;
+	if (method == 0)	 // copy
 	{		
 		VFS_Write(handle, in, len);
 		return len;
 	}
-	else if (method == 1)//encryption
+	else if (method == 1)// encryption
 	{
 		for (i = 0; i < len; i++) in[i] = in[i] ^ 0xA5;
 		VFS_Write(handle, in, len);
 		return len;
 	}
+	else if (method == 2)// compression (ZLIB)
+	{
+		char out[8192];
+		z_stream strm = {in, len, 0, out, sizeof(out), 0, NULL, NULL, NULL, NULL, NULL, Z_BINARY, 0, 0 };
+
+		deflateInit( &strm, Z_BEST_COMPRESSION);
+
+		while(deflate( &strm, Z_FINISH) == Z_OK)
+		{
+			// compress in chunks of 8192. Saves having to allocate a huge-mega-big buffer
+			VFS_Write( handle, out, sizeof(out) - strm.avail_out);
+			i += sizeof(out) - strm.avail_out;
+
+			Msg("Zlib statuc %s\n", strm.msg );
+			strm.next_out = out;
+			strm.avail_out = sizeof(out);
+		}
+		VFS_Write( handle, out, sizeof(out) - strm.avail_out );
+		i += sizeof(out) - strm.avail_out;
+
+		deflateEnd( &strm );
+		return i;
+	}
 	else
 	{
-		Sys_Error("Wierd method");
+		Sys_Error("PR_encode: Bad encryption method\n");
 		return 0;
 	}
 }

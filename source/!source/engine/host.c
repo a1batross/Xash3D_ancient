@@ -8,9 +8,9 @@
 #include <dsound.h>
 #include "engine.h"
 
-platform_exp_t    	*pi;	// fundamental callbacks
+common_exp_t    	*Com;	// fundamental callbacks
 host_parm_t	host;	// host parms
-stdinout_api_t	std;
+stdlib_api_t	std;
 
 byte	*zonepool;
 int	ActiveApp;
@@ -21,44 +21,51 @@ void Key_Init (void);
 void SCR_EndLoadingPlaque (void);
 
 HINSTANCE	global_hInstance;
-dll_info_t platform_dll = { "platform.dll", NULL, "CreateAPI", NULL, NULL, true, PLATFORM_API_VERSION, sizeof(platform_exp_t) };
+dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, COMMON_API_VERSION, sizeof(common_exp_t) };
 
 cvar_t	*timescale;
 cvar_t	*fixedtime;
 cvar_t	*showtrace;
 
-void Host_InitPlatform( char *funcname, int argc, char **argv )
+void Host_InitCommon( char *funcname, int argc, char **argv )
 {
-	static stdinout_api_t	pistd;
-	platform_t		CreatePlat;         
+	static stdlib_api_t		io;
+	common_t			CreateCom;         
 
 	//make callbacks
-	pistd.printf = Msg;
-	pistd.dprintf = MsgDev;
-	pistd.wprintf = MsgWarn;
-	pistd.error = Sys_Error;
-	
-	Sys_LoadLibrary( &platform_dll );
+	io.printf = Msg;
+	io.dprintf = MsgDev;
+	io.wprintf = MsgWarn;
+	io.error = Sys_Error;
+	io.exit = std.exit;
+	io.print = Con_Print;
+	io.input = std.input;
+	io.sleep = std.sleep;
 
-	CreatePlat = (void *)platform_dll.main;
-	pi = CreatePlat( &pistd );
+	io.LoadLibrary = Sys_LoadLibrary;
+	io.FreeLibrary = Sys_FreeLibrary;
+          io.GetProcAddress = std.GetProcAddress;
 	
-	// initialize our platform :)
-	pi->Init( argc, argv );
+	Sys_LoadLibrary( &common_dll );
 
-	//TODO: init basedir here
-	pi->LoadGameInfo("gameinfo.txt");
+	CreateCom = (void *)common_dll.main;
+	Com = CreateCom( &io );
+	
+	Com->Init( argc, argv );
+
+	// TODO: init basedir here
+	Com->LoadGameInfo("gameinfo.txt");
 	zonepool = Mem_AllocPool("Zone Engine");
 }
 
-void Host_FreePlatform( void )
+void Host_FreeCommon( void )
 {
-	if(platform_dll.link)
+	if(common_dll.link)
 	{
 		Mem_FreePool( &zonepool );
-		pi->Shutdown();
-		Sys_FreeLibrary( &platform_dll );
+		Com->Shutdown();
 	}
+	Sys_FreeLibrary( &common_dll );
 }
 
 /*
@@ -91,7 +98,7 @@ void Host_Init (char *funcname, int argc, char **argv)
 	else host.type = HOST_OFFLINE; // launcher can loading engine for some reasons
 
 	COM_InitArgv (argc, argv); // init host.debug & host.developer here
-	Host_InitPlatform( funcname, argc, argv );
+	Host_InitCommon( funcname, argc, argv );
 
 	MsgDev(D_INFO, "------- Loading bin/engine.dll   [%g] -------\n", ENGINE_VERSION );
 	
@@ -251,7 +258,7 @@ void Host_Main( void )
 		// if at a full screen console, don't update unless needed
 		if (Minimized || (dedicated && dedicated->value) )
 		{
-			Sleep (1);
+			Sys_Sleep (1);
 		}
 
 		while (PeekMessage (&msg, NULL, 0, 0, PM_NOREMOVE))
@@ -289,7 +296,7 @@ void Host_Free (void)
 		SV_Shutdown ("Server shutdown\n", false);
 		CL_Shutdown ();
 	}
-	Host_FreePlatform ();
+	Host_FreeCommon ();
 }
 
 /*
@@ -318,7 +325,7 @@ void Host_Error( const char *error, ... )
 		Sys_Error ("%s", hosterror1);
 	}
 	recursive = true;
-	strlcpy(hosterror2, hosterror1, sizeof(hosterror2));
+	strncpy(hosterror2, hosterror1, sizeof(hosterror2));
 
 	SV_Shutdown (va("Server crashed: %s", hosterror1), false);
 	CL_Drop(); // drop clients

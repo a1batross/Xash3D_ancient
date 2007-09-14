@@ -1768,7 +1768,7 @@ cmodel_t *CM_StudioModel (char *name, byte *buffer)
 	out = &map_cmodels[max_models];
 	out->extradata = buffer;
 	out->numframes = 0;//reset sprite info
-	strlcpy(out->name, modname, sizeof(out->name));
+	strncpy(out->name, modname, sizeof(out->name));
 	
 	if(SV_StudioExtractBbox( phdr, 0, out->mins, out->maxs ))
 	{
@@ -1818,7 +1818,7 @@ cmodel_t *CM_SpriteModel (char *name, byte *buffer)
 	
 	out = &map_cmodels[max_models];
 	out->numframes = phdr->numframes;
-	strlcpy(out->name, modname, sizeof(out->name));
+	strncpy(out->name, modname, sizeof(out->name));
 
 	out->mins[0] = out->mins[1] = -phdr->width / 2;
 	out->maxs[0] = out->maxs[1] = phdr->width / 2;

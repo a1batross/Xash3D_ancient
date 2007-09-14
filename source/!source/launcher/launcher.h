@@ -29,6 +29,7 @@ void Sys_Exit( void ); // static
 void Sys_Sleep( int msec);
 bool Sys_LoadLibrary ( dll_info_t *dll ); // load library 
 bool Sys_FreeLibrary ( dll_info_t *dll ); // free library
+void* Sys_GetProcAddress ( dll_info_t *dll, const char* name );
 void Sys_WaitForQuit( void ); // waiting for 'ESC' or close command
 
 // export variables
@@ -88,14 +89,14 @@ __inline void NullVoidWithName( const char *caption ) {}
 __inline void NullInit ( char *funcname, int argc, char **argv ) {}
 
 //memory manager
-#define Mem_Alloc(pool, size) pi->Mem.Alloc(pool, size, __FILE__, __LINE__)
-#define Mem_Realloc(pool, ptr, size) pi->Mem.Realloc(pool, ptr, size, __FILE__, __LINE__)
-#define Mem_Free(mem) pi->Mem.Free(mem, __FILE__, __LINE__)
-#define Mem_AllocPool(name) pi->Mem.AllocPool(name, __FILE__, __LINE__)
-#define Mem_FreePool(pool) pi->Mem.FreePool(pool, __FILE__, __LINE__)
-#define Mem_EmptyPool(pool) pi->Mem.EmptyPool(pool, __FILE__, __LINE__)
-#define Mem_Move(dest, src, size ) pi->Mem.Move (dest, src, size, __FILE__, __LINE__)
-#define Mem_Copy(dest, src, size ) pi->Mem.Copy (dest, src, size, __FILE__, __LINE__)
-#define Mem_Check() pi->Mem.CheckSentinelsGlobal(__FILE__, __LINE__)
+#define Mem_Alloc(pool, size) Com->Mem.Alloc(pool, size, __FILE__, __LINE__)
+#define Mem_Realloc(pool, ptr, size) Com->Mem.Realloc(pool, ptr, size, __FILE__, __LINE__)
+#define Mem_Free(mem) Com->Mem.Free(mem, __FILE__, __LINE__)
+#define Mem_AllocPool(name) Com->Mem.AllocPool(name, __FILE__, __LINE__)
+#define Mem_FreePool(pool) Com->Mem.FreePool(pool, __FILE__, __LINE__)
+#define Mem_EmptyPool(pool) Com->Mem.EmptyPool(pool, __FILE__, __LINE__)
+#define Mem_Move(dest, src, size ) Com->Mem.Move (dest, src, size, __FILE__, __LINE__)
+#define Mem_Copy(dest, src, size ) Com->Mem.Copy (dest, src, size, __FILE__, __LINE__)
+#define Mem_Check() Com->Mem.CheckSentinelsGlobal(__FILE__, __LINE__)
 
 #endif//LAUNCHER_H

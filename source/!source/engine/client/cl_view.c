@@ -339,7 +339,7 @@ void CL_PrepRefresh (void)
 	re->SetSky (cl.configstrings[CS_SKY], rotate, axis);
 	Msg ("                                     \r");
 
-	// the renderer can now free unneeded stuff
+	// the render can now free unneeded stuff
 	re->EndRegistration ();
 
 	// clear any lines of console text

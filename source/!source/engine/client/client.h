@@ -421,7 +421,7 @@ void CL_ParseLayout (void);
 //
 // cl_main
 //
-extern renderer_exp_t	*re;
+extern render_exp_t		*re;
 
 void CL_Init (void);
 

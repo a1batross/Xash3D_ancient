@@ -1082,10 +1082,19 @@ void R_StudioSetupLighting( void )
 	m_plightvec[1] = 0.0f;
 	m_plightvec[2] = -1.0f;
 
-	R_LightPoint (m_pCurrentEntity->origin, m_plightcolor );
+	if(currententity->flags & RF_FULLBRIGHT)
+	{
+		for (i = 0; i < 3; i++)
+			m_plightcolor[i] = 1.0f;
+	}
+	else
+	{
+		R_LightPoint (m_pCurrentEntity->origin, m_plightcolor );
 	
-	if ( m_pCurrentEntity->flags & RF_WEAPONMODEL )
-		r_lightlevel->value = bound(0, VectorLength(m_plightcolor) * 75.0f, 255); 
+		if ( m_pCurrentEntity->flags & RF_WEAPONMODEL )
+			r_lightlevel->value = bound(0, VectorLength(m_plightcolor) * 75.0f, 255); 
+
+	}
 
 	// TODO: only do it for bones that actually have textures
 	for (i = 0; i < m_pStudioHeader->numbones; i++)
@@ -1096,7 +1105,6 @@ void R_StudioSetupLighting( void )
 			VectorIRotate( m_plightvec, m_pbonestransform[i], m_blightvec[i] );
 		}
 	}
-
 }
 
 void R_StudioLighting (float *lv, int bone, int flags, vec3_t normal)

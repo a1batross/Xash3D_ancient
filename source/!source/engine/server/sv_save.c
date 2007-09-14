@@ -53,7 +53,7 @@ size_t COM_PackString( byte *buffer, int pos, char *string )
 	if(strsize > MAX_QPATH) strsize = MAX_QPATH; //critical stuff
 	strsize++; // get space for terminator	
 
-	strlcpy(buffer + pos, string, strsize ); 
+	strncpy(buffer + pos, string, strsize ); 
 	return pos + strsize;
 }
 
@@ -67,7 +67,7 @@ size_t COM_UnpackString( byte *buffer, int pos, char *string )
 
 	do { in++, strsize++; } while(*in != '\0' && in != NULL );
 
-	strlcpy( string, in - (strsize - 1), strsize ); 
+	strncpy( string, in - (strsize - 1), strsize ); 
 	return pos + strsize;
 }
 
@@ -181,7 +181,7 @@ void Sav_LoadComment( lump_t *l )
 	if (l->filelen % sizeof(*in)) Host_Error("Sav_LoadComment: funny lump size\n" );
 
 	size = l->filelen / sizeof(*in);
-	strlcpy(svs.comment, in, size );
+	strncpy(svs.comment, in, size );
 }
 
 void Sav_LoadCvars( lump_t *l )
@@ -327,7 +327,7 @@ bool Menu_ReadComment( char *comment, int savenum )
 
 	if(!savfile) 
 	{
-		strlcpy( comment, "<EMPTY>", 32 );
+		strncpy( comment, "<EMPTY>", 32 );
 		return false;
 	}
 
@@ -337,13 +337,13 @@ bool Menu_ReadComment( char *comment, int savenum )
 
 	if(id != IDSAVEHEADER || i != SAVE_VERSION)
 	{
-		strlcpy( comment, "<CORRUPTED>", 32 );
+		strncpy( comment, "<CORRUPTED>", 32 );
 		return false;
 	}
 
 	sav_base = (byte *)header;
 	Sav_LoadComment(&header->lumps[LUMP_COMMENTS]);
-	strlcpy( comment, svs.comment, 32 );
+	strncpy( comment, svs.comment, 32 );
 
 	return true;
 }

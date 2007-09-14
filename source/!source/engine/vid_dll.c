@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include ".\client\client.h"
 
 // Structure containing functions exported from refresh DLL
-renderer_exp_t	*re;
+render_exp_t	*re;
 
 extern HWND		cl_hwnd;
 extern bool		ActiveApp, Minimized;
@@ -46,7 +46,7 @@ cvar_t		*vid_fullscreen;
 
 // Global variables used internally by this module
 viddef_t		viddef;			// global video state; used by other modules
-dll_info_t	renderer_dll = { "renderer.dll", NULL, "CreateAPI", NULL, NULL, true, RENDERER_API_VERSION, sizeof(renderer_exp_t) };
+dll_info_t	render_dll = { "render.dll", NULL, "CreateAPI", NULL, NULL, true, RENDER_API_VERSION, sizeof(render_exp_t) };
 bool		reflib_active = 0;
 
 HWND        cl_hwnd;            // Main window handle for life of program
@@ -63,11 +63,11 @@ DLL GLUE
 
 ==========================================================================
 */
-stdinout_api_t VID_GetStdio( void )
+stdlib_api_t VID_GetStdio( void )
 {
-	static stdinout_api_t	io;
+	static stdlib_api_t		io;
 
-	io.api_size = sizeof(stdinout_api_t); 
+	io.api_size = sizeof(stdlib_api_t); 
 
 	io.print = Sys_Print;
 	io.printf = Msg;
@@ -76,8 +76,10 @@ stdinout_api_t VID_GetStdio( void )
 	io.exit = Sys_Quit;
 	io.input = Sys_ConsoleInput;
 	io.sleep = Sys_Sleep;
+
 	io.LoadLibrary = Sys_LoadLibrary;
 	io.FreeLibrary = Sys_FreeLibrary;
+	io.GetProcAddress = std.GetProcAddress;
 
 	return io;
 }
@@ -442,7 +444,7 @@ void VID_NewWindow ( int width, int height)
 
 void VID_FreeReflib (void)
 {
-	Sys_FreeLibrary( &renderer_dll );
+	Sys_FreeLibrary( &render_dll );
 
 	memset (&re, 0, sizeof(re));
 	reflib_active  = false;
@@ -460,21 +462,21 @@ char *FS_Title( void )
 
 /*
 ==============
-VID_InitRenderer
+VID_InitRender
 ==============
 */
-void VID_InitRenderer( void )
+void VID_InitRender( void )
 {
-	static renderer_imp_t	ri;
-	renderer_t		CreateRender;
+	static render_imp_t		ri;
+	render_t			CreateRender;
 	
-	VID_FreeRenderer();
+	VID_FreeRender();
 
-	ri.Fs = pi->Fs;
-	ri.VFs = pi->VFs;
-	ri.Mem = pi->Mem;
-	ri.Script = pi->Script;
-	ri.Compile = pi->Compile;
+	ri.Fs = Com->Fs;
+	ri.VFs = Com->VFs;
+	ri.Mem = Com->Mem;
+	ri.Script = Com->Script;
+	ri.Compile = Com->Compile;
 	ri.Stdio = VID_GetStdio();
 
 	ri.Cmd_AddCommand = Cmd_AddCommand;
@@ -495,12 +497,12 @@ void VID_InitRenderer( void )
           // studio callbacks
           ri.StudioEvent = CL_StudioEvent;
           
-	Sys_LoadLibrary( &renderer_dll );
+	Sys_LoadLibrary( &render_dll );
 	
-	CreateRender = (void *)renderer_dll.main;
+	CreateRender = (void *)render_dll.main;
 	re = CreateRender( &ri );
           
-	if(!re->Init( global_hInstance, MainWndProc )) Sys_Error("can't init renderer.dll\n");
+	if(!re->Init( global_hInstance, MainWndProc )) Sys_Error("can't init render.dll\n");
 
 	reflib_active = true;
 }
@@ -531,7 +533,7 @@ void VID_CheckChanges (void)
 		cl.refresh_prepped = false;
 		cls.disable_screen = true;
 
-		VID_InitRenderer();
+		VID_InitRender();
 		cls.disable_screen = false;
 	}
 
@@ -570,10 +572,10 @@ void VID_Init (void)
 
 /*
 ============
-VID_FreeRenderer
+VID_FreeRender
 ============
 */
-void VID_FreeRenderer (void)
+void VID_FreeRender (void)
 {
 	if ( reflib_active )
 	{

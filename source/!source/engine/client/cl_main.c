@@ -1824,7 +1824,7 @@ void CL_Shutdown(void)
 
 	S_Shutdown();
 	IN_Shutdown ();
-	VID_FreeRenderer();
+	VID_FreeRender();
 }
 
 

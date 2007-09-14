@@ -44,9 +44,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define RAD_TO_STUDIO	(32768.0/M_PI)
 #define STUDIO_TO_RAD	(M_PI/32768.0)
 
-size_t strlcpy(char *dst, const char *src, size_t siz);
-size_t strlcat(char *dst, const char *src, size_t siz);
-
 //============================================================================
 
 typedef struct sizebuf_s

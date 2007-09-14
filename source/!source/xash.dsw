@@ -39,7 +39,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "platform"=".\platform\platform.dsp" - Package Owner=<4>
+Project: "common"=".\common\common.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -51,7 +51,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "renderer"=".\renderer\renderer.dsp" - Package Owner=<4>
+Project: "render"=".\render\render.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{

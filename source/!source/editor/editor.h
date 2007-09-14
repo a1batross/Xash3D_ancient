@@ -1,6 +1,6 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			platform.h - game platform dll
+//			editor.h - recource editor
 //=======================================================================
 #ifndef GENERICEDIT_H
 #define GENERICEDIT_H
@@ -29,7 +29,7 @@ void FreeEditor ( void );
 extern int com_argc;
 extern int dev_mode;
 extern bool debug_mode;
-extern platform_exp_t *pi;
+extern common_exp_t *com;
 extern char *com_argv[MAX_NUM_ARGVS];
 int CheckParm (const char *parm);
 bool _GetParmFromCmdLine( char *parm, char *out, size_t size );
@@ -44,7 +44,7 @@ void GUI_Msg( const char *pMsg, ... );
 void GUI_MsgDev( int level, const char *pMsg, ... );
 void GUI_MsgWarn( const char *pMsg, ... );
 
-extern stdinout_api_t std;
+extern stdlib_api_t std;
 #define Msg GUI_Msg
 #define MsgDev GUI_MsgDev
 #define MsgWarn GUI_MsgWarn

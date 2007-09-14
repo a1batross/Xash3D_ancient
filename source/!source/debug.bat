@@ -17,13 +17,13 @@ if errorlevel 1 set BUILD_ERROR=1
 %MSDEV% launcher/launcher.dsp %CONFIG%"launcher - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
-%MSDEV% platform/platform.dsp %CONFIG%"platform - Win32 Debug" %build_target%
+%MSDEV% common/common.dsp %CONFIG%"common - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
-%MSDEV% renderer/renderer.dsp %CONFIG%"renderer - Win32 Debug" %build_target%
+%MSDEV% render/render.dsp %CONFIG%"render - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
-progs\qcclib.exe
+vprogs\qcclib.exe
 if errorlevel 1 set BUILD_ERROR=1
 
 if "%BUILD_ERROR%"=="" goto build_ok
@@ -48,9 +48,9 @@ rem //delete log files
 if exist editor\editor.plg del /f /q editor\editor.plg
 if exist engine\engine.plg del /f /q engine\engine.plg
 if exist launcher\launcher.plg del /f /q launcher\launcher.plg
-if exist platform\platform.plg del /f /q platform\platform.plg
-if exist renderer\renderer.plg del /f /q renderer\renderer.plg
-if exist progs\server.dat copy progs\server.dat D:\Xash3D\xash\server.dat
+if exist common\common.plg del /f /q common\common.plg
+if exist render\render.plg del /f /q render\render.plg
+if exist vprogs\server.dat move vprogs\server.dat D:\Xash3D\xash\server.dat
 
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading

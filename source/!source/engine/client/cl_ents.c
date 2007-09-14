@@ -863,7 +863,7 @@ void CL_AddPacketEntities (frame_t *frame)
 			renderfx |= RF_SHELL_BLUE;
 		}
 
-		//copy state to renderer
+		//copy state to render
 		ent.prev.frame = cent->prev.frame;
 		ent.backlerp = 1.0 - cl.lerpfrac;
 		ent.alpha = s1->alpha;
