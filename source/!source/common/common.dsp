@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PLATFORM_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /Ob0 /I "./" /I "../public" /I "./bsplib/" /I "./qcclib" /I "./mdllib" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /Ob0 /I "./" /I "../public" /I "./bsplib/" /I "./qcclib" /I "./common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -113,11 +113,11 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\basemem.c
+SOURCE=.\common\memory.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\baseutils.c
+SOURCE=.\common\utils.c
 # End Source File
 # Begin Source File
 
@@ -137,7 +137,7 @@ SOURCE=.\bsplib\faces.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\filesystem.c
+SOURCE=.\common\filesystem.c
 # End Source File
 # Begin Source File
 
@@ -145,7 +145,7 @@ SOURCE=.\bsplib\flow.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\imglib.c
+SOURCE=.\common\imglib.c
 # End Source File
 # Begin Source File
 
@@ -209,7 +209,7 @@ SOURCE=.\bsplib\shaders.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\spritegen.c
+SOURCE=.\common\spritegen.c
 # End Source File
 # Begin Source File
 
@@ -241,7 +241,7 @@ SOURCE=.\bsplib\writebsp.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\ziplib.c
+SOURCE=.\common\ziplib.c
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -249,15 +249,15 @@ SOURCE=.\ziplib.c
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
-SOURCE=.\basemem.h
+SOURCE=.\common\memory.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\baseutils.h
+SOURCE=.\common\utils.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\blankframe.h
+SOURCE=.\common\blankframe.h
 # End Source File
 # Begin Source File
 
@@ -265,7 +265,7 @@ SOURCE=.\bsplib\bsplib.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\image.h
+SOURCE=.\common\image.h
 # End Source File
 # Begin Source File
 
@@ -285,11 +285,7 @@ SOURCE=..\public\ref_system.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\zip32.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\ziplib.h
+SOURCE=.\common\zip32.h
 # End Source File
 # End Group
 # End Target

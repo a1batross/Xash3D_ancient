@@ -9,7 +9,7 @@
 #include <sys/stat.h>
 #include <io.h>
 #include "platform.h"
-#include "baseutils.h"
+#include "utils.h"
 #include "zip32.h"
 
 #define ZIP_DATA_HEADER		0x504B0304  // "PK\3\4"

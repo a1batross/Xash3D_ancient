@@ -13,7 +13,7 @@
 
 #define RENDER_API_VERSION	4
 #define COMMON_API_VERSION	2
-#define LAUNCHER_API_VERSION	2
+#define LAUNCH_API_VERSION	2
 
 
 //bsplib compile flags
@@ -543,20 +543,20 @@ typedef struct cvar_api_s
 /*
 ==============================================================================
 
-LAUNCHER.DLL INTERFACE
+LAUNCH.DLL INTERFACE
 ==============================================================================
 */
-typedef struct launcher_exp_s
+typedef struct launch_exp_s
 {
 	//interface validator
-	int	apiversion;	// must matched with LAUNCHER_API_VERSION
-	size_t	api_size;		// must matched with sizeof(launcher_api_t)
+	int	apiversion;	// must matched with LAUNCH_API_VERSION
+	size_t	api_size;		// must matched with sizeof(launch_api_t)
 
 	void ( *Init ) ( char *funcname, int argc, char **argv ); // init host
 	void ( *Main ) ( void ); // host frame
 	void ( *Free ) ( void ); // close host
 
-} launcher_exp_t;
+} launch_exp_t;
 
 /*
 ==============================================================================
@@ -679,6 +679,6 @@ typedef struct render_imp_s
 // this is the only function actually exported at the linker level
 typedef render_exp_t *(*render_t)( render_imp_t* );
 typedef common_exp_t *(*common_t)( stdlib_api_t* );
-typedef launcher_exp_t *(*launcher_t)( stdlib_api_t* );
+typedef launch_exp_t *(*launch_t)( stdlib_api_t* );
 
 #endif//REF_SYSTEM_H

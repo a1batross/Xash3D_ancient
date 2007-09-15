@@ -3030,7 +3030,7 @@ static bool IconOfSkinExists( char *skin, char **pcxfiles, int npcxfiles )
 
 static bool PlayerConfig_ScanDirectories( void )
 {
-	search_t	*search, *search2;
+	search_t	*search;
 	char scratch[1024];
 	int ndirs = 0, npms = 0;
 	char **dirnames;
@@ -3038,7 +3038,7 @@ static bool PlayerConfig_ScanDirectories( void )
 
 	s_numplayermodels = 0;
           
-	search = FS_Search( "players/*" );
+	search = FS_Search( "models/players/*" );
 
 	if ( !search ) return false;
           
@@ -3049,84 +3049,23 @@ static bool PlayerConfig_ScanDirectories( void )
 	** go through the subdirectories
 	*/
 	npms = ndirs;
-	if ( npms > MAX_PLAYERMODELS )
-		npms = MAX_PLAYERMODELS;
+	if ( npms > MAX_PLAYERMODELS ) npms = MAX_PLAYERMODELS;
 
 	for ( i = 0; i < npms; i++ )
 	{
-		int k, s;
 		char *a, *b, *c;
-		char **pcxnames;
-		char **skinnames;
-		int npcxfiles;
-		int nskins = 0;
 
-		if ( dirnames[i] == 0 )
-			continue;
+		if ( dirnames[i] == 0 ) continue;
 
-		// verify the existence of tris.md2
+		// verify the existence of player.mdl
 		strcpy( scratch, dirnames[i] );
-		strncat( scratch, "/tris.md2", 1024 );
+		strncat( scratch, "/player.mdl", 1024 );
 		
 		if(!FS_FileExists( scratch )) continue;
-		
-		// verify the existence of at least one pcx skin
-		strcpy( scratch, dirnames[i] );
-		strncat( scratch, "/*.pcx", 1024 );
-
-		search2 = FS_Search( scratch );
-
-		if ( !search2 ) continue;
-                    
-                    pcxnames = search2->filenames;
-		npcxfiles = search2->numfilenames;
-		
-		// count valid skins, which consist of a skin with a matching "_i" icon
-		for ( k = 0; k < npcxfiles-1; k++ )
-		{
-			if ( !strstr( pcxnames[k], "_i.pcx" ) )
-			{
-				if ( IconOfSkinExists( pcxnames[k], pcxnames, npcxfiles - 1 ) )
-				{
-					nskins++;
-				}
-			}
-		}
-		if ( !nskins ) continue;
-
-		skinnames = Z_Malloc( sizeof( char * ) * ( nskins + 1 ) );
-
-		// copy the valid skins
-		for ( s = 0, k = 0; k < npcxfiles-1; k++ )
-		{
-			char *a, *b, *c;
-
-			if ( !strstr( pcxnames[k], "_i.pcx" ) )
-			{
-				if ( IconOfSkinExists( pcxnames[k], pcxnames, npcxfiles - 1 ) )
-				{
-					a = strrchr( pcxnames[k], '/' );
-					b = strrchr( pcxnames[k], '\\' );
-
-					if ( a > b )
-						c = a;
-					else
-						c = b;
-
-					strcpy( scratch, c + 1 );
-
-					if ( strrchr( scratch, '.' ) )
-						*strrchr( scratch, '.' ) = 0;
-
-					skinnames[s] = strdup( scratch );
-					s++;
-				}
-			}
-		}
 
 		// at this point we have a valid player model
-		s_pmi[s_numplayermodels].nskins = nskins;
-		s_pmi[s_numplayermodels].skindisplaynames = skinnames;
+		s_pmi[s_numplayermodels].nskins = 0;
+		s_pmi[s_numplayermodels].skindisplaynames = NULL;
 
 		// make short name for the model
 		a = strrchr( dirnames[i], '/' );
@@ -3140,7 +3079,6 @@ static bool PlayerConfig_ScanDirectories( void )
 		s_numplayermodels++;
 	}
 	if ( search ) Z_Free( search );
-	if ( search2 ) Z_Free( search2 );
 
 	return true;
 }
@@ -3172,8 +3110,6 @@ bool PlayerConfig_MenuInit( void )
 	extern cvar_t *name;
 	extern cvar_t *team;
 	extern cvar_t *skin;
-	char currentdirectory[1024];
-	char currentskin[1024];
 	int i = 0;
 
 	int currentdirectoryindex = 0;
@@ -3185,52 +3121,12 @@ bool PlayerConfig_MenuInit( void )
 
 	PlayerConfig_ScanDirectories();
 
-	if (s_numplayermodels == 0)
-		return false;
+	if (s_numplayermodels == 0) return false;
 
 	if ( hand->value < 0 || hand->value > 2 )
 		Cvar_SetValue( "hand", 0 );
 
-	strcpy( currentdirectory, skin->string );
-
-	if ( strchr( currentdirectory, '/' ) )
-	{
-		strcpy( currentskin, strchr( currentdirectory, '/' ) + 1 );
-		*strchr( currentdirectory, '/' ) = 0;
-	}
-	else if ( strchr( currentdirectory, '\\' ) )
-	{
-		strcpy( currentskin, strchr( currentdirectory, '\\' ) + 1 );
-		*strchr( currentdirectory, '\\' ) = 0;
-	}
-	else
-	{
-		strcpy( currentdirectory, "male" );
-		strcpy( currentskin, "grunt" );
-	}
-
 	qsort( s_pmi, s_numplayermodels, sizeof( s_pmi[0] ), pmicmpfnc );
-
-	memset( s_pmnames, 0, sizeof( s_pmnames ) );
-	for ( i = 0; i < s_numplayermodels; i++ )
-	{
-		s_pmnames[i] = s_pmi[i].displayname;
-		if ( strcasecmp( s_pmi[i].directory, currentdirectory ) == 0 )
-		{
-			int j;
-
-			currentdirectoryindex = i;
-
-			for ( j = 0; j < s_pmi[i].nskins; j++ )
-			{
-				if ( strcasecmp( s_pmi[i].skindisplaynames[j], currentskin ) == 0 )
-				{
-					currentskinindex = j;
-					break;
-				}
-			}
-		}
-	}
 
 	s_player_config_menu.x = viddef.width / 2 - 95; 
 	s_player_config_menu.y = viddef.height / 2 - 97;
@@ -3346,17 +3242,15 @@ void PlayerConfig_MenuDraw( void )
 	refdef.fov_y = CalcFov( refdef.fov_x, refdef.width, refdef.height );
 	refdef.time = cls.realtime;
 
-	if ( s_pmi[s_player_model_box.curvalue].skindisplaynames )
+	if ( s_pmi[s_player_model_box.curvalue].directory )
 	{
 		static int yaw;
 		entity_t entity;
 
 		memset( &entity, 0, sizeof( entity ) );
 
-		sprintf( scratch, "players/%s/tris.md2", s_pmi[s_player_model_box.curvalue].directory );
+		sprintf( scratch, "models/players/%s/player.mdl", s_pmi[s_player_model_box.curvalue].directory );
 		entity.model = re->RegisterModel( scratch );
-		sprintf( scratch, "players/%s/%s.pcx", s_pmi[s_player_model_box.curvalue].directory, s_pmi[s_player_model_box.curvalue].skindisplaynames[s_player_skin_box.curvalue] );
-		entity.image = re->RegisterSkin( scratch );
 		entity.flags = RF_FULLBRIGHT;
 		entity.origin[0] = 80;
 		entity.origin[1] = 0;
@@ -3366,8 +3260,7 @@ void PlayerConfig_MenuDraw( void )
 		entity.prev.frame = 0;
 		entity.backlerp = 0.0;
 		entity.angles[1] = yaw++;
-		if ( ++yaw > 360 )
-			yaw -= 360;
+		if ( ++yaw > 360 ) yaw -= 360;
 
 		refdef.areabits = 0;
 		refdef.num_entities = 1;
@@ -3382,31 +3275,16 @@ void PlayerConfig_MenuDraw( void )
 
 		re->RenderFrame( &refdef );
 
-		sprintf( scratch, "/players/%s/%s_i.pcx", s_pmi[s_player_model_box.curvalue].directory, s_pmi[s_player_model_box.curvalue].skindisplaynames[s_player_skin_box.curvalue] );
+		strcpy( scratch, "textures/base_menu/i_fixme.pcx" );
 		re->DrawPic( s_player_config_menu.x - 40, refdef.y, scratch );
 	}
 }
 
 const char *PlayerConfig_MenuKey (int key)
 {
-	int i;
-
 	if ( key == K_ESCAPE )
 	{
-		char scratch[1024];
-
 		Cvar_Set( "name", s_player_name_field.buffer );
-
-		sprintf( scratch, "%s/%s", s_pmi[s_player_model_box.curvalue].directory,  s_pmi[s_player_model_box.curvalue].skindisplaynames[s_player_skin_box.curvalue] );
-
-		Cvar_Set( "skin", scratch );
-
-		for ( i = 0; i < s_numplayermodels; i++ )
-		{
-			Z_Free( s_pmi[i].skindisplaynames );
-			s_pmi[i].skindisplaynames = 0;
-			s_pmi[i].nskins = 0;
-		}
 	}
 	return Default_MenuKey( &s_player_config_menu, key );
 }

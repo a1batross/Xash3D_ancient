@@ -306,10 +306,6 @@ SOURCE=.\vid_menu.c
 # PROP Default_Filter "h;hpp;hxx;hm;inl;fi;fd"
 # Begin Source File
 
-SOURCE=.\client\anorms.h
-# End Source File
-# Begin Source File
-
 SOURCE=..\public\basetypes.h
 # End Source File
 # Begin Source File
@@ -351,10 +347,6 @@ SOURCE=.\common\keys.h
 # Begin Source File
 
 SOURCE=..\public\platform.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\public\qfiles.h
 # End Source File
 # Begin Source File
 

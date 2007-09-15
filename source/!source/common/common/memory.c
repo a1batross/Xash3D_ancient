@@ -1,10 +1,10 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//		    memory.c - zone memory allocation from DP
+//		memory.c - zone memory allocation from DarkPlaces
 //=======================================================================
 
 #include "platform.h"
-#include "baseutils.h"
+#include "utils.h"
 
 mempool_t *poolchain = NULL;
 byte *basepool;

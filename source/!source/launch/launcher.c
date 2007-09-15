@@ -16,8 +16,8 @@ char caption[64];
 const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t          All Rights Reserved\n\n\t           Visit www.xash.ru\n";
 
 dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, COMMON_API_VERSION, sizeof(common_exp_t) };
-dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, LAUNCHER_API_VERSION, sizeof(launcher_exp_t) };
-dll_info_t editor_dll = { "editor.dll", NULL, "CreateAPI", NULL, NULL, true, LAUNCHER_API_VERSION, sizeof(launcher_exp_t) };
+dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, LAUNCH_API_VERSION, sizeof(launch_exp_t) };
+dll_info_t editor_dll = { "editor.dll", NULL, "CreateAPI", NULL, NULL, true, LAUNCH_API_VERSION, sizeof(launch_exp_t) };
 dll_info_t *linked_dll; // generic hinstance
 
 //app name
@@ -275,11 +275,11 @@ void CreateInstance( void )
 {
 	// export
 	common_t		CreateCom;
-	launcher_t	CreateHost;
-	launcher_exp_t	*Host;          
+	launch_t		CreateHost;
+	launch_exp_t	*Host;          
           
 	// first text message into console or log
-	if(app_name != CREDITS) MsgDev(D_INFO, "------- Loading bin/launcher.dll [%g] -------\n", LAUNCHER_VERSION );
+	if(app_name != CREDITS) MsgDev(D_INFO, "------- Loading bin/launch.dll [%g] -------\n", LAUNCH_VERSION );
 
 	Sys_LoadLibrary( linked_dll ); // loading library if need
 

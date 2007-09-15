@@ -97,25 +97,25 @@ void GetLibrary ( void )
 	
 	if(GetEnv()) //get environment
 	{
-		sprintf( szSearch[count], "%s\\bin\\launcher.dll", szFsPath );
+		sprintf( szSearch[count], "%s\\bin\\launch.dll", szFsPath );
 		count++;
 	}
 
 	if(GetReg()) //get registry
 	{
-		sprintf( szSearch[count], "%s\\bin\\launcher.dll", szFsPath );
+		sprintf( szSearch[count], "%s\\bin\\launch.dll", szFsPath );
 		count++;
 	}
 	
 	if(GetBin()) //get direct
 	{
-		strcpy( szSearch[count], "bin\\launcher.dll" );
+		strcpy( szSearch[count], "bin\\launch.dll" );
 		count++;
 	}
 
 	if(GetBin()) //get direct
 	{
-		strcpy( szSearch[count], "launcher.dll" );
+		strcpy( szSearch[count], "launch.dll" );
 		count++;
 	}	
 	
@@ -131,11 +131,11 @@ winmain_t CreateMain32( void )
 	if (hmain) 
 	{
 		main = (winmain_t)GetProcAddress( hmain, "CreateAPI" );
-		if(!main) GetError("Unable to load the launcher.dll" );
+		if(!main) GetError("Unable to load the launch.dll" );
 		return main;
 	}
 
-	GetError("Unable to load the launcher.dll" );
+	GetError("Unable to load the launch.dll" );
 	return 0; //make compiller happy
 }
 

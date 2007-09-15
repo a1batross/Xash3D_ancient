@@ -1,9 +1,9 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			baseutils.h - shared engine utility
+//			utils.h - shared engine utility
 //=======================================================================
-#ifndef BASEUTILS_H
-#define BASEUTILS_H
+#ifndef UTILS_H
+#define UTILS_H
 
 #include <time.h>
 
@@ -144,4 +144,4 @@ bool CompileSpriteModel ( byte *mempool, const char *name, byte parms );
 bool PrepareBSPModel ( const char *dir, const char *name, byte params );
 bool CompileBSPModel ( void );
 
-#endif//BASEUTILS_H
+#endif//UTILS_H

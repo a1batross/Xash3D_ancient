@@ -82,7 +82,6 @@ void _MSG_WriteAngle16 (sizebuf_t *sb, float f, const char *filename, int fileli
 void _MSG_WriteUnterminatedString (sizebuf_t *sb, const char *s, const char *filename, int fileline);
 void _MSG_WriteDeltaUsercmd (sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd, const char *filename, int fileline);
 void _MSG_WriteDeltaEntity (struct entity_state_s *from, struct entity_state_s *to, sizebuf_t *msg, bool force, bool newentity, const char *filename, int fileline);
-void _MSG_WriteDir (sizebuf_t *sb, vec3_t vector, const char *filename, int fileline);
 void _MSG_WriteVector (sizebuf_t *sb, float *v, const char *filename, int fileline);
 void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename, int fileline);
 
@@ -101,7 +100,6 @@ void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename,
 #define MSG_WriteUnterminatedString(x, y) _MSG_WriteUnterminatedString (x, y, __FILE__, __LINE__);
 #define MSG_WriteDeltaUsercmd(x, y, z) _MSG_WriteDeltaUsercmd (x, y, z, __FILE__, __LINE__);
 #define MSG_WriteDeltaEntity(x, y, z, t, m) _MSG_WriteDeltaEntity (x, y, z, t, m, __FILE__, __LINE__);
-#define MSG_WriteDir(x, y) _MSG_WriteDir (x, y, __FILE__, __LINE__);
 #define MSG_WriteVector(x, y) _MSG_WriteVector (x, y, __FILE__, __LINE__);
 #define MSG_Send(x, y, z) _MSG_Send(x, y, z, __FILE__, __LINE__);
 
@@ -120,9 +118,6 @@ void	MSG_ReadPos (sizebuf_t *sb, vec3_t pos);
 float	MSG_ReadAngle (sizebuf_t *sb);
 float	MSG_ReadAngle16 (sizebuf_t *sb);
 void	MSG_ReadDeltaUsercmd (sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd);
-
-void	MSG_ReadDir (sizebuf_t *sb, vec3_t vector);
-
 void	MSG_ReadData (sizebuf_t *sb, void *buffer, int size);
 
 //============================================================================

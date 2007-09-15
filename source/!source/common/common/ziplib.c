@@ -4,7 +4,7 @@
 //=======================================================================
 
 #include "platform.h"
-#include "baseutils.h"
+#include "utils.h"
 #include "zip32.h"
 
 #define BASE 65521UL    // largest prime smaller than 65536

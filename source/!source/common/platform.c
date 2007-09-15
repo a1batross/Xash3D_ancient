@@ -1,10 +1,10 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			platform.c - game platform dll
+//			platform.c - game common dll
 //=======================================================================
 
 #include "platform.h"
-#include "baseutils.h"
+#include "utils.h"
 #include "bsplib.h"
 #include "mdllib.h"
 #include "qcclib.h"

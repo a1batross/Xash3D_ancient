@@ -518,8 +518,6 @@ cdlight_t *CL_AllocDlight (int key);
 void CL_BigTeleportParticles (vec3_t org);
 void CL_RocketTrail (vec3_t start, vec3_t end, centity_t *old);
 void CL_DiminishingTrail (vec3_t start, vec3_t end, centity_t *old, int flags);
-void CL_FlyEffect (centity_t *ent, vec3_t origin);
-void CL_BfgParticles (entity_t *ent);
 void CL_AddParticles (void);
 void CL_EntityEvent (entity_state_t *ent);
 // RAFAEL

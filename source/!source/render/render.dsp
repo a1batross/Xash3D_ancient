@@ -111,7 +111,7 @@ SOURCE="$(InputPath)"
 # Name "render - Win32 Debug"
 # Begin Group "Source Files"
 
-# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;hpj;bat;for;f90"
+# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
 SOURCE=.\gl_draw.c
@@ -119,10 +119,6 @@ SOURCE=.\gl_draw.c
 # Begin Source File
 
 SOURCE=.\gl_light.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\gl_mesh.c
 # End Source File
 # Begin Source File
 
@@ -186,19 +182,7 @@ SOURCE=.\r_utils.c
 # PROP Default_Filter "h;hpp;hxx;hm;inl;fi;fd"
 # Begin Source File
 
-SOURCE=.\anorms.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\anormtab.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\common\common.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\server\const.h
+SOURCE=..\public\const.h
 # End Source File
 # Begin Source File
 
@@ -210,23 +194,11 @@ SOURCE=.\gl_model.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\common\qfiles.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\qmenu.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\r_opengl.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\client\ref.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\render.h
 # End Source File
 # Begin Source File
 

@@ -12,10 +12,8 @@
 typedef int bool;
 
 #include "image.h"
-#include "basemem.h"
+#include "memory.h"
 #include <ref_system.h>
-
-#include "basemem.h"
 
 //=====================================
 //	platform export

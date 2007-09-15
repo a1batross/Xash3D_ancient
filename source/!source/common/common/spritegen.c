@@ -5,7 +5,7 @@
 
 #include "platform.h"
 #include <basemath.h>
-#include "baseutils.h"
+#include "utils.h"
 #include <sprite.h>
 
 #define MAX_BUFFER_SIZE	((sizeof(frames) * MAX_FRAMES) + (MAX_FRAME_DIM * 2 * MAX_FRAMES))

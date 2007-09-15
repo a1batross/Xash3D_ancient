@@ -32,7 +32,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <basemath.h>
 #include "ref_system.h"
 #include "materials.h"
-#include "qfiles.h"
+#include "studio.h"
+#include "sprite.h"
+#include "bspmodel.h" 
 #include "const.h"
 
 #ifndef GL_COLOR_INDEX8_EXT
@@ -237,7 +239,7 @@ extern	model_t		*currentmodel;
 extern	int			r_visframecount;
 extern	int			r_framecount;
 extern	cplane_t	frustum[4];
-extern	int			c_brush_polys, c_alias_polys;
+extern	int			c_brush_polys;
 
 
 extern	int			gl_filter_min, gl_filter_max;
@@ -369,7 +371,6 @@ void	R_Shutdown( void );
 
 void R_RenderView (refdef_t *fd);
 void GL_ScreenShot_f (void);
-void R_DrawAliasModel( int passnum );
 void R_DrawStudioModel( int passnum );
 void R_DrawBrushModel( int passnum );
 void R_DrawSpriteModel( int passnum );

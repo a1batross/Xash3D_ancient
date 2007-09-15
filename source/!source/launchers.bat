@@ -1,6 +1,6 @@
 @echo off
 
-cd launcher
+cd launch
 cd bsplib
 makefile.nmake
 

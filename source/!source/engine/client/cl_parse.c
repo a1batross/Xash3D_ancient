@@ -370,7 +370,6 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 	char		model_name[MAX_QPATH];
 	char		skin_name[MAX_QPATH];
 	char		model_filename[MAX_QPATH];
-	char		skin_filename[MAX_QPATH];
 	char		weapon_filename[MAX_QPATH];
 
 	strncpy(ci->cinfo, s, sizeof(ci->cinfo));
@@ -388,14 +387,12 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 
 	if (cl_noskins->value || *s == 0)
 	{
-		sprintf (model_filename, "players/male/tris.md2");
-		sprintf (weapon_filename, "players/male/weapon.md2");
-		sprintf (skin_filename, "players/male/grunt.pcx");
-		sprintf (ci->iconname, "/players/male/grunt_i.pcx");
+		sprintf (model_filename, "models/players/gordon/player.mdl");
+		sprintf (weapon_filename, "models/weapons/w_glock.mdl");
+		strcpy (ci->iconname, "textures/base_menu/i_fixme.pcx");
 		ci->model = re->RegisterModel (model_filename);
 		memset(ci->weaponmodel, 0, sizeof(ci->weaponmodel));
 		ci->weaponmodel[0] = re->RegisterModel (weapon_filename);
-		ci->skin = re->RegisterSkin (skin_filename);
 		ci->icon = re->RegisterPic (ci->iconname);
 	}
 	else
@@ -403,28 +400,22 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 		// isolate the model name
 		strcpy (model_name, s);
 		t = strstr(model_name, "/");
-		if (!t)
-			t = strstr(model_name, "\\");
-		if (!t)
-			t = model_name;
+		if (!t) t = strstr(model_name, "\\");
+		if (!t) t = model_name;
 		*t = 0;
 
 		// isolate the skin name
 		strcpy (skin_name, s + strlen(model_name) + 1);
 
 		// model file
-		sprintf (model_filename, "players/%s/tris.md2", model_name);
+		sprintf (model_filename, "models/players/%s/player.mdl", model_name);
 		ci->model = re->RegisterModel (model_filename);
 		if (!ci->model)
 		{
-			strcpy(model_name, "male");
-			sprintf (model_filename, "players/male/tris.md2");
+			strcpy(model_name, "gordon");
+			sprintf (model_filename, "models/players/gordon/player.mdl");
 			ci->model = re->RegisterModel (model_filename);
 		}
-
-		// skin file
-		sprintf (skin_filename, "players/%s/%s.pcx", model_name, skin_name);
-		ci->skin = re->RegisterSkin (skin_filename);
 
 		// if we don't have the skin and the model wasn't male,
 		// see if the male has it (this is for CTF's skins)
@@ -432,37 +423,20 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 		{
 			// change model to male
 			strcpy(model_name, "male");
-			sprintf (model_filename, "players/male/tris.md2");
+			sprintf (model_filename, "models/players/gordon/player.mdl");
 			ci->model = re->RegisterModel (model_filename);
-
-			// see if the skin exists for the male model
-			sprintf (skin_filename, "players/%s/%s.pcx", model_name, skin_name);
-			ci->skin = re->RegisterSkin (skin_filename);
-		}
-
-		// if we still don't have a skin, it means that the male model didn't have
-		// it, so default to grunt
-		if (!ci->skin) {
-			// see if the skin exists for the male model
-			sprintf (skin_filename, "players/%s/grunt.pcx", model_name, skin_name);
-			ci->skin = re->RegisterSkin (skin_filename);
 		}
 
 		// weapon file
-		for (i = 0; i < num_cl_weaponmodels; i++) {
-			sprintf (weapon_filename, "players/%s/%s", model_name, cl_weaponmodels[i]);
+		for (i = 0; i < num_cl_weaponmodels; i++)
+		{
+			sprintf (weapon_filename, "models/weapons/%s", cl_weaponmodels[i]);
 			ci->weaponmodel[i] = re->RegisterModel(weapon_filename);
-			if (!ci->weaponmodel[i] && strcmp(model_name, "cyborg") == 0) {
-				// try male
-				sprintf (weapon_filename, "players/male/%s", cl_weaponmodels[i]);
-				ci->weaponmodel[i] = re->RegisterModel(weapon_filename);
-			}
-			if (!cl_vwep->value)
-				break; // only one when vwep is off
+			if (!cl_vwep->value) break; // only one when vwep is off
 		}
 
 		// icon file
-		sprintf (ci->iconname, "/players/%s/%s_i.pcx", model_name, skin_name);
+		strcpy (ci->iconname, "textures/base_menu/i_fixme.pcx");
 		ci->icon = re->RegisterPic (ci->iconname);
 	}
 

@@ -1,11 +1,10 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			baseutils.c - platform utils
+//			   utils.c - platform utils
 //=======================================================================
 
 #include "platform.h"
-#include <winreg.h>
-#include "baseutils.h"
+#include "utils.h"
 #include "bsplib.h"
 #include "mdllib.h"
 #include "qcclib.h"

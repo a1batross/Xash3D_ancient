@@ -80,7 +80,7 @@ void Sys_SendKeyEvents (void)
 ================
 Sys_GetClipboardData
 
-FIXME: move to launcher.dll
+FIXME: move to launch.dll
 ================
 */
 char *Sys_GetClipboardData( void )
@@ -112,17 +112,17 @@ DllMain
 
 ==================
 */
-launcher_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input )
+launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input )
 {
-         	static launcher_exp_t Host;
+         	static launch_exp_t Host;
 
 	// Sys_LoadLibrary can create fake instance, to check
 	// api version and api size, but first argument will be 0
 	// and always make exception, run simply check for avoid it
 	if(input) std = *input;
 
-	Host.apiversion = LAUNCHER_API_VERSION;
-	Host.api_size = sizeof(launcher_exp_t);
+	Host.apiversion = LAUNCH_API_VERSION;
+	Host.api_size = sizeof(launch_exp_t);
 
 	Host.Init = Host_Init;
 	Host.Main = Host_Main;

@@ -6,7 +6,7 @@
 #define QCCLIB_H
 
 #include "platform.h"
-#include "baseutils.h"
+#include "utils.h"
 #include "vprogs.h"
 
 /*

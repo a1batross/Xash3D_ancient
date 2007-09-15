@@ -195,20 +195,20 @@ typedef struct mleaf_s
 // Whole model
 //
 
-typedef enum {mod_bad, mod_brush, mod_alias, mod_studio, mod_sprite } modtype_t;
+typedef enum {mod_bad, mod_brush, mod_studio, mod_sprite } modtype_t;
 
 typedef struct model_s
 {
 	char		name[MAX_QPATH];
 
-	int			registration_sequence;
+	int		registration_sequence;
 
 	modtype_t		type;
 	byte		*mempool;
 	
-	int			numframes;
+	int		numframes;
 	
-	int			flags;
+	int		flags;
 
 //
 // volume occupied by the model graphics
@@ -219,52 +219,51 @@ typedef struct model_s
 //
 // solid volume for clipping 
 //
-	bool	clipbox;
+	bool		clipbox;
 	vec3_t		clipmins, clipmaxs;
 
 //
 // brush model	//move this to brush_t struct
 //
-	int			firstmodelsurface, nummodelsurfaces;
-	int			lightmap;		// only for submodels
+	int		firstmodelsurface, nummodelsurfaces;
+	int		lightmap;		// only for submodels
 
-	int			numsubmodels;
-	mmodel_t	*submodels;
+	int		numsubmodels;
+	mmodel_t		*submodels;
 
-	int			numplanes;
-	cplane_t	*planes;
+	int		numplanes;
+	cplane_t		*planes;
 
-	int			numleafs;		// number of visible leafs, not counting 0
+	int		numleafs;		// number of visible leafs, not counting 0
 	mleaf_t		*leafs;
 
-	int			numvertexes;
-	mvertex_t	*vertexes;
+	int		numvertexes;
+	mvertex_t		*vertexes;
 
-	int			numedges;
+	int		numedges;
 	medge_t		*edges;
 
-	int			numnodes;
-	int			firstnode;
+	int		numnodes;
+	int		firstnode;
 	mnode_t		*nodes;
 
-	int			numtexinfo;
+	int		numtexinfo;
 	mtexinfo_t	*texinfo;
 
-	int			numsurfaces;
+	int		numsurfaces;
 	msurface_t	*surfaces;
 
-	int			numsurfedges;
-	int			*surfedges;
+	int		numsurfedges;
+	int		*surfedges;
 
-	int			nummarksurfaces;
+	int		nummarksurfaces;
 	msurface_t	**marksurfaces;
 
 	dvis_t		*vis;
 
 	byte		*lightdata;
 
-	// for alias models and skins
-	image_t		*skins[MAX_MD2SKINS];
+	image_t		*skins[512];
           
           studiohdr_t	*phdr;
           studiohdr_t	*thdr;

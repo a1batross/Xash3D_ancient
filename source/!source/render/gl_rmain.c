@@ -53,7 +53,7 @@ cplane_t	frustum[4];
 int			r_visframecount;	// bumped when going to a new PVS
 int			r_framecount;		// used for dlight push checking
 
-int			c_brush_polys, c_alias_polys;
+int			c_brush_polys, c_studio_polys;
 
 float		v_blend[4];			// final blending color
 
@@ -250,9 +250,6 @@ void R_DrawEntitiesOnList (void)
 			}
 			switch (currentmodel->type)
 			{
-			case mod_alias:
-				R_DrawAliasModel( RENDERPASS_SOLID );
-				break;
 			case mod_brush:
 				R_DrawBrushModel( RENDERPASS_SOLID );
 				break;
@@ -291,9 +288,6 @@ void R_DrawEntitiesOnList (void)
 			}
 			switch (currentmodel->type)
 			{
-			case mod_alias:
-				R_DrawAliasModel( RENDERPASS_ALPHA );
-				break;
 			case mod_brush:
 				R_DrawBrushModel( RENDERPASS_ALPHA );
 				break;
@@ -538,7 +532,7 @@ void R_SetupFrame (void)
 		v_blend[i] = r_newrefdef.blend[i];
 
 	c_brush_polys = 0;
-	c_alias_polys = 0;
+	c_studio_polys = 0;
 
 	// clear out the portion of the screen that the NOWORLDMODEL defines
 	if ( r_newrefdef.rdflags & RDF_NOWORLDMODEL )
@@ -683,7 +677,7 @@ void R_RenderView (refdef_t *fd)
 	if (r_speeds->value)
 	{
 		c_brush_polys = 0;
-		c_alias_polys = 0;
+		c_studio_polys = 0;
 	}
 
 	R_PushDlights ();
@@ -715,7 +709,7 @@ void R_RenderView (refdef_t *fd)
 
 int R_DrawRSpeeds(char *S)
 {
-	return sprintf(S, "%4i wpoly %4i epoly %i tex %i lmaps", c_brush_polys, c_alias_polys, c_visible_textures, c_visible_lightmaps );
+	return sprintf(S, "%4i wpoly %4i epoly %i tex %i lmaps", c_brush_polys, c_studio_polys, c_visible_textures, c_visible_lightmaps );
 }
 
 dword blurtex = 0;

@@ -35,12 +35,12 @@ const char* Log_Timestamp( void )
 
 float CalcEngineVersion( void )
 {
-	return LAUNCHER_VERSION + COMMON_VERSION + RENDER_VERSION + ENGINE_VERSION;
+	return LAUNCH_VERSION + COMMON_VERSION + RENDER_VERSION + ENGINE_VERSION;
 }
 
 float CalcEditorVersion( void )
 {
-	return LAUNCHER_VERSION + COMMON_VERSION + RENDER_VERSION + EDITOR_VERSION;
+	return LAUNCH_VERSION + COMMON_VERSION + RENDER_VERSION + EDITOR_VERSION;
 }
 
 /*
@@ -359,7 +359,7 @@ static void BuildPath( char *pPath, char *pOut )
 {
 	// set working directory
 	SetCurrentDirectory ( pPath );
-	sprintf( pOut, "%s\\bin\\launcher.dll", pPath );
+	sprintf( pOut, "%s\\bin\\launch.dll", pPath );
 }
 
 void UpdateEnvironmentVariables( void )

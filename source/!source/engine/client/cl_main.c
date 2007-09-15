@@ -1117,7 +1117,7 @@ void CL_RequestNextDownload (void)
 {
 	unsigned	map_checksum;		// for detecting cheater maps
 	char fn[MAX_OSPATH];
-	dmdl_t *pheader;
+	studiohdr_t *pheader;
 
 	if (cls.state != ca_connected)
 		return;
@@ -1126,14 +1126,18 @@ void CL_RequestNextDownload (void)
 		precache_check = ENV_CNT;
 
 //ZOID
-	if (precache_check == CS_MODELS) { // confirm map
+	if (precache_check == CS_MODELS)
+	{
+		// confirm map
 		precache_check = CS_MODELS+2; // 0 isn't used
 		if (allow_download_maps->value)
 			if (!CL_CheckOrDownloadFile(cl.configstrings[CS_MODELS+1]))
 				return; // started a download
 	}
-	if (precache_check >= CS_MODELS && precache_check < CS_MODELS+MAX_MODELS) {
-		if (allow_download_models->value) {
+	if (precache_check >= CS_MODELS && precache_check < CS_MODELS+MAX_MODELS)
+	{
+		if (allow_download_models->value)
+		{
 			while (precache_check < CS_MODELS+MAX_MODELS &&
 				cl.configstrings[precache_check][0]) {
 				if (cl.configstrings[precache_check][0] == '*' ||
@@ -1159,33 +1163,27 @@ void CL_RequestNextDownload (void)
 						precache_check++;
 						continue; // couldn't load it
 					}
-					if (LittleLong(*(unsigned *)precache_model) != IDALIASHEADER) {
-						// not an alias model
+					if (LittleLong(*(uint *)precache_model) != IDSTUDIOHEADER)
+					{
+						// not an studio model
 						precache_model = 0;
 						precache_model_skin = 0;
 						precache_check++;
 						continue;
 					}
-					pheader = (dmdl_t *)precache_model;
-					if (LittleLong (pheader->version) != ALIAS_VERSION) {
+					pheader = (studiohdr_t *)precache_model;
+					if (LittleLong (pheader->version) != STUDIO_VERSION)
+					{
 						precache_check++;
 						precache_model_skin = 0;
 						continue; // couldn't load it
 					}
 				}
 
-				pheader = (dmdl_t *)precache_model;
+				pheader = (studiohdr_t *)precache_model;
 
-				while (precache_model_skin - 1 < LittleLong(pheader->num_skins)) {
-					if (!CL_CheckOrDownloadFile((char *)precache_model +
-						LittleLong(pheader->ofs_skins) + 
-						(precache_model_skin - 1)*MAX_SKINNAME)) {
-						precache_model_skin++;
-						return; // started a download
-					}
-					precache_model_skin++;
-				}
-				if (precache_model) { 
+				if (precache_model)
+				{ 
 					precache_model = 0;
 				}
 				precache_model_skin = 0;
@@ -1259,7 +1257,7 @@ void CL_RequestNextDownload (void)
 				switch (n)
 				{
 				case 0: // model
-					sprintf(fn, "players/%s/tris.md2", model);
+					sprintf(fn, "models/players/%s/player.mdl", model);
 					if (!CL_CheckOrDownloadFile(fn))
 					{
 						precache_check = CS_PLAYERSKINS + i * PLAYER_MULT + 1;
@@ -1269,7 +1267,7 @@ void CL_RequestNextDownload (void)
 					/*FALL THROUGH*/
 
 				case 1: // weapon model
-					sprintf(fn, "players/%s/weapon.md2", model);
+					sprintf(fn, "weapons/%s.mdl", model);
 					if (!CL_CheckOrDownloadFile(fn))
 					{
 						precache_check = CS_PLAYERSKINS + i * PLAYER_MULT + 2;
@@ -1277,36 +1275,8 @@ void CL_RequestNextDownload (void)
 					}
 					n++;
 					/*FALL THROUGH*/
-
-				case 2: // weapon skin
-					sprintf(fn, "players/%s/weapon.pcx", model);
-					if (!CL_CheckOrDownloadFile(fn))
-					{
-						precache_check = CS_PLAYERSKINS + i * PLAYER_MULT + 3;
-						return; // started a download
-					}
-					n++;
-					/*FALL THROUGH*/
-
-				case 3: // skin
-					sprintf(fn, "players/%s/%s.pcx", model, skin);
-					if (!CL_CheckOrDownloadFile(fn))
-					{
-						precache_check = CS_PLAYERSKINS + i * PLAYER_MULT + 4;
-						return; // started a download
-					}
-					n++;
-					/*FALL THROUGH*/
-
-				case 4: // skin_i
-					sprintf(fn, "players/%s/%s_i.pcx", model, skin);
-					if (!CL_CheckOrDownloadFile(fn))
-					{
-						precache_check = CS_PLAYERSKINS + i * PLAYER_MULT + 5;
-						return; // started a download
-					}
-					// move on to next model
-					precache_check = CS_PLAYERSKINS + (i + 1) * PLAYER_MULT;
+				default:
+					break;
 				}
 			}
 		}

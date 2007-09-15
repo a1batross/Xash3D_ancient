@@ -186,7 +186,6 @@ void(float f) WriteAngle			= #58;
 void(string s) WriteString			= #59;
 void(entity s) WriteEntity			= #60;
 void(entity s) WriteFloat			= #61;
-void(vector v) WriteDir			= #62;
 void(float dest) MsgBegin			= #63;
 void(float to, vector v, entity e) MsgEnd	= #64;
 void(float num, string s) configstring		= #65;

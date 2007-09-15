@@ -5,11 +5,6 @@
 
 #include "engine.h"
 
-vec3_t bytedirs[NUMVERTEXNORMALS] =
-{
-#include "anorms.h"
-};
-
 /*
 ==============================================================================
 
@@ -165,29 +160,6 @@ void _MSG_WriteDeltaUsercmd (sizebuf_t *buf, usercmd_t *from, usercmd_t *cmd, co
 
 	_MSG_WriteByte (buf, cmd->msec, filename, fileline );
 	_MSG_WriteByte (buf, cmd->lightlevel, filename, fileline );
-}
-
-void _MSG_WriteDir (sizebuf_t *sb, vec3_t dir, const char *filename, int fileline)
-{
-	int	i, best = 0;
-	float	d, bestd = 0;
-	
-	if (!dir)
-	{
-		_MSG_WriteByte (sb, 0, filename, fileline );
-		return;
-	}
-
-	for (i = 0; i < NUMVERTEXNORMALS; i++)
-	{
-		d = DotProduct (dir, bytedirs[i]);
-		if (d > bestd)
-		{
-			bestd = d;
-			best = i;
-		}
-	}
-	_MSG_WriteByte (sb, best, filename, fileline );
 }
 
 /*
@@ -506,19 +478,6 @@ void MSG_ReadDeltaUsercmd (sizebuf_t *msg_read, usercmd_t *from, usercmd_t *move
 	
 	move->msec = MSG_ReadByte (msg_read); // read time to run command
 	move->lightlevel = MSG_ReadByte (msg_read); // read the light level
-}
-
-void MSG_ReadDir (sizebuf_t *msg_read, vec3_t dir)
-{
-	int	b;
-
-	b = MSG_ReadByte (msg_read);
-	if (b >= NUMVERTEXNORMALS) 
-	{
-		msg_read->errorcount++;
-		b = 0; //default dir
-	}
-	VectorCopy (bytedirs[b], dir);
 }
 
 void MSG_ReadData (sizebuf_t *msg_read, void *data, int len)

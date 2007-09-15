@@ -21,7 +21,8 @@ SV_ClipToLinks		SV_ClipMoveToEntities
 12. Подключить advapi динамически			OK
 13. Переименовать platform.dll в common.dll		OK
 14. Переименовать renderer.dll в render.dll		OK
-15. Упорядочить файлы и код в common.dll
+15. Упорядочить файлы и код в common.dll		Ok
+16. Пофиксить вылет при загрузке модели игрока в меню
 
 
 

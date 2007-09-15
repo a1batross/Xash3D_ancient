@@ -777,22 +777,23 @@ model_t *S_RegisterSexedModel (entity_state_t *ent, char *base)
 	}
 	// if we can't figure it out, they're male
 	if (!model[0])
-		strcpy(model, "male");
+		strcpy(model, "gordon");
 
 	sprintf (buffer, "players/%s/%s", model, base+1);
 	mdl = re->RegisterModel(buffer);
 	if (!mdl) {
 		// not found, try default weapon model
-		sprintf (buffer, "players/%s/weapon.md2", model);
+		sprintf (buffer, "weapons/%s.mdl", model);
 		mdl = re->RegisterModel(buffer);
 		if (!mdl)
 		{
 			// no, revert to the male model
-			sprintf (buffer, "players/%s/%s", "male", base+1);
+			sprintf (buffer, "models/players/%s/%s", "male", base+1);
 			mdl = re->RegisterModel(buffer);
-			if (!mdl) {
-				// last try, default male weapon.md2
-				sprintf (buffer, "players/male/weapon.md2");
+			if (!mdl)
+			{
+				// last try, default male weapon.mdl
+				sprintf (buffer, "weapons/w_glock.mdl");
 				mdl = re->RegisterModel(buffer);
 			}
 		} 
@@ -908,29 +909,6 @@ void CL_AddPacketEntities (frame_t *frame)
 					ent.image = cl.baseclientinfo.skin;
 					ent.model = cl.baseclientinfo.model;
 				}
-
-//============
-//PGM
-				if (renderfx & RF_USE_DISGUISE)
-				{
-					if(!strncmp((char *)ent.image, "players/male", 12))
-					{
-						ent.image = re->RegisterSkin ("players/male/disguise.pcx");
-						ent.model = re->RegisterModel ("players/male/tris.md2");
-					}
-					else if(!strncmp((char *)ent.image, "players/female", 14))
-					{
-						ent.image = re->RegisterSkin ("players/female/disguise.pcx");
-						ent.model = re->RegisterModel ("players/female/tris.md2");
-					}
-					else if(!strncmp((char *)ent.image, "players/cyborg", 14))
-					{
-						ent.image = re->RegisterSkin ("players/cyborg/disguise.pcx");
-						ent.model = re->RegisterModel ("players/cyborg/tris.md2");
-					}
-				}
-//PGM
-//============
 			}
 			else
 			{
@@ -1082,26 +1060,6 @@ void CL_AddPacketEntities (frame_t *frame)
 			{
 				CL_DiminishingTrail (cent->lerp_origin, ent.origin, cent, effects);
 			}
-			else if (effects & EF_FLIES)
-			{
-				CL_FlyEffect (cent, ent.origin);
-			}
-			else if (effects & EF_BFG)
-			{
-				static int bfg_lightramp[6] = {300, 400, 600, 300, 150, 75};
-
-				if (effects & EF_ANIM_ALLFAST)
-				{
-					CL_BfgParticles (&ent);
-					i = 200;
-				}
-				else
-				{
-					i = bfg_lightramp[s1->frame];
-				}
-				V_AddLight (ent.origin, i, 0, 1, 0);
-			}
-			// RAFAEL
 			else if (effects & EF_TRAP)
 			{
 				ent.origin[2] += 32;

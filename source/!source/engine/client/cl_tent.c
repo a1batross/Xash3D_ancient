@@ -237,7 +237,7 @@ void CL_ParseParticles (void)
 	vec3_t	pos, dir;
 
 	MSG_ReadPos (&net_message, pos);
-	MSG_ReadDir (&net_message, dir);
+	MSG_ReadPos (&net_message, dir);
 
 	color = MSG_ReadByte (&net_message);
 	count = MSG_ReadByte (&net_message);
@@ -453,7 +453,7 @@ void CL_ParseTEnt (void)
 	{
 	case TE_BLOOD:			// bullet hitting flesh
 		MSG_ReadPos (&net_message, pos);
-		MSG_ReadDir (&net_message, dir);
+		MSG_ReadPos (&net_message, dir);
 		CL_ParticleEffect (pos, dir, 0xe8, 60);
 		break;
 
@@ -461,7 +461,7 @@ void CL_ParseTEnt (void)
 	case TE_SPARKS:
 	case TE_BULLET_SPARKS:
 		MSG_ReadPos (&net_message, pos);
-		MSG_ReadDir (&net_message, dir);
+		MSG_ReadPos (&net_message, dir);
 		if (type == TE_GUNSHOT)
 			CL_ParticleEffect (pos, dir, 0, 40);
 		else
@@ -486,7 +486,7 @@ void CL_ParseTEnt (void)
 	case TE_SCREEN_SPARKS:
 	case TE_SHIELD_SPARKS:
 		MSG_ReadPos (&net_message, pos);
-		MSG_ReadDir (&net_message, dir);
+		MSG_ReadPos (&net_message, dir);
 		if (type == TE_SCREEN_SPARKS)
 			CL_ParticleEffect (pos, dir, 0xd0, 40);
 		else
@@ -497,7 +497,7 @@ void CL_ParseTEnt (void)
 		
 	case TE_SHOTGUN:			// bullet hitting wall
 		MSG_ReadPos (&net_message, pos);
-		MSG_ReadDir (&net_message, dir);
+		MSG_ReadPos (&net_message, dir);
 		CL_ParticleEffect (pos, dir, 0, 20);
 		CL_SmokeAndFlash(pos);
 		break;
@@ -505,7 +505,7 @@ void CL_ParseTEnt (void)
 	case TE_SPLASH:			// bullet hitting water
 		cnt = MSG_ReadByte (&net_message);
 		MSG_ReadPos (&net_message, pos);
-		MSG_ReadDir (&net_message, dir);
+		MSG_ReadPos (&net_message, dir);
 		r = MSG_ReadByte (&net_message);
 		if (r > 6)
 			color = 0x00;
@@ -528,7 +528,7 @@ void CL_ParseTEnt (void)
 	case TE_LASER_SPARKS:
 		cnt = MSG_ReadByte (&net_message);
 		MSG_ReadPos (&net_message, pos);
-		MSG_ReadDir (&net_message, dir);
+		MSG_ReadPos (&net_message, dir);
 		color = MSG_ReadByte (&net_message);
 		CL_ParticleEffect2 (pos, dir, color, cnt);
 		break;
@@ -542,7 +542,7 @@ void CL_ParseTEnt (void)
 
 	case TE_BLASTER:			// blaster hitting wall
 		MSG_ReadPos (&net_message, pos);
-		MSG_ReadDir (&net_message, dir);
+		MSG_ReadPos (&net_message, dir);
 		CL_BlasterParticles (pos, dir);
 
 		ex = CL_AllocExplosion ();
@@ -696,7 +696,7 @@ void CL_ParseTEnt (void)
 	case TE_WELDING_SPARKS:
 		cnt = MSG_ReadByte (&net_message);
 		MSG_ReadPos (&net_message, pos);
-		MSG_ReadDir (&net_message, dir);
+		MSG_ReadPos (&net_message, dir);
 		color = MSG_ReadByte (&net_message);
 		CL_ParticleEffect2 (pos, dir, color, cnt);
 
@@ -717,7 +717,7 @@ void CL_ParseTEnt (void)
 
 	case TE_GREENBLOOD:
 		MSG_ReadPos (&net_message, pos);
-		MSG_ReadDir (&net_message, dir);
+		MSG_ReadPos (&net_message, dir);
 		CL_ParticleEffect2 (pos, dir, 0xdf, 30);
 		break;
 
@@ -737,7 +737,7 @@ void CL_ParseTEnt (void)
 	case TE_TUNNEL_SPARKS:
 		cnt = MSG_ReadByte (&net_message);
 		MSG_ReadPos (&net_message, pos);
-		MSG_ReadDir (&net_message, dir);
+		MSG_ReadPos (&net_message, dir);
 		color = MSG_ReadByte (&net_message);
 		CL_ParticleEffect3 (pos, dir, color, cnt);
 		break;
