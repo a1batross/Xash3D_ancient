@@ -166,8 +166,8 @@ This function is called when the player enters the 'kill' command in the console
 
 void() ClientKill = 
 {
-	//pprint(self, " has", " killed themselves.");
-	T_Damage(self, self, self, self.health);
+	//pprint(pev, " has", " killed themselves.");
+	T_Damage(pev, pev, pev, pev->health);
 	ClientRespawn();
 };
 
@@ -182,7 +182,7 @@ This function is called when the player connects to the server.
 
 void() ClientConnect = 
 {
-	pprint(self, " has", " joined the game.");
+	pprint(pev, " has", " joined the game.");
 	configstring (2, "sky"); //CS_SKY
 }; 
 
@@ -197,7 +197,7 @@ This function is called when the player disconnects from the server.
 
 void() ClientDisconnect = 
 {
-	pprint(self, " has", " left the game.");
+	pprint(pev, " has", " left the game.");
 };
 
 /*
@@ -261,37 +261,37 @@ void() PutClientInServer =
 	local entity spawn_spot;             // This holds where we want to spawn
 	spawn_spot = find_spawnspot(); //find (world, classname, "info_player_start"); // Find it :)
 
-	self.classname = "player";           // I'm a player!
-	self.health = self.max_health = 100; // My health (and my max) is 100
-	self.takedamage = DAMAGE_AIM;        // I can be fired at
-	self.solid = SOLID_BBOX;         // Things sort of 'slide' past me
-	self.movetype = MOVETYPE_WALK;       // Yep, I want to walk.
-	self.flags = FL_CLIENT;              // Yes, I'm a client.
+	pev->classname = "player";           // I'm a player!
+	pev->health = pev->max_health = 100; // My health (and my max) is 100
+	pev->takedamage = DAMAGE_AIM;        // I can be fired at
+	pev->solid = SOLID_BBOX;         // Things sort of 'slide' past me
+	pev->movetype = MOVETYPE_WALK;       // Yep, I want to walk.
+	pev->flags = FL_CLIENT;              // Yes, I'm a client.
 
-	self.origin = spawn_spot.origin + '0 0 1'; // Move to the spawnspot location
-	self.angles = spawn_spot.angles;     // Face the angle the spawnspot indicates
-	self.fixangle = TRUE;                // Turn this way immediately
+	pev->origin = spawn_spot.origin + '0 0 1'; // Move to the spawnspot location
+	pev->angles = spawn_spot.angles;     // Face the angle the spawnspot indicates
+	pev->fixangle = TRUE;                // Turn this way immediately
 
 	dprint("PutClientInServer()\n");
 
-	setmodel (self, "models/player.mdl"); // Set my player to the player model
-	setsize (self, VEC_HULL_MIN, VEC_HULL_MAX); // Set my size
+	setmodel (pev, "models/player.mdl"); // Set my player to the player model
+	setsize (pev, VEC_HULL_MIN, VEC_HULL_MAX); // Set my size
 
-	self.view_ofs = '0 0 22';            // Center my view
+	pev->view_ofs = '0 0 22';            // Center my view
 
-	setsize(self, '-16 -16 -32', '16 16 32' );
+	setsize(pev, '-16 -16 -32', '16 16 32' );
 	
-	if (self.aflag)
+	if (pev->aflag)
 		CCamChasePlayer ();
 
-	self.velocity = '0 0 0';             // Stop any old movement
+	pev->velocity = '0 0 0';             // Stop any old movement
 
-	self.th_pain = PlayerPain;
-	self.th_die = PlayerDie;
+	pev->th_pain = PlayerPain;
+	pev->th_die = PlayerDie;
 
-	setstats( self, STAT_HEALTH_ICON, "i_health");
-	setstats( self, STAT_HEALTH, ftos(self.health));
-	//setstats( self, STAT_HELPICON, "i_help");
+	setstats( pev, STAT_HEALTH_ICON, "i_health");
+	setstats( pev, STAT_HEALTH, ftos(pev->health));
+	//setstats( pev, STAT_HELPICON, "i_help");
 		
 	GetLevelParms();
 };

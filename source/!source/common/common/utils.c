@@ -1333,31 +1333,22 @@ static int enter;
 void ThreadLock (void)
 {
 	if (!threaded) return;
-	if (enter) 
-	{
-		MsgWarn("ThreadLock: recursive call\n");
-		return;
-	}
 	EnterCriticalSection (&crit);
+	if (enter) Sys_Error ("Recursive ThreadLock\n"); 
 	enter = 1;
 }
 
 void ThreadUnlock (void)
 {
 	if (!threaded) return;
-	if (!enter) 
-	{
-		MsgWarn("ThreadUnlock: must call ThreadLock first\n");
-		return;
-	}
+	if (!enter) Sys_Error ("ThreadUnlock without lock\n"); 
 	enter = 0;
 	LeaveCriticalSection (&crit);
 }
 
 int GetThreadWork (void)
 {
-	int	r;
-	int	f;
+	int	r, f;
 
 	ThreadLock ();
 
@@ -1367,7 +1358,7 @@ int GetThreadWork (void)
 		return -1;
 	}
 
-	f = 10*dispatch / workcount;
+	f = 10 * dispatch / workcount;
 	if (f != oldf)
 	{
 		oldf = f;
@@ -1397,7 +1388,7 @@ void ThreadSetDefault (void)
 {
 	if (numthreads == -1) // not set manually
 	{
-		//NOTE: we must init Plat_InitCPU() first
+		// NOTE: we must init Plat_InitCPU() first
 		numthreads = GI.cpunum;
 		if (numthreads < 1 || numthreads > MAX_THREADS)
 			numthreads = 1;
@@ -1418,9 +1409,8 @@ RunThreadsOn
 */
 void RunThreadsOn (int workcnt, bool showpacifier, void(*func)(int))
 {
-	int	threadid[MAX_THREADS];
+	int	i, threadid[MAX_THREADS];
 	HANDLE	threadhandle[MAX_THREADS];
-	int	i;
 	double	start, end;
 
 	start = Plat_DoubleTime();
@@ -1433,16 +1423,17 @@ void RunThreadsOn (int workcnt, bool showpacifier, void(*func)(int))
 	// run threads in parallel
 	InitializeCriticalSection (&crit);
 
-	if (numthreads == 1) func (0); // use same thread
+	if (numthreads == 1) func(0); // use same thread
 	else
 	{
-		for (i = 0;i < numthreads; i++)
+		for (i = 0; i < numthreads; i++)
 		{
 			threadhandle[i] = CreateThread( NULL, 0, (LPTHREAD_START_ROUTINE)func, (LPVOID)i, 0, &threadid[i]);
 		}
-
 		for (i = 0; i < numthreads; i++)
+		{
 			WaitForSingleObject (threadhandle[i], INFINITE);
+		}
 	}
 	DeleteCriticalSection (&crit);
 

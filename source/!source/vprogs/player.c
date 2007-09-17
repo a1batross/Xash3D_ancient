@@ -61,13 +61,13 @@ $frame axattd1 axattd2 axattd3 axattd4 axattd5 axattd6
 void () SetClientFrame =
 {
 // note: call whenever weapon frames are called!
-    if (self.anim_time > time)
+    if (pev->anim_time > time)
         return; //don't call every frame, if it is the animations will play too fast
-    self.anim_time = time + 0.1;
+    pev->anim_time = time + 0.1;
 
     local float anim_change, run;
 
-    if (self.velocity_x || self.velocity_y)
+    if (pev->velocity_x || pev->velocity_y)
         run = TRUE;
     else
         run = FALSE;
@@ -75,40 +75,40 @@ void () SetClientFrame =
     anim_change = FALSE;
 
     // check for stop/go and animation transitions
-    if (run != self.anim_run && self.anim_priority == ANIM_BASIC)
+    if (run != pev->anim_run && pev->anim_priority == ANIM_BASIC)
         anim_change = TRUE;
 
     if (anim_change != TRUE)
     {
-        if (self.frame < self.anim_end)
+        if (pev->frame < pev->anim_end)
         {   // continue an animation
-            self.frame = self.frame + 1;
+            pev->frame = pev->frame + 1;
             return;
         }
-        if (self.anim_priority == ANIM_DEATH)
+        if (pev->anim_priority == ANIM_DEATH)
         {
-            if (self.deadflag == DEAD_DYING)
+            if (pev->deadflag == DEAD_DYING)
             {
-                self.nextthink = -1;
-                self.deadflag = DEAD_DEAD;
+                pev->nextthink = -1;
+                pev->deadflag = DEAD_DEAD;
             }
             return;    // stay there
         }
     }
 
     // return to either a running or standing frame
-    self.anim_priority = ANIM_BASIC;
-    self.anim_run = run;
+    pev->anim_priority = ANIM_BASIC;
+    pev->anim_run = run;
 
-    if (self.velocity_x || self.velocity_y)
+    if (pev->velocity_x || pev->velocity_y)
     {   // running
-        self.frame = $rockrun1;
-        self.anim_end = $rockrun6;
+        pev->frame = $rockrun1;
+        pev->anim_end = $rockrun6;
     }
     else
     {   // standing
-        self.frame = $stand1;
-        self.anim_end = $stand5;
+        pev->frame = $stand1;
+        pev->anim_end = $stand5;
     }
 };
 
@@ -119,61 +119,61 @@ void () SetClientFrame =
 */
 void() PainSound =
 {
-    if (self.health < 0)
+    if (pev->health < 0)
         return;
-    self.noise = "";
+    pev->noise = "";
 
-    if (self.watertype == CONTENT_WATER && self.waterlevel == 3)
+    if (pev->watertype == CONTENT_WATER && pev->waterlevel == 3)
     { // water pain sounds
         if (random() <= 0.5)
-            self.noise = "player/drown1.wav";
+            pev->noise = "player/drown1.wav";
         else
-            self.noise = "player/drown2.wav";
+            pev->noise = "player/drown2.wav";
     }
-    else if (self.watertype == CONTENT_SLIME || self.watertype == CONTENT_LAVA)
+    else if (pev->watertype == CONTENT_SLIME || pev->watertype == CONTENT_LAVA)
     { // slime/lava pain sounds
         if (random() <= 0.5)
-            self.noise = "player/lburn1.wav";
+            pev->noise = "player/lburn1.wav";
         else
-            self.noise = "player/lburn2.wav";
+            pev->noise = "player/lburn2.wav";
     }
 
-    if (self.noise)
+    if (pev->noise)
     {
-        sound (self, CHAN_VOICE, self.noise, 1, ATTN_NORM);
+        sound (pev, CHAN_VOICE, pev->noise, 1, ATTN_NORM);
         return;
     }
 //don't make multiple pain sounds right after each other
-    if (self.pain_finished > time)
+    if (pev->pain_finished > time)
         return;
-    self.pain_finished = time + 0.5;
+    pev->pain_finished = time + 0.5;
 
     local float		rs;
     rs = rint((random() * 5) + 1); // rs = 1-6
 
     if (rs == 1)
-        self.noise = "player/pain1.wav";
+        pev->noise = "player/pain1.wav";
     else if (rs == 2)
-        self.noise = "player/pain2.wav";
+        pev->noise = "player/pain2.wav";
     else if (rs == 3)
-        self.noise = "player/pain3.wav";
+        pev->noise = "player/pain3.wav";
     else if (rs == 4)
-        self.noise = "player/pain4.wav";
+        pev->noise = "player/pain4.wav";
     else if (rs == 5)
-        self.noise = "player/pain5.wav";
+        pev->noise = "player/pain5.wav";
     else
-        self.noise = "player/pain6.wav";
+        pev->noise = "player/pain6.wav";
 
-    sound (self, CHAN_VOICE, self.noise, 1, ATTN_NORM);
+    sound (pev, CHAN_VOICE, pev->noise, 1, ATTN_NORM);
 };
 
 void () PlayerPain =
 {
-    if (self.anim_priority < ANIM_PAIN) // call only if not attacking and not already in pain
+    if (pev->anim_priority < ANIM_PAIN) // call only if not attacking and not already in pain
     { 
-        self.anim_priority = ANIM_PAIN;
-        self.frame = $pain1;
-        self.anim_end = $pain6;
+        pev->anim_priority = ANIM_PAIN;
+        pev->frame = $pain1;
+        pev->anim_end = $pain6;
     }
     PainSound ();
 };
@@ -188,61 +188,61 @@ void() DeathSound =
     local float		rs;
     rs = rint ((random() * 4) + 1); // rs = 1-5
 
-    if (self.waterlevel == 3) // water death sound
-        self.noise = "player/h2odeath.wav";
+    if (pev->waterlevel == 3) // water death sound
+        pev->noise = "player/h2odeath.wav";
     else if (rs == 1)
-        self.noise = "player/death1.wav";
+        pev->noise = "player/death1.wav";
     else if (rs == 2)
-        self.noise = "player/death2.wav";
+        pev->noise = "player/death2.wav";
     else if (rs == 3)
-        self.noise = "player/death3.wav";
+        pev->noise = "player/death3.wav";
     else if (rs == 4)
-        self.noise = "player/death4.wav";
+        pev->noise = "player/death4.wav";
     else if (rs == 5)
-        self.noise = "player/death5.wav";
+        pev->noise = "player/death5.wav";
 
-    sound (self, CHAN_VOICE, self.noise, 1, ATTN_NONE);
+    sound (pev, CHAN_VOICE, pev->noise, 1, ATTN_NONE);
 };
 
 void () PlayerDie =
 {
-    self.view_ofs = '0 0 -8';
-    self.angles_x = self.angles_z = 0;
-    self.deadflag = DEAD_DYING;
-    self.solid = SOLID_NOT;
-    self.movetype = MOVETYPE_TOSS;
-    self.flags = self.flags - (self.flags & FL_ONGROUND);
-    if (self.velocity_z < 10)
-        self.velocity_z = self.velocity_z + random()*300;
+    pev->view_ofs = '0 0 -8';
+    pev->angles_x = pev->angles_z = 0;
+    pev->deadflag = DEAD_DYING;
+    pev->solid = SOLID_NOT;
+    pev->movetype = MOVETYPE_TOSS;
+    pev->aiflags = pev->aiflags - (pev->aiflags & AI_ONGROUND);
+    if (pev->velocity_z < 10)
+        pev->velocity_z = pev->velocity_z + random()*300;
 
     local float rand;
     rand = rint ((random() * 4) + 1); // rand = 1-5
 
-    self.anim_priority = ANIM_DEATH;
+    pev->anim_priority = ANIM_DEATH;
     if (rand == 1)
     {
-        self.frame = $deatha1;
-        self.anim_end = $deatha11;
+        pev->frame = $deatha1;
+        pev->anim_end = $deatha11;
     }
     else if (rand == 2)
     {
-        self.frame = $deathb1;
-        self.anim_end = $deathb9;
+        pev->frame = $deathb1;
+        pev->anim_end = $deathb9;
     }
     else if (rand == 3)
     {
-        self.frame = $deathc1;
-        self.anim_end = $deathc15;
+        pev->frame = $deathc1;
+        pev->anim_end = $deathc15;
     }
     else if (rand == 4)
     {
-        self.frame = $deathd1;
-        self.anim_end = $deathd9;
+        pev->frame = $deathd1;
+        pev->anim_end = $deathd9;
     }
     else 
     {
-        self.frame = $deathe1;
-        self.anim_end = $deathe9;
+        pev->frame = $deathe1;
+        pev->anim_end = $deathe9;
     }
     DeathSound();
 };

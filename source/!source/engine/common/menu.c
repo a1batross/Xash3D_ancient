@@ -3275,7 +3275,7 @@ void PlayerConfig_MenuDraw( void )
 
 		re->RenderFrame( &refdef );
 
-		strcpy( scratch, "textures/base_menu/i_fixme.pcx" );
+		strcpy( scratch, "i_fixme.pcx" );
 		re->DrawPic( s_player_config_menu.x - 40, refdef.y, scratch );
 	}
 }

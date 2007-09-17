@@ -6,10 +6,10 @@
 
 void() trigger_once_think = 
 {
-	if(self.target)
+	if(pev->target)
 		IEM_usetarget();
 	
-	remove(self);
+	remove(pev);
 };
 
 void() trigger_once_touch = 
@@ -17,45 +17,45 @@ void() trigger_once_touch =
 	if(!(other.flags & FL_CLIENT))
 		return;
 
-	if(self.touched == FALSE)
+	if(pev->touched == FALSE)
 	{
-		if(self.message)
-			centerprint(other, self.message);
+		if(pev->message)
+			centerprint(other, pev->message);
 
-		self.think = trigger_once_think;
-		self.nextthink = time + self.delay;
+		pev->think = trigger_once_think;
+		pev->nextthink = time + pev->delay;
 	}
 };
 
 void() trigger_once_use = 
 {
-	if(self.touched == TRUE)
+	if(pev->touched == TRUE)
 		return;
 
-	self.touched = TRUE;
+	pev->touched = TRUE;
 
-	if(self.message)
+	if(pev->message)
 	{
-		bprint(self.message);
+		bprint(pev->message);
 		dprint("\n");
 	}
 	
-	self.think = trigger_once_think;
-	self.nextthink = time + self.delay;
+	pev->think = trigger_once_think;
+	pev->nextthink = time + pev->delay;
 }
 
 void() trigger_once = 
 {
 	trigger_setup();
 	
-	self.touch = trigger_once_touch;
-	self.use = trigger_once_use;
+	pev->touch = trigger_once_touch;
+	pev->use = trigger_once_use;
 
-	self.classname = "once";	
+	pev->classname = "once";	
 
-	if(!self.delay)
-		self.delay = 0.1;
+	if(!pev->delay)
+		pev->delay = 0.1;
 	
-	if(!self.target)
-		remove(self);	
+	if(!pev->target)
+		remove(pev);	
 };

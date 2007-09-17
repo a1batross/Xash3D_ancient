@@ -18,7 +18,7 @@ void(entity who_died, entity who_killed) ClientObiturary;
 
 void(entity targ, entity attacker) Killed =
 {
-	local entity oself;
+	local entity oldpev;
 
 	if (targ.health < -99)
 		targ.health = -99;		// don't let sbar look bad if a player
@@ -26,10 +26,10 @@ void(entity targ, entity attacker) Killed =
 	targ.takedamage = DAMAGE_NO;
 	targ.touch = SUB_Null;
 
-	oself = self;
-	self = targ; // self must be targ for th_die
-	self.th_die ();
-	self = oself;
+	oldpev = pev;
+	pev = targ; // pev must be targ for th_die
+	pev->th_die ();
+	pev = oldpev;
 	
 	ClientObiturary(targ, attacker);
 };
@@ -69,7 +69,7 @@ This should be the only function that ever reduces health.
 void(entity targ, entity inflictor, entity attacker, float damage) T_Damage=
 {
     local	vector	dir;
-    local	entity	oldself;
+    local	entity	oldpev;
 
     if (!targ.takedamage)
         return;
@@ -86,7 +86,7 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage=
     }
 
 // check for godmode
-    if (targ.flags & FL_GODMODE)
+    if (targ.aiflags & AI_GODMODE)
         return;
 
 // add to the damage total for clients, which will be sent as a single
@@ -112,13 +112,13 @@ void(entity targ, entity inflictor, entity attacker, float damage) T_Damage=
     }
 
 // react to the damage
-    oldself = self;
-    self = targ;
+    oldpev = pev;
+    pev = targ;
 
-    if (self.th_pain)
-        self.th_pain (attacker, damage);
+    if (pev->th_pain)
+        pev->th_pain (attacker, damage);
 
-    self = oldself;
+    pev = oldpev;
 };
 
 
@@ -131,33 +131,33 @@ Can be used for clients or monsters
 */
 void() WaterMove =
 {
-    if (self.movetype == MOVETYPE_NOCLIP)
+    if (pev->movetype == MOVETYPE_NOCLIP)
         return;
-    if (self.health < 0)
+    if (pev->health < 0)
         return;
 
-    if (self.waterlevel != 3)
+    if (pev->waterlevel != 3)
     {
-        self.air_finished = time + 12;
-        self.dmg = 2;
+        pev->air_finished = time + 12;
+        pev->dmg = 2;
     }
-    else if (self.air_finished < time && self.pain_finished < time)
+    else if (pev->air_finished < time && pev->pain_finished < time)
     {   // drown!
-        self.dmg = self.dmg + 2;
-        if (self.dmg > 15)
-            self.dmg = 10;
-        T_Damage (self, world, world, self.dmg);
-        self.pain_finished = time + 1;
+        pev->dmg = pev->dmg + 2;
+        if (pev->dmg > 15)
+            pev->dmg = 10;
+        T_Damage (pev, world, world, pev->dmg);
+        pev->pain_finished = time + 1;
     }
 
-    if (self.watertype == CONTENT_LAVA && self.dmgtime < time)
+    if (pev->watertype == CONTENT_LAVA && pev->dmgtime < time)
     {   // do damage
-        self.dmgtime = time + 0.2;
-        T_Damage (self, world, world, 6*self.waterlevel);
+        pev->dmgtime = time + 0.2;
+        T_Damage (pev, world, world, 6*pev->waterlevel);
     }
-    else if (self.watertype == CONTENT_SLIME && self.dmgtime < time)
+    else if (pev->watertype == CONTENT_SLIME && pev->dmgtime < time)
     {   // do damage
-        self.dmgtime = time + 1;
-        T_Damage (self, world, world, 4*self.waterlevel);
+        pev->dmgtime = time + 1;
+        T_Damage (pev, world, world, 4*pev->waterlevel);
     }
 };

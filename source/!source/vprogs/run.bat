@@ -1,0 +1,1 @@
+qcclib -log -dev 4 -progdefs -debug

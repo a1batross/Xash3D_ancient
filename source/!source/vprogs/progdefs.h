@@ -12,13 +12,14 @@ typedef struct globalvars_s
 	int ofs_parm5[3];
 	int ofs_parm6[3];
 	int ofs_parm7[3];
-	int	self;
+	int	pev;
 	int	other;
 	int	world;
 	float	time;
 	float	frametime;
-	float	force_retouch;
 	string_t	mapname;
+	string_t	startspot;
+	vec3_t	spotoffset;
 	float	deathmatch;
 	float	coop;
 	float	teamplay;
@@ -27,35 +28,19 @@ typedef struct globalvars_s
 	float	total_monsters;
 	float	found_secrets;
 	float	killed_monsters;
-	float	parm1;
-	float	parm2;
-	float	parm3;
-	float	parm4;
-	float	parm5;
-	float	parm6;
-	float	parm7;
-	float	parm8;
-	float	parm9;
-	float	parm10;
-	float	parm11;
-	float	parm12;
-	float	parm13;
-	float	parm14;
-	float	parm15;
-	float	parm16;
 	vec3_t	v_forward;
-	vec3_t	v_up;
 	vec3_t	v_right;
+	vec3_t	v_up;
 	float	trace_allsolid;
 	float	trace_startsolid;
 	float	trace_fraction;
 	vec3_t	trace_endpos;
 	vec3_t	trace_plane_normal;
 	float	trace_plane_dist;
+	float	trace_hitgroup;
+	float	trace_contents;
 	int	trace_ent;
-	float	trace_inopen;
-	float	trace_inwater;
-	int	msg_entity;
+	float	trace_flags;
 	func_t	main;
 	func_t	StartFrame;
 	func_t	EndFrame;
@@ -71,48 +56,61 @@ typedef struct globalvars_s
 
 typedef struct entvars_s
 {
+	string_t	classname;
+	string_t	globalname;
 	float	modelindex;
-	vec3_t	absmin;
-	vec3_t	absmax;
-	float	ltime;
+	vec3_t	origin;
+	vec3_t	angles;
+	vec3_t	velocity;
+	vec3_t	avelocity;
+	vec3_t	post_origin;
+	vec3_t	post_angles;
+	vec3_t	post_velocity;
+	vec3_t	post_avelocity;
+	vec3_t	origin_offset;
+	vec3_t	angles_offset;
+	float	bouncetype;
 	float	movetype;
 	float	solid;
-	vec3_t	origin;
-	vec3_t	oldorigin;
-	vec3_t	velocity;
-	vec3_t	angles;
-	vec3_t	avelocity;
-	vec3_t	punchangle;
-	string_t	classname;
-	string_t	model;
-	float	frame;
-	float	skin;
-	float	body;
-	float	effects;
-	float	sequence;
-	float	renderfx;
+	vec3_t	absmin;
+	vec3_t	absmax;
 	vec3_t	mins;
 	vec3_t	maxs;
 	vec3_t	size;
-	func_t	touch;
+	int	chain;
+	string_t	model;
+	float	frame;
+	float	sequence;
+	float	renderfx;
+	float	effects;
+	float	skin;
+	float	body;
+	string_t	weaponmodel;
+	float	weaponframe;
 	func_t	use;
+	func_t	touch;
 	func_t	think;
 	func_t	blocked;
-	float	nextthink;
+	func_t	activate;
+	func_t	walk;
+	func_t	jump;
+	func_t	duck;
+	float	flags;
+	float	aiflags;
+	float	spawnflags;
 	int	groundentity;
+	float	nextthink;
+	float	takedamage;
 	float	health;
 	float	frags;
 	float	weapon;
-	string_t	weaponmodel;
-	float	weaponframe;
-	float	currentammo;
-	float	ammo_shells;
-	float	ammo_nails;
-	float	ammo_rockets;
-	float	ammo_cells;
 	float	items;
-	float	takedamage;
-	int	chain;
+	string_t	target;
+	string_t	parent;
+	string_t	targetname;
+	int	aiment;
+	int	goalentity;
+	vec3_t	punchangle;
 	float	deadflag;
 	vec3_t	view_ofs;
 	float	button0;
@@ -124,7 +122,6 @@ typedef struct entvars_s
 	float	idealpitch;
 	string_t	netname;
 	int	enemy;
-	float	flags;
 	float	colormap;
 	float	team;
 	float	max_health;
@@ -135,11 +132,6 @@ typedef struct entvars_s
 	float	watertype;
 	float	ideal_yaw;
 	float	yaw_speed;
-	int	aiment;
-	int	goalentity;
-	float	spawnflags;
-	string_t	target;
-	string_t	targetname;
 	float	dmg_take;
 	float	dmg_save;
 	int	dmg_inflictor;
@@ -151,6 +143,15 @@ typedef struct entvars_s
 	string_t	noise1;
 	string_t	noise2;
 	string_t	noise3;
+	float	jumpup;
+	float	jumpdn;
+	int	movetarget;
+	float	mass;
+	float	density;
+	float	gravity;
+	float	dmg;
+	float	dmgtime;
+	float	speed;
 } entvars_t;
 
 //with this the crc isn't needed for fields.
@@ -160,128 +161,159 @@ struct fieldvars_s
 	int type;
 	char *name;
 } fieldvars[] = {
-	{0,	2,	"modelindex"},
-	{1,	3,	"absmin"},
-	{1,	2,	"absmin_x"},
-	{2,	2,	"absmin_y"},
-	{3,	2,	"absmin_z"},
-	{4,	3,	"absmax"},
-	{4,	2,	"absmax_x"},
-	{5,	2,	"absmax_y"},
-	{6,	2,	"absmax_z"},
-	{7,	2,	"ltime"},
-	{8,	2,	"movetype"},
-	{9,	2,	"solid"},
-	{10,	3,	"origin"},
-	{10,	2,	"origin_x"},
-	{11,	2,	"origin_y"},
-	{12,	2,	"origin_z"},
-	{13,	3,	"oldorigin"},
-	{13,	2,	"oldorigin_x"},
-	{14,	2,	"oldorigin_y"},
-	{15,	2,	"oldorigin_z"},
-	{16,	3,	"velocity"},
-	{16,	2,	"velocity_x"},
-	{17,	2,	"velocity_y"},
-	{18,	2,	"velocity_z"},
-	{19,	3,	"angles"},
-	{19,	2,	"angles_x"},
-	{20,	2,	"angles_y"},
-	{21,	2,	"angles_z"},
-	{22,	3,	"avelocity"},
-	{22,	2,	"avelocity_x"},
-	{23,	2,	"avelocity_y"},
-	{24,	2,	"avelocity_z"},
-	{25,	3,	"punchangle"},
-	{25,	2,	"punchangle_x"},
-	{26,	2,	"punchangle_y"},
-	{27,	2,	"punchangle_z"},
-	{28,	1,	"classname"},
-	{29,	1,	"model"},
-	{30,	2,	"frame"},
-	{31,	2,	"skin"},
-	{32,	2,	"body"},
-	{33,	2,	"effects"},
-	{34,	2,	"sequence"},
-	{35,	2,	"renderfx"},
-	{36,	3,	"mins"},
-	{36,	2,	"mins_x"},
-	{37,	2,	"mins_y"},
-	{38,	2,	"mins_z"},
-	{39,	3,	"maxs"},
-	{39,	2,	"maxs_x"},
-	{40,	2,	"maxs_y"},
-	{41,	2,	"maxs_z"},
-	{42,	3,	"size"},
-	{42,	2,	"size_x"},
-	{43,	2,	"size_y"},
-	{44,	2,	"size_z"},
-	{45,	6,	"touch"},
-	{46,	6,	"use"},
-	{47,	6,	"think"},
-	{48,	6,	"blocked"},
-	{49,	2,	"nextthink"},
-	{50,	4,	"groundentity"},
-	{51,	2,	"health"},
-	{52,	2,	"frags"},
-	{53,	2,	"weapon"},
-	{54,	1,	"weaponmodel"},
-	{55,	2,	"weaponframe"},
-	{56,	2,	"currentammo"},
-	{57,	2,	"ammo_shells"},
-	{58,	2,	"ammo_nails"},
-	{59,	2,	"ammo_rockets"},
-	{60,	2,	"ammo_cells"},
-	{61,	2,	"items"},
-	{62,	2,	"takedamage"},
-	{63,	4,	"chain"},
-	{64,	2,	"deadflag"},
-	{65,	3,	"view_ofs"},
-	{65,	2,	"view_ofs_x"},
-	{66,	2,	"view_ofs_y"},
-	{67,	2,	"view_ofs_z"},
-	{68,	2,	"button0"},
-	{69,	2,	"button1"},
-	{70,	2,	"button2"},
-	{71,	2,	"impulse"},
-	{72,	2,	"fixangle"},
-	{73,	3,	"v_angle"},
-	{73,	2,	"v_angle_x"},
-	{74,	2,	"v_angle_y"},
-	{75,	2,	"v_angle_z"},
-	{76,	2,	"idealpitch"},
-	{77,	1,	"netname"},
-	{78,	4,	"enemy"},
-	{79,	2,	"flags"},
-	{80,	2,	"colormap"},
-	{81,	2,	"team"},
-	{82,	2,	"max_health"},
-	{83,	2,	"teleport_time"},
-	{84,	2,	"armortype"},
-	{85,	2,	"armorvalue"},
-	{86,	2,	"waterlevel"},
-	{87,	2,	"watertype"},
-	{88,	2,	"ideal_yaw"},
-	{89,	2,	"yaw_speed"},
-	{90,	4,	"aiment"},
-	{91,	4,	"goalentity"},
-	{92,	2,	"spawnflags"},
-	{93,	1,	"target"},
-	{94,	1,	"targetname"},
-	{95,	2,	"dmg_take"},
-	{96,	2,	"dmg_save"},
-	{97,	4,	"dmg_inflictor"},
-	{98,	4,	"owner"},
-	{99,	3,	"movedir"},
-	{99,	2,	"movedir_x"},
-	{100,	2,	"movedir_y"},
-	{101,	2,	"movedir_z"},
-	{102,	1,	"message"},
-	{103,	2,	"sounds"},
-	{104,	1,	"noise"},
-	{105,	1,	"noise1"},
-	{106,	1,	"noise2"},
-	{107,	1,	"noise3"}
+	{0,	1,	"classname"},
+	{1,	1,	"globalname"},
+	{2,	2,	"modelindex"},
+	{3,	3,	"origin"},
+	{3,	2,	"origin_x"},
+	{4,	2,	"origin_y"},
+	{5,	2,	"origin_z"},
+	{6,	3,	"angles"},
+	{6,	2,	"angles_x"},
+	{7,	2,	"angles_y"},
+	{8,	2,	"angles_z"},
+	{9,	3,	"velocity"},
+	{9,	2,	"velocity_x"},
+	{10,	2,	"velocity_y"},
+	{11,	2,	"velocity_z"},
+	{12,	3,	"avelocity"},
+	{12,	2,	"avelocity_x"},
+	{13,	2,	"avelocity_y"},
+	{14,	2,	"avelocity_z"},
+	{15,	3,	"post_origin"},
+	{15,	2,	"post_origin_x"},
+	{16,	2,	"post_origin_y"},
+	{17,	2,	"post_origin_z"},
+	{18,	3,	"post_angles"},
+	{18,	2,	"post_angles_x"},
+	{19,	2,	"post_angles_y"},
+	{20,	2,	"post_angles_z"},
+	{21,	3,	"post_velocity"},
+	{21,	2,	"post_velocity_x"},
+	{22,	2,	"post_velocity_y"},
+	{23,	2,	"post_velocity_z"},
+	{24,	3,	"post_avelocity"},
+	{24,	2,	"post_avelocity_x"},
+	{25,	2,	"post_avelocity_y"},
+	{26,	2,	"post_avelocity_z"},
+	{27,	3,	"origin_offset"},
+	{27,	2,	"origin_offset_x"},
+	{28,	2,	"origin_offset_y"},
+	{29,	2,	"origin_offset_z"},
+	{30,	3,	"angles_offset"},
+	{30,	2,	"angles_offset_x"},
+	{31,	2,	"angles_offset_y"},
+	{32,	2,	"angles_offset_z"},
+	{33,	2,	"bouncetype"},
+	{34,	2,	"movetype"},
+	{35,	2,	"solid"},
+	{36,	3,	"absmin"},
+	{36,	2,	"absmin_x"},
+	{37,	2,	"absmin_y"},
+	{38,	2,	"absmin_z"},
+	{39,	3,	"absmax"},
+	{39,	2,	"absmax_x"},
+	{40,	2,	"absmax_y"},
+	{41,	2,	"absmax_z"},
+	{42,	3,	"mins"},
+	{42,	2,	"mins_x"},
+	{43,	2,	"mins_y"},
+	{44,	2,	"mins_z"},
+	{45,	3,	"maxs"},
+	{45,	2,	"maxs_x"},
+	{46,	2,	"maxs_y"},
+	{47,	2,	"maxs_z"},
+	{48,	3,	"size"},
+	{48,	2,	"size_x"},
+	{49,	2,	"size_y"},
+	{50,	2,	"size_z"},
+	{51,	4,	"chain"},
+	{52,	1,	"model"},
+	{53,	2,	"frame"},
+	{54,	2,	"sequence"},
+	{55,	2,	"renderfx"},
+	{56,	2,	"effects"},
+	{57,	2,	"skin"},
+	{58,	2,	"body"},
+	{59,	1,	"weaponmodel"},
+	{60,	2,	"weaponframe"},
+	{61,	6,	"use"},
+	{62,	6,	"touch"},
+	{63,	6,	"think"},
+	{64,	6,	"blocked"},
+	{65,	6,	"activate"},
+	{66,	6,	"walk"},
+	{67,	6,	"jump"},
+	{68,	6,	"duck"},
+	{69,	2,	"flags"},
+	{70,	2,	"aiflags"},
+	{71,	2,	"spawnflags"},
+	{72,	4,	"groundentity"},
+	{73,	2,	"nextthink"},
+	{74,	2,	"takedamage"},
+	{75,	2,	"health"},
+	{76,	2,	"frags"},
+	{77,	2,	"weapon"},
+	{78,	2,	"items"},
+	{79,	1,	"target"},
+	{80,	1,	"parent"},
+	{81,	1,	"targetname"},
+	{82,	4,	"aiment"},
+	{83,	4,	"goalentity"},
+	{84,	3,	"punchangle"},
+	{84,	2,	"punchangle_x"},
+	{85,	2,	"punchangle_y"},
+	{86,	2,	"punchangle_z"},
+	{87,	2,	"deadflag"},
+	{88,	3,	"view_ofs"},
+	{88,	2,	"view_ofs_x"},
+	{89,	2,	"view_ofs_y"},
+	{90,	2,	"view_ofs_z"},
+	{91,	2,	"button0"},
+	{92,	2,	"button1"},
+	{93,	2,	"button2"},
+	{94,	2,	"impulse"},
+	{95,	2,	"fixangle"},
+	{96,	3,	"v_angle"},
+	{96,	2,	"v_angle_x"},
+	{97,	2,	"v_angle_y"},
+	{98,	2,	"v_angle_z"},
+	{99,	2,	"idealpitch"},
+	{100,	1,	"netname"},
+	{101,	4,	"enemy"},
+	{102,	2,	"colormap"},
+	{103,	2,	"team"},
+	{104,	2,	"max_health"},
+	{105,	2,	"teleport_time"},
+	{106,	2,	"armortype"},
+	{107,	2,	"armorvalue"},
+	{108,	2,	"waterlevel"},
+	{109,	2,	"watertype"},
+	{110,	2,	"ideal_yaw"},
+	{111,	2,	"yaw_speed"},
+	{112,	2,	"dmg_take"},
+	{113,	2,	"dmg_save"},
+	{114,	4,	"dmg_inflictor"},
+	{115,	4,	"owner"},
+	{116,	3,	"movedir"},
+	{116,	2,	"movedir_x"},
+	{117,	2,	"movedir_y"},
+	{118,	2,	"movedir_z"},
+	{119,	1,	"message"},
+	{120,	2,	"sounds"},
+	{121,	1,	"noise"},
+	{122,	1,	"noise1"},
+	{123,	1,	"noise2"},
+	{124,	1,	"noise3"},
+	{125,	2,	"jumpup"},
+	{126,	2,	"jumpdn"},
+	{127,	4,	"movetarget"},
+	{128,	2,	"mass"},
+	{129,	2,	"density"},
+	{130,	2,	"gravity"},
+	{131,	2,	"dmg"},
+	{132,	2,	"dmgtime"},
+	{133,	2,	"speed"}
 };
 
-#define PROGHEADER_CRC 21645
+#define PROGHEADER_CRC 63599

@@ -208,7 +208,7 @@ void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename,
 		reliable = true;	// intentional fallthrough
 	case MSG_ONE:
 		if(ent == NULL) return;
-		j = NUM_FOR_EDICT(ent);
+		j = PRVM_NUM_FOR_EDICT(ent);
 		if (j < 1 || j > numclients) return;
 		current = svs.clients + (j - 1);
 		numclients = 1; // send to one
@@ -228,7 +228,7 @@ void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename,
 		{
 			area2 = CM_LeafArea (leafnum);
 			cluster = CM_LeafCluster (leafnum);
-			leafnum = CM_PointLeafnum (client->edict->s.origin);
+			leafnum = CM_PointLeafnum (client->edict->priv.sv->s.origin);
 			if (!CM_AreasConnected (area1, area2)) continue;
 			if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7))))) continue;
 		}
@@ -299,7 +299,7 @@ void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int soundindex,
 		MsgWarn("SV_StartSound: timeofs = %f\n", timeofs);
 		timeofs = bound(0, timeofs, 0.255 );
 	}
-	ent = NUM_FOR_EDICT(entity);
+	ent = PRVM_NUM_FOR_EDICT(entity);
 
 	if (channel & 8) // no PHS flag
 	{
@@ -315,7 +315,7 @@ void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int soundindex,
 
 	// the client doesn't know that bmodels have weird origins
 	// the origin can also be explicitly set
-	if ( (entity->svflags & SVF_NOCLIENT) || (entity->solid == SOLID_BSP) || origin )
+	if (entity->progs.sv->solid == SOLID_BSP || !VectorIsNull(origin))
 		flags |= SND_POS;
 
 	// always send the entity number for channel overrides
@@ -327,16 +327,16 @@ void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int soundindex,
 	if (!origin)
 	{
 		origin = origin_v;
-		if (entity->solid == SOLID_BSP)
+		if (entity->progs.sv->solid == SOLID_BSP)
 		{
 			for (i = 0; i < 3; i++)
 			{
-				origin_v[i] = entity->s.origin[i]+0.5*(entity->mins[i]+entity->maxs[i]);
+				origin_v[i] = entity->priv.sv->s.origin[i]+0.5*(entity->progs.sv->mins[i]+entity->progs.sv->maxs[i]);
 			}
 		}
 		else
 		{
-			VectorCopy (entity->s.origin, origin_v);
+			VectorCopy (entity->priv.sv->s.origin, origin_v);
 		}
 	}
 

@@ -106,6 +106,7 @@ void Host_Init (char *funcname, int argc, char **argv)
 	Cmd_Init ();
 	Cvar_Init ();
 	Key_Init ();
+	PRVM_Init();
 
 	// we need to add the early commands twice, because
 	// a basedir or cddir needs to be set before execing

@@ -740,7 +740,6 @@ void ParseBrush (bsp_entity_t *mapent)
 		side = b->original_sides + b->numsides;
 		side->planenum = planenum;
 		side->texinfo = TexinfoForBrushTexture (&mapplanes[planenum], &td, vec3_origin);
-
 		// save the td off in case there is an origin brush and we
 		// have to recalculate the texinfo
 		side_brushtextures[nummapbrushsides] = td;

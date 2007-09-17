@@ -142,5 +142,7 @@ void Key_Init (void);
 void Key_WriteBindings (file_t *f);
 void Key_SetBinding (int keynum, char *binding);
 void Key_ClearStates (void);
+char *Key_KeynumToString (int keynum);
+int Key_StringToKeynum (char *str);
 int Key_GetKey (void);
 

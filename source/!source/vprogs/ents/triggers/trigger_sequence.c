@@ -36,16 +36,16 @@ void() trigger_sequence_think;
 
 void(string seq_a, float seq_b) trigger_sequence_think1 = 
 {
-	self.target = seq_a;
-	self.delay = seq_b;
+	pev->target = seq_a;
+	pev->delay = seq_b;
 
-	if(self.target)
+	if(pev->target)
 		IEM_usetarget();
 	else
-		self.touched = FALSE;
+		pev->touched = FALSE;
 
-	self.think = trigger_sequence_think;
-	self.nextthink = time + self.delay;
+	pev->think = trigger_sequence_think;
+	pev->nextthink = time + pev->delay;
 };
 
 void() trigger_sequence_think = 
@@ -53,99 +53,99 @@ void() trigger_sequence_think =
 	local string a;
 	local float b;
 
-	if(self.touched == FALSE)
+	if(pev->touched == FALSE)
 	{
-		self.oldtarg1 = self.targ1;
-		self.oldtarg2 = self.targ2;
-		self.oldtarg3 = self.targ3;
-		self.oldtarg4 = self.targ4;
-		self.oldtarg5 = self.targ5;
-		self.oldtarg6 = self.targ6;
-		self.oldtarg7 = self.targ7;
-		self.oldtarg8 = self.targ8;
-		self.delay = self.olddelay;
+		pev->oldtarg1 = pev->targ1;
+		pev->oldtarg2 = pev->targ2;
+		pev->oldtarg3 = pev->targ3;
+		pev->oldtarg4 = pev->targ4;
+		pev->oldtarg5 = pev->targ5;
+		pev->oldtarg6 = pev->targ6;
+		pev->oldtarg7 = pev->targ7;
+		pev->oldtarg8 = pev->targ8;
+		pev->delay = pev->olddelay;
 		return;
 	}
 
-	if(self.targ1)
+	if(pev->targ1)
 	{
-		a = self.targ1;
-		b = self.wait1;
+		a = pev->targ1;
+		b = pev->wait1;
 
-		self.targ1 = self.oldtarg1;
+		pev->targ1 = pev->oldtarg1;
 
 		trigger_sequence_think1(a,b);
 			
 		return;
 	}
-	else if(self.targ2)
+	else if(pev->targ2)
 	{
-		a = self.targ2;
-		b = self.wait2;
+		a = pev->targ2;
+		b = pev->wait2;
 
-		self.targ2 = self.oldtarg2;
+		pev->targ2 = pev->oldtarg2;
 		trigger_sequence_think1(a,b);
 		return;
 	}
-	else if(self.targ3)
+	else if(pev->targ3)
 	{
-		a = self.targ3;
-		b = self.wait3;
+		a = pev->targ3;
+		b = pev->wait3;
 
-		self.targ3 = self.oldtarg3;
+		pev->targ3 = pev->oldtarg3;
 		trigger_sequence_think1(a,b);
 		return;
 	}
-	else if(self.targ4)
+	else if(pev->targ4)
 	{
-		a = self.targ4;
-		b = self.wait4;
+		a = pev->targ4;
+		b = pev->wait4;
 
-		self.targ4 = self.oldtarg4;
+		pev->targ4 = pev->oldtarg4;
 		trigger_sequence_think1(a,b);
 		return;
 	}
-	else if(self.targ5)
+	else if(pev->targ5)
 	{
-		a = self.targ5;
-		b = self.wait5;
+		a = pev->targ5;
+		b = pev->wait5;
 
-		self.targ5 = self.oldtarg5;
+		pev->targ5 = pev->oldtarg5;
 		trigger_sequence_think1(a,b);
 		return;
 	}
-	else if(self.targ6)
+	else if(pev->targ6)
 	{
-		a = self.targ6;
-		b = self.wait6;
+		a = pev->targ6;
+		b = pev->wait6;
 
-		self.targ6 = self.oldtarg6;
+		pev->targ6 = pev->oldtarg6;
 		trigger_sequence_think1(a,b);
 		return;
 	}
-	else if(self.targ7)
+	else if(pev->targ7)
 	{
-		a = self.targ7;
-		b = self.wait7;
+		a = pev->targ7;
+		b = pev->wait7;
 
-		self.targ7 = self.oldtarg7;
+		pev->targ7 = pev->oldtarg7;
 		trigger_sequence_think1(a,b);
 		return;
 	}
-	else if(self.targ8)
+	else if(pev->targ8)
 	{
-		a = self.targ8;
-		b = self.wait8;
+		a = pev->targ8;
+		b = pev->wait8;
 
-		self.targ8 = self.oldtarg8;
+		pev->targ8 = pev->oldtarg8;
 		trigger_sequence_think1(a,b);
 		return;
 	}
 	
-	self.touched = FALSE;
+	pev->touched = FALSE;
 	
-	if(self.spawnflags & TRIGGER_ONCE)
-		remove(self);
+	if(pev->spawnflags & TRIGGER_ONCE)
+		remove(pev);
 };
 
 void() trigger_sequence_touch = 
@@ -153,74 +153,74 @@ void() trigger_sequence_touch =
 	if(!(other.flags & FL_CLIENT))
 		return;
 		
-	if(self.spawnflags & TRIGGER_INTTERUPTABLE)
+	if(pev->spawnflags & TRIGGER_INTTERUPTABLE)
 	{
-		if(self.touched == TRUE)
+		if(pev->touched == TRUE)
 		{
-			self.touched = FALSE;	
+			pev->touched = FALSE;	
 			
-			self.delay = self.olddelay;
+			pev->delay = pev->olddelay;
 	
-			self.triggerer = other;
+			pev->triggerer = other;
 			
-			self.think = trigger_sequence_think;
-			self.nextthink = time + self.delay;
+			pev->think = trigger_sequence_think;
+			pev->nextthink = time + pev->delay;
 			
 			return;
 		}
 	}
 
-	if(self.touched == FALSE)
+	if(pev->touched == FALSE)
 	{
-		self.touched = TRUE;	
+		pev->touched = TRUE;	
 
-		if(self.message)
-			centerprint(other, self.message);
+		if(pev->message)
+			centerprint(other, pev->message);
 		
-		self.triggerer = other;
+		pev->triggerer = other;
 		
-		self.think = trigger_sequence_think;
-		self.nextthink = time + self.delay;	
+		pev->think = trigger_sequence_think;
+		pev->nextthink = time + pev->delay;	
 	}
 };
 
 void() trigger_sequence_use = 
 {
-	if(self.spawnflags & TRIGGER_INTTERUPTABLE)
+	if(pev->spawnflags & TRIGGER_INTTERUPTABLE)
 	{
-		if(self.touched == TRUE)
+		if(pev->touched == TRUE)
 		{
-			self.touched = FALSE;	
+			pev->touched = FALSE;	
 			
-			self.delay = self.olddelay;
+			pev->delay = pev->olddelay;
 	
-			self.think = trigger_sequence_think;
-			self.nextthink = time + self.delay;
+			pev->think = trigger_sequence_think;
+			pev->nextthink = time + pev->delay;
 			
 			return;
 		}
 	}
 
-	if(self.touched == TRUE)
+	if(pev->touched == TRUE)
 		return;
 	
-	self.touched = TRUE;
+	pev->touched = TRUE;
 
-	self.think = trigger_sequence_think;
-	self.nextthink = time + self.delay;
+	pev->think = trigger_sequence_think;
+	pev->nextthink = time + pev->delay;
 };
 
 void() trigger_sequence = 
 {
 	trigger_setup();
 	
-	if(!self.delay)
-		self.delay = 0.1;
+	if(!pev->delay)
+		pev->delay = 0.1;
 	
-	self.delay = self.olddelay;
+	pev->delay = pev->olddelay;
 	
-	self.classname = "t_sequence";
+	pev->classname = "t_sequence";
 
-	self.touch = trigger_sequence_touch;
-	self.use = trigger_sequence_use;
+	pev->touch = trigger_sequence_touch;
+	pev->use = trigger_sequence_use;
 };

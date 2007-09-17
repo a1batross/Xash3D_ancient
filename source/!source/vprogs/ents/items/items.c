@@ -23,20 +23,19 @@ It sets up all the required and most basic item parimeters.
 
 void() item_setup = 
 {
-	if(!self.think)				//Items should start after other solids....
+	if(!pev->think)				//Items should start after other solids....
 	{
-		self.think = item_setup;
-		self.nextthink = time + 0.2;
+		pev->think = item_setup;
+		pev->nextthink = time + 0.2;
 		return;
 	}
 	
-	self.oldmodel = self.model;		// so it can be restored on respawn
+	pev->oldmodel = pev->model;		// so it can be restored on respawn
 	
-	self.flags = FL_ITEM;				// make extra wide
-	self.solid = SOLID_TRIGGER;			//Im a TRIGGER!
-	self.movetype = MOVETYPE_TOSS;		//Toss me baby!... erm..
-	self.velocity = '0 0 0';				//Stop me moving!
-	self.origin_z = self.origin_z + 6;		//Raise me a bit off the floor
+	pev->solid = SOLID_TRIGGER;			//Im a TRIGGER!
+	pev->movetype = MOVETYPE_TOSS;		//Toss me baby!... erm..
+	pev->velocity = '0 0 0';				//Stop me moving!
+	pev->origin_z = pev->origin_z + 6;		//Raise me a bit off the floor
 };
 
 /*
@@ -63,9 +62,9 @@ Makes the item pickupable again.
 
 void() item_respawn =
 {
-		setorigin(self, self.origin);
-		self.solid = SOLID_TRIGGER;
-		self.model = self.oldmodel;
+		setorigin(pev, pev->origin);
+		pev->solid = SOLID_TRIGGER;
+		pev->model = pev->oldmodel;
 };
 
 /*
@@ -80,18 +79,18 @@ Stops the item getting picked up for a while, nextthink at bottom of code.
 
 void() item_pickup = 
 {
-		self.solid = SOLID_NOT;
-		self.model = string_null;
+		pev->solid = SOLID_NOT;
+		pev->model = string_null;
 	
 		IEM_usetarget();
 		
-		if(self.spawnflags & ITEM_PICKUP_ONCE)
+		if(pev->spawnflags & ITEM_PICKUP_ONCE)
 			return;
 	
-		self.think = item_respawn;
+		pev->think = item_respawn;
 	
 		if(deathmatch)
-			self.nextthink = time + 20;			//This ideally would be a CVAR
+			pev->nextthink = time + 20;			//This ideally would be a CVAR
 };
 
 

@@ -8,9 +8,9 @@ Currently only trains use this to tell their next stop position;
 
 void() func_path_corner = 
 {
-	if (!self.targetname)
+	if (!pev->targetname)
 		objerror ("monster_movetarget: no targetname");
 		
-	self.solid = SOLID_TRIGGER;
-	setsize (self, '-8 -8 -8', '8 8 8');
+	pev->solid = SOLID_TRIGGER;
+	setsize (pev, '-8 -8 -8', '8 8 8');
 };

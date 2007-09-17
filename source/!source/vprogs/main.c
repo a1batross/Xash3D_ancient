@@ -29,8 +29,8 @@ This function is called to set up new player info.
 
 void() SetNewParms = //Sets up start game parms
 {
-	parm1 = 10;
-	parm2 = 100;
+	pev->items = 10;
+	pev->health = 100;
 };
 
 /*
@@ -46,14 +46,11 @@ loading upon next level.
 
 void() SetChangeParms = //called on changelevel; command 
 {
-	if (self.health <= 0)
+	if (pev->health <= 0)
 	{
 		SetNewParms();
 		return;
 	}
-
-	parm1 = self.items;
-	parm2 = self.health;
 };
 
 /*
@@ -74,9 +71,6 @@ void() GetLevelParms =
 {
 	if (world.model == "maps/start.bsp")
 		SetNewParms ();		// take away all stuff on starting new episode
-
-	self.items = parm1;
-	self.health = parm2;
 };
 
 

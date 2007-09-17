@@ -43,8 +43,8 @@ bool SV_CheckBottom (edict_t *ent)
 	int		x, y;
 	float		mid, bottom;
 	
-	VectorAdd (ent->s.origin, ent->mins, mins);
-	VectorAdd (ent->s.origin, ent->maxs, maxs);
+	VectorAdd (ent->priv.sv->s.origin, ent->progs.sv->mins, mins);
+	VectorAdd (ent->priv.sv->s.origin, ent->progs.sv->maxs, maxs);
 
 	// if all of the points under the corners are solid world, don't bother
 	// with the tougher checks
@@ -113,37 +113,37 @@ void SV_DropToFloor (edict_t *ent)
 	vec3_t		v, dest;
 
 	VectorSet(v, -15,-15,-15);
-	VectorCopy (v, ent->mins);
+	VectorCopy (v, ent->progs.sv->mins);
 	VectorSet(v, 15, 15, 15);
-	VectorCopy (v, ent->maxs);
+	VectorCopy (v, ent->progs.sv->maxs);
 
-	if (ent->model) PF_setmodel (ent, ent->model);
+	if (ent->progs.sv->model) SV_SetModel (ent, PRVM_G_STRING(ent->progs.sv->model));
 
 	// Lazarus:
 	// origin_offset is wrong - absmin and absmax weren't set soon enough.
 	// Fortunately we KNOW what the "offset" is - nada.
-	VectorClear(ent->origin_offset);
+	VectorClear(ent->progs.sv->origin_offset);
 
-	ent->solid = SOLID_BBOX;
-	ent->clipmask |= MASK_MONSTERSOLID;
-	if(!ent->health) ent->health = 20;
-	ent->takedamage = DAMAGE_YES;
+	ent->progs.sv->solid = SOLID_BBOX;
+	ent->priv.sv->clipmask |= MASK_MONSTERSOLID;
+	if(!ent->progs.sv->health) ent->progs.sv->health = 20;
+	ent->progs.sv->takedamage = DAMAGE_YES;
 
-	ent->movetype = MOVETYPE_TOSS;  
+	ent->progs.sv->movetype = MOVETYPE_TOSS;  
 
 	VectorSet(v, 0, 0, -128);
-	VectorAdd (ent->s.origin, v, dest);
+	VectorAdd (ent->priv.sv->s.origin, v, dest);
 
-	tr = SV_Trace (ent->s.origin, ent->mins, ent->maxs, dest, ent, MASK_SOLID);
+	tr = SV_Trace (ent->priv.sv->s.origin, ent->progs.sv->mins, ent->progs.sv->maxs, dest, ent, MASK_SOLID);
 	if (tr.startsolid)
 	{
-		Msg("SV_DropToFloor: %s startsolid at %s\n", ent->classname, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2]);
+		Msg("SV_DropToFloor: %s startsolid at %s\n", PRVM_G_STRING(ent->progs.sv->classname), ent->priv.sv->s.origin[0], ent->priv.sv->s.origin[1], ent->priv.sv->s.origin[2]);
 		SV_FreeEdict (ent);
 		return;
 	}
 	tr.endpos[2] += 1;
-	ent->mins[2] -= 1;
-	VectorCopy (tr.endpos, ent->s.origin);
+	ent->progs.sv->mins[2] -= 1;
+	VectorCopy (tr.endpos, ent->priv.sv->s.origin);
 
 	SV_LinkEdict (ent);
 }
@@ -153,28 +153,24 @@ void SV_CheckGround (edict_t *ent)
 	vec3_t		point;
 	trace_t		trace;
 
-	if(sv.time < ent->gravity_debounce_time)
-		return;
-
-	if (ent->flags & (FL_SWIM|FL_FLY)) return;
-
-	if (ent->velocity[2] > 100)
+	if ((int)ent->progs.sv->aiflags & (AI_SWIM|AI_FLY)) return;
+	if (ent->progs.sv->velocity[2] > 100)
 	{
-		ent->groundentity = NULL;
+		ent->progs.sv->groundentity = 0;
 		return;
 	}
 
 	// if the hull point one-quarter unit down is solid the entity is on ground
-	point[0] = ent->s.origin[0];
-	point[1] = ent->s.origin[1];
-	point[2] = ent->s.origin[2] - 0.25;
+	point[0] = ent->priv.sv->s.origin[0];
+	point[1] = ent->priv.sv->s.origin[1];
+	point[2] = ent->priv.sv->s.origin[2] - 0.25;
 
-	trace = SV_Trace (ent->s.origin, ent->mins, ent->maxs, point, ent, MASK_MONSTERSOLID);
+	trace = SV_Trace (ent->priv.sv->s.origin, ent->progs.sv->mins, ent->progs.sv->maxs, point, ent, MASK_MONSTERSOLID);
 
 	// check steepness
 	if ( trace.plane.normal[2] < 0.7 && !trace.startsolid)
 	{
-		ent->groundentity = NULL;
+		ent->progs.sv->groundentity = 0;
 		return;
 	}
 
@@ -184,14 +180,12 @@ void SV_CheckGround (edict_t *ent)
 	//          dead monster to drop through the brush model. This change *may*
 	//          have other consequences, though, so watch out for this.
 
-	ent->groundentity = trace.ent;
-	ent->groundentity_linkcount = trace.ent->linkcount;
+	ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG(trace.ent);
 	if (!trace.startsolid && !trace.allsolid)
 	{
-		VectorCopy (trace.endpos, ent->s.origin);
-		ent->groundentity = trace.ent;
-		ent->groundentity_linkcount = trace.ent->linkcount;
-		ent->velocity[2] = trace.ent->velocity[2];
+		VectorCopy (trace.endpos, ent->priv.sv->s.origin);
+		ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG(trace.ent);
+		ent->progs.sv->velocity[2] = trace.ent->progs.sv->velocity[2];
 	}
 }
 
@@ -208,31 +202,31 @@ void SV_FallingDamage (edict_t *ent)
 	int	damage;
 	vec3_t	dir;
 
-	if (ent->movetype == MOVETYPE_NOCLIP)
+	if (ent->progs.sv->movetype == MOVETYPE_NOCLIP)
 		return;
 
-	if ((ent->oldvelocity[2] < 0) && (ent->velocity[2] > ent->oldvelocity[2]) && (!ent->groundentity))
+	if ((ent->progs.sv->post_velocity[2] < 0) && (ent->progs.sv->velocity[2] > ent->progs.sv->post_velocity[2]) && (!ent->progs.sv->groundentity))
 	{
-		delta = ent->oldvelocity[2];
+		delta = ent->progs.sv->post_velocity[2];
 	}
 	else
 	{
-		if (!ent->groundentity)
+		if (!ent->progs.sv->groundentity)
 			return;
-		delta = ent->velocity[2] - ent->oldvelocity[2];
+		delta = ent->progs.sv->velocity[2] - ent->progs.sv->post_velocity[2];
 	}
 	delta = delta*delta * 0.0001;
 
 	// never take falling damage if completely underwater
-	if (ent->waterlevel == 3) return;
-	if (ent->waterlevel == 2) delta *= 0.25;
-	if (ent->waterlevel == 1) delta *= 0.5;
+	if (ent->progs.sv->waterlevel == 3) return;
+	if (ent->progs.sv->waterlevel == 2) delta *= 0.25;
+	if (ent->progs.sv->waterlevel == 1) delta *= 0.5;
 
 	if (delta < 1) return;
 
 	if (delta < 15)
 	{
-		ent->s.event = EV_FOOTSTEP;
+		ent->priv.sv->s.event = EV_FOOTSTEP;
 		return;
 	}
 
@@ -246,7 +240,7 @@ void SV_FallingDamage (edict_t *ent)
 		if (damage < 1) damage = 1;
 		VectorSet (dir, 0, 0, 1);
 
-		T_Damage (ent, ge->edicts, ge->edicts, dir, ent->s.origin, vec3_origin, damage, 0, 0, DMG_FALL);
+		T_Damage (ent, prog->edicts, prog->edicts, dir, ent->priv.sv->s.origin, vec3_origin, damage, 0, 0, DMG_FALL);
 	}
 }
 
@@ -282,33 +276,33 @@ bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
 	edict_t		*target;
 
 	// try the move	
-	VectorCopy (ent->s.origin, oldorg);
-	VectorAdd (ent->s.origin, move, neworg);
+	VectorCopy (ent->priv.sv->s.origin, oldorg);
+	VectorAdd (ent->priv.sv->s.origin, move, neworg);
 
-	AngleVectors(ent->s.angles,forward,NULL,up);
-	if(ent->enemy)
-		target = ent->enemy;
-	else if(ent->movetarget)
-		target = ent->movetarget;
+	AngleVectors(ent->priv.sv->s.angles,forward,NULL,up);
+	if(ent->progs.sv->enemy)
+		target = PRVM_PROG_TO_EDICT(ent->progs.sv->enemy);
+	else if(ent->progs.sv->movetarget)
+		target = PRVM_PROG_TO_EDICT(ent->progs.sv->movetarget);
 	else
 		target = NULL;
 
 	// flying monsters don't step up
-	if ( ent->flags & (FL_SWIM | FL_FLY) )
+	if ((int)ent->progs.sv->aiflags & (AI_SWIM | AI_FLY) )
 	{
 		// try one move with vertical motion, then one without
 		for (i = 0; i < 2; i++)
 		{
-			VectorAdd (ent->s.origin, move, neworg);
-			if (i == 0 && ent->enemy)
+			VectorAdd (ent->priv.sv->s.origin, move, neworg);
+			if (i == 0 && ent->progs.sv->enemy)
 			{
-				if (!ent->goalentity)
-					ent->goalentity = ent->enemy;
-				dz = ent->s.origin[2] - ent->goalentity->s.origin[2];
-				if (ent->goalentity->client)
+				if (!ent->progs.sv->goalentity)
+					ent->progs.sv->goalentity = ent->progs.sv->enemy;
+				dz = ent->priv.sv->s.origin[2] - PRVM_PROG_TO_EDICT(ent->progs.sv->goalentity)->priv.sv->s.origin[2];
+				if (PRVM_PROG_TO_EDICT(ent->progs.sv->goalentity)->priv.sv->client)
 				{
 					if (dz > 40) neworg[2] -= 8;
-					if (!((ent->flags & FL_SWIM) && (ent->waterlevel < 2)))
+					if (!(((int)ent->progs.sv->aiflags & AI_SWIM) && (ent->progs.sv->waterlevel < 2)))
 						if (dz < 30) neworg[2] += 8;
 				}
 				else
@@ -319,16 +313,16 @@ bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
 					else neworg[2] += dz;
 				}
 			}
-			trace = SV_Trace (ent->s.origin, ent->mins, ent->maxs, neworg, ent, MASK_MONSTERSOLID);
+			trace = SV_Trace (ent->priv.sv->s.origin, ent->progs.sv->mins, ent->progs.sv->maxs, neworg, ent, MASK_MONSTERSOLID);
 	
 			// fly monsters don't enter water voluntarily
-			if (ent->flags & FL_FLY)
+			if ((int)ent->progs.sv->aiflags & AI_FLY)
 			{
-				if (!ent->waterlevel)
+				if (!ent->progs.sv->waterlevel)
 				{
 					test[0] = trace.endpos[0];
 					test[1] = trace.endpos[1];
-					test[2] = trace.endpos[2] + ent->mins[2] + 1;
+					test[2] = trace.endpos[2] + ent->progs.sv->mins[2] + 1;
 					contents = SV_PointContents(test);
 					if (contents & MASK_WATER)
 						return false;
@@ -336,13 +330,13 @@ bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
 			}
 
 			// swim monsters don't exit water voluntarily
-			if (ent->flags & FL_SWIM)
+			if ((int)ent->progs.sv->aiflags & AI_SWIM)
 			{
-				if (ent->waterlevel < 2)
+				if (ent->progs.sv->waterlevel < 2)
 				{
 					test[0] = trace.endpos[0];
 					test[1] = trace.endpos[1];
-					test[2] = trace.endpos[2] + ent->mins[2] + 1;
+					test[2] = trace.endpos[2] + ent->progs.sv->mins[2] + 1;
 					contents = SV_PointContents(test);
 					if (!(contents & MASK_WATER))
 						return false;
@@ -351,7 +345,7 @@ bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
 
 			if (trace.fraction == 1)
 			{
-				VectorCopy (trace.endpos, ent->s.origin);
+				VectorCopy (trace.endpos, ent->priv.sv->s.origin);
 				if (relink)
 				{
 					SV_LinkEdict(ent);
@@ -360,7 +354,7 @@ bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
 				return true;
 			}
 			
-			if (!ent->enemy)
+			if (!ent->progs.sv->enemy)
 				break;
 		}
 		
@@ -368,7 +362,7 @@ bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
 	}
 
 	// push down from a step height above the wished position
-	if (!(ent->monsterinfo.aiflags & AI_NOSTEP))
+	if (!((int)ent->progs.sv->aiflags & AI_NOSTEP))
 		stepsize = STEPSIZE;
 	else stepsize = 1;
 
@@ -376,25 +370,25 @@ bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
 	VectorCopy (neworg, end);
 	end[2] -= stepsize*2;
 
-	trace = SV_Trace (neworg, ent->mins, ent->maxs, end, ent, MASK_MONSTERSOLID);
+	trace = SV_Trace (neworg, ent->progs.sv->mins, ent->progs.sv->maxs, end, ent, MASK_MONSTERSOLID);
 
 	// Determine whether monster is capable of and/or should jump
 	jump = 0;
-	if((ent->monsterinfo.jump) && !(ent->monsterinfo.aiflags & AI_DUCKED))
+	if((ent->progs.sv->jump) && !((int)ent->progs.sv->aiflags & AI_DUCKED))
 	{
 		// Don't jump if path is blocked by monster or player. Otherwise,
 		// monster might attempt to jump OVER the monster/player, which 
 		// ends up looking a bit goofy. Also don't jump if the monster's
 		// movement isn't deliberate (target=NULL)
-		if(trace.ent && (trace.ent->client || (trace.ent->svflags & SVF_MONSTER)))
+		if(trace.ent && (trace.ent->priv.sv->client || ((int)trace.ent->progs.sv->flags & FL_MONSTER)))
 			canjump = false;
 		else if(target)
 		{
 			// Never jump unless it places monster closer to his goal
 			vec3_t	dir;
-			VectorSubtract(target->s.origin, oldorg, dir);
+			VectorSubtract(target->priv.sv->s.origin, oldorg, dir);
 			d1 = VectorLength(dir);
-			VectorSubtract(target->s.origin, trace.endpos, dir);
+			VectorSubtract(target->priv.sv->s.origin, trace.endpos, dir);
 			d2 = VectorLength(dir);
 			if(d2 < d1)
 				canjump = true;
@@ -407,25 +401,25 @@ bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
 
 	if (trace.allsolid)
 	{
-		if(canjump && (ent->monsterinfo.jumpup > 0))
+		if(canjump && (ent->progs.sv->jumpup > 0))
 		{
-			neworg[2] += ent->monsterinfo.jumpup - stepsize;
-			trace = SV_Trace (neworg, ent->mins, ent->maxs, end, ent, MASK_MONSTERSOLID);
+			neworg[2] += ent->progs.sv->jumpup - stepsize;
+			trace = SV_Trace (neworg, ent->progs.sv->mins, ent->progs.sv->maxs, end, ent, MASK_MONSTERSOLID);
 			if (!trace.allsolid && !trace.startsolid && trace.fraction > 0 && (trace.plane.normal[2] > 0.9))
 			{
-				if(!trace.ent || (!trace.ent->client && !(trace.ent->svflags & SVF_MONSTER) && !(trace.ent->svflags & SVF_DEADMONSTER)))
+				if(!trace.ent || (!trace.ent->priv.sv->client && !((int)trace.ent->progs.sv->flags & FL_MONSTER) && !((int)trace.ent->progs.sv->flags & FL_DEADMONSTER)))
 				{
 					// Good plane to jump on. Make sure monster is more or less facing
 					// the obstacle to avoid cutting-corners jumps
 					trace_t	tr;
 					vec3_t	p2;
 
-					VectorMA(ent->s.origin,1024,forward,p2);
-					tr = SV_Trace(ent->s.origin,ent->mins,ent->maxs,p2,ent,MASK_MONSTERSOLID);
+					VectorMA(ent->priv.sv->s.origin,1024,forward,p2);
+					tr = SV_Trace(ent->priv.sv->s.origin,ent->progs.sv->mins,ent->progs.sv->maxs,p2,ent,MASK_MONSTERSOLID);
 					if(DotProduct(tr.plane.normal,forward) < -0.95)
 					{
 						jump = 1;
-						jumpheight = trace.endpos[2] - ent->s.origin[2];
+						jumpheight = trace.endpos[2] - ent->priv.sv->s.origin[2];
 					}
 					else return false;
 				}
@@ -438,7 +432,7 @@ bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
 	if (trace.startsolid)
 	{
 		neworg[2] -= stepsize;
-		trace = SV_Trace (neworg, ent->mins, ent->maxs, end, ent, MASK_MONSTERSOLID);
+		trace = SV_Trace (neworg, ent->progs.sv->mins, ent->progs.sv->maxs, end, ent, MASK_MONSTERSOLID);
 		if (trace.allsolid || trace.startsolid)
 			return false;
 	}
@@ -446,29 +440,29 @@ bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
 
 	// don't go in to water
 	// Lazarus: misc_actors don't go swimming, but wading is fine
-	if (ent->monsterinfo.aiflags & AI_ACTOR)
+	if ((int)ent->progs.sv->aiflags & AI_ACTOR)
 	{
 		// First check for lava/slime under feet - but only if we're not already in
 		// a liquid
 		test[0] = trace.endpos[0];
 		test[1] = trace.endpos[1];
-		if (ent->waterlevel == 0)
+		if (ent->progs.sv->waterlevel == 0)
 		{
-			test[2] = trace.endpos[2] + ent->mins[2] + 1;	
+			test[2] = trace.endpos[2] + ent->progs.sv->mins[2] + 1;	
 			contents = SV_PointContents(test);
 			if (contents & (CONTENTS_LAVA | CONTENTS_SLIME))
 				return false;
 		}
-		test[2] = trace.endpos[2] + ent->viewheight - 1;
+		test[2] = trace.endpos[2] + ent->progs.sv->view_ofs[2] - 1;	//FIXME
 		contents = SV_PointContents(test);
 		if (contents & MASK_WATER)
 			return false;
 	}
-	else if (ent->waterlevel == 0)
+	else if (ent->progs.sv->waterlevel == 0)
 	{
 		test[0] = trace.endpos[0];
 		test[1] = trace.endpos[1];
-		test[2] = trace.endpos[2] + ent->mins[2] + 1;	
+		test[2] = trace.endpos[2] + ent->progs.sv->mins[2] + 1;	
 		contents = SV_PointContents(test);
 
 		if (contents & MASK_WATER)
@@ -486,34 +480,33 @@ bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
 		vec3_t		laser_start, laser_end;
 		vec3_t		monster_mins, monster_maxs;
 
-		for(i = maxclients->value + 1; i < ge->num_edicts; i++)
+		for(i = maxclients->value + 1; i < prog->num_edicts; i++)
 		{
-			e = EDICT_NUM(i);
-			if(!e->inuse) continue;
-			if(!e->classname) continue;
-			if(strcmp(e->classname, "env_laser")) continue;
-			if(e->svflags & SVF_NOCLIENT) continue;
-			if(!PF_inPVS(ent->s.origin,e->s.origin))
+			e = PRVM_EDICT_NUM(i);
+			if(e->priv.sv->free) continue;
+			if(!PRVM_G_STRING(e->progs.sv->classname)) continue;
+			if(strcmp(PRVM_G_STRING(e->progs.sv->classname), "env_laser")) continue;
+			if(!PF_inpvs(ent->priv.sv->s.origin,e->priv.sv->s.origin))
 				continue;
 			// Check to see if monster is ALREADY in the path of this laser.
 			// If so, allow the move so he can get out.
-			VectorMA(e->s.origin, 2048, e->movedir, laser_end);
-			laser_trace = SV_Trace(e->s.origin,NULL,NULL,laser_end,NULL,CONTENTS_SOLID|CONTENTS_MONSTER);
+			VectorMA(e->priv.sv->s.origin, 2048, e->progs.sv->movedir, laser_end);
+			laser_trace = SV_Trace(e->priv.sv->s.origin,NULL,NULL,laser_end,NULL,CONTENTS_SOLID|CONTENTS_MONSTER);
 			if(laser_trace.ent == ent)
 				continue;
 			VectorCopy(laser_trace.endpos,laser_end);
-			laser_mins[0] = min(e->s.origin[0],laser_end[0]);
-			laser_mins[1] = min(e->s.origin[1],laser_end[1]);
-			laser_mins[2] = min(e->s.origin[2],laser_end[2]);
-			laser_maxs[0] = max(e->s.origin[0],laser_end[0]);
-			laser_maxs[1] = max(e->s.origin[1],laser_end[1]);
-			laser_maxs[2] = max(e->s.origin[2],laser_end[2]);
-			monster_mins[0] = min(oldorg[0],trace.endpos[0]) + ent->mins[0];
-			monster_mins[1] = min(oldorg[1],trace.endpos[1]) + ent->mins[1];
-			monster_mins[2] = min(oldorg[2],trace.endpos[2]) + ent->mins[2];
-			monster_maxs[0] = max(oldorg[0],trace.endpos[0]) + ent->maxs[0];
-			monster_maxs[1] = max(oldorg[1],trace.endpos[1]) + ent->maxs[1];
-			monster_maxs[2] = max(oldorg[2],trace.endpos[2]) + ent->maxs[2];
+			laser_mins[0] = min(e->priv.sv->s.origin[0],laser_end[0]);
+			laser_mins[1] = min(e->priv.sv->s.origin[1],laser_end[1]);
+			laser_mins[2] = min(e->priv.sv->s.origin[2],laser_end[2]);
+			laser_maxs[0] = max(e->priv.sv->s.origin[0],laser_end[0]);
+			laser_maxs[1] = max(e->priv.sv->s.origin[1],laser_end[1]);
+			laser_maxs[2] = max(e->priv.sv->s.origin[2],laser_end[2]);
+			monster_mins[0] = min(oldorg[0],trace.endpos[0]) + ent->progs.sv->mins[0];
+			monster_mins[1] = min(oldorg[1],trace.endpos[1]) + ent->progs.sv->mins[1];
+			monster_mins[2] = min(oldorg[2],trace.endpos[2]) + ent->progs.sv->mins[2];
+			monster_maxs[0] = max(oldorg[0],trace.endpos[0]) + ent->progs.sv->maxs[0];
+			monster_maxs[1] = max(oldorg[1],trace.endpos[1]) + ent->progs.sv->maxs[1];
+			monster_maxs[2] = max(oldorg[2],trace.endpos[2]) + ent->progs.sv->maxs[2];
 			if( monster_maxs[0] < laser_mins[0] ) continue;
 			if( monster_maxs[1] < laser_mins[1] ) continue;
 			if( monster_maxs[2] < laser_mins[2] ) continue;
@@ -524,7 +517,7 @@ bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
 			// monster's total movement intersects laser bounding box.
 			// If laser is parallel to x, y, or z, we definitely
 			// know this move will put monster in path of laser
-			if ( (e->movedir[0] == 1.) || (e->movedir[1] == 1.) || (e->movedir[2] == 1.))
+			if ( (e->progs.sv->movedir[0] == 1.) || (e->progs.sv->movedir[1] == 1.) || (e->progs.sv->movedir[2] == 1.))
 				return false;
 			// Shift psuedo laser towards monster's current position up to
 			// the total distance he's proposing moving.
@@ -534,22 +527,22 @@ bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
 			while(delta < dist+15.875)
 			{
 				if(delta > dist) delta = dist;
-				VectorMA(e->s.origin,    -delta,dir,laser_start);
-				VectorMA(e->s.old_origin,-delta,dir,laser_end);
-				laser_trace = SV_Trace(laser_start,NULL,NULL,laser_end,ge->edicts,CONTENTS_SOLID|CONTENTS_MONSTER);
+				VectorMA(e->priv.sv->s.origin,    -delta,dir,laser_start);
+				VectorMA(e->priv.sv->s.old_origin,-delta,dir,laser_end);
+				laser_trace = SV_Trace(laser_start,NULL,NULL,laser_end,prog->edicts,CONTENTS_SOLID|CONTENTS_MONSTER);
 				if(laser_trace.ent == ent)
 					return false;
 				delta += 16;
 			}
 		}
 	}
-	if ((trace.fraction == 1) && !jump && canjump && (ent->monsterinfo.jumpdn > 0))
+	if ((trace.fraction == 1) && !jump && canjump && (ent->progs.sv->jumpdn > 0))
 	{
-		end[2] = oldorg[2] + move[2] - ent->monsterinfo.jumpdn;
-		trace = SV_Trace (neworg, ent->mins, ent->maxs, end, ent, MASK_MONSTERSOLID | MASK_WATER);
+		end[2] = oldorg[2] + move[2] - ent->progs.sv->jumpdn;
+		trace = SV_Trace (neworg, ent->progs.sv->mins, ent->progs.sv->maxs, end, ent, MASK_MONSTERSOLID | MASK_WATER);
 		if(trace.fraction < 1 && (trace.plane.normal[2] > 0.9) && (trace.contents & MASK_SOLID) && (neworg[2] - 16 > trace.endpos[2]))
 		{
-			if(!trace.ent || (!trace.ent->client && !(trace.ent->svflags & SVF_MONSTER) && !(trace.ent->svflags & SVF_DEADMONSTER)))
+			if(!trace.ent || (!trace.ent->priv.sv->client && !((int)trace.ent->progs.sv->flags & FL_MONSTER) && !((int)trace.ent->progs.sv->flags & FL_DEADMONSTER)))
 				jump = -1;
 		}
 	}
@@ -558,46 +551,46 @@ bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
 	if ((trace.fraction == 1) && !jump)
 	{
 		// if monster had the ground pulled out, go ahead and fall
-		if ( ent->flags & FL_PARTIALGROUND )
+		if ((int)ent->progs.sv->aiflags & AI_PARTIALONGROUND )
 		{
-			VectorAdd (ent->s.origin, move, ent->s.origin);
+			VectorAdd (ent->priv.sv->s.origin, move, ent->priv.sv->s.origin);
 			if (relink)
 			{
 				SV_LinkEdict(ent);
 				SV_TouchTriggers (ent);
 			}
-			ent->groundentity = NULL;
+			ent->progs.sv->groundentity = 0;
 			return true;
 		}
 		return false;		// walked off an edge
 	}
 
 	// check point traces down for dangling corners
-	VectorCopy (trace.endpos, ent->s.origin);
+	VectorCopy (trace.endpos, ent->priv.sv->s.origin);
 
 	if(!jump)
 	{
 		bool	skip = false;
 		// if monster CAN jump down, and a position just a bit forward would be 
 		// a good jump-down spot, allow (briefly) !M_CheckBottom
-		if (canjump && target && (target->s.origin[2] < ent->s.origin[2]) && (ent->monsterinfo.jumpdn > 0))
+		if (canjump && target && (target->priv.sv->s.origin[2] < ent->priv.sv->s.origin[2]) && (ent->progs.sv->jumpdn > 0))
 		{
 			vec3_t		p1, p2;
 			trace_t		tr;
 
 			VectorMA(oldorg,48,forward,p1);
-			tr = SV_Trace(ent->s.origin, ent->mins, ent->maxs, p1, ent, MASK_MONSTERSOLID);
+			tr = SV_Trace(ent->priv.sv->s.origin, ent->progs.sv->mins, ent->progs.sv->maxs, p1, ent, MASK_MONSTERSOLID);
 			if(tr.fraction == 1)
 			{
 				p2[0] = p1[0];
 				p2[1] = p1[1];
-				p2[2] = p1[2] - ent->monsterinfo.jumpdn;
-				tr = SV_Trace(p1,ent->mins,ent->maxs,p2,ent,MASK_MONSTERSOLID | MASK_WATER);
+				p2[2] = p1[2] - ent->progs.sv->jumpdn;
+				tr = SV_Trace(p1,ent->progs.sv->mins,ent->progs.sv->maxs,p2,ent,MASK_MONSTERSOLID | MASK_WATER);
 				if(tr.fraction < 1 && (tr.plane.normal[2] > 0.9) && (tr.contents & MASK_SOLID) && (p1[2] - 16 > tr.endpos[2]))
 				{
-					if(!tr.ent || (!tr.ent->client && !(tr.ent->svflags & SVF_MONSTER) && !(tr.ent->svflags & SVF_DEADMONSTER)))
+					if(!tr.ent || (!tr.ent->priv.sv->client && !((int)tr.ent->progs.sv->flags & FL_MONSTER) && !((int)tr.ent->progs.sv->flags & FL_DEADMONSTER)))
 					{
-						VectorSubtract(target->s.origin, tr.endpos, dir);
+						VectorSubtract(target->priv.sv->s.origin, tr.endpos, dir);
 						d2 = VectorLength(dir);
 						if(d2 < d1)
 							skip = true;
@@ -610,7 +603,7 @@ bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
 		{
 			if (!SV_CheckBottom (ent))
 			{
-				if ( ent->flags & FL_PARTIALGROUND )
+				if ( (int)ent->progs.sv->aiflags & AI_PARTIALONGROUND )
 				{	// entity had floor mostly pulled out from underneath it
 					// and is trying to correct
 					if (relink)
@@ -620,33 +613,32 @@ bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
 					}
 					return true;
 				}
-				VectorCopy (oldorg, ent->s.origin);
+				VectorCopy (oldorg, ent->priv.sv->s.origin);
 				return false;
 			}
 		}
 	}
 
-	if ( ent->flags & FL_PARTIALGROUND )
+	if ((int)ent->progs.sv->aiflags & AI_PARTIALONGROUND )
 	{
-		ent->flags &= ~FL_PARTIALGROUND;
+		(int)ent->progs.sv->aiflags &= ~AI_PARTIALONGROUND;
 	}
-	ent->groundentity = trace.ent;
-	if(trace.ent) ent->groundentity_linkcount = trace.ent->linkcount;
+	ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG(trace.ent);
 
 	// the move is ok
 	if(jump)
 	{
-		VectorScale(move, 10, ent->velocity);
+		VectorScale(move, 10, ent->progs.sv->velocity);
 		if(jump > 0)
 		{
-			ent->monsterinfo.jump(ent);
-			ent->velocity[2] = 2.5*jumpheight + 80;
+//ent->progs.sv->jump(ent);
+			ent->progs.sv->velocity[2] = 2.5*jumpheight + 80;
 		}
 		else
 		{
-			ent->velocity[2] = max(ent->velocity[2],100);
-			if(oldorg[2] - ent->s.origin[2] > 48)
-				ent->s.origin[2] = oldorg[2] + ent->velocity[2]*0.1f;
+			ent->progs.sv->velocity[2] = max(ent->progs.sv->velocity[2],100);
+			if(oldorg[2] - ent->priv.sv->s.origin[2] > 48)
+				ent->priv.sv->s.origin[2] = oldorg[2] + ent->progs.sv->velocity[2]*0.1f;
 		}
 		if(relink)
 		{
@@ -671,7 +663,7 @@ bool SV_WalkMove (edict_t *ent, float yaw, float dist)
 {
 	vec3_t	move;
 	
-	if (!ent->groundentity && !(ent->flags & (FL_FLY|FL_SWIM)))
+	if (!ent->progs.sv->groundentity && !((int)ent->progs.sv->aiflags & (AI_FLY|AI_SWIM)))
 		return false;
 
 	yaw = yaw * M_PI*2 / 360;
@@ -694,29 +686,29 @@ edict_t *SV_TestEntityPosition (edict_t *ent)
 	trace_t		trace;
 	int		mask;
 
-	if (ent->clipmask) mask = ent->clipmask;
+	if (ent->priv.sv->clipmask) mask = ent->priv.sv->clipmask;
 	else mask = MASK_SOLID;
 
-	if(ent->solid == SOLID_BSP)
+	if(ent->progs.sv->solid == SOLID_BSP)
 	{
 		vec3_t	org, mins, maxs;
-		VectorAdd(ent->s.origin, ent->origin_offset, org);
-		VectorSubtract(ent->mins, ent->origin_offset, mins);
-		VectorSubtract(ent->maxs, ent->origin_offset, maxs);
+		VectorAdd(ent->priv.sv->s.origin, ent->progs.sv->origin_offset, org);
+		VectorSubtract(ent->progs.sv->mins, ent->progs.sv->origin_offset, mins);
+		VectorSubtract(ent->progs.sv->maxs, ent->progs.sv->origin_offset, maxs);
 		trace = SV_Trace (org, mins, maxs, org, ent, mask);
 	}
-	else trace = SV_Trace (ent->s.origin, ent->mins, ent->maxs, ent->s.origin, ent, mask);
+	else trace = SV_Trace (ent->priv.sv->s.origin, ent->progs.sv->mins, ent->progs.sv->maxs, ent->priv.sv->s.origin, ent, mask);
 
 	if (trace.startsolid)
 	{
 		// Lazarus - work around for players/monsters standing on dead monsters causing
 		// those monsters to gib when rotating brush models are in the vicinity
-		if ( (ent->svflags & SVF_DEADMONSTER) && (trace.ent->client || (trace.ent->svflags & SVF_MONSTER)))
+		if ( ((int)ent->progs.sv->flags & FL_DEADMONSTER) && (trace.ent->priv.sv->client || ((int)trace.ent->progs.sv->flags & FL_MONSTER)))
 			return NULL;
 
 		// Lazarus - return a bit more useful info than simply "g_edicts"
 		if(trace.ent) return trace.ent;
-		else return ge->edicts;
+		else return prog->edicts;
 	}
 	
 	return NULL;
@@ -729,10 +721,10 @@ SV_CheckVelocity
 */
 void SV_CheckVelocity (edict_t *ent)
 {
-	if(VectorLength(ent->velocity) > sv_maxvelocity->value)
+	if(VectorLength(ent->progs.sv->velocity) > sv_maxvelocity->value)
 	{
-		VectorNormalize(ent->velocity);
-		VectorScale(ent->velocity, sv_maxvelocity->value, ent->velocity);
+		VectorNormalize(ent->progs.sv->velocity);
+		VectorScale(ent->progs.sv->velocity, sv_maxvelocity->value, ent->progs.sv->velocity);
 	}
 }
 
@@ -745,20 +737,23 @@ Runs thinking code for this frame if necessary
 */
 bool SV_RunThink (edict_t *ent)
 {
-	float	thinktime;
+	float thinktime;
 
-	thinktime = ent->nextthink;
-	if(thinktime <= 0) return true;
-
-	if(thinktime > sv.time + 0.001)
+	thinktime = ent->progs.sv->nextthink;
+	if (thinktime <= 0 || thinktime > sv.time + sv.frametime)
 		return true;
-	
-	ent->nextthink = 0;
-	if (!ent->think) 
-		PF_error ("NULL ent->think for %s",ent->classname);
-	ent->think (ent);
 
-	return false;
+	// don't let things stay in the past.
+	// it is possible to start that way by a trigger with a local time.
+	if (thinktime < sv.time) thinktime = sv.time;
+
+	ent->progs.sv->nextthink = 0; //reset thinktime
+	prog->globals.server->time = thinktime;
+	prog->globals.server->pev = PRVM_EDICT_TO_PROG(ent);
+	prog->globals.server->other = PRVM_EDICT_TO_PROG(prog->edicts);
+	PRVM_ExecuteProgram (ent->progs.sv->think, "QC function self.think is missing");
+
+	return !ent->priv.sv->free;
 }
 
 /*
@@ -770,15 +765,44 @@ Two entities have touched, so run their touch functions
 */
 void SV_Impact (edict_t *e1, trace_t *trace)
 {
-	edict_t		*e2;
+	edict_t		*e2 = (edict_t *)trace->ent;
 
-	e2 = trace->ent;
+	PRVM_PUSH_GLOBALS;
 
-	if (e1->touch && e1->solid != SOLID_NOT)
-		e1->touch (e1, e2, &trace->plane, trace->surface);
-	
-	if (e2->touch && e2->solid != SOLID_NOT)
-		e2->touch (e2, e1, NULL, NULL);
+	prog->globals.server->time = sv.time;
+	if (!e1->priv.sv->free && !e2->priv.sv->free && e1->progs.sv->touch && e1->progs.sv->solid != SOLID_NOT)
+	{
+		prog->globals.server->pev = PRVM_EDICT_TO_PROG(e1);
+		prog->globals.server->other = PRVM_EDICT_TO_PROG(e2);
+		prog->globals.server->time = sv.time;
+		prog->globals.server->trace_allsolid = trace->allsolid;
+		prog->globals.server->trace_startsolid = trace->startsolid;
+		prog->globals.server->trace_fraction = trace->fraction;
+		prog->globals.server->trace_contents = trace->contents;
+		VectorCopy (trace->endpos, prog->globals.server->trace_endpos);
+		VectorCopy (trace->plane.normal, prog->globals.server->trace_plane_normal);
+		prog->globals.server->trace_plane_dist =  trace->plane.dist;
+		if (trace->ent) prog->globals.server->trace_ent = PRVM_EDICT_TO_PROG(trace->ent);
+		else prog->globals.server->trace_ent = PRVM_EDICT_TO_PROG(prog->edicts);
+		PRVM_ExecuteProgram (e1->progs.sv->touch, "QC function pev->touch is missing");
+	}
+	if (!e1->priv.sv->free && !e2->priv.sv->free && e2->progs.sv->touch && e2->progs.sv->solid != SOLID_NOT)
+	{
+		prog->globals.server->pev = PRVM_EDICT_TO_PROG(e2);
+		prog->globals.server->other = PRVM_EDICT_TO_PROG(e1);
+		prog->globals.server->time = sv.time;
+		prog->globals.server->trace_allsolid = false;
+		prog->globals.server->trace_startsolid = false;
+		prog->globals.server->trace_fraction = 1;
+		prog->globals.server->trace_contents = trace->contents;
+		VectorCopy (e2->progs.sv->origin, prog->globals.server->trace_endpos);
+		VectorSet (prog->globals.server->trace_plane_normal, 0, 0, 1);
+		prog->globals.server->trace_plane_dist = 0;
+		prog->globals.server->trace_ent = PRVM_EDICT_TO_PROG(e1);
+		PRVM_ExecuteProgram (e2->progs.sv->touch, "QC function pev->touch is missing");
+	}
+
+	PRVM_POP_GLOBALS;
 }
 
 
@@ -845,31 +869,31 @@ retry:
 	numbumps = 4;
 	
 	blocked = 0;
-	VectorCopy (ent->velocity, original_velocity);
-	VectorCopy (ent->velocity, primal_velocity);
+	VectorCopy (ent->progs.sv->velocity, original_velocity);
+	VectorCopy (ent->progs.sv->velocity, primal_velocity);
 	numplanes = 0;
 	
 	time_left = time;
 
-	ent->groundentity = NULL;
+	ent->progs.sv->groundentity = 0;
 	for (bumpcount = 0; bumpcount < numbumps; bumpcount++)
 	{
-		for (i = 0; i < 3; i++) end[i] = ent->s.origin[i] + time_left * ent->velocity[i];
+		for (i = 0; i < 3; i++) end[i] = ent->priv.sv->s.origin[i] + time_left * ent->progs.sv->velocity[i];
 
-		trace = SV_Trace (ent->s.origin, ent->mins, ent->maxs, end, ent, mask);
+		trace = SV_Trace (ent->priv.sv->s.origin, ent->progs.sv->mins, ent->progs.sv->maxs, end, ent, mask);
 
 		if (trace.allsolid)
 		{	
 			// entity is trapped in another solid
-			VectorCopy (vec3_origin, ent->velocity);
+			VectorCopy (vec3_origin, ent->progs.sv->velocity);
 			return 3;
 		}
 
 		if (trace.fraction > 0)
 		{	
 			// actually covered some distance
-			VectorCopy (trace.endpos, ent->s.origin);
-			VectorCopy (ent->velocity, original_velocity);
+			VectorCopy (trace.endpos, ent->priv.sv->s.origin);
+			VectorCopy (ent->progs.sv->velocity, original_velocity);
 			numplanes = 0;
 		}
 
@@ -882,35 +906,35 @@ retry:
 		// try again
 		if (!num_retries && wasonground)
 		{
-			if ((hit->movetype == MOVETYPE_CONVEYOR) && (trace.plane.normal[2] > 0.7))
+			if ((hit->progs.sv->movetype == MOVETYPE_CONVEYOR) && (trace.plane.normal[2] > 0.7))
 			{
 				vec3_t	above;
 
 				VectorCopy(end,above);
 				above[2] += 32;
-				trace = SV_Trace (above, ent->mins, ent->maxs, end, ent, mask);
+				trace = SV_Trace (above, ent->progs.sv->mins, ent->progs.sv->maxs, end, ent, mask);
 				VectorCopy (trace.endpos,end);
 				end[2] += 1;
-				VectorSubtract (end,ent->s.origin,ent->velocity);
-				VectorScale (ent->velocity,1.0/time_left,ent->velocity);
+				VectorSubtract (end,ent->priv.sv->s.origin,ent->progs.sv->velocity);
+				VectorScale (ent->progs.sv->velocity,1.0/time_left,ent->progs.sv->velocity);
 				num_retries++;
 				goto retry;
 			}
 		}
 
 		// if blocked by player AND on a conveyor
-		if (hit && hit->client && onconveyor)
+		if (hit && hit->priv.sv->client && onconveyor)
 		{
 			vec3_t	player_dest;
 			trace_t	ptrace;
 
-			if(ent->mass > hit->mass)
+			if(ent->progs.sv->mass > hit->progs.sv->mass)
 			{
-				VectorMA (hit->s.origin,time_left,ent->velocity,player_dest);
-				ptrace = SV_Trace(hit->s.origin,hit->mins,hit->maxs,player_dest,hit,hit->clipmask);
+				VectorMA (hit->priv.sv->s.origin,time_left,ent->progs.sv->velocity,player_dest);
+				ptrace = SV_Trace(hit->priv.sv->s.origin,hit->progs.sv->mins,hit->progs.sv->maxs,player_dest,hit,hit->priv.sv->clipmask);
 				if(ptrace.fraction == 1.0)
 				{
-					VectorCopy(player_dest,hit->s.origin);
+					VectorCopy(player_dest,hit->priv.sv->s.origin);
 					SV_LinkEdict(hit);
 					goto retry;
 				}
@@ -921,10 +945,9 @@ retry:
 		if (trace.plane.normal[2] > 0.7)
 		{
 			blocked |= 1; // floor
-			if ( hit->solid == SOLID_BSP)
+			if ( hit->progs.sv->solid == SOLID_BSP)
 			{
-				ent->groundentity = hit;
-				ent->groundentity_linkcount = hit->linkcount;
+				ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG(hit);
 			}
 		}
 		if (!trace.plane.normal[2])
@@ -934,8 +957,7 @@ retry:
 
 		// run the impact function
 		SV_Impact (ent, &trace);
-		if (!ent->inuse)
-			break;		// removed by the impact function
+		if (ent->priv.sv->free) break; // removed by the impact function
 
 		
 		time_left -= time_left * trace.fraction;
@@ -944,7 +966,7 @@ retry:
 		if (numplanes >= MAX_CLIP_PLANES)
 		{	
 			// this shouldn't really happen
-			VectorCopy (vec3_origin, ent->velocity);
+			VectorCopy (vec3_origin, ent->progs.sv->velocity);
 			blocked |= 3;
 			return blocked;
 		}
@@ -969,27 +991,27 @@ retry:
 		
 		if (i != numplanes)
 		{	// go along this plane
-			VectorCopy (new_velocity, ent->velocity);
+			VectorCopy (new_velocity, ent->progs.sv->velocity);
 		}
 		else
 		{	// go along the crease
 			if (numplanes != 2)
 			{
 //				gi.dprintf ("clip velocity, numplanes == %i\n",numplanes);
-				VectorCopy (vec3_origin, ent->velocity);
+				VectorCopy (vec3_origin, ent->progs.sv->velocity);
 				blocked |= 7;
 				return blocked;
 			}
 			CrossProduct (planes[0], planes[1], dir);
-			d = DotProduct (dir, ent->velocity);
-			VectorScale (dir, d, ent->velocity);
+			d = DotProduct (dir, ent->progs.sv->velocity);
+			VectorScale (dir, d, ent->progs.sv->velocity);
 		}
 
 		// if original velocity is against the original velocity, stop dead
 		// to avoid tiny occilations in sloping corners
-		if (DotProduct (ent->velocity, primal_velocity) <= 0)
+		if (DotProduct (ent->progs.sv->velocity, primal_velocity) <= 0)
 		{
-			VectorCopy (vec3_origin, ent->velocity);
+			VectorCopy (vec3_origin, ent->progs.sv->velocity);
 			return blocked;
 		}
 	}
@@ -1032,32 +1054,32 @@ int SV_PushableMove (edict_t *ent, float time, int mask)
 retry:
 
 	numbumps = 4;
-	ent->bouncetype = 0;
+	ent->progs.sv->bouncetype = 0;
 	
 	blocked = 0;
-	VectorCopy (ent->velocity, original_velocity);
-	VectorCopy (ent->velocity, primal_velocity);
+	VectorCopy (ent->progs.sv->velocity, original_velocity);
+	VectorCopy (ent->progs.sv->velocity, primal_velocity);
 	numplanes = 0;
 	
 	time_left = time;
 
-	VectorAdd(ent->s.origin,ent->origin_offset,origin);
-	VectorCopy(ent->size,maxs);
+	VectorAdd(ent->priv.sv->s.origin,ent->progs.sv->origin_offset,origin);
+	VectorCopy(ent->progs.sv->size,maxs);
 	VectorScale(maxs,0.5,maxs);
 	VectorNegate(maxs,mins);
 
-	ent->groundentity = NULL;
+	ent->progs.sv->groundentity = 0;
 
 	for (bumpcount=0 ; bumpcount<numbumps ; bumpcount++)
 	{
-		for (i = 0; i < 3; i++) end[i] = origin[i] + time_left * ent->velocity[i];
+		for (i = 0; i < 3; i++) end[i] = origin[i] + time_left * ent->progs.sv->velocity[i];
 
 		trace = SV_Trace (origin, mins, maxs, end, ent, mask);
 
 		if (trace.allsolid)
 		{	
 			// entity is trapped in another solid
-			VectorCopy (vec3_origin, ent->velocity);
+			VectorCopy (vec3_origin, ent->progs.sv->velocity);
 			return 3;
 		}
 
@@ -1065,8 +1087,8 @@ retry:
 		{	
 			// actually covered some distance
 			VectorCopy (trace.endpos, origin);
-			VectorSubtract (origin, ent->origin_offset, ent->s.origin);
-			VectorCopy (ent->velocity, original_velocity);
+			VectorSubtract (origin, ent->progs.sv->origin_offset, ent->priv.sv->s.origin);
+			VectorCopy (ent->progs.sv->velocity, original_velocity);
 			numplanes = 0;
 		}
 
@@ -1079,7 +1101,7 @@ retry:
 		// try again
 		if (!num_retries && wasonground)
 		{
-			if ((hit->movetype == MOVETYPE_CONVEYOR) && (trace.plane.normal[2] > 0.7))
+			if ((hit->progs.sv->movetype == MOVETYPE_CONVEYOR) && (trace.plane.normal[2] > 0.7))
 			{
 				vec3_t	above;
 
@@ -1087,26 +1109,26 @@ retry:
 				above[2] += 32;
 				trace = SV_Trace (above, mins, maxs, end, ent, mask);
 				VectorCopy (trace.endpos,end);
-				VectorSubtract (end,origin,ent->velocity);
-				VectorScale (ent->velocity,1.0/time_left,ent->velocity);
+				VectorSubtract (end,origin,ent->progs.sv->velocity);
+				VectorScale (ent->progs.sv->velocity,1.0/time_left,ent->progs.sv->velocity);
 				num_retries++;
 				goto retry;
 			}
 		}
 
 		// if blocked by player AND on a conveyor
-		if (hit->client && onconveyor)
+		if (hit->priv.sv->client && onconveyor)
 		{
 			vec3_t	player_dest;
 			trace_t	ptrace;
 
-			if(ent->mass > hit->mass)
+			if(ent->progs.sv->mass > hit->progs.sv->mass)
 			{
-				VectorMA (hit->s.origin,time_left,ent->velocity,player_dest);
-				ptrace = SV_Trace(hit->s.origin,hit->mins,hit->maxs,player_dest,hit,hit->clipmask);
+				VectorMA (hit->priv.sv->s.origin,time_left,ent->progs.sv->velocity,player_dest);
+				ptrace = SV_Trace(hit->priv.sv->s.origin,hit->progs.sv->mins,hit->progs.sv->maxs,player_dest,hit,hit->priv.sv->clipmask);
 				if(ptrace.fraction == 1.0)
 				{
-					VectorCopy(player_dest,hit->s.origin);
+					VectorCopy(player_dest,hit->priv.sv->s.origin);
 					SV_LinkEdict(hit);
 					goto retry;
 				}
@@ -1118,13 +1140,12 @@ retry:
 		{
 			// Lazarus: special case - if this ent or the impact ent is
 			//          in water, motion is NOT blocked.
-			if((hit->movetype != MOVETYPE_PUSHABLE) || ((ent->waterlevel==0) && (hit->waterlevel==0)))
+			if((hit->progs.sv->movetype != MOVETYPE_PUSHABLE) || ((ent->progs.sv->waterlevel==0) && (hit->progs.sv->waterlevel==0)))
 			{
 				blocked |= 1;		// floor
-				if ( hit->solid == SOLID_BSP)
+				if ( hit->progs.sv->solid == SOLID_BSP)
 				{
-					ent->groundentity = hit;
-					ent->groundentity_linkcount = hit->linkcount;
+					ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG(hit);
 				}
 			}
 		}
@@ -1135,7 +1156,7 @@ retry:
 
 		// run the impact function
 		SV_Impact (ent, &trace);
-		if (!ent->inuse) break; // removed by the impact function
+		if (ent->priv.sv->free) break; // removed by the impact function
 
 		time_left -= time_left * trace.fraction;
 
@@ -1143,7 +1164,7 @@ retry:
 		if (numplanes >= MAX_CLIP_PLANES)
 		{	
 			// this shouldn't really happen
-			VectorCopy (vec3_origin, ent->velocity);
+			VectorCopy (vec3_origin, ent->progs.sv->velocity);
 			blocked |= 3;
 			return blocked;
 		}
@@ -1156,14 +1177,13 @@ retry:
 		{
 			// DH: experimenting here. 1 is no bounce,
 			// 1.5 bounces like a grenade, 2 is a superball
-			if(ent->bouncetype == 1)
+			if(ent->progs.sv->bouncetype == 1)
 			{
 				ClipVelocity (original_velocity, planes[i], new_velocity, 1.4);
 				// stop small oscillations
 				if (new_velocity[2] < 60)
 				{
-					ent->groundentity = trace.ent;
-					ent->groundentity_linkcount = trace.ent->linkcount;
+					ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG(trace.ent);
 					VectorCopy (vec3_origin, new_velocity);
 				} 
 				else
@@ -1173,9 +1193,9 @@ retry:
 					if(!new_velocity[1]) new_velocity[1] = crandom() * new_velocity[2]/4;
 				}
 			}
-			else if(ent->bouncetype == 2)
+			else if(ent->progs.sv->bouncetype == 2)
 			{
-				VectorCopy(ent->velocity, new_velocity);
+				VectorCopy(ent->progs.sv->velocity, new_velocity);
 			}
 			else
 			{
@@ -1195,28 +1215,28 @@ retry:
 		if (i != numplanes)
 		{	
 			// go along this plane
-			VectorCopy (new_velocity, ent->velocity);
+			VectorCopy (new_velocity, ent->progs.sv->velocity);
 		}
 		else
 		{	// go along the crease
 			if (numplanes != 2)
 			{
-				VectorCopy (vec3_origin, ent->velocity);
+				VectorCopy (vec3_origin, ent->progs.sv->velocity);
 				blocked |= 7;
 				return blocked;
 			}
 			CrossProduct (planes[0], planes[1], dir);
-			d = DotProduct (dir, ent->velocity);
-			VectorScale (dir, d, ent->velocity);
+			d = DotProduct (dir, ent->progs.sv->velocity);
+			VectorScale (dir, d, ent->progs.sv->velocity);
 		}
 
 		// if velocity is against the original velocity, stop dead
 		// to avoid tiny occilations in sloping corners
-		if( !ent->bouncetype )
+		if( !ent->progs.sv->bouncetype )
 		{
-			if (DotProduct (ent->velocity, primal_velocity) <= 0)
+			if (DotProduct (ent->progs.sv->velocity, primal_velocity) <= 0)
 			{
-				VectorCopy (vec3_origin, ent->velocity);
+				VectorCopy (vec3_origin, ent->progs.sv->velocity);
 				return blocked;
 			}
 		}
@@ -1232,8 +1252,7 @@ SV_AddGravity
 */
 void SV_AddGravity (edict_t *ent)
 {
-	if(sv.time > ent->gravity_debounce_time)
-		ent->velocity[2] -= ent->gravity * sv_gravity->value * 0.1;
+	ent->progs.sv->velocity[2] -= ent->progs.sv->gravity * sv_gravity->value * 0.1;
 }
 
 /*
@@ -1263,18 +1282,18 @@ trace_t SV_PushEntity (edict_t *ent, vec3_t push)
 	int		mask;
 	int		num_retries=0;
 
-	VectorCopy (ent->s.origin, start);
+	VectorCopy (ent->priv.sv->s.origin, start);
 	VectorAdd (start, push, end);
 
-	if (ent->clipmask)
-		mask = ent->clipmask;
+	if (ent->priv.sv->clipmask)
+		mask = ent->priv.sv->clipmask;
 	else
 		mask = MASK_SOLID;
 
 retry:
-	trace = SV_Trace (start, ent->mins, ent->maxs, end, ent, mask);
+	trace = SV_Trace (start, ent->progs.sv->mins, ent->progs.sv->maxs, end, ent, mask);
 	
-	VectorCopy (trace.endpos, ent->s.origin);
+	VectorCopy (trace.endpos, ent->priv.sv->s.origin);
 	SV_LinkEdict (ent);
 
 	if (trace.fraction != 1.0)
@@ -1282,10 +1301,10 @@ retry:
 		SV_Impact (ent, &trace);
 
 		// if the pushed entity went away and the pusher is still there
-		if (!trace.ent->inuse && ent->inuse)
+		if (trace.ent->priv.sv->free && !ent->priv.sv->free)
 		{
 			// move the pusher back and try again
-			VectorCopy (start, ent->s.origin);
+			VectorCopy (start, ent->priv.sv->s.origin);
 			SV_LinkEdict (ent);
 			goto retry;
 		}
@@ -1294,29 +1313,29 @@ retry:
 		// try again
 		if (!num_retries && wasonground)
 		{
-			if ((trace.ent->movetype == MOVETYPE_CONVEYOR) && (trace.plane.normal[2] > 0.7) && !trace.startsolid)
+			if ((trace.ent->progs.sv->movetype == MOVETYPE_CONVEYOR) && (trace.plane.normal[2] > 0.7) && !trace.startsolid)
 			{
 				vec3_t	above;
 				VectorCopy(end,above);
 				above[2] += 32;
-				trace = SV_Trace (above, ent->mins, ent->maxs, end, ent, mask);
+				trace = SV_Trace (above, ent->progs.sv->mins, ent->progs.sv->maxs, end, ent, mask);
 				VectorCopy (trace.endpos, end);
-				VectorCopy (start, ent->s.origin);
+				VectorCopy (start, ent->priv.sv->s.origin);
 				SV_LinkEdict(ent);
 				num_retries++;
 				goto retry;
 			}
 		}
-		if(onconveyor && !trace.ent->client)
+		if(onconveyor && !trace.ent->priv.sv->client)
 		{
 			// If blocker can be damaged, destroy it. Otherwise destroy blockee.
-			if(trace.ent->takedamage == DAMAGE_YES)
-				T_Damage(trace.ent, ent, ent, vec3_origin, trace.ent->s.origin, vec3_origin, 100000, 1, 0, DMG_CRUSH);
-			else T_Damage(ent, trace.ent, trace.ent, vec3_origin, ent->s.origin, vec3_origin, 100000, 1, 0, DMG_CRUSH);
+			if(trace.ent->progs.sv->takedamage == DAMAGE_YES)
+				T_Damage(trace.ent, ent, ent, vec3_origin, trace.ent->priv.sv->s.origin, vec3_origin, 100000, 1, 0, DMG_CRUSH);
+			else T_Damage(ent, trace.ent, trace.ent, vec3_origin, ent->priv.sv->s.origin, vec3_origin, 100000, 1, 0, DMG_CRUSH);
 		}
 
 	}
-	if (ent->inuse) SV_TouchTriggers (ent);
+	if (!ent->priv.sv->free) SV_TouchTriggers (ent);
 
 	return trace;
 }					
@@ -1338,20 +1357,20 @@ void MoveRiders_r(edict_t *platform, edict_t *ignore, vec3_t move, vec3_t amove,
 	int		i;
 	edict_t		*rider;
 
-	for(i = 1, rider = EDICT_NUM(i); i <= ge->num_edicts; i++, rider = EDICT_NUM(i))
+	for(i = 1, rider = PRVM_EDICT_NUM(i); i <= prog->num_edicts; i++, rider = PRVM_EDICT_NUM(i))
 	{
-		if((rider->groundentity == platform) && (rider != ignore))
+		if((rider->progs.sv->groundentity == PRVM_EDICT_TO_PROG(platform)) && (rider != ignore))
 		{
-			VectorAdd(rider->s.origin, move, rider->s.origin);
+			VectorAdd(rider->priv.sv->s.origin, move, rider->priv.sv->s.origin);
 			if (turn && (amove[YAW] != 0.))
 			{
-				if(!rider->client) rider->s.angles[YAW] += amove[YAW];
+				if(!rider->priv.sv->client) rider->priv.sv->s.angles[YAW] += amove[YAW];
 				else
 				{
-					rider->s.angles[YAW] += amove[YAW];
-					rider->client->ps.pmove.delta_angles[YAW] += ANGLE2SHORT(amove[YAW]);
-					rider->client->ps.pmove.pm_type = PM_FREEZE;
-					rider->client->ps.pmove.pm_flags |= PMF_NO_PREDICTION;
+					rider->priv.sv->s.angles[YAW] += amove[YAW];
+					rider->priv.sv->client->ps.pmove.delta_angles[YAW] += ANGLE2SHORT(amove[YAW]);
+					rider->priv.sv->client->ps.pmove.pm_type = PM_FREEZE;
+					rider->priv.sv->client->ps.pmove.pm_flags |= PMF_NO_PREDICTION;
 				}
 			}
 			SV_LinkEdict(rider);
@@ -1360,14 +1379,14 @@ void MoveRiders_r(edict_t *platform, edict_t *ignore, vec3_t move, vec3_t amove,
 			{
 				// Move is blocked. Since this is for riders, not pushees,
 				// it should be ok to just back the move for this rider off
-				VectorSubtract(rider->s.origin,move,rider->s.origin);
+				VectorSubtract(rider->priv.sv->s.origin,move,rider->priv.sv->s.origin);
 				if(turn && (amove[YAW] != 0.))
 				{
-					rider->s.angles[YAW] -= amove[YAW];
-					if(rider->client)
+					rider->priv.sv->s.angles[YAW] -= amove[YAW];
+					if(rider->priv.sv->client)
 					{
-						rider->client->ps.pmove.delta_angles[YAW] -= ANGLE2SHORT(amove[YAW]);
-						rider->client->ps.viewangles[YAW] -= amove[YAW];
+						rider->priv.sv->client->ps.pmove.delta_angles[YAW] -= ANGLE2SHORT(amove[YAW]);
+						rider->priv.sv->client->ps.viewangles[YAW] -= amove[YAW];
 					}
 				}
 				SV_LinkEdict(rider);
@@ -1401,8 +1420,8 @@ void RealBoundingBox(edict_t *ent, vec3_t mins, vec3_t maxs)
 	for(k = 0; k < 2; k++)
 	{
 		k4 = k * 4;
-		if(k) p[k4][2] = ent->maxs[2];
-		else p[k4][2] = ent->mins[2];
+		if(k) p[k4][2] = ent->progs.sv->maxs[2];
+		else p[k4][2] = ent->progs.sv->mins[2];
 
 		p[k4 + 1][2] = p[k4][2];
 		p[k4 + 2][2] = p[k4][2];
@@ -1411,26 +1430,26 @@ void RealBoundingBox(edict_t *ent, vec3_t mins, vec3_t maxs)
 		for(j = 0; j < 2; j++)
 		{
 			j2 = j * 2;
-			if(j) p[j2+k4][1] = ent->maxs[1];
-			else p[j2+k4][1] = ent->mins[1];
+			if(j) p[j2+k4][1] = ent->progs.sv->maxs[1];
+			else p[j2+k4][1] = ent->progs.sv->mins[1];
 			p[j2 + k4 + 1][1] = p[j2 + k4][1];
 
 			for(i = 0; i < 2; i++)
 			{
-				if(i) p[i + j2 + k4][0] = ent->maxs[0];
-				else p[i + j2 + k4][0] = ent->mins[0];
+				if(i) p[i + j2 + k4][0] = ent->progs.sv->maxs[0];
+				else p[i + j2 + k4][0] = ent->progs.sv->mins[0];
 			}
 		}
 	}
 
-	AngleVectors(ent->s.angles, forward, left, up);
+	AngleVectors(ent->priv.sv->s.angles, forward, left, up);
 
 	for(i = 0; i < 8; i++)
 	{
 		VectorScale(forward, p[i][0], f1);
 		VectorScale(left, -p[i][1], l1);
 		VectorScale(up, p[i][2], u1);
-		VectorAdd(ent->s.origin, f1, p[i]);
+		VectorAdd(ent->priv.sv->s.origin, f1, p[i]);
 		VectorAdd(p[i], l1, p[i]);
 		VectorAdd(p[i], u1, p[i]);
 	}
@@ -1484,8 +1503,8 @@ bool SV_Push (edict_t *pusher, vec3_t move, vec3_t amove)
 	// find the bounding box
 	for (i = 0; i < 3; i++)
 	{
-		mins[i] = pusher->absmin[i] + move[i];
-		maxs[i] = pusher->absmax[i] + move[i];
+		mins[i] = pusher->progs.sv->absmin[i] + move[i];
+		maxs[i] = pusher->progs.sv->absmax[i] + move[i];
 	}
 
 	// we need this for pushing things later
@@ -1494,14 +1513,14 @@ bool SV_Push (edict_t *pusher, vec3_t move, vec3_t amove)
 
 	// save the pusher's original position
 	pushed_p->ent = pusher;
-	VectorCopy (pusher->s.origin, pushed_p->origin);
-	VectorCopy (pusher->s.angles, pushed_p->angles);
-	if (pusher->client) pushed_p->deltayaw = pusher->client->ps.pmove.delta_angles[YAW];
+	VectorCopy (pusher->priv.sv->s.origin, pushed_p->origin);
+	VectorCopy (pusher->priv.sv->s.angles, pushed_p->angles);
+	if (pusher->priv.sv->client) pushed_p->deltayaw = pusher->priv.sv->client->ps.pmove.delta_angles[YAW];
 	pushed_p++;
 
 	// move the pusher to it's final position
-	VectorAdd (pusher->s.origin, move, pusher->s.origin);
-	VectorAdd (pusher->s.angles, amove, pusher->s.angles);
+	VectorAdd (pusher->priv.sv->s.origin, move, pusher->priv.sv->s.origin);
+	VectorAdd (pusher->priv.sv->s.angles, amove, pusher->priv.sv->s.angles);
 	SV_LinkEdict (pusher);
 
 	// Lazarus: Standard Q2 takes a horrible shortcut
@@ -1517,28 +1536,28 @@ bool SV_Push (edict_t *pusher, vec3_t move, vec3_t amove)
 	RealBoundingBox(pusher,realmins,realmaxs);
 
 	// see if any solid entities are inside the final position
-	check = EDICT_NUM( 1 );
+	check = PRVM_EDICT_NUM( 1 );
 
-	for (e = 1; e < ge->num_edicts; e++, check = EDICT_NUM(e))
+	for (e = 1; e < prog->num_edicts; e++, check = PRVM_EDICT_NUM(e))
 	{
-		if (!check->inuse) continue;
-		if (check == pusher->owner) continue;
-		if (check->movetype == MOVETYPE_PUSH || check->movetype == MOVETYPE_NONE || check->movetype == MOVETYPE_NOCLIP)
+		if (check->priv.sv->free) continue;
+		if (check == PRVM_PROG_TO_EDICT(pusher->progs.sv->owner)) continue;
+		if (check->progs.sv->movetype == MOVETYPE_PUSH || check->progs.sv->movetype == MOVETYPE_NONE || check->progs.sv->movetype == MOVETYPE_NOCLIP)
 			continue;
 
-		if (!check->area.prev)
+		if (!check->priv.sv->area.prev)
 			continue;		// not linked in anywhere
 
 		// if the entity is standing on the pusher, it will definitely be moved
-		if (check->groundentity != pusher)
+		if (check->progs.sv->groundentity != PRVM_EDICT_TO_PROG(pusher))
 		{
 			// see if the ent needs to be tested
-			if ( check->absmin[0] >= realmaxs[0]
-			|| check->absmin[1] >= realmaxs[1]
-			|| check->absmin[2] >= realmaxs[2]
-			|| check->absmax[0] <= realmins[0]
-			|| check->absmax[1] <= realmins[1]
-			|| check->absmax[2] <= realmins[2] )
+			if ( check->progs.sv->absmin[0] >= realmaxs[0]
+			|| check->progs.sv->absmin[1] >= realmaxs[1]
+			|| check->progs.sv->absmin[2] >= realmaxs[2]
+			|| check->progs.sv->absmax[0] <= realmins[0]
+			|| check->progs.sv->absmax[1] <= realmins[1]
+			|| check->progs.sv->absmax[2] <= realmins[2] )
 				continue;
 
 			// see if the ent's bbox is inside the pusher's final position
@@ -1549,112 +1568,112 @@ bool SV_Push (edict_t *pusher, vec3_t move, vec3_t amove)
 		// Lazarus: func_tracktrain-specific stuff
 		// If train is *driven*, then hurt monsters/players it touches NOW
 		// rather than waiting to be blocked.
-		if ((pusher->flags & FL_TRACKTRAIN) && pusher->owner && ((check->svflags & SVF_MONSTER) || check->client) && (check->groundentity != pusher))
+		if (((int)pusher->progs.sv->flags & FL_TRACKTRAIN) && pusher->progs.sv->owner && (((int)check->progs.sv->flags & FL_MONSTER) || check->priv.sv->client) && (check->progs.sv->groundentity != PRVM_EDICT_TO_PROG(pusher)))
 		{
 			vec3_t	dir;
-			VectorSubtract(check->s.origin,pusher->s.origin,dir);
+			VectorSubtract(check->priv.sv->s.origin,pusher->priv.sv->s.origin,dir);
 			dir[2] += 16;
 			VectorNormalize(dir);
-			T_Damage (check, pusher, pusher, dir, check->s.origin, vec3_origin, pusher->dmg, 1, 0, DMG_CRUSH);
+			T_Damage (check, pusher, pusher, dir, check->priv.sv->s.origin, vec3_origin, pusher->progs.sv->dmg, 1, 0, DMG_CRUSH);
 		}
 
-		if ((pusher->movetype == MOVETYPE_PUSH) || (pusher->movetype == MOVETYPE_PENDULUM) || (check->groundentity == pusher))
+		if ((pusher->progs.sv->movetype == MOVETYPE_PUSH) || (pusher->progs.sv->movetype == MOVETYPE_PENDULUM) || (check->progs.sv->groundentity == PRVM_EDICT_TO_PROG(pusher)))
 		{
 			// move this entity
 			pushed_p->ent = check;
-			VectorCopy (check->s.origin, pushed_p->origin);
-			VectorCopy (check->s.angles, pushed_p->angles);
+			VectorCopy (check->priv.sv->s.origin, pushed_p->origin);
+			VectorCopy (check->priv.sv->s.angles, pushed_p->angles);
 			pushed_p++;
 
 			// try moving the contacted entity 
-			VectorAdd (check->s.origin, move, check->s.origin);
+			VectorAdd (check->priv.sv->s.origin, move, check->priv.sv->s.origin);
 			// Lazarus: if turn_rider is set, do it. We don't do this by default
 			//          'cause it can be a fairly drastic change in gameplay
-			if (turn && (check->groundentity == pusher))
+			if (turn && (check->progs.sv->groundentity == PRVM_EDICT_TO_PROG(pusher)))
 			{
-				if(!check->client)
+				if(!check->priv.sv->client)
 				{
-					check->s.angles[YAW] += amove[YAW];
+					check->priv.sv->s.angles[YAW] += amove[YAW];
 				}
 				else
 				{
 					if(amove[YAW] != 0.)
 					{
-						check->client->ps.pmove.delta_angles[YAW] += ANGLE2SHORT(amove[YAW]);
-						check->client->ps.viewangles[YAW] += amove[YAW];
+						check->priv.sv->client->ps.pmove.delta_angles[YAW] += ANGLE2SHORT(amove[YAW]);
+						check->priv.sv->client->ps.viewangles[YAW] += amove[YAW];
 
 						// PM_FREEZE makes the turn smooth, even though it will
 						// be turned off by ClientThink in the very next video frame
-						check->client->ps.pmove.pm_type = PM_FREEZE;
+						check->priv.sv->client->ps.pmove.pm_type = PM_FREEZE;
 						// PMF_NO_PREDICTION overrides .exe's client physics, which
 						// really doesn't like for us to change player angles. Note
 						// that this isn't strictly necessary, since Lazarus 1.7 and
 						// later automatically turn prediction off (in ClientThink) when 
 						// player is riding a MOVETYPE_PUSH
-						check->client->ps.pmove.pm_flags |= PMF_NO_PREDICTION;
+						check->priv.sv->client->ps.pmove.pm_flags |= PMF_NO_PREDICTION;
 					}
 					if(amove[PITCH] != 0.)
 					{
 						float	delta_yaw;
 						float	pitch = amove[PITCH];
 
-						delta_yaw = check->s.angles[YAW] - pusher->s.angles[YAW];
+						delta_yaw = check->priv.sv->s.angles[YAW] - pusher->priv.sv->s.angles[YAW];
 						delta_yaw *= M_PI / 180.;
 						pitch *= cos(delta_yaw);
-						check->client->ps.pmove.delta_angles[PITCH] += ANGLE2SHORT(pitch);
-						check->client->ps.viewangles[PITCH] += pitch;
-						check->client->ps.pmove.pm_type = PM_FREEZE;
-						check->client->ps.pmove.pm_flags |= PMF_NO_PREDICTION;
+						check->priv.sv->client->ps.pmove.delta_angles[PITCH] += ANGLE2SHORT(pitch);
+						check->priv.sv->client->ps.viewangles[PITCH] += pitch;
+						check->priv.sv->client->ps.pmove.pm_type = PM_FREEZE;
+						check->priv.sv->client->ps.pmove.pm_flags |= PMF_NO_PREDICTION;
 					}
 				}
 			}
 
 			// Lazarus: This is where we attempt to move check due to a rotation, WITHOUT embedding
 			//          check in pusher (or anything else)
-			if(check->groundentity == pusher)
+			if(check->progs.sv->groundentity == PRVM_EDICT_TO_PROG(pusher))
 			{
 				if((amove[PITCH] != 0) || (amove[YAW] != 0) || (amove[ROLL] != 0))
 				{
 					// figure movement due to the pusher's amove
-					VectorAdd(check->s.origin,check->origin_offset,org_check);
-					VectorSubtract (org_check, pusher->s.origin, org);
+					VectorAdd(check->priv.sv->s.origin,check->progs.sv->origin_offset,org_check);
+					VectorSubtract (org_check, pusher->priv.sv->s.origin, org);
 					org2[0] = DotProduct (org, forward);
 					org2[1] = -DotProduct (org, right);
 					org2[2] = DotProduct (org, up);
 					VectorSubtract (org2, org, move2);
-					VectorAdd (check->s.origin, move2, check->s.origin);
+					VectorAdd (check->priv.sv->s.origin, move2, check->priv.sv->s.origin);
 					if((amove[PITCH] != 0) || (amove[ROLL] != 0))
 					{
-						VectorCopy(check->s.origin,org);
-						org[2] += 2*check->mins[2];
-						tr = SV_Trace(check->s.origin,vec3_origin,vec3_origin,org,check,MASK_SOLID);
+						VectorCopy(check->priv.sv->s.origin,org);
+						org[2] += 2*check->progs.sv->mins[2];
+						tr = SV_Trace(check->priv.sv->s.origin,vec3_origin,vec3_origin,org,check,MASK_SOLID);
 						if(!tr.startsolid && tr.fraction < 1)
-							check->s.origin[2] = tr.endpos[2] - check->mins[2] + fabs(tr.plane.normal[0])*check->size[0]/2 + fabs(tr.plane.normal[1])*check->size[1]/2;
+							check->priv.sv->s.origin[2] = tr.endpos[2] - check->progs.sv->mins[2] + fabs(tr.plane.normal[0])*check->progs.sv->size[0]/2 + fabs(tr.plane.normal[1])*check->progs.sv->size[1]/2;
 						
 						// Lazarus: func_tracktrain is a special case. Since we KNOW (if the map was
-						//          constructed properly) that "move_origin" is a safe position, we
+						//          constructed properly) that "post_origin" is a safe position, we
 						//          can infer that there should be a safe (not embedded) position
-						//          somewhere between move_origin and the proposed new location.
-						if((pusher->flags & FL_TRACKTRAIN) && (check->client || (check->svflags & SVF_MONSTER)))
+						//          somewhere between post_origin and the proposed new location.
+						if(((int)pusher->progs.sv->flags & FL_TRACKTRAIN) && (check->priv.sv->client || ((int)check->progs.sv->flags & FL_MONSTER)))
 						{
 							vec3_t	f,l,u;
 							
-							AngleVectors(pusher->s.angles, f, l, u);
-							VectorScale(f,pusher->move_origin[0],f);
-							VectorScale(l,-pusher->move_origin[1],l);
-							VectorAdd(pusher->s.origin,f,org);
+							AngleVectors(pusher->priv.sv->s.angles, f, l, u);
+							VectorScale(f,pusher->progs.sv->post_origin[0],f);
+							VectorScale(l,-pusher->progs.sv->post_origin[1],l);
+							VectorAdd(pusher->priv.sv->s.origin,f,org);
 							VectorAdd(org,l,org);
-							org[2] += pusher->move_origin[2] + 1;
+							org[2] += pusher->progs.sv->post_origin[2] + 1;
 							org[2] += 16 * ( fabs(u[0]) + fabs(u[1]) );
-							tr = SV_Trace(org,check->mins,check->maxs,check->s.origin,check,MASK_SOLID);
+							tr = SV_Trace(org,check->progs.sv->mins,check->progs.sv->maxs,check->priv.sv->s.origin,check,MASK_SOLID);
 							if(!tr.startsolid)
 							{
-								VectorCopy(tr.endpos,check->s.origin);
-								VectorCopy(check->s.origin,org);
+								VectorCopy(tr.endpos,check->priv.sv->s.origin);
+								VectorCopy(check->priv.sv->s.origin,org);
 								org[2] -= 128;
-								tr = SV_Trace(check->s.origin,check->mins,check->maxs,org,check,MASK_SOLID);
+								tr = SV_Trace(check->priv.sv->s.origin,check->progs.sv->mins,check->progs.sv->maxs,org,check,MASK_SOLID);
 								if(tr.fraction > 0)
-									VectorCopy(tr.endpos,check->s.origin);
+									VectorCopy(tr.endpos,check->priv.sv->s.origin);
 							}
 						}
 					}
@@ -1662,32 +1681,32 @@ bool SV_Push (edict_t *pusher, vec3_t move, vec3_t amove)
 			}
 			
 			// may have pushed them off an edge
-			if (check->groundentity != pusher) check->groundentity = NULL;
+			if (check->progs.sv->groundentity != PRVM_EDICT_TO_PROG(pusher)) check->progs.sv->groundentity = 0;
 
 			block = SV_TestEntityPosition (check);
 
-			if (block && (pusher->flags & FL_TRACKTRAIN) && (check->client || (check->svflags & SVF_MONSTER)) && (check->groundentity == pusher) )
+			if (block && ((int)pusher->progs.sv->flags & FL_TRACKTRAIN) && (check->priv.sv->client || ((int)check->progs.sv->flags & FL_MONSTER)) && (check->progs.sv->groundentity == PRVM_EDICT_TO_PROG(pusher)))
 			{
 				// Lazarus: Last hope. If this doesn't get rider out of the way he's
 				// gonna be stuck.
 				vec3_t	f,l,u;
 
-				AngleVectors(pusher->s.angles, f, l, u);
-				VectorScale(f,pusher->move_origin[0],f);
-				VectorScale(l,-pusher->move_origin[1],l);
-				VectorAdd(pusher->s.origin,f,org);
+				AngleVectors(pusher->priv.sv->s.angles, f, l, u);
+				VectorScale(f,pusher->progs.sv->post_origin[0],f);
+				VectorScale(l,-pusher->progs.sv->post_origin[1],l);
+				VectorAdd(pusher->priv.sv->s.origin,f,org);
 				VectorAdd(org,l,org);
-				org[2] += pusher->move_origin[2] + 1;
+				org[2] += pusher->progs.sv->post_origin[2] + 1;
 				org[2] += 16 * ( fabs(u[0]) + fabs(u[1]) );
-				tr = SV_Trace(org,check->mins,check->maxs,check->s.origin,check,MASK_SOLID);
+				tr = SV_Trace(org,check->progs.sv->mins,check->progs.sv->maxs,check->priv.sv->s.origin,check,MASK_SOLID);
 				if(!tr.startsolid)
 				{
-					VectorCopy(tr.endpos,check->s.origin);
-					VectorCopy(check->s.origin,org);
+					VectorCopy(tr.endpos,check->priv.sv->s.origin);
+					VectorCopy(check->priv.sv->s.origin,org);
 					org[2] -= 128;
-					tr = SV_Trace(check->s.origin,check->mins,check->maxs,org,check,MASK_SOLID);
+					tr = SV_Trace(check->priv.sv->s.origin,check->progs.sv->mins,check->progs.sv->maxs,org,check,MASK_SOLID);
 					if(tr.fraction > 0)
-						VectorCopy(tr.endpos,check->s.origin);
+						VectorCopy(tr.endpos,check->priv.sv->s.origin);
 					block = SV_TestEntityPosition (check);
 				}
 			}
@@ -1703,16 +1722,16 @@ bool SV_Push (edict_t *pusher, vec3_t move, vec3_t amove)
 
 			// if it is ok to leave in the old position, do it
 			// this is only relevent for riding entities, not pushed
-			VectorSubtract (check->s.origin, move,  check->s.origin);
-			VectorSubtract (check->s.origin, move2, check->s.origin);
+			VectorSubtract (check->priv.sv->s.origin, move,  check->priv.sv->s.origin);
+			VectorSubtract (check->priv.sv->s.origin, move2, check->priv.sv->s.origin);
 			if(turn)
 			{
 				// Argh! - angle
-				check->s.angles[YAW] -= amove[YAW];
-				if(check->client)
+				check->priv.sv->s.angles[YAW] -= amove[YAW];
+				if(check->priv.sv->client)
 				{
-					check->client->ps.pmove.delta_angles[YAW] -= ANGLE2SHORT(amove[YAW]);
-					check->client->ps.viewangles[YAW] -= amove[YAW];
+					check->priv.sv->client->ps.pmove.delta_angles[YAW] -= ANGLE2SHORT(amove[YAW]);
+					check->priv.sv->client->ps.viewangles[YAW] -= amove[YAW];
 				}
 			}
 
@@ -1732,11 +1751,11 @@ bool SV_Push (edict_t *pusher, vec3_t move, vec3_t amove)
 		// twice, it goes back to the original position
 		for (p=pushed_p-1 ; p>=pushed ; p--)
 		{
-			VectorCopy (p->origin, p->ent->s.origin);
-			VectorCopy (p->angles, p->ent->s.angles);
-			if (p->ent->client)
+			VectorCopy (p->origin, p->ent->priv.sv->s.origin);
+			VectorCopy (p->angles, p->ent->priv.sv->s.angles);
+			if (p->ent->priv.sv->client)
 			{
-				p->ent->client->ps.pmove.delta_angles[YAW] = p->deltayaw;
+				p->ent->priv.sv->client->ps.pmove.delta_angles[YAW] = p->deltayaw;
 			}
 			SV_LinkEdict (p->ent);
 		}
@@ -1768,17 +1787,17 @@ void SV_Physics_Pusher (edict_t *ent)
 	// if the move is blocked, all moved objects will be backed out
 	pushed_p = pushed;
 
-	if (part->velocity[0] || part->velocity[1] || part->velocity[2] || part->avelocity[0] || part->avelocity[1] || part->avelocity[2])
+	if (part->progs.sv->velocity[0] || part->progs.sv->velocity[1] || part->progs.sv->velocity[2] || part->progs.sv->avelocity[0] || part->progs.sv->avelocity[1] || part->progs.sv->avelocity[2])
 	{	
 		// object is moving
-		VectorScale (part->velocity, 0.1f, move);
-		VectorScale (part->avelocity, 0.1f, amove);
+		VectorScale (part->progs.sv->velocity, 0.1f, move);
+		VectorScale (part->progs.sv->avelocity, 0.1f, amove);
 
 		SV_Push(part, move, amove); // move was blocked
 	}
 
 	if (pushed_p > &pushed[MAX_EDICTS])
-		PF_error("pushed_p > &pushed[MAX_EDICTS], memory corrupted");
+		PRVM_ERROR("pushed_p > &pushed[MAX_EDICTS], memory corrupted");
 
 	SV_RunThink (part);
 }
@@ -1810,8 +1829,8 @@ void SV_Physics_Noclip (edict_t *ent)
 	// regular thinking
 	if (!SV_RunThink (ent)) return;
 	
-	VectorMA (ent->s.angles, 0.1f, ent->avelocity, ent->s.angles);
-	VectorMA (ent->s.origin, 0.1f, ent->velocity, ent->s.origin);
+	VectorMA (ent->priv.sv->s.angles, 0.1f, ent->progs.sv->avelocity, ent->priv.sv->s.angles);
+	VectorMA (ent->priv.sv->s.origin, 0.1f, ent->progs.sv->velocity, ent->priv.sv->s.origin);
 
 	SV_LinkEdict(ent);
 }
@@ -1843,106 +1862,104 @@ void SV_Physics_Toss (edict_t *ent)
 	// regular thinking
 	SV_RunThink (ent);
 
-	if (ent->groundentity) wasonground = true;
+	if (ent->progs.sv->groundentity) wasonground = true;
 
-	if (ent->velocity[2] > 0) ent->groundentity = NULL;
+	if (ent->progs.sv->velocity[2] > 0) ent->progs.sv->groundentity = 0;
 
 	// check for the groundentity going away
-	if (ent->groundentity)
-		if (!ent->groundentity->inuse)
-			ent->groundentity = NULL;
+	if (ent->progs.sv->groundentity)
+		if (PRVM_PROG_TO_EDICT(ent->progs.sv->groundentity)->priv.sv->free)
+			ent->progs.sv->groundentity = 0;
 
 	// Lazarus: conveyor
-	if (ent->groundentity && (ent->groundentity->movetype == MOVETYPE_CONVEYOR))
+	if (ent->progs.sv->groundentity && (PRVM_PROG_TO_EDICT(ent->progs.sv->groundentity)->progs.sv->movetype == MOVETYPE_CONVEYOR))
 	{
 		vec3_t	point, end;
 		trace_t	tr;
-		edict_t	*ground = ent->groundentity;
+		edict_t	*ground = PRVM_PROG_TO_EDICT(ent->progs.sv->groundentity);
 
-		VectorCopy(ent->s.origin,point);
+		VectorCopy(ent->priv.sv->s.origin,point);
 		point[2] += 1;
 		VectorCopy(point,end);
 		end[2] -= 256;
-		tr = SV_Trace (point, ent->mins, ent->maxs, end, ent, MASK_SOLID);
+		tr = SV_Trace (point, ent->progs.sv->mins, ent->progs.sv->maxs, end, ent, MASK_SOLID);
 		// tr.ent HAS to be ground, but just in case we screwed something up:
 		if(tr.ent == ground)
 		{
 			onconveyor = true;
-			ent->velocity[0] = ground->movedir[0] * ground->speed;
-			ent->velocity[1] = ground->movedir[1] * ground->speed;
+			ent->progs.sv->velocity[0] = ground->progs.sv->movedir[0] * ground->progs.sv->speed;
+			ent->progs.sv->velocity[1] = ground->progs.sv->movedir[1] * ground->progs.sv->speed;
 			if(tr.plane.normal[2] > 0)
 			{
-				ent->velocity[2] = ground->speed * sqrt(1.0 - tr.plane.normal[2]*tr.plane.normal[2]) / tr.plane.normal[2];
-				if(DotProduct(ground->movedir,tr.plane.normal) > 0)
+				ent->progs.sv->velocity[2] = ground->progs.sv->speed * sqrt(1.0 - tr.plane.normal[2]*tr.plane.normal[2]) / tr.plane.normal[2];
+				if(DotProduct(ground->progs.sv->movedir,tr.plane.normal) > 0)
 				{
 					// then we're moving down
-					ent->velocity[2] = -ent->velocity[2];
+					ent->progs.sv->velocity[2] = -ent->progs.sv->velocity[2];
 				}
 			}
-			VectorScale (ent->velocity, 0.1f, move);
+			VectorScale (ent->progs.sv->velocity, 0.1f, move);
 			trace = SV_PushEntity (ent, move);
-			if (!ent->inuse) return;
+			if (ent->priv.sv->free) return;
 			SV_CheckGround(ent);
 		}
 	}
 
 	// if onground, return without moving
-	if ( ent->groundentity )
+	if ( ent->progs.sv->groundentity )
 		return;
 
-	VectorCopy (ent->s.origin, old_origin);
+	VectorCopy (ent->priv.sv->s.origin, old_origin);
 
 	SV_CheckVelocity (ent);
 
 	// add gravity
-	if (ent->movetype != MOVETYPE_FLY)
+	if (ent->progs.sv->movetype != MOVETYPE_FLY)
 		SV_AddGravity (ent);
 
 	// move angles
-	VectorMA (ent->s.angles, 0.1f, ent->avelocity, ent->s.angles);
+	VectorMA (ent->priv.sv->s.angles, 0.1f, ent->progs.sv->avelocity, ent->priv.sv->s.angles);
 
 	// move origin
-	VectorScale (ent->velocity, 0.1f, move);
+	VectorScale (ent->progs.sv->velocity, 0.1f, move);
 	trace = SV_PushEntity (ent, move);
-	if (!ent->inuse)
-		return;
+	if (ent->priv.sv->free) return;
 
 	if (trace.fraction < 1 )
 	{
-		if (ent->movetype == MOVETYPE_BOUNCE)
+		if (ent->progs.sv->movetype == MOVETYPE_BOUNCE)
 			backoff = 1.0 + 0.5f;
 		else if(trace.plane.normal[2] <= 0.7)	// Lazarus - don't stop on steep incline
 			backoff = 1.5;
 		else
 			backoff = 1;
 
-		ClipVelocity (ent->velocity, trace.plane.normal, ent->velocity, backoff);
+		ClipVelocity (ent->progs.sv->velocity, trace.plane.normal, ent->progs.sv->velocity, backoff);
 
 		// stop if on ground
 		if (trace.plane.normal[2] > 0.7)
 		{		
-			if (ent->velocity[2] < 60.0f || (ent->movetype != MOVETYPE_BOUNCE) )
+			if (ent->progs.sv->velocity[2] < 60.0f || (ent->progs.sv->movetype != MOVETYPE_BOUNCE) )
 			{
-				ent->groundentity = trace.ent;
-				ent->groundentity_linkcount = trace.ent->linkcount;
-				VectorCopy (vec3_origin, ent->velocity);
-				VectorCopy (vec3_origin, ent->avelocity);
+				ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG(trace.ent);
+				VectorCopy (vec3_origin, ent->progs.sv->velocity);
+				VectorCopy (vec3_origin, ent->progs.sv->avelocity);
 			}
 		}
 	}
 
 	// check for water transition
-	wasinwater = (ent->watertype & MASK_WATER);
-	ent->watertype = SV_PointContents (ent->s.origin);
-	isinwater = ent->watertype & MASK_WATER;
+	wasinwater = ((int)ent->progs.sv->watertype & MASK_WATER);
+	ent->progs.sv->watertype = SV_PointContents (ent->priv.sv->s.origin);
+	isinwater = (int)ent->progs.sv->watertype & MASK_WATER;
 
-	if (isinwater) ent->waterlevel = 1;
-	else ent->waterlevel = 0;
+	if (isinwater) ent->progs.sv->waterlevel = 1;
+	else ent->progs.sv->waterlevel = 0;
 
 	if (!wasinwater && isinwater)
-		SV_StartSound(old_origin, ge->edicts, CHAN_AUTO, SV_SoundIndex("misc/h2ohit1.wav"), 1, 1, 0);
+		SV_StartSound(old_origin, prog->edicts, CHAN_AUTO, SV_SoundIndex("misc/h2ohit1.wav"), 1, 1, 0);
 	else if (wasinwater && !isinwater)
-		SV_StartSound(ent->s.origin, ge->edicts, CHAN_AUTO, SV_SoundIndex("misc/h2ohit1.wav"), 1, 1, 0);
+		SV_StartSound(ent->priv.sv->s.origin, prog->edicts, CHAN_AUTO, SV_SoundIndex("misc/h2ohit1.wav"), 1, 1, 0);
 }
 
 /*
@@ -1975,22 +1992,22 @@ void SV_AddRotationalFriction (edict_t *ent)
 	int		n;
 	float		adjustment;
 
-	VectorMA (ent->s.angles, 0.1f, ent->avelocity, ent->s.angles);
+	VectorMA (ent->priv.sv->s.angles, 0.1f, ent->progs.sv->avelocity, ent->priv.sv->s.angles);
 	adjustment = 0.1f * sv_stopspeed * sv_friction;
 
 	for (n = 0; n < 3; n++)
 	{
-		if (ent->avelocity[n] > 0)
+		if (ent->progs.sv->avelocity[n] > 0)
 		{
-			ent->avelocity[n] -= adjustment;
-			if (ent->avelocity[n] < 0)
-				ent->avelocity[n] = 0;
+			ent->progs.sv->avelocity[n] -= adjustment;
+			if (ent->progs.sv->avelocity[n] < 0)
+				ent->progs.sv->avelocity[n] = 0;
 		}
 		else
 		{
-			ent->avelocity[n] += adjustment;
-			if (ent->avelocity[n] > 0)
-				ent->avelocity[n] = 0;
+			ent->progs.sv->avelocity[n] += adjustment;
+			if (ent->progs.sv->avelocity[n] > 0)
+				ent->progs.sv->avelocity[n] = 0;
 		}
 	}
 }
@@ -2005,31 +2022,31 @@ float RiderMass(edict_t *platform)
 	trace_t		trace;
 	vec3_t		point;
 
-	for(i = 1, rider = EDICT_NUM(i); i <= ge->num_edicts; i++, rider = EDICT_NUM(i)) 
+	for(i = 1, rider = PRVM_EDICT_NUM(i); i <= prog->num_edicts; i++, rider = PRVM_EDICT_NUM(i)) 
 	{
 		if(rider == platform) continue;
-		if(!rider->inuse) continue;
-		if(rider->groundentity == platform)
+		if(rider->priv.sv->free) continue;
+		if(rider->progs.sv->groundentity == PRVM_EDICT_TO_PROG(platform))
 		{
-			mass += rider->mass;
+			mass += rider->progs.sv->mass;
 			mass += RiderMass(rider);
 		}
-		else if (rider->movetype == MOVETYPE_PUSHABLE )
+		else if (rider->progs.sv->movetype == MOVETYPE_PUSHABLE )
 		{
 			// Bah - special case for func_pushable riders. Swimming
 			// func_pushables don't really have a groundentity, even
 			// though they may be sitting on another swimming
 			// func_pushable, which is what we need to know.
-			VectorCopy(rider->s.origin,point);
+			VectorCopy(rider->priv.sv->s.origin,point);
 			point[2] -= 0.25;
-			trace = SV_Trace (rider->s.origin, rider->mins, rider->maxs, point, rider, MASK_MONSTERSOLID);
+			trace = SV_Trace (rider->priv.sv->s.origin, rider->progs.sv->mins, rider->progs.sv->maxs, point, rider, MASK_MONSTERSOLID);
 			if ( trace.plane.normal[2] < 0.7 && !trace.startsolid)
 				continue;
 			if (!trace.startsolid && !trace.allsolid)
 			{
 				if(trace.ent == platform)
 				{
-					mass += rider->mass;
+					mass += rider->progs.sv->mass;
 					mass += RiderMass(rider);
 				}
 			}
@@ -2043,7 +2060,7 @@ void SV_Physics_Step (edict_t *ent)
 	bool		hitsound = false;
 	float		*vel;
 	float		speed, newspeed, control;
-	float		friction;
+	float		friction, volume;
 	edict_t		*ground;
 	edict_t     	*e;
 	int         	cont;
@@ -2054,74 +2071,54 @@ void SV_Physics_Step (edict_t *ent)
 	vec3_t		old_origin, move;
 
 	// airborne monsters should always check for ground
-	if (!ent->groundentity) SV_CheckGround (ent);
+	if (!ent->progs.sv->groundentity) SV_CheckGround (ent);
 
-	oldwaterlevel = ent->waterlevel;
+	oldwaterlevel = ent->progs.sv->waterlevel;
 
-	VectorCopy(ent->s.origin, old_origin);
+	VectorCopy(ent->priv.sv->s.origin, old_origin);
 
 	// Lazarus: If density hasn't been calculated yet, do so now
-	if (ent->mass > 0 && ent->density == 0.)
+	if (ent->progs.sv->mass > 0 && ent->progs.sv->density == 0.)
 	{
-		ent->volume = ent->size[0] * ent->size[1] * ent->size[2];
-		ent->density = ent->mass/ent->volume;
-
-		if(ent->movetype == MOVETYPE_PUSHABLE)
-		{
-			// This stuff doesn't apply to anything else, and... heh...
-			// caused monster_flipper to sink
-
-			ent->bob      = min(2.0,300.0/ent->mass);
-			ent->duration = max(2.0,1.0 + ent->mass/100);
-			
-			// Figure out neutral bouyancy line for this entity
-			// This isn't entirely realistic, but helps gameplay:
-			// Arbitrary mass limit for func_pushable that can be pushed on
-			// land is 500. So make a mass=500+, 64x64x64 crate sink.
-			// (Otherwise, player might cause a 501 crate to leave
-			// water and expect to be able to push it.)
-			// Max floating density is then 0.0019073486328125
-			if(ent->density > WATER_DENSITY)
-				ent->flags &= ~FL_SWIM; // sinks like a rock
-		}
+		volume = ent->progs.sv->size[0] * ent->progs.sv->size[1] * ent->progs.sv->size[2];
+		ent->progs.sv->density = ent->progs.sv->mass/volume;
 	}
 
 	// If not a monster, then determine whether we're in water.
 	// (monsters take care of this in g_monster.c)
-	if (!(ent->svflags & SVF_MONSTER) && (ent->flags && FL_SWIM) )
+	if (!((int)ent->progs.sv->flags & FL_MONSTER) && ((int)ent->progs.sv->aiflags && AI_SWIM) )
 	{
-		point[0] = (ent->absmax[0] + ent->absmin[0])/2;
-		point[1] = (ent->absmax[1] + ent->absmin[1])/2;
-		point[2] = ent->absmin[2] + 1;
+		point[0] = (ent->progs.sv->absmax[0] + ent->progs.sv->absmin[0])/2;
+		point[1] = (ent->progs.sv->absmax[1] + ent->progs.sv->absmin[1])/2;
+		point[2] = ent->progs.sv->absmin[2] + 1;
 		cont = SV_PointContents (point);
 		if (!(cont & MASK_WATER))
 		{
-			ent->waterlevel = 0;
-			ent->watertype = 0;
+			ent->progs.sv->waterlevel = 0;
+			ent->progs.sv->watertype = 0;
 		}
 		else {
-			ent->watertype = cont;
-			ent->waterlevel = 1;
-			point[2] = ent->absmin[2] + ent->size[2]/2;
+			ent->progs.sv->watertype = cont;
+			ent->progs.sv->waterlevel = 1;
+			point[2] = ent->progs.sv->absmin[2] + ent->progs.sv->size[2]/2;
 			cont = SV_PointContents (point);
 			if (cont & MASK_WATER)
 			{
-				ent->waterlevel = 2;
-				point[2] = ent->absmax[2];
+				ent->progs.sv->waterlevel = 2;
+				point[2] = ent->progs.sv->absmax[2];
 				cont = SV_PointContents (point);
-				if (cont & MASK_WATER)
-					ent->waterlevel = 3;
+				if (cont & MASK_WATER) ent->progs.sv->waterlevel = 3;
 			}
 		}
 	}
 	
-	ground = ent->groundentity;
+	ground = PRVM_PROG_TO_EDICT(ent->progs.sv->groundentity);
 
 	SV_CheckVelocity (ent);
 
 	if (ground) wasonground = true;
 		
-	if (ent->avelocity[0] || ent->avelocity[1] || ent->avelocity[2])
+	if (ent->progs.sv->avelocity[0] || ent->progs.sv->avelocity[1] || ent->progs.sv->avelocity[2])
 		SV_AddRotationalFriction (ent);
 
 	// add gravity except:
@@ -2129,48 +2126,48 @@ void SV_Physics_Step (edict_t *ent)
 	// swimming monsters who are in the water
 	if (!wasonground)
 	{
-		if (!(ent->flags & FL_FLY))
+		if (!((int)ent->progs.sv->aiflags & AI_FLY))
 		{
-			if (!((ent->flags & FL_SWIM) && (ent->waterlevel > 2)))
+			if (!(((int)ent->progs.sv->aiflags & AI_SWIM) && (ent->progs.sv->waterlevel > 2)))
 			{
-				if (ent->velocity[2] < sv_gravity->value*-0.1)
+				if (ent->progs.sv->velocity[2] < sv_gravity->value*-0.1)
 					hitsound = true;
-				if (ent->waterlevel == 0)
+				if (ent->progs.sv->waterlevel == 0)
 					SV_AddGravity (ent);
 			}
 		}
 	}
 
 	// friction for flying monsters that have been given vertical velocity
-	if ((ent->flags & FL_FLY) && (ent->velocity[2] != 0))
+	if (((int)ent->progs.sv->aiflags & AI_FLY) && (ent->progs.sv->velocity[2] != 0))
 	{
-		speed = fabs(ent->velocity[2]);
+		speed = fabs(ent->progs.sv->velocity[2]);
 		control = speed < sv_stopspeed ? sv_stopspeed : speed;
 		friction = sv_friction/3;
 		newspeed = speed - (0.1f * control * friction);
 		if (newspeed < 0) newspeed = 0;
 		newspeed /= speed;
-		ent->velocity[2] *= newspeed;
+		ent->progs.sv->velocity[2] *= newspeed;
 	}
 
 	// friction for swimming monsters that have been given vertical velocity
-	if (ent->movetype != MOVETYPE_PUSHABLE)
+	if (ent->progs.sv->movetype != MOVETYPE_PUSHABLE)
 	{
 		// Lazarus: This is id's swag at drag. It works mostly, but for submerged 
 		//          crates we can do better.
-		if ((ent->flags & FL_SWIM) && (ent->velocity[2] != 0))
+		if (((int)ent->progs.sv->aiflags & AI_SWIM) && (ent->progs.sv->velocity[2] != 0))
 		{
-			speed = fabs(ent->velocity[2]);
+			speed = fabs(ent->progs.sv->velocity[2]);
 			control = speed < sv_stopspeed ? sv_stopspeed : speed;
-			newspeed = speed - (0.1f * control * sv_waterfriction * ent->waterlevel);
+			newspeed = speed - (0.1f * control * sv_waterfriction * ent->progs.sv->waterlevel);
 			if (newspeed < 0) newspeed = 0;
 			newspeed /= speed;
-			ent->velocity[2] *= newspeed;
+			ent->progs.sv->velocity[2] *= newspeed;
 		}
 	}
 
 	// Lazarus: Floating stuff
-	if ((ent->movetype == MOVETYPE_PUSHABLE) && (ent->flags && FL_SWIM) && (ent->waterlevel))
+	if ((ent->progs.sv->movetype == MOVETYPE_PUSHABLE) && ((int)ent->progs.sv->aiflags && AI_SWIM) && (ent->progs.sv->waterlevel))
 	{
 		float	waterlevel;
 		float	rider_mass, total_mass;
@@ -2178,61 +2175,50 @@ void SV_Physics_Step (edict_t *ent)
 		float	Accel, Area, Drag, Force;
 
 		VectorCopy(point,end);
-		if(ent->waterlevel < 3)
+		if(ent->progs.sv->waterlevel < 3)
 		{
-			point[2] = ent->absmax[2];
-			end[2]   = ent->absmin[2];
+			point[2] = ent->progs.sv->absmax[2];
+			end[2]   = ent->progs.sv->absmin[2];
 			tr = SV_Trace(point,NULL,NULL,end,ent,MASK_WATER);
 			waterlevel = tr.endpos[2];
 		}
 		else
 		{
 			// Not right, but really all we need to know
-			waterlevel = ent->absmax[2] + 1;
+			waterlevel = ent->progs.sv->absmax[2] + 1;
 		}
 		rider_mass = RiderMass(ent);
-		total_mass = rider_mass + ent->mass;
-		Area  = ent->size[0] * ent->size[1];
-		if(waterlevel < ent->absmax[2])
+		total_mass = rider_mass + ent->progs.sv->mass;
+		Area  = ent->progs.sv->size[0] * ent->progs.sv->size[1];
+		if(waterlevel < ent->progs.sv->absmax[2])
 		{
 			// A portion of crate is above water
-			int	time;
-			float	t0, t1, z0, z1;
-
 			// For partially submerged crates, use same psuedo-friction thing used
 			// on other entities. This isn't really correct, but then neither is
 			// our drag calculation used for fully submerged crates good for this
 			// situation
-			if (ent->velocity[2] != 0)
+			if (ent->progs.sv->velocity[2] != 0)
 			{
-				speed = fabs(ent->velocity[2]);
+				speed = fabs(ent->progs.sv->velocity[2]);
 				control = speed < sv_stopspeed ? sv_stopspeed : speed;
-				newspeed = speed - (0.1f * control * sv_waterfriction * ent->waterlevel);
+				newspeed = speed - (0.1f * control * sv_waterfriction * ent->progs.sv->waterlevel);
 				if (newspeed < 0) newspeed = 0;
 				newspeed /= speed;
-				ent->velocity[2] *= newspeed;
+				ent->progs.sv->velocity[2] *= newspeed;
 			}
 
 			// Apply physics and bob AFTER friction, or the damn thing will never move.
-			Force = -total_mass + ((waterlevel-ent->absmin[2]) * Area * WATER_DENSITY);
+			Force = -total_mass + ((waterlevel-ent->progs.sv->absmin[2]) * Area * WATER_DENSITY);
 			Accel = Force * sv_gravity->value/total_mass;
-			ent->velocity[2] += Accel*0.1f;
-
-			time = ent->duration*10;
-			t0 = ent->bobframe%time;
-			t1 = (ent->bobframe+1)%time;
-			z0 = sin(2*M_PI*t0/time);
-			z1 = sin(2*M_PI*t1/time);
-			ent->velocity[2] += ent->bob * (z1-z0) * 10;
-			ent->bobframe = (ent->bobframe+1)%time;
+			ent->progs.sv->velocity[2] += Accel*0.1f;
 		} 
 		else
 		{
 			// Crate is fully submerged
-			Force = -total_mass + ent->volume * WATER_DENSITY;
+			Force = -total_mass + volume * WATER_DENSITY;
 			if(sv_gravity->value)
 			{
-				Drag  = 0.00190735 * 1.05 * Area * (ent->velocity[2]*ent->velocity[2])/sv_gravity->value;
+				Drag  = 0.00190735 * 1.05 * Area * (ent->progs.sv->velocity[2]*ent->progs.sv->velocity[2])/sv_gravity->value;
 				if(Drag > fabs(Force))
 				{
 					// Drag actually CAN be > total weight, but if we do this we tend to
@@ -2240,77 +2226,77 @@ void SV_Physics_Step (edict_t *ent)
 					// height
 					Drag = fabs(Force);
 				}
-				if(ent->velocity[2] > 0)
+				if(ent->progs.sv->velocity[2] > 0)
 					Drag = -Drag;
 				Force += Drag;
 			}
 			Accel = Force * sv_gravity->value/total_mass;
-			ent->velocity[2] += Accel*0.1f;
+			ent->progs.sv->velocity[2] += Accel*0.1f;
 		}
 
-		if(ent->watertype & MASK_CURRENT)
+		if((int)ent->progs.sv->watertype & MASK_CURRENT)
 		{
 			// Move with current, relative to mass. Mass=400 or less
 			// will move at 50 units/sec.
 			float v;
 			int   current;
 
-			if(ent->mass > 400) v = 0.125 * ent->mass;
+			if(ent->progs.sv->mass > 400) v = 0.125 * ent->progs.sv->mass;
 			else v = 50.;
-			current = ent->watertype & MASK_CURRENT;
+			current = (int)ent->progs.sv->watertype & MASK_CURRENT;
 			switch (current)
 			{
-			case CONTENTS_CURRENT_0:    ent->velocity[0] = v;  break;
-			case CONTENTS_CURRENT_90:   ent->velocity[1] = v;  break;
-			case CONTENTS_CURRENT_180:  ent->velocity[0] = -v; break;
-			case CONTENTS_CURRENT_270:  ent->velocity[1] = -v; break;
-			case CONTENTS_CURRENT_UP :  ent->velocity[2] = max(v, ent->velocity[2]);
-			case CONTENTS_CURRENT_DOWN: ent->velocity[2] = min(-v, ent->velocity[2]);
+			case CONTENTS_CURRENT_0:    ent->progs.sv->velocity[0] = v;  break;
+			case CONTENTS_CURRENT_90:   ent->progs.sv->velocity[1] = v;  break;
+			case CONTENTS_CURRENT_180:  ent->progs.sv->velocity[0] = -v; break;
+			case CONTENTS_CURRENT_270:  ent->progs.sv->velocity[1] = -v; break;
+			case CONTENTS_CURRENT_UP :  ent->progs.sv->velocity[2] = max(v, ent->progs.sv->velocity[2]);
+			case CONTENTS_CURRENT_DOWN: ent->progs.sv->velocity[2] = min(-v, ent->progs.sv->velocity[2]);
 			}
 		}
 	}
 
 	// Conveyor
-	if (wasonground && (ground->movetype == MOVETYPE_CONVEYOR))
+	if (wasonground && (ground->progs.sv->movetype == MOVETYPE_CONVEYOR))
 	{
 		trace_t	tr;
 
-		VectorCopy(ent->s.origin,point);
+		VectorCopy(ent->priv.sv->s.origin,point);
 		point[2] += 1;
 		VectorCopy(point,end);
 		end[2] -= 256;
-		tr = SV_Trace (point, ent->mins, ent->maxs, end, ent, MASK_SOLID);
+		tr = SV_Trace (point, ent->progs.sv->mins, ent->progs.sv->maxs, end, ent, MASK_SOLID);
 		// tr.ent HAS to be ground, but just in case we screwed something up:
 		if(tr.ent == ground)
 		{
 			onconveyor = true;
-			ent->velocity[0] = ground->movedir[0] * ground->speed;
-			ent->velocity[1] = ground->movedir[1] * ground->speed;
+			ent->progs.sv->velocity[0] = ground->progs.sv->movedir[0] * ground->progs.sv->speed;
+			ent->progs.sv->velocity[1] = ground->progs.sv->movedir[1] * ground->progs.sv->speed;
 			if(tr.plane.normal[2] > 0)
 			{
-				ent->velocity[2] = ground->speed * sqrt(1.0 - tr.plane.normal[2]*tr.plane.normal[2]) / tr.plane.normal[2];
-				if(DotProduct(ground->movedir,tr.plane.normal) > 0)
+				ent->progs.sv->velocity[2] = ground->progs.sv->speed * sqrt(1.0 - tr.plane.normal[2]*tr.plane.normal[2]) / tr.plane.normal[2];
+				if(DotProduct(ground->progs.sv->movedir,tr.plane.normal) > 0)
 				{
 					// Then we're moving down.
-					ent->velocity[2] = -ent->velocity[2] + 2;
+					ent->progs.sv->velocity[2] = -ent->progs.sv->velocity[2] + 2;
 				}
 			}
 		}
 	}
 
-	if (ent->velocity[2] || ent->velocity[1] || ent->velocity[0])
+	if (ent->progs.sv->velocity[2] || ent->progs.sv->velocity[1] || ent->progs.sv->velocity[0])
 	{
 		int	block;
 		// apply friction
 		// let dead monsters who aren't completely onground slide
 
-		if ((wasonground) || (ent->flags & (FL_SWIM|FL_FLY)))
+		if ((wasonground) || ((int)ent->progs.sv->aiflags & (AI_SWIM|AI_FLY)))
 
 			if (!onconveyor)
 			{
-				if (!(ent->health <= 0.0 && !SV_CheckBottom(ent)))
+				if (!(ent->progs.sv->health <= 0.0 && !SV_CheckBottom(ent)))
 				{
-					vel = ent->velocity;
+					vel = ent->progs.sv->velocity;
 					speed = sqrt(vel[0]*vel[0] +vel[1]*vel[1]);
 					if (speed)
 					{
@@ -2328,18 +2314,18 @@ void SV_Physics_Step (edict_t *ent)
 				}
 			}
 
-		if (ent->svflags & SVF_MONSTER) mask = MASK_MONSTERSOLID;
-		else if(ent->movetype == MOVETYPE_PUSHABLE) mask = MASK_MONSTERSOLID | MASK_PLAYERSOLID;
-		else if(ent->clipmask) mask = ent->clipmask; // Lazarus edition
+		if ((int)ent->progs.sv->flags & FL_MONSTER) mask = MASK_MONSTERSOLID;
+		else if(ent->progs.sv->movetype == MOVETYPE_PUSHABLE) mask = MASK_MONSTERSOLID | MASK_PLAYERSOLID;
+		else if(ent->priv.sv->clipmask) mask = ent->priv.sv->clipmask; // Lazarus edition
 		else mask = MASK_SOLID;
 
-		if (ent->movetype == MOVETYPE_PUSHABLE)
+		if (ent->progs.sv->movetype == MOVETYPE_PUSHABLE)
 		{
 			block = SV_PushableMove (ent, 0.1f, mask);
 			if(block && !(block & 8) && onconveyor)
 			{
-				T_Damage(ent, ge->edicts, ge->edicts, vec3_origin, ent->s.origin, vec3_origin, 100000, 1, 0, DMG_CRUSH);
-				if(!ent->inuse) return;
+				T_Damage(ent, prog->edicts, prog->edicts, vec3_origin, ent->priv.sv->s.origin, vec3_origin, 100000, 1, 0, DMG_CRUSH);
+				if(ent->priv.sv->free) return;
 			}
 		}
 		else
@@ -2347,66 +2333,66 @@ void SV_Physics_Step (edict_t *ent)
 			block = SV_FlyMove (ent, 0.1f, mask);
 			if(block && !(block & 8) && onconveyor)
 			{
-				T_Damage (ent, ge->edicts, ge->edicts, vec3_origin, ent->s.origin, vec3_origin, 100000, 1, 0, DMG_CRUSH);
-				if(!ent->inuse) return;
+				T_Damage (ent, prog->edicts, prog->edicts, vec3_origin, ent->priv.sv->s.origin, vec3_origin, 100000, 1, 0, DMG_CRUSH);
+				if(ent->priv.sv->free) return;
 			}
 		}
 		SV_LinkEdict (ent);
 		SV_TouchTriggers (ent);
-		if (!ent->inuse) return;
+		if (ent->priv.sv->free) return;
 
-		if (ent->groundentity && !wasonground && hitsound)
+		if (ent->progs.sv->groundentity && !wasonground && hitsound)
 		{
-			PF_StartSound (ent, 0, SV_SoundIndex("world/land.wav"), 1, 1, 0);
+			SV_StartSound (NULL, ent, 0, SV_SoundIndex("world/land.wav"), 1, 1, 0);
 		}
 
 		// Move func_pushable riders
-		if(ent->movetype == MOVETYPE_PUSHABLE)
+		if(ent->progs.sv->movetype == MOVETYPE_PUSHABLE)
 		{
 			trace_t	tr;
 
-			if(ent->bouncetype == 2) VectorMA(old_origin,0.1f,ent->velocity,ent->s.origin);
-			VectorSubtract(ent->s.origin,old_origin,move);
-			for(i = 1, e = EDICT_NUM(i); i < ge->num_edicts; i++, e = EDICT_NUM(i))
+			if(ent->progs.sv->bouncetype == 2) VectorMA(old_origin,0.1f,ent->progs.sv->velocity,ent->priv.sv->s.origin);
+			VectorSubtract(ent->priv.sv->s.origin,old_origin,move);
+			for(i = 1, e = PRVM_EDICT_NUM(i); i < prog->num_edicts; i++, e = PRVM_EDICT_NUM(i))
 			{
 				if(e==ent) continue;
-				if(e->groundentity == ent)
+				if(e->progs.sv->groundentity == PRVM_EDICT_TO_PROG(ent))
 				{
-					VectorAdd(e->s.origin,move,end);
-					tr = SV_Trace(e->s.origin, e->mins, e->maxs, end, ent, MASK_SOLID);
-					VectorCopy(tr.endpos,e->s.origin);
+					VectorAdd(e->priv.sv->s.origin,move,end);
+					tr = SV_Trace(e->priv.sv->s.origin, e->progs.sv->mins, e->progs.sv->maxs, end, ent, MASK_SOLID);
+					VectorCopy(tr.endpos,e->priv.sv->s.origin);
 					SV_LinkEdict(e);
 				}
 			}
 		}
 	}
-	else if(ent->movetype == MOVETYPE_PUSHABLE)
+	else if(ent->progs.sv->movetype == MOVETYPE_PUSHABLE)
 	{
 		// We run touch function for non-moving func_pushables every frame
 		// to see if they are touching, for example, a trigger_mass
 		SV_TouchTriggers(ent);
-		if(!ent->inuse) return;
+		if(ent->priv.sv->free) return;
 	}
 
 
 	// Lazarus: Add falling damage for entities that can be damaged
-	if( ent->takedamage )
+	if( ent->progs.sv->takedamage )
 	{
 		SV_FallingDamage(ent);
-		VectorCopy(ent->velocity,ent->oldvelocity);
+		VectorCopy(ent->progs.sv->velocity,ent->progs.sv->post_velocity);
 	}
 
-	if ((!oldwaterlevel && ent->waterlevel) && !ent->groundentity)
+	if ((!oldwaterlevel && ent->progs.sv->waterlevel) && !ent->progs.sv->groundentity)
 	{
-		if( (ent->watertype & CONTENTS_SLIME) || (ent->watertype & CONTENTS_WATER) )
-			PF_StartSound (ent, CHAN_BODY, SV_SoundIndex("player/watr_in.wav"), 1, ATTN_NORM, 0);
-		else if(ent->watertype & CONTENTS_MUD)
-			PF_StartSound (ent, CHAN_BODY, SV_SoundIndex("mud/mud_in2.wav"), 1, ATTN_NORM, 0);
+		if( ((int)ent->progs.sv->watertype & CONTENTS_SLIME) || ((int)ent->progs.sv->watertype & CONTENTS_WATER) )
+			SV_StartSound (NULL, ent, CHAN_BODY, SV_SoundIndex("player/watr_in.wav"), 1, ATTN_NORM, 0);
+		else if((int)ent->progs.sv->watertype & CONTENTS_MUD)
+			SV_StartSound (NULL, ent, CHAN_BODY, SV_SoundIndex("mud/mud_in2.wav"), 1, ATTN_NORM, 0);
 	}
 
 	// regular thinking
 	SV_RunThink (ent);
-	VectorCopy(ent->velocity,ent->oldvelocity);
+	VectorCopy(ent->progs.sv->velocity,ent->progs.sv->post_velocity);
 }
 
 //============================================================================
@@ -2428,13 +2414,13 @@ trace_t SV_DebrisEntity (edict_t *ent, vec3_t push)
 	int		damage;
 	int		mask;
 
-	VectorCopy (ent->s.origin, start);
+	VectorCopy (ent->priv.sv->s.origin, start);
 	VectorAdd (start, push, end);
-	if(ent->clipmask) mask = ent->clipmask;
+	if(ent->priv.sv->clipmask) mask = ent->priv.sv->clipmask;
 	else mask = MASK_SHOT;
 
-	trace = SV_Trace (start, ent->mins, ent->maxs, end, ent, mask);
-	VectorCopy (trace.endpos, ent->s.origin);
+	trace = SV_Trace (start, ent->progs.sv->mins, ent->progs.sv->maxs, end, ent, mask);
+	VectorCopy (trace.endpos, ent->priv.sv->s.origin);
 	SV_LinkEdict (ent);
 
 	if (trace.fraction != 1.0)
@@ -2444,31 +2430,47 @@ trace_t SV_DebrisEntity (edict_t *ent, vec3_t push)
 			SV_FreeEdict(ent);
 			return trace;
 		}
-		if(trace.ent->client || (trace.ent->svflags & SVF_MONSTER) )
+		if(trace.ent->priv.sv->client || ((int)trace.ent->progs.sv->flags & FL_MONSTER) )
 		{
 			// touching a player or monster
 			// if rock has no mass we really don't care who it hits
-			if(!ent->mass) return trace;
-			speed1 = VectorLength(ent->velocity);
+			if(!ent->progs.sv->mass) return trace;
+			speed1 = VectorLength(ent->progs.sv->velocity);
 			if(!speed1) return trace;
-			speed2 = VectorLength(trace.ent->velocity);
-			VectorCopy(ent->velocity,v1);
+			speed2 = VectorLength(trace.ent->progs.sv->velocity);
+			VectorCopy(ent->progs.sv->velocity,v1);
 			VectorNormalize(v1);
-			VectorCopy(trace.ent->velocity,v2);
+			VectorCopy(trace.ent->progs.sv->velocity,v2);
 			VectorNormalize(v2);
 			dot = -DotProduct(v1,v2);
 			speed1 += speed2 * dot;
 			if(speed1 <= 0) return trace;
-			scale = (float)ent->mass/200.*speed1;
-			VectorMA(trace.ent->velocity,scale,v1,trace.ent->velocity);
+			scale = (float)ent->progs.sv->mass/200.*speed1;
+			VectorMA(trace.ent->progs.sv->velocity,scale,v1,trace.ent->progs.sv->velocity);
 			// Take a swag at it... 
 
 			if(speed1 > 100)
 			{
-				damage = (int)(ent->mass * speed1 / 5000.);
-				if(damage) T_Damage(trace.ent, ge->edicts, ge->edicts, v1, trace.ent->s.origin, vec3_origin, damage, 0, 0, DMG_CRUSH);
+				damage = (int)(ent->progs.sv->mass * speed1 / 5000.);
+				if(damage) T_Damage(trace.ent, prog->edicts, prog->edicts, v1, trace.ent->priv.sv->s.origin, vec3_origin, damage, 0, 0, DMG_CRUSH);
 			}
-			if(ent->touch) ent->touch (ent, trace.ent, &trace.plane, trace.surface);
+
+			PRVM_PUSH_GLOBALS;
+
+			prog->globals.server->pev = PRVM_EDICT_TO_PROG(ent);
+			prog->globals.server->other = PRVM_EDICT_TO_PROG(trace.ent); //correct ?
+			prog->globals.server->time = sv.time;
+			prog->globals.server->trace_allsolid = trace.allsolid;
+			prog->globals.server->trace_startsolid = trace.startsolid;
+			prog->globals.server->trace_fraction = trace.fraction;
+			prog->globals.server->trace_contents = trace.contents;
+			VectorCopy (trace.endpos, prog->globals.server->trace_endpos);
+			VectorCopy (trace.plane.normal, prog->globals.server->trace_plane_normal);
+			prog->globals.server->trace_plane_dist =  trace.plane.dist;
+			if (trace.ent) prog->globals.server->trace_ent = PRVM_EDICT_TO_PROG(trace.ent);
+			else prog->globals.server->trace_ent = PRVM_EDICT_TO_PROG(prog->edicts);
+			PRVM_ExecuteProgram (ent->progs.sv->touch, "QC function pev->touch is missing");
+			PRVM_POP_GLOBALS;
 
 			SV_LinkEdict(trace.ent);
 		}
@@ -2499,59 +2501,57 @@ void SV_Physics_Debris (edict_t *ent)
 	// regular thinking
 	SV_RunThink (ent);
 
-	if (ent->velocity[2] > 0)
-		ent->groundentity = NULL;
+	if (ent->progs.sv->velocity[2] > 0)
+		ent->progs.sv->groundentity = 0;
 
 	// check for the groundentity going away
-	if (ent->groundentity)
-		if (!ent->groundentity->inuse)
-			ent->groundentity = NULL;
+	if (ent->progs.sv->groundentity)
+		if (PRVM_PROG_TO_EDICT(ent->progs.sv->groundentity)->priv.sv->free)
+			ent->progs.sv->groundentity = 0;
 
 	// if onground, return without moving
-	if ( ent->groundentity )
+	if ( ent->progs.sv->groundentity )
 		return;
 
-	VectorCopy (ent->s.origin, old_origin);
+	VectorCopy (ent->priv.sv->s.origin, old_origin);
 	SV_CheckVelocity (ent);
 	SV_AddGravity (ent);
 
 	// move angles
-	VectorMA (ent->s.angles, 0.1f, ent->avelocity, ent->s.angles);
+	VectorMA (ent->priv.sv->s.angles, 0.1f, ent->progs.sv->avelocity, ent->priv.sv->s.angles);
 
 	// move origin
-	VectorScale (ent->velocity, 0.1f, move);
+	VectorScale (ent->progs.sv->velocity, 0.1f, move);
 	trace = SV_DebrisEntity (ent, move);
-	if (!ent->inuse)
-		return;
+	if (ent->priv.sv->free) return;
 
 	if (trace.fraction < 1)
 	{
 		backoff = 1.0;
-		ClipVelocity (ent->velocity, trace.plane.normal, ent->velocity, backoff);
+		ClipVelocity (ent->progs.sv->velocity, trace.plane.normal, ent->progs.sv->velocity, backoff);
 
 		// stop if on ground
 		if (trace.plane.normal[2] > 0.3)
 		{		
-			if (ent->velocity[2] < 60)
+			if (ent->progs.sv->velocity[2] < 60)
 			{
-				ent->groundentity = trace.ent;
-				ent->groundentity_linkcount = trace.ent->linkcount;
-				VectorCopy (vec3_origin, ent->velocity);
-				VectorCopy (vec3_origin, ent->avelocity);
+				ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG(trace.ent);
+				VectorCopy (vec3_origin, ent->progs.sv->velocity);
+				VectorCopy (vec3_origin, ent->progs.sv->avelocity);
 			}
 		}
 	}
 	
 	// check for water transition
-	wasinwater = (ent->watertype & MASK_WATER);
-	ent->watertype = SV_PointContents (ent->s.origin);
-	isinwater = ent->watertype & MASK_WATER;
+	wasinwater = ((int)ent->progs.sv->watertype & MASK_WATER);
+	ent->progs.sv->watertype = SV_PointContents (ent->priv.sv->s.origin);
+	isinwater = (int)ent->progs.sv->watertype & MASK_WATER;
 
-	if (isinwater) ent->waterlevel = 1;
-	else ent->waterlevel = 0;
+	if (isinwater) ent->progs.sv->waterlevel = 1;
+	else ent->progs.sv->waterlevel = 0;
 
-	if (!wasinwater && isinwater) SV_StartSound (old_origin, ge->edicts, CHAN_AUTO, SV_SoundIndex("misc/h2ohit1.wav"), 1, 1, 0);
-	else if (wasinwater && !isinwater) SV_StartSound (ent->s.origin, ge->edicts, CHAN_AUTO, SV_SoundIndex("misc/h2ohit1.wav"), 1, 1, 0);
+	if (!wasinwater && isinwater) SV_StartSound (old_origin, prog->edicts, CHAN_AUTO, SV_SoundIndex("misc/h2ohit1.wav"), 1, 1, 0);
+	else if (wasinwater && !isinwater) SV_StartSound (ent->priv.sv->s.origin, prog->edicts, CHAN_AUTO, SV_SoundIndex("misc/h2ohit1.wav"), 1, 1, 0);
 
 }
 
@@ -2573,39 +2573,39 @@ void SV_Physics_Conveyor(edict_t *ent)
 	vec3_t		v, move;
 	vec3_t		point, end;
 
-	VectorScale(ent->movedir,ent->speed,v);
+	VectorScale(ent->progs.sv->movedir,ent->progs.sv->speed,v);
 	VectorScale(v, 0.1f, move);
 
 	for(i = 0; i < maxclients->value; i++)
 	{
-		player = EDICT_NUM(i) + 1;
-		if(!player->inuse) continue;
-		if(!player->groundentity) continue;
-		if(player->groundentity != ent) continue;
+		player = PRVM_EDICT_NUM(i) + 1;
+		if(player->priv.sv->free) continue;
+		if(!player->progs.sv->groundentity) continue;
+		if(player->progs.sv->groundentity != PRVM_EDICT_TO_PROG(ent)) continue;
 
 		// Look below player; make sure he's on a conveyor
-		VectorCopy(player->s.origin,point);
+		VectorCopy(player->priv.sv->s.origin,point);
 		point[2] += 1;
 		VectorCopy(point,end);
 		end[2] -= 256;
 
-		tr = SV_Trace (point, player->mins, player->maxs, end, player, MASK_SOLID);
+		tr = SV_Trace (point, player->progs.sv->mins, player->progs.sv->maxs, end, player, MASK_SOLID);
 		// tr.ent HAS to be conveyor, but just in case we screwed something up:
 		if(tr.ent == ent)
 		{
 			if(tr.plane.normal[2] > 0)
 			{
-				v[2] = ent->speed * sqrt(1.0 - tr.plane.normal[2]*tr.plane.normal[2]) / tr.plane.normal[2];
-				if(DotProduct(ent->movedir,tr.plane.normal) > 0)
+				v[2] = ent->progs.sv->speed * sqrt(1.0 - tr.plane.normal[2]*tr.plane.normal[2]) / tr.plane.normal[2];
+				if(DotProduct(ent->progs.sv->movedir,tr.plane.normal) > 0)
 				{
 					// then we're moving down
 					v[2] = -v[2];
 				}
 				move[2] = v[2] * 0.1f;
 			}
-			VectorAdd(player->s.origin,move,end);
-			tr = SV_Trace(player->s.origin,player->mins,player->maxs,end,player,player->clipmask);
-			VectorCopy(tr.endpos,player->s.origin);
+			VectorAdd(player->priv.sv->s.origin,move,end);
+			tr = SV_Trace(player->priv.sv->s.origin,player->progs.sv->mins,player->progs.sv->maxs,end,player,player->priv.sv->clipmask);
+			VectorCopy(tr.endpos,player->priv.sv->s.origin);
 			SV_LinkEdict(player);
 		}
 	}
@@ -2613,11 +2613,10 @@ void SV_Physics_Conveyor(edict_t *ent)
 
 void SV_Physics(edict_t *ent)
 {
-	if (ent->prethink) ent->prethink (ent);
 	wasonground = false;
 	onconveyor = false;
 
-	switch ( (int)ent->movetype)
+	switch ( (int)ent->progs.sv->movetype)
 	{
 	case MOVETYPE_PUSH:
 		SV_Physics_Pusher (ent);
@@ -2646,6 +2645,6 @@ void SV_Physics(edict_t *ent)
 		SV_Physics_Conveyor(ent);
 		break;
 	default:
-		PF_error ("SV_Physics: bad movetype %i", (int)ent->movetype);			
+		PRVM_ERROR ("SV_Physics: bad movetype %i", (int)ent->progs.sv->movetype);			
 	}
 }

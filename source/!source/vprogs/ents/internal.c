@@ -11,16 +11,14 @@
 .string name; //
 .entity triggerer;
 
-void(string modelname) Precache_Set = // Precache model, and set myself to it
+void(string modelname) Precache_Set = // Precache model, and set mypev to it
 {
  precache_model(modelname);
- setmodel(self, modelname);
+ setmodel(pev, modelname);
 };
 
 void(entity ent) SetViewPoint =  	// Alter the Viewpoint Entity
 {
-	msg_entity = self;        	 	// This message is to myself. 
- 
  	MsgBegin(SVC_SETVIEW); 		// Network Protocol: Set Viewpoint Entity
  	WriteEntity(ent);       		// Write entity to clients.
 	MsgEnd( MSG_ONE, '0 0 0', ent );
@@ -32,44 +30,44 @@ just constant angles.
 */
 void() SetMovedir =
 {
-	if (self.angles == '0 -1 0')
-		self.movedir = '0 0 1';
-	else if (self.angles == '0 -2 0')
-		self.movedir = '0 0 -1';
+	if (pev->angles == '0 -1 0')
+		pev->movedir = '0 0 1';
+	else if (pev->angles == '0 -2 0')
+		pev->movedir = '0 0 -1';
 	else
 	{
-		makevectors (self.angles);
-		self.movedir = v_forward;
+		makevectors (pev->angles);
+		pev->movedir = v_forward;
 	}
 	
-	self.angles = '0 0 0';
+	pev->angles = '0 0 0';
 };
 
 void() IEM_usetarget =
 {
-	local entity t, oldself, oldother;
+	local entity t, oldpev, oldother;
 	
-	if(self.target)
+	if(pev->target)
 	{
-		t = find(world, targetname, self.target);
+		t = find(world, targetname, pev->target);
 
 		while(t)
 		{
-			if(self.triggerer)
-				t.triggerer = self.triggerer;
+			if(pev->triggerer)
+				t.triggerer = pev->triggerer;
 			
-			oldself = self;
+			oldpev = pev;
 			oldother = other;
-			self = t;
+			pev = t;
 	
 			if(t.use)
 				t.use();
 			
-			self = oldself;
+			pev = oldpev;
 			other = oldother;	
 			
 			
-			t = find(t, targetname, self.target);
+			t = find(t, targetname, pev->target);
 		}
 	
 	}
@@ -80,5 +78,5 @@ void(float effect_type, vector effect_org) IEM_effects =
 	MsgBegin(SVC_TEMPENTITY);
 		WriteByte(effect_type);
 		WriteCoord(effect_org);
-	MsgEnd( MSG_BROADCAST, effect_org, self );
+	MsgEnd( MSG_BROADCAST, effect_org, pev );
 };

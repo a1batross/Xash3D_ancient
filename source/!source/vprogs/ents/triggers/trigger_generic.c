@@ -6,16 +6,16 @@
 
 void() trigger_generic_think = 
 {
-	self.touched = FALSE;
+	pev->touched = FALSE;
 	
-	if(self.message)
-			centerprint(self.triggerer , self.message);
+	if(pev->message)
+			centerprint(pev->triggerer , pev->message);
 	
-	if(self.target)
+	if(pev->target)
 		IEM_usetarget();
 
-	if(self.spawnflags & TRIGGER_ONCE)
-		remove(self);
+	if(pev->spawnflags & TRIGGER_ONCE)
+		remove(pev);
 };
 
 void() trigger_generic_touch = 
@@ -23,39 +23,39 @@ void() trigger_generic_touch =
 	if(!(other.flags & FL_CLIENT))
 		return;
 
-	if(self.touched == FALSE)
+	if(pev->touched == FALSE)
 	{
-		self.triggerer = other;
+		pev->triggerer = other;
 		
-		self.touched = TRUE;
-		self.think = trigger_generic_think;
-		self.nextthink = time + self.delay;
+		pev->touched = TRUE;
+		pev->think = trigger_generic_think;
+		pev->nextthink = time + pev->delay;
 	}
 };
 
 void() trigger_generic_use = 
 {
-	if(self.touched == TRUE)
+	if(pev->touched == TRUE)
 		return;
 
-	self.touched = TRUE;
+	pev->touched = TRUE;
 	
-	if(self.message)
-		centerprint(self.triggerer, self.message);
+	if(pev->message)
+		centerprint(pev->triggerer, pev->message);
 	
-	self.think = trigger_generic_think;
-	self.nextthink = time + self.delay;
+	pev->think = trigger_generic_think;
+	pev->nextthink = time + pev->delay;
 };
 
 void() trigger_generic =
 {
 	trigger_setup();
 	
-	self.touch = trigger_generic_touch;
-	self.use = trigger_generic_use;	
+	pev->touch = trigger_generic_touch;
+	pev->use = trigger_generic_use;	
 
-	self.classname = "generic";
+	pev->classname = "generic";
 
-	if(!self.delay)
-		self.delay = 0.1;
+	if(!pev->delay)
+		pev->delay = 0.1;
 };

@@ -444,7 +444,7 @@ void Mod_LoadTexinfo (lump_t *l)
 	loadmodel->texinfo = out;
 	loadmodel->numtexinfo = count;
 
-	for ( i=0 ; i<count ; i++, in++, out++)
+	for ( i = 0; i < count; i++, in++, out++)
 	{
 		for (j=0 ; j<8 ; j++)
 			out->vecs[0][j] = LittleFloat(in->vecs[0][j]);
@@ -461,13 +461,12 @@ void Mod_LoadTexinfo (lump_t *l)
 			out->image = r_notexture;
 		}
 	}
-
 	// count animation frames
 	for (i = 0; i < count; i++)
 	{
 		out = &loadmodel->texinfo[i];
 		out->numframes = 1;
-		for (step = out->next ; step && step != out ; step=step->next)
+		for (step = out->next; step && step != out; step = step->next)
 			out->numframes++;
 	}
 }

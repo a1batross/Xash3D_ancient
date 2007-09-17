@@ -151,7 +151,7 @@ char *SV_StatusString (void)
 		cl = &svs.clients[i];
 		if (cl->state == cs_connected || cl->state == cs_spawned )
 		{
-			sprintf (player, "%i %i \"%s\"\n", cl->edict->client->ps.stats[STAT_FRAGS], cl->ping, cl->name);
+			sprintf (player, "%i %i \"%s\"\n", cl->edict->priv.sv->client->ps.stats[STAT_FRAGS], cl->ping, cl->name);
 			playerLength = strlen(player);
 			if (statusLength + playerLength >= sizeof(status) )
 				break;		// can't hold any more
@@ -396,7 +396,7 @@ gotnewcl:
 	sv_client = newcl;
 	edictnum = (newcl - svs.clients) + 1;
 
-	ent = EDICT_NUM(edictnum);
+	ent = PRVM_EDICT_NUM( edictnum );
 	newcl->edict = ent;
 	newcl->challenge = challenge; // save challenge for checksumming
 
@@ -556,7 +556,7 @@ void SV_CalcPings (void)
 #endif
 
 		// let the game dll know about the ping
-		cl->edict->client->ping = cl->ping;
+		cl->edict->priv.sv->client->ping = cl->ping;
 	}
 }
 
@@ -700,14 +700,14 @@ player processing happens outside RunWorldFrame
 */
 void SV_PrepWorldFrame (void)
 {
-	edict_t	*ent;
+	edict_t		*ent;
 	int		i;
 
-	for (i=0 ; i<ge->num_edicts ; i++, ent++)
+	for (i = 0; i < prog->num_edicts ; i++, ent++)
 	{
-		ent = EDICT_NUM(i);
+		ent = PRVM_EDICT_NUM(i);
 		// events only last for a single message
-		ent->s.event = 0;
+		ent->priv.sv->s.event = 0;
 	}
 
 }
@@ -768,6 +768,9 @@ void SV_Frame (float time)
 	// keep the random time dependent
 	rand ();
 
+	// setup the VM frame
+	SV_VM_Begin();
+
 	// check timeouts
 	SV_CheckTimeouts ();
 
@@ -809,6 +812,8 @@ void SV_Frame (float time)
 	// clear teleport flags, etc for next frame
 	SV_PrepWorldFrame ();
 
+	// end the server VM frame
+	SV_VM_End();
 }
 
 //============================================================================

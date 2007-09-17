@@ -3,7 +3,7 @@
 |TRIGGER_SETSKILL|
 +================+====================+
 |Description;		              |
-|Set skill to value of self.message.  |
+|Set skill to value of pev->message.  |
 +=====================================+
 */
 
@@ -12,9 +12,9 @@ void() trigger_setskill_touch =
 	if (other.classname != "player")
 		return;
 	
-	if(self.touched == FALSE)
+	if(pev->touched == FALSE)
 	{
-		cvar_set ("skill", self.message);
+		cvar_set ("skill", pev->message);
 	}
 };
 
@@ -22,8 +22,8 @@ void() trigger_setskill =
 {
 	trigger_setup();
 
-	self.classname = "setskill";
+	pev->classname = "setskill";
 
-	self.touch = trigger_setskill_touch;
+	pev->touch = trigger_setskill_touch;
 };
 

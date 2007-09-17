@@ -7,64 +7,62 @@ void() info_viewpoint_destination =
 {
 	trigger_setup();
 	
-	setorigin(self, self.origin);
+	setorigin(pev, pev->origin);
 	
-	setmodel (self, "progs/eyes.mdl");
-	self.modelindex = 0;	
+	setmodel (pev, "progs/eyes.mdl");
+	pev->modelindex = 0;	
 };
 
 void() trigger_change_viewpoint_touch;
 
 void() trigger_change_viewpoint_think1 = 
 {
-	self.touched = FALSE;
-	self.touch = trigger_change_viewpoint_touch;
+	pev->touched = FALSE;
+	pev->touch = trigger_change_viewpoint_touch;
 };
 
 void() trigger_change_viewpoint_think = 
 {
-	local entity e, oldself, oldtrig;
+	local entity e, oldpev, oldtrig;
 	
-	if(self.touched == TRUE)
+	if(pev->touched == TRUE)
 	{
-		e = find(world, targetname, self.target);
-		//e = self.triggerer.triggerer.triggerer;
-		self.triggerer.triggerer = self.triggerer;
+		e = find(world, targetname, pev->target);
+		//e = pev->triggerer.triggerer.triggerer;
+		pev->triggerer.triggerer = pev->triggerer;
 		
-		msg_entity = self.triggerer;        	 	
 		MsgBegin(SVC_SETVIEW); 	// Network Protocol: Set Viewpoint Entity
 		WriteEntity( e);       		// Write entity to clients.
-		MsgEnd(MSG_ONE, '0 0 0', self );
+		MsgEnd(MSG_ONE, '0 0 0', pev );
 		
-		//self.angles = e.mangles;
-		//self.fixangle = 1;	
+		//pev->angles = e.mangles;
+		//pev->fixangle = 1;	
 		
-		//self.triggerer.movetype = MOVETYPE_NONE;
+		//pev->triggerer.movetype = MOVETYPE_NONE;
 		
-		self.think = trigger_change_viewpoint_think;
-		self.nextthink = time + self.wait1;
+		pev->think = trigger_change_viewpoint_think;
+		pev->nextthink = time + pev->wait1;
 			
-		self.touched = FALSE;
+		pev->touched = FALSE;
 		
 		bprint("working\n");
 	}
-	else if(self.touched == FALSE)
+	else if(pev->touched == FALSE)
 	{
-		//self.triggerer = self.triggerer.triggerer;
+		//pev->triggerer = pev->triggerer.triggerer;
 		
-		msg_entity = self.triggerer;        	 	
 		MsgBegin(SVC_SETVIEW); 	// Network Protocol: Set Viewpoint Entity
-		WriteEntity(self.triggerer.triggerer);    
-		MsgEnd(MSG_ONE, '0 0 0', self );
+		WriteEntity(pev->triggerer.triggerer);    
+		MsgEnd(MSG_ONE, '0 0 0', pev );
 		
-		self.triggerer.movetype = MOVETYPE_WALK;
+		pev->triggerer.movetype = MOVETYPE_WALK;
 		
-		self.triggerer = world;
+		pev->triggerer = world;
 			
-		self.touched = TRUE;
+		pev->touched = TRUE;
 		
-		self.think =	trigger_change_viewpoint_think1;
-		self.nextthink = time + 2;
+		pev->think =	trigger_change_viewpoint_think1;
+		pev->nextthink = time + 2;
 	}
 };
 
@@ -73,14 +71,14 @@ void() trigger_change_viewpoint_touch =
 	if(!(other.flags & FL_CLIENT))
 		return;
 	
-	if(self.touched == FALSE)
+	if(pev->touched == FALSE)
 	{
-		self.touched = TRUE;
-		self.touch = SUB_Null;
-		self.triggerer = other;
+		pev->touched = TRUE;
+		pev->touch = SUB_Null;
+		pev->triggerer = other;
 		
-		self.think =	trigger_change_viewpoint_think;
-		self.nextthink = time + self.delay;
+		pev->think =	trigger_change_viewpoint_think;
+		pev->nextthink = time + pev->delay;
 		
 		bprint("touched");
 	}
@@ -88,28 +86,28 @@ void() trigger_change_viewpoint_touch =
 
 void() trigger_change_viewpoint_use = 
 {
-	if(self.touched == TRUE)
+	if(pev->touched == TRUE)
 		return;
 	
-	self.think =	trigger_change_viewpoint_think;
-	self.nextthink = time + self.delay;
+	pev->think =	trigger_change_viewpoint_think;
+	pev->nextthink = time + pev->delay;
 };
 
 void() trigger_change_viewpoint = 
 {
 	trigger_setup();
 		
-	if(!self.delay)
-		self.delay = 1;
-	if(!self.wait)
-		self.wait = 1;
+	if(!pev->delay)
+		pev->delay = 1;
+	if(!pev->wait)
+		pev->wait = 1;
 	
-	self.touch = trigger_change_viewpoint_touch;
-	self.use = trigger_change_viewpoint_use ;
+	pev->touch = trigger_change_viewpoint_touch;
+	pev->use = trigger_change_viewpoint_use ;
 	
-	if(!self.target)
+	if(!pev->target)
 	{
 		objerror("trigger_change_viewpoint: NO TARGET");
-		self.solid = SOLID_NOT;
+		pev->solid = SOLID_NOT;
 	}
 };

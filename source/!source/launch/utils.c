@@ -12,6 +12,18 @@ bool debug_mode = false;
 bool console_read_only = true;
 int dev_mode = 0;
 
+void Sys_SendKeyEvents( void )
+{
+	MSG	wmsg;
+
+	while (PeekMessage (&wmsg, NULL, 0, 0, PM_NOREMOVE))
+	{
+		if (!GetMessage (&wmsg, NULL, 0, 0)) break;
+		TranslateMessage (&wmsg);
+		DispatchMessage (&wmsg);
+	}
+}
+
 /*
 ====================
 Log_Timestamp

@@ -18,102 +18,95 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 // server.h
+#ifndef SERVER_H
+#define SERVER_H
 
-
-//define	PARANOID			// speed sapping error checking
-
-#include "ref_server.h"
-
+#include "progsvm.h"
+#include "vm_cmds.h"
 //=============================================================================
 
-typedef struct
+#define	MAX_MASTERS		8 // max recipients for heartbeat packets
+#define	LATENCY_COUNTS		16
+#define	RATE_MESSAGES		10
+
+typedef enum
 {
-	gclient_t	*clients;		// [maxclients]
-
-	int			maxclients;
-	int			maxentities;
-
-	bool			autosaved;
-} game_locals_t;
-
-#define	MAX_MASTERS	8				// max recipients for heartbeat packets
-
-typedef enum {
-	ss_dead,			// no map loaded
-	ss_loading,			// spawning level edicts
-	ss_game,			// actively running
+	ss_dead,		// no map loaded
+	ss_loading,	// spawning level edicts
+	ss_game,		// actively running
 	ss_cinematic,
 	ss_demo,
 	ss_pic
+
 } server_state_t;
-// some qc commands are only valid before the server has finished
-// initializing (precache commands, static sounds / objects, etc)
+
+typedef enum
+{
+	cs_free,		// can be reused for a new connection
+	cs_zombie,	// client has been disconnected, but don't reuse connection for a couple seconds
+	cs_connected,	// has been assigned to a client_t, but not in game yet
+	cs_spawned	// client is fully in game
+
+} client_state_t;
 
 typedef struct
 {
-	server_state_t	state;			// precache commands are only valid during load
+	server_state_t	state;		// precache commands are only valid during load
 
-	bool	attractloop;		// running cinematics and demos for the local system only
-	bool	loadgame;			// client begins should reuse existing entity
+	bool		attractloop;	// running cinematics and demos for the local system only
+	bool		loadgame;		// client begins should reuse existing entity
 
-	float		time;				// always sv.framenum * 100 msec
+	float		time;		// always sv.framenum * 100 msec
 	int		framenum;
 	float		frametime;
 
-	char		name[MAX_QPATH];			// map name, or cinematic name
-	struct cmodel_s		*models[MAX_MODELS];
+	char		name[MAX_QPATH];	// map name, or cinematic name
+	struct cmodel_s	*models[MAX_MODELS];
 
 	char		configstrings[MAX_CONFIGSTRINGS][MAX_QPATH];
 	entity_state_t	baselines[MAX_EDICTS];
 
 	// the multicast buffer is used to send a message to a set of clients
 	// it is only used to marshall data until SV_Message is called
-	sizebuf_t	multicast;
+	sizebuf_t		multicast;
 	byte		multicast_buf[MAX_MSGLEN];
 
 	// demo server information
 	file_t		*demofile;
 	bool		timedemo;		// don't time sync
 
-	byte		*mempool;
+	float		lastchecktime;
+	int		lastcheck;
+
+	// global 
+	edict_t		**edicts; // [max_edicts]
+	gclient_t		*clients;	// [maxclients]
+
+	bool		autosaved;
 } server_t;
-
-#define EDICT_NUM(n) ((edict_t *)((byte *)ge->edicts + ge->edict_size * (n) ))
-#define NUM_FOR_EDICT(e) ( ((byte *)(e) - (byte *)ge->edicts ) / ge->edict_size)
-
-typedef enum
-{
-	cs_free,		// can be reused for a new connection
-	cs_zombie,		// client has been disconnected, but don't reuse
-					// connection for a couple seconds
-	cs_connected,	// has been assigned to a client_t, but not in game yet
-	cs_spawned		// client is fully in game
-} client_state_t;
 
 typedef struct
 {
-	int  			areabytes;
-	byte 			areabits[MAX_MAP_AREAS/8];		// portalarea visibility bits
-	player_state_t		ps;
-	int  			num_entities;
-	int  			first_entity;		// into the circular sv_packet_entities[]
-	float			senttime;			// for ping calculations
-} client_frame_t;
+	int  		areabytes;
+	byte 		areabits[MAX_MAP_AREAS/8];	// portalarea visibility bits
+	player_state_t	ps;
+	int  		num_entities;
+	int  		first_entity;		// into the circular sv_packet_entities[]
+	float		senttime;			// for ping calculations
 
-#define	LATENCY_COUNTS	16
-#define	RATE_MESSAGES	10
+} client_frame_t;
 
 typedef struct client_s
 {
 	client_state_t	state;
 
-	char		userinfo[MAX_INFO_STRING];		// name, etc
+	char		userinfo[MAX_INFO_STRING];	// name, etc
 
-	int		lastframe;			// for delta compression
+	int		lastframe;		// for delta compression
 	usercmd_t		lastcmd;			// for filling in big drops
 
 	int		commandMsec;		// every seconds this is reset, if user
-										// commands exhaust it, assume time cheating
+						// commands exhaust it, assume time cheating
 
 	int		frame_latency[LATENCY_COUNTS];
 	int		ping;
@@ -122,7 +115,7 @@ typedef struct client_s
 	int		rate;
 	int		surpressCount;		// number of messages rate supressed
 
-	edict_t		*edict;				// EDICT_NUM(clientnum+1)
+	edict_t		*edict;			// EDICT_NUM(clientnum+1)
 	char		name[32];			// extracted from userinfo, high bits masked
 	int		messagelevel;		// for filtering printed messages
 
@@ -133,25 +126,27 @@ typedef struct client_s
 
 	client_frame_t	frames[UPDATE_BACKUP];	// updates can be delta'd from here
 
-	byte		*download;			// file being downloaded
+	byte		*download;		// file being downloaded
 	int		downloadsize;		// total bytes (can't use EOF because of paks)
 	int		downloadcount;		// bytes sent
 
 	float		lastmessage;		// sv.framenum when packet was last received
 	float		lastconnect;
 
-	int		challenge;			// challenge of this user, randomly generated
+	int		challenge;		// challenge of this user, randomly generated
 
 	netchan_t		netchan;
 } client_t;
 
-// a client can leave the server in one of four ways:
-// dropping properly by quiting or disconnecting
-// timing out if no valid messages are received for timeout.value seconds
-// getting kicked off by the server operator
-// a program error, like an overflowed reliable buffer
-
-//=============================================================================
+/*
+=============================================================================
+ a client can leave the server in one of four ways:
+ dropping properly by quiting or disconnecting
+ timing out if no valid messages are received for timeout.value seconds
+ getting kicked off by the server operator
+ a program error, like an overflowed reliable buffer
+=============================================================================
+*/
 
 // MAX_CHALLENGES is made large to prevent a denial
 // of service attack that could cycle all of them
@@ -163,21 +158,21 @@ typedef struct
 	netadr_t		adr;
 	int		challenge;
 	float		time;
-} challenge_t;
 
+} challenge_t;
 
 typedef struct
 {
-	bool		initialized;				// sv_init has completed
-	float		realtime;					// always increasing, no clamping, etc
+	bool		initialized;		// sv_init has completed
+	float		realtime;			// always increasing, no clamping, etc
 
 	char		mapcmd[MAX_TOKEN_CHARS];	// ie: *intro.cin+base 
 	char		comment[MAX_TOKEN_CHARS];	// map name, e.t.c. 
 
-	int		spawncount;					// incremented each server start
-											// used to check late spawns
+	int		spawncount;		// incremented each server start
+						// used to check late spawns
 
-	client_t		*clients;				// [maxclients->value];
+	client_t		*clients;			// [maxclients->value];
 	int		num_client_entities;	// maxclients->value*UPDATE_BACKUP*MAX_PACKET_ENTITIES
 	int		next_client_entities;	// next client_entity to use
 	entity_state_t	*client_entities;		// [num_client_entities]
@@ -197,45 +192,40 @@ typedef struct
 extern	netadr_t	net_from;
 extern	sizebuf_t	net_message;
 
-extern	netadr_t	master_adr[MAX_MASTERS];	// address of the master server
+extern	netadr_t	master_adr[MAX_MASTERS];		// address of the master server
 
-extern	server_static_t	svs;				// persistant server info
-extern	server_t		sv;					// local server
+extern	server_static_t	svs;			// persistant server info
+extern	server_t		sv;			// local server
 
 extern	cvar_t		*sv_paused;
 extern	cvar_t		*maxclients;
-extern	cvar_t		*sv_noreload;			// don't reload level state when reentering
+extern	cvar_t		*sv_noreload;		// don't reload level state when reentering
 extern	cvar_t		*sv_airaccelerate;		// don't reload level state when reentering
 extern	cvar_t		*sv_maxvelocity;
 extern	cvar_t		*sv_gravity;
-											// development tool
+						// development tool
 extern	cvar_t		*sv_enforcetime;
 
 extern	client_t		*sv_client;
 extern	edict_t		*sv_player;
-extern	game_locals_t	game;
+
 
 //===========================================================
-
 //
 // sv_main.c
 //
 void SV_FinalMessage (char *message, bool reconnect);
 void SV_DropClient (client_t *drop);
 
-int SV_ModelIndex (char *name);
-int SV_SoundIndex (char *name);
-int SV_ImageIndex (char *name);
+int SV_ModelIndex (const char *name);
+int SV_SoundIndex (const char *name);
+int SV_ImageIndex (const char *name);
 
 void SV_WriteClientdataToMessage (client_t *client, sizebuf_t *msg);
-
 void SV_ExecuteUserCommand (char *s);
 void SV_InitOperatorCommands (void);
-
 void SV_SendServerinfo (client_t *client);
 void SV_UserinfoChanged (client_t *cl);
-
-
 void Master_Heartbeat (void);
 void Master_Packet (void);
 
@@ -244,7 +234,9 @@ void Master_Packet (void);
 //
 void SV_InitGame (void);
 void SV_Map (bool attractloop, char *levelstring, char *savename, bool loadgame);
-
+void SV_VM_Setup(void);
+void SV_VM_Begin(void);
+void SV_VM_End(void);
 
 //
 // sv_phys.c
@@ -260,15 +252,13 @@ void SV_CheckGround (edict_t *ent);
 typedef enum {RD_NONE, RD_CLIENT, RD_PACKET} redirect_t;
 #define	SV_OUTPUTBUF_LENGTH	(MAX_MSGLEN - 16)
 
-extern	char	sv_outputbuf[SV_OUTPUTBUF_LENGTH];
+extern char sv_outputbuf[SV_OUTPUTBUF_LENGTH];
 
 void SV_FlushRedirect (int sv_redirected, char *outputbuf);
 
 void SV_DemoCompleted (void);
 void SV_SendClientMessages (void);
-void SV_StartSound (vec3_t origin, edict_t *entity, int channel,
-					int soundindex, float volume,
-					float attenuation, float timeofs);
+void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int index, float vol, float attn, float timeofs);
 void SV_ClientPrintf (client_t *cl, int level, char *fmt, ...);
 void SV_BroadcastPrintf (int level, char *fmt, ...);
 void SV_BroadcastCommand (char *fmt, ...);
@@ -290,38 +280,29 @@ void SV_Status_f (void);
 void SV_WriteFrameToClient (client_t *client, sizebuf_t *msg);
 void SV_RecordDemoMessage (void);
 void SV_BuildClientFrame (client_t *client);
-
+void SV_FatPVS ( vec3_t org );
 
 void SV_Error (char *error, ...);
 
 //
 // sv_game.c
 //
-extern	game_export_t	*ge;
-
 void SV_InitGameProgs (void);
 void SV_ShutdownGameProgs (void);
 void SV_InitEdict (edict_t *e);
-
-// misc game funcs
-void PF_error (char *fmt, ...);
-void PF_Configstring (int index, char *val);
-void PF_setmodel (edict_t *ent, char *name);
-void PF_cprintf (edict_t *ent, int level, char *fmt, ...);
-bool PF_inPVS (vec3_t p1, vec3_t p2);
-void PF_StartSound (edict_t *entity, int channel, int sound_num, float volume, float attenuation, float timeofs);
+void SV_ConfigString (int index, const char *val);
+void SV_SetModel (edict_t *ent, const char *name);
+bool PF_inpvs (vec3_t p1, vec3_t p2);
 
 //
 // sv_studio.c
 //
-
 byte *SV_GetModelPtr(edict_t *ent);
 int SV_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *maxs );
 
 //
 // sv_spawn.c
 //
-
 void SV_SpawnEntities (char *mapname, char *entities, char *spawnpoint);
 void SV_FreeEdict (edict_t *ed);
 void SV_InitEdict (edict_t *e);
@@ -338,7 +319,6 @@ void SV_TouchTriggers (edict_t *ent);
 //
 // sv_save.c
 //
-
 void SV_WriteSaveFile( char *name );
 void SV_ReadSaveFile( char *name );
 void SV_ReadLevelFile( char *name );
@@ -347,7 +327,6 @@ void SV_ReadLevelFile( char *name );
 //
 // high level object sorting to reduce interaction tests
 //
-
 void SV_ClearWorld (void);
 // called after the world model has been loaded, before linking any entities
 
@@ -390,3 +369,4 @@ trace_t SV_Trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, edict_t *p
 // to an open area
 
 // passedict is explicitly excluded from clipping checks (normally NULL)
+#endif//SERVER_H

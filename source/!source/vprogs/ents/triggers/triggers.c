@@ -17,20 +17,20 @@ void() trigger_setup =
 {
 	// trigger angles are used for one-way touches.  An angle of 0 is assumed
 	// to mean no restrictions, so use a yaw of 360 instead.
-	//if (self.angles != '0 0 0')
+	//if (pev->angles != '0 0 0')
 	//	SetMovedir ();
 	//not at the moment they are not.... 
 
-	self.solid = SOLID_TRIGGER;
-	self.movetype = MOVETYPE_NONE;
+	pev->solid = SOLID_TRIGGER;
+	pev->movetype = MOVETYPE_NONE;
 
-	setmodel (self, self.model);
-	setorigin(self, self.origin);	
+	setmodel (pev, pev->model);
+	setorigin(pev, pev->origin);	
 
-	if(self.spawnflags & TRIGGER_NO_MODEL)
+	if(pev->spawnflags & TRIGGER_NO_MODEL)
 	{
-		self.modelindex = 0;
-		self.model = "";
+		pev->modelindex = 0;
+		pev->model = "";
 	}
 };
 

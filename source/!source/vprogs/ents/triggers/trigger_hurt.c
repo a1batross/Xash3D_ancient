@@ -3,28 +3,28 @@
 |TRIGGER_HURT|
 +============+==============+
 |Description;		    |
-|Hurt player for self.dmg.  |
+|Hurt player for pev->dmg.  |
 +===========================+
 */
 
 void() trigger_hurt_think = 
 {
-	self.solid = SOLID_TRIGGER;
-	self.touched = FALSE;
+	pev->solid = SOLID_TRIGGER;
+	pev->touched = FALSE;
 };
 
 void() trigger_hurt_touch = 
 {
 	if(other.takedamage)
 	{
-		if(self.touched == FALSE)
+		if(pev->touched == FALSE)
 		{
-			T_Damage (other, self, self, self.dmg);
+			T_Damage (other, pev, pev, pev->dmg);
 	
-			self.touched = TRUE;
-			self.solid = SOLID_NOT;
-			self.think = trigger_hurt_think;
-			self.nextthink = time + 1;
+			pev->touched = TRUE;
+			pev->solid = SOLID_NOT;
+			pev->think = trigger_hurt_think;
+			pev->nextthink = time + 1;
 		}
 	}
 };
@@ -33,10 +33,10 @@ void() trigger_hurt =
 {
 	trigger_setup();
 	
-	self.touch = trigger_hurt_touch;
+	pev->touch = trigger_hurt_touch;
 		
-	if(!self.dmg)
-		self.dmg = 5;	
+	if(!pev->dmg)
+		pev->dmg = 5;	
 
-	self.classname = "t_hurt";
+	pev->classname = "t_hurt";
 };

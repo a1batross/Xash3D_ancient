@@ -121,17 +121,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // edict->movetype values
 
 // edict->flags
-#define	FL_FLY					0x00000001
-#define	FL_SWIM					0x00000002	// implied immunity to drowining
-#define FL_IMMUNE_LASER			0x00000004
-#define	FL_INWATER				0x00000008
-#define	FL_GODMODE				0x00000010
-#define	FL_NOTARGET				0x00000020
-#define FL_IMMUNE_SLIME			0x00000040
-#define FL_IMMUNE_LAVA			0x00000080
-#define	FL_PARTIALGROUND		0x00000100	// not all corners are valid
-#define	FL_WATERJUMP			0x00000200	// player jumping out of water
-#define	FL_ONGROUND		0x00000400
+#define	FL_CLIENT				(1<<0)	// this is client
+#define	FL_MONSTER			(1<<1)	// this is npc
+#define	FL_DEADMONSTER			(1<<2)	// dead npc or dead player
+#define	FL_WORLDBRUSH			(1<<3)	// Not moveable/removeable brush entity
+#define	FL_DORMANT			(1<<4)	// Entity is dormant, no updates to client
+#define	FL_FRAMETHINK			(1<<5)	// entity will be thinking every frame
+#define	FL_GRAPHED			(1<<6)	// worldgraph has this ent listed as something that blocks a connection
+#define	FL_FLOAT				(1<<7)	// this entity can be floating. FIXME: remove this ?
+#define	FL_TRACKTRAIN			(1<<8)	// old stuff...
 
 typedef enum
 {
@@ -260,7 +258,7 @@ typedef struct
 	cplane_t	plane;		// surface normal at impact
 	csurface_t	*surface;	// surface hit
 	int			contents;	// contents on other side of surface hit
-	struct edict_s	*ent;		// not set by CM_*() functions
+	edict_t		*ent;		// not set by CM_*() functions
 } trace_t;
 
 
@@ -343,14 +341,14 @@ typedef struct
 
 	// results (out)
 	int			numtouch;
-	struct edict_s	*touchents[MAXTOUCH];
+	edict_t		*touchents[MAXTOUCH];
 
 	vec3_t		viewangles;			// clamped
 	float		viewheight;
 
 	vec3_t		mins, maxs;			// bounding box size
 
-	struct edict_s	*groundentity;
+	edict_t		*groundentity;
 	int			watertype;
 	int			waterlevel;
 

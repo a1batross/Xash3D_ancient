@@ -202,7 +202,7 @@ S_FindName
 
 ==================
 */
-sfx_t *S_FindName (char *name, bool create)
+sfx_t *S_FindName (const char *name, bool create)
 {
 	int		i;
 	sfx_t	*sfx;
@@ -302,7 +302,7 @@ S_RegisterSound
 
 ==================
 */
-sfx_t *S_RegisterSound (char *name)
+sfx_t *S_RegisterSound (const char *name)
 {
 	sfx_t	*sfx;
 
@@ -731,7 +731,7 @@ void S_StartSound(vec3_t origin, int entnum, int entchannel, sfx_t *sfx, float f
 S_StartLocalSound
 ==================
 */
-int S_StartLocalSound (char *sound)
+int S_StartLocalSound (const char *sound)
 {
 	sfx_t	*sfx;
 

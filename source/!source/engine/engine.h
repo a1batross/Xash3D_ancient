@@ -23,7 +23,7 @@
 #include "sprite.h"
 #include "bspmodel.h" 
 #include <ref_system.h>
-#include "bspmodel.h"
+#include "vprogs.h"
 #include "const.h"
 #include "common.h"
 #include "cvar.h"
@@ -127,6 +127,7 @@ filesystem manager
 #define FS_FileBase( x, y ) Com->Fs.FileBase( x, y )
 #define FS_Find( x ) Com->Fs.Search( x, false )
 #define FS_Printf Com->Fs.Printf
+#define FS_Print Com->Fs.Print
 #define FS_Seek Com->Fs.Seek
 #define FS_Tell Com->Fs.Tell
 #define FS_Gets Com->Fs.Gets
@@ -198,5 +199,13 @@ System utilites
 ===========================================
 */
 void Sys_Error( const char *msg, ... );
+
+//
+// in_win.c
+//
+extern int mouse_x, mouse_y, old_mouse_x, old_mouse_y, mx_accum, my_accum;
+
+// vm_exec.c
+void PRVM_Init (void);
 
 #endif//ENGINE_H

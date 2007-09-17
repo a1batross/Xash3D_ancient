@@ -174,7 +174,7 @@ void SV_GameMap_f (void)
 	char		*map;
 	int			i;
 	client_t	*cl;
-	bool	*savedInuse;
+	bool	*savedFree;
 
 	if (Cmd_Argc() != 2)
 	{
@@ -189,22 +189,22 @@ void SV_GameMap_f (void)
 		// save the map just exited
 		if (sv.state == ss_game)
 		{
-			// clear all the client inuse flags before saving so that
+			// clear all the client free flags before saving so that
 			// when the level is re-entered, the clients will spawn
 			// at spawn points instead of occupying body shells
-			savedInuse = Z_Malloc(maxclients->value * sizeof(bool));
+			savedFree = Z_Malloc(maxclients->value * sizeof(bool));
 			for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
 			{
-				savedInuse[i] = cl->edict->inuse;
-				cl->edict->inuse = false;
+				savedFree[i] = cl->edict->priv.sv->free;
+				cl->edict->priv.sv->free = true;
 			}
 
 			SV_WriteSaveFile( "save0" ); //autosave
 
 			// we must restore these for clients to transfer over correctly
 			for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
-				cl->edict->inuse = savedInuse[i];
-			Z_Free (savedInuse);
+				cl->edict->priv.sv->free = savedFree[i];
+			Z_Free (savedFree);
 		}
 	}
 
@@ -309,7 +309,7 @@ void SV_Savegame_f (void)
 		return;
 	}
 
-	if (maxclients->value == 1 && svs.clients[0].edict->client->ps.stats[STAT_HEALTH] <= 0)
+	if (maxclients->value == 1 && svs.clients[0].edict->priv.sv->client->ps.stats[STAT_HEALTH] <= 0)
 	{
 		Msg ("\nCan't savegame while dead!\n");
 		return;
@@ -381,7 +381,7 @@ void SV_Status_f (void)
 	{
 		if (!cl->state) continue;
 		Msg ("%3i ", i);
-		Msg ("%5i ", cl->edict->client->ps.stats[STAT_FRAGS]);
+		Msg ("%5i ", cl->edict->priv.sv->client->ps.stats[STAT_FRAGS]);
 
 		if (cl->state == cs_connected)
 			Msg ("CNCT ");
@@ -626,11 +626,7 @@ Let the game dll handle a command
 */
 void SV_ServerCommand_f (void)
 {
-	if (!ge)
-	{
-		Msg ("No game loaded.\n");
-		return;
-	}
+	Msg ("No game loaded.\n");
 }
 
 //===========================================================

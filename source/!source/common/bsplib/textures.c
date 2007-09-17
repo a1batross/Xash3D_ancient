@@ -15,7 +15,7 @@ int FindMiptex (char *name)
 	
 	for (i = 0; i < nummiptex; i++ )
 	{
-		if (!strcmp (name, textureref[i].name))
+		if (!stricmp(name, textureref[i].name))
 			return i;
 	}
 	if (nummiptex == MAX_MAP_TEXTURES) Sys_Error ("MAX_MAP_TEXTURES");
@@ -33,11 +33,11 @@ int FindMiptex (char *name)
 	}
 	nummiptex++;
 
-	if (textureref[i].animname[0])
+	if (textureref[i].animname[0]) 
 	{
-		Msg("animname %s\n", textureref[i].animname );
-		FindMiptex(textureref[i].animname);
-          }
+		MsgDev(D_INFO, "FindMiptex: animation chain \"%s->%s\"\n", textureref[i].name, textureref[i].animname );
+		FindMiptex(textureref[i].name);
+	}
 	return i;
 }
 
@@ -189,17 +189,15 @@ int TexinfoForBrushTexture (plane_t *plane, brush_texture_t *bt, vec3_t origin)
 
 	// find the texinfo
 	tc = texinfo;
-	for (i=0 ; i<numtexinfo ; i++, tc++)
+	for (i = 0; i < numtexinfo; i++, tc++)
 	{
-		if (tc->flags != tx.flags)
-			continue;
-		if (tc->value != tx.value)
-			continue;
-		for (j=0 ; j<2 ; j++)
+		if (tc->flags != tx.flags) continue;
+		if (tc->value != tx.value) continue;
+		for (j = 0; j < 2; j++)
 		{
-			if (strcmp (tc->texture, tx.texture))
+			if (stricmp (tc->texture, tx.texture))
 				goto skip;
-			for (k=0 ; k<4 ; k++)
+			for (k = 0; k < 4; k++)
 			{
 				if (tc->vecs[j][k] != tx.vecs[j][k])
 					goto skip;
@@ -214,15 +212,13 @@ skip:;
 	// load the next animation
 	mt = FindMiptex (bt->name);
 
-	if (textureref[mt].animname)
+	if (textureref[mt].animname[0])
 	{
 		anim = *bt;
 		strcpy (anim.name, textureref[mt].animname);
 		tc->nexttexinfo = TexinfoForBrushTexture (plane, &anim, origin);
 	}
-	else
-		tc->nexttexinfo = -1;
-
+	else  tc->nexttexinfo = -1;
 
 	return i;
 }

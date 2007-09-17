@@ -10,26 +10,26 @@
 
 void() trigger_message_think = 
 {
-	self.touched = FALSE;	
+	pev->touched = FALSE;	
 	
-	if(self.message)
-		centerprint(self.triggerer, self.message);
-	if(self.message1)
+	if(pev->message)
+		centerprint(pev->triggerer, pev->message);
+	if(pev->message1)
 	{
-		sprint(self.triggerer, self.message1);	
-		sprint(self.triggerer, "\n");
+		sprint(pev->triggerer, pev->message1);	
+		sprint(pev->triggerer, "\n");
 	}
-	if(self.message2)
+	if(pev->message2)
 	{
-		dprint(self.message2);
+		dprint(pev->message2);
 		dprint("\n");
 	}
 	
-	if(self.target)
+	if(pev->target)
 		IEM_usetarget();
 
-	if(self.spawnflags & TRIGGER_ONCE)
-		remove(self);
+	if(pev->spawnflags & TRIGGER_ONCE)
+		remove(pev);
 }; 
 
 void() trigger_message_touch = 
@@ -37,50 +37,50 @@ void() trigger_message_touch =
 	if(!(other.flags & FL_CLIENT))
 		return;
 
-	if(self.touched == FALSE)
+	if(pev->touched == FALSE)
 	{
-		self.touched = TRUE;
+		pev->touched = TRUE;
 	
-		self.triggerer = other;
+		pev->triggerer = other;
 
-		self.think = trigger_message_think;
-		self.nextthink = time + self.delay;
+		pev->think = trigger_message_think;
+		pev->nextthink = time + pev->delay;
 	}
 };
 
 void() trigger_message_use = 
 {
-	if(self.touched == TRUE)
+	if(pev->touched == TRUE)
 		return;
 
-	self.touched = TRUE;
+	pev->touched = TRUE;
 
-	if(self.message)
-		centerprint(self.triggerer, self.message);
-	if(self.message1)
+	if(pev->message)
+		centerprint(pev->triggerer, pev->message);
+	if(pev->message1)
 	{
-		sprint(self.triggerer, self.message1);	
-		sprint(self.triggerer, "\n");
+		sprint(pev->triggerer, pev->message1);	
+		sprint(pev->triggerer, "\n");
 	}
-	if(self.message2)
+	if(pev->message2)
 	{
-		dprint(self.message2);
+		dprint(pev->message2);
 		dprint("\n");
 	}
 	
-	self.think = trigger_message_think;
-	self.nextthink = time + self.delay;
+	pev->think = trigger_message_think;
+	pev->nextthink = time + pev->delay;
 };
 
 void() trigger_message = 
 {
 	trigger_setup();
 	
-	if(!self.delay)
-		self.delay = 1;
+	if(!pev->delay)
+		pev->delay = 1;
 	
-	self.touch = trigger_message_touch;
-	self.use = trigger_message_use;
+	pev->touch = trigger_message_touch;
+	pev->use = trigger_message_use;
 
-	self.classname = "t_message";
+	pev->classname = "t_message";
 };

@@ -89,12 +89,19 @@ void Sys_ShowConsoleW( bool show )
 
 static LONG WINAPI ConWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	static bool s_timePolarity;
+	static bool	s_timePolarity;
+	PAINTSTRUCT	ps;
+	HDC		hdc;
 
 	switch (uMsg)
 	{
 	case WM_ACTIVATE:
 		if ( LOWORD( wParam ) != WA_INACTIVE ) SetFocus( s_wcd.hwndInputLine );
+		break;
+	case WM_PAINT:
+		hdc = BeginPaint(hWnd, (LPPAINTSTRUCT)&ps);
+		EndPaint(hWnd,(LPPAINTSTRUCT)&ps);
+		return TRUE;
 		break;
 	case WM_CLOSE:
 		if(sys_error)
@@ -129,7 +136,7 @@ static LONG WINAPI ConWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 	case WM_COMMAND:
 		if ( wParam == SUBMIT_ID )
 		{
-			SendMessage(s_wcd.hwndInputLine,WM_CHAR, 13, 0L);
+			SendMessage(s_wcd.hwndInputLine, WM_CHAR, 13, 0L);
 			SetFocus( s_wcd.hwndInputLine );
 		}
 		break;
@@ -197,11 +204,10 @@ print into window console
 void Sys_PrintW(const char *pMsg)
 {
 	char buffer[MAX_INPUTLINE*2];
+	static dword s_totalChars;
 	char *b = buffer;
 	const char *msg;
-	int bufLen;
-	int i = 0;
-	static unsigned long s_totalChars;
+	int	bufLen, i = 0;
 
 	// if the message is REALLY long, use just the last portion of it
 	if ( strlen( pMsg ) > MAX_INPUTLINE - 1 )

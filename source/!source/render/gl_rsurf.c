@@ -83,10 +83,9 @@ image_t *R_TextureAnimation (mtexinfo_t *tex)
 {
 	int		c;
 
-	if (!tex->next)
-		return tex->image;
+	if (!tex->next) return tex->image;
 
-	c = fmod(currententity->frame, tex->numframes);
+	c = (int)currententity->frame % tex->numframes;
 	while (c)
 	{
 		tex = tex->next;
@@ -95,81 +94,6 @@ image_t *R_TextureAnimation (mtexinfo_t *tex)
 
 	return tex->image;
 }
-
-#if 0
-/*
-=================
-WaterWarpPolyVerts
-
-Mangles the x and y coordinates in a copy of the poly
-so that any drawing routine can be water warped
-=================
-*/
-glpoly_t *WaterWarpPolyVerts (glpoly_t *p)
-{
-	int		i;
-	float	*v, *nv;
-	static byte	buffer[1024];
-	glpoly_t *out;
-
-	out = (glpoly_t *)buffer;
-
-	out->numverts = p->numverts;
-	v = p->verts[0];
-	nv = out->verts[0];
-	for (i = 0; i < p->numverts; i++, v+= VERTEXSIZE, nv+=VERTEXSIZE)
-	{
-		nv[0] = v[0] + 4*sin(v[1] * 0.05 + r_newrefdef.time) * sin(v[2] * 0.05 + r_newrefdef.time);
-		nv[1] = v[1] + 4*sin(v[0] * 0.05 + r_newrefdef.time) * sin(v[2] * 0.05 + r_newrefdef.time);
-
-		nv[2] = v[2];
-		nv[3] = v[3];
-		nv[4] = v[4];
-		nv[5] = v[5];
-		nv[6] = v[6];
-	}
-
-	return out;
-}
-
-/*
-================
-DrawGLWaterPoly
-
-Warp the vertex coordinates
-================
-*/
-void DrawGLWaterPoly (glpoly_t *p)
-{
-	int		i;
-	float	*v;
-
-	p = WaterWarpPolyVerts (p);
-	qglBegin (GL_TRIANGLE_FAN);
-	v = p->verts[0];
-	for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
-	{
-		qglTexCoord2f (v[3], v[4]);
-		qglVertex3fv (v);
-	}
-	qglEnd ();
-}
-void DrawGLWaterPolyLightmap (glpoly_t *p)
-{
-	int		i;
-	float	*v;
-
-	p = WaterWarpPolyVerts (p);
-	qglBegin (GL_TRIANGLE_FAN);
-	v = p->verts[0];
-	for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
-	{
-		qglTexCoord2f (v[5], v[6]);
-		qglVertex3fv (v);
-	}
-	qglEnd ();
-}
-#endif
 
 /*
 ================
@@ -1191,7 +1115,7 @@ void R_DrawWorld (void)
 
 	// auto cycle the world frame for texture animation
 	memset (&ent, 0, sizeof(ent));
-	ent.frame = (int)(r_newrefdef.time * 0.5);
+	ent.frame = (int)(r_newrefdef.time * 0.01);
 	currententity = &ent;
 
 	gl_state.currenttextures[0] = gl_state.currenttextures[1] = -1;

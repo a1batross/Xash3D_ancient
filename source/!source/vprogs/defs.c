@@ -14,120 +14,173 @@
 */
 
 // These lines CANNOT be altered/moved
-entity          	self;
-entity		other;
-entity		world;
-float		time;
-float		frametime;
-float		force_retouch;		// force all entities to touch triggers
-string		mapname;
-float		deathmatch;
-float		coop;
-float		teamplay;
-float		serverflags;		// propagated from level to level, used to
-float		total_secrets;
-float		total_monsters;
-float		found_secrets;		// number of secrets found
-float		killed_monsters;	// number of monsters killed
-float		parm1, parm2, parm3, parm4, parm5, parm6, parm7, parm8, parm9, parm10, parm11, parm12, parm13, parm14, parm15, parm16;
-vector		v_forward, v_up, v_right;	// set by makevectors()
-float		trace_allsolid;
-float		trace_startsolid;
-float		trace_fraction;
-vector		trace_endpos;
-vector		trace_plane_normal;
-float		trace_plane_dist;
-entity		trace_ent;
-float		trace_inopen;
-float		trace_inwater;
+	// pointers to ents
+	entity          	pev;		// Pointer EntVars (same as self)
+	entity		other;
+	entity		world;
 
-entity          	msg_entity;                      // destination of single entity writes
-void()          	main;                            // only for testing
-void()		StartFrame;
-void()		EndFrame;
-void() 		PlayerPreThink;
-void() 		PlayerPostThink;
-void()		ClientKill;
-void()		ClientConnect;
-void() 		PutClientInServer;		// call after setting the parm1... parms
-void()		ClientDisconnect;
-void()		SetNewParms;			// called when a client first connects to
-void()		SetChangeParms;			// call to set parms for self so they can
-void		end_sys_globals;		// flag for structure dumping
+	// timer
+	float		time;
+	float		frametime;
 
-.float		modelindex;		// *** model index in the precached list
-.vector		absmin, absmax;		// *** origin + mins / maxs
-.float		ltime;			// local time for entity
-.float		movetype;
-.float		solid;
-.vector		origin;			// ***
-.vector		oldorigin;		// ***
-.vector		velocity;
-.vector		angles;
-.vector		avelocity;
-.vector		punchangle;		// temp angle adjust from damage or recoil
-.string		classname;		// spawn function
-.string		model;
-.float		frame;
-.float		skin;
-.float		body;
-.float		effects;
-.float		sequence;
-.float		renderfx;
-.vector		mins, maxs;		// bounding box extents reletive to origin
-.vector		size;			// maxs - mins
-.void()		touch;
-.void()		use;
-.void()		think;
-.void()		blocked;		// for doors or plats, called when can't push other
-.float		nextthink;
-.entity		groundentity;
-.float		health;
-.float		frags;
-.float		weapon;			// one of the IT_SHOTGUN, etc flags
-.string		weaponmodel;
-.float		weaponframe;
-.float		currentammo;
-.float		ammo_shells, ammo_nails, ammo_rockets, ammo_cells;
-.float		items;			// bit flags
-.float		takedamage;
-.entity		chain;
-.float		deadflag;
-.vector		view_ofs;			// add to origin to get eye point
-.float		button0;		// fire
-.float		button1;		// use
-.float		button2;		// jump
-.float		impulse;		// weapon changes
-.float		fixangle;
-.vector		v_angle;		// view / targeting angle for players
-.float		idealpitch;		// calculated pitch angle for lookup up slopes
-.string		netname;
-.entity 		enemy;
-.float		flags;
-.float		colormap;
-.float		team;
-.float		max_health;		// players maximum health is stored here
-.float		teleport_time;	// don't back up
-.float		armortype;		// save this fraction of incoming damage
-.float		armorvalue;
-.float		waterlevel;		// 0 = not in, 1 = feet, 2 = wast, 3 = eyes
-.float		watertype;		// a contents value
-.float		ideal_yaw;
-.float		yaw_speed;
-.entity		aiment;
-.entity 		goalentity;		// a movetarget or an enemy
-.float		spawnflags;
-.string		target;
-.string		targetname;
-.float		dmg_take;
-.float		dmg_save;
-.entity		dmg_inflictor;
-.entity		owner;		// who launched a missile
-.vector		movedir;	// mostly for doors, but also used for waterjump
-.string		message;		// trigger messages
-.float		sounds;		// either a cd track number or sound number
-.string         	noise, noise1, noise2, noise3;  // contains names of wavs to play
+	// map global info
+	string		mapname;
+	string		startspot;
+	vector		spotoffset;
 
+	// gameplay modes
+	float		deathmatch;
+	float		coop;
+	float		teamplay;
+
+	float		serverflags;	// propagated from level to level, used to
+
+	// game info
+	float		total_secrets;
+	float		total_monsters;
+	float		found_secrets;	// number of secrets found
+	float		killed_monsters;	// number of monsters killed
+
+	// MakeVectors result
+	vector		v_forward;
+	vector              v_right;
+	vector		v_up;
+
+	// SV_trace result
+	float		trace_allsolid;
+	float		trace_startsolid;
+	float		trace_fraction;
+	vector		trace_endpos;
+	vector		trace_plane_normal;
+	float		trace_plane_dist;
+	float		trace_hitgroup;
+	float		trace_contents;
+	entity		trace_ent;
+	float		trace_flags;
+
+	void()          	main;                            // only for testing
+	void()		StartFrame;
+	void()		EndFrame;
+	void() 		PlayerPreThink;
+	void() 		PlayerPostThink;
+	void()		ClientKill;
+	void()		ClientConnect;
+	void() 		PutClientInServer;		// call after setting the parm1... parms
+	void()		ClientDisconnect;
+	void()		SetNewParms;			// called when a client first connects to
+	void()		SetChangeParms;			// call to set parms for self so they can
+
+void end_sys_globals;		// flag for structure dumping
+
+	// base entity info
+	.string		classname;
+	.string		globalname;
+	.float		modelindex;
+
+	// physics description
+	.vector		origin;
+	.vector		angles;
+	.vector		velocity;
+	.vector		avelocity;
+	.vector		post_origin;
+	.vector		post_angles;
+	.vector		post_velocity;
+	.vector		post_avelocity;
+	.vector		origin_offset;
+	.vector		angles_offset;
+
+	.float		bouncetype;
+	.float		movetype;
+	.float		solid;
+	.vector		absmin, absmax;
+	.vector		mins, maxs;
+	.vector		size;
+
+	// entity base description
+	.entity		chain;	// dynamic list of all ents
+	.string		model;
+	.float		frame;
+	.float		sequence;
+	.float		renderfx;
+	.float		effects;
+	.float		skin;
+	.float		body;
+	.string		weaponmodel;
+	.float		weaponframe;
+	
+	// base generic funcs
+	.void()		use;
+	.void()		touch;
+	.void()		think;
+	.void()		blocked;
+	.void()		activate;
+
+	// npc generic funcs
+	.void()		walk;
+	.void()		jump;
+	.void()		duck;
+
+	// flags
+	.float		flags;
+	.float		aiflags;
+	.float		spawnflags;
+				
+	// other variables
+	.entity		groundentity;
+	.float		nextthink;
+	.float		takedamage;
+	.float		health;
+
+	.float		frags;
+	.float		weapon;
+	.float		items;
+	.string		target;
+	.string		parent;
+	.string		targetname;
+	.entity		aiment;		// attachment edict
+	.entity		goalentity;
+	.vector		punchangle;	
+	.float		deadflag;
+	.vector		view_ofs;		//.entity		viewheight;
+	.float		button0;
+	.float		button1;
+	.float		button2;
+	.float		impulse;
+	.float		fixangle;
+	.vector		v_angle;
+	.float		idealpitch;
+	.string		netname;
+	.entity		enemy;
+	.float		colormap;
+	.float		team;
+	.float		max_health;
+	.float		teleport_time;
+	.float		armortype;
+	.float		armorvalue;
+	.float		waterlevel;
+	.float		watertype;
+	.float		ideal_yaw;
+	.float		yaw_speed;
+	.float		dmg_take;
+	.float		dmg_save;
+	.entity		dmg_inflictor;
+	.entity		owner;
+	.vector		movedir;
+	.string		message;
+	.float		sounds;
+	.string		noise;
+	.string		noise1;
+	.string		noise2;
+	.string		noise3;
+	.float		jumpup;
+	.float		jumpdn;
+	.entity		movetarget;
+	.float		mass;
+	.float		density;
+	.float		gravity;
+	.float		dmg;
+	.float		dmgtime;
+	.float		speed;
 void		end_sys_fields;			// flag for structure dumping
 // End. Lines below this MAY be altered, to some extent
 
@@ -240,19 +293,31 @@ float 	TRUE					= 1;
 #define	STAT_ZOOM			23
 #define	MAX_STATS			32
 
+// edict.aiflags
+#define AI_FLY			1	// monster is flying
+#define AI_SWIM			2	// swimming monster
+#define AI_ONGROUND			4	// monster is onground
+#define AI_PARTIALONGROUND		8	// monster is partially onground
+#define AI_GODMODE			16	// monster don't give damage at all
+#define AI_NOTARGET			32	// monster will no searching enemy's
+#define AI_NOSTEP			64	// Lazarus stuff
+#define AI_DUCKED			128	// monster (or player) is ducked
+#define AI_JUMPING			256	// monster (or player) is jumping
+#define AI_FROZEN			512	// stop moving, but continue thinking
+#define AI_ACTOR                	1024	// disable ai for actor
+#define AI_DRIVER			2048	// npc or player driving vehcicle or train
+#define AI_SPECTATOR		4096	// spectator mode for clients
+
 // edict.flags
-float	FL_FLY					= 1;
-float	FL_SWIM					= 2;
-float	FL_CLIENT				= 8;	// set for all client edicts
-float	FL_INWATER				= 16;	// for enter / leave water splash
-float	FL_MONSTER				= 32;
-float	FL_GODMODE				= 64;	// player cheat
-float	FL_NOTARGET				= 128;	// player cheat
-float	FL_ITEM					= 256;	// extra wide size for bonus items
-float	FL_ONGROUND				= 512;	// standing on something
-float	FL_PARTIALGROUND		= 1024;	// not all corners are valid
-float	FL_WATERJUMP			= 2048;	// player jumping out of water
-float	FL_JUMPRELEASED			= 4096;	// for jump debouncing
+#define	FL_CLIENT			1	// this is client
+#define	FL_MONSTER		2	// this is npc
+#define	FL_DEADMONSTER		4
+#define	FL_WORLDBRUSH		8	// Not moveable/removeable brush entity
+#define	FL_DORMANT		16	// Entity is dormant, no updates to client
+#define	FL_FRAMETHINK		32	// entity will be thinking every frame
+#define	FL_GRAPHED		64	// ainode list member 
+#define	FL_FLOAT			128	// this entity can be floating. FIXME: remove this ?
+#define	FL_TRACKTRAIN		256	// this is tracktrain entity
 
 // edict.movetype values
 float	MOVETYPE_NONE			= 0;	// never moves
@@ -424,7 +489,7 @@ string string_null;    // null string, nothing should be held here
 void(vector o, vector d, float color, float count) particle = #48;// start a particle effect
 void(string s) bprint				= #23;
 void(entity client, string s) sprint		= #24;
-void() SUB_Remove = {remove(self);};
+void() SUB_Remove = {remove(pev);};
 // End
 
 // Damage.qc

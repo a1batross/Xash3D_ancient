@@ -20,7 +20,7 @@ FUNC_SETUP();
 
 Description;
 This function is used by ALL our map func_'s. It sets up the func_'s basic and most common properties;
-With the only exception being 'self.movetype = MOVETYPE_PUSH;' which usually gets set to something else
+With the only exception being 'pev->movetype = MOVETYPE_PUSH;' which usually gets set to something else
 in the func_'s spawning function after this has been called. It's included because out of the func_'s we have so far
 more require this field to be set to that than any other.
 */
@@ -28,12 +28,12 @@ void() func_setup =
 {
 	SetMovedir ();
 	
-	self.solid = SOLID_BSP;
-	self.movetype = MOVETYPE_PUSH;
+	pev->solid = SOLID_BSP;
+	pev->movetype = MOVETYPE_PUSH;
 	
-	setorigin (self, self.origin);	
-	setmodel (self, self.model);
-	setsize (self, self.mins , self.maxs);
+	setorigin (pev, pev->origin);	
+	setmodel (pev, pev->model);
+	setsize (pev, pev->mins , pev->maxs);
 };
 
 /*
@@ -48,7 +48,7 @@ void() func_illusionary =
 {
 	func_setup();
 	
-	self.solid = SOLID_TRIGGER;
+	pev->solid = SOLID_TRIGGER;
 };
 
 /*
@@ -64,10 +64,10 @@ Jon Eriksson - For the idea and base code!
 
 void() func_place_model = 
 {
-	precache_model (self.model);
+	precache_model (pev->model);
 	
 	func_setup();
 	
-	self.movetype = MOVETYPE_NONE;
+	pev->movetype = MOVETYPE_NONE;
 };
 

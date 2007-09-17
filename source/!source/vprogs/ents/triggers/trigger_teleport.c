@@ -11,15 +11,15 @@ void(entity ono, entity duo)setangles =
 
 void() spawn_tdeath_touch =
 {
-	if (other == self.owner)
+	if (other == pev->owner)
 		return;
 
 	// frag anyone who teleports in on top of an invincible player
 	if (other.classname == "player")
 	{
-		if (self.owner.classname != "player")
+		if (pev->owner.classname != "player")
 		{	
-			T_Damage (self.owner, self, self, 50000);
+			T_Damage (pev->owner, pev, pev, 50000);
 			return;
 		}
 		
@@ -27,7 +27,7 @@ void() spawn_tdeath_touch =
 
 	if (other.health)
 	{
-		T_Damage (other, self, self, 50000);
+		T_Damage (other, pev, pev, 50000);
 	}
 };
 
@@ -56,24 +56,24 @@ void() trigger_teleport_think =
 {
 	local entity t;
 
-	t = find (world, targetname, self.target);
+	t = find (world, targetname, pev->target);
 	
 	if (!t)
 		objerror ("couldn't find target");
 	
-	IEM_effects(TE_TELEPORT, self.triggerer.origin);
+	IEM_effects(TE_TELEPORT, pev->triggerer.origin);
 	
-	spawn_tdeath(t.origin, self.triggerer);
+	spawn_tdeath(t.origin, pev->triggerer);
 
-	setorigin(self.triggerer, t.origin);
-	setangles(self.triggerer, t);
+	setorigin(pev->triggerer, t.origin);
+	setangles(pev->triggerer, t);
 
 	IEM_effects(TE_TELEPORT, t.origin);
 	
-	if(self.message)
-		centerprint(self.triggerer, self.message);
+	if(pev->message)
+		centerprint(pev->triggerer, pev->message);
 	
-	self.touched = FALSE;	
+	pev->touched = FALSE;	
 };
 
 void() trigger_teleport_touch = 
@@ -81,25 +81,25 @@ void() trigger_teleport_touch =
 	if(!(other.flags & FL_CLIENT))
 		return;
 
-	if(self.touched == FALSE)
+	if(pev->touched == FALSE)
 	{
-		self.touched = TRUE;
+		pev->touched = TRUE;
 	
-		self.triggerer = other;
+		pev->triggerer = other;
 
-		self.think = trigger_teleport_think;
-		self.nextthink = time + self.delay;
+		pev->think = trigger_teleport_think;
+		pev->nextthink = time + pev->delay;
 	}
 };
 
 void() trigger_teleport_use =
 {	
-	//if(self.touched == TRUE)
+	//if(pev->touched == TRUE)
 	//	return;
-	if(self.touched == TRUE)
-		self.touched = FALSE;
-	//self.think = trigger_teleport_think;
-	//self.nextthink = time + self.delay;
+	if(pev->touched == TRUE)
+		pev->touched = FALSE;
+	//pev->think = trigger_teleport_think;
+	//pev->nextthink = time + pev->delay;
 };
 
 
@@ -107,25 +107,25 @@ void() trigger_teleport =
 {
 	trigger_setup();
 
-	self.touch = trigger_teleport_touch;
-	self.use = trigger_teleport_use;
+	pev->touch = trigger_teleport_touch;
+	pev->use = trigger_teleport_use;
 
-	if (!self.target)
+	if (!pev->target)
 		objerror ("no target");
 		
-	if(self.spawnflags & TRIGGER_START_OFF)
-		self.touched = TRUE;
+	if(pev->spawnflags & TRIGGER_START_OFF)
+		pev->touched = TRUE;
 	
-	if(!self.delay)
-		self.delay = 0.1;
+	if(!pev->delay)
+		pev->delay = 0.1;
 	
-	self.classname = "t_teleport";
+	pev->classname = "t_teleport";
 
 	/*
-	if (!(self.spawnflags & SILENT))
+	if (!(pev->spawnflags & SILENT))
 	{
 		//precache_sound ("ambience/hum1.wav");
-		//o = (self.mins + self.maxs)*0.5;
+		//o = (pev->mins + pev->maxs)*0.5;
 		//ambientsound (o, "ambience/hum1.wav",0.5 , ATTN_STATIC);
 	}
 	*/
@@ -134,11 +134,11 @@ void() trigger_teleport =
 void() info_teleport_destination =
 {
 // this does nothing, just serves as a target spot
-	self.mangle = self.angles;
-	self.angles = '0 0 0';
-	self.model = "";
-	self.origin = self.origin + '0 0 27';
-	if (!self.targetname)
+	pev->mangle = pev->angles;
+	pev->angles = '0 0 0';
+	pev->model = "";
+	pev->origin = pev->origin + '0 0 27';
+	if (!pev->targetname)
 		objerror ("no targetname");
 };
 

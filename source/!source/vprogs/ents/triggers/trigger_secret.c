@@ -8,7 +8,7 @@ void() trigger_secret_think =
 {
 	total_secrets++;
 	
-	if(self.target)
+	if(pev->target)
 		IEM_usetarget();
 	
 };
@@ -18,20 +18,20 @@ void() trigger_secret_touch =
 	if(!(other.flags & FL_CLIENT))
 		return;
 	
-	if(self.touched == FALSE)
+	if(pev->touched == FALSE)
 	{	
-		if (!self.message)
-			self.message = "You found a secret area!";
+		if (!pev->message)
+			pev->message = "You found a secret area!";
 		else
-			centerprint(other, self.message);	
+			centerprint(other, pev->message);	
 
-		if(self.delay)
+		if(pev->delay)
 		{
-			self.think = trigger_secret_think;
-			self.nextthink = time + self.delay;
+			pev->think = trigger_secret_think;
+			pev->nextthink = time + pev->delay;
 		}
 	
-		self.touched = TRUE;
+		pev->touched = TRUE;
 	}
 };
 
@@ -39,8 +39,8 @@ void() trigger_secret =
 {
 	trigger_setup();
 
-	self.touch = trigger_secret_touch;
+	pev->touch = trigger_secret_touch;
 	
-	if(!self.delay)
-		self.delay = 0.1;
+	if(!pev->delay)
+		pev->delay = 0.1;
 };

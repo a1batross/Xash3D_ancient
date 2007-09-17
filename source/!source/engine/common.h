@@ -131,7 +131,7 @@ int COM_CheckParm (char *parm);
 void COM_Init (void);
 void COM_InitArgv (int argc, char **argv);
 
-char *CopyString (char *in);
+char *CopyString (const char *in);
 
 //============================================================================
 
@@ -406,7 +406,7 @@ void	Cmd_AddCommand (char *cmd_name, xcommand_t function);
 // as a clc_stringcmd instead of executed locally
 void	Cmd_RemoveCommand (char *cmd_name);
 
-bool Cmd_Exists (char *cmd_name);
+bool Cmd_Exists (const char *cmd_name);
 // used by the cvar code to check for cvar / command name overlap
 
 char 	*Cmd_CompleteCommand (char *partial);
@@ -420,11 +420,11 @@ char	*Cmd_Args (void);
 // functions. Cmd_Argv () will return an empty string, not a NULL
 // if arg > argc, so string operations are always safe.
 
-void	Cmd_TokenizeString (char *text, bool macroExpand);
+void	Cmd_TokenizeString (const char *text, bool macroExpand);
 // Takes a null terminated string.  Does not need to be /n terminated.
 // breaks the string up into arg tokens.
 
-void	Cmd_ExecuteString (char *text);
+void	Cmd_ExecuteString (const char *text);
 // Parses a single line of text into arguments and tries to execute it
 // as if it was typed at the console
 

@@ -300,6 +300,18 @@ SOURCE=.\vid_dll.c
 
 SOURCE=.\vid_menu.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\common\vm_cmds.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\vm_edict.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\vm_exec.c
+# End Source File
 # End Group
 # Begin Group "Header Files"
 
@@ -350,6 +362,14 @@ SOURCE=..\public\platform.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\progdefs.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\progsvm.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\common\qmenu.h
 # End Source File
 # Begin Source File
@@ -371,6 +391,10 @@ SOURCE=.\sound.h
 # Begin Source File
 
 SOURCE=.\common\vid.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\vm_cmds.h
 # End Source File
 # End Group
 # End Target

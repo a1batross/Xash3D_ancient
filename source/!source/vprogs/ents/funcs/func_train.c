@@ -21,15 +21,15 @@ If the train has the 'wait' field set on its spawn it waits the alloted time the
 
 void() func_train_wait =
 {
-	if (self.wait)
+	if (pev->wait)
 	{
-		self.nextthink = self.ltime + self.wait;
-		//sound (self, CHAN_VOICE, self.noise, 1, ATTN_NORM);
+		pev->nextthink = time + pev->wait;
+		//sound (pev, CHAN_VOICE, pev->noise, 1, ATTN_NORM);
 	}
 	else
-		self.nextthink = self.ltime + 0.1;
+		pev->nextthink = time + 0.1;
 	
-	self.think = func_train_next;
+	pev->think = func_train_next;
 };
 
 /*
@@ -44,21 +44,21 @@ void() func_train_next =
 {
 	local entity	targ;
 
-	targ = find (world, targetname, self.target);
+	targ = find (world, targetname, pev->target);
 
-	self.target = targ.target;
+	pev->target = targ.target;
 
-	if (!self.target)
+	if (!pev->target)
 		objerror ("train_next: no next target");
 
 	if (targ.wait)
-		self.wait = targ.wait;
+		pev->wait = targ.wait;
 	else
-		self.wait = 0;
+		pev->wait = 0;
 
-	//sound (self, CHAN_VOICE, self.noise1, 1, ATTN_NORM);
+	//sound (pev, CHAN_VOICE, pev->noise1, 1, ATTN_NORM);
 
-	func_mover_move (targ.origin - self.mins, self.speed, func_train_wait);
+	func_mover_move (targ.origin - pev->mins, pev->speed, func_train_wait);
 };
 
 /*
@@ -72,16 +72,16 @@ void() func_train_find =
 {
 	local entity	targ;
 
-	targ = find (world, targetname, self.target);
+	targ = find (world, targetname, pev->target);
 
-	self.target = targ.target;
+	pev->target = targ.target;
 
-	setorigin (self, targ.origin - self.mins);
+	setorigin (pev, targ.origin - pev->mins);
 
-	if (!self.targetname)				// not triggered, so start immediately
+	if (!pev->targetname)				// not triggered, so start immediately
 	{
-		self.nextthink = self.ltime + 0.1;
-		self.think = func_train_next;
+		pev->nextthink = time + 0.1;
+		pev->think = func_train_next;
 	}
 };
 
@@ -95,11 +95,11 @@ If targeted the train starts moving then cannot be used/targetted again;
 
 void() func_train_use = 
 {
-	if(self.touched == FALSE)
+	if(pev->touched == FALSE)
 	{
-		self.touched = TRUE;
-		self.nextthink = self.ltime + 0.1;
-		self.think = func_train_next;
+		pev->touched = TRUE;
+		pev->nextthink = time + 0.1;
+		pev->think = func_train_next;
 	}
 };
 
@@ -114,19 +114,19 @@ void() func_train =
 {
 	func_setup();					
 	
-	setsize (self, self.mins , self.maxs);
+	setsize (pev, pev->mins , pev->maxs);
 
-	self.classname = "train";
+	pev->classname = "train";
 	
 	//func_train defaults;
-	if (!self.speed)
-		self.speed = 100;
-	if (!self.target)
+	if (!pev->speed)
+		pev->speed = 100;
+	if (!pev->target)
 		objerror ("func_train without a target");
-	if (!self.dmg)
-		self.dmg = 2;
+	if (!pev->dmg)
+		pev->dmg = 2;
 
-	self.nextthink = self.ltime + 0.1;
-	self.think = func_train_find;
+	pev->nextthink = time + 0.1;
+	pev->think = func_train_find;
 };
 

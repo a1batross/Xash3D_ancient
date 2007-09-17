@@ -7,17 +7,17 @@
 */
 void() trigger_changelevel_touch = 
 {
-	changelevel(self.map);
+	changelevel(pev->map);
 };
 
 void() trigger_changelevel = 
 {
-	if (!self.map)
+	if (!pev->map)
 		objerror ("chagnelevel trigger doesn't have map");
 
 	trigger_setup();
 	
-	self.touch = trigger_changelevel_touch;	
+	pev->touch = trigger_changelevel_touch;	
 };
 
 

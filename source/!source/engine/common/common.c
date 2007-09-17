@@ -148,7 +148,7 @@ void COM_InitArgv (int argc, char **argv)
 	srand(time(NULL)); // init random generator
 }
 
-char *CopyString (char *in)
+char *CopyString (const char *in)
 {
 	char	*out;
 	

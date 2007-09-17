@@ -19,174 +19,488 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // sv_game.c -- interface to the game dll
 
-#include <windows.h>
 #include "engine.h"
 #include "server.h"
 
-game_export_t	*ge;
-HINSTANCE		sv_library;
-game_locals_t	game;
-
 /*
-===============
-PF_dprintf
+==============
+PF_makevectors
 
-Debug print to server console
-===============
+Writes new values for v_forward, v_up, and v_right based on angles
+makevectors(vector)
+==============
 */
-void PF_dprintf (char *fmt, ...)
+void PF_makevectors (void)
 {
-	char		msg[1024];
-	va_list		argptr;
-	
-	va_start (argptr,fmt);
-	vsprintf (msg, fmt, argptr);
-	va_end (argptr);
-
-	Msg ("%s", msg);
+	AngleVectors(PRVM_G_VECTOR(OFS_PARM0), prog->globals.server->v_forward, prog->globals.server->v_right, prog->globals.server->v_up);
 }
 
+void PF_makevectors2 (void)
+{
+	AngleVectorsFLU(PRVM_G_VECTOR(OFS_PARM0), prog->globals.server->v_forward, prog->globals.server->v_right, prog->globals.server->v_up);
+}
 
 /*
-===============
-PF_cprintf
+=================
+PF_setorigin
 
-Print to a single client
-===============
+This is the only valid way to move an object without using the physics of the world (setting velocity and waiting).  Directly changing origin will not set internal links correctly, so clipping would be messed up.  This should be called when an object is spawned, and then only if it is teleported.
+
+setorigin (entity, origin)
+=================
 */
-void PF_cprintf (edict_t *ent, int level, char *fmt, ...)
+void PF_setorigin (void)
 {
-	char		msg[1024];
-	va_list		argptr;
-	int			n;
+	edict_t	*e;
+	float	*org;
 
-	if (ent)
+	e = PRVM_G_EDICT(OFS_PARM0);
+	if (e == prog->edicts)
 	{
-		n = NUM_FOR_EDICT(ent);
-		if (n < 1 || n > maxclients->value)
-			Host_Error("cprintf to a non-client\n");
-	}
-
-	va_start (argptr,fmt);
-	vsprintf (msg, fmt, argptr);
-	va_end (argptr);
-
-	if (ent)
-		SV_ClientPrintf (svs.clients+(n-1), level, "%s", msg);
-	else
-		Msg ("%s", msg);
-}
-
-
-/*
-===============
-PF_centerprintf
-
-centerprint to a single client
-===============
-*/
-void PF_centerprintf (edict_t *ent, char *fmt, ...)
-{
-	char		msg[1024];
-	va_list		argptr;
-	int			n;
-	
-	n = NUM_FOR_EDICT(ent);
-	if (n < 1 || n > maxclients->value)
+		VM_Warning("setorigin: can not modify world entity\n");
 		return;
-
-	va_start (argptr,fmt);
-	vsprintf (msg, fmt, argptr);
-	va_end (argptr);
-
-	MSG_Begin( svc_centerprint );
-	MSG_WriteString (&sv.multicast, msg);
-	MSG_Send(MSG_ONE_R, NULL, ent );
+	}
+	if (e->priv.sv->free)
+	{
+		VM_Warning("setorigin: can not modify free entity\n");
+		return;
+	}
+	org = PRVM_G_VECTOR(OFS_PARM1);
+	VectorCopy (org, e->progs.sv->origin);
+	SV_LinkEdict (e);
 }
 
+
+void SetMinMaxSize (edict_t *e, float *min, float *max, bool rotate)
+{
+	int		i;
+
+	for (i = 0; i < 3; i++)
+		if (min[i] > max[i])
+			PRVM_ERROR("SetMinMaxSize: backwards mins/maxs");
+
+	// set derived values
+	VectorCopy (min, e->progs.sv->mins);
+	VectorCopy (max, e->progs.sv->maxs);
+	VectorSubtract (max, min, e->progs.sv->size);
+
+	SV_LinkEdict (e);
+}
+
+
+//test for stats
+void PF_SetStats( void )
+{
+	edict_t	*e;	
+	int		stat_num;
+	const char	*string;
+	short		value;
+
+	e = PRVM_G_EDICT(OFS_PARM0);
+
+	if(!e->priv.sv->client) return;
+	
+	stat_num = (int)PRVM_G_FLOAT(OFS_PARM1);
+
+	if(stat_num < 0 || stat_num > MAX_STATS) return;
+
+	string = PRVM_G_STRING(OFS_PARM2);
+
+	switch(stat_num)
+	{
+	case STAT_HEALTH_ICON:
+		value = SV_ImageIndex( string );
+		break;
+	case STAT_HEALTH:
+		value = atoi( string );
+		break;
+	case STAT_HELPICON:
+		value = SV_ImageIndex( string );
+		break;		
+	default:
+		MsgWarn("unknown stat type %d\n", stat_num );
+		return;
+	}
+	e->priv.sv->client->ps.stats[stat_num] = value;
+}
 
 /*
-===============
-PF_error
+=================
+PF_setsize
 
-Abort the server with a game error
-===============
+the size box is rotated by the current angle
+LordHavoc: no it isn't...
+
+setsize (entity, minvector, maxvector)
+=================
 */
-void PF_error (char *fmt, ...)
+void PF_setsize (void)
 {
-	char		msg[1024];
-	va_list		argptr;
-	
-	va_start (argptr,fmt);
-	vsprintf (msg, fmt, argptr);
-	va_end (argptr);
+	edict_t	*e;
+	float	*min, *max;
 
-	Host_Error("Game Error: %s\n", msg);
+	e = PRVM_G_EDICT(OFS_PARM0);
+	if (e == prog->edicts)
+	{
+		VM_Warning("setsize: can not modify world entity\n");
+		return;
+	}
+	if (e->priv.sv->free)
+	{
+		VM_Warning("setsize: can not modify free entity\n");
+		return;
+	}
+	min = PRVM_G_VECTOR(OFS_PARM1);
+	max = PRVM_G_VECTOR(OFS_PARM2);
+	SetMinMaxSize (e, min, max, false);
 }
 
+void SV_SetModel (edict_t *ent, const char *name)
+{
+	int		i;
+	cmodel_t		*mod;
+
+	i = SV_ModelIndex( name );
+	ent->progs.sv->model = PRVM_SetEngineString(sv.configstrings[CS_MODELS+i]);
+	ent->progs.sv->modelindex = ent->priv.sv->s.modelindex = i;
+
+	mod = CM_LoadModel(sv.configstrings[CS_MODELS+i]);
+	if(mod) SetMinMaxSize( ent, mod->mins, mod->maxs, false );
+}
 
 /*
 =================
 PF_setmodel
 
-Also sets mins and maxs for inline bmodels
+setmodel(entity, model)
 =================
 */
-void PF_setmodel (edict_t *ent, char *name)
+void PF_setmodel( void )
+{
+	edict_t		*e;
+
+	e = PRVM_G_EDICT(OFS_PARM0);
+	if (e == prog->edicts)
+	{
+		VM_Warning("setmodel: can not modify world entity\n");
+		return;
+	}
+	if (e->priv.sv->free)
+	{
+		VM_Warning("setmodel: can not modify free entity\n");
+		return;
+	}
+	SV_SetModel( e, PRVM_G_STRING(OFS_PARM1) ); 
+}
+
+/*
+=================
+PF_sprint
+
+single print to a specific client
+
+sprint(clientent, value)
+=================
+*/
+void PF_sprint (void)
+{
+	client_t		*client;
+	int		num;
+	char string[VM_STRINGTEMP_LENGTH];
+
+	num = PRVM_G_EDICTNUM(OFS_PARM0);
+
+	if (num < 1 || num > host.maxclients || svs.clients[num - 1].state != cs_spawned)
+	{
+		VM_Warning("tried to centerprint to a non-client\n");
+		return;
+	}
+
+	client = svs.clients + num-1;
+
+	VM_VarString(1, string, sizeof(string));
+	SV_ClientPrintf (client, PRINT_HIGH, "%s", string );
+}
+
+
+/*
+=================
+PF_centerprint
+
+single print to a specific client
+
+centerprint(clientent, value)
+=================
+*/
+void PF_centerprint (void)
+{
+	client_t		*client;
+	int		num;
+	char string[VM_STRINGTEMP_LENGTH];
+
+	num = PRVM_G_EDICTNUM(OFS_PARM0);
+
+	if(num < 1 || num > host.maxclients || svs.clients[num-1].state != cs_spawned)
+	{
+		VM_Warning("tried to centerprint to a non-client\n");
+		return;
+	}
+
+	client = svs.clients + num - 1;
+
+	VM_VarString(1, string, sizeof(string));
+	MSG_Begin( svc_centerprint );
+	MSG_WriteString (&sv.multicast, string );
+	MSG_Send(MSG_ONE_R, NULL, client->edict );
+}
+
+/*
+=================
+PF_particle
+
+particle(origin, color, count)
+=================
+*/
+void PF_particle (void)
+{
+	float		*org, *dir;
+	float		color;
+	float		count;
+
+	org = PRVM_G_VECTOR(OFS_PARM0);
+	dir = PRVM_G_VECTOR(OFS_PARM1);
+	color = PRVM_G_FLOAT(OFS_PARM2);
+	count = PRVM_G_FLOAT(OFS_PARM3);
+	
+//SV_StartParticle (org, dir, (int)color, (int)count);
+}
+
+
+/*
+=================
+PF_ambientsound
+
+=================
+*/
+void PF_ambientsound (void)
+{
+	const char	*samp;
+	float		*pos;
+	float 		vol, attenuation;
+	int			soundnum, large;
+
+	pos = PRVM_G_VECTOR (OFS_PARM0);
+	samp = PRVM_G_STRING(OFS_PARM1);
+	vol = PRVM_G_FLOAT(OFS_PARM2);
+	attenuation = PRVM_G_FLOAT(OFS_PARM3);
+
+	// check to see if samp was properly precached
+	soundnum = SV_SoundIndex(samp);
+	if (!soundnum) return;
+
+	large = false;
+	if (soundnum >= 256) large = true;
+
+	// unsupported
+}
+
+/*
+=================
+PF_sound
+
+Each entity can have eight independant sound sources, like voice,
+weapon, feet, etc.
+
+Channel 0 is an auto-allocate channel, the others override anything
+already running on that entity/channel pair.
+
+An attenuation of 0 will play full volume everywhere in the level.
+Larger attenuations will drop off.
+
+=================
+*/
+void PF_sound (void)
+{
+	const char	*sample;
+	int		channel, sound_idx;
+	edict_t	*entity;
+	int 		volume;
+	float		attenuation;
+
+	entity = PRVM_G_EDICT(OFS_PARM0);
+	channel = (int)PRVM_G_FLOAT(OFS_PARM1);
+	sample = PRVM_G_STRING(OFS_PARM2);
+	volume = (int)(PRVM_G_FLOAT(OFS_PARM3) * 255);
+	attenuation = PRVM_G_FLOAT(OFS_PARM4);
+
+	if (volume < 0 || volume > 255)
+	{
+		VM_Warning("SV_StartSound: volume must be in range 0-1\n");
+		return;
+	}
+
+	if (attenuation < 0 || attenuation > 4)
+	{
+		VM_Warning("SV_StartSound: attenuation must be in range 0-4\n");
+		return;
+	}
+
+	if (channel < 0 || channel > 7)
+	{
+		VM_Warning("SV_StartSound: channel must be in range 0-7\n");
+		return;
+	}
+          
+          sound_idx = SV_SoundIndex( sample );
+	SV_StartSound (NULL, entity, channel, sound_idx, volume, attenuation, 0 );
+}
+
+/*
+=================
+PF_traceline
+
+Used for use tracing and shot targeting
+Traces are blocked by bbox and exact bsp entityes, and also slide box entities
+if the tryents flag is set.
+
+traceline (vector1, vector2, tryents)
+=================
+*/
+void PF_traceline (void)
+{
+	float		*v1, *v2;
+	trace_t		trace;
+	int		move;
+	edict_t	*ent;
+
+	prog->xfunction->builtinsprofile += 30;
+
+	v1 = PRVM_G_VECTOR(OFS_PARM0);
+	v2 = PRVM_G_VECTOR(OFS_PARM1);
+	move = (int)PRVM_G_FLOAT(OFS_PARM2);
+	ent = PRVM_G_EDICT(OFS_PARM3);
+
+	if (IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2]))
+		PRVM_ERROR("%s: NAN errors detected in traceline('%f %f %f', '%f %f %f', %i, entity %i)\n", PRVM_NAME, v1[0], v1[1], v1[2], v2[0], v2[1], v2[2], move, PRVM_EDICT_TO_PROG(ent));
+
+	trace = SV_Trace (v1, vec3_origin, vec3_origin, v2, ent, MASK_ALL );
+
+	prog->globals.server->trace_allsolid = trace.allsolid;
+	prog->globals.server->trace_startsolid = trace.startsolid;
+	prog->globals.server->trace_fraction = trace.fraction;
+	prog->globals.server->trace_contents = trace.contents;
+
+	VectorCopy (trace.endpos, prog->globals.server->trace_endpos);
+	VectorCopy (trace.plane.normal, prog->globals.server->trace_plane_normal);
+	prog->globals.server->trace_plane_dist =  trace.plane.dist;
+	if (trace.ent) prog->globals.server->trace_ent = PRVM_EDICT_TO_PROG(trace.ent);
+	else prog->globals.server->trace_ent = PRVM_EDICT_TO_PROG(prog->edicts);
+}
+
+
+/*
+=================
+PF_tracebox
+
+Used for use tracing and shot targeting
+Traces are blocked by bbox and exact bsp entityes, and also slide box entities
+if the tryents flag is set.
+
+tracebox (vector1, vector mins, vector maxs, vector2, tryents)
+=================
+*/
+// LordHavoc: added this for my own use, VERY useful, similar to traceline
+void PF_tracebox (void)
+{
+	float		*v1, *v2, *m1, *m2;
+	trace_t		trace;
+	int		move;
+	edict_t	*ent;
+
+	prog->xfunction->builtinsprofile += 30;
+
+	v1 = PRVM_G_VECTOR(OFS_PARM0);
+	m1 = PRVM_G_VECTOR(OFS_PARM1);
+	m2 = PRVM_G_VECTOR(OFS_PARM2);
+	v2 = PRVM_G_VECTOR(OFS_PARM3);
+	move = (int)PRVM_G_FLOAT(OFS_PARM4);
+	ent = PRVM_G_EDICT(OFS_PARM5);
+
+	if (IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2]))
+		PRVM_ERROR("%s: NAN errors detected in tracebox('%f %f %f', '%f %f %f', '%f %f %f', '%f %f %f', %i, entity %i)\n", PRVM_NAME, v1[0], v1[1], v1[2], m1[0], m1[1], m1[2], m2[0], m2[1], m2[2], v2[0], v2[1], v2[2], move, PRVM_EDICT_TO_PROG(ent));
+
+	trace = SV_Trace (v1, m1, m2, v2, ent, MASK_ALL );
+
+	prog->globals.server->trace_allsolid = trace.allsolid;
+	prog->globals.server->trace_startsolid = trace.startsolid;
+	prog->globals.server->trace_fraction = trace.fraction;
+	prog->globals.server->trace_contents = trace.contents;
+
+	VectorCopy (trace.endpos, prog->globals.server->trace_endpos);
+	VectorCopy (trace.plane.normal, prog->globals.server->trace_plane_normal);
+	prog->globals.server->trace_plane_dist =  trace.plane.dist;
+
+	if (trace.ent) prog->globals.server->trace_ent = PRVM_EDICT_TO_PROG(trace.ent);
+	else prog->globals.server->trace_ent = PRVM_EDICT_TO_PROG(prog->edicts);
+}
+
+/*
+=================
+PF_checkpos
+
+Returns true if the given entity can move to the given position from it's
+current position by walking or rolling.
+FIXME: make work...
+scalar checkpos (entity, vector)
+=================
+*/
+void PF_checkpos (void)
+{
+}
+
+//============================================================================
+int PF_newcheckclient (int check)
 {
 	int		i;
-	cmodel_t		*mod;
-	
-	if (!name) Host_Error("PF_setmodel: NULL\n");
+	edict_t	*ent;
+	vec3_t	org;
 
-	i = SV_ModelIndex (name);
-		
-	ent->s.modelindex = i;
-	mod = CM_LoadModel (name);
+	// cycle to the next one
+	check = bound(1, check, host.maxclients);
+	if (check == host.maxclients) i = 1;
+	else i = check + 1;
 
-	if(mod)	// hull setup
+	for (;; i++)
 	{
-		VectorCopy (mod->mins, ent->mins);
-		VectorCopy (mod->maxs, ent->maxs);
-		SV_LinkEdict (ent);
+		// count the cost
+		prog->xfunction->builtinsprofile++;
+		// wrap around
+		if (i == host.maxclients + 1) i = 1;
+		// look up the client's edict
+		ent = PRVM_EDICT_NUM(i);
+		// check if it is to be ignored, but never ignore the one we started on (prevent infinite loop)
+		if (i != check && (ent->priv.sv->free || ent->progs.sv->health <= 0 || ((int)ent->progs.sv->aiflags & AI_NOTARGET)))
+			continue;
+		// found a valid client (possibly the same one again)
+		break;
 	}
-}
 
-/*
-===============
-PF_Configstring
+	// get the PVS for the entity
+	VectorAdd(ent->progs.sv->origin, ent->progs.sv->view_ofs, org);
 
-===============
-*/
-void PF_Configstring (int index, char *val)
-{
-	if (index < 0 || index >= MAX_CONFIGSTRINGS)
-		Host_Error("PF_Configstring: bad index %i value %s\n", index, val);
+	SV_FatPVS( org ); // fat pvs manually
 
-	if (!val) val = "";
-
-	// change the string in sv
-	strcpy (sv.configstrings[index], val);
-
-	if (sv.state != ss_loading)
-	{
-		// send the update to everyone
-		SZ_Clear (&sv.multicast);
-		MSG_Begin(svc_configstring);
-		MSG_WriteShort (&sv.multicast, index);
-		MSG_WriteString (&sv.multicast, val);
-		MSG_Send(MSG_ALL_R, vec3_origin, NULL );
-	}
+	return i;
 }
 
 /*
 =================
-PF_inPVS
+PF_inphs
 
 Also checks portalareas so that doors block sight
 =================
 */
-bool PF_inPVS (vec3_t p1, vec3_t p2)
+bool PF_inpvs (vec3_t p1, vec3_t p2)
 {
 	int		leafnum;
 	int		cluster;
@@ -208,15 +522,14 @@ bool PF_inPVS (vec3_t p1, vec3_t p2)
 	return true;
 }
 
-
 /*
 =================
-PF_inPHS
+PF_inphs
 
 Also checks portalareas so that doors block sound
 =================
 */
-bool PF_inPHS (vec3_t p1, vec3_t p2)
+bool PF_inphs (vec3_t p1, vec3_t p2)
 {
 	int		leafnum;
 	int		cluster;
@@ -239,13 +552,1039 @@ bool PF_inPHS (vec3_t p1, vec3_t p2)
 	return true;
 }
 
-void PF_StartSound (edict_t *entity, int channel, int sound_num, float volume, float attenuation, float timeofs)
+/*
+=================
+PF_checkclient
+
+Returns a client (or object that has a client enemy) that would be a
+valid target.
+
+If there is more than one valid option, they are cycled each frame
+
+If (self.origin + self.viewofs) is not in the PVS of the current target,
+it is not returned at all.
+
+name checkclient ()
+=================
+*/
+int c_invis, c_notvis;
+void PF_checkclient (void)
 {
-	if (!entity) return;
-	SV_StartSound (NULL, entity, channel, sound_num, volume, attenuation, timeofs);
+	edict_t	*ent, *self;
+	vec3_t	view;
+
+	// find a new check if on a new frame
+	if (sv.time - sv.lastchecktime >= 0.1)
+	{
+		sv.lastcheck = PF_newcheckclient (sv.lastcheck);
+		sv.lastchecktime = sv.time;
+	}
+
+	// return check if it might be visible
+	ent = PRVM_EDICT_NUM(sv.lastcheck);
+	if (ent->priv.sv->free || ent->progs.sv->health <= 0)
+	{
+		VM_RETURN_EDICT(prog->edicts);
+		return;
+	}
+
+	// if current entity can't possibly see the check entity, return 0
+	self = PRVM_PROG_TO_EDICT(prog->globals.server->pev);
+	VectorAdd(self->progs.sv->origin, self->progs.sv->view_ofs, view);
+
+	if (!PF_inpvs(view, view))
+	{
+		c_notvis++;
+		VM_RETURN_EDICT(prog->edicts);
+		return;
+	}
+
+	// might be able to see it
+	c_invis++;
+	VM_RETURN_EDICT(ent);
 }
 
-//==============================================
+//============================================================================
+void SV_ConfigString (int index, const char *val)
+{
+	if (index < 0 || index >= MAX_CONFIGSTRINGS)
+		Host_Error ("configstring: bad index %i value %s\n", index, val);
+
+	if (!val) val = "";
+
+	// change the string in sv
+	strcpy (sv.configstrings[index], val);
+
+	if (sv.state != ss_loading)
+	{
+		// send the update to everyone
+		SZ_Clear (&sv.multicast);
+		MSG_Begin(svc_configstring);
+		MSG_WriteShort (&sv.multicast, index);
+		MSG_WriteString (&sv.multicast, (char *)val);
+		MSG_Send(MSG_ALL_R, vec3_origin, NULL );
+	}
+}
+
+/*
+===============
+PF_Configstring
+
+===============
+*/
+void PF_Configstring( void )
+{
+	SV_ConfigString((int)PRVM_G_FLOAT(OFS_PARM0), PRVM_G_STRING(OFS_PARM1));
+}
+
+/*
+=================
+PF_stuffcmd
+
+Sends text over to the client's execution buffer
+
+stuffcmd (clientent, value, ...)
+=================
+*/
+void PF_stuffcmd (void)
+{
+	int		entnum;
+	client_t		*old;
+	char		string[VM_STRINGTEMP_LENGTH];
+
+	entnum = PRVM_G_EDICTNUM(OFS_PARM0);
+	if (entnum < 1 || entnum > host.maxclients || svs.clients[entnum-1].state != cs_spawned)
+	{
+		VM_Warning("Can't stuffcmd to a non-client\n");
+		return;
+	}
+
+	VM_VarString(1, string, sizeof(string));
+
+	old = sv_client;
+	sv_client = svs.clients + entnum - 1;
+	SV_BroadcastCommand("%s", string);
+	sv_client = old;
+}
+
+/*
+=================
+PF_findradius
+
+Returns a chain of entities that have origins within a spherical area
+
+findradius (origin, radius)
+=================
+*/
+void PF_findradius (void)
+{
+	edict_t *ent, *chain;
+	vec_t radius, radius2;
+	vec3_t org, eorg, mins, maxs;
+	int i;
+	int numtouchedicts;
+	edict_t *touchedicts[MAX_EDICTS];
+
+	chain = (edict_t *)prog->edicts;
+
+	VectorCopy(PRVM_G_VECTOR(OFS_PARM0), org);
+	radius = PRVM_G_FLOAT(OFS_PARM1);
+	radius2 = radius * radius;
+
+	mins[0] = org[0] - (radius + 1);
+	mins[1] = org[1] - (radius + 1);
+	mins[2] = org[2] - (radius + 1);
+	maxs[0] = org[0] + (radius + 1);
+	maxs[1] = org[1] + (radius + 1);
+	maxs[2] = org[2] + (radius + 1);
+
+	numtouchedicts = 0;//SV_EntitiesInBox(mins, maxs, MAX_EDICTS, touchedicts);
+
+	if (numtouchedicts > MAX_EDICTS)
+	{
+		// this never happens
+		MsgWarn("SV_EntitiesInBox returned %i edicts, max was %i\n", numtouchedicts, MAX_EDICTS);
+		numtouchedicts = MAX_EDICTS;
+	}
+	for (i = 0; i < numtouchedicts; i++)
+	{
+		ent = touchedicts[i];
+		prog->xfunction->builtinsprofile++;
+
+		if (ent->progs.sv->solid == SOLID_NOT)	continue;
+		VectorSubtract(org, ent->progs.sv->origin, eorg);
+		VectorMAMAM(1, eorg, 0.5f, ent->progs.sv->mins, 0.5f, ent->progs.sv->maxs, eorg);
+		if (DotProduct(eorg, eorg) < radius2)
+		{
+			ent->progs.sv->chain = PRVM_EDICT_TO_PROG(chain);
+			chain = ent;
+		}
+	}
+
+	VM_RETURN_EDICT(chain);
+}
+
+void PF_precache_file (void)
+{
+	// precache_file is only used to copy files with qcc, it does nothing
+	PRVM_G_INT(OFS_RETURN) = PRVM_G_INT(OFS_PARM0);
+}
+
+
+void PF_precache_sound (void)
+{
+	SV_SoundIndex(PRVM_G_STRING(OFS_PARM0));
+	PRVM_G_INT(OFS_RETURN) = PRVM_G_INT(OFS_PARM0);
+}
+
+void PF_precache_model (void)
+{
+	SV_ModelIndex(PRVM_G_STRING(OFS_PARM0));
+	PRVM_G_INT(OFS_RETURN) = PRVM_G_INT(OFS_PARM0);
+}
+
+/*
+===============
+PF_walkmove
+
+float(float yaw, float dist) walkmove
+===============
+*/
+void PF_walkmove (void)
+{
+	edict_t	*ent;
+	float		yaw, dist;
+	vec3_t		move;
+	mfunction_t	*oldf;
+	int 		oldself;
+
+	// assume failure if it returns early
+	PRVM_G_FLOAT(OFS_RETURN) = 0;
+
+	ent = PRVM_PROG_TO_EDICT(prog->globals.server->pev);
+	if (ent == prog->edicts)
+	{
+		VM_Warning("walkmove: can not modify world entity\n");
+		return;
+	}
+	if (ent->priv.sv->free)
+	{
+		VM_Warning("walkmove: can not modify free entity\n");
+		return;
+	}
+
+	yaw = PRVM_G_FLOAT(OFS_PARM0);
+	dist = PRVM_G_FLOAT(OFS_PARM1);
+
+	if (!((int)ent->progs.sv->aiflags & (AI_ONGROUND|AI_FLY|AI_SWIM)))
+		return;
+
+	yaw = yaw * M_PI * 2 / 360;
+
+	move[0] = cos(yaw)*dist;
+	move[1] = sin(yaw)*dist;
+	move[2] = 0;
+
+	// save program state, because SV_movestep may call other progs
+	oldf = prog->xfunction;
+	oldself = prog->globals.server->pev;
+
+	PRVM_G_FLOAT(OFS_RETURN) = 0;//SV_movestep(ent, move, true);
+
+	// restore program state
+	prog->xfunction = oldf;
+	prog->globals.server->pev = oldself;
+}
+
+/*
+===============
+PF_droptofloor
+
+void() droptofloor
+===============
+*/
+void PF_droptofloor (void)
+{
+	edict_t		*ent;
+	vec3_t		end;
+	trace_t		trace;
+
+	// assume failure if it returns early
+	PRVM_G_FLOAT(OFS_RETURN) = 0;
+
+	ent = PRVM_PROG_TO_EDICT(prog->globals.server->pev);
+	if (ent == prog->edicts)
+	{
+		VM_Warning("droptofloor: can not modify world entity\n");
+		return;
+	}
+	if (ent->priv.sv->free)
+	{
+		VM_Warning("droptofloor: can not modify free entity\n");
+		return;
+	}
+
+	VectorCopy (ent->progs.sv->origin, end);
+	end[2] -= 256;
+
+	trace = SV_Trace(ent->progs.sv->origin, ent->progs.sv->mins, ent->progs.sv->maxs, end, ent, MASK_ALL );
+
+	if (trace.fraction != 1)
+	{
+		VectorCopy (trace.endpos, ent->progs.sv->origin);
+		SV_LinkEdict (ent);
+		ent->progs.sv->flags = (int)ent->progs.sv->aiflags | AI_ONGROUND;
+		ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG(trace.ent);
+		PRVM_G_FLOAT(OFS_RETURN) = 1;
+	}
+}
+
+/*
+===============
+PF_lightstyle
+
+void(float style, string value) lightstyle
+===============
+*/
+void PF_lightstyle (void)
+{
+	int		style;
+	const char	*val;
+
+	style = (int)PRVM_G_FLOAT(OFS_PARM0);
+	val = PRVM_G_STRING(OFS_PARM1);
+
+	if( (uint) style >= MAX_LIGHTSTYLES )
+	{
+		PRVM_ERROR( "PF_lightstyle: style: %i >= 64", style );
+	}
+
+	SV_ConfigString (CS_LIGHTS + style, val );
+}
+
+/*
+=============
+PF_checkbottom
+=============
+*/
+void PF_checkbottom (void)
+{
+	PRVM_G_FLOAT(OFS_RETURN) = 0;//SV_CheckBottom (PRVM_G_EDICT(OFS_PARM0));
+}
+
+/*
+=============
+PF_pointcontents
+=============
+*/
+void PF_pointcontents (void)
+{
+	PRVM_G_FLOAT(OFS_RETURN) = SV_PointContents(PRVM_G_VECTOR(OFS_PARM0));
+}
+
+/*
+=============
+PF_aim
+
+Pick a vector for the player to shoot along
+vector aim(entity, missilespeed)
+=============
+*/
+void PF_aim (void)
+{
+	edict_t	*ent, *check, *bestent;
+	vec3_t		start, dir, end, bestdir;
+	int		i, j;
+	trace_t		tr;
+	float		dist, bestdist;
+	float		speed;
+          int		flags = Cvar_VariableValue( "dmflags" );
+	
+	// assume failure if it returns early
+	VectorCopy(prog->globals.server->v_forward, PRVM_G_VECTOR(OFS_RETURN));
+
+	ent = PRVM_G_EDICT(OFS_PARM0);
+	if (ent == prog->edicts)
+	{
+		VM_Warning("aim: can not use world entity\n");
+		return;
+	}
+	if (ent->priv.sv->free)
+	{
+		VM_Warning("aim: can not use free entity\n");
+		return;
+	}
+	speed = PRVM_G_FLOAT(OFS_PARM1);
+
+	VectorCopy (ent->progs.sv->origin, start);
+	start[2] += 20;
+
+	// try sending a trace straight
+	VectorCopy (prog->globals.server->v_forward, dir);
+	VectorMA (start, 2048, dir, end);
+	tr = SV_Trace (start, vec3_origin, vec3_origin, end, ent, MASK_ALL );
+
+	if (tr.ent && ((edict_t *)tr.ent)->progs.sv->takedamage == DAMAGE_AIM && (flags & DF_NO_FRIENDLY_FIRE || ent->progs.sv->team <=0 || ent->progs.sv->team != ((edict_t *)tr.ent)->progs.sv->team))
+	{
+		VectorCopy (prog->globals.server->v_forward, PRVM_G_VECTOR(OFS_RETURN));
+		return;
+	}
+
+	// try all possible entities
+	VectorCopy (dir, bestdir);
+	bestdist = 0.5f;
+	bestent = NULL;
+
+	check = PRVM_NEXT_EDICT(prog->edicts);
+	for (i = 1; i < prog->num_edicts; i++, check = PRVM_NEXT_EDICT(check))
+	{
+		prog->xfunction->builtinsprofile++;
+		if (check->progs.sv->takedamage != DAMAGE_AIM)
+			continue;
+		if (check == ent)
+			continue;
+		if (flags & DF_NO_FRIENDLY_FIRE && ent->progs.sv->team > 0 && ent->progs.sv->team == check->progs.sv->team)
+			continue;	// don't aim at teammate
+		for (j = 0; j < 3; j++)
+			end[j] = check->progs.sv->origin[j] + 0.5 * (check->progs.sv->mins[j] + check->progs.sv->maxs[j]);
+		VectorSubtract (end, start, dir);
+		VectorNormalize (dir);
+		dist = DotProduct (dir, prog->globals.server->v_forward);
+		if (dist < bestdist) continue; // to far to turn
+		tr = SV_Trace (start, vec3_origin, vec3_origin, end, ent, MASK_ALL );
+		if (tr.ent == check)
+		{	
+			// can shoot at this one
+			bestdist = dist;
+			bestent = check;
+		}
+	}
+
+	if (bestent)
+	{
+		VectorSubtract (bestent->progs.sv->origin, ent->progs.sv->origin, dir);
+		dist = DotProduct (dir, prog->globals.server->v_forward);
+		VectorScale (prog->globals.server->v_forward, dist, end);
+		end[2] = dir[2];
+		VectorNormalize (end);
+		VectorCopy (end, PRVM_G_VECTOR(OFS_RETURN));
+	}
+	else
+	{
+		VectorCopy (bestdir, PRVM_G_VECTOR(OFS_RETURN));
+	}
+}
+
+/*
+==============
+PF_changeyaw
+
+This was a major timewaster in progs, so it was converted to C
+==============
+*/
+void PF_changeyaw (void)
+{
+	edict_t	*ent;
+	float		ideal, current, move, speed;
+
+	ent = PRVM_PROG_TO_EDICT(prog->globals.server->pev);
+	if (ent == prog->edicts)
+	{
+		VM_Warning("changeyaw: can not modify world entity\n");
+		return;
+	}
+	if (ent->priv.sv->free)
+	{
+		VM_Warning("changeyaw: can not modify free entity\n");
+		return;
+	}
+	current = anglemod(ent->progs.sv->angles[1]);
+	ideal = ent->progs.sv->ideal_yaw;
+	speed = ent->progs.sv->yaw_speed;
+
+	if (current == ideal) return;
+	move = ideal - current;
+	if (ideal > current)
+	{
+		if (move >= 180)
+			move = move - 360;
+	}
+	else
+	{
+		if (move <= -180)
+			move = move + 360;
+	}
+	if (move > 0)
+	{
+		if (move > speed)
+			move = speed;
+	}
+	else
+	{
+		if (move < -speed)
+			move = -speed;
+	}
+
+	ent->progs.sv->angles[1] = anglemod(current + move);
+}
+
+/*
+==============
+PF_changepitch
+==============
+*/
+void PF_changepitch (void)
+{
+	edict_t		*ent;
+	float			ideal = 30, current, move, speed = 30;
+
+	ent = PRVM_G_EDICT(OFS_PARM0);
+	if (ent == prog->edicts)
+	{
+		VM_Warning("changepitch: can not modify world entity\n");
+		return;
+	}
+	if (ent->priv.sv->free)
+	{
+		VM_Warning("changepitch: can not modify free entity\n");
+		return;
+	}
+	current = anglemod( ent->progs.sv->angles[0] );
+
+	if (current == ideal) return;
+	move = ideal - current;
+	if (ideal > current)
+	{
+		if (move >= 180)
+			move = move - 360;
+	}
+	else
+	{
+		if (move <= -180)
+			move = move + 360;
+	}
+	if (move > 0)
+	{
+		if (move > speed)
+			move = speed;
+	}
+	else
+	{
+		if (move < -speed)
+			move = -speed;
+	}
+
+	ent->progs.sv->angles[0] = anglemod(current + move);
+}
+
+/*
+===============================================================================
+
+MESSAGE WRITING
+
+===============================================================================
+*/
+void PF_BeginMessage(void)
+{
+	MSG_Begin((int)PRVM_G_FLOAT(OFS_PARM0));
+}
+
+void PF_WriteByte (void)
+{
+	MSG_WriteByte (&sv.multicast, (int)PRVM_G_FLOAT(OFS_PARM0));
+}
+
+void PF_WriteChar (void)
+{
+	MSG_WriteChar (&sv.multicast, (int)PRVM_G_FLOAT(OFS_PARM0));
+}
+
+void PF_WriteShort (void)
+{
+	MSG_WriteShort (&sv.multicast, (int)PRVM_G_FLOAT(OFS_PARM0));
+}
+
+void PF_WriteWord (void)
+{
+	MSG_WriteWord(&sv.multicast, (int)PRVM_G_FLOAT(OFS_PARM0));
+}
+
+void PF_WriteLong (void)
+{
+	MSG_WriteLong(&sv.multicast, (int)PRVM_G_FLOAT(OFS_PARM0));
+}
+
+void PF_WriteFloat (void)
+{
+	MSG_WriteFloat(&sv.multicast, PRVM_G_FLOAT(OFS_PARM0));
+}
+
+void PF_WriteAngle (void)
+{
+	MSG_WriteAngle (&sv.multicast, PRVM_G_FLOAT(OFS_PARM0));
+}
+
+void PF_WriteCoord (void)
+{
+	MSG_WritePos (&sv.multicast, PRVM_G_VECTOR(OFS_PARM0));
+}
+
+void PF_WriteString (void)
+{
+	MSG_WriteString (&sv.multicast, (char *)PRVM_G_STRING(OFS_PARM0));
+}
+
+void PF_WriteUnterminatedString (void)
+{
+	MSG_WriteUnterminatedString (&sv.multicast, PRVM_G_STRING(OFS_PARM0));
+}
+
+void PF_WriteEntity (void)
+{
+	MSG_WriteShort (&sv.multicast, PRVM_G_EDICTNUM(OFS_PARM1));
+}
+
+void PF_EndMessage (void)
+{
+	MSG_Send((int)PRVM_G_FLOAT(OFS_PARM0), PRVM_G_VECTOR(OFS_PARM1), PRVM_G_EDICT(OFS_PARM2));
+}
+
+//////////////////////////////////////////////////////////
+
+void PF_makestatic (void)
+{
+	edict_t	*ent;
+	
+	ent = PRVM_G_EDICT(OFS_PARM0);
+	if (ent == prog->edicts)
+	{
+		VM_Warning("makestatic: can not modify world entity\n");
+		return;
+	}
+	if (ent->priv.sv->free)
+	{
+		VM_Warning("makestatic: can not modify free entity\n");
+		return;
+	}
+
+	// just throw the entity away now
+	PRVM_ED_Free (ent);
+}
+
+//=============================================================================
+
+/*
+==============
+PF_setspawnparms
+==============
+*/
+void PF_setspawnparms (void)
+{
+	edict_t	*ent;
+	int		i;
+	client_t		*client;
+
+	ent = PRVM_G_EDICT(OFS_PARM0);
+	i = PRVM_NUM_FOR_EDICT(ent);
+	if (i < 1 || i > host.maxclients || svs.clients[i-1].state != cs_spawned)
+	{
+		Msg("tried to setspawnparms on a non-client\n");
+		return;
+	}
+
+	// copy spawn parms out of the client_t
+	client = svs.clients + i - 1;
+}
+
+void PF_registercvar (void)
+{
+	const char *name, *value;
+	name = PRVM_G_STRING(OFS_PARM0);
+	value = PRVM_G_STRING(OFS_PARM1);
+	PRVM_G_FLOAT(OFS_RETURN) = 0;
+
+	// first check to see if it has already been defined
+	if (Cvar_FindVar (name))
+		return;
+
+	// check for overlap with a command
+	if (Cmd_Exists (name))
+	{
+		VM_Warning("PF_registercvar: %s is a command\n", name);
+		return;
+	}
+
+	Cvar_Get(name, value, 0);
+	PRVM_G_FLOAT(OFS_RETURN) = 1; // success
+}
+
+/*
+=================
+PF_copyentity
+
+copies data from one entity to another
+
+copyentity(src, dst)
+=================
+*/
+void PF_copyentity (void)
+{
+	edict_t *in, *out;
+
+	in = PRVM_G_EDICT(OFS_PARM0);
+	if (in == prog->edicts)
+	{
+		VM_Warning("copyentity: can not read world entity\n");
+		return;
+	}
+	if (in->priv.sv->free)
+	{
+		VM_Warning("copyentity: can not read free entity\n");
+		return;
+	}
+	out = PRVM_G_EDICT(OFS_PARM1);
+	if (out == prog->edicts)
+	{
+		VM_Warning("copyentity: can not modify world entity\n");
+		return;
+	}
+	if (out->priv.sv->free)
+	{
+		VM_Warning("copyentity: can not modify free entity\n");
+		return;
+	}
+	Mem_Copy(out->progs.sv, in->progs.sv, prog->progs->entityfields * 4);
+}
+
+static cmodel_t *getmodel(edict_t *ed)
+{
+	int	modelindex;
+	if (!ed || ed->priv.sv->free)
+		return NULL;
+
+	modelindex = (int)ed->progs.sv->modelindex;
+	if (modelindex < 1 || modelindex >= MAX_MODELS)
+		return NULL;
+
+	return sv.models[modelindex];
+}
+
+//void(entity e, string s) clientcommand = #440; // executes a command string as if it came from the specified client
+//this function originally written by KrimZon, made shorter by LordHavoc
+void PF_clientcommand (void)
+{
+	client_t *temp_client;
+	int i;
+
+	//find client for this entity
+	i = (PRVM_NUM_FOR_EDICT(PRVM_G_EDICT(OFS_PARM0)) - 1);
+	if (i < 0 || i >= host.maxclients || svs.clients[i].state != cs_spawned)
+	{
+		Msg("PF_clientcommand: entity is not a client\n");
+		return;
+	}
+
+	temp_client = sv_client;
+	sv_client = svs.clients + i;
+	Cmd_ExecuteString (PRVM_G_STRING(OFS_PARM1));
+	sv_client = temp_client;
+}
+
+void PF_dropclient (void)
+{
+	int clientnum = PRVM_G_EDICTNUM(OFS_PARM0) - 1;
+
+	if (clientnum < 0 || clientnum >= host.maxclients)
+	{
+		VM_Warning("dropclient: not a client\n");
+		return;
+	}
+	if (svs.clients[clientnum].state != cs_spawned)
+	{
+		VM_Warning("dropclient: that client slot is not connected\n");
+		return;
+	}
+
+	SV_DropClient(svs.clients + clientnum);
+}
+
+void PF_spawnclient (void)
+{
+	int i;
+	edict_t	*ed;
+	prog->xfunction->builtinsprofile += 2;
+	ed = prog->edicts;
+
+	for (i = 0;i < host.maxclients; i++)
+	{
+		if (svs.clients[i].state != cs_spawned)
+		{
+			prog->xfunction->builtinsprofile += 100;
+//SV_ConnectClient (i, NULL);
+			svs.clients[i].state = cs_connected;
+			ed = PRVM_EDICT_NUM(i + 1);
+			break;
+		}
+	}
+	VM_RETURN_EDICT(ed);
+}
+
+//float(entity clent) clienttype (DP_SV_BOTCLIENT)
+void PF_clienttype (void)
+{
+	int clientnum = PRVM_G_EDICTNUM(OFS_PARM0) - 1;
+
+	if (clientnum < 0 || clientnum >= host.maxclients)
+		PRVM_G_FLOAT(OFS_RETURN) = 3;
+	else if (svs.clients[clientnum].state == cs_spawned)
+		PRVM_G_FLOAT(OFS_RETURN) = 0;
+	else if (svs.clients[clientnum].state == cs_connected)
+		PRVM_G_FLOAT(OFS_RETURN) = 1;
+	else
+		PRVM_G_FLOAT(OFS_RETURN) = 2;
+}
+
+void PF_edict_num (void)
+{
+	VM_RETURN_EDICT(PRVM_EDICT_NUM((int)PRVM_G_FLOAT(OFS_PARM0)));
+}
+
+prvm_builtin_t vm_sv_builtins[] = 
+{
+NULL,					// #0
+PF_makevectors,				// #1 void(vector ang) makevectors
+PF_setorigin,				// #2 void(entity e, vector o) setorigin
+PF_setmodel,				// #3 void(entity e, string m) setmodel
+PF_setsize,				// #4 void(entity e, vector min, vector max) setsize
+NULL,					// #5 void(entity e, vector min, vector max) setabssize
+VM_break,					// #6 void() break
+VM_random,				// #7 float() random
+PF_sound,					// #8 void(entity e, float chan, string samp) sound
+VM_normalize,				// #9 vector(vector v) normalize
+VM_error,					// #10 void(string e) error
+VM_objerror,				// #11 void(string e) objerror
+VM_vlen,					// #12 float(vector v) vlen
+VM_vectoyaw,				// #13 float(vector v) vectoyaw
+VM_spawn,					// #14 entity() spawn
+VM_remove,				// #15 void(entity e) remove
+PF_traceline,				// #16 float(vector v1, vector v2, float tryents) traceline
+PF_checkclient,				// #17 entity() clientlist
+VM_find,					// #18 entity(entity start, .string fld, string match) find
+PF_precache_sound,				// #19 void(string s) precache_sound
+PF_precache_model,				// #20 void(string s) precache_model
+PF_stuffcmd,				// #21 void(entity client, string s)stuffcmd
+PF_findradius,				// #22 entity(vector org, float rad) findradius
+VM_bprint,				// #23 void(string s) bprint
+PF_sprint,				// #24 void(entity client, string s) sprint
+VM_dprint,				// #25 void(string s) dprint
+VM_ftos,					// #26 void(string s) ftos
+VM_vtos,					// #27 void(string s) vtos
+VM_coredump,				// #28 void() coredump
+VM_traceon,				// #29 void() traceon
+VM_traceoff,				// #30 void() traceoff
+VM_eprint,				// #31 void(entity e) eprint
+PF_walkmove,				// #32 float(float yaw, float dist) walkmove
+NULL,					// #33
+PF_droptofloor,				// #34 float() droptofloor
+PF_lightstyle,				// #35 void(float style, string value) lightstyle
+VM_rint,					// #36 float(float v) rint
+VM_floor,					// #37 float(float v) floor
+VM_ceil,					// #38 float(float v) ceil
+PF_SetStats,				// #39 void(entity e, float f, string stats) setstats
+PF_checkbottom,				// #40 float(entity e) checkbottom
+PF_pointcontents,				// #41 float(vector v) pointcontents
+NULL,					// #42
+VM_fabs,					// #43 float(float f) fabs
+PF_aim,					// #44 vector(entity e, float speed) aim
+VM_cvar,					// #45 float(string s) cvar
+VM_localcmd,				// #46 void(string s) localcmd
+VM_nextent,				// #47 entity(entity e) nextent
+PF_particle,				// #48 void(vector o, vector d, float color, float count) particle
+PF_changeyaw,				// #49 void() ChangeYaw
+NULL,					// #50
+VM_vectoangles,				// #51 vector(vector v) vectoangles
+PF_WriteByte,				// #52 void(float f) WriteByte
+PF_WriteChar,				// #53 void(float f) WriteChar
+PF_WriteShort,				// #54 void(float f) WriteShort
+PF_WriteWord,				// #55 void(float f) WriteWord
+PF_WriteLong,				// #56 void(float f) WriteLong
+PF_WriteCoord,				// #57 void(vector v) WriteCoord
+PF_WriteAngle,				// #58 void(float f) WriteAngle
+PF_WriteString,				// #59 void(string s) WriteString
+PF_WriteEntity,				// #60 void(entity e) WriteEntity
+PF_WriteFloat,				// #61 void(entity e) WriteFloat
+NULL,					// #62
+PF_BeginMessage,				// #63 void(float to) MSG_Begin
+PF_EndMessage,				// #64 void(float to, vector v, entity e) MSG_End
+PF_Configstring,				// #65 void(float num, string s) configstring 
+NULL,					// #66
+NULL,					// #67 void(float step) movetogoal
+PF_precache_file,				// #68 string(string s) precache_file
+PF_makestatic,				// #69 void(entity e) makestatic
+VM_changelevel,				// #70 void(string s) changelevel
+NULL,					// #71
+VM_cvar_set,				// #72 void(string var, string val) cvar_set
+PF_centerprint,				// #73 void(entity client, strings) centerprint
+PF_ambientsound,				// #74 void(vector pos, string samp, float vol, float atten) ambientsound
+PF_precache_model,				// #75 string(string s) precache_model2
+PF_precache_sound,				// #76 string(string s) precache_sound2
+PF_precache_file,				// #77 string(string s) precache_file2
+PF_setspawnparms,				// #78 void(entity e) setspawnparms
+NULL,					// #79
+PF_changepitch,				// #80 void(entity ent) changepitch (DP_QC_CHANGEPITCH)
+VM_stof,					// #81 float(string s) stof (FRIK_FILE)
+VM_sin,					// #82 float(float f) sin (DP_QC_SINCOSSQRTPOW)
+VM_cos,					// #83 float(float f) cos (DP_QC_SINCOSSQRTPOW)
+VM_sqrt,					// #84 float(float f) sqrt (DP_QC_SINCOSSQRTPOW)
+VM_etos,					// #85 string(entity ent) etos (DP_QC_ETOS)
+NULL,					// #86
+NULL,					// #87
+NULL,					// #88
+NULL,					// #89
+PF_tracebox,				// #90 void(vector v1, vector min, vector max, vector v2, float nomonsters, entity forent) tracebox (DP_QC_TRACEBOX)
+VM_randomvec,				// #91 vector() randomvec (DP_QC_RANDOMVEC)
+NULL,					// #92 
+PF_registercvar,				// #93 float(string name, string value) registercvar (DP_REGISTERCVAR)
+VM_min,					// #94 float(float a, floats) min (DP_QC_MINMAXBOUND)
+VM_max,					// #95 float(float a, floats) max (DP_QC_MINMAXBOUND)
+VM_bound,					// #96 float(float minimum, float val, float maximum) bound (DP_QC_MINMAXBOUND)
+VM_pow,					// #97 float(float f, float f) pow (DP_QC_SINCOSSQRTPOW)
+VM_findfloat,				// #98 entity(entity start, .float fld, float match) findfloat (DP_QC_FINDFLOAT)
+VM_checkextension,				// #99 float(string s) checkextension (the basis of the extension system)
+NULL,					// #100
+NULL,					// #101
+NULL,					// #102
+NULL,					// #103
+NULL,					// #104
+NULL,					// #105
+NULL,					// #106
+NULL,					// #107
+NULL,					// #108
+NULL,					// #109
+VM_fopen,					// #110 float(string filename, float mode) fopen (FRIK_FILE)
+VM_fclose,				// #111 void(float fhandle) fclose (FRIK_FILE)
+VM_fgets,					// #112 string(float fhandle) fgets (FRIK_FILE)
+VM_fputs,					// #113 void(float fhandle, string s) fputs (FRIK_FILE)
+VM_strlen,				// #114 float(string s) strlen (FRIK_FILE)
+VM_strcat,				// #115 string(string s1, string s2) strcat (FRIK_FILE)
+VM_substring,				// #116 string(string s, float start, float length) substring (FRIK_FILE)
+VM_stov,					// #117 vector(string) stov (FRIK_FILE)
+VM_strzone,				// #118 string(string s) strzone (FRIK_FILE)
+VM_strunzone,				// #119 void(string s) strunzone (FRIK_FILE)
+e10, e10, e10, e10, e10, e10, e10, e10,		// #120-199
+NULL,					// #200 FTEQW range #200-#299
+NULL,					// #201
+NULL,					// #202
+NULL,					// #203
+NULL,					// #204
+NULL,					// #205
+NULL,					// #206
+NULL,					// #207
+NULL,					// #208
+NULL,					// #209
+NULL,					// #210
+NULL,					// #211
+NULL,					// #212
+NULL,					// #213
+NULL,					// #214
+NULL,					// #215
+NULL,					// #216
+NULL,					// #217
+VM_bitshift,				// #218 float(float number, float quantity) bitshift (EXT_BITSHIFT)
+NULL,					// #219
+e10,					// #220-#229
+e10,					// #230-#239
+e10,					// #240-#249
+e10,					// #250-#259
+e10,					// #260-#269
+e10,					// #270-#279
+e10,					// #280-#289
+e10,					// #290-#299
+e10, e10, e10, e10, e10, e10, e10, e10, e10, e10,	// #300-399
+VM_copyentity,				// #400 void(entity from, entity to) copyentity (DP_QC_COPYENTITY)
+NULL,					// #401
+VM_findchain,				// #402 entity(.string fld, string match) findchain (DP_QC_FINDCHAIN)
+VM_findchainfloat,				// #403 entity(.float fld, float match) findchainfloat (DP_QC_FINDCHAINFLOAT)
+NULL,					// #404 void(vector org, string modelname, float startframe, float endframe, float framerate) effect (DP_SV_EFFECT)
+NULL,					// #405 void(vector org, vector velocity, float howmany) te_blood (DP_TE_BLOOD)
+NULL,					// #406 void(vector mincorner, vector maxcorner, float explosionspeed, float howmany) te_bloodshower (DP_TE_BLOODSHOWER)
+NULL,					// #407 void(vector org, vector color) te_explosionrgb (DP_TE_EXPLOSIONRGB)
+NULL,					// #408 void(vector mincorner, vector maxcorner, vector vel, float howmany, float color, float gravityflag, float randomveljitter) te_particlecube (DP_TE_PARTICLECUBE)
+NULL,					// #409 void(vector mincorner, vector maxcorner, vector vel, float howmany, float color) te_particlerain (DP_TE_PARTICLERAIN)
+NULL,					// #410 void(vector mincorner, vector maxcorner, vector vel, float howmany, float color) te_particlesnow (DP_TE_PARTICLESNOW)
+NULL,					// #411 void(vector org, vector vel, float howmany) te_spark (DP_TE_SPARK)
+NULL,					// #412 void(vector org) te_gunshotquad (DP_QUADEFFECTS1)
+NULL,					// #413 void(vector org) te_spikequad (DP_QUADEFFECTS1)
+NULL,					// #414 void(vector org) te_superspikequad (DP_QUADEFFECTS1)
+NULL,					// #415 void(vector org) te_explosionquad (DP_QUADEFFECTS1)
+NULL,					// #416 void(vector org) te_smallflash (DP_TE_SMALLFLASH)
+NULL,					// #417 void(vector org, float radius, float lifetime, vector color) te_customflash (DP_TE_CUSTOMFLASH)
+NULL,					// #418 void(vector org) te_gunshot (DP_TE_STANDARDEFFECTBUILTINS)
+NULL,					// #419 void(vector org) te_spike (DP_TE_STANDARDEFFECTBUILTINS)
+NULL,					// #420 void(vector org) te_superspike (DP_TE_STANDARDEFFECTBUILTINS)
+NULL,					// #421 void(vector org) te_explosion (DP_TE_STANDARDEFFECTBUILTINS)
+NULL,					// #422 void(vector org) te_tarexplosion (DP_TE_STANDARDEFFECTBUILTINS)
+NULL,					// #423 void(vector org) te_wizspike (DP_TE_STANDARDEFFECTBUILTINS)
+NULL,					// #424 void(vector org) te_knightspike (DP_TE_STANDARDEFFECTBUILTINS)
+NULL,					// #425 void(vector org) te_lavasplash (DP_TE_STANDARDEFFECTBUILTINS)
+NULL,					// #426 void(vector org) te_teleport (DP_TE_STANDARDEFFECTBUILTINS)
+NULL,					// #427 void(vector org, float colorstart, float colorlength) te_explosion2 (DP_TE_STANDARDEFFECTBUILTINS)
+NULL,					// #428 void(entity own, vector start, vector end) te_lightning1 (DP_TE_STANDARDEFFECTBUILTINS)
+NULL,					// #429 void(entity own, vector start, vector end) te_lightning2 (DP_TE_STANDARDEFFECTBUILTINS)
+NULL,					// #430 void(entity own, vector start, vector end) te_lightning3 (DP_TE_STANDARDEFFECTBUILTINS)
+NULL,					// #431 void(entity own, vector start, vector end) te_beam (DP_TE_STANDARDEFFECTBUILTINS)
+VM_vectorvectors,				// #432 void(vector dir) vectorvectors (DP_QC_VECTORVECTORS)
+NULL,					// #433 void(vector org) te_plasmaburn (DP_TE_PLASMABURN)
+NULL,					// #434 float(entity e, float s) getsurfacenumpoints (DP_QC_GETSURFACE)
+NULL,					// #435 vector(entity e, float s, float n) getsurfacepoint (DP_QC_GETSURFACE)
+NULL,					// #436 vector(entity e, float s) getsurfacenormal (DP_QC_GETSURFACE)
+NULL,					// #437 string(entity e, float s) getsurfacetexture (DP_QC_GETSURFACE)
+NULL,					// #438 float(entity e, vector p) getsurfacenearpoint (DP_QC_GETSURFACE)
+NULL,					// #439 vector(entity e, float s, vector p) getsurfaceclippedpoint (DP_QC_GETSURFACE)
+PF_clientcommand,				// #440 void(entity e, string s) clientcommand (KRIMZON_SV_PARSECLIENTCOMMAND)
+VM_tokenize,				// #441 float(string s) tokenize (KRIMZON_SV_PARSECLIENTCOMMAND)
+VM_argv,					// #442 string(float n) argv (KRIMZON_SV_PARSECLIENTCOMMAND)
+NULL,					// #443 void(entity e, entity tagentity, string tagname) setattachment (DP_GFX_QUAKE3MODELTAGS)
+VM_search_begin,				// #444 float(string pattern, float caseinsensitive, float quiet) search_begin (DP_FS_SEARCH)
+VM_search_end,				// #445 void(float handle) search_end (DP_FS_SEARCH)
+VM_search_getsize,				// #446 float(float handle) search_getsize (DP_FS_SEARCH)
+VM_search_getfilename,			// #447 string(float handle, float num) search_getfilename (DP_FS_SEARCH)
+VM_cvar_string,				// #448 string(string s) cvar_string (DP_QC_CVAR_STRING)
+VM_findflags,				// #449 entity(entity start, .float fld, float match) findflags (DP_QC_FINDFLAGS)
+VM_findchainflags,				// #450 entity(.float fld, float match) findchainflags (DP_QC_FINDCHAINFLAGS)
+NULL,					// #451 float(entity ent, string tagname) gettagindex (DP_QC_GETTAGINFO)
+NULL,					// #452 vector(entity ent, float tagindex) gettaginfo (DP_QC_GETTAGINFO)
+PF_dropclient,				// #453 void(entity clent) dropclient (DP_SV_DROPCLIENT)
+PF_spawnclient,				// #454 entity() spawnclient (DP_SV_BOTCLIENT)
+PF_clienttype,				// #455 float(entity clent) clienttype (DP_SV_BOTCLIENT)
+PF_WriteUnterminatedString,			// #456 void(float to, string s) WriteUnterminatedString (DP_SV_WRITEUNTERMINATEDSTRING)
+NULL,					// #457 void(vector org, vector vel, float howmany) te_flamejet = #457 (DP_TE_FLAMEJET)
+NULL,					// #458
+PF_edict_num,				// #459 entity(float num) (??)
+VM_buf_create,				// #460 float() buf_create (DP_QC_STRINGBUFFERS)
+VM_buf_del,				// #461 void(float bufhandle) buf_del (DP_QC_STRINGBUFFERS)
+VM_buf_getsize,				// #462 float(float bufhandle) buf_getsize (DP_QC_STRINGBUFFERS)
+VM_buf_copy,				// #463 void(float bufhandle_from, float bufhandle_to) buf_copy (DP_QC_STRINGBUFFERS)
+VM_buf_sort,				// #464 void(float bufhandle, float sortpower, float backward) buf_sort (DP_QC_STRINGBUFFERS)
+VM_buf_implode,				// #465 string(float bufhandle, string glue) buf_implode (DP_QC_STRINGBUFFERS)
+VM_bufstr_get,				// #466 string(float bufhandle, float string_index) bufstr_get (DP_QC_STRINGBUFFERS)
+VM_bufstr_set,				// #467 void(float bufhandle, float string_index, string str) bufstr_set (DP_QC_STRINGBUFFERS)
+VM_bufstr_add,				// #468 float(float bufhandle, string str, float order) bufstr_add (DP_QC_STRINGBUFFERS)
+VM_bufstr_free,				// #469 void(float bufhandle, float string_index) bufstr_free (DP_QC_STRINGBUFFERS)
+NULL,					// #470
+NULL,					// #471
+NULL,					// #472
+NULL,					// #473
+NULL,					// #474
+NULL,					// #475
+NULL,					// #476
+NULL,					// #477
+NULL,					// #478
+NULL,					// #479
+e10, e10					// #480-499 (LordHavoc)
+};
+
+const int vm_sv_numbuiltins = sizeof(vm_sv_builtins) / sizeof(prvm_builtin_t);
 
 /*
 ===============
@@ -257,15 +1596,7 @@ it is changing to a different game directory.
 */
 void SV_ShutdownGameProgs (void)
 {
-	if (!ge) return;
-
 	Msg("==== ShutdownGame ====\n");
-
-	//free main memory pools
-	Mem_FreePool(&sv.mempool);
-
-	Mem_Free( ge );
-	ge = NULL;
 }
 
 /*
@@ -275,26 +1606,9 @@ SV_InitGameProgs
 Init the game subsystem for a new map
 ===============
 */
-void SCR_DebugGraph (float value, int color);
-
 void SV_InitGameProgs (void)
 {
-	// unload anything we have now
-	if (ge) SV_ShutdownGameProgs ();
-
-	sv.mempool = Mem_AllocPool("Zone Game");
-	ge = Mem_Alloc(sv.mempool, sizeof(game_export_t));
-
-	// initialize all entities for this game
-	game.maxentities = 1024;
-
-	ge->edict_size = sizeof(edict_t);
-	ge->edicts =  (edict_t *)Mem_Alloc(sv.mempool, game.maxentities * ge->edict_size);
-	ge->max_edicts = game.maxentities;
-
-	// initialize all clients for this game
-	game.maxclients = maxclients->value;
-	game.clients = (gclient_t *)Mem_Alloc(sv.mempool, game.maxclients * sizeof(gclient_t));
-	ge->num_edicts = game.maxclients + 1; //reserve for world
+	Msg("==== InitGame ====\n");
+	SV_VM_Setup();
 }
 

@@ -64,20 +64,20 @@ float MOVER_TOGGLE = 32;
 
 void() func_mover_stop_general =
 {
-	self.velocity = '0 0 0';				//Stop me!
-	self.touched = FALSE;					//Touch me!
-	sound (self, CHAN_VOICE, self.noise1, 1, ATTN_NORM);	//make a sound!
-	setorigin(self, self.dest);				//set my origin exactly to dest.
+	pev->velocity = '0 0 0';				//Stop me!
+	pev->touched = FALSE;					//Touch me!
+	sound (pev, CHAN_VOICE, pev->noise1, 1, ATTN_NORM);	//make a sound!
+	setorigin(pev, pev->dest);				//set my origin exactly to dest.
 };
 
 void() func_mover_stop =
 {
 	func_mover_stop_general();
 
-	if(self.wait >= 0)					//Return upon wait over!
+	if(pev->wait >= 0)					//Return upon wait over!
 	{
-		self.think = func_mover_think;
-		self.nextthink = self.ltime + self.wait;
+		pev->think = func_mover_think;
+		pev->nextthink = time + pev->wait;
 	}
 };
 
@@ -88,7 +88,7 @@ void() func_mover_stop_dead =
 
 void() func_mover_blocked = 
 {
-	T_Damage (other, self, self, self.dmg);			//Do my damage;
+	T_Damage (other, pev, pev, pev->dmg);			//Do my damage;
 		
 	func_mover_think();					//Return;
 };
@@ -99,7 +99,7 @@ void(vector destination, float movespeed, void() dest_func) func_mover_move =
 	local float pathlength, traveltime;
 	
 	//Calculate movement vector
-	path = destination - self.origin;
+	path = destination - pev->origin;
 	
 	//Calculate length of movement vector;
 	pathlength = vlen(path);
@@ -108,20 +108,20 @@ void(vector destination, float movespeed, void() dest_func) func_mover_move =
 	traveltime = (pathlength) / (movespeed);
 
 	// scale the destdelta vector by the time spent traveling to get velocity
-	self.velocity = path * (1/traveltime);	
+	pev->velocity = path * (1/traveltime);	
 
-	if(traveltime < 0.1 || self.origin == destination)
+	if(traveltime < 0.1 || pev->origin == destination)
 	{
-		self.think = dest_func;
-		self.nextthink = self.ltime + 0.1;
-		self.dest = destination;
+		pev->think = dest_func;
+		pev->nextthink = time + 0.1;
+		pev->dest = destination;
 		return;
 	}
 
-	self.think = dest_func;
-	self.nextthink = self.ltime + traveltime;
+	pev->think = dest_func;
+	pev->nextthink = time + traveltime;
 	
-	self.dest = destination;
+	pev->dest = destination;
 };
 
 void() func_mover_think = 
@@ -129,26 +129,26 @@ void() func_mover_think =
 	local vector a;
 	local void() b;
 
-	if(self.state == STATE_OPEN)				//Am i open?
+	if(pev->state == STATE_OPEN)				//Am i open?
 	{
-		self.state = STATE_CLOSED;			//Now im closing!
-		a = self.pos1;					//My first position!
+		pev->state = STATE_CLOSED;			//Now im closing!
+		a = pev->pos1;					//My first position!
 		b = func_mover_stop_dead;			//Stopping func to use!
 	}
-	else if (self.state == STATE_CLOSED)
+	else if (pev->state == STATE_CLOSED)
 	{
-		self.state = STATE_OPEN;
-		a = self.pos2;
+		pev->state = STATE_OPEN;
+		a = pev->pos2;
 		
-		if(self.spawnflags & MOVER_TOGGLE)		//Am i toggable?
+		if(pev->spawnflags & MOVER_TOGGLE)		//Am i toggable?
 			b = func_mover_stop_dead;		//if yes.. stop me dead.
 		else
 			b = func_mover_stop;			//if no.. return me;
 	}
 		
-	func_mover_move(a, self.speed, b);			//Loaded move function;
+	func_mover_move(a, pev->speed, b);			//Loaded move function;
 
-	sound (self, CHAN_VOICE, self.noise2, 1, ATTN_NORM);
+	sound (pev, CHAN_VOICE, pev->noise2, 1, ATTN_NORM);
 };
 
 void() func_mover_fire = 
@@ -165,76 +165,76 @@ void() func_mover_touch =
 	if(other == world)				//Are you the world?
 		return;
 	
-	if(self.touched == FALSE)
+	if(pev->touched == FALSE)
 	{	
-		self.triggerer = other;
+		pev->triggerer = other;
 		
-		self.touched = TRUE;				//stop touching me!
-		self.think = func_mover_fire;			//set me next think
-		self.nextthink = self.ltime + self.delay;	//set it so it happens in 0.1 secs from now.
+		pev->touched = TRUE;				//stop touching me!
+		pev->think = func_mover_fire;			//set me next think
+		pev->nextthink = time + pev->delay;	//set it so it happens in 0.1 secs from now.
 	}
 };
 
 void() func_mover_use = 
 {
-	if(self.message)
-		centerprint(self.triggerer, self.message);
+	if(pev->message)
+		centerprint(pev->triggerer, pev->message);
 	
-	self.touched = TRUE;					//Fake touch!
+	pev->touched = TRUE;					//Fake touch!
 	
-	self.think = func_mover_fire;				//set me next think!
-	self.nextthink = self.ltime + self.delay;		//in delay
+	pev->think = func_mover_fire;				//set me next think!
+	pev->nextthink = time + pev->delay;		//in delay
 };
 
 void() func_mover_die = 
 {
-	self.health = self.max_health;			//reset health on death;
+	pev->health = pev->max_health;			//reset health on death;
 		
-	self.takedamage = DAMAGE_YES;			//These two are set to no and null in killed function;
-	self.touch = func_mover_touch;			//[Damage.QC]
+	pev->takedamage = DAMAGE_YES;			//These two are set to no and null in killed function;
+	pev->touch = func_mover_touch;			//[Damage.QC]
 };
 
 void() func_mover = 
 {
 	func_setup();					//Sets up some basic func properties;[funcs.qc]
-	self.classname = "mover";
+	pev->classname = "mover";
 	
-	if(self.health)
+	if(pev->health)
 	{
-		self.max_health = self.health;
-		self.takedamage = DAMAGE_YES;
+		pev->max_health = pev->health;
+		pev->takedamage = DAMAGE_YES;
 	}
 
-	self.blocked = func_mover_blocked;
-	self.use = func_mover_use;
-	self.touch = func_mover_touch;
-	self.th_die = func_mover_die;
+	pev->blocked = func_mover_blocked;
+	pev->use = func_mover_use;
+	pev->touch = func_mover_touch;
+	pev->th_die = func_mover_die;
 
 	//func_mover; DEFAULTS;
-	if (!self.speed)
-		self.speed = 100;
-	if (!self.wait)
-		self.wait = 3;
-	if (!self.lip)
-		self.lip = 8;
-	if (!self.dmg)
-		self.dmg = 2;
+	if (!pev->speed)
+		pev->speed = 100;
+	if (!pev->wait)
+		pev->wait = 3;
+	if (!pev->lip)
+		pev->lip = 8;
+	if (!pev->dmg)
+		pev->dmg = 2;
 	
-	if(!self.delay)
-		self.delay = 0.1;	//stuff with 0 delay dont move! (or work ;) )
+	if(!pev->delay)
+		pev->delay = 0.1;	//stuff with 0 delay dont move! (or work ;) )
 	
 
 	//func_mover; positions; .pos1 == closed; .pos2 == open;
 
-	self.pos1 = self.origin;
-	self.pos2 = self.pos1 + self.movedir*(fabs(self.movedir*self.size) - self.lip);
+	pev->pos1 = pev->origin;
+	pev->pos2 = pev->pos1 + pev->movedir*(fabs(pev->movedir*pev->size) - pev->lip);
 	
-	if(self.spawnflags & MOVER_START_OPEN)
+	if(pev->spawnflags & MOVER_START_OPEN)
 	{	
-		self.state = STATE_OPEN;
-		setorigin(self, self.pos2);
+		pev->state = STATE_OPEN;
+		setorigin(pev, pev->pos2);
 	}
 	else
-		self.state = STATE_CLOSED;
+		pev->state = STATE_CLOSED;
 };
 

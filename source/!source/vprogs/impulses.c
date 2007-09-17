@@ -10,26 +10,26 @@
 
 void() CheckImpulses =
 {
-	if (self.impulse == 15)
+	if (pev->impulse == 15)
 		CCam ();
 	
-	if(self.impulse == 10)
+	if(pev->impulse == 10)
 	{
 		local string a;
-		a = ftos(self.items);
-		sprint(self, a);
-		sprint(self, "Items Printed\n");
+		a = ftos(pev->items);
+		sprint(pev, a);
+		sprint(pev, "Items Printed\n");
 	}
-	if(self.impulse == 11)
+	if(pev->impulse == 11)
 	{
-		self.items = self.items + 8;
-		sprint(self, "Items added to\{136}\n");
+		pev->items = pev->items + 8;
+		sprint(pev, "Items added to\{136}\n");
 	}
 
-	if(self.impulse == 150)
+	if(pev->impulse == 150)
 	{
-		IEM_effects(TE_TELEPORT, self.origin);
+		IEM_effects(TE_TELEPORT, pev->origin);
 	}
 
-	self.impulse = 0;                              // Clear impulse list.
+	pev->impulse = 0;                              // Clear impulse list.
 };
