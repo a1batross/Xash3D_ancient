@@ -41,89 +41,90 @@ prvm_fieldvars_t reqfields[] =
 	{24,	3,	"post_avelocity"},
 	{27,	3,	"origin_offset"},
 	{30,	3,	"angles_offset"},
-	{33,	2,	"bouncetype"},
-	{34,	2,	"movetype"},
-	{35,	2,	"solid"},
-	{36,	3,	"absmin"},
-	{39,	3,	"absmax"},
-	{42,	3,	"mins"},
-	{45,	3,	"maxs"},
-	{48,	3,	"size"},
-	{51,	4,	"chain"},
-	{52,	1,	"model"},
-	{53,	2,	"frame"},
-	{54,	2,	"sequence"},
-	{55,	2,	"renderfx"},
-	{56,	2,	"effects"},
-	{57,	2,	"skin"},
-	{58,	2,	"body"},
-	{59,	1,	"weaponmodel"},
-	{60,	2,	"weaponframe"},
-	{61,	6,	"use"},
-	{62,	6,	"touch"},
-	{63,	6,	"think"},
-	{64,	6,	"blocked"},
-	{65,	6,	"activate"},
-	{66,	6,	"walk"},
-	{67,	6,	"jump"},
-	{68,	6,	"duck"},
-	{69,	2,	"flags"},
-	{70,	2,	"aiflags"},
-	{71,	2,	"spawnflags"},
-	{72,	4,	"groundentity"},
-	{73,	2,	"nextthink"},
-	{74,	2,	"takedamage"},
-	{75,	2,	"health"},
-	{76,	2,	"frags"},
-	{77,	2,	"weapon"},
-	{78,	2,	"items"},
-	{79,	1,	"target"},
-	{80,	1,	"parent"},
-	{81,	1,	"targetname"},
-	{82,	4,	"aiment"},
-	{83,	4,	"goalentity"},
-	{84,	3,	"punchangle"},
-	{87,	2,	"deadflag"},
-	{88,	3,	"view_ofs"},
-	{91,	2,	"button0"},
-	{92,	2,	"button1"},
-	{93,	2,	"button2"},
-	{94,	2,	"impulse"},
-	{95,	2,	"fixangle"},
-	{96,	3,	"v_angle"},
-	{99,	2,	"idealpitch"},
-	{100,	1,	"netname"},
-	{101,	4,	"enemy"},
-	{102,	2,	"colormap"},
-	{103,	2,	"team"},
-	{104,	2,	"max_health"},
-	{105,	2,	"teleport_time"},
-	{106,	2,	"armortype"},
-	{107,	2,	"armorvalue"},
-	{108,	2,	"waterlevel"},
-	{109,	2,	"watertype"},
-	{110,	2,	"ideal_yaw"},
-	{111,	2,	"yaw_speed"},
-	{112,	2,	"dmg_take"},
-	{113,	2,	"dmg_save"},
-	{114,	4,	"dmg_inflictor"},
-	{115,	4,	"owner"},
-	{116,	3,	"movedir"},
-	{119,	1,	"message"},
-	{120,	2,	"sounds"},
-	{121,	1,	"noise"},
-	{122,	1,	"noise1"},
-	{123,	1,	"noise2"},
-	{124,	1,	"noise3"},
-	{125,	2,	"jumpup"},
-	{126,	2,	"jumpdn"},
-	{127,	4,	"movetarget"},
-	{128,	2,	"mass"},
-	{129,	2,	"density"},
-	{130,	2,	"gravity"},
-	{131,	2,	"dmg"},
-	{132,	2,	"dmgtime"},
-	{133,	2,	"speed"}
+	{33,	2,	"ltime"},
+	{34,	2,	"bouncetype"},
+	{35,	2,	"movetype"},
+	{36,	2,	"solid"},
+	{37,	3,	"absmin"},
+	{40,	3,	"absmax"},
+	{43,	3,	"mins"},
+	{46,	3,	"maxs"},
+	{49,	3,	"size"},
+	{52,	4,	"chain"},
+	{53,	1,	"model"},
+	{54,	2,	"frame"},
+	{55,	2,	"sequence"},
+	{56,	2,	"renderfx"},
+	{57,	2,	"effects"},
+	{58,	2,	"skin"},
+	{59,	2,	"body"},
+	{60,	1,	"weaponmodel"},
+	{61,	2,	"weaponframe"},
+	{62,	6,	"use"},
+	{63,	6,	"touch"},
+	{64,	6,	"think"},
+	{65,	6,	"blocked"},
+	{66,	6,	"activate"},
+	{67,	6,	"walk"},
+	{68,	6,	"jump"},
+	{69,	6,	"duck"},
+	{70,	2,	"flags"},
+	{71,	2,	"aiflags"},
+	{72,	2,	"spawnflags"},
+	{73,	4,	"groundentity"},
+	{74,	2,	"nextthink"},
+	{75,	2,	"takedamage"},
+	{76,	2,	"health"},
+	{77,	2,	"frags"},
+	{78,	2,	"weapon"},
+	{79,	2,	"items"},
+	{80,	1,	"target"},
+	{81,	1,	"parent"},
+	{82,	1,	"targetname"},
+	{83,	4,	"aiment"},
+	{84,	4,	"goalentity"},
+	{85,	3,	"punchangle"},
+	{88,	2,	"deadflag"},
+	{89,	3,	"view_ofs"},
+	{92,	2,	"button0"},
+	{93,	2,	"button1"},
+	{94,	2,	"button2"},
+	{95,	2,	"impulse"},
+	{96,	2,	"fixangle"},
+	{97,	3,	"v_angle"},
+	{100,	2,	"idealpitch"},
+	{101,	1,	"netname"},
+	{102,	4,	"enemy"},
+	{103,	2,	"colormap"},
+	{104,	2,	"team"},
+	{105,	2,	"max_health"},
+	{106,	2,	"teleport_time"},
+	{107,	2,	"armortype"},
+	{108,	2,	"armorvalue"},
+	{109,	2,	"waterlevel"},
+	{110,	2,	"watertype"},
+	{111,	2,	"ideal_yaw"},
+	{112,	2,	"yaw_speed"},
+	{113,	2,	"dmg_take"},
+	{114,	2,	"dmg_save"},
+	{115,	4,	"dmg_inflictor"},
+	{116,	4,	"owner"},
+	{117,	3,	"movedir"},
+	{120,	1,	"message"},
+	{121,	2,	"sounds"},
+	{122,	1,	"noise"},
+	{123,	1,	"noise1"},
+	{124,	1,	"noise2"},
+	{125,	1,	"noise3"},
+	{126,	2,	"jumpup"},
+	{127,	2,	"jumpdn"},
+	{128,	4,	"movetarget"},
+	{129,	2,	"mass"},
+	{130,	2,	"density"},
+	{131,	2,	"gravity"},
+	{132,	2,	"dmg"},
+	{133,	2,	"dmgtime"},
+	{134,	2,	"speed"}
 };
 
 /*
@@ -161,7 +162,6 @@ int SV_FindIndex (const char *name, int start, int end, bool create)
 		MSG_WriteString (&sv.multicast, (char *)name);
 		MSG_Send(MSG_ALL_R, vec3_origin, NULL );
 	}
-
 	return i;
 }
 
@@ -220,7 +220,6 @@ SV_CheckForSavegame
 */
 void SV_CheckForSavegame (char *savename )
 {
-	int		i;
 	char		name[MAX_SYSPATH];
 
 	if (sv_noreload->value) return;
@@ -237,23 +236,6 @@ void SV_CheckForSavegame (char *savename )
 
 	// get configstrings and areaportals
 	SV_ReadLevelFile ( savename );
-
-	if (!sv.loadgame)
-	{	
-		// coming back to a level after being in a different
-		// level, so run it for ten seconds
-
-		// rlava2 was sending too many lightstyles, and overflowing the
-		// reliable data. temporarily changing the server state to loading
-		// prevents these from being passed down.
-		server_state_t		previousState;		// PGM
-
-		previousState = sv.state;				// PGM
-		sv.state = ss_loading;				// PGM
-		for (i = 0; i < 100; i++) SV_RunFrame();
-
-		sv.state = previousState;				// PGM
-	}
 }
 
 
@@ -269,7 +251,6 @@ clients along with it.
 void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_state_t serverstate, bool attractloop, bool loadgame)
 {
 	uint	i, checksum;
-	edict_t	*ent;
 
 	if (attractloop) Cvar_Set ("paused", "0");
 
@@ -306,7 +287,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 	SV_VM_Begin();
 
 	// leave slots at start for clients only
-	for (i = 0; i<maxclients->value ; i++)
+	for (i = 0; i < maxclients->value; i++)
 	{
 		// needs to reconnect
 		if (svs.clients[i].state > cs_connected)
@@ -348,39 +329,6 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 	sv.state = ss_loading;
 	Com_SetServerState (sv.state);
 
-	ent = PRVM_EDICT_NUM(0);
-	prog->protect_world = false;
-	memset (ent->progs.sv, 0, prog->progs->entityfields * 4);
-	ent->priv.sv->free = false;
-	ent->progs.sv->model = PRVM_SetEngineString(sv.configstrings[CS_MODELS]);
-	ent->progs.sv->modelindex = 1; // world model
-	ent->progs.sv->solid = SOLID_BSP;
-	ent->progs.sv->movetype = MOVETYPE_PUSH;
-          
-	prog->globals.server->mapname = PRVM_SetEngineString(sv.name);
-
-	// spawn the rest of the entities on the map
-	sv.edicts = (edict_t **)PRVM_Alloc(prog->max_edicts * sizeof(edict_t *));
-	sv.clients = (gclient_t *)PRVM_Alloc(maxclients->value * sizeof(gclient_t));
-	*prog->time = sv.time = 1.0;
-
-	// serverflags are for cross level information (sigils)
-//prog->globals.server->serverflags = svs.serverflags;
-
-	// we need to reset the spawned flag on all connected clients here so that
-	// their thinks don't run during startup (before PutClientInServer)
-	// we also need to set up the client entities now
-	// and we need to set the ->edict pointers to point into the progs edicts
-	for (i = 0, sv_client = svs.clients; i < maxclients->value; i++, sv_client++)
-	{
-		sv_client->state = cs_connected;
-		sv_client->edict = PRVM_EDICT_NUM(i + 1);
-		sv_client->edict->priv.sv->client = sv.clients + i;
-		ent->priv.sv->s.number = i + 1;
-		memset (&sv_client->lastcmd, 0, sizeof(sv_client->lastcmd));
-		PRVM_ED_ClearEdict(sv_client->edict);
-	}
-
 	// load and spawn all other entities
 	SV_SpawnEntities ( sv.name, CM_EntityString(), spawnpoint );
 
@@ -414,8 +362,9 @@ A brand new game has been started
 */
 void SV_InitGame (void)
 {
-	char		idmaster[32];
-
+	char		i, idmaster[32];
+	edict_t		*ent;
+	
 	if (svs.initialized)
 	{
 		// cause any connected clients to reconnect
@@ -469,6 +418,7 @@ void SV_InitGame (void)
 	svs.clients = Z_Malloc (sizeof(client_t)*maxclients->value);
 	svs.num_client_entities = maxclients->value*UPDATE_BACKUP*64;
 	svs.client_entities = Z_Malloc (sizeof(entity_state_t)*svs.num_client_entities);
+	svs.gclients = Z_Malloc(sizeof(gclient_t)*maxclients->value);
 
 	// init network stuff
 	NET_Config ( (maxclients->value > 1) );
@@ -479,7 +429,19 @@ void SV_InitGame (void)
 	NET_StringToAdr (idmaster, &master_adr[0]);
 
 	// init game
-	SV_InitGameProgs ();
+	SV_InitGameProgs();
+
+	SV_VM_Begin();
+
+	for (i = 0; i < maxclients->value; i++)
+	{
+		ent = PRVM_EDICT_NUM(i + 1);
+		ent->priv.sv->s.number = i + 1;
+		svs.clients[i].edict = ent;
+		memset (&svs.clients[i].lastcmd, 0, sizeof(svs.clients[i].lastcmd));
+	}
+
+	SV_VM_End();
 }
 
 
@@ -565,7 +527,6 @@ void SV_Map (bool attractloop, char *levelstring, char *savename, bool loadgame)
 		SV_SpawnServer (level, spawnpoint, savename, ss_game, attractloop, loadgame);
 		Cbuf_CopyToDefer ();
 	}
-          
 	SV_BroadcastCommand ("reconnect\n");
 }
 
@@ -574,9 +535,9 @@ void SV_VM_BeginIncreaseEdicts(void)
 	int		i;
 	edict_t		*ent;
 
-	if(sv.edicts) PRVM_Free( sv.edicts );
+	PRVM_Free( sv.moved_edicts );
+	sv.moved_edicts = (edict_t **)PRVM_Alloc(prog->max_edicts * sizeof(edict_t *));
 
-	sv.edicts = (edict_t **)PRVM_Alloc(prog->max_edicts * sizeof(prvm_edict_t *));
 	// links don't survive the transition, so unlink everything
 	for (i = 0, ent = prog->edicts; i < prog->max_edicts; i++, ent++)
 	{

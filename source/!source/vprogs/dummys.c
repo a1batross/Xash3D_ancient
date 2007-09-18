@@ -23,7 +23,6 @@ void() func_episodegate         = {remove(pev);};
 //void() func_door                = {remove(pev);};
 void() func_door_secret         = {remove(pev);};
 void() func_plat                = {remove(pev);};
-void() func_wall                = {remove(pev);};
 void() info_intermission        = {remove(pev);};
 void() info_null                = {remove(pev);};
 //void() info_teleport_destination= {remove(pev);};
@@ -48,6 +47,7 @@ void() info_player_start        = {};
 //void() info_player_start2       = {};
 void() info_player_deathmatch   = {};
 void() info_player_coop         = {};
+void() info_target = {};
 
 // Weapons
 void() weapon_supershotgun      = {remove(pev);};
@@ -94,7 +94,6 @@ void barrel_spawn(string netname1, string model1, string deathmessage, float dam
 {
 	local float oldz;
 
-	bprint("barrel_spawn\n");
 	precache_model (model1);
 	precache_sound ("weapons/r_exp3.wav");
 

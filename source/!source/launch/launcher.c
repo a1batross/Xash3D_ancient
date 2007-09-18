@@ -38,6 +38,7 @@ int		com_argc;
 char		*com_argv[MAX_NUM_ARGVS];
 char		progname[32];	// limit of funcname
 common_exp_t	*Com;		// callback to utilities
+launch_exp_t	*Host;		// callback to mainframe 
 static double	start, end;
 byte		*mempool;		// generic mempoolptr
 
@@ -126,10 +127,14 @@ void LookupInstance( const char *funcname )
 	{
 		app_name = CREDITS;
 		linked_dll = NULL;	// no need to loading library
-		about_mode = true;
+		log_active = dev_mode = debug_mode = 0; //clear all dbg states
 		strcpy(caption, "About");
+		about_mode = true;
 	}
-	else app_name = DEFAULT;
+	else 
+	{
+		app_name = DEFAULT;
+	}
 }
 
 stdlib_api_t *Get_StdAPI( void )
@@ -276,10 +281,9 @@ void CreateInstance( void )
 	// export
 	common_t		CreateCom;
 	launch_t		CreateHost;
-	launch_exp_t	*Host;          
           
-	// first text message into console or log
-	if(app_name != CREDITS) MsgDev(D_INFO, "------- Loading bin/launch.dll [%g] -------\n", LAUNCH_VERSION );
+	// first text message into console or log 
+	MsgDev(D_INFO, "Sys_LoadLibrary: Loading launch.dll [%d] - ok\n", INIT32_API_VERSION );
 
 	Sys_LoadLibrary( linked_dll ); // loading library if need
 
@@ -340,7 +344,7 @@ void HOST_MakeStubs( void )
 
 void API_Reset( void )
 {
-	Sys_InitConsole = NullVoidWithName;
+	Sys_InitConsole = NullVoid;
 	Sys_FreeConsole = NullVoid;
           Sys_ShowConsole = NullVoidWithArg;
 	
@@ -357,6 +361,8 @@ void API_SetConsole( void )
 	if( hooked_out && app_name > HOST_EDITOR)
 	{
 		Sys_Print = Sys_PrintA;
+		Sys_InitConsole = Sys_InitLog;
+		Sys_FreeConsole = Sys_CloseLog;
 	}
           else
           {
@@ -373,8 +379,12 @@ void API_SetConsole( void )
 	Sys_Error = Sys_ErrorW;
 }
 
-
-void RunLauncher( char *funcname )
+/*
+=================
+Base Entry Point
+=================
+*/
+DLLEXPORT int CreateAPI( char *funcname )
 {
 	HANDLE		hStdout;
 	OSVERSIONINFO	vinfo;
@@ -409,7 +419,7 @@ void RunLauncher( char *funcname )
 	LookupInstance( funcname );
 	HOST_MakeStubs();//make sure what all functions are filled
 	API_SetConsole(); //initialize system console
-	Sys_InitConsole( caption );
+	Sys_InitConsole();
 
 	if(!GetVersionEx (&vinfo)) Sys_Error ("InitLauncher: Couldn't get OS info\n");
 	if(vinfo.dwMajorVersion < 4) Sys_Error ("InitLauncher: Win%d is not supported\n", vinfo.dwMajorVersion );
@@ -420,17 +430,6 @@ void RunLauncher( char *funcname )
 	// control without reason
 	Host_Main(); // ok, starting host
 	Sys_Exit(); // normal quit from appilcation
-}
-
-/*
-=================
-Base Entry Point
-=================
-*/
-
-DLLEXPORT int CreateAPI( char *funcname )
-{
-	RunLauncher( funcname );
 
 	return 0;
 }

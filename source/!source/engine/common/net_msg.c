@@ -515,9 +515,9 @@ void *SZ_GetSpace (sizebuf_t *buf, int length)
 	if (buf->cursize + length > buf->maxsize)
 	{
 		if (length > buf->maxsize)
-			Host_Error("SZ_GetSpace: %i is > full buffer size\n", length);
+			Host_Error("SZ_GetSpace: length[%i] > buffer maxsize [%i]\n", length, buf->maxsize );
 			
-		Msg ("SZ_GetSpace: overflow [cursize %d maxsize %d]\n", buf->cursize + length, buf->maxsize );
+		MsgWarn("SZ_GetSpace: overflow [cursize %d maxsize %d]\n", buf->cursize + length, buf->maxsize );
 		SZ_Clear (buf); 
 		buf->overflowed = true;
 	}

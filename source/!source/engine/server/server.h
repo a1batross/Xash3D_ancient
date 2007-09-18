@@ -65,6 +65,7 @@ typedef struct
 
 	char		configstrings[MAX_CONFIGSTRINGS][MAX_QPATH];
 	entity_state_t	baselines[MAX_EDICTS];
+	edict_t		**moved_edicts;	// [MAX_EDICTS]
 
 	// the multicast buffer is used to send a message to a set of clients
 	// it is only used to marshall data until SV_Message is called
@@ -77,10 +78,6 @@ typedef struct
 
 	float		lastchecktime;
 	int		lastcheck;
-
-	// global 
-	edict_t		**edicts; // [max_edicts]
-	gclient_t		*clients;	// [maxclients]
 
 	bool		autosaved;
 } server_t;
@@ -171,8 +168,8 @@ typedef struct
 
 	int		spawncount;		// incremented each server start
 						// used to check late spawns
-
-	client_t		*clients;			// [maxclients->value];
+	gclient_t		*gclients;		// [maxclients->value]
+	client_t		*clients;			// [maxclients->value]
 	int		num_client_entities;	// maxclients->value*UPDATE_BACKUP*MAX_PACKET_ENTITIES
 	int		next_client_entities;	// next client_entity to use
 	entity_state_t	*client_entities;		// [num_client_entities]
@@ -359,6 +356,7 @@ int SV_PointContents (vec3_t p);
 // Quake 2 extends this to also check entities, to allow moving liquids
 
 
+trace_t SV_ClipMoveToEntity(edict_t *ent, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int contentsmask );
 trace_t SV_Trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, edict_t *passedict, int contentmask);
 // mins and maxs are relative
 

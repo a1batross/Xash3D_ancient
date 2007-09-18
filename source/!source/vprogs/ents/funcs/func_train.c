@@ -23,11 +23,11 @@ void() func_train_wait =
 {
 	if (pev->wait)
 	{
-		pev->nextthink = time + pev->wait;
+		pev->nextthink = pev->ltime + pev->wait;
 		//sound (pev, CHAN_VOICE, pev->noise, 1, ATTN_NORM);
 	}
 	else
-		pev->nextthink = time + 0.1;
+		pev->nextthink = pev->ltime + 0.1;
 	
 	pev->think = func_train_next;
 };
@@ -80,7 +80,7 @@ void() func_train_find =
 
 	if (!pev->targetname)				// not triggered, so start immediately
 	{
-		pev->nextthink = time + 0.1;
+		pev->nextthink = pev->ltime + 0.1;
 		pev->think = func_train_next;
 	}
 };
@@ -98,7 +98,7 @@ void() func_train_use =
 	if(pev->touched == FALSE)
 	{
 		pev->touched = TRUE;
-		pev->nextthink = time + 0.1;
+		pev->nextthink = pev->ltime + 0.1;
 		pev->think = func_train_next;
 	}
 };
@@ -126,7 +126,7 @@ void() func_train =
 	if (!pev->dmg)
 		pev->dmg = 2;
 
-	pev->nextthink = time + 0.1;
+	pev->nextthink = pev->ltime + 0.1;
 	pev->think = func_train_find;
 };
 

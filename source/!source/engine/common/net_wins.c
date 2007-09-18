@@ -763,10 +763,10 @@ void	NET_Config (bool multiplayer)
 // sleeps msec or until net socket is ready
 void NET_Sleep(int msec)
 {
-    struct timeval timeout;
-	fd_set	fdset;
-	extern cvar_t *dedicated;
-	int i;
+	struct		timeval timeout;
+	fd_set		fdset;
+	extern cvar_t	*dedicated;
+	int		i;
 
 	if (!dedicated || !dedicated->value)
 		return; // we're not a server, just run full speed

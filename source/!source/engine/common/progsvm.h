@@ -194,7 +194,7 @@ typedef struct prvm_prog_s
 	// name of the prog, e.g. "Server", "Client" or "Menu" (used for text output)
 	char		*name;		// [INIT]
 
-	// flag - used to store general flags like PRVM_GE_SELF, etc.
+	// flag - used to store general flags like PRVM_GE_PEV, etc.
 	int		flag;
 
 	char		*extensionstring;	// [INIT]
@@ -206,7 +206,7 @@ typedef struct prvm_prog_s
 
 	//============================================================================
 
-	ddef_t		*self; // if self != 0 then there is a global self
+	ddef_t		*pev; // if pev != 0 then there is a global pev
 
 	//============================================================================
 	// function pointers
@@ -303,6 +303,7 @@ void PRVM_ED_ClearEdict (edict_t *e);
 void PRVM_PrintFunctionStatements (const char *name);
 void PRVM_ED_Print(edict_t *ed);
 void PRVM_ED_Write (file_t *f, edict_t *ed);
+char *PRVM_ED_Info(edict_t *ent);
 const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent);
 
 void PRVM_ED_WriteGlobals (file_t *f);

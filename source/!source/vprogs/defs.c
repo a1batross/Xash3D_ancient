@@ -88,6 +88,7 @@ void end_sys_globals;		// flag for structure dumping
 	.vector		post_avelocity;
 	.vector		origin_offset;
 	.vector		angles_offset;
+	.float		ltime;
 
 	.float		bouncetype;
 	.float		movetype;
@@ -189,6 +190,7 @@ void(vector ang) makevectors			= #1;	// sets v_forward, etc globals
 void(entity e, vector o) setorigin		= #2;
 void(entity e, string m) setmodel		= #3;	// set movetype and solid first
 void(entity e, vector min, vector max) setsize	= #4;
+void(string s) Msg				= #5;
 void() break				= #6;
 float() random				= #7;	// returns 0 - 1
 void(entity e, float chan, string samp, float vol, float atten) sound = #8;
@@ -256,7 +258,7 @@ void(entity client, string s, string s, string s, string s, string s, string s, 
 void(vector pos, string samp, float vol, float atten) ambientsound = #74;
 string(string s) precache_model2		= #75;	// registered version only
 string(string s) precache_sound2		= #76;	// registered version only
-string(string s) precache_file2			= #77;	// registered version only
+string(string s) precache_file2		= #77;	// registered version only
 void(entity e) setspawnparms			= #78;	// set parm1... to the
 
 //
@@ -267,12 +269,16 @@ float	FALSE					= 0;
 float 	TRUE					= 1;
 
 // newdefines
-#define CS_STATUSBAR				5
-
-#define CS_MAXCLIENTS				30
+#define	CS_NAME			0
+#define	CS_CDTRACK		1
+#define	CS_SKY			2
+#define	CS_SKYAXIS		3	// %f %f %f format
+#define	CS_SKYROTATE		4
+#define	CS_STATUSBAR		5	// display program string
+//NOTE: other  CS_* will be set by engine
 
 #define	STAT_HEALTH_ICON		0
-#define	STAT_HEALTH		1.0
+#define	STAT_HEALTH		1
 #define	STAT_AMMO_ICON		2
 #define	STAT_AMMO			3
 #define	STAT_ARMOR_ICON		4

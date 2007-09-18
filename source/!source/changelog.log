@@ -26,15 +26,26 @@ SV_ClipToLinks		SV_ClipMoveToEntities
 17. Переписать bsplib для работы в цикле
 18. Полная имплементация PRVM
 {
-	перенести параметры из sv_edict_t в sv_fields_t
+	перенести параметры из sv_edict_t в sv_fields_t	OK
 	упорядочить FL_ флаги			OK
-	упорядочить entvars_t
+	упорядочить entvars_t			OK
+	исправить ошибку SZ_GetSpace			OK
+	SV_FreeEdict не передается указатель		OK
+	наладить think system			OK
+	наладить VM_bprint и VM_dprint		OK
+	организовать передачу progs.sv в priv.sv->s
+	полная отладка физики!
+	настроить связи между progs и state
 }
 
+SV_CreateBaseLine progs->state
+SV_BuildClientFrame progs->state
+SV_PrepWorldFrame state<-progs
 
 //==================================================
 //		то, что уже готово
 //==================================================
++исправлен баг с логом при выводе сообщений через pipeline
 +исправлен баг с загрузкой анимированных текстур
 -удален формат моделей md2
 +исправлен баг с флагом RF_FULLBRIGHT для studio models в режиме RDF_NOWORLDMODEL

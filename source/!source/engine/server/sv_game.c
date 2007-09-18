@@ -66,7 +66,7 @@ void PF_setorigin (void)
 		return;
 	}
 	org = PRVM_G_VECTOR(OFS_PARM1);
-	VectorCopy (org, e->progs.sv->origin);
+	VectorCopy (org, e->priv.sv->s.origin);
 	SV_LinkEdict (e);
 }
 
@@ -163,6 +163,8 @@ void SV_SetModel (edict_t *ent, const char *name)
 	i = SV_ModelIndex( name );
 	ent->progs.sv->model = PRVM_SetEngineString(sv.configstrings[CS_MODELS+i]);
 	ent->progs.sv->modelindex = ent->priv.sv->s.modelindex = i;
+	VectorCopy (ent->progs.sv->origin, ent->priv.sv->s.origin);
+	VectorCopy (ent->progs.sv->angles, ent->priv.sv->s.angles);
 
 	mod = CM_LoadModel(sv.configstrings[CS_MODELS+i]);
 	if(mod) SetMinMaxSize( ent, mod->mins, mod->maxs, false );
@@ -806,8 +808,6 @@ void() droptofloor
 void PF_droptofloor (void)
 {
 	edict_t		*ent;
-	vec3_t		end;
-	trace_t		trace;
 
 	// assume failure if it returns early
 	PRVM_G_FLOAT(OFS_RETURN) = 0;
@@ -824,19 +824,10 @@ void PF_droptofloor (void)
 		return;
 	}
 
-	VectorCopy (ent->progs.sv->origin, end);
-	end[2] -= 256;
+	SV_DropToFloor( ent );
 
-	trace = SV_Trace(ent->progs.sv->origin, ent->progs.sv->mins, ent->progs.sv->maxs, end, ent, MASK_ALL );
-
-	if (trace.fraction != 1)
-	{
-		VectorCopy (trace.endpos, ent->progs.sv->origin);
-		SV_LinkEdict (ent);
-		ent->progs.sv->flags = (int)ent->progs.sv->aiflags | AI_ONGROUND;
-		ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG(trace.ent);
-		PRVM_G_FLOAT(OFS_RETURN) = 1;
-	}
+	ent->progs.sv->aiflags = (int)ent->progs.sv->aiflags | AI_ONGROUND;
+	PRVM_G_FLOAT(OFS_RETURN) = 1;
 }
 
 /*
@@ -1356,7 +1347,7 @@ PF_makevectors,				// #1 void(vector ang) makevectors
 PF_setorigin,				// #2 void(entity e, vector o) setorigin
 PF_setmodel,				// #3 void(entity e, string m) setmodel
 PF_setsize,				// #4 void(entity e, vector min, vector max) setsize
-NULL,					// #5 void(entity e, vector min, vector max) setabssize
+VM_print,					// #5 void(string s) Msg
 VM_break,					// #6 void() break
 VM_random,				// #7 float() random
 PF_sound,					// #8 void(entity e, float chan, string samp) sound
@@ -1597,6 +1588,10 @@ it is changing to a different game directory.
 void SV_ShutdownGameProgs (void)
 {
 	Msg("==== ShutdownGame ====\n");
+	if(!svs.gclients) return;
+
+	Mem_Free( svs.gclients );
+	svs.gclients = NULL;
 }
 
 /*

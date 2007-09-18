@@ -77,7 +77,7 @@ void() func_mover_stop =
 	if(pev->wait >= 0)					//Return upon wait over!
 	{
 		pev->think = func_mover_think;
-		pev->nextthink = time + pev->wait;
+		pev->nextthink = pev->ltime + pev->wait;
 	}
 };
 
@@ -113,13 +113,13 @@ void(vector destination, float movespeed, void() dest_func) func_mover_move =
 	if(traveltime < 0.1 || pev->origin == destination)
 	{
 		pev->think = dest_func;
-		pev->nextthink = time + 0.1;
+		pev->nextthink = pev->ltime + 0.1;
 		pev->dest = destination;
 		return;
 	}
 
 	pev->think = dest_func;
-	pev->nextthink = time + traveltime;
+	pev->nextthink = pev->ltime + traveltime;
 	
 	pev->dest = destination;
 };
@@ -160,6 +160,7 @@ void() func_mover_fire =
 
 void() func_mover_touch = 
 {
+	bprint("door touch\n");
 	if(other.classname != "player")			//Are you a player?
 		return;
 	if(other == world)				//Are you the world?
@@ -171,7 +172,7 @@ void() func_mover_touch =
 		
 		pev->touched = TRUE;				//stop touching me!
 		pev->think = func_mover_fire;			//set me next think
-		pev->nextthink = time + pev->delay;	//set it so it happens in 0.1 secs from now.
+		pev->nextthink = pev->ltime + pev->delay;	//set it so it happens in 0.1 secs from now.
 	}
 };
 
@@ -183,7 +184,7 @@ void() func_mover_use =
 	pev->touched = TRUE;					//Fake touch!
 	
 	pev->think = func_mover_fire;				//set me next think!
-	pev->nextthink = time + pev->delay;		//in delay
+	pev->nextthink = pev->ltime + pev->delay;		//in delay
 };
 
 void() func_mover_die = 
@@ -236,5 +237,8 @@ void() func_mover =
 	}
 	else
 		pev->state = STATE_CLOSED;
+
+	pev->think = func_mover_use;
+	pev->nextthink = pev->ltime + 1.0; 
 };
 

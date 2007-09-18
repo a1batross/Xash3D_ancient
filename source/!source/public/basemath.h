@@ -20,6 +20,12 @@
 #define M_PI		3.14159265358979323846
 #endif
 
+// network precision coords factor
+#define SV_COORD_FRAC	(8.0f / 1.0f)
+#define CL_COORD_FRAC	(1.0f / 8.0f)
+#define SV_ANGLE_FRAC	(360.0f / 1.0f )
+#define CL_ANGLE_FRAC	(1.0f / 360.0f )
+
 #define RANDOM_LONG(MIN,MAX) ((rand() & 32767) * (((MAX)-(MIN)) * (1.0f / 32767.0f)) + (MIN))
 #define RANDOM_FLOAT(MIN,MAX) (((float)rand() / RAND_MAX) * ((MAX)-(MIN)) + (MIN))
 
@@ -68,8 +74,8 @@ _inline bool VectorIsNull(vec3_t v)
 	int i;
 	float result = 0;
 
-	for (i=0 ; i< 3 ; i++) result += v[i];
-	if(result > 0) return false;
+	for (i = 0; i< 3; i++) result += v[i];
+	if(result != 0) return false;
 	return true;		
 }
 

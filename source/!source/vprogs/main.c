@@ -100,10 +100,18 @@ This function is called when the world spawns.
 
 void worldspawn( void ) 
 {
+	vector skyaxis = '32 180 20';
+
+	dprint("world spawned");
 	precaches(); 
 	LightStyles_setup();
-	configstring (CS_MAXCLIENTS, "1" );
+
+	// CS_MAXCLIENTS already sended by engine
 	configstring (CS_STATUSBAR, single_statusbar );
+	configstring (CS_SKY, "sky" );
+	configstring (CS_SKYROTATE, ftos( 0 ));		// rotate speed
+	configstring (CS_SKYAXIS, vtos( pev->angles ));	// rotate axis
+	configstring (CS_CDTRACK, ftos( 0 ));
 }
 
 /*

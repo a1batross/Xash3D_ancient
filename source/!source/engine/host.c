@@ -100,8 +100,6 @@ void Host_Init (char *funcname, int argc, char **argv)
 	COM_InitArgv (argc, argv); // init host.debug & host.developer here
 	Host_InitCommon( funcname, argc, argv );
 
-	MsgDev(D_INFO, "------- Loading bin/engine.dll   [%g] -------\n", ENGINE_VERSION );
-	
 	Cbuf_Init ();
 	Cmd_Init ();
 	Cvar_Init ();
@@ -297,6 +295,7 @@ void Host_Free (void)
 		SV_Shutdown ("Server shutdown\n", false);
 		CL_Shutdown ();
 	}
+	NET_Shutdown();
 	Host_FreeCommon ();
 }
 

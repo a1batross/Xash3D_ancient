@@ -722,7 +722,7 @@ def_t *PR_SupplyConversion(def_t *var, etype_t wanted)
 		if (pr_classtype)
 		{	//load self.var into a temp
 			def_t *self;
-			self = PR_GetDef(type_entity, "self", NULL, true, 1);
+			self = PR_GetDef(type_entity, "pev", NULL, true, 1);
 			switch(wanted)
 			{
 			case ev_float:
@@ -2520,7 +2520,7 @@ def_t *PR_ParseFunctionCall (def_t *func)	//warning, the func could have no name
 
 				if (pr_classtype && e->type->type == ev_field && p->type != ev_field)
 				{	//convert.
-					oself = PR_GetDef(type_entity, "self", NULL, true, 1);
+					oself = PR_GetDef(type_entity, "pev", NULL, true, 1);
 					switch(e->type->aux_type->type)
 					{
 					case ev_string:
@@ -2652,7 +2652,7 @@ def_t *PR_ParseFunctionCall (def_t *func)	//warning, the func could have no name
 
 		//FIXME: problems could occur with hexen2 calling conventions when parm0/1 is 'self'
 		//thiscall. copy the right ent into 'self' (if it's not the same offset)
-		d = PR_GetDef(type_entity, "self", NULL, true, 1);
+		d = PR_GetDef(type_entity, "pev", NULL, true, 1);
 		if (statements[laststatement-1].a != d->ofs)
 		{
 			oself = PR_GetTemp(type_entity);
@@ -3096,7 +3096,7 @@ void PR_EmitClassFromFunction(def_t *scope, char *tname)
 
 	if (constructor)
 	{	//self = ent;
-		self = PR_GetDef(type_entity, "self", NULL, false, 0);
+		self = PR_GetDef(type_entity, "pev", NULL, false, 0);
 		oself = PR_GetDef(type_entity, "oself", scope, true, 1);
 		PR_FreeTemp(PR_Statement(&pr_opcodes[OP_STORE_ENT], self, oself, NULL));
 		PR_FreeTemp(PR_Statement(&pr_opcodes[OP_STORE_ENT], ed, self, NULL));	//return to our old self. boom boom.
@@ -3189,14 +3189,14 @@ def_t	*PR_ParseValue (type_t *assumeclass)
 		{
 			if (!pr_classtype)
 				PR_ParseError(ERR_NOTANAME, "Cannot use 'this' outside of an OO function\n");
-			od = PR_GetDef(NULL, "self", NULL, true, 1);
+			od = PR_GetDef(NULL, "pev", NULL, true, 1);
 			od = d = PR_DummyDef(pr_classtype, "this", pr_scope, 1, od->ofs, true);
 		}
 		else if (keyword_class && !strcmp(name, "super"))
 		{
 			if (!pr_classtype)
 				PR_ParseError(ERR_NOTANAME, "Cannot use 'super' outside of an OO function\n");
-			od = PR_GetDef(NULL, "self", NULL, true, 1);
+			od = PR_GetDef(NULL, "pev", NULL, true, 1);
 			od = d = PR_DummyDef(pr_classtype, "super", pr_scope, 1, od->ofs, true);
 		}
 		else
@@ -4543,8 +4543,8 @@ void PR_ParseStatement (void)
 		/*if (pr_classtype)
 		{
 			e = PR_GetDef(NULL, "__oself", pr_scope, false, 0);
-			e2 = PR_GetDef(NULL, "self", NULL, false, 0);
-			PR_FreeTemp(PR_Statement(&pr_opcodes[OP_STORE_ENT], e, PR_DummyDef(pr_classtype, "self", pr_scope, 1, e2->ofs, false), NULL));
+			e2 = PR_GetDef(NULL, "pev", NULL, false, 0);
+			PR_FreeTemp(PR_Statement(&pr_opcodes[OP_STORE_ENT], e, PR_DummyDef(pr_classtype, "pev", pr_scope, 1, e2->ofs, false), NULL));
 		}*/
 
 		if (PR_CheckToken (";"))
@@ -5398,7 +5398,7 @@ void PR_ParseState (void)
 			def_t *cycle_wrapped;
 			temp_t *ftemp;
 
-			self = PR_GetDef(type_entity, "self", NULL, false, 0);
+			self = PR_GetDef(type_entity, "pev", NULL, false, 0);
 			framef = PR_GetDef(NULL, "frame", NULL, false, 0);
 			cycle_wrapped = PR_GetDef(type_float, "cycle_wrapped", NULL, false, 0);
 
@@ -6266,8 +6266,8 @@ function_t *PR_ParseImmediateStatements (type_t *type)
 	{
 		def_t *e, *e2;
 		e = PR_GetDef(pr_classtype, "__oself", pr_scope, true, 1);
-		e2 = PR_GetDef(type_entity, "self", NULL, true, 1);
-		PR_FreeTemp(PR_Statement(&pr_opcodes[OP_STORE_ENT], PR_DummyDef(pr_classtype, "self", pr_scope, 1, e2->ofs, false), e, NULL));
+		e2 = PR_GetDef(type_entity, "pev", NULL, true, 1);
+		PR_FreeTemp(PR_Statement(&pr_opcodes[OP_STORE_ENT], PR_DummyDef(pr_classtype, "pev", pr_scope, 1, e2->ofs, false), e, NULL));
 	}*/
 
 	// check for a state opcode
@@ -6339,8 +6339,8 @@ function_t *PR_ParseImmediateStatements (type_t *type)
 		{
 			def_t *e, *e2;
 			e = PR_GetDef(NULL, "__oself", pr_scope, false, 0);
-			e2 = PR_GetDef(NULL, "self", NULL, false, 0);
-			PR_FreeTemp(PR_Statement(&pr_opcodes[OP_STORE_ENT], e, PR_DummyDef(pr_classtype, "self", pr_scope, 1, e2->ofs, false), NULL));
+			e2 = PR_GetDef(NULL, "pev", NULL, false, 0);
+			PR_FreeTemp(PR_Statement(&pr_opcodes[OP_STORE_ENT], e, PR_DummyDef(pr_classtype, "pev", pr_scope, 1, e2->ofs, false), NULL));
 		}*/
 
 		PR_Statement (pr_opcodes, 0,0, NULL);

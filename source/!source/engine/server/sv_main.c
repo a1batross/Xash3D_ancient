@@ -285,7 +285,7 @@ SVC_DirectConnect
 A connection request that did not come from the master
 ==================
 */
-void SVC_DirectConnect (void)
+void SVC_DirectConnect( void )
 {
 	char		userinfo[MAX_INFO_STRING];
 	netadr_t		adr;
@@ -338,7 +338,7 @@ void SVC_DirectConnect (void)
 			if (NET_CompareBaseAdr (net_from, svs.challenges[i].adr))
 			{
 				if (challenge == svs.challenges[i].challenge)
-					break;		// good
+					break; // good
 				Netchan_OutOfBandPrint (NS_SERVER, adr, "print\nBad challenge->\n");
 				return;
 			}
@@ -356,8 +356,7 @@ void SVC_DirectConnect (void)
 	// if there is already a slot for this ip, reuse it
 	for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
 	{
-		if (cl->state == cs_free)
-			continue;
+		if (cl->state == cs_free) continue;
 		if (NET_CompareBaseAdr (adr, cl->netchan.remote_address) && ( cl->netchan.qport == qport || adr.port == cl->netchan.remote_address.port))
 		{
 			if (!NET_IsLocalAddress (adr) && (svs.realtime - cl->lastconnect) < sv_reconnect_limit->value)
@@ -728,7 +727,8 @@ void SV_RunGameFrame (void)
 	// compression can get confused when a client
 	// has the "current" frame
 	sv.framenum++;
-	sv.time = sv.framenum * 0.1f;
+	sv.frametime = 0.001f;
+	sv.time = sv.framenum * sv.frametime;
 
 	// don't run if paused
 	if (!sv_paused->value || maxclients->value > 1)
@@ -743,7 +743,7 @@ void SV_RunGameFrame (void)
 			svs.realtime = sv.time;
 		}
 	}
-
+		sv.time += sv.frametime;
 	if (host_speeds->value)
 		time_after_game = Sys_DoubleTime ();
 
@@ -781,13 +781,16 @@ void SV_Frame (float time)
 	if (!sv_timedemo->value && svs.realtime < sv.time)
 	{
 		// never let the time get too far off
-		if (sv.time - svs.realtime > 0.1f)
+		if (sv.time - svs.realtime > sv.frametime)
 		{
 			if (sv_showclamp->value)
 				Msg ("sv lowclamp\n");
-			svs.realtime = sv.time - 0.1f;
+			svs.realtime = sv.time - sv.frametime;
 		}
+
 		NET_Sleep((sv.time - svs.realtime) * 1000);
+		SV_VM_End(); //end frame
+
 		return;
 	}
 

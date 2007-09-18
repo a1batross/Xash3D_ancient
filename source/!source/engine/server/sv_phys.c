@@ -112,18 +112,7 @@ void SV_DropToFloor (edict_t *ent)
 	trace_t		tr;
 	vec3_t		v, dest;
 
-	VectorSet(v, -15,-15,-15);
-	VectorCopy (v, ent->progs.sv->mins);
-	VectorSet(v, 15, 15, 15);
-	VectorCopy (v, ent->progs.sv->maxs);
-
-	if (ent->progs.sv->model) SV_SetModel (ent, PRVM_G_STRING(ent->progs.sv->model));
-
-	// Lazarus:
-	// origin_offset is wrong - absmin and absmax weren't set soon enough.
-	// Fortunately we KNOW what the "offset" is - nada.
 	VectorClear(ent->progs.sv->origin_offset);
-
 	ent->progs.sv->solid = SOLID_BBOX;
 	ent->priv.sv->clipmask |= MASK_MONSTERSOLID;
 	if(!ent->progs.sv->health) ent->progs.sv->health = 20;
@@ -143,6 +132,7 @@ void SV_DropToFloor (edict_t *ent)
 	}
 	tr.endpos[2] += 1;
 	ent->progs.sv->mins[2] -= 1;
+	ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG(tr.ent);
 	VectorCopy (tr.endpos, ent->priv.sv->s.origin);
 
 	SV_LinkEdict (ent);
@@ -751,7 +741,7 @@ bool SV_RunThink (edict_t *ent)
 	prog->globals.server->time = thinktime;
 	prog->globals.server->pev = PRVM_EDICT_TO_PROG(ent);
 	prog->globals.server->other = PRVM_EDICT_TO_PROG(prog->edicts);
-	PRVM_ExecuteProgram (ent->progs.sv->think, "QC function self.think is missing");
+	PRVM_ExecuteProgram (ent->progs.sv->think, "QC function pev->think is missing");
 
 	return !ent->priv.sv->free;
 }
@@ -770,6 +760,7 @@ void SV_Impact (edict_t *e1, trace_t *trace)
 	PRVM_PUSH_GLOBALS;
 
 	prog->globals.server->time = sv.time;
+	Msg("touch %d and %d\n", e2->priv.sv->s.number, e1->priv.sv->s.number ); 
 	if (!e1->priv.sv->free && !e2->priv.sv->free && e1->progs.sv->touch && e1->progs.sv->solid != SOLID_NOT)
 	{
 		prog->globals.server->pev = PRVM_EDICT_TO_PROG(e1);
@@ -1577,7 +1568,7 @@ bool SV_Push (edict_t *pusher, vec3_t move, vec3_t amove)
 			T_Damage (check, pusher, pusher, dir, check->priv.sv->s.origin, vec3_origin, pusher->progs.sv->dmg, 1, 0, DMG_CRUSH);
 		}
 
-		if ((pusher->progs.sv->movetype == MOVETYPE_PUSH) || (pusher->progs.sv->movetype == MOVETYPE_PENDULUM) || (check->progs.sv->groundentity == PRVM_EDICT_TO_PROG(pusher)))
+		if ((pusher->progs.sv->movetype == MOVETYPE_PUSH) || (check->progs.sv->groundentity == PRVM_EDICT_TO_PROG(pusher)))
 		{
 			// move this entity
 			pushed_p->ent = check;
@@ -1790,8 +1781,8 @@ void SV_Physics_Pusher (edict_t *ent)
 	if (part->progs.sv->velocity[0] || part->progs.sv->velocity[1] || part->progs.sv->velocity[2] || part->progs.sv->avelocity[0] || part->progs.sv->avelocity[1] || part->progs.sv->avelocity[2])
 	{	
 		// object is moving
-		VectorScale (part->progs.sv->velocity, 0.1f, move);
-		VectorScale (part->progs.sv->avelocity, 0.1f, amove);
+		VectorScale (part->progs.sv->velocity, sv.frametime, move);
+		VectorScale (part->progs.sv->avelocity, sv.frametime, amove);
 
 		SV_Push(part, move, amove); // move was blocked
 	}
@@ -2616,13 +2607,14 @@ void SV_Physics(edict_t *ent)
 	wasonground = false;
 	onconveyor = false;
 
-	switch ( (int)ent->progs.sv->movetype)
+	switch ((int)ent->progs.sv->movetype)
 	{
-	case MOVETYPE_PUSH:
-		SV_Physics_Pusher (ent);
-		break;
 	case MOVETYPE_NONE:
 		SV_Physics_None (ent);
+		break;
+	case MOVETYPE_PUSH:
+		SV_MovetypePush (ent);
+		//SV_Physics_Pusher (ent);
 		break;
 	case MOVETYPE_NOCLIP:
 		SV_Physics_Noclip (ent);
@@ -2634,9 +2626,6 @@ void SV_Physics(edict_t *ent)
 	case MOVETYPE_BOUNCE:
 	case MOVETYPE_FLY:
 		SV_Physics_Toss (ent);
-		break;
-	case MOVETYPE_DEBRIS:
-		SV_Physics_Debris (ent);
 		break;
 	case MOVETYPE_WALK:
 		SV_Physics_None(ent);

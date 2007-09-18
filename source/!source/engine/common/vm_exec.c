@@ -497,8 +497,8 @@ void PRVM_ExecuteProgram (func_t fnum, const char *errormessage)
 
 	if (!fnum || fnum >= (unsigned int)prog->progs->numfunctions)
 	{
-		if (prog->self && PRVM_G_INT(prog->self->ofs))
-			PRVM_ED_Print(PRVM_PROG_TO_EDICT(PRVM_G_INT(prog->self->ofs)));
+		if (prog->pev && PRVM_G_INT(prog->pev->ofs))
+			PRVM_ED_Print(PRVM_PROG_TO_EDICT(PRVM_G_INT(prog->pev->ofs)));
 		PRVM_ERROR ("PRVM_ExecuteProgram: %s", errormessage);
 		return;
 	}
@@ -836,7 +836,7 @@ chooseexecprogram:
 		case OP_STATE:
 			if(prog->flag & PRVM_OP_STATE)
 			{
-				ed = PRVM_PROG_TO_EDICT(PRVM_G_INT(prog->self->ofs));
+				ed = PRVM_PROG_TO_EDICT(PRVM_G_INT(prog->pev->ofs));
 				PRVM_E_FLOAT(ed, PRVM_ED_FindField ("nextthink")->ofs) = *prog->time + 0.1;
 				PRVM_E_FLOAT(ed, PRVM_ED_FindField ("frame")->ofs) = OPA->_float;
 				*(func_t *)((float*)ed->progs.vp + PRVM_ED_FindField ("think")->ofs) = OPB->function;

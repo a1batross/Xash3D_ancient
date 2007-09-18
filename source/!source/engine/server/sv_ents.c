@@ -28,94 +28,6 @@ Encode a client frame onto the network channel
 
 =============================================================================
 */
-
-#if 0
-
-// because there can be a lot of projectiles, there is a special
-// network protocol for them
-#define	MAX_PROJECTILES		64
-edict_t	*projectiles[MAX_PROJECTILES];
-int		numprojs;
-cvar_t  *sv_projectiles;
-
-bool SV_AddProjectileUpdate (edict_t *ent)
-{
-	if (!sv_projectiles)
-		sv_projectiles = Cvar_Get("sv_projectiles", "1", 0);
-
-	if (!sv_projectiles->value)
-		return false;
-
-	if (!(ent->svflags & SVF_PROJECTILE))
-		return false;
-	if (numprojs == MAX_PROJECTILES)
-		return true;
-
-	projectiles[numprojs++] = ent;
-	return true;
-}
-
-void SV_EmitProjectileUpdate (sizebuf_t *msg)
-{
-	byte	bits[16];	// [modelindex] [48 bits] xyz p y 12 12 12 8 8 [entitynum] [e2]
-	int		n, i;
-	edict_t	*ent;
-	int		x, y, z, p, yaw;
-	int len;
-
-	if (!numprojs)
-		return;
-
-	MSG_WriteByte (msg, numprojs);
-
-	for (n=0 ; n<numprojs ; n++)
-	{
-		ent = projectiles[n];
-		x = (int)(ent->s.origin[0]+4096)>>1;
-		y = (int)(ent->s.origin[1]+4096)>>1;
-		z = (int)(ent->s.origin[2]+4096)>>1;
-		p = (int)(256*ent->s.angles[0]/360)&255;
-		yaw = (int)(256*ent->s.angles[1]/360)&255;
-
-		len = 0;
-		bits[len++] = x;
-		bits[len++] = (x>>8) | (y<<4);
-		bits[len++] = (y>>4);
-		bits[len++] = z;
-		bits[len++] = (z>>8);
-		if (ent->s.effects & EF_BLASTER)
-			bits[len-1] |= 64;
-
-		if (ent->s.old_origin[0] != ent->s.origin[0] ||
-			ent->s.old_origin[1] != ent->s.origin[1] ||
-			ent->s.old_origin[2] != ent->s.origin[2]) {
-			bits[len-1] |= 128;
-			x = (int)(ent->s.old_origin[0]+4096)>>1;
-			y = (int)(ent->s.old_origin[1]+4096)>>1;
-			z = (int)(ent->s.old_origin[2]+4096)>>1;
-			bits[len++] = x;
-			bits[len++] = (x>>8) | (y<<4);
-			bits[len++] = (y>>4);
-			bits[len++] = z;
-			bits[len++] = (z>>8);
-		}
-
-		bits[len++] = p;
-		bits[len++] = yaw;
-		bits[len++] = ent->s.modelindex;
-
-		bits[len++] = (ent->s.number & 0x7f);
-		if (ent->s.number > 255) {
-			bits[len-1] |= 128;
-			bits[len++] = (ent->s.number >> 7);
-		}
-
-		for (i=0 ; i<len ; i++)
-			MSG_WriteByte (msg, bits[i]);
-	}
-}
-#endif
-
 /*
 =============
 SV_EmitPacketEntities
@@ -176,14 +88,13 @@ void SV_EmitPacketEntities (client_frame_t *from, client_frame_t *to, sizebuf_t 
 		}
 
 		if (newnum > oldnum)
-		{	// the old entity isn't present in the new message
+		{	
+			// the old entity isn't present in the new message
 			bits = U_REMOVE;
-			if (oldnum >= 256)
-				bits |= U_NUMBER16 | U_MOREBITS1;
+			if (oldnum >= 256) bits |= U_NUMBER16 | U_MOREBITS1;
 
 			MSG_WriteByte (msg,	bits&255 );
-			if (bits & 0x0000ff00)
-				MSG_WriteByte (msg,	(bits>>8)&255 );
+			if (bits & 0x0000ff00) MSG_WriteByte (msg, (bits>>8)&255 );
 
 			if (bits & U_NUMBER16)
 			{
@@ -197,13 +108,7 @@ void SV_EmitPacketEntities (client_frame_t *from, client_frame_t *to, sizebuf_t 
 			continue;
 		}
 	}
-
 	MSG_WriteShort (msg, 0);	// end of packetentities
-
-#if 0
-	if (numprojs)
-		SV_EmitProjectileUpdate(msg);
-#endif
 }
 
 
@@ -537,17 +442,17 @@ copies off the playerstat and areabits.
 void SV_BuildClientFrame (client_t *client)
 {
 	int		e, i;
-	vec3_t	org;
-	edict_t	*ent;
-	edict_t	*clent;
+	vec3_t		org;
+	edict_t		*ent;
+	edict_t		*clent;
 	client_frame_t	*frame;
 	entity_state_t	*state;
 	int		l;
 	int		clientarea, clientcluster;
 	int		leafnum;
 	int		c_fullsend;
-	byte	*clientphs;
-	byte	*bitvector;
+	byte		*clientphs;
+	byte		*bitvector;
 
 	clent = client->edict;
 	if (!clent->priv.sv->client) return;// not in game yet
@@ -558,7 +463,7 @@ void SV_BuildClientFrame (client_t *client)
 	frame->senttime = svs.realtime; // save it for ping calc later
 
 	// find the client's PVS
-	for (i=0 ; i<3 ; i++)
+	for (i = 0; i < 3; i++)
 		org[i] = clent->priv.sv->client->ps.pmove.origin[i]*0.125 + clent->priv.sv->client->ps.viewoffset[i];
 
 	leafnum = CM_PointLeafnum (org);
@@ -570,7 +475,6 @@ void SV_BuildClientFrame (client_t *client)
 
 	// grab the current player_state_t
 	frame->ps = clent->priv.sv->client->ps;
-
 
 	SV_FatPVS (org);
 	clientphs = CM_ClusterPHS (clientcluster);
@@ -594,10 +498,11 @@ void SV_BuildClientFrame (client_t *client)
 		{
 			// check area
 			if (!CM_AreasConnected (clientarea, ent->priv.sv->areanum))
-			{	// doors can legally straddle two areas, so
+			{	
+				// doors can legally straddle two areas, so
 				// we may need to check another one
 				if (!ent->priv.sv->areanum2 || !CM_AreasConnected (clientarea, ent->priv.sv->areanum2))
-					continue;		// blocked by a door
+					continue;	// blocked by a door
 			}
 
 			// beams just check one point for PHS
@@ -615,8 +520,7 @@ void SV_BuildClientFrame (client_t *client)
 				{
 					bitvector = fatpvs;	//clientphs;
 				}
-				else
-					bitvector = fatpvs;
+				else bitvector = fatpvs;
 
 				if (ent->priv.sv->num_clusters == -1)
 				{	
@@ -638,14 +542,14 @@ void SV_BuildClientFrame (client_t *client)
 				}
 
 				if (!ent->priv.sv->s.modelindex)
-				{	// don't send sounds if they will be attenuated away
+				{	
+					// don't send sounds if they will be attenuated away
 					vec3_t	delta;
 					float	len;
 
 					VectorSubtract (org, ent->priv.sv->s.origin, delta);
 					len = VectorLength (delta);
-					if (len > 400)
-						continue;
+					if (len > 400) continue;
 				}
 			}
 		}
@@ -657,6 +561,12 @@ void SV_BuildClientFrame (client_t *client)
 			MsgWarn ("SV_BuildClientFrame: invalid ent->priv.sv->s.number %d\n", ent->priv.sv->s.number );
 			ent->priv.sv->s.number = e; // ptr to current entity such as entnumber
 		}
+
+		// copy progs values to state
+		//ent->priv.sv->s.modelindex = ent->progs.sv->modelindex;
+		//ent->priv.sv->s.frame = ent->progs.sv->frame;
+		//for (i = 0; i < 3; i++) ent->priv.sv->s.origin[i] = ent->progs.sv->origin[i];
+ 
 		*state = ent->priv.sv->s;
 
 		// don't mark players missiles as solid

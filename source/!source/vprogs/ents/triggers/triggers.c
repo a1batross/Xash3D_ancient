@@ -27,10 +27,7 @@ void() trigger_setup =
 	setmodel (pev, pev->model);
 	setorigin(pev, pev->origin);	
 
-	if(pev->spawnflags & TRIGGER_NO_MODEL)
-	{
-		pev->modelindex = 0;
-		pev->model = "";
-	}
+	pev->modelindex = 0;
+	pev->model = "";
 };
 

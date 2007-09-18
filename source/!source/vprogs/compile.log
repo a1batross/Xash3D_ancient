@@ -1,9 +1,8 @@
 =======================================================================
-		Xash3D started at Sep16 2007 [20:19:23]
+	Xash3D QuakeC Compiler started at Sep18 2007 [11:53:52]
 =======================================================================
-------- Loading bin/launch.dll [0.6] -------
+Sys_LoadLibrary: Loading launch.dll [5] - ok
 Sys_LoadLibrary: Loading common.dll [2] - ok
-------- Loading bin/common.dll [1.3] -------
 CPU: AuthenticAMD [1 core]. Frequency: 1.8 Ghz
 CPU Features: MMX 3DNow SSE SSE2 RDTSC CMOV FCMOV
 Current search path:
@@ -43,33 +42,35 @@ ents/items/items.c
 impulses.c
 writing progdefs.h
 Progs should run on any Quake executor
+main.c(103) : warning C2: 'skyaxis' : unreferenced local variable
 client.c(75) : warning C2: 'who' : unreferenced local variable
 client.c(76) : warning C2: 'fragnum' : unreferenced local variable
-dummys.c(131) : warning C2: 'f' : unreferenced local variable
-dummys.c(131) : warning C2: 'g' : unreferenced local variable
+dummys.c(130) : warning C2: 'f' : unreferenced local variable
+dummys.c(130) : warning C2: 'g' : unreferenced local variable
 ents/triggers/trigger_setviewpoint.c(26) : warning C2: 'oldpev' : unreferenced local variable
 ents/triggers/trigger_setviewpoint.c(26) : warning C2: 'oldtrig' : unreferenced local variable
- 18752 strofs (of 1000000)
-  2805 numstatements (of 524288)
-   263 numfunctions (of 16384)
-   893 numglobaldefs (of 32768)
-   234 numfielddefs (209 unique) (of 2048)
-   903 numpr_globals (of 65536)
+ 18820 strofs (of 1000000)
+  2849 numstatements (of 524288)
+   266 numfunctions (of 16384)
+   898 numglobaldefs (of 32768)
+   235 numfielddefs (210 unique) (of 2048)
+   909 numpr_globals (of 65536)
 Writing server.dat
- 63476 TOTAL SIZE
+ 64076 TOTAL SIZE
  17 unique precache_sounds
   5 unique precache_models
 optres_shortenifnots 30
-optres_overlaptemps 1282
-optres_nonvec_parms 457
-optres_assignments 58
-optres_unreferenced 92
+optres_overlaptemps 1308
+optres_nonvec_parms 462
+optres_assignments 59
+optres_unreferenced 94
 optres_dupconstdefs 84
 Скопировано файлов:         1.
 
-server.dat - 0 error(s), 6 warning(s)
+server.dat - 0 error(s), 7 warning(s)
 Sys_FreeLibrary: Unloading common.dll
+Sys_FreeLibrary: Unloading launch.dll
 
 =======================================================================
-		Xash3D stopped at Sep16 2007 [20:19:24]
+	Xash3D QuakeC Compiler stopped at Sep18 2007 [11:53:52]
 =======================================================================

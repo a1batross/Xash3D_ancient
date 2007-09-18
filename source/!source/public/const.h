@@ -149,20 +149,14 @@ typedef enum
 #define MOVETYPE_NONE		0	// never moves
 #define MOVETYPE_NOCLIP		1	// origin and angles change with no interaction
 #define MOVETYPE_PUSH		2	// no clip to world, push on box contact
-#define MOVETYPE_STOP		3	// no clip to world, stops on box contact
-#define MOVETYPE_WALK		4	// gravity
-#define MOVETYPE_STEP		5	// gravity, special edge handling
-#define MOVETYPE_FLY		6
-#define MOVETYPE_TOSS		7	// gravity
-#define MOVETYPE_FLYMISSILE		8	// extra size to monsters
-#define MOVETYPE_BOUNCE		9
-#define MOVETYPE_FOLLOW		10	// attached models
-#define MOVETYPE_VEHICLE		11
-#define MOVETYPE_PUSHABLE		12
-#define MOVETYPE_DEBRIS		13	// non-solid debris that can still hurt you
-#define MOVETYPE_RAIN		14	// identical to MOVETYPE_FLYMISSILE, but doesn't cause splash noises when touching water.
-#define MOVETYPE_PENDULUM		15	// same as MOVETYPE_PUSH, but used only for pendulums to grab special-case problems
-#define MOVETYPE_CONVEYOR		16
+#define MOVETYPE_WALK		3	// gravity
+#define MOVETYPE_STEP		4	// gravity, special edge handling
+#define MOVETYPE_FLY		5
+#define MOVETYPE_TOSS		6	// gravity
+#define MOVETYPE_BOUNCE		7
+#define MOVETYPE_FOLLOW		8	// attached models
+#define MOVETYPE_CONVEYOR		9
+#define MOVETYPE_PUSHABLE		10
 
 /*
 ==============================================================
@@ -251,13 +245,16 @@ COLLISION DETECTION
 // a trace is returned when a box is swept through the world
 typedef struct
 {
-	bool	allsolid;	// if true, plane is not valid
-	bool	startsolid;	// if true, the initial point was in a solid area
-	float		fraction;	// time completed, 1.0 = didn't hit anything
+	bool		allsolid;		// if true, plane is not valid
+	bool		startsolid;	// if true, the initial point was in a solid area
+	bool		startstuck;	// trace started from solid entity
+	float		fraction;		// time completed, 1.0 = didn't hit anything
 	vec3_t		endpos;		// final position
-	cplane_t	plane;		// surface normal at impact
-	csurface_t	*surface;	// surface hit
-	int			contents;	// contents on other side of surface hit
+	cplane_t		plane;		// surface normal at impact
+	csurface_t	*surface;		// surface hit
+	int		contents;		// contents on other side of surface hit
+	int		hitgroup;		// hit a studiomodel hitgroup #
+	int		flags;		// misc trace flags
 	edict_t		*ent;		// not set by CM_*() functions
 } trace_t;
 

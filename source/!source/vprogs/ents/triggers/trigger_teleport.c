@@ -5,7 +5,7 @@
 */
 void(entity ono, entity duo)setangles =
 {
-	ono.angles = duo.mangle;
+	ono.angles = duo.angles;
 	ono.fixangle = 1;		// turn this way immediately	
 };
 

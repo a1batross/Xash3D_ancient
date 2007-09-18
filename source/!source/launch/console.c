@@ -45,8 +45,10 @@ typedef struct
 	int		status;
 	int		windowWidth, windowHeight;
 	WNDPROC		SysInputLineWndProc;
+
 } WinConData;
 static WinConData s_wcd;
+extern char caption[64];
 
 // gdi32 export table 
 static HDC (_stdcall *pGetDC)(HWND);
@@ -72,6 +74,39 @@ static dllfunc_t gdi32_funcs[] =
 };
 
 dll_info_t gdi32_dll = { /*"gdi32.dll"*/NULL, gdi32_funcs, NULL, NULL, NULL, true, 0, 0 };
+
+void Sys_InitLog( void )
+{
+	// create log if needed
+	if(!log_active || !strlen(log_path)) return;
+	logfile = fopen ( log_path, "w");
+	if(!logfile) Sys_Error("Sys_InitLog: can't create log file %s\n", log_path );
+
+	fprintf (logfile, "=======================================================================\n" );
+	fprintf (logfile, "\t%s started at %s\n", caption, Log_Timestamp());
+	fprintf (logfile, "=======================================================================\n");
+}
+
+void Sys_CloseLog( void )
+{
+	if(!logfile) return;
+
+	fprintf (logfile, "\n");
+	fprintf (logfile, "=======================================================================");
+	fprintf (logfile, "\n\t%s stopped at %s\n", caption, Log_Timestamp());
+	fprintf (logfile, "=======================================================================");
+
+	fclose(logfile);
+	logfile = NULL;
+}
+
+void Sys_PrintLog( const char *pMsg )
+{
+	if(!logfile) return;
+
+	fprintf (logfile, "%s", pMsg );
+	fflush (logfile); // force it to save every time
+}
 
 void Sys_ShowConsoleW( bool show )
 {
@@ -258,23 +293,7 @@ void Sys_PrintW(const char *pMsg)
 		s_totalChars = bufLen;
 	}
 
-	// logfile
-	if (log_active)
-	{
-		if (!logfile && strlen(log_path)) 
-		{
-			logfile = fopen ( log_path, "w");
-			fprintf (logfile, "=======================================================================\n" );
-			fprintf (logfile, "\t\tXash3D started at %s\n", Log_Timestamp());
-			fprintf (logfile, "=======================================================================\n");
-			
-		}
-		if (logfile) 
-		{
-			fprintf (logfile, "%s", msg );
-			fflush (logfile); // force it to save every time
-		}
-	}
+	Sys_PrintLog( msg );
 
 	// put this text into the windows console
 	SendMessage( s_wcd.hwndBuffer, EM_LINESCROLL, 0, 0xffff );
@@ -291,6 +310,8 @@ print into cmd32 console
 */
 void Sys_PrintA(const char *pMsg)
 {
+	Sys_PrintLog( pMsg );
+
 	fprintf(stdout, pMsg );
 	fflush(stdout); //refresh message
 }
@@ -349,7 +370,7 @@ Sys_CreateConsoleW
 create win32 console
 ================
 */
-void Sys_CreateConsoleW( const char *caption )
+void Sys_CreateConsoleW( void )
 {
 	HDC hDC;
 	WNDCLASS wc;
@@ -395,13 +416,13 @@ void Sys_CreateConsoleW( const char *caption )
 		strcpy(FontName, "Fixedsys" );
 		fontsize = 8;
 	}
-	else
+	else // dedicated console
 	{
 		rect.left = 0;
 		rect.right = 540;
 		rect.top = 0;
 		rect.bottom = 392;
-		strcpy(FontName, "Fixedsys" );
+		strcpy(FontName, "Courier" );
 		fontsize = 8;
 	}
 
@@ -446,6 +467,8 @@ void Sys_CreateConsoleW( const char *caption )
 		SendMessage( s_wcd.hwndInputLine, WM_SETFONT, ( WPARAM ) s_wcd.hfBufferFont, 0 );
           }
 
+	Sys_InitLog();
+
 	//show console if needed
 	if( show_always )
 	{          
@@ -470,6 +493,9 @@ destroy win32 console
 */
 void Sys_DestroyConsoleW( void )
 {
+	// last text message into console or log 
+	Msg("Sys_FreeLibrary: Unloading launch.dll\n");
+
 	if ( s_wcd.hWnd )
 	{
 
@@ -482,17 +508,9 @@ void Sys_DestroyConsoleW( void )
 		s_wcd.hWnd = 0;
 	}
 
-	if (logfile)
-	{
-		fprintf (logfile, "\n=======================================================================" );
-		fprintf (logfile, "\n\t\tXash3D stopped at %s\n", Log_Timestamp());
-		fprintf (logfile, "=======================================================================");
-		fclose (logfile);
-		logfile = NULL;
-	}
-
 	UnregisterClass (SYSCONSOLE, base_hInstance);
 	Sys_FreeLibrary( &gdi32_dll );
+	Sys_CloseLog();
 }
 
 /*

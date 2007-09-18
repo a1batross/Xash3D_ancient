@@ -13,8 +13,8 @@
 
 #define RENDER_API_VERSION	4
 #define COMMON_API_VERSION	2
-#define LAUNCH_API_VERSION	2
-
+#define LAUNCH_API_VERSION	3
+#define INIT32_API_VERSION	5	// executables entry point
 
 //bsplib compile flags
 #define BSP_ONLYENTS	0x01

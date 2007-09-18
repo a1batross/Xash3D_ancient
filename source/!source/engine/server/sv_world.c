@@ -198,13 +198,13 @@ void SV_LinkEdict (edict_t *ent)
 	else ent->priv.sv->s.solid = 0;
 
 	// set the abs box
-	if (ent->progs.sv->solid == SOLID_BSP &&  (ent->priv.sv->s.angles[0] || ent->priv.sv->s.angles[1] || ent->priv.sv->s.angles[2]) )
+	if (ent->progs.sv->solid == SOLID_BSP && !VectorIsNull(ent->priv.sv->s.angles))
 	{
 		// expand for rotation
 		float		max = 0, v;
 		int		i;
 
-		for (i=0 ; i<3 ; i++)
+		for (i = 0; i<3 ; i++)
 		{
 			v =fabs( ent->progs.sv->mins[i]);
 			if (v > max) max = v;
@@ -595,3 +595,7 @@ trace_t SV_Trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, edict_t *p
 	return clip.trace;
 }
 
+trace_t SV_ClipMoveToEntity(edict_t *ent, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int contentsmask)
+{
+	return CM_BoxTrace(start, end, mins, maxs, ent->priv.sv->headnode, contentsmask);
+}

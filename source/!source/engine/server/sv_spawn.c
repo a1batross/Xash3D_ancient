@@ -51,36 +51,28 @@ a deathmatch.
 */
 void SV_PutClientInServer (edict_t *ent)
 {
-	vec3_t		mins = {-16, -16, -24};
-	vec3_t		maxs = {16, 16, 32};
 	int		index;
-	vec3_t		spawn_origin = {-128, -32, -72 }, spawn_angles;
 	gclient_t		*client;
 	int		i;
 
 	index = PRVM_NUM_FOR_EDICT(ent) - 1;
-	
 	client = ent->priv.sv->client;
 
-	ent->priv.sv->client = &sv.clients[index];
-	ent->progs.sv->movetype = MOVETYPE_WALK;
-	ent->priv.sv->free = false;
-	ent->progs.sv->classname = PRVM_SetEngineString("player");
-	ent->progs.sv->solid = SOLID_BBOX;
-	ent->progs.sv->model = PRVM_SetEngineString("models/player.mdl");
-	(int)ent->progs.sv->flags &= ~FL_DEADMONSTER;
+	prog->globals.server->time = sv.time;
+	prog->globals.server->pev = PRVM_EDICT_TO_PROG(ent);
+	PRVM_ExecuteProgram (prog->globals.server->PutClientInServer, "QC function PutClientInServer is missing");
 
-	VectorCopy (mins, ent->progs.sv->mins);
-	VectorCopy (maxs, ent->progs.sv->maxs);
-	VectorClear (ent->progs.sv->velocity);
+	ent->priv.sv->client = svs.gclients + index;
+	ent->priv.sv->free = false;
+	(int)ent->progs.sv->flags &= ~FL_DEADMONSTER;
  
 	// clear playerstate values
 	memset (&ent->priv.sv->client->ps, 0, sizeof(client->ps));
 
 	// info_player_start
-	client->ps.pmove.origin[0] = spawn_origin[0] * 8;
-	client->ps.pmove.origin[1] = spawn_origin[1] * 8;
-	client->ps.pmove.origin[2] = spawn_origin[2] * 8;
+	client->ps.pmove.origin[0] = ent->progs.sv->origin[0] * 8;
+	client->ps.pmove.origin[1] = ent->progs.sv->origin[1] * 8;
+	client->ps.pmove.origin[2] = ent->progs.sv->origin[2] * 8;
 
 	client->ps.fov = 90;
 
@@ -97,18 +89,18 @@ void SV_PutClientInServer (edict_t *ent)
 	ent->priv.sv->s.skin = PRVM_NUM_FOR_EDICT(ent) - 1;
 
 	ent->priv.sv->s.frame = 0;
-	VectorCopy (spawn_origin, ent->priv.sv->s.origin);
-	ent->priv.sv->s.origin[2] += 1;	// make sure off ground
+	VectorCopy (ent->progs.sv->origin, ent->priv.sv->s.origin);
+	ent->priv.sv->s.origin[2] += 1; // make sure off ground
 	VectorCopy (ent->priv.sv->s.origin, ent->priv.sv->s.old_origin);
 
 	// set the delta angle
 	for (i = 0; i < 3; i++)
 	{
-		client->ps.pmove.delta_angles[i] = ANGLE2SHORT(spawn_angles[i]);
+		client->ps.pmove.delta_angles[i] = ANGLE2SHORT(ent->progs.sv->angles[i]);
 	}
 
 	ent->priv.sv->s.angles[PITCH] = ent->priv.sv->s.angles[ROLL]  = 0;
-	ent->priv.sv->s.angles[YAW] = spawn_angles[YAW];
+	ent->priv.sv->s.angles[YAW] = ent->progs.sv->angles[YAW];
 	VectorCopy(ent->priv.sv->s.angles, client->ps.viewangles);
 	VectorCopy (client->ps.viewangles, client->v_angle);
 
@@ -125,14 +117,43 @@ parsing textual entity definitions out of an ent file.
 */
 void SV_SpawnEntities (char *mapname, char *entities, char *spawnpoint)
 {
+	edict_t	*ent;
+	int	i;
+
 	Msg("====== SpawnEntities ========\n");
+
+	// used by PushMove to move back pushed entities
+	sv.moved_edicts = (edict_t **)PRVM_Alloc(prog->max_edicts * sizeof(edict_t *));
+
+	prog->protect_world = false; // allow to change world parms
+
+	ent = PRVM_EDICT_NUM( 0 );
+	memset (ent->progs.sv, 0, prog->progs->entityfields * 4);
+	ent->priv.sv->free = false;
+	ent->progs.sv->model = PRVM_SetEngineString(sv.configstrings[CS_MODELS]);
+	ent->progs.sv->modelindex = 1; // world model
+	ent->progs.sv->solid = SOLID_BSP;
+	ent->progs.sv->movetype = MOVETYPE_PUSH;
+
+	SV_ConfigString (CS_MAXCLIENTS, va("%i", (int)(maxclients->value)));
+	prog->globals.server->mapname = PRVM_SetEngineString(sv.name);
+
+	// spawn the rest of the entities on the map
+	*prog->time = sv.time;
+
+	// set client fields on player ents
+	for (i = 1; i < maxclients->value; i++)
+	{
+		ent = PRVM_EDICT_NUM( i );
+		ent->priv.sv->client = svs.gclients + i - 1; // make links
+	}
+
 	PRVM_ED_LoadFromFile ( entities );
+	prog->protect_world = true;// make world read-only
 }
 
 void SV_InitEdict (edict_t *e)
 {
-	e->priv.sv->free = false;
-	e->progs.sv->classname = PRVM_SetEngineString("noclass");
 	e->priv.sv->s.number = PRVM_NUM_FOR_EDICT(e);
 	e->priv.sv->s.renderfx |= RF_IR_VISIBLE; //evil stuff...
 }
@@ -147,14 +168,10 @@ Marks the edict as free
 */
 void SV_FreeEdict (edict_t *ed)
 {
-	SV_UnlinkEdict(ed);	// unlink from world
-
 	// don't free players!
 	if (PRVM_NUM_FOR_EDICT(ed) <= maxclients->value)
 		return;
 
-	memset (ed, 0, sizeof(*ed));
-	ed->progs.sv->classname = PRVM_SetEngineString("freed");
 	ed->priv.sv->freetime = sv.time;
 	ed->priv.sv->free = true;
 
@@ -164,8 +181,10 @@ void SV_FreeEdict (edict_t *ed)
 	ed->progs.sv->skin = 0;
 	ed->progs.sv->frame = 0;
 	ed->progs.sv->solid = 0;
+
 	VectorClear(ed->progs.sv->origin);
 	VectorClear(ed->progs.sv->angles);
+
 	ed->progs.sv->nextthink = -1;
 }
 
@@ -195,10 +214,10 @@ void SV_TouchTriggers (edict_t *ent)
 		hit = touch[i];
 		if (hit->priv.sv->free) continue;
 
-		prog->globals.server->pev = PRVM_EDICT_TO_PROG(ent);
-		prog->globals.server->other = PRVM_EDICT_TO_PROG(hit);
+		prog->globals.server->pev = PRVM_EDICT_TO_PROG(hit);
+		prog->globals.server->other = PRVM_EDICT_TO_PROG(ent);
 		prog->globals.server->time = sv.time;
-		PRVM_ExecuteProgram (ent->progs.sv->touch, "QC function pev->touch is missing");
+		PRVM_ExecuteProgram (hit->progs.sv->touch, "QC function pev->touch is missing");
 	}
 
 	// restore state
@@ -439,38 +458,53 @@ SV_RunFrame
 Advances the world by 0.1 seconds
 ================
 */
-void SV_RunFrame (void)
+void SV_RunFrame( void )
 {
 	int		i;
 	edict_t		*ent;
 
-	//
-	// treat each object in turn
-	// even the world gets a chance to think
-	//
+	// let the progs know that a new frame has started
+	prog->globals.server->pev = PRVM_EDICT_TO_PROG(prog->edicts);
+	prog->globals.server->other = PRVM_EDICT_TO_PROG(prog->edicts);
+	prog->globals.server->time = sv.time;
+	prog->globals.server->frametime = sv.frametime;
+	PRVM_ExecuteProgram (prog->globals.server->StartFrame, "QC function StartFrame is missing");
 
-	ent = PRVM_EDICT_NUM(0);
-	for (i = 0; i < prog->num_edicts; i++, ent++)
+	for (i = 1; i < prog->num_edicts; i++ )
 	{
+		ent = PRVM_EDICT_NUM(i);
 		if (ent->priv.sv->free) continue;
 
 		VectorCopy (ent->priv.sv->s.origin, ent->priv.sv->s.old_origin);
 
-		if (i > 0 && i <= maxclients->value)
-			continue; //don't apply phys on clients
-		SV_Physics(ent);
+		// don't apply phys on clients
+		if (i > 0 && i <= maxclients->value) continue;
+		SV_Physics( ent );
 	}
 
 	// build the playerstate_t structures for all players
 	ClientEndServerFrames ();
+
+	prog->globals.server->pev = PRVM_EDICT_TO_PROG(prog->edicts);
+	prog->globals.server->other = PRVM_EDICT_TO_PROG(prog->edicts);
+	prog->globals.server->time = sv.time;
+	PRVM_ExecuteProgram (prog->globals.server->EndFrame, "QC function EndFrame is missing");
+
+	// decrement prog->num_edicts if the highest number entities died
+	for ( ;PRVM_EDICT_NUM(prog->num_edicts - 1)->priv.sv->free; prog->num_edicts-- );
 }
 
 bool SV_ClientConnect (edict_t *ent, char *userinfo)
 {
 	// they can connect
-	ent->priv.sv->client = sv.clients + PRVM_NUM_FOR_EDICT(ent) - 1;
+	ent->priv.sv->client = svs.gclients + PRVM_NUM_FOR_EDICT(ent) - 1;
 	ent->progs.sv->flags = 0; // make sure we start with known default
 	ent->progs.sv->health = 100;
+
+	Msg("SV_ClientConnect()\n");
+	prog->globals.server->time = sv.time;
+	prog->globals.server->pev = PRVM_EDICT_TO_PROG(ent);
+	PRVM_ExecuteProgram (prog->globals.server->ClientConnect, "QC function ClientConnect is missing");
 
 	return true;
 }
@@ -493,7 +527,7 @@ void SV_ClientUserinfoChanged (edict_t *ent, char *userinfo)
 
 	// combine name and skin into a configstring
 	SV_ConfigString (CS_PLAYERSKINS + playernum, va("%s\\%s", Info_ValueForKey (userinfo, "name"), Info_ValueForKey (userinfo, "skin")));
-		
+
 	ent->priv.sv->client->ps.fov = bound(1, atoi(Info_ValueForKey(userinfo, "fov")), 160);
 }
 
@@ -509,7 +543,7 @@ void SV_ClientBegin (edict_t *ent)
 {
 	int		i;
 
-	ent->priv.sv->client = sv.clients + PRVM_NUM_FOR_EDICT(ent) - 1;
+	ent->priv.sv->client = svs.gclients + PRVM_NUM_FOR_EDICT(ent) - 1;
 
 	// if there is already a body waiting for us (a loadgame), just
 	// take it, otherwise spawn one from scratch
@@ -553,6 +587,11 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	int		i, j;
 
 	client = ent->priv.sv->client;
+
+	// call standard client pre-think
+	prog->globals.server->time = sv.time;
+	prog->globals.server->pev = PRVM_EDICT_TO_PROG(ent);
+	PRVM_ExecuteProgram (prog->globals.server->PlayerPreThink, "QC function PlayerPreThink is missing");
 
 	VectorCopy(ent->priv.sv->s.origin, oldorigin);
 	VectorCopy(ent->progs.sv->velocity, oldvelocity);
@@ -608,7 +647,6 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 		SV_TouchTriggers (ent);
 
 	PRVM_PUSH_GLOBALS;
-
 	for (i = 0; i < pm.numtouch; i++)
 	{
 		other = pm.touchents[i];
@@ -617,15 +655,20 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 			if (pm.touchents[j] == other)
 				break;
 		}
-		if (j != i) continue;	// duplicated
-
+		if (j != i) continue; // duplicated
+		if (!ent->progs.sv->touch) continue;
+		
 		prog->globals.server->pev = PRVM_EDICT_TO_PROG(other);
 		prog->globals.server->other = PRVM_EDICT_TO_PROG(ent);
 		prog->globals.server->time = sv.time;
-//PRVM_ExecuteProgram (ent->progs.sv->touch, "QC function pev->touch is missing");
+		PRVM_ExecuteProgram (ent->progs.sv->touch, "QC function pev->touch is missing");
 	}
-
 	PRVM_POP_GLOBALS;
+
+	// call standard player post-think
+	prog->globals.server->time = sv.time;
+	prog->globals.server->pev = PRVM_EDICT_TO_PROG(ent);
+	PRVM_ExecuteProgram (prog->globals.server->PlayerPostThink, "QC function PlayerPostThink is missing");
 }
 
 /*

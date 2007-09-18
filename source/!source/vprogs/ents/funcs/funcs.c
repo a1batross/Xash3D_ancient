@@ -51,6 +51,23 @@ void() func_illusionary =
 	pev->solid = SOLID_TRIGGER;
 };
 
+void animate_wall( void )
+{
+	pev->frame++;
+	if(pev->frame > 7) pev->frame = 0;
+	pev->nextthink = time + 0.1;
+}
+
+void() func_wall = 
+{
+	func_setup();
+	
+	pev->movetype = MOVETYPE_NONE;
+
+	pev->nextthink = time + 1.0;
+	pev->think = animate_wall;
+};
+
 /*
 FUNC_PLACE_MODEL();
 

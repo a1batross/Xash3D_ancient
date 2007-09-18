@@ -110,9 +110,9 @@ void VM_error (void)
 
 	VM_VarString(0, string, sizeof(string));
 	Msg("======%s ERROR in %s:\n%s\n", PRVM_NAME, PRVM_GetString(prog->xfunction->s_name), string);
-	if(prog->self)
+	if(prog->pev)
 	{
-		ed = PRVM_G_EDICT(prog->self->ofs);
+		ed = PRVM_G_EDICT(prog->pev->ofs);
 		PRVM_ED_Print(ed);
 	}
 
@@ -136,16 +136,16 @@ void VM_objerror (void)
 
 	VM_VarString(0, string, sizeof(string));
 	Msg("======OBJECT ERROR======\n", PRVM_NAME, PRVM_GetString(prog->xfunction->s_name), string);
-	if(prog->self)
+	if(prog->pev)
 	{
-		ed = PRVM_G_EDICT (prog->self->ofs);
+		ed = PRVM_G_EDICT (prog->pev->ofs);
 		PRVM_ED_Print(ed);
 
 		PRVM_ED_Free (ed);
 	}
 	else
 		// objerror has to display the object progs -> else call
-		PRVM_ERROR ("VM_objecterror: self not defined !");
+		PRVM_ERROR ("VM_objecterror: pev not defined !");
 	Msg("%s OBJECT ERROR in %s:\n%s\nTip: read above for entity information\n", PRVM_NAME, PRVM_GetString(prog->xfunction->s_name), string);
 }
 
@@ -180,14 +180,12 @@ void VM_bprint (void)
 	char string[VM_STRINGTEMP_LENGTH];
 
 	VM_VarString(0, string, sizeof(string));
-
+       
 	if(sv.state != ss_game)
 	{
 		Con_Print( string );
-//VM_Warning("VM_bprint: game is not server(%s) !\n", PRVM_NAME);
 		return;
 	}
-
 	SV_BroadcastPrintf(PRINT_HIGH, string);
 }
 
@@ -207,7 +205,7 @@ void VM_sprint( void )
 
 	//find client for this entity
 	num = (int)PRVM_G_FLOAT(OFS_PARM0);
-	if (sv.state != ss_game || num < 0 || num >= host.maxclients || !svs.clients[num].state != cs_spawned)
+	if (sv.state != ss_game || num < 0 || num >= host.maxclients || svs.clients[num].state != cs_spawned)
 	{
 		VM_Warning("VM_sprint: %s: invalid client or server is not active !\n", PRVM_NAME);
 		return;

@@ -640,8 +640,24 @@ void PRVM_ED_Print(edict_t *ed)
 			tempstring[0] = 0;
 		}
 	}
-	if (tempstring[0])
-		Con_Print(tempstring);
+	if (tempstring[0]) Con_Print(tempstring);
+}
+
+/*
+=============
+PRVM_ED_Info
+
+For MsgWarn (mapmaker message)
+=============
+*/
+char *PRVM_ED_Info(edict_t *ent)
+{
+	char	*info;
+
+	//              classname   edict num     targetname
+	info = CopyString(va("\"%s\"(#%i) with name \"%s\"", PRVM_GetString(ent->progs.sv->classname), PRVM_NUM_FOR_EDICT(ent), PRVM_GetString(ent->progs.sv->targetname)));
+
+	return info;
 }
 
 /*
@@ -1046,7 +1062,7 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 			PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
 
 		newline = (COM_Token()[0] == '}') ? true : false;
-		if(!newline) MsgDev(D_INFO, "Key: \"%s\"", COM_Token());
+		if(!newline) MsgDev(D_LOAD, "Key: \"%s\"", COM_Token());
 		else break;
 		
 		strncpy (keyname, COM_Token(), sizeof(keyname));
@@ -1062,7 +1078,7 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 		// parse value
 		if (!COM_Parse(&data))
 			PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
-		MsgDev(D_INFO, " \"%s\"\n", COM_Token());
+		MsgDev(D_LOAD, " \"%s\"\n", COM_Token());
 
 		if (COM_Token()[0] == '}')
 			PRVM_ERROR ("PRVM_ED_ParseEdict: closing brace without data");
@@ -1080,7 +1096,7 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 		key = PRVM_ED_FindField (keyname);
 		if (!key)
 		{
-			MsgDev(D_INFO, "%s: '%s' is not a field\n", PRVM_NAME, keyname);
+			MsgDev(D_WARN, "%s: '%s' is not a field\n", PRVM_NAME, keyname);
 			continue;
 		}
 
@@ -1137,9 +1153,8 @@ void PRVM_ED_LoadFromFile (const char *data)
 		}
 		else ent = PRVM_ED_Alloc();
 
-		// clear it
-		if (ent != prog->edicts)	// hack
-			memset (ent->progs.vp, 0, prog->progs->entityfields * 4);
+		// HACKHACK: clear it 
+		if (ent != prog->edicts) memset (ent->progs.vp, 0, prog->progs->entityfields * 4);
 
 		data = PRVM_ED_ParseEdict (data, ent);
 		parsed++;
@@ -1152,10 +1167,10 @@ void PRVM_ED_LoadFromFile (const char *data)
 			continue;
 		}
 
-		// immediately call spawn function, but only if there is a self global and a classname
-		if(prog->self && prog->flag & PRVM_FE_CLASSNAME)
+		// immediately call spawn function, but only if there is a pev global and a classname
+		if(prog->pev && prog->flag & PRVM_FE_CLASSNAME)
 		{
-			string_t handle =  *(string_t*)&((byte*)ent->progs.vp)[PRVM_ED_FindFieldOffset("classname")];
+			string_t handle = *(string_t*)&((byte*)ent->progs.vp)[PRVM_ED_FindFieldOffset("classname")];
 			if (!handle)
 			{
 				if(host.debug)
@@ -1181,8 +1196,8 @@ void PRVM_ED_LoadFromFile (const char *data)
 				continue;
 			}
 
-			// self = ent
-			PRVM_G_INT(prog->self->ofs) = PRVM_EDICT_TO_PROG(ent);
+			// pev = ent
+			PRVM_G_INT(prog->pev->ofs) = PRVM_EDICT_TO_PROG(ent);
 			PRVM_ExecuteProgram (func - prog->functions, "" );
 		}
 
@@ -1292,12 +1307,12 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 	switch(prog->progs->crc)
 	{
 	case PROG_CRC_SERVER:
-		Msg("Loading ^3server.dat\n");
 		break;
 	default:
 		PRVM_ERROR ("%s: %s system vars have been modified, progdefs.h is out of date", PRVM_NAME, filename);	
 		break;
 	}
+	Msg("Loading %s\n", filename );
 
 	//prog->functions = (dfunction_t *)((unsigned char *)progs + progs->ofs_functions);
 	dfunctions = (dfunction_t *)((unsigned char *)prog->progs + prog->progs->ofs_functions);
@@ -1500,7 +1515,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 
 	prog->flag = 0;
 
-	prog->self = PRVM_ED_FindGlobal("self");
+	prog->pev = PRVM_ED_FindGlobal("pev");
 
 	if( PRVM_ED_FindGlobal("time") && PRVM_ED_FindGlobal("time")->type & ev_float )
 		prog->time = &PRVM_G_FLOAT(PRVM_ED_FindGlobal("time")->ofs);
@@ -1511,7 +1526,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 	if(PRVM_ED_FindField ("classname"))
 		prog->flag |= PRVM_FE_CLASSNAME;
 
-	if(PRVM_ED_FindField ("nextthink") && PRVM_ED_FindField ("frame") && PRVM_ED_FindField ("think") && prog->flag && prog->self)
+	if(PRVM_ED_FindField ("nextthink") && PRVM_ED_FindField ("frame") && PRVM_ED_FindField ("think") && prog->flag && prog->pev)
 		prog->flag |= PRVM_OP_STATE;
 
 	PRVM_GCALL(init_cmd)();
@@ -1861,7 +1876,7 @@ int PRVM_SetEngineString(const char *s)
 		if (prog->knownstrings[i] == s)
 			return -1 - i;
 	// new unknown engine string
-	MsgDev(D_WARN, "new engine string %p\n", s );
+	MsgDev(D_LOAD, "new engine string %p\n", s );
 	for (i = prog->firstfreeknownstring;i < prog->numknownstrings;i++)
 		if (!prog->knownstrings[i])
 			break;

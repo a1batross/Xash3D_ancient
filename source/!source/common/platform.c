@@ -19,8 +19,6 @@ gameinfo_t Plat_GameInfo( void )
 
 bool InitPlatform ( int argc, char **argv )
 {
-	MsgDev(D_INFO, "------- Loading bin/common.dll [%g] -------\n", COMMON_VERSION );
-
 	InitMemory();
 	Plat_InitCPU();
 	Plat_LinkDlls();

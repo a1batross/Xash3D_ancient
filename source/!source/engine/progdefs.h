@@ -82,6 +82,7 @@ typedef struct entvars_s
 	vec3_t		post_avelocity;
 	vec3_t		origin_offset;
 	vec3_t		angles_offset;
+	float		ltime;
 
 	float		bouncetype;
 	float		movetype;
@@ -178,6 +179,6 @@ typedef struct entvars_s
 
 } entvars_t;
 
-#define PROG_CRC_SERVER 63599
+#define PROG_CRC_SERVER 42175
 
 #endif//PROGDEFS_H

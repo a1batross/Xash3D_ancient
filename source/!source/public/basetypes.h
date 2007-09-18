@@ -56,7 +56,6 @@ typedef vec_t		vec3_t[3];
 typedef vec_t		vec4_t[4];
 typedef long		fs_offset_t;
 typedef vec_t		matrix3x4[3][4];
-typedef struct prvm_edict_s	prvm_edict_t;
 typedef struct { int fileofs; int filelen; }lump_t;
 typedef struct { byte r; byte g; byte b; } color24;
 typedef struct { uint b:5; uint g:6; uint r:5; } color16;

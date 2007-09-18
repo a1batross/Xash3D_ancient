@@ -183,7 +183,6 @@ This function is called when the player connects to the server.
 void() ClientConnect = 
 {
 	pprint(pev, " has", " joined the game.");
-	configstring (2, "sky"); //CS_SKY
 }; 
 
 /*

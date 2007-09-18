@@ -101,22 +101,21 @@ void SV_BroadcastPrintf (int level, char *fmt, ...)
 	// echo to console
 	if (dedicated->value)
 	{
-		char	copy[1024];
-		int		i;
+		char	echo[1024];
+		int	i;
 		
 		// mask off high bits
-		for (i=0 ; i<1023 && string[i] ; i++)
-			copy[i] = string[i]&127;
-		copy[i] = 0;
-		Msg ("%s", copy);
+		for (i = 0; i < 1023 && string[i]; i++)
+			echo[i] = string[i] & 127;
+		echo[i] = 0;
+		Msg ("%s", echo );
 	}
 
-	for (i=0, cl = svs.clients ; i<maxclients->value; i++, cl++)
+	for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
 	{
-		if (level < cl->messagelevel)
-			continue;
-		if (cl->state != cs_spawned)
-			continue;
+		if (level < cl->messagelevel) continue;
+		if (cl->state != cs_spawned) continue;
+
 		MSG_WriteByte (&cl->netchan.message, svc_print);
 		MSG_WriteByte (&cl->netchan.message, level);
 		MSG_WriteString (&cl->netchan.message, string);
@@ -528,8 +527,7 @@ void SV_SendClientMessages (void)
 	// send a message to each connected client
 	for (i=0, c = svs.clients ; i<maxclients->value; i++, c++)
 	{
-		if (!c->state)
-			continue;
+		if (!c->state) continue;
 		// if the reliable message overflowed,
 		// drop the client
 		if (c->netchan.message.overflowed)

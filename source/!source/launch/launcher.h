@@ -19,7 +19,7 @@ typedef int bool;
 char *(*Sys_Input ) ( void );	
 void ( *Msg )( char *msg, ... );
 void ( *Sys_Print )( const char *msg );
-void ( *Sys_InitConsole )( const char *caption );
+void ( *Sys_InitConsole )( void );
 void ( *Sys_FreeConsole )( void );
 void ( *MsgDev )( int level, char *msg, ... );
 void ( *MsgWarn )( char *msg, ... );
@@ -73,11 +73,13 @@ void Sys_PrintW(const char *pMsg);
 void Sys_MsgW( const char *pMsg, ... );
 void Sys_MsgDevW( int level, const char *pMsg, ... );
 void Sys_MsgWarnW( const char *pMsg, ... );
-void Sys_CreateConsoleW( const char *caption );
+void Sys_CreateConsoleW( void );
 void Sys_DestroyConsoleW( void );
 void Sys_ShowConsoleW( bool show );
 char *Sys_InputW( void );
 void Sys_ErrorW(char *error, ...);
+void Sys_InitLog( void );
+void Sys_CloseLog( void );
 
 //generic stub
 __inline void NullVoid( void ) {}
