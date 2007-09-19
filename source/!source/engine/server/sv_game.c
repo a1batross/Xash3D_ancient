@@ -66,7 +66,7 @@ void PF_setorigin (void)
 		return;
 	}
 	org = PRVM_G_VECTOR(OFS_PARM1);
-	VectorCopy (org, e->priv.sv->s.origin);
+	VectorCopy (org, e->progs.sv->origin);
 	SV_LinkEdict (e);
 }
 
@@ -162,12 +162,12 @@ void SV_SetModel (edict_t *ent, const char *name)
 
 	i = SV_ModelIndex( name );
 	ent->progs.sv->model = PRVM_SetEngineString(sv.configstrings[CS_MODELS+i]);
-	ent->progs.sv->modelindex = ent->priv.sv->s.modelindex = i;
-	VectorCopy (ent->progs.sv->origin, ent->priv.sv->s.origin);
-	VectorCopy (ent->progs.sv->angles, ent->priv.sv->s.angles);
+	ent->progs.sv->modelindex = ent->progs.sv->modelindex = i;
+	VectorCopy (ent->progs.sv->origin, ent->progs.sv->origin);
+	VectorCopy (ent->progs.sv->angles, ent->progs.sv->angles);
 
-	mod = CM_LoadModel(sv.configstrings[CS_MODELS+i]);
-	if(mod) SetMinMaxSize( ent, mod->mins, mod->maxs, false );
+	mod = CM_LoadModel( i );
+	if( mod )SetMinMaxSize( ent, mod->mins, mod->maxs, false );
 }
 
 /*
@@ -754,11 +754,10 @@ float(float yaw, float dist) walkmove
 */
 void PF_walkmove (void)
 {
-	edict_t	*ent;
+	edict_t		*ent;
 	float		yaw, dist;
-	vec3_t		move;
 	mfunction_t	*oldf;
-	int 		oldself;
+	int 		oldpev;
 
 	// assume failure if it returns early
 	PRVM_G_FLOAT(OFS_RETURN) = 0;
@@ -781,21 +780,15 @@ void PF_walkmove (void)
 	if (!((int)ent->progs.sv->aiflags & (AI_ONGROUND|AI_FLY|AI_SWIM)))
 		return;
 
-	yaw = yaw * M_PI * 2 / 360;
-
-	move[0] = cos(yaw)*dist;
-	move[1] = sin(yaw)*dist;
-	move[2] = 0;
-
 	// save program state, because SV_movestep may call other progs
 	oldf = prog->xfunction;
-	oldself = prog->globals.server->pev;
+	oldpev = prog->globals.server->pev;
 
-	PRVM_G_FLOAT(OFS_RETURN) = 0;//SV_movestep(ent, move, true);
+	PRVM_G_FLOAT(OFS_RETURN) = SV_WalkMove(ent, yaw, dist);
 
 	// restore program state
 	prog->xfunction = oldf;
-	prog->globals.server->pev = oldself;
+	prog->globals.server->pev = oldpev;
 }
 
 /*

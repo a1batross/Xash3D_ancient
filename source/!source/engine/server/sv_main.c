@@ -706,7 +706,7 @@ void SV_PrepWorldFrame (void)
 	{
 		ent = PRVM_EDICT_NUM(i);
 		// events only last for a single message
-		ent->priv.sv->s.event = 0;
+		ent->priv.sv->event = 0;
 	}
 
 }
@@ -727,7 +727,7 @@ void SV_RunGameFrame (void)
 	// compression can get confused when a client
 	// has the "current" frame
 	sv.framenum++;
-	sv.frametime = 0.001f;
+	sv.frametime = 0.001f;//1000 fps
 	sv.time = sv.framenum * sv.frametime;
 
 	// don't run if paused

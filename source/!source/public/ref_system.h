@@ -466,13 +466,13 @@ typedef struct scriptsystem_api_s
 	bool (*Load)( const char *name, char *buf, int size );// load script into stack from file or bufer
 	bool (*Include)( const char *name, char *buf, int size );	// include script from file or buffer
 	char *(*GetToken)( bool newline );			// get next token on a line or newline
-	char *(*Token)( void );				// just return current token
 	bool (*TryToken)( void );				// return 1 if have token on a line 
 	void (*FreeToken)( void );				// free current token to may get it again
 	void (*SkipToken)( void );				// skip current token and jump into newline
 	bool (*MatchToken)( const char *match );		// compare current token with user keyword
 	char *(*ParseToken)(const char **data );		// parse token from char buffer
 	char *(*ParseWord)( const char **data );		// parse word from char buffer
+	char *Token;					// contains current token
 
 } scriptsystem_api_t;
 

@@ -218,7 +218,7 @@ void _MSG_WriteDeltaEntity (entity_state_t *from, entity_state_t *to, sizebuf_t 
 	if ( to->weaponmodel != from->weaponmodel ) bits |= U_WEAPONMODEL;
 	if ( to->body != from->body ) bits |= U_BODY;
 	if ( to->sequence != from->sequence ) bits |= U_SEQUENCE;
-	if ( to->sound != from->sound ) bits |= U_SOUND;
+	if ( to->soundindex != from->soundindex ) bits |= U_SOUNDIDX;
 	if (newentity || (to->renderfx & RF_BEAM)) bits |= U_OLDORIGIN;
 	if( to->alpha != from->alpha ) bits |= U_ALPHA;
 
@@ -291,8 +291,8 @@ void _MSG_WriteDeltaEntity (entity_state_t *from, entity_state_t *to, sizebuf_t 
 	if (bits & U_SEQUENCE) _MSG_WriteByte (msg, to->sequence, filename, fileline);
 	if (bits & U_SOLID) _MSG_WriteShort (msg, to->solid, filename, fileline);
 	if (bits & U_ALPHA) _MSG_WriteFloat (msg, to->alpha, filename, fileline);
-	if (bits & U_SOUND) _MSG_WriteByte (msg, to->sound, filename, fileline);
 	if (bits & U_EVENT) _MSG_WriteByte (msg, to->event, filename, fileline);
+	if (bits & U_SOUNDIDX) _MSG_WriteByte (msg, to->soundindex, filename, fileline); 
 	if (bits & U_BODY) _MSG_WriteByte (msg,	to->body, filename, fileline);
 }
 

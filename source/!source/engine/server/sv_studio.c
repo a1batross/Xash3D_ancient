@@ -21,6 +21,11 @@ int SV_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *m
 
 byte *SV_GetModelPtr(edict_t *ent)
 {
-	if(!ent) return NULL;
-	return NULL;
+	cmodel_t	*cmod;
+	
+	if(!ent || !ent->progs.sv->modelindex) return NULL;
+	cmod = CM_LoadModel( ent->progs.sv->modelindex ); 
+	if(!cmod || !cmod->extradata) return NULL;
+
+	return cmod->extradata;
 }

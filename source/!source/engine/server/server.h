@@ -277,6 +277,7 @@ void SV_Status_f (void);
 void SV_WriteFrameToClient (client_t *client, sizebuf_t *msg);
 void SV_RecordDemoMessage (void);
 void SV_BuildClientFrame (client_t *client);
+void SV_UpdateEntityState( edict_t *ent);
 void SV_FatPVS ( vec3_t org );
 
 void SV_Error (char *error, ...);

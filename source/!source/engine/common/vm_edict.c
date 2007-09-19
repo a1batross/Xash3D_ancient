@@ -872,16 +872,16 @@ void PRVM_ED_ParseGlobals (const char *data)
 		// parse key
 		if (!COM_Parse(&data))
 			PRVM_ERROR ("PRVM_ED_ParseGlobals: EOF without closing brace");
-		if (COM_Token()[0] == '}')
+		if (COM_Token[0] == '}')
 			break;
 
-		strncpy (keyname, COM_Token(), sizeof(keyname));
+		strncpy (keyname, COM_Token, sizeof(keyname));
 
 		// parse value
 		if (!COM_Parse(&data))
 			PRVM_ERROR ("PRVM_ED_ParseGlobals: EOF without closing brace");
 
-		if (COM_Token()[0] == '}')
+		if (COM_Token[0] == '}')
 			PRVM_ERROR ("PRVM_ED_ParseGlobals: closing brace without data");
 
 		key = PRVM_ED_FindGlobal (keyname);
@@ -891,7 +891,7 @@ void PRVM_ED_ParseGlobals (const char *data)
 			continue;
 		}
 
-		if (!PRVM_ED_ParseEpair(NULL, key, COM_Token()))
+		if (!PRVM_ED_ParseEpair(NULL, key, COM_Token))
 			PRVM_ERROR ("PRVM_ED_ParseGlobals: parse error");
 	}
 }
@@ -1048,7 +1048,7 @@ Used for initial level load and for savegames.
 const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 {
 	ddef_t *key;
-	bool init, newline;
+	bool init, newline, anglehack;
 	char keyname[256];
 	size_t n;
 
@@ -1061,11 +1061,20 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 		if (!COM_Parse(&data))
 			PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
 
-		newline = (COM_Token()[0] == '}') ? true : false;
-		if(!newline) MsgDev(D_LOAD, "Key: \"%s\"", COM_Token());
+		newline = (COM_Token[0] == '}') ? true : false;
+		if(!newline) MsgDev(D_LOAD, "Key: \"%s\"", COM_Token);
 		else break;
+
+		// anglehack is to allow QuakeEd to write single scalar angles
+		// and allow them to be turned into vectors. (FIXME...)
+		if (!strcmp(COM_Token, "angle"))
+		{
+			strncpy (COM_Token, "angles", MAX_QPATH);
+			anglehack = true;
+		}
+		else anglehack = false;
 		
-		strncpy (keyname, COM_Token(), sizeof(keyname));
+		strncpy (keyname, COM_Token, sizeof(keyname));
 
 		// another hack to fix keynames with trailing spaces
 		n = strlen(keyname);
@@ -1078,9 +1087,9 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 		// parse value
 		if (!COM_Parse(&data))
 			PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
-		MsgDev(D_LOAD, " \"%s\"\n", COM_Token());
+		MsgDev(D_LOAD, " \"%s\"\n", COM_Token);
 
-		if (COM_Token()[0] == '}')
+		if (COM_Token[0] == '}')
 			PRVM_ERROR ("PRVM_ED_ParseEdict: closing brace without data");
 
 		init = true;
@@ -1100,7 +1109,15 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 			continue;
 		}
 
-		if (!PRVM_ED_ParseEpair(ent, key, COM_Token()))
+		if (anglehack)
+		{
+			char	temp[32];
+
+			strncpy (temp, COM_Token, sizeof(temp));
+			sprintf (COM_Token, "0 %s 0", temp);
+		}
+
+		if (!PRVM_ED_ParseEpair(ent, key, COM_Token))
 			PRVM_ERROR ("PRVM_ED_ParseEdict: parse error");
 	}
 
@@ -1142,8 +1159,8 @@ void PRVM_ED_LoadFromFile (const char *data)
 	{
 		// parse the opening brace
 		if (!COM_Parse(&data)) break;
-		if (COM_Token()[0] != '{')
-			PRVM_ERROR ("PRVM_ED_LoadFromFile: %s: found %s when expecting {", PRVM_NAME, COM_Token());
+		if (COM_Token[0] != '{')
+			PRVM_ERROR ("PRVM_ED_LoadFromFile: %s: found %s when expecting {", PRVM_NAME, COM_Token);
 
 		// CHANGED: this is not conform to PR_LoadFromFile
 		if(prog->loadintoworld)

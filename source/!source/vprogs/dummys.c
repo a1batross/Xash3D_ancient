@@ -90,6 +90,20 @@ void() item_artifact_envirosuit = {remove(pev);};
 void() item_artifact_invisibility = {remove(pev);};
 void() item_artifact_super_damage = {remove(pev);};
 
+void barrel_touch( void )
+{
+	float	ratio;
+	vector	v;
+
+	// only players can move barrel
+	if (!(other->flags & FL_CLIENT))
+		return;
+
+	ratio = (float)other->mass / (float)pev->mass;
+	v = pev->origin - other->origin;
+	walkmove(vectoyaw(v), 20 * ratio * frametime);
+}
+
 void barrel_spawn(string netname1, string model1, string deathmessage, float damage)
 {
 	local float oldz;
@@ -102,13 +116,14 @@ void barrel_spawn(string netname1, string model1, string deathmessage, float dam
 
 	pev->owner = pev;
 	pev->solid = SOLID_BBOX;
-	pev->movetype = MOVETYPE_NONE;
+	pev->movetype = MOVETYPE_STEP;
 	setmodel (pev, model1);
 	pev->health = 20;
 	pev->th_die = SUB_Null;
 	pev->takedamage = DAMAGE_AIM;
 	pev->think = SUB_Null;
 	pev->nextthink = -1;
+	pev->touch = barrel_touch;
 	pev->flags = 0;
 
 	pev->origin_z = pev->origin_z + 2;

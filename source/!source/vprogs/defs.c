@@ -80,6 +80,8 @@ void end_sys_globals;		// flag for structure dumping
 	// physics description
 	.vector		origin;
 	.vector		angles;
+	.vector		old_origin;
+	.vector		old_angles;
 	.vector		velocity;
 	.vector		avelocity;
 	.vector		post_origin;
@@ -152,7 +154,7 @@ void end_sys_globals;		// flag for structure dumping
 	.float		idealpitch;
 	.string		netname;
 	.entity		enemy;
-	.float		colormap;
+	.float		alpha;
 	.float		team;
 	.float		max_health;
 	.float		teleport_time;
@@ -172,7 +174,7 @@ void end_sys_globals;		// flag for structure dumping
 	.string		noise;
 	.string		noise1;
 	.string		noise2;
-	.string		noise3;
+	.string		noise3;		//a looped sound case
 	.float		jumpup;
 	.float		jumpdn;
 	.entity		movetarget;

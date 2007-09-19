@@ -74,6 +74,8 @@ typedef struct entvars_s
 	// physics description
 	vec3_t		origin;
 	vec3_t		angles;
+	vec3_t		old_origin;
+	vec3_t		old_angles;
 	vec3_t		velocity;
 	vec3_t		avelocity;
 	vec3_t		post_origin;
@@ -146,7 +148,7 @@ typedef struct entvars_s
 	float		idealpitch;
 	string_t		netname;
 	int		enemy;
-	float		colormap;
+	float		alpha;
 	float		team;
 	float		max_health;
 	float		teleport_time;
@@ -166,7 +168,7 @@ typedef struct entvars_s
 	string_t		noise;
 	string_t		noise1;
 	string_t		noise2;
-	string_t		noise3;
+	string_t		sound;
 	float		jumpup;
 	float		jumpdn;
 	int		movetarget;
@@ -179,6 +181,6 @@ typedef struct entvars_s
 
 } entvars_t;
 
-#define PROG_CRC_SERVER 42175
+#define PROG_CRC_SERVER 5039
 
 #endif//PROGDEFS_H

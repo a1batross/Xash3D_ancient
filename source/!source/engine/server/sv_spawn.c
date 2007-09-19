@@ -12,36 +12,6 @@ trace_t PM_trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end)
 }
 
 /*
-=============
-ED_NewString
-=============
-*/
-char *ED_NewString (const char *string)
-{
-	char	*newb, *new_p;
-	int	i, l;
-	
-	l = strlen(string) + 1;
-
-	newb = (char *)Z_Malloc(l);
-
-	new_p = newb;
-
-	for (i = 0; i < l; i++)
-	{
-		if (string[i] == '\\' && i < l-1)
-		{
-			i++;
-			if (string[i] == 'n') 
-				*new_p++ = '\n';
-			else *new_p++ = '\\';
-		}
-		else *new_p++ = string[i];
-	}
-	return newb;
-}
-
-/*
 ===========
 PutClientInServer
 
@@ -80,18 +50,17 @@ void SV_PutClientInServer (edict_t *ent)
 	client->ps.gunindex = SV_ModelIndex("models/weapons/v_eagle.mdl");
 
 	// clear entity state values
-	ent->priv.sv->s.effects = 0;
-	ent->priv.sv->s.modelindex = MAX_MODELS - 1;	// will use the skin specified model
-	ent->priv.sv->s.weaponmodel = MAX_MODELS - 1;	// custom gun model
+	ent->progs.sv->effects = 0;
+	ent->progs.sv->modelindex = MAX_MODELS - 1;	// will use the skin specified model
+	ent->progs.sv->weaponmodel = MAX_MODELS - 1;	// custom gun model
 
 	// sknum is player num and weapon number
 	// weapon number will be added in changeweapon
-	ent->priv.sv->s.skin = PRVM_NUM_FOR_EDICT(ent) - 1;
+	ent->progs.sv->skin = PRVM_NUM_FOR_EDICT(ent) - 1;
 
-	ent->priv.sv->s.frame = 0;
-	VectorCopy (ent->progs.sv->origin, ent->priv.sv->s.origin);
-	ent->priv.sv->s.origin[2] += 1; // make sure off ground
-	VectorCopy (ent->priv.sv->s.origin, ent->priv.sv->s.old_origin);
+	ent->progs.sv->frame = 0;
+	ent->progs.sv->origin[2] += 1; // make sure off ground
+	VectorCopy (ent->progs.sv->origin, ent->progs.sv->old_origin);
 
 	// set the delta angle
 	for (i = 0; i < 3; i++)
@@ -99,9 +68,9 @@ void SV_PutClientInServer (edict_t *ent)
 		client->ps.pmove.delta_angles[i] = ANGLE2SHORT(ent->progs.sv->angles[i]);
 	}
 
-	ent->priv.sv->s.angles[PITCH] = ent->priv.sv->s.angles[ROLL]  = 0;
-	ent->priv.sv->s.angles[YAW] = ent->progs.sv->angles[YAW];
-	VectorCopy(ent->priv.sv->s.angles, client->ps.viewangles);
+	ent->progs.sv->angles[PITCH] = ent->progs.sv->angles[ROLL]  = 0;
+	ent->progs.sv->angles[YAW] = ent->progs.sv->angles[YAW];
+	VectorCopy(ent->progs.sv->angles, client->ps.viewangles);
 	VectorCopy (client->ps.viewangles, client->v_angle);
 
 	SV_LinkEdict(ent);
@@ -154,8 +123,7 @@ void SV_SpawnEntities (char *mapname, char *entities, char *spawnpoint)
 
 void SV_InitEdict (edict_t *e)
 {
-	e->priv.sv->s.number = PRVM_NUM_FOR_EDICT(e);
-	e->priv.sv->s.renderfx |= RF_IR_VISIBLE; //evil stuff...
+	e->priv.sv->serialnumber = PRVM_NUM_FOR_EDICT(e);
 }
 
 
@@ -168,10 +136,6 @@ Marks the edict as free
 */
 void SV_FreeEdict (edict_t *ed)
 {
-	// don't free players!
-	if (PRVM_NUM_FOR_EDICT(ed) <= maxclients->value)
-		return;
-
 	ed->priv.sv->freetime = sv.time;
 	ed->priv.sv->free = true;
 
@@ -377,7 +341,7 @@ void ClientEndServerFrame (edict_t *ent)
 	//
 	for (i = 0; i < 3; i++)
 	{
-		current_client->ps.pmove.origin[i] = ent->priv.sv->s.origin[i]*8.0;
+		current_client->ps.pmove.origin[i] = ent->progs.sv->origin[i]*8.0;
 		current_client->ps.pmove.velocity[i] = ent->progs.sv->velocity[i]*8.0;
 	}
 
@@ -387,12 +351,12 @@ void ClientEndServerFrame (edict_t *ent)
 	// set model angles from view angles so other things in
 	// the world can tell which direction you are looking
 	//
-	if (ent->priv.sv->client->v_angle[PITCH] > 180) ent->priv.sv->s.angles[PITCH] = (-360 + ent->priv.sv->client->v_angle[PITCH])/3;
-	else ent->priv.sv->s.angles[PITCH] = ent->priv.sv->client->v_angle[PITCH]/3;
+	if (ent->priv.sv->client->v_angle[PITCH] > 180) ent->progs.sv->angles[PITCH] = (-360 + ent->priv.sv->client->v_angle[PITCH])/3;
+	else ent->progs.sv->angles[PITCH] = ent->priv.sv->client->v_angle[PITCH]/3;
 
-	ent->priv.sv->s.angles[YAW] = ent->priv.sv->client->v_angle[YAW];
-	ent->priv.sv->s.angles[ROLL] = 0;
-	ent->priv.sv->s.angles[ROLL] = SV_CalcRoll (ent->priv.sv->s.angles, ent->progs.sv->velocity)*4;
+	ent->progs.sv->angles[YAW] = ent->priv.sv->client->v_angle[YAW];
+	ent->progs.sv->angles[ROLL] = 0;
+	ent->progs.sv->angles[ROLL] = SV_CalcRoll (ent->progs.sv->angles, ent->progs.sv->velocity)*4;
 
 	//
 	// calculate speed and cycle to be used for
@@ -475,7 +439,7 @@ void SV_RunFrame( void )
 		ent = PRVM_EDICT_NUM(i);
 		if (ent->priv.sv->free) continue;
 
-		VectorCopy (ent->priv.sv->s.origin, ent->priv.sv->s.old_origin);
+		VectorCopy (ent->progs.sv->origin, ent->progs.sv->old_origin);
 
 		// don't apply phys on clients
 		if (i > 0 && i <= maxclients->value) continue;
@@ -593,12 +557,12 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	prog->globals.server->pev = PRVM_EDICT_TO_PROG(ent);
 	PRVM_ExecuteProgram (prog->globals.server->PlayerPreThink, "QC function PlayerPreThink is missing");
 
-	VectorCopy(ent->priv.sv->s.origin, oldorigin);
+	VectorCopy(ent->progs.sv->origin, oldorigin);
 	VectorCopy(ent->progs.sv->velocity, oldvelocity);
 
 	ent->priv.sv->client->ps.pmove.pm_flags &= ~PMF_NO_PREDICTION;
 
-	VectorCopy(ent->priv.sv->s.origin, view);
+	VectorCopy(ent->progs.sv->origin, view);
 
 	pm_passent = ent;
 
@@ -606,7 +570,6 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	memset (&pm, 0, sizeof(pm));
 
 	if (ent->progs.sv->movetype == MOVETYPE_NOCLIP) client->ps.pmove.pm_type = PM_SPECTATOR;
-	else if (ent->priv.sv->s.modelindex != MAX_MODELS - 1) client->ps.pmove.pm_type = PM_GIB;
 	else client->ps.pmove.pm_type = PM_NORMAL;
 	client->ps.pmove.gravity = sv_gravity->value;
 
@@ -614,7 +577,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 
 	for (i = 0; i < 3; i++)
 	{
-		pm.s.origin[i] = ent->priv.sv->s.origin[i]*8;
+		pm.s.origin[i] = ent->progs.sv->origin[i]*8;
 		pm.s.velocity[i] = ent->progs.sv->velocity[i]*8;
 	}
 
@@ -635,7 +598,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 
 	for (i = 0; i < 3; i++)
 	{
-		ent->priv.sv->s.origin[i] = pm.s.origin[i]*0.125;
+		ent->progs.sv->origin[i] = pm.s.origin[i]*0.125;
 		ent->progs.sv->velocity[i] = pm.s.velocity[i]*0.125;
 	}
 	VectorCopy (pm.mins, ent->progs.sv->mins);
@@ -656,12 +619,12 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 				break;
 		}
 		if (j != i) continue; // duplicated
-		if (!ent->progs.sv->touch) continue;
+		if (!other->progs.sv->touch) continue;
 		
 		prog->globals.server->pev = PRVM_EDICT_TO_PROG(other);
 		prog->globals.server->other = PRVM_EDICT_TO_PROG(ent);
 		prog->globals.server->time = sv.time;
-		PRVM_ExecuteProgram (ent->progs.sv->touch, "QC function pev->touch is missing");
+		PRVM_ExecuteProgram (other->progs.sv->touch, "QC function pev->touch is missing");
 	}
 	PRVM_POP_GLOBALS;
 
@@ -691,10 +654,10 @@ void SV_ClientDisconnect (edict_t *ent)
 	MSG_Begin( svc_muzzleflash );
 		MSG_WriteShort( &sv.multicast, PRVM_NUM_FOR_EDICT(ent));
 		MSG_WriteByte( &sv.multicast, MZ_LOGOUT );
-	MSG_Send(MSG_PVS, ent->priv.sv->s.origin, NULL);
+	MSG_Send(MSG_PVS, ent->progs.sv->origin, NULL);
 
 	SV_UnlinkEdict(ent);
-	ent->priv.sv->s.modelindex = 0;
+	ent->progs.sv->modelindex = 0;
 	ent->progs.sv->solid = SOLID_NOT;
 	ent->priv.sv->free = true;
 	ent->progs.sv->classname = PRVM_SetEngineString("disconnected");

@@ -24,6 +24,37 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /*
 =============================================================================
 
+Copy PRVM values into entity state
+
+=============================================================================
+*/
+void SV_UpdateEntityState( edict_t *ent)
+{
+	// copy progs values to state
+	ent->priv.sv->s.number = ent->priv.sv->serialnumber;
+	ent->priv.sv->s.solid = ent->priv.sv->solid;
+	ent->priv.sv->s.event = ent->priv.sv->event;
+
+	VectorCopy (ent->progs.sv->origin, ent->priv.sv->s.origin);
+	VectorCopy (ent->progs.sv->angles, ent->priv.sv->s.angles);
+	VectorCopy (ent->progs.sv->old_origin, ent->priv.sv->s.old_origin);
+	
+	ent->priv.sv->s.modelindex = (int)ent->progs.sv->modelindex;
+	ent->priv.sv->s.weaponmodel = SV_ModelIndex(PRVM_GetString(ent->progs.sv->weaponmodel));
+
+	ent->priv.sv->s.skin = (short)ent->progs.sv->skin;	// studio model skin
+	ent->priv.sv->s.body = (byte)ent->progs.sv->body;		// studio model submodel 
+	ent->priv.sv->s.frame = (short)ent->progs.sv->frame;	// any model current frame
+	ent->priv.sv->s.sequence = (byte)ent->progs.sv->sequence;	// studio model sequence
+	ent->priv.sv->s.effects = (uint)ent->progs.sv->effects;	// shared client and render flags
+	ent->priv.sv->s.renderfx = (int)ent->progs.sv->renderfx;	// renderer flags
+	ent->priv.sv->s.alpha = ent->progs.sv->alpha;		// alpha value
+	ent->priv.sv->s.soundindex = SV_SoundIndex(PRVM_GetString(ent->progs.sv->sound));
+}
+
+/*
+=============================================================================
+
 Encode a client frame onto the network channel
 
 =============================================================================
@@ -490,7 +521,7 @@ void SV_BuildClientFrame (client_t *client)
 		ent = PRVM_EDICT_NUM(e);
 
 		// ignore ents without visible models unless they have an effect
-		if (!ent->priv.sv->s.modelindex && !ent->priv.sv->s.effects && !ent->priv.sv->s.sound && !ent->priv.sv->s.event)
+		if (!ent->progs.sv->modelindex && !ent->progs.sv->effects && !ent->progs.sv->sound && !ent->priv.sv->event)
 			continue;
 
 		// ignore if not touching a PV leaf
@@ -506,7 +537,7 @@ void SV_BuildClientFrame (client_t *client)
 			}
 
 			// beams just check one point for PHS
-			if (ent->priv.sv->s.renderfx & RF_BEAM)
+			if ((int)ent->progs.sv->renderfx & RF_BEAM)
 			{
 				l = ent->priv.sv->clusternums[0];
 				if ( !(clientphs[l >> 3] & (1 << (l&7) )) )
@@ -516,7 +547,7 @@ void SV_BuildClientFrame (client_t *client)
 			{
 				// FIXME: if an ent has a model and a sound, but isn't
 				// in the PVS, only the PHS, clear the model
-				if (ent->priv.sv->s.sound)
+				if (ent->progs.sv->sound)
 				{
 					bitvector = fatpvs;	//clientphs;
 				}
@@ -541,13 +572,13 @@ void SV_BuildClientFrame (client_t *client)
 						continue;		// not visible
 				}
 
-				if (!ent->priv.sv->s.modelindex)
+				if (!ent->progs.sv->modelindex)
 				{	
 					// don't send sounds if they will be attenuated away
 					vec3_t	delta;
 					float	len;
 
-					VectorSubtract (org, ent->priv.sv->s.origin, delta);
+					VectorSubtract (org, ent->progs.sv->origin, delta);
 					len = VectorLength (delta);
 					if (len > 400) continue;
 				}
@@ -556,17 +587,13 @@ void SV_BuildClientFrame (client_t *client)
 
 		// add it to the circular client_entities array
 		state = &svs.client_entities[svs.next_client_entities % svs.num_client_entities];
-		if (ent->priv.sv->s.number != e)
+		if (ent->priv.sv->serialnumber != e)
 		{
-			MsgWarn ("SV_BuildClientFrame: invalid ent->priv.sv->s.number %d\n", ent->priv.sv->s.number );
-			ent->priv.sv->s.number = e; // ptr to current entity such as entnumber
+			MsgWarn ("SV_BuildClientFrame: invalid ent->priv.sv->serialnumber %d\n", ent->priv.sv->serialnumber );
+			ent->priv.sv->serialnumber = e; // ptr to current entity such as entnumber
 		}
 
-		// copy progs values to state
-		//ent->priv.sv->s.modelindex = ent->progs.sv->modelindex;
-		//ent->priv.sv->s.frame = ent->progs.sv->frame;
-		//for (i = 0; i < 3; i++) ent->priv.sv->s.origin[i] = ent->progs.sv->origin[i];
- 
+                    SV_UpdateEntityState( ent );
 		*state = ent->priv.sv->s;
 
 		// don't mark players missiles as solid
@@ -612,8 +639,8 @@ void SV_RecordDemoMessage (void)
 	while (e < prog->num_edicts) 
 	{
 		// ignore ents without visible models unless they have an effect
-		if (!ent->priv.sv->free && ent->priv.sv->s.number && 
-			(ent->priv.sv->s.modelindex || ent->priv.sv->s.effects || ent->priv.sv->s.sound || ent->priv.sv->s.event))
+		if (!ent->priv.sv->free && ent->priv.sv->serialnumber && 
+			(ent->priv.sv->s.modelindex || ent->progs.sv->effects || ent->progs.sv->sound || ent->priv.sv->event))
 			MSG_WriteDeltaEntity (&nostate, &ent->priv.sv->s, &buf, false, true);
 
 		e++;

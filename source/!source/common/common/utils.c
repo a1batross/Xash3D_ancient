@@ -658,13 +658,13 @@ scriptsystem_api_t Sc_GetAPI( void )
 	sc.Load = FS_LoadScript;
 	sc.Include = FS_AddScript;
 	sc.GetToken = SC_GetToken;
-	sc.Token = SC_Token;
 	sc.TryToken = SC_TryToken;
 	sc.FreeToken = SC_FreeToken;
 	sc.SkipToken = SC_SkipToken;
 	sc.MatchToken = SC_MatchToken;
 	sc.ParseToken = SC_ParseToken;
 	sc.ParseWord = SC_ParseWord;
+	sc.Token = token;
 	
 	return sc;
 }

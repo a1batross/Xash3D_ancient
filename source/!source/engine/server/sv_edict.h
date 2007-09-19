@@ -69,6 +69,9 @@ struct sv_edict_s
 	int			num_clusters;	// if -1, use headnode instead
 	int			clusternums[MAX_ENT_CLUSTERS];
 	int			areanum, areanum2;
+	int			serialnumber;	// unical entity #id
+	int			solid;		// see entity_state_t for details
+	int			event;		// apply sv.events too
 
 	// baselines
 	entity_state_t		s;

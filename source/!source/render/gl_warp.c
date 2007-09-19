@@ -208,11 +208,11 @@ Does a water warp on the pre-fragmented glpoly_t chain
 */
 void EmitWaterPolys (msurface_t *fa)
 {
-	glpoly_t	*p, *bp;
+	glpoly_t		*p, *bp;
 	float		*v;
-	int			i;
-	float		s, t, os, ot;
-	float		scroll;
+	int		i;
+	float		scroll, s, t, os, ot;
+	float		rdt = r_newrefdef.time * 1.4f;
 
 	if (fa->texinfo->flags & SURF_FLOWING)
 		scroll = -64 * ( (r_newrefdef.time * 0.5) - (int)(r_newrefdef.time * 0.5));
@@ -228,11 +228,11 @@ void EmitWaterPolys (msurface_t *fa)
 			os = v[3];
 			ot = v[4];
 
-			s = os + r_turbsin[(int)((ot * 0.125 + r_newrefdef.time) * TURBSCALE) & 255];
+			s = os + r_turbsin[(int)((ot * 0.125 + rdt) * TURBSCALE) & 255];
 			s += scroll;
 			s *= (1.0/64);
 
-			t = ot + r_turbsin[(int)((os * 0.125 + r_newrefdef.time) * TURBSCALE) & 255];
+			t = ot + r_turbsin[(int)((os * 0.125 + rdt) * TURBSCALE) & 255];
 			t *= (1.0/64);
 
 			qglTexCoord2f (s, t);

@@ -540,6 +540,7 @@ cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum)
 	numnodes = 0;
 	numleafs = 0;
 	numcmodels = 0;
+	numsmodels = 0;
 	numvisibility = 0;
 	numentitychars = 0;
 	map_entitystring[0] = 0;
@@ -1704,10 +1705,10 @@ STUDIO SHARED CMODELS
 
 ===============================================================================
 */
-#define NUM_HULL_ROUNDS	22
 #define HULL_PRECISION	4
 
-word hull_table[NUM_HULL_ROUNDS] = { 0, 4, 8, 16, 18, 24, 28, 30, 32, 40, 48, 54, 56, 60, 64, 72, 80, 112, 120, 128, 140, 176 };
+word hull_table[] = { 0, 4, 8, 16, 18, 24, 28, 30, 32, 40, 48, 54, 56, 60, 64, 72, 80, 112, 120, 128, 140, 176 };
+#define NUM_HULL_ROUNDS (sizeof(hull_table) / sizeof(word))
 
 void CM_LookUpHullSize(vec3_t size, bool down)
 {
@@ -1738,11 +1739,8 @@ void CM_LookUpHullSize(vec3_t size, bool down)
 
 cmodel_t *CM_StudioModel (char *name, byte *buffer)
 {
-	int		i = numcmodels;	// studiomodels starting after bmodels
-	int		max_models = numcmodels + numsmodels;
 	cmodel_t		*out;
 	studiohdr_t	*phdr;
-	char		modname[64];	// probaly this is not better way...
 
 	phdr = (studiohdr_t *)buffer;
 
@@ -1751,24 +1749,11 @@ cmodel_t *CM_StudioModel (char *name, byte *buffer)
 		MsgWarn("CM_StudioModel: %s has wrong version number (%i should be %i)", phdr->name, phdr->version, STUDIO_VERSION);
 		return NULL;
 	}
-           
-	memset( modname, 0, sizeof(modname));
-	FS_FileBase( name, modname );
-          
-	for(i = 0; i < max_models; i++ )
-          {
-		out = map_cmodels + i;
 
-		//probably is sprite model
-		if(!out->extradata) continue;
-		if(!stricmp(modname, out->name))
-			return out;
-	} 
-	
-	out = &map_cmodels[max_models];
+	out = &map_cmodels[numcmodels + numsmodels];
 	out->extradata = buffer;
 	out->numframes = 0;//reset sprite info
-	strncpy(out->name, modname, sizeof(out->name));
+	strncpy(out->name, name, sizeof(out->name));
 	
 	if(SV_StudioExtractBbox( phdr, 0, out->mins, out->maxs ))
 	{
@@ -1782,18 +1767,15 @@ cmodel_t *CM_StudioModel (char *name, byte *buffer)
 		VectorSet(out->mins, -32, -32, -32 );
 		VectorSet(out->maxs,  32,  32,  32 );
 	}
-
+	Msg("CM_StudioModel: %s mins[%g %g %g] maxs[%g %g %g] new loaded\n", out->name, out->mins[0], out->mins[1],out->mins[2],out->maxs[0],out->maxs[1],out->maxs[2]);
 	numsmodels++;
 	return out;
 }
 
 cmodel_t *CM_SpriteModel (char *name, byte *buffer)
 {
-	int		i = numcmodels;
-	int		max_models = numcmodels + numsmodels;
 	cmodel_t		*out;
 	dsprite_t		*phdr;
-	char		modname[64]; //probaly this is not better way...
 
 	phdr = (dsprite_t *)buffer;
 	
@@ -1802,23 +1784,10 @@ cmodel_t *CM_SpriteModel (char *name, byte *buffer)
 		MsgWarn("CM_SpriteModel: %s has wrong version number (%i should be %i or %i)\n", name, phdr->version, SPRITE_VERSION_HALF, SPRITE_VERSION_XASH);
 		return NULL;
 	}
-
-	memset( modname, 0, sizeof(modname));
-	FS_FileBase( name, modname );
-          
-	for(i = 0; i < max_models; i++ )
-          {
-		out = map_cmodels + i;
-
-		//probably is studio model
-		if(!out->numframes) continue;
-		if(!stricmp(modname, out->name))
-			return out;
-	} 
 	
-	out = &map_cmodels[max_models];
+	out = &map_cmodels[numcmodels + numsmodels];
 	out->numframes = phdr->numframes;
-	strncpy(out->name, modname, sizeof(out->name));
+	strncpy(out->name, name, sizeof(out->name));
 
 	out->mins[0] = out->mins[1] = -phdr->width / 2;
 	out->maxs[0] = out->maxs[1] = phdr->width / 2;
@@ -1829,29 +1798,36 @@ cmodel_t *CM_SpriteModel (char *name, byte *buffer)
 	return out;
 }
 
-cmodel_t *CM_LoadModel (char *name)
+cmodel_t *CM_LoadModel ( int modelindex )
 {
+	char		name[MAX_QPATH];
 	byte		*buffer;
 	cmodel_t		*mod = NULL;
+	int		i = numcmodels;
+	int		max_models = numcmodels + numsmodels;
 
-	if (!name[0])
-	{
-		MsgWarn("CM_LoadModel: NULL name, ignored\n");
-		return NULL;
-	}
+	// check for preloading
+	strncpy(name, sv.configstrings[CS_MODELS + modelindex], MAX_QPATH );
+	if(name[0] == '*') return CM_InlineModel( name ); //skip bmodels
 
-	if(name[0] == '*') return CM_InlineModel (name);
-	if(!FS_FileExists( name ))
-	{
-		MsgWarn("CM_LoadModel: %s not found\n", name );
-		return NULL;
-	}
+	for(i = 0; i < max_models; i++ )
+          {
+		mod = map_cmodels + i;
+		if(!stricmp(name, mod->name))
+			return mod;
+	} 
+
+	// new model
 	if(numcmodels + numsmodels > MAX_MAP_MODELS)
 	{
 		MsgWarn("CM_LoadModel: MAX_MAP_MODELS limit exceeded\n" );
 		return NULL;		
 	}
-	
+	if(!FS_FileExists( name ))
+	{
+		MsgWarn("CM_LoadModel: %s not found\n", name );
+		return NULL;
+	}
 	buffer = FS_LoadFile (name, NULL );
 
 	// call the apropriate loader

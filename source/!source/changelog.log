@@ -33,14 +33,12 @@ SV_ClipToLinks		SV_ClipMoveToEntities
 	SV_FreeEdict не передается указатель		OK
 	наладить think system			OK
 	наладить VM_bprint и VM_dprint		OK
-	организовать передачу progs.sv в priv.sv->s
-	полная отладка физики!
-	настроить связи между progs и state
+	организовать передачу progs.sv в priv.sv->s	OK
+	настроить связи между progs и state		OK
+	переписать CM_LoadModel			OK
+	игрок застревает в полу после команды reconnect	OK
+	отладка физики
 }
-
-SV_CreateBaseLine progs->state
-SV_BuildClientFrame progs->state
-SV_PrepWorldFrame state<-progs
 
 //==================================================
 //		то, что уже готово

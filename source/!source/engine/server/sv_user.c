@@ -97,8 +97,8 @@ void SV_New_f (void)
 	if (sv.state == ss_game)
 	{
 		// set up the entity for the client
-		ent = PRVM_EDICT_NUM(playernum+1);
-		ent->priv.sv->s.number = playernum+1;
+		ent = PRVM_EDICT_NUM(playernum + 1);
+		ent->priv.sv->serialnumber = playernum + 1;
 		sv_client->edict = ent;
 		memset (&sv_client->lastcmd, 0, sizeof(sv_client->lastcmd));
 
@@ -196,7 +196,7 @@ void SV_Baselines_f (void)
 	while ( sv_client->netchan.message.cursize <  MAX_MSGLEN/2 && start < MAX_EDICTS)
 	{
 		base = &sv.baselines[start];
-		if (base->modelindex || base->sound || base->effects)
+		if (base->modelindex || base->soundindex || base->effects)
 		{
 			MSG_WriteByte (&sv_client->netchan.message, svc_spawnbaseline);
 			MSG_WriteDeltaEntity (&nullstate, base, &sv_client->netchan.message, true, true);

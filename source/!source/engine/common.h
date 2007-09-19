@@ -313,13 +313,13 @@ enum clc_ops_e
 #define	U_RENDERFX16	(1<<18)		// 8 + 16 = 32
 #define	U_EFFECTS16	(1<<19)		// 8 + 16 = 32
 #define	U_WEAPONMODEL	(1<<20)		// weapons, flags, etc
-#define	U_BODY		(1<<21)
+#define	U_SOUNDIDX	(1<<21)
 #define	U_SEQUENCE	(1<<22)		// animation sequence
 #define	U_MOREBITS3	(1<<23)		// read one additional byte
 
 // fourth byte
 #define	U_OLDORIGIN	(1<<24)		// FIXME: get rid of this
-#define	U_SOUND		(1<<25)
+#define	U_BODY		(1<<25)
 #define	U_SOLID		(1<<26)
 #define	U_ALPHA		(1<<27)		// alpha value
 #define	U_EVENT		(1<<28)		// remove this
@@ -544,7 +544,7 @@ CMODEL
 
 cmodel_t	*CM_LoadMap (char *name, bool clientload, unsigned *checksum);
 cmodel_t	*CM_InlineModel (char *name);	// *1, *2, etc
-cmodel_t	*CM_LoadModel (char *name);
+cmodel_t	*CM_LoadModel( int modelindex );
 
 extern byte portalopen[MAX_MAP_AREAPORTALS];
 

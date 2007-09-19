@@ -189,16 +189,16 @@ void SV_LinkEdict (edict_t *ent)
 		k = (ent->progs.sv->maxs[2]+32)/8;
 		if (k<1) k = 1;
 		if (k>63) k = 63;
-		ent->priv.sv->s.solid = (k<<10) | (j<<5) | i;
+		ent->priv.sv->solid = (k<<10) | (j<<5) | i;
 	}
 	else if (ent->progs.sv->solid == SOLID_BSP)
 	{
-		ent->priv.sv->s.solid = 31;		// a solid_bbox will never create this value
+		ent->priv.sv->solid = 31;		// a solid_bbox will never create this value
 	}
-	else ent->priv.sv->s.solid = 0;
+	else ent->priv.sv->solid = 0;
 
 	// set the abs box
-	if (ent->progs.sv->solid == SOLID_BSP && !VectorIsNull(ent->priv.sv->s.angles))
+	if (ent->progs.sv->solid == SOLID_BSP && !VectorIsNull(ent->progs.sv->angles))
 	{
 		// expand for rotation
 		float		max = 0, v;
@@ -213,14 +213,14 @@ void SV_LinkEdict (edict_t *ent)
 		}
 		for (i=0 ; i<3 ; i++)
 		{
-			ent->progs.sv->absmin[i] = ent->priv.sv->s.origin[i] - max;
-			ent->progs.sv->absmax[i] = ent->priv.sv->s.origin[i] + max;
+			ent->progs.sv->absmin[i] = ent->progs.sv->origin[i] - max;
+			ent->progs.sv->absmax[i] = ent->progs.sv->origin[i] + max;
 		}
 	}
 	else
 	{	// normal
-		VectorAdd (ent->priv.sv->s.origin, ent->progs.sv->mins, ent->progs.sv->absmin);	
-		VectorAdd (ent->priv.sv->s.origin, ent->progs.sv->maxs, ent->progs.sv->absmax);
+		VectorAdd (ent->progs.sv->origin, ent->progs.sv->mins, ent->progs.sv->absmin);	
+		VectorAdd (ent->progs.sv->origin, ent->progs.sv->maxs, ent->progs.sv->absmax);
 	}
 
 	// because movement is clipped an epsilon away from an actual edge,
@@ -291,7 +291,7 @@ void SV_LinkEdict (edict_t *ent)
 	// if first time, make sure old_origin is valid
 	if (!ent->priv.sv->linkcount)
 	{
-		VectorCopy (ent->priv.sv->s.origin, ent->priv.sv->s.old_origin);
+		VectorCopy (ent->progs.sv->origin, ent->progs.sv->old_origin);
 	}
 	ent->priv.sv->linkcount++;
 
@@ -409,9 +409,9 @@ int SV_PointContents (vec3_t p)
 
 		// might intersect, so do an exact clip
 		headnode = SV_HullForEntity (hit);
-		angles = hit->priv.sv->s.angles;
+		angles = hit->progs.sv->angles;
 		if (hit->progs.sv->solid != SOLID_BSP) angles = vec3_origin; // boxes don't rotate
-		c2 = CM_TransformedPointContents (p, headnode, hit->priv.sv->s.origin, hit->priv.sv->s.angles);
+		c2 = CM_TransformedPointContents (p, headnode, hit->progs.sv->origin, hit->progs.sv->angles);
 		contents |= c2;
 	}
 	return contents;
@@ -451,7 +451,7 @@ int SV_HullForEntity (edict_t *ent)
 	if (ent->progs.sv->solid == SOLID_BSP)
 	{	
 		// explicit hulls in the BSP model
-		model = sv.models[ ent->priv.sv->s.modelindex ];
+		model = sv.models[ (int)ent->progs.sv->modelindex ];
 
 		if (!model) 
 		{
@@ -502,16 +502,16 @@ void SV_ClipMoveToEntities ( moveclip_t *clip )
 
 		// might intersect, so do an exact clip
 		headnode = SV_HullForEntity (touch);
-		angles = touch->priv.sv->s.angles;
+		angles = touch->progs.sv->angles;
 		if (touch->progs.sv->solid != SOLID_BSP) angles = vec3_origin; // boxes don't rotate
 
 		if ((int)touch->progs.sv->flags & FL_MONSTER)
 		{
-			trace = CM_TransformedBoxTrace (clip->start, clip->end, clip->mins2, clip->maxs2, headnode, clip->contentmask, touch->priv.sv->s.origin, angles);
+			trace = CM_TransformedBoxTrace (clip->start, clip->end, clip->mins2, clip->maxs2, headnode, clip->contentmask, touch->progs.sv->origin, angles);
 		}
 		else
 		{
-			trace = CM_TransformedBoxTrace (clip->start, clip->end, clip->mins, clip->maxs, headnode,  clip->contentmask, touch->priv.sv->s.origin, angles);
+			trace = CM_TransformedBoxTrace (clip->start, clip->end, clip->mins, clip->maxs, headnode,  clip->contentmask, touch->progs.sv->origin, angles);
 		}
 		if (trace.allsolid || trace.startsolid || trace.fraction < clip->trace.fraction)
 		{

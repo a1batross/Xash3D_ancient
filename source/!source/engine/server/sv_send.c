@@ -227,7 +227,7 @@ void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename,
 		{
 			area2 = CM_LeafArea (leafnum);
 			cluster = CM_LeafCluster (leafnum);
-			leafnum = CM_PointLeafnum (client->edict->priv.sv->s.origin);
+			leafnum = CM_PointLeafnum (client->edict->progs.sv->origin);
 			if (!CM_AreasConnected (area1, area2)) continue;
 			if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7))))) continue;
 		}
@@ -330,12 +330,12 @@ void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int soundindex,
 		{
 			for (i = 0; i < 3; i++)
 			{
-				origin_v[i] = entity->priv.sv->s.origin[i]+0.5*(entity->progs.sv->mins[i]+entity->progs.sv->maxs[i]);
+				origin_v[i] = entity->progs.sv->origin[i]+0.5*(entity->progs.sv->mins[i]+entity->progs.sv->maxs[i]);
 			}
 		}
 		else
 		{
-			VectorCopy (entity->priv.sv->s.origin, origin_v);
+			VectorCopy (entity->progs.sv->origin, origin_v);
 		}
 	}
 
@@ -499,8 +499,7 @@ void SV_SendClientMessages (void)
 	// read the next demo message if needed
 	if (sv.state == ss_demo && sv.demofile)
 	{
-		if (sv_paused->value)
-			msglen = 0;
+		if (sv_paused->value) msglen = 0;
 		else
 		{
 			// get the next message
@@ -525,7 +524,7 @@ void SV_SendClientMessages (void)
 	}
 
 	// send a message to each connected client
-	for (i=0, c = svs.clients ; i<maxclients->value; i++, c++)
+	for (i = 0, c = svs.clients; i < maxclients->value; i++, c++)
 	{
 		if (!c->state) continue;
 		// if the reliable message overflowed,
@@ -538,17 +537,12 @@ void SV_SendClientMessages (void)
 			SV_DropClient (c);
 		}
 
-		if (sv.state == ss_cinematic 
-			|| sv.state == ss_demo 
-			|| sv.state == ss_pic
-			)
+		if (sv.state == ss_cinematic || sv.state == ss_demo || sv.state == ss_pic)
 			Netchan_Transmit (&c->netchan, msglen, msgbuf);
 		else if (c->state == cs_spawned)
 		{
 			// don't overrun bandwidth
-			if (SV_RateDrop (c))
-				continue;
-
+			if (SV_RateDrop (c)) continue;
 			SV_SendClientDatagram (c);
 		}
 		else

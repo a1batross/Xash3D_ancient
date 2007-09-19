@@ -1115,7 +1115,7 @@ void R_DrawWorld (void)
 
 	// auto cycle the world frame for texture animation
 	memset (&ent, 0, sizeof(ent));
-	ent.frame = (int)(r_newrefdef.time * 0.01);
+	ent.frame = (int)(r_newrefdef.time * 0.1);
 	currententity = &ent;
 
 	gl_state.currenttextures[0] = gl_state.currenttextures[1] = -1;

@@ -278,9 +278,8 @@ void CL_ParseDelta (entity_state_t *from, entity_state_t *to, int number, int bi
 	if (bits & U_SEQUENCE) to->sequence = MSG_ReadByte (&net_message);
 	if (bits & U_SOLID) to->solid = MSG_ReadShort (&net_message);
 	if (bits & U_ALPHA) to->alpha = MSG_ReadFloat (&net_message);
-	
-	if (bits & U_SOUND) to->sound = MSG_ReadByte (&net_message);
 	if (bits & U_EVENT) to->event = MSG_ReadByte (&net_message);
+	if (bits & U_SOUNDIDX) to->soundindex = MSG_ReadByte (&net_message);
 	else to->event = 0;
 
 	if (bits & U_BODY) to->body = MSG_ReadByte (&net_message);

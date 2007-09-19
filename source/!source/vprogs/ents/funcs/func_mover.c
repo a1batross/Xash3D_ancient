@@ -170,7 +170,7 @@ void() func_mover_touch =
 	{	
 		pev->triggerer = other;
 		
-		pev->touched = TRUE;				//stop touching me!
+		pev->touched = TRUE;			//stop touching me!
 		pev->think = func_mover_fire;			//set me next think
 		pev->nextthink = pev->ltime + pev->delay;	//set it so it happens in 0.1 secs from now.
 	}
@@ -208,8 +208,9 @@ void() func_mover =
 
 	pev->blocked = func_mover_blocked;
 	pev->use = func_mover_use;
-	pev->touch = func_mover_touch;
 	pev->th_die = func_mover_die;
+
+	if(!pev->targetname) pev->touch = func_mover_touch;
 
 	//func_mover; DEFAULTS;
 	if (!pev->speed)
@@ -237,8 +238,5 @@ void() func_mover =
 	}
 	else
 		pev->state = STATE_CLOSED;
-
-	pev->think = func_mover_use;
-	pev->nextthink = pev->ltime + 1.0; 
 };
 
