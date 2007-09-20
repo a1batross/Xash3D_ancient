@@ -44,6 +44,23 @@ _inline void VectorScale(const vec3_t a, const float b, vec3_t c){c[0]=b*a[0];c[
 #define VectorMAMAMAM(scale1, b1, scale2, b2, scale3, b3, scale4, b4, c) ((c)[0] = (scale1) * (b1)[0] + (scale2) * (b2)[0] + (scale3) * (b3)[0] + (scale4) * (b4)[0],(c)[1] = (scale1) * (b1)[1] + (scale2) * (b2)[1] + (scale3) * (b3)[1] + (scale4) * (b4)[1],(c)[2] = (scale1) * (b1)[2] + (scale2) * (b2)[2] + (scale3) * (b3)[2] + (scale4) * (b4)[2])
 _inline float anglemod(const float a){return(360.0/65536) * ((int)(a*(65536/360.0)) & 65535);}
 
+_inline int nearest_pow(int size)
+{
+	int i = 2;
+
+	while( 1 ) 
+	{
+		i <<= 1;
+		if (size == i) return i;
+		if (size > i && size < (i <<1)) 
+		{
+			if (size >= ((i+(i<<1))/2))
+				return i<<1;
+			else return i;
+		}
+	}
+}
+
 _inline void VectorBound(const float min, vec3_t v, const float max)
 {
 	v[0] = bound(min, v[0], max);

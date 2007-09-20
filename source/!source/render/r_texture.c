@@ -100,11 +100,7 @@ void R_ImageList_f (void)
 {
 	int	i;
 	image_t	*image;
-	const char *palstrings[2] =
-	{
-		"RGB",
-		"PAL"
-	};
+	const char *palstrings[2] = {"RGB","PAL"};
 
 	Msg( "------------------\n");
 	for (i = 0, image = gltextures; i < numgltextures; i++, image++)
@@ -112,11 +108,11 @@ void R_ImageList_f (void)
 		if (image->texnum[0] <= 0) continue;
 		switch (image->type)
 		{
-		case it_skin: Msg( "Skin"); break;
-		case it_sprite: Msg( "Spr "); break;
-		case it_wall: Msg( "Wall"); break;
 		case it_pic: Msg( "Pic "); break;
 		case it_sky: Msg( "Sky "); break;
+		case it_wall: Msg( "Wall"); break;
+		case it_skin: Msg( "Skin"); break;
+		case it_sprite: Msg( "Spr "); break;
 		case it_cubemap: Msg( "Cubemap "); break;
 		default: Msg( "Sys "); break;
 		}
@@ -159,7 +155,7 @@ void R_SetPixelFormat( int width, int height, int depth )
 		image_desc.SizeOfFile = file_size; 
 	}
 
-	if (image_desc.width * image_desc.height > imagebufsize / 4)// warning
+	if (image_desc.width * image_desc.height > imagebufsize / 4) // warning
 		MsgWarn("R_SetPixelFormat: image too big [%i*%i]\n", image_desc.width, image_desc.height);
 }
 
@@ -220,7 +216,7 @@ void R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 			image_desc.SizeOfFile = file_size; 
 		}
 
-		//don't build mips for sky & hud pics
+		// don't build mips for sky and hud pics
 		if(type == it_pic || type == it_sky) image_desc.flags &= ~IMAGE_GEN_MIPS;
 		else image_desc.flags |= IMAGE_GEN_MIPS;
 
@@ -474,8 +470,9 @@ void R_RoundImageDimensions(int *scaled_width, int *scaled_height, bool mipmap)
 {
 	int width = *scaled_width;
 	int height = *scaled_height;
-	for (*scaled_width = 1; *scaled_width < width; *scaled_width<<=1);
-	for (*scaled_height = 1; *scaled_height < height; *scaled_height<<=1);
+
+	*scaled_width = nearest_pow( *scaled_width );
+	*scaled_height = nearest_pow( *scaled_height);
 
 	if (mipmap)
 	{
@@ -496,41 +493,54 @@ void R_RoundImageDimensions(int *scaled_width, int *scaled_height, bool mipmap)
 bool R_ResampleTexture (uint *in, int inwidth, int inheight, uint *out, int outwidth, int outheight)
 {
 	int	i, j;
-	uint	*inrow;
 	uint	frac, fracstep;
+	uint	*inrow, *inrow2;
+	uint	p1[4096], p2[4096];
+	byte	*pix1, *pix2, *pix3, *pix4;
 
 	//check for buffers
-	if(!in || !out) return false;
+	if(!in || !out || in == out) return false;
+	if(outheight == 0 || outwidth == 0) return false;
 
 	// nothing to resample ?
 	if (inwidth == outwidth && inheight == outheight)
 	{
-		memcpy (out, in, inwidth * inheight * 4);
+		memcpy(out, in, inwidth * inheight * 4);
 		return false;
 	}
 
-	fracstep = inwidth * 0x10000/outwidth;
+	fracstep = inwidth * 0x10000 / outwidth;
+	frac = fracstep>>2;
+
+	for( i = 0; i < outwidth; i++)
+	{
+		p1[i] = 4 * (frac>>16);
+		frac += fracstep;
+	}
+	frac = 3 * (fracstep>>2);
+
+	for( i = 0; i < outwidth; i++)
+	{
+		p2[i] = 4 * (frac>>16);
+		frac += fracstep;
+	}
+
 	for (i = 0; i < outheight; i++, out += outwidth)
 	{
-		inrow = in + inwidth*(i*inheight/outheight);
-		frac = outwidth*fracstep;
-		j = outwidth - 1;
-		while ((j+1) &3)
+		inrow = in + inwidth * (int)((i + 0.25) * inheight / outheight);
+		inrow2 = in + inwidth * (int)((i + 0.75) * inheight / outheight);
+		frac = fracstep>>1;
+
+		for (j = 0; j < outwidth; j++)
 		{
-			out[j] = inrow[frac>>16];
-			frac -= fracstep;
-			j--;
-		}
-		for (; j >= 0; j -= 4)
-		{
-			out[j+3] = inrow[frac>>16];
-			frac -= fracstep;
-			out[j+2] = inrow[frac>>16];
-			frac -= fracstep;
-			out[j+1] = inrow[frac>>16];
-			frac -= fracstep;
-			out[j+0] = inrow[frac>>16];
-			frac -= fracstep;
+			pix1 = (byte *)inrow + p1[j];
+			pix2 = (byte *)inrow + p2[j];
+			pix3 = (byte *)inrow2 + p1[j];
+			pix4 = (byte *)inrow2 + p2[j];
+			((byte *)(out+j))[0] = (pix1[0] + pix2[0] + pix3[0] + pix4[0])>>2;
+			((byte *)(out+j))[1] = (pix1[1] + pix2[1] + pix3[1] + pix4[1])>>2;
+			((byte *)(out+j))[2] = (pix1[2] + pix2[2] + pix3[2] + pix4[2])>>2;
+			((byte *)(out+j))[3] = (pix1[3] + pix2[3] + pix3[3] + pix4[3])>>2;
 		}
 	}
 	return true;
@@ -665,8 +675,8 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 			}
 		}
 		break;
-		case PF_DXT2:
-		case PF_DXT3:
+	case PF_DXT2:
+	case PF_DXT3:
 		for (z = 0; z < image_desc.numLayers; z++)
 		{
 			for (y = 0; y < h; y += 4)
@@ -729,8 +739,8 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 		// so the result will be wrong unless corrected. 
 		if(image_desc.flags & IMAGE_PREMULT) R_ImageCorrectPreMult( (uint *)fout, image_desc.SizeOfData );
 		break;
-		case PF_DXT4:
-		case PF_DXT5:
+	case PF_DXT4:
+	case PF_DXT5:
 		for (z = 0; z < image_desc.numLayers; z++)
 		{
 			for (y = 0; y < h; y += 4)
@@ -839,7 +849,7 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 		// so the result will be wrong unless corrected. 
 		if(image_desc.flags & IMAGE_PREMULT) R_ImageCorrectPreMult( (uint *)fout, image_desc.SizeOfData );
 		break;
-		case PF_RXGB:
+	case PF_RXGB:
 		for (z = 0; z < image_desc.numLayers; z++)
 		{
 			for (y = 0; y < h; y += 4)
@@ -1000,7 +1010,7 @@ bool CompressedTexImage2D( uint target, int level, int intformat, uint width, ui
 		if(!qglGetError()) return true;
 		// otherwise try loading with software unpacker
 	}
-	return	qrsCompressedTexImage2D(target, level, pixformat, width, height, border, imageSize, data );
+	return qrsCompressedTexImage2D(target, level, pixformat, width, height, border, imageSize, data );
 }
 
 /*
@@ -1011,8 +1021,8 @@ R_LoadTexImage
 bool R_LoadTexImage( uint *data )
 {
 	int samples, miplevel = 0;
-	unsigned	*scaled = (unsigned *)uploadbuffer;
 	int scaled_width, scaled_height;
+	uint *scaled = (unsigned *)uploadbuffer;
 	bool mipmap = (image_desc.flags & IMAGE_GEN_MIPS) ? true : false;
 
 	scaled_width = image_desc.width;
@@ -1424,7 +1434,7 @@ bool R_LoadImage32 (byte *data )
 	byte	*trans = imagebuffer;
 	int	i, s = image_desc.width * image_desc.height;
 
-	//nothing to process
+	// nothing to process
 	if(!image_desc.pal) return R_LoadTexImage((uint*)data );
 
 	if (s&3)
@@ -1444,44 +1454,6 @@ bool R_LoadImage32 (byte *data )
 
 /*
 ===============
-R_LoadImage8
-===============
-*/
-bool R_LoadImage8( byte *data )
-{
-	uint	*trans = (uint *)imagebuffer;
-	int	i, p, s = image_desc.width * image_desc.height;
-
-	for (i=0 ; i<s ; i++)
-	{
-		p = data[i];
-		trans[i] = d_8to24table[p];
-
-		if (p == 255)
-		{
-			// transparent, so scan around for another color
-			// to avoid alpha fringes
-			// FIXME: do a full flood fill so mips work...
-			if (i > image_desc.width && data[i-image_desc.width] != 255)
-				p = data[i - image_desc.width];
-			else if (i < s-image_desc.width && data[i+image_desc.width] != 255)
-				p = data[i + image_desc.width];
-			else if (i > 0 && data[i - 1] != 255) p = data[i-1];
-			else if (i < s-1 && data[i+1] != 255) p = data[i+1];
-			else p = 0;
-
-			// copy rgb components
-			((byte *)&trans[i])[0] = ((byte *)&d_8to24table[p])[0];
-			((byte *)&trans[i])[1] = ((byte *)&d_8to24table[p])[1];
-			((byte *)&trans[i])[2] = ((byte *)&d_8to24table[p])[2];
-		}
-	}
-
-	return R_LoadTexImage ( trans );
-}
-
-/*
-===============
 R_LoadImage24
 ===============
 */
@@ -1491,6 +1463,12 @@ bool R_LoadImage24(byte *data )
 	int	i, s = image_desc.width * image_desc.height;
 	bool	noalpha;
 	int	p;
+
+	if (s&3) 
+	{
+		MsgDev(D_ERROR, "R_LoadImage24: s&3\n");
+		return false;
+	}
 
 	// if there are no transparent pixels, make it a 3 component
 	// texture even if it was specified as otherwise
@@ -1526,11 +1504,6 @@ bool R_LoadImage24(byte *data )
 	}
 	else
 	{
-		if (s&3) 
-		{
-			MsgDev(D_ERROR, "R_LoadImage24: s&3\n");
-			return false;
-		}
 		if(image_desc.pal)
 		{
 			for (i = 0; i < s; i+=1)
@@ -1650,7 +1623,6 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
 
 		switch(pic->type)
 		{
-		case PF_INDEXED_8:	iResult = R_LoadImage8 ( buf ); break;
 		case PF_INDEXED_24:	iResult = R_LoadImage24( buf ); break;
 		case PF_INDEXED_32: iResult = R_LoadImage32( buf ); break;
 		case PF_PROCEDURE_TEX:

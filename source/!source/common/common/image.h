@@ -231,4 +231,7 @@ typedef struct jpg_s
 
 static jpg_t jpg_file;
 
+extern uint *d_currentpal;
+void Image_GetPalettePCX( byte *pal );
+
 #endif//IMAGE_H

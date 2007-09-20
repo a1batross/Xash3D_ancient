@@ -1540,6 +1540,7 @@ compilers_api_t Comp_GetAPI( void )
 
 	cp.Studio = CompileStudioModel;
 	cp.Sprite = CompileSpriteModel;
+	cp.Image = ConvertImagePixels;
 	cp.PrepareBSP = PrepareBSPModel;
 	cp.BSP = CompileBSPModel;
 	cp.PrepareDAT = PrepareDATProgs;

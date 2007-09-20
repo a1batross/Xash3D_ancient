@@ -17,6 +17,10 @@ cd editor
 makefile.nmake
 
 cd ..
+cd imglib
+makefile.nmake
+
+cd ..
 cd qcclib
 makefile.nmake
 

@@ -31,7 +31,7 @@ typedef struct memheader_s
 	size_t size; // size of the memory after the header (excluding header and sentinel2)
 	const char *filename;// file name and line where Mem_Alloc was called
 	int fileline;
-	unsigned int sentinel1;// should always be MEMHEADER_SENTINEL1
+	uint sentinel1;// should always be MEMHEADER_SENTINEL1
 	// immediately followed by data, which is followed by a MEMHEADER_SENTINEL2 byte
 }
 memheader_t;

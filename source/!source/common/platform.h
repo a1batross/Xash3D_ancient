@@ -39,6 +39,7 @@ rgbdata_t *FS_LoadImage(const char *filename, char *data, int size );
 bool FS_WriteFile (const char *filename, void *data, fs_offset_t len);
 search_t *FS_Search(const char *pattern, int caseinsensitive );
 search_t *FS_SearchDirs(const char *pattern, int caseinsensitive );
+void FS_SaveImage(const char *filename, rgbdata_t *buffer );
 void FS_FreeImage( rgbdata_t *pack );
 
 //=====================================
@@ -46,11 +47,11 @@ void FS_FreeImage( rgbdata_t *pack );
 //=====================================
 void *_Mem_Alloc(byte *pool, size_t size, const char *filename, int fileline);
 void *_Mem_Realloc(byte *poolptr, void *memptr, size_t size, const char *filename, int fileline);
+void _Mem_Move(byte *poolptr, void **dest, void *src, size_t size, const char *filename, int fileline);
 void _Mem_Free(void *data, const char *filename, int fileline);
 byte *_Mem_AllocPool(const char *name, const char *filename, int fileline);
 void _Mem_FreePool(byte **pool, const char *filename, int fileline);
 void _Mem_EmptyPool(byte *pool, const char *filename, int fileline);
-void _Mem_Move (void *dest, void *src, size_t size, const char *filename, int fileline);
 void _Mem_Copy (void *dest, void *src, size_t size, const char *filename, int fileline);
 
 //=====================================

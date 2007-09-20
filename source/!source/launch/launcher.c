@@ -28,6 +28,7 @@ typedef enum
 	HOST_DEDICATED,	// "host_dedicated"
 	HOST_EDITOR,	// "host_editor"
 	BSPLIB,		// "bsplib"
+	IMGLIB,		// "imglib"
 	QCCLIB,		// "qcclib"
 	SPRITE,		// "sprite"
 	STUDIO,		// "studio"
@@ -101,6 +102,13 @@ void LookupInstance( const char *funcname )
 		linked_dll = &common_dll;	// pointer to common.dll info
 		strcpy(log_path, "bsplib.log" ); // xash3d root directory
 		strcpy(caption, "Xash3D BSP Compiler");
+	}
+	else if(!strcmp(progname, "imglib"))
+	{
+		app_name = IMGLIB;
+		linked_dll = &common_dll;	// pointer to common.dll info
+		sprintf(log_path, "%s/convert.log", sys_rootdir ); // same as .exe file
+		strcpy(caption, "Xash3D Image Converter");
 	}
 	else if(!strcmp(progname, "qcclib"))
 	{
@@ -198,10 +206,8 @@ void CommonInit ( char *funcname, int argc, char **argv )
 
 		Com->Compile.PrepareDAT( gamedir, source, qccflags );	
 		break;
+	case IMGLIB:
 	case SPRITE:
-		Com->InitRootDir(".");
-		start = Com->DoubleTime();
-		break;
 	case STUDIO:
 		Com->InitRootDir(".");
 		start = Com->DoubleTime();
@@ -214,41 +220,51 @@ void CommonInit ( char *funcname, int argc, char **argv )
 void CommonMain ( void )
 {
 	search_t	*search;
-	char qcfilename[64], typemod[16];
-	int i, numCompiledMods = 0;
+	char filename[MAX_QPATH], typemod[16], searchmask[16];
 	bool (*CompileMod)( byte *mempool, const char *name, byte parms ) = NULL;
 	byte parms = 0; // future expansion
+	int i, numCompiledMods = 0;
 
 	switch(app_name)
 	{
 	case SPRITE: 
 		CompileMod = Com->Compile.Sprite;
 		strcpy(typemod, "sprites" );
+		strcpy(searchmask, "*.qc" );
 		break;
 	case STUDIO:
 		CompileMod = Com->Compile.Studio;
 		strcpy(typemod, "models" );
+		strcpy(searchmask, "*.qc" );
 		break;
+	case IMGLIB:
+		CompileMod = Com->Compile.Image; 
+		strcpy(typemod, "images" );
+		strcpy(searchmask, "*.pcx" );
+		break;		
 	case BSPLIB: 
 		Com->Compile.BSP(); 
 		strcpy(typemod, "maps" );
+		strcpy(searchmask, "*.map" );
 		break;
 	case QCCLIB: 
 		Com->Compile.DAT(); 
 		strcpy(typemod, "progs" );
+		strcpy(searchmask, "*.src" );
 		break;
 	case DEFAULT:
 		strcpy(typemod, "things" );
+		strcpy(searchmask, "*.*" );
 		break;
 	}
 	if(!CompileMod) return;//back to shutdown
 
 	mempool = Mem_AllocPool("compiler");
-	if(!GetParmFromCmdLine("-qcfile", qcfilename ))
+	if(!GetParmFromCmdLine("-file", filename ))
 	{
 		//search for all .ac files in folder		
-		search = Com->Fs.Search("*.qc", true );
-		if(!search) Sys_Error("no qcfiles found in this folder!\n");
+		search = Com->Fs.Search(searchmask, true );
+		if(!search) Sys_Error("no %s found in this folder!\n", searchmask );
 
 		for( i = 0; i < search->numfilenames; i++ )
 		{
@@ -256,7 +272,7 @@ void CommonMain ( void )
 				numCompiledMods++;
 		}
 	}
-	else CompileMod( mempool, qcfilename, parms );
+	else CompileMod( mempool, filename, parms );
 
 	end = Com->DoubleTime();
 	Msg ("%5.1f seconds elapsed\n", end - start);
@@ -302,6 +318,7 @@ void CreateInstance( void )
 		break;
 	case BSPLIB:
 	case QCCLIB:
+	case IMGLIB:
 	case SPRITE:
 	case STUDIO:
 		CreateCom = (void *)linked_dll->main;

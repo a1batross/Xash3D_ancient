@@ -38,7 +38,7 @@ Draw_InitLocal
 void Draw_InitLocal (void)
 {
 	// load console characters (don't bilerp characters)
-	draw_chars = R_FindImage ("base_menu/conchars.tga", def_font, sizeof(def_font), it_pic);
+	draw_chars = R_FindImage ("fonts/conchars", def_font, sizeof(def_font), it_pic);
 
 	GL_Bind( draw_chars->texnum[0] );
 	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);

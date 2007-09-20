@@ -1786,12 +1786,8 @@ void Shift_Animation( s_animation_t *panim)
 
 		ppos = Kalloc( size );
 		prot = Kalloc( size );
-
-		memmove( ppos, &panim->pos[j][panim->startframe], size );
-		memmove( prot, &panim->rot[j][panim->startframe], size );
-
-		Free( panim->pos[j] );
-		Free( panim->rot[j] );
+		Mem_Move( studiopool, (void *)&ppos, &panim->pos[j][panim->startframe], size );
+		Mem_Move( studiopool, (void *)&prot, &panim->rot[j][panim->startframe], size );
 		panim->pos[j] = ppos;
 		panim->rot[j] = prot;
 	}

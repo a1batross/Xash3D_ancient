@@ -84,11 +84,11 @@ void FS_Shutdown (void);
 
 #define Mem_Alloc(pool, size) _Mem_Alloc(pool, size, __FILE__, __LINE__)
 #define Mem_Realloc(pool, ptr, size) _Mem_Realloc(pool, ptr, size, __FILE__, __LINE__)
+#define Mem_Move(pool, ptr, data, size) _Mem_Move(pool, ptr, data, size, __FILE__, __LINE__)
 #define Mem_Free(mem) _Mem_Free(mem, __FILE__, __LINE__)
 #define Mem_AllocPool(name) _Mem_AllocPool(name, __FILE__, __LINE__)
 #define Mem_FreePool(pool) _Mem_FreePool(pool, __FILE__, __LINE__)
 #define Mem_EmptyPool(pool) _Mem_EmptyPool(pool, __FILE__, __LINE__)
-#define Mem_Move(dest, src, size ) _Mem_Move (dest, src, size, __FILE__, __LINE__)
 #define Mem_Copy(dest, src, size ) _Mem_Copy (dest, src, size, __FILE__, __LINE__)
 
 extern stdlib_api_t std;
@@ -141,6 +141,7 @@ _inline double I_FloatTime (void) { time_t t; time(&t); return t; }
 //misc
 bool CompileStudioModel ( byte *mempool, const char *name, byte parms );
 bool CompileSpriteModel ( byte *mempool, const char *name, byte parms );
+bool ConvertImagePixels ( byte *mempool, const char *name, byte parms );
 bool PrepareBSPModel ( const char *dir, const char *name, byte params );
 bool CompileBSPModel ( void );
 

@@ -101,7 +101,7 @@ choseclump:
 void *_Mem_Realloc(byte *poolptr, void *memptr, size_t size, const char *filename, int fileline)
 {
 	char *nb;
-	memheader_t *hdr;
+	memheader_t *memhdr;
 
 	if (size <= 0) return memptr; //no need to reallocate
 	nb = _Mem_Alloc(poolptr, size, filename, fileline);
@@ -109,12 +109,41 @@ void *_Mem_Realloc(byte *poolptr, void *memptr, size_t size, const char *filenam
 	if (memptr) //first allocate?
 	{ 
 		//get size of old block
-		hdr = (memheader_t *)((byte *) memptr - sizeof(memheader_t));
-		_Mem_Copy( nb, memptr, hdr->size, filename, fileline );
+		memhdr = (memheader_t *)((byte *) memptr - sizeof(memheader_t));
+		_Mem_Copy( nb, memptr, memhdr->size, filename, fileline );
 		_Mem_Free( memptr, filename, fileline);//free unused old block
           }
 
 	return (void *)nb;
+}
+
+void _Mem_Move(byte *poolptr, void **dest, void *src, size_t size, const char *filename, int fileline)
+{
+	memheader_t	*mem;
+	void		*memptr = *dest;
+
+	if(!memptr) Sys_Error("Mem_Move: dest == NULL (called at %s:%i)", filename, fileline);
+	if(!src) Sys_Error("Mem_Move: src == NULL (called at %s:%i)", filename, fileline);
+
+	if (size <= 0) //just free memory 
+	{
+		_Mem_Free( memptr, filename, fileline );
+		*dest = src; // swap blocks		
+		return;
+	}
+
+	mem = (memheader_t *)((byte *) memptr - sizeof(memheader_t));//get size of old block
+	if(mem->size != size) 
+	{
+		_Mem_Free( memptr, filename, fileline );// release old buffer
+		memptr = _Mem_Alloc( poolptr, size, filename, fileline );// alloc new size
+	}
+	else memset( memptr, 0, size ); // no need to reallocate buffer
+	
+	_Mem_Copy( memptr, src, size, filename, fileline ); //move memory...
+	_Mem_Free( src, filename, fileline );//...and free old pointer
+
+	*dest = memptr;
 }
 
 static void _Mem_FreeBlock(memheader_t *mem, const char *filename, int fileline)
@@ -283,15 +312,6 @@ void _Mem_CheckSentinelsGlobal(const char *filename, int fileline)
 			_Mem_CheckClumpSentinels(clump, filename, fileline);
 }
 
-void _Mem_Move (void *dest, void *src, size_t size, const char *filename, int fileline)
-{
-	if (src == NULL || size <= 0) return;
-	if (dest == NULL) dest = _Mem_Alloc( basepool, size, filename, fileline); //allocate room
-
-	// move block
-	memmove( dest, src, size );
-}
-
 void _Mem_Copy (void *dest, void *src, size_t size, const char *filename, int fileline)
 {
 	if (src == NULL || size <= 0) return; //nothing to copy
@@ -343,7 +363,4 @@ void FreeMemory( void )
 {
 	Mem_FreePool( &basepool );
 	Mem_FreePool( &zonepool );
-
-	//abnormal freeing pools
-	Mem_FreePool( &studiopool );
 }

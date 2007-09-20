@@ -137,6 +137,10 @@ SOURCE=.\bsplib\flow.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\common\image.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\common\imglib.c
 # End Source File
 # Begin Source File

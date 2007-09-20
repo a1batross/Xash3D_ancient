@@ -732,14 +732,7 @@ s_trianglevert_t *lookup_triangle( s_mesh_t *pmesh, int index )
 	{
 		int start = pmesh->alloctris;
 		pmesh->alloctris = index + 256;
-		if (pmesh->triangle)
-		{
-			pmesh->triangle = Realloc( pmesh->triangle, pmesh->alloctris * sizeof( *pmesh->triangle ));
-		} 
-		else
-		{
-			pmesh->triangle = Kalloc( pmesh->alloctris * sizeof( *pmesh->triangle ));
-		}
+		pmesh->triangle = Realloc( pmesh->triangle, pmesh->alloctris * sizeof( *pmesh->triangle ));
 	}
 	return pmesh->triangle[index];
 }

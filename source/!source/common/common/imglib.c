@@ -1,1483 +1,221 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			r_texture.c - load & convert textures
+//			imagelib.c - convert textures
 //=======================================================================
 
 #include "platform.h"
+#include "basemath.h" // nearest_pow
 #include "utils.h"
 
-//global image variables
-
-int image_width, image_height;
-byte image_num_layers = 1;	// num layers in
-byte image_num_mips = 4;	// build mipmaps
-uint image_type;		// main type switcher
-uint image_flags;		// additional image flags
-byte image_bits_count;	// bits per RGBA
-size_t image_size;		// image rgba size
-uint image_ptr;
-
-byte *image_palette;	// palette pointer
-byte *image_rgba;		// image pointer (see image_type for details)
-byte *image_cubemap;	// cubemap pack
-
-bool ImageValidSize( char *name )
+byte palette_q1[768] =
 {
-	if(image_width > 4096 || image_height > 4096 || image_width <= 0 || image_height <= 0)
-	{
-		MsgWarn( "ImageValidSize: (%s) image size out of range [%dx%d]\n", name, image_width, image_height );
-		return false;
-	}
-	return true;
-}
-
-/*
-==============
-LoadBMP
-==============
-*/
-bool LoadBMP( char *name, char *buffer, int filesize )
-{
-	int	columns, rows, numPixels;
-	byte	*buf_p = buffer;
-	int	row, column;
-	byte	*pixbuf;
-	bmp_t	bmpHeader;
-	byte	*bmpRGBA;
-							//move pointer
-	Mem_Copy( bmpHeader.id, buf_p, 2 );			buf_p += 2;
-	bmpHeader.fileSize = BuffLittleLong( buf_p );		buf_p += 4;
-	bmpHeader.reserved0 = BuffLittleLong( buf_p );		buf_p += 4;
-	bmpHeader.bitmapDataOffset = BuffLittleLong( buf_p );	buf_p += 4;
-	bmpHeader.bitmapHeaderSize = BuffLittleLong( buf_p );	buf_p += 4;
-	bmpHeader.width = BuffLittleLong( buf_p );		buf_p += 4;
-	bmpHeader.height = BuffLittleLong( buf_p );		buf_p += 4;
-	bmpHeader.planes = BuffLittleShort( buf_p );		buf_p += 2;
-	bmpHeader.bitsPerPixel = BuffLittleShort( buf_p );	buf_p += 2;
-	bmpHeader.compression = BuffLittleLong( buf_p );		buf_p += 4;
-	bmpHeader.bitmapDataSize = BuffLittleLong( buf_p );	buf_p += 4;
-	bmpHeader.hRes = BuffLittleLong( buf_p );		buf_p += 4;
-	bmpHeader.vRes = BuffLittleLong( buf_p );		buf_p += 4;
-	bmpHeader.colors = BuffLittleLong( buf_p );		buf_p += 4;
-	bmpHeader.importantColors = BuffLittleLong( buf_p );	buf_p += 4;
-
-	memcpy( bmpHeader.palette, buf_p, sizeof( bmpHeader.palette ));
-	if ( bmpHeader.bitsPerPixel == 8 ) buf_p += 1024;
-
-	if ( bmpHeader.id[0] != 'B' && bmpHeader.id[1] != 'M' ) return false; // it's not a bmp file, just skip it
-	if ( bmpHeader.fileSize != filesize )
-	{
-		MsgWarn( "LoadBMP: (%s) declared filesize does not match real filesize (%d vs. %d)\n", name, bmpHeader.fileSize, filesize );
-		return false;
-	}
-	if ( bmpHeader.compression != 0 )
-	{
-		MsgWarn( "LoadBMP: (%s) compressed BMP files is not supported\n", name );
-		return false;
-	}
-	if ( bmpHeader.bitsPerPixel < 8 )
-	{
-		MsgWarn( "LoadBMP: (%s) unsupported monochrome format\n", name );
-		return false;
-	}
-
-	columns = bmpHeader.width;
-	rows = bmpHeader.height;
-	if ( rows < 0 ) rows = -rows;
-	numPixels = columns * rows;
-
-	image_width = columns; 
-	image_height = rows;
-	image_num_layers = 1;
-	image_type = PF_RGBA_32;
-	image_size = numPixels * 4;
-
-	if(bmpHeader.bitsPerPixel == 32) image_flags |= IMAGE_HAS_ALPHA;
-	if(!ImageValidSize( name )) return false;
-
-	bmpRGBA = Malloc( image_size );
-	image_rgba = bmpRGBA;
-
-	for ( row = rows-1; row >= 0; row-- )
-	{
-		pixbuf = bmpRGBA + row * columns * 4;
-
-		for ( column = 0; column < columns; column++ )
-		{
-			byte red, green, blue, alpha;
-			int palIndex, x;
-			word shortPixel;
-
-			switch( bmpHeader.bitsPerPixel )
-			{
-			case 8:
-				x = column;
-				palIndex = *buf_p++;
-				*pixbuf++ = bmpHeader.palette[palIndex][2];
-				*pixbuf++ = bmpHeader.palette[palIndex][1];
-				*pixbuf++ = bmpHeader.palette[palIndex][0];
-				*pixbuf++ = 0xff;
-				break;
-			case 16:
-				shortPixel = *(word*)pixbuf;
-				pixbuf += 2;
-				*pixbuf++ = ( shortPixel & ( 31 << 10 ) ) >> 7;
-				*pixbuf++ = ( shortPixel & ( 31 << 5 ) ) >> 2;
-				*pixbuf++ = ( shortPixel & ( 31 ) ) << 3;
-				*pixbuf++ = 0xff;
-				break;
-
-			case 24:
-				blue = *buf_p++;
-				green = *buf_p++;
-				red = *buf_p++;
-				*pixbuf++ = red;
-				*pixbuf++ = green;
-				*pixbuf++ = blue;
-				*pixbuf++ = 255;
-				break;
-			case 32:
-				blue = *buf_p++;
-				green = *buf_p++;
-				red = *buf_p++;
-				alpha = *buf_p++;
-				*pixbuf++ = red;
-				*pixbuf++ = green;
-				*pixbuf++ = blue;
-				*pixbuf++ = alpha;
-				break;
-			default:
-				MsgWarn("LoadBMP: (%s) have illegal pixel size '%d'\n", name, bmpHeader.bitsPerPixel );
-				return false;
-			}
-		}
-	}
-	return true;
-}
-
-/*
-============
-LoadPCX
-============
-*/
-bool LoadPCX( char *name, char *buffer, int filesize )
-{
-	pcx_t pcx;
-	byte *pix, *palette, *fin, *enddata;
-	int x, y, dataByte, runLength;
-
-
-	fin = buffer;
-	Mem_Copy(&pcx, fin, sizeof(pcx));
-	fin += sizeof(pcx);
-
-	// probably it's not pcx file
-	if (pcx.manufacturer != 0x0a || pcx.version != 5 || pcx.encoding != 1 ) return false;
-	if (filesize < (int)sizeof(pcx) + 768)
-	{
-		MsgWarn("LoadPCX: file (%s) have invalid size\n", name );
-		return false;
-	}
-
-	pcx.xmax = LittleShort (pcx.xmax);
-	pcx.xmin = LittleShort (pcx.xmin);
-	pcx.ymax = LittleShort (pcx.ymax);
-	pcx.ymin = LittleShort (pcx.ymin);
-	pcx.hres = LittleShort (pcx.hres);
-	pcx.vres = LittleShort (pcx.vres);
-	pcx.bytes_per_line = LittleShort (pcx.bytes_per_line);
-	pcx.palette_type = LittleShort (pcx.palette_type);
-
-	image_width = pcx.xmax + 1 - pcx.xmin;
-	image_height = pcx.ymax + 1 - pcx.ymin;
-
-	if( pcx.bits_per_pixel != 8 )
-	{
-		MsgWarn("LoadPCX: (%s) have illegal pixel size '%d'\n", name, pcx.bits_per_pixel );
-		return false;
-	}
-	if(!ImageValidSize( name )) return false;
-
-	palette = buffer + filesize - 768;
-
-	image_num_layers = 1;
-	image_type = PF_INDEXED_8;
-	image_flags |= IMAGE_HAS_ALPHA;
-
-	if(palette)
-	{
-		image_palette = Malloc( 768 );
-		Mem_Copy( image_palette, palette, 768 );
-	}	
-
-	image_size = image_width * image_height * 4;
-	pix = image_rgba = (byte *)Malloc( image_size );
-	enddata = palette;
-
-	for (y = 0; y <= pcx.ymax && fin < enddata; y++, pix += pcx.xmax + 1)
-	{
-		for (x = 0; x <= pcx.xmax && fin < enddata; )
-		{
-			dataByte = *fin++;
-			if((dataByte & 0xC0) == 0xC0)
-			{
-				if (fin >= enddata) break;
-				runLength = dataByte & 0x3F;
-				dataByte = *fin++;
-			}
-			else runLength = 1;
-			while(runLength-- > 0) pix[x++] = dataByte;
-		}
-
-	}
-	return true;
-}
-
-/*
-=============
-LoadTGA
-=============
-*/
-bool LoadTGA( char *name, char *buffer, int filesize )
-{
-	int x, y, pix_inc, row_inc;
-	int red, green, blue, alpha;
-	int runlen, alphabits;
-
-	byte *pixbuf, *p;
-	const byte *fin, *enddata;
-	tga_t targa_header;
-	byte palette[256*4];
-
-	if (filesize < 19) return false;
-
-	fin = buffer;
-	enddata = fin + filesize;
-
-	targa_header.id_length = *fin++;
-	targa_header.colormap_type = *fin++;
-	targa_header.image_type = *fin++;
-
-	targa_header.colormap_index = BuffLittleShort( fin ); fin += 2;
-	targa_header.colormap_length = BuffLittleShort( fin ); fin += 2;
-	targa_header.colormap_size = *fin++;
-	targa_header.x_origin = BuffLittleShort( fin ); fin += 2;
-	targa_header.y_origin = BuffLittleShort( fin ); fin += 2;
-	targa_header.width = image_width = BuffLittleShort( fin ); fin += 2;
-	targa_header.height = image_height = BuffLittleShort( fin );fin += 2;
-
-	if(!ImageValidSize( name )) return false;
-
-	image_num_layers = 1;
-	image_type = PF_RGBA_32; //always exctracted to 32-bit buffer
-
-	targa_header.pixel_size = *fin++;
-	targa_header.attributes = *fin++;
-	// end of header
- 
-	// skip TARGA image comment (usually 0 bytes)
-	fin += targa_header.id_length;
-
-	// read/skip the colormap if present (note: according to the TARGA spec it
-	// can be present even on truecolor or greyscale images, just not used by
-	// the image data)
-	if (targa_header.colormap_type)
-	{
-		if (targa_header.colormap_length > 256)
-		{
-			MsgWarn("LoadTGA: (%s) have unsupported colormap type ( more than 256 bytes)\n", name );
-			return false;
-		}
-		if (targa_header.colormap_index)
-		{
-			MsgWarn("LoadTGA: (%s) have unspported indexed colormap\n", name );
-			return false;
-		}
-		image_palette = Malloc(256*4);
-
-		if (targa_header.colormap_size == 24)
-		{
-			for (x = 0;x < targa_header.colormap_length;x++)
-			{
-				palette[x*4+2] = *fin++;
-				palette[x*4+1] = *fin++;
-				palette[x*4+0] = *fin++;
-				palette[x*4+3] = 0xff;
-			}
-		}
-		else if (targa_header.colormap_size == 32)
-		{
-
-			for (x = 0;x < targa_header.colormap_length;x++)
-			{
-				palette[x*4+2] = *fin++;
-				palette[x*4+1] = *fin++;
-				palette[x*4+0] = *fin++;
-				palette[x*4+3] = *fin++;
-			}
-		}
-		else
-		{
-			MsgWarn("LoadTGA: (%s) have unsupported colormap size (valid is 32 or 24 bit)\n", name );
-			return false;
-		}
-		Mem_Copy(image_palette, palette, 256 * 4 ); //copy palette
-	}
-
-	// check our pixel_size restrictions according to image_type
-	switch (targa_header.image_type & ~8)
-	{
-	case 2:
-		if (targa_header.pixel_size != 24 && targa_header.pixel_size != 32)
-		{
-			MsgWarn("LoadTGA: (%s) have unsupported pixel size '%d', for type '%d'\n", name, targa_header.pixel_size, targa_header.image_type );
-			return false;
-		}
-		break;
-	case 3:
-		// set up a palette to make the loader easier
-		for (x = 0; x < 256; x++)
-		{
-			palette[x*4+2] = x;
-			palette[x*4+1] = x;
-			palette[x*4+0] = x;
-			palette[x*4+3] = 255;
-		}
-		// fall through to colormap case
-	case 1:
-		if (targa_header.pixel_size != 8)
-		{
-			MsgWarn("LoadTGA: (%s) have unsupported pixel size '%d', for type '%d'\n", name, targa_header.pixel_size, targa_header.image_type );
-			return false;
-		}
-		break;
-	default:
-		MsgWarn("LoadTGA: (%s) is unsupported image type '%i'\n", name, targa_header.image_type);
-		return false;
-	}
-
-	if (targa_header.attributes & 0x10)
-	{
-		MsgWarn("LoadTGA: (%s): top right and bottom right origin are not supported\n", name );
-		return false;
-	}
-
-	// number of attribute bits per pixel, we only support 0 or 8
-	alphabits = targa_header.attributes & 0x0F;
-	if (alphabits != 8 && alphabits != 0)
-	{
-		MsgWarn("LoadTGA: (%s) have invalid attributes '%i'\n", name, alphabits );
-		return false;
-	}
-
-	image_flags |= alphabits ? IMAGE_HAS_ALPHA : 0;
-	image_size = image_width * image_height * 4;
-	image_rgba = Malloc( image_size );
-
-	// If bit 5 of attributes isn't set, the image has been stored from bottom to top
-	if ((targa_header.attributes & 0x20) == 0)
-	{
-		pixbuf = image_rgba + (image_height - 1)*image_width*4;
-		row_inc = -image_width*4*2;
-	}
-	else
-	{
-		pixbuf = image_rgba;
-		row_inc = 0;
-	}
-
-	x = y = 0;
-	red = green = blue = alpha = 255;
-	pix_inc = 1;
-	if ((targa_header.image_type & ~8) == 2) pix_inc = targa_header.pixel_size / 8;
-
-	switch (targa_header.image_type)
-	{
-	case 1: // colormapped, uncompressed
-	case 3: // greyscale, uncompressed
-		if (fin + image_width * image_height * pix_inc > enddata)
-			break;
-		for (y = 0;y < image_height;y++, pixbuf += row_inc)
-		{
-			for (x = 0;x < image_width;x++)
-			{
-				p = palette + *fin++ * 4;
-				*pixbuf++ = p[0];
-				*pixbuf++ = p[1];
-				*pixbuf++ = p[2];
-				*pixbuf++ = p[3];
-			}
-		}
-		break;
-	case 2:
-		// BGR or BGRA, uncompressed
-		if (fin + image_width * image_height * pix_inc > enddata)
-			break;
-		if (targa_header.pixel_size == 32 && alphabits)
-		{
-			for (y = 0;y < image_height;y++, pixbuf += row_inc)
-			{
-				for (x = 0;x < image_width;x++, fin += pix_inc)
-				{
-					*pixbuf++ = fin[2];
-					*pixbuf++ = fin[1];
-					*pixbuf++ = fin[0];
-					*pixbuf++ = fin[3];
-				}
-			}
-		}
-		else //24 bits
-		{
-			for (y = 0;y < image_height; y++, pixbuf += row_inc)
-			{
-				for (x = 0;x < image_width; x++, fin += pix_inc)
-				{
-					*pixbuf++ = fin[2];
-					*pixbuf++ = fin[1];
-					*pixbuf++ = fin[0];
-					*pixbuf++ = 255;
-				}
-			}
-		}
-		break;
-	case 9:  // colormapped, RLE
-	case 11: // greyscale, RLE
-		for (y = 0; y < image_height; y++, pixbuf += row_inc)
-		{
-			for (x = 0;x < image_width;)
-			{
-				if (fin >= enddata)
-					break; // error - truncated file
-				runlen = *fin++;
-				if (runlen & 0x80)
-				{
-					// RLE - all pixels the same color
-					runlen += 1 - 0x80;
-					if (fin + pix_inc > enddata) break; // error - truncated file
-					if (x + runlen > image_width) break; // error - line exceeds width
-					p = palette + *fin++ * 4;
-					red = p[0];
-					green = p[1];
-					blue = p[2];
-					alpha = p[3];
-					for (;runlen--; x++)
-					{
-						*pixbuf++ = red;
-						*pixbuf++ = green;
-						*pixbuf++ = blue;
-						*pixbuf++ = alpha;
-					}
-				}
-				else
-				{
-					// uncompressed - all pixels different color
-					runlen++;
-					if (fin + pix_inc * runlen > enddata) break; // error - truncated file
-					if (x + runlen > image_width) break; // error - line exceeds width
-					for (;runlen--; x++)
-					{
-						p = palette + *fin++ * 4;
-						*pixbuf++ = p[0];
-						*pixbuf++ = p[1];
-						*pixbuf++ = p[2];
-						*pixbuf++ = p[3];
-					}
-				}
-			}
-		}
-		break;
-	case 10:
-		// BGR or BGRA, RLE
-		if (targa_header.pixel_size == 32 && alphabits)
-		{
-			for (y = 0;y < image_height;y++, pixbuf += row_inc)
-			{
-				for (x = 0;x < image_width;)
-				{
-					if (fin >= enddata)
-						break; // error - truncated file
-					runlen = *fin++;
-					if (runlen & 0x80)
-					{
-						// RLE - all pixels the same color
-						runlen += 1 - 0x80;
-						if (fin + pix_inc > enddata)
-							break; // error - truncated file
-						if (x + runlen > image_width)
-							break; // error - line exceeds width
-						red = fin[2];
-						green = fin[1];
-						blue = fin[0];
-						alpha = fin[3];
-						fin += pix_inc;
-						for (;runlen--;x++)
-						{
-							*pixbuf++ = red;
-							*pixbuf++ = green;
-							*pixbuf++ = blue;
-							*pixbuf++ = alpha;
-						}
-					}
-					else
-					{
-						// uncompressed - all pixels different color
-						runlen++;
-						if (fin + pix_inc * runlen > enddata)
-							break; // error - truncated file
-						if (x + runlen > image_width)
-							break; // error - line exceeds width
-						for (;runlen--;x++, fin += pix_inc)
-						{
-							*pixbuf++ = fin[2];
-							*pixbuf++ = fin[1];
-							*pixbuf++ = fin[0];
-							*pixbuf++ = fin[3];
-						}
-					}
-				}
-			}
-		}
-		else
-		{
-			for (y = 0;y < image_height;y++, pixbuf += row_inc)
-			{
-				for (x = 0;x < image_width;)
-				{
-					if (fin >= enddata)
-						break; // error - truncated file
-					runlen = *fin++;
-					if (runlen & 0x80)
-					{
-						// RLE - all pixels the same color
-						runlen += 1 - 0x80;
-						if (fin + pix_inc > enddata)
-							break; // error - truncated file
-						if (x + runlen > image_width)
-							break; // error - line exceeds width
-						red = fin[2];
-						green = fin[1];
-						blue = fin[0];
-						alpha = 255;
-						fin += pix_inc;
-						for (;runlen--;x++)
-						{
-							*pixbuf++ = red;
-							*pixbuf++ = green;
-							*pixbuf++ = blue;
-							*pixbuf++ = alpha;
-						}
-					}
-					else
-					{
-						// uncompressed - all pixels different color
-						runlen++;
-						if (fin + pix_inc * runlen > enddata)
-							break; // error - truncated file
-						if (x + runlen > image_width)
-							break; // error - line exceeds width
-						for (;runlen--;x++, fin += pix_inc)
-						{
-							*pixbuf++ = fin[2];
-							*pixbuf++ = fin[1];
-							*pixbuf++ = fin[0];
-							*pixbuf++ = 255;
-						}
-					}
-				}
-			}
-		}
-		break;
-	default:  break; // unknown image_type
-	}
-	return true;
-}
-
-/*
-=============
-LoadDDS
-=============
-*/
-uint dds_get_linear_size( int width, int height, int depth, int rgbcount )
-{
-	uint i, BlockSize = 0;
-	int block, bpp;
-
-	//right calcualte blocksize
-	for(i = 0; i < PF_TOTALCOUNT; i++)
-	{
-		if(image_type == PixelFormatDescription[i].format)
-		{
-			block = PixelFormatDescription[i].block;
-			bpp = PixelFormatDescription[i].bpp;
-			break;
-		} 
-	}
-
-	if(i != PF_TOTALCOUNT) //make sure what match found
-	{                  
-		if(block == 0) BlockSize = width * height * bpp;
-		else if(block > 0) BlockSize = ((width + 3)/4) * ((height + 3)/4) * depth * block;
-		else if(block < 0 && rgbcount > 0) BlockSize = width * height * depth * rgbcount;
-		else BlockSize = width * height * abs(block);
-	}
-	return BlockSize;
-}
-
-void dds_get_pixelformat( dds_t *hdr )
-{
-	uint bits = hdr->dsPixelFormat.dwRGBBitCount;
-
-	// All volume textures I've seem so far didn't have the DDS_COMPLEX flag set,
-	// even though this is normally required. But because noone does set it,
-	// also read images without it (TODO: check file size for 3d texture?)
-	if (!(hdr->dsCaps.dwCaps2 & DDS_VOLUME)) hdr->dwDepth = 1;
-
-	if (hdr->dsPixelFormat.dwFlags & DDS_FOURCC)
-	{
-		switch (hdr->dsPixelFormat.dwFourCC)
-		{
-		case TYPE_DXT1: image_type = PF_DXT1; break;
-		case TYPE_DXT2: image_type = PF_DXT2; break;
-		case TYPE_DXT3: image_type = PF_DXT3; break;
-		case TYPE_DXT4: image_type = PF_DXT4; break;
-		case TYPE_DXT5: image_type = PF_DXT5; break;
-		case TYPE_ATI1: image_type = PF_ATI1N; break;
-		case TYPE_ATI2: image_type = PF_ATI2N; break;
-		case TYPE_RXGB: image_type = PF_RXGB; break;
-		case TYPE_$: image_type = PF_ABGR_64; break;
-		case TYPE_t: image_type = PF_ABGR_128F; break;
-		default: image_type = PF_UNKNOWN; break;
-		}
-	}
-	else
-	{
-		// This dds texture isn't compressed so write out ARGB or luminance format
-		if (hdr->dsPixelFormat.dwFlags & DDS_LUMINANCE)
-		{
-			if (hdr->dsPixelFormat.dwFlags & DDS_ALPHAPIXELS)
-				image_type = PF_LUMINANCE_ALPHA;
-			else if(hdr->dsPixelFormat.dwRGBBitCount == 16 && hdr->dsPixelFormat.dwRBitMask == 0xFFFF) 
-				image_type = PF_LUMINANCE_16;
-			else image_type = PF_LUMINANCE;
-		}
-		else 
-		{
-			if(hdr->dsPixelFormat.dwFlags & DDS_ALPHA) 
-			{
-				image_type = PF_RGB_24;
-				image_flags |= IMAGE_HAS_ALPHA;
-			}
-			else if( bits == 32) image_type = PF_ABGR_64;
-			else image_type = PF_ARGB_32;
-		}
-	}
-
-	// setup additional flags
-	if( hdr->dsCaps.dwCaps1 & DDS_COMPLEX )
-	{
-		image_flags |= (hdr->dsCaps.dwCaps2 & DDS_CUBEMAP) ? IMAGE_CUBEMAP : 0;
-	}
-
-	if(hdr->dsPixelFormat.dwFlags & DDS_ALPHAPIXELS)
-	{
-		image_flags |= IMAGE_HAS_ALPHA;
-	}
-
-	if(image_type == TYPE_DXT2 || image_type == TYPE_DXT4) 
-		image_flags |= IMAGE_PREMULT;
-
-	if(hdr->dwFlags & DDS_MIPMAPCOUNT)
-		image_num_mips = hdr->dwMipMapCount;
-	else image_num_mips = 1;
-
-	if(image_type == PF_ARGB_32 || image_type == PF_LUMINANCE || image_type == PF_LUMINANCE_16 || image_type == PF_LUMINANCE_ALPHA)
-	{
-		//store RGBA mask into one block, and get palette pointer
-		byte *tmp = image_palette = Malloc( sizeof(uint) * 4 );
-		memcpy( tmp, &hdr->dsPixelFormat.dwRBitMask, sizeof(uint)); tmp += 4;
-		memcpy( tmp, &hdr->dsPixelFormat.dwGBitMask, sizeof(uint)); tmp += 4;
-		memcpy( tmp, &hdr->dsPixelFormat.dwBBitMask, sizeof(uint)); tmp += 4;
-		memcpy( tmp, &hdr->dsPixelFormat.dwABitMask, sizeof(uint)); tmp += 4;
-	}
-}
-
-void dds_addjust_volume_texture( dds_t *hdr )
-{
-	uint bits;
-	
-	if (hdr->dwDepth <= 1) return;
-	bits = hdr->dsPixelFormat.dwRGBBitCount / 8;
-	hdr->dwFlags |= DDS_LINEARSIZE;
-	hdr->dwLinearSize = dds_get_linear_size( hdr->dwWidth, hdr->dwHeight, hdr->dwDepth, bits );
-}
-
-uint dds_calc_mipmap_size( dds_t *hdr ) 
-{
-	uint buffsize = 0;
-	int w = hdr->dwWidth;
-	int h = hdr->dwHeight;
-	int d = hdr->dwDepth;
-	int i, mipsize = 0;
-	int bits = hdr->dsPixelFormat.dwRGBBitCount / 8;
-		
-	//now correct buffer size
-	for( i = 0; i < image_num_mips; i++, buffsize += mipsize )
-	{
-		mipsize = dds_get_linear_size( w, h, d, bits );
-		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1;
-	}
-	return buffsize;
-}
-
-uint dds_calc_size( char *name, dds_t *hdr, uint filesize ) 
-{
-	uint buffsize = 0;
-	int w = image_width;
-	int h = image_height;
-	int d = image_num_layers;
-	int bits = hdr->dsPixelFormat.dwRGBBitCount / 8;
-
-	if(hdr->dsCaps.dwCaps2 & DDS_CUBEMAP) 
-	{
-		// cubemap w*h always match for all sides
-		buffsize = dds_calc_mipmap_size( hdr ) * 6;
-	}
-	else if(hdr->dwFlags & DDS_MIPMAPCOUNT)
-	{
-		// if mipcount > 1
-		buffsize = dds_calc_mipmap_size( hdr );
-	}
-	else if(hdr->dwFlags & (DDS_LINEARSIZE | DDS_PITCH))
-	{
-		// just in case (no need, really)
-		buffsize = hdr->dwLinearSize;
-	}
-	else 
-	{
-		// pretty solution for microsoft bug
-		buffsize = dds_calc_mipmap_size( hdr );
-	}
-
-	if(filesize != buffsize) //main check
-	{
-		MsgWarn("LoadDDS: (%s) probably corrupted(%i should be %i)\n", name, buffsize, filesize );
-		return false;
-	}
-	return buffsize;
-}
-
-bool LoadDDS( char *name, char *buffer, int filesize )
-{
-	dds_t	header;
-	byte	*fin;
-	uint	i;
-
-	fin = buffer;
-
-	//swap header
-	header.dwIdent = BuffLittleLong(fin); fin += 4;
-	header.dwSize = BuffLittleLong(fin); fin += 4;
-	header.dwFlags = BuffLittleLong(fin); fin += 4;
-	header.dwHeight = BuffLittleLong(fin); fin += 4;
-	header.dwWidth = BuffLittleLong(fin); fin += 4;
-	header.dwLinearSize = BuffLittleLong(fin); fin += 4;
-	header.dwDepth = BuffLittleLong(fin); fin += 4;
-	header.dwMipMapCount = BuffLittleLong(fin); fin += 4;
-	header.dwAlphaBitDepth = BuffLittleLong(fin); fin += 4;
-
-	// skip unused stuff
-	for (i = 0; i < 10; i++) 
-	{
-		header.dwReserved1[i] = BuffLittleLong(fin);
-		fin += 4;
-	}
-
-	//pixel format
-	header.dsPixelFormat.dwSize = BuffLittleLong(fin); fin += 4;
-	header.dsPixelFormat.dwFlags = BuffLittleLong(fin); fin += 4;
-	header.dsPixelFormat.dwFourCC = BuffLittleLong(fin); fin += 4;
-	header.dsPixelFormat.dwRGBBitCount = BuffLittleLong(fin); fin += 4;
-	header.dsPixelFormat.dwRBitMask = BuffLittleLong(fin); fin += 4;
-	header.dsPixelFormat.dwGBitMask = BuffLittleLong(fin); fin += 4;
-	header.dsPixelFormat.dwBBitMask = BuffLittleLong(fin); fin += 4;
-	header.dsPixelFormat.dwABitMask = BuffLittleLong(fin); fin += 4;
-
-	//caps
-	header.dsCaps.dwCaps1 = BuffLittleLong(fin); fin += 4;
-	header.dsCaps.dwCaps2 = BuffLittleLong(fin); fin += 4;
-	header.dsCaps.dwCaps3 = BuffLittleLong(fin); fin += 4;
-	header.dsCaps.dwCaps4 = BuffLittleLong(fin); fin += 4;
-	header.dwTextureStage = BuffLittleLong(fin); fin += 4;
-
-	if(header.dwIdent != DDSHEADER) return false; // it's not a dds file, just skip it
-	if(header.dwSize != sizeof(dds_t) - 4 ) // size of the structure (minus MagicNum)
-	{
-		MsgWarn("LoadDDS: (%s) have corrupt header\n", name );
-		return false;
-	}
-	if(header.dsPixelFormat.dwSize != sizeof(dds_pixf_t)) // size of the structure
-	{
-		MsgWarn("LoadDDS: (%s) have corrupt pixelformat header\n", name );
-		return false;
-	}
-
-	image_width = header.dwWidth;
-	image_height = header.dwHeight;
-	image_bits_count = header.dsPixelFormat.dwRGBBitCount;
-	if(header.dwFlags & DDS_DEPTH) image_num_layers = header.dwDepth;
-	if(!ImageValidSize( name )) return false;
-
-	dds_get_pixelformat( &header );// and image type too :)
-	dds_addjust_volume_texture( &header );
-
-	if (image_type == PF_UNKNOWN) 
-	{
-		MsgWarn("LoadDDS: (%s) have unsupported compression type\n", name );
-		return false; //unknown type
-	}
-
-	image_size = dds_calc_size( name, &header, filesize - 128 ); 
-	if(image_size == 0) return false; // just in case
-
-	// dds files will be uncompressed on a render. requires minimal of info for set this
-	image_rgba = Malloc( image_size ); 
-	Mem_Copy( image_rgba, fin, image_size );
-
-	return true;
-}
-
-/*
-=============
-LoadJPG
-=============
-*/
-int jpeg_read_byte( void )
-{
-	// read byte
-	jpg_file.curbyte = *jpg_file.buffer++;
-	jpg_file.curbit = 0;
-	return jpg_file.curbyte;
-}
-
-int jpeg_read_word( void )
-{
-	// read word
-	word	i = BuffLittleShort( jpg_file.buffer);
-	i = ((i << 8) & 0xFF00) + ((i >> 8) & 0x00FF);
-	jpg_file.buffer += 2;
-	
-	return i;
-}
-
-int jpeg_read_bit( void )
-{
-	// read bit
-	register int i;
-	if(jpg_file.curbit == 0)
-	{
-		jpeg_read_byte();
-		if(jpg_file.curbyte == 0xFF)
-		{
-			while(jpg_file.curbyte == 0xFF) jpeg_read_byte();
-			if(jpg_file.curbyte >= 0xD0 && jpg_file.curbyte <= 0xD7)
-				memset(jpg_file.dc, 0, sizeof(int) * 3);
-			if(jpg_file.curbyte == 0) jpg_file.curbyte = 0xFF;
-			else jpeg_read_byte();
-		}
-	}
-
-	i = (jpg_file.curbyte >> (7 - jpg_file.curbit++)) & 0x01;
-	if(jpg_file.curbit == 8) jpg_file.curbit = 0;
-
-	return i;
-}
-
-int jpeg_read_bits( int num )
-{
-	// read num bit
-	register int i, j;
-
-	for(i = 0, j = 0; i < num; i++)
-	{
-		j <<= 1;
-		j |= jpeg_read_bit();
-	}
-	return j;
-}
-
-int jpeg_bit2int( int bit, int i )
-{
-	// convert bit code to int
-	if((i & (1 << (bit - 1))) > 0) return i;
-	return -(i ^ ((1 << bit) - 1));
-}
-
-int jpeg_huffmancode( huffman_table_t *table )
-{
-	// get Huffman code
-	register int i,size,code;
-	for(size = 1, code = 0, i = 0; size < 17; size++)
-	{
-		code <<= 1;
-		code |= jpeg_read_bit();
-		while(table->size[i] <= size)
-		{
-			if(table->code[i] == code)
-				return table->hval[i];
-			i++;
-		}
-	}
-	return code;
-}
-
-void jpeg_idct( float *data )
-{
-	// aa&n algorithm inverse DCT
-	float   t0, t1, t2, t3, t4, t5, t6, t7;
-	float   t10, t11, t12, t13;
-	float   z5, z10, z11, z12, z13;
-	float   *dataptr;
-	int i;
-
-	dataptr = data;
-    
-	for(i = 0; i < 8; i++)
-	{
-		t0 = dataptr[8 * 0];
-		t1 = dataptr[8 * 2];
-		t2 = dataptr[8 * 4];
-		t3 = dataptr[8 * 6];
-
-		t10 = t0 + t2;
-		t11 = t0 - t2;
-		t13 = t1 + t3;
-		t12 = - t13 + (t1 - t3) * 1.414213562;//??
-        
-		t0 = t10 + t13;
-		t3 = t10 - t13;
-		t1 = t11 + t12;
-		t2 = t11 - t12;
-		t4 = dataptr[8 * 1];
-		t5 = dataptr[8 * 3];
-		t6 = dataptr[8 * 5];
-		t7 = dataptr[8 * 7];
-        
-		z13 = t6 + t5;
-		z10 = t6 - t5;
-		z11 = t4 + t7;
-		z12 = t4 - t7;
-        
-		t7 = z11 + z13;
-		t11 = (z11 - z13) * 1.414213562;
-		z5 = (z10 + z12) * 1.847759065;
-		t10 = - z5 + z12 * 1.082392200;
-		t12 = z5 - z10 * 2.613125930;
-		t6 = t12 - t7;
-		t5 = t11 - t6;
-		t4 = t10 + t5;
-
-		dataptr[8 * 0] = t0 + t7;
-		dataptr[8 * 7] = t0 - t7;
-		dataptr[8 * 1] = t1 + t6;
-		dataptr[8 * 6] = t1 - t6;
-		dataptr[8 * 2] = t2 + t5;
-		dataptr[8 * 5] = t2 - t5;
-		dataptr[8 * 4] = t3 + t4;
-		dataptr[8 * 3] = t3 - t4;
-		dataptr++;
-	}
-
-	dataptr = data;
-
-	for(i = 0; i < 8; i++)
-	{
-		t10 = dataptr[0] + dataptr[4];
-		t11 = dataptr[0] - dataptr[4];
-		t13 = dataptr[2] + dataptr[6];
-		t12 = - t13 + (dataptr[2] - dataptr[6]) * 1.414213562;//??
-
-		t0 = t10 + t13;
-		t3 = t10 - t13;
-		t1 = t11 + t12;
-		t2 = t11 - t12;
-        
-		z13 = dataptr[5] + dataptr[3];
-		z10 = dataptr[5] - dataptr[3];
-		z11 = dataptr[1] + dataptr[7];
-		z12 = dataptr[1] - dataptr[7];
-
-		t7 = z11 + z13;
-		t11 = (z11 - z13) * 1.414213562;
-		z5 = (z10 + z12) * 1.847759065;
-		t10 = - z5 + z12 * 1.082392200;
-		t12 = z5 - z10 * 2.613125930;
-        
-		t6 = t12 - t7;
-		t5 = t11 - t6;
-		t4 = t10 + t5;
-
-		dataptr[0] = t0 + t7;
-		dataptr[7] = t0 - t7;
-		dataptr[1] = t1 + t6;
-		dataptr[6] = t1 - t6;
-		dataptr[2] = t2 + t5;
-		dataptr[5] = t2 - t5;
-		dataptr[4] = t3 + t4;
-		dataptr[3] = t3 - t4;
-		dataptr += 8;//move ptr
-	}
-}
-
-int jpeg_readmarkers( void )
-{
-	// read jpeg markers
-	int marker, length, i, j, k, l, m;
-	huffman_table_t *hptr;
-
-	while( 1 )
-	{
-		marker = jpeg_read_byte();
-		if(marker != 0xFF) return 0;
-
-		marker = jpeg_read_byte();
-		if(marker != 0xD8)
-		{
-			length = jpeg_read_word();
-			length -= 2;
-
-			switch(marker)
-			{
-			case 0xC0:  // Baseline
-				jpg_file.data_precision = jpeg_read_byte();
-				jpg_file.height = jpeg_read_word();
-				jpg_file.width = jpeg_read_word();
-				jpg_file.num_components = jpeg_read_byte();
-				if(length - 6 != jpg_file.num_components * 3) return 0;
-				
-				for(i = 0; i < jpg_file.num_components; i++)
-				{
-					jpg_file.component_info[i].id = jpeg_read_byte();
-					j = jpeg_read_byte();
-					jpg_file.component_info[i].h = (j >> 4) & 0x0F;
-					jpg_file.component_info[i].v = j & 0x0F;
-					jpg_file.component_info[i].t = jpeg_read_byte();
-				}
-				break;
-			case 0xC1:  // Extended sequetial, Huffman
-			case 0xC2:  // Progressive, Huffman            
-			case 0xC3:  // Lossless, Huffman
-			case 0xC5:  // Differential sequential, Huffman
-			case 0xC6:  // Differential progressive, Huffman
-			case 0xC7:  // Differential lossless, Huffman
-			case 0xC8:  // Reserved for JPEG extensions
-			case 0xC9:  // Extended sequential, arithmetic
-			case 0xCA:  // Progressive, arithmetic
-			case 0xCB:  // Lossless, arithmetic
-			case 0xCD:  // Differential sequential, arithmetic
-			case 0xCE:  // Differential progressive, arithmetic
-			case 0xCF:  // Differential lossless, arithmetic
-				return 0;
-			case 0xC4:  // Huffman table
-				while(length > 0)
-				{
-					k = jpeg_read_byte();
-					if(k & 0x10) hptr = &jpg_file.hac[k & 0x0F];
-					else hptr = &jpg_file.hdc[k & 0x0F];
-					for(i = 0, j = 0; i < 16; i++)
-					{
-						hptr->bits[i] = jpeg_read_byte();
-						j += hptr->bits[i];
-					}
-					length -= 17;
-					for(i = 0; i < j; i++) hptr->hval[i] = jpeg_read_byte();
-					length -= j;
-
-					for(i = 0, k = 0, l = 0; i < 16; i++)
-					{
-						for(j = 0; j < hptr->bits[i]; j++, k++)
-						{
-							hptr->size[k] = i + 1;
-							hptr->code[k] = l++;
-						}
-						l <<= 1;
-					}
-				}
-				break;
-			case 0xDB:  // Quantization table
-				while(length > 0)
-				{
-					j = jpeg_read_byte();
-					k = (j >> 4) & 0x0F;
-					for(i = 0; i < 64; i++)
-					{
-						if( k )jpg_file.qtable[j][i] = jpeg_read_word();
-						else jpg_file.qtable[j][i] = jpeg_read_byte();
-					}
-					length -= 65;
-					if( k )length -= 64;
-				}
-				break;
-			case 0xD9:  // End of image (EOI)
-				return 0;
-			case 0xDA:  // Start of scan (SOS)
-				j = jpeg_read_byte();
-				for(i = 0; i < j; i++)
-				{
-					k = jpeg_read_byte();
-					m = jpeg_read_byte();
-					for(l = 0; l < jpg_file.num_components; l++)
-					{
-						if(jpg_file.component_info[l].id == k)
-						{
-							jpg_file.component_info[l].td = (m >> 4) & 0x0F;
-							jpg_file.component_info[l].ta = m & 0x0F;
-						}
-					}
-				}
-				jpg_file.scan.ss = jpeg_read_byte();
-				jpg_file.scan.se = jpeg_read_byte();
-				k = jpeg_read_byte();
-				jpg_file.scan.ah = (k >> 4) & 0x0F;
-				jpg_file.scan.al = k & 0x0F;
-				return 1;
-			case 0xDD:  // Restart interval
-				jpg_file.restart_interval = jpeg_read_word();
-				break;
-			default:
-				jpg_file.buffer += length; //move ptr
-				break;
-			}
-		}
-	}
-}
-
-
-void jpeg_decompress( void )
-{
-	// decompress jpeg file (Baseline algorithm)
-	register int x, y, i, j, k, l, c;
-	int X, Y, H, V, plane, scaleh[3], scalev[3];
-    	static float vector[64], dct[64];
-    
-	static const int jpeg_zigzag[64] = 
-	{
-	0,  1,  5,  6,  14, 15, 27, 28,
-	2,  4,  7,  13, 16, 26, 29, 42,
-	3,  8,  12, 17, 25, 30, 41, 43,
-	9,  11, 18, 24, 31, 40, 44, 53,
-	10, 19, 23, 32, 39, 45, 52, 54,
-	20, 22, 33, 38, 46, 51, 55, 60,
-	21, 34, 37, 47, 50, 56, 59, 61,
-	35, 36, 48, 49, 57, 58, 62, 63
-	};
-
-	// 1.0, k = 0; cos(k * PI / 16) * sqrt(2), k = 1...7
-	static const float aanscale[8] =
-	{
-	1.0, 1.387039845, 1.306562965, 1.175875602,
-	1.0, 0.785694958, 0.541196100, 0.275899379
-	};
-
-	scaleh[0] = 1;
-	scalev[0] = 1;
-    
-	if(jpg_file.num_components == 3)
-	{
-		scaleh[1] = jpg_file.component_info[0].h / jpg_file.component_info[1].h;
-		scalev[1] = jpg_file.component_info[0].v / jpg_file.component_info[1].v;
-		scaleh[2] = jpg_file.component_info[0].h / jpg_file.component_info[2].h;
-		scalev[2] = jpg_file.component_info[0].v / jpg_file.component_info[2].v;
-	}
-	memset(jpg_file.dc,0,sizeof(int) * 3);
-
-	for(Y = 0; Y < jpg_file.height; Y += jpg_file.component_info[0].v << 3)
-	{
-		if(jpg_file.restart_interval > 0) jpg_file.curbit = 0;
-		for(X = 0; X < jpg_file.width; X += jpg_file.component_info[0].h << 3)
-		{
-			for(plane = 0; plane < jpg_file.num_components; plane++)
-			{
-                			for(V = 0; V < jpg_file.component_info[plane].v; V++)
-                			{
-					for(H = 0; H < jpg_file.component_info[plane].h; H++)
-					{
-						i = jpeg_huffmancode(&jpg_file.hdc[jpg_file.component_info[plane].td]);
-						i &= 0x0F;
-						vector[0] = jpg_file.dc[plane] + jpeg_bit2int(i,jpeg_read_bits(i));
-						jpg_file.dc[plane] = vector[0];
-						i = 1;
-
-						while(i < 64)
-						{
-							j = jpeg_huffmancode(&jpg_file.hac[jpg_file.component_info[plane].ta]);
-							if(j == 0) while(i < 64) vector[i++] = 0;
-							else
-							{
-								k = i + ((j >> 4) & 0x0F);
-								while(i < k) vector[i++] = 0;
-								j &= 0x0F;
-								vector[i++] = jpeg_bit2int(j,jpeg_read_bits(j));
-							}
-						}
-
-						k = jpg_file.component_info[plane].t;
-						for(y = 0, i = 0; y < 8; y++)
-						{
-							for(x = 0; x < 8; x++, i++)
-							{
-								j = jpeg_zigzag[i];
-								dct[i] = vector[j] * jpg_file.qtable[k][j] * aanscale[x] * aanscale[y];
-							}
-						}
-
-						jpeg_idct(dct);
-						for(y = 0; y < 8; y++)
-						{
-							for(x = 0; x < 8; x++)
-							{
-								c = ((int)dct[(y << 3) + x] >> 3) + 128;
-								if(c < 0) c = 0;
-								else if(c > 255) c = 255;
-
-								if(scaleh[plane] == 1 && scalev[plane] == 1)
-								{
-									i = X + x + (H << 3);
-									j = Y + y + (V << 3);
-									if(i < jpg_file.width && j < jpg_file.height)
-										jpg_file.data[((j * jpg_file.width + i) << 2) + plane] = c;
-								}
-								else for(l = 0; l < scalev[plane]; l++)//else for, heh...
-								{
-									for(k = 0; k < scaleh[plane]; k++)
-									{
-										i = X + (x + (H << 3)) * scaleh[plane] + k;
-										j = Y + (y + (V << 3)) * scalev[plane] + l;
-										if(i < jpg_file.width && j < jpg_file.height)
-											jpg_file.data[((j * jpg_file.width + i) << 2) + plane] = c;
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-}
-
-void jpeg_ycbcr2rgba( void )
-{
-	int i, Y, Cb, Cr, R, G, B;
-
-	// convert YCbCr image to RGBA
-	for(i = 0; i < jpg_file.width * jpg_file.height << 2; i += 4)
-	{
-		Y = jpg_file.data[i];
-		Cb = jpg_file.data[i + 1] - 128;
-		Cr = jpg_file.data[i + 2] - 128;
-
-		R = Y + 1.40200 * Cr;
-		G = Y - 0.34414 * Cb - 0.71414 * Cr;
-		B = Y + 1.77200 * Cb;
-
-		// bound colors
-		if(R < 0) R = 0;
-		else if(R > 255) R = 255;
-		if(G < 0) G = 0;
-		else if(G > 255) G = 255;
-		if(B < 0) B = 0;
-		else if(B > 255) B = 255;
-
-		jpg_file.data[i + 0] = R;
-		jpg_file.data[i + 1] = G;
-		jpg_file.data[i + 2] = B;
-		jpg_file.data[i + 3] = 0xff;//alpha channel
-	}
-}
-
-void jpeg_gray2rgba( void )
-{
-	int i, j;
-
-	// grayscale image to RGBA
-	for(i = 0; i < jpg_file.width * jpg_file.height << 2; i += 4)
-	{
-		j = jpg_file.data[i];
-		jpg_file.data[i + 0] = j;
-		jpg_file.data[i + 1] = j;
-		jpg_file.data[i + 2] = j;
-		jpg_file.data[i + 3] = 0xff;
-	}
-}
-
-bool LoadJPG(char *name, char *buffer, int filesize )
-{
-	memset(&jpg_file, 0, sizeof(jpg_file));
-	jpg_file.buffer = buffer;
-
-	if(!jpeg_readmarkers()) return false; // it's not a jpg file, just skip it
-
-	image_width = jpg_file.width;
-	image_height = jpg_file.height;
-	image_type = PF_RGBA_32;
-	if(!ImageValidSize( name )) return false;
-
-	image_size = jpg_file.width * jpg_file.height * 4;
-	jpg_file.data = Malloc(image_size);
-
-	jpeg_decompress();
-	if(jpg_file.num_components == 1) jpeg_gray2rgba();        
-	if(jpg_file.num_components == 3) jpeg_ycbcr2rgba();
-
-	image_num_layers = 1;
-	image_rgba = jpg_file.data;
-
-	return true;
-}
-
-typedef struct imageformat_s
-{
-	char *formatstring;
-	bool (*loadfunc)(char *name, char *buffer, int filesize);
-}
-imageformat_t;
-
-imageformat_t image_formats[] =
-{
-	{"textures/%s%s.dds", LoadDDS},
-	{"textures/%s%s.tga", LoadTGA},
-	{"textures/%s%s.jpg", LoadJPG},
-	{"textures/%s%s.bmp", LoadBMP},
-	{"textures/%s%s.pcx", LoadPCX},
-	{"%s%s.dds", LoadDDS},
-	{"%s%s.tga", LoadTGA},
-	{"%s%s.jpg", LoadJPG},
-	{"%s%s.bmp", LoadBMP},
-	{"%s%s.pcx", LoadPCX},
-	{NULL, NULL}
+0,0,0,15,15,15,31,31,31,47,47,47,63,63,63,75,75,75,91,91,91,107,107,107,123,123,123,139,139,139,155,155,155,171,
+171,171,187,187,187,203,203,203,219,219,219,235,235,235,15,11,7,23,15,11,31,23,11,39,27,15,47,35,19,55,43,23,63,
+47,23,75,55,27,83,59,27,91,67,31,99,75,31,107,83,31,115,87,31,123,95,35,131,103,35,143,111,35,11,11,15,19,19,27,
+27,27,39,39,39,51,47,47,63,55,55,75,63,63,87,71,71,103,79,79,115,91,91,127,99,99,139,107,107,151,115,115,163,123,
+123,175,131,131,187,139,139,203,0,0,0,7,7,0,11,11,0,19,19,0,27,27,0,35,35,0,43,43,7,47,47,7,55,55,7,63,63,7,71,71,
+7,75,75,11,83,83,11,91,91,11,99,99,11,107,107,15,7,0,0,15,0,0,23,0,0,31,0,0,39,0,0,47,0,0,55,0,0,63,0,0,71,0,0,79,
+0,0,87,0,0,95,0,0,103,0,0,111,0,0,119,0,0,127,0,0,19,19,0,27,27,0,35,35,0,47,43,0,55,47,0,67,55,0,75,59,7,87,67,7,
+95,71,7,107,75,11,119,83,15,131,87,19,139,91,19,151,95,27,163,99,31,175,103,35,35,19,7,47,23,11,59,31,15,75,35,19,
+87,43,23,99,47,31,115,55,35,127,59,43,143,67,51,159,79,51,175,99,47,191,119,47,207,143,43,223,171,39,239,203,31,255,
+243,27,11,7,0,27,19,0,43,35,15,55,43,19,71,51,27,83,55,35,99,63,43,111,71,51,127,83,63,139,95,71,155,107,83,167,123,
+95,183,135,107,195,147,123,211,163,139,227,179,151,171,139,163,159,127,151,147,115,135,139,103,123,127,91,111,119,
+83,99,107,75,87,95,63,75,87,55,67,75,47,55,67,39,47,55,31,35,43,23,27,35,19,19,23,11,11,15,7,7,187,115,159,175,107,
+143,163,95,131,151,87,119,139,79,107,127,75,95,115,67,83,107,59,75,95,51,63,83,43,55,71,35,43,59,31,35,47,23,27,35,
+19,19,23,11,11,15,7,7,219,195,187,203,179,167,191,163,155,175,151,139,163,135,123,151,123,111,135,111,95,123,99,83,
+107,87,71,95,75,59,83,63,51,67,51,39,55,43,31,39,31,23,27,19,15,15,11,7,111,131,123,103,123,111,95,115,103,87,107,
+95,79,99,87,71,91,79,63,83,71,55,75,63,47,67,55,43,59,47,35,51,39,31,43,31,23,35,23,15,27,19,11,19,11,7,11,7,255,
+243,27,239,223,23,219,203,19,203,183,15,187,167,15,171,151,11,155,131,7,139,115,7,123,99,7,107,83,0,91,71,0,75,55,
+0,59,43,0,43,31,0,27,15,0,11,7,0,0,0,255,11,11,239,19,19,223,27,27,207,35,35,191,43,43,175,47,47,159,47,47,143,47,
+47,127,47,47,111,47,47,95,43,43,79,35,35,63,27,27,47,19,19,31,11,11,15,43,0,0,59,0,0,75,7,0,95,7,0,111,15,0,127,23,
+7,147,31,7,163,39,11,183,51,15,195,75,27,207,99,43,219,127,59,227,151,79,231,171,95,239,191,119,247,211,139,167,123,
+59,183,155,55,199,195,55,231,227,87,127,191,255,171,231,255,215,255,255,103,0,0,139,0,0,179,0,0,215,0,0,255,0,0,255,
+243,147,255,247,199,255,255,255,159,91,83
 };
 
-rgbdata_t *ImagePack( void )
+byte palette_q2[768] =
 {
-	rgbdata_t *pack = Malloc(sizeof(rgbdata_t));
+0,0,0,15,15,15,31,31,31,47,47,47,63,63,63,75,75,75,91,91,91,107,107,107,123,123,123,139,139,139,155,155,155,171,171,
+171,187,187,187,203,203,203,219,219,219,235,235,235,99,75,35,91,67,31,83,63,31,79,59,27,71,55,27,63,47,23,59,43,23,
+51,39,19,47,35,19,43,31,19,39,27,15,35,23,15,27,19,11,23,15,11,19,15,7,15,11,7,95,95,111,91,91,103,91,83,95,87,79,91,
+83,75,83,79,71,75,71,63,67,63,59,59,59,55,55,51,47,47,47,43,43,39,39,39,35,35,35,27,27,27,23,23,23,19,19,19,143,119,
+83,123,99,67,115,91,59,103,79,47,207,151,75,167,123,59,139,103,47,111,83,39,235,159,39,203,139,35,175,119,31,147,99,
+27,119,79,23,91,59,15,63,39,11,35,23,7,167,59,43,159,47,35,151,43,27,139,39,19,127,31,15,115,23,11,103,23,7,87,19,0,
+75,15,0,67,15,0,59,15,0,51,11,0,43,11,0,35,11,0,27,7,0,19,7,0,123,95,75,115,87,67,107,83,63,103,79,59,95,71,55,87,67,
+51,83,63,47,75,55,43,67,51,39,63,47,35,55,39,27,47,35,23,39,27,19,31,23,15,23,15,11,15,11,7,111,59,23,95,55,23,83,47,
+23,67,43,23,55,35,19,39,27,15,27,19,11,15,11,7,179,91,79,191,123,111,203,155,147,215,187,183,203,215,223,179,199,211,
+159,183,195,135,167,183,115,151,167,91,135,155,71,119,139,47,103,127,23,83,111,19,75,103,15,67,91,11,63,83,7,55,75,7,
+47,63,7,39,51,0,31,43,0,23,31,0,15,19,0,7,11,0,0,0,139,87,87,131,79,79,123,71,71,115,67,67,107,59,59,99,51,51,91,47,
+47,87,43,43,75,35,35,63,31,31,51,27,27,43,19,19,31,15,15,19,11,11,11,7,7,0,0,0,151,159,123,143,151,115,135,139,107,
+127,131,99,119,123,95,115,115,87,107,107,79,99,99,71,91,91,67,79,79,59,67,67,51,55,55,43,47,47,35,35,35,27,23,23,19,
+15,15,11,159,75,63,147,67,55,139,59,47,127,55,39,119,47,35,107,43,27,99,35,23,87,31,19,79,27,15,67,23,11,55,19,11,43,
+15,7,31,11,7,23,7,0,11,0,0,0,0,0,119,123,207,111,115,195,103,107,183,99,99,167,91,91,155,83,87,143,75,79,127,71,71,
+115,63,63,103,55,55,87,47,47,75,39,39,63,35,31,47,27,23,35,19,15,23,11,7,7,155,171,123,143,159,111,135,151,99,123,
+139,87,115,131,75,103,119,67,95,111,59,87,103,51,75,91,39,63,79,27,55,67,19,47,59,11,35,47,7,27,35,0,19,23,0,11,15,
+0,0,255,0,35,231,15,63,211,27,83,187,39,95,167,47,95,143,51,95,123,51,255,255,255,255,255,211,255,255,167,255,255,
+127,255,255,83,255,255,39,255,235,31,255,215,23,255,191,15,255,171,7,255,147,0,239,127,0,227,107,0,211,87,0,199,71,
+0,183,59,0,171,43,0,155,31,0,143,23,0,127,15,0,115,7,0,95,0,0,71,0,0,47,0,0,27,0,0,239,0,0,55,55,255,255,0,0,0,0,255,
+43,43,35,27,27,23,19,19,15,235,151,127,195,115,83,159,87,51,123,63,27,235,211,199,199,171,155,167,139,119,135,107,87,
+159,91,83	
+};
 
-	pack->width = image_width;
-	pack->height = image_height;
-	pack->numLayers = image_num_layers;
-	pack->numMips = image_num_mips;
-	pack->bitsCount = image_bits_count;
-	pack->type = image_type;
-	pack->flags = image_flags;
-	pack->palette = image_palette;
+uint d_8toQ1table[256];
+uint d_8toQ2table[256];
+uint d_8to24table[256];
+uint *d_currentpal;
+bool q1palette_init = false;
+bool q2palette_init = false;
 
-	if(image_cubemap) pack->buffer = image_cubemap;
-	else pack->buffer = image_rgba;
-
-	return pack;
-}
-
-void AddImageToPack( void )
+void Image_GetQ2Palette( void )
 {
-	if(!image_cubemap) image_cubemap = Malloc( image_size );
-	else image_cubemap = Mem_Realloc( basepool, image_cubemap, image_ptr + image_size );
+	int	i;
+	byte	rgba[4], *pal = palette_q2;
 
-	Mem_Copy(image_cubemap + image_ptr, image_rgba, image_size );
-	image_ptr += image_size; //move to next
-	Free( image_rgba ); //memmove aren't help us
-}
-
-/*
-================
-FS_LoadImage
-
-loading and unpack to rgba any known image
-================
-*/
-
-rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
-{
-	imageformat_t	*format;
-	char *suf[6] = {"ft", "bk", "rt", "lf", "up", "dn"};
-	char path[128], loadname[128], texname[128];
-	int i, filesize = 0;
-	byte *f;
-
-	strncpy( loadname, filename, sizeof(loadname)-1);
-	FS_StripExtension( loadname );//remove extension if needed
-
-	// now try all the formats in the selected list
-	for (format = image_formats; format->formatstring; format++)
+	if(q2palette_init)
 	{
-		sprintf (path, format->formatstring, loadname, "" );
-		f = FS_LoadFile( path, &filesize );
-		if(f && filesize > 0)
+		d_currentpal = d_8toQ2table;		
+		return;
+	}
+	q2palette_init = true;
+
+	// setup palette
+	for (i = 0; i < 256; i++)
+	{
+		rgba[0] = 0xFF;
+		rgba[3] = pal[i*3+0];
+		rgba[2] = pal[i*3+1];
+		rgba[1] = pal[i*3+2];
+		d_8toQ2table[i] = BuffBigLong( rgba );
+	}
+
+	d_8toQ2table[255] &= LittleLong(0xffffff);// 255 is transparent
+	d_currentpal = d_8toQ2table;
+}
+
+void Image_GetPalettePCX( byte *pal )
+{
+	byte	rgba[4];
+	int	i;
+
+	// palette setup
+	if(!pal)
+	{
+		// get internal palette
+		Image_GetQ2Palette();
+		return;
+	}
+
+	for (i = 0; i < 256; i++)
+	{
+		rgba[0] = 0xFF;
+		rgba[3] = pal[i*3+0];
+		rgba[2] = pal[i*3+1];
+		rgba[1] = pal[i*3+2];
+		d_8to24table[i] = BuffBigLong( rgba );
+	}
+
+	d_8to24table[255] &= LittleLong(0xffffff);// 255 is transparent
+	d_currentpal = d_8to24table;
+}
+
+void Image_RoundDimensions(int *scaled_width, int *scaled_height)
+{
+	int width = *scaled_width;
+	int height = *scaled_height;
+
+	width = nearest_pow( width );
+	height = nearest_pow( height);
+
+	*scaled_width = bound(1, width, 4096 );
+	*scaled_height = bound(1, height, 4096 );
+}
+
+bool Image_Resample(byte *mempool, rgbdata_t **image )
+{
+	int	i, j;
+	uint	frac, fracstep;
+	uint	*inrow1, *inrow2;
+	int	outwidth, outheight;
+	uint	p1[4096], p2[4096];
+	byte	*pix1, *pix2, *pix3, *pix4;
+	uint	*scaled, *out;
+	rgbdata_t *pix = *image;
+
+	//check for buffers
+	if(!pix || !pix->buffer) return false;
+
+	outwidth = pix->width;
+	outheight = pix->height;
+	Image_RoundDimensions( &outwidth, &outheight ); //detect new size
+ 	
+	// nothing to resample ?
+	if (pix->width == outwidth && pix->height == outheight)
+		return false;
+	out = scaled = (uint *)Mem_Alloc( mempool, outwidth * outheight * 4 );
+
+	fracstep = pix->width * 0x10000 / outwidth;
+	frac = fracstep>>2;
+
+	for( i = 0; i < outwidth; i++)
+	{
+		p1[i] = 4 * (frac>>16);
+		frac += fracstep;
+	}
+	frac = 3 * (fracstep>>2);
+
+	for( i = 0; i < outwidth; i++)
+	{
+		p2[i] = 4 * (frac>>16);
+		frac += fracstep;
+	}
+
+	for (i = 0; i < outheight; i++, out += outwidth)
+	{
+		inrow1 = (uint *)pix->buffer + pix->width * (int)((i + 0.25) * pix->height / outheight);
+		inrow2 = (uint *)pix->buffer + pix->width * (int)((i + 0.75) * pix->height / outheight);
+		frac = fracstep>>1;
+
+		for (j = 0; j < outwidth; j++)
 		{
-			// this name will be used only for tell user about a imageload problems 
-			FS_FileBase( path, texname );
-			if( format->loadfunc(texname, f, filesize ))
-				return ImagePack(); //loaded
+			pix1 = (byte *)inrow1 + p1[j];
+			pix2 = (byte *)inrow1 + p2[j];
+			pix3 = (byte *)inrow2 + p1[j];
+			pix4 = (byte *)inrow2 + p2[j];
+			((byte *)(out+j))[0] = (pix1[0] + pix2[0] + pix3[0] + pix4[0])>>2;
+			((byte *)(out+j))[1] = (pix1[1] + pix2[1] + pix3[1] + pix4[1])>>2;
+			((byte *)(out+j))[2] = (pix1[2] + pix2[2] + pix3[2] + pix4[2])>>2;
+			((byte *)(out+j))[3] = (pix1[3] + pix2[3] + pix3[3] + pix4[3])>>2;
 		}
 	}
 
-	// maybe it skybox or cubemap ?
-	for(i = 0; i < 6; i++)
-	{
-		for (format = image_formats; format->formatstring; format++)
-		{
-			sprintf (path, format->formatstring, loadname, suf[i] );
-			f = FS_LoadFile( path, &filesize );
-			if(f && filesize > 0)
-			{
-				// this name will be used only for tell user about a imageload problems 
-				FS_FileBase( path, texname );
-				if( format->loadfunc(texname, f, filesize ))
-					AddImageToPack(); //added
-			}
-		}
-          }
+	// put resampled image onto pix->buffer
+	Mem_Move( basepool, &pix->buffer, scaled, outwidth * outheight * 4 );
+	pix->width = outwidth, pix->height = outheight;
 
-	if(image_cubemap && image_ptr > 0) 
-	{
-		image_flags |= IMAGE_CUBEMAP; //now it's cubemap pack
-		return ImagePack();
-	}          
+	*image = pix;
 
-	// try to load image from const buffer (e.g. const byte blank_frame )
-	strncpy( texname, filename, sizeof(texname) - 1);
-
-	for (format = image_formats; format->formatstring; format++)
-	{
-		if(buffer && buffsize > 0)
-		{
-			//this name will be used only for tell user about a imageload problems 
-			FS_FileBase( loadname, texname );
-			if( format->loadfunc(texname, buffer, buffsize ))
-				return ImagePack(); //loaded
-		}
-	}
-
-	MsgWarn("FS_LoadImage: couldn't load (%s)\n", texname );
-	return NULL;
+	return true;
 }
 
-void FS_FreeImage( rgbdata_t *pack )
-{
-	if( pack )
-	{
-		if( pack->buffer ) Free( pack->buffer );
-		if( pack->palette ) Free( pack->palette );
-		Free( pack );
-	}
 
-	//reset global variables
-	image_width = image_height = 0;
-	image_bits_count = image_flags = 0;
-	image_num_layers = 1;
-	image_num_mips = 4;
-	image_type = PF_UNKNOWN;
-	image_palette = NULL;
-	image_rgba = NULL;
-	image_cubemap = NULL;
-	image_ptr = 0;
-	image_size = 0;
+bool ConvertImagePixels ( byte *mempool, const char *name, byte parms )
+{
+	rgbdata_t *image = FS_LoadImage( name, NULL, 0 );
+	char	savename[MAX_QPATH];
+	int	w, h;
+
+	if(!image || !image->buffer) return false;
+
+	strncpy( savename, name, sizeof(savename)-1);
+	FS_StripExtension( savename ); // remove extension if needed
+	FS_DefaultExtension( savename, ".tga" );// set new extension
+	w = image->width, h = image->height; 
+
+	if(Image_Resample( mempool, &image ))
+		Msg("Resampling %s from[%d x %d] to[%d x %d]\n", name, w, h, image->width, image->height );
+
+	FS_SaveImage( savename, image );// save as TGA
+	FS_FreeImage( image );
+
+	return true;
 }

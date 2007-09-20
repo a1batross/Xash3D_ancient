@@ -1,0 +1,73 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: common - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\Temp\RSP3C3.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "../public" /I "./bsplib/" /I "./qcclib" /I "./common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR"..\temp\common\!debug/" /Fo"..\temp\common\!debug/" /Fd"..\temp\common\!debug/" /FD /GZ /c 
+"D:\XASH3D\src_main\!source\common\common\image.c"
+]
+Creating command line "cl.exe @C:\Temp\RSP3C3.tmp" 
+Creating temporary file "C:\Temp\RSP3C4.tmp" with contents
+[
+msvcrt.lib winmm.lib user32.lib /nologo /dll /incremental:yes /pdb:"..\temp\common\!debug/common.pdb" /debug /machine:I386 /nodefaultlib:"msvcrtd.lib" /out:"..\temp\common\!debug/common.dll" /implib:"..\temp\common\!debug/common.lib" /pdbtype:sept 
+"\XASH3D\src_main\!source\temp\common\!debug\brushbsp.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\bspfile.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\csg.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\faces.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\filesystem.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\flow.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\image.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\imglib.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\leakfile.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\lightmap.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\map.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\memory.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\patches.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\platform.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\portals.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\pr_comp.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\pr_lex.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\prtfile.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\qbsp3.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\qcc_utils.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\qccmain.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\qrad3.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\qvis3.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\shaders.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\spritegen.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\studio.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\studio_utils.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\textures.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\trace.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\tree.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\utils.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\winding.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\writebsp.obj"
+"\XASH3D\src_main\!source\temp\common\!debug\ziplib.obj"
+]
+Creating command line "link.exe @C:\Temp\RSP3C4.tmp"
+Creating temporary file "C:\Temp\RSP3C5.bat" with contents
+[
+@echo off
+copy \XASH3D\src_main\!source\temp\common\!debug\common.dll "D:\Xash3D\bin\common.dll"
+]
+Creating command line "C:\Temp\RSP3C5.bat"
+Compiling...
+image.c
+Linking...
+<h3>Output Window</h3>
+Performing Custom Build Step on \XASH3D\src_main\!source\temp\common\!debug\common.dll
+Скопировано файлов:         1.
+
+
+
+<h3>Results</h3>
+common.dll - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

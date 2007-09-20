@@ -2350,6 +2350,7 @@ filesystem_api_t FS_GetAPI( void )
 	fs.LoadFile = FS_LoadFile;
 	fs.WriteFile = FS_WriteFile;
 	fs.LoadImage = FS_LoadImage;
+	fs.SaveImage = FS_SaveImage;
 	fs.FreeImage = FS_FreeImage;
 
 	return fs;

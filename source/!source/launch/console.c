@@ -494,7 +494,7 @@ destroy win32 console
 void Sys_DestroyConsoleW( void )
 {
 	// last text message into console or log 
-	Msg("Sys_FreeLibrary: Unloading launch.dll\n");
+	MsgDev(D_ERROR, "Sys_FreeLibrary: Unloading launch.dll\n");
 
 	if ( s_wcd.hWnd )
 	{

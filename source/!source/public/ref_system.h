@@ -49,7 +49,6 @@
 enum comp_format
 {
 	PF_UNKNOWN = 0,
-	PF_INDEXED_8,	// pcx or wal images with transparent color in palette
 	PF_INDEXED_24,	// studio model skins
 	PF_INDEXED_32,	// sprite 32-bit palette
 	PF_RGBA_32,	// already prepared ".bmp", ".tga" or ".jpg" image 
@@ -104,7 +103,6 @@ typedef struct
 
 static bpc_desc_t PixelFormatDescription[] =
 {
-{PF_INDEXED_8,	"pal 8",  4,  1,  0 },
 {PF_INDEXED_24,	"pal 24",	3,  1,  0 },
 {PF_INDEXED_32,	"pal 32",	4,  1,  0 },
 {PF_RGBA_32,	"RGBA",	4,  1, -4 },
@@ -385,6 +383,7 @@ typedef struct filesystem_api_s
 	byte *(*LoadFile)(const char *path, long *filesize );		// load file into heap
 	bool (*WriteFile)(const char *filename, void *data, long len);	// write file into disk
 	rgbdata_t *(*LoadImage)(const char *filename, char *data, int size );	// returned rgb data image
+	void (*SaveImage)(const char *filename, rgbdata_t *buffer );	// write image into disk
 	void (*FreeImage)( rgbdata_t *pack );				// release image buffer
 
 } filesystem_api_t;
@@ -425,7 +424,7 @@ typedef struct memsystem_api_s
 	// user simply interface
 	void *(*Alloc)(byte *pool, size_t size, const char *file, int line);			//same as malloc
 	void *(*Realloc)(byte *pool, void *mem, size_t size, const char *file, int line);	//same as realloc
-	void (*Move)(void *dest, void *src, size_t size, const char *file, int line);		//same as memmove
+	void (*Move)(byte *pool, void **dest, void *src, size_t size, const char *file, int line);//same as memmove
 	void (*Copy)(void *dest, void *src, size_t size, const char *file, int line);		//same as memcpy
 	void (*Free)(void *data, const char *file, int line);				//same as free
 
@@ -489,6 +488,7 @@ typedef struct compilers_api_s
 
 	bool (*Studio)( byte *mempool, const char *name, byte parms );	// input name of qc-script
 	bool (*Sprite)( byte *mempool, const char *name, byte parms );	// input name of qc-script
+	bool (*Image)( byte *mempool, const char *name, byte parms );	// input name of image
 	bool (*PrepareBSP)( const char *dir, const char *name, byte params );	// compile map in gamedir 
 	bool (*BSP)( void );
 	bool (*PrepareDAT)( const char *dir, const char *name, byte params );	// compile dat in gamedir 
