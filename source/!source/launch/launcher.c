@@ -220,41 +220,46 @@ void CommonInit ( char *funcname, int argc, char **argv )
 void CommonMain ( void )
 {
 	search_t	*search;
-	char filename[MAX_QPATH], typemod[16], searchmask[16];
-	bool (*CompileMod)( byte *mempool, const char *name, byte parms ) = NULL;
-	byte parms = 0; // future expansion
-	int i, numCompiledMods = 0;
+	bool	(*CompileMod)( byte *mempool, const char *name, byte parms ) = NULL;
+	char	filename[MAX_QPATH], typemod[16], searchmask[8][16], errorstring[256];
+	byte	parms = 0; // future expansion
+	int	i, j, numCompiledMods = 0;
 
+	memset( searchmask, 0, 8 * 16 ); 
+	memset( errorstring, 0, 256 ); 
 	switch(app_name)
 	{
 	case SPRITE: 
 		CompileMod = Com->Compile.Sprite;
 		strcpy(typemod, "sprites" );
-		strcpy(searchmask, "*.qc" );
+		strcpy(searchmask[0], "*.qc" );
 		break;
 	case STUDIO:
 		CompileMod = Com->Compile.Studio;
 		strcpy(typemod, "models" );
-		strcpy(searchmask, "*.qc" );
+		strcpy(searchmask[0], "*.qc" );
 		break;
 	case IMGLIB:
 		CompileMod = Com->Compile.Image; 
 		strcpy(typemod, "images" );
-		strcpy(searchmask, "*.pcx" );
+		strcpy(searchmask[0], "*.pcx" );
+		strcpy(searchmask[1], "*.wal" );
+		strcpy(searchmask[2], "*.lmp" );
+		Msg("Processing images ...\n\n");
 		break;		
 	case BSPLIB: 
 		Com->Compile.BSP(); 
 		strcpy(typemod, "maps" );
-		strcpy(searchmask, "*.map" );
+		strcpy(searchmask[0], "*.map" );
 		break;
 	case QCCLIB: 
 		Com->Compile.DAT(); 
 		strcpy(typemod, "progs" );
-		strcpy(searchmask, "*.src" );
+		strcpy(searchmask[0], "*.src" );
 		break;
 	case DEFAULT:
 		strcpy(typemod, "things" );
-		strcpy(searchmask, "*.*" );
+		strcpy(searchmask[0], "*.*" );
 		break;
 	}
 	if(!CompileMod) return;//back to shutdown
@@ -262,14 +267,24 @@ void CommonMain ( void )
 	mempool = Mem_AllocPool("compiler");
 	if(!GetParmFromCmdLine("-file", filename ))
 	{
-		//search for all .ac files in folder		
-		search = Com->Fs.Search(searchmask, true );
-		if(!search) Sys_Error("no %s found in this folder!\n", searchmask );
-
-		for( i = 0; i < search->numfilenames; i++ )
+		//search by mask		
+		for( i = 0; i < 8; i++)
 		{
-			if(CompileMod( mempool, search->filenames[i], parms ))
-				numCompiledMods++;
+			// skip blank mask
+			if(!strlen(searchmask[i])) continue;
+			search = Com->Fs.Search( searchmask[i], true );
+			if(!search) continue; // try next mask
+
+			for( j = 0; j < search->numfilenames; j++ )
+			{
+				if(CompileMod( mempool, search->filenames[j], parms ))
+					numCompiledMods++;
+			}
+		}
+		if(numCompiledMods == 0) 
+		{
+			for(j = 0; j < 8; j++)strcat(errorstring, searchmask[j]);
+			Sys_Error("no %s found in this folder!\n", errorstring );
 		}
 	}
 	else CompileMod( mempool, filename, parms );
@@ -434,8 +449,8 @@ DLLEXPORT int CreateAPI( char *funcname )
           
 	// init launcher
 	LookupInstance( funcname );
-	HOST_MakeStubs();//make sure what all functions are filled
-	API_SetConsole(); //initialize system console
+	HOST_MakeStubs();		// make sure what all functions are filled
+	API_SetConsole();		// initialize system console
 	Sys_InitConsole();
 
 	if(!GetVersionEx (&vinfo)) Sys_Error ("InitLauncher: Couldn't get OS info\n");

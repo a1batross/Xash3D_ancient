@@ -1226,6 +1226,7 @@ FS_Shutdown
 void FS_Shutdown (void)
 {
 	Mem_FreePool (&fs_mempool);
+	FS_FreeImagelib();
 }
 
 /*
@@ -2150,8 +2151,7 @@ static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet 
 	char netpath[MAX_OSPATH];
 	char temp[MAX_OSPATH];
 
-	for (i = 0;pattern[i] == '.' || pattern[i] == ':' || pattern[i] == '/' || pattern[i] == '\\';i++)
-		;
+	for (i = 0; pattern[i] == '.' || pattern[i] == ':' || pattern[i] == '/' || pattern[i] == '\\'; i++);
 
 	if (i > 0)
 	{
@@ -2289,6 +2289,8 @@ void FS_InitMemory( void )
 	// add a path separator to the end of the basedir if it lacks one
 	if (fs_basedir[0] && fs_basedir[strlen(fs_basedir) - 1] != '/' && fs_basedir[strlen(fs_basedir) - 1] != '\\')
 		strncat(fs_basedir, "/", sizeof(fs_basedir));
+
+	FS_InitImagelib();
 }
 
 /*

@@ -66,17 +66,10 @@ uint *d_currentpal;
 bool q1palette_init = false;
 bool q2palette_init = false;
 
-void Image_GetQ2Palette( void )
+void Image_GetPalette( byte *pal, uint *d_table )
 {
 	int	i;
-	byte	rgba[4], *pal = palette_q2;
-
-	if(q2palette_init)
-	{
-		d_currentpal = d_8toQ2table;		
-		return;
-	}
-	q2palette_init = true;
+	byte	rgba[4];
 
 	// setup palette
 	for (i = 0; i < 256; i++)
@@ -85,38 +78,95 @@ void Image_GetQ2Palette( void )
 		rgba[3] = pal[i*3+0];
 		rgba[2] = pal[i*3+1];
 		rgba[1] = pal[i*3+2];
-		d_8toQ2table[i] = BuffBigLong( rgba );
+		d_table[i] = BuffBigLong( rgba );
 	}
+	d_currentpal = d_table;
+}
 
-	d_8toQ2table[255] &= LittleLong(0xffffff);// 255 is transparent
-	d_currentpal = d_8toQ2table;
+void Image_GetQ1Palette( void )
+{
+	if(!q1palette_init)
+	{
+		Image_GetPalette( palette_q1, d_8toQ1table );
+		d_8toQ1table[255] = 0; // 255 is transparent
+		q1palette_init = true;
+	}
+	else d_currentpal = d_8toQ1table;
+}
+
+void Image_GetQ2Palette( void )
+{
+	if(!q2palette_init)
+	{
+		Image_GetPalette( palette_q2, d_8toQ2table );
+		d_8toQ2table[255] &= LittleLong(0xffffff);
+		q2palette_init = true;
+	}
+	else d_currentpal = d_8toQ2table;
 }
 
 void Image_GetPalettePCX( byte *pal )
 {
-	byte	rgba[4];
-	int	i;
-
-	// palette setup
-	if(!pal)
+	if(pal)
 	{
-		// get internal palette
-		Image_GetQ2Palette();
+		Image_GetPalette( pal, d_8to24table );
+		d_currentpal = d_8to24table;
+	}
+	else Image_GetQ2Palette();          
+}
+
+/*
+============
+Image_Copy8bitRGBA
+
+NOTE: must call Image_GetQ2Palette or Image_GetQ1Palette
+before used
+============
+*/
+void Image_Copy8bitRGBA(const byte *in, byte *out, int pixels)
+{
+	int *iout = (int *)out;
+
+	if(!d_currentpal)
+	{
+		MsgDev(D_ERROR, "Image_Copy8bitRGBA: no palette set\n");
 		return;
 	}
 
-	for (i = 0; i < 256; i++)
+	while (pixels >= 8)
 	{
-		rgba[0] = 0xFF;
-		rgba[3] = pal[i*3+0];
-		rgba[2] = pal[i*3+1];
-		rgba[1] = pal[i*3+2];
-		d_8to24table[i] = BuffBigLong( rgba );
+		iout[0] = d_currentpal[in[0]];
+		iout[1] = d_currentpal[in[1]];
+		iout[2] = d_currentpal[in[2]];
+		iout[3] = d_currentpal[in[3]];
+		iout[4] = d_currentpal[in[4]];
+		iout[5] = d_currentpal[in[5]];
+		iout[6] = d_currentpal[in[6]];
+		iout[7] = d_currentpal[in[7]];
+		in += 8;
+		iout += 8;
+		pixels -= 8;
 	}
-
-	d_8to24table[255] &= LittleLong(0xffffff);// 255 is transparent
-	d_currentpal = d_8to24table;
+	if (pixels & 4)
+	{
+		iout[0] = d_currentpal[in[0]];
+		iout[1] = d_currentpal[in[1]];
+		iout[2] = d_currentpal[in[2]];
+		iout[3] = d_currentpal[in[3]];
+		in += 4;
+		iout += 4;
+	}
+	if (pixels & 2)
+	{
+		iout[0] = d_currentpal[in[0]];
+		iout[1] = d_currentpal[in[1]];
+		in += 2;
+		iout += 2;
+	}
+	if (pixels & 1)
+		iout[0] = d_currentpal[in[0]];
 }
+
 
 void Image_RoundDimensions(int *scaled_width, int *scaled_height)
 {
@@ -130,30 +180,25 @@ void Image_RoundDimensions(int *scaled_width, int *scaled_height)
 	*scaled_height = bound(1, height, 4096 );
 }
 
-bool Image_Resample(byte *mempool, rgbdata_t **image )
+byte *Image_Resample(uint *in, int inwidth, int inheight, int outwidth, int outheight)
 {
-	int	i, j;
-	uint	frac, fracstep;
-	uint	*inrow1, *inrow2;
-	int	outwidth, outheight;
-	uint	p1[4096], p2[4096];
-	byte	*pix1, *pix2, *pix3, *pix4;
-	uint	*scaled, *out;
-	rgbdata_t *pix = *image;
+	int		i, j;
+	uint		frac, fracstep;
+	uint		*inrow1, *inrow2;
+	byte		*pix1, *pix2, *pix3, *pix4;
+	uint		*out, *buf, p1[4096], p2[4096];
 
 	//check for buffers
-	if(!pix || !pix->buffer) return false;
-
-	outwidth = pix->width;
-	outheight = pix->height;
-	Image_RoundDimensions( &outwidth, &outheight ); //detect new size
+	if(!in) return NULL;
  	
 	// nothing to resample ?
-	if (pix->width == outwidth && pix->height == outheight)
-		return false;
-	out = scaled = (uint *)Mem_Alloc( mempool, outwidth * outheight * 4 );
+	if (inwidth == outwidth && inheight == outheight)
+		return (byte *)in;
 
-	fracstep = pix->width * 0x10000 / outwidth;
+	// malloc new buffer
+	out = buf = (uint *)Mem_Alloc( imagepool, outwidth * outheight * 4 );
+
+	fracstep = inwidth * 0x10000 / outwidth;
 	frac = fracstep>>2;
 
 	for( i = 0; i < outwidth; i++)
@@ -169,10 +214,10 @@ bool Image_Resample(byte *mempool, rgbdata_t **image )
 		frac += fracstep;
 	}
 
-	for (i = 0; i < outheight; i++, out += outwidth)
+	for (i = 0; i < outheight; i++, buf += outwidth)
 	{
-		inrow1 = (uint *)pix->buffer + pix->width * (int)((i + 0.25) * pix->height / outheight);
-		inrow2 = (uint *)pix->buffer + pix->width * (int)((i + 0.75) * pix->height / outheight);
+		inrow1 = in + inwidth * (int)((i + 0.25) * inheight / outheight);
+		inrow2 = in + inwidth * (int)((i + 0.75) * inheight / outheight);
 		frac = fracstep>>1;
 
 		for (j = 0; j < outwidth; j++)
@@ -181,22 +226,39 @@ bool Image_Resample(byte *mempool, rgbdata_t **image )
 			pix2 = (byte *)inrow1 + p2[j];
 			pix3 = (byte *)inrow2 + p1[j];
 			pix4 = (byte *)inrow2 + p2[j];
-			((byte *)(out+j))[0] = (pix1[0] + pix2[0] + pix3[0] + pix4[0])>>2;
-			((byte *)(out+j))[1] = (pix1[1] + pix2[1] + pix3[1] + pix4[1])>>2;
-			((byte *)(out+j))[2] = (pix1[2] + pix2[2] + pix3[2] + pix4[2])>>2;
-			((byte *)(out+j))[3] = (pix1[3] + pix2[3] + pix3[3] + pix4[3])>>2;
+			((byte *)(buf+j))[0] = (pix1[0] + pix2[0] + pix3[0] + pix4[0])>>2;
+			((byte *)(buf+j))[1] = (pix1[1] + pix2[1] + pix3[1] + pix4[1])>>2;
+			((byte *)(buf+j))[2] = (pix1[2] + pix2[2] + pix3[2] + pix4[2])>>2;
+			((byte *)(buf+j))[3] = (pix1[3] + pix2[3] + pix3[3] + pix4[3])>>2;
 		}
 	}
-
-	// put resampled image onto pix->buffer
-	Mem_Move( basepool, &pix->buffer, scaled, outwidth * outheight * 4 );
-	pix->width = outwidth, pix->height = outheight;
-
-	*image = pix;
-
-	return true;
+	return (byte *)out;
 }
 
+bool Image_Processing( const char *name, rgbdata_t **pix )
+{
+	int		w, h;
+	rgbdata_t		*image = *pix;
+	byte		*out;
+
+	//check for buffers
+	if(!image || !image->buffer) return false;
+
+	w = image->width;
+	h = image->height;
+	Image_RoundDimensions( &w, &h ); //detect new size
+
+	out = Image_Resample((uint *)image->buffer, image->width, image->height, w, h );
+	if(out != image->buffer)
+	{
+		Msg("Resampling %s from[%d x %d] to[%d x %d]\n", name, image->width, image->height, w, h );
+		Mem_Move( imagepool, &image->buffer, out, w * h * 4 );// update image->buffer
+		image->width = w, image->height = h;
+		*pix = image;
+		return true;
+	}
+	return false;
+}
 
 bool ConvertImagePixels ( byte *mempool, const char *name, byte parms )
 {
@@ -211,11 +273,12 @@ bool ConvertImagePixels ( byte *mempool, const char *name, byte parms )
 	FS_DefaultExtension( savename, ".tga" );// set new extension
 	w = image->width, h = image->height; 
 
-	if(Image_Resample( mempool, &image ))
-		Msg("Resampling %s from[%d x %d] to[%d x %d]\n", name, w, h, image->width, image->height );
+	if(FS_CheckParm("-resample"))
+		Image_Processing( name, &image );
 
 	FS_SaveImage( savename, image );// save as TGA
 	FS_FreeImage( image );
+	Msg("\n");
 
 	return true;
 }

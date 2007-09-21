@@ -159,106 +159,6 @@ bool LoadBMP( char *name, char *buffer, int filesize )
 }
 
 /*
-==============
-LoadWAL
-==============
-*/
-bool LoadWAL( char *name, char *buffer, int filesize )
-{
-	wal_t 	wal;
-	int	pixels, ofs, mipsize;
-	int	flags, value, contents; // wal additional parms
-
-	if (filesize < (int)sizeof(wal))
-	{
-		MsgWarn("LoadWAL: file (%s) have invalid size\n", name );
-		return false;
-	}
-	Mem_Copy(&wal, buffer, sizeof(wal));
-
-	flags = LittleLong(wal.flags);
-	value = LittleLong(wal.value);
-	image_width = LittleLong(wal.width);
-	image_height = LittleLong(wal.height);
-	ofs = LittleLong(wal.offsets[0]);
-	contents = LittleLong(wal.contents);
-	
-	if(!ImageValidSize( name )) return false;
-
-	pixels = image_width * image_height;
-	mipsize = (int)sizeof(wal) + ofs + pixels;
-	image_size = image_width * image_height * 4;// wall can't have alpha
-
-	if (pixels > 256 && filesize < mipsize)
-	{
-		// wal's width dimensions < 32 have invalid sizes.
-		MsgWarn("LoadWAL: file (%s) have invalid size\n", name );
-		return false;
-	}
-
-	image_rgba = (byte *)Mem_Alloc( imagepool, image_size );
-	image_num_layers = 1;
-	image_type = PF_RGBA_32;
-
-	Image_GetQ2Palette();// hardcoded
-	Image_Copy8bitRGBA( buffer + ofs, image_rgba,  pixels );
-
-	return true;
-}
-
-/*
-============
-LoadLMP
-============
-*/
-bool LoadLMP( char *name, char *buffer, int filesize )
-{
-	lmp_t	lmp;
-	byte	*fin;
-	int	i, pixels;
-
-	if (filesize < (int)sizeof(lmp))
-	{
-		MsgWarn("LoadLMP: file (%s) have invalid size\n", name );
-		return false;
-	}
-
-	fin = buffer;
-	Mem_Copy(&lmp, fin, sizeof(lmp));
-	fin += sizeof(lmp);
-
-	image_width = LittleLong(lmp.width);
-	image_height = LittleLong(lmp.height);
-
-	if(!ImageValidSize( name )) return false;         
-          image_size = image_width * image_height * 4;
-	pixels = image_width * image_height;
-	
-	if (filesize < (int)sizeof(lmp) + pixels)
-	{
-		MsgWarn("LoadLMP: file (%s) have invalid size\n", name );
-		return false;
-	}
-
-	image_rgba = (byte *)Mem_Alloc(imagepool, image_size );
-	image_num_layers = 1;
-	image_type = PF_RGBA_32;
-
-	// try to find transparent pixels
-	for(i = 0; i < pixels; i++)
-	{
-		if(fin[i] != 255) continue;
-		image_flags |= IMAGE_HAS_ALPHA;
-		break; // found			
-	}
-
-	Image_GetQ1Palette();// hardcoded
-	Image_Copy8bitRGBA( fin, image_rgba, pixels );
-
-	return true;
-}
-
-/*
 ============
 LoadPCX
 ============
@@ -266,9 +166,9 @@ LoadPCX
 bool LoadPCX( char *name, char *buffer, int filesize )
 {
 	pcx_t	pcx;
+	byte	*pix, *data, *palette, *fin, *enddata;
+	int	s, i, p, x, y, dataByte, runLength;
 	uint	*trans;
-	int	s, i, p, x, y, x2, dataByte;
-	byte	*pix, *pbuf, *palette, *fin, *enddata;
 
 	fin = buffer;
 	Mem_Copy(&pcx, fin, sizeof(pcx));
@@ -291,8 +191,8 @@ bool LoadPCX( char *name, char *buffer, int filesize )
 	pcx.bytes_per_line = LittleShort (pcx.bytes_per_line);
 	pcx.palette_type = LittleShort (pcx.palette_type);
 
-	image_width = pcx.xmax + 1 - pcx.xmin;
-	image_height = pcx.ymax + 1 - pcx.ymin;
+	image_width = pcx.xmax + 1;
+	image_height = pcx.ymax + 1;
 
 	if( pcx.bits_per_pixel != 8 || pcx.manufacturer != 0x0a || pcx.version != 5 || pcx.encoding != 1)
 	{
@@ -313,38 +213,34 @@ bool LoadPCX( char *name, char *buffer, int filesize )
 
 	s = image_width * image_height;
 	image_size = image_width * image_height * 4;
-	pbuf = (byte *)Mem_Alloc( imagepool, s );
+	pix = data = (byte *)Mem_Alloc( imagepool, s );
 	image_rgba = (byte *)Mem_Alloc( imagepool, image_size );
 	trans = (uint *)image_rgba;
 	enddata = palette;
 
-	for (y = 0; y < image_height && fin < enddata; y++)
+	for (y = 0; y <= pcx.ymax && fin < enddata; y++, pix += pcx.xmax + 1)
 	{
-		pix = pbuf + y * image_width;
-		for (x = 0; x < image_width && fin < enddata;)
+		for (x = 0; x <= pcx.xmax && fin < enddata; )
 		{
 			dataByte = *fin++;
-			if(dataByte >= 0xC0)
+			if((dataByte & 0xC0) == 0xC0)
 			{
 				if (fin >= enddata) break;
-				x2 = x + (dataByte & 0x3F);
+				runLength = dataByte & 0x3F;
 				dataByte = *fin++;
-				if (x2 > image_width) x2 = image_width; // technically an error
-				while(x < x2) pix[x++] = dataByte;
 			}
-			else pix[x++] = dataByte;
+			else runLength = 1;
+			while(runLength-- > 0) pix[x++] = dataByte;
 		}
-		// the number of bytes per line is always forced to an even number
-		fin += pcx.bytes_per_line - image_width;
-		while(x < image_width) pix[x++] = 0;
+
 	}
 
-	Image_GetPalettePCX( palette );
+	Image_GetPalettePCX( NULL );
 
 	// convert to rgba
 	for (i = 0; i < s; i++)
 	{
-		p = pbuf[i];
+		p = data[i];
 		trans[i] = d_currentpal[p];
 
 		if (p == 255)
@@ -354,12 +250,12 @@ bool LoadPCX( char *name, char *buffer, int filesize )
 			// transparent, so scan around for another color
 			// to avoid alpha fringes
 			// FIXME: do a full flood fill so mips work...
-			if (i > image_width && pbuf[i - image_width] != 255)
-				p = pbuf[i - image_width];
-			else if (i < s - image_width && pbuf[i + image_width] != 255)
-				p = pbuf[i + image_width];
-			else if (i > 0 && pbuf[i-1] != 255) p = pbuf[i-1];
-			else if (i < s-1 && pbuf[i+1] != 255) p = pbuf[i+1];
+			if (i > image_width && data[i - image_width] != 255)
+				p = data[i - image_width];
+			else if (i < s - image_width && data[i + image_width] != 255)
+				p = data[i + image_width];
+			else if (i > 0 && data[i-1] != 255) p = data[i-1];
+			else if (i < s-1 && data[i+1] != 255) p = data[i+1];
 			else p = 0;
 
 			// copy rgba components
@@ -369,7 +265,7 @@ bool LoadPCX( char *name, char *buffer, int filesize )
 		}
 	}
 
-	Free( pbuf ); // free compressed image
+	Free( data ); // free compressed image
 	return true;
 }
 
@@ -742,7 +638,7 @@ uint dds_get_linear_size( int width, int height, int depth, int rgbcount )
 	uint i, BlockSize = 0;
 	int block, bpp;
 
-	// right calcualte blocksize
+	//right calcualte blocksize
 	for(i = 0; i < PF_TOTALCOUNT; i++)
 	{
 		if(image_type == PixelFormatDescription[i].format)
@@ -1455,8 +1351,7 @@ bool LoadJPG(char *name, char *buffer, int filesize )
 	memset(&jpg_file, 0, sizeof(jpg_file));
 	jpg_file.buffer = buffer;
 
-	if(!jpeg_readmarkers()) 
-		return false; // it's not a jpg file, just skip it
+	if(!jpeg_readmarkers()) return false; // it's not a jpg file, just skip it
 
 	image_width = jpg_file.width;
 	image_height = jpg_file.height;
@@ -1491,15 +1386,11 @@ imageformat_t image_formats[] =
 	{"textures/%s%s.%s", "jpg", LoadJPG},
 	{"textures/%s%s.%s", "bmp", LoadBMP},
 	{"textures/%s%s.%s", "pcx", LoadPCX},
-	{"textures/%s%s.%s", "wal", LoadWAL},
-	{"textures/%s%s.%s", "lmp", LoadLMP},
 	{"%s%s.%s", "dds", LoadDDS},
 	{"%s%s.%s", "tga", LoadTGA},
 	{"%s%s.%s", "jpg", LoadJPG},
 	{"%s%s.%s", "bmp", LoadBMP},
 	{"%s%s.%s", "pcx", LoadPCX},
-	{"%s%s.%s", "wal", LoadWAL},
-	{"%s%s.%s", "lmp", LoadLMP},
 	{NULL, NULL}
 };
 
@@ -1744,8 +1635,8 @@ void FS_SaveImage(const char *filename, rgbdata_t *pix )
 			*out++ = in[2];
 			*out++ = in[1];
 			*out++ = in[0];
-			if(has_alpha) 
-				*out++ = in[3];
+
+			if(has_alpha) *out++ = in[3];
 		}
 	}
 	Msg("Writing %s[%d]\n", filename, has_alpha ? 32 : 24 );

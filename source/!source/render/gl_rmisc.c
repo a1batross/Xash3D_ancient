@@ -156,7 +156,7 @@ void GL_ScreenShot_f (void)
 	buffer[13] = vid.width>>8;
 	buffer[14] = vid.height&255;
 	buffer[15] = vid.height>>8;
-	buffer[16] = 24;// pixel size
+	buffer[16] = 24;		// pixel size
 
 	qglReadPixels (0, 0, vid.width, vid.height, GL_RGB, GL_UNSIGNED_BYTE, buffer + 18 ); 
 

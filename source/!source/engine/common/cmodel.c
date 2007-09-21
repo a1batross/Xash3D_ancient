@@ -1767,7 +1767,6 @@ cmodel_t *CM_StudioModel (char *name, byte *buffer)
 		VectorSet(out->mins, -32, -32, -32 );
 		VectorSet(out->maxs,  32,  32,  32 );
 	}
-	Msg("CM_StudioModel: %s mins[%g %g %g] maxs[%g %g %g] new loaded\n", out->name, out->mins[0], out->mins[1],out->mins[2],out->maxs[0],out->maxs[1],out->maxs[2]);
 	numsmodels++;
 	return out;
 }

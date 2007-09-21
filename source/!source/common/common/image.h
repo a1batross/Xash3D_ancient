@@ -15,28 +15,28 @@
 */
 typedef struct
 {
-	char id[2];		//bmfh.bfType
-	dword fileSize;		//bmfh.bfSize
-	dword reserved0;		//bmfh.bfReserved1 + bmfh.bfReserved2
-	dword bitmapDataOffset;	//bmfh.bfOffBits
-	dword bitmapHeaderSize;	//bmih.biSize
-	dword width;		//bmih.biWidth
-	dword height;		//bmih.biHeight
-	word planes;		//bmih.biPlanes
-	word bitsPerPixel;		//bmih.biBitCount
-	dword compression;		//bmih.biCompression
-	dword bitmapDataSize;	//bmih.biSizeImage
-	dword hRes;		//bmih.biXPelsPerMeter
-	dword vRes;		//bmih.biYPelsPerMeter
-	dword colors;		//bmih.biClrUsed
-	dword importantColors;	//bmih.biClrImportant
-	byte palette[256][4];	//RGBQUAD palette
+	char	id[2];		//bmfh.bfType
+	dword	fileSize;		//bmfh.bfSize
+	dword	reserved0;	//bmfh.bfReserved1 + bmfh.bfReserved2
+	dword	bitmapDataOffset;	//bmfh.bfOffBits
+	dword	bitmapHeaderSize;	//bmih.biSize
+	dword	width;		//bmih.biWidth
+	dword	height;		//bmih.biHeight
+	word	planes;		//bmih.biPlanes
+	word	bitsPerPixel;	//bmih.biBitCount
+	dword	compression;	//bmih.biCompression
+	dword	bitmapDataSize;	//bmih.biSizeImage
+	dword	hRes;		//bmih.biXPelsPerMeter
+	dword	vRes;		//bmih.biYPelsPerMeter
+	dword	colors;		//bmih.biClrUsed
+	dword	importantColors;	//bmih.biClrImportant
+	byte	palette[256][4];	//RGBQUAD palette
 } bmp_t;
 
 /*
 ========================================================================
 
-.PCX image format
+.PCX image format	(ZSoft Paintbrush)
 
 ========================================================================
 */
@@ -54,14 +54,43 @@ typedef struct
 	word	bytes_per_line;
 	word	palette_type;
 	char	filler[58];
-	byte	data; // unbounded
 } pcx_t;
-
 
 /*
 ========================================================================
 
-.TGA image format
+.WAL image format	(Wally textures)
+
+========================================================================
+*/
+typedef struct wal_s
+{
+	char	name[32];
+	uint	width, height;
+	uint	offsets[4];	// four mip maps stored
+	char	animname[32];	// next frame in animation chain
+	int	flags;
+	int	contents;
+	int	value;
+} wal_t;
+
+/*
+========================================================================
+
+.LMP image format	(Quake1 lumps)
+
+========================================================================
+*/
+typedef struct lmp_s
+{
+	uint	width;
+	uint	height;
+} lmp_t;
+
+/*
+========================================================================
+
+.TGA image format	(Truevision Targa)
 
 ========================================================================
 */
@@ -231,7 +260,17 @@ typedef struct jpg_s
 
 static jpg_t jpg_file;
 
+// image lib utilites
+void FS_InitImagelib( void );
+void FS_FreeImagelib( void );
+
+extern byte *imagepool;
 extern uint *d_currentpal;
+void Image_GetQ1Palette( void );
+void Image_GetQ2Palette( void );
 void Image_GetPalettePCX( byte *pal );
+void Image_Copy8bitRGBA(const byte *in, byte *out, int pixels);
+void Image_RoundDimensions(int *scaled_width, int *scaled_height);
+byte *Image_Resample(uint *in, int inwidth, int inheight, int outwidth, int outheight);
 
 #endif//IMAGE_H
