@@ -182,8 +182,7 @@ typedef struct image_s
 	struct msurface_s	*texturechain;		// for sort-by-texture world drawing
 	int		texnum[6];		// gl texture binding
 	bool 		paletted;
-
-	//new stuff starts here
+	int		texorder[6];		// drawing order pattern
 };
 
 #define	TEXNUM_LIGHTMAPS	1024

@@ -5,6 +5,7 @@
 
 #include "platform.h"
 #include "utils.h"
+#include "archive.h"
 
 //global image variables
 int image_width, image_height;
@@ -24,7 +25,8 @@ byte *image_rgba;		// image pointer (see image_type for details)
 int cubemap_width, cubemap_height;
 int cubemap_num_sides;	// how mach sides is loaded 
 byte *image_cubemap;	// cubemap pack
-
+uint cubemap_image_type;	// shared image type
+char *suf[6] = {"ft", "bk", "rt", "lf", "up", "dn"};
 
 bool ImageValidSize( char *name )
 {
@@ -345,28 +347,15 @@ bool LoadPCX( char *name, char *buffer, int filesize )
 	for (i = 0; i < s; i++)
 	{
 		p = pbuf[i];
-		trans[i] = d_currentpal[p];
-
 		if (p == 255)
 		{
 			image_flags |= IMAGE_HAS_ALPHA; // found alpha channel
-
-			// transparent, so scan around for another color
-			// to avoid alpha fringes
-			// FIXME: do a full flood fill so mips work...
-			if (i > image_width && pbuf[i - image_width] != 255)
-				p = pbuf[i - image_width];
-			else if (i < s - image_width && pbuf[i + image_width] != 255)
-				p = pbuf[i + image_width];
-			else if (i > 0 && pbuf[i-1] != 255) p = pbuf[i-1];
-			else if (i < s-1 && pbuf[i+1] != 255) p = pbuf[i+1];
-			else p = 0;
-
-			// copy rgba components
-			((byte *)&trans[i])[0] = ((byte *)&d_currentpal[p])[0];
-			((byte *)&trans[i])[1] = ((byte *)&d_currentpal[p])[1];
-			((byte *)&trans[i])[2] = ((byte *)&d_currentpal[p])[2];
+			((byte *)&trans[i])[0] = ((byte *)&d_currentpal[0])[0];
+			((byte *)&trans[i])[1] = ((byte *)&d_currentpal[0])[1];
+			((byte *)&trans[i])[2] = ((byte *)&d_currentpal[0])[2];
+			((byte *)&trans[i])[3] = ((byte *)&d_currentpal[p])[3];
 		}
+		else trans[i] = d_currentpal[p];
 	}
 
 	Free( pbuf ); // free compressed image
@@ -745,10 +734,10 @@ uint dds_get_linear_size( int width, int height, int depth, int rgbcount )
 	// right calcualte blocksize
 	for(i = 0; i < PF_TOTALCOUNT; i++)
 	{
-		if(image_type == PixelFormatDescription[i].format)
+		if(image_type == PFDesc[i].format)
 		{
-			block = PixelFormatDescription[i].block;
-			bpp = PixelFormatDescription[i].bpp;
+			block = PFDesc[i].block;
+			bpp = PFDesc[i].bpp;
 			break;
 		} 
 	}
@@ -813,9 +802,9 @@ void dds_get_pixelformat( dds_t *hdr )
 	}
 
 	// setup additional flags
-	if( hdr->dsCaps.dwCaps1 & DDS_COMPLEX )
+	if( hdr->dsCaps.dwCaps1 & DDS_COMPLEX && hdr->dsCaps.dwCaps2 & DDS_CUBEMAP)
 	{
-		image_flags |= (hdr->dsCaps.dwCaps2 & DDS_CUBEMAP) ? IMAGE_CUBEMAP : 0;
+		image_flags |= IMAGE_CUBEMAP | IMAGE_CUBEMAP_FLIP;
 	}
 
 	if(hdr->dsPixelFormat.dwFlags & DDS_ALPHAPIXELS)
@@ -1476,15 +1465,14 @@ bool LoadJPG(char *name, char *buffer, int filesize )
 	return true;
 }
 
-typedef struct imageformat_s
+typedef struct loadformat_s
 {
 	char *formatstring;
 	char *ext;
 	bool (*loadfunc)(char *name, char *buffer, int filesize);
-}
-imageformat_t;
+} loadformat_t;
 
-imageformat_t image_formats[] =
+loadformat_t load_formats[] =
 {
 	{"textures/%s%s.%s", "dds", LoadDDS},
 	{"textures/%s%s.%s", "tga", LoadTGA},
@@ -1508,7 +1496,7 @@ rgbdata_t *ImagePack( void )
 	rgbdata_t *pack = Mem_Alloc( imagepool, sizeof(rgbdata_t));
 
 	if(image_cubemap && cubemap_num_sides != 6) // this neved be happens, just in case
-		Sys_Error("ImagePack: inconsistent cubemap pack\n" );
+		Sys_Error("ImagePack: inconsistent cubemap pack %d\n", cubemap_num_sides );
 
 	if(image_cubemap) 
 	{
@@ -1516,31 +1504,40 @@ rgbdata_t *ImagePack( void )
 		pack->buffer = image_cubemap;
 		pack->width = cubemap_width;
 		pack->height = cubemap_height;
+		pack->type = cubemap_image_type;
 	}
 	else 
 	{
 		pack->buffer = image_rgba;
 		pack->width = image_width;
 		pack->height = image_height;
+		pack->type = image_type;
 	}
 
 	pack->numLayers = image_num_layers;
 	pack->numMips = image_num_mips;
 	pack->bitsCount = image_bits_count;
-	pack->type = image_type;
 	pack->flags = image_flags;
 	pack->palette = image_palette;
 
 	return pack;
 }
 
-void FS_AddImageToPack( const char *name )
+bool FS_AddImageToPack( const char *name )
 {
 	byte	*resampled;
 	
 	// first image have suffix "ft" and set average size for all cubemap sides!
-	if(!image_cubemap){ cubemap_width = image_width, cubemap_height = image_height; }
+	if(!image_cubemap)
+	{
+		cubemap_width = image_width;
+		cubemap_height = image_height;
+		cubemap_image_type = image_type;
+	}
 	image_size = cubemap_width * cubemap_height * 4; // keep constant size, render.dll expecting it
+          
+	// mixing dds format with any existing ?
+	if(image_type != cubemap_image_type) return false;
 
 	// resampling image if needed
 	resampled = Image_Resample((uint *)image_rgba, image_width, image_height, cubemap_width, cubemap_height);
@@ -1556,6 +1553,8 @@ void FS_AddImageToPack( const char *name )
 	Free( image_rgba );		// memmove aren't help us
 	image_ptr += image_size; 	// move to next
 	cubemap_num_sides++;	// sides counter
+
+	return true;
 }
 
 /*
@@ -1567,14 +1566,16 @@ loading and unpack to rgba any known image
 */
 rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 {
-	imageformat_t	*format;
+	loadformat_t	*format;
           const char	*ext = FS_FileExtension( filename );
 	char		path[128], loadname[128], texname[128];
 	bool		anyformat = !stricmp(ext, "") ? true : false;
-	char		*suf[6] = {"ft", "bk", "rt", "lf", "up", "dn"};
 	int		i, filesize = 0;
 	byte		*f;
 
+#if 0     // don't try to be very clever
+	if(!buffer || !buffsize) buffer = (char *)florr1_2_jpg, buffsize = sizeof(florr1_2_jpg);
+#endif
 	strncpy( loadname, filename, sizeof(loadname)-1);
 	FS_StripExtension( loadname ); //remove extension if needed
 
@@ -1582,7 +1583,7 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 	if(!anyformat) MsgWarn( "Warning: %s will be loading only with ext .%s\n", loadname, ext );
 	
 	// now try all the formats in the selected list
-	for (format = image_formats; format->formatstring; format++)
+	for (format = load_formats; format->formatstring; format++)
 	{
 		if(anyformat || !stricmp(ext, format->ext ))
 		{
@@ -1601,7 +1602,7 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 	// maybe it skybox or cubemap ?
 	for(i = 0; i < 6; i++)
 	{
-		for (format = image_formats; format->formatstring; format++)
+		for (format = load_formats; format->formatstring; format++)
 		{
 			if(anyformat || !stricmp(ext, format->ext ))
 			{
@@ -1612,24 +1613,24 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 					// this name will be used only for tell user about problems 
 					FS_FileBase( path, texname );
 					if( format->loadfunc(texname, f, filesize ))
-						FS_AddImageToPack(va("%s%s.%s", loadname, suf[i], format->ext));
+					{
+						if(FS_AddImageToPack(va("%s%s.%s", loadname, suf[i], format->ext)))
+							break; // loaded
+					}
 				}
 			}
 		}
 		if(cubemap_num_sides != i + 1) //check side
 		{
-			if(!image_cubemap) // first side not found
-			{
-				// set default dimensions
-				cubemap_width = cubemap_height = 256;
-				image_size = cubemap_width * cubemap_height * 4;	
-			}
+			// first side not found, probably it's not cubemap
+			// it contain info about image_type and dimensions, don't generate black cubemaps 
+			if(!image_cubemap) break;
 			MsgDev(D_LOAD, "FS_LoadImage: couldn't load (%s%s.%s), create balck image\n",loadname,suf[i],ext );
 
 			// Mem_Alloc already filled memblock with 0x00, no need to do it again
 			image_cubemap = Mem_Realloc( imagepool, image_cubemap, image_ptr + image_size );
-			image_ptr += image_size;	// move to next
-			cubemap_num_sides++;	// merge counter
+			image_ptr += image_size; // move to next
+			cubemap_num_sides++; // merge counter
 		}
 	}
 
@@ -1638,7 +1639,7 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 	// try to load image from const buffer (e.g. const byte blank_frame )
 	strncpy( texname, filename, sizeof(texname) - 1);
 
-	for (format = image_formats; format->formatstring; format++)
+	for (format = load_formats; format->formatstring; format++)
 	{
 		if(anyformat || !stricmp(ext, format->ext ))
 		{
@@ -1688,6 +1689,80 @@ void FS_FreeImage( rgbdata_t *pack )
 }
 
 /*
+=============
+SaveTGA
+=============
+*/
+bool SaveTGA( const char *filename, byte *data, int width, int height, bool alpha, int imagetype )
+{
+	int		y, outsize, pixel_size;
+	const byte	*bufend, *in;
+	byte		*buffer, *out;
+	const char	*comment = "Generated by Xash ImageLib\0";
+
+	if(alpha) outsize = width * height * 4 + 18 + strlen(comment);
+	else outsize = width * height * 3 + 18 + strlen(comment);
+
+	buffer = (byte *)Z_Malloc( outsize );
+	memset (buffer, 0, 18);
+
+	// prepare header
+	buffer[0] = strlen(comment); // tga comment length
+	buffer[2] = 2; // uncompressed type
+	buffer[12] = (width >> 0) & 0xFF;
+	buffer[13] = (width >> 8) & 0xFF;
+	buffer[14] = (height >> 0) & 0xFF;
+	buffer[15] = (height >> 8) & 0xFF;
+	buffer[16] = alpha ? 32 : 24;
+	buffer[17] = alpha ? 8 : 0; // 8 bits of alpha
+	strncpy(buffer + 18, comment, strlen(comment)); 
+	out = buffer + 18 + strlen(comment);
+
+	// get image description
+	switch( image_type )
+	{
+	case PF_RGB_24: pixel_size = 3; break;
+	case PF_RGBA_32: pixel_size = 4; break;
+	default:
+		MsgWarn("SaveTGA: unsupported image type %s\n", PFDesc[image_type - 1].name );
+		return false;
+	}	
+
+	// swap rgba to bgra and flip upside down
+	for (y = height - 1; y >= 0; y--)
+	{
+		in = data + y * width * pixel_size;
+		bufend = in + width * pixel_size;
+		for ( ;in < bufend; in += pixel_size)
+		{
+			*out++ = in[2];
+			*out++ = in[1];
+			*out++ = in[0];
+			if(alpha) *out++ = in[3];
+		}
+	}
+
+	Msg("Writing %s[%d]\n", filename, alpha ? 32 : 24 );
+	FS_WriteFile (filename, buffer, outsize );
+
+	Free( buffer );
+	return true;
+} 
+
+typedef struct saveformat_s
+{
+	char *formatstring;
+	char *ext;
+	bool (*savefunc)(char *filename, byte *data, int width, int height, bool alpha, int imagetype );
+} saveformat_t;
+
+saveformat_t save_formats[] =
+{
+	{"%s%s.%s", "tga", SaveTGA},
+	{NULL, NULL}
+};
+
+/*
 ================
 FS_SaveImage
 
@@ -1696,61 +1771,26 @@ writes image as tga RGBA format
 */
 void FS_SaveImage(const char *filename, rgbdata_t *pix )
 {
-	int		y, width, height;
-	byte		*buffer, *out;
-	const byte	*in, *end, *data;
-	int		pixel_size, outsize;
 	bool		has_alpha = false;
+	int		i, numsides = 1;
+	byte		*data;
+	char		savename[256];
 
 	if(!pix || !pix->buffer) return;
 
-	width = pix->width;
-	height = pix->height;
 	data = pix->buffer;
+	FS_StripExtension( (char *)filename );
+	if(pix->flags & IMAGE_HAS_ALPHA) has_alpha = true;
+	if(pix->flags & IMAGE_CUBEMAP) numsides = 6;
 
-	// detect input parms
-	if(pix->type == PF_RGB_24) pixel_size = 3;
-	else if (pix->type == PF_RGBA_32) pixel_size = 4;
-	else
+	for(i = 0; i < numsides; i++)
 	{
-		MsgWarn("FS_SaveImage: %s have unsupported type for write, ignored\n", filename );
-		return;
+		if(numsides > 1) sprintf(savename, "%s%s.tga", filename, suf[i] );
+		else sprintf(savename, "%s.tga", filename );
+
+		SaveTGA( savename, data, pix->width, pix->height, has_alpha, pix->type );
+		data += pix->width * pix->height * PFDesc[pix->type - 1].bpp;
 	}
-	if(pix->flags & IMAGE_HAS_ALPHA)
-		has_alpha = true;
-
-	if(has_alpha) outsize = width * height * 4 + 18;
-	else outsize = width * height * 3 + 18;
-
-	buffer = (byte *)Z_Malloc( outsize );
-	memset (buffer, 0, 18);
-
-	buffer[2] = 2; // uncompressed type
-	buffer[12] = (width >> 0) & 0xFF;
-	buffer[13] = (width >> 8) & 0xFF;
-	buffer[14] = (height >> 0) & 0xFF;
-	buffer[15] = (height >> 8) & 0xFF;
-	buffer[16] = has_alpha ? 32 : 24;
-	buffer[17] = has_alpha ? 8 : 0; // 8 bits of alpha
-	out = buffer + 18;
-
-	// swap rgba to bgra and flip upside down
-	for (y = height - 1; y >= 0; y--)
-	{
-		in = data + y * width * pixel_size;
-		end = in + width * pixel_size;
-		for ( ;in < end; in += pixel_size)
-		{
-			*out++ = in[2];
-			*out++ = in[1];
-			*out++ = in[0];
-			if(has_alpha) 
-				*out++ = in[3];
-		}
-	}
-	Msg("Writing %s[%d]\n", filename, has_alpha ? 32 : 24 );
-	FS_WriteFile (filename, buffer, outsize );
-	Free( buffer );
 }
 
 void FS_InitImagelib( void )

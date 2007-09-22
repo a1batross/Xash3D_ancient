@@ -539,14 +539,14 @@ void MakeSkyVec (float s, float t, int axis)
 R_DrawSkyBox
 ==============
 */
-int skytexorder[6] = {4, 5, 1, 0, 2, 3}; //var. 1
+ //var. 1
 
 uint RemapSides[6] = 
 {
 	0,	// ft
 	2,	// bk
-	4,	// rt
-	5,	// lf
+	4,	// lf
+	5,	// rt
 	1,	// up
 	3,	// dn
 };
@@ -555,12 +555,6 @@ void R_DrawSkyBox (void)
 {
 	int		i;
 
-#if 0
-	qglEnable (GL_BLEND);
-	GL_TexEnv( GL_MODULATE );
-	qglColor4f (1,1,1,0.5);
-	qglDisable (GL_DEPTH_TEST);
-#endif
 	if (skyrotate)
 	{	// check for no sky at all
 		for (i = 0; i < 6; i++)
@@ -587,7 +581,7 @@ void R_DrawSkyBox (void)
 		|| skymins[1][i] >= skymaxs[1][i])
 			continue;
 
-		GL_Bind (sky_image->texnum[skytexorder[i]]);
+		GL_Bind (sky_image->texnum[sky_image->texorder[i]]);
 
 		qglBegin (GL_QUADS);
 		MakeSkyVec (skymins[0][i], skymins[1][i], i);
@@ -597,13 +591,6 @@ void R_DrawSkyBox (void)
 		qglEnd ();
 	}
 	qglPopMatrix ();
-
-#if 0
-	glDisable (GL_BLEND);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-	glColor4f (1,1,1,0.5);
-	glEnable (GL_DEPTH_TEST);
-#endif
 }
 
 /*

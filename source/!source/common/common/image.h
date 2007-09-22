@@ -94,7 +94,7 @@ typedef struct lmp_s
 
 ========================================================================
 */
-typedef struct
+typedef struct tga_s
 {
 	byte	id_length;
 	byte	colormap_type;

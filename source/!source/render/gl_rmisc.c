@@ -81,7 +81,7 @@ void R_InitParticleTexture (void)
 			data[y][x][3] = 255;
 		}
 	}
-	r_tex.flags &= ~IMAGE_HAS_ALPHA;//notexture don't have alpha
+	r_tex.flags &= ~IMAGE_HAS_ALPHA;// notexture don't have alpha
 	r_notexture = R_LoadImage("***r_notexture***", &r_tex, it_wall );
 
 	R_Bloom_InitTextures();

@@ -101,13 +101,13 @@ typedef struct
 	int	block;	// blocksize < 0 needs alternate calc
 } bpc_desc_t;
 
-static bpc_desc_t PixelFormatDescription[] =
+static bpc_desc_t PFDesc[] =
 {
 {PF_INDEXED_24,	"pal 24",	3,  1,  0 },
 {PF_INDEXED_32,	"pal 32",	4,  1,  0 },
-{PF_RGBA_32,	"RGBA",	4,  1, -4 },
-{PF_ARGB_32,	"ARGB",	4,  1, -4 },
-{PF_RGB_24,	"RGB",	3,  1, -3 },
+{PF_RGBA_32,	"RGBA 32",4,  1, -4 },
+{PF_ARGB_32,	"ARGB 32",4,  1, -4 },
+{PF_RGB_24,	"RGB 24",	3,  1, -3 },
 {PF_DXT1,		"DXT1",	4,  1,  8 },
 {PF_DXT2,		"DXT2",	4,  1, 16 },
 {PF_DXT3,		"DXT3",	4,  1, 16 },
@@ -119,7 +119,7 @@ static bpc_desc_t PixelFormatDescription[] =
 {PF_LUMINANCE_16,	"LUM 16",	2,  2, -2 },
 {PF_LUMINANCE_ALPHA,"LUM A",	2,  1, -2 },
 {PF_RXGB,		"RXGB",	3,  1, 16 },
-{PF_ABGR_64,	"ABGR",	4,  2, -8 },
+{PF_ABGR_64,	"ABGR 64",4,  2, -8 },
 {PF_ABGR_128F,	"ABGR128",4,  4, -16},
 {PF_PROCEDURE_TEX,	"system",	4,  1, -32},
 {PF_UNKNOWN,	"",	0,  0,  0 },
@@ -129,6 +129,7 @@ static bpc_desc_t PixelFormatDescription[] =
 #define IMAGE_HAS_ALPHA	0x00000002
 #define IMAGE_PREMULT	0x00000004	// indices who need in additional premultiply
 #define IMAGE_GEN_MIPS	0x00000008	// must generate mips
+#define IMAGE_CUBEMAP_FLIP	0x00000010	// it's a cubemap with flipped sides( dds pack )
 
 #define CUBEMAP_POSITIVEX	0x00000400L
 #define CUBEMAP_NEGATIVEX	0x00000800L

@@ -110,6 +110,7 @@ void Image_GetPalettePCX( byte *pal )
 	if(pal)
 	{
 		Image_GetPalette( pal, d_8to24table );
+		d_8to24table[255] &= LittleLong(0xffffff);
 		d_currentpal = d_8to24table;
 	}
 	else Image_GetQ2Palette();          
@@ -190,7 +191,6 @@ byte *Image_Resample(uint *in, int inwidth, int inheight, int outwidth, int outh
 
 	//check for buffers
 	if(!in) return NULL;
- 	
 	// nothing to resample ?
 	if (inwidth == outwidth && inheight == outheight)
 		return (byte *)in;

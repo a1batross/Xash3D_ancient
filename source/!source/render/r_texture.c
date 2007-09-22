@@ -126,9 +126,9 @@ void R_SetPixelFormat( int width, int height, int depth )
 	size_t	file_size;
 	int	BlockSize;
 	
-	BlockSize = PixelFormatDescription[image_desc.format].block;
-	image_desc.bpp = PixelFormatDescription[image_desc.format].bpp;
-	image_desc.bpc = PixelFormatDescription[image_desc.format].bpc;
+	BlockSize = PFDesc[image_desc.format].block;
+	image_desc.bpp = PFDesc[image_desc.format].bpp;
+	image_desc.bpc = PFDesc[image_desc.format].bpc;
 
 	image_desc.numLayers = depth;
 	image_desc.width = width;
@@ -176,12 +176,12 @@ void R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 	memset( &image_desc, 0, sizeof(image_desc));
 	for(i = 0; i < PF_TOTALCOUNT; i++)
 	{
-		if(pic->type == PixelFormatDescription[i].format)
+		if(pic->type == PFDesc[i].format)
 		{
 			image_desc.format = i;//now correct
-			BlockSize = PixelFormatDescription[i].block;
-			image_desc.bpp = PixelFormatDescription[i].bpp;
-			image_desc.bpc = PixelFormatDescription[i].bpc;
+			BlockSize = PFDesc[i].block;
+			image_desc.bpp = PFDesc[i].bpp;
+			image_desc.bpc = PFDesc[i].bpc;
 			break;
 		} 
 	} 		
@@ -971,7 +971,7 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 		}
 		break;
 	default:
-		MsgDev(D_WARN, "qrsCompressedTexImage2D: invalid compression type: %s\n", PixelFormatDescription[internalformat].name );
+		MsgDev(D_WARN, "qrsCompressedTexImage2D: invalid compression type: %s\n", PFDesc[internalformat].name );
 		return false;
 	}
 
@@ -990,7 +990,7 @@ bool CompressedTexImage2D( uint target, int level, int intformat, uint width, ui
 {
 	bool use_gl_extension = true;
 	uint dxtformat = 0;
-	uint pixformat = PixelFormatDescription[intformat].format;
+	uint pixformat = PFDesc[intformat].format;
 
 	if(gl_config.arb_compressed_teximage)
 	{
@@ -1087,7 +1087,7 @@ bool qrsDecompressImageATI( uint target, int level, int internalformat, uint wid
 	w = width;
 	h = height;
 
-	switch( PixelFormatDescription[internalformat].format )
+	switch( PFDesc[internalformat].format )
 	{
 	case PF_ATI1N:
 		for (z = 0; z < image_desc.numLayers; z++)
@@ -1237,7 +1237,7 @@ bool qrsDecompressImageATI( uint target, int level, int internalformat, uint wid
 		}
 		break;
 	default:
-		MsgDev(D_WARN, "qrsDecompressImageATI: invalid compression type: %s\n", PixelFormatDescription[internalformat].name );
+		MsgDev(D_WARN, "qrsDecompressImageATI: invalid compression type: %s\n", PFDesc[internalformat].name );
 		return false;
 	}
 
@@ -1423,13 +1423,39 @@ bool R_LoadImageARGB( byte *data )
 	return true;
 }
 
+/*
+===============
+R_LoadImageBGRA
+===============
+*/
+bool R_LoadImageBGRA( byte *data )
+{
+	byte	*trans = imagebuffer;
+	int	i, s = image_desc.width * image_desc.height;
+
+	if (s&3)
+	{
+		MsgDev(D_ERROR, "R_LoadImageBGRA: s&3\n");
+		return false;
+	}
+
+	// swap green and red
+	for (i = 0; i < s; i++ )
+	{
+		trans[(i<<2)+0] = data[i*4+2];
+		trans[(i<<2)+1] = data[i*4+1];
+		trans[(i<<2)+2] = data[i*4+0];
+		trans[(i<<2)+3] = data[i*4+3];
+	}
+	return R_LoadTexImage((uint*)trans );
+}
 
 /*
 ===============
-R_LoadImage32
+R_LoadImageRGBA
 ===============
 */
-bool R_LoadImage32 (byte *data )
+bool R_LoadImageRGBA (byte *data )
 {
 	byte	*trans = imagebuffer;
 	int	i, s = image_desc.width * image_desc.height;
@@ -1439,7 +1465,7 @@ bool R_LoadImage32 (byte *data )
 
 	if (s&3)
 	{
-		MsgDev(D_ERROR, "R_LoadImage32: s&3\n");
+		MsgDev(D_ERROR, "R_LoadImageRGBA: s&3\n");
 		return false;
 	}
 	for (i = 0; i < s; i++ )
@@ -1454,10 +1480,10 @@ bool R_LoadImage32 (byte *data )
 
 /*
 ===============
-R_LoadImage24
+R_LoadImageRGB
 ===============
 */
-bool R_LoadImage24(byte *data )
+bool R_LoadImageRGB(byte *data )
 {
 	byte	*trans = imagebuffer;
 	int	i, s = image_desc.width * image_desc.height;
@@ -1466,7 +1492,7 @@ bool R_LoadImage24(byte *data )
 
 	if (s&3) 
 	{
-		MsgDev(D_ERROR, "R_LoadImage24: s&3\n");
+		MsgDev(D_ERROR, "R_LoadImageRGB: s&3\n");
 		return false;
 	}
 
@@ -1574,6 +1600,8 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
           bool	iResult = true;
 	int	i, numsides = 1, width, height;
 	uint	offset = 0;
+	int	skyorder_q2[6] = { 2, 3, 1, 0, 4, 5, }; // Quake, Half-Life skybox ordering
+	int	skyorder_ms[6] = { 4, 5, 1, 0, 2, 3  }; // Microsoft DDS ordering (reverse)
 	byte	*buf;
 	
 	//nothing to load
@@ -1600,7 +1628,14 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
 	strncpy (image->name, name, sizeof(image->name));
 	image->registration_sequence = registration_sequence;
 
-	if(pic->flags & IMAGE_CUBEMAP) numsides = 6;
+	if(pic->flags & IMAGE_CUBEMAP) 
+	{
+		numsides = 6;
+		if(pic->flags & IMAGE_CUBEMAP_FLIP)
+			memcpy(image->texorder, skyorder_ms, sizeof(int) * 6 );
+		else memcpy(image->texorder, skyorder_q2, sizeof(int) * 6 );
+	}
+	else memset(image->texorder, 0, sizeof(int) * 6 );
 
 	image->width = width = pic->width;
 	image->height = height = pic->height;
@@ -1619,16 +1654,16 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
 		R_SetPixelFormat( image_desc.width, image_desc.height, image_desc.numLayers );
 		offset = image_desc.SizeOfFile;// move pointer
 		
-		MsgDev(D_LOAD, "loading %s [%s] \n", name, PixelFormatDescription[image_desc.format].name );
+		MsgDev(D_LOAD, "loading %s [%s] \n", name, PFDesc[image_desc.format].name );
 
 		switch(pic->type)
 		{
-		case PF_INDEXED_24:	iResult = R_LoadImage24( buf ); break;
-		case PF_INDEXED_32: iResult = R_LoadImage32( buf ); break;
+		case PF_INDEXED_24:	iResult = R_LoadImageRGB( buf ); break;
+		case PF_INDEXED_32: iResult = R_LoadImageRGBA( buf ); break;
 		case PF_PROCEDURE_TEX:
-		case PF_RGBA_32:
-		case PF_ABGR_64: iResult = R_LoadTexImage((uint*)buf ); break;	
-		case PF_RGB_24: iResult = R_LoadImage24( buf ); break;
+		case PF_RGBA_32: iResult = R_LoadTexImage((uint*)buf ); break;
+		case PF_ABGR_64: iResult = R_LoadImageBGRA( buf ); break;
+		case PF_RGB_24: iResult = R_LoadImageRGB( buf ); break;
 		case PF_LUMINANCE:
 		case PF_LUMINANCE_16:
 		case PF_LUMINANCE_ALPHA:
