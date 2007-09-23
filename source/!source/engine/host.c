@@ -252,17 +252,18 @@ void Host_Main( void )
 	oldtime = host.realtime;
 
 	// main window message loop
-	while (1)
+	while (host.type != HOST_OFFLINE)
 	{
 		// if at a full screen console, don't update unless needed
-		if (Minimized || (dedicated && dedicated->value) )
+		if (Minimized || host.type == HOST_DEDICATED )
 		{
 			Sys_Sleep (1);
 		}
 
 		while (PeekMessage (&msg, NULL, 0, 0, PM_NOREMOVE))
 		{
-			if (!GetMessage (&msg, NULL, 0, 0)) Sys_Quit ();
+			if(!GetMessage (&msg, NULL, 0, 0)) 
+				host.type = HOST_OFFLINE;
 			host.sv_timer = msg.time;
 			TranslateMessage (&msg);
    			DispatchMessage (&msg);
@@ -278,7 +279,6 @@ void Host_Main( void )
 		Host_Frame (time); // engine frame
 		oldtime = newtime;
 	}
-
 	host.state = HOST_SHUTDOWN;
 }
 
@@ -292,6 +292,7 @@ void Host_Free (void)
 {
 	if(host.state != HOST_ERROR)
 	{
+		host.state = HOST_SHUTDOWN;
 		SV_Shutdown ("Server shutdown\n", false);
 		CL_Shutdown ();
 	}
@@ -332,6 +333,7 @@ void Host_Error( const char *error, ... )
 
 	recursive = false;
 	Host_AbortCurrentFrame();
+	host.state = HOST_ERROR;
 }
 
 void Host_Error_f( void )

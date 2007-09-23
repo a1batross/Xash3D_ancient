@@ -106,7 +106,7 @@ void R_Bloom_InitBackUpTexture( int width, int height )
 	data = Z_Malloc( width * height * 4 );
 	r_bloom.width = width;
 	r_bloom.height = height;
-	r_bloom.type = PF_PROCEDURE_TEX;
+	r_bloom.type = PF_RGBA_GN;
 	r_bloom.flags = 0;
 	r_bloom.numMips = 1;
 	r_bloom.palette = NULL;
@@ -154,7 +154,7 @@ void R_Bloom_InitEffectTexture( void )
 
 	r_bloomfx.width = BLOOM_SIZE;
 	r_bloomfx.height = BLOOM_SIZE;
-	r_bloomfx.type = PF_PROCEDURE_TEX;
+	r_bloomfx.type = PF_RGBA_GN;
 	r_bloomfx.flags = 0;
 	r_bloomfx.numMips = 1;
 	r_bloomfx.palette = NULL;
@@ -186,7 +186,7 @@ void R_Bloom_InitTextures( void )
 
 	r_bloomscr.width = screen_texture_width;
 	r_bloomscr.height = screen_texture_height;
-	r_bloomscr.type = PF_PROCEDURE_TEX;
+	r_bloomscr.type = PF_RGBA_GN;
 	r_bloomscr.flags = 0;
 	r_bloomscr.palette = NULL;
 	r_bloomscr.buffer = (byte *)data;
@@ -206,7 +206,7 @@ void R_Bloom_InitTextures( void )
 		data = Z_Malloc( r_screendownsamplingtexture_size * r_screendownsamplingtexture_size * 4 );
 		r_downsample.width = r_screendownsamplingtexture_size;
 		r_downsample.height = r_screendownsamplingtexture_size;
-		r_downsample.type = PF_PROCEDURE_TEX;
+		r_downsample.type = PF_RGBA_GN;
 		r_downsample.flags = 0;
 		r_downsample.palette = NULL;
 		r_downsample.buffer = (byte *)data;

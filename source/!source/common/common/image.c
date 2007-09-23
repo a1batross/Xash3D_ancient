@@ -761,6 +761,9 @@ void dds_get_pixelformat( dds_t *hdr )
 	// also read images without it (TODO: check file size for 3d texture?)
 	if (!(hdr->dsCaps.dwCaps2 & DDS_VOLUME)) hdr->dwDepth = 1;
 
+	if(hdr->dsPixelFormat.dwFlags & DDS_ALPHA)
+		image_flags |= IMAGE_HAS_ALPHA;
+
 	if (hdr->dsPixelFormat.dwFlags & DDS_FOURCC)
 	{
 		switch (hdr->dsPixelFormat.dwFourCC)
@@ -774,7 +777,6 @@ void dds_get_pixelformat( dds_t *hdr )
 		case TYPE_ATI2: image_type = PF_ATI2N; break;
 		case TYPE_RXGB: image_type = PF_RXGB; break;
 		case TYPE_$: image_type = PF_ABGR_64; break;
-		case TYPE_t: image_type = PF_ABGR_128F; break;
 		default: image_type = PF_UNKNOWN; break;
 		}
 	}
@@ -791,12 +793,7 @@ void dds_get_pixelformat( dds_t *hdr )
 		}
 		else 
 		{
-			if(hdr->dsPixelFormat.dwFlags & DDS_ALPHA) 
-			{
-				image_type = PF_RGB_24;
-				image_flags |= IMAGE_HAS_ALPHA;
-			}
-			else if( bits == 32) image_type = PF_ABGR_64;
+			if( bits == 32) image_type = PF_ABGR_64;
 			else image_type = PF_ARGB_32;
 		}
 	}
@@ -1724,7 +1721,7 @@ bool SaveTGA( const char *filename, byte *data, int width, int height, bool alph
 	case PF_RGB_24: pixel_size = 3; break;
 	case PF_RGBA_32: pixel_size = 4; break;
 	default:
-		MsgWarn("SaveTGA: unsupported image type %s\n", PFDesc[image_type - 1].name );
+		MsgWarn("SaveTGA: unsupported image type %s\n", PFDesc[image_type].name );
 		return false;
 	}	
 
@@ -1789,7 +1786,7 @@ void FS_SaveImage(const char *filename, rgbdata_t *pix )
 		else sprintf(savename, "%s.tga", filename );
 
 		SaveTGA( savename, data, pix->width, pix->height, has_alpha, pix->type );
-		data += pix->width * pix->height * PFDesc[pix->type - 1].bpp;
+		data += pix->width * pix->height * PFDesc[pix->type].bpp;
 	}
 }
 

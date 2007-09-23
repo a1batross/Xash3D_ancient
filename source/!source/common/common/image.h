@@ -131,7 +131,6 @@ typedef struct tga_s
 
 #define TYPE_RXGB	(('B'<<24)+('G'<<16)+('X'<<8)+'R') // little-endian "RXGB" doom3 normalmaps
 #define TYPE_$	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'$') // little-endian "$"
-#define TYPE_t	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'t') // little-endian "t"
 
 #define DDS_CAPS				0x00000001L
 #define DDS_HEIGHT				0x00000002L
@@ -146,14 +145,6 @@ typedef struct tga_s
 #define DDS_FOURCC				0x00000004L
 #define DDS_PITCH				0x00000008L
 #define DDS_COMPLEX				0x00000008L
-#define DDS_TEXTURE				0x00001000L
-#define DDS_MIPMAPCOUNT			0x00020000L
-#define DDS_LINEARSIZE			0x00080000L
-#define DDS_VOLUME				0x00200000L
-#define DDS_MIPMAP				0x00400000L
-#define DDS_DEPTH				0x00800000L
-
-//support cubemap loading
 #define DDS_CUBEMAP				0x00000200L
 #define DDS_CUBEMAP_POSITIVEX			0x00000400L
 #define DDS_CUBEMAP_NEGATIVEX			0x00000800L
@@ -161,6 +152,11 @@ typedef struct tga_s
 #define DDS_CUBEMAP_NEGATIVEY			0x00002000L
 #define DDS_CUBEMAP_POSITIVEZ			0x00004000L
 #define DDS_CUBEMAP_NEGATIVEZ			0x00008000L
+#define DDS_MIPMAPCOUNT			0x00020000L
+#define DDS_LINEARSIZE			0x00080000L
+#define DDS_VOLUME				0x00200000L
+#define DDS_MIPMAP				0x00400000L
+#define DDS_DEPTH				0x00800000L
 
 typedef struct dds_pf_s
 {

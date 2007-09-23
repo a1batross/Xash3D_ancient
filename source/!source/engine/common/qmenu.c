@@ -351,7 +351,7 @@ void Menu_Draw( menuframework_s *menu )
 	*/
 	for ( i = 0; i < menu->nitems; i++ )
 	{
-		switch ( ( ( menucommon_s * ) menu->items[i] )->type )
+		switch ((( menucommon_s * )menu->items[i] )->type )
 		{
 		case MTYPE_FIELD:
 			Field_Draw( ( menufield_s * ) menu->items[i] );

@@ -23,6 +23,7 @@ byte *imagebuffer;
 int imagebufsize;
 byte *uploadbuffer;
 int uploadbufsize;
+bool use_gl_extension = false;
 cvar_t *intensity;
 uint d_8to24table[256];
 
@@ -78,6 +79,8 @@ typedef struct
 	int		numLayers;
 	int		MipCount;
 	int		BitsCount;
+	uint		glMask;
+	uint		glType;
 	imagetype_t	type;
 
 	int		flags;
@@ -130,6 +133,9 @@ void R_SetPixelFormat( int width, int height, int depth )
 	image_desc.bpp = PFDesc[image_desc.format].bpp;
 	image_desc.bpc = PFDesc[image_desc.format].bpc;
 
+	image_desc.glMask = PFDesc[image_desc.format].glmask;
+	image_desc.glType = PFDesc[image_desc.format].gltype;
+
 	image_desc.numLayers = depth;
 	image_desc.width = width;
 	image_desc.height = height;
@@ -168,7 +174,7 @@ filled additional info
 */
 void R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 {
-	int	i, BlockSize;
+	int	w, h, i, BlockSize;
 	size_t	file_size;
 
 	if(!pic || !pic->buffer) return;
@@ -178,10 +184,12 @@ void R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 	{
 		if(pic->type == PFDesc[i].format)
 		{
-			image_desc.format = i;//now correct
 			BlockSize = PFDesc[i].block;
 			image_desc.bpp = PFDesc[i].bpp;
 			image_desc.bpc = PFDesc[i].bpc;
+			image_desc.glMask = PFDesc[i].glmask;
+			image_desc.glType = PFDesc[i].gltype;
+			image_desc.format = pic->type;
 			break;
 		} 
 	} 		
@@ -189,8 +197,8 @@ void R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 	{
 		
 		image_desc.numLayers = pic->numLayers;
-		image_desc.width = pic->width;
-		image_desc.height = pic->height;
+		image_desc.width = w = pic->width;
+		image_desc.height = h = pic->height;
 		image_desc.flags = pic->flags;
 		image_desc.type = type;
 
@@ -224,6 +232,12 @@ void R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 		if(image_desc.MipCount < 1) image_desc.MipCount = 1;
 		image_desc.pal = pic->palette;
 	}	
+
+	// can use gl extension ?
+	R_RoundImageDimensions(&w, &h, (image_desc.flags & IMAGE_GEN_MIPS));
+
+	if(w == image_desc.width && h == image_desc.height) use_gl_extension = true;
+	else use_gl_extension = false;
 }
 
 /*
@@ -236,9 +250,6 @@ void R_GetPalette (void)
 	uint	v;
 	int	i, r, g, b;
 	byte	*pal = palette_int;
-	rgbdata_t *pic = FS_LoadImage("colormap", NULL, 0 );
-	if(pic && pic->palette) pal = pic->palette;
-	FS_FreeImage( pic );
 
 	//used by particle system once only
 	for (i = 0; i < 256; i++)
@@ -322,7 +333,7 @@ void R_InitTextures( void )
 			gammatable[i] = inf;
 		}
 	}
-	for (i=0 ; i<256 ; i++)
+	for (i = 0; i < 256; i++)
 	{
 		j = i * intensity->value;
 		if (j > 255) j = 255;
@@ -589,10 +600,13 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 	color32	colours[4], *col;
 	color16	*color_0, *color_1;
 	uint	bits, bitmask, Offset; 
+	int	scaled_width, scaled_height;
 	word	sAlpha, sColor0, sColor1;
 	byte	*fin, *fout = imagebuffer;
 	byte	alphas[8], *alpha, *alphamask; 
 	int	w, h, x, y, z, i, j, k, Select; 
+	uint	*scaled = (unsigned *)uploadbuffer;
+	bool	has_alpha = false, mipmap = (image_desc.flags & IMAGE_GEN_MIPS) ? true : false;
 	int 	samples;
 
 	if (!data) return false;
@@ -668,6 +682,7 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 								fout[ofs + 1] = col->g;
 								fout[ofs + 2] = col->b;
 								fout[ofs + 3] = col->a;
+								if(col->a == 0) has_alpha = true;
 							}
 						}
 					}
@@ -727,6 +742,7 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 3;
 								fout[Offset] = sAlpha & 0x0F;
 								fout[Offset] = fout[Offset] | (fout[Offset]<<4);
+								if(sAlpha == 0) has_alpha = true;
 							}
 							sAlpha >>= 4;
 						}
@@ -838,6 +854,7 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 							{
 								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 3;
 								fout[Offset] = alphas[bits & 0x07];
+								if(bits & 0x07) has_alpha = true; 
 							}
 							bits >>= 3;
 						}
@@ -945,6 +962,7 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 							{
 								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 0;
 								fout[Offset] = alphas[bits & 0x07];
+								if(bits & 0x07) has_alpha = true; 
 							}
 							bits >>= 3;
 						}
@@ -975,12 +993,20 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 		return false;
 	}
 
-	// dds images always have power of two sizes
-	R_ImageLightScale((uint *)fout, width, height ); //check for round
+	scaled_width = w;
+	scaled_height = h;
+	R_RoundImageDimensions(&scaled_width, &scaled_height, mipmap );
 
 	// upload base image or miplevel
-	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;
-	qglTexImage2D ( target, level, samples, w, h, border, GL_RGBA, GL_UNSIGNED_BYTE, fout );
+	samples = (has_alpha) ? gl_tex_alpha_format : gl_tex_solid_format;
+	R_ResampleTexture ((uint *)fout, w, h, scaled, scaled_width, scaled_height);
+
+	// fake embossmaping
+	if (image_desc.type == it_wall && mipmap && r_emboss_bump->value)
+		R_FilterTexture (EMBOSS_FILTER, scaled, scaled_width, scaled_height, 1, 128, true, GL_MODULATE);
+
+	R_ImageLightScale(scaled, scaled_width, scaled_height ); //check for round
+	qglTexImage2D ( target, level, samples, scaled_width, scaled_height, border, image_desc.glMask, image_desc.glType, (byte *)scaled );
 
 	if(qglGetError()) return false;
 	return true;
@@ -988,7 +1014,6 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 
 bool CompressedTexImage2D( uint target, int level, int intformat, uint width, uint height, int border, uint imageSize, const void* data )
 {
-	bool use_gl_extension = true;
 	uint dxtformat = 0;
 	uint pixformat = PFDesc[intformat].format;
 
@@ -1020,10 +1045,10 @@ R_LoadTexImage
 */
 bool R_LoadTexImage( uint *data )
 {
-	int samples, miplevel = 0;
-	int scaled_width, scaled_height;
-	uint *scaled = (unsigned *)uploadbuffer;
-	bool mipmap = (image_desc.flags & IMAGE_GEN_MIPS) ? true : false;
+	int	samples, miplevel = 0;
+	int	scaled_width, scaled_height;
+	uint	*scaled = (uint *)uploadbuffer;
+	bool	mipmap = (image_desc.flags & IMAGE_GEN_MIPS) ? true : false;
 
 	scaled_width = image_desc.width;
 	scaled_height = image_desc.height;
@@ -1039,9 +1064,10 @@ bool R_LoadTexImage( uint *data )
 	R_ImageLightScale(scaled, scaled_width, scaled_height );
 
 	GL_GenerateMipmaps(); //SGIS_ext
-	qglTexImage2D (GL_TEXTURE_2D, 0, samples, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);
+	qglTexImage2D (GL_TEXTURE_2D, 0, samples, scaled_width, scaled_height, 0, image_desc.glMask, image_desc.glType, scaled);
 	GL_TexFilter( mipmap );
 
+          if(qglGetError()) return false;
 	return true;
 }
 
@@ -1322,7 +1348,10 @@ bool R_StoreImageARGB( uint target, int level, uint width, uint height, uint ima
 	uint	ReadI = 0, TempBpp;
 	uint	RedL, RedR, GreenL, GreenR, BlueL, BlueR, AlphaL, AlphaR;
 	uint	r_bitmask, g_bitmask, b_bitmask, a_bitmask;
+	uint	*scaled = (unsigned *)uploadbuffer;
 	byte	*fin, *fout = imagebuffer;
+	bool	has_alpha = false, mipmap = (image_desc.flags & IMAGE_GEN_MIPS) ? true : false;
+	int	scaled_width, scaled_height;
 	int	i, w, h, samples;
 
 	if (!data) return false;
@@ -1344,7 +1373,7 @@ bool R_StoreImageARGB( uint target, int level, uint width, uint height, uint ima
 	R_GetBitsFromMask(g_bitmask, &GreenL, &GreenR);
 	R_GetBitsFromMask(b_bitmask, &BlueL, &BlueR);
 	R_GetBitsFromMask(a_bitmask, &AlphaL, &AlphaR);
-          
+       
 	fin = (byte *)data;
 	w = width;
 	h = height;
@@ -1385,12 +1414,20 @@ bool R_StoreImageARGB( uint target, int level, uint width, uint height, uint ima
 			else if (AlphaL >= 4) fout[i+1] = fout[i+1] | (fout[i+3] >> 4);
 		}
 	}
-	// dds images always have power of two sizes
-	R_ImageLightScale((uint *)fout, width, height ); //check for round
+	scaled_width = w;
+	scaled_height = h;
+	R_RoundImageDimensions(&scaled_width, &scaled_height, mipmap );
 
 	// upload base image or miplevel
 	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;
-	qglTexImage2D ( target, level, samples, w, h, 0, GL_BGRA, GL_UNSIGNED_BYTE, fout );
+	R_ResampleTexture ((uint *)fout, w, h, scaled, scaled_width, scaled_height);
+
+	// fake embossmaping
+	if (image_desc.type == it_wall && mipmap && r_emboss_bump->value)
+		R_FilterTexture (EMBOSS_FILTER, scaled, scaled_width, scaled_height, 1, 128, true, GL_MODULATE);
+
+	R_ImageLightScale(scaled, scaled_width, scaled_height ); //check for round
+	qglTexImage2D ( target, level, samples, scaled_width, scaled_height, 0, image_desc.glMask, image_desc.glType, scaled );
 
 	if(qglGetError()) return false;
 	return true;
@@ -1402,7 +1439,7 @@ bool R_LoadImageARGB( byte *data )
 	int w = image_desc.width;
 	int h = image_desc.height;
 	int d = image_desc.numLayers;
-	bool mipmap, use_gl_extension = 0;
+	bool mipmap;
 	
 	for( i = 0; i < image_desc.MipCount; i++, data += size )
 	{
@@ -1425,27 +1462,27 @@ bool R_LoadImageARGB( byte *data )
 
 /*
 ===============
-R_LoadImageBGRA
+R_LoadImageABGR
 ===============
 */
-bool R_LoadImageBGRA( byte *data )
+bool R_LoadImageABGR( byte *data )
 {
 	byte	*trans = imagebuffer;
 	int	i, s = image_desc.width * image_desc.height;
 
 	if (s&3)
 	{
-		MsgDev(D_ERROR, "R_LoadImageBGRA: s&3\n");
+		MsgDev(D_ERROR, "R_LoadImageABGR: s&3\n");
 		return false;
 	}
 
-	// swap green and red
+	// swap alpha and red
 	for (i = 0; i < s; i++ )
 	{
-		trans[(i<<2)+0] = data[i*4+2];
-		trans[(i<<2)+1] = data[i*4+1];
-		trans[(i<<2)+2] = data[i*4+0];
-		trans[(i<<2)+3] = data[i*4+3];
+		trans[(i<<2)+0] = data[(i<<2)+3];
+		trans[(i<<2)+1] = data[(i<<2)+2];
+		trans[(i<<2)+2] = data[(i<<2)+1];
+		trans[(i<<2)+3] = data[(i<<2)+0];
 	}
 	return R_LoadTexImage((uint*)trans );
 }
@@ -1519,11 +1556,11 @@ bool R_LoadImageRGB(byte *data )
 			for (i = 0; i < s; i++)
 			{
 				p = data[i];
-				if (p == 255) noalpha = false;
-				trans[(i<<2)+0] = p*3+0;
-				trans[(i<<2)+1] = p*3+1;
-				trans[(i<<2)+2] = p*3+2;
-				trans[(i<<2)+3] = (p==255) ? 0 : 255;
+				if (p == 0) noalpha = false;
+				trans[(i<<2)+0] = data[i+0];
+				trans[(i<<2)+1] = data[i+1];
+				trans[(i<<2)+2] = data[i+2];
+				trans[(i<<2)+3] = (p==0) ? 0 : 255;
 			}
 			if (noalpha) image_desc.flags &= ~IMAGE_HAS_ALPHA;
 		}
@@ -1660,10 +1697,10 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
 		{
 		case PF_INDEXED_24:	iResult = R_LoadImageRGB( buf ); break;
 		case PF_INDEXED_32: iResult = R_LoadImageRGBA( buf ); break;
-		case PF_PROCEDURE_TEX:
-		case PF_RGBA_32: iResult = R_LoadTexImage((uint*)buf ); break;
-		case PF_ABGR_64: iResult = R_LoadImageBGRA( buf ); break;
 		case PF_RGB_24: iResult = R_LoadImageRGB( buf ); break;
+		case PF_ABGR_64:
+		case PF_RGBA_32: 
+		case PF_RGBA_GN: iResult = R_LoadTexImage((uint*)buf ); break;
 		case PF_LUMINANCE:
 		case PF_LUMINANCE_16:
 		case PF_LUMINANCE_ALPHA:
@@ -1676,7 +1713,6 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
 		case PF_DXT5: iResult = R_LoadImageDXT( buf ); break;
 		case PF_ATI1N:
 		case PF_ATI2N: iResult = R_LoadImageATI( buf ); break;
-		case PF_ABGR_128F: iResult = R_DecompressImageFloat( buf ); break;
 		case PF_UNKNOWN: image = r_notexture; break;
 		}
 	}          

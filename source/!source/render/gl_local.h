@@ -397,6 +397,7 @@ void R_AddSkySurface (msurface_t *fa);
 void R_ClearSkyBox (void);
 void R_DrawSkyBox (void);
 void R_MarkLights (dlight_t *light, int bit, mnode_t *node);
+void R_RoundImageDimensions(int *scaled_width, int *scaled_height, bool mipmap);
 
 #if 0
 short LittleShort (short l);

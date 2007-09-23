@@ -464,9 +464,6 @@ extern BOOL ( WINAPI * qwglSetDeviceGammaRampEXT ) ( const unsigned char *pRed, 
 #define GL_NUM_COMPRESSED_TEXTURE_FORMATS_ARB		0x86A2
 #define GL_COMPRESSED_TEXTURE_FORMATS_ARB		0x86A3
 
-#define GL_BGR 0x80E0
-#define GL_BGRA 0x80E1
-
 #define GL_UNSIGNED_BYTE_2_3_3_REV 0x8362
 #define GL_UNSIGNED_SHORT_5_6_5 0x8363
 #define GL_UNSIGNED_SHORT_5_6_5_REV 0x8364

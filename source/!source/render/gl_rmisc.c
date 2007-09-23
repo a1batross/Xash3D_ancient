@@ -42,9 +42,10 @@ byte	dottexture[8][8] =
 void R_InitParticleTexture (void)
 {
 	int		x,y;
-	byte	data[8][8][4];
-	rgbdata_t r_tex;
+	byte		data[8][8][4];
+	rgbdata_t 	r_tex;
 
+	memset(&r_tex, 0, sizeof(r_tex));
 	//
 	// particle texture
 	//
@@ -60,7 +61,7 @@ void R_InitParticleTexture (void)
 	}
 	r_tex.width = 8;
 	r_tex.height = 8;
-	r_tex.type = PF_PROCEDURE_TEX;
+	r_tex.type = PF_RGBA_GN;
 	r_tex.flags = IMAGE_HAS_ALPHA;
 	r_tex.numMips = 1;
 	r_tex.palette = NULL;

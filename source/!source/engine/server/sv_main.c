@@ -1046,6 +1046,7 @@ before Sys_Quit or Sys_Error
 */
 void SV_Shutdown (char *finalmsg, bool reconnect)
 {
+	Msg("SV_Shutdown: %s\n", finalmsg );
 	if (svs.clients) SV_FinalMessage (finalmsg, reconnect);
 
 	Master_Shutdown ();

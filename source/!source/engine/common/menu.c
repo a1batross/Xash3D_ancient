@@ -3006,8 +3006,6 @@ static void RateCallback( void *unused )
 
 static void ModelCallback( void *unused )
 {
-	s_player_skin_box.itemnames = s_pmi[s_player_model_box.curvalue].skindisplaynames;
-	s_player_skin_box.curvalue = 0;
 }
 
 static bool IconOfSkinExists( char *skin, char **pcxfiles, int npcxfiles )
@@ -3053,10 +3051,11 @@ static bool PlayerConfig_ScanDirectories( void )
 
 	for ( i = 0; i < npms; i++ )
 	{
-		char *a, *b, *c;
+		char name[64];
 
 		if ( dirnames[i] == 0 ) continue;
-
+		if ( strrchr(dirnames[i], '.' )) continue; //skip ".." and "." directories
+		
 		// verify the existence of player.mdl
 		strcpy( scratch, dirnames[i] );
 		strncat( scratch, "/player.mdl", 1024 );
@@ -3067,15 +3066,10 @@ static bool PlayerConfig_ScanDirectories( void )
 		s_pmi[s_numplayermodels].nskins = 0;
 		s_pmi[s_numplayermodels].skindisplaynames = NULL;
 
-		// make short name for the model
-		a = strrchr( dirnames[i], '/' );
-		b = strrchr( dirnames[i], '\\' );
+		FS_FileBase(dirnames[i], name );
 
-		if ( a > b ) c = a;
-		else c = b;
-
-		strncpy( s_pmi[s_numplayermodels].displayname, c + 1, MAX_DISPLAYNAME-1 );
-		strcpy( s_pmi[s_numplayermodels].directory, c + 1 );
+		strncpy( s_pmi[s_numplayermodels].displayname, name, MAX_DISPLAYNAME - 1 );
+		strcpy( s_pmi[s_numplayermodels].directory, name );
 		s_numplayermodels++;
 	}
 	if ( search ) Z_Free( search );
@@ -3112,6 +3106,7 @@ bool PlayerConfig_MenuInit( void )
 	extern cvar_t *skin;
 	int i = 0;
 
+	char currentdirectory[1024];
 	int currentdirectoryindex = 0;
 	int currentskinindex = 0;
 
@@ -3126,7 +3121,16 @@ bool PlayerConfig_MenuInit( void )
 	if ( hand->value < 0 || hand->value > 2 )
 		Cvar_SetValue( "hand", 0 );
 
-	qsort( s_pmi, s_numplayermodels, sizeof( s_pmi[0] ), pmicmpfnc );
+	memset( s_pmnames, 0, sizeof( s_pmnames ) );
+	for ( i = 0; i < s_numplayermodels; i++ )
+	{
+		s_pmnames[i] = s_pmi[i].displayname;
+		if ( stricmp( s_pmi[i].directory, currentdirectory ) == 0 )
+		{
+			currentdirectoryindex = i;
+			break;
+		}
+	}
 
 	s_player_config_menu.x = viddef.width / 2 - 95; 
 	s_player_config_menu.y = viddef.height / 2 - 97;
@@ -3137,15 +3141,15 @@ bool PlayerConfig_MenuInit( void )
 	s_player_name_field.generic.callback = 0;
 	s_player_name_field.generic.x		= 0;
 	s_player_name_field.generic.y		= 0;
-	s_player_name_field.length	= 20;
-	s_player_name_field.visible_length = 20;
+	s_player_name_field.length		= 20;
+	s_player_name_field.visible_length	= 20;
 	strcpy( s_player_name_field.buffer, name->string );
 	s_player_name_field.cursor = strlen( name->string );
 
 	s_player_model_title.generic.type = MTYPE_SEPARATOR;
 	s_player_model_title.generic.name = "model";
-	s_player_model_title.generic.x    = -8;
-	s_player_model_title.generic.y	 = 60;
+	s_player_model_title.generic.x = -8;
+	s_player_model_title.generic.y = 60;
 
 	s_player_model_box.generic.type = MTYPE_SPINCONTROL;
 	s_player_model_box.generic.x	= -56;
@@ -3154,20 +3158,6 @@ bool PlayerConfig_MenuInit( void )
 	s_player_model_box.generic.cursor_offset = -48;
 	s_player_model_box.curvalue = currentdirectoryindex;
 	s_player_model_box.itemnames = s_pmnames;
-
-	s_player_skin_title.generic.type = MTYPE_SEPARATOR;
-	s_player_skin_title.generic.name = "skin";
-	s_player_skin_title.generic.x    = -16;
-	s_player_skin_title.generic.y	 = 84;
-
-	s_player_skin_box.generic.type = MTYPE_SPINCONTROL;
-	s_player_skin_box.generic.x	= -56;
-	s_player_skin_box.generic.y	= 94;
-	s_player_skin_box.generic.name	= 0;
-	s_player_skin_box.generic.callback = 0;
-	s_player_skin_box.generic.cursor_offset = -48;
-	s_player_skin_box.curvalue = currentskinindex;
-	s_player_skin_box.itemnames = s_pmi[currentdirectoryindex].skindisplaynames;
 
 	s_player_hand_title.generic.type = MTYPE_SEPARATOR;
 	s_player_hand_title.generic.name = "handedness";
@@ -3212,11 +3202,6 @@ bool PlayerConfig_MenuInit( void )
 	Menu_AddItem( &s_player_config_menu, &s_player_name_field );
 	Menu_AddItem( &s_player_config_menu, &s_player_model_title );
 	Menu_AddItem( &s_player_config_menu, &s_player_model_box );
-	if ( s_player_skin_box.itemnames )
-	{
-		Menu_AddItem( &s_player_config_menu, &s_player_skin_title );
-		Menu_AddItem( &s_player_config_menu, &s_player_skin_box );
-	}
 	Menu_AddItem( &s_player_config_menu, &s_player_hand_title );
 	Menu_AddItem( &s_player_config_menu, &s_player_handedness_box );
 	Menu_AddItem( &s_player_config_menu, &s_player_rate_title );
@@ -3238,13 +3223,14 @@ void PlayerConfig_MenuDraw( void )
 	refdef.y = viddef.height / 2 - 72;
 	refdef.width = 144;
 	refdef.height = 168;
-	refdef.fov_x = 40;
+	refdef.fov_x = 50;
 	refdef.fov_y = CalcFov( refdef.fov_x, refdef.width, refdef.height );
 	refdef.time = cls.realtime;
 
 	if ( s_pmi[s_player_model_box.curvalue].directory )
 	{
 		static int yaw;
+		static float frame;
 		entity_t entity;
 
 		memset( &entity, 0, sizeof( entity ) );
@@ -3256,11 +3242,15 @@ void PlayerConfig_MenuDraw( void )
 		entity.origin[1] = 0;
 		entity.origin[2] = 0;
 		VectorCopy( entity.origin, entity.oldorigin );
-		entity.frame = 0;
+		entity.frame = frame += 0.7f;
+		entity.sequence = 1;
 		entity.prev.frame = 0;
 		entity.backlerp = 0.0;
-		entity.angles[1] = yaw++;
-		if ( ++yaw > 360 ) yaw -= 360;
+		entity.controller[0] = 90.0;
+		entity.controller[1] = 90.0;
+		entity.controller[2] = 180.0;
+		entity.controller[3] = 180.0;
+		entity.angles[1] = 180.0f;
 
 		refdef.areabits = 0;
 		refdef.num_entities = 1;
@@ -3275,7 +3265,7 @@ void PlayerConfig_MenuDraw( void )
 
 		re->RenderFrame( &refdef );
 
-		strcpy( scratch, "i_fixme.pcx" );
+		strcpy( scratch, "i_fixme" );
 		re->DrawPic( s_player_config_menu.x - 40, refdef.y, scratch );
 	}
 }
