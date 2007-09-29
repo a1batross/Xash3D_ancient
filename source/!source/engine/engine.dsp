@@ -262,10 +262,6 @@ SOURCE=.\server\sv_main.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\server\sv_phys.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\server\sv_physics.c
 # End Source File
 # Begin Source File

@@ -4,8 +4,6 @@
 //=======================================================================
 
 #include "mdllib.h"
-#include "activity.h"
-#include "activitymap.h"
 
 int		used[MAXSTUDIOTRIANGLES];		// the command list holds counts and s/t values
 short		commands[MAXSTUDIOTRIANGLES * 13];	//that are valid for every frame

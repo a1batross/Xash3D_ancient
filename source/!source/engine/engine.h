@@ -19,9 +19,6 @@
 //register new types
 #include "basetypes.h"
 #include "basemath.h"
-#include "studio.h"
-#include "sprite.h"
-#include "bspmodel.h" 
 #include <ref_system.h>
 #include "vprogs.h"
 #include "const.h"

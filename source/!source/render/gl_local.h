@@ -32,9 +32,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <basemath.h>
 #include "ref_system.h"
 #include "materials.h"
-#include "studio.h"
-#include "sprite.h"
-#include "bspmodel.h" 
 #include "const.h"
 
 #ifndef GL_COLOR_INDEX8_EXT

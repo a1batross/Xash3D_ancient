@@ -502,7 +502,7 @@ void VID_InitRender( void )
 	CreateRender = (void *)render_dll.main;
 	re = CreateRender( &ri );
           
-	if(!re->Init( global_hInstance, MainWndProc )) Sys_Error("can't init render.dll\n");
+	if(!re->Init( global_hInstance, MainWndProc )) Sys_Error("VID_InitRender: can't init render.dll\nUpdate your opengl drivers\n");
 
 	reflib_active = true;
 }

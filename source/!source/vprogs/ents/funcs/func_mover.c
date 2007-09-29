@@ -83,6 +83,17 @@ void() func_mover_stop =
 
 void() func_mover_stop_dead = 
 {
+	entity	t;
+
+	// lookup all areaportals
+	t = find(world, targetname, pev->target);
+	while(t)
+	{
+		if(t->classname == "func_areaportal")
+			areaportal_state( t->style, FALSE );
+		t = find(t, targetname, pev->target);
+	}
+
 	func_mover_stop_general();
 };
 
@@ -160,7 +171,6 @@ void() func_mover_fire =
 
 void() func_mover_touch = 
 {
-	bprint("door touch\n");
 	if(other.classname != "player")			//Are you a player?
 		return;
 	if(other == world)				//Are you the world?

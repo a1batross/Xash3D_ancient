@@ -6,7 +6,7 @@
 #define BASEMATH_H
 
 #include <math.h>
-#include "bspmodel.h"
+#include "ref_format.h"
 
 #define SIDE_FRONT		0
 #define SIDE_BACK		1

@@ -6,11 +6,11 @@ This is the spawning function to the map entity 'func_path_corner'
 Currently only trains use this to tell their next stop position;
 */
 
-void() func_path_corner = 
+void() path_corner = 
 {
 	if (!pev->targetname)
 		objerror ("monster_movetarget: no targetname");
 		
-	pev->solid = SOLID_TRIGGER;
+	pev->solid = SOLID_NOT;
 	setsize (pev, '-8 -8 -8', '8 8 8');
 };

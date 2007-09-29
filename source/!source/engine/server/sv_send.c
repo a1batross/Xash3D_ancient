@@ -232,8 +232,8 @@ void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename,
 			if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7))))) continue;
 		}
 
-		if (reliable) SZ_Write (&client->netchan.message, sv.multicast.data, sv.multicast.cursize);
-		else SZ_Write (&client->datagram, sv.multicast.data, sv.multicast.cursize);
+		if (reliable) _SZ_Write (&client->netchan.message, sv.multicast.data, sv.multicast.cursize, filename, fileline);
+		else _SZ_Write (&client->datagram, sv.multicast.data, sv.multicast.cursize, filename, fileline);
 	}
 	SZ_Clear (&sv.multicast);
 }

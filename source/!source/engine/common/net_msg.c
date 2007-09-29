@@ -25,7 +25,7 @@ void _MSG_WriteChar (sizebuf_t *sb, int c, const char *filename, int fileline)
 	if (c < -128 || c > 127) 
 		Msg("MSG_WriteChar: range error %d (called at %s:%i)\n", c, filename, fileline);
 
-	buf = SZ_GetSpace (sb, 1);
+	buf = _SZ_GetSpace (sb, 1, filename, fileline );
 	buf[0] = c;
 }
 
@@ -36,7 +36,7 @@ void _MSG_WriteByte (sizebuf_t *sb, int c, const char *filename, int fileline)
 	if (c < 0 || c > 255)
 		Msg("MSG_WriteByte: range error %d (called at %s:%i)\n", c, filename, fileline);
 
-	buf = SZ_GetSpace (sb, 1);
+	buf = _SZ_GetSpace (sb, 1, filename, fileline);
 	buf[0] = c;
 }
 
@@ -47,7 +47,7 @@ void _MSG_WriteShort (sizebuf_t *sb, int c, const char *filename, int fileline)
 	if (c < -32767 || c > 32767)
 		Msg("MSG_WriteShort: range error %d (called at %s:%i)\n", c, filename, fileline);
 
-	buf = SZ_GetSpace (sb, 2);
+	buf = _SZ_GetSpace (sb, 2, filename, fileline);
 	buf[0] = c&0xff;
 	buf[1] = c>>8;
 }
@@ -59,7 +59,7 @@ void _MSG_WriteWord (sizebuf_t *sb, int c, const char *filename, int fileline)
 	if (c < 0 || c > 65535)
 		Msg("MSG_WriteWord: range error %d (called at %s:%i)\n", c, filename, fileline);
 
-	buf = SZ_GetSpace (sb, 2);
+	buf = _SZ_GetSpace (sb, 2, filename, fileline);
 	buf[0] = c&0xff;
 	buf[1] = c>>8;
 }
@@ -68,7 +68,7 @@ void _MSG_WriteLong (sizebuf_t *sb, int c, const char *filename, int fileline)
 {
 	byte	*buf;
 	
-	buf = SZ_GetSpace (sb, 4);
+	buf = _SZ_GetSpace (sb, 4, filename, fileline);
 	buf[0] = (c>>0 ) & 0xff;
 	buf[1] = (c>>8 ) & 0xff;
 	buf[2] = (c>>16) & 0xff;
@@ -83,21 +83,20 @@ void _MSG_WriteFloat (sizebuf_t *sb, float f, const char *filename, int fileline
 		int	l;
 	} dat;
 	
-	
 	dat.f = f;
 	dat.l = LittleLong (dat.l);
-	SZ_Write (sb, &dat.l, 4);
+	_SZ_Write (sb, &dat.l, 4, filename, fileline);
 }
 
 void _MSG_WriteString (sizebuf_t *sb, char *s, const char *filename, int fileline)
 {
 	if (!s || !*s) _MSG_WriteChar (sb, 0, filename, fileline );
-	else SZ_Write (sb, s, strlen(s)+1);
+	else _SZ_Write (sb, s, strlen(s)+1, filename, fileline);
 }
 
 void _MSG_WriteUnterminatedString (sizebuf_t *sb, const char *s, const char *filename, int fileline)
 {
-	if (s && *s) SZ_Write (sb, (byte *)s, (int)strlen(s));
+	if (s && *s) _SZ_Write (sb, (byte *)s, (int)strlen(s), filename, fileline);
 }
 
 void _MSG_WriteCoord (sizebuf_t *sb, float f, const char *filename, int fileline)
@@ -508,7 +507,7 @@ void SZ_Clear (sizebuf_t *buf)
 	buf->overflowed = false;
 }
 
-void *SZ_GetSpace (sizebuf_t *buf, int length)
+void *_SZ_GetSpace (sizebuf_t *buf, int length, const char *filename, int fileline )
 {
 	void	*data;
 	
@@ -517,7 +516,7 @@ void *SZ_GetSpace (sizebuf_t *buf, int length)
 		if (length > buf->maxsize)
 			Host_Error("SZ_GetSpace: length[%i] > buffer maxsize [%i]\n", length, buf->maxsize );
 			
-		MsgWarn("SZ_GetSpace: overflow [cursize %d maxsize %d]\n", buf->cursize + length, buf->maxsize );
+		MsgWarn("SZ_GetSpace: overflow [cursize %d maxsize %d], called at %s:%i\n", buf->cursize + length, buf->maxsize, filename, fileline );
 		SZ_Clear (buf); 
 		buf->overflowed = true;
 	}
@@ -527,9 +526,9 @@ void *SZ_GetSpace (sizebuf_t *buf, int length)
 	return data;
 }
 
-void SZ_Write (sizebuf_t *buf, void *data, int length)
+void _SZ_Write (sizebuf_t *buf, void *data, int length, const char *filename, int fileline)
 {
-	Mem_Copy(SZ_GetSpace(buf, length), data, length);		
+	Mem_Copy(_SZ_GetSpace(buf, length, filename, fileline), data, length);		
 }
 
 void SZ_Print (sizebuf_t *buf, char *data)

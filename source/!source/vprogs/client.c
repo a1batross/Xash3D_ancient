@@ -270,6 +270,7 @@ void() PutClientInServer =
 	pev->origin = spawn_spot.origin + '0 0 1'; // Move to the spawnspot location
 	pev->angles = spawn_spot.angles;     // Face the angle the spawnspot indicates
 	pev->fixangle = TRUE;                // Turn this way immediately
+	pev->weaponmodel = "models/weapons/v_eagle.mdl"; // FIXME: rename to viewmodel
 
 	dprint("PutClientInServer()\n");
 
@@ -290,7 +291,7 @@ void() PutClientInServer =
 
 	setstats( pev, STAT_HEALTH_ICON, "i_health");
 	setstats( pev, STAT_HEALTH, ftos(pev->health));
-	//setstats( pev, STAT_HELPICON, "i_help");
+	setstats( pev, STAT_HELPICON, "i_help");
 		
 	GetLevelParms();
 };

@@ -7,7 +7,6 @@
 
 #include "platform.h"
 #include <basemath.h>
-#include <bspmodel.h>
 #include <materials.h>
 #include "utils.h"
 

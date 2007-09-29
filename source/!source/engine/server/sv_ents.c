@@ -40,7 +40,7 @@ void SV_UpdateEntityState( edict_t *ent)
 	VectorCopy (ent->progs.sv->old_origin, ent->priv.sv->s.old_origin);
 	
 	ent->priv.sv->s.modelindex = (int)ent->progs.sv->modelindex;
-	ent->priv.sv->s.weaponmodel = SV_ModelIndex(PRVM_GetString(ent->progs.sv->weaponmodel));
+	ent->priv.sv->s.weaponmodel = 0; // attached weaponmodel
 
 	ent->priv.sv->s.skin = (short)ent->progs.sv->skin;	// studio model skin
 	ent->priv.sv->s.body = (byte)ent->progs.sv->body;		// studio model submodel 

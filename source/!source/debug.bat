@@ -55,5 +55,5 @@ if exist server.dat move server.dat D:\Xash3D\xash\server.dat
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading
 cd D:\Xash3D\
-xash.exe +map skytest -log -debug -dev 4
+xash.exe +map qctest -log -debug
 :done

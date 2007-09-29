@@ -47,7 +47,7 @@ void SV_PutClientInServer (edict_t *ent)
 	client->ps.fov = 90;
 
 	client->ps.fov = bound(1, client->ps.fov, 160);
-	client->ps.gunindex = SV_ModelIndex("models/weapons/v_eagle.mdl");
+	client->ps.gunindex = SV_ModelIndex(PRVM_GetString(ent->progs.sv->weaponmodel));
 
 	// clear entity state values
 	ent->progs.sv->effects = 0;

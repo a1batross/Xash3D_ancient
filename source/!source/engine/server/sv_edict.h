@@ -23,6 +23,7 @@
 #define AI_ACTOR                		(1<<10)		// disable ai for actor
 #define AI_DRIVER				(1<<11)		// npc or player driving vehcicle or train
 #define AI_SPECTATOR			(1<<12)		// spectator mode for clients
+#define AI_WATERJUMP			(1<<13)		// npc or player take out of water
 
 // edict->solid values
 typedef enum

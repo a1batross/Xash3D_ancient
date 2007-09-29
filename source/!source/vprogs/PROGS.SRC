@@ -42,6 +42,7 @@ ents/funcs/func_door.c
 ents/funcs/func_button.c
 ents/funcs/func_path_corner.c
 ents/funcs/func_train.c
+ents/funcs/func_areaportal.c
 
 //ITEMS
 ents/items/items.c

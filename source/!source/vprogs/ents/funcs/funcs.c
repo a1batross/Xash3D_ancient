@@ -87,7 +87,3 @@ void() func_place_model =
 	
 	pev->movetype = MOVETYPE_NONE;
 };
-
-void func_areaportal( void )
-{
-}

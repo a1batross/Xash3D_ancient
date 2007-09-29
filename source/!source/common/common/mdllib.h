@@ -8,7 +8,6 @@
 #include "platform.h"
 #include <basemath.h>
 #include "utils.h"
-#include "studio.h"
 
 #define FILEBUFFER		(2 * 1024 * 1024)
 #define MAXTRIANGLES	2048		//TODO: tune this

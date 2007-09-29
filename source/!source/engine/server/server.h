@@ -242,7 +242,7 @@ void SV_PrepWorldFrame (void);
 void SV_Physics (edict_t *ent);
 void SV_DropToFloor (edict_t *ent);
 void SV_CheckGround (edict_t *ent);
-
+bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink);
 //
 // sv_send.c
 //

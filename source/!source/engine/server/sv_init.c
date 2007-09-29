@@ -137,7 +137,7 @@ SV_FindIndex
 */
 int SV_FindIndex (const char *name, int start, int end, bool create)
 {
-	int		i;
+	int		i = 0;
 	
 	if (!name || !name[0]) return 0;
 
@@ -148,7 +148,7 @@ int SV_FindIndex (const char *name, int start, int end, bool create)
 
 	if (i == end) 
 	{
-		MsgWarn ("SV_FindIndex: %d out range [%d - %d]\n", start, end );
+		MsgWarn ("SV_FindIndex: %d out of range [%d - %d]\n", start, end );
 		return 0;
 	}
 
@@ -160,7 +160,7 @@ int SV_FindIndex (const char *name, int start, int end, bool create)
 		// send the update to everyone
 		SZ_Clear (&sv.multicast);
 		MSG_Begin(svc_configstring);
-		MSG_WriteShort (&sv.multicast, start+i);
+		MSG_WriteShort (&sv.multicast, start + i);
 		MSG_WriteString (&sv.multicast, (char *)name);
 		MSG_Send(MSG_ALL_R, vec3_origin, NULL );
 	}

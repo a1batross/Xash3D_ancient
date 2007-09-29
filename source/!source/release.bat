@@ -56,6 +56,6 @@ if exist server.dat move server.dat D:\Xash3D\xash\server.dat
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading
 cd D:\Xash3D\
-xash.exe -game valve +map lighttest -debug -log
-rem bin\bsplib -game xash +map dm_qstyle -vis -rad -full -log
+xash.exe +map qctest -debug -log
+rem bin\bsplib -game xash +map qctest -vis -rad -full -log
 :done

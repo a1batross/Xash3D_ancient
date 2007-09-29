@@ -56,10 +56,12 @@ typedef struct sizebuf_s
 	int	errorcount;		// cause by errors
 } sizebuf_t;
 
+#define SZ_GetSpace(buf, len) _SZ_GetSpace(buf, len, __FILE__, __LINE__ )
+#define SZ_Write(buf, data, len) _SZ_Write(buf, data, len, __FILE__, __LINE__ )
 void SZ_Init (sizebuf_t *buf, byte *data, int length);
 void SZ_Clear (sizebuf_t *buf);
-void *SZ_GetSpace (sizebuf_t *buf, int length);
-void SZ_Write (sizebuf_t *buf, void *data, int length);
+void *_SZ_GetSpace (sizebuf_t *buf, int length, const char *filename, int fileline);
+void _SZ_Write (sizebuf_t *buf, void *data, int length, const char *filename, int fileline);
 void SZ_Print (sizebuf_t *buf, char *data);	// strcats onto the sizebuf
 
 //============================================================================

@@ -91,7 +91,7 @@ void SetMinMaxSize (edict_t *e, float *min, float *max, bool rotate)
 //test for stats
 void PF_SetStats( void )
 {
-	edict_t	*e;	
+	edict_t		*e;	
 	int		stat_num;
 	const char	*string;
 	short		value;
@@ -193,6 +193,15 @@ void PF_setmodel( void )
 		return;
 	}
 	SV_SetModel( e, PRVM_G_STRING(OFS_PARM1) ); 
+}
+
+void PF_areaportalstate( void )
+{
+	int	portalnum = (int)PRVM_G_FLOAT(OFS_PARM0);
+	bool	state = (bool)PRVM_G_FLOAT(OFS_PARM1);
+
+	CM_SetAreaPortalState( portalnum, state );
+	Msg("protal %d, state %s\n", portalnum, state ? "open" : "close" );
 }
 
 /*
@@ -337,7 +346,7 @@ void PF_sound (void)
 
 	if (volume < 0 || volume > 255)
 	{
-		VM_Warning("SV_StartSound: volume must be in range 0-1\n");
+		VM_Warning("SV_StartSound: volume must be in range 0 - 255\n");
 		return;
 	}
 
@@ -354,7 +363,7 @@ void PF_sound (void)
 	}
           
           sound_idx = SV_SoundIndex( sample );
-	SV_StartSound (NULL, entity, channel, sound_idx, volume, attenuation, 0 );
+	SV_StartSound (NULL, entity, channel, sound_idx, volume / 255.0f, attenuation, 0 );
 }
 
 /*
@@ -682,47 +691,28 @@ void PF_findradius (void)
 {
 	edict_t *ent, *chain;
 	vec_t radius, radius2;
-	vec3_t org, eorg, mins, maxs;
+	vec3_t org, eorg;
 	int i;
-	int numtouchedicts;
-	edict_t *touchedicts[MAX_EDICTS];
-
 	chain = (edict_t *)prog->edicts;
 
 	VectorCopy(PRVM_G_VECTOR(OFS_PARM0), org);
 	radius = PRVM_G_FLOAT(OFS_PARM1);
 	radius2 = radius * radius;
 
-	mins[0] = org[0] - (radius + 1);
-	mins[1] = org[1] - (radius + 1);
-	mins[2] = org[2] - (radius + 1);
-	maxs[0] = org[0] + (radius + 1);
-	maxs[1] = org[1] + (radius + 1);
-	maxs[2] = org[2] + (radius + 1);
-
-	numtouchedicts = 0;//SV_EntitiesInBox(mins, maxs, MAX_EDICTS, touchedicts);
-
-	if (numtouchedicts > MAX_EDICTS)
+	ent = prog->edicts;
+	for (i = 1; i < prog->num_edicts ; i++, ent = PRVM_NEXT_EDICT(ent))
 	{
-		// this never happens
-		MsgWarn("SV_EntitiesInBox returned %i edicts, max was %i\n", numtouchedicts, MAX_EDICTS);
-		numtouchedicts = MAX_EDICTS;
-	}
-	for (i = 0; i < numtouchedicts; i++)
-	{
-		ent = touchedicts[i];
-		prog->xfunction->builtinsprofile++;
-
-		if (ent->progs.sv->solid == SOLID_NOT)	continue;
+		if (ent->priv.sv->free) continue;
+		if (ent->progs.sv->solid == SOLID_NOT) continue;
 		VectorSubtract(org, ent->progs.sv->origin, eorg);
 		VectorMAMAM(1, eorg, 0.5f, ent->progs.sv->mins, 0.5f, ent->progs.sv->maxs, eorg);
+
 		if (DotProduct(eorg, eorg) < radius2)
 		{
 			ent->progs.sv->chain = PRVM_EDICT_TO_PROG(chain);
 			chain = ent;
 		}
 	}
-
 	VM_RETURN_EDICT(chain);
 }
 
@@ -756,6 +746,7 @@ void PF_walkmove (void)
 {
 	edict_t		*ent;
 	float		yaw, dist;
+	vec3_t		move;
 	mfunction_t	*oldf;
 	int 		oldpev;
 
@@ -780,11 +771,17 @@ void PF_walkmove (void)
 	if (!((int)ent->progs.sv->aiflags & (AI_ONGROUND|AI_FLY|AI_SWIM)))
 		return;
 
+	yaw = yaw*M_PI*2 / 360;
+
+	move[0] = cos(yaw)*dist;
+	move[1] = sin(yaw)*dist;
+	move[2] = 0;
+
 	// save program state, because SV_movestep may call other progs
 	oldf = prog->xfunction;
 	oldpev = prog->globals.server->pev;
 
-	PRVM_G_FLOAT(OFS_RETURN) = SV_WalkMove(ent, yaw, dist);
+	PRVM_G_FLOAT(OFS_RETURN) = SV_MoveStep(ent, move, true);
 
 	// restore program state
 	prog->xfunction = oldf;
@@ -801,6 +798,8 @@ void() droptofloor
 void PF_droptofloor (void)
 {
 	edict_t		*ent;
+	vec3_t		end;
+	trace_t		trace;
 
 	// assume failure if it returns early
 	PRVM_G_FLOAT(OFS_RETURN) = 0;
@@ -817,10 +816,25 @@ void PF_droptofloor (void)
 		return;
 	}
 
-	SV_DropToFloor( ent );
+	VectorCopy (ent->progs.sv->origin, end);
+	end[2] -= 256;
+	trace = SV_Trace(ent->progs.sv->origin, ent->progs.sv->mins, ent->progs.sv->maxs, end, ent, MASK_SOLID );
 
-	ent->progs.sv->aiflags = (int)ent->progs.sv->aiflags | AI_ONGROUND;
-	PRVM_G_FLOAT(OFS_RETURN) = 1;
+	if (trace.startsolid)
+	{
+		VM_Warning("droptofloor: %s startsolid at %g %g %g\n", PRVM_GetString(ent->progs.sv->classname), ent->progs.sv->origin[0], ent->progs.sv->origin[1], ent->progs.sv->origin[2]);
+		SV_FreeEdict (ent);
+		return;
+	}
+
+	if (trace.fraction != 1)
+	{
+		VectorCopy (trace.endpos, ent->progs.sv->origin);
+		SV_LinkEdict (ent);
+		ent->progs.sv->aiflags = (int)ent->progs.sv->aiflags | AI_ONGROUND;
+		ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG(trace.ent);
+		PRVM_G_FLOAT(OFS_RETURN) = 1;
+	}
 }
 
 /*
@@ -1368,7 +1382,7 @@ VM_traceon,				// #29 void() traceon
 VM_traceoff,				// #30 void() traceoff
 VM_eprint,				// #31 void(entity e) eprint
 PF_walkmove,				// #32 float(float yaw, float dist) walkmove
-NULL,					// #33
+PF_areaportalstate,				// #33
 PF_droptofloor,				// #34 float() droptofloor
 PF_lightstyle,				// #35 void(float style, string value) lightstyle
 VM_rint,					// #36 float(float v) rint

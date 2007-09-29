@@ -46,11 +46,14 @@ static bool VerifyDriver( void )
 {
 	char buffer[1024];
 
-	strcpy( buffer, qglGetString( GL_RENDERER ) );
+	strcpy( buffer, qglGetString( GL_RENDERER ));
 	strlwr( buffer );
-	if ( strcmp( buffer, "gdi generic" ) == 0 )
+
+	if (!strcmp( buffer, "gdi generic" ))
+	{
 		if ( !glw_state.mcd_accelerated )
 			return false;
+	}
 	return true;
 }
 
@@ -502,7 +505,7 @@ bool GLimp_InitGL (void)
 		goto fail;
 	}
 
-    if ( !qwglMakeCurrent( glw_state.hDC, glw_state.hGLRC ) )
+	if ( !qwglMakeCurrent( glw_state.hDC, glw_state.hGLRC ) )
 	{
 		Msg("GLimp_Init() - qwglMakeCurrent failed\n");
 		goto fail;
@@ -607,3 +610,4 @@ void GLimp_AppActivate( bool active )
 			ShowWindow( glw_state.hWnd, SW_MINIMIZE );
 	}
 }
+     
