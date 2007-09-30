@@ -59,8 +59,7 @@ typedef struct globalvars_s
 	func_t		ClientConnect;	// ClientConnect
 	func_t		PutClientInServer;	// ClientBegin
 	func_t		ClientDisconnect;	// ClientDisconnect
-	func_t		SetNewParms;	// ???
-	func_t		SetChangeParms;	// ???
+	func_t		ClientCommand;	// ClientCommand
 
 } globalvars_t;
 
@@ -181,6 +180,6 @@ typedef struct entvars_s
 
 } entvars_t;
 
-#define PROG_CRC_SERVER 5039
+#define PROG_CRC_SERVER 64081
 
 #endif//PROGDEFS_H

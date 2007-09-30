@@ -7,16 +7,20 @@
 */
 void() trigger_changelevel_touch = 
 {
-	changelevel(pev->map);
+	changelevel(pev->map, pev->landmark);
 };
 
 void() trigger_changelevel = 
 {
-	if (!pev->map)
-		objerror ("chagnelevel trigger doesn't have map");
+	entity	lmark;
+
+	if(!pev->map) Error("chagnelevel trigger doesn't have map\n");
 
 	trigger_setup();
-	
+
+	lmark = find(world, classname, "info_landmark");
+	if( lmark ) pev->landmark = lmark->targetname; 	
+
 	pev->touch = trigger_changelevel_touch;	
 };
 

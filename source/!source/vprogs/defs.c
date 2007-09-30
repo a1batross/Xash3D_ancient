@@ -67,8 +67,7 @@
 	void()		ClientConnect;
 	void() 		PutClientInServer;		// call after setting the parm1... parms
 	void()		ClientDisconnect;
-	void()		SetNewParms;			// called when a client first connects to
-	void()		SetChangeParms;			// call to set parms for self so they can
+	void()		ClientCommand;		// process client commands
 
 void end_sys_globals;		// flag for structure dumping
 
@@ -187,82 +186,7 @@ void end_sys_globals;		// flag for structure dumping
 void		end_sys_fields;			// flag for structure dumping
 // End. Lines below this MAY be altered, to some extent
 
-// Built In functions
-void(vector ang) makevectors			= #1;	// sets v_forward, etc globals
-void(entity e, vector o) setorigin		= #2;
-void(entity e, string m) setmodel		= #3;	// set movetype and solid first
-void(entity e, vector min, vector max) setsize	= #4;
-void(string s) Msg				= #5;
-void() break				= #6;
-float() random				= #7;	// returns 0 - 1
-void(entity e, float chan, string samp, float vol, float atten) sound = #8;
-vector(vector v) normalize			= #9;
-void(string e) error			= #10;
-void(string e) objerror			= #11;
-float(vector v) vlen			= #12;
-float(vector v) vectoyaw			= #13;
-entity() spawn				= #14;
-void(entity e) remove			= #15;
-void(vector v1, vector v2, float nomonsters, entity forent) traceline = #16;	
-entity() checkclient			= #17;		// returns a client to look for
-entity(entity start, .string fld, string match) find = #18;
-string(string s) precache_sound		= #19;
-string(string s) precache_model		= #20;
-void(entity client, string s)stuffcmd		= #21;
-entity(vector org, float rad) findradius	= #22;
-void(string s) dprint			= #25;
-string(float f) ftos			= #26;
-string(vector v) vtos			= #27;
-void() coredump				= #28;		// prints all edicts
-void() traceon				= #29;		// turns statment trace on
-void() traceoff				= #30;
-void(entity e) eprint			= #31;		// prints an entire edict
-float(float yaw, float dist) walkmove		= #32;		// returns TRUE or FALSE
-void areaportal_state( float num, float state )	= #33;
-float() droptofloor				= #34;		// TRUE if landed on floor
-void(float style, string value) lightstyle	= #35;
-float(float v) rint				= #36;		// round to nearest int
-float(float v) floor			= #37;		// largest integer <= v
-float(float v) ceil				= #38;		// smallest integer >= v
-void(entity e, float f, string stats) setstats	= #39;
-float(entity e) checkbottom			= #40;		// true if self is on ground
-float(vector v) pointcontents			= #41;		// returns a CONTENT_*
-float(float f) fabs				= #43;
-vector(entity e, float speed) aim		= #44;		// returns the shooting vector
-float(string s) cvar			= #45;		// return cvar.value
-void(string s) localcmd			= #46;		// put string into local que
-entity(entity e) nextent			= #47;		// for looping through all ents
-void() ChangeYaw 				= #49;		// turn towards self.ideal_yaw
-vector(vector v) vectoangles			= #51;
-void(float f) WriteByte			= #52;
-void(float f) WriteChar			= #53;
-void(float f) WriteShort			= #54;
-void(float f) WriteWord			= #55;
-void(float f) WriteLong			= #56;
-void(vector v) WriteCoord			= #57;
-void(float f) WriteAngle			= #58;
-void(string s) WriteString			= #59;
-void(entity s) WriteEntity			= #60;
-void(entity s) WriteFloat			= #61;
-void(float dest) MsgBegin			= #63;
-void(float to, vector v, entity e) MsgEnd	= #64;
-void(float num, string s) configstring		= #65;
-string(string s) precache_file		= #68;		// no effect except for -copy
-void(entity e) makestatic			= #69;
-void(string s) changelevel			= #70;
-void(string var, string val) cvar_set		= #72;		// sets cvar.value
-void(entity client, string s) centerprint 	= #73;		// sprint, but in middle
-void(entity client, string s, string s) centerprint2 = #73;
-void(entity client, string s, string s, string s) centerprint3 = #73;
-void(entity client, string s, string s, string s, string s) centerprint4 = #73;
-void(entity client, string s, string s, string s, string s, string s) centerprint5 = #73;
-void(entity client, string s, string s, string s, string s, string s, string s) centerprint6 = #73;
-void(entity client, string s, string s, string s, string s, string s, string s, string s) centerprint7 = #73;
-void(vector pos, string samp, float vol, float atten) ambientsound = #74;
-string(string s) precache_model2		= #75;	// registered version only
-string(string s) precache_sound2		= #76;	// registered version only
-string(string s) precache_file2		= #77;	// registered version only
-void(entity e) setspawnparms			= #78;	// set parm1... to the
+#include "utils.h"
 
 //
 // constants
@@ -394,41 +318,11 @@ vector	VEC_HULL2_MIN = '-32 -32 -24';
 vector	VEC_HULL2_MAX = '32 32 64';
 
 // protocol bytes
-float	SVC_BAD			= 0;
-float	SVC_NOP			= 1;
-float	SVC_DISCONNECT		= 2;
-float	SVC_UPDATESTAT		= 3;
-float	SVC_VERSION		= 4;
-float	SVC_SETVIEW		= 5;
-float	SVC_SOUND		= 6;
-float	SVC_TIME		= 7;
-float	SVC_PRINT		= 8;
-float	SVC_STUFFTEXT		= 9;
-float	SVC_SETANGLE		= 10;
-float	SVC_SERVERINFO		= 11;
-float	SVC_LIGHTSTYLE		= 12;
-float	SVC_UPDATENAME		= 13;
-float	SVC_UPDATEFRAGS		= 14;
-float	SVC_CLIENTDATA		= 15;
-float	SVC_STOPSOUND		= 16;
-float	SVC_UPDATECOLORS	= 17;
-float	SVC_PARTICLE		= 18;
-float	SVC_DAMAGE		= 19;
-float	SVC_SPAWNSTATIC		= 20;
-float	SVC_SPAWNBINARY		= 21;
-float	SVC_SPAWNBASELINE	= 22;
-float	SVC_TEMPENTITY		= 23;
-float	SVC_SETPAUSE		= 24;
-float	SVC_SIGNONNUM		= 25;
-float	SVC_CENTERPRINT		= 26;
-float	SVC_KILLEDMONSTER	= 27;
-float	SVC_FOUNDSECRET		= 28;
-float	SVC_SPAWNSTATICSOUND	= 29;	// 1998-08-08 Complete SVC list by Zhenga
-float	SVC_INTERMISSION	= 30;
-float	SVC_FINALE		= 31;
-float	SVC_CDTRACK		= 32;
-float	SVC_SELLSCREEN		= 33;
-float	SVC_CUTSCENE		= 34;	// 1998-08-08 Complete SVC list by Zhenga
+#define	SVC_MUZZLEFLASH		1
+#define	SVC_MUZZLEFLASH2		2
+#define	SVC_TEMP_ENTITY		3
+#define	SVC_LAYOUT		4
+#define	SVC_INVENTORY		5
 
 float	TE_SPIKE		= 0;
 float	TE_SUPERSPIKE	= 1;
@@ -471,13 +365,6 @@ float	EF_MUZZLEFLASH 	= 2;
 float	EF_BRIGHTLIGHT 	= 4;
 float	EF_DIMLIGHT 	= 8;
 
-
-// messages
-float	MSG_BROADCAST	= 0;		// unreliable to all
-float	MSG_ONE			= 1;		// reliable to one (msg_entity)
-float	MSG_ALL			= 2;		// reliable to all
-float	MSG_INIT		= 3;		// write to the init string
-
 float	AS_STRAIGHT		= 1;
 float	AS_SLIDING		= 2;
 float	AS_MELEE		= 3;
@@ -490,14 +377,11 @@ void() SUB_Null2 = {};
 entity activator;
 string string_null;    // null string, nothing should be held here
 
-.string         wad, map;
+.string         wad, map, landmark;
 .float worldtype, delay, wait, lip, light_lev, speed, style, skill;
 .string killtarget;
 .vector pos1, pos2, mangle;
 
-void(vector o, vector d, float color, float count) particle = #48;// start a particle effect
-void(string s) bprint				= #23;
-void(entity client, string s) sprint		= #24;
 void() SUB_Remove = {remove(pev);};
 // End
 

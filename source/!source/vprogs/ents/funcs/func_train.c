@@ -49,7 +49,7 @@ void() func_train_next =
 	pev->target = targ.target;
 
 	if (!pev->target)
-		objerror ("train_next: no next target");
+		Error ("train_next: no next target\n");
 
 	if (targ.wait)
 		pev->wait = targ.wait;
@@ -122,7 +122,7 @@ void() func_train =
 	if (!pev->speed)
 		pev->speed = 100;
 	if (!pev->target)
-		objerror ("func_train without a target");
+		Error ("func_train without a target\n");
 	if (!pev->dmg)
 		pev->dmg = 2;
 

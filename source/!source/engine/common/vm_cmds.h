@@ -70,9 +70,9 @@ string	fgets(float fhandle)
 float	strlen(string s)
 string	strcat(string,string,...[string])
 string	substring(string s, float start, float length)
-vector	stov(string s)
-string	strzone(string s)
-		strunzone(string s)
+vector	atov(string s)
+string	AllocString(string s)
+void	FreeString(string s)
 float	tokenize(string s)
 string	argv(float n)
 float	isserver()
@@ -201,27 +201,28 @@ void VM_objerror (void);
 void VM_print (void);
 void VM_bprint (void);
 void VM_sprint (void);
-void VM_centerprint (void);
 void VM_normalize (void);
-void VM_vlen (void);
+void VM_veclength (void);
 void VM_vectoyaw (void);
 void VM_vectoangles (void);
-void VM_random (void);
+void VM_random_long (void);
+void VM_random_float (void);
 void VM_localsound(void);
 void VM_break (void);
 void VM_localcmd (void);
 void VM_cvar (void);
 void VM_cvar_string(void);
 void VM_cvar_set (void);
-void VM_dprint (void);
-void VM_ftos (void);
+void VM_wprint (void);
+void VM_ftoa (void);
 void VM_fabs (void);
-void VM_vtos (void);
+void VM_vtoa (void);
+void VM_atov (void);
 void VM_etos (void);
-void VM_stof(void);
+void VM_atof(void);
 void VM_itof(void);
 void VM_ftoe(void);
-void VM_spawn (void);
+void VM_create (void);
 void VM_remove (void);
 void VM_find (void);
 void VM_findfloat (void);
@@ -271,10 +272,11 @@ void VM_strlen(void);
 void VM_strcat(void);
 void VM_substring(void);
 void VM_stov(void);
-void VM_strzone(void);
-void VM_strunzone(void);
+void VM_allocstring(void);
+void VM_freestring(void);
 
-void VM_clcommand (void);
+void VM_servercmd (void);
+void VM_clientcmd (void);
 
 void VM_tokenize (void);
 void VM_argv (void);
@@ -305,6 +307,8 @@ void VM_drawresetcliparea(void);
 void VM_getimagesize(void);
 
 void VM_vectorvectors (void);
+void VM_makevectors (void);
+void VM_makevectors2 (void);
 
 void VM_keynumtostring (void);
 void VM_stringtokeynum (void);

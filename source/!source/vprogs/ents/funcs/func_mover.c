@@ -113,7 +113,7 @@ void(vector destination, float movespeed, void() dest_func) func_mover_move =
 	path = destination - pev->origin;
 	
 	//Calculate length of movement vector;
-	pathlength = vlen(path);
+	pathlength = veclength(path);
 	
 	//Divide length of movement vector by desired movespeed to get travel time.
 	traveltime = (pathlength) / (movespeed);

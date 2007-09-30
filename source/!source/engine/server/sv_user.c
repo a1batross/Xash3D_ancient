@@ -459,7 +459,13 @@ void SV_ExecuteUserCommand (char *s)
 	}
 
 	if (!u->name && sv.state == ss_game)
-		SV_ClientCommand(sv_player);
+	{
+		// custom client commands
+		prog->globals.server->pev = PRVM_EDICT_TO_PROG(sv_player);
+		prog->globals.server->time = sv.time;
+		prog->globals.server->frametime = sv.frametime;
+		PRVM_ExecuteProgram (prog->globals.server->ClientCommand, "QC function ClientCommand is missing");
+	}
 }
 
 /*

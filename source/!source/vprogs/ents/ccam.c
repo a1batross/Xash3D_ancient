@@ -20,24 +20,21 @@ void () CCamChasePlayer =
 void () CCam = 
 {
      local entity camera;
-     local entity spot;
 
      if (pev->aflag == FALSE) 
      {
-        pev->aflag = TRUE;
-        camera = spawn ();
-        spot = spawn ();
-        pev->trigger_field = camera;
-        camera.classname = "camera";
-        camera.movetype = MOVETYPE_FLY;
-        camera.solid = SOLID_NOT;
-        setmodel (camera,"progs/eyes.mdl");
-        setsize (camera,'0 0 0','0 0 0');
-        makevectors (pev->v_angle);
-        traceline ((pev->origin + pev->view_ofs),(((pev->origin + pev->view_ofs)
-           + (v_forward * -64.000))),FALSE,pev);
-        pev->camview = '0 0 -64'; // added
-        setorigin (camera,trace_endpos);
+	pev->aflag = TRUE;
+	camera = create("camera", "progs/eyes.mdl", trace_endpos );
+	pev->trigger_field = camera;
+	camera.classname = "camera";
+	camera.movetype = MOVETYPE_FLY;
+	camera.solid = SOLID_NOT;
+	setmodel (camera,"progs/eyes.mdl");
+	setsize (camera,'0 0 0','0 0 0');
+	makevectors (pev->v_angle);
+	traceline ((pev->origin + pev->view_ofs),(((pev->origin + pev->view_ofs) + (v_forward * -64.000))), FALSE, pev);
+        	pev->camview = '0 0 -64'; // added
+	setorigin (camera,trace_endpos);
         camera.angles = pev->angles;
         pev->weaponmodel = "";
         

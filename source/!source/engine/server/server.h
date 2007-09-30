@@ -217,6 +217,7 @@ void SV_DropClient (client_t *drop);
 int SV_ModelIndex (const char *name);
 int SV_SoundIndex (const char *name);
 int SV_ImageIndex (const char *name);
+int SV_DecalIndex (const char *name);
 
 void SV_WriteClientdataToMessage (client_t *client, sizebuf_t *msg);
 void SV_ExecuteUserCommand (char *s);
@@ -231,6 +232,7 @@ void Master_Packet (void);
 //
 void SV_InitGame (void);
 void SV_Map (bool attractloop, char *levelstring, char *savename, bool loadgame);
+int SV_FindIndex (const char *name, int start, int end, bool create);
 void SV_VM_Setup(void);
 void SV_VM_Begin(void);
 void SV_VM_End(void);
@@ -243,6 +245,9 @@ void SV_Physics (edict_t *ent);
 void SV_DropToFloor (edict_t *ent);
 void SV_CheckGround (edict_t *ent);
 bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink);
+void SV_CheckVelocity (edict_t *ent);
+bool SV_CheckBottom (edict_t *ent);
+
 //
 // sv_send.c
 //
@@ -290,7 +295,6 @@ void SV_ShutdownGameProgs (void);
 void SV_InitEdict (edict_t *e);
 void SV_ConfigString (int index, const char *val);
 void SV_SetModel (edict_t *ent, const char *name);
-bool PF_inpvs (vec3_t p1, vec3_t p2);
 
 //
 // sv_studio.c
@@ -302,6 +306,7 @@ int SV_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *m
 // sv_spawn.c
 //
 void SV_SpawnEntities (char *mapname, char *entities, char *spawnpoint);
+void SV_StartParticle (vec3_t org, vec3_t dir, int color, int count);
 void SV_FreeEdict (edict_t *ed);
 void SV_InitEdict (edict_t *e);
 edict_t *SV_Spawn (void);
@@ -359,6 +364,7 @@ int SV_PointContents (vec3_t p);
 
 trace_t SV_ClipMoveToEntity(edict_t *ent, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int contentsmask );
 trace_t SV_Trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, edict_t *passedict, int contentmask);
+trace_t SV_TraceToss (edict_t *tossent, edict_t *ignore);
 // mins and maxs are relative
 
 // if the entire move stays in a solid volume, trace.allsolid will be set,

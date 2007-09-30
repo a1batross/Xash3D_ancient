@@ -61,7 +61,7 @@ typedef struct sizebuf_s
 void SZ_Init (sizebuf_t *buf, byte *data, int length);
 void SZ_Clear (sizebuf_t *buf);
 void *_SZ_GetSpace (sizebuf_t *buf, int length, const char *filename, int fileline);
-void _SZ_Write (sizebuf_t *buf, void *data, int length, const char *filename, int fileline);
+void _SZ_Write (sizebuf_t *buf, const void *data, int length, const char *filename, int fileline);
 void SZ_Print (sizebuf_t *buf, char *data);	// strcats onto the sizebuf
 
 //============================================================================
@@ -76,7 +76,7 @@ void _MSG_WriteShort (sizebuf_t *sb, int c, const char *filename, int fileline);
 void _MSG_WriteWord (sizebuf_t *sb, int c, const char *filename, int fileline);
 void _MSG_WriteLong (sizebuf_t *sb, int c, const char *filename, int fileline);
 void _MSG_WriteFloat (sizebuf_t *sb, float f, const char *filename, int fileline);
-void _MSG_WriteString (sizebuf_t *sb, char *s, const char *filename, int fileline);
+void _MSG_WriteString (sizebuf_t *sb, const char *s, const char *filename, int fileline);
 void _MSG_WriteCoord (sizebuf_t *sb, float f, const char *filename, int fileline);
 void _MSG_WritePos (sizebuf_t *sb, vec3_t pos, const char *filename, int fileline);
 void _MSG_WriteAngle (sizebuf_t *sb, float f, const char *filename, int fileline);
@@ -197,28 +197,18 @@ enum svc_ops_e
 	svc_nop,
 	svc_disconnect,
 	svc_reconnect,
-	svc_sound,					// <see code>
-	svc_print,					// [byte] id [string] null terminated string
-	svc_stufftext,				// [string] stuffed into client's console buffer, should be \n terminated
-	svc_serverdata,				// [long] protocol ...
-	svc_configstring,			// [short] [string]
+	svc_sound,		// <see code>
+	svc_print,		// [byte] id [string] null terminated string
+	svc_stufftext,		// [string] stuffed into client's console buffer, should be \n terminated
+	svc_serverdata,		// [long] protocol ...
+	svc_configstring,		// [short] [string]
 	svc_spawnbaseline,		
-	svc_centerprint,			// [string] to put in center of the screen
-	svc_download,				// [short] size [size bytes]
-	svc_playerinfo,				// variable
-	svc_packetentities,			// [...]
+	svc_centerprint,		// [string] to put in center of the screen
+	svc_download,		// [short] size [size bytes]
+	svc_playerinfo,		// variable
+	svc_packetentities,		// [...]
 	svc_deltapacketentities,	// [...]
 	svc_frame,
-
-
-	//quakeC temp indexes
-	svc_spawnstaticsound,
-	svc_spawnstaticsound2,	
-	svc_spawnstatic,
-	svc_spawnstatic2,
-
-	svc_updatestatubyte,
-	svc_updatestat,
 };
 
 //==============================================

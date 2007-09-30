@@ -21,8 +21,7 @@ void() trigger_message_think =
 	}
 	if(pev->message2)
 	{
-		dprint(pev->message2);
-		dprint("\n");
+		MsgWarn("%s\n", pev->message2);
 	}
 	
 	if(pev->target)
@@ -64,8 +63,7 @@ void() trigger_message_use =
 	}
 	if(pev->message2)
 	{
-		dprint(pev->message2);
-		dprint("\n");
+		MsgWarn("%s\n", pev->message2);
 	}
 	
 	pev->think = trigger_message_think;

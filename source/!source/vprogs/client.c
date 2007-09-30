@@ -15,6 +15,7 @@ void() CheckImpulses;	     // From Impulses.QC
 void() PutClientInServer;  //From Client.QC
 
 //END DEFS;
+.float	showhelp;
 
 /*
 +=========+
@@ -57,7 +58,7 @@ void() ClientRespawn =
 	}
 	else
 	{	// restart the entire server
-		localcmd ("restart\n");
+		server_command ("restart\n");
 	}
 };
 
@@ -272,7 +273,7 @@ void() PutClientInServer =
 	pev->fixangle = TRUE;                // Turn this way immediately
 	pev->weaponmodel = "models/weapons/v_eagle.mdl"; // FIXME: rename to viewmodel
 
-	dprint("PutClientInServer()\n");
+	MsgWarn("PutClientInServer()\n");
 
 	setmodel (pev, "models/player.mdl"); // Set my player to the player model
 	setsize (pev, VEC_HULL_MIN, VEC_HULL_MAX); // Set my size
@@ -281,18 +282,57 @@ void() PutClientInServer =
 
 	setsize(pev, '-16 -16 -32', '16 16 32' );
 	
-	if (pev->aflag)
-		CCamChasePlayer ();
+	if(pev->aflag) CCamChasePlayer ();
 
 	pev->velocity = '0 0 0';             // Stop any old movement
 
+	pev->mass = 90;
 	pev->th_pain = PlayerPain;
 	pev->th_die = PlayerDie;
 
 	setstats( pev, STAT_HEALTH_ICON, "i_health");
-	setstats( pev, STAT_HEALTH, ftos(pev->health));
+	setstats( pev, STAT_HEALTH, ftoa(pev->health));
 	setstats( pev, STAT_HELPICON, "i_help");
-		
+
+	precache_pic( "help" );		
 	GetLevelParms();
 };
 
+void HelpComputer( void )
+{
+	string	help = "xv 32 yv 8 picn help ";
+	float	layout = 0;
+
+	if(pev->showhelp == TRUE) pev->showhelp = FALSE;
+	else pev->showhelp == TRUE;
+
+	if(pev->showhelp == TRUE) layout |= 1;
+	else help = "";
+	if(pev->health > 0) layout |= 2;
+
+	setstats( pev, STAT_LAYOUTS, ftoa(layout));
+
+	MsgBegin( SVC_LAYOUT );
+	WriteString( help );
+	MsgEnd(MSG_ONE, '0 0 0', pev );
+}
+
+void ClientCommand( void )
+{
+	string	cmd;
+
+	cmd = argv(0);
+
+	if(cmd == "help")
+	{
+		HelpComputer();
+	}
+	if(cmd == "say")
+	{
+		Msg("say me now ", argv(1), "\n");
+	}
+	if(cmd == "say_team")
+	{
+		Msg("say me now ", argv(1), "\n");
+	}
+}

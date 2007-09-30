@@ -250,10 +250,6 @@ SOURCE=.\server\sv_ents.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\server\sv_game.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\server\sv_init.c
 # End Source File
 # Begin Source File
@@ -262,7 +258,7 @@ SOURCE=.\server\sv_main.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\server\sv_physics.c
+SOURCE=.\server\sv_phys.c
 # End Source File
 # Begin Source File
 
@@ -283,6 +279,10 @@ SOURCE=.\server\sv_studio.c
 # Begin Source File
 
 SOURCE=.\server\sv_user.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\server\sv_utils.c
 # End Source File
 # Begin Source File
 

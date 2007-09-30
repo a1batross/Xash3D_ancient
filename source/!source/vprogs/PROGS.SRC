@@ -27,7 +27,6 @@ ents/triggers/trigger_once.c
 ents/triggers/trigger_sequence.c
 ents/triggers/trigger_message.c
 ents/triggers/trigger_counter.c
-ents/triggers/trigger_setviewpoint.c
 ents/triggers/trigger_teleport.c
 ents/triggers/trigger_hurt.c
 ents/triggers/trigger_push.c

@@ -22,7 +22,7 @@ void() ambient_swamp2           = {doambient("ambience/swamp2.wav",   0.5);};
 
 void(string soundfile, float volume) doambient =
 {
- precache_sound (soundfile);
- ambientsound (pev->origin, soundfile, volume, ATTN_STATIC);
+	precache_sound (soundfile);
+	ambientsound (pev, soundfile);
 };
 

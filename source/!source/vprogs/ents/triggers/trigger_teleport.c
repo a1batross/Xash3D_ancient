@@ -36,7 +36,7 @@ void(vector death_org, entity death_owner) spawn_tdeath =
 {
 	local entity	death;
 
-	death = spawn();
+	death = create("teledeath", "", death_org);
 	death.classname = "teledeath";
 	death.owner = death_owner;
 	
@@ -58,8 +58,7 @@ void() trigger_teleport_think =
 
 	t = find (world, targetname, pev->target);
 	
-	if (!t)
-		objerror ("couldn't find target");
+	if (!t) Error("couldn't find target\n");
 	
 	IEM_effects(TE_TELEPORT, pev->triggerer.origin);
 	
@@ -110,8 +109,7 @@ void() trigger_teleport =
 	pev->touch = trigger_teleport_touch;
 	pev->use = trigger_teleport_use;
 
-	if (!pev->target)
-		objerror ("no target");
+	if (!pev->target) Error("no target\n");
 		
 	if(pev->spawnflags & TRIGGER_START_OFF)
 		pev->touched = TRUE;
@@ -133,13 +131,12 @@ void() trigger_teleport =
 
 void() info_teleport_destination =
 {
-// this does nothing, just serves as a target spot
+	// this does nothing, just serves as a target spot
 	pev->mangle = pev->angles;
 	pev->angles = '0 0 0';
 	pev->model = "";
 	pev->origin = pev->origin + '0 0 27';
-	if (!pev->targetname)
-		objerror ("no targetname");
+	if (!pev->targetname) Error("no targetname\n");
 };
 
 

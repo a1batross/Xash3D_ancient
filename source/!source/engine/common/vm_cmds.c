@@ -215,23 +215,41 @@ void VM_sprint( void )
 	SV_ClientPrintf (svs.clients+(num - 1), PRINT_HIGH, "%s", string );
 }
 
-/*
-=================
-VM_centerprint
-
-single print to the screen
-
-centerprint(clientent, value)
-=================
-*/
-void VM_centerprint (void)
+void VM_servercmd (void)
 {
 	char string[VM_STRINGTEMP_LENGTH];
 
 	VM_VarString(0, string, sizeof(string));
-
-	SCR_CenterPrint(string);
+	SV_BroadcastCommand( string );
 }
+
+/*
+=========
+VM_clientcmd (used by client and menu)
+
+clientcommand(float client, string s) (for client and menu)
+=========
+*/
+void VM_clientcmd (void)
+{
+	client_t		*temp_client;
+	int		i;
+
+	VM_SAFEPARMCOUNT(2, VM_clientcmd);
+
+	i = (int)PRVM_G_FLOAT(OFS_PARM0);
+	if (sv.state != ss_game  || i < 0 || i >= maxclients->value || svs.clients[i].state != cs_spawned)
+	{
+		VM_Warning("VM_clientcommand: %s: invalid client/server is not active !\n", PRVM_NAME);
+		return;
+	}
+
+	temp_client = sv_client;
+	sv_client = svs.clients + i;
+	Cmd_ExecuteString (PRVM_G_STRING(OFS_PARM1));
+	sv_client = temp_client;
+}
+
 
 /*
 =================
@@ -257,20 +275,19 @@ void VM_normalize (void)
 		VectorScale(value1, f, newvalue);
 	}
 	else VectorClear(newvalue);
-
 	VectorCopy (newvalue, PRVM_G_VECTOR(OFS_RETURN));
 }
 
 /*
 =================
-VM_vlen
+VM_veclength
 
-scalar vlen(vector)
+scalar veclength(vector)
 =================
 */
-void VM_vlen (void)
+void VM_veclength (void)
 {
-	VM_SAFEPARMCOUNT(1,VM_vlen);
+	VM_SAFEPARMCOUNT(1, VM_veclength);
 	PRVM_G_FLOAT(OFS_RETURN) = VectorLength(PRVM_G_VECTOR(OFS_PARM0));
 }
 
@@ -286,17 +303,15 @@ void VM_vectoyaw (void)
 	float	*value1;
 	float	yaw;
 
-	VM_SAFEPARMCOUNT(1,VM_vectoyaw);
+	VM_SAFEPARMCOUNT(1, VM_vectoyaw);
 
 	value1 = PRVM_G_VECTOR(OFS_PARM0);
 
-	if (value1[1] == 0 && value1[0] == 0)
-		yaw = 0;
+	if (value1[1] == 0 && value1[0] == 0) yaw = 0;
 	else
 	{
 		yaw = (int) (atan2(value1[1], value1[0]) * 180 / M_PI);
-		if (yaw < 0)
-			yaw += 360;
+		if (yaw < 0) yaw += 360;
 	}
 
 	PRVM_G_FLOAT(OFS_RETURN) = yaw;
@@ -316,17 +331,15 @@ void VM_vectoangles (void)
 	float	forward;
 	float	yaw, pitch;
 
-	VM_SAFEPARMCOUNT(1,VM_vectoangles);
+	VM_SAFEPARMCOUNT(1, VM_vectoangles);
 
 	value1 = PRVM_G_VECTOR(OFS_PARM0);
 
 	if (value1[1] == 0 && value1[0] == 0)
 	{
 		yaw = 0;
-		if (value1[2] > 0)
-			pitch = 90;
-		else
-			pitch = 270;
+		if (value1[2] > 0) pitch = 90;
+		else pitch = 270;
 	}
 	else
 	{
@@ -334,21 +347,17 @@ void VM_vectoangles (void)
 		if (value1[0])
 		{
 			yaw = (atan2(value1[1], value1[0]) * 180 / M_PI);
-			if (yaw < 0)
-				yaw += 360;
+			if (yaw < 0) yaw += 360;
 		}
-		else if (value1[1] > 0)
-			yaw = 90;
-		else
-			yaw = 270;
+		else if (value1[1] > 0) yaw = 90;
+		else yaw = 270;
 
 		forward = sqrt(value1[0]*value1[0] + value1[1]*value1[1]);
 		pitch = (atan2(value1[2], forward) * 180 / M_PI);
-		if (pitch < 0)
-			pitch += 360;
+		if (pitch < 0) pitch += 360;
 	}
 
-	PRVM_G_FLOAT(OFS_RETURN+0) = pitch;
+	PRVM_G_FLOAT(OFS_RETURN+0) = pitch; //FIXME: should inverse ?
 	PRVM_G_FLOAT(OFS_RETURN+1) = yaw;
 	PRVM_G_FLOAT(OFS_RETURN+2) = 0;
 }
@@ -357,17 +366,24 @@ void VM_vectoangles (void)
 =================
 VM_random
 
-Returns a number from 0<= num < 1
+Returns a number in specified range
 
-float random()
+float random_long( float min, float max)
+float random_float( float min, float max)
 =================
 */
-void VM_random (void)
+void VM_random_long (void)
 {
-	VM_SAFEPARMCOUNT(0,VM_random);
-
-	PRVM_G_FLOAT(OFS_RETURN) = RANDOM_LONG(0, 1);
+	VM_SAFEPARMCOUNT(2, VM_random_long);
+	PRVM_G_FLOAT(OFS_RETURN) = RANDOM_LONG(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1));
 }
+
+void VM_random_float (void)
+{
+	VM_SAFEPARMCOUNT(2, VM_random_float);
+	PRVM_G_FLOAT(OFS_RETURN) = RANDOM_FLOAT(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1));
+}
+
 
 /*
 =================
@@ -528,12 +544,12 @@ void VM_cvar_set (void)
 
 /*
 =========
-VM_dprint
+VM_wprint
 
-dprint(...[string])
+wprint(...[string])
 =========
 */
-void VM_dprint (void)
+void VM_wprint (void)
 {
 	char string[VM_STRINGTEMP_LENGTH];
 	if (host.debug)
@@ -545,26 +561,26 @@ void VM_dprint (void)
 
 /*
 =========
-VM_ftos
+VM_ftoa
 
-string	ftos(float)
+string ftoa(float)
 =========
 */
 
-void VM_ftos (void)
+void VM_ftoa (void)
 {
 	float v;
 	char *s;
 
-	VM_SAFEPARMCOUNT(1, VM_ftos);
+	VM_SAFEPARMCOUNT(1, VM_ftoa);
 
 	v = PRVM_G_FLOAT(OFS_PARM0);
 
 	s = VM_GetTempString();
 	if ((float)((int)v) == v)
 		sprintf(s, "%i", (int)v);
-	else
-		sprintf(s, "%f", v);
+	else sprintf(s, "%f", v);
+
 	PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString(s);
 }
 
@@ -572,7 +588,7 @@ void VM_ftos (void)
 =========
 VM_fabs
 
-float	fabs(float)
+float fabs(float)
 =========
 */
 
@@ -588,17 +604,17 @@ void VM_fabs (void)
 
 /*
 =========
-VM_vtos
+VM_vtoa
 
-string	vtos(vector)
+string vtoa(vector)
 =========
 */
 
-void VM_vtos (void)
+void VM_vtoa (void)
 {
 	char *s;
 
-	VM_SAFEPARMCOUNT(1,VM_vtos);
+	VM_SAFEPARMCOUNT(1,VM_vtoa);
 
 	s = VM_GetTempString();
 	sprintf (s, "'%5.1f %5.1f %5.1f'", PRVM_G_VECTOR(OFS_PARM0)[0], PRVM_G_VECTOR(OFS_PARM0)[1], PRVM_G_VECTOR(OFS_PARM0)[2]);
@@ -628,10 +644,10 @@ void VM_etos (void)
 =========
 VM_stof
 
-float stof(...[string])
+float atof(...[string])
 =========
 */
-void VM_stof(void)
+void VM_atof(void)
 {
 	char string[VM_STRINGTEMP_LENGTH];
 	VM_VarString(0, string, sizeof(string));
@@ -672,13 +688,13 @@ void VM_ftoe(void)
 
 /*
 =========
-VM_spawn
+VM_create
 
-entity spawn()
+entity create()
 =========
 */
 
-void VM_spawn (void)
+void VM_create (void)
 {
 	edict_t	*ed;
 	prog->xfunction->builtinsprofile += 20;
@@ -739,8 +755,7 @@ void VM_find (void)
 	// LordHavoc: apparently BloodMage does a find(world, weaponmodel, "") and
 	// expects it to find all the monsters, so we must be careful to support
 	// searching for ""
-	if (!s)
-		s = "";
+	if (!s) s = "";
 
 	for (e++ ; e < prog->num_edicts ; e++)
 	{
@@ -1087,10 +1102,8 @@ void VM_rint (void)
 	VM_SAFEPARMCOUNT(1,VM_rint);
 
 	f = PRVM_G_FLOAT(OFS_PARM0);
-	if (f > 0)
-		PRVM_G_FLOAT(OFS_RETURN) = floor(f + 0.5);
-	else
-		PRVM_G_FLOAT(OFS_RETURN) = ceil(f - 0.5);
+	if (f > 0) PRVM_G_FLOAT(OFS_RETURN) = floor(f + 0.5);
+	else PRVM_G_FLOAT(OFS_RETURN) = ceil(f - 0.5);
 }
 
 /*
@@ -1229,7 +1242,6 @@ vector randomvec()
 void VM_randomvec (void)
 {
 	vec3_t		temp;
-	//float		length;
 
 	VM_SAFEPARMCOUNT(0, VM_randomvec);
 
@@ -1239,18 +1251,8 @@ void VM_randomvec (void)
 		temp[0] = (rand()&32767) * (2.0 / 32767.0) - 1.0;
 		temp[1] = (rand()&32767) * (2.0 / 32767.0) - 1.0;
 		temp[2] = (rand()&32767) * (2.0 / 32767.0) - 1.0;
-	}
-	while (DotProduct(temp, temp) >= 1);
+	} while (DotProduct(temp, temp) >= 1);
 	VectorCopy (temp, PRVM_G_VECTOR(OFS_RETURN));
-
-	/*
-	temp[0] = (rand()&32767) * (2.0 / 32767.0) - 1.0;
-	temp[1] = (rand()&32767) * (2.0 / 32767.0) - 1.0;
-	temp[2] = (rand()&32767) * (2.0 / 32767.0) - 1.0;
-	// length returned always > 0
-	length = (rand()&32766 + 1) * (1.0 / 32767.0) / VectorLength(temp);
-	VectorScale(temp,length, temp);*/
-	//VectorCopy(temp, PRVM_G_VECTOR(OFS_RETURN));
 }
 
 //=============================================================================
@@ -1299,25 +1301,12 @@ VM_min
 
 returns the minimum of two supplied floats
 
-float min(float a, float b, ...[float])
+float min(float a, float b)
 =================
 */
 void VM_min (void)
 {
-	// LordHavoc: 3+ argument enhancement suggested by FrikaC
-	if (prog->argc == 2)
-		PRVM_G_FLOAT(OFS_RETURN) = min(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1));
-	else if (prog->argc >= 3)
-	{
-		int i;
-		float f = PRVM_G_FLOAT(OFS_PARM0);
-		for (i = 1;i < prog->argc;i++)
-			if (PRVM_G_FLOAT((OFS_PARM0+i*3)) < f)
-				f = PRVM_G_FLOAT((OFS_PARM0+i*3));
-		PRVM_G_FLOAT(OFS_RETURN) = f;
-	}
-	else
-		PRVM_ERROR("VM_min: %s must supply at least 2 floats", PRVM_NAME);
+	PRVM_G_FLOAT(OFS_RETURN) = min(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1));
 }
 
 /*
@@ -1326,25 +1315,12 @@ VM_max
 
 returns the maximum of two supplied floats
 
-float	max(float a, float b, ...[float])
+float	max(float a, float b)
 =================
 */
 void VM_max (void)
 {
-	// LordHavoc: 3+ argument enhancement suggested by FrikaC
-	if (prog->argc == 2)
-		PRVM_G_FLOAT(OFS_RETURN) = max(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1));
-	else if (prog->argc >= 3)
-	{
-		int i;
-		float f = PRVM_G_FLOAT(OFS_PARM0);
-		for (i = 1;i < prog->argc;i++)
-			if (PRVM_G_FLOAT((OFS_PARM0+i*3)) > f)
-				f = PRVM_G_FLOAT((OFS_PARM0+i*3));
-		PRVM_G_FLOAT(OFS_RETURN) = f;
-	}
-	else
-		PRVM_ERROR("VM_max: %s must supply at least 2 floats", PRVM_NAME);
+	PRVM_G_FLOAT(OFS_RETURN) = max(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1));
 }
 
 /*
@@ -1667,13 +1643,12 @@ void VM_substring(void)
 
 /*
 =========
-VM_stov
+VM_atov
 
-vector	stov(string s)
+vector	atov(string s)
 =========
 */
-//vector(string s) stov = #117; // returns vector value from a string
-void VM_stov(void)
+void VM_atov(void)
 {
 	char string[VM_STRINGTEMP_LENGTH];
 	vec3_t		out;
@@ -1702,13 +1677,15 @@ void VM_stov(void)
 
 /*
 =========
-VM_strzone
+VM_allocstring
 
-string	strzone(string s)
+makes a copy of a string into the string zone and returns it, this is often used to keep around a tempstring 
+for longer periods of time (tempstrings are replaced often)
+
+string	AllocString(string s)
 =========
 */
-//string(string s, ...) strzone = #118; // makes a copy of a string into the string zone and returns it, this is often used to keep around a tempstring for longer periods of time (tempstrings are replaced often)
-void VM_strzone(void)
+void VM_allocstring(void)
 {
 	char *out;
 	char string[VM_STRINGTEMP_LENGTH];
@@ -1719,52 +1696,24 @@ void VM_strzone(void)
 	VM_VarString(0, string, sizeof(string));
 	alloclen = strlen(string) + 1;
 	PRVM_G_INT(OFS_RETURN) = PRVM_AllocString(alloclen, &out);
-	memcpy(out, string, alloclen);
+	Mem_Copy(out, string, alloclen);
 }
 
 /*
 =========
-VM_strunzone
+VM_freestring
 
-strunzone(string s)
+removes a copy of a string from the string zone 
+you can not use that string again or it may crash!!!
+
+void FreeString(string s)
 =========
 */
-//void(string s) strunzone = #119; // removes a copy of a string from the string zone (you can not use that string again or it may crash!!!)
-void VM_strunzone(void)
+void VM_freestring(void)
 {
 	VM_SAFEPARMCOUNT(1,VM_strunzone);
 	PRVM_FreeString(PRVM_G_INT(OFS_PARM0));
 }
-
-/*
-=========
-VM_command (used by client and menu)
-
-clientcommand(float client, string s) (for client and menu)
-=========
-*/
-//void(entity e, string s) clientcommand = #440; // executes a command string as if it came from the specified client
-//this function originally written by KrimZon, made shorter by LordHavoc
-void VM_clcommand (void)
-{
-	client_t		*temp_client;
-	int		i;
-
-	VM_SAFEPARMCOUNT(2, VM_clcommand);
-
-	i = (int)PRVM_G_FLOAT(OFS_PARM0);
-	if (sv.state != ss_game  || i < 0 || i >= host.maxclients || svs.clients[i].state != cs_spawned)
-	{
-		VM_Warning("VM_clientcommand: %s: invalid client/server is not active !\n", PRVM_NAME);
-		return;
-	}
-
-	temp_client = sv_client;
-	sv_client = svs.clients + i;
-	Cmd_ExecuteString (PRVM_G_STRING(OFS_PARM1));
-	sv_client = temp_client;
-}
-
 
 /*
 =========
@@ -1812,14 +1761,13 @@ void VM_argv (void)
 {
 	int token_num;
 
-	VM_SAFEPARMCOUNT(1,VM_argv);
+	VM_SAFEPARMCOUNT(1, VM_argv);
 
 	token_num = (int)PRVM_G_FLOAT(OFS_PARM0);
 
-	if (token_num >= 0 && token_num < num_tokens)
-		PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString(tokens[token_num]);
-	else
-		PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString(NULL);
+	if (token_num >= 0 && token_num < Cmd_Argc())
+		PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString(Cmd_Argv(token_num));
+	else PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString(NULL);
 }
 
 /*
@@ -2427,6 +2375,24 @@ void VM_vectorvectors (void)
 {
 	DotProduct(PRVM_G_VECTOR(OFS_PARM0), prog->globals.server->v_forward);
 	VectorVectors(prog->globals.server->v_forward, prog->globals.server->v_right, prog->globals.server->v_up);
+}
+
+/*
+==============
+VM_makevectors
+
+Writes new values for v_forward, v_up, and v_right based on angles
+makevectors(vector)
+==============
+*/
+void VM_makevectors (void)
+{
+	AngleVectors(PRVM_G_VECTOR(OFS_PARM0), prog->globals.server->v_forward, prog->globals.server->v_right, prog->globals.server->v_up);
+}
+
+void VM_makevectors2 (void)
+{
+	AngleVectorsFLU(PRVM_G_VECTOR(OFS_PARM0), prog->globals.server->v_forward, prog->globals.server->v_right, prog->globals.server->v_up);
 }
 
 // float(float number, float quantity) bitshift (EXT_BITSHIFT)

@@ -32,8 +32,8 @@
 #define DotProduct(x,y) (x[0]*y[0]+x[1]*y[1]+x[2]*y[2])
 #define VectorSubtract(a,b,c){c[0]=a[0]-b[0];c[1]=a[1]-b[1];c[2]=a[2]-b[2];}
 #define VectorAdd(a,b,c) {c[0]=a[0]+b[0];c[1]=a[1]+b[1];c[2]=a[2]+b[2];}
-#define VectorCopy(a,b){b[0]=a[0];b[1]=a[1];b[2]=a[2];}
-_inline void VectorScale(const vec3_t a, const float b, vec3_t c){c[0]=b*a[0];c[1]=b*a[1];c[2]=b*a[2];}
+#define VectorCopy(a,b) {b[0]=a[0];b[1]=a[1];b[2]=a[2];}
+#define VectorScale(in, scale, out) ((out)[0] = (in)[0] * (scale),(out)[1] = (in)[1] * (scale),(out)[2] = (in)[2] * (scale))
 #define VectorSet(v, x, y, z) {v[0] = x; v[1] = y; v[2] = z;}
 #define VectorClear(x) {x[0] = x[1] = x[2] = 0;}
 #define VectorNegate(x, y) {y[0] =-x[0]; y[1]=-x[1]; y[2]=-x[2];}

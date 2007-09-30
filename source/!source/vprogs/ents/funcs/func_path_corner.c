@@ -9,7 +9,7 @@ Currently only trains use this to tell their next stop position;
 void() path_corner = 
 {
 	if (!pev->targetname)
-		objerror ("monster_movetarget: no targetname");
+		Error ("monster_movetarget: no targetname\n");
 		
 	pev->solid = SOLID_NOT;
 	setsize (pev, '-8 -8 -8', '8 8 8');

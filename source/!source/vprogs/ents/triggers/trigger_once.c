@@ -36,8 +36,7 @@ void() trigger_once_use =
 
 	if(pev->message)
 	{
-		bprint(pev->message);
-		dprint("\n");
+		bprint("%s\n", pev->message);
 	}
 	
 	pev->think = trigger_once_think;

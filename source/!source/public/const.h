@@ -63,14 +63,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 // per-level limits
 //
-#define	MAX_CLIENTS			256		// absolute limit
+#define	MAX_CLIENTS			256	// absolute limit
 #define	MAX_EDICTS			1024	// must change protocol to increase more
-#define	MAX_LIGHTSTYLES		256
-#define	MAX_MODELS			256		// these are sent over the net as bytes
-#define	MAX_SOUNDS			256		// so they cannot be blindly increased
+#define	MAX_LIGHTSTYLES			256
+#define	MAX_MODELS			256	// these are sent over the net as bytes
+#define	MAX_SOUNDS			256	// so they cannot be blindly increased
 #define	MAX_IMAGES			256
-#define	MAX_ITEMS			256
-#define MAX_GENERAL			(MAX_CLIENTS*2)	// general config strings
+#define	MAX_DECALS			256
+#define	MAX_ITEMS				256
+#define MAX_GENERAL				(MAX_CLIENTS*2)	// general config strings
 
 
 // game print flags
@@ -184,14 +185,9 @@ extern vec3_t vec3_origin;
 
 // microsoft's fabs seems to be ungodly slow...
 #define Q_ftol( f ) ( long ) (f)
-#define DotProduct(x,y)			(x[0]*y[0]+x[1]*y[1]+x[2]*y[2])
 
 void ClearBounds (vec3_t mins, vec3_t maxs);
 void AddPointToBounds (vec3_t v, vec3_t mins, vec3_t maxs);
-void CrossProduct (vec3_t v1, vec3_t v2, vec3_t cross);
-vec_t VectorNormalize (vec3_t v);		// returns vector length
-vec_t VectorNormalize2 (vec3_t v, vec3_t out);
-void VectorInverse (vec3_t v);
 int Q_log2(int val);
 
 void R_ConcatRotations (float in1[3][3], float in2[3][3], float out[3][3]);
@@ -720,7 +716,8 @@ typedef enum
 #define	CS_SOUNDS			(CS_MODELS+MAX_MODELS)
 #define	CS_IMAGES			(CS_SOUNDS+MAX_SOUNDS)
 #define	CS_LIGHTS			(CS_IMAGES+MAX_IMAGES)
-#define	CS_ITEMS			(CS_LIGHTS+MAX_LIGHTSTYLES)
+#define	CS_DECALS			(CS_LIGHTS+MAX_LIGHTSTYLES)
+#define	CS_ITEMS			(CS_DECALS+MAX_DECALS)
 #define	CS_PLAYERSKINS		(CS_ITEMS+MAX_ITEMS)
 #define	CS_GENERAL		(CS_PLAYERSKINS+MAX_CLIENTS)
 #define	MAX_CONFIGSTRINGS		(CS_GENERAL+MAX_GENERAL)

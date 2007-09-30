@@ -16,7 +16,7 @@ void() CheckImpulses =
 	if(pev->impulse == 10)
 	{
 		local string a;
-		a = ftos(pev->items);
+		a = ftoa(pev->items);
 		sprint(pev, a);
 		sprint(pev, "Items Printed\n");
 	}

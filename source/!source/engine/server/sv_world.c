@@ -595,6 +595,44 @@ trace_t SV_Trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, edict_t *p
 	return clip.trace;
 }
 
+trace_t SV_TraceToss (edict_t *tossent, edict_t *ignore)
+{
+	int	i;
+	float	gravity = 1.0;
+	vec3_t	move, end;
+	vec3_t	original_origin;
+	vec3_t	original_velocity;
+	vec3_t	original_angles;
+	vec3_t	original_avelocity;
+	trace_t	trace;
+
+	VectorCopy(tossent->progs.sv->origin, original_origin);
+	VectorCopy(tossent->progs.sv->velocity, original_velocity);
+	VectorCopy(tossent->progs.sv->angles, original_angles);
+	VectorCopy(tossent->progs.sv->avelocity, original_avelocity);
+
+	gravity *= sv_gravity->value * 0.05;
+
+	for (i = 0; i < 200; i++) // LordHavoc: sanity check; never trace more than 10 seconds
+	{
+		SV_CheckVelocity (tossent);
+		tossent->progs.sv->velocity[2] -= gravity;
+		VectorMA (tossent->progs.sv->angles, 0.05, tossent->progs.sv->avelocity, tossent->progs.sv->angles);
+		VectorScale (tossent->progs.sv->velocity, 0.05, move);
+		VectorAdd (tossent->progs.sv->origin, move, end);
+		trace = SV_Trace(tossent->progs.sv->origin, tossent->progs.sv->mins, tossent->progs.sv->maxs, end, tossent, MASK_SOLID );
+		VectorCopy (trace.endpos, tossent->progs.sv->origin);
+		if (trace.fraction < 1) break;
+	}
+
+	VectorCopy(original_origin, tossent->progs.sv->origin);
+	VectorCopy(original_velocity, tossent->progs.sv->velocity);
+	VectorCopy(original_angles, tossent->progs.sv->angles);
+	VectorCopy(original_avelocity, tossent->progs.sv->avelocity);
+
+	return trace;
+}
+
 trace_t SV_ClipMoveToEntity(edict_t *ent, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int contentsmask)
 {
 	return CM_BoxTrace(start, end, mins, maxs, ent->priv.sv->headnode, contentsmask);

@@ -88,7 +88,7 @@ void _MSG_WriteFloat (sizebuf_t *sb, float f, const char *filename, int fileline
 	_SZ_Write (sb, &dat.l, 4, filename, fileline);
 }
 
-void _MSG_WriteString (sizebuf_t *sb, char *s, const char *filename, int fileline)
+void _MSG_WriteString (sizebuf_t *sb, const char *s, const char *filename, int fileline)
 {
 	if (!s || !*s) _MSG_WriteChar (sb, 0, filename, fileline );
 	else _SZ_Write (sb, s, strlen(s)+1, filename, fileline);
@@ -526,9 +526,9 @@ void *_SZ_GetSpace (sizebuf_t *buf, int length, const char *filename, int fileli
 	return data;
 }
 
-void _SZ_Write (sizebuf_t *buf, void *data, int length, const char *filename, int fileline)
+void _SZ_Write (sizebuf_t *buf, const void *data, int length, const char *filename, int fileline)
 {
-	Mem_Copy(_SZ_GetSpace(buf, length, filename, fileline), data, length);		
+	Mem_Copy(_SZ_GetSpace(buf, length, filename, fileline), (void *)data, length);		
 }
 
 void SZ_Print (sizebuf_t *buf, char *data)

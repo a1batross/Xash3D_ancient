@@ -668,6 +668,18 @@ void SV_ClientDisconnect (edict_t *ent)
 }
 
 /*
+==================
+SV_StartParticle
+
+Make sure the event gets sent to all clients
+==================
+*/
+void SV_StartParticle (vec3_t org, vec3_t dir, int color, int count)
+{
+	MsgWarn("SV_StartParticle: implement me\n");
+}
+
+/*
 ===============
 PF_cprintf
 

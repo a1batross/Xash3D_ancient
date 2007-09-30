@@ -17,13 +17,6 @@ void(string modelname) Precache_Set = // Precache model, and set mypev to it
  setmodel(pev, modelname);
 };
 
-void(entity ent) SetViewPoint =  	// Alter the Viewpoint Entity
-{
- 	MsgBegin(SVC_SETVIEW); 		// Network Protocol: Set Viewpoint Entity
- 	WriteEntity(ent);       		// Write entity to clients.
-	MsgEnd( MSG_ONE, '0 0 0', ent );
-};
-
 /*
 QuakeEd only writes a single float for angles (bad idea), so up and down are
 just constant angles.
@@ -75,8 +68,10 @@ void() IEM_usetarget =
 
 void(float effect_type, vector effect_org) IEM_effects =
 {
-	MsgBegin(SVC_TEMPENTITY);
+	MsgBegin(SVC_TEMP_ENTITY);
 		WriteByte(effect_type);
-		WriteCoord(effect_org);
+		WriteCoord(effect_org_x);
+		WriteCoord(effect_org_y);
+		WriteCoord(effect_org_z);
 	MsgEnd( MSG_BROADCAST, effect_org, pev );
 };

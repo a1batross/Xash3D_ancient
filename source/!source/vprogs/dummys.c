@@ -125,6 +125,7 @@ void barrel_spawn(string netname1, string model1, string deathmessage, float dam
 	pev->nextthink = -1;
 	pev->touch = barrel_touch;
 	pev->flags = 0;
+	if(!pev->mass) pev->mass = 25;
 
 	pev->origin_z = pev->origin_z + 2;
 	oldz = pev->origin_z;
@@ -133,9 +134,7 @@ void barrel_spawn(string netname1, string model1, string deathmessage, float dam
 
 	if (oldz - pev->origin_z > 250)
 	{
-		dprint ("explosive box fell out of level at ");
-		dprint (vtos(pev->origin));
-		dprint ("\n");
+		MsgWarn ("explosive box fell out of level at", vtoa(pev->origin), "\n" );
 		remove(pev);
 	}
 }
