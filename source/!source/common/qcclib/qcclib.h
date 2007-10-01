@@ -60,16 +60,31 @@ TODO:
 #define STRCMP(s1, s2)	(((*s1)!=(*s2)) || strcmp(s1+1,s2+1))
 #define STRNCMP(s1, s2, l)	(((*s1)!=(*s2)) || strncmp(s1+1,s2+1,l))
 
+#define statements16 ((dstatement16_t*) statements)
+#define statements32 statements
+
+#define qcc_globals16 ((ddef16_t*)qcc_globals)
+#define qcc_globals32 qcc_globals
+
+#define fields16 ((ddef16_t*)fields)
+#define fields32 fields
+
+#define KEYWORD(x) if(!STRCMP(name, #x) && keyword_##x)	\
+{						\
+	if (keyword_##x)				\
+		PR_ParseWarning(WARN_KEYWORDDISABLED, "\""#x"\" keyword used as variable name%s", keywords_coexist?" - coexisting":" - disabling");\
+		keyword_##x=keywords_coexist;		\
+}
+
 typedef uint		gofs_t;	// offset in global data block
 typedef struct function_s	function_t;
 typedef char		PATHSTRING[MAX_NAME];
 
-typedef enum {
-	QCF_STANDARD,
-	QCF_HEXEN2,
-	QCF_FTE,
-	QCF_FTEDEBUG,
-	QCF_KK7
+typedef enum 
+{
+	QCF_STANDARD,	// regular quake1 progs ver. 6
+	QCF_RELEASE,	// release extend progs ver. 7
+	QCF_DEBUG,	// debug extended progs ver. 7
 } targetformat_t;
 
 typedef enum {
@@ -190,13 +205,13 @@ typedef struct
 	char		*name;
 	char		*opname;
 	int		priority;
+
 	enum
 	{
 		ASSOC_LEFT,
 		ASSOC_RIGHT,
-		ASSOC_RIGHT_RESULT
-
 	} associative;
+
 	struct type_s	**type_a;
 	struct type_s	**type_b;
 	struct type_s	**type_c;
@@ -603,9 +618,10 @@ void PR_IncludeChunk (char *data, bool duplicate, char *filename);
 void PR_Warning (int type, char *file, int line, char *error, ...);
 byte *PR_LoadFile(char *filename, fs_offset_t *filesizeptr, int type );
 void PR_ParseErrorPrintDef (int errortype, def_t *def, char *error, ...);
-char *PR_decode( int complen, int len, int method, char *info, char *buffer);
+int PR_decode(int complen, int len, int method, char *info, char **buffer);
 def_t *PR_GetDef (type_t *type, char *name, def_t *scope, bool allocate, int arraysize);
 void PR_RemapOffsets(uint firststatement, uint laststatement, uint min, uint max, uint newmin);
+void PR_WriteBlock(vfile_t *handle, fs_offset_t pos, const void *data, size_t blocksize, bool compress);
 
 //pr_utils
 bool PrepareDATProgs ( const char *dir, const char *name, byte params );

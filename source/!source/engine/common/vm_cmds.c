@@ -2373,8 +2373,8 @@ vectorvectors(vector, vector)
 */
 void VM_vectorvectors (void)
 {
-	DotProduct(PRVM_G_VECTOR(OFS_PARM0), prog->globals.server->v_forward);
-	VectorVectors(prog->globals.server->v_forward, prog->globals.server->v_right, prog->globals.server->v_up);
+	DotProduct(PRVM_G_VECTOR(OFS_PARM0), prog->globals.sv->v_forward);
+	VectorVectors(prog->globals.sv->v_forward, prog->globals.sv->v_right, prog->globals.sv->v_up);
 }
 
 /*
@@ -2387,12 +2387,12 @@ makevectors(vector)
 */
 void VM_makevectors (void)
 {
-	AngleVectors(PRVM_G_VECTOR(OFS_PARM0), prog->globals.server->v_forward, prog->globals.server->v_right, prog->globals.server->v_up);
+	AngleVectors(PRVM_G_VECTOR(OFS_PARM0), prog->globals.sv->v_forward, prog->globals.sv->v_right, prog->globals.sv->v_up);
 }
 
 void VM_makevectors2 (void)
 {
-	AngleVectorsFLU(PRVM_G_VECTOR(OFS_PARM0), prog->globals.server->v_forward, prog->globals.server->v_right, prog->globals.server->v_up);
+	AngleVectorsFLU(PRVM_G_VECTOR(OFS_PARM0), prog->globals.sv->v_forward, prog->globals.sv->v_right, prog->globals.sv->v_up);
 }
 
 // float(float number, float quantity) bitshift (EXT_BITSHIFT)

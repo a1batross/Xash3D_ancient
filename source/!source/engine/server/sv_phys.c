@@ -209,36 +209,36 @@ void SV_Impact (edict_t *e1, trace_t *trace)
 
 	PRVM_PUSH_GLOBALS;
 
-	prog->globals.server->time = sv.time;
+	prog->globals.sv->time = sv.time;
 	if (!e1->priv.sv->free && !e2->priv.sv->free && e1->progs.sv->touch && e1->progs.sv->solid != SOLID_NOT)
 	{
-		prog->globals.server->pev = PRVM_EDICT_TO_PROG(e1);
-		prog->globals.server->other = PRVM_EDICT_TO_PROG(e2);
-		prog->globals.server->time = sv.time;
-		prog->globals.server->trace_allsolid = trace->allsolid;
-		prog->globals.server->trace_startsolid = trace->startsolid;
-		prog->globals.server->trace_fraction = trace->fraction;
-		prog->globals.server->trace_contents = trace->contents;
-		VectorCopy (trace->endpos, prog->globals.server->trace_endpos);
-		VectorCopy (trace->plane.normal, prog->globals.server->trace_plane_normal);
-		prog->globals.server->trace_plane_dist =  trace->plane.dist;
-		if (trace->ent) prog->globals.server->trace_ent = PRVM_EDICT_TO_PROG(trace->ent);
-		else prog->globals.server->trace_ent = PRVM_EDICT_TO_PROG(prog->edicts);
+		prog->globals.sv->pev = PRVM_EDICT_TO_PROG(e1);
+		prog->globals.sv->other = PRVM_EDICT_TO_PROG(e2);
+		prog->globals.sv->time = sv.time;
+		prog->globals.sv->trace_allsolid = trace->allsolid;
+		prog->globals.sv->trace_startsolid = trace->startsolid;
+		prog->globals.sv->trace_fraction = trace->fraction;
+		prog->globals.sv->trace_contents = trace->contents;
+		VectorCopy (trace->endpos, prog->globals.sv->trace_endpos);
+		VectorCopy (trace->plane.normal, prog->globals.sv->trace_plane_normal);
+		prog->globals.sv->trace_plane_dist =  trace->plane.dist;
+		if (trace->ent) prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG(trace->ent);
+		else prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG(prog->edicts);
 		PRVM_ExecuteProgram (e1->progs.sv->touch, "QC function pev->touch is missing");
 	}
 	if (!e1->priv.sv->free && !e2->priv.sv->free && e2->progs.sv->touch && e2->progs.sv->solid != SOLID_NOT)
 	{
-		prog->globals.server->pev = PRVM_EDICT_TO_PROG(e2);
-		prog->globals.server->other = PRVM_EDICT_TO_PROG(e1);
-		prog->globals.server->time = sv.time;
-		prog->globals.server->trace_allsolid = false;
-		prog->globals.server->trace_startsolid = false;
-		prog->globals.server->trace_fraction = 1;
-		prog->globals.server->trace_contents = trace->contents;
-		VectorCopy (e2->progs.sv->origin, prog->globals.server->trace_endpos);
-		VectorSet (prog->globals.server->trace_plane_normal, 0, 0, 1);
-		prog->globals.server->trace_plane_dist = 0;
-		prog->globals.server->trace_ent = PRVM_EDICT_TO_PROG(e1);
+		prog->globals.sv->pev = PRVM_EDICT_TO_PROG(e2);
+		prog->globals.sv->other = PRVM_EDICT_TO_PROG(e1);
+		prog->globals.sv->time = sv.time;
+		prog->globals.sv->trace_allsolid = false;
+		prog->globals.sv->trace_startsolid = false;
+		prog->globals.sv->trace_fraction = 1;
+		prog->globals.sv->trace_contents = trace->contents;
+		VectorCopy (e2->progs.sv->origin, prog->globals.sv->trace_endpos);
+		VectorSet (prog->globals.sv->trace_plane_normal, 0, 0, 1);
+		prog->globals.sv->trace_plane_dist = 0;
+		prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG(e1);
 		PRVM_ExecuteProgram (e2->progs.sv->touch, "QC function pev->touch is missing");
 	}
 
@@ -591,9 +591,9 @@ bool SV_RunThink (edict_t *ent)
 	if (thinktime < sv.time) thinktime = sv.time;
 
 	ent->progs.sv->nextthink = 0; //reset thinktime
-	prog->globals.server->time = thinktime;
-	prog->globals.server->pev = PRVM_EDICT_TO_PROG(ent);
-	prog->globals.server->other = PRVM_EDICT_TO_PROG(prog->edicts);
+	prog->globals.sv->time = thinktime;
+	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(ent);
+	prog->globals.sv->other = PRVM_EDICT_TO_PROG(prog->edicts);
 	PRVM_ExecuteProgram (ent->progs.sv->think, "QC function pev->think is missing");
 
 	return !ent->priv.sv->free;
@@ -606,7 +606,7 @@ SV_MoveStep
 Called by monster program code.
 The move will be adjusted for slopes and stairs, but if the move isn't
 possible, no move is done, false is returned, and
-prog->globals.server->trace_normal is set to the normal of the blocking wall
+prog->globals.sv->trace_normal is set to the normal of the blocking wall
 =============
 */
 bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
@@ -914,8 +914,8 @@ void SV_MovePush(edict_t *pusher, float movetime)
 					// if the pusher has a "blocked" function, call it, otherwise just stay in place until the obstacle is gone
 					if (pusher->progs.sv->blocked)
 					{
-						prog->globals.server->pev = PRVM_EDICT_TO_PROG(pusher);
-						prog->globals.server->other = PRVM_EDICT_TO_PROG(check);
+						prog->globals.sv->pev = PRVM_EDICT_TO_PROG(pusher);
+						prog->globals.sv->other = PRVM_EDICT_TO_PROG(check);
 						PRVM_ExecuteProgram (pusher->progs.sv->blocked, "QC function self.blocked is missing");
 					}
 					break;
@@ -995,9 +995,9 @@ void SV_PhysicsPush(edict_t *ent)
 	if (thinktime > oldltime && thinktime <= ent->progs.sv->ltime)
 	{
 		ent->progs.sv->nextthink = 0;
-		prog->globals.server->time = sv.time;
-		prog->globals.server->pev = PRVM_EDICT_TO_PROG(ent);
-		prog->globals.server->other = PRVM_EDICT_TO_PROG(prog->edicts);
+		prog->globals.sv->time = sv.time;
+		prog->globals.sv->pev = PRVM_EDICT_TO_PROG(ent);
+		prog->globals.sv->other = PRVM_EDICT_TO_PROG(prog->edicts);
 		PRVM_ExecuteProgram (ent->progs.sv->think, "QC function pev->think is missing");
 	}
 }

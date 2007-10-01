@@ -262,6 +262,48 @@ bool LoadLMP( char *name, char *buffer, int filesize )
 
 /*
 ============
+LoadMIP
+============
+*/
+bool LoadMIP( char *name, char *buffer, int filesize )
+{
+	mip_t	mip;
+	int	ofs, pixels;
+
+	if (filesize < (int)sizeof(mip))
+	{
+		MsgWarn("LoadMIP: file (%s) have invalid size\n", name );
+		return false;
+	}
+
+	Mem_Copy(&mip, buffer, sizeof(mip));
+
+	image_width = LittleLong(mip.width);
+	image_height = LittleLong(mip.height);
+	ofs = LittleLong(mip.offsets[0]);
+
+	if(!ImageValidSize( name )) return false;         
+          image_size = image_width * image_height * 4;
+	pixels = image_width * image_height;
+	
+	if (filesize < (int)sizeof(mip) + pixels)
+	{
+		MsgWarn("LoadMIP: file (%s) have invalid size\n", name );
+		return false;
+	}
+
+	image_rgba = (byte *)Mem_Alloc(imagepool, image_size );
+	image_num_layers = 1;
+	image_type = PF_RGBA_32;
+
+	Image_GetQ1Palette();// hardcoded
+	Image_Copy8bitRGBA( buffer + ofs, image_rgba, pixels );
+
+	return true;
+}
+
+/*
+============
 LoadPCX
 ============
 */
@@ -1478,6 +1520,7 @@ loadformat_t load_formats[] =
 	{"textures/%s%s.%s", "pcx", LoadPCX},
 	{"textures/%s%s.%s", "wal", LoadWAL},
 	{"textures/%s%s.%s", "lmp", LoadLMP},
+	{"textures/%s%s.%s", "mip", LoadMIP},
 	{"%s%s.%s", "dds", LoadDDS},
 	{"%s%s.%s", "tga", LoadTGA},
 	{"%s%s.%s", "jpg", LoadJPG},
@@ -1485,6 +1528,7 @@ loadformat_t load_formats[] =
 	{"%s%s.%s", "pcx", LoadPCX},
 	{"%s%s.%s", "wal", LoadWAL},
 	{"%s%s.%s", "lmp", LoadLMP},
+	{"%s%s.%s", "mip", LoadMIP},
 	{NULL, NULL}
 };
 

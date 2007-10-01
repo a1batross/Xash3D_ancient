@@ -14,7 +14,7 @@
 
 // client_t->anim_priority
 float ANIM_BASIC		= 0;	// stand / run
-float ANIM_PAIN			= 1;
+float ANIM_PAIN		= 1;
 float ANIM_ATTACK		= 2;
 float ANIM_DEATH		= 3;
 
@@ -125,14 +125,14 @@ void() PainSound =
 
     if (pev->watertype == CONTENT_WATER && pev->waterlevel == 3)
     { // water pain sounds
-        if (random() <= 0.5)
+        if (random_float(0,1) <= 0.5)
             pev->noise = "player/drown1.wav";
         else
             pev->noise = "player/drown2.wav";
     }
     else if (pev->watertype == CONTENT_SLIME || pev->watertype == CONTENT_LAVA)
     { // slime/lava pain sounds
-        if (random() <= 0.5)
+        if (random_float(0,1) <= 0.5)
             pev->noise = "player/lburn1.wav";
         else
             pev->noise = "player/lburn2.wav";
@@ -149,7 +149,7 @@ void() PainSound =
     pev->pain_finished = time + 0.5;
 
     local float		rs;
-    rs = rint((random() * 5) + 1); // rs = 1-6
+    rs = random_long(0, 5);
 
     if (rs == 1)
         pev->noise = "player/pain1.wav";
@@ -186,7 +186,7 @@ void () PlayerPain =
 void() DeathSound =
 {
     local float		rs;
-    rs = rint ((random() * 4) + 1); // rs = 1-5
+    rs = random_long(0, 5);
 
     if (pev->waterlevel == 3) // water death sound
         pev->noise = "player/h2odeath.wav";
@@ -213,11 +213,11 @@ void () PlayerDie =
     pev->movetype = MOVETYPE_TOSS;
     pev->aiflags = pev->aiflags - (pev->aiflags & AI_ONGROUND);
     if (pev->velocity_z < 10)
-        pev->velocity_z = pev->velocity_z + random()*300;
+        pev->velocity_z = pev->velocity_z + random_long(30, 300);
 
     local float rand;
-    rand = rint ((random() * 4) + 1); // rand = 1-5
-
+    rand = random_long(0, 5);
+    
     pev->anim_priority = ANIM_DEATH;
     if (rand == 1)
     {

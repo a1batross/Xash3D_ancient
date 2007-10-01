@@ -180,7 +180,7 @@ float	getserverlistindexforkey(string key)
 #define VM_SAFEPARMCOUNT(p,f)
 #endif
 
-#define	VM_RETURN_EDICT(e)		(((int *)prog->globals.generic)[OFS_RETURN] = PRVM_EDICT_TO_PROG(e))
+#define	VM_RETURN_EDICT(e)		(((int *)prog->globals.gp)[OFS_RETURN] = PRVM_EDICT_TO_PROG(e))
 
 #define e10 NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
 #define e100 e10,e10,e10,e10,e10,e10,e10,e10,e10,e10

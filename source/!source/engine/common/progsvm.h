@@ -47,7 +47,6 @@ typedef union prvm_eval_s
 	int		_int;
 	float		_float;
 	float		vector[3];
-	int		ivector[3];
 	func_t		function;
 	string_t		string;
 } prvm_eval_t;
@@ -87,14 +86,14 @@ struct edict_s
 };
 
 #define PRVM_GETEDICTFIELDVALUE(ed, fieldoffset) (fieldoffset ? (prvm_eval_t *)((unsigned char *)ed->progs.vp + fieldoffset) : NULL)
-#define PRVM_GETGLOBALFIELDVALUE(fieldoffset) (fieldoffset ? (prvm_eval_t *)((unsigned char *)prog->globals.generic + fieldoffset) : NULL)
+#define PRVM_GETGLOBALFIELDVALUE(fieldoffset) (fieldoffset ? (prvm_eval_t *)((unsigned char *)prog->globals.gp + fieldoffset) : NULL)
 
 #define PRVM_FE_CLASSNAME		8
 #define PRVM_FE_CHAIN		4
 #define PRVM_OP_STATE		1
 
-#define	PRVM_MAX_STACK_DEPTH		1024
-#define	PRVM_LOCALSTACK_SIZE		16384
+#define PRVM_MAX_STACK_DEPTH		1024
+#define PRVM_LOCALSTACK_SIZE		16384
 
 #define PRVM_MAX_OPENFILES 256
 #define PRVM_MAX_OPENSEARCHES 128
@@ -112,6 +111,8 @@ typedef struct prvm_prog_s
 	ddef_t		*fielddefs;
 	ddef_t		*globaldefs;
 	dstatement_t	*statements;
+	int		*linenums;	// debug versions only
+	typeinfo_t	*types;
 	int		edict_size;	// in bytes
 	int		edictareasize;	// in bytes (for bound checking)
 	int		pev_save;		// used by PRVM_PUSH_GLOBALS\PRVM_POP_GLOBALS
@@ -122,8 +123,8 @@ typedef struct prvm_prog_s
 
 	union
 	{
-		float			*generic;
-		globalvars_t		*server;
+		float			*gp;
+		globalvars_t		*sv;
 	} globals;
 
 	int		maxknownstrings;
@@ -157,6 +158,7 @@ typedef struct prvm_prog_s
 	int		localstack_used;
 
 	word		filecrc;
+	int		intsize;
 
 	//============================================================================
 	// until this point everything also exists (with the pr_ prefix) in the old vm
@@ -318,18 +320,33 @@ edict_t *PRVM_EDICT_NUM_ERROR(int n, char *filename, int fileline);
 #define PRVM_NEXT_EDICT(e) ((e) + 1)
 #define PRVM_EDICT_TO_PROG(e) (PRVM_NUM_FOR_EDICT(e))
 #define PRVM_PROG_TO_EDICT(n) (PRVM_EDICT_NUM(n))
-#define PRVM_PUSH_GLOBALS prog->pev_save = prog->globals.server->pev, prog->other_save = prog->globals.server->other
-#define PRVM_POP_GLOBALS prog->globals.server->pev = prog->pev_save, prog->globals.server->other = prog->other_save
-
+#define PRVM_PUSH_GLOBALS prog->pev_save = prog->globals.sv->pev, prog->other_save = prog->globals.sv->other
+#define PRVM_POP_GLOBALS prog->globals.sv->pev = prog->pev_save, prog->globals.sv->other = prog->other_save
+#define PRVM_ED_POINTER(p) (prvm_eval_t *)((byte *)prog->edictsfields + p->_int)
+#define PRVM_EM_POINTER(p) (prvm_eval_t *)((byte *)prog->edictsfields + (p))
+#define PRVM_EV_POINTER(p) (prvm_eval_t *)(((byte *)prog->edicts) + p->_int) 	// this is correct ???
+#define PRVM_CHECK_PTR(p, size) if(prvm_boundscheck->value && (p->_int < 0 || p->_int + size > prog->edictareasize))\
+{\
+prog->xfunction->profile += (st - startst);\
+prog->xstatement = st - prog->statements;\
+PRVM_ERROR("%s attempted to write to an out of bounds edict (%i)", PRVM_NAME, p->_int);\
+return;\
+}
+#define PRVM_CHECK_INFINITE() if (++jumpcount == 10000000)\
+{\
+prog->xstatement = st - prog->statements;\
+PRVM_Profile(1<<30, 1000000);\
+PRVM_ERROR("runaway loop counter hit limit of %d jumps\n", jumpcount, PRVM_NAME);\
+}
 //============================================================================
 
-#define	PRVM_G_FLOAT(o) (prog->globals.generic[o])
-#define	PRVM_G_INT(o) (*(int *)&prog->globals.generic[o])
-#define	PRVM_G_EDICT(o) (PRVM_PROG_TO_EDICT(*(int *)&prog->globals.generic[o]))
+#define	PRVM_G_FLOAT(o) (prog->globals.gp[o])
+#define	PRVM_G_INT(o) (*(int *)&prog->globals.gp[o])
+#define	PRVM_G_EDICT(o) (PRVM_PROG_TO_EDICT(*(int *)&prog->globals.gp[o]))
 #define	PRVM_G_EDICTNUM(o) PRVM_NUM_FOR_EDICT(PRVM_G_EDICT(o))
-#define	PRVM_G_VECTOR(o) (&prog->globals.generic[o])
-#define	PRVM_G_STRING(o) (PRVM_GetString(*(string_t *)&prog->globals.generic[o]))
-//#define	PRVM_G_FUNCTION(o) (*(func_t *)&prog->globals.generic[o])
+#define	PRVM_G_VECTOR(o) (&prog->globals.gp[o])
+#define	PRVM_G_STRING(o) (PRVM_GetString(*(string_t *)&prog->globals.gp[o]))
+//#define	PRVM_G_FUNCTION(o) (*(func_t *)&prog->globals.gp[o])
 
 // FIXME: make these go away?
 #define	PRVM_E_FLOAT(e,o) (((float*)e->progs.vp)[o])

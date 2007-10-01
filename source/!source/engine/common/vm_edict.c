@@ -528,7 +528,7 @@ char *PRVM_GlobalString (int ofs)
 	void	*val;
 	static char	line[128];
 
-	val = (void *)&prog->globals.generic[ofs];
+	val = (void *)&prog->globals.gp[ofs];
 	def = PRVM_ED_GlobalAtOfs(ofs);
 	if (!def)
 		sprintf (line,"GLOBAL%i", ofs);
@@ -852,7 +852,7 @@ void PRVM_ED_WriteGlobals (file_t *f)
 
 		name = PRVM_GetString(def->s_name);
 		FS_Printf(f,"\"%s\" ", name);
-		FS_Printf(f,"\"%s\"\n", PRVM_UglyValueString((etype_t)type, (prvm_eval_t *)&prog->globals.generic[def->ofs]));
+		FS_Printf(f,"\"%s\"\n", PRVM_UglyValueString((etype_t)type, (prvm_eval_t *)&prog->globals.gp[def->ofs]));
 	}
 	FS_Print(f,"}\n");
 }
@@ -918,7 +918,7 @@ bool PRVM_ED_ParseEpair(edict_t *ent, ddef_t *key, const char *s)
 	if (ent)
 		val = (prvm_eval_t *)((int *)ent->progs.vp + key->ofs);
 	else
-		val = (prvm_eval_t *)((int *)prog->globals.generic + key->ofs);
+		val = (prvm_eval_t *)((int *)prog->globals.gp + key->ofs);
 	switch (key->type & ~DEF_SAVEGLOBAL)
 	{
 	case ev_string:
@@ -1294,11 +1294,12 @@ PRVM_LoadProgs
 */
 void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int numedfields, prvm_fieldvars_t *ed_field)
 {
-	int i;
-	dstatement_t *st;
-	ddef_t *infielddefs;
-	dfunction_t *dfunctions;
-	fs_offset_t filesize;
+	int		i, len;
+	dstatement_t	*st;
+	ddef_t		*infielddefs;
+	dfunction_t	*dfunctions;
+	fs_offset_t	filesize;
+	byte		*s;
 
 	if( prog->loaded )
 	{
@@ -1310,15 +1311,26 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		PRVM_ERROR ("PRVM_LoadProgs: couldn't load %s for %s", filename, PRVM_NAME);
 
 	MsgDev(D_INFO, "%s programs occupy %iK.\n", PRVM_NAME, filesize/1024);
-
 	prog->filecrc = CRC_Block((unsigned char *)prog->progs, filesize);
 
 	// byte swap the header
-	for (i = 0;i < (int) sizeof(*prog->progs) / 4;i++)
-		((int *)prog->progs)[i] = LittleLong ( ((int *)prog->progs)[i] );
+	for (i = 0; i < (int)sizeof(*prog->progs)/4; i++) ((int *)prog->progs)[i] = LittleLong(((int *)prog->progs)[i]);
 
-	if (prog->progs->version != VPROGS_VERSION)
+	switch( prog->progs->version )
+	{
+	case QPROGS_VERSION:
+		prog->intsize = 16;
+		break;
+	case VPROGS_VERSION:
+		if(prog->progs->header == VPROGSHEADER16)
+			prog->intsize = 16;
+		if(prog->progs->header == VPROGSHEADER32)
+			prog->intsize = 32;
+		break;
+	default:
 		PRVM_ERROR ("%s: %s has wrong version number (%i should be %i)", PRVM_NAME, filename, prog->progs->version, VPROGS_VERSION);
+		break;
+	} 
 
 	//try to recognize progs.dat by crc
 	switch(prog->progs->crc)
@@ -1331,12 +1343,35 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 	}
 	Msg("Loading %s\n", filename );
 
-	//prog->functions = (dfunction_t *)((unsigned char *)progs + progs->ofs_functions);
-	dfunctions = (dfunction_t *)((unsigned char *)prog->progs + prog->progs->ofs_functions);
+ 	if (prog->progs->ofslinenums) prog->linenums = (int *)((byte *)prog->progs + prog->progs->ofslinenums);
+	if (prog->progs->ofs_types) prog->types = (typeinfo_t *)((byte *)prog->progs + prog->progs->ofs_types);
+
+	prog->statements = (dstatement_t *)((byte *)prog->progs + prog->progs->ofs_statements);
+
+	// decompress progs if needed
+	if (prog->progs->blockscompressed & COMP_STATEMENTS)
+	{
+		switch(prog->intsize)
+		{
+		case 32:
+			len = sizeof(dstatement32_t) * prog->progs->numstatements;
+			break;
+		case 16:
+		default:
+			len = sizeof(dstatement16_t) * prog->progs->numstatements;
+			break;
+		}
+                    
+		s = Mem_Alloc(prog->progs_mempool, len ); //alloc memory for inflate block
+		Com->Compile.DecryptDAT(LittleLong(*(int*)prog->statements), len, 2, (char *)(((int *)prog->statements)+1), &s);
+		prog->statements = (dstatement16_t *)s;
+	}
+	Sys_Error("breakpoint\n");
+	dfunctions = (dfunction_t *)((byte *)prog->progs + prog->progs->ofs_functions);
 
 	prog->strings = (char *)prog->progs + prog->progs->ofs_strings;
 	prog->stringssize = 0;
-	for (i = 0;i < prog->progs->numstrings;i++)
+	for (i = 0; i < prog->progs->numstrings; i++)
 	{
 		if (prog->progs->ofs_strings + prog->stringssize >= (int)filesize)
 			PRVM_ERROR ("%s: %s strings go past end of file", PRVM_NAME, filename);
@@ -1347,25 +1382,20 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 	prog->knownstrings = NULL;
 	prog->knownstrings_freeable = NULL;
 
-	prog->globaldefs = (ddef_t *)((unsigned char *)prog->progs + prog->progs->ofs_globaldefs);
+	prog->globaldefs = (ddef_t *)((byte *)prog->progs + prog->progs->ofs_globaldefs);
 
 	// we need to expand the fielddefs list to include all the engine fields,
 	// so allocate a new place for it
-	infielddefs = (ddef_t *)((unsigned char *)prog->progs + prog->progs->ofs_fielddefs);
-	//												( + DPFIELDS			   )
+	infielddefs = (ddef_t *)((byte *)prog->progs + prog->progs->ofs_fielddefs);
+	// ( + DPFIELDS  )
 	prog->fielddefs = (ddef_t *)Mem_Alloc(prog->progs_mempool, (prog->progs->numfielddefs + numedfields) * sizeof(ddef_t));
-
-	prog->statements = (dstatement_t *)((unsigned char *)prog->progs + prog->progs->ofs_statements);
-
 	prog->statement_profile = (double *)Mem_Alloc(prog->progs_mempool, prog->progs->numstatements * sizeof(*prog->statement_profile));
 
 	// moved edict_size calculation down below field adding code
-
-	//pr_global_struct = (globalvars_t *)((unsigned char *)progs + progs->ofs_globals);
-	prog->globals.generic = (float *)((unsigned char *)prog->progs + prog->progs->ofs_globals);
+	prog->globals.gp = (float *)((byte *)prog->progs + prog->progs->ofs_globals);
 
 	// byte swap the lumps
-	for (i=0 ; i<prog->progs->numstatements ; i++)
+	for (i = 0; i < prog->progs->numstatements; i++)
 	{
 		prog->statements[i].op = LittleShort(prog->statements[i].op);
 		prog->statements[i].a = LittleShort(prog->statements[i].a);
@@ -1416,7 +1446,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 			PRVM_ERROR("%s: %s not found in %s",PRVM_NAME, ed_func[i], filename);
 
 	for (i=0 ; i<prog->progs->numglobals ; i++)
-		((int *)prog->globals.generic)[i] = LittleLong (((int *)prog->globals.generic)[i]);
+		((int *)prog->globals.gp)[i] = LittleLong (((int *)prog->globals.gp)[i]);
 
 	// moved edict_size calculation down here, below field adding code
 	// LordHavoc: this no longer includes the edict_t header
@@ -1725,7 +1755,7 @@ void PRVM_Global_f(void)
 	if( !global )
 		Msg( "No global '%s' in %s!\n", Cmd_Argv(2), Cmd_Argv(1) );
 	else
-		Msg( "%s: %s\n", Cmd_Argv(2), PRVM_ValueString( (etype_t)global->type, (prvm_eval_t *) &prog->globals.generic[ global->ofs ] ) );
+		Msg( "%s: %s\n", Cmd_Argv(2), PRVM_ValueString( (etype_t)global->type, (prvm_eval_t *) &prog->globals.gp[ global->ofs ] ) );
 	PRVM_End;
 }
 
@@ -1902,14 +1932,14 @@ int PRVM_SetEngineString(const char *s)
 		if (i >= prog->maxknownstrings)
 		{
 			const char **oldstrings = prog->knownstrings;
-			const unsigned char *oldstrings_freeable = prog->knownstrings_freeable;
+			const byte *oldstrings_freeable = prog->knownstrings_freeable;
 			prog->maxknownstrings += 128;
 			prog->knownstrings = (const char **)PRVM_Alloc(prog->maxknownstrings * sizeof(char *));
-			prog->knownstrings_freeable = (unsigned char *)PRVM_Alloc(prog->maxknownstrings * sizeof(unsigned char));
+			prog->knownstrings_freeable = (byte *)PRVM_Alloc(prog->maxknownstrings * sizeof(byte));
 			if (prog->numknownstrings)
 			{
 				memcpy((char **)prog->knownstrings, oldstrings, prog->numknownstrings * sizeof(char *));
-				memcpy((char **)prog->knownstrings_freeable, oldstrings_freeable, prog->numknownstrings * sizeof(unsigned char));
+				memcpy((char **)prog->knownstrings_freeable, oldstrings_freeable, prog->numknownstrings * sizeof(byte));
 			}
 		}
 		prog->numknownstrings++;
@@ -1932,14 +1962,14 @@ int PRVM_AllocString(size_t bufferlength, char **pointer)
 		if (i >= prog->maxknownstrings)
 		{
 			const char **oldstrings = prog->knownstrings;
-			const unsigned char *oldstrings_freeable = prog->knownstrings_freeable;
+			const byte *oldstrings_freeable = prog->knownstrings_freeable;
 			prog->maxknownstrings += 128;
 			prog->knownstrings = (const char **)PRVM_Alloc(prog->maxknownstrings * sizeof(char *));
-			prog->knownstrings_freeable = (unsigned char *)PRVM_Alloc(prog->maxknownstrings * sizeof(unsigned char));
+			prog->knownstrings_freeable = (byte *)PRVM_Alloc(prog->maxknownstrings * sizeof(byte));
 			if (prog->numknownstrings)
 			{
 				memcpy((char **)prog->knownstrings, oldstrings, prog->numknownstrings * sizeof(char *));
-				memcpy((char **)prog->knownstrings_freeable, oldstrings_freeable, prog->numknownstrings * sizeof(unsigned char));
+				memcpy((char **)prog->knownstrings_freeable, oldstrings_freeable, prog->numknownstrings * sizeof(byte));
 			}
 		}
 		prog->numknownstrings++;

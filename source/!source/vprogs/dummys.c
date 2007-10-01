@@ -141,6 +141,5 @@ void barrel_spawn(string netname1, string model1, string deathmessage, float dam
 
 void() misc_explobox =
 {	
-	float f, g;
 	barrel_spawn("Large exploding box", "models/barrel.mdl", " was blown up by an explosive box", 750);
 };

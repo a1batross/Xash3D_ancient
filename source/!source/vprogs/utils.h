@@ -33,8 +33,8 @@ float rint (float v)			= #19;
 float floor(float v)			= #20; 
 float ceil (float v)			= #21; 
 float fabs (float f)			= #22; 
-float random_long( void )			= #23; 
-float random_float( void )			= #24; 
+float random_long( float min, float max )	= #23; 
+float random_float( float min, float max )	= #24; 
 
 // vector mathlib
 vector normalize(vector v) 			= #31;	// normalize vector
@@ -81,7 +81,7 @@ float precache_sound(string s)				= #72;
 float setmodel(entity e, string m)				= #73;
 float model_index(string s)					= #74;
 float decal_index(string s)					= #75; 
-float model_frames(float modelindex)				= #76; 
+float image_index(string s)					= #76;
 void setsize(entity e, vector min, vector max)			= #77; 
 void changelevel(string mapname, string spotname) 		= #78;
 void ChangeYaw( void )					= #79; 
@@ -112,5 +112,6 @@ void areaportal_state( float num, float state )			= #103;
 void setstats(entity e, float f, string stats)			= #104; 
 void configstring(float num, string s)				= #105;
 void makestatic(entity e)					= #106;
-string precache_pic(string pic)				= #107;
+float model_frames(float modelindex)				= #107; 
+
  

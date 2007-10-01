@@ -24,7 +24,7 @@ if errorlevel 1 set BUILD_ERROR=1
 %MSDEV% render/render.dsp %CONFIG%"render - Win32 Release" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
-qcclib.exe -src vprogs -O3
+qcclib.exe -src vprogs /Oz
 if errorlevel 1 set BUILD_ERROR=1
 
 if "%BUILD_ERROR%"=="" goto build_ok
@@ -56,6 +56,6 @@ if exist server.dat move server.dat D:\Xash3D\xash\server.dat
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading
 cd D:\Xash3D\
-xash.exe +map qctest -debug -log
+xash.exe +map qctest -debug -log -dev 4
 rem bin\bsplib -game xash +map qctest -vis -rad -full -log
 :done

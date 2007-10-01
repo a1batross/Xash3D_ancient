@@ -14,14 +14,14 @@ a internal virtual machine like as QuakeC, but it has more extensions
 ==============================================================================
 */
 
-#define PROG_EXTENDEDVERSION		7//remove
-
 //header
-#define VPROGS_VERSION	6
+#define QPROGS_VERSION	6
+#define VPROGS_VERSION	7
+
 #define VPROGSHEADER16	(('6'<<24)+('1'<<16)+('C'<<8)+'Q') // little-endian "QC16"
 #define VPROGSHEADER32	(('2'<<24)+('3'<<16)+('C'<<8)+'Q') // little-endian "QC32"
 
-//global ofssets
+// global ofssets
 #define OFS_NULL		0
 #define OFS_RETURN		1
 #define OFS_PARM0		4
@@ -37,6 +37,16 @@ a internal virtual machine like as QuakeC, but it has more extensions
 
 #define DEF_SHARED		(1<<14)
 #define DEF_SAVEGLOBAL	(1<<15)
+
+// compression block flags
+#define COMP_STATEMENTS	1
+#define COMP_DEFS		2
+#define COMP_FIELDS		4
+#define COMP_FUNCTIONS	8
+#define COMP_STRINGS	16
+#define COMP_GLOBALS	32
+#define COMP_LINENUMS	64
+#define COMP_TYPES		128
 
 
 #define MAX_PARMS		8
@@ -65,8 +75,8 @@ enum {
 	OP_DONE,		// 0
 	OP_MUL_F,
 	OP_MUL_V,
-	OP_MUL_FV,
-	OP_MUL_VF,
+	OP_MUL_FV,	// (vec3_t) * (float)
+	OP_MUL_VF,          // (float) * (vec3_t)
 	OP_DIV_F,
 	OP_ADD_F,
 	OP_ADD_V,
@@ -85,10 +95,10 @@ enum {
 	OP_NE_E,
 	OP_NE_FNC,
 	
-	OP_LE,		// 20
-	OP_GE,
-	OP_LT,
-	OP_GT,
+	OP_LE,		// = (float) <= (float);
+	OP_GE,		// = (float) >= (float);
+	OP_LT,		// = (float) <  (float);
+	OP_GT,		// = (float) >  (float);
 
 	OP_LOAD_F,
 	OP_LOAD_V,
@@ -121,8 +131,8 @@ enum {
 	OP_NOT_FNC,
 	OP_IF,
 	OP_IFNOT,		// 50
-	OP_CALL0,		// careful... hexen2 and q1 have different calling conventions
-	OP_CALL1,		// remap hexen2 calls to OP_CALL2H
+	OP_CALL0,
+	OP_CALL1,
 	OP_CALL2,
 	OP_CALL3,
 	OP_CALL4,
@@ -135,81 +145,57 @@ enum {
 	OP_AND,
 	OP_OR,
 	
-	OP_BITAND,
+	OP_BITAND,	// = (float) & (float); // of cource converting into integer in real code
 	OP_BITOR,
-	
-	// these following ones are Hexen 2 constants.
-	
-	OP_MULSTORE_F,
-	OP_MULSTORE_V,
-	OP_MULSTOREP_F,
-	OP_MULSTOREP_V,
 
-	OP_DIVSTORE_F,	// 70
-	OP_DIVSTOREP_F,
+	OP_MULSTORE_F,	// f *= f
+	OP_MULSTORE_V,	// v *= f
+	OP_MULSTOREP_F,	// e.f *= f
+	OP_MULSTOREP_V,	// e.v *= f
 
-	OP_ADDSTORE_F,
-	OP_ADDSTORE_V,
-	OP_ADDSTOREP_F,
-	OP_ADDSTOREP_V,
+	OP_DIVSTORE_F,	// f /= f
+	OP_DIVSTOREP_F,	// e.f /= f
 
-	OP_SUBSTORE_F,
-	OP_SUBSTORE_V,
-	OP_SUBSTOREP_F,
-	OP_SUBSTOREP_V,
+	OP_ADDSTORE_F,	// f += f
+	OP_ADDSTORE_V,	// v += v
+	OP_ADDSTOREP_F,	// e.f += f
+	OP_ADDSTOREP_V,	// e.v += v
+
+	OP_SUBSTORE_F,	// f -= f
+	OP_SUBSTORE_V,	// v -= v
+	OP_SUBSTOREP_F,	// e.f -= f
+	OP_SUBSTOREP_V,	// e.v -= v
 
 	OP_FETCH_GBL_F,	// 80
 	OP_FETCH_GBL_V,
 	OP_FETCH_GBL_S,
 	OP_FETCH_GBL_E,
-	OP_FETCH_GBL_FNC,
+	OP_FETCH_G_FNC,
 
 	OP_CSTATE,
 	OP_CWSTATE,
 
-	OP_THINKTIME,
+	OP_BITSET,	// b  (+) a
+	OP_BITSETP,	// .b (+) a
+	OP_BITCLR,	// b  (-) a
+	OP_BITCLRP,	// .b (-) a
 
-	OP_BITSET,
-	OP_BITSETP,
-	OP_BITCLR,	// 90
-	OP_BITCLRP,
-
-	OP_RAND0,
-	OP_RAND1,
-	OP_RAND2,
-	OP_RANDV0,
-	OP_RANDV1,
-	OP_RANDV2,
-
-	OP_SWITCH_F,
-	OP_SWITCH_V,
-	OP_SWITCH_S,	// 100
+	OP_SWITCH_F,	// switches
+	OP_SWITCH_V,	// 100
+	OP_SWITCH_S,
 	OP_SWITCH_E,
 	OP_SWITCH_FNC,
 
 	OP_CASE,
 	OP_CASERANGE,
 
-	// the rest are added
-	// mostly they are various different ways of adding two vars with conversions.
-
-	OP_CALL1H,
-	OP_CALL2H,
-	OP_CALL3H,
-	OP_CALL4H,
-	OP_CALL5H,
-	OP_CALL6H,	// 110
-	OP_CALL7H,
-	OP_CALL8H,
-
-
 	OP_STORE_I,
 	OP_STORE_IF,
 	OP_STORE_FI,
 	
 	OP_ADD_I,
-	OP_ADD_FI,
-	OP_ADD_IF,	// 110
+	OP_ADD_FI,	// 110
+	OP_ADD_IF,
   
 	OP_SUB_I,
 	OP_SUB_FI,
@@ -220,8 +206,8 @@ enum {
 	OP_CP_ITOF,
 	OP_CP_FTOI,
 	OP_LOAD_I,
-	OP_STOREP_I,
-	OP_STOREP_IF,	// 120
+	OP_STOREP_I,	// 120
+	OP_STOREP_IF,
 	OP_STOREP_FI,
 
 	OP_BITAND_I,
@@ -233,9 +219,9 @@ enum {
 	OP_NE_I,
 
 	OP_IFNOTS,
-	OP_IFS,
+	OP_IFS,		// 130
 
-	OP_NOT_I,		// 130
+	OP_NOT_I,
 
 	OP_DIV_VF,
 
@@ -243,13 +229,13 @@ enum {
 	OP_RSHIFT_I,
 	OP_LSHIFT_I,
 
-	OP_GLOBALADDRESS,
-	OP_POINTER_ADD,	// 32 bit pointers
+	OP_GLOBAL_ADD,
+	OP_POINTER_ADD,	// pointer to 32 bit (remember to *3 for vectors)
 
 	OP_LOADA_F,
 	OP_LOADA_V,	
-	OP_LOADA_S,
-	OP_LOADA_ENT,	// 140
+	OP_LOADA_S,	// 140
+	OP_LOADA_ENT,
 	OP_LOADA_FLD,		
 	OP_LOADA_FNC,
 	OP_LOADA_I,
@@ -260,25 +246,25 @@ enum {
 	OP_LOADP_F,
 	OP_LOADP_V,	
 	OP_LOADP_S,
-	OP_LOADP_ENT,
-	OP_LOADP_FLD,	// 150
+	OP_LOADP_ENT,	// 150
+	OP_LOADP_FLD,
 	OP_LOADP_FNC,
 	OP_LOADP_I,
 
-	OP_LE_I,
-	OP_GE_I,
-	OP_LT_I,
-	OP_GT_I,
+	OP_LE_I,            // (int)c = (int)a <= (int)b;
+	OP_GE_I,		// (int)c = (int)a >= (int)b;
+	OP_LT_I,		// (int)c = (int)a <  (int)b;
+	OP_GT_I,		// (int)c = (int)a >  (int)b;
 
-	OP_LE_IF,
-	OP_GE_IF,
-	OP_LT_IF,
-	OP_GT_IF,		// 160
+	OP_LE_IF,           // (float)c = (int)a <= (float)b;
+	OP_GE_IF,		// (float)c = (int)a >= (float)b;
+	OP_LT_IF,		// (float)c = (int)a <  (float)b;
+	OP_GT_IF,		// (float)c = (int)a >  (float)b;
 
-	OP_LE_FI,
-	OP_GE_FI,
-	OP_LT_FI,
-	OP_GT_FI,
+	OP_LE_FI,		// (float)c = (float)a <= (int)b;
+	OP_GE_FI,		// (float)c = (float)a >= (int)b;
+	OP_LT_FI,		// (float)c = (float)a <  (int)b;
+	OP_GT_FI,		// (float)c = (float)a >  (int)b;
 
 	OP_EQ_IF,
 	OP_EQ_FI,
@@ -296,8 +282,8 @@ enum {
 	OP_DIV_FI,
 	OP_BITAND_IF,
 	OP_BITOR_IF,
-	OP_BITAND_FI,
-	OP_BITOR_FI,	// 180
+	OP_BITAND_FI,	// 180
+	OP_BITOR_FI,
 	OP_AND_I,
 	OP_OR_I,
 	OP_AND_IF,
@@ -306,11 +292,25 @@ enum {
 	OP_OR_FI,
 	OP_NE_IF,
 	OP_NE_FI,
-	OP_BOUNDCHECK,	// bounds checker from dp
 
-	// back to ones that we do use.
+	OP_GSTOREP_I,	// 190
+	OP_GSTOREP_F,		
+	OP_GSTOREP_ENT,
+	OP_GSTOREP_FLD,	// integers
+	OP_GSTOREP_S,
+	OP_GSTOREP_FNC,	// pointers
+	OP_GSTOREP_V,
+	OP_GADDRESS,
+	OP_GLOAD_I,
+	OP_GLOAD_F,
+	OP_GLOAD_FLD,	// 200
+	OP_GLOAD_ENT,
+	OP_GLOAD_S,
+	OP_GLOAD_FNC,
+	OP_GLOAD_V,
+	OP_BOUNDCHECK,
 
-	OP_STOREP_P,	// 190
+	OP_STOREP_P,	// back to ones that we do use.	
 	OP_PUSH,
 	OP_POP,
 
@@ -398,7 +398,7 @@ typedef struct
 	
 	uint		entityfields;
 
-	//debug / version 7 extensions
+	// version 7 extensions
 	uint		ofsfiles;		// non list format. no comp
 	uint		ofslinenums;	// numstatements big // comp 64
 	uint		ofsbodylessfuncs;	// no comp
@@ -406,7 +406,7 @@ typedef struct
 
 	uint		ofs_types;	// comp 128
 	uint		numtypes;
-	uint		blockscompressed;
+	uint		blockscompressed;	// who blocks are compressed
 
 	int		header;		// strange "header", erh...
 } dprograms_t;

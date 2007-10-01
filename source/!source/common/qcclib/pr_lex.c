@@ -668,27 +668,15 @@ bool PR_Precompiler(void)
 			}
 			else if (!stricmp(token, "TARGET"))
 			{
-				if (targetformat == QCF_HEXEN2 && numstatements)
-					PR_ParseWarning(WARN_BADTARGET, "Cannot switch from hexen2 target \'%s\'. Ignored.", msg);
-				else if (!stricmp(msg, "H2") || !stricmp(msg, "HEXEN2"))
-				{
-					if (numstatements)
-						PR_ParseWarning(WARN_BADTARGET, "Cannot switch from hexen2 target \'%s\'. Ignored.", msg);
-					else
-						targetformat = QCF_HEXEN2;
-				}
-				else if (!stricmp(msg, "KK7"))
-					targetformat = QCF_KK7;
-				else if (!stricmp(msg, "FTEDEBUG"))
-					targetformat = QCF_FTEDEBUG;
-				else if (!stricmp(msg, "FTE"))
-					targetformat = QCF_FTE;
-				else if (!stricmp(msg, "STANDARD") || !stricmp(msg, "ID"))
+				if (!stricmp(msg, "STANDARD"))
 					targetformat = QCF_STANDARD;
+				else if (!stricmp(msg, "ID"))
+					targetformat = QCF_STANDARD;
+				else if (!stricmp(msg, "RELEASE"))
+					targetformat = QCF_RELEASE;
 				else if (!stricmp(msg, "DEBUG"))
-					targetformat = QCF_FTEDEBUG;
-				else
-					PR_ParseWarning(WARN_BADTARGET, "Unknown target \'%s\'. Ignored.", msg);
+					targetformat = QCF_DEBUG;
+				else PR_ParseWarning(WARN_BADTARGET, "Unknown target \'%s\'. Ignored.", msg);
 			}
 			else if (!stricmp(token, "keyword") || !stricmp(token, "flag"))
 			{
@@ -2552,7 +2540,7 @@ type_t *PR_ParseType (int newtype)
 
 //	int ofs;
 
-	if (PR_CheckToken (".."))	//so we don't end up with the user specifying '. .vector blah' (hexen2 added the .. token for array ranges)
+	if (PR_CheckToken (".."))	//so we don't end up with the user specifying '. .vector blah'
 	{
 		newt = PR_NewType("FIELD TYPE", ev_field);
 		newt->aux_type = PR_ParseType (false);

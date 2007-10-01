@@ -1545,6 +1545,7 @@ compilers_api_t Comp_GetAPI( void )
 	cp.BSP = CompileBSPModel;
 	cp.PrepareDAT = PrepareDATProgs;
 	cp.DAT = CompileDATProgs;
+	cp.DecryptDAT = PR_decode;
 
 	return cp;
 }

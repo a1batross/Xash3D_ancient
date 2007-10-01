@@ -57,5 +57,5 @@ void() trigger_generic =
 	pev->classname = "generic";
 
 	if(!pev->delay)
-		pev->delay = 0.1;
+		pev->delay = 2;
 };

@@ -28,9 +28,9 @@ void SV_PutClientInServer (edict_t *ent)
 	index = PRVM_NUM_FOR_EDICT(ent) - 1;
 	client = ent->priv.sv->client;
 
-	prog->globals.server->time = sv.time;
-	prog->globals.server->pev = PRVM_EDICT_TO_PROG(ent);
-	PRVM_ExecuteProgram (prog->globals.server->PutClientInServer, "QC function PutClientInServer is missing");
+	prog->globals.sv->time = sv.time;
+	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(ent);
+	PRVM_ExecuteProgram (prog->globals.sv->PutClientInServer, "QC function PutClientInServer is missing");
 
 	ent->priv.sv->client = svs.gclients + index;
 	ent->priv.sv->free = false;
@@ -105,7 +105,7 @@ void SV_SpawnEntities (char *mapname, char *entities, char *spawnpoint)
 	ent->progs.sv->movetype = MOVETYPE_PUSH;
 
 	SV_ConfigString (CS_MAXCLIENTS, va("%i", (int)(maxclients->value)));
-	prog->globals.server->mapname = PRVM_SetEngineString(sv.name);
+	prog->globals.sv->mapname = PRVM_SetEngineString(sv.name);
 
 	// spawn the rest of the entities on the map
 	*prog->time = sv.time;
@@ -178,9 +178,9 @@ void SV_TouchTriggers (edict_t *ent)
 		hit = touch[i];
 		if (hit->priv.sv->free) continue;
 
-		prog->globals.server->pev = PRVM_EDICT_TO_PROG(hit);
-		prog->globals.server->other = PRVM_EDICT_TO_PROG(ent);
-		prog->globals.server->time = sv.time;
+		prog->globals.sv->pev = PRVM_EDICT_TO_PROG(hit);
+		prog->globals.sv->other = PRVM_EDICT_TO_PROG(ent);
+		prog->globals.sv->time = sv.time;
 		PRVM_ExecuteProgram (hit->progs.sv->touch, "QC function pev->touch is missing");
 	}
 
@@ -428,11 +428,11 @@ void SV_RunFrame( void )
 	edict_t		*ent;
 
 	// let the progs know that a new frame has started
-	prog->globals.server->pev = PRVM_EDICT_TO_PROG(prog->edicts);
-	prog->globals.server->other = PRVM_EDICT_TO_PROG(prog->edicts);
-	prog->globals.server->time = sv.time;
-	prog->globals.server->frametime = sv.frametime;
-	PRVM_ExecuteProgram (prog->globals.server->StartFrame, "QC function StartFrame is missing");
+	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(prog->edicts);
+	prog->globals.sv->other = PRVM_EDICT_TO_PROG(prog->edicts);
+	prog->globals.sv->time = sv.time;
+	prog->globals.sv->frametime = sv.frametime;
+	PRVM_ExecuteProgram (prog->globals.sv->StartFrame, "QC function StartFrame is missing");
 
 	for (i = 1; i < prog->num_edicts; i++ )
 	{
@@ -449,10 +449,10 @@ void SV_RunFrame( void )
 	// build the playerstate_t structures for all players
 	ClientEndServerFrames ();
 
-	prog->globals.server->pev = PRVM_EDICT_TO_PROG(prog->edicts);
-	prog->globals.server->other = PRVM_EDICT_TO_PROG(prog->edicts);
-	prog->globals.server->time = sv.time;
-	PRVM_ExecuteProgram (prog->globals.server->EndFrame, "QC function EndFrame is missing");
+	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(prog->edicts);
+	prog->globals.sv->other = PRVM_EDICT_TO_PROG(prog->edicts);
+	prog->globals.sv->time = sv.time;
+	PRVM_ExecuteProgram (prog->globals.sv->EndFrame, "QC function EndFrame is missing");
 
 	// decrement prog->num_edicts if the highest number entities died
 	for ( ;PRVM_EDICT_NUM(prog->num_edicts - 1)->priv.sv->free; prog->num_edicts-- );
@@ -466,9 +466,9 @@ bool SV_ClientConnect (edict_t *ent, char *userinfo)
 	ent->progs.sv->health = 100;
 
 	Msg("SV_ClientConnect()\n");
-	prog->globals.server->time = sv.time;
-	prog->globals.server->pev = PRVM_EDICT_TO_PROG(ent);
-	PRVM_ExecuteProgram (prog->globals.server->ClientConnect, "QC function ClientConnect is missing");
+	prog->globals.sv->time = sv.time;
+	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(ent);
+	PRVM_ExecuteProgram (prog->globals.sv->ClientConnect, "QC function ClientConnect is missing");
 
 	return true;
 }
@@ -553,9 +553,9 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	client = ent->priv.sv->client;
 
 	// call standard client pre-think
-	prog->globals.server->time = sv.time;
-	prog->globals.server->pev = PRVM_EDICT_TO_PROG(ent);
-	PRVM_ExecuteProgram (prog->globals.server->PlayerPreThink, "QC function PlayerPreThink is missing");
+	prog->globals.sv->time = sv.time;
+	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(ent);
+	PRVM_ExecuteProgram (prog->globals.sv->PlayerPreThink, "QC function PlayerPreThink is missing");
 
 	VectorCopy(ent->progs.sv->origin, oldorigin);
 	VectorCopy(ent->progs.sv->velocity, oldvelocity);
@@ -621,17 +621,17 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 		if (j != i) continue; // duplicated
 		if (!other->progs.sv->touch) continue;
 		
-		prog->globals.server->pev = PRVM_EDICT_TO_PROG(other);
-		prog->globals.server->other = PRVM_EDICT_TO_PROG(ent);
-		prog->globals.server->time = sv.time;
+		prog->globals.sv->pev = PRVM_EDICT_TO_PROG(other);
+		prog->globals.sv->other = PRVM_EDICT_TO_PROG(ent);
+		prog->globals.sv->time = sv.time;
 		PRVM_ExecuteProgram (other->progs.sv->touch, "QC function pev->touch is missing");
 	}
 	PRVM_POP_GLOBALS;
 
 	// call standard player post-think
-	prog->globals.server->time = sv.time;
-	prog->globals.server->pev = PRVM_EDICT_TO_PROG(ent);
-	PRVM_ExecuteProgram (prog->globals.server->PlayerPostThink, "QC function PlayerPostThink is missing");
+	prog->globals.sv->time = sv.time;
+	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(ent);
+	PRVM_ExecuteProgram (prog->globals.sv->PlayerPostThink, "QC function PlayerPostThink is missing");
 }
 
 /*

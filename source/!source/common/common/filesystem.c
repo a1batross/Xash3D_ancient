@@ -1693,7 +1693,7 @@ fs_offset_t FS_Read (file_t* file, void* buffer, size_t buffersize)
 		}
 
 		ztk->zstream.next_in = &ztk->input[ztk->in_ind];
-		ztk->zstream.avail_in = (unsigned int)(ztk->in_len - ztk->in_ind);
+		ztk->zstream.avail_in = (uint)(ztk->in_len - ztk->in_ind);
 
 		// Now that we are sure we have compressed data available, we need to determine
 		// if it's better to inflate it in "file->buff" or directly in "buffer"

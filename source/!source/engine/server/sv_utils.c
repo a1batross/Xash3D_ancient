@@ -219,7 +219,7 @@ void PF_sprint (void)
 
 	num = PRVM_G_EDICTNUM(OFS_PARM0);
 
-	if (num < 1 || num > host.maxclients || svs.clients[num - 1].state != cs_spawned)
+	if (num < 1 || num > maxclients->value || svs.clients[num - 1].state != cs_spawned)
 	{
 		VM_Warning("tried to centerprint to a non-client\n");
 		return;
@@ -245,11 +245,11 @@ void PF_centerprint (void)
 {
 	client_t		*client;
 	int		num;
-	char string[VM_STRINGTEMP_LENGTH];
+	char 		string[VM_STRINGTEMP_LENGTH];
 
 	num = PRVM_G_EDICTNUM(OFS_PARM0);
 
-	if(num < 1 || num > host.maxclients || svs.clients[num-1].state != cs_spawned)
+	if(num < 1 || num > maxclients->value || svs.clients[num-1].state != cs_spawned)
 	{
 		VM_Warning("tried to centerprint to a non-client\n");
 		return;
@@ -353,7 +353,7 @@ void PF_droptofloor (void)
 	// assume failure if it returns early
 	PRVM_G_FLOAT(OFS_RETURN) = 0;
 
-	ent = PRVM_PROG_TO_EDICT(prog->globals.server->pev);
+	ent = PRVM_PROG_TO_EDICT(prog->globals.sv->pev);
 	if (ent == prog->edicts)
 	{
 		VM_Warning("droptofloor: can not modify world entity\n");
@@ -513,16 +513,16 @@ void PF_traceline (void)
 
 	trace = SV_Trace (v1, vec3_origin, vec3_origin, v2, ent, mask );
 
-	prog->globals.server->trace_allsolid = trace.allsolid;
-	prog->globals.server->trace_startsolid = trace.startsolid;
-	prog->globals.server->trace_fraction = trace.fraction;
-	prog->globals.server->trace_contents = trace.contents;
+	prog->globals.sv->trace_allsolid = trace.allsolid;
+	prog->globals.sv->trace_startsolid = trace.startsolid;
+	prog->globals.sv->trace_fraction = trace.fraction;
+	prog->globals.sv->trace_contents = trace.contents;
 
-	VectorCopy (trace.endpos, prog->globals.server->trace_endpos);
-	VectorCopy (trace.plane.normal, prog->globals.server->trace_plane_normal);
-	prog->globals.server->trace_plane_dist =  trace.plane.dist;
-	if (trace.ent) prog->globals.server->trace_ent = PRVM_EDICT_TO_PROG(trace.ent);
-	else prog->globals.server->trace_ent = PRVM_EDICT_TO_PROG(prog->edicts);
+	VectorCopy (trace.endpos, prog->globals.sv->trace_endpos);
+	VectorCopy (trace.plane.normal, prog->globals.sv->trace_plane_normal);
+	prog->globals.sv->trace_plane_dist =  trace.plane.dist;
+	if (trace.ent) prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG(trace.ent);
+	else prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG(prog->edicts);
 }
 
 
@@ -564,17 +564,17 @@ void PF_tracebox (void)
 
 	trace = SV_Trace (v1, m1, m2, v2, ent, mask );
 
-	prog->globals.server->trace_allsolid = trace.allsolid;
-	prog->globals.server->trace_startsolid = trace.startsolid;
-	prog->globals.server->trace_fraction = trace.fraction;
-	prog->globals.server->trace_contents = trace.contents;
+	prog->globals.sv->trace_allsolid = trace.allsolid;
+	prog->globals.sv->trace_startsolid = trace.startsolid;
+	prog->globals.sv->trace_fraction = trace.fraction;
+	prog->globals.sv->trace_contents = trace.contents;
 
-	VectorCopy (trace.endpos, prog->globals.server->trace_endpos);
-	VectorCopy (trace.plane.normal, prog->globals.server->trace_plane_normal);
-	prog->globals.server->trace_plane_dist =  trace.plane.dist;
+	VectorCopy (trace.endpos, prog->globals.sv->trace_endpos);
+	VectorCopy (trace.plane.normal, prog->globals.sv->trace_plane_normal);
+	prog->globals.sv->trace_plane_dist =  trace.plane.dist;
 
-	if (trace.ent) prog->globals.server->trace_ent = PRVM_EDICT_TO_PROG(trace.ent);
-	else prog->globals.server->trace_ent = PRVM_EDICT_TO_PROG(prog->edicts);
+	if (trace.ent) prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG(trace.ent);
+	else prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG(prog->edicts);
 }
 
 /*
@@ -602,16 +602,16 @@ void PF_tracetoss (void)
 
 	trace = SV_TraceToss (ent, ignore);
 
-	prog->globals.server->trace_allsolid = trace.allsolid;
-	prog->globals.server->trace_startsolid = trace.startsolid;
-	prog->globals.server->trace_fraction = trace.fraction;
-	prog->globals.server->trace_contents = trace.contents;
+	prog->globals.sv->trace_allsolid = trace.allsolid;
+	prog->globals.sv->trace_startsolid = trace.startsolid;
+	prog->globals.sv->trace_fraction = trace.fraction;
+	prog->globals.sv->trace_contents = trace.contents;
 
-	VectorCopy (trace.endpos, prog->globals.server->trace_endpos);
-	VectorCopy (trace.plane.normal, prog->globals.server->trace_plane_normal);
-	prog->globals.server->trace_plane_dist =  trace.plane.dist;
-	if (trace.ent) prog->globals.server->trace_ent = PRVM_EDICT_TO_PROG(trace.ent);
-	else prog->globals.server->trace_ent = PRVM_EDICT_TO_PROG(prog->edicts);
+	VectorCopy (trace.endpos, prog->globals.sv->trace_endpos);
+	VectorCopy (trace.plane.normal, prog->globals.sv->trace_plane_normal);
+	prog->globals.sv->trace_plane_dist =  trace.plane.dist;
+	if (trace.ent) prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG(trace.ent);
+	else prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG(prog->edicts);
 }
 
 void PF_create( void )
@@ -678,7 +678,7 @@ void PF_walkmove (void)
 	// assume failure if it returns early
 	PRVM_G_FLOAT(OFS_RETURN) = 0;
 
-	ent = PRVM_PROG_TO_EDICT(prog->globals.server->pev);
+	ent = PRVM_PROG_TO_EDICT(prog->globals.sv->pev);
 	if (ent == prog->edicts)
 	{
 		VM_Warning("walkmove: can not modify world entity\n");
@@ -704,13 +704,13 @@ void PF_walkmove (void)
 
 	// save program state, because SV_movestep may call other progs
 	oldf = prog->xfunction;
-	oldpev = prog->globals.server->pev;
+	oldpev = prog->globals.sv->pev;
 
 	PRVM_G_FLOAT(OFS_RETURN) = SV_MoveStep(ent, move, true);
 
 	// restore program state
 	prog->xfunction = oldf;
-	prog->globals.server->pev = oldpev;
+	prog->globals.sv->pev = oldpev;
 }
 
 /*
@@ -754,7 +754,7 @@ void PF_aim (void)
           int		flags = Cvar_VariableValue( "dmflags" );
 	
 	// assume failure if it returns early
-	VectorCopy(prog->globals.server->v_forward, PRVM_G_VECTOR(OFS_RETURN));
+	VectorCopy(prog->globals.sv->v_forward, PRVM_G_VECTOR(OFS_RETURN));
 
 	ent = PRVM_G_EDICT(OFS_PARM0);
 	if (ent == prog->edicts)
@@ -773,13 +773,13 @@ void PF_aim (void)
 	start[2] += 20;
 
 	// try sending a trace straight
-	VectorCopy (prog->globals.server->v_forward, dir);
+	VectorCopy (prog->globals.sv->v_forward, dir);
 	VectorMA (start, 2048, dir, end);
 	tr = SV_Trace (start, vec3_origin, vec3_origin, end, ent, MASK_ALL );
 
 	if (tr.ent && ((edict_t *)tr.ent)->progs.sv->takedamage == DAMAGE_AIM && (flags & DF_NO_FRIENDLY_FIRE || ent->progs.sv->team <=0 || ent->progs.sv->team != ((edict_t *)tr.ent)->progs.sv->team))
 	{
-		VectorCopy (prog->globals.server->v_forward, PRVM_G_VECTOR(OFS_RETURN));
+		VectorCopy (prog->globals.sv->v_forward, PRVM_G_VECTOR(OFS_RETURN));
 		return;
 	}
 
@@ -801,7 +801,7 @@ void PF_aim (void)
 			end[j] = check->progs.sv->origin[j] + 0.5 * (check->progs.sv->mins[j] + check->progs.sv->maxs[j]);
 		VectorSubtract (end, start, dir);
 		VectorNormalize (dir);
-		dist = DotProduct (dir, prog->globals.server->v_forward);
+		dist = DotProduct (dir, prog->globals.sv->v_forward);
 		if (dist < bestdist) continue; // to far to turn
 		tr = SV_Trace (start, vec3_origin, vec3_origin, end, ent, MASK_ALL );
 		if (tr.ent == check)
@@ -815,8 +815,8 @@ void PF_aim (void)
 	if (bestent)
 	{
 		VectorSubtract (bestent->progs.sv->origin, ent->progs.sv->origin, dir);
-		dist = DotProduct (dir, prog->globals.server->v_forward);
-		VectorScale (prog->globals.server->v_forward, dist, end);
+		dist = DotProduct (dir, prog->globals.sv->v_forward);
+		VectorScale (prog->globals.sv->v_forward, dist, end);
 		end[2] = dir[2];
 		VectorNormalize (end);
 		VectorCopy (end, PRVM_G_VECTOR(OFS_RETURN));
@@ -854,7 +854,7 @@ void PF_changeyaw (void)
 {
 	edict_t		*ent;
 
-	ent = PRVM_PROG_TO_EDICT(prog->globals.server->pev);
+	ent = PRVM_PROG_TO_EDICT(prog->globals.sv->pev);
 	if (ent == prog->edicts)
 	{
 		VM_Warning("changeyaw: can not modify world entity\n");
@@ -878,7 +878,7 @@ void PF_changepitch (void)
 {
 	edict_t		*ent;
 
-	ent = PRVM_PROG_TO_EDICT(prog->globals.server->pev);
+	ent = PRVM_PROG_TO_EDICT(prog->globals.sv->pev);
 	if (ent == prog->edicts)
 	{
 		VM_Warning("changepitch: can not modify world entity\n");
@@ -952,6 +952,12 @@ void PF_decalindex (void)
 {
 	// it will precache new decals too
 	PRVM_G_FLOAT(OFS_RETURN) = SV_DecalIndex(PRVM_G_STRING(OFS_PARM0));
+}
+
+void PF_imageindex (void)
+{
+	// it will precache new images too
+	PRVM_G_FLOAT(OFS_RETURN) = SV_ImageIndex(PRVM_G_STRING(OFS_PARM0));
 }
 
 void PF_getlightlevel (void)
@@ -1260,7 +1266,7 @@ PF_precache_sound,				// #72 float precache_sound(string s)
 PF_setmodel,				// #73 float setmodel(entity e, string m) 
 PF_modelindex,				// #74 float model_index(string s)
 PF_decalindex,				// #75 float decal_index(string s)
-PF_modelframes,				// #76 float model_frames(float modelindex)
+PF_imageindex,				// #76 float image_index(string s)
 PF_setsize,				// #77 void setsize(entity e, vector min, vector max)
 PF_changelevel,				// #78 void changelevel(string mapname, string spotname)
 PF_changeyaw,				// #79 void ChangeYaw( void )
@@ -1291,7 +1297,7 @@ PF_areaportalstate,				// #103 void areaportal_state( float num, float state )
 PF_setstats,				// #104 void setstats(entity e, float f, string stats)
 PF_configstring,				// #105 void configstring(float num, string s)
 PF_makestatic,				// #106 void makestatic(entity e)
-VM_precache_pic,				// #107 string precache_pic(string pic)
+PF_modelframes,				// #107 float model_frames(float modelindex)
 NULL,					// #108
 NULL,					// #109
 NULL,					// #110

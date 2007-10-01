@@ -734,6 +734,7 @@ typedef struct compilers_api_s
 	bool (*BSP)( void );
 	bool (*PrepareDAT)( const char *dir, const char *name, byte params );	// compile dat in gamedir 
 	bool (*DAT)( void );
+	bool (*DecryptDAT)( int complen, int len, int method, char *info, char **buffer); //unpacking dat
 } compilers_api_t;
 
 /*

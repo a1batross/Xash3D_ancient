@@ -18,43 +18,39 @@ bool keyword_asm;
 bool keyword_break;
 bool keyword_case;
 bool keyword_class;
-bool keyword_const;	//fixme
+bool keyword_const;		// fixme
 bool keyword_continue;
 bool keyword_default;
-bool keyword_entity;	//for skipping the local
-bool keyword_float;	//for skipping the local
+bool keyword_entity;	// for skipping the local
+bool keyword_float;		// for skipping the local
 bool keyword_for;
 bool keyword_goto;
-bool keyword_int;	//for skipping the local
-bool keyword_integer;	//for skipping the local
+bool keyword_int;		// for skipping the local
+bool keyword_integer;	// for skipping the local
 bool keyword_state;
-bool keyword_string;	//for skipping the local
+bool keyword_string;	// for skipping the local
 bool keyword_struct;
 bool keyword_switch;
 bool keyword_thinktime;
-bool keyword_var;	//allow it to be initialised and set around the place.
-bool keyword_vector;	//for skipping the local
+bool keyword_var;		// allow it to be initialised and set around the place.
+bool keyword_vector;	// for skipping the local
+bool keyword_enum;		// kinda like in c, but typedef not supported.
+bool keyword_enumflags;	// like enum, but doubles instead of adds 1.
+bool keyword_typedef;	// fixme
+bool keyword_extern;	// function is external, don't error or warn if the body was not found
+bool keyword_shared;	// mark global to be copied over when progs changes (part of FTE_MULTIPROGS)
+bool keyword_noref;		// nowhere else references this, don't strip it.
+bool keyword_nosave;	// don't write the def to the output.
+bool keyword_union;		// you surly know what a union is!
 
-
-bool keyword_enum;	//kinda like in c, but typedef not supported.
-bool keyword_enumflags;	//like enum, but doubles instead of adds 1.
-bool keyword_typedef;	//fixme
-bool keyword_extern;	//function is external, don't error or warn if the body was not found
-bool keyword_shared;	//mark global to be copied over when progs changes (part of FTE_MULTIPROGS)
-bool keyword_noref;	//nowhere else references this, don't strip it.
-bool keyword_nosave;	//don't write the def to the output.
-bool keyword_union;	//you surly know what a union is!
-
-#define keyword_not			1	//hexenc support needs this, and fteqcc can optimise without it, but it adds an extra token after the if, so it can cause no namespace conflicts
-
-bool keywords_coexist;		//don't disable a keyword simply because a var was made with the same name.
-bool output_parms;			//emit some PARMX fields. confuses decompilers.
-bool autoprototype;		//take two passes over the source code. First time round doesn't enter and functions or initialise variables.
-bool pr_subscopedlocals;	//causes locals to be valid ONLY within thier statement block. (they simply can't be referenced by name outside of it)
-bool flag_ifstring;		//makes if (blah) equivelent to if (blah != "") which resolves some issues in multiprogs situations.
-bool flag_laxcasts;		//Allow lax casting. This'll produce loadsa warnings of course. But allows compilation of certain dodgy code.
-bool flag_hashonly;		//Allows use of only #constant for precompiler constants, allows certain preqcc using mods to compile
-bool flag_fasttrackarrays;	//Faster arrays, dynamically detected, activated only in supporting engines.
+bool keywords_coexist;	// don't disable a keyword simply because a var was made with the same name.
+bool output_parms;		// emit some PARMX fields. confuses decompilers.
+bool autoprototype;		// take two passes over the source code. First time round doesn't enter and functions or initialise variables.
+bool pr_subscopedlocals;	// causes locals to be valid ONLY within thier statement block. (they simply can't be referenced by name outside of it)
+bool flag_ifstring;		// makes if (blah) equivelent to if (blah != "") which resolves some issues in multiprogs situations.
+bool flag_laxcasts;		// Allow lax casting. This'll produce loadsa warnings of course. But allows compilation of certain dodgy code.
+bool flag_hashonly;		// Allows use of only #constant for precompiler constants, allows certain preqcc using mods to compile
+bool flag_fasttrackarrays;	// Faster arrays, dynamically detected, activated only in supporting engines.
 
 bool opt_overlaptemps;	//reduce numpr_globals by reuse of temps. When they are not needed they are freed for reuse. The way this is implemented is better than frikqcc's. (This is the single most important optimisation)
 bool opt_assignments;	//STORE_F isn't used if an operation wrote to a temp.
@@ -168,8 +164,6 @@ int num_labels;
 
 def_t *extra_parms[MAX_PARMS_EXTRA];
 
-#define ASSOC_RIGHT_RESULT ASSOC_RIGHT
-
 //========================================
 
 //FIXME: modifiy list so most common GROUPS are first
@@ -178,332 +172,235 @@ def_t *extra_parms[MAX_PARMS_EXTRA];
 //if true, effectivly {b=a; return a;}
 opcode_t pr_opcodes[] =
 {
-	{6, "<DONE>", "DONE", 	-1, ASSOC_LEFT,	&type_void, &type_void, &type_void},
-
-	{6, "*", "MUL_F",		3, ASSOC_LEFT,	&type_float, &type_float, &type_float},
-	{6, "*", "MUL_V",		3, ASSOC_LEFT,	&type_vector, &type_vector, &type_float},
-	{6, "*", "MUL_FV",		3, ASSOC_LEFT,	&type_float, &type_vector, &type_vector},
-	{6, "*", "MUL_VF",		3, ASSOC_LEFT,	&type_vector, &type_float, &type_vector},
-
-	{6, "/", "DIV_F",		3, ASSOC_LEFT,	&type_float, &type_float, &type_float},
-
-	{6, "+", "ADD_F",		4, ASSOC_LEFT,	&type_float, &type_float, &type_float},
-	{6, "+", "ADD_V",		4, ASSOC_LEFT,	&type_vector, &type_vector, &type_vector},
-
-	{6, "-", "SUB_F",		4, ASSOC_LEFT,	&type_float, &type_float, &type_float},
-	{6, "-", "SUB_V",		4, ASSOC_LEFT,	&type_vector, &type_vector, &type_vector},
-
-	{6, "==", "EQ_F",		5, ASSOC_LEFT,	&type_float, &type_float, &type_float},
-	{6, "==", "EQ_V",		5, ASSOC_LEFT,	&type_vector, &type_vector, &type_float},
-	{6, "==", "EQ_S",		5, ASSOC_LEFT,	&type_string, &type_string, &type_float},
-	{6, "==", "EQ_E",		5, ASSOC_LEFT,	&type_entity, &type_entity, &type_float},
-	{6, "==", "EQ_FNC",		5, ASSOC_LEFT,	&type_function, &type_function, &type_float},
- 
-	{6, "!=", "NE_F",		5, ASSOC_LEFT,	&type_float, &type_float, &type_float},
-	{6, "!=", "NE_V",		5, ASSOC_LEFT,	&type_vector, &type_vector, &type_float},
-	{6, "!=", "NE_S",		5, ASSOC_LEFT,	&type_string, &type_string, &type_float},
-	{6, "!=", "NE_E",		5, ASSOC_LEFT,	&type_entity, &type_entity, &type_float},
-	{6, "!=", "NE_FNC",		5, ASSOC_LEFT,	&type_function, &type_function, &type_float},
- 
-	{6, "<=", "LE",		5, ASSOC_LEFT,	&type_float, &type_float, &type_float},
-	{6, ">=", "GE",		5, ASSOC_LEFT,	&type_float, &type_float, &type_float},
-	{6, "<", "LT",		5, ASSOC_LEFT,	&type_float, &type_float, &type_float},
-	{6, ">", "GT",		5, ASSOC_LEFT,	&type_float, &type_float, &type_float},
-
-	{6, ".", "INDIRECT_F",	1, ASSOC_LEFT,	&type_entity, &type_field, &type_float},
-	{6, ".", "INDIRECT_V",	1, ASSOC_LEFT,	&type_entity, &type_field, &type_vector},
-	{6, ".", "INDIRECT_S",	1, ASSOC_LEFT,	&type_entity, &type_field, &type_string},
-	{6, ".", "INDIRECT_E",	1, ASSOC_LEFT,	&type_entity, &type_field, &type_entity},
-	{6, ".", "INDIRECT_FI",	1, ASSOC_LEFT,	&type_entity, &type_field, &type_field},
-	{6, ".", "INDIRECT_FU",	1, ASSOC_LEFT,	&type_entity, &type_field, &type_function},
-
-	{6, ".", "ADDRESS",		1, ASSOC_LEFT,	&type_entity, &type_field, &type_pointer},
-
-	{6, "=", "STORE_F",		6, ASSOC_RIGHT,	&type_float, &type_float, &type_float},
-	{6, "=", "STORE_V",		6, ASSOC_RIGHT,	&type_vector, &type_vector, &type_vector},
-	{6, "=", "STORE_S",		6, ASSOC_RIGHT,	&type_string, &type_string, &type_string},
-	{6, "=", "STORE_ENT",	6, ASSOC_RIGHT,	&type_entity, &type_entity, &type_entity},
-	{6, "=", "STORE_FLD",	6, ASSOC_RIGHT,	&type_field, &type_field, &type_field},
-	{6, "=", "STORE_FNC",	6, ASSOC_RIGHT,	&type_function, &type_function, &type_function},
-
-	{6, "=", "STOREP_F",	6, ASSOC_RIGHT,	&type_pointer, &type_float, &type_float},
-	{6, "=", "STOREP_V",	6, ASSOC_RIGHT,	&type_pointer, &type_vector, &type_vector},
-	{6, "=", "STOREP_S",	6, ASSOC_RIGHT,	&type_pointer, &type_string, &type_string},
-	{6, "=", "STOREP_ENT",	6, ASSOC_RIGHT,	&type_pointer, &type_entity, &type_entity},
-	{6, "=", "STOREP_FLD",	6, ASSOC_RIGHT,	&type_pointer, &type_field, &type_field},
-	{6, "=", "STOREP_FNC",	6, ASSOC_RIGHT,	&type_pointer, &type_function, &type_function},
-
-	{6, "<RETURN>", "RETURN",	-1, ASSOC_LEFT,	&type_float, &type_void, &type_void},
-  
-	{6, "!", "NOT_F",		-1, ASSOC_LEFT,	&type_float, &type_void, &type_float},
-	{6, "!", "NOT_V",		-1, ASSOC_LEFT,	&type_vector, &type_void, &type_float},
-	{6, "!", "NOT_S",		-1, ASSOC_LEFT,	&type_vector, &type_void, &type_float},
-	{6, "!", "NOT_ENT",		-1, ASSOC_LEFT,	&type_entity, &type_void, &type_float},
-	{6, "!", "NOT_FNC",		-1, ASSOC_LEFT,	&type_function, &type_void, &type_float},
-  
-	{6, "<IF>", "IF",		-1, ASSOC_RIGHT,	&type_float, NULL, &type_void},
-	{6, "<IFNOT>", "IFNOT",	-1, ASSOC_RIGHT,	&type_float, NULL, &type_void},
-  
-	// calls returns REG_RETURN
-	{6, "<CALL0>", "CALL0",	-1, ASSOC_LEFT,	&type_function, &type_void, &type_void},
-	{6, "<CALL1>", "CALL1",	-1, ASSOC_LEFT,	&type_function, &type_void, &type_void},
-	{6, "<CALL2>", "CALL2",	-1, ASSOC_LEFT,	&type_function, &type_void, &type_void}, 
-	{6, "<CALL3>", "CALL3",	-1, ASSOC_LEFT,	&type_function, &type_void, &type_void}, 
-	{6, "<CALL4>", "CALL4",	-1, ASSOC_LEFT,	&type_function, &type_void, &type_void},
-	{6, "<CALL5>", "CALL5",	-1, ASSOC_LEFT,	&type_function, &type_void, &type_void},
-	{6, "<CALL6>", "CALL6",	-1, ASSOC_LEFT,	&type_function, &type_void, &type_void},
-	{6, "<CALL7>", "CALL7",	-1, ASSOC_LEFT,	&type_function, &type_void, &type_void},
-	{6, "<CALL8>", "CALL8",	-1, ASSOC_LEFT,	&type_function, &type_void, &type_void},
-  
-	{6, "<STATE>", "STATE",	-1, ASSOC_LEFT,	&type_float, &type_float, &type_void},
-  
-	{6, "<GOTO>", "GOTO",	-1, ASSOC_RIGHT,	NULL, &type_void, &type_void},
-  
-	{6, "&&", "AND",		7, ASSOC_LEFT,	&type_float, &type_float, &type_float},
-	{6, "||", "OR",		7, ASSOC_LEFT,	&type_float, &type_float, &type_float},
-
-	{6, "&", "BITAND",		3, ASSOC_LEFT,	&type_float, &type_float, &type_float},
-	{6, "|", "BITOR",		3, ASSOC_LEFT,	&type_float, &type_float, &type_float},
-
-	//version 6 are in normal progs.
-
-	//these are hexen2
-	{7, "*=", "MULSTORE_F",	6, ASSOC_RIGHT_RESULT,				&type_float, &type_float, &type_float},
-	{7, "*=", "MULSTORE_V",	6, ASSOC_RIGHT_RESULT,				&type_vector, &type_float, &type_vector},
-	{7, "*=", "MULSTOREP_F",	6, ASSOC_RIGHT_RESULT,				&type_pointer, &type_float, &type_float},
-	{7, "*=", "MULSTOREP_V",	6, ASSOC_RIGHT_RESULT,				&type_pointer, &type_float, &type_vector},
-
-	{7, "/=", "DIVSTORE_F",	6, ASSOC_RIGHT_RESULT,				&type_float, &type_float, &type_float},
-	{7, "/=", "DIVSTOREP_F",	6, ASSOC_RIGHT_RESULT,				&type_pointer, &type_float, &type_float},
-
-	{7, "+=", "ADDSTORE_F",	6, ASSOC_RIGHT_RESULT,				&type_float, &type_float, &type_float},
-	{7, "+=", "ADDSTORE_V",	6, ASSOC_RIGHT_RESULT,				&type_vector, &type_vector, &type_vector},
-	{7, "+=", "ADDSTOREP_F",	6, ASSOC_RIGHT_RESULT,				&type_pointer, &type_float, &type_float},
-	{7, "+=", "ADDSTOREP_V",	6, ASSOC_RIGHT_RESULT,				&type_pointer, &type_vector, &type_vector},
-
-	{7, "-=", "SUBSTORE_F",	6, ASSOC_RIGHT_RESULT,				&type_float, &type_float, &type_float},
-	{7, "-=", "SUBSTORE_V",	6, ASSOC_RIGHT_RESULT,				&type_vector, &type_vector, &type_vector},
-	{7, "-=", "SUBSTOREP_F",	6, ASSOC_RIGHT_RESULT,				&type_pointer, &type_float, &type_float},
-	{7, "-=", "SUBSTOREP_V",	6, ASSOC_RIGHT_RESULT,				&type_pointer, &type_vector, &type_vector},
-
-	{7, "<FETCH_GBL_F>", "FETCH_GBL_F",		-1, ASSOC_LEFT,	&type_float, &type_float, &type_float},
-	{7, "<FETCH_GBL_V>", "FETCH_GBL_V",		-1, ASSOC_LEFT,	&type_vector, &type_float, &type_vector},
-	{7, "<FETCH_GBL_S>", "FETCH_GBL_S",		-1, ASSOC_LEFT,	&type_string, &type_float, &type_string},
-	{7, "<FETCH_GBL_E>", "FETCH_GBL_E",		-1, ASSOC_LEFT,	&type_entity, &type_float, &type_entity},
-	{7, "<FETCH_GBL_FNC>", "FETCH_GBL_FNC",	-1, ASSOC_LEFT,	&type_function, &type_float, &type_function},
-
-	{7, "<CSTATE>", "CSTATE",					-1, ASSOC_LEFT,	&type_float, &type_float, &type_void},
-
-	{7, "<CWSTATE>", "CWSTATE",				-1, ASSOC_LEFT,	&type_float, &type_float, &type_void},
-
-	{7, "<THINKTIME>", "THINKTIME",			-1, ASSOC_LEFT,	&type_entity, &type_float, &type_void},
-
-	{7, "|=", "BITSET_F",						6,	ASSOC_RIGHT,	&type_float, &type_float, &type_float},
-	{7, "|=", "BITSETP_F",						6,	ASSOC_RIGHT,	&type_pointer, &type_float, &type_float},
-	{7, "(-)", "BITCLR_F",						6,	ASSOC_RIGHT,	&type_float, &type_float, &type_float},
-	{7, "(-)", "BITCLRP_F",					6,	ASSOC_RIGHT,	&type_pointer, &type_float, &type_float},
-
-	{7, "<RAND0>", "RAND0",					-1, ASSOC_LEFT,	&type_void, &type_void, &type_float},
-	{7, "<RAND1>", "RAND1",					-1, ASSOC_LEFT,	&type_float, &type_void, &type_float},
-	{7, "<RAND2>", "RAND2",					-1, ASSOC_LEFT,	&type_float, &type_float, &type_float},
-	{7, "<RANDV0>", "RANDV0",					-1, ASSOC_LEFT,	&type_void, &type_void, &type_vector},
-	{7, "<RANDV1>", "RANDV1",					-1, ASSOC_LEFT,	&type_vector, &type_void, &type_vector},
-	{7, "<RANDV2>", "RANDV2",					-1, ASSOC_LEFT,	&type_vector, &type_vector, &type_vector},
-
-	{7, "<SWITCH_F>", "SWITCH_F",				-1, ASSOC_LEFT,	&type_void, NULL, &type_void},
-	{7, "<SWITCH_V>", "SWITCH_V",				-1, ASSOC_LEFT,	&type_void, NULL, &type_void},
-	{7, "<SWITCH_S>", "SWITCH_S",				-1, ASSOC_LEFT,	&type_void, NULL, &type_void},
-	{7, "<SWITCH_E>", "SWITCH_E",				-1, ASSOC_LEFT,	&type_void, NULL, &type_void},
-	{7, "<SWITCH_FNC>", "SWITCH_FNC",			-1, ASSOC_LEFT,	&type_void, NULL, &type_void},
-
-	{7, "<CASE>", "CASE",						-1, ASSOC_LEFT,	&type_void, NULL, &type_void},
-	{7, "<CASERANGE>", "CASERANGE",			-1, ASSOC_LEFT,	&type_void, &type_void, NULL},
-
-	//Later are additions by DMW.
-	{7, "<CALL1H>", "CALL1H",	-1, ASSOC_LEFT,			&type_function, &type_vector, &type_void},
-	{7, "<CALL2H>", "CALL2H",	-1, ASSOC_LEFT,			&type_function, &type_vector, &type_vector}, 
-	{7, "<CALL3H>", "CALL3H",	-1, ASSOC_LEFT,			&type_function, &type_vector, &type_vector}, 
-	{7, "<CALL4H>", "CALL4H",	-1, ASSOC_LEFT,			&type_function, &type_vector, &type_vector},
-	{7, "<CALL5H>", "CALL5H",	-1, ASSOC_LEFT,			&type_function, &type_vector, &type_vector},
-	{7, "<CALL6H>", "CALL6H",	-1, ASSOC_LEFT,			&type_function, &type_vector, &type_vector},
-	{7, "<CALL7H>", "CALL7H",	-1, ASSOC_LEFT,			&type_function, &type_vector, &type_vector},
-	{7, "<CALL8H>", "CALL8H",	-1, ASSOC_LEFT,			&type_function, &type_vector, &type_vector},
-
-	{7, "=",	"STORE_I", 6, ASSOC_RIGHT,				&type_integer, &type_integer, &type_integer},
-	{7, "=",	"STORE_IF", 6, ASSOC_RIGHT,			&type_integer, &type_float, &type_integer},
-	{7, "=",	"STORE_FI", 6, ASSOC_RIGHT,			&type_float, &type_integer, &type_float},
-
-	{7, "+", "ADD_I", 4, ASSOC_LEFT,				&type_integer, &type_integer, &type_integer},
-	{7, "+", "ADD_FI", 4, ASSOC_LEFT,				&type_float, &type_integer, &type_float},
-	{7, "+", "ADD_IF", 4, ASSOC_LEFT,				&type_integer, &type_float, &type_float},
- 
-	{7, "-", "SUB_I", 4, ASSOC_LEFT,				&type_integer, &type_integer, &type_integer},
-	{7, "-", "SUB_FI", 4, ASSOC_LEFT,				&type_float, &type_integer, &type_float},
- {7, "-", "SUB_IF", 4, ASSOC_LEFT,				&type_integer, &type_float, &type_float},
-
- {7, "<CIF>", "C_ITOF", -1, ASSOC_LEFT,				&type_integer, &type_void, &type_float},
- {7, "<CFI>", "C_FTOI", -1, ASSOC_LEFT,				&type_float, &type_void, &type_integer},
- {7, "<CPIF>", "CP_ITOF", -1, ASSOC_LEFT,			&type_pointer, &type_integer, &type_float},
- {7, "<CPFI>", "CP_FTOI", -1, ASSOC_LEFT,			&type_pointer, &type_float, &type_integer},
-
- {7, ".", "INDIRECT", 1, ASSOC_LEFT,				&type_entity,	&type_field, &type_integer},
- {7, "=", "STOREP_I", 6, ASSOC_RIGHT,				&type_pointer,	&type_integer, &type_integer},
- {7, "=", "STOREP_IF", 6, ASSOC_RIGHT,				&type_pointer,	&type_float, &type_integer},
- {7, "=", "STOREP_FI", 6, ASSOC_RIGHT,				&type_pointer,	&type_integer, &type_float},
-
- {7, "&", "BITAND_I", 3, ASSOC_LEFT,				&type_integer,	&type_integer, &type_integer},
- {7, "|", "BITOR_I", 3, ASSOC_LEFT,				&type_integer,	&type_integer, &type_integer},
-
- {7, "*", "MUL_I", 3, ASSOC_LEFT,				&type_integer,	&type_integer, &type_integer},
- {7, "/", "DIV_I", 3, ASSOC_LEFT,				&type_integer,	&type_integer, &type_integer},
- {7, "==", "EQ_I", 5, ASSOC_LEFT,				&type_integer,	&type_integer, &type_integer},
- {7, "!=", "NE_I", 5, ASSOC_LEFT,				&type_integer,	&type_integer, &type_integer},
-
- {7, "<IFNOTS>", "IFNOTS", -1, ASSOC_RIGHT,		&type_string,	NULL, &type_void},
- {7, "<IFS>", "IFS", -1, ASSOC_RIGHT,				&type_string,	NULL, &type_void},
-
- {7, "!", "NOT_I", -1, ASSOC_LEFT,				&type_integer,	&type_void, &type_integer},
-
- {7, "/", "DIV_VF", 3, ASSOC_LEFT,				&type_vector,	&type_float, &type_float},
-
- {7, "^", "POWER_I", 3, ASSOC_LEFT,				&type_integer,	&type_integer, &type_integer},
- {7, ">>", "RSHIFT_I", 3, ASSOC_LEFT,			&type_integer,	&type_integer, &type_integer},
- {7, "<<", "LSHIFT_I", 3, ASSOC_LEFT,			&type_integer,	&type_integer, &type_integer},
-
-										//var,		offset			return
- {7, "<ARRAY>", "GET_POINTER", -1, ASSOC_LEFT,	&type_float,		&type_integer, &type_pointer},
- {7, "<ARRAY>", "ARRAY_OFS", -1, ASSOC_LEFT,		&type_pointer,	&type_integer, &type_pointer},
-
- {7, "=", "LOADA_F", 6, ASSOC_LEFT,			&type_float,	&type_integer, &type_float},
- {7, "=", "LOADA_V", 6, ASSOC_LEFT,			&type_vector,	&type_integer, &type_vector},
- {7, "=", "LOADA_S", 6, ASSOC_LEFT,			&type_string,	&type_integer, &type_string},
- {7, "=", "LOADA_ENT", 6, ASSOC_LEFT,		&type_entity,	&type_integer, &type_entity},
- {7, "=", "LOADA_FLD", 6, ASSOC_LEFT,		&type_field,	&type_integer, &type_field},
- {7, "=", "LOADA_FNC", 6, ASSOC_LEFT,		&type_function,	&type_integer, &type_function},
- {7, "=", "LOADA_I", 6, ASSOC_LEFT,			&type_integer,	&type_integer, &type_integer},
-
- {7, "=", "STORE_P", 6, ASSOC_RIGHT,			&type_pointer,	&type_pointer, &type_void},
- {7, ".", "INDIRECT_P", 1, ASSOC_LEFT,			&type_entity,	&type_field, &type_pointer},
-
- {7, "=", "LOADP_F", 6, ASSOC_LEFT,			&type_pointer,	&type_integer, &type_float},
- {7, "=", "LOADP_V", 6, ASSOC_LEFT,			&type_pointer,	&type_integer, &type_vector},
- {7, "=", "LOADP_S", 6, ASSOC_LEFT,			&type_pointer,	&type_integer, &type_string},
- {7, "=", "LOADP_ENT", 6, ASSOC_LEFT,		&type_pointer,	&type_integer, &type_entity},
- {7, "=", "LOADP_FLD", 6, ASSOC_LEFT,		&type_pointer,	&type_integer, &type_field},
- {7, "=", "LOADP_FNC", 6, ASSOC_LEFT,		&type_pointer,	&type_integer, &type_function},
- {7, "=", "LOADP_I", 6, ASSOC_LEFT,			&type_pointer,	&type_integer, &type_integer},
-
-
- {7, "<=", "LE_I", 5, ASSOC_LEFT,					&type_integer, &type_integer, &type_integer},
- {7, ">=", "GE_I", 5, ASSOC_LEFT,					&type_integer, &type_integer, &type_integer},
- {7, "<", "LT_I", 5, ASSOC_LEFT,					&type_integer, &type_integer, &type_integer},
- {7, ">", "GT_I", 5, ASSOC_LEFT,					&type_integer, &type_integer, &type_integer},
-
- {7, "<=", "LE_IF", 5, ASSOC_LEFT,					&type_integer, &type_float, &type_integer},
- {7, ">=", "GE_IF", 5, ASSOC_LEFT,					&type_integer, &type_float, &type_integer},
- {7, "<", "LT_IF", 5, ASSOC_LEFT,					&type_integer, &type_float, &type_integer},
- {7, ">", "GT_IF", 5, ASSOC_LEFT,					&type_integer, &type_float, &type_integer},
-
- {7, "<=", "LE_FI", 5, ASSOC_LEFT,					&type_float, &type_integer, &type_integer},
- {7, ">=", "GE_FI", 5, ASSOC_LEFT,					&type_float, &type_integer, &type_integer},
- {7, "<", "LT_FI", 5, ASSOC_LEFT,					&type_float, &type_integer, &type_integer},
- {7, ">", "GT_FI", 5, ASSOC_LEFT,					&type_float, &type_integer, &type_integer},
-
- {7, "==", "EQ_IF", 5, ASSOC_LEFT,				&type_integer,	&type_float, &type_integer},
- {7, "==", "EQ_FI", 5, ASSOC_LEFT,				&type_float,	&type_integer, &type_float},
-
- 	//-------------------------------------
-	//string manipulation.
- {7, "+", "ADD_SF",	4, ASSOC_LEFT,				&type_string,	&type_float, &type_string},
- {7, "-", "SUB_S",	4, ASSOC_LEFT,				&type_string,	&type_string, &type_float},
- {7, "<STOREP_C>", "STOREP_C",	1, ASSOC_RIGHT,	&type_string,	&type_float, &type_float},
- {7, "<LOADP_C>", "LOADP_C",	1, ASSOC_LEFT,	&type_string,	&type_void, &type_float},
-	//-------------------------------------
-
-
-
-{7, "*", "MUL_IF", 5, ASSOC_LEFT,				&type_integer,	&type_float,	&type_integer},
-{7, "*", "MUL_FI", 5, ASSOC_LEFT,				&type_float,	&type_integer,	&type_float},
-{7, "*", "MUL_VI", 5, ASSOC_LEFT,				&type_vector,	&type_integer,	&type_vector},
-{7, "*", "MUL_IV", 5, ASSOC_LEFT,				&type_integer,	&type_vector,	&type_vector},
-
-{7, "/", "DIV_IF", 5, ASSOC_LEFT,				&type_integer,	&type_float,	&type_integer},
-{7, "/", "DIV_FI", 5, ASSOC_LEFT,				&type_float,	&type_integer,	&type_float},
-
-{7, "&", "BITAND_IF", 5, ASSOC_LEFT,			&type_integer,	&type_float,	&type_integer},
-{7, "|", "BITOR_IF", 5, ASSOC_LEFT,				&type_integer,	&type_float,	&type_integer},
-{7, "&", "BITAND_FI", 5, ASSOC_LEFT,			&type_float,	&type_integer,	&type_float},
-{7, "|", "BITOR_FI", 5, ASSOC_LEFT,				&type_float,	&type_integer,	&type_float},
-
-{7, "&&", "AND_I", 5, ASSOC_LEFT,				&type_integer,	&type_integer,	&type_integer},
-{7, "||", "OR_I", 5, ASSOC_LEFT,				&type_integer,	&type_integer,	&type_integer},
-{7, "&&", "AND_IF", 5, ASSOC_LEFT,				&type_integer,	&type_float,	&type_integer},
-{7, "||", "OR_IF", 5, ASSOC_LEFT,				&type_integer,	&type_float,	&type_integer},
-{7, "&&", "AND_FI", 5, ASSOC_LEFT,				&type_float,	&type_float,	&type_float},
-{7, "||", "OR_FI", 5, ASSOC_LEFT,				&type_float,	&type_float,	&type_integer},
-{7, "!=", "NE_IF", 5, ASSOC_LEFT,				&type_integer,	&type_float,	&type_integer},
-{7, "!=", "NE_FI", 5, ASSOC_LEFT,				&type_integer,	&type_float,	&type_integer},
-
-	
-
-
-
-
-{7, "<>",	"GSTOREP_I", -1, ASSOC_LEFT,			&type_float,	&type_float,	&type_float},
-{7, "<>",	"GSTOREP_F", -1, ASSOC_LEFT,			&type_float,	&type_float,	&type_float},
-{7, "<>",	"GSTOREP_ENT", -1, ASSOC_LEFT,			&type_float,	&type_float,	&type_float},
-{7, "<>",	"GSTOREP_FLD", -1, ASSOC_LEFT,			&type_float,	&type_float,	&type_float},
-{7, "<>",	"GSTOREP_S", -1, ASSOC_LEFT,			&type_float,	&type_float,	&type_float},
-{7, "<>",	"GSTORE_PFNC", -1, ASSOC_LEFT,			&type_float,	&type_float,	&type_float},
-{7, "<>",	"GSTOREP_V", -1, ASSOC_LEFT,			&type_float,	&type_float,	&type_float},
-
-{7, "<>",	"GADDRESS", -1, ASSOC_LEFT,				&type_float,	&type_float,	&type_float},
-
-{7, "<>",	"GLOAD_I",		-1, ASSOC_LEFT,				&type_float,	&type_float,	&type_float},
-{7, "<>",	"GLOAD_F",		-1, ASSOC_LEFT,				&type_float,	&type_float,	&type_float},
-{7, "<>",	"GLOAD_FLD",	-1, ASSOC_LEFT,				&type_float,	&type_float,	&type_float},
-{7, "<>",	"GLOAD_ENT",	-1, ASSOC_LEFT,				&type_float,	&type_float,	&type_float},
-{7, "<>",	"GLOAD_S",		-1, ASSOC_LEFT,				&type_float,	&type_float,	&type_float},
-{7, "<>",	"GLOAD_FNC",	-1, ASSOC_LEFT,				&type_float,	&type_float,	&type_float},
-
-{7, "<>",	"BOUNDCHECK",	-1, ASSOC_LEFT,				&type_float,	&type_float,	&type_float},
-
-{7, "=",	"STOREP_P",		6,	ASSOC_RIGHT,				&type_pointer,	&type_pointer,	&type_void},
-{7, "<PUSH>",	"PUSH",		-1, ASSOC_RIGHT,			&type_float,	&type_void,		&type_pointer},
-{7, "<POP>",	"POP",		-1, ASSOC_RIGHT,			&type_float,	&type_void,		&type_void},
-
- {7, "|=", "BITSET_I",		6,	ASSOC_RIGHT,				&type_integer, &type_integer, &type_integer},
- {7, "|=", "BITSETP_I",		6,	ASSOC_RIGHT,				&type_pointer, &type_integer, &type_integer},
- {7, "*=", "MULSTORE_I",	6,	ASSOC_RIGHT_RESULT,		&type_integer, &type_integer, &type_integer},
- {7, "*=", "MULSTOREP_I",	6,	ASSOC_RIGHT_RESULT,		&type_pointer, &type_integer, &type_vector},
- {7, "/=", "DIVSTORE_I",	6,	ASSOC_RIGHT_RESULT,		&type_integer, &type_integer, &type_integer},
- {7, "/=", "DIVSTOREP_I",	6,	ASSOC_RIGHT_RESULT,		&type_pointer, &type_integer, &type_vector},
- {7, "+=", "ADDSTORE_I",	6,	ASSOC_RIGHT_RESULT,		&type_integer, &type_integer, &type_integer},
- {7, "+=", "ADDSTOREP_I",	6,	ASSOC_RIGHT_RESULT,		&type_pointer, &type_integer, &type_integer},
- {7, "-=", "SUBSTORE_I",	6,	ASSOC_RIGHT_RESULT,		&type_integer, &type_integer, &type_integer},
- {7, "-=", "SUBSTOREP_I",	6,	ASSOC_RIGHT_RESULT,		&type_pointer, &type_vector, &type_vector},
-
- {0, NULL}
+// VERSION 6
+{6, "<DONE>",	"DONE",		-1,	ASSOC_LEFT, &type_void,	&type_void,	&type_void},
+{6, "*",		"MUL_F",		3,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{6, "*",		"MUL_V",		3,	ASSOC_LEFT, &type_vector,	&type_vector,	&type_float},
+{6, "*",		"MUL_FV",		3,	ASSOC_LEFT, &type_float,	&type_vector,	&type_vector},
+{6, "*",		"MUL_VF",		3,	ASSOC_LEFT, &type_vector,	&type_float,	&type_vector},
+{6, "/",		"DIV_F",		3,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{6, "+",		"ADD_F",		4,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{6, "+",		"ADD_V",		4,	ASSOC_LEFT, &type_vector,	&type_vector,	&type_vector},
+{6, "-",		"SUB_F",		4,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{6, "-",		"SUB_V",		4,	ASSOC_LEFT, &type_vector,	&type_vector,	&type_vector},
+{6, "==",		"EQ_F",		5,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{6, "==",		"EQ_V",		5,	ASSOC_LEFT, &type_vector,	&type_vector,	&type_float},
+{6, "==",		"EQ_S",		5,	ASSOC_LEFT, &type_string,	&type_string,	&type_float},
+{6, "==",		"EQ_E",		5,	ASSOC_LEFT, &type_entity,	&type_entity,	&type_float},
+{6, "==",		"EQ_FNC",		5,	ASSOC_LEFT, &type_function,	&type_function,	&type_float},
+{6, "!=",		"NE_F",		5,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{6, "!=",		"NE_V",		5,	ASSOC_LEFT, &type_vector,	&type_vector,	&type_float},
+{6, "!=",		"NE_S",		5,	ASSOC_LEFT, &type_string,	&type_string,	&type_float},
+{6, "!=",		"NE_E",		5,	ASSOC_LEFT, &type_entity,	&type_entity,	&type_float},
+{6, "!=",		"NE_FNC",		5,	ASSOC_LEFT, &type_function,	&type_function,	&type_float},
+{6, "<=",		"LE",		5,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{6, ">=",		"GE",		5,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{6, "<",		"LT",		5,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{6, ">",		"GT",		5,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{6, ".",		"INDIRECT_F",	1,	ASSOC_LEFT, &type_entity,	&type_field,	&type_float},
+{6, ".",		"INDIRECT_V",	1,	ASSOC_LEFT, &type_entity,	&type_field,	&type_vector},
+{6, ".",		"INDIRECT_S",	1,	ASSOC_LEFT, &type_entity,	&type_field,	&type_string},
+{6, ".",		"INDIRECT_E",	1,	ASSOC_LEFT, &type_entity,	&type_field,	&type_entity},
+{6, ".",		"INDIRECT_FI",	1,	ASSOC_LEFT, &type_entity,	&type_field,	&type_field},
+{6, ".",		"INDIRECT_FU",	1,	ASSOC_LEFT, &type_entity,	&type_field,	&type_function},
+{6, ".",		"ADDRESS",	1,	ASSOC_LEFT, &type_entity,	&type_field,	&type_pointer},
+{6, "=",		"STORE_F",	6,	ASSOC_RIGHT,&type_float,	&type_float,	&type_float},
+{6, "=",		"STORE_V",	6,	ASSOC_RIGHT,&type_vector,	&type_vector,	&type_vector},
+{6, "=",		"STORE_S",	6,	ASSOC_RIGHT,&type_string,	&type_string,	&type_string},
+{6, "=",		"STORE_ENT",	6,	ASSOC_RIGHT,&type_entity,	&type_entity,	&type_entity},
+{6, "=",		"STORE_FLD",	6,	ASSOC_RIGHT,&type_field,	&type_field,	&type_field},
+{6, "=",		"STORE_FNC",	6,	ASSOC_RIGHT,&type_function,	&type_function,	&type_function},
+{6, "=",		"STOREP_F",	6,	ASSOC_RIGHT,&type_pointer,	&type_float,	&type_float},
+{6, "=",		"STOREP_V",	6,	ASSOC_RIGHT,&type_pointer,	&type_vector,	&type_vector},
+{6, "=",		"STOREP_S",	6,	ASSOC_RIGHT,&type_pointer,	&type_string,	&type_string},
+{6, "=",		"STOREP_ENT",	6,	ASSOC_RIGHT,&type_pointer,	&type_entity,	&type_entity},
+{6, "=",		"STOREP_FLD",	6,	ASSOC_RIGHT,&type_pointer,	&type_field,	&type_field},
+{6, "=",		"STOREP_FNC",	6,	ASSOC_RIGHT,&type_pointer,	&type_function,	&type_function},
+{6, "<RETURN>",	"RETURN",		-1,	ASSOC_LEFT, &type_float,	&type_void,	&type_void},
+{6, "!",		"NOT_F",		-1,	ASSOC_LEFT, &type_float,	&type_void,	&type_float},
+{6, "!",		"NOT_V",		-1,	ASSOC_LEFT, &type_vector,	&type_void,	&type_float},
+{6, "!",		"NOT_S",		-1,	ASSOC_LEFT, &type_vector,	&type_void,	&type_float},
+{6, "!",		"NOT_ENT",	-1,	ASSOC_LEFT, &type_entity,	&type_void,	&type_float},
+{6, "!",		"NOT_FNC",	-1,	ASSOC_LEFT, &type_function,	&type_void,	&type_float},
+{6, "<IF>",	"IF",		-1,	ASSOC_RIGHT,&type_float,	NULL,		&type_void},
+{6, "<IFNOT>",	"IFNOT",		-1,	ASSOC_RIGHT,&type_float,	NULL,		&type_void},
+{6, "<CALL0>",	"CALL0",		-1,	ASSOC_LEFT, &type_function,	&type_void,	&type_void},
+{6, "<CALL1>",	"CALL1",		-1,	ASSOC_LEFT, &type_function,	&type_void,	&type_void},
+{6, "<CALL2>",	"CALL2",		-1,	ASSOC_LEFT, &type_function,	&type_void,	&type_void}, 
+{6, "<CALL3>",	"CALL3",		-1,	ASSOC_LEFT, &type_function,	&type_void,	&type_void}, 
+{6, "<CALL4>",	"CALL4",		-1,	ASSOC_LEFT, &type_function,	&type_void,	&type_void},
+{6, "<CALL5>",	"CALL5",		-1,	ASSOC_LEFT, &type_function,	&type_void,	&type_void},
+{6, "<CALL6>",	"CALL6",		-1,	ASSOC_LEFT, &type_function,	&type_void,	&type_void},
+{6, "<CALL7>",	"CALL7",		-1,	ASSOC_LEFT, &type_function,	&type_void,	&type_void},
+{6, "<CALL8>",	"CALL8",		-1,	ASSOC_LEFT, &type_function,	&type_void,	&type_void},
+{6, "<STATE>",	"STATE",		-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_void},
+{6, "<GOTO>",	"GOTO",		-1,	ASSOC_RIGHT,NULL,		&type_void,	&type_void},
+{6, "&&",		"AND",		7,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{6, "||",		"OR",		7,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{6, "&",		"BITAND",		3,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{6, "|",		"BITOR",		3,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+// VERSION 7
+{7, "*=",		"MULSTORE_F",	6,	ASSOC_RIGHT,&type_float,	&type_float,	&type_float},
+{7, "*=",		"MULSTORE_V",	6,	ASSOC_RIGHT,&type_vector,	&type_float,	&type_vector},
+{7, "*=",		"MULSTOREP_F",	6,	ASSOC_RIGHT,&type_pointer,	&type_float,	&type_float},
+{7, "*=",		"MULSTOREP_V",	6,	ASSOC_RIGHT,&type_pointer,	&type_float,	&type_vector},
+{7, "/=",		"DIVSTORE_F",	6,	ASSOC_RIGHT,&type_float,	&type_float,	&type_float},
+{7, "/=",		"DIVSTOREP_F",	6,	ASSOC_RIGHT,&type_pointer,	&type_float,	&type_float},
+{7, "+=",		"ADDSTORE_F",	6,	ASSOC_RIGHT,&type_float,	&type_float,	&type_float},
+{7, "+=",		"ADDSTORE_V",	6,	ASSOC_RIGHT,&type_vector,	&type_vector,	&type_vector},
+{7, "+=",		"ADDSTOREP_F",	6,	ASSOC_RIGHT,&type_pointer,	&type_float,	&type_float},
+{7, "+=",		"ADDSTOREP_V",	6,	ASSOC_RIGHT,&type_pointer,	&type_vector,	&type_vector},
+{7, "-=",		"SUBSTORE_F",	6,	ASSOC_RIGHT,&type_float,	&type_float,	&type_float},
+{7, "-=",		"SUBSTORE_V",	6,	ASSOC_RIGHT,&type_vector,	&type_vector,	&type_vector},
+{7, "-=",		"SUBSTOREP_F",	6,	ASSOC_RIGHT,&type_pointer,	&type_float,	&type_float},
+{7, "-=",		"SUBSTOREP_V",	6,	ASSOC_RIGHT,&type_pointer,	&type_vector,	&type_vector},
+{7, "<FETCH_GBL_F>","FETCH_GBL_F",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{7, "<FETCH_GBL_V>","FETCH_GBL_V",	-1,	ASSOC_LEFT, &type_vector,	&type_float,	&type_vector},
+{7, "<FETCH_GBL_S>","FETCH_GBL_S",	-1,	ASSOC_LEFT, &type_string,	&type_float,	&type_string},
+{7, "<FETCH_GBL_E>","FETCH_GBL_E",	-1,	ASSOC_LEFT, &type_entity,	&type_float,	&type_entity},
+{7, "<FETCH_G_FNC>","FETCH_G_FNC",	-1,	ASSOC_LEFT, &type_function,	&type_float,	&type_function},
+{7, "<CSTATE>",	"CSTATE",		-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_void},
+{7, "<CWSTATE>",	"CWSTATE",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_void},
+{7, "|=",		"BITSET_F",	6,	ASSOC_RIGHT,&type_float,	&type_float,	&type_float},
+{7, "|=",		"BITSETP_F",	6,	ASSOC_RIGHT,&type_pointer,	&type_float,	&type_float},
+{7, "(-)",	"BITCLR_F",	6,	ASSOC_RIGHT,&type_float,	&type_float,	&type_float},
+{7, "(-)",	"BITCLRP_F",	6,	ASSOC_RIGHT,&type_pointer,	&type_float,	&type_float},
+{7, "<SWITCH_F>",	"SWITCH_F",	-1,	ASSOC_LEFT, &type_void,	NULL,		&type_void},
+{7, "<SWITCH_V>",	"SWITCH_V",	-1,	ASSOC_LEFT, &type_void,	NULL,		&type_void},
+{7, "<SWITCH_S>",	"SWITCH_S",	-1,	ASSOC_LEFT, &type_void,	NULL,		&type_void},
+{7, "<SWITCH_E>",	"SWITCH_E",	-1,	ASSOC_LEFT, &type_void,	NULL,		&type_void},
+{7, "<SWITCH_FNC>",	"SWITCH_FNC",	-1,	ASSOC_LEFT, &type_void,	NULL,		&type_void},
+{7, "<CASE>",	"CASE",		-1,	ASSOC_LEFT, &type_void,	NULL,		&type_void},
+{7, "<CASERANGE>",	"CASERANGE",	-1,	ASSOC_LEFT, &type_void,	&type_void,	NULL},
+{7, "=",		"STORE_I",	6,	ASSOC_RIGHT,&type_integer,	&type_integer,	&type_integer},
+{7, "=",		"STORE_IF",	6,	ASSOC_RIGHT,&type_integer,	&type_float,	&type_integer},
+{7, "=",		"STORE_FI",	6,	ASSOC_RIGHT,&type_float,	&type_integer,	&type_float},
+{7, "+",		"ADD_I",		4,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{7, "+",		"ADD_FI",		4,	ASSOC_LEFT, &type_float,	&type_integer,	&type_float},
+{7, "+",		"ADD_IF",		4,	ASSOC_LEFT, &type_integer,	&type_float,	&type_float},
+{7, "-",		"SUB_I",		4,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{7, "-",		"SUB_FI",		4,	ASSOC_LEFT, &type_float,	&type_integer,	&type_float},
+{7, "-",		"SUB_IF",		4,	ASSOC_LEFT, &type_integer,	&type_float,	&type_float},
+{7, "<CIF>",	"C_ITOF",		-1,	ASSOC_LEFT, &type_integer,	&type_void,	&type_float},
+{7, "<CFI>",	"C_FTOI",		-1,	ASSOC_LEFT, &type_float,	&type_void,	&type_integer},
+{7, "<CPIF>",	"CP_ITOF",	-1,	ASSOC_LEFT, &type_pointer,	&type_integer,	&type_float},
+{7, "<CPFI>",	"CP_FTOI",	-1,	ASSOC_LEFT, &type_pointer,	&type_float,	&type_integer},
+{7, ".",		"INDIRECT",	1,	ASSOC_LEFT, &type_entity,	&type_field,	&type_integer},
+{7, "=",		"STOREP_I",	6,	ASSOC_RIGHT,&type_pointer,	&type_integer,	&type_integer},
+{7, "=",		"STOREP_IF",	6,	ASSOC_RIGHT,&type_pointer,	&type_float,	&type_integer},
+{7, "=",		"STOREP_FI",	6,	ASSOC_RIGHT,&type_pointer,	&type_integer,	&type_float},
+{7, "&",		"BITAND_I",	3,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{7, "|",		"BITOR_I",	3,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{7, "*",		"MUL_I",		3,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{7, "/",		"DIV_I",		3,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{7, "==",		"EQ_I",		5,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{7, "!=",		"NE_I",		5,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{7, "<IFNOTS>",	"IFNOTS",		-1,	ASSOC_RIGHT,&type_string,	NULL,		&type_void},
+{7, "<IFS>",	"IFS",		-1,	ASSOC_RIGHT,&type_string,	NULL,		&type_void},
+{7, "!",		"NOT_I",		-1,	ASSOC_LEFT, &type_integer,	&type_void,	&type_integer},
+{7, "/",		"DIV_VF",		3,	ASSOC_LEFT, &type_vector,	&type_float,	&type_float},
+{7, "^",		"POWER_I",	3,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{7, ">>",		"RSHIFT_I",	3,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{7, "<<",		"LSHIFT_I",	3,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{7, "<ARRAY>",	"GET_POINTER",	-1,	ASSOC_LEFT, &type_float,	&type_integer,	&type_pointer},
+{7, "<ARRAY>",	"ARRAY_OFS",	-1,	ASSOC_LEFT, &type_pointer,	&type_integer,	&type_pointer},
+{7, "=",		"LOADA_F",	6,	ASSOC_LEFT, &type_float,	&type_integer,	&type_float},
+{7, "=",		"LOADA_V",	6,	ASSOC_LEFT, &type_vector,	&type_integer,	&type_vector},
+{7, "=",		"LOADA_S",	6,	ASSOC_LEFT, &type_string,	&type_integer,	&type_string},
+{7, "=",		"LOADA_ENT",	6,	ASSOC_LEFT, &type_entity,	&type_integer,	&type_entity},
+{7, "=",		"LOADA_FLD",	6,	ASSOC_LEFT, &type_field,	&type_integer,	&type_field},
+{7, "=",		"LOADA_FNC",	6,	ASSOC_LEFT, &type_function,	&type_integer,	&type_function},
+{7, "=",		"LOADA_I",	6,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{7, "=",		"STORE_P",	6,	ASSOC_RIGHT,&type_pointer,	&type_pointer,	&type_void},
+{7, ".",		"INDIRECT_P",	1,	ASSOC_LEFT, &type_entity,	&type_field,	&type_pointer},
+{7, "=",		"LOADP_F",	6,	ASSOC_LEFT, &type_pointer,	&type_integer,	&type_float},
+{7, "=",		"LOADP_V",	6,	ASSOC_LEFT, &type_pointer,	&type_integer,	&type_vector},
+{7, "=",		"LOADP_S",	6,	ASSOC_LEFT, &type_pointer,	&type_integer,	&type_string},
+{7, "=",		"LOADP_ENT",	6,	ASSOC_LEFT, &type_pointer,	&type_integer,	&type_entity},
+{7, "=",		"LOADP_FLD",	6,	ASSOC_LEFT, &type_pointer,	&type_integer,	&type_field},
+{7, "=",		"LOADP_FNC",	6,	ASSOC_LEFT, &type_pointer,	&type_integer,	&type_function},
+{7, "=",		"LOADP_I",	6,	ASSOC_LEFT, &type_pointer,	&type_integer,	&type_integer},
+{7, "<=",		"LE_I",		5,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{7, ">=",		"GE_I",		5,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{7, "<",		"LT_I",		5,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{7, ">",		"GT_I",		5,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{7, "<=",		"LE_IF",		5,	ASSOC_LEFT, &type_integer,	&type_float,	&type_integer},
+{7, ">=",		"GE_IF",		5,	ASSOC_LEFT, &type_integer,	&type_float,	&type_integer},
+{7, "<",		"LT_IF",		5,	ASSOC_LEFT, &type_integer,	&type_float,	&type_integer},
+{7, ">",		"GT_IF",		5,	ASSOC_LEFT, &type_integer,	&type_float,	&type_integer},
+{7, "<=",		"LE_FI",		5,	ASSOC_LEFT, &type_float,	&type_integer,	&type_integer},
+{7, ">=",		"GE_FI",		5,	ASSOC_LEFT, &type_float,	&type_integer,	&type_integer},
+{7, "<",		"LT_FI",		5,	ASSOC_LEFT, &type_float,	&type_integer,	&type_integer},
+{7, ">",		"GT_FI",		5,	ASSOC_LEFT, &type_float,	&type_integer,	&type_integer},
+{7, "==",		"EQ_IF",		5,	ASSOC_LEFT, &type_integer,	&type_float,	&type_integer},
+{7, "==",		"EQ_FI",		5,	ASSOC_LEFT, &type_float,	&type_integer,	&type_float},
+{7, "+",		"ADD_SF",		4,	ASSOC_LEFT, &type_string,	&type_float,	&type_string},
+{7, "-",		"SUB_S",		4,	ASSOC_LEFT, &type_string,	&type_string,	&type_float},
+{7, "<STOREP_C>",	"STOREP_C",	1,	ASSOC_RIGHT,&type_string,	&type_float,	&type_float},
+{7, "<LOADP_C>",	"LOADP_C",	1,	ASSOC_LEFT, &type_string,	&type_void,	&type_float},
+{7, "*",		"MUL_IF",		5,	ASSOC_LEFT, &type_integer,	&type_float,	&type_integer},
+{7, "*",		"MUL_FI",		5,	ASSOC_LEFT, &type_float,	&type_integer,	&type_float},
+{7, "*",		"MUL_VI",		5,	ASSOC_LEFT, &type_vector,	&type_integer,	&type_vector},
+{7, "*",		"MUL_IV",		5,	ASSOC_LEFT, &type_integer,	&type_vector,	&type_vector},
+{7, "/",		"DIV_IF",		5,	ASSOC_LEFT, &type_integer,	&type_float,	&type_integer},
+{7, "/",		"DIV_FI",		5,	ASSOC_LEFT, &type_float,	&type_integer,	&type_float},
+{7, "&",		"BITAND_IF",	5,	ASSOC_LEFT, &type_integer,	&type_float,	&type_integer},
+{7, "|",		"BITOR_IF",	5,	ASSOC_LEFT, &type_integer,	&type_float,	&type_integer},
+{7, "&",		"BITAND_FI",	5,	ASSOC_LEFT, &type_float,	&type_integer,	&type_float},
+{7, "|",		"BITOR_FI",	5,	ASSOC_LEFT, &type_float,	&type_integer,	&type_float},
+{7, "&&",		"AND_I",		5,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{7, "||",		"OR_I",		5,	ASSOC_LEFT, &type_integer,	&type_integer,	&type_integer},
+{7, "&&",		"AND_IF",		5,	ASSOC_LEFT, &type_integer,	&type_float,	&type_integer},
+{7, "||",		"OR_IF",		5,	ASSOC_LEFT, &type_integer,	&type_float,	&type_integer},
+{7, "&&",		"AND_FI",		5,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{7, "||",		"OR_FI",		5,	ASSOC_LEFT, &type_float,	&type_float,	&type_integer},
+{7, "!=",		"NE_IF",		5,	ASSOC_LEFT, &type_integer,	&type_float,	&type_integer},
+{7, "!=",		"NE_FI",		5,	ASSOC_LEFT, &type_integer,	&type_float,	&type_integer},
+{7, "<>",		"GSTOREP_I",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{7, "<>",		"GSTOREP_F",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{7, "<>",		"GSTOREP_ENT",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{7, "<>",		"GSTOREP_FLD",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{7, "<>",		"GSTOREP_S",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{7, "<>",		"GSTORE_PFNC",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{7, "<>",		"GSTOREP_V",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{7, "<>",		"GADDRESS",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{7, "<>",		"GLOAD_I",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{7, "<>",		"GLOAD_F",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{7, "<>",		"GLOAD_FLD",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{7, "<>",		"GLOAD_ENT",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{7, "<>",		"GLOAD_S",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{7, "<>",		"GLOAD_FNC",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{7, "<>",		"BOUNDCHECK",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{7, "=",		"STOREP_P",	6,	ASSOC_RIGHT,&type_pointer,	&type_pointer,	&type_void},
+{7, "<PUSH>",	"PUSH",		-1,	ASSOC_RIGHT,&type_float,	&type_void,	&type_pointer},
+{7, "<POP>",	"POP",		-1,	ASSOC_RIGHT,&type_float,	&type_void,	&type_void},
+{7, "|=",		"BITSET_I",	6,	ASSOC_RIGHT,&type_integer,	&type_integer,	&type_integer},
+{7, "|=",		"BITSETP_I",	6,	ASSOC_RIGHT,&type_pointer,	&type_integer,	&type_integer},
+{7, "*=",		"MULSTORE_I",	6,	ASSOC_RIGHT,&type_integer,	&type_integer,	&type_integer},
+{7, "*=",		"MULSTOREP_I",	6,	ASSOC_RIGHT,&type_pointer,	&type_integer,	&type_vector},
+{7, "/=",		"DIVSTORE_I",	6,	ASSOC_RIGHT,&type_integer,	&type_integer,	&type_integer},
+{7, "/=",		"DIVSTOREP_I",	6,	ASSOC_RIGHT,&type_pointer,	&type_integer,	&type_vector},
+{7, "+=",		"ADDSTORE_I",	6,	ASSOC_RIGHT,&type_integer,	&type_integer,	&type_integer},
+{7, "+=",		"ADDSTOREP_I",	6,	ASSOC_RIGHT,&type_pointer,	&type_integer,	&type_integer},
+{7, "-=",		"SUBSTORE_I",	6,	ASSOC_RIGHT,&type_integer,	&type_integer,	&type_integer},
+{7, "-=",		"SUBSTOREP_I",	6,	ASSOC_RIGHT,&type_pointer,	&type_vector,	&type_vector},
+// VERSION 8
+{0, NULL,		NULL,		-1,	ASSOC_LEFT, NULL,		NULL,		NULL}
 };
 
-#undef ASSOC_RIGHT_RESULT
-
-#define	TOP_PRIORITY	7
-#define	NOT_PRIORITY	5
-//conditional and/or
-#define CONDITION_PRIORITY 7
+#define TOP_PRIORITY	7
+#define NOT_PRIORITY	5
 
 
 //this system cuts out 10/120
 //these evaluate as top first.
 opcode_t *opcodeprioritized[TOP_PRIORITY+1][64] =
 {
-	{	//don't use
+	{	// don't use
 		NULL
 	},
 	{
-		//1
-
+		// 1
 		&pr_opcodes[OP_LOAD_F],
 		&pr_opcodes[OP_LOAD_V],
 		&pr_opcodes[OP_LOAD_S],
@@ -516,42 +413,36 @@ opcode_t *opcodeprioritized[TOP_PRIORITY+1][64] =
 		NULL
 	},
 	{
-		//2
+		// 2
 		NULL
 	},
 	{
-		//3
+		// 3
 		&pr_opcodes[OP_MUL_F],
 		&pr_opcodes[OP_MUL_V],
 		&pr_opcodes[OP_MUL_FV],
 		&pr_opcodes[OP_MUL_VF],
 		&pr_opcodes[OP_MUL_I],
-
 		&pr_opcodes[OP_DIV_F],
 		&pr_opcodes[OP_DIV_I],
 		&pr_opcodes[OP_DIV_VF],
-
 		&pr_opcodes[OP_BITAND],
 		&pr_opcodes[OP_BITAND_I],
-
 		&pr_opcodes[OP_BITOR],
 		&pr_opcodes[OP_BITOR_I],
-
 		&pr_opcodes[OP_POWER_I],
 		&pr_opcodes[OP_RSHIFT_I],
 		&pr_opcodes[OP_LSHIFT_I],
-
 		NULL
 	},
 	{
-		//4
+		// 4
 		&pr_opcodes[OP_ADD_F],
 		&pr_opcodes[OP_ADD_V],
 		&pr_opcodes[OP_ADD_I],
 		&pr_opcodes[OP_ADD_FI],
 		&pr_opcodes[OP_ADD_IF],
 		&pr_opcodes[OP_ADD_SF],
-
 		&pr_opcodes[OP_SUB_F],
 		&pr_opcodes[OP_SUB_V],
 		&pr_opcodes[OP_SUB_I],
@@ -561,7 +452,7 @@ opcode_t *opcodeprioritized[TOP_PRIORITY+1][64] =
 		NULL
 	},
 	{
-		//5
+		// 5
 		&pr_opcodes[OP_EQ_F],
 		&pr_opcodes[OP_EQ_V],
 		&pr_opcodes[OP_EQ_S],
@@ -570,14 +461,12 @@ opcode_t *opcodeprioritized[TOP_PRIORITY+1][64] =
 		&pr_opcodes[OP_EQ_I],
 		&pr_opcodes[OP_EQ_IF],
 		&pr_opcodes[OP_EQ_FI],
-	
 		&pr_opcodes[OP_NE_F],
 		&pr_opcodes[OP_NE_V],
 		&pr_opcodes[OP_NE_S],
 		&pr_opcodes[OP_NE_E],
 		&pr_opcodes[OP_NE_FNC],
 		&pr_opcodes[OP_NE_I],
-	
 		&pr_opcodes[OP_LE],
 		&pr_opcodes[OP_LE_I],
 		&pr_opcodes[OP_LE_IF],
@@ -597,7 +486,7 @@ opcode_t *opcodeprioritized[TOP_PRIORITY+1][64] =
 		NULL
 	},
 	{
-		//6
+		// 6
 		&pr_opcodes[OP_STORE_F],
 		&pr_opcodes[OP_STORE_V],
 		&pr_opcodes[OP_STORE_S],
@@ -608,7 +497,6 @@ opcode_t *opcodeprioritized[TOP_PRIORITY+1][64] =
 		&pr_opcodes[OP_STORE_IF],
 		&pr_opcodes[OP_STORE_FI],
 		&pr_opcodes[OP_STORE_P],
-
 		&pr_opcodes[OP_STOREP_F],
 		&pr_opcodes[OP_STOREP_V],
 		&pr_opcodes[OP_STOREP_S],
@@ -619,7 +507,6 @@ opcode_t *opcodeprioritized[TOP_PRIORITY+1][64] =
 		&pr_opcodes[OP_STOREP_IF],
 		&pr_opcodes[OP_STOREP_FI],
 		&pr_opcodes[OP_STOREP_P],
-
 		&pr_opcodes[OP_DIVSTORE_F],
 		&pr_opcodes[OP_DIVSTOREP_F],
 		&pr_opcodes[OP_MULSTORE_F],
@@ -634,7 +521,6 @@ opcode_t *opcodeprioritized[TOP_PRIORITY+1][64] =
 		&pr_opcodes[OP_SUBSTORE_V],
 		&pr_opcodes[OP_SUBSTOREP_F],
 		&pr_opcodes[OP_SUBSTOREP_V],
-
 		&pr_opcodes[OP_BITSET],
 		&pr_opcodes[OP_BITSETP],
 		&pr_opcodes[OP_BITCLR],
@@ -642,7 +528,7 @@ opcode_t *opcodeprioritized[TOP_PRIORITY+1][64] =
 		NULL
 	},
 	{
-		//7
+		// 7
 		&pr_opcodes[OP_AND],
 		&pr_opcodes[OP_OR],
 		NULL
@@ -651,26 +537,20 @@ opcode_t *opcodeprioritized[TOP_PRIORITY+1][64] =
 
 bool PR_OPCodeValid(opcode_t *op)
 {
-	int num;
-	num = op - pr_opcodes;
+	int num = op - pr_opcodes;
+
 	switch(targetformat)
 	{
 	case QCF_STANDARD:
-	case QCF_KK7:
 		if (num < OP_MULSTORE_F)
 			return true;
 		return false;
-	case QCF_HEXEN2:
-		if (num >= OP_SWITCH_V && num <= OP_SWITCH_FNC)	//these were assigned numbers but were never actually implemtented in standard h2.
-			return false;
-		if (num <= OP_CALL8H)	//CALLXH are fixed up. This is to provide more dynamic switching...??
-			return true;
-		return false;
-	case QCF_FTE:
-	case QCF_FTEDEBUG:
+	case QCF_RELEASE:
+	case QCF_DEBUG:
 		return true;
+	default:
+		return false;
 	}
-	return false;
 }
 
 def_t *PR_Expression (int priority, bool allowcomma);
@@ -2000,10 +1880,7 @@ def_t *PR_ParseFunctionCall (def_t *func)	//warning, the func could have no name
 
 	func->timescalled++;
 
-	if (PR_OPCodeValid(&pr_opcodes[OP_CALL1H]))
-		callconvention = OP_CALL1H;	//FTE extended
-	else
-		callconvention = OP_CALL1;	//standard
+	callconvention = OP_CALL1;	//standard
 
 	t = func->type;
 
@@ -2017,311 +1894,12 @@ def_t *PR_ParseFunctionCall (def_t *func)	//warning, the func could have no name
 		PR_ParseErrorPrintDef (ERR_NOTAFUNCTION, func, "not a function");
 	}
 
-	if (!t->num_parms&&t->type != ev_variant)	//intrinsics. These base functions have variable arguments. I would check for (...) args too, but that might be used for extended builtin functionality. (this code wouldn't compile otherwise)
+	if (!t->num_parms && t->type != ev_variant)	
 	{
-		if (!strcmp(func->name, "random"))
-		{
-			func->references++;
-			if (!PR_CheckToken(")"))
-			{
-				e = PR_Expression (TOP_PRIORITY, false);
-				if (e->type->type != ev_float)
-					PR_ParseErrorPrintDef (ERR_TYPEMISMATCHPARM, func, "type mismatch on parm %i", 1);
-				if (!PR_CheckToken(")"))
-				{
-					PR_Expect(",");
-					d = PR_Expression (TOP_PRIORITY, false);
-					if (d->type->type != ev_float)
-						PR_ParseErrorPrintDef (ERR_TYPEMISMATCHPARM, func, "type mismatch on parm %i", 2);
-					PR_Expect(")");
-				}
-				else
-					d = NULL;
-			}
-			else
-			{
-				e = NULL;
-				d = NULL;
-			}
+		// intrinsics. These base functions have variable arguments. I would check for (...) args too, 
+		// but that might be used for extended builtin functionality. (this code wouldn't compile otherwise)
 
-
-			if (def_ret.temp->used)
-			{
-				old = PR_GetTemp(def_ret.type);
-				if (def_ret.type->size == 3)
-					PR_FreeTemp(PR_Statement(&pr_opcodes[OP_STORE_V], &def_ret, old, NULL));
-				else
-					PR_FreeTemp(PR_Statement(&pr_opcodes[OP_STORE_F], &def_ret, old, NULL));
-				PR_ParseWarning(WARN_FIXEDRETURNVALUECONFLICT, "Return value conflict - output is inefficient");
-			}
-			else
-				old = NULL;
-
-			if (PR_OPCodeValid(&pr_opcodes[OP_RAND0]))
-			{
-				if (e)
-				{
-					if (d)
-						PR_SimpleStatement(OP_RAND2, e->ofs, d->ofs, OFS_RETURN, false);
-					else
-						PR_SimpleStatement(OP_RAND1, e->ofs, 0, OFS_RETURN, false);
-				}
-				else
-					PR_SimpleStatement(OP_RAND0, 0, 0, OFS_RETURN, false);
-			}
-			else
-			{
-				if (e)
-				{
-					if (d)
-					{
-						dstatement_t *st;
-						def_t *t;
-						PR_SimpleStatement(OP_CALL0, func->ofs, 0, 0, false);
-
-						if ((!d->constant || !e->constant) && G_FLOAT(d->ofs) >= G_FLOAT(d->ofs))
-						{
-							t = PR_Statement(&pr_opcodes[OP_GT], d, e, NULL);
-							PR_FreeTemp(PR_Statement(&pr_opcodes[OP_IFNOT], t, 0, &st));
-							st->b = 3;
-
-							t = PR_Statement(&pr_opcodes[OP_SUB_F], d, e, NULL);
-							PR_SimpleStatement(OP_MUL_F, OFS_RETURN, t->ofs, OFS_RETURN, false);
-							PR_FreeTemp(t);
-							PR_SimpleStatement(OP_ADD_F, OFS_RETURN, e->ofs, OFS_RETURN, false);
-
-							PR_FreeTemp(PR_Statement(&pr_opcodes[OP_GOTO], 0, 0, &st));
-							st->a = 3;
-						}
-						
-						t = PR_Statement(&pr_opcodes[OP_SUB_F], e, d, NULL);
-						PR_SimpleStatement(OP_MUL_F, OFS_RETURN, t->ofs, OFS_RETURN, false);
-						PR_FreeTemp(t);
-						PR_SimpleStatement(OP_ADD_F, OFS_RETURN, d->ofs, OFS_RETURN, false);
-					}
-					else
-					{
-						PR_SimpleStatement(OP_CALL0, func->ofs, 0, 0, false);
-						PR_SimpleStatement(OP_MUL_F, OFS_RETURN, e->ofs, OFS_RETURN, false);
-					}
-				}
-				else
-					PR_SimpleStatement(OP_CALL0, func->ofs, 0, 0, false);
-			}
-
-			if (e)
-			{
-				PR_FreeTemp(e);
-				e->references++;
-			}
-			if (d)
-			{
-				d->references++;
-				PR_FreeTemp(d);
-			}
-
-			if (old)
-			{
-				d = PR_GetTemp(type_float);
-				PR_FreeTemp(PR_Statement(pr_opcodes+OP_STORE_F, &def_ret, d, NULL));
-				if (def_ret.type->size == 3)
-					PR_FreeTemp(PR_Statement(pr_opcodes+OP_STORE_V, old, &def_ret, NULL));
-				else
-					PR_FreeTemp(PR_Statement(pr_opcodes+OP_STORE_F, old, &def_ret, NULL));
-				PR_FreeTemp(old);
-
-				return d;
-			}
-
-			if (def_ret.temp->used)
-				PR_ParseWarning(0, "Return value conflict - output is likly to be invalid");
-			def_ret.temp->used = true;
-			def_ret.type = type_float;
-			return &def_ret;
-
-		}
-		if (!strcmp(func->name, "randomv"))
-		{
-			func->references++;
-			if (!PR_CheckToken(")"))
-			{
-				e = PR_Expression (TOP_PRIORITY, false);
-				if (e->type->type != ev_vector)
-						PR_ParseErrorPrintDef (ERR_TYPEMISMATCHPARM, func, "type mismatch on parm %i", 1);
-				if (!PR_CheckToken(")"))
-				{
-					PR_Expect(",");
-					d = PR_Expression (TOP_PRIORITY, false);
-					if (d->type->type != ev_vector)
-						PR_ParseErrorPrintDef (ERR_TYPEMISMATCHPARM, func, "type mismatch on parm %i", 2);
-					PR_Expect(")");
-				}
-				else
-					d = NULL;
-			}
-			else
-			{
-				e = NULL;
-				d = NULL;
-			}
-
-
-			if (def_ret.temp->used)
-			{
-				old = PR_GetTemp(def_ret.type);
-				if (def_ret.type->size == 3)
-					PR_Statement(&pr_opcodes[OP_STORE_V], &def_ret, old, NULL);
-				else
-					PR_Statement(&pr_opcodes[OP_STORE_F], &def_ret, old, NULL);
-				PR_ParseWarning(WARN_FIXEDRETURNVALUECONFLICT, "Return value conflict - output is inefficient");
-			}
-			else
-				old = NULL;
-
-			if (PR_OPCodeValid(&pr_opcodes[OP_RANDV0]))
-			{
-				if (e)
-				{
-					if (d)
-						PR_SimpleStatement(OP_RANDV2, e->ofs, d->ofs, OFS_RETURN, false);
-					else
-						PR_SimpleStatement(OP_RANDV1, e->ofs, 0, OFS_RETURN, false);
-				}
-				else
-					PR_SimpleStatement(OP_RANDV0, 0, 0, OFS_RETURN, false);
-			}
-			else
-			{
-				if (e)
-				{
-					if (d)
-					{
-						def_t *t;
-						PR_SimpleStatement(OP_CALL0, func->ofs, 0, 0, false);
-
-						if ((!d->constant || !e->constant) && G_FLOAT(d->ofs) >= G_FLOAT(d->ofs))
-						{
-							t = PR_GetTemp(type_float);
-							PR_SimpleStatement(OP_GT, d->ofs+2, e->ofs+2, t->ofs, false);
-							PR_SimpleStatement(OP_IFNOT, t->ofs, 3, 0, false);
-
-							PR_SimpleStatement(OP_SUB_F, d->ofs+2, e->ofs+2, t->ofs, false);
-							PR_SimpleStatement(OP_MUL_F, OFS_RETURN, t->ofs, OFS_RETURN+2, false);
-							PR_FreeTemp(t);
-							PR_SimpleStatement(OP_ADD_F, OFS_RETURN, e->ofs+2, OFS_RETURN+2, false);
-
-							PR_SimpleStatement(OP_GOTO, 3, 0, 0, false);
-						}
-						
-						t = PR_GetTemp(type_float);
-						PR_SimpleStatement(OP_SUB_F, d->ofs+2, e->ofs+2, t->ofs, false);
-						PR_SimpleStatement(OP_MUL_F, OFS_RETURN, t->ofs, OFS_RETURN+2, false);
-						PR_FreeTemp(t);
-						PR_SimpleStatement(OP_ADD_F, OFS_RETURN, d->ofs+2, OFS_RETURN+2, false);
-
-						
-						
-						PR_SimpleStatement(OP_CALL0, func->ofs, 0, 0, false);
-
-						if ((!d->constant || !e->constant) && G_FLOAT(d->ofs) >= G_FLOAT(d->ofs))
-						{
-							t = PR_GetTemp(type_float);
-							PR_SimpleStatement(OP_GT, d->ofs+1, e->ofs+1, t->ofs, false);
-							PR_SimpleStatement(OP_IFNOT, t->ofs, 3, 0, false);
-
-							PR_SimpleStatement(OP_SUB_F, d->ofs+1, e->ofs+1, t->ofs, false);
-							PR_SimpleStatement(OP_MUL_F, OFS_RETURN, t->ofs, OFS_RETURN+1, false);
-							PR_FreeTemp(t);
-							PR_SimpleStatement(OP_ADD_F, OFS_RETURN, e->ofs+1, OFS_RETURN+1, false);
-
-							PR_SimpleStatement(OP_GOTO, 3, 0, 0, false);
-						}
-						
-						t = PR_GetTemp(type_float);
-						PR_SimpleStatement(OP_SUB_F, d->ofs+1, e->ofs+1, t->ofs, false);
-						PR_SimpleStatement(OP_MUL_F, OFS_RETURN, t->ofs, OFS_RETURN+1, false);
-						PR_FreeTemp(t);
-						PR_SimpleStatement(OP_ADD_F, OFS_RETURN, d->ofs+1, OFS_RETURN+1, false);
-
-
-						PR_SimpleStatement(OP_CALL0, func->ofs, 0, 0, false);
-
-						if ((!d->constant || !e->constant) && G_FLOAT(d->ofs) >= G_FLOAT(d->ofs))
-						{
-							t = PR_GetTemp(type_float);
-							PR_SimpleStatement(OP_GT, d->ofs, e->ofs, t->ofs, false);
-							PR_SimpleStatement(OP_IFNOT, t->ofs, 3, 0, false);
-
-							PR_SimpleStatement(OP_SUB_F, d->ofs, e->ofs, t->ofs, false);
-							PR_SimpleStatement(OP_MUL_F, OFS_RETURN, t->ofs, OFS_RETURN, false);
-							PR_FreeTemp(t);
-							PR_SimpleStatement(OP_ADD_F, OFS_RETURN, e->ofs, OFS_RETURN, false);
-
-							PR_SimpleStatement(OP_GOTO, 3, 0, 0, false);
-						}
-						
-						t = PR_GetTemp(type_float);
-						PR_SimpleStatement(OP_SUB_F, d->ofs, e->ofs, t->ofs, false);
-						PR_SimpleStatement(OP_MUL_F, OFS_RETURN, t->ofs, OFS_RETURN, false);
-						PR_FreeTemp(t);
-						PR_SimpleStatement(OP_ADD_F, OFS_RETURN, d->ofs, OFS_RETURN, false);
-					}
-					else
-					{
-						PR_SimpleStatement(OP_CALL0, func->ofs, 0, 0, false);
-						PR_SimpleStatement(OP_MUL_F, OFS_RETURN, e->ofs, OFS_RETURN+2, false);
-						PR_SimpleStatement(OP_CALL0, func->ofs, 0, 0, false);
-						PR_SimpleStatement(OP_MUL_F, OFS_RETURN, e->ofs, OFS_RETURN+1, false);
-						PR_SimpleStatement(OP_CALL0, func->ofs, 0, 0, false);
-						PR_SimpleStatement(OP_MUL_F, OFS_RETURN, e->ofs, OFS_RETURN, false);
-					}
-				}
-				else
-				{
-					PR_SimpleStatement(OP_CALL0, func->ofs, 0, 0, false);
-					PR_SimpleStatement(OP_STORE_F, OFS_RETURN, OFS_RETURN+2, 0, false);
-					PR_SimpleStatement(OP_CALL0, func->ofs, 0, 0, false);
-					PR_SimpleStatement(OP_STORE_F, OFS_RETURN, OFS_RETURN+1, 0, false);
-					PR_SimpleStatement(OP_CALL0, func->ofs, 0, 0, false);
-				}
-			}
-
-
-			if (e)
-			{
-				PR_FreeTemp(e);
-				e->references++;
-			}
-			if (d)
-			{
-				d->references++;
-				PR_FreeTemp(d);
-			}
-
-			if (old)
-			{
-				d = PR_GetTemp(type_vector);
-				PR_FreeTemp(PR_Statement(pr_opcodes+OP_STORE_V, &def_ret, d, NULL));
-				if (def_ret.type->size == 3)
-				{
-					PR_Statement(pr_opcodes+OP_STORE_V, old, &def_ret, NULL);
-				}
-				else
-				{
-					PR_Statement(pr_opcodes+OP_STORE_F, old, &def_ret, NULL);
-				}
-				PR_FreeTemp(old);
-
-				return d;
-			}
-
-			if (def_ret.temp->used)
-				PR_ParseWarning(0, "Return value conflict - output is likly to be invalid");
-			def_ret.temp->used = true;
-			def_ret.type = type_vector;
-			return &def_ret;
-		}
-		else if (!strcmp(func->name, "spawn"))
+		if (!strcmp(func->name, "spawn"))
 		{
 			type_t *rettype;
 			if (PR_CheckToken(")"))
@@ -2362,8 +1940,7 @@ def_t *PR_ParseFunctionCall (def_t *func)	//warning, the func could have no name
 			e = PR_Statement(&pr_opcodes[OP_DIV_F], e, PR_MakeIntDef(1), (dstatement_t **)0xffffffff);
 
 			d = PR_GetDef(NULL, "nextent", NULL, false, 0);
-			if (!d)
-				PR_ParseError(0, "the nextent builtin is not defined");
+			if (!d) PR_ParseError(0, "the nextent builtin is not defined");
 			PR_FreeTemp(PR_Statement(&pr_opcodes[OP_STORE_F], e, &def_parms[0], (dstatement_t **)0xffffffff));
 			d = PR_Statement(&pr_opcodes[OP_CALL0], d, NULL, NULL);
 			d = PR_Statement(&pr_opcodes[OP_DIV_F], d, PR_MakeIntDef(1), (dstatement_t **)0xffffffff);
@@ -2613,15 +2190,6 @@ def_t *PR_ParseFunctionCall (def_t *func)	//warning, the func could have no name
 			else
 				d = &def_parms[i];
 
-			if (callconvention == OP_CALL1H)
-				if (i < 2)
-				{
-					param[i]->references++;
-					d->references++;
-					PR_FreeTemp(param[i]);
-					continue;
-				}
-
 			if (param[i]->type->size>1 || !opt_nonvec_parms)
 				PR_FreeTemp(PR_Statement (&pr_opcodes[OP_STORE_V], param[i], d, (dstatement_t **)0xffffffff));
 			else
@@ -2658,28 +2226,6 @@ def_t *PR_ParseFunctionCall (def_t *func)	//warning, the func could have no name
 			oself = PR_GetTemp(type_entity);
 			PR_SimpleStatement(OP_STORE_ENT, d->ofs, oself->ofs, 0, false);
 			PR_SimpleStatement(OP_STORE_ENT, statements[laststatement-1].a, d->ofs, 0, false);
-
-			if (callconvention == OP_CALL1H)	//other.function(self)
-												//hexenc calling convention would mean that the
-												//passed parameter is essentually (self=other),
-												//so pass oself instead which won't be affected
-			{
-				def_t *temp;
-				if (arg>=1 && param[0]->ofs == d->ofs)
-				{
-					temp = PR_GetTemp(type_entity);
-					PR_FreeTemp(PR_Statement(pr_opcodes+OP_STORE_ENT, oself, temp, NULL));
-					PR_UnFreeTemp(temp);
-					param[0] = temp;
-				}
-				if (arg>=2 && param[1]->ofs == d->ofs)
-				{
-					temp = PR_GetTemp(type_entity);
-					PR_FreeTemp(PR_Statement(pr_opcodes+OP_STORE_ENT, oself, temp, NULL));
-					PR_UnFreeTemp(temp);
-					param[1] = temp;
-				}
-			}
 		}
 		else
 		{
@@ -2700,19 +2246,6 @@ def_t *PR_ParseFunctionCall (def_t *func)	//warning, the func could have no name
 	else
 		PR_FreeTemp(PR_Statement (&pr_opcodes[OP_CALL0], func, 0, (dstatement_t **)&st));
 
-	if (callconvention == OP_CALL1H)
-	{
-		if (arg)
-		{
-			st->b = param[0]->ofs;
-//			PR_FreeTemp(param[0]);
-			if (arg>1)
-			{
-				st->c = param[1]->ofs;
-//				PR_FreeTemp(param[1]);
-			}
-		}
-	}
 	if (oself)
 		PR_SimpleStatement(OP_STORE_ENT, oself->ofs, d->ofs, 0, false);
 
@@ -3051,19 +2584,12 @@ void PR_EmitClassFromFunction(def_t *scope, char *tname)
 	def_t *ed, *oself, *self;
 	def_t *constructor = NULL;
 
-//	int func;
-
 	basetype = TypeForName(tname);
-	if (!basetype)
-		PR_ParseError(ERR_INTERNAL, "Type %s was not defined...", tname);
-
+	if (!basetype) PR_ParseError(ERR_INTERNAL, "Type %s was not defined...", tname);
 
 	pr_scope = NULL;
 	memset(basictypefield, 0, sizeof(basictypefield));
 	PR_EmitFieldsForMembers(basetype);
-
-
-
 
 	pr_scope = scope;
 
@@ -3083,19 +2609,16 @@ void PR_EmitClassFromFunction(def_t *scope, char *tname)
 	ed = PR_GetDef(type_entity, "ent", pr_scope, true, 1);
 
 	virt = PR_GetDef(type_function, "spawn", NULL, false, 0);
-	if (!virt)
-		Sys_Error("spawn function was not defined\n");
-	PR_SimpleStatement(OP_CALL0, virt->ofs, 0, 0, false);	//calling convention doesn't come into it.
+	if (!virt) PR_ParseError(ERR_INTERNAL, "spawn function was not defined\n");
+	PR_SimpleStatement(OP_CALL0, virt->ofs, 0, 0, false); // calling convention doesn't come into it.
 	
 	PR_FreeTemp(PR_Statement(&pr_opcodes[OP_STORE_ENT], &def_ret, ed, NULL));
 
 	ed->references = 1;	//there may be no functions.
-
-
 	PR_EmitClassFunctionTable(basetype, basetype, ed, &constructor);
 
 	if (constructor)
-	{	//self = ent;
+	{	
 		self = PR_GetDef(type_entity, "pev", NULL, false, 0);
 		oself = PR_GetDef(type_entity, "oself", scope, true, 1);
 		PR_FreeTemp(PR_Statement(&pr_opcodes[OP_STORE_ENT], self, oself, NULL));
@@ -3104,15 +2627,11 @@ void PR_EmitClassFromFunction(def_t *scope, char *tname)
 		PR_FreeTemp(PR_Statement(&pr_opcodes[OP_STORE_ENT], oself, self, NULL));
 	}
 
-	PR_FreeTemp(PR_Statement(&pr_opcodes[OP_RETURN], ed, NULL, NULL));	//apparently we do actually have to return something. *sigh*...
+	// apparently we do actually have to return something. *sigh*...
+	PR_FreeTemp(PR_Statement(&pr_opcodes[OP_RETURN], ed, NULL, NULL));
 	PR_FreeTemp(PR_Statement(&pr_opcodes[OP_DONE], NULL, NULL, NULL));
-
-
-
 	PR_WriteAsmFunction(scope, df->first_statement, df->parm_start);
 	pr.localvars = NULL;
-
-
 	locals_end = numpr_globals + basetype->size;
 	df->locals = locals_end - df->parm_start;
 }
@@ -3123,12 +2642,11 @@ PR_ParseValue
 Returns the global ofs for the current token
 ============
 */
-def_t	*PR_ParseValue (type_t *assumeclass)
+def_t *PR_ParseValue (type_t *assumeclass)
 {
-	def_t	*ao=NULL;	//arrayoffset
+	def_t		*ao=NULL;	//arrayoffset
 	def_t		*d, *nd, *od;
 	char		*name;
-	dstatement_t *st;
 	int i;
 
 	char membername[2048];
@@ -3181,9 +2699,8 @@ def_t	*PR_ParseValue (type_t *assumeclass)
 	
 	if (!d)
 	{
-		if (	(!strcmp(name, "random" ))	||
-				(!strcmp(name, "randomv"))	||
-				(!strcmp(name, "entnum"))	)	//intrinsics, any old function with no args will do.
+		// intrinsics, any old function with no args will do.
+		if ((!strcmp(name, "spawn")) || (!strcmp(name, "entnum")))
 			od = d = PR_GetDef (type_function, name, NULL, true, 1);
 		else if (keyword_class && !strcmp(name, "this"))
 		{
@@ -3202,12 +2719,8 @@ def_t	*PR_ParseValue (type_t *assumeclass)
 		else
 		{
 			od = d = PR_GetDef (type_variant, name, pr_scope, true, 1);
-			if (!d)
-				PR_ParseError (ERR_UNKNOWNVALUE, "Unknown value \"%s\"", name);
-			else
-			{
-				PR_ParseWarning (ERR_UNKNOWNVALUE, "Unknown value \"%s\".", name);
-			}
+			if (!d) PR_ParseError (ERR_UNKNOWNVALUE, "Unknown value \"%s\"", name);
+			else PR_ParseWarning (ERR_UNKNOWNVALUE, "Unknown value \"%s\".", name);
 		}
 	}
 
@@ -3329,186 +2842,116 @@ reloop:
 		}
 		else if (ao->type->type == ev_float)
 		{
-			if (targetformat == QCF_HEXEN2)
-			{	//hexen2 style retrieval, mixed with q1 style assignments...
-				if (PR_CheckToken("="))	//(hideous concept)
-				{
-					dstatement_t *st;
-					def_t *funcretr;
-					if (d->scope)
-						PR_ParseError(0, "Scoped array without specific engine support");
-					if (def_ret.temp->used && ao != &def_ret)
-						PR_ParseWarning(0, "RETURN VALUE ALREADY IN USE");
+			if (!PR_OPCodeValid(&pr_opcodes[OP_LOADA_F]))	//q1 compatable.
+			{	
+				//you didn't see this, okay?
+				def_t *funcretr;
+				if (d->scope) PR_ParseError(0, "Scoped array without specific engine support");
+				if (def_ret.temp->used && ao != &def_ret)
+					PR_ParseWarning(0, "RETURN VALUE ALREADY IN USE");
 
+				if (PR_CheckToken("="))
+				{
 					funcretr = PR_GetDef(type_function, va("ArraySet*%s", d->name), NULL, true, 1);
 					nd = PR_Expression(TOP_PRIORITY, true);
 					if (nd->type->type != d->type->type)
 						PR_ParseErrorPrintDef(ERR_TYPEMISMATCH, d, "Type Mismatch on array assignment");
 
-					PR_Statement (&pr_opcodes[OP_CALL2H], funcretr, 0, &st);
-					st->a = ao->ofs;
-					st->b = nd->ofs;
-					PR_FreeTemp(ao);
-					PR_FreeTemp(nd);
+					def_parms[0].type = type_float;
+					PR_FreeTemp(PR_Statement (&pr_opcodes[OP_STORE_F], ao, &def_parms[0], NULL));
+					def_parms[1].type = nd->type;
+					PR_FreeTemp(PR_Statement (&pr_opcodes[OP_STORE_V], nd, &def_parms[1], NULL));
+					PR_Statement (&pr_opcodes[OP_CALL2], funcretr, 0, NULL);
 					qcc_usefulstatement = true;
-
-					nd = &def_ret;
-					d=nd;
-					d->type = newtype;
-					return d;
 				}
-
-				switch(newtype->type)
+				else
 				{
-				case ev_float:
-					nd = PR_Statement(&pr_opcodes[OP_FETCH_GBL_F], d, ao, &st);	//get pointer to precise def.
-					st->a = d->ofs;
-					break;
-				case ev_vector:
-					nd = PR_Statement(&pr_opcodes[OP_FETCH_GBL_V], d, ao, &st);	//get pointer to precise def.
-					st->a = d->ofs;
-					break;
-				case ev_string:
-					nd = PR_Statement(&pr_opcodes[OP_FETCH_GBL_S], d, ao, &st);	//get pointer to precise def.
-					st->a = d->ofs;
-					break;
-				case ev_entity:
-					nd = PR_Statement(&pr_opcodes[OP_FETCH_GBL_E], d, ao, &st);	//get pointer to precise def.
-					st->a = d->ofs;
-					break;
-				case ev_function:
-					nd = PR_Statement(&pr_opcodes[OP_FETCH_GBL_FNC], d, ao, &st);	//get pointer to precise def.
-					st->a = d->ofs;
-					break;
-				default:
-					PR_ParseError(ERR_NOVALIDOPCODES, "No op available. Try assembler");
-					nd = NULL;
-					break;
+					def_parms[0].type = type_float;
+					PR_FreeTemp(PR_Statement (&pr_opcodes[OP_STORE_F], ao, &def_parms[0], NULL));
+					funcretr = PR_GetDef(type_function, va("ArrayGet*%s", d->name), NULL, true, 1);
+					PR_Statement (&pr_opcodes[OP_CALL1], funcretr, 0, NULL);
 				}
-				PR_FreeTemp(d);
-				PR_FreeTemp(ao);
 
+				nd = &def_ret;
 				d=nd;
 				d->type = newtype;
 				return d;
 			}
 			else
 			{
-				if (!PR_OPCodeValid(&pr_opcodes[OP_LOADA_F]))	//q1 compatable.
-				{	//you didn't see this, okay?
-					def_t *funcretr;
-					if (d->scope)
-						PR_ParseError(0, "Scoped array without specific engine support");
-					if (def_ret.temp->used && ao != &def_ret)
-						PR_ParseWarning(0, "RETURN VALUE ALREADY IN USE");
-
-
-					if (PR_CheckToken("="))
+				switch(newtype->type)
+				{
+				case ev_pointer:
+					if (d->arraysize>1)	//use the array
 					{
-						funcretr = PR_GetDef(type_function, va("ArraySet*%s", d->name), NULL, true, 1);
-						nd = PR_Expression(TOP_PRIORITY, true);
-						if (nd->type->type != d->type->type)
-							PR_ParseErrorPrintDef(ERR_TYPEMISMATCH, d, "Type Mismatch on array assignment");
-
-						def_parms[0].type = type_float;
-						PR_FreeTemp(PR_Statement (&pr_opcodes[OP_STORE_F], ao, &def_parms[0], NULL));
-						def_parms[1].type = nd->type;
-						PR_FreeTemp(PR_Statement (&pr_opcodes[OP_STORE_V], nd, &def_parms[1], NULL));
-						PR_Statement (&pr_opcodes[OP_CALL2], funcretr, 0, NULL);
-						qcc_usefulstatement = true;
+						nd = PR_Statement(&pr_opcodes[OP_LOADA_I], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
+						nd->type = d->type->aux_type;
 					}
 					else
-					{
-						def_parms[0].type = type_float;
-						PR_FreeTemp(PR_Statement (&pr_opcodes[OP_STORE_F], ao, &def_parms[0], NULL));
-						funcretr = PR_GetDef(type_function, va("ArrayGet*%s", d->name), NULL, true, 1);
-						PR_Statement (&pr_opcodes[OP_CALL1], funcretr, 0, NULL);
-					}
-
-					nd = &def_ret;
-					d=nd;
-					d->type = newtype;
-					return d;
-				}
-				else
-				{
-					switch(newtype->type)
-					{
-					case ev_pointer:
-						if (d->arraysize>1)	//use the array
+					{	
+						//dereference the pointer.
+						switch(newtype->aux_type->type)
 						{
-							nd = PR_Statement(&pr_opcodes[OP_LOADA_I], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
+						case ev_pointer:
+							nd = PR_Statement(&pr_opcodes[OP_LOADP_I], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
 							nd->type = d->type->aux_type;
+							break;
+						case ev_float:
+							nd = PR_Statement(&pr_opcodes[OP_LOADP_F], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
+							nd->type = d->type->aux_type;
+							break;
+						case ev_integer:
+							nd = PR_Statement(&pr_opcodes[OP_LOADP_I], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
+							nd->type = d->type->aux_type;
+							break;
+						default:
+							PR_ParseError(ERR_NOVALIDOPCODES, "No op available. Try assembler");
+							nd = NULL;
+							break;
 						}
-						else
-						{	//dereference the pointer.
-							switch(newtype->aux_type->type)
-							{
-							case ev_pointer:
-								nd = PR_Statement(&pr_opcodes[OP_LOADP_I], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
-								nd->type = d->type->aux_type;
-								break;
-							case ev_float:
-								nd = PR_Statement(&pr_opcodes[OP_LOADP_F], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
-								nd->type = d->type->aux_type;
-								break;
-							case ev_integer:
-								nd = PR_Statement(&pr_opcodes[OP_LOADP_I], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
-								nd->type = d->type->aux_type;
-								break;
-							default:
-								PR_ParseError(ERR_NOVALIDOPCODES, "No op available. Try assembler");
-								nd = NULL;
-								break;
-							}
-						}
-						break;
-
-					case ev_float:
-						nd = PR_Statement(&pr_opcodes[OP_LOADA_F], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
-						break;
-					case ev_string:
-						if (d->arraysize <= 1)
-						{
-							nd = PR_Statement(&pr_opcodes[OP_LOADP_C], d, ao, NULL);	//get pointer to precise def.
-							newtype = nd->type;//don't be fooled
-						}
-						else
-							nd = PR_Statement(&pr_opcodes[OP_LOADA_S], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
-						break;
-					case ev_vector:
-						nd = PR_Statement(&pr_opcodes[OP_LOADA_V], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
-						break;
-					case ev_entity:
-						nd = PR_Statement(&pr_opcodes[OP_LOADA_ENT], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.			
-						break;
-					case ev_field:
-						nd = PR_Statement(&pr_opcodes[OP_LOADA_FLD], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
-						break;
-					case ev_function:
-						nd = PR_Statement(&pr_opcodes[OP_LOADA_FNC], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
-						nd->type = d->type;
-						break;
-					case ev_integer:
-						nd = PR_Statement(&pr_opcodes[OP_LOADA_I], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
-						break;
-
-					case ev_struct:
-						nd = PR_Statement(&pr_opcodes[OP_LOADA_I], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
-						nd->type = d->type;
-						break;
-					default:
-						PR_ParseError(ERR_NOVALIDOPCODES, "No op available. Try assembler");
-						nd = NULL;
-						break;
 					}
+					break;
+
+				case ev_float:
+					nd = PR_Statement(&pr_opcodes[OP_LOADA_F], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
+					break;
+				case ev_string:
+					if (d->arraysize <= 1)
+					{
+						nd = PR_Statement(&pr_opcodes[OP_LOADP_C], d, ao, NULL);	//get pointer to precise def.
+						newtype = nd->type;//don't be fooled
+					}
+					else nd = PR_Statement(&pr_opcodes[OP_LOADA_S], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
+					break;
+				case ev_vector:
+					nd = PR_Statement(&pr_opcodes[OP_LOADA_V], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
+					break;
+				case ev_entity:
+					nd = PR_Statement(&pr_opcodes[OP_LOADA_ENT], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.			
+					break;
+				case ev_field:
+					nd = PR_Statement(&pr_opcodes[OP_LOADA_FLD], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
+					break;
+				case ev_function:
+					nd = PR_Statement(&pr_opcodes[OP_LOADA_FNC], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
+					nd->type = d->type;
+					break;
+				case ev_integer:
+					nd = PR_Statement(&pr_opcodes[OP_LOADA_I], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
+					break;
+                              	case ev_struct:
+					nd = PR_Statement(&pr_opcodes[OP_LOADA_I], d, PR_Statement (&pr_opcodes[OP_CONV_FTOI], ao, 0, NULL), NULL);	//get pointer to precise def.
+					nd->type = d->type;
+					break;
+				default:
+					PR_ParseError(ERR_NOVALIDOPCODES, "No op available. Try assembler");
+					nd = NULL;
+					break;
 				}
 			}
-			d=nd;
 		}
-		else
-			PR_ParseError(ERR_BADARRAYINDEXTYPE, "Array offset is not of integer or float type");
-		
+
+		d = nd;
 		d->type = newtype;
 		goto reloop;
 	}
@@ -3857,10 +3300,10 @@ def_t *PR_Term (void)
 			}
 //			PR_ParseWarning(0, "debug: &global");
 
-			if (!PR_OPCodeValid(&pr_opcodes[OP_GLOBALADDRESS]))
+			if (!PR_OPCodeValid(&pr_opcodes[OP_GLOBAL_ADD]))
 				PR_ParseError (ERR_BADEXTENSION, "Cannot use addressof operator ('&') on a global. Please use the FTE target.");
 
-			e2 = PR_Statement (&pr_opcodes[OP_GLOBALADDRESS], e, 0, NULL);
+			e2 = PR_Statement (&pr_opcodes[OP_GLOBAL_ADD], e, 0, NULL);
 			e2->type = PR_PointerType(e->type);
 			return e2;
 		}
@@ -4153,7 +3596,7 @@ def_t *PR_Expression (int priority, bool allowcomma)
 				//if last statement retrieved a value, switch it to retrieve a usable pointer.
 				if ( !simplestore && (unsigned)(statements[numstatements-1].op - OP_LOADA_F) < 7)// || statements[numstatements-1].op == OP_LOADA_C)
 				{
-					statements[numstatements-1].op = OP_GLOBALADDRESS;
+					statements[numstatements-1].op = OP_GLOBAL_ADD;
 					type_pointer->aux_type->type = e->type->type;
 					e->type = type_pointer;
 				}
@@ -4273,7 +3716,7 @@ def_t *PR_Expression (int priority, bool allowcomma)
 			}
 			if (bestop == NULL)
 			{
-				if (oldop->priority == CONDITION_PRIORITY)
+				if (oldop->priority == TOP_PRIORITY)
 					op = oldop;
 				else
 				{
@@ -4282,8 +3725,7 @@ def_t *PR_Expression (int priority, bool allowcomma)
 						op = oldop;
 						PR_ParseWarning(WARN_LAXCAST, "type mismatch for %s (%s and %s)", oldop->name, e->type->name, e2->type->name);
 					}
-					else
-						PR_ParseError (ERR_TYPEMISMATCH, "type mismatch for %s (%s and %s)", oldop->name, e->type->name, e2->type->name);
+					else PR_ParseError (ERR_TYPEMISMATCH, "type mismatch for %s (%s and %s)", oldop->name, e->type->name, e2->type->name);
 				}
 			}
 			else
@@ -4831,8 +4273,6 @@ void PR_ParseStatement (void)
 	
 	if (PR_CheckKeyword(keyword_if, "if"))
 	{
-		bool negate = PR_CheckKeyword(keyword_not, "not");
-
 		PR_Expect ("(");
 		conditional = 1;
 		e = PR_Expression (TOP_PRIORITY, true);
@@ -4840,26 +4280,13 @@ void PR_ParseStatement (void)
 
 //		negate = negate != 0;
 
-		if (negate)
+		if (!typecmp( e->type, type_string) && flag_ifstring)
 		{
-			if (!typecmp( e->type, type_string) && flag_ifstring)
-			{
-				PR_ParseWarning(WARN_IFSTRING_USED, "if not(string) can result in bizzare behaviour");
-				PR_FreeTemp(PR_Statement (&pr_opcodes[OP_IFS], e, 0, &patch1));
-			}
-			else
-				PR_FreeTemp(PR_Statement (&pr_opcodes[OP_IF], e, 0, &patch1));
+			PR_ParseWarning(WARN_IFSTRING_USED, "if (string) can result in bizzare behaviour");
+			PR_FreeTemp(PR_Statement (&pr_opcodes[OP_IFNOTS], e, 0, &patch1));
 		}
 		else
-		{
-			if (!typecmp( e->type, type_string) && flag_ifstring)
-			{
-				PR_ParseWarning(WARN_IFSTRING_USED, "if (string) can result in bizzare behaviour");
-				PR_FreeTemp(PR_Statement (&pr_opcodes[OP_IFNOTS], e, 0, &patch1));
-			}
-			else
-				PR_FreeTemp(PR_Statement (&pr_opcodes[OP_IFNOT], e, 0, &patch1));
-		}
+			PR_FreeTemp(PR_Statement (&pr_opcodes[OP_IFNOT], e, 0, &patch1));
 
 		PR_Expect (")");	//close bracket is after we save the statement to mem (so debugger does not show the if statement as being on the line after
 
@@ -5306,9 +4733,6 @@ void PR_ParseStatement (void)
 		if (e->type->type != ev_entity || e2->type->type != ev_float)
 			PR_ParseError(ERR_THINKTIMETYPEMISMATCH, "thinktime type mismatch");
 
-		if (PR_OPCodeValid(&pr_opcodes[OP_THINKTIME]))
-			PR_FreeTemp(PR_Statement (&pr_opcodes[OP_THINKTIME], e, e2, NULL));
-		else
 		{
 			nextthink = PR_GetDef(NULL, "nextthink", NULL, false, 0);
 			if (!nextthink)
@@ -6185,11 +5609,8 @@ function_t *PR_ParseImmediateStatements (type_t *type)
 
 	f = (void *)Qalloc (sizeof(function_t));
 
-//
-// check for builtin function definition #1, #2, etc
-//
-// hexenC has void name() : 2;
-	if (PR_CheckToken ("#") || PR_CheckToken (":"))
+	// check for builtin function definition #1, #2, etc
+	if (PR_CheckToken ("#"))
 	{
 		if (pr_token_type != tt_immediate
 		|| pr_immediate_type != type_float
@@ -6695,7 +6116,7 @@ void PR_EmitArraySetFunction(def_t *scope, char *arrayname)
 		PR_SimpleStatement (OP_BOUNDCHECK, index->ofs, ((int*)pr_globals)[def->ofs-1], 0, true);//annoy the programmer. :p
 		if (def->type->size != 1)//shift it upwards for larger types
 			PR_Statement3(&pr_opcodes[OP_MUL_I], index, PR_MakeIntDef(def->type->size), index, true);
-		PR_Statement3(&pr_opcodes[OP_GLOBALADDRESS], def, index, index, true);	//comes with built in add
+		PR_Statement3(&pr_opcodes[OP_GLOBAL_ADD], def, index, index, true);	//comes with built in add
 		if (def->type->size >= 3)
 			PR_Statement3(&pr_opcodes[OP_STOREP_V], value, index, NULL, true);	//*b = a
 		else
@@ -6727,8 +6148,6 @@ def_t *PR_DummyDef(type_t *type, char *name, def_t *scope, int arraysize, unsign
 	char newname[256];
 	int a;
 	def_t *def, *first=NULL;
-
-#define KEYWORD(x) if (!STRCMP(name, #x) && keyword_##x) {if (keyword_##x)PR_ParseWarning(WARN_KEYWORDDISABLED, "\""#x"\" keyword used as variable name%s", keywords_coexist?" - coexisting":" - disabling");keyword_##x=keywords_coexist;}
 	if (name)
 	{
 		KEYWORD(var);
@@ -6743,8 +6162,7 @@ def_t *PR_DummyDef(type_t *type, char *name, def_t *scope, int arraysize, unsign
 		KEYWORD(continue);
 		KEYWORD(state);
 		KEYWORD(string);
-		if (targetformat != QCF_HEXEN2)
-			KEYWORD(float);	//hmm... hexen2 requires this...
+		KEYWORD(float);
 		KEYWORD(entity);
 		KEYWORD(vector);
 		KEYWORD(const);
@@ -7040,9 +6458,9 @@ def_t *PR_GetDef (type_t *type, char *name, def_t *scope, bool allocate, int arr
 	ofs = numpr_globals;
 	if (arraysize > 1)
 	{	//write the array size
-		ofs = PR_GetFreeOffsetSpace(1 + (type->size	* arraysize));
+		ofs = PR_GetFreeOffsetSpace(1 + (type->size * arraysize));
 
-		((int *)pr_globals)[ofs] = arraysize-1;	//An array needs the size written first. This is a hexen2 opcode thing.
+		((int *)pr_globals)[ofs] = arraysize - 1; //An array needs the size written first. This is a hexen2 opcode thing.
 		ofs++;
 	}
 	else

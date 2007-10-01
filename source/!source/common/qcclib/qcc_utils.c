@@ -263,17 +263,23 @@ void Hash_RemoveKey(hashtable_t *table, int key)
 PR_decode
 ================
 */
-char *PR_decode(int complen, int len, int method, char *info, char *buffer)
+int PR_decode(int complen, int len, int method, char *info, char **data)
 {
-	int i;
+	int	i;
+	char	*buffer = *data;
+	
 	if (method == 0)	 // copy
 	{
 		if (complen != len) Sys_Error("lengths do not match");
-		memcpy(buffer, info, len);		
+		Mem_Copy(buffer, info, len);		
 	}
 	else if (method == 1)// encryption
 	{
-		if (complen != len) Sys_Error("lengths do not match");
+		if (complen != len) 
+		{
+			MsgDev(D_WARN, "lengths do not match");
+			return false;
+		}
 		for (i = 0; i < len; i++) buffer[i] = info[i] ^ 0xA5;		
 	}
 	else if (method == 2)// compression (ZLIB)
@@ -283,12 +289,19 @@ char *PR_decode(int complen, int len, int method, char *info, char *buffer)
 
 		// decompress it in one go.
 		if (Z_STREAM_END != inflate( &strm, Z_FINISH ))
-			Sys_Error("Failed block decompression\n");
+		{
+			Msg("Failed block decompression: %s\n", strm.msg );
+			return false;
+		}
 		inflateEnd( &strm );
+		Msg("inflanting %s\n", strm.msg );
 	}
-	else Sys_Error("PR_decode: Bad file encryption routine\n");
-
-	return buffer;
+	else 
+	{
+		MsgDev(D_WARN, "PR_decode: Bad file encryption routine\n");
+		return false;
+          }
+	return true;
 }
 
 /*
@@ -357,4 +370,21 @@ byte *PR_LoadFile(char *filename, fs_offset_t *filesizeptr, int type )
 
 	mem = FS_LoadFile( filename, filesizeptr );
 	return mem;
+}
+
+void PR_WriteBlock(vfile_t *handle, fs_offset_t pos, const void *data, size_t blocksize, bool compress)
+{
+	int	i, len = 0;
+
+	if (compress)
+	{		
+		VFS_Write (handle, &len, sizeof(int));	// save for later
+		len = PR_encode(blocksize, 2, (char *)data, handle);
+		i = VFS_Tell(handle);		// member start of block
+		VFS_Seek(handle, pos, SEEK_SET);	// seek back
+		len = LittleLong(len);		// block size after deflate
+		VFS_Write (handle, &len, sizeof(int));	// write size.
+		VFS_Seek(handle, i, SEEK_SET);
+	}
+	else VFS_Write (handle, data, blocksize);
 }

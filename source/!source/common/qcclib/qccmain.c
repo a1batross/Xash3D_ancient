@@ -174,64 +174,60 @@ optimisations_t optimisations[] =
 //global to store useage to, flags, codename, human-readable name, help text
 compiler_flag_t compiler_flag[] = {
 	//keywords
-	{&keyword_asm,			defaultkeyword, "asm",			"Keyword: asm",			"Disables the 'asm' keyword. Use the writeasm flag to see an example of the asm."},
-	{&keyword_break,		defaultkeyword, "break",		"Keyword: break",		"Disables the 'break' keyword."},
-	{&keyword_case,			defaultkeyword, "case",			"Keyword: case",		"Disables the 'case' keyword."},
-	{&keyword_class,		defaultkeyword, "class",		"Keyword: class",		"Disables the 'class' keyword."},
-	{&keyword_const,		defaultkeyword, "const",		"Keyword: const",		"Disables the 'const' keyword."},
-	{&keyword_continue,		defaultkeyword, "continue",		"Keyword: continue",	"Disables the 'continue' keyword."},
-	{&keyword_default,		defaultkeyword, "default",		"Keyword: default",		"Disables the 'default' keyword."},
-	{&keyword_entity,		defaultkeyword, "entity",		"Keyword: entity",		"Disables the 'entity' keyword."},
-	{&keyword_enum,			defaultkeyword, "enum",			"Keyword: enum",		"Disables the 'enum' keyword."},	//kinda like in c, but typedef not supported.
+	{&keyword_asm,		defaultkeyword, "asm",	"Keyword: asm",		"Disables the 'asm' keyword. Use the writeasm flag to see an example of the asm."},
+	{&keyword_break,		defaultkeyword, "break",	"Keyword: break",		"Disables the 'break' keyword."},
+	{&keyword_case,		defaultkeyword, "case",	"Keyword: case",		"Disables the 'case' keyword."},
+	{&keyword_class,		defaultkeyword, "class",	"Keyword: class",		"Disables the 'class' keyword."},
+	{&keyword_const,		defaultkeyword, "const",	"Keyword: const",		"Disables the 'const' keyword."},
+	{&keyword_continue,		defaultkeyword, "continue",	"Keyword: continue",	"Disables the 'continue' keyword."},
+	{&keyword_default,		defaultkeyword, "default",	"Keyword: default",		"Disables the 'default' keyword."},
+	{&keyword_entity,		defaultkeyword, "entity",	"Keyword: entity",		"Disables the 'entity' keyword."},
+	{&keyword_enum,		defaultkeyword, "enum",	"Keyword: enum",		"Disables the 'enum' keyword."},	//kinda like in c, but typedef not supported.
 	{&keyword_enumflags,	defaultkeyword, "enumflags",	"Keyword: enumflags",	"Disables the 'enumflags' keyword."},	//like enum, but doubles instead of adds 1.
-	{&keyword_extern,		defaultkeyword, "extern",		"Keyword: extern",		"Disables the 'extern' keyword. Use only on functions inside addons."},	//function is external, don't error or warn if the body was not found
-	{&keyword_float,		defaultkeyword, "float",		"Keyword: float",		"Disables the 'float' keyword. (Disables the float keyword without 'local' preceeding it)"},
-	{&keyword_for,			defaultkeyword, "for",			"Keyword: for",			"Disables the 'for' keyword. Syntax: for(assignment; while; increment) {codeblock;}"},
-	{&keyword_goto,			defaultkeyword, "goto",			"Keyword: goto",		"Disables the 'goto' keyword."},
-	{&keyword_int,			defaultkeyword, "int",			"Keyword: int",			"Disables the 'int' keyword."},
-	{&keyword_integer,		defaultkeyword, "integer",		"Keyword: integer",		"Disables the 'integer' keyword."},
-	{&keyword_noref,		defaultkeyword, "noref",		"Keyword: noref",		"Disables the 'noref' keyword."},	//nowhere else references this, don't strip it.
-	{&keyword_nosave,		defaultkeyword, "nosave",		"Keyword: nosave",		"Disables the 'nosave' keyword."},	//don't write the def to the output.
-	{&keyword_shared,		defaultkeyword, "shared",		"Keyword: shared",		"Disables the 'shared' keyword."},	//mark global to be copied over when progs changes (part of FTE_MULTIPROGS)
-	{&keyword_state,		nondefaultkeyword,"state",		"Keyword: state",		"Disables the 'state' keyword."},
-	{&keyword_string,		defaultkeyword, "string",		"Keyword: string",		"Disables the 'string' keyword."},
-	{&keyword_struct,		defaultkeyword, "struct",		"Keyword: struct",		"Disables the 'struct' keyword."},
-	{&keyword_switch,		defaultkeyword, "switch",		"Keyword: switch",		"Disables the 'switch' keyword."},
-	{&keyword_thinktime,	nondefaultkeyword,"thinktime",	"Keyword: thinktime",	"Disables the 'thinktime' keyword which is used in HexenC"},
-	{&keyword_typedef,		defaultkeyword, "typedef",		"Keyword: typedef",		"Disables the 'typedef' keyword."},	//fixme
-	{&keyword_union,		defaultkeyword, "union",		"Keyword: union",		"Disables the 'union' keyword."},	//you surly know what a union is!
-	{&keyword_var,			defaultkeyword, "var",			"Keyword: var",			"Disables the 'var' keyword."},
-	{&keyword_vector,		defaultkeyword, "vector",		"Keyword: vector",		"Disables the 'vector' keyword."},
+	{&keyword_extern,		defaultkeyword, "extern",	"Keyword: extern",		"Disables the 'extern' keyword. Use only on functions inside addons."},	//function is external, don't error or warn if the body was not found
+	{&keyword_float,		defaultkeyword, "float",	"Keyword: float",		"Disables the 'float' keyword. (Disables the float keyword without 'local' preceeding it)"},
+	{&keyword_for,		defaultkeyword, "for",	"Keyword: for",		"Disables the 'for' keyword. Syntax: for(assignment; while; increment) {codeblock;}"},
+	{&keyword_goto,		defaultkeyword, "goto",	"Keyword: goto",		"Disables the 'goto' keyword."},
+	{&keyword_int,		defaultkeyword, "int",	"Keyword: int",		"Disables the 'int' keyword."},
+	{&keyword_integer,		defaultkeyword, "integer",	"Keyword: integer",		"Disables the 'integer' keyword."},
+	{&keyword_noref,		defaultkeyword, "noref",	"Keyword: noref",		"Disables the 'noref' keyword."},	//nowhere else references this, don't strip it.
+	{&keyword_nosave,		defaultkeyword, "nosave",	"Keyword: nosave",		"Disables the 'nosave' keyword."},	//don't write the def to the output.
+	{&keyword_shared,		defaultkeyword, "shared",	"Keyword: shared",		"Disables the 'shared' keyword."},	//mark global to be copied over when progs changes (part of FTE_MULTIPROGS)
+	{&keyword_state,		nondefaultkeyword,"state",	"Keyword: state",		"Disables the 'state' keyword."},
+	{&keyword_string,		defaultkeyword, "string",	"Keyword: string",		"Disables the 'string' keyword."},
+	{&keyword_struct,		defaultkeyword, "struct",	"Keyword: struct",		"Disables the 'struct' keyword."},
+	{&keyword_switch,		defaultkeyword, "switch",	"Keyword: switch",		"Disables the 'switch' keyword."},
+	{&keyword_thinktime,	nondefaultkeyword,"thinktime","Keyword: thinktime",	"Disables the 'thinktime' keyword which is used in HexenC"},
+	{&keyword_typedef,		defaultkeyword, "typedef",	"Keyword: typedef",		"Disables the 'typedef' keyword."},	//fixme
+	{&keyword_union,		defaultkeyword, "union",	"Keyword: union",		"Disables the 'union' keyword."},	//you surly know what a union is!
+	{&keyword_var,		defaultkeyword, "var",	"Keyword: var",		"Disables the 'var' keyword."},
+	{&keyword_vector,		defaultkeyword, "vector",	"Keyword: vector",		"Disables the 'vector' keyword."},
 
 
 	//options
-	{&keywords_coexist,		FLAG_ASDEFAULT, "kce",			"Keywords Coexist",		"If you want keywords to NOT be disabled when they a variable by the same name is defined, check here."},
-	{&output_parms,			0,				"parms",		"Define offset parms",	"if PARM0 PARM1 etc should be defined by the compiler. These are useful if you make use of the asm keyword for function calls, or you wish to create your own variable arguments. This is an easy way to break decompilers."},	//controls weather to define PARMx for the parms (note - this can screw over some decompilers)
+	{&keywords_coexist,		FLAG_ASDEFAULT, "kce",		"Keywords Coexist",		"If you want keywords to NOT be disabled when they a variable by the same name is defined, check here."},
+	{&output_parms,		0,				"parms",		"Define offset parms",	"if PARM0 PARM1 etc should be defined by the compiler. These are useful if you make use of the asm keyword for function calls, or you wish to create your own variable arguments. This is an easy way to break decompilers."},	//controls weather to define PARMx for the parms (note - this can screw over some decompilers)
 	{&autoprototype,		0,				"autoproto",	"Automatic Prototyping","Causes compilation to take two passes instead of one. The first pass, only the definitions are read. The second pass actually compiles your code. This means you never have to remember to prototype functions again."},	//so you no longer need to prototype functions and things in advance.
-	{&writeasm,				0,				"wasm",			"Dump Assembler",		"Writes out a qc.asm which contains all your functions but in assembler. This is a great way to look for bugs in fteqcc, but can also be used to see exactly what your functions turn into, and thus how to optimise statements better."},			//spit out a qc.asm file, containing an assembler dump of the ENTIRE progs. (Doesn't include initialisation of constants)
+	{&writeasm,		0,				"wasm",			"Dump Assembler",		"Writes out a qc.asm which contains all your functions but in assembler. This is a great way to look for bugs in fteqcc, but can also be used to see exactly what your functions turn into, and thus how to optimise statements better."},			//spit out a qc.asm file, containing an assembler dump of the ENTIRE progs. (Doesn't include initialisation of constants)
 	{&flag_ifstring,		FLAG_MIDCOMPILE,"ifstring",		"if(string) fix",		"Causes if(string) to behave identically to if(string!="") This is most useful with addons of course, but also has adverse effects with FRIK_FILE's fgets, where it becomes impossible to determin the end of the file. In such a case, you can still use asm {IF string 2;RETURN} to detect eof and leave the function."},		//correction for if(string) no-ifstring to get the standard behaviour.
-	{&flag_laxcasts,		FLAG_MIDCOMPILE,"lax",			"Lax type checks",		"Disables many errors (generating warnings instead) when function calls or operations refer to two normally incompatable types. This is required for reacc support, and can also allow certain (evil) mods to compile that were originally written for frikqcc."},		//Allow lax casting. This'll produce loadsa warnings of course. But allows compilation of certain dodgy code.
+	{&flag_laxcasts,		FLAG_MIDCOMPILE,"lax",		"Lax type checks",		"Disables many errors (generating warnings instead) when function calls or operations refer to two normally incompatable types. This is required for reacc support, and can also allow certain (evil) mods to compile that were originally written for frikqcc."},		//Allow lax casting. This'll produce loadsa warnings of course. But allows compilation of certain dodgy code.
 	{&flag_hashonly,		FLAG_MIDCOMPILE,"hashonly",		"Hash-only constants", "Allows use of only #constant for precompiler constants, allows certain preqcc using mods to compile"},
-	{&opt_logicops,			FLAG_MIDCOMPILE,"lo",			"Logic ops",			"This changes the behaviour of your code. It generates additional if operations to early-out in if statements. With this flag, the line if (0 && somefunction()) will never call the function. It can thus be considered an optimisation. However, due to the change of behaviour, it is not considered so by fteqcc. Note that due to inprecisions with floats, this flag can cause runaway loop errors within the player walk and run functions. This code is advised:\nplayer_stand1:\n    if (self.velocity_x || self.velocity_y)\nplayer_run\n    if (!(self.velocity_x || self.velocity_y))"},
+	{&opt_logicops,		FLAG_MIDCOMPILE,"lo",		"Logic ops",			"This changes the behaviour of your code. It generates additional if operations to early-out in if statements. With this flag, the line if (0 && somefunction()) will never call the function. It can thus be considered an optimisation. However, due to the change of behaviour, it is not considered so by fteqcc. Note that due to inprecisions with floats, this flag can cause runaway loop errors within the player walk and run functions. This code is advised:\nplayer_stand1:\n    if (self.velocity_x || self.velocity_y)\nplayer_run\n    if (!(self.velocity_x || self.velocity_y))"},
 	{&flag_fasttrackarrays,	FLAG_MIDCOMPILE|FLAG_ASDEFAULT,"fastarrays",	"fast arrays where possible",	"Generates extra instructions inside array handling functions to detect engine and use extension opcodes only in supporting engines.\nAdds a global which is set by the engine if the engine supports the extra opcodes. Note that this applies to all arrays or none."},		//correction for if(string) no-ifstring to get the standard behaviour.
 	{NULL}
 };
 
-struct {
+struct
+{
 	targetformat_t target;
 	char *name;
-} targets[] = {
+} targets[] = 
+{
 	{QCF_STANDARD,	"standard"},
 	{QCF_STANDARD,	"q1"},
 	{QCF_STANDARD,	"quakec"},
-	{QCF_HEXEN2,	"hexen2"},
-	{QCF_HEXEN2,	"h2"},
-	{QCF_KK7,		"kkqwsv"},
-	{QCF_KK7,		"kk7"},
-	{QCF_KK7,		"bigprogs"},
-	{QCF_KK7,		"version7"},
-	{QCF_KK7,		"kkqwsv"},
-	{QCF_FTE,		"fte"},
+	{QCF_RELEASE,	"release"},
+	{QCF_DEBUG,	"debug"},
 	{0,		NULL}
 };
 
@@ -472,18 +468,18 @@ const_t *PR_CheckCompConstDefined(char *def);
 
 void PR_WriteData (int crc)
 {
-	char element[MAX_NAME];
+	char		element[MAX_NAME];
 	def_t		*def, *comp_x, *comp_y, *comp_z;
 	ddef_t		*dd;
 	dprograms_t	progs;
 	vfile_t		*h;
 	file_t		*pr_file;
-	int		i, num_ref, len;
-	bool debugtarget = false;
-	bool types = false;
-	int outputsize = 16;
+	int		i, num_ref;
+	bool		debugtarget = false;
+	bool		types = false;
+	int		outputsize = 16;
 
-	progs.blockscompressed=0;
+	progs.blockscompressed = 0;
 
 	if (numstatements > MAX_STATEMENTS)
 		Sys_Error("Too many statements - %i\nAdd \"MAX_STATEMENTS\" \"%i\" to qcc.cfg", numstatements, (numstatements+32768)&~32767);
@@ -495,7 +491,6 @@ void PR_WriteData (int crc)
 
 	switch (targetformat)
 	{
-	case QCF_HEXEN2:
 	case QCF_STANDARD:
 		if (bodylessfuncs)
 			Msg("Warning: There are some functions without bodies.\n");
@@ -505,26 +500,20 @@ void PR_WriteData (int crc)
 			Msg("Forcing target to FTE32 due to numpr_globals\n");
 			outputsize = 32;
 		}
-		else if (targetformat == QCF_HEXEN2)
-		{
-			Msg("Progs execution requires a Hexen2 compatable engine\n");
-			break;
-		}
 		else
 		{
-			if (numpr_globals >= 32768)	//not much of a different format. Rewrite output to get it working on original executors?
-				Msg("An enhanced executor will be required (FTE/QF/KK)\n");
-			else
-				Msg("Progs should run on any Quake executor\n");
+			// not much of a different format. Rewrite output to get it working on original executors?
+			if (numpr_globals >= 32768)
+				Msg("Quake1 32bit virtual machine\nAn enhanced executor will be required\n");
+			else Msg("Quake1 16bit virtual machine\n");
 			break;
 		}
-		//intentional
-		targetformat = QCF_FTE;
-	case QCF_FTEDEBUG:
-	case QCF_FTE:
-		if (targetformat == QCF_FTEDEBUG)
+		// intentional falltrough
+		targetformat = QCF_RELEASE;
+	case QCF_DEBUG:
+	case QCF_RELEASE:
+		if (targetformat == QCF_DEBUG)
 			debugtarget = true;
-
 		if (numpr_globals > 65530)
 		{
 			Msg("Using 32 bit target due to numpr_globals\n");
@@ -532,37 +521,31 @@ void PR_WriteData (int crc)
 		}
 
 		//compression of blocks?
-		if (compressoutput)	progs.blockscompressed |=1;		//statements
-		if (compressoutput)	progs.blockscompressed |=2;		//defs
-		if (compressoutput)	progs.blockscompressed |=4;		//fields
-		if (compressoutput)	progs.blockscompressed |=8;		//functions
-		if (compressoutput)	progs.blockscompressed |=16;		//strings
-		if (compressoutput)	progs.blockscompressed |=32;		//globals
-		if (compressoutput)	progs.blockscompressed |=64;		//line numbers
-		if (compressoutput)	progs.blockscompressed |=128;		//types
-		//include a type block?
-		types = debugtarget;//!!PR_CheckCompConstDefined("TYPES");	//useful for debugging and saving (maybe, anyway...).
+		if (compressoutput)	
+		{
+			progs.blockscompressed |= COMP_STATEMENTS;
+			progs.blockscompressed |= COMP_DEFS;
+			progs.blockscompressed |= COMP_FIELDS;
+			progs.blockscompressed |= COMP_FUNCTIONS;
+			progs.blockscompressed |= COMP_STRINGS;
+			progs.blockscompressed |= COMP_GLOBALS;
+			progs.blockscompressed |= COMP_LINENUMS;
+			progs.blockscompressed |= COMP_TYPES;
+		}
 
-		Msg("An FTE executor will be required\n");
-		break;
-	case QCF_KK7:
-		if (bodylessfuncs)
-			Msg("Warning: There are some functions without bodies.\n");
-		if (numpr_globals > 65530)
-			Msg("Warning: Saving is not supported. Ensure all engine read fields and globals are defined early on.\n");
-
-		Msg("A KK compatable executor will be required (FTE/KK)\n");
+		types = debugtarget; // include a type block?
+		Msg("Xash3D virtual machine\n");
 		break;
 	}
 
-	//part of how compilation works. This def is always present, and never used.
+	// part of how compilation works. This def is always present, and never used.
 	def = PR_GetDef(NULL, "end_sys_globals", NULL, false, 0);
-	if (def) def->references++;
+	if(def) def->references++;
 
 	def = PR_GetDef(NULL, "end_sys_fields", NULL, false, 0);
-	if (def) def->references++;
+	if(def) def->references++;
 
-	for (def = pr.def_head.next ; def ; def = def->next)
+	for (def = pr.def_head.next; def; def = def->next)
 	{
 		if (def->type->type == ev_vector || (def->type->type == ev_field && def->type->aux_type->type == ev_vector))
 		{	
@@ -583,15 +566,11 @@ void PR_WriteData (int crc)
 
 				if (!def->references)
 				{
-					if (!comp_x->references || !comp_y->references || !comp_z->references)
-					{	
-						//one of these vars is useless...
-						num_ref = 0;
-					}
+					if (!comp_x->references || !comp_y->references || !comp_z->references)				
+						num_ref = 0; // one of these vars is useless...
 				}
 				def->references = num_ref;
-				
-					
+
 				if (!num_ref) num_ref = 1;
 				if (comp_x) comp_x->references = num_ref;
 				if (comp_y) comp_y->references = num_ref;
@@ -607,7 +586,6 @@ void PR_WriteData (int crc)
 				continue;
 			}
 		}
-
 		if (def->type->type == ev_function)
 		{
 			if (opt_function_names && functions[G_FUNCTION(def->ofs)].first_statement<0)
@@ -619,20 +597,17 @@ void PR_WriteData (int crc)
 			{
 				if (def->references <= 1)
 					PR_Warning(WARN_DEADCODE, strings + def->s_file, def->s_line, "%s is never directly called or referenced (spawn function or dead code)", def->name);
-//				else
-//					PR_Warning(WARN_DEADCODE, strings + def->s_file, def->s_line, "%s is never directly called", def->name);
 			}
-			if (opt_stripfunctions && def->timescalled >= def->references-1)	//make sure it's not copied into a different var.
-			{								//if it ever does self.think then it could be needed for saves.
-				optres_stripfunctions++;	//if it's only ever called explicitly, the engine doesn't need to know.
+			if (opt_stripfunctions && def->timescalled >= def->references-1)	
+			{
+				// make sure it's not copied into a different var.
+				// if it ever does self.think then it could be needed for saves.
+				// if it's only ever called explicitly, the engine doesn't need to know.
+				optres_stripfunctions++;	
 				continue;
 			}
-
-//			df = &functions[numfunctions];
-//			numfunctions++;
-
 		}
-		else if (def->type->type == ev_field)// && !def->constant)
+		else if (def->type->type == ev_field)
 		{
 			dd = &fields[numfielddefs];
 			numfielddefs++;
@@ -646,42 +621,35 @@ void PR_WriteData (int crc)
 			{
 				if (def->type->type == ev_string)
 					optres_constant_names_strings += strlen(def->name);
-				else
-					optres_constant_names += strlen(def->name);
+				else optres_constant_names += strlen(def->name);
 				continue;
 			}
 		}
 
-//		if (!def->saved && def->type->type != ev_string)
-//			continue;
 		dd = &qcc_globals[numglobaldefs];
 		numglobaldefs++;
 
-		if (types)
-			dd->type = def->type-qcc_typeinfo;
-		else
-			dd->type = def->type->type;
+		if (types) dd->type = def->type-qcc_typeinfo;
+		else dd->type = def->type->type;
 
 		if ( def->saved && ((!def->initialized || def->type->type == ev_function) && def->type->type != ev_field && def->scope == NULL))
 			dd->type |= DEF_SAVEGLOBAL;
 
-		if (def->shared)
-			dd->type |= DEF_SHARED;
+		if (def->shared) dd->type |= DEF_SHARED;
 
 		if (opt_locals && (def->scope || !strcmp(def->name, "IMMEDIATE")))
 		{
 			dd->s_name = 0;
 			optres_locals += strlen(def->name);
 		}
-		else
-			dd->s_name = PR_CopyString (def->name);
+		else dd->s_name = PR_CopyString (def->name);
 		dd->ofs = def->ofs;
 	}
 
 	if (numglobaldefs > MAX_GLOBALS)
 		Sys_Error("Too many globals - %i\nAdd \"MAX_GLOBALS\" \"%i\" to qcc.cfg", numglobaldefs, (numglobaldefs+32768)&~32767);
 
-	strofs = (strofs+3)&~3;
+	strofs = (strofs + 3) & ~3;
 
 	Msg ("%6i strofs (of %i)\n", strofs, MAX_STRINGS);
 	Msg ("%6i numstatements (of %i)\n", numstatements, MAX_STATEMENTS);
@@ -690,7 +658,7 @@ void PR_WriteData (int crc)
 	Msg ("%6i numfielddefs (%i unique) (of %i)\n", numfielddefs, pr.size_fields, MAX_FIELDS);
 	Msg ("%6i numpr_globals (of %i)\n", numpr_globals, MAX_REGS);	
 	
-	if (!*destfile) strcpy(destfile, "progs.dat");
+	if(!*destfile) strcpy(destfile, "progs.dat");
 	Msg("Writing %s\n", destfile);
 	
 	pr_file = FS_Open( destfile, "wb" );
@@ -698,11 +666,12 @@ void PR_WriteData (int crc)
 
 	VFS_Write (h, &progs, sizeof(progs));
 	VFS_Write (h, "\r\n\r\n", 4);
-	VFS_Write (h, v_copyright, strlen(v_copyright)+1);
+	VFS_Write (h, v_copyright, strlen(v_copyright) + 1);
 	VFS_Write (h, "\r\n\r\n", 4);
 
-	while(VFS_Tell(h) & 3)//this is a lame way to do it
+	while(VFS_Tell(h) & 3)
 	{
+		// this is a lame way to do it
 		VFS_Seek (h, 0, SEEK_CUR);
 		VFS_Write (h, "\0", 1);
 	}
@@ -710,247 +679,127 @@ void PR_WriteData (int crc)
 	progs.ofs_strings = VFS_Tell(h);
 	progs.numstrings = strofs;
 
-	if (progs.blockscompressed&16)
-	{		
-		VFS_Write (h, &len, sizeof(int));	//save for later
-		len = PR_encode(strofs*sizeof(char), 2, (char *)strings, h);	//write
-		i = VFS_Tell(h);
-		VFS_Seek(h, progs.ofs_strings, SEEK_SET);//seek back
-		len = LittleLong(len);
-		VFS_Write (h, &len, sizeof(int));	//write size.
-		VFS_Seek(h, i, SEEK_SET);
-	}
-	else
-		VFS_Write (h, strings, strofs);
+	PR_WriteBlock(h, progs.ofs_strings, strings, strofs, progs.blockscompressed & COMP_STRINGS);
 
 	progs.ofs_statements = VFS_Tell(h);
 	progs.numstatements = numstatements;
 
-	if (targetformat == QCF_HEXEN2)
-	{
-		for (i=0 ; i<numstatements ; i++)
-		{
-			if (statements[i].op >= OP_CALL1 && statements[i].op <= OP_CALL8)
-				Sys_Error("Target switching produced incompatable instructions");
-			else if (statements[i].op >= OP_CALL1H && statements[i].op <= OP_CALL8H)
-				statements[i].op = statements[i].op - OP_CALL1H + OP_CALL1;
-		}
-	}
+	for (i = 0; i < numstatements; i++)
 
-	for (i=0 ; i<numstatements ; i++)
-
-	switch(targetformat == QCF_KK7?32:outputsize)	//KK7 sucks.
+	switch(outputsize)
 	{
 	case 32:
-		for (i=0 ; i<numstatements ; i++)
+		for (i = 0; i < numstatements; i++)
 		{
-			statements[i].op = LittleLong/*LittleShort*/(statements[i].op);
-			statements[i].a = LittleLong/*LittleShort*/(statements[i].a);
-			statements[i].b = LittleLong/*LittleShort*/(statements[i].b);
-			statements[i].c = LittleLong/*LittleShort*/(statements[i].c);
+			statements32[i].op = LittleLong(statements32[i].op);
+			statements32[i].a = LittleLong(statements32[i].a);
+			statements32[i].b = LittleLong(statements32[i].b);
+			statements32[i].c = LittleLong(statements32[i].c);
 		}
-		
-		if (progs.blockscompressed&1)
-		{		
-			VFS_Write (h, &len, sizeof(int));	//save for later
-			len = PR_encode(numstatements*sizeof(dstatement32_t), 2, (char *)statements, h);	//write
-			i = VFS_Tell(h);
-			VFS_Seek(h, progs.ofs_statements, SEEK_SET);//seek back
-			len = LittleLong(len);
-			VFS_Write (h, &len, sizeof(int));	//write size.
-			VFS_Seek(h, i, SEEK_SET);
-		}
-		else
-			VFS_Write (h, statements, numstatements*sizeof(dstatement32_t));
+
+		PR_WriteBlock(h, progs.ofs_statements, statements32, progs.numstatements*sizeof(dstatement32_t), progs.blockscompressed & COMP_STATEMENTS);
 		break;
 	case 16:
-#define statements16 ((dstatement16_t*) statements)
-		for (i=0 ; i<numstatements ; i++)	//resize as we go - scaling down
-		{
-			statements16[i].op = LittleShort((unsigned short)statements[i].op);
-			if (statements[i].a < 0)
-				statements16[i].a = LittleShort((short)statements[i].a);
-			else
-				statements16[i].a = (unsigned short)LittleShort((unsigned short)statements[i].a);
-			if (statements[i].b < 0)
-				statements16[i].b = LittleShort((short)statements[i].b);
-			else
-				statements16[i].b = (unsigned short)LittleShort((unsigned short)statements[i].b);
-			if (statements[i].c < 0)
-				statements16[i].c = LittleShort((short)statements[i].c);
-			else
-				statements16[i].c = (unsigned short)LittleShort((unsigned short)statements[i].c);
-		}
-		
-		if (progs.blockscompressed&1)
-		{		
-			VFS_Write (h, &len, sizeof(int));	//save for later
-			len = PR_encode(numstatements*sizeof(dstatement16_t), 2, (char *)statements16, h);	//write
-			i = VFS_Tell(h);
-			VFS_Seek(h, progs.ofs_statements, SEEK_SET);//seek back
-			len = LittleLong(len);
-			VFS_Write (h, &len, sizeof(int));	//write size.
-			VFS_Seek(h, i, SEEK_SET);
-		}
-		else
-			VFS_Write (h, statements16, numstatements*sizeof(dstatement16_t));
-		break;
 	default:
-		Sys_Error("intsize error");
+		for (i = 0; i < numstatements; i++) // resize as we go - scaling down
+		{
+			statements16[i].op = LittleShort((word)statements32[i].op);
+			if (statements32[i].a < 0) statements16[i].a = LittleShort((short)statements32[i].a);
+			else statements16[i].a = (word)LittleShort((word)statements32[i].a);
+			if (statements32[i].b < 0) statements16[i].b = LittleShort((short)statements32[i].b);
+			else statements16[i].b = (word)LittleShort((word)statements32[i].b);
+			if (statements32[i].c < 0) statements16[i].c = LittleShort((short)statements32[i].c);
+			else statements16[i].c = (word)LittleShort((word)statements32[i].c);
+		}
+		PR_WriteBlock(h, progs.ofs_statements, statements16, progs.numstatements*sizeof(dstatement16_t), progs.blockscompressed & COMP_STATEMENTS);
+		break;
 	}
 
 	progs.ofs_functions = VFS_Tell(h);
 	progs.numfunctions = numfunctions;
-	for (i=0 ; i<numfunctions ; i++)
+
+	for (i = 0; i < numfunctions; i++)
 	{
 		functions[i].first_statement = LittleLong (functions[i].first_statement);
 		functions[i].parm_start = LittleLong (functions[i].parm_start);
 		functions[i].s_name = LittleLong (functions[i].s_name);
 		functions[i].s_file = LittleLong (functions[i].s_file);
-		functions[i].numparms = LittleLong ((functions[i].numparms>MAX_PARMS)?MAX_PARMS:functions[i].numparms);
+		functions[i].numparms = LittleLong ((functions[i].numparms > MAX_PARMS) ? MAX_PARMS : functions[i].numparms);
 		functions[i].locals = LittleLong (functions[i].locals);
 	}
 
-	if (progs.blockscompressed&8)
-	{		
-		VFS_Write (h, &len, sizeof(int));	//save for later
-		len = PR_encode(numfunctions*sizeof(dfunction_t), 2, (char *)functions, h);	//write
-		i = VFS_Tell(h);
-		VFS_Seek(h, progs.ofs_functions, SEEK_SET);//seek back
-		len = LittleLong(len);
-		VFS_Write (h, &len, sizeof(int));	//write size.
-		VFS_Seek(h, i, SEEK_SET);
-	}
-	else
-		VFS_Write (h, functions, numfunctions*sizeof(dfunction_t));
+	PR_WriteBlock(h, progs.ofs_functions, functions, progs.numfunctions*sizeof(dfunction_t), progs.blockscompressed & COMP_FUNCTIONS);
 
 	switch(outputsize)
 	{
 	case 32:
 		progs.ofs_globaldefs = VFS_Tell(h);
 		progs.numglobaldefs = numglobaldefs;
-		for (i=0 ; i<numglobaldefs ; i++)
+		for (i = 0; i < numglobaldefs; i++)
 		{
-			qcc_globals[i].type = LittleLong/*LittleShort*/ (qcc_globals[i].type);
-			qcc_globals[i].ofs = LittleLong/*LittleShort*/ (qcc_globals[i].ofs);
-			qcc_globals[i].s_name = LittleLong (qcc_globals[i].s_name);
+			qcc_globals32[i].type = LittleLong(qcc_globals32[i].type);
+			qcc_globals32[i].ofs = LittleLong(qcc_globals32[i].ofs);
+			qcc_globals32[i].s_name = LittleLong(qcc_globals32[i].s_name);
 		}
 
-		if (progs.blockscompressed&2)
-		{		
-			VFS_Write (h, &len, sizeof(int));	//save for later
-			len = PR_encode(numglobaldefs*sizeof(ddef_t), 2, (char *)qcc_globals, h);	//write
-			i = VFS_Tell(h);
-			VFS_Seek(h, progs.ofs_globaldefs, SEEK_SET);//seek back
-			len = LittleLong(len);
-			VFS_Write (h, &len, sizeof(int));	//write size.
-			VFS_Seek(h, i, SEEK_SET);
-		}
-		else
-			VFS_Write (h, qcc_globals, numglobaldefs*sizeof(ddef_t));
+		PR_WriteBlock(h, progs.ofs_globaldefs, qcc_globals32, progs.numglobaldefs*sizeof(ddef32_t), progs.blockscompressed & COMP_DEFS);
 
 		progs.ofs_fielddefs = VFS_Tell(h);
 		progs.numfielddefs = numfielddefs;
 
-		for (i=0 ; i<numfielddefs ; i++)
+		for (i = 0; i < numfielddefs; i++)
 		{
-			fields[i].type = LittleLong/*LittleShort*/ (fields[i].type);
-			fields[i].ofs = LittleLong/*LittleShort*/ (fields[i].ofs);
-			fields[i].s_name = LittleLong (fields[i].s_name);
+			fields32[i].type = LittleLong(fields32[i].type);
+			fields32[i].ofs = LittleLong(fields32[i].ofs);
+			fields32[i].s_name = LittleLong(fields32[i].s_name);
 		}
 
-		if (progs.blockscompressed&4)
-		{		
-			VFS_Write (h, &len, sizeof(int));	//save for later
-			len = PR_encode(numfielddefs*sizeof(ddef_t), 2, (char *)fields, h);	//write
-			i = VFS_Tell(h);
-			VFS_Seek(h, progs.ofs_fielddefs, SEEK_SET);//seek back
-			len = LittleLong(len);
-			VFS_Write (h, &len, sizeof(int));	//write size.
-			VFS_Seek(h, i, SEEK_SET);
-		}
-		else
-			VFS_Write (h, fields, numfielddefs*sizeof(ddef_t));
+		PR_WriteBlock(h, progs.ofs_fielddefs, fields32, progs.numfielddefs*sizeof(ddef32_t), progs.blockscompressed & COMP_FIELDS);
 		break;
 	case 16:
-#define qcc_globals16 ((ddef16_t*)qcc_globals)
-#define fields16 ((ddef16_t*)fields)
+	default:
 		progs.ofs_globaldefs = VFS_Tell(h);
 		progs.numglobaldefs = numglobaldefs;
-		for (i=0 ; i<numglobaldefs ; i++)
+		for (i = 0; i < numglobaldefs; i++)
 		{
-			qcc_globals16[i].type = (unsigned short)LittleShort ((unsigned short)qcc_globals[i].type);
-			qcc_globals16[i].ofs = (unsigned short)LittleShort ((unsigned short)qcc_globals[i].ofs);
-			qcc_globals16[i].s_name = LittleLong (qcc_globals[i].s_name);
+			qcc_globals16[i].type = (word)LittleShort ((word)qcc_globals32[i].type);
+			qcc_globals16[i].ofs = (word)LittleShort ((word)qcc_globals32[i].ofs);
+			qcc_globals16[i].s_name = LittleLong(qcc_globals32[i].s_name);
 		}
 
-		if (progs.blockscompressed&2)
-		{		
-			VFS_Write (h, &len, sizeof(int));	//save for later
-			len = PR_encode(numglobaldefs*sizeof(ddef16_t), 2, (char *)qcc_globals16, h);	//write
-			i = VFS_Tell(h);
-			VFS_Seek(h, progs.ofs_globaldefs, SEEK_SET);//seek back
-			len = LittleLong(len);
-			VFS_Write (h, &len, sizeof(int));	//write size.
-			VFS_Seek(h, i, SEEK_SET);
-		}
-		else
-			VFS_Write (h, qcc_globals16, numglobaldefs*sizeof(ddef16_t));
+		PR_WriteBlock(h, progs.ofs_globaldefs, qcc_globals16, progs.numglobaldefs*sizeof(ddef16_t), progs.blockscompressed & COMP_DEFS);
 
 		progs.ofs_fielddefs = VFS_Tell(h);
 		progs.numfielddefs = numfielddefs;
 
-		for (i=0 ; i<numfielddefs ; i++)
+		for (i = 0; i < numfielddefs; i++)
 		{
-			fields16[i].type = (unsigned short)LittleShort ((unsigned short)fields[i].type);
-			fields16[i].ofs = (unsigned short)LittleShort ((unsigned short)fields[i].ofs);
-			fields16[i].s_name = LittleLong (fields[i].s_name);
+			fields16[i].type = (word)LittleShort ((word)fields32[i].type);
+			fields16[i].ofs = (word)LittleShort ((word)fields32[i].ofs);
+			fields16[i].s_name = LittleLong (fields32[i].s_name);
 		}
 
-		if (progs.blockscompressed&4)
-		{		
-			VFS_Write (h, &len, sizeof(int));	//save for later
-			len = PR_encode(numfielddefs*sizeof(ddef16_t), 2, (char *)fields16, h);	//write
-			i = VFS_Tell(h);
-			VFS_Seek(h, progs.ofs_fielddefs, SEEK_SET);//seek back
-			len = LittleLong(len);
-			VFS_Write (h, &len, sizeof(int));	//write size.
-			VFS_Seek(h, i, SEEK_SET);
-		}
-		else
-			VFS_Write (h, fields16, numfielddefs*sizeof(ddef16_t));
+		PR_WriteBlock(h, progs.ofs_fielddefs, fields16, progs.numfielddefs*sizeof(ddef16_t), progs.blockscompressed & COMP_FIELDS);
 		break;
-	default:
-		Sys_Error("intsize error");
 	}
 
 	progs.ofs_globals = VFS_Tell(h);
 	progs.numglobals = numpr_globals;
 
-	for (i=0 ; (unsigned)i<numpr_globals ; i++)
-		((int *)pr_globals)[i] = LittleLong (((int *)pr_globals)[i]);
+	for (i = 0; (uint) i < numpr_globals; i++) ((int *)pr_globals)[i] = LittleLong (((int *)pr_globals)[i]);
 
-	if (progs.blockscompressed&32)
-	{		
-		VFS_Write (h, &len, sizeof(int));	//save for later
-		len = PR_encode(numpr_globals*4, 2, (char *)pr_globals, h);	//write
-		i = VFS_Tell(h);
-		VFS_Seek(h, progs.ofs_globals, SEEK_SET);//seek back
-		len = LittleLong(len);
-		VFS_Write (h, &len, sizeof(int));	//write size.
-		VFS_Seek(h, i, SEEK_SET);
-	}
-	else
-		VFS_Write (h, pr_globals, numpr_globals*4);	
+	PR_WriteBlock(h, progs.ofs_globals, pr_globals, numpr_globals*4, progs.blockscompressed & COMP_GLOBALS);
 
-	if (types)
-	for (i=0 ; i<numtypeinfos ; i++)
+	if(types)
 	{
-		if (qcc_typeinfo[i].aux_type)
-			qcc_typeinfo[i].aux_type = (type_t*)(qcc_typeinfo[i].aux_type - qcc_typeinfo);
-		if (qcc_typeinfo[i].next)
-			qcc_typeinfo[i].next = (type_t*)(qcc_typeinfo[i].next - qcc_typeinfo);
-		qcc_typeinfo[i].name = (char *)PR_CopyDupBackString(qcc_typeinfo[i].name);
+		for (i = 0; i < numtypeinfos; i++)
+		{
+			if (qcc_typeinfo[i].aux_type)
+				qcc_typeinfo[i].aux_type = (type_t*)(qcc_typeinfo[i].aux_type - qcc_typeinfo);
+			if (qcc_typeinfo[i].next)
+				qcc_typeinfo[i].next = (type_t*)(qcc_typeinfo[i].next - qcc_typeinfo);
+			qcc_typeinfo[i].name = (char *)PR_CopyDupBackString(qcc_typeinfo[i].name);
+		}
 	}
 
 	progs.ofsfiles = 0;
@@ -963,19 +812,15 @@ void PR_WriteData (int crc)
 
 	switch(targetformat)
 	{
-	case QCF_KK7:
-		progs.version = PROG_EXTENDEDVERSION;
-		break;
 	case QCF_STANDARD:
-	case QCF_HEXEN2:	//urgh
-		progs.version = VPROGS_VERSION;
+		progs.version = QPROGS_VERSION; // QuakeC engine v 1.08
 		break;
-	case QCF_FTE:
-	case QCF_FTEDEBUG:
-		progs.version = PROG_EXTENDEDVERSION;
+	case QCF_DEBUG:
+	case QCF_RELEASE:
+                    progs.version = VPROGS_VERSION;
 
+		if (outputsize == 16) progs.header = VPROGSHEADER16;
 		if (outputsize == 32) progs.header = VPROGSHEADER32;
-		else progs.header = VPROGSHEADER16;
 
 		progs.ofsbodylessfuncs = VFS_Tell(h);
 		progs.numbodylessfuncs = WriteBodylessFuncs(h);		
@@ -983,61 +828,37 @@ void PR_WriteData (int crc)
 		if (debugtarget)
 		{
 			progs.ofslinenums = VFS_Tell(h);
-			if (progs.blockscompressed&64)
-			{		
-				VFS_Write (h, &len, sizeof(int));	//save for later
-				len = PR_encode(numstatements*sizeof(int), 2, (char *)statement_linenums, h);	//write
-				i = VFS_Tell(h);
-				VFS_Seek(h, progs.ofslinenums, SEEK_SET);//seek back
-				len = LittleLong(len);
-				VFS_Write (h, &len, sizeof(int));	//write size.
-				VFS_Seek(h, i, SEEK_SET);
-			}
-			else VFS_Write (h, statement_linenums, numstatements * sizeof(int));
+			PR_WriteBlock(h, progs.ofslinenums, statement_linenums, numstatements*sizeof(int), progs.blockscompressed & COMP_LINENUMS);
 		}
 		else progs.ofslinenums = 0;
 
 		if (types)
 		{
 			progs.ofs_types = VFS_Tell(h);
-			if (progs.blockscompressed & 128)
-			{		
-				VFS_Write (h, &len, sizeof(int));	//save for later
-				len = PR_encode(sizeof(type_t)*numtypeinfos, 2, (char *)qcc_typeinfo, h);	//write
-				i = VFS_Tell(h);
-				VFS_Seek(h, progs.ofs_types, SEEK_SET);//seek back#
-				len = LittleLong(len);
-				VFS_Write (h, &len, sizeof(int));	//write size.
-				VFS_Seek(h, i, SEEK_SET);
-			}
-			else
-				VFS_Write (h, qcc_typeinfo, sizeof(type_t)*numtypeinfos);
-			progs.numtypes = numtypeinfos;		
+			progs.numtypes = numtypeinfos;
+			PR_WriteBlock(h, progs.ofs_types, qcc_typeinfo, progs.numtypes*sizeof(type_t), progs.blockscompressed & COMP_TYPES);
 		}
 		else
 		{
 			progs.ofs_types = 0;
 			progs.numtypes = 0;
 		}
-
 		progs.ofsfiles = WriteSourceFiles(h, &progs, debugtarget);
 		break;
 	}
 
 	Msg ("%6i TOTAL SIZE\n", VFS_Tell(h));
-
 	progs.entityfields = pr.size_fields;
 
 	progs.crc = crc;
 
 	// byte swap the header and write it out
-	for (i=0 ; i<sizeof(progs)/4 ; i++)
-		((int *)&progs)[i] = LittleLong ( ((int *)&progs)[i] );		
-
+	for (i = 0; i < sizeof(progs)/4; i++) ((int *)&progs)[i] = LittleLong (((int *)&progs)[i]);		
 	
 	VFS_Seek (h, 0, SEEK_SET);
 	VFS_Write (h, &progs, sizeof(progs));
-	VFS_Close (h);
+
+	VFS_Close (h); // write real file into disk
 }
 
 
@@ -1437,7 +1258,7 @@ int PR_FinishCompilation (void)
 #define CRC_INIT_VALUE	0xffff
 #define CRC_XOR_VALUE	0x0000
 
-static unsigned short PR_crctable[256] =
+static word PR_crctable[256] =
 {
 	0x0000,	0x1021,	0x2042,	0x3063,	0x4084,	0x50a5,	0x60c6,	0x70e7,
 	0x8108,	0x9129,	0xa14a,	0xb16b,	0xc18c,	0xd1ad,	0xe1ce,	0xf1ef,
@@ -1473,17 +1294,17 @@ static unsigned short PR_crctable[256] =
 	0x6e17,	0x7e36,	0x4e55,	0x5e74,	0x2e93,	0x3eb2,	0x0ed1,	0x1ef0
 };
 
-void PR_CRC_Init(unsigned short *crcvalue)
+void PR_CRC_Init(word *crcvalue)
 {
 	*crcvalue = CRC_INIT_VALUE;
 }
 
-void PR_CRC_ProcessByte(unsigned short *crcvalue, byte data)
+void PR_CRC_ProcessByte(word *crcvalue, byte data)
 {
 	*crcvalue = (*crcvalue << 8) ^ PR_crctable[(*crcvalue >> 8) ^ data];
 }
 
-unsigned short PR_CRC_Value(unsigned short crcvalue)
+word PR_CRC_Value(word crcvalue)
 {
 	return crcvalue ^ CRC_XOR_VALUE;
 }
@@ -1492,7 +1313,7 @@ unsigned short PR_CRC_Value(unsigned short crcvalue)
 
 #define PROGDEFS_MAX_SIZE 16384
 //write (to file buf) and add to the crc
-void __inline Add(char *p, unsigned short *crc, char *file)
+void __inline Add(char *p, word *crc, char *file)
 {
 	char *s;
 	int i = strlen(file);
@@ -1508,7 +1329,7 @@ void __inline Add(char *p, unsigned short *crc, char *file)
 #define ADD(p) Add(p, &crc, file)
 //#define ADD(p) {char *s;int i = strlen(p);for(s=p;*s;s++,i++){PR_CRC_ProcessByte(&crc, *s);file[i] = *s;}file[i]='\0';}
 
-void __inline Add3(char *p, unsigned short *crc, char *file)
+void __inline Add3(char *p, word *crc, char *file)
 {
 	char *s;
 	for(s=p;*s;s++)
@@ -1516,14 +1337,14 @@ void __inline Add3(char *p, unsigned short *crc, char *file)
 }
 #define ADD3(p) Add3(p, &crc, file)
 
-unsigned short PR_WriteProgdefs (char *filename)
+word PR_WriteProgdefs (char *filename)
 {
 	extern int ForcedCRC;
 #define ADD2(p) strncat(file, p, PROGDEFS_MAX_SIZE-1 - strlen(file))	//no crc (later changes)
 	char file[PROGDEFS_MAX_SIZE];
 	def_t	*d;
 	int	f;
-	unsigned short		crc;
+	word		crc;
 //	int		c;
 
 	file[0] = '\0';
@@ -1532,10 +1353,7 @@ unsigned short PR_WriteProgdefs (char *filename)
 	
 // print global vars until the first field is defined
 	ADD("\n/* ");
-	if (targetformat == QCF_HEXEN2)
-		ADD3("generated by hcc, do not modify");
-	else
-		ADD3("file generated by qcc, do not modify");
+	ADD3("file generated by qcc, do not modify");
 	ADD2("File generated by FTEQCC, relevent for engine modding only, the generated crc must be the same as your engine expects.");
 	ADD(" */\n\ntypedef struct");
 	ADD2(" globalvars_s");
@@ -2047,7 +1865,7 @@ void PR_SetDefaultProperties (void)
 
 	if (FS_CheckParm("/Oz"))
 	{
-		targetformat = QCF_FTE;
+		targetformat = QCF_RELEASE;
 		PR_DefineName("OP_COMP_STATEMENTS");
 		PR_DefineName("OP_COMP_DEFS");
 		PR_DefineName("OP_COMP_FIELDS");
@@ -2110,10 +1928,6 @@ void PR_SetDefaultProperties (void)
 
 	//Check the command line
 	PR_CommandLinePrecompilerOptions();
-
-
-	if (targetformat == QCF_HEXEN2)	//force on the thinktime keyword if hexen2 progs.
-		keyword_thinktime = true;
 
 	if (FS_CheckParm("-debug"))	//disable any debug optimisations
 	{

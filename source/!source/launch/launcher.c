@@ -242,9 +242,10 @@ void CommonMain ( void )
 	case IMGLIB:
 		CompileMod = Com->Compile.Image; 
 		strcpy(typemod, "images" );
-		strcpy(searchmask[0], "*.pcx" );
-		strcpy(searchmask[1], "*.wal" );
-		strcpy(searchmask[2], "*.lmp" );
+		strcpy(searchmask[0], "*.pcx" );	// quake2 menu images
+		strcpy(searchmask[1], "*.wal" );	// quake2 textures
+		strcpy(searchmask[2], "*.lmp" );	// quake1 menu images
+		strcpy(searchmask[3], "*.mip" );	// quake1 textures
 		Msg("Processing images ...\n\n");
 		break;		
 	case BSPLIB: 

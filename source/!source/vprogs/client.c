@@ -73,10 +73,9 @@ Called when a player gets 'killed' by KILLED(); [DAMAGE.QC]
 void(entity who_died, entity who_killed) ClientObiturary = 
 {
 	local string deathstring;
-	local string who;
-	local float rnum, msgdt, fragnum;
+	local float rnum, msgdt;
 	
-	rnum = random();
+	rnum = random_float(0, 1);
 	
 	if(who_died.flags & FL_CLIENT)
 	{
@@ -294,19 +293,23 @@ void() PutClientInServer =
 	setstats( pev, STAT_HEALTH, ftoa(pev->health));
 	setstats( pev, STAT_HELPICON, "i_help");
 
-	precache_pic( "help" );		
+	image_index( "help" );		
 	GetLevelParms();
 };
 
 void HelpComputer( void )
 {
-	string	help = "xv 32 yv 8 picn help ";
-	float	layout = 0;
+	string	help; 
+	float	layout;
 
 	if(pev->showhelp == TRUE) pev->showhelp = FALSE;
-	else pev->showhelp == TRUE;
+	else pev->showhelp = TRUE;
 
-	if(pev->showhelp == TRUE) layout |= 1;
+	if(pev->showhelp == TRUE) 
+	{
+		layout |= 1;
+		help = "xv 32 yv 8 picn help ";
+	}
 	else help = "";
 	if(pev->health > 0) layout |= 2;
 

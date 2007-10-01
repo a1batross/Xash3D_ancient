@@ -42,23 +42,23 @@ Then sets it moving in its direction;
 
 void() func_train_next =
 {
-	local entity	targ;
+	local entity	next_targ;
 
-	targ = find (world, targetname, pev->target);
+	next_targ = find (world, targetname, pev->target);
 
-	pev->target = targ.target;
+	pev->target = next_targ->target;
 
 	if (!pev->target)
 		Error ("train_next: no next target\n");
 
-	if (targ.wait)
-		pev->wait = targ.wait;
+	if (next_targ.wait)
+		pev->wait = next_targ.wait;
 	else
 		pev->wait = 0;
 
 	//sound (pev, CHAN_VOICE, pev->noise1, 1, ATTN_NORM);
 
-	func_mover_move (targ.origin - pev->mins, pev->speed, func_train_wait);
+	func_mover_move (next_targ.origin - pev->mins, pev->speed, func_train_wait);
 };
 
 /*
@@ -70,15 +70,15 @@ Called on spawning, this function finds the trains first target and sets the tra
 
 void() func_train_find =
 {
-	local entity	targ;
+	local entity	next_targ;
 
-	targ = find (world, targetname, pev->target);
+	next_targ = find (world, targetname, pev->target);
 
-	pev->target = targ.target;
+	pev->target = next_targ.target;
 
-	setorigin (pev, targ.origin - pev->mins);
+	setorigin (pev, next_targ.origin - pev->mins);
 
-	if (!pev->targetname)				// not triggered, so start immediately
+	if (!pev->targetname) // not triggered, so start immediately
 	{
 		pev->nextthink = pev->ltime + 0.1;
 		pev->think = func_train_next;

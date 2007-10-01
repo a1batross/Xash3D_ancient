@@ -39,7 +39,7 @@ void() SetMovedir =
 void() IEM_usetarget =
 {
 	local entity t, oldpev, oldother;
-	
+
 	if(pev->target)
 	{
 		t = find(world, targetname, pev->target);
