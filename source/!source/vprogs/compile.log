@@ -1,7 +1,8 @@
 =======================================================================
-	Xash3D QuakeC Compiler started at Sep30 2007 [23:56:40]
+	Xash3D QuakeC Compiler started at Oct02 2007 [22:41:55]
 =======================================================================
---------------------Configuration: server - Vm16 Debug--------------------
+warning C0: Unrecognised optimisation parameter (/Oz)
+--------------------Configuration: server - Vm16 Release--------------------
 Compiling...
 defs.c
 main.c
@@ -35,26 +36,34 @@ ents/funcs/func_areaportal.c
 ents/items/items.c
 impulses.c
 Xash3D virtual machine
- 19056 strofs (of 1000000)
+ 10704 strofs (of 1000000)
   2799 numstatements (of 524288)
    281 numfunctions (of 16384)
-   916 numglobaldefs (of 32768)
+   691 numglobaldefs (of 32768)
    245 numfielddefs (218 unique) (of 2048)
    927 numpr_globals (of 65536)
 Writing server.dat
- 64748 TOTAL SIZE
+real length 10704, compressed len 4119
+real length 22392, compressed len 5194
+real length 10116, compressed len 2226
+real length 5528, compressed len 2467
+real length 1960, compressed len 980
+real length 3708, compressed len 1191
+ 16389 TOTAL SIZE
  17 unique precache_sounds
   3 unique precache_models
 optres_shortenifnots 28
 optres_overlaptemps 1284
+optres_noduplicatestrings 4943
 optres_nonvec_parms 479
 optres_assignments 40
 optres_unreferenced 52
 optres_dupconstdefs 68
+optres_stripfunctions 225
 Скопировано файлов:         1.
 
 server.dat - 0 error(s), 0 warning(s)
 
 =======================================================================
-	Xash3D QuakeC Compiler stopped at Sep30 2007 [23:56:40]
+	Xash3D QuakeC Compiler stopped at Oct02 2007 [22:41:55]
 =======================================================================

@@ -20,6 +20,7 @@ SV_ClipToLinks		SV_ClipMoveToEntities
 	переписать compile targets
 	OP_POWER_I - добавить XOR для right result
 	добавить новые операции в Bounds checker	
+	починить zlib
 }
 
 

@@ -7,6 +7,33 @@
 #include "basemath.h" // nearest_pow
 #include "utils.h"
 
+byte palette_d1[768] = 
+{
+0,0,0,31,23,11,23,15,7,75,75,75,255,255,255,27,27,27,19,19,19,11,11,11,7,7,7,47,55,31,35,43,15,23,31,7,15,23,0,79,
+59,43,71,51,35,63,43,27,255,183,183,247,171,171,243,163,163,235,151,151,231,143,143,223,135,135,219,123,123,211,115,
+115,203,107,107,199,99,99,191,91,91,187,87,87,179,79,79,175,71,71,167,63,63,163,59,59,155,51,51,151,47,47,143,43,43,
+139,35,35,131,31,31,127,27,27,119,23,23,115,19,19,107,15,15,103,11,11,95,7,7,91,7,7,83,7,7,79,0,0,71,0,0,67,0,0,255,
+235,223,255,227,211,255,219,199,255,211,187,255,207,179,255,199,167,255,191,155,255,187,147,255,179,131,247,171,123,
+239,163,115,231,155,107,223,147,99,215,139,91,207,131,83,203,127,79,191,123,75,179,115,71,171,111,67,163,107,63,155,
+99,59,143,95,55,135,87,51,127,83,47,119,79,43,107,71,39,95,67,35,83,63,31,75,55,27,63,47,23,51,43,19,43,35,15,239,
+239,239,231,231,231,223,223,223,219,219,219,211,211,211,203,203,203,199,199,199,191,191,191,183,183,183,179,179,179,
+171,171,171,167,167,167,159,159,159,151,151,151,147,147,147,139,139,139,131,131,131,127,127,127,119,119,119,111,111,
+111,107,107,107,99,99,99,91,91,91,87,87,87,79,79,79,71,71,71,67,67,67,59,59,59,55,55,55,47,47,47,39,39,39,35,35,35,
+119,255,111,111,239,103,103,223,95,95,207,87,91,191,79,83,175,71,75,159,63,67,147,55,63,131,47,55,115,43,47,99,35,39,
+83,27,31,67,23,23,51,15,19,35,11,11,23,7,191,167,143,183,159,135,175,151,127,167,143,119,159,135,111,155,127,107,147,
+123,99,139,115,91,131,107,87,123,99,79,119,95,75,111,87,67,103,83,63,95,75,55,87,67,51,83,63,47,159,131,99,143,119,83,
+131,107,75,119,95,63,103,83,51,91,71,43,79,59,35,67,51,27,123,127,99,111,115,87,103,107,79,91,99,71,83,87,59,71,79,51,
+63,71,43,55,63,39,255,255,115,235,219,87,215,187,67,195,155,47,175,123,31,155,91,19,135,67,7,115,43,0,255,255,255,255,
+219,219,255,187,187,255,155,155,255,123,123,255,95,95,255,63,63,255,31,31,255,0,0,239,0,0,227,0,0,215,0,0,203,0,0,191,
+0,0,179,0,0,167,0,0,155,0,0,139,0,0,127,0,0,115,0,0,103,0,0,91,0,0,79,0,0,67,0,0,231,231,255,199,199,255,171,171,255,
+143,143,255,115,115,255,83,83,255,55,55,255,27,27,255,0,0,255,0,0,227,0,0,203,0,0,179,0,0,155,0,0,131,0,0,107,0,0,83,
+255,255,255,255,235,219,255,215,187,255,199,155,255,179,123,255,163,91,255,143,59,255,127,27,243,115,23,235,111,15,
+223,103,15,215,95,11,203,87,7,195,79,0,183,71,0,175,67,0,255,255,255,255,255,215,255,255,179,255,255,143,255,255,107,
+255,255,71,255,255,35,255,255,0,167,63,0,159,55,0,147,47,0,135,35,0,79,59,39,67,47,27,55,35,19,47,27,11,0,0,83,0,0,71,
+0,0,59,0,0,47,0,0,35,0,0,23,0,0,11,0,255,255,255,159,67,255,231,75,255,123,255,255,0,255,207,0,207,159,0,155,111,0,107,
+167,107,107
+};
+
 byte palette_q1[768] =
 {
 0,0,0,15,15,15,31,31,31,47,47,47,63,63,63,75,75,75,91,91,91,107,107,107,123,123,123,139,139,139,155,155,155,171,
@@ -59,10 +86,12 @@ byte palette_q2[768] =
 159,91,83	
 };
 
+uint d_8toD1table[256];
 uint d_8toQ1table[256];
 uint d_8toQ2table[256];
 uint d_8to24table[256];
 uint *d_currentpal;
+bool d1palette_init = false;
 bool q1palette_init = false;
 bool q2palette_init = false;
 
@@ -80,7 +109,17 @@ void Image_GetPalette( byte *pal, uint *d_table )
 		rgba[1] = pal[i*3+2];
 		d_table[i] = BuffBigLong( rgba );
 	}
-	d_currentpal = d_table;
+}
+
+void Image_GetD1Palette( void )
+{
+	if(!d1palette_init)
+	{
+		Image_GetPalette( palette_d1, d_8toD1table );
+		d_8toD1table[255] = 247; // 247 is transparent
+		d1palette_init = true;
+	}
+	d_currentpal = d_8toD1table;
 }
 
 void Image_GetQ1Palette( void )
@@ -91,7 +130,7 @@ void Image_GetQ1Palette( void )
 		d_8toQ1table[255] = 0; // 255 is transparent
 		q1palette_init = true;
 	}
-	else d_currentpal = d_8toQ1table;
+	d_currentpal = d_8toQ1table;
 }
 
 void Image_GetQ2Palette( void )
@@ -102,7 +141,7 @@ void Image_GetQ2Palette( void )
 		d_8toQ2table[255] &= LittleLong(0xffffff);
 		q2palette_init = true;
 	}
-	else d_currentpal = d_8toQ2table;
+	d_currentpal = d_8toQ2table;
 }
 
 void Image_GetPalettePCX( byte *pal )
@@ -130,7 +169,7 @@ void Image_Copy8bitRGBA(const byte *in, byte *out, int pixels)
 
 	if(!d_currentpal)
 	{
-		MsgDev(D_ERROR, "Image_Copy8bitRGBA: no palette set\n");
+		MsgDev(D_ERROR,"Image_Copy8bitRGBA: no palette set\n");
 		return;
 	}
 
@@ -214,7 +253,7 @@ byte *Image_Resample(uint *in, int inwidth, int inheight, int outwidth, int outh
 		frac += fracstep;
 	}
 
-	for (i = 0; i < outheight; i++, buf += outwidth)
+	for (i = 0; i < outheight; i++,buf += outwidth)
 	{
 		inrow1 = in + inwidth * (int)((i + 0.25) * inheight / outheight);
 		inrow2 = in + inwidth * (int)((i + 0.75) * inheight / outheight);
@@ -246,14 +285,14 @@ bool Image_Processing( const char *name, rgbdata_t **pix )
 
 	w = image->width;
 	h = image->height;
-	Image_RoundDimensions( &w, &h ); //detect new size
+	Image_RoundDimensions( &w,&h ); //detect new size
 
 	out = Image_Resample((uint *)image->buffer, image->width, image->height, w, h );
 	if(out != image->buffer)
 	{
-		Msg("Resampling %s from[%d x %d] to[%d x %d]\n", name, image->width, image->height, w, h );
+		Msg("Resampling %s from[%d x %d] to[%d x %d]\n",name, image->width, image->height, w, h );
 		Mem_Move( imagepool, &image->buffer, out, w * h * 4 );// update image->buffer
-		image->width = w, image->height = h;
+		image->width = w,image->height = h;
 		*pix = image;
 		return true;
 	}
@@ -268,13 +307,13 @@ bool ConvertImagePixels ( byte *mempool, const char *name, byte parms )
 
 	if(!image || !image->buffer) return false;
 
-	strncpy( savename, name, sizeof(savename)-1);
+	strncpy( savename,name,sizeof(savename)-1);
 	FS_StripExtension( savename ); // remove extension if needed
 	FS_DefaultExtension( savename, ".tga" );// set new extension
 	w = image->width, h = image->height; 
 
 	if(FS_CheckParm("-resample"))
-		Image_Processing( name, &image );
+		Image_Processing( name,&image );
 
 	FS_SaveImage( savename, image );// save as TGA
 	FS_FreeImage( image );

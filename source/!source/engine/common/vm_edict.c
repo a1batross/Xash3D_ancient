@@ -1294,11 +1294,11 @@ PRVM_LoadProgs
 */
 void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int numedfields, prvm_fieldvars_t *ed_field)
 {
-	int		i, len;
 	dstatement_t	*st;
 	ddef_t		*infielddefs;
 	dfunction_t	*dfunctions;
 	fs_offset_t	filesize;
+	int		i, len, complen;
 	byte		*s;
 
 	if( prog->loaded )
@@ -1341,12 +1341,19 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		PRVM_ERROR ("%s: %s system vars have been modified, progdefs.h is out of date", PRVM_NAME, filename);	
 		break;
 	}
-	Msg("Loading %s\n", filename );
+	Msg("Loading %s [CRC %d]\n", filename, prog->progs->crc );
 
+	// set initial pointers
+	prog->statements = (dstatement_t *)((byte *)prog->progs + prog->progs->ofs_statements);
+	prog->globaldefs = (ddef_t *)((byte *)prog->progs + prog->progs->ofs_globaldefs);
+	infielddefs = (ddef_t *)((byte *)prog->progs + prog->progs->ofs_fielddefs);
+	dfunctions = (dfunction_t *)((byte *)prog->progs + prog->progs->ofs_functions);
+	prog->strings = (char *)prog->progs + prog->progs->ofs_strings;
+	prog->globals.gp = (float *)((byte *)prog->progs + prog->progs->ofs_globals);
+
+	// debug info
  	if (prog->progs->ofslinenums) prog->linenums = (int *)((byte *)prog->progs + prog->progs->ofslinenums);
 	if (prog->progs->ofs_types) prog->types = (typeinfo_t *)((byte *)prog->progs + prog->progs->ofs_types);
-
-	prog->statements = (dstatement_t *)((byte *)prog->progs + prog->progs->ofs_statements);
 
 	// decompress progs if needed
 	if (prog->progs->blockscompressed & COMP_STATEMENTS)
@@ -1361,38 +1368,137 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 			len = sizeof(dstatement16_t) * prog->progs->numstatements;
 			break;
 		}
-                    
-		s = Mem_Alloc(prog->progs_mempool, len ); //alloc memory for inflate block
-		Com->Compile.DecryptDAT(LittleLong(*(int*)prog->statements), len, 2, (char *)(((int *)prog->statements)+1), &s);
-		prog->statements = (dstatement16_t *)s;
-	}
-	Sys_Error("breakpoint\n");
-	dfunctions = (dfunction_t *)((byte *)prog->progs + prog->progs->ofs_functions);
+		complen = LittleLong(*(int*)prog->statements);
 
-	prog->strings = (char *)prog->progs + prog->progs->ofs_strings;
+		Msg("Unpacked statements: len %d, comp len %d\n", len, complen );                   
+		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
+		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)prog->statements)+1), &s);
+		prog->statements = (dstatement16_t *)s;
+		filesize += len - complen - sizeof(int); //merge filesize
+	}
+
+	if (prog->progs->blockscompressed & COMP_DEFS)
+	{
+		switch(prog->intsize)
+		{
+		case 32:
+			len = sizeof(ddef32_t) * prog->progs->numglobaldefs;
+			break;
+		case 16:
+		default:
+			len = sizeof(ddef16_t) * prog->progs->numglobaldefs;
+			break;
+		}
+		complen = LittleLong(*(int*)prog->globaldefs);
+
+		Msg("Unpacked defs: len %d, comp len %d\n", len, complen);                   
+		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
+		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)prog->globaldefs)+1), &s);
+		prog->globaldefs = (ddef16_t *)s;
+		filesize += len - complen - sizeof(int); //merge filesize
+	}
+
+	if (prog->progs->blockscompressed & COMP_FIELDS)
+	{
+		switch(prog->intsize)
+		{
+		case 32:
+			len = sizeof(ddef32_t) * prog->progs->numfielddefs;
+			break;
+		case 16:
+		default:
+			len = sizeof(ddef16_t) * prog->progs->numfielddefs;
+			break;
+		}
+		complen = LittleLong(*(int*)infielddefs);
+
+		Msg("Unpacked fields: len %d, comp len %d\n", len, complen );                   
+		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
+		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)infielddefs)+1), &s);
+		infielddefs = (ddef16_t *)s;
+		filesize += len - complen - sizeof(int); //merge filesize
+	}
+
+	if (prog->progs->blockscompressed & COMP_FUNCTIONS)
+	{
+		len = sizeof(dfunction_t) * prog->progs->numfunctions;
+		complen = LittleLong(*(int*)dfunctions);
+
+		Msg("Unpacked functions: len %d, comp len %d\n", len, complen );                   
+		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
+		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)dfunctions)+1), &s);
+		dfunctions = (dfunction_t *)s;
+		filesize += len - complen - sizeof(int); //merge filesize
+	}
+
+	if (prog->progs->blockscompressed & COMP_STRINGS)
+	{
+		len = sizeof(char) * prog->progs->numstrings;
+		complen = LittleLong(*(int*)prog->strings);
+
+		Msg("Unpacked strings: count %d, len %d, comp len %d\n", prog->progs->numstrings, len, complen );                   
+		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
+		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)prog->strings)+1), &s);
+		prog->strings = (char *)s;
+
+		prog->progs->ofs_strings += 4;
+		filesize += len - complen - sizeof(int); //merge filesize
+	}
+
+	if (prog->progs->blockscompressed & COMP_GLOBALS)
+	{
+		len = sizeof(float) * prog->progs->numglobals;
+		complen = LittleLong(*(int*)prog->globals.gp);
+
+		Msg("Unpacked globals: len %d, comp len %d\n", len, complen );                   
+		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
+		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)prog->globals.gp)+1), &s);
+		prog->globals.gp = (float *)s;
+		filesize += len - complen - sizeof(int); //merge filesize
+	}
+
+	if (prog->linenums && prog->progs->blockscompressed & COMP_LINENUMS)
+	{
+		len = sizeof(int) * prog->progs->numstatements;
+		complen = LittleLong(*(int*)prog->linenums);
+
+		Msg("Unpacked linenums: len %d, comp len %d\n", len, complen );                   
+		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
+		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)prog->linenums)+1), &s);
+		prog->linenums = (int *)s;
+		filesize += len - complen - sizeof(int); //merge filesize
+	}
+
+	if (prog->types && prog->progs->blockscompressed & COMP_TYPES)
+	{
+		len = sizeof(typeinfo_t) * prog->progs->numtypes;
+		complen = LittleLong(*(int*)prog->types);
+
+		Msg("Unpacked types: len %d, comp len %d\n", len, complen );                   
+		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
+		Com->Compile.DecryptDAT( complen, len, 2, (char *)(((int *)prog->types)+1), &s);
+		prog->types = (typeinfo_t *)s;
+		filesize += len - complen - sizeof(int); //merge filesize
+	}
+
 	prog->stringssize = 0;
-	for (i = 0; i < prog->progs->numstrings; i++)
+
+	for (i = 0; prog->stringssize < prog->progs->numstrings; i++)
 	{
 		if (prog->progs->ofs_strings + prog->stringssize >= (int)filesize)
 			PRVM_ERROR ("%s: %s strings go past end of file", PRVM_NAME, filename);
-		prog->stringssize += (int)strlen (prog->strings + prog->stringssize) + 1;
+		prog->stringssize += (int)strlen(prog->strings + prog->stringssize) + 1;
 	}
+ 
 	prog->numknownstrings = 0;
 	prog->maxknownstrings = 0;
 	prog->knownstrings = NULL;
 	prog->knownstrings_freeable = NULL;
 
-	prog->globaldefs = (ddef_t *)((byte *)prog->progs + prog->progs->ofs_globaldefs);
-
 	// we need to expand the fielddefs list to include all the engine fields,
-	// so allocate a new place for it
-	infielddefs = (ddef_t *)((byte *)prog->progs + prog->progs->ofs_fielddefs);
-	// ( + DPFIELDS  )
+	// so allocate a new place for it ( + DPFIELDS  )
 	prog->fielddefs = (ddef_t *)Mem_Alloc(prog->progs_mempool, (prog->progs->numfielddefs + numedfields) * sizeof(ddef_t));
 	prog->statement_profile = (double *)Mem_Alloc(prog->progs_mempool, prog->progs->numstatements * sizeof(*prog->statement_profile));
-
-	// moved edict_size calculation down below field adding code
-	prog->globals.gp = (float *)((byte *)prog->progs + prog->progs->ofs_globals);
 
 	// byte swap the lumps
 	for (i = 0; i < prog->progs->numstatements; i++)
@@ -1402,7 +1508,6 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		prog->statements[i].b = LittleShort(prog->statements[i].b);
 		prog->statements[i].c = LittleShort(prog->statements[i].c);
 	}
-
 	prog->functions = (mfunction_t *)Mem_Alloc(prog->progs_mempool, sizeof(mfunction_t) * prog->progs->numfunctions);
 	for (i = 0; i < prog->progs->numfunctions; i++)
 	{
@@ -1552,7 +1657,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		}
 	}
 
-	PRVM_LoadLNO(filename);
+	if(!prog->linenums) PRVM_LoadLNO(filename);
 
 	PRVM_Init_Exec();
 

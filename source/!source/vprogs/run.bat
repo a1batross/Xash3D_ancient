@@ -1,1 +1,1 @@
-qcclib -log -debug
+qcclib -log -debug -O3 /Oz

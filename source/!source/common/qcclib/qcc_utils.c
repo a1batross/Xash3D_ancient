@@ -284,17 +284,16 @@ int PR_decode(int complen, int len, int method, char *info, char **data)
 	}
 	else if (method == 2)// compression (ZLIB)
 	{
-		z_stream strm = {info, complen, 0, buffer, len, 0, NULL, NULL, NULL, NULL, NULL, Z_BINARY, 0, 0 };
+		z_stream strm = {info, complen, 0, buffer, len, 0, NULL, NULL, NULL, NULL, NULL, 0, 0, 0 };
 		inflateInit( &strm );
 
 		// decompress it in one go.
 		if (Z_STREAM_END != inflate( &strm, Z_FINISH ))
 		{
-			Msg("Failed block decompression: %s\n", strm.msg );
+			Sys_Error("Failed block decompression: %s\n", strm.msg );
 			return false;
 		}
 		inflateEnd( &strm );
-		Msg("inflanting %s\n", strm.msg );
 	}
 	else 
 	{
@@ -326,23 +325,22 @@ int PR_encode(int len, int method, char *in, vfile_t *handle)
 	else if (method == 2)// compression (ZLIB)
 	{
 		char out[8192];
-		z_stream strm = {in, len, 0, out, sizeof(out), 0, NULL, NULL, NULL, NULL, NULL, Z_BINARY, 0, 0 };
+		z_stream strm = {in, len, 0, out, sizeof(out), 0, NULL, NULL, NULL, NULL, NULL, 0, 0, 0 };
 
-		deflateInit( &strm, Z_BEST_COMPRESSION);
+		deflateInit( &strm, 9 ); // Z_BEST_COMPRESSION
 
 		while(deflate( &strm, Z_FINISH) == Z_OK)
 		{
 			// compress in chunks of 8192. Saves having to allocate a huge-mega-big buffer
 			VFS_Write( handle, out, sizeof(out) - strm.avail_out);
 			i += sizeof(out) - strm.avail_out;
-
-			Msg("Zlib statuc %s\n", strm.msg );
 			strm.next_out = out;
 			strm.avail_out = sizeof(out);
 		}
 		VFS_Write( handle, out, sizeof(out) - strm.avail_out );
 		i += sizeof(out) - strm.avail_out;
 
+		Msg("real length %d, compressed len %d\n", len, i );
 		deflateEnd( &strm );
 		return i;
 	}
