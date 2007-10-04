@@ -1353,7 +1353,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 
 	// debug info
  	if (prog->progs->ofslinenums) prog->linenums = (int *)((byte *)prog->progs + prog->progs->ofslinenums);
-	if (prog->progs->ofs_types) prog->types = (typeinfo_t *)((byte *)prog->progs + prog->progs->ofs_types);
+	if (prog->progs->ofs_types) prog->types = (type_t *)((byte *)prog->progs + prog->progs->ofs_types);
 
 	// decompress progs if needed
 	if (prog->progs->blockscompressed & COMP_STATEMENTS)
@@ -1471,13 +1471,13 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 
 	if (prog->types && prog->progs->blockscompressed & COMP_TYPES)
 	{
-		len = sizeof(typeinfo_t) * prog->progs->numtypes;
+		len = sizeof(type_t) * prog->progs->numtypes;
 		complen = LittleLong(*(int*)prog->types);
 
 		Msg("Unpacked types: len %d, comp len %d\n", len, complen );                   
 		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
 		Com->Compile.DecryptDAT( complen, len, 2, (char *)(((int *)prog->types)+1), &s);
-		prog->types = (typeinfo_t *)s;
+		prog->types = (type_t *)s;
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
 

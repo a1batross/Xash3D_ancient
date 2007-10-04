@@ -68,7 +68,7 @@ int FS_Close (file_t* file);
 int FS_Getc (file_t* file);
 bool FS_Eof( file_t* file);
 
-//virtual files managment
+// virtual files managment
 vfile_t *VFS_Open(file_t* real_file, const char* mode);
 fs_offset_t VFS_Write( vfile_t *file, const void *buf, size_t size );
 fs_offset_t VFS_Read(vfile_t* file, void* buffer, size_t buffersize);
@@ -81,6 +81,11 @@ void FreeMemory( void );
 
 void FS_Init( int argc, char **argv );
 void FS_Shutdown (void);
+
+// crc stuff
+void CRC_Init(word *crcvalue);
+word CRC_Block (byte *start, int count);
+void CRC_ProcessByte(word *crcvalue, byte data);
 
 #define Mem_Alloc(pool, size) _Mem_Alloc(pool, size, __FILE__, __LINE__)
 #define Mem_Realloc(pool, ptr, size) _Mem_Realloc(pool, ptr, size, __FILE__, __LINE__)

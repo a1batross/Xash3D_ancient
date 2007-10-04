@@ -178,10 +178,6 @@ SOURCE=.\common\console.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\crc.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\common\cvar.c
 # End Source File
 # Begin Source File

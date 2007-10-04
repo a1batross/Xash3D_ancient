@@ -20,7 +20,19 @@ SV_ClipToLinks		SV_ClipMoveToEntities
 	переписать compile targets
 	OP_POWER_I - добавить XOR для right result
 	добавить новые операции в Bounds checker	
-	починить zlib
+	починить zlib			OK
+	Написать декомпилер
+	Декомпилер будет работать только, если сам
+	автор не отключит данную возможность (по умолчанию исходники вкладываются в сам progs.dat и
+	сжимаются зипом). Таким образом, мы получаем возможность "декомпилировать" виртуальную машину
+	в её первозданный вид.
+	ERR_INTERNAL должна провоцировать SYS_ERROR
+
+	PR_BeginCompilation()
+	
+	while(compileactive) PR_ContinueCompile();
+	
+	PR_FinishCompilation();
 }
 
 
@@ -30,6 +42,7 @@ studiorewindframe
 //==================================================
 //		то, что уже готово
 //==================================================
++новый стиль для progdefs.h
 +добавлена загрузка *.mip (quake1 текстуры)
 +Добавлены func_areaportal
 +исправлен overflow при компиляции в release

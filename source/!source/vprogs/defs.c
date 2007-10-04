@@ -16,7 +16,7 @@
 
 // These lines CANNOT be altered/moved
 	// pointers to ents
-	entity          	pev;		// Pointer EntVars (same as self)
+	entity          	pev;		// Pointer EntVars (same as pev)
 	entity		other;
 	entity		world;
 

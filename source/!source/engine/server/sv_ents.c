@@ -49,7 +49,7 @@ void SV_UpdateEntityState( edict_t *ent)
 	ent->priv.sv->s.effects = (uint)ent->progs.sv->effects;	// shared client and render flags
 	ent->priv.sv->s.renderfx = (int)ent->progs.sv->renderfx;	// renderer flags
 	ent->priv.sv->s.alpha = ent->progs.sv->alpha;		// alpha value
-	ent->priv.sv->s.soundindex = SV_SoundIndex(PRVM_GetString(ent->progs.sv->sound));
+	ent->priv.sv->s.soundindex = SV_SoundIndex(PRVM_GetString(ent->progs.sv->noise3));
 }
 
 /*
@@ -521,7 +521,7 @@ void SV_BuildClientFrame (client_t *client)
 		ent = PRVM_EDICT_NUM(e);
 
 		// ignore ents without visible models unless they have an effect
-		if (!ent->progs.sv->modelindex && !ent->progs.sv->effects && !ent->progs.sv->sound && !ent->priv.sv->event)
+		if (!ent->progs.sv->modelindex && !ent->progs.sv->effects && !ent->progs.sv->noise3 && !ent->priv.sv->event)
 			continue;
 
 		// ignore if not touching a PV leaf
@@ -547,7 +547,7 @@ void SV_BuildClientFrame (client_t *client)
 			{
 				// FIXME: if an ent has a model and a sound, but isn't
 				// in the PVS, only the PHS, clear the model
-				if (ent->progs.sv->sound)
+				if (ent->progs.sv->noise3)
 				{
 					bitvector = fatpvs;	//clientphs;
 				}
@@ -640,7 +640,7 @@ void SV_RecordDemoMessage (void)
 	{
 		// ignore ents without visible models unless they have an effect
 		if (!ent->priv.sv->free && ent->priv.sv->serialnumber && 
-			(ent->priv.sv->s.modelindex || ent->progs.sv->effects || ent->progs.sv->sound || ent->priv.sv->event))
+			(ent->priv.sv->s.modelindex || ent->progs.sv->effects || ent->progs.sv->noise3 || ent->priv.sv->event))
 			MSG_WriteDeltaEntity (&nostate, &ent->priv.sv->s, &buf, false, true);
 
 		e++;

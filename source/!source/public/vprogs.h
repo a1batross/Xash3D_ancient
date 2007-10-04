@@ -47,7 +47,7 @@ a internal virtual machine like as QuakeC, but it has more extensions
 #define COMP_GLOBALS	32
 #define COMP_LINENUMS	64
 #define COMP_TYPES		128
-
+#define COMP_SOURCE		256
 
 #define MAX_PARMS		8
 
@@ -399,7 +399,7 @@ typedef struct
 	uint		entityfields;
 
 	// version 7 extensions
-	uint		ofsfiles;		// non list format. no comp
+	uint		ofsfiles;		// source files. comp 256 or decrypt
 	uint		ofslinenums;	// numstatements big // comp 64
 	uint		ofsbodylessfuncs;	// no comp
 	uint		numbodylessfuncs;
@@ -440,18 +440,19 @@ typedef struct
 
 } includeddatafile_t;
 
-typedef struct typeinfo_s
+typedef struct type_s
 {
 	etype_t		type;
 
-	int		next;
-	int		aux_type;
-	int		num_parms;
+	struct type_s	*parentclass;	// type_entity...
+	struct type_s	*next;
 
-	int		ofs;	// inside a structure.
-	int		size;
+	struct type_s	*aux_type;	// return type or field type
+	struct type_s	*param;
+	int		num_parms;	// -1 = variable args
+	uint		ofs;		// inside a structure.
+	uint		size;
 	char		*name;
-
-} typeinfo_t;
+} type_t;
 
 #endif//VPROGS_H

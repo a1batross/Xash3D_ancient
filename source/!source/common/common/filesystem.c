@@ -2335,6 +2335,7 @@ filesystem_api_t FS_GetAPI( void )
 	fs.StripFilePath = FS_ExtractFilePath;
 	fs.DefaultExtension = FS_DefaultExtension;
 	fs.ClearSearchPath = FS_ClearSearchPath;
+	fs.CRC_Block = CRC_Block;
 
 	fs.Search = FS_Search;
 	fs.FreeSearch = FS_FreeSearch;

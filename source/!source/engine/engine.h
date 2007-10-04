@@ -119,6 +119,7 @@ filesystem manager
 #define FS_StripExtension( path ) Com->Fs.StripExtension( path )
 #define FS_DefaultExtension( path, ext ) Com->Fs.DefaultExtension( path, ext )
 #define FS_FileExtension( ext ) Com->Fs.FileExtension( ext )
+#define CRC_Block( crc, size ) Com->Fs.CRC_Block( crc, size )
 #define FS_FileExists( file ) Com->Fs.FileExists( file )
 #define FS_Close( file ) Com->Fs.Close( file )
 #define FS_FileBase( x, y ) Com->Fs.FileBase( x, y )

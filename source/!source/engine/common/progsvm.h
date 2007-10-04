@@ -51,14 +51,6 @@ typedef union prvm_eval_s
 	string_t		string;
 } prvm_eval_t;
 
-//with this the crc isn't needed for fields.
-typedef struct prvm_fieldvars_s
-{
-	int		ofs;
-	int		type;
-	const char	*name;
-} prvm_fieldvars_t;
-
 typedef struct edict_state_s
 {
 	bool	free;
@@ -112,7 +104,7 @@ typedef struct prvm_prog_s
 	ddef_t		*globaldefs;
 	dstatement_t	*statements;
 	int		*linenums;	// debug versions only
-	typeinfo_t	*types;
+	type_t		*types;
 	int		edict_size;	// in bytes
 	int		edictareasize;	// in bytes (for bound checking)
 	int		pev_save;		// used by PRVM_PUSH_GLOBALS\PRVM_POP_GLOBALS

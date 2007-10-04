@@ -24,7 +24,7 @@ if errorlevel 1 set BUILD_ERROR=1
 %MSDEV% render/render.dsp %CONFIG%"render - Win32 Release" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
-qcclib.exe -src vprogs /Oz
+qcclib.exe -src vprogs -progdefs /Oz
 if errorlevel 1 set BUILD_ERROR=1
 
 if "%BUILD_ERROR%"=="" goto build_ok
@@ -51,7 +51,9 @@ if exist engine\engine.plg del /f /q engine\engine.plg
 if exist launch\launch.plg del /f /q launch\launch.plg
 if exist common\common.plg del /f /q common\common.plg
 if exist render\render.plg del /f /q render\render.plg
+if exist compile.log del /f /q compile.log
 if exist server.dat move server.dat D:\Xash3D\xash\server.dat
+if exist progdefs.h move progdefs.h engine\progdefs.h
 
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading

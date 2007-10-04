@@ -12,7 +12,6 @@
 /*
 
 TODO:
-	"stopped at 10 errors"
 	other pointer types for models and clients?
 	compact string heap?
 	always initialize all variables to something safe
@@ -25,7 +24,6 @@ TODO:
 
 #define MEMBERFIELDNAME	"__m%s"	//mark
 
-#define MAX_ERRORS		10
 #define MAX_NAME		64	// chars long
 #define MAX_PARMS		8
 #define MAX_PARMS_EXTRA	128
@@ -34,6 +32,7 @@ TODO:
 #define MAX_TEXTURES	1024
 #define MAX_MODELS		2048
 #define MAX_FILES		1024
+#define PROGDEFS_MAX_SIZE	16384	// 16 kbytes
 
 //compiler flags
 #define FLAG_KILLSDEBUGGERS	1
@@ -78,7 +77,6 @@ TODO:
 
 typedef uint		gofs_t;	// offset in global data block
 typedef struct function_s	function_t;
-typedef char		PATHSTRING[MAX_NAME];
 
 typedef enum 
 {
@@ -87,11 +85,17 @@ typedef enum
 	QCF_DEBUG,	// debug extended progs ver. 7
 } targetformat_t;
 
+typedef struct target_s
+{
+	targetformat_t	target;
+	char		*name;
+} target_t;
+
 typedef enum {
-	tt_eof,				// end of file reached
-	tt_name,				// an alphanumeric name token
-	tt_punct,				// code punctuation
-	tt_immediate,			// string, float, vector
+	tt_eof,		// end of file reached
+	tt_name,		// an alphanumeric name token
+	tt_punct,		// code punctuation
+	tt_immediate,	// string, float, vector
 } token_type_t;
 
 typedef struct bucket_s
@@ -119,6 +123,14 @@ typedef struct cachedsourcefile_s
 	} type;
 	struct cachedsourcefile_s *next;
 } cachedsourcefile_t;
+
+typedef struct includechunk_s
+{
+	struct includechunk_s	*prev;
+	char			*filename;
+	char			*currentdatapoint;
+	int			currentlinenumber;
+} includechunk_t;
 
 struct function_s
 {
@@ -184,20 +196,13 @@ typedef struct
 	int		namelen;
 } const_t;
 
-typedef struct type_s
+typedef struct freeoffset_s
 {
-	etype_t		type;
-
-	struct type_s	*parentclass;	//type_entity...
-	struct type_s	*next;
-
-	struct type_s	*aux_type;	// return type or field type
-	struct type_s	*param;
-	int		num_parms;	// -1 = variable args
-	uint		ofs;		//inside a structure.
+	struct freeoffset_s	*next;
+	gofs_t		ofs;
 	uint		size;
-	char		*name;
-} type_t;
+
+} freeoffset_t;
 
 typedef struct
 {
@@ -244,9 +249,6 @@ typedef struct def_s
 
 typedef struct
 {
-	char		*memory;
-	int		max_memory;
-	int		current_memory;
 	type_t		*types;
 	
 	def_t		def_head;		// unused head of linked list
@@ -303,7 +305,6 @@ typedef enum {
 	WARN_INEFFICIENTPLUSPLUS,
 	WARN_DUPLICATEPRECOMPILER,
 	WARN_IDENTICALPRECOMPILER,
-	WARN_FTE_SPECIFIC,			//extension that only FTEQCC will have a clue about.
 	WARN_EXTENSION_USED,		//extension that frikqcc also understands
 	WARN_IFSTRING_USED,
 	WARN_LAXCAST,			//some errors become this with a compiler flag
@@ -386,7 +387,6 @@ typedef enum {
 	ERR_BADSWITCHTYPE,
 	ERR_BADLABELNAME,
 	ERR_NOLABEL,
-	ERR_THINKTIMETYPEMISMATCH,
 	ERR_STATETYPEMISMATCH,
 	ERR_BADBUILTINIMMEDIATE,
 	ERR_PARAMWITHNONAME,
@@ -407,6 +407,7 @@ typedef enum {
 	ERR_BADCHARACTURECODE,
 	ERR_BADPARMS,
 	ERR_EXCEEDERRCOUNT,
+	ERR_PRECOMPILERMESSAGE,
 
 	WARN_MAX,
 };
@@ -416,12 +417,20 @@ extern pr_info_t	pr;
 extern byte	*qccpool;
 extern file_t	*asmfile;
 extern uint	MAX_REGS;
+extern int	MAX_ERRORS;
 extern int	MAX_STRINGS;
 extern int	MAX_GLOBALS;
 extern int	MAX_FIELDS;
 extern int	MAX_STATEMENTS;
 extern int	MAX_FUNCTIONS;
 extern int	MAX_CONSTANTS;
+extern char	*compilingfile;
+extern char	destfile[1024];
+extern char	qccmsourcedir[];
+extern int	recursivefunctiontype;
+extern char	pevname[8];
+extern char	opevname[8];
+extern freeoffset_t	*freeofs;
 extern type_t	*type_void;
 extern type_t	*type_string;
 extern type_t	*type_float;
@@ -433,6 +442,7 @@ extern type_t	*type_pointer;
 extern type_t	*type_integer;
 extern type_t	*type_variant;
 extern type_t	*type_floatfield;
+extern includechunk_t *currentchunk;
 extern targetformat_t targetformat;
 extern cachedsourcefile_t *sourcefile;
 extern optimisations_t optimisations[];
@@ -440,7 +450,11 @@ extern compiler_flag_t compiler_flag[];
 extern char	v_copyright[1024];
 extern hashtable_t	compconstantstable;
 extern hashtable_t	globalstable, localstable;
+extern hashtable_t	intconstdefstable;
+extern hashtable_t	floatconstdefstable;
+extern hashtable_t	stringconstdefstable;
 extern opcode_t	pr_opcodes[];	// sized by initialization
+extern temp_t	*functemps;
 const extern int	type_size[];
 extern const_t	*CompilerConstant;
 extern bool	pr_dumpasm;
@@ -468,7 +482,6 @@ extern bool	keyword_state;
 extern bool	keyword_string;
 extern bool	keyword_struct;
 extern bool	keyword_switch;
-extern bool	keyword_thinktime;
 extern bool	keyword_var;
 extern bool	keyword_vector;
 extern bool	keyword_union;
@@ -476,19 +489,19 @@ extern bool	keyword_enum;	//kinda like in c, but typedef not supported.
 extern bool	keyword_enumflags;	//like enum, but doubles instead of adds 1.
 extern bool	keyword_typedef;	//fixme
 extern bool	keyword_extern;	//function is external, don't error or warn if the body was not found
-extern bool	keyword_shared;	//mark global to be copied over when progs changes (part of FTE_MULTIPROGS)
+extern bool	keyword_shared;	//mark global to be copied over when progs changes
 extern bool	keyword_noref;	//nowhere else references this, don't strip it.
 extern bool	keyword_nosave;	//don't write the def to the output.
 extern bool	keyword_union;	//you surly know what a union is!
 extern bool	keywords_coexist;
 
-//compiler flags
+// compiler flags
 extern bool	output_parms;
 extern bool	autoprototype;
 extern bool	flag_ifstring;
 extern bool	flag_laxcasts;
 extern bool	flag_hashonly;
-extern bool	flag_fasttrackarrays;
+extern bool	flag_fastarrays;
 extern bool	opt_overlaptemps;
 extern bool	opt_shortenifnots;
 extern bool	opt_noduplicatestrings;
@@ -509,25 +522,6 @@ extern bool	opt_stripfunctions;
 extern bool	opt_locals_marshalling;
 extern bool	opt_logicops;
 extern bool	opt_vectorcalls;
-extern int	optres_shortenifnots;
-extern int	optres_overlaptemps;
-extern int	optres_noduplicatestrings;
-extern int	optres_constantarithmatic;
-extern int	optres_nonvec_parms;
-extern int	optres_constant_names;
-extern int	optres_precache_file;
-extern int	optres_filenames;
-extern int	optres_assignments;
-extern int	optres_unreferenced;
-extern int	optres_function_names;
-extern int	optres_locals;
-extern int	optres_dupconstdefs;
-extern int	optres_constant_names_strings;
-extern int	optres_return_only;
-extern int	optres_compound_jumps;
-extern int	optres_stripfunctions;
-extern int	optres_locals_marshalling;
-extern int	optres_logicops;
 extern bool 	pr_warning[WARN_MAX];
 extern char	pr_parm_names[MAX_PARMS + MAX_PARMS_EXTRA][MAX_NAME];
 extern def_t	*extra_parms[MAX_PARMS_EXTRA];
@@ -535,9 +529,12 @@ extern jmp_buf	pr_parse_abort;		// longjump with this on parse error
 extern int	pr_source_line;
 extern char	*pr_file_p;
 extern def_t	*pr_scope;
+extern int	pr_bracelevel;
 extern int	pr_error_count;
+extern int	pr_total_error_count;
 extern int	pr_warning_count;
 extern bool	pr_dumpasm;
+extern int	ForcedCRC;
 extern string_t	s_file;			// filename for function definition
 extern def_t	def_ret;
 extern def_t	def_parms[MAX_PARMS];
@@ -563,51 +560,84 @@ extern int	*qcc_tempofs;
 extern int	max_temps;
 extern int	tempsstart;
 extern int	numtemps;
+extern PATHSTRING	*precache_sounds;
+extern PATHSTRING	*precache_files;
+extern PATHSTRING	*precache_textures;
+extern PATHSTRING	*precache_models;
+extern int	numsounds;
+extern int	numtextures;
+extern int	nummodels;
+extern int	numfiles;
 
-//hash.c
+//
+// pr_utils.c
+//
 extern int typecmp(type_t *a, type_t *b);
 void Hash_InitTable(hashtable_t *table, int numbucks, void *mem);
 int Hash_Key(char *name, int modulus);
 void *Hash_Get(hashtable_t *table, char *name);
 void *Hash_GetKey(hashtable_t *table, int key);
-void *Hash_GetInsensative(hashtable_t *table, char *name);
 void Hash_Remove(hashtable_t *table, char *name);
 void Hash_RemoveKey(hashtable_t *table, int key);
 void *Hash_GetNext(hashtable_t *table, char *name, void *old);
 void Hash_RemoveData(hashtable_t *table, char *name, void *data);
-void *Hash_GetNextInsensative(hashtable_t *table, char *name, void *old);
 void *Hash_Add(hashtable_t *table, char *name, void *data, bucket_t *buck);
 void *Hash_AddKey(hashtable_t *table, int key, void *data, bucket_t *buck);
-void *Hash_AddInsensative(hashtable_t *table, char *name, void *data, bucket_t *buck);
-void *(*pHash_Get)(hashtable_t *table, char *name);
-void *(*pHash_GetNext)(hashtable_t *table, char *name, void *old);
-void *(*pHash_Add)(hashtable_t *table, char *name, void *data, bucket_t *);
+word PR_WriteProgdefs (char *filename);
 
-//pr_comp.c
+//
+// pr_lex.c
+//
+int PR_LexInteger (void);
+void PR_LexString (void);
+void PR_LexWhitespace (void);
+bool PR_SimpleGetToken (void);
+bool PR_Include(char *filename);
+bool PR_UndefineName(char *name);
+void PR_ConditionCompilation(void);
+char *PR_CheakCompConstString(char *def);
+const_t *PR_CheckCompConstDefined(char *def);
+type_t *PR_NewType (char *name, int basictype);
+
+//
+// pr_comp.c
+//
 void PR_Lex( void );
+void PR_ParseAsm(void);
 bool PR_UnInclude( void );
 void PR_PrintDefs( void );
+void PR_ParseState (void);
 char *PR_ParseName( void );
-int PR_CopyString (char *str);
 void PR_Expect (char *string);
 char *TypeName( type_t *type );
 void PR_ResetErrorScope( void );
 void PR_SkipToSemicolon( void );
 type_t *TypeForName(char *name);
 void PR_ClearGrabMacros( void );
+def_t *PR_MakeIntDef(int value);
+void PR_UnmarshalLocals( void );
 void PR_NewLine (bool incomment);
-int PR_WarningForName(char *name);
 bool PR_CheckToken (char *string);
 bool PR_CheckName (char *string);
 const_t *PR_DefineName(char *name);
 type_t *PR_ParseType (int newtype);
+type_t *PR_FindType (type_t *type);
+def_t *PR_MakeFloatDef(float value);
+def_t *PR_MakeStringDef(char *value);
+void PR_Message( char *message, ... );
+type_t *PR_FieldType (type_t *pointsto);
 void PR_PrintStatement (dstatement_t *s);
+type_t *PR_PointerType (type_t *pointsto);
+int PR_WriteBodylessFuncs (vfile_t *handle);
 char *PR_ValueString (etype_t type, void *val);
-type_t *PR_NewType (char *name, int basictype);
-bool PR_CompileFile (char *string, char *filename);
+int PR_CopyString (char *str, bool noduplicate );
+void PR_CompileFile (char *string, char *filename);
+bool PR_StatementIsAJump(int stnum, int notifdest);
 void PR_ParsePrintDef (int warningtype, def_t *def);
+def_t *PR_Expression (int priority, bool allowcomma);
 void PR_ParseError (int errortype, char *error, ...);
 bool PR_CheckKeyword(int keywordenabled, char *string);
+int PR_AStatementJumpsTo(int targ, int first, int last);
 void PR_ParseWarning (int warningtype, char *error, ...);
 void PR_EmitClassFromFunction(def_t *scope, char *tname);
 int PR_encode( int len, int method, char *in, vfile_t *handle);
@@ -618,23 +648,21 @@ void PR_IncludeChunk (char *data, bool duplicate, char *filename);
 void PR_Warning (int type, char *file, int line, char *error, ...);
 byte *PR_LoadFile(char *filename, fs_offset_t *filesizeptr, int type );
 void PR_ParseErrorPrintDef (int errortype, def_t *def, char *error, ...);
+int PR_WriteSourceFiles(vfile_t *h, dprograms_t *progs, bool sourceaswell);
 int PR_decode(int complen, int len, int method, char *info, char **buffer);
+void PR_WriteAsmFunction(def_t *sc, uint firststatement, gofs_t firstparm);
 def_t *PR_GetDef (type_t *type, char *name, def_t *scope, bool allocate, int arraysize);
+def_t *PR_Statement ( opcode_t *op, def_t *var_a, def_t *var_b, dstatement_t **outstatement);
 void PR_RemapOffsets(uint firststatement, uint laststatement, uint min, uint max, uint newmin);
+def_t *PR_DummyDef(type_t *type, char *name, def_t *scope, int arraysize, uint ofs, int referable);
 void PR_WriteBlock(vfile_t *handle, fs_offset_t pos, const void *data, size_t blocksize, bool compress);
 
-//pr_utils
+//
+// pr_main.c
+//
+void PR_BeginCompilation ( void );
+int PR_FinishCompilation ( void );
 bool PrepareDATProgs ( const char *dir, const char *name, byte params );
 bool CompileDATProgs ( void );
-
-//debug info about used recources
-PATHSTRING *precache_sounds;
-PATHSTRING *precache_files;
-PATHSTRING *precache_textures;
-PATHSTRING *precache_models;
-int numsounds;
-int numtextures;
-int nummodels;
-int numfiles;
 
 #endif//QCCLIB_H

@@ -453,7 +453,7 @@ void PF_ambientsound (void)
 	samp = PRVM_G_STRING(OFS_PARM1);
 
 	// check to see if samp was properly precached
-	soundent->progs.sv->sound = SV_SoundIndex( samp );
+	soundent->progs.sv->noise3 = SV_SoundIndex( samp );
 }
 
 /*

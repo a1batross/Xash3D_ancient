@@ -21,113 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "engine.h"
 #include "server.h"
 
-server_static_t	svs;				// persistant server info
-server_t		sv;					// local server
-
-#define REQFIELDS (sizeof(reqfields) / sizeof(prvm_fieldvars_t))
-
-prvm_fieldvars_t reqfields[] = 
-{
-	{0,	1,	"classname"},
-	{1,	1,	"globalname"},
-	{2,	2,	"modelindex"},
-	{3,	3,	"origin"},
-	{6,	3,	"angles"},
-	{9,	3,	"old_origin"},
-	{12,	3,	"old_angles"},
-	{15,	3,	"velocity"},
-	{18,	3,	"avelocity"},
-	{21,	3,	"post_origin"},
-	{24,	3,	"post_angles"},
-	{27,	3,	"post_velocity"},
-	{30,	3,	"post_avelocity"},
-	{33,	3,	"origin_offset"},
-	{36,	3,	"angles_offset"},
-	{39,	2,	"ltime"},
-	{40,	2,	"bouncetype"},
-	{41,	2,	"movetype"},
-	{42,	2,	"solid"},
-	{43,	3,	"absmin"},
-	{46,	3,	"absmax"},
-	{49,	3,	"mins"},
-	{52,	3,	"maxs"},
-	{55,	3,	"size"},
-	{58,	4,	"chain"},
-	{59,	1,	"model"},
-	{60,	2,	"frame"},
-	{61,	2,	"sequence"},
-	{62,	2,	"renderfx"},
-	{63,	2,	"effects"},
-	{64,	2,	"skin"},
-	{65,	2,	"body"},
-	{66,	1,	"weaponmodel"},
-	{67,	2,	"weaponframe"},
-	{68,	6,	"use"},
-	{69,	6,	"touch"},
-	{70,	6,	"think"},
-	{71,	6,	"blocked"},
-	{72,	6,	"activate"},
-	{73,	6,	"walk"},
-	{74,	6,	"jump"},
-	{75,	6,	"duck"},
-	{76,	2,	"flags"},
-	{77,	2,	"aiflags"},
-	{78,	2,	"spawnflags"},
-	{79,	4,	"groundentity"},
-	{80,	2,	"nextthink"},
-	{81,	2,	"takedamage"},
-	{82,	2,	"health"},
-	{83,	2,	"frags"},
-	{84,	2,	"weapon"},
-	{85,	2,	"items"},
-	{86,	1,	"target"},
-	{87,	1,	"parent"},
-	{88,	1,	"targetname"},
-	{89,	4,	"aiment"},
-	{90,	4,	"goalentity"},
-	{91,	3,	"punchangle"},
-	{94,	2,	"deadflag"},
-	{95,	3,	"view_ofs"},
-	{98,	2,	"button0"},
-	{99,	2,	"button1"},
-	{100,	2,	"button2"},
-	{101,	2,	"impulse"},
-	{102,	2,	"fixangle"},
-	{103,	3,	"v_angle"},
-	{106,	2,	"idealpitch"},
-	{107,	1,	"netname"},
-	{108,	4,	"enemy"},
-	{109,	2,	"colormap"},
-	{110,	2,	"team"},
-	{111,	2,	"max_health"},
-	{112,	2,	"teleport_time"},
-	{113,	2,	"armortype"},
-	{114,	2,	"armorvalue"},
-	{115,	2,	"waterlevel"},
-	{116,	2,	"watertype"},
-	{117,	2,	"ideal_yaw"},
-	{118,	2,	"yaw_speed"},
-	{119,	2,	"dmg_take"},
-	{120,	2,	"dmg_save"},
-	{121,	4,	"dmg_inflictor"},
-	{122,	4,	"owner"},
-	{123,	3,	"movedir"},
-	{126,	1,	"message"},
-	{127,	2,	"sounds"},
-	{128,	1,	"noise"},
-	{129,	1,	"noise1"},
-	{130,	1,	"noise2"},
-	{131,	1,	"noise3"},
-	{132,	2,	"jumpup"},
-	{133,	2,	"jumpdn"},
-	{134,	4,	"movetarget"},
-	{135,	2,	"mass"},
-	{136,	2,	"density"},
-	{137,	2,	"gravity"},
-	{138,	2,	"dmg"},
-	{139,	2,	"dmgtime"},
-	{140,	2,	"speed"}
-};
+server_static_t	svs;	// persistant server info
+server_t		sv;	// local server
 
 /*
 ================
@@ -206,7 +101,7 @@ void SV_CreateBaseline (void)
 	{
 		svent = PRVM_EDICT_NUM(entnum);
 		if (svent->priv.sv->free) continue;
-		if (!svent->progs.sv->modelindex && !svent->progs.sv->sound && !svent->progs.sv->effects)
+		if (!svent->progs.sv->modelindex && !svent->progs.sv->noise3 && !svent->progs.sv->effects)
 			continue;
 		svent->priv.sv->serialnumber = entnum;
 

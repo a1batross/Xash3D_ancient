@@ -181,19 +181,19 @@ SOURCE=.\qcclib\pr_lex.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\qcclib\pr_main.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\qcclib\pr_utils.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\bsplib\prtfile.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\bsplib\qbsp3.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\qcclib\qcc_utils.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\qcclib\qccmain.c
 # End Source File
 # Begin Source File
 

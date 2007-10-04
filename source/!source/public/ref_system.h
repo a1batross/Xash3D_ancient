@@ -591,10 +591,10 @@ FILESYSTEM ENGINE INTERFACE
 */
 typedef struct filesystem_api_s
 {
-	//interface validator
+	// interface validator
 	size_t	api_size;		// must matched with sizeof(filesystem_api_t)
 
-	//base functions
+	// base functions
 	void (*FileBase)(char *in, char *out);			// get filename without path & ext
 	bool (*FileExists)(const char *filename);		// return true if file exist
 	long (*FileSize)(const char *filename);			// same as FileExists but return filesize
@@ -604,8 +604,9 @@ typedef struct filesystem_api_s
 	void (*StripFilePath)(const char* const src, char* dst);	// get file path without filename.ext
 	void (*DefaultExtension)(char *path, const char *ext );	// append extension if not present
 	void (*ClearSearchPath)( void );			// delete all search pathes
+	word (*CRC_Block)(byte *start, int count);		// calculate crc
 
-	//built-in search interface
+	// built-in search interface
 	search_t *(*Search)(const char *pattern, int casecmp );	// returned list of found files
 	void (*FreeSearch)( search_t *search );			// free search results
 
@@ -620,7 +621,7 @@ typedef struct filesystem_api_s
 	int (*Seek)(file_t* file, fs_offset_t offset, int whence);		// fseek, can seek in packfiles too
 	long (*Tell)(file_t* file);					// like a ftell
 
-	//fs simply user interface
+	// fs simply user interface
 	byte *(*LoadFile)(const char *path, long *filesize );		// load file into heap
 	bool (*WriteFile)(const char *filename, void *data, long len);	// write file into disk
 	rgbdata_t *(*LoadImage)(const char *filename, char *data, int size );	// returned rgb data image
