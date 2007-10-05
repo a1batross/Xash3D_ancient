@@ -196,13 +196,15 @@ void CommonInit ( char *funcname, int argc, char **argv )
 		Com->Compile.PrepareBSP( gamedir, source, bspflags );
 		break;
 	case QCCLIB:
-		if(!GetParmFromCmdLine("+dat", source ))
-			strncpy(source, "progs", sizeof(source));
+		if(!GetParmFromCmdLine("-dir", gamedir ))
+			strncpy(gamedir, ".", sizeof(gamedir));
+		if(!GetParmFromCmdLine("+src", source ))
+			strncpy(source, "progs.src", sizeof(source));
 		if(CheckParm("-progdefs")) qccflags |= QCC_PROGDEFS;
 		if(CheckParm("/O0")) qccflags |= QCC_OPT_LEVEL_0;
 		if(CheckParm("/O1")) qccflags |= QCC_OPT_LEVEL_1;
 		if(CheckParm("/O2")) qccflags |= QCC_OPT_LEVEL_2;
-		if(CheckParm("/O2")) qccflags |= QCC_OPT_LEVEL_3;
+		if(CheckParm("/O3")) qccflags |= QCC_OPT_LEVEL_3;
 
 		Com->Compile.PrepareDAT( gamedir, source, qccflags );	
 		break;
@@ -257,6 +259,7 @@ void CommonMain ( void )
 		Com->Compile.DAT(); 
 		strcpy(typemod, "progs" );
 		strcpy(searchmask[0], "*.src" );
+		strcpy(searchmask[1], "*.qc" );
 		break;
 	case DEFAULT:
 		strcpy(typemod, "things" );
@@ -446,6 +449,7 @@ DLLEXPORT int CreateAPI( char *funcname )
 	if(GetParmFromCmdLine("-dev", dev_level ))
 		dev_mode = atoi(dev_level);
 
+	if(CheckParm ("-silent")) hooked_out = true;
 	UpdateEnvironmentVariables(); // set working directory
           
 	// init launcher

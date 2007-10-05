@@ -75,6 +75,12 @@ bool opt_locals_marshalling;	// make the local vars of all functions occupy the 
 bool opt_logicops;		// don't make conditions enter functions if the return value will be discarded due to a previous value. (C style if statements)
 bool opt_vectorcalls;	// vectors can be packed into 3 floats, which can yield lower numpr_globals, but cost two more statements per call (only works for q1 calling conventions).
 bool opt_simplifiedifs;	// if (f != 0) -> if (f). if (f == 0) -> ifnot (f)
+bool opt_writelinenums;	// write debug info version 7 (line of numbers)
+bool opt_writetypes;	// write debug info version 7 (types)
+bool opt_writesources;	// write compressed sources into progs.dat for easy decompile and extended debug 
+bool opt_compstrings;	// compress all strings into produced file
+bool opt_compfunctions;	// compress all functions and statements
+bool opt_compress_other;	// compress all parts of progs
 
 bool		simplestore;
 file_t		*asmfile;
@@ -577,7 +583,7 @@ def_t *PR_SupplyConversion(def_t *var, etype_t wanted)
 			case ev_entity:
 				return PR_Statement(pr_opcodes+OP_LOAD_ENT, pev, var, NULL);
 			default:
-				Sys_Error("Inexplicit field load failed, try explicit");
+				PR_ParseError(ERR_INTERNAL, "Inexplicit field load failed, try explicit");
 			}
 		}
 	}
@@ -618,13 +624,13 @@ gofs_t PR_GetFreeOffsetSpace(uint size)
 	}
 	
 	ofs = numpr_globals;
-	numpr_globals+=size;
+	numpr_globals += size;
 
 	if (numpr_globals >= MAX_REGS)
 	{
 		if (!opt_overlaptemps || !opt_locals_marshalling)
-			Sys_Error("numpr_globals exceeded MAX_REGS - you'll need to use more optimisations");
-		else Sys_Error("numpr_globals exceeded MAX_REGS");
+			PR_ParseError(ERR_INTERNAL, "numpr_globals exceeded MAX_REGS - you'll need to use more optimisations");
+		else PR_ParseError(ERR_INTERNAL, "numpr_globals exceeded MAX_REGS");
 	}
 
 	return ofs;
@@ -683,7 +689,7 @@ static def_t *PR_GetTemp(type_t *type)
 				break;
 		}
 		if (t && t->scope && t->scope != pr_scope)
-			Sys_Error("Internal error temp has scope not equal to current scope");
+			PR_ParseError(ERR_INTERNAL, "temp has scope not equal to current scope");
 
 		if (!t)
 		{
@@ -1978,7 +1984,7 @@ def_t *PR_ParseFunctionCall (def_t *func)
 						e = PR_Statement(pr_opcodes+OP_LOAD_ENT, opev, e, NULL);
 						break;
 					default:
-						Sys_Error("Bad member type. Try forced expansion");
+						PR_ParseError(ERR_INTERNAL, "Bad member type. Try forced expansion");
 					}
 				}
 
@@ -2295,7 +2301,7 @@ void PR_EmitFieldsForMembers(type_t *class)
 		f = PR_MemberInParentClass(mt->name, class->parentclass);
 		if(f)
 		{
-			if (m->arraysize > 1) Sys_Error("QCCLIB does not support overloaded arrays of members");
+			if (m->arraysize > 1) PR_ParseError(ERR_INTERNAL, "QCCLIB does not support overloaded arrays of members");
 			a = 0;
 			for (o = 0; o < m->type->size; o++)
 			{
@@ -4997,9 +5003,9 @@ function_t *PR_ParseImmediateStatements (type_t *type)
 		if (i < MAX_PARMS)
 		{
 			f->parm_ofs[i] = defs[i]->ofs;
-			if (i > 0 && f->parm_ofs[i] < f->parm_ofs[i-1]) Sys_Error ("bad parm order");
+			if (i > 0 && f->parm_ofs[i] < f->parm_ofs[i-1]) PR_ParseError(ERR_INTERNAL, "bad parm order");
 			if (i > 0 && f->parm_ofs[i] != f->parm_ofs[i-1]+defs[i-1]->type->size) 
-				Sys_Error ("parms not packed");
+				PR_ParseError(ERR_INTERNAL, "parms not packed");
 		}
 		parm = parm->next;
 	}
@@ -5450,7 +5456,7 @@ def_t *PR_DummyDef(type_t *type, char *name, def_t *scope, int arraysize, uint o
 		def->scope = scope;	
 		def->constant = true;
 
-		if (ofs + type->size*a >= MAX_REGS) Sys_Error("MAX_REGS is too small");
+		if (ofs + type->size*a >= MAX_REGS) PR_ParseError(ERR_INTERNAL, "MAX_REGS is too small");
 		def->ofs = ofs + type->size*a;
 		if (!first) first = def;
 
@@ -5561,7 +5567,7 @@ def_t *PR_GetDef (type_t *type, char *name, def_t *scope, bool allocate, int arr
 				PR_ParseError (ERR_TYPEMISMATCHARRAYSIZE, "Array sizes for redecleration of %s do not match",name);
 			if (allocate && scope)
 			{
-				PR_ParseWarning (WARN_DUPLICATEDEFINITION, "%s duplicate definition ignored", name);
+				PR_ParseWarning (WARN_DUPLICATEDEFINITION, "%s duplicate, second definition ignored", name);
 				PR_ParsePrintDef(WARN_DUPLICATEDEFINITION, def);
 			}
 			return def;
@@ -5592,7 +5598,7 @@ def_t *PR_GetDef (type_t *type, char *name, def_t *scope, bool allocate, int arr
 				continue;	// in a different function
 			}
 
-			PR_ParseWarning (WARN_DUPLICATEDEFINITION, "%s duplicate definition ignored", name);
+			PR_ParseWarning (WARN_DUPLICATEDEFINITION, "%s duplicate, second definition ignored", name);
 			PR_ParsePrintDef(WARN_DUPLICATEDEFINITION, def);
 		}
 		return def;
@@ -5617,7 +5623,7 @@ def_t *PR_GetDef (type_t *type, char *name, def_t *scope, bool allocate, int arr
 					PR_ParseError (ERR_TYPEMISMATCHARRAYSIZE, "Array sizes for redecleration of %s do not match",name);
 				if (allocate && scope)
 				{
-					PR_ParseWarning (WARN_DUPLICATEDEFINITION, "%s duplicate definition ignored", name);
+					PR_ParseWarning (WARN_DUPLICATEDEFINITION, "%s duplicate, second definition ignored", name);
 					PR_ParsePrintDef(WARN_DUPLICATEDEFINITION, def);
 				}
 				return def;
@@ -5648,7 +5654,7 @@ def_t *PR_GetDef (type_t *type, char *name, def_t *scope, bool allocate, int arr
 					continue;	// in a different function
 				}
 
-				PR_ParseWarning (WARN_DUPLICATEDEFINITION, "%s duplicate definition ignored", name);
+				PR_ParseWarning (WARN_DUPLICATEDEFINITION, "%s duplicate, second definition ignored", name);
 				PR_ParsePrintDef(WARN_DUPLICATEDEFINITION, def);
 			}
 			return def;
@@ -6405,7 +6411,7 @@ void PR_ParseDefs (char *classname)
 							d->scope = NULL;
 
 							d->ofs = def->ofs+i;
-							if (d->ofs >= MAX_REGS) Sys_Error("MAX_REGS is too small");
+							if (d->ofs >= MAX_REGS) PR_ParseError(ERR_INTERNAL, "MAX_REGS is too small");
 						}
 						(((int *)pr_globals)[def->ofs+i]) = PR_CopyString(pr_immediate_string, opt_noduplicatestrings );
 						PR_Lex ();
@@ -6614,6 +6620,55 @@ void PR_CompileFile (char *string, char *filename)
 
 	// restore state
 	Mem_Copy(&pr_parse_abort, &abort_parse, sizeof(abort_parse));
+}
+
+/*
+==============
+PR_FinishCompilation
+
+called after all files are compiled to check for errors
+Returns false if errors were detected.
+==============
+*/
+int PR_FinishCompilation( void )
+{
+	def_t		*d;
+	int		errors = pr_total_error_count;
+	
+	// check to make sure all functions prototyped have code
+	for (d = pr.def_head.next; d; d = d->next)
+	{
+		if (d->type->type == ev_function && !d->scope)// function parms are ok
+		{
+			if (d->initialized == 0)
+			{
+				if (!strncmp(d->name, "ArrayGet*", 9))
+				{
+					PR_EmitArrayGetFunction(d, d->name + 9);
+					pr_scope = NULL;
+				}
+				else if (!strncmp(d->name, "ArraySet*", 9))
+				{
+					PR_EmitArraySetFunction(d, d->name + 9);
+					pr_scope = NULL;
+				}
+				else if (!strncmp(d->name, "Class*", 6))
+				{
+					PR_EmitClassFromFunction(d, d->name + 6);
+					pr_scope = NULL;
+				}
+				else
+				{
+					PR_Warning(WARN_NOTDEFINED, strings + d->s_file, d->s_line, "function %s was not defined",d->name);
+					bodylessfuncs = true;
+				}
+			}
+			else if (d->initialized == 2) bodylessfuncs = true;
+		}
+	}
+	pr_scope = NULL;
+
+	return (errors == 0);
 }
 
 bool PR_Include(char *filename)

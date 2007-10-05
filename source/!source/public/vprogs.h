@@ -399,7 +399,7 @@ typedef struct
 	uint		entityfields;
 
 	// version 7 extensions
-	uint		ofsfiles;		// source files. comp 256 or decrypt
+	uint		ofsfiles;		// source files always compressed
 	uint		ofslinenums;	// numstatements big // comp 64
 	uint		ofsbodylessfuncs;	// no comp
 	uint		numbodylessfuncs;

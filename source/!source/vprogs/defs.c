@@ -12,7 +12,7 @@
 | refuse to run.                                                             |
 +=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-+
 */
-#pragma TARGET RELEASE
+#pragma TARGET debug
 
 // These lines CANNOT be altered/moved
 	// pointers to ents

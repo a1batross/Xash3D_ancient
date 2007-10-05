@@ -2309,7 +2309,7 @@ int FS_CheckParm (const char *parm)
 	{
 		// NEXTSTEP sometimes clears appkit vars.
 		if (!fs_argv[i]) continue;
-		if (!strcmp (parm, fs_argv[i])) return i;
+		if (!stricmp (parm, fs_argv[i])) return i;
 	}
 	return 0;
 }

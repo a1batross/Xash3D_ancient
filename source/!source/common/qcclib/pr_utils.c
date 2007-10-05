@@ -6,10 +6,10 @@
 #include "qcclib.h"
 #include "zip32.h"
 
-void Hash_InitTable(hashtable_t *table, int numbucks, void *mem)
+void Hash_InitTable(hashtable_t *table, int numbucks)
 {
 	table->numbuckets = numbucks;
-	table->bucket = (bucket_t **)mem;
+	table->bucket = (bucket_t **)Qalloc(BytesForBuckets(numbucks));
 }
 
 int Hash_Key(char *name, int modulus)
@@ -282,12 +282,12 @@ int PR_WriteSourceFiles(vfile_t *h, dprograms_t *progs, bool sourceaswell)
 			continue;
 		strcpy(idf[num].filename, f->filename);
 		idf[num].size = f->size;
-		idf[num].compmethod = 1;
+		idf[num].compmethod = 2;
 		idf[num].ofs = VFS_Tell(h);
 		idf[num].compsize = PR_encode(f->size, idf[num].compmethod, f->file, h);
+		Msg("Add %s, size %d, compressed %d\n", idf[num].filename, idf[num].size, idf[num].compsize );
 		num++;
 	}
-
 	ofs = VFS_Tell(h);	
 	VFS_Write(h, &num, sizeof(int));
 	VFS_Write(h, idf, sizeof(includeddatafile_t)*num);
@@ -359,7 +359,7 @@ word PR_WriteProgdefs (char *filename)
 	char		file[PROGDEFS_MAX_SIZE];
 	char		header_name[MAX_QPATH];
 	def_t		*d;
-	int		f = 0;
+	int		f = 0, k = 1;
 	word		crc;
 
 	CRC_Init (&crc);
@@ -456,8 +456,9 @@ word PR_WriteProgdefs (char *filename)
 	// write fields
 	for (d = pr.def_head.next; d; d = d->next)
 	{
-		if (!strcmp (d->name, "end_sys_fields")) break;
+		if (!strcmp (d->name, "end_sys_fields")) k = 0;
 		if (d->type->type != ev_field) continue;
+		if (k) continue; //write only user fields
 		if (f) ADD2(",\n");	
 		f = 1;
 
@@ -565,10 +566,9 @@ void PR_UnmarshalLocals( void )
 
 	numpr_globals = maxo+3;
 	if (numpr_globals > MAX_REGS)
-		Sys_Error("Too many globals are in use to unmarshal all locals");
+		PR_ParseError(ERR_INTERNAL, "Too many globals are in use to unmarshal all locals");
 
-	if (maxo-ofs)
-		Msg("Total of %i marshalled globals\n", maxo-ofs);
+	if (maxo-ofs) Msg("Total of %i marshalled globals\n", maxo-ofs);
 }
 
 /*
@@ -607,8 +607,6 @@ int PR_encode(int len, int method, char *in, vfile_t *handle)
 		}
 		VFS_Write( handle, out, sizeof(out) - strm.avail_out );
 		i += sizeof(out) - strm.avail_out;
-
-		Msg("real length %d, compressed len %d\n", len, i );
 		deflateEnd( &strm );
 		return i;
 	}
@@ -623,7 +621,7 @@ byte *PR_LoadFile(char *filename, fs_offset_t *filesizeptr, int type )
 {
 	char *mem;
 	int len = FS_FileSize(filename);
-	if (!len) Sys_Error("Couldn't open file %s", filename);
+	if (!len) PR_ParseError(ERR_INTERNAL, "Couldn't open file %s", filename);
 
 	mem = Qalloc(sizeof(cachedsourcefile_t) + len );	
 	((cachedsourcefile_t*)mem)->next = sourcefile;

@@ -1,6 +1,12 @@
 =======================================================================
-	Xash3D QuakeC Compiler started at Oct04 2007 [00:48:34]
+	Xash3D QuakeC Compiler started at Oct05 2007 [00:01:47]
 =======================================================================
+use opt: "write source"
+use opt: "write linenums"
+use opt: "write types"
+"write source" not supported with standard target, disable
+"write linenums" not supported with standard target, disable
+"write types" not supported with standard target, disable
 ------------Configuration: server - Vm16 Debug------------
 Compiling...
 defs.c
@@ -36,14 +42,14 @@ ents/items/items.c
 impulses.c
 writing progdefs.h
 Xash3D virtual machine
- 19056 strofs (of 1000000)
-  2799 numstatements (of 524288)
+ 19684 strofs (of 1000000)
+  2867 numstatements (of 524288)
    281 numfunctions (of 16384)
-   916 numglobaldefs (of 32768)
+   964 numglobaldefs (of 32768)
    245 numfielddefs (218 unique) (of 2048)
-   927 numpr_globals (of 65536)
+  2279 numpr_globals (of 65536)
 Writing server.dat
- 64796 TOTAL SIZE
+ 71768 TOTAL SIZE
  17 unique precache_sounds
   3 unique precache_models
 Скопировано файлов:         1.
@@ -51,5 +57,5 @@ Writing server.dat
 server.dat - 0 error(s), 0 warning(s)
 
 =======================================================================
-	Xash3D QuakeC Compiler stopped at Oct04 2007 [00:48:34]
+	Xash3D QuakeC Compiler stopped at Oct05 2007 [00:01:48]
 =======================================================================

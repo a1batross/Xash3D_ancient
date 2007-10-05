@@ -1,1 +1,1 @@
-qcclib -log -debug -progdefs
+qcclib -log -debug -progdefs /Od

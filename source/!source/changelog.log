@@ -33,8 +33,12 @@ SV_ClipToLinks		SV_ClipMoveToEntities
 	while(compileactive) PR_ContinueCompile();
 	
 	PR_FinishCompilation();
-}
 
+	progdefs.h должен содержать только кастомные поля, вместо текущих
+	убрать предупреждение про совпадение локальных и глобальных имен
+
+	костанта -999 вызывает немедленное падение компилятора при переводе в Int
+}
 
 studioframeadvance
 studiorewindframe

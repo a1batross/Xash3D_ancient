@@ -34,12 +34,25 @@ TODO:
 #define MAX_FILES		1024
 #define PROGDEFS_MAX_SIZE	16384	// 16 kbytes
 
+// optimization level flags
+#define FL_DBG		1
+#define FL_OP0		2
+#define FL_OP1		4
+#define FL_OP2		8
+#define FL_OP3		16
+#define FL_OP4		32
+
+#define MASK_DEBUG		(FL_DBG)
+#define MASK_LEVEL_O	(FL_OP0)
+#define MASK_LEVEL_1	(FL_OP0|FL_OP1)
+#define MASK_LEVEL_2	(FL_OP0|FL_OP1|FL_OP2)
+#define MASK_LEVEL_3	(FL_OP0|FL_OP1|FL_OP2|FL_OP3)
+#define MASK_LEVEL_4	(FL_OP0|FL_OP1|FL_OP2|FL_OP3|FL_OP4)
+
 //compiler flags
-#define FLAG_KILLSDEBUGGERS	1
-#define FLAG_ASDEFAULT	2
-#define FLAG_SETINGUI	4
-#define FLAG_HIDDENINGUI	8
-#define FLAG_MIDCOMPILE	16	//option can be changed mid-compile with the special pragma
+#define FLAG_V7_ONLY	1	// only 7 version can use this optimization
+#define FLAG_DEFAULT	2	// enabled as default
+#define FLAG_MIDCOMPILE	4	// option can be changed mid-compile with the special pragma
 
 #define G_FLOAT(o)		(pr_globals[o])
 #define G_INT(o)		(*(int *)&pr_globals[o])
@@ -100,16 +113,16 @@ typedef enum {
 
 typedef struct bucket_s
 {
-	void *data;
-	char *keystring;
-	struct bucket_s *next;
-}bucket_t;
+	void		*data;
+	char		*keystring;
+	struct bucket_s	*next;
+} bucket_t;
 
 typedef struct hashtable_s
 {
-	int numbuckets;
-	bucket_t **bucket;
-}hashtable_t;
+	uint	numbuckets;
+	bucket_t	**bucket;
+} hashtable_t;
 
 typedef struct cachedsourcefile_s
 {
@@ -165,24 +178,17 @@ typedef union eval_s
 typedef struct
 {
 	bool		*enabled;
-	char		*abbrev;
-	int		optimisationlevel;
-	int		flags;		//1: kills debuggers. 2: applied as default.
-	char		*fullname;
-	char		*description;
-	void		*guiinfo;
-
+	char		*shortname;	// for option "/Ox", where x is shortname
+	char		*fullname;	// display name
+	int		levelmask;	// optimization level mask
+	int		flags;		// sepcial flags for kill debug extensions, e.t.c
 } optimisations_t;
 
 typedef struct
 {
 	bool		*enabled;
-	int		flags;		//2 applied as default
-	char		*abbrev;
-	char		*fullname;
-	char		*description;
-	void		*guiinfo;
-
+	int		flags;		// 2 applied as default
+	char		*name;
 } compiler_flag_t;
 
 typedef struct
@@ -457,6 +463,7 @@ extern opcode_t	pr_opcodes[];	// sized by initialization
 extern temp_t	*functemps;
 const extern int	type_size[];
 extern const_t	*CompilerConstant;
+extern bool	bodylessfuncs;
 extern bool	pr_dumpasm;
 extern char	pr_token[8192];
 extern token_type_t	pr_token_type;
@@ -522,10 +529,16 @@ extern bool	opt_stripfunctions;
 extern bool	opt_locals_marshalling;
 extern bool	opt_logicops;
 extern bool	opt_vectorcalls;
+extern bool	opt_writelinenums;
+extern bool	opt_writetypes;
+extern bool	opt_writesources;
+extern bool	opt_compstrings;	// compress all strings into produced file
+extern bool	opt_compfunctions;	// compress all functions and statements
+extern bool	opt_compress_other;
 extern bool 	pr_warning[WARN_MAX];
 extern char	pr_parm_names[MAX_PARMS + MAX_PARMS_EXTRA][MAX_NAME];
 extern def_t	*extra_parms[MAX_PARMS_EXTRA];
-extern jmp_buf	pr_parse_abort;		// longjump with this on parse error
+extern jmp_buf	pr_parse_abort; // longjump with this on parse error
 extern int	pr_source_line;
 extern char	*pr_file_p;
 extern def_t	*pr_scope;
@@ -573,7 +586,7 @@ extern int	numfiles;
 // pr_utils.c
 //
 extern int typecmp(type_t *a, type_t *b);
-void Hash_InitTable(hashtable_t *table, int numbucks, void *mem);
+void Hash_InitTable(hashtable_t *table, int numbucks);
 int Hash_Key(char *name, int modulus);
 void *Hash_Get(hashtable_t *table, char *name);
 void *Hash_GetKey(hashtable_t *table, int key);

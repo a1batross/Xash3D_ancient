@@ -68,23 +68,29 @@ void ParseCommandLine (LPSTR lpCmdLine)
 
 	while (*lpCmdLine && (com_argc < MAX_NUM_ARGVS))
 	{
-		while (*lpCmdLine && ((*lpCmdLine <= 32) || (*lpCmdLine > 126)))
+		while (*lpCmdLine && *lpCmdLine <= ' ') lpCmdLine++;
+		if (!*lpCmdLine) break;
+
+		if (*lpCmdLine == '\"')
+		{
+			// quoted string
 			lpCmdLine++;
+			com_argv[com_argc] = lpCmdLine;
+			com_argc++;
+			while (*lpCmdLine && (*lpCmdLine != '\"')) lpCmdLine++;
+		}
+		else
+		{
+			// unquoted word
+			com_argv[com_argc] = lpCmdLine;
+			com_argc++;
+			while (*lpCmdLine && *lpCmdLine > ' ') lpCmdLine++;
+		}
 
 		if (*lpCmdLine)
 		{
-			com_argv[com_argc] = lpCmdLine;
-			com_argc++;
-
-			while (*lpCmdLine && ((*lpCmdLine > 32) && (*lpCmdLine <= 126)))
-				lpCmdLine++;
-
-			if (*lpCmdLine)
-			{
-				*lpCmdLine = 0;
-				lpCmdLine++;
-			}
-			
+			*lpCmdLine = 0;
+			lpCmdLine++;
 		}
 	}
 

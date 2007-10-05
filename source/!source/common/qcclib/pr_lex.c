@@ -96,7 +96,7 @@ bool PR_UnInclude(void)
 
 type_t *PR_NewType (char *name, int basictype)
 {
-	if (numtypeinfos>= maxtypeinfos) Sys_Error("Too many types");
+	if (numtypeinfos>= maxtypeinfos) PR_ParseError(ERR_INTERNAL, "Too many types");
 	memset(&qcc_typeinfo[numtypeinfos], 0, sizeof(type_t));
 	qcc_typeinfo[numtypeinfos].type = basictype;
 	qcc_typeinfo[numtypeinfos].name = name;
@@ -395,7 +395,7 @@ bool PR_Precompiler(void)
 				if (!PR_SimpleGetToken())
 				{
 					if (!*pr_file_p)
-						Sys_Error("eof in includelist");
+						PR_ParseError(ERR_INTERNAL, "eof in includelist");
 					else
 					{
 						pr_file_p++;
@@ -587,7 +587,7 @@ bool PR_Precompiler(void)
 
 					for (f = 0; compiler_flag[f].enabled; f++)
 					{
-						if (!stricmp(compiler_flag[f].abbrev, token))
+						if (!stricmp(compiler_flag[f].name, token))
 						{
 							if (compiler_flag[f].flags & FLAG_MIDCOMPILE)
 								*compiler_flag[f].enabled = st;
@@ -735,7 +735,7 @@ void PR_LexString (void)
 		else if (c=='\"')
 		{
 			if (len >= sizeof(pr_immediate_string) - 1)
-				Sys_Error("String length exceeds %i", sizeof(pr_immediate_string)-1);
+				PR_ParseError(ERR_INTERNAL, "String length exceeds %i", sizeof(pr_immediate_string)-1);
 
 			while(*pr_file_p && *pr_file_p <= ' ')
 			{
@@ -794,7 +794,7 @@ void PR_LexString (void)
 			{
 				PR_ParseWarning(WARN_MACROINSTRING, "Macro expansion in string");
 				if (len+strlen(cnst) >= sizeof(pr_token)-1)
-					Sys_Error("String length exceeds %i", sizeof(pr_token)-1);
+					PR_ParseError(ERR_INTERNAL, "String length exceeds %i", sizeof(pr_token)-1);
 				strcpy(pr_token+len, cnst);
 				len+=strlen(cnst);
 				pr_file_p = end;
@@ -806,7 +806,7 @@ void PR_LexString (void)
 		pr_token[len] = c;
 		len++;
 		if (len >= sizeof(pr_token)-1)
-			Sys_Error("String length exceeds %i", sizeof(pr_token)-1);
+			PR_ParseError(ERR_INTERNAL, "String length exceeds %i", sizeof(pr_token)-1);
 	} while (1);
 }
 
@@ -1595,7 +1595,7 @@ int PR_CheakCompConst(void)
 							{
 								strcat(buffer, "#");
 								strcat(buffer, token);
-								PR_ParseWarning(0, "Stingification ignored");
+								PR_ParseWarning(0, "Stringification ignored");
 							}
 							continue;// already did this one
 						}
@@ -1854,14 +1854,21 @@ void PR_ParseError (int errortype, char *error, ...)
 	va_list	argptr;
 	char	string[1024];
 
-	va_start (argptr,error);
-	_vsnprintf(string,sizeof(string)-1, error,argptr);
-	va_end (argptr);
+	va_start( argptr, error );
+	_vsnprintf(string, sizeof(string) - 1, error, argptr);
+	va_end( argptr );
 
-	PR_PrintScope();
-	PR_Message("%s:%i: error: %s\n", strings + s_file, pr_source_line, string);
-	
-	longjmp (pr_parse_abort, 1);
+	if(errortype == ERR_INTERNAL)
+	{
+		// instead of sys error
+		std.error( "internal error: %s\n", string );
+	}
+	else
+	{
+		PR_PrintScope();
+		PR_Message("%s:%i: error: %s\n", strings + s_file, pr_source_line, string);
+		longjmp (pr_parse_abort, 1);
+	}
 }
 
 void PR_ParseErrorPrintDef (int errortype, def_t *def, char *error, ...)
@@ -1870,14 +1877,13 @@ void PR_ParseErrorPrintDef (int errortype, def_t *def, char *error, ...)
 	char		string[1024];
 
 	va_start (argptr,error);
-	_vsnprintf (string,sizeof(string)-1, error,argptr);
+	_vsnprintf (string, sizeof(string)-1, error, argptr);
 	va_end (argptr);
 
 	PR_PrintScope();
 	PR_Message ("%s:%i: error: %s\n", strings + s_file, pr_source_line, string);
 
 	PR_ParsePrintDef(WARN_ERROR, def);
-	
 	longjmp (pr_parse_abort, 1);
 }
 
@@ -1898,7 +1904,13 @@ void PR_ParseWarning (int type, char *error, ...)
 	va_end (argptr);
 
 	PR_PrintScope();
-	if (type >= ERR_PARSEERRORS)
+	if(type == ERR_INTERNAL)
+	{
+		// instead of sys error
+		pr_total_error_count++;
+		std.error( "%s:%i: internal error C%i: %s\n", strings + s_file, pr_source_line, type, string );
+	}
+	else if (type > ERR_INTERNAL)
 	{
 		PR_Message("%s:%i: error C%i: %s\n", strings + s_file, pr_source_line, type, string);
 		pr_total_error_count++;
@@ -2126,7 +2138,7 @@ type_t *PR_FindType (type_t *type)
 		return &qcc_typeinfo[t];
 	}
 
-	Sys_Error("Error with type");
+	PR_ParseError(ERR_INTERNAL, "Error with type");
 	return type;
 }
 

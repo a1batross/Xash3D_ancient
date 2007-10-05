@@ -5,9 +5,9 @@
 
 #include "qcclib.h"
 
-#define defaultkeyword	(FLAG_HIDDENINGUI | FLAG_MIDCOMPILE | FLAG_ASDEFAULT)
-#define nondefaultkeyword	(FLAG_HIDDENINGUI | FLAG_MIDCOMPILE)
-#define defaultoption	(FLAG_MIDCOMPILE | FLAG_ASDEFAULT)
+#define defaultkeyword	(FLAG_MIDCOMPILE | FLAG_DEFAULT)
+#define nondefaultkeyword	(FLAG_MIDCOMPILE)
+#define defaultoption	(FLAG_MIDCOMPILE | FLAG_DEFAULT)
 
 byte		*qccpool;
 char		v_copyright[1024];
@@ -71,76 +71,87 @@ int		maxtypeinfos;
 
 optimisations_t optimisations[] =
 {
-	// level 0 = no optimisations
-	// level 1 = size optimisations
-	// level 2 = speed optimisations
-	// level 3 = dodgy optimisations.
-	// level 4 = experimental...
+	// level debug = include debug info
+	{&opt_writesources,		"c", "write source",	FL_DBG,	FLAG_V7_ONLY	}, 
+	{&opt_writelinenums,	"a", "write linenums",	FL_DBG,	FLAG_V7_ONLY	},
+	{&opt_writetypes,		"b", "write types",		FL_DBG,	FLAG_V7_ONLY	},
 
-	{&opt_assignments,		"t",	1, FLAG_ASDEFAULT,		"assignments",	"c = a*b is performed in one operation rather than two, and can cause older decompilers to fail."},
-	{&opt_shortenifnots,	"i",	1, FLAG_ASDEFAULT,		"shortenifs",	"if (!a) was traditionally compiled in two statements. This optimisation does it in one, but can cause some decompilers to get confused."},
-	{&opt_nonvec_parms,		"p",	1, FLAG_ASDEFAULT,		"nonvec_parms",	"In the original qcc, function parameters were specified as a vector store even for floats. This fixes that."},
-	{&opt_constant_names,	"c",	2, FLAG_KILLSDEBUGGERS,	"constant_names",	"This optimisation strips out the names of constants (but not strings) from your progs, resulting in smaller files. It makes decompilers leave out names or fabricate numerical ones."},
-	{&opt_constant_names_strings,	"cs",	3, FLAG_KILLSDEBUGGERS,	"constant_strings", "This optimisation strips out the names of string constants from your progs. However, this can break addons, so don't use it in those cases."},
-	{&opt_dupconstdefs,		"d",	1, FLAG_ASDEFAULT,		"dupconstdefs",	"This will merge definitions of constants which are the same value. Pay extra attention to assignment to constant warnings."},
-	{&opt_noduplicatestrings,	"s",	1, 0,			"nodupstrings",	"This will compact the string table that is stored in the progs. It will be considerably smaller with this."},
-	{&opt_locals,		"l",	1, FLAG_KILLSDEBUGGERS,	"locals",		"Strips out local names and definitions. This makes it REALLY hard to decompile"},
-	{&opt_function_names,	"n",	1, FLAG_KILLSDEBUGGERS,	"function_names",	"This strips out the names of functions which are never called. Doesn't make much of an impact though."},
-	{&opt_filenames,		"f",	1, FLAG_KILLSDEBUGGERS,	"filenames",	"This strips out the filenames of the progs. This can confuse the really old decompilers, but is nothing to the more recent ones."},
-	{&opt_unreferenced,		"u",	1, FLAG_ASDEFAULT,		"unreferenced",	"Removes the entries of unreferenced variables. Doesn't make a difference in well maintained code."},
-	{&opt_overlaptemps,		"r",	1, FLAG_ASDEFAULT,		"overlaptemps",	"Optimises the pr_globals count by overlapping temporaries. In QC, every multiplication, division or operation in general produces a temporary variable. This optimisation prevents excess, and in the case of Hexen2's gamecode, reduces the count by 50k. This is the most important optimisation, ever."},
-	{&opt_constantarithmatic,	"a",	1, FLAG_ASDEFAULT,		"constarithmatic",	"5*6 actually emits an operation into the progs. This prevents that happening, effectivly making the compiler see 30"},
-	{&opt_precache_file,	"pf",	2, 0,			"precache_file",	"Strip out stuff wasted used in function calls and strings to the precache_file builtin (which is actually a stub in quake)."},
-	{&opt_return_only,		"ro",	3, FLAG_KILLSDEBUGGERS,	"return_only",	"Functions ending in a return statement do not need a done statement at the end of the function. This can confuse some decompilers, making functions appear larger than they were."},
-	{&opt_compound_jumps,	"cj",	3, FLAG_KILLSDEBUGGERS,	"compound_jumps",	"This optimisation plays an effect mostly with nested if/else statements, instead of jumping to an unconditional jump statement, it'll jump to the final destination instead. This will bewilder decompilers."},
-	{&opt_stripfunctions,	"sf",	3, 0,			"strip_functions",	"Strips out the 'defs' of functions that were only ever called directly. This does not affect saved games."},
-	{&opt_locals_marshalling,	"lm",	4, FLAG_KILLSDEBUGGERS,	"locals_marshaling","Store all locals in one section of the pr_globals. Vastly reducing it. This effectivly does the job of overlaptemps. It's been noticed as buggy by a few, however, and the curcumstances where it causes problems are not yet known."},
-	{&opt_vectorcalls,		"vc",	4, FLAG_KILLSDEBUGGERS,	"vectorcalls",	"Where a function is called with just a vector, this causes the function call to store three floats instead of one vector. This can save a good number of pr_globals where those vectors contain many duplicate coordinates but do not match entirly."},
-	{NULL}
+	// level 0 = fixed some qcc errors
+	{&opt_nonvec_parms,		"g", "fix nonvec parms",	FL_OP0,	FLAG_DEFAULT	},
+
+	// level 1 = size optimizations
+	{&opt_shortenifnots,	"f", "shorten if(!a)",	FL_OP1,	FLAG_DEFAULT	},
+	{&opt_assignments,		"e", "assigments",		FL_OP1,	FLAG_DEFAULT	},
+	{&opt_dupconstdefs,		"j", "no dup constants",	FL_OP1,	FLAG_DEFAULT	},
+	{&opt_noduplicatestrings,	"k", "no dup strings",	FL_OP1,	0,		},
+	{&opt_locals,		"l", "strip local names",	FL_OP1,	0		},
+	{&opt_function_names,	"m", "strip func names",	FL_OP1,	0		},
+	{&opt_filenames,		"n", "strip file names",	FL_OP1,	0		},
+	{&opt_unreferenced,		"o", "strip unreferenced",	FL_OP1,	FLAG_DEFAULT	},
+	{&opt_overlaptemps,		"p", "optimize overlaptemps", FL_OP1,	FLAG_DEFAULT	},
+	{&opt_constantarithmatic,	"q", "precompute constnts",	FL_OP1,	FLAG_DEFAULT	},
+	{&opt_compstrings,		"x", "deflate prog strings",	FL_OP1,	FLAG_V7_ONLY	},
+
+	// level 2 = speed optimizations
+	{&opt_constant_names,	"h", "strip const names",	FL_OP2,	0		},
+	{&opt_precache_file,	"r", "strip precache files",	FL_OP2,	0		},
+	{&opt_compfunctions,	"y", "deflate prog funcs",	FL_OP2,	FLAG_V7_ONLY	},
+
+	// level 3 = dodgy optimizations
+	{&opt_return_only,		"s", "optimize return calls",	FL_OP3,	0		},
+	{&opt_compound_jumps,	"t", "optimize num of jumps",	FL_OP3,	0		},
+	{&opt_stripfunctions,	"u", "strip functions",	FL_OP3,	0		},
+	{&opt_constant_names_strings,	"i", "strip const strings",	FL_OP3,	0		},
+	{&opt_compress_other,	"z", "deflate all prog",	FL_OP3,	FLAG_V7_ONLY	},
+	
+	// level 4 = use with caution, may be bugly
+	{&opt_locals_marshalling,	"y", "reduce locals, buggly",	FL_OP4,	FLAG_V7_ONLY	},
+	{&opt_vectorcalls,		"w", "optimize vector calls",	FL_OP4,	FLAG_V7_ONLY	},
+	{NULL,			"",  "",			0,	0		},
 };
 
 compiler_flag_t compiler_flag[] = 
 {
 	// keywords
-	{&keyword_asm,	defaultkeyword,	"asm",		"Keyword: asm",		"Disables the 'asm' keyword. Use the writeasm flag to see an example of the asm."},
-	{&keyword_break,	defaultkeyword,	"break",		"Keyword: break",		"Disables the 'break' keyword."},
-	{&keyword_case,	defaultkeyword,	"case",		"Keyword: case",		"Disables the 'case' keyword."},
-	{&keyword_class,	defaultkeyword,	"class",		"Keyword: class",		"Disables the 'class' keyword."},
-	{&keyword_const,	defaultkeyword,	"const",		"Keyword: const",		"Disables the 'const' keyword."},
-	{&keyword_continue,	defaultkeyword,	"continue",	"Keyword: continue",	"Disables the 'continue' keyword."},
-	{&keyword_default,	defaultkeyword,	"default",	"Keyword: default",		"Disables the 'default' keyword."},
-	{&keyword_entity,	defaultkeyword,	"entity",		"Keyword: entity",		"Disables the 'entity' keyword."},
-	{&keyword_enum,	defaultkeyword,	"enum",		"Keyword: enum",		"Disables the 'enum' keyword."},	// kinda like in c, but typedef not supported.
-	{&keyword_enumflags,defaultkeyword,	"enumflags",	"Keyword: enumflags",	"Disables the 'enumflags' keyword."},	// like enum, but doubles instead of adds 1.
-	{&keyword_extern,	defaultkeyword,	"extern",		"Keyword: extern",		"Disables the 'extern' keyword. Use only on functions inside addons."},	//function is external, don't error or warn if the body was not found
-	{&keyword_float,	defaultkeyword,	"float",		"Keyword: float",		"Disables the 'float' keyword. (Disables the float keyword without 'local' preceeding it)"},
-	{&keyword_for,	defaultkeyword,	"for",		"Keyword: for",		"Disables the 'for' keyword. Syntax: for(assignment; while; increment) {codeblock;}"},
-	{&keyword_goto,	defaultkeyword,	"goto",		"Keyword: goto",		"Disables the 'goto' keyword."},
-	{&keyword_int,	defaultkeyword,	"int",		"Keyword: int",		"Disables the 'int' keyword."},
-	{&keyword_integer,	defaultkeyword,	"integer",	"Keyword: integer",		"Disables the 'integer' keyword."},
-	{&keyword_noref,	defaultkeyword,	"noref",		"Keyword: noref",		"Disables the 'noref' keyword."},	// nowhere else references this, don't strip it.
-	{&keyword_nosave,	defaultkeyword,	"nosave",		"Keyword: nosave",		"Disables the 'nosave' keyword."},	// don't write the def to the output.
-	{&keyword_shared,	defaultkeyword,	"shared",		"Keyword: shared",		"Disables the 'shared' keyword."},	// mark global to be copied over when progs changes
-	{&keyword_state,	nondefaultkeyword,	"state",		"Keyword: state",		"Disables the 'state' keyword."},
-	{&keyword_string,	defaultkeyword,	"string",		"Keyword: string",		"Disables the 'string' keyword."},
-	{&keyword_struct,	defaultkeyword,	"struct",		"Keyword: struct",		"Disables the 'struct' keyword."},
-	{&keyword_switch,	defaultkeyword,	"switch",		"Keyword: switch",		"Disables the 'switch' keyword."},
-	{&keyword_typedef,	defaultkeyword,	"typedef",	"Keyword: typedef",		"Disables the 'typedef' keyword."},	// FIXME
-	{&keyword_union,	defaultkeyword,	"union",		"Keyword: union",		"Disables the 'union' keyword."},	// you surly know what a union is!
-	{&keyword_var,	defaultkeyword,	"var",		"Keyword: var",		"Disables the 'var' keyword."},
-	{&keyword_vector,	defaultkeyword,	"vector",		"Keyword: vector",		"Disables the 'vector' keyword."},
+	{&keyword_asm,	defaultkeyword,	"asm"		},
+	{&keyword_break,	defaultkeyword,	"break"		},
+	{&keyword_case,	defaultkeyword,	"case"		},
+	{&keyword_class,	defaultkeyword,	"class"		},
+	{&keyword_const,	defaultkeyword,	"const"		},
+	{&keyword_continue,	defaultkeyword,	"continue"	},
+	{&keyword_default,	defaultkeyword,	"default"		},
+	{&keyword_entity,	defaultkeyword,	"entity"		},
+	{&keyword_enum,	defaultkeyword,	"enum"		}, // kinda like in c, but typedef not supported.
+	{&keyword_enumflags,defaultkeyword,	"enumflags"	}, // like enum, but doubles instead of adds 1.
+	{&keyword_extern,	defaultkeyword,	"extern"		}, // function is external, don't error or warn if the body was not found
+	{&keyword_float,	defaultkeyword,	"float"		},
+	{&keyword_for,	defaultkeyword,	"for"		},
+	{&keyword_goto,	defaultkeyword,	"goto"		},
+	{&keyword_int,	defaultkeyword,	"int"		},
+	{&keyword_integer,	defaultkeyword,	"integer"		},
+	{&keyword_noref,	defaultkeyword,	"noref"		}, // nowhere else references this, don't strip it.
+	{&keyword_nosave,	defaultkeyword,	"nosave"		}, // don't write the def to the output.
+	{&keyword_shared,	defaultkeyword,	"shared"		}, // mark global to be copied over when progs changes
+	{&keyword_state,	nondefaultkeyword,	"state"		},
+	{&keyword_string,	defaultkeyword,	"string"		},
+	{&keyword_struct,	defaultkeyword,	"struct"		},
+	{&keyword_switch,	defaultkeyword,	"switch"		},
+	{&keyword_typedef,	defaultkeyword,	"typedef"		}, // FIXME
+	{&keyword_union,	defaultkeyword,	"union"		}, // you surly know what a union is!
+	{&keyword_var,	defaultkeyword,	"var"		},
+	{&keyword_vector,	defaultkeyword,	"vector"		},
 
 
 	// options
-	{&keywords_coexist,	FLAG_ASDEFAULT,	"kce",		"Keywords Coexist",		"If you want keywords to NOT be disabled when they a variable by the same name is defined, check here."},
-	{&output_parms,	0,	     	"parms",		"Define offset parms",	"if PARM0 PARM1 etc should be defined by the compiler. These are useful if you make use of the asm keyword for function calls, or you wish to create your own variable arguments. This is an easy way to break decompilers."},//controls weather to define PARMx for the parms (note - this can screw over some decompilers)
-	{&autoprototype,	0,	     	"autoproto",	"Automatic Prototyping",	"Causes compilation to take two passes instead of one. The first pass, only the definitions are read. The second pass actually compiles your code. This means you never have to remember to prototype functions again."},	//so you no longer need to prototype functions and things in advance.
-	{&writeasm,	0,		"wasm",		"Dump Assembler",		"Writes out a qc.asm which contains all your functions but in assembler. This is a great way to look for bugs in qcclib, but can also be used to see exactly what your functions turn into, and thus how to optimise statements better."},//spit out a qc.asm file, containing an assembler dump of the ENTIRE progs. (Doesn't include initialisation of constants)
-	{&flag_ifstring,	FLAG_MIDCOMPILE,	"ifstring",	"if(string) fix",		"Causes if(string) to behave identically to if(string!="") This is most useful with addons of course, but also has adverse effects with FRIK_FILE's fgets, where it becomes impossible to determin the end of the file. In such a case, you can still use asm {IF string 2;RETURN} to detect eof and leave the function."},//correction for if(string) no-ifstring to get the standard behaviour.
-	{&flag_laxcasts,	FLAG_MIDCOMPILE,	"lax",		"Lax type checks",		"Disables many errors (generating warnings instead) when function calls or operations refer to two normally incompatable types. This is required for reacc support, and can also allow certain (evil) mods to compile that were originally written for frikqcc."}, //Allow lax casting. This'll produce loadsa warnings of course. But allows compilation of certain dodgy code.
-	{&flag_hashonly,	FLAG_MIDCOMPILE,	"hashonly",	"Hash-only constants",	"Allows use of only #constant for precompiler constants, allows certain preqcc using mods to compile"},
-	{&opt_logicops,	FLAG_MIDCOMPILE,	"lo",		"Logic ops",		"This changes the behaviour of your code. It generates additional if operations to early-out in if statements. With this flag, the line if (0 && somefunction()) will never call the function. It can thus be considered an optimisation. However, due to the change of behaviour, it is not considered so by qcclib. Note that due to inprecisions with floats, this flag can cause runaway loop errors within the player walk and run functions. This code is advised:\nplayer_stand1:\n    if (self.velocity_x || self.velocity_y)\nplayer_run\n    if (!(self.velocity_x || self.velocity_y))"},
-	{&flag_fastarrays,	defaultoption,	"fastarrays",	"fast arrays where possible",	"Generates extra instructions inside array handling functions to detect engine and use extension opcodes only in supporting engines.\nAdds a global which is set by the engine if the engine supports the extra opcodes. Note that this applies to all arrays or none."}, // correction for if(string) no-ifstring to get the standard behaviour.
+	{&keywords_coexist,	FLAG_DEFAULT,	"kce"		},//"Keywords Coexist",		"If you want keywords to NOT be disabled when they a variable by the same name is defined, check here."},
+	{&output_parms,	0,	     	"parms"		},//"Define offset parms",	"if PARM0 PARM1 etc should be defined by the compiler. These are useful if you make use of the asm keyword for function calls, or you wish to create your own variable arguments. This is an easy way to break decompilers."},//controls weather to define PARMx for the parms (note - this can screw over some decompilers)
+	{&autoprototype,	0,	     	"autoproto"	},//"Automatic Prototyping",	"Causes compilation to take two passes instead of one. The first pass, only the definitions are read. The second pass actually compiles your code. This means you never have to remember to prototype functions again."},	//so you no longer need to prototype functions and things in advance.
+	{&writeasm,	0,		"wasm",		},//"Dump Assembler",		"Writes out a qc.asm which contains all your functions but in assembler. This is a great way to look for bugs in qcclib, but can also be used to see exactly what your functions turn into, and thus how to optimise statements better."},//spit out a qc.asm file, containing an assembler dump of the ENTIRE progs. (Doesn't include initialisation of constants)
+	{&flag_ifstring,	FLAG_MIDCOMPILE,	"ifstring"	},//"if(string) fix",		"Causes if(string) to behave identically to if(string!="") This is most useful with addons of course, but also has adverse effects with FRIK_FILE's fgets, where it becomes impossible to determin the end of the file. In such a case, you can still use asm {IF string 2;RETURN} to detect eof and leave the function."},//correction for if(string) no-ifstring to get the standard behaviour.
+	{&flag_laxcasts,	FLAG_MIDCOMPILE,	"lax"		},//"Lax type checks",		"Disables many errors (generating warnings instead) when function calls or operations refer to two normally incompatable types. This is required for reacc support, and can also allow certain (evil) mods to compile that were originally written for frikqcc."}, //Allow lax casting. This'll produce loadsa warnings of course. But allows compilation of certain dodgy code.
+	{&flag_hashonly,	FLAG_MIDCOMPILE,	"hashonly"	},//"Hash-only constants",	"Allows use of only #constant for precompiler constants, allows certain preqcc using mods to compile"},
+	{&opt_logicops,	FLAG_MIDCOMPILE,	"lo"		},//"Logic ops",		"This changes the behaviour of your code. It generates additional if operations to early-out in if statements. With this flag, the line if (0 && somefunction()) will never call the function. It can thus be considered an optimisation. However, due to the change of behaviour, it is not considered so by qcclib. Note that due to inprecisions with floats, this flag can cause runaway loop errors within the player walk and run functions. This code is advised:\nplayer_stand1:\n    if (self.velocity_x || self.velocity_y)\nplayer_run\n    if (!(self.velocity_x || self.velocity_y))"},
+	{&flag_fastarrays,	defaultoption,	"fastarrays"	},//"fast arrays where possible",	"Generates extra instructions inside array handling functions to detect engine and use extension opcodes only in supporting engines.\nAdds a global which is set by the engine if the engine supports the extra opcodes. Note that this applies to all arrays or none."}, // correction for if(string) no-ifstring to get the standard behaviour.
 	{NULL}
 };
 
@@ -156,65 +167,53 @@ target_t targets[] =
 
 void PR_CommandLinePrecompilerOptions (void)
 {
-	const_t *cnst;
-	int             i, p;
-	char *name, *val;
+	const_t	*cnst;
+	int	level, i, j, p = 0;
+	char	*name, *val;
 
-	for (i = 1;i<fs_argc;i++)
+	// default state
+	for (i = 0; optimisations[i].enabled; i++) 
+		*optimisations[i].enabled = false;
+
+	for (i = 1; i < fs_argc; i++)
 	{
-		//compiler constant
-		if ( !strncmp(fs_argv[i], "-D", 2) )
+		// #define
+		if( !strnicmp(fs_argv[i], "/D", 2))
 		{
-			name = fs_argv[i] + 2;
+			name = fs_argv[i+1];
 			val = strchr(name, '=');
-			if (val)
-			{
-				*val = '\0';
-				val++;
-			}
+			if (val) { *val = '\0', val++; }
 			cnst = PR_DefineName(name);
 			if (val)
 			{
-				if (strlen(val)+1 >= sizeof(cnst->value))
-					Sys_Error("Compiler constant value is too long\n");
+				if(strlen(val) + 1 >= sizeof(cnst->value))
+					PR_ParseError(ERR_INTERNAL, "compiler constant value is too long\n");
 				strncpy(cnst->value, val, sizeof(cnst->value)-1);
+				PR_Message("value %s\n", val );
 				cnst->value[sizeof(cnst->value)-1] = '\0';
 			}
 		}
-
-		// optimisations.
-		else if ( !strnicmp(fs_argv[i], "-O", 2) || !strnicmp(fs_argv[i], "/O", 2) )
+		else if( !strnicmp(fs_argv[i], "/O", 2))
 		{
-			p = 0;
-			if (fs_argv[i][2] >= '0' && fs_argv[i][2] <= '3')
+			int currentlevel;
+			name = fs_argv[i], name += 2;// skip "/O"
+			level = atoi(name);
+
+			if(fs_argv[i][2] == 'd') currentlevel = MASK_DEBUG; // disable optimizations
+			else if (fs_argv[i][2] == '0') currentlevel = MASK_LEVEL_O;
+			else if (fs_argv[i][2] == '1') currentlevel = MASK_LEVEL_1;
+			else if (fs_argv[i][2] == '2') currentlevel = MASK_LEVEL_2;
+			else if (fs_argv[i][2] == '3') currentlevel = MASK_LEVEL_3;
+			else if (fs_argv[i][2] == '4') currentlevel = MASK_LEVEL_4;
+
+			for (i = 0; optimisations[i].enabled; i++)
 			{
-			}
-			else if (!strnicmp(fs_argv[i]+2, "no-", 3))
-			{
-				if (fs_argv[i][5])
+				if(optimisations[i].levelmask & currentlevel)
 				{
-					for (p = 0; optimisations[p].enabled; p++)
-					{
-						if ((*optimisations[p].abbrev && !stricmp(fs_argv[i]+5, optimisations[p].abbrev)) || !stricmp(fs_argv[i]+5, optimisations[p].fullname))
-						{
-							*optimisations[p].enabled = false;
-							break;
-						}
-					}
+					*optimisations[i].enabled = true;
+					Msg("use opt: \"%s\"\n", optimisations[i].fullname );
 				}
 			}
-			else
-			{
-				if (fs_argv[i][2])
-					for (p = 0; optimisations[p].enabled; p++)
-						if ((*optimisations[p].abbrev && !stricmp(fs_argv[i]+2, optimisations[p].abbrev)) || !stricmp(fs_argv[i]+2, optimisations[p].fullname))
-						{
-							*optimisations[p].enabled = true;
-							break;
-						}
-			}
-			if (!optimisations[p].enabled)
-				PR_Warning(0, NULL, WARN_BADPARAMS, "Unrecognised optimisation parameter (%s)", fs_argv[i]);
 		}
 		
 		else if ( !strnicmp(fs_argv[i], "-K", 2) || !strnicmp(fs_argv[i], "/K", 2) )
@@ -223,7 +222,7 @@ void PR_CommandLinePrecompilerOptions (void)
 			if (!strnicmp(fs_argv[i]+2, "no-", 3))
 			{
 				for (p = 0; compiler_flag[p].enabled; p++)
-					if (!stricmp(fs_argv[i]+5, compiler_flag[p].abbrev))
+					if (!stricmp(fs_argv[i]+5, compiler_flag[p].name))
 					{
 						*compiler_flag[p].enabled = false;
 						break;
@@ -232,7 +231,7 @@ void PR_CommandLinePrecompilerOptions (void)
 			else
 			{
 				for (p = 0; compiler_flag[p].enabled; p++)
-					if (!stricmp(fs_argv[i]+2, compiler_flag[p].abbrev))
+					if (!stricmp(fs_argv[i]+2, compiler_flag[p].name))
 					{
 						*compiler_flag[p].enabled = true;
 						break;
@@ -248,7 +247,7 @@ void PR_CommandLinePrecompilerOptions (void)
 			if (!strnicmp(fs_argv[i]+2, "no-", 3))
 			{
 				for (p = 0; compiler_flag[p].enabled; p++)
-					if (!stricmp(fs_argv[i]+5, compiler_flag[p].abbrev))
+					if (!stricmp(fs_argv[i]+5, compiler_flag[p].name))
 					{
 						*compiler_flag[p].enabled = false;
 						break;
@@ -257,7 +256,7 @@ void PR_CommandLinePrecompilerOptions (void)
 			else
 			{
 				for (p = 0; compiler_flag[p].enabled; p++)
-					if (!stricmp(fs_argv[i]+2, compiler_flag[p].abbrev))
+					if (!stricmp(fs_argv[i]+2, compiler_flag[p].name))
 					{
 						*compiler_flag[p].enabled = true;
 						break;
@@ -311,75 +310,17 @@ void PR_CommandLinePrecompilerOptions (void)
 
 void PR_SetDefaultProperties (void)
 {
-	int i;
+	int i, p;
 
-	Hash_InitTable(&compconstantstable, MAX_CONSTANTS, Qalloc(BytesForBuckets(MAX_CONSTANTS)));
+
+
+	for (p = 0; compiler_flag[p].enabled; p++)
+		*compiler_flag[p].enabled = compiler_flag[p].flags & FLAG_DEFAULT;
+
+	Hash_InitTable(&compconstantstable, MAX_CONSTANTS);
 
 	ForcedCRC = 0;
-
 	PR_DefineName("QCCLIB");
-
-	if (FS_CheckParm("/Oz"))
-	{
-		targetformat = QCF_RELEASE;
-		PR_DefineName("OP_COMP_STATEMENTS");
-		PR_DefineName("OP_COMP_DEFS");
-		PR_DefineName("OP_COMP_FIELDS");
-		PR_DefineName("OP_COMP_FUNCTIONS");
-		PR_DefineName("OP_COMP_STRINGS");
-		PR_DefineName("OP_COMP_GLOBALS");
-		PR_DefineName("OP_COMP_LINES");
-		PR_DefineName("OP_COMP_TYPES");
-		compressoutput = true; //enable compression
-	}
-
-	if (FS_CheckParm("/O0") || FS_CheckParm("-O0"))
-		level = 0;
-	else if (FS_CheckParm("/O1") || FS_CheckParm("-O1"))
-		level = 1;
-	else if (FS_CheckParm("/O2") || FS_CheckParm("-O2"))
-		level = 2;
-	else if (FS_CheckParm("/O3") || FS_CheckParm("-O3"))
-		level = 3;
-	else level = -1;
-
-	if (level == -1)
-	{
-		for (i = 0; optimisations[i].enabled; i++)
-		{
-			if (optimisations[i].flags & FLAG_ASDEFAULT)
-				*optimisations[i].enabled = true;
-			else
-				*optimisations[i].enabled = false;
-		}
-	}
-	else
-	{
-		for (i = 0; optimisations[i].enabled; i++)
-		{
-			if (level >= optimisations[i].optimisationlevel)
-				*optimisations[i].enabled = true;
-			else
-				*optimisations[i].enabled = false;
-		}
-	}
-
-	//targetformat = QCF_STANDARD;
-
-	switch(targetformat)
-	{
-	case QCF_DEBUG:
-	case QCF_RELEASE:
-		strncpy(pevname, "pev", 3 );
-		strncpy(pevname, "opev", 4 );
-		break;
-	default:
-	case QCF_STANDARD:
-		strncpy(pevname, "self", 4 );
-		strncpy(opevname, "oself", 5 );
-		break;
-	}	
-
 
 	//enable all warnings
 	memset(pr_warning, 0, sizeof(pr_warning));
@@ -398,31 +339,119 @@ void PR_SetDefaultProperties (void)
 	//Check the command line
 	PR_CommandLinePrecompilerOptions();
 
-	if (FS_CheckParm("-debug"))	//disable any debug optimisations
+	//targetformat = QCF_STANDARD;
+
+	//FIXME
+	switch(targetformat)
 	{
+	case QCF_DEBUG:
+	case QCF_RELEASE:
+		strncpy(pevname, "pev", 3 );
+		strncpy(pevname, "opev", 4 );
+		break;
+	default:
+	case QCF_STANDARD:
+		strncpy(pevname, "self", 4 );
+		strncpy(opevname, "oself", 5 );
+
 		for (i = 0; optimisations[i].enabled; i++)
 		{
-			if (optimisations[i].flags & FLAG_KILLSDEBUGGERS)
+			if(*optimisations[i].enabled && optimisations[i].flags & FLAG_V7_ONLY)
+			{
 				*optimisations[i].enabled = false;
+				Msg("\"%s\" not supported with standard target, disable\n", optimisations[i].fullname );
+			}
 		}
+		break;
 	}
 }
 
-void PR_InitData (void)
+/*
+===================
+PR_Init
+
+initialize compiler and hash tables
+===================
+*/
+void PR_Init( const char *name )
 {
 	static char	parmname[12][MAX_PARMS];
 	static temp_t	ret_temp;
 	int		i;
 
+	strncat(v_copyright, "This file was created with Xash3D QuakeC compiler,\n", sizeof(v_copyright));
+	strncat(v_copyright, "who based on original code of ForeThought's QuakeC compiler.\n", sizeof(v_copyright));
+	strncat(v_copyright, "Thanks to ID Software at all.", sizeof(v_copyright));
+
+	// tune limits
+	MAX_REGS		= 65536;
+	MAX_ERRORS	= 10; // per one file
+	MAX_STRINGS	= 1000000;
+	MAX_GLOBALS	= 32768;
+	MAX_FIELDS	= 2048;
+	MAX_STATEMENTS	= 0x80000;
+	MAX_FUNCTIONS	= 16384;
+	maxtypeinfos	= 16384;
+	MAX_CONSTANTS	= 2048;
+
+	PR_SetDefaultProperties();
+	
+	numtemps = 0;
+	functemps = NULL;
 	sourcefile = NULL;
-	numstatements = 1;
+
+	strings = (void *)Qalloc(sizeof(char) * MAX_STRINGS);
 	strofs = 1;
+
+	statements = (void *)Qalloc(sizeof(dstatement_t) * MAX_STATEMENTS);
+	numstatements = 1;
+
+	statement_linenums = (void *)Qalloc(sizeof(int) * MAX_STATEMENTS);
+
+	functions = (void *)Qalloc(sizeof(dfunction_t) * MAX_FUNCTIONS);
 	numfunctions = 1;
-	numglobaldefs = 1;
+
+	pr_bracelevel = 0;
+
+	pr_globals = (void *)Qalloc(sizeof(float) * MAX_REGS);
+	numpr_globals = 0;
+
+	Hash_InitTable(&globalstable, MAX_REGS);
+	Hash_InitTable(&localstable, MAX_REGS);
+	Hash_InitTable(&floatconstdefstable, MAX_REGS+1);
+	Hash_InitTable(&intconstdefstable, MAX_REGS+1);
+	Hash_InitTable(&stringconstdefstable, MAX_REGS);
+	
+	qcc_globals = (void *)Qalloc(sizeof(ddef_t) * MAX_GLOBALS);
+	numglobaldefs = 1;	
+
+	fields = (void *)Qalloc(sizeof(ddef_t) * MAX_FIELDS);
 	numfielddefs = 1;
 
+	precache_sounds = (void *)Qalloc(sizeof(char) * MAX_NAME * MAX_SOUNDS);
+	numsounds = 0;
+	precache_textures = (void *)Qalloc(sizeof(char) * MAX_NAME * MAX_TEXTURES);
+	numtextures = 0;
+	precache_models = (void *)Qalloc(sizeof(char) * MAX_NAME * MAX_MODELS);
+	nummodels = 0;
+	precache_files = (void *)Qalloc(sizeof(char) * MAX_NAME * MAX_FILES);
+	numfiles = 0;
+
+	qcc_typeinfo = (void *)Qalloc(sizeof(type_t) * maxtypeinfos);
+	numtypeinfos = 0;
+
+	qcc_tempofs = Qalloc(sizeof(int) * max_temps);
+	tempsstart = 0;
+	bodylessfuncs = 0;
+
+	memset(&pr, 0, sizeof(pr));
 	memset(&ret_temp, 0, sizeof(ret_temp));
-	
+	memset(pr_immediate_string, 0, sizeof(pr_immediate_string));
+
+	if (opt_locals_marshalling) MsgWarn("Locals marshalling might be buggy. Use with caution\n");
+	strncpy( qccmprogsdat, name, sizeof(qccmprogsdat));
+
+	// default parms
 	def_ret.ofs = OFS_RETURN;
 	def_ret.name = "return";
 	def_ret.temp = &ret_temp;
@@ -441,109 +470,6 @@ void PR_InitData (void)
 		def_parms[i].name = parmname[i];
 		sprintf(parmname[i], "parm%i", i);
 	}
-}
-
-/*
-===================
-PR_Init
-
-initialize compiler and hash tables
-===================
-*/
-void PR_Init( void )
-{
-	int	p;
-
-	// tune limits
-	MAX_REGS		= 65536;
-	MAX_ERRORS	= 10; // per one file
-	MAX_STRINGS	= 1000000;
-	MAX_GLOBALS	= 32768;
-	MAX_FIELDS	= 2048;
-	MAX_STATEMENTS	= 0x80000;
-	MAX_FUNCTIONS	= 16384;
-	maxtypeinfos	= 16384;
-	MAX_CONSTANTS	= 2048;
-
-	strcpy(v_copyright, "This file was created with Xash3D QuakeC compiler\nbased on original code of ForeThought's QuakeC compiler\nThanks to ID Software at all");
-
-	for (p = 0; compiler_flag[p].enabled; p++)
-	{
-		*compiler_flag[p].enabled = compiler_flag[p].flags & FLAG_ASDEFAULT;
-	}
-
-	PR_SetDefaultProperties();
-	
-	numtemps = 0;
-	functemps=NULL;
-
-	strings = (void *)Qalloc(sizeof(char) * MAX_STRINGS);
-	strofs = 1;
-
-	statements = (void *)Qalloc(sizeof(dstatement_t) * MAX_STATEMENTS);
-	numstatements = 0;
-	statement_linenums = (void *)Qalloc(sizeof(int) * MAX_STATEMENTS);
-
-	functions = (void *)Qalloc(sizeof(dfunction_t) * MAX_FUNCTIONS);
-	numfunctions=0;
-
-	pr_bracelevel = 0;
-
-	pr_globals = (void *)Qalloc(sizeof(float) * MAX_REGS);
-	numpr_globals=0;
-
-	Hash_InitTable(&globalstable, MAX_REGS, Qalloc(BytesForBuckets(MAX_REGS)));
-	Hash_InitTable(&localstable, MAX_REGS, Qalloc(BytesForBuckets(MAX_REGS)));
-	Hash_InitTable(&floatconstdefstable, MAX_REGS+1, Qalloc(BytesForBuckets(MAX_REGS+1)));
-	Hash_InitTable(&intconstdefstable, MAX_REGS+1, Qalloc(BytesForBuckets(MAX_REGS+1)));
-	Hash_InitTable(&stringconstdefstable, MAX_REGS, Qalloc(BytesForBuckets(MAX_REGS)));
-	
-//	pr_global_defs = (def_t **)Qalloc(sizeof(def_t *) * MAX_REGS);
-
-	qcc_globals = (void *)Qalloc(sizeof(ddef_t) * MAX_GLOBALS);
-	numglobaldefs=0;	
-
-	fields = (void *)Qalloc(sizeof(ddef_t) * MAX_FIELDS);
-	numfielddefs=0;
-
-	memset(pr_immediate_string, 0, sizeof(pr_immediate_string));
-
-	precache_sounds = (void *)Qalloc(sizeof(char)*MAX_NAME*MAX_SOUNDS);
-	numsounds = 0;
-
-	precache_textures = (void *)Qalloc(sizeof(char)*MAX_NAME*MAX_TEXTURES);
-	numtextures=0;
-
-	precache_models = (void *)Qalloc(sizeof(char)*MAX_NAME*MAX_MODELS);
-	nummodels=0;
-
-	precache_files = (void *)Qalloc(sizeof(char)*MAX_NAME*MAX_FILES);
-	numfiles = 0;
-
-	qcc_typeinfo = (void *)Qalloc(sizeof(type_t)*maxtypeinfos);
-	numtypeinfos = 0;
-
-	qcc_tempofs = Qalloc(sizeof(int) * max_temps);
-	tempsstart = 0;
-
-	bodylessfuncs=0;
-
-	memset(&pr, 0, sizeof(pr));
-#ifdef MAX_EXTRA_PARMS
-	memset(&extra_parms, 0, sizeof(extra_parms));
-#endif
-
-	if (opt_locals_marshalling)
-		Msg("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nLocals marshalling might be buggy. Use with caution\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-	
-	if(FS_GetParmFromCmdLine("-src", qccmsourcedir ))
-	{
-		strcat (qccmsourcedir, "/");
-		Msg ("Source directory: %s\n", qccmsourcedir);
-	}
-	else *qccmsourcedir = '\0';
-          
-	PR_InitData ();
 }
 
 void PR_WriteData (int crc)
@@ -600,15 +526,25 @@ void PR_WriteData (int crc)
 			outputsize = 32;
 		}
 
+		if(opt_compstrings) 
+		{
+			progs.blockscompressed |= COMP_STRINGS;
+		}
+		if(opt_compfunctions)
+		{
+			progs.blockscompressed |= COMP_FUNCTIONS;
+			progs.blockscompressed |= COMP_STATEMENTS;
+		}
+		if(opt_compress_other)
+		{
+			progs.blockscompressed |= COMP_DEFS;
+			progs.blockscompressed |= COMP_FIELDS;
+			progs.blockscompressed |= COMP_GLOBALS;
+		}
+
 		//compression of blocks?
 		if (compressoutput)	
 		{
-			progs.blockscompressed |= COMP_STATEMENTS;
-			progs.blockscompressed |= COMP_DEFS;
-			progs.blockscompressed |= COMP_FIELDS;
-			progs.blockscompressed |= COMP_FUNCTIONS;
-			progs.blockscompressed |= COMP_STRINGS;
-			progs.blockscompressed |= COMP_GLOBALS;
 			progs.blockscompressed |= COMP_LINENUMS;
 			progs.blockscompressed |= COMP_TYPES;
 		}
@@ -892,14 +828,14 @@ void PR_WriteData (int crc)
 		progs.ofsbodylessfuncs = VFS_Tell(h);
 		progs.numbodylessfuncs = PR_WriteBodylessFuncs(h);		
 
-		if (debugtarget)
+		if (opt_writelinenums)
 		{
 			progs.ofslinenums = VFS_Tell(h);
 			PR_WriteBlock(h, progs.ofslinenums, statement_linenums, numstatements*sizeof(int), progs.blockscompressed & COMP_LINENUMS);
 		}
 		else progs.ofslinenums = 0;
 
-		if (types)
+		if (opt_writetypes)
 		{
 			progs.ofs_types = VFS_Tell(h);
 			progs.numtypes = numtypeinfos;
@@ -910,7 +846,7 @@ void PR_WriteData (int crc)
 			progs.ofs_types = 0;
 			progs.numtypes = 0;
 		}
-		progs.ofsfiles = PR_WriteSourceFiles(h, &progs, debugtarget);
+		progs.ofsfiles = PR_WriteSourceFiles(h, &progs, opt_writesources);
 		break;
 	}
 
@@ -1029,54 +965,6 @@ void PR_BeginCompilation ( void )
 	compileactive = true;
 }
 
-/*
-==============
-PR_FinishCompilation
-
-called after all files are compiled to check for errors
-Returns false if errors were detected.
-==============
-*/
-int PR_FinishCompilation (void)
-{
-	def_t		*d;
-	int		errors = pr_total_error_count;
-	
-	// check to make sure all functions prototyped have code
-	for (d = pr.def_head.next; d; d = d->next)
-	{
-		if (d->type->type == ev_function && !d->scope)// function parms are ok
-		{
-			if (d->initialized == 0)
-			{
-				if (!strncmp(d->name, "ArrayGet*", 9))
-				{
-					PR_EmitArrayGetFunction(d, d->name + 9);
-					pr_scope = NULL;
-				}
-				else if (!strncmp(d->name, "ArraySet*", 9))
-				{
-					PR_EmitArraySetFunction(d, d->name + 9);
-					pr_scope = NULL;
-				}
-				else if (!strncmp(d->name, "Class*", 6))
-				{
-					PR_EmitClassFromFunction(d, d->name + 6);
-					pr_scope = NULL;
-				}
-				else
-				{
-					PR_Warning(WARN_NOTDEFINED, strings + d->s_file, d->s_line, "function %s was not defined",d->name);
-					bodylessfuncs = true;
-				}
-			}
-			else if (d->initialized == 2) bodylessfuncs = true;
-		}
-	}
-	pr_scope = NULL;
-
-	return (errors == 0);
-}
 //=============================================================================
 
 
@@ -1183,8 +1071,8 @@ bool PrepareDATProgs ( const char *dir, const char *name, byte params )
 {
 	qccpool = Mem_AllocPool( "QCC Compiler" );
 
-	FS_InitRootDir(".");
-	PR_Init();
+	FS_InitRootDir( (char *)dir );
+	PR_Init( name );
 
 	return true;
 }
