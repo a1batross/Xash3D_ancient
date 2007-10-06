@@ -15,7 +15,16 @@ typedef int bool;
 
 #include <ref_system.h>
 
-//import variables
+enum
+{
+	ERR_INVALID_ROOT,
+	ERR_CONSOLE_FAIL,
+	ERR_OSINFO_FAIL,
+	ERR_INVALID_VER,
+	ERR_WINDOWS_32S,
+};
+
+// import variables
 char *(*Sys_Input ) ( void );	
 void ( *Msg )( char *msg, ... );
 void ( *Sys_Print )( const char *msg );
@@ -50,6 +59,7 @@ extern char log_path[256];
 extern bool console_read_only;
 extern bool show_always;
 extern bool about_mode;
+extern bool silent_mode;
 extern bool sys_error;
 char *va(const char *format, ...);
 
@@ -78,8 +88,10 @@ void Sys_DestroyConsoleW( void );
 void Sys_ShowConsoleW( bool show );
 char *Sys_InputW( void );
 void Sys_ErrorW(char *error, ...);
+void Sys_ErrorA(char *error, ...);
 void Sys_InitLog( void );
 void Sys_CloseLog( void );
+void _Sys_ErrorFatal( int type, const char *filename, int fileline );
 
 //generic stub
 __inline void NullVoid( void ) {}
@@ -100,5 +112,7 @@ __inline void NullInit ( char *funcname, int argc, char **argv ) {}
 #define Mem_Move(dest, src, size ) Com->Mem.Move (dest, src, size, __FILE__, __LINE__)
 #define Mem_Copy(dest, src, size ) Com->Mem.Copy (dest, src, size, __FILE__, __LINE__)
 #define Mem_Check() Com->Mem.CheckSentinelsGlobal(__FILE__, __LINE__)
+#define Sys_ErrorFatal( type ) _Sys_ErrorFatal( type, __FILE__, __LINE__ )
+#define Sys_Stop() Sys_ErrorFatal( -1 )
 
 #endif//LAUNCHER_H

@@ -34,6 +34,7 @@ bool keyword_state;
 bool keyword_string;	// for skipping the local
 bool keyword_struct;
 bool keyword_switch;
+bool keyword_thinktime;
 bool keyword_var;		// allow it to be initialised and set around the place.
 bool keyword_vector;	// for skipping the local
 bool keyword_enum;		// kinda like in c, but typedef not supported.
@@ -239,10 +240,17 @@ opcode_t pr_opcodes[] =
 {7, "<FETCH_G_FNC>","FETCH_G_FNC",	-1,	ASSOC_LEFT, &type_function,	&type_float,	&type_function},
 {7, "<CSTATE>",	"CSTATE",		-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_void},
 {7, "<CWSTATE>",	"CWSTATE",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_void},
+{7, "<THINKTIME>", "THINKTIME",	-1,	ASSOC_LEFT, &type_entity,	&type_float,	&type_void},
 {7, "|=",		"BITSET_F",	6,	ASSOC_RIGHT,&type_float,	&type_float,	&type_float},
 {7, "|=",		"BITSETP_F",	6,	ASSOC_RIGHT,&type_pointer,	&type_float,	&type_float},
 {7, "(-)",	"BITCLR_F",	6,	ASSOC_RIGHT,&type_float,	&type_float,	&type_float},
 {7, "(-)",	"BITCLRP_F",	6,	ASSOC_RIGHT,&type_pointer,	&type_float,	&type_float},
+{7, "<RAND0>",	"RAND0",		-1,	ASSOC_LEFT, &type_void,	&type_void,	&type_float},
+{7, "<RAND1>",	"RAND1",		-1,	ASSOC_LEFT, &type_float,	&type_void,	&type_float},
+{7, "<RAND2>",	"RAND2",		-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},	
+{7, "<RANDV0>",	"RANDV0",		-1,	ASSOC_LEFT, &type_void,	&type_void,	&type_vector},
+{7, "<RANDV1>",	"RANDV1",		-1,	ASSOC_LEFT, &type_vector,	&type_void,	&type_vector},
+{7, "<RANDV2>",	"RANDV2",		-1,	ASSOC_LEFT, &type_vector,	&type_vector,	&type_vector},
 {7, "<SWITCH_F>",	"SWITCH_F",	-1,	ASSOC_LEFT, &type_void,	NULL,		&type_void},
 {7, "<SWITCH_V>",	"SWITCH_V",	-1,	ASSOC_LEFT, &type_void,	NULL,		&type_void},
 {7, "<SWITCH_S>",	"SWITCH_S",	-1,	ASSOC_LEFT, &type_void,	NULL,		&type_void},
@@ -342,12 +350,13 @@ opcode_t pr_opcodes[] =
 {7, "<>",		"GSTORE_PFNC",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
 {7, "<>",		"GSTOREP_V",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
 {7, "<>",		"GADDRESS",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
-{7, "<>",		"GLOAD_I",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
-{7, "<>",		"GLOAD_F",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
-{7, "<>",		"GLOAD_FLD",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
-{7, "<>",		"GLOAD_ENT",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
-{7, "<>",		"GLOAD_S",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
-{7, "<>",		"GLOAD_FNC",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
+{7, "<>",		"GLOAD_I",	-1,	ASSOC_LEFT, &type_pointer,	&type_integer,	&type_integer},
+{7, "<>",		"GLOAD_F",	-1,	ASSOC_LEFT, &type_pointer,	&type_integer,	&type_float},
+{7, "<>",		"GLOAD_FLD",	-1,	ASSOC_LEFT, &type_pointer,	&type_integer,	&type_field},
+{7, "<>",		"GLOAD_ENT",	-1,	ASSOC_LEFT, &type_pointer,	&type_integer,	&type_entity},
+{7, "<>",		"GLOAD_S",	-1,	ASSOC_LEFT, &type_pointer,	&type_integer,	&type_string},
+{7, "<>",		"GLOAD_FNC",	-1,	ASSOC_LEFT, &type_pointer,	&type_integer,	&type_function},
+{7, "<>",		"GLOAD_V",	-1,	ASSOC_LEFT, &type_pointer,	&type_integer,	&type_vector},
 {7, "<>",		"BOUNDCHECK",	-1,	ASSOC_LEFT, &type_float,	&type_float,	&type_float},
 {7, "=",		"STOREP_P",	6,	ASSOC_RIGHT,&type_pointer,	&type_pointer,	&type_void},
 {7, "<PUSH>",	"PUSH",		-1,	ASSOC_RIGHT,&type_float,	&type_void,	&type_pointer},
@@ -511,20 +520,17 @@ opcode_t *opcodeprioritized[TOP_PRIORITY+1][64] =
 
 bool PR_OPCodeValid(opcode_t *op)
 {
-	int num = op - pr_opcodes;
+	int	num = op - pr_opcodes;
+	bool	valid = false;
 
-	switch(targetformat)
+	switch(target_version)
 	{
-	case QCF_STANDARD:
-		if (num < OP_MULSTORE_F)
-			return true;
-		return false;
-	case QCF_RELEASE:
-	case QCF_DEBUG:
-		return true;
-	default:
-		return false;
+	case QPROGS_VERSION: if (num < OP_MULSTORE_F) valid = 1; break;
+	case FPROGS_VERSION: if (num < OP_STOREP_P) valid = 1; break;
+	case VPROGS_VERSION: valid = 1; break;
 	}
+
+	return valid;
 }
 
 //===========================================================================
@@ -2628,7 +2634,7 @@ reloop:
 		{
 			if (!PR_OPCodeValid(&pr_opcodes[OP_LOADA_F])) // q1 compatable.
 			{	
-				//you didn't see this, okay?
+				// you didn't see this, okay?
 				def_t *funcretr;
 				if (d->scope) PR_ParseError(0, "Scoped array without specific engine support");
 				if (def_ret.temp->used && ao != &def_ret) PR_ParseWarning(0, "RETURN VALUE ALREADY IN USE");
@@ -4305,6 +4311,32 @@ void PR_ParseStatement (void)
 		PR_Expect(":");
 		return;
 	}
+	if (PR_CheckKeyword(keyword_thinktime, "thinktime"))
+	{
+		def_t *nextthink;
+		def_t *time;
+		e = PR_Expression (TOP_PRIORITY, true);
+		PR_Expect(":");
+		e2 = PR_Expression (TOP_PRIORITY, true);
+		if (e->type->type != ev_entity || e2->type->type != ev_float)
+			PR_ParseError(ERR_THINKTIMETYPEMISMATCH, "thinktime type mismatch");
+
+		if (PR_OPCodeValid(&pr_opcodes[OP_THINKTIME]))
+			PR_FreeTemp(PR_Statement (&pr_opcodes[OP_THINKTIME], e, e2, NULL));
+		else
+		{
+			nextthink = PR_GetDef(NULL, "nextthink", NULL, false, 0);
+			if (!nextthink)
+				PR_ParseError (ERR_UNKNOWNVALUE, "Unknown value \"%s\"", "nextthink");
+			time = PR_GetDef(type_float, "time", NULL, false, 0);
+			if (!time) PR_ParseError (ERR_UNKNOWNVALUE, "Unknown value \"%s\"", "time");
+			nextthink = PR_Statement(&pr_opcodes[OP_ADDRESS], e, nextthink, NULL);
+			time = PR_Statement(&pr_opcodes[OP_ADD_F], time, e2, NULL);
+			PR_FreeTemp(PR_Statement(&pr_opcodes[OP_STOREP_F], time, nextthink, NULL));
+		}
+		PR_Expect(";");
+		return;
+	}
 	if (PR_CheckToken(";"))
 	{
 		int osl = pr_source_line;
@@ -4922,7 +4954,7 @@ void PR_WriteAsmFunction(def_t *sc, uint firststatement, gofs_t firstparm)
 		FS_Printf(asmfile, "\t%s", pr_opcodes[statements[i].op].opname);
 		if (pr_opcodes[statements[i].op].type_a != &type_void)
 		{
-			if (strlen(pr_opcodes[statements[i].op].opname)<6)
+			if (strlen(pr_opcodes[statements[i].op].opname) < 6)
 				FS_Printf(asmfile, "\t");
 			if (pr_opcodes[statements[i].op].type_a)
 				FS_Printf(asmfile, "\t%s", PR_VarAtOffset(statements[i].a, (*pr_opcodes[statements[i].op].type_a)->size));
@@ -4933,7 +4965,7 @@ void PR_WriteAsmFunction(def_t *sc, uint firststatement, gofs_t firstparm)
 				if (pr_opcodes[statements[i].op].type_b)
 					FS_Printf(asmfile, ",\t%s", PR_VarAtOffset(statements[i].b, (*pr_opcodes[statements[i].op].type_b)->size));
 				else FS_Printf(asmfile, ",\t%i", statements[i].b);
-				if (pr_opcodes[statements[i].op].type_c != &type_void && pr_opcodes[statements[i].op].associative==ASSOC_LEFT)
+				if (pr_opcodes[statements[i].op].type_c != &type_void && pr_opcodes[statements[i].op].associative == ASSOC_LEFT)
 				{
 					if (pr_opcodes[statements[i].op].type_c)
 						FS_Printf(asmfile, ",\t%s", PR_VarAtOffset(statements[i].c, (*pr_opcodes[statements[i].op].type_c)->size));
@@ -5410,13 +5442,12 @@ def_t *PR_DummyDef(type_t *type, char *name, def_t *scope, int arraysize, uint o
 	if (name)
 	{
 		KEYWORD(var);
+		KEYWORD(thinktime);
 		KEYWORD(for);
 		KEYWORD(switch);
 		KEYWORD(case);
 		KEYWORD(default);
 		KEYWORD(goto);
-		if (type->type != ev_function)
-			KEYWORD(break);
 		KEYWORD(continue);
 		KEYWORD(state);
 		KEYWORD(string);
@@ -5425,6 +5456,7 @@ def_t *PR_DummyDef(type_t *type, char *name, def_t *scope, int arraysize, uint o
 		KEYWORD(vector);
 		KEYWORD(const);
 		KEYWORD(asm);
+		if (type->type != ev_function) KEYWORD(break);
 	}
 
 	for (a = 0; a < arraysize; a++)
@@ -5661,13 +5693,14 @@ def_t *PR_GetDef (type_t *type, char *name, def_t *scope, bool allocate, int arr
 		}
 	}
 
-	if (!allocate) return NULL;
+	// quake1 compatiable opcode don't create new type and cause to exception
+	if (!allocate || !type) return NULL;
 	if (arraysize < 1) PR_ParseError (ERR_ARRAYNEEDSSIZE, "First declaration of array %s with no size",name);
 
-	if (scope && PR_GetDef(type, name, NULL, false, arraysize))
+	/*if (scope && PR_GetDef(type, name, NULL, false, arraysize))
 	{
 		PR_ParseWarning(WARN_SAMENAMEASGLOBAL, "Local \"%s\" defined with name of a global", name);
-	}
+	}*/
 
 	ofs = numpr_globals;
 	if (arraysize > 1)

@@ -63,7 +63,7 @@ hashtable_t	intconstdefstable;
 hashtable_t	floatconstdefstable;
 hashtable_t	stringconstdefstable;
 bool		pr_warning[WARN_MAX];
-targetformat_t	targetformat;
+int		target_version;
 bool		bodylessfuncs;
 type_t		*qcc_typeinfo;
 int		numtypeinfos;
@@ -136,6 +136,7 @@ compiler_flag_t compiler_flag[] =
 	{&keyword_string,	defaultkeyword,	"string"		},
 	{&keyword_struct,	defaultkeyword,	"struct"		},
 	{&keyword_switch,	defaultkeyword,	"switch"		},
+	{&keyword_thinktime,nondefaultkeyword,	"thinktime",	},
 	{&keyword_typedef,	defaultkeyword,	"typedef"		}, // FIXME
 	{&keyword_union,	defaultkeyword,	"union"		}, // you surly know what a union is!
 	{&keyword_var,	defaultkeyword,	"var"		},
@@ -155,31 +156,22 @@ compiler_flag_t compiler_flag[] =
 	{NULL}
 };
 
-target_t targets[] = 
-{
-	{QCF_STANDARD,	"standard"},
-	{QCF_STANDARD,	"q1"},
-	{QCF_STANDARD,	"quakec"},
-	{QCF_RELEASE,	"release"},
-	{QCF_DEBUG,	"debug"},
-	{0,		NULL}
-};
-
 void PR_CommandLinePrecompilerOptions (void)
 {
 	const_t	*cnst;
 	int	level, i, j, p = 0;
 	char	*name, *val;
 
-	// default state
+	// set default state
 	for (i = 0; optimisations[i].enabled; i++) 
 		*optimisations[i].enabled = false;
+	target_version = QPROGS_VERSION;
 
 	for (i = 1; i < fs_argc; i++)
 	{
-		// #define
 		if( !strnicmp(fs_argv[i], "/D", 2))
 		{
+			// #define
 			name = fs_argv[i+1];
 			val = strchr(name, '=');
 			if (val) { *val = '\0', val++; }
@@ -195,6 +187,7 @@ void PR_CommandLinePrecompilerOptions (void)
 		}
 		else if( !strnicmp(fs_argv[i], "/O", 2))
 		{
+			// optimization level
 			int currentlevel;
 			name = fs_argv[i], name += 2;// skip "/O"
 			level = atoi(name);
@@ -215,95 +208,13 @@ void PR_CommandLinePrecompilerOptions (void)
 				}
 			}
 		}
-		
-		else if ( !strnicmp(fs_argv[i], "-K", 2) || !strnicmp(fs_argv[i], "/K", 2) )
+		else if ( !strnicmp(fs_argv[i], "/V", 2))
 		{
-			p = 0;
-			if (!strnicmp(fs_argv[i]+2, "no-", 3))
-			{
-				for (p = 0; compiler_flag[p].enabled; p++)
-					if (!stricmp(fs_argv[i]+5, compiler_flag[p].name))
-					{
-						*compiler_flag[p].enabled = false;
-						break;
-					}
-			}
-			else
-			{
-				for (p = 0; compiler_flag[p].enabled; p++)
-					if (!stricmp(fs_argv[i]+2, compiler_flag[p].name))
-					{
-						*compiler_flag[p].enabled = true;
-						break;
-					}
-			}
-
-			if (!compiler_flag[p].enabled)
-				PR_Warning(0, NULL, WARN_BADPARAMS, "Unrecognised keyword parameter (%s)", fs_argv[i]);
-		}
-		else if ( !strnicmp(fs_argv[i], "-F", 2) || !strnicmp(fs_argv[i], "/F", 2) )
-		{
-			p = 0;
-			if (!strnicmp(fs_argv[i]+2, "no-", 3))
-			{
-				for (p = 0; compiler_flag[p].enabled; p++)
-					if (!stricmp(fs_argv[i]+5, compiler_flag[p].name))
-					{
-						*compiler_flag[p].enabled = false;
-						break;
-					}
-			}
-			else
-			{
-				for (p = 0; compiler_flag[p].enabled; p++)
-					if (!stricmp(fs_argv[i]+2, compiler_flag[p].name))
-					{
-						*compiler_flag[p].enabled = true;
-						break;
-					}
-			}
-
-			if (!compiler_flag[p].enabled)
-				PR_Warning(0, NULL, WARN_BADPARAMS, "Unrecognised flag parameter (%s)", fs_argv[i]);
-		}
-
-
-		else if ( !strncmp(fs_argv[i], "-T", 2) || !strncmp(fs_argv[i], "/T", 2) )
-		{
-			p = 0;
-			for (p = 0; targets[p].name; p++)
-				if (!stricmp(fs_argv[i]+2, targets[p].name))
-				{
-					targetformat = targets[p].target;
-					break;
-				}
-
-			if (!targets[p].name)
-				PR_Warning(0, NULL, WARN_BADPARAMS, "Unrecognised target parameter (%s)", fs_argv[i]);
-		}
-
-		else if ( !strnicmp(fs_argv[i], "-W", 2) || !strnicmp(fs_argv[i], "/W", 2) )
-		{
-			if (!stricmp(fs_argv[i]+2, "all"))
-				memset(pr_warning, 0, sizeof(pr_warning));
-			else if (!stricmp(fs_argv[i]+2, "none"))
-				memset(pr_warning, 1, sizeof(pr_warning));
-			else if (!stricmp(fs_argv[i]+2, "no-mundane"))
-			{	//disable mundane performance/efficiency/blah warnings that don't affect code.
-				pr_warning[WARN_SAMENAMEASGLOBAL] = true;
-				pr_warning[WARN_DUPLICATEDEFINITION] = true;
-				pr_warning[WARN_CONSTANTCOMPARISON] = true;
-				pr_warning[WARN_ASSIGNMENTINCONDITIONAL] = true;
-				pr_warning[WARN_DEADCODE] = true;
-				pr_warning[WARN_NOTREFERENCEDCONST] = true;
-				pr_warning[WARN_NOTREFERENCED] = true;
-				pr_warning[WARN_POINTLESSSTATEMENT] = true;
-				pr_warning[WARN_ASSIGNMENTTOCONSTANTFUNC] = true;
-				pr_warning[WARN_BADPRAGMA] = true;	//C specs say that these should be ignored. We're close enough to C that I consider that a valid statement.
-				pr_warning[WARN_IDENTICALPRECOMPILER] = true;
-				pr_warning[WARN_UNDEFNOTDEFINED] = true;
-			}
-		}
+			if (fs_argv[i][2] == '6') target_version = QPROGS_VERSION;
+			else if (fs_argv[i][2] == '7') target_version = FPROGS_VERSION;
+			else if (fs_argv[i][2] == '8') target_version = VPROGS_VERSION;
+			else PR_Warning(0, NULL, WARN_BADPARAMS, "Unrecognised version parametr (%s)", fs_argv[i]);
+		}		
 	}
 }
 
@@ -339,31 +250,11 @@ void PR_SetDefaultProperties (void)
 	//Check the command line
 	PR_CommandLinePrecompilerOptions();
 
-	//targetformat = QCF_STANDARD;
-
-	//FIXME
-	switch(targetformat)
-	{
-	case QCF_DEBUG:
-	case QCF_RELEASE:
-		strncpy(pevname, "pev", 3 );
-		strncpy(pevname, "opev", 4 );
-		break;
-	default:
-	case QCF_STANDARD:
-		strncpy(pevname, "self", 4 );
-		strncpy(opevname, "oself", 5 );
-
-		for (i = 0; optimisations[i].enabled; i++)
-		{
-			if(*optimisations[i].enabled && optimisations[i].flags & FLAG_V7_ONLY)
-			{
-				*optimisations[i].enabled = false;
-				Msg("\"%s\" not supported with standard target, disable\n", optimisations[i].fullname );
-			}
-		}
-		break;
-	}
+	//FIXME, this keyword should be get at fisrt ddef
+	strncpy(pevname, "pev", 3 );
+	strncpy(pevname, "opev", 4 );
+//strncpy(pevname, "self", 4 );
+//strncpy(opevname, "oself", 5 );
 }
 
 /*
@@ -495,41 +386,32 @@ void PR_WriteData (int crc)
 
 	PR_UnmarshalLocals();
 
-	switch (targetformat)
+	switch (target_version)
 	{
-	case QCF_STANDARD:
-		if (bodylessfuncs)
-			Msg("Warning: There are some functions without bodies.\n");
-
-		if (numpr_globals > 65530 )
+	case QPROGS_VERSION:
+		if (bodylessfuncs) PR_Message("warning: There are some functions without bodies.\n");
+		if( numpr_globals <= 65530 )
 		{
-			Msg("Forcing target to RELEASE32 due to numpr_globals\n");
-			outputsize = 32;
+			for (i = 0; optimisations[i].enabled; i++)
+			{
+				if(*optimisations[i].enabled && optimisations[i].flags & FLAG_V7_ONLY)
+					*optimisations[i].enabled = false; // uncompatiable
+			}
+			// not much of a different format. Rewrite output to get it working on original executors?
+			if (numpr_globals >= 32768) 
+				PR_Warning(WARN_IMAGETOOBIG, NULL, 0, "globals limit exceeds 32768, image may not run\n");
+			break;
 		}
 		else
 		{
-			// not much of a different format. Rewrite output to get it working on original executors?
-			if (numpr_globals >= 32768)
-				Msg("Quake1 32bit virtual machine\nAn enhanced executor will be required\n");
-			else Msg("Quake1 16bit virtual machine\n");
-			break;
+			target_version = FPROGS_VERSION;
+			outputsize = 32;
+			PR_Message("force target to version %d[%dbit]\n", target_version, outputsize );
 		}
 		// intentional falltrough
-		targetformat = QCF_RELEASE;
-	case QCF_DEBUG:
-	case QCF_RELEASE:
-		if (targetformat == QCF_DEBUG)
-			debugtarget = true;
-		if (numpr_globals > 65530)
-		{
-			Msg("Using 32 bit target due to numpr_globals\n");
-			outputsize = 32;
-		}
-
-		if(opt_compstrings) 
-		{
-			progs.blockscompressed |= COMP_STRINGS;
-		}
+	case FPROGS_VERSION:
+		if (numpr_globals > 65530) outputsize = 32;
+		if(opt_compstrings) progs.blockscompressed |= COMP_STRINGS;
 		if(opt_compfunctions)
 		{
 			progs.blockscompressed |= COMP_FUNCTIONS;
@@ -543,14 +425,11 @@ void PR_WriteData (int crc)
 		}
 
 		//compression of blocks?
-		if (compressoutput)	
-		{
-			progs.blockscompressed |= COMP_LINENUMS;
-			progs.blockscompressed |= COMP_TYPES;
-		}
-
-		types = debugtarget; // include a type block?
-		Msg("Xash3D virtual machine\n");
+		if (opt_writelinenums) progs.blockscompressed |= COMP_LINENUMS;	
+		if (opt_writetypes) progs.blockscompressed |= COMP_TYPES;
+		break;
+	case VPROGS_VERSION:
+		outputsize = 32; //as default		
 		break;
 	}
 
@@ -812,16 +691,13 @@ void PR_WriteData (int crc)
 	progs.numbodylessfuncs = 0;
 	progs.ofs_types = 0;
 	progs.numtypes = 0;
+	progs.version = target_version;
 
-	switch(targetformat)
+	switch(target_version)
 	{
-	case QCF_STANDARD:
-		progs.version = QPROGS_VERSION; // QuakeC engine v 1.08
+	case QPROGS_VERSION:
 		break;
-	case QCF_DEBUG:
-	case QCF_RELEASE:
-                    progs.version = VPROGS_VERSION;
-
+	case FPROGS_VERSION:
 		if (outputsize == 16) progs.header = VPROGSHEADER16;
 		if (outputsize == 32) progs.header = VPROGSHEADER32;
 
@@ -847,6 +723,8 @@ void PR_WriteData (int crc)
 			progs.numtypes = 0;
 		}
 		progs.ofsfiles = PR_WriteSourceFiles(h, &progs, opt_writesources);
+		break;
+	case VPROGS_VERSION:
 		break;
 	}
 
@@ -882,12 +760,6 @@ void PR_BeginCompilation ( void )
 	PR_ResetErrorScope();
 	pr_scope = NULL;
 
-/*	numpr_globals = RESERVED_OFS;	
-	
-	for (i=0 ; i<RESERVED_OFS ; i++)
-		pr_global_defs[i] = &def_void;
-*/
-	
 	type_void = PR_NewType("void", ev_void);
 	type_string = PR_NewType("string", ev_string);
 	type_float = PR_NewType("float", ev_float);
@@ -905,12 +777,8 @@ void PR_BeginCompilation ( void )
 
 	type_function->aux_type = type_void;
 
-	//type_field->aux_type = type_float;
-
-	if (keyword_int)
-		PR_NewType("int", ev_integer);
-	if (keyword_integer)
-		PR_NewType("integer", ev_integer);
+	if (keyword_int) PR_NewType("int", ev_integer);
+	if (keyword_integer) PR_NewType("integer", ev_integer);
 	
 
 
@@ -1047,7 +915,7 @@ void PR_FinishCompile(void)
 	if (setjmp(pr_parse_abort)) Sys_Error(""); // freeze console
 	if (!PR_FinishCompilation()) 
 	{
-		Sys_Error("%s - %i error(s), %i warning(s)\n", destfile, pr_error_count, pr_warning_count);
+		Sys_Error("%s - %i error(s), %i warning(s)\n", destfile, pr_total_error_count, pr_warning_count);
 	}	
 	// write progdefs.h
 	crc = PR_WriteProgdefs ("progdefs.h");

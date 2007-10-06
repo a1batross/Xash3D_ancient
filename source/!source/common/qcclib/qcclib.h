@@ -91,19 +91,6 @@ TODO:
 typedef uint		gofs_t;	// offset in global data block
 typedef struct function_s	function_t;
 
-typedef enum 
-{
-	QCF_STANDARD,	// regular quake1 progs ver. 6
-	QCF_RELEASE,	// release extend progs ver. 7
-	QCF_DEBUG,	// debug extended progs ver. 7
-} targetformat_t;
-
-typedef struct target_s
-{
-	targetformat_t	target;
-	char		*name;
-} target_t;
-
 typedef enum {
 	tt_eof,		// end of file reached
 	tt_name,		// an alphanumeric name token
@@ -317,6 +304,7 @@ typedef enum {
 	WARN_UNDESIRABLECONVENTION,
 	WARN_SAMENAMEASGLOBAL,
 	WARN_CONSTANTCOMPARISON,
+	WARN_IMAGETOOBIG,
 
 	ERR_PARSEERRORS,			//caused by pr_parseerror being called.
 
@@ -393,6 +381,7 @@ typedef enum {
 	ERR_BADSWITCHTYPE,
 	ERR_BADLABELNAME,
 	ERR_NOLABEL,
+	ERR_THINKTIMETYPEMISMATCH,
 	ERR_STATETYPEMISMATCH,
 	ERR_BADBUILTINIMMEDIATE,
 	ERR_PARAMWITHNONAME,
@@ -433,6 +422,7 @@ extern int	MAX_CONSTANTS;
 extern char	*compilingfile;
 extern char	destfile[1024];
 extern char	qccmsourcedir[];
+extern int	target_version;
 extern int	recursivefunctiontype;
 extern char	pevname[8];
 extern char	opevname[8];
@@ -449,7 +439,6 @@ extern type_t	*type_integer;
 extern type_t	*type_variant;
 extern type_t	*type_floatfield;
 extern includechunk_t *currentchunk;
-extern targetformat_t targetformat;
 extern cachedsourcefile_t *sourcefile;
 extern optimisations_t optimisations[];
 extern compiler_flag_t compiler_flag[];
@@ -489,6 +478,7 @@ extern bool	keyword_state;
 extern bool	keyword_string;
 extern bool	keyword_struct;
 extern bool	keyword_switch;
+extern bool	keyword_thinktime;
 extern bool	keyword_var;
 extern bool	keyword_vector;
 extern bool	keyword_union;

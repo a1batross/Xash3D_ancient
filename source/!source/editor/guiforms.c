@@ -1030,7 +1030,7 @@ void InitEditor ( char *funcname, int argc, char **argv )
 	if(iErrors) GUI_DisableMenus(); // apply error
 	GUI_ExecuteBuffer(); //show all messages
 	
-	//end of all initializations
+	// end of all initializations
 	ShowWindow(s_gui.hWnd, SW_SHOWDEFAULT);
 	MsgDev(D_INFO, "------- Xash Recource Editor ver. %g initialized -------\n", EDITOR_VERSION );
 }

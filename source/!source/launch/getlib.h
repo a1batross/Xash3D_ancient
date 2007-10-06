@@ -19,7 +19,8 @@
 #pragma comment(linker,"/MERGE:.rdata=.text")
 #pragma comment(linker,"/FILEALIGN:512 /SECTION:.text, EWRX /IGNORE:4078")
 
-#define Run32( prog ) return CreateMain32()( #prog )
+#define Run32( prog ) int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)\
+{ return CreateMain32()( #prog ); }
 
 //console format
 typedef int (*winmain_t)( char *funcname );

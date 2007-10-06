@@ -4,7 +4,4 @@
 
 #include "../getlib.h"
 
-int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
-{
-	Run32( credits );
-}
+Run32( credits );

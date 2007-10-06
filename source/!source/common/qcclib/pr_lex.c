@@ -556,14 +556,10 @@ bool PR_Precompiler(void)
 			}
 			else if (!stricmp(token, "TARGET"))
 			{
-				if (!stricmp(msg, "STANDARD"))
-					targetformat = QCF_STANDARD;
-				else if (!stricmp(msg, "ID"))
-					targetformat = QCF_STANDARD;
-				else if (!stricmp(msg, "RELEASE"))
-					targetformat = QCF_RELEASE;
-				else if (!stricmp(msg, "DEBUG"))
-					targetformat = QCF_DEBUG;
+				if (!stricmp(msg, "STANDARD")) target_version = QPROGS_VERSION;
+				else if (!stricmp(msg, "ID")) target_version = QPROGS_VERSION;
+				else if (!stricmp(msg, "FTE")) target_version = FPROGS_VERSION;
+				else if (!stricmp(msg, "VPROGS"))target_version = VPROGS_VERSION;
 				else PR_ParseWarning(WARN_BADTARGET, "Unknown target \'%s\'. Ignored.", msg);
 			}
 			else if (!stricmp(token, "keyword") || !stricmp(token, "flag"))

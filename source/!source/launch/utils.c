@@ -271,24 +271,6 @@ bool Sys_FreeLibrary ( dll_info_t *dll )
 	return true;
 }
 
-void Sys_WaitForQuit( void )
-{
-	MSG		msg;
-
-	ZeroMemory(&msg, sizeof(msg));
-
-	// wait for the user to quit
-	while(!hooked_out && msg.message != WM_QUIT)
-	{
-		if(PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
-        		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		} 
-		else Sys_Sleep( 20 );
-	}
-}
-
 //=======================================================================
 //			REGISTRY COMMON TOOLS
 //=======================================================================
@@ -413,7 +395,7 @@ void UpdateEnvironmentVariables( void )
 				{
 					// big bada-boom: engine was moved and launcher running from other place
 					// step5: so, path form registry is invalid, current path is no valid
-					Sys_Error("Invalid root directory!\n");
+					Sys_ErrorFatal( ERR_INVALID_ROOT );
 				}
 				else SaveEnvironmentVariables( szTemp );
 			}

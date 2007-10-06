@@ -1,12 +1,6 @@
 =======================================================================
-	Xash3D QuakeC Compiler started at Oct05 2007 [00:01:47]
+	Xash3D QuakeC Compiler started at Oct05 2007 [23:07:05]
 =======================================================================
-use opt: "write source"
-use opt: "write linenums"
-use opt: "write types"
-"write source" not supported with standard target, disable
-"write linenums" not supported with standard target, disable
-"write types" not supported with standard target, disable
 ------------Configuration: server - Vm16 Debug------------
 Compiling...
 defs.c
@@ -23,8 +17,14 @@ ents/triggers/triggers.c
 ents/triggers/trigger_generic.c
 ents/triggers/trigger_once.c
 ents/triggers/trigger_sequence.c
+in function trigger_sequence_think (line 14),
+ents/triggers/trigger_sequence.c:39: error: Type Mismatch on array assignment
+ents/triggers/trigger_sequence.c:9:    oldtarg  is defined here
 ents/triggers/trigger_message.c
 ents/triggers/trigger_counter.c
+in function trigger_counter (line 34),
+ents/triggers/trigger_counter.c:39: error: Type Mismatch on array assignment
+ents/triggers/trigger_sequence.c:11:    twait  is defined here
 ents/triggers/trigger_teleport.c
 ents/triggers/trigger_hurt.c
 ents/triggers/trigger_push.c
@@ -40,22 +40,11 @@ ents/funcs/func_train.c
 ents/funcs/func_areaportal.c
 ents/items/items.c
 impulses.c
-writing progdefs.h
-Xash3D virtual machine
- 19684 strofs (of 1000000)
-  2867 numstatements (of 524288)
-   281 numfunctions (of 16384)
-   964 numglobaldefs (of 32768)
-   245 numfielddefs (218 unique) (of 2048)
-  2279 numpr_globals (of 65536)
-Writing server.dat
- 71768 TOTAL SIZE
- 17 unique precache_sounds
-  3 unique precache_models
-Скопировано файлов:         1.
-
-server.dat - 0 error(s), 0 warning(s)
+at global scope,
+ents/triggers/trigger_sequence.c(14) : warning C22: function trigger_sequence_think was not defined
+ents/triggers/trigger_counter.c(34) : warning C22: function trigger_counter was not defined
+server.dat - 2 error(s), 2 warning(s)
 
 =======================================================================
-	Xash3D QuakeC Compiler stopped at Oct05 2007 [00:01:48]
+	Xash3D QuakeC Compiler stopped at Oct05 2007 [23:07:08]
 =======================================================================

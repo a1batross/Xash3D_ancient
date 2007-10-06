@@ -21,6 +21,10 @@ cd imglib
 makefile.nmake
 
 cd ..
+cd install
+makefile.nmake
+
+cd ..
 cd qcclib
 makefile.nmake
 

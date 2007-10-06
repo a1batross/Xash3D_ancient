@@ -12,8 +12,6 @@
 | refuse to run.                                                             |
 +=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-+
 */
-#pragma TARGET debug
-
 // These lines CANNOT be altered/moved
 	// pointers to ents
 	entity          	pev;		// Pointer EntVars (same as pev)

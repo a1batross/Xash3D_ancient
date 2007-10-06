@@ -10,6 +10,7 @@ bool hooked_out = false;
 bool log_active = false;
 bool show_always = true;
 bool about_mode = false;
+bool silent_mode = false;
 bool sys_error = false;
 char caption[64];
 
@@ -32,7 +33,8 @@ typedef enum
 	QCCLIB,		// "qcclib"
 	SPRITE,		// "sprite"
 	STUDIO,		// "studio"
-	CREDITS,		// misc
+	CREDITS,		// "splash"
+	HOST_INSTALL,	// "install"
 };
 
 int		com_argc;
@@ -48,16 +50,18 @@ byte		*mempool;		// generic mempoolptr
 ==================
 Parse program name to launch and determine work style
 
-NOTE: at this day we have seven instnaces
+NOTE: at this day we have ten instances
 
 1. "host_shared" - normal game launch
 2. "host_dedicated" - dedicated server
 3. "host_editor" - resource editor
 4. "bsplib" - three BSP compilers in one
-5. "qcclib" - quake c complier
-5. "sprite" - sprite creator (requires qc. script)
-6. "studio" - Half-Life style models creatror (requires qc. script) 
-7. "credits" - display credits of engine developers
+5. "imglib" - convert old formats (mip, pcx, lmp) to 32-bit tga
+6. "qcclib" - quake c complier
+7. "sprite" - sprite creator (requires qc. script)
+8. "studio" - Half-Life style models creator (requires qc. script) 
+9. "credits" - display credits of engine developers
+10. "host_setup" - write current path into registry (silently)
 
 This list will be expnaded in future
 ==================
@@ -139,6 +143,13 @@ void LookupInstance( const char *funcname )
 		strcpy(caption, "About");
 		about_mode = true;
 	}
+	else if(!strcmp(progname, "host_setup")) // write path into registry
+	{
+		app_name =  HOST_INSTALL;
+		linked_dll = NULL;	// no need to loading library
+		log_active = dev_mode = debug_mode = 0; //clear all dbg states
+		silent_mode = true;
+	}
 	else 
 	{
 		app_name = DEFAULT;
@@ -206,6 +217,7 @@ void CommonInit ( char *funcname, int argc, char **argv )
 		if(CheckParm("/O2")) qccflags |= QCC_OPT_LEVEL_2;
 		if(CheckParm("/O3")) qccflags |= QCC_OPT_LEVEL_3;
 
+		start = Com->DoubleTime();
 		Com->Compile.PrepareDAT( gamedir, source, qccflags );	
 		break;
 	case IMGLIB:
@@ -251,22 +263,22 @@ void CommonMain ( void )
 		Msg("Processing images ...\n\n");
 		break;		
 	case BSPLIB: 
-		Com->Compile.BSP(); 
 		strcpy(typemod, "maps" );
 		strcpy(searchmask[0], "*.map" );
-		break;
+		Com->Compile.BSP(); 
+		return;
 	case QCCLIB: 
-		Com->Compile.DAT(); 
 		strcpy(typemod, "progs" );
 		strcpy(searchmask[0], "*.src" );
 		strcpy(searchmask[1], "*.qc" );
+		Com->Compile.DAT(); 
 		break;
 	case DEFAULT:
 		strcpy(typemod, "things" );
 		strcpy(searchmask[0], "*.*" );
 		break;
 	}
-	if(!CompileMod) return;//back to shutdown
+	if(!CompileMod) goto elapced_time;//back to shutdown
 
 	mempool = Mem_AllocPool("compiler");
 	if(!GetParmFromCmdLine("-file", filename ))
@@ -293,9 +305,11 @@ void CommonMain ( void )
 	}
 	else CompileMod( mempool, filename, parms );
 
+elapced_time:
 	end = Com->DoubleTime();
-	Msg ("%5.1f seconds elapsed\n", end - start);
+	Msg ("%5.3f seconds elapsed\n", end - start);
 	if(numCompiledMods > 1) Msg("total %d %s compiled\n", numCompiledMods, typemod );
+	Sys_WaitForQuit();
 }
 
 void CommonShutdown ( void )
@@ -353,6 +367,10 @@ void CreateInstance( void )
 		Sys_WaitForQuit();
 		Sys_Exit();
 		break;
+	case HOST_INSTALL:
+		// UpdateEnvironmentVariables() is done, quit now
+		Sys_Exit();
+		break;
 	case DEFAULT:
 		Sys_Error("CreateInstance: unsupported instance\n");		
 		break;
@@ -390,15 +408,20 @@ void API_Reset( void )
 	Msg = NullVarArgs;
 	MsgDev = NullVarArgs2;
 	MsgWarn = NullVarArgs;
+	Sys_Print = NullVoidWithName;
 }
 
 void API_SetConsole( void )
 {
+	// stubs are already configured
+	if(silent_mode) return;
+
 	if( hooked_out && app_name > HOST_EDITOR)
 	{
 		Sys_Print = Sys_PrintA;
 		Sys_InitConsole = Sys_InitLog;
 		Sys_FreeConsole = Sys_CloseLog;
+		Sys_Error = Sys_ErrorA;
 	}
           else
           {
@@ -407,12 +430,12 @@ void API_SetConsole( void )
           	Sys_ShowConsole = Sys_ShowConsoleW;
 		Sys_Print = Sys_PrintW;
 		Sys_Input = Sys_InputW;
+		Sys_Error = Sys_ErrorW;
 	}
 
 	Msg = Sys_MsgW;
 	MsgDev = Sys_MsgDevW;
 	MsgWarn = Sys_MsgWarnW;
-	Sys_Error = Sys_ErrorW;
 }
 
 /*
@@ -428,17 +451,21 @@ DLLEXPORT int CreateAPI( char *funcname )
 	char		dev_level[4];
 
 	lpBuffer.dwLength = sizeof(MEMORYSTATUS);
+	vinfo.dwOSVersionInfoSize = sizeof(vinfo);
+
+	base_hInstance = (HINSTANCE)GetModuleHandle( NULL ); // get current hInstance first
+	hStdout = GetStdHandle (STD_OUTPUT_HANDLE); // check for hooked out
+
 	GlobalMemoryStatus (&lpBuffer);
+
+	if(!GetVersionEx (&vinfo)) Sys_ErrorFatal(ERR_OSINFO_FAIL);
+	if(vinfo.dwMajorVersion < 4) Sys_ErrorFatal(ERR_INVALID_VER);
+	if(vinfo.dwPlatformId == VER_PLATFORM_WIN32s) Sys_ErrorFatal(ERR_WINDOWS_32S);
 
 	// parse and copy args into local array
 	ParseCommandLine(GetCommandLine());
 	
-	API_Reset();// fill stdlib api
-	
-	// get current hInstance first
-	base_hInstance = (HINSTANCE)GetModuleHandle( NULL );
-	vinfo.dwOSVersionInfoSize = sizeof(vinfo);
-	hStdout = GetStdHandle (STD_OUTPUT_HANDLE); // check for hooked out
+	API_Reset();// fill stdlib api first
 
 	if(CheckParm ("-debug")) debug_mode = true;
 	if(CheckParm ("-log")) log_active = true;
@@ -449,7 +476,6 @@ DLLEXPORT int CreateAPI( char *funcname )
 	if(GetParmFromCmdLine("-dev", dev_level ))
 		dev_mode = atoi(dev_level);
 
-	if(CheckParm ("-silent")) hooked_out = true;
 	UpdateEnvironmentVariables(); // set working directory
           
 	// init launcher
@@ -457,10 +483,6 @@ DLLEXPORT int CreateAPI( char *funcname )
 	HOST_MakeStubs();		// make sure what all functions are filled
 	API_SetConsole();		// initialize system console
 	Sys_InitConsole();
-
-	if(!GetVersionEx (&vinfo)) Sys_Error ("InitLauncher: Couldn't get OS info\n");
-	if(vinfo.dwMajorVersion < 4) Sys_Error ("InitLauncher: Win%d is not supported\n", vinfo.dwMajorVersion );
-
 	CreateInstance();
 
 	// NOTE: host will working in loop mode and never returned

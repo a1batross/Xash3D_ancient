@@ -8,9 +8,9 @@
 #pragma warning(disable : 4244)	// MIPS
 #pragma warning(disable : 4018)	// signed/unsigned mismatch
 #pragma warning(disable : 4305)	// truncation from const double to float
-#pragma warning(disable : 4201)		// nameless struct/union
-#pragma warning(disable : 4514)		// unreferenced inline function removed
-#pragma warning(disable : 4100)		// unreferenced formal parameter
+#pragma warning(disable : 4201)	// nameless struct/union
+#pragma warning(disable : 4514)	// unreferenced inline function removed
+#pragma warning(disable : 4100)	// unreferenced formal parameter
 
 #define DLLEXPORT	__declspec(dllexport)
 #define DLLIMPORT	__declspec(dllimport)

@@ -65,7 +65,7 @@ char *stristr( const char *string, const char *string2 )
 /*
 =============================================================================
 
-GUI Set Font (change and apply new fon settings)
+GUI Set Font (change and apply new font settings)
 
 =============================================================================
 */

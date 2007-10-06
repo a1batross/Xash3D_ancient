@@ -18,9 +18,9 @@ WIN32 CONSOLE
 */
 
 //console defines
-#define SUBMIT_ID		1
-#define QUIT_ID		2
-#define CLEAR_ID		3
+#define SUBMIT_ID		1	// "submit" button
+#define QUIT_ON_ESCPE_ID	2	// escape event
+#define QUIT_ON_SPACE_ID	3	// space event
 #define EDIT_ID		100
 #define INPUT_ID		101
 #define IDI_ICON1		101
@@ -73,7 +73,7 @@ static dllfunc_t gdi32_funcs[] =
 	{ NULL, NULL }
 };
 
-dll_info_t gdi32_dll = { /*"gdi32.dll"*/NULL, gdi32_funcs, NULL, NULL, NULL, true, 0, 0 };
+dll_info_t gdi32_dll = { /*"gdi32.dll"*/NULL, gdi32_funcs, NULL, NULL, NULL, true, 0, 0 }; // FIXME
 
 void Sys_InitLog( void )
 {
@@ -141,7 +141,7 @@ static LONG WINAPI ConWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 	case WM_CLOSE:
 		if(sys_error)
 		{
-			//send windows message
+			// send windows message
 			PostQuitMessage( 0 );
 		}
 		else Sys_Exit(); //otherwise
@@ -175,6 +175,15 @@ static LONG WINAPI ConWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 			SetFocus( s_wcd.hwndInputLine );
 		}
 		break;
+	case WM_HOTKEY:
+		switch(LOWORD(wParam))
+		{
+		case QUIT_ON_ESCPE_ID:
+		case QUIT_ON_SPACE_ID:
+			PostQuitMessage( 0 );
+			break;
+		}
+		break;
 	case WM_CREATE:
 		s_wcd.hbrEditBackground = CreateSolidBrush( RGB( 0x90, 0x90, 0x90 ) );
 		s_wcd.hbrErrorBackground = CreateSolidBrush( RGB( 0x80, 0x80, 0x80 ) );
@@ -200,7 +209,7 @@ LONG WINAPI InputLineWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 	switch ( uMsg )
 	{
 	case WM_KILLFOCUS:
-		if ( ( HWND ) wParam == s_wcd.hWnd || ( HWND ) wParam == s_wcd.hwndErrorBox )
+		if (( HWND ) wParam == s_wcd.hWnd || ( HWND ) wParam == s_wcd.hwndErrorBox )
 		{
 			SetFocus( hWnd );
 			return 0;
@@ -313,7 +322,7 @@ void Sys_PrintA(const char *pMsg)
 	Sys_PrintLog( pMsg );
 
 	fprintf(stdout, pMsg );
-	fflush(stdout); //refresh message
+	fflush(stdout); // refresh message
 }
 
 /*
@@ -395,7 +404,7 @@ void Sys_CreateConsoleW( void )
 	wc.lpszClassName = SYSCONSOLE;
 
 	Sys_LoadLibrary( &gdi32_dll );
-	if (!RegisterClass (&wc)) return;
+	if (!RegisterClass (&wc)) Sys_ErrorFatal( ERR_CONSOLE_FAIL );
  
 	if(about_mode)
 	{
@@ -438,7 +447,7 @@ void Sys_CreateConsoleW( void )
 	s_wcd.windowHeight = rect.bottom - rect.top;
 
 	s_wcd.hWnd = CreateWindowEx( WS_EX_DLGMODALFRAME, SYSCONSOLE, Title, DEDSTYLE, ( swidth - 600 ) / 2, ( sheight - 450 ) / 2 , rect.right - rect.left + 1, rect.bottom - rect.top + 1, NULL, NULL, base_hInstance, NULL );
-	if ( s_wcd.hWnd == NULL ) return;
+	if ( s_wcd.hWnd == NULL ) Sys_ErrorFatal( ERR_CONSOLE_FAIL );
 
 	// create fonts
 	hDC = GetDC( s_wcd.hWnd );
@@ -558,4 +567,91 @@ void Sys_ErrorW(char *error, ...)
 
 	Sys_WaitForQuit();
 	Sys_Exit();
+}
+
+/*
+================
+Sys_ErrorA
+
+NOTE: we must prepare engine to shutdown
+before call this
+================
+*/
+void Sys_ErrorA(char *error, ...)
+{
+	va_list		argptr;
+	char		text[MAX_INPUTLINE];
+         
+	if(sys_error) return; //don't multiple executes
+	
+	va_start (argptr, error);
+	vsprintf (text, error, argptr);
+	va_end (argptr);
+         
+	sys_error = true;
+	
+	Sys_ShowConsole( true );
+	Sys_Print( text ); //print error message
+
+	fgetc( stdin ); //wait for quit
+	Sys_Exit();
+}
+
+/*
+================
+Sys_FatalError
+
+called while internal debugging tools 
+are failed to initialize.
+use generic msgbox
+================
+*/
+void _Sys_ErrorFatal( int type, const char *filename, int fileline )
+{
+	char errorstring[64];
+
+	switch( type )
+	{
+		case ERR_INVALID_ROOT:
+			strncpy(errorstring, "Invalid root directory!", sizeof(errorstring));
+			break;
+		case ERR_CONSOLE_FAIL:
+			strncpy(errorstring, "Can't create console window", sizeof(errorstring));
+			break;
+		case ERR_OSINFO_FAIL:
+			strncpy(errorstring, "Couldn't get OS info", sizeof(errorstring));
+			break;
+		case ERR_INVALID_VER:
+			strncpy(errorstring, "Requries Win95 or later", sizeof(errorstring));
+			break;
+		case ERR_WINDOWS_32S:
+			strncpy(errorstring, "Win32s is not supported", sizeof(errorstring));
+			break;
+		default:
+			sprintf(errorstring, "Internal engine error at %s:%i", filename, fileline );
+			break;
+	}
+	MessageBox( 0, errorstring, "Error", MB_OK );
+	exit(1);
+}
+
+void Sys_WaitForQuit( void )
+{
+	MSG		msg;
+
+	// user can hit escape or space for quit
+	RegisterHotKey(s_wcd.hWnd, QUIT_ON_ESCPE_ID, 0, VK_ESCAPE );
+	RegisterHotKey(s_wcd.hWnd, QUIT_ON_SPACE_ID, 0, VK_SPACE  );
+	ZeroMemory(&msg, sizeof(msg));
+
+	// wait for the user to quit
+	while(!hooked_out && msg.message != WM_QUIT)
+	{
+		if(PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
+        		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		} 
+		else Sys_Sleep( 20 );
+	}
 }

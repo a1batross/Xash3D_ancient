@@ -138,6 +138,7 @@ char gs_mapname[ 64 ]; //used for compilers only
 //command ilne parms
 int fs_argc;
 char **fs_argv;
+bool fs_ext_path = false; // attempt to read\write from ./ or ../ pathes 
 
 gameinfo_t GI;
 
@@ -1029,23 +1030,23 @@ int FS_CheckNastyPath (const char *path, bool isgamedir)
 	if (strstr(path, "//")) return 1; // non-portable attempt to go to parent directory
 
 	// all: don't allow going to parent directory (../ or /../)
-	if (strstr(path, "..")) return 2; // attempt to go outside the game directory
+	if (strstr(path, "..") && !fs_ext_path) return 2; // attempt to go outside the game directory
 
 	// Windows and UNIXes: don't allow absolute paths
-	if (path[0] == '/') return 2; // attempt to go outside the game directory
+	if (path[0] == '/' && !fs_ext_path ) return 2; // attempt to go outside the game directory
 
 	// all: don't allow . characters before the last slash (it should only be used in filenames, not path elements), this catches all imaginable cases of ./, ../, .../, etc
-	if (strchr(path, '.'))
+	if (strchr(path, '.')  && !fs_ext_path)
 	{
 		if (isgamedir) return 2; // gamedir is entirely path elements, so simply forbid . entirely
 		if (strchr(path, '.') < strrchr(path, '/')) return 2; // possible attempt to go outside the game directory
 	}
 
 	// all: forbid trailing slash on gamedir
-	if (isgamedir && path[strlen(path)-1] == '/') return 2;
+	if (isgamedir && !fs_ext_path && path[strlen(path)-1] == '/') return 2;
 
 	// all: forbid leading dot on any filename for any reason
-	if (strstr(path, "/.")) return 2; // attempt to go outside the game directory
+	if (strstr(path, "/.")  && !fs_ext_path) return 2; // attempt to go outside the game directory
 
 	// after all these checks we're pretty sure it's a / separated filename
 	// and won't do much if any harm
@@ -1093,8 +1094,11 @@ void FS_LoadGameInfo( const char *filename )
           bool fs_modified = false;
 	bool load = false;
 	char *fs_path;
+
+	// lock uplevel of gamedir for read\write
+	fs_ext_path = false;
 	
-	//prepare to loading
+	// prepare to loading
 	FS_ClearSearchPath();
 	FS_AddGameHierarchy( gs_basedir );
 	FS_ResetGameInfo();
@@ -1196,10 +1200,13 @@ void FS_InitRootDir( char *path )
 {
 	char	szTemp[4096];
 
-	//just set cwd
+	// just set cwd
 	GetModuleFileName( NULL, szTemp, MAX_SYSPATH );
 	FS_ExtractFilePath( szTemp, szTemp );	
 	SetCurrentDirectory ( szTemp );
+
+	// use extended pathname
+	fs_ext_path = true;
 
 	FS_ClearSearchPath();
 	FS_AddGameHierarchy( path );

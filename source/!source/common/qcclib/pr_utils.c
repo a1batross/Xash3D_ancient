@@ -490,13 +490,13 @@ word PR_WriteProgdefs (char *filename)
 	}
 	ADD2("\n};\n\n");
 
-	switch(targetformat)
+	switch(target_version)
 	{
-	case QCF_STANDARD:
+	case QPROGS_VERSION:
 		ADD2(va("#define PROGHEADER_CRC %i\n", crc ));
 		break;
-	case QCF_DEBUG:
-	case QCF_RELEASE:
+	case FPROGS_VERSION:
+	case VPROGS_VERSION:
 		ADD2(va("#define PROG_CRC_%s\t%i\n", header_name, crc ));
 		break;
 	}

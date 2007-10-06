@@ -1321,12 +1321,13 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 	case QPROGS_VERSION:
 		prog->intsize = 16;
 		break;
-	case VPROGS_VERSION:
+	case FPROGS_VERSION:
 		if(prog->progs->header == VPROGSHEADER16)
 			prog->intsize = 16;
 		if(prog->progs->header == VPROGSHEADER32)
 			prog->intsize = 32;
 		break;
+	case VPROGS_VERSION:
 	default:
 		PRVM_ERROR ("%s: %s has wrong version number (%i should be %i)", PRVM_NAME, filename, prog->progs->version, VPROGS_VERSION);
 		break;

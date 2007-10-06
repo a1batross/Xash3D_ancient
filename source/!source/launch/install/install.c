@@ -4,4 +4,4 @@
 
 #include "../getlib.h"
 
-Run32( host_dedicated );
+Run32( host_setup );

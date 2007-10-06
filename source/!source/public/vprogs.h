@@ -14,12 +14,13 @@ a internal virtual machine like as QuakeC, but it has more extensions
 ==============================================================================
 */
 
-//header
-#define QPROGS_VERSION	6
-#define VPROGS_VERSION	7
+// header
+#define QPROGS_VERSION	6	// Quake1 progs version
+#define FPROGS_VERSION	7	// Fte progs version
+#define VPROGS_VERSION	8	// xash progs version
 
-#define VPROGSHEADER16	(('6'<<24)+('1'<<16)+('C'<<8)+'Q') // little-endian "QC16"
-#define VPROGSHEADER32	(('2'<<24)+('3'<<16)+('C'<<8)+'Q') // little-endian "QC32"
+#define VPROGSHEADER16	(('6'<<24)+('1'<<16)+('D'<<8)+'I') // little-endian "ID16"
+#define VPROGSHEADER32	(('2'<<24)+('3'<<16)+('D'<<8)+'I') // little-endian "ID32"
 
 // global ofssets
 #define OFS_NULL		0
@@ -148,6 +149,7 @@ enum {
 	OP_BITAND,	// = (float) & (float); // of cource converting into integer in real code
 	OP_BITOR,
 
+	// version 7 started
 	OP_MULSTORE_F,	// f *= f
 	OP_MULSTORE_V,	// v *= f
 	OP_MULSTOREP_F,	// e.f *= f
@@ -175,10 +177,19 @@ enum {
 	OP_CSTATE,
 	OP_CWSTATE,
 
+	OP_THINKTIME,
+
 	OP_BITSET,	// b  (+) a
 	OP_BITSETP,	// .b (+) a
 	OP_BITCLR,	// b  (-) a
 	OP_BITCLRP,	// .b (-) a
+
+	OP_RAND0,
+	OP_RAND1,
+	OP_RAND2,
+	OP_RANDV0,
+	OP_RANDV1,
+	OP_RANDV2,
 
 	OP_SWITCH_F,	// switches
 	OP_SWITCH_V,	// 100
@@ -314,6 +325,7 @@ enum {
 	OP_PUSH,
 	OP_POP,
 
+	// version 8 started
 	OP_NUMOPS,
 };
 
