@@ -16,22 +16,22 @@ void(entity who_died, entity who_killed) ClientObiturary;
 =-=-=-=-=
 */
 
-void(entity targ, entity attacker) Killed =
+void(entity target, entity attacker) Killed =
 {
 	local entity oldpev;
 
-	if (targ.health < -99)
-		targ.health = -99;		// don't let sbar look bad if a player
+	if (target.health < -99)
+		target.health = -99;		// don't let sbar look bad if a player
 
-	targ.takedamage = DAMAGE_NO;
-	targ.touch = SUB_Null;
+	target.takedamage = DAMAGE_NO;
+	target.touch = SUB_Null;
 
 	oldpev = pev;
-	pev = targ; // pev must be targ for th_die
+	pev = target; // pev must be targ for th_die
 	pev->th_die ();
 	pev = oldpev;
 	
-	ClientObiturary(targ, attacker);
+	ClientObiturary(target, attacker);
 };
 
 /*
@@ -66,54 +66,54 @@ The damage is coming from inflictor, but get mad at attacker
 This should be the only function that ever reduces health.
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 */
-void(entity targ, entity inflictor, entity attacker, float damage) T_Damage=
+void(entity target, entity inflictor, entity attacker, float damage) T_Damage=
 {
     local	vector	dir;
     local	entity	oldpev;
 
-    if (!targ.takedamage)
+    if (!target.takedamage)
         return;
 
-// used by buttons and triggers to set activator for target firing
+// used by buttons and triggers to set activator for targetet firing
     damage_attacker = attacker;
 
 // figure momentum add
-    if ( (inflictor != world) && (targ.movetype == MOVETYPE_WALK) )
+    if ( (inflictor != world) && (target.movetype == MOVETYPE_WALK) )
     {
-        dir = targ.origin - (inflictor.absmin + inflictor.absmax) * 0.5;
+        dir = target.origin - (inflictor.absmin + inflictor.absmax) * 0.5;
         dir = normalize(dir);
-        targ.velocity = targ.velocity + dir*damage*8;
+        target.velocity = target.velocity + dir*damage*8;
     }
 
 // check for godmode
-    if (targ.aiflags & AI_GODMODE)
+    if (target.aiflags & AI_GODMODE)
         return;
 
 // add to the damage total for clients, which will be sent as a single
 // message at the end of the frame
-    if (targ.flags & FL_CLIENT)
+    if (target.flags & FL_CLIENT)
     {
-        targ.dmg_take = targ.dmg_take + damage;
-        targ.dmg_save = targ.dmg_save + damage;
-        targ.dmg_inflictor = inflictor;
+        target.dmg_take = target.dmg_take + damage;
+        target.dmg_save = target.dmg_save + damage;
+        target.dmg_inflictor = inflictor;
     }
 
 // team play damage avoidance
-    if ( (teamplay == 1) && (targ.team > 0)&&(targ.team == attacker.team) )
+    if ( (teamplay == 1) && (target.team > 0)&&(target.team == attacker.team) )
         return;
 		
 // do the damage
-    targ.health = targ.health - damage;
+    target.health = target.health - damage;
 
-    if (targ.health <= 0)
+    if (target.health <= 0)
     {
-        Killed (targ, attacker);
+        Killed (target, attacker);
         return;
     }
 
 // react to the damage
     oldpev = pev;
-    pev = targ;
+    pev = target;
 
     if (pev->th_pain)
         pev->th_pain (attacker, damage);

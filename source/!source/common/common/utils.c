@@ -897,6 +897,13 @@ typedef struct register_s
 	bool retval;
 } register_t;
 
+unsigned __int64 __g_ProfilerStart;
+unsigned __int64 __g_ProfilerEnd;
+unsigned __int64 __g_ProfilerEnd2;
+unsigned __int64 __g_ProfilerSpare;
+unsigned __int64 __g_ProfilerTotalTicks;
+double __g_ProfilerTotalMsec;
+
 static register_t cpuid(unsigned int function )
 {
 	register_t local;
@@ -988,7 +995,7 @@ bool CheckRDTSCTechnology(void)
 	register_t rdtsc = cpuid(1);
 
 	if( !rdtsc.retval ) return false;
-	return ( rdtsc.edx & 0x10 ) != 0;
+	return rdtsc.edx & 0x10 != 0;
 }
 
 // Return the Processor's vendor identification string, or "Generic_x86" if it doesn't exist on this CPU
@@ -1047,7 +1054,7 @@ static byte LogicalProcessorsPerPackage(void)
 int64 ClockSample( void )
 {
 	static int64 m_time = 0;
-	unsigned long* pSample = (unsigned long *)&m_time;
+	dword* pSample = (dword *)&m_time;
 	__asm
 	{
 		mov	ecx, pSample
@@ -1102,7 +1109,6 @@ cpuinfo_t GetCPUInformation( void )
 	// Get the logical and physical processor counts:
 	pi.m_usNumLogicCore = LogicalProcessorsPerPackage();
 
-
 	ZeroMemory( &si, sizeof(si) );
 
 	GetSystemInfo( &si );
@@ -1140,9 +1146,11 @@ void Plat_InitCPU( void )
 	char* szFrequencyDenomination = "Mhz";
 	double fFrequency = cpu.m_speed / 1000000.0;
 
-	//copy shared info
-          GI.cpufreq = (float)fFrequency;
+	// copy shared info
+	GI.tickcount = cpu.m_speed; // used for profiling
+	GI.cpufreq = (float)fFrequency;
           GI.cpunum = cpu.m_usNumLogicCore;
+          GI.rdtsc = cpu.m_bRDTSC;
           
 	// Adjust to Ghz if nessecary:
 	if( fFrequency > 1000.0 )
@@ -1173,6 +1181,61 @@ void Plat_InitCPU( void )
 		MsgDev(D_INFO, "CPU: %s [%i core's %s]. Frequency: %.01f %s\n ", cpu.m_szCPUID, (int)cpu.m_usNumLogicCore, buffer, fFrequency, szFrequencyDenomination );
 	}
 	MsgDev(D_INFO, "CPU Features: %s\n", szFeatureString );
+}
+
+void Profile_Store( void )
+{
+	if (GI.rdtsc)
+	{
+		__g_ProfilerSpare = __g_ProfilerEnd - __g_ProfilerStart - (__g_ProfilerEnd2 - __g_ProfilerEnd);
+	}
+}
+
+void Profile_RatioResults( void )
+{
+	if (GI.rdtsc)
+	{
+		unsigned __int64 total = __g_ProfilerEnd - __g_ProfilerStart - (__g_ProfilerEnd2 - __g_ProfilerEnd);
+ 		double ratio;
+            
+		if (total >= __g_ProfilerSpare)
+		{
+			ratio = (double)(total-__g_ProfilerSpare)/total;
+			Msg("First code is %.2f%% faster\n", ratio * 100);
+		}
+		else
+		{
+			ratio = (double)(__g_ProfilerSpare-total)/__g_ProfilerSpare;
+			Msg("Second code is %.2f%% faster\n", ratio * 100);
+		}
+	}
+	else MsgWarn("--- Profiler not supported ---\n");
+}
+
+void _Profile_Results( const char *function )
+{
+	if (GI.rdtsc)
+	{
+		unsigned __int64 total = __g_ProfilerEnd - __g_ProfilerStart - (__g_ProfilerEnd2 - __g_ProfilerEnd);
+		double msec = (double)total / GI.tickcount; 
+		Msg("Profiling stats for %s()\n", function );
+		Msg("----- ticks: %I64d -----\n", total);
+		Msg("----- secs %f ----- \n", msec );
+		__g_ProfilerTotalTicks += total;
+		__g_ProfilerTotalMsec += msec;
+	}
+	else MsgWarn("--- Profiler not supported ---\n");
+}
+
+void Profile_Time( void )
+{
+	if (GI.rdtsc)
+	{
+		Msg("Profiling results:\n");
+		Msg("----- total ticks: %I64d -----\n", __g_ProfilerTotalTicks);
+		Msg("----- total secs %f ----- \n", __g_ProfilerTotalMsec  );
+	}
+	else MsgWarn("--- Profiler not supported ---\n");
 }
 
 /*

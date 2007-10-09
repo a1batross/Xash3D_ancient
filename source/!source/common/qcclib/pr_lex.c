@@ -32,6 +32,50 @@ bool	recursivefunctiontype;
 char *pr_punctuation1[] = {"&&", "||", "<=", ">=","==", "!=", "/=", "*=", "+=", "-=", "(+)", "|=", "(-)", "++", "--", "->", "::", ";", ",", "!", "*", "/", "(", ")", "-", "+", "=", "[", "]", "{", "}", "...", "..", ".", "<<", "<", ">>", ">" , "#" , "@", "&" , "|", "^", ":", NULL};
 char *pr_punctuation2[] = {"&&", "||", "<=", ">=","==", "!=", "/=", "*=", "+=", "-=", "|=",  "|=", "(-)", "++", "--", ".",  "::", ";", ",", "!", "*", "/", "(", ")", "-", "+", "=", "[", "]", "{", "}", "...", "..", ".", "<<", "<", ">>", ">" , "#" , "@", "&" , "|", "^", ":", NULL};
 
+optimisations_t pr_optimisations[] =
+{
+	// level debug = include debug info
+	{&opt_writesources,		"ws", "write source",	FL_DBG,	FLAG_V7_ONLY	}, 
+	{&opt_writelinenums,	"wl", "write linenums",	FL_DBG,	0		},
+	{&opt_writetypes,		"wt", "write types",	FL_DBG,	FLAG_V7_ONLY	},
+	{&opt_laxcasts,		"lx", "allow laxcasting",	FL_DBG,	0		},
+
+	// level 0 = fixed some qcc errors
+	{&opt_nonvec_parms,		"nv", "fix nonvec parms",	FL_OP0,	FLAG_DEFAULT	},
+
+	// level 1 = size optimizations
+	{&opt_shortenifnots,	"f", "shorten if(!a)",	FL_OP1,	FLAG_DEFAULT	},
+	{&opt_assignments,		"e", "assigments",		FL_OP1,	FLAG_DEFAULT	},
+	{&opt_dupconstdefs,		"j", "no dup constants",	FL_OP1,	FLAG_DEFAULT	},
+	{&opt_noduplicatestrings,	"k", "no dup strings",	FL_OP1,	0,		},
+	{&opt_locals,		"l", "strip local names",	FL_OP1,	0		},
+	{&opt_function_names,	"m", "strip func names",	FL_OP1,	0		},
+	{&opt_filenames,		"n", "strip file names",	FL_OP1,	0		},
+	{&opt_unreferenced,		"o", "strip unreferenced",	FL_OP1,	FLAG_DEFAULT	},
+	{&opt_overlaptemps,		"p", "optimize overlaptemps", FL_OP1,	FLAG_DEFAULT	},
+	{&opt_constantarithmatic,	"q", "precompute constnts",	FL_OP1,	FLAG_DEFAULT	},
+	{&opt_compstrings,		"x", "deflate prog strings",	FL_OP1,	FLAG_V7_ONLY	},
+
+	// level 2 = speed optimizations
+	{&opt_constant_names,	"h", "strip const names",	FL_OP2,	0		},
+	{&opt_precache_file,	"r", "strip precache files",	FL_OP2,	0		},
+	{&opt_compfunctions,	"y", "deflate prog funcs",	FL_OP2,	FLAG_V7_ONLY	},
+
+	// level 3 = dodgy optimizations
+	{&opt_return_only,		"s", "optimize return calls",	FL_OP3,	0		},
+	{&opt_compound_jumps,	"t", "optimize num of jumps",	FL_OP3,	0		},
+	{&opt_stripfunctions,	"u", "strip functions",	FL_OP3,	0		},
+	{&opt_constant_names_strings,	"i", "strip const strings",	FL_OP3,	0		},
+	{&opt_compress_other,	"z", "deflate all prog",	FL_OP3,	FLAG_V7_ONLY	},
+	{&opt_logicops,		"a", "optimize logic ops",	FL_OP3,	0		},
+	{&opt_ifstring,		"sf","if(string) fix",	FL_OP3,	FLAG_V7_ONLY	},
+	
+	// level 4 = use with caution, may be bugly
+	{&opt_locals_marshalling,	"y", "reduce locals, buggly",	FL_OP4,	FLAG_V7_ONLY	},
+	{&opt_vectorcalls,		"w", "optimize vector calls",	FL_OP4,	FLAG_V7_ONLY	},
+	{NULL,			"",  "",			0,	0		},
+};
+
 // simple types.  function types are dynamically allocated
 type_t	*type_void;
 type_t	*type_string;
@@ -64,8 +108,6 @@ const int	type_size[12] =
 char pr_parm_names[MAX_PARMS + MAX_PARMS_EXTRA][MAX_NAME];
 def_t def_ret, def_parms[MAX_PARMS];
 includechunk_t *currentchunk;
-char pevname[8];	// Xash Progs have keyword "pev" not "self"
-char opevname[8];	// class self name (opev or oself)
 
 void PR_IncludeChunk (char *data, bool duplicate, char *filename)
 {
@@ -406,7 +448,7 @@ bool PR_Precompiler(void)
 				if (!strcmp(pr_token, "#endlist"))
 					break;
 
-				PR_FindBestInclude(pr_token, compilingfile, qccmsourcedir);
+				PR_FindBestInclude(pr_token, compilingfile, sourcedir);
 
 				if (*pr_file_p == '\r')
 					pr_file_p++;
@@ -452,7 +494,7 @@ bool PR_Precompiler(void)
 			}
 			msg[a] = 0;
 
-			PR_FindBestInclude(msg, compilingfile, qccmsourcedir);
+			PR_FindBestInclude(msg, compilingfile, sourcedir);
 			pr_file_p++;
 
 			while(*pr_file_p != '\n' && *pr_file_p != '\0' && *pr_file_p <= ' ')
@@ -484,8 +526,8 @@ bool PR_Precompiler(void)
 			while(*pr_file_p <= ' ') pr_file_p++;
 
 			PR_LexString();
-			strcpy(destfile, pr_token);
-			PR_Message("Outputfile: %s\n", destfile);
+			strcpy(progsoutname, pr_token);
+			PR_Message("Outputfile: %s\n", progsoutname);
 
 			pr_file_p++;
 				
@@ -561,40 +603,6 @@ bool PR_Precompiler(void)
 				else if (!stricmp(msg, "FTE")) target_version = FPROGS_VERSION;
 				else if (!stricmp(msg, "VPROGS"))target_version = VPROGS_VERSION;
 				else PR_ParseWarning(WARN_BADTARGET, "Unknown target \'%s\'. Ignored.", msg);
-			}
-			else if (!stricmp(token, "keyword") || !stricmp(token, "flag"))
-			{
-				int	st;
-
-				SC_ParseToken(&msg);
-
-				if (!stricmp(token, "enable") || !stricmp(token, "on")) st = 1;
-				else if (!stricmp(token, "disable") || !stricmp(token, "off")) st = 0;
-				else
-				{
-					PR_ParseWarning(WARN_BADPRAGMA, "compiler flag state not recognised");
-					st = -1;
-				}
-				if (st < 0) PR_ParseWarning(WARN_BADPRAGMA, "warning id not recognized");
-				else
-				{
-					int f;
-					SC_ParseToken(&msg);
-
-					for (f = 0; compiler_flag[f].enabled; f++)
-					{
-						if (!stricmp(compiler_flag[f].name, token))
-						{
-							if (compiler_flag[f].flags & FLAG_MIDCOMPILE)
-								*compiler_flag[f].enabled = st;
-							else PR_ParseWarning(WARN_BADPRAGMA, "Cannot enable/disable keyword/flag via a pragma");
-							break;
-						}
-					}
-					if (!compiler_flag[f].enabled)
-						PR_ParseWarning(WARN_BADPRAGMA, "keyword/flag not recognised");
-
-				}
 			}
 			else if (!stricmp(token, "warning"))
 			{
@@ -1792,7 +1800,7 @@ void PR_Lex (void)
 	
 	if ( (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' )
 	{
-		if (flag_hashonly || !PR_CheakCompConst()) PR_LexName (); // look for a macro.
+		if (!PR_CheakCompConst()) PR_LexName (); // look for a macro.
 		else if (pr_token_type == tt_eof) goto end_of_file;
 		return;
 	}
@@ -1904,7 +1912,7 @@ void PR_ParseWarning (int type, char *error, ...)
 	{
 		// instead of sys error
 		pr_total_error_count++;
-		std.error( "%s:%i: internal error C%i: %s\n", strings + s_file, pr_source_line, type, string );
+		std.error( "internal error C%i: %s\n", type, string );
 	}
 	else if (type > ERR_INTERNAL)
 	{
@@ -1989,13 +1997,54 @@ bool PR_CheckName(char *string)
 	return true;
 }
 
-bool PR_CheckKeyword(int keywordenabled, char *string)
+bool PR_CheckForKeyword( int keyword )
 {
-	if (!keywordenabled) return false;
-	if (STRCMP(string, pr_token))
+	if(!PR_MatchKeyword( keyword ))
 		return false;
+
 	PR_Lex ();
 	return true;
+}
+
+bool PR_MatchKeyword( int keyword )
+{
+	int	i;
+
+	for(i = 0; i < NUM_KEYWORDS; i++ )
+	{
+		if(pr_keywords[i].number == keyword)
+		{
+			// not keyword for current version
+			if(pr_keywords[i].version > target_version) return false;
+			if(!STRCMP(pr_token, pr_keywords[i].name)) return true;
+			if(strlen(pr_keywords[i].alias) && !STRCMP(pr_token, pr_keywords[i].alias))
+				return true; // use alias
+			break; // match found
+		}
+	}
+
+	// this keyword is present, but not defined
+	// just in case
+	return false;
+}
+
+bool PR_KeywordEnabled( int keyword )
+{
+	int	i;
+
+	for(i = 0; i < NUM_KEYWORDS; i++ )
+	{
+		// found it
+		if(pr_keywords[i].number == keyword)
+		{
+			if(pr_keywords[i].version > target_version)
+				return false;
+			return true;
+		}
+	}
+
+	// not exist ?
+	return false;
 }
 
 /*
@@ -2293,7 +2342,7 @@ type_t *PR_ParseType (int newtype)
 
 	name = PR_CheakCompConstString(pr_token);
 
-	if (PR_CheckKeyword (keyword_class, "class"))
+	if (PR_CheckForKeyword( KEYWORD_CLASS ))
 	{
 		type_t	*fieldtype;
 		char	membername[2048];
@@ -2353,7 +2402,7 @@ type_t *PR_ParseType (int newtype)
 		PR_Expect(";");
 		return NULL;
 	}
-	if (PR_CheckKeyword (keyword_struct, "struct"))
+	if (PR_CheckForKeyword( KEYWORD_STRUCT ))
 	{
 		newt = PR_NewType("struct", ev_struct);
 		newt->size=0;
@@ -2395,7 +2444,7 @@ type_t *PR_ParseType (int newtype)
 		}
 		return newt;
 	}
-	if (PR_CheckKeyword (keyword_union, "union"))
+	if(PR_CheckForKeyword( KEYWORD_UNION ))
 	{
 		newt = PR_NewType("union", ev_union);
 		newt->size = 0;

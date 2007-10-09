@@ -53,8 +53,8 @@ struct file_s
 typedef struct vfile_s
 {
 	byte		*buff;
-	file_t		*file;// ptr to real stream
-	int		mode;
+	char		filename[MAX_QPATH];
+	char		mode[4];
 
 	fs_offset_t	buffsize;
 	fs_offset_t	length;
@@ -2377,58 +2377,53 @@ vfile_t *VFS_Create(byte *buffer, size_t buffsize)
 {
 	vfile_t *file = (vfile_t *)Mem_Alloc (fs_mempool, sizeof (*file));
 
-	file->file = NULL; //no real stream
 	file->length = file->buffsize = buffsize;
 	file->buff = Mem_Alloc(fs_mempool, (file->buffsize));	
 	file->offset = 0;
-	file->mode = O_RDONLY;
+	strncpy(file->mode, "r", 4 );
 	Mem_Copy(file->buff, buffer, buffsize );
 
 	return file;
 }
 
-vfile_t *VFS_Open(file_t* real_file, const char* mode)
+vfile_t *VFS_Open(const char *filename, const char* mode)
 {
-	vfile_t *file = (vfile_t *)Mem_Alloc (fs_mempool, sizeof (*file));
+	vfile_t	*file = (vfile_t *)Mem_Alloc (fs_mempool, sizeof (*file));
+	file_t	*real_file;
 
-	if(!real_file)
-	{
-		Free( file );
-		MsgWarn("VFS_Open: can't open NULL handle\n" );
-		return NULL;
-	} 
+	strncpy(file->filename, filename, MAX_QPATH );
+	strncpy(file->mode, mode, 4 );
 
 	// If the file is opened in "write", "append", or "read/write" mode
 	if (mode[0] == 'w')
 	{
-		file->file = real_file;
 		file->buffsize = (64 * 1024); // will be resized if need
 		file->buff = Mem_Alloc(fs_mempool, (file->buffsize));
 		file->length = 0;
 		file->offset = 0;
-		file->mode = O_WRONLY;
 	}
 	else if (mode[0] == 'r')
 	{
 		int curpos, endpos;
 
-		file->file = real_file;
+		real_file = FS_Open( file->filename, file->mode );
 
-		curpos = FS_Tell(file->file);
-		FS_Seek(file->file, 0, SEEK_END);
-		endpos = FS_Tell(file->file);
-		FS_Seek(file->file, curpos, SEEK_SET);
+		curpos = FS_Tell(real_file);
+		FS_Seek(real_file, 0, SEEK_END);
+		endpos = FS_Tell(real_file);
+		FS_Seek(real_file, curpos, SEEK_SET);
 
 		file->buffsize = endpos - curpos;
 		file->buff = Mem_Alloc(fs_mempool, (file->buffsize));
 
-		FS_Read (file->file, file->buff, file->buffsize);		
+		FS_Read (real_file, file->buff, file->buffsize);		
 		file->length = file->buffsize;
 		file->offset = 0;
-		file->mode = O_RDONLY;
+		FS_Close( real_file );
 	}
 	else
 	{
+		Free( file );
 		MsgWarn("VFS_Open: unsupported mode %s\n", mode );
 		return NULL;
 	}
@@ -2521,10 +2516,10 @@ int VFS_Close( vfile_t *file )
 {
 	if(!file) return -1;
 
-	if(file->file && file->mode == O_WRONLY)
+	if(file->mode[0] == 'w' && strlen(file->filename))
 	{
 		// write real file into disk
-		FS_Write (file->file, file->buff, (file->length + 3) & ~3);// align
+		FS_WriteFile (file->filename, file->buff, (file->length + 3) & ~3);// align
 	}
 
 	Free( file->buff );

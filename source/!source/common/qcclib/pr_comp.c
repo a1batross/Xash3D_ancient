@@ -8,53 +8,11 @@
 #define TOP_PRIORITY	7
 #define NOT_PRIORITY	5
 
-// standard qcc keywords
-#define keyword_do		1
-#define keyword_return	1
-#define keyword_if		1
-#define keyword_else	1
-#define keyword_local	1
-#define keyword_while	1
-
-// extended keywords.
-bool keyword_asm;
-bool keyword_break;
-bool keyword_case;
-bool keyword_class;
-bool keyword_const;		// FIXME
-bool keyword_continue;
-bool keyword_default;
-bool keyword_entity;	// for skipping the local
-bool keyword_float;		// for skipping the local
-bool keyword_for;
-bool keyword_goto;
-bool keyword_int;		// for skipping the local
-bool keyword_integer;	// for skipping the local
-bool keyword_state;
-bool keyword_string;	// for skipping the local
-bool keyword_struct;
-bool keyword_switch;
-bool keyword_thinktime;
-bool keyword_var;		// allow it to be initialised and set around the place.
-bool keyword_vector;	// for skipping the local
-bool keyword_enum;		// kinda like in c, but typedef not supported.
-bool keyword_enumflags;	// like enum, but doubles instead of adds 1.
-bool keyword_typedef;	// FIXME
-bool keyword_extern;	// function is external, don't error or warn if the body was not found
-bool keyword_shared;	// mark global to be copied over when progs changes
-bool keyword_noref;		// nowhere else references this, don't strip it.
-bool keyword_nosave;	// don't write the def to the output.
-bool keyword_union;		// you surly know what a union is!
-
-bool keywords_coexist;	// don't disable a keyword simply because a var was made with the same name.
-bool output_parms;		// emit some PARMX fields. confuses decompilers.
 bool autoprototype;		// take two passes over the source code. First time round doesn't enter and functions or initialise variables.
 bool pr_subscopedlocals;	// causes locals to be valid ONLY within thier statement block. (they simply can't be referenced by name outside of it)
-bool flag_ifstring;		// makes if (blah) equivelent to if (blah != "") which resolves some issues in multiprogs situations.
-bool flag_laxcasts;		// Allow lax casting. This'll produce loadsa warnings of course. But allows compilation of certain dodgy code.
-bool flag_hashonly;		// Allows use of only #constant for precompiler constants, allows certain preqcc using mods to compile
-bool flag_fastarrays;	// Faster arrays, dynamically detected, activated only in supporting engines.
 
+bool opt_laxcasts;		// Allow lax casting. This'll produce loadsa warnings of course. But allows compilation of certain dodgy code.
+bool opt_ifstring;		// makes if (blah) equivelent to if (blah != "") which resolves some issues in multiprogs situations.
 bool opt_overlaptemps;	// reduce numpr_globals by reuse of temps. When they are not needed they are freed for reuse. The way this is implemented is better than frikqcc's. (This is the single most important optimisation)
 bool opt_assignments;	// STORE_F isn't used if an operation wrote to a temp.
 bool opt_shortenifnots;	// if(!var) is made an IF rather than NOT IFNOT
@@ -84,11 +42,17 @@ bool opt_compfunctions;	// compress all functions and statements
 bool opt_compress_other;	// compress all parts of progs
 
 bool		simplestore;
+bool		pr_setevarsname = false;
 file_t		*asmfile;
 pr_info_t		pr;
 freeoffset_t	*freeofs;
 int		conditional;
 int		basictypefield[ev_union + 1];
+char		*progs_src;
+char		*saved_progs_src;
+char		pevname[32];  // support custom "self" pointer names
+char		opevname[32]; // class self name
+char		sourcefilename[MAX_SYSPATH];
 
 char *basictypenames[] = 
 {
@@ -109,7 +73,6 @@ char *basictypenames[] =
 
 def_t	*pr_scope;	// the function being parsed, or NULL
 type_t	*pr_classtype;
-bool	pr_dumpasm;
 string_t	s_file, s_file2;	// filename for function definition
 uint	locals_start;	// for tracking local variables vs temps
 uint	locals_end;	// for tracking local variables vs temps
@@ -375,6 +338,44 @@ opcode_t pr_opcodes[] =
 {0, NULL,		NULL,		-1,	ASSOC_LEFT, NULL,		NULL,		NULL}
 };
 
+keyword_t pr_keywords[] =
+{
+{6, KEYWORD_DO,		"do",		"",	0 },
+{6, KEYWORD_IF,		"if",		"",	0 },
+{6, KEYWORD_VOID,		"void",		"",	0 },
+{6, KEYWORD_ELSE,		"else",		"",	0 },
+{6, KEYWORD_LOCAL,		"local",		"",	0 },
+{6, KEYWORD_WHILE,		"while",		"",	0 },
+{6, KEYWORD_ENTITY,		"entity",		"",	0 },
+{6, KEYWORD_FLOAT,		"float",		"",	0 },
+{6, KEYWORD_STRING,		"string",		"",	0 },
+{6, KEYWORD_VECTOR,		"vector",		"",	0 },
+{6, KEYWORD_RETURN,		"return",		"",	0 },
+{6, KEYWORD_BREAK,		"break",		"",	ev_function},
+{6, KEYWORD_FOR,		"for",		"",	0 },
+{6, KEYWORD_CONTINUE,	"continue",	"",	0 },
+{6, KEYWORD_CONST,		"const",		"",	0 },
+{7, KEYWORD_ENUM,		"enum",		"",	0 },
+{7, KEYWORD_ENUMFLAGS,	"enumflags",	"",	0 },
+{7, KEYWORD_CASE,		"case",		"",	0 },
+{7, KEYWORD_DEFAULT,	"default",	"",	0 },
+{7, KEYWORD_GOTO,		"goto",		"",	0 },
+{7, KEYWORD_INT,		"int",		"integer",0 },
+{7, KEYWORD_STATE,		"state",		"",	ev_field},
+{7, KEYWORD_CLASS,		"class",		"",	0 }, 
+{7, KEYWORD_STRUCT,		"struct",		"",	0 },
+{7, KEYWORD_SWITCH,		"switch",		"",	0 },
+{7, KEYWORD_TYPEDEF,	"typedef",	"",	0 },
+{7, KEYWORD_EXTERN,		"extern",		"",	0 },
+{6, KEYWORD_VAR,		"var",		"",	0 },
+{7, KEYWORD_UNION,		"union",		"",	0 },
+{7, KEYWORD_THINKTIME,	"thinktime",	"",	0 },
+{8, KEYWORD_ASM,		"asm",		"_asm",	0 },
+{8, KEYWORD_SHARED,		"shared",		"_export",0 },	// multiprogs stuff
+{8, KEYWORD_NOSAVE,		"nosave",		"",	0 },
+{0, NUM_KEYWORDS,		"",		"",	0 },
+};
+
 // this system cuts out 10/120
 // these evaluate as top first.
 opcode_t *opcodeprioritized[TOP_PRIORITY+1][64] =
@@ -533,6 +534,86 @@ bool PR_OPCodeValid(opcode_t *op)
 	return valid;
 }
 
+char *PR_NameFromType( etype_t type )
+{
+	static char typeinfo[32];
+
+	memset( typeinfo, 0, 32 );
+	switch( type )
+	{
+	case ev_float: strncpy(typeinfo, "float", 32 ); break;
+	case ev_string: strncpy(typeinfo, "string", 32 ); break;
+	case ev_vector: strncpy(typeinfo, "vector", 32 ); break;
+	case ev_entity: strncpy(typeinfo, "entity", 32 ); break;
+	case ev_integer: strncpy(typeinfo, "int", 32 ); break;
+	case ev_variant: strncpy(typeinfo, "var", 32 ); break;
+	case ev_struct: strncpy(typeinfo, "struct", 32 ); break;
+	case ev_union: strncpy(typeinfo, "union", 32 ); break;
+	case ev_void: strncpy(typeinfo, "void", 32 ); break;
+	}
+	return typeinfo;
+}
+
+void PR_KeyWordValid( char *name, type_t *type )
+{
+	int	i;
+	char	*typeinfo;
+
+	switch( type->type )
+	{
+	default:
+	case ev_float:
+	case ev_string:
+	case ev_vector:
+	case ev_entity:
+          case ev_integer:
+          case ev_variant:
+	case ev_struct:
+	case ev_union:
+		typeinfo = PR_NameFromType( type->type );
+		break;          
+	case ev_field: 
+		typeinfo = PR_NameFromType( type->aux_type->type );
+		break; 
+	}	
+	for(i = 0; i < NUM_KEYWORDS; i++ )
+	{
+		// resereved keyword valid only for new versions
+		if(pr_keywords[i].ignoretype == type->type) continue;
+		if(pr_keywords[i].version > target_version) continue;
+		if(!STRCMP(name, pr_keywords[i].name))
+		{         
+			// MSVC 6.0 style
+			PR_ParseWarning(ERR_ILLEGALNAME, "'%s' followed by '%s' is illegal", typeinfo, name );
+			PR_ParseWarning(WARN_IGNOREDONLEFT, "' ' : ignored on left of '%s ' when no variable is declared", typeinfo );
+			break;
+		}
+	}
+}
+
+void PR_GetEntvarsName( void )
+{
+	def_t	*d;
+
+	// for emit class constructor we need before
+	// get name of global entvars pointer (default "self")
+
+	if(pr_setevarsname) return;
+
+	for (d = pr.def_head.next; d; d = d->next)
+	{
+		if (!strcmp (d->name, "end_sys_globals")) break;
+		if (d->ofs < RESERVED_OFS) continue;
+		if (d->type->type == ev_entity)
+		{
+			strncpy(pevname, d->name, 32 );
+			strncpy(opevname, va("o%s", pevname), 32 );
+			pr_setevarsname = true;
+			break;
+		}
+	}
+}
+
 //===========================================================================
 /*
 ============
@@ -542,7 +623,7 @@ Emits a primitive statement, returning the var it places it's value in
 ============
 */
 
-int __inline PR_ShouldConvert(def_t *var, etype_t wanted)
+_inline int PR_ShouldConvert(def_t *var, etype_t wanted)
 {
 	if (var->type->type == ev_integer && wanted == ev_function)
 		return 0;
@@ -1015,7 +1096,7 @@ def_t *PR_Statement ( opcode_t *op, def_t *var_a, def_t *var_b, dstatement_t **o
 		PR_FreeTemp(var_b);
 	}
 
-	if (keyword_class && var_a && var_b)
+	if (PR_KeywordEnabled(KEYWORD_CLASS) && var_a && var_b)
 	{
 		if (var_a->type->type == ev_entity && var_b->type->type == ev_entity)
 		{
@@ -1628,124 +1709,6 @@ def_t *PR_ParseImmediate (void)
 	return cn;
 }
 
-void PR_PrecacheSound (def_t *e, int ch)
-{
-	char		*n;
-	int		i;
-
-	if (e->type->type != ev_string) return;
-	if (!e->ofs || e->temp || !e->constant) return;
-
-	n = G_STRING(e->ofs);
-	if (!*n) return;
-
-	for (i = 0; i < numsounds; i++)
-	{
-		if (!STRCMP(n, precache_sounds[i])) return;
-	}
-
-	if (numsounds == MAX_SOUNDS) return;
-	strcpy (precache_sounds[i], n);
-	numsounds++;
-}
-
-void PR_PrecacheModel (def_t *e, int ch)
-{
-	char		*n;
-	int		i;
-
-	if (e->type->type != ev_string) return;
-	if (!e->ofs || e->temp || !e->constant) return;	
-
-	n = G_STRING(e->ofs);
-	if (!*n) return;
-	for (i = 0; i < nummodels; i++)
-	{
-		if (!STRCMP(n, precache_models[i])) return;
-	}
-
-	if (nummodels == MAX_MODELS) return;
-	strcpy (precache_models[i], n);
-	nummodels++;
-}
-
-void PR_SetModel (def_t *e)
-{
-	char		*n;
-	int		i;
-
-	if (e->type->type != ev_string) return;
-	if (!e->ofs || e->temp || !e->constant) return;	
-
-	n = G_STRING(e->ofs);
-	if (!*n)return;
-
-	for (i = 0; i < nummodels; i++)
-	{
-		if (!STRCMP(n, precache_models[i])) return;
-	}
-
-	if (nummodels == MAX_MODELS) return;
-	strcpy (precache_models[i], n);
-	nummodels++;
-}
-
-void PR_PrecacheTexture (def_t *e, int ch)
-{
-	char		*n;
-	int		i;
-
-	if (e->type->type != ev_string) return;
-	if (!e->ofs || e->temp || !e->constant) return;
-
-	n = G_STRING(e->ofs);
-	if (!*n) return;
-
-	for (i = 0; i < numtextures; i++)
-	{
-		if (!STRCMP(n, precache_textures[i])) return;
-	}
-
-	if (nummodels == MAX_MODELS) return;
-	strcpy (precache_textures[i], n);
-	numtextures++;
-}
-
-void PR_PrecacheFile (def_t *e, int ch)
-{
-	char		*n;
-	int		i;
-
-	if (e->type->type != ev_string) return;
-	if (!e->ofs || e->temp || !e->constant) return;
-
-	n = G_STRING(e->ofs);
-	if (!*n) return;
-
-	for (i = 0; i < numfiles; i++)
-	{
-		if (!STRCMP(n, precache_files[i])) return;
-	}
-
-	if (numfiles == MAX_FILES) return;
-	strcpy (precache_files[i], n);
-	numfiles++;
-}
-
-void PR_PrecacheFileOptimised (char *n, int ch)
-{
-	int		i;
-
-	for (i = 0; i < numfiles; i++)
-	{
-		if (!STRCMP(n, precache_files[i])) return;
-	}
-
-	if (numfiles == MAX_FILES) return;
-	strcpy (precache_files[i], n);
-	numfiles++;
-}
-
 /*
 ============
 PR_ParseFunctionCall
@@ -1837,7 +1800,6 @@ def_t *PR_ParseFunctionCall (def_t *func)
 			{
 				PR_Lex();
 				PR_Expect(")");
-				PR_PrecacheFileOptimised (pr_immediate_string, func->name[13]);
 				def_ret.type = type_void;
 				return &def_ret;
 			}
@@ -1892,7 +1854,7 @@ def_t *PR_ParseFunctionCall (def_t *func)
 				e = PR_Expression (TOP_PRIORITY, false);
 				if (e->type->type != ev_vector)
 				{
-					if (flag_laxcasts)
+					if (opt_laxcasts)
 					{
 						PR_ParseWarning(WARN_LAXCAST, "type mismatch on parm %i - (%s should be %s)", 1, TypeName(e->type), TypeName(type_vector));
 						PR_ParsePrintDef(WARN_LAXCAST, func);
@@ -1908,7 +1870,7 @@ def_t *PR_ParseFunctionCall (def_t *func)
 			e = PR_Expression (TOP_PRIORITY, false);
 			if (e->type->type != ev_vector)
 			{
-				if (flag_laxcasts)
+				if (opt_laxcasts)
 				{
 					PR_ParseWarning(WARN_LAXCAST, "type mismatch on parm %i - (%s should be %s)", 1, TypeName(e->type), TypeName(type_vector));
 					PR_ParsePrintDef(WARN_LAXCAST, func);
@@ -1937,21 +1899,6 @@ def_t *PR_ParseFunctionCall (def_t *func)
 				}
 
 				e = PR_Expression (TOP_PRIORITY, false);
-				if (arg == 0 && func->name)
-				{
-					// save information for model and sound caching
-					if (!strncmp(func->name,"precache_", 9))
-					{
-						if (!strncmp(func->name+9,"sound", 5))
-							PR_PrecacheSound (e, func->name[14]);
-						else if (!strncmp(func->name+9,"model", 5))
-							PR_PrecacheModel (e, func->name[14]);
-						else if (!strncmp(func->name+9,"texture", 7))
-							PR_PrecacheTexture (e, func->name[16]);
-						else if (!strncmp(func->name+9,"file", 4))
-							PR_PrecacheFile (e, func->name[13]);
-					}
-				}
 				if (arg >= MAX_PARMS)
 				{
 					if (!extra_parms[arg - MAX_PARMS])
@@ -2016,7 +1963,7 @@ def_t *PR_ParseFunctionCall (def_t *func)
 						else if (p->type != ev_variant)
 						{
 							// can cast to variant whatever happens
-							if (flag_laxcasts || (p->type == ev_function && e->type->type == ev_function))
+							if (opt_laxcasts || (p->type == ev_function && e->type->type == ev_function))
 							{
 								PR_ParseWarning(WARN_LAXCAST, "type mismatch on parm %i - (%s should be %s)", arg+1, TypeName(e->type), TypeName(p));
 								PR_ParsePrintDef(WARN_LAXCAST, func);
@@ -2028,11 +1975,6 @@ def_t *PR_ParseFunctionCall (def_t *func)
 					p = p->next;
 				}		
 				else d->type = type_void; // a vector copy will copy everything
-
-				if (arg == 1 && !STRCMP(func->name, "setmodel"))
-				{
-					PR_SetModel(e);
-				}
 
 				param[arg] = e;
 				arg++;
@@ -2511,13 +2453,13 @@ def_t *PR_ParseValue (type_t *assumeclass)
 		// intrinsics, any old function with no args will do.
 		if ((!strcmp(name, "spawn")) || (!strcmp(name, "entnum")))
 			od = d = PR_GetDef (type_function, name, NULL, true, 1);
-		else if (keyword_class && !strcmp(name, "this"))
+		else if (PR_KeywordEnabled(KEYWORD_CLASS) && !strcmp(name, "this"))
 		{
 			if (!pr_classtype) PR_ParseError(ERR_NOTANAME, "Cannot use 'this' outside of an OO function\n");
 			od = PR_GetDef(NULL, pevname, NULL, true, 1);
 			od = d = PR_DummyDef(pr_classtype, "this", pr_scope, 1, od->ofs, true);
 		}
-		else if (keyword_class && !strcmp(name, "super"))
+		else if (PR_KeywordEnabled(KEYWORD_CLASS) && !strcmp(name, "super"))
 		{
 			if (!pr_classtype) PR_ParseError(ERR_NOTANAME, "Cannot use 'super' outside of an OO function\n");
 			od = PR_GetDef(NULL, pevname, NULL, true, 1);
@@ -2866,7 +2808,7 @@ reloop:
 		}
 	}
 
-	if (!keyword_class) return d;
+	if (!PR_KeywordEnabled(KEYWORD_CLASS)) return d;
 
 	if (d->type->parentclass || d->type->type == ev_entity) // class
 	{
@@ -3130,7 +3072,8 @@ def_t *PR_Term( void )
 		}
 		if (PR_CheckToken ("("))
 		{
-			if (keyword_float && PR_CheckToken("float"))	//check for type casts
+			// float is always enabled
+			if (PR_CheckToken("float")) // check for type casts
 			{
 				PR_Expect (")");
 				e = PR_Term();
@@ -3148,7 +3091,7 @@ def_t *PR_Term( void )
 				e2->temp = e->temp;
 				return e2;
 			}
-			else if (PR_CheckKeyword(keyword_class, "class"))
+			else if (PR_CheckForKeyword( KEYWORD_CLASS ))
 			{
 				type_t *classtype = TypeForName(PR_ParseName());
 				if (!classtype) PR_ParseError(ERR_NOTANAME, "Class not defined for cast");
@@ -3163,16 +3106,7 @@ def_t *PR_Term( void )
 				e2->temp = e->temp;
 				return e2;
 			}
-			else if (PR_CheckKeyword(keyword_integer, "integer")) // check for type casts
-			{
-				PR_Expect (")");
-				e = PR_Term();
-				if (e->type->type == ev_integer) return e;
-				else if (e->type->type == ev_float)
-					return PR_Statement (&pr_opcodes[OP_CONV_FTOI], e, 0, NULL);
-				else PR_ParseError (ERR_BADTYPECAST, "invalid typecast");
-			}
-			else if (PR_CheckKeyword(keyword_int, "int")) // check for type casts
+			else if (PR_CheckForKeyword( KEYWORD_INT )) // check for type casts
 			{
 				PR_Expect (")");
 				e = PR_Term();
@@ -3329,7 +3263,7 @@ def_t *PR_Expression (int priority, bool allowcomma)
 				if (op->priority == 7 && opt_logicops)
 				{
 					st = &statements[numstatements];
-					if (*op->name == '&')	//statement 3 because we don't want to optimise this into if from not ifnot
+					if (*op->name == '&') // statement 3 because we don't want to optimise this into if from not ifnot
 						PR_Statement3(&pr_opcodes[OP_IFNOT], e, NULL, NULL, false);
 					else PR_Statement3(&pr_opcodes[OP_IF], e, NULL, NULL, false);
 				}
@@ -3410,7 +3344,7 @@ def_t *PR_Expression (int priority, bool allowcomma)
 				if (oldop->priority == TOP_PRIORITY) op = oldop;
 				else
 				{
-					if (flag_laxcasts)
+					if (opt_laxcasts)
 					{
 						op = oldop;
 						PR_ParseWarning(WARN_LAXCAST, "type mismatch for %s (%s and %s)", oldop->name, e->type->name, e2->type->name);
@@ -3648,7 +3582,7 @@ void PR_ParseStatement (void)
 		}
 		return;
 	}
-	if (PR_CheckKeyword(keyword_return, "return"))
+	if (PR_CheckForKeyword( KEYWORD_RETURN ))
 	{
 		if (PR_CheckToken (";"))
 		{
@@ -3665,7 +3599,7 @@ void PR_ParseStatement (void)
 		PR_FreeTemp(PR_Statement (&pr_opcodes[OP_RETURN], e, 0, NULL));
 		return;
 	}
-	if (PR_CheckKeyword(keyword_while, "while"))
+	if (PR_CheckForKeyword( KEYWORD_WHILE ))
 	{
 		continues = num_continues;
 		breaks = num_breaks;
@@ -3692,8 +3626,9 @@ void PR_ParseStatement (void)
 					PR_FreeTemp(PR_Statement (&pr_opcodes[OP_GOTO], 0, 0, &patch1));
 				else patch1 = NULL;
 			}
-			else if (!typecmp( e->type, type_string) && flag_ifstring)	//special case, as strings are now pointers, not offsets from string table
+			else if (!typecmp( e->type, type_string) && opt_ifstring)	
 			{
+				// special case, as strings are now pointers, not offsets from string table
 				PR_ParseWarning(0, "while (string) can result in bizzare behaviour");
 				PR_FreeTemp(PR_Statement (&pr_opcodes[OP_IFNOTS], e, 0, &patch1));
 			}
@@ -3729,7 +3664,7 @@ void PR_ParseStatement (void)
 		}
 		return;
 	}
-	if (PR_CheckKeyword(keyword_for, "for"))
+	if (PR_CheckForKeyword( KEYWORD_FOR ))
 	{
 		int		old_numstatements;
 		int		numtemp, i;
@@ -3807,7 +3742,7 @@ void PR_ParseStatement (void)
 		}
 		return;
 	}
-	if (PR_CheckKeyword(keyword_do, "do"))
+	if (PR_CheckForKeyword( KEYWORD_DO ))
 	{
 		continues = num_continues;
 		breaks = num_breaks;
@@ -3830,7 +3765,7 @@ void PR_ParseStatement (void)
 		}
 		else
 		{
-			if (!typecmp( e->type, type_string) && flag_ifstring)
+			if (!typecmp( e->type, type_string) && opt_ifstring)
 			{
 				PR_ParseWarning(WARN_IFSTRING_USED, "do {} while(string) can result in bizzare behaviour");
 				PR_FreeTemp(PR_Statement (&pr_opcodes[OP_IFS], e, NULL, &patch2));
@@ -3862,7 +3797,7 @@ void PR_ParseStatement (void)
 		return;
 	}
 	
-	if (PR_CheckKeyword(keyword_local, "local"))
+	if (PR_CheckForKeyword( KEYWORD_LOCAL ))
 	{
 		type_t *functionsclasstype = pr_classtype; 
 		PR_ParseDefs( NULL );
@@ -3875,15 +3810,14 @@ void PR_ParseStatement (void)
 	{
 		bool result = false;
 
-		if (keyword_var && !STRCMP ("var", pr_token)) result = true;
-		else if (keyword_string && !STRCMP ("string", pr_token)) result = true;
-		else if (keyword_float && !STRCMP ("float", pr_token)) result = true;
-		else if (keyword_entity && !STRCMP ("entity", pr_token)) result = true;
-		else if (keyword_vector && !STRCMP ("vector", pr_token)) result = true;
-		else if (keyword_integer && !STRCMP ("integer", pr_token)) result = true;
-		else if (keyword_int && !STRCMP ("int", pr_token)) result = true;
-		else if (keyword_class && !STRCMP ("class", pr_token)) result = true; 
-		else if (keyword_const && !STRCMP ("const", pr_token)) result = true;
+		if (PR_MatchKeyword(KEYWORD_VAR)) result = true;
+		else if (PR_MatchKeyword(KEYWORD_STRING)) result = true;
+		else if (PR_MatchKeyword(KEYWORD_FLOAT)) result = true;
+		else if (PR_MatchKeyword(KEYWORD_ENTITY)) result = true;
+		else if (PR_MatchKeyword(KEYWORD_VECTOR)) result = true;
+		else if (PR_MatchKeyword(KEYWORD_INT)) result = true;
+		else if (PR_MatchKeyword(KEYWORD_CLASS)) result = true; 
+		else if (PR_MatchKeyword(KEYWORD_CONST)) result = true;
 		else result = false;
 
 		if(result)
@@ -3893,7 +3827,7 @@ void PR_ParseStatement (void)
 			return;
 		}
 	}
-	if (PR_CheckKeyword(keyword_state, "state"))
+	if (PR_CheckForKeyword( KEYWORD_STATE ))
 	{
 		PR_Expect("[");
 		PR_ParseState();
@@ -3911,14 +3845,14 @@ void PR_ParseStatement (void)
 		return;
 	}
 	
-	if (PR_CheckKeyword(keyword_if, "if"))
+	if (PR_CheckForKeyword( KEYWORD_IF ))
 	{
 		PR_Expect ("(");
 		conditional = 1;
 		e = PR_Expression (TOP_PRIORITY, true);
 		conditional = 0;
 
-		if (!typecmp( e->type, type_string) && flag_ifstring)
+		if (!typecmp( e->type, type_string) && opt_ifstring)
 		{
 			PR_ParseWarning(WARN_IFSTRING_USED, "if (string) can result in bizzare behaviour");
 			PR_FreeTemp(PR_Statement (&pr_opcodes[OP_IFNOTS], e, 0, &patch1));
@@ -3928,7 +3862,7 @@ void PR_ParseStatement (void)
 		PR_Expect (")"); // close bracket is after we save the statement to mem (so debugger does not show the if statement as being on the line after
 		PR_ParseStatement ();
 
-		if (PR_CheckKeyword (keyword_else, "else"))
+		if (PR_CheckForKeyword( KEYWORD_ELSE ))
 		{
 			int lastwasreturn;
 			lastwasreturn = statements[numstatements-1].op == OP_RETURN || statements[numstatements-1].op == OP_DONE;
@@ -3953,7 +3887,7 @@ void PR_ParseStatement (void)
 		else patch1->b = &statements[numstatements] - patch1;
 		return;
 	}
-	if (PR_CheckKeyword(keyword_switch, "switch"))
+	if (PR_CheckForKeyword( KEYWORD_SWITCH ))
 	{
 		int	op;
 		int	hcstyle;
@@ -4178,7 +4112,7 @@ void PR_ParseStatement (void)
 		}
 		return;
 	}
-	if (PR_CheckKeyword(keyword_asm, "asm") || PR_CheckKeyword(keyword_asm, "_asm"))
+	if (PR_CheckForKeyword( KEYWORD_ASM ))
 	{
 		if (PR_CheckToken("{"))
 		{
@@ -4219,7 +4153,7 @@ void PR_ParseStatement (void)
 		PR_Lex();
 		return;
 	}
-	if (PR_CheckKeyword(keyword_goto, "goto"))
+	if (PR_CheckForKeyword( KEYWORD_GOTO ))
 	{
 		if (pr_token_type != tt_name)
 		{
@@ -4233,7 +4167,7 @@ void PR_ParseStatement (void)
 		PR_Expect(";");
 		return;
 	}
-	if (PR_CheckKeyword(keyword_break, "break"))
+	if (PR_CheckForKeyword( KEYWORD_BREAK ))
 	{
 		if (!STRCMP ("(", pr_token))
 		{	
@@ -4255,7 +4189,7 @@ void PR_ParseStatement (void)
 			return;
 		}
 	}
-	if (PR_CheckKeyword(keyword_continue, "continue"))
+	if (PR_CheckForKeyword( KEYWORD_CONTINUE ))
 	{
 		if (num_continues >= max_continues)
 		{
@@ -4268,7 +4202,7 @@ void PR_ParseStatement (void)
 		PR_Expect(";");
 		return;
 	}
-	if (PR_CheckKeyword(keyword_case, "case"))
+	if (PR_CheckForKeyword( KEYWORD_CASE ))
 	{
 		if (num_cases >= max_cases)
 		{
@@ -4295,7 +4229,7 @@ void PR_ParseStatement (void)
 		PR_Expect(":");
 		return;
 	}
-	if (PR_CheckKeyword(keyword_default, "default"))
+	if (PR_CheckForKeyword( KEYWORD_DEFAULT ))
 	{
 		if (num_cases >= max_cases)
 		{
@@ -4311,7 +4245,7 @@ void PR_ParseStatement (void)
 		PR_Expect(":");
 		return;
 	}
-	if (PR_CheckKeyword(keyword_thinktime, "thinktime"))
+	if (PR_CheckForKeyword( KEYWORD_THINKTIME ))
 	{
 		def_t *nextthink;
 		def_t *time;
@@ -4477,7 +4411,7 @@ void PR_ParseAsm(void)
 	int op, p;
 	def_t *a, *b, *c;
 
-	if (PR_CheckKeyword(keyword_local, "local"))
+	if (PR_CheckForKeyword( KEYWORD_LOCAL ))
 	{
 		PR_ParseDefs (NULL);
 		locals_end = numpr_globals;
@@ -5068,7 +5002,7 @@ function_t *PR_ParseImmediateStatements (type_t *type)
 	// check for a state opcode
 	if (PR_CheckToken ("[")) PR_ParseState ();
 
-	if (PR_CheckKeyword (keyword_asm, "asm") || PR_CheckKeyword (keyword_asm, "_asm"))
+	if (PR_CheckForKeyword( KEYWORD_ASM ))
 	{
 		PR_Expect ("{");
 		while (!PR_CheckToken("}")) PR_ParseAsm ();
@@ -5228,8 +5162,7 @@ void PR_EmitArrayGetFunction(def_t *scope, char *arrayname)
 	def_t		*eq, *def, *index;
 	def_t		*fasttrackpossible;
 
-	if (flag_fastarrays) fasttrackpossible = PR_GetDef(type_float, "__ext__fasttrackarrays", NULL, true, 1);
-	else fasttrackpossible = NULL;
+	fasttrackpossible = PR_GetDef(type_float, "__ext__fasttrackarrays", NULL, true, 1);
 
 	def = PR_GetDef(NULL, arrayname, NULL, false, 0);
 
@@ -5371,8 +5304,7 @@ void PR_EmitArraySetFunction(def_t *scope, char *arrayname)
 	def_t		*def, *index, *value;
 	def_t		*fasttrackpossible;
 
-	if (flag_fastarrays) fasttrackpossible = PR_GetDef(NULL, "__ext__fasttrackarrays", NULL, true, 1);
-	else fasttrackpossible = NULL;
+	fasttrackpossible = PR_GetDef(NULL, "__ext__fasttrackarrays", NULL, true, 1);
 
 	def = PR_GetDef(NULL, arrayname, NULL, false, 0);
 	pr_scope = scope;
@@ -5439,25 +5371,8 @@ def_t *PR_DummyDef(type_t *type, char *name, def_t *scope, int arraysize, uint o
 	int	a;
 	def_t	*def, *first=NULL;
 
-	if (name)
-	{
-		KEYWORD(var);
-		KEYWORD(thinktime);
-		KEYWORD(for);
-		KEYWORD(switch);
-		KEYWORD(case);
-		KEYWORD(default);
-		KEYWORD(goto);
-		KEYWORD(continue);
-		KEYWORD(state);
-		KEYWORD(string);
-		KEYWORD(float);
-		KEYWORD(entity);
-		KEYWORD(vector);
-		KEYWORD(const);
-		KEYWORD(asm);
-		if (type->type != ev_function) KEYWORD(break);
-	}
+ 	// check for macthing with keywords
+	if (name) PR_KeyWordValid( name, type );
 
 	for (a = 0; a < arraysize; a++)
 	{
@@ -5869,14 +5784,13 @@ void PR_ParseDefs (char *classname)
 	bool		externfnc = false;
 	bool		isconstant = false;
 	bool		isvar = false;
-	bool		noref = false;
 	bool		nosave = false;
 	bool		allocatenew = true;
 	int		ispointer;
 	gofs_t		oldglobals;
 	int		arraysize;
 
-	if(PR_CheckKeyword(keyword_enum, "enum"))
+	if(PR_CheckForKeyword( KEYWORD_ENUM ))
 	{
 		float v = 0;
 		PR_Expect("{");
@@ -5914,7 +5828,7 @@ void PR_ParseDefs (char *classname)
 		return;
 	}
 
-	if (PR_CheckKeyword(keyword_enumflags, "enumflags"))
+	if (PR_CheckForKeyword( KEYWORD_ENUMFLAGS ))
 	{
 		float v = 1;
 		int bits;
@@ -5967,7 +5881,7 @@ void PR_ParseDefs (char *classname)
 		PR_Expect(";");
 		return;
 	}
-	if (PR_CheckKeyword (keyword_typedef, "typedef"))
+	if (PR_CheckForKeyword( KEYWORD_TYPEDEF ))
 	{
 		type = PR_ParseType( true );
 		if (!type) PR_ParseError(ERR_NOTANAME, "typedef found unexpected tokens");
@@ -5978,16 +5892,15 @@ void PR_ParseDefs (char *classname)
 	}
 	while(1)
 	{
-		if (PR_CheckKeyword(keyword_extern, "extern")) externfnc = true;
-		else if (PR_CheckKeyword(keyword_shared, "shared"))
+		if (PR_CheckForKeyword( KEYWORD_EXTERN )) externfnc = true;
+		else if (PR_CheckForKeyword( KEYWORD_SHARED ))
 		{
-			shared=true;
+			shared = true;
 			if (pr_scope) PR_ParseError (ERR_NOSHAREDLOCALS, "Cannot have shared locals");
 		}
-		else if (PR_CheckKeyword(keyword_const, "const")) isconstant = true;
-		else if (PR_CheckKeyword(keyword_var, "var")) isvar = true;
-		else if (PR_CheckKeyword(keyword_noref, "noref")) noref = true;
-		else if (PR_CheckKeyword(keyword_nosave, "nosave")) nosave = true;
+		else if (PR_CheckForKeyword( KEYWORD_CONST )) isconstant = true;
+		else if (PR_CheckForKeyword( KEYWORD_VAR )) isvar = true;
+		else if (PR_CheckForKeyword( KEYWORD_NOSAVE )) nosave = true;
 		else break;
 	}
 
@@ -6104,7 +6017,6 @@ void PR_ParseDefs (char *classname)
 
 		if (!def) PR_ParseError(ERR_NOTANAME, "%s is not part of class %s", name, classname);
 
-		if (noref) def->references++;
 		if (nosave) def->saved = false;
 		else def->saved = true;
 
@@ -6624,7 +6536,7 @@ void PR_CompileFile (char *string, char *filename)
 	PR_NewLine (false);
 	PR_Lex (); // read first token
 
-	// svae state
+	// save state
 	Mem_Copy(&abort_parse, &pr_parse_abort, sizeof(abort_parse));
 
 	while (pr_token_type != tt_eof)
@@ -6651,6 +6563,7 @@ void PR_CompileFile (char *string, char *filename)
 		PR_ParseDefs (NULL);
 	}
 
+	PR_GetEntvarsName(); // set entavrs default name e.g. "self"
 	// restore state
 	Mem_Copy(&pr_parse_abort, &abort_parse, sizeof(abort_parse));
 }
@@ -6663,11 +6576,13 @@ called after all files are compiled to check for errors
 Returns false if errors were detected.
 ==============
 */
-int PR_FinishCompilation( void )
+void PR_FinishCompilation( void )
 {
 	def_t		*d;
 	int		errors = pr_total_error_count;
-	
+
+	currentchunk = NULL;
+
 	// check to make sure all functions prototyped have code
 	for (d = pr.def_head.next; d; d = d->next)
 	{
@@ -6699,40 +6614,113 @@ int PR_FinishCompilation( void )
 			else if (d->initialized == 2) bodylessfuncs = true;
 		}
 	}
-	pr_scope = NULL;
 
-	return (errors == 0);
+	pr_scope = NULL;
+	// compilation failed ?
+	if(errors) 
+	{
+		Sys_Error("%s - %i error(s), %i warning(s)\n", progsoutname, pr_total_error_count, pr_warning_count);
+		return;
+	}
+	PR_WriteDAT();
+
+	PR_Message ("Скопировано файлов:         1.\n\n");// enigma from M$ :)
+	PR_Message ("%s - %i error(s), %i warning(s)\n", progsoutname, pr_total_error_count, pr_warning_count);
 }
 
-bool PR_Include(char *filename)
+/*
+==============
+PR_ContinueCompilation
+
+it will return false, when compilation is finished
+called between exe frames - won't loose net connection (is the theory)...
+==============
+*/
+bool PR_ContinueCompilation( void )
 {
-	char *newfile;
-	char fname[512];
-	char *opr_file_p;
-	string_t os_file, os_file2;
-	int opr_source_line;
-	char *ocompilingfile;
-	includechunk_t *oldcurrentchunk;
+	char	*qc_file;
 
-	ocompilingfile = compilingfile;
-	os_file = s_file;
-	os_file2 = s_file2;
-	opr_source_line = pr_source_line;
-	opr_file_p = pr_file_p;
-	oldcurrentchunk = currentchunk;
-
-	strcpy(fname, filename);
-	newfile = QCC_LoadFile(fname);
+	if(!progs_src) return false;
 	currentchunk = NULL;
-	pr_file_p = newfile;
-	PR_CompileFile(newfile, fname);
-	currentchunk = oldcurrentchunk;
+	SC_ParseToken(&progs_src);
 
-	compilingfile = ocompilingfile;
-	s_file = os_file;
-	s_file2 = os_file2;
-	pr_source_line = opr_source_line;
-	pr_file_p = opr_file_p;
+	if(!progs_src)
+	{
+		if (autoprototype)
+		{
+			progs_src = saved_progs_src;
+			PR_SetDefaultProperties();
+			autoprototype = false;
+			PR_Message("Compiling...\n");
+			return true;
+		}
+		return false; // end of compile
+	}
+
+	PR_Message ("%s\n", token);
+	qc_file = QCC_LoadFile (token);
+	PR_CompileFile (qc_file, token);
 
 	return true;
+}
+
+
+/*
+==============
+PR_BeginCompilation
+
+called before compiling a batch of files, clears the pr struct
+==============
+*/
+void PR_BeginCompilation ( void )
+{
+	pr.def_tail = &pr.def_head;
+
+	PR_ResetErrorScope();
+	pr_scope = NULL;
+
+	type_void = PR_NewType("void", ev_void);
+	type_string = PR_NewType("string", ev_string);
+	type_float = PR_NewType("float", ev_float);
+	type_vector = PR_NewType("vector", ev_vector);
+	type_entity = PR_NewType("entity", ev_entity);
+	type_field = PR_NewType("field", ev_field);	
+	type_function = PR_NewType("function", ev_function);
+	type_pointer = PR_NewType("pointer", ev_pointer);	
+	type_integer = PR_NewType("__integer", ev_integer);
+	type_variant = PR_NewType("__variant", ev_variant);
+	type_floatfield = PR_NewType("fieldfloat", ev_field);
+	type_pointer->aux_type = PR_NewType("pointeraux", ev_float);
+	if (PR_KeywordEnabled(KEYWORD_INT)) PR_NewType("int", ev_integer);
+
+	type_floatfield->aux_type = type_float;
+	type_function->aux_type = type_void;
+
+	pr.types = NULL;
+	pr_error_count = 0;
+	pr_total_error_count = 0;
+	pr_warning_count = 0;
+	recursivefunctiontype = 0;
+	numpr_globals = RESERVED_OFS; // default
+
+	freeofs = NULL;
+	sprintf (sourcefilename, "%sprogs.src", sourcedir );
+	progs_src = QCC_LoadFile( sourcefilename ); // loading progs.src
+
+	while(*progs_src && *progs_src < ' ') progs_src++;
+
+	pr_file_p = SC_ParseToken(&progs_src);
+	strcpy (progsoutname, token);
+	FS_StripExtension( token );
+
+	if (FS_CheckParm("-asm")) asmfile = FS_Open(va("%s.asm", token), "wb" );
+
+	// msvc6.0 style message
+	PR_Message("------------Configuration: %s - Vm16 %s------------\n", token, opt_writelinenums ? "Debug" : "Release" ); 
+	
+	currentchunk = NULL;
+	saved_progs_src = progs_src; // save it for prototyping
+
+	if (autoprototype) PR_Message ("Prototyping...\n");
+	else PR_Message("Compiling...\n");
 }

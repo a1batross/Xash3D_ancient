@@ -348,4 +348,5 @@ _inline int BoxOnPlaneSide (vec3_t emins, vec3_t emaxs, cplane_t *p)
 static vec3_t vec3_origin = { 0, 0, 0 };
 static vec3_t vec3_angles = { 0, 0, 0 };
 
+
 #endif//BASEMATH_H

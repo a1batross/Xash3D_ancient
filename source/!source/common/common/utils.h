@@ -32,7 +32,49 @@ typedef struct cpuinfo_s
 } cpuinfo_t;
 cpuinfo_t GetCPUInformation( void );
 
-//internal filesystem functions
+extern unsigned __int64 __g_ProfilerStart;
+extern unsigned __int64 __g_ProfilerEnd;
+extern unsigned __int64 __g_ProfilerEnd2;
+extern unsigned __int64 __g_ProfilerSpare;
+extern unsigned __int64 __g_ProfilerTotalTicks;
+extern double __g_ProfilerTotalMsec;
+
+#define Profile_Start()\
+{\
+if (GI.rdtsc) \
+{ \
+__asm pushad \
+__asm rdtsc \
+__asm mov DWORD PTR[__g_ProfilerStart+4], edx \
+__asm mov DWORD PTR[__g_ProfilerStart], eax \
+__asm popad \
+} \
+}
+
+#define Profile_End()\
+{\
+if (GI.rdtsc) \
+{ \
+__asm pushad \
+__asm rdtsc \
+__asm mov DWORD PTR[__g_ProfilerEnd+4], edx \
+__asm mov DWORD PTR[__g_ProfilerEnd], eax \
+__asm popad \
+__asm pushad \
+__asm rdtsc \
+__asm mov DWORD PTR[__g_ProfilerEnd2+4], edx \
+__asm mov DWORD PTR[__g_ProfilerEnd2], eax \
+__asm popad \
+} \
+}
+
+void Profile_RatioResults( void );
+void _Profile_Results( const char *function );
+void Profile_Store( void );
+void Profile_Time( void );	// total profile time
+#define Profile_Results( name )  _Profile_Results( #name )
+
+// internal filesystem functions
 void FS_Path (void);
 void FS_InitEditor( void );
 void FS_InitRootDir( char *path );
@@ -45,8 +87,6 @@ void FS_InitCmdLine( int argc, char **argv );
 const char *FS_FileExtension (const char *in);
 void FS_DefaultExtension (char *path, const char *extension );
 bool FS_GetParmFromCmdLine( char *parm, char *out );
-
-
 
 //files managment (like fopen, fread etc)
 file_t *FS_Open (const char* filepath, const char* mode );
@@ -69,7 +109,7 @@ int FS_Getc (file_t* file);
 bool FS_Eof( file_t* file);
 
 // virtual files managment
-vfile_t *VFS_Open(file_t* real_file, const char* mode);
+vfile_t *VFS_Open(const char *filename, const char* mode);
 fs_offset_t VFS_Write( vfile_t *file, const void *buf, size_t size );
 fs_offset_t VFS_Read(vfile_t* file, void* buffer, size_t buffersize);
 int VFS_Seek( vfile_t *file, fs_offset_t offset, int whence );

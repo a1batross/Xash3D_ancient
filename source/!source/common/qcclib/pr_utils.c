@@ -12,19 +12,19 @@ void Hash_InitTable(hashtable_t *table, int numbucks)
 	table->bucket = (bucket_t **)Qalloc(BytesForBuckets(numbucks));
 }
 
-int Hash_Key(char *name, int modulus)
+uint Hash_Key(char *name, int modulus)
 {
-	//fixme: optimize.
-	uint key;
+	//FIXME: optimize.
+	uint	key;
 	for (key = 0; *name; name++)
 		key += ((key<<3) + (key>>28) + *name);
 		
-	return (int)(key%modulus);
+	return (key%modulus);
 }
 
 void *Hash_Get(hashtable_t *table, char *name)
 {
-	int bucknum = Hash_Key(name, table->numbuckets);
+	uint	bucknum = Hash_Key(name, table->numbuckets);
 	bucket_t *buck;
 
 	buck = table->bucket[bucknum];
@@ -41,7 +41,7 @@ void *Hash_Get(hashtable_t *table, char *name)
 
 void *Hash_GetKey(hashtable_t *table, int key)
 {
-	int bucknum = key%table->numbuckets;
+	uint	bucknum = key%table->numbuckets;
 	bucket_t *buck;
 
 	buck = table->bucket[bucknum];
@@ -58,7 +58,7 @@ void *Hash_GetKey(hashtable_t *table, int key)
 
 void *Hash_GetNext(hashtable_t *table, char *name, void *old)
 {
-	int bucknum = Hash_Key(name, table->numbuckets);
+	uint	bucknum = Hash_Key(name, table->numbuckets);
 	bucket_t *buck;
 
 	buck = table->bucket[bucknum];
@@ -86,7 +86,7 @@ void *Hash_GetNext(hashtable_t *table, char *name, void *old)
 
 void *Hash_Add(hashtable_t *table, char *name, void *data, bucket_t *buck)
 {
-	int bucknum = Hash_Key(name, table->numbuckets);
+	uint	bucknum = Hash_Key(name, table->numbuckets);
 
 	buck->data = data;
 	buck->keystring = name;
@@ -98,7 +98,7 @@ void *Hash_Add(hashtable_t *table, char *name, void *data, bucket_t *buck)
 
 void *Hash_AddKey(hashtable_t *table, int key, void *data, bucket_t *buck)
 {
-	int bucknum = key%table->numbuckets;
+	uint	bucknum = key%table->numbuckets;
 
 	buck->data = data;
 	buck->keystring = (char*)key;
@@ -110,7 +110,7 @@ void *Hash_AddKey(hashtable_t *table, int key, void *data, bucket_t *buck)
 
 void Hash_Remove(hashtable_t *table, char *name)
 {
-	int bucknum = Hash_Key(name, table->numbuckets);
+	uint	bucknum = Hash_Key(name, table->numbuckets);
 	bucket_t *buck;	
 
 	buck = table->bucket[bucknum];
@@ -134,7 +134,7 @@ void Hash_Remove(hashtable_t *table, char *name)
 
 void Hash_RemoveData(hashtable_t *table, char *name, void *data)
 {
-	int bucknum = Hash_Key(name, table->numbuckets);
+	uint	bucknum = Hash_Key(name, table->numbuckets);
 	bucket_t *buck;	
 
 	buck = table->bucket[bucknum];
@@ -146,7 +146,6 @@ void Hash_RemoveData(hashtable_t *table, char *name, void *data)
 			return;
 		}
 	}
-
 	while(buck->next)
 	{
 		if (buck->next->data == data)
@@ -164,7 +163,7 @@ void Hash_RemoveData(hashtable_t *table, char *name, void *data)
 
 void Hash_RemoveKey(hashtable_t *table, int key)
 {
-	int bucknum = key%table->numbuckets;
+	uint	bucknum = key%table->numbuckets;
 	bucket_t *buck;	
 
 	buck = table->bucket[bucknum];
@@ -173,8 +172,6 @@ void Hash_RemoveKey(hashtable_t *table, int key)
 		table->bucket[bucknum] = buck->next;
 		return;
 	}
-
-
 	while(buck->next)
 	{
 		if ((int)buck->next->keystring == key)
@@ -184,7 +181,6 @@ void Hash_RemoveKey(hashtable_t *table, int key)
 		}
 		buck = buck->next;
 	}
-	return;
 }
 
 /*
@@ -192,44 +188,84 @@ void Hash_RemoveKey(hashtable_t *table, int key)
 PR_decode
 ================
 */
-int PR_decode(int complen, int len, int method, char *info, char **data)
+int PR_decode(int complen, int len, int method, char *src, char **dst)
 {
 	int	i;
-	char	*buffer = *data;
-	
-	if (method == 0)	 // copy
+	char	*buffer = *dst;
+	z_stream	strm = {src, complen, 0, buffer, len, 0, NULL, NULL, NULL, NULL, NULL, 0, 0, 0 };
+
+	switch(method)
 	{
-		if (complen != len) Sys_Error("lengths do not match");
-		Mem_Copy(buffer, info, len);		
-	}
-	else if (method == 1)// encryption
-	{
+	case CMPW_COPY:
 		if (complen != len) 
 		{
-			MsgDev(D_WARN, "lengths do not match");
+			MsgDev(D_WARN, "PR_decode: complen[%d] != len[%d]\n", complen, len);
+			return false;
+		}		
+		Mem_Copy(buffer, src, len);
+		break;
+	case CMPW_ENCRYPT:
+		if (complen != len) 
+		{
+			MsgDev(D_WARN, "PR_decode: complen[%d] != len[%d]\n", complen, len);
 			return false;
 		}
-		for (i = 0; i < len; i++) buffer[i] = info[i] ^ 0xA5;		
-	}
-	else if (method == 2)// compression (ZLIB)
-	{
-		z_stream strm = {info, complen, 0, buffer, len, 0, NULL, NULL, NULL, NULL, NULL, 0, 0, 0 };
+		for (i = 0; i < len; i++) buffer[i] = src[i] ^ 0xA5;
+		break;
+	case CMPW_DEFLATE:
 		inflateInit( &strm );
-
-		// decompress it in one go.
-		if (Z_STREAM_END != inflate( &strm, Z_FINISH ))
+		if (Z_STREAM_END != inflate( &strm, Z_FINISH )) // decompress it in one go.
 		{
-			Sys_Error("Failed block decompression: %s\n", strm.msg );
+			if(!strlen(strm.msg))MsgDev(D_WARN, "PR_decode: failed block decompression\n" );
+			else MsgDev(D_WARN, "PR_decode: failed block decompression: %s\n", strm.msg );
 			return false;
 		}
 		inflateEnd( &strm );
-	}
-	else 
-	{
-		MsgDev(D_WARN, "PR_decode: Bad file encryption routine\n");
+		break;
+	default:
+		MsgDev(D_WARN, "PR_decode: invalid method\n");
 		return false;
-          }
+	}	
 	return true;
+}
+
+/*
+================
+PR_encode
+================
+*/
+int PR_encode(int len, int method, char *src, vfile_t *handle)
+{
+	int	i = 0;
+	char	out[8192]; // chunk size
+	z_stream	strm = {src, len, 0, out, sizeof(out), 0, NULL, NULL, NULL, NULL, NULL, 0, 0, 0 };
+
+	switch(method)
+	{
+	case CMPW_COPY:
+		VFS_Write(handle, src, len);
+		return len;
+	case CMPW_ENCRYPT:
+		for (i = 0; i < len; i++) src[i] = src[i] ^ 0xA5;
+		VFS_Write(handle, src, len);
+		return len;
+	case CMPW_DEFLATE:
+		deflateInit( &strm, 9 ); // Z_BEST_COMPRESSION
+		while(deflate( &strm, Z_FINISH) == Z_OK)
+		{
+			VFS_Write( handle, out, sizeof(out) - strm.avail_out);
+			i += sizeof(out) - strm.avail_out;
+			strm.next_out = out;
+			strm.avail_out = sizeof(out);
+		}
+		VFS_Write( handle, out, sizeof(out) - strm.avail_out );
+		i += sizeof(out) - strm.avail_out;
+		deflateEnd( &strm );
+		return i;
+	default:
+		MsgDev(D_WARN, "PR_encode: invalid method\n");
+		return false;
+	}
 }
 
 // CopyString returns an offset from the string heap
@@ -282,10 +318,9 @@ int PR_WriteSourceFiles(vfile_t *h, dprograms_t *progs, bool sourceaswell)
 			continue;
 		strcpy(idf[num].filename, f->filename);
 		idf[num].size = f->size;
-		idf[num].compmethod = 2;
+		idf[num].compmethod = CMPW_DEFLATE;
 		idf[num].ofs = VFS_Tell(h);
 		idf[num].compsize = PR_encode(f->size, idf[num].compmethod, f->file, h);
-		Msg("Add %s, size %d, compressed %d\n", idf[num].filename, idf[num].size, idf[num].compsize );
 		num++;
 	}
 	ofs = VFS_Tell(h);	
@@ -364,7 +399,7 @@ word PR_WriteProgdefs (char *filename)
 
 	CRC_Init (&crc);
 	memset(file, 0, PROGDEFS_MAX_SIZE);
-	strncpy(header_name, destfile, MAX_QPATH);
+	strncpy(header_name, progsoutname, MAX_QPATH);
 	FS_StripExtension( header_name );
 	strupr( header_name ); // as part of define name
 	
@@ -512,19 +547,413 @@ word PR_WriteProgdefs (char *filename)
 	switch (crc)
 	{
 	case 54730:
-		PR_Message("Recognized progs as QuakeWorld\n");
+		PR_Message("QuakeWorld unmodified qwprogs.dat\n");
+		if(!strlen(progsoutname)) strcpy(progsoutname, "qwprogs.dat");
+		break;
+	case 32401:
+		PR_Message("Tenebrae unmodified progs.dat\n");
+		if(!strlen(progsoutname)) strcpy(progsoutname, "progs.dat");
 		break;
 	case 5927:
-		PR_Message("Recognized progs as regular Quake\n");
+		PR_Message("Quake1 unmodified progs.dat\n");
+		if(!strlen(progsoutname)) strcpy(progsoutname, "progs.dat");
 		break;
-	case 38488:
-		PR_Message("Recognized progs as original Hexen2\n");
-		break;
-	case 26905:
-		PR_Message("Recognized progs as Hexen2 Mission Pack\n");
+	default:
+		if(!strlen(progsoutname)) strcpy(progsoutname, "progs.dat");
 		break;
 	}
 	return crc;
+}
+
+void PR_WriteLNOfile(char *destname)
+{
+	dlno_t	lno;
+	vfile_t	*h;
+	char	filename[MAX_QPATH];
+
+	if(!opt_writelinenums) return;
+
+	strncpy( filename, destname, MAX_QPATH );
+	FS_StripExtension( filename );
+	FS_DefaultExtension( filename, ".lno" );
+
+	lno.header = LINENUMSHEADER;
+	lno.version = LNNUMS_VERSION; 
+	lno.numglobaldefs = numglobaldefs;
+	lno.numglobals = numpr_globals;
+	lno.numfielddefs = numfielddefs;
+	lno.numstatements = numstatements;
+
+	h = VFS_Open ( filename, "w" );
+	VFS_Write (h, &lno, sizeof(dlno_t)); // header
+	VFS_Write (h, statement_linenums, numstatements * sizeof(int));
+
+	MsgDev(D_INFO, "Writing %s, total size %d bytes\n", filename, ((VFS_Tell(h)+3) & ~3));
+	VFS_Close (h);
+}
+
+void PR_WriteDAT( void )
+{
+	ddef_t		*dd;
+	vfile_t		*h;
+	dprograms_t	progs; // header
+	char		element[MAX_NAME];
+	int		i, progsize, num_ref;
+	int		crc, outputsize = 16;
+	def_t		*def, *comp_x, *comp_y, *comp_z;
+
+	crc = PR_WriteProgdefs ("progdefs.h"); // write progdefs.h
+
+	progs.blockscompressed = 0;
+
+	if (numstatements > MAX_STATEMENTS)
+		Sys_Error("Too many statements - %i\nAdd \"MAX_STATEMENTS\" \"%i\" to qcc.cfg", numstatements, (numstatements+32768)&~32767);
+
+	if (strofs > MAX_STRINGS)
+		Sys_Error("Too many strings - %i\nAdd \"MAX_STRINGS\" \"%i\" to qcc.cfg", strofs, (strofs+32768)&~32767);
+
+	PR_UnmarshalLocals();
+
+	switch (target_version)
+	{
+	case QPROGS_VERSION:
+		if (bodylessfuncs) PR_Message("warning: There are some functions without bodies.\n");
+		if( numpr_globals <= 65530 )
+		{
+			for (i = 0; pr_optimisations[i].enabled; i++)
+			{
+				if(*pr_optimisations[i].enabled && pr_optimisations[i].flags & FLAG_V7_ONLY)
+					*pr_optimisations[i].enabled = false; // uncompatiable
+			}
+			// not much of a different format. Rewrite output to get it working on original executors?
+			if (numpr_globals >= 32768) 
+				PR_Warning(WARN_IMAGETOOBIG, NULL, 0, "globals limit exceeds 32768, image may not run\n");
+			break;
+		}
+		else
+		{
+			target_version = FPROGS_VERSION;
+			outputsize = 32;
+			PR_Message("force target to version %d[%dbit]\n", target_version, outputsize );
+		}
+		// intentional falltrough
+	case FPROGS_VERSION:
+		if (numpr_globals > 65530) outputsize = 32;
+		if(opt_compstrings) progs.blockscompressed |= COMP_STRINGS;
+		if(opt_compfunctions)
+		{
+			progs.blockscompressed |= COMP_FUNCTIONS;
+			progs.blockscompressed |= COMP_STATEMENTS;
+		}
+		if(opt_compress_other)
+		{
+			progs.blockscompressed |= COMP_DEFS;
+			progs.blockscompressed |= COMP_FIELDS;
+			progs.blockscompressed |= COMP_GLOBALS;
+		}
+
+		// compression of blocks?
+		if (opt_writelinenums) progs.blockscompressed |= COMP_LINENUMS;	
+		if (opt_writetypes) progs.blockscompressed |= COMP_TYPES;
+		break;
+	case VPROGS_VERSION:
+		outputsize = 32; //as default		
+		break;
+	}
+
+	// part of how compilation works. This def is always present, and never used.
+	def = PR_GetDef(NULL, "end_sys_globals", NULL, false, 0);
+	if(def) def->references++;
+
+	def = PR_GetDef(NULL, "end_sys_fields", NULL, false, 0);
+	if(def) def->references++;
+
+	for (def = pr.def_head.next; def; def = def->next)
+	{
+		if (def->type->type == ev_vector || (def->type->type == ev_field && def->type->aux_type->type == ev_vector))
+		{	
+			// do the references, so we don't get loadsa not referenced VEC_HULL_MINS_x
+			sprintf(element, "%s_x", def->name);
+			comp_x = PR_GetDef(NULL, element, def->scope, false, 0);
+			sprintf(element, "%s_y", def->name);
+			comp_y = PR_GetDef(NULL, element, def->scope, false, 0);
+			sprintf(element, "%s_z", def->name);
+			comp_z = PR_GetDef(NULL, element, def->scope, false, 0);
+
+			num_ref = def->references;
+			if (comp_x && comp_y && comp_z)
+			{
+				num_ref += comp_x->references;
+				num_ref += comp_y->references;
+				num_ref += comp_z->references;
+
+				if (!def->references)
+				{
+					if (!comp_x->references || !comp_y->references || !comp_z->references)				
+						num_ref = 0; // one of these vars is useless...
+				}
+				def->references = num_ref;
+
+				if (!num_ref) num_ref = 1;
+				if (comp_x) comp_x->references = num_ref;
+				if (comp_y) comp_y->references = num_ref;
+				if (comp_z) comp_z->references = num_ref;
+			}
+		}
+		if (def->references <= 0)
+		{
+			if(def->local) PR_Warning(WARN_NOTREFERENCED, strings + def->s_file, def->s_line, "'%s' : unreferenced local variable", def->name);
+			if (opt_unreferenced && def->type->type != ev_field) continue;
+		}
+		if (def->type->type == ev_function)
+		{
+			if (opt_function_names && functions[G_FUNCTION(def->ofs)].first_statement<0)
+			{
+				def->name = "";
+			}
+			if (!def->timescalled)
+			{
+				if (def->references <= 1)
+					PR_Warning(WARN_DEADCODE, strings + def->s_file, def->s_line, "%s is never directly called or referenced (spawn function or dead code)", def->name);
+			}
+			if (opt_stripfunctions && def->timescalled >= def->references-1)	
+			{
+				// make sure it's not copied into a different var.
+				// if it ever does self.think then it could be needed for saves.
+				// if it's only ever called explicitly, the engine doesn't need to know.
+				continue;
+			}
+		}
+		else if (def->type->type == ev_field)
+		{
+			dd = &fields[numfielddefs];
+			dd->type = def->type->aux_type->type;
+			dd->s_name = PR_CopyString (def->name, opt_noduplicatestrings );
+			dd->ofs = G_INT(def->ofs);
+			numfielddefs++;
+		}
+		else if ((def->scope||def->constant) && (def->type->type != ev_string || opt_constant_names_strings))
+		{
+			if (opt_constant_names) continue;
+		}
+
+		dd = &qcc_globals[numglobaldefs];
+		numglobaldefs++;
+
+		if (opt_writetypes) dd->type = def->type-qcc_typeinfo;
+		else dd->type = def->type->type;
+
+		if ( def->saved && ((!def->initialized || def->type->type == ev_function) && def->type->type != ev_field && def->scope == NULL))
+			dd->type |= DEF_SAVEGLOBAL;
+
+		if (def->shared) dd->type |= DEF_SHARED;
+
+		if (opt_locals && (def->scope || !strcmp(def->name, "IMMEDIATE")))
+		{
+			dd->s_name = 0;
+		}
+		else dd->s_name = PR_CopyString (def->name, opt_noduplicatestrings );
+		dd->ofs = def->ofs;
+	}
+
+	if (numglobaldefs > MAX_GLOBALS)
+		Sys_Error("Too many globals - %i\nAdd \"MAX_GLOBALS\" \"%i\" to qcc.cfg", numglobaldefs, (numglobaldefs+32768)&~32767);
+
+	strofs = (strofs + 3) & ~3;
+
+	PR_Message("Linking...\n");
+	MsgDev (D_INFO, "%6i strofs (of %i)\n", strofs, MAX_STRINGS);
+	MsgDev (D_INFO, "%6i numstatements (of %i)\n", numstatements, MAX_STATEMENTS);
+	MsgDev (D_INFO, "%6i numfunctions (of %i)\n", numfunctions, MAX_FUNCTIONS);
+	MsgDev (D_INFO, "%6i numglobaldefs (of %i)\n", numglobaldefs, MAX_GLOBALS);
+	MsgDev (D_INFO, "%6i numfielddefs (%i unique) (of %i)\n", numfielddefs, pr.size_fields, MAX_FIELDS);
+	MsgDev (D_INFO, "%6i numpr_globals (of %i)\n", numpr_globals, MAX_REGS);	
+	
+	h = VFS_Open ( progsoutname, "w" );
+	VFS_Write (h, &progs, sizeof(progs));
+	VFS_Write (h, "\r\n\r\n", 4);
+	VFS_Write (h, v_copyright, strlen(v_copyright) + 1);
+	VFS_Write (h, "\r\n\r\n", 4);
+
+	progs.ofs_strings = VFS_Tell(h);
+	progs.numstrings = strofs;
+
+	PR_WriteBlock(h, progs.ofs_strings, strings, strofs, progs.blockscompressed & COMP_STRINGS);
+
+	progs.ofs_statements = VFS_Tell(h);
+	progs.numstatements = numstatements;
+
+	switch(outputsize)
+	{
+	case 32:
+		for (i = 0; i < numstatements; i++)
+		{
+			statements32[i].op = LittleLong(statements32[i].op);
+			statements32[i].a = LittleLong(statements32[i].a);
+			statements32[i].b = LittleLong(statements32[i].b);
+			statements32[i].c = LittleLong(statements32[i].c);
+		}
+
+		PR_WriteBlock(h, progs.ofs_statements, statements32, progs.numstatements*sizeof(dstatement32_t), progs.blockscompressed & COMP_STATEMENTS);
+		break;
+	case 16:
+	default:
+		for (i = 0; i < numstatements; i++) // resize as we go - scaling down
+		{
+			statements16[i].op = LittleShort((word)statements32[i].op);
+			if (statements32[i].a < 0) statements16[i].a = LittleShort((short)statements32[i].a);
+			else statements16[i].a = (word)LittleShort((word)statements32[i].a);
+			if (statements32[i].b < 0) statements16[i].b = LittleShort((short)statements32[i].b);
+			else statements16[i].b = (word)LittleShort((word)statements32[i].b);
+			if (statements32[i].c < 0) statements16[i].c = LittleShort((short)statements32[i].c);
+			else statements16[i].c = (word)LittleShort((word)statements32[i].c);
+		}
+		PR_WriteBlock(h, progs.ofs_statements, statements16, progs.numstatements*sizeof(dstatement16_t), progs.blockscompressed & COMP_STATEMENTS);
+		break;
+	}
+
+	progs.ofs_functions = VFS_Tell(h);
+	progs.numfunctions = numfunctions;
+
+	for (i = 0; i < numfunctions; i++)
+	{
+		functions[i].first_statement = LittleLong (functions[i].first_statement);
+		functions[i].parm_start = LittleLong (functions[i].parm_start);
+		functions[i].s_name = LittleLong (functions[i].s_name);
+		functions[i].s_file = LittleLong (functions[i].s_file);
+		functions[i].numparms = LittleLong ((functions[i].numparms > MAX_PARMS) ? MAX_PARMS : functions[i].numparms);
+		functions[i].locals = LittleLong (functions[i].locals);
+	}
+
+	PR_WriteBlock(h, progs.ofs_functions, functions, progs.numfunctions*sizeof(dfunction_t), progs.blockscompressed & COMP_FUNCTIONS);
+
+	switch(outputsize)
+	{
+	case 32:
+		progs.ofs_globaldefs = VFS_Tell(h);
+		progs.numglobaldefs = numglobaldefs;
+		for (i = 0; i < numglobaldefs; i++)
+		{
+			qcc_globals32[i].type = LittleLong(qcc_globals32[i].type);
+			qcc_globals32[i].ofs = LittleLong(qcc_globals32[i].ofs);
+			qcc_globals32[i].s_name = LittleLong(qcc_globals32[i].s_name);
+		}
+
+		PR_WriteBlock(h, progs.ofs_globaldefs, qcc_globals32, progs.numglobaldefs*sizeof(ddef32_t), progs.blockscompressed & COMP_DEFS);
+
+		progs.ofs_fielddefs = VFS_Tell(h);
+		progs.numfielddefs = numfielddefs;
+
+		for (i = 0; i < numfielddefs; i++)
+		{
+			fields32[i].type = LittleLong(fields32[i].type);
+			fields32[i].ofs = LittleLong(fields32[i].ofs);
+			fields32[i].s_name = LittleLong(fields32[i].s_name);
+		}
+
+		PR_WriteBlock(h, progs.ofs_fielddefs, fields32, progs.numfielddefs*sizeof(ddef32_t), progs.blockscompressed & COMP_FIELDS);
+		break;
+	case 16:
+	default:
+		progs.ofs_globaldefs = VFS_Tell(h);
+		progs.numglobaldefs = numglobaldefs;
+		for (i = 0; i < numglobaldefs; i++)
+		{
+			qcc_globals16[i].type = (word)LittleShort ((word)qcc_globals32[i].type);
+			qcc_globals16[i].ofs = (word)LittleShort ((word)qcc_globals32[i].ofs);
+			qcc_globals16[i].s_name = LittleLong(qcc_globals32[i].s_name);
+		}
+
+		PR_WriteBlock(h, progs.ofs_globaldefs, qcc_globals16, progs.numglobaldefs*sizeof(ddef16_t), progs.blockscompressed & COMP_DEFS);
+
+		progs.ofs_fielddefs = VFS_Tell(h);
+		progs.numfielddefs = numfielddefs;
+
+		for (i = 0; i < numfielddefs; i++)
+		{
+			fields16[i].type = (word)LittleShort ((word)fields32[i].type);
+			fields16[i].ofs = (word)LittleShort ((word)fields32[i].ofs);
+			fields16[i].s_name = LittleLong (fields32[i].s_name);
+		}
+
+		PR_WriteBlock(h, progs.ofs_fielddefs, fields16, progs.numfielddefs*sizeof(ddef16_t), progs.blockscompressed & COMP_FIELDS);
+		break;
+	}
+
+	progs.ofs_globals = VFS_Tell(h);
+	progs.numglobals = numpr_globals;
+
+	for (i = 0; (uint) i < numpr_globals; i++) ((int *)pr_globals)[i] = LittleLong (((int *)pr_globals)[i]);
+
+	PR_WriteBlock(h, progs.ofs_globals, pr_globals, numpr_globals*4, progs.blockscompressed & COMP_GLOBALS);
+
+	if(opt_writetypes)
+	{
+		for (i = 0; i < numtypeinfos; i++)
+		{
+			if (qcc_typeinfo[i].aux_type) qcc_typeinfo[i].aux_type = (type_t*)(qcc_typeinfo[i].aux_type - qcc_typeinfo);
+			if (qcc_typeinfo[i].next) qcc_typeinfo[i].next = (type_t*)(qcc_typeinfo[i].next - qcc_typeinfo);
+			qcc_typeinfo[i].name = (char *)PR_CopyString(qcc_typeinfo[i].name, true );
+		}
+	}
+
+	progs.ofsfiles = 0;
+	progs.ofslinenums = 0;
+	progs.header = 0;
+	progs.ofsbodylessfuncs = 0;
+	progs.numbodylessfuncs = 0;
+	progs.ofs_types = 0;
+	progs.numtypes = 0;
+	progs.version = target_version;
+
+	switch(target_version)
+	{
+	case QPROGS_VERSION:
+		PR_WriteLNOfile( progsoutname );
+		break;
+	case FPROGS_VERSION:
+		if (outputsize == 16) progs.header = VPROGSHEADER16;
+		if (outputsize == 32) progs.header = VPROGSHEADER32;
+
+		progs.ofsbodylessfuncs = VFS_Tell(h);
+		progs.numbodylessfuncs = PR_WriteBodylessFuncs(h);		
+
+		if (opt_writelinenums)
+		{
+			progs.ofslinenums = VFS_Tell(h);
+			PR_WriteBlock(h, progs.ofslinenums, statement_linenums, numstatements*sizeof(int), progs.blockscompressed & COMP_LINENUMS);
+		}
+		else progs.ofslinenums = 0;
+
+		if (opt_writetypes)
+		{
+			progs.ofs_types = VFS_Tell(h);
+			progs.numtypes = numtypeinfos;
+			PR_WriteBlock(h, progs.ofs_types, qcc_typeinfo, progs.numtypes*sizeof(type_t), progs.blockscompressed & COMP_TYPES);
+		}
+		else
+		{
+			progs.ofs_types = 0;
+			progs.numtypes = 0;
+		}
+		progs.ofsfiles = PR_WriteSourceFiles(h, &progs, opt_writesources);
+		break;
+	case VPROGS_VERSION:
+		break;
+	}
+
+	progsize = ((VFS_Tell(h)+3) & ~3);
+	progs.entityfields = pr.size_fields;
+	progs.crc = crc;
+
+	// byte swap the header and write it out
+	for (i = 0; i < sizeof(progs)/4; i++)((int *)&progs)[i] = LittleLong (((int *)&progs)[i]);
+	VFS_Seek (h, 0, SEEK_SET);
+	VFS_Write (h, &progs, sizeof(progs));
+	if (asmfile) FS_Close(asmfile);
+
+	MsgDev(D_INFO, "Writing %s, total size %i bytes\n", progsoutname, progsize );
+	VFS_Close (h); // write real file into disk
 }
 
 /*
@@ -568,72 +997,60 @@ void PR_UnmarshalLocals( void )
 	if (numpr_globals > MAX_REGS)
 		PR_ParseError(ERR_INTERNAL, "Too many globals are in use to unmarshal all locals");
 
-	if (maxo-ofs) Msg("Total of %i marshalled globals\n", maxo-ofs);
+	if (maxo-ofs) PR_Message("Total of %i marshalled globals\n", maxo-ofs);
 }
 
-/*
-================
-PR_encode
-================
-*/
-int PR_encode(int len, int method, char *in, vfile_t *handle)
+byte *PR_LoadFile(char *filename, int type )
 {
-	int i = 0;
-	if (method == 0)	 // copy
-	{		
-		VFS_Write(handle, in, len);
-		return len;
-	}
-	else if (method == 1)// encryption
-	{
-		for (i = 0; i < len; i++) in[i] = in[i] ^ 0xA5;
-		VFS_Write(handle, in, len);
-		return len;
-	}
-	else if (method == 2)// compression (ZLIB)
-	{
-		char out[8192];
-		z_stream strm = {in, len, 0, out, sizeof(out), 0, NULL, NULL, NULL, NULL, NULL, 0, 0, 0 };
+	int	length;
+	cachedsourcefile_t	*newfile;
+	byte	*file = FS_LoadFile( filename, &length );
+	
+	if (!length) PR_ParseError(ERR_INTERNAL, "Couldn't open file %s", filename);
 
-		deflateInit( &strm, 9 ); // Z_BEST_COMPRESSION
-
-		while(deflate( &strm, Z_FINISH) == Z_OK)
-		{
-			// compress in chunks of 8192. Saves having to allocate a huge-mega-big buffer
-			VFS_Write( handle, out, sizeof(out) - strm.avail_out);
-			i += sizeof(out) - strm.avail_out;
-			strm.next_out = out;
-			strm.avail_out = sizeof(out);
-		}
-		VFS_Write( handle, out, sizeof(out) - strm.avail_out );
-		i += sizeof(out) - strm.avail_out;
-		deflateEnd( &strm );
-		return i;
-	}
-	else
-	{
-		Sys_Error("PR_encode: Bad encryption method\n");
-		return 0;
-	}
-}
-
-byte *PR_LoadFile(char *filename, fs_offset_t *filesizeptr, int type )
-{
-	char *mem;
-	int len = FS_FileSize(filename);
-	if (!len) PR_ParseError(ERR_INTERNAL, "Couldn't open file %s", filename);
-
-	mem = Qalloc(sizeof(cachedsourcefile_t) + len );	
-	((cachedsourcefile_t*)mem)->next = sourcefile;
-	sourcefile = (cachedsourcefile_t*)mem;
-	sourcefile->size = len;	
-	mem += sizeof(cachedsourcefile_t);	
+	newfile = (cachedsourcefile_t*)Qalloc( sizeof(cachedsourcefile_t) );
+	newfile->next = sourcefile;
+	sourcefile = newfile; // make chain
+          
 	strcpy(sourcefile->filename, filename);
-	sourcefile->file = mem;
+	sourcefile->file = file;
 	sourcefile->type = type;
+	sourcefile->size = length;
 
-	mem = FS_LoadFile( filename, filesizeptr );
-	return mem;
+	return sourcefile->file;
+}
+
+bool PR_Include(char *filename)
+{
+	char		*newfile;
+	char		fname[512];
+	char		*opr_file_p;
+	string_t		os_file, os_file2;
+	int		opr_source_line;
+	char		*ocompilingfile;
+	includechunk_t	*oldcurrentchunk;
+
+	ocompilingfile = compilingfile;
+	os_file = s_file;
+	os_file2 = s_file2;
+	opr_source_line = pr_source_line;
+	opr_file_p = pr_file_p;
+	oldcurrentchunk = currentchunk;
+
+	strcpy(fname, filename);
+	newfile = QCC_LoadFile(fname);
+	currentchunk = NULL;
+	pr_file_p = newfile;
+	PR_CompileFile(newfile, fname);
+	currentchunk = oldcurrentchunk;
+
+	compilingfile = ocompilingfile;
+	s_file = os_file;
+	s_file2 = os_file2;
+	pr_source_line = opr_source_line;
+	pr_file_p = opr_file_p;
+
+	return true;
 }
 
 void PR_WriteBlock(vfile_t *handle, fs_offset_t pos, const void *data, size_t blocksize, bool compress)
@@ -643,7 +1060,7 @@ void PR_WriteBlock(vfile_t *handle, fs_offset_t pos, const void *data, size_t bl
 	if (compress)
 	{		
 		VFS_Write (handle, &len, sizeof(int));	// save for later
-		len = PR_encode(blocksize, 2, (char *)data, handle);
+		len = PR_encode(blocksize, CMPW_DEFLATE, (char *)data, handle);
 		i = VFS_Tell(handle);		// member start of block
 		VFS_Seek(handle, pos, SEEK_SET);	// seek back
 		len = LittleLong(len);		// block size after deflate

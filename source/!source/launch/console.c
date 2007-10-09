@@ -593,7 +593,8 @@ void Sys_ErrorA(char *error, ...)
 	Sys_ShowConsole( true );
 	Sys_Print( text ); //print error message
 
-	fgetc( stdin ); //wait for quit
+	Sys_Print("press any key to quit\n");
+	getchar();  //wait for quit
 	Sys_Exit();
 }
 

@@ -36,7 +36,7 @@ spritepackage_t frames[MAX_FRAMES];
 WriteFrame
 ============
 */
-void WriteFrame (file_t *f, int framenum)
+void WriteFrame (vfile_t *f, int framenum)
 {
 	dspriteframe_t	*pframe;
 	dspriteframe_t	frametemp;
@@ -47,8 +47,8 @@ void WriteFrame (file_t *f, int framenum)
 	frametemp.width = LittleLong (pframe->width);
 	frametemp.height = LittleLong (pframe->height);
 
-	FS_Write (f, &frametemp, sizeof(frametemp));
-	FS_Write (f, (byte *)(pframe + 1), pframe->height * pframe->width);
+	VFS_Write (f, &frametemp, sizeof(frametemp));
+	VFS_Write (f, (byte *)(pframe + 1), pframe->height * pframe->width);
 }
 
 
@@ -57,7 +57,7 @@ void WriteFrame (file_t *f, int framenum)
 WriteSprite
 ============
 */
-void WriteSprite (file_t *f)
+void WriteSprite (vfile_t *f)
 {
 	int i, curframe;
 	short cnt = 256;
@@ -88,18 +88,18 @@ void WriteSprite (file_t *f)
 		break;
 	}
           
-	FS_Write( f, &spritetemp, sizeof(spritetemp));
+	VFS_Write( f, &spritetemp, sizeof(spritetemp));
 
 	// Write out palette in 16bit mode
-	FS_Write( f, (void *)&cnt, sizeof(cnt));
-	FS_Write( f, lbmpalette, cnt * 3 );
+	VFS_Write( f, (void *)&cnt, sizeof(cnt));
+	VFS_Write( f, lbmpalette, cnt * 3 );
 
 	// write out the frames
 	curframe = 0;
 
 	for (i = 0; i < sprite.numframes; i++)
 	{
-		FS_Write ( f, &frames[curframe].type, sizeof(frames[curframe].type));
+		VFS_Write ( f, &frames[curframe].type, sizeof(frames[curframe].type));
 		WriteFrame ( f, curframe); // only single frame supported
 		curframe++;
 	}
@@ -113,16 +113,16 @@ WriteSPRFile
 */
 void WriteSPRFile (void)
 {
-	file_t	*f;
+	vfile_t	*f;
 
 	if(sprite.numframes == 0) Sys_Error ("%s have no frames\n", spriteoutname );
 	if((plump - lumpbuffer) > MAX_BUFFER_SIZE)
 		Sys_Error ("Can't write %s, sprite package too big", spriteoutname );
 
-	f = FS_Open(spriteoutname, "wb" );
+	f = VFS_Open(spriteoutname, "wb" );
 	Msg("writing %s\n", spriteoutname);
 	WriteSprite( f );
-	FS_Close( f );
+	VFS_Close( f );
 	
 	Msg("%d frame%s\n", sprite.numframes, sprite.numframes > 1 ? "s" : "" );
 	spriteoutname[0] = 0;// clear for a new sprite
@@ -144,7 +144,7 @@ void Cmd_Type (void)
 	else if (SC_MatchToken( "vp_parallel" )) sprite.type = SPR_VP_PARALLEL;
 	else if (SC_MatchToken( "oriented" )) sprite.type = SPR_ORIENTED;
 	else if (SC_MatchToken( "vp_parallel_oriented")) sprite.type = SPR_VP_PARALLEL_ORIENTED;
-	else sprite.type = SPR_VP_PARALLEL; //default
+	else sprite.type = SPR_VP_PARALLEL; // default
 }
 
 /*
@@ -163,7 +163,7 @@ void Cmd_Texture ( void )
 	else if (SC_MatchToken( "indexalpha")) sprite.texFormat = SPR_INDEXALPHA;
 	else if (SC_MatchToken( "alphatest")) sprite.texFormat = SPR_ALPHTEST;
 	else if (SC_MatchToken( "glow")) sprite.texFormat = SPR_ADDGLOW;
-	else sprite.texFormat = SPR_NORMAL; //default
+	else sprite.texFormat = SPR_NORMAL; // default
 }
 
 /*
@@ -176,7 +176,7 @@ syntax: "$framerate value"
 void Cmd_Framerate( void )
 {
 	sprite.framerate = atof(SC_GetToken (false));
-	sprite.version = SPRITE_VERSION_XASH; //enchaned version
+	sprite.version = SPRITE_VERSION_XASH; // enchaned version
 }
 
 /*
@@ -186,7 +186,7 @@ Cmd_Load
 syntax "$load fire01.bmp"
 ===============
 */
-void Cmd_Load (void)
+void Cmd_Load( void )
 {
 	static byte	origpalette[256*3];
           char *name	= SC_GetToken ( false );
@@ -274,17 +274,17 @@ synatx: "$color r g b <alpha>"
 */
 void Cmd_Color( void )
 {
-	byte r, g, b, a;
-	r = atoi(SC_GetToken (false));
-	g = atoi(SC_GetToken (false));
-	b = atoi(SC_GetToken (false));
+	byte	rgba[4];
+	rgba[3] = atoi(SC_GetToken (false));
+	rgba[2] = atoi(SC_GetToken (false));
+	rgba[1] = atoi(SC_GetToken (false));
 
-	if (SC_TryToken()) a = atoi(SC_Token());
-	else a = 0xFF;//fullbright
+	if (SC_TryToken()) rgba[0] = atoi(SC_Token());
+	else rgba[0] = 0xFF;//fullbright
 	
-	//pack into one integer
-	sprite.rgbacolor = (a<<24) + (b<<16) + (g<<8) + (r<<0);
-	sprite.version = SPRITE_VERSION_XASH; //enchaned version
+	// pack into one integer
+	sprite.rgbacolor = BuffBigLong( rgba );
+	sprite.version = SPRITE_VERSION_XASH; // enchaned version
 }
 
 /*

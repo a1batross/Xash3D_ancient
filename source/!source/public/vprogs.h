@@ -18,9 +18,11 @@ a internal virtual machine like as QuakeC, but it has more extensions
 #define QPROGS_VERSION	6	// Quake1 progs version
 #define FPROGS_VERSION	7	// Fte progs version
 #define VPROGS_VERSION	8	// xash progs version
+#define LNNUMS_VERSION	1	// line numbers version
 
 #define VPROGSHEADER16	(('6'<<24)+('1'<<16)+('D'<<8)+'I') // little-endian "ID16"
 #define VPROGSHEADER32	(('2'<<24)+('3'<<16)+('D'<<8)+'I') // little-endian "ID32"
+#define LINENUMSHEADER	(('F'<<24)+('O'<<16)+('N'<<8)+'L') // little-endian "LNOF"
 
 // global ofssets
 #define OFS_NULL		0
@@ -49,6 +51,10 @@ a internal virtual machine like as QuakeC, but it has more extensions
 #define COMP_LINENUMS	64
 #define COMP_TYPES		128
 #define COMP_SOURCE		256
+
+#define CMPW_COPY		0
+#define CMPW_ENCRYPT	1
+#define CMPW_DEFLATE	2
 
 #define MAX_PARMS		8
 
@@ -422,6 +428,17 @@ typedef struct
 
 	int		header;		// strange "header", erh...
 } dprograms_t;
+
+typedef struct dlno_s
+{
+	int	header;
+	int	version;
+
+	uint	numglobaldefs;
+	uint	numglobals;
+	uint	numfielddefs;
+	uint	numstatements;
+} dlno_t;
 
 typedef struct mfunction_s
 {

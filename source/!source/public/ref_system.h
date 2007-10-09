@@ -403,17 +403,19 @@ typedef struct rgbdata_s
 typedef struct gameinfo_s
 {
 	//filesystem info
-	char basedir[128];
-	char gamedir[128];
-	char title[128];
-          float version;
+	char	basedir[128];
+	char	gamedir[128];
+	char	title[128];
+          float	version;
 	
-	int viewmode;
-	int gamemode;
+	int	viewmode;
+	int	gamemode;
 
-	//system info
-	int cpunum;
-	float cpufreq;
+	// system info
+	int	cpunum;
+	int64	tickcount;
+	float	cpufreq;
+	bool	rdtsc;
 	
 	char key[16];
 
@@ -632,12 +634,12 @@ typedef struct filesystem_api_s
 
 typedef struct vfilesystem_api_s
 {
-	//interface validator
+	// interface validator
 	size_t	api_size;		// must matched with sizeof(vfilesystem_api_t)
 
-	//file low-level operations
+	// file low-level operations
 	vfile_t *(*Create)(byte *buffer, size_t buffsize);		// create virtual stream
-	vfile_t *(*Open)(file_t* file, const char* mode);			// virtual fopen
+	vfile_t *(*Open)(const char *filename, const char* mode);		// virtual fopen
 	int (*Close)(vfile_t* file);					// free buffer or write dump
 	long (*Write)(vfile_t* file, const void* data, size_t datasize);	// write into buffer
 	long (*Read)(vfile_t* file, void* buffer, size_t buffersize);	// read from buffer

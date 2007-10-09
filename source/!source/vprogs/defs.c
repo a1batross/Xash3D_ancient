@@ -252,15 +252,15 @@ float 	TRUE					= 1;
 #define	FL_TRACKTRAIN		256	// this is tracktrain entity
 
 // edict.movetype values
-float	MOVETYPE_NONE			= 0;	// never moves
-float	MOVETYPE_NOCLIP			= 1;
-float	MOVETYPE_PUSH			= 2;	// no clip to world, push and crush
-float	MOVETYPE_WALK			= 3;	// players only
-float	MOVETYPE_STEP			= 4;	// discrete, not real time unless fall
-float	MOVETYPE_FLY			= 5;
-float	MOVETYPE_TOSS			= 6;	// gravity
-float	MOVETYPE_BOUNCE			= 7;
-float	MOVETYPE_FOLLOW			= 8;	// attached models
+#define	MOVETYPE_NONE		0	// never moves
+#define	MOVETYPE_NOCLIP		1
+#define	MOVETYPE_PUSH		2	// no clip to world, push and crush
+#define	MOVETYPE_WALK		3	// players only
+#define	MOVETYPE_STEP		4	// discrete, not real time unless fall
+#define	MOVETYPE_FLY		5
+#define	MOVETYPE_TOSS		6	// gravity
+#define	MOVETYPE_BOUNCE		7
+#define	MOVETYPE_FOLLOW		8	// attached models
 
 // edict.solid values
 float	SOLID_NOT				= 0;	// no interaction with other objects

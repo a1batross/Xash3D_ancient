@@ -1,1 +1,1 @@
-qcclib -log /Tdebug
+qcclib -log /O3 /V7

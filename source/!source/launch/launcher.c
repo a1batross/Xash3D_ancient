@@ -309,7 +309,6 @@ elapced_time:
 	end = Com->DoubleTime();
 	Msg ("%5.3f seconds elapsed\n", end - start);
 	if(numCompiledMods > 1) Msg("total %d %s compiled\n", numCompiledMods, typemod );
-	Sys_WaitForQuit();
 }
 
 void CommonShutdown ( void )
@@ -468,7 +467,8 @@ DLLEXPORT int CreateAPI( char *funcname )
 	API_Reset();// fill stdlib api first
 
 	if(CheckParm ("-debug")) debug_mode = true;
-	if(CheckParm ("-log")) log_active = true;
+//if(CheckParm ("-log")) 
+	log_active = true;
 
 	// ugly hack to get pipeline state, but it works
 	if(abs((short)hStdout) < 100) hooked_out = false;
