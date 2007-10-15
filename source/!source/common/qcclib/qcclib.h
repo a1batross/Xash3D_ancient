@@ -577,6 +577,7 @@ void Hash_RemoveData(hashtable_t *table, char *name, void *data);
 void *Hash_Add(hashtable_t *table, char *name, void *data, bucket_t *buck);
 void *Hash_AddKey(hashtable_t *table, int key, void *data, bucket_t *buck);
 void PR_WriteBlock(vfile_t *handle, fs_offset_t pos, const void *data, size_t blocksize, bool compress);
+bool PR_LoadingProject( const char *filename );
 void PR_SetDefaultProperties( void );
 word PR_WriteProgdefs (char *filename);
 void PR_WriteLNOfile(char *filename);
@@ -655,7 +656,7 @@ def_t *PR_Statement ( opcode_t *op, def_t *var_a, def_t *var_b, dstatement_t **o
 void PR_RemapOffsets(uint firststatement, uint laststatement, uint min, uint max, uint newmin);
 def_t *PR_DummyDef(type_t *type, char *name, def_t *scope, int arraysize, uint ofs, int referable);
 void PR_BeginCompilation ( void );
-bool PR_ContinueCompilation ( void );
+bool PR_ContinueCompile ( void );
 void PR_FinishCompilation ( void );
 
 //

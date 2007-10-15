@@ -244,7 +244,7 @@ bool PrepareDATProgs ( const char *dir, const char *name, byte params )
 bool CompileDATProgs ( void )
 {
 	PR_BeginCompilation();
-	while(PR_ContinueCompilation());
+	while(PR_ContinueCompile());
 	PR_FinishCompilation();          
 
 	Mem_FreePool( &qccpool );

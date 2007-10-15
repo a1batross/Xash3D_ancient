@@ -444,36 +444,14 @@ Base Entry Point
 */
 DLLEXPORT int CreateAPI( char *funcname )
 {
-	HANDLE		hStdout;
-	OSVERSIONINFO	vinfo;
-	MEMORYSTATUS	lpBuffer;
 	char		dev_level[4];
 
-	lpBuffer.dwLength = sizeof(MEMORYSTATUS);
-	vinfo.dwOSVersionInfoSize = sizeof(vinfo);
-
-	base_hInstance = (HINSTANCE)GetModuleHandle( NULL ); // get current hInstance first
-	hStdout = GetStdHandle (STD_OUTPUT_HANDLE); // check for hooked out
-
-	GlobalMemoryStatus (&lpBuffer);
-
-	if(!GetVersionEx (&vinfo)) Sys_ErrorFatal(ERR_OSINFO_FAIL);
-	if(vinfo.dwMajorVersion < 4) Sys_ErrorFatal(ERR_INVALID_VER);
-	if(vinfo.dwPlatformId == VER_PLATFORM_WIN32s) Sys_ErrorFatal(ERR_WINDOWS_32S);
-
-	// parse and copy args into local array
-	ParseCommandLine(GetCommandLine());
-	
+	Sys_Init();
 	API_Reset();// fill stdlib api first
 
 	if(CheckParm ("-debug")) debug_mode = true;
-//if(CheckParm ("-log")) 
-	log_active = true;
-
-	// ugly hack to get pipeline state, but it works
-	if(abs((short)hStdout) < 100) hooked_out = false;
-	else hooked_out = true;
-	if(GetParmFromCmdLine("-dev", dev_level ))
+	if(CheckParm ("-log")) log_active = true;
+	if(GetParmFromCmdLine("-dev", dev_level )) 
 		dev_mode = atoi(dev_level);
 
 	UpdateEnvironmentVariables(); // set working directory
@@ -490,5 +468,6 @@ DLLEXPORT int CreateAPI( char *funcname )
 	Host_Main(); // ok, starting host
 	Sys_Exit(); // normal quit from appilcation
 
+                                                       
 	return 0;
 }

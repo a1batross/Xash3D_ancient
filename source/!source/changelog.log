@@ -21,6 +21,7 @@ SV_ClipToLinks		SV_ClipMoveToEntities
 {
 	OP_POWER_I - добавить XOR для right result
 	разобраться с autoprototype
+	новый стиль для progs.src
 }
 
 studioframeadvance

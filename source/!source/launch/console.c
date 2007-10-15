@@ -8,6 +8,7 @@
 HINSTANCE	base_hInstance;
 FILE	*logfile;
 char	log_path[256];
+LPTOP_LEVEL_EXCEPTION_FILTER	oldFilter = 0;
 
 /*
 ===============================================================================
@@ -655,4 +656,16 @@ void Sys_WaitForQuit( void )
 		} 
 		else Sys_Sleep( 20 );
 	}
+}
+
+long WINAPI Sys_ExecptionFilter( PEXCEPTION_POINTERS pExceptionInfo )
+{
+	// save config
+	Host_Free(); // prepare host to close
+	Sys_FreeLibrary( linked_dll );
+	Sys_FreeConsole();	
+
+	if( oldFilter ) return oldFilter( pExceptionInfo );
+	return EXCEPTION_CONTINUE_SEARCH;
+//return EXCEPTION_CONTINUE_EXECUTION;
 }

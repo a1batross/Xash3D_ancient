@@ -345,3 +345,6 @@ void Draw_StretchRaw (int x, int y, int w, int h, int cols, int rows, byte *data
 	qglEnd ();
 }
 
+void Draw_StretchData (int x, int y, int w, int h, int cols, int rows, byte *data)
+{
+}

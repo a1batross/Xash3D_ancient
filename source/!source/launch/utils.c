@@ -141,6 +141,32 @@ void Sys_Sleep( int msec)
 	Sleep( msec );
 }
 
+void Sys_Init( void )
+{
+	HANDLE		hStdout;
+	OSVERSIONINFO	vinfo;
+	MEMORYSTATUS	lpBuffer;
+
+	lpBuffer.dwLength = sizeof(MEMORYSTATUS);
+	vinfo.dwOSVersionInfoSize = sizeof(vinfo);
+	oldFilter = SetUnhandledExceptionFilter( Sys_ExecptionFilter );
+	GlobalMemoryStatus (&lpBuffer);
+
+	base_hInstance = (HINSTANCE)GetModuleHandle( NULL ); // get current hInstance first
+	hStdout = GetStdHandle (STD_OUTPUT_HANDLE); // check for hooked out
+
+	if(!GetVersionEx (&vinfo)) Sys_ErrorFatal(ERR_OSINFO_FAIL);
+	if(vinfo.dwMajorVersion < 4) Sys_ErrorFatal(ERR_INVALID_VER);
+	if(vinfo.dwPlatformId == VER_PLATFORM_WIN32s) Sys_ErrorFatal(ERR_WINDOWS_32S);
+
+	// ugly hack to get pipeline state, but it works
+	if(abs((short)hStdout) < 100) hooked_out = false;
+	else hooked_out = true;
+
+	// parse and copy args into local array
+	ParseCommandLine(GetCommandLine());
+}
+
 /*
 ================
 Sys_Exit
@@ -149,13 +175,14 @@ NOTE: we must prepare engine to shutdown
 before call this
 ================
 */
-void Sys_Exit (void)
+void Sys_Exit ( void )
 {
 	// prepare host to close
 	Host_Free();
 	Sys_FreeLibrary( linked_dll );
 
 	Sys_FreeConsole();	
+	SetUnhandledExceptionFilter( oldFilter ); // restore filter
 	exit(sys_error);
 }
 

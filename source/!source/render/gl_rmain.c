@@ -50,14 +50,17 @@ model_t		*currentmodel;
 
 cplane_t	frustum[4];
 
-int			r_visframecount;	// bumped when going to a new PVS
-int			r_framecount;		// used for dlight push checking
+int	r_visframecount;	// bumped when going to a new PVS
+int	r_framecount;		// used for dlight push checking
 
-int			c_brush_polys, c_studio_polys;
+int	c_brush_polys, c_studio_polys;
 
-float		v_blend[4];			// final blending color
+float	v_blend[4];			// final blending color
 
 void GL_Strings_f( void );
+byte *r_framebuffer;			// pause frame buffer
+byte *r_finalframebuffer;			// final pause frame buffer
+float r_pause_alpha;
 
 //
 // view origin
@@ -147,6 +150,7 @@ cvar_t	*gl_3dlabs_broken;
 
 cvar_t	*vid_fullscreen;
 cvar_t	*vid_gamma;
+cvar_t	*r_pause;
 
 /*
 =================
@@ -649,7 +653,6 @@ void R_Clear (void)
 	}
 
 	qglDepthRange (gldepthmin, gldepthmax);
-
 }
 
 void R_Flash( void )
@@ -685,26 +688,68 @@ void R_RenderView (refdef_t *fd)
 	if (gl_finish->value) qglFinish ();
 	
 	R_SetupFrame ();
-
 	R_SetFrustum ();
-
 	R_SetupGL ();
-
 	R_MarkLeaves ();	// done here so we know if we're in water
 
-	R_DrawWorld ();
+	if(!r_pause->value || r_pause_alpha < 1.0f)
+	{
+		R_DrawWorld ();
+		R_DrawEntitiesOnList ();
+		R_RenderDlights ();
+		R_DrawParticles ();
+		R_DrawAlphaSurfaces ();
+		R_Flash();
+		R_BloomBlend (fd);
+ 	}
+	R_DrawPauseScreen();
+}
 
-	R_DrawEntitiesOnList ();
+static byte testbuffer[512*512*4];
 
-	R_RenderDlights ();
+void R_DrawPauseScreen( void )
+{
+	if(r_pause->modified && r_pause->value)
+	{
+		memset(r_framebuffer, 0, vid.width * vid.height * 4 );
+		memset(r_finalframebuffer, 0, vid.width * vid.height * 4 );
+		r_pause_alpha = 0.0f;
+		r_pause->modified = false;
+	}
+	if(!r_pause->value) return;          
 
-	R_DrawParticles ();
+	if (r_pause_alpha <= 1.0f)
+	{
+		int	k = r_pause_alpha * 255.0f;
+		int	i, j, s, r, g, b, a;
 
-	R_DrawAlphaSurfaces ();
+		// 1. get image from screen
+		qglFlush();
+		qglFinish();
+		qglReadPixels(0, 0, vid.width, vid.height, GL_RGBA, GL_UNSIGNED_BYTE, r_framebuffer);
+  
+		for (i = 0, j = 0; i < vid.width * vid.height; i++, j+=4)
+		{
+			r = r_framebuffer[j+0];
+			g = r_framebuffer[j+1];
+			b = r_framebuffer[j+2];
+			a = r_framebuffer[j+3];
+			s = (r + 2 * g + b) * k >> 2; // simply bw recomputing
+			r_finalframebuffer[j+0] = (r*(255 - k)+s)>>8;
+			r_finalframebuffer[j+1] = (g*(255 - k)+s)>>8;
+			r_finalframebuffer[j+2] = (b*(255 - k)+s)>>8;
+			r_finalframebuffer[j+3] = a;
+		}
+		r_pause_alpha += r_newrefdef.time * 0.001;
+		R_ResampleTexture ((uint *)r_finalframebuffer, vid.width, vid.height, (byte*)testbuffer, 512, 512);
+	}
 
-	R_Flash();
 
-          R_BloomBlend (fd);
+	/*qglDisable(GL_TEXTURE_2D);
+	qglRasterPos2i(0, 0);
+	qglDrawPixels(vid.width, vid.height, GL_RGB, GL_UNSIGNED_BYTE, r_finalframebuffer);
+	qglFlush();
+	qglEnable(GL_TEXTURE_2D);*/
 }
 
 int R_DrawRSpeeds(char *S)
@@ -721,11 +766,36 @@ void R_SetGL2D (void)
 	qglViewport (0,0, vid.width, vid.height);
 	qglMatrixMode(GL_PROJECTION);
 	qglLoadIdentity ();
-	qglOrtho  (0, vid.width, vid.height, 0, -99999, 99999);
+	qglOrtho(0, vid.width, vid.height, 0, -99999, 99999);
 	qglMatrixMode(GL_MODELVIEW);
 	qglLoadIdentity ();
-	qglDisable (GL_DEPTH_TEST);
-	qglDisable (GL_CULL_FACE);
+	qglDisable(GL_DEPTH_TEST);
+	qglDisable(GL_CULL_FACE);
+
+	if(r_pause->value)
+	{
+	GL_Bind(0);
+	qglTexImage2D (GL_TEXTURE_2D, 0, gl_tex_solid_format, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, testbuffer);
+
+	GL_TexFilter( false );
+
+	qglBegin (GL_QUADS);
+
+	qglTexCoord2f (0, -1);
+	qglVertex2f (0, vid.height);
+
+	qglTexCoord2f (0, 0);
+	qglVertex2f (0, 0);
+
+	qglTexCoord2f (1, 0);
+	qglVertex2f (vid.width, 0);
+
+	qglTexCoord2f (1, -1);
+	qglVertex2f (vid.width, vid.height);
+
+	qglEnd();
+          }
+ 
 	GL_DisableAlphaTest();
 	GL_EnableBlend();
 
@@ -911,6 +981,7 @@ void R_Register( void )
 	r_nocull = ri.Cvar_Get ("r_nocull", "0", 0);
 	r_lerpmodels = ri.Cvar_Get ("r_lerpmodels", "1", 0);
 	r_speeds = ri.Cvar_Get ("r_speeds", "0", 0);
+	r_pause = ri.Cvar_Get("paused", "0", 0);
 
 	r_lightlevel = ri.Cvar_Get ("r_lightlevel", "0", 0);
 	r_emboss_bump = ri.Cvar_Get ("r_emboss_bump", "0", 0);
@@ -1243,6 +1314,9 @@ int R_Init( void *hinstance, void *hWnd )
 	R_InitParticleTexture ();
 	Draw_InitLocal ();
           R_StudioInit();
+
+	if(!r_framebuffer) r_framebuffer = Z_Malloc(vid.width*vid.height*4);
+	if(!r_finalframebuffer) r_finalframebuffer = Z_Malloc(vid.width*vid.height*4);
 	
 	err = qglGetError();
 	if ( err != GL_NO_ERROR ) MsgWarn("glGetError = 0x%x\n", err);
@@ -1261,6 +1335,9 @@ void R_Shutdown (void)
 	ri.Cmd_RemoveCommand ("screenshot");
 	ri.Cmd_RemoveCommand ("imagelist");
 	ri.Cmd_RemoveCommand ("gl_strings");
+
+	if(r_framebuffer) Z_Free(r_framebuffer);
+	if(r_finalframebuffer) Z_Free(r_finalframebuffer);
 
 	Mod_FreeAll ();
           R_StudioShutdown();

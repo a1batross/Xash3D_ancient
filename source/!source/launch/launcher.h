@@ -34,12 +34,14 @@ void ( *MsgDev )( int level, char *msg, ... );
 void ( *MsgWarn )( char *msg, ... );
 void ( *Sys_Error )( char *msg, ... );
 void ( *Sys_ShowConsole )( bool show );
+void Sys_Init( void ); // static
 void Sys_Exit( void ); // static
 void Sys_Sleep( int msec);
 bool Sys_LoadLibrary ( dll_info_t *dll ); // load library 
 bool Sys_FreeLibrary ( dll_info_t *dll ); // free library
 void* Sys_GetProcAddress ( dll_info_t *dll, const char* name );
 void Sys_WaitForQuit( void ); // waiting for 'ESC' or close command
+long WINAPI Sys_ExecptionFilter( PEXCEPTION_POINTERS pExceptionInfo );
 
 // export variables
 void ( *Host_Init ) ( char *funcname, int argc, char **argv ); // init host
@@ -53,6 +55,7 @@ extern bool log_active;
 extern bool hooked_out;
 extern int dev_mode;
 extern int com_argc;
+extern LPTOP_LEVEL_EXCEPTION_FILTER oldFilter;
 extern char *com_argv[MAX_NUM_ARGVS];
 extern char sys_rootdir[ MAX_SYSPATH ];
 extern char log_path[256];

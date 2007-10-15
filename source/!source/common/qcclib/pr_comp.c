@@ -6636,7 +6636,7 @@ it will return false, when compilation is finished
 called between exe frames - won't loose net connection (is the theory)...
 ==============
 */
-bool PR_ContinueCompilation( void )
+bool PR_ContinueCompile( void )
 {
 	char	*qc_file;
 

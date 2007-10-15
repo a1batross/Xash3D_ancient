@@ -125,7 +125,8 @@ char *FS_Title( void );
 #define __VIDDEF_T
 typedef struct
 {
-	unsigned		width, height;			// coordinates from main game
+	int	width;
+	int	height;	// coordinates from main game
 } viddef_t;
 #endif
 
@@ -263,6 +264,7 @@ extern	cvar_t	*r_fullbright;
 extern	cvar_t	*r_novis;
 extern	cvar_t	*r_nocull;
 extern	cvar_t	*r_lerpmodels;
+extern	cvar_t	*r_pause;
 
 extern	cvar_t	*r_lightlevel;	// FIXME: This is a HACK to get the client's light level
 
@@ -372,6 +374,7 @@ void R_DrawBrushModel( int passnum );
 void R_DrawSpriteModel( int passnum );
 void R_StudioLoadModel (model_t *mod, void *buffer );
 void R_SpriteLoadModel( model_t *mod, void *buffer );
+void R_DrawPauseScreen( void );
 char *R_ExtName( model_t *mod );
 void R_DrawBeam( entity_t *e );
 void R_DrawWorld (void);
