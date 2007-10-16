@@ -691,65 +691,62 @@ void R_RenderView (refdef_t *fd)
 	R_SetFrustum ();
 	R_SetupGL ();
 	R_MarkLeaves ();	// done here so we know if we're in water
-
-	if(!r_pause->value || r_pause_alpha < 1.0f)
-	{
-		R_DrawWorld ();
-		R_DrawEntitiesOnList ();
-		R_RenderDlights ();
-		R_DrawParticles ();
-		R_DrawAlphaSurfaces ();
-		R_Flash();
-		R_BloomBlend (fd);
- 	}
-	R_DrawPauseScreen();
+	R_DrawWorld ();
+	R_DrawEntitiesOnList ();
+	R_RenderDlights ();
+	R_DrawParticles ();
+	R_DrawAlphaSurfaces ();
+	R_Flash();
+	R_BloomBlend (fd);
 }
-
-static byte testbuffer[512*512*4];
 
 void R_DrawPauseScreen( void )
 {
-	if(r_pause->modified && r_pause->value)
+	// don't apply post effects for custom window
+	if(r_newrefdef.rdflags & RDF_NOWORLDMODEL)
+		return;
+
+	if(r_pause->modified )
 	{
-		memset(r_framebuffer, 0, vid.width * vid.height * 4 );
-		memset(r_finalframebuffer, 0, vid.width * vid.height * 4 );
-		r_pause_alpha = 0.0f;
+		// reset saturation value
+		if(!r_pause->value)
+			r_pause_alpha = 0.0f;
 		r_pause->modified = false;
 	}
 	if(!r_pause->value) return;          
+	if (r_pause_alpha < 1.0f) r_pause_alpha += 0.03;
 
-	if (r_pause_alpha <= 1.0f)
+	if (r_pause_alpha <= 1.0f || r_lefthand->modified)
 	{
 		int	k = r_pause_alpha * 255.0f;
-		int	i, j, s, r, g, b, a;
+		int	i, s, r, g, b;
 
-		// 1. get image from screen
 		qglFlush();
-		qglFinish();
-		qglReadPixels(0, 0, vid.width, vid.height, GL_RGBA, GL_UNSIGNED_BYTE, r_framebuffer);
-  
-		for (i = 0, j = 0; i < vid.width * vid.height; i++, j+=4)
+		qglReadPixels(0, 0, vid.width, vid.height, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer);
+		for (i = 0; i < vid.width * vid.height * 3; i+=3)
 		{
-			r = r_framebuffer[j+0];
-			g = r_framebuffer[j+1];
-			b = r_framebuffer[j+2];
-			a = r_framebuffer[j+3];
-			s = (r + 2 * g + b) * k >> 2; // simply bw recomputing
-			r_finalframebuffer[j+0] = (r*(255 - k)+s)>>8;
-			r_finalframebuffer[j+1] = (g*(255 - k)+s)>>8;
-			r_finalframebuffer[j+2] = (b*(255 - k)+s)>>8;
-			r_finalframebuffer[j+3] = a;
+			r = r_framebuffer[i+0];
+			g = r_framebuffer[i+1];
+			b = r_framebuffer[i+2];
+			s = (r + 2 * g + b) * k>>2; // simply bw recomputing
+			r_framebuffer[i+0] = (r*(255-k)+s)>>8;
+			r_framebuffer[i+1] = (g*(255-k)+s)>>8;
+			r_framebuffer[i+2] = (b*(255-k)+s)>>8;
 		}
-		r_pause_alpha += r_newrefdef.time * 0.001;
-		R_ResampleTexture ((uint *)r_finalframebuffer, vid.width, vid.height, (byte*)testbuffer, 512, 512);
+		r_lefthand->modified = false;
 	}
+	// set custom orthogonal mode
+	qglMatrixMode(GL_PROJECTION);
+	qglLoadIdentity ();
+	qglOrtho(0, vid.width, 0, vid.height, 0, 1.0f);
+	qglMatrixMode(GL_MODELVIEW);
+	qglLoadIdentity ();
 
-
-	/*qglDisable(GL_TEXTURE_2D);
-	qglRasterPos2i(0, 0);
-	qglDrawPixels(vid.width, vid.height, GL_RGB, GL_UNSIGNED_BYTE, r_finalframebuffer);
+	qglDisable(GL_TEXTURE_2D);
+	qglRasterPos2f(0, 0);
+	qglDrawPixels(vid.width, vid.height, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer);
 	qglFlush();
-	qglEnable(GL_TEXTURE_2D);*/
+	qglEnable(GL_TEXTURE_2D);
 }
 
 int R_DrawRSpeeds(char *S)
@@ -762,6 +759,8 @@ dword blur_shader = 0;
 
 void R_SetGL2D (void)
 {
+	R_DrawPauseScreen();
+		
 	// set 2D virtual screen size
 	qglViewport (0,0, vid.width, vid.height);
 	qglMatrixMode(GL_PROJECTION);
@@ -772,30 +771,6 @@ void R_SetGL2D (void)
 	qglDisable(GL_DEPTH_TEST);
 	qglDisable(GL_CULL_FACE);
 
-	if(r_pause->value)
-	{
-	GL_Bind(0);
-	qglTexImage2D (GL_TEXTURE_2D, 0, gl_tex_solid_format, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, testbuffer);
-
-	GL_TexFilter( false );
-
-	qglBegin (GL_QUADS);
-
-	qglTexCoord2f (0, -1);
-	qglVertex2f (0, vid.height);
-
-	qglTexCoord2f (0, 0);
-	qglVertex2f (0, 0);
-
-	qglTexCoord2f (1, 0);
-	qglVertex2f (vid.width, 0);
-
-	qglTexCoord2f (1, -1);
-	qglVertex2f (vid.width, vid.height);
-
-	qglEnd();
-          }
- 
 	GL_DisableAlphaTest();
 	GL_EnableBlend();
 
@@ -1315,8 +1290,8 @@ int R_Init( void *hinstance, void *hWnd )
 	Draw_InitLocal ();
           R_StudioInit();
 
-	if(!r_framebuffer) r_framebuffer = Z_Malloc(vid.width*vid.height*4);
-	if(!r_finalframebuffer) r_finalframebuffer = Z_Malloc(vid.width*vid.height*4);
+	if(!r_framebuffer) r_framebuffer = Z_Malloc(vid.width*vid.height*3);
+	if(!r_finalframebuffer) r_finalframebuffer = Z_Malloc(vid.width*vid.height*3);
 	
 	err = qglGetError();
 	if ( err != GL_NO_ERROR ) MsgWarn("glGetError = 0x%x\n", err);

@@ -344,7 +344,3 @@ void Draw_StretchRaw (int x, int y, int w, int h, int cols, int rows, byte *data
 	qglVertex2f (x, y+h);
 	qglEnd ();
 }
-
-void Draw_StretchData (int x, int y, int w, int h, int cols, int rows, byte *data)
-{
-}

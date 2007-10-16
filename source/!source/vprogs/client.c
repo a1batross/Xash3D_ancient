@@ -264,7 +264,7 @@ void() PutClientInServer =
 	pev->health = pev->max_health = 100; // My health (and my max) is 100
 	pev->takedamage = DAMAGE_AIM;        // I can be fired at
 	pev->solid = SOLID_BBOX;         // Things sort of 'slide' past me
-	pev->movetype = MOVETYPE_NOCLIP;       // Yep, I want to walk.
+	pev->movetype = MOVETYPE_WALK;       // Yep, I want to walk.
 	pev->flags = FL_CLIENT;              // Yes, I'm a client.
 
 	pev->origin = spawn_spot.origin + '0 0 1'; // Move to the spawnspot location
