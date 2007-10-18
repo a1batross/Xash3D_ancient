@@ -21,7 +21,15 @@ SV_ClipToLinks		SV_ClipMoveToEntities
 {
 	OP_POWER_I - добавить XOR для right result
 	разобраться с autoprototype
-	новый стиль для progs.src
+
+	корежится crc при автопрототипинге
+
+	Препроцессинг для автопрототипинга:
+	1. найти главный файл с описанием структур
+
+	в этом файле должны быть ключевые слова end_sys_fields
+	и end_sys_globals (или это два различных файла)
+
 }
 
 studioframeadvance

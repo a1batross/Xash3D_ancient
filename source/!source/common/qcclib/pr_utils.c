@@ -548,18 +548,19 @@ word PR_WriteProgdefs (char *filename)
 	{
 	case 54730:
 		PR_Message("QuakeWorld unmodified qwprogs.dat\n");
-		if(!strlen(progsoutname)) strcpy(progsoutname, "qwprogs.dat");
+		if(!strcmp(progsoutname, "unknown.dat")) strcpy(progsoutname, "qwprogs.dat");
 		break;
 	case 32401:
 		PR_Message("Tenebrae unmodified progs.dat\n");
-		if(!strlen(progsoutname)) strcpy(progsoutname, "progs.dat");
+		if(!strcmp(progsoutname, "unknown.dat")) strcpy(progsoutname, "progs.dat");
 		break;
 	case 5927:
 		PR_Message("Quake1 unmodified progs.dat\n");
-		if(!strlen(progsoutname)) strcpy(progsoutname, "progs.dat");
+		if(!strcmp(progsoutname, "unknown.dat")) strcpy(progsoutname, "progs.dat");
 		break;
 	default:
-		if(!strlen(progsoutname)) strcpy(progsoutname, "progs.dat");
+		PR_Message("Custom progs crc %d\n", crc );
+		if(!strcmp(progsoutname, "unknown.dat")) strcpy(progsoutname, "progs.dat");
 		break;
 	}
 	return crc;
@@ -1000,14 +1001,17 @@ void PR_UnmarshalLocals( void )
 	if (maxo-ofs) PR_Message("Total of %i marshalled globals\n", maxo-ofs);
 }
 
-byte *PR_LoadFile(char *filename, int type )
+byte *PR_LoadFile(char *filename, bool crash, int type )
 {
 	int	length;
 	cachedsourcefile_t	*newfile;
 	byte	*file = FS_LoadFile( filename, &length );
 	
-	if (!length) PR_ParseError(ERR_INTERNAL, "Couldn't open file %s", filename);
-
+	if (!length) 
+	{
+		if(crash) PR_ParseError(ERR_INTERNAL, "Couldn't open file %s", filename);
+		else return NULL;
+	}
 	newfile = (cachedsourcefile_t*)Qalloc( sizeof(cachedsourcefile_t) );
 	newfile->next = sourcefile;
 	sourcefile = newfile; // make chain
@@ -1038,7 +1042,7 @@ bool PR_Include(char *filename)
 	oldcurrentchunk = currentchunk;
 
 	strcpy(fname, filename);
-	newfile = QCC_LoadFile(fname);
+	newfile = QCC_LoadFile(fname, true );
 	currentchunk = NULL;
 	pr_file_p = newfile;
 	PR_CompileFile(newfile, fname);
@@ -1068,4 +1072,75 @@ void PR_WriteBlock(vfile_t *handle, fs_offset_t pos, const void *data, size_t bl
 		VFS_Seek(handle, i, SEEK_SET);
 	}
 	else VFS_Write (handle, data, blocksize);
+}
+
+byte *PR_CreateProgsSRC( void )
+{
+	search_t		*qc = FS_Search( "*.qc", true );
+	const char	*datname = "unknown.dat\n";	// outname will be set by PR_WriteProgdefs
+	byte		*newprogs_src = NULL;
+	char		headers[2][MAX_QPATH];	// contains filename with struct description
+	int		i, j = 0, found = 0;
+
+	if(!qc) 
+	{
+		PR_ParseError(ERR_INTERNAL, "Couldn't open file progs.src" );
+		return NULL;
+	}
+	memset(headers, '/0', 2 * MAX_QPATH);
+
+	for(i = 0; i < qc->numfilenames; i++)
+	{
+		if(FS_LoadScript( qc->filenames[i], NULL, 0 ))
+		{
+			while ( 1 )
+			{
+				// parse all sources for "end_sys_globals"
+				if (!SC_GetToken( true )) break; //EOF
+				if(SC_MatchToken( "end_sys_globals" ))
+				{
+					strncpy(headers[0], qc->filenames[i], MAX_QPATH );
+					found++;
+				}
+				else if(SC_MatchToken( "end_sys_fields" ))
+				{
+					strncpy(headers[1], qc->filenames[i], MAX_QPATH );
+					found++;
+				}
+				if(found > 1) goto buildnewlist; // end of parsing
+			}
+		}
+	}	
+
+buildnewlist:
+
+	newprogs_src = Qrealloc(newprogs_src, j + strlen(datname) + 1); // outfile name
+	Mem_Copy(newprogs_src + j, (char *)datname, strlen(datname));
+	j += strlen(datname) + 1; //null term
+
+	// file contains "sys_globals" and possible "sys_fields"
+	newprogs_src = Qrealloc(newprogs_src, j + strlen(headers[0]) + 2); // first file
+	strncat(newprogs_src, va("%s\n", headers[0]), strlen(headers[0]) + 1);
+	j += strlen(headers[0]) + 2; //null term
+
+	if(STRCMP(headers[0], headers[1] ))
+	{
+		// file contains sys_fields description
+		newprogs_src = Qrealloc(newprogs_src, j + strlen(headers[1]) + 2); // second file (option)
+		strncat(newprogs_src, va("%s\n", headers[1]), strlen(headers[1]) + 1);
+		j += strlen(headers[1]) + 2; //null term
+	}
+	// add other sources
+	for(i = 0; i < qc->numfilenames; i++)
+	{
+		if(!strcmp(qc->filenames[i], headers[0]) || !strcmp(qc->filenames[i], headers[1]))
+			continue; //we already have it, just skip
+		newprogs_src = Qrealloc( newprogs_src, j + strlen(qc->filenames[i]) + 2);
+		strncat(newprogs_src, va("%s\n", qc->filenames[i]), strlen(qc->filenames[i]) + 1);
+		j += strlen(qc->filenames[i]) + 2;
+	}
+	autoprototype = true;
+	Free( qc ); // free search
+
+	return newprogs_src;
 }

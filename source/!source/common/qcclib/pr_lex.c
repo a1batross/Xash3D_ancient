@@ -1248,12 +1248,78 @@ void PR_LexGrab (void)
 	// check for $frame
 	if (!STRCMP (pr_token, "frame") || !STRCMP (pr_token, "framesave"))
 	{
-		PR_ParseFrame ();
-		PR_Lex ();
+		PR_ParseFrame();
+		PR_Lex();
 	}
 
 	// ignore other known $commands - just for model/spritegen
-	else if (!STRCMP (pr_token, "cd") || !STRCMP (pr_token, "origin") || !STRCMP (pr_token, "base") || !STRCMP (pr_token, "flags") || !STRCMP (pr_token, "scale") || !STRCMP (pr_token, "skin") )
+	else if (!STRCMP (pr_token, "cd"))
+	{	
+		// skip to end of line
+		while (PR_SimpleGetToken ());
+		PR_Lex ();
+	}
+	else if (!STRCMP (pr_token, "load"))
+	{	
+		// skip to end of line
+		while (PR_SimpleGetToken ());
+		PR_Lex ();
+	}
+	else if (!STRCMP (pr_token, "type"))
+	{	
+		// skip to end of line
+		while (PR_SimpleGetToken ());
+		PR_Lex ();
+	}
+	else if (!STRCMP (pr_token, "load"))
+	{	
+		// skip to end of line
+		while (PR_SimpleGetToken ());
+		PR_Lex ();
+	}
+	else if (!STRCMP (pr_token, "spritename"))
+	{	
+		// skip to end of line
+		while (PR_SimpleGetToken ());
+		PR_Lex ();
+	}
+	else if (!STRCMP (pr_token, "framegroupstart"))
+	{	
+		// skip to end of line
+		while (PR_SimpleGetToken ());
+		PR_Lex ();
+	}
+	else if (!STRCMP (pr_token, "framegroupend"))
+	{	
+		// skip to end of line
+		while (PR_SimpleGetToken ());
+		PR_Lex ();
+	}
+	else if (!STRCMP (pr_token, "origin"))
+	{	
+		// skip to end of line
+		while (PR_SimpleGetToken ());
+		PR_Lex ();
+	}
+	else if (!STRCMP (pr_token, "base"))
+	{	
+		// skip to end of line
+		while (PR_SimpleGetToken ());
+		PR_Lex ();
+	}
+	else if (!STRCMP (pr_token, "flags"))
+	{	
+		// skip to end of line
+		while (PR_SimpleGetToken ());
+		PR_Lex ();
+	}
+	else if (!STRCMP (pr_token, "scale"))
+	{	
+		// skip to end of line
+		while (PR_SimpleGetToken ());
+		PR_Lex ();
+	}
+	else if (!STRCMP (pr_token, "skin"))
 	{	
 		// skip to end of line
 		while (PR_SimpleGetToken ());

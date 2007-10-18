@@ -64,8 +64,8 @@ TODO:
 #define Qrealloc( ptr, size )	Mem_Realloc(qccpool, ptr, size )
 
 //loading files
-#define QCC_LoadFile(f)	PR_LoadFile(f, FT_CODE)
-#define QCC_LoadData(f)	PR_LoadFile(f, FT_DATA)
+#define QCC_LoadFile(f, c)	PR_LoadFile(f, c, FT_CODE)
+#define QCC_LoadData(f)	PR_LoadFile(f, true, FT_DATA)
 
 #define BytesForBuckets(b)	(sizeof(bucket_t)*b)
 #define STRCMP(s1, s2)	(((*s1)!=(*s2)) || strcmp(s1+1,s2+1))
@@ -581,6 +581,7 @@ bool PR_LoadingProject( const char *filename );
 void PR_SetDefaultProperties( void );
 word PR_WriteProgdefs (char *filename);
 void PR_WriteLNOfile(char *filename);
+byte *PR_CreateProgsSRC( void );
 void PR_WriteDAT( void );
 
 //
@@ -630,7 +631,6 @@ type_t *PR_FieldType (type_t *pointsto);
 void PR_PrintStatement (dstatement_t *s);
 type_t *PR_PointerType (type_t *pointsto);
 int PR_WriteBodylessFuncs (vfile_t *handle);
-byte *PR_LoadFile(char *filename, int type );
 char *PR_ValueString (etype_t type, void *val);
 int PR_CopyString (char *str, bool noduplicate );
 void PR_CompileFile (char *string, char *filename);
@@ -641,6 +641,7 @@ void PR_ParseError (int errortype, char *error, ...);
 int PR_AStatementJumpsTo(int targ, int first, int last);
 void PR_ParseWarning (int warningtype, char *error, ...);
 void PR_EmitClassFromFunction(def_t *scope, char *tname);
+byte *PR_LoadFile(char *filename, bool crash, int type );
 int PR_encode( int len, int method, char *in, vfile_t *handle);
 void PR_EmitArrayGetFunction(def_t *scope, char *arrayname);
 void PR_EmitArraySetFunction(def_t *scope, char *arrayname);

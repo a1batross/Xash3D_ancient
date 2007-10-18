@@ -236,8 +236,6 @@ bool PrepareDATProgs ( const char *dir, const char *name, byte params )
 	FS_InitRootDir( (char *)dir );
 	PR_Init( name );
 
-	autoprototype = true;
-
 	return true;
 }
 

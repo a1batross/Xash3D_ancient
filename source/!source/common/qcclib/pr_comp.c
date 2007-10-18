@@ -6658,7 +6658,7 @@ bool PR_ContinueCompile( void )
 	}
 
 	PR_Message ("%s\n", token);
-	qc_file = QCC_LoadFile (token);
+	qc_file = QCC_LoadFile (token, true );
 	PR_CompileFile (qc_file, token);
 
 	return true;
@@ -6705,7 +6705,8 @@ void PR_BeginCompilation ( void )
 
 	freeofs = NULL;
 	sprintf (sourcefilename, "%sprogs.src", sourcedir );
-	progs_src = QCC_LoadFile( sourcefilename ); // loading progs.src
+	progs_src = QCC_LoadFile( sourcefilename, false ); // loading progs.src
+	if(!progs_src) progs_src = PR_CreateProgsSRC(); // virtual list
 
 	while(*progs_src && *progs_src < ' ') progs_src++;
 
