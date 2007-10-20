@@ -113,5 +113,5 @@ void setstats(entity e, float f, string stats)			= #104;
 void configstring(float num, string s)				= #105;
 void makestatic(entity e)					= #106;
 float model_frames(float modelindex)				= #107; 
-
+void set_effect( entity e, float effect )			= #108;
  

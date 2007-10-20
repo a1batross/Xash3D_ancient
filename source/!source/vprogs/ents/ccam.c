@@ -24,12 +24,12 @@ void () CCam =
      if (pev->aflag == FALSE) 
      {
 	pev->aflag = TRUE;
-	camera = create("camera", "progs/eyes.mdl", trace_endpos );
+	camera = create("camera", "models/supp1.mdl", trace_endpos );
 	pev->trigger_field = camera;
 	camera.classname = "camera";
 	camera.movetype = MOVETYPE_FLY;
 	camera.solid = SOLID_NOT;
-	setmodel (camera,"progs/eyes.mdl");
+	setmodel (camera,"models/supp1.mdl");
 	setsize (camera,'0 0 0','0 0 0');
 	makevectors (pev->v_angle);
 	traceline ((pev->origin + pev->view_ofs),(((pev->origin + pev->view_ofs) + (v_forward * -64.000))), FALSE, pev);

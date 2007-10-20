@@ -295,7 +295,8 @@ void CL_ParseServerData (void)
 {
 	char	*str;
 	int		i;
-	
+
+	//Sys_Error("Serverdata packet received.\n");
 	MsgDev (D_INFO, "Serverdata packet received.\n");
 
 	// wipe the client_state_t struct

@@ -148,6 +148,12 @@ Puts the server in demo mode on a specific map/cinematic
 */
 void SV_DemoMap_f (void)
 {
+	if (Cmd_Argc() != 2)
+	{
+		Msg ("USAGE: demomap <map>\n");
+		return;
+	}
+
 	SV_Map (true, Cmd_Argv(1), NULL, false );
 }
 

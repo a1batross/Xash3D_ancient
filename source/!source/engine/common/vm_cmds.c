@@ -181,7 +181,7 @@ void VM_bprint (void)
 
 	VM_VarString(0, string, sizeof(string));
        
-	if(sv.state != ss_game)
+	if(sv.state == ss_loading)
 	{
 		Con_Print( string );
 		return;

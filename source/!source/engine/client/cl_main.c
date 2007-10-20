@@ -990,7 +990,7 @@ void CL_ReadPackets (void)
 {
 	while (NET_GetPacket (NS_CLIENT, &net_from, &net_message))
 	{
-//	Msg ("packet\n");
+		//Msg ("packet\n");
 		//
 		// remote command packet
 		//
@@ -1018,7 +1018,7 @@ void CL_ReadPackets (void)
 			continue;
 		}
 		if (!Netchan_Process(&cls.netchan, &net_message))
-			continue;		// wasn't accepted for some reason
+			continue;	// wasn't accepted for some reason
 		CL_ParseServerMessage ();
 	}
 
@@ -1027,7 +1027,7 @@ void CL_ReadPackets (void)
 	//
 	if (cls.state >= ca_connected && cls.realtime - cls.netchan.last_received > cl_timeout->value)
 	{
-		if (++cl.timeoutcount > 5)	// timeoutcount saves debugger
+		if (++cl.timeoutcount > 5) // timeoutcount saves debugger
 		{
 			Msg ("\nServer connection timed out.\n");
 			CL_Disconnect ();
@@ -1711,27 +1711,6 @@ void CL_Frame (float time)
 	SCR_RunConsole ();
 
 	cls.framecount++;
-
-	if ( log_stats->value )
-	{
-		if ( cls.state == ca_active )
-		{
-			if ( !lasttimecalled )
-			{
-				lasttimecalled = Sys_DoubleTime();
-				if ( log_stats_file )
-					FS_Printf( log_stats_file, "0\n" );
-			}
-			else
-			{
-				float now = Sys_DoubleTime();
-
-				if ( log_stats_file )
-					FS_Printf( log_stats_file, "%g\n", now - lasttimecalled );
-				lasttimecalled = now;
-			}
-		}
-	}
 }
 
 

@@ -604,9 +604,6 @@ float	crand(void);	// -1 to 1
 extern	cvar_t	*developer;
 extern	cvar_t	*dedicated;
 extern	cvar_t	*host_speeds;
-extern	cvar_t	*log_stats;
-
-extern	file_t *log_stats_file;
 
 // host_speeds times
 extern	float		time_before_game;

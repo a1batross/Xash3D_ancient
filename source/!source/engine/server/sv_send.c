@@ -489,9 +489,9 @@ SV_SendClientMessages
 */
 void SV_SendClientMessages (void)
 {
-	int			i;
-	client_t	*c;
-	int			msglen;
+	int		i;
+	client_t		*c;
+	int		msglen;
 	byte		msgbuf[MAX_MSGLEN];
 
 	msglen = 0;

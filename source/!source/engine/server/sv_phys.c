@@ -632,8 +632,8 @@ bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
 			if (i == 0 && enemy != prog->edicts)
 			{
 				dz = ent->progs.sv->origin[2] - PRVM_PROG_TO_EDICT(ent->progs.sv->enemy)->progs.sv->origin[2];
-				if (dz > 40) neworg[2] -= 8;
-				if (dz < 30) neworg[2] += 8;
+				if (dz > 40) neworg[2] -= SV_COORD_FRAC;
+				if (dz < 30) neworg[2] += SV_COORD_FRAC;
 			}
 			trace = SV_Trace(ent->progs.sv->origin, ent->progs.sv->mins, ent->progs.sv->maxs, neworg, ent, MASK_SOLID);
 

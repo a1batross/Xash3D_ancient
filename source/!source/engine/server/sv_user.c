@@ -70,7 +70,7 @@ void SV_New_f (void)
 	// demo servers just dump the file message
 	if (sv.state == ss_demo)
 	{
-		SV_BeginDemoserver ();
+		SV_BeginDemoserver();
 		return;
 	}
 

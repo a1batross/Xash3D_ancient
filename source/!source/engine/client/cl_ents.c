@@ -644,7 +644,7 @@ void CL_ParseFrame (void)
 {
 	int			cmd;
 	int			len;
-	frame_t		*old;
+	frame_t			*old;
 
 	memset (&cl.frame, 0, sizeof(cl.frame));
 
@@ -682,7 +682,8 @@ void CL_ParseFrame (void)
 			Msg ("Delta from invalid frame (not supposed to happen!).\n");
 		}
 		if (old->serverframe != cl.frame.deltaframe)
-		{	// The frame that the server did the delta from
+		{	
+			// The frame that the server did the delta from
 			// is too old, so we can't reconstruct it properly.
 			Msg ("Delta frame too old.\n");
 		}
@@ -690,8 +691,7 @@ void CL_ParseFrame (void)
 		{
 			Msg ("Delta parse_entities too old.\n");
 		}
-		else
-			cl.frame.valid = true;	// valid delta parse
+		else cl.frame.valid = true;	// valid delta parse
 	}
 
 	// clamp time 
@@ -727,13 +727,12 @@ void CL_ParseFrame (void)
 		{
 			cls.state = ca_active;
 			cl.force_refdef = true;
-			cl.predicted_origin[0] = cl.frame.playerstate.pmove.origin[0]*0.125;
-			cl.predicted_origin[1] = cl.frame.playerstate.pmove.origin[1]*0.125;
-			cl.predicted_origin[2] = cl.frame.playerstate.pmove.origin[2]*0.125;
+			cl.predicted_origin[0] = cl.frame.playerstate.pmove.origin[0]*CL_COORD_FRAC;
+			cl.predicted_origin[1] = cl.frame.playerstate.pmove.origin[1]*CL_COORD_FRAC;
+			cl.predicted_origin[2] = cl.frame.playerstate.pmove.origin[2]*CL_COORD_FRAC;
 			VectorCopy (cl.frame.playerstate.viewangles, cl.predicted_angles);
-			if (cls.disable_servercount != cl.servercount
-				&& cl.refresh_prepped)
-				SCR_EndLoadingPlaque ();	// get rid of loading plaque
+			if (cls.disable_servercount != cl.servercount && cl.refresh_prepped)
+				SCR_EndLoadingPlaque (); // get rid of loading plaque
 		}
 		cl.sound_prepped = true;	// can start mixing ambient sounds
 	
@@ -1159,9 +1158,9 @@ void CL_CalcViewValues (void)
 	ops = &oldframe->playerstate;
 
 	// see if the player entity was teleported this frame
-	if ( fabs(ops->pmove.origin[0] - ps->pmove.origin[0]) > 256*8
-		|| abs(ops->pmove.origin[1] - ps->pmove.origin[1]) > 256*8
-		|| abs(ops->pmove.origin[2] - ps->pmove.origin[2]) > 256*8)
+	if ( fabs(ops->pmove.origin[0] - ps->pmove.origin[0]) > 256*SV_COORD_FRAC
+		|| abs(ops->pmove.origin[1] - ps->pmove.origin[1]) > 256*SV_COORD_FRAC
+		|| abs(ops->pmove.origin[2] - ps->pmove.origin[2]) > 256*SV_COORD_FRAC)
 		ops = ps;		// don't interpolate
 
 	ent = &cl_entities[cl.playernum+1];
@@ -1187,9 +1186,9 @@ void CL_CalcViewValues (void)
 	else
 	{	// just use interpolated values
 		for (i=0 ; i<3 ; i++)
-			cl.refdef.vieworg[i] = ops->pmove.origin[i]*0.125 + ops->viewoffset[i] 
-				+ lerp * (ps->pmove.origin[i]*0.125 + ps->viewoffset[i] 
-				- (ops->pmove.origin[i]*0.125 + ops->viewoffset[i]) );
+			cl.refdef.vieworg[i] = ops->pmove.origin[i]*CL_COORD_FRAC + ops->viewoffset[i] 
+				+ lerp * (ps->pmove.origin[i]*CL_COORD_FRAC + ps->viewoffset[i] 
+				- (ops->pmove.origin[i]*CL_COORD_FRAC + ops->viewoffset[i]) );
 	}
 
 	// if not running a demo or on a locked frame, add the local angle movement

@@ -40,9 +40,9 @@ void SV_PutClientInServer (edict_t *ent)
 	memset (&ent->priv.sv->client->ps, 0, sizeof(client->ps));
 
 	// info_player_start
-	client->ps.pmove.origin[0] = ent->progs.sv->origin[0] * 8;
-	client->ps.pmove.origin[1] = ent->progs.sv->origin[1] * 8;
-	client->ps.pmove.origin[2] = ent->progs.sv->origin[2] * 8;
+	client->ps.pmove.origin[0] = ent->progs.sv->origin[0] * SV_COORD_FRAC;
+	client->ps.pmove.origin[1] = ent->progs.sv->origin[1] * SV_COORD_FRAC;
+	client->ps.pmove.origin[2] = ent->progs.sv->origin[2] * SV_COORD_FRAC;
 
 	client->ps.fov = 90;
 
@@ -277,7 +277,7 @@ void SV_CalcViewOffset (edict_t *ent)
 	// base angles
 	angles = ent->priv.sv->client->ps.kick_angles;
 
-
+	VectorCopy(ent->progs.sv->punchangle, angles);
 	// add angles based on velocity
 	delta = DotProduct (ent->progs.sv->velocity, forward);
 	angles[PITCH] += delta * 0.002;
@@ -341,8 +341,8 @@ void ClientEndServerFrame (edict_t *ent)
 	//
 	for (i = 0; i < 3; i++)
 	{
-		current_client->ps.pmove.origin[i] = ent->progs.sv->origin[i]*8.0;
-		current_client->ps.pmove.velocity[i] = ent->progs.sv->velocity[i]*8.0;
+		current_client->ps.pmove.origin[i] = ent->progs.sv->origin[i]*SV_COORD_FRAC;
+		current_client->ps.pmove.velocity[i] = ent->progs.sv->velocity[i]*SV_COORD_FRAC;
 	}
 
 	AngleVectors (ent->priv.sv->client->v_angle, forward, right, up);
@@ -351,12 +351,14 @@ void ClientEndServerFrame (edict_t *ent)
 	// set model angles from view angles so other things in
 	// the world can tell which direction you are looking
 	//
-	if (ent->priv.sv->client->v_angle[PITCH] > 180) ent->progs.sv->angles[PITCH] = (-360 + ent->priv.sv->client->v_angle[PITCH])/3;
+	if (ent->priv.sv->client->v_angle[PITCH] > 180) 
+		ent->progs.sv->angles[PITCH] = (-360 + ent->priv.sv->client->v_angle[PITCH])/3;
 	else ent->progs.sv->angles[PITCH] = ent->priv.sv->client->v_angle[PITCH]/3;
 
 	ent->progs.sv->angles[YAW] = ent->priv.sv->client->v_angle[YAW];
 	ent->progs.sv->angles[ROLL] = 0;
 	ent->progs.sv->angles[ROLL] = SV_CalcRoll (ent->progs.sv->angles, ent->progs.sv->velocity)*4;
+	ent->priv.sv->client->ps.pmove.pm_time = ent->progs.sv->teleport_time * 1000; //in msecs
 
 	//
 	// calculate speed and cycle to be used for
@@ -369,11 +371,11 @@ void ClientEndServerFrame (edict_t *ent)
 		bobmove = 0;
 		current_client->bobtime = 0;	// start at beginning of cycle again
 	}
-	else
+	else if (ent->progs.sv->groundentity)
 	{	
 		// so bobbing only cycles when on ground
 		if (xyspeed > 210) bobmove = 0.25;
-		else if (xyspeed > 100) bobmove = 0.125;
+		else if (xyspeed > 100) bobmove = CL_COORD_FRAC;
 		else bobmove = 0.0625;
 	}
 	
@@ -392,6 +394,11 @@ void ClientEndServerFrame (edict_t *ent)
 	SV_CalcGunOffset (ent);
 
 	SV_SetStats( ent );
+
+	// if the scoreboard is up, update it
+	if (!(sv.framenum & 31))
+	{
+	}
 }
 
 /*
@@ -402,16 +409,13 @@ ClientEndServerFrames
 void ClientEndServerFrames (void)
 {
 	int		i;
-	edict_t		*ent;
 
 	// calc the player views now that all pushing
 	// and damage has been added
 	for (i = 0; i < maxclients->value; i++)
 	{
-		ent = PRVM_EDICT_NUM(i);
-		if (ent->priv.sv->free || !ent->priv.sv->client)
-			continue;
-		ClientEndServerFrame (ent);
+		if(svs.clients[i].state != cs_spawned) continue;
+		ClientEndServerFrame (svs.clients[i].edict);
 	}
 }
 
@@ -577,8 +581,8 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 
 	for (i = 0; i < 3; i++)
 	{
-		pm.s.origin[i] = ent->progs.sv->origin[i]*8;
-		pm.s.velocity[i] = ent->progs.sv->velocity[i]*8;
+		pm.s.origin[i] = ent->progs.sv->origin[i]*SV_COORD_FRAC;
+		pm.s.velocity[i] = ent->progs.sv->velocity[i]*SV_COORD_FRAC;
 	}
 
 	if (memcmp(&client->old_pmove, &pm.s, sizeof(pm.s)))
@@ -598,11 +602,13 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 
 	for (i = 0; i < 3; i++)
 	{
-		ent->progs.sv->origin[i] = pm.s.origin[i]*0.125;
-		ent->progs.sv->velocity[i] = pm.s.velocity[i]*0.125;
+		ent->progs.sv->origin[i] = pm.s.origin[i]*CL_COORD_FRAC;
+		ent->progs.sv->velocity[i] = pm.s.velocity[i]*CL_COORD_FRAC;
 	}
 	VectorCopy (pm.mins, ent->progs.sv->mins);
 	VectorCopy (pm.maxs, ent->progs.sv->maxs);
+	VectorCopy (pm.viewangles, client->v_angle);
+	VectorCopy (pm.viewangles, client->ps.viewangles);
 
 	SV_LinkEdict(ent);
 

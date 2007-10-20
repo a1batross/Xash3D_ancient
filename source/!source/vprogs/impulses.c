@@ -28,8 +28,8 @@ void() CheckImpulses =
 
 	if(pev->impulse == 150)
 	{
-		IEM_effects(TE_TELEPORT, pev->origin);
+		set_effect( pev, EV_PLAYER_TELEPORT );
 	}
 
-	pev->impulse = 0;                              // Clear impulse list.
+	pev->impulse = 0; // Clear impulse list.
 };

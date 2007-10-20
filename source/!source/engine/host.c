@@ -25,7 +25,6 @@ dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, COM
 
 cvar_t	*timescale;
 cvar_t	*fixedtime;
-cvar_t	*showtrace;
 
 void Host_InitCommon( char *funcname, int argc, char **argv )
 {
@@ -122,11 +121,9 @@ void Host_Init (char *funcname, int argc, char **argv)
 	Cmd_AddCommand ("error", Host_Error_f);
 
 	host_speeds = Cvar_Get ("host_speeds", "0", 0);
-	log_stats = Cvar_Get ("log_stats", "0", 0);
 	developer = Cvar_Get ("developer", "0", 0);
 	timescale = Cvar_Get ("timescale", "1", 0);
 	fixedtime = Cvar_Get ("fixedtime", "0", 0);
-	showtrace = Cvar_Get ("showtrace", "0", 0);
 	if(host.type == HOST_DEDICATED) dedicated = Cvar_Get ("dedicated", "1", CVAR_NOSET);
 	else dedicated = Cvar_Get ("dedicated", "0", CVAR_NOSET);
 
@@ -168,42 +165,6 @@ void Host_Frame (double time)
 	static double	time_before, time_between, time_after;
 
 	if (setjmp(host.abortframe)) return;
-
-	if ( log_stats->modified )
-	{
-		log_stats->modified = false;
-		if ( log_stats->value )
-		{
-			if ( log_stats_file )
-			{
-				FS_Close( log_stats_file );
-				log_stats_file = 0;
-			}
-			log_stats_file = FS_Open( "stats.log", "w" );
-			if ( log_stats_file )
-				FS_Printf( log_stats_file, "entities,dlights,parts,frame time\n" );
-		}
-		else
-		{
-			if ( log_stats_file )
-			{
-				FS_Close( log_stats_file );
-				log_stats_file = 0;
-			}
-		}
-	}
-
-	if (showtrace->value)
-	{
-		extern	int c_traces, c_brush_traces;
-		extern	int	c_pointcontents;
-
-		Msg ("%4i traces  %4i points\n", c_traces, c_pointcontents);
-		c_traces = 0;
-		c_brush_traces = 0;
-		c_pointcontents = 0;
-	}
-
 
 	rand(); // keep the random time dependent
 

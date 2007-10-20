@@ -110,11 +110,8 @@ int		floodvalid;
 
 byte	portalopen[MAX_MAP_AREAPORTALS];
 
-
 cvar_t		*map_noareas;
 
-int		c_pointcontents;
-int		c_traces, c_brush_traces;
 
 
 /*
@@ -776,9 +773,6 @@ int CM_PointLeafnum_r (vec3_t p, int num)
 		else
 			num = node->children[0];
 	}
-
-	c_pointcontents++;		// optimize counter
-
 	return -1 - num;
 }
 
@@ -963,8 +957,6 @@ void CM_ClipBoxToBrush (vec3_t mins, vec3_t maxs, vec3_t p1, vec3_t p2,
 
 	if (!brush->numsides)
 		return;
-
-	c_brush_traces++;
 
 	getout = false;
 	startout = false;
@@ -1312,8 +1304,6 @@ trace_t		CM_BoxTrace (vec3_t start, vec3_t end,
 	int		i;
 
 	checkcount++;		// for multi-check avoidance
-
-	c_traces++;			// for statistics, may be zeroed
 
 	// fill in a default trace
 	memset (&trace_trace, 0, sizeof(trace_trace));

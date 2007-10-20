@@ -123,13 +123,12 @@ Precaches for the game.
 
 void() precaches =
 {
- precache_model ("models/player.mdl");
- precache_model("progs/s_bubble.spr");
- precache_model("progs/eyes.mdl");
+	precache_model ("models/player.mdl");
+	precache_model("models/supp1.mdl");
 
 	// pain sounds
 	precache_sound ("player/drown1.wav");    // drowning pain
-    precache_sound ("player/drown2.wav");    // drowning pain
+	precache_sound ("player/drown2.wav");    // drowning pain
     precache_sound ("player/lburn1.wav");    // slime/lava burn
     precache_sound ("player/lburn2.wav");    // slime/lava burn
     precache_sound ("player/pain1.wav");

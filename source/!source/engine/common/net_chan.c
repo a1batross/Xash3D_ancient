@@ -213,11 +213,11 @@ A 0 length will still generate a packet and deal with the reliable messages.
 void Netchan_Transmit (netchan_t *chan, int length, byte *data)
 {
 	sizebuf_t	send;
-	byte		send_buf[MAX_MSGLEN];
+	byte	send_buf[MAX_MSGLEN];
 	bool	send_reliable;
-	unsigned	w1, w2;
+	uint	w1, w2;
 
-// check for message overflow
+	// check for message overflow
 	if (chan->message.overflowed)
 	{
 		chan->fatal_error = true;
@@ -237,7 +237,7 @@ void Netchan_Transmit (netchan_t *chan, int length, byte *data)
 	}
 
 
-// write the packet header
+	// write the packet header
 	SZ_Init (&send, send_buf, sizeof(send_buf));
 
 	w1 = ( chan->outgoing_sequence & ~(1<<31) ) | (send_reliable<<31);
@@ -260,7 +260,7 @@ void Netchan_Transmit (netchan_t *chan, int length, byte *data)
 	}
 	
 	// add the unreliable part if space is available
-	if (send.maxsize - send.cursize >= length)
+	if (send.maxsize - send.cursize >= length) 
 		SZ_Write (&send, data, length);
 	else MsgWarn("Netchan_Transmit: dumped unreliable\n");
 
@@ -295,11 +295,11 @@ modifies net_message so that it points to the packet payload
 */
 bool Netchan_Process (netchan_t *chan, sizebuf_t *msg)
 {
-	unsigned	sequence, sequence_ack;
-	unsigned	reliable_ack, reliable_message;
-	int			qport;
+	uint	sequence, sequence_ack;
+	uint	reliable_ack, reliable_message;
+	int	qport;
 
-// get sequence numbers		
+	// get sequence numbers		
 	MSG_BeginReading (msg);
 	sequence = MSG_ReadLong (msg);
 	sequence_ack = MSG_ReadLong (msg);
@@ -331,9 +331,7 @@ bool Netchan_Process (netchan_t *chan, sizebuf_t *msg)
 				, reliable_ack);
 	}
 
-//
-// discard stale or duplicated packets
-//
+	// discard stale or duplicated packets
 	if (sequence <= chan->incoming_sequence)
 	{
 		if (showdrop->value)
@@ -344,9 +342,7 @@ bool Netchan_Process (netchan_t *chan, sizebuf_t *msg)
 		return false;
 	}
 
-//
-// dropped packets don't keep the message from being used
-//
+	// dropped packets don't keep the message from being used
 	chan->dropped = sequence - (chan->incoming_sequence+1);
 	if (chan->dropped > 0)
 	{

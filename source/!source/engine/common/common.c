@@ -27,10 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 int	com_argc;
 char	*com_argv[MAX_NUM_ARGVS+1];
 
-file_t	*log_stats_file;
-
 cvar_t	*host_speeds;
-cvar_t	*log_stats;
 cvar_t	*developer;
 cvar_t	*dedicated;
 

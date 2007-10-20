@@ -65,13 +65,3 @@ void() IEM_usetarget =
 	
 	}
 };
-
-void(float effect_type, vector effect_org) IEM_effects =
-{
-	MsgBegin(SVC_TEMP_ENTITY);
-		WriteByte(effect_type);
-		WriteCoord(effect_org_x);
-		WriteCoord(effect_org_y);
-		WriteCoord(effect_org_z);
-	MsgEnd( MSG_BROADCAST, effect_org, pev );
-};

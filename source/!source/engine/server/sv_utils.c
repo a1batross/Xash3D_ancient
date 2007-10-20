@@ -437,6 +437,14 @@ void PF_sound (void)
 	SV_StartSound (NULL, entity, channel, sound_idx, volume / 255.0f, attenuation, 0 );
 }
 
+void PF_event( void )
+{
+	edict_t	*ent = PRVM_G_EDICT(OFS_PARM0);
+
+	// event effects
+	ent->priv.sv->event = (int)PRVM_G_FLOAT(OFS_PARM1);
+}
+
 /*
 =================
 PF_ambientsound
@@ -1298,7 +1306,7 @@ PF_setstats,				// #104 void setstats(entity e, float f, string stats)
 PF_configstring,				// #105 void configstring(float num, string s)
 PF_makestatic,				// #106 void makestatic(entity e)
 PF_modelframes,				// #107 float model_frames(float modelindex)
-NULL,					// #108
+PF_event,					// #108 void set_effect( entity e, float effect )
 NULL,					// #109
 NULL,					// #110
 NULL,					// #111

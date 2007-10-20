@@ -170,40 +170,22 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 	if (ps->pmove.pm_type != ops->pmove.pm_type)
 		pflags |= PS_M_TYPE;
 
-	if (ps->pmove.origin[0] != ops->pmove.origin[0]
-		|| ps->pmove.origin[1] != ops->pmove.origin[1]
-		|| ps->pmove.origin[2] != ops->pmove.origin[2] )
-		pflags |= PS_M_ORIGIN;
+	if(!VectorICompare(ps->pmove.origin, ops->pmove.origin)) pflags |= PS_M_ORIGIN;
+	if(!VectorICompare(ps->pmove.velocity, ops->pmove.velocity)) pflags |= PS_M_VELOCITY;
+	if (ps->pmove.pm_time != ops->pmove.pm_time) pflags |= PS_M_TIME;
+	if (ps->pmove.pm_flags != ops->pmove.pm_flags) pflags |= PS_M_FLAGS;
+	if (ps->pmove.gravity != ops->pmove.gravity) pflags |= PS_M_GRAVITY;
 
-	if (ps->pmove.velocity[0] != ops->pmove.velocity[0]
-		|| ps->pmove.velocity[1] != ops->pmove.velocity[1]
-		|| ps->pmove.velocity[2] != ops->pmove.velocity[2] )
-		pflags |= PS_M_VELOCITY;
-
-	if (ps->pmove.pm_time != ops->pmove.pm_time)
-		pflags |= PS_M_TIME;
-
-	if (ps->pmove.pm_flags != ops->pmove.pm_flags)
-		pflags |= PS_M_FLAGS;
-
-	if (ps->pmove.gravity != ops->pmove.gravity)
-		pflags |= PS_M_GRAVITY;
-
-	if (ps->pmove.delta_angles[0] != ops->pmove.delta_angles[0]
-		|| ps->pmove.delta_angles[1] != ops->pmove.delta_angles[1]
-		|| ps->pmove.delta_angles[2] != ops->pmove.delta_angles[2] )
+	if(!VectorICompare(ps->pmove.delta_angles, ops->pmove.delta_angles))
+	{
+		Msg("update delta angles\n");
 		pflags |= PS_M_DELTA_ANGLES;
+	}
 
-
-	if (ps->viewoffset[0] != ops->viewoffset[0]
-		|| ps->viewoffset[1] != ops->viewoffset[1]
-		|| ps->viewoffset[2] != ops->viewoffset[2] )
+	if(!VectorCompare(ps->viewoffset, ops->viewoffset))
 		pflags |= PS_VIEWOFFSET;
 
-	if (ps->viewangles[0] != ops->viewangles[0]
-		|| ps->viewangles[1] != ops->viewangles[1]
-		|| ps->viewangles[2] != ops->viewangles[2] )
-		pflags |= PS_VIEWANGLES;
+	if(!VectorCompare(ps->viewangles, ops->viewangles)) pflags |= PS_VIEWANGLES;
 
 	if (ps->kick_angles[0] != ops->kick_angles[0]
 		|| ps->kick_angles[1] != ops->kick_angles[1]
@@ -216,29 +198,16 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 		|| ps->blend[3] != ops->blend[3] )
 		pflags |= PS_BLEND;
 
-	if (ps->fov != ops->fov)
-		pflags |= PS_FOV;
-
-	if (ps->rdflags != ops->rdflags)
-		pflags |= PS_RDFLAGS;
-
-	if (ps->gunframe != ops->gunframe)
-		pflags |= PS_WEAPONFRAME;
-
-	if (ps->sequence != ops->sequence)
-		pflags |= PS_WEAPONSEQUENCE;
-
-	if (ps->gunbody != ops->gunbody)
-		pflags |= PS_WEAPONBODY;
-
-	if (ps->gunskin != ops->gunskin)
-		pflags |= PS_WEAPONSKIN;
+	if (ps->fov != ops->fov) pflags |= PS_FOV;
+	if (ps->rdflags != ops->rdflags) pflags |= PS_RDFLAGS;
+	if (ps->gunframe != ops->gunframe) pflags |= PS_WEAPONFRAME;
+	if (ps->sequence != ops->sequence) pflags |= PS_WEAPONSEQUENCE;
+	if (ps->gunbody != ops->gunbody) pflags |= PS_WEAPONBODY;
+	if (ps->gunskin != ops->gunskin) pflags |= PS_WEAPONSKIN;
 
 	pflags |= PS_WEAPONINDEX;
 
-	//
 	// write it
-	//
 	MSG_WriteByte (msg, svc_playerinfo);
 	MSG_WriteLong (msg, pflags);
 
@@ -434,8 +403,8 @@ void SV_FatPVS (vec3_t org)
 
 	for (i = 0; i < 3; i++)
 	{
-		mins[i] = org[i] - 8;
-		maxs[i] = org[i] + 8;
+		mins[i] = org[i] - SV_COORD_FRAC;
+		maxs[i] = org[i] + SV_COORD_FRAC;
 	}
 
 	count = CM_BoxLeafnums (mins, maxs, leafs, 64, NULL);
@@ -495,7 +464,7 @@ void SV_BuildClientFrame (client_t *client)
 
 	// find the client's PVS
 	for (i = 0; i < 3; i++)
-		org[i] = clent->priv.sv->client->ps.pmove.origin[i]*0.125 + clent->priv.sv->client->ps.viewoffset[i];
+		org[i] = clent->priv.sv->client->ps.pmove.origin[i]*CL_COORD_FRAC + clent->priv.sv->client->ps.viewoffset[i];
 
 	leafnum = CM_PointLeafnum (org);
 	clientarea = CM_LeafArea (leafnum);
@@ -615,15 +584,14 @@ Used for recording footage for merged or assembled demos
 */
 void SV_RecordDemoMessage (void)
 {
-	int			e;
+	int		e;
 	edict_t		*ent;
 	entity_state_t	nostate;
 	sizebuf_t	buf;
 	byte		buf_data[32768];
-	int			len;
+	int		len;
 
-	if (!svs.demofile)
-		return;
+	if (!svs.demofile) return;
 
 	memset (&nostate, 0, sizeof(nostate));
 	SZ_Init (&buf, buf_data, sizeof(buf_data));
@@ -631,7 +599,6 @@ void SV_RecordDemoMessage (void)
 	// write a frame message that doesn't contain a player_state_t
 	MSG_WriteByte (&buf, svc_frame);
 	MSG_WriteLong (&buf, sv.framenum);
-
 	MSG_WriteByte (&buf, svc_packetentities);
 
 	e = 1;
@@ -639,10 +606,11 @@ void SV_RecordDemoMessage (void)
 	while (e < prog->num_edicts) 
 	{
 		// ignore ents without visible models unless they have an effect
-		if (!ent->priv.sv->free && ent->priv.sv->serialnumber && 
-			(ent->priv.sv->s.modelindex || ent->progs.sv->effects || ent->progs.sv->noise3 || ent->priv.sv->event))
+		if (!ent->priv.sv->free && ent->priv.sv->serialnumber && (ent->priv.sv->s.modelindex || ent->progs.sv->effects || ent->progs.sv->noise3 || ent->priv.sv->event))
+		{
+			SV_UpdateEntityState( ent );
 			MSG_WriteDeltaEntity (&nostate, &ent->priv.sv->s, &buf, false, true);
-
+		}
 		e++;
 		ent = PRVM_EDICT_NUM(e);
 	}

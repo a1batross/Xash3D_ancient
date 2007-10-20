@@ -59,15 +59,16 @@ void() trigger_teleport_think =
 	t = find (world, targetname, pev->target);
 	
 	if (!t) Error("couldn't find target\n");
-	
-	IEM_effects(TE_TELEPORT, pev->triggerer.origin);
+
+	set_effect( t, EV_OTHER_TELEPORT );
 	
 	spawn_tdeath(t.origin, pev->triggerer);
 
 	setorigin(pev->triggerer, t.origin);
 	setangles(pev->triggerer, t);
+	pev->triggerer->teleport_time = 0.014;
 
-	IEM_effects(TE_TELEPORT, t.origin);
+	set_effect( pev->triggerer, EV_PLAYER_TELEPORT );
 	
 	if(pev->message)
 		centerprint(pev->triggerer, pev->message);

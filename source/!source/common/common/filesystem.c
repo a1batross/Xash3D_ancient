@@ -1105,8 +1105,7 @@ void FS_LoadGameInfo( const char *filename )
 
 	// create default gameinfo
 	if(!FS_FileExists( filename )) FS_CreateGameInfo( filename );
-
-	//now we have use search path and can load gameinfo.txt
+	// now we have use search path and can load gameinfo.txt
 	load = FS_LoadScript( filename, NULL, 0 );
 	
 	while( load )
@@ -1181,19 +1180,25 @@ void FS_Init( int argc, char **argv )
 	// checked nasty path
 	if(FS_CheckNastyPath(gs_basedir, true ) || !stricmp("bin", gs_basedir )) // "bin" it's a reserved word
 	{
-		Msg("FS_Init: invalid game directory \"%s\". Reset to default.\n", gs_basedir );		
+		MsgWarn("FS_Init: invalid game directory \"%s\". Use default gamedir \"xash\".\n", gs_basedir );		
 		strcpy(gs_basedir, "xash" );//default dir
 	}
 	
-	//validate directories
+	// validate directories
 	for (i = 0; i < dirs.numstrings; i++)
 	{
 		if(!stricmp(gs_basedir, dirs.strings[i]))
 		break;
 	}
 
-	if(i == dirs.numstrings) strcpy(gs_basedir, "xash" );//default dir
+	if(i == dirs.numstrings)
+	{ 
+		MsgWarn("FS_Init: game directory \"%s\" not exist. Use default gamedir \"xash\".\n", gs_basedir );		
+		strcpy(gs_basedir, "xash" );//default dir
+	}
+
 	stringlistfreecontents(&dirs);
+	MsgDev(D_INFO, "FS_Init: done\n");
 }
 
 void FS_InitRootDir( char *path )

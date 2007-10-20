@@ -421,7 +421,7 @@ gotnewcl:
 	newcl->state = cs_connected;
 	
 	SZ_Init (&newcl->datagram, newcl->datagram_buf, sizeof(newcl->datagram_buf) );
-	newcl->lastmessage = svs.realtime;	// don't timeout
+	newcl->lastmessage = svs.realtime; // don't timeout
 	newcl->lastconnect = svs.realtime;
 }
 
@@ -615,33 +615,28 @@ void SV_ReadPackets (void)
 		qport = MSG_ReadShort (&net_message) & 0xffff;
 
 		// check for packets from connected clients
-		for (i=0, cl=svs.clients ; i<maxclients->value ; i++,cl++)
+		for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
 		{
-			if (cl->state == cs_free)
-				continue;
-			if (!NET_CompareBaseAdr (net_from, cl->netchan.remote_address))
-				continue;
-			if (cl->netchan.qport != qport)
-				continue;
+			if (cl->state == cs_free) continue;
+			if (!NET_CompareBaseAdr (net_from, cl->netchan.remote_address)) continue;
+			if (cl->netchan.qport != qport) continue;
 			if (cl->netchan.remote_address.port != net_from.port)
 			{
-				Msg ("SV_ReadPackets: fixing up a translated port\n");
+				MsgDev(D_INFO, "SV_ReadPackets: fixing up a translated port\n");
 				cl->netchan.remote_address.port = net_from.port;
 			}
-
 			if (Netchan_Process(&cl->netchan, &net_message))
-			{	// this is a valid, sequenced packet, so process it
+			{	
+				// this is a valid, sequenced packet, so process it
 				if (cl->state != cs_zombie)
 				{
-					cl->lastmessage = svs.realtime;	// don't timeout
+					cl->lastmessage = svs.realtime; // don't timeout
 					SV_ExecuteClientMessage (cl);
 				}
 			}
 			break;
 		}
-		
-		if (i != maxclients->value)
-			continue;
+		if (i != maxclients->value) continue;
 	}
 }
 
@@ -727,7 +722,7 @@ void SV_RunGameFrame (void)
 	// compression can get confused when a client
 	// has the "current" frame
 	sv.framenum++;
-	sv.frametime = 0.001f;//1000 fps
+	sv.frametime = 0.1f;//1000 fps
 	sv.time = sv.framenum * sv.frametime;
 
 	// don't run if paused

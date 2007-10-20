@@ -370,7 +370,7 @@ void NET_SendLoopPacket (netsrc_t sock, int length, void *data, netadr_t to)
 	i = loop->send & (MAX_LOOPBACK-1);
 	loop->send++;
 
-	memcpy (loop->msgs[i].data, data, length);
+	Mem_Copy(loop->msgs[i].data, data, length);
 	loop->msgs[i].datalen = length;
 }
 
@@ -490,7 +490,7 @@ void NET_SendPacket (netsrc_t sock, int length, void *data, netadr_t to)
 		if ((err == WSAEADDRNOTAVAIL) && ((to.type == NA_BROADCAST) || (to.type == NA_BROADCAST_IPX)))
 			return;
 
-		if (dedicated->value)	// let dedicated servers continue after errors
+		if (dedicated->value) // let dedicated servers continue after errors
 		{
 			Msg ("NET_SendPacket ERROR: %s to %s\n", NET_ErrorString(), NET_AdrToString (to));
 		}
