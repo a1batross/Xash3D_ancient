@@ -1536,8 +1536,13 @@ rgbdata_t *ImagePack( void )
 {
 	rgbdata_t *pack = Mem_Alloc( imagepool, sizeof(rgbdata_t));
 
-	if(image_cubemap && cubemap_num_sides != 6) // this neved be happens, just in case
-		Sys_Error("ImagePack: inconsistent cubemap pack %d\n", cubemap_num_sides );
+	if(image_cubemap && cubemap_num_sides != 6)
+	{
+		// this neved be happens, just in case
+		MsgWarn("ImagePack: inconsistent cubemap pack %d\n", cubemap_num_sides );
+		FS_FreeImage( pack );
+		return NULL;
+	}
 
 	if(image_cubemap) 
 	{
@@ -1546,6 +1551,7 @@ rgbdata_t *ImagePack( void )
 		pack->width = cubemap_width;
 		pack->height = cubemap_height;
 		pack->type = cubemap_image_type;
+		pack->size = image_size * cubemap_num_sides;
 	}
 	else 
 	{
@@ -1553,6 +1559,7 @@ rgbdata_t *ImagePack( void )
 		pack->width = image_width;
 		pack->height = image_height;
 		pack->type = image_type;
+		pack->size = image_size;
 	}
 
 	pack->numLayers = image_num_layers;
@@ -1581,7 +1588,9 @@ bool FS_AddImageToPack( const char *name )
 	if(image_type != cubemap_image_type) return false;
 
 	// resampling image if needed
-	resampled = Image_Resample((uint *)image_rgba, image_width, image_height, cubemap_width, cubemap_height);
+	resampled = Image_Resample((uint *)image_rgba, image_width, image_height, cubemap_width, cubemap_height, cubemap_image_type );
+	if(!resampled) return false; // try to reasmple dxt?
+
 	if(resampled != image_rgba) 
 	{
 		MsgDev(D_LOAD, "FS_AddImageToPack: resample %s from [%dx%d] to [%dx%d]\n", name, image_width, image_height, cubemap_width, cubemap_height );  

@@ -320,10 +320,11 @@ print into cmd32 console
 */
 void Sys_PrintA(const char *pMsg)
 {
-	Sys_PrintLog( pMsg );
+	DWORD	cbWritten;
 
-	fprintf(stdout, pMsg );
-	fflush(stdout); // refresh message
+	Sys_PrintLog( pMsg );
+	WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), pMsg, strlen(pMsg), &cbWritten, 0 );
+	//write(1, pMsg, strlen(pMsg));
 }
 
 /*
@@ -661,6 +662,7 @@ void Sys_WaitForQuit( void )
 long WINAPI Sys_ExecptionFilter( PEXCEPTION_POINTERS pExceptionInfo )
 {
 	// save config
+	Sys_Print("Engine crashed\n");
 	Host_Free(); // prepare host to close
 	Sys_FreeLibrary( linked_dll );
 	Sys_FreeConsole();	

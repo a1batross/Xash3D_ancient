@@ -31,6 +31,7 @@ typedef enum
 	BSPLIB,		// "bsplib"
 	IMGLIB,		// "imglib"
 	QCCLIB,		// "qcclib"
+	ROQLIB,		// "roqlib"
 	SPRITE,		// "sprite"
 	STUDIO,		// "studio"
 	CREDITS,		// "splash"
@@ -50,7 +51,7 @@ byte		*mempool;		// generic mempoolptr
 ==================
 Parse program name to launch and determine work style
 
-NOTE: at this day we have ten instances
+NOTE: at this day we have eleven instances
 
 1. "host_shared" - normal game launch
 2. "host_dedicated" - dedicated server
@@ -58,10 +59,11 @@ NOTE: at this day we have ten instances
 4. "bsplib" - three BSP compilers in one
 5. "imglib" - convert old formats (mip, pcx, lmp) to 32-bit tga
 6. "qcclib" - quake c complier
-7. "sprite" - sprite creator (requires qc. script)
-8. "studio" - Half-Life style models creator (requires qc. script) 
-9. "credits" - display credits of engine developers
-10. "host_setup" - write current path into registry (silently)
+7. "roqlib" - roq video file maker
+8. "sprite" - sprite creator (requires qc. script)
+9. "studio" - Half-Life style models creator (requires qc. script) 
+10. "credits" - display credits of engine developers
+11. "host_setup" - write current path into registry (silently)
 
 This list will be expnaded in future
 ==================
@@ -120,6 +122,13 @@ void LookupInstance( const char *funcname )
 		linked_dll = &common_dll;	// pointer to common.dll info
 		sprintf(log_path, "%s/compile.log", sys_rootdir ); // same as .exe file
 		strcpy(caption, "Xash3D QuakeC Compiler");
+	}
+	else if(!strcmp(progname, "roqlib"))
+	{
+		app_name = ROQLIB;
+		linked_dll = &common_dll;	// pointer to common.dll info
+		sprintf(log_path, "%s/roq.log", sys_rootdir ); // same as .exe file
+		strcpy(caption, "Xash3D ROQ Video Maker");
 	}
 	else if(!strcmp(progname, "sprite"))
 	{
@@ -187,7 +196,7 @@ so do it manually
 */
 void CommonInit ( char *funcname, int argc, char **argv )
 {
-	byte bspflags = 0, qccflags = 0;
+	byte bspflags = 0, qccflags = 0, roqflags = 0;
 	char source[64], gamedir[64];
 
 	Com->Init( argc, argv );
@@ -219,6 +228,15 @@ void CommonInit ( char *funcname, int argc, char **argv )
 
 		start = Com->DoubleTime();
 		Com->Compile.PrepareDAT( gamedir, source, qccflags );	
+		break;
+	case ROQLIB:
+		if(!GetParmFromCmdLine("-dir", gamedir ))
+			strncpy(gamedir, ".", sizeof(gamedir));
+		if(!GetParmFromCmdLine("+src", source ))
+			strncpy(source, "makefile.qc", sizeof(source));
+
+		start = Com->DoubleTime();
+		Com->Compile.PrepareROQ( gamedir, source, roqflags );	
 		break;
 	case IMGLIB:
 	case SPRITE:
@@ -266,12 +284,17 @@ void CommonMain ( void )
 		strcpy(typemod, "maps" );
 		strcpy(searchmask[0], "*.map" );
 		Com->Compile.BSP(); 
-		return;
+		break;
 	case QCCLIB: 
 		strcpy(typemod, "progs" );
 		strcpy(searchmask[0], "*.src" );
-		strcpy(searchmask[1], "*.qc" );
+		strcpy(searchmask[1], "*.qc" );	// no longer used
 		Com->Compile.DAT(); 
+		break;
+	case ROQLIB:
+		strcpy(typemod, "videos" );
+		strcpy(searchmask[0], "*.qc" );
+		Com->Compile.ROQ(); 
 		break;
 	case DEFAULT:
 		strcpy(typemod, "things" );
@@ -350,6 +373,7 @@ void CreateInstance( void )
 		break;
 	case BSPLIB:
 	case QCCLIB:
+	case ROQLIB:
 	case IMGLIB:
 	case SPRITE:
 	case STUDIO:
@@ -467,7 +491,6 @@ DLLEXPORT int CreateAPI( char *funcname )
 	// control without reason
 	Host_Main(); // ok, starting host
 	Sys_Exit(); // normal quit from appilcation
-
                                                        
 	return 0;
 }

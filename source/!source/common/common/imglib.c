@@ -220,7 +220,7 @@ void Image_RoundDimensions(int *scaled_width, int *scaled_height)
 	*scaled_height = bound(1, height, 4096 );
 }
 
-byte *Image_Resample(uint *in, int inwidth, int inheight, int outwidth, int outheight)
+byte *Image_Resample(uint *in, int inwidth, int inheight, int outwidth, int outheight, int in_type )
 {
 	int		i, j;
 	uint		frac, fracstep;
@@ -228,11 +228,15 @@ byte *Image_Resample(uint *in, int inwidth, int inheight, int outwidth, int outh
 	byte		*pix1, *pix2, *pix3, *pix4;
 	uint		*out, *buf, p1[4096], p2[4096];
 
-	//check for buffers
+	// check for buffers
 	if(!in) return NULL;
+
 	// nothing to resample ?
 	if (inwidth == outwidth && inheight == outheight)
 		return (byte *)in;
+
+	// can't resample compressed formats
+	if(in_type != PF_RGBA_32) return NULL;
 
 	// malloc new buffer
 	out = buf = (uint *)Mem_Alloc( imagepool, outwidth * outheight * 4 );
@@ -279,15 +283,23 @@ bool Image_Processing( const char *name, rgbdata_t **pix )
 	int		w, h;
 	rgbdata_t		*image = *pix;
 	byte		*out;
+	char		width[4], height[4];
 
 	//check for buffers
 	if(!image || !image->buffer) return false;
 
 	w = image->width;
 	h = image->height;
-	Image_RoundDimensions( &w,&h ); //detect new size
 
-	out = Image_Resample((uint *)image->buffer, image->width, image->height, w, h );
+	if(FS_GetParmFromCmdLine("-w", width ) && FS_GetParmFromCmdLine("-h", height ))
+	{
+		// custom size
+		w = atoi(width);
+		h = atoi(height);
+	}
+	else Image_RoundDimensions( &w, &h ); //auto detect new size
+
+	out = Image_Resample((uint *)image->buffer, image->width, image->height, w, h, image->type );
 	if(out != image->buffer)
 	{
 		Msg("Resampling %s from[%d x %d] to[%d x %d]\n",name, image->width, image->height, w, h );
@@ -313,7 +325,7 @@ bool ConvertImagePixels ( byte *mempool, const char *name, byte parms )
 	w = image->width, h = image->height; 
 
 	if(FS_CheckParm("-resample"))
-		Image_Processing( name,&image );
+		Image_Processing( name, &image );
 
 	FS_SaveImage( savename, image );// save as TGA
 	FS_FreeImage( image );

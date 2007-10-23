@@ -9,6 +9,7 @@
 #include "engine.h"
 
 common_exp_t    	*Com;	// fundamental callbacks
+physic_exp_t	*Phys;
 host_parm_t	host;	// host parms
 stdlib_api_t	std;
 
@@ -22,29 +23,40 @@ void SCR_EndLoadingPlaque (void);
 
 HINSTANCE	global_hInstance;
 dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, COMMON_API_VERSION, sizeof(common_exp_t) };
+dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, true, PHYSIC_API_VERSION, sizeof(physic_exp_t) };
 
 cvar_t	*timescale;
 cvar_t	*fixedtime;
 
-void Host_InitCommon( char *funcname, int argc, char **argv )
+stdlib_api_t Host_GetStdio( bool crash_on_error )
 {
 	static stdlib_api_t		io;
-	common_t			CreateCom;         
 
-	//make callbacks
+	io.api_size = sizeof(stdlib_api_t); 
+
+	io.print = Con_Print;
 	io.printf = Msg;
 	io.dprintf = MsgDev;
 	io.wprintf = MsgWarn;
-	io.error = Sys_Error;
-	io.exit = std.exit;
-	io.print = Con_Print;
-	io.input = std.input;
-	io.sleep = std.sleep;
+	io.exit = Sys_Quit;
+	io.input = Sys_ConsoleInput;
+	io.sleep = Sys_Sleep;
+
+	if(crash_on_error) io.error = Sys_Error;
+	else io.error = Host_Error;
 
 	io.LoadLibrary = Sys_LoadLibrary;
 	io.FreeLibrary = Sys_FreeLibrary;
-          io.GetProcAddress = std.GetProcAddress;
-	
+	io.GetProcAddress = std.GetProcAddress;
+
+	return io;
+}
+
+void Host_InitCommon( char *funcname, int argc, char **argv )
+{
+	common_t		CreateCom;         
+	stdlib_api_t	io = Host_GetStdio( true );
+
 	Sys_LoadLibrary( &common_dll );
 
 	CreateCom = (void *)common_dll.main;
@@ -65,6 +77,35 @@ void Host_FreeCommon( void )
 		Com->Shutdown();
 	}
 	Sys_FreeLibrary( &common_dll );
+}
+
+void Host_InitPhysic( void )
+{
+	static physic_imp_t		pi;
+	physic_t			CreatePhys;  
+
+	pi.Fs = Com->Fs;
+	pi.VFs = Com->VFs;
+	pi.Mem = Com->Mem;
+	pi.Script = Com->Script;
+	pi.Compile = Com->Compile;
+	pi.Stdio = Host_GetStdio( false );
+
+	Sys_LoadLibrary( &physic_dll );
+
+	CreatePhys = (void *)physic_dll.main;
+	Phys = CreatePhys( &pi );
+	
+	Phys->Init();
+}
+
+void Host_FreePhysic( void )
+{
+	if(physic_dll.link)
+	{
+		Phys->Shutdown();
+	}
+	Sys_FreeLibrary( &physic_dll );
 }
 
 /*
@@ -132,8 +173,9 @@ void Host_Init (char *funcname, int argc, char **argv)
 
 	if (dedicated->value) Cmd_AddCommand ("quit", Sys_Quit);
         
-	NET_Init ();
-	Netchan_Init ();
+	NET_Init();
+	Netchan_Init();
+	Host_InitPhysic();
           
 	SV_Init();
 	CL_Init();
@@ -258,7 +300,8 @@ void Host_Free (void)
 		CL_Shutdown ();
 	}
 	NET_Shutdown();
-	Host_FreeCommon ();
+	Host_FreeCommon();
+	Host_FreePhysic();
 }
 
 /*

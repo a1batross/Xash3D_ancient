@@ -131,12 +131,12 @@ void GL_ScreenShot_f (void)
 	int		i, c, temp;
 
 	// find a file name to save it to 
-	strcpy(picname,"quake00.tga");
+	strcpy(picname,"shot00.tga");
 
 	for (i = 0; i <= 99; i++) 
 	{ 
-		picname[5] = i/10 + '0'; 
-		picname[6] = i%10 + '0'; 
+		picname[4] = i/10 + '0'; 
+		picname[5] = i%10 + '0'; 
 		sprintf (checkname, "screenshots/%s", picname);
 		if(!FS_FileExists( checkname )) break; // file doesn't exist
 	} 

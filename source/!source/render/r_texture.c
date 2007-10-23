@@ -172,12 +172,12 @@ R_GetPixelFormat
 filled additional info
 ===============
 */
-void R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
+bool R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 {
 	int	w, h, i, BlockSize;
-	size_t	file_size;
+	size_t	file_size, r_size;
 
-	if(!pic || !pic->buffer) return;
+	if(!pic || !pic->buffer) return false;
 		
 	memset( &image_desc, 0, sizeof(image_desc));
 	for(i = 0; i < PF_TOTALCOUNT; i++)
@@ -195,7 +195,6 @@ void R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 	} 		
 	if(i != PF_TOTALCOUNT) //make sure what match found
 	{
-		
 		image_desc.numLayers = pic->numLayers;
 		image_desc.width = w = pic->width;
 		image_desc.height = h = pic->height;
@@ -238,6 +237,16 @@ void R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 
 	if(w == image_desc.width && h == image_desc.height) use_gl_extension = true;
 	else use_gl_extension = false;
+
+	if(image_desc.flags & IMAGE_CUBEMAP) r_size = image_desc.SizeOfFile * 6;
+	else r_size = image_desc.SizeOfFile;
+
+	if(r_size != pic->size) // sanity check
+	{
+		MsgWarn("R_GetPixelFormat: invalid image size\n");
+		return false;
+	}	
+	return true;
 }
 
 /*
@@ -251,7 +260,7 @@ void R_GetPalette (void)
 	int	i, r, g, b;
 	byte	*pal = palette_int;
 
-	//used by particle system once only
+	// used by particle system once only
 	for (i = 0; i < 256; i++)
 	{
 		r = pal[i*3+0];

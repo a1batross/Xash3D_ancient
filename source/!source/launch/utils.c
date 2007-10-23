@@ -47,12 +47,12 @@ const char* Log_Timestamp( void )
 
 float CalcEngineVersion( void )
 {
-	return LAUNCH_VERSION + COMMON_VERSION + RENDER_VERSION + ENGINE_VERSION;
+	return LAUNCH_VERSION + COMMON_VERSION + RENDER_VERSION + PHYSIC_API_VERSION + ENGINE_VERSION;
 }
 
 float CalcEditorVersion( void )
 {
-	return LAUNCH_VERSION + COMMON_VERSION + RENDER_VERSION + EDITOR_VERSION;
+	return LAUNCH_VERSION + COMMON_VERSION + RENDER_VERSION + PHYSIC_API_VERSION + EDITOR_VERSION;
 }
 
 /*
@@ -246,7 +246,7 @@ bool Sys_LoadLibrary ( dll_info_t *dll )
 		generic_api_t *check = NULL;
 
 		// NOTE: native dlls must support null import!
-		// e.g. see platform.c for details
+		// e.g. see ..\common\platform.c for details
 		check = (void *)dll->main( NULL );
 
 		if(!check) 
@@ -256,13 +256,13 @@ bool Sys_LoadLibrary ( dll_info_t *dll )
 		}
 		if(check->apiversion != dll->apiversion)
 		{
-			sprintf(errorstring, "Sys_LoadLibrary: mismatch version (%i should be %i)\n", check->apiversion, dll->apiversion);
+			sprintf(errorstring, "Sys_LoadLibrary: \"%s\" mismatch version (%i should be %i)\n", dll->name, check->apiversion, dll->apiversion);
 			goto error;
 		}
 		else MsgDev(D_ERROR, " [%d]", check->apiversion ); 
 		if(check->api_size != dll->api_size)
 		{
-			sprintf(errorstring, "Sys_LoadLibrary: mismatch interface size (%i should be %i)\n", check->api_size, dll->api_size);
+			sprintf(errorstring, "Sys_LoadLibrary: \"%s\" mismatch interface size (%i should be %i)\n", dll->name, check->api_size, dll->api_size);
 			goto error;
 		}	
 	}

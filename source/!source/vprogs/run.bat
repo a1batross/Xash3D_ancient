@@ -1,1 +1,2 @@
-qcclib -log /O3 /V7
+qcclib -log /O3 /V7 -log
+pause

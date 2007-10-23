@@ -189,5 +189,6 @@ bool CompileSpriteModel ( byte *mempool, const char *name, byte parms );
 bool ConvertImagePixels ( byte *mempool, const char *name, byte parms );
 bool PrepareBSPModel ( const char *dir, const char *name, byte params );
 bool CompileBSPModel ( void );
-
+bool PrepareROQVideo ( const char *dir, const char *name, byte params );
+bool MakeROQ ( void );
 #endif//UTILS_H

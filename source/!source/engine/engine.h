@@ -84,6 +84,8 @@ typedef struct host_parm_s
 bool _GetParmFromCmdLine( char *parm, char *out, size_t size );
 #define GetParmFromCmdLine( parm, out ) _GetParmFromCmdLine( parm, out, sizeof(out)) 
 
+stdlib_api_t Host_GetStdio( bool crash_on_error );
+
 /*
 ===========================================
 memory manager

@@ -295,6 +295,6 @@ void Image_GetQ2Palette( void );
 void Image_GetPalettePCX( byte *pal );
 void Image_Copy8bitRGBA(const byte *in, byte *out, int pixels);
 void Image_RoundDimensions(int *scaled_width, int *scaled_height);
-byte *Image_Resample(uint *in, int inwidth, int inheight, int outwidth, int outheight);
+byte *Image_Resample(uint *in, int inwidth, int inheight, int outwidth, int outheight, int in_type);
 
 #endif//IMAGE_H

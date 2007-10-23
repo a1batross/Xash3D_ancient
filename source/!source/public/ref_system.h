@@ -10,6 +10,7 @@
 
 
 #define RENDER_API_VERSION	4
+#define PHYSIC_API_VERSION	1
 #define COMMON_API_VERSION	2
 #define LAUNCH_API_VERSION	3
 #define INIT32_API_VERSION	5	// executables entry point
@@ -397,7 +398,7 @@ typedef struct rgbdata_s
 	uint	flags;		// misc image flags
 	byte	*palette;		// palette if present
 	byte	*buffer;		// image buffer
-
+	uint	size;		// for bounds checking
 } rgbdata_t;
 
 typedef struct gameinfo_s
@@ -738,6 +739,8 @@ typedef struct compilers_api_s
 	bool (*PrepareDAT)( const char *dir, const char *name, byte params );	// compile dat in gamedir 
 	bool (*DAT)( void );
 	bool (*DecryptDAT)( int complen, int len, int method, char *info, char **buffer); //unpacking dat
+	bool (*PrepareROQ)( const char *dir, const char *name, byte params );	// compile roq in gamedir 
+	bool (*ROQ)( void );
 } compilers_api_t;
 
 /*
@@ -920,9 +923,39 @@ typedef struct render_imp_s
 
 } render_imp_t;
 
+/*
+==============================================================================
+
+PHYSIC.DLL INTERFACE
+==============================================================================
+*/
+typedef struct physic_exp_s
+{
+	// interface validator
+	int	apiversion;	// must matched with PHYSIC_API_VERSION
+	size_t	api_size;		// must matched with sizeof(physic_exp_t)
+
+	// initialize
+	bool (*Init)( void );	// init all physic systems
+	void (*Shutdown)( void );	// shutdown all render systems
+
+} physic_exp_t;
+
+typedef struct physic_imp_s
+{
+	// shared xash systems
+	filesystem_api_t	Fs;
+	vfilesystem_api_t	VFs;
+	memsystem_api_t	Mem;
+	scriptsystem_api_t	Script;
+	compilers_api_t	Compile;
+	stdlib_api_t	Stdio;
+
+} physic_imp_t;
 
 // this is the only function actually exported at the linker level
 typedef render_exp_t *(*render_t)( render_imp_t* );
+typedef physic_exp_t *(*physic_t)( physic_imp_t* );
 typedef common_exp_t *(*common_t)( stdlib_api_t* );
 typedef launch_exp_t *(*launch_t)( stdlib_api_t* );
 

@@ -8,6 +8,7 @@
 #include "bsplib.h"
 #include "mdllib.h"
 #include "qcclib.h"
+#include "roqlib.h"
 
 bool host_debug = false;
 stdlib_api_t std;

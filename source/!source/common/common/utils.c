@@ -1676,6 +1676,8 @@ compilers_api_t Comp_GetAPI( void )
 	cp.PrepareDAT = PrepareDATProgs;
 	cp.DAT = CompileDATProgs;
 	cp.DecryptDAT = PR_decode;
+	cp.PrepareROQ = PrepareROQVideo;
+	cp.ROQ = MakeROQ;
 
 	return cp;
 }

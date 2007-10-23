@@ -9,8 +9,6 @@
 #include <setjmp.h>
 #include <windows.h>
 #include <basetypes.h>
-typedef int bool;
-
 #include "image.h"
 #include "memory.h"
 #include <ref_system.h>
