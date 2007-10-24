@@ -54,7 +54,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386
-# ADD LINK32 user32.lib msvcrt.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /libpath:"../public/libs/"
+# ADD LINK32 user32.lib msvcrt.lib newton.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /libpath:"../public/libs/"
 # Begin Custom Build
 TargetDir=\XASH3D\src_main\!source\temp\physic\!release
 InputPath=\XASH3D\src_main\!source\temp\physic\!release\physic.dll
@@ -90,7 +90,8 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 user32.lib msvcrt.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"msvcrtd.lib" /pdbtype:sept /libpath:"../public/libs/"
+# ADD LINK32 user32.lib msvcrtd.lib newton.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"libc.lib" /pdbtype:sept /libpath:"../public/libs/"
+# SUBTRACT LINK32 /nodefaultlib
 # Begin Custom Build
 TargetDir=\XASH3D\src_main\!source\temp\physic\!debug
 InputPath=\XASH3D\src_main\!source\temp\physic\!debug\physic.dll
@@ -113,6 +114,10 @@ SOURCE="$(InputPath)"
 # Begin Source File
 
 SOURCE=.\physic.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\utils.c
 # End Source File
 # End Group
 # Begin Group "Header Files"

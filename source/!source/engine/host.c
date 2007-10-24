@@ -35,9 +35,9 @@ stdlib_api_t Host_GetStdio( bool crash_on_error )
 	io.api_size = sizeof(stdlib_api_t); 
 
 	io.print = Con_Print;
-	io.printf = Msg;
-	io.dprintf = MsgDev;
-	io.wprintf = MsgWarn;
+	io.printf = Con_Printf;
+	io.dprintf = Con_DPrintf;
+	io.wprintf = Con_DWarnf;
 	io.exit = Sys_Quit;
 	io.input = Sys_ConsoleInput;
 	io.sleep = Sys_Sleep;

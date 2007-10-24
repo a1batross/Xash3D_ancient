@@ -5,15 +5,22 @@
 
 #include "physic.h"
 
-physic_imp_t pi;
+physic_imp_t	pi;
+byte		*physpool;
+static NewtonWorld* gWorld;
 
 bool InitPhysics( void )
 {
+	physpool = Mem_AllocPool("Physics Pool");
+	gWorld = NewtonCreate (Palloc, Pfree); // alloc world
+
 	return true;
 }
 
 void FreePhysics( void )
 {
+	NewtonDestroy( gWorld );
+	Mem_FreePool( &physpool );
 }
 
 physic_exp_t DLLEXPORT *CreateAPI ( physic_imp_t *import )
