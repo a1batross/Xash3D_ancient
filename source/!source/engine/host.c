@@ -300,8 +300,8 @@ void Host_Free (void)
 		CL_Shutdown ();
 	}
 	NET_Shutdown();
-	Host_FreeCommon();
 	Host_FreePhysic();
+	Host_FreeCommon();
 }
 
 /*

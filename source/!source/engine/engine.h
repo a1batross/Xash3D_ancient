@@ -28,6 +28,7 @@
 
 extern stdlib_api_t		std;
 extern common_exp_t		*Com;
+extern physic_exp_t		*Phys;
 extern byte		*zonepool;
 
 typedef enum

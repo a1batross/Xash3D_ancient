@@ -63,9 +63,10 @@ BOOL GetReg( void )
 	static long(_stdcall *pRegOpenKeyEx)(HKEY,LPCSTR,DWORD,REGSAM,PHKEY);
 	static long(_stdcall *pRegQueryValueEx)(HKEY,LPCSTR,LPDWORD,LPDWORD,LPBYTE,LPDWORD);
 	static long(_stdcall *pRegCloseKey)(HKEY);
-	DWORD dwBufLen = 4096; // max env length
-	HKEY hKey;
-	long lRet;
+	DWORD	dwBufLen = 4096; // max env length
+	HKEY	hKey;
+	long	lRet;
+	bool	result = FALSE;
 
 	if(advapi32_dll)
 	{
@@ -82,14 +83,13 @@ BOOL GetReg( void )
 		lRet = pRegQueryValueEx( hKey, "Xash3D", NULL, NULL, (byte *)szFsPath, &dwBufLen);
 		if(lRet != ERROR_SUCCESS) goto failure;
 		pRegCloseKey( hKey );
+		result = TRUE;
 	}
 	else goto failure;
 
-	return TRUE;
 failure:
 	if( advapi32_dll ) FreeLibrary( advapi32_dll ); //don't forget freeing
-
-	return FALSE;
+	return result;
 }
 
 void GetLibrary ( void )

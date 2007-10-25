@@ -243,7 +243,7 @@ bool R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 
 	if(r_size != pic->size) // sanity check
 	{
-		MsgWarn("R_GetPixelFormat: invalid image size\n");
+		//MsgWarn("R_GetPixelFormat: invalid image size\n");
 		return false;
 	}	
 	return true;

@@ -8,11 +8,23 @@
 #include <stdio.h>
 #include <windows.h>
 #include <basetypes.h>
+#include <basemath.h>
 #include <ref_system.h>
+
+typedef struct NewtonBody{ int unused; } NewtonBody;
+typedef struct NewtonWorld{ int unused; } NewtonWorld;
+typedef struct NewtonJoint{ int unused; } NewtonJoint;
+typedef struct NewtonContact{ int unused; } NewtonContact;
+typedef struct NewtonMaterial{ int unused; } NewtonMaterial;
+typedef struct NewtonCollision{ int unused; } NewtonCollision;
+typedef struct NewtonRagDoll{ int unused; } NewtonRagDoll;
+typedef struct NewtonRagDollBone{ int unused; } NewtonRagDollBone;
 
 extern physic_imp_t pi;
 extern byte *physpool;
+extern NewtonWorld	*gWorld;
 long _ftol2( double dblSource );
+extern void Phys_LoadBSP( uint *buffer );
 
 /*
 ===========================================
@@ -44,15 +56,7 @@ System Events
 #define Sys_Sleep pi.Stdio.sleep
 #define Sys_Print pi.Stdio.print
 #define Sys_Quit pi.Stdio.exit
-
-typedef struct NewtonBody{ int unused; } NewtonBody;
-typedef struct NewtonWorld{ int unused; } NewtonWorld;
-typedef struct NewtonJoint{ int unused; } NewtonJoint;
-typedef struct NewtonContact{ int unused; } NewtonContact;
-typedef struct NewtonMaterial{ int unused; } NewtonMaterial;
-typedef struct NewtonCollision{ int unused; } NewtonCollision;
-typedef struct NewtonRagDoll{ int unused; } NewtonRagDoll;
-typedef struct NewtonRagDollBone{ int unused; } NewtonRagDollBone;
+#define Host_Error pi.Stdio.error
 	
 typedef struct NewtonUserMeshCollisionCollideDescTag
 {

@@ -149,7 +149,7 @@ void Sys_Init( void )
 
 	lpBuffer.dwLength = sizeof(MEMORYSTATUS);
 	vinfo.dwOSVersionInfoSize = sizeof(vinfo);
-	oldFilter = SetUnhandledExceptionFilter( Sys_ExecptionFilter );
+//oldFilter = SetUnhandledExceptionFilter( Sys_ExecptionFilter );
 	GlobalMemoryStatus (&lpBuffer);
 
 	base_hInstance = (HINSTANCE)GetModuleHandle( NULL ); // get current hInstance first
@@ -182,7 +182,9 @@ void Sys_Exit ( void )
 	Sys_FreeLibrary( linked_dll );
 
 	Sys_FreeConsole();	
-	SetUnhandledExceptionFilter( oldFilter ); // restore filter
+
+	if( oldFilter )  // restore filter	
+		SetUnhandledExceptionFilter( oldFilter );
 	exit(sys_error);
 }
 

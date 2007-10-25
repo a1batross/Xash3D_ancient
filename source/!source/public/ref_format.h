@@ -573,6 +573,12 @@ typedef struct
 ENGINE TRACE FORMAT
 ==============================================================================
 */
+#define SURF_PLANEBACK		2
+#define SURF_DRAWSKY		4
+#define SURF_DRAWTURB		0x10
+#define SURF_DRAWBACKGROUND		0x40
+#define SURF_UNDERWATER		0x80
+
 typedef struct cplane_s
 {
 	vec3_t	normal;
@@ -592,8 +598,8 @@ typedef struct cmodel_s
 	vec3_t	origin;		// for sounds or lights
 	int	headnode;		// bsp info
 
-	int	numframes;	//sprite framecount
-	void	*extradata;	//for studio models
+	int	numframes;	// sprite framecount
+	void	*extradata;	// for studio models
 } cmodel_t;
 
 typedef struct csurface_s
@@ -601,6 +607,10 @@ typedef struct csurface_s
 	char	name[16];
 	int	flags;
 	int	value;
+
+	// physics stuff
+	int	firstedge;	// look up in model->surfedges[], negative numbers
+	int	numedges;		// are backwards edges
 } csurface_t;
 
 typedef struct mapsurface_s

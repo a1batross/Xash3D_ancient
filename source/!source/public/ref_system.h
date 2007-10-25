@@ -939,6 +939,8 @@ typedef struct physic_exp_s
 	bool (*Init)( void );	// init all physic systems
 	void (*Shutdown)( void );	// shutdown all render systems
 
+	void (*LoadBSP)( uint *buf );	// generate tree collision
+
 } physic_exp_t;
 
 typedef struct physic_imp_s

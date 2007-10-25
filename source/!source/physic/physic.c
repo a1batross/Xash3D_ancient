@@ -7,7 +7,7 @@
 
 physic_imp_t	pi;
 byte		*physpool;
-static NewtonWorld* gWorld;
+NewtonWorld	*gWorld;
 
 bool InitPhysics( void )
 {
@@ -38,6 +38,7 @@ physic_exp_t DLLEXPORT *CreateAPI ( physic_imp_t *import )
 
 	Phys.Init = InitPhysics;
 	Phys.Shutdown = FreePhysics;
+	Phys.LoadBSP = Phys_LoadBSP;
 
 	return &Phys;
 }

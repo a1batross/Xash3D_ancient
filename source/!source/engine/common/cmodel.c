@@ -36,19 +36,19 @@ typedef struct
 
 typedef struct
 {
-	int			contents;
-	int			cluster;
-	int			area;
-	unsigned short	firstleafbrush;
-	unsigned short	numleafbrushes;
+	int		contents;
+	int		cluster;
+	int		area;
+	word		firstleafbrush;
+	word		numleafbrushes;
 } cleaf_t;
 
 typedef struct
 {
-	int			contents;
-	int			numsides;
-	int			firstbrushside;
-	int			checkcount;		// to avoid repeated testings
+	int		contents;
+	int		numsides;
+	int		firstbrushside;
+	int		checkcount;		// to avoid repeated testings
 } cbrush_t;
 
 typedef struct
@@ -582,6 +582,7 @@ cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum)
 	CMod_LoadVisibility (&header.lumps[LUMP_VISIBILITY]);
 	CMod_LoadEntityString (&header.lumps[LUMP_ENTITIES]);
 
+	Phys->LoadBSP( buf ); // create physics collision
 	CM_InitBoxHull ();
 
 	memset (portalopen, 0, sizeof(portalopen));
