@@ -28,10 +28,13 @@
 // edict->solid values
 typedef enum
 {
-SOLID_NOT,		// no interaction with other objects
-SOLID_TRIGGER,		// only touch when inside, after moving
-SOLID_BBOX,		// touch on edge
-SOLID_BSP			// bsp clip, touch on edge
+	SOLID_NOT,    	// no interaction with other objects
+	SOLID_TRIGGER,	// only touch when inside, after moving
+	SOLID_BBOX,	// touch on edge
+	SOLID_BSP,    	// bsp clip, touch on edge
+	SOLID_SPHERE,	// sphere
+	SOLID_CYLINDER,	// cylinder e.g. barrel
+	SOLID_MESH,	// custom convex hull
 } solid_t;
 
 // link_t is only used for entity area links now
@@ -73,6 +76,8 @@ struct sv_edict_s
 	int			serialnumber;	// unical entity #id
 	int			solid;		// see entity_state_t for details
 	int			event;		// apply sv.events too
+	NewtonBody		*physbody;	// ptr to phys body
+	NewtonCollision		*collision;	// collision callback
 
 	// baselines
 	entity_state_t		s;

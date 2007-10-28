@@ -905,8 +905,9 @@ typedef struct render_imp_s
 	char	*(*Cmd_Argv) (int i);
 	void	(*Cmd_ExecuteText) (int exec_when, char *text);
 
-	//client fundamental callbacks
-          void	(*StudioEvent)( mstudioevent_t *event, entity_t *ent );
+	// client fundamental callbacks
+	void	(*StudioEvent)( mstudioevent_t *event, entity_t *ent );
+	void	(*ShowCollision)( void );// debug
 
 	// gamedir will be the current directory that generated
 	// files should be stored to, ie: "f:\quake\id1"
@@ -940,7 +941,13 @@ typedef struct physic_exp_s
 	void (*Shutdown)( void );	// shutdown all render systems
 
 	void (*LoadBSP)( uint *buf );	// generate tree collision
+	void (*FreeBSP)( void );	// release tree collision
+	void (*ShowCollision)( void );// debug
+	void (*Frame)( float time );	// physics frame
 
+	// simple objects
+	void (*CreateBOX)( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3_t ang, NewtonCollision **newcol, NewtonBody **newbody );
+	void (*RemoveBOX)( NewtonBody *body );
 } physic_exp_t;
 
 typedef struct physic_imp_s
@@ -952,6 +959,8 @@ typedef struct physic_imp_s
 	scriptsystem_api_t	Script;
 	compilers_api_t	Compile;
 	stdlib_api_t	Stdio;
+
+	void (*Transform)( sv_edict_t *ed, vec3_t origin, vec3_t angles );
 
 } physic_imp_t;
 

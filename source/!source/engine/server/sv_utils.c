@@ -901,6 +901,17 @@ void PF_changepitch (void)
 }
 
 /*
+==============
+PF_createPhysBox
+==============
+*/
+void PF_createPhysBox( void )
+{
+	edict_t		*ent = PRVM_G_EDICT(OFS_PARM0);
+	Phys->CreateBOX( ent->priv.sv, ent->progs.sv->mins, ent->progs.sv->maxs, ent->progs.sv->origin, ent->progs.sv->angles, &ent->priv.sv->collision, &ent->priv.sv->physbody );
+}
+
+/*
 =================
 PF_findradius
 
@@ -1307,7 +1318,7 @@ PF_configstring,				// #105 void configstring(float num, string s)
 PF_makestatic,				// #106 void makestatic(entity e)
 PF_modelframes,				// #107 float model_frames(float modelindex)
 PF_event,					// #108 void set_effect( entity e, float effect )
-NULL,					// #109
+PF_createPhysBox,				// #109
 NULL,					// #110
 NULL,					// #111
 NULL,					// #112
@@ -1443,11 +1454,24 @@ it is changing to a different game directory.
 */
 void SV_ShutdownGameProgs (void)
 {
+	int	i;
+	edict_t	*ent;
+
 	Msg("==== ShutdownGame ====\n");
+	SV_VM_Begin();
+
+	for (i = 1; i < prog->num_edicts; i++)
+	{
+		ent = PRVM_EDICT_NUM(i);
+		SV_FreeEdict( ent );// release physic
+	}
+	SV_VM_End();
+
 	if(!svs.gclients) return;
 
 	Mem_Free( svs.gclients );
 	svs.gclients = NULL;
+
 }
 
 /*

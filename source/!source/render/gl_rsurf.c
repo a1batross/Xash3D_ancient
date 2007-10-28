@@ -1420,7 +1420,6 @@ void GL_BuildPolygonFromSurface(msurface_t *fa)
 		poly->verts[i][5] = s;
 		poly->verts[i][6] = t;
 	}
-
 	poly->numverts = lnumverts;
 
 }

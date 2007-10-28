@@ -143,3 +143,14 @@ void() misc_explobox =
 {	
 	barrel_spawn("Large exploding box", "models/barrel.mdl", " was blown up by an explosive box", 750);
 };
+
+void misc_physbox ( void )
+{
+	precache_model ("models/box.mdl");
+	pev->owner = pev;
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	setmodel (pev, "models/box.mdl");
+
+	phys_createbox( pev );
+}

@@ -1,5 +1,5 @@
 =======================================================================
-	Xash3D QuakeC Compiler started at Oct20 2007 [15:47:44]
+	Xash3D QuakeC Compiler started at Oct27 2007 [18:05:12]
 =======================================================================
 ------------Configuration: server - Vm16 Release------------
 Compiling...
@@ -39,8 +39,8 @@ Linking...
 Скопировано файлов:         1.
 
 server.dat - 0 error(s), 0 warning(s)
-0.452 seconds elapsed
+0.737 seconds elapsed
 
 =======================================================================
-	Xash3D QuakeC Compiler stopped at Oct20 2007 [15:47:44]
+	Xash3D QuakeC Compiler stopped at Oct27 2007 [18:05:13]
 =======================================================================

@@ -12,12 +12,8 @@
 #define SIDE_BACK		1
 #define SIDE_ON		2
 
-#define EQUAL_EPSILON	0.001
-#define STOP_EPSILON	0.1
-#define DEG2RAD( a )	( a * M_PI ) / 180.0F
-
 #ifndef M_PI
-#define M_PI		3.14159265358979323846
+#define M_PI		(float)3.14159265358979323846
 #endif
 
 // network precision coords factor
@@ -26,15 +22,28 @@
 #define SV_ANGLE_FRAC	(360.0f / 1.0f )
 #define CL_ANGLE_FRAC	(1.0f / 360.0f )
 
+#define METERS_PER_INCH	0.0254f
+#define EQUAL_EPSILON	0.001f
+#define STOP_EPSILON	0.1f
+
+#define RAD2DEG( x )	((float)(x) * (float)(180.f / M_PI))
+#define DEG2RAD( x )	((float)(x) * (float)(M_PI / 180.f))
+#define METER2INCH(x)	(float)(x * (1.0f/METERS_PER_INCH))
+#define INCH2METER(x)	(float)(x * (METERS_PER_INCH/1.0f))
+
 #define RANDOM_LONG(MIN,MAX) ((rand() & 32767) * (((MAX)-(MIN)) * (1.0f / 32767.0f)) + (MIN))
 #define RANDOM_FLOAT(MIN,MAX) (((float)rand() / RAND_MAX) * ((MAX)-(MIN)) + (MIN))
 
+#define VectorToPhysic(v) { v[0] = INCH2METER(v[0]), v[1] = INCH2METER(v[1]), v[2] = INCH2METER(v[2]); }
+#define VectorToServer(v) { v[0] = METER2INCH(v[0]), v[1] = METER2INCH(v[1]), v[2] = METER2INCH(v[2]); }
 #define DotProduct(x,y) (x[0]*y[0]+x[1]*y[1]+x[2]*y[2])
 #define VectorSubtract(a,b,c){c[0]=a[0]-b[0];c[1]=a[1]-b[1];c[2]=a[2]-b[2];}
 #define VectorAdd(a,b,c) {c[0]=a[0]+b[0];c[1]=a[1]+b[1];c[2]=a[2]+b[2];}
 #define VectorCopy(a,b) {b[0]=a[0];b[1]=a[1];b[2]=a[2];}
 #define VectorScale(in, scale, out) ((out)[0] = (in)[0] * (scale),(out)[1] = (in)[1] * (scale),(out)[2] = (in)[2] * (scale))
+#define VectorMultiply(a,b,c) ((c)[0]=(a)[0]*(b)[0],(c)[1]=(a)[1]*(b)[1],(c)[2]=(a)[2]*(b)[2])
 #define VectorSet(v, x, y, z) {v[0] = x; v[1] = y; v[2] = z;}
+#define Vector4Set(v, x, y, z, w) {v[0] = x; v[1] = y; v[2] = z; v[3] = w;}
 #define VectorClear(x) {x[0] = x[1] = x[2] = 0;}
 #define VectorNegate(x, y) {y[0] =-x[0]; y[1]=-x[1]; y[2]=-x[2];}
 #define VectorM(scale1, b1, c) ((c)[0] = (scale1) * (b1)[0],(c)[1] = (scale1) * (b1)[1],(c)[2] = (scale1) * (b1)[2])
@@ -42,6 +51,7 @@
 #define VectorMAM(scale1, b1, scale2, b2, c) ((c)[0] = (scale1) * (b1)[0] + (scale2) * (b2)[0],(c)[1] = (scale1) * (b1)[1] + (scale2) * (b2)[1],(c)[2] = (scale1) * (b1)[2] + (scale2) * (b2)[2])
 #define VectorMAMAM(scale1, b1, scale2, b2, scale3, b3, c) ((c)[0] = (scale1) * (b1)[0] + (scale2) * (b2)[0] + (scale3) * (b3)[0],(c)[1] = (scale1) * (b1)[1] + (scale2) * (b2)[1] + (scale3) * (b3)[1],(c)[2] = (scale1) * (b1)[2] + (scale2) * (b2)[2] + (scale3) * (b3)[2])
 #define VectorMAMAMAM(scale1, b1, scale2, b2, scale3, b3, scale4, b4, c) ((c)[0] = (scale1) * (b1)[0] + (scale2) * (b2)[0] + (scale3) * (b3)[0] + (scale4) * (b4)[0],(c)[1] = (scale1) * (b1)[1] + (scale2) * (b2)[1] + (scale3) * (b3)[1] + (scale4) * (b4)[1],(c)[2] = (scale1) * (b1)[2] + (scale2) * (b2)[2] + (scale3) * (b3)[2] + (scale4) * (b4)[2])
+#define MatrixLoadIdentity(mat) {Vector4Set(mat[0], 1, 0, 0, 0); Vector4Set(mat[1], 0, 1, 0, 0); Vector4Set(mat[2], 0, 0, 1, 0); Vector4Set(mat[3], 0, 0, 0, 1); }
 _inline float anglemod(const float a){return(360.0/65536) * ((int)(a*(65536/360.0)) & 65535);}
 
 _inline int nearest_pow(int size)
@@ -281,6 +291,66 @@ _inline void AngleVectorsFLU(const vec3_t angles, vec3_t forward, vec3_t left, v
 			}
 		}
 	}
+}
+
+_inline void MatrixAnglesFLU( const matrix4x4 matrix, vec3_t origin, vec3_t angles )
+{ 
+	vec3_t	forward, left, up;
+	float	xyDist;
+
+	forward[0] = matrix[0][0];
+	forward[1] = matrix[0][1];
+	forward[2] = matrix[0][2];
+	left[0] = matrix[1][0];
+	left[1] = matrix[1][1];
+	left[2] = matrix[1][2];
+	up[2] = matrix[2][2];
+
+	xyDist = sqrt( forward[0] * forward[0] + forward[1] * forward[1] );
+
+	if ( xyDist > EQUAL_EPSILON ) // enough here to get angles?
+	{
+		angles[1] = RAD2DEG( atan2( forward[1], forward[0] ) );
+		angles[0] = RAD2DEG( atan2( -forward[2], xyDist ) );
+		angles[2] = RAD2DEG( atan2( left[2], up[2] ) );
+	}
+	else
+	{
+		angles[1] = RAD2DEG( atan2( -left[0], left[1] ) );
+		angles[0] = RAD2DEG( atan2( -forward[2], xyDist ) );
+		angles[2] = 0;
+	}
+	VectorCopy(matrix[3], origin );// extract origin
+}
+
+_inline void MatrixAngles( const matrix4x4 matrix, vec3_t origin, vec3_t angles )
+{ 
+	vec3_t	forward, right, up;
+	float	xyDist;
+
+	forward[0] = matrix[0][0];
+	forward[1] = matrix[0][1];
+	forward[2] = matrix[0][2];
+	right[0] = matrix[1][0];
+	right[1] = matrix[1][1];
+	right[2] = matrix[1][2];
+	up[2] = matrix[2][2];
+	
+	xyDist = sqrt( forward[0] * forward[0] + forward[1] * forward[1] );
+	
+	if ( xyDist > EQUAL_EPSILON )	// enough here to get angles?
+	{
+		angles[1] = RAD2DEG( atan2( forward[1], forward[0] ));
+		angles[0] = RAD2DEG( atan2( -forward[2], xyDist ));
+		angles[2] = RAD2DEG( atan2( -right[2], up[2] )) + 180;
+	}
+	else
+	{
+		angles[1] = RAD2DEG( atan2( right[0], -right[1] ) );
+		angles[0] = RAD2DEG( atan2( -forward[2], xyDist ) );
+		angles[2] = 180;
+	}
+	VectorCopy(matrix[3], origin );// extract origin
 }
 
 _inline void TransformRGB( vec3_t in, vec3_t out )

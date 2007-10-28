@@ -114,4 +114,5 @@ void configstring(float num, string s)				= #105;
 void makestatic(entity e)					= #106;
 float model_frames(float modelindex)				= #107; 
 void set_effect( entity e, float effect )			= #108;
+void phys_createbox( entity e )				= #109;
  

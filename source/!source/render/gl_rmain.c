@@ -698,6 +698,7 @@ void R_RenderView (refdef_t *fd)
 	R_DrawAlphaSurfaces ();
 	R_Flash();
 	R_BloomBlend (fd);
+	ri.ShowCollision();
 }
 
 void R_DrawPauseScreen( void )

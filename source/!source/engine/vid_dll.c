@@ -474,14 +474,16 @@ void VID_InitRender( void )
 	ri.Vid_NewWindow = VID_NewWindow;
           
           // studio callbacks
-          ri.StudioEvent = CL_StudioEvent;
+	ri.StudioEvent = CL_StudioEvent;
+	ri.ShowCollision = Phys->ShowCollision;
           
 	Sys_LoadLibrary( &render_dll );
 	
 	CreateRender = (void *)render_dll.main;
 	re = CreateRender( &ri );
           
-	if(!re->Init( global_hInstance, MainWndProc )) Sys_Error("VID_InitRender: can't init render.dll\nUpdate your opengl drivers\n");
+	if(!re->Init( global_hInstance, MainWndProc )) 
+		Sys_Error("VID_InitRender: can't init render.dll\nUpdate your opengl drivers\n");
 
 	reflib_active = true;
 }

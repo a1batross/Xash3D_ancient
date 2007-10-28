@@ -91,6 +91,9 @@ void Host_InitPhysic( void )
 	pi.Compile = Com->Compile;
 	pi.Stdio = Host_GetStdio( false );
 
+	// phys callback
+	pi.Transform = SV_Transform;
+
 	Sys_LoadLibrary( &physic_dll );
 
 	CreatePhys = (void *)physic_dll.main;

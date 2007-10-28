@@ -146,9 +146,9 @@ void SV_FreeEdict (edict_t *ed)
 	ed->progs.sv->frame = 0;
 	ed->progs.sv->solid = 0;
 
+	Phys->RemoveBOX( ed->priv.sv->physbody );
 	VectorClear(ed->progs.sv->origin);
 	VectorClear(ed->progs.sv->angles);
-
 	ed->progs.sv->nextthink = -1;
 }
 
@@ -841,4 +841,14 @@ void SV_ClientCommand (edict_t *ent)
 		Cmd_Help_f (ent);
 		return;
 	}
+}
+
+void SV_Transform( sv_edict_t *ed, vec3_t origin, vec3_t angles )
+{
+	edict_t	*edict;
+	if(!ed) return;
+
+	edict = PRVM_EDICT_NUM( ed->serialnumber );
+	VectorCopy( origin, edict->progs.sv->origin );
+	VectorCopy( angles, edict->progs.sv->angles );
 }  

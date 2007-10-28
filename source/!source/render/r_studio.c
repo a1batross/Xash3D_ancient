@@ -1173,8 +1173,8 @@ bool R_AcceptPass( int flags, int pass )
 	if(pass == RENDERPASS_SOLID)
 	{
 		if(!flags) return true;			// draw all
-		if(flags & STUDIO_NF_CHROME) return true;	//chrome drawing once
-		if(flags & STUDIO_NF_ADDITIVE) return false;	//draw it at second pass
+		if(flags & STUDIO_NF_CHROME) return true;	// chrome drawing once
+		if(flags & STUDIO_NF_ADDITIVE) return false;	// draw it at second pass
 		if(flags & STUDIO_NF_TRANSPARENT) return true;	// must be draw first always
 	}	
 	if(pass == RENDERPASS_ALPHA)
@@ -1183,8 +1183,8 @@ bool R_AcceptPass( int flags, int pass )
 		if(m_pCurrentEntity->flags & RF_TRANSLUCENT) 	return true;
 		if(!flags) return false;			// skip all
 		if(flags & STUDIO_NF_TRANSPARENT) return false;	// must be draw first always
-		if(flags & STUDIO_NF_ADDITIVE) return true;	//draw it at second pass
-		if(flags & STUDIO_NF_CHROME) return false;	//no need draw it again
+		if(flags & STUDIO_NF_ADDITIVE) return true;	// draw it at second pass
+		if(flags & STUDIO_NF_CHROME) return false;	// no need draw it again
 	}
 	return true;
 }

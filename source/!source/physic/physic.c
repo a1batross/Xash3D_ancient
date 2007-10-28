@@ -39,6 +39,11 @@ physic_exp_t DLLEXPORT *CreateAPI ( physic_imp_t *import )
 	Phys.Init = InitPhysics;
 	Phys.Shutdown = FreePhysics;
 	Phys.LoadBSP = Phys_LoadBSP;
+	Phys.FreeBSP = Phys_FreeBSP;
+	Phys.ShowCollision = DebugShowCollision;
+	Phys.Frame = Phys_Frame;
+	Phys.CreateBOX = Phys_CreateBOX;
+	Phys.RemoveBOX = Phys_RemoveBOX;
 
 	return &Phys;
 }

@@ -1039,12 +1039,4 @@ ENTITY_CAMPLAYER,
 ENTITY_PLAYER_NOISE
 } entity_id;
 
-#define DEG2RAD( a ) ( a * M_PI ) / 180.0F
-
-#ifdef __LCC__
-#define max(a,b)    (((a) > (b)) ? (a) : (b))
-#define min(a,b)    (((a) < (b)) ? (a) : (b))
-#define _mkdir mkdir
-#endif
-
 #endif//CONST_H

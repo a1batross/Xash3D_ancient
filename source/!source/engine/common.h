@@ -649,5 +649,6 @@ void SCR_BeginLoadingPlaque (void);
 void SV_Init (void);
 void SV_Shutdown (char *finalmsg, bool reconnect);
 void SV_Frame (float time);
+void SV_Transform( sv_edict_t *ed, vec3_t origin, vec3_t angles );
 
 #endif//COMMON_H

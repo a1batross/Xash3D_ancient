@@ -307,6 +307,7 @@ int SV_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *m
 //
 void SV_SpawnEntities (char *mapname, char *entities, char *spawnpoint);
 void SV_StartParticle (vec3_t org, vec3_t dir, int color, int count);
+void SV_Transform( sv_edict_t *ed, vec3_t origin, vec3_t angles );
 void SV_FreeEdict (edict_t *ed);
 void SV_InitEdict (edict_t *e);
 edict_t *SV_Spawn (void);
