@@ -343,11 +343,11 @@ void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int soundindex,
 	MSG_WriteByte (&sv.multicast, flags);
 	MSG_WriteByte (&sv.multicast, soundindex);
 
-	if (flags & SND_VOLUME) MSG_WriteByte (&sv.multicast, volume*255);
-	if (flags & SND_ATTENUATION) MSG_WriteByte (&sv.multicast, attenuation*64);
-	if (flags & SND_OFFSET) MSG_WriteByte (&sv.multicast, timeofs*1000);
-	if (flags & SND_ENT) MSG_WriteShort (&sv.multicast, sendchan);
-	if (flags & SND_POS) MSG_WritePos (&sv.multicast, origin);
+	if (flags & SND_VOLUME) MSG_WriteByte(&sv.multicast, volume*255);
+	if (flags & SND_ATTENUATION) MSG_WriteByte(&sv.multicast, attenuation*64);
+	if (flags & SND_OFFSET) MSG_WriteByte(&sv.multicast, timeofs*1000);
+	if (flags & SND_ENT) MSG_WriteShort(&sv.multicast, sendchan);
+	if (flags & SND_POS) MSG_WritePos32(&sv.multicast, origin);
 
 	// if the sound doesn't attenuate,send it to everyone
 	// (global radio chatter, voiceovers, etc)

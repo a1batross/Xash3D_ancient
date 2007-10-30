@@ -38,10 +38,9 @@ void Sys_Error( const char *error, ... )
 	vsprintf( syserror1, error, argptr );
 	va_end( argptr );
 
-	host.state = HOST_ERROR;
-
 	SV_Shutdown(va("Server fatal crashed: %s\n", syserror1), false);
 	CL_Shutdown();
+	host.state = HOST_ERROR; // lock shutdown state
 
 	std.error("%s", syserror1);
 }
@@ -71,9 +70,8 @@ void Sys_SendKeyEvents (void)
 		TranslateMessage (&msg);
 		DispatchMessage (&msg);
 	}
-
 	// grab frame time 
-	host.cl_timer = host.realtime * 1000;	// FIXME: should this be at start?
+	host.cl_timer = host.realtime * 1000;
 }
 
 /*

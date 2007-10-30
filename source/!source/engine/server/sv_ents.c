@@ -167,35 +167,18 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 	else ops = &from->ps;
 
 	// determine what needs to be sent
-	if (ps->pmove.pm_type != ops->pmove.pm_type)
-		pflags |= PS_M_TYPE;
-
-	if(!VectorICompare(ps->pmove.origin, ops->pmove.origin)) pflags |= PS_M_ORIGIN;
-	if(!VectorICompare(ps->pmove.velocity, ops->pmove.velocity)) pflags |= PS_M_VELOCITY;
+	if (ps->pmove.pm_type != ops->pmove.pm_type) pflags |= PS_M_TYPE;
+	if(!VectorCompare(ps->pmove.origin, ops->pmove.origin)) pflags |= PS_M_ORIGIN;
+	if(!VectorCompare(ps->pmove.velocity, ops->pmove.velocity)) pflags |= PS_M_VELOCITY;
 	if (ps->pmove.pm_time != ops->pmove.pm_time) pflags |= PS_M_TIME;
 	if (ps->pmove.pm_flags != ops->pmove.pm_flags) pflags |= PS_M_FLAGS;
 	if (ps->pmove.gravity != ops->pmove.gravity) pflags |= PS_M_GRAVITY;
-
-	if(!VectorICompare(ps->pmove.delta_angles, ops->pmove.delta_angles))
-	{
-		Msg("update delta angles\n");
-		pflags |= PS_M_DELTA_ANGLES;
-	}
-
-	if(!VectorCompare(ps->viewoffset, ops->viewoffset))
-		pflags |= PS_VIEWOFFSET;
-
+	if(!VectorCompare(ps->pmove.delta_angles, ops->pmove.delta_angles)) pflags |= PS_M_DELTA_ANGLES;
+	if(!VectorCompare(ps->viewoffset, ops->viewoffset)) pflags |= PS_VIEWOFFSET;
 	if(!VectorCompare(ps->viewangles, ops->viewangles)) pflags |= PS_VIEWANGLES;
-
-	if (ps->kick_angles[0] != ops->kick_angles[0]
-		|| ps->kick_angles[1] != ops->kick_angles[1]
-		|| ps->kick_angles[2] != ops->kick_angles[2] )
-		pflags |= PS_KICKANGLES;
-
-	if (ps->blend[0] != ops->blend[0]
-		|| ps->blend[1] != ops->blend[1]
-		|| ps->blend[2] != ops->blend[2]
-		|| ps->blend[3] != ops->blend[3] )
+	if(!VectorCompare(ps->kick_angles, ops->kick_angles)) pflags |= PS_KICKANGLES;
+		
+	if (ps->blend[0] != ops->blend[0] || ps->blend[1] != ops->blend[1] || ps->blend[2] != ops->blend[2] || ps->blend[3] != ops->blend[3] )
 		pflags |= PS_BLEND;
 
 	if (ps->fov != ops->fov) pflags |= PS_FOV;
@@ -211,41 +194,15 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 	MSG_WriteByte (msg, svc_playerinfo);
 	MSG_WriteLong (msg, pflags);
 
-	//
 	// write the pmove_state_t
-	//
-	if (pflags & PS_M_TYPE)
-		MSG_WriteByte (msg, ps->pmove.pm_type);
+	if (pflags & PS_M_TYPE) MSG_WriteByte (msg, ps->pmove.pm_type);
 
-	if (pflags & PS_M_ORIGIN)
-	{
-		MSG_WriteShort (msg, ps->pmove.origin[0]);
-		MSG_WriteShort (msg, ps->pmove.origin[1]);
-		MSG_WriteShort (msg, ps->pmove.origin[2]);
-	}
-
-	if (pflags & PS_M_VELOCITY)
-	{
-		MSG_WriteShort (msg, ps->pmove.velocity[0]);
-		MSG_WriteShort (msg, ps->pmove.velocity[1]);
-		MSG_WriteShort (msg, ps->pmove.velocity[2]);
-	}
-
-	if (pflags & PS_M_TIME)
-		MSG_WriteByte (msg, ps->pmove.pm_time);
-
-	if (pflags & PS_M_FLAGS)
-		MSG_WriteByte (msg, ps->pmove.pm_flags);
-
-	if (pflags & PS_M_GRAVITY)
-		MSG_WriteShort (msg, ps->pmove.gravity);
-
-	if (pflags & PS_M_DELTA_ANGLES)
-	{
-		MSG_WriteShort (msg, ps->pmove.delta_angles[0]);
-		MSG_WriteShort (msg, ps->pmove.delta_angles[1]);
-		MSG_WriteShort (msg, ps->pmove.delta_angles[2]);
-	}
+	if (pflags & PS_M_ORIGIN) MSG_WritePos32(msg, ps->pmove.origin);
+	if (pflags & PS_M_VELOCITY) MSG_WritePos32(msg, ps->pmove.velocity);
+	if (pflags & PS_M_TIME) MSG_WriteByte (msg, ps->pmove.pm_time);
+	if (pflags & PS_M_FLAGS) MSG_WriteByte (msg, ps->pmove.pm_flags);
+	if (pflags & PS_M_GRAVITY) MSG_WriteShort (msg, ps->pmove.gravity);
+	if (pflags & PS_M_DELTA_ANGLES) MSG_WritePos32(msg, ps->pmove.delta_angles);
 
 	//
 	// write the rest of the player_state_t

@@ -85,40 +85,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define	SPAWNFLAG_NOT_HARD			0x00000400
 #define	SPAWNFLAG_NOT_DEATHMATCH	0x00000800
 
-// entity_state_t->renderfx flags
-#define	RF_MINLIGHT		1		// allways have some light (viewmodel)
-#define	RF_VIEWERMODEL		2		// don't draw through eyes, only mirrors
-#define	RF_WEAPONMODEL		4		// only draw through eyes
-#define	RF_FULLBRIGHT		8		// allways draw full intensity
-#define	RF_DEPTHHACK		16		// for view weapon Z crunching
-#define	RF_TRANSLUCENT		32
-#define	RF_FRAMELERP		64
-#define	RF_BEAM			128
-#define	RF_CUSTOMSKIN		256		// skin is an index in image_precache
-#define	RF_GLOW			512		// pulse lighting for bonus items
-#define	RF_SHELL_RED		1024
-#define	RF_SHELL_GREEN		2048
-#define	RF_SHELL_BLUE		4096
-#define	RF_IR_VISIBLE		0x00008000		// 32768
-#define	RF_SHELL_DOUBLE		0x00010000		// 65536
-#define	RF_SHELL_HALF_DAM	0x00020000
-#define	RF_USE_DISGUISE		0x00040000
-
-//lazarus
-#define RF_VAMPIRE			0x00080000		// 524288
-
-// player_state_t->refdef flags
-#define	RDF_UNDERWATER		1		// warp the screen as apropriate
-#define RDF_NOWORLDMODEL		2		// used for player configuration screen
-#define	RDF_IRGOGGLES		4
-#define	RDF_UVGOGGLES		8
-
-#define RDF_BLOOM			32 
-#define RDF_PAIN            		64
-#define RDF_WATER			128
-#define RDF_LAVA			256
-#define RDF_SLIME			512
-
 // edict->movetype values
 
 // edict->flags
@@ -146,18 +112,6 @@ typedef enum
 	WEAPON_DROPPING,
 	WEAPON_FIRING
 } weaponstate_t;
-
-#define MOVETYPE_NONE		0	// never moves
-#define MOVETYPE_NOCLIP		1	// origin and angles change with no interaction
-#define MOVETYPE_PUSH		2	// no clip to world, push on box contact
-#define MOVETYPE_WALK		3	// gravity
-#define MOVETYPE_STEP		4	// gravity, special edge handling
-#define MOVETYPE_FLY		5
-#define MOVETYPE_TOSS		6	// gravity
-#define MOVETYPE_BOUNCE		7
-#define MOVETYPE_FOLLOW		8	// attached models
-#define MOVETYPE_CONVEYOR		9
-#define MOVETYPE_PUSHABLE		10
 
 /*
 ==============================================================
@@ -254,21 +208,6 @@ typedef struct
 	edict_t		*ent;		// not set by CM_*() functions
 } trace_t;
 
-
-
-// pmove_state_t is the information necessary for client side movement
-// prediction
-typedef enum 
-{
-	// can accelerate and turn
-	PM_NORMAL,
-	PM_SPECTATOR,
-	// no acceleration or turning
-	PM_DEAD,
-	PM_GIB,		// different bounding box
-	PM_FREEZE
-} pmtype_t;
-
 // pmove->pm_flags
 #define	PMF_DUCKED			1
 #define	PMF_JUMP_HELD		2
@@ -278,77 +217,6 @@ typedef enum
 #define	PMF_TIME_TELEPORT	32	// pm_time is non-moving time
 #define PMF_NO_PREDICTION	64	// temporarily disables prediction (used for grappling hook)
 
-// this structure needs to be communicated bit-accurate
-// from the server to the client to guarantee that
-// prediction stays in sync, so no floats are used.
-// if any part of the game code modifies this struct, it
-// will result in a prediction error of some degree.
-typedef struct
-{
-	pmtype_t	pm_type;
-
-	short		origin[3];		// 12.3
-	short		velocity[3];	// 12.3
-	byte		pm_flags;		// ducked, jump_held, etc
-	byte		pm_time;		// each unit = 8 ms
-	short		gravity;
-	short		delta_angles[3];	// add to command angles to get view direction
-									// changed by spawns, rotating objects, and teleporters
-} pmove_state_t;
-
-
-//
-// button bits
-//
-//
-// button bits
-//
-#define	BUTTON_ATTACK		1
-#define	BUTTON_USE		2
-#define	BUTTON_ATTACK2		4
-#define	BUTTONS_ATTACK (BUTTON_ATTACK | BUTTON_ATTACK2)
-#define	BUTTON_ANY		128	// any key whatsoever
-
-
-// usercmd_t is sent to the server each client frame
-typedef struct usercmd_s
-{
-	byte	msec;
-	byte	buttons;
-	short	angles[3];
-	short	forwardmove, sidemove, upmove;
-	byte	impulse;		// remove?
-	byte	lightlevel;		// light level the player is standing on
-} usercmd_t;
-
-
-#define	MAXTOUCH	32
-typedef struct
-{
-	// state (in / out)
-	pmove_state_t	s;
-
-	// command (in)
-	usercmd_t		cmd;
-	bool		snapinitial;	// if s has been changed outside pmove
-
-	// results (out)
-	int			numtouch;
-	edict_t		*touchents[MAXTOUCH];
-
-	vec3_t		viewangles;			// clamped
-	float		viewheight;
-
-	vec3_t		mins, maxs;			// bounding box size
-
-	edict_t		*groundentity;
-	int			watertype;
-	int			waterlevel;
-
-	// callbacks to test the world
-	trace_t		(*trace) (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end);
-	int			(*pointcontents) (vec3_t point);
-} pmove_t;
 
 
 // entity_state_t->effects
@@ -670,16 +538,16 @@ typedef enum
 #define	DF_NO_FALLING		0x00000008	// 8
 #define	DF_INSTANT_ITEMS	0x00000010	// 16
 #define	DF_SAME_LEVEL		0x00000020	// 32
-#define DF_SKINTEAMS		0x00000040	// 64
-#define DF_MODELTEAMS		0x00000080	// 128
-#define DF_NO_FRIENDLY_FIRE	0x00000100	// 256
+#define	DF_SKINTEAMS		0x00000040	// 64
+#define	DF_MODELTEAMS		0x00000080	// 128
+#define	DF_NO_FRIENDLY_FIRE	0x00000100	// 256
 #define	DF_SPAWN_FARTHEST	0x00000200	// 512
-#define DF_FORCE_RESPAWN	0x00000400	// 1024
-#define DF_NO_ARMOR			0x00000800	// 2048
-#define DF_ALLOW_EXIT		0x00001000	// 4096
-#define DF_INFINITE_AMMO	0x00002000	// 8192
-#define DF_QUAD_DROP		0x00004000	// 16384
-#define DF_FIXED_FOV		0x00008000	// 32768
+#define	DF_FORCE_RESPAWN	0x00000400	// 1024
+#define	DF_NO_ARMOR			0x00000800	// 2048
+#define	DF_ALLOW_EXIT		0x00001000	// 4096
+#define	DF_INFINITE_AMMO	0x00002000	// 8192
+#define	DF_QUAD_DROP		0x00004000	// 16384
+#define	DF_FIXED_FOV		0x00008000	// 32768
 
 // RAFAEL
 #define	DF_QUADFIRE_DROP	0x00010000	// 65536
@@ -692,10 +560,6 @@ typedef enum
 ==========================================================
 */
 
-#define	ANGLE2SHORT(x)	((int)((x)*65536/360) & 65535)
-#define	SHORT2ANGLE(x)	((x)*(360.0/65536))
-
-
 //
 // config strings are a general means of communication from
 // the server to all connected clients.
@@ -704,13 +568,13 @@ typedef enum
 #define	CS_NAME			0
 #define	CS_CDTRACK		1
 #define	CS_SKY			2
-#define	CS_SKYAXIS		3		// %f %f %f format
+#define	CS_SKYAXIS		3  // %f %f %f format
 #define	CS_SKYROTATE		4
-#define	CS_STATUSBAR		5		// display program string
-
-#define	CS_AIRACCEL		29		// air acceleration control
+#define	CS_STATUSBAR		5  // display program string (1536 chars)
+#define	CS_STATUSBAR_SIZE		(CS_AIRACCEL - CS_STATUSBAR) * MAX_QPATH
+#define	CS_AIRACCEL		29 // air acceleration control
 #define	CS_MAXCLIENTS		30
-#define	CS_MAPCHECKSUM		31		// for catching cheater maps
+#define	CS_MAPCHECKSUM		31 // for catching cheater maps
 
 #define	CS_MODELS			32
 #define	CS_SOUNDS			(CS_MODELS+MAX_MODELS)
@@ -741,302 +605,5 @@ typedef enum
 	EV_PLAYER_TELEPORT,
 	EV_OTHER_TELEPORT
 } entity_event_t;
-
-
-// entity_state_t is the information conveyed from the server
-// in an update message about entities that the client will
-// need to render in some way
-typedef struct entity_state_s
-{
-	int		number;		// edict index
-
-	vec3_t		origin;
-	vec3_t		angles;
-	vec3_t		old_origin;	// for lerping animation
-	int		modelindex;
-	int		soundindex;
-	int		weaponmodel;
-
-	short		skin;		// skin for studiomodels
-	short		frame;		// % playback position in animation sequences (0..512)
-	byte		body;		// sub-model selection for studiomodels
-	byte		sequence;		// animation sequence (0 - 255)
-	uint		effects;		// PGM - we're filling it, so it needs to be unsigned
-	int		renderfx;
-	int		solid;		// for client side prediction, 8*(bits 0-4) is x/y radius
-					// 8*(bits 5-9) is z down distance, 8(bits10-15) is z up
-					// gi.linkentity sets this properly
-	int		event;		// impulse events -- muzzle flashes, footsteps, etc
-					// events only go out for a single frame, they
-					// are automatically cleared each frame
-	float		alpha;		// alpha value
-} entity_state_t;
-
-//==============================================
-
-
-// player_state_t is the information needed in addition to pmove_state_t
-// to rendered a view.  There will only be 10 player_state_t sent each second,
-// but the number of pmove_state_t changes will be reletive to client
-// frame rates
-typedef struct
-{
-	pmove_state_t	pmove;		// for prediction
-
-	// these fields do not need to be communicated bit-precise
-
-	vec3_t		viewangles;		// for fixed views
-	vec3_t		viewoffset;		// add to pmovestate->origin
-	vec3_t		kick_angles;	// add to view direction to get render angles
-								// set by weapon kicks, pain effects, etc
-
-	vec3_t		gunangles;
-	vec3_t		gunoffset;
-	int		gunindex;
-	int		gunframe;		// studio frame
-	int		sequence;		// stuido animation sequence
-	int		gunbody;
-	int		gunskin; 
-
-	float		blend[4];		// rgba full screen effect
-	
-	float		fov;		// horizontal field of view
-	int		rdflags;		// refdef flags
-	short		stats[MAX_STATS];	// fast status bar updates
-} player_state_t;
-
-typedef enum
-{
-FOOTSTEP_METAL1,
-FOOTSTEP_METAL2,
-FOOTSTEP_METAL3,
-FOOTSTEP_METAL4,
-FOOTSTEP_DIRT1,
-FOOTSTEP_DIRT2,
-FOOTSTEP_DIRT3,
-FOOTSTEP_DIRT4,
-FOOTSTEP_VENT1,
-FOOTSTEP_VENT2,
-FOOTSTEP_VENT3,
-FOOTSTEP_VENT4,
-FOOTSTEP_GRATE1,
-FOOTSTEP_GRATE2,
-FOOTSTEP_GRATE3,
-FOOTSTEP_GRATE4,
-FOOTSTEP_TILE1,
-FOOTSTEP_TILE2,
-FOOTSTEP_TILE3,
-FOOTSTEP_TILE4,
-FOOTSTEP_GRASS1,
-FOOTSTEP_GRASS2,
-FOOTSTEP_GRASS3,
-FOOTSTEP_GRASS4,
-FOOTSTEP_SNOW1,
-FOOTSTEP_SNOW2,
-FOOTSTEP_SNOW3,
-FOOTSTEP_SNOW4,
-FOOTSTEP_CARPET1,
-FOOTSTEP_CARPET2,
-FOOTSTEP_CARPET3,
-FOOTSTEP_CARPET4,
-FOOTSTEP_FORCE1,
-FOOTSTEP_FORCE2,
-FOOTSTEP_FORCE3,
-FOOTSTEP_FORCE4,
-FOOTSTEP_SLOSH1,
-FOOTSTEP_SLOSH2,
-FOOTSTEP_SLOSH3,
-FOOTSTEP_SLOSH4,
-FOOTSTEP_LADDER1,
-FOOTSTEP_LADDER2,
-FOOTSTEP_LADDER3,
-FOOTSTEP_LADDER4
-} footstep_t;
-
-typedef enum
-{
-ENTITY_DONT_USE_THIS_ONE,
-ENTITY_ITEM_HEALTH,
-ENTITY_ITEM_HEALTH_SMALL,
-ENTITY_ITEM_HEALTH_LARGE,
-ENTITY_ITEM_HEALTH_MEGA,
-ENTITY_INFO_PLAYER_START,
-ENTITY_INFO_PLAYER_DEATHMATCH,
-ENTITY_INFO_PLAYER_COOP,
-ENTITY_INFO_PLAYER_INTERMISSION,
-ENTITY_FUNC_PLAT,
-ENTITY_FUNC_BUTTON,
-ENTITY_FUNC_DOOR,
-ENTITY_FUNC_DOOR_SECRET,
-ENTITY_FUNC_DOOR_ROTATING,
-ENTITY_FUNC_ROTATING,
-ENTITY_FUNC_TRAIN,
-ENTITY_FUNC_WATER,
-ENTITY_FUNC_CONVEYOR,
-ENTITY_FUNC_AREAPORTAL,
-ENTITY_FUNC_CLOCK,
-ENTITY_FUNC_WALL,
-ENTITY_FUNC_OBJECT,
-ENTITY_FUNC_TIMER,
-ENTITY_FUNC_EXPLOSIVE,
-ENTITY_FUNC_KILLBOX,
-ENTITY_TARGET_ACTOR,
-ENTITY_TARGET_ANIMATION,
-ENTITY_TARGET_BLASTER,
-ENTITY_TARGET_CHANGELEVEL,
-ENTITY_TARGET_CHARACTER,
-ENTITY_TARGET_CROSSLEVEL_TARGET,
-ENTITY_TARGET_CROSSLEVEL_TRIGGER,
-ENTITY_TARGET_EARTHQUAKE,
-ENTITY_TARGET_EXPLOSION,
-ENTITY_TARGET_GOAL,
-ENTITY_TARGET_HELP,
-ENTITY_TARGET_LASER,
-ENTITY_TARGET_LIGHTRAMP,
-ENTITY_TARGET_SECRET,
-ENTITY_TARGET_SPAWNER,
-ENTITY_TARGET_SPEAKER,
-ENTITY_TARGET_SPLASH,
-ENTITY_TARGET_STRING,
-ENTITY_TARGET_TEMP_ENTITY,
-ENTITY_TRIGGER_ALWAYS,
-ENTITY_TRIGGER_COUNTER,
-ENTITY_TRIGGER_ELEVATOR,
-ENTITY_TRIGGER_GRAVITY,
-ENTITY_TRIGGER_HURT,
-ENTITY_TRIGGER_KEY,
-ENTITY_TRIGGER_ONCE,
-ENTITY_TRIGGER_MONSTERJUMP,
-ENTITY_TRIGGER_MULTIPLE,
-ENTITY_TRIGGER_PUSH,
-ENTITY_TRIGGER_RELAY,
-ENTITY_VIEWTHING,
-ENTITY_WORLDSPAWN,
-ENTITY_LIGHT,
-ENTITY_LIGHT_MINE1,
-ENTITY_LIGHT_MINE2,
-ENTITY_INFO_NOTNULL,
-ENTITY_PATH_CORNER,
-ENTITY_POINT_COMBAT,
-ENTITY_MISC_EXPLOBOX,
-ENTITY_MISC_BANNER,
-ENTITY_MISC_SATELLITE_DISH,
-ENTITY_MISC_ACTOR,
-ENTITY_MISC_GIB_ARM,
-ENTITY_MISC_GIB_LEG,
-ENTITY_MISC_GIB_HEAD,
-ENTITY_MISC_INSANE,
-ENTITY_MISC_DEADSOLDIER,
-ENTITY_MISC_VIPER,
-ENTITY_MISC_VIPER_BOMB,
-ENTITY_MISC_BIGVIPER,
-ENTITY_MISC_STROGG_SHIP,
-ENTITY_MISC_TELEPORTER,
-ENTITY_MISC_TELEPORTER_DEST,
-ENTITY_MISC_BLACKHOLE,
-ENTITY_MISC_EASTERTANK,
-ENTITY_MISC_EASTERCHICK,
-ENTITY_MISC_EASTERCHICK2,
-ENTITY_MONSTER_BERSERK,
-ENTITY_MONSTER_GLADIATOR,
-ENTITY_MONSTER_GUNNER,
-ENTITY_MONSTER_INFANTRY,
-ENTITY_MONSTER_SOLDIER_LIGHT,
-ENTITY_MONSTER_SOLDIER,
-ENTITY_MONSTER_SOLDIER_SS,
-ENTITY_MONSTER_TANK,
-ENTITY_MONSTER_MEDIC,
-ENTITY_MONSTER_FLIPPER,
-ENTITY_MONSTER_CHICK,
-ENTITY_MONSTER_PARASITE,
-ENTITY_MONSTER_FLYER,
-ENTITY_MONSTER_BRAIN,
-ENTITY_MONSTER_FLOATER,
-ENTITY_MONSTER_HOVER,
-ENTITY_MONSTER_MUTANT,
-ENTITY_MONSTER_SUPERTANK,
-ENTITY_MONSTER_BOSS2,
-ENTITY_MONSTER_BOSS3_STAND,
-ENTITY_MONSTER_JORG,
-ENTITY_MONSTER_COMMANDER_BODY,
-ENTITY_TURRET_BREACH,
-ENTITY_TURRET_BASE,
-ENTITY_TURRET_DRIVER,
-ENTITY_CRANE_BEAM,
-ENTITY_CRANE_HOIST,
-ENTITY_CRANE_HOOK,
-ENTITY_CRANE_CONTROL,
-ENTITY_CRANE_RESET,
-ENTITY_FUNC_BOBBINGWATER,
-ENTITY_FUNC_DOOR_SWINGING,
-ENTITY_FUNC_FORCE_WALL,
-ENTITY_FUNC_MONITOR,
-ENTITY_FUNC_PENDULUM,
-ENTITY_FUNC_PIVOT,
-ENTITY_FUNC_PUSHABLE,
-ENTITY_FUNC_REFLECT,
-ENTITY_FUNC_TRACKCHANGE,
-ENTITY_FUNC_TRACKTRAIN,
-ENTITY_FUNC_TRAINBUTTON,
-ENTITY_FUNC_VEHICLE,
-ENTITY_HINT_PATH,
-ENTITY_INFO_TRAIN_START,
-ENTITY_MISC_LIGHT,
-ENTITY_MODEL_SPAWN,
-ENTITY_MODEL_TRAIN,
-ENTITY_MODEL_TURRET,
-ENTITY_MONSTER_MAKRON,
-ENTITY_PATH_TRACK,
-ENTITY_TARGET_ANGER,
-ENTITY_TARGET_ATTRACTOR,
-ENTITY_TARGET_CD,
-ENTITY_TARGET_CHANGE,
-ENTITY_TARGET_CLONE,
-ENTITY_TARGET_EFFECT,
-ENTITY_TARGET_FADE,
-ENTITY_TARGET_FAILURE,
-ENTITY_TARGET_FOG,
-ENTITY_TARGET_FOUNTAIN,
-ENTITY_TARGET_LIGHTSWITCH,
-ENTITY_TARGET_LOCATOR,
-ENTITY_TARGET_LOCK,
-ENTITY_TARGET_LOCK_CLUE,
-ENTITY_TARGET_LOCK_CODE,
-ENTITY_TARGET_LOCK_DIGIT,
-ENTITY_TARGET_MONITOR,
-ENTITY_TARGET_MONSTERBATTLE,
-ENTITY_TARGET_MOVEWITH,
-ENTITY_TARGET_PRECIPITATION,
-ENTITY_TARGET_ROCKS,
-ENTITY_TARGET_ROTATION,
-ENTITY_TARGET_SET_EFFECT,
-ENTITY_TARGET_SKILL,
-ENTITY_TARGET_SKY,
-ENTITY_TARGET_PLAYBACK,
-ENTITY_TARGET_TEXT,
-ENTITY_THING,
-ENTITY_TREMOR_TRIGGER_MULTIPLE,
-ENTITY_TRIGGER_BBOX,
-ENTITY_TRIGGER_DISGUISE,
-ENTITY_TRIGGER_FOG,
-ENTITY_TRIGGER_INSIDE,
-ENTITY_TRIGGER_LOOK,
-ENTITY_TRIGGER_MASS,
-ENTITY_TRIGGER_SCALES,
-ENTITY_TRIGGER_SPEAKER,
-ENTITY_TRIGGER_SWITCH,
-ENTITY_TRIGGER_TELEPORTER,
-ENTITY_TRIGGER_TRANSITION,
-ENTITY_BOLT,
-ENTITY_DEBRIS,
-ENTITY_GIB,
-ENTITY_GIBHEAD,
-ENTITY_GRENADE,
-ENTITY_HANDGRENADE,
-ENTITY_ROCKET,
-ENTITY_CHASECAM,
-ENTITY_CAMPLAYER,
-ENTITY_PLAYER_NOISE
-} entity_id;
 
 #endif//CONST_H

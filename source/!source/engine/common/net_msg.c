@@ -23,7 +23,7 @@ void _MSG_WriteChar (sizebuf_t *sb, int c, const char *filename, int fileline)
 	byte	*buf;
 	
 	if (c < -128 || c > 127) 
-		Msg("MSG_WriteChar: range error %d (called at %s:%i)\n", c, filename, fileline);
+		MsgWarn("MSG_WriteChar: range error %d (called at %s:%i)\n", c, filename, fileline);
 
 	buf = _SZ_GetSpace (sb, 1, filename, fileline );
 	buf[0] = c;
@@ -34,7 +34,7 @@ void _MSG_WriteByte (sizebuf_t *sb, int c, const char *filename, int fileline)
 	byte	*buf;
 	
 	if (c < 0 || c > 255)
-		Msg("MSG_WriteByte: range error %d (called at %s:%i)\n", c, filename, fileline);
+		MsgWarn("MSG_WriteByte: range error %d (called at %s:%i)\n", c, filename, fileline);
 
 	buf = _SZ_GetSpace (sb, 1, filename, fileline);
 	buf[0] = c;
@@ -45,7 +45,7 @@ void _MSG_WriteShort (sizebuf_t *sb, int c, const char *filename, int fileline)
 	byte	*buf;
 	
 	if (c < -32767 || c > 32767)
-		Msg("MSG_WriteShort: range error %d (called at %s:%i)\n", c, filename, fileline);
+		MsgWarn("MSG_WriteShort: range error %d (called at %s:%i)\n", c, filename, fileline);
 
 	buf = _SZ_GetSpace (sb, 2, filename, fileline);
 	buf[0] = c&0xff;
@@ -57,7 +57,7 @@ void _MSG_WriteWord (sizebuf_t *sb, int c, const char *filename, int fileline)
 	byte	*buf;
 	
 	if (c < 0 || c > 65535)
-		Msg("MSG_WriteWord: range error %d (called at %s:%i)\n", c, filename, fileline);
+		MsgWarn("MSG_WriteWord: range error %d (called at %s:%i)\n", c, filename, fileline);
 
 	buf = _SZ_GetSpace (sb, 2, filename, fileline);
 	buf[0] = c&0xff;
@@ -99,33 +99,38 @@ void _MSG_WriteUnterminatedString (sizebuf_t *sb, const char *s, const char *fil
 	if (s && *s) _SZ_Write (sb, (byte *)s, (int)strlen(s), filename, fileline);
 }
 
-void _MSG_WriteCoord (sizebuf_t *sb, float f, const char *filename, int fileline)
+void _MSG_WriteCoord16(sizebuf_t *sb, float f, const char *filename, int fileline)
 {
-	_MSG_WriteShort (sb, (int)(f * 8), filename, fileline );
-}
-
-void _MSG_WriteVector (sizebuf_t *sb, float *v, const char *filename, int fileline )
-{
-	_MSG_WriteCoord (sb, v[0], filename, fileline );
-	_MSG_WriteCoord (sb, v[1], filename, fileline );
-	_MSG_WriteCoord (sb, v[2], filename, fileline );
-}
-
-void _MSG_WritePos (sizebuf_t *sb, vec3_t pos, const char *filename, int fileline)
-{
-	_MSG_WriteShort (sb, (int)(pos[0] * 8), filename, fileline );
-	_MSG_WriteShort (sb, (int)(pos[1] * 8), filename, fileline );
-	_MSG_WriteShort (sb, (int)(pos[2] * 8), filename, fileline );
-}
-
-void _MSG_WriteAngle (sizebuf_t *sb, float f, const char *filename, int fileline)
-{
-	_MSG_WriteByte (sb, (int)(f * 256/360) & 255, filename, fileline );
+	_MSG_WriteShort(sb, (int)(f * SV_COORD_FRAC), filename, fileline );
 }
 
 void _MSG_WriteAngle16 (sizebuf_t *sb, float f, const char *filename, int fileline)
 {
-	_MSG_WriteWord (sb, ANGLE2SHORT(f), filename, fileline );
+	_MSG_WriteWord(sb, ANGLE2SHORT(f), filename, fileline );
+}
+
+void _MSG_WriteCoord32(sizebuf_t *sb, float f, const char *filename, int fileline)
+{
+	_MSG_WriteFloat(sb, f, filename, fileline );
+}
+
+void _MSG_WriteAngle32(sizebuf_t *sb, float f, const char *filename, int fileline)
+{
+	_MSG_WriteFloat(sb, f, filename, fileline );
+}
+
+void _MSG_WritePos16(sizebuf_t *sb, vec3_t pos, const char *filename, int fileline)
+{
+	_MSG_WriteCoord32(sb, pos[0] * SV_COORD_FRAC, filename, fileline );
+	_MSG_WriteCoord32(sb, pos[1] * SV_COORD_FRAC, filename, fileline );
+	_MSG_WriteCoord32(sb, pos[2] * SV_COORD_FRAC, filename, fileline );
+}
+
+void _MSG_WritePos32(sizebuf_t *sb, vec3_t pos, const char *filename, int fileline)
+{
+	_MSG_WriteCoord32(sb, pos[0], filename, fileline );
+	_MSG_WriteCoord32(sb, pos[1], filename, fileline );
+	_MSG_WriteCoord32(sb, pos[2], filename, fileline );
 }
 
 void _MSG_WriteDeltaUsercmd (sizebuf_t *buf, usercmd_t *from, usercmd_t *cmd, const char *filename, int fileline)
@@ -224,8 +229,6 @@ void _MSG_WriteDeltaEntity (entity_state_t *from, entity_state_t *to, sizebuf_t 
 	// write the message
 	if (!bits && !force) return; // nothing to send!
 
-	//----------
-
 	if (bits & 0xff000000) bits |= U_MOREBITS3 | U_MOREBITS2 | U_MOREBITS1;
 	else if (bits & 0x00ff0000) bits |= U_MOREBITS2 | U_MOREBITS1;
 	else if (bits & 0x0000ff00) bits |= U_MOREBITS1;
@@ -272,21 +275,15 @@ void _MSG_WriteDeltaEntity (entity_state_t *from, entity_state_t *to, sizebuf_t 
 	else if (bits & U_RENDERFX8) _MSG_WriteByte (msg, to->renderfx, filename, fileline);
 	else if (bits & U_RENDERFX16) _MSG_WriteShort (msg, to->renderfx, filename, fileline);
 
-	if (bits & U_ORIGIN1) _MSG_WriteCoord (msg, to->origin[0], filename, fileline);		
-	if (bits & U_ORIGIN2) _MSG_WriteCoord (msg, to->origin[1], filename, fileline);
-	if (bits & U_ORIGIN3) _MSG_WriteCoord (msg, to->origin[2], filename, fileline);
+	if (bits & U_ORIGIN1) _MSG_WriteCoord32(msg, to->origin[0], filename, fileline);		
+	if (bits & U_ORIGIN2) _MSG_WriteCoord32(msg, to->origin[1], filename, fileline);
+	if (bits & U_ORIGIN3) _MSG_WriteCoord32(msg, to->origin[2], filename, fileline);
 
-	if (bits & U_ANGLE1) _MSG_WriteAngle(msg, to->angles[0], filename, fileline);
-	if (bits & U_ANGLE2) _MSG_WriteAngle(msg, to->angles[1], filename, fileline);
-	if (bits & U_ANGLE3) _MSG_WriteAngle(msg, to->angles[2], filename, fileline);
+	if (bits & U_ANGLE1) _MSG_WriteAngle32(msg, to->angles[0], filename, fileline);
+	if (bits & U_ANGLE2) _MSG_WriteAngle32(msg, to->angles[1], filename, fileline);
+	if (bits & U_ANGLE3) _MSG_WriteAngle32(msg, to->angles[2], filename, fileline);
 
-	if (bits & U_OLDORIGIN)
-	{
-		_MSG_WriteCoord (msg, to->old_origin[0], filename, fileline);
-		_MSG_WriteCoord (msg, to->old_origin[1], filename, fileline);
-		_MSG_WriteCoord (msg, to->old_origin[2], filename, fileline);
-	}
-
+	if (bits & U_OLDORIGIN) _MSG_WritePos32(msg, to->old_origin, filename, fileline);
 	if (bits & U_SEQUENCE) _MSG_WriteByte (msg, to->sequence, filename, fileline);
 	if (bits & U_SOLID) _MSG_WriteShort (msg, to->solid, filename, fileline);
 	if (bits & U_ALPHA) _MSG_WriteFloat (msg, to->alpha, filename, fileline);
@@ -434,26 +431,38 @@ char *MSG_ReadStringLine (sizebuf_t *msg_read)
 	return string;
 }
 
-float MSG_ReadCoord (sizebuf_t *msg_read)
+float MSG_ReadCoord16(sizebuf_t *msg_read)
 {
-	return MSG_ReadShort(msg_read) * (1.0/8);
+	return MSG_ReadShort(msg_read) * CL_COORD_FRAC;
 }
 
-void MSG_ReadPos (sizebuf_t *msg_read, vec3_t pos)
+float MSG_ReadCoord32(sizebuf_t *msg_read)
 {
-	pos[0] = MSG_ReadShort(msg_read) * (1.0/8);
-	pos[1] = MSG_ReadShort(msg_read) * (1.0/8);
-	pos[2] = MSG_ReadShort(msg_read) * (1.0/8);
+	return MSG_ReadFloat(msg_read);
 }
 
-float MSG_ReadAngle (sizebuf_t *msg_read)
+void MSG_ReadPos32(sizebuf_t *msg_read, vec3_t pos)
 {
-	return MSG_ReadChar(msg_read) * (360.0/256);
+	pos[0] = MSG_ReadFloat(msg_read);
+	pos[1] = MSG_ReadFloat(msg_read);
+	pos[2] = MSG_ReadFloat(msg_read);
 }
 
-float MSG_ReadAngle16 (sizebuf_t *msg_read)
+void MSG_ReadPos16(sizebuf_t *msg_read, vec3_t pos)
+{
+	pos[0] = MSG_ReadShort(msg_read) * CL_COORD_FRAC;
+	pos[1] = MSG_ReadShort(msg_read) * CL_COORD_FRAC;
+	pos[2] = MSG_ReadShort(msg_read) * CL_COORD_FRAC;
+}
+
+float MSG_ReadAngle16(sizebuf_t *msg_read)
 {
 	return SHORT2ANGLE(MSG_ReadShort(msg_read));
+}
+
+float MSG_ReadAngle32(sizebuf_t *msg_read)
+{
+	return MSG_ReadFloat(msg_read);
 }
 
 void MSG_ReadDeltaUsercmd (sizebuf_t *msg_read, usercmd_t *from, usercmd_t *move)
@@ -479,12 +488,60 @@ void MSG_ReadDeltaUsercmd (sizebuf_t *msg_read, usercmd_t *from, usercmd_t *move
 	move->lightlevel = MSG_ReadByte (msg_read); // read the light level
 }
 
+void MSG_ReadDeltaEntity(entity_state_t *from, entity_state_t *to, int number, int bits)
+{
+	// set everything to the state we are delta'ing from
+	*to = *from;
+
+	VectorCopy (from->origin, to->old_origin);
+	to->number = number;
+
+	if (bits & U_MODEL) to->modelindex = MSG_ReadByte (&net_message);
+	if (bits & U_WEAPONMODEL) to->weaponmodel = MSG_ReadByte (&net_message);
+		
+	if (bits & U_FRAME8 ) to->frame = MSG_ReadByte (&net_message);
+	if (bits & U_FRAME16) to->frame = MSG_ReadShort (&net_message);
+
+	if (bits & U_SKIN8 ) to->skin = MSG_ReadByte(&net_message);
+	if (bits & U_SKIN16) to->skin = MSG_ReadShort(&net_message);
+
+	if ( (bits & (U_EFFECTS8|U_EFFECTS16)) == (U_EFFECTS8|U_EFFECTS16) )
+		to->effects = MSG_ReadLong(&net_message);
+	else if (bits & U_EFFECTS8 ) to->effects = MSG_ReadByte(&net_message);
+	else if (bits & U_EFFECTS16) to->effects = MSG_ReadShort(&net_message);
+
+	if ( (bits & (U_RENDERFX8|U_RENDERFX16)) == (U_RENDERFX8|U_RENDERFX16) )
+		to->renderfx = MSG_ReadLong(&net_message);
+	else if (bits & U_RENDERFX8 ) to->renderfx = MSG_ReadByte(&net_message);
+	else if (bits & U_RENDERFX16) to->renderfx = MSG_ReadShort(&net_message);
+
+	if (bits & U_ORIGIN1) to->origin[0] = MSG_ReadCoord32(&net_message);
+	if (bits & U_ORIGIN2) to->origin[1] = MSG_ReadCoord32(&net_message);
+	if (bits & U_ORIGIN3) to->origin[2] = MSG_ReadCoord32(&net_message);
+		
+	if (bits & U_ANGLE1) to->angles[0] = MSG_ReadAngle32(&net_message);
+	if (bits & U_ANGLE2) to->angles[1] = MSG_ReadAngle32(&net_message);
+	if (bits & U_ANGLE3) to->angles[2] = MSG_ReadAngle32(&net_message);
+	if (bits & U_OLDORIGIN) MSG_ReadPos32(&net_message, to->old_origin);
+
+	if (bits & U_SEQUENCE) to->sequence = MSG_ReadByte(&net_message);
+	if (bits & U_SOLID) to->solid = MSG_ReadShort(&net_message);
+	if (bits & U_ALPHA) to->alpha = MSG_ReadFloat(&net_message);
+	if (bits & U_EVENT) to->event = MSG_ReadByte (&net_message);
+	if (bits & U_SOUNDIDX) to->soundindex = MSG_ReadByte (&net_message);
+	else to->event = 0;
+
+	if (bits & U_BODY) to->body = MSG_ReadByte (&net_message);
+}
+
 void MSG_ReadData (sizebuf_t *msg_read, void *data, int len)
 {
 	int		i;
 
 	for (i = 0; i < len; i++)
+	{
 		((byte *)data)[i] = MSG_ReadByte (msg_read);
+	}
 }
 
 

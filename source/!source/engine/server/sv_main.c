@@ -722,13 +722,13 @@ void SV_RunGameFrame (void)
 	// compression can get confused when a client
 	// has the "current" frame
 	sv.framenum++;
-	sv.frametime = 0.1f;//1000 fps
+	sv.frametime = host_frametime->value;//100 fps as default
 	sv.time = sv.framenum * sv.frametime;
 
 	// don't run if paused
 	if (!sv_paused->value || maxclients->value > 1)
 	{
-		Phys->Frame( sv.frametime );
+		Phys->Frame( sv.time );
 		SV_RunFrame ();
 
 		// never get more than one tic behind
@@ -756,8 +756,7 @@ void SV_Frame (float time)
 	time_before_game = time_after_game = 0;
 
 	// if server is not active, do nothing
-	if (!svs.initialized)
-		return;
+	if (!svs.initialized) return;
 
 	svs.realtime += time;
 
@@ -1042,6 +1041,9 @@ before Sys_Quit or Sys_Error
 */
 void SV_Shutdown (char *finalmsg, bool reconnect)
 {
+	// already freed
+	if(host.state == HOST_ERROR) return;
+
 	Msg("SV_Shutdown: %s\n", finalmsg );
 	if (svs.clients) SV_FinalMessage (finalmsg, reconnect);
 

@@ -177,15 +177,15 @@ void PF_BeginMessage(void)
 	MSG_Begin( svc_dest );
 }
 
-void PF_WriteByte (void){ MSG_WriteByte (&sv.multicast, (int)PRVM_G_FLOAT(OFS_PARM0)); }
-void PF_WriteChar (void){ MSG_WriteChar (&sv.multicast, (int)PRVM_G_FLOAT(OFS_PARM0)); }
-void PF_WriteShort (void){ MSG_WriteShort (&sv.multicast, (int)PRVM_G_FLOAT(OFS_PARM0)); }
+void PF_WriteByte (void){ MSG_WriteByte(&sv.multicast, (int)PRVM_G_FLOAT(OFS_PARM0)); }
+void PF_WriteChar (void){ MSG_WriteChar(&sv.multicast, (int)PRVM_G_FLOAT(OFS_PARM0)); }
+void PF_WriteShort (void){ MSG_WriteShort(&sv.multicast, (int)PRVM_G_FLOAT(OFS_PARM0)); }
 void PF_WriteLong (void){ MSG_WriteLong(&sv.multicast, (int)PRVM_G_FLOAT(OFS_PARM0)); }
 void PF_WriteFloat (void){ MSG_WriteFloat(&sv.multicast, PRVM_G_FLOAT(OFS_PARM0)); }
-void PF_WriteAngle (void){ MSG_WriteAngle (&sv.multicast, PRVM_G_FLOAT(OFS_PARM0)); }
-void PF_WriteCoord (void){ MSG_WriteCoord (&sv.multicast, PRVM_G_FLOAT(OFS_PARM0)); }
-void PF_WriteString (void){ MSG_WriteString (&sv.multicast, PRVM_G_STRING(OFS_PARM0)); }
-void PF_WriteEntity (void){ MSG_WriteShort (&sv.multicast, PRVM_G_EDICTNUM(OFS_PARM1)); } // entindex
+void PF_WriteAngle (void){ MSG_WriteAngle32(&sv.multicast, PRVM_G_FLOAT(OFS_PARM0)); }
+void PF_WriteCoord (void){ MSG_WriteCoord32(&sv.multicast, PRVM_G_FLOAT(OFS_PARM0)); }
+void PF_WriteString (void){ MSG_WriteString(&sv.multicast, PRVM_G_STRING(OFS_PARM0)); }
+void PF_WriteEntity (void){ MSG_WriteShort(&sv.multicast, PRVM_G_EDICTNUM(OFS_PARM1)); } // entindex
 
 void PF_EndMessage (void)
 {

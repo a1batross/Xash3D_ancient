@@ -150,6 +150,7 @@ void SV_FreeEdict (edict_t *ed)
 	VectorClear(ed->progs.sv->origin);
 	VectorClear(ed->progs.sv->angles);
 	ed->progs.sv->nextthink = -1;
+	ed->priv.sv->physbody = NULL;
 }
 
 /*

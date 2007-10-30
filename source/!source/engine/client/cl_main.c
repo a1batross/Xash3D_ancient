@@ -1413,7 +1413,7 @@ void CL_InitLocal (void)
 	cl_autoskins = Cvar_Get ("cl_autoskins", "0", 0);
 	cl_predict = Cvar_Get ("cl_predict", "1", 0);
 //	cl_minfps = Cvar_Get ("cl_minfps", "5", 0);
-	cl_maxfps = Cvar_Get ("cl_maxfps", "90", 0);
+	cl_maxfps = Cvar_Get ("cl_maxfps", "1000", 0);
 
 	cl_upspeed = Cvar_Get ("cl_upspeed", "200", 0);
 	cl_forwardspeed = Cvar_Get ("cl_forwardspeed", "200", 0);
@@ -1654,15 +1654,14 @@ void CL_Frame (float time)
 	static float	extratime;
 	static float  	lasttimecalled;
 
-	if (dedicated->value)
-		return;
+	if (dedicated->value) return;
 
 	extratime += time;
 
 	if (!cl_timedemo->value)
 	{
-		if (cls.state == ca_connected && extratime < 0.1f)
-			return;			// don't flood packets out while connecting
+		if (cls.state == ca_connected && extratime < 0.01f)
+			return;	// don't flood packets out while connecting
 		if (extratime < 1.0f / cl_maxfps->value)
 			return;			// framerate is too high
 	}
@@ -1760,17 +1759,10 @@ to run quit through here before the final handoff to the sys code.
 */
 void CL_Shutdown(void)
 {
-	static bool recursive = false;
-	
-	if (recursive)
-	{
-		MsgDev(D_WARN, "CL_Shutdown: recursive shutdown\n");
-		return;
-	}
-	recursive = true;
+	// already freed
+	if(host.state == HOST_ERROR) return;
 
 	CL_WriteConfiguration (); 
-
 	S_Shutdown();
 	IN_Shutdown ();
 	VID_FreeRender();

@@ -77,14 +77,15 @@ void _MSG_WriteWord (sizebuf_t *sb, int c, const char *filename, int fileline);
 void _MSG_WriteLong (sizebuf_t *sb, int c, const char *filename, int fileline);
 void _MSG_WriteFloat (sizebuf_t *sb, float f, const char *filename, int fileline);
 void _MSG_WriteString (sizebuf_t *sb, const char *s, const char *filename, int fileline);
-void _MSG_WriteCoord (sizebuf_t *sb, float f, const char *filename, int fileline);
-void _MSG_WritePos (sizebuf_t *sb, vec3_t pos, const char *filename, int fileline);
-void _MSG_WriteAngle (sizebuf_t *sb, float f, const char *filename, int fileline);
-void _MSG_WriteAngle16 (sizebuf_t *sb, float f, const char *filename, int fileline);
+void _MSG_WriteCoord16(sizebuf_t *sb, float f, const char *filename, int fileline);
+void _MSG_WriteCoord32(sizebuf_t *sb, float f, const char *filename, int fileline);
+void _MSG_WriteAngle16(sizebuf_t *sb, float f, const char *filename, int fileline);
+void _MSG_WriteAngle32(sizebuf_t *sb, float f, const char *filename, int fileline);
+void _MSG_WritePos16(sizebuf_t *sb, vec3_t pos, const char *filename, int fileline);
+void _MSG_WritePos32(sizebuf_t *sb, vec3_t pos, const char *filename, int fileline);
 void _MSG_WriteUnterminatedString (sizebuf_t *sb, const char *s, const char *filename, int fileline);
 void _MSG_WriteDeltaUsercmd (sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd, const char *filename, int fileline);
 void _MSG_WriteDeltaEntity (struct entity_state_s *from, struct entity_state_s *to, sizebuf_t *msg, bool force, bool newentity, const char *filename, int fileline);
-void _MSG_WriteVector (sizebuf_t *sb, float *v, const char *filename, int fileline);
 void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename, int fileline);
 
 #define MSG_Begin( x ) _MSG_Begin( x, __FILE__, __LINE__);
@@ -95,37 +96,40 @@ void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename,
 #define MSG_WriteLong(x,y) _MSG_WriteLong (x, y, __FILE__, __LINE__);
 #define MSG_WriteFloat(x, y) _MSG_WriteFloat (x, y, __FILE__, __LINE__);
 #define MSG_WriteString(x,y) _MSG_WriteString (x, y, __FILE__, __LINE__);
-#define MSG_WriteCoord(x, y) _MSG_WriteCoord (x, y, __FILE__, __LINE__);
-#define MSG_WritePos(x, y) _MSG_WritePos (x, y, __FILE__, __LINE__);
-#define MSG_WriteAngle(x, y) _MSG_WriteAngle (x, y, __FILE__, __LINE__);
-#define MSG_WriteAngle16(x, y) _MSG_WriteAngle16 (x, y, __FILE__, __LINE__);
+#define MSG_WriteCoord16(x, y) _MSG_WriteCoord16(x, y, __FILE__, __LINE__);
+#define MSG_WriteCoord32(x, y) _MSG_WriteCoord32(x, y, __FILE__, __LINE__);
+#define MSG_WriteAngle16(x, y) _MSG_WriteAngle16(x, y, __FILE__, __LINE__);
+#define MSG_WriteAngle32(x, y) _MSG_WriteAngle32(x, y, __FILE__, __LINE__);
+#define MSG_WritePos16(x, y) _MSG_WritePos16(x, y, __FILE__, __LINE__);
+#define MSG_WritePos32(x, y) _MSG_WritePos32(x, y, __FILE__, __LINE__);
 #define MSG_WriteUnterminatedString(x, y) _MSG_WriteUnterminatedString (x, y, __FILE__, __LINE__);
 #define MSG_WriteDeltaUsercmd(x, y, z) _MSG_WriteDeltaUsercmd (x, y, z, __FILE__, __LINE__);
 #define MSG_WriteDeltaEntity(x, y, z, t, m) _MSG_WriteDeltaEntity (x, y, z, t, m, __FILE__, __LINE__);
-#define MSG_WriteVector(x, y) _MSG_WriteVector (x, y, __FILE__, __LINE__);
 #define MSG_Send(x, y, z) _MSG_Send(x, y, z, __FILE__, __LINE__);
 
 void	MSG_BeginReading (sizebuf_t *sb);
 
-int		MSG_ReadChar (sizebuf_t *sb);
-int		MSG_ReadByte (sizebuf_t *sb);
-int		MSG_ReadShort (sizebuf_t *sb);
-int		MSG_ReadLong (sizebuf_t *sb);
-float	MSG_ReadFloat (sizebuf_t *sb);
-char	*MSG_ReadString (sizebuf_t *sb);
-char	*MSG_ReadStringLine (sizebuf_t *sb);
-
-float	MSG_ReadCoord (sizebuf_t *sb);
-void	MSG_ReadPos (sizebuf_t *sb, vec3_t pos);
-float	MSG_ReadAngle (sizebuf_t *sb);
-float	MSG_ReadAngle16 (sizebuf_t *sb);
-void	MSG_ReadDeltaUsercmd (sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd);
-void	MSG_ReadData (sizebuf_t *sb, void *buffer, int size);
+int MSG_ReadChar (sizebuf_t *sb);
+int MSG_ReadByte (sizebuf_t *sb);
+int MSG_ReadShort (sizebuf_t *sb);
+int MSG_ReadLong (sizebuf_t *sb);
+float MSG_ReadFloat (sizebuf_t *sb);
+char *MSG_ReadString (sizebuf_t *sb);
+char *MSG_ReadStringLine (sizebuf_t *sb);
+float MSG_ReadCoord16(sizebuf_t *sb);
+float MSG_ReadCoord32(sizebuf_t *sb);
+float MSG_ReadAngle16(sizebuf_t *sb);
+float MSG_ReadAngle32(sizebuf_t *sb);
+void MSG_ReadPos16(sizebuf_t *sb, vec3_t pos);
+void MSG_ReadPos32(sizebuf_t *sb, vec3_t pos);
+void MSG_ReadDeltaUsercmd (sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd);
+void MSG_ReadDeltaEntity(entity_state_t *from, entity_state_t *to, int number, int bits);
+void MSG_ReadData (sizebuf_t *sb, void *buffer, int size);
 
 //============================================================================
 
 
-int	COM_Argc (void);
+int COM_Argc (void);
 char *COM_Argv (int arg);	// range and null checked
 void COM_ClearArgv (int arg);
 int COM_CheckParm (char *parm);
@@ -576,6 +580,52 @@ Common between server and client so prediction matches
 
 ==============================================================
 */
+// button bits
+#define	BUTTON_ATTACK		1
+#define	BUTTON_USE		2
+#define	BUTTON_ATTACK2		4
+#define	BUTTONS_ATTACK		(BUTTON_ATTACK | BUTTON_ATTACK2)
+#define	BUTTON_ANY		128 // any key whatsoever
+
+#define	MAXTOUCH	32
+
+// usercmd_t is sent to the server each client frame
+typedef struct usercmd_s
+{
+	byte		msec;
+	byte		buttons;
+	short		angles[3];
+	short		forwardmove, sidemove, upmove;
+	byte		impulse;		// remove?
+	byte		lightlevel;	// light level the player is standing on
+} usercmd_t;
+
+typedef struct
+{
+	// state (in / out)
+	pmove_state_t	s;
+
+	// command (in)
+	usercmd_t		cmd;
+	bool		snapinitial;	// if s has been changed outside pmove
+
+	// results (out)
+	int		numtouch;
+	edict_t		*touchents[MAXTOUCH];
+
+	vec3_t		viewangles;	// clamped
+	float		viewheight;
+
+	vec3_t		mins, maxs;	// bounding box size
+
+	edict_t		*groundentity;
+	int		watertype;
+	int		waterlevel;
+
+	// callbacks to test the world
+	trace_t		(*trace) (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end);
+	int		(*pointcontents) (vec3_t point);
+} pmove_t;
 
 extern float pm_airaccelerate;
 
@@ -601,9 +651,9 @@ byte	COM_BlockSequenceCRCByte (byte *base, int length, int sequence);
 float	frand(void);	// 0 to 1
 float	crand(void);	// -1 to 1
 
-extern	cvar_t	*developer;
 extern	cvar_t	*dedicated;
 extern	cvar_t	*host_speeds;
+extern	cvar_t	*host_frametime;
 
 // host_speeds times
 extern	float		time_before_game;

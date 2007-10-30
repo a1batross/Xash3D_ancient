@@ -26,6 +26,10 @@
 #define EQUAL_EPSILON	0.001f
 #define STOP_EPSILON	0.1f
 
+#define ANGLE2CHAR(x)	((int)((x)*256/360) & 255)
+#define CHAR2ANGLE(x)	((x)*(360.0/256))
+#define ANGLE2SHORT(x)	((int)((x)*65536/360) & 65535)
+#define SHORT2ANGLE(x)	((x)*(360.0/65536))
 #define RAD2DEG( x )	((float)(x) * (float)(180.f / M_PI))
 #define DEG2RAD( x )	((float)(x) * (float)(M_PI / 180.f))
 #define METER2INCH(x)	(float)(x * (1.0f/METERS_PER_INCH))

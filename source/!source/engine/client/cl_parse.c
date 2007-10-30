@@ -346,15 +346,15 @@ CL_ParseBaseline
 void CL_ParseBaseline (void)
 {
 	entity_state_t	*es;
-	int				bits;
-	int				newnum;
+	int		bits;
+	int		newnum;
 	entity_state_t	nullstate;
 
 	memset (&nullstate, 0, sizeof(nullstate));
 
 	newnum = CL_ParseEntityBits (&bits);
 	es = &cl_entities[newnum].baseline;
-	CL_ParseDelta (&nullstate, es, newnum, bits);
+	MSG_ReadDeltaEntity(&nullstate, es, newnum, bits);
 }
 
 
@@ -544,32 +544,26 @@ CL_ParseStartSoundPacket
 */
 void CL_ParseStartSoundPacket(void)
 {
-    vec3_t  pos_v;
+	vec3_t  pos_v;
 	float	*pos;
-    int 	channel, ent;
-    int 	sound_num;
-    float 	volume;
-    float 	attenuation;  
-	int		flags;
+	int 	channel, ent;
+	int 	sound_num;
+	float 	volume;
+	float 	attenuation;  
+	int	flags;
 	float	ofs;
 
 	flags = MSG_ReadByte (&net_message);
 	sound_num = MSG_ReadByte (&net_message);
 
-    if (flags & SND_VOLUME)
-		volume = MSG_ReadByte (&net_message) / 255.0;
-	else
-		volume = DEFAULT_SOUND_PACKET_VOLUME;
+	if (flags & SND_VOLUME) volume = MSG_ReadByte (&net_message) / 255.0;
+	else volume = DEFAULT_SOUND_PACKET_VOLUME;
 	
-    if (flags & SND_ATTENUATION)
-		attenuation = MSG_ReadByte (&net_message) / 64.0;
-	else
-		attenuation = DEFAULT_SOUND_PACKET_ATTENUATION;	
+	if (flags & SND_ATTENUATION) attenuation = MSG_ReadByte (&net_message) / 64.0;
+	else attenuation = DEFAULT_SOUND_PACKET_ATTENUATION;	
 
-    if (flags & SND_OFFSET)
-		ofs = MSG_ReadByte (&net_message) / 1000.0;
-	else
-		ofs = 0;
+	if (flags & SND_OFFSET) ofs = MSG_ReadByte (&net_message) / 1000.0;
+	else ofs = 0;
 
 	if (flags & SND_ENT)
 	{	
@@ -577,7 +571,6 @@ void CL_ParseStartSoundPacket(void)
 		channel = MSG_ReadShort(&net_message); 
 		ent = channel>>3;
 		if (ent > MAX_EDICTS) Host_Error("CL_ParseStartSoundPacket: ent out of range\n" );
-
 		channel &= 7;
 	}
 	else
@@ -587,25 +580,21 @@ void CL_ParseStartSoundPacket(void)
 	}
 
 	if (flags & SND_POS)
-	{	// positioned in space
-		MSG_ReadPos (&net_message, pos_v);
- 
+	{	
+		// positioned in space
+		MSG_ReadPos32(&net_message, pos_v);
 		pos = pos_v;
 	}
-	else	// use entity number
-		pos = NULL;
+	else pos = NULL; // use entity number
 
-	if (!cl.sound_precache[sound_num])
-		return;
-
+	if (!cl.sound_precache[sound_num]) return;
 	S_StartSound (pos, ent, channel, cl.sound_precache[sound_num], volume, attenuation, ofs);
 }       
 
 
 void SHOWNET(char *s)
 {
-	if (cl_shownet->value>=2)
-		Msg ("%3i:%s\n", net_message.readcount-1, s);
+	if (cl_shownet->value >= 2) Msg ("%3i:%s\n", net_message.readcount-1, s);
 }
 
 /*

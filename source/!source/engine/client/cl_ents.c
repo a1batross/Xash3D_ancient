@@ -233,60 +233,6 @@ int CL_ParseEntityBits (uint *bits)
 
 /*
 ==================
-CL_ParseDelta
-
-Can go from either a baseline or a previous packet_entity
-==================
-*/
-void CL_ParseDelta (entity_state_t *from, entity_state_t *to, int number, int bits)
-{
-	// set everything to the state we are delta'ing from
-	*to = *from;
-
-	VectorCopy (from->origin, to->old_origin);
-	to->number = number;
-
-	if (bits & U_MODEL) to->modelindex = MSG_ReadByte (&net_message);
-	if (bits & U_WEAPONMODEL) to->weaponmodel = MSG_ReadByte (&net_message);
-		
-	if (bits & U_FRAME8 ) to->frame = MSG_ReadByte (&net_message);
-	if (bits & U_FRAME16) to->frame = MSG_ReadShort (&net_message);
-
-	if (bits & U_SKIN8 ) to->skin = MSG_ReadByte(&net_message);
-	if (bits & U_SKIN16) to->skin = MSG_ReadShort(&net_message);
-
-	if ( (bits & (U_EFFECTS8|U_EFFECTS16)) == (U_EFFECTS8|U_EFFECTS16) )
-		to->effects = MSG_ReadLong(&net_message);
-	else if (bits & U_EFFECTS8 ) to->effects = MSG_ReadByte(&net_message);
-	else if (bits & U_EFFECTS16) to->effects = MSG_ReadShort(&net_message);
-
-	if ( (bits & (U_RENDERFX8|U_RENDERFX16)) == (U_RENDERFX8|U_RENDERFX16) )
-		to->renderfx = MSG_ReadLong(&net_message);
-	else if (bits & U_RENDERFX8 ) to->renderfx = MSG_ReadByte(&net_message);
-	else if (bits & U_RENDERFX16) to->renderfx = MSG_ReadShort(&net_message);
-
-	if (bits & U_ORIGIN1) to->origin[0] = MSG_ReadCoord (&net_message);
-	if (bits & U_ORIGIN2) to->origin[1] = MSG_ReadCoord (&net_message);
-	if (bits & U_ORIGIN3) to->origin[2] = MSG_ReadCoord (&net_message);
-		
-	if (bits & U_ANGLE1) to->angles[0] = MSG_ReadAngle(&net_message);
-	if (bits & U_ANGLE2) to->angles[1] = MSG_ReadAngle(&net_message);
-	if (bits & U_ANGLE3) to->angles[2] = MSG_ReadAngle(&net_message);
-
-	if (bits & U_OLDORIGIN) MSG_ReadPos (&net_message, to->old_origin);
-
-	if (bits & U_SEQUENCE) to->sequence = MSG_ReadByte (&net_message);
-	if (bits & U_SOLID) to->solid = MSG_ReadShort (&net_message);
-	if (bits & U_ALPHA) to->alpha = MSG_ReadFloat (&net_message);
-	if (bits & U_EVENT) to->event = MSG_ReadByte (&net_message);
-	if (bits & U_SOUNDIDX) to->soundindex = MSG_ReadByte (&net_message);
-	else to->event = 0;
-
-	if (bits & U_BODY) to->body = MSG_ReadByte (&net_message);
-}
-
-/*
-==================
 CL_DeltaEntity
 
 Parses deltas from the given base and adds the resulting entity
@@ -304,7 +250,7 @@ void CL_DeltaEntity (frame_t *frame, int newnum, entity_state_t *old, int bits)
 	cl.parse_entities++;
 	frame->num_entities++;
 
-	CL_ParseDelta (old, state, newnum, bits);
+	MSG_ReadDeltaEntity(old, state, newnum, bits);
 
 	// some data changes will force no lerping
 	if (state->modelindex != ent->current.modelindex
@@ -495,48 +441,18 @@ void CL_ParsePlayerstate (frame_t *oldframe, frame_t *newframe)
 
 	flags = MSG_ReadLong(&net_message);//four bytes
 
-	//
 	// parse the pmove_state_t
-	//
-	if (flags & PS_M_TYPE)
-		state->pmove.pm_type = MSG_ReadByte (&net_message);
+	if (flags & PS_M_TYPE) state->pmove.pm_type = MSG_ReadByte (&net_message);
+	if (flags & PS_M_ORIGIN) MSG_ReadPos32(&net_message, state->pmove.origin ); 
+	if (flags & PS_M_VELOCITY) MSG_ReadPos32(&net_message, state->pmove.velocity ); 
+	if (flags & PS_M_TIME) state->pmove.pm_time = MSG_ReadByte (&net_message);
+	if (flags & PS_M_FLAGS) state->pmove.pm_flags = MSG_ReadByte (&net_message);
+	if (flags & PS_M_GRAVITY) state->pmove.gravity = MSG_ReadShort (&net_message);
+	if (flags & PS_M_DELTA_ANGLES) MSG_ReadPos32(&net_message, state->pmove.delta_angles ); 
 
-	if (flags & PS_M_ORIGIN)
-	{
-		state->pmove.origin[0] = MSG_ReadShort (&net_message);
-		state->pmove.origin[1] = MSG_ReadShort (&net_message);
-		state->pmove.origin[2] = MSG_ReadShort (&net_message);
-	}
+	if (cl.attractloop) state->pmove.pm_type = PM_FREEZE; // demo playback
 
-	if (flags & PS_M_VELOCITY)
-	{
-		state->pmove.velocity[0] = MSG_ReadShort (&net_message);
-		state->pmove.velocity[1] = MSG_ReadShort (&net_message);
-		state->pmove.velocity[2] = MSG_ReadShort (&net_message);
-	}
-
-	if (flags & PS_M_TIME)
-		state->pmove.pm_time = MSG_ReadByte (&net_message);
-
-	if (flags & PS_M_FLAGS)
-		state->pmove.pm_flags = MSG_ReadByte (&net_message);
-
-	if (flags & PS_M_GRAVITY)
-		state->pmove.gravity = MSG_ReadShort (&net_message);
-
-	if (flags & PS_M_DELTA_ANGLES)
-	{
-		state->pmove.delta_angles[0] = MSG_ReadShort (&net_message);
-		state->pmove.delta_angles[1] = MSG_ReadShort (&net_message);
-		state->pmove.delta_angles[2] = MSG_ReadShort (&net_message);
-	}
-
-	if (cl.attractloop)
-		state->pmove.pm_type = PM_FREEZE;		// demo playback
-
-	//
 	// parse the rest of the player_state_t
-	//
 	if (flags & PS_VIEWOFFSET)
 	{
 		state->viewoffset[0] = MSG_ReadChar (&net_message) * 0.25;
@@ -654,15 +570,11 @@ void CL_ParseFrame (void)
 
 	cl.frame.serverframe = MSG_ReadLong (&net_message);
 	cl.frame.deltaframe = MSG_ReadLong (&net_message);
-	cl.frame.servertime = cl.frame.serverframe*100;
+	cl.frame.servertime = cl.frame.serverframe * host_frametime->value;
 
 	// BIG HACK to let old demos continue to work
-	if (cls.serverProtocol != 26)
-		cl.surpressCount = MSG_ReadByte (&net_message);
-
-	if (cl_shownet->value == 3)
-		Msg ("   frame:%i  delta:%i\n", cl.frame.serverframe,
-		cl.frame.deltaframe);
+	if (cls.serverProtocol != 26) cl.surpressCount = MSG_ReadByte (&net_message);
+	if (cl_shownet->value == 3) Msg ("   frame:%i  delta:%i\n", cl.frame.serverframe, cl.frame.deltaframe);
 
 	// If the frame is delta compressed from data that we
 	// no longer have available, we must suck up the rest of
@@ -678,7 +590,8 @@ void CL_ParseFrame (void)
 	{
 		old = &cl.frames[cl.frame.deltaframe & UPDATE_MASK];
 		if (!old->valid)
-		{	// should never happen
+		{	
+			// should never happen
 			Msg ("Delta from invalid frame (not supposed to happen!).\n");
 		}
 		if (old->serverframe != cl.frame.deltaframe)
@@ -695,10 +608,8 @@ void CL_ParseFrame (void)
 	}
 
 	// clamp time 
-	if (cl.time > cl.frame.servertime)
-		cl.time = cl.frame.servertime;
-	else if (cl.time < cl.frame.servertime - 100)
-		cl.time = cl.frame.servertime - 100;
+	if (cl.time > cl.frame.servertime) cl.time = cl.frame.servertime;
+	else if (cl.time < cl.frame.servertime - host_frametime->value) cl.time = cl.frame.servertime - host_frametime->value;
 
 	// read areabits
 	len = MSG_ReadByte (&net_message);
@@ -836,16 +747,11 @@ void CL_AddPacketEntities (frame_t *frame)
 		renderfx = s1->renderfx;
 
 			// set frame
-		if (effects & EF_ANIM01)
-			ent.frame = autoanim & 1;
-		else if (effects & EF_ANIM23)
-			ent.frame = 2 + (autoanim & 1);
-		else if (effects & EF_ANIM_ALL)
-			ent.frame = autoanim;
-		else if (effects & EF_ANIM_ALLFAST)
-			ent.frame = cl.time / 100;
-		else
-			ent.frame = s1->frame;
+		if (effects & EF_ANIM01) ent.frame = autoanim & 1;
+		else if (effects & EF_ANIM23) ent.frame = 2 + (autoanim & 1);
+		else if (effects & EF_ANIM_ALL) ent.frame = autoanim;
+		else if (effects & EF_ANIM_ALLFAST) ent.frame = cl.time / host_frametime->value;
+		else ent.frame = s1->frame;
 
 		// quad and pent can do different things on client
 		if (effects & EF_PENT)
@@ -1238,31 +1144,20 @@ void CL_AddEntities (void)
 		cl.time = cl.frame.servertime;
 		cl.lerpfrac = 1.0;
 	}
-	else if (cl.time < cl.frame.servertime - 100)
+	else if (cl.time < cl.frame.servertime - host_frametime->value)
 	{
 		if (cl_showclamp->value)
-			Msg ("low clamp %i\n", cl.frame.servertime-100 - cl.time);
-		cl.time = cl.frame.servertime - 100;
+			Msg ("low clamp %i\n", cl.frame.servertime - host_frametime->value - cl.time);
+		cl.time = cl.frame.servertime - host_frametime->value;
 		cl.lerpfrac = 0;
 	}
-	else
-		cl.lerpfrac = 1.0 - (cl.frame.servertime - cl.time) * 0.01;
+	else cl.lerpfrac = 1.0 - (cl.frame.servertime - cl.time) * host_frametime->value;
 
-	if (cl_timedemo->value)
-		cl.lerpfrac = 1.0;
-
-//	CL_AddPacketEntities (&cl.frame);
-//	CL_AddTEnts ();
-//	CL_AddParticles ();
-//	CL_AddDLights ();
-//	CL_AddLightStyles ();
+	if (cl_timedemo->value) cl.lerpfrac = 1.0;
 
 	CL_CalcViewValues ();
 	// PMM - moved this here so the heat beam has the right values for the vieworg, and can lock the beam to the gun
 	CL_AddPacketEntities (&cl.frame);
-#if 0
-	CL_AddProjectiles ();
-#endif
 	CL_AddTEnts ();
 	CL_AddParticles ();
 	CL_AddDLights ();

@@ -50,13 +50,15 @@ _inline double DoubleSwap( double swap )
 	dswap(2,5);
 	dswap(3,4);
 
+	#undef dswap
+
 	return swap;
 }
 
 //============================================================================
 //			Endianess handling
 //============================================================================
-// We use BSD-style defines: BYTE_ORDER is defined to either BIG_ENDIAN or LITTLE_ENDIAN
+// using BSD-style defines: BYTE_ORDER is defined to either BIG_ENDIAN or LITTLE_ENDIAN
 
 // Initializations
 #if !defined(BYTE_ORDER) || !defined(LITTLE_ENDIAN) || !defined(BIG_ENDIAN) || (BYTE_ORDER != LITTLE_ENDIAN && BYTE_ORDER != BIG_ENDIAN)

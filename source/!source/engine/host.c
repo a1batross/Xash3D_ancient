@@ -165,7 +165,7 @@ void Host_Init (char *funcname, int argc, char **argv)
 	Cmd_AddCommand ("error", Host_Error_f);
 
 	host_speeds = Cvar_Get ("host_speeds", "0", 0);
-	developer = Cvar_Get ("developer", "0", 0);
+	host_frametime = Cvar_Get ("host_frametime", "0.01", 0);
 	timescale = Cvar_Get ("timescale", "1", 0);
 	fixedtime = Cvar_Get ("fixedtime", "0", 0);
 	if(host.type == HOST_DEDICATED) dedicated = Cvar_Get ("dedicated", "1", CVAR_NOSET);
@@ -213,12 +213,21 @@ void Host_Frame (double time)
 
 	rand(); // keep the random time dependent
 
+	// get new key events
+	Sys_SendKeyEvents();
+
 	do
 	{
 		s = Sys_ConsoleInput ();
 		if(s) Cbuf_AddText (va("%s\n",s));
 	} while (s);
 	Cbuf_Execute ();
+
+	// if at a full screen console, don't update unless needed
+	if (Minimized || host.type == HOST_DEDICATED )
+	{
+		Sys_Sleep (1);
+	}
 
 	if (host_speeds->value) time_before = Sys_DoubleTime();
 
@@ -252,7 +261,6 @@ Host_Main
 */
 void Host_Main( void )
 {
-	MSG		msg;
 	static double	time, oldtime, newtime;
 
 	oldtime = host.realtime;
@@ -260,30 +268,11 @@ void Host_Main( void )
 	// main window message loop
 	while (host.type != HOST_OFFLINE)
 	{
-		// if at a full screen console, don't update unless needed
-		if (Minimized || host.type == HOST_DEDICATED )
-		{
-			Sys_Sleep (1);
-		}
-
-		while (PeekMessage (&msg, NULL, 0, 0, PM_NOREMOVE))
-		{
-			if(!GetMessage (&msg, NULL, 0, 0)) 
-				host.type = HOST_OFFLINE;
-			host.sv_timer = msg.time;
-			TranslateMessage (&msg);
-   			DispatchMessage (&msg);
-		}
-
-		do
-		{
-			newtime = Sys_DoubleTime();
-			time = newtime - oldtime;
-
-		} while (time < 0.001);
+		oldtime = newtime;
+		newtime = Sys_DoubleTime();
+		time = newtime - oldtime;
 
 		Host_Frame (time); // engine frame
-		oldtime = newtime;
 	}
 	host.state = HOST_SHUTDOWN;
 }
@@ -296,12 +285,8 @@ Host_Shutdown
 */
 void Host_Free (void)
 {
-	if(host.state != HOST_ERROR)
-	{
-		host.state = HOST_SHUTDOWN;
-		SV_Shutdown ("Server shutdown\n", false);
-		CL_Shutdown ();
-	}
+	SV_Shutdown ("Server shutdown\n", false);
+	CL_Shutdown ();
 	NET_Shutdown();
 	Host_FreePhysic();
 	Host_FreeCommon();

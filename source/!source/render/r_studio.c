@@ -549,7 +549,6 @@ void R_StudioSetUpTransform ( void )
 		
 		// NOTE:  Because we need to interpolate multiplayer characters, the interpolation time limit
 		//  was increased to 1.0 s., which is 2x the max lag we are accounting for.
-
 		if ( ( r_newrefdef.time < m_pCurrentEntity->animtime + 1.0f ) && ( m_pCurrentEntity->animtime != m_pCurrentEntity->prev.animtime ) )
 		{
 			f = (r_newrefdef.time - m_pCurrentEntity->animtime) / (m_pCurrentEntity->animtime - m_pCurrentEntity->prev.animtime);
@@ -590,7 +589,6 @@ void R_StudioSetUpTransform ( void )
 
 	//Msg("%.0f %0.f %0.f\n", modelpos[0], modelpos[1], modelpos[2] );
 	//Msg("%.0f %0.f %0.f\n", angles[0], angles[1], angles[2] );
-
 	AngleMatrix (angles, m_protationmatrix);
 
 	m_protationmatrix[0][3] = modelpos[0];

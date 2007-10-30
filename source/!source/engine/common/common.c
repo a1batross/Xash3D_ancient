@@ -28,7 +28,7 @@ int	com_argc;
 char	*com_argv[MAX_NUM_ARGVS+1];
 
 cvar_t	*host_speeds;
-cvar_t	*developer;
+cvar_t	*host_frametime;
 cvar_t	*dedicated;
 
 int	server_state;

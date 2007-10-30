@@ -45,6 +45,49 @@
 #define SHELL_BG_COLOR	0x78
 #define SHELL_WHITE_COLOR	0xD7
 
+// shared client/renderer flags
+#define	RF_MINLIGHT	1		// allways have some light (viewmodel)
+#define	RF_VIEWERMODEL	2		// don't draw through eyes, only mirrors
+#define	RF_WEAPONMODEL	4		// only draw through eyes
+#define	RF_FULLBRIGHT	8		// allways draw full intensity
+#define	RF_DEPTHHACK	16		// for view weapon Z crunching
+#define	RF_TRANSLUCENT	32
+#define	RF_FRAMELERP	64
+#define	RF_BEAM		128
+#define	RF_CUSTOMSKIN	256		// skin is an index in image_precache
+#define	RF_GLOW		512		// pulse lighting for bonus items
+#define	RF_SHELL_RED	1024
+#define	RF_SHELL_GREEN	2048
+#define	RF_SHELL_BLUE	4096
+#define	RF_IR_VISIBLE	0x00008000	// 32768
+#define	RF_SHELL_DOUBLE	0x00010000	// 65536
+#define	RF_SHELL_HALF_DAM	0x00020000
+#define	RF_USE_DISGUISE	0x00040000
+
+// render private flags
+#define	RDF_UNDERWATER	1	// warp the screen as apropriate
+#define	RDF_NOWORLDMODEL	2	// used for player configuration screen
+#define	RDF_IRGOGGLES	4
+#define	RDF_UVGOGGLES	8
+#define	RDF_BLOOM		32 
+#define	RDF_PAIN           	64
+#define	RDF_WATER		128
+#define	RDF_LAVA		256
+#define	RDF_SLIME		512
+
+// phys movetype
+#define MOVETYPE_NONE		0	// never moves
+#define MOVETYPE_NOCLIP		1	// origin and angles change with no interaction
+#define MOVETYPE_PUSH		2	// no clip to world, push on box contact
+#define MOVETYPE_WALK		3	// gravity
+#define MOVETYPE_STEP		4	// gravity, special edge handling
+#define MOVETYPE_FLY		5
+#define MOVETYPE_TOSS		6	// gravity
+#define MOVETYPE_BOUNCE		7
+#define MOVETYPE_FOLLOW		8	// attached models
+#define MOVETYPE_CONVEYOR		9
+#define MOVETYPE_PUSHABLE		10
+
 // opengl mask
 #define GL_COLOR_INDEX	0x1900
 #define GL_STENCIL_INDEX	0x1901
@@ -401,6 +444,19 @@ typedef struct rgbdata_s
 	uint	size;		// for bounds checking
 } rgbdata_t;
 
+typedef struct physdata_s
+{
+	vec3_t		origin;
+	vec3_t		angles;
+	vec3_t		velocity;
+	vec3_t		avelocity;	// "omega" in newton
+	vec3_t		mins;		// for calculate size 
+	vec3_t		maxs;		// and setup offset matrix
+
+	NewtonCollision	*collision;
+	NewtonBody	*physbody;	// ptr to physic body
+} physdata_t;
+
 typedef struct gameinfo_s
 {
 	//filesystem info
@@ -463,7 +519,6 @@ typedef struct cvar_s
 	struct cvar_s *next;
 	struct cvar_s *hash;
 
-	//FIXME: remove these old variables
 	char	*latched_string;	// for CVAR_LATCH vars
 	bool	modified;		// set each time the cvar is changed
 } cvar_t;
@@ -507,6 +562,83 @@ typedef struct latchedvars_s
 
 } latchedvars_t;
 
+// pmove_state_t is the information necessary for client side movement
+#define PM_NORMAL		0 // can accelerate and turn
+#define PM_SPECTATOR	1
+#define PM_DEAD		2 // no acceleration or turning
+#define PM_GIB		3 // different bounding box
+#define PM_FREEZE		4
+
+// this structure needs to be communicated bit-accurate
+// from the server to the client to guarantee that
+// prediction stays in sync, so no floats are used.
+// if any part of the game code modifies this struct, it
+// will result in a prediction error of some degree.
+typedef struct
+{
+	byte		pm_type;
+	vec3_t		origin;		// 12.3
+	vec3_t		velocity;		// 12.3
+	byte		pm_flags;		// ducked, jump_held, etc
+	byte		pm_time;		// each unit = 8 ms
+	short		gravity;
+	vec3_t		delta_angles;	// add to command angles to get view direction
+					// changed by spawns, rotating objects, and teleporters
+} pmove_state_t;
+
+typedef struct
+{
+	pmove_state_t	pmove;		// for prediction
+
+	// these fields do not need to be communicated bit-precise
+	vec3_t		viewangles;	// for fixed views
+	vec3_t		viewoffset;	// add to pmovestate->origin
+	vec3_t		kick_angles;	// add to view direction to get render angles
+					// set by weapon kicks, pain effects, etc
+
+	vec3_t		gunangles;
+	vec3_t		gunoffset;
+	int		gunindex;
+	int		gunframe;		// studio frame
+	int		sequence;		// stuido animation sequence
+	int		gunbody;
+	int		gunskin; 
+
+	float		blend[4];		// rgba full screen effect
+	
+	float		fov;		// horizontal field of view
+	int		rdflags;		// refdef flags
+	short		stats[32];	// fast status bar updates
+} player_state_t;
+
+// network protocol
+typedef struct entity_state_s
+{
+	uint		number;		// edict index
+
+	vec3_t		origin;
+	vec3_t		angles;
+	vec3_t		old_origin;	// for lerping animation
+	int		modelindex;
+	int		soundindex;
+	int		weaponmodel;
+
+	short		skin;		// skin for studiomodels
+	short		frame;		// % playback position in animation sequences (0..512)
+	byte		body;		// sub-model selection for studiomodels
+	byte		sequence;		// animation sequence (0 - 255)
+	uint		effects;		// PGM - we're filling it, so it needs to be unsigned
+	int		renderfx;
+	int		solid;		// for client side prediction, 8*(bits 0-4) is x/y radius
+					// 8*(bits 5-9) is z down distance, 8(bits10-15) is z up
+					// gi.linkentity sets this properly
+	int		event;		// impulse events -- muzzle flashes, footsteps, etc
+					// events only go out for a single frame, they
+					// are automatically cleared each frame
+	float		alpha;		// alpha value
+} entity_state_t;
+
+// client entity
 typedef struct entity_s
 {
 	model_t		*model;		// opaque type outside refresh

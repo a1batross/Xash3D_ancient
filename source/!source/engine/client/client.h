@@ -386,7 +386,6 @@ void CL_WidowSplash (vec3_t org);
 // ========
 
 int CL_ParseEntityBits (unsigned *bits);
-void CL_ParseDelta (entity_state_t *from, entity_state_t *to, int number, int bits);
 void CL_ParseFrame (void);
 
 void CL_ParseTEnt (void);

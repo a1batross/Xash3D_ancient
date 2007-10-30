@@ -103,13 +103,13 @@ GL_BuildPolygonFromSurface
 
 void Phys_BuildPolygonFromSurface(csurface_t *fa)
 {
-	int		i, j, lindex;
+	int		i, lindex;
 	dedge_t		*cur_edge;
 	float		*vec;
 	vec3_t		face[256];// max 256 edges on a face
 
 	// reconstruct the polygon
-	for(i = 0, j = fa->numedges - 1; i < fa->numedges; i++, j-- )
+	for(i = 0; i < fa->numedges; i++ )
 	{
 		lindex = map_surfedges[fa->firstedge + i];
 
@@ -246,7 +246,10 @@ void Phys_LoadBSP( uint *buffer )
 	NewtonSetWorldSize( gWorld, &boxP0[0], &boxP1[0] ); 
 
 	Msg("physic map generated\n");
-
+	Mem_Free( map_surfedges );
+	Mem_Free( map_edges );
+	Mem_Free( map_surfaces );
+	Mem_Free( map_vertices );
 }
 
 void Phys_FreeBSP( void )
@@ -255,6 +258,7 @@ void Phys_FreeBSP( void )
 	{
 		Msg("physic map released\n");
 		NewtonDestroyBody( gWorld, m_level );
+		m_level = NULL;
 	}
 }
 

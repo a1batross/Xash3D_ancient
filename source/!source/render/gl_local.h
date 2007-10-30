@@ -18,25 +18,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#ifdef _WIN32
-#  include <windows.h>
-#endif
-
+#include <windows.h>
 #include <stdio.h>
-
-#include <GL/gl.h>
-#include <GL/glu.h>
-#include <math.h>
-
 #include "basetypes.h"
 #include <basemath.h>
 #include "ref_system.h"
 #include "materials.h"
-#include "const.h"
-
-#ifndef GL_COLOR_INDEX8_EXT
-#define GL_COLOR_INDEX8_EXT GL_COLOR_INDEX
-#endif
 
 #define RENDERPASS_SOLID	1
 #define RENDERPASS_ALPHA	2
@@ -46,12 +33,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SOLID_FORMAT	3
 #define ALPHA_FORMAT	4
 
-#define DLLEXPORT __declspec(dllexport)
 #define WINDOW_STYLE (WS_OVERLAPPED|WS_BORDER|WS_CAPTION|WS_VISIBLE)
 
 #include "r_opengl.h"
-
-#define	REF_VERSION		"GL 0.01"
 
 /*
 ===========================================
