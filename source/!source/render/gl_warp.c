@@ -228,11 +228,11 @@ void EmitWaterPolys (msurface_t *fa)
 			os = v[3];
 			ot = v[4];
 
-			s = os + r_turbsin[(int)((ot * CL_COORD_FRAC + rdt) * TURBSCALE) & 255];
+			s = os + r_turbsin[(int)((ot * (1.0/8.0) + rdt) * TURBSCALE) & 255];
 			s += scroll;
 			s *= (1.0/64);
 
-			t = ot + r_turbsin[(int)((os * CL_COORD_FRAC + rdt) * TURBSCALE) & 255];
+			t = ot + r_turbsin[(int)((os * (1.0/8.0) + rdt) * TURBSCALE) & 255];
 			t *= (1.0/64);
 
 			qglTexCoord2f (s, t);

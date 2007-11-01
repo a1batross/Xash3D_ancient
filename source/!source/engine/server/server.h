@@ -36,7 +36,6 @@ typedef enum
 	ss_game,		// actively running
 	ss_cinematic,
 	ss_demo,
-	ss_pic
 
 } server_state_t;
 

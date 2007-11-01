@@ -104,8 +104,8 @@ typedef struct
 	vec3_t		predicted_angles;
 	vec3_t		prediction_error;
 
-	frame_t		frame;				// received from server
-	int			surpressCount;		// number of messages rate supressed
+	frame_t		frame;		// received from server
+	int		surpressCount;	// number of messages rate supressed
 	frame_t		frames[UPDATE_BACKUP];
 
 	// the client maintains its own idea of view angles, which are
@@ -115,8 +115,9 @@ typedef struct
 	// and teleport direction changes
 	vec3_t		viewangles;
 
-	float		time;			// this is the time value that the client
-								// is rendering at.  always <= cls.realtime
+	float		time;		// this is the time value that the client
+					// is rendering at.  always <= cls.realtime
+	float		cinematictime;	// cinematic time
 	float		lerpfrac;		// between oldframe and frame
 
 	refdef_t	refdef;
@@ -127,16 +128,7 @@ typedef struct
 	// transient data from server
 	//
 	char		layout[1024];		// general 2D overlay
-	int			inventory[MAX_ITEMS];
-
-	//
-	// non-gameserver infornamtion
-	// FIXME: move this cinematic stuff into the cin_t structure
-	file_t		*cinematic_file;
-	float		cinematictime;		// cls.realtime for first cinematic frame
-	int		cinematicframe;
-	char		cinematicpalette[768];
-	bool	cinematicpalette_active;
+	int		inventory[MAX_ITEMS];
 
 	//
 	// server state information

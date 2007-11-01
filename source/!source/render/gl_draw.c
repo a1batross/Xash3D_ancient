@@ -284,61 +284,28 @@ void Draw_FadeScreen (void)
 Draw_StretchRaw
 =============
 */
-extern unsigned	r_rawpalette[256];
-
 void Draw_StretchRaw (int x, int y, int w, int h, int cols, int rows, byte *data)
 {
-	unsigned	image32[256*256];
-	unsigned *dest;
-	int	i, j, trows;
-	byte	*source;
-	int	frac, fracstep;
-	float	hscale;
-	int	row;
-	float	t;
+	int	i, j;
 
-	GL_Bind (0);
+	// make sure rows and cols are powers of 2
+	for( i = 0;(1<<i) < cols; i++ );
+	for( j = 0;(1<<j) < rows; j++ );
+	if ((1<<i ) != cols || ( 1<<j ) != rows)
+		Sys_Error ("Draw_StretchRaw: size not a power of 2: %i by %i", cols, rows);
 
-	if (rows<=256)
-	{
-		hscale = 1;
-		trows = rows;
-	}
-	else
-	{
-		hscale = rows/256.0;
-		trows = 256;
-	}
-	t = rows*hscale / 256;
+	GL_Bind(0);
+	qglTexImage2D (GL_TEXTURE_2D, 0, gl_tex_solid_format, cols, rows, 0, GL_RGB, GL_UNSIGNED_BYTE, data );
+	GL_TexFilter( false );
 
-	for (i=0 ; i<trows ; i++)
-	{
-		row = (int)(i*hscale);
-		if (row > rows) break;
-		source = data + cols*row;
-		dest = &image32[i*256];
-		fracstep = cols*0x10000/256;
-		frac = fracstep >> 1;
-		for (j=0 ; j<256 ; j++)
-		{
-			dest[j] = r_rawpalette[source[frac>>16]];
-			frac += fracstep;
-		}
-	}
-
-	qglTexImage2D (GL_TEXTURE_2D, 0, gl_tex_solid_format, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, image32);
-
-	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	qglBegin (GL_QUADS);
-	qglTexCoord2f (0, 0);
+	qglBegin(GL_QUADS);
+	qglTexCoord2f( 0.5f / cols,  0.5f / rows );
 	qglVertex2f (x, y);
-	qglTexCoord2f (1, 0);
+	qglTexCoord2f((cols - 0.5f) / cols ,  0.5f / rows );
 	qglVertex2f (x+w, y);
-	qglTexCoord2f (1, t);
+	qglTexCoord2f((cols - 0.5f) / cols, (rows - 0.5f) / rows );
 	qglVertex2f (x+w, y+h);
-	qglTexCoord2f (0, t);
+	qglTexCoord2f(0.5f / cols, ( rows - 0.5f )/rows );
 	qglVertex2f (x, y+h);
-	qglEnd ();
+	qglEnd();
 }

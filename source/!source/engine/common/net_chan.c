@@ -221,8 +221,7 @@ void Netchan_Transmit (netchan_t *chan, int length, byte *data)
 	if (chan->message.overflowed)
 	{
 		chan->fatal_error = true;
-		Msg ("%s:Outgoing message overflow\n"
-			, NET_AdrToString (chan->remote_address));
+		Msg ("%s:Outgoing message overflow\n", NET_AdrToString (chan->remote_address));
 		return;
 	}
 

@@ -62,6 +62,7 @@ common_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input )
 	Com.Script = Sc_GetAPI();
 	Com.Compile = Comp_GetAPI();
 	Com.Info = Info_GetAPI();
+	Com.Roq = ROQ_GetAPI();
 
 	Com.InitRootDir = FS_InitRootDir;
 	Com.LoadGameInfo = FS_LoadGameInfo;

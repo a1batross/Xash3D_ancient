@@ -28,6 +28,14 @@
 #define QCC_OPT_LEVEL_2	0x08
 #define QCC_OPT_LEVEL_3	0x10
 
+// roqlib video markers
+#define ROQ_MARKER_INFO	0x1001
+#define ROQ_MARKER_CODEBOOK	0x1002
+#define ROQ_MARKER_VIDEO	0x1011
+#define ROQ_MARKER_SND_MONO	0x1020
+#define ROQ_MARKER_SND_STEREO	0x1021
+#define ROQ_MARKER_EOF	0xffff
+
 #define MAX_DLIGHTS		32
 #define MAX_ENTITIES	128
 #define MAX_PARTICLES	4096
@@ -457,6 +465,19 @@ typedef struct physdata_s
 	NewtonBody	*physbody;	// ptr to physic body
 } physdata_t;
 
+
+typedef struct roq_dec_s
+{
+	word		width;
+	word		height;
+	byte		*rgb;
+	short		*audioSamples;
+	dword		audioSize;
+	int		flags;
+	int		frameNum;
+	bool		restart_sound;
+} roq_dec_t;
+
 typedef struct gameinfo_s
 {
 	//filesystem info
@@ -878,6 +899,23 @@ typedef struct compilers_api_s
 /*
 ==============================================================================
 
+INTERNAL ROQLIB INTERFACE
+==============================================================================
+*/
+typedef struct roqlib_api_s
+{
+	//interface validator
+	size_t	api_size;		// must matched with sizeof(roqlib_api_t)
+
+	roq_dec_t *(*LoadVideo)(const char *name);
+	void (*FreeVideo)(roq_dec_t *);
+	int (*ReadFrame)(roq_dec_t *);
+
+} roqlib_api_t;
+
+/*
+==============================================================================
+
 STDIO SYSTEM INTERFACE
 ==============================================================================
 */
@@ -962,6 +1000,7 @@ typedef struct common_exp_s
 	scriptsystem_api_t	Script;
 	compilers_api_t	Compile;
 	infostring_api_t	Info;
+	roqlib_api_t	Roq;
 
 	// path initialization
 	void (*InitRootDir)( char *path );		// init custom rootdir 

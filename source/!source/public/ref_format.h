@@ -401,6 +401,7 @@ BRUSH MODELS
 #define IDBSPMODHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'I') // little-endian "IBSP"
 
 // 16 bit short limits
+#define MAX_MAP_SIZE		8192	// -/+ 4096
 #define MAX_KEY			32
 #define MAX_MAP_AREAS		256
 #define MAX_VALUE			1024

@@ -426,12 +426,9 @@ bool SNDDMA_InitWav (void)
 	dma.channels = 2;
 	dma.samplebits = 16;
 
-	if (s_khz->value == 44)
-		dma.speed = 44100;
-	if (s_khz->value == 22)
-		dma.speed = 22050;
-	else
-		dma.speed = 11025;
+	if (s_khz->value == 44) dma.speed = 44100;
+	if (s_khz->value == 22) dma.speed = 22050;
+	else dma.speed = 11025;
 
 	memset (&format, 0, sizeof(format));
 	format.wFormatTag = WAVE_FORMAT_PCM;

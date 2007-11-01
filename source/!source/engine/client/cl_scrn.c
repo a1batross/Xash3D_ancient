@@ -1314,43 +1314,19 @@ void SCR_UpdateScreen (void)
 		{
 			if (cls.key_dest == key_menu)
 			{
-				if (cl.cinematicpalette_active)
-				{
-					re->CinematicSetPalette(NULL);
-					cl.cinematicpalette_active = false;
-				}
 				M_Draw ();
-//				re->EndFrame();
-//				return;
 			}
 			else if (cls.key_dest == key_console)
 			{
-				if (cl.cinematicpalette_active)
-				{
-					re->CinematicSetPalette(NULL);
-					cl.cinematicpalette_active = false;
-				}
 				SCR_DrawConsole ();
-//				re->EndFrame();
-//				return;
 			}
 			else
 			{
 				SCR_DrawCinematic();
-//				re->EndFrame();
-//				return;
 			}
 		}
 		else 
 		{
-
-			// make sure the game palette is active
-			if (cl.cinematicpalette_active)
-			{
-				re->CinematicSetPalette(NULL);
-				cl.cinematicpalette_active = false;
-			}
-
 			// do 3D refresh drawing, and then update the screen
 			SCR_CalcVrect ();
 

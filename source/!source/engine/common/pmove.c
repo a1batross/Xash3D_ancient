@@ -38,11 +38,11 @@ typedef struct
 
 
 	csurface_t	*groundsurface;
-	cplane_t	groundplane;
-	int			groundcontents;
+	cplane_t		groundplane;
+	int		groundcontents;
 
 	vec3_t		previous_origin;
-	bool	ladder;
+	bool		ladder;
 } pml_t;
 
 pmove_t		*pm;
@@ -962,7 +962,7 @@ bool PM_GoodPosition (void)
 
 	if (pm->s.pm_type == PM_SPECTATOR) return true;
 
-	for (i = 0; i < 3; i++) origin[i] = end[i] = pm->s.origin[i] * CL_COORD_FRAC;
+	for (i = 0; i < 3; i++) origin[i] = end[i] = pm->s.origin[i];
 	trace = pm->trace (origin, pm->mins, pm->maxs, end);
 
 	return !trace.allsolid;
@@ -972,43 +972,16 @@ bool PM_GoodPosition (void)
 ================
 PM_SnapPosition
 
-On exit, the origin will have a value that is pre-quantized to the CL_COORD_FRAC
+On exit, the origin will have a value that is pre-quantized to the 0.125
 precision of the network channel and in a valid position.
 ================
 */
 void PM_SnapPosition (void)
 {
-	int		sign[3];
-	int		i, j, bits;
-	short		base[3];
-	// try all single bits first
-	static int jitterbits[8] = {0,4,1,2,3,5,6,7};
+	VectorCopy( pml.origin, pm->s.origin );
+	VectorCopy( pml.velocity, pm->s.velocity );
 
-	// snap velocity to eigths
-	for (i = 0; i < 3; i++) pm->s.velocity[i] = (int)(pml.velocity[i]*SV_COORD_FRAC);
-
-	for (i = 0; i < 3; i++)
-	{
-		if (pml.origin[i] >= 0) sign[i] = 1;
-		else sign[i] = -1;
-		pm->s.origin[i] = (int)(pml.origin[i]*SV_COORD_FRAC);
-		if (pm->s.origin[i] * CL_COORD_FRAC == pml.origin[i]) sign[i] = 0;
-	}
-	VectorCopy (pm->s.origin, base);
-
-	// try all combinations
-	for (j = 0; j < 8; j++)
-	{
-		bits = jitterbits[j];
-		VectorCopy (base, pm->s.origin);
-		for (i=0 ; i<3 ; i++)
-		{
-			if (bits & (1<<i) ) pm->s.origin[i] += sign[i];
-		}
-		if (PM_GoodPosition()) return;
-	}
-
-	// go back to the last position
+	if (PM_GoodPosition()) return;
 	VectorCopy (pml.previous_origin, pm->s.origin);
 }
 
@@ -1037,9 +1010,7 @@ void PM_InitialSnapPosition(void)
 				pm->s.origin[0] = base[0] + offset[ x ];
 				if (PM_GoodPosition ())
 				{
-					pml.origin[0] = pm->s.origin[0]*CL_COORD_FRAC;
-					pml.origin[1] = pm->s.origin[1]*CL_COORD_FRAC;
-					pml.origin[2] = pm->s.origin[2]*CL_COORD_FRAC;
+					VectorCopy (pm->s.origin, pml.origin);
 					VectorCopy (pm->s.origin, pml.previous_origin);
 					return;
 				}
@@ -1107,17 +1078,9 @@ void Pmove (pmove_t *pmove)
 	memset (&pml, 0, sizeof(pml));
 
 	// convert origin and velocity to float values
-	pml.origin[0] = pm->s.origin[0]*CL_COORD_FRAC;
-	pml.origin[1] = pm->s.origin[1]*CL_COORD_FRAC;
-	pml.origin[2] = pm->s.origin[2]*CL_COORD_FRAC;
-
-	pml.velocity[0] = pm->s.velocity[0]*CL_COORD_FRAC;
-	pml.velocity[1] = pm->s.velocity[1]*CL_COORD_FRAC;
-	pml.velocity[2] = pm->s.velocity[2]*CL_COORD_FRAC;
-
-	// save old org in case we get stuck
-	VectorCopy (pm->s.origin, pml.previous_origin);
-
+	VectorCopy(pm->s.origin, pml.origin );
+	VectorCopy(pm->s.velocity, pml.velocity);  
+	VectorCopy (pm->s.origin, pml.previous_origin); // save old org in case we get stuck
 	pml.frametime = pm->cmd.msec * 0.001;
 
 	PM_ClampAngles ();

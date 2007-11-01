@@ -27,7 +27,7 @@ if errorlevel 1 set BUILD_ERROR=1
 %MSDEV% render/render.dsp %CONFIG%"render - Win32 Release" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
-qcclib.exe -dir vprogs -progdefs /V7 /O3
+qcclib.exe -dir vprogs /V7 /O3
 if errorlevel 1 set BUILD_ERROR=1
 
 if "%BUILD_ERROR%"=="" goto build_ok

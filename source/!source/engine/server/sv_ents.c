@@ -360,8 +360,8 @@ void SV_FatPVS (vec3_t org)
 
 	for (i = 0; i < 3; i++)
 	{
-		mins[i] = org[i] - SV_COORD_FRAC;
-		maxs[i] = org[i] + SV_COORD_FRAC;
+		mins[i] = org[i] - 8;
+		maxs[i] = org[i] + 8;
 	}
 
 	count = CM_BoxLeafnums (mins, maxs, leafs, 64, NULL);
@@ -420,8 +420,7 @@ void SV_BuildClientFrame (client_t *client)
 	frame->senttime = svs.realtime; // save it for ping calc later
 
 	// find the client's PVS
-	for (i = 0; i < 3; i++)
-		org[i] = clent->priv.sv->client->ps.pmove.origin[i]*CL_COORD_FRAC + clent->priv.sv->client->ps.viewoffset[i];
+	VectorAdd(clent->priv.sv->client->ps.pmove.origin, clent->priv.sv->client->ps.viewoffset, org );  
 
 	leafnum = CM_PointLeafnum (org);
 	clientarea = CM_LeafArea (leafnum);

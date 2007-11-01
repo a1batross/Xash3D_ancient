@@ -19,33 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "client.h"
 
-typedef struct
-{
-	byte	*data;
-	int	count;
-} cblock_t;
-
-typedef struct
-{
-	bool		restart_sound;
-	int		s_rate;
-	int		s_width;
-	int		s_channels;
-
-	int		width;
-	int		height;
-	byte		*pic;
-	byte		*pic_pending;
-
-	// order 1 huffman stuff
-	int		*hnodes1;	// [256][256][2];
-	int		numhnodes1[256];
-
-	int		h_used[512];
-	int		h_count[512];
-} cinematics_t;
-
-cinematics_t	cin;
+roq_dec_t		*cin;
 /*
 ==================
 SCR_StopCinematic
@@ -54,39 +28,17 @@ SCR_StopCinematic
 void SCR_StopCinematic (void)
 {
 	cl.cinematictime = 0;	// done
-	if (cin.pic)
-	{
-		Z_Free (cin.pic);
-		cin.pic = NULL;
-	}
-	if (cin.pic_pending)
-	{
-		Z_Free (cin.pic_pending);
-		cin.pic_pending = NULL;
-	}
-	if (cl.cinematicpalette_active)
-	{
-		re->CinematicSetPalette(NULL);
-		cl.cinematicpalette_active = false;
-	}
-	if (cl.cinematic_file)
-	{
-		FS_Close (cl.cinematic_file);
-		cl.cinematic_file = NULL;
-	}
-	if (cin.hnodes1)
-	{
-		Z_Free (cin.hnodes1);
-		cin.hnodes1 = NULL;
-	}
+	if(!cin) return;
 
-	// switch back down to 11 khz sound if necessary
-	if (cin.restart_sound)
+	if(cin->restart_sound)
 	{
-		cin.restart_sound = false;
-		CL_Snd_Restart_f ();
+		// switch back down to 11 khz sound if necessary
+		cin->restart_sound = false;
+		CL_Snd_Restart_f();
 	}
-
+	Msg("total [%d] frames played\n", cin->frameNum );
+	Com->Roq.FreeVideo( cin );
+	cin = NULL;
 }
 
 /*
@@ -103,281 +55,30 @@ void SCR_FinishCinematic (void)
 	SZ_Print (&cls.netchan.message, va("nextserver %i\n", cl.servercount));
 }
 
-//==========================================================================
-
-/*
-==================
-SmallestNode1
-==================
-*/
-int	SmallestNode1 (int numhnodes)
-{
-	int		i;
-	int		best, bestnode;
-
-	best = 99999999;
-	bestnode = -1;
-	for (i=0 ; i<numhnodes ; i++)
-	{
-		if (cin.h_used[i])
-			continue;
-		if (!cin.h_count[i])
-			continue;
-		if (cin.h_count[i] < best)
-		{
-			best = cin.h_count[i];
-			bestnode = i;
-		}
-	}
-
-	if (bestnode == -1)
-		return -1;
-
-	cin.h_used[bestnode] = true;
-	return bestnode;
-}
-
-
-/*
-==================
-Huff1TableInit
-
-Reads the 64k counts table and initializes the node trees
-==================
-*/
-void Huff1TableInit (void)
-{
-	int		prev;
-	int		j;
-	int		*node, *nodebase;
-	byte		counts[256];
-	int		numhnodes;
-
-	cin.hnodes1 = Z_Malloc (256*256*2*4);
-	memset (cin.hnodes1, 0, 256*256*2*4);
-
-	for (prev=0 ; prev<256 ; prev++)
-	{
-		memset (cin.h_count,0,sizeof(cin.h_count));
-		memset (cin.h_used,0,sizeof(cin.h_used));
-
-		// read a row of counts
-		FS_Read (cl.cinematic_file, counts, sizeof(counts));
-		for (j=0 ; j<256 ; j++)
-			cin.h_count[j] = counts[j];
-
-		// build the nodes
-		numhnodes = 256;
-		nodebase = cin.hnodes1 + prev*256*2;
-
-		while (numhnodes != 511)
-		{
-			node = nodebase + (numhnodes-256)*2;
-
-			// pick two lowest counts
-			node[0] = SmallestNode1 (numhnodes);
-			if (node[0] == -1)
-				break;	// no more
-
-			node[1] = SmallestNode1 (numhnodes);
-			if (node[1] == -1)
-				break;
-
-			cin.h_count[numhnodes] = cin.h_count[node[0]] + cin.h_count[node[1]];
-			numhnodes++;
-		}
-
-		cin.numhnodes1[prev] = numhnodes-1;
-	}
-}
-
-/*
-==================
-Huff1Decompress
-==================
-*/
-cblock_t Huff1Decompress (cblock_t in)
-{
-	byte		*input;
-	byte		*out_p;
-	int			nodenum;
-	int			count;
-	cblock_t	out;
-	int			inbyte;
-	int			*hnodes, *hnodesbase;
-	//int		i;
-
-	// get decompressed count
-	count = in.data[0] + (in.data[1]<<8) + (in.data[2]<<16) + (in.data[3]<<24);
-	input = in.data + 4;
-	out_p = out.data = Z_Malloc (count);
-
-	// read bits
-
-	hnodesbase = cin.hnodes1 - 256*2;	// nodes 0-255 aren't stored
-
-	hnodes = hnodesbase;
-	nodenum = cin.numhnodes1[0];
-	while (count)
-	{
-		inbyte = *input++;
-		//-----------
-		if (nodenum < 256)
-		{
-			hnodes = hnodesbase + (nodenum<<9);
-			*out_p++ = nodenum;
-			if (!--count)
-				break;
-			nodenum = cin.numhnodes1[nodenum];
-		}
-		nodenum = hnodes[nodenum*2 + (inbyte&1)];
-		inbyte >>=1;
-		//-----------
-		if (nodenum < 256)
-		{
-			hnodes = hnodesbase + (nodenum<<9);
-			*out_p++ = nodenum;
-			if (!--count)
-				break;
-			nodenum = cin.numhnodes1[nodenum];
-		}
-		nodenum = hnodes[nodenum*2 + (inbyte&1)];
-		inbyte >>=1;
-		//-----------
-		if (nodenum < 256)
-		{
-			hnodes = hnodesbase + (nodenum<<9);
-			*out_p++ = nodenum;
-			if (!--count)
-				break;
-			nodenum = cin.numhnodes1[nodenum];
-		}
-		nodenum = hnodes[nodenum*2 + (inbyte&1)];
-		inbyte >>=1;
-		//-----------
-		if (nodenum < 256)
-		{
-			hnodes = hnodesbase + (nodenum<<9);
-			*out_p++ = nodenum;
-			if (!--count)
-				break;
-			nodenum = cin.numhnodes1[nodenum];
-		}
-		nodenum = hnodes[nodenum*2 + (inbyte&1)];
-		inbyte >>=1;
-		//-----------
-		if (nodenum < 256)
-		{
-			hnodes = hnodesbase + (nodenum<<9);
-			*out_p++ = nodenum;
-			if (!--count)
-				break;
-			nodenum = cin.numhnodes1[nodenum];
-		}
-		nodenum = hnodes[nodenum*2 + (inbyte&1)];
-		inbyte >>=1;
-		//-----------
-		if (nodenum < 256)
-		{
-			hnodes = hnodesbase + (nodenum<<9);
-			*out_p++ = nodenum;
-			if (!--count)
-				break;
-			nodenum = cin.numhnodes1[nodenum];
-		}
-		nodenum = hnodes[nodenum*2 + (inbyte&1)];
-		inbyte >>=1;
-		//-----------
-		if (nodenum < 256)
-		{
-			hnodes = hnodesbase + (nodenum<<9);
-			*out_p++ = nodenum;
-			if (!--count)
-				break;
-			nodenum = cin.numhnodes1[nodenum];
-		}
-		nodenum = hnodes[nodenum*2 + (inbyte&1)];
-		inbyte >>=1;
-		//-----------
-		if (nodenum < 256)
-		{
-			hnodes = hnodesbase + (nodenum<<9);
-			*out_p++ = nodenum;
-			if (!--count)
-				break;
-			nodenum = cin.numhnodes1[nodenum];
-		}
-		nodenum = hnodes[nodenum*2 + (inbyte&1)];
-		inbyte >>=1;
-	}
-
-	if (input - in.data != in.count && input - in.data != in.count+1)
-	{
-		Msg ("Decompression overread by %i", (input - in.data) - in.count);
-	}
-	out.count = out_p - out.data;
-
-	return out;
-}
-
 /*
 ==================
 SCR_ReadNextFrame
 ==================
 */
-byte *SCR_ReadNextFrame (void)
+bool SCR_ReadNextFrame (void)
 {
-	int		r;
-	int		command;
-	byte	samples[22050/14*4];
-	byte	compressed[0x20000];
-	int		size;
-	byte	*pic;
-	cblock_t	in, huf1;
-	int		start, end, count;
-
-	// read the next frame
-	r = FS_Read (cl.cinematic_file, &command, 4 );
-	if (r == 0)		// we'll give it one more chance
-		r = FS_Read (cl.cinematic_file, &command, 4);
-
-	if (!r) return NULL;
-	command = LittleLong(command);
-	if (command == 2)
-		return NULL;	// last frame marker
-
-	if (command == 1)
-	{	// read palette
-		FS_Read (cl.cinematic_file, cl.cinematicpalette, sizeof(cl.cinematicpalette));
-		cl.cinematicpalette_active=0;	// dubious....  exposes an edge case
+	switch(Com->Roq.ReadFrame( cin ))
+	{
+		case ROQ_MARKER_INFO:
+			break;
+		case ROQ_MARKER_VIDEO:
+			//re->DrawStretchRaw(0, 0, viddef.width, viddef.height, cin->width, cin->height, cin->rgb );
+			break;
+		case ROQ_MARKER_EOF:
+			return false;
+		case ROQ_MARKER_SND_MONO:
+			S_RawSamples (cin->audioSize, 22050, 2, 1, (byte *)cin->audioSamples);
+			break;
+		case ROQ_MARKER_SND_STEREO:
+			S_RawSamples (cin->audioSize, 22050, 2, 2, (byte *)cin->audioSamples);
+			break;
 	}
-
-	// decompress the next frame
-	FS_Read (cl.cinematic_file, &size, 4);
-	size = LittleLong(size);
-	if (size > sizeof(compressed) || size < 1)
-		Host_Error("Bad compressed frame size\n");
-	FS_Read (cl.cinematic_file, compressed, size);
-
-	// read sound
-	start = cl.cinematicframe*cin.s_rate/14;
-	end = (cl.cinematicframe+1)*cin.s_rate/14;
-	count = end - start;
-
-	FS_Read (cl.cinematic_file, samples, count*cin.s_width*cin.s_channels);
-
-	S_RawSamples (count, cin.s_rate, cin.s_width, cin.s_channels, samples);
-
-	in.data = compressed;
-	in.count = size;
-
-	huf1 = Huff1Decompress (in);
-
-	pic = huf1.data;
-
-	cl.cinematicframe++;
-
-	return pic;
+	return true;
 }
 
 
@@ -397,36 +98,28 @@ void SCR_RunCinematic (void)
 		return;
 	}
 
-	if (cl.cinematicframe == -1)
-		return;		// static image
-
 	if (cls.key_dest != key_game)
-	{	// pause if menu or console is up
-		cl.cinematictime = cls.realtime - cl.cinematicframe/14;
+	{	
+		// pause if menu or console is up
+		cl.cinematictime = cls.realtime - cin->frameNum / 30;
 		return;
 	}
 
-	frame = (cls.realtime - cl.cinematictime)*14.0;
-	if (frame <= cl.cinematicframe)
-		return;
-	if (frame > cl.cinematicframe+1)
+	frame = (cls.realtime - cl.cinematictime) * 30.0;
+	if (frame + 1 < cin->frameNum) return; //too early
+	if (frame > cin->frameNum + 1)
 	{
-		Msg ("Dropped frame: %i > %i\n", frame, cl.cinematicframe+1);
-		cl.cinematictime = cls.realtime - cl.cinematicframe/14;
+		MsgWarn("SCR_RunCinematic: dropped frame: %i > %i\n", frame, cin->frameNum + 1);
+		cl.cinematictime = cls.realtime - cin->frameNum / 30;
 	}
-	if (cin.pic)
-		Z_Free (cin.pic);
-	cin.pic = cin.pic_pending;
-	cin.pic_pending = NULL;
-	cin.pic_pending = SCR_ReadNextFrame ();
-	if (!cin.pic_pending)
+
+	if(!SCR_ReadNextFrame())
 	{
-		SCR_StopCinematic ();
-		SCR_FinishCinematic ();
-		cl.cinematictime = 1;	// hack to get the black screen behind loading
-		SCR_BeginLoadingPlaque ();
+		SCR_StopCinematic();
+		SCR_FinishCinematic();
+		cl.cinematictime = 1; // hack to get the black screen behind loading
+		SCR_BeginLoadingPlaque();
 		cl.cinematictime = 0;
-		return;
 	}
 }
 
@@ -440,29 +133,10 @@ should be skipped
 */
 bool SCR_DrawCinematic (void)
 {
-	if (cl.cinematictime <= 0)
-	{
-		return false;
-	}
+	if (cl.cinematictime <= 0) return false;
+	if (!cin->rgb) return true;
 
-	if (cls.key_dest == key_menu)
-	{	
-		// blank screen and pause if menu is up
-		re->CinematicSetPalette( NULL );
-		cl.cinematicpalette_active = false;
-		return true;
-	}
-
-	if (!cl.cinematicpalette_active)
-	{
-		re->CinematicSetPalette(cl.cinematicpalette);
-		cl.cinematicpalette_active = true;
-	}
-
-	if (!cin.pic)
-		return true;
-
-	re->DrawStretchRaw (0, 0, viddef.width, viddef.height, cin.width, cin.height, cin.pic);
+	re->DrawStretchRaw(0, 0, viddef.width, viddef.height, cin->width, cin->height, cin->rgb );
 
 	return true;
 }
@@ -475,76 +149,28 @@ SCR_PlayCinematic
 */
 void SCR_PlayCinematic (char *arg)
 {
-	int		width, height;
-	byte		*palette;
-	char		name[MAX_OSPATH];
 	int		old_khz;
-	rgbdata_t		*pic = NULL;
-	const char	*ext = FS_FileExtension( arg );
 
-	cl.cinematicframe = 0;
-
-	if (!strcmp (ext, "pcx"))
-	{	
-		pic = FS_LoadImage( va("textures/base_menu/%s", arg), NULL, 0 );
-
-		if(pic)
-		{
-			cin.pic = pic->buffer;
-			palette = pic->palette;
-			cin.width = pic->width;
-			cin.height = pic->height;
-
-			cl.cinematicframe = -1;
-			cl.cinematictime = 1;
-
-			SCR_EndLoadingPlaque ();
-
-			cls.state = ca_active;
-			Mem_Copy (cl.cinematicpalette, palette, sizeof(cl.cinematicpalette));
-		}
-		else Host_Error("%s not found.\n", arg );
-		return;
-	}
-
-	sprintf (name, "video/%s", arg);
-	cl.cinematic_file = FS_Open(name, "rb" );
-	if (!cl.cinematic_file)
+	cin = Com->Roq.LoadVideo( arg );
+	if (!cin)
 	{
 		SCR_FinishCinematic ();
-		cl.cinematictime = 0;	// done
 		return;
 	}
 
-	SCR_EndLoadingPlaque ();
-
+	SCR_EndLoadingPlaque();
 	cls.state = ca_active;
-
-	FS_Read (cl.cinematic_file, &width, 4);
-	FS_Read (cl.cinematic_file, &height, 4);
-	cin.width = LittleLong(width);
-	cin.height = LittleLong(height);
-
-	FS_Read (cl.cinematic_file, &cin.s_rate, 4);
-	cin.s_rate = LittleLong(cin.s_rate);
-	FS_Read (cl.cinematic_file, &cin.s_width, 4);
-	cin.s_width = LittleLong(cin.s_width);
-	FS_Read (cl.cinematic_file, &cin.s_channels, 4);
-	cin.s_channels = LittleLong(cin.s_channels);
-
-	Huff1TableInit ();
 
 	// switch up to 22 khz sound if necessary
 	old_khz = Cvar_VariableValue ("s_khz");
-	if (old_khz != cin.s_rate/1000)
+	if (old_khz != 22)
 	{
-		cin.restart_sound = true;
-		Cvar_SetValue ("s_khz", cin.s_rate/1000);
-		CL_Snd_Restart_f ();
-		Cvar_SetValue ("s_khz", old_khz);
+		cin->restart_sound = true;
+		Cvar_SetValue ("s_khz", 22 );
+		CL_Snd_Restart_f();
+		Cvar_SetValue ("s_khz", old_khz );
 	}
 
-	cl.cinematicframe = 0;
-	cin.pic = SCR_ReadNextFrame ();
-	cl.cinematictime = Sys_DoubleTime ();
+	SCR_ReadNextFrame(); //first frame
+	cl.cinematictime = Sys_DoubleTime();
 }

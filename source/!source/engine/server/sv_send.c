@@ -537,7 +537,7 @@ void SV_SendClientMessages (void)
 			SV_DropClient (c);
 		}
 
-		if (sv.state == ss_cinematic || sv.state == ss_demo || sv.state == ss_pic)
+		if (sv.state == ss_cinematic || sv.state == ss_demo)
 		{
 			Netchan_Transmit (&c->netchan, msglen, msgbuf);
 		}

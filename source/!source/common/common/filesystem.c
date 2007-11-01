@@ -1602,7 +1602,8 @@ fs_offset_t FS_Read (file_t* file, void* buffer, size_t buffersize)
 {
 	fs_offset_t count, done;
 
-	if (buffersize == 0) return 0;
+	// nothing to copy
+	if (buffersize == 0) return 1;
 
 	// Get rid of the ungetc character
 	if (file->ungetc != EOF)
@@ -2437,13 +2438,13 @@ vfile_t *VFS_Open(const char *filename, const char* mode)
 
 fs_offset_t VFS_Read( vfile_t* file, void* buffer, size_t buffersize)
 {
-	if (buffersize == 0) return 0;
+	if (buffersize == 0) return 1;
 	if (!file) return 0;
 
 	//check for enough room
 	if(file->offset >= file->length)
 	{
-		return -1; //hit EOF
+		return 0; //hit EOF
 	}
 	if(file->offset + buffersize <= file->length)
 	{

@@ -904,12 +904,12 @@ void CL_ItemRespawnParticles (vec3_t org)
 
 		p->color = 0xd4 + (rand()&3);	// green
 
-		p->org[0] = org[0] + crand()*SV_COORD_FRAC;
-		p->org[1] = org[1] + crand()*SV_COORD_FRAC;
-		p->org[2] = org[2] + crand()*SV_COORD_FRAC;
+		p->org[0] = org[0] + crand();
+		p->org[1] = org[1] + crand();
+		p->org[2] = org[2] + crand();
 
 		for (j=0 ; j<3 ; j++)
-			p->vel[j] = crand()*SV_COORD_FRAC;
+			p->vel[j] = crand();
 
 		p->accel[0] = p->accel[1] = 0;
 		p->accel[2] = -PARTICLE_GRAVITY*0.2;
@@ -1670,9 +1670,9 @@ void CL_TrapParticles (entity_t *ent)
 				p->org[1] = org[1] + j + ((rand()&23) * crand());
 				p->org[2] = org[2] + k + ((rand()&23) * crand());
 	
-				dir[0] = j * SV_COORD_FRAC;
-				dir[1] = i * SV_COORD_FRAC;
-				dir[2] = k * SV_COORD_FRAC;
+				dir[0] = j;
+				dir[1] = i;
+				dir[2] = k;
 	
 				VectorNormalize (dir);						
 				vel = 50 + rand()&63;
@@ -1757,9 +1757,9 @@ void CL_TeleportParticles (vec3_t org)
 				p->org[1] = org[1] + j + (rand()&3);
 				p->org[2] = org[2] + k + (rand()&3);
 	
-				dir[0] = j*SV_COORD_FRAC;
-				dir[1] = i*SV_COORD_FRAC;
-				dir[2] = k*SV_COORD_FRAC;
+				dir[0] = j;
+				dir[1] = i;
+				dir[2] = k;
 	
 				VectorNormalize (dir);						
 				vel = 50 + (rand()&63);

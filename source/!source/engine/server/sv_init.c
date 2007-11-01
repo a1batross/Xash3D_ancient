@@ -404,7 +404,7 @@ void SV_Map (bool attractloop, char *levelstring, char *savename, bool loadgame)
 	if (level[0] == '*') strcpy (level, level+1);
 
 	l = strlen(level);
-	if (!strcmp(ext, "cin"))
+	if (!strcmp(ext, "roq"))
 	{
 		SCR_BeginLoadingPlaque (); // for local system
 		SV_BroadcastCommand ("changing\n");
@@ -415,12 +415,6 @@ void SV_Map (bool attractloop, char *levelstring, char *savename, bool loadgame)
 		SCR_BeginLoadingPlaque (); // for local system
 		SV_BroadcastCommand ("changing\n");
 		SV_SpawnServer (level, spawnpoint, NULL, ss_demo, attractloop, loadgame);
-	}
-	else if (!strcmp(ext, "pcx"))
-	{
-		SCR_BeginLoadingPlaque (); // for local system
-		SV_BroadcastCommand ("changing\n");
-		SV_SpawnServer (level, spawnpoint, NULL, ss_pic, attractloop, loadgame);
 	}
 	else
 	{

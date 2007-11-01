@@ -51,15 +51,13 @@ void CL_CheckPredictionError (void)
 	}
 	else
 	{
-		if (cl_showmiss->value && (delta[0] || delta[1] || delta[2]) )
-			Msg ("prediction miss on %i: %i\n", cl.frame.serverframe, 
-			delta[0] + delta[1] + delta[2]);
+		if (cl_showmiss->value && (delta[0] || delta[1] || delta[2]))
+			Msg ("prediction miss on %i: %i\n", cl.frame.serverframe, delta[0] + delta[1] + delta[2]);
 
 		VectorCopy (cl.frame.playerstate.pmove.origin, cl.predicted_origins[frame]);
 
 		// save for error itnerpolation
-		for (i=0 ; i<3 ; i++)
-			cl.prediction_error[i] = delta[i]*CL_COORD_FRAC;
+		for (i = 0; i < 3; i++) cl.prediction_error[i] = delta[i];
 	}
 }
 
@@ -263,15 +261,11 @@ void CL_PredictMovement (void)
 	step = pm.s.origin[2] - oldz;
 	if (step > 63 && step < 160 && (pm.s.pm_flags & PMF_ON_GROUND))
 	{
-		cl.predicted_step = step * CL_COORD_FRAC;
+		cl.predicted_step = step;
 		cl.predicted_step_time = cls.realtime - cls.frametime * 0.5f;
 	}
 
-
 	// copy results out for rendering
-	cl.predicted_origin[0] = pm.s.origin[0]*CL_COORD_FRAC;
-	cl.predicted_origin[1] = pm.s.origin[1]*CL_COORD_FRAC;
-	cl.predicted_origin[2] = pm.s.origin[2]*CL_COORD_FRAC;
-
+	VectorCopy (pm.s.origin, cl.predicted_origin);
 	VectorCopy (pm.viewangles, cl.predicted_angles);
 }

@@ -36,157 +36,12 @@ float LerpAngle (float a2, float a1, float frac)
 	return a2 + frac * (a1 - a2);
 }
 
-#if 0
-
-typedef struct
+float LerpView(float org1, float org2, float ofs1, float ofs2, float frac)
 {
-	int		modelindex;
-	int		num; // entity number
-	int		effects;
-	vec3_t	origin;
-	vec3_t	oldorigin;
-	vec3_t	angles;
-	bool present;
-} projectile_t;
-
-#define	MAX_PROJECTILES	64
-projectile_t	cl_projectiles[MAX_PROJECTILES];
-
-void CL_ClearProjectiles (void)
-{
-	int i;
-
-	for (i = 0; i < MAX_PROJECTILES; i++) 
-		cl_projectiles[i].present = false;
+	return org1 + ofs1 + frac * (org2 + ofs2 - (org1 + ofs1));
 }
 
-/*
-=====================
-CL_ParseProjectiles
-
-Flechettes are passed as efficient temporary entities
-=====================
-*/
-void CL_ParseProjectiles (void)
-{
-	int		i, c, j;
-	byte	bits[8];
-	byte	b;
-	projectile_t	pr;
-	int lastempty = -1;
-	bool old = false;
-
-	c = MSG_ReadByte (&net_message);
-	for (i=0 ; i<c ; i++)
-	{
-		bits[0] = MSG_ReadByte (&net_message);
-		bits[1] = MSG_ReadByte (&net_message);
-		bits[2] = MSG_ReadByte (&net_message);
-		bits[3] = MSG_ReadByte (&net_message);
-		bits[4] = MSG_ReadByte (&net_message);
-		pr.origin[0] = ( ( bits[0] + ((bits[1]&15)<<8) ) <<1) - 4096;
-		pr.origin[1] = ( ( (bits[1]>>4) + (bits[2]<<4) ) <<1) - 4096;
-		pr.origin[2] = ( ( bits[3] + ((bits[4]&15)<<8) ) <<1) - 4096;
-		VectorCopy(pr.origin, pr.oldorigin);
-
-		if (bits[4] & 64)
-			pr.effects = EF_BLASTER;
-		else
-			pr.effects = 0;
-
-		if (bits[4] & 128) {
-			old = true;
-			bits[0] = MSG_ReadByte (&net_message);
-			bits[1] = MSG_ReadByte (&net_message);
-			bits[2] = MSG_ReadByte (&net_message);
-			bits[3] = MSG_ReadByte (&net_message);
-			bits[4] = MSG_ReadByte (&net_message);
-			pr.oldorigin[0] = ( ( bits[0] + ((bits[1]&15)<<8) ) <<1) - 4096;
-			pr.oldorigin[1] = ( ( (bits[1]>>4) + (bits[2]<<4) ) <<1) - 4096;
-			pr.oldorigin[2] = ( ( bits[3] + ((bits[4]&15)<<8) ) <<1) - 4096;
-		}
-
-		bits[0] = MSG_ReadByte (&net_message);
-		bits[1] = MSG_ReadByte (&net_message);
-		bits[2] = MSG_ReadByte (&net_message);
-
-		pr.angles[0] = 360*bits[0]/256;
-		pr.angles[1] = 360*bits[1]/256;
-		pr.modelindex = bits[2];
-
-		b = MSG_ReadByte (&net_message);
-		pr.num = (b & 0x7f);
-		if (b & 128) // extra entity number byte
-			pr.num |= (MSG_ReadByte (&net_message) << 7);
-
-		pr.present = true;
-
-		// find if this projectile already exists from previous frame 
-		for (j = 0; j < MAX_PROJECTILES; j++) {
-			if (cl_projectiles[j].modelindex) {
-				if (cl_projectiles[j].num == pr.num) {
-					// already present, set up oldorigin for interpolation
-					if (!old)
-						VectorCopy(cl_projectiles[j].origin, pr.oldorigin);
-					cl_projectiles[j] = pr;
-					break;
-				}
-			} else
-				lastempty = j;
-		}
-
-		// not present previous frame, add it
-		if (j == MAX_PROJECTILES) {
-			if (lastempty != -1) {
-				cl_projectiles[lastempty] = pr;
-			}
-		}
-	}
-}
-
-/*
-=============
-CL_LinkProjectiles
-
-=============
-*/
-void CL_AddProjectiles (void)
-{
-	int		i, j;
-	projectile_t	*pr;
-	entity_t		ent;
-
-	memset (&ent, 0, sizeof(ent));
-
-	for (i=0, pr=cl_projectiles ; i < MAX_PROJECTILES ; i++, pr++)
-	{
-		// grab an entity to fill in
-		if (pr->modelindex < 1)
-			continue;
-		if (!pr->present) {
-			pr->modelindex = 0;
-			continue; // not present this frame (it was in the previous frame)
-		}
-
-		ent.model = cl.model_draw[pr->modelindex];
-
-		// interpolate origin
-		for (j=0 ; j<3 ; j++)
-		{
-			ent.origin[j] = ent.oldorigin[j] = pr->oldorigin[j] + cl.lerpfrac * 
-				(pr->origin[j] - pr->oldorigin[j]);
-
-		}
-
-		if (pr->effects & EF_BLASTER)
-			CL_BlasterTrail (pr->oldorigin, ent.origin);
-		V_AddLight (pr->origin, 200, 1, 1, 0);
-
-		VectorCopy (pr->angles, ent.angles);
-		V_AddEntity (&ent);
-	}
-}
-#endif
+ 
 
 /*
 =================
@@ -638,14 +493,12 @@ void CL_ParseFrame (void)
 		{
 			cls.state = ca_active;
 			cl.force_refdef = true;
-			cl.predicted_origin[0] = cl.frame.playerstate.pmove.origin[0]*CL_COORD_FRAC;
-			cl.predicted_origin[1] = cl.frame.playerstate.pmove.origin[1]*CL_COORD_FRAC;
-			cl.predicted_origin[2] = cl.frame.playerstate.pmove.origin[2]*CL_COORD_FRAC;
-			VectorCopy (cl.frame.playerstate.viewangles, cl.predicted_angles);
+			VectorCopy( cl.frame.playerstate.pmove.origin, cl.predicted_origin );
+			VectorCopy( cl.frame.playerstate.viewangles, cl.predicted_angles );
 			if (cls.disable_servercount != cl.servercount && cl.refresh_prepped)
 				SCR_EndLoadingPlaque (); // get rid of loading plaque
 		}
-		cl.sound_prepped = true;	// can start mixing ambient sounds
+		cl.sound_prepped = true; // can start mixing ambient sounds
 	
 		// fire entity events
 		CL_FireEntityEvents (&cl.frame);
@@ -1049,9 +902,9 @@ Sets cl.refdef view values
 */
 void CL_CalcViewValues (void)
 {
-	int			i;
+	int		i;
 	float		lerp, backlerp;
-	centity_t	*ent;
+	centity_t		*ent;
 	frame_t		*oldframe;
 	player_state_t	*ps, *ops;
 
@@ -1060,21 +913,22 @@ void CL_CalcViewValues (void)
 	i = (cl.frame.serverframe - 1) & UPDATE_MASK;
 	oldframe = &cl.frames[i];
 	if (oldframe->serverframe != cl.frame.serverframe-1 || !oldframe->valid)
-		oldframe = &cl.frame;		// previous frame was dropped or involid
+		oldframe = &cl.frame; // previous frame was dropped or invalid
 	ops = &oldframe->playerstate;
 
 	// see if the player entity was teleported this frame
-	if ( fabs(ops->pmove.origin[0] - ps->pmove.origin[0]) > 256*SV_COORD_FRAC
-		|| abs(ops->pmove.origin[1] - ps->pmove.origin[1]) > 256*SV_COORD_FRAC
-		|| abs(ops->pmove.origin[2] - ps->pmove.origin[2]) > 256*SV_COORD_FRAC)
-		ops = ps;		// don't interpolate
+	if (fabs(ops->pmove.origin[0] - ps->pmove.origin[0]) > 2048
+		|| fabs(ops->pmove.origin[1] - ps->pmove.origin[1]) > 2048
+		|| fabs(ops->pmove.origin[2] - ps->pmove.origin[2]) > 2048)
+		ops = ps;	// don't interpolate
 
 	ent = &cl_entities[cl.playernum+1];
 	lerp = cl.lerpfrac;
 
 	// calculate the origin
 	if ((cl_predict->value) && !(cl.frame.playerstate.pmove.pm_flags & PMF_NO_PREDICTION))
-	{	// use predicted values
+	{	
+		// use predicted values
 		float	delta;
 
 		backlerp = 1.0 - lerp;
@@ -1087,26 +941,24 @@ void CL_CalcViewValues (void)
 
 		// smooth out stair climbing
 		delta = cls.realtime - cl.predicted_step_time;
-		if (delta < 0.1) cl.refdef.vieworg[2] -= cl.predicted_step * (0.1 - delta) * 0.01;
+		if (delta < host_frametime->value)
+			cl.refdef.vieworg[2] -= cl.predicted_step * (host_frametime->value - delta) * host_frametime->value;
 	}
 	else
 	{	// just use interpolated values
-		for (i=0 ; i<3 ; i++)
-			cl.refdef.vieworg[i] = ops->pmove.origin[i]*CL_COORD_FRAC + ops->viewoffset[i] 
-				+ lerp * (ps->pmove.origin[i]*CL_COORD_FRAC + ps->viewoffset[i] 
-				- (ops->pmove.origin[i]*CL_COORD_FRAC + ops->viewoffset[i]) );
+		for (i = 0; i < 3; i++)
+			cl.refdef.vieworg[i] = LerpView( ops->pmove.origin[i], ps->pmove.origin[i], ops->viewoffset[i], ps->viewoffset[i], lerp );
 	}
 
 	// if not running a demo or on a locked frame, add the local angle movement
 	if ( cl.frame.playerstate.pmove.pm_type < PM_DEAD )
-	{	// use predicted values
-		for (i=0 ; i<3 ; i++)
-			cl.refdef.viewangles[i] = cl.predicted_angles[i];
+	{	
+		// use predicted values
+		for (i = 0; i < 3; i++) cl.refdef.viewangles[i] = cl.predicted_angles[i];
 	}
 	else
 	{	// just use interpolated values
-		for (i=0 ; i<3 ; i++)
-			cl.refdef.viewangles[i] = LerpAngle (ops->viewangles[i], ps->viewangles[i], lerp);
+		for (i = 0; i < 3; i++) cl.refdef.viewangles[i] = LerpAngle (ops->viewangles[i], ps->viewangles[i], lerp);
 	}
 
 	for (i=0 ; i<3 ; i++)

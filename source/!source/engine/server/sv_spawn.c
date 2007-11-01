@@ -40,12 +40,9 @@ void SV_PutClientInServer (edict_t *ent)
 	memset (&ent->priv.sv->client->ps, 0, sizeof(client->ps));
 
 	// info_player_start
-	client->ps.pmove.origin[0] = ent->progs.sv->origin[0] * SV_COORD_FRAC;
-	client->ps.pmove.origin[1] = ent->progs.sv->origin[1] * SV_COORD_FRAC;
-	client->ps.pmove.origin[2] = ent->progs.sv->origin[2] * SV_COORD_FRAC;
+	VectorCopy(ent->progs.sv->origin, client->ps.pmove.origin);  
 
 	client->ps.fov = 90;
-
 	client->ps.fov = bound(1, client->ps.fov, 160);
 	client->ps.gunindex = SV_ModelIndex(PRVM_GetString(ent->progs.sv->weaponmodel));
 
@@ -327,7 +324,6 @@ void SV_SetStats (edict_t *ent)
 void ClientEndServerFrame (edict_t *ent)
 {
 	float		bobtime;
-	int		i;
 
 	current_player = ent;
 	current_client = ent->priv.sv->client;
@@ -340,12 +336,8 @@ void ClientEndServerFrame (edict_t *ent)
 	// If it wasn't updated here, the view position would lag a frame
 	// behind the body position when pushed -- "sinking into plats"
 	//
-	for (i = 0; i < 3; i++)
-	{
-		current_client->ps.pmove.origin[i] = ent->progs.sv->origin[i]*SV_COORD_FRAC;
-		current_client->ps.pmove.velocity[i] = ent->progs.sv->velocity[i]*SV_COORD_FRAC;
-	}
-
+	VectorCopy(ent->progs.sv->origin, current_client->ps.pmove.origin ); 
+	VectorCopy(ent->progs.sv->velocity, current_client->ps.pmove.velocity ); 
 	AngleVectors (ent->priv.sv->client->v_angle, forward, right, up);
 
 	//
@@ -376,7 +368,7 @@ void ClientEndServerFrame (edict_t *ent)
 	{	
 		// so bobbing only cycles when on ground
 		if (xyspeed > 210) bobmove = 0.25;
-		else if (xyspeed > 100) bobmove = CL_COORD_FRAC;
+		else if (xyspeed > 100) bobmove = 0.125;
 		else bobmove = 0.0625;
 	}
 	
@@ -580,11 +572,8 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 
 	pm.s = client->ps.pmove;
 
-	for (i = 0; i < 3; i++)
-	{
-		pm.s.origin[i] = ent->progs.sv->origin[i]*SV_COORD_FRAC;
-		pm.s.velocity[i] = ent->progs.sv->velocity[i]*SV_COORD_FRAC;
-	}
+	VectorCopy(ent->progs.sv->origin, pm.s.origin );
+	VectorCopy(ent->progs.sv->velocity, pm.s.velocity );
 
 	if (memcmp(&client->old_pmove, &pm.s, sizeof(pm.s)))
 		pm.snapinitial = true;
@@ -601,11 +590,8 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	client->ps.pmove = pm.s;
 	client->old_pmove = pm.s;
 
-	for (i = 0; i < 3; i++)
-	{
-		ent->progs.sv->origin[i] = pm.s.origin[i]*CL_COORD_FRAC;
-		ent->progs.sv->velocity[i] = pm.s.velocity[i]*CL_COORD_FRAC;
-	}
+	VectorCopy(pm.s.origin, ent->progs.sv->origin);
+	VectorCopy(pm.s.velocity, ent->progs.sv->velocity);
 	VectorCopy (pm.mins, ent->progs.sv->mins);
 	VectorCopy (pm.maxs, ent->progs.sv->maxs);
 	VectorCopy (pm.viewangles, client->v_angle);

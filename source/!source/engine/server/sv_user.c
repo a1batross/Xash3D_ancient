@@ -85,8 +85,7 @@ void SV_New_f (void)
 	MSG_WriteByte (&sv_client->netchan.message, sv.attractloop);
 	MSG_WriteString (&sv_client->netchan.message, gamedir);
 
-	if (sv.state == ss_cinematic || sv.state == ss_pic)
-		playernum = -1;
+	if (sv.state == ss_cinematic) playernum = -1;
 	else playernum = sv_client - svs.clients;
 	MSG_WriteShort (&sv_client->netchan.message, playernum );
 
@@ -382,14 +381,12 @@ void SV_Nextserver (void)
 {
 	char	*v;
 
-	//ZOID, ss_pic can be nextserver'd in coop mode
-	if (sv.state == ss_game || (sv.state == ss_pic && !Cvar_VariableValue("coop")))
-		return;		// can't nextserver while playing a normal game
+	// can't nextserver while playing a normal game
+	if (sv.state == ss_game) return;
 
 	svs.spawncount++;	// make sure another doesn't sneak in
 	v = Cvar_VariableString ("nextserver");
-	if (!v[0])
-		Cbuf_AddText ("killserver\n");
+	if (!v[0]) Cbuf_AddText ("killserver\n");
 	else
 	{
 		Cbuf_AddText (v);

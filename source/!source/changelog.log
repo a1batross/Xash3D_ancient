@@ -6,8 +6,8 @@
 –азработать концепцию €зыка VirtualC\VirtualC++ (базируетс€ на QuakeC)
 представить func_t как структуру(возвращаемые значени€ и аргументы)
 
-1. ѕеренести сетевой протокол из ку3
-
+1. ѕеренести сетевой протокол из ку3 (huffman compressed)
+2. подключить roqlib
 
 Quake1			Quake2
 SV_MoveBounds		SV_TraceBounds

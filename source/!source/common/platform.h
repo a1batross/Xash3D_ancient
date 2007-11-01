@@ -28,6 +28,7 @@ vfilesystem_api_t VFS_GetAPI( void );
 scriptsystem_api_t Sc_GetAPI( void );
 compilers_api_t Comp_GetAPI( void );
 infostring_api_t Info_GetAPI( void );
+roqlib_api_t ROQ_GetAPI( void );
 
 //=====================================
 //	filesystem funcs

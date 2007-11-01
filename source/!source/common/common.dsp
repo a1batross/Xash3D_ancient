@@ -125,6 +125,10 @@ SOURCE=.\bsplib\csg.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\roqlib\roq_dec.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\bsplib\faces.c
 # End Source File
 # Begin Source File
