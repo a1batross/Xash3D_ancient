@@ -1073,11 +1073,11 @@ static float ClampCvar( float min, float max, float value )
 static void ControlsSetMenuItemValues( void )
 {
 	s_options_sfxvolume_slider.curvalue = Cvar_VariableValue( "s_volume" ) * 10;
-	s_options_quality_list.curvalue = !Cvar_VariableValue( "s_loadas8bit" );
+	s_options_quality_list.curvalue = !(Cvar_VariableValue( "s_khz" ) == 22);
 	s_options_sensitivity_slider.curvalue	= ( sensitivity->value ) * 2;
 
 	Cvar_SetValue( "cl_run", ClampCvar( 0, 1, cl_run->value ) );
-	s_options_alwaysrun_box.curvalue		= cl_run->value;
+	s_options_alwaysrun_box.curvalue = cl_run->value;
 
 	s_options_invertmouse_box.curvalue		= m_pitch->value < 0;
 
@@ -1132,12 +1132,6 @@ static void ConsoleFunc( void *unused )
 	*/
 	extern void Key_ClearTyping( void );
 
-	if ( cl.attractloop )
-	{
-		Cbuf_AddText ("killserver\n");
-		return;
-	}
-
 	Key_ClearTyping ();
 	Con_ClearNotify ();
 
@@ -1149,13 +1143,11 @@ static void UpdateSoundQualityFunc( void *unused )
 {
 	if ( s_options_quality_list.curvalue )
 	{
-		Cvar_SetValue( "s_khz", 22 );
-		Cvar_SetValue( "s_loadas8bit", false );
+		Cvar_SetValue( "s_khz", 44 );
 	}
 	else
 	{
-		Cvar_SetValue( "s_khz", 11 );
-		Cvar_SetValue( "s_loadas8bit", true );
+		Cvar_SetValue( "s_khz", 22 );
 	}
 	
 	Cvar_SetValue( "s_primary", s_options_compatibility_list.curvalue );
@@ -1218,10 +1210,10 @@ void Options_MenuInit( void )
 	s_options_quality_list.generic.type	= MTYPE_SPINCONTROL;
 	s_options_quality_list.generic.x		= 0;
 	s_options_quality_list.generic.y		= 10;
-	s_options_quality_list.generic.name		= "sound quality";
+	s_options_quality_list.generic.name = "sound quality";
 	s_options_quality_list.generic.callback = UpdateSoundQualityFunc;
-	s_options_quality_list.itemnames		= quality_items;
-	s_options_quality_list.curvalue			= !Cvar_VariableValue( "s_loadas8bit" );
+	s_options_quality_list.itemnames = quality_items;
+	s_options_quality_list.curvalue = !(Cvar_VariableValue( "s_khz" ) == 22);
 
 	s_options_compatibility_list.generic.type	= MTYPE_SPINCONTROL;
 	s_options_compatibility_list.generic.x		= 0;
@@ -3400,8 +3392,7 @@ void M_Draw (void)
 	SCR_DirtyScreen ();
 
 	// dim everything behind it down
-	if (cl.cinematictime > 0) 
-		re->DrawFill (0, 0, viddef.width, viddef.height, 0);
+	if (cl.cinematictime > 0) SCR_DrawCinematic();
 	else re->DrawFadeScreen ();
 
 	m_drawfunc ();

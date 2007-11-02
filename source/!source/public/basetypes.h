@@ -45,6 +45,7 @@ typedef struct image_s	image_t;
 typedef struct model_s	model_t;
 typedef int		func_t;
 typedef struct edict_s	edict_t;
+typedef int		sound_t;
 typedef int		string_t;
 typedef struct gclient_s	gclient_t;
 typedef struct sv_edict_s	sv_edict_t;

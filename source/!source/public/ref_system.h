@@ -522,8 +522,8 @@ typedef struct dll_info_s
 #define CVAR_SERVERINFO	4	// added to serverinfo when changed
 #define CVAR_NOSET		8	// don't allow change from console at all, but can be set from the command line
 #define CVAR_LATCH		16	// save changes until server restart
-
-#define CVAR_MAXFLAGSVAL	31	// maximum number of flags
+#define CVAR_CHEAT		32	// marker for cheats
+#define CVAR_MAXFLAGSVAL	63	// maximum number of flags
 
 typedef struct cvar_s
 {
@@ -1049,7 +1049,7 @@ typedef struct render_exp_s
 	void	(*DrawFadeScreen) (void);
 
 	// Draw images for cinematic rendering (which can have a different palette). Note that calls
-	void	(*DrawStretchRaw) (int x, int y, int w, int h, int cols, int rows, byte *data);
+	void	(*DrawStretchRaw) (int x, int y, int w, int h, int cols, int rows, byte *data, bool dirty);
 
 	// video mode and refresh state management entry points
 	void	(*CinematicSetPalette)( const byte *palette);	// NULL = game palette

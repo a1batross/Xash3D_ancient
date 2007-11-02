@@ -168,12 +168,10 @@ void AppActivate(BOOL fActive, BOOL minimize)
 	if (!ActiveApp)
 	{
 		IN_Activate (false);
-		S_Activate (false);
 	}
 	else
 	{
 		IN_Activate (true);
-		S_Activate (true);
 	}
 }
 
@@ -247,10 +245,10 @@ LONG WINAPI MainWndProc ( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			fMinimized = (BOOL) HIWORD(wParam);
 
 			AppActivate( fActive != WA_INACTIVE, fMinimized);
-
+			SNDDMA_Activate();
 			if ( reflib_active ) re->AppActivate( !( fActive == WA_INACTIVE ) );
 		}
-		return DefWindowProc (hWnd, uMsg, wParam, lParam);
+		break;
 	case WM_MOVE:
 		{
 			int		xPos, yPos;
@@ -486,6 +484,7 @@ void VID_InitRender( void )
 		Sys_Error("VID_InitRender: can't init render.dll\nUpdate your opengl drivers\n");
 
 	reflib_active = true;
+	CL_Snd_Restart_f();
 }
 
 /*

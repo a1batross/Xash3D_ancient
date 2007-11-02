@@ -186,16 +186,15 @@ void CL_RegisterSounds (void)
 {
 	int		i;
 
-	S_BeginRegistration ();
+	S_BeginRegistration();
 	CL_RegisterTEntSounds ();
-	for (i=1 ; i<MAX_SOUNDS ; i++)
+	for (i = 1; i < MAX_SOUNDS; i++)
 	{
-		if (!cl.configstrings[CS_SOUNDS+i][0])
-			break;
+		if (!cl.configstrings[CS_SOUNDS+i][0]) break;
 		cl.sound_precache[i] = S_RegisterSound (cl.configstrings[CS_SOUNDS+i]);
-		Sys_SendKeyEvents ();	// pump message loop
+		Sys_SendKeyEvents (); // pump message loop
 	}
-	S_EndRegistration ();
+	S_EndRegistration();
 }
 
 
@@ -588,7 +587,7 @@ void CL_ParseStartSoundPacket(void)
 	else pos = NULL; // use entity number
 
 	if (!cl.sound_precache[sound_num]) return;
-	S_StartSound (pos, ent, channel, cl.sound_precache[sound_num], volume, attenuation, ofs);
+	S_StartSound (pos, ent, channel, cl.sound_precache[sound_num]);
 }       
 
 

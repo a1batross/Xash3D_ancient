@@ -28,20 +28,20 @@ typedef enum
 
 typedef struct
 {
-	exptype_t	type;
-	entity_t	ent;
+	exptype_t		type;
+	entity_t		ent;
 
-	int			frames;
+	int		frames;
 	float		light;
 	vec3_t		lightcolor;
 	float		start;
-	int			baseframe;
+	int		baseframe;
 } explosion_t;
 
 
 
-#define	MAX_EXPLOSIONS	32
-explosion_t	cl_explosions[MAX_EXPLOSIONS];
+#define MAX_EXPLOSIONS	32
+explosion_t cl_explosions[MAX_EXPLOSIONS];
 
 
 #define	MAX_BEAMS	32
@@ -73,20 +73,20 @@ void CL_BFGExplosionParticles (vec3_t org);
 // RAFAEL
 void CL_BlueBlasterParticles (vec3_t org, vec3_t dir);
 
-struct sfx_s	*cl_sfx_ric1;
-struct sfx_s	*cl_sfx_ric2;
-struct sfx_s	*cl_sfx_ric3;
-struct sfx_s	*cl_sfx_lashit;
-struct sfx_s	*cl_sfx_spark5;
-struct sfx_s	*cl_sfx_spark6;
-struct sfx_s	*cl_sfx_spark7;
-struct sfx_s	*cl_sfx_railg;
-struct sfx_s	*cl_sfx_rockexp;
-struct sfx_s	*cl_sfx_grenexp;
-struct sfx_s	*cl_sfx_watrexp;
+sound_t	cl_sfx_ric1;
+sound_t	cl_sfx_ric2;
+sound_t	cl_sfx_ric3;
+sound_t	cl_sfx_lashit;
+sound_t	cl_sfx_spark5;
+sound_t	cl_sfx_spark6;
+sound_t	cl_sfx_spark7;
+sound_t	cl_sfx_railg;
+sound_t	cl_sfx_rockexp;
+sound_t	cl_sfx_grenexp;
+sound_t	cl_sfx_watrexp;
 // RAFAEL
-struct sfx_s	*cl_sfx_plasexp;
-struct sfx_s	*cl_sfx_footsteps[4];
+sound_t	cl_sfx_plasexp;
+sound_t	cl_sfx_footsteps[4];
 
 model_t	*cl_mod_explode;
 model_t	*cl_mod_smoke;
@@ -474,11 +474,11 @@ void CL_ParseTEnt (void)
 			// impact sound
 			cnt = rand()&15;
 			if (cnt == 1)
-				S_StartSound (pos, 0, 0, cl_sfx_ric1, 1, ATTN_NORM, 0);
+				S_StartSound (pos, 0, 0, cl_sfx_ric1);
 			else if (cnt == 2)
-				S_StartSound (pos, 0, 0, cl_sfx_ric2, 1, ATTN_NORM, 0);
+				S_StartSound (pos, 0, 0, cl_sfx_ric2);
 			else if (cnt == 3)
-				S_StartSound (pos, 0, 0, cl_sfx_ric3, 1, ATTN_NORM, 0);
+				S_StartSound (pos, 0, 0, cl_sfx_ric3);
 		}
 
 		break;
@@ -492,7 +492,7 @@ void CL_ParseTEnt (void)
 		else
 			CL_ParticleEffect (pos, dir, 0xb0, 40);
 		//FIXME : replace or remove this sound
-		S_StartSound (pos, 0, 0, cl_sfx_lashit, 1, ATTN_NORM, 0);
+		S_StartSound (pos, 0, 0, cl_sfx_lashit);
 		break;
 		
 	case TE_SHOTGUN:			// bullet hitting wall
@@ -517,11 +517,11 @@ void CL_ParseTEnt (void)
 		{
 			r = rand() & 3;
 			if (r == 0)
-				S_StartSound (pos, 0, 0, cl_sfx_spark5, 1, ATTN_STATIC, 0);
+				S_StartSound (pos, 0, 0, cl_sfx_spark5);
 			else if (r == 1)
-				S_StartSound (pos, 0, 0, cl_sfx_spark6, 1, ATTN_STATIC, 0);
+				S_StartSound (pos, 0, 0, cl_sfx_spark6);
 			else
-				S_StartSound (pos, 0, 0, cl_sfx_spark7, 1, ATTN_STATIC, 0);
+				S_StartSound (pos, 0, 0, cl_sfx_spark7);
 		}
 		break;
 
@@ -566,14 +566,14 @@ void CL_ParseTEnt (void)
 		ex->lightcolor[1] = 1;
 		ex->ent.model = cl_mod_explode;
 		ex->frames = 4;
-		S_StartSound (pos,  0, 0, cl_sfx_lashit, 1, ATTN_NORM, 0);
+		S_StartSound (pos,  0, 0, cl_sfx_lashit);
 		break;
 		
 	case TE_RAILTRAIL:			// railgun effect
 		MSG_ReadPos32 (&net_message, pos);
 		MSG_ReadPos32 (&net_message, pos2);
 		CL_RailTrail (pos, pos2);
-		S_StartSound (pos2, 0, 0, cl_sfx_railg, 1, ATTN_NORM, 0);
+		S_StartSound (pos2, 0, 0, cl_sfx_railg);
 		break;
 
 	case TE_EXPLOSION2:
@@ -596,9 +596,9 @@ void CL_ParseTEnt (void)
 		ex->ent.angles[1] = rand() % 360;
 		CL_ExplosionParticles (pos);
 		if (type == TE_GRENADE_EXPLOSION_WATER)
-			S_StartSound (pos, 0, 0, cl_sfx_watrexp, 1, ATTN_NORM, 0);
+			S_StartSound (pos, 0, 0, cl_sfx_watrexp);
 		else
-			S_StartSound (pos, 0, 0, cl_sfx_grenexp, 1, ATTN_NORM, 0);
+			S_StartSound (pos, 0, 0, cl_sfx_grenexp);
 		break;
 
 	// RAFAEL
@@ -618,7 +618,7 @@ void CL_ParseTEnt (void)
 		ex->baseframe = 0;
 		ex->frames = 6;
 		CL_ExplosionParticles (pos);
-		S_StartSound (pos, 0, 0, cl_sfx_rockexp, 1, ATTN_NORM, 0);
+		S_StartSound (pos, 0, 0, cl_sfx_rockexp);
 		break;
 	
 	case TE_EXPLOSION1:
@@ -641,9 +641,9 @@ void CL_ParseTEnt (void)
 		ex->frames = 8;
 		CL_ExplosionParticles (pos);									// PMM
 		if (type == TE_ROCKET_EXPLOSION_WATER)
-			S_StartSound (pos, 0, 0, cl_sfx_watrexp, 1, ATTN_NORM, 0);
+			S_StartSound (pos, 0, 0, cl_sfx_watrexp);
 		else
-			S_StartSound (pos, 0, 0, cl_sfx_rockexp, 1, ATTN_NORM, 0);
+			S_StartSound (pos, 0, 0, cl_sfx_rockexp);
 		break;
 
 	case TE_BFG_EXPLOSION:
@@ -683,10 +683,10 @@ void CL_ParseTEnt (void)
 		ent = CL_ParseBeam (cl_mod_laser);
 		break;
 
-	case TE_BOSSTPORT:			// boss teleporting to station
+	case TE_BOSSTPORT:	// boss teleporting to station
 		MSG_ReadPos32 (&net_message, pos);
 		CL_BigTeleportParticles (pos);
-		S_StartSound (pos, 0, 0, S_RegisterSound ("misc/bigtele.wav"), 1, ATTN_NONE, 0);
+		S_StartSound (pos, 0, 0, S_RegisterSound ("misc/bigtele.wav"));
 		break;
 
 	case TE_GRAPPLE_CABLE:

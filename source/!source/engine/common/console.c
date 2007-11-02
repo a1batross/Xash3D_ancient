@@ -66,20 +66,7 @@ Con_ToggleConsole_f
 */
 void Con_ToggleConsole_f (void)
 {
-	SCR_EndLoadingPlaque ();	// get rid of loading plaque
-
-	if (cl.attractloop)
-	{
-		Cbuf_AddText ("killserver\n");
-		return;
-	}
-
-	if (cls.state == ca_disconnected)
-	{	// start the demo loop again
-		Cbuf_AddText ("d1\n");
-		return;
-	}
-
+	SCR_EndLoadingPlaque();	// get rid of loading plaque
 	Key_ClearTyping ();
 	Con_ClearNotify ();
 

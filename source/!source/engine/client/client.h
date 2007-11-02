@@ -30,7 +30,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "console.h"
 
 //=============================================================================
-
 typedef struct
 {
 	bool		valid;			// cleared if delta parsing was invalid
@@ -146,7 +145,7 @@ typedef struct
 	model_t		*model_draw[MAX_MODELS];
 	struct cmodel_s	*model_clip[MAX_MODELS];
 
-	struct sfx_s	*sound_precache[MAX_SOUNDS];
+	sound_t		sound_precache[MAX_SOUNDS];
 	image_t		*image_precache[MAX_IMAGES];
 
 	clientinfo_t	clientinfo[MAX_CLIENTS];
@@ -167,9 +166,10 @@ of server connections
 typedef enum {
 	ca_uninitialized,
 	ca_disconnected, 	// not talking to a server
-	ca_connecting,		// sending request packets to the server
-	ca_connected,		// netchan_t established, waiting for svc_serverdata
-	ca_active			// game views should be displayed
+	ca_connecting,	// sending request packets to the server
+	ca_connected,	// netchan_t established, waiting for svc_serverdata
+	ca_active,	// game views should be displayed
+	ca_cinematic,	// playing a cinematic, not connected to a server
 } connstate_t;
 
 typedef enum {

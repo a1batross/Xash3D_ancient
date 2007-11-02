@@ -46,6 +46,9 @@
 #define VectorCopy(a,b) {b[0]=a[0];b[1]=a[1];b[2]=a[2];}
 #define VectorScale(in, scale, out) ((out)[0] = (in)[0] * (scale),(out)[1] = (in)[1] * (scale),(out)[2] = (in)[2] * (scale))
 #define VectorMultiply(a,b,c) ((c)[0]=(a)[0]*(b)[0],(c)[1]=(a)[1]*(b)[1],(c)[2]=(a)[2]*(b)[2])
+#define VectorLength2(a) (DotProduct(a, a))
+#define VectorDistance(a, b) (sqrt(VectorDistance2(a,b)))
+#define VectorDistance2(a, b) (((a)[0] - (b)[0]) * ((a)[0] - (b)[0]) + ((a)[1] - (b)[1]) * ((a)[1] - (b)[1]) + ((a)[2] - (b)[2]) * ((a)[2] - (b)[2]))
 #define VectorSet(v, x, y, z) {v[0] = x; v[1] = y; v[2] = z;}
 #define Vector4Set(v, x, y, z, w) {v[0] = x; v[1] = y; v[2] = z; v[3] = w;}
 #define VectorClear(x) {x[0] = x[1] = x[2] = 0;}
@@ -149,7 +152,7 @@ _inline vec_t VectorNormalize (vec3_t v)
 
 }
 
-_inline void VectorRotate (const vec3_t in1, const matrix3x4 in2, vec3_t out)
+_inline void VectorRotate (const vec3_t in1, vec3_t in2[3], vec3_t out)
 {
 	out[0] = DotProduct(in1, in2[0]);
 	out[1] = DotProduct(in1, in2[1]);

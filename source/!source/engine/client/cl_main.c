@@ -1093,9 +1093,9 @@ new parameters and flush all sounds
 */
 void CL_Snd_Restart_f (void)
 {
-	S_Shutdown ();
-	S_Init ();
-	CL_RegisterSounds ();
+	S_Shutdown();
+	S_Init();
+	CL_RegisterSounds();
 }
 
 int precache_check; // for autodownload of precache items
@@ -1694,14 +1694,13 @@ void CL_Frame (float time)
 		CL_PrepRefresh ();
 
 	// update the screen
-	if (host_speeds->value)
-		time_before_ref = Sys_DoubleTime ();
+	if (host_speeds->value) time_before_ref = Sys_DoubleTime();
 	SCR_UpdateScreen ();
-	if (host_speeds->value)
-		time_after_ref = Sys_DoubleTime ();
+	if (host_speeds->value) time_after_ref = Sys_DoubleTime();
 
 	// update audio
-	S_Update (cl.refdef.vieworg, cl.v_forward, cl.v_right, cl.v_up);
+	S_Update();
+	S_Respatialize( cl.playernum + 1, cl.refdef.vieworg, cl.v_forward, cl.v_right, cl.v_up );
 
 	// advance local effects for next frame
 	CL_RunDLights ();

@@ -284,19 +284,20 @@ void Draw_FadeScreen (void)
 Draw_StretchRaw
 =============
 */
-void Draw_StretchRaw (int x, int y, int w, int h, int cols, int rows, byte *data)
+void Draw_StretchRaw (int x, int y, int w, int h, int cols, int rows, byte *data, bool dirty)
 {
 	int	i, j;
 
+	qglFinish();
 	// make sure rows and cols are powers of 2
 	for( i = 0;(1<<i) < cols; i++ );
 	for( j = 0;(1<<j) < rows; j++ );
 	if ((1<<i ) != cols || ( 1<<j ) != rows)
 		Sys_Error ("Draw_StretchRaw: size not a power of 2: %i by %i", cols, rows);
-
 	GL_Bind(0);
-	qglTexImage2D (GL_TEXTURE_2D, 0, gl_tex_solid_format, cols, rows, 0, GL_RGB, GL_UNSIGNED_BYTE, data );
+	if( dirty ) qglTexImage2D (GL_TEXTURE_2D, 0, gl_tex_solid_format, cols, rows, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
 	GL_TexFilter( false );
+	R_SetGL2D();
 
 	qglBegin(GL_QUADS);
 	qglTexCoord2f( 0.5f / cols,  0.5f / rows );

@@ -23,6 +23,24 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "vid.h"
 
+// cinematic states
+typedef enum
+{
+	FMV_IDLE,
+	FMV_PLAY,		// play
+	FMV_EOF,		// all other conditions, i.e. stop/EOF/abort
+	FMV_ID_BLT,
+	FMV_ID_IDLE,
+	FMV_LOOPED,
+	FMV_ID_WAIT
+} e_status;
+
+#define CIN_system		1
+#define CIN_loop		2
+#define CIN_hold		4
+#define CIN_silent		8
+#define CIN_shader		16
+
 void	SCR_Init (void);
 
 void	SCR_UpdateScreen (void);
@@ -56,12 +74,11 @@ void SCR_AddDirtyPoint (int x, int y);
 void SCR_DirtyScreen (void);
 
 //
-// scr_cin.c
+// cl_cin.c
 //
 void SCR_PlayCinematic (char *name);
-bool SCR_DrawCinematic (void);
+void SCR_DrawCinematic (void);
 void SCR_RunCinematic (void);
 void SCR_StopCinematic (void);
 void SCR_FinishCinematic (void);
-
 #endif//SCREEN_H

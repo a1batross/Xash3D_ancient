@@ -505,11 +505,10 @@ Scroll it up or down
 */
 void SCR_RunConsole (void)
 {
-// decide on the height of the console
+	// decide on the height of the console
 	if (cls.key_dest == key_console)
 		scr_conlines = 0.5;		// half screen
-	else
-		scr_conlines = 0;				// none visible
+	else scr_conlines = 0; // none visible
 	
 	if (scr_conlines < scr_con_current)
 	{
@@ -543,9 +542,11 @@ void SCR_DrawConsole (void)
 	}
 
 	if (cls.state != ca_active || !cl.refresh_prepped)
-	{	// connected, but can't render
+	{	
+		// connected, but can't render
+		if(cl.cinematictime > 0) SCR_DrawCinematic();
+		else re->DrawFill (0, viddef.height/2, viddef.width, viddef.height/2, 0);
 		Con_DrawConsole (0.5);
-		re->DrawFill (0, viddef.height/2, viddef.width, viddef.height/2, 0);
 		return;
 	}
 
@@ -556,7 +557,7 @@ void SCR_DrawConsole (void)
 	else
 	{
 		if (cls.key_dest == key_game || cls.key_dest == key_message)
-			Con_DrawNotify ();	// only draw notify in game
+			Con_DrawNotify(); // only draw notify in game
 	}
 }
 
@@ -1320,10 +1321,7 @@ void SCR_UpdateScreen (void)
 			{
 				SCR_DrawConsole ();
 			}
-			else
-			{
-				SCR_DrawCinematic();
-			}
+			else SCR_DrawCinematic();
 		}
 		else 
 		{
