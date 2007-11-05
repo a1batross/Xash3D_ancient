@@ -964,13 +964,15 @@ void CL_CalcViewValues (void)
 	for (i=0 ; i<3 ; i++)
 		cl.refdef.viewangles[i] += LerpAngle (ops->kick_angles[i], ps->kick_angles[i], lerp);
 
-	AngleVectors (cl.refdef.viewangles, cl.v_forward, cl.v_right, cl.v_up);
+	// sound engine requiried left-side hand
+	AngleVectorsFLU(cl.refdef.viewangles, NULL, cl.v_left, NULL );
+	AngleVectors(cl.refdef.viewangles, cl.v_forward, cl.v_right, cl.v_up);
 
 	// interpolate field of view
 	cl.refdef.fov_x = ops->fov + lerp * (ps->fov - ops->fov);
 
 	// don't interpolate blend color
-	for (i=0 ; i<4 ; i++)
+	for (i = 0; i < 4; i++)
 		cl.refdef.blend[i] = ps->blend[i];
 
 	// add the weapon

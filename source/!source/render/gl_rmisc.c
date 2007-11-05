@@ -46,9 +46,8 @@ void R_InitParticleTexture (void)
 	rgbdata_t 	r_tex;
 
 	memset(&r_tex, 0, sizeof(r_tex));
-	//
+
 	// particle texture
-	//
 	for (x = 0; x < 8; x++)
 	{
 		for (y = 0; y < 8; y++)
@@ -61,7 +60,7 @@ void R_InitParticleTexture (void)
 	}
 	r_tex.width = 8;
 	r_tex.height = 8;
-	r_tex.type = PF_RGBA_GN;
+	r_tex.type = PF_RGBA_GN; // generated
 	r_tex.flags = IMAGE_HAS_ALPHA;
 	r_tex.numMips = 1;
 	r_tex.palette = NULL;
@@ -69,12 +68,10 @@ void R_InitParticleTexture (void)
 
 	r_particletexture = R_LoadImage("***particle***", &r_tex, it_sprite );
 
-	//
 	// also use this for bad textures, but without alpha
-	//
 	for (x = 0; x < 8; x++)
 	{
-		for (y=0 ; y<8 ; y++)
+		for (y = 0; y < 8; y++)
 		{
 			data[y][x][0] = dottexture[x&3][y&3]*255;
 			data[y][x][1] = 0; // dottexture[x&3][y&3]*255;
@@ -84,6 +81,9 @@ void R_InitParticleTexture (void)
 	}
 	r_tex.flags &= ~IMAGE_HAS_ALPHA;// notexture don't have alpha
 	r_notexture = R_LoadImage("***r_notexture***", &r_tex, it_wall );
+
+	r_radarmap = R_FindImage("common/radarmap", NULL, 0, it_pic);
+	r_around = R_FindImage("common/around", NULL, 0, it_pic);
 
 	R_Bloom_InitTextures();
 }

@@ -8,7 +8,6 @@
 #include "vm_cmds.h"
 #include "sound.h"                    
 #include "screen.h" 
-#include "keys.h" 
 
 //============================================================================
 // Common
@@ -163,7 +162,7 @@ void VM_print (void)
 	char string[VM_STRINGTEMP_LENGTH];
 
 	VM_VarString(0, string, sizeof(string));
-	Con_Print(string);
+	Msg(string);
 }
 
 /*
@@ -183,7 +182,7 @@ void VM_bprint (void)
        
 	if(sv.state == ss_loading)
 	{
-		Con_Print( string );
+		Msg( string );
 		return;
 	}
 	SV_BroadcastPrintf(PRINT_HIGH, string);
@@ -232,7 +231,7 @@ clientcommand(float client, string s) (for client and menu)
 */
 void VM_clientcmd (void)
 {
-	client_t		*temp_client;
+	client_state_t	*temp_client;
 	int		i;
 
 	VM_SAFEPARMCOUNT(2, VM_clientcmd);
@@ -2308,19 +2307,19 @@ float drawfill(vector position, vector size, vector rgb, float alpha, float flag
 void VM_drawfill(void)
 {
 	float *size, *pos, *rgb;
-	int flag, color;
+	int	flag;
+	vec4_t	color;
 
-	VM_SAFEPARMCOUNT(5,VM_drawfill);
-
+	VM_SAFEPARMCOUNT(5, VM_drawfill);
 
 	pos = PRVM_G_VECTOR(OFS_PARM0);
 	size = PRVM_G_VECTOR(OFS_PARM1);
 	rgb = PRVM_G_VECTOR(OFS_PARM2);
-	flag = (int) PRVM_G_FLOAT(OFS_PARM4);
+	flag = (int)PRVM_G_FLOAT(OFS_PARM4);
 
-	color = VectorLength( rgb ); //stupid hack
+	Vector4Set( color, rgb[0], rgb[1], rgb[2], 1.0f );
 
-	re->DrawFill( pos[0], pos[1], size[0], size[1], color ); 
+	SCR_FillRect( pos[0], pos[1], size[0], size[1], color ); 
 	PRVM_G_FLOAT(OFS_RETURN) = 1;
 }
 

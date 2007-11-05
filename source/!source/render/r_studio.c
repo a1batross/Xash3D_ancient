@@ -1634,17 +1634,43 @@ void R_DrawStudioModel( int passnum )
 	if (m_pCurrentEntity->flags & RF_DEPTHHACK) 
 		qglDepthRange (gldepthmin, gldepthmax);
 
+	if(r_minimap->value > 1) 
+	{
+		if(numRadarEnts >= MAX_RADAR_ENTS) return;
+		if(currententity->flags & RF_VIEWERMODEL) return;
+		if(currententity->flags & RF_WEAPONMODEL) return;
+
+		if( currententity->flags & RF_GLOW)
+		{ 
+			RadarEnts[numRadarEnts].color[0]= 0.0;
+			RadarEnts[numRadarEnts].color[1]= 1.0;
+			RadarEnts[numRadarEnts].color[2]= 0.0;
+			RadarEnts[numRadarEnts].color[3]= 0.5;
+	 	} 
+		/*else if( currententity->flags & RF2_MONSTER)
+		{ 
+			Vector4Set(RadarEnts[numRadarEnts].color, 1.0f, 0.0f, 2.0f, 1.0f ); 
+		}*/
+		else
+		{
+			Vector4Set(RadarEnts[numRadarEnts].color, 0.0f, 1.0f, 1.0f, 0.5f ); 
+		}
+		VectorCopy(currententity->origin, RadarEnts[numRadarEnts].org);
+		VectorCopy(currententity->angles, RadarEnts[numRadarEnts].ang);
+		numRadarEnts++;
+	}
+
 	if (gl_shadows->value && !(m_pCurrentEntity->flags & (RF_TRANSLUCENT | RF_WEAPONMODEL)))
 	{
 		qglPushMatrix();
 		R_RotateForEntity(m_pCurrentEntity);
 		qglDisable (GL_TEXTURE_2D);
 		qglEnable (GL_BLEND);
-		qglColor4f (0, 0, 0, 0.5f );
+		qglColor4f (0.0f, 0.0f, 0.0f, 0.5f );
 		R_StudioDrawShadow();
 		qglEnable (GL_TEXTURE_2D);
 		qglDisable (GL_BLEND);
 		qglPopMatrix ();
 	}
-	qglColor4f (1,1,1,1);
+	qglColor4f(1.0f, 1.0f, 1.0f, 1.0f );
 }

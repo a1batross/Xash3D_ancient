@@ -448,7 +448,7 @@ int SV_FlyMove (edict_t *ent, float time, float *stepnormal)
 
 		if (!trace.ent)
 		{
-			Con_Printf ("SV_FlyMove: !trace.ent");
+			Msg("SV_FlyMove: !trace.ent");
 			trace.ent = prog->edicts;
 		}
 
@@ -1285,7 +1285,7 @@ void SV_WalkMove (edict_t *ent)
 	}
 	else
 	{
-		//Con_Printf("slope\n");
+		//Msgf("slope\n");
 		// if the push down didn't end up on good ground, use the move without
 		// the step up.  This happens near wall / slope combinations, and can
 		// cause the player to hop up higher on a slope too steep to climb

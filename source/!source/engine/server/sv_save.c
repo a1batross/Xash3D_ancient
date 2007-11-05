@@ -198,7 +198,7 @@ void Sav_LoadCvars( lump_t *l )
 	{
 		pos = COM_UnpackString( in, pos, name );  
 		pos = COM_UnpackString( in, pos, string );  
-		Cvar_ForceSet (name, string);
+		Cvar_SetLatched(name, string);
 	}
 }
 

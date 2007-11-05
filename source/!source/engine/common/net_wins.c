@@ -581,19 +581,19 @@ void NET_OpenIP (void)
 	int		port;
 	int		dedicated;
 
-	ip = Cvar_Get ("ip", "localhost", CVAR_NOSET);
+	ip = Cvar_Get ("ip", "localhost", CVAR_INIT);
 
 	dedicated = Cvar_VariableValue ("dedicated");
 
 	if (!ip_sockets[NS_SERVER])
 	{
-		port = Cvar_Get("ip_hostport", "0", CVAR_NOSET)->value;
+		port = Cvar_Get("ip_hostport", "0", CVAR_INIT)->value;
 		if (!port)
 		{
-			port = Cvar_Get("hostport", "0", CVAR_NOSET)->value;
+			port = Cvar_Get("hostport", "0", CVAR_INIT)->value;
 			if (!port)
 			{
-				port = Cvar_Get("port", va("%i", PORT_SERVER), CVAR_NOSET)->value;
+				port = Cvar_Get("port", va("%i", PORT_SERVER), CVAR_INIT)->value;
 			}
 		}
 		ip_sockets[NS_SERVER] = NET_IPSocket (ip->string, port);
@@ -606,10 +606,10 @@ void NET_OpenIP (void)
 
 	if (!ip_sockets[NS_CLIENT])
 	{
-		port = Cvar_Get("ip_clientport", "0", CVAR_NOSET)->value;
+		port = Cvar_Get("ip_clientport", "0", CVAR_INIT)->value;
 		if (!port)
 		{
-			port = Cvar_Get("clientport", va("%i", PORT_CLIENT), CVAR_NOSET)->value;
+			port = Cvar_Get("clientport", va("%i", PORT_CLIENT), CVAR_INIT)->value;
 			if (!port)
 				port = PORT_ANY;
 		}
@@ -687,13 +687,13 @@ void NET_OpenIPX (void)
 
 	if (!ipx_sockets[NS_SERVER])
 	{
-		port = Cvar_Get("ipx_hostport", "0", CVAR_NOSET)->value;
+		port = Cvar_Get("ipx_hostport", "0", CVAR_INIT)->value;
 		if (!port)
 		{
-			port = Cvar_Get("hostport", "0", CVAR_NOSET)->value;
+			port = Cvar_Get("hostport", "0", CVAR_INIT)->value;
 			if (!port)
 			{
-				port = Cvar_Get("port", va("%i", PORT_SERVER), CVAR_NOSET)->value;
+				port = Cvar_Get("port", va("%i", PORT_SERVER), CVAR_INIT)->value;
 			}
 		}
 		ipx_sockets[NS_SERVER] = NET_IPXSocket (port);
@@ -705,10 +705,10 @@ void NET_OpenIPX (void)
 
 	if (!ipx_sockets[NS_CLIENT])
 	{
-		port = Cvar_Get("ipx_clientport", "0", CVAR_NOSET)->value;
+		port = Cvar_Get("ipx_clientport", "0", CVAR_INIT)->value;
 		if (!port)
 		{
-			port = Cvar_Get("clientport", va("%i", PORT_CLIENT), CVAR_NOSET)->value;
+			port = Cvar_Get("clientport", va("%i", PORT_CLIENT), CVAR_INIT)->value;
 			if (!port)
 				port = PORT_ANY;
 		}
@@ -810,8 +810,8 @@ void NET_Init (void)
 
 	Msg("Winsock Initialized\n");
 
-	noudp = Cvar_Get ("noudp", "0", CVAR_NOSET);
-	noipx = Cvar_Get ("noipx", "0", CVAR_NOSET);
+	noudp = Cvar_Get ("noudp", "0", CVAR_INIT);
+	noipx = Cvar_Get ("noipx", "0", CVAR_INIT);
 
 	net_shownet = Cvar_Get ("net_shownet", "0", 0);
 }

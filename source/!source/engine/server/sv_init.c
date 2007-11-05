@@ -151,7 +151,7 @@ clients along with it.
 
 ================
 */
-void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_state_t serverstate, bool attractloop, bool loadgame)
+void SV_SpawnServer (char *server, char *spawnpoint, char *savename, sv_state_t serverstate, bool attractloop, bool loadgame)
 {
 	uint	i, checksum;
 
@@ -250,7 +250,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, server_stat
 	SV_CheckForSavegame ( savename );
 
 	// set serverinfo variable
-	Cvar_FullSet ("mapname", sv.name, CVAR_SERVERINFO | CVAR_NOSET);
+	Cvar_FullSet ("mapname", sv.name, CVAR_SERVERINFO | CVAR_INIT);
 
 	Msg ("-------------------------------------\n");
 	SV_VM_End();
@@ -279,9 +279,6 @@ void SV_InitGame (void)
 		CL_Drop ();
 		SCR_BeginLoadingPlaque ();
 	}
-          
-	// get any latched variable changes (maxclients, etc)
-	Cvar_GetLatchedVars ();
 
 	svs.initialized = true;
 
@@ -318,7 +315,7 @@ void SV_InitGame (void)
 	}
 
 	svs.spawncount = rand();
-	svs.clients = Z_Malloc (sizeof(client_t)*maxclients->value);
+	svs.clients = Z_Malloc (sizeof(client_state_t)*maxclients->value);
 	svs.num_client_entities = maxclients->value*UPDATE_BACKUP*64;
 	svs.client_entities = Z_Malloc (sizeof(entity_state_t)*svs.num_client_entities);
 	svs.gclients = Z_Malloc(sizeof(gclient_t)*maxclients->value);
@@ -422,7 +419,6 @@ void SV_Map (bool attractloop, char *levelstring, char *savename, bool loadgame)
 		SV_BroadcastCommand ("changing\n");
 		SV_SendClientMessages ();
 		SV_SpawnServer (level, spawnpoint, savename, ss_game, attractloop, loadgame);
-		Cbuf_CopyToDefer ();
 	}
 	SV_BroadcastCommand ("reconnect\n");
 }

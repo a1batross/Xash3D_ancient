@@ -26,6 +26,16 @@
 #define MAX_INFO_VALUE	64
 #define MAX_INFO_STRING	512
 
+#define COLOR_BLACK		'0'
+#define COLOR_RED		'1'
+#define COLOR_GREEN		'2'
+#define COLOR_YELLOW	'3'
+#define COLOR_BLUE		'4'
+#define COLOR_CYAN		'5'
+#define COLOR_MAGENTA	'6'
+#define COLOR_WHITE		'7'
+#define ColorIndex(c)	(((c) - '0') & 7)
+
 #define STRING_COLOR_TAG	'^'
 #define IsColorString(p)	( p && *(p) == STRING_COLOR_TAG && *((p)+1) && *((p)+1) != STRING_COLOR_TAG )
 

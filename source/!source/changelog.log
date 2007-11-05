@@ -8,6 +8,7 @@
 
 1. Перенести сетевой протокол из ку3 (huffman compressed)
 2. подключить roqlib
+3. переписать cvar-систему и cmd систему
 
 Quake1			Quake2
 SV_MoveBounds		SV_TraceBounds

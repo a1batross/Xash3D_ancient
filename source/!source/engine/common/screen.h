@@ -23,6 +23,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "vid.h"
 
+// all drawing is done to a 640*480 virtual screen size
+// and will be automatically scaled to the real resolution
+#define SCREEN_WIDTH	640
+#define SCREEN_HEIGHT	480
+
+#define TINYCHAR_WIDTH	(SMALLCHAR_WIDTH)
+#define TINYCHAR_HEIGHT	(SMALLCHAR_HEIGHT/2)
+#define SMALLCHAR_WIDTH	8
+#define SMALLCHAR_HEIGHT	16
+#define BIGCHAR_WIDTH	16
+#define BIGCHAR_HEIGHT	16
+#define GIANTCHAR_WIDTH	32
+#define GIANTCHAR_HEIGHT	48
+
 // cinematic states
 typedef enum
 {
@@ -41,6 +55,14 @@ typedef enum
 #define CIN_silent		8
 #define CIN_shader		16
 
+#define COLOR_0		NULL
+#define COLOR_4		GetRGBA(1.0f, 0.5f, 0.0f, 1.0f)
+#define COLOR_8		GetRGBA(1.0f, 0.5f, 1.0f, 1.0f)
+#define COLOR_16		GetRGBA(0.3f, 0.8f, 1.0f, 1.0f)
+#define COLOR_64		GetRGBA(0.7f, 0.5f, 0.0f, 1.0f)
+#define COLOR_208		GetRGBA(0.0f, 0.4f, 0.0f, 1.0f)
+#define COLOR_223		GetRGBA(0.5f, 0.2f, 1.0f, 1.0f)
+
 void	SCR_Init (void);
 
 void	SCR_UpdateScreen (void);
@@ -51,7 +73,7 @@ void	SCR_CenterPrint (char *str);
 void	SCR_BeginLoadingPlaque (void);
 void	SCR_EndLoadingPlaque (void);
 
-void	SCR_DebugGraph (float value, int color);
+void	SCR_DebugGraph (float value, vec4_t color);
 
 void	SCR_TouchPics (void);
 
@@ -72,6 +94,13 @@ extern	int			crosshair_width, crosshair_height;
 
 void SCR_AddDirtyPoint (int x, int y);
 void SCR_DirtyScreen (void);
+void SCR_AdjustSize( float *x, float *y, float *w, float *h );
+void SCR_DrawPic( float x, float y, float width, float height, char *picname );
+void SCR_FillRect( float x, float y, float width, float height, const float *color );
+void SCR_DrawSmallChar( int x, int y, int ch );
+void SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, bool forceColor );
+void SCR_DrawBigString( int x, int y, const char *s, float alpha );
+void SCR_DrawBigStringColor( int x, int y, const char *s, vec4_t color );
 
 //
 // cl_cin.c

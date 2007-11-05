@@ -38,6 +38,19 @@ float	time_before_game;
 float	time_after_game;
 float	time_before_ref;
 float	time_after_ref;
+
+vec4_t g_color_table[8] =
+{
+{0.0, 0.0, 0.0, 1.0},
+{1.0, 0.0, 0.0, 1.0},
+{0.0, 1.0, 0.0, 1.0},
+{1.0, 1.0, 0.0, 1.0},
+{0.0, 0.0, 1.0, 1.0},
+{0.0, 1.0, 1.0, 1.0},
+{1.0, 0.0, 1.0, 1.0},
+{1.0, 1.0, 1.0, 1.0},
+};
+
 /*
 ==================
 Com_ServerState
@@ -284,4 +297,113 @@ void Com_PageInMemory (byte *buffer, int size)
 
 	for (i = size - 1; i > 0; i -= 4096)
 		paged_total += buffer[i];
+}
+
+/*
+================
+Com_Print
+
+Handles cursor positioning, line wrapping, etc
+All console printing must go through this in order to be logged to disk
+If no console is visible, the text will appear at the top of the game window
+================
+*/
+void Com_Print (char *txt)
+{
+	if (host.rd.target)
+	{
+		if((strlen (txt) + strlen(host.rd.buffer)) > (host.rd.buffersize - 1))
+		{
+			if(host.rd.flush)
+			{
+				host.rd.flush(host.rd.target, host.rd.buffer);
+				*host.rd.buffer = 0;
+			}
+		}
+		strcat (host.rd.buffer, txt);
+		return;
+	}
+
+	Con_Print( txt ); // echo to client console
+	Sys_Print( txt ); // echo to system console
+	// sys print also stored messages into system log
+}
+
+/*
+=============
+Com_Printf
+
+Both client and server can use this, and it will output
+to the apropriate place.
+=============
+*/
+void Com_Printf (char *fmt, ...)
+{
+	va_list		argptr;
+	char		msg[MAX_INPUTLINE];
+
+	va_start (argptr, fmt);
+	vsprintf (msg, fmt, argptr);
+	va_end (argptr);
+
+	Com_Print (msg);
+}
+
+
+/*
+================
+Con_DPrintf
+
+A Msg that only shows up in developer mode
+================
+*/
+void Com_DPrintf (int level, char *fmt, ...)
+{
+	va_list		argptr;
+	char		msg[MAX_INPUTLINE];
+		
+	// don't confuse non-developers with techie stuff...	
+	if(host.developer < level) return;
+
+	va_start (argptr,fmt);
+	vsprintf (msg,fmt,argptr);
+	va_end (argptr);
+
+	switch(level)
+	{
+	case D_INFO:	
+		Com_Print(va("^6%s", msg));
+		break;
+	case D_WARN:
+		Com_Print(va("^3Warning:^7 %s", msg));
+		break;
+	case D_ERROR:
+		Com_Print(va("^1Error:^7 %s", msg));
+		break;
+	case D_LOAD:
+		Com_Print(msg);
+		break;
+	}
+}
+
+/*
+================
+Con_DWarnf
+
+A Warning that only shows up in debug mode
+================
+*/
+void Com_DWarnf (char *fmt, ...)
+{
+	va_list		argptr;
+	char		msg[MAX_INPUTLINE];
+		
+	// don't confuse non-developers with techie stuff...
+	if (!host.debug) return;
+
+	va_start (argptr, fmt);
+	vsprintf (msg, fmt, argptr);
+	va_end (argptr);
+	
+	Com_Print(va("^3Warning:^7 %s", msg));
 }

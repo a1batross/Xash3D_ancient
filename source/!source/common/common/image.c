@@ -1630,7 +1630,7 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 	FS_StripExtension( loadname ); //remove extension if needed
 
 	// developer warning
-	if(!anyformat) MsgWarn( "Warning: %s will be loading only with ext .%s\n", loadname, ext );
+	if(!anyformat) MsgWarn( "%s will be loading only with ext .%s\n", loadname, ext );
 	
 	// now try all the formats in the selected list
 	for (format = load_formats; format->formatstring; format++)

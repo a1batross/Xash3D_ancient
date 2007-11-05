@@ -98,29 +98,28 @@ void CL_AddNetgraph (void)
 	if (scr_debuggraph->value || scr_timegraph->value)
 		return;
 
-	for (i=0 ; i<cls.netchan.dropped ; i++)
-		SCR_DebugGraph (30, 0x40);
+	for (i = 0; i < cls.netchan.dropped; i++)
+		SCR_DebugGraph (30, COLOR_64);
 
-	for (i=0 ; i<cl.surpressCount ; i++)
-		SCR_DebugGraph (30, 0xdf);
+	for (i = 0; i < cl.surpressCount; i++)
+		SCR_DebugGraph (30, COLOR_223);
 
 	// see what the latency was on this packet
 	in = cls.netchan.incoming_acknowledged & (CMD_BACKUP-1);
 	ping = cls.realtime - cl.cmd_time[in];
 	ping /= 30;
-	if (ping > 30)
-		ping = 30;
-	SCR_DebugGraph (ping, 0xd0);
+	if (ping > 30) ping = 30;
+	SCR_DebugGraph (ping, COLOR_208);
 }
 
 
 typedef struct
 {
-	float	value;
-	int		color;
+	float		value;
+	vec4_t		color;
 } graphsamp_t;
 
-static	int			current;
+static	int		current;
 static	graphsamp_t	values[1024];
 
 /*
@@ -128,10 +127,10 @@ static	graphsamp_t	values[1024];
 SCR_DebugGraph
 ==============
 */
-void SCR_DebugGraph (float value, int color)
+void SCR_DebugGraph (float value, vec4_t color)
 {
-	values[current&1023].value = value;
-	values[current&1023].color = color;
+	values[current & 1023].value = value;
+	Vector4Copy(color, values[current & 1023].color);
 	current++;
 }
 
@@ -143,30 +142,25 @@ SCR_DrawDebugGraph
 void SCR_DrawDebugGraph (void)
 {
 	int		a, x, y, w, i, h;
-	float	v;
-	int		color;
+	float		v;
 
-	//
 	// draw the graph
-	//
 	w = scr_vrect.width;
 
 	x = scr_vrect.x;
 	y = scr_vrect.y+scr_vrect.height;
-	re->DrawFill (x, y-scr_graphheight->value,
-		w, scr_graphheight->value, 8);
 
-	for (a=0 ; a<w ; a++)
+	SCR_FillRect( x, y-scr_graphheight->value, w, scr_graphheight->value, COLOR_8);
+
+	for (a = 0; a < w; a++)
 	{
-		i = (current-1-a+1024) & 1023;
+		i = (current - 1 - a + 1024) & 1023;
 		v = values[i].value;
-		color = values[i].color;
-		v = v*scr_graphscale->value + scr_graphshift->value;
+		v = v * scr_graphscale->value + scr_graphshift->value;
 		
-		if (v < 0)
-			v += scr_graphheight->value * (1+(int)(-v/scr_graphheight->value));
+		if (v < 0) v += scr_graphheight->value * (1+(int)(-v/scr_graphheight->value));
 		h = (int)v % (int)scr_graphheight->value;
-		re->DrawFill (x+w-1-a, y - h, 1,	h, color);
+		SCR_FillRect( x+w-1-a, y - h, 1, h, values[i].color );
 	}
 }
 
@@ -255,7 +249,7 @@ void SCR_DrawCenterString (void)
 	int		x, y;
 	int		remaining;
 
-// the finale prints the characters one at a time
+	// the finale prints the characters one at a time
 	remaining = 9999;
 
 	scr_erase_center = 0;
@@ -419,9 +413,7 @@ void SCR_Init (void)
 	scr_graphscale = Cvar_Get ("graphscale", "1", 0);
 	scr_graphshift = Cvar_Get ("graphshift", "0", 0);
 
-//
-// register our commands
-//
+	// register our commands
 	Cmd_AddCommand ("timerefresh",SCR_TimeRefresh_f);
 	Cmd_AddCommand ("loading",SCR_Loading_f);
 	Cmd_AddCommand ("sizeup",SCR_SizeUp_f);
@@ -492,73 +484,6 @@ void SCR_DrawLoading (void)
 
 	scr_draw_loading = false;
 	SCR_DrawString( "loading" );
-}
-
-//=============================================================================
-
-/*
-==================
-SCR_RunConsole
-
-Scroll it up or down
-==================
-*/
-void SCR_RunConsole (void)
-{
-	// decide on the height of the console
-	if (cls.key_dest == key_console)
-		scr_conlines = 0.5;		// half screen
-	else scr_conlines = 0; // none visible
-	
-	if (scr_conlines < scr_con_current)
-	{
-		scr_con_current -= scr_conspeed->value*cls.frametime;
-		if (scr_conlines > scr_con_current)
-			scr_con_current = scr_conlines;
-
-	}
-	else if (scr_conlines > scr_con_current)
-	{
-		scr_con_current += scr_conspeed->value*cls.frametime;
-		if (scr_conlines < scr_con_current)
-			scr_con_current = scr_conlines;
-	}
-
-}
-
-/*
-==================
-SCR_DrawConsole
-==================
-*/
-void SCR_DrawConsole (void)
-{
-	Con_CheckResize ();
-	
-	if (cls.state == ca_disconnected || cls.state == ca_connecting)
-	{	// forced full screen console
-		Con_DrawConsole (1.0);
-		return;
-	}
-
-	if (cls.state != ca_active || !cl.refresh_prepped)
-	{	
-		// connected, but can't render
-		if(cl.cinematictime > 0) SCR_DrawCinematic();
-		else re->DrawFill (0, viddef.height/2, viddef.width, viddef.height/2, 0);
-		Con_DrawConsole (0.5);
-		return;
-	}
-
-	if (scr_con_current)
-	{
-		Con_DrawConsole (scr_con_current);
-	}
-	else
-	{
-		if (cls.key_dest == key_game || cls.key_dest == key_message)
-			Con_DrawNotify(); // only draw notify in game
-	}
 }
 
 //=============================================================================
@@ -661,6 +586,233 @@ void SCR_TimeRefresh_f (void)
 	stop = Sys_DoubleTime();
 	time = stop - start;
 	Msg ("%f seconds (%f fps)\n", time, 128/time);
+}
+
+/*
+================
+SCR_AdjustFrom640
+
+Adjusted for resolution and screen aspect ratio
+================
+*/
+void SCR_AdjustSize( float *x, float *y, float *w, float *h )
+{
+	float	xscale;
+	float	yscale;
+
+	// scale for screen sizes
+	xscale = viddef.width / SCREEN_WIDTH;
+	yscale = viddef.height / SCREEN_HEIGHT;
+
+	if(x) *x *= xscale;
+	if(y) *y *= yscale;
+	if(w) *w *= xscale;
+	if(h) *h *= yscale;
+}
+
+/*
+================
+SCR_DrawPic
+
+Coordinates are 640*480 virtual values
+================
+*/
+void SCR_DrawPic( float x, float y, float width, float height, char *picname )
+{
+	SCR_AdjustSize( &x, &y, &width, &height );
+	re->DrawStretchPic (x, y, width, height, 0, 0, 1, 1, picname );
+}
+
+/*
+================
+SCR_DrawChar
+
+chars are drawn at 640*480 virtual screen size
+================
+*/
+static void SCR_DrawChar( int x, int y, float size, int ch )
+{
+	int row, col;
+	float frow, fcol;
+	float	ax, ay, aw, ah;
+
+	ch &= 255;
+
+	if( ch == ' ' )return;
+	if(y < -size) return;
+
+	ax = x;
+	ay = y;
+	aw = size;
+	ah = size;
+	SCR_AdjustSize( &ax, &ay, &aw, &ah );
+
+	row = ch>>4;
+	col = ch&15;
+
+	frow = row*0.0625;
+	fcol = col*0.0625;
+	size = 0.0625;
+
+	re->DrawStretchPic( ax, ay, aw, ah, fcol, frow, fcol + size, frow + size, "conchars" );
+}
+
+/*
+====================
+SCR_DrawSmallChar
+
+small chars are drawn at native screen resolution
+====================
+*/
+void SCR_DrawSmallChar( int x, int y, int ch )
+{
+	int	row, col;
+	float	frow, fcol;
+	float	size;
+
+
+	ch &= 255;
+
+	if( ch == ' ' )return;
+	if(y < -SMALLCHAR_HEIGHT) return;
+
+	row = ch>>4;
+	col = ch&15;
+
+	frow = row*0.0625;
+	fcol = col*0.0625;
+	size = 0.0625;
+
+	re->DrawStretchPic( x, y, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, fcol, frow, fcol + size, frow + size, "conchars" );
+}
+
+/*
+==================
+SCR_DrawSmallString[Color]
+
+Draws a multi-colored string with a drop shadow, optionally forcing
+to a fixed color.
+
+Coordinates are at 640 by 480 virtual resolution
+==================
+*/
+void SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, bool forceColor )
+{
+	vec4_t		color;
+	const char	*s;
+	int		xx;
+
+	// draw the colored text
+	s = string;
+	xx = x;
+
+	re->SetColor( setColor );
+	while ( *s )
+	{
+		if(IsColorString( s ))
+		{
+			if( !forceColor )
+			{
+				Mem_Copy( color, g_color_table[ColorIndex(*(s+1))], sizeof( color ));
+				color[3] = setColor[3];
+				re->SetColor( color );
+			}
+			s += 2;
+			continue;
+		}
+		SCR_DrawSmallChar( xx, y, *s );
+		xx += SMALLCHAR_WIDTH;
+		s++;
+	}
+	re->SetColor( NULL );
+}
+
+/*
+==================
+SCR_DrawBigString[Color]
+
+Draws a multi-colored string with a drop shadow, optionally forcing
+to a fixed color.
+
+Coordinates are at 640 by 480 virtual resolution
+==================
+*/
+void SCR_DrawStringExt( int x, int y, float size, const char *string, float *setColor, bool forceColor )
+{
+	vec4_t		color;
+	const char	*s;
+	int		xx;
+
+	// draw the drop shadow
+	Vector4Set( color, 0.0f, 0.0f, 0.0f, setColor[3] );
+	re->SetColor( color );
+	s = string;
+	xx = x;
+
+	while ( *s )
+	{
+		if(IsColorString( s ))
+		{
+			s += 2;
+			continue;
+		}
+		SCR_DrawChar( xx + 2, y + 2, size, *s );
+		xx += size;
+		s++;
+	}
+
+	// draw the colored text
+	s = string;
+	xx = x;
+	re->SetColor( setColor );
+	while ( *s )
+	{
+		if(IsColorString( s ))
+		{
+			if ( !forceColor )
+			{
+				Mem_Copy( color, g_color_table[ColorIndex(*(s+1))], sizeof( color ));
+				color[3] = setColor[3];
+				re->SetColor( color );
+			}
+			s += 2;
+			continue;
+		}
+		SCR_DrawChar( xx, y, size, *s );
+		xx += size;
+		s++;
+	}
+	re->SetColor( NULL );
+}
+
+
+void SCR_DrawBigString( int x, int y, const char *s, float alpha )
+{
+	float	color[4];
+
+	Vector4Set( color, 1.0f, 1.0f, 1.0f, alpha );
+	SCR_DrawStringExt( x, y, BIGCHAR_WIDTH, s, color, false );
+}
+
+void SCR_DrawBigStringColor( int x, int y, const char *s, vec4_t color )
+{
+	SCR_DrawStringExt( x, y, BIGCHAR_WIDTH, s, color, true );
+}
+
+
+/*
+================
+SCR_FillRect
+
+Coordinates are 640*480 virtual values
+=================
+*/
+void SCR_FillRect( float x, float y, float width, float height, const float *color )
+{
+	re->SetColor( color );
+	SCR_AdjustSize( &x, &y, &width, &height );
+	re->DrawFill( x, y, width, height );
+	re->SetColor( NULL );
 }
 
 /*
@@ -1273,8 +1425,7 @@ void SCR_UpdateScreen (void)
 		return;
 	}
 
-	if (!scr_initialized || !con.initialized)
-		return;				// not initialized yet
+	if (!scr_initialized) return; // not initialized yet
 
 	/*
 	** range check cl_camera_separation so we don't inadvertently fry someone's
@@ -1319,7 +1470,7 @@ void SCR_UpdateScreen (void)
 			}
 			else if (cls.key_dest == key_console)
 			{
-				SCR_DrawConsole ();
+				Con_DrawConsole ();
 			}
 			else SCR_DrawCinematic();
 		}
@@ -1343,14 +1494,14 @@ void SCR_UpdateScreen (void)
 			SCR_CheckDrawCenterString ();
 
 			if (scr_timegraph->value)
-				SCR_DebugGraph (cls.frametime*300, 0);
+				SCR_DebugGraph (cls.frametime*300, COLOR_0);
 
 			if (scr_debuggraph->value || scr_timegraph->value || scr_netgraph->value)
 				SCR_DrawDebugGraph ();
 
 			SCR_DrawPause ();
 
-			SCR_DrawConsole ();
+			Con_DrawConsole ();
 
 			M_Draw ();
 

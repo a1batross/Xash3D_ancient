@@ -230,23 +230,6 @@ const char *Default_MenuKey( menuframework_s *m, int key )
 	case K_AUX14:
 	case K_AUX15:
 	case K_AUX16:
-	case K_AUX17:
-	case K_AUX18:
-	case K_AUX19:
-	case K_AUX20:
-	case K_AUX21:
-	case K_AUX22:
-	case K_AUX23:
-	case K_AUX24:
-	case K_AUX25:
-	case K_AUX26:
-	case K_AUX27:
-	case K_AUX28:
-	case K_AUX29:
-	case K_AUX30:
-	case K_AUX31:
-	case K_AUX32:
-		
 	case K_KP_ENTER:
 	case K_ENTER:
 		if ( m )
@@ -644,15 +627,14 @@ static void M_UnbindCommand (char *command)
 {
 	int		j;
 	int		l;
-	char	*b;
+	char		*b;
 
 	l = strlen(command);
 
-	for (j=0 ; j<256 ; j++)
+	for (j = 0; j < 256; j++)
 	{
-		b = keybindings[j];
-		if (!b)
-			continue;
+		b = keys[j].binding;
+		if (!b) continue;
 		if (!strncmp (b, command, l) )
 			Key_SetBinding (j, "");
 	}
@@ -660,26 +642,24 @@ static void M_UnbindCommand (char *command)
 
 static void M_FindKeysForCommand (char *command, int *twokeys)
 {
-	int		count;
-	int		j;
-	int		l;
+	int	count;
+	int	j;
+	int	l;
 	char	*b;
 
 	twokeys[0] = twokeys[1] = -1;
 	l = strlen(command);
 	count = 0;
 
-	for (j=0 ; j<256 ; j++)
+	for (j = 0; j < 256; j++)
 	{
-		b = keybindings[j];
-		if (!b)
-			continue;
+		b = keys[j].binding;
+		if (!b) continue;
 		if (!strncmp (b, command, l) )
 		{
 			twokeys[count] = j;
 			count++;
-			if (count == 2)
-				break;
+			if (count == 2) break;
 		}
 	}
 }
@@ -1028,9 +1008,9 @@ static menulist_s		s_options_lookspring_box;
 static menulist_s		s_options_lookstrafe_box;
 static menulist_s		s_options_crosshair_box;
 static menuslider_s		s_options_sfxvolume_slider;
+static menuslider_s		s_options_musicvolume_slider;
 static menulist_s		s_options_joystick_box;
 static menulist_s		s_options_quality_list;
-static menulist_s		s_options_compatibility_list;
 static menulist_s		s_options_console_action;
 
 static void CrosshairFunc( void *unused )
@@ -1073,6 +1053,7 @@ static float ClampCvar( float min, float max, float value )
 static void ControlsSetMenuItemValues( void )
 {
 	s_options_sfxvolume_slider.curvalue = Cvar_VariableValue( "s_volume" ) * 10;
+	s_options_musicvolume_slider.curvalue = Cvar_VariableValue( "s_musicvolume" ) * 10;
 	s_options_quality_list.curvalue = !(Cvar_VariableValue( "s_khz" ) == 22);
 	s_options_sensitivity_slider.curvalue	= ( sensitivity->value ) * 2;
 
@@ -1125,14 +1106,18 @@ static void UpdateVolumeFunc( void *unused )
 	Cvar_SetValue( "s_volume", s_options_sfxvolume_slider.curvalue / 10 );
 }
 
+static void UpdateMusicVolumeFunc( void *unused )
+{
+	Cvar_SetValue( "s_musicvolume", s_options_musicvolume_slider.curvalue / 10 );
+}
+
 static void ConsoleFunc( void *unused )
 {
 	/*
 	** the proper way to do this is probably to have ToggleConsole_f accept a parameter
 	*/
-	extern void Key_ClearTyping( void );
 
-	Key_ClearTyping ();
+	Field_Clear( &g_consoleField );
 	Con_ClearNotify ();
 
 	M_ForceMenuOff ();
@@ -1141,16 +1126,8 @@ static void ConsoleFunc( void *unused )
 
 static void UpdateSoundQualityFunc( void *unused )
 {
-	if ( s_options_quality_list.curvalue )
-	{
-		Cvar_SetValue( "s_khz", 44 );
-	}
-	else
-	{
-		Cvar_SetValue( "s_khz", 22 );
-	}
-	
-	Cvar_SetValue( "s_primary", s_options_compatibility_list.curvalue );
+	if ( s_options_quality_list.curvalue ) Cvar_SetValue( "s_khz", 44 );
+	else Cvar_SetValue( "s_khz", 22 );
 
 	M_DrawTextBox( 8, 120 - 48, 36, 3 );
 	M_Print( 16 + 16, 120 - 48 + 8,  "Restarting the sound system. This" );
@@ -1159,7 +1136,6 @@ static void UpdateSoundQualityFunc( void *unused )
 
 	// the text box won't show up unless we do a buffer swap
 	re->EndFrame();
-
 	CL_Snd_Restart_f();
 }
 
@@ -1201,27 +1177,28 @@ void Options_MenuInit( void )
 	s_options_sfxvolume_slider.generic.type	= MTYPE_SLIDER;
 	s_options_sfxvolume_slider.generic.x	= 0;
 	s_options_sfxvolume_slider.generic.y	= 0;
-	s_options_sfxvolume_slider.generic.name	= "effects volume";
+	s_options_sfxvolume_slider.generic.name	= "sound volume";
 	s_options_sfxvolume_slider.generic.callback = UpdateVolumeFunc;
 	s_options_sfxvolume_slider.minvalue = 0;
 	s_options_sfxvolume_slider.maxvalue = 10;
 	s_options_sfxvolume_slider.curvalue = Cvar_VariableValue( "s_volume" ) * 10;
 
-	s_options_quality_list.generic.type	= MTYPE_SPINCONTROL;
-	s_options_quality_list.generic.x		= 0;
-	s_options_quality_list.generic.y		= 10;
+	s_options_musicvolume_slider.generic.type	= MTYPE_SLIDER;
+	s_options_musicvolume_slider.generic.x = 0;
+	s_options_musicvolume_slider.generic.y = 10;
+	s_options_musicvolume_slider.generic.name = "music volume";
+	s_options_musicvolume_slider.generic.callback = UpdateMusicVolumeFunc;
+	s_options_musicvolume_slider.minvalue = 0;
+	s_options_musicvolume_slider.maxvalue = 10;
+	s_options_musicvolume_slider.curvalue = Cvar_VariableValue( "s_musicvolume" ) * 10;
+
+	s_options_quality_list.generic.type = MTYPE_SPINCONTROL;
+	s_options_quality_list.generic.x = 0;
+	s_options_quality_list.generic.y = 20;
 	s_options_quality_list.generic.name = "sound quality";
 	s_options_quality_list.generic.callback = UpdateSoundQualityFunc;
 	s_options_quality_list.itemnames = quality_items;
 	s_options_quality_list.curvalue = !(Cvar_VariableValue( "s_khz" ) == 22);
-
-	s_options_compatibility_list.generic.type	= MTYPE_SPINCONTROL;
-	s_options_compatibility_list.generic.x		= 0;
-	s_options_compatibility_list.generic.y		= 20;
-	s_options_compatibility_list.generic.name	= "sound compatibility";
-	s_options_compatibility_list.generic.callback = UpdateSoundQualityFunc;
-	s_options_compatibility_list.itemnames		= compatibility_items;
-	s_options_compatibility_list.curvalue		= Cvar_VariableValue( "s_primary" );
 
 	s_options_sensitivity_slider.generic.type	= MTYPE_SLIDER;
 	s_options_sensitivity_slider.generic.x		= 0;
@@ -1301,8 +1278,8 @@ void Options_MenuInit( void )
 	ControlsSetMenuItemValues();
 
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_sfxvolume_slider );
+	Menu_AddItem( &s_options_menu, ( void * ) &s_options_musicvolume_slider );
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_quality_list );
-	Menu_AddItem( &s_options_menu, ( void * ) &s_options_compatibility_list );
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_sensitivity_slider );
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_alwaysrun_box );
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_invertmouse_box );
@@ -1580,19 +1557,19 @@ static void StartGame( void )
 
 static void EasyGameFunc( void *data )
 {
-	Cvar_ForceSet( "skill", "0" );
+	Cvar_SetLatched( "skill", "0" );
 	StartGame();
 }
 
 static void MediumGameFunc( void *data )
 {
-	Cvar_ForceSet( "skill", "1" );
+	Cvar_SetLatched( "skill", "1" );
 	StartGame();
 }
 
 static void HardGameFunc( void *data )
 {
-	Cvar_ForceSet( "skill", "2" );
+	Cvar_SetLatched( "skill", "2" );
 	StartGame();
 }
 

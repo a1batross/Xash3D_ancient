@@ -83,7 +83,7 @@ bool Field_DoEnter( menufield_s *f )
 	return false;
 }
 
-void Field_Draw( menufield_s *f )
+void QField_Draw( menufield_s *f )
 {
 	int i;
 	char tempbuffer[128]="";
@@ -194,7 +194,7 @@ bool Field_Key( menufield_s *f, int key )
 	/*
 	** support pasting from the clipboard
 	*/
-	if ( ( toupper( key ) == 'V' && keydown[K_CTRL] ) || ((( key == K_INS ) || ( key == K_KP_INS )) && keydown[K_SHIFT] ))
+	if ( ( toupper( key ) == 'V' && keys[K_CTRL].down ) || ((( key == K_INS ) || ( key == K_KP_INS )) && keys[K_SHIFT].down ))
 	{
 		char *cbd;
 		
@@ -205,8 +205,7 @@ bool Field_Key( menufield_s *f, int key )
 			strncpy( f->buffer, cbd, f->length - 1 );
 			f->cursor = strlen( f->buffer );
 			f->visible_offset = f->cursor - f->visible_length;
-			if ( f->visible_offset < 0 )
-				f->visible_offset = 0;
+			if ( f->visible_offset < 0 ) f->visible_offset = 0;
 
 			Z_Free( cbd );
 		}
@@ -354,7 +353,7 @@ void Menu_Draw( menuframework_s *menu )
 		switch ((( menucommon_s * )menu->items[i] )->type )
 		{
 		case MTYPE_FIELD:
-			Field_Draw( ( menufield_s * ) menu->items[i] );
+			QField_Draw( ( menufield_s * ) menu->items[i] );
 			break;
 		case MTYPE_SLIDER:
 			Slider_Draw( ( menuslider_s * ) menu->items[i] );
@@ -421,12 +420,12 @@ void Menu_DrawStatusBar( const char *string )
 		int maxcol = VID_WIDTH / 8;
 		int col = maxcol / 2 - l / 2;
 
-		Draw_Fill( 0, VID_HEIGHT-8, VID_WIDTH, 8, 4 );
+		SCR_FillRect( 0, SCREEN_HEIGHT - 8, SCREEN_WIDTH, 8, COLOR_4 );
 		Menu_DrawString( col*8, VID_HEIGHT - 8, string );
 	}
 	else
 	{
-		Draw_Fill( 0, VID_HEIGHT-8, VID_WIDTH, 8, 0 );
+		SCR_FillRect( 0, SCREEN_HEIGHT - 8, SCREEN_WIDTH, 8, COLOR_0 );
 	}
 }
 
@@ -566,14 +565,14 @@ void Menulist_DoEnter( menulist_s *l )
 void MenuList_Draw( menulist_s *l )
 {
 	const char **n;
-	int y = 0;
+	int	y = 0;
 
 	Menu_DrawStringR2LDark( l->generic.x + l->generic.parent->x + LCOLUMN_OFFSET, l->generic.y + l->generic.parent->y, l->generic.name );
 
 	n = l->itemnames;
 
-  	Draw_Fill( l->generic.x - 112 + l->generic.parent->x, l->generic.parent->y + l->generic.y + l->curvalue*10 + 10, 128, 10, 16 );
-	while ( *n )
+	SCR_FillRect( l->generic.x - 112 + l->generic.parent->x, l->generic.parent->y + l->generic.y + l->curvalue*10 + 10, 128, 10, COLOR_16 );
+  	while ( *n )
 	{
 		Menu_DrawStringR2LDark( l->generic.x + l->generic.parent->x + LCOLUMN_OFFSET, l->generic.y + l->generic.parent->y + y + 10, *n );
 

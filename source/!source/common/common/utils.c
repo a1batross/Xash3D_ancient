@@ -644,6 +644,138 @@ char *SC_Token( void )
 }
 
 /*
+============
+SC_StringContains
+============
+*/
+char *SC_StringContains(char *str1, char *str2, int casecmp)
+{
+	int	len, i, j;
+
+	len = strlen(str1) - strlen(str2);
+
+	for (i = 0; i <= len; i++, str1++)
+	{
+		for (j = 0; str2[j]; j++)
+		{
+			if (casecmp)
+			{
+				if (str1[j] != str2[j]) break;
+			}
+			else
+			{
+				if(toupper(str1[j]) != toupper(str2[j]))
+					break;
+			}
+		}
+		if (!str2[j]) return str1;
+	}
+	return NULL;
+}
+
+/*
+============
+SC_FilterToken
+============
+*/
+bool SC_FilterToken(char *filter, char *name, int casecmp)
+{
+	char	buf[MAX_INPUTLINE];
+	char	*ptr;
+	int	i, found;
+
+	while(*filter)
+	{
+		if(*filter == '*')
+		{
+			filter++;
+			for (i = 0; *filter; i++)
+			{
+				if (*filter == '*' || *filter == '?')
+					break;
+				buf[i] = *filter;
+				filter++;
+			}
+			buf[i] = '\0';
+			if (strlen(buf))
+			{
+				ptr = SC_StringContains(name, buf, casecmp);
+				if (!ptr) return false;
+				name = ptr + strlen(buf);
+			}
+		}
+		else if (*filter == '?')
+		{
+			filter++;
+			name++;
+		}
+		else if (*filter == '[' && *(filter+1) == '[')
+		{
+			filter++;
+		}
+		else if (*filter == '[')
+		{
+			filter++;
+			found = false;
+			while(*filter && !found)
+			{
+				if (*filter == ']' && *(filter+1) != ']') break;
+				if (*(filter+1) == '-' && *(filter+2) && (*(filter+2) != ']' || *(filter+3) == ']'))
+				{
+					if (casecmp)
+					{
+						if (*name >= *filter && *name <= *(filter+2)) found = true;
+					}
+					else
+					{
+						if (toupper(*name) >= toupper(*filter) && toupper(*name) <= toupper(*(filter+2)))
+							found = true;
+					}
+					filter += 3;
+				}
+				else
+				{
+					if (casecmp)
+					{
+						if (*filter == *name) found = true;
+					}
+					else
+					{
+						if (toupper(*filter) == toupper(*name)) found = true;
+					}
+					filter++;
+				}
+			}
+			if (!found) return false;
+			while(*filter)
+			{
+				if (*filter == ']' && *(filter+1) != ']')
+					break;
+				filter++;
+			}
+			filter++;
+			name++;
+		}
+		else
+		{
+			if (casecmp)
+			{
+				if (*filter != *name)
+					return false;
+			}
+			else
+			{
+				if (toupper(*filter) != toupper(*name))
+					return false;
+			}
+			filter++;
+			name++;
+		}
+	}
+	return true;
+}
+
+/*
 =============================================================================
 
 EXTERNAL PARSE STUFF INTERFACE
@@ -664,6 +796,7 @@ scriptsystem_api_t Sc_GetAPI( void )
 	sc.MatchToken = SC_MatchToken;
 	sc.ParseToken = SC_ParseToken;
 	sc.ParseWord = SC_ParseWord;
+	sc.FilterToken = SC_FilterToken;
 	sc.Token = token;
 	
 	return sc;

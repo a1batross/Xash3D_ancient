@@ -65,28 +65,29 @@ DLL GLUE
 */
 //==========================================================================
 
-byte        scantokey[128] = 
+static byte s_scantokey[128] = 
 { 
 
-	//  0           1       2       3       4       5       6       7 
-	//  8           9       A       B       C       D       E       F 
+//         0       1       2       3       4       5       6       7 
+//	 8       9       A       B       C       D       E       F 
 	0  ,    27,     '1',    '2',    '3',    '4',    '5',    '6', 
-	'7',    '8',    '9',    '0',    '-',    '=',    K_BACKSPACE, 9, // 0 
+	'7',    '8',    '9',    '0',    '-',    '=',    K_BACKSPACE, 9,	// 0 
 	'q',    'w',    'e',    'r',    't',    'y',    'u',    'i', 
-	'o',    'p',    '[',    ']',    13 ,    K_CTRL,'a',  's',      // 1 
+	'o',    'p',    '[',    ']',    13 ,    K_CTRL,'a',  's',		// 1 
 	'd',    'f',    'g',    'h',    'j',    'k',    'l',    ';', 
-	'\'' ,    '`',    K_SHIFT,'\\',  'z',    'x',    'c',    'v',      // 2 
+	'\'' ,    '`',    K_SHIFT,'\\',  'z',    'x',    'c',    'v',	// 2 
 	'b',    'n',    'm',    ',',    '.',    '/',    K_SHIFT,'*', 
-	K_ALT,' ',   0  ,    K_F1, K_F2, K_F3, K_F4, K_F5,   // 3 
+	K_ALT,' ',   K_CAPSLOCK  ,    K_F1, K_F2, K_F3, K_F4, K_F5,		// 3 
 	K_F6, K_F7, K_F8, K_F9, K_F10,  K_PAUSE,    0  , K_HOME, 
 	K_UPARROW,K_PGUP,K_KP_MINUS,K_LEFTARROW,K_KP_5,K_RIGHTARROW, K_KP_PLUS,K_END, //4 
 	K_DOWNARROW,K_PGDN,K_INS,K_DEL,0,0,             0,              K_F11, 
-	K_F12,0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 5
+	K_F12,0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        	// 5
 	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0, 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 6 
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,		// 6 
 	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0, 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0         // 7 
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0 		// 7 
 }; 
+
 
 /*
 =======
@@ -95,19 +96,29 @@ MapKey
 Map from windows to quake keynums
 =======
 */
-int MapKey (int key)
+static int MapKey (int key)
 {
 	int result;
-	int modified = ( key >> 16 ) & 255;
-	bool is_extended = false;
+	int modified;
+	bool is_extended;
 
-	if ( modified > 127)
+//	Com_Printf( "0x%x\n", key);
+
+	modified = ( key >> 16 ) & 255;
+
+	if ( modified > 127 )
 		return 0;
 
 	if ( key & ( 1 << 24 ) )
+	{
 		is_extended = true;
+	}
+	else
+	{
+		is_extended = false;
+	}
 
-	result = scantokey[modified];
+	result = s_scantokey[modified];
 
 	if ( !is_extended )
 	{
@@ -141,6 +152,8 @@ int MapKey (int key)
 	{
 		switch ( result )
 		{
+		case K_PAUSE:
+			return K_KP_NUMLOCK;
 		case 0x0D:
 			return K_KP_ENTER;
 		case 0x2F:
@@ -324,6 +337,9 @@ LONG WINAPI MainWndProc ( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_KEYUP:
 		Key_Event( MapKey( lParam ), false, host.sv_timer);
 		break;
+	case WM_CHAR:
+		CL_CharEvent( wParam );
+		break;
 	default:	// pass all unhandled messages to DefWindowProc
 		return DefWindowProc (hWnd, uMsg, wParam, lParam);
 	}
@@ -432,6 +448,16 @@ char *FS_Gamedir( void )
 	return GI.gamedir;
 }
 
+cvar_t *VID_Cvar_Get(const char *var_name, const char *value, int flags)
+{
+	return _Cvar_Get(var_name, value, flags, "render variable" );
+}
+
+void VID_Cmd_AddCommand(const char *cmd_name, xcommand_t function)
+{
+	_Cmd_AddCommand(cmd_name, function, "render command" );
+}
+
 char *FS_Title( void )
 {
 	return GI.title;
@@ -456,7 +482,7 @@ void VID_InitRender( void )
 	ri.Compile = Com->Compile;
 	ri.Stdio = Host_GetStdio( false );
 
-	ri.Cmd_AddCommand = Cmd_AddCommand;
+	ri.Cmd_AddCommand = VID_Cmd_AddCommand;
 	ri.Cmd_RemoveCommand = Cmd_RemoveCommand;
 	ri.Cmd_Argc = Cmd_Argc;
 	ri.Cmd_Argv = Cmd_Argv;
@@ -464,7 +490,7 @@ void VID_InitRender( void )
 
 	ri.gamedir = FS_Gamedir;
 	ri.title = FS_Title;
-	ri.Cvar_Get = Cvar_Get;
+	ri.Cvar_Get = VID_Cvar_Get;
 	ri.Cvar_Set = Cvar_Set;
 	ri.Cvar_SetValue = Cvar_SetValue;
 	ri.Vid_GetModeInfo = VID_GetModeInfo;

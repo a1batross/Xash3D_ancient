@@ -213,7 +213,7 @@ sprint(clientent, value)
 */
 void PF_sprint (void)
 {
-	client_t		*client;
+	client_state_t		*client;
 	int		num;
 	char		string[VM_STRINGTEMP_LENGTH];
 
@@ -243,7 +243,7 @@ centerprint(clientent, value)
 */
 void PF_centerprint (void)
 {
-	client_t		*client;
+	client_state_t		*client;
 	int		num;
 	char 		string[VM_STRINGTEMP_LENGTH];
 

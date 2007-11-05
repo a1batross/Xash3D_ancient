@@ -5,57 +5,23 @@
 #ifndef CVAR_H
 #define CVAR_H
 
-extern	cvar_t	*cvar_vars;
+extern cvar_t *cvar_vars;
 cvar_t *Cvar_FindVar (const char *var_name);
-
-cvar_t *Cvar_Get (const char *var_name, const char *value, int flags);
-// creates the variable if it doesn't exist, or returns the existing one
-// if it exists, the value will not be changed, but flags will be ORed in
-// that allows variables to be unarchived without needing bitflags
-
-cvar_t 	*Cvar_Set (const char *var_name, const char *value);
-// will create the variable if it doesn't exist
-
-cvar_t *Cvar_ForceSet (const char *var_name, const char *value);
-// will set the variable even if NOSET or LATCH
-
-cvar_t 	*Cvar_FullSet (char *var_name, char *value, int flags);
-
-void	Cvar_SetValue (char *var_name, float value);
-// expands value to a string and calls Cvar_Set
-
-float	Cvar_VariableValue (const char *var_name);
-// returns 0 if not defined or non numeric
-
-char	*Cvar_VariableString (const char *var_name);
-// returns an empty string if not defined
-
-char 	*Cvar_CompleteVariable (char *partial);
-// attempts to match a partial variable name for command line completion
-// returns NULL if nothing fits
-
-void	Cvar_GetLatchedVars (void);
-// any CVAR_LATCHED variables that have been set will now take effect
-
+#define Cvar_Get(name, value, flags) _Cvar_Get( name, value, flags, "no description" )
+cvar_t *_Cvar_Get (const char *var_name, const char *value, int flags, const char *description);
+void Cvar_Set( const char *var_name, const char *value);
+cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force);
+void Cvar_CommandCompletion( void(*callback)(const char *s, const char *m));
+void Cvar_FullSet (char *var_name, char *value, int flags);
+void Cvar_SetLatched( const char *var_name, const char *value);
+void Cvar_SetValue( const char *var_name, float value);
+float Cvar_VariableValue (const char *var_name);
+char *Cvar_VariableString (const char *var_name);
 bool Cvar_Command (void);
-// called by Cmd_ExecuteString when Cmd_Argv(0) doesn't match a known
-// command.  Returns true if the command was a variable reference that
-// was handled. (print or change)
-
-void 	Cvar_WriteVariables (char *path);
-// appends lines containing "set variable value" for all variables
-// with the archive flag set to true.
-
-void	Cvar_Init (void);
-
-char	*Cvar_Userinfo (void);
-// returns an info string containing all the CVAR_USERINFO cvars
-
-char	*Cvar_Serverinfo (void);
-// returns an info string containing all the CVAR_SERVERINFO cvars
-
-extern	bool	userinfo_modified;
-// this is set each time a CVAR_USERINFO variable is changed
-// so that the client knows to send it to the server
+void Cvar_WriteVariables( file_t *f );
+void Cvar_Init (void);
+char *Cvar_Userinfo (void);
+char *Cvar_Serverinfo (void);
+extern bool userinfo_modified;
 
 #endif//CVAR_H

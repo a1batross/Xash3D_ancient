@@ -116,6 +116,17 @@ typedef struct
 
 extern	viddef_t	vid;
 
+#define MAX_RADAR_ENTS	1024
+typedef struct radar_ent_s
+{
+	vec4_t	color;
+	vec3_t	org;  
+	vec3_t	ang;
+} radar_ent_t;
+
+int numRadarEnts;
+extern radar_ent_t RadarEnts[MAX_RADAR_ENTS];
+
 typedef struct rect_s
 {
 	int left;
@@ -168,7 +179,6 @@ typedef struct image_s
 };
 
 #define	TEXNUM_LIGHTMAPS	1024
-#define	TEXNUM_SCRAPS	1152
 #define	TEXNUM_IMAGES	1152
 #define	MAX_GLTEXTURES	1024
 
@@ -210,11 +220,13 @@ typedef struct
 //====================================================
 
 extern	image_t		gltextures[MAX_GLTEXTURES];
-extern	int			numgltextures;
+extern	int		numgltextures;
 
 
-extern	image_t		*r_notexture;
-extern	image_t		*r_particletexture;
+extern image_t	*r_notexture;
+extern image_t	*r_particletexture;
+extern image_t	*r_radarmap;
+extern image_t	*r_around;
 extern	entity_t	*currententity;
 extern	model_t		*currentmodel;
 extern	int			r_visframecount;
@@ -266,6 +278,11 @@ extern cvar_t	*gl_particle_size;
 extern cvar_t	*gl_particle_att_a;
 extern cvar_t	*gl_particle_att_b;
 extern cvar_t	*gl_particle_att_c;
+
+extern  cvar_t	*r_minimap;
+extern  cvar_t	*r_minimap_size;
+extern  cvar_t	*r_minimap_zoom;
+extern  cvar_t	*r_minimap_style;
 
 extern  cvar_t	*r_bloom;
 extern  cvar_t	*r_bloom_alpha;
@@ -333,7 +350,8 @@ void GL_TexEnv( GLenum value );
 void GL_EnableMultitexture( bool enable );
 void GL_SelectTexture( GLenum );
 void GL_TexFilter( GLboolean mipmap );
-
+void GL_SetColor( const void *data );
+void R_SetGL2D ( void );
 void R_LightPoint (vec3_t p, vec3_t color);
 void R_PushDlights (void);
 
@@ -372,6 +390,7 @@ bool R_CullBox (vec3_t mins, vec3_t maxs);
 void R_RotateForEntity (entity_t *e);
 void R_MarkLeaves (void);
 
+void GL_DrawRadar( void );
 void R_BloomBlend ( refdef_t *fd );
 void R_Bloom_InitTextures( void );
 
@@ -398,11 +417,11 @@ void COM_FileBase (char *in, char *out);
 
 void	Draw_GetPicSize (int *w, int *h, char *name);
 void	Draw_Pic (int x, int y, char *name);
-void	Draw_StretchPic (int x, int y, int w, int h, char *name);
+void	Draw_StretchPic(float x, float y, float w, float h, float s1, float t1, float s2, float t2, char *pic);
 void	Draw_Char (float x, float y, int c);
 void	Draw_String (int x, int y, char *str);
 void	Draw_TileClear (int x, int y, int w, int h, char *name);
-void	Draw_Fill (int x, int y, int w, int h, int c);
+void	Draw_Fill(float x, float y, float w, float h );
 void	Draw_FadeScreen (void);
 void	Draw_StretchRaw (int x, int y, int w, int h, int cols, int rows, byte *data, bool dirty );
 
@@ -471,7 +490,7 @@ typedef struct
 	int lightmap_textures;
 
 	int	currenttextures[2];
-	int currenttmu;
+	int	currenttmu;
 
 	float camera_separation;
 	bool stereo_enabled;
@@ -493,9 +512,8 @@ typedef struct
 	bool	nv_tex_rectangle;
 	bool	ati_tex_rectangle;
 
-	byte	originalRedGammaTable[256];
-	byte	originalGreenGammaTable[256];
-	byte	originalBlueGammaTable[256];
+	vec4_t	draw_color;	// using with Draw_* functions
+
 } glstate_t;
 
 extern glconfig_t  gl_config;

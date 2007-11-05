@@ -19,7 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // client.h -- primary header for client
 
-//define	PARANOID			// speed sapping error checking
+#ifndef CLIENT_H
+#define CLIENT_H
 
 #include "engine.h"
 #include "vid.h"
@@ -27,7 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "sound.h"
 #include "input.h"
 #include "keys.h"
-#include "console.h"
 
 //=============================================================================
 typedef struct
@@ -75,7 +75,7 @@ extern int num_cl_weaponmodels;
 #define	CMD_BACKUP		64	// allow a lot of command backups for very fast systems
 
 //
-// the client_state_t structure is wiped completely at every
+// the client_t structure is wiped completely at every
 // server map change
 //
 typedef struct
@@ -121,7 +121,7 @@ typedef struct
 
 	refdef_t	refdef;
 
-	vec3_t		v_forward, v_right, v_up;	// set when refdef.angles is set
+	vec3_t		v_forward, v_right, v_left, v_up; // set when refdef.angles is set
 
 	//
 	// transient data from server
@@ -150,9 +150,9 @@ typedef struct
 
 	clientinfo_t	clientinfo[MAX_CLIENTS];
 	clientinfo_t	baseclientinfo;
-} client_state_t;
+} client_t;
 
-extern	client_state_t	cl;
+extern client_t	cl;
 
 /*
 ==================================================================
@@ -454,6 +454,7 @@ void CL_BaseMove (usercmd_t *cmd);
 void IN_CenterView (void);
 
 float CL_KeyState (kbutton_t *key);
+void CL_CharEvent( int key );
 char *Key_KeynumToString (int keynum);
 
 //
@@ -537,3 +538,27 @@ void CL_DrawInventory (void);
 // cl_pred.c
 //
 void CL_PredictMovement (void);
+
+//
+// cl_con.c
+//
+int Con_PrintStrlen( const char *string );
+bool Con_Active( void );
+void Con_CheckResize( void );
+void Con_Print( char *txt );
+void Con_Init( void );
+void Con_Clear_f( void );
+void Con_ToggleConsole_f( void );
+void Con_DrawNotify( void );
+void Con_ClearNotify( void );
+void Con_RunConsole( void );
+void Con_DrawConsole( void );
+void Con_PageUp( void );
+void Con_PageDown( void );
+void Con_Top( void );
+void Con_Bottom( void );
+void Con_Close( void );
+
+extern int g_console_field_width;
+
+#endif//CLIENT_H

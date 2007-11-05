@@ -298,7 +298,7 @@ void CL_ParseServerData (void)
 	//Sys_Error("Serverdata packet received.\n");
 	MsgDev (D_INFO, "Serverdata packet received.\n");
 
-	// wipe the client_state_t struct
+	// wipe the client_t struct
 	CL_ClearState ();
 	cls.state = ca_connected;
 
@@ -663,13 +663,8 @@ void CL_ParseServerMessage (void)
 
 		case svc_print:
 			i = MSG_ReadByte (&net_message);
-			if (i == PRINT_CHAT)
-			{
-				S_StartLocalSound ("misc/talk.wav");
-				con.ormask = 128;
-			}
-			Msg ("%s", MSG_ReadString (&net_message));
-			con.ormask = 0;
+			if (i == PRINT_CHAT) S_StartLocalSound ("misc/talk.wav");
+			Msg ("^6%s", MSG_ReadString (&net_message));
 			break;
 			
 		case svc_centerprint:

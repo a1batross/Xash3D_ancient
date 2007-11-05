@@ -142,7 +142,7 @@ void PRVM_PrintStatement (dstatement_t *s)
 		if (prvm_opnames[s->op][0] == STRING_COLOR_TAG)
 			i -= 2;
 		for ( ; i<10 ; i++)
-			Con_Print(" ");
+			Msg(" ");
 	}
 	if (s->op == OP_IF || s->op == OP_IFNOT)
 		Msg("%s, s%i",PRVM_GlobalString((unsigned short) s->a),(signed short)s->b + opnum);
@@ -150,41 +150,41 @@ void PRVM_PrintStatement (dstatement_t *s)
 		Msg("s%i",(signed short)s->a + opnum);
 	else if ( (unsigned)(s->op - OP_STORE_F) < 6)
 	{
-		Con_Print(PRVM_GlobalString((unsigned short) s->a));
-		Con_Print(", ");
-		Con_Print(PRVM_GlobalStringNoContents((unsigned short) s->b));
+		Msg(PRVM_GlobalString((unsigned short) s->a));
+		Msg(", ");
+		Msg(PRVM_GlobalStringNoContents((unsigned short) s->b));
 	}
 	else if (s->op == OP_ADDRESS || (unsigned)(s->op - OP_LOAD_F) < 6)
 	{
 		if (s->a)
-			Con_Print(PRVM_GlobalString((unsigned short) s->a));
+			Msg(PRVM_GlobalString((unsigned short) s->a));
 		if (s->b)
 		{
-			Con_Print(", ");
-			Con_Print(PRVM_GlobalStringNoContents((unsigned short) s->b));
+			Msg(", ");
+			Msg(PRVM_GlobalStringNoContents((unsigned short) s->b));
 		}
 		if (s->c)
 		{
-			Con_Print(", ");
-			Con_Print(PRVM_GlobalStringNoContents((unsigned short) s->c));
+			Msg(", ");
+			Msg(PRVM_GlobalStringNoContents((unsigned short) s->c));
 		}
 	}
 	else
 	{
 		if (s->a)
-			Con_Print(PRVM_GlobalString((unsigned short) s->a));
+			Msg(PRVM_GlobalString((unsigned short) s->a));
 		if (s->b)
 		{
-			Con_Print(", ");
-			Con_Print(PRVM_GlobalString((unsigned short) s->b));
+			Msg(", ");
+			Msg(PRVM_GlobalString((unsigned short) s->b));
 		}
 		if (s->c)
 		{
-			Con_Print(", ");
-			Con_Print(PRVM_GlobalStringNoContents((unsigned short) s->c));
+			Msg(", ");
+			Msg(PRVM_GlobalStringNoContents((unsigned short) s->c));
 		}
 	}
-	Con_Print("\n");
+	Msg("\n");
 }
 
 void PRVM_PrintFunctionStatements (const char *name)
@@ -259,7 +259,7 @@ void PRVM_StackTrace (void)
 		f = prog->stack[i].f;
 
 		if (!f)
-			Con_Print("<NULL FUNCTION>\n");
+			Msg("<NULL FUNCTION>\n");
 		else
 			Msg("%12s : %s : statement %i\n", PRVM_GetString(f->s_file), PRVM_GetString(f->s_name), prog->stack[i].s - f->first_statement);
 	}
@@ -320,7 +320,7 @@ void PRVM_Profile_f (void)
 		howmany = atoi(Cmd_Argv(2));
 	else if (Cmd_Argc() != 2)
 	{
-		Con_Print("prvm_profile <program name>\n");
+		Msg("prvm_profile <program name>\n");
 		return;
 	}
 
@@ -359,7 +359,7 @@ void PRVM_PrintState(void)
 				PRVM_PrintStatement (prog->statements + prog->xstatement + i);
 	}
 	else
-		Con_Print("null function executing??\n");
+		Msg("null function executing??\n");
 	PRVM_StackTrace ();
 }
 

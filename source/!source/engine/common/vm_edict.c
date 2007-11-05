@@ -636,11 +636,11 @@ void PRVM_ED_Print(edict_t *ed)
 		strncat(tempstring, "\n", sizeof(tempstring));
 		if (strlen(tempstring) >= sizeof(tempstring)/2)
 		{
-			Con_Print(tempstring);
+			Msg(tempstring);
 			tempstring[0] = 0;
 		}
 	}
-	if (tempstring[0]) Con_Print(tempstring);
+	if (tempstring[0]) Msg(tempstring);
 }
 
 /*
@@ -725,7 +725,7 @@ void PRVM_ED_PrintEdicts_f (void)
 
 	if(Cmd_Argc() != 2)
 	{
-		Con_Print("prvm_edicts <program name>\n");
+		Msg("prvm_edicts <program name>\n");
 		return;
 	}
 
@@ -789,7 +789,7 @@ void PRVM_ED_Count_f (void)
 
 	if(Cmd_Argc() != 2)
 	{
-		Con_Print("prvm_count <program name>\n");
+		Msg("prvm_count <program name>\n");
 		return;
 	}
 
@@ -1016,7 +1016,7 @@ void PRVM_ED_EdictSet_f(void)
 
 	if(Cmd_Argc() != 5)
 	{
-		Con_Print("prvm_edictset <program name> <edict number> <field> <value>\n");
+		Msg("prvm_edictset <program name> <edict number> <field> <value>\n");
 		return;
 	}
 
@@ -1703,14 +1703,14 @@ void PRVM_Fields_f (void)
 	/*
 	if (!sv.active)
 	{
-		Con_Print("no progs loaded\n");
+		Msg("no progs loaded\n");
 		return;
 	}
 	*/
 
 	if(Cmd_Argc() != 2)
 	{
-		Con_Print("prvm_fields <program name>\n");
+		Msg("prvm_fields <program name>\n");
 		return;
 	}
 
@@ -1797,7 +1797,7 @@ void PRVM_Fields_f (void)
 		strncat(tempstring, "\n", sizeof(tempstring));
 		if (strlen(tempstring) >= sizeof(tempstring)/2)
 		{
-			Con_Print(tempstring);
+			Msg(tempstring);
 			tempstring[0] = 0;
 		}
 		if (counts[i])
@@ -1818,12 +1818,12 @@ void PRVM_Globals_f (void)
 	// TODO
 	/*if (!sv.active)
 	{
-		Con_Print("no progs loaded\n");
+		Msg("no progs loaded\n");
 		return;
 	}*/
 	if(Cmd_Argc () != 2)
 	{
-		Con_Print("prvm_globals <program name>\n");
+		Msg("prvm_globals <program name>\n");
 		return;
 	}
 
@@ -1927,7 +1927,7 @@ void VM_Warning(const char *fmt, ...)
 	va_end(argptr);
 
 	Msg(msg);
-	// TODO: either add a cvar/cmd to control the state dumping or replace some of the calls with Con_Printf [9/13/2006 Black]
+	// TODO: either add a cvar/cmd to control the state dumping or replace some of the calls with Msgf [9/13/2006 Black]
 	//PRVM_PrintState();
 }
 

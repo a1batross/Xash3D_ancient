@@ -24,7 +24,7 @@
 #include "const.h"
 #include "common.h"
 #include "cvar.h"
-#include "console.h"
+#include "client.h"
 
 extern stdlib_api_t		std;
 extern common_exp_t		*Com;
@@ -141,7 +141,7 @@ scriptsystem manager
 */
 #define COM_Parse(data) Com->Script.ParseToken(data)
 #define COM_Token Com->Script.Token
-
+#define COM_Filter Com->Script.FilterToken
 /*
 ===========================================
 infostring manager
@@ -167,9 +167,9 @@ System Events
 ===========================================
 */
 
-#define Msg Con_Printf
-#define MsgDev Con_DPrintf
-#define MsgWarn Con_DWarnf
+#define Msg Com_Printf
+#define MsgDev Com_DPrintf
+#define MsgWarn Com_DWarnf
 #define Sys_LoadLibrary std.LoadLibrary
 #define Sys_FreeLibrary std.FreeLibrary
 #define Sys_Sleep std.sleep

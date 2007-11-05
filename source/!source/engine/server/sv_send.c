@@ -63,7 +63,7 @@ SV_ClientPrintf
 Sends text across to be displayed if the level passes
 =================
 */
-void SV_ClientPrintf (client_t *cl, int level, char *fmt, ...)
+void SV_ClientPrintf (client_state_t *cl, int level, char *fmt, ...)
 {
 	va_list		argptr;
 	char		string[1024];
@@ -91,7 +91,7 @@ void SV_BroadcastPrintf (int level, char *fmt, ...)
 {
 	va_list		argptr;
 	char		string[2048];
-	client_t	*cl;
+	client_state_t	*cl;
 	int			i;
 
 	va_start (argptr,fmt);
@@ -164,7 +164,7 @@ void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename,
 	int		leafnum = 0, cluster = 0;
 	int		area1 = 0, area2 = 0;
 	int		j, numclients = maxclients->value;
-	client_t		*client, *current = svs.clients;
+	client_state_t		*client, *current = svs.clients;
 	bool		reliable = false;
 
 	/*if(origin == NULL || ent == NULL) 
@@ -393,7 +393,7 @@ FRAME UPDATES
 SV_SendClientDatagram
 =======================
 */
-bool SV_SendClientDatagram (client_t *client)
+bool SV_SendClientDatagram (client_state_t *client)
 {
 	byte		msg_buf[MAX_MSGLEN];
 	sizebuf_t		msg;
@@ -456,7 +456,7 @@ Returns true if the client is over its current
 bandwidth estimation and should not be sent another packet
 =======================
 */
-bool SV_RateDrop (client_t *c)
+bool SV_RateDrop (client_state_t *c)
 {
 	int		total;
 	int		i;
@@ -490,7 +490,7 @@ SV_SendClientMessages
 void SV_SendClientMessages (void)
 {
 	int		i;
-	client_t		*c;
+	client_state_t		*c;
 	int		msglen;
 	byte		msgbuf[MAX_MSGLEN];
 

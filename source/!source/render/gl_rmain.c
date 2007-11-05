@@ -44,9 +44,11 @@ float col_array[MAX_ARRAY][4];
 
 image_t *r_notexture; // use for bad textures
 image_t *r_particletexture;// little dot for particles
+image_t *r_radarmap; // wall texture for radar texgen
+image_t *r_around;
 
 entity_t	*currententity;
-model_t		*currentmodel;
+model_t	*currentmodel;
 
 cplane_t	frustum[4];
 
@@ -104,6 +106,12 @@ cvar_t	*gl_particle_size;
 cvar_t	*gl_particle_att_a;
 cvar_t	*gl_particle_att_b;
 cvar_t	*gl_particle_att_c;
+
+// doom1\2 style map, based on GLOOM radar code
+cvar_t	*r_minimap;
+cvar_t	*r_minimap_size; 
+cvar_t	*r_minimap_zoom;
+cvar_t	*r_minimap_style;
 
 cvar_t	*gl_ext_swapinterval;
 cvar_t	*gl_ext_palettedtexture;
@@ -537,6 +545,7 @@ void R_SetupFrame (void)
 
 	c_brush_polys = 0;
 	c_studio_polys = 0;
+	numRadarEnts = 0;
 
 	// clear out the portion of the screen that the NOWORLDMODEL defines
 	if ( r_newrefdef.rdflags & RDF_NOWORLDMODEL )
@@ -698,7 +707,10 @@ void R_RenderView (refdef_t *fd)
 	R_DrawAlphaSurfaces ();
 	R_Flash();
 	R_BloomBlend (fd);
-	ri.ShowCollision();
+	GL_DrawRadar();
+
+	if(!( r_newrefdef.rdflags & RDF_NOWORLDMODEL ))
+		ri.ShowCollision(); //physic debug
 }
 
 void R_DrawPauseScreen( void )
@@ -982,6 +994,11 @@ void R_Register( void )
 	r_bloom_darken = ri.Cvar_Get( "r_bloom_darken", "4", CVAR_ARCHIVE );
 	r_bloom_sample_size = ri.Cvar_Get( "r_bloom_sample_size", "128", CVAR_ARCHIVE );
 	r_bloom_fast_sample = ri.Cvar_Get( "r_bloom_fast_sample", "0", CVAR_ARCHIVE );
+
+	r_minimap_size = ri.Cvar_Get ("r_minimap_size", "256", CVAR_ARCHIVE );
+	r_minimap_zoom = ri.Cvar_Get ("r_minimap_zoom", "1", CVAR_ARCHIVE );
+	r_minimap_style = ri.Cvar_Get ("r_minimap_style", "1", CVAR_ARCHIVE );  
+	r_minimap = ri.Cvar_Get("r_minimap", "0", CVAR_ARCHIVE ); 
 
 	gl_modulate = ri.Cvar_Get ("gl_modulate", "1", CVAR_ARCHIVE );
 	gl_log = ri.Cvar_Get( "gl_log", "0", 0 );
@@ -1554,12 +1571,6 @@ void	R_RenderFrame (refdef_t *fd);
 
 image_t	*Draw_FindPic (char *name);
 
-void	Draw_Pic (int x, int y, char *name);
-void	Draw_Char (float x, float y, int c);
-void	Draw_TileClear (int x, int y, int w, int h, char *name);
-void	Draw_Fill (int x, int y, int w, int h, int c);
-void	Draw_FadeScreen (void);
-
 /*
 @@@@@@@@@@@@@@@@@@@@@
 CreateAPI
@@ -1597,6 +1608,7 @@ render_exp_t DLLEXPORT *CreateAPI(render_imp_t *rimp )
 	re.DrawFadeScreen= Draw_FadeScreen;
 
 	re.DrawStretchRaw = Draw_StretchRaw;
+	re.SetColor = GL_SetColor;
 
 	re.Init = R_Init;
 	re.Shutdown = R_Shutdown;

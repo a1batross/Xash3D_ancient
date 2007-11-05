@@ -223,7 +223,7 @@ void IN_StartupMouse (void)
 {
 	cvar_t		*cv;
 
-	cv = Cvar_Get ("in_initmouse", "1", CVAR_NOSET);
+	cv = Cvar_Get ("in_initmouse", "1", CVAR_INIT);
 	if ( !cv->value ) 
 		return; 
 
@@ -492,7 +492,7 @@ void IN_StartupJoystick (void)
 	joy_avail = false; 
 
 	// abort startup if user requests no joystick
-	cv = Cvar_Get ("in_initjoy", "1", CVAR_NOSET);
+	cv = Cvar_Get ("in_initjoy", "1", CVAR_INIT);
 	if ( !cv->value ) 
 		return; 
  
@@ -702,12 +702,12 @@ void IN_Commands (void)
 		{
 			if ( (povstate & (1<<i)) && !(joy_oldpovstate & (1<<i)) )
 			{
-				Key_Event (K_AUX29 + i, true, 0);
+				Key_Event (K_AUX16 + i, true, 0);
 			}
 
 			if ( !(povstate & (1<<i)) && (joy_oldpovstate & (1<<i)) )
 			{
-				Key_Event (K_AUX29 + i, false, 0);
+				Key_Event (K_AUX16 + i, false, 0);
 			}
 		}
 		joy_oldpovstate = povstate;

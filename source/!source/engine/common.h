@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // common.h -- definitions common between client and server, but not game.dll
 
-#define	VERSION		3.21
+#define	VERSION		"Xash 0.48"
 
 #define BASEDIRNAME	"xash"
 
@@ -39,6 +39,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define STRING_COLOR_TAG			'^'
 #define STRING_COLOR_DEFAULT			 7
 #define STRING_COLOR_DEFAULT_STR		"^7"
+
+extern vec4_t g_color_table[8];
 
 // move to mathlib
 #define RAD_TO_STUDIO	(32768.0/M_PI)
@@ -137,7 +139,14 @@ int COM_CheckParm (char *parm);
 void COM_Init (void);
 void COM_InitArgv (int argc, char **argv);
 
+// message functions
+void Com_Print(char *txt);
+void Com_Printf(char *fmt, ...);
+void Com_DPrintf(int level, char *fmt, ...);
+void Com_DWarnf(char *fmt, ...);
+
 char *CopyString (const char *in);
+
 
 //============================================================================
 
@@ -333,45 +342,15 @@ The game starts with a Cbuf_AddText ("exec quake.rc\n"); Cbuf_Execute ();
 
 */
 
-#define	EXEC_NOW	0		// don't return until completed
+#define	EXEC_NOW		0		// don't return until completed
 #define	EXEC_INSERT	1		// insert at current position, but don't run yet
 #define	EXEC_APPEND	2		// add to end of the command buffer
 
 void Cbuf_Init (void);
-// allocates an initial text buffer that will grow as needed
-
-void Cbuf_AddText (char *text);
-// as new commands are generated from the console or keybindings,
-// the text is added to the end of the command buffer.
-
-void Cbuf_InsertText (char *text);
-// when a command wants to issue other commands immediately, the text is
-// inserted at the beginning of the buffer, before any remaining unexecuted
-// commands.
-
-void Cbuf_ExecuteText (int exec_when, char *text);
-// this can be used in place of either Cbuf_AddText or Cbuf_InsertText
-
-void Cbuf_AddEarlyCommands (bool clear);
-// adds all the +set commands from the command line
-
-bool Cbuf_AddLateCommands (void);
-// adds all the remaining + commands from the command line
-// Returns true if any late commands were added, which
-// will keep the demoloop from immediately starting
-
+void Cbuf_AddText (const char *text);
+void Cbuf_InsertText (const char *text);
+void Cbuf_ExecuteText (int exec_when, const char *text);
 void Cbuf_Execute (void);
-// Pulls off \n terminated lines of text from the command buffer and sends
-// them through Cmd_ExecuteString.  Stops when the buffer is empty.
-// Normally called once per frame, but may be explicitly invoked.
-// Do not call inside a command function!
-
-void Cbuf_CopyToDefer (void);
-void Cbuf_InsertFromDefer (void);
-// These two functions are used to defer any pending commands while a map
-// is being loaded
-
-//===========================================================================
 
 /*
 
@@ -382,9 +361,11 @@ then searches for a command or variable that matches the first token.
 
 typedef void (*xcommand_t) (void);
 
-void	Cmd_Init (void);
+void Cmd_Init( int argc, char **argv );
+bool Cmd_AddStartupCommands( void );
 
-void	Cmd_AddCommand (char *cmd_name, xcommand_t function);
+#define Cmd_AddCommand(name, func) _Cmd_AddCommand(name, func, "no description" )
+void _Cmd_AddCommand(const char *cmd_name, xcommand_t function, const char *cmd_desc);
 // called by the init functions of other parts of the program to
 // register commands and functions to call for them.
 // The cmd_name is referenced later, so it should not be in temp memory
@@ -395,18 +376,18 @@ void	Cmd_RemoveCommand (char *cmd_name);
 bool Cmd_Exists (const char *cmd_name);
 // used by the cvar code to check for cvar / command name overlap
 
-char 	*Cmd_CompleteCommand (char *partial);
+void Cmd_CommandCompletion( void(*callback)(const char *s, const char *m));
 // attempts to match a partial command for automatic command line completion
 // returns NULL if nothing fits
 
-int		Cmd_Argc (void);
-char	*Cmd_Argv (int arg);
-char	*Cmd_Args (void);
+int Cmd_Argc (void);
+char *Cmd_Argv (int arg);
+char *Cmd_Args (void);
 // The functions that execute commands get their parameters with these
 // functions. Cmd_Argv () will return an empty string, not a NULL
 // if arg > argc, so string operations are always safe.
 
-void	Cmd_TokenizeString (const char *text, bool macroExpand);
+void Cmd_TokenizeString (const char *text);
 // Takes a null terminated string.  Does not need to be /n terminated.
 // breaks the string up into arg tokens.
 
@@ -665,7 +646,7 @@ extern	float		time_after_ref;
 extern	vec3_t	bytedirs[NUMVERTEXNORMALS];
 
 // this is in the client code, but can be used for debugging from server
-void SCR_DebugGraph (float value, int color);
+void SCR_DebugGraph (float value, vec4_t color);
 
 
 /*

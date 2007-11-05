@@ -37,20 +37,20 @@ typedef enum
 	ss_cinematic,
 	ss_demo,
 
-} server_state_t;
+} sv_state_t;
 
 typedef enum
 {
 	cs_free,		// can be reused for a new connection
 	cs_zombie,	// client has been disconnected, but don't reuse connection for a couple seconds
-	cs_connected,	// has been assigned to a client_t, but not in game yet
+	cs_connected,	// has been assigned to a client_state_t, but not in game yet
 	cs_spawned	// client is fully in game
 
-} client_state_t;
+} cl_state_t;
 
 typedef struct
 {
-	server_state_t	state;		// precache commands are only valid during load
+	sv_state_t	state;		// precache commands are only valid during load
 
 	bool		attractloop;	// running cinematics and demos for the local system only
 	bool		loadgame;		// client begins should reuse existing entity
@@ -92,9 +92,9 @@ typedef struct
 
 } client_frame_t;
 
-typedef struct client_s
+typedef struct client_state_s
 {
-	client_state_t	state;
+	cl_state_t	state;
 
 	char		userinfo[MAX_INFO_STRING];	// name, etc
 
@@ -132,7 +132,7 @@ typedef struct client_s
 	int		challenge;		// challenge of this user, randomly generated
 
 	netchan_t		netchan;
-} client_t;
+} client_state_t;
 
 /*
 =============================================================================
@@ -168,7 +168,7 @@ typedef struct
 	int		spawncount;		// incremented each server start
 						// used to check late spawns
 	gclient_t		*gclients;		// [maxclients->value]
-	client_t		*clients;			// [maxclients->value]
+	client_state_t	*clients;			// [maxclients->value]
 	int		num_client_entities;	// maxclients->value*UPDATE_BACKUP*MAX_PACKET_ENTITIES
 	int		next_client_entities;	// next client_entity to use
 	entity_state_t	*client_entities;		// [num_client_entities]
@@ -202,7 +202,7 @@ extern	cvar_t		*sv_gravity;
 						// development tool
 extern	cvar_t		*sv_enforcetime;
 
-extern	client_t		*sv_client;
+extern	client_state_t		*sv_client;
 extern	edict_t		*sv_player;
 
 
@@ -211,18 +211,18 @@ extern	edict_t		*sv_player;
 // sv_main.c
 //
 void SV_FinalMessage (char *message, bool reconnect);
-void SV_DropClient (client_t *drop);
+void SV_DropClient (client_state_t *drop);
 
 int SV_ModelIndex (const char *name);
 int SV_SoundIndex (const char *name);
 int SV_ImageIndex (const char *name);
 int SV_DecalIndex (const char *name);
 
-void SV_WriteClientdataToMessage (client_t *client, sizebuf_t *msg);
+void SV_WriteClientdataToMessage (client_state_t *client, sizebuf_t *msg);
 void SV_ExecuteUserCommand (char *s);
 void SV_InitOperatorCommands (void);
-void SV_SendServerinfo (client_t *client);
-void SV_UserinfoChanged (client_t *cl);
+void SV_SendServerinfo (client_state_t *client);
+void SV_UserinfoChanged (client_state_t *cl);
 void Master_Heartbeat (void);
 void Master_Packet (void);
 
@@ -260,7 +260,7 @@ void SV_FlushRedirect (int sv_redirected, char *outputbuf);
 void SV_DemoCompleted (void);
 void SV_SendClientMessages (void);
 void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int index, float vol, float attn, float timeofs);
-void SV_ClientPrintf (client_t *cl, int level, char *fmt, ...);
+void SV_ClientPrintf (client_state_t *cl, int level, char *fmt, ...);
 void SV_BroadcastPrintf (int level, char *fmt, ...);
 void SV_BroadcastCommand (char *fmt, ...);
 
@@ -268,7 +268,7 @@ void SV_BroadcastCommand (char *fmt, ...);
 // sv_user.c
 //
 void SV_Nextserver (void);
-void SV_ExecuteClientMessage (client_t *cl);
+void SV_ExecuteClientMessage (client_state_t *cl);
 
 //
 // sv_ccmds.c
@@ -278,9 +278,9 @@ void SV_Status_f (void);
 //
 // sv_ents.c
 //
-void SV_WriteFrameToClient (client_t *client, sizebuf_t *msg);
+void SV_WriteFrameToClient (client_state_t *client, sizebuf_t *msg);
 void SV_RecordDemoMessage (void);
-void SV_BuildClientFrame (client_t *client);
+void SV_BuildClientFrame (client_state_t *client);
 void SV_UpdateEntityState( edict_t *ent);
 void SV_FatPVS ( vec3_t org );
 

@@ -118,6 +118,10 @@ SOURCE=.\client\cl_cin.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\client\cl_console.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\client\cl_ents.c
 # End Source File
 # Begin Source File
@@ -131,6 +135,10 @@ SOURCE=.\client\cl_input.c
 # Begin Source File
 
 SOURCE=.\client\cl_inv.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\client\cl_keys.c
 # End Source File
 # Begin Source File
 
@@ -174,10 +182,6 @@ SOURCE=.\common\common.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\console.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\common\cvar.c
 # End Source File
 # Begin Source File
@@ -187,10 +191,6 @@ SOURCE=.\host.c
 # Begin Source File
 
 SOURCE=.\in_win.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\common\keys.c
 # End Source File
 # Begin Source File
 

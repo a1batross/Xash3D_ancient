@@ -239,7 +239,7 @@ void CL_PredictMovement (void)
 
 	pm.s = cl.frame.playerstate.pmove;
 
-//	SCR_DebugGraph (current - ack - 1, 0);
+//	SCR_DebugGraph (current - ack - 1, COLOR_0);
 
 	frame = 0;
 

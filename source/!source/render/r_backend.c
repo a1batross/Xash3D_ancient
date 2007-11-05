@@ -389,6 +389,26 @@ void GL_MBind( GLenum target, int texnum )
 }
 
 /*
+=============
+GL_SetColor
+
+=============
+*/
+void GL_SetColor( const void *data )
+{
+	float	*color = (float *)data;
+
+	if(color) 
+	{
+		Vector4Set(gl_state.draw_color, color[0], color[1], color[2], color[3] );
+	}
+	else
+	{
+		Vector4Set(gl_state.draw_color, 1.0f, 1.0f, 1.0f, 1.0f );
+	}
+}
+
+/*
 ===============
 GL_SetDefaultState
 ===============
@@ -405,9 +425,11 @@ void GL_SetDefaultState( void )
 	qglDisable (GL_DEPTH_TEST);
 	qglDisable (GL_CULL_FACE);
 	qglDisable (GL_BLEND);
-	gl_state.blend=false;
+	gl_state.blend = false;
 	
 	qglColor4f (1,1,1,1);
+
+	Vector4Set(gl_state.draw_color, 1.0f, 1.0f, 1.0f, 1.0f );
 
 	qglHint(GL_GENERATE_MIPMAP_HINT_SGIS, GL_NICEST);
 	qglHint (GL_FOG_HINT, GL_FASTEST);

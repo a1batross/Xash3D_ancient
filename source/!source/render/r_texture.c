@@ -1651,7 +1651,7 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
 	byte	*buf;
 	
 	//nothing to load
-	if (!pic || !pic->buffer) return NULL;
+	if (!pic || !pic->buffer) return r_notexture;
 
 	// find a free image_t
 	for (i = 0, image = gltextures; i < numgltextures; i++, image++)

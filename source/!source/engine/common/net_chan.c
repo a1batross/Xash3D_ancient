@@ -98,7 +98,7 @@ void Netchan_Init (void)
 	Msg("netchan port %d\n", port );
 	showpackets = Cvar_Get ("showpackets", "0", 0);
 	showdrop = Cvar_Get ("showdrop", "0", 0);
-	qport = Cvar_Get ("qport", va("%i", port), CVAR_NOSET);
+	qport = Cvar_Get ("qport", va("%i", port), CVAR_INIT);
 }
 
 /*

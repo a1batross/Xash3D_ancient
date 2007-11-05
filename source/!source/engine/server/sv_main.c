@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 netadr_t	master_adr[MAX_MASTERS];	// address of group servers
 
-client_t	*sv_client;			// current client
+client_state_t	*sv_client;			// current client
 
 cvar_t	*sv_paused;
 cvar_t	*sv_timedemo;
@@ -95,7 +95,7 @@ or unwillingly.  This is NOT called if the entire server is quiting
 or crashing.
 =====================
 */
-void SV_DropClient (client_t *drop)
+void SV_DropClient (client_state_t *drop)
 {
 	// add the disconnect
 	MSG_WriteByte (&drop->netchan.message, svc_disconnect);
@@ -138,7 +138,7 @@ char *SV_StatusString (void)
 	char	player[1024];
 	static char	status[MAX_MSGLEN - 16];
 	int		i;
-	client_t	*cl;
+	client_state_t	*cl;
 	int		statusLength;
 	int		playerLength;
 
@@ -290,8 +290,8 @@ void SVC_DirectConnect( void )
 	char		userinfo[MAX_INFO_STRING];
 	netadr_t		adr;
 	int		i;
-	client_t		*cl, *newcl;
-	client_t		temp;
+	client_state_t		*cl, *newcl;
+	client_state_t		temp;
 	edict_t		*ent;
 	int		edictnum;
 	int		version;
@@ -351,7 +351,7 @@ void SVC_DirectConnect( void )
 	}
 
 	newcl = &temp;
-	memset (newcl, 0, sizeof(client_t));
+	memset (newcl, 0, sizeof(client_state_t));
 
 	// if there is already a slot for this ip, reuse it
 	for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
@@ -390,7 +390,7 @@ void SVC_DirectConnect( void )
 gotnewcl:	
 	// build a new connection
 	// accept the new client
-	// this is the only place a client_t is ever initialized
+	// this is the only place a client_state_t is ever initialized
 	*newcl = temp;
 	sv_client = newcl;
 	edictnum = (newcl - svs.clients) + 1;
@@ -491,7 +491,7 @@ void SV_ConnectionlessPacket (void)
 
 	s = MSG_ReadStringLine (&net_message);
 
-	Cmd_TokenizeString (s, false);
+	Cmd_TokenizeString(s);
 
 	c = Cmd_Argv(0);
 	MsgWarn("SV_ConnectionlessPacket: %s : %s\n", NET_AdrToString(net_from), c);
@@ -519,7 +519,7 @@ Updates the cl->ping variables
 void SV_CalcPings (void)
 {
 	int			i, j;
-	client_t	*cl;
+	client_state_t	*cl;
 	int			total, count;
 
 	for (i=0 ; i<maxclients->value ; i++)
@@ -571,7 +571,7 @@ for their command moves.  If they exceed it, assume cheating.
 void SV_GiveMsec (void)
 {
 	int			i;
-	client_t	*cl;
+	client_state_t	*cl;
 
 	if (sv.framenum & 15)
 		return;
@@ -595,7 +595,7 @@ SV_ReadPackets
 void SV_ReadPackets (void)
 {
 	int			i;
-	client_t	*cl;
+	client_state_t	*cl;
 	int			qport;
 
 	while (NET_GetPacket (NS_SERVER, &net_from, &net_message))
@@ -648,7 +648,7 @@ If a packet has not been received from a client for timeout->value
 seconds, drop the conneciton.  Server frames are used instead of
 realtime to avoid dropping the local client while debugging.
 
-When a client is normally dropped, the client_t goes into a zombie state
+When a client is normally dropped, the client_state_t goes into a zombie state
 for a few seconds to make sure any final reliable message gets resent
 if necessary
 ==================
@@ -656,7 +656,7 @@ if necessary
 void SV_CheckTimeouts (void)
 {
 	int		i;
-	client_t	*cl;
+	client_state_t	*cl;
 	float			droppoint;
 	float			zombiepoint;
 
@@ -900,7 +900,7 @@ Pull specific info from a newly changed userinfo string
 into a more C freindly form.
 =================
 */
-void SV_UserinfoChanged (client_t *cl)
+void SV_UserinfoChanged (client_state_t *cl)
 {
 	char	*val;
 	int		i;
@@ -959,7 +959,7 @@ void SV_Init (void)
 	Cvar_Get ("fraglimit", "0", CVAR_SERVERINFO);
 	Cvar_Get ("timelimit", "0", CVAR_SERVERINFO);
 	Cvar_Get ("cheats", "0", CVAR_SERVERINFO|CVAR_LATCH);
-	Cvar_Get ("protocol", va("%i", PROTOCOL_VERSION), CVAR_SERVERINFO|CVAR_NOSET);;
+	Cvar_Get ("protocol", va("%i", PROTOCOL_VERSION), CVAR_SERVERINFO|CVAR_INIT);
 	maxclients = Cvar_Get ("maxclients", "1", CVAR_SERVERINFO | CVAR_LATCH);
 	hostname = Cvar_Get ("hostname", "noname", CVAR_SERVERINFO | CVAR_ARCHIVE);
 	timeout = Cvar_Get ("timeout", "125", 0);
@@ -1000,7 +1000,7 @@ to totally exit after returning from this function.
 void SV_FinalMessage (char *message, bool reconnect)
 {
 	int			i;
-	client_t	*cl;
+	client_state_t	*cl;
 	
 	SZ_Clear (&net_message);
 	MSG_WriteByte (&net_message, svc_print);

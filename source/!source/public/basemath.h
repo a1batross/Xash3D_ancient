@@ -42,16 +42,20 @@
 #define VectorToServer(v) { v[0] = METER2INCH(v[0]), v[1] = METER2INCH(v[1]), v[2] = METER2INCH(v[2]); }
 #define DotProduct(x,y) (x[0]*y[0]+x[1]*y[1]+x[2]*y[2])
 #define VectorSubtract(a,b,c){c[0]=a[0]-b[0];c[1]=a[1]-b[1];c[2]=a[2]-b[2];}
+#define Vector4Subtract(a,b,c){c[0]=a[0]-b[0];c[1]=a[1]-b[1];c[2]=a[2]-b[2];c[3]=a[3]-b[3];}
 #define VectorAdd(a,b,c) {c[0]=a[0]+b[0];c[1]=a[1]+b[1];c[2]=a[2]+b[2];}
 #define VectorCopy(a,b) {b[0]=a[0];b[1]=a[1];b[2]=a[2];}
+#define Vector4Copy(a,b) {b[0]=a[0];b[1]=a[1];b[2]=a[2];b[3]=a[3];}
 #define VectorScale(in, scale, out) ((out)[0] = (in)[0] * (scale),(out)[1] = (in)[1] * (scale),(out)[2] = (in)[2] * (scale))
+#define Vector4Scale(in, scale, out) ((out)[0] = (in)[0] * (scale),(out)[1] = (in)[1] * (scale),(out)[2] = (in)[2] * (scale),(out)[3] = (in)[3] * (scale))
 #define VectorMultiply(a,b,c) ((c)[0]=(a)[0]*(b)[0],(c)[1]=(a)[1]*(b)[1],(c)[2]=(a)[2]*(b)[2])
 #define VectorLength2(a) (DotProduct(a, a))
 #define VectorDistance(a, b) (sqrt(VectorDistance2(a,b)))
 #define VectorDistance2(a, b) (((a)[0] - (b)[0]) * ((a)[0] - (b)[0]) + ((a)[1] - (b)[1]) * ((a)[1] - (b)[1]) + ((a)[2] - (b)[2]) * ((a)[2] - (b)[2]))
 #define VectorSet(v, x, y, z) {v[0] = x; v[1] = y; v[2] = z;}
-#define Vector4Set(v, x, y, z, w) {v[0] = x; v[1] = y; v[2] = z; v[3] = w;}
+#define Vector4Set(v, x, y, z, w) {v[0] = x, v[1] = y, v[2] = z, v[3] = w;}
 #define VectorClear(x) {x[0] = x[1] = x[2] = 0;}
+#define Vector4Clear(x) {x[0] = x[1] = x[2] = x[3] = 0;}
 #define VectorNegate(x, y) {y[0] =-x[0]; y[1]=-x[1]; y[2]=-x[2];}
 #define VectorM(scale1, b1, c) ((c)[0] = (scale1) * (b1)[0],(c)[1] = (scale1) * (b1)[1],(c)[2] = (scale1) * (b1)[2])
 #define VectorMA(a, scale, b, c) ((c)[0] = (a)[0] + (scale) * (b)[0],(c)[1] = (a)[1] + (scale) * (b)[1],(c)[2] = (a)[2] + (scale) * (b)[2])
@@ -219,27 +223,47 @@ _inline void AngleVectors (vec3_t angles, vec3_t forward, vec3_t right, vec3_t u
 	angle = angles[PITCH] * (M_PI*2 / 360);
 	sp = sin(angle);
 	cp = cos(angle);
-	angle = angles[ROLL] * (M_PI*2 / 360);
-	sr = sin(angle);
-	cr = cos(angle);
-
 	if (forward)
 	{
 		forward[0] = cp*cy;
 		forward[1] = cp*sy;
 		forward[2] = -sp;
 	}
-	if (right)
+	if (right || up)
 	{
-		right[0] = (-1*sr*sp*cy+-1*cr*-sy);
-		right[1] = (-1*sr*sp*sy+-1*cr*cy);
-		right[2] = -1*sr*cp;
-	}
-	if (up)
-	{
-		up[0] = (cr*sp*cy+-sr*-sy);
-		up[1] = (cr*sp*sy+-sr*cy);
-		up[2] = cr*cp;
+		if (angles[ROLL])
+		{
+			angle = angles[ROLL] * (M_PI*2 / 360);
+			sr = sin(angle);
+			cr = cos(angle);
+			if (right)
+			{
+				right[0] = -1*(sr*sp*cy+cr*-sy);
+				right[1] = -1*(sr*sp*sy+cr*cy);
+				right[2] = -1*(sr*cp);
+			}
+			if (up)
+			{
+				up[0] = (cr*sp*cy+-sr*-sy);
+				up[1] = (cr*sp*sy+-sr*cy);
+				up[2] = cr*cp;
+			}
+		}
+		else
+		{
+			if (right)
+			{
+				right[0] = sy;
+				right[1] = -cy;
+				right[2] = 0;
+			}
+			if (up)
+			{
+				up[0] = (sp*cy);
+				up[1] = (sp*sy);
+				up[2] = cp;
+			}
+		}
 	}
 }
 
@@ -381,6 +405,14 @@ _inline void ResetRGBA( vec4_t in )
 	in[1] = 1.0f;
 	in[2] = 1.0f;
 	in[3] = 1.0f;
+}
+
+_inline float *GetRGBA( float r, float g, float b, float a )
+{
+	static vec4_t	color;
+
+	Vector4Set( color, r, g, b, a );
+	return color;
 }
 
 _inline vec_t ColorNormalize (vec3_t in, vec3_t out)

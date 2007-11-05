@@ -92,7 +92,7 @@ Sets sv_client and sv_player to the player with idnum Cmd_Argv(1)
 */
 bool SV_SetPlayer (void)
 {
-	client_t	*cl;
+	client_state_t	*cl;
 	int			i;
 	int			idnum;
 	char		*s;
@@ -179,7 +179,7 @@ void SV_GameMap_f (void)
 {
 	char		*map;
 	int			i;
-	client_t	*cl;
+	client_state_t	*cl;
 	bool	*savedFree;
 
 	if (Cmd_Argc() != 2)
@@ -371,7 +371,7 @@ SV_Status_f
 void SV_Status_f (void)
 {
 	int			i, j, l;
-	client_t	*cl;
+	client_state_t	*cl;
 	char		*s;
 	int			ping;
 	if (!svs.clients)
@@ -426,7 +426,7 @@ SV_ConSay_f
 */
 void SV_ConSay_f(void)
 {
-	client_t *client;
+	client_state_t *client;
 	int		j;
 	char	*p;
 	char	text[1024];

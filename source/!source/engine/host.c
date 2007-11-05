@@ -34,10 +34,10 @@ stdlib_api_t Host_GetStdio( bool crash_on_error )
 
 	io.api_size = sizeof(stdlib_api_t); 
 
-	io.print = Con_Print;
-	io.printf = Con_Printf;
-	io.dprintf = Con_DPrintf;
-	io.wprintf = Con_DWarnf;
+	io.print = Com_Print;
+	io.printf = Com_Printf;
+	io.dprintf = Com_DPrintf;
+	io.wprintf = Com_DWarnf;
 	io.exit = Sys_Quit;
 	io.input = Sys_ConsoleInput;
 	io.sleep = Sys_Sleep;
@@ -143,23 +143,15 @@ void Host_Init (char *funcname, int argc, char **argv)
 	COM_InitArgv (argc, argv); // init host.debug & host.developer here
 	Host_InitCommon( funcname, argc, argv );
 
-	Cbuf_Init ();
-	Cmd_Init ();
-	Cvar_Init ();
-	Key_Init ();
+	Cmd_Init( argc, argv );
+	Cvar_Init();
+	Key_Init();
 	PRVM_Init();
 
-	// we need to add the early commands twice, because
-	// a basedir or cddir needs to be set before execing
-	// config files, but we want other parms to override
-	// the settings of the config files
-	Cbuf_AddEarlyCommands (false);
-	Cbuf_Execute ();
-
-	Cbuf_AddText ("exec default.cfg\n");
-	Cbuf_AddText ("exec config.cfg\n");
-	Cbuf_AddEarlyCommands (true);
-	Cbuf_Execute ();
+	Cbuf_AddText("exec base.rc\n");
+	Cbuf_AddText("exec keys.rc\n");
+	Cbuf_AddText("exec vars.rc\n");
+	Cbuf_Execute();
 
 	// init commands and vars
 	Cmd_AddCommand ("error", Host_Error_f);
@@ -168,11 +160,11 @@ void Host_Init (char *funcname, int argc, char **argv)
 	host_frametime = Cvar_Get ("host_frametime", "0.01", 0);
 	timescale = Cvar_Get ("timescale", "1", 0);
 	fixedtime = Cvar_Get ("fixedtime", "0", 0);
-	if(host.type == HOST_DEDICATED) dedicated = Cvar_Get ("dedicated", "1", CVAR_NOSET);
-	else dedicated = Cvar_Get ("dedicated", "0", CVAR_NOSET);
+	if(host.type == HOST_DEDICATED) dedicated = Cvar_Get ("dedicated", "1", CVAR_INIT);
+	else dedicated = Cvar_Get ("dedicated", "0", CVAR_INIT);
 
 	s = va("%4.2f %s %s %s", VERSION, "x86", __DATE__, BUILDSTRING);
-	Cvar_Get ("version", s, CVAR_SERVERINFO|CVAR_NOSET);
+	Cvar_Get ("version", s, CVAR_SERVERINFO|CVAR_INIT);
 
 	if (dedicated->value) Cmd_AddCommand ("quit", Sys_Quit);
         
@@ -184,12 +176,12 @@ void Host_Init (char *funcname, int argc, char **argv)
 	CL_Init();
 
 	// add + commands from command line
-	if (!Cbuf_AddLateCommands ())
+	if(!Cmd_AddStartupCommands())
 	{
 		// if the user didn't give any commands, run default action
-		if (!dedicated->value) Cbuf_AddText ("d1\n");
-		else Cbuf_AddText ("dedicated_start\n");
-		Cbuf_Execute ();
+		if ( host.type != HOST_DEDICATED )
+			Cbuf_AddText ("demomap idlogo.roq\n");
+		else Cbuf_AddText ("map dm_qstyle\n");
 	}
 	else
 	{	// the user asked for something explicit

@@ -520,28 +520,32 @@ typedef struct dll_info_s
 #define CVAR_ARCHIVE	1	// set to cause it to be saved to vars.rc
 #define CVAR_USERINFO	2	// added to userinfo  when changed
 #define CVAR_SERVERINFO	4	// added to serverinfo when changed
-#define CVAR_NOSET		8	// don't allow change from console at all, but can be set from the command line
-#define CVAR_LATCH		16	// save changes until server restart
-#define CVAR_CHEAT		32	// marker for cheats
-#define CVAR_MAXFLAGSVAL	63	// maximum number of flags
+#define CVAR_SYSTEMINFO	8	// these cvars will be duplicated on all clients
+#define CVAR_INIT		16	// don't allow change from console at all, but can be set from the command line
+#define CVAR_LATCH		32	// save changes until server restart
+#define CVAR_READ_ONLY	64	// display only, cannot be set by user at all
+#define CVAR_USER_CREATED	128	// created by a set command (prvm used)
+#define CVAR_TEMP		256	// can be set even when cheats are disabled, but is not archived
+#define CVAR_CHEAT		512	// can not be changed if cheats are disabled
+#define CVAR_NORESTART	1024	// do not clear when a cvar_restart is issued
+#define CVAR_MAXFLAGSVAL	2047	// maximum number of flags
 
 typedef struct cvar_s
 {
-	int	flags;
 	char	*name;
+	char	*reset_string;	// cvar_restart will reset to this value
+	char	*latched_string;	// for CVAR_LATCH vars
+	char	*description;	// variable descrition info
+	int	flags;		// state flags
+	bool	modified;		// set each time the cvar is changed
+	int	modificationCount;	// incremented each time the cvar is changed
 
-	char	*string;
-	char	*description;
-	int	integer;
-	float	value;
-	float	vector[3];
-	char	*defstring;
+	char	*string;		// normal string
+	float	value;		// atof( string )
+	int	integer;		// atoi( string )
 
 	struct cvar_s *next;
 	struct cvar_s *hash;
-
-	char	*latched_string;	// for CVAR_LATCH vars
-	bool	modified;		// set each time the cvar is changed
 } cvar_t;
 
 typedef struct dlight_s
@@ -869,6 +873,7 @@ typedef struct scriptsystem_api_s
 	bool (*MatchToken)( const char *match );		// compare current token with user keyword
 	char *(*ParseToken)(const char **data );		// parse token from char buffer
 	char *(*ParseWord)( const char **data );		// parse word from char buffer
+	bool (*FilterToken)(char *filter, char *name, int casecmp);	// compare keyword by mask with filter
 	char *Token;					// contains current token
 
 } scriptsystem_api_t;
@@ -1029,6 +1034,7 @@ typedef struct render_exp_s
 	// initialize
 	bool (*Init)( void *hInstance, void *WndProc );	// init all render systems
 	void (*Shutdown)( void );	// shutdown all render systems
+	void (*AppActivate)( bool activate );		// ??
 
 	void	(*BeginRegistration) (char *map);
 	model_t	*(*RegisterModel) (char *name);
@@ -1039,25 +1045,24 @@ typedef struct render_exp_s
 
 	void	(*RenderFrame) (refdef_t *fd);
 
+	void	(*SetColor)( const float *rgba );
+	void	(*DrawStretchRaw) (int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw );
+	void	(*DrawStretchPic)(float x, float y, float w, float h, float s1, float t1, float s2, float t2, char *name);
+
+	// get rid of this
 	void	(*DrawGetPicSize) (int *w, int *h, char *name);	// will return 0 0 if not found
-	void	(*DrawPic) (int x, int y, char *name);
-	void	(*DrawStretchPic) (int x, int y, int w, int h, char *name);
-	void	(*DrawChar) (float x, float y, int c);
+	void	(*DrawPic)(int x, int y, char *name);
+	void	(*DrawChar)(float x, float y, int c);
 	void	(*DrawString) (int x, int y, char *str);
 	void	(*DrawTileClear) (int x, int y, int w, int h, char *name);
-	void	(*DrawFill) (int x, int y, int w, int h, int c);
+	void	(*DrawFill)(float x, float y, float w, float h );
 	void	(*DrawFadeScreen) (void);
 
-	// Draw images for cinematic rendering (which can have a different palette). Note that calls
-	void	(*DrawStretchRaw) (int x, int y, int w, int h, int cols, int rows, byte *data, bool dirty);
 
 	// video mode and refresh state management entry points
 	void	(*CinematicSetPalette)( const byte *palette);	// NULL = game palette
 	void	(*BeginFrame)( float camera_separation );
 	void	(*EndFrame) (void);
-
-	void	(*AppActivate)( bool activate );		// ??
-
 } render_exp_t;
 
 typedef struct render_imp_s
@@ -1086,7 +1091,7 @@ typedef struct render_imp_s
 	char	*(*title)		( void );
 
 	cvar_t	*(*Cvar_Get) (char *name, char *value, int flags);
-	cvar_t	*(*Cvar_Set)( char *name, char *value );
+	void	(*Cvar_Set)( char *name, char *value );
 	void	(*Cvar_SetValue)( char *name, float value );
 
 	bool	(*Vid_GetModeInfo)( int *width, int *height, int mode );

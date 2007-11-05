@@ -225,7 +225,7 @@ SV_Begin_f
 void SV_Begin_f (void)
 {
 	// handle the case of a level changing while a client was connecting
-	if ( atoi(Cmd_Argv(1)) != svs.spawncount )
+	if( atoi(Cmd_Argv(1)) != svs.spawncount )
 	{
 		Msg ("SV_Begin_f from different level\n");
 		SV_New_f ();
@@ -236,7 +236,6 @@ void SV_Begin_f (void)
 	
 	// call the game begin function
 	SV_ClientBegin(sv_player);
-	Cbuf_InsertFromDefer ();
 }
 
 //=============================================================================
@@ -443,7 +442,7 @@ void SV_ExecuteUserCommand (char *s)
 {
 	ucmd_t	*u;
 	
-	Cmd_TokenizeString (s, true);
+	Cmd_TokenizeString(s);
 	sv_player = sv_client->edict;
 
 	for (u = ucmds; u->name; u++)
@@ -473,7 +472,7 @@ USER CMD EXECUTION
 ===========================================================================
 */
 
-void SV_ClientThink (client_t *cl, usercmd_t *cmd)
+void SV_ClientThink (client_state_t *cl, usercmd_t *cmd)
 {
 	cl->commandMsec -= cmd->msec;
 
@@ -494,7 +493,7 @@ The current net_message is parsed for the given client
 */
 #define	MAX_STRINGCMDS	8
 
-void SV_ExecuteClientMessage (client_t *cl)
+void SV_ExecuteClientMessage (client_state_t *cl)
 {
 	int		c;
 	char		*s;

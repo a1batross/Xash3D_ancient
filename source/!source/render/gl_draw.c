@@ -138,23 +138,28 @@ void Draw_GetPicSize (int *w, int *h, char *pic)
 Draw_StretchPic
 =============
 */
-void Draw_StretchPic (int x, int y, int w, int h, char *pic)
+void Draw_StretchPic (float x, float y, float w, float h, float s1, float t1, float s2, float t2, char *pic)
 {
 	image_t *gl;
 
 	gl = Draw_FindPic (pic);
-	if (!gl) return;
+	if(!gl) return;
 
 	GL_Bind (gl->texnum[0]);
+
+	qglColor4fv(gl_state.draw_color);
+	GL_TexEnv( GL_MODULATE );
+
 	qglBegin (GL_QUADS);
-	qglTexCoord2f (0, 0);
+	qglTexCoord2f (s1, t1);
 	qglVertex2f (x, y);
-	qglTexCoord2f (1, 0);
+	qglTexCoord2f (s2, t1);
 	qglVertex2f (x+w, y);
-	qglTexCoord2f (1, 1);
+	qglTexCoord2f (s2, t2);
 	qglVertex2f (x+w, y+h);
-	qglTexCoord2f (0, 1);
+	qglTexCoord2f (s1, t2);
 	qglVertex2f (x, y+h);
+
 	qglEnd ();
 }
 
@@ -220,34 +225,19 @@ Draw_Fill
 Fills a box of pixels with a single color
 =============
 */
-void Draw_Fill (int x, int y, int w, int h, int c)
+void Draw_Fill(float x, float y, float w, float h)
 {
-	union
-	{
-		unsigned	c;
-		byte		v[4];
-	} color;
-
-	if ((unsigned) c > 255) 
-	{
-		Msg("Draw_Fill: bad color %i", c );
-		c = 255;
-	}
-
 	qglDisable (GL_TEXTURE_2D);
-
-	color.c = d_8to24table[c];
-	qglColor3f (color.v[0]/255.0, color.v[1]/255.0, color.v[2]/255.0);
+	qglColor4fv(gl_state.draw_color);
 
 	qglBegin (GL_QUADS);
 
-	qglVertex2f (x, y);
-	qglVertex2f (x + w, y);
-	qglVertex2f (x + w, y + h);
-	qglVertex2f (x, y + h);
+	qglVertex2f(x, y);
+	qglVertex2f(x + w, y);
+	qglVertex2f(x + w, y + h);
+	qglVertex2f(x, y + h);
 
-	qglEnd ();
-	qglColor3f (1,1,1);
+	qglEnd();
 	qglEnable (GL_TEXTURE_2D);
 }
 
@@ -299,6 +289,7 @@ void Draw_StretchRaw (int x, int y, int w, int h, int cols, int rows, byte *data
 	GL_TexFilter( false );
 	R_SetGL2D();
 
+	qglColor4fv(gl_state.draw_color);
 	qglBegin(GL_QUADS);
 	qglTexCoord2f( 0.5f / cols,  0.5f / rows );
 	qglVertex2f (x, y);

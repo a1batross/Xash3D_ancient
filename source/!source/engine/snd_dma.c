@@ -372,7 +372,7 @@ sound_t S_RegisterSound( const char *name )
 	{
 		if( sfx->defaultSound )
 		{
-			MsgWarn("S_RegisterSound: could not find %s - using default\n", sfx->soundName );
+			MsgWarn("S_RegisterSound: could not find %s\n", sfx->soundName );
 			return 0;
 		}
 		return sfx - s_knownSfx;
@@ -383,7 +383,7 @@ sound_t S_RegisterSound( const char *name )
 
 	if ( sfx->defaultSound )
 	{
-		MsgWarn("S_RegisterSound: could not find %s - using default\n", sfx->soundName );
+		MsgWarn("S_RegisterSound: could not find %s\n", sfx->soundName );
 		return 0;
 	}
 	return sfx - s_knownSfx;
@@ -1322,7 +1322,8 @@ void S_StartBackgroundTrack( const char *intro, const char *loop )
 	if ( !loop || !loop[0] ) loop = intro;
 	MsgDev(D_INFO,"S_StartBackgroundTrack( %s, %s )\n", intro, loop );
 
-	strncpy( name, intro, sizeof( name ) - 4 );
+	FS_StripExtension( (char *)intro );
+	sprintf (name, "music/%s", intro );
 	FS_DefaultExtension( name, ".wav" );
 
 	if ( !intro[0] ) return;

@@ -288,7 +288,7 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 SV_WriteFrameToClient
 ==================
 */
-void SV_WriteFrameToClient (client_t *client, sizebuf_t *msg)
+void SV_WriteFrameToClient (client_state_t *client, sizebuf_t *msg)
 {
 	client_frame_t		*frame, *oldframe;
 	int					lastframe;
@@ -396,7 +396,7 @@ Decides which entities are going to be visible to the client, and
 copies off the playerstat and areabits.
 =============
 */
-void SV_BuildClientFrame (client_t *client)
+void SV_BuildClientFrame (client_state_t *client)
 {
 	int		e, i;
 	vec3_t		org;
