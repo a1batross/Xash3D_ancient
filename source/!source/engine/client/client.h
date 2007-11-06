@@ -27,7 +27,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "screen.h"
 #include "sound.h"
 #include "input.h"
-#include "keys.h"
+#include "keycodes.h"
+
+
+#define MAX_EDIT_LINE	256
+#define COMMAND_HISTORY	32
 
 //=============================================================================
 typedef struct
@@ -41,6 +45,16 @@ typedef struct
 	int				num_entities;
 	int				parse_entities;	// non-masked index into cl_parse_entities array
 } frame_t;
+
+// console stuff
+typedef struct field_s
+{
+	int	cursor;
+	int	scroll;
+	int	widthInChars;
+	char	buffer[MAX_EDIT_LINE];
+	int	maxchars; // menu stuff
+} field_t;
 
 typedef struct
 {
@@ -116,7 +130,6 @@ typedef struct
 
 	float		time;		// this is the time value that the client
 					// is rendering at.  always <= cls.realtime
-	float		cinematictime;	// cinematic time
 	float		lerpfrac;		// between oldframe and frame
 
 	refdef_t	refdef;
@@ -229,9 +242,6 @@ extern client_static_t	cls;
 //
 // cvars
 //
-extern	cvar_t	*cl_stereo_separation;
-extern	cvar_t	*cl_stereo;
-
 extern	cvar_t	*cl_gun;
 extern	cvar_t	*cl_add_blend;
 extern	cvar_t	*cl_add_lights;
@@ -482,7 +492,7 @@ extern	int			gun_frame;
 extern	model_t			*gun_model;
 
 void V_Init (void);
-void V_RenderView( float stereo_separation );
+void V_RenderView( void );
 void V_AddEntity (entity_t *ent);
 void V_AddParticle (vec3_t org, int color, float alpha);
 void V_AddLight (vec3_t org, float intensity, float r, float g, float b);
@@ -559,6 +569,31 @@ void Con_Top( void );
 void Con_Bottom( void );
 void Con_Close( void );
 
+extern bool chat_team;
+extern bool anykeydown;
 extern int g_console_field_width;
+extern field_t historyEditLines[COMMAND_HISTORY];
+extern field_t g_consoleField;
+extern field_t chatField;
+
+//
+// cl_keys.c
+//
+void Field_Clear( field_t *edit );
+void Field_CharEvent( field_t *edit, int ch );
+void Field_KeyDownEvent( field_t *edit, int key );
+void Field_Draw( field_t *edit, int x, int y, int width, bool showCursor );
+void Field_BigDraw( field_t *edit, int x, int y, int width, bool showCursor );
+
+bool Key_IsDown( int keynum );
+char *Key_IsBind( int keynum );
+void Key_Event (int key, bool down, uint time);
+void Key_Init (void);
+void Key_WriteBindings (file_t *f);
+void Key_SetBinding (int keynum, char *binding);
+void Key_ClearStates (void);
+char *Key_KeynumToString (int keynum);
+int Key_StringToKeynum (char *str);
+int Key_GetKey( char *binding );
 
 #endif//CLIENT_H

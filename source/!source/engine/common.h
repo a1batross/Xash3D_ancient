@@ -362,8 +362,6 @@ then searches for a command or variable that matches the first token.
 typedef void (*xcommand_t) (void);
 
 void Cmd_Init( int argc, char **argv );
-bool Cmd_AddStartupCommands( void );
-
 #define Cmd_AddCommand(name, func) _Cmd_AddCommand(name, func, "no description" )
 void _Cmd_AddCommand(const char *cmd_name, xcommand_t function, const char *cmd_desc);
 // called by the init functions of other parts of the program to
@@ -644,10 +642,6 @@ extern	float		time_after_ref;
 
 #define NUMVERTEXNORMALS	162
 extern	vec3_t	bytedirs[NUMVERTEXNORMALS];
-
-// this is in the client code, but can be used for debugging from server
-void SCR_DebugGraph (float value, vec4_t color);
-
 
 /*
 ==============================================================

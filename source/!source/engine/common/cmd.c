@@ -38,6 +38,8 @@ typedef struct
 int	cmd_wait;
 cmd_t	cmd_text;
 byte	cmd_text_buf[MAX_CMD_BUFFER];
+char	**fs_argv;
+int	fs_argc;
 
 /*
 =============================================================================
@@ -65,12 +67,10 @@ Cbuf_AddText
 Adds command text at the end of the buffer
 ============
 */
-void Cbuf_AddText (const char *text)
+void Cbuf_AddText(const char *text)
 {
 	int	l;
 
-	Msg("add %s\n", text );
-	
 	l = strlen (text);
 	if (cmd_text.cursize + l >= cmd_text.maxsize)
 	{
@@ -93,8 +93,7 @@ FIXME: actually change the command buffer to do less copying
 */
 void Cbuf_InsertText (const char *text)
 {
-	int	len;
-	int	i;
+	int	i, len;
 
 	len = strlen( text ) + 1;
 	if ( len + cmd_text.cursize > cmd_text.maxsize )
@@ -203,6 +202,64 @@ void Cbuf_Execute (void)
 ==============================================================================
 */
 /*
+===============
+Cmd_StuffCmds_f
+
+Adds command line parameters as script statements
+Commands lead with a +, and continue until a - or another +
+quake +prog jctest.qp +cmd amlev1
+quake -nosound +cmd amlev1
+===============
+*/
+void Cmd_StuffCmds_f( void )
+{
+	int	i, j, l = 0;
+	char	build[MAX_INPUTLINE]; // this is for all commandline options combined (and is bounds checked)
+
+	if(Cmd_Argc() != 1)
+	{
+		Msg("stuffcmds : execute command line parameters\n");
+		return;
+	}
+
+	// no reason to run the commandline arguments twice
+	if(host.stuffcmdsrun) return;
+
+	host.stuffcmdsrun = true;
+	build[0] = 0;
+
+	for (i = 0; i < fs_argc; i++)
+	{
+		if (fs_argv[i] && fs_argv[i][0] == '+' && (fs_argv[i][1] < '0' || fs_argv[i][1] > '9') && l + strlen(fs_argv[i]) - 1 <= sizeof(build) - 1)
+		{
+			j = 1;
+			while (fs_argv[i][j]) build[l++] = fs_argv[i][j++];
+
+			i++;
+			for ( ; i < fs_argc; i++)
+			{
+				if (!fs_argv[i]) continue;
+				if ((fs_argv[i][0] == '+' || fs_argv[i][0] == '-') && (fs_argv[i][1] < '0' || fs_argv[i][1] > '9'))
+					break;
+				if (l + strlen(fs_argv[i]) + 4 > sizeof(build) - 1)
+					break;
+				build[l++] = ' ';
+				if (strchr(fs_argv[i], ' ')) build[l++] = '\"';
+				for (j = 0; fs_argv[i][j]; j++) build[l++] = fs_argv[i][j];
+				if (strchr(fs_argv[i], ' ')) build[l++] = '\"';
+			}
+			build[l++] = '\n';
+			i--;
+		}
+	}
+
+	// now terminate the combined string and prepend it to the command buffer
+	// we already reserved space for the terminator
+	build[l++] = 0;
+	Cbuf_InsertText(build);
+}
+
+/*
 ============
 Cmd_Wait_f
 
@@ -255,27 +312,6 @@ void Cmd_Exec_f (void)
 
 /*
 ===============
-Cmd_Vstr_f
-
-Inserts the current value of a variable as command text
-===============
-*/
-void Cmd_Vstr_f( void )
-{
-	char	*v;
-
-	if (Cmd_Argc () != 2)
-	{
-		Msg("vstr <variablename> : execute a variable command\n");
-		return;
-	}
-
-	v = Cvar_VariableString(Cmd_Argv(1));
-	Cbuf_InsertText( va("%s\n", v ) );
-}
-
-/*
-===============
 Cmd_Echo_f
 
 Just prints the rest of the line to the console
@@ -310,8 +346,6 @@ static int cmd_argc;
 static char *cmd_argv[MAX_STRING_TOKENS];
 static char cmd_tokenized[MAX_INPUTLINE+MAX_STRING_TOKENS]; // will have 0 bytes inserted
 static cmd_function_t *cmd_functions; // possible commands to execute
-char **fs_argv;
-int fs_argc;
 
 /*
 ============
@@ -358,79 +392,6 @@ char *Cmd_Args (void)
 	}
 	return cmd_args;
 }
-
-
-/*
-======================
-Cmd_MacroExpandString
-======================
-*/
-char *Cmd_MacroExpandString (const char *text)
-{
-	int		i, j, count, len;
-	bool		inquote;
-	char		*scan;
-	static		char	expanded[MAX_STRING_CHARS];
-	char		temporary[MAX_STRING_CHARS];
-	char		*token, *start;
-
-	inquote = false;
-	scan = (char *)text;
-
-	len = strlen (scan);
-	if (len >= MAX_STRING_CHARS)
-	{
-		Msg ("Line exceeded %i chars, discarded.\n", MAX_STRING_CHARS);
-		return NULL;
-	}
-
-	count = 0;
-
-	for (i = 0; i < len; i++)
-	{
-		if (scan[i] == '"') inquote ^= 1;
-		if (inquote) continue; // don't expand inside quotes
-		if (scan[i] != '$') continue;
-
-		// scan out the complete macro
-		start = scan + i + 1;
-		token = COM_Parse(&start);
-		if (!start) continue;
-	
-		token = Cvar_VariableString(token);
-
-		j = strlen(token);
-		len += j;
-		if (len >= MAX_STRING_CHARS)
-		{
-			Msg ("Expanded line exceeded %i chars, discarded.\n", MAX_STRING_CHARS);
-			return NULL;
-		}
-
-		strncpy (temporary, scan, i);
-		strcpy (temporary+i, token);
-		strcpy (temporary+i+j, start);
-
-		strcpy (expanded, temporary);
-		scan = expanded;
-		i--;
-
-		if (++count == 100)
-		{
-			Msg ("Macro expansion loop, discarded.\n");
-			return NULL;
-		}
-	}
-
-	if (inquote)
-	{
-		Msg ("Line has unmatched quote, discarded.\n");
-		return NULL;
-	}
-
-	return scan;
-}
-
 
 /*
 ============
@@ -639,53 +600,6 @@ void Cmd_ExecuteString( const char *text )
 }
 
 /*
-=================
-Cmd_AddStartupCommands
-
-Adds command line parameters as script statements
-Commands are seperated by + signs
-
-Returns qtrue if any late commands were added, which
-will keep the demoloop from immediately starting
-=================
-*/
-bool Cmd_AddStartupCommands( void )
-{
-	int		i;
-	bool		added;
-	char		*temp;
-
-	added = false;
-
-	// quote every token, so args with semicolons can work
-	for (i = 2; i < fs_argc; i++)
-	{
-		if(!fs_argv[i] || !fs_argv[i][0])
-			continue;
-
-		Msg("scan for %s\n", fs_argv[i] );
-
-		if(fs_argv[i][0] == '+')
-		{
-			temp = fs_argv[i];
-			temp++; 
-			Cbuf_AddText( va("%s %s", temp, fs_argv[i+1]));
-			added = true;
-			i++; 
-		}		
-		else if(strnicmp(fs_argv[i], "set", 3 ))
-		{
-			Cbuf_AddText( va("%s %s %s", fs_argv[i], fs_argv[i+1], fs_argv[i+2]));
-			added = true;
-			i+=2;
-		}
-		Cbuf_AddText( "\n" );
-	}
-	return added;
-}
-
-
-/*
 ============
 Cmd_List_f
 ============
@@ -719,13 +633,13 @@ void Cmd_Init( int argc, char **argv )
 	Cbuf_Init();
 
 	// register our commands
-	Cmd_AddCommand ("cmdlist", Cmd_List_f);
 	Cmd_AddCommand ("exec", Cmd_Exec_f);
 	Cmd_AddCommand ("echo", Cmd_Echo_f);
-	Cmd_AddCommand ("vstr", Cmd_Vstr_f);
 	Cmd_AddCommand ("wait", Cmd_Wait_f);
+	Cmd_AddCommand ("cmdlist", Cmd_List_f);
+	Cmd_AddCommand ("stuffcmds", Cmd_StuffCmds_f );
 
-	// get pointers
+	// save pointers
 	fs_argc = argc;
 	fs_argv = argv;
 }

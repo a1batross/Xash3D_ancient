@@ -51,13 +51,6 @@ cvar_t		*scr_showturtle;
 cvar_t		*scr_showpause;
 cvar_t		*scr_printspeed;
 
-cvar_t		*scr_netgraph;
-cvar_t		*scr_timegraph;
-cvar_t		*scr_debuggraph;
-cvar_t		*scr_graphheight;
-cvar_t		*scr_graphscale;
-cvar_t		*scr_graphshift;
-
 typedef struct
 {
 	int		x1, y1, x2, y2;
@@ -70,99 +63,6 @@ int			crosshair_width, crosshair_height;
 
 void SCR_TimeRefresh_f (void);
 void SCR_Loading_f (void);
-
-
-/*
-===============================================================================
-
-BAR GRAPHS
-
-===============================================================================
-*/
-
-/*
-==============
-CL_AddNetgraph
-
-A new packet was just parsed
-==============
-*/
-void CL_AddNetgraph (void)
-{
-	int		i;
-	int		in;
-	int		ping;
-
-	// if using the debuggraph for something else, don't
-	// add the net lines
-	if (scr_debuggraph->value || scr_timegraph->value)
-		return;
-
-	for (i = 0; i < cls.netchan.dropped; i++)
-		SCR_DebugGraph (30, COLOR_64);
-
-	for (i = 0; i < cl.surpressCount; i++)
-		SCR_DebugGraph (30, COLOR_223);
-
-	// see what the latency was on this packet
-	in = cls.netchan.incoming_acknowledged & (CMD_BACKUP-1);
-	ping = cls.realtime - cl.cmd_time[in];
-	ping /= 30;
-	if (ping > 30) ping = 30;
-	SCR_DebugGraph (ping, COLOR_208);
-}
-
-
-typedef struct
-{
-	float		value;
-	vec4_t		color;
-} graphsamp_t;
-
-static	int		current;
-static	graphsamp_t	values[1024];
-
-/*
-==============
-SCR_DebugGraph
-==============
-*/
-void SCR_DebugGraph (float value, vec4_t color)
-{
-	values[current & 1023].value = value;
-	Vector4Copy(color, values[current & 1023].color);
-	current++;
-}
-
-/*
-==============
-SCR_DrawDebugGraph
-==============
-*/
-void SCR_DrawDebugGraph (void)
-{
-	int		a, x, y, w, i, h;
-	float		v;
-
-	// draw the graph
-	w = scr_vrect.width;
-
-	x = scr_vrect.x;
-	y = scr_vrect.y+scr_vrect.height;
-
-	SCR_FillRect( x, y-scr_graphheight->value, w, scr_graphheight->value, COLOR_8);
-
-	for (a = 0; a < w; a++)
-	{
-		i = (current - 1 - a + 1024) & 1023;
-		v = values[i].value;
-		v = v * scr_graphscale->value + scr_graphshift->value;
-		
-		if (v < 0) v += scr_graphheight->value * (1+(int)(-v/scr_graphheight->value));
-		h = (int)v % (int)scr_graphheight->value;
-		SCR_FillRect( x+w-1-a, y - h, 1, h, values[i].color );
-	}
-}
 
 /*
 ===============================================================================
@@ -406,12 +306,6 @@ void SCR_Init (void)
 	scr_showpause = Cvar_Get ("scr_showpause", "1", 0);
 	scr_centertime = Cvar_Get ("scr_centertime", "2.5", 0);
 	scr_printspeed = Cvar_Get ("scr_printspeed", "8", 0);
-	scr_netgraph = Cvar_Get ("netgraph", "0", 0);
-	scr_timegraph = Cvar_Get ("timegraph", "0", 0);
-	scr_debuggraph = Cvar_Get ("debuggraph", "0", 0);
-	scr_graphheight = Cvar_Get ("graphheight", "32", 0);
-	scr_graphscale = Cvar_Get ("graphscale", "1", 0);
-	scr_graphshift = Cvar_Get ("graphshift", "0", 0);
 
 	// register our commands
 	Cmd_AddCommand ("timerefresh",SCR_TimeRefresh_f);
@@ -497,13 +391,15 @@ void SCR_BeginLoadingPlaque (void)
 {
 	S_StopAllSounds ();
 	cl.sound_prepped = false;			// don't play ambients
-	if (cls.disable_screen) return;
+
+	/*if (cls.disable_screen) return;
 	if (host.developer) return;
 	if (cls.state == ca_disconnected) return;	// if at console, don't bring up the plaque
 	if (cls.key_dest == key_console) return;
-	if (cl.cinematictime > 0) scr_draw_loading = 2;	// clear to black first
+	if (cls.state == ca_cinematic) scr_draw_loading = 2;	// clear to black first
 	else scr_draw_loading = 1;
-
+          */
+ 
 	SCR_UpdateScreen ();
 	cls.disable_screen = Sys_DoubleTime();
 	cls.disable_servercount = cl.servercount;
@@ -516,6 +412,8 @@ SCR_EndLoadingPlaque
 */
 void SCR_EndLoadingPlaque (void)
 {
+	return;
+
 	cls.disable_screen = 0;
 	Con_ClearNotify ();
 }
@@ -563,7 +461,7 @@ void SCR_TimeRefresh_f (void)
 
 	if (Cmd_Argc() == 2)
 	{	// run without page flipping
-		re->BeginFrame( 0 );
+		re->BeginFrame();
 		for (i=0 ; i<128 ; i++)
 		{
 			cl.refdef.viewangles[1] = i/128.0*360.0;
@@ -577,7 +475,7 @@ void SCR_TimeRefresh_f (void)
 		{
 			cl.refdef.viewangles[1] = i/128.0*360.0;
 
-			re->BeginFrame( 0 );
+			re->BeginFrame();
 			re->RenderFrame (&cl.refdef);
 			re->EndFrame();
 		}
@@ -855,8 +753,7 @@ void SCR_TileClear (void)
 		return;		// full screen console
 	if (scr_viewsize->value == 100)
 		return;		// full screen rendering
-	if (cl.cinematictime > 0)
-		return;		// full screen cinematic
+	if(cls.state == ca_cinematic) return; // full screen cinematic
 
 	// erase rect will be the union of the past three frames
 	// so tripple buffering works properly
@@ -1401,6 +1298,65 @@ void SCR_DrawLayout (void)
 
 /*
 ==================
+SCR_DrawScreenField
+
+This will be called twice if rendering in stereo mode
+==================
+*/
+void SCR_DrawScreenField( void )
+{
+	re->BeginFrame();
+
+	// wide aspect ratio screens need to have the sides cleared
+	// unless they are displaying game renderings
+	if ( cls.state != ca_active )
+	{
+		if( viddef.width * 480 > viddef.height * 640 )
+		{
+			re->SetColor( g_color_table[0] );
+			re->DrawStretchPic( 0, 0, viddef.width, viddef.height, 0, 0, 1, 1, "backtile" );
+			re->SetColor( NULL );
+		}
+	}
+
+	switch( cls.state )
+	{
+	case ca_cinematic:
+		SCR_DrawCinematic();
+		break;
+	case ca_disconnected:
+		M_Draw();
+		break;
+	case ca_connecting:
+	case ca_connected:
+		SCR_TileClear();
+		SCR_DrawLoading();
+		break;
+	case ca_active:
+		SCR_CalcVrect();
+		V_RenderView();
+		SCR_DrawStats();
+		if(cl.frame.playerstate.stats[STAT_LAYOUTS] & 1) SCR_DrawLayout();
+		if(cl.frame.playerstate.stats[STAT_LAYOUTS] & 2) CL_DrawInventory();
+		break;
+	case ca_uninitialized:
+		return;
+	default:
+		Host_Error("SCR_DrawScreenField: bad cls.state" );
+		break;
+	}
+
+	SCR_DrawNet();
+	SCR_CheckDrawCenterString();
+	SCR_DrawPause();
+         
+	SCR_DrawCinematic();
+	M_Draw();
+	Con_DrawConsole();
+}
+
+/*
+==================
 SCR_UpdateScreen
 
 This is called every frame, and can also be called explicitly to flush
@@ -1409,104 +1365,9 @@ text to the screen.
 */
 void SCR_UpdateScreen (void)
 {
-	int numframes;
-	int i;
-	float separation[2] = { 0, 0 };
-
-	// if the screen is disabled (loading plaque is up, or vid mode changing)
-	// do nothing at all
-	if (cls.disable_screen)
-	{
-		if (Sys_DoubleTime() - cls.disable_screen > 120.0f)
-		{
-			cls.disable_screen = 0;
-			Msg ("Loading plaque timed out.\n");
-		}
+	if (!scr_initialized)
 		return;
-	}
 
-	if (!scr_initialized) return; // not initialized yet
-
-	/*
-	** range check cl_camera_separation so we don't inadvertently fry someone's
-	** brain
-	*/
-	if ( cl_stereo_separation->value > 1.0 )
-		Cvar_SetValue( "cl_stereo_separation", 1.0 );
-	else if ( cl_stereo_separation->value < 0 )
-		Cvar_SetValue( "cl_stereo_separation", 0.0 );
-
-	if ( cl_stereo->value )
-	{
-		numframes = 2;
-		separation[0] = -cl_stereo_separation->value / 2;
-		separation[1] =  cl_stereo_separation->value / 2;
-	}		
-	else
-	{
-		separation[0] = 0;
-		separation[1] = 0;
-		numframes = 1;
-	}
-
-	for ( i = 0; i < numframes; i++ )
-	{
-		re->BeginFrame( separation[i] );
-
-		if (scr_draw_loading == 2)
-		{	
-			//  loading plaque over black screen
-			re->CinematicSetPalette(NULL);
-			scr_draw_loading = false;
-			SCR_DrawString( "loading" );
-		} 
-		// if a cinematic is supposed to be running, handle menus
-		// and console specially
-		else if (cl.cinematictime > 0)
-		{
-			if (cls.key_dest == key_menu)
-			{
-				M_Draw ();
-			}
-			else if (cls.key_dest == key_console)
-			{
-				Con_DrawConsole ();
-			}
-			else SCR_DrawCinematic();
-		}
-		else 
-		{
-			// do 3D refresh drawing, and then update the screen
-			SCR_CalcVrect ();
-
-			// clear any dirty part of the background
-			SCR_TileClear ();
-
-			V_RenderView ( separation[i] );
-
-			SCR_DrawStats ();
-			if (cl.frame.playerstate.stats[STAT_LAYOUTS] & 1)
-				SCR_DrawLayout ();
-			if (cl.frame.playerstate.stats[STAT_LAYOUTS] & 2)
-				CL_DrawInventory ();
-
-			SCR_DrawNet ();
-			SCR_CheckDrawCenterString ();
-
-			if (scr_timegraph->value)
-				SCR_DebugGraph (cls.frametime*300, COLOR_0);
-
-			if (scr_debuggraph->value || scr_timegraph->value || scr_netgraph->value)
-				SCR_DrawDebugGraph ();
-
-			SCR_DrawPause ();
-
-			Con_DrawConsole ();
-
-			M_Draw ();
-
-			SCR_DrawLoading ();
-		}
-	}
+	SCR_DrawScreenField();
 	re->EndFrame();
 }

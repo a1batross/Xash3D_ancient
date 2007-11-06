@@ -6,10 +6,6 @@
 Разработать концепцию языка VirtualC\VirtualC++ (базируется на QuakeC)
 представить func_t как структуру(возвращаемые значения и аргументы)
 
-1. Перенести сетевой протокол из ку3 (huffman compressed)
-2. подключить roqlib
-3. переписать cvar-систему и cmd систему
-
 Quake1			Quake2
 SV_MoveBounds		SV_TraceBounds
 SV_Move			SV_Trace
@@ -20,6 +16,19 @@ SV_ClipToLinks		SV_ClipMoveToEntities
 
 studioframeadvance
 studiorewindframe
+
+length = maxchars
+
+widthInChars = visible_length
+maxchars = length
+scroll = visible_offset
+
+Полная имплементация и подгонка уже существующих систем:
+1. Исправить работу cmd для командной строки		OK
+2. Исправить работу кнопок для меню			OK
+3. удалить поддержку джойстика			OK
+4. переписать Field_Key для поддержки новых возможностей	OK
+5. дописать проигрывание roq файлов
 
 //==================================================
 //		то, что уже готово

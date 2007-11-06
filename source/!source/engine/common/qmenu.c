@@ -91,15 +91,15 @@ void QField_Draw( menufield_s *f )
 	if ( f->generic.name )
 		Menu_DrawStringR2LDark( f->generic.x + f->generic.parent->x + LCOLUMN_OFFSET, f->generic.y + f->generic.parent->y, f->generic.name );
 
-	strncpy( tempbuffer, f->buffer + f->visible_offset, f->visible_length );
+	strncpy( tempbuffer, f->field.buffer + f->field.scroll, f->field.widthInChars );
 
 	Draw_Char( f->generic.x + f->generic.parent->x + 16, f->generic.y + f->generic.parent->y - 4, 18 );
 	Draw_Char( f->generic.x + f->generic.parent->x + 16, f->generic.y + f->generic.parent->y + 4, 24 );
 
-	Draw_Char( f->generic.x + f->generic.parent->x + 24 + f->visible_length * 8, f->generic.y + f->generic.parent->y - 4, 20 );
-	Draw_Char( f->generic.x + f->generic.parent->x + 24 + f->visible_length * 8, f->generic.y + f->generic.parent->y + 4, 26 );
+	Draw_Char( f->generic.x + f->generic.parent->x + 24 + f->field.widthInChars * 8, f->generic.y + f->generic.parent->y - 4, 20 );
+	Draw_Char( f->generic.x + f->generic.parent->x + 24 + f->field.widthInChars * 8, f->generic.y + f->generic.parent->y + 4, 26 );
 
-	for ( i = 0; i < f->visible_length; i++ )
+	for ( i = 0; i < f->field.widthInChars; i++ )
 	{
 		Draw_Char( f->generic.x + f->generic.parent->x + 24 + i * 8, f->generic.y + f->generic.parent->y - 4, 19 );
 		Draw_Char( f->generic.x + f->generic.parent->x + 24 + i * 8, f->generic.y + f->generic.parent->y + 4, 25 );
@@ -111,10 +111,10 @@ void QField_Draw( menufield_s *f )
 	{
 		int offset;
 
-		if ( f->visible_offset )
-			offset = f->visible_length;
+		if ( f->field.scroll )
+			offset = f->field.widthInChars;
 		else
-			offset = f->cursor;
+			offset = f->field.cursor;
 
 		if ( ( ( int ) ( cls.realtime * 4.0f ) ) & 1 )
 		{
@@ -133,129 +133,28 @@ void QField_Draw( menufield_s *f )
 
 bool Field_Key( menufield_s *f, int key )
 {
-	extern int keydown[];
-
+	// ignore these keys
 	switch ( key )
 	{
-	case K_KP_SLASH:
-		key = '/';
-		break;
-	case K_KP_MINUS:
-		key = '-';
-		break;
-	case K_KP_PLUS:
-		key = '+';
-		break;
-	case K_KP_HOME:
-		key = '7';
-		break;
-	case K_KP_UPARROW:
-		key = '8';
-		break;
-	case K_KP_PGUP:
-		key = '9';
-		break;
-	case K_KP_LEFTARROW:
-		key = '4';
-		break;
-	case K_KP_5:
-		key = '5';
-		break;
-	case K_KP_RIGHTARROW:
-		key = '6';
-		break;
-	case K_KP_END:
-		key = '1';
-		break;
 	case K_KP_DOWNARROW:
-		key = '2';
-		break;
-	case K_KP_PGDN:
-		key = '3';
-		break;
-	case K_KP_INS:
-		key = '0';
-		break;
-	case K_KP_DEL:
-		key = '.';
-		break;
-	}
-
-	if ( key > 127 )
-	{
-		switch ( key )
-		{
-		case K_DEL:
-		default:
-			return false;
-		}
-	}
-
-	/*
-	** support pasting from the clipboard
-	*/
-	if ( ( toupper( key ) == 'V' && keys[K_CTRL].down ) || ((( key == K_INS ) || ( key == K_KP_INS )) && keys[K_SHIFT].down ))
-	{
-		char *cbd;
-		
-		if ( ( cbd = Sys_GetClipboardData() ) != 0 )
-		{
-			strtok( cbd, "\n\r\b" );
-
-			strncpy( f->buffer, cbd, f->length - 1 );
-			f->cursor = strlen( f->buffer );
-			f->visible_offset = f->cursor - f->visible_length;
-			if ( f->visible_offset < 0 ) f->visible_offset = 0;
-
-			Z_Free( cbd );
-		}
-		return true;
-	}
-
-	switch ( key )
-	{
-	case K_KP_LEFTARROW:
-	case K_LEFTARROW:
-	case K_BACKSPACE:
-		if ( f->cursor > 0 )
-		{
-			memmove( &f->buffer[f->cursor-1], &f->buffer[f->cursor], strlen( &f->buffer[f->cursor] ) + 1 );
-			f->cursor--;
-
-			if ( f->visible_offset )
-			{
-				f->visible_offset--;
-			}
-		}
-		break;
-
-	case K_KP_DEL:
-	case K_DEL:
-		memmove( &f->buffer[f->cursor], &f->buffer[f->cursor+1], strlen( &f->buffer[f->cursor+1] ) + 1 );
-		break;
-
+	case K_DOWNARROW:
+	case K_KP_UPARROW:
+	case K_UPARROW:
 	case K_KP_ENTER:
 	case K_ENTER:
 	case K_ESCAPE:
 	case K_TAB:
 		return false;
-
-	case K_SPACE:
-	default:
-		if ( !isdigit( key ) && ( f->generic.flags & QMF_NUMBERSONLY ) )
-			return false;
-
-		if ( f->cursor < f->length )
-		{
-			f->buffer[f->cursor++] = key;
-			f->buffer[f->cursor] = 0;
-
-			if ( f->cursor > f->visible_length )
-			{
-				f->visible_offset++;
-			}
-		}
 	}
+
+	if( key < 127 && !Key_IsDown(K_CTRL)) 
+	{
+		// pass to the normal editline routine
+		if(!isdigit( key ) && ( f->generic.flags & QMF_NUMBERSONLY ))
+			return false; // numbers only
+		else Field_CharEvent( &f->field, key );
+	}
+	else Field_KeyDownEvent( &f->field, key ); // system symbols
 
 	return true;
 }

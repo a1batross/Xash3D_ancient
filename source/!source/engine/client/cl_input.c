@@ -496,8 +496,9 @@ void CL_SendCmd (void)
 		MSG_WriteString (&cls.netchan.message, Cvar_Userinfo() );
 	}
 
-	if (cmd->buttons && cl.cinematictime > 0 && !cl.attractloop && cls.realtime - cl.cinematictime > 1.0f)
-	{	// skip the rest of the cinematic
+	if (cmd->buttons && cls.state == ca_cinematic && !cl.attractloop)
+	{	
+		// skip the rest of the cinematic
 		SCR_FinishCinematic ();
 	}
 

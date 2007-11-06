@@ -38,7 +38,7 @@ typedef enum
 	HOST_SHUTDOWN,	// shutdown operations	
 	HOST_ERROR,	// host stopped by error
 	HOST_SLEEP,	// sleeped by different reason, e.g. minimize window
-	HOST_NOFOCUS,	// same as HOST_FRAME, but disable mouse and joy
+	HOST_NOFOCUS,	// same as HOST_FRAME, but disable mouse
 
 } host_state;
 
@@ -67,6 +67,7 @@ typedef struct host_parm_s
 	int		developer;	// show all developer's message
 
 	bool		paused;		// freeze server
+	bool		stuffcmdsrun;	// sturtup script
 
 	jmp_buf		abortframe;	// abort current frame
 

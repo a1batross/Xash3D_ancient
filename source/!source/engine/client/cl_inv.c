@@ -115,7 +115,7 @@ void CL_DrawInventory (void)
 		bind = "";
 		for (j = 0; j < 256; j++)
 		{
-			if(keys[j].binding && !strcasecmp(keys[j].binding, binding))
+			if(Key_IsBind(j) && !strcasecmp(Key_IsBind(j), binding))
 			{
 				bind = Key_KeynumToString(j);
 				break;

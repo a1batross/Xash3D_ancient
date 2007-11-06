@@ -261,7 +261,7 @@ const char *VID_MenuKey( int key )
 		break;
 	case K_KP_ENTER:
 	case K_ENTER:
-		if ( !Menu_SelectItem( m ) )
+		if( !Menu_SelectItem( m ))
 			ApplyChanges( NULL );
 		break;
 	}

@@ -34,9 +34,6 @@ cvar_t	*adr6;
 cvar_t	*adr7;
 cvar_t	*adr8;
 
-cvar_t	*cl_stereo_separation;
-cvar_t	*cl_stereo;
-
 cvar_t	*rcon_client_password;
 cvar_t	*rcon_address;
 
@@ -1397,12 +1394,7 @@ void CL_InitLocal (void)
 	adr7 = Cvar_Get( "adr7", "", CVAR_ARCHIVE );
 	adr8 = Cvar_Get( "adr8", "", CVAR_ARCHIVE );
 
-//
-// register our variables
-//
-	cl_stereo_separation = Cvar_Get( "cl_stereo_separation", "0.4", CVAR_ARCHIVE );
-	cl_stereo = Cvar_Get( "cl_stereo", "0", 0 );
-
+	// register our variables
 	cl_add_blend = Cvar_Get ("cl_blend", "1", 0);
 	cl_add_lights = Cvar_Get ("cl_lights", "1", 0);
 	cl_add_particles = Cvar_Get ("cl_particles", "1", 0);
@@ -1636,9 +1628,6 @@ void CL_SendCommand (void)
 	// get new key events
 	Sys_SendKeyEvents ();
 
-	// allow mice or other external controllers to add commands
-	IN_Commands ();
-
 	// process console commands
 	Cbuf_Execute ();
 
@@ -1651,7 +1640,6 @@ void CL_SendCommand (void)
 	// resend a connection request if necessary
 	CL_CheckForResend ();
 }
-
 
 /*
 ==================
@@ -1683,7 +1671,6 @@ void CL_Frame (float time)
 	cls.frametime = extratime;
 	cl.time += extratime;
 	cls.realtime = host.realtime;
-
 	extratime = 0;
 
 	// if in the debugger last frame, don't timeout
@@ -1715,6 +1702,7 @@ void CL_Frame (float time)
 	// advance local effects for next frame
 	CL_RunDLights ();
 	CL_RunLightStyles ();
+
 	SCR_RunCinematic ();
 	Con_RunConsole ();
 

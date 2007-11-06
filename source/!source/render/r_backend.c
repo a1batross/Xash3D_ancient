@@ -482,11 +482,8 @@ void GL_UpdateSwapInterval( void )
 	{
 		gl_swapinterval->modified = false;
 
-		if ( !gl_state.stereo_enabled ) 
-		{
-			if ( qwglSwapIntervalEXT )
-				qwglSwapIntervalEXT( gl_swapinterval->value );
-		}
+		if ( qwglSwapIntervalEXT )
+			qwglSwapIntervalEXT( gl_swapinterval->value );
 	}
 }
 
@@ -499,8 +496,8 @@ void qglPerspective( GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zF
 	xmin = ymin * aspect;
 	xmax = ymax * aspect;
 
-	xmin += -( 2 * gl_state.camera_separation ) / zNear;
-	xmax += -( 2 * gl_state.camera_separation ) / zNear;
+	xmin += -2.0f / zNear;
+	xmax += -2.0f / zNear;
 
 	qglFrustum( xmin, xmax, ymin, ymax, zNear, zFar );
 }

@@ -21,10 +21,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client.h"
 
-cvar_t		*con_notifytime;
+cvar_t	*con_notifytime;
+cvar_t	*con_speed;
 
 vec4_t console_color = {1.0, 1.0, 1.0, 1.0};
-extern cvar_t *scr_conspeed;		
 int g_console_field_width = 78;
 
 #define NUM_CON_TIMES	4
@@ -44,7 +44,7 @@ typedef struct
 
 	float	xadjust;		// for wide aspect screens
 
-	float	displayFrac;	// aproaches finalFrac at scr_conspeed
+	float	displayFrac;	// aproaches finalFrac at con_speed
 	float	finalFrac;	// 0.0 to 1.0 lines of console to display
 
 	int	vislines;		// in scanlines
@@ -339,6 +339,7 @@ void Con_Init (void)
 
 	// register our commands
 	con_notifytime = Cvar_Get ("con_notifytime", "3", 0);
+	con_speed = Cvar_Get ("con_speed", "3", 0);
 
 	Cmd_AddCommand ("toggleconsole", Con_ToggleConsole_f);
 	Cmd_AddCommand ("togglechat", Con_ToggleChat_f);
@@ -646,32 +647,24 @@ void Con_DrawConsole( void )
 	Con_CheckResize ();
 
 	// if disconnected, render console full screen
-	if ( cls.state == ca_disconnected  || cls.state == ca_connecting)
+	if( cls.state == ca_connecting)
 	{
-		Con_DrawSolidConsole( 1.0 );
+		Con_DrawSolidConsole( 0.5 );
+		SCR_FillRect( 0, SCREEN_HEIGHT/2, SCREEN_WIDTH, SCREEN_HEIGHT, g_color_table[0] );
 	}
 
-	if (cls.state != ca_active || !cl.refresh_prepped)
-	{	
-		// connected, but can't render
-		if(cl.cinematictime > 0) SCR_DrawCinematic();
-		else SCR_FillRect( 0, SCREEN_HEIGHT/2, SCREEN_WIDTH, SCREEN_HEIGHT/2, COLOR_0 );
-		Con_DrawSolidConsole (0.5);
-		return;
-	}
-
-	if ( con.displayFrac )
+	// if disconnected, render console full screen
+	if ( cls.state == ca_disconnected )
 	{
-		Con_DrawSolidConsole( con.displayFrac );
-	}
-	else
-	{
-		// draw notify lines
-		if ( cls.state == ca_active )
+		if(cls.key_dest != key_menu && cls.key_dest != key_game)
 		{
-			Con_DrawNotify ();
+			Con_DrawSolidConsole( 1.0 );
+			return;
 		}
 	}
+
+	if ( con.displayFrac ) Con_DrawSolidConsole( con.displayFrac );
+	else if ( cls.state == ca_active ) Con_DrawNotify(); // draw notify lines
 }
 
 /*
@@ -690,13 +683,13 @@ void Con_RunConsole( void )
 
 	if (con.finalFrac < con.displayFrac)
 	{
-		con.displayFrac -= scr_conspeed->value*cls.frametime;
+		con.displayFrac -= con_speed->value*cls.frametime;
 		if (con.finalFrac > con.displayFrac)
 			con.displayFrac = con.finalFrac;
 	}
 	else if (con.finalFrac > con.displayFrac)
 	{
-		con.displayFrac += scr_conspeed->value*cls.frametime;
+		con.displayFrac += con_speed->value*cls.frametime;
 		if (con.finalFrac < con.displayFrac)
 			con.displayFrac = con.finalFrac;
 	}

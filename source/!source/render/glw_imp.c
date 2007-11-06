@@ -411,25 +411,8 @@ bool GLimp_InitGL (void)
 		0,				// reserved
 		0, 0, 0				// layer masks ignored
     };
-    int  pixelformat;
-	cvar_t *stereo;
+	int  pixelformat;
 	
-	stereo = ri.Cvar_Get( "cl_stereo", "0", 0 );
-
-	/*
-	** set PFD_STEREO if necessary
-	*/
-	if ( stereo->value != 0 )
-	{
-		Msg("...attempting to use stereo\n" );
-		pfd.dwFlags |= PFD_STEREO;
-		gl_state.stereo_enabled = true;
-	}
-	else
-	{
-		gl_state.stereo_enabled = false;
-	}
-
 	glw_state.minidriver = false;
 	/*
 	** Get a DC for the specified window
@@ -487,16 +470,6 @@ bool GLimp_InitGL (void)
 	}
 
 	/*
-	** report if stereo is desired but unavailable
-	*/
-	if ( !( pfd.dwFlags & PFD_STEREO ) && ( stereo->value != 0 ) ) 
-	{
-		Msg("...failed to select stereo pixel format\n" );
-		ri.Cvar_SetValue( "cl_stereo", 0 );
-		gl_state.stereo_enabled = false;
-	}
-
-	/*
 	** startup the OpenGL subsystem by creating a context and making
 	** it current
 	*/
@@ -548,7 +521,7 @@ fail:
 /*
 ** GLimp_BeginFrame
 */
-void GLimp_BeginFrame( float camera_separation )
+void GLimp_BeginFrame( void )
 {
 	if ( gl_bitdepth->modified )
 	{
@@ -559,19 +532,7 @@ void GLimp_BeginFrame( float camera_separation )
 		}
 		gl_bitdepth->modified = false;
 	}
-
-	if ( camera_separation < 0 && gl_state.stereo_enabled )
-	{
-		qglDrawBuffer( GL_BACK_LEFT );
-	}
-	else if ( camera_separation > 0 && gl_state.stereo_enabled )
-	{
-		qglDrawBuffer( GL_BACK_RIGHT );
-	}
-	else
-	{
-		qglDrawBuffer( GL_BACK );
-	}
+	qglDrawBuffer( GL_BACK );
 }
 
 /*

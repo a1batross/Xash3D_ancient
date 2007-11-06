@@ -337,9 +337,6 @@ LONG WINAPI MainWndProc ( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_KEYUP:
 		Key_Event( MapKey( lParam ), false, host.sv_timer);
 		break;
-	case WM_CHAR:
-		CL_CharEvent( wParam );
-		break;
 	default:	// pass all unhandled messages to DefWindowProc
 		return DefWindowProc (hWnd, uMsg, wParam, lParam);
 	}

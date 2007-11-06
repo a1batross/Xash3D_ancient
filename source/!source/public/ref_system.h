@@ -1061,8 +1061,8 @@ typedef struct render_exp_s
 
 	// video mode and refresh state management entry points
 	void	(*CinematicSetPalette)( const byte *palette);	// NULL = game palette
-	void	(*BeginFrame)( float camera_separation );
-	void	(*EndFrame) (void);
+	void	(*BeginFrame)( void );
+	void	(*EndFrame)( void );
 } render_exp_t;
 
 typedef struct render_imp_s

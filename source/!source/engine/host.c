@@ -148,7 +148,7 @@ void Host_Init (char *funcname, int argc, char **argv)
 	Key_Init();
 	PRVM_Init();
 
-	Cbuf_AddText("exec base.rc\n");
+	// get default configuration
 	Cbuf_AddText("exec keys.rc\n");
 	Cbuf_AddText("exec vars.rc\n");
 	Cbuf_Execute();
@@ -175,19 +175,13 @@ void Host_Init (char *funcname, int argc, char **argv)
 	SV_Init();
 	CL_Init();
 
-	// add + commands from command line
-	if(!Cmd_AddStartupCommands())
-	{
-		// if the user didn't give any commands, run default action
-		if ( host.type != HOST_DEDICATED )
-			Cbuf_AddText ("demomap idlogo.roq\n");
-		else Cbuf_AddText ("map dm_qstyle\n");
-	}
-	else
-	{	// the user asked for something explicit
-		// so drop the loading plaque
-		SCR_EndLoadingPlaque ();
-	}
+	Cbuf_AddText("exec init.rc\n");
+	Cbuf_Execute();
+
+	// if stuffcmds wasn't run, then init.rc is probably missing, use default
+	if(!host.stuffcmdsrun) Cbuf_ExecuteText( EXEC_NOW, "stuffcmds\n" );
+
+	SCR_EndLoadingPlaque ();
 	Sys_DoubleTime(); // initialize timer
 }
 

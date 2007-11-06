@@ -61,7 +61,6 @@ float	v_blend[4];			// final blending color
 
 void GL_Strings_f( void );
 byte *r_framebuffer;			// pause frame buffer
-byte *r_finalframebuffer;			// final pause frame buffer
 float r_pause_alpha;
 
 //
@@ -604,9 +603,6 @@ void R_SetupGL (void)
     qglRotatef (-r_newrefdef.viewangles[1],  0, 0, 1);
     qglTranslatef (-r_newrefdef.vieworg[0],  -r_newrefdef.vieworg[1],  -r_newrefdef.vieworg[2]);
 
-//	if ( gl_state.camera_separation != 0 && gl_state.stereo_enabled )
-//		qglTranslatef ( gl_state.camera_separation, 0, 0 );
-
 	qglGetFloatv (GL_MODELVIEW_MATRIX, r_world_matrix);
 
 	//
@@ -868,45 +864,6 @@ void R_SetGL2D (void)
 	} 
 
 }
-
-static void GL_DrawColoredStereoLinePair( float r, float g, float b, float y )
-{
-	qglColor3f( r, g, b );
-	qglVertex2f( 0, y );
-	qglVertex2f( vid.width, y );
-	qglColor3f( 0, 0, 0 );
-	qglVertex2f( 0, y + 1 );
-	qglVertex2f( vid.width, y + 1 );
-}
-
-static void GL_DrawStereoPattern( void )
-{
-	int i;
-
-	if ( !gl_state.stereo_enabled )
-		return;
-
-	R_SetGL2D();
-
-	qglDrawBuffer( GL_BACK_LEFT );
-
-	for ( i = 0; i < 20; i++ )
-	{
-		qglBegin( GL_LINES );
-			GL_DrawColoredStereoLinePair( 1, 0, 0, 0 );
-			GL_DrawColoredStereoLinePair( 1, 0, 0, 2 );
-			GL_DrawColoredStereoLinePair( 1, 0, 0, 4 );
-			GL_DrawColoredStereoLinePair( 1, 0, 0, 6 );
-			GL_DrawColoredStereoLinePair( 0, 1, 0, 8 );
-			GL_DrawColoredStereoLinePair( 1, 1, 0, 10);
-			GL_DrawColoredStereoLinePair( 1, 1, 0, 12);
-			GL_DrawColoredStereoLinePair( 0, 1, 0, 14);
-		qglEnd();
-		
-		GLimp_EndFrame();
-	}
-}
-
 
 /*
 ====================
@@ -1299,9 +1256,6 @@ int R_Init( void *hinstance, void *hWnd )
 
 	GL_SetDefaultState();
 
-	// draw our stereo patterns
-	GL_DrawStereoPattern();
-
 	R_InitTextures();
 	Mod_Init ();
 	R_InitParticleTexture ();
@@ -1309,7 +1263,6 @@ int R_Init( void *hinstance, void *hWnd )
           R_StudioInit();
 
 	if(!r_framebuffer) r_framebuffer = Z_Malloc(vid.width*vid.height*3);
-	if(!r_finalframebuffer) r_finalframebuffer = Z_Malloc(vid.width*vid.height*3);
 	
 	err = qglGetError();
 	if ( err != GL_NO_ERROR ) MsgWarn("glGetError = 0x%x\n", err);
@@ -1330,7 +1283,6 @@ void R_Shutdown (void)
 	ri.Cmd_RemoveCommand ("gl_strings");
 
 	if(r_framebuffer) Z_Free(r_framebuffer);
-	if(r_finalframebuffer) Z_Free(r_finalframebuffer);
 
 	Mod_FreeAll ();
           R_StudioShutdown();
@@ -1354,11 +1306,8 @@ void R_Shutdown (void)
 R_BeginFrame
 @@@@@@@@@@@@@@@@@@@@@
 */
-void R_BeginFrame( float camera_separation )
+void R_BeginFrame( void )
 {
-
-	gl_state.camera_separation = camera_separation;
-
 	if ( gl_log->modified )
 	{
 		GLimp_EnableLogging( gl_log->value );
@@ -1376,7 +1325,7 @@ void R_BeginFrame( float camera_separation )
           	//put here update gamma
 	}
 
-	GLimp_BeginFrame( camera_separation );
+	GLimp_BeginFrame();
 
 	/*
 	** go into 2D mode
@@ -1399,14 +1348,6 @@ void R_BeginFrame( float camera_separation )
 	if ( gl_drawbuffer->modified )
 	{
 		gl_drawbuffer->modified = false;
-
-		if ( gl_state.camera_separation == 0 || !gl_state.stereo_enabled )
-		{
-			if ( strcasecmp( gl_drawbuffer->string, "GL_FRONT" ) == 0 )
-				qglDrawBuffer( GL_FRONT );
-			else
-				qglDrawBuffer( GL_BACK );
-		}
 	}
 
 	/*

@@ -121,7 +121,7 @@ void M_ForceMenuOff (void)
 	m_keyfunc = 0;
 	cls.key_dest = key_game;
 	m_menudepth = 0;
-	Key_ClearStates ();
+	Key_ClearStates();
 	Cvar_Set ("paused", "0");
 }
 
@@ -147,19 +147,21 @@ const char *Default_MenuKey( menuframework_s *m, int key )
 	const char *sound = NULL;
 	menucommon_s *item;
 
+	Msg("default menu key called %s, key %d\n", Key_KeynumToString(key), key);
+
 	if ( m )
 	{
-		if ( ( item = Menu_ItemAtCursor( m ) ) != 0 )
+		if (( item = Menu_ItemAtCursor( m )) != 0 )
 		{
-			if ( item->type == MTYPE_FIELD )
+			if( item->type == MTYPE_FIELD )
 			{
-				if ( Field_Key( ( menufield_s * ) item, key ) )
+				if( Field_Key((menufield_s * )item, key ))
 					return NULL;
 			}
 		}
 	}
 
-	switch ( key )
+	switch( key )
 	{
 	case K_ESCAPE:
 		M_PopMenu();
@@ -210,26 +212,8 @@ const char *Default_MenuKey( menuframework_s *m, int key )
 	case K_MOUSE1:
 	case K_MOUSE2:
 	case K_MOUSE3:
-	case K_JOY1:
-	case K_JOY2:
-	case K_JOY3:
-	case K_JOY4:
-	case K_AUX1:
-	case K_AUX2:
-	case K_AUX3:
-	case K_AUX4:
-	case K_AUX5:
-	case K_AUX6:
-	case K_AUX7:
-	case K_AUX8:
-	case K_AUX9:
-	case K_AUX10:
-	case K_AUX11:
-	case K_AUX12:
-	case K_AUX13:
-	case K_AUX14:
-	case K_AUX15:
-	case K_AUX16:
+	case K_MOUSE4:
+	case K_MOUSE5:
 	case K_KP_ENTER:
 	case K_ENTER:
 		if ( m )
@@ -417,14 +401,14 @@ void M_Main_Draw (void)
 }
 
 
-const char *M_Main_Key (int key)
+const char *M_Main_Key(int key)
 {
 	const char *sound = menu_move_sound;
 
 	switch (key)
 	{
 	case K_ESCAPE:
-		M_PopMenu ();
+		M_PopMenu();
 		break;
 
 	case K_KP_DOWNARROW:
@@ -633,7 +617,7 @@ static void M_UnbindCommand (char *command)
 
 	for (j = 0; j < 256; j++)
 	{
-		b = keys[j].binding;
+		b = Key_IsBind(j);
 		if (!b) continue;
 		if (!strncmp (b, command, l) )
 			Key_SetBinding (j, "");
@@ -653,7 +637,7 @@ static void M_FindKeysForCommand (char *command, int *twokeys)
 
 	for (j = 0; j < 256; j++)
 	{
-		b = keys[j].binding;
+		b = Key_IsBind(j);
 		if (!b) continue;
 		if (!strncmp (b, command, l) )
 		{
@@ -995,8 +979,6 @@ CONTROLS MENU
 
 =======================================================================
 */
-extern cvar_t *in_joystick;
-
 static menuframework_s	s_options_menu;
 static menuaction_s		s_options_defaults_action;
 static menuaction_s		s_options_customize_options_action;
@@ -1009,18 +991,12 @@ static menulist_s		s_options_lookstrafe_box;
 static menulist_s		s_options_crosshair_box;
 static menuslider_s		s_options_sfxvolume_slider;
 static menuslider_s		s_options_musicvolume_slider;
-static menulist_s		s_options_joystick_box;
 static menulist_s		s_options_quality_list;
 static menulist_s		s_options_console_action;
 
 static void CrosshairFunc( void *unused )
 {
 	Cvar_SetValue( "crosshair", s_options_crosshair_box.curvalue );
-}
-
-static void JoystickFunc( void *unused )
-{
-	Cvar_SetValue( "in_joystick", s_options_joystick_box.curvalue );
 }
 
 static void CustomizeControlsFunc( void *unused )
@@ -1073,9 +1049,6 @@ static void ControlsSetMenuItemValues( void )
 
 	Cvar_SetValue( "crosshair", ClampCvar( 0, 3, crosshair->value ) );
 	s_options_crosshair_box.curvalue		= crosshair->value;
-
-	Cvar_SetValue( "in_joystick", ClampCvar( 0, 1, in_joystick->value ) );
-	s_options_joystick_box.curvalue		= in_joystick->value;
 }
 
 static void ControlsResetDefaultsFunc( void *unused )
@@ -1250,28 +1223,21 @@ void Options_MenuInit( void )
 	s_options_crosshair_box.generic.callback = CrosshairFunc;
 	s_options_crosshair_box.itemnames = crosshair_names;
 
-	s_options_joystick_box.generic.type = MTYPE_SPINCONTROL;
-	s_options_joystick_box.generic.x	= 0;
-	s_options_joystick_box.generic.y	= 110;
-	s_options_joystick_box.generic.name	= "use joystick";
-	s_options_joystick_box.generic.callback = JoystickFunc;
-	s_options_joystick_box.itemnames = yesno_names;
-
 	s_options_customize_options_action.generic.type	= MTYPE_ACTION;
 	s_options_customize_options_action.generic.x		= 0;
-	s_options_customize_options_action.generic.y		= 140;
+	s_options_customize_options_action.generic.y		= 130;
 	s_options_customize_options_action.generic.name	= "customize controls";
 	s_options_customize_options_action.generic.callback = CustomizeControlsFunc;
 
 	s_options_defaults_action.generic.type	= MTYPE_ACTION;
 	s_options_defaults_action.generic.x	= 0;
-	s_options_defaults_action.generic.y	= 150;
+	s_options_defaults_action.generic.y	= 140;
 	s_options_defaults_action.generic.name	= "reset defaults";
 	s_options_defaults_action.generic.callback = ControlsResetDefaultsFunc;
 
 	s_options_console_action.generic.type	= MTYPE_ACTION;
 	s_options_console_action.generic.x	= 0;
-	s_options_console_action.generic.y	= 160;
+	s_options_console_action.generic.y	= 150;
 	s_options_console_action.generic.name	= "go to console";
 	s_options_console_action.generic.callback = ConsoleFunc;
 
@@ -1287,7 +1253,6 @@ void Options_MenuInit( void )
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_lookstrafe_box );
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_freelook_box );
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_crosshair_box );
-	Menu_AddItem( &s_options_menu, ( void * ) &s_options_joystick_box );
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_customize_options_action );
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_defaults_action );
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_console_action );
@@ -2042,8 +2007,8 @@ void RulesChangeFunc ( void *self )
 	else if(s_rules_box.curvalue == 1)		// coop				// PGM
 	{
 		s_maxclients_field.generic.statusbar = "4 maximum for cooperative";
-		if (atoi(s_maxclients_field.buffer) > 4)
-			strcpy( s_maxclients_field.buffer, "4" );
+		if (atoi(s_maxclients_field.field.buffer) > 4)
+			strcpy( s_maxclients_field.field.buffer, "4" );
 		s_startserver_dmoptions_action.generic.statusbar = "N/A for cooperative";
 	}
 }
@@ -2058,14 +2023,14 @@ void StartServerActionFunc( void *self )
 
 	strcpy( startmap, strchr( mapnames[s_startmap_list.curvalue], '\n' ) + 1 );
 
-	maxclients  = atoi( s_maxclients_field.buffer );
-	timelimit	= atoi( s_timelimit_field.buffer );
-	fraglimit	= atoi( s_fraglimit_field.buffer );
+	maxclients  = atoi( s_maxclients_field.field.buffer );
+	timelimit	= atoi( s_timelimit_field.field.buffer );
+	fraglimit	= atoi( s_fraglimit_field.field.buffer );
 
 	Cvar_SetValue( "maxclients", ClampCvar( 0, maxclients, maxclients ) );
 	Cvar_SetValue ("timelimit", ClampCvar( 0, timelimit, timelimit ) );
 	Cvar_SetValue ("fraglimit", ClampCvar( 0, fraglimit, fraglimit ) );
-	Cvar_Set("hostname", s_hostname_field.buffer );
+	Cvar_Set("hostname", s_hostname_field.field.buffer );
 	Cvar_SetValue ("deathmatch", !s_rules_box.curvalue );
 	Cvar_SetValue ("coop", s_rules_box.curvalue );
 
@@ -2292,9 +2257,9 @@ void StartServer_MenuInit( void )
 	s_timelimit_field.generic.x	= 0;
 	s_timelimit_field.generic.y	= 36;
 	s_timelimit_field.generic.statusbar = "0 = no limit";
-	s_timelimit_field.length = 3;
-	s_timelimit_field.visible_length = 3;
-	strcpy( s_timelimit_field.buffer, Cvar_VariableString("timelimit") );
+	s_timelimit_field.field.maxchars = 3;
+	s_timelimit_field.field.widthInChars = 3;
+	strcpy( s_timelimit_field.field.buffer, Cvar_VariableString("timelimit") );
 
 	s_fraglimit_field.generic.type = MTYPE_FIELD;
 	s_fraglimit_field.generic.name = "frag limit";
@@ -2302,9 +2267,9 @@ void StartServer_MenuInit( void )
 	s_fraglimit_field.generic.x	= 0;
 	s_fraglimit_field.generic.y	= 54;
 	s_fraglimit_field.generic.statusbar = "0 = no limit";
-	s_fraglimit_field.length = 3;
-	s_fraglimit_field.visible_length = 3;
-	strcpy( s_fraglimit_field.buffer, Cvar_VariableString("fraglimit") );
+	s_fraglimit_field.field.maxchars = 3;
+	s_fraglimit_field.field.widthInChars = 3;
+	strcpy( s_fraglimit_field.field.buffer, Cvar_VariableString("fraglimit") );
 
 	/*
 	** maxclients determines the maximum number of players that can join
@@ -2318,12 +2283,12 @@ void StartServer_MenuInit( void )
 	s_maxclients_field.generic.x	= 0;
 	s_maxclients_field.generic.y	= 72;
 	s_maxclients_field.generic.statusbar = NULL;
-	s_maxclients_field.length = 3;
-	s_maxclients_field.visible_length = 3;
+	s_maxclients_field.field.maxchars = 3;
+	s_maxclients_field.field.widthInChars = 3;
 	if ( Cvar_VariableValue( "maxclients" ) == 1 )
-		strcpy( s_maxclients_field.buffer, "8" );
+		strcpy( s_maxclients_field.field.buffer, "8" );
 	else 
-		strcpy( s_maxclients_field.buffer, Cvar_VariableString("maxclients") );
+		strcpy( s_maxclients_field.field.buffer, Cvar_VariableString("maxclients") );
 
 	s_hostname_field.generic.type = MTYPE_FIELD;
 	s_hostname_field.generic.name = "hostname";
@@ -2331,9 +2296,9 @@ void StartServer_MenuInit( void )
 	s_hostname_field.generic.x	= 0;
 	s_hostname_field.generic.y	= 90;
 	s_hostname_field.generic.statusbar = NULL;
-	s_hostname_field.length = 12;
-	s_hostname_field.visible_length = 12;
-	strcpy( s_hostname_field.buffer, Cvar_VariableString("hostname") );
+	s_hostname_field.field.maxchars = 12;
+	s_hostname_field.field.widthInChars = 12;
+	strcpy( s_hostname_field.field.buffer, Cvar_VariableString("hostname") );
 
 	s_startserver_dmoptions_action.generic.type = MTYPE_ACTION;
 	s_startserver_dmoptions_action.generic.name	= " deathmatch flags";
@@ -2881,11 +2846,11 @@ void AddressBook_MenuInit( void )
 		s_addressbook_fields[i].generic.x		= 0;
 		s_addressbook_fields[i].generic.y		= i * 18 + 0;
 		s_addressbook_fields[i].generic.localdata[0] = i;
-		s_addressbook_fields[i].cursor			= 0;
-		s_addressbook_fields[i].length			= 60;
-		s_addressbook_fields[i].visible_length	= 30;
+		s_addressbook_fields[i].field.cursor			= 0;
+		s_addressbook_fields[i].field.maxchars			= 60;
+		s_addressbook_fields[i].field.widthInChars	= 30;
 
-		strcpy( s_addressbook_fields[i].buffer, adr->string );
+		strcpy( s_addressbook_fields[i].field.buffer, adr->string );
 
 		Menu_AddItem( &s_addressbook_menu, &s_addressbook_fields[i] );
 	}
@@ -2901,7 +2866,7 @@ const char *AddressBook_MenuKey( int key )
 		for ( index = 0; index < NUM_ADDRESSBOOK_ENTRIES; index++ )
 		{
 			sprintf( buffer, "adr%d", index );
-			Cvar_Set( buffer, s_addressbook_fields[index].buffer );
+			Cvar_Set( buffer, s_addressbook_fields[index].field.buffer );
 		}
 	}
 	return Default_MenuKey( &s_addressbook_menu, key );
@@ -3110,10 +3075,10 @@ bool PlayerConfig_MenuInit( void )
 	s_player_name_field.generic.callback = 0;
 	s_player_name_field.generic.x		= 0;
 	s_player_name_field.generic.y		= 0;
-	s_player_name_field.length		= 20;
-	s_player_name_field.visible_length	= 20;
-	strcpy( s_player_name_field.buffer, name->string );
-	s_player_name_field.cursor = strlen( name->string );
+	s_player_name_field.field.maxchars	= 20;
+	s_player_name_field.field.widthInChars	= 20;
+	strcpy( s_player_name_field.field.buffer, name->string );
+	s_player_name_field.field.cursor = strlen( name->string );
 
 	s_player_model_title.generic.type = MTYPE_SEPARATOR;
 	s_player_model_title.generic.name = "model";
@@ -3243,7 +3208,7 @@ const char *PlayerConfig_MenuKey (int key)
 {
 	if ( key == K_ESCAPE )
 	{
-		Cvar_Set( "name", s_player_name_field.buffer );
+		Cvar_Set( "name", s_player_name_field.field.buffer );
 	}
 	return Default_MenuKey( &s_player_config_menu, key );
 }
@@ -3362,17 +3327,9 @@ M_Draw
 */
 void M_Draw (void)
 {
-	if (cls.key_dest != key_menu)
-		return;
+	if (cls.key_dest != key_menu) return;
 
-	// repaint everything next frame
-	SCR_DirtyScreen ();
-
-	// dim everything behind it down
-	if (cl.cinematictime > 0) SCR_DrawCinematic();
-	else re->DrawFadeScreen ();
-
-	m_drawfunc ();
+	m_drawfunc();
 
 	// delay playing the enter sound until after the
 	// menu has been drawn, to avoid delay while
@@ -3395,8 +3352,10 @@ void M_Keydown (int key)
 	const char *s;
 
 	if (m_keyfunc)
-		if ( ( s = m_keyfunc( key ) ) != 0 )
-			S_StartLocalSound( ( char * ) s );
+	{
+		if(( s = m_keyfunc( key )) != 0 )
+			S_StartLocalSound(( char * )s);
+	}
 }
 
 
