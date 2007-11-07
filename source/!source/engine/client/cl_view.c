@@ -38,6 +38,7 @@ cvar_t		*cl_testblend;
 
 cvar_t		*cl_stats;
 
+extern bool scr_initialized;
 
 int			r_numdlights;
 dlight_t	r_dlights[MAX_DLIGHTS];
@@ -67,6 +68,21 @@ void V_ClearScene (void)
 	r_numparticles = 0;
 }
 
+/*
+=================
+void V_CalcRect( void )
+
+Sets scr_vrect, the coordinates of the rendered window
+=================
+*/
+void V_CalcRect( void )
+{
+	scr_vrect.width = viddef.width;
+	scr_vrect.width &= ~7;
+	scr_vrect.height = viddef.height;
+	scr_vrect.height &= ~1;
+	scr_vrect.y = scr_vrect.x = 0;
+}
 
 /*
 =====================
@@ -245,10 +261,10 @@ CL_PrepRefresh
 Call before entering a new level, or after changing dlls
 =================
 */
-void CL_PrepRefresh (void)
+void CL_PrepRefresh( void )
 {
 	char		mapname[32];
-	int			i;
+	int		i;
 	char		name[MAX_QPATH];
 	float		rotate;
 	vec3_t		axis;
@@ -256,12 +272,17 @@ void CL_PrepRefresh (void)
 	if (!cl.configstrings[CS_MODELS+1][0])
 		return;		// no map loaded
 
-	SCR_AddDirtyPoint (0, 0);
-	SCR_AddDirtyPoint (viddef.width-1, viddef.height-1);
+	// get splash name
+	sprintf( cl.levelshot_name, "/textures/background/%s.tga", cl.configstrings[CS_NAME] );
+	if(!FS_FileExists( cl.levelshot_name )) 
+	{
+		strcpy( cl.levelshot_name, "/textures/common/black" );
+		cl.make_levelshot = true; // make levelshot
+	}
 
 	// let the render dll load the map
 	strcpy (mapname, cl.configstrings[CS_MODELS+1] + 5);	// skip "maps/"
-	mapname[strlen(mapname)-4] = 0;		// cut off ".bsp"
+	mapname[strlen(mapname)-4] = 0; // cut off ".bsp"
 
 	// register models, pics, and skins
 	Msg ("Map: %s\r", mapname); 
@@ -437,11 +458,8 @@ void V_RenderView( void )
 {
 	extern int entitycmpfnc( const entity_t *, const entity_t * );
 
-	if (cls.state != ca_active)
-		return;
-
-	if (!cl.refresh_prepped)
-		return;			// still loading
+	if (cls.state != ca_active) return;
+	if (!cl.refresh_prepped) return; // still loading
 
 	if (cl_timedemo->value)
 	{
@@ -515,21 +533,55 @@ void V_RenderView( void )
 		cl.refdef.rdflags = cl.frame.playerstate.rdflags;
 
 		// sort entities for better cache locality
-        qsort( cl.refdef.entities, cl.refdef.num_entities, sizeof( cl.refdef.entities[0] ), (int (*)(const void *, const void *))entitycmpfnc );
+        		qsort( cl.refdef.entities, cl.refdef.num_entities, sizeof( cl.refdef.entities[0] ), (int (*)(const void *, const void *))entitycmpfnc );
 	}
 
 	cl.refdef.rdflags |= RDF_BLOOM;
 	re->RenderFrame (&cl.refdef);
-	if (cl_stats->value)
-		Msg ("ent:%i  lt:%i  part:%i\n", r_numentities, r_numdlights, r_numparticles);
-
-	SCR_AddDirtyPoint (scr_vrect.x, scr_vrect.y);
-	SCR_AddDirtyPoint (scr_vrect.x+scr_vrect.width-1,
-		scr_vrect.y+scr_vrect.height-1);
+	if (cl_stats->value) Msg ("ent:%i  lt:%i  part:%i\n", r_numentities, r_numdlights, r_numparticles);
 
 	SCR_DrawCrosshair ();
 }
 
+/*
+==================
+V_PreRender
+
+==================
+*/
+bool V_PreRender( void )
+{
+	if(!scr_initialized)
+		return false;
+		
+	re->BeginFrame();
+
+	// wide aspect ratio screens need to have the sides cleared
+	// unless they are displaying game renderings
+	if ( cls.state != ca_active )
+	{
+		if( viddef.width * 480 > viddef.height * 640 )
+		{
+			re->SetColor( g_color_table[0] );
+			re->DrawStretchPic( 0, 0, viddef.width, viddef.height, 0, 0, 1, 1, "backtile" );
+			re->SetColor( NULL );
+		}
+	}
+	return true;
+}
+
+/*
+==================
+V_PostRender
+
+==================
+*/
+void V_PostRender( void )
+{
+	Con_DrawConsole();
+	M_Draw();
+	re->EndFrame();
+}
 
 /*
 =============

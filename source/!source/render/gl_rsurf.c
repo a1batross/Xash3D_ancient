@@ -1676,10 +1676,11 @@ void GL_DrawRadar( void )
 	Vector4Set(fS, 0, 0, -1.0/512.0, 0 );  
 	if(r_newrefdef.rdflags & RDF_NOWORLDMODEL ) return;
 	if(!r_minimap->value) return;
-          
+
 	qglViewport(vid.width - r_minimap_size->value, 0, r_minimap_size->value, r_minimap_size->value );  
 	
-	qglDisable(GL_DEPTH_TEST);
+	GL_DisableAlphaTest();
+	GL_DisableDepthTest();
   	qglMatrixMode(GL_PROJECTION);
 	qglPushMatrix();
 	qglLoadIdentity();	    
@@ -1731,7 +1732,7 @@ void GL_DrawRadar( void )
 
 	qglColorMask(1.0f, 1.0f, 1.0f, 1.0f);
 	GL_DisableAlphaTest();
-	qglAlphaFunc(GL_GREATER, 0.5f);
+	qglAlphaFunc(GL_GREATER, 0.666f);
 	qglStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 	qglStencilFunc(GL_NOTEQUAL, 4.0f, 4.0f);
 
@@ -1812,10 +1813,10 @@ void GL_DrawRadar( void )
 	qglPopMatrix();
 	qglMatrixMode(GL_MODELVIEW);
 	qglDisable(GL_STENCIL_TEST);
-	qglStencilMask(0);
+	qglStencilMask( 0 );
 	GL_TexEnv( GL_REPLACE );
 	GL_DisableBlend();
-	qglEnable(GL_DEPTH_TEST);
+	GL_EnableDepthTest();
 	qglColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
 }

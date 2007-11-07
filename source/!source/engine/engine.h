@@ -143,6 +143,16 @@ scriptsystem manager
 #define COM_Parse(data) Com->Script.ParseToken(data)
 #define COM_Token Com->Script.Token
 #define COM_Filter Com->Script.FilterToken
+
+#define COM_LoadScript Com->Script.Load
+#define COM_IncludeScript Com->Script.Include
+#define COM_ResetScript Com->Script.Reset
+#define COM_GetToken Com->Script.GetToken
+#define COM_TryToken Com->Script.TryToken
+#define COM_FreeToken Com->Script.FreeToken
+#define COM_SkipToken Com->Script.SkipToken
+#define COM_MatchToken Com->Script.MatchToken
+
 /*
 ===========================================
 infostring manager

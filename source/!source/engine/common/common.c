@@ -380,7 +380,7 @@ void Com_DPrintf (int level, char *fmt, ...)
 	case D_ERROR:
 		Com_Print(va("^1Error:^7 %s", msg));
 		break;
-	case D_LOAD:
+	case D_SPAM:
 		Com_Print(msg);
 		break;
 	}

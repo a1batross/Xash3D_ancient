@@ -15,6 +15,9 @@ int gl_tex_alpha_format = 4;
 int gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
 int gl_filter_max = GL_LINEAR;
 
+byte gammatable[256];
+byte basetable[256];
+
 typedef struct
 {
 	char *name;
@@ -68,15 +71,6 @@ void GL_Strings_f( void )
 	Msg("GL_EXTENSIONS: %s\n", gl_config.extensions_string );
 }
 
-#define GLSTATE_DISABLE_ALPHATEST
-#define GLSTATE_ENABLE_ALPHATEST	
-
-#define GLSTATE_DISABLE_BLEND		
-#define GLSTATE_ENABLE_BLEND		
-
-#define GLSTATE_DISABLE_TEXGEN		
-#define GLSTATE_ENABLE_TEXGEN		
-
 /*
 ===============
 GL_ArraysState
@@ -104,7 +98,7 @@ void GL_EnableAlphaTest ( void )
 	if (!gl_state.alpha_test)
 	{
 		qglEnable(GL_ALPHA_TEST);
-		gl_state.alpha_test=true;
+		gl_state.alpha_test = true;
 	}
 }
 
@@ -113,7 +107,7 @@ void GL_DisableAlphaTest ( void )
 	if (gl_state.alpha_test)
 	{
 		qglDisable(GL_ALPHA_TEST);
-		gl_state.alpha_test=false;
+		gl_state.alpha_test = false;
 	}
 }
 
@@ -127,7 +121,7 @@ void GL_EnableBlend( void )
 	if (!gl_state.blend)
 	{
 		qglEnable(GL_BLEND);
-		gl_state.blend=true;
+		gl_state.blend = true;
 	}
 }
 
@@ -136,7 +130,30 @@ void GL_DisableBlend( void )
 	if (gl_state.blend)
 	{
 		qglDisable(GL_BLEND);
-		gl_state.blend=false;
+		gl_state.blend = false;
+	}
+}
+
+/*
+===============
+GL_StateDepthTest
+===============
+*/
+void GL_EnableDepthTest( void )
+{
+	if (!gl_state.depth_test)
+	{
+		qglEnable( GL_DEPTH_TEST );
+		gl_state.depth_test = true;
+	}
+}
+
+void GL_DisableDepthTest( void )
+{
+	if (gl_state.depth_test)
+	{
+		qglDisable( GL_DEPTH_TEST );
+		gl_state.depth_test = false;
 	}
 }
 
@@ -609,5 +626,86 @@ void VID_RestoreSystemGamma(void)
 		ri.Cvar_SetValue("vid_hardwaregammasupported", VID_SetGamma(vid_systemgammaramps, vid_gammarampsize));
 		// force gamma situation to be reexamined next frame
 		gamma_forcenextframe = true;
+	}
+}
+
+bool VID_ScreenShot( const char *filename, bool force_gamma )
+{
+	rgbdata_t 	r_shot;
+
+	// shared framebuffer not init
+	if(!r_framebuffer) return false;
+
+	// get screen frame
+	qglReadPixels(0, 0, vid.width, vid.height, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer );
+
+	memset(&r_shot, 0, sizeof(r_shot));
+	r_shot.width = vid.width;
+	r_shot.height = vid.height;
+	r_shot.type = PF_RGB_24_FLIP;
+	r_shot.numMips = 1;
+	r_shot.palette = NULL;
+	r_shot.buffer = r_framebuffer;
+
+	// remove any gamma adjust if need
+	if(force_gamma) VID_ImageBaseScale( (uint *)r_framebuffer, vid.width, vid.height );
+
+	// write image
+	FS_SaveImage( filename, &r_shot );
+	return true;
+}
+
+void VID_BuildGammaTable( void )
+{
+	float g = vid_gamma->value;
+	float m = 1 / vid_gamma->value;
+	int	i;
+	
+	for ( i = 0; i < 256; i++ )
+	{
+		if ( g == 1 ) gammatable[i] = i;
+		else gammatable[i] = bound(0, 255 * pow ( (i + 0.5)/255.5 , g ) + 0.5, 255);
+	}
+
+	for ( i = 0; i < 256; i++ )
+	{
+		if ( m == 1 ) basetable[i] = i;
+		else basetable[i] = bound(0, pow(i * (1.0 / 255.0), m ) * 255.0, 255);
+	}
+}
+
+/*
+================
+VID_ImageLightScale
+================
+*/
+void VID_ImageLightScale (uint *in, int inwidth, int inheight )
+{
+	int	i, c = inwidth * inheight;
+	byte	*p = (byte *)in;
+
+	for (i = 0; i < c; i++, p += 4)
+	{
+		p[0] = gammatable[p[0]];
+		p[1] = gammatable[p[1]];
+		p[2] = gammatable[p[2]];
+	}
+}
+
+/*
+================
+VID_ImageBaseScale
+================
+*/
+void VID_ImageBaseScale (uint *in, int inwidth, int inheight )
+{
+	int	i, c = inwidth * inheight;
+	byte	*p = (byte *)in;
+
+	for (i = 0; i < c; i++, p += 3)
+	{
+		p[0] = basetable[p[0]];
+		p[1] = basetable[p[1]];
+		p[2] = basetable[p[2]];
 	}
 }

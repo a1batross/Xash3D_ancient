@@ -1473,6 +1473,9 @@ void CL_InitLocal (void)
 
 	Cmd_AddCommand ("quit", CL_Quit_f);
 
+	Cmd_AddCommand ("screenshot", CL_ScreenShot_f);
+	Cmd_AddCommand ("levelshot", CL_LevelShot_f);
+
 	Cmd_AddCommand ("connect", CL_Connect_f);
 	Cmd_AddCommand ("reconnect", CL_Reconnect_f);
 
@@ -1703,8 +1706,8 @@ void CL_Frame (float time)
 	CL_RunDLights ();
 	CL_RunLightStyles ();
 
-	SCR_RunCinematic ();
-	Con_RunConsole ();
+	SCR_RunCinematic();
+	Con_RunConsole();
 
 	cls.framecount++;
 }
@@ -1729,6 +1732,7 @@ void CL_Init (void)
 	S_Init ();	// sound must be initialized after window is created
 	V_Init ();
 
+	COM_LoadScript( "scripts/hud.txt", NULL, 0 );
 	net_message.data = net_message_buffer;
 	net_message.maxsize = sizeof(net_message_buffer);
 
@@ -1742,7 +1746,6 @@ void CL_Init (void)
 
 	Cbuf_AddText ("exec autoexec.cfg\n");
 	Cbuf_Execute ();
-
 }
 
 

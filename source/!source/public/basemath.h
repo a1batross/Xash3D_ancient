@@ -428,6 +428,28 @@ _inline vec_t ColorNormalize (vec3_t in, vec3_t out)
 	return max;
 }
 
+_inline int ColorStrlen( const char *string )
+{
+	int		len;
+	const char	*p;
+
+	if( !string ) return 0;
+
+	len = 0;
+	p = string;
+	while( *p )
+	{
+		if(IsColorString( p ))
+		{
+			p += 2;
+			continue;
+		}
+		p++;
+		len++;
+	}
+	return len;
+}
+
 
 /*
 ==============

@@ -141,6 +141,13 @@ bool FS_AddScript( const char *filename, char *buf, int size )
 	return AddScriptToStack(filename, buf, size);
 }
 
+void FS_ResetScript( void )
+{
+	// can parsing again
+	script->line = scriptline = 1;
+	script->script_p = script->buffer;
+}
+
 /*
 ==============
 GetToken
@@ -149,9 +156,11 @@ GetToken
 bool GetToken (bool newline)
 {
 	char	*token_p;
+	int	c;
 
-	if (tokenready) // is a token allready waiting?
+	if (tokenready)
 	{
+		// is a token allready waiting?
 		tokenready = false;
 		return true;
 	}
@@ -181,7 +190,7 @@ skip_whitespace:	// skip whitespace
 	{
 		if (!newline) goto line_incomplete;
 
-		// ets+++
+		// ets++
 		if (*script->script_p == '/') script->script_p++;
 		if (script->script_p[1] == 'T' && script->script_p[2] == 'X')
 			g_TXcommand = script->script_p[3];//TX#"-style comment
@@ -215,7 +224,9 @@ skip_whitespace:	// skip whitespace
 
 	// copy token
 	token_p = token;
-
+	c = script->script_p[0];
+	
+	// handle quoted strings specially
 	if (*script->script_p == '"')
 	{
 		// quoted token
@@ -224,7 +235,7 @@ skip_whitespace:	// skip whitespace
 		{
 			if (token_p == &token[MAX_SYSPATH - 1])
 			{
-				MsgWarn("GetToken: Token too large on line %i\n", scriptline);
+				MsgDev(D_WARN, "GetToken: Token too large on line %i\n", scriptline);
 				break;
 			}
 			
@@ -234,25 +245,34 @@ skip_whitespace:	// skip whitespace
 		}
 		script->script_p++;
 	}
-	else // regular token
+	else if (c == '{' || c == '}' || c == ')' || c == '(' || c == '\'' || c == ':' || c == ',')
 	{
-		while ( *script->script_p > 32 && *script->script_p != ';')
+		// parse single characters
+		*token_p++ = *script->script_p++;
+	}
+	else
+	{
+          	// parse regular word
+		while ( *script->script_p > 32 )
 		{
 			if (token_p == &token[MAX_SYSPATH - 1])
 			{
 				MsgWarn("GetToken: Token too large on line %i\n",scriptline);
 				break;
 			}
-		
+			*token_p = c;
 			*token_p++ = *script->script_p++;
+			c = *script->script_p;
+
 			if (script->script_p == script->end_p)
+				break;
+			if (c == '{' || c == '}'|| c == ')'|| c == '(' || c == '\'' || c == ':' || c == ',' || c == ';')
 				break;
 		}
           }
-          
-	*token_p = 0;
+	*token_p = 0; // cutoff other symbols
 
-	//quake style include & default MSVC style
+	// quake style include & default MSVC style
 	if (!strcmp(token, "$include") || !strcmp(token, "#include"))
 	{
 		GetToken (false);
@@ -789,6 +809,7 @@ scriptsystem_api_t Sc_GetAPI( void )
 
 	sc.Load = FS_LoadScript;
 	sc.Include = FS_AddScript;
+	sc.Reset = FS_ResetScript;
 	sc.GetToken = SC_GetToken;
 	sc.TryToken = SC_TryToken;
 	sc.FreeToken = SC_FreeToken;

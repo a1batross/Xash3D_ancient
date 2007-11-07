@@ -154,3 +154,13 @@ void misc_physbox ( void )
 
 	phys_createbox( pev );
 }
+
+void env_sprite( void )
+{
+	precache_model ("sprites/explode01.spr");
+	pev->owner = pev;
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	setmodel (pev, "sprites/explode01.spr");
+	pev->frame = 5;
+}

@@ -69,7 +69,6 @@ char *va(const char *format, ...);
 //
 // utils.c
 //
-const char* Log_Timestamp( void );
 int CheckParm (const char *parm);
 void ParseCommandLine (LPSTR lpCmdLine);
 void UpdateEnvironmentVariables( void );

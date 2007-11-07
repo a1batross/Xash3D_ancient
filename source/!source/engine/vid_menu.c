@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 extern cvar_t *vid_fullscreen;
 extern cvar_t *vid_gamma;
-extern cvar_t *scr_viewsize;
 
 static cvar_t *gl_mode;
 static cvar_t *gl_picmip;
@@ -42,7 +41,6 @@ MENU INTERACTION
 static menuframework_s	s_video_menu;
 static menulist_s		s_mode_list;
 static menuslider_s		s_tq_slider;
-static menuslider_s		s_screensize_slider;
 static menuslider_s		s_brightness_slider;
 static menulist_s  		s_fs_box;
 static menulist_s  		s_stipple_box;
@@ -118,11 +116,9 @@ void VID_MenuInit( void )
 	if ( !gl_picmip ) gl_picmip = Cvar_Get( "gl_picmip", "0", 0 );
 	if ( !gl_mode ) gl_mode = Cvar_Get( "gl_mode", "3", 0 );
 	if ( !gl_finish ) gl_finish = Cvar_Get( "gl_finish", "0", CVAR_ARCHIVE );
-	if ( !scr_viewsize ) scr_viewsize = Cvar_Get ("viewsize", "100", CVAR_ARCHIVE);
 	if ( !gl_ext_palettedtexture ) gl_ext_palettedtexture = Cvar_Get( "gl_ext_palettedtexture", "1", CVAR_ARCHIVE );
 
 	s_mode_list.curvalue = gl_mode->value;
-	s_screensize_slider.curvalue = scr_viewsize->value/10;
 
 	s_video_menu.x = viddef.width * 0.50;
 	s_video_menu.y = viddef.height / 2 - 58;
@@ -134,17 +130,9 @@ void VID_MenuInit( void )
 	s_mode_list.generic.y = 0;
 	s_mode_list.itemnames = resolutions;
 
-	s_screensize_slider.generic.type = MTYPE_SLIDER;
-	s_screensize_slider.generic.x	 = 0;
-	s_screensize_slider.generic.y	= 10;
-	s_screensize_slider.generic.name = "screen size";
-	s_screensize_slider.minvalue = 3;
-	s_screensize_slider.maxvalue = 12;
-	s_screensize_slider.generic.callback = ScreenSizeCallback;
-
 	s_brightness_slider.generic.type = MTYPE_SLIDER;
 	s_brightness_slider.generic.x	= 0;
-	s_brightness_slider.generic.y	= 20;
+	s_brightness_slider.generic.y	= 10;
 	s_brightness_slider.generic.name = "brightness";
 	s_brightness_slider.generic.callback = BrightnessCallback;
 	s_brightness_slider.minvalue = 5;
@@ -153,14 +141,14 @@ void VID_MenuInit( void )
 
 	s_fs_box.generic.type = MTYPE_SPINCONTROL;
 	s_fs_box.generic.x	= 0;
-	s_fs_box.generic.y	= 30;
+	s_fs_box.generic.y	= 20;
 	s_fs_box.generic.name = "fullscreen";
 	s_fs_box.itemnames = yesno_names;
 	s_fs_box.curvalue = vid_fullscreen->value;
 
 	s_tq_slider.generic.type = MTYPE_SLIDER;
 	s_tq_slider.generic.x = 0;
-	s_tq_slider.generic.y = 40;
+	s_tq_slider.generic.y = 30;
 	s_tq_slider.generic.name = "texture quality";
 	s_tq_slider.minvalue = 0;
 	s_tq_slider.maxvalue = 3;
@@ -168,14 +156,14 @@ void VID_MenuInit( void )
 
 	s_paletted_texture_box.generic.type = MTYPE_SPINCONTROL;
 	s_paletted_texture_box.generic.x = 0;
-	s_paletted_texture_box.generic.y = 50;
+	s_paletted_texture_box.generic.y = 40;
 	s_paletted_texture_box.generic.name = "8-bit textures";
 	s_paletted_texture_box.itemnames = yesno_names;
 	s_paletted_texture_box.curvalue = gl_ext_palettedtexture->value;
 
 	s_finish_box.generic.type = MTYPE_SPINCONTROL;
 	s_finish_box.generic.x = 0;
-	s_finish_box.generic.y = 60;
+	s_finish_box.generic.y = 50;
 	s_finish_box.generic.name = "sync every frame";
 	s_finish_box.curvalue = gl_finish->value;
 	s_finish_box.itemnames = yesno_names;
@@ -183,17 +171,16 @@ void VID_MenuInit( void )
 	s_defaults_action.generic.type = MTYPE_ACTION;
 	s_defaults_action.generic.name = "reset to defaults";
 	s_defaults_action.generic.x    = 0;
-	s_defaults_action.generic.y    = 80;
+	s_defaults_action.generic.y    = 70;
 	s_defaults_action.generic.callback = ResetDefaults;
 
 	s_cancel_action.generic.type = MTYPE_ACTION;
 	s_cancel_action.generic.name = "cancel";
 	s_cancel_action.generic.x = 0;
-	s_cancel_action.generic.y = 90;
+	s_cancel_action.generic.y = 80;
 	s_cancel_action.generic.callback = CancelChanges;
 
 	Menu_AddItem( &s_video_menu, ( void * ) &s_mode_list );
-	Menu_AddItem( &s_video_menu, ( void * ) &s_screensize_slider );
 	Menu_AddItem( &s_video_menu, ( void * ) &s_brightness_slider );
 	Menu_AddItem( &s_video_menu, ( void * ) &s_fs_box );
 	Menu_AddItem( &s_video_menu, ( void * ) &s_tq_slider );

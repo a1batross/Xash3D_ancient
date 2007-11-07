@@ -52,10 +52,11 @@ void *R_SpriteLoadFrame (model_t *mod, void *pin, mspriteframe_t **ppframe, int 
 	r_frame.numMips = 1;
 	r_frame.flags = IMAGE_HAS_ALPHA;
 	
-	//extract sprite name from path
+	// extract sprite name from path
 	FS_FileBase( mod->name, name );
 	strcat(name, va("_%i", framenum));
 	r_frame.palette = pal;
+	r_frame.size = width * height * 4; // for bounds checking
 	r_frame.buffer = (byte *)(pinframe + 1);
 
 	image = R_LoadImage( name, &r_frame, it_sprite );
@@ -65,7 +66,7 @@ void *R_SpriteLoadFrame (model_t *mod, void *pin, mspriteframe_t **ppframe, int 
 		pspriteframe->texnum = image->texnum[0];
 		mod->skins[framenum] = image;
           }
-          else Msg("Warning: %s has null frame %d\n", image->name, framenum );
+          else MsgWarn("%s has null frame %d\n", image->name, framenum );
           
 	return (void *)((byte *)(pinframe+1) + size);
 }
@@ -97,7 +98,7 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 		rgbacolor[2] = LittleLong((pin->rgbacolor & 0x00FF0000) >> 16);
 		rgbacolor[3] = LittleLong((pin->rgbacolor & 0xFF000000) >> 24);
 
-		TransformRGBA(rgbacolor, rgbacolor );//convert into float
+		TransformRGBA(rgbacolor, rgbacolor ); //convert into float
 		framerate = LittleFloat (pin->framerate);
 		break;
 	default:
@@ -117,7 +118,7 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 	psprite->rendermode = LittleLong (pin->texFormat);
 	psprite->framerate	= framerate;
 	psprite->numframes	= numframes;
-          memcpy(psprite->rgba, rgbacolor, sizeof(psprite->rgba));
+          Mem_Copy(psprite->rgba, rgbacolor, sizeof(psprite->rgba));
 	numi = (short *)(pin + 1);
 	
 	mod->mins[0] = mod->mins[1] = -psprite->maxwidth / 2;
@@ -184,12 +185,12 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 	}
 	else 
 	{
-		Msg("Warning: %s has wrong number of palette colors %i (should be 256)\n", mod->name, numi);
+		MsgWarn("%s has wrong number of palette colors %i (should be 256)\n", mod->name, numi);
 		return;
 	}		
 	if(numframes < 1)
 	{
-		Msg("Warning: %s has invalid # of frames: %d\n", mod->name, numframes );
+		MsgWarn("%s has invalid # of frames: %d\n", mod->name, numframes );
 		return;
 	}	
 
@@ -228,11 +229,11 @@ mspriteframe_t *R_GetSpriteFrame (entity_t *currententity)
 
 	if ((frame >= psprite->numframes) || (frame < 0))
 	{
-		Msg("R_GetSpriteFrame: no such frame %d (%s)\n", frame, currententity->model->name);
+		MsgDev(D_WARN, "R_GetSpriteFrame: no such frame %d (%s)\n", frame, currententity->model->name);
 		frame = 0;
 	}
 
-	if (psprite->frames[frame].frametype == 0) //SPR_SINGLE
+	if (psprite->frames[frame].frametype == 0) // SPR_SINGLE
 	{
 		pspriteframe = psprite->frames[frame].frameptr;
 	}
@@ -241,10 +242,34 @@ mspriteframe_t *R_GetSpriteFrame (entity_t *currententity)
 	return pspriteframe;
 }
 
+bool R_AcceptSpritePass( entity_t *e, int pass )
+{
+	msprite_t	*psprite = (msprite_t *)currentmodel->extradata;
+
+	if(pass == RENDERPASS_SOLID)
+	{
+		// pass for solid ents
+		if(psprite->rendermode == SPR_NORMAL) return true;	// solid sprite
+		if(psprite->rendermode == SPR_ADDGLOW) return false;	// draw it at second pass
+		if(psprite->rendermode == SPR_ADDITIVE) return false;	// must be draw first always
+		if(psprite->rendermode == SPR_ALPHTEST) return true;	// already blended by alphatest
+		if(psprite->rendermode == SPR_INDEXALPHA) return true;	// already blended by alphatest
+	}	
+	if(pass == RENDERPASS_ALPHA)
+	{
+		// pass for blended ents
+		if(e->flags & RF_TRANSLUCENT) return true;		// solid sprite with custom blend
+		if(psprite->rendermode == SPR_NORMAL) return false;	// solid sprite
+		if(psprite->rendermode == SPR_ADDGLOW) return true;	// can draw
+		if(psprite->rendermode == SPR_ADDITIVE) return true;	// can draw
+		if(psprite->rendermode == SPR_ALPHTEST) return false;	// already drawed
+		if(psprite->rendermode == SPR_INDEXALPHA) return false;	// already drawed
+	}
+	return true;
+}
 
 void R_DrawSpriteModel( int passnum )
 {
-	float		alpha= 1.0F;
 	mspriteframe_t	*frame;
 	vec3_t		point, forward, right, up;
 	msprite_t		*psprite;
@@ -252,15 +277,14 @@ void R_DrawSpriteModel( int passnum )
 	model_t		*mod = currentmodel;
 	float		realtime = r_newrefdef.time;
 
-	if ( (e->flags & RF_TRANSLUCENT) && (passnum == RENDERPASS_SOLID)) return;// solid
-	if (!(e->flags & RF_TRANSLUCENT) && (passnum == RENDERPASS_ALPHA)) return;// solid
-	
+	if(!R_AcceptSpritePass( e, passnum )) return;
+
 	// don't even bother culling, because it's just a single
 	// polygon without a surface cache
 
 	psprite = (msprite_t *)mod->extradata;
 
-	//xash auto-animate
+	// xash auto-animate
 	if(psprite->framerate > 0 && psprite->numframes > 1)
 	{
 		float frametime;
@@ -273,16 +297,21 @@ void R_DrawSpriteModel( int passnum )
 		mod->frame += psprite->framerate * frametime;		
 		while (mod->frame > psprite->numframes) mod->frame -= psprite->numframes;
 		while (mod->frame < 0) mod->frame += psprite->numframes;
-		e->frame = mod->frame;//set properly frame
+		e->frame = mod->frame; // set properly frame
 	}
 	else e->frame = fmod(e->frame, psprite->numframes);
 	frame = R_GetSpriteFrame(e);
+
+	// merge alpha value
+	if( e->flags & RF_TRANSLUCENT ) psprite->rgba[3] = e->alpha;
+	if( e->scale == 0 ) e->scale = 1.0f; // merge scale
 	
+	// setup oriented
 	switch( psprite->type )
 	{
 	case SPR_ORIENTED:
 		AngleVectors(e->angles, forward, right, up);
-		VectorScale(forward, 0.01, forward );//offset for decals
+		VectorScale(forward, 0.01, forward );// offset for decals
 		VectorSubtract(e->origin, forward, e->origin );
 		break;
 	case SPR_FACING_UPRIGHT:
@@ -307,21 +336,29 @@ void R_DrawSpriteModel( int passnum )
 		VectorCopy (vforward, forward);
 		break;
 	}
-	
-	if ( e->flags & RF_TRANSLUCENT ) alpha = e->alpha;
-	else alpha = psprite->rgba[3];
 
-	if ( e->scale == 0 ) e->scale = 1.0f;
-	if ( alpha != 1.0f ) qglEnable( GL_BLEND );
-
-	qglColor4f( psprite->rgba[0], psprite->rgba[1], psprite->rgba[2], alpha );
- 	if(psprite->rendermode == SPR_ADDGLOW) qglDisable(GL_DEPTH_TEST);
-	
+	// setup rendermode
+	switch( psprite->rendermode )
+	{
+	case SPR_NORMAL:
+		// solid sprite
+		break;
+	case SPR_ADDGLOW:
+		GL_DisableDepthTest();
+		// intentional falltrough
+	case SPR_ADDITIVE:
+		GL_EnableBlend();
+		qglBlendFunc(GL_SRC_ALPHA, GL_ONE);
+		break;
+	case SPR_ALPHTEST:
+	case SPR_INDEXALPHA:
+		GL_EnableAlphaTest();
+		break;
+	}                    			
+ 	
 	GL_Bind(currentmodel->skins[(int)e->frame]->texnum[0]);
 	GL_TexEnv( GL_MODULATE );
-
-	if ( alpha == 1.0 ) qglEnable (GL_ALPHA_TEST);
-	else qglDisable( GL_ALPHA_TEST );
+	qglColor4fv( psprite->rgba );
 
 	qglDisable(GL_CULL_FACE);
 	qglBegin (GL_QUADS);
@@ -344,15 +381,14 @@ void R_DrawSpriteModel( int passnum )
 		VectorMA (e->origin, frame->down * e->scale, up, point);
 		VectorMA (point, frame->left * e->scale, right, point);
 		qglVertex3fv (point);
-	qglEnd ();
+	qglEnd();
 
-	qglDisable(GL_BLEND);
-	qglDisable (GL_ALPHA_TEST);
-	qglEnable(GL_DEPTH_TEST);
-	GL_TexEnv( GL_REPLACE );
-
-	if(psprite->rendermode == SPR_ADDGLOW) qglEnable(GL_DEPTH_TEST);
-	if ( alpha != 1.0F ) qglDisable( GL_BLEND );
+	// restore states
+	GL_DisableBlend();
+	GL_DisableAlphaTest();
+	GL_EnableDepthTest();
+	GL_TexEnv(GL_REPLACE);
+	qglEnable(GL_CULL_FACE);
 	qglColor4f( 1, 1, 1, 1 );
 }
 

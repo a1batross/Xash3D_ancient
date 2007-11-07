@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 image_t		*draw_chars;
 
-//byte default_conchar[11356] =
 byte def_font[] =
 {
 #include "lhfont.h"
@@ -147,8 +146,10 @@ void Draw_StretchPic (float x, float y, float w, float h, float s1, float t1, fl
 
 	GL_Bind (gl->texnum[0]);
 
-	qglColor4fv(gl_state.draw_color);
 	GL_TexEnv( GL_MODULATE );
+	GL_EnableBlend();
+	qglBlendFunc(GL_ONE, GL_ZERO);
+	qglColor4fv( gl_state.draw_color );
 
 	qglBegin (GL_QUADS);
 	qglTexCoord2f (s1, t1);
@@ -161,6 +162,7 @@ void Draw_StretchPic (float x, float y, float w, float h, float s1, float t1, fl
 	qglVertex2f (x, y+h);
 
 	qglEnd ();
+	GL_DisableBlend();
 }
 
 

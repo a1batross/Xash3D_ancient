@@ -1126,10 +1126,7 @@ void S_GetSoundtime( void )
 
 	// check to make sure that we haven't overshot
 	if (s_paintedtime < s_soundtime)
-	{
-		Msg("S_Update_ : overflow\n");
 		s_paintedtime = s_soundtime;
-	}
 
 	if ( dma.submission_chunk < 256 )
 		s_paintedtime = s_soundtime + s_mixPreStep->value * dma.speed;

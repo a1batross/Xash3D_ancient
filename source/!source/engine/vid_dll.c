@@ -243,7 +243,7 @@ LONG WINAPI MainWndProc ( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return DefWindowProc (hWnd, uMsg, wParam, lParam);
 
 	case WM_PAINT:
-		SCR_DirtyScreen ();	// force entire screen to update next frame
+		SCR_FillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, g_color_table[0]);
 		return DefWindowProc (hWnd, uMsg, wParam, lParam);
 	case WM_DESTROY:
 		// let sound and input know about this?
@@ -285,8 +285,7 @@ LONG WINAPI MainWndProc ( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				Cvar_SetValue( "vid_ypos", yPos + r.top);
 				vid_xpos->modified = false;
 				vid_ypos->modified = false;
-				if (ActiveApp)
-					IN_Activate (true);
+				if (ActiveApp) IN_Activate (true);
 			}
 		}
 		return DefWindowProc (hWnd, uMsg, wParam, lParam);
@@ -336,6 +335,9 @@ LONG WINAPI MainWndProc ( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_SYSKEYUP:
 	case WM_KEYUP:
 		Key_Event( MapKey( lParam ), false, host.sv_timer);
+		break;
+	case WM_CHAR:
+		CL_CharEvent( wParam );
 		break;
 	default:	// pass all unhandled messages to DefWindowProc
 		return DefWindowProc (hWnd, uMsg, wParam, lParam);

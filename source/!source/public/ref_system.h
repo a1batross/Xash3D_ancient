@@ -132,6 +132,7 @@ enum comp_format
 	PF_RGBA_32,	// already prepared ".bmp", ".tga" or ".jpg" image 
 	PF_ARGB_32,	// uncompressed dds image
 	PF_RGB_24,	// uncompressed dds or another 24-bit image 
+	PF_RGB_24_FLIP,	// flip image for screenshots
 	PF_DXT1,		// nvidia DXT1 format
 	PF_DXT2,		// nvidia DXT2 format
 	PF_DXT3,		// nvidia DXT3 format
@@ -272,7 +273,7 @@ enum dev_level
 	D_INFO = 1,	// "-dev 1", shows various system messages
 	D_WARN,		// "-dev 2", shows not critical system warnings, same as MsgWarn
 	D_ERROR,		// "-dev 3", shows critical warnings 
-	D_LOAD,		// "-dev 4", display info about loading recources
+	D_SPAM,		// "-dev 4", show all system messages
 };
 
 // format info table
@@ -295,6 +296,7 @@ static bpc_desc_t PFDesc[] =
 {PF_RGBA_32,	"RGBA 32",GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, -4 },
 {PF_ARGB_32,	"ARGB 32",GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, -4 },
 {PF_RGB_24,	"RGB 24",	GL_RGBA,		GL_UNSIGNED_BYTE, 3,  1, -3 },
+{PF_RGB_24_FLIP,	"RGB 24",	GL_RGBA,		GL_UNSIGNED_BYTE, 3,  1, -3 },
 {PF_DXT1,		"DXT1",	GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1,  8 },
 {PF_DXT2,		"DXT2",	GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, 16 },
 {PF_DXT3,		"DXT3",	GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, 16 },
@@ -866,6 +868,7 @@ typedef struct scriptsystem_api_s
 	//user interface
 	bool (*Load)( const char *name, char *buf, int size );// load script into stack from file or bufer
 	bool (*Include)( const char *name, char *buf, int size );	// include script from file or buffer
+	void (*Reset)( void );				// reset current script state
 	char *(*GetToken)( bool newline );			// get next token on a line or newline
 	bool (*TryToken)( void );				// return 1 if have token on a line 
 	void (*FreeToken)( void );				// free current token to may get it again
@@ -1046,6 +1049,7 @@ typedef struct render_exp_s
 	void	(*RenderFrame) (refdef_t *fd);
 
 	void	(*SetColor)( const float *rgba );
+	bool	(*ScrShot)( const char *filename, bool force_gamma ); // write screenshot with same name 
 	void	(*DrawStretchRaw) (int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw );
 	void	(*DrawStretchPic)(float x, float y, float w, float h, float s1, float t1, float s2, float t2, char *name);
 

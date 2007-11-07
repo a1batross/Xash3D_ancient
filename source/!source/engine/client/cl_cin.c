@@ -33,7 +33,7 @@ static long ROQ_VR_tab[256];
 static word vq2[256*16*4];
 static word vq4[256*64*4];
 static word vq8[256*256*4];
-e_status CIN_StopCinematic( void );
+void CIN_StopCinematic( void );
 
 typedef struct
 {
@@ -52,7 +52,7 @@ typedef struct
 	char	fileName[MAX_OSPATH];
 	int	CIN_WIDTH, CIN_HEIGHT;
 	int	xpos, ypos, width, height;
-	bool	looping, holdAtEnd, dirty, alterGameState, silent, shader;
+	bool	looping, holdAtEnd, dirty, silent;
 	file_t	*iFile;
 	e_status	status;
 	float	startTime;
@@ -83,7 +83,6 @@ typedef struct
 	long	roqF1;
 	long	t[2];
 	long	roqFPS;
-	int	playonwalls;
 	byte	*buf;
 	long	drawX, drawY;
 } cin_cache;
@@ -918,8 +917,9 @@ static void initRoQ( void )
 
 static void RoQReset( void )
 {
-	FS_Close( cinTable.iFile );
+	if(cinTable.iFile) FS_Close( cinTable.iFile );
 	cinTable.iFile = FS_Open(cinTable.fileName, "rb" );
+
 	// let the background thread start reading ahead
 	FS_Read(cinTable.iFile, cin.file, 16 );
 	RoQ_init();
@@ -984,7 +984,7 @@ redump:
 		if (!cinTable.silent)
 		{
 			ssize = RllDecodeMonoToStereo( framedata, sbuf, cinTable.RoQFrameSize, 0, (word)cinTable.roq_flags);
-			S_RawSamples( ssize, 22050, 2, 1, (byte *)sbuf, 1.0f );
+			S_RawSamples( ssize, 22050, 2, 1, (byte *)sbuf, s_volume->value );
 		}
 		break;
 	case ZA_SOUND_STEREO:
@@ -996,7 +996,7 @@ redump:
 				s_rawend = s_soundtime;
 			}
 			ssize = RllDecodeStereoToStereo( framedata, sbuf, cinTable.RoQFrameSize, 0, (word)cinTable.roq_flags);
-			S_RawSamples( ssize, 22050, 2, 2, (byte *)sbuf, 1.0f );
+			S_RawSamples( ssize, 22050, 2, 2, (byte *)sbuf, s_volume->value );
 		}
 		break;
 	case ROQ_QUAD_INFO:
@@ -1058,6 +1058,21 @@ redump:
 	cinTable.RoQPlayed += cinTable.RoQFrameSize+8;
 }
 
+const char *CIN_Status( void )
+{
+	switch(cinTable.status)
+	{
+	case FMV_IDLE: return "IDLE";
+	case FMV_PLAY: return "PLAY";
+	case FMV_EOF: return "END";
+	case FMV_ID_BLT: return "Id Blt";
+	case FMV_ID_IDLE: return "Id idle";
+	case FMV_LOOPED: return "LOOPED";
+	case FMV_ID_WAIT: return "Id wait";
+	default: return "FMV UNKNOWN";
+	}
+}
+
 static void RoQ_init( void )
 {
 	// we need to use CL_ScaledMilliseconds because of the smp mode calls from the renderer
@@ -1075,16 +1090,15 @@ static void RoQ_init( void )
 	cinTable.roq_id = cin.file[8] + cin.file[9]*256;
 	cinTable.RoQFrameSize = cin.file[10] + cin.file[11] * 256 + cin.file[12] * 65536;
 	cinTable.roq_flags = cin.file[14] + cin.file[15] * 256;                     
+	MsgDev(D_INFO, "Movie: %s\n", CIN_Status());
 }
 
 static void RoQShutdown( void )
 {
-	const char *s;
+	if(cinTable.status == FMV_IDLE || !cinTable.buf)
+		return;
 
-	if(!cinTable.buf) return;
-	if(cinTable.status == FMV_IDLE) return;
-
-	MsgDev(D_INFO, "RoQShutdown: finished cinematic\n");
+	MsgDev(D_INFO, "Movie: %s\n", CIN_Status());
 	cinTable.status = FMV_IDLE;
 
 	if (cinTable.iFile)
@@ -1092,23 +1106,12 @@ static void RoQShutdown( void )
 		FS_Close( cinTable.iFile );
 		cinTable.iFile = 0;
 	}
-
-	if (cinTable.alterGameState)
-	{
-		cl.attractloop = false;
-		cls.state = ca_disconnected;
-		// we can't just do a vstr nextmap, because
-		// if we are aborting the intro cinematic with
-		// a devmap command, nextmap would be valid by
-		// the time it was referenced
-		s = Cvar_VariableString( "nextmap" );
-		if ( s[0] )
-		{
-			Cbuf_ExecuteText( EXEC_APPEND, va("%s\n", s));
-			Cvar_Set( "nextmap", "" );
-		}
-	}
 	cinTable.fileName[0] = 0;
+
+	// let game known about movie state	
+	cl.attractloop = false;
+	cls.state = ca_disconnected;
+	Cbuf_AddText ("killserver\n");
 }
 
 /*
@@ -1116,20 +1119,14 @@ static void RoQShutdown( void )
 CIN_StopCinematic
 ==================
 */
-e_status CIN_StopCinematic( void )
+void CIN_StopCinematic( void )
 {
-	if(cinTable.status == FMV_EOF || !cinTable.buf)
-		return FMV_EOF;
-
-	if (cinTable.alterGameState)
-	{
-		if ( cls.state != ca_cinematic )
-			return cinTable.status;
-	}
+	// not playing
+	if( cls.state != ca_cinematic )
+		return;
 
 	cinTable.status = FMV_EOF;
 	RoQShutdown();
-	return FMV_EOF;
 }
 
 /*
@@ -1145,20 +1142,9 @@ e_status CIN_RunCinematic( void )
 	float     thisTime = 0;
 
 	if(cinTable.status == FMV_EOF) return FMV_EOF;
-	if (cinTable.playonwalls < -1) return cinTable.status;
-	if(cl_paused->integer) return FMV_IDLE;
-
-	if (cinTable.alterGameState)
-	{
-		if ( cls.state != ca_cinematic )
-			return cinTable.status;
-	}
-
-	if (cinTable.status == FMV_IDLE) return cinTable.status;
+	if ( cls.state != ca_cinematic ) return cinTable.status;
 
 	thisTime = cls.realtime;
-	if (cinTable.shader && (fabs(thisTime - cinTable.lastTime)) > 0.01)
-		cinTable.startTime += thisTime - cinTable.lastTime;
 
 	cinTable.tfps = ((((cls.realtime) - cinTable.startTime) * 0.3) / 0.01); // 30.0 fps as default
 	start = cinTable.startTime;
@@ -1168,14 +1154,14 @@ e_status CIN_RunCinematic( void )
 		RoQInterrupt();
 		if (start != cinTable.startTime)
 		{
-			// we need to use CL_ScaledMilliseconds because of the smp mode calls from the renderer
 			cinTable.tfps = ((((cls.realtime) - cinTable.startTime)*0.3)/0.01);
 			start = cinTable.startTime;
 		}
 	}
 
 	cinTable.lastTime = thisTime;
-	if(cinTable.status == FMV_LOOPED) cinTable.status = FMV_PLAY;
+	if(cinTable.status == FMV_LOOPED) 
+		cinTable.status = FMV_PLAY;
 
 	if (cinTable.status == FMV_EOF)
 	{
@@ -1221,32 +1207,18 @@ bool CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemB
 
 	cinTable.ROQSize = 0;
 	cinTable.iFile = FS_Open(cinTable.fileName, "rb" );
-
-	if(!cinTable.iFile) goto shutdown;
+	if(!cinTable.iFile) goto shutdown; // not found
 
 	FS_Seek(cinTable.iFile, 0, SEEK_END);
 	cinTable.ROQSize = FS_Tell(cinTable.iFile);
 	FS_Seek(cinTable.iFile, 0, SEEK_SET);
-
-	if (cinTable.ROQSize <= 0)
-	{
-		MsgDev(D_WARN, "play(%s), ROQSize <= 0\n", arg);
-		cinTable.fileName[0] = 0;
-		return -1;
-	}
-
 	CIN_SetExtents(x, y, w, h);
 	CIN_SetLooping((systemBits & CIN_loop) != 0);
 
 	cinTable.CIN_HEIGHT = DEFAULT_CIN_HEIGHT;
 	cinTable.CIN_WIDTH = DEFAULT_CIN_WIDTH;
 	cinTable.holdAtEnd = (systemBits & CIN_hold) != 0;
-	cinTable.alterGameState = (systemBits & CIN_system) != 0;
-	cinTable.playonwalls = 1;
 	cinTable.silent = (systemBits & CIN_silent) != 0;
-	cinTable.shader = (systemBits & CIN_shader) != 0;
-
-	M_ForceMenuOff();
 
 	initRoQ();
 	FS_Read (cinTable.iFile, cin.file, 16 );
@@ -1257,6 +1229,8 @@ bool CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemB
 		RoQ_init();
 		cinTable.status = FMV_PLAY;
 		cls.state = ca_cinematic;
+
+		M_ForceMenuOff();
 		Con_Close();
 
 		s_rawend = s_soundtime;
@@ -1264,7 +1238,7 @@ bool CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemB
 	}
 
 shutdown:
-	MsgWarn("CIN_PlayCinematic: invalid RoQ ID\n");
+	MsgWarn("CIN_PlayCinematic: can't loading %s\n", arg );
 	RoQShutdown();
 	return false;
 }
@@ -1284,7 +1258,6 @@ void CIN_DrawCinematic( void )
 		return;
 
 	if(cls.state != ca_cinematic) return;
-	if(cl_paused->integer) return;
 
 	x = cinTable.xpos;
 	y = cinTable.ypos;
@@ -1364,36 +1337,20 @@ void CIN_DrawCinematic( void )
 	cinTable.dirty = false;
 }
 
-void CL_PlayCinematic_f( void )
-{
-	char	*arg, *s;
-	bool	holdatend;
-	int	bits = CIN_system;
+/*
+==============================================================================
 
-	if (cls.state == ca_cinematic)
-		SCR_StopCinematic();
-
-	arg = Cmd_Argv( 1 );
-	s = Cmd_Argv(2);
-
-	holdatend = false;
-	if (s && s[0] == '1') bits |= CIN_hold;
-	if (s && s[0] == '2') bits |= CIN_loop;
-
-	S_StopAllSounds();
-
-	if (CIN_PlayCinematic( arg, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, bits ))
-		SCR_RunCinematic(); // load first frame
-}
-
-void SCR_PlayCinematic( char *name )
+Cinematic user interface
+==============================================================================
+*/
+void SCR_PlayCinematic( char *name, int bits )
 {
 	if (cls.state == ca_cinematic)
 		SCR_StopCinematic();
 
 	S_StopAllSounds();
 
-	if (CIN_PlayCinematic( name, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0 ))
+	if (CIN_PlayCinematic( name, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, bits ))
 		SCR_RunCinematic(); // load first frame
 }
 
@@ -1402,12 +1359,12 @@ void SCR_DrawCinematic( void )
 	CIN_DrawCinematic();
 }
 
-void SCR_RunCinematic (void)
+void SCR_RunCinematic( void )
 {
 	CIN_RunCinematic();
 }
 
-void SCR_StopCinematic(void)
+void SCR_StopCinematic( void )
 {
 	CIN_StopCinematic();
 	S_StopAllSounds();
@@ -1420,7 +1377,7 @@ SCR_FinishCinematic
 Called when either the cinematic completes, or it is aborted
 ====================
 */
-void SCR_FinishCinematic (void)
+void SCR_FinishCinematic( void )
 {
 	// tell the server to advance to the next map / cinematic
 	MSG_WriteByte (&cls.netchan.message, clc_stringcmd);

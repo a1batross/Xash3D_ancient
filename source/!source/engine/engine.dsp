@@ -114,7 +114,15 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;hpj;bat;for;f90"
 # Begin Source File
 
+SOURCE=.\client\cg_user.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\client\cl_cin.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\client\cl_cmds.c
 # End Source File
 # Begin Source File
 
@@ -378,7 +386,7 @@ SOURCE=.\common\qmenu.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\screen.h
+SOURCE=.\client\screen.h
 # End Source File
 # Begin Source File
 
@@ -394,7 +402,7 @@ SOURCE=.\sound.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\vid.h
+SOURCE=.\screen\vid.h
 # End Source File
 # Begin Source File
 

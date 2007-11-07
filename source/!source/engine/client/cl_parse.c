@@ -324,7 +324,7 @@ void CL_ParseServerData (void)
 	if (cl.playernum == -1)
 	{	
 		// playing a cinematic or showing a pic, not a level
-		SCR_PlayCinematic (str);
+		SCR_PlayCinematic( str, 0 );
 	}
 	else
 	{
@@ -668,7 +668,7 @@ void CL_ParseServerMessage (void)
 			break;
 			
 		case svc_centerprint:
-			SCR_CenterPrint (MSG_ReadString (&net_message));
+			CG_CenterPrint(MSG_ReadString (&net_message), SCREEN_HEIGHT/2, BIGCHAR_WIDTH );
 			break;
 			
 		case svc_stufftext:

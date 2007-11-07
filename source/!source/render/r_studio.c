@@ -84,7 +84,8 @@ image_t *R_StudioLoadTexture( model_t *mod, mstudiotexture_t *ptexture, byte *pi
 	r_skin.type = PF_INDEXED_24;
 	r_skin.numMips = 1;
 	r_skin.palette = pin + ptexture->width * ptexture->height + ptexture->index;
-	r_skin.buffer = pin + ptexture->index; //texdata
+	r_skin.buffer = pin + ptexture->index; // texdata
+	r_skin.size = ptexture->width * ptexture->height * 3; // for bounds cheking
 			
 	//load studio texture and bind it
 	image = R_LoadImage(ptexture->name, &r_skin, it_skin );
@@ -1166,7 +1167,7 @@ void R_StudioSetupChrome(int *pchrome, int bone, vec3_t normal)
 	pchrome[1] = (n + 1.0) * 32;// FIXME: make this a float
 }
 
-bool R_AcceptPass( int flags, int pass )
+bool R_AcceptStudioPass( int flags, int pass )
 {
 	if(pass == RENDERPASS_SOLID)
 	{
@@ -1204,7 +1205,7 @@ void R_StudioDrawMeshes ( mstudiotexture_t * ptexture, short *pskinref, int pass
 	for (j = 0; j < m_pSubModel->nummesh; j++) 
 	{
 		flags = ptexture[pskinref[pmesh[j].skinref]].flags;
-		if(!R_AcceptPass(flags, pass )) continue;
+		if(!R_AcceptStudioPass(flags, pass )) continue;
 		
 		for (i = 0; i < pmesh[j].numnorms; i++, lv += 3, pstudionorms++, pnormbone++)
 		{
@@ -1226,7 +1227,7 @@ void R_StudioDrawMeshes ( mstudiotexture_t * ptexture, short *pskinref, int pass
 		ptricmds = (short *)((byte *)m_pStudioHeader + pmesh->triindex);
 
 		flags = ptexture[pskinref[pmesh->skinref]].flags;
-		if(!R_AcceptPass(flags, pass )) 
+		if(!R_AcceptStudioPass(flags, pass )) 
 			continue;
 		s = 1.0/(float)ptexture[pskinref[pmesh->skinref]].width;
 		t = 1.0/(float)ptexture[pskinref[pmesh->skinref]].height;

@@ -1,23 +1,7 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-// console.c
+//=======================================================================
+//			Copyright XashXT Group 2007 ©
+//			cl_console.c - client console
+//=======================================================================
 
 #include "client.h"
 
@@ -54,49 +38,6 @@ typedef struct
 } console_t;
 
 static console_t con;
-
-void DrawString (int x, int y, char *s)
-{
-	while (*s)
-	{
-		re->DrawChar (x, y, *s);
-		x+=8;
-		s++;
-	}
-}
-
-void DrawAltString (int x, int y, char *s)
-{
-	while (*s)
-	{
-		re->DrawChar (x, y, *s ^ 0x80);
-		x+=8;
-		s++;
-	}
-}
-
-// strlen that discounts color sequences
-int Con_PrintStrlen( const char *string )
-{
-	int		len;
-	const char	*p;
-
-	if( !string ) return 0;
-
-	len = 0;
-	p = string;
-	while( *p )
-	{
-		if(IsColorString( p ))
-		{
-			p += 2;
-			continue;
-		}
-		p++;
-		len++;
-	}
-	return len;
-}
 
 /*
 ================
@@ -647,24 +588,31 @@ void Con_DrawConsole( void )
 	Con_CheckResize ();
 
 	// if disconnected, render console full screen
-	if( cls.state == ca_connecting)
+	switch( cls.state )
 	{
-		Con_DrawSolidConsole( 0.5 );
-		SCR_FillRect( 0, SCREEN_HEIGHT/2, SCREEN_WIDTH, SCREEN_HEIGHT, g_color_table[0] );
-	}
-
-	// if disconnected, render console full screen
-	if ( cls.state == ca_disconnected )
-	{
-		if(cls.key_dest != key_menu && cls.key_dest != key_game)
+	case ca_uninitialized:
+		break;
+	case ca_connected:
+	case ca_connecting:
+		if(host.developer)
+		{
+			// show console in devmode
+			Con_DrawSolidConsole( 0.5 );
+			SCR_FillRect( 0, SCREEN_HEIGHT/2, SCREEN_WIDTH, SCREEN_HEIGHT, g_color_table[0] );
+		}
+		break;
+	case ca_disconnected:
+		if(cls.key_dest != key_menu)
 		{
 			Con_DrawSolidConsole( 1.0 );
-			return;
 		}
+		break;
+	case ca_active:
+	case ca_cinematic: 
+		if( con.displayFrac ) Con_DrawSolidConsole( con.displayFrac );
+		else if ( cls.state == ca_active ) Con_DrawNotify(); // draw notify lines
+		break;
 	}
-
-	if ( con.displayFrac ) Con_DrawSolidConsole( con.displayFrac );
-	else if ( cls.state == ca_active ) Con_DrawNotify(); // draw notify lines
 }
 
 /*
@@ -678,18 +626,22 @@ void Con_RunConsole( void )
 {
 	// decide on the destination height of the console
 	if (cls.key_dest == key_console)
-		con.finalFrac = 0.5; // half screen
+	{
+		if ( cls.state == ca_disconnected )
+			con.finalFrac = 1.0;// full screen
+		else con.finalFrac = 0.5;	// half screen	
+	}
 	else con.finalFrac = 0; // none visible
 
 	if (con.finalFrac < con.displayFrac)
 	{
-		con.displayFrac -= con_speed->value*cls.frametime;
+		con.displayFrac -= con_speed->value * cls.frametime;
 		if (con.finalFrac > con.displayFrac)
 			con.displayFrac = con.finalFrac;
 	}
 	else if (con.finalFrac > con.displayFrac)
 	{
-		con.displayFrac += con_speed->value*cls.frametime;
+		con.displayFrac += con_speed->value * cls.frametime;
 		if (con.finalFrac < con.displayFrac)
 			con.displayFrac = con.finalFrac;
 	}

@@ -49,6 +49,7 @@ memory manager
 //malloc-free
 #define Mem_Alloc(pool,size) ri.Mem.Alloc(pool, size, __FILE__, __LINE__)
 #define Mem_Free(mem) ri.Mem.Free(mem, __FILE__, __LINE__)
+#define Mem_Copy(dst, src, size) ri.Mem.Copy(dst, src, size, __FILE__, __LINE__)
 
 //Hunk_AllocName
 #define Mem_AllocPool(name) ri.Mem.AllocPool(name, __FILE__, __LINE__)
@@ -76,6 +77,7 @@ filesystem manager
 */
 #define FS_LoadFile(name, size) ri.Fs.LoadFile(name, size)
 #define FS_LoadImage(name, data, size) ri.Fs.LoadImage(name, data, size)
+#define FS_SaveImage(name, pic) ri.Fs.SaveImage(name, pic)
 #define FS_FreeImage(data) ri.Fs.FreeImage(data)
 #define FS_Search(path) ri.Fs.Search( path, true )
 #define FS_WriteFile(name, data, size) ri.Fs.WriteFile(name, data, size )
@@ -221,7 +223,7 @@ typedef struct
 
 extern	image_t		gltextures[MAX_GLTEXTURES];
 extern	int		numgltextures;
-
+extern	byte		*r_framebuffer;
 
 extern image_t	*r_notexture;
 extern image_t	*r_particletexture;
@@ -354,6 +356,10 @@ void GL_SetColor( const void *data );
 void R_SetGL2D ( void );
 void R_LightPoint (vec3_t p, vec3_t color);
 void R_PushDlights (void);
+bool VID_ScreenShot( const char *filename, bool force_gamma );
+void VID_BuildGammaTable( void );
+void VID_ImageLightScale (uint *in, int inwidth, int inheight );
+void VID_ImageBaseScale (uint *in, int inwidth, int inheight );
 
 //====================================================================
 
@@ -370,7 +376,6 @@ int 	R_Init( void *hinstance, void *hWnd );
 void	R_Shutdown( void );
 
 void R_RenderView (refdef_t *fd);
-void GL_ScreenShot_f (void);
 void R_DrawStudioModel( int passnum );
 void R_DrawBrushModel( int passnum );
 void R_DrawSpriteModel( int passnum );
@@ -452,6 +457,8 @@ void GL_EnableBlend( void );
 void GL_DisableBlend( void );
 void GL_EnableAlphaTest ( void );
 void GL_DisableAlphaTest ( void );
+void GL_EnableDepthTest( void );
+void GL_DisableDepthTest( void );
 
 /*
 ** GL extension emulation functions
@@ -493,6 +500,7 @@ typedef struct
 	int	currenttmu;
 
 	bool	alpha_test;
+	bool	depth_test;
 	bool	blend;
 	bool	texgen;
 

@@ -49,11 +49,10 @@ typedef enum
 	FMV_ID_WAIT
 } e_status;
 
-#define CIN_system		1
-#define CIN_loop		2
-#define CIN_hold		4
-#define CIN_silent		8
-#define CIN_shader		16
+// cinematic flags
+#define CIN_loop		1
+#define CIN_hold		2
+#define CIN_silent		4
 
 #define COLOR_0		NULL
 #define COLOR_4		GetRGBA(1.0f, 0.5f, 0.0f, 1.0f)
@@ -77,12 +76,8 @@ void	SCR_TouchPics (void);
 
 void	SCR_RunConsole (void);
 
-extern	float		scr_con_current;
-extern	float		scr_conlines;		// lines of console to display
-
 extern	int			sb_lines;
 
-extern	cvar_t		*scr_viewsize;
 extern	cvar_t		*crosshair;
 
 extern	vrect_t		scr_vrect;		// position of render window
@@ -97,15 +92,20 @@ void SCR_DrawPic( float x, float y, float width, float height, char *picname );
 void SCR_FillRect( float x, float y, float width, float height, const float *color );
 void SCR_DrawSmallChar( int x, int y, int ch );
 void SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, bool forceColor );
+void SCR_DrawStringExt( int x, int y, float size, const char *string, float *setColor, bool forceColor );
 void SCR_DrawBigString( int x, int y, const char *s, float alpha );
 void SCR_DrawBigStringColor( int x, int y, const char *s, vec4_t color );
 
 //
-// cl_cin.c
+// cl_user.c
 //
-void SCR_PlayCinematic (char *name);
-void SCR_DrawCinematic (void);
-void SCR_RunCinematic (void);
-void SCR_StopCinematic (void);
-void SCR_FinishCinematic (void);
+void CG_SetSky_f( void );
+void CG_DrawCenterString( void );
+void CG_CenterPrint( const char *str, int y, int charWidth );
+void CG_DrawCenterPic( int w, int h, char *picname );
+void CG_MakeLevelShot( void );
+void CG_DrawLoading( void );
+void CG_DrawNet( void );
+void CG_DrawPause( void );
+
 #endif//SCREEN_H

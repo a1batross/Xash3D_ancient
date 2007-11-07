@@ -3275,11 +3275,9 @@ const char *M_Quit_Key (int key)
 
 }
 
-extern void SCR_DrawString (char *str);
-
 void M_Quit_Draw (void)
 {
-	SCR_DrawString("QUIT? (Yes/No)");
+	CG_DrawCenterPic( 320, 240, "quit" );
 }
 
 

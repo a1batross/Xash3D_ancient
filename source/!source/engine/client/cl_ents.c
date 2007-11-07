@@ -674,12 +674,6 @@ void CL_AddPacketEntities (frame_t *frame)
 				ent.model = cl.model_draw[s1->modelindex];
 			}
 		}
-
-		// only used for black hole model right now, FIXME: do better
-		if (renderfx == RF_TRANSLUCENT)
-		{
-			ent.alpha = 0.70;
-		}
 		// render effects (fullbright, translucent, etc)
 		if ((effects & EF_COLOR_SHELL))
 			ent.flags = 0;	// renderfx go on color shell entity

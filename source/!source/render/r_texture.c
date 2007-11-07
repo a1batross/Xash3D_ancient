@@ -15,7 +15,6 @@
 image_t gltextures[MAX_GLTEXTURES];
 int numgltextures;
 byte intensitytable[256];
-byte gammatable[256];
 extern cvar_t *gl_picmip;
 cvar_t *gl_maxsize;
 byte *r_imagepool;
@@ -243,7 +242,7 @@ bool R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 
 	if(r_size != pic->size) // sanity check
 	{
-		//MsgWarn("R_GetPixelFormat: invalid image size\n");
+		MsgDev(D_ERROR, "R_GetPixelFormat: invalid image size\n");
 		return false;
 	}	
 	return true;
@@ -254,7 +253,7 @@ bool R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 R_GetPalette
 ===============
 */
-void R_GetPalette (void)
+void R_GetPalette( void )
 {
 	uint	v;
 	int	i, r, g, b;
@@ -303,20 +302,18 @@ R_InitTextures
 void R_InitTextures( void )
 {
 	int texsize, i, j;
-          float g = vid_gamma->value;
-	
+
 	r_imagepool = Mem_AllocPool("Texture Pool");
           gl_maxsize = ri.Cvar_Get ("gl_maxsize", "0", 0);
 	
 	qglGetIntegerv(GL_MAX_TEXTURE_SIZE, &texsize);
-	if (gl_maxsize->value > texsize)
-		ri.Cvar_SetValue ("gl_maxsize", texsize);
+	if (gl_maxsize->value > texsize) ri.Cvar_SetValue ("gl_maxsize", texsize);
 
 	if(texsize < 2048) imagebufsize = 2048*2048*4;
 	else imagebufsize = texsize * texsize * 4;
 	uploadbufsize = texsize * texsize * 4;
 	
-	//create intermediate & upload image buffer
+	// create intermediate & upload image buffer
 	imagebuffer = Mem_Alloc( r_imagepool, imagebufsize );
           uploadbuffer = Mem_Alloc( r_imagepool, uploadbufsize );
 
@@ -325,29 +322,16 @@ void R_InitTextures( void )
 	// init intensity conversions
 	intensity = ri.Cvar_Get ("intensity", "2", 0);
 	if ( intensity->value <= 1 ) ri.Cvar_Set( "intensity", "1" );
-
 	gl_state.inverse_intensity = 1 / intensity->value;
-	R_GetPalette();
 
-	for ( i = 0; i < 256; i++ )
-	{
-		if ( g == 1 ) gammatable[i] = i;
-		else
-		{
-			float inf;
-
-			inf = 255 * pow ( (i+0.5)/255.5 , g ) + 0.5;
-			if (inf < 0) inf = 0;
-			if (inf > 255) inf = 255;
-			gammatable[i] = inf;
-		}
-	}
 	for (i = 0; i < 256; i++)
 	{
 		j = i * intensity->value;
-		if (j > 255) j = 255;
-		intensitytable[i] = j;
+		intensitytable[i] = bound(0, j, 255);
 	}
+
+	R_GetPalette();
+	VID_BuildGammaTable();
 }
 
 /* 
@@ -466,24 +450,6 @@ void R_FilterTexture (int filterindex, uint *data, int width, int height, float 
 
 	memcpy(data, temp, width * height * 4);
 	Z_Free (temp); // release the temp buffer
-}
-
-/*
-================
-R_ImageLightScale
-================
-*/
-void R_ImageLightScale (unsigned *in, int inwidth, int inheight )
-{
-	int	i, c = inwidth * inheight;
-	byte	*p = (byte *)in;
-
-	for (i = 0; i < c; i++, p += 4)
-	{
-		p[0] = gammatable[p[0]];
-		p[1] = gammatable[p[1]];
-		p[2] = gammatable[p[2]];
-	}
 }
 
 void R_RoundImageDimensions(int *scaled_width, int *scaled_height, bool mipmap)
@@ -1014,7 +980,7 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 	if (image_desc.type == it_wall && mipmap && r_emboss_bump->value)
 		R_FilterTexture (EMBOSS_FILTER, scaled, scaled_width, scaled_height, 1, 128, true, GL_MODULATE);
 
-	R_ImageLightScale(scaled, scaled_width, scaled_height ); //check for round
+	VID_ImageLightScale(scaled, scaled_width, scaled_height ); //check for round
 	qglTexImage2D ( target, level, samples, scaled_width, scaled_height, border, image_desc.glMask, image_desc.glType, (byte *)scaled );
 
 	if(qglGetError()) return false;
@@ -1070,7 +1036,7 @@ bool R_LoadTexImage( uint *data )
 		R_FilterTexture (EMBOSS_FILTER, data, scaled_width, scaled_height, 1, 128, true, GL_MODULATE);
 
 	R_ResampleTexture (data, image_desc.width, image_desc.height, scaled, scaled_width, scaled_height);
-	R_ImageLightScale(scaled, scaled_width, scaled_height );
+	VID_ImageLightScale(scaled, scaled_width, scaled_height );
 
 	GL_GenerateMipmaps(); //SGIS_ext
 	qglTexImage2D (GL_TEXTURE_2D, 0, samples, scaled_width, scaled_height, 0, image_desc.glMask, image_desc.glType, scaled);
@@ -1277,7 +1243,7 @@ bool qrsDecompressImageATI( uint target, int level, int internalformat, uint wid
 	}
 
 	// ati images always have power of two sizes
-	R_ImageLightScale((uint *)fout, width, height ); //check for round
+	VID_ImageLightScale((uint *)fout, width, height ); //check for round
 
 	// upload base image or miplevel
 	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;
@@ -1435,7 +1401,7 @@ bool R_StoreImageARGB( uint target, int level, uint width, uint height, uint ima
 	if (image_desc.type == it_wall && mipmap && r_emboss_bump->value)
 		R_FilterTexture (EMBOSS_FILTER, scaled, scaled_width, scaled_height, 1, 128, true, GL_MODULATE);
 
-	R_ImageLightScale(scaled, scaled_width, scaled_height ); //check for round
+	VID_ImageLightScale(scaled, scaled_width, scaled_height ); //check for round
 	qglTexImage2D ( target, level, samples, scaled_width, scaled_height, 0, image_desc.glMask, image_desc.glType, scaled );
 
 	if(qglGetError()) return false;
@@ -1516,10 +1482,10 @@ bool R_LoadImageRGBA (byte *data )
 	}
 	for (i = 0; i < s; i++ )
 	{
-		trans[(i<<2)+0] = gammatable[image_desc.pal[data[i]*4+0]];
-		trans[(i<<2)+1] = gammatable[image_desc.pal[data[i]*4+1]];
-		trans[(i<<2)+2] = gammatable[image_desc.pal[data[i]*4+2]];
-		trans[(i<<2)+3] = gammatable[image_desc.pal[data[i]*4+3]];
+		trans[(i<<2)+0] = image_desc.pal[data[i]*4+0];
+		trans[(i<<2)+1] = image_desc.pal[data[i]*4+1];
+		trans[(i<<2)+2] = image_desc.pal[data[i]*4+2];
+		trans[(i<<2)+3] = image_desc.pal[data[i]*4+3];
 	}
 	return R_LoadTexImage((uint*)trans );
 }
@@ -1700,7 +1666,7 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
 		R_SetPixelFormat( image_desc.width, image_desc.height, image_desc.numLayers );
 		offset = image_desc.SizeOfFile;// move pointer
 		
-		MsgDev(D_LOAD, "loading %s [%s] \n", name, PFDesc[image_desc.format].name );
+		MsgDev(D_SPAM, "loading %s [%s] \n", name, PFDesc[image_desc.format].name );
 
 		switch(pic->type)
 		{

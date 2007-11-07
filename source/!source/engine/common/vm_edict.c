@@ -1062,7 +1062,7 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 			PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
 
 		newline = (COM_Token[0] == '}') ? true : false;
-		if(!newline) MsgDev(D_LOAD, "Key: \"%s\"", COM_Token);
+		if(!newline) MsgDev(D_SPAM, "Key: \"%s\"", COM_Token);
 		else break;
 
 		// anglehack is to allow QuakeEd to write single scalar angles
@@ -1087,7 +1087,7 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 		// parse value
 		if (!COM_Parse(&data))
 			PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
-		MsgDev(D_LOAD, " \"%s\"\n", COM_Token);
+		MsgDev(D_SPAM, " \"%s\"\n", COM_Token);
 
 		if (COM_Token[0] == '}')
 			PRVM_ERROR ("PRVM_ED_ParseEdict: closing brace without data");
@@ -2029,7 +2029,7 @@ int PRVM_SetEngineString(const char *s)
 		if (prog->knownstrings[i] == s)
 			return -1 - i;
 	// new unknown engine string
-	MsgDev(D_LOAD, "new engine string %p\n", s );
+	MsgDev(D_SPAM, "new engine string %p\n", s );
 	for (i = prog->firstfreeknownstring;i < prog->numknownstrings;i++)
 		if (!prog->knownstrings[i])
 			break;

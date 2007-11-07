@@ -307,7 +307,7 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, b
 	if( key_overstrikeMode ) cursorChar = 11;
 	else cursorChar = 95;
 
-	i = drawLen - (Con_PrintStrlen(str) + 1);
+	i = drawLen - (ColorStrlen(str) + 1);
 
 	if(size == SMALLCHAR_WIDTH) SCR_DrawSmallChar( x + (edit->cursor - prestep - i) * size, y, cursorChar );
 	else
@@ -361,8 +361,6 @@ Key events are used for non-printable characters, others are gotten from char ev
 void Field_KeyDownEvent( field_t *edit, int key )
 {
 	int		len;
-
-	Msg("Field_KeyDownEvent %s, key %d\n", Key_KeynumToString(key), key );
 
 	// shift-insert is paste
 	if((( key == K_INS ) || ( key == K_KP_INS )) && keys[K_SHIFT].down )
@@ -436,8 +434,6 @@ Field_CharEvent
 void Field_CharEvent( field_t *edit, int ch )
 {
 	int		len;
-
-	Msg("Field_CharEvent %s, key %d\n", Key_KeynumToString(ch), ch );
 
 	if ( ch == 'v' - 'a' + 1 )
 	{
@@ -634,7 +630,7 @@ void Key_Console(int key)
 		return;
 	}
 
-#if 1
+#if 0
 	if( key < 127 && !Key_IsDown(K_CTRL)) 
 	{
 		// pass to the normal editline routine
@@ -1084,10 +1080,6 @@ void Key_Event(int key, bool down, uint time)
 		return;
 	}
 
-	// any key during the attract mode will bring up the menu
-	//if (cl.attractloop && cls.key_dest != key_menu && !(key >= K_F1 && key <= K_F12))
-	//	key = K_ESCAPE;
-
 	// escape is always handled special
 	if ( key == K_ESCAPE && down )
 	{
@@ -1133,26 +1125,23 @@ void Key_Event(int key, bool down, uint time)
 	// distribute the key down event to the apropriate handler
 	if(cls.key_dest == key_message)
 	{
-		Key_Message(key);
+		Key_Message( key );
 	}
 	else if(cls.key_dest == key_menu)
 	{
-		M_Keydown(key);
+		M_Keydown( key );
 	}
-	else if(cls.key_dest == key_game || cls.key_dest == key_console)
+	else if(cls.key_dest == key_console)
 	{
-		Key_Console (key);
+		Key_Console( key );
 	}
-	else
+	else if(cls.key_dest == key_game )
 	{
 		// send the bound action
 		kb = keys[key].binding;
 		if ( !kb )
 		{
-			if (key >= 200)
-			{
-				Msg("%s is unbound, use controls menu to set.\n", Key_KeynumToString( key ));
-			}
+			if (key >= 200) Msg("%s is unbound, use controls menu to set.\n", Key_KeynumToString(key));
 		}
 		else if (kb[0] == '+')
 		{	

@@ -103,7 +103,7 @@ typedef struct
 	bool	sound_prepped;		// ambient sounds can start
 	bool	force_refdef;		// vid has changed, so we can't use a paused refdef
 
-	int			parse_entities;		// index (not anded off) into cl_parse_entities[]
+	int		parse_entities;		// index (not anded off) into cl_parse_entities[]
 
 	usercmd_t	cmd;
 	usercmd_t		cmds[CMD_BACKUP];			// each mesage will send several old cmds
@@ -132,9 +132,19 @@ typedef struct
 					// is rendering at.  always <= cls.realtime
 	float		lerpfrac;		// between oldframe and frame
 
-	refdef_t	refdef;
+	refdef_t		refdef;
 
 	vec3_t		v_forward, v_right, v_left, v_up; // set when refdef.angles is set
+
+	// centerprint stuff
+	float		centerPrintTime;
+	int		centerPrintCharWidth;
+	int		centerPrintY;
+	char		centerPrint[1024];
+	int		centerPrintLines;		
+
+	char		levelshot_name[MAX_QPATH];
+	bool		make_levelshot;
 
 	//
 	// transient data from server
@@ -145,10 +155,10 @@ typedef struct
 	//
 	// server state information
 	//
-	bool	attractloop;		// running the attract loop, any key will menu
-	int			servercount;	// server identification for prespawns
+	bool		attractloop;		// running the attract loop, any key will menu
+	int		servercount;	// server identification for prespawns
 	char		gamedir[MAX_QPATH];
-	int			playernum;
+	int		playernum;
 
 	char		configstrings[MAX_CONFIGSTRINGS][MAX_QPATH];
 
@@ -233,6 +243,9 @@ typedef struct
 	bool	demorecording;
 	bool	demowaiting;	// don't record until a non-delta message is received
 	file_t		*demofile;
+	byte		*hud_program;
+	uint		hud_program_size;
+		
 } client_static_t;
 
 extern client_static_t	cls;
@@ -413,7 +426,8 @@ void CL_PrepRefresh (void);
 void CL_RegisterSounds (void);
 
 void CL_Quit_f (void);
-
+void CL_ScreenShot_f( void );
+void CL_LevelShot_f( void );
 void IN_Accumulate (void);
 
 void CL_ParseLayout (void);
@@ -492,7 +506,13 @@ extern	int			gun_frame;
 extern	model_t			*gun_model;
 
 void V_Init (void);
+void V_CalcRect( void );
+bool V_PreRender( void );
+void V_RenderHUD( void );
+void V_PostRender( void );
 void V_RenderView( void );
+void V_RenderLogo( void );
+void V_RenderSplash( void );
 void V_AddEntity (entity_t *ent);
 void V_AddParticle (vec3_t org, int color, float alpha);
 void V_AddLight (vec3_t org, float intensity, float r, float g, float b);
@@ -595,5 +615,14 @@ void Key_ClearStates (void);
 char *Key_KeynumToString (int keynum);
 int Key_StringToKeynum (char *str);
 int Key_GetKey( char *binding );
+
+//
+// cl_cin.c
+//
+void SCR_PlayCinematic( char *name, int bits );
+void SCR_DrawCinematic( void );
+void SCR_RunCinematic( void );
+void SCR_StopCinematic( void );
+void SCR_FinishCinematic( void );
 
 #endif//CLIENT_H

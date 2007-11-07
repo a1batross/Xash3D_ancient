@@ -262,6 +262,17 @@ float 	TRUE					= 1;
 #define	MOVETYPE_BOUNCE		7
 #define	MOVETYPE_FOLLOW		8	// attached models
 
+#define	RF_MINLIGHT		1		// allways have some light (viewmodel)
+#define	RF_VIEWERMODEL		2		// don't draw through eyes, only mirrors
+#define	RF_WEAPONMODEL		4		// only draw through eyes
+#define	RF_FULLBRIGHT		8		// allways draw full intensity
+#define	RF_DEPTHHACK		16		// for view weapon Z crunching
+#define	RF_TRANSLUCENT		32
+#define	RF_FRAMELERP		64
+#define	RF_BEAM			128
+#define	RF_CUSTOMSKIN		256		// skin is an index in image_precache
+#define	RF_GLOW			512		// pulse lighting for bonus items
+
 // edict.solid values
 float	SOLID_NOT				= 0;	// no interaction with other objects
 float	SOLID_TRIGGER			= 1;	// touch on edge, but not blocking

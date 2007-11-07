@@ -1593,7 +1593,7 @@ bool FS_AddImageToPack( const char *name )
 
 	if(resampled != image_rgba) 
 	{
-		MsgDev(D_LOAD, "FS_AddImageToPack: resample %s from [%dx%d] to [%dx%d]\n", name, image_width, image_height, cubemap_width, cubemap_height );  
+		MsgDev(D_SPAM, "FS_AddImageToPack: resample %s from [%dx%d] to [%dx%d]\n", name, image_width, image_height, cubemap_width, cubemap_height );  
 		Mem_Move( imagepool, &image_rgba, resampled, image_size );// update buffer
 	}	
 
@@ -1675,7 +1675,7 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 			// first side not found, probably it's not cubemap
 			// it contain info about image_type and dimensions, don't generate black cubemaps 
 			if(!image_cubemap) break;
-			MsgDev(D_LOAD, "FS_LoadImage: couldn't load (%s%s.%s), create balck image\n",loadname,suf[i],ext );
+			MsgDev(D_SPAM, "FS_LoadImage: couldn't load (%s%s.%s), create balck image\n",loadname,suf[i],ext );
 
 			// Mem_Alloc already filled memblock with 0x00, no need to do it again
 			image_cubemap = Mem_Realloc( imagepool, image_cubemap, image_ptr + image_size );
@@ -1703,7 +1703,7 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 		}
 	}
 
-	MsgDev(D_LOAD, "FS_LoadImage: couldn't load (%s)\n", texname );
+	MsgDev(D_SPAM, "FS_LoadImage: couldn't load (%s)\n", texname );
 	return NULL;
 }
 
@@ -1769,30 +1769,46 @@ bool SaveTGA( const char *filename, byte *data, int width, int height, bool alph
 	out = buffer + 18 + strlen(comment);
 
 	// get image description
-	switch( image_type )
+	switch( imagetype )
 	{
+	case PF_RGB_24_FLIP:
 	case PF_RGB_24: pixel_size = 3; break;
-	case PF_RGBA_32: pixel_size = 4; break;
+	case PF_RGBA_32: pixel_size = 4; break;	
 	default:
 		MsgWarn("SaveTGA: unsupported image type %s\n", PFDesc[image_type].name );
 		return false;
-	}	
+	}
 
-	// swap rgba to bgra and flip upside down
-	for (y = height - 1; y >= 0; y--)
+	// flip buffer
+	switch( imagetype )
 	{
-		in = data + y * width * pixel_size;
-		bufend = in + width * pixel_size;
-		for ( ;in < bufend; in += pixel_size)
+	case PF_RGB_24_FLIP:
+		// glReadPixels rotating image at 180 degrees, flip it
+		for (in = data; in < data + width * height * pixel_size; in += pixel_size)
 		{
 			*out++ = in[2];
 			*out++ = in[1];
 			*out++ = in[0];
-			if(alpha) *out++ = in[3];
+		}	
+		break;
+	case PF_RGB_24:
+	case PF_RGBA_32:
+		// swap rgba to bgra and flip upside down
+		for (y = height - 1; y >= 0; y--)
+		{
+			in = data + y * width * pixel_size;
+			bufend = in + width * pixel_size;
+			for ( ;in < bufend; in += pixel_size)
+			{
+				*out++ = in[2];
+				*out++ = in[1];
+				*out++ = in[0];
+				if(alpha) *out++ = in[3];
+			}
 		}
-	}
+	}	
 
-	Msg("Writing %s[%d]\n", filename, alpha ? 32 : 24 );
+	MsgDev(D_SPAM, "Writing %s[%d]\n", filename, alpha ? 32 : 24 );
 	FS_WriteFile (filename, buffer, outsize );
 
 	Free( buffer );

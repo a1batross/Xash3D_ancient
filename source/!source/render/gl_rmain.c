@@ -1000,7 +1000,6 @@ void R_Register( void )
 	vid_gamma = ri.Cvar_Get( "vid_gamma", "1.0", CVAR_ARCHIVE );
 
 	ri.Cmd_AddCommand( "imagelist", R_ImageList_f );
-	ri.Cmd_AddCommand( "screenshot", GL_ScreenShot_f );
 	ri.Cmd_AddCommand( "modellist", Mod_Modellist_f );
 	ri.Cmd_AddCommand( "gl_strings", GL_Strings_f );
 }
@@ -1278,7 +1277,6 @@ R_Shutdown
 void R_Shutdown (void)
 {	
 	ri.Cmd_RemoveCommand ("modellist");
-	ri.Cmd_RemoveCommand ("screenshot");
 	ri.Cmd_RemoveCommand ("imagelist");
 	ri.Cmd_RemoveCommand ("gl_strings");
 
@@ -1550,6 +1548,7 @@ render_exp_t DLLEXPORT *CreateAPI(render_imp_t *rimp )
 
 	re.DrawStretchRaw = Draw_StretchRaw;
 	re.SetColor = GL_SetColor;
+	re.ScrShot = VID_ScreenShot;
 
 	re.Init = R_Init;
 	re.Shutdown = R_Shutdown;

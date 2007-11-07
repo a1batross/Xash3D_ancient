@@ -84,7 +84,7 @@ void Sys_InitLog( void )
 	if(!logfile) Sys_Error("Sys_InitLog: can't create log file %s\n", log_path );
 
 	fprintf (logfile, "=======================================================================\n" );
-	fprintf (logfile, "\t%s started at %s\n", caption, Log_Timestamp());
+	fprintf (logfile, "\t%s started at %s\n", caption, time_stamp(TIME_FULL));
 	fprintf (logfile, "=======================================================================\n");
 }
 
@@ -94,7 +94,7 @@ void Sys_CloseLog( void )
 
 	fprintf (logfile, "\n");
 	fprintf (logfile, "=======================================================================");
-	fprintf (logfile, "\n\t%s stopped at %s\n", caption, Log_Timestamp());
+	fprintf (logfile, "\n\t%s stopped at %s\n", caption, time_stamp(TIME_FULL));
 	fprintf (logfile, "=======================================================================");
 
 	fclose(logfile);

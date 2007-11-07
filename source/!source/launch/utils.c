@@ -24,27 +24,6 @@ void Sys_SendKeyEvents( void )
 	}
 }
 
-/*
-====================
-Log_Timestamp
-====================
-*/
-const char* Log_Timestamp( void )
-{
-	static char timestamp [128];
-	time_t crt_time;
-	const struct tm *crt_tm;
-	char timestring [64];
-
-	// Build the time stamp (ex: "Apr03 2007 [23:31:55]");
-	time (&crt_time);
-	crt_tm = localtime (&crt_time);
-	strftime (timestring, sizeof (timestring), "%b%d %Y [%H:%M:%S]", crt_tm);
-          strcpy( timestamp, timestring );
-
-	return timestamp;
-}
-
 float CalcEngineVersion( void )
 {
 	return LAUNCH_VERSION + COMMON_VERSION + RENDER_VERSION + PHYSIC_API_VERSION + ENGINE_VERSION;

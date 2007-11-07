@@ -237,7 +237,7 @@ CL_AdjustAngles
 Moves the local angle positions
 ================
 */
-void CL_AdjustAngles (void)
+void CL_AdjustAngles( void )
 {
 	float	speed;
 	float	up, down;
@@ -378,10 +378,8 @@ usercmd_t CL_CreateCmd (void)
 	usercmd_t	cmd;
 
 	frame_msec = host.cl_timer - old_sys_frame_time;
-	if (frame_msec < 1)
-		frame_msec = 1;
-	if (frame_msec > 200)
-		frame_msec = 200;
+	if (frame_msec < 1) frame_msec = 1;
+	if (frame_msec > 200) frame_msec = 200;
 	
 	// get basic movement from keyboard
 	CL_BaseMove (&cmd);
