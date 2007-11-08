@@ -449,17 +449,6 @@ void Field_CharEvent( field_t *edit, int ch )
 	}
 	len = strlen( edit->buffer );
 
-	if ( ch == 'h' - 'a' + 1 )
-	{
-		// ctrl-h is backspace
-		if ( edit->cursor > 0 )
-		{
-			memmove( edit->buffer + edit->cursor - 1, edit->buffer + edit->cursor, len + 1 - edit->cursor );
-			edit->cursor--;
-			if( edit->cursor < edit->scroll ) edit->scroll--;
-		}
-		return;
-	}
 	if ( ch == 'a' - 'a' + 1 )
 	{
 		// ctrl-a is home

@@ -3,6 +3,7 @@
 //		cg_user.c - stuff that will moved into client.dat
 //=======================================================================
 
+#include <ctype.h>
 #include "client.h"
 
 extern cvar_t	*scr_centertime;
@@ -84,6 +85,134 @@ float *CG_FadeColor( float starttime, float endtime )
 	color[0] = color[1] = color[2] = 1.0f;
 
 	return color;
+}
+
+int CG_StatsValue( const char *name )
+{
+	int	i, value = 0;
+
+	for(i = 0; i < cls.cg_numaliases; i++)
+	{
+		if(!strcmp(cls.cg_alias[i].name, name ))
+		{
+			value = cls.cg_alias[i].value;
+			break;
+		}
+	}
+
+	if(i == cls.cg_numaliases)
+	{
+		MsgDev(D_WARN, "CG_StatsValue: can't use undefined alias %s\n", name );
+		return 0;
+	}
+
+	return cl.frame.playerstate.stats[value];		
+}
+
+void CG_SetAlias( const char *name, int value )
+{
+	int	i;
+
+	if(!name) return;
+	if(strlen(name) > MAX_QPATH)
+	{
+		MsgDev(D_WARN, "CG_SetAlias: %s too long name, limit is %d\n", name, MAX_QPATH );
+	}
+	if(value < 0 || value >= MAX_STATS)
+	{
+		MsgDev(D_WARN, "CG_SetAlias: value %d out of range\n", value );
+		value = bound(0, value, MAX_STATS - 1 );
+	}
+	if(cls.cg_numaliases + 1 >= MAX_STATS)
+	{
+		MsgDev(D_WARN, "CG_SetAlias: aliases limit exceeded\n" );
+		return;
+	}
+
+	// check for duplicate
+	for(i = 0; i < cls.cg_numaliases; i++)
+	{
+		if(!strcmp(cls.cg_alias[i].name, name ))
+		{
+			if(cls.cg_alias[i].value != value)
+				MsgDev(D_WARN, "CG_SetAlias: redefinition alias %s\n", name );
+			else MsgDev(D_WARN, "CG_SetAlias: duplicated alias %s\n", name );
+			break;
+		}		
+	}
+
+	// register new alias
+	if(i == cls.cg_numaliases)
+	{
+		Msg("add alias %s = %d\n", name, value );
+		strncpy(cls.cg_alias[cls.cg_numaliases].name, name, MAX_QPATH );
+		cls.cg_alias[cls.cg_numaliases].value = value;
+		cls.cg_numaliases++;
+	}
+}
+
+void CG_SetColor( float r, float g, float b, float a )
+{
+	Vector4Set( cls.cg_color, r, g, b, a );
+	re->SetColor( cls.cg_color );
+}
+
+void CG_ResetColor( void )
+{
+	Vector4Set( cls.cg_color, 1.0f, 1.0f, 1.0f, 1.0f );
+	re->SetColor( cls.cg_color );
+}
+
+bool CG_ParseArgs( int num_argc )
+{
+	cls.cg_argc = 0;
+	memset(cls.cg_argv, 0, MAX_PARMS * MAX_QPATH );
+	strncpy( cls.cg_progname, COM_Token, MAX_QPATH );
+
+	if( num_argc > MAX_PARMS )
+	{
+		MsgDev(D_WARN, "CG_ParseArgs: %s have too many args, limit is %d\n", cls.cg_progname, MAX_PARMS ); 
+		num_argc = MAX_PARMS;
+	}
+
+	while(COM_TryToken())
+	{
+		if(cls.cg_argc > num_argc )
+		{
+			MsgWarn("CG_ParseArgs: syntax error in function %s\n", cls.cg_progname );
+			return false; // stack overflow
+		}
+		else if(COM_MatchToken(";")) break;		// end of parsing
+		else if(COM_MatchToken(",")) cls.cg_argc++;	// new argument
+		else if(COM_MatchToken("(") || COM_MatchToken(")"))
+			continue; // skip punctuation
+		else strncpy(cls.cg_argv[cls.cg_argc], COM_Token, MAX_QPATH ); // fill stack
+	}
+	return true;
+}
+
+void CG_SkipBlock( void )
+{
+	int	old_depth =  cls.cg_program_depth;
+
+	do {
+		if(COM_MatchToken("{"))
+		{
+			// for bounds cheking
+			cls.cg_program_depth++;
+		}
+		else if(COM_MatchToken("}")) 
+		{
+			cls.cg_program_depth--;
+			break;
+		}
+		while(COM_TryToken());
+	} while(COM_GetToken( true ));
+
+	if(cls.cg_program_depth != old_depth)
+	{
+		MsgDev(D_ERROR, "CG_SkipBlock: missing } in %s\n", cls.cg_progname);
+	}
 }
 
 /*
@@ -193,7 +322,7 @@ void CG_DrawNet( void )
 	if (cls.netchan.outgoing_sequence - cls.netchan.incoming_acknowledged < CMD_BACKUP-1)
 		return;
 
-	SCR_DrawPic( scr_vrect.x+64, scr_vrect.y, 48, 48, "net" );
+	SCR_DrawPic( scr_vrect.x+64, scr_vrect.y, 48, 48, "hud/net" );
 }
 
 /*
@@ -207,17 +336,7 @@ void CG_DrawPause( void )
 	if(!cl_paused->value) return;
 	if(!scr_showpause->value) return;
 
-	CG_DrawCenterPic( 128, 32, "pause" );
-}
-
-/*
-==============
-SG_DrawLoading
-==============
-*/
-void CG_DrawLoading( void )
-{
-	CG_DrawCenterPic( 128, 32, "loading" );
+	CG_DrawCenterPic( 128, 32, "menu/m_pause" );
 }
 
 /*
@@ -364,13 +483,20 @@ void SCR_TimeRefresh_f (void)
 	Msg ("%f seconds (%f fps)\n", time, 128/time);
 }
 
-#define STAT_MINUS		10	// num frame for '-' stats digit
-char		*sb_nums[2][11] = 
+#define STAT_MINUS		10 // num frame for '-' stats digit
+char *cg_nums[11] =
 {
-	{"num_0", "num_1", "num_2", "num_3", "num_4", "num_5",
-	"num_6", "num_7", "num_8", "num_9", "num_minus"},
-	{"anum_0", "anum_1", "anum_2", "anum_3", "anum_4", "anum_5",
-	"anum_6", "anum_7", "anum_8", "anum_9", "anum_minus"}
+"hud/num0",
+"hud/num1",
+"hud/num2",
+"hud/num3",
+"hud/num4",
+"hud/num5",
+"hud/num6",
+"hud/num7",
+"hud/num8",
+"hud/num9",
+"hud/num-",
 };
 
 #define	ICON_WIDTH	24
@@ -450,6 +576,29 @@ void DrawHUDString (char *string, int x, int y, int centerwidth, int xor)
 	}
 }
 
+void CG_DrawField( int value, int x, int y, int color )
+{
+	char	num[16], *ptr;
+	int	l, frame;
+
+	sprintf(num, "%i", value );
+	l = strlen( num );
+	ptr = num;
+
+	re->SetColor( g_color_table[ColorIndex(color)] );
+
+	while (*ptr && l)
+	{
+		if (*ptr == '-') frame = STAT_MINUS;
+		else frame = *ptr -'0';
+		SCR_DrawPic( x, y, GIANTCHAR_WIDTH, GIANTCHAR_HEIGHT, cg_nums[frame]);
+		x += GIANTCHAR_WIDTH;
+		ptr++;
+		l--;
+	}
+
+	re->SetColor( NULL );
+}
 
 /*
 ==============
@@ -483,7 +632,7 @@ void SCR_DrawField (int x, int y, int color, int width, int value)
 		else
 			frame = *ptr -'0';
 
-		re->DrawPic (x,y,sb_nums[color][frame]);
+		re->DrawPic (x,y,cg_nums[frame]);
 		x += CHAR_WIDTH;
 		ptr++;
 		l--;
@@ -500,18 +649,12 @@ Allows rendering code to cache all needed sbar graphics
 */
 void SCR_TouchPics (void)
 {
-	int		i, j;
-
-	for (i=0 ; i<2 ; i++)
-		for (j=0 ; j<11 ; j++)
-			re->RegisterPic (sb_nums[i][j]);
-
 	if (crosshair->value)
 	{
 		if (crosshair->value > 3 || crosshair->value < 0)
 			crosshair->value = 3;
 
-		sprintf (crosshair_pic, "ch%i", (int)(crosshair->value));
+		sprintf (crosshair_pic, "hud/ch%i", (int)(crosshair->value));
 		re->DrawGetPicSize (&crosshair_width, &crosshair_height, crosshair_pic);
 		if (!crosshair_width)
 			crosshair_pic[0] = 0;
@@ -520,38 +663,105 @@ void SCR_TouchPics (void)
 
 /*
 ================
-SCR_ExecuteLayoutString 
+CG_ExecuteProgram
 
 ================
 */
-void SCR_ExecuteLayoutString( char *section )
+void CG_ExecuteProgram( char *section )
 {
-	int		x = 0, y = 0;
-	int		value;
-	int		width = 3;
-	int		index;
-	clientinfo_t	*ci;
+	bool		skip = true;
 
 	COM_ResetScript();
-
-	if (cls.state != ca_active || !cl.refresh_prepped )
-		return;
+	cls.cg_program_depth = 0;
 
 	while(COM_GetToken( true ))
 	{
 		// first, we must find start of section
-		if(!strcmp(COM_Token, "void"))
+		if(COM_MatchToken("void"))
 		{
-			// compare section with current
-			COM_GetToken( false );
-			if(!strcmp(COM_Token, section))			
-			{
-				// yes, it's
-				Msg("compare found\n" );
-				break;
-			}
+			COM_GetToken( false ); // get section name
+			if(COM_MatchToken( section )) skip = false;
+			CG_ParseArgs( 1 ); // go to end of line
 		}
 
+		if(skip) continue;
+		//Msg("execute %s\n", section );
+
+		// exec hud program
+		if(COM_MatchToken("{"))
+		{
+			cls.cg_program_depth++;
+			continue;
+		}
+		else if(COM_MatchToken("}"))
+		{
+			cls.cg_program_depth--;
+			if(!cls.cg_program_depth) break; // end of section
+			continue;
+		}
+
+		// builtins
+		if(COM_MatchToken("if"))
+		{	
+			bool	equal = true;
+			int	value = 0;
+
+			if(!CG_ParseArgs( 1 )) continue;
+			if( cls.cg_argv[0][0] == '!' ) equal = false;
+			value = CG_StatsValue(cls.cg_argv[0] + (equal ? 0 : 1));
+
+			if(value && equal) continue;
+			else if(!value && !equal) continue;
+			else CG_SkipBlock(); // skip if{ }
+		}
+		else if(COM_MatchToken("SetAlias"))
+		{
+			// set alias name for stats numbers
+			if(!CG_ParseArgs( 2 )) continue;
+			CG_SetAlias(cls.cg_argv[0], atoi(cls.cg_argv[1]));
+		}
+		else if(COM_MatchToken("LoadPic"))
+		{
+			// cache hud pics
+			if(!CG_ParseArgs( 1 )) continue;
+			re->RegisterPic(cls.cg_argv[0]);
+		}
+		else if(COM_MatchToken("DrawField"))
+		{
+			// displayed health, armor, e.t.c.
+			if(!CG_ParseArgs( 4 )) continue;
+			CG_DrawField(CG_StatsValue(cls.cg_argv[0]), atoi(cls.cg_argv[1]), atoi(cls.cg_argv[2]), atoi(cls.cg_argv[3]));
+		}
+		else if(COM_MatchToken("DrawPic"))
+		{
+			// draw named pic
+			if(!CG_ParseArgs( 3 )) continue;
+			SCR_DrawPic( atoi(cls.cg_argv[1]), atoi(cls.cg_argv[2]), 48, 48, cls.cg_argv[0]);
+		}
+		else if(COM_MatchToken("DrawStretchPic"))
+		{
+			// draw named pic
+			if(!CG_ParseArgs( 5 )) continue;
+			SCR_DrawPic( atoi(cls.cg_argv[1]), atoi(cls.cg_argv[2]), atoi(cls.cg_argv[3]), atoi(cls.cg_argv[4]), cls.cg_argv[0]);
+		}
+		else if(COM_MatchToken("SetColor"))
+		{
+			// set custom color
+			if(!CG_ParseArgs( 4 )) continue;
+			CG_SetColor(atof(cls.cg_argv[0]), atof(cls.cg_argv[1]), atof(cls.cg_argv[2]), atof(cls.cg_argv[3])); 
+		}
+		else if(COM_MatchToken("DrawCenterPic"))
+		{
+			// draw named pic
+			if(!CG_ParseArgs( 3 )) continue;
+			CG_DrawCenterPic( atoi(cls.cg_argv[1]), atoi(cls.cg_argv[2]), cls.cg_argv[0]);
+		}
+		else if(COM_MatchToken("DrawLevelShot"))
+		{
+			// draw named pic
+			if(!CG_ParseArgs( 0 )) continue;
+			SCR_DrawPic(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, cl.levelshot_name );
+		}
 		/*if(!strcmp(token, "x"))
 		{
 			token = COM_Parse (&s);
@@ -779,30 +989,10 @@ void SCR_ExecuteLayoutString( char *section )
 			token = COM_Parse (&s);
 			DrawAltString (x, y, token);
 			continue;
-		}
-		if (!strcmp(token, "if"))
-		{	
-			// draw a number
-			token = COM_Parse (&s);
-			value = cl.frame.playerstate.stats[atoi(token)];
-
-			if (!value) //find "}"
-			{
-				while (s && strcmp(token, "}") )
-				{
-					token = COM_Parse (&s);
-				}
-			}
-			else // find "{"
-			{
-				while (s && strcmp(token, "{") )
-				{
-					token = COM_Parse (&s);
-				}
-			}
-			continue;
 		}*/
 	}
+
+	CG_ResetColor(); // don't forget reset color
 }
 
 
@@ -816,7 +1006,10 @@ is based on the stats array
 */
 void SCR_DrawStats (void)
 {
-	SCR_ExecuteLayoutString (cl.configstrings[CS_STATUSBAR]);
+	if (cls.state != ca_active || !cl.refresh_prepped )
+		return;
+
+	CG_ExecuteProgram(cl.configstrings[CS_STATUSBAR]);
 }
 
 
@@ -830,9 +1023,12 @@ SCR_DrawLayout
 
 void SCR_DrawLayout (void)
 {
+	if (cls.state != ca_active || !cl.refresh_prepped )
+		return;
+
 	if (!cl.frame.playerstate.stats[STAT_LAYOUTS])
 		return;
-	SCR_ExecuteLayoutString (cl.layout);
+	CG_ExecuteProgram(cl.layout);
 }
 
 
@@ -865,8 +1061,7 @@ menu background
 */
 void V_RenderSplash( void )
 {
-	SCR_DrawPic(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, "splash" );
-	//SCR_DrawPic(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT/3, "clouds" ); 
+	CG_ExecuteProgram( "Hud_MenuBackground" );
 }
 
 /*
@@ -878,6 +1073,19 @@ loading splash
 */
 void V_RenderLogo( void )
 {
-	SCR_DrawPic(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, cl.levelshot_name );
-	CG_DrawLoading(); // loading.dds
+	CG_ExecuteProgram( "Hud_DrawPlaque" );
+}
+
+/*
+================
+CG_Init
+
+initialize cg
+================
+*/
+void CG_Init( void )
+{
+	cls.cg_numaliases = 0; // reset hudprogram aliasnames
+	COM_LoadScript( "scripts/hud.txt", NULL, 0 );
+	CG_ExecuteProgram( "Hud_Setup" ); // get alias names
 }

@@ -30,6 +30,20 @@ byte def_font[] =
 };
 
 /*
+=============
+Draw_FindPic
+=============
+*/
+image_t	*Draw_FindPic (char *name)
+{
+	char	fullname[MAX_QPATH];
+
+	sprintf (fullname, "graphics/%s", name);
+	return R_FindImage (fullname, NULL, 0, it_pic);
+}
+
+
+/*
 ===============
 Draw_InitLocal
 ===============
@@ -37,7 +51,7 @@ Draw_InitLocal
 void Draw_InitLocal (void)
 {
 	// load console characters (don't bilerp characters)
-	draw_chars = R_FindImage ("fonts/conchars", def_font, sizeof(def_font), it_pic);
+	draw_chars = R_FindImage("graphics/fonts/conchars", def_font, sizeof(def_font), it_pic);
 
 	GL_Bind( draw_chars->texnum[0] );
 	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -95,26 +109,6 @@ void Draw_Char (float x, float y, int num)
 
 /*
 =============
-Draw_FindPic
-=============
-*/
-image_t	*Draw_FindPic (char *name)
-{
-	image_t *gl;
-	char	fullname[MAX_QPATH];
-
-	if (name[0] != '/' && name[0] != '\\')
-	{
-		sprintf (fullname, "base_menu/%s", name);
-		gl = R_FindImage (fullname, NULL, 0, it_pic);
-	}
-	else gl = R_FindImage (name+1, NULL, 0, it_pic);
-
-	return gl;
-}
-
-/*
-=============
 Draw_GetPicSize
 =============
 */
@@ -141,28 +135,39 @@ void Draw_StretchPic (float x, float y, float w, float h, float s1, float t1, fl
 {
 	image_t *gl;
 
-	gl = Draw_FindPic (pic);
+	gl = Draw_FindPic( pic );
 	if(!gl) return;
 
 	GL_Bind (gl->texnum[0]);
 
-	GL_TexEnv( GL_MODULATE );
 	GL_EnableBlend();
-	qglBlendFunc(GL_ONE, GL_ZERO);
+	GL_TexEnv( GL_MODULATE );
+
+	if(gl_state.draw_color[3] != 1.0f )
+	{
+		GL_DisableAlphaTest();
+		qglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+	}
+	else 
+	{
+		qglBlendFunc(GL_ONE, GL_ZERO);
+	
+	}
+
 	qglColor4fv( gl_state.draw_color );
-
 	qglBegin (GL_QUADS);
-	qglTexCoord2f (s1, t1);
-	qglVertex2f (x, y);
-	qglTexCoord2f (s2, t1);
-	qglVertex2f (x+w, y);
-	qglTexCoord2f (s2, t2);
-	qglVertex2f (x+w, y+h);
-	qglTexCoord2f (s1, t2);
-	qglVertex2f (x, y+h);
-
+		qglTexCoord2f (s1, t1);
+		qglVertex2f (x, y);
+		qglTexCoord2f (s2, t1);
+		qglVertex2f (x+w, y);
+		qglTexCoord2f (s2, t2);
+		qglVertex2f (x+w, y+h);
+		qglTexCoord2f (s1, t2);
+		qglVertex2f (x, y+h);
 	qglEnd ();
+
 	GL_DisableBlend();
+	GL_EnableAlphaTest();
 }
 
 

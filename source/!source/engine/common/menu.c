@@ -28,9 +28,9 @@ static int	m_main_cursor;
 
 #define NUM_CURSOR_FRAMES 15
 
-static char *menu_in_sound		= "misc/menu1.wav";
+static char *menu_in_sound	= "misc/menu1.wav";
 static char *menu_move_sound	= "misc/menu2.wav";
-static char *menu_out_sound		= "misc/menu3.wav";
+static char *menu_out_sound	= "misc/menu3.wav";
 
 void M_Menu_Main_f (void);
 	void M_Menu_Game_f (void);
@@ -146,8 +146,6 @@ const char *Default_MenuKey( menuframework_s *m, int key )
 {
 	const char *sound = NULL;
 	menucommon_s *item;
-
-	Msg("default menu key called %s, key %d\n", Key_KeynumToString(key), key);
 
 	if ( m )
 	{
@@ -287,14 +285,13 @@ void M_DrawCursor( int x, int y, int f )
 
 		for ( i = 0; i < NUM_CURSOR_FRAMES; i++ )
 		{
-			sprintf( cursorname, "m_cursor%d", i );
-
+			sprintf( cursorname, "menu/m_cursor%d", i );
 			re->RegisterPic( cursorname );
 		}
 		cached = true;
 	}
 
-	sprintf( cursorname, "m_cursor%d", f );
+	sprintf( cursorname, "menu/m_cursor%d", f );
 	re->DrawPic( x, y, cursorname );
 }
 
@@ -363,11 +360,11 @@ void M_Main_Draw (void)
 	char litname[80];
 	char *names[] =
 	{
-		"m_main_game",
-		"m_main_multiplayer",
-		"m_main_options",
-		"m_main_video",
-		"m_main_quit",
+		"menu/m_main_game",
+		"menu/m_main_multiplayer",
+		"menu/m_main_options",
+		"menu/m_main_video",
+		"menu/m_main_quit",
 		0
 	};
 
@@ -394,10 +391,10 @@ void M_Main_Draw (void)
 
 	M_DrawCursor( xoffset - 25, ystart + m_main_cursor * 40 + 11, (int)(cls.realtime * 8.0f) % NUM_CURSOR_FRAMES );
 
-	re->DrawGetPicSize( &w, &h, "m_main_plaque" );
-	re->DrawPic( xoffset - 30 - w, ystart, "m_main_plaque" );
+	re->DrawGetPicSize( &w, &h, "menu/m_main_plaque" );
+	re->DrawPic( xoffset - 30 - w, ystart, "menu/m_main_plaque" );
 
-	re->DrawPic( xoffset - 30 - w, ystart + h + 5, "m_main_logo" );
+	re->DrawPic( xoffset - 30 - w, ystart + h + 5, "menu/m_main_logo" );
 }
 
 
@@ -474,7 +471,7 @@ static menuaction_s		s_player_setup_action;
 
 static void Multiplayer_MenuDraw (void)
 {
-	M_Banner( "m_banner_multiplayer" );
+	M_Banner( "menu/m_banner_multiplayer" );
 
 	Menu_AdjustCursor( &s_multiplayer_menu, 1 );
 	Menu_Draw( &s_multiplayer_menu );
@@ -1260,7 +1257,7 @@ void Options_MenuInit( void )
 
 void Options_MenuDraw (void)
 {
-	M_Banner( "m_banner_options" );
+	M_Banner( "menu/m_banner_options" );
 	Menu_AdjustCursor( &s_options_menu, 1 );
 	Menu_Draw( &s_options_menu );
 }
@@ -1624,7 +1621,7 @@ void Game_MenuInit( void )
 
 void Game_MenuDraw( void )
 {
-	M_Banner( "m_banner_game" );
+	M_Banner( "menu/m_banner_game" );
 	Menu_AdjustCursor( &s_game_menu, 1 );
 	Menu_Draw( &s_game_menu );
 }
@@ -1708,7 +1705,7 @@ void LoadGame_MenuInit( void )
 
 void LoadGame_MenuDraw( void )
 {
-	M_Banner( "m_banner_load_game" );
+	M_Banner( "menu/m_banner_load_game" );
 //	Menu_AdjustCursor( &s_loadgame_menu, 1 );
 	Menu_Draw( &s_loadgame_menu );
 }
@@ -1751,7 +1748,7 @@ void SaveGameCallback( void *self )
 
 void SaveGame_MenuDraw( void )
 {
-	M_Banner( "m_banner_save_game" );
+	M_Banner( "menu/m_banner_save_game" );
 	Menu_AdjustCursor( &s_savegame_menu, 1 );
 	Menu_Draw( &s_savegame_menu );
 }
@@ -1952,7 +1949,7 @@ void JoinServer_MenuInit( void )
 
 void JoinServer_MenuDraw(void)
 {
-	M_Banner( "m_banner_join_server" );
+	M_Banner( "menu/m_banner_join_server" );
 	Menu_Draw( &s_joinserver_menu );
 }
 
@@ -2874,7 +2871,7 @@ const char *AddressBook_MenuKey( int key )
 
 void AddressBook_MenuDraw(void)
 {
-	M_Banner( "m_banner_addressbook" );
+	M_Banner( "menu/m_banner_addressbook" );
 	Menu_Draw( &s_addressbook_menu );
 }
 
@@ -3199,7 +3196,7 @@ void PlayerConfig_MenuDraw( void )
 
 		re->RenderFrame( &refdef );
 
-		strcpy( scratch, "i_fixme" );
+		strcpy( scratch, "hud/i_fixme" );
 		re->DrawPic( s_player_config_menu.x - 40, refdef.y, scratch );
 	}
 }
@@ -3277,7 +3274,7 @@ const char *M_Quit_Key (int key)
 
 void M_Quit_Draw (void)
 {
-	CG_DrawCenterPic( 320, 240, "quit" );
+	CG_DrawCenterPic( 320, 240, "background/quit" );
 }
 
 

@@ -103,9 +103,11 @@ void CG_SetSky_f( void );
 void CG_DrawCenterString( void );
 void CG_CenterPrint( const char *str, int y, int charWidth );
 void CG_DrawCenterPic( int w, int h, char *picname );
+void CG_ExecuteProgram( char *section );
 void CG_MakeLevelShot( void );
 void CG_DrawLoading( void );
 void CG_DrawNet( void );
 void CG_DrawPause( void );
+void CG_Init( void );
 
 #endif//SCREEN_H

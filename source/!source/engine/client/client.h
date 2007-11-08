@@ -56,6 +56,13 @@ typedef struct field_s
 	int	maxchars; // menu stuff
 } field_t;
 
+typedef struct cg_alias_s
+{
+	char	name[MAX_QPATH];
+	uint	value;	
+
+} cg_alias_t;
+
 typedef struct
 {
 	entity_state_t	baseline;		// delta from this if not from a previous frame
@@ -239,12 +246,21 @@ typedef struct
 	dltype_t	downloadtype;
 	int			downloadpercent;
 
-// demo recording info must be here, so it isn't cleared on level change
+	// demo recording info must be here, so it isn't cleared on level change
 	bool	demorecording;
 	bool	demowaiting;	// don't record until a non-delta message is received
 	file_t		*demofile;
 	byte		*hud_program;
 	uint		hud_program_size;
+
+	// hudprogram stack
+	char		cg_progname[MAX_QPATH];
+	int		cg_program_depth;
+	char		cg_argv[MAX_PARMS][MAX_QPATH];
+	uint		cg_argc;
+	cg_alias_t	cg_alias[MAX_STATS];
+	uint		cg_numaliases;
+	vec4_t		cg_color;
 		
 } client_static_t;
 

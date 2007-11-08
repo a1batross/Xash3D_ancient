@@ -75,7 +75,7 @@ void CL_LevelShot_f( void )
 	char		checkname[MAX_OSPATH];	
 
 	// check for exist
-	sprintf( checkname, "textures/background/%s.tga", cl.configstrings[CS_NAME] );
+	sprintf( checkname, "graphics/background/%s.tga", cl.configstrings[CS_NAME] );
 	if(!FS_FileExists( checkname )) re->ScrShot( checkname, true );
 
 }

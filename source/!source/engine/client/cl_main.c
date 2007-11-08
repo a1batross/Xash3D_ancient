@@ -341,7 +341,7 @@ void CL_ForwardToServer_f (void)
 {
 	if (cls.state != ca_connected && cls.state != ca_active)
 	{
-		Msg ("Can't \"%s\", not connected\n", Cmd_Argv(0));
+		Msg("Can't \"%s\", not connected\n", Cmd_Argv(0));
 		return;
 	}
 	
@@ -1731,8 +1731,8 @@ void CL_Init (void)
 	VID_Init ();
 	S_Init ();	// sound must be initialized after window is created
 	V_Init ();
+	CG_Init();
 
-	COM_LoadScript( "scripts/hud.txt", NULL, 0 );
 	net_message.data = net_message_buffer;
 	net_message.maxsize = sizeof(net_message_buffer);
 

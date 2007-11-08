@@ -389,7 +389,7 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 	{
 		sprintf (model_filename, "models/players/gordon/player.mdl");
 		sprintf (weapon_filename, "models/weapons/w_glock.mdl");
-		strcpy (ci->iconname, "i_fixme.pcx");
+		strcpy (ci->iconname, "hud/i_fixme");
 		ci->model = re->RegisterModel (model_filename);
 		memset(ci->weaponmodel, 0, sizeof(ci->weaponmodel));
 		ci->weaponmodel[0] = re->RegisterModel (weapon_filename);
@@ -436,7 +436,7 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 		}
 
 		// icon file
-		strcpy (ci->iconname, "i_fixme.pcx");
+		strcpy (ci->iconname, "hud/i_fixme");
 		ci->icon = re->RegisterPic (ci->iconname);
 	}
 

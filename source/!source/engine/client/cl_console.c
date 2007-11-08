@@ -516,7 +516,7 @@ void Con_DrawSolidConsole (float frac)
 	// draw the background
 	y = frac * SCREEN_HEIGHT - 2;
 	if ( y < 1 ) y = 0;
-	else SCR_DrawPic( 0, -SCREEN_HEIGHT + lines, SCREEN_WIDTH, SCREEN_HEIGHT, "conback" );
+	else SCR_DrawPic( 0, -SCREEN_HEIGHT + lines, SCREEN_WIDTH, SCREEN_HEIGHT, "background/conback" );
 
 	Vector4Set( color, 1, 0, 0, 1 );
 	SCR_FillRect( 0, y, SCREEN_WIDTH, 2, color );

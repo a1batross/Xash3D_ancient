@@ -273,10 +273,10 @@ void CL_PrepRefresh( void )
 		return;		// no map loaded
 
 	// get splash name
-	sprintf( cl.levelshot_name, "/textures/background/%s.tga", cl.configstrings[CS_NAME] );
-	if(!FS_FileExists( cl.levelshot_name )) 
+	sprintf( cl.levelshot_name, "background/%s.tga", cl.configstrings[CS_NAME] );
+	if(!FS_FileExists(va("graphics/%s", cl.levelshot_name))) 
 	{
-		strcpy( cl.levelshot_name, "/textures/common/black" );
+		strcpy( cl.levelshot_name, "common/black" );
 		cl.make_levelshot = true; // make levelshot
 	}
 
@@ -293,6 +293,10 @@ void CL_PrepRefresh( void )
 	// precache status bar pics
 	Msg ("pics\r"); 
 	SCR_UpdateScreen ();
+
+	// get alias names
+	CG_ExecuteProgram( "Hud_Precache" );
+
 	SCR_TouchPics ();
 	Msg ("                                     \r");
 
@@ -563,7 +567,7 @@ bool V_PreRender( void )
 		if( viddef.width * 480 > viddef.height * 640 )
 		{
 			re->SetColor( g_color_table[0] );
-			re->DrawStretchPic( 0, 0, viddef.width, viddef.height, 0, 0, 1, 1, "backtile" );
+			re->DrawStretchPic( 0, 0, viddef.width, viddef.height, 0, 0, 1, 1, "common/black" );
 			re->SetColor( NULL );
 		}
 	}
