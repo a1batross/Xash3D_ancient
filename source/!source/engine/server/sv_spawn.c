@@ -86,7 +86,7 @@ void SV_SpawnEntities (char *mapname, char *entities, char *spawnpoint)
 	edict_t	*ent;
 	int	i;
 
-	Msg("====== SpawnEntities ========\n");
+	MsgDev(D_NOTE, "SV_SpawnEntities()\n");
 
 	// used by PushMove to move back pushed entities
 	sv.moved_edicts = (edict_t **)PRVM_Alloc(prog->max_edicts * sizeof(edict_t *));
@@ -317,7 +317,7 @@ void SV_CalcViewOffset (edict_t *ent)
 
 void SV_SetStats (edict_t *ent)
 {
-	ent->priv.sv->client->ps.stats[STAT_HEALTH_ICON] = SV_ImageIndex("i_health");
+	ent->priv.sv->client->ps.stats[STAT_HEALTH_ICON] = SV_ImageIndex("hud/i_health");
 	ent->priv.sv->client->ps.stats[STAT_HEALTH] = ent->progs.sv->health;
 }
 
@@ -462,7 +462,7 @@ bool SV_ClientConnect (edict_t *ent, char *userinfo)
 	ent->progs.sv->flags = 0; // make sure we start with known default
 	ent->progs.sv->health = 100;
 
-	Msg("SV_ClientConnect()\n");
+	MsgDev(D_NOTE, "SV_ClientConnect()\n");
 	prog->globals.sv->time = sv.time;
 	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(ent);
 	PRVM_ExecuteProgram (prog->globals.sv->ClientConnect, "QC function ClientConnect is missing");
@@ -640,8 +640,6 @@ void SV_ClientDisconnect (edict_t *ent)
 	int	playernum;
 
 	if (!ent->priv.sv->client) return;
-
-	Msg("player disconnected\n");
 
 	// send effect
 	MSG_Begin( svc_muzzleflash );

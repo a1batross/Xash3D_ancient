@@ -114,8 +114,7 @@ void VM_error (void)
 		ed = PRVM_G_EDICT(prog->pev->ofs);
 		PRVM_ED_Print(ed);
 	}
-
-	PRVM_ERROR ("%s: Program error in function %s:\n%s\nTip: read above for entity information\n", PRVM_NAME, PRVM_GetString(prog->xfunction->s_name), string);
+	Host_Error("%s: Program error in function %s:\n%s\nTip: read above for entity information\n", PRVM_NAME, PRVM_GetString(prog->xfunction->s_name), string);
 }
 
 /*

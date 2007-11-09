@@ -53,11 +53,13 @@ int	fs_argc;
 Cbuf_Init
 ============
 */
-void Cbuf_Init (void)
+void Cbuf_Init (int argc, char **argv )
 {
 	cmd_text.data = cmd_text_buf;
 	cmd_text.maxsize = MAX_CMD_BUFFER;
 	cmd_text.cursize = 0;
+	fs_argc = argc;
+	fs_argv = argv;
 }
 
 /*
@@ -624,13 +626,49 @@ void Cmd_List_f (void)
 }
 
 /*
+================
+CMD_CheckParm
+
+Returns the position (1 to argc-1) in the program's argument list
+where the given parameter apears, or 0 if not present
+================
+*/
+int Cmd_CheckParm (const char *parm)
+{
+	int i;
+
+	for (i = 1; i < fs_argc; i++ )
+	{
+		// NEXTSTEP sometimes clears appkit vars.
+		if (!fs_argv[i]) continue;
+		if (!stricmp (parm, fs_argv[i])) return i;
+	}
+	return 0;
+}
+
+
+bool _Cmd_GetParmFromCmdLine( char *parm, char *out, size_t outsize )
+{
+	int argc = Cmd_CheckParm( parm );
+
+	if(!argc) return false;
+	if(!out) return false;	
+	if(!fs_argv[argc + 1]) return false;
+
+	strncpy( out, fs_argv[argc + 1], outsize );
+	return true;
+}
+
+/*
 ============
 Cmd_Init
 ============
 */
 void Cmd_Init( int argc, char **argv )
 {
-	Cbuf_Init();
+	char	dev_level[4];
+
+	Cbuf_Init( argc, argv );
 
 	// register our commands
 	Cmd_AddCommand ("exec", Cmd_Exec_f);
@@ -639,8 +677,9 @@ void Cmd_Init( int argc, char **argv )
 	Cmd_AddCommand ("cmdlist", Cmd_List_f);
 	Cmd_AddCommand ("stuffcmds", Cmd_StuffCmds_f );
 
-	// save pointers
-	fs_argc = argc;
-	fs_argv = argv;
+	// determine debug and developer mode
+	if (Cmd_CheckParm ("-debug")) host.debug = true;
+	if(Cmd_GetParmFromCmdLine("-dev", dev_level ))
+		host.developer = atoi(dev_level);
 }
 

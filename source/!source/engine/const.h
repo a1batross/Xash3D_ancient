@@ -155,8 +155,6 @@ void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, 
 
 
 
-void Com_PageInMemory (byte *buffer, int size);
-
 //=============================================
 
 //
@@ -566,17 +564,17 @@ typedef enum
 // Each config string can be at most MAX_QPATH characters.
 //
 #define	CS_NAME			0
-#define	CS_CDTRACK		1
-#define	CS_SKY			2
-#define	CS_SKYAXIS		3  // %f %f %f format
-#define	CS_SKYROTATE		4
-#define	CS_STATUSBAR		5  // display program string (1536 chars)
-#define	CS_STATUSBAR_SIZE		(CS_AIRACCEL - CS_STATUSBAR) * MAX_QPATH
-#define	CS_AIRACCEL		29 // air acceleration control
-#define	CS_MAXCLIENTS		30
-#define	CS_MAPCHECKSUM		31 // for catching cheater maps
+#define	CS_SKY			1
+#define	CS_SKYAXIS		2	// %f %f %f format
+#define	CS_SKYROTATE		3
+#define	CS_STATUSBAR		4	// hud_program section name
+#define	CS_AIRACCEL		5	// air acceleration control
+#define	CS_MAXCLIENTS		6
+#define	CS_MAPCHECKSUM		7	// for catching cheater maps
 
-#define	CS_MODELS			32
+// reserved config strings
+
+#define	CS_MODELS			16
 #define	CS_SOUNDS			(CS_MODELS+MAX_MODELS)
 #define	CS_IMAGES			(CS_SOUNDS+MAX_SOUNDS)
 #define	CS_LIGHTS			(CS_IMAGES+MAX_IMAGES)

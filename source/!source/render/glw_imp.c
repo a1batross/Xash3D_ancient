@@ -161,22 +161,18 @@ rserr_t GLimp_SetMode( int *pwidth, int *pheight, int mode, bool fullscreen )
 	int width, height;
 	const char *win_fs[] = { "W", "FS" };
 
-	Msg("Initializing OpenGL display\n");
-
-	Msg("...setting mode %d:", mode );
-
 	if ( !ri.Vid_GetModeInfo( &width, &height, mode ) )
 	{
 		Msg(" invalid mode\n" );
 		return rserr_invalid_mode;
 	}
 
-	Msg(" %d %d %s\n", width, height, win_fs[fullscreen] );
+	MsgDev(D_INFO, "Initializing OpenGL: %d %d %s\n", width, height, win_fs[fullscreen] );
 
 	// destroy the existing window
 	if (glw_state.hWnd)
 	{
-		GLimp_Shutdown ();
+		GLimp_Shutdown();
 	}
 
 	// do a CDS if needed
@@ -184,10 +180,7 @@ rserr_t GLimp_SetMode( int *pwidth, int *pheight, int mode, bool fullscreen )
 	{
 		DEVMODE dm;
 
-		Msg("...attempting fullscreen\n" );
-
 		memset( &dm, 0, sizeof( dm ) );
-
 		dm.dmSize = sizeof( dm );
 
 		dm.dmPelsWidth  = width;
@@ -198,27 +191,20 @@ rserr_t GLimp_SetMode( int *pwidth, int *pheight, int mode, bool fullscreen )
 		{
 			dm.dmBitsPerPel = gl_bitdepth->value;
 			dm.dmFields |= DM_BITSPERPEL;
-			Msg("...using gl_bitdepth of %d\n", ( int ) gl_bitdepth->value );
 		}
 		else
 		{
 			HDC hdc = GetDC( NULL );
 			int bitspixel = GetDeviceCaps( hdc, BITSPIXEL );
-
-			Msg("...using desktop display depth of %d\n", bitspixel );
-
 			ReleaseDC( 0, hdc );
 		}
 
-		Msg("...calling CDS: " );
 		if ( ChangeDisplaySettings( &dm, CDS_FULLSCREEN ) == DISP_CHANGE_SUCCESSFUL )
 		{
 			*pwidth = width;
 			*pheight = height;
 
 			gl_state.fullscreen = true;
-
-			Msg("ok\n" );
 
 			if ( !VID_CreateWindow (width, height, true) )
 				return rserr_invalid_mode;
@@ -229,10 +215,6 @@ rserr_t GLimp_SetMode( int *pwidth, int *pheight, int mode, bool fullscreen )
 		{
 			*pwidth = width;
 			*pheight = height;
-
-			Msg("failed\n" );
-
-			Msg("...calling CDS assuming dual monitors:" );
 
 			dm.dmPelsWidth = width * 2;
 			dm.dmPelsHeight = height;
@@ -250,10 +232,6 @@ rserr_t GLimp_SetMode( int *pwidth, int *pheight, int mode, bool fullscreen )
 			*/
 			if ( ChangeDisplaySettings( &dm, CDS_FULLSCREEN ) != DISP_CHANGE_SUCCESSFUL )
 			{
-				Msg(" failed\n" );
-
-				Msg("...setting windowed mode\n" );
-
 				ChangeDisplaySettings( 0, 0 );
 
 				*pwidth = width;
@@ -265,7 +243,6 @@ rserr_t GLimp_SetMode( int *pwidth, int *pheight, int mode, bool fullscreen )
 			}
 			else
 			{
-				Msg(" ok\n" );
 				if ( !VID_CreateWindow (width, height, true) )
 					return rserr_invalid_mode;
 
@@ -276,8 +253,6 @@ rserr_t GLimp_SetMode( int *pwidth, int *pheight, int mode, bool fullscreen )
 	}
 	else
 	{
-		Msg("...setting windowed mode\n" );
-
 		ChangeDisplaySettings( 0, 0 );
 
 		*pwidth = width;
@@ -501,7 +476,7 @@ bool GLimp_InitGL (void)
 	/*
 	** print out PFD specifics 
 	*/
-	Msg("GL PFD: color(%d-bits) Z(%d-bit)\n", ( int ) pfd.cColorBits, ( int ) pfd.cDepthBits );
+	MsgDev(D_NOTE, "GL PFD: color(%d-bits) Z(%d-bit)\n", ( int )pfd.cColorBits, ( int )pfd.cDepthBits );
 	return true;
 fail:
 	if ( glw_state.hGLRC )

@@ -8,17 +8,15 @@
 bool	scr_initialized;		// ready to draw
 vrect_t	scr_vrect;		// position of render window on screen
 
-
-cvar_t		*scr_viewsize;
-cvar_t		*scr_centertime;
-cvar_t		*scr_showpause;
-cvar_t		*scr_printspeed;
-
-char	crosshair_pic[MAX_QPATH];
-int	crosshair_width, crosshair_height;
+cvar_t *scr_viewsize;
+cvar_t *scr_centertime;
+cvar_t *scr_showpause;
+cvar_t *scr_printspeed;
+cvar_t *scr_loading;
 
 void SCR_TimeRefresh_f( void );
 void SCR_Loading_f( void );
+
 /*
 ================
 SCR_AdjustSize

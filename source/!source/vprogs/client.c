@@ -289,11 +289,11 @@ void() PutClientInServer =
 	pev->th_pain = PlayerPain;
 	pev->th_die = PlayerDie;
 
-	setstats( pev, STAT_HEALTH_ICON, "i_health");
+	setstats( pev, STAT_HEALTH_ICON, "hud/i_health");
 	setstats( pev, STAT_HEALTH, ftoa(pev->health));
-	setstats( pev, STAT_HELPICON, "i_help");
+	setstats( pev, STAT_HELPICON, "hud/i_help");
 
-	image_index( "help" );		
+	image_index( "hud/help" );		
 	GetLevelParms();
 };
 

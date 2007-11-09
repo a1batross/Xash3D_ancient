@@ -99,6 +99,7 @@ memory manager
 
 //malloc-free
 #define Mem_Alloc(pool,size) Com->Mem.Alloc(pool, size, __FILE__, __LINE__)
+#define Mem_Realloc(pool, mem, size) Com->Mem.Realloc(pool, mem, size, __FILE__, __LINE__)
 #define Mem_Free(mem) Com->Mem.Free(mem, __FILE__, __LINE__)
 
 //Hunk_AllocName

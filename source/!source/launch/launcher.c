@@ -12,13 +12,13 @@ bool show_always = true;
 bool about_mode = false;
 bool silent_mode = false;
 bool sys_error = false;
-char caption[64];
+char caption[MAX_QPATH];
 
 const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t          All Rights Reserved\n\n\t           Visit www.xash.ru\n";
 
-dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, COMMON_API_VERSION, sizeof(common_exp_t) };
-dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, LAUNCH_API_VERSION, sizeof(launch_exp_t) };
-dll_info_t editor_dll = { "editor.dll", NULL, "CreateAPI", NULL, NULL, true, LAUNCH_API_VERSION, sizeof(launch_exp_t) };
+dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(common_exp_t) };
+dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
+dll_info_t editor_dll = { "editor.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t *linked_dll; // generic hinstance
 
 //app name
@@ -73,7 +73,7 @@ void LookupInstance( const char *funcname )
 	//memeber name
 	strncpy( progname, funcname, sizeof(progname));
 
-	//lookup all instances
+	// lookup all instances
 	if(!strcmp(progname, "host_shared"))
 	{
 		app_name = HOST_SHARED;
@@ -82,7 +82,7 @@ void LookupInstance( const char *funcname )
 		if(!debug_mode) show_always = false;
 		linked_dll = &engine_dll;	// pointer to engine.dll info
 		strcpy(log_path, "engine.log" ); // xash3d root directory
-		strcpy(caption, va("Xash3D ver.%g", CalcEngineVersion()));
+		strcpy(caption, va("Xash3D ver.%g", XASH_VERSION ));
 	}
 	else if(!strcmp(progname, "host_dedicated"))
 	{
@@ -90,7 +90,7 @@ void LookupInstance( const char *funcname )
 		console_read_only = false;
 		linked_dll = &engine_dll;	// pointer to engine.dll info
 		strcpy(log_path, "engine.log" ); // xash3d root directory
-		strcpy(caption, va("Xash3D Dedicated Server ver.%g", CalcEngineVersion()));
+		strcpy(caption, va("Xash3D Dedicated Server ver.%g", XASH_VERSION ));
 	}
 	else if(!strcmp(progname, "host_editor"))
 	{
@@ -100,7 +100,7 @@ void LookupInstance( const char *funcname )
 		if(!debug_mode) show_always = false;
 		linked_dll = &editor_dll;	// pointer to editor.dll info
 		strcpy(log_path, "editor.log" ); // xash3d root directory
-		strcpy(caption, va("Xash3D Editor ver.%g", CalcEditorVersion()));
+		strcpy(caption, va("Xash3D Editor ver.%g", XASH_VERSION ));
 	}
 	else if(!strcmp(progname, "bsplib"))
 	{
@@ -354,7 +354,7 @@ void CreateInstance( void )
 	launch_t		CreateHost;
           
 	// first text message into console or log 
-	MsgDev(D_INFO, "Sys_LoadLibrary: Loading launch.dll [%d] - ok\n", INIT32_API_VERSION );
+	MsgDev(D_INFO, "Sys_LoadLibrary: Loading launch.dll - ok\n" );
 
 	Sys_LoadLibrary( linked_dll ); // loading library if need
 
@@ -431,7 +431,7 @@ void API_Reset( void )
 	Msg = NullVarArgs;
 	MsgDev = NullVarArgs2;
 	MsgWarn = NullVarArgs;
-	Sys_Print = NullVoidWithName;
+	Msg_Print = NullVoidWithName;
 }
 
 void API_SetConsole( void )
@@ -441,7 +441,7 @@ void API_SetConsole( void )
 
 	if( hooked_out && app_name > HOST_EDITOR)
 	{
-		Sys_Print = Sys_PrintA;
+		Msg_Print = Msg_PrintA;
 		Sys_InitConsole = Sys_InitLog;
 		Sys_FreeConsole = Sys_CloseLog;
 		Sys_Error = Sys_ErrorA;
@@ -451,9 +451,9 @@ void API_SetConsole( void )
 		Sys_InitConsole = Sys_CreateConsoleW;
 		Sys_FreeConsole = Sys_DestroyConsoleW;
           	Sys_ShowConsole = Sys_ShowConsoleW;
-		Sys_Print = Sys_PrintW;
 		Sys_Input = Sys_InputW;
 		Sys_Error = Sys_ErrorW;
+		Msg_Print = Msg_PrintW;
 	}
 
 	Msg = Sys_MsgW;

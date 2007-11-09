@@ -49,7 +49,7 @@ typedef struct
 
 } WinConData;
 static WinConData s_wcd;
-extern char caption[64];
+extern char caption[MAX_QPATH];
 
 // gdi32 export table 
 static HDC (_stdcall *pGetDC)(HWND);
@@ -74,7 +74,7 @@ static dllfunc_t gdi32_funcs[] =
 	{ NULL, NULL }
 };
 
-dll_info_t gdi32_dll = { /*"gdi32.dll"*/NULL, gdi32_funcs, NULL, NULL, NULL, true, 0, 0 }; // FIXME
+dll_info_t gdi32_dll = { /*"gdi32.dll"*/NULL, gdi32_funcs, NULL, NULL, NULL, true, 0 }; // FIXME
 
 void Sys_InitLog( void )
 {
@@ -246,13 +246,14 @@ Sys_PrintW
 print into window console
 ================
 */
-void Sys_PrintW(const char *pMsg)
+void Sys_Print(const char *pMsg)
 {
-	char buffer[MAX_INPUTLINE*2];
-	static dword s_totalChars;
-	char *b = buffer;
-	const char *msg;
-	int	bufLen, i = 0;
+	const char	*msg;
+	char		buffer[MAX_INPUTLINE * 2];
+	char		logbuf[MAX_INPUTLINE * 2];
+	char		*b = buffer;
+	char		*c = logbuf;	
+	int		i = 0;
 
 	// if the message is REALLY long, use just the last portion of it
 	if ( strlen( pMsg ) > MAX_INPUTLINE - 1 )
@@ -260,71 +261,79 @@ void Sys_PrintW(const char *pMsg)
 	else msg = pMsg;
 
 	// copy into an intermediate buffer
-	while ( msg[i] && ( ( b - buffer ) < sizeof( buffer ) - 1 ) )
+	while ( msg[i] && (( b - buffer ) < sizeof( buffer ) - 1 ))
 	{
-		if ( msg[i] == '\n' && msg[i+1] == '\r' )
+		if( msg[i] == '\n' && msg[i+1] == '\r' )
 		{
 			b[0] = '\r';
-			b[1] = '\n';
-			b += 2;
+			b[1] = c[0] = '\n';
+			b += 2, c++;
 			i++;
 		}
-		else if ( msg[i] == '\r' )
+		else if( msg[i] == '\r' )
+		{
+			b[0] = c[0] = '\r';
+			b[1] = '\n';
+			b += 2, c++;
+		}
+		else if( msg[i] == '\n' )
 		{
 			b[0] = '\r';
-			b[1] = '\n';
-			b += 2;
+			b[1] = c[0] = '\n';
+			b += 2, c++;
 		}
-		else if ( msg[i] == '\n' )
+		else if( msg[i] == '\35' || msg[i] == '\36' || msg[i] == '\37' )
 		{
-			b[0] = '\r';
-			b[1] = '\n';
-			b += 2;
+			i++; // skip console pseudo graph
 		}
-		else if ( IsColorString( &msg[i] ))
-		{
-			i++; //skip color suffix
-		}
+		else if(IsColorString( &msg[i])) i++; // skip color prefix
 		else
 		{
-			*b= msg[i];
-			b++;
+			*b = *c = msg[i];
+			b++, c++;
 		}
 		i++;
 	}
-	*b = 0;
-	bufLen = b - buffer;
-	s_totalChars += bufLen;
+	*b = *c = 0; // cutoff garbage
 
-	// replace selection instead of appending if we're overflowing
-	if ( s_totalChars > 0x7fff )
-	{
-		SendMessage( s_wcd.hwndBuffer, EM_SETSEL, 0, -1 );
-		s_totalChars = bufLen;
-	}
-
-	Sys_PrintLog( msg );
-
-	// put this text into the windows console
-	SendMessage( s_wcd.hwndBuffer, EM_LINESCROLL, 0, 0xffff );
-	SendMessage( s_wcd.hwndBuffer, EM_SCROLLCARET, 0, 0 );
-	SendMessage( s_wcd.hwndBuffer, EM_REPLACESEL, 0, (LPARAM) buffer );
+	Sys_PrintLog( logbuf );
+	Msg_Print( buffer );
 }
 
 /*
 ================
-Sys_PrintA
+Msg_PrintA
 
 print into cmd32 console
 ================
 */
-void Sys_PrintA(const char *pMsg)
+void Msg_PrintA(const char *pMsg)
 {
 	DWORD	cbWritten;
 
-	Sys_PrintLog( pMsg );
 	WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), pMsg, strlen(pMsg), &cbWritten, 0 );
 	//write(1, pMsg, strlen(pMsg));
+}
+
+/*
+================
+Msg_PrintW
+
+print into window console
+================
+*/
+void Msg_PrintW(const char *pMsg)
+{
+	// replace selection instead of appending if we're overflowing
+	if( strlen(pMsg) > 0x7fff )
+	{
+		SendMessage( s_wcd.hwndBuffer, EM_SETSEL, 0, -1 );
+	} 
+
+	// put this text into the windows console
+	SendMessage( s_wcd.hwndBuffer, EM_LINESCROLL, 0, 0xffff );
+	SendMessage( s_wcd.hwndBuffer, EM_SCROLLCARET, 0, 0 );
+	SendMessage( s_wcd.hwndBuffer, EM_REPLACESEL, 0, (LPARAM)pMsg );
 }
 
 /*
@@ -348,30 +357,28 @@ void Sys_MsgW( const char *pMsg, ... )
 
 void Sys_MsgDevW( int level, const char *pMsg, ... )
 {
-	va_list		argptr;
-	char text[MAX_INPUTLINE];
+	va_list	argptr;
+	char	text[MAX_INPUTLINE];
 	
-	if(dev_mode >= level)
-	{
-		va_start (argptr, pMsg);
-		vsprintf (text, pMsg, argptr);
-		va_end (argptr);
-		Sys_Print( text );
-	}
+	if(dev_mode < level) return;
+
+	va_start (argptr, pMsg);
+	vsprintf (text, pMsg, argptr);
+	va_end (argptr);
+	Sys_Print( text );
 }
 
 void Sys_MsgWarnW( const char *pMsg, ... )
 {
-	va_list		argptr;
-	char text[MAX_INPUTLINE];
+	va_list	argptr;
+	char	text[MAX_INPUTLINE];
 	
-	if(debug_mode)
-	{
-		va_start (argptr, pMsg);
-		vsprintf (text, pMsg, argptr);
-		va_end (argptr);
-		Sys_Print( text );
-	}
+	if(!debug_mode) return;
+
+	va_start (argptr, pMsg);
+	vsprintf (text, pMsg, argptr);
+	va_end (argptr);
+	Sys_Print( text );
 }
 
 /*
@@ -390,12 +397,12 @@ void Sys_CreateConsoleW( void )
 	int swidth, sheight, fontsize;
 	int DEDSTYLE = WS_POPUPWINDOW | WS_CAPTION;
 	int CONSTYLE = WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_BORDER | WS_EX_CLIENTEDGE | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY;
-	char Title[32], FontName[32];
+	char Title[MAX_QPATH], FontName[MAX_QPATH];
 
 	memset( &wc, 0, sizeof( wc ) );
 
 	wc.style         = 0;
-	wc.lpfnWndProc   = (WNDPROC) ConWndProc;
+	wc.lpfnWndProc   = (WNDPROC)ConWndProc;
 	wc.cbClsExtra    = 0;
 	wc.cbWndExtra    = 0;
 	wc.hInstance     = base_hInstance;
@@ -415,7 +422,7 @@ void Sys_CreateConsoleW( void )
 		rect.right = 536;
 		rect.top = 0;
 		rect.bottom = 280;
-		strcpy(FontName, "Arial" );
+		strncpy(FontName, "Arial", MAX_QPATH );
 		fontsize = 16;
 	}
 	else if(console_read_only)
@@ -424,7 +431,7 @@ void Sys_CreateConsoleW( void )
 		rect.right = 536;
 		rect.top = 0;
 		rect.bottom = 364;
-		strcpy(FontName, "Fixedsys" );
+		strncpy(FontName, "Fixedsys", MAX_QPATH );
 		fontsize = 8;
 	}
 	else // dedicated console
@@ -433,11 +440,11 @@ void Sys_CreateConsoleW( void )
 		rect.right = 540;
 		rect.top = 0;
 		rect.bottom = 392;
-		strcpy(FontName, "Courier" );
-		fontsize = 8;
+		strncpy(FontName, "System", MAX_QPATH );
+		fontsize = 14;
 	}
 
-	strcpy(Title, caption );
+	strncpy( Title, caption, MAX_QPATH );
 	AdjustWindowRect( &rect, DEDSTYLE, FALSE );
 
 	hDC = GetDC( GetDesktopWindow() );

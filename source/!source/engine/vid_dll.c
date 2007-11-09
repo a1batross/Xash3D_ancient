@@ -46,7 +46,7 @@ cvar_t		*vid_fullscreen;
 
 // Global variables used internally by this module
 viddef_t		viddef;			// global video state; used by other modules
-dll_info_t	render_dll = { "render.dll", NULL, "CreateAPI", NULL, NULL, true, RENDER_API_VERSION, sizeof(render_exp_t) };
+dll_info_t	render_dll = { "render.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(render_exp_t) };
 bool		reflib_active = 0;
 
 HWND        cl_hwnd;            // Main window handle for life of program
@@ -504,7 +504,7 @@ void VID_InitRender( void )
 	
 	CreateRender = (void *)render_dll.main;
 	re = CreateRender( &ri );
-          
+
 	if(!re->Init( global_hInstance, MainWndProc )) 
 		Sys_Error("VID_InitRender: can't init render.dll\nUpdate your opengl drivers\n");
 
@@ -570,7 +570,7 @@ void VID_Init (void)
 	/* Add some console commands that we want to handle */
 	Cmd_AddCommand ("vid_restart", VID_Restart_f);
 	Cmd_AddCommand ("vid_front", VID_Front_f);
-		
+
 	// Start the graphics mode and load refresh DLL
 	VID_CheckChanges();
 }

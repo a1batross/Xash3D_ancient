@@ -32,8 +32,7 @@ physic_exp_t DLLEXPORT *CreateAPI ( physic_imp_t *import )
 	// and always make exception, run simply check for avoid it
 	if(import) pi = *import;
 
-	//generic functions
-	Phys.apiversion = PHYSIC_API_VERSION;
+	// generic functions
 	Phys.api_size = sizeof(physic_exp_t);
 
 	Phys.Init = InitPhysics;

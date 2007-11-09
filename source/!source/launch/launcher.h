@@ -27,16 +27,17 @@ enum
 // import variables
 char *(*Sys_Input ) ( void );	
 void ( *Msg )( char *msg, ... );
-void ( *Sys_Print )( const char *msg );
 void ( *Sys_InitConsole )( void );
 void ( *Sys_FreeConsole )( void );
 void ( *MsgDev )( int level, char *msg, ... );
 void ( *MsgWarn )( char *msg, ... );
+void ( *Msg_Print )( const char *msg );
 void ( *Sys_Error )( char *msg, ... );
 void ( *Sys_ShowConsole )( bool show );
 void Sys_Init( void ); // static
 void Sys_Exit( void ); // static
 void Sys_Sleep( int msec);
+void Sys_Print( const char *pMsg );
 bool Sys_LoadLibrary ( dll_info_t *dll ); // load library 
 bool Sys_FreeLibrary ( dll_info_t *dll ); // free library
 void* Sys_GetProcAddress ( dll_info_t *dll, const char* name );
@@ -74,14 +75,12 @@ void ParseCommandLine (LPSTR lpCmdLine);
 void UpdateEnvironmentVariables( void );
 bool _GetParmFromCmdLine( char *parm, char *out, size_t size );
 #define GetParmFromCmdLine( parm, out ) _GetParmFromCmdLine( parm, out, sizeof(out)) 
-float CalcEngineVersion( void );
-float CalcEditorVersion( void );
 
 //
 // console.c
 //
-void Sys_PrintA(const char *pMsg);
-void Sys_PrintW(const char *pMsg);
+void Msg_PrintA(const char *pMsg);
+void Msg_PrintW(const char *pMsg);
 void Sys_MsgW( const char *pMsg, ... );
 void Sys_MsgDevW( int level, const char *pMsg, ... );
 void Sys_MsgWarnW( const char *pMsg, ... );

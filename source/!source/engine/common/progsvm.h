@@ -367,7 +367,7 @@ void PRVM_FreeString(int num);
 
 // helper macro to make function pointer calls easier
 #define PRVM_GCALL(func) if(prog->func) prog->func
-#define PRVM_ERROR prog->error_cmd
+#define PRVM_ERROR if(prog) prog->error_cmd
 
 // other prog handling functions
 bool PRVM_SetProgFromString(const char *str);

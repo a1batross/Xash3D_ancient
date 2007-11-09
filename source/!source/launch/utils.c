@@ -24,16 +24,6 @@ void Sys_SendKeyEvents( void )
 	}
 }
 
-float CalcEngineVersion( void )
-{
-	return LAUNCH_VERSION + COMMON_VERSION + RENDER_VERSION + PHYSIC_API_VERSION + ENGINE_VERSION;
-}
-
-float CalcEditorVersion( void )
-{
-	return LAUNCH_VERSION + COMMON_VERSION + RENDER_VERSION + PHYSIC_API_VERSION + EDITOR_VERSION;
-}
-
 /*
 ==================
 ParseCommandLine
@@ -102,6 +92,7 @@ bool _GetParmFromCmdLine( char *parm, char *out, size_t size )
 
 	if(!argc) return false;
 	if(!out) return false;	
+	if(!com_argv[argc + 1]) return false;
 
 	strncpy( out, com_argv[argc+1], size );
 	return true;
@@ -235,12 +226,6 @@ bool Sys_LoadLibrary ( dll_info_t *dll )
 			sprintf(errorstring, "Sys_LoadLibrary: \"%s\" have no export\n", dll->name );
 			goto error;
 		}
-		if(check->apiversion != dll->apiversion)
-		{
-			sprintf(errorstring, "Sys_LoadLibrary: \"%s\" mismatch version (%i should be %i)\n", dll->name, check->apiversion, dll->apiversion);
-			goto error;
-		}
-		else MsgDev(D_ERROR, " [%d]", check->apiversion ); 
 		if(check->api_size != dll->api_size)
 		{
 			sprintf(errorstring, "Sys_LoadLibrary: \"%s\" mismatch interface size (%i should be %i)\n", dll->name, check->api_size, dll->api_size);

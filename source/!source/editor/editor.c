@@ -22,7 +22,6 @@ launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input )
 	// and always make exception, run simply check for avoid it
 	if(input)std = *input;
 
-	Editor.apiversion = LAUNCH_API_VERSION;
 	Editor.api_size = sizeof(launch_exp_t);
 
 	Editor.Init = InitEditor;

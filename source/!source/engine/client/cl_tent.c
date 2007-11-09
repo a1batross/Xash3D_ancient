@@ -148,11 +148,6 @@ void CL_RegisterTEntModels (void)
 	cl_mod_explo2 = re->RegisterModel ("sprites/s_explo2.spr");
 	cl_mod_explo4 = re->RegisterModel ("sprites/s_explod.spr");
 	cl_mod_bfg_explo = re->RegisterModel ("sprites/s_bfg2.spr");
-
-	re->RegisterPic ("w_machinegun");
-	re->RegisterPic ("a_bullets");
-	re->RegisterPic ("i_health");
-	re->RegisterPic ("a_grenades");
 }	
 
 /*

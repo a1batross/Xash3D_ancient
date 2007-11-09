@@ -295,7 +295,6 @@ void CL_ParseServerData (void)
 	char	*str;
 	int		i;
 
-	//Sys_Error("Serverdata packet received.\n");
 	MsgDev (D_INFO, "Serverdata packet received.\n");
 
 	// wipe the client_t struct
@@ -329,9 +328,7 @@ void CL_ParseServerData (void)
 	else
 	{
 		// seperate the printfs so the server message can have a color
-		Msg("\n\n\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n\n");
-		Msg ("^3%s\n", str);
-
+		Msg("\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
 		// need to prep refresh at next oportunity
 		cl.refresh_prepped = false;
 	}
@@ -494,10 +491,8 @@ void CL_ParseConfigString (void)
 	// do something apropriate 
 
 	if (i >= CS_LIGHTS && i < CS_LIGHTS+MAX_LIGHTSTYLES)
-		CL_SetLightstyle (i - CS_LIGHTS);
-	else if (i == CS_CDTRACK)
 	{
-		Msg("unsupported command\n");
+		CL_SetLightstyle (i - CS_LIGHTS);
 	}
 	else if (i >= CS_MODELS && i < CS_MODELS+MAX_MODELS)
 	{

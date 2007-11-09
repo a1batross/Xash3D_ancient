@@ -119,7 +119,6 @@ launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input )
 	// and always make exception, run simply check for avoid it
 	if(input) std = *input;
 
-	Host.apiversion = LAUNCH_API_VERSION;
 	Host.api_size = sizeof(launch_exp_t);
 
 	Host.Init = Host_Init;

@@ -556,7 +556,8 @@ void R_DrawSkyBox (void)
 	int		i;
 
 	if (skyrotate)
-	{	// check for no sky at all
+	{	
+		// check for no sky at all
 		for (i = 0; i < 6; i++)
 			if (skymins[0][i] < skymaxs[0][i] && skymins[1][i] < skymaxs[1][i])
 				break;
@@ -577,11 +578,10 @@ void R_DrawSkyBox (void)
 			skymaxs[1][i] = 1;
 		}
 
-		if (skymins[0][i] >= skymaxs[0][i]
-		|| skymins[1][i] >= skymaxs[1][i])
+		if (skymins[0][i] >= skymaxs[0][i] || skymins[1][i] >= skymaxs[1][i])
 			continue;
 
-		GL_Bind (sky_image->texnum[sky_image->texorder[i]]);
+		GL_Bind(sky_image->texnum[sky_image->texorder[i]]);
 
 		qglBegin (GL_QUADS);
 		MakeSkyVec (skymins[0][i], skymins[1][i], i);
@@ -602,14 +602,14 @@ void R_SetSky (char *name, float rotate, vec3_t axis)
 {
 	char	pathname[MAX_QPATH];
 
-	strncpy (skyname, name, sizeof(skyname)-1);
+	strncpy (skyname, name, sizeof(skyname) - 1);
 	skyrotate = rotate;
-	VectorCopy (axis, skyaxis);
+	VectorCopy(axis, skyaxis);
 
 	// chop down rotating skies for less memory
 	if (gl_skymip->value || skyrotate) gl_picmip->value += 6;
 
-	sprintf (pathname, "base_sky/%s", skyname);
+	sprintf (pathname, "cubemaps/env/%s", skyname);
 	sky_image = R_FindImage (pathname, NULL, 0, it_sky);
 	if (!sky_image) sky_image = r_notexture;
 

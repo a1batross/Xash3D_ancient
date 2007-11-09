@@ -22,8 +22,8 @@ void Key_Init (void);
 void SCR_EndLoadingPlaque (void);
 
 HINSTANCE	global_hInstance;
-dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, COMMON_API_VERSION, sizeof(common_exp_t) };
-dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, true, PHYSIC_API_VERSION, sizeof(physic_exp_t) };
+dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(common_exp_t) };
+dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(physic_exp_t) };
 
 cvar_t	*timescale;
 cvar_t	*fixedtime;
@@ -140,9 +140,9 @@ void Host_Init (char *funcname, int argc, char **argv)
 	else if(!strcmp(funcname, "host_shared")) host.type = HOST_NORMAL;
 	else host.type = HOST_OFFLINE; // launcher can loading engine for some reasons
 
-	COM_InitArgv (argc, argv); // init host.debug & host.developer here
-	Host_InitCommon( funcname, argc, argv );
+	srand(time(NULL)); // init random generator
 
+	Host_InitCommon( funcname, argc, argv ); // loading common.dll
 	Cmd_Init( argc, argv );
 	Cvar_Init();
 	Key_Init();
@@ -163,7 +163,7 @@ void Host_Init (char *funcname, int argc, char **argv)
 	if(host.type == HOST_DEDICATED) dedicated = Cvar_Get ("dedicated", "1", CVAR_INIT);
 	else dedicated = Cvar_Get ("dedicated", "0", CVAR_INIT);
 
-	s = va("%4.2f %s %s %s", VERSION, "x86", __DATE__, BUILDSTRING);
+	s = va("Xash %g (%s)", XASH_VERSION, BUILDSTRING);
 	Cvar_Get ("version", s, CVAR_SERVERINFO|CVAR_INIT);
 
 	if (dedicated->value) Cmd_AddCommand ("quit", Sys_Quit);
@@ -171,7 +171,7 @@ void Host_Init (char *funcname, int argc, char **argv)
 	NET_Init();
 	Netchan_Init();
 	Host_InitPhysic();
-          
+         
 	SV_Init();
 	CL_Init();
 

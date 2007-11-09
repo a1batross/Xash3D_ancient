@@ -189,7 +189,7 @@ bool LoadWAL( char *name, char *buffer, int filesize )
 
 	pixels = image_width * image_height;
 	mipsize = (int)sizeof(wal) + ofs + pixels;
-	image_size = image_width * image_height * 4;// wall can't have alpha
+	image_size = image_width * image_height * 4; // wall can't have alpha
 
 	if (pixels > 256 && filesize < mipsize)
 	{
@@ -888,7 +888,7 @@ uint dds_calc_mipmap_size( dds_t *hdr )
 	int i, mipsize = 0;
 	int bits = hdr->dsPixelFormat.dwRGBBitCount / 8;
 		
-	//now correct buffer size
+	// now correct buffer size
 	for( i = 0; i < image_num_mips; i++, buffsize += mipsize )
 	{
 		mipsize = dds_get_linear_size( w, h, d, bits );
@@ -926,7 +926,7 @@ uint dds_calc_size( char *name, dds_t *hdr, uint filesize )
 		buffsize = dds_calc_mipmap_size( hdr );
 	}
 
-	if(filesize != buffsize) //main check
+	if(filesize != buffsize) // main check
 	{
 		MsgWarn("LoadDDS: (%s) probably corrupted(%i should be %i)\n", name, buffsize, filesize );
 		return false;
@@ -1593,7 +1593,7 @@ bool FS_AddImageToPack( const char *name )
 
 	if(resampled != image_rgba) 
 	{
-		MsgDev(D_SPAM, "FS_AddImageToPack: resample %s from [%dx%d] to [%dx%d]\n", name, image_width, image_height, cubemap_width, cubemap_height );  
+		MsgDev(D_NOTE, "FS_AddImageToPack: resample %s from [%dx%d] to [%dx%d]\n", name, image_width, image_height, cubemap_width, cubemap_height );  
 		Mem_Move( imagepool, &image_rgba, resampled, image_size );// update buffer
 	}	
 
@@ -1630,7 +1630,7 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 	FS_StripExtension( loadname ); //remove extension if needed
 
 	// developer warning
-	if(!anyformat) MsgWarn( "%s will be loading only with ext .%s\n", loadname, ext );
+	if(!anyformat) MsgDev(D_NOTE, "Note: %s will be loading only with ext .%s\n", loadname, ext );
 	
 	// now try all the formats in the selected list
 	for (format = load_formats; format->formatstring; format++)
@@ -1675,7 +1675,7 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 			// first side not found, probably it's not cubemap
 			// it contain info about image_type and dimensions, don't generate black cubemaps 
 			if(!image_cubemap) break;
-			MsgDev(D_SPAM, "FS_LoadImage: couldn't load (%s%s.%s), create balck image\n",loadname,suf[i],ext );
+			MsgDev(D_ERROR, "FS_LoadImage: couldn't load (%s%s.%s), create balck image\n",loadname,suf[i],ext );
 
 			// Mem_Alloc already filled memblock with 0x00, no need to do it again
 			image_cubemap = Mem_Realloc( imagepool, image_cubemap, image_ptr + image_size );
@@ -1703,7 +1703,7 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 		}
 	}
 
-	MsgDev(D_SPAM, "FS_LoadImage: couldn't load (%s)\n", texname );
+	MsgDev(D_WARN, "couldn't load %s\n", texname );
 	return NULL;
 }
 
@@ -1808,7 +1808,7 @@ bool SaveTGA( const char *filename, byte *data, int width, int height, bool alph
 		}
 	}	
 
-	MsgDev(D_SPAM, "Writing %s[%d]\n", filename, alpha ? 32 : 24 );
+	MsgDev(D_NOTE, "Writing %s[%d]\n", filename, alpha ? 32 : 24 );
 	FS_WriteFile (filename, buffer, outsize );
 
 	Free( buffer );

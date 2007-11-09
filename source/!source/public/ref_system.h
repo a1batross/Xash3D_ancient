@@ -8,20 +8,13 @@
 #include "ref_format.h" 
 #include "version.h"
 
-
-#define RENDER_API_VERSION	4
-#define PHYSIC_API_VERSION	1
-#define COMMON_API_VERSION	2
-#define LAUNCH_API_VERSION	3
-#define INIT32_API_VERSION	5	// executables entry point
-
-//bsplib compile flags
+// bsplib compile flags
 #define BSP_ONLYENTS	0x01
 #define BSP_ONLYVIS		0x02
 #define BSP_ONLYRAD		0x04
 #define BSP_FULLCOMPILE	0x08
 
-//qcclib compile flags
+// qcclib compile flags
 #define QCC_PROGDEFS	0x01
 #define QCC_OPT_LEVEL_0	0x02
 #define QCC_OPT_LEVEL_1	0x04
@@ -273,7 +266,8 @@ enum dev_level
 	D_INFO = 1,	// "-dev 1", shows various system messages
 	D_WARN,		// "-dev 2", shows not critical system warnings, same as MsgWarn
 	D_ERROR,		// "-dev 3", shows critical warnings 
-	D_SPAM,		// "-dev 4", show all system messages
+	D_LOAD,		// "-dev 4", show messages about loading resources
+	D_NOTE,		// "-dev 5", show system notifications for engine develeopers
 };
 
 // format info table
@@ -309,7 +303,7 @@ static bpc_desc_t PFDesc[] =
 {PF_LUMINANCE_ALPHA,"LUM A",	GL_LUMINANCE_ALPHA,	GL_UNSIGNED_BYTE, 2,  1, -2 },
 {PF_RXGB,		"RXGB",	GL_RGBA,		GL_UNSIGNED_BYTE, 3,  1, 16 },
 {PF_ABGR_64,	"ABGR 64",GL_BGRA,		GL_UNSIGNED_BYTE, 4,  2, -8 },
-{PF_RGBA_GN,	"system",	GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, -32},
+{PF_RGBA_GN,	"system",	GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, -4 },
 };
 
 static activity_map_t activity_map[] =
@@ -514,7 +508,6 @@ typedef struct dll_info_s
 	bool		crash;		// crash if dll not found
 
 	// xash dlls validator
-	int		apiversion;	// generic api version
 	size_t		api_size;		// generic interface size
 
 } dll_info_t;
@@ -740,7 +733,6 @@ GENERIC INTERFACE
 typedef struct generic_api_s
 {
 	// interface validator
-	int	apiversion;	// must matched with *_API_VERSION
 	size_t	api_size;		// must matched with sizeof(*_api_t)
 
 } generic_api_t;
@@ -974,8 +966,7 @@ LAUNCH.DLL INTERFACE
 */
 typedef struct launch_exp_s
 {
-	//interface validator
-	int	apiversion;	// must matched with LAUNCH_API_VERSION
+	// interface validator
 	size_t	api_size;		// must matched with sizeof(launch_api_t)
 
 	void ( *Init ) ( char *funcname, int argc, char **argv ); // init host
@@ -993,8 +984,7 @@ COMMON.DLL INTERFACE
 
 typedef struct common_exp_s
 {
-	//interface validator
-	int	apiversion;	// must matched with COMMON_API_VERSION
+	// interface validator
 	size_t	api_size;		// must matched with sizeof(common_api_t)
 
 	// initialize
@@ -1030,8 +1020,7 @@ RENDER.DLL INTERFACE
 
 typedef struct render_exp_s
 {
-	//interface validator
-	int	apiversion;	// must matched with RENDER_API_VERSION
+	// interface validator
 	size_t	api_size;		// must matched with sizeof(render_exp_t)
 
 	// initialize
@@ -1113,7 +1102,6 @@ PHYSIC.DLL INTERFACE
 typedef struct physic_exp_s
 {
 	// interface validator
-	int	apiversion;	// must matched with PHYSIC_API_VERSION
 	size_t	api_size;		// must matched with sizeof(physic_exp_t)
 
 	// initialize

@@ -157,8 +157,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, sv_state_t 
 
 	if (attractloop) Cvar_Set ("paused", "0");
 
-	Msg("------- Server Initialization -------\n");
-	MsgDev (D_INFO, "SpawnServer: %s\n", server);
+	Msg("SpawnServer [%s]\n", server );
 	if (sv.demofile) FS_Close (sv.demofile);
 
 	svs.spawncount++; // any partially connected client will be restarted
@@ -200,8 +199,8 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, sv_state_t 
 
 	sv.time = 1.0f;
 	
-	strcpy (sv.name, server);
-	strcpy (sv.configstrings[CS_NAME], server);
+	strcpy(sv.name, server);
+	FS_FileBase(server, sv.configstrings[CS_NAME]);
 
 	if (serverstate != ss_game)
 	{
@@ -209,7 +208,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, sv_state_t 
 	}
 	else
 	{
-		sprintf (sv.configstrings[CS_MODELS+1], "maps/%s.bsp", server);
+		sprintf (sv.configstrings[CS_MODELS+1], "maps/%s", server);
 		sv.models[1] = CM_LoadMap (sv.configstrings[CS_MODELS+1], false, &checksum);
 	}
 	sprintf (sv.configstrings[CS_MAPCHECKSUM],"%i", checksum);
@@ -252,7 +251,6 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, sv_state_t 
 	// set serverinfo variable
 	Cvar_FullSet ("mapname", sv.name, CVAR_SERVERINFO | CVAR_INIT);
 
-	Msg ("-------------------------------------\n");
 	SV_VM_End();
 }
 
@@ -384,10 +382,6 @@ void SV_Map (bool attractloop, char *levelstring, char *savename, bool loadgame)
 	}
 	else Cvar_Set ("nextserver", "");
 
-	//ZOID special hack for end game screen in coop mode
-	if (Cvar_VariableValue ("coop") && !strcasecmp(level, "victory.pcx"))
-		Cvar_Set ("nextserver", "gamemap \"*base1\"");
-
 	// if there is a $, use the remainder as a spawnpoint
 	ch = strstr(level, "$");
 	if (ch)
@@ -416,8 +410,9 @@ void SV_Map (bool attractloop, char *levelstring, char *savename, bool loadgame)
 	else
 	{
 		SCR_BeginLoadingPlaque (); // for local system
+		FS_DefaultExtension( level, ".bsp" );
 		SV_BroadcastCommand ("changing\n");
-		SV_SendClientMessages ();
+		SV_SendClientMessages();
 		SV_SpawnServer (level, spawnpoint, savename, ss_game, attractloop, loadgame);
 	}
 	SV_BroadcastCommand ("reconnect\n");
@@ -544,7 +539,7 @@ void SV_VM_Begin(void)
 	PRVM_Begin;
 	PRVM_SetProg( PRVM_SERVERPROG );
 
-	*prog->time = sv.time;
+	if(prog) *prog->time = sv.time;
 }
 
 void SV_VM_End(void)

@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // common.h -- definitions common between client and server, but not game.dll
 
-#define	VERSION		"Xash 0.48"
+
 
 #define BASEDIRNAME	"xash"
 
@@ -346,7 +346,7 @@ The game starts with a Cbuf_AddText ("exec quake.rc\n"); Cbuf_Execute ();
 #define	EXEC_INSERT	1		// insert at current position, but don't run yet
 #define	EXEC_APPEND	2		// add to end of the command buffer
 
-void Cbuf_Init (void);
+void Cbuf_Init( int argc, char **argv );
 void Cbuf_AddText (const char *text);
 void Cbuf_InsertText (const char *text);
 void Cbuf_ExecuteText (int exec_when, const char *text);
@@ -364,6 +364,10 @@ typedef void (*xcommand_t) (void);
 void Cmd_Init( int argc, char **argv );
 #define Cmd_AddCommand(name, func) _Cmd_AddCommand(name, func, "no description" )
 void _Cmd_AddCommand(const char *cmd_name, xcommand_t function, const char *cmd_desc);
+#define Cmd_GetParmFromCmdLine(parm, out) _Cmd_GetParmFromCmdLine( parm, out, sizeof(out)) 
+bool _Cmd_GetParmFromCmdLine( char *parm, char *out, size_t outsize );
+int Cmd_CheckParm (const char *parm);
+
 // called by the init functions of other parts of the program to
 // register commands and functions to call for them.
 // The cmd_name is referenced later, so it should not be in temp memory

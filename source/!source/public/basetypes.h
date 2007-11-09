@@ -145,20 +145,20 @@ _inline const char* time_stamp( int format )
 	switch( format )
 	{
 	case TIME_FULL:
-		// Build the full timestamp (ex: "Apr2007-03(23.31.55)");
-		strftime(timestring, sizeof (timestring), "%b%Y-%d(%H.%M.%S)", crt_tm);
+		// Build the full timestamp (ex: "Apr03 2007 [23:31.55]");
+		strftime(timestring, sizeof (timestring), "%b%d %Y [%H:%M.%S]", crt_tm);
 		break;
 	case TIME_DATE_ONLY:
-		// Build the date stamp only (ex: "Apr2007-03");
-		strftime(timestring, sizeof (timestring), "%b%Y-%d", crt_tm);
+		// Build the date stamp only (ex: "Apr03 2007");
+		strftime(timestring, sizeof (timestring), "%b%d %Y", crt_tm);
 		break;
 	case TIME_TIME_ONLY:
-		// Build the time stamp only (ex: "(23.31.55)");
-		strftime(timestring, sizeof (timestring), "%b%Y-%d", crt_tm);
+		// Build the time stamp only (ex: "[23:31.55]");
+		strftime(timestring, sizeof (timestring), "[%H:%M.%S]", crt_tm);
 		break;
 	case TIME_NO_SECONDS:
-		// Build the full timestamp (ex: "Apr2007-03(23.31)");
-		strftime(timestring, sizeof (timestring), "%b%Y-%d(%H.%M)", crt_tm);
+		// Build the full timestamp (ex: "Apr03 2007 [23:31]");
+		strftime(timestring, sizeof (timestring), "%b%d %Y [%H:%M]", crt_tm);
 		break;
 	}
 

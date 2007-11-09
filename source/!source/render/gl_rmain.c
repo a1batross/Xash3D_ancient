@@ -90,6 +90,7 @@ cvar_t	*r_novis;
 cvar_t	*r_nocull;
 cvar_t	*r_lerpmodels;
 cvar_t	*r_lefthand;
+cvar_t	*r_loading;
 
 cvar_t	*r_lightlevel;	// FIXME: This is a HACK to get the client's light level
 cvar_t	*r_emboss_bump;
@@ -928,6 +929,8 @@ void R_Register( void )
 	r_speeds = ri.Cvar_Get ("r_speeds", "0", 0);
 	r_pause = ri.Cvar_Get("paused", "0", 0);
 
+	r_loading = ri.Cvar_Get("scr_loading", "0", 0 );
+
 	r_lightlevel = ri.Cvar_Get ("r_lightlevel", "0", 0);
 	r_emboss_bump = ri.Cvar_Get ("r_emboss_bump", "0", 0);
 
@@ -1105,10 +1108,12 @@ int R_Init( void *hinstance, void *hWnd )
 		return false;
 	}
 
-	MsgDev(D_INFO, "------- Loading bin/render.dll [%g] -------\n", RENDER_VERSION );
+	// FIXME: don't remove - renderer immediately crash without it
+	MsgDev(D_INFO, "Initializing render\n" );
 	ri.Vid_MenuInit();
+
+	// get our various GL strings
 	
-	//get our various GL strings
 	gl_config.vendor_string = qglGetString (GL_VENDOR);
 	MsgDev(D_INFO, "GL_VENDOR: %s\n", gl_config.vendor_string );
 	gl_config.renderer_string = qglGetString (GL_RENDERER);
@@ -1117,7 +1122,7 @@ int R_Init( void *hinstance, void *hWnd )
 	MsgDev(D_INFO, "GL_VERSION: %s\n", gl_config.version_string );
 	gl_config.extensions_string = qglGetString (GL_EXTENSIONS);
 	MsgDev(D_INFO, "GL_EXTENSIONS: %s\n", gl_config.extensions_string );
-
+          
 	strcpy( renderer_buffer, gl_config.renderer_string );
 	strlwr( renderer_buffer );
 
@@ -1131,7 +1136,7 @@ int R_Init( void *hinstance, void *hWnd )
 	else if ( strstr( vendor_buffer, "nvidia" ) )
 		gl_config.renderer = GL_RENDERER_ATI;
 	else gl_config.renderer = GL_RENDERER_DEFAULT;
-
+          
 	gl_config.allow_cds = true;
 
 	/*
@@ -1525,7 +1530,7 @@ render_exp_t DLLEXPORT *CreateAPI(render_imp_t *rimp )
 	// and always make exception, run simply check for avoid it
 	if(rimp) ri = *rimp;
 
-	re.apiversion = RENDER_API_VERSION;
+	// generic functions
 	re.api_size = sizeof(render_exp_t);
 
 	re.BeginRegistration = R_BeginRegistration;

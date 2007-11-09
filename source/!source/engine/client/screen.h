@@ -66,27 +66,17 @@ void	SCR_Init (void);
 
 void	SCR_UpdateScreen (void);
 
-void	SCR_SizeUp (void);
-void	SCR_SizeDown (void);
-void	SCR_CenterPrint (char *str);
-void	SCR_BeginLoadingPlaque (void);
-void	SCR_EndLoadingPlaque (void);
+void SCR_SizeUp (void);
+void SCR_SizeDown (void);
+void SCR_CenterPrint (char *str);
+void SCR_BeginLoadingPlaque (void);
+void SCR_EndLoadingPlaque (void);
 
-void	SCR_TouchPics (void);
 
-void	SCR_RunConsole (void);
+extern cvar_t	*crosshair;
+extern cvar_t	*scr_loading;
+extern	vrect_t	scr_vrect;	// position of render window
 
-extern	int			sb_lines;
-
-extern	cvar_t		*crosshair;
-
-extern	vrect_t		scr_vrect;		// position of render window
-
-extern	char		crosshair_pic[MAX_QPATH];
-extern	int			crosshair_width, crosshair_height;
-
-void SCR_AddDirtyPoint (int x, int y);
-void SCR_DirtyScreen (void);
 void SCR_AdjustSize( float *x, float *y, float *w, float *h );
 void SCR_DrawPic( float x, float y, float width, float height, char *picname );
 void SCR_FillRect( float x, float y, float width, float height, const float *color );
@@ -102,7 +92,9 @@ void SCR_DrawBigStringColor( int x, int y, const char *s, vec4_t color );
 void CG_SetSky_f( void );
 void CG_DrawCenterString( void );
 void CG_CenterPrint( const char *str, int y, int charWidth );
+float *CG_FadeColor( float starttime, float endtime );
 void CG_DrawCenterPic( int w, int h, char *picname );
+void CG_StringToVector( float *vec, const char *string );
 void CG_ExecuteProgram( char *section );
 void CG_MakeLevelShot( void );
 void CG_DrawLoading( void );

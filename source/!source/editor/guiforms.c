@@ -34,8 +34,8 @@ wnd_options_t		w_opts;	//window options
 common_exp_t		*com;	//common utils 
 static bool editor_init = false;
 static char textbuffer[MAX_INPUTLINE];
-dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, false, COMMON_API_VERSION, sizeof(common_exp_t) };
-dll_info_t richedit_dll = { "riched32.dll", NULL, NULL, NULL, NULL, false, 0, 0 };
+dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(common_exp_t) };
+dll_info_t richedit_dll = { "riched32.dll", NULL, NULL, NULL, NULL, false, 0 };
 
 
 /*
@@ -429,9 +429,8 @@ void GUI_ResetWndOptions( void )
 
 	s_gui.gHinst = (HINSTANCE) GetModuleHandle( NULL );
 	
-	//reset options
+	// reset options
 	w_opts.id = IDEDITORHEADER;
-	w_opts.version = (int)EDITOR_VERSION;
 	w_opts.csize = sizeof(wnd_options_t);
 	w_opts.show_console = true;
 	w_opts.con_scale = 6L;
@@ -837,7 +836,7 @@ void GUI_UpdateDefault( WPARAM wParam )
 		break;
 	case IDM_ABOUT:
 		if(!w_opts.show_console) GUI_ShowConsole();
-		Msg("Xash Resource Editor. Ver %g\n", EDITOR_VERSION );
+		Msg("Xash Resource Editor. ver. %g\n", XASH_VERSION );
 		Msg("Copyright XashXT Group 2007 ©.\n");		
 		break;
 	}
@@ -1003,11 +1002,6 @@ void InitEditor ( char *funcname, int argc, char **argv )
 				MsgWarn("InitEditor: editor.dat have mismath header!\n");
 				iErrors++;
 			}
-			if(config_dat->version != (int)EDITOR_VERSION)
-			{
-				MsgWarn("InitEditor: editor.dat have mismath version!\n");
-				iErrors++;
-			}
 			if(config_dat->csize != config_size)
 			{
 				MsgWarn("InitEditor: editor.dat have mismath size!\n");
@@ -1032,7 +1026,7 @@ void InitEditor ( char *funcname, int argc, char **argv )
 	
 	// end of all initializations
 	ShowWindow(s_gui.hWnd, SW_SHOWDEFAULT);
-	MsgDev(D_INFO, "------- Xash Recource Editor ver. %g initialized -------\n", EDITOR_VERSION );
+	MsgDev(D_INFO, "------- Xash Recource Editor ver. %g initialized -------\n", XASH_VERSION );
 }
 
 void EditorMain ( void )

@@ -172,7 +172,7 @@ Responds with all the info that qplug or qspy can see
 */
 void SVC_Status (void)
 {
-	Netchan_OutOfBandPrint (NS_SERVER, net_from, "print\n%s", SV_StatusString());
+	Netchan_OutOfBandPrint(NS_SERVER, net_from, "print\n%s", SV_StatusString());
 }
 
 /*
@@ -217,7 +217,7 @@ void SVC_Info (void)
 		sprintf (string, "%16s %8s %2i/%2i\n", hostname->string, sv.name, count, (int)maxclients->value);
 	}
 
-	Netchan_OutOfBandPrint (NS_SERVER, net_from, "info\n%s", string);
+	Netchan_OutOfBandPrint(NS_SERVER, net_from, "info\n%s", string);
 }
 
 /*
@@ -305,7 +305,7 @@ void SVC_DirectConnect( void )
 	version = atoi(Cmd_Argv(1));
 	if (version != PROTOCOL_VERSION)
 	{
-		Netchan_OutOfBandPrint (NS_SERVER, adr, "print\nServer is version %4.2f.\n", VERSION);
+		Netchan_OutOfBandPrint (NS_SERVER, adr, "print\nServer is version %4.2f.\n", XASH_VERSION);
 		MsgWarn ("SVC_DirectConnect: rejected connect from version %i\n", version);
 		return;
 	}
@@ -1044,7 +1044,7 @@ void SV_Shutdown (char *finalmsg, bool reconnect)
 	// already freed
 	if(host.state == HOST_ERROR) return;
 
-	Msg("SV_Shutdown: %s\n", finalmsg );
+	MsgDev(D_NOTE, "SV_Shutdown: %s\n", finalmsg );
 	if (svs.clients) SV_FinalMessage (finalmsg, reconnect);
 
 	Master_Shutdown ();

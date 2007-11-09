@@ -54,7 +54,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386 /opt:nowin98
-# ADD LINK32 common/zlib.lib winmm.lib user32.lib /nologo /dll /profile /machine:I386 /nodefaultlib:"libc.lib" /opt:nowin98
+# ADD LINK32 common/zlib.lib /nologo /dll /profile /machine:I386 /nodefaultlib:"libc.lib" /opt:nowin98
 # Begin Custom Build
 TargetDir=\XASH3D\src_main\!source\temp\common\!release
 InputPath=\XASH3D\src_main\!source\temp\common\!release\common.dll
@@ -90,7 +90,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 common/zlib.lib winmm.lib user32.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"libc.lib" /pdbtype:sept
+# ADD LINK32 common/zlib.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"libc.lib" /pdbtype:sept
 # SUBTRACT LINK32 /incremental:no /nodefaultlib
 # Begin Custom Build
 TargetDir=\XASH3D\src_main\!source\temp\common\!debug
@@ -122,10 +122,6 @@ SOURCE=.\bsplib\bspfile.c
 # Begin Source File
 
 SOURCE=.\bsplib\csg.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\roqlib\roq_dec.c
 # End Source File
 # Begin Source File
 
@@ -206,6 +202,10 @@ SOURCE=.\bsplib\qrad3.c
 # Begin Source File
 
 SOURCE=.\bsplib\qvis3.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\roqlib\roq_dec.c
 # End Source File
 # Begin Source File
 

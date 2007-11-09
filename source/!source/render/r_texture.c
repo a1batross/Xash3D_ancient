@@ -192,7 +192,7 @@ bool R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 			break;
 		} 
 	} 		
-	if(i != PF_TOTALCOUNT) //make sure what match found
+	if(i != PF_TOTALCOUNT) // make sure what match found
 	{
 		image_desc.numLayers = pic->numLayers;
 		image_desc.width = w = pic->width;
@@ -242,7 +242,7 @@ bool R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 
 	if(r_size != pic->size) // sanity check
 	{
-		MsgDev(D_ERROR, "R_GetPixelFormat: invalid image size\n");
+		MsgDev(D_WARN, "R_GetPixelFormat: invalid image size (%i should be %i)\n", pic->size, r_size );
 		return false;
 	}	
 	return true;
@@ -1666,7 +1666,7 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
 		R_SetPixelFormat( image_desc.width, image_desc.height, image_desc.numLayers );
 		offset = image_desc.SizeOfFile;// move pointer
 		
-		MsgDev(D_SPAM, "loading %s [%s] \n", name, PFDesc[image_desc.format].name );
+		MsgDev(D_LOAD, "%s [%s] \n", name, PFDesc[image_desc.format].name );
 
 		switch(pic->type)
 		{
@@ -1692,13 +1692,11 @@ image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
 		}
 	}          
 
-	//check for errors
+	// check for errors
 	if(!iResult)
 	{
 		MsgWarn("R_LoadImage: can't loading %s with bpp %d\n", name, image_desc.bpp ); 
-		image->name[0] = '\0';
-		image->registration_sequence = 0;
-		return NULL;
+		return r_notexture;
 	} 
 	return image;
 }

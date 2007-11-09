@@ -48,14 +48,13 @@ common_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input )
 	// and always make exception, run simply check for avoid it
 	if(input) std = *input;
 
-	//generic functions
-	Com.apiversion = COMMON_API_VERSION;
+	// generic functions
 	Com.api_size = sizeof(common_exp_t);
 
 	Com.Init = InitPlatform;
 	Com.Shutdown = ClosePlatform;
 
-	//get interfaces
+	// get interfaces
 	Com.Fs = FS_GetAPI();
 	Com.VFs = VFS_GetAPI();
 	Com.Mem = Mem_GetAPI();

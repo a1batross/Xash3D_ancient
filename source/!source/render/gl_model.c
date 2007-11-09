@@ -178,7 +178,7 @@ model_t *Mod_ForName(char *name, bool crash)
 	int	i;
 	
 	if (!name[0]) return NULL;
-		
+
 	// inline models are grabbed only from worldmodel
 	if (name[0] == '*')
 	{
@@ -446,7 +446,7 @@ void Mod_LoadTexinfo (lump_t *l)
 
 	for ( i = 0; i < count; i++, in++, out++)
 	{
-		for (j=0 ; j<8 ; j++)
+		for (j = 0; j < 8; j++)
 			out->vecs[0][j] = LittleFloat(in->vecs[0][j]);
 
 		out->flags = LittleLong (in->flags);
@@ -455,7 +455,12 @@ void Mod_LoadTexinfo (lump_t *l)
 		else out->next = NULL;
 
 		out->image = R_FindImage (in->texture, NULL, 0, it_wall);
-		if (!out->image)
+		if(out->image)
+		{
+			ri.Cvar_SetValue("scr_loading", r_loading->value + 45.0f/count );
+			Msg("loading textures %g\n", r_loading->value + 45.0f/count );
+		}
+		else
 		{
 			Msg("Couldn't load %s\n", in->texture);
 			out->image = r_notexture;
@@ -949,8 +954,15 @@ void R_BeginRegistration (char *model)
 	// explicitly free the old map if different
 	// this guarantees that mod_known[0] is the world map
 	flushmap = ri.Cvar_Get ("flushmap", "0", 0);
-	if ( strcmp(mod_known[0].name, fullname) || flushmap->value)
+	if(strcmp(mod_known[0].name, fullname) || flushmap->value)
+	{
 		Mod_Free (&mod_known[0]);
+	}
+	else 
+	{
+		// textures already loaded
+		ri.Cvar_SetValue("scr_loading", r_loading->value + 45.0f );
+	}
 	r_worldmodel = Mod_ForName(fullname, true);
 
 	r_viewcluster = -1;

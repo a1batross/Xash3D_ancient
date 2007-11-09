@@ -1454,13 +1454,12 @@ it is changing to a different game directory.
 */
 void SV_ShutdownGameProgs (void)
 {
-	int	i;
 	edict_t	*ent;
+	int	i;
 
-	Msg("==== ShutdownGame ====\n");
 	SV_VM_Begin();
 
-	for (i = 1; i < prog->num_edicts; i++)
+	for (i = 1; prog && i < prog->num_edicts; i++)
 	{
 		ent = PRVM_EDICT_NUM(i);
 		SV_FreeEdict( ent );// release physic
@@ -1483,6 +1482,6 @@ Init the game subsystem for a new map
 */
 void SV_InitGameProgs (void)
 {
-	Msg("==== InitGame ====\n");
+	Msg("\n");
 	SV_VM_Setup();
 }

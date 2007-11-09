@@ -104,9 +104,13 @@ void R_Bloom_InitBackUpTexture( int width, int height )
 	rgbdata_t	r_bloom;
 	
 	data = Z_Malloc( width * height * 4 );
+
+	memset(&r_bloom, 0, sizeof(rgbdata_t));
+
 	r_bloom.width = width;
 	r_bloom.height = height;
 	r_bloom.type = PF_RGBA_GN;
+	r_bloom.size = width * height * 4;
 	r_bloom.flags = 0;
 	r_bloom.numMips = 1;
 	r_bloom.palette = NULL;
@@ -127,6 +131,8 @@ void R_Bloom_InitEffectTexture( void )
 	byte	*data;
 	float	bloomsizecheck;
 	rgbdata_t	r_bloomfx;
+
+	memset(&r_bloomfx, 0, sizeof(rgbdata_t));
 	
 	if( (int)r_bloom_sample_size->value < 32 )
 		ri.Cvar_SetValue ("r_bloom_sample_size", 32);
@@ -154,6 +160,7 @@ void R_Bloom_InitEffectTexture( void )
 
 	r_bloomfx.width = BLOOM_SIZE;
 	r_bloomfx.height = BLOOM_SIZE;
+	r_bloomfx.size = BLOOM_SIZE * BLOOM_SIZE * 4;
 	r_bloomfx.type = PF_RGBA_GN;
 	r_bloomfx.flags = 0;
 	r_bloomfx.numMips = 1;
@@ -175,6 +182,9 @@ void R_Bloom_InitTextures( void )
 	int	size;
 	rgbdata_t	r_bloomscr, r_downsample;
 
+	memset(&r_bloomscr, 0, sizeof(rgbdata_t));
+	memset(&r_downsample, 0, sizeof(rgbdata_t));
+
 	//find closer power of 2 to screen size 
 	for (screen_texture_width = 1; screen_texture_width < vid.width; screen_texture_width *= 2);
 	for (screen_texture_height = 1; screen_texture_height < vid.height; screen_texture_height *= 2);
@@ -191,6 +201,7 @@ void R_Bloom_InitTextures( void )
 	r_bloomscr.palette = NULL;
 	r_bloomscr.buffer = (byte *)data;
 	r_bloomscr.numMips = 1;
+	r_bloomscr.size = screen_texture_width * screen_texture_height * 4;
 	r_bloomscreentexture = R_LoadImage( "***r_bloomscreentexture***", &r_bloomscr, it_pic );
 	Z_Free ( data );
 
@@ -207,6 +218,7 @@ void R_Bloom_InitTextures( void )
 		r_downsample.width = r_screendownsamplingtexture_size;
 		r_downsample.height = r_screendownsamplingtexture_size;
 		r_downsample.type = PF_RGBA_GN;
+		r_downsample.size = r_screendownsamplingtexture_size * r_screendownsamplingtexture_size * 4;
 		r_downsample.flags = 0;
 		r_downsample.palette = NULL;
 		r_downsample.buffer = (byte *)data;

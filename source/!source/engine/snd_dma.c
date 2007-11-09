@@ -99,9 +99,6 @@ S_Init
 void S_Init( void )
 {
 	cvar_t	*cv;
-	bool	r;
-
-	Msg("\n------- sound initialization -------\n");
 
 	s_volume = Cvar_Get ("s_volume", "0.8", CVAR_ARCHIVE);
 	s_musicVolume = Cvar_Get ("s_musicvolume", "0.25", CVAR_ARCHIVE);
@@ -114,12 +111,7 @@ void S_Init( void )
 	s_testsound = Cvar_Get ("s_testsound", "0", CVAR_CHEAT);
 
 	cv = Cvar_Get ("s_initsound", "1", 0);
-	if ( !cv->value )
-	{
-		Msg ("not initializing.\n");
-		Msg("------------------------------------\n");
-		return;
-	}
+	if ( !cv->value ) return;
 
 	Cmd_AddCommand("play", S_Play_f);
 	Cmd_AddCommand("music", S_Music_f);
@@ -127,10 +119,7 @@ void S_Init( void )
 	Cmd_AddCommand("s_info", S_SoundInfo_f);
 	Cmd_AddCommand("s_stop", S_StopAllSounds);
 
-	r = SNDDMA_Init();
-	Msg("------------------------------------\n");
-
-	if ( r )
+	if (SNDDMA_Init())
 	{
 		s_soundStarted = 1;
 		s_soundMuted = 1;
@@ -138,7 +127,6 @@ void S_Init( void )
 		s_soundtime = 0;
 		s_paintedtime = 0;
 		S_StopAllSounds ();
-		S_SoundInfo_f();
 	}
 
 }
@@ -372,7 +360,7 @@ sound_t S_RegisterSound( const char *name )
 	{
 		if( sfx->defaultSound )
 		{
-			MsgWarn("S_RegisterSound: could not find %s\n", sfx->soundName );
+			MsgDev(D_WARN, "couldn't load %s\n", sfx->soundName );
 			return 0;
 		}
 		return sfx - s_knownSfx;
@@ -383,7 +371,7 @@ sound_t S_RegisterSound( const char *name )
 
 	if ( sfx->defaultSound )
 	{
-		MsgWarn("S_RegisterSound: could not find %s\n", sfx->soundName );
+		MsgDev(D_WARN, "couldn't load %s\n", sfx->soundName );
 		return 0;
 	}
 	return sfx - s_knownSfx;

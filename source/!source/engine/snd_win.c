@@ -32,7 +32,7 @@ static dllfunc_t dsound_funcs[] =
 	{"DirectSoundCreate", (void **) &pDirectSoundCreate },
 	{ NULL, NULL }
 };
-dll_info_t dsound_dll = { "dsound.dll", dsound_funcs, NULL, NULL, NULL, false, 0, 0 };
+dll_info_t dsound_dll = { "dsound.dll", dsound_funcs, NULL, NULL, NULL, false, 0 };
 
 #define SECONDARY_BUFFER_SIZE	0x10000
 extern HWND cl_hwnd;
@@ -120,7 +120,7 @@ int SNDDMA_InitDS( void )
 	WAVEFORMATEX	format;
 	int		use8 = 1;
 
-	Msg("Initializing DirectSound - ");
+	MsgDev(D_INFO, "Initializing DirectSound - ");
 
 	// Create IDirectSound using the primary sound device
 	if(FAILED( hresult = CoCreateInstance(&CLSID_DirectSound8, NULL, CLSCTX_INPROC_SERVER, &IID_IDirectSound8, (void **)&pDS)))
@@ -128,14 +128,14 @@ int SNDDMA_InitDS( void )
 		use8 = 0;
 		if( FAILED( hresult = CoCreateInstance(&CLSID_DirectSound, NULL, CLSCTX_INPROC_SERVER, &IID_IDirectSound, (void **)&pDS)))
 		{
-			Msg("failed\n");
+			MsgDev(D_INFO, "failed\n");
 			SNDDMA_Shutdown();
 			return false;
 		}
 	}
 
 	hresult = pDS->lpVtbl->Initialize( pDS, NULL);
-	Msg( "ok\n" );
+	MsgDev(D_INFO, "ok\n" );
 
 	MsgDev(D_INFO, "...setting DSSCL_PRIORITY coop level: " );
 	if(DS_OK != pDS->lpVtbl->SetCooperativeLevel( pDS, cl_hwnd, DSSCL_PRIORITY ))

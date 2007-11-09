@@ -18,14 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 // common.c -- misc functions used in client and server
-#include <windows.h>
+
 #include "engine.h"
-
-
-#define MAXPRINTMSG		4096
-
-int	com_argc;
-char	*com_argv[MAX_NUM_ARGVS+1];
 
 cvar_t	*host_speeds;
 cvar_t	*host_frametime;
@@ -70,100 +64,13 @@ void Com_SetServerState (int state)
 {
 	server_state = state;
 }
-//============================================================================
-
-
-/*
-================
-CheckParm
-
-Returns the position (1 to argc-1) in the program's argument list
-where the given parameter apears, or 0 if not present
-================
-*/
-int CheckParm (const char *parm)
-{
-	int i;
-
-	for (i = 1; i < com_argc; i++ )
-	{
-		// NEXTSTEP sometimes clears appkit vars.
-		if (!com_argv[i]) continue;
-		if (!strcmp (parm, com_argv[i])) return i;
-	}
-	return 0;
-}
-
-bool _GetParmFromCmdLine( char *parm, char *out, size_t size )
-{
-	int argc = CheckParm( parm );
-
-	if(!argc) return false;
-	if(!out) return false;	
-
-	strncpy( out, com_argv[argc+1], size );
-	return true;
-}
-
-int COM_Argc (void)
-{
-	return com_argc;
-}
-
-char *COM_Argv (int arg)
-{
-	if (arg < 0 || arg >= com_argc || !com_argv[arg])
-		return "";
-	return com_argv[arg];
-}
-
-void COM_ClearArgv (int arg)
-{
-	if (arg < 0 || arg >= com_argc || !com_argv[arg])
-		return;
-	com_argv[arg] = "";
-}
-
-
-/*
-================
-COM_InitArgv
-================
-*/
-void COM_InitArgv (int argc, char **argv)
-{
-	int		i;
-	char	dev_level[4];
-
-	if (argc > MAX_NUM_ARGVS)
-	{
-		Msg ("COM_InitArgv: too many arguments in cmdline (max %d)\n", MAX_NUM_ARGVS);
-		argc = MAX_NUM_ARGVS;
-	}
-
-	com_argc = argc;
-	for (i = 0; i < argc; i++)
-	{
-		if (!argv[i] || strlen(argv[i]) >= MAX_TOKEN_CHARS )
-			com_argv[i] = "";
-		else com_argv[i] = argv[i];
-	}
-
-	// determine debug and developer mode
-	if (CheckParm ("-debug")) host.debug = true;
-
-	if(GetParmFromCmdLine("-dev", dev_level ))
-		host.developer = atoi(dev_level);
-
-	srand(time(NULL)); // init random generator
-}
 
 char *CopyString (const char *in)
 {
 	char	*out;
 	
-	out = Z_Malloc (strlen(in)+1);
-	strcpy (out, in);
+	out = Z_Malloc( strlen(in) + 1);
+	strcpy(out, in);
 	return out;
 }
 
@@ -284,22 +191,6 @@ float crand(void)
 }
 
 /*
-===============
-Com_PageInMemory
-
-===============
-*/
-int	paged_total;
-
-void Com_PageInMemory (byte *buffer, int size)
-{
-	int	i;
-
-	for (i = size - 1; i > 0; i -= 4096)
-		paged_total += buffer[i];
-}
-
-/*
 ================
 Com_Print
 
@@ -310,7 +201,7 @@ If no console is visible, the text will appear at the top of the game window
 */
 void Com_Print (char *txt)
 {
-	if (host.rd.target)
+	if(host.rd.target)
 	{
 		if((strlen (txt) + strlen(host.rd.buffer)) > (host.rd.buffersize - 1))
 		{
@@ -380,8 +271,11 @@ void Com_DPrintf (int level, char *fmt, ...)
 	case D_ERROR:
 		Com_Print(va("^1Error:^7 %s", msg));
 		break;
-	case D_SPAM:
-		Com_Print(msg);
+	case D_LOAD:
+		Com_Print(va("^2Loading: ^7%s", msg));
+		break;
+	case D_NOTE:
+		Con_Print( msg );
 		break;
 	}
 }

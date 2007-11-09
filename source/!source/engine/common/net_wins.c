@@ -83,7 +83,7 @@ static dllfunc_t winsock_funcs[] =
 	{ NULL, NULL }
 };
 
-dll_info_t winsock_dll = { "wsock32.dll", winsock_funcs, NULL, NULL, NULL, true, 0, 0 };
+dll_info_t winsock_dll = { "wsock32.dll", winsock_funcs, NULL, NULL, NULL, true, 0 };
 
 char *NET_ErrorString (void);
 
@@ -808,7 +808,7 @@ void NET_Init (void)
 	r = pWSAStartup (MAKEWORD(1, 1), &winsockdata);
 	if(r) Sys_Error("Winsock initialization failed.");
 
-	Msg("Winsock Initialized\n");
+	MsgDev(D_NOTE, "NET_Init()\n");
 
 	noudp = Cvar_Get ("noudp", "0", CVAR_INIT);
 	noipx = Cvar_Get ("noipx", "0", CVAR_INIT);

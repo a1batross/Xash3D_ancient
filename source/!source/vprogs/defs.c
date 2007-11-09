@@ -196,11 +196,10 @@ float 	TRUE					= 1;
 
 // newdefines
 #define	CS_NAME			0
-#define	CS_CDTRACK		1
-#define	CS_SKY			2
-#define	CS_SKYAXIS		3	// %f %f %f format
-#define	CS_SKYROTATE		4
-#define	CS_STATUSBAR		5	// display program string
+#define	CS_SKY			1
+#define	CS_SKYAXIS		2 // %f %f %f format
+#define	CS_SKYROTATE		3
+#define	CS_STATUSBAR		4 // hud_program section name
 //NOTE: other  CS_* will be set by engine
 
 #define	STAT_HEALTH_ICON		0

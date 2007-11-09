@@ -46,7 +46,8 @@ Con_ToggleConsole_f
 */
 void Con_ToggleConsole_f (void)
 {
-	SCR_EndLoadingPlaque();	// get rid of loading plaque
+	if(!host.debug && !host.developer) return;
+
 	Field_Clear( &g_consoleField );
 	g_consoleField.widthInChars = g_console_field_width;
 
@@ -81,12 +82,11 @@ void Con_ToggleChat_f (void)
 	{
 		if (cls.state == ca_active)
 		{
-			M_ForceMenuOff ();
+			M_ForceMenuOff();
 			cls.key_dest = key_game;
 		}
 	}
-	else
-		cls.key_dest = key_console;
+	else cls.key_dest = key_console;
 	
 	Con_ClearNotify ();
 }
@@ -505,6 +505,7 @@ void Con_DrawSolidConsole (float frac)
 	int	lines;
 	int	currentColor;
 	vec4_t	color;
+	char	version[MAX_QPATH];
 
 	lines = viddef.height * frac;
 	if (lines <= 0) return;
@@ -523,9 +524,10 @@ void Con_DrawSolidConsole (float frac)
 
 	// draw the version number
 	re->SetColor(g_color_table[ColorIndex(COLOR_RED)]);
-	i = strlen( VERSION );
+	sprintf( version, "Xash %g", XASH_VERSION );
+	i = strlen( version );
 	for (x = 0; x < i; x++)
-		SCR_DrawSmallChar( viddef.width - ( i - x ) * SMALLCHAR_WIDTH, (lines - (SMALLCHAR_HEIGHT+SMALLCHAR_HEIGHT/2)), VERSION[x]);
+		SCR_DrawSmallChar( viddef.width - ( i - x ) * SMALLCHAR_WIDTH, (lines - (SMALLCHAR_HEIGHT+SMALLCHAR_HEIGHT/2)), version[x]);
 
 	// draw the text
 	con.vislines = lines;
@@ -584,6 +586,8 @@ Con_DrawConsole
 */
 void Con_DrawConsole( void )
 {
+	if(!host.debug && !host.developer) return;
+
 	// check for console width changes from a vid mode change
 	Con_CheckResize ();
 
@@ -624,6 +628,8 @@ Scroll it up or down
 */
 void Con_RunConsole( void )
 {
+	if(!host.debug && !host.developer) return;
+
 	// decide on the destination height of the console
 	if (cls.key_dest == key_console)
 	{

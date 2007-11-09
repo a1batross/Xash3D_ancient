@@ -1295,37 +1295,41 @@ END GAME MENU
 =============================================================================
 */
 static float credits_start_time;
+static float credits_fade_time;
+static float credits_show_time;
 static const char **credits;
-static char *creditsIndex[256];
+static char *creditsIndex[1024];
 static char *creditsBuffer;
-static const char *idcredits[] =
+static uint credit_numlines;
+
+static const char *xash_credits[] =
 {
-	"+QUAKE II BY ID SOFTWARE",
+	"^3QUAKE II BY ID SOFTWARE",
 	"",
-	"+PROGRAMMING",
+	"^3PROGRAMMING",
 	"John Carmack",
 	"John Cash",
 	"Brian Hook",
 	"",
-	"+ART",
+	"^3ART",
 	"Adrian Carmack",
 	"Kevin Cloud",
 	"Paul Steed",
 	"",
-	"+LEVEL DESIGN",
+	"^3LEVEL DESIGN",
 	"Tim Willits",
 	"American McGee",
 	"Christian Antkow",
 	"Paul Jaquays",
 	"Brandon James",
 	"",
-	"+BIZ",
+	"^3BIZ",
 	"Todd Hollenshead",
 	"Barrett (Bear) Alexander",
 	"Donna Jackson",
 	"",
 	"",
-	"+SPECIAL THANKS",
+	"^3SPECIAL THANKS",
 	"Ben Donges for beta testing",
 	"",
 	"",
@@ -1333,9 +1337,9 @@ static const char *idcredits[] =
 	"",
 	"",
 	"",
-	"+ADDITIONAL SUPPORT",
+	"^3ADDITIONAL SUPPORT",
 	"",
-	"+CINEMATIC SEQUENCES",
+	"^3CINEMATIC SEQUENCES",
 	"Ending Cinematic by Blur Studio - ",
 	"Venice, CA",
 	"",
@@ -1345,7 +1349,7 @@ static const char *idcredits[] =
 	"Assistance with environment design",
 	"by Cliff Iwai",
 	"",
-	"+SOUND EFFECTS AND MUSIC",
+	"^3SOUND EFFECTS AND MUSIC",
 	"Sound Design by Soundelux Media Labs.",
 	"Music Composed and Produced by",
 	"Soundelux Media Labs.  Special thanks",
@@ -1365,8 +1369,8 @@ static const char *idcredits[] =
 	"Voice of computers by",
 	"Carly Staehlin-Taylor",
 	"",
-	"+THANKS TO ACTIVISION",
-	"+IN PARTICULAR:",
+	"^3THANKS TO ACTIVISION",
+	"^3IN PARTICULAR:",
 	"",
 	"John Tam",
 	"Steve Rosenthal",
@@ -1383,104 +1387,99 @@ static const char *idcredits[] =
 	"trademark of Activision, Inc. All",
 	"other trademarks and trade names are",
 	"properties of their respective owners.",
+	"",
+	"",
+	"",
+	"The End",
 	0
 };
 
 void M_Credits_MenuDraw( void )
 {
-	int i, y;
+	int	i, x, y;
+	float	*color;
 
-	/*
-	** draw the credits
-	*/
-	for ( i = 0, y = viddef.height - (( cls.realtime - credits_start_time ) * 40.0F ); credits[i] && y < viddef.height; y += 10, i++ )
+	y = viddef.height - (( cls.realtime - credits_start_time ) * 40.0f );
+
+	// draw the credits
+	for ( i = 0; i < credit_numlines && credits[i]; i++, y += 20 )
 	{
-		int j, stringoffset = 0;
-		int bold = false;
+		// skip not visible lines, but always draw end line
+		if( y <= -16 && i != credit_numlines - 1) continue;
+		x = ( SCREEN_WIDTH - BIGCHAR_WIDTH * ColorStrlen( credits[i] ))/2;
 
-		if ( y <= -8 )
-			continue;
-
-		if ( credits[i][0] == '+' )
+		if((y < (viddef.height - BIGCHAR_HEIGHT) / 2) && i == credit_numlines - 1)
 		{
-			bold = true;
-			stringoffset = 1;
+			if(!credits_fade_time) credits_fade_time = cls.realtime;
+			color = CG_FadeColor( credits_fade_time, credits_show_time );
+			if(color) SCR_DrawBigStringColor( x, (viddef.height-BIGCHAR_HEIGHT)/2, credits[i], color);
 		}
-		else
-		{
-			bold = false;
-			stringoffset = 0;
-		}
-
-		for ( j = 0; credits[i][j+stringoffset]; j++ )
-		{
-			int x;
-
-			x = ( viddef.width - strlen( credits[i] ) * 8 - stringoffset * 8 ) / 2 + ( j + stringoffset ) * 8;
-
-			if ( bold )
-				re->DrawChar( x, y, credits[i][j+stringoffset] + 128 );
-			else
-				re->DrawChar( x, y, credits[i][j+stringoffset] );
-		}
+		else SCR_DrawBigString( x, y, credits[i], 1.0f );
 	}
 
-	if ( y < 0 ) credits_start_time = cls.realtime;
+	if( y < 0 && !color ) M_PopMenu(); // end of credits
 }
 
 const char *M_Credits_Key( int key )
 {
-	switch (key)
+	switch( key )
 	{
 	case K_ESCAPE:
-		M_PopMenu ();
+		M_PopMenu();
 		break;
 	}
-
 	return menu_out_sound;
-
 }
 
 void M_Menu_Credits_f( void )
 {
-	int		n;
 	int		count;
-	char	*p;
-	int		isdeveloper = 0;
+	char		*p;
 
-	creditsBuffer = NULL;
-	creditsBuffer = FS_LoadFile ("credits", &count );
-	if (count != -1)
+	if(!creditsBuffer)
 	{
-		p = creditsBuffer;
-		for (n = 0; n < 255; n++)
+		// load credits if needed
+		creditsBuffer = FS_LoadFile( "scripts/credits.txt", &count );
+		if(count)
 		{
-			creditsIndex[n] = p;
-			while (*p != '\r' && *p != '\n')
+			if(creditsBuffer[count - 1] != '\n' && creditsBuffer[count - 1] != '\r')
 			{
-				p++;
-				if (--count == 0)
-					break;
-			}
-			if (*p == '\r')
-			{
-				*p++ = 0;
-				if (--count == 0)
-					break;
-			}
-			*p++ = 0;
-			if (--count == 0)
-				break;
-		}
-		creditsIndex[++n] = 0;
-		credits = creditsIndex;
-	}
-	else
-	{
-		credits = idcredits;	
-	}
+				creditsBuffer = Mem_Realloc( zonepool, creditsBuffer, count + 2 );
+				strncpy( creditsBuffer + count, "\r", 1 ); // add terminator
+				count += 2;
+                    	}
 
+			p = creditsBuffer;
+			for (credit_numlines = 0; credit_numlines < 1024; credit_numlines++)
+			{
+				creditsIndex[credit_numlines] = p;
+				while (*p != '\r' && *p != '\n')
+				{
+					p++;
+					if (--count == 0) break;
+				}
+				if (*p == '\r')
+				{
+					*p++ = 0;
+					if (--count == 0) break;
+				}
+				*p++ = 0;
+				if (--count == 0) break;
+			}
+			creditsIndex[++credit_numlines] = 0;
+			credits = creditsIndex;
+		}
+		else
+		{
+			credits = xash_credits;
+			credit_numlines = 87;
+		}
+	}	
+
+	// run credits
 	credits_start_time = cls.realtime;
+	credits_show_time = bound(0.1f, (float)strlen(credits[credit_numlines - 1]), 12.0f );
+	credits_fade_time = 0.0f;
 	M_PushMenu( M_Credits_MenuDraw, M_Credits_Key);
 }
 

@@ -66,7 +66,7 @@ BOOL GetReg( void )
 	DWORD	dwBufLen = 4096; // max env length
 	HKEY	hKey;
 	long	lRet;
-	bool	result = FALSE;
+	BOOL	result = FALSE;
 
 	if(advapi32_dll)
 	{

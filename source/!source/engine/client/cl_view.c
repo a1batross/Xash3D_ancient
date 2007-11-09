@@ -203,7 +203,7 @@ void V_TestEntities (void)
 	r_numentities = 32;
 	memset (r_entities, 0, sizeof(r_entities));
 
-	for (i=0 ; i<r_numentities ; i++)
+	for (i = 0; i < r_numentities; i++)
 	{
 		ent = &r_entities[i];
 
@@ -264,13 +264,14 @@ Call before entering a new level, or after changing dlls
 void CL_PrepRefresh( void )
 {
 	char		mapname[32];
-	int		i;
 	char		name[MAX_QPATH];
 	float		rotate;
 	vec3_t		axis;
+	int		i; 
+	int		mdlcount = 0, imgcount = 0, cl_count = 0;
 
 	if (!cl.configstrings[CS_MODELS+1][0])
-		return;		// no map loaded
+		return; // no map loaded
 
 	// get splash name
 	sprintf( cl.levelshot_name, "background/%s.tga", cl.configstrings[CS_NAME] );
@@ -279,39 +280,47 @@ void CL_PrepRefresh( void )
 		strcpy( cl.levelshot_name, "common/black" );
 		cl.make_levelshot = true; // make levelshot
 	}
+	Con_Close();
+	Cvar_SetValue("scr_loading", 0.0f ); // reset progress bar
 
 	// let the render dll load the map
-	strcpy (mapname, cl.configstrings[CS_MODELS+1] + 5);	// skip "maps/"
-	mapname[strlen(mapname)-4] = 0; // cut off ".bsp"
-
-	// register models, pics, and skins
-	Msg ("Map: %s\r", mapname); 
-	SCR_UpdateScreen ();
-	re->BeginRegistration (mapname);
-	Msg ("                                     \r");
-
-	// precache status bar pics
-	Msg ("pics\r"); 
-	SCR_UpdateScreen ();
-
-	// get alias names
-	CG_ExecuteProgram( "Hud_Precache" );
-
-	SCR_TouchPics ();
-	Msg ("                                     \r");
-
+	FS_FileBase( cl.configstrings[CS_MODELS+1], mapname ); 
+	SCR_UpdateScreen();
+	re->BeginRegistration( mapname );	// load map
+	SCR_UpdateScreen();
+	CG_ExecuteProgram( "Hud_Precache" );	// get alias names
 	CL_RegisterTEntModels ();
 
 	num_cl_weaponmodels = 1;
 	strcpy(cl_weaponmodels[0], "weapon.mdl");
 
-	for (i=1 ; i<MAX_MODELS && cl.configstrings[CS_MODELS+i][0] ; i++)
+	for( i = 1; i < MAX_MODELS; i++ )
 	{
-		strcpy (name, cl.configstrings[CS_MODELS+i]);
+		if(!cl.configstrings[CS_MODELS+i][0])
+			break;
+		mdlcount++; // total num models
+	}
+	for( i = 1; i < MAX_IMAGES; i++ )
+	{
+		if(!cl.configstrings[CS_IMAGES+i][0])
+			break;
+		imgcount++; // total num models
+	}
+	for (i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(!cl.configstrings[CS_PLAYERSKINS+i][0]) 
+			continue;
+		cl_count++;
+	}
+	
+	// create thread here ?
+	for (i = 1; i < MAX_MODELS && cl.configstrings[CS_MODELS+i][0]; i++)
+	{
+		strcpy(name, cl.configstrings[CS_MODELS+i]);
 		name[37] = 0;	// never go beyond one line
-		if (name[0] != '*') Msg ("%s\r", name); 
-		SCR_UpdateScreen ();
-		Sys_SendKeyEvents ();	// pump message loop
+		if (name[0] != '*') MsgDev(D_LOAD, "%s\n", name); 
+		SCR_UpdateScreen();
+		Sys_SendKeyEvents();	// pump message loop
 		if (name[0] == '#')
 		{
 			// special player weapon model
@@ -324,55 +333,50 @@ void CL_PrepRefresh( void )
 		} 
 		else
 		{
-			cl.model_draw[i] = re->RegisterModel (cl.configstrings[CS_MODELS+i]);
-			if (name[0] == '*')
-				cl.model_clip[i] = CM_InlineModel (cl.configstrings[CS_MODELS+i]);
-			else
-				cl.model_clip[i] = NULL;
+			cl.model_draw[i] = re->RegisterModel(cl.configstrings[CS_MODELS+i]);
+			if (name[0] == '*') cl.model_clip[i] = CM_InlineModel (cl.configstrings[CS_MODELS+i]);
+			else cl.model_clip[i] = NULL;
 		}
-		if (name[0] != '*')
-			Msg ("                                     \r");
+		Cvar_SetValue("scr_loading", scr_loading->value + 50.0f/mdlcount );
+		Msg("loading models %g\n", scr_loading->value + 50.0f/mdlcount );
+		SCR_UpdateScreen();
 	}
 
-	Msg ("images\r", i); 
-	SCR_UpdateScreen ();
-	for (i=1 ; i<MAX_IMAGES && cl.configstrings[CS_IMAGES+i][0] ; i++)
+	// create thread here ?
+	SCR_UpdateScreen();
+	for (i = 1; i < MAX_IMAGES && cl.configstrings[CS_IMAGES+i][0]; i++)
 	{
 		cl.image_precache[i] = re->RegisterPic (cl.configstrings[CS_IMAGES+i]);
-		Sys_SendKeyEvents ();	// pump message loop
+		Sys_SendKeyEvents (); // pump message loop
+		Cvar_SetValue("scr_loading", scr_loading->value + 3.0f/imgcount );
+		SCR_UpdateScreen();
 	}
-	
-	Msg ("                                     \r");
-	for (i=0 ; i<MAX_CLIENTS ; i++)
+
+	// create thread here ?	
+	for (i = 0; i < MAX_CLIENTS; i++)
 	{
-		if (!cl.configstrings[CS_PLAYERSKINS+i][0])
-			continue;
-		Msg ("client %i\r", i); 
+		if(!cl.configstrings[CS_PLAYERSKINS+i][0]) continue;
+		Cvar_SetValue("scr_loading", scr_loading->value + 2.0f/cl_count );
 		SCR_UpdateScreen ();
-		Sys_SendKeyEvents ();	// pump message loop
-		CL_ParseClientinfo (i);
-		Msg ("                                     \r");
+		Sys_SendKeyEvents();	// pump message loop
+		CL_ParseClientinfo(i);
 	}
 
 	CL_LoadClientinfo (&cl.baseclientinfo, "unnamed\\male/grunt");
 
 	// set sky textures and speed
-	Msg ("sky\r", i); 
-	SCR_UpdateScreen ();
-	rotate = atof (cl.configstrings[CS_SKYROTATE]);
-	sscanf (cl.configstrings[CS_SKYAXIS], "%f %f %f", &axis[0], &axis[1], &axis[2]);
-	re->SetSky (cl.configstrings[CS_SKY], rotate, axis);
-	Msg ("                                     \r");
-
-	// the render can now free unneeded stuff
-	re->EndRegistration ();
-
-	// clear any lines of console text
-	Con_ClearNotify ();
-
-	SCR_UpdateScreen ();
+	SCR_UpdateScreen();
+	rotate = atof(cl.configstrings[CS_SKYROTATE]);
+	CG_StringToVector( axis, cl.configstrings[CS_SKYAXIS] );
+	Msg("Sky Vector %g %g %g\n", axis[0], axis[1], axis[2] );
+	re->SetSky( cl.configstrings[CS_SKY], rotate, axis);
+          Cvar_SetValue("scr_loading", 100.0f ); // all done
+	
+	re->EndRegistration (); // the render can now free unneeded stuff
+	Con_ClearNotify(); // clear any lines of console text
+	SCR_UpdateScreen();
 	cl.refresh_prepped = true;
-	cl.force_refdef = true;	// make sure we have a valid refdef
+	cl.force_refdef = true;
 }
 
 /*
@@ -427,30 +431,6 @@ void V_Gun_Model_f (void)
 }
 
 //============================================================================
-
-
-/*
-=================
-SCR_DrawCrosshair
-=================
-*/
-void SCR_DrawCrosshair (void)
-{
-	if (!crosshair->value)
-		return;
-
-	if (crosshair->modified)
-	{
-		crosshair->modified = false;
-		SCR_TouchPics ();
-	}
-
-	if (!crosshair_pic[0])
-		return;
-
-	re->DrawPic (scr_vrect.x + ((scr_vrect.width - crosshair_width)>>1)
-	, scr_vrect.y + ((scr_vrect.height - crosshair_height)>>1), crosshair_pic);
-}
 
 /*
 ==================
@@ -543,8 +523,6 @@ void V_RenderView( void )
 	cl.refdef.rdflags |= RDF_BLOOM;
 	re->RenderFrame (&cl.refdef);
 	if (cl_stats->value) Msg ("ent:%i  lt:%i  part:%i\n", r_numentities, r_numdlights, r_numparticles);
-
-	SCR_DrawCrosshair ();
 }
 
 /*

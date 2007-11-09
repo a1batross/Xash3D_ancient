@@ -109,7 +109,6 @@ void worldspawn( void )
 	configstring (CS_SKY, "sky" );
 	configstring (CS_SKYROTATE, ftoa( pev->speed ));	// rotate speed
 	configstring (CS_SKYAXIS, vtoa( pev->angles ));	// rotate axis
-	configstring (CS_CDTRACK, ftoa( 0 ));
 }
 
 /*

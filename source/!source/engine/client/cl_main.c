@@ -889,7 +889,7 @@ void CL_ConnectionlessPacket (void)
 
 	c = Cmd_Argv(0);
 
-	Msg ("%s: %s\n", NET_AdrToString (net_from), c);
+	MsgDev(D_INFO, "%s: %s\n", NET_AdrToString (net_from), c);
 
 	// server connection
 	if (!strcmp(c, "client_connect"))
@@ -1301,8 +1301,8 @@ void CL_RequestNextDownload (void)
 			{
 				int n = precache_check++ - ENV_CNT - 1;
 
-				if (n & 1) sprintf(fn, "env/%s%s.pcx", cl.configstrings[CS_SKY], env_suf[n/2]);
-				else sprintf(fn, "env/%s%s.tga", cl.configstrings[CS_SKY], env_suf[n/2]);
+				if (n & 1) sprintf(fn, "textures/cubemaps/env/%s%s.dds", cl.configstrings[CS_SKY], env_suf[n/2]);
+				else sprintf(fn, "textures/cubemaps/env/%s%s.tga", cl.configstrings[CS_SKY], env_suf[n/2]);
 				if (!CL_CheckOrDownloadFile(fn)) return; // started a download
 			}
 		}
@@ -1726,10 +1726,10 @@ void CL_Init (void)
 		return;		// nothing running on the client
 
 	// all archived variables will now be loaded
+	scr_loading = _Cvar_Get("scr_loading", "0", 0, "progress bar loading value" );
 
 	Con_Init ();	
 	VID_Init ();
-	S_Init ();	// sound must be initialized after window is created
 	V_Init ();
 	CG_Init();
 

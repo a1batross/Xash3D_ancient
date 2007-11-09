@@ -95,7 +95,6 @@ void Netchan_Init (void)
 	// pick a port value that should be nice and random
 	port = RANDOM_LONG(1, 65535);
 
-	Msg("netchan port %d\n", port );
 	showpackets = Cvar_Get ("showpackets", "0", 0);
 	showdrop = Cvar_Get ("showdrop", "0", 0);
 	qport = Cvar_Get ("qport", va("%i", port), CVAR_INIT);

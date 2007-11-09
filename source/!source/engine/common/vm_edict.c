@@ -1062,7 +1062,7 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 			PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
 
 		newline = (COM_Token[0] == '}') ? true : false;
-		if(!newline) MsgDev(D_SPAM, "Key: \"%s\"", COM_Token);
+		if(!newline) MsgDev(D_NOTE, "Key: \"%s\"", COM_Token);
 		else break;
 
 		// anglehack is to allow QuakeEd to write single scalar angles
@@ -1087,7 +1087,7 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 		// parse value
 		if (!COM_Parse(&data))
 			PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
-		MsgDev(D_SPAM, " \"%s\"\n", COM_Token);
+		MsgDev(D_NOTE, " \"%s\"\n", COM_Token);
 
 		if (COM_Token[0] == '}')
 			PRVM_ERROR ("PRVM_ED_ParseEdict: closing brace without data");
@@ -1342,7 +1342,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		PRVM_ERROR ("%s: %s system vars have been modified, progdefs.h is out of date", PRVM_NAME, filename);	
 		break;
 	}
-	Msg("Loading %s [CRC %d]\n", filename, prog->progs->crc );
+	MsgDev(D_INFO, "Loading %s [CRC %d]\n", filename, prog->progs->crc );
 
 	// set initial pointers
 	prog->statements = (dstatement_t *)((byte *)prog->progs + prog->progs->ofs_statements);
@@ -1371,7 +1371,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		}
 		complen = LittleLong(*(int*)prog->statements);
 
-		Msg("Unpacked statements: len %d, comp len %d\n", len, complen );                   
+		MsgDev(D_NOTE, "Unpacked statements: len %d, comp len %d\n", len, complen );                   
 		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
 		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)prog->statements)+1), &s);
 		prog->statements = (dstatement16_t *)s;
@@ -1392,7 +1392,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		}
 		complen = LittleLong(*(int*)prog->globaldefs);
 
-		Msg("Unpacked defs: len %d, comp len %d\n", len, complen);                   
+		MsgDev(D_NOTE, "Unpacked defs: len %d, comp len %d\n", len, complen);                   
 		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
 		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)prog->globaldefs)+1), &s);
 		prog->globaldefs = (ddef16_t *)s;
@@ -1413,7 +1413,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		}
 		complen = LittleLong(*(int*)infielddefs);
 
-		Msg("Unpacked fields: len %d, comp len %d\n", len, complen );                   
+		MsgDev(D_NOTE, "Unpacked fields: len %d, comp len %d\n", len, complen );                   
 		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
 		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)infielddefs)+1), &s);
 		infielddefs = (ddef16_t *)s;
@@ -1425,7 +1425,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		len = sizeof(dfunction_t) * prog->progs->numfunctions;
 		complen = LittleLong(*(int*)dfunctions);
 
-		Msg("Unpacked functions: len %d, comp len %d\n", len, complen );                   
+		MsgDev(D_NOTE, "Unpacked functions: len %d, comp len %d\n", len, complen );                   
 		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
 		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)dfunctions)+1), &s);
 		dfunctions = (dfunction_t *)s;
@@ -1437,7 +1437,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		len = sizeof(char) * prog->progs->numstrings;
 		complen = LittleLong(*(int*)prog->strings);
 
-		Msg("Unpacked strings: count %d, len %d, comp len %d\n", prog->progs->numstrings, len, complen );                   
+		MsgDev(D_NOTE, "Unpacked strings: count %d, len %d, comp len %d\n", prog->progs->numstrings, len, complen );                   
 		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
 		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)prog->strings)+1), &s);
 		prog->strings = (char *)s;
@@ -1451,7 +1451,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		len = sizeof(float) * prog->progs->numglobals;
 		complen = LittleLong(*(int*)prog->globals.gp);
 
-		Msg("Unpacked globals: len %d, comp len %d\n", len, complen );                   
+		MsgDev(D_NOTE, "Unpacked globals: len %d, comp len %d\n", len, complen );                   
 		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
 		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)prog->globals.gp)+1), &s);
 		prog->globals.gp = (float *)s;
@@ -1463,7 +1463,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		len = sizeof(int) * prog->progs->numstatements;
 		complen = LittleLong(*(int*)prog->linenums);
 
-		Msg("Unpacked linenums: len %d, comp len %d\n", len, complen );                   
+		MsgDev(D_NOTE, "Unpacked linenums: len %d, comp len %d\n", len, complen );                   
 		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
 		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)prog->linenums)+1), &s);
 		prog->linenums = (int *)s;
@@ -1475,7 +1475,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		len = sizeof(type_t) * prog->progs->numtypes;
 		complen = LittleLong(*(int*)prog->types);
 
-		Msg("Unpacked types: len %d, comp len %d\n", len, complen );                   
+		MsgDev(D_NOTE, "Unpacked types: len %d, comp len %d\n", len, complen );                   
 		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
 		Com->Compile.DecryptDAT( complen, len, 2, (char *)(((int *)prog->types)+1), &s);
 		prog->types = (type_t *)s;
@@ -1653,7 +1653,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 				PRVM_ERROR("PRVM_LoadProgs: out of bounds global index (statement %d) in %s", i, PRVM_NAME);
 			break;
 		default:
-			MsgDev(D_WARN, "PRVM_LoadProgs: unknown opcode %d at statement %d in %s\n", st->op, i, PRVM_NAME);
+			MsgDev(D_NOTE, "PRVM_LoadProgs: unknown opcode %d at statement %d in %s\n", st->op, i, PRVM_NAME);
 			break;
 		}
 	}
@@ -2029,7 +2029,7 @@ int PRVM_SetEngineString(const char *s)
 		if (prog->knownstrings[i] == s)
 			return -1 - i;
 	// new unknown engine string
-	MsgDev(D_SPAM, "new engine string %p\n", s );
+	MsgDev(D_NOTE, "new engine string %p\n", s );
 	for (i = prog->firstfreeknownstring;i < prog->numknownstrings;i++)
 		if (!prog->knownstrings[i])
 			break;

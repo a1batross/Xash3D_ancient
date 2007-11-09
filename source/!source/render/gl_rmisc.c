@@ -62,6 +62,7 @@ void R_InitParticleTexture (void)
 	r_tex.height = 8;
 	r_tex.type = PF_RGBA_GN; // generated
 	r_tex.flags = IMAGE_HAS_ALPHA;
+	r_tex.size = r_tex.width * r_tex.height * 4;
 	r_tex.numMips = 1;
 	r_tex.palette = NULL;
 	r_tex.buffer = (byte *)data;

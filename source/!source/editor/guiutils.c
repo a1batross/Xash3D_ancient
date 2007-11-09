@@ -36,6 +36,7 @@ bool _GetParmFromCmdLine( char *parm, char *out, size_t size )
 
 	if(!argc) return false;
 	if(!out) return false;	
+	if(!com_argv[argc + 1]) return false;
 
 	strncpy( out, com_argv[argc+1], size );
 	return true;

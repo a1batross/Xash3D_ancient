@@ -20,11 +20,11 @@ static dllfunc_t winmm_funcs[] =
 	{ NULL, NULL }
 };
 
-dll_info_t winmm_dll = { "winmm.dll", winmm_funcs, "", NULL, NULL, true, 0, 0 };
+dll_info_t winmm_dll = { "winmm.dll", winmm_funcs, "", NULL, NULL, true, 0 };
 
 void Plat_LinkDlls( void )
 {
-	//Sys_LoadLibrary( &winmm_dll );
+	Sys_LoadLibrary( &winmm_dll );
 }
 
 char *strlower (char *start)
@@ -1690,11 +1690,11 @@ double Plat_DoubleTime (void)
 		// windows have varying accuracy
 		if (firsttimegettime)
 		{
-			timeBeginPeriod (1);
+			qtimeBeginPeriod (1);
 			firsttimegettime = false;
 		}
 
-		newtime = (double)timeGetTime () * 0.001;
+		newtime = (double)qtimeGetTime () * 0.001;
 	}
 	else
 	{

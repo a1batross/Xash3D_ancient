@@ -245,7 +245,7 @@ void Phys_LoadBSP( uint *buffer )
 	VectorAdd( boxP1, extra, boxP1 );
 	NewtonSetWorldSize( gWorld, &boxP0[0], &boxP1[0] ); 
 
-	Msg("physic map generated\n");
+	MsgDev(D_INFO, "physic map generated\n");
 	Mem_Free( map_surfedges );
 	Mem_Free( map_edges );
 	Mem_Free( map_surfaces );
