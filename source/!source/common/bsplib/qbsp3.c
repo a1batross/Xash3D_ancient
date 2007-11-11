@@ -271,9 +271,9 @@ void WbspMain ( bool option )
 	Msg("---- CSG ---- [%s]\n", onlyents ? "onlyents" : "normal" );
 
 	// delete portal and line files
-	sprintf (path, "%s/maps/%s.prt", GI.gamedir, gs_mapname);
+	sprintf (path, "%s/maps/%s.prt", std.GameInfo->gamedir, gs_mapname);
 	remove (path);
-	sprintf (path, "%s/maps/%s.lin", GI.gamedir, gs_mapname);
+	sprintf (path, "%s/maps/%s.lin", std.GameInfo->gamedir, gs_mapname);
 	remove (path);
 
 	// if onlyents, just grab the entites and resave
@@ -313,7 +313,7 @@ bool PrepareBSPModel ( const char *dir, const char *name, byte params )
 
 	//don't worry about that
 	FS_LoadGameInfo("gameinfo.txt");
-	start = Plat_DoubleTime();
+	start = Sys_DoubleTime();
 
 	numshaders = LoadShaderInfo();
 	Msg( "%5i shaderInfo\n", numshaders );
@@ -338,15 +338,15 @@ bool CompileBSPModel ( void )
 	if( onlyrad && onlyvis && full_compile )
 	{
 		// delete all temporary files after final compile
-		sprintf (path, "%s/maps/%s.prt", GI.gamedir, gs_mapname);
+		sprintf (path, "%s/maps/%s.prt", std.GameInfo->gamedir, gs_mapname);
 		remove (path);
-		sprintf (path, "%s/maps/%s.lin", GI.gamedir, gs_mapname);
+		sprintf (path, "%s/maps/%s.lin", std.GameInfo->gamedir, gs_mapname);
 		remove (path);
-		sprintf (path, "%s/maps/%s.log", GI.gamedir, gs_mapname);
+		sprintf (path, "%s/maps/%s.log", std.GameInfo->gamedir, gs_mapname);
 		remove (path);
 	}
 
-	end = Plat_DoubleTime();
+	end = Sys_DoubleTime();
 	Msg ("%5.1f seconds elapsed\n", end-start);
 
 	return true;

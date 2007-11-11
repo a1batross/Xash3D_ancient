@@ -3,7 +3,7 @@
 //		memory.c - zone memory allocation from DarkPlaces
 //=======================================================================
 
-#include "launcher.h"
+#include "launch.h"
 
 #define MEMCLUMPSIZE	(65536 - 1536)	// give malloc padding so we can't waste most of a page at the end
 #define MEMUNIT		8		// smallest unit we care about is this many bytes
@@ -59,7 +59,7 @@ mempool_t;
 
 mempool_t *poolchain = NULL;
 
-void _mem_copy(void *dest, void *src, size_t size, const char *filename, int fileline)
+void _mem_copy(void *dest, const void *src, size_t size, const char *filename, int fileline)
 {
 	if (src == NULL || size <= 0) return; // nothing to copy
 	if (dest == NULL) Sys_Error("Mem_Copy: dest == NULL (called at %s:%i)", filename, fileline);
@@ -298,7 +298,7 @@ byte *_mem_allocpool(const char *name, const char *filename, int fileline)
 	pool->chain = NULL;
 	pool->totalsize = 0;
 	pool->realsize = sizeof(mempool_t);
-	strlcpy (pool->name, name, sizeof (pool->name));
+	com_strncpy(pool->name, name, sizeof (pool->name));
 	pool->next = poolchain;
 	poolchain = pool;
 	return (byte *)((mempool_t *)pool);
@@ -387,7 +387,13 @@ void _mem_check(const char *filename, int fileline)
 Memory_Init
 ========================
 */
-void InitMemory (void)
+void Memory_Init( void )
 {
 	poolchain = NULL;//init mem chain
+	sys.basepool = Mem_AllocPool( "Main pool" );
+}
+
+void Memory_Shutdown( void )
+{
+	Mem_FreePool( &sys.basepool );
 }

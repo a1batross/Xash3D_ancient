@@ -98,42 +98,44 @@ memory manager
 #define Z_Free(data) Mem_Free(data)
 
 //malloc-free
-#define Mem_Alloc(pool,size) Com->Mem.Alloc(pool, size, __FILE__, __LINE__)
-#define Mem_Realloc(pool, mem, size) Com->Mem.Realloc(pool, mem, size, __FILE__, __LINE__)
-#define Mem_Free(mem) Com->Mem.Free(mem, __FILE__, __LINE__)
+#define Mem_Alloc(pool,size) std.malloc(pool, size, __FILE__, __LINE__)
+#define Mem_Realloc(pool, mem, size) std.realloc(pool, mem, size, __FILE__, __LINE__)
+#define Mem_Free(mem) std.free(mem, __FILE__, __LINE__)
 
 //Hunk_AllocName
-#define Mem_AllocPool(name) Com->Mem.AllocPool(name, __FILE__, __LINE__)
-#define Mem_FreePool(pool) Com->Mem.FreePool(pool, __FILE__, __LINE__)
-#define Mem_EmptyPool(pool) Com->Mem.EmptyPool(pool, __FILE__, __LINE__)
+#define Mem_AllocPool(name) std.mallocpool(name, __FILE__, __LINE__)
+#define Mem_FreePool(pool) std.freepool(pool, __FILE__, __LINE__)
+#define Mem_EmptyPool(pool) std.clearpool(pool, __FILE__, __LINE__)
 
-#define Mem_Copy(dest, src, size) Com->Mem.Copy(dest, src, size, __FILE__, __LINE__) 
+#define Mem_Copy(dest, src, size) std.memcpy(dest, src, size, __FILE__, __LINE__) 
 
 /*
 ===========================================
 filesystem manager
 ===========================================
 */
-#define FS_LoadFile(name, size) Com->Fs.LoadFile(name, size)
-#define FS_LoadImage(name, data, size) Com->Fs.LoadImage(name, data, size)
-#define FS_Search(path) Com->Fs.Search( path, true )
-#define FS_WriteFile(name, data, size) Com->Fs.WriteFile(name, data, size )
-#define FS_Open( path, mode ) Com->Fs.Open( path, mode )
-#define FS_Read( file, buffer, size ) Com->Fs.Read( file, buffer, size )
-#define FS_Write( file, buffer, size ) Com->Fs.Write( file, buffer, size )
-#define FS_StripExtension( path ) Com->Fs.StripExtension( path )
-#define FS_DefaultExtension( path, ext ) Com->Fs.DefaultExtension( path, ext )
-#define FS_FileExtension( ext ) Com->Fs.FileExtension( ext )
-#define CRC_Block( crc, size ) Com->Fs.CRC_Block( crc, size )
-#define FS_FileExists( file ) Com->Fs.FileExists( file )
-#define FS_Close( file ) Com->Fs.Close( file )
-#define FS_FileBase( x, y ) Com->Fs.FileBase( x, y )
-#define FS_Find( x ) Com->Fs.Search( x, false )
-#define FS_Printf Com->Fs.Printf
-#define FS_Print Com->Fs.Print
-#define FS_Seek Com->Fs.Seek
-#define FS_Tell Com->Fs.Tell
-#define FS_Gets Com->Fs.Gets
+#define FS_AddGameHierarchy std.AddGameHierarchy
+#define FS_LoadGameInfo std.LoadGameInfo
+#define FS_InitRootDir std.InitRootDir
+#define FS_LoadFile(name, size) std.Fs.LoadFile(name, size)
+#define FS_LoadImage(name, data, size) std.Fs.LoadImage(name, data, size)
+#define FS_Search(path) std.Fs.Search( path, true )
+#define FS_WriteFile(name, data, size) std.Fs.WriteFile(name, data, size )
+#define FS_Open( path, mode ) std.Fs.Open( path, mode )
+#define FS_Read( file, buffer, size ) std.Fs.Read( file, buffer, size )
+#define FS_Write( file, buffer, size ) std.Fs.Write( file, buffer, size )
+#define FS_StripExtension( path ) std.Fs.StripExtension( path )
+#define FS_DefaultExtension( path, ext ) std.Fs.DefaultExtension( path, ext )
+#define FS_FileExtension( ext ) std.Fs.FileExtension( ext )
+#define FS_FileExists( file ) std.Fs.FileExists( file )
+#define FS_Close( file ) std.Fs.Close( file )
+#define FS_FileBase( x, y ) std.Fs.FileBase( x, y )
+#define FS_Find( x ) std.Fs.Search( x, false )
+#define FS_Printf std.Fs.Printf
+#define FS_Print std.Fs.Print
+#define FS_Seek std.Fs.Seek
+#define FS_Tell std.Fs.Tell
+#define FS_Gets std.Fs.Gets
 char *FS_Gamedir( void );
 
 /*
@@ -141,18 +143,22 @@ char *FS_Gamedir( void );
 scriptsystem manager
 ===========================================
 */
-#define COM_Parse(data) Com->Script.ParseToken(data)
-#define COM_Token Com->Script.Token
-#define COM_Filter Com->Script.FilterToken
+#define COM_Parse(data) std.Script.ParseToken(data)
+#define COM_Token std.Script.Token
+#define COM_Filter std.Script.FilterToken
 
-#define COM_LoadScript Com->Script.Load
-#define COM_IncludeScript Com->Script.Include
-#define COM_ResetScript Com->Script.Reset
-#define COM_GetToken Com->Script.GetToken
-#define COM_TryToken Com->Script.TryToken
-#define COM_FreeToken Com->Script.FreeToken
-#define COM_SkipToken Com->Script.SkipToken
-#define COM_MatchToken Com->Script.MatchToken
+#define COM_LoadScript std.Script.Load
+#define COM_IncludeScript std.Script.Include
+#define COM_ResetScript std.Script.Reset
+#define COM_GetToken std.Script.GetToken
+#define COM_TryToken std.Script.TryToken
+#define COM_FreeToken std.Script.FreeToken
+#define COM_SkipToken std.Script.SkipToken
+#define COM_MatchToken std.Script.MatchToken
+
+#define CRC_Init		std.crc_init
+#define CRC_Block		std.crc_block
+#define CRC_ProcessByte	std.crc_process
 
 /*
 ===========================================
@@ -188,7 +194,8 @@ System Events
 #define Sys_Print std.print
 #define Sys_Quit std.exit
 #define Sys_ConsoleInput std.input
-
+#define copystring		std.stralloc
+#define va		std.va
 
 /*
 ===========================================

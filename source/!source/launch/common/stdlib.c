@@ -3,9 +3,10 @@
 //		        stdlib.c - std lib portable utils
 //=======================================================================
 
-#include "launcher.h"
+#include <time.h>
+#include "launch.h"
 
-void strupper(const char *in, char *out, size_t size_out)
+void com_strnupr(const char *in, char *out, size_t size_out)
 {
 	if (size_out == 0) return;
 
@@ -19,7 +20,12 @@ void strupper(const char *in, char *out, size_t size_out)
 	*out = '\0';
 }
 
-void strlower(const char *in, char *out, size_t size_out)
+void com_strupr(const char *in, char *out)
+{
+	com_strnupr(in, out, 4096 );
+}
+
+void com_strnlwr(const char *in, char *out, size_t size_out)
 {
 	if (size_out == 0) return;
 
@@ -33,14 +39,19 @@ void strlower(const char *in, char *out, size_t size_out)
 	*out = '\0';
 }
 
+void com_strlwr(const char *in, char *out)
+{
+	com_strnlwr(in, out, 4096 );
+}
+
 /*
 ============
-strlength
+strlen
 
 returned string length
 ============
 */
-int strlength( const char *string )
+int com_strlen( const char *string )
 {
 	int		len;
 	const char	*p;
@@ -59,12 +70,12 @@ int strlength( const char *string )
 
 /*
 ============
-qstrlength
+cstrlen
 
 skipped color prefixes
 ============
 */
-int qstrlength( const char *string )
+int com_cstrlen( const char *string )
 {
 	int		len;
 	const char	*p;
@@ -86,7 +97,7 @@ int qstrlength( const char *string )
 	return len;
 }
 
-char caseupper(const char in )
+char com_toupper(const char in )
 {
 	char out;
 
@@ -97,7 +108,7 @@ char caseupper(const char in )
 	return out;
 }
 
-char caselower(const char in )
+char com_tolower(const char in )
 {
 	char out;
 
@@ -108,7 +119,7 @@ char caselower(const char in )
 	return out;
 }
 
-size_t strlcat(char *dst, const char *src, size_t siz)
+size_t com_strncat(char *dst, const char *src, size_t siz)
 {
 	register char *d = dst;
 	register const char *s = src;
@@ -120,7 +131,7 @@ size_t strlcat(char *dst, const char *src, size_t siz)
 	dlen = d - dst;
 	n = siz - dlen;
 
-	if (n == 0) return(dlen + strlength(s));
+	if (n == 0) return(dlen + com_strlen(s));
 	while (*s != '\0')
 	{
 		if (n != 1)
@@ -135,7 +146,12 @@ size_t strlcat(char *dst, const char *src, size_t siz)
 	return(dlen + (s - src));	//count does not include NUL
 }
 
-size_t strlcpy(char *dst, const char *src, size_t siz)
+size_t com_strcat(char *dst, const char *src )
+{
+	return com_strncat( dst, src, 4096 );
+}
+
+size_t com_strncpy(char *dst, const char *src, size_t siz)
 {
 	register char *d = dst;
 	register const char *s = src;
@@ -160,7 +176,22 @@ size_t strlcpy(char *dst, const char *src, size_t siz)
 	return(s - src - 1); // count does not include NULL
 }
 
-int strtoint(const char *str)
+size_t com_strcpy(char *dst, const char *src )
+{
+	return com_strncpy( dst, src, 4096 );
+}
+
+char *com_stralloc(const char *s)
+{
+	char	*b;
+
+	b = Mem_Alloc(sys.basepool, com_strlen(s) + 1 );
+	com_strcpy(b, s);
+
+	return b;
+}
+
+int com_atoi(const char *str)
 {
 	int       val = 0;
 	int	c, sign;
@@ -202,7 +233,7 @@ int strtoint(const char *str)
 	return 0;
 }
 
-float strtofloat(const char *str)
+float com_atof(const char *str)
 {
 	double	val = 0;
 	int	c, sign, decimal, total;
@@ -259,17 +290,18 @@ float strtofloat(const char *str)
 	return val * sign;
 }
 
-void strtovec( float *vec, const char *str )
+void com_atov( float *vec, const char *str, size_t siz )
 {
 	char	*pstr, *pfront, buffer[MAX_QPATH];
 	int	j;
 
-	strlcpy( buffer, str, MAX_QPATH );
+	com_strncpy( buffer, str, MAX_QPATH );
+	Mem_Set( vec, 0, sizeof(vec_t) * siz);
 	pstr = pfront = buffer;
 
-	for ( j = 0; j < 3; j++ )
+	for ( j = 0; j < siz; j++ )
 	{
-		vec[j] = strtofloat( pfront );
+		vec[j] = com_atof( pfront );
 
 		// valid separator is space or ,
 		while( *pstr && (*pstr != ' ' || *pstr != ',' ))
@@ -279,50 +311,68 @@ void strtovec( float *vec, const char *str )
 		pstr++;
 		pfront = pstr;
 	}
-	if (j < 2) memset( vec, 0, sizeof(vec3_t)); 
 }
-
 
 /*
 ============
-strlchr
+strchr
 
 find one charcster in string
 ============
 */
-char *strlchr(const char *s, char c)
+char *com_strchr(const char *s, char c)
 {
-	int	len = strlength(s);
+	int	len = com_strlen(s);
+
+	while(len--) if(*++s == c) return(char *)s;
+	return 0;
+}
+
+/*
+============
+strrchr
+
+find one charcster in string
+============
+*/
+char *com_strrchr(const char *s, char c)
+{
+	int	len = com_strlen(s);
 	s += len;
 	while(len--) if(*--s == c) return (char *)s;
 	return 0;
 }
 
-int strlcasecmp(const char *s1, const char *s2, int n)
+int com_strnicmp(const char *s1, const char *s2, int n)
 {
 	int             c1, c2;
 	
-	while (1)
+	while(1)
 	{
 		c1 = *s1++;
 		c2 = *s2++;
 
-		if (!n--) return 0; // strings are equal until end point
+		if(!n--) return 0; // strings are equal until end point
 		
-		if (c1 != c2)
+		if(c1 != c2)
 		{
 			if (c1 >= 'a' && c1 <= 'z') c1 -= ('a' - 'A');
 			if (c2 >= 'a' && c2 <= 'z') c2 -= ('a' - 'A');
 			if (c1 != c2) return -1; // strings not equal
 		}
-		if (!c1) return 0; // strings are equal
+		if(!c1) return 0; // strings are equal
 	}
 	return -1;
 }
 
-int strlcmp (const char *s1, const char *s2, int n)
+int com_stricmp(const char *s1, const char *s2)
 {
-	while (1)
+	return com_strnicmp(s1, s2, 4096 );
+}
+
+int com_strncmp (const char *s1, const char *s2, int n)
+{
+	while( 1 )
 	{
 		if (!n--) return 0;
 		if (*s1 != *s2) return -1; // strings not equal    
@@ -332,13 +382,17 @@ int strlcmp (const char *s1, const char *s2, int n)
 	return -1;
 }
 
+int com_strcmp (const char *s1, const char *s2)
+{
+	return com_strncmp(s1, s2, 4096 );
+}
 
 /*
 ====================
 timestamp
 ====================
 */
-const char* tstamp( int format )
+const char* com_timestamp( int format )
 {
 	static char timestamp [128];
 	time_t crt_time;
@@ -367,33 +421,33 @@ const char* tstamp( int format )
 		break;
 	}
 
-	strcpy( timestamp, timestring );
+	com_strcpy( timestamp, timestring );
 	return timestamp;
 }
 
 
 /*
 ============
-strcasestr
+stristr
 
 search case - insensitive for string2 in string
 ============
 */
-char *strcasestr( const char *string, const char *string2 )
+char *com_stristr( const char *string, const char *string2 )
 {
 	int c, len;
 
 	if (!string || !string2) return NULL;
 
-	c = caselower( *string2 );
-	len = strlength( string2 );
+	c = com_tolower( *string2 );
+	len = com_strlen( string2 );
 
 	while (string)
 	{
-		for ( ; *string && caselower( *string ) != c; string++ );
+		for ( ; *string && com_tolower( *string ) != c; string++ );
 		if (*string)
 		{
-			if(!strlcasecmp( string, string2, len ))
+			if(!com_strnicmp( string, string2, len ))
 				break;
 			string++;
 		}
@@ -402,7 +456,31 @@ char *strcasestr( const char *string, const char *string2 )
 	return (char *)string;
 }
 
-int vslprintf(char *buffer, size_t buffersize, const char *format, va_list args)
+size_t com_strpack( byte *buffer, size_t pos, char *string, int n )
+{
+	if(!buffer || !string) return 0;
+
+	n++; // get space for terminator	
+
+	com_strncpy(buffer + pos, string, n ); 
+	return pos + n;
+}
+
+size_t com_strunpack( byte *buffer, size_t pos, char *string )
+{
+	int	n = 0;
+	char	*in;
+
+	if(!buffer || !string) return 0;
+	in = buffer + pos;
+
+	do { in++, n++; } while(*in != '\0' && in != NULL );
+
+	com_strncpy( string, in - (n - 1), n ); 
+	return pos + n;
+}
+
+int com_vsnprintf(char *buffer, size_t buffersize, const char *format, va_list args)
 {
 	int result;
 
@@ -412,17 +490,33 @@ int vslprintf(char *buffer, size_t buffersize, const char *format, va_list args)
 		buffer[buffersize - 1] = '\0';
 		return -1;
 	}
-
 	return result;
 }
 
-int slprintf(char *buffer, size_t buffersize, const char *format, ...)
+int com_vsprintf(char *buffer, const char *format, va_list args)
+{
+	return com_vsnprintf(buffer, 4096, format, args);
+}
+
+int com_snprintf(char *buffer, size_t buffersize, const char *format, ...)
 {
 	va_list args;
 	int result;
 
 	va_start (args, format);
-	result = vslprintf (buffer, buffersize, format, args);
+	result = com_vsnprintf (buffer, buffersize, format, args);
+	va_end (args);
+
+	return result;
+}
+
+int com_sprintf(char *buffer, const char *format, ...)
+{
+	va_list	args;
+	int	result;
+
+	va_start (args, format);
+	result = com_vsnprintf (buffer, 4096, format, args);
 	va_end (args);
 
 	return result;
@@ -437,7 +531,7 @@ varargs versions of all text functions.
 FIXME: make this buffer size safe someday
 ============
 */
-char *_va(const char *format, ...)
+char *va(const char *format, ...)
 {
 	va_list argptr;
 	static char string[8][1024], *s;
@@ -446,7 +540,7 @@ char *_va(const char *format, ...)
 	s = string[stringindex];
 	stringindex = (stringindex + 1) & 7;
 	va_start (argptr, format);
-	vslprintf (s, sizeof (string[0]), format, argptr);
+	com_vsnprintf (s, sizeof (string[0]), format, argptr);
 	va_end (argptr);
 	return s;
 }

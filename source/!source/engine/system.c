@@ -48,7 +48,7 @@ void Sys_Error( const char *error, ... )
 double Sys_DoubleTime( void )
 {
 	// precision timer
-	host.realtime = Com->DoubleTime();
+	host.realtime = std.gettime();
 	return host.realtime;
 }
 

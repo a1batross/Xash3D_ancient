@@ -1,6 +1,6 @@
 //=======================================================================
 //			Copyright (C) XashXT Group 2007
-//		       getlib.c - used for find engine library
+//		       rundll.h - used for find engine library
 //		       getting direct path or from environment
 //======================================================================= 
 
@@ -15,14 +15,13 @@
 #include <stdio.h>
 
 #pragma comment(lib, "msvcrt")
-
 #pragma comment(linker,"/MERGE:.rdata=.text")
 #pragma comment(linker,"/FILEALIGN:512 /SECTION:.text, EWRX /IGNORE:4078")
 
 #define Run32( prog ) int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)\
 { return CreateMain32()( #prog ); }
 
-//console format
+// engine entry point format
 typedef int (*winmain_t)( char *funcname );
 char szSearch[ 5 ][ 1024 ];
 char szFsPath[ 4096 ];

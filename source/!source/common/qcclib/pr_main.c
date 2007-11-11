@@ -74,12 +74,12 @@ void PR_SetDefaultProperties (void)
 	pr_warning[WARN_EXTENSION_USED] = true;
 	pr_warning[WARN_IFSTRING_USED] = true;
 
-	for (i = 1; i < fs_argc; i++)
+	for (i = 1; i < com_argc; i++)
 	{
-		if( !strnicmp(fs_argv[i], "/D", 2))
+		if( !strnicmp(com_argv[i], "/D", 2))
 		{
 			// #define
-			name = fs_argv[i+1];
+			name = com_argv[i+1];
 			val = strchr(name, '=');
 			if (val) { *val = '\0', val++; }
 			cnst = PR_DefineName(name);
@@ -92,23 +92,23 @@ void PR_SetDefaultProperties (void)
 				cnst->value[sizeof(cnst->value)-1] = '\0';
 			}
 		}
-		else if ( !strnicmp(fs_argv[i], "/V", 2))
+		else if ( !strnicmp(com_argv[i], "/V", 2))
 		{
 			// target version
-			if (fs_argv[i][2] == '6') target_version = QPROGS_VERSION;
-			else if (fs_argv[i][2] == '7') target_version = FPROGS_VERSION;
-			else if (fs_argv[i][2] == '8') target_version = VPROGS_VERSION;
-			else PR_Warning(0, NULL, WARN_BADPARAMS, "Unrecognised version parametr (%s)", fs_argv[i]);
+			if (com_argv[i][2] == '6') target_version = QPROGS_VERSION;
+			else if (com_argv[i][2] == '7') target_version = FPROGS_VERSION;
+			else if (com_argv[i][2] == '8') target_version = VPROGS_VERSION;
+			else PR_Warning(0, NULL, WARN_BADPARAMS, "Unrecognised version parametr (%s)", com_argv[i]);
 		}
-		else if( !strnicmp(fs_argv[i], "/O", 2))
+		else if( !strnicmp(com_argv[i], "/O", 2))
 		{
 			int currentlevel = 0; // optimization level
-			if(fs_argv[i][2] == 'd') currentlevel = MASK_DEBUG; // disable optimizations
-			else if (fs_argv[i][2] == '0') currentlevel = MASK_LEVEL_O;
-			else if (fs_argv[i][2] == '1') currentlevel = MASK_LEVEL_1;
-			else if (fs_argv[i][2] == '2') currentlevel = MASK_LEVEL_2;
-			else if (fs_argv[i][2] == '3') currentlevel = MASK_LEVEL_3;
-			else if (fs_argv[i][2] == '4') currentlevel = MASK_LEVEL_4;
+			if(com_argv[i][2] == 'd') currentlevel = MASK_DEBUG; // disable optimizations
+			else if (com_argv[i][2] == '0') currentlevel = MASK_LEVEL_O;
+			else if (com_argv[i][2] == '1') currentlevel = MASK_LEVEL_1;
+			else if (com_argv[i][2] == '2') currentlevel = MASK_LEVEL_2;
+			else if (com_argv[i][2] == '3') currentlevel = MASK_LEVEL_3;
+			else if (com_argv[i][2] == '4') currentlevel = MASK_LEVEL_4;
 
 			if(currentlevel)
 			{
@@ -120,7 +120,7 @@ void PR_SetDefaultProperties (void)
 			}
 			else
 			{
-				char *abbrev = fs_argv[i]+2; // custom optimisation
+				char *abbrev = com_argv[i]+2; // custom optimisation
 				for (j = 0; pr_optimisations[j].enabled; j++)
 				{
 					if(!strcmp(pr_optimisations[j].shortname, abbrev)) 

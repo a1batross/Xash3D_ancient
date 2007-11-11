@@ -3,10 +3,9 @@
 //			console.c - win and dos console
 //=======================================================================
 
-#include "launcher.h"
+#include "launch.h"
 
 HINSTANCE	base_hInstance;
-FILE	*logfile;
 char	log_path[256];
 LPTOP_LEVEL_EXCEPTION_FILTER	oldFilter = 0;
 
@@ -49,72 +48,15 @@ typedef struct
 
 } WinConData;
 static WinConData s_wcd;
-extern char caption[MAX_QPATH];
 
-// gdi32 export table 
-static HDC (_stdcall *pGetDC)(HWND);
-static int (_stdcall *pReleaseDC)(HWND,HDC);
-static bool (_stdcall *pDeleteObject)(HGDIOBJ);
-static int (_stdcall *pGetDeviceCaps)(HDC,int);
-static HBRUSH(_stdcall *pCreateSolidBrush)(COLORREF);
-static COLORREF (_stdcall *pSetBkColor)(HDC,COLORREF);
-static COLORREF (_stdcall *pSetTextColor)(HDC,COLORREF);
-static HFONT (_stdcall *pCreateFont)(int,int,int,int,int,dword,dword,dword,dword,dword,dword,dword,dword,LPCSTR);
-
-static dllfunc_t gdi32_funcs[] =
+void Con_ShowConsole( bool show )
 {
-	{"GetDC", (void **) &pGetDC },
-	{"ReleaseDC", (void **) &pReleaseDC },		
-	{"SetBkColor", (void **) &pSetBkColor },
-	{"CreateFontA", (void **) &pCreateFont },
-	{"DeleteObject", (void **) &pDeleteObject },
-	{"SetTextColor", (void **) &pSetTextColor },
-	{"GetDeviceCaps", (void **) &pGetDeviceCaps },
-	{"CreateSolidBrush", (void **) &pCreateSolidBrush },
-	{ NULL, NULL }
-};
+	if( !s_wcd.hWnd || sys.hooked_out )
+		return;
+	if ( show == s_wcd.status )
+		return;
 
-dll_info_t gdi32_dll = { /*"gdi32.dll"*/NULL, gdi32_funcs, NULL, NULL, NULL, true, 0 }; // FIXME
-
-void Sys_InitLog( void )
-{
-	// create log if needed
-	if(!log_active || !strlen(log_path)) return;
-	logfile = fopen ( log_path, "w");
-	if(!logfile) Sys_Error("Sys_InitLog: can't create log file %s\n", log_path );
-
-	fprintf (logfile, "=======================================================================\n" );
-	fprintf (logfile, "\t%s started at %s\n", caption, time_stamp(TIME_FULL));
-	fprintf (logfile, "=======================================================================\n");
-}
-
-void Sys_CloseLog( void )
-{
-	if(!logfile) return;
-
-	fprintf (logfile, "\n");
-	fprintf (logfile, "=======================================================================");
-	fprintf (logfile, "\n\t%s stopped at %s\n", caption, time_stamp(TIME_FULL));
-	fprintf (logfile, "=======================================================================");
-
-	fclose(logfile);
-	logfile = NULL;
-}
-
-void Sys_PrintLog( const char *pMsg )
-{
-	if(!logfile) return;
-
-	fprintf (logfile, "%s", pMsg );
-	fflush (logfile); // force it to save every time
-}
-
-void Sys_ShowConsoleW( bool show )
-{
-	if ( show == s_wcd.status ) return;
 	s_wcd.status = show;
-	if ( !s_wcd.hWnd ) return;
-
 	if( show )
 	{
 		ShowWindow( s_wcd.hWnd, SW_SHOWNORMAL );
@@ -123,7 +65,7 @@ void Sys_ShowConsoleW( bool show )
 	else ShowWindow( s_wcd.hWnd, SW_HIDE );
 }
 
-static LONG WINAPI ConWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+static long _stdcall Con_WndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	static bool	s_timePolarity;
 	PAINTSTRUCT	ps;
@@ -140,7 +82,7 @@ static LONG WINAPI ConWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 		return TRUE;
 		break;
 	case WM_CLOSE:
-		if(sys_error)
+		if(sys.error)
 		{
 			// send windows message
 			PostQuitMessage( 0 );
@@ -203,7 +145,7 @@ static LONG WINAPI ConWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 	return DefWindowProc( hWnd, uMsg, wParam, lParam );
 }
 
-LONG WINAPI InputLineWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+long _stdcall Con_InputLineProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	char inputBuffer[1024];
 
@@ -220,8 +162,8 @@ LONG WINAPI InputLineWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		if ( wParam == 13 )
 		{
 			GetWindowText( s_wcd.hwndInputLine, inputBuffer, sizeof( inputBuffer ) );
-			strncat( s_wcd.consoleText, inputBuffer, sizeof( s_wcd.consoleText ) - strlen( s_wcd.consoleText ) - 5 );
-			strcat( s_wcd.consoleText, "\n" );
+			com_strncat( s_wcd.consoleText, inputBuffer, sizeof( s_wcd.consoleText ) - com_strlen( s_wcd.consoleText ) - 5 );
+			com_strcat( s_wcd.consoleText, "\n" );
 			SetWindowText( s_wcd.hwndInputLine, "" );
 			Msg(">%s\n", inputBuffer );
 			return 0;
@@ -238,94 +180,31 @@ WIN32 IO
 
 ===============================================================================
 */
-
 /*
 ================
-Sys_PrintW
-
-print into window console
-================
-*/
-void Sys_Print(const char *pMsg)
-{
-	const char	*msg;
-	char		buffer[MAX_INPUTLINE * 2];
-	char		logbuf[MAX_INPUTLINE * 2];
-	char		*b = buffer;
-	char		*c = logbuf;	
-	int		i = 0;
-
-	// if the message is REALLY long, use just the last portion of it
-	if ( strlen( pMsg ) > MAX_INPUTLINE - 1 )
-		msg = pMsg + strlen( pMsg ) - MAX_INPUTLINE + 1;
-	else msg = pMsg;
-
-	// copy into an intermediate buffer
-	while ( msg[i] && (( b - buffer ) < sizeof( buffer ) - 1 ))
-	{
-		if( msg[i] == '\n' && msg[i+1] == '\r' )
-		{
-			b[0] = '\r';
-			b[1] = c[0] = '\n';
-			b += 2, c++;
-			i++;
-		}
-		else if( msg[i] == '\r' )
-		{
-			b[0] = c[0] = '\r';
-			b[1] = '\n';
-			b += 2, c++;
-		}
-		else if( msg[i] == '\n' )
-		{
-			b[0] = '\r';
-			b[1] = c[0] = '\n';
-			b += 2, c++;
-		}
-		else if( msg[i] == '\35' || msg[i] == '\36' || msg[i] == '\37' )
-		{
-			i++; // skip console pseudo graph
-		}
-		else if(IsColorString( &msg[i])) i++; // skip color prefix
-		else
-		{
-			*b = *c = msg[i];
-			b++, c++;
-		}
-		i++;
-	}
-	*b = *c = 0; // cutoff garbage
-
-	Sys_PrintLog( logbuf );
-	Msg_Print( buffer );
-}
-
-/*
-================
-Msg_PrintA
+Con_PrintA
 
 print into cmd32 console
 ================
 */
-void Msg_PrintA(const char *pMsg)
+void Con_PrintA(const char *pMsg)
 {
 	DWORD	cbWritten;
 
-	WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), pMsg, strlen(pMsg), &cbWritten, 0 );
-	//write(1, pMsg, strlen(pMsg));
+	WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), pMsg, com_strlen(pMsg), &cbWritten, 0 );
 }
 
 /*
 ================
-Msg_PrintW
+Con_PrintW
 
 print into window console
 ================
 */
-void Msg_PrintW(const char *pMsg)
+void Con_PrintW(const char *pMsg)
 {
 	// replace selection instead of appending if we're overflowing
-	if( strlen(pMsg) > 0x7fff )
+	if( com_strlen(pMsg) > 0x7fff )
 	{
 		SendMessage( s_wcd.hwndBuffer, EM_SETSEL, 0, -1 );
 	} 
@@ -336,59 +215,15 @@ void Msg_PrintW(const char *pMsg)
 	SendMessage( s_wcd.hwndBuffer, EM_REPLACESEL, 0, (LPARAM)pMsg );
 }
 
-/*
-================
-Sys_Msg
-
-formatted message
-================
-*/
-void Sys_MsgW( const char *pMsg, ... )
-{
-	va_list		argptr;
-	char text[MAX_INPUTLINE];
-	
-	va_start (argptr, pMsg);
-	vsprintf (text, pMsg, argptr);
-	va_end (argptr);
-
-	Sys_Print( text );
-}
-
-void Sys_MsgDevW( int level, const char *pMsg, ... )
-{
-	va_list	argptr;
-	char	text[MAX_INPUTLINE];
-	
-	if(dev_mode < level) return;
-
-	va_start (argptr, pMsg);
-	vsprintf (text, pMsg, argptr);
-	va_end (argptr);
-	Sys_Print( text );
-}
-
-void Sys_MsgWarnW( const char *pMsg, ... )
-{
-	va_list	argptr;
-	char	text[MAX_INPUTLINE];
-	
-	if(!debug_mode) return;
-
-	va_start (argptr, pMsg);
-	vsprintf (text, pMsg, argptr);
-	va_end (argptr);
-	Sys_Print( text );
-}
 
 /*
 ================
-Sys_CreateConsoleW
+Con_CreateConsole
 
 create win32 console
 ================
 */
-void Sys_CreateConsoleW( void )
+void Con_CreateConsole( void )
 {
 	HDC hDC;
 	WNDCLASS wc;
@@ -399,10 +234,20 @@ void Sys_CreateConsoleW( void )
 	int CONSTYLE = WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_BORDER | WS_EX_CLIENTEDGE | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY;
 	char Title[MAX_QPATH], FontName[MAX_QPATH];
 
-	memset( &wc, 0, sizeof( wc ) );
+	if(sys.con_silentmode) return;
 
+	if(sys.hooked_out) 
+	{
+		// just init log
+		sys.Con_Print = Con_PrintA;
+		Sys_InitLog();
+		return;
+	}
+	sys.Con_Print = Con_PrintW;
+
+	Mem_Set( &wc, 0, sizeof( wc ));
 	wc.style         = 0;
-	wc.lpfnWndProc   = (WNDPROC)ConWndProc;
+	wc.lpfnWndProc   = (WNDPROC)Con_WndProc;
 	wc.cbClsExtra    = 0;
 	wc.cbWndExtra    = 0;
 	wc.hInstance     = base_hInstance;
@@ -412,26 +257,25 @@ void Sys_CreateConsoleW( void )
 	wc.lpszMenuName  = 0;
 	wc.lpszClassName = SYSCONSOLE;
 
-	Sys_LoadLibrary( &gdi32_dll );
 	if (!RegisterClass (&wc)) Sys_ErrorFatal( ERR_CONSOLE_FAIL );
  
-	if(about_mode)
+	if(sys.con_showcredits)
 	{
 		CONSTYLE &= ~WS_VSCROLL;
 		rect.left = 0;
 		rect.right = 536;
 		rect.top = 0;
 		rect.bottom = 280;
-		strncpy(FontName, "Arial", MAX_QPATH );
+		com_strncpy(FontName, "Arial", MAX_QPATH );
 		fontsize = 16;
 	}
-	else if(console_read_only)
+	else if(sys.con_readonly)
 	{
 		rect.left = 0;
 		rect.right = 536;
 		rect.top = 0;
 		rect.bottom = 364;
-		strncpy(FontName, "Fixedsys", MAX_QPATH );
+		com_strncpy(FontName, "Fixedsys", MAX_QPATH );
 		fontsize = 8;
 	}
 	else // dedicated console
@@ -440,11 +284,11 @@ void Sys_CreateConsoleW( void )
 		rect.right = 540;
 		rect.top = 0;
 		rect.bottom = 392;
-		strncpy(FontName, "System", MAX_QPATH );
+		com_strncpy(FontName, "System", MAX_QPATH );
 		fontsize = 14;
 	}
 
-	strncpy( Title, caption, MAX_QPATH );
+	com_strncpy( Title, sys.caption, MAX_QPATH );
 	AdjustWindowRect( &rect, DEDSTYLE, FALSE );
 
 	hDC = GetDC( GetDesktopWindow() );
@@ -464,7 +308,7 @@ void Sys_CreateConsoleW( void )
 	s_wcd.hfBufferFont = CreateFont( nHeight, 0, 0, 0, FW_LIGHT, 0, 0, 0, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, FF_MODERN | FIXED_PITCH, FontName );
 	ReleaseDC( s_wcd.hWnd, hDC );
 
-	if(!console_read_only)
+	if(!sys.con_readonly)
 	{
 		// create the input line
 		s_wcd.hwndInputLine = CreateWindowEx( WS_EX_CLIENTEDGE, "edit", NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL, 0, 366, 450, 25, s_wcd.hWnd, ( HMENU ) INPUT_ID, base_hInstance, NULL );
@@ -479,23 +323,23 @@ void Sys_CreateConsoleW( void )
 	s_wcd.hwndBuffer = CreateWindowEx(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE, "edit", NULL, CONSTYLE, 0, 0, rect.right - rect.left, min(365, rect.bottom), s_wcd.hWnd, ( HMENU )EDIT_ID, base_hInstance, NULL );
 	SendMessage( s_wcd.hwndBuffer, WM_SETFONT, ( WPARAM ) s_wcd.hfBufferFont, 0 );
 
-	if(!console_read_only)
+	if(!sys.con_readonly)
 	{
-		s_wcd.SysInputLineWndProc = ( WNDPROC ) SetWindowLong( s_wcd.hwndInputLine, GWL_WNDPROC, ( long ) InputLineWndProc );
+		s_wcd.SysInputLineWndProc = ( WNDPROC )SetWindowLong( s_wcd.hwndInputLine, GWL_WNDPROC, ( long ) Con_InputLineProc );
 		SendMessage( s_wcd.hwndInputLine, WM_SETFONT, ( WPARAM ) s_wcd.hfBufferFont, 0 );
           }
 
 	Sys_InitLog();
 
-	//show console if needed
-	if( show_always )
+	// show console if needed
+	if( sys.con_showalways )
 	{          
-		//make console visible
+		// make console visible
 		ShowWindow( s_wcd.hWnd, SW_SHOWDEFAULT);
 		UpdateWindow( s_wcd.hWnd );
 		SetForegroundWindow( s_wcd.hWnd );
 
-		if(console_read_only) SetFocus( s_wcd.hWnd );
+		if(sys.con_readonly) SetFocus( s_wcd.hWnd );
 		else SetFocus( s_wcd.hwndInputLine );
 		s_wcd.status = true;
           }
@@ -504,15 +348,21 @@ void Sys_CreateConsoleW( void )
 
 /*
 ================
-Sys_DestroyConsoleW
+Con_DestroyConsole
 
 destroy win32 console
 ================
 */
-void Sys_DestroyConsoleW( void )
+void Con_DestroyConsole( void )
 {
 	// last text message into console or log 
 	MsgDev(D_ERROR, "Sys_FreeLibrary: Unloading launch.dll\n");
+
+	if(sys.hooked_out) 
+	{
+		Sys_CloseLog();
+		return;
+	}
 
 	if ( s_wcd.hWnd )
 	{
@@ -526,23 +376,22 @@ void Sys_DestroyConsoleW( void )
 		s_wcd.hWnd = 0;
 	}
 
-	UnregisterClass (SYSCONSOLE, base_hInstance);
-	Sys_FreeLibrary( &gdi32_dll );
+	UnregisterClass (SYSCONSOLE, sys.hInstance);
 	Sys_CloseLog();
 }
 
 /*
 ================
-Sys_InputW
+Sys_Input
 
 returned input text 
 ================
 */
-char *Sys_InputW( void )
+char *Sys_Input( void )
 {
-	if ( s_wcd.consoleText[0] == 0 ) return NULL;
+	if( s_wcd.consoleText[0] == 0 ) return NULL;
 		
-	strcpy( s_wcd.returnedText, s_wcd.consoleText );
+	com_strncpy( s_wcd.returnedText, s_wcd.consoleText, sizeof(s_wcd.returnedText));
 	s_wcd.consoleText[0] = 0;
 	
 	return s_wcd.returnedText;
@@ -550,131 +399,18 @@ char *Sys_InputW( void )
 
 /*
 ================
-Sys_ErrorW
+Con_SetFocus
 
-NOTE: we must prepare engine to shutdown
-before call this
+change focus to console hwnd 
 ================
 */
-void Sys_ErrorW(char *error, ...)
+void Con_RegisterHotkeys( void )
 {
-	va_list		argptr;
-	char		text[MAX_INPUTLINE];
-         
-	if(sys_error) return; //don't multiple executes
-	
-	va_start (argptr, error);
-	vsprintf (text, error, argptr);
-	va_end (argptr);
-         
-	sys_error = true;
-	
-	Sys_ShowConsole( true );
-	Sys_Print( text ); //print error message
-	
+	if(sys.hooked_out) return;
+
 	SetFocus( s_wcd.hWnd );
-
-	Sys_WaitForQuit();
-	Sys_Exit();
-}
-
-/*
-================
-Sys_ErrorA
-
-NOTE: we must prepare engine to shutdown
-before call this
-================
-*/
-void Sys_ErrorA(char *error, ...)
-{
-	va_list		argptr;
-	char		text[MAX_INPUTLINE];
-         
-	if(sys_error) return; //don't multiple executes
-	
-	va_start (argptr, error);
-	vsprintf (text, error, argptr);
-	va_end (argptr);
-         
-	sys_error = true;
-	
-	Sys_ShowConsole( true );
-	Sys_Print( text ); //print error message
-
-	Sys_Print("press any key to quit\n");
-	getchar();  //wait for quit
-	Sys_Exit();
-}
-
-/*
-================
-Sys_FatalError
-
-called while internal debugging tools 
-are failed to initialize.
-use generic msgbox
-================
-*/
-void _Sys_ErrorFatal( int type, const char *filename, int fileline )
-{
-	char errorstring[64];
-
-	switch( type )
-	{
-		case ERR_INVALID_ROOT:
-			strncpy(errorstring, "Invalid root directory!", sizeof(errorstring));
-			break;
-		case ERR_CONSOLE_FAIL:
-			strncpy(errorstring, "Can't create console window", sizeof(errorstring));
-			break;
-		case ERR_OSINFO_FAIL:
-			strncpy(errorstring, "Couldn't get OS info", sizeof(errorstring));
-			break;
-		case ERR_INVALID_VER:
-			strncpy(errorstring, "Requries Win95 or later", sizeof(errorstring));
-			break;
-		case ERR_WINDOWS_32S:
-			strncpy(errorstring, "Win32s is not supported", sizeof(errorstring));
-			break;
-		default:
-			sprintf(errorstring, "Internal engine error at %s:%i", filename, fileline );
-			break;
-	}
-	MessageBox( 0, errorstring, "Error", MB_OK );
-	exit(1);
-}
-
-void Sys_WaitForQuit( void )
-{
-	MSG		msg;
 
 	// user can hit escape or space for quit
 	RegisterHotKey(s_wcd.hWnd, QUIT_ON_ESCPE_ID, 0, VK_ESCAPE );
 	RegisterHotKey(s_wcd.hWnd, QUIT_ON_SPACE_ID, 0, VK_SPACE  );
-	ZeroMemory(&msg, sizeof(msg));
-
-	// wait for the user to quit
-	while(!hooked_out && msg.message != WM_QUIT)
-	{
-		if(PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
-        		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		} 
-		else Sys_Sleep( 20 );
-	}
-}
-
-long WINAPI Sys_ExecptionFilter( PEXCEPTION_POINTERS pExceptionInfo )
-{
-	// save config
-	Sys_Print("Engine crashed\n");
-	Host_Free(); // prepare host to close
-	Sys_FreeLibrary( linked_dll );
-	Sys_FreeConsole();	
-
-	if( oldFilter ) return oldFilter( pExceptionInfo );
-	return EXCEPTION_CONTINUE_SEARCH;
-	//return EXCEPTION_CONTINUE_EXECUTION;
 }

@@ -1,9 +1,6 @@
 
 #include "bsplib.h"
 
-
-extern int numthreads;
-
 // counters are only bumped when running single threaded,
 // because they are an awefull coherence problem
 int	c_active_windings;

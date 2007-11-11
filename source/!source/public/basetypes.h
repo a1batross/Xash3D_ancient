@@ -26,11 +26,6 @@
 #define MAX_INFO_VALUE	64
 #define MAX_INFO_STRING	512
 
-#define TIME_FULL		0
-#define TIME_DATE_ONLY	1
-#define TIME_TIME_ONLY	2
-#define TIME_NO_SECONDS	3
-
 #define COLOR_BLACK		'0'
 #define COLOR_RED		'1'
 #define COLOR_GREEN		'2'
@@ -40,13 +35,16 @@
 #define COLOR_MAGENTA	'6'
 #define COLOR_WHITE		'7'
 #define ColorIndex(c)	(((c) - '0') & 7)
-
 #define STRING_COLOR_TAG	'^'
 #define IsColorString(p)	( p && *(p) == STRING_COLOR_TAG && *((p)+1) && *((p)+1) != STRING_COLOR_TAG )
 
 #define PITCH		0
 #define YAW		1
 #define ROLL		2
+
+#ifndef NULL
+#define NULL		((void *)0)
+#endif
 
 typedef enum{false, true}	bool;
 typedef unsigned char 	byte;
@@ -88,84 +86,6 @@ typedef struct { byte r:8; byte g:8; byte b:8; } color24;
 typedef struct { byte r; byte g; byte b; byte a; } color32;
 typedef struct { const char *name; void **func; } dllfunc_t;
 
-
-#ifndef NULL
-#define NULL	((void *)0)
-#endif
-
-#ifndef O_NONBLOCK
-#define O_NONBLOCK	0
-#endif
-
-#include <time.h>
-#include "byteorder.h"
-
-#ifdef WIN32
-#define strcasecmp stricmp
-#define strncasecmp strnicmp
-#endif
-
-/*
-============
-va
-
-does a varargs printf into a temp buffer, so I don't need to have
-varargs versions of all text functions.
-FIXME: make this buffer size safe someday
-============
-*/
-_inline char *va(const char *format, ...)
-{
-	va_list argptr;
-	static char string[8][1024], *s;
-	static int stringindex = 0;
-
-	s = string[stringindex];
-	stringindex = (stringindex + 1) & 7;
-	va_start (argptr, format);
-	vsprintf (s, format, argptr);
-	va_end (argptr);
-	return s;
-}
-
-/*
-====================
-timestamp
-====================
-*/
-_inline const char* time_stamp( int format )
-{
-	static char timestamp [128];
-	time_t crt_time;
-	const struct tm *crt_tm;
-	char timestring [64];
-
-	time (&crt_time);
-	crt_tm = localtime (&crt_time);
-	switch( format )
-	{
-	case TIME_FULL:
-		// Build the full timestamp (ex: "Apr03 2007 [23:31.55]");
-		strftime(timestring, sizeof (timestring), "%b%d %Y [%H:%M.%S]", crt_tm);
-		break;
-	case TIME_DATE_ONLY:
-		// Build the date stamp only (ex: "Apr03 2007");
-		strftime(timestring, sizeof (timestring), "%b%d %Y", crt_tm);
-		break;
-	case TIME_TIME_ONLY:
-		// Build the time stamp only (ex: "[23:31.55]");
-		strftime(timestring, sizeof (timestring), "[%H:%M.%S]", crt_tm);
-		break;
-	case TIME_NO_SECONDS:
-		// Build the full timestamp (ex: "Apr03 2007 [23:31]");
-		strftime(timestring, sizeof (timestring), "%b%d %Y [%H:%M]", crt_tm);
-		break;
-	}
-
-	strcpy( timestamp, timestring );
-	return timestamp;
-}
-
-#define bound(min, num, max) ((num) >= (min) ? ((num) < (max) ? (num) : (max)) : (min))
+#include "byteorder.h" // byte ordering swap functions
 
 #endif//BASETYPES_H

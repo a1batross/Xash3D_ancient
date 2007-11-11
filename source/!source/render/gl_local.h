@@ -47,14 +47,14 @@ memory manager
 #define Z_Free(data) Mem_Free(data)
 
 //malloc-free
-#define Mem_Alloc(pool,size) ri.Mem.Alloc(pool, size, __FILE__, __LINE__)
-#define Mem_Free(mem) ri.Mem.Free(mem, __FILE__, __LINE__)
-#define Mem_Copy(dst, src, size) ri.Mem.Copy(dst, src, size, __FILE__, __LINE__)
+#define Mem_Alloc(pool,size) ri.Stdio.malloc(pool, size, __FILE__, __LINE__)
+#define Mem_Free(mem) ri.Stdio.free(mem, __FILE__, __LINE__)
+#define Mem_Copy(dst, src, size) ri.Stdio.memcpy(dst, src, size, __FILE__, __LINE__)
 
 //Hunk_AllocName
-#define Mem_AllocPool(name) ri.Mem.AllocPool(name, __FILE__, __LINE__)
-#define Mem_FreePool(pool) ri.Mem.FreePool(pool, __FILE__, __LINE__)
-#define Mem_EmptyPool(pool) ri.Mem.EmptyPool(pool, __FILE__, __LINE__)
+#define Mem_AllocPool(name) ri.Stdio.mallocpool(name, __FILE__, __LINE__)
+#define Mem_FreePool(pool) ri.Stdio.freepool(pool, __FILE__, __LINE__)
+#define Mem_EmptyPool(pool) ri.Stdio.clearpool(pool, __FILE__, __LINE__)
 
 extern byte *r_temppool;
 
@@ -70,30 +70,33 @@ void R_ConcatTransforms (float in1[3][4], float in2[3][4], float out[3][4]);
 #define MsgWarn ri.Stdio.wprintf
 #define Sys_Error ri.Stdio.error
 
+#define strcasecmp		ri.Stdio.stricmp
+#define va		ri.Stdio.va
+
 /*
 ===========================================
 filesystem manager
 ===========================================
 */
-#define FS_LoadFile(name, size) ri.Fs.LoadFile(name, size)
-#define FS_LoadImage(name, data, size) ri.Fs.LoadImage(name, data, size)
-#define FS_SaveImage(name, pic) ri.Fs.SaveImage(name, pic)
-#define FS_FreeImage(data) ri.Fs.FreeImage(data)
-#define FS_Search(path) ri.Fs.Search( path, true )
-#define FS_WriteFile(name, data, size) ri.Fs.WriteFile(name, data, size )
-#define FS_Open( path, mode ) ri.Fs.Open( path, mode )
-#define FS_Read( file, buffer, size ) ri.Fs.Read( file, buffer, size )
-#define FS_Write( file, buffer, size ) ri.Fs.Write( file, buffer, size )
-#define FS_StripExtension( path ) ri.Fs.StripExtension( path )
-#define FS_DefaultExtension( path, ext ) ri.Fs.DefaultExtension( path, ext )
-#define FS_FileExtension( ext ) ri.Fs.FileExtension( ext )
-#define FS_FileExists( file ) ri.Fs.FileExists( file )
-#define FS_Close( file ) ri.Fs.Close( file )
-#define FS_FileBase( x, y ) ri.Fs.FileBase( x, y )
-#define FS_Printf ri.Fs.Printf
-#define FS_Seek ri.Fs.Seek
-#define FS_Tell ri.Fs.Tell
-#define FS_Gets ri.Fs.Gets
+#define FS_LoadFile(name, size) ri.Stdio.Fs.LoadFile(name, size)
+#define FS_LoadImage(name, data, size) ri.LoadImage(name, data, size)
+#define FS_SaveImage(name, pic) ri.SaveImage(name, pic)
+#define FS_FreeImage(data) ri.FreeImage(data)
+#define FS_Search(path) ri.Stdio.Fs.Search( path, true )
+#define FS_WriteFile(name, data, size) ri.Stdio.Fs.WriteFile(name, data, size )
+#define FS_Open( path, mode ) ri.Stdio.Fs.Open( path, mode )
+#define FS_Read( file, buffer, size ) ri.Stdio.Fs.Read( file, buffer, size )
+#define FS_Write( file, buffer, size ) ri.Stdio.Fs.Write( file, buffer, size )
+#define FS_StripExtension( path ) ri.Stdio.Fs.StripExtension( path )
+#define FS_DefaultExtension( path, ext ) ri.Stdio.Fs.DefaultExtension( path, ext )
+#define FS_FileExtension( ext ) ri.Stdio.Fs.FileExtension( ext )
+#define FS_FileExists( file ) ri.Stdio.Fs.FileExists( file )
+#define FS_Close( file ) ri.Stdio.Fs.Close( file )
+#define FS_FileBase( x, y ) ri.Stdio.Fs.FileBase( x, y )
+#define FS_Printf ri.Stdio.Fs.Printf
+#define FS_Seek ri.Stdio.Fs.Seek
+#define FS_Tell ri.Stdio.Fs.Tell
+#define FS_Gets ri.Stdio.Fs.Gets
 char *FS_Gamedir( void );
 char *FS_Title( void );
 

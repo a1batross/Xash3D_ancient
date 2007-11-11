@@ -65,7 +65,7 @@ shader_t *FindShader( char *texture )
 	int i;
 
 	//convert to lower case
-	texture = strlower (texture);
+	strlower(texture, texture);
           
 	//build full path
 	sprintf (shader, "textures/%s", texture);

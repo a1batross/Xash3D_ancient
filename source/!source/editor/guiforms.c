@@ -459,18 +459,14 @@ bool GUI_LoadPlatfrom( char *funcname, int argc, char **argv )
 	common_t		CreatePlat;
 
 	// create callbacks for common.dll
+	io = std;
+
+	// overload some functions
 	io.printf = GUI_Msg;
 	io.dprintf = GUI_MsgDev;
 	io.wprintf = GUI_MsgWarn;
 	io.error = GUI_Error;
-	io.exit = std.exit;
 	io.print = GUI_Print;
-	io.input = std.input;
-	io.sleep = std.sleep;
-
-	io.LoadLibrary = std.LoadLibrary;
-	io.FreeLibrary = std.FreeLibrary;
-          io.GetProcAddress = std.GetProcAddress;
 	
 	// loading common.dll
 	if (!Sys_LoadLibrary( &common_dll ))
@@ -484,8 +480,8 @@ bool GUI_LoadPlatfrom( char *funcname, int argc, char **argv )
 	//initialziing common.dll
 	com->Init( argc, argv );
 
-	com->Fs.ClearSearchPath();
-	com->AddGameHierarchy( "bin" );
+	std.Fs.ClearSearchPath();
+	std.AddGameHierarchy( "bin" );
 
 	return true;
 }
@@ -993,7 +989,7 @@ void InitEditor ( char *funcname, int argc, char **argv )
 		wnd_options_t *config_dat;
 		int config_size;
 		
-		config_dat = (wnd_options_t *)com->Fs.LoadFile( "editor.dat", &config_size );
+		config_dat = (wnd_options_t *)std.Fs.LoadFile( "editor.dat", &config_size );
 
 		if(config_dat) //verify our config before read
 		{
@@ -1047,7 +1043,7 @@ void EditorMain ( void )
 	if(common_dll.link)
 	{
 		// save our settings
-		com->Fs.WriteFile("editor.dat", &w_opts, w_opts.csize );
+		std.Fs.WriteFile("editor.dat", &w_opts, w_opts.csize );
 	}
 }
 

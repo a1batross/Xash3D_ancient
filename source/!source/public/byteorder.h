@@ -7,7 +7,7 @@
 
 #include "basetypes.h"
 
-//byte order swap functions
+// byte order swap functions
 _inline word WordSwap( word swap )
 {
 	word *s = &swap;

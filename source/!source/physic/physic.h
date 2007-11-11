@@ -28,16 +28,16 @@ memory manager
 ===========================================
 */
 // malloc-free
-#define Mem_Alloc(pool,size) pi.Mem.Alloc(pool, size, __FILE__, __LINE__)
-#define Mem_Realloc(pool, ptr, size) pi.Mem.Realloc(pool, ptr, size, __FILE__, __LINE__)
-#define Mem_Free(mem) pi.Mem.Free(mem, __FILE__, __LINE__)
+#define Mem_Alloc(pool,size) pi.Stdio.malloc(pool, size, __FILE__, __LINE__)
+#define Mem_Realloc(pool, ptr, size) pi.Stdio.realloc(pool, ptr, size, __FILE__, __LINE__)
+#define Mem_Free(mem) pi.Stdio.free(mem, __FILE__, __LINE__)
 
 // Hunk_AllocName
-#define Mem_AllocPool(name) pi.Mem.AllocPool(name, __FILE__, __LINE__)
-#define Mem_FreePool(pool) pi.Mem.FreePool(pool, __FILE__, __LINE__)
-#define Mem_EmptyPool(pool) pi.Mem.EmptyPool(pool, __FILE__, __LINE__)
+#define Mem_AllocPool(name) pi.Stdio.mallocpool(name, __FILE__, __LINE__)
+#define Mem_FreePool(pool) pi.Stdio.freepool(pool, __FILE__, __LINE__)
+#define Mem_EmptyPool(pool) pi.Stdio.clearpool(pool, __FILE__, __LINE__)
 
-#define Mem_Copy(dest, src, size) pi.Mem.Copy(dest, src, size, __FILE__, __LINE__) 
+#define Mem_Copy(dest, src, size) pi.Stdio.memcpy(dest, src, size, __FILE__, __LINE__) 
 
 /*
 ===========================================

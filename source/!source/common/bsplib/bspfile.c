@@ -438,7 +438,7 @@ void WriteBSPFile( void )
 	sprintf (path, "maps/%s.bsp", gs_mapname );
 	Msg ("writing %s\n", path);
 	
-	wadfile = _FS_Open( path, "wb", false, false );
+	wadfile = FS_Open( path, "wb" );
 	FS_Write( wadfile, header, sizeof(dheader_t));	// overwritten later
 
 	AddLump (LUMP_PLANES, dplanes, numplanes*sizeof(dplane_t));

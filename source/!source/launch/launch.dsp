@@ -54,7 +54,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386 /opt:nowin98
-# ADD LINK32 msvcrt.lib user32.lib gdi32.lib advapi32.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /opt:nowin98
+# ADD LINK32 common\zlib.lib user32.lib gdi32.lib advapi32.lib winmm.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /opt:nowin98
 # Begin Custom Build
 TargetDir=\XASH3D\src_main\!source\temp\launch\!release
 InputPath=\XASH3D\src_main\!source\temp\launch\!release\launch.dll
@@ -90,7 +90,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 msvcrt.lib user32.lib gdi32.lib advapi32.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"msvcrtd.lib" /pdbtype:sept
+# ADD LINK32 common\zlib.lib user32.lib gdi32.lib advapi32.lib winmm.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"libc.lib" /pdbtype:sept
 # Begin Custom Build
 TargetDir=\XASH3D\src_main\!source\temp\launch\!debug
 InputPath=\XASH3D\src_main\!source\temp\launch\!debug\launch.dll
@@ -112,19 +112,39 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\console.c
+SOURCE=.\common\console.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\launcher.c
+SOURCE=.\common\cpuinfo.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\stdlib.c
+SOURCE=.\common\crclib.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\utils.c
+SOURCE=.\common\filesystem.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\launcher.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\memlib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\parselib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\stdlib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\system.c
 # End Source File
 # End Group
 # Begin Group "Header Files"

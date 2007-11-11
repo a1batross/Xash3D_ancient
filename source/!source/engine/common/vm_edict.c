@@ -1977,12 +1977,12 @@ int PRVM_GetProgNr()
 
 void *_PRVM_Alloc(size_t buffersize, const char *filename, int fileline)
 {
-	return Com->Mem.Alloc(prog->progs_mempool, buffersize, filename, fileline);
+	return std.malloc(prog->progs_mempool, buffersize, filename, fileline);
 }
 
 void _PRVM_Free(void *buffer, const char *filename, int fileline)
 {
-	Com->Mem.Free(buffer, filename, fileline);
+	std.free(buffer, filename, fileline);
 }
 
 void _PRVM_FreeAll(const char *filename, int fileline)
@@ -1990,7 +1990,7 @@ void _PRVM_FreeAll(const char *filename, int fileline)
 	prog->progs = NULL;
 	prog->fielddefs = NULL;
 	prog->functions = NULL;
-	Com->Mem.EmptyPool(prog->progs_mempool, filename, fileline);
+	std.clearpool(prog->progs_mempool, filename, fileline);
 }
 
 // LordHavoc: turned PRVM_EDICT_NUM into a #define for speed reasons

@@ -8,8 +8,7 @@
 #include <direct.h>
 #include <sys/stat.h>
 #include <io.h>
-#include "platform.h"
-#include "utils.h"
+#include "launch.h"
 #include "zip32.h"
 
 #define ZIP_DATA_HEADER		0x504B0304  // "PK\3\4"
@@ -26,6 +25,10 @@
 #define PACKFILE_FLAG_TRUEOFFS	(1 << 0)// the offset in packfile_t is the true contents offset
 #define PACKFILE_FLAG_DEFLATED	(1 << 1)// file compressed using the deflate algorithm
 #define MAX_FILES_IN_PACK		65536
+
+#ifndef O_NONBLOCK
+#define O_NONBLOCK	0
+#endif
 
 typedef struct
 {
@@ -129,15 +132,16 @@ static searchpath_t *FS_FindFile (const char *name, int* index, bool quiet);
 static packfile_t* FS_AddFileToPack (const char* name, pack_t* pack, fs_offset_t offset, fs_offset_t packsize, fs_offset_t realsize, int flags);
 static bool FS_SysFileExists (const char *path);
 
-char fs_rootdir[ MAX_SYSPATH ]; //engine root directory
-char fs_basedir[ MAX_SYSPATH ]; //base directory of game
-char fs_gamedir[ MAX_SYSPATH ]; //game current directory
-char gs_basedir[ MAX_SYSPATH ]; //initial dir before loading gameinfo.txt (used for compilers too)
-char gs_mapname[ 64 ]; //used for compilers only
+char sys_rootdir[ MAX_SYSPATH]; // system root
+char fs_rootdir[ MAX_SYSPATH ]; // engine root directory
+char fs_basedir[ MAX_SYSPATH ]; // base directory of game
+char fs_gamedir[ MAX_SYSPATH ]; // game current directory
+char gs_basedir[ MAX_SYSPATH ]; // initial dir before loading gameinfo.txt (used for compilers too)
+char gs_mapname[ 64 ]; // used for compilers only
 
-//command ilne parms
+// command ilne parms
 int fs_argc;
-char **fs_argv;
+char *fs_argv[MAX_NUM_ARGVS];
 bool fs_ext_path = false; // attempt to read\write from ./ or ../ pathes 
 
 gameinfo_t GI;
@@ -174,7 +178,7 @@ bool PK3_GetEndOfCentralDir (const char *packfile, int packhandle, pk3_t *eocd)
 	lseek (packhandle, filesize - maxsize, SEEK_SET);
 	if (read (packhandle, buffer, maxsize) != (fs_offset_t) maxsize)
 	{
-		Free (buffer);
+		Mem_Free(buffer);
 		return false;
 	}
 	
@@ -186,14 +190,14 @@ bool PK3_GetEndOfCentralDir (const char *packfile, int packhandle, pk3_t *eocd)
 	{
 		if (ind == maxsize)
 		{
-			Free (buffer);
+			Mem_Free (buffer);
 			return false;
 		}
 		ind++;
 		ptr--;
 	}
 
-	memcpy (eocd, ptr, ZIP_END_CDIR_SIZE);
+	Mem_Copy (eocd, ptr, ZIP_END_CDIR_SIZE);
 
 	eocd->signature = LittleLong (eocd->signature);
 	eocd->disknum = LittleShort (eocd->disknum);
@@ -204,7 +208,7 @@ bool PK3_GetEndOfCentralDir (const char *packfile, int packhandle, pk3_t *eocd)
 	eocd->cdir_offset = LittleLong (eocd->cdir_offset);
 	eocd->comment_size = LittleShort (eocd->comment_size);
           
-	Free (buffer);
+	Mem_Free (buffer);
 
 	return true;
 }
@@ -241,7 +245,7 @@ int PK3_BuildFileList (pack_t *pack, const pk3_t *eocd)
 		// Checking the remaining size
 		if (remaining < ZIP_CDIR_CHUNK_BASE_SIZE)
 		{
-			Free (central_dir);
+			Mem_Free (central_dir);
 			return -1;
 		}
 		remaining -= ZIP_CDIR_CHUNK_BASE_SIZE;
@@ -249,7 +253,7 @@ int PK3_BuildFileList (pack_t *pack, const pk3_t *eocd)
 		// Check header
 		if (BuffBigLong (ptr) != ZIP_CDIR_HEADER)
 		{
-			Free (central_dir);
+			Mem_Free (central_dir);
 			return -1;
 		}
 
@@ -265,7 +269,7 @@ int PK3_BuildFileList (pack_t *pack, const pk3_t *eocd)
 			// Still enough bytes for the name?
 			if (remaining < namesize || namesize >= (int)sizeof (*pack->files))
 			{
-				Free (central_dir);
+				Mem_Free (central_dir);
 				return -1;
 			}
 
@@ -278,7 +282,7 @@ int PK3_BuildFileList (pack_t *pack, const pk3_t *eocd)
 
 				// Extract the name (strip it if necessary)
 				namesize = min(namesize, (int)sizeof (filename) - 1);
-				memcpy (filename, &ptr[ZIP_CDIR_CHUNK_BASE_SIZE], namesize);
+				Mem_Copy (filename, &ptr[ZIP_CDIR_CHUNK_BASE_SIZE], namesize);
 				filename[namesize] = '\0';
 
 				if (BuffLittleShort (&ptr[10]))
@@ -300,7 +304,7 @@ int PK3_BuildFileList (pack_t *pack, const pk3_t *eocd)
 		remaining -= count;
 	}
 	// If the package is empty, central_dir is NULL here
-	if (central_dir != NULL) Free (central_dir);
+	if (central_dir != NULL) Mem_Free (central_dir);
 	return pack->numfiles;
 }
 
@@ -340,7 +344,7 @@ pack_t *FS_LoadPackPK3 (const char *packfile)
 	// Create a package structure in memory
 	pack = (pack_t *)Mem_Alloc(fs_mempool, sizeof (pack_t));
 	pack->ignorecase = true; //PK3 ignores case
-	strncpy (pack->filename, packfile, sizeof (pack->filename));
+	com_strncpy (pack->filename, packfile, sizeof (pack->filename));
 	pack->handle = packhandle;
 	pack->numfiles = eocd.nbentries;
 	pack->files = (packfile_t *)Mem_Alloc(fs_mempool, eocd.nbentries * sizeof(packfile_t));
@@ -350,7 +354,7 @@ pack_t *FS_LoadPackPK3 (const char *packfile)
 	{
 		Msg("%s is not a valid PK3 file\n", packfile);
 		close(pack->handle);
-		Free(pack);
+		Mem_Free(pack);
 		return NULL;
 	}
 
@@ -441,7 +445,7 @@ int matchpattern(const char *in, const char *pattern, bool caseinsensitive)
 
 void stringlistinit(stringlist_t *list)
 {
-	memset(list, 0, sizeof(*list));
+	Mem_Set(list, 0, sizeof(*list));
 }
 
 void stringlistfreecontents(stringlist_t *list)
@@ -449,12 +453,12 @@ void stringlistfreecontents(stringlist_t *list)
 	int i;
 	for (i = 0;i < list->numstrings;i++)
 	{
-		if (list->strings[i]) Free(list->strings[i]);
+		if (list->strings[i]) Mem_Free(list->strings[i]);
 		list->strings[i] = NULL;
 	}
 	list->numstrings = 0;
 	list->maxstrings = 0;
-	if (list->strings) Free(list->strings);
+	if (list->strings) Mem_Free(list->strings);
 }
 
 void stringlistappend(stringlist_t *list, char *text)
@@ -466,12 +470,12 @@ void stringlistappend(stringlist_t *list, char *text)
 	{
 		oldstrings = list->strings;
 		list->maxstrings += 4096;
-		list->strings = Z_Malloc(list->maxstrings * sizeof(*list->strings));
+		list->strings = Malloc(list->maxstrings * sizeof(*list->strings));
 		if (list->numstrings) Mem_Copy(list->strings, oldstrings, list->numstrings * sizeof(*list->strings));
-		if (oldstrings) Free(oldstrings);
+		if (oldstrings) Mem_Free(oldstrings);
 	}
-	textlen = strlen(text) + 1;
-	list->strings[list->numstrings] = Z_Malloc(textlen);
+	textlen = com_strlen(text) + 1;
+	list->strings[list->numstrings] = Malloc(textlen);
 	Mem_Copy(list->strings[list->numstrings], text, textlen);
 	list->numstrings++;
 }
@@ -485,7 +489,7 @@ void stringlistsort(stringlist_t *list)
 	{
 		for (j = i + 1;j < list->numstrings;j++)
 		{
-			if (strcmp(list->strings[i], list->strings[j]) > 0)
+			if (com_strcmp(list->strings[i], list->strings[j]) > 0)
 			{
 				temp = list->strings[i];
 				list->strings[i] = list->strings[j];
@@ -501,8 +505,8 @@ void listdirectory(stringlist_t *list, const char *path)
 	char pattern[4096], *c;
 	struct _finddata_t n_file;
 	long hFile;
-	strncpy (pattern, path, sizeof (pattern));
-	strncat (pattern, "*", sizeof (pattern));
+	com_strncpy (pattern, path, sizeof (pattern));
+	com_strncat (pattern, "*", sizeof (pattern));
 	// ask for the directory listing handle
 	hFile = _findfirst(pattern, &n_file);
 	if(hFile == -1)
@@ -542,7 +546,7 @@ static packfile_t* FS_AddFileToPack (const char* name, pack_t* pack, fs_offset_t
 	int left, right, middle;
 	packfile_t *pfile;
 
-	strcmp_funct = pack->ignorecase ? stricmp : strcmp;
+	strcmp_funct = pack->ignorecase ? com_stricmp : com_strcmp;
 
 	// Look for the slot we should put that file into (binary search)
 	left = 0;
@@ -567,7 +571,7 @@ static packfile_t* FS_AddFileToPack (const char* name, pack_t* pack, fs_offset_t
 	memmove (pfile + 1, pfile, (pack->numfiles - left) * sizeof (*pfile));
 	pack->numfiles++;
 
-	strncpy (pfile->name, name, sizeof (pfile->name));
+	com_strncpy (pfile->name, name, sizeof (pfile->name));
 	pfile->offset = offset;
 	pfile->packsize = packsize;
 	pfile->realsize = realsize;
@@ -632,7 +636,7 @@ void FS_FileBase (char *in, char *out)
 {
 	int len, start, end;
 
-	len = strlen( in );
+	len = com_strlen( in );
 	
 	// scan backward for '.'
 	end = len - 1;
@@ -658,7 +662,7 @@ void FS_FileBase (char *in, char *out)
 	len = end - start + 1;
 
 	// Copy partial string
-	strncpy( out, &in[start], len );
+	com_strncpy( out, &in[start], len + 1 );
 	out[len] = 0;
 }
 
@@ -713,14 +717,14 @@ pack_t *FS_LoadPackPAK (const char *packfile)
 	if(header.dirlen != read (packhandle, (void *)info, header.dirlen))
 	{
 		Msg("%s is an incomplete PAK, not loading\n", packfile);
-		Free(info);
+		Mem_Free(info);
 		close(packhandle);
 		return NULL;
 	}
 
 	pack = (pack_t *)Mem_Alloc(fs_mempool, sizeof (pack_t));
 	pack->ignorecase = false; // PAK is case sensitive
-	strncpy (pack->filename, packfile, sizeof (pack->filename));
+	com_strncpy (pack->filename, packfile, sizeof (pack->filename));
 	pack->handle = packhandle;
 	pack->numfiles = 0;
 	pack->files = (packfile_t *)Mem_Alloc(fs_mempool, numpackfiles * sizeof(packfile_t));
@@ -733,7 +737,7 @@ pack_t *FS_LoadPackPAK (const char *packfile)
 		FS_AddFileToPack (info[i].name, pack, offset, size, size, PACKFILE_FLAG_TRUEOFFS);
 	}
 
-	Free(info);
+	Mem_Free(info);
 	MsgDev(D_INFO, "Adding packfile %s (%i files)\n", packfile, numpackfiles);
 	return pack;
 }
@@ -760,7 +764,7 @@ static bool FS_AddPack_Fullpath(const char *pakfile, bool *already_loaded, bool 
 	
 	for(search = fs_searchpaths; search; search = search->next)
 	{
-		if(search->pack && !stricmp(search->pack->filename, pakfile))
+		if(search->pack && !com_stricmp(search->pack->filename, pakfile))
 		{
 			if(already_loaded) *already_loaded = true;
 			return true; // already loaded
@@ -769,9 +773,9 @@ static bool FS_AddPack_Fullpath(const char *pakfile, bool *already_loaded, bool 
 
 	if(already_loaded) *already_loaded = false;
 
-	if(!stricmp(ext, "pak")) pak = FS_LoadPackPAK (pakfile);
-	else if(!stricmp(ext, "pk2")) pak = FS_LoadPackPK3 (pakfile);
-	else if(!stricmp(ext, "pk3")) pak = FS_LoadPackPK3 (pakfile);
+	if(!com_stricmp(ext, "pak")) pak = FS_LoadPackPAK (pakfile);
+	else if(!com_stricmp(ext, "pk2")) pak = FS_LoadPackPK3 (pakfile);
+	else if(!com_stricmp(ext, "pk3")) pak = FS_LoadPackPK3 (pakfile);
 	else Msg("\"%s\" does not have a pack extension\n", pakfile);
 
 	if (pak)
@@ -854,7 +858,7 @@ bool FS_AddPack(const char *pakfile, bool *already_loaded, bool keep_plain_dirs)
 		MsgWarn("FS_AddPack: could not find pak \"%s\"\n", pakfile);
 		return false;
 	}
-	sprintf(fullpath, "%s%s", search->filename, pakfile);
+	com_sprintf(fullpath, "%s%s", search->filename, pakfile);
 	return FS_AddPack_Fullpath(fullpath, already_loaded, keep_plain_dirs);
 }
 
@@ -873,7 +877,7 @@ void FS_AddGameDirectory (const char *dir)
 	searchpath_t *search;
 	char pakfile[MAX_OSPATH];
 
-	strncpy (fs_gamedir, dir, sizeof (fs_gamedir));
+	com_strncpy (fs_gamedir, dir, sizeof (fs_gamedir));
 
 	stringlistinit(&list);
 	listdirectory(&list, dir);
@@ -882,19 +886,19 @@ void FS_AddGameDirectory (const char *dir)
 	// add any PAK package in the directory
 	for (i = 0;i < list.numstrings;i++)
 	{
-		if (!strcasecmp(FS_FileExtension(list.strings[i]), "pak"))
+		if (!com_stricmp(FS_FileExtension(list.strings[i]), "pak" ))
 		{
-			sprintf (pakfile, "%s%s", dir, list.strings[i]);
+			com_sprintf (pakfile, "%s%s", dir, list.strings[i]);
 			FS_AddPack_Fullpath(pakfile, NULL, false);
 		}
 	}
 
 	// add any PK3 package in the directory
-	for (i = 0;i < list.numstrings;i++)
+	for (i = 0; i < list.numstrings; i++)
 	{
-		if (!strcasecmp(FS_FileExtension(list.strings[i]), "pk3"))
+		if (!com_stricmp(FS_FileExtension(list.strings[i]), "pk3" ))
 		{
-			sprintf (pakfile, "%s%s", dir, list.strings[i]);
+			com_sprintf (pakfile, "%s%s", dir, list.strings[i]);
 			FS_AddPack_Fullpath(pakfile, NULL, false);
 		}
 	}
@@ -904,7 +908,7 @@ void FS_AddGameDirectory (const char *dir)
 	// Add the directory to the search path
 	// (unpacked files have the priority over packed files)
 	search = (searchpath_t *)Mem_Alloc(fs_mempool, sizeof(searchpath_t));
-	strncpy (search->filename, dir, sizeof (search->filename));
+	com_strncpy (search->filename, dir, sizeof (search->filename));
 	search->next = fs_searchpaths;
 	fs_searchpaths = search;
 }
@@ -931,13 +935,13 @@ const char *FS_FileExtension (const char *in)
 {
 	const char *separator, *backslash, *colon, *dot;
 
-	separator = strrchr(in, '/');
-	backslash = strrchr(in, '\\');
+	separator = com_strrchr(in, '/');
+	backslash = com_strrchr(in, '\\');
 	if (!separator || separator < backslash) separator = backslash;
-	colon = strrchr(in, ':');
+	colon = com_strrchr(in, ':');
 	if (!separator || separator < colon) separator = colon;
 
-	dot = strrchr(in, '.');
+	dot = com_strrchr(in, '.');
 	if (dot == NULL || (separator && (dot < separator)))
 		return "";
 
@@ -954,10 +958,10 @@ const char *FS_FileWithoutPath (const char *in)
 {
 	const char *separator, *backslash, *colon;
 
-	separator = strrchr(in, '/');
-	backslash = strrchr(in, '\\');
+	separator = com_strrchr(in, '/');
+	backslash = com_strrchr(in, '\\');
 	if (!separator || separator < backslash) separator = backslash;
-	colon = strrchr(in, ':');
+	colon = com_strrchr(in, ':');
 	if (!separator || separator < colon) separator = colon;
 	return separator ? separator + 1 : in;
 }
@@ -970,13 +974,13 @@ FS_ExtractFilePath
 void FS_ExtractFilePath(const char* const path, char* dest)
 {
 	const char* src;
-	src = path + strlen(path) - 1;
+	src = path + com_strlen(path) - 1;
 
 	// back up until a \ or the start
-	while (src != path && !PATHSEPARATOR(*(src - 1)))
+	while (src != path && !(*(src - 1) == '\\' || *(src - 1) == '/'))
 		src--;
 
-	memcpy(dest, path, src - path);
+	Mem_Copy(dest, path, src - path);
 	dest[src - path] = 0;
 }
 
@@ -994,10 +998,10 @@ void FS_ClearSearchPath (void)
 		if (search->pack)
 		{
 			if (search->pack->files) 
-				Free(search->pack->files);
-			Free(search->pack);
+				Mem_Free(search->pack->files);
+			Mem_Free(search->pack);
 		}
-		Free(search);
+		Mem_Free(search);
 	}
 }
 
@@ -1036,14 +1040,14 @@ int FS_CheckNastyPath (const char *path, bool isgamedir)
 	if (path[0] == '/' && !fs_ext_path ) return 2; // attempt to go outside the game directory
 
 	// all: don't allow . characters before the last slash (it should only be used in filenames, not path elements), this catches all imaginable cases of ./, ../, .../, etc
-	if (strchr(path, '.')  && !fs_ext_path)
+	if (com_strchr(path, '.')  && !fs_ext_path)
 	{
 		if (isgamedir) return 2; // gamedir is entirely path elements, so simply forbid . entirely
-		if (strchr(path, '.') < strrchr(path, '/')) return 2; // possible attempt to go outside the game directory
+		if (com_strchr(path, '.') < com_strrchr(path, '/')) return 2; // possible attempt to go outside the game directory
 	}
 
 	// all: forbid trailing slash on gamedir
-	if (isgamedir && !fs_ext_path && path[strlen(path)-1] == '/') return 2;
+	if (isgamedir && !fs_ext_path && path[com_strlen(path)-1] == '/') return 2;
 
 	// all: forbid leading dot on any filename for any reason
 	if (strstr(path, "/.")  && !fs_ext_path) return 2; // attempt to go outside the game directory
@@ -1068,8 +1072,8 @@ void FS_Rescan (void)
 
 void FS_ResetGameInfo( void )
 {
-	strcpy(GI.title, gs_basedir );	
-	strcpy(GI.key, "DEMO" );	
+	com_strcpy(GI.title, gs_basedir );	
+	com_strcpy(GI.key, "DEMO" );	
 	GI.version = 0.0f;
 	GI.viewmode = 1;
 	GI.gamemode = 1;
@@ -1080,13 +1084,13 @@ void FS_CreateGameInfo( const char *filename )
 	char *buffer = Malloc( MAX_SYSPATH );
 
 	// make simply gameinfo.txt
-	strncat(buffer, "// generated by Xash3D\r\r\nbasedir\t\"xash\"\n", MAX_SYSPATH );//add new string
-	strncat(buffer, va("gamedir\t\"%s\"\n", gs_basedir ), MAX_SYSPATH);
-	strncat(buffer, "title\t\"New Game\"\rversion\t\"1.0\"\rviewmode\t\"firstperson\"\r", MAX_SYSPATH );
-	strncat(buffer, "gamemode\t\"singleplayer\"\rgamekey\t\"\"", MAX_SYSPATH );
+	com_strncat(buffer, "// generated by Xash3D\r\r\nbasedir\t\"xash\"\n", MAX_SYSPATH );//add new string
+	com_strncat(buffer, va("gamedir\t\"%s\"\n", gs_basedir ), MAX_SYSPATH);
+	com_strncat(buffer, "title\t\"New Game\"\rversion\t\"1.0\"\rviewmode\t\"firstperson\"\r", MAX_SYSPATH );
+	com_strncat(buffer, "gamemode\t\"singleplayer\"\rgamekey\t\"\"", MAX_SYSPATH );
 
-	FS_WriteFile( filename, buffer, strlen(buffer));
-	Free( buffer );
+	FS_WriteFile( filename, buffer, com_strlen(buffer));
+	Mem_Free( buffer );
 } 
 
 void FS_LoadGameInfo( const char *filename )
@@ -1106,7 +1110,7 @@ void FS_LoadGameInfo( const char *filename )
 	// create default gameinfo
 	if(!FS_FileExists( filename )) FS_CreateGameInfo( filename );
 	// now we have use search path and can load gameinfo.txt
-	load = FS_LoadScript( filename, NULL, 0 );
+	load = SC_LoadScript( filename, NULL, 0 );
 	
 	while( load )
 	{
@@ -1117,7 +1121,7 @@ void FS_LoadGameInfo( const char *filename )
 
 			if(!SC_MatchToken(GI.basedir))
 			{
-				strcpy(GI.basedir, fs_path);
+				com_strcpy(GI.basedir, fs_path);
 				fs_modified = true;
 			}
 		}
@@ -1126,14 +1130,14 @@ void FS_LoadGameInfo( const char *filename )
 			fs_path = SC_GetToken( false );
 			if(!SC_MatchToken(GI.gamedir))
 			{
-				strcpy(GI.gamedir, fs_path);
+				com_strcpy(GI.gamedir, fs_path);
 				fs_modified = true;
 			}
 		}
 		else if(SC_MatchToken( "title"))
-			strcpy(GI.title, SC_GetToken( false ));
+			com_strcpy(GI.title, SC_GetToken( false ));
 		else if(SC_MatchToken( "version"))
-			GI.version = atof(SC_GetToken( false ));
+			GI.version = com_atof(SC_GetToken( false ));
 		else if(SC_MatchToken( "viewmode"))
 		{
 			SC_GetToken( false );
@@ -1147,9 +1151,9 @@ void FS_LoadGameInfo( const char *filename )
 			if(SC_MatchToken( "multiplayer")) GI.gamemode = 2;
 		}
 		else if(SC_MatchToken( "gamekey"))
-			strcpy(GI.key, SC_GetToken( false ));
+			com_strcpy(GI.key, SC_GetToken( false ));
 	}
-	if(fs_modified) FS_Rescan(); //create new filesystem
+	if(fs_modified) FS_Rescan(); // create new filesystem
 }
 
 /*
@@ -1157,14 +1161,13 @@ void FS_LoadGameInfo( const char *filename )
 FS_Init
 ================
 */
-void FS_Init( int argc, char **argv )
+void FS_Init( void )
 {
 	char		szTemp[4096];
 	stringlist_t	dirs;
 	int		i;
 	
 	FS_InitMemory();
-	FS_InitCmdLine( argc, argv );
 
 	stringlistinit(&dirs);
 	listdirectory(&dirs, "./");
@@ -1174,27 +1177,27 @@ void FS_Init( int argc, char **argv )
 	{
 		if( GetModuleFileName( NULL, szTemp, MAX_SYSPATH ))
 			FS_FileBase( szTemp, gs_basedir );
-		else strcpy(gs_basedir, "xash" );//default dir
+		else com_strcpy(gs_basedir, "xash" );//default dir
 	}
 
 	// checked nasty path
-	if(FS_CheckNastyPath( gs_basedir, true ) || !stricmp("bin", gs_basedir )) // "bin" it's a reserved word
+	if(FS_CheckNastyPath( gs_basedir, true ) || !com_stricmp("bin", gs_basedir )) // "bin" it's a reserved word
 	{
 		MsgWarn("FS_Init: invalid game directory \"%s\". Use default gamedir \"xash\".\n", gs_basedir );		
-		strcpy(gs_basedir, "xash" );//default dir
+		com_strcpy(gs_basedir, "xash" );//default dir
 	}
 	
 	// validate directories
 	for (i = 0; i < dirs.numstrings; i++)
 	{
-		if(!stricmp(gs_basedir, dirs.strings[i]))
+		if(!com_stricmp(gs_basedir, dirs.strings[i]))
 		break;
 	}
 
 	if(i == dirs.numstrings)
 	{ 
 		MsgWarn("FS_Init: game directory \"%s\" not exist. Use default gamedir \"xash\".\n", gs_basedir );		
-		strcpy(gs_basedir, "xash" );//default dir
+		com_strcpy(gs_basedir, "xash" );//default dir
 	}
 
 	stringlistfreecontents(&dirs);
@@ -1227,7 +1230,7 @@ bool FS_GetParmFromCmdLine( char *parm, char *out )
 	if(!out) return false;	
 	if(!fs_argv[argc + 1]) return false;
 
-	strcpy( out, fs_argv[argc+1]);
+	com_strcpy( out, fs_argv[argc+1]);
 	return true;
 }
 
@@ -1238,8 +1241,7 @@ FS_Shutdown
 */
 void FS_Shutdown (void)
 {
-	Mem_FreePool (&fs_mempool);
-	FS_FreeImagelib();
+	Mem_FreePool(&fs_mempool);
 }
 
 /*
@@ -1291,13 +1293,13 @@ static file_t* FS_SysOpen (const char* filepath, const char* mode, bool nonblock
 	if (nonblocking) opt |= O_NONBLOCK;
 
 	file = (file_t *)Mem_Alloc (fs_mempool, sizeof (*file));
-	memset (file, 0, sizeof (*file));
+	Mem_Set (file, 0, sizeof (*file));
 	file->ungetc = EOF;
 
 	file->handle = open (filepath, mod | opt, 0666);
 	if (file->handle < 0)
 	{
-		Free (file);
+		Mem_Free (file);
 		return NULL;
 	}
 	file->real_length = lseek (file->handle, 0, SEEK_END);
@@ -1344,7 +1346,7 @@ file_t *FS_OpenPackedFile (pack_t* pack, int pack_ind)
 	}
 
 	file = (file_t *)Mem_Alloc (fs_mempool, sizeof (*file));
-	memset (file, 0, sizeof (*file));
+	Mem_Set (file, 0, sizeof (*file));
 	file->handle = dup_handle;
 	file->flags = FILE_FLAG_PACKED;
 	file->real_length = pfile->realsize;
@@ -1425,7 +1427,7 @@ static searchpath_t *FS_FindFile (const char *name, int* index, bool quiet)
 			int left, right, middle;
 
 			pak = search->pack;
-			strcmp_funct = pak->ignorecase ? stricmp : strcmp;
+			strcmp_funct = pak->ignorecase ? com_stricmp : com_strcmp;
 
 			// Look for the file (binary search)
 			left = 0;
@@ -1453,7 +1455,7 @@ static searchpath_t *FS_FindFile (const char *name, int* index, bool quiet)
 		else
 		{
 			char netpath[MAX_SYSPATH];
-			sprintf(netpath, "%s%s", search->filename, name);
+			com_sprintf(netpath, "%s%s", search->filename, name);
 			if (FS_SysFileExists(netpath))
 			{
 				if (!quiet) MsgDev(D_INFO, "FS_FindFile: %s\n", netpath);
@@ -1491,7 +1493,7 @@ file_t *FS_OpenReadFile (const char *filename, const char *mode, bool quiet, boo
 	if (pack_ind < 0)
 	{
 		char path [MAX_SYSPATH];
-		sprintf (path, "%s%s", search->filename, filename);
+		com_sprintf (path, "%s%s", search->filename, filename);
 		return FS_SysOpen (path, mode, nonblocking);
 	}
 
@@ -1523,12 +1525,12 @@ file_t* _FS_Open (const char* filepath, const char* mode, bool quiet, bool nonbl
 	}
 
 	// If the file is opened in "write", "append", or "read/write" mode
-	if (mode[0] == 'w' || mode[0] == 'a' || strchr (mode, '+'))
+	if (mode[0] == 'w' || mode[0] == 'a' || com_strchr (mode, '+'))
 	{
 		char real_path [MAX_SYSPATH];
 
 		// Open the file on disk directly
-		sprintf (real_path, "%s/%s", fs_gamedir, filepath);
+		com_sprintf (real_path, "%s/%s", fs_gamedir, filepath);
 		FS_CreatePath (real_path);// Create directories up to the file
 		return FS_SysOpen (real_path, mode, nonblocking);
 	}
@@ -1556,9 +1558,9 @@ int FS_Close (file_t* file)
 	if (file->ztk)
 	{
 		inflateEnd (&file->ztk->zstream);
-		Free (file->ztk);
+		Mem_Free (file->ztk);
 	}
-	Free (file);
+	Mem_Free (file);
 	return 0;
 }
 
@@ -1622,7 +1624,7 @@ fs_offset_t FS_Read (file_t* file, void* buffer, size_t buffersize)
 		count = file->buff_len - file->buff_ind;
 
 		done += ((fs_offset_t)buffersize > count) ? count : (fs_offset_t)buffersize;
-		memcpy (buffer, &file->buff[file->buff_ind], done);
+		Mem_Copy (buffer, &file->buff[file->buff_ind], done);
 		file->buff_ind += done;
 
 		buffersize -= done;
@@ -1667,7 +1669,7 @@ fs_offset_t FS_Read (file_t* file, void* buffer, size_t buffersize)
 
 				// Copy the requested data in "buffer" (as much as we can)
 				count = (fs_offset_t)buffersize > file->buff_len ? file->buff_len : (fs_offset_t)buffersize;
-				memcpy (&((unsigned char*)buffer)[done], file->buff, count);
+				Mem_Copy (&((unsigned char*)buffer)[done], file->buff, count);
 				file->buff_ind = count;
 				done += count;
 			}
@@ -1730,7 +1732,7 @@ fs_offset_t FS_Read (file_t* file, void* buffer, size_t buffersize)
 
 			// Copy the requested data in "buffer" (as much as we can)
 			count = (fs_offset_t)buffersize > file->buff_len ? file->buff_len : (fs_offset_t)buffersize;
-			memcpy (&((unsigned char*)buffer)[done], file->buff, count);
+			Mem_Copy (&((unsigned char*)buffer)[done], file->buff, count);
 			file->buff_ind = count;
 		}
 		else // Else, we inflate directly in "buffer"
@@ -1769,7 +1771,7 @@ Print a string into a file
 */
 int FS_Print (file_t* file, const char *msg)
 {
-	return (int)FS_Write (file, msg, strlen (msg));
+	return (int)FS_Write(file, msg, com_strlen (msg));
 }
 
 /*
@@ -1808,9 +1810,9 @@ int FS_VPrintf (file_t* file, const char* format, va_list ap)
 	while( true )
 	{
 		tempbuff = (char *)Malloc(buff_size);
-		len = vsprintf (tempbuff, format, ap);
+		len = com_vsprintf(tempbuff, format, ap);
 		if (len >= 0 && len < buff_size) break;
-		Free (tempbuff);
+		Mem_Free (tempbuff);
 		buff_size *= 2;
 	}
 
@@ -1963,11 +1965,11 @@ int FS_Seek (file_t* file, fs_offset_t offset, int whence)
 		len = FS_Read (file, buffer, count);
 		if (len != count)
 		{
-			Free (buffer);
+			Mem_Free (buffer);
 			return -1;
 		}
 	}
-	Free (buffer);
+	Mem_Free (buffer);
 	return 0;
 }
 
@@ -2073,7 +2075,7 @@ void FS_StripExtension (char *path)
 {
 	int	length;
 
-	length = strlen(path)-1;
+	length = com_strlen(path)-1;
 	while (length > 0 && path[length] != '.')
 	{
 		length--;
@@ -2095,7 +2097,7 @@ void FS_DefaultExtension (char *path, const char *extension )
 
 	// if path doesn't have a .EXT, append extension
 	// (extension should include the .)
-	src = path + strlen(path) - 1;
+	src = path + com_strlen(path) - 1;
 
 	while (*src != '/' && src != path)
 	{
@@ -2103,7 +2105,7 @@ void FS_DefaultExtension (char *path, const char *extension )
 		if (*src == '.') return;                 
 		src--;
 	}
-	strcat( path, extension );
+	com_strcat( path, extension );
 }
 
 /*
@@ -2176,14 +2178,14 @@ static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet 
 	stringlistinit(&resultlist);
 	stringlistinit(&dirlist);
 	search = NULL;
-	slash = strrchr(pattern, '/');
-	backslash = strrchr(pattern, '\\');
-	colon = strrchr(pattern, ':');
+	slash = com_strrchr(pattern, '/');
+	backslash = com_strrchr(pattern, '\\');
+	colon = com_strrchr(pattern, ':');
 	separator = max(slash, backslash);
 	separator = max(separator, colon);
 	basepathlength = separator ? (separator + 1 - pattern) : 0;
 	basepath = Malloc(basepathlength + 1);
-	if (basepathlength) memcpy(basepath, pattern, basepathlength);
+	if (basepathlength) Mem_Copy(basepath, pattern, basepathlength);
 	basepath[basepathlength] = 0;
 
 	// search through the path, one element at a time
@@ -2196,13 +2198,13 @@ static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet 
 			pak = searchpath->pack;
 			for (i = 0;i < pak->numfiles;i++)
 			{
-				strncpy(temp, pak->files[i].name, sizeof(temp));
+				com_strncpy(temp, pak->files[i].name, sizeof(temp));
 				while (temp[0])
 				{
 					if (matchpattern(temp, (char *)pattern, true))
 					{
 						for (resultlistindex = 0;resultlistindex < resultlist.numstrings;resultlistindex++)
-							if (!strcmp(resultlist.strings[resultlistindex], temp))
+							if (!com_strcmp(resultlist.strings[resultlistindex], temp))
 								break;
 						if (resultlistindex == resultlist.numstrings)
 						{
@@ -2212,9 +2214,9 @@ static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet 
 					}
 					// strip off one path element at a time until empty
 					// this way directories are added to the listing if they match the pattern
-					slash = strrchr(temp, '/');
-					backslash = strrchr(temp, '\\');
-					colon = strrchr(temp, ':');
+					slash = com_strrchr(temp, '/');
+					backslash = com_strrchr(temp, '\\');
+					colon = com_strrchr(temp, ':');
 					separator = temp;
 					if (separator < slash)
 						separator = slash;
@@ -2229,16 +2231,16 @@ static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet 
 		else
 		{
 			// get a directory listing and look at each name
-			sprintf(netpath, "%s%s", searchpath->filename, basepath);
+			com_sprintf(netpath, "%s%s", searchpath->filename, basepath);
 			stringlistinit(&dirlist);
 			listdirectory(&dirlist, netpath);
 			for (dirlistindex = 0; dirlistindex < dirlist.numstrings; dirlistindex++)
 			{
-				sprintf(temp, "%s%s", basepath, dirlist.strings[dirlistindex]);
+				com_sprintf(temp, "%s%s", basepath, dirlist.strings[dirlistindex]);
 				if (matchpattern(temp, (char *)pattern, true))
 				{
 					for (resultlistindex = 0;resultlistindex < resultlist.numstrings;resultlistindex++)
-						if (!strcmp(resultlist.strings[resultlistindex], temp))
+						if (!com_strcmp(resultlist.strings[resultlistindex], temp))
 							break;
 					if (resultlistindex == resultlist.numstrings)
 					{
@@ -2257,8 +2259,8 @@ static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet 
 		numfiles = resultlist.numstrings;
 		numchars = 0;
 		for (resultlistindex = 0;resultlistindex < resultlist.numstrings;resultlistindex++)
-			numchars += (int)strlen(resultlist.strings[resultlistindex]) + 1;
-		search = Z_Malloc(sizeof(search_t) + numchars + numfiles * sizeof(char *));
+			numchars += (int)com_strlen(resultlist.strings[resultlistindex]) + 1;
+		search = Malloc(sizeof(search_t) + numchars + numfiles * sizeof(char *));
 		search->filenames = (char **)((char *)search + sizeof(search_t));
 		search->filenamesbuffer = (char *)((char *)search + sizeof(search_t) + numfiles * sizeof(char *));
 		search->numfilenames = (int)numfiles;
@@ -2268,15 +2270,15 @@ static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet 
 		{
 			size_t textlen;
 			search->filenames[numfiles] = search->filenamesbuffer + numchars;
-			textlen = strlen(resultlist.strings[resultlistindex]) + 1;
-			memcpy(search->filenames[numfiles], resultlist.strings[resultlistindex], textlen);
+			textlen = com_strlen(resultlist.strings[resultlistindex]) + 1;
+			Mem_Copy(search->filenames[numfiles], resultlist.strings[resultlistindex], textlen);
 			numfiles++;
 			numchars += (int)textlen;
 		}
 	}
 	stringlistfreecontents(&resultlist);
 
-	Free(basepath);
+	Mem_Free(basepath);
 	return search;
 }
 
@@ -2285,15 +2287,9 @@ search_t *FS_Search(const char *pattern, int caseinsensitive )
 	return _FS_Search( pattern, caseinsensitive, true );
 }
 
-void FS_FreeSearch(search_t *search)
+void FS_Mem_FreeSearch(search_t *search)
 {
-	Free(search);
-}
-
-void FS_InitCmdLine( int argc, char **argv )
-{
-	fs_argc = argc;
-	fs_argv = argv;
+	Mem_Free(search);
 }
 
 void FS_InitMemory( void )
@@ -2301,10 +2297,8 @@ void FS_InitMemory( void )
 	fs_mempool = Mem_AllocPool( "file management" );	
 
 	// add a path separator to the end of the basedir if it lacks one
-	if (fs_basedir[0] && fs_basedir[strlen(fs_basedir) - 1] != '/' && fs_basedir[strlen(fs_basedir) - 1] != '\\')
-		strncat(fs_basedir, "/", sizeof(fs_basedir));
-
-	FS_InitImagelib();
+	if (fs_basedir[0] && fs_basedir[com_strlen(fs_basedir) - 1] != '/' && fs_basedir[com_strlen(fs_basedir) - 1] != '\\')
+		com_strncat(fs_basedir, "/", sizeof(fs_basedir));
 }
 
 /*
@@ -2323,9 +2317,94 @@ int FS_CheckParm (const char *parm)
 	{
 		// NEXTSTEP sometimes clears appkit vars.
 		if (!fs_argv[i]) continue;
-		if (!stricmp (parm, fs_argv[i])) return i;
+		if (!com_stricmp (parm, fs_argv[i])) return i;
 	}
 	return 0;
+}
+
+void FS_GetBaseDir( char *pszBuffer, char *out )
+{
+	char	basedir[ MAX_SYSPATH ];
+	char	szBuffer[ MAX_SYSPATH ];
+	int	j;
+	char	*pBuffer = NULL;
+
+	com_strcpy( szBuffer, pszBuffer );
+
+	pBuffer = com_strrchr( szBuffer,'\\' );
+	if ( pBuffer ) *(pBuffer+1) = '\0';
+
+	com_strcpy( basedir, szBuffer );
+
+	j = com_strlen( basedir );
+	if (j > 0)
+	{
+		if ( ( basedir[ j-1 ] == '\\' ) || ( basedir[ j-1 ] == '/' ) )
+			basedir[ j-1 ] = 0;
+	}
+	com_strcpy(out, basedir);
+}
+
+void FS_ReadEnvironmentVariables( char *pPath )
+{
+	// get basepath from registry
+	REG_GetValue(HKEY_LOCAL_MACHINE, "System\\CurrentControlSet\\Control\\Session Manager\\Environment", "Xash3D", pPath );
+}
+
+void FS_SaveEnvironmentVariables( char *pPath )
+{
+	// save new path
+	REG_SetValue(HKEY_LOCAL_MACHINE, "System\\CurrentControlSet\\Control\\Session Manager\\Environment", "Xash3D", pPath );
+	SendMessageTimeout( HWND_BROADCAST, WM_SETTINGCHANGE, 0, 0, SMTO_NORMAL, 10, NULL); // system update message
+}
+
+static void FS_BuildPath( char *pPath, char *pOut )
+{
+	// set working directory
+	SetCurrentDirectory ( pPath );
+	com_sprintf( pOut, "%s\\bin\\launch.dll", pPath );
+}
+
+void FS_UpdateEnvironmentVariables( void )
+{
+	char szTemp[ 4096 ];
+	char szPath[ MAX_SYSPATH ]; //test path
+	
+	// NOTE: we want set "real" work directory
+	// defined in environment variables, but in some reasons
+	// we need make some additional checks before set current dir
+          
+          // get variable from registry and current directory
+	FS_ReadEnvironmentVariables( szTemp );
+	GetCurrentDirectory(MAX_SYSPATH, sys_rootdir );
+	
+	// if both values is math - no run additional tests		
+	if(com_stricmp(sys_rootdir, szTemp ))
+	{
+		// Step1: path from registry have higher priority than current working directory
+		// because user can execute launcher from random place or from a bat-file
+                    // so, set current working directory as path from registry and test it
+
+		FS_BuildPath( szTemp, szPath );
+		if(!FS_SysFileExists( szPath )) // Step2: engine root dir has been moved to other place?
+		{
+			FS_BuildPath( sys_rootdir, szPath );
+			if(!FS_SysFileExists( szPath )) // Step3: directly execute from bin directory?
+			{
+				// Step4: create last test for bin directory
+			          FS_GetBaseDir( sys_rootdir, szTemp );
+				FS_BuildPath( szTemp, szPath );
+				if(!FS_SysFileExists( szPath )) //make exception
+				{
+					// big bada-boom: engine was moved and launcher running from other place
+					// step5: so, path form registry is invalid, current path is no valid
+					Sys_ErrorFatal( ERR_INVALID_ROOT );
+				}
+				else FS_SaveEnvironmentVariables( szTemp );
+			}
+			else FS_SaveEnvironmentVariables( sys_rootdir );
+		}
+	}
 }
 
 /*
@@ -2349,10 +2428,8 @@ filesystem_api_t FS_GetAPI( void )
 	fs.StripFilePath = FS_ExtractFilePath;
 	fs.DefaultExtension = FS_DefaultExtension;
 	fs.ClearSearchPath = FS_ClearSearchPath;
-	fs.CRC_Block = CRC_Block;
 
 	fs.Search = FS_Search;
-	fs.FreeSearch = FS_FreeSearch;
 
 	fs.Open = FS_Open;
 	fs.Close = FS_Close;
@@ -2366,9 +2443,6 @@ filesystem_api_t FS_GetAPI( void )
 
 	fs.LoadFile = FS_LoadFile;
 	fs.WriteFile = FS_WriteFile;
-	fs.LoadImage = FS_LoadImage;
-	fs.SaveImage = FS_SaveImage;
-	fs.FreeImage = FS_FreeImage;
 
 	return fs;
 }
@@ -2387,7 +2461,7 @@ vfile_t *VFS_Create(byte *buffer, size_t buffsize)
 	file->length = file->buffsize = buffsize;
 	file->buff = Mem_Alloc(fs_mempool, (file->buffsize));	
 	file->offset = 0;
-	strncpy(file->mode, "r", 4 );
+	com_strncpy(file->mode, "r", 4 );
 	Mem_Copy(file->buff, buffer, buffsize );
 
 	return file;
@@ -2398,8 +2472,8 @@ vfile_t *VFS_Open(const char *filename, const char* mode)
 	vfile_t	*file = (vfile_t *)Mem_Alloc (fs_mempool, sizeof (*file));
 	file_t	*real_file;
 
-	strncpy(file->filename, filename, MAX_QPATH );
-	strncpy(file->mode, mode, 4 );
+	com_strncpy(file->filename, filename, MAX_QPATH );
+	com_strncpy(file->mode, mode, 4 );
 
 	// If the file is opened in "write", "append", or "read/write" mode
 	if (mode[0] == 'w')
@@ -2430,7 +2504,7 @@ vfile_t *VFS_Open(const char *filename, const char* mode)
 	}
 	else
 	{
-		Free( file );
+		Mem_Free( file );
 		MsgWarn("VFS_Open: unsupported mode %s\n", mode );
 		return NULL;
 	}
@@ -2523,14 +2597,14 @@ int VFS_Close( vfile_t *file )
 {
 	if(!file) return -1;
 
-	if(file->mode[0] == 'w' && strlen(file->filename))
+	if(file->mode[0] == 'w' && com_strlen(file->filename))
 	{
 		// write real file into disk
 		FS_WriteFile (file->filename, file->buff, (file->length + 3) & ~3);// align
 	}
 
-	Free( file->buff );
-	Free( file ); //himself
+	Mem_Free( file->buff );
+	Mem_Free( file ); //himself
 
 	return 0;
 }

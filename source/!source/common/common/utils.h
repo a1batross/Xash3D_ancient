@@ -8,29 +8,6 @@
 #include <time.h>
 
 #define ALIGN( a ) a = (byte *)((int)((byte *)a + 3) & ~ 3)
-#define PATHSEPARATOR(c) ((c) == '\\' || (c) == '/')
-#define SYSTEM_SLASH_CHAR  '\\'
-
-// Processor Information:
-typedef struct cpuinfo_s
-{
-	bool m_bRDTSC	: 1;	// Is RDTSC supported?
-	bool m_bCMOV	: 1;	// Is CMOV supported?
-	bool m_bFCMOV	: 1;	// Is FCMOV supported?
-	bool m_bSSE	: 1;	// Is SSE supported?
-	bool m_bSSE2	: 1;	// Is SSE2 Supported?
-	bool m_b3DNow	: 1;	// Is 3DNow! Supported?
-	bool m_bMMX	: 1;	// Is MMX supported?
-	bool m_bHT	: 1;	// Is HyperThreading supported?
-
-	byte m_usNumLogicCore;	// Number op logical processors.
-	byte m_usNumPhysCore;	// Number of physical processors
-
-	int64 m_speed;		// In cycles per second.
-	int   m_size;		// structure size
-	char* m_szCPUID;		// Processor vendor Identification.
-} cpuinfo_t;
-cpuinfo_t GetCPUInformation( void );
 
 extern unsigned __int64 __g_ProfilerStart;
 extern unsigned __int64 __g_ProfilerEnd;
@@ -38,10 +15,12 @@ extern unsigned __int64 __g_ProfilerEnd2;
 extern unsigned __int64 __g_ProfilerSpare;
 extern unsigned __int64 __g_ProfilerTotalTicks;
 extern double __g_ProfilerTotalMsec;
+extern int com_argc;
+extern char **com_argv;
 
 #define Profile_Start()\
 {\
-if (GI.rdtsc) \
+if (std.GameInfo->rdtsc) \
 { \
 __asm pushad \
 __asm rdtsc \
@@ -74,70 +53,91 @@ void Profile_Store( void );
 void Profile_Time( void );	// total profile time
 #define Profile_Results( name )  _Profile_Results( #name )
 
-// internal filesystem functions
-void FS_Path (void);
-void FS_InitEditor( void );
-void FS_InitRootDir( char *path );
-void FS_ClearSearchPath (void);
-void FS_AddGameHierarchy (const char *dir);
-int FS_CheckParm (const char *parm);
-void FS_LoadGameInfo( const char *filename );
-void FS_FileBase (char *in, char *out);
-void FS_InitCmdLine( int argc, char **argv );
-const char *FS_FileExtension (const char *in);
-void FS_DefaultExtension (char *path, const char *extension );
-bool FS_GetParmFromCmdLine( char *parm, char *out );
+#define numthreads std.get_numthreads()
+#define ThreadLock std.thread_lock
+#define ThreadUnlock std.thread_unlock
+#define RunThreadsOnIndividual std.create_thread
 
-//files managment (like fopen, fread etc)
-file_t *FS_Open (const char* filepath, const char* mode );
-file_t* _FS_Open (const char* filepath, const char* mode, bool quiet, bool nonblocking);
-fs_offset_t FS_Write (file_t* file, const void* data, size_t datasize);
-fs_offset_t FS_Read (file_t* file, void* buffer, size_t buffersize);
-int FS_VPrintf(file_t* file, const char* format, va_list ap);
-int FS_Seek (file_t* file, fs_offset_t offset, int whence);
-int FS_Gets (file_t* file, byte *string, size_t bufsize );
-int FS_Printf(file_t* file, const char* format, ...);
-fs_offset_t FS_FileSize (const char *filename);
-int FS_Print(file_t* file, const char *msg);
-bool FS_FileExists (const char *filename);
-int FS_UnGetc (file_t* file, byte c);
-void FS_StripExtension (char *path);
-fs_offset_t FS_Tell (file_t* file);
-void FS_Purge (file_t* file);
-int FS_Close (file_t* file);
-int FS_Getc (file_t* file);
-bool FS_Eof( file_t* file);
+//=====================================
+//	memory manager funcs
+//=====================================
+#define Mem_Alloc(pool, size) std.malloc(pool, size, __FILE__, __LINE__)
+#define Mem_Realloc(pool, ptr, size) std.realloc(pool, ptr, size, __FILE__, __LINE__)
+#define Mem_Move(pool, ptr, data, size) std.move(pool, ptr, data, size, __FILE__, __LINE__)
+#define Mem_Free(mem) std.free(mem, __FILE__, __LINE__)
+#define Mem_AllocPool(name) std.mallocpool(name, __FILE__, __LINE__)
+#define Mem_FreePool(pool) std.freepool(pool, __FILE__, __LINE__)
+#define Mem_EmptyPool(pool) std.clearpool(pool, __FILE__, __LINE__)
+#define Mem_Copy(dest, src, size ) std.memcpy(dest, src, size, __FILE__, __LINE__)
+
+//=====================================
+//	parsing manager funcs
+//=====================================
+#define SC_ParseToken std.Script.ParseToken
+#define SC_ParseWord std.Script.ParseWord
+#define SC_Token() std.Script.Token
+#define SC_Filter std.Script.FilterToken
+#define FS_LoadScript std.Script.Load
+#define FS_AddScript std.Script.Include
+#define FS_ResetScript std.Script.Reset
+#define SC_GetToken std.Script.GetToken
+#define SC_TryToken std.Script.TryToken
+#define SC_FreeToken std.Script.FreeToken
+#define SC_SkipToken std.Script.SkipToken
+#define SC_MatchToken std.Script.MatchToken
+#define g_TXcommand std.Script.g_TXcommand
+
+/*
+===========================================
+filesystem manager
+===========================================
+*/
+#define FS_AddGameHierarchy std.AddGameHierarchy
+#define FS_LoadGameInfo std.LoadGameInfo
+#define FS_InitRootDir std.InitRootDir
+#define FS_LoadFile(name, size) std.Fs.LoadFile(name, size)
+#define FS_Search std.Fs.Search
+#define FS_WriteFile(name, data, size) std.Fs.WriteFile(name, data, size )
+#define FS_Open( path, mode ) std.Fs.Open( path, mode )
+#define FS_Read( file, buffer, size ) std.Fs.Read( file, buffer, size )
+#define FS_Write( file, buffer, size ) std.Fs.Write( file, buffer, size )
+#define FS_StripExtension( path ) std.Fs.StripExtension( path )
+#define FS_DefaultExtension( path, ext ) std.Fs.DefaultExtension( path, ext )
+#define FS_FileExtension( ext ) std.Fs.FileExtension( ext )
+#define FS_FileExists( file ) std.Fs.FileExists( file )
+#define FS_Close( file ) std.Fs.Close( file )
+#define FS_FileBase( x, y ) std.Fs.FileBase( x, y )
+#define FS_Find( x ) std.Fs.Search( x, false )
+#define FS_Printf std.Fs.Printf
+#define FS_Print std.Fs.Print
+#define FS_Seek std.Fs.Seek
+#define FS_Tell std.Fs.Tell
+#define FS_Gets std.Fs.Gets
+#define FS_Gamedir std.GameInfo->gamedir
+#define FS_ClearSearchPath std.Fs.ClearSearchPath
+int FS_CheckParm (const char *parm);
+bool FS_GetParmFromCmdLine( char *parm, char *out );
+rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize );
+void FS_SaveImage(const char *filename, rgbdata_t *pix );
+void FS_FreeImage( rgbdata_t *pack );
+
 
 // virtual files managment
-vfile_t *VFS_Open(const char *filename, const char* mode);
-fs_offset_t VFS_Write( vfile_t *file, const void *buf, size_t size );
-fs_offset_t VFS_Read(vfile_t* file, void* buffer, size_t buffersize);
-int VFS_Seek( vfile_t *file, fs_offset_t offset, int whence );
-fs_offset_t VFS_Tell (vfile_t* file);
-int VFS_Close( vfile_t *file );
-
-void InitMemory (void); //must be init first at application
-void FreeMemory( void );
-
-void FS_Init( int argc, char **argv );
-void FS_Shutdown (void);
+#define VFS_Open	std.VFs.Open
+#define VFS_Write	std.VFs.Write
+#define VFS_Read	std.VFs.Read
+#define VFS_Seek	std.VFs.Seek
+#define VFS_Tell	std.VFs.Tell
+#define VFS_Close	std.VFs.Close
 
 // crc stuff
-void CRC_Init(word *crcvalue);
-word CRC_Block (byte *start, int count);
-void CRC_ProcessByte(word *crcvalue, byte data);
+#define CRC_Init		std.crc_init
+#define CRC_Block		std.crc_block
+#define CRC_ProcessByte	std.crc_process
 
-#define Mem_Alloc(pool, size) _Mem_Alloc(pool, size, __FILE__, __LINE__)
-#define Mem_Realloc(pool, ptr, size) _Mem_Realloc(pool, ptr, size, __FILE__, __LINE__)
-#define Mem_Move(pool, ptr, data, size) _Mem_Move(pool, ptr, data, size, __FILE__, __LINE__)
-#define Mem_Free(mem) _Mem_Free(mem, __FILE__, __LINE__)
-#define Mem_AllocPool(name) _Mem_AllocPool(name, __FILE__, __LINE__)
-#define Mem_FreePool(pool) _Mem_FreePool(pool, __FILE__, __LINE__)
-#define Mem_EmptyPool(pool) _Mem_EmptyPool(pool, __FILE__, __LINE__)
-#define Mem_Copy(dest, src, size ) _Mem_Copy (dest, src, size, __FILE__, __LINE__)
+#define Sys_DoubleTime	std.gettime
 
 extern stdlib_api_t std;
-extern gameinfo_t GI;
 
 #define Msg std.printf
 #define MsgDev std.dprintf
@@ -146,44 +146,26 @@ extern gameinfo_t GI;
 #define Sys_LoadLibrary std.LoadLibrary
 #define Sys_FreeLibrary std.FreeLibrary
 
-
 #define Malloc(size)	Mem_Alloc(basepool, size)  
 #define Z_Malloc(size)	Mem_Alloc(zonepool, size)  
 #define Free(mem)	 	Mem_Free(mem) 
 
-extern char fs_rootdir[ MAX_SYSPATH ];	//root directory of engine
-extern char fs_basedir[ MAX_SYSPATH ];	//base directory of game
-extern char fs_gamedir[ MAX_SYSPATH ];	//game current directory
-extern char token[ MAX_INPUTLINE ];
 extern char gs_mapname[ 64 ];
 extern char gs_basedir[ MAX_SYSPATH ];
-extern char g_TXcommand;
-extern bool endofscript;
 extern bool host_debug;
 
-extern int fs_argc;
-extern char **fs_argv;
 extern byte *qccpool;
 extern byte *studiopool;
 
-//misc common functions
-char *copystring(char *s);
-char *strlower (char *start);
-char *va(const char *format, ...);
-char *stristr( const char *string, const char *string2 );
-void ExtractFilePath(const char* const path, char* dest);
+// misc common functions
+#define copystring		std.stralloc
+#define strlower		std.strlwr
+#define va		std.va
+#define stristr		std.stristr
+
 byte *ReadBMP (char *filename, byte **palette, int *width, int *height);
 
-extern int numthreads;
-void ThreadLock (void);
-void ThreadUnlock (void);
-void ThreadSetDefault (void);
-void RunThreadsOn (int workcnt, bool showpacifier, void(*func)(int));
-void RunThreadsOnIndividual (int workcnt, bool showpacifier, void(*func)(int));
-
-_inline double I_FloatTime (void) { time_t t; time(&t); return t; }
-
-//misc
+// misc
 bool CompileStudioModel ( byte *mempool, const char *name, byte parms );
 bool CompileSpriteModel ( byte *mempool, const char *name, byte parms );
 bool ConvertImagePixels ( byte *mempool, const char *name, byte parms );

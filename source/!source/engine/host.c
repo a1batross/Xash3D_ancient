@@ -32,22 +32,16 @@ stdlib_api_t Host_GetStdio( bool crash_on_error )
 {
 	static stdlib_api_t		io;
 
-	io.api_size = sizeof(stdlib_api_t); 
+	io = std;
 
+	// overload some funcs
 	io.print = Com_Print;
 	io.printf = Com_Printf;
 	io.dprintf = Com_DPrintf;
 	io.wprintf = Com_DWarnf;
-	io.exit = Sys_Quit;
-	io.input = Sys_ConsoleInput;
-	io.sleep = Sys_Sleep;
 
 	if(crash_on_error) io.error = Sys_Error;
 	else io.error = Host_Error;
-
-	io.LoadLibrary = Sys_LoadLibrary;
-	io.FreeLibrary = Sys_FreeLibrary;
-	io.GetProcAddress = std.GetProcAddress;
 
 	return io;
 }
@@ -65,7 +59,7 @@ void Host_InitCommon( char *funcname, int argc, char **argv )
 	Com->Init( argc, argv );
 
 	// TODO: init basedir here
-	Com->LoadGameInfo("gameinfo.txt");
+	FS_LoadGameInfo("gameinfo.txt");
 	zonepool = Mem_AllocPool("Zone Engine");
 }
 
@@ -84,10 +78,6 @@ void Host_InitPhysic( void )
 	static physic_imp_t		pi;
 	physic_t			CreatePhys;  
 
-	pi.Fs = Com->Fs;
-	pi.VFs = Com->VFs;
-	pi.Mem = Com->Mem;
-	pi.Script = Com->Script;
 	pi.Compile = Com->Compile;
 	pi.Stdio = Host_GetStdio( false );
 

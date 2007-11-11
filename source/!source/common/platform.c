@@ -12,20 +12,17 @@
 
 bool host_debug = false;
 stdlib_api_t std;
-
-gameinfo_t Plat_GameInfo( void )
-{
-	return GI;
-}
+byte *basepool;
+byte *zonepool;
 
 bool InitPlatform ( int argc, char **argv )
 {
-	InitMemory();
-	Plat_InitCPU();
-	Plat_LinkDlls();
+	basepool = Mem_AllocPool( "Temp" );
+	zonepool = Mem_AllocPool( "Zone" );
+	imagepool = Mem_AllocPool( "ImageLib Pool" );
 
-	ThreadSetDefault();
-	FS_Init( argc, argv );
+	com_argc = argc;
+	com_argv = argv;
 
 	if(FS_CheckParm("-debug"))
 		host_debug = true;
@@ -35,8 +32,9 @@ bool InitPlatform ( int argc, char **argv )
 
 void ClosePlatform ( void )
 {
-	FS_Shutdown();
-	FreeMemory();
+	Mem_FreePool( &imagepool);
+	Mem_FreePool( &basepool );
+	Mem_FreePool( &zonepool );
 }
 
 common_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input )
@@ -54,22 +52,13 @@ common_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input )
 	Com.Init = InitPlatform;
 	Com.Shutdown = ClosePlatform;
 
+	Com.LoadImage = FS_LoadImage;
+	Com.FreeImage = FS_FreeImage;
+	Com.SaveImage = FS_SaveImage;	
+
 	// get interfaces
-	Com.Fs = FS_GetAPI();
-	Com.VFs = VFS_GetAPI();
-	Com.Mem = Mem_GetAPI();
-	Com.Script = Sc_GetAPI();
 	Com.Compile = Comp_GetAPI();
 	Com.Info = Info_GetAPI();
-	Com.Roq = ROQ_GetAPI();
-
-	Com.InitRootDir = FS_InitRootDir;
-	Com.LoadGameInfo = FS_LoadGameInfo;
-	Com.AddGameHierarchy = FS_AddGameHierarchy;
-
-	//timer
-	Com.DoubleTime = Plat_DoubleTime;
-	Com.GameInfo = Plat_GameInfo;
 	
 	return &Com;
 }

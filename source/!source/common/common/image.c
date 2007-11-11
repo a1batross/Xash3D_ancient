@@ -1858,13 +1858,3 @@ void FS_SaveImage(const char *filename, rgbdata_t *pix )
 		data += pix->width * pix->height * PFDesc[pix->type].bpp;
 	}
 }
-
-void FS_InitImagelib( void )
-{
-	imagepool = Mem_AllocPool( "ImageLib Pool" );
-}
-
-void FS_FreeImagelib( void )
-{
-	Mem_FreePool( &imagepool );
-}

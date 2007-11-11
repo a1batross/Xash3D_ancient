@@ -8,6 +8,12 @@
 #include "ref_format.h" 
 #include "version.h"
 
+// time stamp formats
+#define TIME_FULL		0
+#define TIME_DATE_ONLY	1
+#define TIME_TIME_ONLY	2
+#define TIME_NO_SECONDS	3
+
 // bsplib compile flags
 #define BSP_ONLYENTS	0x01
 #define BSP_ONLYVIS		0x02
@@ -20,14 +26,6 @@
 #define QCC_OPT_LEVEL_1	0x04
 #define QCC_OPT_LEVEL_2	0x08
 #define QCC_OPT_LEVEL_3	0x10
-
-// roqlib video markers
-#define ROQ_MARKER_INFO	0x1001
-#define ROQ_MARKER_CODEBOOK	0x1002
-#define ROQ_MARKER_VIDEO	0x1011
-#define ROQ_MARKER_SND_MONO	0x1020
-#define ROQ_MARKER_SND_STEREO	0x1021
-#define ROQ_MARKER_EOF	0xffff
 
 #define MAX_DLIGHTS		32
 #define MAX_ENTITIES	128
@@ -461,19 +459,6 @@ typedef struct physdata_s
 	NewtonBody	*physbody;	// ptr to physic body
 } physdata_t;
 
-
-typedef struct roq_dec_s
-{
-	word		width;
-	word		height;
-	byte		*rgb;
-	short		*audioSamples;
-	dword		audioSize;
-	int		flags;
-	int		frameNum;
-	bool		restart_sound;
-} roq_dec_t;
-
 typedef struct gameinfo_s
 {
 	//filesystem info
@@ -758,13 +743,11 @@ typedef struct filesystem_api_s
 	void (*StripFilePath)(const char* const src, char* dst);	// get file path without filename.ext
 	void (*DefaultExtension)(char *path, const char *ext );	// append extension if not present
 	void (*ClearSearchPath)( void );			// delete all search pathes
-	word (*CRC_Block)(byte *start, int count);		// calculate crc
 
 	// built-in search interface
 	search_t *(*Search)(const char *pattern, int casecmp );	// returned list of found files
-	void (*FreeSearch)( search_t *search );			// free search results
 
-	//file low-level operations
+	// file low-level operations
 	file_t *(*Open)(const char* path, const char* mode);		// same as fopen
 	int (*Close)(file_t* file);					// same as fclose
 	long (*Write)(file_t* file, const void* data, size_t datasize);	// same as fwrite
@@ -778,9 +761,6 @@ typedef struct filesystem_api_s
 	// fs simply user interface
 	byte *(*LoadFile)(const char *path, long *filesize );		// load file into heap
 	bool (*WriteFile)(const char *filename, void *data, long len);	// write file into disk
-	rgbdata_t *(*LoadImage)(const char *filename, char *data, int size );	// returned rgb data image
-	void (*SaveImage)(const char *filename, rgbdata_t *buffer );	// write image into disk
-	void (*FreeImage)( rgbdata_t *pack );				// release image buffer
 
 } filesystem_api_t;
 
@@ -799,32 +779,6 @@ typedef struct vfilesystem_api_s
 	long (*Tell)(vfile_t* file);					// like a ftell
 
 } vfilesystem_api_t;
-
-/*
-==============================================================================
-
-MEMORY MANAGER ENGINE INTERFACE
-==============================================================================
-*/
-typedef struct memsystem_api_s
-{
-	//interface validator
-	size_t	api_size;		// must matched with sizeof(memsystem_api_t)
-
-	// memsystem base functions
-	byte *(*AllocPool)(const char *name, const char *file, int line);	// alloc memory pool
-	void (*EmptyPool)(byte *poolptr, const char *file, int line);	// drain memory pool
-	void (*FreePool)(byte **poolptr, const char *file, int line);	// release memory pool
-	void (*CheckSentinelsGlobal)(const char *file, int line);		// check memory sentinels
-
-	// user simply interface
-	void *(*Alloc)(byte *pool, size_t size, const char *file, int line);			//same as malloc
-	void *(*Realloc)(byte *pool, void *mem, size_t size, const char *file, int line);	//same as realloc
-	void (*Move)(byte *pool, void **dest, void *src, size_t size, const char *file, int line);//same as memmove
-	void (*Copy)(void *dest, void *src, size_t size, const char *file, int line);		//same as memcpy
-	void (*Free)(void *data, const char *file, int line);				//same as free
-
-} memsystem_api_t;
 
 /*
 ==============================================================================
@@ -870,6 +824,7 @@ typedef struct scriptsystem_api_s
 	char *(*ParseWord)( const char **data );		// parse word from char buffer
 	bool (*FilterToken)(char *filter, char *name, int casecmp);	// compare keyword by mask with filter
 	char *Token;					// contains current token
+	char g_TXcommand;					// quark command
 
 } scriptsystem_api_t;
 
@@ -899,23 +854,6 @@ typedef struct compilers_api_s
 /*
 ==============================================================================
 
-INTERNAL ROQLIB INTERFACE
-==============================================================================
-*/
-typedef struct roqlib_api_s
-{
-	//interface validator
-	size_t	api_size;		// must matched with sizeof(roqlib_api_t)
-
-	roq_dec_t *(*LoadVideo)(const char *name);
-	void (*FreeVideo)(roq_dec_t *);
-	int (*ReadFrame)(roq_dec_t *);
-
-} roqlib_api_t;
-
-/*
-==============================================================================
-
 STDIO SYSTEM INTERFACE
 ==============================================================================
 */
@@ -933,7 +871,80 @@ typedef struct stdilib_api_s
 	void (*exit)( void );			// normal silent termination
 	char *(*input)( void );			// system console input	
 	void (*sleep)( int msec );			// sleep for some msec
+	char *(*clipboard)( void );			// get clipboard data
+	void (*create_thread)(int, bool, void(*fn)(int));	// run individual thread
+	void (*thread_lock)( void );
+	void (*thread_unlock)( void );
+	int (*get_numthreads)( void );
 
+	// crclib.c funcs
+	void (*crc_init)(word *crcvalue);			// set initial crc value
+	word (*crc_block)(byte *start, int count);		// calculate crc block
+	void (*crc_process)(word *crcvalue, byte data);		// process crc byte
+	byte (*crc_sequence)(byte *base, int length, int sequence);	// calculate crc for sequence
+
+	// memlib.c funcs
+	void (*memcpy)(void *dest, void *src, size_t size, const char *file, int line);
+	void (*memset)(void *dest, int set, size_t size, const char *file, int line);
+	void *(*realloc)(byte *pool, void *mem, size_t size, const char *file, int line);
+	void (*move)(byte *pool, void **dest, void *src, size_t size, const char *file, int line); // not a memmove
+	void *(*malloc)(byte *pool, size_t size, const char *file, int line);
+	void (*free)(void *data, const char *file, int line);
+
+	// xash memlib extension - memory pools
+	byte *(*mallocpool)(const char *name, const char *file, int line);
+	void (*freepool)(byte **poolptr, const char *file, int line);
+	void (*clearpool)(byte *poolptr, const char *file, int line);
+	void (*memcheck)(const char *file, int line);		// check memory pools for consistensy
+
+	// path initialization
+	void (*InitRootDir)( char *path );			// init custom rootdir 
+	void (*LoadGameInfo)( const char *filename );		// gate game info from script file
+	void (*AddGameHierarchy)(const char *dir);		// add base directory in search list
+
+	filesystem_api_t		Fs;			// filesystem
+	vfilesystem_api_t		VFs;			// virtual filesystem
+
+	// timelib.c funcs
+	const char* (*time_stamp)( int format );		// returns current time stamp
+	double (*gettime)( void );				// hi-res timer
+	gameinfo_t *GameInfo;				// misc utils
+
+	scriptsystem_api_t		Script;			// parselib.c
+
+	// stdlib.c funcs
+	void (*strnupr)(const char *in, char *out, size_t size_out);// convert string to upper case
+	void (*strnlwr)(const char *in, char *out, size_t size_out);// convert string to lower case
+	void (*strupr)(const char *in, char *out);		// convert string to upper case
+	void (*strlwr)(const char *in, char *out);		// convert string to lower case
+	int (*strlen)( const char *string );			// returns string real length
+	int (*cstrlen)( const char *string );			// return string length without color prefixes
+	char (*toupper)(const char in );			// convert one charcster to upper case
+	char (*tolower)(const char in );			// convert one charcster to lower case
+	size_t (*strncat)(char *dst, const char *src, size_t n);	// add new string at end of buffer
+	size_t (*strcat)(char *dst, const char *src);		// add new string at end of buffer
+	size_t (*strncpy)(char *dst, const char *src, size_t n);	// copy string to existing buffer
+	size_t (*strcpy)(char *dst, const char *src);		// copy string to existing buffer
+	char *(*stralloc)(const char *in);			// create buffer and copy string here
+	int (*atoi)(const char *str);				// convert string to integer
+	float (*atof)(const char *str);			// convert string to float
+	void (*atov)( float *dst, const char *src, size_t n );	// convert string to vector
+	char *(*strchr)(const char *s, char c);			// find charcster in string at left side
+	char *(*strrchr)(const char *s, char c);		// find charcster in string at right side
+	int (*strnicmp)(const char *s1, const char *s2, int n);	// compare strings with case insensative
+	int (*stricmp)(const char *s1, const char *s2);		// compare strings with case insensative
+	int (*strncmp)(const char *s1, const char *s2, int n);	// compare strings with case sensative
+	int (*strcmp)(const char *s1, const char *s2);		// compare strings with case sensative
+	char *(*stristr)( const char *s1, const char *s2 );	// find s2 in s1 with case insensative
+	char *(*strstr)( const char *s1, const char *s2 );	// find s2 in s1 with case sensative
+	size_t (*strpack)( byte *buf, size_t pos, char *s1, int n );// include string into buffer (same as strncat)
+	size_t (*strunpack)( byte *buf, size_t pos, char *s1 );	// extract string from buffer
+	int (*vsprintf)(char *buf, const char *fmt, va_list args);	// format message
+	int (*sprintf)(char *buffer, const char *format, ...);	// print into buffer
+	char *(*va)(const char *format, ...);			// print into temp buffer
+	int (*vsnprintf)(char *buf, size_t size, const char *fmt, va_list args);	// format message
+	int (*snprintf)(char *buffer, size_t buffersize, const char *format, ...);	// print into buffer
+	
 	// xash dll loading system
 	bool (*LoadLibrary)( dll_info_t *dll );		// load library 
 	bool (*FreeLibrary)( dll_info_t *dll );		// free library
@@ -991,23 +1002,13 @@ typedef struct common_exp_s
 	bool (*Init)( int argc, char **argv );	// init all common systems
 	void (*Shutdown)( void );	// shutdown all common systems
 
-	//common systems
-	filesystem_api_t	Fs;
-	vfilesystem_api_t	VFs;
-	memsystem_api_t	Mem;
-	scriptsystem_api_t	Script;
+	rgbdata_t *(*LoadImage)(const char *filename, char *data, int size );
+	void (*SaveImage)(const char *filename, rgbdata_t *buffer );
+	void (*FreeImage)( rgbdata_t *pack );
+
+	// common systems
 	compilers_api_t	Compile;
 	infostring_api_t	Info;
-	roqlib_api_t	Roq;
-
-	// path initialization
-	void (*InitRootDir)( char *path );		// init custom rootdir 
-	void (*LoadGameInfo)( const char *filename );	// gate game info from script file
-	void (*AddGameHierarchy)(const char *dir);	// add base directory in search list
-
-	//misc utils
-	double (*DoubleTime)( void );
-	gameinfo_t (*GameInfo)( void );
 
 } common_exp_t;
 
@@ -1060,13 +1061,13 @@ typedef struct render_exp_s
 
 typedef struct render_imp_s
 {
-	//shared xash systems
-	filesystem_api_t	Fs;
-	vfilesystem_api_t	VFs;
-	memsystem_api_t	Mem;
-	scriptsystem_api_t	Script;
+	// shared xash systems
 	compilers_api_t	Compile;
 	stdlib_api_t	Stdio;
+
+	rgbdata_t	*(*LoadImage)(const char *filename, char *data, int size );
+	void	(*SaveImage)(const char *filename, rgbdata_t *buffer );
+	void	(*FreeImage)( rgbdata_t *pack );
 
 	void	(*Cmd_AddCommand) (char *name, void(*cmd)(void));
 	void	(*Cmd_RemoveCommand) (char *name);
@@ -1121,10 +1122,6 @@ typedef struct physic_exp_s
 typedef struct physic_imp_s
 {
 	// shared xash systems
-	filesystem_api_t	Fs;
-	vfilesystem_api_t	VFs;
-	memsystem_api_t	Mem;
-	scriptsystem_api_t	Script;
 	compilers_api_t	Compile;
 	stdlib_api_t	Stdio;
 

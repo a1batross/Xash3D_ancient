@@ -444,7 +444,7 @@ void VID_FreeReflib (void)
 
 char *FS_Gamedir( void )
 {
-	return GI.gamedir;
+	return std.GameInfo->gamedir;
 }
 
 cvar_t *VID_Cvar_Get(const char *var_name, const char *value, int flags)
@@ -459,7 +459,7 @@ void VID_Cmd_AddCommand(const char *cmd_name, xcommand_t function)
 
 char *FS_Title( void )
 {
-	return GI.title;
+	return std.GameInfo->title;
 }
 
 /*
@@ -474,10 +474,10 @@ void VID_InitRender( void )
 	
 	VID_FreeRender();
 
-	ri.Fs = Com->Fs;
-	ri.VFs = Com->VFs;
-	ri.Mem = Com->Mem;
-	ri.Script = Com->Script;
+	ri.LoadImage = Com->LoadImage;
+	ri.FreeImage = Com->FreeImage;
+	ri.SaveImage = Com->SaveImage;
+
 	ri.Compile = Com->Compile;
 	ri.Stdio = Host_GetStdio( false );
 

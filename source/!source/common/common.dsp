@@ -129,10 +129,6 @@ SOURCE=.\bsplib\faces.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\filesystem.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\bsplib\flow.c
 # End Source File
 # Begin Source File
@@ -154,10 +150,6 @@ SOURCE=.\bsplib\lightmap.c
 # Begin Source File
 
 SOURCE=.\bsplib\map.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\common\memory.c
 # End Source File
 # Begin Source File
 
@@ -202,10 +194,6 @@ SOURCE=.\bsplib\qrad3.c
 # Begin Source File
 
 SOURCE=.\bsplib\qvis3.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\roqlib\roq_dec.c
 # End Source File
 # Begin Source File
 
@@ -273,10 +261,6 @@ SOURCE=.\common\mdllib.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\memory.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\platform.h
 # End Source File
 # Begin Source File
@@ -294,10 +278,6 @@ SOURCE=.\roqlib\roqlib.h
 # Begin Source File
 
 SOURCE=.\common\utils.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\common\zip32.h
 # End Source File
 # End Group
 # End Target

@@ -2,6 +2,6 @@
 //			Copyright (C) XashXT Group 2007
 //=======================================================================
 
-#include "../getlib.h"
+#include "../rundll.h"
 
 Run32( bsplib );

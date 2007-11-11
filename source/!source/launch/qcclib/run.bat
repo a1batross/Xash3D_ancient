@@ -1,2 +1,0 @@
-makefile.nmake
-pause

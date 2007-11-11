@@ -6657,9 +6657,9 @@ bool PR_ContinueCompile( void )
 		return false; // end of compile
 	}
 
-	PR_Message ("%s\n", token);
-	qc_file = QCC_LoadFile (token, true );
-	PR_CompileFile (qc_file, token);
+	PR_Message ("%s\n", SC_Token());
+	qc_file = QCC_LoadFile (SC_Token(), true );
+	PR_CompileFile (qc_file, SC_Token());
 
 	return true;
 }
@@ -6711,13 +6711,13 @@ void PR_BeginCompilation ( void )
 	while(*progs_src && *progs_src < ' ') progs_src++;
 
 	pr_file_p = SC_ParseToken(&progs_src);
-	strcpy (progsoutname, token);
-	FS_StripExtension( token );
+	strcpy (progsoutname, SC_Token());
+	FS_StripExtension( SC_Token() );
 
-	if (FS_CheckParm("-asm")) asmfile = FS_Open(va("%s.asm", token), "wb" );
+	if (FS_CheckParm("-asm")) asmfile = FS_Open(va("%s.asm", SC_Token()), "wb" );
 
 	// msvc6.0 style message
-	PR_Message("------------Configuration: %s - Vm16 %s------------\n", token, opt_writelinenums ? "Debug" : "Release" ); 
+	PR_Message("------------Configuration: %s - Vm16 %s------------\n", SC_Token(), opt_writelinenums ? "Debug" : "Release" ); 
 	
 	currentchunk = NULL;
 	saved_progs_src = progs_src; // save it for prototyping

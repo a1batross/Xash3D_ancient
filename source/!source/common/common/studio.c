@@ -1656,7 +1656,8 @@ void Cmd_Bodygroup( void )
 {
 	int is_started = 0;
 
-	if (!SC_GetToken(false)) return;
+	Msg("cmd_bodygroup\n");
+	if(!SC_TryToken()) return;
 
 	if (numbodyparts == 0) bodypart[numbodyparts].base = 1;
 	else bodypart[numbodyparts].base = bodypart[numbodyparts-1].base * bodypart[numbodyparts-1].nummodels;
@@ -2474,7 +2475,7 @@ bool ParseModelScript (void)
 
 	while (1)
 	{
-		if(!SC_GetToken (true))break;
+		if(!SC_GetToken (true)) break;
 
 		if (SC_MatchToken("$modelname")) Cmd_Modelname ();
 		else if (SC_MatchToken("$cd")) Cmd_CdSet();
@@ -2542,6 +2543,9 @@ void ClearModel( void )
 bool CompileCurrentModel( const char *name )
 {
 	bool load = false;
+
+	cdset = false;
+	cdtextureset = 0;
 	
 	if(name) strcpy( gs_mapname, name );
 	FS_DefaultExtension( gs_mapname, ".qc" );
