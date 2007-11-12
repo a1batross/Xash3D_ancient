@@ -6642,7 +6642,7 @@ bool PR_ContinueCompile( void )
 
 	if(!progs_src) return false;
 	currentchunk = NULL;
-	SC_ParseToken(&progs_src);
+	Com_ParseToken(&progs_src);
 
 	if(!progs_src)
 	{
@@ -6657,9 +6657,9 @@ bool PR_ContinueCompile( void )
 		return false; // end of compile
 	}
 
-	PR_Message ("%s\n", SC_Token());
-	qc_file = QCC_LoadFile (SC_Token(), true );
-	PR_CompileFile (qc_file, SC_Token());
+	PR_Message ("%s\n", com_token);
+	qc_file = QCC_LoadFile (com_token, true );
+	PR_CompileFile (qc_file, com_token);
 
 	return true;
 }
@@ -6710,14 +6710,14 @@ void PR_BeginCompilation ( void )
 
 	while(*progs_src && *progs_src < ' ') progs_src++;
 
-	pr_file_p = SC_ParseToken(&progs_src);
-	strcpy (progsoutname, SC_Token());
-	FS_StripExtension( SC_Token() );
+	pr_file_p = Com_ParseToken(&progs_src);
+	strcpy (progsoutname, com_token);
+	FS_StripExtension( com_token );
 
-	if (FS_CheckParm("-asm")) asmfile = FS_Open(va("%s.asm", SC_Token()), "wb" );
+	if (FS_CheckParm("-asm")) asmfile = FS_Open(va("%s.asm", com_token), "wb" );
 
 	// msvc6.0 style message
-	PR_Message("------------Configuration: %s - Vm16 %s------------\n", SC_Token(), opt_writelinenums ? "Debug" : "Release" ); 
+	PR_Message("------------Configuration: %s - Vm16 %s------------\n", com_token, opt_writelinenums ? "Debug" : "Release" ); 
 	
 	currentchunk = NULL;
 	saved_progs_src = progs_src; // save it for prototyping

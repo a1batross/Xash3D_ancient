@@ -185,7 +185,7 @@ char *com_stralloc(const char *s)
 {
 	char	*b;
 
-	b = Mem_Alloc(sys.basepool, com_strlen(s) + 1 );
+	b = Mem_Alloc(Sys.basepool, com_strlen(s) + 1 );
 	com_strcpy(b, s);
 
 	return b;

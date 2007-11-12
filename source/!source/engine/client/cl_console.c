@@ -12,7 +12,8 @@ vec4_t console_color = {1.0, 1.0, 1.0, 1.0};
 int g_console_field_width = 78;
 
 #define NUM_CON_TIMES	4
-#define CON_TEXTSIZE	MAX_INPUTLINE * 32 // 512 kb buffer
+#define CON_TEXTSIZE	MAX_INPUTLINE * 8 // 128 kb buffer
+#define DEFAULT_CONSOLE_WIDTH	78
 
 typedef struct
 {
@@ -104,69 +105,6 @@ void Con_Clear_f (void)
 		con.text[i] = (ColorIndex(COLOR_WHITE)<<8) | ' ';
 	Con_Bottom(); // go to end
 }
-
-						
-/*
-================
-Con_Dump_f
-
-Save the console contents out to a file
-================
-*/
-void Con_Dump_f (void)
-{
-	int		l, x, i;
-	short		*line;
-	file_t		*f;
-	char		buffer[1024];
-	char		name[MAX_OSPATH];
-
-	if (Cmd_Argc() != 2)
-	{
-		Msg ("usage: condump <filename>\n");
-		return;
-	}
-
-	sprintf (name, "%s.txt", Cmd_Argv(1));
-
-	Msg ("Dumped console text to %s.\n", name);
-	f = FS_Open (name, "w");
-	if (!f)
-	{
-		Msg ("ERROR: couldn't open.\n");
-		return;
-	}
-
-	// skip empty lines
-	for (l = con.current - con.totallines + 1; l <= con.current; l++)
-	{
-		line = con.text + (l%con.totallines)*con.linewidth;
-		for (x = 0; x < con.linewidth; x++)
-		{
-			if ((line[x] & 0xff) != ' ')
-				break;
-		}
-		if (x != con.linewidth) break;
-	}
-
-	// write the remaining lines
-	buffer[con.linewidth] = 0;
-	for ( ; l <= con.current; l++)
-	{
-		line = con.text + (l%con.totallines)*con.linewidth;
-		for(i = 0; i < con.linewidth; i++)
-			buffer[i] = line[i] & 0xff;
-		for (x = con.linewidth - 1; x >= 0; x--)
-		{
-			if (buffer[x] == ' ') buffer[x] = 0;
-			else break;
-		}
-		strcat( buffer, "\n" );
-		FS_Printf (f, "%s\n", buffer);
-	}
-	FS_Close (f);
-}
-
 						
 /*
 ================
@@ -177,7 +115,7 @@ void Con_ClearNotify (void)
 {
 	int		i;
 	
-	for (i=0 ; i<NUM_CON_TIMES ; i++)
+	for (i = 0; i < NUM_CON_TIMES; i++)
 		con.times[i] = 0;
 }
 
@@ -213,20 +151,21 @@ If the line width has changed, reformat the buffer.
 */
 void Con_CheckResize (void)
 {
-	int		i, j, width, oldwidth, oldtotallines, numlines, numchars;
-	char	tbuf[CON_TEXTSIZE];
+	int	i, j, width, oldwidth, oldtotallines, numlines, numchars;
+	short	tbuf[CON_TEXTSIZE];
 
-	width = (viddef.width >> 3) - 2;
+	width = (SCREEN_WIDTH / SMALLCHAR_WIDTH) - 2;
 
 	if (width == con.linewidth)
 		return;
 
 	if (width < 1)			// video hasn't been initialized yet
 	{
-		width = 38;
+		width = DEFAULT_CONSOLE_WIDTH;
 		con.linewidth = width;
 		con.totallines = CON_TEXTSIZE / con.linewidth;
-		memset (con.text, ' ', CON_TEXTSIZE);
+		for(i = 0; i < CON_TEXTSIZE; i++)
+			con.text[i] = (ColorIndex(COLOR_WHITE)<<8) | ' ';
 	}
 	else
 	{
@@ -244,16 +183,16 @@ void Con_CheckResize (void)
 		if (con.linewidth < numchars)
 			numchars = con.linewidth;
 
-		memcpy (tbuf, con.text, CON_TEXTSIZE);
-		memset (con.text, ' ', CON_TEXTSIZE);
+		Mem_Copy(tbuf, con.text, CON_TEXTSIZE * sizeof(short));
+		for(i = 0; i < CON_TEXTSIZE; i++)
+			con.text[i] = (ColorIndex(COLOR_WHITE)<<8) | ' ';
 
-		for (i=0 ; i<numlines ; i++)
+		for (i = 0; i < numlines; i++)
 		{
-			for (j=0 ; j<numchars ; j++)
+			for (j = 0; j < numchars; j++)
 			{
 				con.text[(con.totallines - 1 - i) * con.linewidth + j] =
-						tbuf[((con.current - i + oldtotallines) %
-							  oldtotallines) * oldwidth + j];
+						tbuf[((con.current - i + oldtotallines) % oldtotallines) * oldwidth + j];
 			}
 		}
 
@@ -272,23 +211,29 @@ Con_Init
 */
 void Con_Init (void)
 {
-	con.linewidth = -1;
+	int	i;
 
-	Con_CheckResize ();
-	
-	MsgDev(D_INFO, "Console initialized.\n");
+	Con_CheckResize();
 
 	// register our commands
 	con_notifytime = Cvar_Get ("con_notifytime", "3", 0);
 	con_speed = Cvar_Get ("con_speed", "3", 0);
+
+	Field_Clear( &g_consoleField );
+	g_consoleField.widthInChars = g_console_field_width;
+	for ( i = 0 ; i < COMMAND_HISTORY ; i++ )
+	{
+		Field_Clear( &historyEditLines[i] );
+		historyEditLines[i].widthInChars = g_console_field_width;
+	}
 
 	Cmd_AddCommand ("toggleconsole", Con_ToggleConsole_f);
 	Cmd_AddCommand ("togglechat", Con_ToggleChat_f);
 	Cmd_AddCommand ("messagemode", Con_MessageMode_f);
 	Cmd_AddCommand ("messagemode2", Con_MessageMode2_f);
 	Cmd_AddCommand ("clear", Con_Clear_f);
-	Cmd_AddCommand ("condump", Con_Dump_f);
 	con.initialized = true;
+	MsgDev(D_INFO, "Console initialized.\n");
 }
 
 
@@ -317,7 +262,7 @@ void Con_Linefeed (bool skipnotify)
 
 /*
 ================
-CL_ConsolePrint
+Con_Print
 
 Handles cursor positioning, line wrapping, etc
 All console printing must go through this in order to be logged to disk
@@ -416,14 +361,12 @@ void Con_DrawInput (void)
 {
 	int		y;
 
-	if (cls.key_dest == key_menu) return;
-	if (cls.key_dest != key_console && cls.state == ca_active)
-		return; // don't draw anything (always draw if not active)
+	if (cls.key_dest != key_console) return; // don't draw anything (always draw if not active)
 
 	y = con.vislines - ( SMALLCHAR_HEIGHT * 2 );
 	re->SetColor( con.color );
-	SCR_DrawSmallChar( con.xadjust + 1 * SMALLCHAR_WIDTH, y, '>' );
 	Field_Draw( &g_consoleField, con.xadjust + 2 * SMALLCHAR_WIDTH, y, SCREEN_WIDTH - 3 * SMALLCHAR_WIDTH, true );
+	SCR_DrawSmallChar( con.xadjust + 1 * SMALLCHAR_WIDTH, y, '>' );
 }
 
 /*
@@ -446,7 +389,7 @@ void Con_DrawNotify (void)
 	re->SetColor( g_color_table[currentColor] );
 
 	v = 0;
-	for (i = con.current-NUM_CON_TIMES + 1; i <= con.current; i++)
+	for (i = con.current - NUM_CON_TIMES + 1; i <= con.current; i++)
 	{
 		if (i < 0) continue;
 		time = con.times[i % NUM_CON_TIMES];
@@ -517,7 +460,7 @@ void Con_DrawSolidConsole (float frac)
 	// draw the background
 	y = frac * SCREEN_HEIGHT - 2;
 	if ( y < 1 ) y = 0;
-	else SCR_DrawPic( 0, -SCREEN_HEIGHT + lines, SCREEN_WIDTH, SCREEN_HEIGHT, "background/conback" );
+	else SCR_DrawPic( 0, y - SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, "background/conback" );
 
 	Vector4Set( color, 1, 0, 0, 1 );
 	SCR_FillRect( 0, y, SCREEN_WIDTH, 2, color );
@@ -564,10 +507,10 @@ void Con_DrawSolidConsole (float frac)
 
 		for (x = 0; x < con.linewidth; x++)
 		{
-			if((text[x] & 0xff ) == ' ')continue;
-			if(((text[x]>>8)&7 ) != currentColor )
+			if((text[x] & 0xff ) == ' ') continue;
+			if(((text[x]>>8) & 7 ) != currentColor )
 			{
-				currentColor = (text[x]>>8)&7;
+				currentColor = (text[x]>>8) & 7;
 				re->SetColor(g_color_table[currentColor]);
 			}
 			SCR_DrawSmallChar( con.xadjust + (x+1) * SMALLCHAR_WIDTH, y, text[x] & 0xff );
@@ -609,6 +552,7 @@ void Con_DrawConsole( void )
 		if(cls.key_dest != key_menu)
 		{
 			Con_DrawSolidConsole( 1.0 );
+			cls.key_dest = key_console;
 		}
 		break;
 	case ca_active:

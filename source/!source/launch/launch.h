@@ -23,22 +23,6 @@ enum
 	ERR_WINDOWS_32S,
 };
 
-enum 
-{
-	DEFAULT =	0,	// host_init( funcname *arg ) same much as:
-	HOST_SHARED,	// "host_shared"
-	HOST_DEDICATED,	// "host_dedicated"
-	HOST_EDITOR,	// "host_editor"
-	BSPLIB,		// "bsplib"
-	IMGLIB,		// "imglib"
-	QCCLIB,		// "qcclib"
-	ROQLIB,		// "roqlib"
-	SPRITE,		// "sprite"
-	STUDIO,		// "studio"
-	CREDITS,		// "splash"
-	HOST_INSTALL,	// "install"
-};
-
 typedef struct system_s
 {
 	char			progname[MAX_QPATH];
@@ -62,18 +46,20 @@ typedef struct system_s
 	bool			error;
 	byte			*basepool;
 	byte			*zonepool;
+	byte			*imagepool;
 
 	// simply profiling
 	double			start, end;
 
 	void (*Con_Print)( const char *msg );
-	void ( *Init ) ( char *funcname, int argc, char **argv );
+	void ( *Init ) ( uint funcname, int argc, char **argv );
 	void ( *Main ) ( void ); // host frame
 	void ( *Free ) ( void ); // close host
 } system_t;
 
-extern system_t sys;
+extern system_t Sys;
 extern gameinfo_t GI;
+extern stdlib_api_t	std;
 
 //
 // console.c
@@ -188,17 +174,16 @@ void _mem_check(const char *filename, int fileline);
 #define Mem_AllocPool(name) _mem_allocpool(name, __FILE__, __LINE__)
 #define Mem_FreePool(pool) _mem_freepool(pool, __FILE__, __LINE__)
 #define Mem_EmptyPool(pool) _mem_emptypool(pool, __FILE__, __LINE__)
-#define Mem_Move(dest, src, size ) _mem_move (dest, src, size, __FILE__, __LINE__)
+#define Mem_Move(pool, dest, src, size ) _mem_move(pool, dest, src, size, __FILE__, __LINE__)
 #define Mem_Copy(dest, src, size ) _mem_copy(dest, src, size, __FILE__, __LINE__)
 #define Mem_Set(dest, src, size ) _mem_set(dest, src, size, __FILE__, __LINE__)
 #define Mem_Check() _mem_check(__FILE__, __LINE__)
 
-#define Malloc( size )	Mem_Alloc( sys.basepool, size )
+#define Malloc( size )	Mem_Alloc( Sys.basepool, size )
 
 //
 // filesystem.c
 //
-filesystem_api_t FS_GetAPI( void );
 void FS_Init( void );
 void FS_Path( void );
 void FS_Shutdown( void );
@@ -212,7 +197,9 @@ void FS_FileBase (char *in, char *out);
 const char *FS_FileExtension (const char *in);
 void FS_DefaultExtension (char *path, const char *extension );
 bool FS_GetParmFromCmdLine( char *parm, char *out );
+void FS_ExtractFilePath(const char* const path, char* dest);
 void FS_UpdateEnvironmentVariables( void );
+const char *FS_FileWithoutPath (const char *in);
 extern char sys_rootdir[];
 extern char *fs_argv[];
 extern int fs_argc;
@@ -220,6 +207,10 @@ extern int fs_argc;
 // simply files managment interface
 byte *FS_LoadFile (const char *path, fs_offset_t *filesizeptr );
 bool FS_WriteFile (const char *filename, void *data, fs_offset_t len);
+rgbdata_t *FS_LoadImage(const char *filename, char *data, int size );
+void FS_SaveImage(const char *filename, rgbdata_t *buffer );
+void FS_FreeImage( rgbdata_t *pack );
+bool Image_Processing( const char *name, rgbdata_t **pix );
 search_t *FS_Search(const char *pattern, int caseinsensitive );
 search_t *FS_SearchDirs(const char *pattern, int caseinsensitive );
 
@@ -244,11 +235,13 @@ int FS_Getc (file_t* file);
 bool FS_Eof( file_t* file);
 
 // virtual files managment
-vfilesystem_api_t VFS_GetAPI( void );
+vfile_t *VFS_Create(byte *buffer, size_t buffsize);
 vfile_t *VFS_Open(const char *filename, const char* mode);
 fs_offset_t VFS_Write( vfile_t *file, const void *buf, size_t size );
+fs_offset_t VFS_Write2( vfile_t *handle, byte *buffer, size_t size );
 fs_offset_t VFS_Read(vfile_t* file, void* buffer, size_t buffersize);
 int VFS_Seek( vfile_t *file, fs_offset_t offset, int whence );
+bool VFS_Unpack( void* compbuf, size_t compsize, void **buf, size_t size );
 fs_offset_t VFS_Tell (vfile_t* file);
 int VFS_Close( vfile_t *file );
 
@@ -263,16 +256,17 @@ byte CRC_BlockSequence(byte *base, int length, int sequence);
 //
 // parselib.c
 //
-scriptsystem_api_t Sc_GetAPI( void );
 bool SC_LoadScript( const char *filename, char *buf, int size );
+bool SC_AddScript( const char *filename, char *buf, int size );
 bool SC_FilterToken(char *filter, char *name, int casecmp);
 char *SC_ParseToken(const char **data_p );
 char *SC_ParseWord( const char **data_p );
 bool SC_MatchToken( const char *match );
+void SC_ResetScript( void );
 void SC_SkipToken( void );
 void SC_FreeToken( void );
 bool SC_TryToken( void );
 char *SC_GetToken( bool newline );
-char *SC_Token( void );
+extern char token[];
 
 #endif//LAUNCHER_H

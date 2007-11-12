@@ -2049,7 +2049,7 @@ void StartServerActionFunc( void *self )
 bool Menu_CreateMapsList( void )
 {
 	char *buffer;
-	search_t	*t = FS_Search( "maps/*.bsp" );
+	search_t	*t = FS_Search( "maps/*.bsp", false );
 	int i, k, result = 0;
 
 	if(!t) return result;
@@ -2096,13 +2096,12 @@ bool Menu_CreateMapsList( void )
 				if(entities)
 				{
 					bool	have_title = false;
-					char	*com_token;
 					
 					data = entities;
 					while( 1 )
 					{
 						int l;
-						com_token = COM_Parse(&data); 
+						Com_ParseToken(&data); 
 
 						if (!com_token) break;
 						if (com_token[0] == '{') continue;
@@ -2113,7 +2112,7 @@ bool Menu_CreateMapsList( void )
 							keyname[l] = com_token[k+l];
 						keyname[l] = 0;
 
-						com_token = COM_Parse(&data);
+						Com_ParseToken(&data);
 						if (!com_token) break;
 
 						if (!strcmp(keyname, "message") && !have_title)
@@ -2204,11 +2203,11 @@ void StartServer_MenuInit( void )
 		char  scratch[200];
 		int		j, l;
 
-		strcpy( shortname, COM_Parse( &s ));
+		strcpy( shortname, Com_ParseToken( &s ));
 		l = strlen(shortname);
 		for (j=0 ; j<l ; j++)
 			shortname[j] = toupper(shortname[j]);
-		strcpy( longname, COM_Parse( &s ));
+		strcpy( longname, Com_ParseToken( &s ));
 		sprintf( scratch, "%s\n%s", longname, shortname );
 
 		mapnames[i] = Z_Malloc( strlen( scratch ) + 1 );
@@ -2966,7 +2965,7 @@ static bool PlayerConfig_ScanDirectories( void )
 
 	s_numplayermodels = 0;
           
-	search = FS_Search( "models/players/*" );
+	search = FS_Search( "models/players/*", false );
 
 	if ( !search ) return false;
           

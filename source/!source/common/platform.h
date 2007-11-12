@@ -9,26 +9,15 @@
 #include <setjmp.h>
 #include <windows.h>
 #include <basetypes.h>
-#include "image.h"
 #include <ref_system.h>
-
-extern byte *basepool;
-extern byte *zonepool;
+#include <ref_stdlib.h>
 
 //=====================================
 //	platform export
 //=====================================
-bool InitPlatform ( int argc, char **argv );
-void ClosePlatform ( void );
 
-compilers_api_t Comp_GetAPI( void );
-infostring_api_t Info_GetAPI( void );
-
-//=====================================
-//	filesystem funcs
-//=====================================
-rgbdata_t *FS_LoadImage(const char *filename, char *data, int size );
-void FS_SaveImage(const char *filename, rgbdata_t *buffer );
-void FS_FreeImage( rgbdata_t *pack );
+void InitPlatform ( uint funcname, int argc, char **argv ); // init host
+void RunPlatform ( void ); // host frame
+void ClosePlatform ( void ); // close host
 
 #endif//BASEPLATFORM_H

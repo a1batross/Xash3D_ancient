@@ -309,13 +309,13 @@ void LoadPortals (void)
 	visplane_t	plane;
 	
 	sprintf (path, "maps/%s.prt", gs_mapname );
-	load = FS_LoadScript( path, NULL, 0 );
+	load = Com_LoadScript( path, NULL, 0 );
 	if (!load) Sys_Error ("LoadPortals: couldn't read %s\n", path);
 	Msg ("reading %s\n", path);
 	
-	strcpy(magic, SC_GetToken( true ));
-          portalclusters = atoi(SC_GetToken( true ));
-          numportals = atoi(SC_GetToken( true ));
+	strcpy(magic, Com_GetToken( true ));
+          portalclusters = atoi(Com_GetToken( true ));
+          numportals = atoi(Com_GetToken( true ));
 
           if (!portalclusters && !numportals) Sys_Error ("LoadPortals: failed to read header");
 	if (strcmp(magic, PORTALFILE)) Sys_Error ("LoadPortals: not a portal file");
@@ -345,9 +345,9 @@ void LoadPortals (void)
 		
 	for (i = 0, p = portals; i < numportals; i++)
 	{
-		numpoints = atoi(SC_GetToken( true )); //newline
-		leafnums[0] = atoi(SC_GetToken( false ));
-		leafnums[1] = atoi(SC_GetToken( false ));		
+		numpoints = atoi(Com_GetToken( true )); //newline
+		leafnums[0] = atoi(Com_GetToken( false ));
+		leafnums[1] = atoi(Com_GetToken( false ));		
                     
                     //Msg("%d %d %d ", numpoints, leafnums[0], leafnums[1] );
 		
@@ -367,16 +367,16 @@ void LoadPortals (void)
 
 			// scanf into double, then assign to vec_t
 			// so we don't care what size vec_t is
-			SC_GetToken( false ); //get '(' symbol
-			if(!SC_MatchToken( "(" )) Sys_Error ("LoadPortals: not found ( reading portal %i", i);
-			v[0] = atof(SC_GetToken( false ));
-			v[1] = atof(SC_GetToken( false ));
-			v[2] = atof(SC_GetToken( false ));			
+			Com_GetToken( false ); //get '(' symbol
+			if(!Com_MatchToken( "(" )) Sys_Error ("LoadPortals: not found ( reading portal %i", i);
+			v[0] = atof(Com_GetToken( false ));
+			v[1] = atof(Com_GetToken( false ));
+			v[2] = atof(Com_GetToken( false ));			
 			
 			//Msg("( %g %g %g )", v[0], v[1], v[2] );
 						
-			SC_GetToken( false );
-			if(!SC_MatchToken( ")" )) Sys_Error ("LoadPortals: not found ) reading portal %i", i);
+			Com_GetToken( false );
+			if(!Com_MatchToken( ")" )) Sys_Error ("LoadPortals: not found ) reading portal %i", i);
 		
 			for (k = 0; k < 3; k++) w->points[j][k] = v[k];
 		}

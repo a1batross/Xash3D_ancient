@@ -25,6 +25,7 @@ void R_Clear (void);
 viddef_t	vid;
 
 render_imp_t	ri;
+stdlib_api_t	std;
 
 byte *r_temppool;
 
@@ -715,6 +716,9 @@ void R_DrawPauseScreen( void )
 	// don't apply post effects for custom window
 	if(r_newrefdef.rdflags & RDF_NOWORLDMODEL)
 		return;
+
+	// temporary disabled
+	return;
 
 	if(r_pause->modified )
 	{
@@ -1521,14 +1525,15 @@ CreateAPI
 
 @@@@@@@@@@@@@@@@@@@@@
 */
-render_exp_t DLLEXPORT *CreateAPI(render_imp_t *rimp )
+render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 {
 	static render_exp_t re;
 
+	std = *input;
 	// Sys_LoadLibrary can create fake instance, to check
-	// api version and api size, but first argument will be 0
+	// api version and api size, but second argument will be 0
 	// and always make exception, run simply check for avoid it
-	if(rimp) ri = *rimp;
+	if(engfuncs) ri = *engfuncs;
 
 	// generic functions
 	re.api_size = sizeof(render_exp_t);
@@ -1565,14 +1570,4 @@ render_exp_t DLLEXPORT *CreateAPI(render_imp_t *rimp )
 	re.AppActivate = GLimp_AppActivate;
 
 	return &re;
-}
-
-char *FS_Gamedir( void )
-{
-	return ri.gamedir();
-}
-
-char *FS_Title( void )
-{
-	return ri.title();
 }

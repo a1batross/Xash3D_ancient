@@ -10,8 +10,10 @@
 #include <basetypes.h>
 #include <basemath.h>
 #include <ref_system.h>
+#include <ref_stdlib.h>
 
 extern physic_imp_t pi;
+extern stdlib_api_t std;
 extern byte *physpool;
 extern NewtonWorld	*gWorld;
 long _ftol2( double dblSource );
@@ -22,37 +24,10 @@ void Phys_Frame( float time );
 void Phys_CreateBOX( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3_t ang, NewtonCollision **newcol, NewtonBody **newbody );
 void Phys_RemoveBOX( NewtonBody *body );
 
-/*
-===========================================
-memory manager
-===========================================
-*/
-// malloc-free
-#define Mem_Alloc(pool,size) pi.Stdio.malloc(pool, size, __FILE__, __LINE__)
-#define Mem_Realloc(pool, ptr, size) pi.Stdio.realloc(pool, ptr, size, __FILE__, __LINE__)
-#define Mem_Free(mem) pi.Stdio.free(mem, __FILE__, __LINE__)
-
-// Hunk_AllocName
-#define Mem_AllocPool(name) pi.Stdio.mallocpool(name, __FILE__, __LINE__)
-#define Mem_FreePool(pool) pi.Stdio.freepool(pool, __FILE__, __LINE__)
-#define Mem_EmptyPool(pool) pi.Stdio.clearpool(pool, __FILE__, __LINE__)
-
-#define Mem_Copy(dest, src, size) pi.Stdio.memcpy(dest, src, size, __FILE__, __LINE__) 
-
-/*
-===========================================
-System Events
-===========================================
-*/
-#define Msg pi.Stdio.printf
-#define MsgDev pi.Stdio.dprintf
-#define MsgWarn pi.Stdio.wprintf
-#define Sys_LoadLibrary pi.Stdio.LoadLibrary
-#define Sys_FreeLibrary pi.Stdio.FreeLibrary
-#define Sys_Sleep pi.Stdio.sleep
-#define Sys_Print pi.Stdio.print
-#define Sys_Quit pi.Stdio.exit
-#define Host_Error pi.Stdio.error
+#define Msg std.printf
+#define MsgDev std.dprintf
+#define MsgWarn std.wprintf
+#define Host_Error std.error
 	
 typedef struct NewtonUserMeshCollisionCollideDescTag
 {

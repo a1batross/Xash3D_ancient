@@ -14,19 +14,6 @@
 #define TIME_TIME_ONLY	2
 #define TIME_NO_SECONDS	3
 
-// bsplib compile flags
-#define BSP_ONLYENTS	0x01
-#define BSP_ONLYVIS		0x02
-#define BSP_ONLYRAD		0x04
-#define BSP_FULLCOMPILE	0x08
-
-// qcclib compile flags
-#define QCC_PROGDEFS	0x01
-#define QCC_OPT_LEVEL_0	0x02
-#define QCC_OPT_LEVEL_1	0x04
-#define QCC_OPT_LEVEL_2	0x08
-#define QCC_OPT_LEVEL_3	0x10
-
 #define MAX_DLIGHTS		32
 #define MAX_ENTITIES	128
 #define MAX_PARTICLES	4096
@@ -87,57 +74,20 @@
 #define MOVETYPE_CONVEYOR		9
 #define MOVETYPE_PUSHABLE		10
 
-// opengl mask
-#define GL_COLOR_INDEX	0x1900
-#define GL_STENCIL_INDEX	0x1901
-#define GL_DEPTH_COMPONENT	0x1902
-#define GL_RED		0x1903
-#define GL_GREEN		0x1904
-#define GL_BLUE		0x1905
-#define GL_ALPHA		0x1906
-#define GL_RGB		0x1907
-#define GL_RGBA		0x1908
-#define GL_LUMINANCE	0x1909
-#define GL_LUMINANCE_ALPHA	0x190A
-#define GL_BGR		0x80E0
-#define GL_BGRA		0x80E1
-
-// gl data type
-#define GL_BYTE		0x1400
-#define GL_UNSIGNED_BYTE	0x1401
-#define GL_SHORT		0x1402
-#define GL_UNSIGNED_SHORT	0x1403
-#define GL_INT		0x1404
-#define GL_UNSIGNED_INT	0x1405
-#define GL_FLOAT		0x1406
-#define GL_2_BYTES		0x1407
-#define GL_3_BYTES		0x1408
-#define GL_4_BYTES		0x1409
-#define GL_DOUBLE		0x140A
-
-enum comp_format
+enum 
 {
-	PF_UNKNOWN = 0,
-	PF_INDEXED_24,	// studio model skins
-	PF_INDEXED_32,	// sprite 32-bit palette
-	PF_RGBA_32,	// already prepared ".bmp", ".tga" or ".jpg" image 
-	PF_ARGB_32,	// uncompressed dds image
-	PF_RGB_24,	// uncompressed dds or another 24-bit image 
-	PF_RGB_24_FLIP,	// flip image for screenshots
-	PF_DXT1,		// nvidia DXT1 format
-	PF_DXT2,		// nvidia DXT2 format
-	PF_DXT3,		// nvidia DXT3 format
-	PF_DXT4,		// nvidia DXT4 format
-	PF_DXT5,		// nvidia DXT5 format
-	PF_ATI1N,		// ati 1N texture
-	PF_ATI2N,		// ati 2N texture
-	PF_LUMINANCE,	// b&w dds image
-	PF_LUMINANCE_16,	// b&w hi-res image
-	PF_LUMINANCE_ALPHA, // b&w dds image with alpha channel
-	PF_RXGB,		// doom3 normal maps
-	PF_ABGR_64,	// uint image
-	PF_RGBA_GN,	// internal generated texture
-	PF_TOTALCOUNT,	// must be last
+	HOST_OFFLINE = 0,	// host_init( funcname *arg ) same much as:
+	HOST_NORMAL,	// "host_shared"
+	HOST_DEDICATED,	// "host_dedicated"
+	HOST_EDITOR,	// "host_editor"
+	BSPLIB,		// "bsplib"
+	IMGLIB,		// "imglib"
+	QCCLIB,		// "qcclib"
+	ROQLIB,		// "roqlib"
+	SPRITE,		// "sprite"
+	STUDIO,		// "studio"
+	CREDITS,		// "splash"
+	HOST_INSTALL,	// "install"
 };
 
 enum ai_activity
@@ -268,42 +218,6 @@ enum dev_level
 	D_NOTE,		// "-dev 5", show system notifications for engine develeopers
 };
 
-// format info table
-typedef struct
-{
-	int	format;	// pixelformat
-	char	name[8];	// used for debug
-	uint	glmask;	// RGBA mask
-	uint	gltype;	// open gl datatype
-	int	bpp;	// channels (e.g. rgb = 3, rgba = 4)
-	int	bpc;	// sizebytes (byte, short, float)
-	int	block;	// blocksize < 0 needs alternate calc
-} bpc_desc_t;
-
-static bpc_desc_t PFDesc[] =
-{
-{PF_UNKNOWN,	"raw",	GL_RGBA,		GL_UNSIGNED_BYTE, 0,  0,  0 },
-{PF_INDEXED_24,	"pal 24",	GL_RGBA,		GL_UNSIGNED_BYTE, 3,  1,  0 },// expand data to RGBA buffer
-{PF_INDEXED_32,	"pal 32",	GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1,  0 },
-{PF_RGBA_32,	"RGBA 32",GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, -4 },
-{PF_ARGB_32,	"ARGB 32",GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, -4 },
-{PF_RGB_24,	"RGB 24",	GL_RGBA,		GL_UNSIGNED_BYTE, 3,  1, -3 },
-{PF_RGB_24_FLIP,	"RGB 24",	GL_RGBA,		GL_UNSIGNED_BYTE, 3,  1, -3 },
-{PF_DXT1,		"DXT1",	GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1,  8 },
-{PF_DXT2,		"DXT2",	GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, 16 },
-{PF_DXT3,		"DXT3",	GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, 16 },
-{PF_DXT4,		"DXT4",	GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, 16 },
-{PF_DXT5,		"DXT5",	GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, 16 },
-{PF_ATI1N,	"ATI1N",	GL_RGBA,		GL_UNSIGNED_BYTE, 1,  1,  8 },
-{PF_ATI2N,	"3DC",	GL_RGBA,		GL_UNSIGNED_BYTE, 3,  1, 16 },
-{PF_LUMINANCE,	"LUM 8",	GL_LUMINANCE,	GL_UNSIGNED_BYTE, 1,  1, -1 },
-{PF_LUMINANCE_16,	"LUM 16", GL_LUMINANCE,	GL_UNSIGNED_BYTE, 2,  2, -2 },
-{PF_LUMINANCE_ALPHA,"LUM A",	GL_LUMINANCE_ALPHA,	GL_UNSIGNED_BYTE, 2,  1, -2 },
-{PF_RXGB,		"RXGB",	GL_RGBA,		GL_UNSIGNED_BYTE, 3,  1, 16 },
-{PF_ABGR_64,	"ABGR 64",GL_BGRA,		GL_UNSIGNED_BYTE, 4,  2, -8 },
-{PF_RGBA_GN,	"system",	GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, -4 },
-};
-
 static activity_map_t activity_map[] =
 {
 {ACT_IDLE,		"ACT_IDLE"		},
@@ -411,19 +325,6 @@ static activity_map_t activity_map[] =
 {0, 			NULL			},
 };
 
-#define IMAGE_CUBEMAP	0x00000001
-#define IMAGE_HAS_ALPHA	0x00000002
-#define IMAGE_PREMULT	0x00000004	// indices who need in additional premultiply
-#define IMAGE_GEN_MIPS	0x00000008	// must generate mips
-#define IMAGE_CUBEMAP_FLIP	0x00000010	// it's a cubemap with flipped sides( dds pack )
-
-#define CUBEMAP_POSITIVEX	0x00000400L
-#define CUBEMAP_NEGATIVEX	0x00000800L
-#define CUBEMAP_POSITIVEY	0x00001000L
-#define CUBEMAP_NEGATIVEY	0x00002000L
-#define CUBEMAP_POSITIVEZ	0x00004000L
-#define CUBEMAP_NEGATIVEZ	0x00008000L
-
 typedef struct search_s
 {
 	int	numfilenames;
@@ -431,20 +332,6 @@ typedef struct search_s
 	char	*filenamesbuffer;
 
 } search_t;
-
-typedef struct rgbdata_s
-{
-	word	width;		// image width
-	word	height;		// image height
-	byte	numLayers;	// multi-layer volume
-	byte	numMips;		// mipmap count
-	byte	bitsCount;	// RGB bits count
-	uint	type;		// compression type
-	uint	flags;		// misc image flags
-	byte	*palette;		// palette if present
-	byte	*buffer;		// image buffer
-	uint	size;		// for bounds checking
-} rgbdata_t;
 
 typedef struct physdata_s
 {
@@ -489,7 +376,7 @@ typedef struct dll_info_s
 	void		*link;		// hinstance of loading library
 
 	// xash dlls entrypoint
-	void		*(*main)( void* );	// point type (e.g. common_t)
+	void		*(*main)( void*, void* );
 	bool		crash;		// crash if dll not found
 
 	// xash dlls validator
@@ -725,136 +612,7 @@ typedef struct generic_api_s
 /*
 ==============================================================================
 
-FILESYSTEM ENGINE INTERFACE
-==============================================================================
-*/
-typedef struct filesystem_api_s
-{
-	// interface validator
-	size_t	api_size;		// must matched with sizeof(filesystem_api_t)
-
-	// base functions
-	void (*FileBase)(char *in, char *out);			// get filename without path & ext
-	bool (*FileExists)(const char *filename);		// return true if file exist
-	long (*FileSize)(const char *filename);			// same as FileExists but return filesize
-	const char *(*FileExtension)(const char *in);		// return extension of file
-	const char *(*FileWithoutPath)(const char *in);		// return file without path
-	void (*StripExtension)(char *path);			// remove extension if present
-	void (*StripFilePath)(const char* const src, char* dst);	// get file path without filename.ext
-	void (*DefaultExtension)(char *path, const char *ext );	// append extension if not present
-	void (*ClearSearchPath)( void );			// delete all search pathes
-
-	// built-in search interface
-	search_t *(*Search)(const char *pattern, int casecmp );	// returned list of found files
-
-	// file low-level operations
-	file_t *(*Open)(const char* path, const char* mode);		// same as fopen
-	int (*Close)(file_t* file);					// same as fclose
-	long (*Write)(file_t* file, const void* data, size_t datasize);	// same as fwrite
-	long (*Read)(file_t* file, void* buffer, size_t buffersize);	// same as fread, can see trough pakfile
-	int (*Print)(file_t* file, const char *msg);			// printed message into file		
-	int (*Printf)(file_t* file, const char* format, ...);		// same as fprintf
-	int (*Gets)(file_t* file, byte *string, size_t bufsize );		// like a fgets, but can return EOF
-	int (*Seek)(file_t* file, fs_offset_t offset, int whence);		// fseek, can seek in packfiles too
-	long (*Tell)(file_t* file);					// like a ftell
-
-	// fs simply user interface
-	byte *(*LoadFile)(const char *path, long *filesize );		// load file into heap
-	bool (*WriteFile)(const char *filename, void *data, long len);	// write file into disk
-
-} filesystem_api_t;
-
-typedef struct vfilesystem_api_s
-{
-	// interface validator
-	size_t	api_size;		// must matched with sizeof(vfilesystem_api_t)
-
-	// file low-level operations
-	vfile_t *(*Create)(byte *buffer, size_t buffsize);		// create virtual stream
-	vfile_t *(*Open)(const char *filename, const char* mode);		// virtual fopen
-	int (*Close)(vfile_t* file);					// free buffer or write dump
-	long (*Write)(vfile_t* file, const void* data, size_t datasize);	// write into buffer
-	long (*Read)(vfile_t* file, void* buffer, size_t buffersize);	// read from buffer
-	int (*Seek)(vfile_t* file, fs_offset_t offset, int whence);		// fseek, can seek in packfiles too
-	long (*Tell)(vfile_t* file);					// like a ftell
-
-} vfilesystem_api_t;
-
-/*
-==============================================================================
-
-INFOSTRING MANAGER ENGINE INTERFACE
-==============================================================================
-*/
-typedef struct infostring_api_s
-{
-	//interface validator
-	size_t	api_size;		// must matched with sizeof(infostring_api_t)
-
-	void (*Print) (char *s);
-	bool (*Validate) (char *s);
-	void (*RemoveKey) (char *s, char *key);
-	char *(*ValueForKey) (char *s, char *key);
-	void (*SetValueForKey) (char *s, char *key, char *value);
-
-} infostring_api_t;
-
-
-/*
-==============================================================================
-
-PARSE STUFF SYSTEM INTERFACE
-==============================================================================
-*/
-typedef struct scriptsystem_api_s
-{
-	//interface validator
-	size_t	api_size;		// must matched with sizeof(scriptsystem_api_t)
-
-	//user interface
-	bool (*Load)( const char *name, char *buf, int size );// load script into stack from file or bufer
-	bool (*Include)( const char *name, char *buf, int size );	// include script from file or buffer
-	void (*Reset)( void );				// reset current script state
-	char *(*GetToken)( bool newline );			// get next token on a line or newline
-	bool (*TryToken)( void );				// return 1 if have token on a line 
-	void (*FreeToken)( void );				// free current token to may get it again
-	void (*SkipToken)( void );				// skip current token and jump into newline
-	bool (*MatchToken)( const char *match );		// compare current token with user keyword
-	char *(*ParseToken)(const char **data );		// parse token from char buffer
-	char *(*ParseWord)( const char **data );		// parse word from char buffer
-	bool (*FilterToken)(char *filter, char *name, int casecmp);	// compare keyword by mask with filter
-	char *Token;					// contains current token
-	char g_TXcommand;					// quark command
-
-} scriptsystem_api_t;
-
-/*
-==============================================================================
-
-INTERNAL COMPILERS INTERFACE
-==============================================================================
-*/
-typedef struct compilers_api_s
-{
-	//interface validator
-	size_t	api_size;		// must matched with sizeof(compilers_api_t)
-
-	bool (*Studio)( byte *mempool, const char *name, byte parms );	// input name of qc-script
-	bool (*Sprite)( byte *mempool, const char *name, byte parms );	// input name of qc-script
-	bool (*Image)( byte *mempool, const char *name, byte parms );	// input name of image
-	bool (*PrepareBSP)( const char *dir, const char *name, byte params );	// compile map in gamedir 
-	bool (*BSP)( void );
-	bool (*PrepareDAT)( const char *dir, const char *name, byte params );	// compile dat in gamedir 
-	bool (*DAT)( void );
-	bool (*DecryptDAT)( int complen, int len, int method, char *info, char **buffer); //unpacking dat
-	bool (*PrepareROQ)( const char *dir, const char *name, byte params );	// compile roq in gamedir 
-	bool (*ROQ)( void );
-} compilers_api_t;
-
-/*
-==============================================================================
-
-STDIO SYSTEM INTERFACE
+STDLIB SYSTEM INTERFACE
 ==============================================================================
 */
 typedef struct stdilib_api_s
@@ -872,10 +630,7 @@ typedef struct stdilib_api_s
 	char *(*input)( void );			// system console input	
 	void (*sleep)( int msec );			// sleep for some msec
 	char *(*clipboard)( void );			// get clipboard data
-	void (*create_thread)(int, bool, void(*fn)(int));	// run individual thread
-	void (*thread_lock)( void );
-	void (*thread_unlock)( void );
-	int (*get_numthreads)( void );
+	uint (*keyevents)( void );			// peek windows message
 
 	// crclib.c funcs
 	void (*crc_init)(word *crcvalue);			// set initial crc value
@@ -897,20 +652,72 @@ typedef struct stdilib_api_s
 	void (*clearpool)(byte *poolptr, const char *file, int line);
 	void (*memcheck)(const char *file, int line);		// check memory pools for consistensy
 
-	// path initialization
-	void (*InitRootDir)( char *path );			// init custom rootdir 
-	void (*LoadGameInfo)( const char *filename );		// gate game info from script file
-	void (*AddGameHierarchy)(const char *dir);		// add base directory in search list
+	// common functions
+	void (*Com_InitRootDir)( char *path );			// init custom rootdir 
+	void (*Com_LoadGameInfo)( const char *filename );		// gate game info from script file
+	void (*Com_AddGameHierarchy)(const char *dir);		// add base directory in search list
+	int  (*Com_CheckParm)( const char *parm );		// check parm in cmdline  
+	bool (*Com_GetParm)( char *parm, char *out );		// get parm from cmdline
+	void (*Com_FileBase)(char *in, char *out);		// get filename without path & ext
+	bool (*Com_FileExists)(const char *filename);		// return true if file exist
+	long (*Com_FileSize)(const char *filename);		// same as Com_FileExists but return filesize
+	const char *(*Com_FileExtension)(const char *in);		// return extension of file
+	const char *(*Com_RemovePath)(const char *in);		// return file without path
+	void (*Com_StripExtension)(char *path);			// remove extension if present
+	void (*Com_StripFilePath)(const char* const src, char* dst);// get file path without filename.ext
+	void (*Com_DefaultExtension)(char *path, const char *ext );	// append extension if not present
+	void (*Com_ClearSearchPath)( void );			// delete all search pathes
+	void (*Com_CreateThread)(int, bool, void(*fn)(int));	// run individual thread
+	void (*Com_ThreadLock)( void );			// lock current thread
+	void (*Com_ThreadUnlock)( void );			// unlock numthreads
+	int (*Com_NumThreads)( void );			// returns count of active threads
+	bool (*Com_LoadScript)(const char *name,char *buf,int size);// load script into stack from file or bufer
+	bool (*Com_AddScript)(const char *name,char *buf, int size);// include script from file or buffer
+	void (*Com_ResetScript)( void );			// reset current script state
+	char *(*Com_ReadToken)( bool newline );			// get next token on a line or newline
+	bool (*Com_TryToken)( void );				// return 1 if have token on a line 
+	void (*Com_FreeToken)( void );			// free current token to may get it again
+	void (*Com_SkipToken)( void );			// skip current token and jump into newline
+	bool (*Com_MatchToken)( const char *match );		// compare current token with user keyword
+	char *(*Com_ParseToken)(const char **data );		// parse token from char buffer
+	char *(*Com_ParseWord)( const char **data );		// parse word from char buffer
+	search_t *(*Com_Search)(const char *pattern, int casecmp );	// returned list of found files
+	bool (*Com_Filter)(char *filter, char *name, int casecmp ); // compare keyword by mask with filter
+	char *com_token;					// contains current token
 
-	filesystem_api_t		Fs;			// filesystem
-	vfilesystem_api_t		VFs;			// virtual filesystem
+	// real filesystem
+	file_t *(*fopen)(const char* path, const char* mode);		// same as fopen
+	int (*fclose)(file_t* file);					// same as fclose
+	long (*fwrite)(file_t* file, const void* data, size_t datasize);	// same as fwrite
+	long (*fread)(file_t* file, void* buffer, size_t buffersize);	// same as fread, can see trough pakfile
+	int (*fprint)(file_t* file, const char *msg);			// printed message into file		
+	int (*fprintf)(file_t* file, const char* format, ...);		// same as fprintf
+	int (*fgets)(file_t* file, byte *string, size_t bufsize );		// like a fgets, but can return EOF
+	int (*fseek)(file_t* file, fs_offset_t offset, int whence);		// fseek, can seek in packfiles too
+	long (*ftell)(file_t* file);					// like a ftell
 
-	// timelib.c funcs
-	const char* (*time_stamp)( int format );		// returns current time stamp
-	double (*gettime)( void );				// hi-res timer
-	gameinfo_t *GameInfo;				// misc utils
+	// virtual filesystem
+	vfile_t *(*vfcreate)(byte *buffer, size_t buffsize);		// create virtual stream
+	vfile_t *(*vfopen)(const char *filename, const char* mode);		// virtual fopen
+	int (*vfclose)(vfile_t* file);				// free buffer or write dump
+	long (*vfwrite)(vfile_t* file, const void* buf, size_t datasize);	// write into buffer
+	long (*vfwrite2)(vfile_t* handle, byte* buffer, size_t datasize);	// deflate and write into buffer
+	long (*vfread)(vfile_t* file, void* buffer, size_t buffersize);	// read from buffer
+	int (*vfseek)(vfile_t* file, fs_offset_t offset, int whence);	// fseek, can seek in packfiles too
+	bool (*vfunpack)( void* comp, size_t size1, void **buf, size_t size2);// deflate zipped buffer
+	long (*vftell)(vfile_t* file);				// like a ftell
 
-	scriptsystem_api_t		Script;			// parselib.c
+	// filesystem simply user interface
+	byte *(*Com_LoadFile)(const char *path, long *filesize );		// load file into heap
+	bool (*Com_WriteFile)(const char *path, void *data, long len);	// write file into disk
+	rgbdata_t *(*Com_LoadImage)(const char *path, char *data, int size );	// extract image into rgba buffer
+	void (*Com_SaveImage)(const char *filename, rgbdata_t *buffer );	// save image into specified format
+	bool (*Com_ProcessImage)( const char *name, rgbdata_t **pix );	// convert and resample image
+	void (*Com_FreeImage)( rgbdata_t *pack );			// free image buffer
+	bool (*Com_LoadLibrary)( dll_info_t *dll );			// load library 
+	bool (*Com_FreeLibrary)( dll_info_t *dll );			// free library
+	void*(*Com_GetProcAddress)( dll_info_t *dll, const char* name );	// gpa
+	double (*Com_DoubleTime)( void );				// hi-res timer
 
 	// stdlib.c funcs
 	void (*strnupr)(const char *in, char *out, size_t size_out);// convert string to upper case
@@ -944,30 +751,13 @@ typedef struct stdilib_api_s
 	char *(*va)(const char *format, ...);			// print into temp buffer
 	int (*vsnprintf)(char *buf, size_t size, const char *fmt, va_list args);	// format message
 	int (*snprintf)(char *buffer, size_t buffersize, const char *format, ...);	// print into buffer
+	const char* (*timestamp)( int format );			// returns current time stamp
 	
-	// xash dll loading system
-	bool (*LoadLibrary)( dll_info_t *dll );		// load library 
-	bool (*FreeLibrary)( dll_info_t *dll );		// free library
-	void*(*GetProcAddress)( dll_info_t *dll, const char* name ); // gpa
+	// misc utils	
+	gameinfo_t *GameInfo;				// user game info (filled by engine)
+	char com_TXcommand;					// quark command (get rid of this)
 
 } stdlib_api_t;
-
-/*
-==============================================================================
-
-CVAR SYSTEM INTERFACE
-==============================================================================
-*/
-typedef struct cvar_api_s
-{
-	//interface validator
-	size_t	api_size;		// must matched with sizeof(cvar_api_t)
-
-	//cvar_t *(*Register)(const char *name, const char *value, int flags, const char *description );
-	//cvar_t *(*SetString)(const char *name, char *value);
-	//void (*SetValue)(const char *name, float value);
-
-} cvar_api_t;
 
 /*
 ==============================================================================
@@ -980,37 +770,11 @@ typedef struct launch_exp_s
 	// interface validator
 	size_t	api_size;		// must matched with sizeof(launch_api_t)
 
-	void ( *Init ) ( char *funcname, int argc, char **argv ); // init host
+	void ( *Init ) ( uint funcname, int argc, char **argv ); // init host
 	void ( *Main ) ( void ); // host frame
 	void ( *Free ) ( void ); // close host
 
 } launch_exp_t;
-
-/*
-==============================================================================
-
-COMMON.DLL INTERFACE
-==============================================================================
-*/
-
-typedef struct common_exp_s
-{
-	// interface validator
-	size_t	api_size;		// must matched with sizeof(common_api_t)
-
-	// initialize
-	bool (*Init)( int argc, char **argv );	// init all common systems
-	void (*Shutdown)( void );	// shutdown all common systems
-
-	rgbdata_t *(*LoadImage)(const char *filename, char *data, int size );
-	void (*SaveImage)(const char *filename, rgbdata_t *buffer );
-	void (*FreeImage)( rgbdata_t *pack );
-
-	// common systems
-	compilers_api_t	Compile;
-	infostring_api_t	Info;
-
-} common_exp_t;
 
 /*
 ==============================================================================
@@ -1057,17 +821,13 @@ typedef struct render_exp_s
 	void	(*CinematicSetPalette)( const byte *palette);	// NULL = game palette
 	void	(*BeginFrame)( void );
 	void	(*EndFrame)( void );
+
 } render_exp_t;
 
 typedef struct render_imp_s
 {
-	// shared xash systems
-	compilers_api_t	Compile;
-	stdlib_api_t	Stdio;
-
-	rgbdata_t	*(*LoadImage)(const char *filename, char *data, int size );
-	void	(*SaveImage)(const char *filename, rgbdata_t *buffer );
-	void	(*FreeImage)( rgbdata_t *pack );
+	// interface validator
+	size_t	api_size;		// must matched with sizeof(render_imp_t)
 
 	void	(*Cmd_AddCommand) (char *name, void(*cmd)(void));
 	void	(*Cmd_RemoveCommand) (char *name);
@@ -1078,11 +838,6 @@ typedef struct render_imp_s
 	// client fundamental callbacks
 	void	(*StudioEvent)( mstudioevent_t *event, entity_t *ent );
 	void	(*ShowCollision)( void );// debug
-
-	// gamedir will be the current directory that generated
-	// files should be stored to, ie: "f:\quake\id1"
-	char	*(*gamedir)	( void );
-	char	*(*title)		( void );
 
 	cvar_t	*(*Cvar_Get) (char *name, char *value, int flags);
 	void	(*Cvar_Set)( char *name, char *value );
@@ -1117,22 +872,19 @@ typedef struct physic_exp_s
 	// simple objects
 	void (*CreateBOX)( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3_t ang, NewtonCollision **newcol, NewtonBody **newbody );
 	void (*RemoveBOX)( NewtonBody *body );
+
 } physic_exp_t;
 
 typedef struct physic_imp_s
 {
-	// shared xash systems
-	compilers_api_t	Compile;
-	stdlib_api_t	Stdio;
+	// interface validator
+	size_t	api_size;		// must matched with sizeof(physic_imp_t)
 
 	void (*Transform)( sv_edict_t *ed, vec3_t origin, vec3_t angles );
 
 } physic_imp_t;
 
 // this is the only function actually exported at the linker level
-typedef render_exp_t *(*render_t)( render_imp_t* );
-typedef physic_exp_t *(*physic_t)( physic_imp_t* );
-typedef common_exp_t *(*common_t)( stdlib_api_t* );
-typedef launch_exp_t *(*launch_t)( stdlib_api_t* );
+typedef void *(*launch_t)( stdlib_api_t*, void* );
 
 #endif//REF_SYSTEM_H

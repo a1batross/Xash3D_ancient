@@ -71,7 +71,7 @@ bool VID_CreateWindow( int width, int height, bool fullscreen )
 	int				x, y, w, h;
 	int				exstyle;
 
-	strcpy(wndname, FS_Title());//critical stuff.
+	strcpy(wndname, FS_Title ); //critical stuff.
 
 	// Register the frame class
 	wc.style         = 0;

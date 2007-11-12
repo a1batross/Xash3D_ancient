@@ -650,19 +650,6 @@ extern	vec3_t	bytedirs[NUMVERTEXNORMALS];
 /*
 ==============================================================
 
-NON-PORTABLE SYSTEM SERVICES
-
-==============================================================
-*/
-void	Sys_Print(const char *pMsg);
-char	*Sys_ConsoleInput( void );
-void	Sys_SendKeyEvents (void);
-void	Sys_Quit (void);
-char	*Sys_GetClipboardData( void );
-
-/*
-==============================================================
-
 CLIENT / SERVER SYSTEMS
 
 ==============================================================

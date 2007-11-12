@@ -13,14 +13,11 @@ DllMain
 
 ==================
 */
-launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input )
+launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, generic_api_t *unused )
 {
 	static launch_exp_t Editor;
 
-	// Sys_LoadLibrary can create fake instance, to check
-	// api version and api size, but first argument will be 0
-	// and always make exception, run simply check for avoid it
-	if(input)std = *input;
+	std = *input;
 
 	Editor.api_size = sizeof(launch_exp_t);
 

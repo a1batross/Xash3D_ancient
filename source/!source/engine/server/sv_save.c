@@ -10,29 +10,6 @@
 
 byte	*sav_base;
 
-/*
-====================
-CurTime()
-
-returned a time stamp
-====================
-*/
-const char* SV_CurTime( void )
-{
-	static char timestamp [128];
-	time_t crt_time;
-	const struct tm *crt_tm;
-	char timestring [64];
-
-	// Build the time stamp (ex: "Apr2007-03(23.31.55)");
-	time (&crt_time);
-	crt_tm = localtime (&crt_time);
-	strftime (timestring, sizeof (timestring), "%b%d-%Y (%H:%M)", crt_tm);
-          strcpy( timestamp, timestring );
-
-	return timestamp;
-}
-
 void SV_AddSaveLump( dsavehdr_t *hdr, file_t *f, int lumpnum, void *data, int len )
 {
 	lump_t	*lump;
@@ -41,34 +18,6 @@ void SV_AddSaveLump( dsavehdr_t *hdr, file_t *f, int lumpnum, void *data, int le
 	lump->fileofs = LittleLong( FS_Tell(f));
 	lump->filelen = LittleLong(len);
 	FS_Write(f, data, (len + 3) & ~3 );
-}
-
-size_t COM_PackString( byte *buffer, int pos, char *string )
-{
-	int strsize;
-
-	if(!buffer || !string) return 0;
-
-	strsize = strlen( string );
-	if(strsize > MAX_QPATH) strsize = MAX_QPATH; //critical stuff
-	strsize++; // get space for terminator	
-
-	strncpy(buffer + pos, string, strsize ); 
-	return pos + strsize;
-}
-
-size_t COM_UnpackString( byte *buffer, int pos, char *string )
-{
-	int	strsize = 0;
-	char	*in;
-
-	if(!buffer || !string) return 0;
-	in = buffer + pos;
-
-	do { in++, strsize++; } while(*in != '\0' && in != NULL );
-
-	strncpy( string, in - (strsize - 1), strsize ); 
-	return pos + strsize;
 }
 
 void SV_AddCvarLump( dsavehdr_t *hdr, file_t *f )
@@ -101,8 +50,8 @@ void SV_AddCvarLump( dsavehdr_t *hdr, file_t *f )
 			continue;
 		}
 
-		bufsize = COM_PackString(cvbuffer, bufsize, var->name ); 
-		bufsize = COM_PackString(cvbuffer, bufsize, var->string );
+		bufsize = std.strpack(cvbuffer, bufsize, var->name, strlen(var->name)); 
+		bufsize = std.strpack(cvbuffer, bufsize, var->string, strlen(var->name));
 	}
 
 	SV_AddSaveLump( hdr, f, LUMP_GAMECVARS, cvbuffer, bufsize );
@@ -111,13 +60,14 @@ void SV_AddCvarLump( dsavehdr_t *hdr, file_t *f )
 
 void SV_AddCStrLump( dsavehdr_t *hdr, file_t *f )
 {
-	int	i, bufsize = 1; //null terminator
+	int	i, stringsize, bufsize = 1; //null terminator
 	char	*csbuffer = Z_Malloc( MAX_CONFIGSTRINGS * MAX_QPATH );
 
 	//pack the cfg string data
 	for(i = 0; i < MAX_CONFIGSTRINGS; i++)
 	{
-		bufsize = COM_PackString(csbuffer, bufsize, sv.configstrings[i] ); 
+		stringsize = bound(0, strlen(sv.configstrings[i]), MAX_QPATH);
+		bufsize = std.strpack(csbuffer, bufsize, sv.configstrings[i], stringsize ); 
 	}	
 	SV_AddSaveLump( hdr, f, LUMP_CFGSTRING, csbuffer, bufsize );
 	Z_Free( csbuffer ); // free memory
@@ -149,7 +99,7 @@ void SV_WriteSaveFile( char *name )
 	}
 
 	MsgDev (D_INFO, "Saving game... %s\n", name );
-	sprintf (comment, "%s - %s", sv.configstrings[CS_NAME], SV_CurTime());
+	sprintf (comment, "%s - %s", sv.configstrings[CS_NAME], timestamp(TIME_FULL));
 
 	header = (dsavehdr_t *)Z_Malloc( sizeof(dsavehdr_t));
 	header->ident = LittleLong (IDSAVEHEADER);
@@ -196,8 +146,8 @@ void Sav_LoadCvars( lump_t *l )
 
 	while(pos < size)
 	{
-		pos = COM_UnpackString( in, pos, name );  
-		pos = COM_UnpackString( in, pos, string );  
+		pos = std.strunpack( in, pos, name );  
+		pos = std.strunpack( in, pos, string );  
 		Cvar_SetLatched(name, string);
 	}
 }
@@ -225,13 +175,13 @@ void Sav_LoadCfgString( lump_t *l )
 	//unpack the cfg string data
 	for(i = 0; i < MAX_CONFIGSTRINGS; i++)
 	{
-		pos = COM_UnpackString( in, pos, sv.configstrings[i] );  
+		pos = std.strunpack( in, pos, sv.configstrings[i] );  
 	}
 }
 
 void Sav_LoadAreaPortals( lump_t *l )
 {
-	//CM_ReadPortalState
+	// CM_ReadPortalState
 	byte	*in;
 	int	size;
 

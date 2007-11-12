@@ -542,13 +542,13 @@ bool PR_Precompiler(void)
 			pr_file_p = directive+6;
 			while(*pr_file_p <= ' ') pr_file_p++;
 
-			SC_Token()[0] = '\0';
+			com_token[0] = '\0';
 			for(a = 0; *pr_file_p != '\n' && *pr_file_p != '\0'; pr_file_p++) // read on until the end of the line
 			{
-				if ((*pr_file_p == ' ' || *pr_file_p == '\t'|| *pr_file_p == '(') && !*SC_Token())
+				if ((*pr_file_p == ' ' || *pr_file_p == '\t'|| *pr_file_p == '(') && !*com_token)
 				{
 					msg[a] = '\0';
-					strcpy(SC_Token(), msg);
+					strcpy(com_token, msg);
 					a=0;
 					continue;
 				}
@@ -562,9 +562,9 @@ bool PR_Precompiler(void)
 					*end = '\0';
 			}
 
-			if (!*SC_Token())
+			if (!*com_token)
 			{
-				strcpy(SC_Token(), msg);
+				strcpy(com_token, msg);
 				msg[0] = '\0';
 			}
 
@@ -574,7 +574,7 @@ bool PR_Precompiler(void)
 					*end = '\0';
 			}
 
-			if (!stricmp(SC_Token(), "DONT_COMPILE_THIS_FILE"))
+			if (!stricmp(com_token, "DONT_COMPILE_THIS_FILE"))
 			{
 				while (*pr_file_p)
 				{
@@ -586,7 +586,7 @@ bool PR_Precompiler(void)
 					}
 				}
 			}
-			else if (!stricmp(SC_Token(), "COPYRIGHT"))
+			else if (!stricmp(com_token, "COPYRIGHT"))
 			{
 				if (strlen(msg) >= sizeof(v_copyright))
 					PR_ParseWarning(WARN_STRINGTOOLONG, "Copyright message is too long\n");
@@ -596,7 +596,7 @@ bool PR_Precompiler(void)
 			{
 				ForcedCRC = atoi(msg);
 			}
-			else if (!stricmp(SC_Token(), "TARGET"))
+			else if (!stricmp(com_token, "TARGET"))
 			{
 				if (!stricmp(msg, "STANDARD")) target_version = QPROGS_VERSION;
 				else if (!stricmp(msg, "ID")) target_version = QPROGS_VERSION;
@@ -604,14 +604,14 @@ bool PR_Precompiler(void)
 				else if (!stricmp(msg, "VPROGS"))target_version = VPROGS_VERSION;
 				else PR_ParseWarning(WARN_BADTARGET, "Unknown target \'%s\'. Ignored.", msg);
 			}
-			else if (!stricmp(SC_Token(), "warning"))
+			else if (!stricmp(com_token, "warning"))
 			{
 				int st;
 
-				SC_ParseToken(&msg);
-				if (!stricmp(SC_Token(), "enable") || !stricmp(SC_Token(), "on")) st = 0;
-				else if (!stricmp(SC_Token(), "disable") || !stricmp(SC_Token(), "off")) st = 1;
-				else if (!stricmp(SC_Token(), "toggle")) st = 2;
+				Com_ParseToken(&msg);
+				if (!stricmp(com_token, "enable") || !stricmp(com_token, "on")) st = 0;
+				else if (!stricmp(com_token, "disable") || !stricmp(com_token, "off")) st = 1;
+				else if (!stricmp(com_token, "toggle")) st = 2;
 				else
 				{
 					PR_ParseWarning(WARN_BADPRAGMA, "warning state not recognized");
@@ -620,8 +620,8 @@ bool PR_Precompiler(void)
 				if (st >= 0)
 				{
 					int wn;
-					SC_ParseToken(&msg); // just a number of warning
-					wn = atoi(SC_Token());
+					Com_ParseToken(&msg); // just a number of warning
+					wn = atoi(com_token);
 					if (wn < 0 || wn > WARN_CONSTANTCOMPARISON)
 					{
 						PR_ParseWarning(WARN_BADPRAGMA, "warning id not recognised");
@@ -633,7 +633,7 @@ bool PR_Precompiler(void)
 					}
 				}
 			}
-			else PR_ParseWarning(WARN_BADPRAGMA, "Unknown pragma \'%s\'", SC_Token());
+			else PR_ParseWarning(WARN_BADPRAGMA, "Unknown pragma \'%s\'", com_token);
 		}
 		return true;
 	}
@@ -1648,12 +1648,12 @@ int PR_CheakCompConst(void)
 						else
 						{	// stringify
 							pr_file_p++;
-							SC_ParseWord(&pr_file_p);
+							Com_ParseWord(&pr_file_p);
 							if (!pr_file_p) break;
 
 							for (p = 0; p < param; p++)
 							{
-								if (!STRCMP(SC_Token(), c->params[p]))
+								if (!STRCMP(com_token, c->params[p]))
 								{
 									strcat(buffer, "\"");
 									strcat(buffer, paramoffset[p]);
@@ -1664,24 +1664,24 @@ int PR_CheakCompConst(void)
 							if (p == param)
 							{
 								strcat(buffer, "#");
-								strcat(buffer, SC_Token());
+								strcat(buffer, com_token);
 								PR_ParseWarning(0, "Stringification ignored");
 							}
 							continue;// already did this one
 						}
 					}
-					SC_ParseWord(&pr_file_p);
+					Com_ParseWord(&pr_file_p);
 					if (!pr_file_p) break;
 
 					for (p = 0; p < param; p++)
 					{
-						if (!STRCMP(SC_Token(), c->params[p]))
+						if (!STRCMP(com_token, c->params[p]))
 						{
 							strcat(buffer, paramoffset[p]);
 							break;
 						}
 					}
-					if (p == param) strcat(buffer, SC_Token());
+					if (p == param) strcat(buffer, com_token);
 				}
 
 				for (p = 0; p < param-1; p++)
@@ -1794,7 +1794,7 @@ const_t *PR_CheckCompConstDefined(char *def)
 ==============
 PR_Lex
 
-Advanced version of SC_ParseToken()
+Advanced version of Com_ParseToken()
 Sets pr_token, pr_token_type, and possibly pr_immediate and pr_immediate_type
 ==============
 */

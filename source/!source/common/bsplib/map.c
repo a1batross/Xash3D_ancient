@@ -543,8 +543,8 @@ void ParseBrush (bsp_entity_t *mapent)
 	do
 	{
 		g_TXcommand = 0;
-		if (!SC_GetToken (true)) break;
-		if (SC_MatchToken("}")) break;
+		if (!Com_GetToken (true)) break;
+		if (Com_MatchToken("}")) break;
 
 		if (nummapbrushsides == MAX_MAP_BRUSHSIDES)
 			Sys_Error ("MAX_MAP_BRUSHSIDES");
@@ -553,76 +553,76 @@ void ParseBrush (bsp_entity_t *mapent)
 		// read the three point plane definition
 		for (i = 0; i < 3; i++)
 		{
-			if (i != 0) SC_GetToken (true);
-			if(!SC_MatchToken("(")) Sys_Error ("ParseBrush: error parsing %d", b->brushnum );
+			if (i != 0) Com_GetToken (true);
+			if(!Com_MatchToken("(")) Sys_Error ("ParseBrush: error parsing %d", b->brushnum );
 			
 			for (j=0 ; j<3 ; j++)
 			{
-				SC_GetToken (false);
-				planepts[i][j] = atof(SC_Token());
+				Com_GetToken (false);
+				planepts[i][j] = atof(com_token);
 			}
 			
-			SC_GetToken (false);
-			if(!SC_MatchToken(")"))Sys_Error ("parsing brush");
+			Com_GetToken (false);
+			if(!Com_MatchToken(")"))Sys_Error ("parsing brush");
 		}
 
 		// read the texturedef
-		SC_GetToken (false);
-		strcpy (td.name, SC_Token());
+		Com_GetToken (false);
+		strcpy (td.name, com_token);
 
 		if(g_mapversion == VALVE_FORMAT) // Worldcraft 2.2+
                     {
 			// texture U axis
-			SC_GetToken(false);
-			if (strcmp(SC_Token(), "[")) Sys_Error("missing '[' in texturedef (U)");
-			SC_GetToken(false);
-			td.vects.valve.UAxis[0] = atof(SC_Token());
-			SC_GetToken(false);
-			td.vects.valve.UAxis[1] = atof(SC_Token());
-			SC_GetToken(false);
-			td.vects.valve.UAxis[2] = atof(SC_Token());
-			SC_GetToken(false);
-			td.vects.valve.shift[0] = atof(SC_Token());
-			SC_GetToken(false);
-			if (strcmp(SC_Token(), "]")) Sys_Error("missing ']' in texturedef (U)");
+			Com_GetToken(false);
+			if (strcmp(com_token, "[")) Sys_Error("missing '[' in texturedef (U)");
+			Com_GetToken(false);
+			td.vects.valve.UAxis[0] = atof(com_token);
+			Com_GetToken(false);
+			td.vects.valve.UAxis[1] = atof(com_token);
+			Com_GetToken(false);
+			td.vects.valve.UAxis[2] = atof(com_token);
+			Com_GetToken(false);
+			td.vects.valve.shift[0] = atof(com_token);
+			Com_GetToken(false);
+			if (strcmp(com_token, "]")) Sys_Error("missing ']' in texturedef (U)");
 
 			// texture V axis
-			SC_GetToken(false);
-			if (strcmp(SC_Token(), "[")) Sys_Error("missing '[' in texturedef (V)");
-			SC_GetToken(false);
-			td.vects.valve.VAxis[0] = atof(SC_Token());
-			SC_GetToken(false);
-			td.vects.valve.VAxis[1] = atof(SC_Token());
-			SC_GetToken(false);
-			td.vects.valve.VAxis[2] = atof(SC_Token());
-			SC_GetToken(false);
-			td.vects.valve.shift[1] = atof(SC_Token());
-			SC_GetToken(false);
-			if (strcmp(SC_Token(), "]")) Sys_Error("missing ']' in texturedef (V)");
+			Com_GetToken(false);
+			if (strcmp(com_token, "[")) Sys_Error("missing '[' in texturedef (V)");
+			Com_GetToken(false);
+			td.vects.valve.VAxis[0] = atof(com_token);
+			Com_GetToken(false);
+			td.vects.valve.VAxis[1] = atof(com_token);
+			Com_GetToken(false);
+			td.vects.valve.VAxis[2] = atof(com_token);
+			Com_GetToken(false);
+			td.vects.valve.shift[1] = atof(com_token);
+			Com_GetToken(false);
+			if (strcmp(com_token, "]")) Sys_Error("missing ']' in texturedef (V)");
 
 			// Texture rotation is implicit in U/V axes.
-			SC_GetToken(false);
+			Com_GetToken(false);
 			td.vects.valve.rotate = 0;
 
 			// texure scale
-			SC_GetToken(false);
-			td.vects.valve.scale[0] = atof(SC_Token());
-			SC_GetToken(false);
-			td.vects.valve.scale[1] = atof(SC_Token());
+			Com_GetToken(false);
+			td.vects.valve.scale[0] = atof(com_token);
+			Com_GetToken(false);
+			td.vects.valve.scale[1] = atof(com_token);
                     }
 		else
 		{
 			// Worldcraft 2.1-, Radiant
-			SC_GetToken (false);
-			td.vects.valve.shift[0] = atof(SC_Token());
-			SC_GetToken (false);
-			td.vects.valve.shift[1] = atof(SC_Token());
-			SC_GetToken (false);
-			td.vects.valve.rotate = atof(SC_Token());	
-			SC_GetToken (false);
-			td.vects.valve.scale[0] = atof(SC_Token());
-			SC_GetToken (false);
-			td.vects.valve.scale[1] = atof(SC_Token());
+			Com_GetToken (false);
+			td.vects.valve.shift[0] = atof(com_token);
+			Com_GetToken (false);
+			td.vects.valve.shift[1] = atof(com_token);
+			Com_GetToken (false);
+			td.vects.valve.rotate = atof(com_token);	
+			Com_GetToken (false);
+			td.vects.valve.scale[0] = atof(com_token);
+			Com_GetToken (false);
+			td.vects.valve.scale[1] = atof(com_token);
                     }
 
 		if ((g_TXcommand == '1' || g_TXcommand == '2'))
@@ -680,13 +680,13 @@ void ParseBrush (bsp_entity_t *mapent)
                     
 		//Msg("flags %d, value %d, contents %d\n", td.flags, td.value, side->contents );
 		
-		if (SC_TryToken()) //first SC_Token() will be get automatically
+		if (Com_TryToken()) //first com_token will be get automatically
 		{
-			side->contents = atoi(SC_Token());
-			SC_GetToken (false);
-			side->surf = td.flags = atoi(SC_Token());
-			SC_GetToken (false);
-			td.value = atoi(SC_Token());
+			side->contents = atoi(com_token);
+			Com_GetToken (false);
+			side->surf = td.flags = atoi(com_token);
+			Com_GetToken (false);
+			td.value = atoi(com_token);
 		}
 
 		// translucent objects are automatically classified as detail
@@ -889,9 +889,9 @@ bool	ParseMapEntity (void)
 	vec_t		newdist;
 	mapbrush_t	*b;
 
-	if (!SC_GetToken (true)) return false;
+	if (!Com_GetToken (true)) return false;
 
-	if(!SC_MatchToken( "{" )) Sys_Error ("ParseEntity: { not found");
+	if(!Com_MatchToken( "{" )) Sys_Error ("ParseEntity: { not found");
 	
 	if (num_entities == MAX_MAP_ENTITIES)
 		Sys_Error ("num_entities == MAX_MAP_ENTITIES");
@@ -909,9 +909,9 @@ bool	ParseMapEntity (void)
 
 	do
 	{
-		if (!SC_GetToken (true)) Sys_Error ("ParseEntity: EOF without closing brace");
-		if (SC_MatchToken( "}")) break;
-		if (SC_MatchToken( "{")) ParseBrush (mapent);
+		if (!Com_GetToken (true)) Sys_Error ("ParseEntity: EOF without closing brace");
+		if (Com_MatchToken( "}")) break;
+		if (Com_MatchToken( "{")) ParseBrush (mapent);
 		else
 		{
 			e = ParseEpair ();
@@ -993,7 +993,7 @@ void LoadMapFile (void)
           char path[MAX_SYSPATH];
 	
 	sprintf (path, "maps/%s.map", gs_mapname );
-	load = FS_LoadScript(path, NULL, 0);
+	load = Com_LoadScript(path, NULL, 0);
 
 	nummapbrushsides = 0;
 	num_entities = 0;

@@ -870,18 +870,18 @@ void PRVM_ED_ParseGlobals (const char *data)
 	while (1)
 	{
 		// parse key
-		if (!COM_Parse(&data))
+		if (!Com_ParseToken(&data))
 			PRVM_ERROR ("PRVM_ED_ParseGlobals: EOF without closing brace");
-		if (COM_Token[0] == '}')
+		if (com_token[0] == '}')
 			break;
 
-		strncpy (keyname, COM_Token, sizeof(keyname));
+		strncpy (keyname, com_token, sizeof(keyname));
 
 		// parse value
-		if (!COM_Parse(&data))
+		if (!Com_ParseToken(&data))
 			PRVM_ERROR ("PRVM_ED_ParseGlobals: EOF without closing brace");
 
-		if (COM_Token[0] == '}')
+		if (com_token[0] == '}')
 			PRVM_ERROR ("PRVM_ED_ParseGlobals: closing brace without data");
 
 		key = PRVM_ED_FindGlobal (keyname);
@@ -891,7 +891,7 @@ void PRVM_ED_ParseGlobals (const char *data)
 			continue;
 		}
 
-		if (!PRVM_ED_ParseEpair(NULL, key, COM_Token))
+		if (!PRVM_ED_ParseEpair(NULL, key, com_token))
 			PRVM_ERROR ("PRVM_ED_ParseGlobals: parse error");
 	}
 }
@@ -1058,23 +1058,23 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 	while (1)
 	{
 		// parse key
-		if (!COM_Parse(&data))
+		if (!Com_ParseToken(&data))
 			PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
 
-		newline = (COM_Token[0] == '}') ? true : false;
-		if(!newline) MsgDev(D_NOTE, "Key: \"%s\"", COM_Token);
+		newline = (com_token[0] == '}') ? true : false;
+		if(!newline) MsgDev(D_NOTE, "Key: \"%s\"", com_token);
 		else break;
 
 		// anglehack is to allow QuakeEd to write single scalar angles
 		// and allow them to be turned into vectors. (FIXME...)
-		if (!strcmp(COM_Token, "angle"))
+		if (!strcmp(com_token, "angle"))
 		{
-			strncpy (COM_Token, "angles", MAX_QPATH);
+			strncpy (com_token, "angles", MAX_QPATH);
 			anglehack = true;
 		}
 		else anglehack = false;
 		
-		strncpy (keyname, COM_Token, sizeof(keyname));
+		strncpy (keyname, com_token, sizeof(keyname));
 
 		// another hack to fix keynames with trailing spaces
 		n = strlen(keyname);
@@ -1085,11 +1085,11 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 		}
 
 		// parse value
-		if (!COM_Parse(&data))
+		if (!Com_ParseToken(&data))
 			PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
-		MsgDev(D_NOTE, " \"%s\"\n", COM_Token);
+		MsgDev(D_NOTE, " \"%s\"\n", com_token);
 
-		if (COM_Token[0] == '}')
+		if (com_token[0] == '}')
 			PRVM_ERROR ("PRVM_ED_ParseEdict: closing brace without data");
 
 		init = true;
@@ -1113,11 +1113,11 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 		{
 			char	temp[32];
 
-			strncpy (temp, COM_Token, sizeof(temp));
-			sprintf (COM_Token, "0 %s 0", temp);
+			strncpy (temp, com_token, sizeof(temp));
+			sprintf (com_token, "0 %s 0", temp);
 		}
 
-		if (!PRVM_ED_ParseEpair(ent, key, COM_Token))
+		if (!PRVM_ED_ParseEpair(ent, key, com_token))
 			PRVM_ERROR ("PRVM_ED_ParseEdict: parse error");
 	}
 
@@ -1158,9 +1158,9 @@ void PRVM_ED_LoadFromFile (const char *data)
 	while (1)
 	{
 		// parse the opening brace
-		if (!COM_Parse(&data)) break;
-		if (COM_Token[0] != '{')
-			PRVM_ERROR ("PRVM_ED_LoadFromFile: %s: found %s when expecting {", PRVM_NAME, COM_Token);
+		if (!Com_ParseToken(&data)) break;
+		if (com_token[0] != '{')
+			PRVM_ERROR ("PRVM_ED_LoadFromFile: %s: found %s when expecting {", PRVM_NAME, com_token);
 
 		// CHANGED: this is not conform to PR_LoadFromFile
 		if(prog->loadintoworld)
@@ -1236,7 +1236,7 @@ void PRVM_ResetProg()
 {
 	PRVM_GCALL(reset_cmd)();
 	Mem_FreePool(&prog->progs_mempool);
-	memset(prog,0,sizeof(prvm_prog_t));
+	memset(prog, 0, sizeof(prvm_prog_t));
 }
 
 /*
@@ -1333,7 +1333,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		break;
 	} 
 
-	//try to recognize progs.dat by crc
+	// try to recognize progs.dat by crc
 	switch(prog->progs->crc)
 	{
 	case PROG_CRC_SERVER:
@@ -1373,7 +1373,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 
 		MsgDev(D_NOTE, "Unpacked statements: len %d, comp len %d\n", len, complen );                   
 		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
-		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)prog->statements)+1), &s);
+		VFS_Unpack((char *)(((int *)prog->statements)+1), complen, &s, len ); 
 		prog->statements = (dstatement16_t *)s;
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
@@ -1394,7 +1394,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 
 		MsgDev(D_NOTE, "Unpacked defs: len %d, comp len %d\n", len, complen);                   
 		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
-		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)prog->globaldefs)+1), &s);
+		VFS_Unpack((char *)(((int *)prog->globaldefs)+1), complen, &s, len ); 
 		prog->globaldefs = (ddef16_t *)s;
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
@@ -1415,7 +1415,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 
 		MsgDev(D_NOTE, "Unpacked fields: len %d, comp len %d\n", len, complen );                   
 		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
-		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)infielddefs)+1), &s);
+		VFS_Unpack((char *)(((int *)infielddefs)+1), complen, &s, len ); 
 		infielddefs = (ddef16_t *)s;
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
@@ -1427,7 +1427,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 
 		MsgDev(D_NOTE, "Unpacked functions: len %d, comp len %d\n", len, complen );                   
 		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
-		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)dfunctions)+1), &s);
+		VFS_Unpack((char *)(((int *)dfunctions)+1), complen, &s, len ); 
 		dfunctions = (dfunction_t *)s;
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
@@ -1439,7 +1439,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 
 		MsgDev(D_NOTE, "Unpacked strings: count %d, len %d, comp len %d\n", prog->progs->numstrings, len, complen );                   
 		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
-		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)prog->strings)+1), &s);
+		VFS_Unpack((char *)(((int *)prog->strings)+1), complen, &s, len ); 
 		prog->strings = (char *)s;
 
 		prog->progs->ofs_strings += 4;
@@ -1453,7 +1453,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 
 		MsgDev(D_NOTE, "Unpacked globals: len %d, comp len %d\n", len, complen );                   
 		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
-		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)prog->globals.gp)+1), &s);
+		VFS_Unpack((char *)(((int *)prog->globals.gp)+1), complen, &s, len ); 
 		prog->globals.gp = (float *)s;
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
@@ -1465,7 +1465,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 
 		MsgDev(D_NOTE, "Unpacked linenums: len %d, comp len %d\n", len, complen );                   
 		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
-		Com->Compile.DecryptDAT(complen, len, 2, (char *)(((int *)prog->linenums)+1), &s);
+		VFS_Unpack((char *)(((int *)prog->linenums)+1), complen, &s, len ); 
 		prog->linenums = (int *)s;
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
@@ -1477,7 +1477,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 
 		MsgDev(D_NOTE, "Unpacked types: len %d, comp len %d\n", len, complen );                   
 		s = Mem_Alloc(prog->progs_mempool, len ); // alloc memory for inflate block
-		Com->Compile.DecryptDAT( complen, len, 2, (char *)(((int *)prog->types)+1), &s);
+		VFS_Unpack((char *)(((int *)prog->types)+1), complen, &s, len ); 
 		prog->types = (type_t *)s;
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
@@ -1947,7 +1947,7 @@ void VM_Error (const char *fmt, ...)
 	vsprintf (msg, fmt, argptr);
 	va_end (argptr);
 
-	Host_Error ("Prvm error: %s", msg);
+	Msg ("Prvm error: %s", msg);
 }
 
 /*

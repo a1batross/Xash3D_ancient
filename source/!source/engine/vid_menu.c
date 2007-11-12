@@ -96,7 +96,6 @@ void VID_MenuInit( void )
 {
 	static const char *resolutions[] = 
 	{
-		"[320 240  ]",
 		"[640 480  ]",
 		"[800 600  ]",
 		"[1024 768 ]",

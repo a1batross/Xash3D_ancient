@@ -3,11 +3,12 @@
 //			image.c - loading textures
 //=======================================================================
 
-#include "platform.h"
-#include "utils.h"
-#include "archive.h"
+#include "launch.h"
+#include "basemath.h" // nearest_pow
+#include "ref_rgbdata.h"
+#include "image.h"
 
-//global image variables
+// global image variables
 int image_width, image_height;
 byte image_num_layers = 1;	// num layers in
 byte image_num_mips = 4;	// build mipmaps
@@ -17,7 +18,6 @@ byte image_bits_count;	// bits per RGBA
 size_t image_size;		// image rgba size
 uint image_ptr;
 
-byte *imagepool;		// general image pool
 byte *image_palette;	// palette pointer
 byte *image_rgba;		// image pointer (see image_type for details)
 
@@ -28,136 +28,243 @@ byte *image_cubemap;	// cubemap pack
 uint cubemap_image_type;	// shared image type
 char *suf[6] = {"ft", "bk", "rt", "lf", "up", "dn"};
 
-bool ImageValidSize( char *name )
+uint d_8toD1table[256];
+uint d_8toQ1table[256];
+uint d_8toQ2table[256];
+uint d_8to24table[256];
+uint *d_currentpal;
+bool d1palette_init = false;
+bool q1palette_init = false;
+bool q2palette_init = false;
+
+//=======================================================================
+//			IMGLIB COMMON TOOLS
+//=======================================================================
+
+bool Image_ValidSize( char *name )
 {
 	if(image_width > 4096 || image_height > 4096 || image_width <= 0 || image_height <= 0)
 	{
-		MsgWarn( "ImageValidSize: (%s) image size out of range [%dx%d]\n", name, image_width, image_height );
+		MsgWarn( "Image_ValidSize: (%s) image size out of range [%dx%d]\n", name, image_width, image_height );
 		return false;
 	}
 	return true;
 }
 
-/*
-==============
-LoadBMP
-==============
-*/
-bool LoadBMP( char *name, char *buffer, int filesize )
+void Image_GetPalette( byte *pal, uint *d_table )
 {
-	int	columns, rows, numPixels;
-	byte	*buf_p = buffer;
-	int	row, column;
-	byte	*pixbuf;
-	bmp_t	bmpHeader;
-	byte	*bmpRGBA;
-							//move pointer
-	Mem_Copy( bmpHeader.id, buf_p, 2 );			buf_p += 2;
-	bmpHeader.fileSize = BuffLittleLong( buf_p );		buf_p += 4;
-	bmpHeader.reserved0 = BuffLittleLong( buf_p );		buf_p += 4;
-	bmpHeader.bitmapDataOffset = BuffLittleLong( buf_p );	buf_p += 4;
-	bmpHeader.bitmapHeaderSize = BuffLittleLong( buf_p );	buf_p += 4;
-	bmpHeader.width = BuffLittleLong( buf_p );		buf_p += 4;
-	bmpHeader.height = BuffLittleLong( buf_p );		buf_p += 4;
-	bmpHeader.planes = BuffLittleShort( buf_p );		buf_p += 2;
-	bmpHeader.bitsPerPixel = BuffLittleShort( buf_p );	buf_p += 2;
-	bmpHeader.compression = BuffLittleLong( buf_p );		buf_p += 4;
-	bmpHeader.bitmapDataSize = BuffLittleLong( buf_p );	buf_p += 4;
-	bmpHeader.hRes = BuffLittleLong( buf_p );		buf_p += 4;
-	bmpHeader.vRes = BuffLittleLong( buf_p );		buf_p += 4;
-	bmpHeader.colors = BuffLittleLong( buf_p );		buf_p += 4;
-	bmpHeader.importantColors = BuffLittleLong( buf_p );	buf_p += 4;
+	int	i;
+	byte	rgba[4];
 
-	Mem_Copy( bmpHeader.palette, buf_p, sizeof( bmpHeader.palette ));
-	if ( bmpHeader.bitsPerPixel == 8 ) buf_p += 1024;
-
-	if ( bmpHeader.id[0] != 'B' && bmpHeader.id[1] != 'M' ) return false; // it's not a bmp file, just skip it
-	if ( bmpHeader.fileSize != filesize )
+	// setup palette
+	for (i = 0; i < 256; i++)
 	{
-		MsgWarn( "LoadBMP: (%s) declared filesize does not match real filesize (%d vs. %d)\n", name, bmpHeader.fileSize, filesize );
-		return false;
+		rgba[0] = 0xFF;
+		rgba[3] = pal[i*3+0];
+		rgba[2] = pal[i*3+1];
+		rgba[1] = pal[i*3+2];
+		d_table[i] = BuffBigLong( rgba );
 	}
-	if ( bmpHeader.compression != 0 )
+}
+
+void Image_GetD1Palette( void )
+{
+	if(!d1palette_init)
 	{
-		MsgWarn( "LoadBMP: (%s) compressed BMP files is not supported\n", name );
-		return false;
+		Image_GetPalette( palette_d1, d_8toD1table );
+		d_8toD1table[255] = 247; // 247 is transparent
+		d1palette_init = true;
 	}
-	if ( bmpHeader.bitsPerPixel < 8 )
+	d_currentpal = d_8toD1table;
+}
+
+void Image_GetQ1Palette( void )
+{
+	if(!q1palette_init)
 	{
-		MsgWarn( "LoadBMP: (%s) unsupported monochrome format\n", name );
-		return false;
+		Image_GetPalette( palette_q1, d_8toQ1table );
+		d_8toQ1table[255] = 0; // 255 is transparent
+		q1palette_init = true;
+	}
+	d_currentpal = d_8toQ1table;
+}
+
+void Image_GetQ2Palette( void )
+{
+	if(!q2palette_init)
+	{
+		Image_GetPalette( palette_q2, d_8toQ2table );
+		d_8toQ2table[255] &= LittleLong(0xffffff);
+		q2palette_init = true;
+	}
+	d_currentpal = d_8toQ2table;
+}
+
+void Image_GetPalettePCX( byte *pal )
+{
+	if(pal)
+	{
+		Image_GetPalette( pal, d_8to24table );
+		d_8to24table[255] &= LittleLong(0xffffff);
+		d_currentpal = d_8to24table;
+	}
+	else Image_GetQ2Palette();          
+}
+
+/*
+============
+Image_Copy8bitRGBA
+
+NOTE: must call Image_GetQ2Palette or Image_GetQ1Palette
+before used
+============
+*/
+void Image_Copy8bitRGBA(const byte *in, byte *out, int pixels)
+{
+	int *iout = (int *)out;
+
+	if(!d_currentpal)
+	{
+		MsgDev(D_ERROR,"Image_Copy8bitRGBA: no palette set\n");
+		return;
 	}
 
-	columns = bmpHeader.width;
-	rows = bmpHeader.height;
-	if ( rows < 0 ) rows = -rows;
-	numPixels = columns * rows;
-
-	image_width = columns; 
-	image_height = rows;
-	image_num_layers = 1;
-	image_type = PF_RGBA_32;
-	image_size = numPixels * 4;
-
-	if(bmpHeader.bitsPerPixel == 32) image_flags |= IMAGE_HAS_ALPHA;
-	if(!ImageValidSize( name )) return false;
-	image_rgba = bmpRGBA = Mem_Alloc( imagepool, image_size );
-
-	for ( row = rows-1; row >= 0; row-- )
+	while (pixels >= 8)
 	{
-		pixbuf = bmpRGBA + row * columns * 4;
+		iout[0] = d_currentpal[in[0]];
+		iout[1] = d_currentpal[in[1]];
+		iout[2] = d_currentpal[in[2]];
+		iout[3] = d_currentpal[in[3]];
+		iout[4] = d_currentpal[in[4]];
+		iout[5] = d_currentpal[in[5]];
+		iout[6] = d_currentpal[in[6]];
+		iout[7] = d_currentpal[in[7]];
+		in += 8;
+		iout += 8;
+		pixels -= 8;
+	}
+	if (pixels & 4)
+	{
+		iout[0] = d_currentpal[in[0]];
+		iout[1] = d_currentpal[in[1]];
+		iout[2] = d_currentpal[in[2]];
+		iout[3] = d_currentpal[in[3]];
+		in += 4;
+		iout += 4;
+	}
+	if (pixels & 2)
+	{
+		iout[0] = d_currentpal[in[0]];
+		iout[1] = d_currentpal[in[1]];
+		in += 2;
+		iout += 2;
+	}
+	if (pixels & 1)
+		iout[0] = d_currentpal[in[0]];
+}
 
-		for ( column = 0; column < columns; column++ )
+
+void Image_RoundDimensions(int *scaled_width, int *scaled_height)
+{
+	int width = *scaled_width;
+	int height = *scaled_height;
+
+	width = nearest_pow( width );
+	height = nearest_pow( height);
+
+	*scaled_width = bound(1, width, 4096 );
+	*scaled_height = bound(1, height, 4096 );
+}
+
+byte *Image_Resample(uint *in, int inwidth, int inheight, int outwidth, int outheight, int in_type )
+{
+	int		i, j;
+	uint		frac, fracstep;
+	uint		*inrow1, *inrow2;
+	byte		*pix1, *pix2, *pix3, *pix4;
+	uint		*out, *buf, p1[4096], p2[4096];
+
+	// check for buffers
+	if(!in) return NULL;
+
+	// nothing to resample ?
+	if (inwidth == outwidth && inheight == outheight)
+		return (byte *)in;
+
+	// can't resample compressed formats
+	if(in_type != PF_RGBA_32) return NULL;
+
+	// malloc new buffer
+	out = buf = (uint *)Mem_Alloc( Sys.imagepool, outwidth * outheight * 4 );
+
+	fracstep = inwidth * 0x10000 / outwidth;
+	frac = fracstep>>2;
+
+	for( i = 0; i < outwidth; i++)
+	{
+		p1[i] = 4 * (frac>>16);
+		frac += fracstep;
+	}
+	frac = 3 * (fracstep>>2);
+
+	for( i = 0; i < outwidth; i++)
+	{
+		p2[i] = 4 * (frac>>16);
+		frac += fracstep;
+	}
+
+	for (i = 0; i < outheight; i++,buf += outwidth)
+	{
+		inrow1 = in + inwidth * (int)((i + 0.25) * inheight / outheight);
+		inrow2 = in + inwidth * (int)((i + 0.75) * inheight / outheight);
+		frac = fracstep>>1;
+
+		for (j = 0; j < outwidth; j++)
 		{
-			byte red, green, blue, alpha;
-			int palIndex, x;
-			word shortPixel;
-
-			switch( bmpHeader.bitsPerPixel )
-			{
-			case 8:
-				x = column;
-				palIndex = *buf_p++;
-				*pixbuf++ = bmpHeader.palette[palIndex][2];
-				*pixbuf++ = bmpHeader.palette[palIndex][1];
-				*pixbuf++ = bmpHeader.palette[palIndex][0];
-				*pixbuf++ = 0xff;
-				break;
-			case 16:
-				shortPixel = *(word*)pixbuf;
-				pixbuf += 2;
-				*pixbuf++ = ( shortPixel & ( 31 << 10 ) ) >> 7;
-				*pixbuf++ = ( shortPixel & ( 31 << 5 ) ) >> 2;
-				*pixbuf++ = ( shortPixel & ( 31 ) ) << 3;
-				*pixbuf++ = 0xff;
-				break;
-
-			case 24:
-				blue = *buf_p++;
-				green = *buf_p++;
-				red = *buf_p++;
-				*pixbuf++ = red;
-				*pixbuf++ = green;
-				*pixbuf++ = blue;
-				*pixbuf++ = 255;
-				break;
-			case 32:
-				blue = *buf_p++;
-				green = *buf_p++;
-				red = *buf_p++;
-				alpha = *buf_p++;
-				*pixbuf++ = red;
-				*pixbuf++ = green;
-				*pixbuf++ = blue;
-				*pixbuf++ = alpha;
-				break;
-			default:
-				MsgWarn("LoadBMP: (%s) have illegal pixel size '%d'\n", name, bmpHeader.bitsPerPixel );
-				return false;
-			}
+			pix1 = (byte *)inrow1 + p1[j];
+			pix2 = (byte *)inrow1 + p2[j];
+			pix3 = (byte *)inrow2 + p1[j];
+			pix4 = (byte *)inrow2 + p2[j];
+			((byte *)(buf+j))[0] = (pix1[0] + pix2[0] + pix3[0] + pix4[0])>>2;
+			((byte *)(buf+j))[1] = (pix1[1] + pix2[1] + pix3[1] + pix4[1])>>2;
+			((byte *)(buf+j))[2] = (pix1[2] + pix2[2] + pix3[2] + pix4[2])>>2;
+			((byte *)(buf+j))[3] = (pix1[3] + pix2[3] + pix3[3] + pix4[3])>>2;
 		}
 	}
-	return true;
+	return (byte *)out;
+}
+
+bool Image_Processing( const char *name, rgbdata_t **pix )
+{
+	int		w, h;
+	rgbdata_t		*image = *pix;
+	byte		*out;
+	char		width[4], height[4];
+
+	//check for buffers
+	if(!image || !image->buffer) return false;
+
+	w = image->width;
+	h = image->height;
+
+	if(FS_GetParmFromCmdLine("-w", width ) && FS_GetParmFromCmdLine("-h", height ))
+	{
+		// custom size
+		w = bound(4, atoi(width), 512 );
+		h = bound(4, atoi(height), 512);
+	}
+	else Image_RoundDimensions( &w, &h ); // auto detect new size
+
+	out = Image_Resample((uint *)image->buffer, image->width, image->height, w, h, image->type );
+	if(out != image->buffer)
+	{
+		MsgDev(D_INFO,"Resampling %s from[%d x %d] to[%d x %d]\n",name, image->width, image->height, w, h );
+		Mem_Move( Sys.imagepool, &image->buffer, out, w * h * 4 );// update image->buffer
+		image->width = w,image->height = h;
+		*pix = image;
+		return true;
+	}
+	return false;
 }
 
 /*
@@ -185,7 +292,7 @@ bool LoadWAL( char *name, char *buffer, int filesize )
 	ofs = LittleLong(wal.offsets[0]);
 	contents = LittleLong(wal.contents);
 	
-	if(!ImageValidSize( name )) return false;
+	if(!Image_ValidSize( name )) return false;
 
 	pixels = image_width * image_height;
 	mipsize = (int)sizeof(wal) + ofs + pixels;
@@ -198,7 +305,7 @@ bool LoadWAL( char *name, char *buffer, int filesize )
 		return false;
 	}
 
-	image_rgba = (byte *)Mem_Alloc( imagepool, image_size );
+	image_rgba = (byte *)Mem_Alloc( Sys.imagepool, image_size );
 	image_num_layers = 1;
 	image_type = PF_RGBA_32;
 
@@ -232,7 +339,7 @@ bool LoadLMP( char *name, char *buffer, int filesize )
 	image_width = LittleLong(lmp.width);
 	image_height = LittleLong(lmp.height);
 
-	if(!ImageValidSize( name )) return false;         
+	if(!Image_ValidSize( name )) return false;         
           image_size = image_width * image_height * 4;
 	pixels = image_width * image_height;
 	
@@ -242,7 +349,7 @@ bool LoadLMP( char *name, char *buffer, int filesize )
 		return false;
 	}
 
-	image_rgba = (byte *)Mem_Alloc(imagepool, image_size );
+	image_rgba = (byte *)Mem_Alloc(Sys.imagepool, image_size );
 	image_num_layers = 1;
 	image_type = PF_RGBA_32;
 
@@ -282,7 +389,7 @@ bool LoadMIP( char *name, char *buffer, int filesize )
 	image_height = LittleLong(mip.height);
 	ofs = LittleLong(mip.offsets[0]);
 
-	if(!ImageValidSize( name )) return false;         
+	if(!Image_ValidSize( name )) return false;         
           image_size = image_width * image_height * 4;
 	pixels = image_width * image_height;
 	
@@ -292,7 +399,7 @@ bool LoadMIP( char *name, char *buffer, int filesize )
 		return false;
 	}
 
-	image_rgba = (byte *)Mem_Alloc(imagepool, image_size );
+	image_rgba = (byte *)Mem_Alloc(Sys.imagepool, image_size );
 	image_num_layers = 1;
 	image_type = PF_RGBA_32;
 
@@ -343,7 +450,7 @@ bool LoadPCX( char *name, char *buffer, int filesize )
 		MsgWarn("LoadPCX: (%s) have illegal pixel size '%d'\n", name, pcx.bits_per_pixel );
 		return false;
 	}
-	if(!ImageValidSize( name )) return false;
+	if(!Image_ValidSize( name )) return false;
 	palette = buffer + filesize - 768;
 
 	image_num_layers = 1;
@@ -351,14 +458,14 @@ bool LoadPCX( char *name, char *buffer, int filesize )
 
 	if(palette)
 	{
-		image_palette = Mem_Alloc( imagepool, 768 );
+		image_palette = Mem_Alloc( Sys.imagepool, 768 );
 		Mem_Copy( image_palette, palette, 768 );
 	}	
 
 	s = image_width * image_height;
 	image_size = image_width * image_height * 4;
-	pbuf = (byte *)Mem_Alloc( imagepool, s );
-	image_rgba = (byte *)Mem_Alloc( imagepool, image_size );
+	pbuf = (byte *)Mem_Alloc( Sys.imagepool, s );
+	image_rgba = (byte *)Mem_Alloc( Sys.imagepool, image_size );
 	trans = (uint *)image_rgba;
 	enddata = palette;
 
@@ -400,7 +507,7 @@ bool LoadPCX( char *name, char *buffer, int filesize )
 		else trans[i] = d_currentpal[p];
 	}
 
-	Free( pbuf ); // free compressed image
+	Mem_Free( pbuf ); // free compressed image
 	return true;
 }
 
@@ -437,7 +544,7 @@ bool LoadTGA( char *name, char *buffer, int filesize )
 	targa_header.width = image_width = BuffLittleShort( fin ); fin += 2;
 	targa_header.height = image_height = BuffLittleShort( fin );fin += 2;
 
-	if(!ImageValidSize( name )) return false;
+	if(!Image_ValidSize( name )) return false;
 
 	image_num_layers = 1;
 	image_type = PF_RGBA_32; //always exctracted to 32-bit buffer
@@ -464,7 +571,7 @@ bool LoadTGA( char *name, char *buffer, int filesize )
 			MsgWarn("LoadTGA: (%s) have unspported indexed colormap\n", name );
 			return false;
 		}
-		image_palette = Mem_Alloc(imagepool, 256*4 );
+		image_palette = Mem_Alloc(Sys.imagepool, 256*4 );
 
 		if (targa_header.colormap_size == 24)
 		{
@@ -543,7 +650,7 @@ bool LoadTGA( char *name, char *buffer, int filesize )
 
 	image_flags |= alphabits ? IMAGE_HAS_ALPHA : 0;
 	image_size = image_width * image_height * 4;
-	image_rgba = Mem_Alloc( imagepool, image_size );
+	image_rgba = Mem_Alloc( Sys.imagepool, image_size );
 
 	// If bit 5 of attributes isn't set, the image has been stored from bottom to top
 	if ((targa_header.attributes & 0x20) == 0)
@@ -861,7 +968,7 @@ void dds_get_pixelformat( dds_t *hdr )
 	if(image_type == PF_ARGB_32 || image_type == PF_LUMINANCE || image_type == PF_LUMINANCE_16 || image_type == PF_LUMINANCE_ALPHA)
 	{
 		//store RGBA mask into one block, and get palette pointer
-		byte *tmp = image_palette = Mem_Alloc( imagepool, sizeof(uint) * 4 );
+		byte *tmp = image_palette = Mem_Alloc( Sys.imagepool, sizeof(uint) * 4 );
 		Mem_Copy( tmp, &hdr->dsPixelFormat.dwRBitMask, sizeof(uint)); tmp += 4;
 		Mem_Copy( tmp, &hdr->dsPixelFormat.dwGBitMask, sizeof(uint)); tmp += 4;
 		Mem_Copy( tmp, &hdr->dsPixelFormat.dwBBitMask, sizeof(uint)); tmp += 4;
@@ -993,7 +1100,7 @@ bool LoadDDS( char *name, char *buffer, int filesize )
 	image_height = header.dwHeight;
 	image_bits_count = header.dsPixelFormat.dwRGBBitCount;
 	if(header.dwFlags & DDS_DEPTH) image_num_layers = header.dwDepth;
-	if(!ImageValidSize( name )) return false;
+	if(!Image_ValidSize( name )) return false;
 
 	dds_get_pixelformat( &header );// and image type too :)
 	dds_addjust_volume_texture( &header );
@@ -1008,7 +1115,7 @@ bool LoadDDS( char *name, char *buffer, int filesize )
 	if(image_size == 0) return false; // just in case
 
 	// dds files will be uncompressed on a render. requires minimal of info for set this
-	image_rgba = Mem_Alloc( imagepool, image_size ); 
+	image_rgba = Mem_Alloc( Sys.imagepool, image_size ); 
 	Mem_Copy( image_rgba, fin, image_size );
 
 	return true;
@@ -1489,10 +1596,10 @@ bool LoadJPG(char *name, char *buffer, int filesize )
 	image_width = jpg_file.width;
 	image_height = jpg_file.height;
 	image_type = PF_RGBA_32;
-	if(!ImageValidSize( name )) return false;
+	if(!Image_ValidSize( name )) return false;
 
 	image_size = jpg_file.width * jpg_file.height * 4;
-	jpg_file.data = Mem_Alloc( imagepool, image_size );
+	jpg_file.data = Mem_Alloc( Sys.imagepool, image_size );
 
 	jpeg_decompress();
 	if(jpg_file.num_components == 1) jpeg_gray2rgba();        
@@ -1516,7 +1623,6 @@ loadformat_t load_formats[] =
 	{"textures/%s%s.%s", "dds", LoadDDS},
 	{"textures/%s%s.%s", "tga", LoadTGA},
 	{"textures/%s%s.%s", "jpg", LoadJPG},
-	{"textures/%s%s.%s", "bmp", LoadBMP},
 	{"textures/%s%s.%s", "pcx", LoadPCX},
 	{"textures/%s%s.%s", "wal", LoadWAL},
 	{"textures/%s%s.%s", "lmp", LoadLMP},
@@ -1524,7 +1630,6 @@ loadformat_t load_formats[] =
 	{"%s%s.%s", "dds", LoadDDS},
 	{"%s%s.%s", "tga", LoadTGA},
 	{"%s%s.%s", "jpg", LoadJPG},
-	{"%s%s.%s", "bmp", LoadBMP},
 	{"%s%s.%s", "pcx", LoadPCX},
 	{"%s%s.%s", "wal", LoadWAL},
 	{"%s%s.%s", "lmp", LoadLMP},
@@ -1534,7 +1639,7 @@ loadformat_t load_formats[] =
 
 rgbdata_t *ImagePack( void )
 {
-	rgbdata_t *pack = Mem_Alloc( imagepool, sizeof(rgbdata_t));
+	rgbdata_t *pack = Mem_Alloc( Sys.imagepool, sizeof(rgbdata_t));
 
 	if(image_cubemap && cubemap_num_sides != 6)
 	{
@@ -1594,13 +1699,13 @@ bool FS_AddImageToPack( const char *name )
 	if(resampled != image_rgba) 
 	{
 		MsgDev(D_NOTE, "FS_AddImageToPack: resample %s from [%dx%d] to [%dx%d]\n", name, image_width, image_height, cubemap_width, cubemap_height );  
-		Mem_Move( imagepool, &image_rgba, resampled, image_size );// update buffer
+		Mem_Move( Sys.imagepool, &image_rgba, resampled, image_size );// update buffer
 	}	
 
-	image_cubemap = Mem_Realloc( imagepool, image_cubemap, image_ptr + image_size );
+	image_cubemap = Mem_Realloc( Sys.imagepool, image_cubemap, image_ptr + image_size );
 	Mem_Copy(image_cubemap + image_ptr, image_rgba, image_size );
 
-	Free( image_rgba );		// memmove aren't help us
+	Mem_Free( image_rgba );	// memmove aren't help us
 	image_ptr += image_size; 	// move to next
 	cubemap_num_sides++;	// sides counter
 
@@ -1678,7 +1783,7 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 			MsgDev(D_ERROR, "FS_LoadImage: couldn't load (%s%s.%s), create balck image\n",loadname,suf[i],ext );
 
 			// Mem_Alloc already filled memblock with 0x00, no need to do it again
-			image_cubemap = Mem_Realloc( imagepool, image_cubemap, image_ptr + image_size );
+			image_cubemap = Mem_Realloc( Sys.imagepool, image_cubemap, image_ptr + image_size );
 			image_ptr += image_size; // move to next
 			cubemap_num_sides++; // merge counter
 		}
@@ -1718,12 +1823,12 @@ void FS_FreeImage( rgbdata_t *pack )
 {
 	if( pack )
 	{
-		if( pack->buffer ) Free( pack->buffer );
-		if( pack->palette ) Free( pack->palette );
-		Free( pack );
+		if( pack->buffer ) Mem_Free( pack->buffer );
+		if( pack->palette ) Mem_Free( pack->palette );
+		Mem_Free( pack );
 	}
 
-	//reset global variables
+	// reset global variables
 	image_width = image_height = 0;
 	cubemap_width = cubemap_height = 0;
 	image_bits_count = image_flags = 0;
@@ -1753,7 +1858,7 @@ bool SaveTGA( const char *filename, byte *data, int width, int height, bool alph
 	if(alpha) outsize = width * height * 4 + 18 + strlen(comment);
 	else outsize = width * height * 3 + 18 + strlen(comment);
 
-	buffer = (byte *)Z_Malloc( outsize );
+	buffer = (byte *)Malloc( outsize );
 	memset (buffer, 0, 18);
 
 	// prepare header
@@ -1811,7 +1916,7 @@ bool SaveTGA( const char *filename, byte *data, int width, int height, bool alph
 	MsgDev(D_NOTE, "Writing %s[%d]\n", filename, alpha ? 32 : 24 );
 	FS_WriteFile (filename, buffer, outsize );
 
-	Free( buffer );
+	Mem_Free( buffer );
 	return true;
 } 
 

@@ -13,6 +13,7 @@
 #include <string.h>
 #include <basetypes.h>
 #include <ref_system.h>
+#include <ref_stdlib.h>
 
 #include "mxtk.h"
 #include "options.h"
@@ -22,18 +23,14 @@
 //=====================================
 //	main editor funcs
 //=====================================
-void InitEditor ( char *funcname, int argc, char **argv );
+void InitEditor ( uint funcname, int argc, char **argv );
 void EditorMain ( void );
 void FreeEditor ( void );
 
 extern int com_argc;
 extern int dev_mode;
 extern bool debug_mode;
-extern common_exp_t *com;
 extern char *com_argv[MAX_NUM_ARGVS];
-int CheckParm (const char *parm);
-bool _GetParmFromCmdLine( char *parm, char *out, size_t size );
-#define GetParmFromCmdLine( parm, out ) _GetParmFromCmdLine( parm, out, sizeof(out)) 
 
 /*
 ===========================================
@@ -49,8 +46,6 @@ extern stdlib_api_t std;
 #define MsgDev GUI_MsgDev
 #define MsgWarn GUI_MsgWarn
 #define Sys_Error std.error
-#define Sys_LoadLibrary std.LoadLibrary
-#define Sys_FreeLibrary std.FreeLibrary
 
 typedef enum {
 	Action,
@@ -86,6 +81,6 @@ typedef struct window_s
 	int ( *handleEvent ) ( event_t *event );
 	HWND Handle;
 
-}window_t;
+} window_t;
 
 #endif//GENERICEDIT_H

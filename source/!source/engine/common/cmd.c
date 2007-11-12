@@ -73,7 +73,7 @@ void Cbuf_AddText(const char *text)
 {
 	int	l;
 
-	l = strlen (text);
+	l = strlen(text);
 	if (cmd_text.cursize + l >= cmd_text.maxsize)
 	{
 		MsgDev(D_WARN, "Cbuf_AddText: overflow\n");
@@ -617,46 +617,12 @@ void Cmd_List_f (void)
 
 	for (cmd = cmd_functions; cmd; cmd = cmd->next)
 	{
-		if (match && !COM_Filter(match, cmd->name, false))
+		if (match && !Com_Filter(match, cmd->name, false))
 			continue;
 		Msg("%s\n", cmd->name);
 		i++;
 	}
 	Msg("%i commands\n", i);
-}
-
-/*
-================
-CMD_CheckParm
-
-Returns the position (1 to argc-1) in the program's argument list
-where the given parameter apears, or 0 if not present
-================
-*/
-int Cmd_CheckParm (const char *parm)
-{
-	int i;
-
-	for (i = 1; i < fs_argc; i++ )
-	{
-		// NEXTSTEP sometimes clears appkit vars.
-		if (!fs_argv[i]) continue;
-		if (!stricmp (parm, fs_argv[i])) return i;
-	}
-	return 0;
-}
-
-
-bool _Cmd_GetParmFromCmdLine( char *parm, char *out, size_t outsize )
-{
-	int argc = Cmd_CheckParm( parm );
-
-	if(!argc) return false;
-	if(!out) return false;	
-	if(!fs_argv[argc + 1]) return false;
-
-	strncpy( out, fs_argv[argc + 1], outsize );
-	return true;
 }
 
 /*
@@ -678,8 +644,8 @@ void Cmd_Init( int argc, char **argv )
 	Cmd_AddCommand ("stuffcmds", Cmd_StuffCmds_f );
 
 	// determine debug and developer mode
-	if (Cmd_CheckParm ("-debug")) host.debug = true;
-	if(Cmd_GetParmFromCmdLine("-dev", dev_level ))
+	if(FS_CheckParm ("-debug")) host.debug = true;
+	if(FS_GetParmFromCmdLine("-dev", dev_level ))
 		host.developer = atoi(dev_level);
 }
 

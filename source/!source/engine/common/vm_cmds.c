@@ -1737,16 +1737,16 @@ void VM_tokenize (void)
 	num_tokens = 0;
 	pos = 0;
 
-	while(COM_Parse(&p))
+	while(Com_ParseToken(&p))
 	{
 		size_t tokenlen;
 		if (num_tokens >= (int)(sizeof(tokens)/sizeof(tokens[0])))
 			break;
-		tokenlen = strlen(COM_Token) + 1;
+		tokenlen = strlen(com_token) + 1;
 		if (pos + tokenlen > sizeof(tokenbuf))
 			break;
 		tokens[num_tokens++] = tokenbuf + pos;
-		Mem_Copy(tokenbuf + pos, COM_Token, tokenlen);
+		Mem_Copy(tokenbuf + pos, com_token, tokenlen);
 		pos += tokenlen;
 	}
 
@@ -1907,7 +1907,7 @@ void VM_parseentitydata(void)
 	data = PRVM_G_STRING(OFS_PARM1);
 
     	// parse the opening brace
-	if (!COM_Parse(&data) || COM_Token[0] != '{' )
+	if (!Com_ParseToken(&data) || com_token[0] != '{' )
 		PRVM_ERROR ("VM_parseentitydata: %s: Couldn't parse entity data:\n%s", PRVM_NAME, data );
 
 	PRVM_ED_ParseEdict (data, ent);
@@ -2016,7 +2016,7 @@ void VM_search_begin(void)
 		return;
 	}
 
-	if(!(prog->opensearches[handle] = FS_Search(pattern)))
+	if(!(prog->opensearches[handle] = FS_Search(pattern, false)))
 		PRVM_G_FLOAT(OFS_RETURN) = -1;
 	else
 		PRVM_G_FLOAT(OFS_RETURN) = handle;

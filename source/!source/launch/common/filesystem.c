@@ -2410,46 +2410,6 @@ void FS_UpdateEnvironmentVariables( void )
 /*
 =============================================================================
 
-EXTERNAL FILESYSTEM INTERFACE
-=============================================================================
-*/
-filesystem_api_t FS_GetAPI( void )
-{
-	static filesystem_api_t	fs;
-
-	fs.api_size = sizeof(filesystem_api_t);
-
-	fs.FileBase = FS_FileBase;
-	fs.FileExists = FS_FileExists;
-	fs.FileSize = FS_FileSize;
-	fs.FileExtension = FS_FileExtension;
-	fs.FileWithoutPath = FS_FileWithoutPath;
-	fs.StripExtension = FS_StripExtension;
-	fs.StripFilePath = FS_ExtractFilePath;
-	fs.DefaultExtension = FS_DefaultExtension;
-	fs.ClearSearchPath = FS_ClearSearchPath;
-
-	fs.Search = FS_Search;
-
-	fs.Open = FS_Open;
-	fs.Close = FS_Close;
-	fs.Write = FS_Write;
-	fs.Read = FS_Read;
-	fs.Print = FS_Print;
-	fs.Printf = FS_Printf;
-	fs.Gets = FS_Gets;
-	fs.Seek = FS_Seek;
-	fs.Tell = FS_Tell;
-
-	fs.LoadFile = FS_LoadFile;
-	fs.WriteFile = FS_WriteFile;
-
-	return fs;
-}
-
-/*
-=============================================================================
-
 VIRTUAL FILE SYSTEM - WRITE DATA INTO MEMORY
 
 =============================================================================
@@ -2562,6 +2522,34 @@ fs_offset_t VFS_Write( vfile_t *file, const void *buf, size_t size )
 	return file->length;
 }
 
+/*
+================
+VFS_Write2
+
+deflate buffer and write into virtual file
+================
+*/
+fs_offset_t VFS_Write2( vfile_t *handle, byte *buffer, size_t size )
+{
+	int		i = 0;
+	char		out[8192]; // chunk size
+	z_stream		strm = { buffer, size, 0, out, sizeof(out), 0, NULL, NULL, NULL, NULL, NULL, 0, 0, 0 };
+	
+	deflateInit( &strm, 9 ); // Z_BEST_COMPRESSION
+	while(deflate( &strm, Z_FINISH) == Z_OK)
+	{
+		VFS_Write( handle, out, sizeof(out) - strm.avail_out);
+		i += sizeof(out) - strm.avail_out;
+		strm.next_out = out;
+		strm.avail_out = sizeof(out);
+	}
+	VFS_Write( handle, out, sizeof(out) - strm.avail_out );
+	i += sizeof(out) - strm.avail_out;
+	deflateEnd( &strm );
+
+	return i;
+}
+
 fs_offset_t VFS_Tell (vfile_t* file)
 {
 	if (!file) return -1;
@@ -2593,6 +2581,22 @@ int VFS_Seek( vfile_t *file, fs_offset_t offset, int whence )
 	return 0;
 }
 
+bool VFS_Unpack( void* compbuf, size_t compsize, void **dst, size_t size )
+{
+	char	*buf = *dst;
+	z_stream	strm = {compbuf, compsize, 0, buf, size, 0, NULL, NULL, NULL, NULL, NULL, 0, 0, 0 };
+
+	inflateInit( &strm );
+	if (Z_STREAM_END != inflate( &strm, Z_FINISH )) // decompress it in one go.
+	{
+		if(!com_strlen(strm.msg)) MsgDev(D_NOTE, "VFS_Unpack: failed block decompression\n" );
+		else MsgDev(D_NOTE, "VFS_Unpack: failed block decompression: %s\n", strm.msg );
+		return false;
+	}
+	inflateEnd( &strm );
+	return true;
+}
+
 int VFS_Close( vfile_t *file )
 {
 	if(!file) return -1;
@@ -2607,27 +2611,4 @@ int VFS_Close( vfile_t *file )
 	Mem_Free( file ); //himself
 
 	return 0;
-}
-
-/*
-=============================================================================
-
-VIRTUAL FILESYSTEM INTERFACE
-=============================================================================
-*/
-vfilesystem_api_t VFS_GetAPI( void )
-{
-	static vfilesystem_api_t	vfs;
-
-	vfs.api_size = sizeof(vfilesystem_api_t);
-
-	vfs.Create = VFS_Create;
-	vfs.Open = VFS_Open;
-	vfs.Close = VFS_Close;
-	vfs.Write = VFS_Write;
-	vfs.Read = VFS_Read;
-	vfs.Seek = VFS_Seek;
-	vfs.Tell = VFS_Tell;
-
-	return vfs;
 }

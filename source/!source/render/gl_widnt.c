@@ -3439,7 +3439,7 @@ void GLimp_EnableLogging( bool enable )
 
 			asctime( newtime );
 
-			sprintf( buffer, "%s/gl.log", FS_Gamedir() ); 
+			sprintf( buffer, "%s/gl.log", FS_Gamedir ); 
 			glw_state.log_fp = fopen( buffer, "wt" );
 
 			fprintf( glw_state.log_fp, "%s\n", asctime( newtime ) );

@@ -118,7 +118,7 @@ static void ParseShaderFile( char *filename )
 	char		name[128];
 	shader_t		*si;
 
-	bool load = FS_LoadScript( filename, NULL, 0 );
+	bool load = Com_LoadScript( filename, NULL, 0 );
 
 	if( load )
 	{
@@ -128,13 +128,13 @@ static void ParseShaderFile( char *filename )
           
 	while ( load )
 	{
-		if ( !SC_GetToken( true )) break;
+		if ( !Com_GetToken( true )) break;
 
 		si = AllocShaderInfo();
-		strcpy( si->name, SC_Token() );
-		SC_GetToken( true );
+		strcpy( si->name, com_token );
+		Com_GetToken( true );
 		
-		if(!SC_MatchToken( "{" ))
+		if(!Com_MatchToken( "{" ))
 		{
 			Msg("ParseShaderFile: shader %s without opening brace!\n", si->name );
 			continue;
@@ -142,32 +142,32 @@ static void ParseShaderFile( char *filename )
                     
 		while ( 1 )
 		{
-			if ( !SC_GetToken( true ) )break;
-			if ( !strcmp( SC_Token(), "}" ) ) break;
+			if ( !Com_GetToken( true ) )break;
+			if ( !strcmp( com_token, "}" ) ) break;
 
 			// skip internal braced sections
-			if ( !strcmp( SC_Token(), "{" ) )
+			if ( !strcmp( com_token, "{" ) )
 			{
 				si->hasPasses = true;
 				while ( 1 )
 				{
-					if ( !SC_GetToken( true )) break;
-					if ( !strcmp( SC_Token(), "}" )) break;
+					if ( !Com_GetToken( true )) break;
+					if ( !strcmp( com_token, "}" )) break;
 				}
 				continue;
 			}
 
-			if ( !stricmp( SC_Token(), "nextframe" ))
+			if ( !stricmp( com_token, "nextframe" ))
 			{                              
-				SC_GetToken( false );
-				strcpy(si->nextframe, SC_Token() );
+				Com_GetToken( false );
+				strcpy(si->nextframe, com_token );
 			}
-			if ( !stricmp( SC_Token(), "surfaceparm" ))
+			if ( !stricmp( com_token, "surfaceparm" ))
 			{
-				SC_GetToken( false );
+				Com_GetToken( false );
 				for ( i = 0 ; i < numInfoParms ; i++ )
 				{
-					if ( !stricmp( SC_Token(), infoParms[i].name ))
+					if ( !stricmp( com_token, infoParms[i].name ))
 					{
 						si->surfaceFlags |= infoParms[i].surfaceFlags;
 						si->contents |= infoParms[i].contents;
@@ -179,27 +179,27 @@ static void ParseShaderFile( char *filename )
 				continue;
 			}
 			// light color <value> <value> <value>
-			if ( !stricmp( SC_Token(), "radiocity" )  )
+			if ( !stricmp( com_token, "radiocity" )  )
 			{
-				SC_GetToken( false );
-				si->color[0] = atof( SC_Token() );
-				SC_GetToken( false );
-				si->color[1] = atof( SC_Token() );
-				SC_GetToken( false );
-				si->color[2] = atof( SC_Token() );
+				Com_GetToken( false );
+				si->color[0] = atof( com_token );
+				Com_GetToken( false );
+				si->color[1] = atof( com_token );
+				Com_GetToken( false );
+				si->color[2] = atof( com_token );
 				continue;
 			}
 
 			// light intensity <value>
-			if ( !stricmp( SC_Token(), "intensity" ))
+			if ( !stricmp( com_token, "intensity" ))
 			{
-				SC_GetToken( false );
-				si->intensity = atoi( SC_Token() );
+				Com_GetToken( false );
+				si->intensity = atoi( com_token );
 				continue;
 			}
 
-			// ignore all other SC_Token()s on the line
-			while (SC_TryToken());
+			// ignore all other com_tokens on the line
+			while (Com_TryToken());
 		}			
 	}
 }

@@ -1,4 +1,5 @@
 #include "bsplib.h"
+#include "ref_rgbdata.h"
 
 vec3_t	texture_reflectivity[MAX_MAP_TEXINFO];
 

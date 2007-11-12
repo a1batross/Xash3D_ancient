@@ -128,6 +128,10 @@ SOURCE=.\common\filesystem.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\common\imglib.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\common\launcher.c
 # End Source File
 # Begin Source File

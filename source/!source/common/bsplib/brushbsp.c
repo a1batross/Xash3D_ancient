@@ -244,7 +244,7 @@ bspbrush_t *AllocBrush (int numsides)
 
 	c = (int)&(((bspbrush_t *)0)->sides[numsides]);
 	bb = Malloc(c);
-	if (numthreads == 1) c_active_brushes++;
+	if (GetNumThreads() == 1) c_active_brushes++;
 	return bb;
 }
 
@@ -261,7 +261,7 @@ void FreeBrush (bspbrush_t *brushes)
 		if (brushes->sides[i].winding)
 			FreeWinding(brushes->sides[i].winding);
 	Free (brushes);
-	if (numthreads == 1)
+	if (GetNumThreads() == 1)
 		c_active_brushes--;
 }
 
@@ -783,7 +783,7 @@ side_t *SelectSplitSide (bspbrush_t *brushes, node_t *node)
 		{
 			if (pass > 1)
 			{
-				if (numthreads == 1)
+				if (GetNumThreads() == 1)
 					c_nonvis++;
 			}
 			if (pass > 0)
@@ -1105,7 +1105,7 @@ node_t *BuildTree_r (node_t *node, bspbrush_t *brushes)
 	int			i;
 	bspbrush_t	*children[2];
 
-	if (numthreads == 1)
+	if (GetNumThreads() == 1)
 		c_nodes++;
 
 	// find the best plane to use as a splitter

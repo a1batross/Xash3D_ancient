@@ -45,13 +45,6 @@ void Sys_Error( const char *error, ... )
 	std.error("%s", syserror1);
 }
 
-double Sys_DoubleTime( void )
-{
-	// precision timer
-	host.realtime = std.gettime();
-	return host.realtime;
-}
-
 /*
 ================
 Sys_SendKeyEvents
@@ -61,47 +54,18 @@ Send Key_Event calls
 */
 void Sys_SendKeyEvents (void)
 {
-	MSG        msg;
-
-	while (PeekMessage (&msg, NULL, 0, 0, PM_NOREMOVE))
-	{
-		if (!GetMessage (&msg, NULL, 0, 0)) Sys_Quit ();
-		host.sv_timer = msg.time;
-		TranslateMessage (&msg);
-		DispatchMessage (&msg);
-	}
 	// grab frame time 
+	host.sv_timer = Sys_GetKeyEvents();
 	host.cl_timer = host.realtime * 1000;
+	host.realtime = Sys_DoubleTime();
+	
 }
 
-/*
-================
-Sys_GetClipboardData
-
-FIXME: move to launch.dll
-================
-*/
-char *Sys_GetClipboardData( void )
+double Sys_DoubleTime( void )
 {
-	char *data = NULL;
-	char *cliptext;
-
-	if ( OpenClipboard( NULL ) != 0 )
-	{
-		HANDLE hClipboardData;
-
-		if ( ( hClipboardData = GetClipboardData( CF_TEXT ) ) != 0 )
-		{
-			if ( ( cliptext = GlobalLock( hClipboardData ) ) != 0 ) 
-			{
-				data = Z_Malloc( GlobalSize( hClipboardData ) + 1 );
-				strcpy( data, cliptext );
-				GlobalUnlock( hClipboardData );
-			}
-		}
-		CloseClipboard();
-	}
-	return data;
+	// precision timer
+	host.realtime = std.Com_DoubleTime();
+	return host.realtime;
 }
 
 /*
@@ -110,14 +74,11 @@ DllMain
 
 ==================
 */
-launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input )
+launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 {
          	static launch_exp_t Host;
 
-	// Sys_LoadLibrary can create fake instance, to check
-	// api version and api size, but first argument will be 0
-	// and always make exception, run simply check for avoid it
-	if(input) std = *input;
+	std = *input;
 
 	Host.api_size = sizeof(launch_exp_t);
 

@@ -6,6 +6,7 @@
 #include "physic.h"
 
 physic_imp_t	pi;
+stdlib_api_t	std;
 byte		*physpool;
 NewtonWorld	*gWorld;
 
@@ -23,14 +24,16 @@ void FreePhysics( void )
 	Mem_FreePool( &physpool );
 }
 
-physic_exp_t DLLEXPORT *CreateAPI ( physic_imp_t *import )
+physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs )
 {
 	static physic_exp_t		Phys;
 
+	std = *input;
+
 	// Sys_LoadLibrary can create fake instance, to check
-	// api version and api size, but first argument will be 0
+	// api version and api size, but second argument will be 0
 	// and always make exception, run simply check for avoid it
-	if(import) pi = *import;
+	if(engfuncs) pi = *engfuncs;
 
 	// generic functions
 	Phys.api_size = sizeof(physic_exp_t);

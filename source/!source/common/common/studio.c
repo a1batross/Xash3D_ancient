@@ -1348,14 +1348,14 @@ void Grab_Triangles( s_model_t *pmodel )
 		vec3_t vert[3];
 		vec3_t norm[3];
 
-		if(!SC_GetToken( true )) break;
+		if(!Com_GetToken( true )) break;
 		linecount++;
 		
-		if(SC_MatchToken( "end" )) break;//triangles end
-		else if(!stricmp( ".bmp", &SC_Token()[strlen(SC_Token())-4]))
+		if(Com_MatchToken( "end" )) break;//triangles end
+		else if(!stricmp( ".bmp", &com_token[strlen(com_token)-4]))
 		{
 			//probably is texture name
-			strcpy( texturename, SC_Token());
+			strcpy( texturename, com_token);
 		
 			// funky texture overrides
 			for (i = 0; i < numrep; i++)  
@@ -1377,9 +1377,9 @@ void Grab_Triangles( s_model_t *pmodel )
 				MsgWarn("Grab_Triangles: triangle with invalid texname\n");
 				for(i = 0; i < 3; i++)
 				{
-					if(!SC_GetToken( true ))
+					if(!Com_GetToken( true ))
 						Sys_Error( "Unexpected EOF %s at line %d\n", filename, linecount );
-					while(SC_TryToken());
+					while(Com_TryToken());
 					linecount++;
 				}
 				continue;
@@ -1399,18 +1399,18 @@ void Grab_Triangles( s_model_t *pmodel )
 				else ptriv = lookup_triangle( pmesh, pmesh->numtris ) + j;
 
 				//grab triangle info
-				bone = atoi(SC_Token());
-				p.org[0] = atof(SC_GetToken( false ));
-				p.org[1] = atof(SC_GetToken( false ));
-				p.org[2] = atof(SC_GetToken( false ));
-				normal.org[0] = atof(SC_GetToken( false ));
-				normal.org[1] = atof(SC_GetToken( false ));
-				normal.org[2] = atof(SC_GetToken( false ));
-				ptriv->u = atof(SC_GetToken( false ));
-				ptriv->v = atof(SC_GetToken( false ));
+				bone = atoi(com_token);
+				p.org[0] = atof(Com_GetToken( false ));
+				p.org[1] = atof(Com_GetToken( false ));
+				p.org[2] = atof(Com_GetToken( false ));
+				normal.org[0] = atof(Com_GetToken( false ));
+				normal.org[1] = atof(Com_GetToken( false ));
+				normal.org[2] = atof(Com_GetToken( false ));
+				ptriv->u = atof(Com_GetToken( false ));
+				ptriv->v = atof(Com_GetToken( false ));
 
 				// skip MilkShape additional info
-				while(SC_TryToken()); 
+				while(Com_TryToken()); 
 		                                        
 				//translate triangles
 				if (bone < 0 || bone >= pmodel->numbones) 
@@ -1444,7 +1444,7 @@ void Grab_Triangles( s_model_t *pmodel )
 
 				if(j < 2)
 				{
-					SC_GetToken( true );
+					Com_GetToken( true );
 					linecount++;
 				}
 			}
@@ -1464,31 +1464,31 @@ void Grab_Skeleton( s_node_t *pnodes, s_bone_t *pbones )
 	
 	while ( 1 ) 
 	{
-		if(!SC_GetToken( true )) break;
+		if(!Com_GetToken( true )) break;
 		linecount++;
 		
-		if(SC_MatchToken( "end" )) return;//skeleton end
-		else if(SC_MatchToken( "time" ))
+		if(Com_MatchToken( "end" )) return;//skeleton end
+		else if(Com_MatchToken( "time" ))
 		{
 			//check time
-			time += atoi(SC_GetToken( false ));
+			time += atoi(Com_GetToken( false ));
 			if(time > 0) MsgWarn("Grab_Skeleton: Warning! An animation file is probably used as a reference\n"); 
 			continue;
 		}
                     else
                     {
 			//grab skeleton info
-			index = atoi( SC_Token());
-			pbones[index].pos[0] = atof(SC_GetToken( false ));
-			pbones[index].pos[1] = atof(SC_GetToken( false ));
-			pbones[index].pos[2] = atof(SC_GetToken( false ));
+			index = atoi( com_token);
+			pbones[index].pos[0] = atof(Com_GetToken( false ));
+			pbones[index].pos[1] = atof(Com_GetToken( false ));
+			pbones[index].pos[2] = atof(Com_GetToken( false ));
 
 			scale_vertex( pbones[index].pos );
 			if (pnodes[index].mirrored) VectorScale( pbones[index].pos, -1.0, pbones[index].pos );
 			
-			pbones[index].rot[0] = atof(SC_GetToken( false ));			
-			pbones[index].rot[1] = atof(SC_GetToken( false ));
-			pbones[index].rot[2] = atof(SC_GetToken( false ));
+			pbones[index].rot[0] = atof(Com_GetToken( false ));			
+			pbones[index].rot[1] = atof(Com_GetToken( false ));
+			pbones[index].rot[2] = atof(Com_GetToken( false ));
 
 			clip_rotations( pbones[index].rot ); 
 		}
@@ -1506,15 +1506,15 @@ int Grab_Nodes( s_node_t *pnodes )
 
 	while( 1 ) 
 	{
-		if(!SC_GetToken( true )) break;
+		if(!Com_GetToken( true )) break;
 		linecount++;
 
 		//end of nodes description
-		if(SC_MatchToken( "end" )) return numbones + 1;
+		if(Com_MatchToken( "end" )) return numbones + 1;
 		
-		index = atoi(SC_Token()); //read bone index (we already have filled token)
-		strcpy( name, SC_GetToken( false ));
-		parent = atoi(SC_GetToken( false )); //read bone parent
+		index = atoi(com_token); //read bone index (we already have filled token)
+		strcpy( name, Com_GetToken( false ));
+		parent = atoi(Com_GetToken( false )); //read bone parent
 
 		strncpy( pnodes[index].name, name, sizeof(pnodes[index].name));
 		pnodes[index].parent = parent;
@@ -1537,7 +1537,7 @@ void Grab_Studio ( s_model_t *pmodel )
 	strncpy (filename, pmodel->name, sizeof(filename));
 
 	FS_DefaultExtension(filename, ".smd" );
-	load = FS_AddScript( filename, NULL, 0 );
+	load = Com_IncludeScript( filename, NULL, 0 );
 	if(!load) Sys_Error("unable to open %s\n", filename );
 	Msg("grabbing %s\n", filename);
 	
@@ -1545,27 +1545,27 @@ void Grab_Studio ( s_model_t *pmodel )
 
 	while ( 1 )
 	{
-		if(!SC_GetToken( true )) break;
+		if(!Com_GetToken( true )) break;
 		linecount++;
 
-		if (SC_MatchToken( "version" ))
+		if (Com_MatchToken( "version" ))
 		{
-			int option = atoi(SC_GetToken( false ));
+			int option = atoi(Com_GetToken( false ));
 			if (option != 1) MsgWarn("Grab_Studio: %s bad version file\n", filename );
 		}
-		else if (SC_MatchToken( "nodes" ))
+		else if (Com_MatchToken( "nodes" ))
 		{
 			pmodel->numbones = Grab_Nodes( pmodel->node );
 		}
-		else if (SC_MatchToken( "skeleton" ))
+		else if (Com_MatchToken( "skeleton" ))
 		{
 			Grab_Skeleton( pmodel->node, pmodel->skeleton );
 		}
-		else if (SC_MatchToken( "triangles" ))
+		else if (Com_MatchToken( "triangles" ))
 		{
 			Grab_Triangles( pmodel );
 		}
-		else MsgWarn("Grab_Studio: unknown studio command %s at line %d\n", SC_Token(), linecount );
+		else MsgWarn("Grab_Studio: unknown studio command %s at line %d\n", com_token, linecount );
 	}
 }
 
@@ -1579,9 +1579,9 @@ syntax: $eyeposition <x> <y> <z>
 void Cmd_Eyeposition (void)
 {
 	// rotate points into frame of reference so model points down the positive x axis
-	eyeposition[1] = atof (SC_GetToken (false));
-	eyeposition[0] = -atof (SC_GetToken (false));
-	eyeposition[2] = atof (SC_GetToken (false));
+	eyeposition[1] = atof (Com_GetToken (false));
+	eyeposition[0] = -atof (Com_GetToken (false));
+	eyeposition[2] = atof (Com_GetToken (false));
 }
 
 /*
@@ -1593,30 +1593,30 @@ syntax: $modelname "outname"
 */
 void Cmd_Modelname (void)
 {
-	strcpy (modeloutname, SC_GetToken (false));
+	strcpy (modeloutname, Com_GetToken (false));
 }
 
 void Option_Studio( void )
 {
-	if(!SC_GetToken (false)) return;
+	if(!Com_GetToken (false)) return;
 
 	model[nummodels] = Kalloc( sizeof( s_model_t ));
 	bodypart[numbodyparts].pmodel[bodypart[numbodyparts].nummodels] = model[nummodels];
 
-	strncpy( model[nummodels]->name, SC_Token(), sizeof(model[nummodels]->name));
+	strncpy( model[nummodels]->name, com_token, sizeof(model[nummodels]->name));
 
 	flip_triangles = 1;
 	scale_up = default_scale;
 
-	while(SC_TryToken())
+	while(Com_TryToken())
 	{
-		if (SC_MatchToken( "reverse" ))
+		if (Com_MatchToken( "reverse" ))
 		{
 			flip_triangles = 0;
 		}
-		else if (SC_MatchToken( "scale" ))
+		else if (Com_MatchToken( "scale" ))
 		{
-			scale_up = atof( SC_GetToken(false));
+			scale_up = atof( Com_GetToken(false));
 		}
 	}
 
@@ -1657,20 +1657,20 @@ void Cmd_Bodygroup( void )
 	int is_started = 0;
 
 	Msg("cmd_bodygroup\n");
-	if(!SC_TryToken()) return;
+	if(!Com_TryToken()) return;
 
 	if (numbodyparts == 0) bodypart[numbodyparts].base = 1;
 	else bodypart[numbodyparts].base = bodypart[numbodyparts-1].base * bodypart[numbodyparts-1].nummodels;
-	strncpy( bodypart[numbodyparts].name, SC_Token(), sizeof(bodypart[numbodyparts].name));
+	strncpy( bodypart[numbodyparts].name, com_token, sizeof(bodypart[numbodyparts].name));
 
 	while( 1 )
 	{
-		if(!SC_GetToken(true)) return;
+		if(!Com_GetToken(true)) return;
 
-		if(SC_MatchToken( "{" )) is_started = 1;
-		else if (SC_MatchToken( "}" )) break;
-		else if (SC_MatchToken("studio" )) Option_Studio();
-		else if (SC_MatchToken("blank" )) Option_Blank();
+		if(Com_MatchToken( "{" )) is_started = 1;
+		else if (Com_MatchToken( "}" )) break;
+		else if (Com_MatchToken("studio" )) Option_Studio();
+		else if (Com_MatchToken("blank" )) Option_Blank();
 	}
 
 	numbodyparts++;
@@ -1687,12 +1687,12 @@ syntax: $body "name" "mainref.smd"
 void Cmd_Body( void )
 {
 	int is_started = 0;
-	if (!SC_GetToken(false)) return;
+	if (!Com_GetToken(false)) return;
 
 	if (numbodyparts == 0) bodypart[numbodyparts].base = 1;
 	else bodypart[numbodyparts].base = bodypart[numbodyparts-1].base * bodypart[numbodyparts-1].nummodels;
 
-	strncpy(bodypart[numbodyparts].name, SC_Token(), sizeof(bodypart[numbodyparts].name));
+	strncpy(bodypart[numbodyparts].name, com_token, sizeof(bodypart[numbodyparts].name));
 	Option_Studio();
 
 	numbodyparts++;
@@ -1719,28 +1719,28 @@ void Grab_Animation( s_animation_t *panim)
 
 	while ( 1 ) 
 	{
-		if(!SC_GetToken( true )) break;
+		if(!Com_GetToken( true )) break;
 		linecount++;
 
-		if(SC_MatchToken( "end" ))
+		if(Com_MatchToken( "end" ))
 		{
 			panim->startframe = start;
 			panim->endframe = end;
 			return;
 		}
-		else if(SC_MatchToken( "time" ))
+		else if(Com_MatchToken( "time" ))
 		{
-			t = atoi(SC_GetToken(false));
+			t = atoi(Com_GetToken(false));
 		}
                     else
                     {
-			index = atoi(SC_Token());
-			pos[0] = atof(SC_GetToken( false ));
-			pos[1] = atof(SC_GetToken( false ));
-			pos[2] = atof(SC_GetToken( false ));
-			rot[0] = atof(SC_GetToken( false ));
-			rot[1] = atof(SC_GetToken( false ));
-			rot[2] = atof(SC_GetToken( false ));
+			index = atoi(com_token);
+			pos[0] = atof(Com_GetToken( false ));
+			pos[1] = atof(Com_GetToken( false ));
+			pos[2] = atof(Com_GetToken( false ));
+			rot[0] = atof(Com_GetToken( false ));
+			rot[1] = atof(Com_GetToken( false ));
+			rot[2] = atof(Com_GetToken( false ));
 
 			if (t >= panim->startframe && t <= panim->endframe)
 			{
@@ -1802,43 +1802,43 @@ void Option_Animation ( char *name, s_animation_t *panim )
 	strncpy( filename, panim->name, sizeof(filename));
 
 	FS_DefaultExtension(filename, ".smd" );
-	load = FS_AddScript( filename, NULL, 0 );
-	if(!load)Sys_Error("unable to open %s\n", filename );
+	load = Com_IncludeScript( filename, NULL, 0 );
+	if(!load) Sys_Error("unable to open %s\n", filename );
 	Msg("grabbing %s\n", filename);	
 
 	linecount = 0;
 
 	while ( 1 )
 	{
-		if(!SC_GetToken( true )) break;
+		if(!Com_GetToken( true )) break;
 		linecount++;
 
-		if(SC_MatchToken( "end" )) break;
-		else if (SC_MatchToken( "version" ))
+		if(Com_MatchToken( "end" )) break;
+		else if (Com_MatchToken( "version" ))
 		{
-			int option = atoi(SC_GetToken( false ));
+			int option = atoi(Com_GetToken( false ));
 			if (option != 1) Msg("Warning: %s bad version file\n", filename );
 		}
-		else if (SC_MatchToken( "nodes" ))
+		else if (Com_MatchToken( "nodes" ))
 		{
 			panim->numbones = Grab_Nodes( panim->node );
 		}
-		else if (SC_MatchToken( "skeleton" ))
+		else if (Com_MatchToken( "skeleton" ))
 		{
 			Grab_Animation( panim );
 			Shift_Animation( panim );
 		}
 		else 
 		{
-			MsgWarn("Option_Animation: unknown studio command : %s\n", SC_Token() );
-			while(SC_TryToken());//skip other tokens at line
+			MsgWarn("Option_Animation: unknown studio command : %s\n", com_token );
+			while(Com_TryToken());//skip other tokens at line
 		}
 	}
 }
 
 int Option_Motion ( s_sequence_t *psequence )
 {
-	while (SC_TryToken()) psequence->motiontype |= lookupControl( SC_Token());
+	while (Com_TryToken()) psequence->motiontype |= lookupControl( com_token);
 	return 0;
 }
 
@@ -1850,15 +1850,15 @@ int Option_Event ( s_sequence_t *psequence )
 		return 0;
 	}
 
-	psequence->event[psequence->numevents].event = atoi( SC_GetToken (false));
-	psequence->event[psequence->numevents].frame = atoi(SC_GetToken (false));
+	psequence->event[psequence->numevents].event = atoi( Com_GetToken (false));
+	psequence->event[psequence->numevents].frame = atoi(Com_GetToken (false));
 	psequence->numevents++;
 
 	// option token
-	if (SC_TryToken())
+	if (Com_TryToken())
 	{
-		if (SC_MatchToken( "}" )) return 1; // opps, hit the end
-		strcpy( psequence->event[psequence->numevents-1].options, SC_Token());// found an option
+		if (Com_MatchToken( "}" )) return 1; // opps, hit the end
+		strcpy( psequence->event[psequence->numevents-1].options, com_token);// found an option
 	}
 	return 0;
 }
@@ -1866,7 +1866,7 @@ int Option_Event ( s_sequence_t *psequence )
 
 int Option_Fps ( s_sequence_t *psequence )
 {
-	psequence->fps = atof(SC_GetToken (false));
+	psequence->fps = atof(Com_GetToken (false));
 	return 0;
 }
 
@@ -1878,9 +1878,9 @@ int Option_AddPivot ( s_sequence_t *psequence )
 		return 0;
 	}
 	
-	psequence->pivot[psequence->numpivots].index = atoi(SC_GetToken (false));
-	psequence->pivot[psequence->numpivots].start = atoi(SC_GetToken (false));
-	psequence->pivot[psequence->numpivots].end = atoi(SC_GetToken (false));
+	psequence->pivot[psequence->numpivots].index = atoi(Com_GetToken (false));
+	psequence->pivot[psequence->numpivots].start = atoi(Com_GetToken (false));
+	psequence->pivot[psequence->numpivots].end = atoi(Com_GetToken (false));
 	psequence->numpivots++;
 
 	return 0;
@@ -1895,24 +1895,24 @@ syntax: $origin <x> <y> <z> (z rotate)
 */
 void Cmd_Origin (void)
 {
-	defaultadjust[0] = atof (SC_GetToken (false));
-	defaultadjust[1] = atof (SC_GetToken (false));
-	defaultadjust[2] = atof (SC_GetToken (false));
+	defaultadjust[0] = atof (Com_GetToken (false));
+	defaultadjust[1] = atof (Com_GetToken (false));
+	defaultadjust[2] = atof (Com_GetToken (false));
 
-	if (SC_TryToken()) defaultzrotation = (atof( SC_Token()) + 90) * (M_PI / 180.0);
+	if (Com_TryToken()) defaultzrotation = (atof( com_token) + 90) * (M_PI / 180.0);
 }
 
 
 void Option_Origin (void)
 {
-	adjust[0] = atof (SC_GetToken (false));
-	adjust[1] = atof (SC_GetToken (false));
-	adjust[2] = atof (SC_GetToken (false));
+	adjust[0] = atof (Com_GetToken (false));
+	adjust[1] = atof (Com_GetToken (false));
+	adjust[2] = atof (Com_GetToken (false));
 }
 
 void Option_Rotate(void )
 {
-	zrotation = (atof(SC_GetToken (false)) + 90) * (M_PI / 180.0);
+	zrotation = (atof(Com_GetToken (false)) + 90) * (M_PI / 180.0);
 }
 
 /*
@@ -1924,7 +1924,7 @@ syntax: $scale <value>
 */
 void Cmd_ScaleUp (void)
 {
-	default_scale = scale_up = atof (SC_GetToken (false));
+	default_scale = scale_up = atof (Com_GetToken (false));
 }
 
 /*
@@ -1936,13 +1936,13 @@ syntax: $rotate <value>
 */
 void Cmd_Rotate(void)
 {
-	if (!SC_GetToken(false)) return;
-	zrotation = (atof(SC_Token()) + 90) * (M_PI / 180.0);
+	if (!Com_GetToken(false)) return;
+	zrotation = (atof(com_token) + 90) * (M_PI / 180.0);
 }
 
 void Option_ScaleUp (void)
 {
-	scale_up = atof (SC_GetToken (false));
+	scale_up = atof (Com_GetToken (false));
 }
 
 /*
@@ -1977,9 +1977,9 @@ int Cmd_Sequence( void )
 	int start = 0;
 	int end = MAXSTUDIOANIMATIONS - 1;
 
-	if(!SC_GetToken(false)) return 0;
+	if(!Com_GetToken(false)) return 0;
 
-	strncpy( sequence[numseq].name, SC_Token(), sizeof(sequence[numseq].name));
+	strncpy( sequence[numseq].name, com_token, sizeof(sequence[numseq].name));
 	
 	VectorCopy( defaultadjust, adjust );
 	scale_up = default_scale;
@@ -1995,69 +1995,69 @@ int Cmd_Sequence( void )
 	{
 		if (depth > 0)
 		{
-			if(!SC_GetToken(true)) break;
+			if(!Com_GetToken(true)) break;
 		}
-		else if(!SC_TryToken()) break;
+		else if(!Com_TryToken()) break;
 		
-		if (SC_MatchToken( "{" )) depth++;
-		else if (SC_MatchToken( "}" )) depth--;
-		else if (SC_MatchToken( "event" )) depth -= Option_Event( &sequence[numseq] );
-		else if (SC_MatchToken( "pivot" )) Option_AddPivot( &sequence[numseq] );
-		else if (SC_MatchToken( "fps" )) Option_Fps( &sequence[numseq] );
-		else if (SC_MatchToken( "origin" )) Option_Origin();
-		else if (SC_MatchToken( "rotate" )) Option_Rotate();
-		else if (SC_MatchToken( "scale" )) Option_ScaleUp();
-		else if (SC_MatchToken( "loop" )) sequence[numseq].flags |= STUDIO_LOOPING;
-		else if (SC_MatchToken( "frame" ))
+		if (Com_MatchToken( "{" )) depth++;
+		else if (Com_MatchToken( "}" )) depth--;
+		else if (Com_MatchToken( "event" )) depth -= Option_Event( &sequence[numseq] );
+		else if (Com_MatchToken( "pivot" )) Option_AddPivot( &sequence[numseq] );
+		else if (Com_MatchToken( "fps" )) Option_Fps( &sequence[numseq] );
+		else if (Com_MatchToken( "origin" )) Option_Origin();
+		else if (Com_MatchToken( "rotate" )) Option_Rotate();
+		else if (Com_MatchToken( "scale" )) Option_ScaleUp();
+		else if (Com_MatchToken( "loop" )) sequence[numseq].flags |= STUDIO_LOOPING;
+		else if (Com_MatchToken( "frame" ))
 		{
-			start = atoi(SC_GetToken( false ));
-			end = atoi(SC_GetToken( false ));
+			start = atoi(Com_GetToken( false ));
+			end = atoi(Com_GetToken( false ));
 		}
-		else if (SC_MatchToken( "blend" ))
+		else if (Com_MatchToken( "blend" ))
 		{
-			sequence[numseq].blendtype[0] = lookupControl(SC_GetToken( false ));
-			sequence[numseq].blendstart[0] = atof(SC_GetToken( false ));
-			sequence[numseq].blendend[0] = atof(SC_GetToken( false ));
+			sequence[numseq].blendtype[0] = lookupControl(Com_GetToken( false ));
+			sequence[numseq].blendstart[0] = atof(Com_GetToken( false ));
+			sequence[numseq].blendend[0] = atof(Com_GetToken( false ));
 		}
-		else if (SC_MatchToken( "node" ))
+		else if (Com_MatchToken( "node" ))
 		{
-			sequence[numseq].entrynode = sequence[numseq].exitnode = atoi(SC_GetToken( false ));
+			sequence[numseq].entrynode = sequence[numseq].exitnode = atoi(Com_GetToken( false ));
 		}
-		else if (SC_MatchToken( "transition" ))
+		else if (Com_MatchToken( "transition" ))
 		{
-			sequence[numseq].entrynode = atoi(SC_GetToken( false ));
-			sequence[numseq].exitnode = atoi(SC_GetToken( false ));
+			sequence[numseq].entrynode = atoi(Com_GetToken( false ));
+			sequence[numseq].exitnode = atoi(Com_GetToken( false ));
 		}
-		else if (SC_MatchToken( "rtransition" ))
+		else if (Com_MatchToken( "rtransition" ))
 		{
-			sequence[numseq].entrynode = atoi(SC_GetToken( false ));
-			sequence[numseq].exitnode = atoi(SC_GetToken( false ));
+			sequence[numseq].entrynode = atoi(Com_GetToken( false ));
+			sequence[numseq].exitnode = atoi(Com_GetToken( false ));
 			sequence[numseq].nodeflags |= 1;
 		}
-		else if (lookupControl( SC_Token()) != -1)
+		else if (lookupControl( com_token) != -1)
 		{
-			sequence[numseq].motiontype |= lookupControl( SC_Token());
+			sequence[numseq].motiontype |= lookupControl( com_token);
 		}
-		else if (SC_MatchToken( "animation" ))
+		else if (Com_MatchToken( "animation" ))
 		{
-			strncpy( smdfilename[numblends], SC_GetToken( false ), sizeof(smdfilename[numblends]));
+			strncpy( smdfilename[numblends], Com_GetToken( false ), sizeof(smdfilename[numblends]));
 			numblends++;
 		}
-		else if (i = lookupActivity( SC_Token()))
+		else if (i = lookupActivity( com_token))
 		{
 			sequence[numseq].activity = i;
 			sequence[numseq].actweight = 1;//default weight
-			if(SC_TryToken())
+			if(Com_TryToken())
 			{
-				//make sure what is really actweight
-				if(!SC_MatchToken("{") && !SC_MatchToken("}") && strlen(SC_Token()) < 3 && atoi(SC_Token()) <= 100)
-					sequence[numseq].actweight = atoi(SC_Token());
-				else SC_FreeToken();//release token
+				// make sure what is really actweight
+				if(!Com_MatchToken("{") && !Com_MatchToken("}") && strlen(com_token) < 3 && atoi(com_token) <= 100)
+					sequence[numseq].actweight = atoi(com_token);
+				else Com_FreeToken(); // release token
 			}
 		}
 		else
 		{
-			strncpy( smdfilename[numblends], SC_Token(), sizeof(smdfilename[numblends]));
+			strncpy( smdfilename[numblends], com_token, sizeof(smdfilename[numblends]));
 			numblends++;
 		}
 	}
@@ -2092,9 +2092,9 @@ syntax: $root "pivotname"
 */
 int Cmd_Root (void)
 {
-	if (SC_GetToken(false))
+	if (Com_GetToken(false))
 	{
-		strncpy( pivotname[0], SC_Token(), sizeof(pivotname));
+		strncpy( pivotname[0], com_token, sizeof(pivotname));
 		return 0;
 	}
 	return 1;
@@ -2109,12 +2109,12 @@ syntax: $pivot (<index>) ("pivotname")
 */
 int Cmd_Pivot (void)
 {
-	if (SC_GetToken (false))
+	if (Com_GetToken (false))
 	{
-		int index = atoi(SC_Token());
-		if (SC_GetToken(false))
+		int index = atoi(com_token);
+		if (Com_GetToken(false))
 		{
-			strncpy( pivotname[index], SC_Token(), sizeof(pivotname[index]));
+			strncpy( pivotname[index], com_token, sizeof(pivotname[index]));
 			return 0;
 		}
 	}
@@ -2130,25 +2130,25 @@ syntax: $controller "mouth"|<number> ("name") <type> <start> <end>
 */
 int Cmd_Controller (void)
 {
-	if (SC_GetToken (false))
+	if (Com_GetToken (false))
 	{
 		//mouth is hardcoded at four controller
-		if (SC_MatchToken( "mouth" )) bonecontroller[numbonecontrollers].index = 4;
-		else bonecontroller[numbonecontrollers].index = atoi(SC_Token());
+		if (Com_MatchToken( "mouth" )) bonecontroller[numbonecontrollers].index = 4;
+		else bonecontroller[numbonecontrollers].index = atoi(com_token);
 
-		if (SC_GetToken(false))
+		if (Com_GetToken(false))
 		{
-			strncpy( bonecontroller[numbonecontrollers].name, SC_Token(), sizeof(bonecontroller[numbonecontrollers].name));
+			strncpy( bonecontroller[numbonecontrollers].name, com_token, sizeof(bonecontroller[numbonecontrollers].name));
 
-			SC_GetToken(false);
-			if ((bonecontroller[numbonecontrollers].type = lookupControl(SC_Token())) == -1) 
+			Com_GetToken(false);
+			if ((bonecontroller[numbonecontrollers].type = lookupControl(com_token)) == -1) 
 			{
-				MsgWarn("Cmd_Controller: unknown bonecontroller type '%s'\n", SC_Token() );
+				MsgWarn("Cmd_Controller: unknown bonecontroller type '%s'\n", com_token );
 				return 0;
 			}
 
-			bonecontroller[numbonecontrollers].start = atof(SC_GetToken(false));
-			bonecontroller[numbonecontrollers].end = atof(SC_GetToken(false));
+			bonecontroller[numbonecontrollers].start = atof(Com_GetToken(false));
+			bonecontroller[numbonecontrollers].end = atof(Com_GetToken(false));
 
 			if (bonecontroller[numbonecontrollers].type & (STUDIO_XR | STUDIO_YR | STUDIO_ZR))
 			{
@@ -2170,12 +2170,12 @@ syntax: $bbox <mins0> <mins1> <mins2> <maxs0> <maxs1> <maxs2>
 */
 void Cmd_BBox (void)
 {
-	bbox[0][0] = atof(SC_GetToken(false));
-	bbox[0][1] = atof(SC_GetToken(false));
-	bbox[0][2] = atof(SC_GetToken(false));
-	bbox[1][0] = atof(SC_GetToken(false));
-	bbox[1][1] = atof(SC_GetToken(false));
-	bbox[1][2] = atof(SC_GetToken(false));
+	bbox[0][0] = atof(Com_GetToken(false));
+	bbox[0][1] = atof(Com_GetToken(false));
+	bbox[0][2] = atof(Com_GetToken(false));
+	bbox[1][0] = atof(Com_GetToken(false));
+	bbox[1][1] = atof(Com_GetToken(false));
+	bbox[1][2] = atof(Com_GetToken(false));
 }
 
 /*
@@ -2187,12 +2187,12 @@ syntax: $cbox <mins0> <mins1> <mins2> <maxs0> <maxs1> <maxs2>
 */
 void Cmd_CBox (void)
 {
-	cbox[0][0] = atof(SC_GetToken(false));
-	cbox[0][1] = atof(SC_GetToken(false));
-	cbox[0][2] = atof(SC_GetToken(false));
-	cbox[1][0] = atof(SC_GetToken(false));
-	cbox[1][1] = atof(SC_GetToken(false));
-	cbox[1][2] = atof(SC_GetToken(false));
+	cbox[0][0] = atof(Com_GetToken(false));
+	cbox[0][1] = atof(Com_GetToken(false));
+	cbox[0][2] = atof(Com_GetToken(false));
+	cbox[1][0] = atof(Com_GetToken(false));
+	cbox[1][1] = atof(Com_GetToken(false));
+	cbox[1][2] = atof(Com_GetToken(false));
 }
 
 /*
@@ -2204,7 +2204,7 @@ syntax: $mirrorbone "name"
 */
 void Cmd_Mirror ( void )
 {
-	strncpy( mirrored[nummirrored], SC_GetToken(false), sizeof(mirrored[nummirrored]));
+	strncpy( mirrored[nummirrored], Com_GetToken(false), sizeof(mirrored[nummirrored]));
 	nummirrored++;
 }
 
@@ -2217,7 +2217,7 @@ syntax: $gamma <value>
 */
 void Cmd_Gamma ( void )
 {
-	gamma = atof(SC_GetToken(false));
+	gamma = atof(Com_GetToken(false));
 }
 
 /*
@@ -2245,19 +2245,19 @@ int Cmd_TextureGroup( void )
 		return 0;
 	}
           
-	if (!SC_GetToken(false)) return 0;
+	if (!Com_GetToken(false)) return 0;
 	if (numskinref == 0) numskinref = numtextures;
 
 	while (1)
 	{
-		if(!SC_GetToken(true))
+		if(!Com_GetToken(true))
 		{
                               if (depth)MsgWarn("missing }\n");
 			break;
                     }
 
-		if (SC_MatchToken( "{" )) depth++;
-		else if (SC_MatchToken( "}" ))
+		if (Com_MatchToken( "{" )) depth++;
+		else if (Com_MatchToken( "}" ))
 		{
 			depth--;
 			if (depth == 0) break;
@@ -2266,7 +2266,7 @@ int Cmd_TextureGroup( void )
 		}
 		else if (depth == 2)
 		{
-			i = lookup_texture( SC_Token());
+			i = lookup_texture( com_token);
 			texturegroup[numtexturegroups][group][index] = i;
 			if (group != 0) texture[i].parent = texturegroup[numtexturegroups][0][index];
 			index++;
@@ -2288,8 +2288,8 @@ syntax: $hitgroup <index> <name>
 */
 int Cmd_Hitgroup( void )
 {
-	hitgroup[numhitgroups].group = atoi(SC_GetToken(false));
-	strncpy( hitgroup[numhitgroups].name, SC_GetToken(false), sizeof(hitgroup[numhitgroups].name));
+	hitgroup[numhitgroups].group = atoi(Com_GetToken(false));
+	strncpy( hitgroup[numhitgroups].name, Com_GetToken(false), sizeof(hitgroup[numhitgroups].name));
 	numhitgroups++;
 
 	return 0;
@@ -2304,14 +2304,14 @@ syntax: $hbox <index> <name> <mins0> <mins1> <mins2> <maxs0> <maxs1> <maxs2>
 */
 int Cmd_Hitbox( void )
 {
-	hitbox[numhitboxes].group = atoi(SC_GetToken(false));
-	strncpy( hitbox[numhitboxes].name, SC_GetToken(false), sizeof(hitbox[numhitboxes].name));
-	hitbox[numhitboxes].bmin[0] = atof( SC_GetToken(false));
-	hitbox[numhitboxes].bmin[1] = atof(SC_GetToken(false));
-	hitbox[numhitboxes].bmin[2] = atof(SC_GetToken(false));
-	hitbox[numhitboxes].bmax[0] = atof(SC_GetToken(false));
-	hitbox[numhitboxes].bmax[1] = atof(SC_GetToken(false));
-	hitbox[numhitboxes].bmax[2] = atof(SC_GetToken(false));
+	hitbox[numhitboxes].group = atoi(Com_GetToken(false));
+	strncpy( hitbox[numhitboxes].name, Com_GetToken(false), sizeof(hitbox[numhitboxes].name));
+	hitbox[numhitboxes].bmin[0] = atof( Com_GetToken(false));
+	hitbox[numhitboxes].bmin[1] = atof(Com_GetToken(false));
+	hitbox[numhitboxes].bmin[2] = atof(Com_GetToken(false));
+	hitbox[numhitboxes].bmax[0] = atof(Com_GetToken(false));
+	hitbox[numhitboxes].bmax[1] = atof(Com_GetToken(false));
+	hitbox[numhitboxes].bmax[2] = atof(Com_GetToken(false));
 	numhitboxes++;
 
 	return 0;
@@ -2327,16 +2327,16 @@ syntax: $attachment <index> <bonename> <x> <y> <z> (old stuff)
 int Cmd_Attachment( void )
 {
 	// index
-	attachment[numattachments].index = atoi(SC_GetToken(false));
+	attachment[numattachments].index = atoi(Com_GetToken(false));
 	// bone name
-	strncpy( attachment[numattachments].bonename, SC_GetToken(false), sizeof(attachment[numattachments].bonename));
+	strncpy( attachment[numattachments].bonename, Com_GetToken(false), sizeof(attachment[numattachments].bonename));
 	// position
-	attachment[numattachments].org[0] = atof(SC_GetToken(false));
-	attachment[numattachments].org[1] = atof(SC_GetToken(false));
-	attachment[numattachments].org[2] = atof(SC_GetToken(false));
+	attachment[numattachments].org[0] = atof(Com_GetToken(false));
+	attachment[numattachments].org[1] = atof(Com_GetToken(false));
+	attachment[numattachments].org[2] = atof(Com_GetToken(false));
 
 	//skip old stuff
-	while(SC_TryToken());
+	while(Com_TryToken());
 
 	numattachments++;
 	return 0;
@@ -2351,8 +2351,8 @@ syntax: $renamebone <oldname> <newname>
 */
 void Cmd_Renamebone( void )
 {
-	strcpy( renamedbone[numrenamedbones].from, SC_GetToken(false));
-	strcpy( renamedbone[numrenamedbones].to, SC_GetToken(false));
+	strcpy( renamedbone[numrenamedbones].from, Com_GetToken(false));
+	strcpy( renamedbone[numrenamedbones].to, Com_GetToken(false));
 	numrenamedbones++;
 }
 
@@ -2368,22 +2368,22 @@ void Cmd_TexRenderMode( void )
 {
 	char tex_name[64];
 
-	strcpy(tex_name, SC_GetToken(false));
-	SC_GetToken(false);
+	strcpy(tex_name, Com_GetToken(false));
+	Com_GetToken(false);
 
-	if(SC_MatchToken( "additive" ))
+	if(Com_MatchToken( "additive" ))
 	{
 		texture[lookup_texture(tex_name)].flags |= STUDIO_NF_ADDITIVE;
 	}
-	else if(SC_MatchToken( "masked" ))
+	else if(Com_MatchToken( "masked" ))
 	{
 		texture[lookup_texture(tex_name)].flags |= STUDIO_NF_TRANSPARENT;
 	}
-	else if(SC_MatchToken( "blended" ))
+	else if(Com_MatchToken( "blended" ))
 	{
 		texture[lookup_texture(tex_name)].flags |= STUDIO_NF_BLENDED;
 	}
-	else MsgWarn("Cmd_TexRenderMode: texture '%s' have unknown render mode '%s'!\n", tex_name, SC_Token());
+	else MsgWarn("Cmd_TexRenderMode: texture '%s' have unknown render mode '%s'!\n", tex_name, com_token);
 
 }
 
@@ -2396,8 +2396,8 @@ syntax: $replacetexture "oldname.bmp" "newname.bmp"
 */
 void Cmd_Replace( void )
 {
-	strcpy ( sourcetexture[numrep], SC_GetToken(false));
-	strcpy ( defaulttexture[numrep], SC_GetToken(false));
+	strcpy ( sourcetexture[numrep], Com_GetToken(false));
+	strcpy ( defaulttexture[numrep], Com_GetToken(false));
 	numrep++;
 }
 
@@ -2413,7 +2413,7 @@ void Cmd_CdSet( void )
 	if(!cdset)
 	{
 		cdset = true;
-		FS_AddGameHierarchy( SC_GetToken (false));
+		FS_AddGameHierarchy( Com_GetToken (false));
 	}
 	else  Msg("Warning: $cd already set\n");
 }
@@ -2430,7 +2430,7 @@ void Cmd_CdTextureSet( void )
 	if(cdtextureset < 16) 
 	{
 		cdtextureset++;
-		FS_AddGameHierarchy( SC_GetToken (false));
+		FS_AddGameHierarchy( Com_GetToken (false));
 	}
 	else Msg("Warning: $cdtexture already set\n");
 }
@@ -2465,8 +2465,8 @@ syntax: "blabla"
 */
 void Cmd_StudioUnknown( void )
 {
-	MsgWarn("Cmd_StudioUnknown: skip command \"%s\"\n", SC_Token());
-	while(SC_TryToken());
+	MsgWarn("Cmd_StudioUnknown: skip command \"%s\"\n", com_token);
+	while(Com_TryToken());
 }
 
 bool ParseModelScript (void)
@@ -2475,39 +2475,39 @@ bool ParseModelScript (void)
 
 	while (1)
 	{
-		if(!SC_GetToken (true)) break;
+		if(!Com_GetToken (true)) break;
 
-		if (SC_MatchToken("$modelname")) Cmd_Modelname ();
-		else if (SC_MatchToken("$cd")) Cmd_CdSet();
-		else if (SC_MatchToken("$cdtexture")) Cmd_CdTextureSet();
-		else if (SC_MatchToken("$scale")) Cmd_ScaleUp ();
-		else if (SC_MatchToken("$rotate")) Cmd_Rotate();
-		else if (SC_MatchToken("$root")) Cmd_Root ();
-		else if (SC_MatchToken("$pivot")) Cmd_Pivot ();
-		else if (SC_MatchToken("$controller")) Cmd_Controller ();
-		else if (SC_MatchToken("$body")) Cmd_Body();
-		else if (SC_MatchToken("$bodygroup")) Cmd_Bodygroup();
-		else if (SC_MatchToken("$sequence")) Cmd_Sequence ();
-		else if (SC_MatchToken("$eyeposition")) Cmd_Eyeposition ();
-		else if (SC_MatchToken("$origin")) Cmd_Origin ();
-		else if (SC_MatchToken("$bbox")) Cmd_BBox ();
-		else if (SC_MatchToken("$cbox")) Cmd_CBox ();
-		else if (SC_MatchToken("$mirrorbone")) Cmd_Mirror ();
-		else if (SC_MatchToken("$gamma")) Cmd_Gamma ();
-		else if (SC_MatchToken("$texturegroup")) Cmd_TextureGroup ();
-		else if (SC_MatchToken("$hgroup")) Cmd_Hitgroup ();
-		else if (SC_MatchToken("$hbox")) Cmd_Hitbox ();
-		else if (SC_MatchToken("$attachment")) Cmd_Attachment ();
-		else if (SC_MatchToken("$cliptotextures")) clip_texcoords = 1;
-		else if (SC_MatchToken("$renamebone")) Cmd_Renamebone ();
-		else if (SC_MatchToken("$texrendermode")) Cmd_TexRenderMode();
-		else if (SC_MatchToken("$replacetexture")) Cmd_Replace();
-		else if (SC_MatchToken("$spritename"))
+		if (Com_MatchToken("$modelname")) Cmd_Modelname ();
+		else if (Com_MatchToken("$cd")) Cmd_CdSet();
+		else if (Com_MatchToken("$cdtexture")) Cmd_CdTextureSet();
+		else if (Com_MatchToken("$scale")) Cmd_ScaleUp ();
+		else if (Com_MatchToken("$rotate")) Cmd_Rotate();
+		else if (Com_MatchToken("$root")) Cmd_Root ();
+		else if (Com_MatchToken("$pivot")) Cmd_Pivot ();
+		else if (Com_MatchToken("$controller")) Cmd_Controller ();
+		else if (Com_MatchToken("$body")) Cmd_Body();
+		else if (Com_MatchToken("$bodygroup")) Cmd_Bodygroup();
+		else if (Com_MatchToken("$sequence")) Cmd_Sequence ();
+		else if (Com_MatchToken("$eyeposition")) Cmd_Eyeposition ();
+		else if (Com_MatchToken("$origin")) Cmd_Origin ();
+		else if (Com_MatchToken("$bbox")) Cmd_BBox ();
+		else if (Com_MatchToken("$cbox")) Cmd_CBox ();
+		else if (Com_MatchToken("$mirrorbone")) Cmd_Mirror ();
+		else if (Com_MatchToken("$gamma")) Cmd_Gamma ();
+		else if (Com_MatchToken("$texturegroup")) Cmd_TextureGroup ();
+		else if (Com_MatchToken("$hgroup")) Cmd_Hitgroup ();
+		else if (Com_MatchToken("$hbox")) Cmd_Hitbox ();
+		else if (Com_MatchToken("$attachment")) Cmd_Attachment ();
+		else if (Com_MatchToken("$cliptotextures")) clip_texcoords = 1;
+		else if (Com_MatchToken("$renamebone")) Cmd_Renamebone ();
+		else if (Com_MatchToken("$texrendermode")) Cmd_TexRenderMode();
+		else if (Com_MatchToken("$replacetexture")) Cmd_Replace();
+		else if (Com_MatchToken("$spritename"))
 		{
 			Msg("%s probably spritegen qc.script, skipping...\n", gs_mapname );
 			return false;
 		}
-		else if (SC_MatchToken("$frame"))
+		else if (Com_MatchToken("$frame"))
 		{
 			Msg("%s probably spritegen qc.script, skipping...\n", gs_mapname );
 			return false;
@@ -2549,7 +2549,7 @@ bool CompileCurrentModel( const char *name )
 	
 	if(name) strcpy( gs_mapname, name );
 	FS_DefaultExtension( gs_mapname, ".qc" );
-	load = FS_LoadScript( gs_mapname, NULL, 0 );
+	load = Com_LoadScript( gs_mapname, NULL, 0 );
 	
 	if(load)
 	{

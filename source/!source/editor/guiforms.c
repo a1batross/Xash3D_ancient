@@ -31,10 +31,8 @@ typedef struct tag_dlghdr
 
 GUI_Form 			s_gui;
 wnd_options_t		w_opts;	//window options
-common_exp_t		*com;	//common utils 
 static bool editor_init = false;
 static char textbuffer[MAX_INPUTLINE];
-dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(common_exp_t) };
 dll_info_t richedit_dll = { "riched32.dll", NULL, NULL, NULL, NULL, false, 0 };
 
 
@@ -366,7 +364,7 @@ void GUI_CreateOptionsWindow( void )
 
 	int w_pos, h_pos;
 	//int WNDSTYLE = WS_POPUP | WS_BORDER | WS_CAPTION | WS_MINIMIZEBOX;
-	int WNDSTYLE = WS_POPUP | WS_BORDER | WS_SYSMENU | WS_CAPTION;
+	int WNDSTYLE = WS_POPUP | WS_CAPTION;
 	int TABSTYLE = WS_CHILD | WS_VISIBLE | WS_TABSTOP | TCS_TOOLTIPS;
           int bpos_x, bpos_y;
 	
@@ -377,7 +375,7 @@ void GUI_CreateOptionsWindow( void )
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 0;
 	wc.hInstance = s_gui.gHinst;
-	wc.hIcon = LoadIcon(NULL, NULL);
+	wc.hIcon = LoadIcon( s_gui.gHinst, NULL );
 	wc.hCursor = LoadCursor (NULL, IDC_ARROW);
 	wc.hbrBackground = (HBRUSH) COLOR_3DSHADOW;
 	wc.lpszMenuName = NULL;
@@ -423,11 +421,9 @@ void GUI_ResetWndOptions( void )
 	char	dev_level[4];
 
 	//get info about debug mode
-	if(CheckParm ("-debug")) debug_mode = true;	
-	if(GetParmFromCmdLine("-dev", dev_level ))
+	if(FS_CheckParm ("-debug")) debug_mode = true;	
+	if(FS_GetParmFromCmdLine("-dev", dev_level ))
 		dev_mode = atoi(dev_level);
-
-	s_gui.gHinst = (HINSTANCE) GetModuleHandle( NULL );
 	
 	// reset options
 	w_opts.id = IDEDITORHEADER;
@@ -453,35 +449,10 @@ void GUI_LoadWndOptions( wnd_options_t *settings )
 	s_gui.height = w_opts.height;
 }
 
-bool GUI_LoadPlatfrom( char *funcname, int argc, char **argv )
+bool GUI_LoadPlatfrom( uint funcname, int argc, char **argv )
 {
-	stdlib_api_t	io; //common callback
-	common_t		CreatePlat;
-
-	// create callbacks for common.dll
-	io = std;
-
-	// overload some functions
-	io.printf = GUI_Msg;
-	io.dprintf = GUI_MsgDev;
-	io.wprintf = GUI_MsgWarn;
-	io.error = GUI_Error;
-	io.print = GUI_Print;
-	
-	// loading common.dll
-	if (!Sys_LoadLibrary( &common_dll ))
-	{
-		GUI_Error("couldn't find common.dll\n");
-		return false;	
-	}
-	CreatePlat = (void *)common_dll.main;
-	com = CreatePlat( &io );//make links
-	
-	//initialziing common.dll
-	com->Init( argc, argv );
-
-	std.Fs.ClearSearchPath();
-	std.AddGameHierarchy( "bin" );
+	FS_ClearSearchPath();
+	FS_AddGameHierarchy( "bin" );
 
 	return true;
 }
@@ -936,7 +907,7 @@ static LRESULT CALLBACK WndProc (HWND hwnd, UINT uMessage, WPARAM wParam, LPARAM
 	return DefWindowProc (hwnd, uMessage, wParam, lParam);
 }
 
-void InitEditor ( char *funcname, int argc, char **argv )
+void InitEditor ( uint funcname, int argc, char **argv )
 {
 	HDC hDC;
 	WNDCLASS wc;
@@ -945,6 +916,7 @@ void InitEditor ( char *funcname, int argc, char **argv )
 	int iErrors = 0;
 	
 	memset( &wc, 0, sizeof( wc ));
+	s_gui.gHinst = (HINSTANCE)GetModuleHandle( NULL );
 
 	com_argc = argc;
 	memcpy(com_argv, argv, MAX_NUM_ARGVS );
@@ -954,7 +926,7 @@ void InitEditor ( char *funcname, int argc, char **argv )
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 0;
 	wc.hInstance = s_gui.gHinst;
-	wc.hIcon = LoadIcon (wc.hInstance, MAKEINTRESOURCE(IDI_ICON1));
+	wc.hIcon = LoadIcon (s_gui.gHinst, MAKEINTRESOURCE(IDI_ICON1));
 	wc.hCursor = LoadCursor (NULL, IDC_ARROW);
 	wc.hbrBackground = (HBRUSH) COLOR_WINDOW;
 	wc.lpszMenuName = NULL;
@@ -989,7 +961,7 @@ void InitEditor ( char *funcname, int argc, char **argv )
 		wnd_options_t *config_dat;
 		int config_size;
 		
-		config_dat = (wnd_options_t *)std.Fs.LoadFile( "editor.dat", &config_size );
+		config_dat = (wnd_options_t *)FS_LoadFile( "editor.dat", &config_size );
 
 		if(config_dat) //verify our config before read
 		{
@@ -1040,25 +1012,14 @@ void EditorMain ( void )
 		}
 	}	
 
-	if(common_dll.link)
-	{
-		// save our settings
-		std.Fs.WriteFile("editor.dat", &w_opts, w_opts.csize );
-	}
+	// save our settings
+	FS_WriteFile("editor.dat", &w_opts, w_opts.csize );
 }
 
 void FreeEditor ( void )
 {
 	// free richedit32
 	Sys_FreeLibrary( &richedit_dll );
-
-	// free common
-	if(common_dll.link)
-	{
-		com->Shutdown();
-		Sys_FreeLibrary(&common_dll);
-	}	
-
 	GUI_RemoveAccelTable();
 	UnregisterClass (CLASSNAME, s_gui.gHinst);
 }

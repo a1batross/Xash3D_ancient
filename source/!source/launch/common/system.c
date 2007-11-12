@@ -7,14 +7,19 @@
 #include "launch.h"
 #include "basemath.h"
 
-system_t	sys;
-FILE	*logfile;
+system_t		Sys;
+stdlib_api_t	std;
+launch_exp_t	*Host;	// callback to mainframe 
+FILE		*logfile;
 
-dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(common_exp_t) };
+dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t editor_dll = { "editor.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 
-void NullInit ( char *funcname, int argc, char **argv )
+static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t\
+          All Rights Reserved\n\n\t           Visit www.xash.ru\n";
+
+void NullInit ( uint funcname, int argc, char **argv )
 {
 }
 
@@ -25,6 +30,145 @@ void NullFunc( void )
 gameinfo_t Sys_GameInfo( void )
 {
 	return GI;
+}
+
+void Sys_GetStdAPI( void )
+{
+	// interface validator
+	std.api_size = sizeof(stdlib_api_t);
+
+	// base events
+	std.printf = Sys_Msg;
+	std.dprintf = Sys_MsgDev;
+	std.wprintf = Sys_MsgWarn;
+	std.error = Sys_Error;
+	std.exit = Sys_Exit;
+	std.print = Sys_Print;
+	std.input = Sys_Input;
+	std.sleep = Sys_Sleep;
+	std.clipboard = Sys_GetClipboardData;
+	std.keyevents = Sys_SendKeyEvents;
+
+	// crclib.c funcs
+	std.crc_init = CRC_Init;
+	std.crc_block = CRC_Block;
+	std.crc_process = CRC_ProcessByte;
+	std.crc_sequence = CRC_BlockSequence;
+
+	// memlib.c
+	std.memcpy = _mem_copy;
+	std.memset = _mem_set;
+	std.realloc = _mem_realloc;
+	std.move = _mem_move;
+	std.malloc = _mem_alloc;
+	std.free = _mem_free;
+	std.mallocpool = _mem_allocpool;
+	std.freepool = _mem_freepool;
+	std.clearpool = _mem_emptypool;
+	std.memcheck = _mem_check;
+
+	// common functions
+	std.Com_InitRootDir = FS_InitRootDir;		// init custom rootdir 
+	std.Com_LoadGameInfo = FS_LoadGameInfo;		// gate game info from script file
+	std.Com_AddGameHierarchy = FS_AddGameHierarchy;	// add base directory in search list
+	std.Com_CheckParm = FS_CheckParm;		// get parm from cmdline
+	std.Com_GetParm = FS_GetParmFromCmdLine;	// get filename without path & ext
+	std.Com_FileBase = FS_FileBase;		// get filename without path & ext
+	std.Com_FileExists = FS_FileExists;		// return true if file exist
+	std.Com_FileSize = FS_FileSize;		// same as Com_FileExists but return filesize
+	std.Com_FileExtension = FS_FileExtension;	// return extension of file
+	std.Com_RemovePath = FS_FileWithoutPath;	// return file without path
+	std.Com_StripExtension = FS_StripExtension;	// remove extension if present
+	std.Com_StripFilePath = FS_ExtractFilePath;	// get file path without filename.ext
+	std.Com_DefaultExtension = FS_DefaultExtension;	// append extension if not present
+	std.Com_ClearSearchPath = FS_ClearSearchPath;	// delete all search pathes
+	std.Com_CreateThread = Sys_RunThreadsOnIndividual;// run individual thread
+	std.Com_ThreadLock = Sys_ThreadLock;		// lock current thread
+	std.Com_ThreadUnlock = Sys_ThreadUnlock;	// unlock numthreads
+	std.Com_NumThreads = Sys_GetNumThreads;		// returns count of active threads
+	std.Com_LoadScript = SC_LoadScript;		// load script into stack from file or bufer
+	std.Com_AddScript = SC_AddScript;		// include script from file or buffer
+	std.Com_ResetScript = SC_ResetScript;		// reset current script state
+	std.Com_ReadToken = SC_GetToken;		// get next token on a line or newline
+	std.Com_TryToken = SC_TryToken;		// return 1 if have token on a line 
+	std.Com_FreeToken = SC_FreeToken;		// free current token to may get it again
+	std.Com_SkipToken = SC_SkipToken;		// skip current token and jump into newline
+	std.Com_MatchToken = SC_MatchToken;		// compare current token with user keyword
+	std.Com_ParseToken = SC_ParseToken;		// parse token from char buffer
+	std.Com_ParseWord = SC_ParseWord;		// parse word from char buffer
+	std.Com_Search = FS_Search;			// returned list of found files
+	std.Com_Filter = SC_FilterToken;		// compare keyword by mask with filter
+	std.com_token = token;			// contains current token
+
+	// real filesystem
+	std.fopen = FS_Open;		// same as fopen
+	std.fclose = FS_Close;		// same as fclose
+	std.fwrite = FS_Write;		// same as fwrite
+	std.fread = FS_Read;		// same as fread, can see trough pakfile
+	std.fprint = FS_Print;		// printed message into file		
+	std.fprintf = FS_Printf;		// same as fprintf
+	std.fgets = FS_Gets;		// like a fgets, but can return EOF
+	std.fseek = FS_Seek;		// fseek, can seek in packfiles too
+	std.ftell = FS_Tell;		// like a ftell
+
+	// virtual filesystem
+	std.vfcreate = VFS_Create;		// create virtual stream
+	std.vfopen = VFS_Open;		// virtual fopen
+	std.vfclose = VFS_Close;		// free buffer or write dump
+	std.vfwrite = VFS_Write;		// write into buffer
+	std.vfwrite2 = VFS_Write2;		// deflate buffer, then write
+	std.vfread = VFS_Read;		// read from buffer
+	std.vfseek = VFS_Seek;		// fseek, can seek in packfiles too
+	std.vfunpack = VFS_Unpack;		// inflate zipped buffer
+	std.vftell = VFS_Tell;		// like a ftell
+
+	// filesystem simply user interface
+	std.Com_LoadFile = FS_LoadFile;		// load file into heap
+	std.Com_WriteFile = FS_WriteFile;		// write file into disk
+	std.Com_LoadImage = FS_LoadImage;		// extract image into rgba buffer
+	std.Com_SaveImage = FS_SaveImage;		// save image into specified format
+	std.Com_ProcessImage = Image_Processing;	// convert and resample image
+	std.Com_FreeImage = FS_FreeImage;		// free image buffer
+	std.Com_LoadLibrary = Sys_LoadLibrary;		// load library 
+	std.Com_FreeLibrary = Sys_FreeLibrary;		// free library
+	std.Com_GetProcAddress = Sys_GetProcAddress;	// gpa
+	std.Com_DoubleTime = Sys_DoubleTime;		// hi-res timer
+
+	// stdlib.c funcs
+	std.strnupr = com_strnupr;
+	std.strnlwr = com_strnlwr;
+	std.strupr = com_strupr;
+	std.strlwr = com_strlwr;
+	std.strlen = com_strlen;
+	std.cstrlen = com_cstrlen;
+	std.toupper = com_toupper;
+	std.tolower = com_tolower;
+	std.strncat = com_strncat;
+	std.strcat = com_strcat;
+	std.strncpy = com_strncpy;
+	std.strcpy = com_strcpy;
+	std.stralloc = com_stralloc;
+	std.atoi = com_atoi;
+	std.atof = com_atof;
+	std.atov = com_atov;
+	std.strchr = com_strchr;
+	std.strrchr = com_strrchr;
+	std.strnicmp = com_strnicmp;
+	std.stricmp = com_stricmp;
+	std.strncmp = com_strncmp;
+	std.strcmp = com_strcmp;
+	std.stristr = com_stristr;
+	std.strstr = com_stristr;		// FIXME
+	std.strpack = com_strpack;
+	std.strunpack = com_strunpack;
+	std.vsprintf = com_vsprintf;
+	std.sprintf = com_sprintf;
+	std.va = va;
+	std.vsnprintf = com_vsnprintf;
+	std.snprintf = com_snprintf;
+	std.timestamp = com_timestamp;
+
+	std.GameInfo = &GI;
 }
 
 /*
@@ -50,95 +194,151 @@ This list will be expnaded in future
 */
 void Sys_LookupInstance( void )
 {
+	Sys.app_name = HOST_OFFLINE;
+
 	// lookup all instances
-	if(!com_strcmp(sys.progname, "host_shared"))
+	if(!com_strcmp(Sys.progname, "host_shared"))
 	{
-		sys.app_name = HOST_SHARED;
-		sys.con_readonly = true;
+		Sys.app_name = HOST_NORMAL;
+		Sys.con_readonly = true;
+		// don't show console as default
+		if(!Sys.debug) Sys.con_showalways = false;
+		Sys.linked_dll = &engine_dll;	// pointer to engine.dll info
+		com_strcpy(Sys.log_path, "engine.log" ); // xash3d root directory
+		com_strcpy(Sys.caption, va("Xash3D ver.%g", XASH_VERSION ));
+	}
+	else if(!com_strcmp(Sys.progname, "host_dedicated"))
+	{
+		Sys.app_name = HOST_DEDICATED;
+		Sys.con_readonly = false;
+		Sys.linked_dll = &engine_dll;	// pointer to engine.dll info
+		com_strcpy(Sys.log_path, "engine.log" ); // xash3d root directory
+		com_strcpy(Sys.caption, va("Xash3D Dedicated Server ver.%g", XASH_VERSION ));
+	}
+	else if(!com_strcmp(Sys.progname, "host_editor"))
+	{
+		Sys.app_name = HOST_EDITOR;
+		Sys.con_readonly = true;
 		//don't show console as default
-		if(!sys.debug) sys.con_showalways = false;
-		sys.linked_dll = &engine_dll;	// pointer to engine.dll info
-		com_strcpy(sys.log_path, "engine.log" ); // xash3d root directory
-		com_strcpy(sys.caption, va("Xash3D ver.%g", XASH_VERSION ));
+		if(!Sys.debug) Sys.con_showalways = false;
+		Sys.linked_dll = &editor_dll;	// pointer to editor.dll info
+		com_strcpy(Sys.log_path, "editor.log" ); // xash3d root directory
+		com_strcpy(Sys.caption, va("Xash3D Editor ver.%g", XASH_VERSION ));
 	}
-	else if(!com_strcmp(sys.progname, "host_dedicated"))
+	else if(!com_strcmp(Sys.progname, "bsplib"))
 	{
-		sys.app_name = HOST_DEDICATED;
-		sys.con_readonly = false;
-		sys.linked_dll = &engine_dll;	// pointer to engine.dll info
-		com_strcpy(sys.log_path, "engine.log" ); // xash3d root directory
-		com_strcpy(sys.caption, va("Xash3D Dedicated Server ver.%g", XASH_VERSION ));
+		Sys.app_name = BSPLIB;
+		Sys.linked_dll = &common_dll;	// pointer to common.dll info
+		com_strcpy(Sys.log_path, "bsplib.log" ); // xash3d root directory
+		com_strcpy(Sys.caption, "Xash3D BSP Compiler");
 	}
-	else if(!com_strcmp(sys.progname, "host_editor"))
+	else if(!com_strcmp(Sys.progname, "imglib"))
 	{
-		sys.app_name = HOST_EDITOR;
-		sys.con_readonly = true;
-		//don't show console as default
-		if(!sys.debug) sys.con_showalways = false;
-		sys.linked_dll = &editor_dll;	// pointer to editor.dll info
-		com_strcpy(sys.log_path, "editor.log" ); // xash3d root directory
-		com_strcpy(sys.caption, va("Xash3D Editor ver.%g", XASH_VERSION ));
+		Sys.app_name = IMGLIB;
+		Sys.linked_dll = &common_dll;	// pointer to common.dll info
+		com_sprintf(Sys.log_path, "%s/convert.log", sys_rootdir ); // same as .exe file
+		com_strcpy(Sys.caption, "Xash3D Image Converter");
 	}
-	else if(!com_strcmp(sys.progname, "bsplib"))
+	else if(!com_strcmp(Sys.progname, "qcclib"))
 	{
-		sys.app_name = BSPLIB;
-		sys.linked_dll = &common_dll;	// pointer to common.dll info
-		com_strcpy(sys.log_path, "bsplib.log" ); // xash3d root directory
-		com_strcpy(sys.caption, "Xash3D BSP Compiler");
+		Sys.app_name = QCCLIB;
+		Sys.linked_dll = &common_dll;	// pointer to common.dll info
+		com_sprintf(Sys.log_path, "%s/compile.log", sys_rootdir ); // same as .exe file
+		com_strcpy(Sys.caption, "Xash3D QuakeC Compiler");
 	}
-	else if(!com_strcmp(sys.progname, "imglib"))
+	else if(!com_strcmp(Sys.progname, "roqlib"))
 	{
-		sys.app_name = IMGLIB;
-		sys.linked_dll = &common_dll;	// pointer to common.dll info
-		com_sprintf(sys.log_path, "%s/convert.log", sys_rootdir ); // same as .exe file
-		com_strcpy(sys.caption, "Xash3D Image Converter");
+		Sys.app_name = ROQLIB;
+		Sys.linked_dll = &common_dll;	// pointer to common.dll info
+		com_sprintf(Sys.log_path, "%s/roq.log", sys_rootdir ); // same as .exe file
+		com_strcpy(Sys.caption, "Xash3D ROQ Video Maker");
 	}
-	else if(!com_strcmp(sys.progname, "qcclib"))
+	else if(!com_strcmp(Sys.progname, "sprite"))
 	{
-		sys.app_name = QCCLIB;
-		sys.linked_dll = &common_dll;	// pointer to common.dll info
-		com_sprintf(sys.log_path, "%s/compile.log", sys_rootdir ); // same as .exe file
-		com_strcpy(sys.caption, "Xash3D QuakeC Compiler");
+		Sys.app_name = SPRITE;
+		Sys.linked_dll = &common_dll;	// pointer to common.dll info
+		com_sprintf(Sys.log_path, "%s/spritegen.log", sys_rootdir ); // same as .exe file
+		com_strcpy(Sys.caption, "Xash3D Sprite Compiler");
 	}
-	else if(!com_strcmp(sys.progname, "roqlib"))
+	else if(!com_strcmp(Sys.progname, "studio"))
 	{
-		sys.app_name = ROQLIB;
-		sys.linked_dll = &common_dll;	// pointer to common.dll info
-		com_sprintf(sys.log_path, "%s/roq.log", sys_rootdir ); // same as .exe file
-		com_strcpy(sys.caption, "Xash3D ROQ Video Maker");
+		Sys.app_name = STUDIO;
+		Sys.linked_dll = &common_dll;	// pointer to common.dll info
+		com_sprintf(Sys.log_path, "%s/studiomdl.log", sys_rootdir ); // same as .exe file
+		com_strcpy(Sys.caption, "Xash3D Studio Models Compiler");
 	}
-	else if(!com_strcmp(sys.progname, "sprite"))
+	else if(!com_strcmp(Sys.progname, "credits")) // easter egg
 	{
-		sys.app_name = SPRITE;
-		sys.linked_dll = &common_dll;	// pointer to common.dll info
-		com_sprintf(sys.log_path, "%s/spritegen.log", sys_rootdir ); // same as .exe file
-		com_strcpy(sys.caption, "Xash3D Sprite Compiler");
+		Sys.app_name = CREDITS;
+		Sys.linked_dll = NULL; // no need to loading library
+		Sys.log_active = Sys.developer = Sys.debug = 0; // clear all dbg states
+		com_strcpy(Sys.caption, "About");
+		Sys.con_showcredits = true;
 	}
-	else if(!com_strcmp(sys.progname, "studio"))
+	else if(!com_strcmp(Sys.progname, "host_setup")) // write path into registry
 	{
-		sys.app_name = STUDIO;
-		sys.linked_dll = &common_dll;	// pointer to common.dll info
-		com_sprintf(sys.log_path, "%s/studiomdl.log", sys_rootdir ); // same as .exe file
-		com_strcpy(sys.caption, "Xash3D Studio Models Compiler");
+		Sys.app_name =  HOST_INSTALL;
+		Sys.linked_dll = NULL;	// no need to loading library
+		Sys.log_active = Sys.developer = Sys.debug = 0; //clear all dbg states
+		Sys.con_silentmode = true;
 	}
-	else if(!com_strcmp(sys.progname, "credits")) // easter egg
+}
+
+/*
+==================
+Find needed library, setup and run it
+==================
+*/
+void Sys_CreateInstance( void )
+{
+	// export
+	launch_t		CreateHost;
+
+	Sys_LoadLibrary( Sys.linked_dll ); // loading library if need
+
+	switch(Sys.app_name)
 	{
-		sys.app_name = CREDITS;
-		sys.linked_dll = NULL; // no need to loading library
-		sys.log_active = sys.developer = sys.debug = 0; // clear all dbg states
-		com_strcpy(sys.caption, "About");
-		sys.con_showcredits = true;
+	case HOST_NORMAL:
+	case HOST_DEDICATED:
+	case HOST_EDITOR:		
+	case BSPLIB:
+	case QCCLIB:
+	case ROQLIB:
+	case IMGLIB:
+	case SPRITE:
+	case STUDIO:
+		CreateHost = (void *)Sys.linked_dll->main;
+
+		// set callback
+		Host = CreateHost( &std, NULL ); // second interface not allowed
+		Sys.Init = Host->Init;
+		Sys.Main = Host->Main;
+		Sys.Free = Host->Free;
+		break;
+	case CREDITS:
+		Sys_Print( show_credits );
+		Sys_WaitForQuit();
+		Sys_Exit();
+		break;
+	case HOST_INSTALL:
+		// FS_UpdateEnvironmentVariables() is done, quit now
+		Sys_Exit();
+		break;
+	case HOST_OFFLINE:
+		Sys_Error("Host offline\n Press \"ESC\" to exit\n");		
+		break;
 	}
-	else if(!com_strcmp(sys.progname, "host_setup")) // write path into registry
+
+	// init our host now!
+	Sys.Init( Sys.app_name, fs_argc, fs_argv );
+
+	// hide console if needed
+	switch(Sys.app_name)
 	{
-		sys.app_name =  HOST_INSTALL;
-		sys.linked_dll = NULL;	// no need to loading library
-		sys.log_active = sys.developer = sys.debug = 0; //clear all dbg states
-		sys.con_silentmode = true;
-	}
-	else 
-	{
-		sys.app_name = DEFAULT;
+		case HOST_NORMAL:
+		case HOST_EDITOR:
+			Con_ShowConsole( false );
+			break;
 	}
 }
 
@@ -201,12 +401,12 @@ void Sys_ParseCommandLine (LPSTR lpCmdLine)
 void Sys_InitLog( void )
 {
 	// create log if needed
-	if(!sys.log_active || !com_strlen(sys.log_path) || sys.con_silentmode) return;
-	logfile = fopen( sys.log_path, "w");
-	if(!logfile) Sys_Error("Sys_InitLog: can't create log file %s\n", sys.log_path );
+	if(!Sys.log_active || !com_strlen(Sys.log_path) || Sys.con_silentmode) return;
+	logfile = fopen( Sys.log_path, "w");
+	if(!logfile) Sys_Error("Sys_InitLog: can't create log file %s\n", Sys.log_path );
 
 	fprintf(logfile, "=======================================================================\n" );
-	fprintf(logfile, "\t%s started at %s\n", sys.caption, com_timestamp(TIME_FULL));
+	fprintf(logfile, "\t%s started at %s\n", Sys.caption, com_timestamp(TIME_FULL));
 	fprintf(logfile, "=======================================================================\n");
 }
 
@@ -216,7 +416,7 @@ void Sys_CloseLog( void )
 
 	fprintf(logfile, "\n");
 	fprintf(logfile, "=======================================================================");
-	fprintf(logfile, "\n\t%s stopped at %s\n", sys.caption, com_timestamp(TIME_FULL));
+	fprintf(logfile, "\n\t%s stopped at %s\n", Sys.caption, com_timestamp(TIME_FULL));
 	fprintf(logfile, "=======================================================================");
 
 	fclose(logfile);
@@ -245,7 +445,7 @@ void Sys_Print(const char *pMsg)
 	char		*c = logbuf;	
 	int		i = 0;
 
-	if(sys.con_silentmode) return;
+	if(Sys.con_silentmode) return;
 
 	// if the message is REALLY long, use just the last portion of it
 	if ( com_strlen( pMsg ) > MAX_INPUTLINE - 1 )
@@ -289,7 +489,7 @@ void Sys_Print(const char *pMsg)
 	*b = *c = 0; // cutoff garbage
 
 	Sys_PrintLog( logbuf );
-	if(sys.Con_Print) sys.Con_Print( buffer );
+	if(Sys.Con_Print) Sys.Con_Print( buffer );
 }
 
 /*
@@ -316,7 +516,7 @@ void Sys_MsgDev( int level, const char *pMsg, ... )
 	va_list	argptr;
 	char	text[MAX_INPUTLINE];
 	
-	if(sys.developer < level) return;
+	if(Sys.developer < level) return;
 
 	va_start (argptr, pMsg);
 	com_vsprintf (text, pMsg, argptr);
@@ -329,7 +529,7 @@ void Sys_MsgWarn( const char *pMsg, ... )
 	va_list	argptr;
 	char	text[MAX_INPUTLINE];
 	
-	if(!sys.debug) return;
+	if(!Sys.debug) return;
 
 	va_start (argptr, pMsg);
 	com_vsprintf (text, pMsg, argptr);
@@ -469,7 +669,7 @@ void Sys_WaitForQuit( void )
 {
 	MSG		msg;
 
-	if(sys.hooked_out)
+	if(Sys.hooked_out)
 	{
 		Sys_Print("press any key to quit\n");
 		getchar(); // wait for quit
@@ -505,13 +705,13 @@ void Sys_Error(char *error, ...)
 	va_list		argptr;
 	char		text[MAX_INPUTLINE];
          
-	if(sys.error) return; // don't multiple executes
+	if(Sys.error) return; // don't multiple executes
 	
 	va_start (argptr, error);
 	com_vsprintf (text, error, argptr);
 	va_end (argptr);
          
-	sys.error = true;
+	Sys.error = true;
 	
 	Con_ShowConsole( true );
 	Sys_Print( text ); // print error message
@@ -525,11 +725,11 @@ long _stdcall Sys_ExecptionFilter( PEXCEPTION_POINTERS pExceptionInfo )
 {
 	// save config
 	Sys_Print("Engine crashed\n");
-	sys.Free(); // prepare host to close
-	Sys_FreeLibrary( sys.linked_dll );
+	Sys.Free(); // prepare host to close
+	Sys_FreeLibrary( Sys.linked_dll );
 	Con_DestroyConsole();	
 
-	if( sys.oldFilter ) return sys.oldFilter( pExceptionInfo );
+	if( Sys.oldFilter ) return Sys.oldFilter( pExceptionInfo );
 
 #if 1
 	return EXCEPTION_CONTINUE_SEARCH;
@@ -588,40 +788,42 @@ void Sys_Init( void )
 //oldFilter = SetUnhandledExceptionFilter( Sys_ExecptionFilter );
 	GlobalMemoryStatus (&lpBuffer);
 
-	sys.hInstance = (HINSTANCE)GetModuleHandle( NULL ); // get current hInstance first
+	Sys.hInstance = (HINSTANCE)GetModuleHandle( NULL ); // get current hInstance first
 	hStdout = GetStdHandle (STD_OUTPUT_HANDLE); // check for hooked out
 
 	if(!GetVersionEx (&vinfo)) Sys_ErrorFatal(ERR_OSINFO_FAIL);
 	if(vinfo.dwMajorVersion < 4) Sys_ErrorFatal(ERR_INVALID_VER);
 	if(vinfo.dwPlatformId == VER_PLATFORM_WIN32s) Sys_ErrorFatal(ERR_WINDOWS_32S);
 
-	sys.Init = NullInit;
-	sys.Main = NullFunc;
-	sys.Free = NullFunc;
+	Sys_GetStdAPI();
+	Sys.Init = NullInit;
+	Sys.Main = NullFunc;
+	Sys.Free = NullFunc;
 
 	// parse and copy args into local array
 	Sys_ParseCommandLine(GetCommandLine());
 
-	if(FS_CheckParm ("-debug")) sys.debug = true;
-	if(FS_CheckParm ("-log")) sys.log_active = true;
-	if(FS_GetParmFromCmdLine("-dev", dev_level )) sys.developer = com_atoi(dev_level);
+	if(FS_CheckParm ("-debug")) Sys.debug = true;
+	if(FS_CheckParm ("-log")) Sys.log_active = true;
+	if(FS_GetParmFromCmdLine("-dev", dev_level )) Sys.developer = com_atoi(dev_level);
 
 	// ugly hack to get pipeline state, but it works
-	if(abs((short)hStdout) < 100) sys.hooked_out = false;
-	else sys.hooked_out = true;
+	if(abs((short)hStdout) < 100) Sys.hooked_out = false;
+	else Sys.hooked_out = true;
 	FS_UpdateEnvironmentVariables(); // set working directory
 
-	sys.con_showalways = true;
-	sys.con_readonly = true;
-	sys.con_showcredits = false;
-	sys.con_silentmode = false;
+	Sys.con_showalways = true;
+	Sys.con_readonly = true;
+	Sys.con_showcredits = false;
+	Sys.con_silentmode = false;
 
-	Sys_InitCPU();
 	Sys_LookupInstance(); // init launcher
 	Con_CreateConsole();
+	Sys_InitCPU();
 
 	Memory_Init();
 	FS_Init();
+	Sys_CreateInstance();
 }
 
 /*
@@ -635,16 +837,16 @@ before call this
 void Sys_Exit ( void )
 {
 	// prepare host to close
-	sys.Free();
-	Sys_FreeLibrary( sys.linked_dll );
+	Sys.Free();
+	Sys_FreeLibrary( Sys.linked_dll );
 
 	Con_DestroyConsole();	
 	FS_Shutdown();
 	Memory_Shutdown();
 
-	if( sys.oldFilter )  // restore filter	
-		SetUnhandledExceptionFilter( sys.oldFilter );
-	exit( sys.error );
+	if( Sys.oldFilter )  // restore filter	
+		SetUnhandledExceptionFilter( Sys.oldFilter );
+	exit( Sys.error );
 }
 
 //=======================================================================
@@ -708,7 +910,7 @@ bool Sys_LoadLibrary ( dll_info_t *dll )
 
 		// NOTE: native dlls must support null import!
 		// e.g. see ..\common\platform.c for details
-		check = (void *)dll->main( NULL );
+		check = (void *)dll->main( &std, NULL ); // first iface always stdlib_api_t
 
 		if(!check) 
 		{

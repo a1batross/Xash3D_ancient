@@ -208,12 +208,12 @@ bool CG_ParseArgs( int num_argc )
 {
 	cls.cg_argc = 0;
 	memset(cls.cg_argv, 0, MAX_PARMS * MAX_QPATH );
-	strncpy( cls.cg_progname, COM_Token, MAX_QPATH );
+	strncpy( cls.cg_progname, com_token, MAX_QPATH );
 
 	// bound range silently 
 	num_argc = bound(0, num_argc, MAX_PARMS - 1); 
 
-	while(COM_TryToken())
+	while(Com_TryToken())
 	{
 		if(!num_argc) continue;	// nothing to handle
 		if(num_argc > 0 && cls.cg_argc > num_argc - 1 )
@@ -221,11 +221,11 @@ bool CG_ParseArgs( int num_argc )
 			MsgDev(D_ERROR, "CG_ParseArgs: %s have too many parameters\n", cls.cg_progname );
 			return false; // stack overflow
 		}
-		else if(COM_MatchToken(";")) break;		// end of parsing
-		else if(COM_MatchToken(",")) cls.cg_argc++;	// new argument
-		else if(COM_MatchToken("(") || COM_MatchToken(")"))
+		else if(Com_MatchToken(";")) break;		// end of parsing
+		else if(Com_MatchToken(",")) cls.cg_argc++;	// new argument
+		else if(Com_MatchToken("(") || Com_MatchToken(")"))
 			continue; // skip punctuation
-		else strncpy(cls.cg_argv[cls.cg_argc], COM_Token, MAX_QPATH ); // fill stack
+		else strncpy(cls.cg_argv[cls.cg_argc], com_token, MAX_QPATH ); // fill stack
 	}
 
 	if(num_argc > 0 && cls.cg_argc < num_argc - 1)
@@ -239,18 +239,18 @@ void CG_SkipBlock( void )
 	int	old_depth =  cls.cg_program_depth;
 
 	do {
-		if(COM_MatchToken("{"))
+		if(Com_MatchToken("{"))
 		{
 			// for bounds cheking
 			cls.cg_program_depth++;
 		}
-		else if(COM_MatchToken("}")) 
+		else if(Com_MatchToken("}")) 
 		{
 			cls.cg_program_depth--;
 			break;
 		}
-		while(COM_TryToken());
-	} while(COM_GetToken( true ));
+		while(Com_TryToken());
+	} while(Com_GetToken( true ));
 
 	if(cls.cg_program_depth != old_depth)
 	{
@@ -731,16 +731,16 @@ void CG_ExecuteProgram( char *section )
 	bool	skip = true;
 	int	value = 0;
 
-	COM_ResetScript();
+	Com_ResetScript();
 	cls.cg_program_depth = 0;
 
-	while(COM_GetToken( true ))
+	while(Com_GetToken( true ))
 	{
 		// first, we must find start of section
-		if(COM_MatchToken("void"))
+		if(Com_MatchToken("void"))
 		{
-			COM_GetToken( false ); // get section name
-			if(COM_MatchToken( section )) skip = false;
+			Com_GetToken( false ); // get section name
+			if(Com_MatchToken( section )) skip = false;
 			CG_ParseArgs( 1 ); // go to end of line
 		}
 
@@ -748,12 +748,12 @@ void CG_ExecuteProgram( char *section )
 		//Msg("execute %s\n", section );
 
 		// exec hud program
-		if(COM_MatchToken("{"))
+		if(Com_MatchToken("{"))
 		{
 			cls.cg_program_depth++;
 			continue;
 		}
-		else if(COM_MatchToken("}"))
+		else if(Com_MatchToken("}"))
 		{
 			cls.cg_program_depth--;
 			if(!cls.cg_program_depth) break; // end of section
@@ -761,7 +761,7 @@ void CG_ExecuteProgram( char *section )
 		}
 
 		// builtins
-		if(COM_MatchToken("if"))
+		if(Com_MatchToken("if"))
 		{	
 			bool	equal = true;
 
@@ -775,19 +775,19 @@ void CG_ExecuteProgram( char *section )
 			}
 			else CG_SkipBlock(); // skip if{ }
 		}
-		else if(COM_MatchToken("SetAlias"))
+		else if(Com_MatchToken("SetAlias"))
 		{
 			// set alias name for stats numbers
 			if(!CG_ParseArgs( 2 )) continue;
 			CG_SetAlias(cls.cg_argv[0], atoi(cls.cg_argv[1]));
 		}
-		else if(COM_MatchToken("LoadPic"))
+		else if(Com_MatchToken("LoadPic"))
 		{
 			// cache hud pics
 			if(!CG_ParseArgs( 1 )) continue;
 			re->RegisterPic(cls.cg_argv[0]);
 		}
-		else if(COM_MatchToken("DrawField"))
+		else if(Com_MatchToken("DrawField"))
 		{
 			// displayed health, armor, e.t.c.
 			if(!CG_ParseArgs( 4 )) continue;
@@ -795,37 +795,37 @@ void CG_ExecuteProgram( char *section )
 				MsgDev(D_WARN, "%s: can't use undefined alias %s\n", cls.cg_progname, cls.cg_argv[0]);
 			else CG_DrawField( value, atoi(cls.cg_argv[1]), atoi(cls.cg_argv[2]), atoi(cls.cg_argv[3]));
 		}
-		else if(COM_MatchToken("DrawPic"))
+		else if(Com_MatchToken("DrawPic"))
 		{
 			// draw named pic
 			if(!CG_ParseArgs( 3 )) continue;
 			SCR_DrawPic( atoi(cls.cg_argv[1]), atoi(cls.cg_argv[2]), 48, 48, CG_ImageIndex(cls.cg_argv[0]));
 		}
-		else if(COM_MatchToken("DrawStretchPic"))
+		else if(Com_MatchToken("DrawStretchPic"))
 		{
 			// draw named pic
 			if(!CG_ParseArgs( 5 )) continue;
 			SCR_DrawPic( atoi(cls.cg_argv[1]), atoi(cls.cg_argv[2]), atoi(cls.cg_argv[3]), atoi(cls.cg_argv[4]), cls.cg_argv[0]);
 		}
-		else if(COM_MatchToken("SetColor"))
+		else if(Com_MatchToken("SetColor"))
 		{
 			// set custom color
 			if(!CG_ParseArgs( 4 )) continue;
 			CG_SetColor(atof(cls.cg_argv[0]), atof(cls.cg_argv[1]), atof(cls.cg_argv[2]), atof(cls.cg_argv[3])); 
 		}
-		else if(COM_MatchToken("DrawCenterPic"))
+		else if(Com_MatchToken("DrawCenterPic"))
 		{
 			// draw named pic
 			if(!CG_ParseArgs( 3 )) continue;
 			CG_DrawCenterPic( atoi(cls.cg_argv[1]), atoi(cls.cg_argv[2]), cls.cg_argv[0]);
 		}
-		else if(COM_MatchToken("DrawLevelShot"))
+		else if(Com_MatchToken("DrawLevelShot"))
 		{
 			// draw named pic
 			if(!CG_ParseArgs( 0 )) continue;
 			SCR_DrawPic(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, cl.levelshot_name );
 		}
-		else if(COM_MatchToken("DrawCrosshair"))
+		else if(Com_MatchToken("DrawCrosshair"))
 		{
 			// draw crosshair
 			if(!crosshair->value) continue;
@@ -834,56 +834,56 @@ void CG_ExecuteProgram( char *section )
 		}
 		/*if(!strcmp(token, "x"))
 		{
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			x = atoi(token);
 			continue;
 		}
 		if (!strcmp(token, "y"))
 		{
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			y = atoi(token);
 			continue;
 		}		
 		if (!strcmp(token, "xl"))
 		{
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			x = atoi(token);
 			continue;
 		}
 		if (!strcmp(token, "xr"))
 		{
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			x = viddef.width + atoi(token);
 			continue;
 		}
 		if (!strcmp(token, "xv"))
 		{
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			x = viddef.width/2 - 160 + atoi(token);
 			continue;
 		}
 		if (!strcmp(token, "yt"))
 		{
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			y = atoi(token);
 			continue;
 		}
 		if (!strcmp(token, "yb"))
 		{
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			y = viddef.height + atoi(token);
 			continue;
 		}
 		if (!strcmp(token, "yv"))
 		{
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			y = viddef.height/2 - 120 + atoi(token);
 			continue;
 		}
 		if (!strcmp(token, "pic"))
 		{
 			// draw a pic from a stat number
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			value = cl.frame.playerstate.stats[atoi(token)];
 			if (value >= MAX_IMAGES) continue;
 			SCR_DrawPic( x, y, 48, 48, cl.configstrings[CS_IMAGES+value] );
@@ -894,24 +894,24 @@ void CG_ExecuteProgram( char *section )
 			// draw a deathmatch client block
 			int		score, ping, time;
 
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			x = viddef.width/2 - 160 + atoi(token);
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			y = viddef.height/2 - 120 + atoi(token);
 
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			value = atoi(token);
 			if (value >= MAX_CLIENTS || value < 0)
 				Host_Error("client >= MAX_CLIENTS\n");
 			ci = &cl.clientinfo[value];
 
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			score = atoi(token);
 
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			ping = atoi(token);
 
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			time = atoi(token);
 
 			DrawAltString (x+32, y, ci->name);
@@ -931,21 +931,21 @@ void CG_ExecuteProgram( char *section )
 			int	score, ping;
 			char	block[80];
 
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			x = viddef.width/2 - 160 + atoi(token);
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			y = viddef.height/2 - 120 + atoi(token);
 
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			value = atoi(token);
 			if (value >= MAX_CLIENTS || value < 0)
 				Host_Error("client >= MAX_CLIENTS\n");
 			ci = &cl.clientinfo[value];
 
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			score = atoi(token);
 
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			ping = atoi(token);
 			if (ping > 999) ping = 999;
 
@@ -959,16 +959,16 @@ void CG_ExecuteProgram( char *section )
 		if (!strcmp(token, "picn"))
 		{
 			// draw a pic from a name
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			re->DrawPic (x, y, token);
 			continue;
 		}
 		if (!strcmp(token, "num"))
 		{
 			// draw a number
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			width = atoi(token);
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			value = cl.frame.playerstate.stats[atoi(token)];
 			SCR_DrawField (x, y, 0, width, value);
 			continue;
@@ -1026,7 +1026,7 @@ void CG_ExecuteProgram( char *section )
 		}
 		if (!strcmp(token, "stat_string"))
 		{
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			index = atoi(token);
 			if (index < 0 || index >= MAX_CONFIGSTRINGS)
 				Host_Error("Bad stat_string index\n");
@@ -1038,25 +1038,25 @@ void CG_ExecuteProgram( char *section )
 		}
 		if (!strcmp(token, "cstring"))
 		{
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			DrawHUDString (token, x, y, 320, 0);
 			continue;
 		}
 		if (!strcmp(token, "string"))
 		{
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			DrawString (x, y, token);
 			continue;
 		}
 		if (!strcmp(token, "cstring2"))
 		{
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			DrawHUDString (token, x, y, 320,0x80);
 			continue;
 		}
 		if (!strcmp(token, "string2"))
 		{
-			token = COM_Parse (&s);
+			token = Com_Parse (&s);
 			DrawAltString (x, y, token);
 			continue;
 		}*/
@@ -1157,6 +1157,6 @@ initialize cg
 void CG_Init( void )
 {
 	cls.cg_numaliases = 0; // reset hudprogram aliasnames
-	COM_LoadScript( "scripts/hud.txt", NULL, 0 );
+	Com_LoadScript( "scripts/hud.txt", NULL, 0 );
 	CG_ExecuteProgram( "Hud_Setup" ); // get alias names
 }

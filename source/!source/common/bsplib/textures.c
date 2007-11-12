@@ -35,7 +35,7 @@ int FindMiptex (char *name)
 
 	if (textureref[i].animname[0]) 
 	{
-		MsgDev(D_INFO, "FindMiptex: animation chain \"%s->%s\"\n", textureref[i].name, textureref[i].animname );
+		// MsgDev(D_INFO, "FindMiptex: animation chain \"%s->%s\"\n", textureref[i].name, textureref[i].animname );
 		FindMiptex(textureref[i].name);
 	}
 	return i;

@@ -137,13 +137,13 @@ syntax: "$type preset"
 */
 void Cmd_Type (void)
 {
-	SC_GetToken (false);
+	Com_GetToken (false);
 
-	if (SC_MatchToken( "vp_parallel_upright" )) sprite.type = SPR_VP_PARALLEL_UPRIGHT;
-	else if (SC_MatchToken( "facing_upright" )) sprite.type = SPR_FACING_UPRIGHT;
-	else if (SC_MatchToken( "vp_parallel" )) sprite.type = SPR_VP_PARALLEL;
-	else if (SC_MatchToken( "oriented" )) sprite.type = SPR_ORIENTED;
-	else if (SC_MatchToken( "vp_parallel_oriented")) sprite.type = SPR_VP_PARALLEL_ORIENTED;
+	if (Com_MatchToken( "vp_parallel_upright" )) sprite.type = SPR_VP_PARALLEL_UPRIGHT;
+	else if (Com_MatchToken( "facing_upright" )) sprite.type = SPR_FACING_UPRIGHT;
+	else if (Com_MatchToken( "vp_parallel" )) sprite.type = SPR_VP_PARALLEL;
+	else if (Com_MatchToken( "oriented" )) sprite.type = SPR_ORIENTED;
+	else if (Com_MatchToken( "vp_parallel_oriented")) sprite.type = SPR_VP_PARALLEL_ORIENTED;
 	else sprite.type = SPR_VP_PARALLEL; // default
 }
 
@@ -156,13 +156,13 @@ syntax: "$texture preset"
 */
 void Cmd_Texture ( void )
 {
-	SC_GetToken (false);
+	Com_GetToken (false);
 
-	if (SC_MatchToken( "additive")) sprite.texFormat = SPR_ADDITIVE;
-	else if (SC_MatchToken( "normal")) sprite.texFormat = SPR_NORMAL;
-	else if (SC_MatchToken( "indexalpha")) sprite.texFormat = SPR_INDEXALPHA;
-	else if (SC_MatchToken( "alphatest")) sprite.texFormat = SPR_ALPHTEST;
-	else if (SC_MatchToken( "glow")) sprite.texFormat = SPR_ADDGLOW;
+	if (Com_MatchToken( "additive")) sprite.texFormat = SPR_ADDITIVE;
+	else if (Com_MatchToken( "normal")) sprite.texFormat = SPR_NORMAL;
+	else if (Com_MatchToken( "indexalpha")) sprite.texFormat = SPR_INDEXALPHA;
+	else if (Com_MatchToken( "alphatest")) sprite.texFormat = SPR_ALPHTEST;
+	else if (Com_MatchToken( "glow")) sprite.texFormat = SPR_ADDGLOW;
 	else sprite.texFormat = SPR_NORMAL; // default
 }
 
@@ -175,7 +175,7 @@ syntax: "$framerate value"
 */
 void Cmd_Framerate( void )
 {
-	sprite.framerate = atof(SC_GetToken (false));
+	sprite.framerate = atof(Com_GetToken (false));
 	sprite.version = SPRITE_VERSION_XASH; // enchaned version
 }
 
@@ -189,7 +189,7 @@ syntax "$load fire01.bmp"
 void Cmd_Load( void )
 {
 	static byte	origpalette[256*3];
-          char *name	= SC_GetToken ( false );
+          char *name	= Com_GetToken ( false );
 	dspriteframe_t	*pframe;
 	int		x, y, w, h, pix;
 	byte		*screen_p;
@@ -261,8 +261,8 @@ syntax: $origin "x_pos y_pos"
 
 void Cmd_Offset (void)
 {
-	origin_x = atoi(SC_GetToken (false));
-	origin_y = atoi(SC_GetToken (false));
+	origin_x = atoi(Com_GetToken (false));
+	origin_y = atoi(Com_GetToken (false));
 }
 
 /*
@@ -275,11 +275,11 @@ synatx: "$color r g b <alpha>"
 void Cmd_Color( void )
 {
 	byte	rgba[4];
-	rgba[3] = atoi(SC_GetToken (false));
-	rgba[2] = atoi(SC_GetToken (false));
-	rgba[1] = atoi(SC_GetToken (false));
+	rgba[3] = atoi(Com_GetToken (false));
+	rgba[2] = atoi(Com_GetToken (false));
+	rgba[1] = atoi(Com_GetToken (false));
 
-	if (SC_TryToken()) rgba[0] = atoi(SC_Token());
+	if(Com_TryToken()) rgba[0] = atoi(com_token);
 	else rgba[0] = 0xFF;//fullbright
 	
 	// pack into one integer
@@ -296,7 +296,7 @@ syntax: "$spritename outname"
 */
 void Cmd_Spritename (void)
 {
-	strcpy( spriteoutname, SC_GetToken (false));
+	strcpy( spriteoutname, Com_GetToken (false));
 	FS_DefaultExtension( spriteoutname, ".spr" );
 }
 
@@ -309,8 +309,8 @@ syntax: "blabla"
 */
 void Cmd_SpriteUnknown( void )
 {
-	MsgWarn("Cmd_SpriteUnknown: bad command %s\n", SC_Token());
-	while(SC_TryToken());
+	MsgWarn("Cmd_SpriteUnknown: bad command %s\n", com_token);
+	while(Com_TryToken());
 }
 
 void ResetSpriteInfo( void )
@@ -343,21 +343,21 @@ bool ParseSpriteScript (void)
 	
 	while (1)
 	{
-		if(!SC_GetToken (true))break;
+		if(!Com_GetToken (true))break;
 
-		if (SC_MatchToken( "$spritename" )) Cmd_Spritename();
-		else if (SC_MatchToken( "$framerate" )) Cmd_Framerate();
-		else if (SC_MatchToken( "$texture" )) Cmd_Texture();
-		else if (SC_MatchToken( "$origin" )) Cmd_Offset();
-		else if (SC_MatchToken( "$color" )) Cmd_Color();
-		else if (SC_MatchToken( "$load" )) Cmd_Load();
-		else if (SC_MatchToken( "$type" )) Cmd_Type();
-		else if(SC_MatchToken( "$modelname" ))//check for studiomdl script
+		if (Com_MatchToken( "$spritename" )) Cmd_Spritename();
+		else if (Com_MatchToken( "$framerate" )) Cmd_Framerate();
+		else if (Com_MatchToken( "$texture" )) Cmd_Texture();
+		else if (Com_MatchToken( "$origin" )) Cmd_Offset();
+		else if (Com_MatchToken( "$color" )) Cmd_Color();
+		else if (Com_MatchToken( "$load" )) Cmd_Load();
+		else if (Com_MatchToken( "$type" )) Cmd_Type();
+		else if(Com_MatchToken( "$modelname" ))//check for studiomdl script
 		{
 			Msg("%s probably studio qc.script, skipping...\n", gs_mapname );
 			return false;
 		}	
-		else if(SC_MatchToken( "$body" ))//check for studiomdl script
+		else if(Com_MatchToken( "$body" ))//check for studiomdl script
 		{
 			Msg("%s probably studio qc.script, skipping...\n", gs_mapname );
 			return false;
@@ -382,7 +382,7 @@ bool CompileCurrentSprite( const char *name )
 	
 	if(name) strcpy( gs_mapname, name );
 	FS_DefaultExtension( gs_mapname, ".qc" );
-	load = FS_LoadScript( gs_mapname, NULL, 0 );
+	load = Com_LoadScript( gs_mapname, NULL, 0 );
 	
 	if(load)
 	{

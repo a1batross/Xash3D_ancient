@@ -30,8 +30,8 @@ void SCR_AdjustSize( float *x, float *y, float *w, float *h )
 	float	yscale;
 
 	// scale for screen sizes
-	xscale = viddef.width / SCREEN_WIDTH;
-	yscale = viddef.height / SCREEN_HEIGHT;
+	xscale = viddef.width / 640.0f;
+	yscale = viddef.height / 480.0f;
 
 	if(x) *x *= xscale;
 	if(y) *y *= yscale;

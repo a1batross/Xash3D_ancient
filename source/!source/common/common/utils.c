@@ -10,260 +10,11 @@
 #include "qcclib.h"
 #include "blankframe.h"
 
+
 int com_argc;
 char **com_argv;
 char gs_basedir[ MAX_SYSPATH ]; // initial dir before loading gameinfo.txt (used for compilers too)
 char gs_mapname[ MAX_QPATH ]; // used for compilers only
-
-/*
-================
-CheckParm
-
-Returns the position (1 to argc-1) in the program's argument list
-where the given parameter apears, or 0 if not present
-================
-*/
-int FS_CheckParm (const char *parm)
-{
-	int i;
-
-	for (i = 1; i < com_argc; i++ )
-	{
-		// NEXTSTEP sometimes clears appkit vars.
-		if (!com_argv[i]) continue;
-		if (!strcmp (parm, com_argv[i])) return i;
-	}
-	return 0;
-}
-
-bool FS_GetParmFromCmdLine( char *parm, char *out )
-{
-	int argc = FS_CheckParm( parm );
-
-	if(!argc) return false;
-	if(!out) return false;	
-	if(!com_argv[argc + 1]) return false;
-
-	strcpy( out, com_argv[argc+1] );
-	return true;
-}
-
-
-//=======================================================================
-//			INFOSTRING STUFF
-//=======================================================================
-/*
-===============
-Info_Print
-
-printing current key-value pair
-===============
-*/
-void Info_Print (char *s)
-{
-	char	key[512];
-	char	value[512];
-	char	*o;
-	int	l;
-
-	if (*s == '\\') s++;
-
-	while (*s)
-	{
-		o = key;
-		while (*s && *s != '\\') *o++ = *s++;
-
-		l = o - key;
-		if (l < 20)
-		{
-			memset (o, ' ', 20-l);
-			key[20] = 0;
-		}
-		else *o = 0;
-		Msg ("%s", key);
-
-		if (!*s)
-		{
-			Msg ("MISSING VALUE\n");
-			return;
-		}
-
-		o = value;
-		s++;
-		while (*s && *s != '\\') *o++ = *s++;
-		*o = 0;
-
-		if (*s) s++;
-		Msg ("%s\n", value);
-	}
-}
-
-/*
-===============
-Info_ValueForKey
-
-Searches the string for the given
-key and returns the associated value, or an empty string.
-===============
-*/
-char *Info_ValueForKey (char *s, char *key)
-{
-	char	pkey[512];
-	static	char value[2][512];	// use two buffers so compares work without stomping on each other
-	static	int valueindex;
-	char	*o;
-	
-	valueindex ^= 1;
-	if (*s == '\\') s++;
-	while (1)
-	{
-		o = pkey;
-		while (*s != '\\')
-		{
-			if (!*s) return "";
-			*o++ = *s++;
-		}
-		*o = 0;
-		s++;
-
-		o = value[valueindex];
-
-		while (*s != '\\' && *s)
-		{
-			if (!*s) return "";
-			*o++ = *s++;
-		}
-		*o = 0;
-
-		if (!strcmp (key, pkey) ) return value[valueindex];
-		if (!*s) return "";
-		s++;
-	}
-}
-
-void Info_RemoveKey (char *s, char *key)
-{
-	char	*start;
-	char	pkey[512];
-	char	value[512];
-	char	*o;
-
-	if (strstr (key, "\\")) return;
-
-	while (1)
-	{
-		start = s;
-		if (*s == '\\') s++;
-		o = pkey;
-		while (*s != '\\')
-		{
-			if (!*s) return;
-			*o++ = *s++;
-		}
-		*o = 0;
-		s++;
-
-		o = value;
-		while (*s != '\\' && *s)
-		{
-			if (!*s) return;
-			*o++ = *s++;
-		}
-		*o = 0;
-
-		if (!strcmp (key, pkey) )
-		{
-			strcpy (start, s);	// remove this part
-			return;
-		}
-		if (!*s) return;
-	}
-}
-
-/*
-==================
-Info_Validate
-
-Some characters are illegal in info strings because they
-can mess up the server's parsing
-==================
-*/
-bool Info_Validate (char *s)
-{
-	if (strstr (s, "\"")) return false;
-	if (strstr (s, ";")) return false;
-	return true;
-}
-
-void Info_SetValueForKey (char *s, char *key, char *value)
-{
-	char	newi[MAX_INFO_STRING], *v;
-	int	c, maxsize = MAX_INFO_STRING;
-
-	if (strstr (key, "\\") || strstr (value, "\\") )
-	{
-		Msg ("Can't use keys or values with a \\\n");
-		return;
-	}
-
-	if (strstr (key, ";") )
-	{
-		Msg ("Can't use keys or values with a semicolon\n");
-		return;
-	}
-	if (strstr (key, "\"") || strstr (value, "\"") )
-	{
-		Msg ("Can't use keys or values with a \"\n");
-		return;
-	}
-	if (strlen(key) > MAX_INFO_KEY - 1 || strlen(value) > MAX_INFO_KEY-1)
-	{
-		Msg ("Keys and values must be < 64 characters.\n");
-		return;
-	}
-
-	Info_RemoveKey (s, key);
-	if (!value || !strlen(value)) return;
-	sprintf (newi, "\\%s\\%s", key, value);
-
-	if (strlen(newi) + strlen(s) > maxsize)
-	{
-		Msg ("Info string length exceeded\n");
-		return;
-	}
-
-	// only copy ascii values
-	s += strlen(s);
-	v = newi;
-	while (*v)
-	{
-		c = *v++;
-		c &= 127;	// strip high bits
-		if (c >= 32 && c < 127) *s++ = c;
-	}
-	*s = 0;
-}
-
-/*
-=============================================================================
-
-EXTERNAL INFOSTRING STUFF INTERFACE
-=============================================================================
-*/
-infostring_api_t Info_GetAPI( void )
-{
-	static infostring_api_t	info;
-
-	info.api_size = sizeof(infostring_api_t);
-
-	info.Print = Info_Print;
-	info.Validate = Info_Validate;
-	info.RemoveKey = Info_RemoveKey;
-	info.ValueForKey = Info_ValueForKey;
-	info.SetValueForKey = Info_SetValueForKey;
-
-	return info;
-}
 
 unsigned __int64 __g_ProfilerStart;
 unsigned __int64 __g_ProfilerEnd;
@@ -326,6 +77,33 @@ void Profile_Time( void )
 	}
 	else MsgWarn("--- Profiler not supported ---\n");
 }
+
+/*
+========================================================================
+
+.BMP image format
+
+========================================================================
+*/
+typedef struct
+{
+	char	id[2];		//bmfh.bfType
+	dword	fileSize;		//bmfh.bfSize
+	dword	reserved0;	//bmfh.bfReserved1 + bmfh.bfReserved2
+	dword	bitmapDataOffset;	//bmfh.bfOffBits
+	dword	bitmapHeaderSize;	//bmih.biSize
+	dword	width;		//bmih.biWidth
+	dword	height;		//bmih.biHeight
+	word	planes;		//bmih.biPlanes
+	word	bitsPerPixel;	//bmih.biBitCount
+	dword	compression;	//bmih.biCompression
+	dword	bitmapDataSize;	//bmih.biSizeImage
+	dword	hRes;		//bmih.biXPelsPerMeter
+	dword	vRes;		//bmih.biYPelsPerMeter
+	dword	colors;		//bmih.biClrUsed
+	dword	importantColors;	//bmih.biClrImportant
+	byte	palette[256][4];	//RGBQUAD palette
+} bmp_t;
 
 /*
 ================
@@ -465,30 +243,4 @@ byte *ReadBMP (char *filename, byte **palette, int *width, int *height)
 	if( buf ) Free( buf );
 
 	return pbBmpBits;
-}
-
-/*
-=============================================================================
-
-COMPILERS PACKAGE INTERFACE
-=============================================================================
-*/
-compilers_api_t Comp_GetAPI( void )
-{
-	static compilers_api_t cp;
-
-	cp.api_size = sizeof(compilers_api_t);
-
-	cp.Studio = CompileStudioModel;
-	cp.Sprite = CompileSpriteModel;
-	cp.Image = ConvertImagePixels;
-	cp.PrepareBSP = PrepareBSPModel;
-	cp.BSP = CompileBSPModel;
-	cp.PrepareDAT = PrepareDATProgs;
-	cp.DAT = CompileDATProgs;
-	cp.DecryptDAT = PR_decode;
-	cp.PrepareROQ = PrepareROQVideo;
-	cp.ROQ = MakeROQ;
-
-	return cp;
 }

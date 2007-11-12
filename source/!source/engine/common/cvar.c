@@ -676,7 +676,7 @@ void Cvar_List_f( void )
 
 	for (var = cvar_vars; var; var = var->next, i++)
 	{
-		if (match && !COM_Filter(match, var->name, false))
+		if (match && !Com_Filter(match, var->name, false))
 			continue;
 
 		if (var->flags & CVAR_SERVERINFO) Msg("S");

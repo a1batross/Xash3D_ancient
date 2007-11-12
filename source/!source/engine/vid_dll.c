@@ -379,14 +379,13 @@ typedef struct vidmode_s
 
 vidmode_t vid_modes[] =
 {
-	{ "Mode 0: 320x240",   320, 240,   0 },
-	{ "Mode 1: 640x480",   640, 480,   1 },
-	{ "Mode 2: 800x600",   800, 600,   2 },
-	{ "Mode 3: 1024x768",  1024, 768,  3 },
-	{ "Mode 4: 1280x960",  1280, 960,  4 },
-	{ "Mode 5: 1280x1024", 1280, 1024, 5 },
-	{ "Mode 6: 1600x1200", 1600, 1200, 6 },
-	{ "Mode 7: 2048x1536", 2048, 1536, 7 }
+	{ "Mode 0: 640x480",   640, 480,   1 },
+	{ "Mode 1: 800x600",   800, 600,   2 },
+	{ "Mode 2: 1024x768",  1024, 768,  3 },
+	{ "Mode 3: 1280x960",  1280, 960,  4 },
+	{ "Mode 4: 1280x1024", 1280, 1024, 5 },
+	{ "Mode 5: 1600x1200", 1600, 1200, 6 },
+	{ "Mode 6: 2048x1536", 2048, 1536, 7 }
 };
 
 bool VID_GetModeInfo( int *width, int *height, int mode )
@@ -442,11 +441,6 @@ void VID_FreeReflib (void)
 	reflib_active  = false;
 }
 
-char *FS_Gamedir( void )
-{
-	return std.GameInfo->gamedir;
-}
-
 cvar_t *VID_Cvar_Get(const char *var_name, const char *value, int flags)
 {
 	return _Cvar_Get(var_name, value, flags, "render variable" );
@@ -457,11 +451,6 @@ void VID_Cmd_AddCommand(const char *cmd_name, xcommand_t function)
 	_Cmd_AddCommand(cmd_name, function, "render command" );
 }
 
-char *FS_Title( void )
-{
-	return std.GameInfo->title;
-}
-
 /*
 ==============
 VID_InitRender
@@ -470,16 +459,12 @@ VID_InitRender
 void VID_InitRender( void )
 {
 	static render_imp_t		ri;
-	render_t			CreateRender;
+	stdlib_api_t		io = Host_GetStdio( false );
+	launch_t			CreateRender;
 	
 	VID_FreeRender();
 
-	ri.LoadImage = Com->LoadImage;
-	ri.FreeImage = Com->FreeImage;
-	ri.SaveImage = Com->SaveImage;
-
-	ri.Compile = Com->Compile;
-	ri.Stdio = Host_GetStdio( false );
+	ri.api_size = sizeof(render_imp_t);
 
 	ri.Cmd_AddCommand = VID_Cmd_AddCommand;
 	ri.Cmd_RemoveCommand = Cmd_RemoveCommand;
@@ -487,23 +472,22 @@ void VID_InitRender( void )
 	ri.Cmd_Argv = Cmd_Argv;
 	ri.Cmd_ExecuteText = Cbuf_ExecuteText;
 
-	ri.gamedir = FS_Gamedir;
-	ri.title = FS_Title;
+          // studio callbacks
+	ri.StudioEvent = CL_StudioEvent;
+	ri.ShowCollision = Phys->ShowCollision;
+
 	ri.Cvar_Get = VID_Cvar_Get;
 	ri.Cvar_Set = Cvar_Set;
 	ri.Cvar_SetValue = Cvar_SetValue;
+
 	ri.Vid_GetModeInfo = VID_GetModeInfo;
 	ri.Vid_MenuInit = VID_MenuInit;
 	ri.Vid_NewWindow = VID_NewWindow;
           
-          // studio callbacks
-	ri.StudioEvent = CL_StudioEvent;
-	ri.ShowCollision = Phys->ShowCollision;
-          
 	Sys_LoadLibrary( &render_dll );
 	
 	CreateRender = (void *)render_dll.main;
-	re = CreateRender( &ri );
+	re = CreateRender( &io, &ri );
 
 	if(!re->Init( global_hInstance, MainWndProc )) 
 		Sys_Error("VID_InitRender: can't init render.dll\nUpdate your opengl drivers\n");
@@ -584,7 +568,7 @@ void VID_FreeRender (void)
 {
 	if ( reflib_active )
 	{
-		re->Shutdown ();
+		re->Shutdown();
 		VID_FreeReflib ();
 	}
 }

@@ -4,7 +4,6 @@
 //=======================================================================
 
 #include "qcclib.h"
-#include "zip32.h"
 
 void Hash_InitTable(hashtable_t *table, int numbucks)
 {
@@ -192,7 +191,6 @@ int PR_decode(int complen, int len, int method, char *src, char **dst)
 {
 	int	i;
 	char	*buffer = *dst;
-	z_stream	strm = {src, complen, 0, buffer, len, 0, NULL, NULL, NULL, NULL, NULL, 0, 0, 0 };
 
 	switch(method)
 	{
@@ -213,14 +211,7 @@ int PR_decode(int complen, int len, int method, char *src, char **dst)
 		for (i = 0; i < len; i++) buffer[i] = src[i] ^ 0xA5;
 		break;
 	case CMPW_DEFLATE:
-		inflateInit( &strm );
-		if (Z_STREAM_END != inflate( &strm, Z_FINISH )) // decompress it in one go.
-		{
-			if(!strlen(strm.msg))MsgDev(D_WARN, "PR_decode: failed block decompression\n" );
-			else MsgDev(D_WARN, "PR_decode: failed block decompression: %s\n", strm.msg );
-			return false;
-		}
-		inflateEnd( &strm );
+		VFS_Unpack( src, complen, dst, len );
 		break;
 	default:
 		MsgDev(D_WARN, "PR_decode: invalid method\n");
@@ -237,8 +228,6 @@ PR_encode
 int PR_encode(int len, int method, char *src, vfile_t *handle)
 {
 	int	i = 0;
-	char	out[8192]; // chunk size
-	z_stream	strm = {src, len, 0, out, sizeof(out), 0, NULL, NULL, NULL, NULL, NULL, 0, 0, 0 };
 
 	switch(method)
 	{
@@ -250,17 +239,7 @@ int PR_encode(int len, int method, char *src, vfile_t *handle)
 		VFS_Write(handle, src, len);
 		return len;
 	case CMPW_DEFLATE:
-		deflateInit( &strm, 9 ); // Z_BEST_COMPRESSION
-		while(deflate( &strm, Z_FINISH) == Z_OK)
-		{
-			VFS_Write( handle, out, sizeof(out) - strm.avail_out);
-			i += sizeof(out) - strm.avail_out;
-			strm.next_out = out;
-			strm.avail_out = sizeof(out);
-		}
-		VFS_Write( handle, out, sizeof(out) - strm.avail_out );
-		i += sizeof(out) - strm.avail_out;
-		deflateEnd( &strm );
+		i = VFS_Write2( handle, src, len );
 		return i;
 	default:
 		MsgDev(D_WARN, "PR_encode: invalid method\n");
@@ -1091,18 +1070,18 @@ byte *PR_CreateProgsSRC( void )
 
 	for(i = 0; i < qc->numfilenames; i++)
 	{
-		if(FS_LoadScript( qc->filenames[i], NULL, 0 ))
+		if(Com_LoadScript( qc->filenames[i], NULL, 0 ))
 		{
 			while ( 1 )
 			{
 				// parse all sources for "end_sys_globals"
-				if (!SC_GetToken( true )) break; //EOF
-				if(SC_MatchToken( "end_sys_globals" ))
+				if (!Com_GetToken( true )) break; //EOF
+				if(Com_MatchToken( "end_sys_globals" ))
 				{
 					strncpy(headers[0], qc->filenames[i], MAX_QPATH );
 					found++;
 				}
-				else if(SC_MatchToken( "end_sys_fields" ))
+				else if(Com_MatchToken( "end_sys_fields" ))
 				{
 					strncpy(headers[1], qc->filenames[i], MAX_QPATH );
 					found++;

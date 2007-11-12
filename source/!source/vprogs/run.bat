@@ -1,2 +1,2 @@
-qcclib -log /O3 /V7 -log
+qcclib -log /0d /V7 -dev 5 -debug
 pause

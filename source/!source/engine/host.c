@@ -8,7 +8,6 @@
 #include <dsound.h>
 #include "engine.h"
 
-common_exp_t    	*Com;	// fundamental callbacks
 physic_exp_t	*Phys;
 host_parm_t	host;	// host parms
 stdlib_api_t	std;
@@ -22,7 +21,6 @@ void Key_Init (void);
 void SCR_EndLoadingPlaque (void);
 
 HINSTANCE	global_hInstance;
-dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(common_exp_t) };
 dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(physic_exp_t) };
 
 cvar_t	*timescale;
@@ -46,18 +44,8 @@ stdlib_api_t Host_GetStdio( bool crash_on_error )
 	return io;
 }
 
-void Host_InitCommon( char *funcname, int argc, char **argv )
+void Host_InitCommon( uint funcname, int argc, char **argv )
 {
-	common_t		CreateCom;         
-	stdlib_api_t	io = Host_GetStdio( true );
-
-	Sys_LoadLibrary( &common_dll );
-
-	CreateCom = (void *)common_dll.main;
-	Com = CreateCom( &io );
-	
-	Com->Init( argc, argv );
-
 	// TODO: init basedir here
 	FS_LoadGameInfo("gameinfo.txt");
 	zonepool = Mem_AllocPool("Zone Engine");
@@ -65,29 +53,23 @@ void Host_InitCommon( char *funcname, int argc, char **argv )
 
 void Host_FreeCommon( void )
 {
-	if(common_dll.link)
-	{
-		Mem_FreePool( &zonepool );
-		Com->Shutdown();
-	}
-	Sys_FreeLibrary( &common_dll );
+	Mem_FreePool( &zonepool );
 }
 
 void Host_InitPhysic( void )
 {
 	static physic_imp_t		pi;
-	physic_t			CreatePhys;  
-
-	pi.Compile = Com->Compile;
-	pi.Stdio = Host_GetStdio( false );
+	launch_t			CreatePhys;  
+	stdlib_api_t		io = Host_GetStdio( false );
 
 	// phys callback
+	pi.api_size = sizeof(physic_imp_t);
 	pi.Transform = SV_Transform;
 
 	Sys_LoadLibrary( &physic_dll );
 
 	CreatePhys = (void *)physic_dll.main;
-	Phys = CreatePhys( &pi );
+	Phys = CreatePhys( &io, &pi );
 	
 	Phys->Init();
 }
@@ -118,17 +100,14 @@ void Host_AbortCurrentFrame( void )
 Host_Init
 =================
 */
-void Host_Init (char *funcname, int argc, char **argv)
+void Host_Init (uint funcname, int argc, char **argv)
 {
 	char	*s;
 
 	host.state = HOST_INIT;	//initialzation started
 
 	global_hInstance = (HINSTANCE)GetModuleHandle( NULL );
-
-	if(!strcmp(funcname, "host_dedicated")) host.type = HOST_DEDICATED;
-	else if(!strcmp(funcname, "host_shared")) host.type = HOST_NORMAL;
-	else host.type = HOST_OFFLINE; // launcher can loading engine for some reasons
+	host.type = funcname;
 
 	srand(time(NULL)); // init random generator
 
@@ -139,8 +118,13 @@ void Host_Init (char *funcname, int argc, char **argv)
 	PRVM_Init();
 
 	// get default configuration
+#if 1
 	Cbuf_AddText("exec keys.rc\n");
 	Cbuf_AddText("exec vars.rc\n");
+#else
+	Cbuf_AddText("exec default.cfg\n");
+	Cbuf_AddText("exec config.cfg\n");
+#endif
 	Cbuf_Execute();
 
 	// init commands and vars
@@ -157,11 +141,11 @@ void Host_Init (char *funcname, int argc, char **argv)
 	Cvar_Get ("version", s, CVAR_SERVERINFO|CVAR_INIT);
 
 	if (dedicated->value) Cmd_AddCommand ("quit", Sys_Quit);
-        
+       
 	NET_Init();
 	Netchan_Init();
 	Host_InitPhysic();
-         
+       
 	SV_Init();
 	CL_Init();
 
@@ -197,7 +181,7 @@ void Host_Frame (double time)
 		s = Sys_ConsoleInput ();
 		if(s) Cbuf_AddText (va("%s\n",s));
 	} while (s);
-	Cbuf_Execute ();
+	Cbuf_Execute();
 
 	// if at a full screen console, don't update unless needed
 	if (Minimized || host.type == HOST_DEDICATED )

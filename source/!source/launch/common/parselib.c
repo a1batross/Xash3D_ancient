@@ -17,7 +17,6 @@ typedef struct
 // max included scripts
 #define	MAX_INCLUDES	32
 
-static scriptsystem_api_t	sc;
 script_t	scriptstack[ MAX_INCLUDES ];
 script_t	*script;
 int	scriptline;
@@ -126,7 +125,7 @@ skip_whitespace:	// skip whitespace
 		// ets++
 		if (*script->script_p == '/') script->script_p++;
 		if (script->script_p[1] == 'T' && script->script_p[2] == 'X')
-			sc.g_TXcommand = script->script_p[3];//TX#"-style comment
+			std.com_TXcommand = script->script_p[3];//TX#"-style comment (get rid of this)
 		while (*script->script_p++ != '\n')
 		{
 			if (script->script_p >= script->end_p)
@@ -727,30 +726,4 @@ bool SC_FilterToken(char *filter, char *name, int casecmp)
 		}
 	}
 	return true;
-}
-
-/*
-=============================================================================
-
-EXTERNAL PARSE STUFF INTERFACE
-=============================================================================
-*/
-scriptsystem_api_t Sc_GetAPI( void )
-{
-	sc.api_size = sizeof(scriptsystem_api_t);
-
-	sc.Load = SC_LoadScript;
-	sc.Include = SC_AddScript;
-	sc.Reset = SC_ResetScript;
-	sc.GetToken = SC_GetToken;
-	sc.TryToken = SC_TryToken;
-	sc.FreeToken = SC_FreeToken;
-	sc.SkipToken = SC_SkipToken;
-	sc.MatchToken = SC_MatchToken;
-	sc.ParseToken = SC_ParseToken;
-	sc.ParseWord = SC_ParseWord;
-	sc.FilterToken = SC_FilterToken;
-	sc.Token = token;
-	
-	return sc;
 }

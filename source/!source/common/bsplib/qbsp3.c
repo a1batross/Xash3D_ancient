@@ -7,7 +7,6 @@ int	entity_num;
 bool	onlyents;
 char	path[MAX_SYSPATH];
 node_t *block_nodes[10][10];
-static double start, end;
 
 bool full_compile = false;
 bool onlyents = false;
@@ -311,9 +310,8 @@ bool PrepareBSPModel ( const char *dir, const char *name, byte params )
 	onlyrad = (params & BSP_ONLYRAD) ? true : false;
 	full_compile = (params & BSP_FULLCOMPILE) ? true : false;
 
-	//don't worry about that
+	// don't worry about that
 	FS_LoadGameInfo("gameinfo.txt");
-	start = Sys_DoubleTime();
 
 	numshaders = LoadShaderInfo();
 	Msg( "%5i shaderInfo\n", numshaders );
@@ -345,9 +343,6 @@ bool CompileBSPModel ( void )
 		sprintf (path, "%s/maps/%s.log", std.GameInfo->gamedir, gs_mapname);
 		remove (path);
 	}
-
-	end = Sys_DoubleTime();
-	Msg ("%5.1f seconds elapsed\n", end-start);
 
 	return true;
 }

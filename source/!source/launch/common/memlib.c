@@ -389,11 +389,13 @@ Memory_Init
 */
 void Memory_Init( void )
 {
-	poolchain = NULL;//init mem chain
-	sys.basepool = Mem_AllocPool( "Main pool" );
+	poolchain = NULL; // init mem chain
+	Sys.basepool = Mem_AllocPool( "Main pool" );
+	Sys.imagepool = Mem_AllocPool( "ImageLib Pool" );
 }
 
 void Memory_Shutdown( void )
 {
-	Mem_FreePool( &sys.basepool );
+	Mem_FreePool( &Sys.basepool );
+	Mem_FreePool( &Sys.imagepool );
 }

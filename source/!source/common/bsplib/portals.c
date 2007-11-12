@@ -16,7 +16,7 @@ portal_t *AllocPortal (void)
 {
 	portal_t	*p;
 	
-	if (numthreads == 1)
+	if (GetNumThreads() == 1)
 		c_active_portals++;
 	if (c_active_portals > c_peak_portals)
 		c_peak_portals = c_active_portals;
@@ -30,7 +30,7 @@ void FreePortal (portal_t *p)
 {
 	if (p->winding)
 		FreeWinding (p->winding);
-	if (numthreads == 1)
+	if (GetNumThreads() == 1)
 		c_active_portals--;
 	Free (p);
 }
@@ -866,9 +866,6 @@ void EmitAreaPortals (node_t *headnode)
 		}
 		dareas[i].numareaportals = numareaportals - dareas[i].firstareaportal;
 	}
-
-	MsgDev(D_INFO, "%5i numareas\n", numareas);
-	MsgDev(D_INFO, "%5i numareaportals\n", numareaportals);
 }
 
 /*

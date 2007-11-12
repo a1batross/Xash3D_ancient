@@ -83,7 +83,7 @@ void FreeTree_r (node_t *node)
 	if (node->volume)
 		FreeBrush (node->volume);
 
-	if (numthreads == 1)
+	if (GetNumThreads() == 1)
 		c_nodes--;
 	Free (node);
 }

@@ -495,11 +495,11 @@ epair_t *ParseEpair (void)
 
 	e = Malloc (sizeof(epair_t));
 	
-	if (strlen(SC_Token()) >= MAX_KEY - 1) Sys_Error ("ParseEpar: token too long");
-	e->key = copystring(SC_Token());
-	SC_GetToken (false);
-	if (strlen(SC_Token()) >= MAX_VALUE - 1) Sys_Error ("ParseEpar: token too long");
-	e->value = copystring(SC_Token());
+	if (strlen(com_token) >= MAX_KEY - 1) Sys_Error ("ParseEpar: token too long");
+	e->key = copystring(com_token);
+	Com_GetToken (false);
+	if (strlen(com_token) >= MAX_VALUE - 1) Sys_Error ("ParseEpar: token too long");
+	e->value = copystring(com_token);
 
 	// strip trailing spaces
 	StripTrailing (e->key);
@@ -519,9 +519,9 @@ bool ParseEntity (void)
 	epair_t	*e;
 	bsp_entity_t	*mapent;
 
-	if (!SC_GetToken (true)) return false;
+	if (!Com_GetToken (true)) return false;
 
-	if (!SC_MatchToken( "{") ) Sys_Error ("ParseEntity: { not found");
+	if (!Com_MatchToken( "{") ) Sys_Error ("ParseEntity: { not found");
 	if (num_entities == MAX_MAP_ENTITIES) Sys_Error ("num_entities == MAX_MAP_ENTITIES");
 
 	mapent = &entities[num_entities];
@@ -529,8 +529,8 @@ bool ParseEntity (void)
 
 	do
 	{
-		if (!SC_GetToken (true)) Sys_Error ("ParseEntity: EOF without closing brace");
-		if (SC_MatchToken("}")) break;
+		if (!Com_GetToken (true)) Sys_Error ("ParseEntity: EOF without closing brace");
+		if (Com_MatchToken("}")) break;
 		e = ParseEpair ();
 		e->next = mapent->epairs;
 		mapent->epairs = e;
@@ -549,7 +549,7 @@ Parses the dentdata string into entities
 void ParseEntities (void)
 {
 	num_entities = 0;
-	if(FS_LoadScript("entities", dentdata, entdatasize))
+	if(Com_LoadScript("entities", dentdata, entdatasize))
 		while(ParseEntity());
 }
 
