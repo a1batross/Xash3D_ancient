@@ -2179,60 +2179,6 @@ void VM_precache_pic(void)
 
 /*
 =========
-VM_freepic
-
-freepic(string s)
-=========
-*/
-void VM_freepic(void)
-{
-	const char *s;
-
-	VM_SAFEPARMCOUNT(1,VM_freepic);
-
-	s = PRVM_G_STRING(OFS_PARM0);
-
-	if(!s)
-		PRVM_ERROR ("VM_freepic: %s: NULL");
-
-	VM_CheckEmptyString (s);
-
-	// this does nothing
-}
-
-/*
-=========
-VM_drawcharacter
-
-float	drawcharacter(vector position, float character, vector scale, vector rgb, float alpha, float flag)
-=========
-*/
-void VM_drawcharacter(void)
-{
-	float *pos, *scale, *rgb;
-	char   character;
-	int flag;
-	VM_SAFEPARMCOUNT(6,VM_drawcharacter);
-
-	character = (char) PRVM_G_FLOAT(OFS_PARM1);
-	if(character == 0)
-	{
-		PRVM_G_FLOAT(OFS_RETURN) = -1;
-		VM_Warning("VM_drawcharacter: %s passed null character !\n",PRVM_NAME);
-		return;
-	}
-
-	pos = PRVM_G_VECTOR(OFS_PARM0);
-	scale = PRVM_G_VECTOR(OFS_PARM2);
-	rgb = PRVM_G_VECTOR(OFS_PARM3);
-	flag = (int)PRVM_G_FLOAT(OFS_PARM5);
-
-	re->DrawChar( pos[0], pos[1], character );
-	PRVM_G_FLOAT(OFS_RETURN) = 1;
-}
-
-/*
-=========
 VM_drawstring
 
 float	drawstring(vector position, string text, vector scale, vector rgb, float alpha, float flag)
@@ -2240,7 +2186,7 @@ float	drawstring(vector position, string text, vector scale, vector rgb, float a
 */
 void VM_drawstring(void)
 {
-	float *pos,*scale,*rgb;
+	float *pos, *scale, *rgb, alpha;
 	const char  *string;
 	int flag;
 	VM_SAFEPARMCOUNT(6,VM_drawstring);
@@ -2256,9 +2202,10 @@ void VM_drawstring(void)
 	pos = PRVM_G_VECTOR(OFS_PARM0);
 	scale = PRVM_G_VECTOR(OFS_PARM2);
 	rgb = PRVM_G_VECTOR(OFS_PARM3);
+	alpha = PRVM_G_FLOAT(OFS_PARM4);
 	flag = (int)PRVM_G_FLOAT(OFS_PARM5);
 
-	re->DrawString( pos[0], pos[1], (char *)string ); 
+	SCR_DrawBigString( pos[0], pos[1], string, alpha ); 
 	PRVM_G_FLOAT(OFS_RETURN) = 1;
 }
 /*
@@ -2292,7 +2239,7 @@ void VM_drawpic(void)
 	rgb = PRVM_G_VECTOR(OFS_PARM3);
 	flag = (int) PRVM_G_FLOAT(OFS_PARM5);
 
-	re->DrawPic( pos[0], pos[1], (char *)picname );
+	SCR_DrawPic( pos[0], pos[1], size[0], size[1], (char *)picname );
 	PRVM_G_FLOAT(OFS_RETURN) = 1;
 }
 

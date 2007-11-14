@@ -70,7 +70,6 @@ void SCR_SizeUp (void);
 void SCR_SizeDown (void);
 void SCR_CenterPrint (char *str);
 void SCR_BeginLoadingPlaque (void);
-void SCR_EndLoadingPlaque (void);
 
 
 extern cvar_t	*crosshair;
@@ -85,21 +84,23 @@ void SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, 
 void SCR_DrawStringExt( int x, int y, float size, const char *string, float *setColor, bool forceColor );
 void SCR_DrawBigString( int x, int y, const char *s, float alpha );
 void SCR_DrawBigStringColor( int x, int y, const char *s, vec4_t color );
+void SCR_DrawFPS( void );
+void SCR_DrawNet( void );
 
 //
 // cl_user.c
 //
-void CG_SetSky_f( void );
 void CG_DrawCenterString( void );
 void CG_CenterPrint( const char *str, int y, int charWidth );
 float *CG_FadeColor( float starttime, float endtime );
 void CG_DrawCenterPic( int w, int h, char *picname );
-void CG_StringToVector( float *vec, const char *string );
 void CG_ExecuteProgram( char *section );
+bool CG_ExecBuiltins( void );
 void CG_MakeLevelShot( void );
-void CG_DrawLoading( void );
-void CG_DrawNet( void );
 void CG_DrawPause( void );
 void CG_Init( void );
+void CG_ParseInventory( void );
+void CG_DrawInventory( void );
+void CG_DrawLayout( void );
 
 #endif//SCREEN_H

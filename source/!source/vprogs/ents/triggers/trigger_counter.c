@@ -11,7 +11,7 @@ Counts the number of times it gets fired.. then fires its targets..
 
 void() trigger_counter_use = 
 {
-	pev->count = pev->count - 1;			//subtract my count by one; 'ive been triggered'
+	pev->count = pev->count - 1;				// subtract my count by one; 'ive been triggered'
 	
 	if(pev->count != 0)
 	{
@@ -25,9 +25,9 @@ void() trigger_counter_use =
 	{	
 		IEM_usetarget();
 	
-		if(pev->spawnflags & TRIGGER_ONCE)		//if im a trigger_once, remove me;
+		if(pev->spawnflags & TRIGGER_ONCE)		// if im a trigger_once, remove me;
 			remove(pev);
-		else pev->count = pev->twait[0];		//restore old count
+		else pev->count = pev->twait[0];		// restore old count
 	}
 };
 

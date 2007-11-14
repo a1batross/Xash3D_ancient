@@ -391,16 +391,10 @@ Called after an Host_Error was thrown
 */
 void CL_Drop (void)
 {
-	if (cls.state == ca_uninitialized)
-		return;
-	if (cls.state == ca_disconnected)
-		return;
+	if (cls.state == ca_uninitialized) return;
+	if (cls.state == ca_disconnected) return;
 
-	CL_Disconnect ();
-
-	// drop loading plaque unless this is the initial game start
-	if (cls.disable_servercount != -1)
-		SCR_EndLoadingPlaque (); // get rid of loading plaque
+	CL_Disconnect();
 }
 
 

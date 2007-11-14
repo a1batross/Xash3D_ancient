@@ -412,8 +412,8 @@ const char* com_timestamp( int format )
 		strftime(timestring, sizeof (timestring), "%b%d %Y", crt_tm);
 		break;
 	case TIME_TIME_ONLY:
-		// Build the time stamp only (ex: "[23:31.55]");
-		strftime(timestring, sizeof (timestring), "[%H:%M.%S]", crt_tm);
+		// Build the time stamp only (ex: "23:31.55");
+		strftime(timestring, sizeof (timestring), "%H:%M.%S", crt_tm);
 		break;
 	case TIME_NO_SECONDS:
 		// Build the full timestamp (ex: "Apr03 2007 [23:31]");

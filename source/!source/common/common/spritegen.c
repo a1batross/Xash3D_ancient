@@ -330,6 +330,7 @@ void ResetSpriteInfo( void )
 	plump = lumpbuffer;
 	sprite.version = SPRITE_VERSION_HALF;//normal sprite
 	sprite.type = SPR_VP_PARALLEL;
+	sprite.rgbacolor = 0xffffffff;
 }
 
 /*

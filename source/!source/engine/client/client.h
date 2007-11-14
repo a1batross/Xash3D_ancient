@@ -56,12 +56,41 @@ typedef struct field_s
 	int	maxchars; // menu stuff
 } field_t;
 
-typedef struct cg_alias_s
+typedef struct cg_stats_s
 {
 	char	name[MAX_QPATH];
 	uint	value;	
 
-} cg_alias_t;
+} cg_stats_t;
+
+typedef struct cg_cvars_s
+{
+	char	name[MAX_QPATH];
+	char	cvar[MAX_QPATH];
+
+} cg_cvars_t;
+
+typedef struct cg_def_s
+{
+	int	val[2];
+	int	op;
+
+} cg_def_t;
+
+// cg expression types
+enum
+{
+	OP_UNKNOWN = 0,
+	OP_LOGIC_OR,
+	OP_LOGIC_AND,
+	OP_EQUAL,
+	OP_NOTEQUAL,
+	OP_MORE,
+	OP_MORE_OR_EQUAL,
+	OP_SMALLER,
+	OP_SMALLER_OR_EQUAL,
+	OP_WITH,
+};
 
 typedef struct
 {
@@ -150,7 +179,6 @@ typedef struct
 	char		centerPrint[1024];
 	int		centerPrintLines;		
 
-	char		levelshot_name[MAX_QPATH];
 	bool		make_levelshot;
 
 	//
@@ -254,12 +282,17 @@ typedef struct
 	uint		hud_program_size;
 
 	// hudprogram stack
-	char		cg_progname[MAX_QPATH];
-	int		cg_program_depth;
+	char		cg_function[MAX_QPATH];
+	char		cg_builtin[MAX_QPATH];
+	char		cg_tempstring[MAX_QPATH];
+	int		cg_depth;
+	int		cg_depth2; // used for bounds chekiing
 	char		cg_argv[MAX_PARMS][MAX_QPATH];
 	uint		cg_argc;
-	cg_alias_t	cg_alias[MAX_STATS];
-	uint		cg_numaliases;
+	cg_stats_t	cg_stats[MAX_STATS];
+	uint		cg_numstats;
+	cg_cvars_t	cg_cvars[128];
+	uint		cg_numcvars;
 	vec4_t		cg_color;
 		
 } client_static_t;
@@ -311,6 +344,7 @@ extern	cvar_t	*cl_lightlevel;	// FIXME HACK
 
 extern	cvar_t	*cl_paused;
 extern	cvar_t	*cl_timedemo;
+extern	cvar_t	*cl_levelshot_name;
 
 extern	cvar_t	*cl_vwep;
 
@@ -339,9 +373,7 @@ extern	entity_state_t	cl_parse_entities[MAX_PARSE_ENTITIES];
 extern	netadr_t	net_from;
 extern	sizebuf_t	net_message;
 
-void DrawString (int x, int y, char *s);
-void DrawAltString (int x, int y, char *s);	// toggle high bit
-bool	CL_CheckOrDownloadFile (char *filename);
+bool CL_CheckOrDownloadFile (char *filename);
 
 void CL_AddNetgraph (void);
 
@@ -444,6 +476,7 @@ void CL_RegisterSounds (void);
 void CL_Quit_f (void);
 void CL_ScreenShot_f( void );
 void CL_LevelShot_f( void );
+void CL_SetSky_f( void );
 void IN_Accumulate (void);
 
 void CL_ParseLayout (void);
@@ -571,14 +604,6 @@ void M_Draw (void);
 void M_Menu_Main_f (void);
 void M_ForceMenuOff (void);
 void M_AddToServerList (netadr_t adr, char *info);
-
-
-//
-// cl_inv.c
-//
-void CL_ParseInventory (void);
-void CL_KeyInventory (int key);
-void CL_DrawInventory (void);
 
 //
 // cl_pred.c

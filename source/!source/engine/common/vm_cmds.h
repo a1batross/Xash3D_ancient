@@ -297,8 +297,6 @@ void VM_search_getfilename(void);
 void VM_chr(void);
 void VM_iscachedpic(void);
 void VM_precache_pic(void);
-void VM_freepic(void);
-void VM_drawcharacter(void);
 void VM_drawstring(void);
 void VM_drawpic(void);
 void VM_drawfill(void);

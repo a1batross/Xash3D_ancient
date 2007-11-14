@@ -709,12 +709,12 @@ void CL_ParseServerMessage (void)
 			break;
 
 		case svc_inventory:
-			CL_ParseInventory ();
+			CG_ParseInventory();
 			break;
 
 		case svc_layout:
 			s = MSG_ReadString (&net_message);
-			strncpy (cl.layout, s, sizeof(cl.layout)-1);
+			strncpy(cl.layout, s, sizeof(cl.layout)-1);
 			break;
 
 		case svc_playerinfo:

@@ -5,6 +5,16 @@
 
 #include "client.h"
 
+/*
+================
+SCR_Loading_f
+================
+*/
+void SCR_Loading_f (void)
+{
+	SCR_BeginLoadingPlaque();
+}
+
 /* 
 ================== 
 CL_ScreenshotGetName
@@ -78,4 +88,79 @@ void CL_LevelShot_f( void )
 	sprintf( checkname, "graphics/background/%s.tga", cl.configstrings[CS_NAME] );
 	if(!FS_FileExists( checkname )) re->ScrShot( checkname, true );
 
+}
+
+/*
+=================
+CL_SetSky_f
+
+Set a specific sky and rotation speed
+=================
+*/
+void CL_SetSky_f( void )
+{
+	float	rotate;
+	vec3_t	axis;
+
+	if(Cmd_Argc() < 2)
+	{
+		Msg("Usage: sky <basename> <rotate> <axis x y z>\n");
+		return;
+	}
+
+	if(Cmd_Argc() > 2) rotate = atof(Cmd_Argv(2));
+	else rotate = 0;
+	if(Cmd_Argc() == 6)
+	{
+		VectorSet(axis, atof(Cmd_Argv(3)), atof(Cmd_Argv(4)), atof(Cmd_Argv(5)));
+	}
+	else
+	{
+		VectorSet(axis, 0, 0, 1 );
+	}
+	re->SetSky(Cmd_Argv(1), rotate, axis);
+}
+
+/*
+================
+SCR_TimeRefresh_f
+================
+*/
+void SCR_TimeRefresh_f (void)
+{
+	int		i;
+	float		start, stop;
+	float		time;
+
+	if ( cls.state != ca_active )
+		return;
+
+	start = Sys_DoubleTime();
+
+	if (Cmd_Argc() == 2)
+	{	
+		// run without page flipping
+		re->BeginFrame();
+		for (i = 0; i < 128; i++)
+		{
+			cl.refdef.viewangles[1] = i/128.0*360.0;
+			re->RenderFrame (&cl.refdef);
+		}
+		re->EndFrame();
+	}
+	else
+	{
+		for (i = 0; i < 128; i++)
+		{
+			cl.refdef.viewangles[1] = i/128.0*360.0;
+
+			re->BeginFrame();
+			re->RenderFrame(&cl.refdef);
+			re->EndFrame();
+		}
+	}
+
+	stop = Sys_DoubleTime();
+	time = stop - start;
+	Msg ("%f seconds (%f fps)\n", time, 128/time);
 }

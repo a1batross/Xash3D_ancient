@@ -448,7 +448,7 @@ void Con_DrawSolidConsole (float frac)
 	int	lines;
 	int	currentColor;
 	vec4_t	color;
-	char	version[MAX_QPATH];
+	char	curtime[MAX_QPATH];
 
 	lines = viddef.height * frac;
 	if (lines <= 0) return;
@@ -465,12 +465,13 @@ void Con_DrawSolidConsole (float frac)
 	Vector4Set( color, 1, 0, 0, 1 );
 	SCR_FillRect( 0, y, SCREEN_WIDTH, 2, color );
 
-	// draw the version number
-	re->SetColor(g_color_table[ColorIndex(COLOR_RED)]);
-	sprintf( version, "Xash %g", XASH_VERSION );
-	i = strlen( version );
+	// draw current time
+	re->SetColor(g_color_table[ColorIndex(COLOR_YELLOW)]);
+	std.snprintf( curtime, MAX_QPATH, "%s ", timestamp( TIME_TIME_ONLY));
+	i = strlen( curtime );
 	for (x = 0; x < i; x++)
-		SCR_DrawSmallChar( viddef.width - ( i - x ) * SMALLCHAR_WIDTH, (lines - (SMALLCHAR_HEIGHT+SMALLCHAR_HEIGHT/2)), version[x]);
+		SCR_DrawSmallChar( viddef.width - ( i - x ) * SMALLCHAR_WIDTH, (lines - (SMALLCHAR_HEIGHT+SMALLCHAR_HEIGHT/2)), curtime[x]);
+	re->SetColor(NULL);
 
 	// draw the text
 	con.vislines = lines;
@@ -545,7 +546,6 @@ void Con_DrawConsole( void )
 		{
 			// show console in devmode
 			Con_DrawSolidConsole( 0.5 );
-			SCR_FillRect( 0, SCREEN_HEIGHT/2, SCREEN_WIDTH, SCREEN_HEIGHT, g_color_table[0] );
 		}
 		break;
 	case ca_disconnected:

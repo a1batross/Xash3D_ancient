@@ -458,7 +458,6 @@ void Mod_LoadTexinfo (lump_t *l)
 		if(out->image)
 		{
 			ri.Cvar_SetValue("scr_loading", r_loading->value + 45.0f/count );
-			Msg("loading textures %g\n", r_loading->value + 45.0f/count );
 		}
 		else
 		{

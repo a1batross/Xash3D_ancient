@@ -142,10 +142,6 @@ SOURCE=.\client\cl_input.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\client\cl_inv.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\client\cl_keys.c
 # End Source File
 # Begin Source File

@@ -238,12 +238,10 @@ void Draw_Fill(float x, float y, float w, float h)
 	qglColor4fv(gl_state.draw_color);
 
 	qglBegin (GL_QUADS);
-
-	qglVertex2f(x, y);
-	qglVertex2f(x + w, y);
-	qglVertex2f(x + w, y + h);
-	qglVertex2f(x, y + h);
-
+		qglVertex2f(x, y);
+		qglVertex2f(x + w, y);
+		qglVertex2f(x + w, y + h);
+		qglVertex2f(x, y + h);
 	qglEnd();
 	qglEnable (GL_TEXTURE_2D);
 }

@@ -18,7 +18,6 @@ bool	Minimized;
 char	*buildstring = __TIME__ " " __DATE__;
 
 void Key_Init (void);
-void SCR_EndLoadingPlaque (void);
 
 HINSTANCE	global_hInstance;
 dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(physic_exp_t) };
@@ -154,8 +153,6 @@ void Host_Init (uint funcname, int argc, char **argv)
 
 	// if stuffcmds wasn't run, then init.rc is probably missing, use default
 	if(!host.stuffcmdsrun) Cbuf_ExecuteText( EXEC_NOW, "stuffcmds\n" );
-
-	SCR_EndLoadingPlaque ();
 	Sys_DoubleTime(); // initialize timer
 }
 

@@ -54,6 +54,19 @@ lightstyle_t	r_lightstyles[MAX_LIGHTSTYLES];
 char cl_weaponmodels[MAX_CLIENTWEAPONMODELS][MAX_QPATH];
 int num_cl_weaponmodels;
 
+int entitycmpfnc( const entity_t *a, const entity_t *b )
+{
+	// all other models are sorted by model then skin
+	if ( a->model == b->model )
+	{
+		return ((int)a->image - (int)b->image);
+	}
+	else
+	{
+		return ((int)a->model - (int)b->model);
+	}
+}
+
 /*
 ====================
 V_ClearScene
@@ -274,10 +287,10 @@ void CL_PrepRefresh( void )
 		return; // no map loaded
 
 	// get splash name
-	sprintf( cl.levelshot_name, "background/%s.tga", cl.configstrings[CS_NAME] );
-	if(!FS_FileExists(va("graphics/%s", cl.levelshot_name))) 
+	Cvar_Set( "cl_levelshot_name", va("background/%s.tga", cl.configstrings[CS_NAME]));
+	if(!FS_FileExists(va("graphics/%s", Cvar_VariableString("cl_levelshot_name")))) 
 	{
-		strcpy( cl.levelshot_name, "common/black" );
+		Cvar_Set("cl_levelshot_name", "common/black");
 		cl.make_levelshot = true; // make levelshot
 	}
 	Con_Close();
@@ -338,7 +351,6 @@ void CL_PrepRefresh( void )
 			else cl.model_clip[i] = NULL;
 		}
 		Cvar_SetValue("scr_loading", scr_loading->value + 50.0f/mdlcount );
-		Msg("loading models %g\n", scr_loading->value + 50.0f/mdlcount );
 		SCR_UpdateScreen();
 	}
 
@@ -367,7 +379,7 @@ void CL_PrepRefresh( void )
 	// set sky textures and speed
 	SCR_UpdateScreen();
 	rotate = atof(cl.configstrings[CS_SKYROTATE]);
-	CG_StringToVector( axis, cl.configstrings[CS_SKYAXIS] );
+	std.atov( axis, cl.configstrings[CS_SKYAXIS], 3 );
 	Msg("Sky Vector %g %g %g\n", axis[0], axis[1], axis[2] );
 	re->SetSky( cl.configstrings[CS_SKY], rotate, axis);
           Cvar_SetValue("scr_loading", 100.0f ); // all done
@@ -440,8 +452,6 @@ V_RenderView
 */
 void V_RenderView( void )
 {
-	extern int entitycmpfnc( const entity_t *, const entity_t * );
-
 	if (cls.state != ca_active) return;
 	if (!cl.refresh_prepped) return; // still loading
 
@@ -538,17 +548,9 @@ bool V_PreRender( void )
 		
 	re->BeginFrame();
 
-	// wide aspect ratio screens need to have the sides cleared
-	// unless they are displaying game renderings
-	if ( cls.state != ca_active )
-	{
-		if( viddef.width * 480 > viddef.height * 640 )
-		{
-			re->SetColor( g_color_table[0] );
-			re->DrawStretchPic( 0, 0, viddef.width, viddef.height, 0, 0, 1, 1, "common/black" );
-			re->SetColor( NULL );
-		}
-	}
+	// clear screen
+	SCR_FillRect( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, g_color_table[0] );
+
 	return true;
 }
 
@@ -560,6 +562,8 @@ V_PostRender
 */
 void V_PostRender( void )
 {
+	SCR_DrawNet();
+	SCR_DrawFPS();
 	Con_DrawConsole();
 	M_Draw();
 	re->EndFrame();

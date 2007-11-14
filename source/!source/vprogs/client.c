@@ -16,6 +16,7 @@ void() PutClientInServer;  //From Client.QC
 
 //END DEFS;
 .float	showhelp;
+.float	showinventory;
 
 /*
 +=========+
@@ -297,6 +298,24 @@ void() PutClientInServer =
 	GetLevelParms();
 };
 
+void ShowInventory( void )
+{
+	string	help; 
+	float	layout;
+
+	if(pev->showinventory == TRUE) pev->showinventory = FALSE;
+	else pev->showinventory = TRUE;
+
+	if(pev->showinventory == TRUE) layout |= 2;
+	else layout = 0;
+
+	setstats( pev, STAT_LAYOUTS, ftoa(layout));
+
+	MsgBegin( SVC_LAYOUT );
+	WriteString( "" ); // build-in inventory
+	MsgEnd(MSG_ONE, '0 0 0', pev );
+}
+
 void HelpComputer( void )
 {
 	string	help; 
@@ -305,18 +324,13 @@ void HelpComputer( void )
 	if(pev->showhelp == TRUE) pev->showhelp = FALSE;
 	else pev->showhelp = TRUE;
 
-	if(pev->showhelp == TRUE) 
-	{
-		layout |= 1;
-		help = "xv 32 yv 8 picn help ";
-	}
-	else help = "";
-	if(pev->health > 0) layout |= 2;
+	if(pev->showhelp == TRUE) layout |= 1;
+	else layout = 0;
 
 	setstats( pev, STAT_LAYOUTS, ftoa(layout));
 
 	MsgBegin( SVC_LAYOUT );
-	WriteString( help );
+	WriteString( "Hud_HelpComputer" );
 	MsgEnd(MSG_ONE, '0 0 0', pev );
 }
 
@@ -329,6 +343,10 @@ void ClientCommand( void )
 	if(cmd == "help")
 	{
 		HelpComputer();
+	}
+	if(cmd == "inven")
+	{
+		ShowInventory();
 	}
 	if(cmd == "say")
 	{

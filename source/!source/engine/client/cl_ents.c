@@ -495,8 +495,6 @@ void CL_ParseFrame (void)
 			cl.force_refdef = true;
 			VectorCopy( cl.frame.playerstate.pmove.origin, cl.predicted_origin );
 			VectorCopy( cl.frame.playerstate.viewangles, cl.predicted_angles );
-			if (cls.disable_servercount != cl.servercount && cl.refresh_prepped)
-				SCR_EndLoadingPlaque (); // get rid of loading plaque
 		}
 		cl.sound_prepped = true; // can start mixing ambient sounds
 	

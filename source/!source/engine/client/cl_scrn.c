@@ -13,6 +13,7 @@ cvar_t *scr_centertime;
 cvar_t *scr_showpause;
 cvar_t *scr_printspeed;
 cvar_t *scr_loading;
+cvar_t *cl_levelshot_name;
 
 void SCR_TimeRefresh_f( void );
 void SCR_Loading_f( void );
@@ -63,9 +64,17 @@ Coordinates are 640*480 virtual values
 */
 void SCR_DrawPic( float x, float y, float width, float height, char *picname )
 {
+	int	w, h;
+
 	// to avoid drawing r_notexture image
 	if(!picname || !*picname ) return;
 
+	// get original size
+	if(width == -1 || height == -1)
+	{
+		re->DrawGetPicSize( &w, &h, picname );
+		width = w, height = h;
+	}
 	SCR_AdjustSize( &x, &y, &width, &height );
 	re->DrawStretchPic (x, y, width, height, 0, 0, 1, 1, picname );
 }
@@ -246,6 +255,57 @@ void SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, 
 }
 
 /*
+==============
+SCR_DrawNet
+==============
+*/
+void SCR_DrawNet( void )
+{
+	if (cls.netchan.outgoing_sequence - cls.netchan.incoming_acknowledged < CMD_BACKUP-1)
+		return;
+
+	SCR_DrawPic( scr_vrect.x+64, scr_vrect.y, 48, 48, "hud/net" );
+}
+
+void SCR_DrawFPS( void )
+{
+	float		calc;
+	static double	nexttime = 0, lasttime = 0;
+	static double	framerate = 0;
+	static int	framecount = 0;
+	double		newtime;
+	bool		red = false; // fps too low
+	char		fpsstring[32];
+	float		*color;
+
+	if(cls.state != ca_active) return; 
+	
+	newtime = Sys_DoubleTime();
+	if (newtime >= nexttime)
+	{
+		framerate = framecount / (newtime - lasttime);
+		lasttime = newtime;
+		nexttime = max(nexttime + 1, lasttime - 1);
+		framecount = 0;
+	}
+	framecount++;
+	calc = framerate;
+
+	if ((red = (calc < 1.0f)))
+	{
+		std.snprintf(fpsstring, sizeof(fpsstring), "%4i spf", (int)(1.0f / calc + 0.5));
+		color = g_color_table[1];
+	}
+	else
+	{
+		std.snprintf(fpsstring, sizeof(fpsstring), "%4i fps", (int)(calc + 0.5));
+		color = g_color_table[3];
+          }
+	SCR_DrawBigStringColor(SCREEN_WIDTH - 146, SCREEN_HEIGHT - 32, fpsstring, color );
+}
+
+
+/*
 ==================
 SCR_UpdateScreen
 
@@ -275,7 +335,7 @@ void SCR_UpdateScreen( void )
 		V_RenderHUD();
 		break;
 	default:
-		Host_Error("SCR_DrawScreenField: bad cls.state" );
+		Host_Error("SCR_UpdateScreen: bad cls.state" );
 		break;
 	}
 
@@ -289,14 +349,15 @@ SCR_Init
 */
 void SCR_Init (void)
 {
-	scr_showpause = Cvar_Get ("scr_showpause", "1", 0);
-	scr_centertime = Cvar_Get ("scr_centertime", "2.5", 0);
-	scr_printspeed = Cvar_Get ("scr_printspeed", "8", 0);
+	scr_showpause = Cvar_Get("scr_showpause", "1", 0);
+	scr_centertime = Cvar_Get("scr_centertime", "2.5", 0);
+	scr_printspeed = Cvar_Get("scr_printspeed", "8", 0);
+	cl_levelshot_name = Cvar_Get("cl_levelshot_name", "common/black", 0 );
 
 	// register our commands
 	Cmd_AddCommand ("timerefresh", SCR_TimeRefresh_f);
 	Cmd_AddCommand ("loading", SCR_Loading_f);
-	Cmd_AddCommand ("skyname", CG_SetSky_f );
+	Cmd_AddCommand ("skyname", CL_SetSky_f );
 
 	scr_initialized = true;
 

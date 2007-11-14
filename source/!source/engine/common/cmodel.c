@@ -513,7 +513,7 @@ Loads in the map and all submodels
 */
 cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum)
 {
-	unsigned		*buf;
+	uint		*buf;
 	int				i;
 	dheader_t		header;
 	int				length;
@@ -521,7 +521,7 @@ cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum)
 
 	map_noareas = Cvar_Get ("map_noareas", "0", 0);
 
-	if(!strcmp (map_name, name) && (clientload || !Cvar_VariableValue ("flushmap")) )
+	if(!strcmp(map_name, name) && (clientload || !Cvar_VariableValue ("flushmap")) )
 	{
 		*checksum = last_checksum;
 		if (!clientload)
@@ -584,11 +584,12 @@ cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum)
 	CMod_LoadEntityString (&header.lumps[LUMP_ENTITIES]);
 
 	Phys->LoadBSP( buf ); // create physics collision
+	Mem_Free( buf ); // release map buffer
+
 	CM_InitBoxHull ();
 
-	memset (portalopen, 0, sizeof(portalopen));
+	memset(portalopen, 0, sizeof(portalopen));
 	CM_FloodAreaConnections ();
-
 	strcpy (map_name, name);
 
 	return &map_cmodels[0];
@@ -1743,7 +1744,7 @@ cmodel_t *CM_StudioModel (char *name, byte *buffer)
 	}
 
 	out = &map_cmodels[numcmodels + numsmodels];
-	out->extradata = buffer;
+	out->extradata = NULL;//buffer;
 	out->numframes = 0;//reset sprite info
 	strncpy(out->name, name, sizeof(out->name));
 	
@@ -1784,24 +1785,27 @@ cmodel_t *CM_SpriteModel (char *name, byte *buffer)
 	out->maxs[0] = out->maxs[1] = phdr->width / 2;
 	out->mins[2] = -phdr->height / 2;
 	out->maxs[2] = phdr->height / 2;
-	
+
 	numsmodels++;
 	return out;
 }
 
-cmodel_t *CM_LoadModel ( int modelindex )
+cmodel_t *CM_LoadModel( int modelindex )
 {
 	char		name[MAX_QPATH];
 	byte		*buffer;
 	cmodel_t		*mod = NULL;
-	int		i = numcmodels;
-	int		max_models = numcmodels + numsmodels;
+	int		i, max_models = numcmodels + numsmodels;
 
 	// check for preloading
 	strncpy(name, sv.configstrings[CS_MODELS + modelindex], MAX_QPATH );
-	if(name[0] == '*') return CM_InlineModel( name ); //skip bmodels
+	if(name[0] == '*') 
+	{
+		MsgDev(D_NOTE, "CM_LoadModel: load %s\n", name );
+		return CM_InlineModel( name ); // skip bmodels
+	}
 
-	for(i = 0; i < max_models; i++ )
+	for(i = numcmodels; i < max_models; i++ )
           {
 		mod = map_cmodels + i;
 		if(!stricmp(name, mod->name))
@@ -1819,6 +1823,7 @@ cmodel_t *CM_LoadModel ( int modelindex )
 		MsgWarn("CM_LoadModel: %s not found\n", name );
 		return NULL;
 	}
+	MsgDev(D_NOTE, "CM_LoadModel: load %s\n", name );
 	buffer = FS_LoadFile (name, NULL );
 
 	// call the apropriate loader
@@ -1831,6 +1836,7 @@ cmodel_t *CM_LoadModel ( int modelindex )
 		mod = CM_SpriteModel( name, buffer );
 		break;
 	}
+	Mem_Free( buffer );
 
 	return mod;
 }

@@ -23,29 +23,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client.h"
 #include "qmenu.h"
 
-static void	 Action_DoEnter( menuaction_s *a );
-static void	 Action_Draw( menuaction_s *a );
-static void  Menu_DrawStatusBar( const char *string );
-static void	 Menulist_DoEnter( menulist_s *l );
-static void	 MenuList_Draw( menulist_s *l );
-static void	 Separator_Draw( menuseparator_s *s );
-static void	 Slider_DoSlide( menuslider_s *s, int dir );
-static void	 Slider_Draw( menuslider_s *s );
-static void	 SpinControl_DoEnter( menulist_s *s );
-static void	 SpinControl_Draw( menulist_s *s );
-static void	 SpinControl_DoSlide( menulist_s *s, int dir );
+static void Action_DoEnter( menuaction_s *a );
+static void Action_Draw( menuaction_s *a );
+static void Menu_DrawStatusBar( const char *string );
+static void Menulist_DoEnter( menulist_s *l );
+static void MenuList_Draw( menulist_s *l );
+static void Separator_Draw( menuseparator_s *s );
+static void Slider_DoSlide( menuslider_s *s, int dir );
+static void Slider_Draw( menuslider_s *s );
+static void SpinControl_DoEnter( menulist_s *s );
+static void SpinControl_Draw( menulist_s *s );
+static void SpinControl_DoSlide( menulist_s *s, int dir );
 
 #define RCOLUMN_OFFSET  16
 #define LCOLUMN_OFFSET -16
 
 extern render_exp_t		*re;
 extern viddef_t		viddef;
-
-#define VID_WIDTH viddef.width
-#define VID_HEIGHT viddef.height
-
-#define Draw_Char re->DrawChar
-#define Draw_Fill re->DrawFill
 
 void Action_DoEnter( menuaction_s *a )
 {
@@ -93,16 +87,16 @@ void QField_Draw( menufield_s *f )
 
 	strncpy( tempbuffer, f->field.buffer + f->field.scroll, f->field.widthInChars );
 
-	Draw_Char( f->generic.x + f->generic.parent->x + 16, f->generic.y + f->generic.parent->y - 4, 18 );
-	Draw_Char( f->generic.x + f->generic.parent->x + 16, f->generic.y + f->generic.parent->y + 4, 24 );
+	SCR_DrawSmallChar( f->generic.x + f->generic.parent->x + 16, f->generic.y + f->generic.parent->y - 4, 18 );
+	SCR_DrawSmallChar( f->generic.x + f->generic.parent->x + 16, f->generic.y + f->generic.parent->y + 4, 24 );
 
-	Draw_Char( f->generic.x + f->generic.parent->x + 24 + f->field.widthInChars * 8, f->generic.y + f->generic.parent->y - 4, 20 );
-	Draw_Char( f->generic.x + f->generic.parent->x + 24 + f->field.widthInChars * 8, f->generic.y + f->generic.parent->y + 4, 26 );
+	SCR_DrawSmallChar( f->generic.x + f->generic.parent->x + 24 + f->field.widthInChars * 8, f->generic.y + f->generic.parent->y - 4, 20 );
+	SCR_DrawSmallChar( f->generic.x + f->generic.parent->x + 24 + f->field.widthInChars * 8, f->generic.y + f->generic.parent->y + 4, 26 );
 
 	for ( i = 0; i < f->field.widthInChars; i++ )
 	{
-		Draw_Char( f->generic.x + f->generic.parent->x + 24 + i * 8, f->generic.y + f->generic.parent->y - 4, 19 );
-		Draw_Char( f->generic.x + f->generic.parent->x + 24 + i * 8, f->generic.y + f->generic.parent->y + 4, 25 );
+		SCR_DrawSmallChar( f->generic.x + f->generic.parent->x + 24 + i * 8, f->generic.y + f->generic.parent->y - 4, 19 );
+		SCR_DrawSmallChar( f->generic.x + f->generic.parent->x + 24 + i * 8, f->generic.y + f->generic.parent->y + 4, 25 );
 	}
 
 	Menu_DrawString( f->generic.x + f->generic.parent->x + 24, f->generic.y + f->generic.parent->y, tempbuffer );
@@ -118,13 +112,13 @@ void QField_Draw( menufield_s *f )
 
 		if ( ( ( int ) ( cls.realtime * 4.0f ) ) & 1 )
 		{
-			Draw_Char( f->generic.x + f->generic.parent->x + ( offset + 2 ) * 8 + 8,
+			SCR_DrawSmallChar( f->generic.x + f->generic.parent->x + ( offset + 2 ) * 8 + 8,
 					   f->generic.y + f->generic.parent->y,
 					   11 );
 		}
 		else
 		{
-			Draw_Char( f->generic.x + f->generic.parent->x + ( offset + 2 ) * 8 + 8,
+			SCR_DrawSmallChar( f->generic.x + f->generic.parent->x + ( offset + 2 ) * 8 + 8,
 					   f->generic.y + f->generic.parent->y,
 					   ' ' );
 		}
@@ -236,7 +230,7 @@ void Menu_Center( menuframework_s *menu )
 	height = ( ( menucommon_s * ) menu->items[menu->nitems-1])->y;
 	height += 10;
 
-	menu->y = ( VID_HEIGHT - height ) / 2;
+	menu->y = ( SCREEN_HEIGHT - height ) / 2;
 }
 
 void Menu_Draw( menuframework_s *menu )
@@ -286,11 +280,11 @@ void Menu_Draw( menuframework_s *menu )
 	{
 		if ( item->flags & QMF_LEFT_JUSTIFY )
 		{
-			Draw_Char( menu->x + item->x - 24 + item->cursor_offset, menu->y + item->y, 12 + ( ( int ) ( cls.realtime * 5.0f ) & 1 ) );
+			SCR_DrawSmallChar( menu->x + item->x - 24 + item->cursor_offset, menu->y + item->y, 12 + ( ( int ) ( cls.realtime * 5.0f ) & 1 ) );
 		}
 		else
 		{
-			Draw_Char( menu->x + item->cursor_offset, menu->y + item->y, 12 + ( ( int ) ( cls.realtime * 5.0f ) & 1 ) );
+			SCR_DrawSmallChar( menu->x + item->cursor_offset, menu->y + item->y, 12 + ( ( int ) ( cls.realtime * 5.0f ) & 1 ) );
 		}
 	}
 
@@ -315,12 +309,12 @@ void Menu_DrawStatusBar( const char *string )
 	if ( string )
 	{
 		int l = strlen( string );
-		int maxrow = VID_HEIGHT / 8;
-		int maxcol = VID_WIDTH / 8;
+		int maxrow = SCREEN_HEIGHT / 8;
+		int maxcol = SCREEN_WIDTH / 8;
 		int col = maxcol / 2 - l / 2;
 
 		SCR_FillRect( 0, SCREEN_HEIGHT - 8, SCREEN_WIDTH, 8, COLOR_4 );
-		Menu_DrawString( col*8, VID_HEIGHT - 8, string );
+		Menu_DrawString( col*8, SCREEN_HEIGHT - 8, string );
 	}
 	else
 	{
@@ -334,7 +328,7 @@ void Menu_DrawString( int x, int y, const char *string )
 
 	for ( i = 0; i < strlen( string ); i++ )
 	{
-		Draw_Char( ( x + i*8 ), y, string[i] );
+		SCR_DrawSmallChar( ( x + i*8 ), y, string[i] );
 	}
 }
 
@@ -344,7 +338,7 @@ void Menu_DrawStringDark( int x, int y, const char *string )
 
 	for ( i = 0; i < strlen( string ); i++ )
 	{
-		Draw_Char( ( x + i*8 ), y, string[i] + 128 );
+		SCR_DrawSmallChar( ( x + i*8 ), y, string[i] + 128 );
 	}
 }
 
@@ -354,7 +348,7 @@ void Menu_DrawStringR2L( int x, int y, const char *string )
 
 	for ( i = 0; i < strlen( string ); i++ )
 	{
-		Draw_Char( ( x - i*8 ), y, string[strlen(string)-i-1] );
+		SCR_DrawSmallChar( ( x - i*8 ), y, string[strlen(string)-i-1] );
 	}
 }
 
@@ -364,7 +358,7 @@ void Menu_DrawStringR2LDark( int x, int y, const char *string )
 
 	for ( i = 0; i < strlen( string ); i++ )
 	{
-		Draw_Char( ( x - i*8 ), y, string[strlen(string)-i-1]+128 );
+		SCR_DrawSmallChar( ( x - i*8 ), y, string[strlen(string)-i-1]+128 );
 	}
 }
 
@@ -515,11 +509,11 @@ void Slider_Draw( menuslider_s *s )
 		s->range = 0;
 	if ( s->range > 1)
 		s->range = 1;
-	Draw_Char( s->generic.x + s->generic.parent->x + RCOLUMN_OFFSET, s->generic.y + s->generic.parent->y, 128);
+	SCR_DrawSmallChar( s->generic.x + s->generic.parent->x + RCOLUMN_OFFSET, s->generic.y + s->generic.parent->y, 128);
 	for ( i = 0; i < SLIDER_RANGE; i++ )
-		Draw_Char( RCOLUMN_OFFSET + s->generic.x + i*8 + s->generic.parent->x + 8, s->generic.y + s->generic.parent->y, 129);
-	Draw_Char( RCOLUMN_OFFSET + s->generic.x + i*8 + s->generic.parent->x + 8, s->generic.y + s->generic.parent->y, 130);
-	Draw_Char( ( int ) ( 8 + RCOLUMN_OFFSET + s->generic.parent->x + s->generic.x + (SLIDER_RANGE-1)*8 * s->range ), s->generic.y + s->generic.parent->y, 131);
+		SCR_DrawSmallChar( RCOLUMN_OFFSET + s->generic.x + i*8 + s->generic.parent->x + 8, s->generic.y + s->generic.parent->y, 129);
+	SCR_DrawSmallChar( RCOLUMN_OFFSET + s->generic.x + i*8 + s->generic.parent->x + 8, s->generic.y + s->generic.parent->y, 130);
+	SCR_DrawSmallChar( ( int ) ( 8 + RCOLUMN_OFFSET + s->generic.parent->x + s->generic.x + (SLIDER_RANGE-1)*8 * s->range ), s->generic.y + s->generic.parent->y, 131);
 }
 
 void SpinControl_DoEnter( menulist_s *s )

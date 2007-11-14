@@ -26,7 +26,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static int	m_main_cursor;
 
-#define NUM_CURSOR_FRAMES 15
+#define NUM_CURSOR_FRAMES	15
+#define CHAR_STEP		20
 
 static char *menu_in_sound	= "misc/menu1.wav";
 static char *menu_move_sound	= "misc/menu2.wav";
@@ -77,7 +78,7 @@ static void M_Banner( char *name )
 	int w, h;
 
 	re->DrawGetPicSize (&w, &h, name );
-	re->DrawPic( viddef.width / 2 - w / 2, viddef.height / 2 - 110, name );
+	SCR_DrawPic( SCREEN_WIDTH / 2 - w / 2, SCREEN_HEIGHT / 2 - 110, w, h, name );
 }
 
 void M_PushMenu ( void (*draw) (void), const char *(*key) (int k) )
@@ -236,32 +237,22 @@ higher res screens.
 */
 void M_DrawCharacter (int cx, int cy, int num)
 {
-	re->DrawChar ( cx + ((viddef.width - 320)>>1), cy + ((viddef.height - 240)>>1), num);
+	SCR_DrawSmallChar( cx + ((SCREEN_WIDTH - SMALLCHAR_WIDTH)>>1), cy + ((SCREEN_HEIGHT - SMALLCHAR_HEIGHT)>>1), num);
 }
 
 void M_Print (int cx, int cy, char *str)
 {
-	while (*str)
-	{
-		M_DrawCharacter (cx, cy, (*str)+128);
-		str++;
-		cx += 8;
-	}
+	SCR_DrawSmallStringExt( cx, cy, str, g_color_table[3], true );
 }
 
 void M_PrintWhite (int cx, int cy, char *str)
 {
-	while (*str)
-	{
-		M_DrawCharacter (cx, cy, *str);
-		str++;
-		cx += 8;
-	}
+	SCR_DrawSmallStringExt( cx, cy, str, g_color_table[7], true );
 }
 
 void M_DrawPic (int x, int y, char *pic)
 {
-	re->DrawPic (x + ((viddef.width - 320)>>1), y + ((viddef.height - 240)>>1), pic);
+	SCR_DrawPic(x + ((SCREEN_WIDTH - 320)>>1), y + ((SCREEN_HEIGHT - 240)>>1), -1, -1, pic);
 }
 
 
@@ -292,7 +283,7 @@ void M_DrawCursor( int x, int y, int f )
 	}
 
 	sprintf( cursorname, "menu/m_cursor%d", f );
-	re->DrawPic( x, y, cursorname );
+	SCR_DrawPic( x, y, -1, -1, cursorname );
 }
 
 void M_DrawTextBox (int x, int y, int width, int lines)
@@ -372,29 +363,27 @@ void M_Main_Draw (void)
 	{
 		re->DrawGetPicSize( &w, &h, names[i] );
 
-		if ( w > widest )
-			widest = w;
+		if ( w > widest ) widest = w;
 		totalheight += ( h + 12 );
 	}
 
-	ystart = ( viddef.height / 2 - 110 );
-	xoffset = ( viddef.width - widest + 70 ) / 2;
+	ystart = ( SCREEN_HEIGHT / 2 - 110 );
+	xoffset = ( SCREEN_WIDTH - widest + 70 ) / 2;
 
 	for ( i = 0; names[i] != 0; i++ )
 	{
 		if ( i != m_main_cursor )
-			re->DrawPic( xoffset, ystart + i * 40 + 13, names[i] );
+			SCR_DrawPic( xoffset, ystart + i * 40 + 13, -1, -1, names[i] );
 	}
 	strcpy( litname, names[m_main_cursor] );
 	strncat( litname, "_sel", 80 );
-	re->DrawPic( xoffset, ystart + m_main_cursor * 40 + 13, litname );
+	SCR_DrawPic( xoffset, ystart + m_main_cursor * 40 + 13, -1, -1, litname );
 
 	M_DrawCursor( xoffset - 25, ystart + m_main_cursor * 40 + 11, (int)(cls.realtime * 8.0f) % NUM_CURSOR_FRAMES );
 
 	re->DrawGetPicSize( &w, &h, "menu/m_main_plaque" );
-	re->DrawPic( xoffset - 30 - w, ystart, "menu/m_main_plaque" );
-
-	re->DrawPic( xoffset - 30 - w, ystart + h + 5, "menu/m_main_logo" );
+	SCR_DrawPic( xoffset - 30 - w, ystart, w, h, "menu/m_main_plaque" );
+	SCR_DrawPic( xoffset - 30 - w, ystart + h + 5, -1, -1, "menu/m_main_logo" );
 }
 
 
@@ -494,7 +483,7 @@ static void StartNetworkServerFunc( void *unused )
 
 void Multiplayer_MenuInit( void )
 {
-	s_multiplayer_menu.x = viddef.width * 0.50 - 64;
+	s_multiplayer_menu.x = SCREEN_WIDTH * 0.50 - 64;
 	s_multiplayer_menu.nitems = 0;
 
 	s_join_network_server_action.generic.type	= MTYPE_ACTION;
@@ -647,10 +636,8 @@ static void M_FindKeysForCommand (char *command, int *twokeys)
 
 static void KeyCursorDrawFunc( menuframework_s *menu )
 {
-	if ( bind_grab )
-		re->DrawChar( menu->x, menu->y + menu->cursor * 9, '=' );
-	else
-		re->DrawChar( menu->x, menu->y + menu->cursor * 9, 12 + (( int ) (cls.realtime * 5.0f) & 1 ));
+	if ( bind_grab ) SCR_DrawSmallChar( menu->x, menu->y + menu->cursor * 9, '=' );
+	else SCR_DrawSmallChar( menu->x, menu->y + menu->cursor * 9, 12 + (( int ) (cls.realtime * 5.0f) & 1 ));
 }
 
 static void DrawKeyBindingFunc( void *self )
@@ -703,7 +690,7 @@ static void Keys_MenuInit( void )
 	int y = 0;
 	int i = 0;
 
-	s_keys_menu.x = viddef.width * 0.50;
+	s_keys_menu.x = SCREEN_WIDTH * 0.50;
 	s_keys_menu.nitems = 0;
 	s_keys_menu.cursordraw = KeyCursorDrawFunc;
 
@@ -1140,8 +1127,8 @@ void Options_MenuInit( void )
 	/*
 	** configure controls menu and menu items
 	*/
-	s_options_menu.x = viddef.width / 2;
-	s_options_menu.y = viddef.height / 2 - 58;
+	s_options_menu.x = SCREEN_WIDTH / 2;
+	s_options_menu.y = SCREEN_HEIGHT / 2 - 58;
 	s_options_menu.nitems = 0;
 
 	s_options_sfxvolume_slider.generic.type	= MTYPE_SLIDER;
@@ -1399,7 +1386,7 @@ void M_Credits_MenuDraw( void )
 	int	i, x, y;
 	float	*color;
 
-	y = viddef.height - (( cls.realtime - credits_start_time ) * 40.0f );
+	y = SCREEN_HEIGHT - (( cls.realtime - credits_start_time ) * 40.0f );
 
 	// draw the credits
 	for ( i = 0; i < credit_numlines && credits[i]; i++, y += 20 )
@@ -1408,11 +1395,11 @@ void M_Credits_MenuDraw( void )
 		if( y <= -16 && i != credit_numlines - 1) continue;
 		x = ( SCREEN_WIDTH - BIGCHAR_WIDTH * ColorStrlen( credits[i] ))/2;
 
-		if((y < (viddef.height - BIGCHAR_HEIGHT) / 2) && i == credit_numlines - 1)
+		if((y < (SCREEN_HEIGHT - BIGCHAR_HEIGHT) / 2) && i == credit_numlines - 1)
 		{
 			if(!credits_fade_time) credits_fade_time = cls.realtime;
 			color = CG_FadeColor( credits_fade_time, credits_show_time );
-			if(color) SCR_DrawBigStringColor( x, (viddef.height-BIGCHAR_HEIGHT)/2, credits[i], color);
+			if(color) SCR_DrawBigStringColor( x, (SCREEN_HEIGHT-BIGCHAR_HEIGHT)/2, credits[i], color);
 		}
 		else SCR_DrawBigString( x, y, credits[i], 1.0f );
 	}
@@ -1559,7 +1546,7 @@ void Game_MenuInit( void )
 		0
 	};
 
-	s_game_menu.x = viddef.width * 0.50;
+	s_game_menu.x = SCREEN_WIDTH * 0.50;
 	s_game_menu.nitems = 0;
 
 	s_easy_game_action.generic.type	= MTYPE_ACTION;
@@ -1572,14 +1559,14 @@ void Game_MenuInit( void )
 	s_medium_game_action.generic.type	= MTYPE_ACTION;
 	s_medium_game_action.generic.flags  = QMF_LEFT_JUSTIFY;
 	s_medium_game_action.generic.x		= 0;
-	s_medium_game_action.generic.y		= 10;
+	s_medium_game_action.generic.y		= 16;
 	s_medium_game_action.generic.name	= "medium";
 	s_medium_game_action.generic.callback = MediumGameFunc;
 
 	s_hard_game_action.generic.type	= MTYPE_ACTION;
 	s_hard_game_action.generic.flags  = QMF_LEFT_JUSTIFY;
 	s_hard_game_action.generic.x		= 0;
-	s_hard_game_action.generic.y		= 20;
+	s_hard_game_action.generic.y		= 32;
 	s_hard_game_action.generic.name	= "hard";
 	s_hard_game_action.generic.callback = HardGameFunc;
 
@@ -1588,21 +1575,21 @@ void Game_MenuInit( void )
 	s_load_game_action.generic.type	= MTYPE_ACTION;
 	s_load_game_action.generic.flags  = QMF_LEFT_JUSTIFY;
 	s_load_game_action.generic.x		= 0;
-	s_load_game_action.generic.y		= 40;
+	s_load_game_action.generic.y		= 80;
 	s_load_game_action.generic.name	= "load game";
 	s_load_game_action.generic.callback = LoadGameFunc;
 
 	s_save_game_action.generic.type	= MTYPE_ACTION;
 	s_save_game_action.generic.flags  = QMF_LEFT_JUSTIFY;
 	s_save_game_action.generic.x		= 0;
-	s_save_game_action.generic.y		= 50;
+	s_save_game_action.generic.y		= 100;
 	s_save_game_action.generic.name	= "save game";
 	s_save_game_action.generic.callback = SaveGameFunc;
 
 	s_credits_action.generic.type	= MTYPE_ACTION;
 	s_credits_action.generic.flags  = QMF_LEFT_JUSTIFY;
 	s_credits_action.generic.x		= 0;
-	s_credits_action.generic.y		= 60;
+	s_credits_action.generic.y		= 120;
 	s_credits_action.generic.name	= "credits";
 	s_credits_action.generic.callback = CreditsFunc;
 
@@ -1679,8 +1666,8 @@ void LoadGame_MenuInit( void )
 {
 	int i;
 
-	s_loadgame_menu.x = viddef.width / 2 - 120;
-	s_loadgame_menu.y = viddef.height / 2 - 58;
+	s_loadgame_menu.x = SCREEN_WIDTH / 2 - 120;
+	s_loadgame_menu.y = SCREEN_HEIGHT / 2 - 58;
 	s_loadgame_menu.nitems = 0;
 
 	Create_Savestrings();
@@ -1756,8 +1743,8 @@ void SaveGame_MenuInit( void )
 {
 	int i;
 
-	s_savegame_menu.x = viddef.width / 2 - 120;
-	s_savegame_menu.y = viddef.height / 2 - 58;
+	s_savegame_menu.x = SCREEN_WIDTH / 2 - 120;
+	s_savegame_menu.y = SCREEN_HEIGHT / 2 - 58;
 	s_savegame_menu.nitems = 0;
 
 	Create_Savestrings();
@@ -1899,7 +1886,7 @@ void JoinServer_MenuInit( void )
 {
 	int i;
 
-	s_joinserver_menu.x = viddef.width * 0.50 - 120;
+	s_joinserver_menu.x = SCREEN_WIDTH * 0.50 - 120;
 	s_joinserver_menu.nitems = 0;
 
 	s_joinserver_address_book_action.generic.type	= MTYPE_ACTION;
@@ -2224,7 +2211,7 @@ void StartServer_MenuInit( void )
 	/*
 	** initialize the menu stuff
 	*/
-	s_startserver_menu.x = viddef.width * 0.50;
+	s_startserver_menu.x = SCREEN_WIDTH * 0.50;
 	s_startserver_menu.nitems = 0;
 
 	s_startmap_list.generic.type = MTYPE_SPINCONTROL;
@@ -2514,7 +2501,7 @@ void DMOptions_MenuInit( void )
 	int dmflags = Cvar_VariableValue( "dmflags" );
 	int y = 0;
 
-	s_dmoptions_menu.x = viddef.width * 0.50;
+	s_dmoptions_menu.x = SCREEN_WIDTH * 0.50;
 	s_dmoptions_menu.nitems = 0;
 
 	s_falls_box.generic.type = MTYPE_SPINCONTROL;
@@ -2729,7 +2716,7 @@ void DownloadOptions_MenuInit( void )
 	};
 	int y = 0;
 
-	s_downloadoptions_menu.x = viddef.width * 0.50;
+	s_downloadoptions_menu.x = SCREEN_WIDTH * 0.50;
 	s_downloadoptions_menu.nitems = 0;
 
 	s_download_title.generic.type = MTYPE_SEPARATOR;
@@ -2822,8 +2809,8 @@ void AddressBook_MenuInit( void )
 {
 	int i;
 
-	s_addressbook_menu.x = viddef.width / 2 - 142;
-	s_addressbook_menu.y = viddef.height / 2 - 58;
+	s_addressbook_menu.x = SCREEN_WIDTH / 2 - 142;
+	s_addressbook_menu.y = SCREEN_HEIGHT / 2 - 58;
 	s_addressbook_menu.nitems = 0;
 
 	for ( i = 0; i < NUM_ADDRESSBOOK_ENTRIES; i++ )
@@ -3061,8 +3048,8 @@ bool PlayerConfig_MenuInit( void )
 		}
 	}
 
-	s_player_config_menu.x = viddef.width / 2 - 95; 
-	s_player_config_menu.y = viddef.height / 2 - 97;
+	s_player_config_menu.x = SCREEN_WIDTH / 2 - 95; 
+	s_player_config_menu.y = SCREEN_HEIGHT / 2 - 97;
 	s_player_config_menu.nitems = 0;
 
 	s_player_name_field.generic.type = MTYPE_FIELD;
@@ -3148,8 +3135,8 @@ void PlayerConfig_MenuDraw( void )
 
 	memset( &refdef, 0, sizeof( refdef ) );
 
-	refdef.x = viddef.width / 2;
-	refdef.y = viddef.height / 2 - 72;
+	refdef.x = SCREEN_WIDTH / 2;
+	refdef.y = SCREEN_HEIGHT / 2 - 72;
 	refdef.width = 144;
 	refdef.height = 168;
 	refdef.fov_x = 50;
@@ -3189,13 +3176,13 @@ void PlayerConfig_MenuDraw( void )
 
 		Menu_Draw( &s_player_config_menu );
 
-		M_DrawTextBox( ( refdef.x ) * ( 320.0F / viddef.width ) - 8, ( viddef.height / 2 ) * ( 240.0F / viddef.height) - 77, refdef.width / 8, refdef.height / 8 );
+		M_DrawTextBox( ( refdef.x ) * ( 320.0F / SCREEN_WIDTH ) - 8, ( SCREEN_HEIGHT / 2 ) * ( 240.0F / SCREEN_HEIGHT) - 77, refdef.width / 8, refdef.height / 8 );
 		refdef.height += 4;
 
 		re->RenderFrame( &refdef );
 
 		strcpy( scratch, "hud/i_fixme" );
-		re->DrawPic( s_player_config_menu.x - 40, refdef.y, scratch );
+		SCR_DrawPic( s_player_config_menu.x - 40, refdef.y, -1, -1, scratch );
 	}
 }
 
