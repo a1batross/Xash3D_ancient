@@ -522,7 +522,7 @@ check current token for match with user keyword
 */
 bool SC_MatchToken( const char *match )
 {
-	if (!com_strnicmp( token, match, com_strlen(match)))
+	if (!com_stricmp( token, match ))
 		return true;
 	return false;
 }

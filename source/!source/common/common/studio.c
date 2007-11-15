@@ -2413,7 +2413,7 @@ void Cmd_CdSet( void )
 	if(!cdset)
 	{
 		cdset = true;
-		FS_AddGameHierarchy( Com_GetToken (false));
+		FS_AddGameHierarchy(Com_GetToken (false));
 	}
 	else  Msg("Warning: $cd already set\n");
 }

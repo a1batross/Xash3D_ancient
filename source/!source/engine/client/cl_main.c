@@ -362,7 +362,7 @@ CL_Pause_f
 void CL_Pause_f (void)
 {
 	// never pause in multiplayer
-	if (Cvar_VariableValue ("maxclients") > 1 || !Com_ServerState ())
+	if (Cvar_VariableValue ("maxclients") > 1 || !Host_ServerState ())
 	{
 		Cvar_SetValue ("paused", 0);
 		return;
@@ -440,7 +440,7 @@ void CL_CheckForResend (void)
 
 	// if the local server is running and we aren't
 	// then connect
-	if (cls.state == ca_disconnected && Com_ServerState() )
+	if (cls.state == ca_disconnected && Host_ServerState() )
 	{
 		cls.state = ca_connecting;
 		strncpy (cls.servername, "localhost", sizeof(cls.servername)-1);
@@ -490,7 +490,7 @@ void CL_Connect_f (void)
 		return;	
 	}
 	
-	if (Com_ServerState ())
+	if (Host_ServerState ())
 	{	// if running a local server, kill it and reissue
 		SV_Shutdown (va("Server quit\n", msg), false);
 	}
@@ -613,22 +613,17 @@ void CL_Disconnect (void)
 		float	time;
 		
 		time = Sys_DoubleTime() - cl.timedemo_start;
-		if (time > 0)
-			Msg ("%i frames, %3.1f seconds: %3.1f fps\n", cl.timedemo_frames,
-			time, cl.timedemo_frames / time);
+		if (time > 0) Msg ("%i frames, %3.1f seconds: %3.1f fps\n", cl.timedemo_frames, time, cl.timedemo_frames / time);
 	}
 
 	VectorClear (cl.refdef.blend);
-	re->CinematicSetPalette(NULL);
-
 	M_ForceMenuOff ();
 
 	cls.connect_time = 0;
 
 	SCR_StopCinematic ();
 
-	if (cls.demorecording)
-		CL_Stop_f ();
+	if(cls.demorecording) CL_Stop_f ();
 
 	// send a disconnect message to the server
 	final[0] = clc_stringcmd;
@@ -719,12 +714,11 @@ void CL_Changing_f (void)
 {
 	//ZOID
 	//if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
-	if (cls.download)
-		return;
+	if (cls.download) return;
 
-	SCR_BeginLoadingPlaque ();
+	S_StopAllSounds();
 	cls.state = ca_connected;	// not active anymore, but not disconnected
-	Msg ("\nChanging map...\n");
+	Msg("\nChanging map...\n");
 }
 
 
@@ -1688,9 +1682,7 @@ void CL_Frame (float time)
 		CL_PrepRefresh ();
 
 	// update the screen
-	if (host_speeds->value) time_before_ref = Sys_DoubleTime();
 	SCR_UpdateScreen ();
-	if (host_speeds->value) time_after_ref = Sys_DoubleTime();
 
 	// update audio
 	S_Update();
@@ -1733,8 +1725,6 @@ void CL_Init (void)
 	M_Init ();	
 	
 	SCR_Init ();
-	cls.disable_screen = true;	// don't draw yet
-
 	CL_InitLocal ();
 	IN_Init ();
 

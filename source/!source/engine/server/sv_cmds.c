@@ -236,9 +236,9 @@ void SV_Map_f (void)
 
 	// if not a pcx, demo, or cinematic, check to make sure the level exists
 	map = Cmd_Argv(1);
-	if (!strstr (map, "."))
+	if(!strstr (map, "."))
 	{
-		sprintf (expanded, "maps/%s.bsp", map);
+		sprintf(expanded, "maps/%s.bsp", map);
 		if (!FS_LoadFile (expanded, NULL))
 		{
 			Msg ("Can't find %s\n", expanded);
@@ -247,7 +247,7 @@ void SV_Map_f (void)
 	}
 
 	sv.state = ss_dead;		// don't save current level when changing
-	SV_GameMap_f ();
+	SV_GameMap_f();
 }
 
 /*

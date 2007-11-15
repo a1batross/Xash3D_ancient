@@ -327,11 +327,9 @@ vector	VEC_HULL2_MIN = '-32 -32 -24';
 vector	VEC_HULL2_MAX = '32 32 64';
 
 // protocol bytes
-#define	SVC_MUZZLEFLASH		1
-#define	SVC_MUZZLEFLASH2		2
-#define	SVC_TEMP_ENTITY		3
-#define	SVC_LAYOUT		4
-#define	SVC_INVENTORY		5
+#define	SVC_TEMP_ENTITY		1
+#define	SVC_LAYOUT		2
+#define	SVC_INVENTORY		3
 
 enum
 {
@@ -381,10 +379,8 @@ float	UPDATE_TEMP		= 3;
 
 // entity effects
 
-float	EF_BRIGHTFIELD	= 1;
-float	EF_MUZZLEFLASH 	= 2;
-float	EF_BRIGHTLIGHT 	= 4;
-float	EF_DIMLIGHT 	= 8;
+float	EF_TELEPORT	= 1;
+float	EF_ROTATE 	= 2;
 
 float	AS_STRAIGHT		= 1;
 float	AS_SLIDING		= 2;

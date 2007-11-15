@@ -13,6 +13,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <direct.h>
+#include <windows.h>
 #include <time.h>
 #include <io.h>
 
@@ -22,14 +23,16 @@
 #include <ref_system.h>
 #include <ref_stdlib.h>
 #include "vprogs.h"
-#include "const.h"
 #include "common.h"
-#include "cvar.h"
 #include "client.h"
 
 extern stdlib_api_t		std;
 extern physic_exp_t		*Phys;
 extern byte		*zonepool;
+
+#define EXEC_NOW		0 // don't return until completed
+#define EXEC_INSERT		1 // insert at current position, but don't run yet
+#define EXEC_APPEND		2 // add to end of the command buffer
 
 typedef enum
 {
@@ -93,9 +96,9 @@ System Events
 ===========================================
 */
 
-#define Msg Com_Printf
-#define MsgDev Com_DPrintf
-#define MsgWarn Com_DWarnf
+#define Msg Host_Printf
+#define MsgDev Host_DPrintf
+#define MsgWarn Host_DWarnf
 
 /*
 ===========================================
@@ -106,9 +109,16 @@ extern host_parm_t host;
 void Host_Init ( uint funcname, int argc, char **argv );
 void Host_Main ( void );
 void Host_Free ( void );
-void Host_Error( const char *error, ... );
+void Host_SetServerState( int state );
+int Host_ServerState( void );
 void Host_AbortCurrentFrame( void );
 
+// message functions
+void Host_Print(const char *txt);
+void Host_Printf(const char *fmt, ...);
+void Host_DPrintf(int level, const char *fmt, ...);
+void Host_DWarnf( const char *fmt, ...);
+void Host_Error( const char *error, ... );
 
 // host cmds
 void Host_Error_f( void );
@@ -129,5 +139,86 @@ extern int mouse_x, mouse_y, old_mouse_x, old_mouse_y, mx_accum, my_accum;
 
 // vm_exec.c
 void PRVM_Init (void);
+
+// cvars
+extern cvar_t *dedicated;
+extern cvar_t *host_serverstate;
+extern cvar_t *host_frametime;
+
+/*
+==============================================================
+
+CLIENT / SERVER SYSTEMS
+
+==============================================================
+*/
+void CL_Init (void);
+void CL_Drop (void);
+void CL_Shutdown (void);
+void CL_Frame (float time);
+
+void SV_Init (void);
+void SV_Shutdown (char *finalmsg, bool reconnect);
+void SV_Frame (float time);
+void SV_Transform( sv_edict_t *ed, vec3_t origin, vec3_t angles );
+
+/*
+==============================================================
+
+CONSOLE VARIABLES\COMMANDS
+
+==============================================================
+*/
+// console variables
+cvar_t *Cvar_FindVar (const char *var_name);
+cvar_t *_Cvar_Get (const char *var_name, const char *value, int flags, const char *description);
+void Cvar_Set( const char *var_name, const char *value);
+cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force);
+void Cvar_CommandCompletion( void(*callback)(const char *s, const char *m));
+void Cvar_FullSet (char *var_name, char *value, int flags);
+void Cvar_SetLatched( const char *var_name, const char *value);
+void Cvar_SetValue( const char *var_name, float value);
+float Cvar_VariableValue (const char *var_name);
+char *Cvar_VariableString (const char *var_name);
+bool Cvar_Command (void);
+void Cvar_WriteVariables( file_t *f );
+void Cvar_Init (void);
+char *Cvar_Userinfo (void);
+char *Cvar_Serverinfo (void);
+extern bool userinfo_modified;
+extern cvar_t *cvar_vars;
+
+// key / value info strings
+char *Info_ValueForKey( char *s, char *key );
+void Info_RemoveKey( char *s, char *key );
+void Info_SetValueForKey( char *s, char *key, char *value );
+bool Info_Validate( char *s );
+void Info_Print( char *s );
+
+// command buffer
+void Cbuf_Init( int argc, char **argv );
+void Cbuf_AddText (const char *text);
+void Cbuf_InsertText (const char *text);
+void Cbuf_ExecuteText (int exec_when, const char *text);
+void Cbuf_Execute (void);
+
+// console commands
+int Cmd_Argc( void );
+char *Cmd_Args( void );
+char *Cmd_Argv( int arg );
+void Cmd_Init( int argc, char **argv );
+void _Cmd_AddCommand(const char *cmd_name, xcommand_t function, const char *cmd_desc);
+void Cmd_RemoveCommand (char *cmd_name);
+bool Cmd_Exists (const char *cmd_name);
+void Cmd_CommandCompletion( void(*callback)(const char *s, const char *m));
+bool Cmd_GetMapList (const char *s, char *completedname, int completednamebufferlength );
+bool Cmd_GetDemoList (const char *s, char *completedname, int completednamebufferlength);
+void Cmd_TokenizeString (const char *text);
+void Cmd_ExecuteString (const char *text);
+void Cmd_ForwardToServer (void);
+
+// get rid of this
+#define Cmd_AddCommand(name, func) _Cmd_AddCommand(name, func, "no description" )
+#define Cvar_Get(name, value, flags) _Cvar_Get( name, value, flags, "no description" )
 
 #endif//ENGINE_H

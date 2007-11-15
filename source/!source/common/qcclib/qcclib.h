@@ -22,17 +22,11 @@ TODO:
 	pass the first two parms in call->b and call->c
 */
 
-#define MEMBERFIELDNAME	"__m%s"	//mark
-
-#define MAX_NAME		64	// chars long
+#define MEMBERFIELDNAME	"__m%s"		// mark
+#define MAX_NAME		64		// chars long
 #define MAX_PARMS		8
 #define MAX_PARMS_EXTRA	128
-
-#define MAX_SOUNDS		2048
-#define MAX_TEXTURES	1024
-#define MAX_MODELS		2048
-#define MAX_FILES		1024
-#define PROGDEFS_MAX_SIZE	16384	// 16 kbytes
+#define PROGDEFS_MAX_SIZE	MAX_INPUTLINE	// 16 kbytes
 
 // optimization level flags
 #define FL_DBG		1

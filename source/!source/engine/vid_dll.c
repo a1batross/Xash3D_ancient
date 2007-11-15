@@ -20,9 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // Main windowed and fullscreen graphics interface module. This module
 // is used for both the software and OpenGL rendering versions of the
 // Quake refresh engine.
-#include <windows.h>
 #include "engine.h"
-#include ".\client\client.h"
+#include "client.h"
 
 // Structure containing functions exported from refresh DLL
 render_exp_t	*re;
@@ -507,12 +506,12 @@ update the rendering DLL and/or video mode to match.
 */
 void VID_CheckChanges (void)
 {
-	if ( vid_ref->modified )
+	if( vid_ref->modified )
 	{
 		cl.force_refdef = true; // can't use a paused refdef
 		S_StopAllSounds();
 	}
-	while (vid_ref->modified)
+	while(vid_ref->modified)
 	{
 		/*
 		** refresh has changed
@@ -520,10 +519,7 @@ void VID_CheckChanges (void)
 		vid_ref->modified = false;
 		vid_fullscreen->modified = true;
 		cl.refresh_prepped = false;
-		cls.disable_screen = true;
-
 		VID_InitRender();
-		cls.disable_screen = false;
 	}
 
 	// update our window position

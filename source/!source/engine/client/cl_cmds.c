@@ -12,7 +12,7 @@ SCR_Loading_f
 */
 void SCR_Loading_f (void)
 {
-	SCR_BeginLoadingPlaque();
+	S_StopAllSounds();
 }
 
 /* 

@@ -85,7 +85,7 @@ void M_PushMenu ( void (*draw) (void), const char *(*key) (int k) )
 {
 	int		i;
 
-	if (Cvar_VariableValue ("maxclients") == 1 && Com_ServerState ())
+	if (Cvar_VariableValue ("maxclients") == 1 && Host_ServerState ())
 		Cvar_Set ("paused", "1");
 
 	// if this menu is already present, drop back to that level
@@ -1777,7 +1777,7 @@ const char *SaveGame_MenuKey( int key )
 
 void M_Menu_SaveGame_f (void)
 {
-	if (!Com_ServerState())
+	if (!Host_ServerState())
 		return;		// not playing a game
 
 	SaveGame_MenuInit();
@@ -2021,8 +2021,7 @@ void StartServerActionFunc( void *self )
 
 	if (spot)
 	{
-		if (Com_ServerState())
-			Cbuf_AddText ("disconnect\n");
+		if (Host_ServerState()) Cbuf_AddText ("disconnect\n");
 		Cbuf_AddText (va("gamemap \"*%s$%s\"\n", startmap, spot));
 	}
 	else

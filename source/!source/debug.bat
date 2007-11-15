@@ -61,5 +61,5 @@ if exist vprogs\progdefs.h move vprogs\progdefs.h engine\progdefs.h
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading
 cd D:\Xash3D\
-xash.exe +map qctest -log -debug -dev 4
+xash.exe +map qctest -log -debug -dev 3
 :done

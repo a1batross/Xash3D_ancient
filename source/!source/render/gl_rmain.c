@@ -508,8 +508,8 @@ void R_SetupFrame (void)
 
 	AngleVectors(r_newrefdef.viewangles, vforward, vright, vup);
 
-// current viewcluster
-	if ( !( r_newrefdef.rdflags & RDF_NOWORLDMODEL ) )
+	// current viewcluster
+	if (!( r_newrefdef.rdflags & RDF_NOWORLDMODEL ))
 	{
 		r_oldviewcluster = r_viewcluster;
 		r_oldviewcluster2 = r_viewcluster2;
@@ -708,7 +708,7 @@ void R_RenderView (refdef_t *fd)
 	GL_DrawRadar();
 
 	if(!( r_newrefdef.rdflags & RDF_NOWORLDMODEL ))
-		ri.ShowCollision(); //physic debug
+		ri.ShowCollision(); // physic debug
 }
 
 void R_DrawPauseScreen( void )
@@ -808,7 +808,7 @@ void R_SetGL2D (void)
 		qglColor4f (1,1,1,1);
 		qglEnable (GL_TEXTURE_2D);
 	}
-	else if (r_motionblur->value && (r_newrefdef.rdflags & (RDF_PAIN|RDF_WATER|RDF_LAVA|RDF_SLIME)))
+	else if (r_motionblur->value && (r_newrefdef.rdflags & RDF_PAIN))
 	{
 		if(!gl_state.nv_tex_rectangle && !gl_state.ati_tex_rectangle) return;
 		if (blurtex)
@@ -823,13 +823,7 @@ void R_SetGL2D (void)
 			
 			if(r_newrefdef.rdflags & (RDF_PAIN))
 				qglColor4f (1, 0, 0, r_motionblur_intens->value);
-			else if (r_newrefdef.rdflags & (RDF_WATER))
-				qglColor4f (1, 1, 1, r_motionblur_intens->value);
-			else if(r_newrefdef.rdflags & (RDF_LAVA))
-				qglColor4f (1, 0.3, 0, r_motionblur_intens->value);
-			else if (r_newrefdef.rdflags & (RDF_SLIME))
-				qglColor4f (0, 1, 0.5, r_motionblur_intens->value);
-			
+
 			qglBegin(GL_QUADS);
 			qglTexCoord2f(0,vid.height);
 			qglVertex2f(0,0);
@@ -1538,6 +1532,10 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	// generic functions
 	re.api_size = sizeof(render_exp_t);
 
+	re.Init = R_Init;
+	re.Shutdown = R_Shutdown;
+	re.AppActivate = GLimp_AppActivate;
+	
 	re.BeginRegistration = R_BeginRegistration;
 	re.RegisterModel = R_RegisterModel;
 	re.RegisterSkin = R_RegisterSkin;
@@ -1545,29 +1543,18 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.SetSky = R_SetSky;
 	re.EndRegistration = R_EndRegistration;
 
-	re.RenderFrame = R_RenderFrame;
-
-	re.DrawGetPicSize = Draw_GetPicSize;
-	re.DrawPic = Draw_Pic;
-	re.DrawStretchPic = Draw_StretchPic;
-	re.DrawChar = Draw_Char;
-	re.DrawString = Draw_String;
-	re.DrawTileClear = Draw_TileClear;
-	re.DrawFill = Draw_Fill;
-	re.DrawFadeScreen= Draw_FadeScreen;
-
-	re.DrawStretchRaw = Draw_StretchRaw;
-	re.SetColor = GL_SetColor;
-	re.ScrShot = VID_ScreenShot;
-
-	re.Init = R_Init;
-	re.Shutdown = R_Shutdown;
-
-	re.CinematicSetPalette = R_SetPalette;
 	re.BeginFrame = R_BeginFrame;
+	re.RenderFrame = R_RenderFrame;
 	re.EndFrame = GLimp_EndFrame;
 
-	re.AppActivate = GLimp_AppActivate;
+	re.SetColor = GL_SetColor;
+	re.ScrShot = VID_ScreenShot;
+	re.DrawFill = Draw_Fill;
+	re.DrawStretchRaw = Draw_StretchRaw;
+	re.DrawStretchPic = Draw_StretchPic;
+
+	// get rid of this
+	re.DrawGetPicSize = Draw_GetPicSize;
 
 	return &re;
 }

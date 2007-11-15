@@ -256,8 +256,8 @@ void _MSG_WriteDeltaEntity (entity_state_t *from, entity_state_t *to, sizebuf_t 
 	if (bits & U_NUMBER16) _MSG_WriteShort (msg, to->number, filename, fileline );
 	else _MSG_WriteByte (msg, to->number, filename, fileline);
 
-	if (bits & U_MODEL) _MSG_WriteByte (msg, to->modelindex, filename, fileline);
-	if (bits & U_WEAPONMODEL) _MSG_WriteByte (msg, to->weaponmodel, filename, fileline);
+	if (bits & U_MODEL) _MSG_WriteShort (msg, to->modelindex, filename, fileline);
+	if (bits & U_WEAPONMODEL) _MSG_WriteShort (msg, to->weaponmodel, filename, fileline);
 
 	if (bits & U_FRAME8) _MSG_WriteByte (msg, to->frame, filename, fileline);
 	if (bits & U_FRAME16) _MSG_WriteShort (msg, to->frame, filename, fileline);
@@ -496,8 +496,8 @@ void MSG_ReadDeltaEntity(entity_state_t *from, entity_state_t *to, int number, i
 	VectorCopy (from->origin, to->old_origin);
 	to->number = number;
 
-	if (bits & U_MODEL) to->modelindex = MSG_ReadByte (&net_message);
-	if (bits & U_WEAPONMODEL) to->weaponmodel = MSG_ReadByte (&net_message);
+	if (bits & U_MODEL) to->modelindex = MSG_ReadShort (&net_message);
+	if (bits & U_WEAPONMODEL) to->weaponmodel = MSG_ReadShort (&net_message);
 		
 	if (bits & U_FRAME8 ) to->frame = MSG_ReadByte (&net_message);
 	if (bits & U_FRAME16) to->frame = MSG_ReadShort (&net_message);

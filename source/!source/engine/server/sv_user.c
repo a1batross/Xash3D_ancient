@@ -134,9 +134,7 @@ void SV_Configstrings_f (void)
 	start = atoi(Cmd_Argv(2));
 
 	// write a packet full of data
-
-	while ( sv_client->netchan.message.cursize < MAX_MSGLEN/2 
-		&& start < MAX_CONFIGSTRINGS)
+	while ( sv_client->netchan.message.cursize < MAX_MSGLEN/2 && start < MAX_CONFIGSTRINGS)
 	{
 		if (sv.configstrings[start][0])
 		{
@@ -569,7 +567,7 @@ void SV_ExecuteClientMessage (client_state_t *cl)
 			}
 
 			// if the checksum fails, ignore the rest of the packet
-			calculatedChecksum = COM_BlockSequenceCRCByte(net_message.data + checksumIndex + 1, net_message.readcount - checksumIndex - 1, cl->netchan.incoming_sequence);
+			calculatedChecksum = CRC_Sequence(net_message.data + checksumIndex + 1, net_message.readcount - checksumIndex - 1, cl->netchan.incoming_sequence);
 
 			if (calculatedChecksum != checksum)
 			{

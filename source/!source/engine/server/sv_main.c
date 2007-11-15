@@ -714,15 +714,12 @@ SV_RunGameFrame
 */
 void SV_RunGameFrame (void)
 {
-	if (host_speeds->value)
-		time_before_game = Sys_DoubleTime();
-
 	// we always need to bump framenum, even if we
 	// don't run the world, otherwise the delta
 	// compression can get confused when a client
 	// has the "current" frame
 	sv.framenum++;
-	sv.frametime = host_frametime->value;//100 fps as default
+	sv.frametime = host_frametime->value; // 100 fps as default
 	sv.time = sv.framenum * sv.frametime;
 
 	// don't run if paused
@@ -739,10 +736,7 @@ void SV_RunGameFrame (void)
 			svs.realtime = sv.time;
 		}
 	}
-		sv.time += sv.frametime;
-	if (host_speeds->value)
-		time_after_game = Sys_DoubleTime ();
-
+	sv.time += sv.frametime;
 }
 
 /*
@@ -753,8 +747,6 @@ SV_Frame
 */
 void SV_Frame (float time)
 {
-	time_before_game = time_after_game = 0;
-
 	// if server is not active, do nothing
 	if (!svs.initialized) return;
 
@@ -1053,7 +1045,7 @@ void SV_Shutdown (char *finalmsg, bool reconnect)
 	// free current level
 	if (sv.demofile) FS_Close (sv.demofile);
 	memset (&sv, 0, sizeof(sv));
-	Com_SetServerState (sv.state);
+	Host_SetServerState (sv.state);
 
 	// free server static data
 	if (svs.clients) Z_Free (svs.clients);

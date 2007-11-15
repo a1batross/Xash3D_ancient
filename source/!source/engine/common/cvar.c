@@ -33,6 +33,201 @@ bool userinfo_modified;
 cvar_t cvar_indexes[MAX_CVARS];
 static cvar_t* hashTable[FILE_HASH_SIZE];
 
+//=======================================================================
+//			INFOSTRING STUFF
+//=======================================================================
+/*
+===============
+Info_Print
+
+printing current key-value pair
+===============
+*/
+void Info_Print (char *s)
+{
+	char	key[512];
+	char	value[512];
+	char	*o;
+	int	l;
+
+	if (*s == '\\') s++;
+
+	while (*s)
+	{
+		o = key;
+		while (*s && *s != '\\') *o++ = *s++;
+
+		l = o - key;
+		if (l < 20)
+		{
+			memset (o, ' ', 20-l);
+			key[20] = 0;
+		}
+		else *o = 0;
+		Msg ("%s", key);
+
+		if (!*s)
+		{
+			Msg ("MISSING VALUE\n");
+			return;
+		}
+
+		o = value;
+		s++;
+		while (*s && *s != '\\') *o++ = *s++;
+		*o = 0;
+
+		if (*s) s++;
+		Msg ("%s\n", value);
+	}
+}
+
+/*
+===============
+Info_ValueForKey
+
+Searches the string for the given
+key and returns the associated value, or an empty string.
+===============
+*/
+char *Info_ValueForKey (char *s, char *key)
+{
+	char	pkey[512];
+	static	char value[2][512];	// use two buffers so compares work without stomping on each other
+	static	int valueindex;
+	char	*o;
+	
+	valueindex ^= 1;
+	if (*s == '\\') s++;
+	while (1)
+	{
+		o = pkey;
+		while (*s != '\\')
+		{
+			if (!*s) return "";
+			*o++ = *s++;
+		}
+		*o = 0;
+		s++;
+
+		o = value[valueindex];
+
+		while (*s != '\\' && *s)
+		{
+			if (!*s) return "";
+			*o++ = *s++;
+		}
+		*o = 0;
+
+		if (!strcmp (key, pkey) ) return value[valueindex];
+		if (!*s) return "";
+		s++;
+	}
+}
+
+void Info_RemoveKey (char *s, char *key)
+{
+	char	*start;
+	char	pkey[512];
+	char	value[512];
+	char	*o;
+
+	if (strstr (key, "\\")) return;
+
+	while (1)
+	{
+		start = s;
+		if (*s == '\\') s++;
+		o = pkey;
+		while (*s != '\\')
+		{
+			if (!*s) return;
+			*o++ = *s++;
+		}
+		*o = 0;
+		s++;
+
+		o = value;
+		while (*s != '\\' && *s)
+		{
+			if (!*s) return;
+			*o++ = *s++;
+		}
+		*o = 0;
+
+		if (!strcmp (key, pkey) )
+		{
+			strcpy (start, s);	// remove this part
+			return;
+		}
+		if (!*s) return;
+	}
+}
+
+/*
+==================
+Info_Validate
+
+Some characters are illegal in info strings because they
+can mess up the server's parsing
+==================
+*/
+bool Info_Validate (char *s)
+{
+	if (strstr (s, "\"")) return false;
+	if (strstr (s, ";")) return false;
+	return true;
+}
+
+void Info_SetValueForKey (char *s, char *key, char *value)
+{
+	char	newi[MAX_INFO_STRING], *v;
+	int	c, maxsize = MAX_INFO_STRING;
+
+	if (strstr (key, "\\") || strstr (value, "\\") )
+	{
+		Msg ("Can't use keys or values with a \\\n");
+		return;
+	}
+
+	if (strstr (key, ";") )
+	{
+		Msg ("Can't use keys or values with a semicolon\n");
+		return;
+	}
+	if (strstr (key, "\"") || strstr (value, "\"") )
+	{
+		Msg ("Can't use keys or values with a \"\n");
+		return;
+	}
+	if (strlen(key) > MAX_INFO_KEY - 1 || strlen(value) > MAX_INFO_KEY-1)
+	{
+		Msg ("Keys and values must be < 64 characters.\n");
+		return;
+	}
+
+	Info_RemoveKey (s, key);
+	if (!value || !strlen(value)) return;
+	sprintf (newi, "\\%s\\%s", key, value);
+
+	if (strlen(newi) + strlen(s) > maxsize)
+	{
+		Msg ("Info string length exceeded\n");
+		return;
+	}
+
+	// only copy ascii values
+	s += strlen(s);
+	v = newi;
+	while (*v)
+	{
+		c = *v++;
+		c &= 127;	// strip high bits
+		if (c >= 32 && c < 127) *s++ = c;
+	}
+	*s = 0;
+}
+
 /*
 ================
 return a hash value for the filename
@@ -201,7 +396,7 @@ cvar_t *_Cvar_Get(const char *var_name, const char *var_value, int flags, const 
 		{
 			var->flags &= ~CVAR_USER_CREATED;
 			Z_Free( var->reset_string );
-			var->reset_string = CopyString( var_value );
+			var->reset_string = copystring( var_value );
 			cvar_modifiedFlags |= flags;
 		}
 
@@ -212,7 +407,7 @@ cvar_t *_Cvar_Get(const char *var_name, const char *var_value, int flags, const 
 		{
 			// we don't have a reset string yet
 			Z_Free( var->reset_string );
-			var->reset_string = CopyString( var_value );
+			var->reset_string = copystring( var_value );
 		}
 		else if ( var_value[0] && strcmp( var->reset_string, var_value ))
 		{
@@ -241,14 +436,14 @@ cvar_t *_Cvar_Get(const char *var_name, const char *var_value, int flags, const 
 
 	var = &cvar_indexes[cvar_numIndexes];
 	cvar_numIndexes++;
-	var->name = CopyString(var_name);
-	var->string = CopyString(var_value);
-	var->description = CopyString(var_desc);
+	var->name = copystring(var_name);
+	var->string = copystring(var_value);
+	var->description = copystring(var_desc);
 	var->modified = true;
 	var->modificationCount = 1;
 	var->value = atof(var->string);
 	var->integer = atoi(var->string);
-	var->reset_string = CopyString( var_value );
+	var->reset_string = copystring( var_value );
 
 	// link the variable in
 	var->next = cvar_vars;
@@ -326,7 +521,7 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 					return var;
 			}
 			MsgDev(D_INFO, "%s will be changed after restarting.\n", var_name);
-			var->latched_string = CopyString(value);
+			var->latched_string = copystring(value);
 			var->modified = true;
 			var->modificationCount++;
 			return var;
@@ -354,7 +549,7 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 	
 	Z_Free (var->string); // free the old value string
 	
-	var->string = CopyString(value);
+	var->string = copystring(value);
 	var->value = atof (var->string);
 	var->integer = atoi (var->string);
 
@@ -404,7 +599,7 @@ void Cvar_FullSet (char *var_name, char *value, int flags)
 	
 	Z_Free (var->string); // free the old value string
 	
-	var->string = CopyString(value);
+	var->string = copystring(value);
 	var->value = atof(var->string);
 	var->integer = atoi(var->string);
 	var->flags = flags;
@@ -483,8 +678,9 @@ bool Cvar_Command( void )
 	// perform a variable print or set
 	if ( Cmd_Argc() == 1 )
 	{
-		Msg("\"%s\" is:\"%s" "\" default:\"%s" "\"\n", v->name, v->string, v->reset_string );
-		if ( v->latched_string ) Msg( "latched: \"%s\"\n", v->latched_string );
+		if(v->flags & CVAR_INIT) Msg("%s: %s\n", v->name, v->string );
+		else Msg("%s: %s ( ^3%s^7 )\n", v->name, v->string, v->reset_string );
+		if ( v->latched_string ) Msg( "%s: %s\n", v->name, v->latched_string );
 		return true;
 	}
 
@@ -760,7 +956,7 @@ char *Cvar_BitInfo (int bit)
 
 	info[0] = 0;
 
-	for (var = cvar_vars ; var ; var = var->next)
+	for (var = cvar_vars; var; var = var->next)
 	{
 		if (var->flags & bit)
 			Info_SetValueForKey (info, var->name, var->string);

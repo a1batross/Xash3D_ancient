@@ -5,6 +5,7 @@
 
 #include <time.h>
 #include "launch.h"
+#include "basemath.h"
 
 void com_strnupr(const char *in, char *out, size_t size_out)
 {
@@ -181,11 +182,11 @@ size_t com_strcpy(char *dst, const char *src )
 	return com_strncpy( dst, src, 4096 );
 }
 
-char *com_stralloc(const char *s)
+char *com_stralloc(const char *s, const char *filename, int fileline)
 {
 	char	*b;
 
-	b = Mem_Alloc(Sys.basepool, com_strlen(s) + 1 );
+	b = _mem_alloc(Sys.stringpool, com_strlen(s) + 1, filename, fileline );
 	com_strcpy(b, s);
 
 	return b;
@@ -521,6 +522,77 @@ int com_sprintf(char *buffer, const char *format, ...)
 
 	return result;
 }
+
+char *com_pretifymem( float value, int digitsafterdecimal )
+{
+	static char output[8][32];
+	static int  current;
+
+	float	onekb = 1024.0f;
+	float	onemb = onekb * onekb;
+	char	suffix[8];
+	char	*out = output[current];
+	char	val[32], *i, *o, *dot;
+	int	pos;
+
+	current = ( current + 1 ) & ( 8 - 1 );
+
+	// first figure out which bin to use
+	if ( value > onemb )
+	{
+		value /= onemb;
+		com_sprintf( suffix, " Mb" );
+	}
+	else if ( value > onekb )
+	{
+		value /= onekb;
+		com_sprintf( suffix, " Kb" );
+	}
+	else com_sprintf( suffix, " bytes" );
+
+	// clamp to >= 0
+	digitsafterdecimal = max( digitsafterdecimal, 0 );
+	// if it's basically integral, don't do any decimals
+	if(fabs( value - (int)value ) < 0.00001)
+	{
+		com_sprintf( val, "%i%s", (int)value, suffix );
+	}
+	else
+	{
+		char fmt[32];
+
+		// otherwise, create a format string for the decimals
+		com_sprintf( fmt, "%%.%if%s", digitsafterdecimal, suffix );
+		com_sprintf( val, fmt, value );
+	}
+
+	// copy from in to out
+	i = val;
+	o = out;
+
+	// search for decimal or if it was integral, find the space after the raw number
+	dot = strstr( i, "." );
+	if ( !dot ) dot = strstr( i, " " );
+	pos = dot - i;	// compute position of dot
+	pos -= 3;		// don't put a comma if it's <= 3 long
+
+	while ( *i )
+	{
+		// if pos is still valid then insert a comma every third digit, except if we would be
+		// putting one in the first spot
+		if ( pos >= 0 && !( pos % 3 ))
+		{
+			// never in first spot
+			if ( o != out ) *o++ = ',';
+		}
+		pos--;		// count down comma position
+		*o++ = *i++;	// copy rest of data as normal
+	}
+	*o = 0; // terminate
+
+	return out;
+}
+
 
 /*
 ============

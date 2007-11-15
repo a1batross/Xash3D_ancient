@@ -14,22 +14,16 @@
 #define TIME_TIME_ONLY	2
 #define TIME_NO_SECONDS	3
 
-#define MAX_DLIGHTS		32
-#define MAX_ENTITIES	128
-#define MAX_PARTICLES	4096
+
+
+
 #define MAX_LIGHTSTYLES	256
 
 #define ENTITY_FLAGS	68
 #define POWERSUIT_SCALE	4.0F
 
-#define SHELL_RED_COLOR	0xF2
-#define SHELL_GREEN_COLOR	0xD0
-#define SHELL_BLUE_COLOR	0xF3
-
-#define SHELL_RG_COLOR	0xDC
-#define SHELL_RB_COLOR	0x68
-#define SHELL_BG_COLOR	0x78
-#define SHELL_WHITE_COLOR	0xD7
+#define	EF_TELEPORTER	(1<<0)		// particle fountain
+#define	EF_ROTATE		(1<<1)		// rotate (bonus items)
 
 // shared client/renderer flags
 #define	RF_MINLIGHT	1		// allways have some light (viewmodel)
@@ -40,26 +34,13 @@
 #define	RF_TRANSLUCENT	32
 #define	RF_FRAMELERP	64
 #define	RF_BEAM		128
-#define	RF_CUSTOMSKIN	256		// skin is an index in image_precache
+#define	RF_IR_VISIBLE	256		// skin is an index in image_precache
 #define	RF_GLOW		512		// pulse lighting for bonus items
-#define	RF_SHELL_RED	1024
-#define	RF_SHELL_GREEN	2048
-#define	RF_SHELL_BLUE	4096
-#define	RF_IR_VISIBLE	0x00008000	// 32768
-#define	RF_SHELL_DOUBLE	0x00010000	// 65536
-#define	RF_SHELL_HALF_DAM	0x00020000
-#define	RF_USE_DISGUISE	0x00040000
 
 // render private flags
-#define	RDF_UNDERWATER	1	// warp the screen as apropriate
-#define	RDF_NOWORLDMODEL	2	// used for player configuration screen
-#define	RDF_IRGOGGLES	4
-#define	RDF_UVGOGGLES	8
-#define	RDF_BLOOM		32 
-#define	RDF_PAIN           	64
-#define	RDF_WATER		128
-#define	RDF_LAVA		256
-#define	RDF_SLIME		512
+#define	RDF_NOWORLDMODEL	1		// used for player configuration screen
+#define	RDF_IRGOGGLES	2
+#define	RDF_PAIN           	4
 
 // phys movetype
 #define MOVETYPE_NONE		0	// never moves
@@ -197,18 +178,6 @@ enum ai_activity
 	ACT_VM_IDLE_EMPTY,
 };
 
-typedef enum
-{
-	MSG_ONE,
-	MSG_ALL,
-	MSG_PHS,
-	MSG_PVS,
-	MSG_ONE_R,	// reliable
-	MSG_ALL_R,
-	MSG_PHS_R,
-	MSG_PVS_R,
-} msgtype_t;
-
 enum dev_level
 {
 	D_INFO = 1,	// "-dev 1", shows various system messages
@@ -216,6 +185,7 @@ enum dev_level
 	D_ERROR,		// "-dev 3", shows critical warnings 
 	D_LOAD,		// "-dev 4", show messages about loading resources
 	D_NOTE,		// "-dev 5", show system notifications for engine develeopers
+	D_MEMORY,		// "-dev 6", show memory allocation
 };
 
 static activity_map_t activity_map[] =
@@ -454,82 +424,6 @@ typedef struct latchedvars_s
 
 } latchedvars_t;
 
-// pmove_state_t is the information necessary for client side movement
-#define PM_NORMAL		0 // can accelerate and turn
-#define PM_SPECTATOR	1
-#define PM_DEAD		2 // no acceleration or turning
-#define PM_GIB		3 // different bounding box
-#define PM_FREEZE		4
-
-// this structure needs to be communicated bit-accurate
-// from the server to the client to guarantee that
-// prediction stays in sync, so no floats are used.
-// if any part of the game code modifies this struct, it
-// will result in a prediction error of some degree.
-typedef struct
-{
-	byte		pm_type;
-	vec3_t		origin;		// 12.3
-	vec3_t		velocity;		// 12.3
-	byte		pm_flags;		// ducked, jump_held, etc
-	byte		pm_time;		// each unit = 8 ms
-	short		gravity;
-	vec3_t		delta_angles;	// add to command angles to get view direction
-					// changed by spawns, rotating objects, and teleporters
-} pmove_state_t;
-
-typedef struct
-{
-	pmove_state_t	pmove;		// for prediction
-
-	// these fields do not need to be communicated bit-precise
-	vec3_t		viewangles;	// for fixed views
-	vec3_t		viewoffset;	// add to pmovestate->origin
-	vec3_t		kick_angles;	// add to view direction to get render angles
-					// set by weapon kicks, pain effects, etc
-
-	vec3_t		gunangles;
-	vec3_t		gunoffset;
-	int		gunindex;
-	int		gunframe;		// studio frame
-	int		sequence;		// stuido animation sequence
-	int		gunbody;
-	int		gunskin; 
-
-	float		blend[4];		// rgba full screen effect
-	
-	float		fov;		// horizontal field of view
-	int		rdflags;		// refdef flags
-	short		stats[32];	// fast status bar updates
-} player_state_t;
-
-// network protocol
-typedef struct entity_state_s
-{
-	uint		number;		// edict index
-
-	vec3_t		origin;
-	vec3_t		angles;
-	vec3_t		old_origin;	// for lerping animation
-	int		modelindex;
-	int		soundindex;
-	int		weaponmodel;
-
-	short		skin;		// skin for studiomodels
-	short		frame;		// % playback position in animation sequences (0..512)
-	byte		body;		// sub-model selection for studiomodels
-	byte		sequence;		// animation sequence (0 - 255)
-	uint		effects;		// PGM - we're filling it, so it needs to be unsigned
-	int		renderfx;
-	int		solid;		// for client side prediction, 8*(bits 0-4) is x/y radius
-					// 8*(bits 5-9) is z down distance, 8(bits10-15) is z up
-					// gi.linkentity sets this properly
-	int		event;		// impulse events -- muzzle flashes, footsteps, etc
-					// events only go out for a single frame, they
-					// are automatically cleared each frame
-	float		alpha;		// alpha value
-} entity_state_t;
-
 // client entity
 typedef struct entity_s
 {
@@ -621,11 +515,11 @@ typedef struct stdilib_api_s
 	size_t	api_size;				// must matched with sizeof(stdlib_api_t)
 	
 	// base events
-	void (*print)( char *msg );			// basic text message
-	void (*printf)( char *msg, ... );		// formatted text message
-	void (*dprintf)( int level, char *msg, ... );	// developer text message
-	void (*wprintf)( char *msg, ... );		// warning text message
-	void (*error)( char *msg, ... );		// abnormal termination with message
+	void (*print)( const char *msg );		// basic text message
+	void (*printf)( const char *msg, ... );		// formatted text message
+	void (*dprintf)( int level, const char *msg, ...);// developer text message
+	void (*wprintf)( const char *msg, ... );	// warning text message
+	void (*error)( const char *msg, ... );		// abnormal termination with message
 	void (*exit)( void );			// normal silent termination
 	char *(*input)( void );			// system console input	
 	void (*sleep)( int msec );			// sleep for some msec
@@ -732,7 +626,7 @@ typedef struct stdilib_api_s
 	size_t (*strcat)(char *dst, const char *src);		// add new string at end of buffer
 	size_t (*strncpy)(char *dst, const char *src, size_t n);	// copy string to existing buffer
 	size_t (*strcpy)(char *dst, const char *src);		// copy string to existing buffer
-	char *(*stralloc)(const char *in);			// create buffer and copy string here
+	char *(*stralloc)(const char *in,const char *file,int line);// create buffer and copy string here
 	int (*atoi)(const char *str);				// convert string to integer
 	float (*atof)(const char *str);			// convert string to float
 	void (*atov)( float *dst, const char *src, size_t n );	// convert string to vector
@@ -800,27 +694,18 @@ typedef struct render_exp_s
 	void	(*SetSky) (char *name, float rotate, vec3_t axis);
 	void	(*EndRegistration) (void);
 
+	void	(*BeginFrame)( void );
 	void	(*RenderFrame) (refdef_t *fd);
+	void	(*EndFrame)( void );
 
 	void	(*SetColor)( const float *rgba );
 	bool	(*ScrShot)( const char *filename, bool force_gamma ); // write screenshot with same name 
+	void	(*DrawFill)(float x, float y, float w, float h );
 	void	(*DrawStretchRaw) (int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw );
 	void	(*DrawStretchPic)(float x, float y, float w, float h, float s1, float t1, float s2, float t2, char *name);
 
 	// get rid of this
 	void	(*DrawGetPicSize) (int *w, int *h, char *name);	// will return 0 0 if not found
-	void	(*DrawPic)(int x, int y, char *name);
-	void	(*DrawChar)(float x, float y, int c);
-	void	(*DrawString) (int x, int y, char *str);
-	void	(*DrawTileClear) (int x, int y, int w, int h, char *name);
-	void	(*DrawFill)(float x, float y, float w, float h );
-	void	(*DrawFadeScreen) (void);
-
-
-	// video mode and refresh state management entry points
-	void	(*CinematicSetPalette)( const byte *palette);	// NULL = game palette
-	void	(*BeginFrame)( void );
-	void	(*EndFrame)( void );
 
 } render_exp_t;
 

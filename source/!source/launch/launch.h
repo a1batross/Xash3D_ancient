@@ -47,6 +47,7 @@ typedef struct system_s
 	byte			*basepool;
 	byte			*zonepool;
 	byte			*imagepool;
+	byte			*stringpool;
 
 	// simply profiling
 	double			start, end;
@@ -79,7 +80,6 @@ void Sys_InitCPU( void );
 gameinfo_t Sys_GameInfo( void );
 uint Sys_SendKeyEvents( void );
 void Sys_ParseCommandLine (LPSTR lpCmdLine);
-void _Sys_ErrorFatal( int type, const char *filename, int fileline );
 void Sys_LookupInstance( void );
 double Sys_DoubleTime( void );
 char *Sys_GetClipboardData( void );
@@ -92,7 +92,7 @@ bool Sys_FreeLibrary ( dll_info_t *dll );
 void Sys_WaitForQuit( void );
 void Sys_InitLog( void );
 void Sys_CloseLog( void );
-void Sys_Error(char *error, ...);
+void Sys_Error(const char *error, ...);
 void Sys_PrintLog( const char *pMsg );
 void Sys_Print(const char *pMsg);
 void Sys_Msg( const char *pMsg, ... );
@@ -107,8 +107,6 @@ int Sys_GetNumThreads( void );
 void Sys_RunThreadsOnIndividual(int workcnt, bool showpacifier, void(*func)(int));
 void Sys_RunThreadsOn (int workcnt, bool showpacifier, void(*func)(int));
 
-#define Sys_ErrorFatal( type ) _Sys_ErrorFatal( type, __FILE__, __LINE__ )
-#define Sys_Stop() Sys_ErrorFatal( -1 )
 #define Msg Sys_Msg
 #define MsgDev Sys_MsgDev
 #define MsgWarn Sys_MsgWarn
@@ -132,7 +130,7 @@ size_t com_strncat(char *dst, const char *src, size_t siz);
 size_t com_strcat(char *dst, const char *src );
 size_t com_strncpy(char *dst, const char *src, size_t siz);
 size_t com_strcpy(char *dst, const char *src );
-char *com_stralloc(const char *s);
+char *com_stralloc(const char *s, const char *filename, int fileline);
 int com_atoi(const char *str);
 float com_atof(const char *str);
 void com_atov( float *vec, const char *str, size_t siz );
@@ -150,6 +148,7 @@ int com_vsnprintf(char *buffer, size_t buffersize, const char *format, va_list a
 int com_vsprintf(char *buffer, const char *format, va_list args);
 int com_snprintf(char *buffer, size_t buffersize, const char *format, ...);
 int com_sprintf(char *buffer, const char *format, ...);
+char *com_pretifymem( float value, int digitsafterdecimal );
 char *va(const char *format, ...);
 
 //
@@ -178,8 +177,8 @@ void _mem_check(const char *filename, int fileline);
 #define Mem_Copy(dest, src, size ) _mem_copy(dest, src, size, __FILE__, __LINE__)
 #define Mem_Set(dest, src, size ) _mem_set(dest, src, size, __FILE__, __LINE__)
 #define Mem_Check() _mem_check(__FILE__, __LINE__)
-
-#define Malloc( size )	Mem_Alloc( Sys.basepool, size )
+#define Mem_Pretify( x ) com_pretifymem(x, 3)
+#define Malloc( size ) Mem_Alloc( Sys.basepool, size )
 
 //
 // filesystem.c

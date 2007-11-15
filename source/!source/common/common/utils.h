@@ -88,7 +88,6 @@ extern byte *qccpool;
 extern byte *studiopool;
 
 // misc common functions
-#define copystring		std.stralloc
 #define strlower		std.strlwr
 #define va		std.va
 #define stristr		std.stristr

@@ -25,8 +25,6 @@ char *svc_strings[256] =
 {
 	"svc_bad",
 
-	"svc_muzzleflash",
-	"svc_muzzlflash2",
 	"svc_temp_entity",
 	"svc_layout",
 	"svc_inventory",
@@ -690,14 +688,6 @@ void CL_ParseServerMessage (void)
 
 		case svc_temp_entity:
 			CL_ParseTEnt ();
-			break;
-
-		case svc_muzzleflash:
-			CL_ParseMuzzleFlash ();
-			break;
-
-		case svc_muzzleflash2:
-			CL_ParseMuzzleFlash2 ();
 			break;
 
 		case svc_download:

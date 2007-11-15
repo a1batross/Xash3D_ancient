@@ -1,6 +1,6 @@
 /* GLOBAL.H - RSAREF types and constants */
 
-#include <string.h>
+#include "engine.h"
 
 /* POINTER defines a generic pointer type */
 typedef unsigned char *POINTER;
@@ -262,10 +262,10 @@ for (i = 0, j = 0; j < len; i++, j += 4)
 
 //===================================================================
 
-unsigned Com_BlockChecksum (void *buffer, int length)
+uint Com_BlockChecksum (void *buffer, int length)
 {
-	int			digest[4];
-	unsigned	val;
+	int		digest[4];
+	uint		val;
 	MD4_CTX		ctx;
 
 	MD4Init (&ctx);

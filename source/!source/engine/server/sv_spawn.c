@@ -570,6 +570,9 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	else client->ps.pmove.pm_type = PM_NORMAL;
 	client->ps.pmove.gravity = sv_gravity->value;
 
+	if(ent->progs.sv->teleport_time) client->ps.pmove.pm_flags |= PMF_TIME_TELEPORT; 
+	else client->ps.pmove.pm_flags &= ~PMF_TIME_TELEPORT; 
+
 	pm.s = client->ps.pmove;
 
 	VectorCopy(ent->progs.sv->origin, pm.s.origin );
@@ -640,12 +643,6 @@ void SV_ClientDisconnect (edict_t *ent)
 	int	playernum;
 
 	if (!ent->priv.sv->client) return;
-
-	// send effect
-	MSG_Begin( svc_muzzleflash );
-		MSG_WriteShort( &sv.multicast, PRVM_NUM_FOR_EDICT(ent));
-		MSG_WriteByte( &sv.multicast, MZ_LOGOUT );
-	MSG_Send(MSG_PVS, ent->progs.sv->origin, NULL);
 
 	SV_UnlinkEdict(ent);
 	ent->progs.sv->modelindex = 0;

@@ -408,12 +408,9 @@ R_BloomBlend
 void R_SetupGL (void);
 void R_BloomBlend ( refdef_t *fd )
 {
-	if( !(fd->rdflags & RDF_BLOOM)|| !r_bloom->value )
-		return;
+	if(!r_bloom->value ) return;
 
-	
-	if( screen_texture_width < BLOOM_SIZE ||
-		screen_texture_height < BLOOM_SIZE )
+	if( screen_texture_width < BLOOM_SIZE || screen_texture_height < BLOOM_SIZE )
 		return;
 	
 	//set up full screen workspace

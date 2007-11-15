@@ -235,12 +235,12 @@ void Con_CreateConsole( void )
 	char Title[MAX_QPATH], FontName[MAX_QPATH];
 
 	if(Sys.con_silentmode) return;
+	Sys_InitLog();
 
 	if(Sys.hooked_out) 
 	{
 		// just init log
 		Sys.Con_Print = Con_PrintA;
-		Sys_InitLog();
 		return;
 	}
 	Sys.Con_Print = Con_PrintW;
@@ -257,8 +257,13 @@ void Con_CreateConsole( void )
 	wc.lpszMenuName  = 0;
 	wc.lpszClassName = SYSCONSOLE;
 
-	if (!RegisterClass (&wc)) Sys_ErrorFatal( ERR_CONSOLE_FAIL );
- 
+	if (!RegisterClass (&wc))
+	{
+		// print into log
+		MsgDev(D_WARN, "Can't register window class '%s'\n", SYSCONSOLE );
+		return;
+	} 
+
 	if(Sys.con_showcredits)
 	{
 		CONSTYLE &= ~WS_VSCROLL;
@@ -300,7 +305,11 @@ void Con_CreateConsole( void )
 	s_wcd.windowHeight = rect.bottom - rect.top;
 
 	s_wcd.hWnd = CreateWindowEx( WS_EX_DLGMODALFRAME, SYSCONSOLE, Title, DEDSTYLE, ( swidth - 600 ) / 2, ( sheight - 450 ) / 2 , rect.right - rect.left + 1, rect.bottom - rect.top + 1, NULL, NULL, base_hInstance, NULL );
-	if ( s_wcd.hWnd == NULL ) Sys_ErrorFatal( ERR_CONSOLE_FAIL );
+	if ( s_wcd.hWnd == NULL )
+	{
+		Msg( "Can't create window '%s'\n", Title );
+		return;
+	}
 
 	// create fonts
 	hDC = GetDC( s_wcd.hWnd );

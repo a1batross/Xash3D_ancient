@@ -785,7 +785,7 @@ void PF_aim (void)
 	VectorMA (start, 2048, dir, end);
 	tr = SV_Trace (start, vec3_origin, vec3_origin, end, ent, MASK_ALL );
 
-	if (tr.ent && ((edict_t *)tr.ent)->progs.sv->takedamage == DAMAGE_AIM && (flags & DF_NO_FRIENDLY_FIRE || ent->progs.sv->team <=0 || ent->progs.sv->team != ((edict_t *)tr.ent)->progs.sv->team))
+	if (tr.ent && ((edict_t *)tr.ent)->progs.sv->takedamage == 2 && (flags & DF_NO_FRIENDLY_FIRE || ent->progs.sv->team <=0 || ent->progs.sv->team != ((edict_t *)tr.ent)->progs.sv->team))
 	{
 		VectorCopy (prog->globals.sv->v_forward, PRVM_G_VECTOR(OFS_RETURN));
 		return;
@@ -800,7 +800,7 @@ void PF_aim (void)
 	for (i = 1; i < prog->num_edicts; i++, check = PRVM_NEXT_EDICT(check))
 	{
 		prog->xfunction->builtinsprofile++;
-		if (check->progs.sv->takedamage != DAMAGE_AIM)
+		if (check->progs.sv->takedamage != 2) // DAMAGE_AIM
 			continue;
 		if (check == ent) continue;
 		if (flags & DF_NO_FRIENDLY_FIRE && ent->progs.sv->team > 0 && ent->progs.sv->team == check->progs.sv->team)

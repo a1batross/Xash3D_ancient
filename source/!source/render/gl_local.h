@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ref_system.h"
 #include "ref_stdlib.h"
 #include "ref_rgbdata.h"
-#include "materials.h"
 
 #define RENDERPASS_SOLID	1
 #define RENDERPASS_ALPHA	2
@@ -62,19 +61,6 @@ void R_ConcatTransforms (float in1[3][4], float in2[3][4], float out[3][4]);
 #define MsgDev std.dprintf
 #define MsgWarn std.wprintf
 #define Sys_Error std.error
-
-#define strcasecmp	std.stricmp
-#define va	std.va
-
-// up / down
-#define	PITCH	0
-
-// left / right
-#define	YAW		1
-
-// fall over
-#define	ROLL	2
-
 
 #ifndef __VIDDEF_T
 #define __VIDDEF_T
@@ -502,7 +488,7 @@ VERTEX ARRAYS
 ====================================================================
 */
 
-#define MAX_ARRAY MAX_PARTICLES*4
+#define MAX_ARRAY MAX_INPUTLINE	// sorry ...
 
 #define VA_SetElem2(v, a, b) ((v)[0]=(a),(v)[1]=(b))
 #define VA_SetElem3(v, a, b, c) ((v)[0]=(a),(v)[1]=(b),(v)[2]=(c))

@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // cl_view.c -- player rendering positioning
 
 #include "client.h"
+#include "collision.h"
 
 //=============
 //
@@ -529,8 +530,6 @@ void V_RenderView( void )
 		// sort entities for better cache locality
         		qsort( cl.refdef.entities, cl.refdef.num_entities, sizeof( cl.refdef.entities[0] ), (int (*)(const void *, const void *))entitycmpfnc );
 	}
-
-	cl.refdef.rdflags |= RDF_BLOOM;
 	re->RenderFrame (&cl.refdef);
 	if (cl_stats->value) Msg ("ent:%i  lt:%i  part:%i\n", r_numentities, r_numdlights, r_numparticles);
 }

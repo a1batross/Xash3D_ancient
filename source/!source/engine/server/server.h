@@ -23,11 +23,30 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "progsvm.h"
 #include "vm_cmds.h"
+#include "net_msg.h"
+#include "collision.h"
+
 //=============================================================================
 
-#define	MAX_MASTERS		8 // max recipients for heartbeat packets
-#define	LATENCY_COUNTS		16
-#define	RATE_MESSAGES		10
+#define MAX_MASTERS		8 // max recipients for heartbeat packets
+#define LATENCY_COUNTS	16
+#define RATE_MESSAGES	10
+
+// classic quake flags
+#define SPAWNFLAG_NOT_EASY		0x00000100
+#define SPAWNFLAG_NOT_MEDIUM		0x00000200
+#define SPAWNFLAG_NOT_HARD		0x00000400
+#define SPAWNFLAG_NOT_DEATHMATCH	0x00000800
+
+#define FL_CLIENT			(1<<0)	// this is client
+#define FL_MONSTER			(1<<1)	// this is npc
+#define FL_DEADMONSTER		(1<<2)	// dead npc or dead player
+#define FL_WORLDBRUSH		(1<<3)	// Not moveable/removeable brush entity
+#define FL_DORMANT			(1<<4)	// Entity is dormant, no updates to client
+#define FL_FRAMETHINK		(1<<5)	// entity will be thinking every frame
+#define FL_GRAPHED			(1<<6)	// worldgraph has this ent listed as something that blocks a connection
+#define FL_FLOAT			(1<<7)	// this entity can be floating. FIXME: remove this ?
+#define FL_TRACKTRAIN		(1<<8)	// old stuff...
 
 typedef enum
 {

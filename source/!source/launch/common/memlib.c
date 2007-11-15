@@ -26,8 +26,7 @@ typedef struct memheader_s
 	uint		sentinel1;	// should always be MEMHEADER_SENTINEL1
 
 	// immediately followed by data, which is followed by a MEMHEADER_SENTINEL2 byte
-}
-memheader_t;
+} memheader_t;
 
 typedef struct memclump_s
 {
@@ -38,8 +37,7 @@ typedef struct memclump_s
 	size_t		blocksinuse;	// if this drops to 0, the clump is freed
 	size_t		largestavailable;	// largest block of memory available
 	struct memclump_s	*chain;		// next clump in the chain
-}
-memclump_t;
+} memclump_t;
 
 typedef struct mempool_s
 {
@@ -54,8 +52,7 @@ typedef struct mempool_s
 	int		fileline;
 	char		name[MAX_QPATH];	// name of the pool
 	uint		sentinel2;	// should always be MEMHEADER_SENTINEL1
-}
-mempool_t;
+} mempool_t;
 
 mempool_t *poolchain = NULL;
 
@@ -162,6 +159,8 @@ choseclump:
 	pool->chain = mem;
 	if (mem->next) mem->next->prev = mem;
 	memset((void *)((byte *) mem + sizeof(memheader_t)), 0, mem->size);
+
+	MsgDev(D_MEMORY, "Malloc: %s, by \"%s\" at (%s:%i)\n", Mem_Pretify( size ), pool->name, filename, fileline );
 	return (void *)((byte *) mem + sizeof(memheader_t));
 }
 
@@ -212,7 +211,7 @@ static void _mem_freeblock(memheader_t *mem, const char *filename, int fileline)
 			}
 			pool->realsize -= sizeof(memclump_t);
 			memset(clump, 0xBF, sizeof(memclump_t));
-			free(clump);
+			free( clump );
 		}
 		else
 		{
@@ -224,7 +223,8 @@ static void _mem_freeblock(memheader_t *mem, const char *filename, int fileline)
 	else
 	{
 		pool->realsize -= sizeof(memheader_t) + mem->size + sizeof(int);
-		free(mem);
+		MsgDev(D_MEMORY, "Free: %s, by \"%s\" at (%s:%i)\n", Mem_Pretify( mem->size ), pool->name, filename, fileline );
+		free( mem );
 	}
 }
 
@@ -301,6 +301,8 @@ byte *_mem_allocpool(const char *name, const char *filename, int fileline)
 	com_strncpy(pool->name, name, sizeof (pool->name));
 	pool->next = poolchain;
 	poolchain = pool;
+
+	MsgDev(D_MEMORY, "Create pool: \"%s\", at (%s:%i)\n", pool->name, filename, fileline );
 	return (byte *)((mempool_t *)pool);
 }
 
@@ -317,6 +319,8 @@ void _mem_freepool(byte **poolptr, const char *filename, int fileline)
 		if (pool->sentinel1 != MEMHEADER_SENTINEL1) Sys_Error("Mem_FreePool: trashed pool sentinel 1 (allocpool at %s:%i, freepool at %s:%i)", pool->filename, pool->fileline, filename, fileline);
 		if (pool->sentinel2 != MEMHEADER_SENTINEL1) Sys_Error("Mem_FreePool: trashed pool sentinel 2 (allocpool at %s:%i, freepool at %s:%i)", pool->filename, pool->fileline, filename, fileline);
 		*chainaddress = pool->next;
+
+		MsgDev(D_MEMORY, "Free pool: \"%s\", at (%s:%i)\n", pool->name, filename, fileline );
 
 		// free memory owned by the pool
 		while (pool->chain) _mem_freeblock(pool->chain, filename, fileline);
@@ -366,19 +370,19 @@ void _mem_check(const char *filename, int fileline)
 	mempool_t *pool;
 	memclump_t *clump;
 
-	for (pool = poolchain;pool;pool = pool->next)
+	for (pool = poolchain; pool; pool = pool->next)
 	{
 		if (pool->sentinel1 != MEMHEADER_SENTINEL1)
 			Sys_Error("Mem_CheckSentinelsGlobal: trashed pool sentinel 1 (allocpool at %s:%i, sentinel check at %s:%i)", pool->filename, pool->fileline, filename, fileline);
 		if (pool->sentinel2 != MEMHEADER_SENTINEL1)
 			Sys_Error("Mem_CheckSentinelsGlobal: trashed pool sentinel 2 (allocpool at %s:%i, sentinel check at %s:%i)", pool->filename, pool->fileline, filename, fileline);
 	}
-	for (pool = poolchain;pool;pool = pool->next)
-		for (mem = pool->chain;mem;mem = mem->next)
+	for (pool = poolchain; pool; pool = pool->next)
+		for (mem = pool->chain; mem; mem = mem->next)
 			_mem_checkheadersentinels((void *)((byte *) mem + sizeof(memheader_t)), filename, fileline);
 
-	for (pool = poolchain;pool;pool = pool->next)
-		for (clump = pool->clumpchain;clump;clump = clump->chain)
+	for (pool = poolchain; pool; pool = pool->next)
+		for (clump = pool->clumpchain; clump; clump = clump->chain)
 			_mem_checkclumpsentinels(clump, filename, fileline);
 }
 
@@ -392,10 +396,12 @@ void Memory_Init( void )
 	poolchain = NULL; // init mem chain
 	Sys.basepool = Mem_AllocPool( "Main pool" );
 	Sys.imagepool = Mem_AllocPool( "ImageLib Pool" );
+	Sys.stringpool = Mem_AllocPool( "New string" );
 }
 
 void Memory_Shutdown( void )
 {
 	Mem_FreePool( &Sys.basepool );
 	Mem_FreePool( &Sys.imagepool );
+	Mem_FreePool( &Sys.stringpool );
 }

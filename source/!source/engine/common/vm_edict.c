@@ -655,7 +655,7 @@ char *PRVM_ED_Info(edict_t *ent)
 	char	*info;
 
 	//              classname   edict num     targetname
-	info = CopyString(va("\"%s\"(#%i) with name \"%s\"", PRVM_GetString(ent->progs.sv->classname), PRVM_NUM_FOR_EDICT(ent), PRVM_GetString(ent->progs.sv->targetname)));
+	info = copystring(va("\"%s\"(#%i) with name \"%s\"", PRVM_GetString(ent->progs.sv->classname), PRVM_NUM_FOR_EDICT(ent), PRVM_GetString(ent->progs.sv->targetname)));
 
 	return info;
 }

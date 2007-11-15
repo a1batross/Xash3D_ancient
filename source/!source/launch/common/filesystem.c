@@ -2394,13 +2394,11 @@ void FS_UpdateEnvironmentVariables( void )
 				// Step4: create last test for bin directory
 			          FS_GetBaseDir( sys_rootdir, szTemp );
 				FS_BuildPath( szTemp, szPath );
-				if(!FS_SysFileExists( szPath )) //make exception
+				if(FS_SysFileExists( szPath ))
 				{
-					// big bada-boom: engine was moved and launcher running from other place
-					// step5: so, path form registry is invalid, current path is no valid
-					Sys_ErrorFatal( ERR_INVALID_ROOT );
+					// update registry
+					FS_SaveEnvironmentVariables( szTemp );
 				}
-				else FS_SaveEnvironmentVariables( szTemp );
 			}
 			else FS_SaveEnvironmentVariables( sys_rootdir );
 		}

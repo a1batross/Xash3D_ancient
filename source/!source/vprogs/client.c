@@ -300,7 +300,6 @@ void() PutClientInServer =
 
 void ShowInventory( void )
 {
-	string	help; 
 	float	layout;
 
 	if(pev->showinventory == TRUE) pev->showinventory = FALSE;

@@ -64,7 +64,7 @@ void Con_ToggleConsole_f (void)
 		M_ForceMenuOff();
 		cls.key_dest = key_console;	
 
-		if(Cvar_VariableValue ("maxclients") == 1  && Com_ServerState())
+		if(Cvar_VariableValue ("maxclients") == 1  && Host_ServerState())
 			Cvar_Set ("paused", "1");
 	}
 }
@@ -269,7 +269,7 @@ All console printing must go through this in order to be logged to disk
 If no console is visible, the text will appear at the top of the game window
 ================
 */
-void Con_Print( char *txt )
+void Con_Print( const char *txt )
 {
 	int	y, c, l, color;
 	bool	skipnotify = false;

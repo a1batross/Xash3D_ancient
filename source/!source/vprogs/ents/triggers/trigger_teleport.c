@@ -64,9 +64,9 @@ void() trigger_teleport_think =
 	
 	spawn_tdeath(t.origin, pev->triggerer);
 
+	pev->triggerer->teleport_time = 0.014;
 	setorigin(pev->triggerer, t.origin);
 	setangles(pev->triggerer, t);
-	pev->triggerer->teleport_time = 0.014;
 
 	set_effect( pev->triggerer, EV_PLAYER_TELEPORT );
 	
@@ -74,6 +74,7 @@ void() trigger_teleport_think =
 		centerprint(pev->triggerer, pev->message);
 	
 	pev->touched = FALSE;	
+	pev->triggerer->teleport_time = 0;
 };
 
 void() trigger_teleport_touch = 

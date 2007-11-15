@@ -131,7 +131,7 @@ winmain_t CreateMain32( void )
 	if (hmain) 
 	{
 		main = (winmain_t)GetProcAddress( hmain, "CreateAPI" );
-		if(!main) GetError("Unable to load the launch.dll" );
+		if(!main) GetError("launch.dll is corrupt" );
 		return main;
 	}
 

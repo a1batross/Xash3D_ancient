@@ -6,6 +6,8 @@
 #define BASETYPES_H
 
 #pragma warning(disable : 4244)	// MIPS
+#pragma warning(disable : 4136)	// X86
+#pragma warning(disable : 4051)	// ALPHA
 #pragma warning(disable : 4018)	// signed/unsigned mismatch
 #pragma warning(disable : 4305)	// truncation from const double to float
 #pragma warning(disable : 4201)	// nameless struct/union
@@ -60,6 +62,7 @@ typedef int		func_t;
 typedef struct edict_s	edict_t;
 typedef int		sound_t;
 typedef int		string_t;
+typedef void (*xcommand_t)	(void);
 typedef struct gclient_s	gclient_t;
 typedef struct sv_edict_s	sv_edict_t;
 typedef struct cl_edict_s	cl_edict_t;
@@ -86,6 +89,19 @@ typedef struct { uint b:5; uint g:6; uint r:5; } color16;
 typedef struct { byte r:8; byte g:8; byte b:8; } color24;
 typedef struct { byte r; byte g; byte b; byte a; } color32;
 typedef struct { const char *name; void **func; } dllfunc_t;
+
+static vec4_t g_color_table[8] =
+{
+{0.0, 0.0, 0.0, 1.0},
+{1.0, 0.0, 0.0, 1.0},
+{0.0, 1.0, 0.0, 1.0},
+{1.0, 1.0, 0.0, 1.0},
+{0.0, 0.0, 1.0, 1.0},
+{0.0, 1.0, 1.0, 1.0},
+{1.0, 0.0, 1.0, 1.0},
+{1.0, 1.0, 1.0, 1.0},
+};
+
 
 #include "byteorder.h" // byte ordering swap functions
 

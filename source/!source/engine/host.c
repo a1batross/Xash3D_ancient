@@ -4,8 +4,6 @@
 //=======================================================================
 
 #include <setjmp.h>
-#include <windows.h>
-#include <dsound.h>
 #include "engine.h"
 
 physic_exp_t	*Phys;
@@ -24,6 +22,10 @@ dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, true, siz
 
 cvar_t	*timescale;
 cvar_t	*fixedtime;
+cvar_t	*dedicated;
+
+cvar_t	*host_serverstate;
+cvar_t	*host_frametime;
 
 stdlib_api_t Host_GetStdio( bool crash_on_error )
 {
@@ -32,10 +34,10 @@ stdlib_api_t Host_GetStdio( bool crash_on_error )
 	io = std;
 
 	// overload some funcs
-	io.print = Com_Print;
-	io.printf = Com_Printf;
-	io.dprintf = Com_DPrintf;
-	io.wprintf = Com_DWarnf;
+	io.print = Host_Print;
+	io.printf = Host_Printf;
+	io.dprintf = Host_DPrintf;
+	io.wprintf = Host_DWarnf;
 
 	if(crash_on_error) io.error = Sys_Error;
 	else io.error = Host_Error;
@@ -95,6 +97,27 @@ void Host_AbortCurrentFrame( void )
 }
 
 /*
+==================
+Host_GetServerState
+==================
+*/
+int Host_ServerState( void )
+{
+	return host_serverstate->integer;
+}
+
+/*
+==================
+Host_SetServerState
+==================
+*/
+void Host_SetServerState( int state )
+{
+	Cvar_SetValue("host_serverstate", state );
+}
+
+
+/*
 =================
 Host_Init
 =================
@@ -129,14 +152,14 @@ void Host_Init (uint funcname, int argc, char **argv)
 	// init commands and vars
 	Cmd_AddCommand ("error", Host_Error_f);
 
-	host_speeds = Cvar_Get ("host_speeds", "0", 0);
 	host_frametime = Cvar_Get ("host_frametime", "0.01", 0);
+	host_serverstate = Cvar_Get ("host_serverstate", "0", 0);
 	timescale = Cvar_Get ("timescale", "1", 0);
 	fixedtime = Cvar_Get ("fixedtime", "0", 0);
 	if(host.type == HOST_DEDICATED) dedicated = Cvar_Get ("dedicated", "1", CVAR_INIT);
 	else dedicated = Cvar_Get ("dedicated", "0", CVAR_INIT);
 
-	s = va("Xash %g (%s)", XASH_VERSION, BUILDSTRING);
+	s = va("^1Xash %g ^3%s", XASH_VERSION, buildstring );
 	Cvar_Get ("version", s, CVAR_SERVERINFO|CVAR_INIT);
 
 	if (dedicated->value) Cmd_AddCommand ("quit", Sys_Quit);
@@ -164,20 +187,18 @@ Host_Frame
 void Host_Frame (double time)
 {
 	char		*s;
-	static double	time_before, time_between, time_after;
 
 	if (setjmp(host.abortframe)) return;
 
 	rand(); // keep the random time dependent
 
-	// get new key events
-	Sys_SendKeyEvents();
+	Sys_SendKeyEvents(); // get new key events
 
 	do
 	{
 		s = Sys_ConsoleInput ();
 		if(s) Cbuf_AddText (va("%s\n",s));
-	} while (s);
+	} while( s );
 	Cbuf_Execute();
 
 	// if at a full screen console, don't update unless needed
@@ -186,28 +207,9 @@ void Host_Frame (double time)
 		Sys_Sleep (1);
 	}
 
-	if (host_speeds->value) time_before = Sys_DoubleTime();
-
 	SV_Frame (time);
-
-	if (host_speeds->value) time_between = Sys_DoubleTime();		
-
 	CL_Frame (time);
 
-	if (host_speeds->value) time_after = Sys_DoubleTime();		
-	if (host_speeds->value)
-	{
-		double all, sv, gm, cl, rf;
-
-		all = time_after - time_before;
-		sv = time_between - time_before;
-		cl = time_after - time_between;
-		gm = time_after_game - time_before_game;
-		rf = time_after_ref - time_before_ref;
-		sv -= gm;
-		cl -= rf;
-		Msg ("all:%.3f sv:%.3f gm:%.3f cl:%.3f rf:%.3f\n", all, sv, gm, cl, rf);
-	}	
 	host.framecount++;
 }
 
@@ -240,13 +242,128 @@ void Host_Main( void )
 Host_Shutdown
 =================
 */
-void Host_Free (void)
+void Host_Free( void )
 {
 	SV_Shutdown ("Server shutdown\n", false);
 	CL_Shutdown ();
 	NET_Shutdown();
 	Host_FreePhysic();
 	Host_FreeCommon();
+}
+
+/*
+================
+Host_Print
+
+Handles cursor positioning, line wrapping, etc
+All console printing must go through this in order to be logged to disk
+If no console is visible, the text will appear at the top of the game window
+================
+*/
+void Host_Print( const char *txt )
+{
+	if(host.rd.target)
+	{
+		if((strlen (txt) + strlen(host.rd.buffer)) > (host.rd.buffersize - 1))
+		{
+			if(host.rd.flush)
+			{
+				host.rd.flush(host.rd.target, host.rd.buffer);
+				*host.rd.buffer = 0;
+			}
+		}
+		strcat (host.rd.buffer, txt);
+		return;
+	}
+
+	Con_Print( txt ); // echo to client console
+	Sys_Print( txt ); // echo to system console
+	// sys print also stored messages into system log
+}
+
+/*
+=============
+Host_Printf
+
+Both client and server can use this, and it will output
+to the apropriate place.
+=============
+*/
+void Host_Printf( const char *fmt, ... )
+{
+	va_list		argptr;
+	char		msg[MAX_INPUTLINE];
+
+	va_start( argptr, fmt );
+	vsprintf( msg, fmt, argptr );
+	va_end( argptr );
+
+	Host_Print( msg );
+}
+
+
+/*
+================
+Host_DPrintf
+
+A Msg that only shows up in developer mode
+================
+*/
+void Host_DPrintf( int level, const char *fmt, ... )
+{
+	va_list		argptr;
+	char		msg[MAX_INPUTLINE];
+		
+	// don't confuse non-developers with techie stuff...	
+	if(host.developer < level) return;
+
+	va_start( argptr, fmt );
+	vsprintf( msg, fmt, argptr );
+	va_end( argptr );
+
+	switch(level)
+	{
+	case D_INFO:	
+		Host_Print( msg );
+		break;
+	case D_WARN:
+		Host_Print(va("^3Warning:^7 %s", msg));
+		break;
+	case D_ERROR:
+		Host_Print(va("^1Error:^7 %s", msg));
+		break;
+	case D_LOAD:
+		Host_Print(va("^2Loading: ^7%s", msg));
+		break;
+	case D_NOTE:
+		Host_Print( msg );
+		break;
+	case D_MEMORY:
+		Host_Print(va("^6Mem: ^7%s", msg));
+		break;
+	}
+}
+
+/*
+================
+Host_DWarnf
+
+A Warning that only shows up in debug mode
+================
+*/
+void Host_DWarnf( const char *fmt, ... )
+{
+	va_list		argptr;
+	char		msg[MAX_INPUTLINE];
+		
+	// don't confuse non-developers with techie stuff...
+	if (!host.debug) return;
+
+	va_start( argptr, fmt );
+	vsprintf( msg, fmt, argptr );
+	va_end( argptr );
+	
+	Host_Print(va("^3Warning:^7 %s", msg));
 }
 
 /*
@@ -267,7 +384,7 @@ void Host_Error( const char *error, ... )
 
 	if (host.framecount < 3 || host.state == HOST_SHUTDOWN)
 		Sys_Error ("%s", hosterror1 );
-	else Msg("Host_Error: %s", hosterror1);
+	else Host_Printf("Host_Error: %s", hosterror1);
 
 	if(recursive)
 	{ 

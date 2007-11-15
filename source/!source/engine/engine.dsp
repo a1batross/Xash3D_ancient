@@ -250,7 +250,7 @@ SOURCE=.\snd_win.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\server\sv_ccmds.c
+SOURCE=.\server\sv_cmds.c
 # End Source File
 # Begin Source File
 
@@ -330,10 +330,6 @@ SOURCE=..\public\basetypes.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\bspfile.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\client\client.h
 # End Source File
 # Begin Source File
@@ -342,15 +338,7 @@ SOURCE=..\public\common.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\console.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\common\const.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\common\cvar.h
 # End Source File
 # Begin Source File
 
@@ -358,15 +346,7 @@ SOURCE=.\engine.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\input.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\common\keys.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\public\platform.h
+SOURCE=.\common\net_msg.h
 # End Source File
 # Begin Source File
 

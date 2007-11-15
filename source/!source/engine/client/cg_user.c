@@ -30,7 +30,7 @@ void CG_Init( void )
 {
 	cls.cg_numstats = 0; // reset hudprogram statsnames
 	cls.cg_numcvars = 0; // reset hudprogram statsnames
-	Com_LoadScript( "scripts/hud.txt", NULL, 0 );
+	cls.cg_init = Com_LoadScript( "scripts/hud.txt", NULL, 0 );
 	CG_ExecuteProgram( "Hud_Setup" ); // get stats and cvars names
 }
 
@@ -930,6 +930,9 @@ void CG_ExecuteProgram( char *section )
 	strncpy( cls.cg_function, section, MAX_QPATH );
 	cls.cg_depth = 0;
 
+	// not loaded
+	if(!cls.cg_init) return;
+
 	// section not specified
 	if(!section || !*section )
 		return;
@@ -959,22 +962,4 @@ void CG_ExecuteProgram( char *section )
 
 	}
 	CG_ResetColor(); // don't forget reset color
-}
-
-/*
-================
-SCR_BeginLoadingPlaque
-
-get rid of this
-================
-*/
-void SCR_BeginLoadingPlaque (void)
-{
-	S_StopAllSounds ();
-	cl.sound_prepped = false;	// don't play ambients
-	if (cls.disable_screen) return;
- 
-	SCR_UpdateScreen();
-	cls.disable_screen = Sys_DoubleTime();
-	cls.disable_servercount = cl.servercount;
 }

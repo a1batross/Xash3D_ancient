@@ -7,11 +7,7 @@
 
 #include "platform.h"
 #include <basemath.h>
-#include <materials.h>
 #include "utils.h"
-
-
-extern int runthreads;
 
 #define VALVE_FORMAT	220
 #define MAX_BRUSH_SIDES	128

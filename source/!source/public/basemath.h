@@ -34,10 +34,14 @@
 #define DEG2RAD( x )	((float)(x) * (float)(M_PI / 180.f))
 #define METER2INCH(x)	(float)(x * (1.0f/METERS_PER_INCH))
 #define INCH2METER(x)	(float)(x * (METERS_PER_INCH/1.0f))
+#define RAD_TO_STUDIO	(32768.0 / M_PI)
+#define STUDIO_TO_RAD	(M_PI / 32768.0)
+#define nanmask		(255<<23)
 
-#define RANDOM_LONG(MIN,MAX) ((rand() & 32767) * (((MAX)-(MIN)) * (1.0f / 32767.0f)) + (MIN))
-#define RANDOM_FLOAT(MIN,MAX) (((float)rand() / RAND_MAX) * ((MAX)-(MIN)) + (MIN))
-#define bound(min, num, max) ((num) >= (min) ? ((num) < (max) ? (num) : (max)) : (min))
+#define IS_NAN(x)		(((*(int *)&x)&nanmask)==nanmask)
+#define RANDOM_LONG(MIN, MAX)	((rand() & 32767) * (((MAX)-(MIN)) * (1.0f / 32767.0f)) + (MIN))
+#define RANDOM_FLOAT(MIN,MAX)	(((float)rand() / RAND_MAX) * ((MAX)-(MIN)) + (MIN))
+#define bound(min, num, max)	((num) >= (min) ? ((num) < (max) ? (num) : (max)) : (min))
 
 #define VectorToPhysic(v) { v[0] = INCH2METER(v[0]), v[1] = INCH2METER(v[1]), v[2] = INCH2METER(v[2]); }
 #define VectorToServer(v) { v[0] = METER2INCH(v[0]), v[1] = METER2INCH(v[1]), v[2] = METER2INCH(v[2]); }

@@ -1632,8 +1632,7 @@ void R_DrawStudioModel( int passnum )
 
 	GL_TexEnv( GL_REPLACE );
 	qglShadeModel (GL_FLAT);
-	if (m_pCurrentEntity->flags & RF_DEPTHHACK) 
-		qglDepthRange (gldepthmin, gldepthmax);
+	if(m_pCurrentEntity->flags & RF_DEPTHHACK) qglDepthRange (gldepthmin, gldepthmax);
 
 	if(r_minimap->value > 1) 
 	{

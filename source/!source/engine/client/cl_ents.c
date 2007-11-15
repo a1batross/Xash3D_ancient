@@ -496,8 +496,6 @@ void CL_ParseFrame (void)
 			VectorCopy( cl.frame.playerstate.pmove.origin, cl.predicted_origin );
 			VectorCopy( cl.frame.playerstate.viewangles, cl.predicted_angles );
 		}
-		cl.sound_prepped = true; // can start mixing ambient sounds
-	
 		// fire entity events
 		CL_FireEntityEvents (&cl.frame);
 		CL_CheckPredictionError ();
@@ -596,30 +594,9 @@ void CL_AddPacketEntities (frame_t *frame)
 
 		effects = s1->effects;
 		renderfx = s1->renderfx;
+		ent.frame = s1->frame;
 
-			// set frame
-		if (effects & EF_ANIM01) ent.frame = autoanim & 1;
-		else if (effects & EF_ANIM23) ent.frame = 2 + (autoanim & 1);
-		else if (effects & EF_ANIM_ALL) ent.frame = autoanim;
-		else if (effects & EF_ANIM_ALLFAST) ent.frame = cl.time / host_frametime->value;
-		else ent.frame = s1->frame;
-
-		// quad and pent can do different things on client
-		if (effects & EF_PENT)
-		{
-			effects &= ~EF_PENT;
-			effects |= EF_COLOR_SHELL;
-			renderfx |= RF_SHELL_RED;
-		}
-
-		if (effects & EF_QUAD)
-		{
-			effects &= ~EF_QUAD;
-			effects |= EF_COLOR_SHELL;
-			renderfx |= RF_SHELL_BLUE;
-		}
-
-		//copy state to render
+		// copy state to render
 		ent.prev.frame = cent->prev.frame;
 		ent.backlerp = 1.0 - cl.lerpfrac;
 		ent.alpha = s1->alpha;
@@ -627,7 +604,8 @@ void CL_AddPacketEntities (frame_t *frame)
 		ent.sequence = s1->sequence;		
 
 		if (renderfx & (RF_FRAMELERP|RF_BEAM))
-		{	// step origin discretely, because the frames
+		{
+			// step origin discretely, because the frames
 			// do the animation properly
 			VectorCopy (cent->current.origin, ent.origin);
 			VectorCopy (cent->current.old_origin, ent.oldorigin);
@@ -672,11 +650,8 @@ void CL_AddPacketEntities (frame_t *frame)
 				ent.model = cl.model_draw[s1->modelindex];
 			}
 		}
-		// render effects (fullbright, translucent, etc)
-		if ((effects & EF_COLOR_SHELL))
-			ent.flags = 0;	// renderfx go on color shell entity
-		else
-			ent.flags = renderfx;
+
+		ent.flags = renderfx;
 
 		// calculate angles
 		if (effects & EF_ROTATE)
@@ -684,21 +659,6 @@ void CL_AddPacketEntities (frame_t *frame)
 			ent.angles[0] = 0;
 			ent.angles[1] = autorotate;
 			ent.angles[2] = 0;
-		}
-		// RAFAEL
-		else if (effects & EF_SPINNINGLIGHTS)
-		{
-			ent.angles[0] = 0;
-			ent.angles[1] = anglemod(cl.time/2) + s1->angles[1];
-			ent.angles[2] = 180;
-			{
-				vec3_t forward;
-				vec3_t start;
-
-				AngleVectors (ent.angles, forward, NULL, NULL);
-				VectorMA (ent.origin, 64, forward, start);
-				V_AddLight (start, 100, 1, 0, 0);
-			}
 		}
 		else
 		{	// interpolate angles
@@ -715,12 +675,6 @@ void CL_AddPacketEntities (frame_t *frame)
 		if (s1->number == cl.playernum+1)
 		{
 			ent.flags |= RF_VIEWERMODEL;	// only draw from mirrors
-			// FIXME: still pass to refresh
-
-			if (effects & EF_FLAG1)
-				V_AddLight (ent.origin, 225, 1.0, 0.1, 0.1);
-			else if (effects & EF_FLAG2)
-				V_AddLight (ent.origin, 225, 0.1, 0.1, 1.0);
 			continue;
 		}
 
@@ -728,30 +682,8 @@ void CL_AddPacketEntities (frame_t *frame)
 		if (!s1->modelindex)
 			continue;
 
-		if (effects & EF_BFG)
-		{
-			ent.flags |= RF_TRANSLUCENT;
-			ent.alpha = 0.30;
-		}
-
-		// RAFAEL
-		if (effects & EF_PLASMA)
-		{
-			ent.flags |= RF_TRANSLUCENT;
-			ent.alpha = 0.6;
-		}
-
 		// add to refresh list
 		V_AddEntity (&ent);
-
-
-		// color shells generate a seperate entity for the main model
-		if (effects & EF_COLOR_SHELL)
-		{
-			ent.flags = renderfx | RF_TRANSLUCENT;
-			ent.alpha = 0.30;
-			V_AddEntity (&ent);
-		}
 
 		ent.image = NULL;		// never use a custom skin on others
 		ent.skin = 0;
@@ -780,52 +712,6 @@ void CL_AddPacketEntities (frame_t *frame)
 
 			ent.flags = 0;
 			ent.alpha = 0;
-		}
-
-		// add automatic particle trails
-		if ( (effects&~EF_ROTATE) )
-		{
-			if (effects & EF_ROCKET)
-			{
-				CL_RocketTrail (cent->lerp_origin, ent.origin, cent);
-				V_AddLight (ent.origin, 200, 1, 1, 0);
-			}
-			// PGM - Do not reorder EF_BLASTER and EF_HYPERBLASTER. 
-			// EF_BLASTER | EF_TRACKER is a special case for EF_BLASTER2... Cheese!
-			else if (effects & EF_BLASTER)
-			{
-				CL_BlasterTrail (cent->lerp_origin, ent.origin);
-				V_AddLight (ent.origin, 200, 1, 1, 0);
-			}
-			else if (effects & EF_HYPERBLASTER)
-			{
-				V_AddLight (ent.origin, 200, 1, 1, 0);
-			}
-			else if (effects & EF_GIB)
-			{
-				CL_DiminishingTrail (cent->lerp_origin, ent.origin, cent, effects);
-			}
-			else if (effects & EF_GRENADE)
-			{
-				CL_DiminishingTrail (cent->lerp_origin, ent.origin, cent, effects);
-			}
-			else if (effects & EF_TRAP)
-			{
-				ent.origin[2] += 32;
-				CL_TrapParticles (&ent);
-				i = (rand()%100) + 100;
-				V_AddLight (ent.origin, i, 1, 0.8, 0.1);
-			}
-			else if (effects & EF_FLAG1)
-			{
-				CL_FlagTrail (cent->lerp_origin, ent.origin, 242);
-				V_AddLight (ent.origin, 225, 1, 0.1, 0.1);
-			}
-			else if (effects & EF_FLAG2)
-			{
-				CL_FlagTrail (cent->lerp_origin, ent.origin, 115);
-				V_AddLight (ent.origin, 225, 0.1, 0.1, 1);
-			}
 		}
 		VectorCopy (ent.origin, cent->lerp_origin);
 	}

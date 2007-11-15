@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "engine.h"
-
+#include "collision.h"
 
 
 #define	STEPSIZE	18
@@ -1134,10 +1134,12 @@ void Pmove (pmove_t *pmove)
 		// teleport pause stays exactly in place
 	}
 	else if (pm->s.pm_flags & PMF_TIME_WATERJUMP)
-	{	// waterjump has no control, but falls
+	{	
+		// waterjump has no control, but falls
 		pml.velocity[2] -= pm->s.gravity * pml.frametime;
 		if (pml.velocity[2] < 0)
-		{	// cancel as soon as we are falling down again
+		{	
+			// cancel as soon as we are falling down again
 			pm->s.pm_flags &= ~(PMF_TIME_WATERJUMP | PMF_TIME_LAND | PMF_TIME_TELEPORT);
 			pm->s.pm_time = 0;
 		}

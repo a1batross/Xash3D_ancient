@@ -700,7 +700,7 @@ NOTE: we must prepare engine to shutdown
 before call this
 ================
 */
-void Sys_Error(char *error, ...)
+void Sys_Error(const char *error, ...)
 {
 	va_list		argptr;
 	char		text[MAX_INPUTLINE];
@@ -738,44 +738,6 @@ long _stdcall Sys_ExecptionFilter( PEXCEPTION_POINTERS pExceptionInfo )
 #endif
 }
 
-/*
-================
-Sys_FatalError
-
-called while internal debugging tools 
-are failed to initialize.
-use generic msgbox
-================
-*/
-void _Sys_ErrorFatal( int type, const char *filename, int fileline )
-{
-	char errorstring[64];
-
-	switch( type )
-	{
-		case ERR_INVALID_ROOT:
-			com_strncpy(errorstring, "Invalid root directory!", sizeof(errorstring));
-			break;
-		case ERR_CONSOLE_FAIL:
-			com_strncpy(errorstring, "Can't create console window", sizeof(errorstring));
-			break;
-		case ERR_OSINFO_FAIL:
-			com_strncpy(errorstring, "Couldn't get OS info", sizeof(errorstring));
-			break;
-		case ERR_INVALID_VER:
-			com_strncpy(errorstring, "Requries Win95 or later", sizeof(errorstring));
-			break;
-		case ERR_WINDOWS_32S:
-			com_strncpy(errorstring, "Win32s is not supported", sizeof(errorstring));
-			break;
-		default:
-			com_sprintf(errorstring, "Internal engine error at %s:%i", filename, fileline );
-			break;
-	}
-	MessageBox( 0, errorstring, "Error", MB_OK );
-	exit( 1 );
-}
-
 void Sys_Init( void )
 {
 	HANDLE		hStdout;
@@ -790,10 +752,6 @@ void Sys_Init( void )
 
 	Sys.hInstance = (HINSTANCE)GetModuleHandle( NULL ); // get current hInstance first
 	hStdout = GetStdHandle (STD_OUTPUT_HANDLE); // check for hooked out
-
-	if(!GetVersionEx (&vinfo)) Sys_ErrorFatal(ERR_OSINFO_FAIL);
-	if(vinfo.dwMajorVersion < 4) Sys_ErrorFatal(ERR_INVALID_VER);
-	if(vinfo.dwPlatformId == VER_PLATFORM_WIN32s) Sys_ErrorFatal(ERR_WINDOWS_32S);
 
 	Sys_GetStdAPI();
 	Sys.Init = NullInit;
@@ -840,9 +798,9 @@ void Sys_Exit ( void )
 	Sys.Free();
 	Sys_FreeLibrary( Sys.linked_dll );
 
-	Con_DestroyConsole();	
 	FS_Shutdown();
 	Memory_Shutdown();
+	Con_DestroyConsole();
 
 	if( Sys.oldFilter )  // restore filter	
 		SetUnhandledExceptionFilter( Sys.oldFilter );

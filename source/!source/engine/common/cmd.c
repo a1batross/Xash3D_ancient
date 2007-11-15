@@ -327,6 +327,206 @@ void Cmd_Echo_f (void)
 		Msg ("%s ",Cmd_Argv(i));
 	Msg ("\n");
 }
+
+/*
+=====================================
+Cmd_GetMapList
+
+Prints or complete map filename
+=====================================
+*/
+bool Cmd_GetMapList (const char *s, char *completedname, int completednamebufferlength )
+{
+	search_t		*t;
+	char		message[MAX_QPATH];
+	int		i, k, max, p, o, min;
+	byte		*len;
+	file_t		*f;
+	byte		buf[1024];
+
+	sprintf(message, "maps/%s*.bsp", s);
+	t = FS_Search(message, true);
+	if(!t) return false;
+
+	if (t->numfilenames > 1) Msg("^1 %i maps found :\n", t->numfilenames);
+	len = (byte *)Z_Malloc(t->numfilenames);
+	min = 256;
+
+	for(max = i = 0; i < t->numfilenames; i++)
+	{
+		k = (int)strlen(t->filenames[i]);
+		k -= 9;
+		if(max < k) max = k;
+		else if(min > k) min = k;
+		len[i] = k;
+	}
+
+	o = (int)strlen(s);
+
+	for(i = 0; i < t->numfilenames; i++)
+	{
+		int		lumpofs = 0, lumplen = 0;
+		char		*entities = NULL;
+		const char	*data = NULL;
+		char		keyname[64];
+		char		entfilename[MAX_QPATH];
+
+		strncpy(message, "^1**ERROR**^7", sizeof(message));
+		p = 0;
+		f = FS_Open(t->filenames[i], "rb" );
+	
+		if( f )
+		{
+			memset(buf, 0, 1024);
+			FS_Read(f, buf, 1024);
+			if(!memcmp(buf, "IBSP", 4))
+			{
+				p = LittleLong(((int *)buf)[1]);
+				if (p == BSPMOD_VERSION)
+				{
+					dheader_t *header = (dheader_t *)buf;
+					lumpofs = LittleLong(header->lumps[LUMP_ENTITIES].fileofs);
+					lumplen = LittleLong(header->lumps[LUMP_ENTITIES].filelen);
+				}
+			}
+
+			strncpy(entfilename, t->filenames[i], sizeof(entfilename));
+			memcpy(entfilename + strlen(entfilename) - 4, ".ent", 5);
+			entities = (char *)FS_LoadFile(entfilename, NULL);
+
+			if( !entities && lumplen >= 10 )
+			{
+				FS_Seek(f, lumpofs, SEEK_SET);
+				entities = (char *)Z_Malloc(lumplen + 1);
+				FS_Read(f, entities, lumplen);
+			}
+
+			if( entities )
+			{
+				// if there are entities to parse, a missing message key just
+				// means there is no title, so clear the message string now
+				message[0] = 0;
+				data = entities;
+				while( 1 )
+				{
+					int l;
+					if (!Com_ParseToken(&data)) break;
+					if (com_token[0] == '{') continue;
+					if (com_token[0] == '}') break;
+					// skip leading whitespace
+					for (k = 0; com_token[k] && com_token[k] <= ' '; k++);
+					for (l = 0; l < (int)sizeof(keyname) - 1 && com_token[k+l] && com_token[k+l] > ' '; l++)
+						keyname[l] = com_token[k+l];
+					keyname[l] = 0;
+					if (!Com_ParseToken(&data)) break;
+					MsgDev(D_NOTE, "key: %s %s\n", keyname, com_token);
+					if (!strcmp(keyname, "message"))
+					{
+						// get the message contents
+						strncpy(message, com_token, sizeof(message));
+						break;
+					}
+				}
+			}
+		}
+		if( entities )Z_Free(entities);
+		if( f )FS_Close(f);
+		*(t->filenames[i] + len[i]+5) = 0;
+
+		switch(p)
+		{
+		case BSPMOD_VERSION: strncpy((char *)buf, "Q2", sizeof(buf)); break;
+		default:		 strncpy((char *)buf, "??", sizeof(buf)); break;
+		}
+		Msg("%16s (%s) %s\n", t->filenames[i] + 5, buf, message);
+	}
+	Msg("\n");
+
+	for(p = o; p < min; p++)
+	{
+		k = *(t->filenames[0]+5+p);
+		if(k == 0) goto endcomplete;
+		for(i = 1; i < t->numfilenames; i++)
+		{
+			if(*(t->filenames[i]+5+p) != k)
+				goto endcomplete;
+		}
+	}
+endcomplete:
+	if(p > o && completednamebufferlength > 0)
+	{
+		memset(completedname, 0, completednamebufferlength);
+		memcpy(completedname, (t->filenames[0]+5), min(p, completednamebufferlength - 1));
+	}
+	Z_Free( len );
+	Z_Free( t );
+	return p > o;
+}
+
+/*
+=====================================
+Cmd_GetDemoList
+
+Prints or complete demo filename
+=====================================
+*/
+bool Cmd_GetDemoList (const char *s, char *completedname, int completednamebufferlength)
+{
+	search_t		*t;
+	char		message[MAX_QPATH];
+	byte		*len;
+	int		i, k, p, o, min, max;
+
+	sprintf(message, "demos/%s*.dm2", s);
+	t = FS_Search(message, true);
+	if(!t) return false;
+	len = (byte *)Z_Malloc(t->numfilenames);
+	min = 256;
+
+	for(max = i = 0; i < t->numfilenames; i++)
+	{
+		k = (int)strlen(t->filenames[i]);
+		k -= 9;
+		if(max < k) max = k;
+		else if(min > k) min = k;
+		len[i] = k;
+	}
+	o = (int)strlen(s);
+	
+	if (t->numfilenames > 1)
+	{
+		Msg("^1 %i demos found :\n", t->numfilenames);
+		for(i = 0; i < t->numfilenames; i++)
+		{
+			//FS_StripExtension(t->filenames[i]);
+			Msg("%16s\n", t->filenames[i]);
+		}
+		Msg("\n");
+	}
+	else if (t->numfilenames == 1) //FS_StripExtension(t->filenames[0]);
+
+	for(p = o; p < min; p++)
+	{
+		k = *(t->filenames[0]+p);
+		if(k == 0) goto endcomplete;
+		for(i = 1; i < t->numfilenames; i++)
+		{
+			if(*(t->filenames[i]+p) != k)
+				goto endcomplete;
+		}
+	}
+endcomplete:
+	if(p > o && completednamebufferlength > 0)
+	{
+		memset(completedname, 0, completednamebufferlength);
+		memcpy(completedname, (t->filenames[0]+6), min(p, completednamebufferlength - 1));
+	}
+
+	Z_Free(t);
+	Z_Free( len );
+	return p > o;
+}
+
 /*
 =============================================================================
 
@@ -494,8 +694,8 @@ void _Cmd_AddCommand (const char *cmd_name, xcommand_t function, const char *cmd
 
 	// use a small malloc to avoid zone fragmentation
 	cmd = Z_Malloc (sizeof(cmd_function_t));
-	cmd->name = CopyString( cmd_name );
-	cmd->desc = CopyString( cmd_desc );
+	cmd->name = copystring( cmd_name );
+	cmd->desc = copystring( cmd_desc );
 	cmd->function = function;
 	cmd->next = cmd_functions;
 	cmd_functions = cmd;

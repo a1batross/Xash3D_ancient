@@ -208,6 +208,9 @@ perform Tab expansion
 void Field_CompleteCommand( field_t *field )
 {
 	field_t		temp;
+	const char	*cmdname;
+	char		command[MAX_QPATH];
+	char		filename[MAX_QPATH];
 
 	completionField = field;
 
@@ -229,7 +232,38 @@ void Field_CompleteCommand( field_t *field )
 	if ( matchCount == 0 ) return; // no matches
 	Mem_Copy(&temp, completionField, sizeof(field_t));
 
-	if ( matchCount == 1 )
+	cmdname = completionField->buffer;
+	if(Com_ParseToken( &cmdname ))
+	{
+		if(!stricmp(com_token, "\\map" ) || !stricmp(com_token, "map" ))
+		{
+			strncpy( command, com_token, MAX_QPATH );
+			if(Com_ParseToken( &cmdname ))
+			{
+				if(Cmd_GetMapList( com_token, filename, MAX_QPATH ))
+				{         
+					sprintf( completionField->buffer, "%s %s", command, filename ); 
+					completionField->cursor = strlen( completionField->buffer );
+					return;
+				}
+			}
+		}
+		else if(!stricmp(com_token, "\\demomap" ) || !stricmp(com_token, "demomap" ))
+		{
+			strncpy( command, com_token, MAX_QPATH );
+			if(Com_ParseToken( &cmdname ))
+			{
+				if(Cmd_GetDemoList( com_token, filename, MAX_QPATH ))
+				{         
+					sprintf( completionField->buffer, "%s %s", command, filename ); 
+					completionField->cursor = strlen( completionField->buffer );
+					return;
+				}
+			}
+		}	
+	}  
+
+	if( matchCount == 1 )
 	{
 		sprintf( completionField->buffer, "\\%s", shortestMatch );
 		if ( Cmd_Argc() == 1 ) strncat( completionField->buffer, " ", sizeof( completionField->buffer ));
@@ -243,7 +277,7 @@ void Field_CompleteCommand( field_t *field )
 	completionField->cursor = strlen( completionField->buffer );
 	ConcatRemaining( temp.buffer, completionString );
 
-	Com_Printf( "]%s\n", completionField->buffer );
+	Msg( "]%s\n", completionField->buffer );
 
 	// run through again, printing matches
 	Cmd_CommandCompletion( PrintMatches );
@@ -811,7 +845,7 @@ void Key_SetBinding( int keynum, char *binding )
 	}
 		
 	// allocate memory for new binding
-	keys[keynum].binding = CopyString( binding );
+	keys[keynum].binding = copystring( binding );
 }
 
 

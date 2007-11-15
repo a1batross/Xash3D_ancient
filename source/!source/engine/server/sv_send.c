@@ -300,7 +300,7 @@ void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int soundindex,
 	}
 	ent = PRVM_NUM_FOR_EDICT(entity);
 
-	if (channel & 8) // no PHS flag
+	if (channel & CHAN_NO_PHS_ADD) // no PHS flag
 	{
 		use_phs = false;
 		channel &= 7;
@@ -349,24 +349,20 @@ void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int soundindex,
 	if (flags & SND_ENT) MSG_WriteShort(&sv.multicast, sendchan);
 	if (flags & SND_POS) MSG_WritePos32(&sv.multicast, origin);
 
-	// if the sound doesn't attenuate,send it to everyone
-	// (global radio chatter, voiceovers, etc)
-	if (attenuation == ATTN_NONE) use_phs = false;
-
 	if (channel & CHAN_RELIABLE)
 	{
 		if(use_phs) 
 		{
 			MSG_Send (MSG_PHS_R, origin, NULL);
 		}
-		else 
+		else
 		{
 			MSG_Send(MSG_ALL_R, origin, NULL );
 		}
 	}
 	else
 	{
-		if(use_phs) 
+		if(use_phs)
 		{
 			MSG_Send (MSG_PHS, origin, NULL);
 		}

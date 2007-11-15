@@ -26,9 +26,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "vid.h"
 #include "screen.h"
 #include "sound.h"
-#include "input.h"
+#include "net_msg.h"
 #include "keycodes.h"
-
+#include "collision.h"
 
 #define MAX_EDIT_LINE	256
 #define COMMAND_HISTORY	32
@@ -135,8 +135,7 @@ typedef struct
 	int			timedemo_frames;
 	float			timedemo_start;
 
-	bool	refresh_prepped;	// false if on new level or new ref dll
-	bool	sound_prepped;		// ambient sounds can start
+	bool	refresh_prepped;		// false if on new level or new ref dll
 	bool	force_refdef;		// vid has changed, so we can't use a paused refdef
 
 	int		parse_entities;		// index (not anded off) into cl_parse_entities[]
@@ -249,14 +248,7 @@ typedef struct
 	float			realtime;			// always increasing, no clamping, etc
 	float			frametime;			// seconds since last frame
 
-// screen rendering information
-	float		disable_screen;		// showing loading plaque between levels
-									// or changing rendering dlls
-									// if time gets > 30 seconds ahead, break it
-	int			disable_servercount;	// when we receive a frame and cl.servercount
-									// > cls.disable_servercount, clear disable_screen
-
-// connection information
+	// connection information
 	char		servername[MAX_OSPATH];	// name of server from original connect
 	float		connect_time;		// for connection retransmits
 
@@ -282,6 +274,7 @@ typedef struct
 	uint		hud_program_size;
 
 	// hudprogram stack
+	bool		cg_init;
 	char		cg_function[MAX_QPATH];
 	char		cg_builtin[MAX_QPATH];
 	char		cg_tempstring[MAX_QPATH];
@@ -453,8 +446,6 @@ void CL_ParseFrame (void);
 
 void CL_ParseTEnt (void);
 void CL_ParseConfigString (void);
-void CL_ParseMuzzleFlash (void);
-void CL_ParseMuzzleFlash2 (void);
 void SmokeAndFlash(vec3_t origin);
 
 void CL_SetLightstyle (int i);
@@ -588,7 +579,7 @@ void CL_CheckPredictionError (void);
 cdlight_t *CL_AllocDlight (int key);
 void CL_BigTeleportParticles (vec3_t org);
 void CL_RocketTrail (vec3_t start, vec3_t end, centity_t *old);
-void CL_DiminishingTrail (vec3_t start, vec3_t end, centity_t *old, int flags);
+void CL_DiminishingTrail (vec3_t start, vec3_t end, centity_t *old );
 void CL_AddParticles (void);
 void CL_EntityEvent (entity_state_t *ent);
 // RAFAEL
@@ -616,7 +607,7 @@ void CL_PredictMovement (void);
 int Con_PrintStrlen( const char *string );
 bool Con_Active( void );
 void Con_CheckResize( void );
-void Con_Print( char *txt );
+void Con_Print( const char *txt );
 void Con_Init( void );
 void Con_Clear_f( void );
 void Con_ToggleConsole_f( void );

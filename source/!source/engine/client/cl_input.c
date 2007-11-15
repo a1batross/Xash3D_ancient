@@ -536,7 +536,7 @@ void CL_SendCmd (void)
 	MSG_WriteDeltaUsercmd (&buf, oldcmd, cmd);
 
 	// calculate a checksum over the move commands
-	buf.data[checksumIndex] = COM_BlockSequenceCRCByte(
+	buf.data[checksumIndex] = CRC_Sequence(
 		buf.data + checksumIndex + 1, buf.cursize - checksumIndex - 1,
 		cls.netchan.outgoing_sequence);
 

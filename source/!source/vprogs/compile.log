@@ -1,5 +1,5 @@
 =======================================================================
-	Xash3D QuakeC Compiler started at Nov11 2007 [17:22.24]
+	Xash3D QuakeC Compiler started at Nov14 2007 [22:27.45]
 =======================================================================
 Sys_LoadLibrary: Loading launch.dll - ok
 CPU: AuthenticAMD [1 core]. Frequency: 1.8 Ghz
@@ -43,21 +43,22 @@ ents/funcs/func_areaportal.c
 ents/items/items.c
 impulses.c
 Custom progs crc 64081
+client.c(320) : warning C2: 'help' : unreferenced local variable
 Linking...
- 19684 strofs (of 1000000)
-  2873 numstatements (of 524288)
-   284 numfunctions (of 16384)
-   956 numglobaldefs (of 32768)
-   245 numfielddefs (218 unique) (of 2048)
-  2272 numpr_globals (of 65536)
-Writing server.dat, total size 71832 bytes
+ 19724 strofs (of 1000000)
+  2903 numstatements (of 524288)
+   285 numfunctions (of 16384)
+   958 numglobaldefs (of 32768)
+   246 numfielddefs (219 unique) (of 2048)
+  2281 numpr_globals (of 65536)
+Writing server.dat, total size 72208 bytes
 Скопировано файлов:         1.
 
-server.dat - 0 error(s), 0 warning(s)
-0.335 seconds elapsed
+server.dat - 0 error(s), 1 warning(s)
+0.664 seconds elapsed
 Sys_FreeLibrary: Unloading common.dll
 Sys_FreeLibrary: Unloading launch.dll
 
 =======================================================================
-	Xash3D QuakeC Compiler stopped at Nov11 2007 [17:22.24]
+	Xash3D QuakeC Compiler stopped at Nov14 2007 [22:27.46]
 =======================================================================

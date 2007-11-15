@@ -38,6 +38,48 @@ typedef struct
 	int		baseframe;
 } explosion_t;
 
+// temp entity events
+//
+// Temp entity events are for things that happen
+// at a location seperate from any existing entity.
+// Temporary entity messages are explicitly constructed
+// and broadcast.
+typedef enum
+{
+	TE_GUNSHOT,
+	TE_BLOOD,
+	TE_BLASTER,
+	TE_RAILTRAIL,
+	TE_SHOTGUN,
+	TE_EXPLOSION1,
+	TE_EXPLOSION2,
+	TE_ROCKET_EXPLOSION,
+	TE_GRENADE_EXPLOSION,
+	TE_SPARKS,
+	TE_SPLASH,
+	TE_BUBBLETRAIL,
+	TE_SCREEN_SPARKS,
+	TE_SHIELD_SPARKS,
+	TE_BULLET_SPARKS,
+	TE_LASER_SPARKS,
+	TE_PARASITE_ATTACK,
+	TE_ROCKET_EXPLOSION_WATER,
+	TE_GRENADE_EXPLOSION_WATER,
+	TE_MEDIC_CABLE_ATTACK,
+	TE_BFG_EXPLOSION,
+	TE_BFG_BIGEXPLOSION,
+	TE_BOSSTPORT,			// used as '22' in a map, so DON'T RENUMBER!!!
+	TE_BFG_LASER,
+	TE_GRAPPLE_CABLE,
+	TE_WELDING_SPARKS,
+	TE_GREENBLOOD,
+	TE_BLUEHYPERBLASTER,
+	TE_PLASMA_EXPLOSION,
+	TE_TUNNEL_SPARKS,
+	TE_FLASHLIGHT,
+	TE_DEBUGTRAIL,
+
+} temp_event_t;
 
 
 #define MAX_EXPLOSIONS	32
@@ -507,17 +549,6 @@ void CL_ParseTEnt (void)
 		else
 			color = splash_color[r];
 		CL_ParticleEffect (pos, dir, color, cnt);
-
-		if (r == SPLASH_SPARKS)
-		{
-			r = rand() & 3;
-			if (r == 0)
-				S_StartSound (pos, 0, 0, cl_sfx_spark5);
-			else if (r == 1)
-				S_StartSound (pos, 0, 0, cl_sfx_spark6);
-			else
-				S_StartSound (pos, 0, 0, cl_sfx_spark7);
-		}
 		break;
 
 	case TE_LASER_SPARKS:

@@ -162,7 +162,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, sv_state_t 
 
 	svs.spawncount++; // any partially connected client will be restarted
 	sv.state = ss_dead;
-	Com_SetServerState (sv.state);
+	Host_SetServerState (sv.state);
 
 	// wipe the entire per-level structure
 	memset (&sv, 0, sizeof(sv));
@@ -229,7 +229,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, sv_state_t 
 	// precache and static commands can be issued during
 	// map initialization
 	sv.state = ss_loading;
-	Com_SetServerState (sv.state);
+	Host_SetServerState (sv.state);
 
 	// load and spawn all other entities
 	SV_SpawnEntities ( sv.name, CM_EntityString(), spawnpoint );
@@ -240,7 +240,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, sv_state_t 
 
 	// all precaches are complete
 	sv.state = serverstate;
-	Com_SetServerState (sv.state);
+	Host_SetServerState (sv.state);
 
 	// create a baseline for more efficient communications
 	SV_CreateBaseline ();
@@ -269,13 +269,12 @@ void SV_InitGame (void)
 	if (svs.initialized)
 	{
 		// cause any connected clients to reconnect
-		SV_Shutdown ("Server restarted\n", true);
+		SV_Shutdown("Server restarted\n", true);
 	}
 	else
 	{
 		// make sure the client is down
-		CL_Drop ();
-		SCR_BeginLoadingPlaque ();
+		CL_Drop();
 	}
 
 	svs.initialized = true;
@@ -397,19 +396,16 @@ void SV_Map (bool attractloop, char *levelstring, char *savename, bool loadgame)
 	l = strlen(level);
 	if (!strcmp(ext, "roq"))
 	{
-		SCR_BeginLoadingPlaque (); // for local system
 		SV_BroadcastCommand ("changing\n");
 		SV_SpawnServer (level, spawnpoint, NULL, ss_cinematic, attractloop, loadgame);
 	}
 	else if (!strcmp(ext, "dm2"))
 	{
-		SCR_BeginLoadingPlaque (); // for local system
 		SV_BroadcastCommand ("changing\n");
 		SV_SpawnServer (level, spawnpoint, NULL, ss_demo, attractloop, loadgame);
 	}
 	else
 	{
-		SCR_BeginLoadingPlaque (); // for local system
 		FS_DefaultExtension( level, ".bsp" );
 		SV_BroadcastCommand ("changing\n");
 		SV_SendClientMessages();

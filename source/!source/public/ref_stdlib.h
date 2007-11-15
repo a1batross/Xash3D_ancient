@@ -11,7 +11,6 @@
 STDLIB GENERIC ALIAS NAMES
 ==============================================================================
 */
-
 /*
 ==========================================
 	memory manager funcs
@@ -139,7 +138,9 @@ misc utils
 ===========================================
 */
 #define timestamp		std.timestamp
-#define copystring		std.stralloc
+#define copystring(str)	std.stralloc(str, __FILE__, __LINE__)
+#define strcasecmp		std.stricmp
+#define strncasecmp		std.strnicmp
 #define va		std.va
 
 #endif//REF_STDLIB_H
