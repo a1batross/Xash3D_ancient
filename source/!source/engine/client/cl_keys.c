@@ -233,34 +233,26 @@ void Field_CompleteCommand( field_t *field )
 	Mem_Copy(&temp, completionField, sizeof(field_t));
 
 	cmdname = completionField->buffer;
-	if(Com_ParseToken( &cmdname ))
+	if(Cmd_Argc() == 2)
 	{
-		if(!stricmp(com_token, "\\map" ) || !stricmp(com_token, "map" ))
+		// autocomplete second arg
+		if(!stricmp(Cmd_Argv(0), "map" ) || !stricmp(Cmd_Argv(0), "\\map" ))
 		{
-			strncpy( command, com_token, MAX_QPATH );
-			if(Com_ParseToken( &cmdname ))
-			{
-				if(Cmd_GetMapList( com_token, filename, MAX_QPATH ))
-				{         
-					sprintf( completionField->buffer, "%s %s", command, filename ); 
-					completionField->cursor = strlen( completionField->buffer );
-					return;
-				}
+			if(Cmd_GetMapList(Cmd_Argv(1), filename, MAX_QPATH ))
+			{         
+				sprintf( completionField->buffer, "%s %s", Cmd_Argv(0), filename ); 
+				completionField->cursor = strlen( completionField->buffer );
 			}
 		}
-		else if(!stricmp(com_token, "\\demomap" ) || !stricmp(com_token, "demomap" ))
+		else if(!stricmp(Cmd_Argv(0), "demomap" ) || !stricmp(Cmd_Argv(0), "\\demomap" ))
 		{
-			strncpy( command, com_token, MAX_QPATH );
-			if(Com_ParseToken( &cmdname ))
-			{
-				if(Cmd_GetDemoList( com_token, filename, MAX_QPATH ))
-				{         
-					sprintf( completionField->buffer, "%s %s", command, filename ); 
-					completionField->cursor = strlen( completionField->buffer );
-					return;
-				}
+			if(Cmd_GetDemoList(Cmd_Argv(1), filename, MAX_QPATH ))
+			{         
+				sprintf( completionField->buffer, "%s %s", Cmd_Argv(0), filename ); 
+				completionField->cursor = strlen( completionField->buffer );
 			}
 		}	
+		return;
 	}  
 
 	if( matchCount == 1 )

@@ -239,9 +239,9 @@ void SV_Map_f (void)
 	if(!strstr (map, "."))
 	{
 		sprintf(expanded, "maps/%s.bsp", map);
-		if (!FS_LoadFile (expanded, NULL))
+		if(!FS_FileExists( expanded ))
 		{
-			Msg ("Can't find %s\n", expanded);
+			Msg("Can't find %s\n", expanded);
 			return;
 		}
 	}

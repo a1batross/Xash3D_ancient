@@ -774,7 +774,6 @@ static bool FS_AddPack_Fullpath(const char *pakfile, bool *already_loaded, bool 
 	if(already_loaded) *already_loaded = false;
 
 	if(!com_stricmp(ext, "pak")) pak = FS_LoadPackPAK (pakfile);
-	else if(!com_stricmp(ext, "pk2")) pak = FS_LoadPackPK3 (pakfile);
 	else if(!com_stricmp(ext, "pk3")) pak = FS_LoadPackPK3 (pakfile);
 	else Msg("\"%s\" does not have a pack extension\n", pakfile);
 

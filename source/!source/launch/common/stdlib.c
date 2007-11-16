@@ -23,7 +23,7 @@ void com_strnupr(const char *in, char *out, size_t size_out)
 
 void com_strupr(const char *in, char *out)
 {
-	com_strnupr(in, out, 4096 );
+	com_strnupr(in, out, 99999 );
 }
 
 void com_strnlwr(const char *in, char *out, size_t size_out)
@@ -42,7 +42,7 @@ void com_strnlwr(const char *in, char *out, size_t size_out)
 
 void com_strlwr(const char *in, char *out)
 {
-	com_strnlwr(in, out, 4096 );
+	com_strnlwr(in, out, 99999 );
 }
 
 /*
@@ -149,7 +149,7 @@ size_t com_strncat(char *dst, const char *src, size_t siz)
 
 size_t com_strcat(char *dst, const char *src )
 {
-	return com_strncat( dst, src, 4096 );
+	return com_strncat( dst, src, 99999 );
 }
 
 size_t com_strncpy(char *dst, const char *src, size_t siz)
@@ -179,7 +179,7 @@ size_t com_strncpy(char *dst, const char *src, size_t siz)
 
 size_t com_strcpy(char *dst, const char *src )
 {
-	return com_strncpy( dst, src, 4096 );
+	return com_strncpy( dst, src, 99999 );
 }
 
 char *com_stralloc(const char *s, const char *filename, int fileline)
@@ -347,7 +347,14 @@ char *com_strrchr(const char *s, char c)
 int com_strnicmp(const char *s1, const char *s2, int n)
 {
 	int             c1, c2;
-	
+
+	if( s1 == NULL )
+	{
+		if ( s2 == NULL ) return 0;
+		else return -1;
+	}
+	else if ( s2==NULL ) return 1;
+
 	while(1)
 	{
 		c1 = *s1++;
@@ -368,24 +375,37 @@ int com_strnicmp(const char *s1, const char *s2, int n)
 
 int com_stricmp(const char *s1, const char *s2)
 {
-	return com_strnicmp(s1, s2, 4096 );
+	return com_strnicmp(s1, s2, 99999 );
 }
 
 int com_strncmp (const char *s1, const char *s2, int n)
 {
-	while( 1 )
+	int		c1, c2;
+
+	if( s1 == NULL )
 	{
-		if (!n--) return 0;
-		if (*s1 != *s2) return -1; // strings not equal    
-		if (!*s1) return 0; // strings are equal
-		s1++, s2++;
+		if ( s2 == NULL ) return 0;
+		else return -1;
 	}
-	return -1;
+	else if ( s2==NULL ) return 1;
+	
+	do {
+		c1 = *s1++;
+		c2 = *s2++;
+
+		// strings are equal until end point
+		if (!n--) return 0;
+		if (c1 != c2) return c1 < c2 ? -1 : 1;
+
+	} while (c1);
+	
+	// strings are equal
+	return 0;
 }
 
 int com_strcmp (const char *s1, const char *s2)
 {
-	return com_strncmp(s1, s2, 4096 );
+	return com_strncmp(s1, s2, 99999 );
 }
 
 /*
@@ -496,7 +516,7 @@ int com_vsnprintf(char *buffer, size_t buffersize, const char *format, va_list a
 
 int com_vsprintf(char *buffer, const char *format, va_list args)
 {
-	return com_vsnprintf(buffer, 4096, format, args);
+	return com_vsnprintf(buffer, 99999, format, args);
 }
 
 int com_snprintf(char *buffer, size_t buffersize, const char *format, ...)
@@ -517,7 +537,7 @@ int com_sprintf(char *buffer, const char *format, ...)
 	int	result;
 
 	va_start (args, format);
-	result = com_vsnprintf (buffer, 4096, format, args);
+	result = com_vsnprintf (buffer, 99999, format, args);
 	va_end (args);
 
 	return result;

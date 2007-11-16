@@ -510,7 +510,7 @@ extern byte	net_message_buffer[MAX_MSGLEN];
 #define PORT_MASTER		27900
 #define PORT_CLIENT		27901
 #define PORT_SERVER		27910
-#define UPDATE_BACKUP	16	// copies of entity_state_t to keep buffered, must be power of two
+#define UPDATE_BACKUP	64	// copies of entity_state_t to keep buffered, must be power of two
 #define UPDATE_MASK		(UPDATE_BACKUP - 1)
 
 void Netchan_Init (void);

@@ -335,44 +335,32 @@ Cmd_GetMapList
 Prints or complete map filename
 =====================================
 */
-bool Cmd_GetMapList (const char *s, char *completedname, int completednamebufferlength )
+bool Cmd_GetMapList (const char *s, char *completedname, int length )
 {
 	search_t		*t;
-	char		message[MAX_QPATH];
-	int		i, k, max, p, o, min;
-	byte		*len;
 	file_t		*f;
-	byte		buf[1024];
+	char		message[MAX_QPATH];
+	char		matchbuf[MAX_QPATH];
+	byte		buf[MAX_SYSPATH]; // 1 kb
+	int		i;
 
-	sprintf(message, "maps/%s*.bsp", s);
-	t = FS_Search(message, true);
-	if(!t) return false;
+	t = FS_Search(va("maps/%s*.bsp", s), true );
+	if( !t ) return false;
 
-	if (t->numfilenames > 1) Msg("^1 %i maps found :\n", t->numfilenames);
-	len = (byte *)Z_Malloc(t->numfilenames);
-	min = 256;
+	FS_FileBase(t->filenames[0], matchbuf ); 
+	strncpy( completedname, matchbuf, length );
+	if(t->numfilenames == 1) return true;
 
-	for(max = i = 0; i < t->numfilenames; i++)
-	{
-		k = (int)strlen(t->filenames[i]);
-		k -= 9;
-		if(max < k) max = k;
-		else if(min > k) min = k;
-		len[i] = k;
-	}
-
-	o = (int)strlen(s);
+	Msg("^3 %i maps found :\n", t->numfilenames);
 
 	for(i = 0; i < t->numfilenames; i++)
 	{
-		int		lumpofs = 0, lumplen = 0;
-		char		*entities = NULL;
 		const char	*data = NULL;
-		char		keyname[64];
+		char		*entities = NULL;
 		char		entfilename[MAX_QPATH];
+		int		ver = -1, lumpofs = 0, lumplen = 0;
 
-		strncpy(message, "^1**ERROR**^7", sizeof(message));
-		p = 0;
+		strncpy(message, "No Title", sizeof(message));
 		f = FS_Open(t->filenames[i], "rb" );
 	
 		if( f )
@@ -381,8 +369,8 @@ bool Cmd_GetMapList (const char *s, char *completedname, int completednamebuffer
 			FS_Read(f, buf, 1024);
 			if(!memcmp(buf, "IBSP", 4))
 			{
-				p = LittleLong(((int *)buf)[1]);
-				if (p == BSPMOD_VERSION)
+				ver = LittleLong(((int *)buf)[1]);
+				if(ver == BSPMOD_VERSION)
 				{
 					dheader_t *header = (dheader_t *)buf;
 					lumpofs = LittleLong(header->lumps[LUMP_ENTITIES].fileofs);
@@ -390,8 +378,9 @@ bool Cmd_GetMapList (const char *s, char *completedname, int completednamebuffer
 				}
 			}
 
-			strncpy(entfilename, t->filenames[i], sizeof(entfilename));
-			memcpy(entfilename + strlen(entfilename) - 4, ".ent", 5);
+			std.strncpy(entfilename, t->filenames[i], sizeof(entfilename));
+			FS_StripExtension( entfilename );
+			FS_DefaultExtension( entfilename, ".ent" );
 			entities = (char *)FS_LoadFile(entfilename, NULL);
 
 			if( !entities && lumplen >= 10 )
@@ -407,60 +396,47 @@ bool Cmd_GetMapList (const char *s, char *completedname, int completednamebuffer
 				// means there is no title, so clear the message string now
 				message[0] = 0;
 				data = entities;
-				while( 1 )
+				while(Com_ParseToken(&data))
 				{
-					int l;
-					if (!Com_ParseToken(&data)) break;
-					if (com_token[0] == '{') continue;
-					if (com_token[0] == '}') break;
-					// skip leading whitespace
-					for (k = 0; com_token[k] && com_token[k] <= ' '; k++);
-					for (l = 0; l < (int)sizeof(keyname) - 1 && com_token[k+l] && com_token[k+l] > ' '; l++)
-						keyname[l] = com_token[k+l];
-					keyname[l] = 0;
-					if (!Com_ParseToken(&data)) break;
-					MsgDev(D_NOTE, "key: %s %s\n", keyname, com_token);
-					if (!strcmp(keyname, "message"))
+					if(!strcmp(com_token, "{" )) continue;
+					else if(!strcmp(com_token, "}" )) break;
+					else if(!strcmp(com_token, "message" ))
 					{
 						// get the message contents
+						Com_ParseToken(&data);
 						strncpy(message, com_token, sizeof(message));
-						break;
+					}
+					else if(!strcmp(com_token, "mapversion" ))
+					{
+						// get map version
+						Com_ParseToken(&data);
+						ver = atoi(com_token);
 					}
 				}
 			}
 		}
 		if( entities )Z_Free(entities);
 		if( f )FS_Close(f);
-		*(t->filenames[i] + len[i]+5) = 0;
+		FS_FileBase(t->filenames[i], matchbuf );
 
-		switch(p)
+		switch(ver)
 		{
-		case BSPMOD_VERSION: strncpy((char *)buf, "Q2", sizeof(buf)); break;
-		default:		 strncpy((char *)buf, "??", sizeof(buf)); break;
+		case 38:  strncpy((char *)buf, "Q2", sizeof(buf)); break;
+		case 220: strncpy((char *)buf, "Xash", sizeof(buf)); break;
+		default:	strncpy((char *)buf, "??", sizeof(buf)); break;
 		}
-		Msg("%16s (%s) %s\n", t->filenames[i] + 5, buf, message);
+		Msg("%16s (%s) ^3%s^7\n", matchbuf, buf, message);
 	}
 	Msg("\n");
-
-	for(p = o; p < min; p++)
-	{
-		k = *(t->filenames[0]+5+p);
-		if(k == 0) goto endcomplete;
-		for(i = 1; i < t->numfilenames; i++)
-		{
-			if(*(t->filenames[i]+5+p) != k)
-				goto endcomplete;
-		}
-	}
-endcomplete:
-	if(p > o && completednamebufferlength > 0)
-	{
-		memset(completedname, 0, completednamebufferlength);
-		memcpy(completedname, (t->filenames[0]+5), min(p, completednamebufferlength - 1));
-	}
-	Z_Free( len );
 	Z_Free( t );
-	return p > o;
+
+	// cut shortestMatch to the amount common with s
+	for( i = 0; matchbuf[i]; i++ )
+	{
+		if(tolower(completedname[i]) != tolower(matchbuf[i]))
+			completedname[i] = 0;
+	}
+	return true;
 }
 
 /*
@@ -470,61 +446,40 @@ Cmd_GetDemoList
 Prints or complete demo filename
 =====================================
 */
-bool Cmd_GetDemoList (const char *s, char *completedname, int completednamebufferlength)
+bool Cmd_GetDemoList (const char *s, char *completedname, int length )
 {
 	search_t		*t;
-	char		message[MAX_QPATH];
-	byte		*len;
-	int		i, k, p, o, min, max;
+	char		matchbuf[MAX_QPATH];
+	int		i;
 
-	sprintf(message, "demos/%s*.dm2", s);
-	t = FS_Search(message, true);
+	t = FS_Search(va("demos/%s*.dm2", s ), true);
 	if(!t) return false;
-	len = (byte *)Z_Malloc(t->numfilenames);
-	min = 256;
 
-	for(max = i = 0; i < t->numfilenames; i++)
-	{
-		k = (int)strlen(t->filenames[i]);
-		k -= 9;
-		if(max < k) max = k;
-		else if(min > k) min = k;
-		len[i] = k;
-	}
-	o = (int)strlen(s);
-	
-	if (t->numfilenames > 1)
-	{
-		Msg("^1 %i demos found :\n", t->numfilenames);
-		for(i = 0; i < t->numfilenames; i++)
-		{
-			//FS_StripExtension(t->filenames[i]);
-			Msg("%16s\n", t->filenames[i]);
-		}
-		Msg("\n");
-	}
-	else if (t->numfilenames == 1) //FS_StripExtension(t->filenames[0]);
+	FS_FileBase(t->filenames[0], matchbuf ); 
+	if(completedname && length) strncpy( completedname, matchbuf, length );
+	if(t->numfilenames == 1) return true;
 
-	for(p = o; p < min; p++)
-	{
-		k = *(t->filenames[0]+p);
-		if(k == 0) goto endcomplete;
-		for(i = 1; i < t->numfilenames; i++)
-		{
-			if(*(t->filenames[i]+p) != k)
-				goto endcomplete;
-		}
-	}
-endcomplete:
-	if(p > o && completednamebufferlength > 0)
-	{
-		memset(completedname, 0, completednamebufferlength);
-		memcpy(completedname, (t->filenames[0]+6), min(p, completednamebufferlength - 1));
-	}
+	Msg("^3 %i demos found :\n", t->numfilenames);
 
+	for(i = 0; i < t->numfilenames; i++)
+	{
+		FS_FileBase(t->filenames[i], matchbuf );
+		Msg("%16s\n", matchbuf );
+	}
+	Msg("\n");
 	Z_Free(t);
-	Z_Free( len );
-	return p > o;
+
+	// cut shortestMatch to the amount common with s
+	if(completedname && length)
+	{
+		for( i = 0; matchbuf[i]; i++ )
+		{
+			if(tolower(completedname[i]) != tolower(matchbuf[i]))
+				completedname[i] = 0;
+		}
+	}
+
+	return true;
 }
 
 /*
