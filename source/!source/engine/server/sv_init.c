@@ -125,17 +125,17 @@ void SV_CheckForSavegame (char *savename )
 {
 	char		name[MAX_SYSPATH];
 
-	if (sv_noreload->value) return;
-	if (Cvar_VariableValue ("deathmatch")) return;
-	if (!savename) return;
+	if(sv_noreload->value) return;
+	if(Cvar_VariableValue ("deathmatch")) return;
+	if(!savename) return;
 
-	sprintf (name, "save/%s.bin", savename );
+	sprintf (name, "save/%s", savename );
 	if(!FS_FileExists(name))
 	{
 		Msg("can't find %s\n", savename );
 		return;
 	}
-	SV_ClearWorld ();
+	SV_ClearWorld();
 
 	// get configstrings and areaportals
 	SV_ReadLevelFile ( savename );
@@ -151,24 +151,23 @@ clients along with it.
 
 ================
 */
-void SV_SpawnServer (char *server, char *spawnpoint, char *savename, sv_state_t serverstate, bool attractloop, bool loadgame)
+void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 {
 	uint	i, checksum;
 
-	if (attractloop) Cvar_Set ("paused", "0");
+	if(serverstate == ss_demo || serverstate == ss_cinematic)
+		Cvar_Set ("paused", "0");
 
 	Msg("SpawnServer [%s]\n", server );
 	if (sv.demofile) FS_Close (sv.demofile);
 
 	svs.spawncount++; // any partially connected client will be restarted
 	sv.state = ss_dead;
-	Host_SetServerState (sv.state);
+	Host_SetServerState(sv.state);
 
 	// wipe the entire per-level structure
 	memset (&sv, 0, sizeof(sv));
 	svs.realtime = 0;
-	sv.loadgame = loadgame;
-	sv.attractloop = attractloop;
 
 	// save name for levels that don't set message
 	strcpy (sv.configstrings[CS_NAME], server);
@@ -183,7 +182,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, sv_state_t 
 		pm_airaccelerate = 0;
 	}
 
-	SZ_Init (&sv.multicast, sv.multicast_buf, sizeof(sv.multicast_buf));
+	SZ_Init(&sv.multicast, sv.multicast_buf, sizeof(sv.multicast_buf));
 	strcpy (sv.name, server);
 
 	SV_VM_Begin();
@@ -232,7 +231,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, char *savename, sv_state_t 
 	Host_SetServerState (sv.state);
 
 	// load and spawn all other entities
-	SV_SpawnEntities ( sv.name, CM_EntityString(), spawnpoint );
+	SV_SpawnEntities ( sv.name, CM_EntityString());
 
 	// run two frames to allow everything to settle
 	SV_RunFrame ();
@@ -339,79 +338,6 @@ void SV_InitGame (void)
 	}
 
 	SV_VM_End();
-}
-
-
-/*
-======================
-SV_Map
-
-  the full syntax is:
-
-  map [*]<map>$<startspot>+<nextserver>
-
-command from the console or progs.
-Map can also be a.cin, .pcx, or .dm2 file
-Nextserver is used to allow a cinematic to play, then proceed to
-another level:
-
-	map tram.cin+jail_e3
-======================
-*/
-void SV_Map (bool attractloop, char *levelstring, char *savename, bool loadgame)
-{
-	char	*ch;
-	int	l;
-	char	level[MAX_QPATH], spawnpoint[MAX_QPATH];
-	const char *ext = FS_FileExtension(levelstring);
-
-	sv.loadgame = loadgame;
-	sv.attractloop = attractloop;
-
-	if (sv.state == ss_dead && !sv.loadgame) SV_InitGame ();// the game is just starting
-
-	strcpy (level, levelstring);
-
-	// if there is a + in the map, set nextserver to the remainder
-	ch = strstr(level, "+");
-	if (ch)
-	{
-		*ch = 0;
-		Cvar_Set ("nextserver", va("gamemap \"%s\"", ch + 1));
-	}
-	else Cvar_Set ("nextserver", "");
-
-	// if there is a $, use the remainder as a spawnpoint
-	ch = strstr(level, "$");
-	if (ch)
-	{
-		*ch = 0;
-		strcpy (spawnpoint, ch + 1);
-	}
-	else spawnpoint[0] = 0;
-          
-	// skip the end-of-unit flag if necessary
-	if (level[0] == '*') strcpy (level, level+1);
-
-	l = strlen(level);
-	if (!strcmp(ext, "roq"))
-	{
-		SV_BroadcastCommand ("changing\n");
-		SV_SpawnServer (level, spawnpoint, NULL, ss_cinematic, attractloop, loadgame);
-	}
-	else if (!strcmp(ext, "dm2"))
-	{
-		SV_BroadcastCommand ("changing\n");
-		SV_SpawnServer (level, spawnpoint, NULL, ss_demo, attractloop, loadgame);
-	}
-	else
-	{
-		FS_DefaultExtension( level, ".bsp" );
-		SV_BroadcastCommand ("changing\n");
-		SV_SendClientMessages();
-		SV_SpawnServer (level, spawnpoint, savename, ss_game, attractloop, loadgame);
-	}
-	SV_BroadcastCommand ("reconnect\n");
 }
 
 void SV_VM_BeginIncreaseEdicts(void)

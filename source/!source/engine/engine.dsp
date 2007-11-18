@@ -194,10 +194,6 @@ SOURCE=.\host.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\in_win.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\common\md4.c
 # End Source File
 # Begin Source File
@@ -299,10 +295,6 @@ SOURCE=.\server\sv_world.c
 # Begin Source File
 
 SOURCE=.\system.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\vid_dll.c
 # End Source File
 # Begin Source File
 

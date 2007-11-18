@@ -1109,7 +1109,6 @@ static void RoQShutdown( void )
 	cinTable.fileName[0] = 0;
 
 	// let game known about movie state	
-	cl.attractloop = false;
 	cls.state = ca_disconnected;
 	Cbuf_AddText ("killserver\n");
 }

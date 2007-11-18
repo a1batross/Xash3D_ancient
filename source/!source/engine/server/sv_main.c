@@ -319,10 +319,10 @@ void SVC_DirectConnect( void )
 	// force the IP key/value pair so the game can filter based on ip
 	Info_SetValueForKey (userinfo, "ip", NET_AdrToString(net_from));
 
-	// attractloop servers are ONLY for local clients
-	if (sv.attractloop)
+	// demo and movie playback servers are ONLY for local clients
+	if(Host_ServerState() == ss_demo || Host_ServerState() == ss_cinematic)
 	{
-		if (!NET_IsLocalAddress (adr))
+		if(!NET_IsLocalAddress (adr))
 		{
 			Msg ("Remote connect in attract loop.  Ignored.\n");
 			Netchan_OutOfBandPrint (NS_SERVER, adr, "print\nConnection refused.\n");
@@ -895,13 +895,17 @@ into a more C freindly form.
 void SV_UserinfoChanged (client_state_t *cl)
 {
 	char	*val;
-	int		i;
+	int	i;
+	char	*cl_name;
 
 	// call prog code to allow overrides
 	SV_ClientUserinfoChanged(cl->edict, cl->userinfo);
 	
 	// name for C code
-	strncpy (cl->name, Info_ValueForKey (cl->userinfo, "name"), sizeof(cl->name)-1);
+	cl_name = Info_ValueForKey (cl->userinfo, "name");
+	if(cl_name == "") strncpy (cl->name, "unnamed", sizeof(cl->name) - 1);
+	else strncpy (cl->name, cl_name, sizeof(cl->name) - 1);
+
 	// mask off high bit
 	for (i=0 ; i<sizeof(cl->name) ; i++)
 		cl->name[i] &= 127;
@@ -953,7 +957,7 @@ void SV_Init (void)
 	Cvar_Get ("cheats", "0", CVAR_SERVERINFO|CVAR_LATCH);
 	Cvar_Get ("protocol", va("%i", PROTOCOL_VERSION), CVAR_SERVERINFO|CVAR_INIT);
 	maxclients = Cvar_Get ("maxclients", "1", CVAR_SERVERINFO | CVAR_LATCH);
-	hostname = Cvar_Get ("hostname", "noname", CVAR_SERVERINFO | CVAR_ARCHIVE);
+	hostname = Cvar_Get ("hostname", "unnamed", CVAR_SERVERINFO | CVAR_ARCHIVE);
 	timeout = Cvar_Get ("timeout", "125", 0);
 	zombietime = Cvar_Get ("zombietime", "2", 0);
 	sv_showclamp = Cvar_Get ("showclamp", "0", 0);

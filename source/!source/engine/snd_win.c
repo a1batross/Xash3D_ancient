@@ -34,7 +34,6 @@ static dllfunc_t dsound_funcs[] =
 dll_info_t dsound_dll = { "dsound.dll", dsound_funcs, NULL, NULL, NULL, false, 0 };
 
 #define SECONDARY_BUFFER_SIZE	0x10000
-extern HWND cl_hwnd;
 static bool dsound_init;
 static int sample16;
 static dword gSndBufSize;
@@ -79,7 +78,7 @@ void SNDDMA_Shutdown( void )
 		if ( pDS )
 		{
 			MsgDev(D_INFO, "...setting NORMAL coop level\n" );
-			pDS->lpVtbl->SetCooperativeLevel( pDS, cl_hwnd, DSSCL_PRIORITY );
+			pDS->lpVtbl->SetCooperativeLevel( pDS, host.hWnd, DSSCL_PRIORITY );
 		}
 
 		if ( pDSBuf )
@@ -137,7 +136,7 @@ int SNDDMA_InitDS( void )
 	MsgDev(D_INFO, "ok\n" );
 
 	MsgDev(D_INFO, "...setting DSSCL_PRIORITY coop level: " );
-	if(DS_OK != pDS->lpVtbl->SetCooperativeLevel( pDS, cl_hwnd, DSSCL_PRIORITY ))
+	if(DS_OK != pDS->lpVtbl->SetCooperativeLevel( pDS, host.hWnd, DSSCL_PRIORITY ))
 	{
 		MsgDev(D_INFO, "failed\n");
 		SNDDMA_Shutdown ();
@@ -337,7 +336,7 @@ void SNDDMA_Activate( void )
 {
 	if( !pDS ) return;
 
-	if( DS_OK != pDS->lpVtbl->SetCooperativeLevel( pDS, cl_hwnd, DSSCL_PRIORITY ))
+	if( DS_OK != pDS->lpVtbl->SetCooperativeLevel( pDS, host.hWnd, DSSCL_PRIORITY ))
 	{
 		MsgDev(D_INFO, "sound SetCooperativeLevel failed\n");
 		SNDDMA_Shutdown();

@@ -89,3 +89,17 @@ typedef enum
 
 	K_LAST_KEY // this had better be < 256!
 } keyNum_t;
+
+static byte scan_to_key[128] = 
+{ 
+	0,27,'1','2','3','4','5','6','7','8','9','0','-','=',K_BACKSPACE,9,
+	'q','w','e','r','t','y','u','i','o','p','[',']', 13 , K_CTRL,
+	'a','s','d','f','g','h','j','k','l',';','\'','`',
+	K_SHIFT,'\\','z','x','c','v','b','n','m',',','.','/',K_SHIFT,
+	'*',K_ALT,' ',K_CAPSLOCK,
+	K_F1,K_F2,K_F3,K_F4,K_F5,K_F6,K_F7,K_F8,K_F9,K_F10,
+	K_PAUSE,0,K_HOME,K_UPARROW,K_PGUP,K_KP_MINUS,K_LEFTARROW,K_KP_5,
+	K_RIGHTARROW,K_KP_PLUS,K_END,K_DOWNARROW,K_PGDN,K_INS,K_DEL,
+	0,0,0,K_F11,K_F12,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+};

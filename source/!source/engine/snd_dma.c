@@ -113,11 +113,11 @@ void S_Init( void )
 	cv = Cvar_Get ("s_initsound", "1", 0);
 	if ( !cv->value ) return;
 
-	Cmd_AddCommand("play", S_Play_f);
-	Cmd_AddCommand("music", S_Music_f);
-	Cmd_AddCommand("s_list", S_SoundList_f);
-	Cmd_AddCommand("s_info", S_SoundInfo_f);
-	Cmd_AddCommand("s_stop", S_StopAllSounds);
+	Cmd_AddCommand("play", S_Play_f, "playing a specified sound file" );
+	Cmd_AddCommand("music", S_Music_f, "starting a background track" );
+	Cmd_AddCommand("snd_list", S_SoundList_f, "display loaded sounds" );
+	Cmd_AddCommand("snd_info", S_SoundInfo_f, "print sound system information" );
+	Cmd_AddCommand("snd_stop", S_StopAllSounds, "stop all sounds" );
 
 	if (SNDDMA_Init())
 	{

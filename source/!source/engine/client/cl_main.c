@@ -97,7 +97,6 @@ extern	cvar_t *allow_download_players;
 extern	cvar_t *allow_download_models;
 extern	cvar_t *allow_download_sounds;
 extern	cvar_t *allow_download_maps;
-extern	HWND cl_hwnd;
 //======================================================================
 
 
@@ -137,7 +136,7 @@ void CL_Stop_f (void)
 		return;
 	}
 
-// finish up
+	// finish up
 	len = -1;
 	FS_Write (cls.demofile, &len, 4 );
 	FS_Close (cls.demofile);
@@ -184,7 +183,7 @@ void CL_Record_f (void)
 	}
 
 	// open the demo file
-	sprintf (name, "demos/%s.dm2", Cmd_Argv(1));
+	sprintf (name, "demos/%s.dem", Cmd_Argv(1));
 
 	Msg ("recording to %s.\n", name);
 	cls.demofile = FS_Open (name, "wb");
@@ -207,10 +206,7 @@ void CL_Record_f (void)
 	MSG_WriteByte (&buf, svc_serverdata);
 	MSG_WriteLong (&buf, PROTOCOL_VERSION);
 	MSG_WriteLong (&buf, 0x10000 + cl.servercount);
-	MSG_WriteByte (&buf, 1);	// demos are always attract loops
-	MSG_WriteString (&buf, cl.gamedir);
 	MSG_WriteShort (&buf, cl.playernum);
-
 	MSG_WriteString (&buf, cl.configstrings[CS_NAME]);
 
 	// configstrings
@@ -295,42 +291,6 @@ void Cmd_ForwardToServer (void)
 		SZ_Print (&cls.netchan.message, Cmd_Args());
 	}
 }
-
-void CL_Setenv_f( void )
-{
-	int argc = Cmd_Argc();
-
-	if ( argc > 2 )
-	{
-		char buffer[1000];
-		int i;
-
-		strcpy( buffer, Cmd_Argv(1) );
-		strcat( buffer, "=" );
-
-		for ( i = 2; i < argc; i++ )
-		{
-			strcat( buffer, Cmd_Argv( i ) );
-			strcat( buffer, " " );
-		}
-
-		putenv( buffer );
-	}
-	else if ( argc == 2 )
-	{
-		char *env = getenv( Cmd_Argv(1) );
-
-		if ( env )
-		{
-			Msg( "%s=%s\n", Cmd_Argv(1), env );
-		}
-		else
-		{
-			Msg( "%s undefined\n", Cmd_Argv(1), env );
-		}
-	}
-}
-
 
 /*
 ==================
@@ -832,30 +792,6 @@ void CL_PingServers_f (void)
 	}
 }
 
-
-/*
-=================
-CL_Skins_f
-
-Load or download any custom player skins and models
-=================
-*/
-void CL_Skins_f (void)
-{
-	int		i;
-
-	for (i=0 ; i<MAX_CLIENTS ; i++)
-	{
-		if (!cl.configstrings[CS_PLAYERSKINS+i][0])
-			continue;
-		Msg ("client %i: %s\n", i, cl.configstrings[CS_PLAYERSKINS+i]); 
-		SCR_UpdateScreen ();
-		Sys_SendKeyEvents ();	// pump message loop
-		CL_ParseClientinfo (i);
-	}
-}
-
-
 /*
 =================
 CL_ConnectionlessPacket
@@ -904,16 +840,16 @@ void CL_ConnectionlessPacket (void)
 	// remote command from gui front end
 	if (!strcmp(c, "cmd"))
 	{
-		if (!NET_IsLocalAddress(net_from))
+		if(!NET_IsLocalAddress(net_from))
 		{
 			Msg ("Command packet from remote host.  Ignored.\n");
 			return;
 		}
-		ShowWindow ( cl_hwnd, SW_RESTORE);
-		SetForegroundWindow ( cl_hwnd );
+		ShowWindow( host.hWnd, SW_RESTORE);
+		SetForegroundWindow ( host.hWnd );
 		s = MSG_ReadString (&net_message);
-		Cbuf_AddText (s);
-		Cbuf_AddText ("\n");
+		Cbuf_AddText(s);
+		Cbuf_AddText("\n");
 		return;
 	}
 	// print command from somewhere
@@ -1341,14 +1277,14 @@ before allowing the client into the server
 */
 void CL_Precache_f (void)
 {
-	//Yet another hack to let old demos work
-	//the old precache sequence
-	if (Cmd_Argc() < 2) {
-		unsigned	map_checksum;		// for detecting cheater maps
-
-		CM_LoadMap (cl.configstrings[CS_MODELS+1], true, &map_checksum);
-		CL_RegisterSounds ();
-		CL_PrepRefresh ();
+	// Yet another hack to let old demos work
+	// the old precache sequence
+	if(Cmd_Argc() < 2)
+	{
+		uint	map_checksum; // for detecting cheater maps
+		CM_LoadMap(cl.configstrings[CS_MODELS+1], true, &map_checksum );
+		CL_RegisterSounds();
+		CL_PrepRefresh();
 		return;
 	}
 
@@ -1370,7 +1306,7 @@ void CL_InitLocal (void)
 {
 	cls.state = ca_disconnected;
 	cls.realtime = 1.0f;
-	CL_InitInput ();
+	CL_InitInput();
 
 	adr0 = Cvar_Get( "adr0", "", CVAR_ARCHIVE );
 	adr1 = Cvar_Get( "adr1", "", CVAR_ARCHIVE );
@@ -1439,43 +1375,37 @@ void CL_InitLocal (void)
 	gender = Cvar_Get ("gender", "male", CVAR_USERINFO | CVAR_ARCHIVE);
 	gender_auto = Cvar_Get ("gender_auto", "1", CVAR_ARCHIVE);
 	gender->modified = false; // clear this so we know when user sets it manually
-
 	cl_vwep = Cvar_Get ("cl_vwep", "1", CVAR_ARCHIVE);
 
-
-	//
 	// register our commands
-	//
-	Cmd_AddCommand ("cmd", CL_ForwardToServer_f);
-	Cmd_AddCommand ("pause", CL_Pause_f);
-	Cmd_AddCommand ("pingservers", CL_PingServers_f);
-	Cmd_AddCommand ("skins", CL_Skins_f);
+	Cmd_AddCommand ("cmd", CL_ForwardToServer_f, "send a console commandline to the server" );
+	Cmd_AddCommand ("pause", CL_Pause_f, "pause the game (if the server allows pausing)" );
+	Cmd_AddCommand ("pingservers", CL_PingServers_f, "send a broadcast packet" );
 
-	Cmd_AddCommand ("userinfo", CL_Userinfo_f);
-	Cmd_AddCommand ("snd_restart", CL_Snd_Restart_f);
+	Cmd_AddCommand ("userinfo", CL_Userinfo_f, "print current client userinfo" );
+	Cmd_AddCommand ("snd_restart", CL_Snd_Restart_f, "restart sound system" );
 
-	Cmd_AddCommand ("changing", CL_Changing_f);
-	Cmd_AddCommand ("disconnect", CL_Disconnect_f);
-	Cmd_AddCommand ("record", CL_Record_f);
-	Cmd_AddCommand ("stop", CL_Stop_f);
+	Cmd_AddCommand ("changing", CL_Changing_f, "sent by server to tell client to wait for level change" );
+	Cmd_AddCommand ("disconnect", CL_Disconnect_f, "disconnect from server" );
+	Cmd_AddCommand ("record", CL_Record_f, "record a demo" );
+	Cmd_AddCommand ("stop", CL_Stop_f, "stop recording a demo" );
 
-	Cmd_AddCommand ("quit", CL_Quit_f);
+	Cmd_AddCommand ("quit", CL_Quit_f, "quit from game" );
+	Cmd_AddCommand ("exit", CL_Quit_f, "quit from game" );
 
-	Cmd_AddCommand ("screenshot", CL_ScreenShot_f);
-	Cmd_AddCommand ("levelshot", CL_LevelShot_f);
+	Cmd_AddCommand ("screenshot", CL_ScreenShot_f, "takes a screenshot of the next rendered frame" );
+	Cmd_AddCommand ("levelshot", CL_LevelShot_f, "same as \"screenshot\", used for create plaque images" );
 
-	Cmd_AddCommand ("connect", CL_Connect_f);
-	Cmd_AddCommand ("reconnect", CL_Reconnect_f);
+	Cmd_AddCommand ("connect", CL_Connect_f, "connect to a server by hostname" );
+	Cmd_AddCommand ("reconnect", CL_Reconnect_f, "reconnect to current level" );
 
-	Cmd_AddCommand ("rcon", CL_Rcon_f);
+	Cmd_AddCommand ("rcon", CL_Rcon_f, "sends a command to the server console (rcon_password and rcon_address required)" );
 
-// 	Cmd_AddCommand ("packet", CL_Packet_f); // this is dangerous to leave in
+	// this is dangerous to leave in
+// 	Cmd_AddCommand ("packet", CL_Packet_f, "send a packet with custom contents" );
 
-	Cmd_AddCommand ("setenv", CL_Setenv_f );
-
-	Cmd_AddCommand ("precache", CL_Precache_f);
-
-	Cmd_AddCommand ("download", CL_Download_f);
+	Cmd_AddCommand ("precache", CL_Precache_f, "precache specified resource (by index)" );
+	Cmd_AddCommand ("download", CL_Download_f, "download specified resource (by name)" );
 
 	//
 	// forward to server commands
@@ -1483,25 +1413,25 @@ void CL_InitLocal (void)
 	// the only thing this does is allow command completion
 	// to work -- all unknown commands are automatically
 	// forwarded to the server
-	Cmd_AddCommand ("wave", NULL);
-	Cmd_AddCommand ("inven", NULL);
-	Cmd_AddCommand ("kill", NULL);
-	Cmd_AddCommand ("use", NULL);
-	Cmd_AddCommand ("drop", NULL);
-	Cmd_AddCommand ("say", NULL);
-	Cmd_AddCommand ("say_team", NULL);
-	Cmd_AddCommand ("info", NULL);
-	Cmd_AddCommand ("prog", NULL);
-	Cmd_AddCommand ("give", NULL);
-	Cmd_AddCommand ("god", NULL);
-	Cmd_AddCommand ("notarget", NULL);
-	Cmd_AddCommand ("noclip", NULL);
-	Cmd_AddCommand ("invuse", NULL);
-	Cmd_AddCommand ("invprev", NULL);
-	Cmd_AddCommand ("invnext", NULL);
-	Cmd_AddCommand ("invdrop", NULL);
-	Cmd_AddCommand ("weapnext", NULL);
-	Cmd_AddCommand ("weapprev", NULL);
+	Cmd_AddCommand ("wave", NULL, NULL );
+	Cmd_AddCommand ("inven", NULL, NULL );
+	Cmd_AddCommand ("kill", NULL, NULL );
+	Cmd_AddCommand ("use", NULL, NULL );
+	Cmd_AddCommand ("drop", NULL, NULL );
+	Cmd_AddCommand ("say", NULL, NULL );
+	Cmd_AddCommand ("say_team", NULL, NULL );
+	Cmd_AddCommand ("info", NULL, NULL );
+	Cmd_AddCommand ("prog", NULL, NULL );
+	Cmd_AddCommand ("give", NULL, NULL );
+	Cmd_AddCommand ("god", NULL, NULL );
+	Cmd_AddCommand ("notarget", NULL, NULL );
+	Cmd_AddCommand ("noclip", NULL, NULL );
+	Cmd_AddCommand ("invuse", NULL, NULL );
+	Cmd_AddCommand ("invprev", NULL, NULL );
+	Cmd_AddCommand ("invnext", NULL, NULL );
+	Cmd_AddCommand ("invdrop", NULL, NULL );
+	Cmd_AddCommand ("weapnext", NULL, NULL );
+	Cmd_AddCommand ("weapprev", NULL, NULL );
 }
 
 
@@ -1638,7 +1568,7 @@ CL_Frame
 
 ==================
 */
-void CL_Frame (float time)
+void CL_Frame( float time )
 {
 	static float	extratime;
 	static float  	lasttimecalled;
@@ -1656,7 +1586,7 @@ void CL_Frame (float time)
 	}
 
 	// let the mouse activate or deactivate
-	IN_Frame ();
+	CL_UpdateMouse();
 
 	// decide the simulation time
 	cls.frametime = extratime;
@@ -1668,18 +1598,17 @@ void CL_Frame (float time)
 	if (time > 5.0f) cls.netchan.last_received = host.realtime;
 
 	// fetch results from server
-	CL_ReadPackets ();
+	CL_ReadPackets();
 
 	// send a new command message to the server
-	CL_SendCommand ();
+	CL_SendCommand();
 
 	// predict all unacknowledged movements
 	CL_PredictMovement ();
 
 	// allow rendering DLL change
-	VID_CheckChanges ();
-	if (!cl.refresh_prepped && cls.state == ca_active)
-		CL_PrepRefresh ();
+	if(!cl.refresh_prepped && cls.state == ca_active)
+		CL_PrepRefresh();
 
 	// update the screen
 	SCR_UpdateScreen ();
@@ -1708,15 +1637,14 @@ CL_Init
 */
 void CL_Init (void)
 {
-	if (dedicated->value)
-		return;		// nothing running on the client
+	if (dedicated->value) return; // nothing running on the client
 
 	// all archived variables will now be loaded
 	scr_loading = _Cvar_Get("scr_loading", "0", 0, "progress bar loading value" );
 
-	Con_Init ();	
-	VID_Init ();
-	V_Init ();
+	Con_Init();	
+	VID_Init();
+	V_Init();
 	CG_Init();
 
 	net_message.data = net_message_buffer;
@@ -1726,10 +1654,6 @@ void CL_Init (void)
 	
 	SCR_Init ();
 	CL_InitLocal ();
-	IN_Init ();
-
-	Cbuf_AddText ("exec autoexec.cfg\n");
-	Cbuf_Execute ();
 }
 
 
@@ -1748,8 +1672,7 @@ void CL_Shutdown(void)
 
 	CL_WriteConfiguration (); 
 	S_Shutdown();
-	IN_Shutdown ();
-	VID_FreeRender();
+	CL_ShutdownInput();
 }
 
 

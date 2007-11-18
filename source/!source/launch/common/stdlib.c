@@ -120,17 +120,19 @@ char com_tolower(const char in )
 	return out;
 }
 
-size_t com_strncat(char *dst, const char *src, size_t siz)
+size_t com_strncat(char *dst, const char *src, size_t size)
 {
 	register char *d = dst;
 	register const char *s = src;
-	register size_t n = siz;
+	register size_t n = size;
 	size_t dlen;
 
-	// Find the end of dst and adjust bytes left but don't go past end
-	while (n-- != 0 && *d != '\0') d++;
+	if(!dst || !src || !size) return 0;
+
+	// find the end of dst and adjust bytes left but don't go past end
+	while(n-- != 0 && *d != '\0') d++;
 	dlen = d - dst;
-	n = siz - dlen;
+	n = size - dlen;
 
 	if (n == 0) return(dlen + com_strlen(s));
 	while (*s != '\0')
@@ -144,7 +146,7 @@ size_t com_strncat(char *dst, const char *src, size_t siz)
 	}
 
 	*d = '\0';
-	return(dlen + (s - src));	//count does not include NUL
+	return(dlen + (s - src)); // count does not include NULL
 }
 
 size_t com_strcat(char *dst, const char *src )
@@ -152,13 +154,15 @@ size_t com_strcat(char *dst, const char *src )
 	return com_strncat( dst, src, 99999 );
 }
 
-size_t com_strncpy(char *dst, const char *src, size_t siz)
+size_t com_strncpy(char *dst, const char *src, size_t size)
 {
 	register char *d = dst;
 	register const char *s = src;
-	register size_t n = siz;
+	register size_t n = size;
 
-	// Copy as many bytes as will fit
+	if(!dst || !src || !size) return 0;
+
+	// copy as many bytes as will fit
 	if (n != 0 && --n != 0)
 	{
 		do
@@ -168,10 +172,10 @@ size_t com_strncpy(char *dst, const char *src, size_t siz)
 		} while (--n != 0);
 	}
 
-	// Not enough room in dst, add NULL and traverse rest of src
+	// not enough room in dst, add NULL and traverse rest of src
 	if (n == 0)
 	{
-		if (siz != 0) *d = '\0'; //NULL-terminate dst
+		if (size != 0) *d = '\0'; // NULL-terminate dst
 		while (*s++);
 	}
 	return(s - src - 1); // count does not include NULL
@@ -185,6 +189,8 @@ size_t com_strcpy(char *dst, const char *src )
 char *com_stralloc(const char *s, const char *filename, int fileline)
 {
 	char	*b;
+
+	if(!s) return NULL;
 
 	b = _mem_alloc(Sys.stringpool, com_strlen(s) + 1, filename, fileline );
 	com_strcpy(b, s);

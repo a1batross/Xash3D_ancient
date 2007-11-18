@@ -208,8 +208,6 @@ perform Tab expansion
 void Field_CompleteCommand( field_t *field )
 {
 	field_t		temp;
-	const char	*cmdname;
-	char		command[MAX_QPATH];
 	char		filename[MAX_QPATH];
 
 	completionField = field;
@@ -232,27 +230,34 @@ void Field_CompleteCommand( field_t *field )
 	if ( matchCount == 0 ) return; // no matches
 	Mem_Copy(&temp, completionField, sizeof(field_t));
 
-	cmdname = completionField->buffer;
 	if(Cmd_Argc() == 2)
 	{
+		bool result = false;
+
 		// autocomplete second arg
 		if(!stricmp(Cmd_Argv(0), "map" ) || !stricmp(Cmd_Argv(0), "\\map" ))
 		{
-			if(Cmd_GetMapList(Cmd_Argv(1), filename, MAX_QPATH ))
-			{         
-				sprintf( completionField->buffer, "%s %s", Cmd_Argv(0), filename ); 
-				completionField->cursor = strlen( completionField->buffer );
-			}
+			result = Cmd_GetMapList(Cmd_Argv(1), filename, MAX_QPATH );
 		}
-		else if(!stricmp(Cmd_Argv(0), "demomap" ) || !stricmp(Cmd_Argv(0), "\\demomap" ))
+		else if(!stricmp(Cmd_Argv(0), "demo" ) || !stricmp(Cmd_Argv(0), "\\demo" ))
 		{
-			if(Cmd_GetDemoList(Cmd_Argv(1), filename, MAX_QPATH ))
-			{         
-				sprintf( completionField->buffer, "%s %s", Cmd_Argv(0), filename ); 
-				completionField->cursor = strlen( completionField->buffer );
-			}
-		}	
-		return;
+			result = Cmd_GetDemoList(Cmd_Argv(1), filename, MAX_QPATH );
+		}
+		else if(!stricmp(Cmd_Argv(0), "movie" ) || !stricmp(Cmd_Argv(0), "\\movie" ))
+		{
+			result = Cmd_GetMovieList(Cmd_Argv(1), filename, MAX_QPATH );
+		}
+		else if(!stricmp(Cmd_Argv(0), "changelevel" ) || !stricmp(Cmd_Argv(0), "\\changelevel" ))
+		{
+			result = Cmd_GetMapList(Cmd_Argv(1), filename, MAX_QPATH );
+		}
+		
+		if( result )
+		{         
+			sprintf( completionField->buffer, "%s %s", Cmd_Argv(0), filename ); 
+			completionField->cursor = strlen( completionField->buffer );
+			return;
+		}
 	}  
 
 	if( matchCount == 1 )
@@ -1008,10 +1013,10 @@ Key_Init
 void Key_Init (void)
 {
 	// register our functions
-	Cmd_AddCommand ("bind",Key_Bind_f);
-	Cmd_AddCommand ("unbind",Key_Unbind_f);
-	Cmd_AddCommand ("unbindall",Key_Unbindall_f);
-	Cmd_AddCommand ("bindlist",Key_Bindlist_f);
+	Cmd_AddCommand ("bind", Key_Bind_f, "binds a command to the specified key in bindmap" );
+	Cmd_AddCommand ("unbind", Key_Unbind_f, "removes a command on the specified key in bindmap" );
+	Cmd_AddCommand ("unbindall", Key_Unbindall_f, "removes all commands from all keys in bindmap" );
+	Cmd_AddCommand ("bindlist", Key_Bindlist_f, "display current key bindings" );
 }
 
 /*

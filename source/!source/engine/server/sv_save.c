@@ -30,9 +30,9 @@ void SV_AddCvarLump( dsavehdr_t *hdr, file_t *f )
 	for(var = cvar_vars; var; var = var->next)
 	{
 		if(!(var->flags & CVAR_LATCH)) continue;
-		if (strlen(var->name) >= 64 || strlen(var->string) >= 64)
+		if (std.strlen(var->name) >= 64 || std.strlen(var->string) >= 64)
 		{
-			Msg ("Cvar too long: %s = %s\n", var->name, var->string);
+			MsgDev(D_NOTE, "cvar too long: %s = %s\n", var->name, var->string);
 			continue;
 		}
 		numsavedcvars++;
@@ -40,16 +40,15 @@ void SV_AddCvarLump( dsavehdr_t *hdr, file_t *f )
 
 	cvbuffer = (char *)Z_Malloc( numsavedcvars * MAX_QPATH );
 
-	//second pass
+	// second pass
 	for(var = cvar_vars; var; var = var->next)
 	{
 		if(!(var->flags & CVAR_LATCH)) continue;
 		if (strlen(var->name) >= 64 || strlen(var->string) >= 64)
 		{
-			Msg ("Cvar too long: %s = %s\n", var->name, var->string);
+			MsgDev(D_NOTE, "cvar too long: %s = %s\n", var->name, var->string);
 			continue;
 		}
-
 		bufsize = std.strpack(cvbuffer, bufsize, var->name, strlen(var->name)); 
 		bufsize = std.strpack(cvbuffer, bufsize, var->string, strlen(var->name));
 	}
@@ -60,13 +59,13 @@ void SV_AddCvarLump( dsavehdr_t *hdr, file_t *f )
 
 void SV_AddCStrLump( dsavehdr_t *hdr, file_t *f )
 {
-	int	i, stringsize, bufsize = 1; //null terminator
+	int	i, stringsize, bufsize = 1; // null terminator
 	char	*csbuffer = Z_Malloc( MAX_CONFIGSTRINGS * MAX_QPATH );
 
-	//pack the cfg string data
+	// pack the cfg string data
 	for(i = 0; i < MAX_CONFIGSTRINGS; i++)
 	{
-		stringsize = bound(0, strlen(sv.configstrings[i]), MAX_QPATH);
+		stringsize = bound(0, std.strlen(sv.configstrings[i]), MAX_QPATH);
 		bufsize = std.strpack(csbuffer, bufsize, sv.configstrings[i], stringsize ); 
 	}	
 	SV_AddSaveLump( hdr, f, LUMP_CFGSTRING, csbuffer, bufsize );
@@ -79,7 +78,6 @@ void SV_AddCStrLump( dsavehdr_t *hdr, file_t *f )
 SV_WriteSaveFile
 =============
 */
-
 void SV_WriteSaveFile( char *name )
 {
 	char		path[MAX_SYSPATH];
@@ -87,18 +85,30 @@ void SV_WriteSaveFile( char *name )
 	dsavehdr_t	*header;
 	file_t		*savfile;
 	bool		autosave = false;
-	
-	if(!strcmp(name, "save0")) autosave = true;
-	sprintf (path, "save/%s.bin", name );
 
+	if(sv.state != ss_game) return;
+	if(Cvar_VariableValue("deathmatch"))
+	{
+		MsgDev(D_ERROR, "SV_WriteSaveFile: can't savegame in a deathmatch\n");
+		return;
+	}
+	if(maxclients->value == 1 && svs.clients[0].edict->priv.sv->client->ps.stats[STAT_HEALTH] <= 0)
+	{
+		MsgDev(D_ERROR, "SV_WriteSaveFile: can't savegame while dead!\n");
+		return;
+	}
+	
+	if(!std.strcmp(name, "save0.bin")) autosave = true;
+	sprintf (path, "save/%s", name );
 	savfile = FS_Open( path, "wb");
+
 	if (!savfile)
 	{
-		MsgWarn("SV_WriteSaveFile: failed to open %s\n", path );
+		MsgDev(D_ERROR, "SV_WriteSaveFile: failed to open %s\n", path );
 		return;
 	}
 
-	MsgDev (D_INFO, "Saving game... %s\n", name );
+	MsgDev (D_INFO, "Saving game..." );
 	sprintf (comment, "%s - %s", sv.configstrings[CS_NAME], timestamp(TIME_FULL));
 
 	header = (dsavehdr_t *)Z_Malloc( sizeof(dsavehdr_t));
@@ -106,7 +116,7 @@ void SV_WriteSaveFile( char *name )
 	header->version = LittleLong (SAVE_VERSION);
 	FS_Write( savfile, header, sizeof(dsavehdr_t));
           
-	//write lumps
+	// write lumps
 	SV_AddSaveLump( header, savfile, LUMP_COMMENTS, comment, sizeof(comment));
           SV_AddCStrLump( header, savfile );
 	SV_AddSaveLump( header, savfile, LUMP_AREASTATE, portalopen, sizeof(portalopen));
@@ -115,11 +125,12 @@ void SV_WriteSaveFile( char *name )
 	SV_AddCvarLump( header, savfile );
 //ge->WriteLump ( header, savfile, LUMP_GAMELOCAL, autosave );
 	
-	//merge header
+	// merge header
 	FS_Seek( savfile, 0, SEEK_SET );
 	FS_Write( savfile, header, sizeof(dsavehdr_t));
 	FS_Close( savfile );
 	Z_Free( header );
+	MsgDev(D_INFO, "done.\n");
 }
 
 void Sav_LoadComment( lump_t *l )
@@ -205,14 +216,8 @@ void SV_ReadSaveFile( char *name )
 	byte		*savfile;
 	int		i, id, size;
 
-	sprintf (path, "save/%s.bin", name );
+	sprintf(path, "save/%s", name );
 	savfile = FS_LoadFile(path, &size );
-
-	if(!savfile)
-	{
-		Msg("can't open %s\n", path );
-		return;
-	}
 
 	header = (dsavehdr_t *)savfile;
 	i = LittleLong (header->version);
@@ -243,7 +248,7 @@ void SV_ReadLevelFile( char *name )
 	byte		*savfile;
 	int		i, id, size;
 
-	sprintf (path, "save/%s.bin", name );
+	sprintf (path, "save/%s", name );
 	savfile = FS_LoadFile(path, &size );
 
 	if(!savfile)
@@ -293,7 +298,7 @@ bool Menu_ReadComment( char *comment, int savenum )
 
 	sav_base = (byte *)header;
 	Sav_LoadComment(&header->lumps[LUMP_COMMENTS]);
-	strncpy( comment, svs.comment, 32 );
+	std.strncpy( comment, svs.comment, 32 );
 
 	return true;
 }

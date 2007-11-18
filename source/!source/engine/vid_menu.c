@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client.h"
 #include "qmenu.h"
 
-extern cvar_t *vid_fullscreen;
+extern cvar_t *r_fullscreen;
 extern cvar_t *vid_gamma;
 
 static cvar_t *gl_mode;
@@ -70,14 +70,12 @@ static void ResetDefaults( void *unused )
 
 static void ApplyChanges( void *unused )
 {
-	extern cvar_t *vid_ref;
-
 	Cvar_SetValue( "gl_picmip", 3 - s_tq_slider.curvalue );
-	Cvar_SetValue( "vid_fullscreen", s_fs_box.curvalue );
+	Cvar_SetValue( "r_fullscreen", s_fs_box.curvalue );
 	Cvar_SetValue( "gl_ext_palettedtexture", s_paletted_texture_box.curvalue );
 	Cvar_SetValue( "gl_finish", s_finish_box.curvalue );
 	Cvar_SetValue( "gl_mode", s_mode_list.curvalue );
-	vid_ref->modified = true;
+	Cbuf_AddText("vid_restart\n"); // restart render
 
 	M_ForceMenuOff();
 }
@@ -143,7 +141,7 @@ void VID_MenuInit( void )
 	s_fs_box.generic.y	= 20;
 	s_fs_box.generic.name = "fullscreen";
 	s_fs_box.itemnames = yesno_names;
-	s_fs_box.curvalue = vid_fullscreen->value;
+	s_fs_box.curvalue = r_fullscreen->value;
 
 	s_tq_slider.generic.type = MTYPE_SLIDER;
 	s_tq_slider.generic.x = 0;

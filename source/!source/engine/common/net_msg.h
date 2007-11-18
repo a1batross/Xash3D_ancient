@@ -522,11 +522,6 @@ void Netchan_OutOfBandPrint (int net_socket, netadr_t adr, char *format, ...);
 bool Netchan_Process (netchan_t *chan, sizebuf_t *msg);
 bool Netchan_CanReliable (netchan_t *chan);
 
-void IN_Init( void );
-void IN_Shutdown( void );
-void IN_Commands( void );		// oportunity for devices to stick commands on the script buffer
-void IN_Frame( void );
-void IN_Move( usercmd_t *cmd );	// add additional movement on top of the keyboard move cmd
 void IN_Activate( bool active );
 void IN_MouseEvent( int mstate );
 

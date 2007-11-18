@@ -1897,17 +1897,16 @@ PRVM_Init
 */
 void PRVM_Init (void)
 {
-	Cmd_AddCommand ("prvm_edict", PRVM_ED_PrintEdict_f);
-	Cmd_AddCommand ("prvm_edicts", PRVM_ED_PrintEdicts_f);
-	Cmd_AddCommand ("prvm_edictcount", PRVM_ED_Count_f);
-	Cmd_AddCommand ("prvm_profile", PRVM_Profile_f);
-	Cmd_AddCommand ("prvm_fields", PRVM_Fields_f);
-	Cmd_AddCommand ("prvm_globals", PRVM_Globals_f);
-	Cmd_AddCommand ("prvm_global", PRVM_Global_f);
-	Cmd_AddCommand ("prvm_globalset", PRVM_GlobalSet_f);
-	Cmd_AddCommand ("prvm_edictset", PRVM_ED_EdictSet_f);
-	Cmd_AddCommand ("prvm_printfunction", PRVM_PrintFunction_f);
-	
+	Cmd_AddCommand ("prvm_edict", PRVM_ED_PrintEdict_f, "print all data about an entity number in the selected VM (server, client, menu)");
+	Cmd_AddCommand ("prvm_edicts", PRVM_ED_PrintEdicts_f, "set a property on an entity number in the selected VM (server, client, menu)");
+	Cmd_AddCommand ("prvm_edictcount", PRVM_ED_Count_f, "prints number of active entities in the selected VM (server, client, menu)");
+	Cmd_AddCommand ("prvm_profile", PRVM_Profile_f, "prints execution statistics about the most used QuakeC functions in the selected VM (server, client, menu)");
+	Cmd_AddCommand ("prvm_fields", PRVM_Fields_f, "prints usage statistics on properties (how many entities have non-zero values) in the selected VM (server, client, menu)");
+	Cmd_AddCommand ("prvm_globals", PRVM_Globals_f, "prints all global variables in the selected VM (server, client, menu)");
+	Cmd_AddCommand ("prvm_global", PRVM_Global_f, "prints value of a specified global variable in the selected VM (server, client, menu)");
+	Cmd_AddCommand ("prvm_globalset", PRVM_GlobalSet_f, "sets value of a specified global variable in the selected VM (server, client, menu)");
+	Cmd_AddCommand ("prvm_edictset", PRVM_ED_EdictSet_f, "changes value of a specified property of a specified entity in the selected VM (server, client, menu)");
+	Cmd_AddCommand ("prvm_printfunction", PRVM_PrintFunction_f, "prints a disassembly (QuakeC instructions) of the specified function in the selected VM (server, client, menu)");
 	// LordHavoc: optional runtime bounds checking (speed drain, but worth it for security, on by default - breaks most QCCX features (used by CRMod and others))
 	prvm_boundscheck = Cvar_Get ("prvm_boundscheck", "0", 0);
 	prvm_traceqc = Cvar_Get ("prvm_traceqc", "0", 0);

@@ -71,7 +71,6 @@ typedef struct
 {
 	sv_state_t	state;		// precache commands are only valid during load
 
-	bool		attractloop;	// running cinematics and demos for the local system only
 	bool		loadgame;		// client begins should reuse existing entity
 
 	float		time;		// always sv.framenum * 100 msec
@@ -239,7 +238,8 @@ int SV_DecalIndex (const char *name);
 
 void SV_WriteClientdataToMessage (client_state_t *client, sizebuf_t *msg);
 void SV_ExecuteUserCommand (char *s);
-void SV_InitOperatorCommands (void);
+void SV_InitOperatorCommands( void );
+void SV_KillOperatorCommands( void );
 void SV_SendServerinfo (client_state_t *client);
 void SV_UserinfoChanged (client_state_t *cl);
 void Master_Heartbeat (void);
@@ -249,7 +249,8 @@ void Master_Packet (void);
 // sv_init.c
 //
 void SV_InitGame (void);
-void SV_Map (bool attractloop, char *levelstring, char *savename, bool loadgame);
+void SV_Map(char *levelstring, char *savename );
+void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate );
 int SV_FindIndex (const char *name, int start, int end, bool create);
 void SV_VM_Setup(void);
 void SV_VM_Begin(void);
@@ -323,7 +324,7 @@ int SV_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *m
 //
 // sv_spawn.c
 //
-void SV_SpawnEntities (char *mapname, char *entities, char *spawnpoint);
+void SV_SpawnEntities (char *mapname, char *entities);
 void SV_StartParticle (vec3_t org, vec3_t dir, int color, int count);
 void SV_Transform( sv_edict_t *ed, vec3_t origin, vec3_t angles );
 void SV_FreeEdict (edict_t *ed);

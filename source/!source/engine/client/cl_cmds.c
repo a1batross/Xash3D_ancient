@@ -87,7 +87,7 @@ void CL_LevelShot_f( void )
 	// check for exist
 	sprintf( checkname, "graphics/background/%s.tga", cl.configstrings[CS_NAME] );
 	if(!FS_FileExists( checkname )) re->ScrShot( checkname, true );
-
+	else Msg("levelshot for this map already created\nFirst remove old image if you wants do it again\n" );
 }
 
 /*

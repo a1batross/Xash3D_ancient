@@ -227,11 +227,11 @@ void Con_Init (void)
 		historyEditLines[i].widthInChars = g_console_field_width;
 	}
 
-	Cmd_AddCommand ("toggleconsole", Con_ToggleConsole_f);
-	Cmd_AddCommand ("togglechat", Con_ToggleChat_f);
-	Cmd_AddCommand ("messagemode", Con_MessageMode_f);
-	Cmd_AddCommand ("messagemode2", Con_MessageMode2_f);
-	Cmd_AddCommand ("clear", Con_Clear_f);
+	Cmd_AddCommand ("toggleconsole", Con_ToggleConsole_f, "opens or closes the console" );
+	Cmd_AddCommand ("togglechat", Con_ToggleChat_f, "enable or disable chat mode" );
+	Cmd_AddCommand ("messagemode", Con_MessageMode_f, "input a chat message to say to everyone" );
+	Cmd_AddCommand ("messagemode2", Con_MessageMode2_f, "input a chat message to say to only your team" );
+	Cmd_AddCommand ("clear", Con_Clear_f, "clear console history" );
 	con.initialized = true;
 	MsgDev(D_INFO, "Console initialized.\n");
 }

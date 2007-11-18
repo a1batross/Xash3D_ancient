@@ -58,13 +58,7 @@ typedef struct host_parm_s
 {
 	host_state	state;		// global host state
 	uint		type;		// running at
-
-	bool		debug;		// show all warnings mode
-	int		developer;	// show all developer's message
-
-	bool		paused;		// freeze server
-	bool		stuffcmdsrun;	// sturtup script
-
+	host_redirect_t	rd;		// remote console
 	jmp_buf		abortframe;	// abort current frame
 
 	dword		framecount;	// global framecount
@@ -73,9 +67,17 @@ typedef struct host_parm_s
 	uint		sv_timer;		// SV_Input msg time
 	uint		cl_timer;		// CL_Input msg time
 
-	uint		maxclients;	// host max clients
+	HWND		hWnd;		// main window
 
-	host_redirect_t	rd;
+	bool		debug;		// show all warnings mode
+	int		developer;	// show all developer's message
+
+	bool		paused;		// freeze server
+	bool		stuffcmdsrun;	// sturtup script
+
+
+
+	uint		maxclients;	// host max clients
 
 } host_parm_t;
 
@@ -106,6 +108,7 @@ Host Interface
 ===========================================
 */
 extern host_parm_t host;
+long _stdcall Host_WndProc( HWND hWnd, uint uMsg, WPARAM wParam, LPARAM lParam);
 void Host_Init ( uint funcname, int argc, char **argv );
 void Host_Main ( void );
 void Host_Free ( void );
@@ -132,9 +135,8 @@ double Sys_DoubleTime( void );
 void Sys_Error( const char *msg, ... );
 void Sys_SendKeyEvents( void );
 
-//
-// in_win.c
-//
+// mouse support
+#define WM_MOUSEWHEEL (WM_MOUSELAST + 1) // message that will be supported by the OS 
 extern int mouse_x, mouse_y, old_mouse_x, old_mouse_y, mx_accum, my_accum;
 
 // vm_exec.c
@@ -207,18 +209,18 @@ int Cmd_Argc( void );
 char *Cmd_Args( void );
 char *Cmd_Argv( int arg );
 void Cmd_Init( int argc, char **argv );
-void _Cmd_AddCommand(const char *cmd_name, xcommand_t function, const char *cmd_desc);
+void Cmd_AddCommand(const char *cmd_name, xcommand_t function, const char *cmd_desc);
 void Cmd_RemoveCommand (char *cmd_name);
 bool Cmd_Exists (const char *cmd_name);
 void Cmd_CommandCompletion( void(*callback)(const char *s, const char *m));
-bool Cmd_GetMapList (const char *s, char *completedname, int completednamebufferlength );
-bool Cmd_GetDemoList (const char *s, char *completedname, int completednamebufferlength);
+bool Cmd_GetMapList( const char *s, char *completedname, int length );
+bool Cmd_GetDemoList( const char *s, char *completedname, int length );
+bool Cmd_GetMovieList (const char *s, char *completedname, int length );
 void Cmd_TokenizeString (const char *text);
 void Cmd_ExecuteString (const char *text);
 void Cmd_ForwardToServer (void);
 
 // get rid of this
-#define Cmd_AddCommand(name, func) _Cmd_AddCommand(name, func, "no description" )
 #define Cvar_Get(name, value, flags) _Cvar_Get( name, value, flags, "no description" )
 
 #endif//ENGINE_H

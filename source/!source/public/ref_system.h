@@ -714,8 +714,8 @@ typedef struct render_imp_s
 	// interface validator
 	size_t	api_size;		// must matched with sizeof(render_imp_t)
 
-	void	(*Cmd_AddCommand) (char *name, void(*cmd)(void));
-	void	(*Cmd_RemoveCommand) (char *name);
+	void	(*Cmd_AddCommand)( const char *name, xcommand_t cmd, const char *cmd_desc );
+	void	(*Cmd_RemoveCommand)( char *name );
 	int	(*Cmd_Argc) (void);
 	char	*(*Cmd_Argv) (int i);
 	void	(*Cmd_ExecuteText) (int exec_when, char *text);
@@ -724,9 +724,9 @@ typedef struct render_imp_s
 	void	(*StudioEvent)( mstudioevent_t *event, entity_t *ent );
 	void	(*ShowCollision)( void );// debug
 
-	cvar_t	*(*Cvar_Get) (char *name, char *value, int flags);
-	void	(*Cvar_Set)( char *name, char *value );
-	void	(*Cvar_SetValue)( char *name, float value );
+	cvar_t	*(*Cvar_Get)( const char *name, const char *value, int flags, const char *desc );
+	void	(*Cvar_Set)( const char *name, const char *value );
+	void	(*Cvar_SetValue)( const char *name, float value );
 
 	bool	(*Vid_GetModeInfo)( int *width, int *height, int mode );
 	void	(*Vid_MenuInit)( void );

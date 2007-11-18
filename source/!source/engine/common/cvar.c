@@ -987,13 +987,13 @@ void Cvar_Init (void)
 {
 	host_cheats = Cvar_Get("host_cheats", "1", CVAR_READ_ONLY | CVAR_SYSTEMINFO );
 
-	Cmd_AddCommand ("toggle", Cvar_Toggle_f);
-	Cmd_AddCommand ("set", Cvar_Set_f);
-	Cmd_AddCommand ("sets", Cvar_SetS_f);
-	Cmd_AddCommand ("setu", Cvar_SetU_f);
-	Cmd_AddCommand ("seta", Cvar_SetA_f);
-	Cmd_AddCommand ("reset", Cvar_Reset_f);
-	Cmd_AddCommand ("cvarlist", Cvar_List_f);
-	Cmd_AddCommand ("cvar_restart", Cvar_Restart_f);
+	Cmd_AddCommand ("toggle", Cvar_Toggle_f, "toggles a console variable's values (use for more info)" );
+	Cmd_AddCommand ("set", Cvar_Set_f, "create or change the value of a console variable" );
+	Cmd_AddCommand ("sets", Cvar_SetS_f, "create or change the value of a serverinfo variable");
+	Cmd_AddCommand ("setu", Cvar_SetU_f, "create or change the value of a userinfo variable");
+	Cmd_AddCommand ("seta", Cvar_SetA_f, "create or change the value of a console variable that will be saved to vars.rc");
+	Cmd_AddCommand ("reset", Cvar_Reset_f, "reset any type variable to initial value" );
+	Cmd_AddCommand ("cvarlist", Cvar_List_f, "display all console variables beginning with the specified prefix" );
+	Cmd_AddCommand ("unsetall", Cvar_Restart_f, "reset all console variables to their default values" );
 
 }

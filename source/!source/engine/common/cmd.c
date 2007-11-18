@@ -147,7 +147,7 @@ void Cbuf_ExecuteText (int exec_when, const char *text)
 Cbuf_Execute
 ============
 */
-void Cbuf_Execute (void)
+void Cbuf_Execute( void )
 {
 	int	i;
 	char	*text;
@@ -272,14 +272,9 @@ bind g "cmd use rocket ; +attack ; wait ; -attack ; cmd use blaster"
 */
 void Cmd_Wait_f (void)
 {
-	if(Cmd_Argc() == 2)
-	{
-		cmd_wait = atoi( Cmd_Argv( 1 ) );
-	}
-	else
-	{
-		cmd_wait = 1;
-	}
+	if(Cmd_Argc() == 1) cmd_wait = 1;
+	else cmd_wait = atoi(Cmd_Argv( 1 ));
+	
 }
 
 /*
@@ -342,7 +337,7 @@ bool Cmd_GetMapList (const char *s, char *completedname, int length )
 	char		message[MAX_QPATH];
 	char		matchbuf[MAX_QPATH];
 	byte		buf[MAX_SYSPATH]; // 1 kb
-	int		i;
+	int		i, nummaps;
 
 	t = FS_Search(va("maps/%s*.bsp", s), true );
 	if( !t ) return false;
@@ -351,16 +346,17 @@ bool Cmd_GetMapList (const char *s, char *completedname, int length )
 	strncpy( completedname, matchbuf, length );
 	if(t->numfilenames == 1) return true;
 
-	Msg("^3 %i maps found :\n", t->numfilenames);
-
-	for(i = 0; i < t->numfilenames; i++)
+	for(i = 0, nummaps = 0; i < t->numfilenames; i++)
 	{
 		const char	*data = NULL;
 		char		*entities = NULL;
 		char		entfilename[MAX_QPATH];
 		int		ver = -1, lumpofs = 0, lumplen = 0;
+		const char	*ext = FS_FileExtension( t->filenames[i] ); 
 
-		strncpy(message, "No Title", sizeof(message));
+		if( std.stricmp(ext, "bsp" )) continue;
+
+		strncpy(message, "^1error^7", sizeof(message));
 		f = FS_Open(t->filenames[i], "rb" );
 	
 		if( f )
@@ -369,12 +365,36 @@ bool Cmd_GetMapList (const char *s, char *completedname, int length )
 			FS_Read(f, buf, 1024);
 			if(!memcmp(buf, "IBSP", 4))
 			{
+				dheader_t *header = (dheader_t *)buf;
 				ver = LittleLong(((int *)buf)[1]);
-				if(ver == BSPMOD_VERSION)
+
+				switch(ver)
 				{
-					dheader_t *header = (dheader_t *)buf;
+				case 38:	// quake2 (xash)
+				case 46:	// quake3
+				case 47:	// return to castle wolfenstein
 					lumpofs = LittleLong(header->lumps[LUMP_ENTITIES].fileofs);
 					lumplen = LittleLong(header->lumps[LUMP_ENTITIES].filelen);
+					break;
+				}
+			}
+			else
+			{
+				lump_t	ents; // quake1 entity lump
+				memcpy(&ents, buf + 4, sizeof(lump_t)); // skip first four bytes (version)
+				ver = LittleLong(((int *)buf)[0]);
+
+				switch( ver )
+				{
+				case 28:	// quake 1 beta
+				case 29:	// quake 1 regular
+				case 30:	// Half-Life regular
+					lumpofs = LittleLong(ents.fileofs);
+					lumplen = LittleLong(ents.filelen);
+					break;
+				default:
+					ver = 0;
+					break;
 				}
 			}
 
@@ -410,7 +430,8 @@ bool Cmd_GetMapList (const char *s, char *completedname, int length )
 					{
 						// get map version
 						Com_ParseToken(&data);
-						ver = atoi(com_token);
+						// old xash maps are Half-Life, so don't overwrite version
+						if(ver > 30) ver = atoi(com_token);
 					}
 				}
 			}
@@ -421,13 +442,19 @@ bool Cmd_GetMapList (const char *s, char *completedname, int length )
 
 		switch(ver)
 		{
-		case 38:  strncpy((char *)buf, "Q2", sizeof(buf)); break;
-		case 220: strncpy((char *)buf, "Xash", sizeof(buf)); break;
+		case 28:  strncpy((char *)buf, "Quake1 beta", sizeof(buf)); break;
+		case 29:  strncpy((char *)buf, "Quake1", sizeof(buf)); break;
+		case 30:  strncpy((char *)buf, "Half-Life", sizeof(buf)); break;
+		case 38:  strncpy((char *)buf, "Quake 2", sizeof(buf)); break;
+		case 46:  strncpy((char *)buf, "Quake 3", sizeof(buf)); break;
+		case 47:  strncpy((char *)buf, "RTCW", sizeof(buf)); break;
+		case 220: strncpy((char *)buf, "Xash 3D", sizeof(buf)); break;
 		default:	strncpy((char *)buf, "??", sizeof(buf)); break;
 		}
 		Msg("%16s (%s) ^3%s^7\n", matchbuf, buf, message);
+		nummaps++;
 	}
-	Msg("\n");
+	Msg("\n^3 %i maps found.\n", nummaps );
 	Z_Free( t );
 
 	// cut shortestMatch to the amount common with s
@@ -450,23 +477,70 @@ bool Cmd_GetDemoList (const char *s, char *completedname, int length )
 {
 	search_t		*t;
 	char		matchbuf[MAX_QPATH];
-	int		i;
+	int		i, numdems;
 
-	t = FS_Search(va("demos/%s*.dm2", s ), true);
+	t = FS_Search(va("demos/%s*.dem", s ), true);
 	if(!t) return false;
 
 	FS_FileBase(t->filenames[0], matchbuf ); 
 	if(completedname && length) strncpy( completedname, matchbuf, length );
 	if(t->numfilenames == 1) return true;
 
-	Msg("^3 %i demos found :\n", t->numfilenames);
-
-	for(i = 0; i < t->numfilenames; i++)
+	for(i = 0, numdems = 0; i < t->numfilenames; i++)
 	{
+		const char *ext = FS_FileExtension( t->filenames[i] ); 
+
+		if( std.stricmp(ext, "dem" )) continue;
 		FS_FileBase(t->filenames[i], matchbuf );
 		Msg("%16s\n", matchbuf );
+		numdems++;
 	}
-	Msg("\n");
+	Msg("\n^3 %i demos found.\n", numdems );
+	Z_Free(t);
+
+	// cut shortestMatch to the amount common with s
+	if(completedname && length)
+	{
+		for( i = 0; matchbuf[i]; i++ )
+		{
+			if(tolower(completedname[i]) != tolower(matchbuf[i]))
+				completedname[i] = 0;
+		}
+	}
+
+	return true;
+}
+
+/*
+=====================================
+Cmd_GetMovieList
+
+Prints or complete movie filename
+=====================================
+*/
+bool Cmd_GetMovieList (const char *s, char *completedname, int length )
+{
+	search_t		*t;
+	char		matchbuf[MAX_QPATH];
+	int		i, nummovies;
+
+	t = FS_Search(va("video/%s*.roq", s ), true);
+	if(!t) return false;
+
+	FS_FileBase(t->filenames[0], matchbuf ); 
+	if(completedname && length) strncpy( completedname, matchbuf, length );
+	if(t->numfilenames == 1) return true;
+
+	for(i = 0, nummovies = 0; i < t->numfilenames; i++)
+	{
+		const char *ext = FS_FileExtension( t->filenames[i] ); 
+
+		if( std.stricmp(ext, "roq" )) continue;
+		FS_FileBase(t->filenames[i], matchbuf );
+		Msg("%16s\n", matchbuf );
+		nummovies++;
+	}
+	Msg("\n^3 %i movies found.\n", nummovies );
 	Z_Free(t);
 
 	// cut shortestMatch to the amount common with s
@@ -636,7 +710,7 @@ void Cmd_TokenizeString (const char *text_in)
 Cmd_AddCommand
 ============
 */
-void _Cmd_AddCommand (const char *cmd_name, xcommand_t function, const char *cmd_desc)
+void Cmd_AddCommand (const char *cmd_name, xcommand_t function, const char *cmd_desc)
 {
 	cmd_function_t	*cmd;
 	
@@ -792,11 +866,11 @@ void Cmd_Init( int argc, char **argv )
 	Cbuf_Init( argc, argv );
 
 	// register our commands
-	Cmd_AddCommand ("exec", Cmd_Exec_f);
-	Cmd_AddCommand ("echo", Cmd_Echo_f);
-	Cmd_AddCommand ("wait", Cmd_Wait_f);
-	Cmd_AddCommand ("cmdlist", Cmd_List_f);
-	Cmd_AddCommand ("stuffcmds", Cmd_StuffCmds_f );
+	Cmd_AddCommand ("exec", Cmd_Exec_f, "execute a script file" );
+	Cmd_AddCommand ("echo", Cmd_Echo_f, "print a message to the console (useful in scripts)" );
+	Cmd_AddCommand ("wait", Cmd_Wait_f, "make script execution wait for some rendered frames" );
+	Cmd_AddCommand ("cmdlist", Cmd_List_f, "display all console commands beginning with the specified prefix" );
+	Cmd_AddCommand ("stuffcmds", Cmd_StuffCmds_f, "execute commandline parameters (must be present in init.rc script)" );
 
 	// determine debug and developer mode
 	if(FS_CheckParm ("-debug")) host.debug = true;

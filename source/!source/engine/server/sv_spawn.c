@@ -81,7 +81,7 @@ Creates a server's entity / program execution context by
 parsing textual entity definitions out of an ent file.
 ==============
 */
-void SV_SpawnEntities (char *mapname, char *entities, char *spawnpoint)
+void SV_SpawnEntities (char *mapname, char *entities)
 {
 	edict_t	*ent;
 	int	i;

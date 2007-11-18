@@ -62,6 +62,9 @@ void R_ConcatTransforms (float in1[3][4], float in2[3][4], float out[3][4]);
 #define MsgWarn std.wprintf
 #define Sys_Error std.error
 
+#define Cvar_Get(name, value, flags)	ri.Cvar_Get(name, value, flags, "render variable" )
+#define Cmd_AddCommand(name, cmd)	ri.Cmd_AddCommand(name, cmd, "render command" )
+
 #ifndef __VIDDEF_T
 #define __VIDDEF_T
 typedef struct
@@ -287,7 +290,7 @@ extern	cvar_t	*gl_texturesolidmode;
 extern  cvar_t  *gl_saturatelighting;
 extern  cvar_t  *gl_lockpvs;
 
-extern	cvar_t	*vid_fullscreen;
+extern	cvar_t	*r_fullscreen;
 extern	cvar_t	*vid_gamma;
 
 extern	cvar_t		*intensity;

@@ -189,11 +189,8 @@ typedef struct
 	//
 	// server state information
 	//
-	bool		attractloop;		// running the attract loop, any key will menu
-	int		servercount;	// server identification for prespawns
-	char		gamedir[MAX_QPATH];
+	int		servercount;		// server identification for prespawns
 	int		playernum;
-
 	char		configstrings[MAX_CONFIGSTRINGS][MAX_QPATH];
 
 	//
@@ -220,7 +217,8 @@ of server connections
 ==================================================================
 */
 
-typedef enum {
+typedef enum
+{
 	ca_uninitialized,
 	ca_disconnected, 	// not talking to a server
 	ca_connecting,	// sending request packets to the server
@@ -330,6 +328,7 @@ extern	cvar_t	*m_pitch;
 extern	cvar_t	*m_yaw;
 extern	cvar_t	*m_forward;
 extern	cvar_t	*m_side;
+extern	cvar_t	*m_mouse;
 
 extern	cvar_t	*freelook;
 
@@ -503,7 +502,9 @@ extern	kbutton_t	in_mlook, in_klook;
 extern 	kbutton_t 	in_strafe;
 extern 	kbutton_t 	in_speed;
 
-void CL_InitInput (void);
+void CL_InitInput( void );
+void CL_ShutdownInput( void );
+void CL_UpdateMouse( void );
 void CL_SendCmd (void);
 void CL_SendMove (usercmd_t *cmd);
 

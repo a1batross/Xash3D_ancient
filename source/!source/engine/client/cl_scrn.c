@@ -355,9 +355,9 @@ void SCR_Init (void)
 	cl_levelshot_name = Cvar_Get("cl_levelshot_name", "common/black", 0 );
 
 	// register our commands
-	Cmd_AddCommand ("timerefresh", SCR_TimeRefresh_f);
-	Cmd_AddCommand ("loading", SCR_Loading_f);
-	Cmd_AddCommand ("skyname", CL_SetSky_f );
+	Cmd_AddCommand ("timerefresh", SCR_TimeRefresh_f, "turn quickly and print rendering statistcs" );
+	Cmd_AddCommand ("loading", SCR_Loading_f, "prepare client to a loading new map" );
+	Cmd_AddCommand ("skyname", CL_SetSky_f, "set new skybox by basename" );
 
 	scr_initialized = true;
 

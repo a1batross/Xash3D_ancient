@@ -304,7 +304,7 @@ void R_InitTextures( void )
 	int texsize, i, j;
 
 	r_imagepool = Mem_AllocPool("Texture Pool");
-          gl_maxsize = ri.Cvar_Get ("gl_maxsize", "0", 0);
+          gl_maxsize = Cvar_Get ("gl_maxsize", "0", 0);
 	
 	qglGetIntegerv(GL_MAX_TEXTURE_SIZE, &texsize);
 	if (gl_maxsize->value > texsize) ri.Cvar_SetValue ("gl_maxsize", texsize);
@@ -320,7 +320,7 @@ void R_InitTextures( void )
 	registration_sequence = 1;
 
 	// init intensity conversions
-	intensity = ri.Cvar_Get ("intensity", "2", 0);
+	intensity = Cvar_Get ("intensity", "2", 0);
 	if ( intensity->value <= 1 ) ri.Cvar_Set( "intensity", "1" );
 	gl_state.inverse_intensity = 1 / intensity->value;
 

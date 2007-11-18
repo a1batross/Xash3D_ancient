@@ -3280,22 +3280,22 @@ M_Init
 */
 void M_Init (void)
 {
-	Cmd_AddCommand ("menu_main", M_Menu_Main_f);
-	Cmd_AddCommand ("menu_game", M_Menu_Game_f);
-		Cmd_AddCommand ("menu_loadgame", M_Menu_LoadGame_f);
-		Cmd_AddCommand ("menu_savegame", M_Menu_SaveGame_f);
-		Cmd_AddCommand ("menu_joinserver", M_Menu_JoinServer_f);
-			Cmd_AddCommand ("menu_addressbook", M_Menu_AddressBook_f);
-		Cmd_AddCommand ("menu_startserver", M_Menu_StartServer_f);
-			Cmd_AddCommand ("menu_dmoptions", M_Menu_DMOptions_f);
-		Cmd_AddCommand ("menu_playerconfig", M_Menu_PlayerConfig_f);
-			Cmd_AddCommand ("menu_downloadoptions", M_Menu_DownloadOptions_f);
-		Cmd_AddCommand ("menu_credits", M_Menu_Credits_f );
-	Cmd_AddCommand ("menu_multiplayer", M_Menu_Multiplayer_f );
-	Cmd_AddCommand ("menu_video", M_Menu_Video_f);
-	Cmd_AddCommand ("menu_options", M_Menu_Options_f);
-		Cmd_AddCommand ("menu_keys", M_Menu_Keys_f);
-	Cmd_AddCommand ("menu_quit", M_Menu_Quit_f);
+	Cmd_AddCommand ("menu_main", M_Menu_Main_f, "opens main menu" );
+	Cmd_AddCommand ("menu_game", M_Menu_Game_f, "opens game menu" );
+	Cmd_AddCommand ("menu_loadgame", M_Menu_LoadGame_f, "opens menu loadgame" );
+	Cmd_AddCommand ("menu_savegame", M_Menu_SaveGame_f, "opens menu savegame" );
+	Cmd_AddCommand ("menu_joinserver", M_Menu_JoinServer_f, "opens join server menu" );
+	Cmd_AddCommand ("menu_addressbook", M_Menu_AddressBook_f, "opens address book menu" );
+	Cmd_AddCommand ("menu_startserver", M_Menu_StartServer_f, "opens start server menu" );
+	Cmd_AddCommand ("menu_dmoptions", M_Menu_DMOptions_f, "opens deathmath options menu" );
+	Cmd_AddCommand ("menu_playerconfig", M_Menu_PlayerConfig_f, "opens player config menu" );
+	Cmd_AddCommand ("menu_downloadoptions", M_Menu_DownloadOptions_f, "opens download menu" );
+	Cmd_AddCommand ("menu_credits", M_Menu_Credits_f, "show credits" );
+	Cmd_AddCommand ("menu_multiplayer", M_Menu_Multiplayer_f, "opens multiplayer menu" );
+	Cmd_AddCommand ("menu_video", M_Menu_Video_f, "opens video options menu");
+	Cmd_AddCommand ("menu_options", M_Menu_Options_f, "opens main options menu");
+	Cmd_AddCommand ("menu_keys", M_Menu_Keys_f, "opens redefinition keys menu" );
+	Cmd_AddCommand ("menu_quit", M_Menu_Quit_f, "show quit dialog" );
 }
 
 

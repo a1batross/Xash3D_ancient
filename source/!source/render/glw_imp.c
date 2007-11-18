@@ -40,8 +40,6 @@ bool GLimp_InitGL (void);
 glwstate_t glw_state;
 static char wndname[128];
 
-extern cvar_t *vid_fullscreen;
-
 static bool VerifyDriver( void )
 {
 	char buffer[1024];
@@ -65,11 +63,11 @@ static bool VerifyDriver( void )
 bool VID_CreateWindow( int width, int height, bool fullscreen )
 {
 	WNDCLASS		wc;
-	RECT			r;
-	cvar_t			*vid_xpos, *vid_ypos;
-	int				stylebits;
-	int				x, y, w, h;
-	int				exstyle;
+	RECT		r;
+	cvar_t		*r_xpos, *r_ypos;
+	int		stylebits;
+	int		x, y, w, h;
+	int		exstyle;
 
 	strcpy(wndname, FS_Title ); //critical stuff.
 
@@ -119,10 +117,10 @@ bool VID_CreateWindow( int width, int height, bool fullscreen )
 	}
 	else
 	{
-		vid_xpos = ri.Cvar_Get ("vid_xpos", "0", 0);
-		vid_ypos = ri.Cvar_Get ("vid_ypos", "0", 0);
-		x = vid_xpos->value;
-		y = vid_ypos->value;
+		r_xpos = Cvar_Get ("r_xpos", "0", 0);
+		r_ypos = Cvar_Get ("r_ypos", "0", 0);
+		x = r_xpos->value;
+		y = r_ypos->value;
 	}
 
 	glw_state.hWnd = CreateWindowEx( exstyle, WINDOW_CLASS_NAME, wndname, stylebits, x, y, w, h, NULL, NULL, glw_state.hInstance, NULL);
@@ -543,7 +541,7 @@ void GLimp_AppActivate( bool active )
 	}
 	else
 	{
-		if ( vid_fullscreen->value )
+		if ( r_fullscreen->value )
 			ShowWindow( glw_state.hWnd, SW_MINIMIZE );
 	}
 }

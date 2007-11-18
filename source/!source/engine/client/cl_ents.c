@@ -305,7 +305,8 @@ void CL_ParsePlayerstate (frame_t *oldframe, frame_t *newframe)
 	if (flags & PS_M_GRAVITY) state->pmove.gravity = MSG_ReadShort (&net_message);
 	if (flags & PS_M_DELTA_ANGLES) MSG_ReadPos32(&net_message, state->pmove.delta_angles ); 
 
-	if (cl.attractloop) state->pmove.pm_type = PM_FREEZE; // demo playback
+	if(cls.state == ca_cinematic || cl.servercount > 0x10000)
+		state->pmove.pm_type = PM_FREEZE; // demo or movie playback
 
 	// parse the rest of the player_state_t
 	if (flags & PS_VIEWOFFSET)
@@ -489,7 +490,7 @@ void CL_ParseFrame (void)
 	if (cl.frame.valid)
 	{
 		// getting a valid frame message ends the connection process
-		if (cls.state != ca_active)
+		if(cls.state != ca_active)
 		{
 			cls.state = ca_active;
 			cl.force_refdef = true;

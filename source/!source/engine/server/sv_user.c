@@ -57,7 +57,6 @@ This will be sent on the initial connection and upon each server load.
 */
 void SV_New_f (void)
 {
-	char		*gamedir;
 	int		playernum;
 	edict_t		*ent;
 
@@ -74,18 +73,12 @@ void SV_New_f (void)
 		return;
 	}
 
-	// serverdata needs to go over for all types of servers
-	// to make sure the protocol is right, and to set the gamedir
-	gamedir = Cvar_VariableString ("gamedir");
-
 	// send the serverdata
 	MSG_WriteByte (&sv_client->netchan.message, svc_serverdata);
 	MSG_WriteLong (&sv_client->netchan.message, PROTOCOL_VERSION);
 	MSG_WriteLong (&sv_client->netchan.message, svs.spawncount);
-	MSG_WriteByte (&sv_client->netchan.message, sv.attractloop);
-	MSG_WriteString (&sv_client->netchan.message, gamedir);
 
-	if (sv.state == ss_cinematic) playernum = -1;
+	if(sv.state == ss_cinematic) playernum = -1;
 	else playernum = sv_client - svs.clients;
 	MSG_WriteShort (&sv_client->netchan.message, playernum );
 

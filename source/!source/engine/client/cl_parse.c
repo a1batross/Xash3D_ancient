@@ -290,10 +290,10 @@ CL_ParseServerData
 */
 void CL_ParseServerData (void)
 {
-	char	*str;
+	char		*str;
 	int		i;
 
-	MsgDev (D_INFO, "Serverdata packet received.\n");
+	MsgDev(D_INFO, "Serverdata packet received.\n");
 
 	// wipe the client_t struct
 	CL_ClearState ();
@@ -306,11 +306,6 @@ void CL_ParseServerData (void)
 	if (i != PROTOCOL_VERSION) Host_Error("Server returned version %i, not %i", i, PROTOCOL_VERSION);
 
 	cl.servercount = MSG_ReadLong (&net_message);
-	cl.attractloop = MSG_ReadByte (&net_message);
-
-	// game directory
-	str = MSG_ReadString (&net_message);
-	strncpy (cl.gamedir, str, sizeof(cl.gamedir)-1);
 
 	// parse player entity number
 	cl.playernum = MSG_ReadShort (&net_message);
@@ -629,10 +624,6 @@ void CL_ParseServerMessage (void)
 		// other commands
 		switch (cmd)
 		{
-		default:
-			Host_Error("CL_ParseServerMessage: Illegible server message %d\n", cmd );
-			break;
-			
 		case svc_nop:
 //			Msg ("svc_nop\n");
 			break;
@@ -711,6 +702,9 @@ void CL_ParseServerMessage (void)
 		case svc_packetentities:
 		case svc_deltapacketentities:
 			Host_Error("Out of place frame data\n");
+			break;
+		default:
+			Host_Error("CL_ParseServerMessage: Illegible server message %d\n", cmd );
 			break;
 		}
 	}

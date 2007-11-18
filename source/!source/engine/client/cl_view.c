@@ -587,11 +587,11 @@ V_Init
 */
 void V_Init (void)
 {
-	Cmd_AddCommand ("gun_next", V_Gun_Next_f);
-	Cmd_AddCommand ("gun_prev", V_Gun_Prev_f);
-	Cmd_AddCommand ("gun_model", V_Gun_Model_f);
+	Cmd_AddCommand ("gun_next", V_Gun_Next_f, "decrease viewmodel current frame" );
+	Cmd_AddCommand ("gun_prev", V_Gun_Prev_f, "increase viewmodel current frame" );
+	Cmd_AddCommand ("gun_model", V_Gun_Model_f, "change gun (not a weapon, just viewmodel)" );
 
-	Cmd_AddCommand ("viewpos", V_Viewpos_f);
+	Cmd_AddCommand ("viewpos", V_Viewpos_f, "prints current player origin" );
 
 	crosshair = Cvar_Get ("crosshair", "0", CVAR_ARCHIVE);
 

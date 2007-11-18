@@ -1,35 +1,11 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
+//=======================================================================
+//			Copyright XashXT Group 2007 ©
+//		        sv_cmds.c - server console commands
+//=======================================================================
 
 #include "engine.h"
 #include "server.h"
 #include "savefile.h"
-
-/*
-===============================================================================
-
-OPERATOR CONSOLE ONLY COMMANDS
-
-These commands can only be entered from stdin or by a remote operator datagram
-===============================================================================
-*/
 
 /*
 ====================
@@ -38,50 +14,43 @@ SV_SetMaster_f
 Specify a list of master servers
 ====================
 */
-void SV_SetMaster_f (void)
+void SV_SetMaster_f( void )
 {
 	int		i, slot;
 
 	// only dedicated servers send heartbeats
-	if (!dedicated->value)
+	if(!dedicated->value)
 	{
-		Msg ("Only dedicated servers use masters.\n");
+		Msg("Only dedicated servers use masters.\n");
 		return;
 	}
 
 	// make sure the server is listed public
 	Cvar_Set ("public", "1");
 
-	for (i=1 ; i<MAX_MASTERS ; i++)
-		memset (&master_adr[i], 0, sizeof(master_adr[i]));
+	for (i = 1; i < MAX_MASTERS; i++)
+	{ 
+		memset(&master_adr[i], 0, sizeof(master_adr[i]));
+	}
 
-	slot = 1;		// slot 0 will always contain the id master
-	for (i=1 ; i<Cmd_Argc() ; i++)
+	// slot 0 will always contain the id master
+	for (i = 1, slot = 1; i < Cmd_Argc(); i++)
 	{
-		if (slot == MAX_MASTERS)
-			break;
-
+		if (slot == MAX_MASTERS) break;
 		if (!NET_StringToAdr (Cmd_Argv(i), &master_adr[i]))
 		{
 			Msg ("Bad address: %s\n", Cmd_Argv(i));
 			continue;
 		}
-		if (master_adr[slot].port == 0)
-			master_adr[slot].port = BigShort (PORT_MASTER);
 
+		if(!master_adr[slot].port) master_adr[slot].port = BigShort (PORT_MASTER);
 		Msg ("Master server at %s\n", NET_AdrToString (master_adr[slot]));
-
 		Msg ("Sending a ping.\n");
-
 		Netchan_OutOfBandPrint (NS_SERVER, master_adr[slot], "ping");
-
 		slot++;
 	}
-
 	svs.last_heartbeat = -99999.0f;
 }
-
-
 
 /*
 ==================
@@ -90,15 +59,13 @@ SV_SetPlayer
 Sets sv_client and sv_player to the player with idnum Cmd_Argv(1)
 ==================
 */
-bool SV_SetPlayer (void)
+bool SV_SetPlayer( void )
 {
-	client_state_t	*cl;
-	int			i;
-	int			idnum;
 	char		*s;
+	client_state_t	*cl;
+	int		i, idnum;
 
-	if (Cmd_Argc() < 2)
-		return false;
+	if(Cmd_Argc() < 2) return false;
 
 	s = Cmd_Argv(1);
 
@@ -106,27 +73,25 @@ bool SV_SetPlayer (void)
 	if (s[0] >= '0' && s[0] <= '9')
 	{
 		idnum = atoi(Cmd_Argv(1));
-		if (idnum < 0 || idnum >= maxclients->value)
+		if (idnum < 0 || idnum >= maxclients->integer)
 		{
-			Msg ("Bad client slot: %i\n", idnum);
+			Msg("Bad client slot: %i\n", idnum);
 			return false;
 		}
-
 		sv_client = &svs.clients[idnum];
 		sv_player = sv_client->edict;
 		if (!sv_client->state)
 		{
-			Msg ("Client %i is not active\n", idnum);
+			Msg("Client %i is not active\n", idnum);
 			return false;
 		}
 		return true;
 	}
 
 	// check for a name match
-	for (i=0,cl=svs.clients ; i<maxclients->value; i++,cl++)
+	for (i = 0, cl = svs.clients; i < maxclients->integer; i++, cl++)
 	{
-		if (!cl->state)
-			continue;
+		if (!cl->state) continue;
 		if (!strcmp(cl->name, s))
 		{
 			sv_client = cl;
@@ -134,91 +99,8 @@ bool SV_SetPlayer (void)
 			return true;
 		}
 	}
-
 	Msg ("Userid %s is not on the server\n", s);
 	return false;
-}
-
-/*
-==================
-SV_DemoMap_f
-
-Puts the server in demo mode on a specific map/cinematic
-==================
-*/
-void SV_DemoMap_f (void)
-{
-	if (Cmd_Argc() != 2)
-	{
-		Msg ("USAGE: demomap <map>\n");
-		return;
-	}
-
-	SV_Map (true, Cmd_Argv(1), NULL, false );
-}
-
-/*
-==================
-SV_GameMap_f
-
-Saves the state of the map just being exited and goes to a new map.
-
-If the initial character of the map string is '*', the next map is
-in a new unit, so the current savegame directory is cleared of
-map files.
-
-Example:
-
-*inter.cin+jail
-
-Clears the archived maps, plays the inter.cin cinematic, then
-goes to map jail.bsp.
-==================
-*/
-void SV_GameMap_f (void)
-{
-	char		*map;
-	int			i;
-	client_state_t	*cl;
-	bool	*savedFree;
-
-	if (Cmd_Argc() != 2)
-	{
-		Msg ("USAGE: gamemap <map>\n");
-		return;
-	}
-
-	// check for clearing the current savegame
-	map = Cmd_Argv(1);
-	if (map[0] != '*')
-	{
-		// save the map just exited
-		if (sv.state == ss_game)
-		{
-			// clear all the client free flags before saving so that
-			// when the level is re-entered, the clients will spawn
-			// at spawn points instead of occupying body shells
-			savedFree = Z_Malloc(maxclients->value * sizeof(bool));
-			for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
-			{
-				savedFree[i] = cl->edict->priv.sv->free;
-				cl->edict->priv.sv->free = true;
-			}
-
-			SV_WriteSaveFile( "save0" ); //autosave
-
-			// we must restore these for clients to transfer over correctly
-			for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
-				cl->edict->priv.sv->free = savedFree[i];
-			Z_Free (savedFree);
-		}
-	}
-
-	// start up the next map
-	SV_Map (false, Cmd_Argv(1), NULL, false );
-
-	// archive server state
-	strncpy (svs.mapcmd, Cmd_Argv(1), sizeof(svs.mapcmd)-1);
 }
 
 /*
@@ -229,107 +111,221 @@ Goes directly to a given map without any savegame archiving.
 For development work
 ==================
 */
-void SV_Map_f (void)
+void SV_Map_f( void )
 {
-	char	*map;
-	char	expanded[MAX_QPATH];
+	char	filename[MAX_QPATH];
 
-	// if not a pcx, demo, or cinematic, check to make sure the level exists
-	map = Cmd_Argv(1);
-	if(!strstr (map, "."))
+	if(Cmd_Argc() != 2)
 	{
-		sprintf(expanded, "maps/%s.bsp", map);
-		if(!FS_FileExists( expanded ))
+		Msg("Usage: map <filename>\n");
+		return;
+	}
+
+	std.snprintf( filename, MAX_QPATH, "%s.bsp", Cmd_Argv(1));
+	if(!FS_FileExists(va("maps/%s", filename )))
+	{
+		Msg("Can't loading %s\n", filename );
+		return;
+	}
+
+	SV_InitGame(); // reset previous state
+
+	SV_BroadcastCommand("changing\n");
+	SV_SendClientMessages();
+	SV_SpawnServer( filename, NULL, ss_game );
+	SV_BroadcastCommand ("reconnect\n");
+
+	// archive server state
+	std.strncpy (svs.mapcmd, filename, sizeof(svs.mapcmd) - 1);
+}
+
+/*
+==================
+SV_Demo_f
+
+Playing a demo with specified name
+==================
+*/
+void SV_Demo_f( void )
+{
+	char	filename[MAX_QPATH];
+
+	if(Cmd_Argc() != 2)
+	{
+		Msg("Usage: demo <filename>\n");
+		return;
+	}
+
+	std.snprintf( filename, MAX_QPATH, "%s.dem", Cmd_Argv(1));
+	if(!FS_FileExists(va("demos/%s", filename )))
+	{
+		Msg("Can't loading %s\n", filename );
+		return;
+	}
+
+	// the game is just starting
+	if(sv.state == ss_dead) SV_InitGame();
+
+	SV_BroadcastCommand( "changing\n" );
+	SV_SpawnServer(filename, NULL, ss_demo );
+	SV_BroadcastCommand( "reconnect\n" );
+}
+
+/*
+==================
+SV_Movie_f
+
+Playing a roq video with specified name
+==================
+*/
+void SV_Movie_f( void )
+{
+	char	filename[MAX_QPATH];
+
+	if(Cmd_Argc() != 2)
+	{
+		Msg("Usage: movie <filename>\n");
+		return;
+	}
+
+	std.snprintf( filename, MAX_QPATH, "%s.roq", Cmd_Argv(1));
+	if(!FS_FileExists(va("video/%s", filename )))
+	{
+		Msg("Can't loading %s\n", filename );
+		return;
+	}
+
+	SV_InitGame();
+	SV_BroadcastCommand( "changing\n" );
+	SV_SpawnServer( filename, NULL, ss_cinematic );
+	SV_BroadcastCommand( "reconnect\n" );
+}
+
+/*
+==============
+SV_Load_f
+
+==============
+*/
+void SV_Load_f( void )
+{
+	char	filename[MAX_QPATH];
+
+	if(Cmd_Argc() != 2)
+	{
+		Msg ("Usage: load <filename>\n");
+		return;
+	}
+
+	std.snprintf( filename, MAX_QPATH, "%s.bin", Cmd_Argv(1));
+	if(!FS_FileExists(va("save/%s", filename )))
+	{
+		Msg("Can't loading %s\n", filename );
+		return;
+	}
+
+	SV_ReadSaveFile( filename );
+	SV_BroadcastCommand( "changing\n" );
+	SV_SpawnServer(svs.mapcmd, filename, ss_game );
+	SV_BroadcastCommand( "reconnect\n" );
+}
+
+/*
+==============
+SV_Save_f
+
+==============
+*/
+void SV_Save_f( void )
+{
+	char	filename[MAX_QPATH];
+
+	if(Cmd_Argc() != 2)
+	{
+		Msg ("Usage: savegame <directory>\n");
+		return;
+	}
+
+	std.snprintf( filename, MAX_QPATH, "%s.bin", Cmd_Argv(1));
+	SV_WriteSaveFile( filename );
+}
+
+/*
+==================
+SV_ChangeLevel_f
+
+Saves the state of the map just being exited and goes to a new map.
+==================
+*/
+void SV_ChangeLevel_f( void )
+{
+	char	filename[MAX_QPATH];
+
+
+	if(Cmd_Argc() != 2)
+	{
+		Msg ("Usage: changelevel <map>\n");
+		return;
+	}
+
+	std.snprintf( filename, MAX_QPATH, "%s.bsp", Cmd_Argv(1));
+	if(!FS_FileExists(va("maps/%s", filename )))
+	{
+		Msg("Can't loading %s\n", filename );
+		return;
+	}
+
+	if(sv.state == ss_game)
+	{
+		bool		*savedFree;
+		client_state_t	*cl;
+		int		i;
+	
+		// clear all the client free flags before saving so that
+		// when the level is re-entered, the clients will spawn
+		// at spawn points instead of occupying body shells
+		savedFree = Z_Malloc(maxclients->integer * sizeof(bool));
+		for (i = 0, cl = svs.clients; i < maxclients->integer; i++, cl++)
 		{
-			Msg("Can't find %s\n", expanded);
-			return;
+			savedFree[i] = cl->edict->priv.sv->free;
+			cl->edict->priv.sv->free = true;
 		}
+		SV_WriteSaveFile( "save0.bin" ); // autosave
+		// we must restore these for clients to transfer over correctly
+		for (i = 0, cl = svs.clients; i < maxclients->integer; i++, cl++)
+			cl->edict->priv.sv->free = savedFree[i];
+		Z_Free(savedFree);
 	}
 
-	sv.state = ss_dead;		// don't save current level when changing
-	SV_GameMap_f();
+	SV_InitGame(); // reset previous state
+	SV_BroadcastCommand("changing\n");
+	SV_SendClientMessages();
+	SV_SpawnServer( filename, NULL, ss_game );
+	SV_BroadcastCommand ("reconnect\n");
+
+	// archive server state
+	std.strncpy (svs.mapcmd, filename, sizeof(svs.mapcmd) - 1);
 }
 
 /*
-=====================================================================
+==================
+SV_Restart_f
 
-  SAVEGAMES
-
-=====================================================================
+restarts current level
+==================
 */
-
-
-/*
-==============
-SV_Loadgame_f
-
-==============
-*/
-void SV_Loadgame_f (void)
+void SV_Restart_f( void )
 {
-	if (Cmd_Argc() != 2)
-	{
-		Msg ("USAGE: loadgame <directory>\n");
-		return;
-	}
+	char	filename[MAX_QPATH];
+	
+	if(sv.state != ss_game) return;
 
-	Msg("Loading game... %s\n", Cmd_Argv(1));
-	SV_ReadSaveFile( Cmd_Argv(1) );
+	strncpy( filename, svs.mapcmd, MAX_QPATH );
+	FS_StripExtension( filename );
 
-	// go to the map
-	sv.state = ss_dead;		// don't save current level when changing
-	SV_Map (false, svs.mapcmd, Cmd_Argv(1), true);
+	// just sending console command
+	Cbuf_AddText(va("map %s\n", filename ));
 }
-
-
-
-/*
-==============
-SV_Savegame_f
-
-==============
-*/
-void SV_Savegame_f (void)
-{
-	if (sv.state != ss_game)
-	{
-		Msg ("You must be in a game to save.\n");
-		return;
-	}
-
-	if (Cmd_Argc() != 2)
-	{
-		Msg ("USAGE: savegame <directory>\n");
-		return;
-	}
-
-	if (Cvar_VariableValue("deathmatch"))
-	{
-		Msg ("Can't savegame in a deathmatch\n");
-		return;
-	}
-
-	if (!strcmp (Cmd_Argv(1), "current"))
-	{
-		Msg ("Can't save to 'current'\n");
-		return;
-	}
-
-	if (maxclients->value == 1 && svs.clients[0].edict->priv.sv->client->ps.stats[STAT_HEALTH] <= 0)
-	{
-		Msg ("\nCan't savegame while dead!\n");
-		return;
-	}
-
-	// archive current level, including all client edicts.
-	// when the level is reloaded, they will be shells awaiting
-	// a connecting client
-	SV_WriteSaveFile( Cmd_Argv(1) );
-
-	Msg ("Done.\n");
-}
-
-//===============================================================
 
 /*
 ==================
@@ -338,28 +334,25 @@ SV_Kick_f
 Kick a user off of the server
 ==================
 */
-void SV_Kick_f (void)
+void SV_Kick_f( void )
 {
-	if (!svs.initialized)
-	{
-		Msg ("No server running.\n");
-		return;
-	}
-
-	if (Cmd_Argc() != 2)
+	if(Cmd_Argc() != 2)
 	{
 		Msg ("Usage: kick <userid>\n");
 		return;
 	}
 
-	if (!SV_SetPlayer ()) return;
+	if(!svs.clients)
+	{
+		Msg("^3no server running.\n");
+		return;
+	}
+	if(!SV_SetPlayer()) return;
 
 	SV_BroadcastPrintf (PRINT_HIGH, "%s was kicked\n", sv_client->name);
-	// print directly, because the dropped client won't get the
-	// SV_BroadcastPrintf message
-	SV_ClientPrintf (sv_client, PRINT_HIGH, "You were kicked from the game\n");
-	SV_DropClient (sv_client);
-	sv_client->lastmessage = svs.realtime;	// min case there is a funny zombie
+	SV_ClientPrintf(sv_client, PRINT_HIGH, "You were kicked from the game\n");
+	SV_DropClient(sv_client);
+	sv_client->lastmessage = svs.realtime; // min case there is a funny zombie
 }
 
 
@@ -368,53 +361,49 @@ void SV_Kick_f (void)
 SV_Status_f
 ================
 */
-void SV_Status_f (void)
+void SV_Status_f( void )
 {
-	int			i, j, l;
+	int		i;
 	client_state_t	*cl;
-	char		*s;
-	int			ping;
-	if (!svs.clients)
+
+	if(!svs.clients)
 	{
-		Msg ("No server running.\n");
+		Msg ("^3no server running.\n");
 		return;
 	}
-	Msg ("map              : %s\n", sv.name);
 
-	Msg ("num score ping name            lastmsg address               qport \n");
-	Msg ("--- ----- ---- --------------- ------- --------------------- ------\n");
-	for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
+	Msg("map: %s\n", sv.name);
+	Msg("num score ping    name            lastmsg address               port \n");
+	Msg("--- ----- ------- --------------- ------- --------------------- ------\n");
+
+	for(i = 0, cl = svs.clients; i < maxclients->integer; i++, cl++)
 	{
-		if (!cl->state) continue;
-		Msg ("%3i ", i);
-		Msg ("%5i ", cl->edict->priv.sv->client->ps.stats[STAT_FRAGS]);
+		int	j, l, ping;
+		char	*s;
 
-		if (cl->state == cs_connected)
-			Msg ("CNCT ");
-		else if (cl->state == cs_zombie)
-			Msg ("ZMBI ");
+		if (!cl->state) continue;
+
+		Msg("%3i ", i);
+		Msg("%5i ", cl->edict->priv.sv->client->ps.stats[STAT_FRAGS]);
+
+		if (cl->state == cs_connected) Msg("Connect");
+		else if (cl->state == cs_zombie) Msg ("Zombie ");
 		else
 		{
 			ping = cl->ping < 9999 ? cl->ping : 9999;
-			Msg ("%4i ", ping);
+			Msg("%7i ", ping);
 		}
 
-		Msg ("%s", cl->name);
-		l = 16 - strlen(cl->name);
-		for (j=0 ; j<l ; j++)
-			Msg (" ");
-
-		Msg ("%.7f ", svs.realtime - cl->lastmessage );
-
+		Msg("%s", cl->name );
+		l = 16 - std.strlen(cl->name);
+		for (j = 0; j < l; j++) Msg (" ");
+		Msg ("%.5f ", svs.realtime - cl->lastmessage );
 		s = NET_AdrToString ( cl->netchan.remote_address);
 		Msg ("%s", s);
 		l = 22 - strlen(s);
-		for (j=0 ; j<l ; j++)
-			Msg (" ");
-		
-		Msg ("%5i", cl->netchan.qport);
-
-		Msg ("\n");
+		for (j = 0; j < l; j++) Msg (" ");
+		Msg("%5i", cl->netchan.qport);
+		Msg("\n");
 	}
 	Msg ("\n");
 }
@@ -424,35 +413,30 @@ void SV_Status_f (void)
 SV_ConSay_f
 ==================
 */
-void SV_ConSay_f(void)
+void SV_ConSay_f( void )
 {
-	client_state_t *client;
-	int		j;
-	char	*p;
-	char	text[1024];
+	char		*p, text[MAX_SYSPATH];
+	client_state_t	*client;
+	int		i;
 
-	if (Cmd_Argc () < 2)
-		return;
+	if(Cmd_Argc() < 2) return;
 
-	strcpy (text, "console: ");
+	strncpy(text, "console: ", MAX_SYSPATH );
 	p = Cmd_Args();
 
-	if (*p == '"')
+	if(*p == '"')
 	{
 		p++;
-		p[strlen(p)-1] = 0;
+		p[std.strlen(p) - 1] = 0;
 	}
+	std.strncat(text, p, MAX_SYSPATH );
 
-	strcat(text, p);
-
-	for (j = 0, client = svs.clients; j < maxclients->value; j++, client++)
+	for (i = 0, client = svs.clients; i < maxclients->integer; i++, client++)
 	{
-		if (client->state != cs_spawned)
-			continue;
-		SV_ClientPrintf(client, PRINT_CHAT, "%s\n", text);
+		if (client->state != cs_spawned) continue;
+		SV_ClientPrintf(client, PRINT_CHAT, "%s\n", text );
 	}
 }
-
 
 /*
 ==================
@@ -464,204 +448,108 @@ void SV_Heartbeat_f (void)
 	svs.last_heartbeat = -99999.0f;
 }
 
-
 /*
 ===========
-SV_Serverinfo_f
+SV_ServerInfo_f
 
-  Examine or change the serverinfo string
+Examine serverinfo string
 ===========
 */
-void SV_Serverinfo_f (void)
+void SV_ServerInfo_f( void )
 {
-	Msg ("Server info settings:\n");
-	Info_Print (Cvar_Serverinfo());
+	Msg("Server info settings:\n");
+	Info_Print( Cvar_Serverinfo());
 }
-
 
 /*
 ===========
-SV_DumpUser_f
+SV_ClientInfo_f
 
 Examine all a users info strings
 ===========
 */
-void SV_DumpUser_f (void)
+void SV_ClientInfo_f( void )
 {
-	if (Cmd_Argc() != 2)
+	if(Cmd_Argc() != 2)
 	{
-		Msg ("Usage: info <userid>\n");
+		Msg("Usage: clientinfo <userid>\n" );
 		return;
 	}
 
-	if (!SV_SetPlayer ())
-		return;
-
-	Msg ("userinfo\n");
-	Msg ("--------\n");
-	Info_Print (sv_client->userinfo);
+	if(!SV_SetPlayer()) return;
+	Msg("userinfo\n");
+	Msg("--------\n");
+	Info_Print( sv_client->userinfo );
 
 }
-
-
-/*
-==============
-SV_ServerRecord_f
-
-Begins server demo recording.  Every entity and every message will be
-recorded, but no playerinfo will be stored.  Primarily for demo merging.
-==============
-*/
-void SV_ServerRecord_f (void)
-{
-	char	name[MAX_OSPATH];
-	char	buf_data[32768];
-	sizebuf_t	buf;
-	int		len;
-	int		i;
-
-	if (Cmd_Argc() != 2)
-	{
-		Msg ("serverrecord <demoname>\n");
-		return;
-	}
-
-	if (svs.demofile)
-	{
-		Msg ("Already recording.\n");
-		return;
-	}
-
-	if (sv.state != ss_game)
-	{
-		Msg ("You must be in a level to record.\n");
-		return;
-	}
-
-	// open the demo file
-	sprintf (name, "demos/%s.dm2", Cmd_Argv(1));
-
-	Msg ("recording to %s.\n", name);
-	svs.demofile = FS_Open (name, "wb");
-	if (!svs.demofile)
-	{
-		Msg ("ERROR: couldn't open.\n");
-		return;
-	}
-
-	// setup a buffer to catch all multicasts
-	SZ_Init (&svs.demo_multicast, svs.demo_multicast_buf, sizeof(svs.demo_multicast_buf));
-
-	// write a single giant fake message with all the startup info
-	SZ_Init (&buf, buf_data, sizeof(buf_data));
-
-	// serverdata needs to go over for all types of servers
-	// to make sure the protocol is right, and to set the gamedir
-
-	// send the serverdata
-	MSG_WriteByte (&buf, svc_serverdata);
-	MSG_WriteLong (&buf, PROTOCOL_VERSION);
-	MSG_WriteLong (&buf, svs.spawncount);
-	// 2 means server demo
-	MSG_WriteByte (&buf, 2);	// demos are always attract loops
-	MSG_WriteString (&buf, Cvar_VariableString ("gamedir"));
-	MSG_WriteShort (&buf, -1);
-	// send full levelname
-	MSG_WriteString (&buf, sv.configstrings[CS_NAME]);
-
-	for (i=0 ; i<MAX_CONFIGSTRINGS ; i++)
-	{
-		if (sv.configstrings[i][0])
-		{
-			MSG_WriteByte (&buf, svc_configstring);
-			MSG_WriteShort (&buf, i);
-			MSG_WriteString (&buf, sv.configstrings[i]);
-		}
-	}
-
-	// write it to the demo file
-	len = LittleLong (buf.cursize);
-	FS_Write (svs.demofile, &len, 4);
-	FS_Write (svs.demofile, buf.data, buf.cursize);
-
-	// the rest of the demo file will be individual frames
-}
-
-
-/*
-==============
-SV_ServerStop_f
-
-Ends server demo recording
-==============
-*/
-void SV_ServerStop_f (void)
-{
-	if (!svs.demofile)
-	{
-		Msg ("Not doing a record.\n");
-		return;
-	}
-	FS_Close (svs.demofile);
-	svs.demofile = NULL;
-	Msg ("Completed demo.\n");
-}
-
 
 /*
 ===============
 SV_KillServer_f
 
 Kick everyone off, possibly in preparation for a new game
-
 ===============
 */
 void SV_KillServer_f (void)
 {
-	if (!svs.initialized) return;
-	SV_Shutdown ("Server was killed.\n", false);
-	NET_Config ( false ); // close network sockets
+	if(!svs.initialized) return;
+	SV_Shutdown("Server was killed.\n", false);
+	NET_Config( false );// close network sockets
 }
-
-/*
-===============
-SV_ServerCommand_f
-
-Let the game dll handle a command
-===============
-*/
-void SV_ServerCommand_f (void)
-{
-	Msg ("No game loaded.\n");
-}
-
-//===========================================================
 
 /*
 ==================
 SV_InitOperatorCommands
 ==================
 */
-void SV_InitOperatorCommands (void)
+void SV_InitOperatorCommands( void )
 {
-	Cmd_AddCommand ("heartbeat", SV_Heartbeat_f);
-	Cmd_AddCommand ("kick", SV_Kick_f);
-	Cmd_AddCommand ("status", SV_Status_f);
-	Cmd_AddCommand ("serverinfo", SV_Serverinfo_f);
-	Cmd_AddCommand ("dumpuser", SV_DumpUser_f);
+	Cmd_AddCommand ("heartbeat", SV_Heartbeat_f, "send a heartbeat to the master server" );
+	Cmd_AddCommand ("kick", SV_Kick_f, "kick a player off the server by number or name" );
+	Cmd_AddCommand ("status", SV_Status_f, "print server status information" );
+	Cmd_AddCommand ("serverinfo", SV_ServerInfo_f, "print server settings" );
+	Cmd_AddCommand ("clientinfo", SV_ClientInfo_f, "print user infostring (player num required)" );
 
-	Cmd_AddCommand ("map", SV_Map_f);
-	Cmd_AddCommand ("demomap", SV_DemoMap_f);
-	Cmd_AddCommand ("gamemap", SV_GameMap_f);
-	Cmd_AddCommand ("setmaster", SV_SetMaster_f);
+	Cmd_AddCommand("map", SV_Map_f, "start new level" );
+	Cmd_AddCommand("demo", SV_Demo_f, "playing a demo file" );
+	Cmd_AddCommand("movie", SV_Movie_f, "playing video file" );
+	Cmd_AddCommand("changelevel", SV_ChangeLevel_f, "changing level" );
+	Cmd_AddCommand("restart", SV_Restart_f, "restarting current level" );
 
-	if ( dedicated->value ) Cmd_AddCommand ("say", SV_ConSay_f);
+	if( dedicated->value ) 
+	{
+		Cmd_AddCommand ("say", SV_ConSay_f, "send a chat message to everyone on the server" );
+		Cmd_AddCommand("setmaster", SV_SetMaster_f, "set ip address for dedicated server" );
+	}
 
-	Cmd_AddCommand ("serverrecord", SV_ServerRecord_f);
-	Cmd_AddCommand ("serverstop", SV_ServerStop_f);
-	Cmd_AddCommand ("save", SV_Savegame_f);
-	Cmd_AddCommand ("load", SV_Loadgame_f);
-	Cmd_AddCommand ("killserver", SV_KillServer_f);
-	Cmd_AddCommand ("sv", SV_ServerCommand_f);
+	Cmd_AddCommand ("save", SV_Save_f, "save the game to a file");
+	Cmd_AddCommand ("load", SV_Load_f, "load a saved game file" );
+	Cmd_AddCommand ("killserver", SV_KillServer_f, "shutdown current server" );
 }
 
+void SV_KillOperatorCommands( void )
+{
+	Cmd_RemoveCommand("heartbeat");
+	Cmd_RemoveCommand("kick");
+	Cmd_RemoveCommand("status");
+	Cmd_RemoveCommand("serverinfo");
+	Cmd_RemoveCommand("clientinfo");
+
+	Cmd_RemoveCommand("map");
+	Cmd_RemoveCommand("demo");
+	Cmd_RemoveCommand("movie");
+	Cmd_RemoveCommand("changelevel");
+	Cmd_RemoveCommand("restart");
+
+	if( dedicated->value ) 
+	{
+		Cmd_RemoveCommand("say");
+		Cmd_RemoveCommand("setmaster");
+	}
+
+	Cmd_RemoveCommand("serverrecord");
+	Cmd_RemoveCommand("serverstop");
+	Cmd_RemoveCommand("save");
+	Cmd_RemoveCommand("load");
+	Cmd_RemoveCommand("killserver");
+}
