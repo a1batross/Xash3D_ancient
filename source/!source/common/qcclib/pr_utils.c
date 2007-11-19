@@ -549,6 +549,7 @@ void PR_WriteLNOfile(char *destname)
 {
 	dlno_t	lno;
 	vfile_t	*h;
+	file_t	*f;
 	char	filename[MAX_QPATH];
 
 	if(!opt_writelinenums) return;
@@ -564,18 +565,21 @@ void PR_WriteLNOfile(char *destname)
 	lno.numfielddefs = numfielddefs;
 	lno.numstatements = numstatements;
 
-	h = VFS_Open ( filename, "w" );
-	VFS_Write (h, &lno, sizeof(dlno_t)); // header
-	VFS_Write (h, statement_linenums, numstatements * sizeof(int));
+	f = FS_Open( filename, "w" );
+	h = VFS_Open( f, "w" );
+	VFS_Write(h, &lno, sizeof(dlno_t)); // header
+	VFS_Write(h, statement_linenums, numstatements * sizeof(int));
 
 	MsgDev(D_INFO, "Writing %s, total size %d bytes\n", filename, ((VFS_Tell(h)+3) & ~3));
-	VFS_Close (h);
+	f = VFS_Close( h );
+	FS_Close( f );
 }
 
 void PR_WriteDAT( void )
 {
 	ddef_t		*dd;
 	vfile_t		*h;
+	file_t		*f;
 	dprograms_t	progs; // header
 	char		element[MAX_NAME];
 	int		i, progsize, num_ref;
@@ -749,11 +753,12 @@ void PR_WriteDAT( void )
 	MsgDev (D_INFO, "%6i numfielddefs (%i unique) (of %i)\n", numfielddefs, pr.size_fields, MAX_FIELDS);
 	MsgDev (D_INFO, "%6i numpr_globals (of %i)\n", numpr_globals, MAX_REGS);	
 	
-	h = VFS_Open ( progsoutname, "w" );
-	VFS_Write (h, &progs, sizeof(progs));
-	VFS_Write (h, "\r\n\r\n", 4);
-	VFS_Write (h, v_copyright, strlen(v_copyright) + 1);
-	VFS_Write (h, "\r\n\r\n", 4);
+	f = FS_Open( progsoutname, "wb" );
+	h = VFS_Open( f, "w" );
+	VFS_Write(h, &progs, sizeof(progs));
+	VFS_Write(h, "\r\n\r\n", 4);
+	VFS_Write(h, v_copyright, strlen(v_copyright) + 1);
+	VFS_Write(h, "\r\n\r\n", 4);
 
 	progs.ofs_strings = VFS_Tell(h);
 	progs.numstrings = strofs;
@@ -933,7 +938,8 @@ void PR_WriteDAT( void )
 	if (asmfile) FS_Close(asmfile);
 
 	MsgDev(D_INFO, "Writing %s, total size %i bytes\n", progsoutname, progsize );
-	VFS_Close (h); // write real file into disk
+	f = VFS_Close(h); // write real file into disk
+	FS_Close(f);
 }
 
 /*

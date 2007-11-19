@@ -38,9 +38,6 @@ static void SpinControl_DoSlide( menulist_s *s, int dir );
 #define RCOLUMN_OFFSET  16
 #define LCOLUMN_OFFSET -16
 
-extern render_exp_t		*re;
-extern viddef_t		viddef;
-
 void Action_DoEnter( menuaction_s *a )
 {
 	if ( a->generic.callback )

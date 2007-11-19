@@ -13,6 +13,8 @@ cvar_t *scr_centertime;
 cvar_t *scr_showpause;
 cvar_t *scr_printspeed;
 cvar_t *scr_loading;
+cvar_t *scr_width;
+cvar_t *scr_height;
 cvar_t *cl_levelshot_name;
 
 void SCR_TimeRefresh_f( void );
@@ -31,8 +33,8 @@ void SCR_AdjustSize( float *x, float *y, float *w, float *h )
 	float	yscale;
 
 	// scale for screen sizes
-	xscale = viddef.width / 640.0f;
-	yscale = viddef.height / 480.0f;
+	xscale = scr_width->integer / 640.0f;
+	yscale = scr_height->integer / 480.0f;
 
 	if(x) *x *= xscale;
 	if(y) *y *= yscale;

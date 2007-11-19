@@ -522,7 +522,4 @@ void Netchan_OutOfBandPrint (int net_socket, netadr_t adr, char *format, ...);
 bool Netchan_Process (netchan_t *chan, sizebuf_t *msg);
 bool Netchan_CanReliable (netchan_t *chan);
 
-void IN_Activate( bool active );
-void IN_MouseEvent( int mstate );
-
 #endif//NET_MSG_H

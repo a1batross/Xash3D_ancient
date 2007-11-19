@@ -19,17 +19,49 @@ dll_info_t editor_dll = { "editor.dll", NULL, "CreateAPI", NULL, NULL, true, siz
 static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t\
           All Rights Reserved\n\n\t           Visit www.xash.ru\n";
 
-void NullInit ( uint funcname, int argc, char **argv )
+// stubs
+void NullInit( uint funcname, int argc, char **argv ) {}
+void NullFunc( void ) {}
+
+void Com_AddCommand( const char *name, xcommand_t cmd, const char *cmd_desc )
 {
+	MsgDev(D_NOTE, "Warning: cmd %s not added - too early\n", name ); 
 }
 
-void NullFunc( void )
+void Com_DelCommand( const char *name )
 {
+	MsgDev(D_NOTE, "Warning: cmd %s not removed - too early\n", name ); 
 }
 
-gameinfo_t Sys_GameInfo( void )
+uint Com_Argc( void )
 {
-	return GI;
+	return fs_argc;
+}
+
+char *Com_Argv( int num )
+{
+	return fs_argv[num];
+}
+
+void Com_AddText(const char *text)
+{
+	Sys_Print( text );
+}
+
+void Com_CvarSetValue( const char *name, float value )
+{
+	MsgDev(D_NOTE, "Warning: cvar %s not found - too early\n", name ); 
+}
+
+void Com_CvarSetString( const char *name, const char *value )
+{
+	MsgDev(D_NOTE, "Warning: cvar %s not found - too early\n", name ); 
+}
+
+cvar_t *Com_GetCvar( const char *name, const char *value, int flags, const char *desc )
+{
+	MsgDev(D_NOTE, "Warning: cvar %s can't created - too early\n", name ); 
+	return NULL;
 }
 
 void Sys_GetStdAPI( void )
@@ -118,6 +150,8 @@ void Sys_GetStdAPI( void )
 	std.vfwrite = VFS_Write;		// write into buffer
 	std.vfwrite2 = VFS_Write2;		// deflate buffer, then write
 	std.vfread = VFS_Read;		// read from buffer
+	std.vfprint = VFS_Print;		// write message
+	std.vfprintf = VFS_Printf;		// write formatted message
 	std.vfseek = VFS_Seek;		// fseek, can seek in packfiles too
 	std.vfunpack = VFS_Unpack;		// inflate zipped buffer
 	std.vftell = VFS_Tell;		// like a ftell
@@ -133,6 +167,16 @@ void Sys_GetStdAPI( void )
 	std.Com_FreeLibrary = Sys_FreeLibrary;		// free library
 	std.Com_GetProcAddress = Sys_GetProcAddress;	// gpa
 	std.Com_DoubleTime = Sys_DoubleTime;		// hi-res timer
+
+	// console commands and variables
+	std.Com_AddCommand = Com_AddCommand;
+	std.Com_DelCommand = Com_DelCommand;
+	std.Com_Argc = Com_Argc;
+	std.Com_Argv = Com_Argv;
+	std.Com_AddText = Com_AddText;
+	std.Com_CvarSetValue = Com_CvarSetValue;
+	std.Com_CvarSetString = Com_CvarSetString;
+	std.Com_GetCvar = Com_GetCvar;
 
 	// stdlib.c funcs
 	std.strnupr = com_strnupr;

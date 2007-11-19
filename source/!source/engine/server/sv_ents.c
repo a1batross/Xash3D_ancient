@@ -356,8 +356,8 @@ void SV_FatPVS (vec3_t org)
 	int		leafs[64];
 	int		i, j, count;
 	int		longs;
-	byte	*src;
-	vec3_t	mins, maxs;
+	byte		*src;
+	vec3_t		mins, maxs;
 
 	for (i = 0; i < 3; i++)
 	{

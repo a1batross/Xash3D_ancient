@@ -801,7 +801,7 @@ int		*leaf_list;
 float	*leaf_mins, *leaf_maxs;
 int		leaf_topnode;
 
-void CM_BoxLeafnums_r (int nodenum)
+void CM_BoxLeafnums_r( int nodenum )
 {
 	cplane_t	*plane;
 	cnode_t		*node;
@@ -838,7 +838,7 @@ void CM_BoxLeafnums_r (int nodenum)
 	}
 }
 
-int	CM_BoxLeafnums_headnode (vec3_t mins, vec3_t maxs, int *list, int listsize, int headnode, int *topnode)
+int CM_BoxLeafnums_headnode (vec3_t mins, vec3_t maxs, int *list, int listsize, int headnode, int *topnode)
 {
 	leaf_list = list;
 	leaf_count = 0;
@@ -856,10 +856,9 @@ int	CM_BoxLeafnums_headnode (vec3_t mins, vec3_t maxs, int *list, int listsize, 
 	return leaf_count;
 }
 
-int CM_BoxLeafnums (vec3_t mins, vec3_t maxs, int *list, int listsize, int *topnode)
+int CM_BoxLeafnums(vec3_t mins, vec3_t maxs, int *list, int listsize, int *topnode)
 {
-	return CM_BoxLeafnums_headnode (mins, maxs, list,
-		listsize, map_cmodels[0].headnode, topnode);
+	return CM_BoxLeafnums_headnode (mins, maxs, list, listsize, map_cmodels[0].headnode, topnode);
 }
 
 

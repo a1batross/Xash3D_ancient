@@ -298,10 +298,6 @@ SOURCE=.\system.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\vid_menu.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\common\vm_cmds.c
 # End Source File
 # Begin Source File
@@ -367,10 +363,6 @@ SOURCE=.\snd_loc.h
 # Begin Source File
 
 SOURCE=.\sound.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\screen\vid.h
 # End Source File
 # Begin Source File
 

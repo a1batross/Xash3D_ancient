@@ -15,7 +15,6 @@
 image_t gltextures[MAX_GLTEXTURES];
 int numgltextures;
 byte intensitytable[256];
-extern cvar_t *gl_picmip;
 cvar_t *gl_maxsize;
 byte *r_imagepool;
 byte *imagebuffer;
@@ -120,7 +119,7 @@ void R_ImageList_f (void)
 		}
 		Msg( " %3i %3i %s: %s\n", image->width, image->height, palstrings[image->paletted], image->name);
 	}
-	Msg( "Total images count (not counting mipmaps): %i\n", numgltextures);
+	Msg( "Total images count (without mipmaps): %i\n", numgltextures);
 }
 
 void R_SetPixelFormat( int width, int height, int depth )
@@ -232,7 +231,7 @@ bool R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 	}	
 
 	// can use gl extension ?
-	R_RoundImageDimensions(&w, &h, (image_desc.flags & IMAGE_GEN_MIPS));
+	R_RoundImageDimensions(&w, &h);
 
 	if(w == image_desc.width && h == image_desc.height) use_gl_extension = true;
 	else use_gl_extension = false;
@@ -307,7 +306,7 @@ void R_InitTextures( void )
           gl_maxsize = Cvar_Get ("gl_maxsize", "0", 0);
 	
 	qglGetIntegerv(GL_MAX_TEXTURE_SIZE, &texsize);
-	if (gl_maxsize->value > texsize) ri.Cvar_SetValue ("gl_maxsize", texsize);
+	if (gl_maxsize->value > texsize) Cvar_SetValue ("gl_maxsize", texsize);
 
 	if(texsize < 2048) imagebufsize = 2048*2048*4;
 	else imagebufsize = texsize * texsize * 4;
@@ -321,7 +320,7 @@ void R_InitTextures( void )
 
 	// init intensity conversions
 	intensity = Cvar_Get ("intensity", "2", 0);
-	if ( intensity->value <= 1 ) ri.Cvar_Set( "intensity", "1" );
+	if ( intensity->value <= 1 ) Cvar_SetValue( "intensity", 1 );
 	gl_state.inverse_intensity = 1 / intensity->value;
 
 	for (i = 0; i < 256; i++)
@@ -452,19 +451,13 @@ void R_FilterTexture (int filterindex, uint *data, int width, int height, float 
 	Z_Free (temp); // release the temp buffer
 }
 
-void R_RoundImageDimensions(int *scaled_width, int *scaled_height, bool mipmap)
+void R_RoundImageDimensions(int *scaled_width, int *scaled_height )
 {
 	int width = *scaled_width;
 	int height = *scaled_height;
 
 	*scaled_width = nearest_pow( *scaled_width );
 	*scaled_height = nearest_pow( *scaled_height);
-
-	if (mipmap)
-	{
-		*scaled_width >>= (int)gl_picmip->value;
-		*scaled_height >>= (int)gl_picmip->value;
-	}
 
 	if (gl_maxsize->value)
 	{
@@ -970,7 +963,7 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 
 	scaled_width = w;
 	scaled_height = h;
-	R_RoundImageDimensions(&scaled_width, &scaled_height, mipmap );
+	R_RoundImageDimensions(&scaled_width, &scaled_height );
 
 	// upload base image or miplevel
 	samples = (has_alpha) ? gl_tex_alpha_format : gl_tex_solid_format;
@@ -1027,7 +1020,7 @@ bool R_LoadTexImage( uint *data )
 
 	scaled_width = image_desc.width;
 	scaled_height = image_desc.height;
-	R_RoundImageDimensions(&scaled_width, &scaled_height, mipmap);
+	R_RoundImageDimensions(&scaled_width, &scaled_height);
         
 	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;
 
@@ -1391,7 +1384,7 @@ bool R_StoreImageARGB( uint target, int level, uint width, uint height, uint ima
 	}
 	scaled_width = w;
 	scaled_height = h;
-	R_RoundImageDimensions(&scaled_width, &scaled_height, mipmap );
+	R_RoundImageDimensions(&scaled_width, &scaled_height );
 
 	// upload base image or miplevel
 	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;

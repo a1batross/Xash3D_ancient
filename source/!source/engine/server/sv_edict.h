@@ -5,9 +5,6 @@
 #ifndef SV_EDICT_H
 #define SV_EDICT_H
 
-// game.h -- game dll information visible to server
-#include "savefile.h"
-
 #define MAX_ENT_CLUSTERS			16
 
 #define AI_FLY				(1<<0)		// monster is flying

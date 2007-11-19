@@ -393,10 +393,7 @@ void R_RenderBrushPoly (msurface_t *fa)
 
 		// warp texture, no lightmaps
 		GL_TexEnv( GL_MODULATE );
-		qglColor4f( gl_state.inverse_intensity, 
-			        gl_state.inverse_intensity,
-					gl_state.inverse_intensity,
-					1.0F );
+		qglColor4f( gl_state.inverse_intensity, gl_state.inverse_intensity, gl_state.inverse_intensity, 1.0F );
 		EmitWaterPolys (fa);
 		GL_TexEnv( GL_REPLACE );
 
@@ -444,7 +441,7 @@ dynamic:
 	{
 		if ( ( fa->styles[maps] >= 32 || fa->styles[maps] == 0 ) && ( fa->dlightframe != r_framecount ) )
 		{
-			unsigned	temp[34*34];
+			uint	temp[34*34];
 			int			smax, tmax;
 
 			smax = (fa->extents[0]>>4)+1;
@@ -495,7 +492,7 @@ void R_DrawAlphaSurfaces (void)
 	//
 	// go back to the world matrix
 	//
-    qglLoadMatrixf (r_world_matrix);
+	qglLoadMatrixf (r_world_matrix);
 
 	qglEnable (GL_BLEND);
 	GL_TexEnv( GL_MODULATE );
@@ -1677,7 +1674,7 @@ void GL_DrawRadar( void )
 	if(r_newrefdef.rdflags & RDF_NOWORLDMODEL ) return;
 	if(!r_minimap->value) return;
 
-	qglViewport(vid.width - r_minimap_size->value, 0, r_minimap_size->value, r_minimap_size->value );  
+	qglViewport(r_width->integer - r_minimap_size->value, 0, r_minimap_size->value, r_minimap_size->value );  
 	
 	GL_DisableAlphaTest();
 	GL_DisableDepthTest();
@@ -1807,7 +1804,7 @@ void GL_DrawRadar( void )
 	GL_DisableTexGen();
 	qglPopMatrix();
 
-	qglViewport(0.0f, 0.0f, vid.width, vid.height);
+	qglViewport(0.0f, 0.0f, r_width->integer, r_height->integer);
 	  
 	qglMatrixMode(GL_PROJECTION);
 	qglPopMatrix();

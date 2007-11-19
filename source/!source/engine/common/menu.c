@@ -1549,11 +1549,11 @@ void Game_MenuInit( void )
 	s_game_menu.x = SCREEN_WIDTH * 0.50;
 	s_game_menu.nitems = 0;
 
-	s_easy_game_action.generic.type	= MTYPE_ACTION;
-	s_easy_game_action.generic.flags  = QMF_LEFT_JUSTIFY;
-	s_easy_game_action.generic.x		= 0;
-	s_easy_game_action.generic.y		= 0;
-	s_easy_game_action.generic.name	= "easy";
+	s_easy_game_action.generic.type = MTYPE_ACTION;
+	s_easy_game_action.generic.flags = QMF_LEFT_JUSTIFY;
+	s_easy_game_action.generic.x = 0;
+	s_easy_game_action.generic.y = 0;
+	s_easy_game_action.generic.name = "easy";
 	s_easy_game_action.generic.callback = EasyGameFunc;
 
 	s_medium_game_action.generic.type	= MTYPE_ACTION;
@@ -1582,14 +1582,14 @@ void Game_MenuInit( void )
 	s_save_game_action.generic.type	= MTYPE_ACTION;
 	s_save_game_action.generic.flags  = QMF_LEFT_JUSTIFY;
 	s_save_game_action.generic.x		= 0;
-	s_save_game_action.generic.y		= 100;
+	s_save_game_action.generic.y		= 96;
 	s_save_game_action.generic.name	= "save game";
 	s_save_game_action.generic.callback = SaveGameFunc;
 
 	s_credits_action.generic.type	= MTYPE_ACTION;
 	s_credits_action.generic.flags  = QMF_LEFT_JUSTIFY;
 	s_credits_action.generic.x		= 0;
-	s_credits_action.generic.y		= 120;
+	s_credits_action.generic.y		= 112;
 	s_credits_action.generic.name	= "credits";
 	s_credits_action.generic.callback = CreditsFunc;
 
@@ -1640,7 +1640,7 @@ static menuframework_s	s_savegame_menu;
 static menuframework_s	s_loadgame_menu;
 static menuaction_s		s_loadgame_actions[MAX_SAVEGAMES];
 
-char m_savestrings[MAX_SAVEGAMES][32];
+char m_savestrings[MAX_SAVEGAMES][MAX_QPATH];
 bool m_savevalid[MAX_SAVEGAMES];
 
 void Create_Savestrings (void)
@@ -1658,16 +1658,20 @@ void LoadGameCallback( void *self )
 	menuaction_s *a = ( menuaction_s * ) self;
 
 	if ( m_savevalid[ a->generic.localdata[0] ] )
-		Cbuf_AddText (va("load save%i\n",  a->generic.localdata[0] ) );
+		Cbuf_AddText(va("load save%i\n",  a->generic.localdata[0] ) );
 	M_ForceMenuOff ();
 }
 
 void LoadGame_MenuInit( void )
 {
 	int i;
+	float	x = (SCREEN_WIDTH / 2) - 120;
+	float	y = (SCREEN_HEIGHT /2) - 58;
 
-	s_loadgame_menu.x = SCREEN_WIDTH / 2 - 120;
-	s_loadgame_menu.y = SCREEN_HEIGHT / 2 - 58;
+	SCR_AdjustSize( &x, &y, NULL, NULL );
+
+	s_loadgame_menu.x = x;
+	s_loadgame_menu.y = y;
 	s_loadgame_menu.nitems = 0;
 
 	Create_Savestrings();
@@ -1680,9 +1684,9 @@ void LoadGame_MenuInit( void )
 		s_loadgame_actions[i].generic.callback = LoadGameCallback;
 
 		s_loadgame_actions[i].generic.x = 0;
-		s_loadgame_actions[i].generic.y = ( i ) * 10;
-		if (i>0)	// separate from autosave
-			s_loadgame_actions[i].generic.y += 10;
+		s_loadgame_actions[i].generic.y = ( i ) * 17;
+		if (i > 0) // separate from autosave
+			s_loadgame_actions[i].generic.y += 17;
 
 		s_loadgame_actions[i].generic.type = MTYPE_ACTION;
 		Menu_AddItem( &s_loadgame_menu, &s_loadgame_actions[i] );
@@ -1742,9 +1746,13 @@ void SaveGame_MenuDraw( void )
 void SaveGame_MenuInit( void )
 {
 	int i;
+	float	x = (SCREEN_WIDTH / 2) - 120;
+	float	y = (SCREEN_HEIGHT /2) - 58;
 
-	s_savegame_menu.x = SCREEN_WIDTH / 2 - 120;
-	s_savegame_menu.y = SCREEN_HEIGHT / 2 - 58;
+	SCR_AdjustSize( &x, &y, NULL, NULL );
+
+	s_savegame_menu.x = x;
+	s_savegame_menu.y = y;
 	s_savegame_menu.nitems = 0;
 
 	Create_Savestrings();
@@ -1757,9 +1765,8 @@ void SaveGame_MenuInit( void )
 		s_savegame_actions[i].generic.flags = QMF_LEFT_JUSTIFY;
 		s_savegame_actions[i].generic.callback = SaveGameCallback;
 		s_savegame_actions[i].generic.x = 0;
-		s_savegame_actions[i].generic.y = ( i ) * 10;
+		s_savegame_actions[i].generic.y = ( i ) * 17;
 		s_savegame_actions[i].generic.type = MTYPE_ACTION;
-
 		Menu_AddItem( &s_savegame_menu, &s_savegame_actions[i] );
 	}
 }
@@ -3206,6 +3213,207 @@ void M_Menu_PlayerConfig_f (void)
 	M_PushMenu( PlayerConfig_MenuDraw, PlayerConfig_MenuKey );
 }
 
+/*
+====================================================================
+
+VIDEO CONFIG MENU
+
+====================================================================
+*/
+static menuframework_s	s_video_menu;
+static menulist_s		s_mode_list;
+static menuslider_s		s_brightness_slider;
+static menulist_s  		s_fs_box;
+static menulist_s  		s_finish_box;
+static menuaction_s		s_cancel_action;
+static menuaction_s		s_defaults_action;
+
+extern cvar_t *r_fullscreen;
+extern cvar_t *vid_gamma;
+static cvar_t *gl_finish;
+
+static void BrightnessCallback( void *s )
+{
+	menuslider_s *slider = (menuslider_s *)s;
+	float gamma = (0.8 - ( slider->curvalue / 10.0 - 0.5 )) + 0.5;
+
+	Cvar_SetValue( "vid_gamma", gamma );
+}
+
+static void ResetDefaults( void *unused )
+{
+	VID_MenuInit();
+}
+
+static void ApplyChanges( void *unused )
+{
+	int needs_restart = 0;
+
+	if(s_fs_box.curvalue != r_fullscreen->value)
+		needs_restart++;
+
+	if(s_finish_box.curvalue != gl_finish->value)
+		needs_restart++;
+
+	if(s_mode_list.curvalue != Cvar_VariableValue( "r_mode" ))
+		needs_restart++;
+		
+	Cvar_SetValue( "fullscreen", s_fs_box.curvalue );
+	Cvar_SetValue( "gl_finish", s_finish_box.curvalue );
+	Cvar_SetValue( "r_mode", s_mode_list.curvalue );
+
+	// restart render if needed
+	if(needs_restart) Cbuf_AddText("vid_restart\n");
+
+	M_ForceMenuOff();
+}
+
+static void CancelChanges( void *unused )
+{
+	M_PopMenu();
+}
+
+/*
+** VID_MenuInit
+*/
+void VID_MenuInit( void )
+{
+	static const char *resolutions[] = 
+	{
+		"[640 480  ]",
+		"[800 600  ]",
+		"[1024 768 ]",
+		0,
+	};
+	static const char *yesno_names[] =
+	{
+		"no",
+		"yes",
+		0,
+	};
+
+	if ( !gl_finish ) gl_finish = Cvar_Get( "gl_finish", "0", CVAR_ARCHIVE );
+
+	s_mode_list.curvalue = Cvar_VariableValue( "r_mode" );
+
+	s_video_menu.x = SCREEN_WIDTH * 0.50;
+	s_video_menu.y = SCREEN_HEIGHT / 2 - 58;
+	s_video_menu.nitems = 0;
+
+	s_mode_list.generic.type = MTYPE_SPINCONTROL;
+	s_mode_list.generic.name = "video mode";
+	s_mode_list.generic.x = 0;
+	s_mode_list.generic.y = 0;
+	s_mode_list.itemnames = resolutions;
+
+	s_brightness_slider.generic.type = MTYPE_SLIDER;
+	s_brightness_slider.generic.x	= 0;
+	s_brightness_slider.generic.y	= 10;
+	s_brightness_slider.generic.name = "brightness";
+	s_brightness_slider.generic.callback = BrightnessCallback;
+	s_brightness_slider.minvalue = 5;
+	s_brightness_slider.maxvalue = 13;
+	s_brightness_slider.curvalue = ( 1.3 - vid_gamma->value + 0.5 ) * 10;
+
+	s_fs_box.generic.type = MTYPE_SPINCONTROL;
+	s_fs_box.generic.x	= 0;
+	s_fs_box.generic.y	= 20;
+	s_fs_box.generic.name = "fullscreen";
+	s_fs_box.itemnames = yesno_names;
+	s_fs_box.curvalue = r_fullscreen->value;
+
+	s_finish_box.generic.type = MTYPE_SPINCONTROL;
+	s_finish_box.generic.x = 0;
+	s_finish_box.generic.y = 30;
+	s_finish_box.generic.name = "sync every frame";
+	s_finish_box.curvalue = gl_finish->value;
+	s_finish_box.itemnames = yesno_names;
+
+	s_defaults_action.generic.type = MTYPE_ACTION;
+	s_defaults_action.generic.name = "reset to defaults";
+	s_defaults_action.generic.x = 0;
+	s_defaults_action.generic.y = 50;
+	s_defaults_action.generic.callback = ResetDefaults;
+
+	s_cancel_action.generic.type = MTYPE_ACTION;
+	s_cancel_action.generic.name = "cancel";
+	s_cancel_action.generic.x = 0;
+	s_cancel_action.generic.y = 60;
+	s_cancel_action.generic.callback = CancelChanges;
+
+	Menu_AddItem( &s_video_menu, ( void * ) &s_mode_list );
+	Menu_AddItem( &s_video_menu, ( void * ) &s_brightness_slider );
+	Menu_AddItem( &s_video_menu, ( void * ) &s_fs_box );
+	Menu_AddItem( &s_video_menu, ( void * ) &s_finish_box );
+	Menu_AddItem( &s_video_menu, ( void * ) &s_defaults_action );
+	Menu_AddItem( &s_video_menu, ( void * ) &s_cancel_action );
+
+	Menu_Center( &s_video_menu );
+	s_video_menu.x -= 8;
+}
+
+/*
+================
+VID_MenuDraw
+================
+*/
+void VID_MenuDraw (void)
+{
+	int w, h;
+
+	// draw the banner
+	re->DrawGetPicSize( &w, &h, "menu/m_banner_video" );
+	SCR_DrawPic( SCREEN_WIDTH / 2 - w / 2, SCREEN_HEIGHT /2 - 110, -1, -1, "menu/m_banner_video" );
+
+	// move cursor to a reasonable starting position
+	Menu_AdjustCursor( &s_video_menu, 1 );
+
+	// draw the menu
+	Menu_Draw( &s_video_menu );
+}
+
+/*
+================
+VID_MenuKey
+================
+*/
+const char *VID_MenuKey( int key )
+{
+	menuframework_s *m = &s_video_menu;
+	static const char *sound = "misc/menu1.wav";
+
+	switch ( key )
+	{
+	case K_ESCAPE:
+		ApplyChanges( 0 );
+		return NULL;
+	case K_KP_UPARROW:
+	case K_UPARROW:
+		m->cursor--;
+		Menu_AdjustCursor( m, -1 );
+		break;
+	case K_KP_DOWNARROW:
+	case K_DOWNARROW:
+		m->cursor++;
+		Menu_AdjustCursor( m, 1 );
+		break;
+	case K_KP_LEFTARROW:
+	case K_LEFTARROW:
+		Menu_SlideItem( m, -1 );
+		break;
+	case K_KP_RIGHTARROW:
+	case K_RIGHTARROW:
+		Menu_SlideItem( m, 1 );
+		break;
+	case K_KP_ENTER:
+	case K_ENTER:
+		if( !Menu_SelectItem( m ))
+			ApplyChanges( NULL );
+		break;
+	}
+
+	return sound;
+}
 
 /*
 =======================================================================

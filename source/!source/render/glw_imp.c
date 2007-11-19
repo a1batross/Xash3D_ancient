@@ -40,6 +40,53 @@ bool GLimp_InitGL (void);
 glwstate_t glw_state;
 static char wndname[128];
 
+#define num_vidmodes	((int)(sizeof(vidmode) / sizeof(vidmode[0])) - 1)
+
+typedef struct vidmode_s
+{
+	const char	*desc;
+	int		width; 
+	int		height;
+	float		pixelheight;
+} vidmode_t;
+
+vidmode_t vidmode[] =
+{
+{"Mode  0: 4x3",	640,	480,	1	},
+{"Mode  1: 4x3",	800,	600,	1	},
+{"Mode  2: 4x3",	1024,	768,	1	},
+{"Mode  3: 4x3",	1152,	864,	1	},
+{"Mode  4: 4x3",	1280,	960,	1	},
+{"Mode  5: 4x3",	1400,	1050,	1	},
+{"Mode  6: 4x3",	1600,	1200,	1	},
+{"Mode  7: 4x3",	1920,	1440,	1	},
+{"Mode  8: 4x3",	2048,	1536,	1	},
+{"Mode  9: 14x9",	840,	540,	1	},
+{"Mode 10: 14x9",	1680,	1080,	1	},
+{"Mode 11: 16x9",	640,	360,	1	},
+{"Mode 12: 16x9",	683,	384,	1	},
+{"Mode 13: 16x9",	960,	540,	1	},
+{"Mode 14: 16x9",	1280,	720,	1	},
+{"Mode 15: 16x9",	1366,	768,	1	},
+{"Mode 16: 16x9",	1920,	1080,	1	},
+{"Mode 17: 16x9",	2560,	1440,	1	},
+{"Mode 18: NTSC",	360,	240,	1.125	},
+{"Mode 19: NTSC",	720,	480,	1.125	},
+{"Mode 20: PAL ",	360,	283,	0.9545	},
+{"Mode 21: PAL ",	720,	566,	0.9545	},
+{NULL,		0,	0,	0	},
+};
+
+void R_GetVideoMode( int vid_mode )
+{
+	int	i = bound(0, vid_mode, num_vidmodes); // check range
+
+	Cvar_SetValue("width", vidmode[i].width );
+	Cvar_SetValue("height", vidmode[i].height );
+	Cvar_SetValue("r_mode", i ); // merge if out of bounds
+	MsgDev(D_NOTE, "Set: %s [%dx%d]\n", vidmode[i].desc, vidmode[i].width, vidmode[i].height );
+}
+
 static bool VerifyDriver( void )
 {
 	char buffer[1024];
@@ -117,8 +164,8 @@ bool VID_CreateWindow( int width, int height, bool fullscreen )
 	}
 	else
 	{
-		r_xpos = Cvar_Get ("r_xpos", "0", 0);
-		r_ypos = Cvar_Get ("r_ypos", "0", 0);
+		r_xpos = Cvar_Get ("r_xpos", "3", 0);
+		r_ypos = Cvar_Get ("r_ypos", "22", 0);
 		x = r_xpos->value;
 		y = r_ypos->value;
 	}
@@ -143,10 +190,6 @@ bool VID_CreateWindow( int width, int height, bool fullscreen )
 
 	SetForegroundWindow( glw_state.hWnd );
 	SetFocus( glw_state.hWnd );
-
-	// let the sound and input subsystems know about the new window
-	ri.Vid_NewWindow (width, height);
-
 	return true;
 }
 
@@ -154,27 +197,20 @@ bool VID_CreateWindow( int width, int height, bool fullscreen )
 /*
 ** GLimp_SetMode
 */
-rserr_t GLimp_SetMode( int *pwidth, int *pheight, int mode, bool fullscreen )
+rserr_t GLimp_SetMode( int vid_mode, bool fullscreen )
 {
 	int width, height;
-	const char *win_fs[] = { "W", "FS" };
 
-	if ( !ri.Vid_GetModeInfo( &width, &height, mode ) )
-	{
-		Msg(" invalid mode\n" );
-		return rserr_invalid_mode;
-	}
+	R_GetVideoMode( vid_mode );
 
-	MsgDev(D_INFO, "Initializing OpenGL: %d %d %s\n", width, height, win_fs[fullscreen] );
+	width = r_width->integer;
+	height = r_height->integer;
 
 	// destroy the existing window
-	if (glw_state.hWnd)
-	{
-		GLimp_Shutdown();
-	}
+	if (glw_state.hWnd) GLimp_Shutdown();
 
 	// do a CDS if needed
-	if ( fullscreen )
+	if( fullscreen )
 	{
 		DEVMODE dm;
 
@@ -197,23 +233,17 @@ rserr_t GLimp_SetMode( int *pwidth, int *pheight, int mode, bool fullscreen )
 			ReleaseDC( 0, hdc );
 		}
 
-		if ( ChangeDisplaySettings( &dm, CDS_FULLSCREEN ) == DISP_CHANGE_SUCCESSFUL )
+		if( ChangeDisplaySettings( &dm, CDS_FULLSCREEN ) == DISP_CHANGE_SUCCESSFUL )
 		{
-			*pwidth = width;
-			*pheight = height;
-
 			gl_state.fullscreen = true;
 
-			if ( !VID_CreateWindow (width, height, true) )
+			if( !VID_CreateWindow (width, height, true) )
 				return rserr_invalid_mode;
 
 			return rserr_ok;
 		}
 		else
 		{
-			*pwidth = width;
-			*pheight = height;
-
 			dm.dmPelsWidth = width * 2;
 			dm.dmPelsHeight = height;
 			dm.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
@@ -232,8 +262,6 @@ rserr_t GLimp_SetMode( int *pwidth, int *pheight, int mode, bool fullscreen )
 			{
 				ChangeDisplaySettings( 0, 0 );
 
-				*pwidth = width;
-				*pheight = height;
 				gl_state.fullscreen = false;
 				if ( !VID_CreateWindow (width, height, false) )
 					return rserr_invalid_mode;
@@ -253,8 +281,6 @@ rserr_t GLimp_SetMode( int *pwidth, int *pheight, int mode, bool fullscreen )
 	{
 		ChangeDisplaySettings( 0, 0 );
 
-		*pwidth = width;
-		*pheight = height;
 		gl_state.fullscreen = false;
 		if ( !VID_CreateWindow (width, height, false) )
 			return rserr_invalid_mode;
@@ -500,7 +526,7 @@ void GLimp_BeginFrame( void )
 	{
 		if ( gl_bitdepth->value != 0 && !glw_state.allowdisplaydepthchange )
 		{
-			ri.Cvar_SetValue( "gl_bitdepth", 0 );
+			Cvar_SetValue( "gl_bitdepth", 0 );
 			Msg("gl_bitdepth requires Win95 OSR2.x or WinNT 4.x\n" );
 		}
 		gl_bitdepth->modified = false;
@@ -527,22 +553,4 @@ void GLimp_EndFrame (void)
 		if ( !qwglSwapBuffers( glw_state.hDC ) )
 			Sys_Error("GLimp_EndFrame() - SwapBuffers() failed!\n" );
 	}
-}
-
-/*
-** GLimp_AppActivate
-*/
-void GLimp_AppActivate( bool active )
-{
-	if ( active )
-	{
-		SetForegroundWindow( glw_state.hWnd );
-		ShowWindow( glw_state.hWnd, SW_RESTORE );
-	}
-	else
-	{
-		if ( r_fullscreen->value )
-			ShowWindow( glw_state.hWnd, SW_MINIMIZE );
-	}
-}
-     
+}   

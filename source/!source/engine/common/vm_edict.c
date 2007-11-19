@@ -667,7 +667,7 @@ PRVM_ED_Write
 For savegames
 =============
 */
-void PRVM_ED_Write (file_t *f, edict_t *ed)
+void PRVM_ED_Write(vfile_t *f, edict_t *ed)
 {
 	ddef_t		*d;
 	int		*v;
@@ -675,15 +675,15 @@ void PRVM_ED_Write (file_t *f, edict_t *ed)
 	const char	*name;
 	int		type;
 
-	FS_Print(f, "{\n");
+	VFS_Print(f, "{\n");
 
 	if (ed->priv.ed->free)
 	{
-		FS_Print(f, "}\n");
+		VFS_Print(f, "}\n");
 		return;
 	}
 
-	for (i=1 ; i<prog->progs->numfielddefs ; i++)
+	for (i = 1; i < prog->progs->numfielddefs; i++)
 	{
 		d = &prog->fielddefs[i];
 		name = PRVM_GetString(d->s_name);
@@ -692,19 +692,17 @@ void PRVM_ED_Write (file_t *f, edict_t *ed)
 
 		v = (int *)((char *)ed->progs.vp + d->ofs*4);
 
-	// if the value is still all 0, skip the field
+		// if the value is still all 0, skip the field
 		type = d->type & ~DEF_SAVEGLOBAL;
-		for (j=0 ; j<prvm_type_size[type] ; j++)
-			if (v[j])
-				break;
+		for (j = 0; j < prvm_type_size[type]; j++)
+			if(v[j]) break;
 		if (j == prvm_type_size[type])
 			continue;
 
-		FS_Printf(f,"\"%s\" ",name);
-		FS_Printf(f,"\"%s\"\n", PRVM_UglyValueString((etype_t)d->type, (prvm_eval_t *)v));
+		VFS_Printf(f,"\"%s\" ",name);
+		VFS_Printf(f,"\"%s\"\n", PRVM_UglyValueString((etype_t)d->type, (prvm_eval_t *)v));
 	}
-
-	FS_Print(f, "}\n");
+	VFS_Print(f, "}\n");
 }
 
 void PRVM_ED_PrintNum (int ent)
@@ -825,25 +823,23 @@ void PRVM_ED_Count_f (void)
 FIXME: need to tag constants, doesn't really work
 ==============================================================================
 */
-
 /*
 =============
 PRVM_ED_WriteGlobals
 =============
 */
-void PRVM_ED_WriteGlobals (file_t *f)
+void PRVM_ED_WriteGlobals( vfile_t *f )
 {
 	ddef_t		*def;
-	int			i;
-	const char		*name;
-	int			type;
+	const char	*name;
+	int		i, type;
 
-	FS_Print(f,"{\n");
-	for (i=0 ; i<prog->progs->numglobaldefs ; i++)
+	VFS_Print(f,"{\n");
+	for (i = 0; i < prog->progs->numglobaldefs; i++)
 	{
 		def = &prog->globaldefs[i];
 		type = def->type;
-		if ( !(def->type & DEF_SAVEGLOBAL) )
+		if(!(def->type & DEF_SAVEGLOBAL) )
 			continue;
 		type &= ~DEF_SAVEGLOBAL;
 
@@ -851,10 +847,10 @@ void PRVM_ED_WriteGlobals (file_t *f)
 			continue;
 
 		name = PRVM_GetString(def->s_name);
-		FS_Printf(f,"\"%s\" ", name);
-		FS_Printf(f,"\"%s\"\n", PRVM_UglyValueString((etype_t)type, (prvm_eval_t *)&prog->globals.gp[def->ofs]));
+		VFS_Printf(f,"\"%s\" ", name);
+		VFS_Printf(f,"\"%s\"\n", PRVM_UglyValueString((etype_t)type, (prvm_eval_t *)&prog->globals.gp[def->ofs]));
 	}
-	FS_Print(f,"}\n");
+	VFS_Print(f,"}\n");
 }
 
 /*
@@ -871,18 +867,20 @@ void PRVM_ED_ParseGlobals (const char *data)
 	{
 		// parse key
 		if (!Com_ParseToken(&data))
-			PRVM_ERROR ("PRVM_ED_ParseGlobals: EOF without closing brace");
-		if (com_token[0] == '}')
-			break;
+			PRVM_ERROR ("PRVM_ED_ParseGlobals: EOF without closing brace\n");
+		if (com_token[0] == '}') break;
+		if (com_token[0] == '{') continue;
 
 		strncpy (keyname, com_token, sizeof(keyname));
 
+		Msg("com_token %s\n", keyname );
+
 		// parse value
 		if (!Com_ParseToken(&data))
-			PRVM_ERROR ("PRVM_ED_ParseGlobals: EOF without closing brace");
+			PRVM_ERROR ("PRVM_ED_ParseGlobals: EOF without closing brace\n");
 
 		if (com_token[0] == '}')
-			PRVM_ERROR ("PRVM_ED_ParseGlobals: closing brace without data");
+			PRVM_ERROR ("PRVM_ED_ParseGlobals: closing brace without data\n");
 
 		key = PRVM_ED_FindGlobal (keyname);
 		if (!key)
@@ -892,7 +890,7 @@ void PRVM_ED_ParseGlobals (const char *data)
 		}
 
 		if (!PRVM_ED_ParseEpair(NULL, key, com_token))
-			PRVM_ERROR ("PRVM_ED_ParseGlobals: parse error");
+			PRVM_ERROR ("PRVM_ED_ParseGlobals: parse error\n");
 	}
 }
 
@@ -1047,20 +1045,20 @@ Used for initial level load and for savegames.
 */
 const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 {
-	ddef_t *key;
-	bool init, newline, anglehack;
-	char keyname[256];
-	size_t n;
+	ddef_t	*key;
+	bool	init, newline, anglehack;
+	char	keyname[256];
+	size_t	n;
 
 	init = false;
 
 	// go through all the dictionary pairs
-	while (1)
+	while( 1 )
 	{
 		// parse key
-		if (!Com_ParseToken(&data))
-			PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
+		if(!Com_ParseToken(&data)) PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
 
+		// just format console messages
 		newline = (com_token[0] == '}') ? true : false;
 		if(!newline) MsgDev(D_NOTE, "Key: \"%s\"", com_token);
 		else break;
@@ -1074,35 +1072,30 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 		}
 		else anglehack = false;
 		
-		strncpy (keyname, com_token, sizeof(keyname));
+		std.strncpy (keyname, com_token, sizeof(keyname));
 
 		// another hack to fix keynames with trailing spaces
-		n = strlen(keyname);
-		while (n && keyname[n-1] == ' ')
+		n = std.strlen(keyname);
+		while(n && keyname[n-1] == ' ')
 		{
 			keyname[n-1] = 0;
 			n--;
 		}
 
 		// parse value
-		if (!Com_ParseToken(&data))
-			PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
+		if (!Com_ParseToken(&data)) PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
 		MsgDev(D_NOTE, " \"%s\"\n", com_token);
-
-		if (com_token[0] == '}')
-			PRVM_ERROR ("PRVM_ED_ParseEdict: closing brace without data");
-
+		if(com_token[0] == '}') PRVM_ERROR ("PRVM_ED_ParseEdict: closing brace without data");
 		init = true;
 
 		// ignore attempts to set key "" (this problem occurs in nehahra neh1m8.bsp)
-		if (!keyname[0])
-			continue;
+		if (!keyname[0]) continue;
 
 		// keynames with a leading underscore are used for utility comments,
 		// and are immediately discarded by quake
 		if (keyname[0] == '_') continue;
 
-		key = PRVM_ED_FindField (keyname);
+		key = PRVM_ED_FindField( keyname );
 		if (!key)
 		{
 			MsgDev(D_WARN, "%s: '%s' is not a field\n", PRVM_NAME, keyname);
@@ -1112,16 +1105,13 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 		if (anglehack)
 		{
 			char	temp[32];
-
-			strncpy (temp, com_token, sizeof(temp));
-			sprintf (com_token, "0 %s 0", temp);
+			
+			std.strncpy( temp, com_token, sizeof(temp));
+			std.sprintf( com_token, "0 %s 0", temp );
 		}
-
-		if (!PRVM_ED_ParseEpair(ent, key, com_token))
-			PRVM_ERROR ("PRVM_ED_ParseEdict: parse error");
+		if(!PRVM_ED_ParseEpair(ent, key, com_token)) PRVM_ERROR ("PRVM_ED_ParseEdict: parse error");
 	}
-
-	if (!init) ent->priv.ed->free = true;
+	if(!init) ent->priv.ed->free = true;
 
 	return data;
 }
@@ -1171,7 +1161,7 @@ void PRVM_ED_LoadFromFile (const char *data)
 		else ent = PRVM_ED_Alloc();
 
 		// HACKHACK: clear it 
-		if (ent != prog->edicts) memset (ent->progs.vp, 0, prog->progs->entityfields * 4);
+		if (ent != prog->edicts) memset(ent->progs.vp, 0, prog->progs->entityfields * 4);
 
 		data = PRVM_ED_ParseEdict (data, ent);
 		parsed++;
@@ -1219,10 +1209,8 @@ void PRVM_ED_LoadFromFile (const char *data)
 		}
 
 		spawned++;
-		if (ent->priv.ed->free)
-			died++;
+		if (ent->priv.ed->free) died++;
 	}
-
 	MsgDev(D_INFO, "%s: %i new entities parsed, %i new inhibited, %i (%i new) spawned (whereas %i removed self, %i stayed)\n", PRVM_NAME, parsed, inhibited, prog->num_edicts, spawned, died, spawned - died);
 }
 

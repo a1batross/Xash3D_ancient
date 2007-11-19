@@ -56,9 +56,10 @@ struct file_s
 typedef struct vfile_s
 {
 	byte		*buff;
-	char		filename[MAX_QPATH];
-	char		mode[4];
+	file_t		*handle;
+	int		mode;
 
+	bool		compress;
 	fs_offset_t	buffsize;
 	fs_offset_t	length;
 	fs_offset_t	offset;
@@ -2418,46 +2419,45 @@ vfile_t *VFS_Create(byte *buffer, size_t buffsize)
 	file->length = file->buffsize = buffsize;
 	file->buff = Mem_Alloc(fs_mempool, (file->buffsize));	
 	file->offset = 0;
-	com_strncpy(file->mode, "r", 4 );
+	file->mode = O_RDONLY;
 	Mem_Copy(file->buff, buffer, buffsize );
 
 	return file;
 }
 
-vfile_t *VFS_Open(const char *filename, const char* mode)
+vfile_t *VFS_Open(file_t *handle, const char* mode)
 {
-	vfile_t	*file = (vfile_t *)Mem_Alloc (fs_mempool, sizeof (*file));
-	file_t	*real_file;
-
-	com_strncpy(file->filename, filename, MAX_QPATH );
-	com_strncpy(file->mode, mode, 4 );
+	vfile_t	*file = (vfile_t *)Mem_Alloc (fs_mempool, sizeof (vfile_t));
 
 	// If the file is opened in "write", "append", or "read/write" mode
 	if (mode[0] == 'w')
 	{
+		file->compress = (mode[1] == 'z') ? true : false; 
+		file->handle = handle;
 		file->buffsize = (64 * 1024); // will be resized if need
 		file->buff = Mem_Alloc(fs_mempool, (file->buffsize));
 		file->length = 0;
 		file->offset = 0;
+		file->mode = O_WRONLY;
 	}
 	else if (mode[0] == 'r')
 	{
 		int curpos, endpos;
 
-		real_file = FS_Open( file->filename, file->mode );
-
-		curpos = FS_Tell(real_file);
-		FS_Seek(real_file, 0, SEEK_END);
-		endpos = FS_Tell(real_file);
-		FS_Seek(real_file, curpos, SEEK_SET);
+		file->compress = false;
+		file->handle = handle;
+		curpos = FS_Tell(file->handle);
+		FS_Seek(file->handle, 0, SEEK_END);
+		endpos = FS_Tell(file->handle);
+		FS_Seek(file->handle, curpos, SEEK_SET);
 
 		file->buffsize = endpos - curpos;
 		file->buff = Mem_Alloc(fs_mempool, (file->buffsize));
 
-		FS_Read (real_file, file->buff, file->buffsize);		
+		FS_Read(file->handle, file->buff, file->buffsize);		
 		file->length = file->buffsize;
 		file->offset = 0;
-		FS_Close( real_file );
+		file->mode = O_RDONLY;
 	}
 	else
 	{
@@ -2547,6 +2547,65 @@ fs_offset_t VFS_Write2( vfile_t *handle, byte *buffer, size_t size )
 	return i;
 }
 
+/*
+====================
+FS_Print
+
+Print a string into a file
+====================
+*/
+int VFS_Print(vfile_t* file, const char *msg)
+{
+	return (int)VFS_Write(file, msg, com_strlen(msg));
+}
+
+/*
+====================
+VFS_VPrintf
+
+Print a string into a buffer
+====================
+*/
+int VFS_VPrintf(vfile_t* file, const char* format, va_list ap)
+{
+	int		len;
+	fs_offset_t	buff_size = MAX_INPUTLINE;
+	char		*tempbuff;
+
+	while( true )
+	{
+		tempbuff = (char *)Malloc(buff_size);
+		len = com_vsprintf(tempbuff, format, ap);
+		if (len >= 0 && len < buff_size) break;
+		Mem_Free(tempbuff);
+		buff_size *= 2;
+	}
+
+	len = VFS_Write(file, tempbuff, len);
+	Mem_Free( tempbuff );
+
+	return len;
+}
+
+/*
+====================
+VFS_Printf
+
+Print a string into a buffer
+====================
+*/
+int VFS_Printf(vfile_t* file, const char* format, ...)
+{
+	int result;
+	va_list args;
+
+	va_start(args, format);
+	result = VFS_VPrintf(file, format, args);
+	va_end (args);
+
+	return result;
+}
+
 fs_offset_t VFS_Tell (vfile_t* file)
 {
 	if (!file) return -1;
@@ -2594,18 +2653,34 @@ bool VFS_Unpack( void* compbuf, size_t compsize, void **dst, size_t size )
 	return true;
 }
 
-int VFS_Close( vfile_t *file )
+file_t *VFS_Close( vfile_t *file )
 {
-	if(!file) return -1;
+	char		out[8192]; // chunk size
+	z_stream		strm = {file->buff,file->length,0,out,sizeof(out),0,NULL,NULL,NULL,NULL,NULL,0,0,0};
+	file_t		*handle;
+	
+	if(!file) return NULL;
 
-	if(file->mode[0] == 'w' && com_strlen(file->filename))
+	if(file->mode == O_WRONLY)
 	{
-		// write real file into disk
-		FS_WriteFile (file->filename, file->buff, (file->length + 3) & ~3);// align
+		if( file->compress ) // deflate before writing
+		{
+			deflateInit( &strm, 9 ); // Z_BEST_COMPRESSION
+			while(deflate(&strm, Z_FINISH) == Z_OK)
+			{
+				FS_Write( file->handle, out, sizeof(out) - strm.avail_out);
+				strm.next_out = out;
+				strm.avail_out = sizeof(out);
+			}
+			FS_Write( file->handle, out, sizeof(out) - strm.avail_out );
+			deflateEnd( &strm );
+		}
+		else FS_Write(file->handle, file->buff, (file->length + 3) & ~3); // align
 	}
+	handle = file->handle; // keep real handle
 
 	Mem_Free( file->buff );
-	Mem_Free( file ); //himself
+	Mem_Free( file ); // himself
 
-	return 0;
+	return handle;
 }

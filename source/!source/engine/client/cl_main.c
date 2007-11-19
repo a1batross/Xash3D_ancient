@@ -1652,8 +1652,8 @@ void CL_Init (void)
 
 	M_Init ();	
 	
-	SCR_Init ();
-	CL_InitLocal ();
+	SCR_Init();
+	CL_InitLocal();
 }
 
 

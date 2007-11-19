@@ -571,7 +571,7 @@ void VID_UpdateGamma(bool force, int rampsize)
 		return;
 
 	f = bound(0.1, v_gamma->value, 2.5);
-	if (v_gamma->value != f) ri.Cvar_SetValue("v_gamma", f);
+	if (v_gamma->value != f) Cvar_SetValue("v_gamma", f);
 
 	cachehwgamma = vid_activewindow ? v_hwgamma->value : 0;
 
@@ -597,7 +597,7 @@ void VID_UpdateGamma(bool force, int rampsize)
 		BuildGammaTable16(1.0f, cachegamma, 1.0f, 1.0f, vid_gammaramps + vid_gammarampsize * 2, rampsize);
 
 		// set vid_hardwaregammasupported to true if VID_SetGamma succeeds, OR if vid_hwgamma is >= 2 (forced gamma - ignores driver return value)
-		ri.Cvar_SetValue("vid_hardwaregammasupported", VID_SetGamma(vid_gammaramps, vid_gammarampsize) || cachehwgamma >= 2);
+		Cvar_SetValue("vid_hardwaregammasupported", VID_SetGamma(vid_gammaramps, vid_gammarampsize) || cachehwgamma >= 2);
 		// if custom gamma ramps failed (Windows stupidity), restore to system gamma
 		if(!vid_hardwaregammasupported->value)
 		{
@@ -623,7 +623,7 @@ void VID_RestoreSystemGamma(void)
 	if (vid_usinghwgamma)
 	{
 		vid_usinghwgamma = false;
-		ri.Cvar_SetValue("vid_hardwaregammasupported", VID_SetGamma(vid_systemgammaramps, vid_gammarampsize));
+		Cvar_SetValue("vid_hardwaregammasupported", VID_SetGamma(vid_systemgammaramps, vid_gammarampsize));
 		// force gamma situation to be reexamined next frame
 		gamma_forcenextframe = true;
 	}
@@ -637,18 +637,18 @@ bool VID_ScreenShot( const char *filename, bool force_gamma )
 	if(!r_framebuffer) return false;
 
 	// get screen frame
-	qglReadPixels(0, 0, vid.width, vid.height, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer );
+	qglReadPixels(0, 0, r_width->integer, r_height->integer, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer );
 
 	memset(&r_shot, 0, sizeof(r_shot));
-	r_shot.width = vid.width;
-	r_shot.height = vid.height;
+	r_shot.width = r_width->integer;
+	r_shot.height = r_height->integer;
 	r_shot.type = PF_RGB_24_FLIP;
 	r_shot.numMips = 1;
 	r_shot.palette = NULL;
 	r_shot.buffer = r_framebuffer;
 
 	// remove any gamma adjust if need
-	if(force_gamma) VID_ImageBaseScale( (uint *)r_framebuffer, vid.width, vid.height );
+	if(force_gamma) VID_ImageBaseScale( (uint *)r_framebuffer, r_width->integer, r_height->integer );
 
 	// write image
 	FS_SaveImage( filename, &r_shot );

@@ -457,7 +457,7 @@ void Mod_LoadTexinfo (lump_t *l)
 		out->image = R_FindImage (in->texture, NULL, 0, it_wall);
 		if(out->image)
 		{
-			ri.Cvar_SetValue("scr_loading", r_loading->value + 45.0f/count );
+			Cvar_SetValue("scr_loading", r_loading->value + 45.0f/count );
 		}
 		else
 		{
@@ -960,7 +960,7 @@ void R_BeginRegistration (char *model)
 	else 
 	{
 		// textures already loaded
-		ri.Cvar_SetValue("scr_loading", r_loading->value + 45.0f );
+		Cvar_SetValue("scr_loading", r_loading->value + 45.0f );
 	}
 	r_worldmodel = Mod_ForName(fullname, true);
 

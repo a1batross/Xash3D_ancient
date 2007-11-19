@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define CLIENT_H
 
 #include "engine.h"
-#include "vid.h"
 #include "screen.h"
 #include "sound.h"
 #include "net_msg.h"
@@ -467,8 +466,6 @@ void CL_Quit_f (void);
 void CL_ScreenShot_f( void );
 void CL_LevelShot_f( void );
 void CL_SetSky_f( void );
-void IN_Accumulate (void);
-
 void CL_ParseLayout (void);
 
 

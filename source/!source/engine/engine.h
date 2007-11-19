@@ -81,8 +81,6 @@ typedef struct host_parm_s
 
 } host_parm_t;
 
-stdlib_api_t Host_GetStdio( bool crash_on_error );
-
 /*
 ===========================================
 memory manager
@@ -136,6 +134,8 @@ void Sys_Error( const char *msg, ... );
 void Sys_SendKeyEvents( void );
 
 // mouse support
+void M_Activate( void );
+void M_Event( int mstate );
 #define WM_MOUSEWHEEL (WM_MOUSELAST + 1) // message that will be supported by the OS 
 extern int mouse_x, mouse_y, old_mouse_x, old_mouse_y, mx_accum, my_accum;
 
@@ -210,7 +210,7 @@ char *Cmd_Args( void );
 char *Cmd_Argv( int arg );
 void Cmd_Init( int argc, char **argv );
 void Cmd_AddCommand(const char *cmd_name, xcommand_t function, const char *cmd_desc);
-void Cmd_RemoveCommand (char *cmd_name);
+void Cmd_RemoveCommand(const char *cmd_name);
 bool Cmd_Exists (const char *cmd_name);
 void Cmd_CommandCompletion( void(*callback)(const char *s, const char *m));
 bool Cmd_GetMapList( const char *s, char *completedname, int length );

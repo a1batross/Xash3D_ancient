@@ -24,13 +24,17 @@ void SV_PutClientInServer (edict_t *ent)
 	int		index;
 	gclient_t		*client;
 	int		i;
-
+          
 	index = PRVM_NUM_FOR_EDICT(ent) - 1;
 	client = ent->priv.sv->client;
 
 	prog->globals.sv->time = sv.time;
-	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(ent);
-	PRVM_ExecuteProgram (prog->globals.sv->PutClientInServer, "QC function PutClientInServer is missing");
+	prog->globals.sv->pev = PRVM_EDICT_TO_PROG( ent );
+
+	if(sv.loadgame)
+	{
+	}
+	else PRVM_ExecuteProgram (prog->globals.sv->PutClientInServer, "QC function PutClientInServer is missing");
 
 	ent->priv.sv->client = svs.gclients + index;
 	ent->priv.sv->free = false;
@@ -46,18 +50,16 @@ void SV_PutClientInServer (edict_t *ent)
 	client->ps.fov = bound(1, client->ps.fov, 160);
 	client->ps.gunindex = SV_ModelIndex(PRVM_GetString(ent->progs.sv->weaponmodel));
 
-	// clear entity state values
-	ent->progs.sv->effects = 0;
-	ent->progs.sv->modelindex = MAX_MODELS - 1;	// will use the skin specified model
-	ent->progs.sv->weaponmodel = MAX_MODELS - 1;	// custom gun model
+	if(sv.loadgame)
+	{
+	}
+	else
+	{
+		ent->progs.sv->frame = 0;
+		ent->progs.sv->origin[2] += 1; // make sure off ground
+	}
 
-	// sknum is player num and weapon number
-	// weapon number will be added in changeweapon
-	ent->progs.sv->skin = PRVM_NUM_FOR_EDICT(ent) - 1;
-
-	ent->progs.sv->frame = 0;
-	ent->progs.sv->origin[2] += 1; // make sure off ground
-	VectorCopy (ent->progs.sv->origin, ent->progs.sv->old_origin);
+	VectorCopy(ent->progs.sv->origin, ent->progs.sv->old_origin);
 
 	// set the delta angle
 	for (i = 0; i < 3; i++)
@@ -65,11 +67,17 @@ void SV_PutClientInServer (edict_t *ent)
 		client->ps.pmove.delta_angles[i] = ANGLE2SHORT(ent->progs.sv->angles[i]);
 	}
 
-	ent->progs.sv->angles[PITCH] = ent->progs.sv->angles[ROLL]  = 0;
-	ent->progs.sv->angles[YAW] = ent->progs.sv->angles[YAW];
+	if(sv.loadgame)
+	{
+	}
+	else
+	{
+		ent->progs.sv->angles[PITCH] = ent->progs.sv->angles[ROLL] = 0;
+		ent->progs.sv->angles[YAW] = ent->progs.sv->angles[YAW];
+	}
+
 	VectorCopy(ent->progs.sv->angles, client->ps.viewangles);
 	VectorCopy (client->ps.viewangles, client->v_angle);
-
 	SV_LinkEdict(ent);
 }
 
@@ -114,7 +122,7 @@ void SV_SpawnEntities (char *mapname, char *entities)
 		ent->priv.sv->client = svs.gclients + i - 1; // make links
 	}
 
-	PRVM_ED_LoadFromFile ( entities );
+	PRVM_ED_LoadFromFile( entities );
 	prog->protect_world = true;// make world read-only
 }
 

@@ -235,14 +235,16 @@ bool FS_Eof( file_t* file);
 
 // virtual files managment
 vfile_t *VFS_Create(byte *buffer, size_t buffsize);
-vfile_t *VFS_Open(const char *filename, const char* mode);
+vfile_t *VFS_Open(file_t *handle, const char* mode);
 fs_offset_t VFS_Write( vfile_t *file, const void *buf, size_t size );
 fs_offset_t VFS_Write2( vfile_t *handle, byte *buffer, size_t size );
 fs_offset_t VFS_Read(vfile_t* file, void* buffer, size_t buffersize);
+int VFS_Print(vfile_t* file, const char *msg);
+int VFS_Printf(vfile_t* file, const char* format, ...);
 int VFS_Seek( vfile_t *file, fs_offset_t offset, int whence );
 bool VFS_Unpack( void* compbuf, size_t compsize, void **buf, size_t size );
 fs_offset_t VFS_Tell (vfile_t* file);
-int VFS_Close( vfile_t *file );
+file_t *VFS_Close( vfile_t *file );
 
 //
 // crclib.c

@@ -123,22 +123,14 @@ SV_CheckForSavegame
 */
 void SV_CheckForSavegame (char *savename )
 {
-	char		name[MAX_SYSPATH];
+	sv.loadgame = true; // predicting state
 
-	if(sv_noreload->value) return;
-	if(Cvar_VariableValue ("deathmatch")) return;
-	if(!savename) return;
-
-	sprintf (name, "save/%s", savename );
-	if(!FS_FileExists(name))
-	{
-		Msg("can't find %s\n", savename );
-		return;
-	}
+	if(sv_noreload->value) sv.loadgame = false;
+	if(Cvar_VariableValue("deathmatch")) sv.loadgame = false;
+	if(!savename) sv.loadgame = false;
+	if(!FS_FileExists(va("save/%s", savename )))
+		sv.loadgame = false;
 	SV_ClearWorld();
-
-	// get configstrings and areaportals
-	SV_ReadLevelFile ( savename );
 }
 
 
@@ -230,12 +222,15 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 	sv.state = ss_loading;
 	Host_SetServerState (sv.state);
 
-	// load and spawn all other entities
-	SV_SpawnEntities ( sv.name, CM_EntityString());
+	// check for a savegame
+	SV_CheckForSavegame( savename );
+
+          if(sv.loadgame) SV_ReadLevelFile( savename );
+	else SV_SpawnEntities ( sv.name, CM_EntityString());
 
 	// run two frames to allow everything to settle
-	SV_RunFrame ();
-	SV_RunFrame ();
+	SV_RunFrame();
+	SV_RunFrame();
 
 	// all precaches are complete
 	sv.state = serverstate;
@@ -243,9 +238,6 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 
 	// create a baseline for more efficient communications
 	SV_CreateBaseline ();
-
-	// check for a savegame
-	SV_CheckForSavegame ( savename );
 
 	// set serverinfo variable
 	Cvar_FullSet ("mapname", sv.name, CVAR_SERVERINFO | CVAR_INIT);

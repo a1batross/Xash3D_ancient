@@ -21,7 +21,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef SCREEN_H
 #define SCREEN_H
 
-#include "vid.h"
+typedef struct vrect_s
+{
+	int	x;
+	int	y;
+	int	width;
+	int	height;
+} vrect_t;
 
 // all drawing is done to a 640*480 virtual screen size
 // and will be automatically scaled to the real resolution
@@ -62,18 +68,22 @@ typedef enum
 #define COLOR_208		GetRGBA(0.0f, 0.4f, 0.0f, 1.0f)
 #define COLOR_223		GetRGBA(0.5f, 0.2f, 1.0f, 1.0f)
 
-void	SCR_Init (void);
-
-void	SCR_UpdateScreen (void);
-
+void SCR_Init (void);
+void SCR_UpdateScreen (void);
 void SCR_SizeUp (void);
 void SCR_SizeDown (void);
 void SCR_CenterPrint (char *str);
 
+void VID_Init( void );
+void VID_MenuInit( void );
+void VID_MenuDraw( void );
+const char *VID_MenuKey( int );
 
 extern cvar_t	*crosshair;
 extern cvar_t	*scr_loading;
 extern	vrect_t	scr_vrect;	// position of render window
+extern cvar_t	*scr_width;
+extern cvar_t	*scr_height;
 
 void SCR_AdjustSize( float *x, float *y, float *w, float *h );
 void SCR_DrawPic( float x, float y, float width, float height, char *picname );
@@ -87,7 +97,7 @@ void SCR_DrawFPS( void );
 void SCR_DrawNet( void );
 
 //
-// cl_user.c
+// cg_user.c
 //
 void CG_DrawCenterString( void );
 void CG_CenterPrint( const char *str, int y, int charWidth );

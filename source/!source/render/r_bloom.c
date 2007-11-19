@@ -135,7 +135,7 @@ void R_Bloom_InitEffectTexture( void )
 	memset(&r_bloomfx, 0, sizeof(rgbdata_t));
 	
 	if( (int)r_bloom_sample_size->value < 32 )
-		ri.Cvar_SetValue ("r_bloom_sample_size", 32);
+		Cvar_SetValue ("r_bloom_sample_size", 32);
 
 	//make sure bloom size is a power of 2
 	BLOOM_SIZE = (int)r_bloom_sample_size->value;
@@ -154,7 +154,7 @@ void R_Bloom_InitEffectTexture( void )
 		BLOOM_SIZE = min( screen_texture_width, screen_texture_height );
 
 	if( BLOOM_SIZE != (int)r_bloom_sample_size->value )
-		ri.Cvar_SetValue ("r_bloom_sample_size", BLOOM_SIZE);
+		Cvar_SetValue ("r_bloom_sample_size", BLOOM_SIZE);
 
 	data = Z_Malloc( BLOOM_SIZE * BLOOM_SIZE * 4 );
 
@@ -186,8 +186,8 @@ void R_Bloom_InitTextures( void )
 	memset(&r_downsample, 0, sizeof(rgbdata_t));
 
 	//find closer power of 2 to screen size 
-	for (screen_texture_width = 1; screen_texture_width < vid.width; screen_texture_width *= 2);
-	for (screen_texture_height = 1; screen_texture_height < vid.height; screen_texture_height *= 2);
+	for (screen_texture_width = 1; screen_texture_width < r_width->integer; screen_texture_width *= 2);
+	for (screen_texture_height = 1; screen_texture_height < r_height->integer; screen_texture_height *= 2);
 
 	//init the screen texture
 	size = screen_texture_width * screen_texture_height * 4;
@@ -211,7 +211,7 @@ void R_Bloom_InitTextures( void )
 	//if screensize is more than 2x the bloom effect texture, set up for stepped downsampling
 	r_bloomdownsamplingtexture = NULL;
 	r_screendownsamplingtexture_size = 0;
-	if( vid.width > (BLOOM_SIZE * 2) && !r_bloom_fast_sample->value )
+	if( r_width->integer > (BLOOM_SIZE * 2) && !r_bloom_fast_sample->value )
 	{
 		r_screendownsamplingtexture_size = (int)(BLOOM_SIZE * 2);
 		data = Z_Malloc( r_screendownsamplingtexture_size * r_screendownsamplingtexture_size * 4 );
@@ -307,7 +307,7 @@ void R_Bloom_GeneratexDiamonds( void )
 	
 	if( r_bloom_diamond_size->value > 7 || r_bloom_diamond_size->value <= 3)
 	{
-		if( (int)r_bloom_diamond_size->value != 8 ) ri.Cvar_SetValue( "r_bloom_diamond_size", 8 );
+		if( (int)r_bloom_diamond_size->value != 8 ) Cvar_SetValue( "r_bloom_diamond_size", 8 );
 
 		for(i=0; i<r_bloom_diamond_size->value; i++) {
 			for(j=0; j<r_bloom_diamond_size->value; j++) {
@@ -319,7 +319,7 @@ void R_Bloom_GeneratexDiamonds( void )
 		}
 	} else if( r_bloom_diamond_size->value > 5 ) {
 		
-		if( r_bloom_diamond_size->value != 6 ) ri.Cvar_SetValue( "r_bloom_diamond_size", 6 );
+		if( r_bloom_diamond_size->value != 6 ) Cvar_SetValue( "r_bloom_diamond_size", 6 );
 
 		for(i=0; i<r_bloom_diamond_size->value; i++) {
 			for(j=0; j<r_bloom_diamond_size->value; j++) {
@@ -331,7 +331,7 @@ void R_Bloom_GeneratexDiamonds( void )
 		}
 	} else if( r_bloom_diamond_size->value > 3 ) {
 
-		if( (int)r_bloom_diamond_size->value != 4 ) ri.Cvar_SetValue( "r_bloom_diamond_size", 4 );
+		if( (int)r_bloom_diamond_size->value != 4 ) Cvar_SetValue( "r_bloom_diamond_size", 4 );
 
 		for(i=0; i<r_bloom_diamond_size->value; i++) {
 			for(j=0; j<r_bloom_diamond_size->value; j++) {
@@ -346,10 +346,10 @@ void R_Bloom_GeneratexDiamonds( void )
 	qglCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, sample_width, sample_height);
 
 	//restore full screen workspace
-	qglViewport( 0, 0, vid.width, vid.height );
+	qglViewport( 0, 0, r_width->integer, r_height->integer );
 	qglMatrixMode( GL_PROJECTION );
 	qglLoadIdentity ();
-	qglOrtho(0, vid.width, vid.height, 0, -10, 100);
+	qglOrtho(0, r_width->integer, r_height->integer, 0, -10, 100);
 	qglMatrixMode( GL_MODELVIEW );
 	qglLoadIdentity ();
 }											
@@ -372,8 +372,8 @@ void R_Bloom_DownsampleView( void )
 		
 		//copy the screen and draw resized
 		GL_Bind(r_bloomscreentexture->texnum[0]);
-		qglCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, curView_x, vid.height - (curView_y + curView_height), curView_width, curView_height);
-		R_Bloom_Quad( 0,  vid.height-midsample_height, midsample_width, midsample_height, screenText_tcw, screenText_tch  );
+		qglCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, curView_x, r_height->integer - (curView_y + curView_height), curView_width, curView_height);
+		R_Bloom_Quad( 0,  r_height->integer-midsample_height, midsample_width, midsample_height, screenText_tcw, screenText_tch  );
 		
 		//now copy into Downsampling (mid-sized) texture
 		GL_Bind(r_bloomdownsamplingtexture->texnum[0]);
@@ -381,22 +381,22 @@ void R_Bloom_DownsampleView( void )
 
 		//now draw again in bloom size
 		qglColor4f( 0.5f, 0.5f, 0.5f, 1.0f );
-		R_Bloom_Quad( 0,  vid.height-sample_height, sample_width, sample_height, sampleText_tcw, sampleText_tch );
+		R_Bloom_Quad( 0,  r_height->integer-sample_height, sample_width, sample_height, sampleText_tcw, sampleText_tch );
 		
 		//now blend the big screen texture into the bloom generation space (hoping it adds some blur)
 		qglEnable( GL_BLEND );
 		qglBlendFunc(GL_ONE, GL_ONE);
 		qglColor4f( 0.5f, 0.5f, 0.5f, 1.0f );
 		GL_Bind(r_bloomscreentexture->texnum[0]);
-		R_Bloom_Quad( 0,  vid.height-sample_height, sample_width, sample_height, screenText_tcw, screenText_tch );
+		R_Bloom_Quad( 0,  r_height->integer-sample_height, sample_width, sample_height, screenText_tcw, screenText_tch );
 		qglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
 		qglDisable( GL_BLEND );
 
 	} else {	//downsample simple
 
 		GL_Bind(r_bloomscreentexture->texnum[0]);
-		qglCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, curView_x, vid.height - (curView_y + curView_height), curView_width, curView_height);
-		R_Bloom_Quad( 0, vid.height-sample_height, sample_width, sample_height, screenText_tcw, screenText_tch );
+		qglCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, curView_x, r_height->integer - (curView_y + curView_height), curView_width, curView_height);
+		R_Bloom_Quad( 0, r_height->integer-sample_height, sample_width, sample_height, screenText_tcw, screenText_tch );
 	}
 }
 
@@ -414,11 +414,11 @@ void R_BloomBlend ( refdef_t *fd )
 		return;
 	
 	//set up full screen workspace
-	qglViewport( 0, 0, vid.width, vid.height );
+	qglViewport( 0, 0, r_width->integer, r_height->integer );
 	qglDisable( GL_DEPTH_TEST );
 	qglMatrixMode( GL_PROJECTION );
 	qglLoadIdentity ();
-	qglOrtho(0, vid.width, vid.height, 0, -10, 100);
+	qglOrtho(0, r_width->integer, r_height->integer, 0, -10, 100);
 	qglMatrixMode( GL_MODELVIEW );
 	qglLoadIdentity ();
 	qglDisable(GL_CULL_FACE);
@@ -461,7 +461,7 @@ void R_BloomBlend ( refdef_t *fd )
 	GL_Bind(r_bloombackuptexture->texnum[0]);
 	qglColor4f( 1, 1, 1, 1 );
 	R_Bloom_Quad( 0, 
-		vid.height - (r_screenbackuptexture_size * sampleText_tch),
+		r_height->integer - (r_screenbackuptexture_size * sampleText_tch),
 		r_screenbackuptexture_size * sampleText_tcw,
 		r_screenbackuptexture_size * sampleText_tch,
 		sampleText_tcw, sampleText_tch );

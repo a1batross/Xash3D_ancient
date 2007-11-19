@@ -592,11 +592,13 @@ typedef struct stdilib_api_s
 
 	// virtual filesystem
 	vfile_t *(*vfcreate)(byte *buffer, size_t buffsize);		// create virtual stream
-	vfile_t *(*vfopen)(const char *filename, const char* mode);		// virtual fopen
-	int (*vfclose)(vfile_t* file);				// free buffer or write dump
+	vfile_t *(*vfopen)(file_t *handle, const char* mode);		// virtual fopen
+	file_t *(*vfclose)(vfile_t* file);				// free buffer or write dump
 	long (*vfwrite)(vfile_t* file, const void* buf, size_t datasize);	// write into buffer
 	long (*vfwrite2)(vfile_t* handle, byte* buffer, size_t datasize);	// deflate and write into buffer
 	long (*vfread)(vfile_t* file, void* buffer, size_t buffersize);	// read from buffer
+	int  (*vfprint)(vfile_t* file, const char *msg);			// write message
+	int  (*vfprintf)(vfile_t* file, const char* format, ...);		// write formatted message
 	int (*vfseek)(vfile_t* file, fs_offset_t offset, int whence);	// fseek, can seek in packfiles too
 	bool (*vfunpack)( void* comp, size_t size1, void **buf, size_t size2);// deflate zipped buffer
 	long (*vftell)(vfile_t* file);				// like a ftell
@@ -612,6 +614,16 @@ typedef struct stdilib_api_s
 	bool (*Com_FreeLibrary)( dll_info_t *dll );			// free library
 	void*(*Com_GetProcAddress)( dll_info_t *dll, const char* name );	// gpa
 	double (*Com_DoubleTime)( void );				// hi-res timer
+
+	// console commands and variables (engine overloaded pointers after initialization)
+	void (*Com_AddCommand)( const char *name, xcommand_t cmd, const char *cmd_desc );
+	void (*Com_DelCommand)( const char *name );
+	uint (*Com_Argc)( void );
+	char *(*Com_Argv)( int num );
+	void (*Com_AddText)(const char *text);
+	void (*Com_CvarSetValue)( const char *name, float value );
+	void (*Com_CvarSetString)( const char *var_name, const char *value);
+	cvar_t *(*Com_GetCvar)( const char *name, const char *value, int flags, const char *desc );
 
 	// stdlib.c funcs
 	void (*strnupr)(const char *in, char *out, size_t size_out);// convert string to upper case
@@ -685,7 +697,6 @@ typedef struct render_exp_s
 	// initialize
 	bool (*Init)( void *hInstance, void *WndProc );	// init all render systems
 	void (*Shutdown)( void );	// shutdown all render systems
-	void (*AppActivate)( bool activate );		// ??
 
 	void	(*BeginRegistration) (char *map);
 	model_t	*(*RegisterModel) (char *name);
@@ -704,8 +715,7 @@ typedef struct render_exp_s
 	void	(*DrawStretchRaw) (int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw );
 	void	(*DrawStretchPic)(float x, float y, float w, float h, float s1, float t1, float s2, float t2, char *name);
 
-	// get rid of this
-	void	(*DrawGetPicSize) (int *w, int *h, char *name);	// will return 0 0 if not found
+	void	(*DrawGetPicSize) (int *w, int *h, char *name);	// get rid of this
 
 } render_exp_t;
 
@@ -714,23 +724,9 @@ typedef struct render_imp_s
 	// interface validator
 	size_t	api_size;		// must matched with sizeof(render_imp_t)
 
-	void	(*Cmd_AddCommand)( const char *name, xcommand_t cmd, const char *cmd_desc );
-	void	(*Cmd_RemoveCommand)( char *name );
-	int	(*Cmd_Argc) (void);
-	char	*(*Cmd_Argv) (int i);
-	void	(*Cmd_ExecuteText) (int exec_when, char *text);
-
 	// client fundamental callbacks
 	void	(*StudioEvent)( mstudioevent_t *event, entity_t *ent );
-	void	(*ShowCollision)( void );// debug
-
-	cvar_t	*(*Cvar_Get)( const char *name, const char *value, int flags, const char *desc );
-	void	(*Cvar_Set)( const char *name, const char *value );
-	void	(*Cvar_SetValue)( const char *name, float value );
-
-	bool	(*Vid_GetModeInfo)( int *width, int *height, int mode );
-	void	(*Vid_MenuInit)( void );
-	void	(*Vid_NewWindow)( int width, int height );
+	void	(*ShowCollision)( void );	// debug
 
 } render_imp_t;
 

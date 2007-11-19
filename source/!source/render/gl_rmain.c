@@ -22,8 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void R_Clear (void);
 
-viddef_t	vid;
-
 render_imp_t	ri;
 stdlib_api_t	std;
 
@@ -115,7 +113,6 @@ cvar_t	*r_minimap_zoom;
 cvar_t	*r_minimap_style;
 
 cvar_t	*gl_ext_swapinterval;
-cvar_t	*gl_ext_palettedtexture;
 cvar_t	*gl_ext_multitexture;
 cvar_t	*gl_ext_pointparameters;
 cvar_t	*gl_ext_compiled_vertex_array;
@@ -126,12 +123,10 @@ cvar_t	*gl_bitdepth;
 cvar_t	*gl_drawbuffer;
 cvar_t	*gl_lightmap;
 cvar_t	*gl_shadows;
-cvar_t	*gl_mode;
 cvar_t	*gl_dynamic;
 cvar_t	*gl_modulate;
 cvar_t	*gl_nobind;
 cvar_t	*gl_round_down;
-cvar_t	*gl_picmip;
 cvar_t	*gl_skymip;
 cvar_t	*gl_showtris;
 cvar_t	*gl_ztrick;
@@ -160,6 +155,9 @@ cvar_t	*gl_3dlabs_broken;
 cvar_t	*r_fullscreen;
 cvar_t	*vid_gamma;
 cvar_t	*r_pause;
+cvar_t	*r_width;
+cvar_t	*r_height;
+cvar_t	*r_mode;
 
 /*
 =================
@@ -553,7 +551,7 @@ void R_SetupFrame (void)
 	{
 		qglEnable( GL_SCISSOR_TEST );
 		qglClearColor( 0.3, 0.3, 0.3, 1 );
-		qglScissor( r_newrefdef.x, vid.height - r_newrefdef.height - r_newrefdef.y, r_newrefdef.width, r_newrefdef.height );
+		qglScissor( r_newrefdef.x, r_height->integer - r_newrefdef.height - r_newrefdef.y, r_newrefdef.width, r_newrefdef.height );
 		qglClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 		qglClearColor( 1, 0, 0.5, 0.5 );
 		qglDisable( GL_SCISSOR_TEST );
@@ -574,10 +572,10 @@ void R_SetupGL (void)
 	//
 	// set up viewport
 	//
-	x = floor(r_newrefdef.x * vid.width / vid.width);
-	x2 = ceil((r_newrefdef.x + r_newrefdef.width) * vid.width / vid.width);
-	y = floor(vid.height - r_newrefdef.y * vid.height / vid.height);
-	y2 = ceil(vid.height - (r_newrefdef.y + r_newrefdef.height) * vid.height / vid.height);
+	x = floor(r_newrefdef.x * r_width->integer / r_width->integer);
+	x2 = ceil((r_newrefdef.x + r_newrefdef.width) * r_width->integer / r_width->integer);
+	y = floor(r_height->integer - r_newrefdef.y * r_height->integer / r_height->integer);
+	y2 = ceil(r_height->integer - (r_newrefdef.y + r_newrefdef.height) * r_height->integer / r_height->integer);
 
 	w = x2 - x;
 	h = y - y2;
@@ -736,8 +734,8 @@ void R_DrawPauseScreen( void )
 		int	i, s, r, g, b;
 
 		qglFlush();
-		qglReadPixels(0, 0, vid.width, vid.height, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer);
-		for (i = 0; i < vid.width * vid.height * 3; i+=3)
+		qglReadPixels(0, 0, r_width->integer, r_height->integer, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer);
+		for (i = 0; i < r_width->integer * r_height->integer * 3; i+=3)
 		{
 			r = r_framebuffer[i+0];
 			g = r_framebuffer[i+1];
@@ -752,13 +750,13 @@ void R_DrawPauseScreen( void )
 	// set custom orthogonal mode
 	qglMatrixMode(GL_PROJECTION);
 	qglLoadIdentity ();
-	qglOrtho(0, vid.width, 0, vid.height, 0, 1.0f);
+	qglOrtho(0, r_width->integer, 0, r_height->integer, 0, 1.0f);
 	qglMatrixMode(GL_MODELVIEW);
 	qglLoadIdentity ();
 
 	qglDisable(GL_TEXTURE_2D);
 	qglRasterPos2f(0, 0);
-	qglDrawPixels(vid.width, vid.height, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer);
+	qglDrawPixels(r_width->integer, r_height->integer, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer);
 	qglFlush();
 	qglEnable(GL_TEXTURE_2D);
 }
@@ -776,10 +774,10 @@ void R_SetGL2D (void)
 	R_DrawPauseScreen();
 		
 	// set 2D virtual screen size
-	qglViewport (0,0, vid.width, vid.height);
+	qglViewport (0,0, r_width->integer, r_height->integer);
 	qglMatrixMode(GL_PROJECTION);
 	qglLoadIdentity ();
-	qglOrtho(0, vid.width, vid.height, 0, -99999, 99999);
+	qglOrtho(0, r_width->integer, r_height->integer, 0, -99999, 99999);
 	qglMatrixMode(GL_MODELVIEW);
 	qglLoadIdentity ();
 	qglDisable(GL_DEPTH_TEST);
@@ -797,9 +795,9 @@ void R_SetGL2D (void)
 		qglColor4fv (v_blend);
 
 		VA_SetElem2(vert_array[0], 0, 0);
-		VA_SetElem2(vert_array[1], vid.width, 0);
-		VA_SetElem2(vert_array[2], vid.width, vid.height);
-		VA_SetElem2(vert_array[3], 0, vid.height);
+		VA_SetElem2(vert_array[1], r_width->integer, 0);
+		VA_SetElem2(vert_array[2], r_width->integer, r_height->integer);
+		VA_SetElem2(vert_array[3], 0, r_height->integer);
 
 		GL_LockArrays( 4 );
 		qglDrawArrays(GL_QUADS, 0, 4);
@@ -825,14 +823,14 @@ void R_SetGL2D (void)
 				qglColor4f (1, 0, 0, r_motionblur_intens->value);
 
 			qglBegin(GL_QUADS);
-			qglTexCoord2f(0,vid.height);
+			qglTexCoord2f(0,r_height->integer);
 			qglVertex2f(0,0);
-			qglTexCoord2f(vid.width,vid.height);
-			qglVertex2f(vid.width,0);
-			qglTexCoord2f(vid.width,0);
-			qglVertex2f(vid.width,vid.height);
+			qglTexCoord2f(r_width->integer,r_height->integer);
+			qglVertex2f(r_width->integer,0);
+			qglTexCoord2f(r_width->integer,0);
+			qglVertex2f(r_width->integer,r_height->integer);
 			qglTexCoord2f(0,0);
-			qglVertex2f(0,vid.height);
+			qglVertex2f(0,r_height->integer);
 			qglEnd();
   
 			qglDisable(gl_state.tex_rectangle_type);
@@ -840,7 +838,7 @@ void R_SetGL2D (void)
 		}
 		if (!blurtex) qglGenTextures(1,&blurtex);
 		qglBindTexture(gl_state.tex_rectangle_type,blurtex);
-		qglCopyTexImage2D(gl_state.tex_rectangle_type,0,GL_RGB,0,0,vid.width,vid.height,0);
+		qglCopyTexImage2D(gl_state.tex_rectangle_type,0,GL_RGB,0,0,r_width->integer,r_height->integer,0);
 		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	} 
@@ -927,6 +925,11 @@ void R_Register( void )
 	r_speeds = Cvar_Get ("r_speeds", "0", 0);
 	r_pause = Cvar_Get("paused", "0", 0);
 
+	// must been already existing
+	r_width = Cvar_Get("width", "640", 0);
+	r_height = Cvar_Get("height", "480", 0);
+	r_mode = Cvar_Get( "r_mode", "0", CVAR_ARCHIVE );
+
 	r_loading = Cvar_Get("scr_loading", "0", 0 );
 
 	r_lightlevel = Cvar_Get ("r_lightlevel", "0", 0);
@@ -961,13 +964,12 @@ void R_Register( void )
 	gl_modulate = Cvar_Get ("gl_modulate", "1", CVAR_ARCHIVE );
 	gl_log = Cvar_Get( "gl_log", "0", 0 );
 	gl_bitdepth = Cvar_Get( "gl_bitdepth", "0", 0 );
-	gl_mode = Cvar_Get( "gl_mode", "3", CVAR_ARCHIVE );
+
 	gl_lightmap = Cvar_Get ("gl_lightmap", "0", 0);
 	gl_shadows = Cvar_Get ("gl_shadows", "0", CVAR_ARCHIVE );
 	gl_dynamic = Cvar_Get ("gl_dynamic", "1", 0);
 	gl_nobind = Cvar_Get ("gl_nobind", "0", 0);
 	gl_round_down = Cvar_Get ("gl_round_down", "1", 0);
-	gl_picmip = Cvar_Get ("gl_picmip", "0", 0);
 	gl_skymip = Cvar_Get ("gl_skymip", "0", 0);
 	gl_showtris = Cvar_Get ("gl_showtris", "0", 0);
 	gl_ztrick = Cvar_Get ("gl_ztrick", "0", 0);
@@ -985,7 +987,6 @@ void R_Register( void )
 	gl_vertex_arrays = Cvar_Get( "gl_vertex_arrays", "0", CVAR_ARCHIVE );
 
 	gl_ext_swapinterval = Cvar_Get( "gl_ext_swapinterval", "1", CVAR_ARCHIVE );
-	gl_ext_palettedtexture = Cvar_Get( "gl_ext_palettedtexture", "0", CVAR_ARCHIVE );
 	gl_ext_multitexture = Cvar_Get( "gl_ext_multitexture", "1", CVAR_ARCHIVE );
 	gl_ext_pointparameters = Cvar_Get( "gl_ext_pointparameters", "1", CVAR_ARCHIVE );
 	gl_ext_compiled_vertex_array = Cvar_Get( "gl_ext_compiled_vertex_array", "1", CVAR_ARCHIVE );
@@ -997,8 +998,8 @@ void R_Register( void )
 
 	gl_3dlabs_broken = Cvar_Get( "gl_3dlabs_broken", "1", CVAR_ARCHIVE );
 
-	r_fullscreen = Cvar_Get( "r_fullscreen", "0", CVAR_ARCHIVE );
-	vid_gamma = Cvar_Get( "vid_gamma", "1.0", CVAR_ARCHIVE );
+	r_fullscreen = Cvar_Get( "fullscreen", "0", CVAR_ARCHIVE );
+	vid_gamma = Cvar_Get( "vid_gamma", "1", CVAR_ARCHIVE );
 
 	Cmd_AddCommand( "imagelist", R_ImageList_f );
 	Cmd_AddCommand( "modellist", Mod_Modellist_f );
@@ -1018,38 +1019,38 @@ bool R_SetMode (void)
 	if ( r_fullscreen->modified && !gl_config.allow_cds )
 	{
 		MsgWarn("R_SetMode: CDS not allowed with this driver\n" );
-		ri.Cvar_SetValue( "r_fullscreen", !r_fullscreen->value );
+		Cvar_SetValue( "fullscreen", !r_fullscreen->value );
 		r_fullscreen->modified = false;
 	}
 
 	fullscreen = r_fullscreen->value;
 
 	r_fullscreen->modified = false;
-	gl_mode->modified = false;
+	r_mode->modified = false;
 
-	if ( ( err = GLimp_SetMode( &vid.width, &vid.height, gl_mode->value, fullscreen ) ) == rserr_ok )
+	if(( err = GLimp_SetMode( r_mode->integer, fullscreen )) == rserr_ok )
 	{
-		gl_state.prev_mode = gl_mode->value;
+		gl_state.prev_mode = r_mode->integer;
 	}
 	else
 	{
-		if ( err == rserr_invalid_fullscreen )
+		if( err == rserr_invalid_fullscreen )
 		{
-			ri.Cvar_SetValue( "r_fullscreen", 0);
+			Cvar_SetValue( "fullscreen", 0 );
 			r_fullscreen->modified = false;
 			MsgWarn("R_SetMode: fullscreen unavailable in this mode\n" );
-			if ( ( err = GLimp_SetMode( &vid.width, &vid.height, gl_mode->value, false ) ) == rserr_ok )
+			if (( err = GLimp_SetMode( r_mode->integer, false ) ) == rserr_ok )
 				return true;
 		}
-		else if ( err == rserr_invalid_mode )
+		else if( err == rserr_invalid_mode )
 		{
-			ri.Cvar_SetValue( "gl_mode", gl_state.prev_mode );
-			gl_mode->modified = false;
+			Cvar_SetValue( "r_mode", gl_state.prev_mode );
+			r_mode->modified = false;
 			MsgWarn("R_SetMode: invalid mode\n" );
 		}
 
 		// try setting it back to something safe
-		if ( ( err = GLimp_SetMode( &vid.width, &vid.height, gl_state.prev_mode, false ) ) != rserr_ok )
+		if(( err = GLimp_SetMode( gl_state.prev_mode, false )) != rserr_ok )
 		{
 			MsgWarn("R_SetMode: could not revert to safe mode\n" );
 			return false;
@@ -1095,9 +1096,6 @@ int R_Init( void *hinstance, void *hWnd )
 		return false;
 	}
 
-	// set our "safe" modes
-	gl_state.prev_mode = 3;
-
 	// create the window and set up the context
 	if ( !R_SetMode () )
 	{
@@ -1106,12 +1104,7 @@ int R_Init( void *hinstance, void *hWnd )
 		return false;
 	}
 
-	// FIXME: don't remove - renderer immediately crash without it
-	MsgDev(D_INFO, "Initializing render\n" );
-	ri.Vid_MenuInit();
-
 	// get our various GL strings
-	
 	gl_config.vendor_string = qglGetString (GL_VENDOR);
 	MsgDev(D_INFO, "GL_VENDOR: %s\n", gl_config.vendor_string );
 	gl_config.renderer_string = qglGetString (GL_RENDERER);
@@ -1264,7 +1257,7 @@ int R_Init( void *hinstance, void *hWnd )
 	Draw_InitLocal ();
           R_StudioInit();
 
-	if(!r_framebuffer) r_framebuffer = Z_Malloc(vid.width*vid.height*3);
+	if(!r_framebuffer) r_framebuffer = Z_Malloc(r_width->integer*r_height->integer*3);
 	
 	err = qglGetError();
 	if ( err != GL_NO_ERROR ) MsgWarn("glGetError = 0x%x\n", err);
@@ -1279,9 +1272,9 @@ R_Shutdown
 */
 void R_Shutdown (void)
 {	
-	ri.Cmd_RemoveCommand ("modellist");
-	ri.Cmd_RemoveCommand ("imagelist");
-	ri.Cmd_RemoveCommand ("gl_strings");
+	Cmd_RemoveCommand ("modellist");
+	Cmd_RemoveCommand ("imagelist");
+	Cmd_RemoveCommand ("gl_strings");
 
 	if(r_framebuffer) Z_Free(r_framebuffer);
 
@@ -1331,10 +1324,10 @@ void R_BeginFrame( void )
 	/*
 	** go into 2D mode
 	*/
-	qglViewport (0,0, vid.width, vid.height);
+	qglViewport (0,0, r_width->integer, r_height->integer);
 	qglMatrixMode(GL_PROJECTION);
 	qglLoadIdentity ();
-	qglOrtho  (0, vid.width, vid.height, 0, -99999, 99999);
+	qglOrtho  (0, r_width->integer, r_height->integer, 0, -99999, 99999);
 	qglMatrixMode(GL_MODELVIEW);
 	qglLoadIdentity ();
 	qglDisable (GL_DEPTH_TEST);
@@ -1534,7 +1527,6 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 
 	re.Init = R_Init;
 	re.Shutdown = R_Shutdown;
-	re.AppActivate = GLimp_AppActivate;
 	
 	re.BeginRegistration = R_BeginRegistration;
 	re.RegisterModel = R_RegisterModel;

@@ -1029,7 +1029,7 @@ PM_ClampAngles
 void PM_ClampAngles (void)
 {
 	short	temp;
-	int		i;
+	int	i;
 
 	if (pm->s.pm_flags & PMF_TIME_TELEPORT)
 	{
@@ -1040,12 +1040,11 @@ void PM_ClampAngles (void)
 	else
 	{
 		// circularly clamp the angles with deltas
-		for (i=0 ; i<3 ; i++)
+		for (i = 0; i < 3; i++)
 		{
 			temp = pm->cmd.angles[i] + pm->s.delta_angles[i];
 			pm->viewangles[i] = SHORT2ANGLE(temp);
 		}
-
 		// don't let the player look up or down more than 90 degrees
 		if (pm->viewangles[PITCH] > 89 && pm->viewangles[PITCH] < 180)
 			pm->viewangles[PITCH] = 89;

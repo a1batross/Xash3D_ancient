@@ -113,16 +113,19 @@ WriteSPRFile
 */
 void WriteSPRFile (void)
 {
-	vfile_t	*f;
+	vfile_t	*vf;
+	file_t	*file;
 
 	if(sprite.numframes == 0) Sys_Error ("%s have no frames\n", spriteoutname );
 	if((plump - lumpbuffer) > MAX_BUFFER_SIZE)
 		Sys_Error ("Can't write %s, sprite package too big", spriteoutname );
 
-	f = VFS_Open(spriteoutname, "wb" );
+	file = FS_Open( spriteoutname, "wb" );
+	vf = VFS_Open( file, "wb" );
 	Msg("writing %s\n", spriteoutname);
-	WriteSprite( f );
-	VFS_Close( f );
+	WriteSprite( vf );
+	file = VFS_Close( vf );
+	FS_Close( file );
 	
 	Msg("%d frame%s\n", sprite.numframes, sprite.numframes > 1 ? "s" : "" );
 	spriteoutname[0] = 0;// clear for a new sprite

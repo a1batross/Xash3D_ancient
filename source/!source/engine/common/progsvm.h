@@ -296,11 +296,11 @@ void PRVM_ED_ClearEdict (edict_t *e);
 
 void PRVM_PrintFunctionStatements (const char *name);
 void PRVM_ED_Print(edict_t *ed);
-void PRVM_ED_Write (file_t *f, edict_t *ed);
+void PRVM_ED_Write (vfile_t *f, edict_t *ed);
 char *PRVM_ED_Info(edict_t *ent);
 const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent);
 
-void PRVM_ED_WriteGlobals (file_t *f);
+void PRVM_ED_WriteGlobals (vfile_t *f);
 void PRVM_ED_ParseGlobals (const char *data);
 
 void PRVM_ED_LoadFromFile (const char *data);

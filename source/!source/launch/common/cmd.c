@@ -71,16 +71,16 @@ Adds command text at the end of the buffer
 */
 void Cbuf_AddText(const char *text)
 {
-	int	l;
+	int	len;
 
-	l = strlen(text);
-	if (cmd_text.cursize + l >= cmd_text.maxsize)
+	len = strlen(text);
+	if (cmd_text.cursize + len >= cmd_text.maxsize)
 	{
 		MsgDev(D_WARN, "Cbuf_AddText: overflow\n");
 		return;
 	}
-	Mem_Copy(&cmd_text.data[cmd_text.cursize], (char *)text, l);
-	cmd_text.cursize += l;
+	Mem_Copy(&cmd_text.data[cmd_text.cursize], (char *)text, len);
+	cmd_text.cursize += len;
 }
 
 
@@ -105,7 +105,7 @@ void Cbuf_InsertText (const char *text)
 	}
 
 	// move the existing command text
-	for ( i = cmd_text.cursize - 1; i >= 0; i-- )
+	for( i = cmd_text.cursize - 1; i >= 0; i-- )
 	{
 		cmd_text.data[i + len] = cmd_text.data[i];
 	}

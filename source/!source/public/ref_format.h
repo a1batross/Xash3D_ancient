@@ -707,4 +707,36 @@ typedef struct trace_s
 	edict_t		*ent;		// not set by CM_*() functions
 } trace_t;
 
+/*
+==============================================================================
+
+SAVE FILE
+==============================================================================
+*/
+#define SAVE_VERSION	3
+#define IDSAVEHEADER	(('E'<<24)+('V'<<16)+('A'<<8)+'S') // little-endian "SAVE"
+
+#define LUMP_COMMENTS	0 // map comments
+#define LUMP_CFGSTRING	1 // client info strings
+#define LUMP_AREASTATE	2 // area portals state
+#define LUMP_GAMESTATE	3 // progs global state (deflated)
+#define LUMP_MAPNAME	4 // map name
+#define LUMP_GAMECVARS	5 // contain game comment and all cvar state
+#define LUMP_GAMEENTS	6 // ents state (deflated)
+#define LUMP_SNAPSHOT	7 // tga image snapshot (128x128)
+#define SAVE_NUMLUMPS	8 // header size
+
+typedef struct
+{
+	int	ident;
+	int	version;	
+	lump_t	lumps[SAVE_NUMLUMPS];
+} dsavehdr_t;
+
+typedef struct
+{
+	char	name[MAX_QPATH];
+	char	value[MAX_QPATH];
+} dsavecvar_t;
+
 #endif//REF_FORMAT_H

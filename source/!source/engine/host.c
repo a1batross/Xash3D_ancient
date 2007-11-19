@@ -11,15 +11,12 @@
 physic_exp_t	*Phys;
 render_exp_t	*re;
 host_parm_t	host;	// host parms
-stdlib_api_t	std;
+stdlib_api_t	std, newstd;
 
 byte	*zonepool;
-int	ActiveApp;
-bool	Minimized;
 char	*buildstring = __TIME__ " " __DATE__;
-viddef_t	viddef;
 
-void Key_Init (void);
+//void Key_Init (void);
 
 dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(physic_exp_t) };
 dll_info_t render_dll = { "render.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(render_exp_t) };
@@ -27,13 +24,12 @@ dll_info_t render_dll = { "render.dll", NULL, "CreateAPI", NULL, NULL, true, siz
 cvar_t	*timescale;
 cvar_t	*fixedtime;
 cvar_t	*dedicated;
-
 cvar_t	*host_serverstate;
 cvar_t	*host_frametime;
+cvar_t	*r_fullscreen;
 cvar_t	*vid_gamma;
 cvar_t	*r_xpos;	// X coordinate of window position
 cvar_t	*r_ypos;	// Y coordinate of window position
-cvar_t	*r_fullscreen;
 
 /*
 =======
@@ -85,26 +81,25 @@ static int Host_MapKey( int key )
 	}
 }
 
-stdlib_api_t Host_GetStdio( bool crash_on_error )
-{
-	static stdlib_api_t		io;
-
-	io = std;
-
-	// overload some funcs
-	io.print = Host_Print;
-	io.printf = Host_Printf;
-	io.dprintf = Host_DPrintf;
-	io.wprintf = Host_DWarnf;
-
-	if(crash_on_error) io.error = Sys_Error;
-	else io.error = Host_Error;
-
-	return io;
-}
-
 void Host_InitCommon( uint funcname, int argc, char **argv )
 {
+	newstd = std;
+
+	// overload some funcs
+	newstd.print = Host_Print;
+	newstd.printf = Host_Printf;
+	newstd.dprintf = Host_DPrintf;
+	newstd.wprintf = Host_DWarnf;
+	newstd.Com_AddCommand = Cmd_AddCommand;
+	newstd.Com_DelCommand = Cmd_RemoveCommand;
+	newstd.Com_Argc = Cmd_Argc;
+	newstd.Com_Argv = Cmd_Argv;
+	newstd.Com_AddText = Cbuf_AddText;
+	newstd.Com_GetCvar = _Cvar_Get;
+	newstd.Com_CvarSetValue = Cvar_SetValue;
+	newstd.Com_CvarSetString = Cvar_Set;
+	newstd.error = Host_Error;
+
 	// TODO: init basedir here
 	FS_LoadGameInfo("gameinfo.txt");
 	zonepool = Mem_AllocPool("Zone Engine");
@@ -119,7 +114,6 @@ void Host_InitPhysic( void )
 {
 	static physic_imp_t		pi;
 	launch_t			CreatePhysic;  
-	stdlib_api_t		io = Host_GetStdio( false );
 
 	// phys callback
 	pi.api_size = sizeof(physic_imp_t);
@@ -128,7 +122,7 @@ void Host_InitPhysic( void )
 	Sys_LoadLibrary( &physic_dll );
 
 	CreatePhysic = (void *)physic_dll.main;
-	Phys = CreatePhysic( &io, &pi );
+	Phys = CreatePhysic( &newstd, &pi );
 	
 	Phys->Init();
 }
@@ -143,73 +137,21 @@ void Host_FreePhysic( void )
 	Sys_FreeLibrary( &physic_dll );
 }
 
-typedef struct vidmode_s
-{
-	const char *description;
-	int         width, height;
-	int         mode;
-} vidmode_t;
-
-vidmode_t vid_modes[] =
-{
-	{ "Mode 0: 640x480",   640, 480,   1 },
-	{ "Mode 1: 800x600",   800, 600,   2 },
-	{ "Mode 2: 1024x768",  1024, 768,  3 },
-	{ "Mode 3: 1280x960",  1280, 960,  4 },
-	{ "Mode 4: 1280x1024", 1280, 1024, 5 },
-	{ "Mode 5: 1600x1200", 1600, 1200, 6 },
-	{ "Mode 6: 2048x1536", 2048, 1536, 7 }
-};
-
-bool VID_GetModeInfo( int *width, int *height, int mode )
-{
-	if ( mode < 0 || mode >= VID_NUM_MODES )
-		return false;
-
-	*width  = vid_modes[mode].width;
-	*height = vid_modes[mode].height;
-
-	return true;
-}
-
-void VID_NewWindow ( int width, int height)
-{
-	viddef.width  = width;
-	viddef.height = height;
-
-	cl.force_refdef = true;		// can't use a paused refdef
-}
-
 void Host_InitRender( void )
 {
 	static render_imp_t		ri;
-	stdlib_api_t		io = Host_GetStdio( false );
 	launch_t			CreateRender;
 	
 	ri.api_size = sizeof(render_imp_t);
 
-	// console interaction
-	ri.Cmd_AddCommand = Cmd_AddCommand;
-	ri.Cmd_RemoveCommand = Cmd_RemoveCommand;
-	ri.Cmd_Argc = Cmd_Argc;
-	ri.Cmd_Argv = Cmd_Argv;
-	ri.Cmd_ExecuteText = Cbuf_ExecuteText;
-	ri.Cvar_Get = _Cvar_Get;
-	ri.Cvar_Set = Cvar_Set;
-	ri.Cvar_SetValue = Cvar_SetValue;
-
           // studio callbacks
 	ri.StudioEvent = CL_StudioEvent;
 	ri.ShowCollision = Phys->ShowCollision;
-
-	ri.Vid_GetModeInfo = VID_GetModeInfo;
-	ri.Vid_MenuInit = VID_MenuInit;
-	ri.Vid_NewWindow = VID_NewWindow;
           
 	Sys_LoadLibrary( &render_dll );
 	
 	CreateRender = (void *)render_dll.main;
-	re = CreateRender( &io, &ri );
+	re = CreateRender( &newstd, &ri );
 
 	if(!re->Init(GetModuleHandle(NULL), Host_WndProc )) 
 		Sys_Error("VID_InitRender: can't init render.dll\nUpdate your opengl drivers\n");
@@ -283,28 +225,12 @@ VID_Init
 */
 void VID_Init( void )
 {
+	scr_width = Cvar_Get("width", "640", 0 );
+	scr_height = Cvar_Get("height", "480", 0 );
 	vid_gamma = Cvar_Get( "vid_gamma", "1", CVAR_ARCHIVE );
 	Cmd_AddCommand ("vid_restart", Host_VidRestart_f, "restarts video system" );
 
 	Host_InitRender();
-}
-
-/*
-==================
-VID_AppActivate
-==================
-*/
-void VID_AppActivate(BOOL fActive, BOOL minimize)
-{
-	Minimized = minimize;
-
-	Key_ClearStates();	// FIXME!!!
-
-	if (fActive && !Minimized ) ActiveApp = true;
-	else ActiveApp = false;
-
-	if (!ActiveApp ) IN_Activate( false );
-	else IN_Activate( true );
 }
 
 /*
@@ -316,7 +242,7 @@ void Host_Frame( double time )
 {
 	char		*s;
 
-	if (setjmp(host.abortframe)) return;
+	if(setjmp(host.abortframe)) return;
 
 	rand(); // keep the random time dependent
 
@@ -330,9 +256,9 @@ void Host_Frame( double time )
 	Cbuf_Execute();
 
 	// if at a full screen console, don't update unless needed
-	if (Minimized || host.type == HOST_DEDICATED )
+	if( host.state != HOST_FRAME || host.type == HOST_DEDICATED )
 	{
-		Sys_Sleep (1);
+		Sys_Sleep( 20 );
 	}
 
 	SV_Frame (time);
@@ -343,45 +269,34 @@ void Host_Frame( double time )
 
 /*
 ====================
-MainWndProc
+Host_WndProc
 
 main window procedure
 ====================
 */
 long _stdcall Host_WndProc( HWND hWnd, uint uMsg, WPARAM wParam, LPARAM lParam)
 {
-	int		i, zDelta, temp = 0; 
+	int	 	temp = 0;
 
 	switch (uMsg)
 	{
 	case WM_MOUSEWHEEL:
-		//if(m_mouse->integer != 1 || (!r_fullscreen->integer && (cls.key_dest == key_console)))
+		if((short)HIWORD(wParam) > 0)
 		{
-			zDelta = (short)HIWORD( wParam ) / 120;
-			if( zDelta > 0 )
-			{
-				for(i = 0; i < zDelta; i++)
-				{
-					Key_Event( K_MWHEELUP, true, host.sv_timer );
-					Key_Event( K_MWHEELUP, false, host.sv_timer );
-				}
-			}
-			else
-			{
-				for(i = 0; i < -zDelta; i++)
-				{
-					Key_Event( K_MWHEELDOWN, true, host.sv_timer );
-					Key_Event( K_MWHEELDOWN, false, host.sv_timer );
-				}
-			}
-			return 0;
+			Key_Event( K_MWHEELUP, true, host.sv_timer );
+			Key_Event( K_MWHEELUP, false, host.sv_timer );
+		}
+		else
+		{
+			Key_Event( K_MWHEELDOWN, true, host.sv_timer );
+			Key_Event( K_MWHEELDOWN, false, host.sv_timer );
 		}
 		break;
 	case WM_CREATE:
 		host.hWnd = hWnd;
-		r_xpos = Cvar_Get ("r_xpos", "3", CVAR_ARCHIVE );
-		r_ypos = Cvar_Get ("r_ypos", "22", CVAR_ARCHIVE );
-		r_fullscreen = Cvar_Get ("r_fullscreen", "1", CVAR_ARCHIVE | CVAR_LATCH );
+		r_xpos = Cvar_Get("r_xpos", "3", CVAR_ARCHIVE );
+		r_ypos = Cvar_Get("r_ypos", "22", CVAR_ARCHIVE );
+		r_fullscreen = Cvar_Get("fullscreen", "0", CVAR_ARCHIVE | CVAR_LATCH );
 		break;
 	case WM_DESTROY:
 		host.hWnd = NULL;
@@ -390,9 +305,23 @@ long _stdcall Host_WndProc( HWND hWnd, uint uMsg, WPARAM wParam, LPARAM lParam)
 		Cbuf_ExecuteText( EXEC_APPEND, "quit" );
 		break;
 	case WM_ACTIVATE:
-		VID_AppActivate(LOWORD(wParam) != WA_INACTIVE, (BOOL) HIWORD(wParam));
+		if(LOWORD(wParam) != WA_INACTIVE && HIWORD(wParam)) host.state = HOST_SLEEP;
+		else if(LOWORD(wParam) == WA_INACTIVE) host.state = HOST_NOFOCUS;
+		else host.state = HOST_FRAME;
+
+		Key_ClearStates();	// FIXME!!!
 		SNDDMA_Activate();
-		if( render_dll.link ) re->AppActivate( LOWORD(wParam) != WA_INACTIVE);
+
+		if( host.state == HOST_FRAME )
+		{
+			M_Activate();
+			SetForegroundWindow( hWnd );
+			ShowWindow( hWnd, SW_RESTORE );
+		}
+		else if( r_fullscreen->integer )
+		{
+			ShowWindow( hWnd, SW_MINIMIZE );
+		}
 		break;
 	case WM_MOVE:
 		if (!r_fullscreen->integer )
@@ -412,7 +341,7 @@ long _stdcall Host_WndProc( HWND hWnd, uint uMsg, WPARAM wParam, LPARAM lParam)
 			Cvar_SetValue( "r_ypos", yPos + r.top);
 			r_xpos->modified = false;
 			r_ypos->modified = false;
-			if (ActiveApp) IN_Activate( true );
+			M_Activate();
 		}
 		break;
 	case WM_LBUTTONDOWN:
@@ -425,15 +354,15 @@ long _stdcall Host_WndProc( HWND hWnd, uint uMsg, WPARAM wParam, LPARAM lParam)
 		if(wParam & MK_LBUTTON) temp |= 1;
 		if(wParam & MK_RBUTTON) temp |= 2;
 		if(wParam & MK_MBUTTON) temp |= 4;
-		IN_MouseEvent( temp );
+		M_Event( temp );
 		break;
 	case WM_SYSCOMMAND:
 		if( wParam == SC_SCREENSAVE ) return 0;
 		break;
 	case WM_SYSKEYDOWN:
-		if( wParam == 13 )
+		if( wParam == 13 && r_fullscreen)
 		{
-			if( r_fullscreen ) Cvar_SetValue( "r_fullscreen", !r_fullscreen->value );
+			Cvar_SetValue( "fullscreen", !r_fullscreen->value );
 			return 0;
 		}
 		// intentional fallthrough

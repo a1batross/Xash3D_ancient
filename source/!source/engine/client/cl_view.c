@@ -91,9 +91,9 @@ Sets scr_vrect, the coordinates of the rendered window
 */
 void V_CalcRect( void )
 {
-	scr_vrect.width = viddef.width;
+	scr_vrect.width = scr_width->integer;
 	scr_vrect.width &= ~7;
-	scr_vrect.height = viddef.height;
+	scr_vrect.height = scr_height->integer;
 	scr_vrect.height &= ~1;
 	scr_vrect.y = scr_vrect.x = 0;
 }

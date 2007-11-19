@@ -27,8 +27,6 @@ cvar_t	*v_centerspeed;
 cvar_t	*m_filter;	// mouse sensetivity
 cvar_t	*m_mouse;
 
-bool	in_appactive;
-
 uint	frame_msec;
 uint	old_sys_frame_time;
 
@@ -95,7 +93,6 @@ void IN_ActivateMouse (void)
 	}
 
 	if(mouseactive) return;
-
 	mouseactive = true;
 
 	if( mouseparmsvalid ) restore_spi = SystemParametersInfo (SPI_SETMOUSE, 0, newmouseparms, 0);
@@ -161,32 +158,27 @@ void IN_StartupMouse (void)
 
 /*
 ===========
-IN_MouseEvent
+M_Event
 ===========
 */
-void IN_MouseEvent (int mstate)
+void M_Event( int mstate )
 {
 	int		i;
 
-	if (!mouseinitialized)
-		return;
+	if(!mouseinitialized) return;
 
 	// perform button actions
-	for (i=0 ; i<mouse_buttons ; i++)
+	for (i = 0; i < mouse_buttons; i++)
 	{
-		if ( (mstate & (1<<i)) &&
-			!(mouse_oldbuttonstate & (1<<i)) )
+		if((mstate & (1<<i)) && !(mouse_oldbuttonstate & (1<<i)) )
 		{
 			Key_Event (K_MOUSE1 + i, true, host.sv_timer);
 		}
-
-		if ( !(mstate & (1<<i)) &&
-			(mouse_oldbuttonstate & (1<<i)) )
+		if ( !(mstate & (1<<i)) && (mouse_oldbuttonstate & (1<<i)) )
 		{
-				Key_Event (K_MOUSE1 + i, false, host.sv_timer);
+			Key_Event (K_MOUSE1 + i, false, host.sv_timer);
 		}
 	}	
-		
 	mouse_oldbuttonstate = mstate;
 }
 
@@ -200,8 +192,7 @@ void CL_MouseMove (usercmd_t *cmd)
 {
 	int		mx, my;
 
-	if (!mouseactive)
-		return;
+	if (!mouseactive) return;
 
 	// find mouse movement
 	if (!GetCursorPos (&current_pos))
@@ -263,17 +254,19 @@ VIEW CENTERING
 
 /*
 ===========
-IN_Activate
+M_Activate
 
 Called when the main window gains or loses focus.
 The window may have been destroyed and recreated
 between a deactivate and an activate.
 ===========
 */
-void IN_Activate (bool active)
+void M_Activate( void )
 {
-	in_appactive = active;
-	mouseactive = !active; // force a new window check or turn off
+	// force a new window check or turn off
+	if(host.state == HOST_FRAME)
+		mouseactive = false;
+	else mouseactive = true;
 }
 
 
@@ -288,22 +281,22 @@ void CL_UpdateMouse( void )
 {
 	if(!mouseinitialized) return;
 
-	if(!m_mouse || !in_appactive)
+	if(!m_mouse || host.state != HOST_FRAME)
 	{
-		IN_DeactivateMouse ();
+		IN_DeactivateMouse();
 		return;
 	}
 
 	if( !cl.refresh_prepped || cls.key_dest == key_console || cls.key_dest == key_menu )
 	{
 		// temporarily deactivate if in fullscreen
-		if(!Cvar_VariableValue ("r_fullscreen"))
+		if(!Cvar_VariableValue ("fullscreen"))
 		{
-			IN_DeactivateMouse ();
+			IN_DeactivateMouse();
 			return;
 		}
 	}
-	IN_ActivateMouse ();
+	IN_ActivateMouse();
 }
 
 /*
@@ -594,18 +587,13 @@ void CL_ClampPitch (void)
 	float	pitch;
 
 	pitch = SHORT2ANGLE(cl.frame.playerstate.pmove.delta_angles[PITCH]);
-	if (pitch > 180)
-		pitch -= 360;
+	if (pitch > 180) pitch -= 360;
 
-	if (cl.viewangles[PITCH] + pitch < -360)
-		cl.viewangles[PITCH] += 360; // wrapped
-	if (cl.viewangles[PITCH] + pitch > 360)
-		cl.viewangles[PITCH] -= 360; // wrapped
+	if (cl.viewangles[PITCH] + pitch < -360) cl.viewangles[PITCH] += 360; // wrapped
+	if (cl.viewangles[PITCH] + pitch > 360) cl.viewangles[PITCH] -= 360; // wrapped
 
-	if (cl.viewangles[PITCH] + pitch > 89)
-		cl.viewangles[PITCH] = 89 - pitch;
-	if (cl.viewangles[PITCH] + pitch < -89)
-		cl.viewangles[PITCH] = -89 - pitch;
+	if (cl.viewangles[PITCH] + pitch > 89) cl.viewangles[PITCH] = 89 - pitch;
+	if (cl.viewangles[PITCH] + pitch < -89) cl.viewangles[PITCH] = -89 - pitch;
 }
 
 /*

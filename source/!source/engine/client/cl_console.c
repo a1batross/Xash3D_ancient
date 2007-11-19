@@ -450,9 +450,9 @@ void Con_DrawSolidConsole (float frac)
 	vec4_t	color;
 	char	curtime[MAX_QPATH];
 
-	lines = viddef.height * frac;
+	lines = scr_height->integer * frac;
 	if (lines <= 0) return;
-	if (lines > viddef.height) lines = viddef.height;
+	if (lines > scr_height->integer) lines = scr_height->integer;
 
 	con.xadjust = 0; // on wide screens, we will center the text
 	SCR_AdjustSize( &con.xadjust, NULL, NULL, NULL );
@@ -470,7 +470,7 @@ void Con_DrawSolidConsole (float frac)
 	std.snprintf( curtime, MAX_QPATH, "%s ", timestamp( TIME_TIME_ONLY));
 	i = strlen( curtime );
 	for (x = 0; x < i; x++)
-		SCR_DrawSmallChar( viddef.width - ( i - x ) * SMALLCHAR_WIDTH, (lines - (SMALLCHAR_HEIGHT+SMALLCHAR_HEIGHT/2)), curtime[x]);
+		SCR_DrawSmallChar(scr_width->integer - ( i - x ) * SMALLCHAR_WIDTH, (lines - (SMALLCHAR_HEIGHT+SMALLCHAR_HEIGHT/2)), curtime[x]);
 	re->SetColor(NULL);
 
 	// draw the text

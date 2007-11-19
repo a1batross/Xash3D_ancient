@@ -28,6 +28,11 @@ void Phys_RemoveBOX( NewtonBody *body );
 #define MsgDev std.dprintf
 #define MsgWarn std.wprintf
 #define Host_Error std.error
+#define Cvar_Get(name, value, flags)	std.Com_GetCvar(name, value, flags, "render variable" )
+#define Cvar_SetValue(name, value)	std.Com_CvarSetValue(name, value )
+#define Cvar_SetString(name, value)	std.Com_CvarSetString(name, value )
+#define Cmd_AddCommand(name, cmd)	std.Com_AddCommand(name, cmd, "render command" )
+#define Cmd_RemoveCommand(name)	std.Com_DelCommand(name )
 	
 typedef struct NewtonUserMeshCollisionCollideDescTag
 {

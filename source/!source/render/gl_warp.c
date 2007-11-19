@@ -606,23 +606,10 @@ void R_SetSky (char *name, float rotate, vec3_t axis)
 	skyrotate = rotate;
 	VectorCopy(axis, skyaxis);
 
-	// chop down rotating skies for less memory
-	if (gl_skymip->value || skyrotate) gl_picmip->value += 6;
-
 	sprintf (pathname, "cubemaps/env/%s", skyname);
 	sky_image = R_FindImage (pathname, NULL, 0, it_sky);
 	if (!sky_image) sky_image = r_notexture;
 
-	if (gl_skymip->value || skyrotate)
-	{	
-		// take less memory
-		gl_picmip->value -= 6;
-		sky_min = 1.0/256;
-		sky_max = 255.0/256;
-	}
-	else	
-	{
-		sky_min = 1.0/512;
-		sky_max = 511.0/512;
-	}
+	sky_min = 1.0/512;
+	sky_max = 511.0/512;
 }

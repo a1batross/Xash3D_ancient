@@ -62,19 +62,11 @@ void R_ConcatTransforms (float in1[3][4], float in2[3][4], float out[3][4]);
 #define MsgWarn std.wprintf
 #define Sys_Error std.error
 
-#define Cvar_Get(name, value, flags)	ri.Cvar_Get(name, value, flags, "render variable" )
-#define Cmd_AddCommand(name, cmd)	ri.Cmd_AddCommand(name, cmd, "render command" )
-
-#ifndef __VIDDEF_T
-#define __VIDDEF_T
-typedef struct
-{
-	int	width;
-	int	height;	// coordinates from main game
-} viddef_t;
-#endif
-
-extern	viddef_t	vid;
+#define Cvar_Get(name, value, flags)	std.Com_GetCvar(name, value, flags, "render variable" )
+#define Cvar_SetValue(name, value)	std.Com_CvarSetValue(name, value )
+#define Cvar_SetString(name, value)	std.Com_CvarSetString(name, value )
+#define Cmd_AddCommand(name, cmd)	std.Com_AddCommand(name, cmd, "render command" )
+#define Cmd_RemoveCommand(name)	std.Com_DelCommand(name )
 
 #define MAX_RADAR_ENTS	1024
 typedef struct radar_ent_s
@@ -176,7 +168,6 @@ typedef struct
 
 #define BACKFACE_EPSILON	0.01
 
-
 //====================================================
 
 extern	image_t		gltextures[MAX_GLTEXTURES];
@@ -209,7 +200,7 @@ extern	vec3_t	r_origin;
 // screen size info
 //
 extern	refdef_t	r_newrefdef;
-extern	int		r_viewcluster, r_viewcluster2, r_oldviewcluster, r_oldviewcluster2;
+extern	int	r_viewcluster, r_viewcluster2, r_oldviewcluster, r_oldviewcluster2;
 
 extern	cvar_t	*r_norefresh;
 extern	cvar_t	*r_lefthand;
@@ -222,13 +213,15 @@ extern	cvar_t	*r_nocull;
 extern	cvar_t	*r_lerpmodels;
 extern	cvar_t	*r_loading;
 extern	cvar_t	*r_pause;
+extern	cvar_t	*r_width;
+extern	cvar_t	*r_height;
+extern	cvar_t	*r_mode;
 
 extern	cvar_t	*r_lightlevel;	// FIXME: This is a HACK to get the client's light level
 
 extern cvar_t	*gl_vertex_arrays;
 
 extern cvar_t	*gl_ext_swapinterval;
-extern cvar_t	*gl_ext_palettedtexture;
 extern cvar_t	*gl_ext_multitexture;
 extern cvar_t	*gl_ext_pointparameters;
 extern cvar_t	*gl_ext_compiled_vertex_array;
@@ -260,14 +253,12 @@ extern	cvar_t	*r_motionblur;
 
 extern	cvar_t	*gl_nosubimage;
 extern	cvar_t	*gl_bitdepth;
-extern	cvar_t	*gl_mode;
 extern	cvar_t	*gl_log;
 extern	cvar_t	*gl_lightmap;
 extern	cvar_t	*gl_shadows;
 extern	cvar_t	*gl_dynamic;
 extern	cvar_t	*gl_nobind;
 extern	cvar_t	*gl_round_down;
-extern	cvar_t	*gl_picmip;
 extern	cvar_t	*gl_skymip;
 extern	cvar_t	*gl_showtris;
 extern	cvar_t	*gl_finish;
@@ -364,7 +355,7 @@ void R_AddSkySurface (msurface_t *fa);
 void R_ClearSkyBox (void);
 void R_DrawSkyBox (void);
 void R_MarkLights (dlight_t *light, int bit, mnode_t *node);
-void R_RoundImageDimensions(int *scaled_width, int *scaled_height, bool mipmap);
+void R_RoundImageDimensions(int *scaled_width, int *scaled_height);
 
 #if 0
 short LittleShort (short l);
@@ -449,9 +440,8 @@ typedef struct
 	float inverse_intensity;
 	bool fullscreen;
 
-	int     prev_mode;
-
-	unsigned char *d_16to8table;
+	int	prev_mode;
+	byte	*d_16to8table;
 
 	int lightmap_textures;
 
@@ -535,7 +525,7 @@ void		GLimp_BeginFrame( void );
 void		GLimp_EndFrame( void );
 int 		GLimp_Init( void *hinstance, void *hWnd );
 void		GLimp_Shutdown( void );
-int		GLimp_SetMode( int *pwidth, int *pheight, int mode, bool fullscreen );
+int		GLimp_SetMode( int vid_mode, bool fullscreen );
 void		GLimp_AppActivate( bool active );
 void		GLimp_EnableLogging( bool enable );
 void		GLimp_LogNewFrame( void );
