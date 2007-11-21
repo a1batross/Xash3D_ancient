@@ -182,7 +182,7 @@ SOURCE=.\common\cmodel.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\common.c
+SOURCE=.\common.c
 # End Source File
 # Begin Source File
 
@@ -198,7 +198,7 @@ SOURCE=.\common\md4.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\menu.c
+SOURCE=.\menu.c
 # End Source File
 # Begin Source File
 
@@ -218,7 +218,7 @@ SOURCE=.\common\pmove.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\qmenu.c
+SOURCE=.\qmenu.c
 # End Source File
 # Begin Source File
 
@@ -298,6 +298,10 @@ SOURCE=.\system.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\ui_main.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\common\vm_cmds.c
 # End Source File
 # Begin Source File
@@ -346,7 +350,7 @@ SOURCE=.\common\progsvm.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\qmenu.h
+SOURCE=.\qmenu.h
 # End Source File
 # Begin Source File
 

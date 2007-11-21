@@ -2987,7 +2987,7 @@ def_t *PR_Term( void )
 				}
 			}
 			if (!PR_OPCodeValid(&pr_opcodes[OP_GLOBAL_ADD]))
-				PR_ParseError (ERR_BADEXTENSION, "Cannot use addressof operator ('&') on a global. Please use the RELEASE or DEBUG target.");
+				PR_ParseError (ERR_BADEXTENSION, "Cannot use addressof operator ('&') on a global. Please switch to the version 7 target.");
 			e2 = PR_Statement (&pr_opcodes[OP_GLOBAL_ADD], e, 0, NULL);
 			e2->type = PR_PointerType(e->type);
 			return e2;
@@ -6705,13 +6705,18 @@ void PR_BeginCompilation ( void )
 
 	freeofs = NULL;
 	sprintf (sourcefilename, "%sprogs.src", sourcedir );
-	progs_src = QCC_LoadFile( sourcefilename, false ); // loading progs.src
-	if(!progs_src) progs_src = PR_CreateProgsSRC(); // virtual list
+	progs_src = QCC_LoadFile( sourcefilename, false );// loading progs.src
+	if(!progs_src) progs_src = PR_CreateProgsSRC();	// virtual list
 
 	while(*progs_src && *progs_src < ' ') progs_src++;
 
 	pr_file_p = Com_ParseToken(&progs_src);
-	strcpy (progsoutname, com_token);
+	strcpy(progsoutname, com_token);
+
+	// this progs.src was written by qcclib without sorting
+	if(!stricmp(progsoutname, "unknown.dat" ))
+		autoprototype = true;
+
 	FS_StripExtension( com_token );
 
 	if (FS_CheckParm("-asm")) asmfile = FS_Open(va("%s.asm", com_token), "wb" );

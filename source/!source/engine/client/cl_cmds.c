@@ -28,7 +28,7 @@ void CL_ScreenshotGetName( int lastnum, char *filename )
 	if(lastnum < 0 || lastnum > 9999)
 	{
 		// bound
-		sprintf( filename, "screenshots/%s/shot9999.tga", cl.configstrings[CS_NAME] );
+		sprintf( filename, "scrshots/%s/shot9999.tga", cl.configstrings[CS_NAME] );
 		return;
 	}
 
@@ -40,7 +40,7 @@ void CL_ScreenshotGetName( int lastnum, char *filename )
 	lastnum -= c * 10;
 	d = lastnum;
 
-	sprintf( filename, "screenshots/%s/shot%i%i%i%i.tga", cl.configstrings[CS_NAME], a, b, c, d );
+	sprintf( filename, "scrshots/%s/shot%i%i%i%i.tga", cl.configstrings[CS_NAME], a, b, c, d );
 }
 
 /* 

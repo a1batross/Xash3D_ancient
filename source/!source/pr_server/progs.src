@@ -1,0 +1,38 @@
+//=======================================================================
+//			Copyright XashXT Group 2007 ©
+//		   server.src - project file for server progs
+//=======================================================================
+
+../temp/server.dat
+
+defs.c
+main.c
+damage.c
+player.c
+client.c
+dummys.c
+internal.c
+lights.c
+ambient.c
+ccam.c
+triggers.c
+trigger_generic.c
+trigger_once.c
+trigger_sequence.c
+trigger_message.c
+trigger_counter.c
+trigger_teleport.c
+trigger_hurt.c
+trigger_push.c
+trigger_changelevel.c
+trigger_setskill.c
+trigger_secret.c
+funcs.c
+func_mover.c
+func_door.c
+func_button.c
+func_path_corner.c
+func_train.c
+func_areaportal.c
+items.c
+impulses.c	// should be last

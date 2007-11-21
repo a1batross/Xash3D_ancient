@@ -250,8 +250,8 @@ bool Image_Processing( const char *name, rgbdata_t **pix )
 	if(FS_GetParmFromCmdLine("-w", width ) && FS_GetParmFromCmdLine("-h", height ))
 	{
 		// custom size
-		w = bound(4, atoi(width), 512 );
-		h = bound(4, atoi(height), 512);
+		w = bound(4, atoi(width), 1024 );	// maxwidth 1024
+		h = bound(4, atoi(height), 1024);	// maxheight 1024
 	}
 	else Image_RoundDimensions( &w, &h ); // auto detect new size
 

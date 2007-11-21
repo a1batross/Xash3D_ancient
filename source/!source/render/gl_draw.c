@@ -236,6 +236,11 @@ void Draw_Fill(float x, float y, float w, float h)
 {
 	qglDisable (GL_TEXTURE_2D);
 	qglColor4fv(gl_state.draw_color);
+	GL_EnableBlend();
+
+	if(gl_state.draw_color[3] != 1.0f )
+		qglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+	else qglBlendFunc(GL_ONE, GL_ZERO);
 
 	qglBegin (GL_QUADS);
 		qglVertex2f(x, y);
@@ -243,6 +248,7 @@ void Draw_Fill(float x, float y, float w, float h)
 		qglVertex2f(x + w, y + h);
 		qglVertex2f(x, y + h);
 	qglEnd();
+	GL_DisableBlend();
 	qglEnable (GL_TEXTURE_2D);
 }
 

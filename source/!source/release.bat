@@ -27,7 +27,13 @@ if errorlevel 1 set BUILD_ERROR=1
 %MSDEV% render/render.dsp %CONFIG%"render - Win32 Release" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
-qcclib.exe -dir vprogs /V7 /O3
+qcclib.exe -dir pr_server /V7 /O3
+if errorlevel 1 set BUILD_ERROR=1
+
+qcclib.exe -dir pr_client /V7 /O3
+if errorlevel 1 set BUILD_ERROR=1
+
+qcclib.exe -dir pr_uimenu /V7 /O3
 if errorlevel 1 set BUILD_ERROR=1
 
 if "%BUILD_ERROR%"=="" goto build_ok
@@ -55,12 +61,13 @@ if exist launch\launch.plg del /f /q launch\launch.plg
 if exist common\common.plg del /f /q common\common.plg
 if exist physic\physic.plg del /f /q physic\physic.plg
 if exist render\render.plg del /f /q render\render.plg
+if exist pr_server\server.dat move pr_server\server.dat D:\Xash3D\xash\vprogs\server.dat
+if exist pr_client\client.dat move pr_client\client.dat D:\Xash3D\xash\vprogs\client.dat
+if exist pr_uimenu\uimenu.dat move pr_uimenu\uimenu.dat D:\Xash3D\xash\vprogs\uimenu.dat
 if exist compile.log del /f /q compile.log
-if exist vprogs\server.dat move vprogs\server.dat D:\Xash3D\xash\server.dat
-if exist vprogs\progdefs.h move vprogs\progdefs.h engine\progdefs.h
 
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading
 cd D:\Xash3D\
-xash.exe +map qctest -log -dev 4 -debug
+xash.exe +map qctest -log -debug -dev 3
 :done

@@ -2520,34 +2520,6 @@ fs_offset_t VFS_Write( vfile_t *file, const void *buf, size_t size )
 }
 
 /*
-================
-VFS_Write2
-
-deflate buffer and write into virtual file
-================
-*/
-fs_offset_t VFS_Write2( vfile_t *handle, byte *buffer, size_t size )
-{
-	int		i = 0;
-	char		out[8192]; // chunk size
-	z_stream		strm = { buffer, size, 0, out, sizeof(out), 0, NULL, NULL, NULL, NULL, NULL, 0, 0, 0 };
-	
-	deflateInit( &strm, 9 ); // Z_BEST_COMPRESSION
-	while(deflate( &strm, Z_FINISH) == Z_OK)
-	{
-		VFS_Write( handle, out, sizeof(out) - strm.avail_out);
-		i += sizeof(out) - strm.avail_out;
-		strm.next_out = out;
-		strm.avail_out = sizeof(out);
-	}
-	VFS_Write( handle, out, sizeof(out) - strm.avail_out );
-	i += sizeof(out) - strm.avail_out;
-	deflateEnd( &strm );
-
-	return i;
-}
-
-/*
 ====================
 FS_Print
 
@@ -2655,9 +2627,9 @@ bool VFS_Unpack( void* compbuf, size_t compsize, void **dst, size_t size )
 
 file_t *VFS_Close( vfile_t *file )
 {
-	char		out[8192]; // chunk size
-	z_stream		strm = {file->buff,file->length,0,out,sizeof(out),0,NULL,NULL,NULL,NULL,NULL,0,0,0};
-	file_t		*handle;
+	file_t	*handle;
+	char	out[8192]; // chunk size
+	z_stream	strm = {file->buff, file->length, 0, out, sizeof(out), 0, NULL, NULL, NULL, NULL, NULL, 0, 0, 0 };
 	
 	if(!file) return NULL;
 

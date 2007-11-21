@@ -148,7 +148,6 @@ void Sys_GetStdAPI( void )
 	std.vfopen = VFS_Open;		// virtual fopen
 	std.vfclose = VFS_Close;		// free buffer or write dump
 	std.vfwrite = VFS_Write;		// write into buffer
-	std.vfwrite2 = VFS_Write2;		// deflate buffer, then write
 	std.vfread = VFS_Read;		// read from buffer
 	std.vfprint = VFS_Print;		// write message
 	std.vfprintf = VFS_Printf;		// write formatted message
@@ -248,7 +247,7 @@ void Sys_LookupInstance( void )
 		// don't show console as default
 		if(!Sys.debug) Sys.con_showalways = false;
 		Sys.linked_dll = &engine_dll;	// pointer to engine.dll info
-		com_strcpy(Sys.log_path, "engine.log" ); // xash3d root directory
+		com_sprintf(Sys.log_path, "engine.log", com_timestamp(TIME_NO_SECONDS)); // logs folder
 		com_strcpy(Sys.caption, va("Xash3D ver.%g", XASH_VERSION ));
 	}
 	else if(!com_strcmp(Sys.progname, "host_dedicated"))
@@ -256,7 +255,7 @@ void Sys_LookupInstance( void )
 		Sys.app_name = HOST_DEDICATED;
 		Sys.con_readonly = false;
 		Sys.linked_dll = &engine_dll;	// pointer to engine.dll info
-		com_strcpy(Sys.log_path, "engine.log" ); // xash3d root directory
+		com_sprintf(Sys.log_path, "engine.log", com_timestamp(TIME_NO_SECONDS)); // logs folder
 		com_strcpy(Sys.caption, va("Xash3D Dedicated Server ver.%g", XASH_VERSION ));
 	}
 	else if(!com_strcmp(Sys.progname, "host_editor"))

@@ -1294,7 +1294,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		PRVM_ERROR ("PRVM_LoadProgs: there is already a %s program loaded!", PRVM_NAME );
 	}
 
-	prog->progs = (dprograms_t *)FS_LoadFile (filename, &filesize);
+	prog->progs = (dprograms_t *)FS_LoadFile(va("vprogs/%s", filename ), &filesize);
 	if (prog->progs == NULL || filesize < (fs_offset_t)sizeof(dprograms_t))
 		PRVM_ERROR ("PRVM_LoadProgs: couldn't load %s for %s", filename, PRVM_NAME);
 

@@ -317,7 +317,6 @@ void ShowInventory( void )
 
 void HelpComputer( void )
 {
-	string	help; 
 	float	layout;
 
 	if(pev->showhelp == TRUE) pev->showhelp = FALSE;

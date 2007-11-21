@@ -443,8 +443,8 @@ const char* com_timestamp( int format )
 		strftime(timestring, sizeof (timestring), "%H:%M.%S", crt_tm);
 		break;
 	case TIME_NO_SECONDS:
-		// Build the full timestamp (ex: "Apr03 2007 [23:31]");
-		strftime(timestring, sizeof (timestring), "%b%d %Y [%H:%M]", crt_tm);
+		// Build a timestamp that can use for filename (ex: "Nov2006-26 (19.14)");
+		strftime(timestring, sizeof (timestring), "%b%Y-%d (%H.%M)", crt_tm);
 		break;
 	}
 

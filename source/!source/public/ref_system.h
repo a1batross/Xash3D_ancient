@@ -595,7 +595,6 @@ typedef struct stdilib_api_s
 	vfile_t *(*vfopen)(file_t *handle, const char* mode);		// virtual fopen
 	file_t *(*vfclose)(vfile_t* file);				// free buffer or write dump
 	long (*vfwrite)(vfile_t* file, const void* buf, size_t datasize);	// write into buffer
-	long (*vfwrite2)(vfile_t* handle, byte* buffer, size_t datasize);	// deflate and write into buffer
 	long (*vfread)(vfile_t* file, void* buffer, size_t buffersize);	// read from buffer
 	int  (*vfprint)(vfile_t* file, const char *msg);			// write message
 	int  (*vfprintf)(vfile_t* file, const char* format, ...);		// write formatted message

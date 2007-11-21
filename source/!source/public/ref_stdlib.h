@@ -87,7 +87,6 @@ virtual filesystem manager
 */
 #define VFS_Open	std.vfopen
 #define VFS_Write	std.vfwrite
-#define VFS_Write2	std.vfwrite2
 #define VFS_Read	std.vfread
 #define VFS_Print	std.vfprint
 #define VFS_Printf	std.vfprintf

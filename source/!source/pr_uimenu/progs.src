@@ -1,0 +1,25 @@
+//=======================================================================
+//			Copyright XashXT Group 2007 ©
+//		   uimenu.src - project file for uimenu progs
+//=======================================================================
+
+../temp/uimenu.dat
+
+msys.c
+mbuiltin.c
+menu.h
+cursor.h
+mmanager.h
+mfuncs.h
+mcontrols.h
+sound.h
+graphic.h
+mcustom.h
+cursor.c
+menu.c
+mmanager.c
+mcontrols.c
+mfuncs.c
+sound.c
+graphic.c
+mcustom.c
