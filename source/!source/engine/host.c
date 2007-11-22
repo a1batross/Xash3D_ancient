@@ -512,19 +512,22 @@ void Host_Error( const char *error, ... )
 	vsprintf( hosterror1, error, argptr );
 	va_end( argptr );
 
-	if (host.framecount < 3 || host.state == HOST_SHUTDOWN)
+	if( host.framecount < 3 || host.state == HOST_SHUTDOWN )
 		Sys_Error ("%s", hosterror1 );
 	else Host_Printf("Host_Error: %s", hosterror1);
 
 	if(recursive)
 	{ 
-		Msg("Host_Error: recursive %s", hosterror2);
-		Sys_Error ("%s", hosterror1);
+		Msg("Host_RecursiveError: %s", hosterror2 );
+		Sys_Error ("%s", hosterror1 );
+		return; // don't multiple executes
 	}
-	recursive = true;
-	strncpy(hosterror2, hosterror1, sizeof(hosterror2));
 
-	SV_Shutdown (va("Server crashed: %s", hosterror1), false);
+	recursive = true;
+	sprintf( host.finalmsg, "Server crashed: %s\n", hosterror1 );
+	std.strncpy( host.finalmsg, "Server shutdown\n", MAX_STRING );
+
+	SV_Shutdown( false );
 	CL_Drop(); // drop clients
 
 	recursive = false;
@@ -624,15 +627,19 @@ void Host_Main( void )
 	oldtime = host.realtime;
 
 	// main window message loop
-	while (host.type != HOST_OFFLINE)
+	while( host.type != HOST_OFFLINE )
 	{
 		oldtime = newtime;
 		newtime = Sys_DoubleTime();
 		time = newtime - oldtime;
 
-		Host_Frame( time ); // engine frame
+		// engine frame
+		Host_Frame( time );
 	}
+
+	// prepare host to normal shutdown
 	host.state = HOST_SHUTDOWN;
+	std.strncpy( host.finalmsg, "Server shutdown\n", MAX_STRING );
 }
 
 
@@ -643,7 +650,7 @@ Host_Shutdown
 */
 void Host_Free( void )
 {
-	SV_Shutdown("Server shutdown\n", false );
+	SV_Shutdown( false );
 	CL_Shutdown();
 	Host_FreeRender();
 	NET_Shutdown();

@@ -44,6 +44,7 @@ typedef struct system_s
 	bool			con_showcredits;
 	bool			con_silentmode;
 	bool			error;
+	bool			crash;
 	byte			*basepool;
 	byte			*zonepool;
 	byte			*imagepool;
@@ -241,6 +242,7 @@ fs_offset_t VFS_Read(vfile_t* file, void* buffer, size_t buffersize);
 int VFS_Print(vfile_t* file, const char *msg);
 int VFS_Printf(vfile_t* file, const char* format, ...);
 int VFS_Seek( vfile_t *file, fs_offset_t offset, int whence );
+int VFS_Gets(vfile_t* file, byte *string, size_t bufsize );
 bool VFS_Unpack( void* compbuf, size_t compsize, void **buf, size_t size );
 fs_offset_t VFS_Tell (vfile_t* file);
 file_t *VFS_Close( vfile_t *file );

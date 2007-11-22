@@ -18,11 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 #include <ctype.h>
-#ifdef _WIN32
-#include <io.h>
-#endif
-#include "client.h"
-#include "qmenu.h"
+#include "uimenu.h"
 
 static int	m_main_cursor;
 
@@ -613,7 +609,7 @@ static void M_UnbindCommand (char *command)
 	}
 }
 
-static void M_FindKeysForCommand(char *command, int *twokeys)
+void M_FindKeysForCommand(char *command, int *twokeys)
 {
 	int	count;
 	int	j;
@@ -3421,6 +3417,9 @@ void M_Init (void)
 	Cmd_AddCommand ("menu_options", M_Menu_Options_f, "opens main options menu");
 	Cmd_AddCommand ("menu_keys", M_Menu_Keys_f, "opens redefinition keys menu" );
 	Cmd_AddCommand ("menu_quit", M_Menu_Quit_f, "show quit dialog" );
+	Cmd_AddCommand ("menu_toggle", UI_ToggleMenu_f, "enable progs menu(test)" );
+
+	UI_Init();
 }
 
 
@@ -3434,6 +3433,7 @@ void M_Draw (void)
 	if (cls.key_dest != key_menu) return;
 
 	m_drawfunc();
+	UI_Draw();
 
 	// delay playing the enter sound until after the
 	// menu has been drawn, to avoid delay while

@@ -2584,6 +2584,46 @@ fs_offset_t VFS_Tell (vfile_t* file)
 	return file->offset;
 }
 
+/*
+====================
+FS_Getc
+
+Get the next character of a file
+====================
+*/
+int VFS_Getc(vfile_t *file)
+{
+	char c;
+
+	if(!VFS_Read (file, &c, 1))
+		return EOF;
+	return c;
+}
+
+int VFS_Gets(vfile_t* file, byte *string, size_t bufsize )
+{
+	int	c, end = 0;
+
+	while( 1 )
+	{
+		c = VFS_Getc( file );
+		if (c == '\r' || c == '\n' || c < 0)
+			break;
+		if (end < bufsize - 1) string[end++] = c;
+	}
+	string[end] = 0;
+
+	// remove \n following \r
+	if (c == '\r')
+	{
+		c = VFS_Getc( file );
+		if (c != '\n') VFS_Seek( file, -1, SEEK_CUR ); // rewind
+	}
+	MsgDev(D_INFO, "VFS_Gets: %s\n", string);
+
+	return c;
+}
+
 int VFS_Seek( vfile_t *file, fs_offset_t offset, int whence )
 {
 	if (!file) return -1;

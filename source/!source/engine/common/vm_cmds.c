@@ -213,6 +213,23 @@ void VM_sprint( void )
 	SV_ClientPrintf (svs.clients+(num - 1), PRINT_HIGH, "%s", string );
 }
 
+/*
+=================
+VM_centerprint
+
+single print to the screen
+
+centerprint(clientent, value)
+=================
+*/
+void VM_centerprint( void )
+{
+	char string[VM_STRINGTEMP_LENGTH];
+
+	VM_VarString(0, string, sizeof(string));
+	CG_CenterPrint( string, SCREEN_HEIGHT/2, BIGCHAR_WIDTH );
+}
+
 void VM_servercmd (void)
 {
 	char string[VM_STRINGTEMP_LENGTH];
@@ -1376,18 +1393,23 @@ void VM_Files_Init(void)
 		prog->openfiles[i] = NULL;
 }
 
-void VM_Files_CloseAll(void)
+void VM_Files_CloseAll( void )
 {
-	int i;
-	for (i = 0;i < PRVM_MAX_OPENFILES;i++)
+	int	i;
+	file_t	*f;
+
+	for(i = 0; i < PRVM_MAX_OPENFILES; i++)
 	{
 		if (prog->openfiles[i])
-			FS_Close(prog->openfiles[i]);
+		{
+			f = VFS_Close(prog->openfiles[i]);
+			FS_Close( f ); // close real file too
+		}
 		prog->openfiles[i] = NULL;
 	}
 }
 
-file_t *VM_GetFileHandle( int index )
+vfile_t *VM_GetFileHandle( int index )
 {
 	if (index < 0 || index >= PRVM_MAX_OPENFILES)
 	{
@@ -1412,20 +1434,21 @@ float	fopen(string filename, float mode)
 // float(string filename, float mode) fopen = #110;
 // opens a file inside quake/gamedir/data/ (mode is FILE_READ, FILE_APPEND, or FILE_WRITE),
 // returns fhandle >= 0 if successful, or fhandle < 0 if unable to open file for any reason
-void VM_fopen(void)
+void VM_fopen( void )
 {
-	int filenum, mode;
-	const char *modestring, *filename;
+	int		filenum, mode;
+	const char	*modestring, *filename;
 
-	VM_SAFEPARMCOUNT(2,VM_fopen);
+	VM_SAFEPARMCOUNT(2, VM_fopen);
 
-	for (filenum = 0;filenum < PRVM_MAX_OPENFILES;filenum++)
+	for (filenum = 0; filenum < PRVM_MAX_OPENFILES; filenum++)
 		if (prog->openfiles[filenum] == NULL)
 			break;
+
 	if (filenum >= PRVM_MAX_OPENFILES)
 	{
 		PRVM_G_FLOAT(OFS_RETURN) = -2;
-		VM_Warning("VM_fopen: %s ran out of file handles (%i)\n", PRVM_NAME, PRVM_MAX_OPENFILES);
+		VM_Warning("VM_fopen: %s ran out of file handles(%i)\n", PRVM_NAME, PRVM_MAX_OPENFILES);
 		return;
 	}
 	mode = (int)PRVM_G_FLOAT(OFS_PARM1);
@@ -1440,27 +1463,30 @@ void VM_fopen(void)
 	case 2: // FILE_WRITE
 		modestring = "wb";
 		break;
+	case 3: // FILE_WRITE_DEFLATED
+		modestring = "wz";
+		break;
 	default:
 		PRVM_G_FLOAT(OFS_RETURN) = -3;
-		VM_Warning("VM_fopen: %s: no such mode %i (valid: 0 = read, 1 = append, 2 = write)\n", PRVM_NAME, mode);
+		VM_Warning("VM_fopen: %s: no such mode %i (valid: 0 = read, 1 = append, 2 = write, 3 = deflate)\n", PRVM_NAME, mode);
 		return;
 	}
 	filename = PRVM_G_STRING(OFS_PARM0);
 
-	prog->openfiles[filenum] = FS_Open(va("data/%s", filename), modestring );
+	prog->openfiles[filenum] = VFS_Open(FS_Open(va("temp/%s", filename), modestring), modestring );
 	if (prog->openfiles[filenum] == NULL && mode == 0)
-		prog->openfiles[filenum] = FS_Open(va("%s", filename), modestring );
+		prog->openfiles[filenum] = VFS_Open(FS_Open(va("%s", filename), modestring), modestring );
 
 	if (prog->openfiles[filenum] == NULL)
 	{
 		PRVM_G_FLOAT(OFS_RETURN) = -1;
-		if (host.developer >= D_WARN)
+		if(host.developer >= D_WARN)
 			VM_Warning("VM_fopen: %s: %s mode %s failed\n", PRVM_NAME, filename, modestring);
 	}
 	else
 	{
 		PRVM_G_FLOAT(OFS_RETURN) = filenum;
-		if (host.developer >= D_WARN)
+		if(host.developer >= D_WARN)
 			Msg("VM_fopen: %s: %s mode %s opened as #%i\n", PRVM_NAME, filename, modestring, filenum);
 	}
 }
@@ -1473,7 +1499,7 @@ fclose(float fhandle)
 =========
 */
 //void(float fhandle) fclose = #111; // closes a file
-void VM_fclose(void)
+void VM_fclose( void )
 {
 	int filenum;
 
@@ -1490,10 +1516,12 @@ void VM_fclose(void)
 		VM_Warning("VM_fclose: no such file handle %i (or file has been closed) in %s\n", filenum, PRVM_NAME);
 		return;
 	}
-	FS_Close(prog->openfiles[filenum]);
+	FS_Close(VFS_Close(prog->openfiles[filenum]));
 	prog->openfiles[filenum] = NULL;
 	if (host.developer >= D_WARN)
+	{
 		Msg("VM_fclose: %s: #%i closed\n", PRVM_NAME, filenum);
+	}
 }
 
 /*
@@ -1524,7 +1552,7 @@ void VM_fgets(void)
 		return;
 	}
 
-	c = FS_Gets (prog->openfiles[filenum], string, VM_STRINGTEMP_LENGTH );
+	c = VFS_Gets(prog->openfiles[filenum], string, VM_STRINGTEMP_LENGTH );
 
 	if (host.developer >= D_WARN) Msg("fgets: %s: %s\n", PRVM_NAME, string);
 
@@ -1546,7 +1574,7 @@ void VM_fputs(void)
 	char string[VM_STRINGTEMP_LENGTH];
 	int filenum;
 
-	VM_SAFEPARMCOUNT(2,VM_fputs);
+	VM_SAFEPARMCOUNT(2, VM_fputs);
 
 	filenum = (int)PRVM_G_FLOAT(OFS_PARM0);
 	if (filenum < 0 || filenum >= PRVM_MAX_OPENFILES)
@@ -1560,10 +1588,8 @@ void VM_fputs(void)
 		return;
 	}
 	VM_VarString(1, string, sizeof(string));
-	if ((stringlength = (int)strlen(string)))
-		FS_Write(prog->openfiles[filenum], string, stringlength);
-	if (host.developer >= D_WARN)
-		Msg("fputs: %s: %s\n", PRVM_NAME, string);
+	if ((stringlength = (int)strlen(string))) VFS_Write(prog->openfiles[filenum], string, stringlength);
+	if (host.developer >= D_WARN) Msg("fputs: %s: %s\n", PRVM_NAME, string);
 }
 
 /*
@@ -1689,7 +1715,7 @@ void VM_allocstring(void)
 	char string[VM_STRINGTEMP_LENGTH];
 	size_t alloclen;
 
-	VM_SAFEPARMCOUNT(1,VM_strzone);
+	VM_SAFEPARMCOUNT(1, VM_allocstring);
 
 	VM_VarString(0, string, sizeof(string));
 	alloclen = strlen(string) + 1;
@@ -1709,7 +1735,7 @@ void FreeString(string s)
 */
 void VM_freestring(void)
 {
-	VM_SAFEPARMCOUNT(1,VM_strunzone);
+	VM_SAFEPARMCOUNT(1, VM_freestring);
 	PRVM_FreeString(PRVM_G_INT(OFS_PARM0));
 }
 
@@ -1842,6 +1868,20 @@ void VM_clientcount(void)
 
 /*
 =========
+VM_clientstate
+
+float	clientstate()
+=========
+*/
+void VM_clientstate(void)
+{
+	VM_SAFEPARMCOUNT(0,VM_clientstate);
+
+	PRVM_G_FLOAT(OFS_RETURN) = cls.state;
+}
+
+/*
+=========
 VM_getmousepos
 
 vector	getmousepos()
@@ -1850,7 +1890,7 @@ vector	getmousepos()
 void VM_getmousepos(void)
 {
 
-	VM_SAFEPARMCOUNT(0,VM_getmousepos);
+	VM_SAFEPARMCOUNT(0, VM_getmousepos);
 
 	PRVM_G_VECTOR(OFS_RETURN)[0] = mouse_x;
 	PRVM_G_VECTOR(OFS_RETURN)[1] = mouse_y;
@@ -2179,6 +2219,38 @@ void VM_precache_pic(void)
 
 /*
 =========
+VM_drawcharacter
+
+float	drawcharacter(vector position, float character, vector scale, vector rgb, float alpha, float flag)
+=========
+*/
+void VM_drawcharacter(void)
+{
+	float		*pos, *rgb;
+	char		character;
+	VM_SAFEPARMCOUNT(3, VM_drawcharacter);
+
+	character = (char)PRVM_G_FLOAT(OFS_PARM1);
+	if(character == 0)
+	{
+		PRVM_G_FLOAT(OFS_RETURN) = -1;
+		VM_Warning("VM_drawcharacter: %s passed null character !\n", PRVM_NAME);
+		return;
+	}
+
+	pos = PRVM_G_VECTOR(OFS_PARM0);
+	rgb = PRVM_G_VECTOR(OFS_PARM3);
+
+	if(pos[2]) Msg("VM_drawcharacter: z value from \"pos\" discarded\n" );
+
+	re->SetColor( GetRGBA(rgb[0], rgb[1], rgb[2], 1.0f));
+	SCR_DrawSmallChar( pos[0], pos[1], character );
+	re->SetColor( NULL );
+	PRVM_G_FLOAT(OFS_RETURN) = 1;
+}
+
+/*
+=========
 VM_drawstring
 
 float	drawstring(vector position, string text, vector scale, vector rgb, float alpha, float flag)
@@ -2208,6 +2280,32 @@ void VM_drawstring(void)
 	SCR_DrawBigString( pos[0], pos[1], string, alpha ); 
 	PRVM_G_FLOAT(OFS_RETURN) = 1;
 }
+
+/*
+=========
+VM_getimagesize
+
+vector	getimagesize(string pic)
+=========
+*/
+void VM_getimagesize(void)
+{
+	const char	*p;
+	int		w, h;
+
+	VM_SAFEPARMCOUNT(1, VM_getimagesize);
+	p = PRVM_G_STRING(OFS_PARM0);
+
+	if(!p) PRVM_ERROR("VM_getimagepos: %s passed null picture name !", PRVM_NAME);
+
+	VM_CheckEmptyString(p);
+	re->DrawGetPicSize( &w, &h, (char *)p );
+
+	PRVM_G_VECTOR(OFS_RETURN)[0] = w;
+	PRVM_G_VECTOR(OFS_RETURN)[1] = h;
+	PRVM_G_VECTOR(OFS_RETURN)[2] = 0;
+}
+
 /*
 =========
 VM_drawpic
@@ -2267,6 +2365,68 @@ void VM_drawfill(void)
 
 	SCR_FillRect( pos[0], pos[1], size[0], size[1], color ); 
 	PRVM_G_FLOAT(OFS_RETURN) = 1;
+}
+
+/*
+========================
+VM_cin_open
+
+float cin_open(string name, float bits)
+========================
+*/
+void VM_cin_open( void )
+{
+	const char	*name;
+	int		flags;
+
+	VM_SAFEPARMCOUNT( 2, VM_cin_open );
+
+	name = PRVM_G_STRING( OFS_PARM0 );
+	flags = (int)PRVM_G_FLOAT( OFS_PARM1 );
+
+	VM_CheckEmptyString( name );
+
+	if(SCR_PlayCinematic( (char *)name, flags ))
+		PRVM_G_FLOAT( OFS_RETURN ) = 1;
+	else PRVM_G_FLOAT( OFS_RETURN ) = 0;
+}
+
+/*
+========================
+VM_cin_close
+
+void cin_close( void )
+========================
+*/
+void VM_cin_close( void )
+{
+	VM_SAFEPARMCOUNT( 0, VM_cin_close );
+	SCR_StopCinematic();
+}
+
+/*
+========================
+VM_cin_getstate
+
+float cin_getstate(void)
+========================
+*/
+void VM_cin_getstate( void )
+{
+	VM_SAFEPARMCOUNT( 0, VM_cin_getstate );
+	PRVM_G_FLOAT( OFS_RETURN ) = SCR_GetCinematicState();
+}
+
+/*
+========================
+VM_cin_restart
+
+void cin_restart(void)
+========================
+*/
+void VM_cin_restart( void )
+{
+	SCR_ResetCinematic();
 }
 
 /*

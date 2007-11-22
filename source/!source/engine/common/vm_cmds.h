@@ -201,6 +201,7 @@ void VM_objerror (void);
 void VM_print (void);
 void VM_bprint (void);
 void VM_sprint (void);
+void VM_centerprint(void);
 void VM_normalize (void);
 void VM_veclength (void);
 void VM_vectoyaw (void);
@@ -266,7 +267,7 @@ void VM_fgets(void);
 void VM_fputs(void);
 // used by M_WriteToFile
 // should be only called from a builtin
-file_t *VM_GetFileHandle( int index );
+vfile_t *VM_GetFileHandle( int index );
 
 void VM_strlen(void);
 void VM_strcat(void);
@@ -283,6 +284,7 @@ void VM_argv (void);
 
 void VM_isserver(void);
 void VM_clientcount(void);
+void VM_clientstate(void);
 void VM_getmousepos(void);
 void VM_gettime(void);
 void VM_loadfromdata(void);
@@ -297,6 +299,7 @@ void VM_search_getfilename(void);
 void VM_chr(void);
 void VM_iscachedpic(void);
 void VM_precache_pic(void);
+void VM_drawcharacter(void);
 void VM_drawstring(void);
 void VM_drawpic(void);
 void VM_drawfill(void);
@@ -313,11 +316,9 @@ void VM_stringtokeynum (void);
 
 void VM_cin_open( void );
 void VM_cin_close( void );
-void VM_cin_setstate( void );
 void VM_cin_getstate( void );
 void VM_cin_restart( void );
 
-void VM_drawline (void);
 void VM_R_PolygonBegin (void);
 void VM_R_PolygonVertex (void);
 void VM_R_PolygonEnd (void);

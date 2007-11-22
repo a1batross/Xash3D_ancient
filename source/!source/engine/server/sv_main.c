@@ -1035,16 +1035,16 @@ Called when each game quits,
 before Sys_Quit or Sys_Error
 ================
 */
-void SV_Shutdown (char *finalmsg, bool reconnect)
+void SV_Shutdown( bool reconnect )
 {
 	// already freed
 	if(host.state == HOST_ERROR) return;
 
-	MsgDev(D_NOTE, "SV_Shutdown: %s\n", finalmsg );
-	if (svs.clients) SV_FinalMessage (finalmsg, reconnect);
+	MsgDev(D_NOTE, "SV_Shutdown: %s\n", host.finalmsg );
+	if (svs.clients) SV_FinalMessage( host.finalmsg, reconnect);
 
-	Master_Shutdown ();
-	SV_ShutdownGameProgs ();
+	Master_Shutdown();
+	SV_ShutdownGameProgs();
 
 	// free current level
 	if (sv.demofile) FS_Close (sv.demofile);

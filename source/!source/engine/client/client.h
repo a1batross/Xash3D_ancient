@@ -649,10 +649,12 @@ int Key_GetKey( char *binding );
 //
 // cl_cin.c
 //
-void SCR_PlayCinematic( char *name, int bits );
+bool SCR_PlayCinematic( char *name, int bits );
 void SCR_DrawCinematic( void );
 void SCR_RunCinematic( void );
 void SCR_StopCinematic( void );
+void SCR_ResetCinematic( void );
+int SCR_GetCinematicState( void );
 void SCR_FinishCinematic( void );
 
 #endif//CLIENT_H

@@ -596,6 +596,7 @@ typedef struct stdilib_api_s
 	file_t *(*vfclose)(vfile_t* file);				// free buffer or write dump
 	long (*vfwrite)(vfile_t* file, const void* buf, size_t datasize);	// write into buffer
 	long (*vfread)(vfile_t* file, void* buffer, size_t buffersize);	// read from buffer
+	int  (*vfgets)(vfile_t* file, byte *string, size_t bufsize );	// read text line 
 	int  (*vfprint)(vfile_t* file, const char *msg);			// write message
 	int  (*vfprintf)(vfile_t* file, const char* format, ...);		// write formatted message
 	int (*vfseek)(vfile_t* file, fs_offset_t offset, int whence);	// fseek, can seek in packfiles too

@@ -38,12 +38,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 typedef struct _tag_menuframework
 {
-	int x, y;
+	int	x, y;
 	int	cursor;
 
 	int	nitems;
-	int nslots;
-	void *items[64];
+	int	nslots;
+	void	*items[64];
 
 	const char *statusbar;
 
@@ -116,6 +116,7 @@ bool	Menu_SelectItem( menuframework_s *s );
 void	Menu_SetStatusBar( menuframework_s *s, const char *string );
 void	Menu_SlideItem( menuframework_s *s, int dir );
 int	Menu_TallySlots( menuframework_s *menu );
+void	M_FindKeysForCommand(char *command, int *keys);
 
 void	 Menu_DrawString( int, int, const char * );
 void	 Menu_DrawStringDark( int, int, const char * );

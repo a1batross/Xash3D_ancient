@@ -110,7 +110,7 @@ void S_Init( void )
 	s_show = Cvar_Get ("s_show", "0", CVAR_CHEAT);
 	s_testsound = Cvar_Get ("s_testsound", "0", CVAR_CHEAT);
 
-	cv = Cvar_Get ("s_initsound", "1", 0);
+	cv = Cvar_Get("s_initsound", "1", 0);
 	if ( !cv->value ) return;
 
 	Cmd_AddCommand("play", S_Play_f, "playing a specified sound file" );

@@ -1343,7 +1343,7 @@ void CIN_DrawCinematic( void )
 Cinematic user interface
 ==============================================================================
 */
-void SCR_PlayCinematic( char *name, int bits )
+bool SCR_PlayCinematic( char *name, int bits )
 {
 	if (cls.state == ca_cinematic)
 		SCR_StopCinematic();
@@ -1351,7 +1351,11 @@ void SCR_PlayCinematic( char *name, int bits )
 	S_StopAllSounds();
 
 	if (CIN_PlayCinematic( name, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, bits ))
+	{
 		SCR_RunCinematic(); // load first frame
+		return true;
+	}
+	return false;
 }
 
 void SCR_DrawCinematic( void )
@@ -1368,6 +1372,16 @@ void SCR_StopCinematic( void )
 {
 	CIN_StopCinematic();
 	S_StopAllSounds();
+}
+
+void SCR_ResetCinematic( void )
+{
+	RoQReset();
+}
+
+int SCR_GetCinematicState( void )
+{
+	return cinTable.status;
 }
 
 /*

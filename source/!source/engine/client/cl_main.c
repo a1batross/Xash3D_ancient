@@ -450,20 +450,18 @@ void CL_Connect_f (void)
 		return;	
 	}
 	
-	if (Host_ServerState ())
-	{	// if running a local server, kill it and reissue
-		SV_Shutdown (va("Server quit\n", msg), false);
+	if(Host_ServerState())
+	{	
+		// if running a local server, kill it and reissue
+		std.strncpy( host.finalmsg, "Server quit\n", MAX_STRING );
+		SV_Shutdown( false );
 	}
-	else
-	{
-		CL_Disconnect ();
-	}
+	else CL_Disconnect();
 
 	server = Cmd_Argv (1);
 
-	NET_Config (true);		// allow remote
-
-	CL_Disconnect ();
+	NET_Config( true );	// allow remote
+	CL_Disconnect();
 
 	cls.state = ca_connecting;
 	strncpy (cls.servername, server, sizeof(cls.servername)-1);

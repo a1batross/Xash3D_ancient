@@ -28,20 +28,34 @@ SYSTEM IO
 
 ===============================================================================
 */
+
+
 void Sys_Error( const char *error, ... )
 {
-	char		syserror1[MAX_INPUTLINE];
+	char		errorstring[MAX_INPUTLINE];
+	static bool	recursive = false;
 	va_list		argptr;
-	
+
 	va_start( argptr, error );
-	vsprintf( syserror1, error, argptr );
+	std.vsprintf( errorstring, error, argptr );
 	va_end( argptr );
 
-	SV_Shutdown(va("Server fatal crashed: %s\n", syserror1), false);
-	CL_Shutdown();
-	host.state = HOST_ERROR; // lock shutdown state
+	// don't multiple executes
+	if( recursive )
+	{
+		// echo to system console and log
+		Sys_Print( va("Sys_RecursiveError: %s\n", errorstring ));
+		return;
+	}	
 
-	std.error("%s", syserror1);
+	recursive = true;
+
+	// prepare host to close
+	sprintf( host.finalmsg, "Server fatal crashed: %s\n", errorstring );
+	host.state = HOST_ERROR; // lock shutdown state
+	Host_FreeRender();
+
+	std.error("%s", errorstring );
 }
 
 /*

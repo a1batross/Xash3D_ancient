@@ -155,7 +155,7 @@ typedef struct prvm_prog_s
 	//============================================================================
 	// until this point everything also exists (with the pr_ prefix) in the old vm
 
-	file_t		*openfiles[PRVM_MAX_OPENFILES];
+	vfile_t		*openfiles[PRVM_MAX_OPENFILES];
 	search_t		*opensearches[PRVM_MAX_OPENSEARCHES];
 
 	// copies of some vars that were former read from sv

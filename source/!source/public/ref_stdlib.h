@@ -90,6 +90,7 @@ virtual filesystem manager
 #define VFS_Read	std.vfread
 #define VFS_Print	std.vfprint
 #define VFS_Printf	std.vfprintf
+#define VFS_Gets	std.vfgets
 #define VFS_Seek	std.vfseek
 #define VFS_Tell	std.vftell
 #define VFS_Close	std.vfclose

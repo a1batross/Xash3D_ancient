@@ -149,6 +149,7 @@ void Sys_GetStdAPI( void )
 	std.vfclose = VFS_Close;		// free buffer or write dump
 	std.vfwrite = VFS_Write;		// write into buffer
 	std.vfread = VFS_Read;		// read from buffer
+	std.vfgets = VFS_Gets;		// read text line 
 	std.vfprint = VFS_Print;		// write message
 	std.vfprintf = VFS_Printf;		// write formatted message
 	std.vfseek = VFS_Seek;		// fseek, can seek in packfiles too
@@ -764,33 +765,35 @@ void Sys_Error(const char *error, ...)
 }
 
 
-long _stdcall Sys_ExecptionFilter( PEXCEPTION_POINTERS pExceptionInfo )
+long _stdcall Sys_Crash( PEXCEPTION_POINTERS pInfo )
 {
 	// save config
-	Sys_Print("Engine crashed\n");
+	Sys.crash = true;
 	Sys.Free(); // prepare host to close
 	Sys_FreeLibrary( Sys.linked_dll );
+
+	if(Sys.developer >= D_MEMORY)
+	{
+		// show execption in native console too
+		Con_ShowConsole( true );
+		Msg("Sys_Crash: call %p at address %p\n", pInfo->ExceptionRecord->ExceptionCode, pInfo->ExceptionRecord->ExceptionAddress );
+		Sys_WaitForQuit();
+	}
 	Con_DestroyConsole();	
 
-	if( Sys.oldFilter ) return Sys.oldFilter( pExceptionInfo );
-
-#if 1
+	if( Sys.oldFilter )
+		return Sys.oldFilter( pInfo );
 	return EXCEPTION_CONTINUE_SEARCH;
-#else
-	return EXCEPTION_CONTINUE_EXECUTION;
-#endif
 }
 
 void Sys_Init( void )
 {
 	HANDLE		hStdout;
-	OSVERSIONINFO	vinfo;
 	MEMORYSTATUS	lpBuffer;
 	char		dev_level[4];
 
 	lpBuffer.dwLength = sizeof(MEMORYSTATUS);
-	vinfo.dwOSVersionInfoSize = sizeof(vinfo);
-//oldFilter = SetUnhandledExceptionFilter( Sys_ExecptionFilter );
+	Sys.oldFilter = SetUnhandledExceptionFilter( Sys_Crash );
 	GlobalMemoryStatus (&lpBuffer);
 
 	Sys.hInstance = (HINSTANCE)GetModuleHandle( NULL ); // get current hInstance first
@@ -845,7 +848,8 @@ void Sys_Exit ( void )
 	Memory_Shutdown();
 	Con_DestroyConsole();
 
-	if( Sys.oldFilter )  // restore filter	
+	// restore filter	
+	if( Sys.oldFilter )
 		SetUnhandledExceptionFilter( Sys.oldFilter );
 	exit( Sys.error );
 }
@@ -948,8 +952,14 @@ bool Sys_FreeLibrary ( dll_info_t *dll )
 {
 	if(!dll || !dll->link) // invalid desc or alredy freed
 		return false;
+	if(Sys.crash)
+	{
+		// we need to hold down all modules, while MSVC can find erorr
+		MsgDev(D_ERROR, "Sys_FreeLibrary: Hold %s for debugging\n", dll->name );
+		return false;
+	}
+	else MsgDev(D_ERROR, "Sys_FreeLibrary: Unloading %s\n", dll->name );
 
-	MsgDev(D_ERROR, "Sys_FreeLibrary: Unloading %s\n", dll->name );
 	FreeLibrary (dll->link);
 	dll->link = NULL;
 

@@ -1467,7 +1467,6 @@ void SV_ShutdownGameProgs (void)
 	SV_VM_End();
 
 	if(!svs.gclients) return;
-
 	Mem_Free( svs.gclients );
 	svs.gclients = NULL;
 

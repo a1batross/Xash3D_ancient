@@ -1295,15 +1295,16 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 	}
 
 	prog->progs = (dprograms_t *)FS_LoadFile(va("vprogs/%s", filename ), &filesize);
+
 	if (prog->progs == NULL || filesize < (fs_offset_t)sizeof(dprograms_t))
-		PRVM_ERROR ("PRVM_LoadProgs: couldn't load %s for %s", filename, PRVM_NAME);
+		PRVM_ERROR("PRVM_LoadProgs: couldn't load %s for %s\n", filename, PRVM_NAME);
 
 	MsgDev(D_INFO, "%s programs occupy %iK.\n", PRVM_NAME, filesize/1024);
 	prog->filecrc = CRC_Block((unsigned char *)prog->progs, filesize);
 
 	// byte swap the header
 	for (i = 0; i < (int)sizeof(*prog->progs)/4; i++) ((int *)prog->progs)[i] = LittleLong(((int *)prog->progs)[i]);
-
+	
 	switch( prog->progs->version )
 	{
 	case QPROGS_VERSION:
@@ -1320,14 +1321,16 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		PRVM_ERROR ("%s: %s has wrong version number (%i should be %i)", PRVM_NAME, filename, prog->progs->version, VPROGS_VERSION);
 		break;
 	} 
-
+	
 	// try to recognize progs.dat by crc
 	switch(prog->progs->crc)
 	{
 	case PROG_CRC_SERVER:
 		break;
+	case 10020:
+		break;
 	default:
-		PRVM_ERROR ("%s: %s system vars have been modified, progdefs.h is out of date", PRVM_NAME, filename);	
+		PRVM_ERROR("%s: %s system vars have been modified, progdefs.h is out of date", PRVM_NAME, filename);	
 		break;
 	}
 	MsgDev(D_INFO, "Loading %s [CRC %d]\n", filename, prog->progs->crc );
@@ -1341,8 +1344,8 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 	prog->globals.gp = (float *)((byte *)prog->progs + prog->progs->ofs_globals);
 
 	// debug info
- 	if (prog->progs->ofslinenums) prog->linenums = (int *)((byte *)prog->progs + prog->progs->ofslinenums);
-	if (prog->progs->ofs_types) prog->types = (type_t *)((byte *)prog->progs + prog->progs->ofs_types);
+ 	if(prog->progs->ofslinenums) prog->linenums = (int *)((byte *)prog->progs + prog->progs->ofslinenums);
+	if(prog->progs->ofs_types) prog->types = (type_t *)((byte *)prog->progs + prog->progs->ofs_types);
 
 	// decompress progs if needed
 	if (prog->progs->blockscompressed & COMP_STATEMENTS)
@@ -1554,11 +1557,11 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		{
 		case OP_IF:
 		case OP_IFNOT:
-			if ((word) st->a >= prog->progs->numglobals || (word)st->b + i < 0 || (word)st->b + i >= prog->progs->numstatements)
+			if((word)st->a >= prog->progs->numglobals || (word)st->b + i < 0 || (word)st->b + i >= prog->progs->numstatements)
 				PRVM_ERROR("PRVM_LoadProgs: out of bounds IF/IFNOT (statement %d) in %s", i, PRVM_NAME);
 			break;
 		case OP_GOTO:
-			if (st->a + i < 0 || st->a + i >= prog->progs->numstatements)
+			if(st->a + i < 0 || st->a + i >= prog->progs->numstatements)
 				PRVM_ERROR("PRVM_LoadProgs: out of bounds GOTO (statement %d) in %s", i, PRVM_NAME);
 			break;
 		// global global global
@@ -1596,7 +1599,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		case OP_LOAD_S:
 		case OP_LOAD_FNC:
 		case OP_LOAD_V:
-			if ((word) st->a >= prog->progs->numglobals || (word) st->b >= prog->progs->numglobals || (word)st->c >= prog->progs->numglobals)
+			if((word) st->a >= prog->progs->numglobals || (word) st->b >= prog->progs->numglobals || (word)st->c >= prog->progs->numglobals)
 				PRVM_ERROR("PRVM_LoadProgs: out of bounds global index (statement %d)", i);
 			break;
 		// global none global
@@ -1605,7 +1608,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		case OP_NOT_S:
 		case OP_NOT_FNC:
 		case OP_NOT_ENT:
-			if ((word) st->a >= prog->progs->numglobals || (word) st->c >= prog->progs->numglobals)
+			if((word) st->a >= prog->progs->numglobals || (word) st->c >= prog->progs->numglobals)
 				PRVM_ERROR("PRVM_LoadProgs: out of bounds global index (statement %d) in %s", i, PRVM_NAME);
 			break;
 		// 2 globals
@@ -1623,7 +1626,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		case OP_STOREP_V:
 		case OP_STORE_V:
 			if ((word) st->a >= prog->progs->numglobals || (word) st->b >= prog->progs->numglobals)
-				PRVM_ERROR("PRVM_LoadProgs: out of bounds global index (statement %d) in %s", i, PRVM_NAME);
+				Host_Error("PRVM_LoadProgs: out of bounds global index (statement %d) in %s", i, PRVM_NAME);
 			break;
 		// 1 global
 		case OP_CALL0:
@@ -1638,7 +1641,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		case OP_DONE:
 		case OP_RETURN:
 			if ((word) st->a >= prog->progs->numglobals)
-				PRVM_ERROR("PRVM_LoadProgs: out of bounds global index (statement %d) in %s", i, PRVM_NAME);
+				Host_Error("PRVM_LoadProgs: out of bounds global index (statement %d) in %s", i, PRVM_NAME);
 			break;
 		default:
 			MsgDev(D_NOTE, "PRVM_LoadProgs: unknown opcode %d at statement %d in %s\n", st->op, i, PRVM_NAME);
@@ -1655,18 +1658,13 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 	// set flags & ddef_ts in prog
 
 	prog->flag = 0;
-
 	prog->pev = PRVM_ED_FindGlobal("pev");
 
 	if( PRVM_ED_FindGlobal("time") && PRVM_ED_FindGlobal("time")->type & ev_float )
 		prog->time = &PRVM_G_FLOAT(PRVM_ED_FindGlobal("time")->ofs);
 
-	if(PRVM_ED_FindField ("chain"))
-		prog->flag |= PRVM_FE_CHAIN;
-
-	if(PRVM_ED_FindField ("classname"))
-		prog->flag |= PRVM_FE_CLASSNAME;
-
+	if(PRVM_ED_FindField ("chain")) prog->flag |= PRVM_FE_CHAIN;
+	if(PRVM_ED_FindField ("classname")) prog->flag |= PRVM_FE_CLASSNAME;
 	if(PRVM_ED_FindField ("nextthink") && PRVM_ED_FindField ("frame") && PRVM_ED_FindField ("think") && prog->flag && prog->pev)
 		prog->flag |= PRVM_OP_STATE;
 
@@ -1925,16 +1923,16 @@ VM_error
 Abort the server with a game error
 ===============
 */
-void VM_Error (const char *fmt, ...)
+void VM_Error(const char *fmt, ...)
 {
 	char		msg[1024];
 	va_list		argptr;
 	
-	va_start (argptr,fmt);
+	va_start (argptr, fmt);
 	vsprintf (msg, fmt, argptr);
 	va_end (argptr);
 
-	Msg ("Prvm error: %s", msg);
+	Host_Error("Prvm error: %s", msg);
 }
 
 /*

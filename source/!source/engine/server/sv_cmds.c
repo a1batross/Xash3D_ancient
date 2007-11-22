@@ -492,7 +492,8 @@ Kick everyone off, possibly in preparation for a new game
 void SV_KillServer_f (void)
 {
 	if(!svs.initialized) return;
-	SV_Shutdown("Server was killed.\n", false);
+	std.strncpy( host.finalmsg, "Server was killed\n", MAX_STRING );
+	SV_Shutdown( false );
 	NET_Config( false );// close network sockets
 }
 

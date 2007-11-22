@@ -23,10 +23,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "engine.h"
 #include "client.h"
+#include "qmenu.h"
 #include "progsvm.h"
 #include "vm_cmds.h"
 
-#define M_PROG_FILENAME	"menu.dat"
+#define M_PROG_FILENAME	"uimenu.dat"
 #define M_NAME		"menu"
 #define M_MAX_EDICTS	(1 << 12) // should be enough for a menu
 
@@ -56,5 +57,11 @@ enum m_state_e {
 	m_reset
 };
 extern enum m_state_e m_state;
+
+void UI_Init( void );
+void UI_KeyEvent(menuframework_s *m, int key);
+void UI_ToggleMenu_f( void );
+void UI_Shutdown( void );
+void UI_Draw( void );
 
 #endif//UIMENU_H

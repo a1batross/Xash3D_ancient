@@ -257,10 +257,11 @@ void SV_InitGame (void)
 	char		i, idmaster[32];
 	edict_t		*ent;
 	
-	if (svs.initialized)
+	if( svs.initialized )
 	{
 		// cause any connected clients to reconnect
-		SV_Shutdown("Server restarted\n", true);
+		std.strncpy( host.finalmsg, "Server restarted\n", MAX_STRING );
+		SV_Shutdown( true );
 	}
 	else
 	{

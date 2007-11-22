@@ -298,6 +298,10 @@ SOURCE=.\system.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\ui_cmds.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\ui_main.c
 # End Source File
 # Begin Source File

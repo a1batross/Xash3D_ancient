@@ -368,7 +368,9 @@ destroy win32 console
 void Con_DestroyConsole( void )
 {
 	// last text message into console or log 
-	MsgDev(D_ERROR, "Sys_FreeLibrary: Unloading launch.dll\n");
+
+	if(Sys.crash) MsgDev(D_ERROR, "Sys_FreeLibrary: Hold launch.dll for debugging\n" );
+	else MsgDev(D_ERROR, "Sys_FreeLibrary: Unloading launch.dll\n");
 
 	if(Sys.hooked_out) 
 	{

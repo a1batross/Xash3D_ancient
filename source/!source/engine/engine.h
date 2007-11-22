@@ -61,6 +61,8 @@ typedef struct host_parm_s
 	host_redirect_t	rd;		// remote console
 	jmp_buf		abortframe;	// abort current frame
 
+	char		finalmsg[MAX_STRING];// server shutdown final message
+
 	dword		framecount;	// global framecount
 	double		realtime;		// host realtime
 	float		frametime;	// frametime (default 0.1)
@@ -121,6 +123,9 @@ void Host_DPrintf(int level, const char *fmt, ...);
 void Host_DWarnf( const char *fmt, ...);
 void Host_Error( const char *error, ... );
 
+// host dlls managment
+void Host_FreeRender( void );
+
 // host cmds
 void Host_Error_f( void );
 
@@ -159,9 +164,9 @@ void CL_Drop (void);
 void CL_Shutdown (void);
 void CL_Frame (float time);
 
-void SV_Init (void);
-void SV_Shutdown (char *finalmsg, bool reconnect);
-void SV_Frame (float time);
+void SV_Init( void );
+void SV_Shutdown( bool reconnect );
+void SV_Frame( float time );
 void SV_Transform( sv_edict_t *ed, vec3_t origin, vec3_t angles );
 
 /*
