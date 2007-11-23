@@ -48,7 +48,8 @@ void VM_M_precache_sound( void )
 	PRVM_G_INT(OFS_RETURN) = PRVM_G_INT(OFS_PARM0);
 	VM_CheckEmptyString( s );
 
-	if(!SV_SoundIndex( s ))
+	// fake precaching
+	if(!FS_FileExists( va("sound/%s", s )))
 	{
 		VM_Warning("VM_precache_sound: Failed to load %s for %s\n", s, PRVM_NAME);
 		return;
@@ -95,18 +96,20 @@ setkeydest(float dest)
 void VM_M_setkeydest(void)
 {
 	VM_SAFEPARMCOUNT(1, VM_M_setkeydest);
-
+        
 	switch((int)PRVM_G_FLOAT(OFS_PARM0))
 	{
-	case 0:
+	case key_game:
 		// key_game
 		cls.key_dest = key_game;
+		Msg("Set key_dest = key_game\n");
 		break;
-	case 2:
+	case key_menu:
 		// key_menu
 		cls.key_dest = key_menu;
+		Msg("Set key_dest = key_menu\n");
 		break;
-	case 1:
+	case key_message:
 		// key_message
 		// cls.key_dest = key_message
 		// break;
@@ -124,7 +127,7 @@ float	getkeydest
 */
 void VM_M_getkeydest(void)
 {
-	VM_SAFEPARMCOUNT(0,VM_M_getkeydest);
+	VM_SAFEPARMCOUNT(0, VM_M_getkeydest);
 
 	// key_game = 0, key_message = 1, key_menu = 2, unknown = 3
 	switch(cls.key_dest)

@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////
 // sys globals
 
-entity self;
+entity pev;
 
 /////////////////////////////////////////////////////////
 void		end_sys_globals;
@@ -167,9 +167,13 @@ float K_AUX32	=	803;
 ///////////////////////////
 // key dest constants
 
-float KEY_GAME 		=	0;
-float KEY_MENU		=	2;
-float KEY_UNKNOWN	= 	3;
+enum
+{
+	KEY_GAME,
+	KEY_CONSOLE,
+	KEY_MESSAGE,
+	KEY_MENU
+};
 
 ///////////////////////////
 // file constants

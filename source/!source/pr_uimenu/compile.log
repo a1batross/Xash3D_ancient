@@ -1,0 +1,33 @@
+=======================================================================
+	Xash3D QuakeC Compiler started at Nov22 2007 [21:57.08]
+=======================================================================
+------------Configuration: ../temp/uimenu - Vm16 Release------------
+Compiling...
+msys.c
+mbuiltin.c
+menu.h
+cursor.h
+mmanager.h
+mfuncs.h
+mcontrols.h
+sound.h
+graphic.h
+mcustom.h
+cursor.c
+menu.c
+mmanager.c
+mcontrols.c
+mfuncs.c
+sound.c
+graphic.c
+mcustom.c
+Custom progs crc 35063
+Linking...
+Скопировано файлов:         1.
+
+../temp/uimenu.dat - 0 error(s), 0 warning(s)
+0.381 seconds elapsed
+
+=======================================================================
+	Xash3D QuakeC Compiler stopped at Nov22 2007 [21:57.08]
+=======================================================================

@@ -7,14 +7,14 @@
 
 void(void) gfx_init =
 {
-	vid_conwidth = cvar("vid_conwidth");
-	vid_conheight = cvar("vid_conheight");
+	vid_conwidth = cvar("width");
+	vid_conheight = cvar("height");
 };
 
 void(void) gfx_frame =
 {
-	vid_conwidth = cvar("vid_conwidth");
-	vid_conheight = cvar("vid_conheight");
+	vid_conwidth = cvar("width");
+	vid_conheight = cvar("height");
 };
 
 void(void) gfx_toggle =
@@ -105,17 +105,11 @@ gfx_drawpic =
 {
 	float ret;
 
-	if(size == '0 0 0')
-		size = gfx_getimagesize(pic_name);
+	if(size == '0 0 0') size = gfx_getimagesize(pic_name);
 
-	// for FrikQCC
-	position = gfx_converttocon(position);
-	size = gfx_converttocon(size);
+	ret = drawpic(position, pic_name, size, rgb, alpha );
 
-	ret = drawpic(position, pic_name, size, rgb, alpha, flag);
-
-	if(ret == 1)
-		return;
+	if(ret == 1) return;
 	if(ret == ERR_NULLSTRING)
 		error("Null string !\n");
 	if(ret == ERR_BADDRAWFLAG)
@@ -149,14 +143,10 @@ gfx_fillarea =
 
 void(vector position, vector size) gfx_setcliparea =
 {
-	position = gfx_converttocon(position);
-	size = gfx_converttocon(size);
-	drawsetcliparea(position_x, position_y, size_x, size_y);
 };
 
 void(void) gfx_resetcliparea =
 {
-	drawresetcliparea();
 };
 
 void(vector position, float character, vector scale, vector rgb, float alpha, float flag)
@@ -208,16 +198,16 @@ vector(string pic_name) gfx_getimagesize =
 vector(vector vec) gfx_converttogfx =
 {
 	vector v;
-	v_x = vec_x * (GFX_WIDTH / vid_conwidth);
-	v_y = vec_y * (GFX_HEIGHT / vid_conheight);
+	v_x = vec_x * (vid_conwidth / SCR_WIDTH );
+	v_y = vec_y * (vid_conheight / SCR_HEIGHT);
 	return v;
 };
 
 vector(vector vec) gfx_converttocon =
 {
 	vector v;
-	v_x = vec_x * (vid_conwidth / GFX_WIDTH);
-	v_y = vec_y * (vid_conheight / GFX_HEIGHT);
+	v_x = vec_x * (vid_conwidth / SCR_WIDTH);
+	v_y = vec_y * (vid_conheight / SCR_HEIGHT);
 	return v;
 };
 

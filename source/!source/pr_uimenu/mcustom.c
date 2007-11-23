@@ -13,41 +13,41 @@
 void(void) dpmod_slidertext =
 {
 	entity ent;
-	if(self.link == "")
+	if(pev.link == "")
 	{
 		print("No link specified\n");
-		eprint(self);
-		self.init = null_function;
+		eprint(pev);
+		pev.init = null_function;
 		return;
 	}
 
-	ent = menu_getitem(self.link);
+	ent = menu_getitem(pev.link);
 	if(ent == null_entity)
 	{
-		objerror("No link found for ", self.link,"\n");
+		objerror("No link found for ", pev.link,"\n");
 	}
 
-	self._link = ent;
+	pev._link = ent;
 
-	self.flag = self.flag | FLAG_DRAWREFRESHONLY;
+	pev.flag = pev.flag | FLAG_DRAWREFRESHONLY;
 
-	self.refresh = _dpmod_slidertext_refresh;
+	pev.refresh = _dpmod_slidertext_refresh;
 };
 
 void(void) _dpmod_slidertext_refresh =
 {
-	self.text = ftos(self._link.value);
-	if(self.maxlen > 0)
-		self.text = substring(self.text,0, self.maxlen);
+	pev.text = ftos(pev._link.value);
+	if(pev.maxlen > 0)
+		pev.text = substring(pev.text,0, pev.maxlen);
 	// reset the size, so its set
-	self.size = '0 0 0';
+	pev.size = '0 0 0';
 };
 
 float(float keynr, float ascii) dpmod_redirect_key =
 {
 	if(keynr == K_ENTER || keynr == K_LEFTARROW || keynr == K_RIGHTARROW || (keynr >= K_MOUSE1 && keynr <= K_MOUSE10))
 	{
-		raise_key(self._child, keynr, ascii);
+		raise_key(pev._child, keynr, ascii);
 		return true;
 	}
 	return false;
@@ -55,32 +55,32 @@ float(float keynr, float ascii) dpmod_redirect_key =
 
 void(void) dpmod_cvar_slider =
 {
-	self.value = cvar(self.cvarname);
-	self.slidermove = self.switchchange = _dpmod_cvar_slider;
-	self.refresh = _dpmod_cvar_slider_refresh;
+	pev.value = cvar(pev.cvarname);
+	pev.slidermove = pev.switchchange = _dpmod_cvar_slider;
+	pev.refresh = _dpmod_cvar_slider_refresh;
 };
 
 void(void) _dpmod_cvar_slider_refresh =
 {
-	if(self.cvartype == CVAR_INT || self.cvartype == CVAR_FLOAT || self.cvartype == CVAR_STEP)
-		self.value = cvar(self.cvarname);
+	if(pev.cvartype == CVAR_INT || pev.cvartype == CVAR_FLOAT || pev.cvartype == CVAR_STEP)
+		pev.value = cvar(pev.cvarname);
 };
 
 void(void) _dpmod_cvar_slider =
 {
-	if(self.cvarname == "")
+	if(pev.cvarname == "")
 		return;
-	if(self.cvartype == CVAR_INT) // || self.cvartype == CVAR_STRING)
-		self.value = rint(self.value);
-	if(self.cvartype == CVAR_STEP)
-		self.value = rint(self.value / self.step) * self.step;
-	if(self.cvartype == CVAR_INT || self.cvartype == CVAR_FLOAT || self.cvartype == CVAR_STEP)
-		cvar_set(self.cvarname, ftos(self.value));
+	if(pev.cvartype == CVAR_INT) // || pev.cvartype == CVAR_STRING)
+		pev.value = rint(pev.value);
+	if(pev.cvartype == CVAR_STEP)
+		pev.value = rint(pev.value / pev.step) * pev.step;
+	if(pev.cvartype == CVAR_INT || pev.cvartype == CVAR_FLOAT || pev.cvartype == CVAR_STEP)
+		cvar_set(pev.cvarname, ftos(pev.value));
 	/*if(cvartype == CVAR_STRING)
 	{
 		string s;
-		s = getaltstring(self.value, self.cvarvalues);
-		cvar_set(self.cvarname, s);
+		s = getaltstring(pev.value, pev.cvarvalues);
+		cvar_set(pev.cvarname, s);
 	}
 	*/
 };
@@ -214,7 +214,7 @@ float(float keynr, float ascii) dpmod_quit_key =
 
 void(void) dpmod_options_alwaysrun_switchchange =
 {
-	if(self.value)
+	if(pev.value)
 	{
 		cvar_set("cl_forwardspeed","400");
 		cvar_set("cl_backspeed","400");
@@ -229,9 +229,9 @@ void(void) dpmod_options_alwaysrun_switchchange =
 void(void) dpmod_options_alwaysrun_refresh =
 {
 	if(cvar("cl_forwardspeed") > 200)
-		self.value = 1;
+		pev.value = 1;
 	else
-		self.value = 0;
+		pev.value = 0;
 };
 
 void(void) dpmod_options_invmouse_switchchange =
@@ -244,9 +244,9 @@ void(void) dpmod_options_invmouse_switchchange =
 void(void) dpmod_options_invmouse_refresh =
 {
 	if(cvar("m_pitch") > 0)
-		self.value = 0;
+		pev.value = 0;
 	else
-		self.value = 1;
+		pev.value = 1;
 };
 
 ////////////////////////////////////////////////////
@@ -254,12 +254,12 @@ void(void) dpmod_options_invmouse_refresh =
 ///
 void(void) initbrightness =
 {
-	self.value = cvar("scr_conbrightness");
+	pev.value = cvar("scr_conbrightness");
 };
 
 void(void) setbrightness =
 {
-	cvar_set("scr_conbrightness",ftos(self.value));
+	cvar_set("scr_conbrightness",ftos(pev.value));
 };
 
 void(void)	dpmod_main_exit =

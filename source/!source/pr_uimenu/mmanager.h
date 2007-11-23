@@ -31,7 +31,11 @@ const string MENU_INGAME_DEFAULT =
 "}";
 
 // insert the files here
-var string MENU_FILENAME_LIST = "menu/main.menu menu/options.menu";
+string MENU_FILENAME_LIST[2] = 
+{
+"scripts/menu/main.txt",
+"scripts/menu/options.txt"
+};
 
 const float MENU_ALLOWINGAME = FALSE;
 

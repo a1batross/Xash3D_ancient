@@ -7,8 +7,8 @@
 
 void(void) cursor_reset =
 {
-	cursor_x = rint(GFX_WIDTH /2);
-	cursor_y = rint(GFX_HEIGHT /2);
+	cursor_x = rint(SCR_WIDTH / 2);
+	cursor_y = rint(SCR_HEIGHT / 2);
 
 	cursor_rel = '0 0 0';
 
@@ -20,8 +20,8 @@ void(void) cursor_reset =
 
 void(void) cursor_toggle =
 {
-	cursor_x = rint(GFX_WIDTH /2);
-	cursor_y = rint(GFX_HEIGHT /2);
+	cursor_x = rint(SCR_WIDTH /2);
+	cursor_y = rint(SCR_HEIGHT /2);
 	cursor_type = CT_NORMAL;
 };
 
@@ -30,7 +30,7 @@ void(void) cursor_init =
 	// load the images
 	if(CF_NORMAL != "") CF_NORMAL = gfx_loadpic(CF_NORMAL, CURSOR_ENFORCELOADING);
 
-	if(CF_NORMAL == "") CF_NORMAL = gfx_loadpic("ui/mousepointer.tga", true); // always
+	if(CF_NORMAL == "") CF_NORMAL = gfx_loadpic("common/cursor", true); // always
 
 	if(CF_PULSE[0] != "") CF_PULSE[0] = gfx_loadpic(CF_PULSE[0], CURSOR_ENFORCELOADING);
 	if(CF_PULSE[1] != "") CF_PULSE[1] = gfx_loadpic(CF_PULSE[1], CURSOR_ENFORCELOADING);
@@ -78,11 +78,11 @@ void(void) cursor_frame =
 	cursor_rel = cursor_rel * CURSOR_SPEED;
 	cursor = cursor + cursor_rel;
 
-	cursor_x = bound(0, cursor_x, GFX_WIDTH);
-	cursor_y = bound(0, cursor_y, GFX_HEIGHT);
+	cursor_x = bound(0, cursor_x, SCR_WIDTH);
+	cursor_y = bound(0, cursor_y, SCR_HEIGHT);
 };
 
-void(void) cursor_draw =
+void cursor_draw( void )
 {
 	string pic;
 

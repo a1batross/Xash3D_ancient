@@ -1327,7 +1327,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 	{
 	case PROG_CRC_SERVER:
 		break;
-	case 10020:
+	case 35063:
 		break;
 	default:
 		PRVM_ERROR("%s: %s system vars have been modified, progdefs.h is out of date", PRVM_NAME, filename);	
@@ -1557,7 +1557,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		{
 		case OP_IF:
 		case OP_IFNOT:
-			if((word)st->a >= prog->progs->numglobals || (word)st->b + i < 0 || (word)st->b + i >= prog->progs->numstatements)
+			if((word)st->a >= prog->progs->numglobals || st->b + i < 0 || st->b + i >= prog->progs->numstatements)
 				PRVM_ERROR("PRVM_LoadProgs: out of bounds IF/IFNOT (statement %d) in %s", i, PRVM_NAME);
 			break;
 		case OP_GOTO:

@@ -89,7 +89,7 @@ void UI_ToggleMenu_f( void )
 	// set time
 	*prog->time = cls.realtime;
 
-	PRVM_ExecuteProgram((func_t) (PRVM_ED_FindFunction(M_F_TOGGLE) - prog->functions), "" );
+	PRVM_ExecuteProgram((func_t)(PRVM_ED_FindFunction(M_F_TOGGLE) - prog->functions), "" );
 	PRVM_End;
 }
 
@@ -141,6 +141,6 @@ void UI_Init( void )
 	*prog->time = cls.realtime;
 
 	// call the prog init
-	PRVM_ExecuteProgram((func_t) (PRVM_ED_FindFunction(M_F_INIT) - prog->functions),"");
+	PRVM_ExecuteProgram((func_t)(PRVM_ED_FindFunction(M_F_INIT) - prog->functions),"");
 	PRVM_End;
 }

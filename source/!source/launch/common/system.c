@@ -768,18 +768,22 @@ void Sys_Error(const char *error, ...)
 long _stdcall Sys_Crash( PEXCEPTION_POINTERS pInfo )
 {
 	// save config
-	Sys.crash = true;
-	Sys.Free(); // prepare host to close
-	Sys_FreeLibrary( Sys.linked_dll );
-
-	if(Sys.developer >= D_MEMORY)
+	if(!Sys.crash)
 	{
-		// show execption in native console too
-		Con_ShowConsole( true );
-		Msg("Sys_Crash: call %p at address %p\n", pInfo->ExceptionRecord->ExceptionCode, pInfo->ExceptionRecord->ExceptionAddress );
-		Sys_WaitForQuit();
-	}
-	Con_DestroyConsole();	
+		// check to avoid recursive call
+		Sys.crash = true;
+		Sys.Free(); // prepare host to close
+		Sys_FreeLibrary( Sys.linked_dll );
+
+		if(Sys.developer >= D_MEMORY)
+		{
+			// show execption in native console too
+			Con_ShowConsole( true );
+			Msg("Sys_Crash: call %p at address %p\n", pInfo->ExceptionRecord->ExceptionCode, pInfo->ExceptionRecord->ExceptionAddress );
+			Sys_WaitForQuit();
+		}
+		Con_DestroyConsole();	
+          }
 
 	if( Sys.oldFilter )
 		return Sys.oldFilter( pInfo );

@@ -14,10 +14,10 @@ void(entity ent)	raise_x =
 	if(!ent._x)
 		return;
 
-	old = self;
-	self = ent;
-	self._x();
-	self = old;
+	old = pev;
+	pev = ent;
+	pev._x();
+	pev = old;
 };
 */
 
@@ -27,10 +27,10 @@ void(entity ent)	raise_reinit =
 	if(!ent._reinit)
 		return;
 
-	old = self;
-	self = ent;
-	self._reinit();
-	self = old;
+	old = pev;
+	pev = ent;
+	pev._reinit();
+	pev = old;
 };
 
 void(entity ent)	raise_destroy =
@@ -39,10 +39,10 @@ void(entity ent)	raise_destroy =
 	if(!ent._destroy)
 		return;
 
-	old = self;
-	self = ent;
-	self._destroy();
-	self = old;
+	old = pev;
+	pev = ent;
+	pev._destroy();
+	pev = old;
 };
 
 void(entity ent, float keynr, float ascii)	raise_key =
@@ -51,10 +51,10 @@ void(entity ent, float keynr, float ascii)	raise_key =
 	if(!ent._key)
 		return;
 
-	old = self;
-	self = ent;
-	self._key(keynr, ascii);
-	self = old;
+	old = pev;
+	pev = ent;
+	pev._key(keynr, ascii);
+	pev = old;
 };
 
 void(entity ent)	raise_draw =
@@ -63,10 +63,10 @@ void(entity ent)	raise_draw =
 	if(!ent._draw)
 		return;
 
-	old = self;
-	self = ent;
-	self._draw();
-	self = old;
+	old = pev;
+	pev = ent;
+	pev._draw();
+	pev = old;
 };
 
 void(entity ent)	raise_mouse_enter =
@@ -75,10 +75,10 @@ void(entity ent)	raise_mouse_enter =
 	if(!ent._mouse_enter)
 		return;
 
-	old = self;
-	self = ent;
-	self._mouse_enter();
-	self = old;
+	old = pev;
+	pev = ent;
+	pev._mouse_enter();
+	pev = old;
 };
 
 void(entity ent)	raise_mouse_leave =
@@ -87,10 +87,10 @@ void(entity ent)	raise_mouse_leave =
 	if(!ent._mouse_leave)
 		return;
 
-	old = self;
-	self = ent;
-	self._mouse_leave();
-	self = old;
+	old = pev;
+	pev = ent;
+	pev._mouse_leave();
+	pev = old;
 };
 
 void(entity ent)	raise_action =
@@ -99,10 +99,10 @@ void(entity ent)	raise_action =
 	if(!ent._action)
 		return;
 
-	old = self;
-	self = ent;
-	self._action();
-	self = old;
+	old = pev;
+	pev = ent;
+	pev._action();
+	pev = old;
 };
 
 void(entity ent)	raise_refresh =
@@ -111,10 +111,10 @@ void(entity ent)	raise_refresh =
 	if(!ent._refresh)
 		return;
 
-	old = self;
-	self = ent;
-	self._refresh();
-	self = old;
+	old = pev;
+	pev = ent;
+	pev._refresh();
+	pev = old;
 };
 
 // safe call control function functions
@@ -123,64 +123,64 @@ void(entity ent)	raise_refresh =
 
 void(void) ctcall_x	=
 {
-	if(self.x)
-		self.x();
+	if(pev.x)
+		pev.x();
 };
 
 */
 void(void)	ctcall_init =
 {
-	if(self.init)
-		self.init();
+	if(pev.init)
+		pev.init();
 };
 
 void(void)  ctcall_reinit =
 {
-	if(self.reinit)
-		self.reinit();
+	if(pev.reinit)
+		pev.reinit();
 };
 
 void(void) ctcall_destroy =
 {
-	if(self.destroy)
-		self.destroy();
+	if(pev.destroy)
+		pev.destroy();
 };
 
 float(float keynr, float ascii)  ctcall_key =
 {
-	if(self.key)
-		return self.key(keynr, ascii);
+	if(pev.key)
+		return pev.key(keynr, ascii);
 	return 0;
 };
 
 void(void)	ctcall_draw =
 {
-	if(self.draw)
-		self.draw();
+	if(pev.draw)
+		pev.draw();
 };
 
 void(void)	ctcall_mouse_enter =
 {
-	if(self.mouse_enter)
-		self.mouse_enter();
+	if(pev.mouse_enter)
+		pev.mouse_enter();
 };
 
 void(void)	ctcall_mouse_leave =
 {
-	if(self.mouse_leave)
-		self.mouse_leave();
+	if(pev.mouse_leave)
+		pev.mouse_leave();
 };
 
 void(void)	ctcall_action =
 {
-	if(self.action)
-		self.action();
+	if(pev.action)
+		pev.action();
 };
 
 void(void) ctcall_refresh =
 {
-	if(self.refresh)
-		self.refresh();
+	if(pev.refresh)
+		pev.refresh();
 }
 
 // default control functions
@@ -241,15 +241,15 @@ void(void)	defct_refresh =
 void(void)	def_refresh =
 {
 	// refresh stuff
-	if(self.flag & FLAG_AUTOSETCLICK)
+	if(pev.flag & FLAG_AUTOSETCLICK)
 	{
-		self.click_pos = self.pos;
-		self.click_size = self.size;
+		pev.click_pos = pev.pos;
+		pev.click_size = pev.size;
 	}
-	if(self.flag & FLAG_AUTOSETCLIP)
+	if(pev.flag & FLAG_AUTOSETCLIP)
 	{
-		self.clip_pos = self.pos;
-		self.clip_size = self.size;
+		pev.clip_pos = pev.pos;
+		pev.clip_size = pev.size;
 	}
 };
 
@@ -265,67 +265,67 @@ void(float keynr, float ascii)	def_keyevent =
 		// move to the previous element
 		menu_loopprev();
 
-		if(menu_selected == self)
+		if(menu_selected == pev)
 		{
-			if(self._prev)
+			if(pev._prev)
 			{
-				menu_selected = self._prev;
+				menu_selected = pev._prev;
 				menu_selectdown();
-				if(menu_selected != self._prev)
+				if(menu_selected != pev._prev)
 				{
 					return;
 				}
 			}
-			menu_selected = self;
+			menu_selected = pev;
 		}
 	} else if(keynr == K_RIGHTARROW || keynr == K_DOWNARROW)
 	{
 		// move to the  next element
 		menu_loopnext();
 
-		if(menu_selected == self)
+		if(menu_selected == pev)
 		{
-			if(self._next)
+			if(pev._next)
 			{
-				menu_selected = self._next;
+				menu_selected = pev._next;
 				menu_selectdown();
-				if(menu_selected != self._next)
+				if(menu_selected != pev._next)
 				{
 					return;
 				}
 			}
-			menu_selected = self;
+			menu_selected = pev;
 		}
 	} else if(keynr == K_ENTER || keynr == K_MOUSE1)
 	{
-		eprint(self);
+		eprint(pev);
 		print("Action called\n");
-		if(self._action)
-			self._action();
+		if(pev._action)
+			pev._action();
 		// move to the child menu
 		menu_selectdown();
 	} else if(keynr == K_TAB)
 	{
 		// select next and try to "go" down
-		if(self._next)
+		if(pev._next)
 		{
-			menu_selected = self._next;
+			menu_selected = pev._next;
 			menu_selectdown();
-			if(menu_selected != self._next)
+			if(menu_selected != pev._next)
 			{
 				return;
 			}
 		}
-		if(self._prev)
+		if(pev._prev)
 		{
-			menu_selected = self._prev;
+			menu_selected = pev._prev;
 			menu_selectdown();
-			if(menu_selected != self._prev)
+			if(menu_selected != pev._prev)
 			{
 				return;
 			}
 		}
-		menu_selected = self;
+		menu_selected = pev;
 	}
 };
 
@@ -372,15 +372,15 @@ vector(vector r_pos, vector r_size, vector c_pos, vector c_size) cliprectsize =
 void(void(void) reinitevent, void(void) destroyevent, void(float key, float ascii) keyevent, void(void) drawevent, void(void) mouse_enterevent, void(void) mouse_leaveevent, void(void) actionevent, void(void) refreshevent)
 	item_init =
 {
-	self._reinit  = reinitevent;
-	self._destroy = destroyevent;
+	pev._reinit  = reinitevent;
+	pev._destroy = destroyevent;
 
-	self._key 	= keyevent;
-	self._draw 	= drawevent;
-	self._mouse_enter = mouse_enterevent;
-	self._mouse_leave = mouse_leaveevent;
-	self._action = actionevent;
-	self._refresh = refreshevent;
+	pev._key 	= keyevent;
+	pev._draw 	= drawevent;
+	pev._mouse_enter = mouse_enterevent;
+	pev._mouse_leave = mouse_leaveevent;
+	pev._action = actionevent;
+	pev._refresh = refreshevent;
 };
 
 float(float tfactor) getflicker =

@@ -32,8 +32,8 @@ uint	old_sys_frame_time;
 
 int	mouse_buttons;
 int	mouse_oldbuttonstate;
-POINT	current_pos;
-int	mouse_x, mouse_y, old_mouse_x, old_mouse_y, mx_accum, my_accum;
+POINT	cur_pos, old_pos;
+int	mouse_x, mouse_y, mx_accum, my_accum;
 
 bool	mouseactive;	// false when not focus app
 
@@ -80,7 +80,7 @@ IN_ActivateMouse
 Called when the window gains focus or changes in some way
 ===========
 */
-void IN_ActivateMouse (void)
+void IN_ActivateMouse( void )
 {
 	int	width, height;
 
@@ -108,7 +108,7 @@ void IN_ActivateMouse (void)
 
 	window_center_x = (window_rect.right + window_rect.left)/2;
 	window_center_y = (window_rect.top + window_rect.bottom)/2;
-	SetCursorPos (window_center_x, window_center_y);
+	SetCursorPos( window_center_x, window_center_y );
 
 	SetCapture( host.hWnd );
 	ClipCursor(&window_rect);
@@ -195,11 +195,11 @@ void CL_MouseMove (usercmd_t *cmd)
 	if (!mouseactive) return;
 
 	// find mouse movement
-	if (!GetCursorPos (&current_pos))
+	if (!GetCursorPos (&cur_pos))
 		return;
 
-	mx = current_pos.x - window_center_x;
-	my = current_pos.y - window_center_y;
+	mx = cur_pos.x - window_center_x;
+	my = cur_pos.y - window_center_y;
 
 #if 0
 	if (!mx && !my)
@@ -208,8 +208,8 @@ void CL_MouseMove (usercmd_t *cmd)
 
 	if (m_filter->value)
 	{
-		mouse_x = (mx + old_mouse_x) * 0.5;
-		mouse_y = (my + old_mouse_y) * 0.5;
+		mouse_x = (mx + old_pos.x) * 0.5;
+		mouse_y = (my + old_pos.y) * 0.5;
 	}
 	else
 	{
@@ -217,29 +217,26 @@ void CL_MouseMove (usercmd_t *cmd)
 		mouse_y = my;
 	}
 
-	old_mouse_x = mx;
-	old_mouse_y = my;
+	old_pos.x = mx;
+	old_pos.y = my;
 
 	mouse_x *= sensitivity->value;
 	mouse_y *= sensitivity->value;
 
-	// add mouse X/Y movement to cmd
-	if ( (in_strafe.state & 1) || (lookstrafe->value && mlooking ))
-		cmd->sidemove += m_side->value * mouse_x;
-	else
-		cl.viewangles[YAW] -= m_yaw->value * mouse_x;
+	if(cls.key_dest != key_menu)
+	{
+		// add mouse X/Y movement to cmd
+		if ( (in_strafe.state & 1) || (lookstrafe->value && mlooking ))
+			cmd->sidemove += m_side->value * mouse_x;
+		else cl.viewangles[YAW] -= m_yaw->value * mouse_x;
 
-	if ( (mlooking || freelook->value) && !(in_strafe.state & 1))
-	{
-		cl.viewangles[PITCH] += m_pitch->value * mouse_y;
-	}
-	else
-	{
-		cmd->forwardmove -= m_forward->value * mouse_y;
+		if((mlooking || freelook->value) && !(in_strafe.state & 1))
+			cl.viewangles[PITCH] += m_pitch->value * mouse_y;
+		else cmd->forwardmove -= m_forward->value * mouse_y;
 	}
 
 	// force the mouse to the center, so there's room to move
-	if (mx || my) SetCursorPos (window_center_x, window_center_y);
+	if(mx || my) SetCursorPos( window_center_x, window_center_y );
 }
 
 
@@ -287,7 +284,7 @@ void CL_UpdateMouse( void )
 		return;
 	}
 
-	if( !cl.refresh_prepped || cls.key_dest == key_console || cls.key_dest == key_menu )
+	if( !cl.refresh_prepped || cls.key_dest == key_console )
 	{
 		// temporarily deactivate if in fullscreen
 		if(!Cvar_VariableValue ("fullscreen"))

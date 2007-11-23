@@ -440,6 +440,7 @@ const char *M_Main_Key(int key)
 void M_Menu_Main_f (void)
 {
 	M_PushMenu (M_Main_Draw, M_Main_Key);
+	UI_ToggleMenu_f();
 }
 
 /*
@@ -3417,7 +3418,6 @@ void M_Init (void)
 	Cmd_AddCommand ("menu_options", M_Menu_Options_f, "opens main options menu");
 	Cmd_AddCommand ("menu_keys", M_Menu_Keys_f, "opens redefinition keys menu" );
 	Cmd_AddCommand ("menu_quit", M_Menu_Quit_f, "show quit dialog" );
-	Cmd_AddCommand ("menu_toggle", UI_ToggleMenu_f, "enable progs menu(test)" );
 
 	UI_Init();
 }
@@ -3432,7 +3432,7 @@ void M_Draw (void)
 {
 	if (cls.key_dest != key_menu) return;
 
-	m_drawfunc();
+	if(m_drawfunc) m_drawfunc();
 	UI_Draw();
 
 	// delay playing the enter sound until after the

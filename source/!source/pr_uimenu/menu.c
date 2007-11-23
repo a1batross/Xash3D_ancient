@@ -60,8 +60,8 @@ void(void) m_frame =
 
 void(void) m_draw =
 {
-	if(!menu_active)
-		return;
+	if(!menu_active) return;
+
 
 	// call m_frame cause draw is the only menu function called once per frame
 	m_frame();
@@ -107,7 +107,8 @@ void(void) m_toggle =
 
 		// let the menu manager know
 		menu_performreinit();
-	} else
+	} 
+	else
 	{
 		setkeydest(KEY_GAME);
 		setmousetarget(MT_CLIENT);

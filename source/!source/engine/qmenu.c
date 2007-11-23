@@ -124,8 +124,8 @@ bool Field_Key( menufield_s *f, int key )
 	case K_UPARROW:
 	case K_KP_ENTER:
 	case K_ENTER:
-	case K_ESCAPE:
 	case K_TAB:
+	case K_ESCAPE:
 		return false;
 	}
 

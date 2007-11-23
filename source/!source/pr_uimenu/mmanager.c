@@ -15,57 +15,42 @@ void(void) menu_init =
 void(void) menu_load =
 {
 	// load the menu files
-	float count, i;
+	float i;
 
-	count = tokenize(MENU_FILENAME_LIST);
-
-	for(i = 0; i < count; i = i + 1)
+	for(i = 0; i < 2; i++ )
 	{
-		menu_loadmenu(argv(i));
-		dprint(argv(i), " loaded !\n");
+		menu_loadmenu(MENU_FILENAME_LIST[i]);
+		dprint(MENU_FILENAME_LIST[i], " loaded !\n");
 	}
-
 	menu_linkwindows();
 };
 
 void(string file) menu_addfiletolist =
 {
-	float count, i;
-
-	count = tokenize(MENU_FILENAME_LIST);
-
-	for(i = 0; i < count; i = i + 1)
-	{
-		if(argv(i) == file)
-		{
-			return;
-		}
-	}
-
-	MENU_FILENAME_LIST = strcat(MENU_FILENAME_LIST," ",file);
+	error("menu_addfiletolist called\n");
 };
 
 void(void) menu_restart =
 {
 	// actually we empty the ent list and load everything one more time, thats it
 	entity ent;
-	float  selfused;
-	string oldself;
+	float  pevused;
+	string oldpev;
 	string oldactive;
 	string oldselected;
 
 	// we backup the active window name and the name of the selected item
 	oldactive = menu_activewindow.name;
 	oldselected = menu_selected.name;
-	// backup self's name
-	if(self != null_entity)
+	// backup pev's name
+	if(pev != null_entity)
 	{
-		oldself = self.name;
-		selfused = true;
+		oldpev = pev.name;
+		pevused = true;
 	}
 	else
 	{
-		selfused = false;
+		pevused = false;
 	}
 
 	// first clear the history
@@ -100,15 +85,15 @@ void(void) menu_restart =
 		}
 	}
 
-	if(selfused)
+	if(pevused)
 	{
-		ent = menu_getitem(oldself);
+		ent = menu_getitem(oldpev);
 		if(ent)
 		{
-			self = ent;
-		} else // we have no current self...
+			pev = ent;
+		} else // we have no current pev...
 		{
-			error("Reloaded menu files, but the former self (", oldself ,") item is missing !\n");
+			error("Reloaded menu files, but the former pev (", oldpev ,") item is missing !\n");
 		}
 	}
 };
@@ -159,10 +144,10 @@ void(void) menu_linkwindows =
 	ent = null_entity;
 	while((ent = nextent(ent)) != null_entity)
 	{
-		self = ent;
-		while((self = findstring(self, name, ent.name)) != null_entity)
+		pev = ent;
+		while((pev = findstring(pev, name, ent.name)) != null_entity)
 		{
-			if(self != null_entity)
+			if(pev != null_entity)
 			{
 				objerror("Name ", ent.name, " already used !\n");
 			}
@@ -173,112 +158,112 @@ void(void) menu_linkwindows =
 	// set the parent field with parent_name
 	// set the next and prev fields
 	// set the child field
-	self = null_entity;
-	while((self = nextent(self)) != null_entity)
+	pev = null_entity;
+	while((pev = nextent(pev)) != null_entity)
 	{
-		if(self.name == "")
+		if(pev.name == "")
 		{
 			objerror("Name is missing !\n");
 			continue;
 		}
 
-		if(self.type == "")
+		if(pev.type == "")
 		{
 			objerror("Type is missing !\n");
 			continue;
 		}
 
-		if(!isfunction(self.type))
+		if(!isfunction(pev.type))
 		{
-			objerror("Control ", self.type, " not found !\n");
+			objerror("Control ", pev.type, " not found !\n");
 			continue;
 		}
 
 		// find parent
 		// if parent_name is "" do nothing else set parent
-		if(self.parent != "")
+		if(pev.parent != "")
 		{
-			ent = findstring(null_entity, name, self.parent);
+			ent = findstring(null_entity, name, pev.parent);
 
 			if(ent == null_entity)
 			{
-				objerror("Item ", self.parent, " not found !\n");
+				objerror("Item ", pev.parent, " not found !\n");
 				continue;
 			}
 
-			self._parent = ent;
+			pev._parent = ent;
 		}
 		else
 		{
-			self._parent = null_entity;
+			pev._parent = null_entity;
 		}
 	}
 
 	// now auto-set all ents with orderpos 0
-	self = null_entity;
-	while((self = findfloat(self,orderpos, 0)) != null_entity)
+	pev = null_entity;
+	while((pev = findfloat(pev,orderpos, 0)) != null_entity)
 	{
-		if(self.parent == "")
+		if(pev.parent == "")
 			continue;
 
 		// now go through all orderpos' beginning from 1
 		opos = 1;
-		while((ent = findef(null_entity, _parent, self._parent, orderpos, opos)) != null_entity)
+		while((ent = findef(null_entity, _parent, pev._parent, orderpos, opos)) != null_entity)
 		{
 			opos = opos + 1;
 		}
 
-		self.orderpos = opos;
+		pev.orderpos = opos;
 	}
 
-	self = null_entity;
-	while((self = nextent(self)) != null_entity)
+	pev = null_entity;
+	while((pev = nextent(pev)) != null_entity)
 	{
 		// find first child
 		// orderpos starts with 1
-		ent = findef(null_entity, _parent, self, orderpos, 1);
+		ent = findef(null_entity, _parent, pev, orderpos, 1);
 
 		if(ent == null_entity)
 		{
-			if(findentity(ent, _parent, self) != null_entity)
+			if(findentity(ent, _parent, pev) != null_entity)
 			{
-				objerror("Order pos 1 is missing in the child list of ", self.name, " !\n");
+				objerror("Order pos 1 is missing in the child list of ", pev.name, " !\n");
 				continue;
 			}
 			//else doesnt have any chilren
 		}
 		else
-			self._child = ent;
+			pev._child = ent;
 
 		// add to next, previous list
 		// find orderpos - x (starting with x = 1)
-		x = self.orderpos;
+		x = pev.orderpos;
 
 		while(x > 1)
 		{
 			x = x - 1;
 
-			ent = findef(null_entity, _parent, self._parent, orderpos, x);
+			ent = findef(null_entity, _parent, pev._parent, orderpos, x);
 			if(ent != null_entity)
 			{
-				self._prev = ent;
-				ent._next = self;
+				pev._prev = ent;
+				ent._next = pev;
 				break;
 			}
 		}
 
-		// find orderpos + x (starting with x = 1 until x == self.oderpos + 100)
-		x = self.orderpos;
+		// find orderpos + x (starting with x = 1 until x == pev.oderpos + 100)
+		x = pev.orderpos;
 
-		while(x < self.orderpos + 100)
+		while(x < pev.orderpos + 100)
 		{
 			x = x + 1;
 
-			ent = findef(null_entity, _parent, self._parent, orderpos, x);
+			ent = findef(null_entity, _parent, pev._parent, orderpos, x);
 			if(ent != null_entity)
 			{
-				self._next = ent;
-				ent._prev = self;
+				pev._next = ent;
+				ent._prev = pev;
 				break;
 			}
 		}
@@ -288,8 +273,8 @@ void(void) menu_linkwindows =
 	ent = null_entity;
 	while((ent = nextent(ent)) != null_entity)
 	{
-		self = ent;
-		callfunction(self.type);
+		pev = ent;
+		callfunction(pev.type);
 	}
 };
 
@@ -309,23 +294,22 @@ void(void) menu_performreinit =
 	menu_clearhistory();
 
 	// and reinit all menu items
-	self = null_entity;
-	while((self = nextent(self)) != null_entity)
+	pev = null_entity;
+	while((pev = nextent(pev)) != null_entity)
 	{
-		if(self.parent == "")
-			self._parent = null_entity;
+		if(pev.parent == "")
+			pev._parent = null_entity;
 		//else actually this shouldnt happen
-		else if(self._parent.name != self.parent)
-			objerror("Parent (should be ", self.parent, ") of non-menu item ", self.name, " changed to ", self._parent.name, " !\n");
+		else if(pev._parent.name != pev.parent)
+			objerror("Parent (should be ", pev.parent, ") of non-menu item ", pev.name, " changed to ", pev._parent.name, " !\n");
 
-		raise_reinit(self); // always call reinit
+		raise_reinit(pev); // always call reinit
 	}
 
 	// choose which menu to display
 	if(MENU_ALLOWINGAME && (gamestatus & GAME_CONNECTED))
 		menu_activewindow = findstring(null_entity, name, MENU_INGAME_NAME);
-	else
-		menu_activewindow = findstring(null_entity, name, MENU_NORMAL_NAME);
+	else menu_activewindow = findstring(null_entity, name, MENU_NORMAL_NAME);
 
 	// set the selected item
 	menu_selected = menu_activewindow;
@@ -335,7 +319,7 @@ void(void) menu_performreinit =
 
 void(entity par, float selectalways) menu_processmouse =
 {
-	// self is parent
+	// pev is parent
 	// loop through all childs
 	// and try to find an object whose click rect fits to the mouse coords
 	entity ent;
@@ -463,7 +447,7 @@ void(entity menu) menu_drawwindow =
 		// if it's not visible continue
 		if(menu_isvisible(ent))
 		{
-			self = ent;
+			pev = ent;
 			if(menu_hasevents(ent))
 			{
 				raise_refresh(ent);
@@ -563,10 +547,10 @@ float(entity e) menu_selectable =
 void(void) menu_shutdown =
 {
 	// call the terminate event for each object
-	self = null_entity;
-	while((self = nextent(self)) != null_entity)
+	pev = null_entity;
+	while((pev = nextent(pev)) != null_entity)
 	{
-		raise_destroy(self);
+		raise_destroy(pev);
 	}
 };
 
@@ -702,6 +686,7 @@ void(void) menu_selectdown =
 			menu_selected = ent;
 			return;
 		}
+
 	} while((ent = ent._next) != null_entity);
 
 	// we found no selectable child, thus we loop through the children once again
@@ -732,7 +717,6 @@ void(void) menu_selectdown =
 
 	// we didnt find anything
 	menu_selected = old_selected;
-
 }
 
 void(void) menu_selectup =

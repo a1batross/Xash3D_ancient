@@ -12,7 +12,7 @@ const float CT_FIRST_PULSE	= 1; // pulse frames 0 - 6
 const float CT_LAST_PULSE	= 7;
 const float CT_GLOW			= 8;
 
-const float	CURSOR_SCALE	= 1;
+const float	CURSOR_SCALE	= 1.2;
 
 const vector CURSOR_COLOR	= '1 1 1';
 const float	 CURSOR_TRANSPARENCY = 1;
@@ -24,7 +24,7 @@ const float CURSOR_SPEED = 0.75;
 const float CA_PULSE_SPEED = 0.14257142 ; // = 1 / 7 -> 1 secs total time
 
 // cursor filenames
-var string CF_NORMAL = "ui/mousepointer.tga";
+var string CF_NORMAL = "common/cursor";
 
 // enforce loading everything else qc will break
 const float CURSOR_ENFORCELOADING = false;

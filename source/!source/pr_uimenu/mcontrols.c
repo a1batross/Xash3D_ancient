@@ -11,7 +11,7 @@
 
 void(void) ITEM_WINDOW =
 {
-	self.flag = self.flag | FLAG_NOSELECT | FLAG_DRAWONLY;
+	pev.flag = pev.flag | FLAG_NOSELECT | FLAG_DRAWONLY;
 
 	item_init(
 		defct_reinit,
@@ -32,19 +32,19 @@ void(void) ITEM_WINDOW =
 
 void(void) ITEM_REFERENCE =
 {
-	self.flag = self.flag | FLAG_NOSELECT | FLAG_DRAWONLY;
+	pev.flag = pev.flag | FLAG_NOSELECT | FLAG_DRAWONLY;
 
-	if(self.link == "")
+	if(pev.link == "")
 	{
-		remove(self);	// no need to call terminate
+		remove(pev);	// no need to call terminate
 		return;
 	}
 
-		self._child = menu_getitem(self.link);
-	if(self._child == null_entity)
+		pev._child = menu_getitem(pev.link);
+	if(pev._child == null_entity)
 	{
-		print(self.name, " removed, cause link ", self.link, " not found\n");
-		remove(self);	// no need to call terminate
+		print(pev.name, " removed, cause link ", pev.link, " not found\n");
+		remove(pev);	// no need to call terminate
 		return;
 	}
 
@@ -78,35 +78,35 @@ void(void) ITEM_CUSTOM =
 // ITEM_PICTURE has a special draw function
 void(void) ITEM_PICTURE_DRAW =
 {
-	menu_drawpic(self.pos, self.picture, self.size, self.color, self.alpha, self.drawflag);
+	menu_drawpic(pev.pos, pev.picture, pev.size, pev.color, pev.alpha, pev.drawflag);
 
 	ctcall_draw();
 };
 
 void(void) ITEM_PICTURE_DESTROY =
 {
-	gfx_unloadpic(self.picture);
+	gfx_unloadpic(pev.picture);
 
 	ctcall_destroy();
 };
 
 void(void) ITEM_PICTURE =
 {
-	if(self.picture == "")
+	if(pev.picture == "")
 		// a picture has to have a picture
-		remove(self);		// no need to call terminate
+		remove(pev);		// no need to call terminate
 
 	// load the picture if it isnt loaded already
-	gfx_loadpic(self.picture, MENU_ENFORCELOADING);
+	gfx_loadpic(pev.picture, MENU_ENFORCELOADING);
 
 	// if flag wasnt set yet, then set it to FLAG_DRAWONLY
-	if(self.flag == 0)
-		self.flag = FLAG_DRAWONLY;
+	if(pev.flag == 0)
+		pev.flag = FLAG_DRAWONLY;
 
-	if(self.color == '0 0 0')
-		self.color = ITEM_PICTURE_NORMAL_COLOR;
-	if(self.alpha == 0)
-		self.alpha = ITEM_PICTURE_NORMAL_ALPHA;
+	if(pev.color == '0 0 0')
+		pev.color = ITEM_PICTURE_NORMAL_COLOR;
+	if(pev.alpha == 0)
+		pev.alpha = ITEM_PICTURE_NORMAL_ALPHA;
 
 	item_init(
 		defct_reinit,
@@ -128,17 +128,17 @@ void(void) ITEM_PICTURE =
 void(void) ITEM_TEXT_REFRESH =
 {
 	// first do own refresh, *then* call the default refresh !
-	if(self.size == '0 0 0')
+	if(pev.size == '0 0 0')
 	{
-		if(self.font_size == '0 0 0')
-			self.font_size = ITEM_TEXT_FONT_SIZE;
+		if(pev.font_size == '0 0 0')
+			pev.font_size = ITEM_TEXT_FONT_SIZE;
 
-		self.size_x = self.font_size_x * strlen(self.text);
-		self.size_y = self.font_size_y;
-	} else if(self.font_size == '0 0 0')
+		pev.size_x = pev.font_size_x * strlen(pev.text);
+		pev.size_y = pev.font_size_y;
+	} else if(pev.font_size == '0 0 0')
 	{
-			self.font_size_x = self.size_x / strlen(self.text);
-			self.font_size_y = self.size_y;
+			pev.font_size_x = pev.size_x / strlen(pev.text);
+			pev.font_size_y = pev.size_y;
 	}
 
 	def_refresh();
@@ -147,41 +147,41 @@ void(void) ITEM_TEXT_REFRESH =
 
 void(void) ITEM_TEXT_DRAW =
 {
-	if(self.text)
+	if(pev.text)
 	{
 		// align to the rect pos - (pos + size)
 		vector alignpos;
 		// now check the alignement
-		if(self.alignment & TEXT_ALIGN_CENTER)
-			alignpos_x = self.pos_x + (self.size_x - strlen(self.text) * self.font_size_x) / 2;
-		else if(self.alignment & TEXT_ALIGN_RIGHT)
-			alignpos_x = self.pos_x + self.size_x - strlen(self.text) * self.font_size_x;
+		if(pev.alignment & TEXT_ALIGN_CENTER)
+			alignpos_x = pev.pos_x + (pev.size_x - strlen(pev.text) * pev.font_size_x) / 2;
+		else if(pev.alignment & TEXT_ALIGN_RIGHT)
+			alignpos_x = pev.pos_x + pev.size_x - strlen(pev.text) * pev.font_size_x;
 		else
-			alignpos_x = self.pos_x;
-		alignpos_y = self.pos_y;
+			alignpos_x = pev.pos_x;
+		alignpos_y = pev.pos_y;
 
-		menu_drawstring(alignpos, self.text, self.font_size, self.color, self.alpha, self.drawflag);
+		menu_drawstring(alignpos, pev.text, pev.font_size, pev.color, pev.alpha, pev.drawflag);
 	}
 	ctcall_draw();
 };
 
 void(void) ITEM_TEXT =
 {
-	if(self.flag == 0)
-		self.flag = FLAG_DRAWONLY;
+	if(pev.flag == 0)
+		pev.flag = FLAG_DRAWONLY;
 
-	if(self.color == '0 0 0')
-		self.color = ITEM_TEXT_NORMAL_COLOR;
-	if(self.alpha == 0)
-		self.alpha = ITEM_TEXT_NORMAL_ALPHA;
+	if(pev.color == '0 0 0')
+		pev.color = ITEM_TEXT_NORMAL_COLOR;
+	if(pev.alpha == 0)
+		pev.alpha = ITEM_TEXT_NORMAL_ALPHA;
 
 	ITEM_TEXT_REFRESH();
-	if(self.alignment & TEXT_ALIGN_CENTERPOS)
+	if(pev.alignment & TEXT_ALIGN_CENTERPOS)
 	{
-		self.pos_x = self.pos_x - self.size_x / 2;
-	} else	if(self.alignment & TEXT_ALIGN_LEFTPOS)
+		pev.pos_x = pev.pos_x - pev.size_x / 2;
+	} else	if(pev.alignment & TEXT_ALIGN_LEFTPOS)
 	{
-		self.pos_x = self.pos_x - self.size_x;
+		pev.pos_x = pev.pos_x - pev.size_x;
 	}
 
 	item_init(
@@ -203,13 +203,13 @@ void(void) ITEM_TEXT =
 
 void(void) ITEM_RECTANGLE_DRAW =
 {
-	menu_fillarea(self.pos, self.size, self.color, self.alpha, self.drawflag);
+	menu_fillarea(pev.pos, pev.size, pev.color, pev.alpha, pev.drawflag);
 };
 
 void(void) ITEM_RECTANGLE =
 {
-	if(self.flag == 0)
-		self.flag = FLAG_DRAWONLY;
+	if(pev.flag == 0)
+		pev.flag = FLAG_DRAWONLY;
 
 	item_init(
 		defct_reinit,
@@ -230,12 +230,12 @@ void(void) ITEM_RECTANGLE =
 
 void(void) ITEM_BUTTON_DRAW =
 {
-	if(self._button_state == BUTTON_NORMAL)
-		menu_drawpic(self.pos, self.picture, self.size, self.color, self.alpha, self.drawflag);
-	else if(self._button_state == BUTTON_SELECTED)
-		menu_drawpic(self.pos, self.picture_selected, self.size, self.color_selected, self.alpha_selected, self.drawflag_selected);
+	if(pev._button_state == BUTTON_NORMAL)
+		menu_drawpic(pev.pos, pev.picture, pev.size, pev.color, pev.alpha, pev.drawflag);
+	else if(pev._button_state == BUTTON_SELECTED)
+		menu_drawpic(pev.pos, pev.picture_selected, pev.size, pev.color_selected, pev.alpha_selected, pev.drawflag_selected);
 	else
-		menu_drawpic(self.pos, self.picture_pressed, self.size, self.color_pressed, self.alpha_pressed, self.drawflag_pressed);
+		menu_drawpic(pev.pos, pev.picture_pressed, pev.size, pev.color_pressed, pev.alpha_pressed, pev.drawflag_pressed);
 
 	ctcall_draw();
 };
@@ -243,15 +243,15 @@ void(void) ITEM_BUTTON_DRAW =
 void(void) ITEM_BUTTON_REFRESH =
 {
 
-	if((self.hold_pressed + self._press_time < time && self._button_state == BUTTON_PRESSED) || (menu_selected != self && self._button_state == BUTTON_SELECTED))
+	if((pev.hold_pressed + pev._press_time < time && pev._button_state == BUTTON_PRESSED) || (menu_selected != pev && pev._button_state == BUTTON_SELECTED))
 	{
-		self._button_state = BUTTON_NORMAL;
+		pev._button_state = BUTTON_NORMAL;
 	}
-	if(menu_selected == self && self._button_state == BUTTON_NORMAL)
+	if(menu_selected == pev && pev._button_state == BUTTON_NORMAL)
 	{
-		self._button_state = BUTTON_SELECTED;
-		if(self.sound_selected)
-			snd_play(self.sound_selected);
+		pev._button_state = BUTTON_SELECTED;
+		if(pev.sound_selected)
+			snd_play(pev.sound_selected);
 	}
 	def_refresh();
 	ctcall_refresh();
@@ -264,76 +264,76 @@ void(float keynr, float ascii) ITEM_BUTTON_KEY =
 
 	if(keynr == K_ENTER || keynr == K_MOUSE1)
 	{
-		self._action();
+		pev._action();
 	} else
 		def_keyevent(keynr, ascii);
 };
 
 void(void) ITEM_BUTTON_ACTION =
 {
-	self._press_time = time;
-	self._button_state = BUTTON_PRESSED;
-	if(self.sound_pressed)
-		snd_play(self.sound_pressed);
+	pev._press_time = time;
+	pev._button_state = BUTTON_PRESSED;
+	if(pev.sound_pressed)
+		snd_play(pev.sound_pressed);
 
 	ctcall_action();
 };
 void(void) ITEM_BUTTON_REINIT =
 {
-	self._button_state = BUTTON_NORMAL;
+	pev._button_state = BUTTON_NORMAL;
 
 	ctcall_reinit();
 };
 
 void(void) ITEM_BUTTON_DESTROY =
 {
-	gfx_unloadpic(self.picture);
-	gfx_unloadpic(self.picture_selected);
-	gfx_unloadpic(self.picture_pressed);
+	gfx_unloadpic(pev.picture);
+	gfx_unloadpic(pev.picture_selected);
+	gfx_unloadpic(pev.picture_pressed);
 
 	ctcall_destroy();
 };
 
 void(void) ITEM_BUTTON =
 {
-	if(self.picture == "" || self.picture_selected == "" || self.picture_pressed == "")
+	if(pev.picture == "" || pev.picture_selected == "" || pev.picture_pressed == "")
 		// a picture has to have pictures
-		remove(self);	// no need to call terminate
+		remove(pev);	// no need to call terminate
 
 	// load the picture if it isnt loaded already
-	gfx_loadpic(self.picture, MENU_ENFORCELOADING);
-	gfx_loadpic(self.picture_selected, MENU_ENFORCELOADING);
-	gfx_loadpic(self.picture_pressed, MENU_ENFORCELOADING);
+	gfx_loadpic(pev.picture, MENU_ENFORCELOADING);
+	gfx_loadpic(pev.picture_selected, MENU_ENFORCELOADING);
+	gfx_loadpic(pev.picture_pressed, MENU_ENFORCELOADING);
 
-	if(self.sound_selected != "")
-		snd_loadsound(self.sound_selected, SOUND_ENFORCELOADING);
+	if(pev.sound_selected != "")
+		snd_loadsound(pev.sound_selected, SOUND_ENFORCELOADING);
 	else
-		self.sound_selected = SOUND_SELECT;
+		pev.sound_selected = SOUND_SELECT;
 
-	if(self.sound_pressed != "")
-		snd_loadsound(self.sound_pressed, SOUND_ENFORCELOADING);
+	if(pev.sound_pressed != "")
+		snd_loadsound(pev.sound_pressed, SOUND_ENFORCELOADING);
 	else
-		self.sound_pressed = SOUND_ACTION;
+		pev.sound_pressed = SOUND_ACTION;
 
 	// if flag wasnt set yet, then set it to FLAG_DRAWONLY
-	if(self.flag == 0)
-		self.flag = FLAG_AUTOSETCLICK;
+	if(pev.flag == 0)
+		pev.flag = FLAG_AUTOSETCLICK;
 
-	if(self.color == '0 0 0')
-		self.color = ITEM_PICTURE_NORMAL_COLOR;
-	if(self.alpha == 0)
-		self.alpha = ITEM_PICTURE_NORMAL_ALPHA;
-	if(self.color_selected == '0 0 0')
-		self.color_selected = ITEM_PICTURE_SELECTED_COLOR;
-	if(self.alpha_selected == 0)
-		self.alpha_selected = ITEM_PICTURE_SELECTED_ALPHA;
-	if(self.color_pressed == '0 0 0')
-		self.color_pressed = ITEM_PICTURE_PRESSED_COLOR;
-	if(self.alpha_pressed == 0)
-		self.alpha_pressed = ITEM_PICTURE_PRESSED_ALPHA;
+	if(pev.color == '0 0 0')
+		pev.color = ITEM_PICTURE_NORMAL_COLOR;
+	if(pev.alpha == 0)
+		pev.alpha = ITEM_PICTURE_NORMAL_ALPHA;
+	if(pev.color_selected == '0 0 0')
+		pev.color_selected = ITEM_PICTURE_SELECTED_COLOR;
+	if(pev.alpha_selected == 0)
+		pev.alpha_selected = ITEM_PICTURE_SELECTED_ALPHA;
+	if(pev.color_pressed == '0 0 0')
+		pev.color_pressed = ITEM_PICTURE_PRESSED_COLOR;
+	if(pev.alpha_pressed == 0)
+		pev.alpha_pressed = ITEM_PICTURE_PRESSED_ALPHA;
 
-	if(self.hold_pressed == 0)
-		self.hold_pressed = ITEM_BUTTON_HOLD_PRESSED;
+	if(pev.hold_pressed == 0)
+		pev.hold_pressed = ITEM_BUTTON_HOLD_PRESSED;
 
 	item_init(
 		ITEM_BUTTON_REINIT,
@@ -355,28 +355,28 @@ void(void) ITEM_BUTTON =
 void(void) ITEM_TEXTBUTTON_REFRESH =
 {
 	// first do own refresh, *then* call the default refresh !
-	if(self.size == '0 0 0')
+	if(pev.size == '0 0 0')
 	{
-		if(self.font_size == '0 0 0')
-			self.font_size = ITEM_TEXT_FONT_SIZE;
+		if(pev.font_size == '0 0 0')
+			pev.font_size = ITEM_TEXT_FONT_SIZE;
 
-		self.size_x = self.font_size_x * strlen(self.text);
-		self.size_y = self.font_size_y;
-	} else if(self.font_size == '0 0 0')
+		pev.size_x = pev.font_size_x * strlen(pev.text);
+		pev.size_y = pev.font_size_y;
+	} else if(pev.font_size == '0 0 0')
 	{
-			self.font_size_x = self.size_x / strlen(self.text);
-			self.font_size_y = self.size_y;
+			pev.font_size_x = pev.size_x / strlen(pev.text);
+			pev.font_size_y = pev.size_y;
 	}
 
-	if((self.hold_pressed + self._press_time < time && self._button_state == BUTTON_PRESSED) || (menu_selected != self && self._button_state == BUTTON_SELECTED))
+	if((pev.hold_pressed + pev._press_time < time && pev._button_state == BUTTON_PRESSED) || (menu_selected != pev && pev._button_state == BUTTON_SELECTED))
 	{
-		self._button_state = BUTTON_NORMAL;
+		pev._button_state = BUTTON_NORMAL;
 	}
-	if(menu_selected == self && self._button_state == BUTTON_NORMAL)
+	if(menu_selected == pev && pev._button_state == BUTTON_NORMAL)
 	{
-		self._button_state = BUTTON_SELECTED;
-		if(self.sound_selected)
-			snd_play(self.sound_selected);
+		pev._button_state = BUTTON_SELECTED;
+		if(pev.sound_selected)
+			snd_play(pev.sound_selected);
 	}
 
 	def_refresh();
@@ -385,99 +385,99 @@ void(void) ITEM_TEXTBUTTON_REFRESH =
 
 void(void) ITEM_TEXTBUTTON_DRAW =
 {
-	if(self.text == "")
+	if(pev.text == "")
 		return;
 
 	// align to the rect pos - (pos + size)
 	vector alignpos;
 	// now check the alignement
-	if(self.alignment & TEXT_ALIGN_CENTER)
-		alignpos_x = self.pos_x + (self.size_x - strlen(self.text) * self.font_size_x) / 2;
-	else if(self.alignment & TEXT_ALIGN_RIGHT)
-		alignpos_x = self.pos_x + self.size_x - strlen(self.text) * self.font_size_x;
+	if(pev.alignment & TEXT_ALIGN_CENTER)
+		alignpos_x = pev.pos_x + (pev.size_x - strlen(pev.text) * pev.font_size_x) / 2;
+	else if(pev.alignment & TEXT_ALIGN_RIGHT)
+		alignpos_x = pev.pos_x + pev.size_x - strlen(pev.text) * pev.font_size_x;
 	else
-		alignpos_x = self.pos_x;
-		alignpos_y = self.pos_y;
+		alignpos_x = pev.pos_x;
+		alignpos_y = pev.pos_y;
 
-	if(self.style == TEXTBUTTON_STYLE_OUTLINE && self._button_state != BUTTON_NORMAL)
+	if(pev.style == TEXTBUTTON_STYLE_OUTLINE && pev._button_state != BUTTON_NORMAL)
 	{
 		vector p,s;
 		// left
-		p_x = self.pos_x;
-		p_y = self.pos_y;
+		p_x = pev.pos_x;
+		p_y = pev.pos_y;
 		s_x = TEXTBUTTON_OUTLINE_WIDTH;
-		s_y = self.size_y;
-		if(self._button_state == BUTTON_PRESSED)
+		s_y = pev.size_y;
+		if(pev._button_state == BUTTON_PRESSED)
 		{
-			menu_fillarea(p, s, self.color_pressed, self.alpha_pressed, self.drawflag_pressed);
+			menu_fillarea(p, s, pev.color_pressed, pev.alpha_pressed, pev.drawflag_pressed);
 		}
-		else if(self._button_state == BUTTON_SELECTED)
+		else if(pev._button_state == BUTTON_SELECTED)
 		{
-			menu_fillarea(p, s, self.color_selected, self.alpha_selected, self.drawflag_selected);
+			menu_fillarea(p, s, pev.color_selected, pev.alpha_selected, pev.drawflag_selected);
 		}
 		// right
-		p_x = self.pos_x + self.size_x - TEXTBUTTON_OUTLINE_WIDTH;
-		p_y = self.pos_y;
+		p_x = pev.pos_x + pev.size_x - TEXTBUTTON_OUTLINE_WIDTH;
+		p_y = pev.pos_y;
 		s_x = TEXTBUTTON_OUTLINE_WIDTH;
-		s_y = self.size_y;
-		if(self._button_state == BUTTON_PRESSED)
+		s_y = pev.size_y;
+		if(pev._button_state == BUTTON_PRESSED)
 		{
-			menu_fillarea(p, s, self.color_pressed, self.alpha_pressed, self.drawflag_pressed);
+			menu_fillarea(p, s, pev.color_pressed, pev.alpha_pressed, pev.drawflag_pressed);
 		}
-		else if(self._button_state == BUTTON_SELECTED)
+		else if(pev._button_state == BUTTON_SELECTED)
 		{
-			menu_fillarea(p, s, self.color_selected, self.alpha_selected, self.drawflag_selected);
+			menu_fillarea(p, s, pev.color_selected, pev.alpha_selected, pev.drawflag_selected);
 		}
 		// top
-		p_x = self.pos_x;
-		p_y = self.pos_y;
+		p_x = pev.pos_x;
+		p_y = pev.pos_y;
 		s_y = TEXTBUTTON_OUTLINE_WIDTH;
-		s_x = self.size_x;
-		if(self._button_state == BUTTON_PRESSED)
+		s_x = pev.size_x;
+		if(pev._button_state == BUTTON_PRESSED)
 		{
-			menu_fillarea(p, s, self.color_pressed, self.alpha_pressed, self.drawflag_pressed);
+			menu_fillarea(p, s, pev.color_pressed, pev.alpha_pressed, pev.drawflag_pressed);
 		}
-		else if(self._button_state == BUTTON_SELECTED)
+		else if(pev._button_state == BUTTON_SELECTED)
 		{
-			menu_fillarea(p, s, self.color_selected, self.alpha_selected, self.drawflag_selected);
+			menu_fillarea(p, s, pev.color_selected, pev.alpha_selected, pev.drawflag_selected);
 		}
 		// bottom
-		p_x = self.pos_x;
-		p_y = self.pos_y + self.size_y - TEXTBUTTON_OUTLINE_WIDTH;
+		p_x = pev.pos_x;
+		p_y = pev.pos_y + pev.size_y - TEXTBUTTON_OUTLINE_WIDTH;
 		s_y = TEXTBUTTON_OUTLINE_WIDTH;
-		s_x = self.size_x;
-		if(self._button_state == BUTTON_PRESSED)
+		s_x = pev.size_x;
+		if(pev._button_state == BUTTON_PRESSED)
 		{
-			menu_fillarea(p, s, self.color_pressed, self.alpha_pressed, self.drawflag_pressed);
+			menu_fillarea(p, s, pev.color_pressed, pev.alpha_pressed, pev.drawflag_pressed);
 		}
-		else if(self._button_state == BUTTON_SELECTED)
+		else if(pev._button_state == BUTTON_SELECTED)
 		{
-			menu_fillarea(p, s, self.color_selected, self.alpha_selected, self.drawflag_selected);
+			menu_fillarea(p, s, pev.color_selected, pev.alpha_selected, pev.drawflag_selected);
 		}
-	} else	if(self.style == TEXTBUTTON_STYLE_BOX)
+	} else	if(pev.style == TEXTBUTTON_STYLE_BOX)
 	{
-		if(self._button_state == BUTTON_PRESSED)
+		if(pev._button_state == BUTTON_PRESSED)
 		{
-			menu_fillarea(alignpos, self.size, self.color_pressed, self.alpha_pressed, self.drawflag_pressed);
+			menu_fillarea(alignpos, pev.size, pev.color_pressed, pev.alpha_pressed, pev.drawflag_pressed);
 		}
-		else if(self._button_state == BUTTON_SELECTED)
+		else if(pev._button_state == BUTTON_SELECTED)
 		{
-			menu_fillarea(alignpos, self.size, self.color_selected, self.alpha_selected, self.drawflag_selected);
+			menu_fillarea(alignpos, pev.size, pev.color_selected, pev.alpha_selected, pev.drawflag_selected);
 		}
 	}
 
-	if(self._button_state == BUTTON_NORMAL || self.style == TEXTBUTTON_STYLE_BOX || self.style == TEXTBUTTON_STYLE_OUTLINE)
-		menu_drawstring(alignpos, self.text, self.font_size, self.color, self.alpha, self.drawflag);
+	if(pev._button_state == BUTTON_NORMAL || pev.style == TEXTBUTTON_STYLE_BOX || pev.style == TEXTBUTTON_STYLE_OUTLINE)
+		menu_drawstring(alignpos, pev.text, pev.font_size, pev.color, pev.alpha, pev.drawflag);
 
-	if(self.style == TEXTBUTTON_STYLE_TEXT)
+	if(pev.style == TEXTBUTTON_STYLE_TEXT)
 	{
-		if(self._button_state == BUTTON_PRESSED)
+		if(pev._button_state == BUTTON_PRESSED)
 		{
-			menu_drawstring(alignpos, self.text, self.font_size, self.color_pressed, self.alpha_pressed, self.drawflag_pressed);
+			menu_drawstring(alignpos, pev.text, pev.font_size, pev.color_pressed, pev.alpha_pressed, pev.drawflag_pressed);
 		}
-		else if(self._button_state == BUTTON_SELECTED)
+		else if(pev._button_state == BUTTON_SELECTED)
 		{
-			menu_drawstring(alignpos, self.text, self.font_size, self.color_selected, self.alpha_selected, self.drawflag_selected);
+			menu_drawstring(alignpos, pev.text, pev.font_size, pev.color_selected, pev.alpha_selected, pev.drawflag_selected);
 		}
 	}
 
@@ -486,10 +486,10 @@ void(void) ITEM_TEXTBUTTON_DRAW =
 
 void(void) ITEM_TEXTBUTTON_ACTION =
 {
-	self._press_time = time;
-	self._button_state = BUTTON_PRESSED;
-	if(self.sound_pressed)
-		snd_play(self.sound_pressed);
+	pev._press_time = time;
+	pev._button_state = BUTTON_PRESSED;
+	if(pev.sound_pressed)
+		snd_play(pev.sound_pressed);
 
 	ctcall_action();
 };
@@ -501,56 +501,56 @@ void(float keynr, float ascii) ITEM_TEXTBUTTON_KEY =
 
 	if(keynr == K_ENTER || keynr == K_MOUSE1)
 	{
-		self._action();
+		pev._action();
 	} else
 		def_keyevent(keynr, ascii);
 };
 
 void(void) ITEM_TEXTBUTTON_REINIT =
 {
-	self._button_state = BUTTON_NORMAL;
+	pev._button_state = BUTTON_NORMAL;
 
 	ctcall_reinit();
 };
 
 void(void) ITEM_TEXTBUTTON =
 {
-	if(self.flag == 0)
-		self.flag = FLAG_AUTOSETCLICK;
+	if(pev.flag == 0)
+		pev.flag = FLAG_AUTOSETCLICK;
 
-	if(self.color == '0 0 0')
-		self.color = ITEM_TEXT_NORMAL_COLOR;
-	if(self.alpha == 0)
-		self.alpha = ITEM_TEXT_NORMAL_ALPHA;
-	if(self.color_selected == '0 0 0')
-		self.color_selected = ITEM_TEXT_SELECTED_COLOR;
-	if(self.alpha_selected == 0)
-		self.alpha_selected = ITEM_TEXT_SELECTED_ALPHA;
-	if(self.color_pressed == '0 0 0')
-		self.color_pressed = ITEM_TEXT_PRESSED_COLOR;
-	if(self.alpha_pressed == 0)
-		self.alpha_pressed = ITEM_TEXT_PRESSED_ALPHA;
+	if(pev.color == '0 0 0')
+		pev.color = ITEM_TEXT_NORMAL_COLOR;
+	if(pev.alpha == 0)
+		pev.alpha = ITEM_TEXT_NORMAL_ALPHA;
+	if(pev.color_selected == '0 0 0')
+		pev.color_selected = ITEM_TEXT_SELECTED_COLOR;
+	if(pev.alpha_selected == 0)
+		pev.alpha_selected = ITEM_TEXT_SELECTED_ALPHA;
+	if(pev.color_pressed == '0 0 0')
+		pev.color_pressed = ITEM_TEXT_PRESSED_COLOR;
+	if(pev.alpha_pressed == 0)
+		pev.alpha_pressed = ITEM_TEXT_PRESSED_ALPHA;
 
-	if(self.hold_pressed == 0)
-		self.hold_pressed = ITEM_BUTTON_HOLD_PRESSED;
+	if(pev.hold_pressed == 0)
+		pev.hold_pressed = ITEM_BUTTON_HOLD_PRESSED;
 
-	if(self.sound_selected != "")
-		snd_loadsound(self.sound_selected, SOUND_ENFORCELOADING);
+	if(pev.sound_selected != "")
+		snd_loadsound(pev.sound_selected, SOUND_ENFORCELOADING);
 	else
-		self.sound_selected = SOUND_SELECT;
+		pev.sound_selected = SOUND_SELECT;
 
-	if(self.sound_pressed != "")
-		snd_loadsound(self.sound_pressed, SOUND_ENFORCELOADING);
+	if(pev.sound_pressed != "")
+		snd_loadsound(pev.sound_pressed, SOUND_ENFORCELOADING);
 	else
-		self.sound_pressed = SOUND_ACTION;
+		pev.sound_pressed = SOUND_ACTION;
 
 	ITEM_TEXTBUTTON_REFRESH();
-	if(self.alignment & TEXT_ALIGN_CENTERPOS)
+	if(pev.alignment & TEXT_ALIGN_CENTERPOS)
 	{
-		self.pos_x = self.pos_x - self.size_x / 2;
-	} else	if(self.alignment & TEXT_ALIGN_LEFTPOS)
+		pev.pos_x = pev.pos_x - pev.size_x / 2;
+	} else	if(pev.alignment & TEXT_ALIGN_LEFTPOS)
 	{
-		self.pos_x = self.pos_x - self.size_x;
+		pev.pos_x = pev.pos_x - pev.size_x;
 	}
 
 	item_init(
@@ -573,33 +573,33 @@ void(void) ITEM_SLIDER_DRAW =
 	vector slider_pos;
 
 	// draw the bar
-	if(self.picture_bar != "")
+	if(pev.picture_bar != "")
 	{
-		menu_drawpic(self.pos, self.picture_bar, self.size, self.color, self.alpha, self.drawflag);
+		menu_drawpic(pev.pos, pev.picture_bar, pev.size, pev.color, pev.alpha, pev.drawflag);
 	}
 	else
 	{
-		menu_fillarea(self.pos, self.size, self.color, self.alpha, self.drawflag);
+		menu_fillarea(pev.pos, pev.size, pev.color, pev.alpha, pev.drawflag);
 	}
 
 	// draw the slider
-	slider_pos = self.pos;
-	slider_pos_x = slider_pos_x + ((self.size_x - self.slider_size_x) / (self.max_value - self.min_value)) * (self.value - self.min_value);
-	if(self.picture != "")
+	slider_pos = pev.pos;
+	slider_pos_x = slider_pos_x + ((pev.size_x - pev.slider_size_x) / (pev.max_value - pev.min_value)) * (pev.value - pev.min_value);
+	if(pev.picture != "")
 	{
-		menu_drawpic(slider_pos, self.picture, self.slider_size, self.color, self.alpha, self.drawflag);
+		menu_drawpic(slider_pos, pev.picture, pev.slider_size, pev.color, pev.alpha, pev.drawflag);
 	}
 	else
 	{
-		menu_fillarea(slider_pos, self.slider_size, self.color + ITEM_SLIDER_BAR_COLOR_DELTA, self.alpha, self.drawflag);
+		menu_fillarea(slider_pos, pev.slider_size, pev.color + ITEM_SLIDER_BAR_COLOR_DELTA, pev.alpha, pev.drawflag);
 	}
 };
 
 void(void) ITEM_SLIDER_UPDATESLIDER =
 {
-	self.value = bound(self.min_value, self.value, self.max_value);
-	if(self.slidermove)
-		self.slidermove();
+	pev.value = bound(pev.min_value, pev.value, pev.max_value);
+	if(pev.slidermove)
+		pev.slidermove();
 };
 
 void(float keynr, float ascii) ITEM_SLIDER_KEY =
@@ -609,19 +609,19 @@ void(float keynr, float ascii) ITEM_SLIDER_KEY =
 
 	if(keynr == K_LEFTARROW)
 	{
-		self.value = (rint(self.value / self.step) - 1) * self.step;
+		pev.value = (rint(pev.value / pev.step) - 1) * pev.step;
 		ITEM_SLIDER_UPDATESLIDER();
 	}
 	else if(keynr == K_RIGHTARROW)
 	{
-		self.value = (rint(self.value / self.step) + 1)* self.step;
+		pev.value = (rint(pev.value / pev.step) + 1)* pev.step;
 		ITEM_SLIDER_UPDATESLIDER();
 	}
 	else if(keynr == K_MOUSE1)
 	{
-		if(inrect(menu_cursor, self.pos, self.size))
+		if(inrect(menu_cursor, pev.pos, pev.size))
 		{
-			self.value = self.min_value + ((menu_cursor_x - self.slider_size_x / 2) - self.pos_x) * ((self.max_value - self.min_value) / (self.size_x - self.slider_size_x));
+			pev.value = pev.min_value + ((menu_cursor_x - pev.slider_size_x / 2) - pev.pos_x) * ((pev.max_value - pev.min_value) / (pev.size_x - pev.slider_size_x));
 		}
 	}
 	else
@@ -630,41 +630,41 @@ void(float keynr, float ascii) ITEM_SLIDER_KEY =
 		return;
 	}
 	// play sound
-	snd_play(self.sound_changed);
+	snd_play(pev.sound_changed);
 	ITEM_SLIDER_UPDATESLIDER();
 };
 
 void(void) ITEM_SLIDER_DESTROY =
 {
-	if(self.picture != "")
-		gfx_unloadpic(self.picture);
-	if(self.picture_bar != "")
-		gfx_unloadpic(self.picture);
+	if(pev.picture != "")
+		gfx_unloadpic(pev.picture);
+	if(pev.picture_bar != "")
+		gfx_unloadpic(pev.picture);
 
 	ctcall_destroy();
 };
 
 void(void) ITEM_SLIDER =
 {
-	if(self.picture != "")
-		self.picture = gfx_loadpic(self.picture, MENU_ENFORCELOADING);
-	if(self.picture_bar != "")
-		self.picture_bar = gfx_loadpic(self.picture_bar, MENU_ENFORCELOADING);
-	if(self.sound_changed == "")
-		self.sound_changed = SOUND_CHANGE;
+	if(pev.picture != "")
+		pev.picture = gfx_loadpic(pev.picture, MENU_ENFORCELOADING);
+	if(pev.picture_bar != "")
+		pev.picture_bar = gfx_loadpic(pev.picture_bar, MENU_ENFORCELOADING);
+	if(pev.sound_changed == "")
+		pev.sound_changed = SOUND_CHANGE;
 
-	if(self.color == '0 0 0')
-		self.color = ITEM_SLIDER_COLOR;
-	if(self.alpha == 0)
-		self.alpha = ITEM_SLIDER_ALPHA;
-	if(self.step == 0)
-		self.step = ITEM_SLIDER_STEP;
-	if(self.slider_size == '0 0 0')
+	if(pev.color == '0 0 0')
+		pev.color = ITEM_SLIDER_COLOR;
+	if(pev.alpha == 0)
+		pev.alpha = ITEM_SLIDER_ALPHA;
+	if(pev.step == 0)
+		pev.step = ITEM_SLIDER_STEP;
+	if(pev.slider_size == '0 0 0')
 	{
-		if(self.picture != "")
-			self.slider_size = gfx_getimagesize(self.picture);
+		if(pev.picture != "")
+			pev.slider_size = gfx_getimagesize(pev.picture);
 		else
-			self.slider_size = ITEM_SLIDER_SIZE;
+			pev.slider_size = ITEM_SLIDER_SIZE;
 	}
 
 	item_init(
@@ -687,23 +687,23 @@ void(void) ITEM_TEXTSWITCH_DRAW =
 	string temp;
 
 	// get the current text
-	temp = self.text;
-	self.text = getaltstring(self.value, self.text);
+	temp = pev.text;
+	pev.text = getaltstring(pev.value, pev.text);
 	// call ITEM_TEXT
 	ITEM_TEXT_DRAW();
-	self.text = temp;
+	pev.text = temp;
 };
 
 void(void) ITEM_TEXTSWITCH_REFRESH =
 {
 	string temp;
 
-	temp = self.text;
-	self.text = getaltstring(self.value, self.text);
+	temp = pev.text;
+	pev.text = getaltstring(pev.value, pev.text);
 
 	ITEM_TEXT_REFRESH();
 
-	self.text = temp;
+	pev.text = temp;
 };
 
 void(float keynr, float ascii)	ITEM_TEXTSWITCH_KEY =
@@ -713,38 +713,38 @@ void(float keynr, float ascii)	ITEM_TEXTSWITCH_KEY =
 
 	if(keynr == K_LEFTARROW || keynr == K_MOUSE2)
 	{
-		self.value = self.value - 1;
-		if(self.value < 0)
-			self.value = getaltstringcount(self.text) - 1;
+		pev.value = pev.value - 1;
+		if(pev.value < 0)
+			pev.value = getaltstringcount(pev.text) - 1;
 	}
 	else if(keynr == K_RIGHTARROW || keynr == K_MOUSE1 || keynr == K_ENTER)
 	{
-		self.value = self.value + 1;
-		if(self.value > getaltstringcount(self.text) - 1)
-			self.value = 0;
+		pev.value = pev.value + 1;
+		if(pev.value > getaltstringcount(pev.text) - 1)
+			pev.value = 0;
 	} else
 	{
 		def_keyevent(keynr, ascii);
 		return;
 	}
-	snd_play(self.sound_changed);
-	if(self.switchchange)
-		self.switchchange();
+	snd_play(pev.sound_changed);
+	if(pev.switchchange)
+		pev.switchchange();
 };
 
 void(void) ITEM_TEXTSWITCH =
 {
 	string temp;
 
-	if(self.sound_changed != "")
-		snd_loadsound(self.sound_changed, SOUND_ENFORCELOADING);
+	if(pev.sound_changed != "")
+		snd_loadsound(pev.sound_changed, SOUND_ENFORCELOADING);
 	else
-		self.sound_changed = SOUND_CHANGE;
+		pev.sound_changed = SOUND_CHANGE;
 
-	temp = self.text;
-	self.text = getaltstring(self.value, self.text);
+	temp = pev.text;
+	pev.text = getaltstring(pev.value, pev.text);
 	ITEM_TEXT();
-	self.text = temp;
+	pev.text = temp;
 
 	item_init(
 		defct_reinit,
@@ -778,9 +778,9 @@ void(string text, vector pos, vector size, float alignment, float style, float s
 
 	// now check the alignement
 	if(alignment & TEXT_ALIGN_CENTER)
-		alignpos_x = pos_x + (size_x - strlen(text) * self.font_size_x) / 2;
+		alignpos_x = pos_x + (size_x - strlen(text) * pev.font_size_x) / 2;
 	else if(alignment & TEXT_ALIGN_RIGHT)
-		alignpos_x = pos_x + size_x - strlen(text) * self.font_size_x;
+		alignpos_x = pos_x + size_x - strlen(text) * pev.font_size_x;
 	else
 		alignpos_x = pos_x;
 		alignpos_y = pos_y;
@@ -795,11 +795,11 @@ void(string text, vector pos, vector size, float alignment, float style, float s
 		s_y = size_y;
 		if(state == BUTTON_PRESSED)
 		{
-			menu_fillarea(p, s, self.color_pressed, self.alpha_pressed, self.drawflag_pressed);
+			menu_fillarea(p, s, pev.color_pressed, pev.alpha_pressed, pev.drawflag_pressed);
 		}
 		else if(state == BUTTON_SELECTED)
 		{
-			menu_fillarea(p, s, self.color_selected, self.alpha_selected, self.drawflag_selected);
+			menu_fillarea(p, s, pev.color_selected, pev.alpha_selected, pev.drawflag_selected);
 		}
 		// right
 		p_x = pos_x + size_x - TEXTBUTTON_OUTLINE_WIDTH;
@@ -808,11 +808,11 @@ void(string text, vector pos, vector size, float alignment, float style, float s
 		s_y = size_y;
 		if(state == BUTTON_PRESSED)
 		{
-			menu_fillarea(p, s, self.color_pressed, self.alpha_pressed, self.drawflag_pressed);
+			menu_fillarea(p, s, pev.color_pressed, pev.alpha_pressed, pev.drawflag_pressed);
 		}
 		else if(state == BUTTON_SELECTED)
 		{
-			menu_fillarea(p, s, self.color_selected, self.alpha_selected, self.drawflag_selected);
+			menu_fillarea(p, s, pev.color_selected, pev.alpha_selected, pev.drawflag_selected);
 		}
 		// top
 		p_x = pos_x;
@@ -821,11 +821,11 @@ void(string text, vector pos, vector size, float alignment, float style, float s
 		s_x = size_x;
 		if(state == BUTTON_PRESSED)
 		{
-			menu_fillarea(p, s, self.color_pressed, self.alpha_pressed, self.drawflag_pressed);
+			menu_fillarea(p, s, pev.color_pressed, pev.alpha_pressed, pev.drawflag_pressed);
 		}
-		else if(self._button_state == BUTTON_SELECTED)
+		else if(pev._button_state == BUTTON_SELECTED)
 		{
-			menu_fillarea(p, s, self.color_selected, self.alpha_selected, self.drawflag_selected);
+			menu_fillarea(p, s, pev.color_selected, pev.alpha_selected, pev.drawflag_selected);
 		}
 		// bottom
 		p_x = pos_x;
@@ -834,36 +834,36 @@ void(string text, vector pos, vector size, float alignment, float style, float s
 		s_x = size_x;
 		if(state == BUTTON_PRESSED)
 		{
-			menu_fillarea(p, s, self.color_pressed, self.alpha_pressed, self.drawflag_pressed);
+			menu_fillarea(p, s, pev.color_pressed, pev.alpha_pressed, pev.drawflag_pressed);
 		}
 		else if(state == BUTTON_SELECTED)
 		{
-			menu_fillarea(p, s, self.color_selected, self.alpha_selected, self.drawflag_selected);
+			menu_fillarea(p, s, pev.color_selected, pev.alpha_selected, pev.drawflag_selected);
 		}
 	} else	if(style == TEXTBUTTON_STYLE_BOX)
 	{
 		if(state == BUTTON_PRESSED)
 		{
-			menu_fillarea(alignpos, size, self.color_pressed, self.alpha_pressed, self.drawflag_pressed);
+			menu_fillarea(alignpos, size, pev.color_pressed, pev.alpha_pressed, pev.drawflag_pressed);
 		}
-		else if(self._button_state == BUTTON_SELECTED)
+		else if(pev._button_state == BUTTON_SELECTED)
 		{
-			menu_fillarea(alignpos, size, self.color_selected, self.alpha_selected, self.drawflag_selected);
+			menu_fillarea(alignpos, size, pev.color_selected, pev.alpha_selected, pev.drawflag_selected);
 		}
 	}
 
 	if(state == BUTTON_NORMAL || style == TEXTBUTTON_STYLE_BOX || style == TEXTBUTTON_STYLE_OUTLINE)
-		menu_drawstring(alignpos, text, self.font_size, self.color, self.alpha, self.drawflag);
+		menu_drawstring(alignpos, text, pev.font_size, pev.color, pev.alpha, pev.drawflag);
 
 	if(style == TEXTBUTTON_STYLE_TEXT)
 	{
 		if(state == BUTTON_PRESSED)
 		{
-			menu_drawstring(alignpos, text, self.font_size, self.color_pressed, self.alpha_pressed, self.drawflag_pressed);
+			menu_drawstring(alignpos, text, pev.font_size, pev.color_pressed, pev.alpha_pressed, pev.drawflag_pressed);
 		}
 		else if(state == BUTTON_SELECTED)
 		{
-			menu_drawstring(alignpos, text, self.font_size, self.color_selected, self.alpha_selected, self.drawflag_selected);
+			menu_drawstring(alignpos, text, pev.font_size, pev.color_selected, pev.alpha_selected, pev.drawflag_selected);
 		}
 	}
 };*/

@@ -1889,7 +1889,6 @@ vector	getmousepos()
 */
 void VM_getmousepos(void)
 {
-
 	VM_SAFEPARMCOUNT(0, VM_getmousepos);
 
 	PRVM_G_VECTOR(OFS_RETURN)[0] = mouse_x;
@@ -2315,12 +2314,10 @@ float	drawpic(vector position, string pic, vector size, vector rgb, float alpha,
 */
 void VM_drawpic(void)
 {
-	const char *picname;
-	float *size, *pos, *rgb;
-	int flag;
+	const char	*picname;
+	float		*size, *pos, *rgb, alpha;
 
-	VM_SAFEPARMCOUNT(6,VM_drawpic);
-
+	VM_SAFEPARMCOUNT(5, VM_drawpic);
 	picname = PRVM_G_STRING(OFS_PARM1);
 
 	if(!picname)
@@ -2335,9 +2332,11 @@ void VM_drawpic(void)
 	pos = PRVM_G_VECTOR(OFS_PARM0);
 	size = PRVM_G_VECTOR(OFS_PARM2);
 	rgb = PRVM_G_VECTOR(OFS_PARM3);
-	flag = (int) PRVM_G_FLOAT(OFS_PARM5);
+	alpha = PRVM_G_FLOAT(OFS_PARM4);
 
+	re->SetColor( GetRGBA(rgb[0], rgb[1], rgb[2], alpha ));
 	SCR_DrawPic( pos[0], pos[1], size[0], size[1], (char *)picname );
+	re->SetColor( NULL );
 	PRVM_G_FLOAT(OFS_RETURN) = 1;
 }
 
