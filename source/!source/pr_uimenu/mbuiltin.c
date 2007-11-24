@@ -110,7 +110,7 @@ void	localsound(string sample)  = #65;
 vector	getmousepos(void)  	= #66;
 float	gettime(void)		= #67;
 void 	loadfromdata(string data) = #68;
-void	loadfromfile(string file) = #69;
+float	loadfromfile(string file) = #69;
 
 float	mod(float val, float m) = #70;
 
@@ -141,7 +141,7 @@ float	iscachedpic(string name)	= #451;
 string	precache_pic(string name)	= #452;
 void	freepic(string name)		= #453;
 
-float	drawcharacter(vector position, float character, vector scale, vector rgb, float alpha, float flag) = #454;
+float	drawcharacter(vector position, float character, vector scale, vector rgb, float scale ) = #454;
 
 float	drawstring(vector position, string text, vector scale, vector rgb, float alpha, float flag) = #455;
 

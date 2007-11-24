@@ -21,7 +21,7 @@ void(void) gfx_toggle =
 {
 };
 
-void(float keynr, float ascii) gfx_keydown =
+void(float keynr, string ascii) gfx_keydown =
 {
 };
 
@@ -63,7 +63,7 @@ gfx_drawchar =
 	if(scale == '0 0 0')
 		return;
 
-	ret = drawcharacter(position, character, scale, rgb, alpha, flag);
+	ret = drawcharacter(position, character, scale, rgb, alpha );
 
 	if(ret == 1)
 		return;
@@ -121,25 +121,19 @@ gfx_drawpic =
 	error("Unknown error code !\n");
 };
 
-void(vector position, vector size, vector rgb, float alpha, float flag)
-gfx_fillarea =
+void gfx_fillarea (vector position, vector size, vector rgb, float alpha, float flag)
 {
 	float ret;
 
-	position = gfx_converttocon(position);
-	size = gfx_converttocon(size);
-
-	if(size == '0 0 0')
-		return;
+	if(size == '0 0 0') return;
 
 	ret = drawfill(position, size, rgb, alpha, flag);
 
-	if(ret == 1)
-		return;
+	if(ret == 1) return;
 	if(ret == ERR_BADDRAWFLAG)
 		error("Bad draw flag !\n");
 	error("Unknown error code !\n");
-};
+}
 
 void(vector position, vector size) gfx_setcliparea =
 {
@@ -149,12 +143,11 @@ void(void) gfx_resetcliparea =
 {
 };
 
-void(vector position, float character, vector scale, vector rgb, float alpha, float flag)
-menu_drawchar =
+void menu_drawchar (vector position, float character, vector scale, vector rgb, float alpha, float flag)
 {
 	position = gfx_conmentogfx(position);
 	gfx_drawchar(position, character, scale, rgb, alpha, flag);
-};
+}
 
 void(vector position, string str, vector scale, vector rgb, float alpha, float flag)
 menu_drawstring =
@@ -197,19 +190,13 @@ vector(string pic_name) gfx_getimagesize =
 
 vector(vector vec) gfx_converttogfx =
 {
-	vector v;
-	v_x = vec_x * (vid_conwidth / SCR_WIDTH );
-	v_y = vec_y * (vid_conheight / SCR_HEIGHT);
-	return v;
+	return vec;
 };
 
-vector(vector vec) gfx_converttocon =
+vector gfx_converttocon (vector vec)
 {
-	vector v;
-	v_x = vec_x * (vid_conwidth / SCR_WIDTH);
-	v_y = vec_y * (vid_conheight / SCR_HEIGHT);
-	return v;
-};
+	return vec;
+}
 
 vector(vector vec) gfx_conmentogfx =
 {

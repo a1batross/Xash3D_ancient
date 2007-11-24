@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /Ob0 /I "./" /I "prvm" /I "common" /I "server" /I "client" /I "../public" /I "../platform/formats" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /Ob0 /I "./" /I "uimenu" /I "server" /I "client" /I "../public" /I "../platform/formats" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -80,7 +80,7 @@ SOURCE="$(InputPath)"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /c
-# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "prvm" /I "common" /I "server" /I "client" /I "../public" /I "../platform/formats" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /c
+# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "uimenu" /I "server" /I "client" /I "../public" /I "../platform/formats" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -114,7 +114,7 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;hpj;bat;for;f90"
 # Begin Source File
 
-SOURCE=.\client\cg_user.c
+SOURCE=.\cg_user.c
 # End Source File
 # Begin Source File
 
@@ -174,11 +174,11 @@ SOURCE=.\client\cl_view.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\cmd.c
+SOURCE=.\cmd.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\cmodel.c
+SOURCE=.\cmodel.c
 # End Source File
 # Begin Source File
 
@@ -186,7 +186,7 @@ SOURCE=.\common.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\cvar.c
+SOURCE=.\cvar.c
 # End Source File
 # Begin Source File
 
@@ -194,31 +194,31 @@ SOURCE=.\host.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\md4.c
+SOURCE=.\md4.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\menu.c
+SOURCE=.\uimenu\menu.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\net_chan.c
+SOURCE=.\net_chan.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\net_msg.c
+SOURCE=.\net_msg.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\net_wins.c
+SOURCE=.\net_wins.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\pmove.c
+SOURCE=.\pmove.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\qmenu.c
+SOURCE=.\uimenu\qmenu.c
 # End Source File
 # Begin Source File
 
@@ -298,23 +298,23 @@ SOURCE=.\system.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\ui_cmds.c
+SOURCE=.\uimenu\ui_cmds.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\ui_main.c
+SOURCE=.\uimenu\ui_main.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\vm_cmds.c
+SOURCE=.\vm_cmds.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\vm_edict.c
+SOURCE=.\vm_edict.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\vm_exec.c
+SOURCE=.\vm_exec.c
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -330,10 +330,6 @@ SOURCE=.\client\client.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\public\common.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\common\const.h
 # End Source File
 # Begin Source File
@@ -342,7 +338,7 @@ SOURCE=.\engine.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\net_msg.h
+SOURCE=.\net_msg.h
 # End Source File
 # Begin Source File
 
@@ -350,11 +346,11 @@ SOURCE=.\progdefs.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\progsvm.h
+SOURCE=.\progsvm.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\qmenu.h
+SOURCE=.\uimenu\qmenu.h
 # End Source File
 # Begin Source File
 
@@ -374,7 +370,11 @@ SOURCE=.\sound.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\vm_cmds.h
+SOURCE=.\uimenu\uimenu.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\vm_cmds.h
 # End Source File
 # End Group
 # End Target

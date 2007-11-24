@@ -66,8 +66,6 @@ setmousetarget(float target)
 void VM_M_setmousetarget(void)
 {
 	VM_SAFEPARMCOUNT(1, VM_M_setmousetarget);
-
-	Msg("VM_M_setmousetarget: called\n" );
 }
 
 /*
@@ -102,12 +100,10 @@ void VM_M_setkeydest(void)
 	case key_game:
 		// key_game
 		cls.key_dest = key_game;
-		Msg("Set key_dest = key_game\n");
 		break;
 	case key_menu:
 		// key_menu
 		cls.key_dest = key_menu;
-		Msg("Set key_dest = key_menu\n");
 		break;
 	case key_message:
 		// key_message
@@ -155,37 +151,32 @@ VM_M_callfunction
 Extension: pass
 =========
 */
-mfunction_t *PRVM_ED_FindFunction (const char *name);
-void VM_M_callfunction(void)
+void VM_M_callfunction( void )
 {
 	mfunction_t *func;
 	const char *s;
 
-	if(prog->argc == 0)
-		PRVM_ERROR("VM_M_callfunction: 1 parameter is required !");
-
+	if(prog->argc == 0) PRVM_ERROR("VM_M_callfunction: 1 parameter is required !");
 	s = PRVM_G_STRING(OFS_PARM0 + (prog->argc - 1));
-
-	if(!s)
-		PRVM_ERROR("VM_M_callfunction: null string !");
+	if(!s) PRVM_ERROR("VM_M_callfunction: null string !");
 
 	VM_CheckEmptyString(s);
-
 	func = PRVM_ED_FindFunction(s);
 
-	if(!func)
+	if(!func) 
+	{
 		PRVM_ERROR("VM_M_callfunciton: function %s not found !", s);
-	else if (func->first_statement < 0)
+	}
+	else if(func->first_statement < 0)
 	{
 		// negative statements are built in functions
 		int builtinnumber = -func->first_statement;
 		prog->xfunction->builtinsprofile++;
 		if (builtinnumber < prog->numbuiltins && prog->builtins[builtinnumber])
 			prog->builtins[builtinnumber]();
-		else
-			PRVM_ERROR("No such builtin #%i in %s", builtinnumber, PRVM_NAME);
+		else PRVM_ERROR("No such builtin #%i in %s", builtinnumber, PRVM_NAME);
 	}
-	else if(func > 0)
+	else if(func - prog->functions > 0)
 	{
 		prog->argc--;
 		PRVM_ExecuteProgram(func - prog->functions,"");
@@ -200,7 +191,6 @@ VM_M_isfunction
 float	isfunction(string function_name)
 =========
 */
-mfunction_t *PRVM_ED_FindFunction (const char *name);
 void VM_M_isfunction(void)
 {
 	mfunction_t *func;
@@ -210,17 +200,13 @@ void VM_M_isfunction(void)
 
 	s = PRVM_G_STRING(OFS_PARM0);
 
-	if(!s)
-		PRVM_ERROR("VM_M_isfunction: null string !");
-
+	if(!s) PRVM_ERROR("VM_M_isfunction: null string !");
 	VM_CheckEmptyString(s);
 
 	func = PRVM_ED_FindFunction(s);
 
-	if(!func)
-		PRVM_G_FLOAT(OFS_RETURN) = false;
-	else
-		PRVM_G_FLOAT(OFS_RETURN) = true;
+	if(!func) PRVM_G_FLOAT(OFS_RETURN) = false;
+	else PRVM_G_FLOAT(OFS_RETURN) = true;
 }
 
 /*
@@ -282,7 +268,7 @@ void VM_M_findkeysforcommand(void)
 	PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString(ret);
 }
 
-prvm_builtin_t vm_m_builtins[] = 
+prvm_builtin_t vm_ui_builtins[] = 
 {
 	0, // to be consistent with the old vm
 	// common builtings (mostly)
@@ -427,4 +413,4 @@ prvm_builtin_t vm_m_builtins[] =
 	VM_stringtokeynum,		// 614
 };
 
-const int vm_m_numbuiltins = sizeof(vm_m_builtins) / sizeof(prvm_builtin_t);
+const int vm_ui_numbuiltins = sizeof(vm_ui_builtins) / sizeof(prvm_builtin_t);

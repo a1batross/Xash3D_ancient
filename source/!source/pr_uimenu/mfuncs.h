@@ -30,7 +30,7 @@ void(void) 	defct_refresh;
 // use this to raise an event from another item or function
 void(entity ent)  raise_reinit;
 void(entity ent)  raise_destroy;
-void(entity ent, float keynr, float ascii)  raise_key;
+void(entity ent, float keynr, string ascii)  raise_key;
 void(entity ent)  raise_draw;
 void(entity ent)  raise_mouse_enter;
 void(entity ent)  raise_mouse_leave;

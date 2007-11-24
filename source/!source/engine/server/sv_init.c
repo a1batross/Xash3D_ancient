@@ -443,9 +443,7 @@ void SV_VM_Setup( void )
 	prog->init_cmd = VM_Cmd_Init;
 	prog->reset_cmd = VM_Cmd_Reset;
 	prog->error_cmd = VM_Error;
-
-	// TODO: add a requiredfuncs list (ask LH if this is necessary at all)
-	PRVM_LoadProgs( "server.dat", 0, NULL, REQFIELDS, reqfields );
+	PRVM_LoadProgs( "server.dat", 0, NULL, SV_NUM_REQFIELDS, sv_reqfields );
 	PRVM_End;
 }
 

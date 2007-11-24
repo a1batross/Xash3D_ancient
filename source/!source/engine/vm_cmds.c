@@ -779,8 +779,7 @@ void VM_find (void)
 		if (ed->priv.ed->free)
 			continue;
 		t = PRVM_E_STRING(ed,f);
-		if (!t)
-			t = "";
+		if (!t) t = "";
 		if (!strcmp(t,s))
 		{
 			VM_RETURN_EDICT(ed);
@@ -1157,7 +1156,7 @@ VM_nextent
 entity	nextent(entity)
 =============
 */
-void VM_nextent (void)
+void VM_nextent( void )
 {
 	int		i;
 	edict_t	*ent;
@@ -1981,7 +1980,7 @@ void VM_loadfromfile(void)
 	// not conform with VM_fopen
 	data = (char *)FS_LoadFile(filename, NULL);
 	if (data == NULL) PRVM_G_FLOAT(OFS_RETURN) = -1;
-	PRVM_ED_LoadFromFile(data);
+	PRVM_ED_LoadFromFile( data );
 }
 
 
@@ -2225,10 +2224,10 @@ float	drawcharacter(vector position, float character, vector scale, vector rgb, 
 */
 void VM_drawcharacter(void)
 {
-	float		*pos, *rgb;
 	char		character;
-	VM_SAFEPARMCOUNT(3, VM_drawcharacter);
+	float		*pos, *rgb, *scale, alpha;
 
+	VM_SAFEPARMCOUNT(5, VM_drawcharacter);
 	character = (char)PRVM_G_FLOAT(OFS_PARM1);
 	if(character == 0)
 	{
@@ -2238,12 +2237,15 @@ void VM_drawcharacter(void)
 	}
 
 	pos = PRVM_G_VECTOR(OFS_PARM0);
+	scale = PRVM_G_VECTOR(OFS_PARM2);
 	rgb = PRVM_G_VECTOR(OFS_PARM3);
+	alpha = PRVM_G_FLOAT(OFS_PARM4);
 
 	if(pos[2]) Msg("VM_drawcharacter: z value from \"pos\" discarded\n" );
+	if(scale[2]) Msg("VM_drawcharacter: z value from \"scale\" discarded\n" );
 
-	re->SetColor( GetRGBA(rgb[0], rgb[1], rgb[2], 1.0f));
-	SCR_DrawSmallChar( pos[0], pos[1], character );
+	re->SetColor( GetRGBA(rgb[0], rgb[1], rgb[2], alpha ));
+	SCR_DrawChar( pos[0], pos[1], scale[0], scale[1], character );
 	re->SetColor( NULL );
 	PRVM_G_FLOAT(OFS_RETURN) = 1;
 }
@@ -2276,7 +2278,7 @@ void VM_drawstring(void)
 	alpha = PRVM_G_FLOAT(OFS_PARM4);
 	flag = (int)PRVM_G_FLOAT(OFS_PARM5);
 
-	SCR_DrawBigString( pos[0], pos[1], string, alpha ); 
+	SCR_DrawStringExt( pos[0], pos[1], scale[0], scale[1], string, GetRGBA(rgb[0], rgb[1], rgb[2], alpha ), true ); 
 	PRVM_G_FLOAT(OFS_RETURN) = 1;
 }
 
@@ -2349,20 +2351,18 @@ float drawfill(vector position, vector size, vector rgb, float alpha, float flag
 */
 void VM_drawfill(void)
 {
-	float *size, *pos, *rgb;
+	float	*size, *pos, *rgb, alpha;
 	int	flag;
-	vec4_t	color;
 
 	VM_SAFEPARMCOUNT(5, VM_drawfill);
 
 	pos = PRVM_G_VECTOR(OFS_PARM0);
 	size = PRVM_G_VECTOR(OFS_PARM1);
 	rgb = PRVM_G_VECTOR(OFS_PARM2);
+	alpha = PRVM_G_FLOAT(OFS_PARM3);
 	flag = (int)PRVM_G_FLOAT(OFS_PARM4);
 
-	Vector4Set( color, rgb[0], rgb[1], rgb[2], 1.0f );
-
-	SCR_FillRect( pos[0], pos[1], size[0], size[1], color ); 
+	SCR_FillRect( pos[0], pos[1], size[0], size[1], GetRGBA( rgb[0], rgb[1], rgb[2], alpha )); 
 	PRVM_G_FLOAT(OFS_RETURN) = 1;
 }
 

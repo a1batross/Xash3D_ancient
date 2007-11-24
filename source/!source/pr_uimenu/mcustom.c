@@ -43,9 +43,9 @@ void(void) _dpmod_slidertext_refresh =
 	pev.size = '0 0 0';
 };
 
-float(float keynr, float ascii) dpmod_redirect_key =
+float(float keynr, string ascii) dpmod_redirect_key =
 {
-	if(keynr == K_ENTER || keynr == K_LEFTARROW || keynr == K_RIGHTARROW || (keynr >= K_MOUSE1 && keynr <= K_MOUSE10))
+	if(keynr == K_ENTER || keynr == K_LEFTARROW || keynr == K_RIGHTARROW || (keynr >= K_MOUSE1 && keynr <= K_MOUSE3))
 	{
 		raise_key(pev._child, keynr, ascii);
 		return true;
@@ -98,59 +98,42 @@ void(void) dpmod_display_options =
 	menu_jumptowindow(ent, true);
 };
 
-// quit menu
+// display the options menu
 
+void(void) dpmod_display_video =
+{
+	entity ent;
+	ent = menu_getitem("video");
+	menu_jumptowindow(ent, true);
+};
+
+void vid_apply_changes( void )
+{
+	cmd( "vid_restart\n" );
+	menu_selectup();
+}
+
+void vid_cancel_changes( void )
+{
+	menu_selectup();
+}
+
+// quit menu
 void(void) dpmod_quit_choose =
 {
 	entity e;
 	// because of the missing support for real array, we have to do it the stupid way
 	// (we also have to use strzone for the text, cause it the temporary strings wont work
 	// for it)
-	if(dpmod_quitrequest == 0)
-	{
-		e = menu_getitem("quit_msg_0");
-		e.text = getaltstring(0, dpmod_quitmsg[0]);
-	}
-	if(dpmod_quitrequest == 1)
-	{
-		e = menu_getitem("quit_msg_0");
-		e.text = getaltstring(0, dpmod_quitmsg[1]);
-	}
-	if(dpmod_quitrequest == 2)
-	{
-		e = menu_getitem("quit_msg_0");
-		e.text = getaltstring(0, dpmod_quitmsg[2]);
-	}
-	if(dpmod_quitrequest == 3)
-	{
-		e = menu_getitem("quit_msg_0");
-		e.text = getaltstring(0, dpmod_quitmsg[3]);
-	}
+	e = menu_getitem("quit_msg_0");
+	e.text = getaltstring(0, dpmod_quitmsg[dpmod_quitrequest]);
 	e.text = strzone(e.text);
 
-	if(dpmod_quitrequest == 0)
-	{
-		e = menu_getitem("quit_msg_1");
-		e.text = getaltstring(1, dpmod_quitmsg[0]);
-	}
-	if(dpmod_quitrequest == 1)
-	{
-		e = menu_getitem("quit_msg_1");
-		e.text = getaltstring(1, dpmod_quitmsg[1]);
-	}
-	if(dpmod_quitrequest == 2)
-	{
-		e = menu_getitem("quit_msg_1");
-		e.text = getaltstring(1, dpmod_quitmsg[2]);
-	}
-	if(dpmod_quitrequest == 3)
-	{
-		e = menu_getitem("quit_msg_1");
-		e.text = getaltstring(1, dpmod_quitmsg[3]);
-	}
+	e = menu_getitem("quit_msg_1");
+	e.text = getaltstring(1, dpmod_quitmsg[dpmod_quitrequest]);
 	e.text = strzone(e.text);
 
-	dpmod_quitrequest = dpmod_quitrequest + 1;
+	dpmod_quitrequest++;
 	if(dpmod_quitrequest == DPMOD_QUIT_MSG_COUNT)
 		dpmod_quitrequest = 0;
 };
@@ -191,7 +174,7 @@ void(void) dpmod_quit_no =
 	menu_selectup();
 };
 
-float(float keynr, float ascii) dpmod_quit_key =
+float(float keynr, string ascii) dpmod_quit_key =
 {
 	if(keynr == K_LEFTARROW)
 		return false;
@@ -201,9 +184,9 @@ float(float keynr, float ascii) dpmod_quit_key =
 		return false;
 	if(keynr == K_MOUSE1)
 		return false;
-	if(ascii == 'Y' || ascii == 'y')
+	if(ascii == "Y" || ascii == "y")
 		dpmod_quit_yes();
-	if(ascii == 'N' || ascii == 'n' || keynr == K_ESCAPE)
+	if(ascii == "N" || ascii == "n" || keynr == K_ESCAPE)
 		dpmod_quit_no();
 	return true;
 };
@@ -287,7 +270,7 @@ void(void) dpmod_main_exit_yes =
 	cmd("quit\n");
 };
 
-float(float keynr, float ascii) dpmod_main_exit_key =
+float(float keynr, string ascii) dpmod_main_exit_key =
 {
 	if(keynr == K_ESCAPE)
 	{

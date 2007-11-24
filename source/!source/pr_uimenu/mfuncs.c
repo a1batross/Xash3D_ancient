@@ -45,7 +45,7 @@ void(entity ent)	raise_destroy =
 	pev = old;
 };
 
-void(entity ent, float keynr, float ascii)	raise_key =
+void(entity ent, float keynr, string ascii)	raise_key =
 {
 	entity old;
 	if(!ent._key)

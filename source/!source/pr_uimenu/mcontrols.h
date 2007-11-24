@@ -37,7 +37,7 @@ ITEM_TEXTSWITCH
 const vector ITEM_TEXT_NORMAL_COLOR 	= '1 1 1';
 const float	 ITEM_TEXT_NORMAL_ALPHA		= 1;
 
-const vector ITEM_TEXT_SELECTED_COLOR	= '0.5 0 0';
+const vector ITEM_TEXT_SELECTED_COLOR	= '1 0.6 0';
 const float	 ITEM_TEXT_SELECTED_ALPHA	= 1;
 
 const vector ITEM_TEXT_PRESSED_COLOR	= '1 0 0';
@@ -77,7 +77,7 @@ const float		TEXTBUTTON_STYLE_TEXT		= 0;
 const float		TEXTBUTTON_OUTLINE_WIDTH	= 1.0;
 
 //ITEM_TEXT
-const vector	ITEM_TEXT_FONT_SIZE = '8 8 0';
+const vector	ITEM_TEXT_FONT_SIZE = '10 10 0';
 
 const float 	TEXT_ALIGN_LEFT		= 0;
 const float		TEXT_ALIGN_CENTER	= 1;

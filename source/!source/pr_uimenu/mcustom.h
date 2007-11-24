@@ -119,7 +119,7 @@ void(void) dpmod_cvar_slider; // set reinit to this
 void(void) _dpmod_cvar_slider_refresh;
 void(void) _dpmod_cvar_slider;
 
-float(float keynr, float ascii) dpmod_redirect_key;
+float(float keynr, string ascii) dpmod_redirect_key;
 
 void(void) dpmod_slidertext;
 void(void) _dpmod_slidertext_refresh;
@@ -148,4 +148,4 @@ void(void) dpmod_quit_choose;
 void(void) dpmod_quit;
 void(void) dpmod_quit_yes;
 void(void) dpmod_quit_no;
-float(float keynr, float ascii) dpmod_quit_key;
+float(float keynr, string ascii) dpmod_quit_key;

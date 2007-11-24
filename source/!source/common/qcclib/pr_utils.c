@@ -464,10 +464,9 @@ word PR_WriteProgdefs (char *filename)
 	}
 	ADD1("} entvars_t;\n\n");
 
-	// prvm_fieldvars_t struct
-	ADD2("\ntypedef struct prvm_fieldvars_s\n{\n\tint\t\tofs;\n\tint\t\ttype;\n\tconst char\t*name;\n} prvm_fieldvars_t;\n");
-	ADD2("\n#define REQFIELDS (sizeof(reqfields) / sizeof(prvm_fieldvars_t))\n");
-	ADD2("\nstatic prvm_fieldvars_t reqfields[] = \n{\n");
+	// begin custom fields
+	ADD2("\n#define REQFIELDS (sizeof(reqfields) / sizeof(fields_t))\n");
+	ADD2("\nstatic fields_t reqfields[] = \n{\n");
 	
 	// write fields
 	for (d = pr.def_head.next; d; d = d->next)

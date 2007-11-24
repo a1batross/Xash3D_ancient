@@ -5,26 +5,7 @@
 
 #include "uimenu.h"
 
-#define M_F_INIT		"m_init"
-#define M_F_KEYDOWN		"m_keydown"
-#define M_F_KEYUP		"m_keyup"
-#define M_F_DRAW		"m_draw"
-#define M_F_TOGGLE		"m_toggle"
-#define M_F_SHUTDOWN	"m_shutdown"
-
-static char *m_required_func[] =
-{
-M_F_INIT,
-M_F_KEYDOWN,
-M_F_DRAW,
-M_F_TOGGLE,
-M_F_SHUTDOWN,
-};
-
-static int m_numrequiredfunc = sizeof(m_required_func) / sizeof(char*);
-
-static func_t m_draw, m_keydown;
-static mfunction_t *m_keyup;
+bool ui_active = false;
 
 void UI_Error(const char *format, ...)
 {
@@ -53,20 +34,28 @@ void UI_Error(const char *format, ...)
 	Host_AbortCurrentFrame();
 }
 
-void UI_KeyEvent(menuframework_s *m, int key)
+void UI_KeyEvent( int key )
 {
+	const char *ascii = Key_KeynumToString(key);
 	PRVM_Begin;
 	PRVM_SetProg( PRVM_MENUPROG );
 
 	// set time
 	*prog->time = cls.realtime;
 
-	// pass key
-	prog->globals.gp[OFS_PARM0] = (float)key;
-	prog->globals.gp[OFS_PARM1] = (string_t)PRVM_SetEngineString(Key_KeynumToString(key));
-	PRVM_ExecuteProgram(m_keydown, M_F_KEYDOWN"(menuframework_s *m, int key) required\n");
+	// setup args
+	PRVM_G_FLOAT(OFS_PARM0) = key;
+	PRVM_G_INT(OFS_PARM1) = PRVM_SetEngineString(ascii);
+	PRVM_ExecuteProgram (prog->globals.ui->m_keydown, "QC function m_keydown is missing");
 
 	PRVM_End;
+
+	switch (key)
+	{
+	case K_ESCAPE:
+		UI_ToggleMenu_f();
+		break;
+	}
 }
 
 void UI_Draw( void )
@@ -77,7 +66,7 @@ void UI_Draw( void )
 	// set time
 	*prog->time = cls.realtime;
 
-	PRVM_ExecuteProgram( m_draw, "" );
+	PRVM_ExecuteProgram (prog->globals.ui->m_draw, "QC function m_draw is missing");
 	PRVM_End;
 }
 
@@ -88,8 +77,9 @@ void UI_ToggleMenu_f( void )
 
 	// set time
 	*prog->time = cls.realtime;
+	ui_active = !ui_active;
 
-	PRVM_ExecuteProgram((func_t)(PRVM_ED_FindFunction(M_F_TOGGLE) - prog->functions), "" );
+	PRVM_ExecuteProgram (prog->globals.ui->m_toggle, "QC function m_toggle is missing");
 	PRVM_End;
 }
 
@@ -101,7 +91,7 @@ void UI_Shutdown( void )
 	// set time
 	//*prog->time = cls.realtime;
 
-	PRVM_ExecuteProgram((func_t) (PRVM_ED_FindFunction(M_F_SHUTDOWN) - prog->functions),"");
+	PRVM_ExecuteProgram (prog->globals.ui->m_shutdown, "QC function m_shutdown is missing");
 
 	// reset key_dest
 	cls.key_dest = key_game;
@@ -117,30 +107,22 @@ void UI_Init( void )
 	PRVM_Begin;
 	PRVM_InitProg( PRVM_MENUPROG );
 
-	prog->edictprivate_size = 0; // no private struct used
-	prog->name = M_NAME;
+	prog->progs_mempool = Mem_AllocPool( "Uimenu Progs" );
+	prog->builtins = vm_ui_builtins;
+	prog->numbuiltins = vm_ui_numbuiltins;
+	prog->edictprivate_size = sizeof(ui_edict_t);
+	prog->limit_edicts = UI_MAX_EDICTS;
+	prog->name = "uimenu";
 	prog->num_edicts = 1;
-	prog->limit_edicts = M_MAX_EDICTS;
 	prog->extensionstring = "";
-	prog->builtins = vm_m_builtins;
-	prog->numbuiltins = vm_m_numbuiltins;
+	prog->loadintoworld = false;
 	prog->init_cmd = VM_Cmd_Init;
 	prog->reset_cmd = VM_Cmd_Reset;
 	prog->error_cmd = UI_Error;
 
-	// allocate the mempools
-	prog->progs_mempool = Mem_AllocPool( M_PROG_FILENAME );
-	PRVM_LoadProgs( M_PROG_FILENAME, m_numrequiredfunc, m_required_func, 0, NULL);
-
-	// set m_draw and m_keydown
-	m_draw = (func_t)(PRVM_ED_FindFunction(M_F_DRAW) - prog->functions);
-	m_keydown = (func_t)(PRVM_ED_FindFunction(M_F_KEYDOWN) - prog->functions);
-	m_keyup = PRVM_ED_FindFunction(M_F_KEYUP);
-
-	// set time
+	PRVM_LoadProgs( "uimenu.dat", 0, NULL, UI_NUM_REQFIELDS, ui_reqfields );
 	*prog->time = cls.realtime;
 
-	// call the prog init
-	PRVM_ExecuteProgram((func_t)(PRVM_ED_FindFunction(M_F_INIT) - prog->functions),"");
+	PRVM_ExecuteProgram (prog->globals.ui->m_init, "QC function m_init is missing");
 	PRVM_End;
 }

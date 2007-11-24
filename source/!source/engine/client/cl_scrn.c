@@ -88,29 +88,25 @@ SCR_DrawChar
 chars are drawn at 640*480 virtual screen size
 ================
 */
-static void SCR_DrawChar( int x, int y, float size, int ch )
+void SCR_DrawChar( int x, int y, float w, float h, int ch )
 {
-	int row, col;
-	float frow, fcol;
+	float	size, frow, fcol;
 	float	ax, ay, aw, ah;
 
 	ch &= 255;
 
 	if( ch == ' ' )return;
-	if(y < -size) return;
+	if(y < -h) return;
 
 	ax = x;
 	ay = y;
-	aw = size;
-	ah = size;
+	aw = w;
+	ah = h;
 	SCR_AdjustSize( &ax, &ay, &aw, &ah );
-
-	row = ch>>4;
-	col = ch&15;
-
-	frow = row*0.0625;
-	fcol = col*0.0625;
-	size = 0.0625;
+	
+	frow = (ch >> 4)*0.0625f + (0.5f / 256.0f);
+	fcol = (ch & 15)*0.0625f + (0.5f / 256.0f);
+	size = 0.0625f - (1.0f / 256.0f);
 
 	re->DrawStretchPic( ax, ay, aw, ah, fcol, frow, fcol + size, frow + size, "fonts/conchars" );
 }
@@ -124,22 +120,17 @@ small chars are drawn at native screen resolution
 */
 void SCR_DrawSmallChar( int x, int y, int ch )
 {
-	int	row, col;
 	float	frow, fcol;
 	float	size;
-
 
 	ch &= 255;
 
 	if( ch == ' ' )return;
 	if(y < -SMALLCHAR_HEIGHT) return;
 
-	row = ch>>4;
-	col = ch&15;
-
-	frow = row*0.0625;
-	fcol = col*0.0625;
-	size = 0.0625;
+	frow = (ch >> 4)*0.0625f + (0.5f / 256.0f);
+	fcol = (ch & 15)*0.0625f + (0.5f / 256.0f);
+	size = 0.0625f - (1.0f / 256.0f);
 
 	re->DrawStretchPic( x, y, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, fcol, frow, fcol + size, frow + size, "fonts/conchars" );
 }
@@ -154,7 +145,7 @@ to a fixed color.
 Coordinates are at 640 by 480 virtual resolution
 ==================
 */
-void SCR_DrawStringExt( int x, int y, float size, const char *string, float *setColor, bool forceColor )
+void SCR_DrawStringExt( int x, int y, float w, float h, const char *string, float *setColor, bool forceColor )
 {
 	vec4_t		color;
 	const char	*s;
@@ -173,8 +164,8 @@ void SCR_DrawStringExt( int x, int y, float size, const char *string, float *set
 			s += 2;
 			continue;
 		}
-		SCR_DrawChar( xx + 2, y + 2, size, *s );
-		xx += size;
+		SCR_DrawChar( xx + 2, y + 2, w, h, *s );
+		xx += w;
 		s++;
 	}
 
@@ -195,8 +186,8 @@ void SCR_DrawStringExt( int x, int y, float size, const char *string, float *set
 			s += 2;
 			continue;
 		}
-		SCR_DrawChar( xx, y, size, *s );
-		xx += size;
+		SCR_DrawChar( xx, y, w, h, *s );
+		xx += w;
 		s++;
 	}
 	re->SetColor( NULL );
@@ -207,12 +198,12 @@ void SCR_DrawBigString( int x, int y, const char *s, float alpha )
 	float	color[4];
 
 	Vector4Set( color, 1.0f, 1.0f, 1.0f, alpha );
-	SCR_DrawStringExt( x, y, BIGCHAR_WIDTH, s, color, false );
+	SCR_DrawStringExt( x, y, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, s, color, false );
 }
 
 void SCR_DrawBigStringColor( int x, int y, const char *s, vec4_t color )
 {
-	SCR_DrawStringExt( x, y, BIGCHAR_WIDTH, s, color, true );
+	SCR_DrawStringExt( x, y, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, s, color, true );
 }
 
 /*

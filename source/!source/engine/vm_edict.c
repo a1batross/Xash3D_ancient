@@ -1211,7 +1211,7 @@ void PRVM_ED_LoadFromFile (const char *data)
 		spawned++;
 		if (ent->priv.ed->free) died++;
 	}
-	MsgDev(D_INFO, "%s: %i new entities parsed, %i new inhibited, %i (%i new) spawned (whereas %i removed self, %i stayed)\n", PRVM_NAME, parsed, inhibited, prog->num_edicts, spawned, died, spawned - died);
+	MsgDev(D_NOTE, "%s: %i new entities parsed, %i new inhibited, %i (%i new) spawned (whereas %i removed self, %i stayed)\n", PRVM_NAME, parsed, inhibited, prog->num_edicts, spawned, died, spawned - died);
 }
 
 /*
@@ -1280,7 +1280,7 @@ void PRVM_LoadLNO( const char *progname )
 PRVM_LoadProgs
 ===============
 */
-void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int numedfields, prvm_fieldvars_t *ed_field)
+void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int numedfields, fields_t *ed_field)
 {
 	dstatement_t	*st;
 	ddef_t		*infielddefs;
@@ -1326,8 +1326,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 	switch(prog->progs->crc)
 	{
 	case PROG_CRC_SERVER:
-		break;
-	case 35063:
+	case PROG_CRC_UIMENU:
 		break;
 	default:
 		PRVM_ERROR("%s: %s system vars have been modified, progdefs.h is out of date", PRVM_NAME, filename);	

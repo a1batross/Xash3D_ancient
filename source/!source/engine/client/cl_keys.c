@@ -1112,14 +1112,14 @@ void Key_Event(int key, bool down, uint time)
 		switch (cls.key_dest)
 		{
 		case key_message:
-			Key_Message(key);
+			Key_Message( key );
 			break;
 		case key_game:
 		case key_console:
 			M_Menu_Main_f();
 			break;
 		case key_menu:
-			M_Keydown(key);
+			M_Keydown( key );
 			break;
 		default:
 			MsgWarn("Key_Event: bad cls.key_dest\n");

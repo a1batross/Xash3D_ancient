@@ -78,8 +78,18 @@ void(void) ITEM_CUSTOM =
 // ITEM_PICTURE has a special draw function
 void(void) ITEM_PICTURE_DRAW =
 {
-	menu_drawpic(pev.pos, pev.picture, pev.size, pev.color, pev.alpha, pev.drawflag);
+	// align to the rect pos - (pos + size)
+	vector alignpos;
 
+	// now check the alignement
+	if(pev.alignment & TEXT_ALIGN_CENTER)
+	{
+		alignpos_x = pev.pos_x + (pev.pos_x - pev.size_x) / 2;
+		alignpos_y = pev.pos_y + (pev.pos_y - pev.size_y) / 2;
+	}
+	else alignpos = pev.pos;
+
+	menu_drawpic(alignpos, pev.picture, pev.size, pev.color, pev.alpha, pev.drawflag);
 	ctcall_draw();
 };
 
@@ -100,13 +110,10 @@ void(void) ITEM_PICTURE =
 	gfx_loadpic(pev.picture, MENU_ENFORCELOADING);
 
 	// if flag wasnt set yet, then set it to FLAG_DRAWONLY
-	if(pev.flag == 0)
-		pev.flag = FLAG_DRAWONLY;
+	if(pev.flag == 0) pev.flag = FLAG_DRAWONLY;
 
-	if(pev.color == '0 0 0')
-		pev.color = ITEM_PICTURE_NORMAL_COLOR;
-	if(pev.alpha == 0)
-		pev.alpha = ITEM_PICTURE_NORMAL_ALPHA;
+	if(pev.color == '0 0 0') pev.color = ITEM_PICTURE_NORMAL_COLOR;
+	if(pev.alpha == 0) pev.alpha = ITEM_PICTURE_NORMAL_ALPHA;
 
 	item_init(
 		defct_reinit,
@@ -265,8 +272,8 @@ void(float keynr, float ascii) ITEM_BUTTON_KEY =
 	if(keynr == K_ENTER || keynr == K_MOUSE1)
 	{
 		pev._action();
-	} else
-		def_keyevent(keynr, ascii);
+	} 
+	else def_keyevent(keynr, ascii);
 };
 
 void(void) ITEM_BUTTON_ACTION =
@@ -362,10 +369,11 @@ void(void) ITEM_TEXTBUTTON_REFRESH =
 
 		pev.size_x = pev.font_size_x * strlen(pev.text);
 		pev.size_y = pev.font_size_y;
-	} else if(pev.font_size == '0 0 0')
+	}
+	else if(pev.font_size == '0 0 0')
 	{
-			pev.font_size_x = pev.size_x / strlen(pev.text);
-			pev.font_size_y = pev.size_y;
+		pev.font_size_x = pev.size_x / strlen(pev.text);
+		pev.font_size_y = pev.size_y;
 	}
 
 	if((pev.hold_pressed + pev._press_time < time && pev._button_state == BUTTON_PRESSED) || (menu_selected != pev && pev._button_state == BUTTON_SELECTED))
@@ -395,9 +403,9 @@ void(void) ITEM_TEXTBUTTON_DRAW =
 		alignpos_x = pev.pos_x + (pev.size_x - strlen(pev.text) * pev.font_size_x) / 2;
 	else if(pev.alignment & TEXT_ALIGN_RIGHT)
 		alignpos_x = pev.pos_x + pev.size_x - strlen(pev.text) * pev.font_size_x;
-	else
-		alignpos_x = pev.pos_x;
-		alignpos_y = pev.pos_y;
+	else alignpos_x = pev.pos_x;
+
+	alignpos_y = pev.pos_y;
 
 	if(pev.style == TEXTBUTTON_STYLE_OUTLINE && pev._button_state != BUTTON_NORMAL)
 	{
@@ -454,7 +462,8 @@ void(void) ITEM_TEXTBUTTON_DRAW =
 		{
 			menu_fillarea(p, s, pev.color_selected, pev.alpha_selected, pev.drawflag_selected);
 		}
-	} else	if(pev.style == TEXTBUTTON_STYLE_BOX)
+	} 
+	else if(pev.style == TEXTBUTTON_STYLE_BOX)
 	{
 		if(pev._button_state == BUTTON_PRESSED)
 		{
@@ -570,7 +579,8 @@ void(void) ITEM_TEXTBUTTON =
 
 void(void) ITEM_SLIDER_DRAW =
 {
-	vector slider_pos;
+	vector	slider_pos, temp;
+	float	i, slider_range;
 
 	// draw the bar
 	if(pev.picture_bar != "")
@@ -579,20 +589,26 @@ void(void) ITEM_SLIDER_DRAW =
 	}
 	else
 	{
-		menu_fillarea(pev.pos, pev.size, pev.color, pev.alpha, pev.drawflag);
+		// Quake-Style slider
+		menu_drawchar( pev.pos, 128, pev.slider_size, pev.color, pev.alpha, pev.drawflag );
+		for ( i = 1; i < 10; i++ )
+		{
+			temp = pev.pos;
+			temp_x = pev.pos_x + (i * pev.slider_size_x);
+			temp_y = pev.pos_y;
+			menu_drawchar( temp, 129, pev.slider_size, pev.color, pev.alpha, pev.drawflag );
+		}
+		menu_drawchar( temp, 130, pev.slider_size, pev.color, pev.alpha, pev.drawflag );
 	}
 
+	slider_range = (pev.value - pev.min_value) / (pev.max_value - pev.min_value);
+	slider_range = bound( 0, slider_range, 1 ); // bound range
+
 	// draw the slider
-	slider_pos = pev.pos;
-	slider_pos_x = slider_pos_x + ((pev.size_x - pev.slider_size_x) / (pev.max_value - pev.min_value)) * (pev.value - pev.min_value);
-	if(pev.picture != "")
-	{
-		menu_drawpic(slider_pos, pev.picture, pev.slider_size, pev.color, pev.alpha, pev.drawflag);
-	}
-	else
-	{
-		menu_fillarea(slider_pos, pev.slider_size, pev.color + ITEM_SLIDER_BAR_COLOR_DELTA, pev.alpha, pev.drawflag);
-	}
+	slider_pos = pev.pos;          
+          slider_pos_x = pev.pos_x + pev.slider_size_x + pev.slider_size_x * (slider_range * 7);//FIXME
+	if(pev.picture != "") menu_drawpic(slider_pos, pev.picture, pev.slider_size, pev.color, pev.alpha, pev.drawflag);
+	else menu_drawchar( slider_pos, 131, pev.slider_size, pev.color, pev.alpha, pev.drawflag );
 };
 
 void(void) ITEM_SLIDER_UPDATESLIDER =
@@ -840,7 +856,8 @@ void(string text, vector pos, vector size, float alignment, float style, float s
 		{
 			menu_fillarea(p, s, pev.color_selected, pev.alpha_selected, pev.drawflag_selected);
 		}
-	} else	if(style == TEXTBUTTON_STYLE_BOX)
+	} 
+	else if(style == TEXTBUTTON_STYLE_BOX)
 	{
 		if(state == BUTTON_PRESSED)
 		{

@@ -18,7 +18,7 @@ float vid_conheight;
 void(void) gfx_init;
 void(void) gfx_frame;
 void(void) gfx_toggle;
-void(float keynr, float ascii) gfx_keydown;// perhaps we want to do some special fx for specail keys
+void(float keynr, string ascii) gfx_keydown;// perhaps we want to do some special fx for specail keys
 void(void) gfx_draw;
 void(void) gfx_shutdown;
 

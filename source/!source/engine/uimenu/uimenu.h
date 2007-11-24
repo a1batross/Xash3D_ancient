@@ -27,39 +27,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "progsvm.h"
 #include "vm_cmds.h"
 
-#define M_PROG_FILENAME	"uimenu.dat"
-#define M_NAME		"menu"
-#define M_MAX_EDICTS	(1 << 12) // should be enough for a menu
+#define UI_MAX_EDICTS	(1 << 12) // should be enough for a menu
 
-enum m_state_e {
-	m_none,
-	m_main,
-	m_demo,
-	m_singleplayer,
-	m_transfusion_episode,
-	m_transfusion_skill,
-	m_load,
-	m_save,
-	m_multiplayer,
-	m_setup,
-	m_options,
-	m_video,
-	m_keys,
-	m_help,
-	m_credits,
-	m_quit,
-	m_lanconfig,
-	m_gameoptions,
-	m_slist,
-	m_options_effects,
-	m_options_graphics,
-	m_options_colorcontrol,
-	m_reset
-};
-extern enum m_state_e m_state;
+extern bool ui_active;
+extern const int vm_ui_numbuiltins;
+extern prvm_builtin_t vm_ui_builtins[];
 
 void UI_Init( void );
-void UI_KeyEvent(menuframework_s *m, int key);
+void UI_KeyEvent( int key );
 void UI_ToggleMenu_f( void );
 void UI_Shutdown( void );
 void UI_Draw( void );

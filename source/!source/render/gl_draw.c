@@ -142,7 +142,6 @@ void Draw_StretchPic (float x, float y, float w, float h, float s1, float t1, fl
 
 	GL_EnableBlend();
 	GL_TexEnv( GL_MODULATE );
-
 	if(gl_state.draw_color[3] != 1.0f )
 	{
 		GL_DisableAlphaTest();
@@ -150,21 +149,23 @@ void Draw_StretchPic (float x, float y, float w, float h, float s1, float t1, fl
 	}
 	else 
 	{
+		GL_EnableAlphaTest();
 		qglBlendFunc(GL_ONE, GL_ZERO);
-	
 	}
 
 	qglColor4fv( gl_state.draw_color );
-	qglBegin (GL_QUADS);
-		qglTexCoord2f (s1, t1);
-		qglVertex2f (x, y);
-		qglTexCoord2f (s2, t1);
-		qglVertex2f (x+w, y);
-		qglTexCoord2f (s2, t2);
-		qglVertex2f (x+w, y+h);
-		qglTexCoord2f (s1, t2);
-		qglVertex2f (x, y+h);
-	qglEnd ();
+	VA_SetElem2(tex_array[0], s1, t1);
+	VA_SetElem2(vert_array[0], x, y);
+	VA_SetElem2(tex_array[1], s2, t1);
+	VA_SetElem2(vert_array[1], x+w, y);
+	VA_SetElem2(tex_array[2], s2, t2);
+	VA_SetElem2(vert_array[2], x+w, y+h);
+	VA_SetElem2(tex_array[3], s1, t2);
+	VA_SetElem2(vert_array[3], x, y+h);
+
+	GL_LockArrays( 4 );
+	qglDrawArrays(GL_QUADS, 0, 4);
+	GL_UnlockArrays();
 
 	GL_DisableBlend();
 	GL_EnableAlphaTest();
@@ -248,6 +249,7 @@ void Draw_Fill(float x, float y, float w, float h)
 		qglVertex2f(x + w, y + h);
 		qglVertex2f(x, y + h);
 	qglEnd();
+
 	GL_DisableBlend();
 	qglEnable (GL_TEXTURE_2D);
 }

@@ -168,7 +168,6 @@ float	getserverlistindexforkey(string key)
 
 #include "engine.h"
 #include "server.h"
-#include "progdefs.h"
 #include "progsvm.h"
 
 //============================================================================

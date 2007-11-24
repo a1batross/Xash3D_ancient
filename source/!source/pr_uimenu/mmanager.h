@@ -30,11 +30,15 @@ const string MENU_INGAME_DEFAULT =
 "	\"name\"		\"ingame\"\n"
 "}";
 
+#define NUM_RESFILES	4
+
 // insert the files here
-string MENU_FILENAME_LIST[2] = 
+string MENU_FILENAME_LIST[NUM_RESFILES] = 
 {
-"scripts/menu/main.txt",
-"scripts/menu/options.txt"
+"scripts/menu/main.res",
+"scripts/menu/game.res",
+"scripts/menu/options.res",
+"scripts/menu/video.res"
 };
 
 const float MENU_ALLOWINGAME = FALSE;
@@ -57,22 +61,6 @@ vector menu_cursor;
 ///////////
 // fields
 ///
-
-// controly type
-.string type;
-
-// managing stuff
-.entity _parent;
-.string parent;
-
-//.entity _history;	// used to set up the history -> selectdown prefers _history over _parent
-
-.string name;
-
-.entity _next, _prev;		// point to the next, respectively, the previous item
-
-.entity _child;			// points to the first child
-
 // updating stuff
 .vector click_pos, click_size;
 
@@ -106,7 +94,7 @@ vector menu_cursor;
 .void(void) _refresh;
 .void(void) _action;
 .void(void) _draw;
-.void(float keynr, float ascii) _key;
+.void(float keynr, string ascii) _key;
 
 ///////////////
 // prototypes
@@ -132,7 +120,7 @@ void(void) menu_linkwindows;
 
 void(void) menu_frame;
 void(void) menu_draw;
-void(float keynr, float ascii) menu_keydown;
+void(float keynr, string ascii) menu_keydown;
 void(void) menu_shutdown;
 
 // used for menu handling

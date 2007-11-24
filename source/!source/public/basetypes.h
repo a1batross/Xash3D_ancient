@@ -66,6 +66,7 @@ typedef void (*xcommand_t)	(void);
 typedef struct gclient_s	gclient_t;
 typedef struct sv_edict_s	sv_edict_t;
 typedef struct cl_edict_s	cl_edict_t;
+typedef struct ui_edict_s	ui_edict_t;
 typedef int		progsnum_t;
 typedef struct progfuncs_s	progfuncs_t;
 typedef float		vec_t;
@@ -83,12 +84,13 @@ typedef struct physragdoll_s	NewtonRagDoll;
 typedef struct physmaterial_s	NewtonMaterial;
 typedef struct physcolision_s	NewtonCollision;
 typedef struct physragbone_s	NewtonRagDollBone;
-typedef struct { int fileofs; int filelen; } lump_t;
-typedef struct { int type; char *name; } activity_map_t;
+typedef struct { int fileofs; int filelen; } lump_t;		// many formats use lumps to store blocks
+typedef struct { int type; char *name; } activity_map_t;		// studio activity map conversion
 typedef struct { uint b:5; uint g:6; uint r:5; } color16;
 typedef struct { byte r:8; byte g:8; byte b:8; } color24;
 typedef struct { byte r; byte g; byte b; byte a; } color32;
-typedef struct { const char *name; void **func; } dllfunc_t;
+typedef struct { const char *name; void **func; } dllfunc_t;	// Sys_LoadLibrary stuff
+typedef struct { int ofs; int type; const char *name; } fields_t;	// prvm custom fields
 
 static vec4_t g_color_table[8] =
 {

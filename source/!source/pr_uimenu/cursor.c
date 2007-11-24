@@ -62,14 +62,16 @@ void(void) cursor_frame =
 	// update cursor animations
 
 	if(cursor_type > CT_LAST_PULSE || cursor_type  < CT_FIRST_PULSE)
+	{
 		cursor_last_frame_time = time;
+	}
 	else if(cursor_last_frame_time + CA_PULSE_SPEED <= time)
-		{
+	{
 		cursor_type = CT_FIRST_PULSE +
 		mod((time - cursor_last_frame_time) / CA_PULSE_SPEED, CT_LAST_PULSE - CT_FIRST_PULSE +1);
 
 		cursor_last_frame_time += rint((time - cursor_last_frame_time) / CA_PULSE_SPEED) * CA_PULSE_SPEED;
-		}
+	}
 
 	// update cursor position
 	cursor_rel = getmousepos();

@@ -18,7 +18,7 @@ const string SOUND_ACTION			= "misc/menu3.wav";
 
 void(void) snd_init;
 void(void) snd_toggle;
-void(float keynr, float ascii)snd_keydown;
+void(float keynr, string ascii)snd_keydown;
 void(void) snd_frame;
 void(void) snd_shutdown;
 

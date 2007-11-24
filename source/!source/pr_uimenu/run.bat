@@ -1,1 +1,1 @@
-qcclib -log /V7
+qcclib -log /V7 /Od -progdefs

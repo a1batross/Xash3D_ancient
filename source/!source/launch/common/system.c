@@ -460,7 +460,7 @@ void Sys_CloseLog( void )
 
 	fprintf(logfile, "\n");
 	fprintf(logfile, "=======================================================================");
-	fprintf(logfile, "\n\t%s stopped at %s\n", Sys.caption, com_timestamp(TIME_FULL));
+	fprintf(logfile, "\n\t%s %sed at %s\n", Sys.caption, Sys.crash ? "crash" : "stopp", com_timestamp(TIME_FULL));
 	fprintf(logfile, "=======================================================================");
 
 	fclose(logfile);

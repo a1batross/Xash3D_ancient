@@ -20,7 +20,7 @@ void(void) snd_toggle =
 {
 };
 
-void(float keynr, float ascii) snd_keydown =
+void(float keynr, string ascii) snd_keydown =
 {
 };
 

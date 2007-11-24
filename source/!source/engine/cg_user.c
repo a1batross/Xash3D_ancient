@@ -353,7 +353,7 @@ void CG_DrawCenterString( void )
 		w = cl.centerPrintCharWidth * ColorStrlen( linebuffer );
 		x = ( SCREEN_WIDTH - w )>>1;
 
-		SCR_DrawStringExt( x, y, cl.centerPrintCharWidth, linebuffer, color, false );
+		SCR_DrawStringExt( x, y, cl.centerPrintCharWidth, BIGCHAR_HEIGHT, linebuffer, color, false );
 
 		y += cl.centerPrintCharWidth * 1.5;
 		while ( *start && ( *start != '\n' )) start++;

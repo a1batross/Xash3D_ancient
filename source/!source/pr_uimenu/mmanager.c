@@ -17,10 +17,9 @@ void(void) menu_load =
 	// load the menu files
 	float i;
 
-	for(i = 0; i < 2; i++ )
+	for(i = 0; i < NUM_RESFILES; i++ )
 	{
 		menu_loadmenu(MENU_FILENAME_LIST[i]);
-		dprint(MENU_FILENAME_LIST[i], " loaded !\n");
 	}
 	menu_linkwindows();
 };
@@ -97,10 +96,13 @@ void(void) menu_restart =
 		}
 	}
 };
-void(string file) menu_loadmenu =
+void menu_loadmenu (string file)
 {
-	loadfromfile(file);
-};
+	if(loadfromfile(file) == -1)
+	{
+		dprint("^3Warning:^7 couldn't load ", file, "\n");
+	}
+}
 
 entity(entity start, .entity find1, entity match, .float find2, float match2) findef =
 {
@@ -126,7 +128,7 @@ void(void) menu_linkwindows =
 	entity ent;
 	float x, opos;
 
-	ent = findstring(null_entity,name, MENU_NORMAL_NAME);
+	ent = findstring(null_entity, name, MENU_NORMAL_NAME);
 	if(ent == null_entity) loadfromdata(MENU_NORMAL_DEFAULT);
 
 	// verify again if MENI_INGAME_NAME is there now
@@ -137,7 +139,7 @@ void(void) menu_linkwindows =
 	if(ent == null_entity) loadfromdata(MENU_INGAME_DEFAULT);
 
 	// verify again if MENI_INGAME_NAME is there now
-	ent = findstring(null_entity,name, MENU_INGAME_NAME);
+	ent = findstring(null_entity, name, MENU_INGAME_NAME);
 	if(ent == null_entity) error("Bad MENU_INGAME_DEFAULT !\n");
 
 	// verify that every name is only used *once*
@@ -490,7 +492,6 @@ void(void) menu_draw =
 	// if menu_activewindow is visible loop though it
 	if(menu_isvisible(menu_activewindow))
 	{
-		//menu_setcliparea('100 100 0', '400 400 0');
 		menu_drawwindow(menu_activewindow);
 		menu_localorigin = '0 0 0';
 		menu_clip_pos = '0 0 0';
@@ -554,13 +555,13 @@ void(void) menu_shutdown =
 	}
 };
 
-void(float keynr, float ascii) menu_keydown =
+void(float keynr, string ascii) menu_keydown =
 {
 	// before calling the current keydown functions, process the mouse again
 	// so only the correct item is called
 	// (except mouse wheel up and down)
 	// if the mouse doesnt point to an item, there wont be a reaction on the clicking
-	if(K_MOUSE1 <= keynr && keynr <= K_MOUSE10)
+	if(K_MOUSE1 <= keynr && keynr <= K_MOUSE3)
 	{
 		entity key_selected;
 		key_selected = menu_selected;

@@ -5,7 +5,7 @@
 
 ../temp/uimenu.dat
 
-msys.c
+entvars.h
 mbuiltin.c
 menu.h
 cursor.h

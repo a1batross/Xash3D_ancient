@@ -24,7 +24,7 @@ void(void) m_init =
 };
 
 // required menu functions
-void(float keynr, float ascii) m_keydown =
+void(float keynr, string ascii) m_keydown =
 {
 	if(!menu_active)
 		return;
