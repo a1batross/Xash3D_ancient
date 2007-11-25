@@ -27,7 +27,7 @@
 #include "client.h"
 
 extern stdlib_api_t		std;
-extern physic_exp_t		*Phys;
+extern physic_exp_t		*pe;
 extern byte		*zonepool;
 
 #define EXEC_NOW		0 // don't return until completed

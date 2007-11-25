@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SERVER_H
 
 #include "progsvm.h"
-#include "vm_cmds.h"
 #include "net_msg.h"
 #include "collision.h"
 
@@ -37,6 +36,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SPAWNFLAG_NOT_MEDIUM		0x00000200
 #define SPAWNFLAG_NOT_HARD		0x00000400
 #define SPAWNFLAG_NOT_DEATHMATCH	0x00000800
+
+// client printf level
+#define PRINT_LOW			0		// pickup messages
+#define PRINT_MEDIUM		1		// death messages
+#define PRINT_HIGH			2		// critical messages
+#define PRINT_CHAT			3		// chat messages
 
 #define FL_CLIENT			(1<<0)	// this is client
 #define FL_MONSTER			(1<<1)	// this is npc

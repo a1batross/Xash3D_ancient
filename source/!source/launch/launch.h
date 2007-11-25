@@ -254,6 +254,8 @@ void CRC_Init(word *crcvalue);
 word CRC_Block (byte *start, int count);
 void CRC_ProcessByte(word *crcvalue, byte data);
 byte CRC_BlockSequence(byte *base, int length, int sequence);
+uint Com_BlockChecksum (void *buffer, int length);
+uint Com_BlockChecksumKey(void *buffer, int length, int key);
 
 //
 // parselib.c

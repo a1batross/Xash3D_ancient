@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client.h"
 #include "qmenu.h"
 #include "progsvm.h"
-#include "vm_cmds.h"
 
 #define UI_MAX_EDICTS	(1 << 12) // should be enough for a menu
 

@@ -4,7 +4,6 @@
 //=======================================================================
 
 #include "client.h"
-#include "snd_loc.h"
 
 #define MAXSIZE			8
 #define MINSIZE			4

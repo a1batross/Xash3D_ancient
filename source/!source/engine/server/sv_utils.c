@@ -907,8 +907,8 @@ PF_createPhysBox
 */
 void PF_createPhysBox( void )
 {
-	edict_t		*ent = PRVM_G_EDICT(OFS_PARM0);
-	Phys->CreateBOX( ent->priv.sv, ent->progs.sv->mins, ent->progs.sv->maxs, ent->progs.sv->origin, ent->progs.sv->angles, &ent->priv.sv->collision, &ent->priv.sv->physbody );
+	edict_t	 *ent = PRVM_G_EDICT(OFS_PARM0);
+	pe->CreateBOX( ent->priv.sv, ent->progs.sv->mins, ent->progs.sv->maxs, ent->progs.sv->origin, ent->progs.sv->angles, &ent->priv.sv->collision, &ent->priv.sv->physbody );
 }
 
 /*

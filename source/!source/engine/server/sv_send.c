@@ -309,8 +309,8 @@ void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int soundindex,
 	sendchan = (ent<<3) | (channel&7);
 
 	flags = 0;
-	if (volume != DEFAULT_SOUND_PACKET_VOLUME) flags |= SND_VOLUME;
-	if (attenuation != DEFAULT_SOUND_PACKET_ATTENUATION) flags |= SND_ATTENUATION;
+	if (volume != DEFAULT_SOUND_PACKET_VOL) flags |= SND_VOLUME;
+	if (attenuation != DEFAULT_SOUND_PACKET_ATTN) flags |= SND_ATTENUATION;
 
 	// the client doesn't know that bmodels have weird origins
 	// the origin can also be explicitly set

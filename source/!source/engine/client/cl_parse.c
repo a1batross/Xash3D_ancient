@@ -544,10 +544,10 @@ void CL_ParseStartSoundPacket(void)
 	sound_num = MSG_ReadByte (&net_message);
 
 	if (flags & SND_VOLUME) volume = MSG_ReadByte (&net_message) / 255.0;
-	else volume = DEFAULT_SOUND_PACKET_VOLUME;
+	else volume = DEFAULT_SOUND_PACKET_VOL;
 	
 	if (flags & SND_ATTENUATION) attenuation = MSG_ReadByte (&net_message) / 64.0;
-	else attenuation = DEFAULT_SOUND_PACKET_ATTENUATION;	
+	else attenuation = DEFAULT_SOUND_PACKET_ATTN;	
 
 	if (flags & SND_OFFSET) ofs = MSG_ReadByte (&net_message) / 1000.0;
 	else ofs = 0;
@@ -647,7 +647,7 @@ void CL_ParseServerMessage (void)
 
 		case svc_print:
 			i = MSG_ReadByte (&net_message);
-			if (i == PRINT_CHAT) S_StartLocalSound ("misc/talk.wav");
+			if (i == 3) S_StartLocalSound ("misc/talk.wav"); // chat
 			Msg ("^6%s", MSG_ReadString (&net_message));
 			break;
 			

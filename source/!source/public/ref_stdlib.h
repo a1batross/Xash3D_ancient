@@ -105,6 +105,8 @@ crclib manager
 #define CRC_Block		std.crc_block
 #define CRC_ProcessByte	std.crc_process
 #define CRC_Sequence	std.crc_sequence
+#define Com_BlockChecksum	std.crc_blockchecksum
+#define Com_BlockChecksumKey	std.crc_blockchecksumkey
 
 /*
 ===========================================

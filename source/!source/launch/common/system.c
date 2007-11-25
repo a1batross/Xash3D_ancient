@@ -86,6 +86,8 @@ void Sys_GetStdAPI( void )
 	std.crc_block = CRC_Block;
 	std.crc_process = CRC_ProcessByte;
 	std.crc_sequence = CRC_BlockSequence;
+	std.crc_blockchecksum = Com_BlockChecksum;
+	std.crc_blockchecksumkey = Com_BlockChecksumKey;
 
 	// memlib.c
 	std.memcpy = _mem_copy;
@@ -754,11 +756,14 @@ void Sys_Error(const char *error, ...)
 	va_start (argptr, error);
 	com_vsprintf (text, error, argptr);
 	va_end (argptr);
+
+	
          
 	Sys.error = true;
 	
 	Con_ShowConsole( true );
-	Sys_Print( text ); // print error message
+	if(Sys.developer) Sys_Print( text );		// print error message
+	else Sys_Print( "Internal engine error\n" );	// don't confuse non-developers with technique stuff
 
 	Sys_WaitForQuit();
 	Sys_Exit();

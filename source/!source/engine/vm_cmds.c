@@ -5,9 +5,8 @@
 // also applies here
 
 #include "engine.h"
-#include "vm_cmds.h"
-#include "sound.h"                    
-#include "screen.h" 
+#include "progsvm.h"
+#include "server.h"
 
 //============================================================================
 // Common

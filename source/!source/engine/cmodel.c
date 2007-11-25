@@ -543,7 +543,7 @@ cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum)
 	numentitychars = 0;
 	map_entitystring[0] = 0;
 	map_name[0] = 0;
-	Phys->FreeBSP();
+	pe->FreeBSP();
 
 	if (!name || !name[0])
 	{
@@ -584,7 +584,7 @@ cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum)
 	CMod_LoadVisibility (&header.lumps[LUMP_VISIBILITY]);
 	CMod_LoadEntityString (&header.lumps[LUMP_ENTITIES]);
 
-	Phys->LoadBSP( buf ); // create physics collision
+	pe->LoadBSP( buf ); // create physics collision
 	Mem_Free( buf ); // release map buffer
 
 	CM_InitBoxHull ();

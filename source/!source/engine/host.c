@@ -8,7 +8,7 @@
 
 #define VID_NUM_MODES ( sizeof( vid_modes ) / sizeof( vid_modes[0] ))
 
-physic_exp_t	*Phys;
+physic_exp_t	*pe;
 render_exp_t	*re;
 host_parm_t	host;	// host parms
 stdlib_api_t	std, newstd;
@@ -122,17 +122,17 @@ void Host_InitPhysic( void )
 	Sys_LoadLibrary( &physic_dll );
 
 	CreatePhysic = (void *)physic_dll.main;
-	Phys = CreatePhysic( &newstd, &pi );
+	pe = CreatePhysic( &newstd, &pi );
 	
-	Phys->Init();
+	pe->Init();
 }
 
 void Host_FreePhysic( void )
 {
 	if(physic_dll.link)
 	{
-		Phys->Shutdown();
-		memset( &Phys, 0, sizeof(Phys));
+		pe->Shutdown();
+		memset( &pe, 0, sizeof(pe));
 	}
 	Sys_FreeLibrary( &physic_dll );
 }
@@ -146,7 +146,7 @@ void Host_InitRender( void )
 
           // studio callbacks
 	ri.StudioEvent = CL_StudioEvent;
-	ri.ShowCollision = Phys->ShowCollision;
+	ri.ShowCollision = pe->ShowCollision;
           
 	Sys_LoadLibrary( &render_dll );
 	

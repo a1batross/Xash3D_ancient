@@ -166,6 +166,10 @@ SOURCE=.\client\cl_scrn.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\client\cl_sound.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\client\cl_tent.c
 # End Source File
 # Begin Source File
@@ -194,10 +198,6 @@ SOURCE=.\host.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\md4.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\uimenu\menu.c
 # End Source File
 # Begin Source File
@@ -219,30 +219,6 @@ SOURCE=.\pmove.c
 # Begin Source File
 
 SOURCE=.\uimenu\qmenu.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\snd_adpcm.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\snd_dma.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\snd_mem.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\snd_mix.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\snd_wavelet.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\snd_win.c
 # End Source File
 # Begin Source File
 
@@ -362,11 +338,11 @@ SOURCE=.\server\server.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\snd_loc.h
+SOURCE=.\client\snd_loc.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\sound.h
+SOURCE=.\client\sound.h
 # End Source File
 # Begin Source File
 

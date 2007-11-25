@@ -151,7 +151,7 @@ void SV_FreeEdict (edict_t *ed)
 	ed->progs.sv->frame = 0;
 	ed->progs.sv->solid = 0;
 
-	Phys->RemoveBOX( ed->priv.sv->physbody );
+	pe->RemoveBOX( ed->priv.sv->physbody );
 	VectorClear(ed->progs.sv->origin);
 	VectorClear(ed->progs.sv->angles);
 	ed->progs.sv->nextthink = -1;

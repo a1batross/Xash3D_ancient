@@ -18,15 +18,18 @@
 #define DLLIMPORT	__declspec(dllimport)
 
 #define MIN_PATH		64
-#define MAX_QPATH		64
+#define MAX_QPATH		64	// get rid of this
 #define MAX_OSPATH		128
 #define MAX_NUM_ARGVS	128
 #define MAX_STRING		256
 #define MAX_SYSPATH		1024
-#define MAX_INPUTLINE	16384
+#define MAX_INPUTLINE	16384	// many buffers use this size
 #define MAX_INFO_KEY	64
 #define MAX_INFO_VALUE	64
 #define MAX_INFO_STRING	512
+#define MAX_STRING_TOKENS	80
+#define MAX_TOKEN_CHARS	128
+#define MAX_STRING_CHARS	1024
 
 #define COLOR_BLACK		'0'
 #define COLOR_RED		'1'

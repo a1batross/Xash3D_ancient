@@ -531,6 +531,8 @@ typedef struct stdilib_api_s
 	word (*crc_block)(byte *start, int count);		// calculate crc block
 	void (*crc_process)(word *crcvalue, byte data);		// process crc byte
 	byte (*crc_sequence)(byte *base, int length, int sequence);	// calculate crc for sequence
+	uint (*crc_blockchecksum)(void *buffer, int length);	// map checksum
+	uint (*crc_blockchecksumkey)(void *buf, int len, int key);	// process key checksum
 
 	// memlib.c funcs
 	void (*memcpy)(void *dest, void *src, size_t size, const char *file, int line);

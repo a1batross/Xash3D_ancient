@@ -398,4 +398,176 @@ void VM_Error(const char *fmt, ...);
 // TODO: fill in the params
 //void PRVM_Create();
 
+//============================================================================
+// nice helper macros
+
+#ifndef VM_NOPARMCHECK
+#define VM_SAFEPARMCOUNT(p,f)	if(prog->argc != p) PRVM_ERROR(#f " wrong parameter count (" #p " expected ) !")
+#else
+#define VM_SAFEPARMCOUNT(p,f)
 #endif
+
+#define VM_RETURN_EDICT(e)	(((int *)prog->globals.gp)[OFS_RETURN] = PRVM_EDICT_TO_PROG(e))
+
+#define e10	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+#define e100	e10,e10,e10,e10,e10,e10,e10,e10,e10,e10
+#define e1000	e100,e100,e100,e100,e100,e100,e100,e100,e100,e100
+
+#define VM_STRINGTEMP_BUFFERS 16
+#define VM_STRINGTEMP_LENGTH MAX_INPUTLINE
+
+// builtins and other general functions
+
+char *VM_GetTempString(void);
+void VM_CheckEmptyString (const char *s);
+void VM_VarString(int first, char *out, int outlength);
+
+void VM_checkextension (void);
+void VM_error (void);
+void VM_objerror (void);
+void VM_print (void);
+void VM_bprint (void);
+void VM_sprint (void);
+void VM_centerprint(void);
+void VM_normalize (void);
+void VM_veclength (void);
+void VM_vectoyaw (void);
+void VM_vectoangles (void);
+void VM_random_long (void);
+void VM_random_float (void);
+void VM_localsound(void);
+void VM_break (void);
+void VM_localcmd (void);
+void VM_cvar (void);
+void VM_cvar_string(void);
+void VM_cvar_set (void);
+void VM_wprint (void);
+void VM_ftoa (void);
+void VM_fabs (void);
+void VM_vtoa (void);
+void VM_atov (void);
+void VM_etos (void);
+void VM_atof(void);
+void VM_itof(void);
+void VM_ftoe(void);
+void VM_create (void);
+void VM_remove (void);
+void VM_find (void);
+void VM_findfloat (void);
+void VM_findchain (void);
+void VM_findchainfloat (void);
+void VM_findflags (void);
+void VM_findchainflags (void);
+void VM_precache_file (void);
+void VM_precache_error (void);
+void VM_precache_sound (void);
+void VM_coredump (void);
+
+void VM_stackdump (void);
+void VM_crash(void); // REMOVE IT
+void VM_traceon (void);
+void VM_traceoff (void);
+void VM_eprint (void);
+void VM_rint (void);
+void VM_floor (void);
+void VM_ceil (void);
+void VM_nextent (void);
+
+void VM_changelevel (void);
+void VM_sin (void);
+void VM_cos (void);
+void VM_sqrt (void);
+void VM_randomvec (void);
+void VM_registercvar (void);
+void VM_min (void);
+void VM_max (void);
+void VM_bound (void);
+void VM_pow (void);
+void VM_copyentity (void);
+
+void VM_Files_Init(void);
+void VM_Files_CloseAll(void);
+
+void VM_fopen(void);
+void VM_fclose(void);
+void VM_fgets(void);
+void VM_fputs(void);
+vfile_t *VM_GetFileHandle( int index );
+
+void VM_strlen(void);
+void VM_strcat(void);
+void VM_substring(void);
+void VM_stov(void);
+void VM_allocstring(void);
+void VM_freestring(void);
+
+void VM_servercmd (void);
+void VM_clientcmd (void);
+
+void VM_tokenize (void);
+void VM_argv (void);
+
+void VM_isserver(void);
+void VM_clientcount(void);
+void VM_clientstate(void);
+void VM_getmousepos(void);
+void VM_gettime(void);
+void VM_loadfromdata(void);
+void VM_parseentitydata(void);
+void VM_loadfromfile(void);
+void VM_modulo(void);
+
+void VM_search_begin(void);
+void VM_search_end(void);
+void VM_search_getsize(void);
+void VM_search_getfilename(void);
+void VM_chr(void);
+void VM_iscachedpic(void);
+void VM_precache_pic(void);
+void VM_drawcharacter(void);
+void VM_drawstring(void);
+void VM_drawpic(void);
+void VM_drawfill(void);
+void VM_drawsetcliparea(void);
+void VM_drawresetcliparea(void);
+void VM_getimagesize(void);
+
+void VM_vectorvectors (void);
+void VM_makevectors (void);
+void VM_makevectors2 (void);
+
+void VM_keynumtostring (void);
+void VM_stringtokeynum (void);
+
+void VM_cin_open( void );
+void VM_cin_close( void );
+void VM_cin_getstate( void );
+void VM_cin_restart( void );
+
+void VM_R_PolygonBegin (void);
+void VM_R_PolygonVertex (void);
+void VM_R_PolygonEnd (void);
+
+void VM_bitshift (void);
+
+void VM_altstr_count( void );
+void VM_altstr_prepare( void );
+void VM_altstr_get( void );
+void VM_altstr_set( void );
+void VM_altstr_ins(void);
+
+void VM_buf_create(void);
+void VM_buf_del (void);
+void VM_buf_getsize (void);
+void VM_buf_copy (void);
+void VM_buf_sort (void);
+void VM_buf_implode (void);
+void VM_bufstr_get (void);
+void VM_bufstr_set (void);
+void VM_bufstr_add (void);
+void VM_bufstr_free (void);
+
+void VM_Cmd_Init(void);
+void VM_Cmd_Reset(void);
+
+#endif//PROGSVM_H
