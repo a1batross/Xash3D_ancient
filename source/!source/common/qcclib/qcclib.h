@@ -7,7 +7,6 @@
 
 #include "platform.h"
 #include "utils.h"
-#include "vprogs.h"
 
 /*
 
@@ -27,6 +26,10 @@ TODO:
 #define MAX_PARMS		8
 #define MAX_PARMS_EXTRA	128
 #define PROGDEFS_MAX_SIZE	MAX_INPUTLINE	// 16 kbytes
+
+#define CMPW_COPY		0
+#define CMPW_ENCRYPT	1
+#define CMPW_DEFLATE	2
 
 // optimization level flags
 #define FL_DBG		1

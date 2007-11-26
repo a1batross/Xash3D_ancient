@@ -23,47 +23,6 @@ static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t\
 void NullInit( uint funcname, int argc, char **argv ) {}
 void NullFunc( void ) {}
 
-void Com_AddCommand( const char *name, xcommand_t cmd, const char *cmd_desc )
-{
-	MsgDev(D_NOTE, "Warning: cmd %s not added - too early\n", name ); 
-}
-
-void Com_DelCommand( const char *name )
-{
-	MsgDev(D_NOTE, "Warning: cmd %s not removed - too early\n", name ); 
-}
-
-uint Com_Argc( void )
-{
-	return fs_argc;
-}
-
-char *Com_Argv( int num )
-{
-	return fs_argv[num];
-}
-
-void Com_AddText(const char *text)
-{
-	Sys_Print( text );
-}
-
-void Com_CvarSetValue( const char *name, float value )
-{
-	MsgDev(D_NOTE, "Warning: cvar %s not found - too early\n", name ); 
-}
-
-void Com_CvarSetString( const char *name, const char *value )
-{
-	MsgDev(D_NOTE, "Warning: cvar %s not found - too early\n", name ); 
-}
-
-cvar_t *Com_GetCvar( const char *name, const char *value, int flags, const char *desc )
-{
-	MsgDev(D_NOTE, "Warning: cvar %s can't created - too early\n", name ); 
-	return NULL;
-}
-
 void Sys_GetStdAPI( void )
 {
 	// interface validator
@@ -74,6 +33,7 @@ void Sys_GetStdAPI( void )
 	std.dprintf = Sys_MsgDev;
 	std.wprintf = Sys_MsgWarn;
 	std.error = Sys_Error;
+	std.abort = Sys_Break;
 	std.exit = Sys_Exit;
 	std.print = Sys_Print;
 	std.input = Sys_Input;
@@ -134,6 +94,28 @@ void Sys_GetStdAPI( void )
 	std.Com_Filter = SC_FilterToken;		// compare keyword by mask with filter
 	std.com_token = token;			// contains current token
 
+	// console variables
+	std.Cvar_Get = Cvar_Get;
+	std.Cvar_FullSet = Cvar_FullSet;
+	std.Cvar_SetLatched = Cvar_SetLatched;
+	std.Cvar_SetValue = Cvar_SetValue;
+	std.Cvar_SetString = Cvar_Set;
+	std.Cvar_GetValue = Cvar_VariableValue;
+	std.Cvar_GetString = Cvar_VariableString;
+	std.Cvar_CommandCompletion = Cvar_CommandCompletion;
+	std.Cvar_FindVar = Cvar_FindVar;
+	std.cvar_vars = &cvar_vars;
+
+	// console commands
+	std.Cmd_Exec = Cbuf_ExecuteText;		// process cmd buffer
+	std.Cmd_Argc = Cmd_Argc;
+	std.Cmd_Args = Cmd_Args;
+	std.Cmd_Argv = Cmd_Argv; 
+	std.Cmd_AddCommand = Cmd_AddCommand;
+	std.Cmd_DelCommand = Cmd_RemoveCommand;
+	std.Cmd_TokenizeString = Cmd_TokenizeString;
+	std.Cmd_CommandCompletion = Cmd_CommandCompletion;
+
 	// real filesystem
 	std.fopen = FS_Open;		// same as fopen
 	std.fclose = FS_Close;		// same as fclose
@@ -169,16 +151,6 @@ void Sys_GetStdAPI( void )
 	std.Com_FreeLibrary = Sys_FreeLibrary;		// free library
 	std.Com_GetProcAddress = Sys_GetProcAddress;	// gpa
 	std.Com_DoubleTime = Sys_DoubleTime;		// hi-res timer
-
-	// console commands and variables
-	std.Com_AddCommand = Com_AddCommand;
-	std.Com_DelCommand = Com_DelCommand;
-	std.Com_Argc = Com_Argc;
-	std.Com_Argv = Com_Argv;
-	std.Com_AddText = Com_AddText;
-	std.Com_CvarSetValue = Com_CvarSetValue;
-	std.Com_CvarSetString = Com_CvarSetString;
-	std.Com_GetCvar = Com_GetCvar;
 
 	// stdlib.c funcs
 	std.strnupr = com_strnupr;
@@ -342,6 +314,7 @@ void Sys_CreateInstance( void )
 
 	Sys_LoadLibrary( Sys.linked_dll ); // loading library if need
 
+	// pre initializations
 	switch(Sys.app_name)
 	{
 	case HOST_NORMAL:
@@ -362,29 +335,42 @@ void Sys_CreateInstance( void )
 		Sys.Free = Host->Free;
 		break;
 	case CREDITS:
-		Sys_Print( show_credits );
-		Sys_WaitForQuit();
-		Sys_Exit();
+		Sys_Break( show_credits );
 		break;
 	case HOST_INSTALL:
 		// FS_UpdateEnvironmentVariables() is done, quit now
 		Sys_Exit();
 		break;
 	case HOST_OFFLINE:
-		Sys_Error("Host offline\n Press \"ESC\" to exit\n");		
+		Sys_Break("Host offline\n Press \"ESC\" to exit\n");		
 		break;
 	}
 
 	// init our host now!
 	Sys.Init( Sys.app_name, fs_argc, fs_argv );
 
-	// hide console if needed
+	// post initializations
 	switch(Sys.app_name)
 	{
-		case HOST_NORMAL:
-		case HOST_EDITOR:
-			Con_ShowConsole( false );
-			break;
+	case HOST_NORMAL:
+		Con_ShowConsole( false );		// hide console
+	case HOST_DEDICATED:
+		Cbuf_AddText("exec init.rc\n");	// execute startup config and cmdline
+		Cbuf_Execute();
+		// if stuffcmds wasn't run, then init.rc is probably missing, use default
+		if(!Sys.stuffcmdsrun) Cbuf_ExecuteText( EXEC_NOW, "stuffcmds\n" );
+		break;
+	case HOST_EDITOR:
+		Con_ShowConsole( false );
+	case BSPLIB:
+	case QCCLIB:
+	case ROQLIB:
+	case IMGLIB:
+	case SPRITE:
+	case STUDIO:
+		 // always run stuffcmds for current instances
+		Cbuf_ExecuteText( EXEC_NOW, "stuffcmds\n" );
+		break;
 	}
 }
 
@@ -756,11 +742,8 @@ void Sys_Error(const char *error, ...)
 	va_start (argptr, error);
 	com_vsprintf (text, error, argptr);
 	va_end (argptr);
-
-	
          
 	Sys.error = true;
-	
 	Con_ShowConsole( true );
 	if(Sys.developer) Sys_Print( text );		// print error message
 	else Sys_Print( "Internal engine error\n" );	// don't confuse non-developers with technique stuff
@@ -769,6 +752,20 @@ void Sys_Error(const char *error, ...)
 	Sys_Exit();
 }
 
+void Sys_Break(const char *error, ...)
+{
+	va_list		argptr;
+	char		text[MAX_INPUTLINE];
+         
+	va_start (argptr, error);
+	com_vsprintf (text, error, argptr);
+	va_end (argptr);
+	
+	Con_ShowConsole( true );
+	Sys_Print( text );
+	Sys_WaitForQuit();
+	Sys_Exit();
+}
 
 long _stdcall Sys_Crash( PEXCEPTION_POINTERS pInfo )
 {
@@ -833,8 +830,10 @@ void Sys_Init( void )
 	Sys_LookupInstance(); // init launcher
 	Con_CreateConsole();
 	Sys_InitCPU();
-
 	Memory_Init();
+	Cmd_Init();
+	Cvar_Init();
+
 	FS_Init();
 	Sys_CreateInstance();
 }
@@ -998,15 +997,15 @@ int Sys_GetNumThreads( void )
 void Sys_ThreadLock( void )
 {
 	if (!threaded) return;
-	EnterCriticalSection (&crit);
-	if (enter) Sys_Error ("Recursive ThreadLock\n"); 
+	EnterCriticalSection(&crit);
+	if (enter) Sys_Error( "Recursive ThreadLock\n" ); 
 	enter = 1;
 }
 
 void Sys_ThreadUnlock( void )
 {
 	if (!threaded) return;
-	if (!enter) Sys_Error ("ThreadUnlock without lock\n"); 
+	if (!enter) Sys_Error( "ThreadUnlock without lock\n" ); 
 	enter = 0;
 	LeaveCriticalSection (&crit);
 }

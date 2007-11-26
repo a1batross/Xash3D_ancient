@@ -1,232 +1,18 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
+//=======================================================================
+//			Copyright XashXT Group 2007 ©
+//		       cvar.c -- dynamic variable tracking
+//=======================================================================
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
+#include "launch.h"
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-// cvar.c -- dynamic variable tracking
-
-#include "engine.h"
-
-cvar_t	*cvar_vars;
-cvar_t	*host_cheats;
-
-#define	MAX_CVARS		1024
+#define MAX_CVARS		2048
 #define FILE_HASH_SIZE	256
 
 int cvar_numIndexes;
 int cvar_modifiedFlags;
-bool userinfo_modified;
 cvar_t cvar_indexes[MAX_CVARS];
+cvar_t *cvar_vars;
 static cvar_t* hashTable[FILE_HASH_SIZE];
-
-//=======================================================================
-//			INFOSTRING STUFF
-//=======================================================================
-/*
-===============
-Info_Print
-
-printing current key-value pair
-===============
-*/
-void Info_Print (char *s)
-{
-	char	key[512];
-	char	value[512];
-	char	*o;
-	int	l;
-
-	if (*s == '\\') s++;
-
-	while (*s)
-	{
-		o = key;
-		while (*s && *s != '\\') *o++ = *s++;
-
-		l = o - key;
-		if (l < 20)
-		{
-			memset (o, ' ', 20-l);
-			key[20] = 0;
-		}
-		else *o = 0;
-		Msg ("%s", key);
-
-		if (!*s)
-		{
-			Msg ("MISSING VALUE\n");
-			return;
-		}
-
-		o = value;
-		s++;
-		while (*s && *s != '\\') *o++ = *s++;
-		*o = 0;
-
-		if (*s) s++;
-		Msg ("%s\n", value);
-	}
-}
-
-/*
-===============
-Info_ValueForKey
-
-Searches the string for the given
-key and returns the associated value, or an empty string.
-===============
-*/
-char *Info_ValueForKey (char *s, char *key)
-{
-	char	pkey[512];
-	static	char value[2][512];	// use two buffers so compares work without stomping on each other
-	static	int valueindex;
-	char	*o;
-	
-	valueindex ^= 1;
-	if (*s == '\\') s++;
-	while (1)
-	{
-		o = pkey;
-		while (*s != '\\')
-		{
-			if (!*s) return "";
-			*o++ = *s++;
-		}
-		*o = 0;
-		s++;
-
-		o = value[valueindex];
-
-		while (*s != '\\' && *s)
-		{
-			if (!*s) return "";
-			*o++ = *s++;
-		}
-		*o = 0;
-
-		if (!strcmp (key, pkey) ) return value[valueindex];
-		if (!*s) return "";
-		s++;
-	}
-}
-
-void Info_RemoveKey (char *s, char *key)
-{
-	char	*start;
-	char	pkey[512];
-	char	value[512];
-	char	*o;
-
-	if (strstr (key, "\\")) return;
-
-	while (1)
-	{
-		start = s;
-		if (*s == '\\') s++;
-		o = pkey;
-		while (*s != '\\')
-		{
-			if (!*s) return;
-			*o++ = *s++;
-		}
-		*o = 0;
-		s++;
-
-		o = value;
-		while (*s != '\\' && *s)
-		{
-			if (!*s) return;
-			*o++ = *s++;
-		}
-		*o = 0;
-
-		if (!strcmp (key, pkey) )
-		{
-			strcpy (start, s);	// remove this part
-			return;
-		}
-		if (!*s) return;
-	}
-}
-
-/*
-==================
-Info_Validate
-
-Some characters are illegal in info strings because they
-can mess up the server's parsing
-==================
-*/
-bool Info_Validate (char *s)
-{
-	if (strstr (s, "\"")) return false;
-	if (strstr (s, ";")) return false;
-	return true;
-}
-
-void Info_SetValueForKey (char *s, char *key, char *value)
-{
-	char	newi[MAX_INFO_STRING], *v;
-	int	c, maxsize = MAX_INFO_STRING;
-
-	if (strstr (key, "\\") || strstr (value, "\\") )
-	{
-		Msg ("Can't use keys or values with a \\\n");
-		return;
-	}
-
-	if (strstr (key, ";") )
-	{
-		Msg ("Can't use keys or values with a semicolon\n");
-		return;
-	}
-	if (strstr (key, "\"") || strstr (value, "\"") )
-	{
-		Msg ("Can't use keys or values with a \"\n");
-		return;
-	}
-	if (strlen(key) > MAX_INFO_KEY - 1 || strlen(value) > MAX_INFO_KEY-1)
-	{
-		Msg ("Keys and values must be < 64 characters.\n");
-		return;
-	}
-
-	Info_RemoveKey (s, key);
-	if (!value || !strlen(value)) return;
-	sprintf (newi, "\\%s\\%s", key, value);
-
-	if (strlen(newi) + strlen(s) > maxsize)
-	{
-		Msg ("Info string length exceeded\n");
-		return;
-	}
-
-	// only copy ascii values
-	s += strlen(s);
-	v = newi;
-	while (*v)
-	{
-		c = *v++;
-		c &= 127;	// strip high bits
-		if (c >= 32 && c < 127) *s++ = c;
-	}
-	*s = 0;
-}
 
 /*
 ================
@@ -241,7 +27,7 @@ static long Cvar_GetHashValue( const char *fname )
 
 	while (fname[i] != '\0')
 	{
-		letter = tolower(fname[i]);
+		letter = com_tolower(fname[i]);
 		hash += (long)(letter)*(i + 119);
 		i++;
 	}
@@ -269,19 +55,18 @@ static bool Cvar_ValidateString(const char *s, bool isvalue )
 Cvar_FindVar
 ============
 */
-cvar_t *Cvar_FindVar (const char *var_name)
+cvar_t *Cvar_FindVar( const char *var_name )
 {
 	cvar_t	*var;
 	long	hash;
 
 	hash = Cvar_GetHashValue(var_name);
 	
-	for (var = hashTable[hash]; var; var = var->hash)
+	for(var = hashTable[hash]; var; var = var->hash)
 	{
-		if (!stricmp(var_name, var->name))
+		if (!com_stricmp(var_name, var->name))
 			return var;
 	}
-
 	return NULL;
 }
 
@@ -293,8 +78,7 @@ Cvar_VariableValue
 float Cvar_VariableValue(const char *var_name)
 {
 	cvar_t	*var;
-	
-	var = Cvar_FindVar (var_name);
+	var = Cvar_FindVar(var_name);
 	if (!var) return 0;
 	return var->value;
 }
@@ -307,7 +91,6 @@ Cvar_VariableIntegerValue
 int Cvar_VariableInteger( const char *var_name )
 {
 	cvar_t	*var;
-	
 	var = Cvar_FindVar(var_name);
 	if (!var) return 0;
 	return var->integer;
@@ -321,26 +104,9 @@ Cvar_VariableString
 char *Cvar_VariableString (const char *var_name)
 {
 	cvar_t *var;
-	
 	var = Cvar_FindVar (var_name);
 	if (!var) return "";
 	return var->string;
-}
-
-/*
-============
-Cvar_VariableStringBuffer
-
-place variable into buffer
-============
-*/
-void Cvar_VariableStringBuffer( const char *var_name, char *buffer, int bufsize )
-{
-	cvar_t	*var;
-	
-	var = Cvar_FindVar (var_name);
-	if (!var) *buffer = 0;
-	else strncpy( buffer, var->string, bufsize );
 }
 
 /*
@@ -350,7 +116,7 @@ Cvar_CommandCompletion
 */
 void Cvar_CommandCompletion( void(*callback)(const char *s, const char *m))
 {
-	cvar_t		*cvar;
+	cvar_t	*cvar;
 	
 	for( cvar = cvar_vars; cvar; cvar = cvar->next )
 		callback( cvar->name, cvar->description );
@@ -364,7 +130,7 @@ If the variable already exists, the value will not be set
 The flags will be or'ed in if the variable exists.
 ============
 */
-cvar_t *_Cvar_Get(const char *var_name, const char *var_value, int flags, const char *var_desc )
+cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags, const char *var_desc )
 {
 	cvar_t	*var;
 	long	hash;
@@ -386,6 +152,13 @@ cvar_t *_Cvar_Get(const char *var_name, const char *var_value, int flags, const 
 		var_value = "default";
 	}
 
+	// check for command coexisting
+	if(Cmd_Exists(var_name))
+	{
+		MsgDev(D_WARN, "Cvar_Get: %s is a command\n", var_name );
+		return NULL;
+	}
+
 	var = Cvar_FindVar (var_name);
 	if ( var )
 	{
@@ -395,7 +168,7 @@ cvar_t *_Cvar_Get(const char *var_name, const char *var_value, int flags, const 
 		if(( var->flags & CVAR_USER_CREATED ) && !( flags & CVAR_USER_CREATED ) && var_value[0])
 		{
 			var->flags &= ~CVAR_USER_CREATED;
-			Z_Free( var->reset_string );
+			Mem_Free( var->reset_string );
 			var->reset_string = copystring( var_value );
 			cvar_modifiedFlags |= flags;
 		}
@@ -406,7 +179,7 @@ cvar_t *_Cvar_Get(const char *var_name, const char *var_value, int flags, const 
 		if( !var->reset_string[0] )
 		{
 			// we don't have a reset string yet
-			Z_Free( var->reset_string );
+			Mem_Free( var->reset_string );
 			var->reset_string = copystring( var_value );
 		}
 		else if ( var_value[0] && strcmp( var->reset_string, var_value ))
@@ -422,7 +195,7 @@ cvar_t *_Cvar_Get(const char *var_name, const char *var_value, int flags, const 
 			s = var->latched_string;
 			var->latched_string = NULL; // otherwise cvar_set2 would free it
 			Cvar_Set2( var_name, s, true );
-			Z_Free( s );
+			Mem_Free( s );
 		}
 		return var;
 	}
@@ -441,8 +214,8 @@ cvar_t *_Cvar_Get(const char *var_name, const char *var_value, int flags, const 
 	var->description = copystring(var_desc);
 	var->modified = true;
 	var->modificationCount = 1;
-	var->value = atof(var->string);
-	var->integer = atoi(var->string);
+	var->value = com_atof(var->string);
+	var->integer = com_atoi(var->string);
 	var->reset_string = copystring( var_value );
 
 	// link the variable in
@@ -450,7 +223,6 @@ cvar_t *_Cvar_Get(const char *var_name, const char *var_value, int flags, const 
 	cvar_vars = var;
 
 	var->flags = flags;
-
 	hash = Cvar_GetHashValue(var_name);
 	var->hash = hashTable[hash];
 	hashTable[hash] = var;
@@ -480,17 +252,17 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 	}
 
 	var = Cvar_FindVar (var_name);
-	if (!var)
+	if(!var)
 	{
 		if( !value ) return NULL;
 
 		// create it
-		if ( !force ) return Cvar_Get( var_name, value, CVAR_USER_CREATED );
-		else return Cvar_Get (var_name, value, 0 );
+		if ( !force ) return Cvar_Get( var_name, value, CVAR_USER_CREATED, "user variable" );
+		else return Cvar_Get (var_name, value, 0, "" );
 	}
 
 	if(!value ) value = var->reset_string;
-	if(!strcmp(value, var->string)) return var;
+	if(!com_strcmp(value, var->string)) return var;
 
 	// note what types of cvars have been modified (userinfo, archive, serverinfo, systeminfo)
 	cvar_modifiedFlags |= var->flags;
@@ -511,13 +283,13 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 		{
 			if (var->latched_string)
 			{
-				if (!strcmp(value, var->latched_string))
+				if (!com_strcmp(value, var->latched_string))
 					return var;
-				Z_Free (var->latched_string);
+				Mem_Free (var->latched_string);
 			}
 			else
 			{
-				if (!strcmp(value, var->string))
+				if (!com_strcmp(value, var->string))
 					return var;
 			}
 			MsgDev(D_INFO, "%s will be changed after restarting.\n", var_name);
@@ -526,7 +298,7 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 			var->modificationCount++;
 			return var;
 		}
-		if ( (var->flags & CVAR_CHEAT) && !host_cheats->integer )
+		if ( (var->flags & CVAR_CHEAT) && !Cvar_VariableInteger("host_cheats"))
 		{
 			MsgDev(D_INFO, "%s is cheat protected.\n", var_name);
 			return var;
@@ -536,22 +308,22 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 	{
 		if (var->latched_string)
 		{
-			Z_Free(var->latched_string);
+			Mem_Free(var->latched_string);
 			var->latched_string = NULL;
 		}
 	}
 
-	if (!strcmp(value, var->string))
-		return var; // not changed
+ 	// nothing to change
+	if(!com_strcmp(value, var->string)) return var;
 
 	var->modified = true;
 	var->modificationCount++;
 	
-	Z_Free (var->string); // free the old value string
-	
+	// free the old value string
+	Mem_Free (var->string);
 	var->string = copystring(value);
-	var->value = atof (var->string);
-	var->integer = atoi(var->string);
+	var->value = com_atof (var->string);
+	var->integer = com_atoi(var->string);
 
 	return var;
 }
@@ -561,7 +333,7 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 Cvar_Set
 ============
 */
-void Cvar_Set( const char *var_name, const char *value)
+void Cvar_Set( const char *var_name, const char *value )
 {
 	Cvar_Set2 (var_name, value, true);
 }
@@ -571,7 +343,7 @@ void Cvar_Set( const char *var_name, const char *value)
 Cvar_SetLatched
 ============
 */
-void Cvar_SetLatched( const char *var_name, const char *value)
+void Cvar_SetLatched( const char *var_name, const char *value )
 {
 	Cvar_Set2 (var_name, value, false);
 }
@@ -581,7 +353,7 @@ void Cvar_SetLatched( const char *var_name, const char *value)
 Cvar_FullSet
 ============
 */
-void Cvar_FullSet (char *var_name, char *value, int flags)
+void Cvar_FullSet( char *var_name, char *value, int flags )
 {
 	cvar_t	*var;
 	
@@ -589,19 +361,21 @@ void Cvar_FullSet (char *var_name, char *value, int flags)
 	if (!var) 
 	{
 		// create it
-		Cvar_Get (var_name, value, flags);
+		Cvar_Get(var_name, value, flags, "" );
 		return;
 	}
 	var->modified = true;
 
 	if (var->flags & CVAR_USERINFO)
-		userinfo_modified = true; // transmit at next oportunity
-	
-	Z_Free (var->string); // free the old value string
-	
+	{
+		// transmit at next oportunity
+		std.userinfo_modified = true;
+	}	
+
+	Mem_Free( var->string ); // free the old value string
 	var->string = copystring(value);
-	var->value = atof(var->string);
-	var->integer = atoi(var->string);
+	var->value = com_atof(var->string);
+	var->integer = com_atoi(var->string);
 	var->flags = flags;
 }
 
@@ -610,13 +384,13 @@ void Cvar_FullSet (char *var_name, char *value, int flags)
 Cvar_SetValue
 ============
 */
-void Cvar_SetValue( const char *var_name, float value)
+void Cvar_SetValue( const char *var_name, float value )
 {
 	char	val[32];
 
-	if( value == (int)value ) sprintf (val, "%i", (int)value);
-	else sprintf (val, "%f", value);
-	Cvar_Set (var_name, val);
+	if( value == (int)value ) com_sprintf (val, "%i", (int)value);
+	else com_sprintf (val, "%f", value);
+	Cvar_Set(var_name, val);
 }
 
 /*
@@ -641,18 +415,18 @@ void Cvar_SetCheatState( void )
 	cvar_t	*var;
 
 	// set all default vars to the safe value
-	for ( var = cvar_vars ; var ; var = var->next )
+	for ( var = cvar_vars; var; var = var->next )
 	{
 		if( var->flags & CVAR_CHEAT )
 		{
 			// the CVAR_LATCHED|CVAR_CHEAT vars might escape the reset here 
 			// because of a different var->latched_string
-			if (var->latched_string)
+			if(var->latched_string)
 			{
-				Z_Free(var->latched_string);
+				Mem_Free(var->latched_string);
 				var->latched_string = NULL;
 			}
-			if (strcmp(var->reset_string, var->string))
+			if(com_strcmp(var->reset_string, var->string))
 			{
 				Cvar_Set( var->name, var->reset_string );
 			}
@@ -676,7 +450,7 @@ bool Cvar_Command( void )
 	if (!v) return false;
 
 	// perform a variable print or set
-	if ( Cmd_Argc() == 1 )
+	if( Cmd_Argc() == 1 )
 	{
 		if(v->flags & CVAR_INIT) Msg("%s: %s\n", v->name, v->string );
 		else Msg("%s: %s ( ^3%s^7 )\n", v->name, v->string, v->reset_string );
@@ -706,7 +480,7 @@ void Cvar_Toggle_f( void )
 		return;
 	}
 
-	v = Cvar_VariableValue( Cmd_Argv( 1 ));
+	v = Cvar_VariableValue(Cmd_Argv( 1 ));
 	v = !v;
 
 	Cvar_Set2 (Cmd_Argv(1), va("%i", v), false);
@@ -731,7 +505,6 @@ void Cvar_Set_f( void )
 		Msg("usage: set <variable> <value>\n");
 		return;
 	}
-
 	combined[0] = 0;
 
 	for ( i = 2; i < c; i++ )
@@ -809,9 +582,9 @@ void Cvar_SetA_f( void )
 		Msg("usage: seta <variable> <value>\n");
 		return;
 	}
+
 	Cvar_Set_f();
 	v = Cvar_FindVar( Cmd_Argv( 1 ) );
-
 	if ( !v ) return;
 	v->flags |= CVAR_ARCHIVE;
 }
@@ -833,31 +606,6 @@ void Cvar_Reset_f( void )
 
 /*
 ============
-Cvar_WriteVariables
-
-Appends lines containing "set variable value" for all variables
-with the archive flag set to true.
-============
-*/
-void Cvar_WriteVariables( file_t *f )
-{
-	cvar_t	*var;
-	char	buffer[1024];
-
-	for(var = cvar_vars; var; var = var->next)
-	{
-		if( var->flags & CVAR_ARCHIVE )
-		{
-			// write the latched value, even if it hasn't taken effect yet
-			if (!var->latched_string ) sprintf(buffer, "seta %s \"%s\"\n", var->name, var->string);
-			else sprintf(buffer, "seta %s \"%s\"\n", var->name, var->latched_string);
-			FS_Printf (f, "%s", buffer);
-		}
-	}
-}
-
-/*
-============
 Cvar_List_f
 ============
 */
@@ -872,7 +620,7 @@ void Cvar_List_f( void )
 
 	for (var = cvar_vars; var; var = var->next, i++)
 	{
-		if (match && !Com_Filter(match, var->name, false))
+		if (match && !SC_FilterToken(match, var->name, false))
 			continue;
 
 		if (var->flags & CVAR_SERVERINFO) Msg("S");
@@ -897,8 +645,8 @@ void Cvar_List_f( void )
 		else Msg(" ");
 		Msg (" %s \"%s\"\n", var->name, var->string);
 	}
-	Msg ("\n%i total cvars\n", i);
-	Msg ("%i cvar indexes\n", cvar_numIndexes);
+	Msg("\n%i total cvars\n", i );
+	Msg("%i cvar indexes\n", cvar_numIndexes );
 }
 
 /*
@@ -918,7 +666,7 @@ void Cvar_Restart_f( void )
 	while ( 1 )
 	{
 		var = *prev;
-		if ( !var ) break;
+		if( !var ) break;
 
 		// don't mess with rom values, or some inter-module
 		// communication will get broken (com_cl_running, etc)
@@ -932,48 +680,20 @@ void Cvar_Restart_f( void )
 		if ( var->flags & CVAR_USER_CREATED )
 		{
 			*prev = var->next;
-			if( var->name ) Z_Free( var->name );
-			if ( var->string ) Z_Free( var->string );
-			if ( var->latched_string ) Z_Free( var->latched_string );
-			if ( var->reset_string ) Z_Free( var->reset_string );
-			if ( var->description ) Z_Free( var->description );
+			if( var->name ) Mem_Free( var->name );
+			if( var->string ) Mem_Free( var->string );
+			if( var->latched_string ) Mem_Free( var->latched_string );
+			if( var->reset_string ) Mem_Free( var->reset_string );
+			if( var->description ) Mem_Free( var->description );
 
 			// clear the var completely, since we
 			// can't remove the index from the list
-			memset( var, 0, sizeof( var ));
+			Mem_Set( var, 0, sizeof( var ));
 			continue;
 		}
-
 		Cvar_Set( var->name, var->reset_string );
 		prev = &var->next;
 	}
-}
-
-char *Cvar_BitInfo (int bit)
-{
-	static char	info[MAX_INFO_STRING];
-	cvar_t	*var;
-
-	info[0] = 0;
-
-	for (var = cvar_vars; var; var = var->next)
-	{
-		if (var->flags & bit)
-			Info_SetValueForKey (info, var->name, var->string);
-	}
-	return info;
-}
-
-// returns an info string containing all the CVAR_USERINFO cvars
-char *Cvar_Userinfo (void)
-{
-	return Cvar_BitInfo (CVAR_USERINFO);
-}
-
-// returns an info string containing all the CVAR_SERVERINFO cvars
-char *Cvar_Serverinfo (void)
-{
-	return Cvar_BitInfo (CVAR_SERVERINFO);
 }
 
 /*
@@ -985,8 +705,6 @@ Reads in all archived cvars
 */
 void Cvar_Init (void)
 {
-	host_cheats = Cvar_Get("host_cheats", "1", CVAR_READ_ONLY | CVAR_SYSTEMINFO );
-
 	Cmd_AddCommand ("toggle", Cvar_Toggle_f, "toggles a console variable's values (use for more info)" );
 	Cmd_AddCommand ("set", Cvar_Set_f, "create or change the value of a console variable" );
 	Cmd_AddCommand ("sets", Cvar_SetS_f, "create or change the value of a serverinfo variable");

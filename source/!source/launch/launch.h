@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <basetypes.h>
 
+#define LAUNCH_DLL		// skip alias names
 #include <ref_system.h>
 
 enum
@@ -33,6 +34,7 @@ typedef struct system_s
 	bool			log_active;
 	char			log_path[MAX_SYSPATH];
 	bool			hooked_out;
+	bool			stuffcmdsrun;
 
 	HINSTANCE			hInstance;
 	LPTOP_LEVEL_EXCEPTION_FILTER	oldFilter;		
@@ -94,6 +96,7 @@ void Sys_WaitForQuit( void );
 void Sys_InitLog( void );
 void Sys_CloseLog( void );
 void Sys_Error(const char *error, ...);
+void Sys_Break(const char *error, ...);
 void Sys_PrintLog( const char *pMsg );
 void Sys_Print(const char *pMsg);
 void Sys_Msg( const char *pMsg, ... );
@@ -151,6 +154,8 @@ int com_snprintf(char *buffer, size_t buffersize, const char *format, ...);
 int com_sprintf(char *buffer, const char *format, ...);
 char *com_pretifymem( float value, int digitsafterdecimal );
 char *va(const char *format, ...);
+
+#define copystring(str)	com_stralloc(str, __FILE__, __LINE__)
 
 //
 // memlib.c
@@ -234,6 +239,55 @@ int FS_Close (file_t* file);
 int FS_Getc (file_t* file);
 bool FS_Eof( file_t* file);
 
+//
+// cvar.c
+//
+cvar_t *Cvar_FindVar (const char *var_name);
+cvar_t *Cvar_Get (const char *var_name, const char *value, int flags, const char *description);
+void Cvar_Set( const char *var_name, const char *value);
+cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force);
+void Cvar_CommandCompletion( void(*callback)(const char *s, const char *m));
+void Cvar_FullSet (char *var_name, char *value, int flags);
+void Cvar_SetLatched( const char *var_name, const char *value);
+void Cvar_SetValue( const char *var_name, float value);
+float Cvar_VariableValue (const char *var_name);
+char *Cvar_VariableString (const char *var_name);
+bool Cvar_Command (void);
+void Cvar_WriteVariables( file_t *f );
+void Cvar_Init (void);
+char *Cvar_Userinfo (void);
+char *Cvar_Serverinfo (void);
+extern bool userinfo_modified;
+char *Info_ValueForKey( char *s, char *key );
+void Info_RemoveKey( char *s, char *key );
+void Info_SetValueForKey( char *s, char *key, char *value );
+bool Info_Validate( char *s );
+void Info_Print( char *s );
+extern cvar_t *cvar_vars;
+
+//
+// cmd.c
+//
+void Cbuf_Init( void );
+void Cbuf_AddText (const char *text);
+void Cbuf_InsertText (const char *text);
+void Cbuf_ExecuteText (int exec_when, const char *text);
+void Cbuf_Execute (void);
+uint Cmd_Argc( void );
+char *Cmd_Args( void );
+char *Cmd_Argv( uint arg );
+void Cmd_Init( void );
+void Cmd_AddCommand(const char *cmd_name, xcommand_t function, const char *cmd_desc);
+void Cmd_RemoveCommand(const char *cmd_name);
+bool Cmd_Exists (const char *cmd_name);
+void Cmd_CommandCompletion( void(*callback)(const char *s, const char *m));
+bool Cmd_GetMapList( const char *s, char *completedname, int length );
+bool Cmd_GetDemoList( const char *s, char *completedname, int length );
+bool Cmd_GetMovieList (const char *s, char *completedname, int length );
+void Cmd_TokenizeString (const char *text);
+void Cmd_ExecuteString (const char *text);
+void Cmd_ForwardToServer (void);
+
 // virtual files managment
 vfile_t *VFS_Create(byte *buffer, size_t buffsize);
 vfile_t *VFS_Open(file_t *handle, const char* mode);
@@ -271,6 +325,7 @@ void SC_SkipToken( void );
 void SC_FreeToken( void );
 bool SC_TryToken( void );
 char *SC_GetToken( bool newline );
+char *SC_Token( void );
 extern char token[];
 
 #endif//LAUNCHER_H

@@ -17,11 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-#include <string.h>
-#include <ctype.h>
 
-#include "client.h"
-#include "qmenu.h"
+#include "uimenu.h"
 
 static void Action_DoEnter( menuaction_s *a );
 static void Action_Draw( menuaction_s *a );
@@ -451,7 +448,7 @@ void MenuList_Draw( menulist_s *l )
 
 	n = l->itemnames;
 
-	SCR_FillRect( l->generic.x - 112 + l->generic.parent->x, l->generic.parent->y + l->generic.y + l->curvalue*17 + 17, 128, 10, COLOR_16 );
+	SCR_FillRect( l->generic.x - 112 + l->generic.parent->x, l->generic.parent->y + l->generic.y + l->curvalue*17 + 17, 128, 10, GetRGBA(0.3f, 0.8f, 1.0f, 1.0f));
   	while ( *n )
 	{
 		Menu_DrawStringR2LDark( l->generic.x + l->generic.parent->x + LCOLUMN_OFFSET, l->generic.y + l->generic.parent->y + y + 17, *n );

@@ -29,7 +29,6 @@ MISC
 
 ==============================================================
 */
-float frand(void);	// 0 to 1
-float crand(void);	// -1 to 1
+
 
 #endif//COMMON_H

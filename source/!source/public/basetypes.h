@@ -14,8 +14,8 @@
 #pragma warning(disable : 4514)	// unreferenced inline function removed
 #pragma warning(disable : 4100)	// unreferenced formal parameter
 
-#define DLLEXPORT	__declspec(dllexport)
-#define DLLIMPORT	__declspec(dllimport)
+#define DLLEXPORT		__declspec(dllexport)
+#define DLLIMPORT		__declspec(dllimport)
 
 #define MIN_PATH		64
 #define MAX_QPATH		64	// get rid of this
@@ -39,10 +39,36 @@
 #define COLOR_CYAN		'5'
 #define COLOR_MAGENTA	'6'
 #define COLOR_WHITE		'7'
-#define ColorIndex(c)	(((c) - '0') & 7)
 #define STRING_COLOR_TAG	'^'
+#define ColorIndex(c)	(((c) - '0') & 7)
 #define IsColorString(p)	( p && *(p) == STRING_COLOR_TAG && *((p)+1) && *((p)+1) != STRING_COLOR_TAG )
 
+// command buffer modes
+#define EXEC_NOW		0
+#define EXEC_INSERT		1
+#define EXEC_APPEND		2
+
+// timestamp modes
+#define TIME_FULL		0
+#define TIME_DATE_ONLY	1
+#define TIME_TIME_ONLY	2
+#define TIME_NO_SECONDS	3
+
+// cvar flags
+#define CVAR_ARCHIVE	1	// set to cause it to be saved to vars.rc
+#define CVAR_USERINFO	2	// added to userinfo  when changed
+#define CVAR_SERVERINFO	4	// added to serverinfo when changed
+#define CVAR_SYSTEMINFO	8	// these cvars will be duplicated on all clients
+#define CVAR_INIT		16	// don't allow change from console at all, but can be set from the command line
+#define CVAR_LATCH		32	// save changes until server restart
+#define CVAR_READ_ONLY	64	// display only, cannot be set by user at all
+#define CVAR_USER_CREATED	128	// created by a set command (prvm used)
+#define CVAR_TEMP		256	// can be set even when cheats are disabled, but is not archived
+#define CVAR_CHEAT		512	// can not be changed if cheats are disabled
+#define CVAR_NORESTART	1024	// do not clear when a cvar_restart is issued
+#define CVAR_MAXFLAGSVAL	2047	// maximum number of flags
+
+// euler angle order
 #define PITCH		0
 #define YAW		1
 #define ROLL		2
@@ -51,7 +77,7 @@
 #define NULL		((void *)0)
 #endif
 
-typedef enum{false, true}	bool;
+typedef enum{ false, true }	bool;
 typedef unsigned char 	byte;
 typedef unsigned short	word;
 typedef unsigned long	dword;
@@ -87,6 +113,7 @@ typedef struct physragdoll_s	NewtonRagDoll;
 typedef struct physmaterial_s	NewtonMaterial;
 typedef struct physcolision_s	NewtonCollision;
 typedef struct physragbone_s	NewtonRagDollBone;
+typedef struct { size_t api_size; } generic_api_t;
 typedef struct { int fileofs; int filelen; } lump_t;		// many formats use lumps to store blocks
 typedef struct { int type; char *name; } activity_map_t;		// studio activity map conversion
 typedef struct { uint b:5; uint g:6; uint r:5; } color16;
@@ -94,6 +121,34 @@ typedef struct { byte r:8; byte g:8; byte b:8; } color24;
 typedef struct { byte r; byte g; byte b; byte a; } color32;
 typedef struct { const char *name; void **func; } dllfunc_t;	// Sys_LoadLibrary stuff
 typedef struct { int ofs; int type; const char *name; } fields_t;	// prvm custom fields
+typedef struct { int numfilenames; char **filenames; char *filenamesbuffer; } search_t;
+
+
+enum host_state
+{	// paltform states
+	HOST_OFFLINE = 0,	// host_init( funcname *arg ) same much as:
+	HOST_NORMAL,	// "host_shared"
+	HOST_DEDICATED,	// "host_dedicated"
+	HOST_EDITOR,	// "host_editor"
+	BSPLIB,		// "bsplib"
+	IMGLIB,		// "imglib"
+	QCCLIB,		// "qcclib"
+	ROQLIB,		// "roqlib"
+	SPRITE,		// "sprite"
+	STUDIO,		// "studio"
+	CREDITS,		// "splash"
+	HOST_INSTALL,	// "install"
+};
+
+enum dev_level
+{
+	D_INFO = 1,	// "-dev 1", shows various system messages
+	D_WARN,		// "-dev 2", shows not critical system warnings, same as MsgWarn
+	D_ERROR,		// "-dev 3", shows critical warnings 
+	D_LOAD,		// "-dev 4", show messages about loading resources
+	D_NOTE,		// "-dev 5", show system notifications for engine develeopers
+	D_MEMORY,		// "-dev 6", show memory allocation
+};
 
 static vec4_t g_color_table[8] =
 {

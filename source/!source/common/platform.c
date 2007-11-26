@@ -164,7 +164,7 @@ void RunPlatform ( void )
 		if(numCompiledMods == 0) 
 		{
 			for(j = 0; j < 8; j++) strcat(errorstring, searchmask[j]);
-			Sys_Error("no %s found in this folder!\n", errorstring );
+			Sys_Break("no %s found in this folder!\n", errorstring );
 		}
 	}
 	else CompileMod( zonepool, filename, parms );

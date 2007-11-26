@@ -178,19 +178,11 @@ SOURCE=.\client\cl_view.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\cmd.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\cmodel.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\common.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\cvar.c
 # End Source File
 # Begin Source File
 

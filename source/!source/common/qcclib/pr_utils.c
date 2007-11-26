@@ -595,11 +595,8 @@ void PR_WriteDAT( void )
 
 	progs.blockscompressed = 0;
 
-	if (numstatements > MAX_STATEMENTS)
-		Sys_Error("Too many statements - %i\nAdd \"MAX_STATEMENTS\" \"%i\" to qcc.cfg", numstatements, (numstatements+32768)&~32767);
-
-	if (strofs > MAX_STRINGS)
-		Sys_Error("Too many strings - %i\nAdd \"MAX_STRINGS\" \"%i\" to qcc.cfg", strofs, (strofs+32768)&~32767);
+	if(numstatements > MAX_STATEMENTS) PR_ParseError(ERR_INTERNAL, "Too many statements - %i\n", numstatements );
+	if(strofs > MAX_STRINGS) PR_ParseError(ERR_INTERNAL, "Too many strings - %i\n", strofs );
 
 	PR_UnmarshalLocals();
 
@@ -744,19 +741,17 @@ void PR_WriteDAT( void )
 		else dd->s_name = PR_CopyString (def->name, opt_noduplicatestrings );
 		dd->ofs = def->ofs;
 	}
-
-	if (numglobaldefs > MAX_GLOBALS)
-		Sys_Error("Too many globals - %i\nAdd \"MAX_GLOBALS\" \"%i\" to qcc.cfg", numglobaldefs, (numglobaldefs+32768)&~32767);
+	if(numglobaldefs > MAX_GLOBALS) PR_ParseError(ERR_INTERNAL, "Too many globals - %i\n", numglobaldefs );
 
 	strofs = (strofs + 3) & ~3;
 
 	PR_Message("Linking...\n");
-	MsgDev (D_INFO, "%6i strofs (of %i)\n", strofs, MAX_STRINGS);
-	MsgDev (D_INFO, "%6i numstatements (of %i)\n", numstatements, MAX_STATEMENTS);
-	MsgDev (D_INFO, "%6i numfunctions (of %i)\n", numfunctions, MAX_FUNCTIONS);
-	MsgDev (D_INFO, "%6i numglobaldefs (of %i)\n", numglobaldefs, MAX_GLOBALS);
-	MsgDev (D_INFO, "%6i numfielddefs (%i unique) (of %i)\n", numfielddefs, pr.size_fields, MAX_FIELDS);
-	MsgDev (D_INFO, "%6i numpr_globals (of %i)\n", numpr_globals, MAX_REGS);	
+	MsgDev(D_INFO, "%6i strofs (of %i)\n", strofs, MAX_STRINGS);
+	MsgDev(D_INFO, "%6i numstatements (of %i)\n", numstatements, MAX_STATEMENTS);
+	MsgDev(D_INFO, "%6i numfunctions (of %i)\n", numfunctions, MAX_FUNCTIONS);
+	MsgDev(D_INFO, "%6i numglobaldefs (of %i)\n", numglobaldefs, MAX_GLOBALS);
+	MsgDev(D_INFO, "%6i numfielddefs (%i unique) (of %i)\n", numfielddefs, pr.size_fields, MAX_FIELDS);
+	MsgDev(D_INFO, "%6i numpr_globals (of %i)\n", numpr_globals, MAX_REGS);	
 	
 	f = FS_Open( progsoutname, "wb" );
 	FS_Write(f, &progs, sizeof(progs));
@@ -887,7 +882,7 @@ void PR_WriteDAT( void )
 
 	progs.ofsfiles = 0;
 	progs.ofslinenums = 0;
-	progs.header = 0;
+	progs.id = 0;
 	progs.ofsbodylessfuncs = 0;
 	progs.numbodylessfuncs = 0;
 	progs.ofs_types = 0;
@@ -900,8 +895,8 @@ void PR_WriteDAT( void )
 		PR_WriteLNOfile( progsoutname );
 		break;
 	case FPROGS_VERSION:
-		if (outputsize == 16) progs.header = VPROGSHEADER16;
-		if (outputsize == 32) progs.header = VPROGSHEADER32;
+		if (outputsize == 16) progs.id = VPROGSHEADER16;
+		if (outputsize == 32) progs.id = VPROGSHEADER32;
 
 		progs.ofsbodylessfuncs = FS_Tell(f);
 		progs.numbodylessfuncs = PR_WriteBodylessFuncs(f);		

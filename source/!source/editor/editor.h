@@ -13,7 +13,6 @@
 #include <string.h>
 #include <basetypes.h>
 #include <ref_system.h>
-#include <ref_stdlib.h>
 
 #include "mxtk.h"
 #include "options.h"

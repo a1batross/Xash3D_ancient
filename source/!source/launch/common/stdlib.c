@@ -359,10 +359,9 @@ int com_strnicmp(const char *s1, const char *s2, int n)
 		if ( s2 == NULL ) return 0;
 		else return -1;
 	}
-	else if ( s2==NULL ) return 1;
+	else if ( s2 == NULL ) return 1;
 
-	while(1)
-	{
+	do {
 		c1 = *s1++;
 		c2 = *s2++;
 
@@ -370,18 +369,14 @@ int com_strnicmp(const char *s1, const char *s2, int n)
 		
 		if(c1 != c2)
 		{
-			if (c1 >= 'a' && c1 <= 'z') c1 -= ('a' - 'A');
-			if (c2 >= 'a' && c2 <= 'z') c2 -= ('a' - 'A');
-			if (c1 != c2) return -1; // strings not equal
+			if(c1 >= 'a' && c1 <= 'z') c1 -= ('a' - 'A');
+			if(c2 >= 'a' && c2 <= 'z') c2 -= ('a' - 'A');
+			if(c1 != c2) return c1 < c2 ? -1 : 1;
 		}
-		if(!c1) return 0; // strings are equal
-	}
-	return -1;
-}
+	} while (c1);
 
-int com_stricmp(const char *s1, const char *s2)
-{
-	return com_strnicmp(s1, s2, 99999 );
+	// strings are equal
+	return 0;
 }
 
 int com_strncmp (const char *s1, const char *s2, int n)
@@ -393,7 +388,7 @@ int com_strncmp (const char *s1, const char *s2, int n)
 		if ( s2 == NULL ) return 0;
 		else return -1;
 	}
-	else if ( s2==NULL ) return 1;
+	else if ( s2 == NULL ) return 1;
 	
 	do {
 		c1 = *s1++;
@@ -407,6 +402,11 @@ int com_strncmp (const char *s1, const char *s2, int n)
 	
 	// strings are equal
 	return 0;
+}
+
+int com_stricmp(const char *s1, const char *s2)
+{
+	return com_strnicmp(s1, s2, 99999 );
 }
 
 int com_strcmp (const char *s1, const char *s2)

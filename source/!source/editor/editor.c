@@ -13,7 +13,7 @@ DllMain
 
 ==================
 */
-launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, generic_api_t *unused )
+launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 {
 	static launch_exp_t Editor;
 

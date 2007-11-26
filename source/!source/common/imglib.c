@@ -4,7 +4,6 @@
 //=======================================================================
 
 #include "platform.h"
-#include "ref_rgbdata.h"
 #include "utils.h"
 
 bool ConvertImagePixels ( byte *mempool, const char *name, byte parms )

@@ -1001,9 +1001,9 @@ void R_Register( void )
 	r_fullscreen = Cvar_Get( "fullscreen", "0", CVAR_ARCHIVE );
 	vid_gamma = Cvar_Get( "vid_gamma", "1", CVAR_ARCHIVE );
 
-	Cmd_AddCommand( "imagelist", R_ImageList_f );
-	Cmd_AddCommand( "modellist", Mod_Modellist_f );
-	Cmd_AddCommand( "gl_strings", GL_Strings_f );
+	Cmd_AddCommand( "imagelist", R_ImageList_f, "display loaded images list" );
+	Cmd_AddCommand( "modellist", Mod_Modellist_f, "display loaded models list" );
+	Cmd_AddCommand( "gl_strings", GL_Strings_f, "display openGL supported extensions" );
 }
 
 /*

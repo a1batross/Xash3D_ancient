@@ -5,7 +5,6 @@
 
 #include "launch.h"
 #include "basemath.h" // nearest_pow
-#include "ref_rgbdata.h"
 #include "image.h"
 
 // global image variables

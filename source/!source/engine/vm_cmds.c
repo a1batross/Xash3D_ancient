@@ -7,6 +7,7 @@
 #include "engine.h"
 #include "progsvm.h"
 #include "server.h"
+#include "client.h"
 
 //============================================================================
 // Common
@@ -1292,19 +1293,11 @@ void VM_registercvar (void)
 	if(flags > CVAR_MAXFLAGSVAL)
 		return;
 
-// first check to see if it has already been defined
+	// first check to see if it has already been defined
 	if (Cvar_FindVar (name))
 		return;
 
-// check for overlap with a command
-	if (Cmd_Exists (name))
-	{
-		VM_Warning("VM_registercvar: %s is a command\n", name);
-		return;
-	}
-
 	Cvar_Get(name, value, flags);
-
 	PRVM_G_FLOAT(OFS_RETURN) = 1; // success
 }
 

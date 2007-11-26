@@ -1930,8 +1930,8 @@ void PR_ParseError (int errortype, char *error, ...)
 
 	if(errortype == ERR_INTERNAL)
 	{
-		// instead of sys error
-		std.error( "internal error: %s\n", string );
+		// because sys_error hide message in non-developer mode
+		Sys_Break( "internal error: %s\n", string );
 	}
 	else
 	{

@@ -779,7 +779,7 @@ void CL_SendCmd (void)
 		CL_FixUpGender();
 		userinfo_modified = false;
 		MSG_WriteByte (&cls.netchan.message, clc_userinfo);
-		MSG_WriteString (&cls.netchan.message, Cvar_Userinfo() );
+		MSG_WriteString (&cls.netchan.message, Cvar_Userinfo());
 	}
 
 	// begin a client move command

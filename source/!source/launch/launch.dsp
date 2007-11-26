@@ -112,6 +112,10 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\common\cmd.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\common\console.c
 # End Source File
 # Begin Source File
@@ -121,6 +125,10 @@ SOURCE=.\common\cpuinfo.c
 # Begin Source File
 
 SOURCE=.\common\crclib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\cvar.c
 # End Source File
 # Begin Source File
 

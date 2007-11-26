@@ -14,8 +14,9 @@ typedef struct key_s
 
 typedef struct keyname_s
 {
-	char	*name;
-	int	keynum;
+	char	*name;		// key name
+	int	keynum;		// key number
+	char	*binding;		// default bind
 } keyname_t;
 
 field_t historyEditLines[COMMAND_HISTORY];
@@ -37,71 +38,72 @@ static int matchCount;
 
 keyname_t keynames[] =
 {
-	{"TAB",		K_TAB},
-	{"ENTER",		K_ENTER},
-	{"ESCAPE",	K_ESCAPE},
-	{"SPACE",		K_SPACE},
-	{"BACKSPACE",	K_BACKSPACE},
-	{"UPARROW",	K_UPARROW},
-	{"DOWNARROW",	K_DOWNARROW},
-	{"LEFTARROW",	K_LEFTARROW},
-	{"RIGHTARROW",	K_RIGHTARROW},
-	{"ALT",		K_ALT},
-	{"CTRL",		K_CTRL},
-	{"SHIFT",		K_SHIFT},
-	{"COMMAND",	K_COMMAND},
-	{"CAPSLOCK",	K_CAPSLOCK},
-	{"F1",		K_F1},
-	{"F2",		K_F2},
-	{"F3",		K_F3},
-	{"F4",		K_F4},
-	{"F5",		K_F5},
-	{"F6",		K_F6},
-	{"F7",		K_F7},
-	{"F8",		K_F8},
-	{"F9",		K_F9},
-	{"F10",		K_F10},
-	{"F11",		K_F11},
-	{"F12",		K_F12},
-	{"INS",		K_INS},
-	{"DEL",		K_DEL},
-	{"PGDN",		K_PGDN},
-	{"PGUP",		K_PGUP},
-	{"HOME",		K_HOME},
-	{"END",		K_END},
+	{"TAB",		K_TAB,	"inven"		},
+	{"ENTER",		K_ENTER,	"invuse"		},
+	{"ESCAPE",	K_ESCAPE, "togglemenu"	}, // hardcoded
+	{"SPACE",		K_SPACE,	"+moveup"		},
+	{"BACKSPACE",	K_BACKSPACE,	"invdrop"	},
+	{"UPARROW",	K_UPARROW,"+forward"	},
+	{"DOWNARROW",	K_DOWNARROW,	"+back"	},
+	{"LEFTARROW",	K_LEFTARROW,	"+left"	},
+	{"RIGHTARROW",	K_RIGHTARROW,	"+right"	},
+	{"ALT",		K_ALT,	""		},
+	{"CTRL",		K_CTRL,	"+attack"		},
+	{"SHIFT",		K_SHIFT,	"+speed"		},
+	{"COMMAND",	K_COMMAND,	""	},
+	{"CAPSLOCK",	K_CAPSLOCK,	""	},
+	{"F1",		K_F1,	"cmd help"	},
+	{"F2",		K_F2,	"menu_savegame"	},
+	{"F3",		K_F3,	"menu_loadgame"	},
+	{"F4",		K_F4,	"menu_keys"	},
+	{"F5",		K_F5,	"menu_startserver"	},
+	{"F6",		K_F6,	"save quick"	},
+	{"F7",		K_F7,	"load quick"	}, // half-life style
+	{"F8",		K_F8,	""		},
+	{"F9",		K_F9,	"load quick"	}, // quake style
+	{"F10",		K_F10,	"menu_quit"	},
+	{"F11",		K_F11,	""		},
+	{"F12",		K_F12,	"screenshot"	},
+	{"INS",		K_INS,	"+klook"		},
+	{"DEL",		K_DEL,	"+lookdown"	},
+	{"PGDN",		K_PGDN,	"+lookup"		},
+	{"PGUP",		K_PGUP,	""		},
+	{"HOME",		K_HOME,	""		},
+	{"END",		K_END,	"centerview"	},
 
 	// mouse buttouns
-	{"MOUSE1",	K_MOUSE1},
-	{"MOUSE2",	K_MOUSE2},
-	{"MOUSE3",	K_MOUSE3},
-	{"MOUSE4",	K_MOUSE4},
-	{"MOUSE5",	K_MOUSE5},
-	{"MWHEELUP",	K_MWHEELUP },
-	{"MWHEELDOWN",	K_MWHEELDOWN },
+	{"MOUSE1",	K_MOUSE1,	"+attack"		},
+	{"MOUSE2",	K_MOUSE2,	""		},
+	{"MOUSE3",	K_MOUSE3,	""		},
+	{"MOUSE4",	K_MOUSE4,	""		},
+	{"MOUSE5",	K_MOUSE5,	""		},
+	{"MWHEELUP",	K_MWHEELUP,	""	},
+	{"MWHEELDOWN",	K_MWHEELDOWN,	""	},
 
-	{"KP_HOME",	K_KP_HOME },
-	{"KP_UPARROW",	K_KP_UPARROW },
-	{"KP_PGUP",	K_KP_PGUP },
-	{"KP_LEFTARROW",	K_KP_LEFTARROW },
-	{"KP_5",		K_KP_5 },
-	{"KP_RIGHTARROW",	K_KP_RIGHTARROW },
-	{"KP_END",	K_KP_END },
-	{"KP_DOWNARROW",	K_KP_DOWNARROW },
-	{"KP_PGDN",	K_KP_PGDN },
-	{"KP_ENTER",	K_KP_ENTER },
-	{"KP_INS",	K_KP_INS },
-	{"KP_DEL",	K_KP_DEL },
-	{"KP_SLASH",	K_KP_SLASH },
-	{"KP_MINUS",	K_KP_MINUS },
-	{"KP_PLUS",	K_KP_PLUS },
-	{"KP_NUMLOCK",	K_KP_NUMLOCK },
-	{"KP_STAR",	K_KP_STAR },
-	{"KP_EQUALS",	K_KP_EQUALS },
-	{"PAUSE",		K_PAUSE},
+	// digital keyboard
+	{"KP_HOME",	K_KP_HOME,	""	},
+	{"KP_UPARROW",	K_KP_UPARROW,	"+forward"},
+	{"KP_PGUP",	K_KP_PGUP,	""	},
+	{"KP_LEFTARROW",	K_KP_LEFTARROW,	"+left"	},
+	{"KP_5",		K_KP_5,		""	},
+	{"KP_RIGHTARROW",	K_KP_RIGHTARROW,	"+right"	},
+	{"KP_END",	K_KP_END,	"centerview"	},
+	{"KP_DOWNARROW",	K_KP_DOWNARROW,	"+back"	},
+	{"KP_PGDN",	K_KP_PGDN,	"+lookup" },
+	{"KP_ENTER",	K_KP_ENTER,	"invuse"	},
+	{"KP_INS",	K_KP_INS,		"+klook"	},
+	{"KP_DEL",	K_KP_DEL,	"+lookdown"	},
+	{"KP_SLASH",	K_KP_SLASH,	""	},
+	{"KP_MINUS",	K_KP_MINUS,	""	},
+	{"KP_PLUS",	K_KP_PLUS,	""	},
+	{"KP_NUMLOCK",	K_KP_NUMLOCK,	""	},
+	{"KP_STAR",	K_KP_STAR,	""	},
+	{"KP_EQUALS",	K_KP_EQUALS,	""	},
+	{"PAUSE",		K_PAUSE,	"pause"		},
 
 	// raw semicolon seperates commands
-	{"SEMICOLON",	';'},
-	{NULL,		0}
+	{"SEMICOLON",	';',	""		},
+	{NULL,		0,	NULL		},
 };
 
 /*
@@ -893,13 +895,13 @@ void Key_Unbind_f( void )
 		return;
 	}
 	
-	b = Key_StringToKeynum (Cmd_Argv(1));
+	b = Key_StringToKeynum(Cmd_Argv(1));
 	if (b == -1)
 	{
 		Msg("\"%s\" isn't a valid key\n", Cmd_Argv(1));
 		return;
 	}
-	Key_SetBinding (b, "");
+	Key_SetBinding(b, "" );
 }
 
 /*
@@ -1012,11 +1014,16 @@ Key_Init
 */
 void Key_Init (void)
 {
+	keyname_t		*kn;
+
 	// register our functions
 	Cmd_AddCommand ("bind", Key_Bind_f, "binds a command to the specified key in bindmap" );
 	Cmd_AddCommand ("unbind", Key_Unbind_f, "removes a command on the specified key in bindmap" );
 	Cmd_AddCommand ("unbindall", Key_Unbindall_f, "removes all commands from all keys in bindmap" );
 	Cmd_AddCommand ("bindlist", Key_Bindlist_f, "display current key bindings" );
+
+	// setup hardcode binding. "unbindall" from keys.rc will be reset it
+	for( kn = keynames; kn->name; kn++ ) Key_SetBinding( kn->keynum, kn->binding ); 
 }
 
 /*
@@ -1232,7 +1239,7 @@ void CL_CharEvent( int key )
 Key_ClearStates
 ===================
 */
-void Key_ClearStates (void)
+void Key_ClearStates( void )
 {
 	int	i;
 

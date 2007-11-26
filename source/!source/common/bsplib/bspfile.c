@@ -121,8 +121,7 @@ void DecompressVis (byte *in, byte *decompressed)
 		}
 	
 		c = in[1];
-		if (!c)
-			Sys_Error ("DecompressVis: 0 repeat");
+		if (!c) Sys_Error("DecompressVis: 0 repeat");
 		in += 2;
 		while (c)
 		{
@@ -318,18 +317,18 @@ bool LoadBSPFile( void )
 	int i, size;
 	char path[MAX_SYSPATH];
 	
-	sprintf (path, "maps/%s.bsp", gs_mapname );
+	sprintf(path, "maps/%s.bsp", gs_mapname );
 	header = (dheader_t*)((byte *)FS_LoadFile(path, &size)); // load the file header
 
 	if(!size) return false;
           Msg ("reading %s\n", path);
 	
 	// swap the header
-	for (i=0 ; i< sizeof(dheader_t)/4 ; i++)
+	for(i = 0; i < sizeof(dheader_t)/4; i++)
 		((int *)header)[i] = LittleLong (((int *)header)[i]);
 
-	if (header->ident != IDBSPMODHEADER) Sys_Error ("%s is not a IBSP file", gs_mapname);
-	if (header->version != BSPMOD_VERSION) Sys_Error ("%s is version %i, not %i", gs_mapname, header->version, BSPMOD_VERSION);
+	if(header->ident != IDBSPMODHEADER) Sys_Error("%s is not a IBSP file", gs_mapname);
+	if(header->version != BSPMOD_VERSION) Sys_Error("%s is version %i, not %i", gs_mapname, header->version, BSPMOD_VERSION);
 
 	nummodels = CopyLump (LUMP_MODELS, dmodels, sizeof(dmodel_t));
 	numvertexes = CopyLump (LUMP_VERTEXES, dvertexes, sizeof(dvertex_t));
@@ -383,16 +382,15 @@ void LoadBSPFileTexinfo (char *filename)
 	for (i=0 ; i< sizeof(dheader_t)/4 ; i++)
 		((int *)header)[i] = LittleLong ( ((int *)header)[i]);
 
-	if (header->ident != IDBSPMODHEADER) Sys_Error ("%s is not a IBSP file", filename);
-	if (header->version != BSPMOD_VERSION) Sys_Error ("%s is version %i, not %i", filename, header->version, BSPMOD_VERSION);
+	if (header->ident != IDBSPMODHEADER) Sys_Error("%s is not a IBSP file", filename);
+	if (header->version != BSPMOD_VERSION) Sys_Error("%s is version %i, not %i", filename, header->version, BSPMOD_VERSION);
 
 	length = header->lumps[LUMP_TEXINFO].filelen;
 	ofs = header->lumps[LUMP_TEXINFO].fileofs;
 
 	FS_Seek(f, ofs, SEEK_SET);
 	FS_Read(f, texinfo, length );
-	//fread (texinfo, length, 1, f);
-	FS_Close( f );
+	FS_Close(f);
 
 	numtexinfo = length / sizeof(texinfo_t);
 	Free (header); // everything has been copied out
@@ -495,10 +493,10 @@ epair_t *ParseEpair (void)
 
 	e = Malloc (sizeof(epair_t));
 	
-	if (strlen(com_token) >= MAX_KEY - 1) Sys_Error ("ParseEpar: token too long");
+	if (strlen(com_token) >= MAX_KEY - 1)Sys_Error ("ParseEpar: token too long");
 	e->key = copystring(com_token);
 	Com_GetToken (false);
-	if (strlen(com_token) >= MAX_VALUE - 1) Sys_Error ("ParseEpar: token too long");
+	if (strlen(com_token) >= MAX_VALUE - 1)Sys_Error ("ParseEpar: token too long");
 	e->value = copystring(com_token);
 
 	// strip trailing spaces
@@ -521,7 +519,7 @@ bool ParseEntity (void)
 
 	if (!Com_GetToken (true)) return false;
 
-	if (!Com_MatchToken( "{") ) Sys_Error ("ParseEntity: { not found");
+	if (!Com_MatchToken( "{")) Sys_Error ("ParseEntity: { not found");
 	if (num_entities == MAX_MAP_ENTITIES) Sys_Error ("num_entities == MAX_MAP_ENTITIES");
 
 	mapent = &entities[num_entities];
@@ -529,9 +527,9 @@ bool ParseEntity (void)
 
 	do
 	{
-		if (!Com_GetToken (true)) Sys_Error ("ParseEntity: EOF without closing brace");
+		if (!Com_GetToken (true)) Sys_Error("ParseEntity: EOF without closing brace");
 		if (Com_MatchToken("}")) break;
-		e = ParseEpair ();
+		e = ParseEpair();
 		e->next = mapent->epairs;
 		mapent->epairs = e;
 	} while (1);
@@ -573,7 +571,7 @@ void UnparseEntities (void)
 	end = buf;
 	*end = 0;
 	
-	for (i=0 ; i<num_entities ; i++)
+	for (i = 0; i < num_entities; i++)
 	{
 		ep = entities[i].epairs;
 		if (!ep) continue;	// ent got removed
@@ -595,7 +593,7 @@ void UnparseEntities (void)
 		strcat (end,"}\n");
 		end += 2;
 
-		if (end > buf + MAX_MAP_ENTSTRING) Sys_Error ("Entity text too long");
+		if (end > buf + MAX_MAP_ENTSTRING) Sys_Error("Entity text too long");
 	}
 	entdatasize = end - buf + 1;
 }

@@ -5,6 +5,8 @@
 
 #include <setjmp.h>
 #include "engine.h"
+#include "server.h"
+#include "client.h"
 
 #define VID_NUM_MODES ( sizeof( vid_modes ) / sizeof( vid_modes[0] ))
 
@@ -26,6 +28,7 @@ cvar_t	*fixedtime;
 cvar_t	*dedicated;
 cvar_t	*host_serverstate;
 cvar_t	*host_frametime;
+cvar_t	*host_cheats;
 cvar_t	*r_fullscreen;
 cvar_t	*vid_gamma;
 cvar_t	*r_xpos;	// X coordinate of window position
@@ -83,6 +86,8 @@ static int Host_MapKey( int key )
 
 void Host_InitCommon( uint funcname, int argc, char **argv )
 {
+	char	dev_level[4];
+
 	newstd = std;
 
 	// overload some funcs
@@ -90,15 +95,15 @@ void Host_InitCommon( uint funcname, int argc, char **argv )
 	newstd.printf = Host_Printf;
 	newstd.dprintf = Host_DPrintf;
 	newstd.wprintf = Host_DWarnf;
-	newstd.Com_AddCommand = Cmd_AddCommand;
-	newstd.Com_DelCommand = Cmd_RemoveCommand;
-	newstd.Com_Argc = Cmd_Argc;
-	newstd.Com_Argv = Cmd_Argv;
-	newstd.Com_AddText = Cbuf_AddText;
-	newstd.Com_GetCvar = _Cvar_Get;
-	newstd.Com_CvarSetValue = Cvar_SetValue;
-	newstd.Com_CvarSetString = Cvar_Set;
 	newstd.error = Host_Error;
+
+	// callback
+	std.Cmd_ForwardToServer = Cmd_ForwardToServer;
+
+	// determine debug and developer mode
+	if(FS_CheckParm ("-debug")) host.debug = true;
+	if(FS_GetParmFromCmdLine("-dev", dev_level ))
+		host.developer = atoi(dev_level);
 
 	// TODO: init basedir here
 	FS_LoadGameInfo("gameinfo.txt");
@@ -261,8 +266,8 @@ void Host_Frame( double time )
 		Sys_Sleep( 20 );
 	}
 
-	SV_Frame (time);
-	CL_Frame (time);
+	SV_Frame( time );
+	CL_Frame( time );
 
 	host.framecount++;
 }
@@ -566,8 +571,6 @@ void Host_Init (uint funcname, int argc, char **argv)
 	srand(time(NULL));		// init random generator
 
 	Host_InitCommon( funcname, argc, argv ); // loading common.dll
-	Cmd_Init( argc, argv );
-	Cvar_Init();
 	Key_Init();
 	PRVM_Init();
 
@@ -584,6 +587,7 @@ void Host_Init (uint funcname, int argc, char **argv)
 	// init commands and vars
 	if(host.developer)
 	{
+		host_cheats = Cvar_Get("host_cheats", "1", CVAR_READ_ONLY | CVAR_SYSTEMINFO );
 		Cmd_AddCommand ("error", Host_Error_f, "just throw a fatal error to test shutdown procedures" );
 		Cmd_AddCommand ("crash", Host_Crash_f, "a way to force a bus error for development reasons");
           }
@@ -606,12 +610,6 @@ void Host_Init (uint funcname, int argc, char **argv)
        
 	SV_Init();
 	CL_Init();
-
-	Cbuf_AddText("exec init.rc\n");
-	Cbuf_Execute();
-
-	// if stuffcmds wasn't run, then init.rc is probably missing, use default
-	if(!host.stuffcmdsrun) Cbuf_ExecuteText( EXEC_NOW, "stuffcmds\n" );
 	Sys_DoubleTime(); // initialize timer
 }
 

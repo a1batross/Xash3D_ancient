@@ -92,7 +92,7 @@ void CG_MakeLevelShot( void )
 		cl.make_levelshot = false;
 
 		// make levelshot at nextframe()
-		Cbuf_AddText ("levelshot\n");
+		Cbuf_ExecuteText(EXEC_APPEND, "levelshot\n");
 	}
 }
 

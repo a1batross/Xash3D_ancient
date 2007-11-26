@@ -23,8 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "basetypes.h"
 #include <basemath.h>
 #include "ref_system.h"
-#include "ref_stdlib.h"
-#include "ref_rgbdata.h"
 
 #define RENDERPASS_SOLID	1
 #define RENDERPASS_ALPHA	2
@@ -61,12 +59,6 @@ void R_ConcatTransforms (float in1[3][4], float in2[3][4], float out[3][4]);
 #define MsgDev std.dprintf
 #define MsgWarn std.wprintf
 #define Sys_Error std.error
-
-#define Cvar_Get(name, value, flags)	std.Com_GetCvar(name, value, flags, "render variable" )
-#define Cvar_SetValue(name, value)	std.Com_CvarSetValue(name, value )
-#define Cvar_SetString(name, value)	std.Com_CvarSetString(name, value )
-#define Cmd_AddCommand(name, cmd)	std.Com_AddCommand(name, cmd, "render command" )
-#define Cmd_RemoveCommand(name)	std.Com_DelCommand(name )
 
 #define MAX_RADAR_ENTS	1024
 typedef struct radar_ent_s

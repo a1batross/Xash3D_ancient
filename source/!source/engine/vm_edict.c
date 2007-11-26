@@ -1098,7 +1098,7 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 		key = PRVM_ED_FindField( keyname );
 		if (!key)
 		{
-			MsgDev(D_WARN, "%s: '%s' is not a field\n", PRVM_NAME, keyname);
+			MsgDev(D_WARN, "%s: unknown field '%s'\n", PRVM_NAME, keyname);
 			continue;
 		}
 
@@ -1235,44 +1235,57 @@ PRVM_LoadLNO
 void PRVM_LoadLNO( const char *progname )
 {
 	fs_offset_t filesize;
-	unsigned char *lno;
-	unsigned int *header;
-	char filename[512];
+	byte	*buf;
+	dlno_t	*lno;
+	char	filename[512];
 
 	strcpy( filename, progname );
 	FS_StripExtension( filename ); 
 	FS_DefaultExtension( filename, ".lno" );
+	buf = FS_LoadFile( filename, &filesize );
+	if( !buf )return;
 
-	lno = FS_LoadFile( filename, &filesize );
-	if( !lno )  return;
-
-/*
-<Spike>    FS_Write (h, &lnotype, sizeof(int));
-<Spike>    FS_Write (h, &version, sizeof(int));
-<Spike>    FS_Write (h, &numglobaldefs, sizeof(int));
-<Spike>    FS_Write (h, &numpr_globals, sizeof(int));
-<Spike>    FS_Write (h, &numfielddefs, sizeof(int));
-<Spike>    FS_Write (h, &numstatements, sizeof(int));
-<Spike>    FS_Write (h, statement_linenums, numstatements * sizeof(int));
-*/
-	if( (uint) filesize < (6 + prog->progs->numstatements) * sizeof( int ) )
+	if((uint)filesize < sizeof(dlno_t))
 	{
-		Mem_Free(lno);
+		Mem_Free(buf);
 		return;
 	}
 
-	header = (uint *) lno;
-	if( header[ 0 ] == *(unsigned int *) "LNOF" &&
-		LittleLong( header[ 1 ] ) == 1 &&
-		(unsigned int)LittleLong( header[ 2 ] ) == (unsigned int)prog->progs->numglobaldefs &&
-		(unsigned int)LittleLong( header[ 3 ] ) == (unsigned int)prog->progs->numglobals &&
-		(unsigned int)LittleLong( header[ 4 ] ) == (unsigned int)prog->progs->numfielddefs &&
-		(unsigned int)LittleLong( header[ 5 ] ) == (unsigned int)prog->progs->numstatements )
+	lno = (dlno_t *)buf;
+
+	if(lno->header != LINENUMSHEADER)
 	{
-		prog->statement_linenums = (int *)Mem_Alloc(prog->progs_mempool, prog->progs->numstatements * sizeof( int ) );
-		memcpy( prog->statement_linenums, (int *) lno + 6, prog->progs->numstatements * sizeof( int ) );
+		MsgDev(D_WARN, "PRVM_LoadLNO: invalid header\n");
+		return;
 	}
-	Mem_Free( lno );
+	if(lno->version != LNNUMS_VERSION)
+	{
+		MsgDev(D_WARN, "PRVM_LoadLNO: invalid version\n");
+		return;
+	}
+	if(lno->numglobaldefs != prog->progs->numglobaldefs)
+	{
+		MsgDev(D_WARN, "PRVM_LoadLNO: invalid numglobaldefs count\n");
+		return;
+	}
+	if(lno->numglobals != prog->progs->numglobals)
+	{
+		MsgDev(D_WARN, "PRVM_LoadLNO: invalid numglobals count\n");
+		return;
+	}
+	if(lno->numfielddefs != prog->progs->numfielddefs)
+	{
+		MsgDev(D_WARN, "PRVM_LoadLNO: invalid numfielddefs count\n");
+		return;
+	}
+	if(lno->numstatements != prog->progs->numstatements)
+	{
+		MsgDev(D_WARN, "PRVM_LoadLNO: invalid numstatements count\n");
+		return;
+	}
+	prog->statement_linenums = Mem_Alloc(prog->progs_mempool, prog->progs->numstatements * sizeof(int));
+	memcpy( prog->statement_linenums, buf + sizeof(dlno_t), prog->progs->numstatements * sizeof(int));
+	Mem_Free( buf );
 }
 
 /*
@@ -1311,9 +1324,9 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		prog->intsize = 16;
 		break;
 	case FPROGS_VERSION:
-		if(prog->progs->header == VPROGSHEADER16)
+		if(prog->progs->id == VPROGSHEADER16)
 			prog->intsize = 16;
-		if(prog->progs->header == VPROGSHEADER32)
+		if(prog->progs->id == VPROGSHEADER32)
 			prog->intsize = 32;
 		break;
 	case VPROGS_VERSION:
@@ -1651,11 +1664,9 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 	if(!prog->linenums) PRVM_LoadLNO(filename);
 
 	PRVM_Init_Exec();
-
 	prog->loaded = true;
 
 	// set flags & ddef_ts in prog
-
 	prog->flag = 0;
 	prog->pev = PRVM_ED_FindGlobal("pev");
 

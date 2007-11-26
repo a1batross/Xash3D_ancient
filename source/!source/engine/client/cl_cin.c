@@ -1109,7 +1109,7 @@ static void RoQShutdown( void )
 
 	// let game known about movie state	
 	cls.state = ca_disconnected;
-	Cbuf_AddText ("killserver\n");
+	Cbuf_ExecuteText(EXEC_APPEND, "killserver\n");
 }
 
 /*

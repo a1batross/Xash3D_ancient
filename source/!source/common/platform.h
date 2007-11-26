@@ -10,7 +10,6 @@
 #include <windows.h>
 #include <basetypes.h>
 #include <ref_system.h>
-#include <ref_stdlib.h>
 
 //=====================================
 //	platform export

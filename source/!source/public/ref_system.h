@@ -8,15 +8,6 @@
 #include "ref_format.h" 
 #include "version.h"
 
-// time stamp formats
-#define TIME_FULL		0
-#define TIME_DATE_ONLY	1
-#define TIME_TIME_ONLY	2
-#define TIME_NO_SECONDS	3
-
-
-
-
 #define MAX_LIGHTSTYLES	256
 
 #define ENTITY_FLAGS	68
@@ -55,253 +46,115 @@
 #define MOVETYPE_CONVEYOR		9
 #define MOVETYPE_PUSHABLE		10
 
-enum 
+// opengl mask
+#define GL_COLOR_INDEX	0x1900
+#define GL_STENCIL_INDEX	0x1901
+#define GL_DEPTH_COMPONENT	0x1902
+#define GL_RED		0x1903
+#define GL_GREEN		0x1904
+#define GL_BLUE		0x1905
+#define GL_ALPHA		0x1906
+#define GL_RGB		0x1907
+#define GL_RGBA		0x1908
+#define GL_LUMINANCE	0x1909
+#define GL_LUMINANCE_ALPHA	0x190A
+#define GL_BGR		0x80E0
+#define GL_BGRA		0x80E1
+
+// gl data type
+#define GL_BYTE		0x1400
+#define GL_UNSIGNED_BYTE	0x1401
+#define GL_SHORT		0x1402
+#define GL_UNSIGNED_SHORT	0x1403
+#define GL_INT		0x1404
+#define GL_UNSIGNED_INT	0x1405
+#define GL_FLOAT		0x1406
+#define GL_2_BYTES		0x1407
+#define GL_3_BYTES		0x1408
+#define GL_4_BYTES		0x1409
+#define GL_DOUBLE		0x140A
+
+// description flags
+#define IMAGE_CUBEMAP	0x00000001
+#define IMAGE_HAS_ALPHA	0x00000002
+#define IMAGE_PREMULT	0x00000004	// indices who need in additional premultiply
+#define IMAGE_GEN_MIPS	0x00000008	// must generate mips
+#define IMAGE_CUBEMAP_FLIP	0x00000010	// it's a cubemap with flipped sides( dds pack )
+
+enum comp_format
 {
-	HOST_OFFLINE = 0,	// host_init( funcname *arg ) same much as:
-	HOST_NORMAL,	// "host_shared"
-	HOST_DEDICATED,	// "host_dedicated"
-	HOST_EDITOR,	// "host_editor"
-	BSPLIB,		// "bsplib"
-	IMGLIB,		// "imglib"
-	QCCLIB,		// "qcclib"
-	ROQLIB,		// "roqlib"
-	SPRITE,		// "sprite"
-	STUDIO,		// "studio"
-	CREDITS,		// "splash"
-	HOST_INSTALL,	// "install"
+	PF_UNKNOWN = 0,
+	PF_INDEXED_24,	// studio model skins
+	PF_INDEXED_32,	// sprite 32-bit palette
+	PF_RGBA_32,	// already prepared ".bmp", ".tga" or ".jpg" image 
+	PF_ARGB_32,	// uncompressed dds image
+	PF_RGB_24,	// uncompressed dds or another 24-bit image 
+	PF_RGB_24_FLIP,	// flip image for screenshots
+	PF_DXT1,		// nvidia DXT1 format
+	PF_DXT2,		// nvidia DXT2 format
+	PF_DXT3,		// nvidia DXT3 format
+	PF_DXT4,		// nvidia DXT4 format
+	PF_DXT5,		// nvidia DXT5 format
+	PF_ATI1N,		// ati 1N texture
+	PF_ATI2N,		// ati 2N texture
+	PF_LUMINANCE,	// b&w dds image
+	PF_LUMINANCE_16,	// b&w hi-res image
+	PF_LUMINANCE_ALPHA, // b&w dds image with alpha channel
+	PF_RXGB,		// doom3 normal maps
+	PF_ABGR_64,	// uint image
+	PF_RGBA_GN,	// internal generated texture
+	PF_TOTALCOUNT,	// must be last
 };
 
-enum ai_activity
+// format info table
+typedef struct bpc_desc_s
 {
-	ACT_RESET = 0,	// Set m_Activity to this invalid value to force a reset to m_IdealActivity
-	ACT_IDLE = 1,
-	ACT_GUARD,
-	ACT_WALK,
-	ACT_RUN,
-	ACT_FLY,		// Fly (and flap if appropriate)
-	ACT_SWIM,
-	ACT_HOP,		// vertical jump
-	ACT_LEAP,		// long forward jump
-	ACT_FALL,
-	ACT_LAND,
-	ACT_STRAFE_LEFT,
-	ACT_STRAFE_RIGHT,
-	ACT_ROLL_LEFT,	// tuck and roll, left
-	ACT_ROLL_RIGHT,	// tuck and roll, right
-	ACT_TURN_LEFT,	// turn quickly left (stationary)
-	ACT_TURN_RIGHT,	// turn quickly right (stationary)
-	ACT_CROUCH,	// the act of crouching down from a standing position
-	ACT_CROUCHIDLE,	// holding body in crouched position (loops)
-	ACT_STAND,	// the act of standing from a crouched position
-	ACT_USE,
-	ACT_SIGNAL1,
-	ACT_SIGNAL2,
-	ACT_SIGNAL3,
-	ACT_TWITCH,
-	ACT_COWER,
-	ACT_SMALL_FLINCH,
-	ACT_BIG_FLINCH,
-	ACT_RANGE_ATTACK1,
-	ACT_RANGE_ATTACK2,
-	ACT_MELEE_ATTACK1,
-	ACT_MELEE_ATTACK2,
-	ACT_RELOAD,
-	ACT_ARM,		// pull out gun, for instance
-	ACT_DISARM,	// reholster gun
-	ACT_EAT,		// monster chowing on a large food item (loop)
-	ACT_DIESIMPLE,
-	ACT_DIEBACKWARD,
-	ACT_DIEFORWARD,
-	ACT_DIEVIOLENT,
-	ACT_BARNACLE_HIT,	// barnacle tongue hits a monster
-	ACT_BARNACLE_PULL,	// barnacle is lifting the monster ( loop )
-	ACT_BARNACLE_CHOMP,	// barnacle latches on to the monster
-	ACT_BARNACLE_CHEW,	// barnacle is holding the monster in its mouth ( loop )
-	ACT_SLEEP,
-	ACT_INSPECT_FLOOR,	// for active idles, look at something on or near the floor
-	ACT_INSPECT_WALL,	// for active idles, look at something directly ahead of you
-	ACT_IDLE_ANGRY,	// alternate idle animation in which the monster is clearly agitated. (loop)
-	ACT_WALK_HURT,	// limp  (loop)
-	ACT_RUN_HURT,	// limp  (loop)
-	ACT_HOVER,	// Idle while in flight
-	ACT_GLIDE,	// Fly (don't flap)
-	ACT_FLY_LEFT,	// Turn left in flight
-	ACT_FLY_RIGHT,	// Turn right in flight
-	ACT_DETECT_SCENT,	// this means the monster smells a scent carried by the air
-	ACT_SNIFF,	// this is the act of actually sniffing an item in front of the monster
-	ACT_BITE,		// some large monsters can eat small things in one bite. This plays one time, EAT loops.
-	ACT_THREAT_DISPLAY,	// without attacking, monster demonstrates that it is angry. (Yell, stick out chest, etc )
-	ACT_FEAR_DISPLAY,	// monster just saw something that it is afraid of
-	ACT_EXCITED,	// for some reason, monster is excited. Sees something he really likes to eat, or whatever
-	ACT_SPECIAL_ATTACK1,// very monster specific special attacks.
-	ACT_SPECIAL_ATTACK2,	
-	ACT_COMBAT_IDLE,	// agitated idle.
-	ACT_WALK_SCARED,
-	ACT_RUN_SCARED,
-	ACT_VICTORY_DANCE,	// killed a player, do a victory dance.
-	ACT_DIE_HEADSHOT,	// die, hit in head. 
-	ACT_DIE_CHESTSHOT,	// die, hit in chest
-	ACT_DIE_GUTSHOT,	// die, hit in gut
-	ACT_DIE_BACKSHOT,	// die, hit in back
-	ACT_FLINCH_HEAD,
-	ACT_FLINCH_CHEST,
-	ACT_FLINCH_STOMACH,
-	ACT_FLINCH_LEFTARM,
-	ACT_FLINCH_RIGHTARM,
-	ACT_FLINCH_LEFTLEG,
-	ACT_FLINCH_RIGHTLEG,
-	ACT_VM_NONE,	// weapon viewmodel animations
-	ACT_VM_DEPLOY,	// deploy
-	ACT_VM_DEPLOY_EMPTY,// deploy empty weapon
-	ACT_VM_HOLSTER,	// holster empty weapon
-	ACT_VM_HOLSTER_EMPTY,
-	ACT_VM_IDLE1,
-	ACT_VM_IDLE2,
-	ACT_VM_IDLE3,
-	ACT_VM_RANGE_ATTACK1,
-	ACT_VM_RANGE_ATTACK2,
-	ACT_VM_RANGE_ATTACK3,
-	ACT_VM_MELEE_ATTACK1,
-	ACT_VM_MELEE_ATTACK2,
-	ACT_VM_MELEE_ATTACK3,
-	ACT_VM_SHOOT_EMPTY,
-	ACT_VM_START_RELOAD,
-	ACT_VM_RELOAD,
-	ACT_VM_RELOAD_EMPTY,
-	ACT_VM_TURNON,
-	ACT_VM_TURNOFF,
-	ACT_VM_PUMP,	// pumping gun
-	ACT_VM_PUMP_EMPTY,
-	ACT_VM_START_CHARGE,
-	ACT_VM_CHARGE,
-	ACT_VM_OVERLOAD,
-	ACT_VM_IDLE_EMPTY,
+	int	format;	// pixelformat
+	char	name[8];	// used for debug
+	uint	glmask;	// RGBA mask
+	uint	gltype;	// open gl datatype
+	int	bpp;	// channels (e.g. rgb = 3, rgba = 4)
+	int	bpc;	// sizebytes (byte, short, float)
+	int	block;	// blocksize < 0 needs alternate calc
+} bpc_desc_t;
+
+static const bpc_desc_t PFDesc[] =
+{
+{PF_UNKNOWN,	"raw",	GL_RGBA,		GL_UNSIGNED_BYTE, 0,  0,  0 },
+{PF_INDEXED_24,	"pal 24",	GL_RGBA,		GL_UNSIGNED_BYTE, 3,  1,  0 },// expand data to RGBA buffer
+{PF_INDEXED_32,	"pal 32",	GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1,  0 },
+{PF_RGBA_32,	"RGBA 32",GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, -4 },
+{PF_ARGB_32,	"ARGB 32",GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, -4 },
+{PF_RGB_24,	"RGB 24",	GL_RGBA,		GL_UNSIGNED_BYTE, 3,  1, -3 },
+{PF_RGB_24_FLIP,	"RGB 24",	GL_RGBA,		GL_UNSIGNED_BYTE, 3,  1, -3 },
+{PF_DXT1,		"DXT1",	GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1,  8 },
+{PF_DXT2,		"DXT2",	GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, 16 },
+{PF_DXT3,		"DXT3",	GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, 16 },
+{PF_DXT4,		"DXT4",	GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, 16 },
+{PF_DXT5,		"DXT5",	GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, 16 },
+{PF_ATI1N,	"ATI1N",	GL_RGBA,		GL_UNSIGNED_BYTE, 1,  1,  8 },
+{PF_ATI2N,	"3DC",	GL_RGBA,		GL_UNSIGNED_BYTE, 3,  1, 16 },
+{PF_LUMINANCE,	"LUM 8",	GL_LUMINANCE,	GL_UNSIGNED_BYTE, 1,  1, -1 },
+{PF_LUMINANCE_16,	"LUM 16", GL_LUMINANCE,	GL_UNSIGNED_BYTE, 2,  2, -2 },
+{PF_LUMINANCE_ALPHA,"LUM A",	GL_LUMINANCE_ALPHA,	GL_UNSIGNED_BYTE, 2,  1, -2 },
+{PF_RXGB,		"RXGB",	GL_RGBA,		GL_UNSIGNED_BYTE, 3,  1, 16 },
+{PF_ABGR_64,	"ABGR 64",GL_BGRA,		GL_UNSIGNED_BYTE, 4,  2, -8 },
+{PF_RGBA_GN,	"system",	GL_RGBA,		GL_UNSIGNED_BYTE, 4,  1, -4 },
 };
 
-enum dev_level
+typedef struct rgbdata_s
 {
-	D_INFO = 1,	// "-dev 1", shows various system messages
-	D_WARN,		// "-dev 2", shows not critical system warnings, same as MsgWarn
-	D_ERROR,		// "-dev 3", shows critical warnings 
-	D_LOAD,		// "-dev 4", show messages about loading resources
-	D_NOTE,		// "-dev 5", show system notifications for engine develeopers
-	D_MEMORY,		// "-dev 6", show memory allocation
+	word	width;		// image width
+	word	height;		// image height
+	byte	numLayers;	// multi-layer volume
+	byte	numMips;		// mipmap count
+	byte	bitsCount;	// RGB bits count
+	uint	type;		// compression type
+	uint	flags;		// misc image flags
+	byte	*palette;		// palette if present
+	byte	*buffer;		// image buffer
+	uint	size;		// for bounds checking
 };
-
-static activity_map_t activity_map[] =
-{
-{ACT_IDLE,		"ACT_IDLE"		},
-{ACT_GUARD,		"ACT_GUARD"		},
-{ACT_WALK,		"ACT_WALK"		},
-{ACT_RUN,			"ACT_RUN"			},
-{ACT_FLY,			"ACT_FLY"			},
-{ACT_SWIM,		"ACT_SWIM",		},
-{ACT_HOP,			"ACT_HOP",		},
-{ACT_LEAP,		"ACT_LEAP"		},
-{ACT_FALL,		"ACT_FALL"		},
-{ACT_LAND,		"ACT_LAND"		},
-{ACT_STRAFE_LEFT,		"ACT_STRAFE_LEFT"		},
-{ACT_STRAFE_RIGHT,		"ACT_STRAFE_RIGHT"		},
-{ACT_ROLL_LEFT,		"ACT_ROLL_LEFT"		},
-{ACT_ROLL_RIGHT,		"ACT_ROLL_RIGHT"		},
-{ACT_TURN_LEFT,		"ACT_TURN_LEFT"		},
-{ACT_TURN_RIGHT,		"ACT_TURN_RIGHT"		},
-{ACT_CROUCH,		"ACT_CROUCH"		},
-{ACT_CROUCHIDLE,		"ACT_CROUCHIDLE"		},
-{ACT_STAND,		"ACT_STAND"		},
-{ACT_USE,			"ACT_USE"			},
-{ACT_SIGNAL1,		"ACT_SIGNAL1"		},
-{ACT_SIGNAL2,		"ACT_SIGNAL2"		},
-{ACT_SIGNAL3,		"ACT_SIGNAL3"		},
-{ACT_TWITCH,		"ACT_TWITCH"		},
-{ACT_COWER,		"ACT_COWER"		},
-{ACT_SMALL_FLINCH,		"ACT_SMALL_FLINCH"		},
-{ACT_BIG_FLINCH,		"ACT_BIG_FLINCH"		},
-{ACT_RANGE_ATTACK1,		"ACT_RANGE_ATTACK1"		},
-{ACT_RANGE_ATTACK2,		"ACT_RANGE_ATTACK2"		},
-{ACT_MELEE_ATTACK1,		"ACT_MELEE_ATTACK1"		},
-{ACT_MELEE_ATTACK2,		"ACT_MELEE_ATTACK2"		},
-{ACT_RELOAD,		"ACT_RELOAD"		},
-{ACT_ARM,			"ACT_ARM"			},
-{ACT_DISARM,		"ACT_DISARM"		},
-{ACT_EAT,			"ACT_EAT"			},
-{ACT_DIESIMPLE,		"ACT_DIESIMPLE"		},
-{ACT_DIEBACKWARD,		"ACT_DIEBACKWARD"		},
-{ACT_DIEFORWARD,		"ACT_DIEFORWARD"		},
-{ACT_DIEVIOLENT,		"ACT_DIEVIOLENT"		},
-{ACT_BARNACLE_HIT,		"ACT_BARNACLE_HIT"		},
-{ACT_BARNACLE_PULL,		"ACT_BARNACLE_PULL"		},
-{ACT_BARNACLE_CHOMP,	"ACT_BARNACLE_CHOMP"	},
-{ACT_BARNACLE_CHEW,		"ACT_BARNACLE_CHEW"		},
-{ACT_SLEEP,		"ACT_SLEEP"		},
-{ACT_INSPECT_FLOOR,		"ACT_INSPECT_FLOOR"		},
-{ACT_INSPECT_WALL,		"ACT_INSPECT_WALL"		},
-{ACT_IDLE_ANGRY,		"ACT_IDLE_ANGRY"		},
-{ACT_WALK_HURT,		"ACT_WALK_HURT"		},
-{ACT_RUN_HURT,		"ACT_RUN_HURT"		},
-{ACT_HOVER,		"ACT_HOVER"		},
-{ACT_GLIDE,		"ACT_GLIDE"		},
-{ACT_FLY_LEFT,		"ACT_FLY_LEFT"		},
-{ACT_FLY_RIGHT,		"ACT_FLY_RIGHT"		},
-{ACT_DETECT_SCENT,		"ACT_DETECT_SCENT"		},
-{ACT_SNIFF,		"ACT_SNIFF"		},		
-{ACT_BITE,		"ACT_BITE"		},		
-{ACT_THREAT_DISPLAY,	"ACT_THREAT_DISPLAY"	},
-{ACT_FEAR_DISPLAY,		"ACT_FEAR_DISPLAY"		},
-{ACT_EXCITED,		"ACT_EXCITED"		},	
-{ACT_SPECIAL_ATTACK1,	"ACT_SPECIAL_ATTACK1"	},
-{ACT_SPECIAL_ATTACK2,	"ACT_SPECIAL_ATTACK2"	},
-{ACT_COMBAT_IDLE,		"ACT_COMBAT_IDLE"		},
-{ACT_WALK_SCARED,		"ACT_WALK_SCARED"		},
-{ACT_RUN_SCARED,		"ACT_RUN_SCARED"		},
-{ACT_VICTORY_DANCE,		"ACT_VICTORY_DANCE"		},
-{ACT_DIE_HEADSHOT,		"ACT_DIE_HEADSHOT"		},
-{ACT_DIE_CHESTSHOT,		"ACT_DIE_CHESTSHOT"		},
-{ACT_DIE_GUTSHOT,		"ACT_DIE_GUTSHOT"		},
-{ACT_DIE_BACKSHOT,		"ACT_DIE_BACKSHOT"		},
-{ACT_FLINCH_HEAD,		"ACT_FLINCH_HEAD"		},
-{ACT_FLINCH_CHEST,		"ACT_FLINCH_CHEST"		},
-{ACT_FLINCH_STOMACH,	"ACT_FLINCH_STOMACH"	},
-{ACT_FLINCH_LEFTARM,	"ACT_FLINCH_LEFTARM"	},
-{ACT_FLINCH_RIGHTARM,	"ACT_FLINCH_RIGHTARM"	},
-{ACT_FLINCH_LEFTLEG,	"ACT_FLINCH_LEFTLEG"	},
-{ACT_FLINCH_RIGHTLEG,	"ACT_FLINCH_RIGHTLEG"	},
-{ACT_VM_NONE,		"ACT_VM_NONE"		},	// invalid animation
-{ACT_VM_DEPLOY,		"ACT_VM_DEPLOY"		},	// deploy
-{ACT_VM_DEPLOY_EMPTY,	"ACT_VM_DEPLOY_EMPTY"	},	// deploy empty weapon
-{ACT_VM_HOLSTER,		"ACT_VM_HOLSTER"		},	// holster empty weapon
-{ACT_VM_HOLSTER_EMPTY,	"ACT_VM_HOLSTER_EMPTY"	},
-{ACT_VM_IDLE1,		"ACT_VM_IDLE1"		},
-{ACT_VM_IDLE2,		"ACT_VM_IDLE2"		},
-{ACT_VM_IDLE3,		"ACT_VM_IDLE3"		},
-{ACT_VM_RANGE_ATTACK1,	"ACT_VM_RANGE_ATTACK1"	},
-{ACT_VM_RANGE_ATTACK2,	"ACT_VM_RANGE_ATTACK2"	},
-{ACT_VM_RANGE_ATTACK3,	"ACT_VM_RANGE_ATTACK3"	},
-{ACT_VM_MELEE_ATTACK1,	"ACT_VM_MELEE_ATTACK1"	},
-{ACT_VM_MELEE_ATTACK2,	"ACT_VM_MELEE_ATTACK2"	},
-{ACT_VM_MELEE_ATTACK3,	"ACT_VM_MELEE_ATTACK3"	},
-{ACT_VM_SHOOT_EMPTY,	"ACT_VM_SHOOT_EMPTY"	},
-{ACT_VM_START_RELOAD,	"ACT_VM_START_RELOAD"	},
-{ACT_VM_RELOAD,		"ACT_VM_RELOAD"		},
-{ACT_VM_RELOAD_EMPTY,	"ACT_VM_RELOAD_EMPTY"	},
-{ACT_VM_TURNON,		"ACT_VM_TURNON"		},
-{ACT_VM_TURNOFF,		"ACT_VM_TURNOFF"		},
-{ACT_VM_PUMP,		"ACT_VM_PUMP"		},	// user animations
-{ACT_VM_PUMP_EMPTY,		"ACT_VM_PUMP_EMPTY"		},
-{ACT_VM_START_CHARGE,	"ACT_VM_START_CHARGE"	},
-{ACT_VM_CHARGE,		"ACT_VM_CHARGE"		},
-{ACT_VM_OVERLOAD,		"ACT_VM_CHARGE"		},
-{ACT_VM_IDLE_EMPTY,		"ACT_VM_IDLE_EMPTY"		},
-{0, 			NULL			},
-};
-
-typedef struct search_s
-{
-	int	numfilenames;
-	char	**filenames;
-	char	*filenamesbuffer;
-
-} search_t;
 
 typedef struct physdata_s
 {
@@ -354,32 +207,19 @@ typedef struct dll_info_s
 
 } dll_info_t;
 
-#define CVAR_ARCHIVE	1	// set to cause it to be saved to vars.rc
-#define CVAR_USERINFO	2	// added to userinfo  when changed
-#define CVAR_SERVERINFO	4	// added to serverinfo when changed
-#define CVAR_SYSTEMINFO	8	// these cvars will be duplicated on all clients
-#define CVAR_INIT		16	// don't allow change from console at all, but can be set from the command line
-#define CVAR_LATCH		32	// save changes until server restart
-#define CVAR_READ_ONLY	64	// display only, cannot be set by user at all
-#define CVAR_USER_CREATED	128	// created by a set command (prvm used)
-#define CVAR_TEMP		256	// can be set even when cheats are disabled, but is not archived
-#define CVAR_CHEAT		512	// can not be changed if cheats are disabled
-#define CVAR_NORESTART	1024	// do not clear when a cvar_restart is issued
-#define CVAR_MAXFLAGSVAL	2047	// maximum number of flags
-
 typedef struct cvar_s
 {
 	char	*name;
-	char	*reset_string;	// cvar_restart will reset to this value
-	char	*latched_string;	// for CVAR_LATCH vars
-	char	*description;	// variable descrition info
-	int	flags;		// state flags
-	bool	modified;		// set each time the cvar is changed
-	int	modificationCount;	// incremented each time the cvar is changed
-
 	char	*string;		// normal string
 	float	value;		// atof( string )
 	int	integer;		// atoi( string )
+
+	char	*reset_string;	// cvar_restart will reset to this value
+	char	*latched_string;	// for CVAR_LATCH vars
+	char	*description;	// variable descrition info
+	uint	flags;		// state flags
+	bool	modified;		// set each time the cvar is changed
+	uint	modificationCount;	// incremented each time the cvar is changed
 
 	struct cvar_s *next;
 	struct cvar_s *hash;
@@ -493,25 +333,12 @@ typedef struct
 /*
 ==============================================================================
 
-GENERIC INTERFACE
-==============================================================================
-*/
-typedef struct generic_api_s
-{
-	// interface validator
-	size_t	api_size;		// must matched with sizeof(*_api_t)
-
-} generic_api_t;
-
-/*
-==============================================================================
-
 STDLIB SYSTEM INTERFACE
 ==============================================================================
 */
 typedef struct stdilib_api_s
 {
-	//interface validator
+	// interface validator
 	size_t	api_size;				// must matched with sizeof(stdlib_api_t)
 	
 	// base events
@@ -520,6 +347,7 @@ typedef struct stdilib_api_s
 	void (*dprintf)( int level, const char *msg, ...);// developer text message
 	void (*wprintf)( const char *msg, ... );	// warning text message
 	void (*error)( const char *msg, ... );		// abnormal termination with message
+	void (*abort)( const char *msg, ... );		// normal tremination with message
 	void (*exit)( void );			// normal silent termination
 	char *(*input)( void );			// system console input	
 	void (*sleep)( int msec );			// sleep for some msec
@@ -581,6 +409,30 @@ typedef struct stdilib_api_s
 	bool (*Com_Filter)(char *filter, char *name, int casecmp ); // compare keyword by mask with filter
 	char *com_token;					// contains current token
 
+	// console variables
+	cvar_t *(*Cvar_Get)(const char *name, const char *value, int flags, const char *desc);
+	void (*Cvar_CommandCompletion)( void(*callback)(const char *s, const char *m));
+	void (*Cvar_SetString)( const char *name, const char *value );
+	void (*Cvar_SetLatched)( const char *name, const char *value);
+	void (*Cvar_FullSet)( char *name, char *value, int flags );
+	void (*Cvar_SetValue )( const char *name, float value);
+	float (*Cvar_GetValue )(const char *name);
+	char *(*Cvar_GetString)(const char *name);
+	cvar_t *(*Cvar_FindVar)(const char *name);
+	bool userinfo_modified;				// tell to client about userinfo modified
+	cvar_t **cvar_vars;					// ptr to hash-table
+
+	// console commands
+	void (*Cmd_Exec)(int exec_when, const char *text);// process cmd buffer
+	uint  (*Cmd_Argc)( void );
+	char *(*Cmd_Args)( void );
+	char *(*Cmd_Argv)( uint arg ); 
+	void (*Cmd_CommandCompletion)( void(*callback)(const char *s, const char *m));
+	void (*Cmd_AddCommand)(const char *name, xcommand_t function, const char *desc);
+	void (*Cmd_TokenizeString)(const char *text_in);
+	void (*Cmd_DelCommand)(const char *name);
+	void (*Cmd_ForwardToServer)( void );				// engine callback
+
 	// real filesystem
 	file_t *(*fopen)(const char* path, const char* mode);		// same as fopen
 	int (*fclose)(file_t* file);					// same as fclose
@@ -616,16 +468,6 @@ typedef struct stdilib_api_s
 	bool (*Com_FreeLibrary)( dll_info_t *dll );			// free library
 	void*(*Com_GetProcAddress)( dll_info_t *dll, const char* name );	// gpa
 	double (*Com_DoubleTime)( void );				// hi-res timer
-
-	// console commands and variables (engine overloaded pointers after initialization)
-	void (*Com_AddCommand)( const char *name, xcommand_t cmd, const char *cmd_desc );
-	void (*Com_DelCommand)( const char *name );
-	uint (*Com_Argc)( void );
-	char *(*Com_Argv)( int num );
-	void (*Com_AddText)(const char *text);
-	void (*Com_CvarSetValue)( const char *name, float value );
-	void (*Com_CvarSetString)( const char *var_name, const char *value);
-	cvar_t *(*Com_GetCvar)( const char *name, const char *value, int flags, const char *desc );
 
 	// stdlib.c funcs
 	void (*strnupr)(const char *in, char *out, size_t size_out);// convert string to upper case
@@ -667,6 +509,188 @@ typedef struct stdilib_api_s
 
 } stdlib_api_t;
 
+#ifndef LAUNCH_DLL
+/*
+==============================================================================
+
+		STDLIB GENERIC ALIAS NAMES
+  don't add aliases for launch.dll so it will be conflicted width real names
+==============================================================================
+*/
+
+/*
+==========================================
+	memory manager funcs
+==========================================
+*/
+#define Mem_Alloc(pool, size) std.malloc(pool, size, __FILE__, __LINE__)
+#define Mem_Realloc(pool, ptr, size) std.realloc(pool, ptr, size, __FILE__, __LINE__)
+#define Mem_Move(pool, ptr, data, size) std.move(pool, ptr, data, size, __FILE__, __LINE__)
+#define Mem_Free(mem) std.free(mem, __FILE__, __LINE__)
+#define Mem_AllocPool(name) std.mallocpool(name, __FILE__, __LINE__)
+#define Mem_FreePool(pool) std.freepool(pool, __FILE__, __LINE__)
+#define Mem_EmptyPool(pool) std.clearpool(pool, __FILE__, __LINE__)
+#define Mem_Copy(dest, src, size ) std.memcpy(dest, src, size, __FILE__, __LINE__)
+#define Mem_Set(dest, src, size ) std.memset(dest, src, size, __FILE__, __LINE__)
+#define Mem_Check() std.memcheck(__FILE__, __LINE__)
+
+/*
+==========================================
+	parsing manager funcs
+==========================================
+*/
+#define Com_ParseToken std.Com_ParseToken
+#define Com_ParseWord std.Com_ParseWord
+#define Com_Filter std.Com_Filter
+#define Com_LoadScript std.Com_LoadScript
+#define Com_IncludeScript std.Com_AddScript
+#define Com_ResetScript std.Com_ResetScript
+#define Com_GetToken std.Com_ReadToken
+#define Com_TryToken std.Com_TryToken
+#define Com_FreeToken std.Com_FreeToken
+#define Com_SkipToken std.Com_SkipToken
+#define Com_MatchToken std.Com_MatchToken
+#define com_token std.com_token
+#define g_TXcommand std.com_TXcommand		// get rid of this
+
+/*
+===========================================
+filesystem manager
+===========================================
+*/
+#define FS_AddGameHierarchy std.Com_AddGameHierarchy
+#define FS_LoadGameInfo std.Com_LoadGameInfo
+#define FS_InitRootDir std.Com_InitRootDir
+#define FS_LoadFile(name, size) std.Com_LoadFile(name, size)
+#define FS_Search std.Com_Search
+#define FS_WriteFile(name, data, size) std.Com_WriteFile(name, data, size )
+#define FS_Open( path, mode ) std.fopen( path, mode )
+#define FS_Read( file, buffer, size ) std.fread( file, buffer, size )
+#define FS_Write( file, buffer, size ) std.fwrite( file, buffer, size )
+#define FS_StripExtension( path ) std.Com_StripExtension( path )
+#define FS_DefaultExtension( path, ext ) std.Com_DefaultExtension( path, ext )
+#define FS_FileExtension( ext ) std.Com_FileExtension( ext )
+#define FS_FileExists( file ) std.Com_FileExists( file )
+#define FS_Close( file ) std.fclose( file )
+#define FS_FileBase( x, y ) std.Com_FileBase( x, y )
+#define FS_Printf std.fprintf
+#define FS_Print std.fprint
+#define FS_Seek std.fseek
+#define FS_Tell std.ftell
+#define FS_Gets std.fgets
+#define FS_Gamedir std.GameInfo->gamedir
+#define FS_Title std.GameInfo->title
+#define FS_ClearSearchPath std.Com_ClearSearchPath
+#define FS_CheckParm std.Com_CheckParm
+#define FS_GetParmFromCmdLine std.Com_GetParm
+#define FS_LoadImage std.Com_LoadImage
+#define FS_SaveImage std.Com_SaveImage
+#define FS_FreeImage std.Com_FreeImage
+/*
+===========================================
+console variables
+===========================================
+*/
+#define Cvar_Get(name, value, flags) std.Cvar_Get(name, value, flags, "no description" ) //FIXME
+#define Cvar_CommandCompletion std.Cvar_CommandCompletion
+#define Cvar_Set std.Cvar_SetString
+#define Cvar_FullSet std.Cvar_FullSet
+#define Cvar_SetLatched std.Cvar_SetLatched
+#define Cvar_SetValue std.Cvar_SetValue
+#define Cvar_VariableValue std.Cvar_GetValue
+#define Cvar_VariableString std.Cvar_GetString
+#define Cvar_FindVar std.Cvar_FindVar
+#define userinfo_modified std.userinfo_modified
+#define cvar_vars *std.cvar_vars
+
+/*
+===========================================
+console commands
+===========================================
+*/
+#define Cbuf_ExecuteText std.Cmd_Exec
+#define Cbuf_AddText( text ) std.Cmd_Exec( EXEC_APPEND, text )
+#define Cmd_ExecuteString( text ) std.Cmd_Exec( EXEC_NOW, text )
+#define Cbuf_InsertText( text ) std.Cmd_Exec( EXEC_INSERT, text )
+#define Cbuf_Execute() std.Cmd_Exec( EXEC_NOW, NULL )
+#define Cmd_Argc std.Cmd_Argc
+#define Cmd_Args std.Cmd_Args
+#define Cmd_Argv std.Cmd_Argv
+#define Cmd_TokenizeString std.Cmd_TokenizeString
+#define Cmd_CommandCompletion std.Cmd_CommandCompletion
+#define Cmd_AddCommand std.Cmd_AddCommand
+#define Cmd_RemoveCommand std.Cmd_DelCommand
+
+/*
+===========================================
+virtual filesystem manager
+===========================================
+*/
+#define VFS_Open	std.vfopen
+#define VFS_Write	std.vfwrite
+#define VFS_Read	std.vfread
+#define VFS_Print	std.vfprint
+#define VFS_Printf	std.vfprintf
+#define VFS_Gets	std.vfgets
+#define VFS_Seek	std.vfseek
+#define VFS_Tell	std.vftell
+#define VFS_Close	std.vfclose
+#define VFS_Unpack	std.vfunpack
+
+/*
+===========================================
+crclib manager
+===========================================
+*/
+#define CRC_Init		std.crc_init
+#define CRC_Block		std.crc_block
+#define CRC_ProcessByte	std.crc_process
+#define CRC_Sequence	std.crc_sequence
+#define Com_BlockChecksum	std.crc_blockchecksum
+#define Com_BlockChecksumKey	std.crc_blockchecksumkey
+
+/*
+===========================================
+imagelib utils
+===========================================
+*/
+#define Image_Processing std.Com_ProcessImage
+
+/*
+===========================================
+misc utils
+===========================================
+*/
+#define GI		std.GameInfo
+#define Sys_LoadLibrary	std.Com_LoadLibrary
+#define Sys_FreeLibrary	std.Com_FreeLibrary
+#define Sys_GetProcAddress	std.Com_GetProcAddress
+#define Sys_Sleep		std.sleep
+#define Sys_Print		std.print
+#define Sys_ConsoleInput	std.input
+#define Sys_GetKeyEvents	std.keyevents
+#define Sys_GetClipboardData	std.clipboard
+#define Sys_Quit		std.exit
+#define Sys_Break		std.abort
+#define Sys_ConsoleInput	std.input
+#define GetNumThreads	std.Com_NumThreads
+#define ThreadLock		std.Com_ThreadLock
+#define ThreadUnlock	std.Com_ThreadUnlock
+#define RunThreadsOnIndividual std.Com_CreateThread
+
+/*
+===========================================
+misc utils
+===========================================
+*/
+#define timestamp		std.timestamp
+#define copystring(str)	std.stralloc(str, __FILE__, __LINE__)
+#define strcasecmp		std.stricmp
+#define strncasecmp		std.strnicmp
+#define va		std.va
+
+#endif
+
 /*
 ==============================================================================
 
@@ -690,7 +714,6 @@ typedef struct launch_exp_s
 RENDER.DLL INTERFACE
 ==============================================================================
 */
-
 typedef struct render_exp_s
 {
 	// interface validator

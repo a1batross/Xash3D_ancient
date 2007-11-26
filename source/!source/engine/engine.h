@@ -16,23 +16,17 @@
 #include <windows.h>
 #include <time.h>
 #include <io.h>
-
-//register new types
 #include "basetypes.h"
 #include "basemath.h"
-#include <ref_system.h>
-#include <ref_stdlib.h>
-#include "vprogs.h"
-#include "common.h"
-#include "client.h"
+#include "ref_system.h"
+#include "net_msg.h"
+#include "screen.h"
+#include "keycodes.h"
+#include "collision.h"
 
 extern stdlib_api_t		std;
 extern physic_exp_t		*pe;
 extern byte		*zonepool;
-
-#define EXEC_NOW		0 // don't return until completed
-#define EXEC_INSERT		1 // insert at current position, but don't run yet
-#define EXEC_APPEND		2 // add to end of the command buffer
 
 typedef enum
 {
@@ -172,60 +166,25 @@ void SV_Transform( sv_edict_t *ed, vec3_t origin, vec3_t angles );
 /*
 ==============================================================
 
-CONSOLE VARIABLES\COMMANDS
+MISC UTILS
 
 ==============================================================
 */
-// console variables
-cvar_t *Cvar_FindVar (const char *var_name);
-cvar_t *_Cvar_Get (const char *var_name, const char *value, int flags, const char *description);
-void Cvar_Set( const char *var_name, const char *value);
-cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force);
-void Cvar_CommandCompletion( void(*callback)(const char *s, const char *m));
-void Cvar_FullSet (char *var_name, char *value, int flags);
-void Cvar_SetLatched( const char *var_name, const char *value);
-void Cvar_SetValue( const char *var_name, float value);
-float Cvar_VariableValue (const char *var_name);
-char *Cvar_VariableString (const char *var_name);
-bool Cvar_Command (void);
-void Cvar_WriteVariables( file_t *f );
-void Cvar_Init (void);
-char *Cvar_Userinfo (void);
-char *Cvar_Serverinfo (void);
-extern bool userinfo_modified;
-extern cvar_t *cvar_vars;
-
-// key / value info strings
 char *Info_ValueForKey( char *s, char *key );
 void Info_RemoveKey( char *s, char *key );
 void Info_SetValueForKey( char *s, char *key, char *value );
 bool Info_Validate( char *s );
 void Info_Print( char *s );
-
-// command buffer
-void Cbuf_Init( int argc, char **argv );
-void Cbuf_AddText (const char *text);
-void Cbuf_InsertText (const char *text);
-void Cbuf_ExecuteText (int exec_when, const char *text);
-void Cbuf_Execute (void);
-
-// console commands
-int Cmd_Argc( void );
-char *Cmd_Args( void );
-char *Cmd_Argv( int arg );
-void Cmd_Init( int argc, char **argv );
-void Cmd_AddCommand(const char *cmd_name, xcommand_t function, const char *cmd_desc);
-void Cmd_RemoveCommand(const char *cmd_name);
-bool Cmd_Exists (const char *cmd_name);
-void Cmd_CommandCompletion( void(*callback)(const char *s, const char *m));
-bool Cmd_GetMapList( const char *s, char *completedname, int length );
-bool Cmd_GetDemoList( const char *s, char *completedname, int length );
-bool Cmd_GetMovieList (const char *s, char *completedname, int length );
-void Cmd_TokenizeString (const char *text);
-void Cmd_ExecuteString (const char *text);
-void Cmd_ForwardToServer (void);
+void Cmd_ForwardToServer( void ); // client callback
+char *Cvar_Userinfo( void );
+char *Cvar_Serverinfo( void );
+void Cmd_WriteVariables( file_t *f );
+bool Cmd_GetMapList (const char *s, char *completedname, int length );
+bool Cmd_GetDemoList(const char *s, char *completedname, int length );
+bool Cmd_GetMovieList(const char *s, char *completedname, int length);
 
 // get rid of this
-#define Cvar_Get(name, value, flags) _Cvar_Get( name, value, flags, "no description" )
+float frand(void);	// 0 to 1
+float crand(void);	// -1 to 1
 
 #endif//ENGINE_H

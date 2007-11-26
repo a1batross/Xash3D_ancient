@@ -998,10 +998,10 @@ void LoadMapFile (void)
 	nummapbrushsides = 0;
 	num_entities = 0;
 	
-	if(!load) Sys_Error("can't loading map file %s\n", path );
+	if(!load) Sys_Break("can't loading map file %s\n", path );
 	Msg ("reading %s\n", path);
 	
-	while (ParseMapEntity ()){}
+	while(ParseMapEntity());
 
 	ClearBounds (map_mins, map_maxs);
 	for (i = 0; i < entities[0].numbrushes; i++)
@@ -1012,10 +1012,10 @@ void LoadMapFile (void)
 		AddPointToBounds (mapbrushes[i].maxs, map_mins, map_maxs);
 	}
 
-	Msg("%5i brushes\n", nummapbrushes);
-	Msg("%5i clipbrushes\n", c_clipbrushes);
-	Msg("%5i total sides\n", nummapbrushsides);
-	Msg("%5i entities\n", num_entities);
-	Msg("%5i planes\n", nummapplanes);
-	Msg("%5i areaportals\n", c_areaportals);
+	MsgDev(D_INFO, "%5i brushes\n", nummapbrushes);
+	MsgDev(D_INFO, "%5i clipbrushes\n", c_clipbrushes);
+	MsgDev(D_INFO, "%5i total sides\n", nummapbrushsides);
+	MsgDev(D_INFO, "%5i entities\n", num_entities);
+	MsgDev(D_INFO, "%5i planes\n", nummapplanes);
+	MsgDev(D_INFO, "%5i areaportals\n", c_areaportals);
 }

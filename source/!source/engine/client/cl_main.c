@@ -371,20 +371,17 @@ void CL_SendConnectPacket (void)
 	netadr_t	adr;
 	int		port;
 
-	if (!NET_StringToAdr (cls.servername, &adr))
+	if(!NET_StringToAdr (cls.servername, &adr))
 	{
 		Msg ("Bad server address\n");
 		cls.connect_time = 0;
 		return;
 	}
-	if (adr.port == 0)
-		adr.port = BigShort (PORT_SERVER);
-
+	if(adr.port == 0) adr.port = BigShort (PORT_SERVER);
 	port = Cvar_VariableValue ("qport");
-	userinfo_modified = false;
 
-	Netchan_OutOfBandPrint (NS_CLIENT, adr, "connect %i %i %i \"%s\"\n",
-		PROTOCOL_VERSION, port, cls.challenge, Cvar_Userinfo() );
+	userinfo_modified = false;
+	Netchan_OutOfBandPrint(NS_CLIENT, adr, "connect %i %i %i \"%s\"\n", PROTOCOL_VERSION, port, cls.challenge, Cvar_Userinfo() );
 }
 
 /*
@@ -400,36 +397,28 @@ void CL_CheckForResend (void)
 
 	// if the local server is running and we aren't
 	// then connect
-	if (cls.state == ca_disconnected && Host_ServerState() )
+	if (cls.state == ca_disconnected && Host_ServerState())
 	{
 		cls.state = ca_connecting;
-		strncpy (cls.servername, "localhost", sizeof(cls.servername)-1);
+		std.strncpy (cls.servername, "localhost", sizeof(cls.servername)-1);
 		// we don't need a challenge on the localhost
 		CL_SendConnectPacket ();
 		return;
-//		cls.connect_time = -99999;	// CL_CheckForResend() will fire immediately
 	}
 
 	// resend if we haven't gotten a reply yet
-	if (cls.state != ca_connecting)
-		return;
+	if(cls.state != ca_connecting) return;
+	if(cls.realtime - cls.connect_time < 3.0f) return;
 
-	if (cls.realtime - cls.connect_time < 3.0f)
-		return;
-
-	if (!NET_StringToAdr (cls.servername, &adr))
+	if(!NET_StringToAdr (cls.servername, &adr))
 	{
 		Msg ("Bad server address\n");
 		cls.state = ca_disconnected;
 		return;
 	}
-	if (adr.port == 0)
-		adr.port = BigShort (PORT_SERVER);
-
-	cls.connect_time = cls.realtime;	// for retransmit requests
-
+	if (adr.port == 0) adr.port = BigShort (PORT_SERVER);
+	cls.connect_time = cls.realtime; // for retransmit requests
 	Msg ("Connecting to %s...\n", cls.servername);
-
 	Netchan_OutOfBandPrint (NS_CLIENT, adr, "getchallenge\n");
 }
 
@@ -1457,7 +1446,7 @@ void CL_WriteConfiguration (void)
 		Key_WriteBindings(f);
 		FS_Close (f);
 	}
-	else Msg("Couldn't write keys.rc.\n");
+	else MsgWarn("Couldn't write keys.rc.\n");
 
 	f = FS_Open("scripts/config/vars.rc", "w");
 	if(f)
@@ -1466,10 +1455,10 @@ void CL_WriteConfiguration (void)
 		FS_Printf (f, "//\t\t\tCopyright XashXT Group 2007 ©\n");
 		FS_Printf (f, "//\t\t\tvars.rc - archive of cvars\n");
 		FS_Printf (f, "//=======================================================================\n");
-		Cvar_WriteVariables(f);
+		Cmd_WriteVariables(f);
 		FS_Close (f);	
 	}
-	else Msg("Couldn't write vars.rc.\n");
+	else MsgWarn("Couldn't write vars.rc.\n");
 }
 
 
@@ -1609,7 +1598,7 @@ void CL_Frame( float time )
 		CL_PrepRefresh();
 
 	// update the screen
-	SCR_UpdateScreen ();
+	SCR_UpdateScreen();
 
 	// update audio
 	S_Update();
@@ -1638,7 +1627,7 @@ void CL_Init (void)
 	if (dedicated->value) return; // nothing running on the client
 
 	// all archived variables will now be loaded
-	scr_loading = _Cvar_Get("scr_loading", "0", 0, "progress bar loading value" );
+	scr_loading = Cvar_Get("scr_loading", "0", 0 );
 
 	Con_Init();	
 	VID_Init();

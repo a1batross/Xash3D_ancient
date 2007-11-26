@@ -28,7 +28,7 @@ void SV_AddCvarLump( dsavehdr_t *hdr, file_t *f )
 	for(var = cvar_vars; var; var = var->next)
 	{
 		if(!(var->flags & CVAR_LATCH)) continue;
-		if (std.strlen(var->name) >= 64 || std.strlen(var->string) >= 64)
+		if (std.strlen(var->name) >= MAX_QPATH || std.strlen(var->string) >= MAX_QPATH)
 		{
 			MsgDev(D_NOTE, "cvar too long: %s = %s\n", var->name, var->string);
 			continue;

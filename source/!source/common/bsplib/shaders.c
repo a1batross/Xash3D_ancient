@@ -73,11 +73,8 @@ shader_t *FindShader( char *texture )
 	// look for it
 	for (i = 0, texshader = shaderInfo; i < numShaderInfo; i++, texshader++)
 	{
-		if (!strcmp(shader, texshader->name))
-		{
-			//Msg("Find shader %s\n", shader );
+		if(!std.strcmp(shader, texshader->name))
 			return texshader;
-		}
 	}
 	return NULL; //no shaders for this texture
 }

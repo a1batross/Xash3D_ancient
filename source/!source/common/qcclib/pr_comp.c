@@ -6619,7 +6619,7 @@ void PR_FinishCompilation( void )
 	// compilation failed ?
 	if(errors) 
 	{
-		Sys_Error("%s - %i error(s), %i warning(s)\n", progsoutname, pr_total_error_count, pr_warning_count);
+		Sys_Break("%s - %i error(s), %i warning(s)\n", progsoutname, pr_total_error_count, pr_warning_count);
 		return;
 	}
 	PR_WriteDAT();

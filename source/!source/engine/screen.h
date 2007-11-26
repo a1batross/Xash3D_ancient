@@ -60,14 +60,6 @@ typedef enum
 #define CIN_hold		2
 #define CIN_silent		4
 
-#define COLOR_0		NULL
-#define COLOR_4		GetRGBA(1.0f, 0.5f, 0.0f, 1.0f)
-#define COLOR_8		GetRGBA(1.0f, 0.5f, 1.0f, 1.0f)
-#define COLOR_16		GetRGBA(0.3f, 0.8f, 1.0f, 1.0f)
-#define COLOR_64		GetRGBA(0.7f, 0.5f, 0.0f, 1.0f)
-#define COLOR_208		GetRGBA(0.0f, 0.4f, 0.0f, 1.0f)
-#define COLOR_223		GetRGBA(0.5f, 0.2f, 1.0f, 1.0f)
-
 void SCR_Init (void);
 void SCR_UpdateScreen (void);
 void SCR_SizeUp (void);
@@ -81,7 +73,7 @@ const char *VID_MenuKey( int );
 
 extern cvar_t	*crosshair;
 extern cvar_t	*scr_loading;
-extern	vrect_t	scr_vrect;	// position of render window
+extern vrect_t	scr_vrect;	// position of render window
 extern cvar_t	*scr_width;
 extern cvar_t	*scr_height;
 

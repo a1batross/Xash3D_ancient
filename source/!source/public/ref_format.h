@@ -11,7 +11,6 @@
 SPRITE MODELS
 ==============================================================================
 */
-
 // header
 #define SPRITE_VERSION_HALF	2
 #define SPRITE_VERSION_XASH	3
@@ -133,7 +132,114 @@ Studio models are position independent, so the cache manager can move them.
 #define STUDIO_HAS_BBOX		0x0004
 #define STUDIO_HAS_CHROME		0x0008	// if any of the textures have chrome on them
 
-typedef struct 
+enum ai_activity
+{
+	ACT_RESET = 0,	// Set m_Activity to this invalid value to force a reset to m_IdealActivity
+	ACT_IDLE = 1,
+	ACT_GUARD,
+	ACT_WALK,
+	ACT_RUN,
+	ACT_FLY,		// Fly (and flap if appropriate)
+	ACT_SWIM,
+	ACT_HOP,		// vertical jump
+	ACT_LEAP,		// long forward jump
+	ACT_FALL,
+	ACT_LAND,
+	ACT_STRAFE_LEFT,
+	ACT_STRAFE_RIGHT,
+	ACT_ROLL_LEFT,	// tuck and roll, left
+	ACT_ROLL_RIGHT,	// tuck and roll, right
+	ACT_TURN_LEFT,	// turn quickly left (stationary)
+	ACT_TURN_RIGHT,	// turn quickly right (stationary)
+	ACT_CROUCH,	// the act of crouching down from a standing position
+	ACT_CROUCHIDLE,	// holding body in crouched position (loops)
+	ACT_STAND,	// the act of standing from a crouched position
+	ACT_USE,
+	ACT_SIGNAL1,
+	ACT_SIGNAL2,
+	ACT_SIGNAL3,
+	ACT_TWITCH,
+	ACT_COWER,
+	ACT_SMALL_FLINCH,
+	ACT_BIG_FLINCH,
+	ACT_RANGE_ATTACK1,
+	ACT_RANGE_ATTACK2,
+	ACT_MELEE_ATTACK1,
+	ACT_MELEE_ATTACK2,
+	ACT_RELOAD,
+	ACT_ARM,		// pull out gun, for instance
+	ACT_DISARM,	// reholster gun
+	ACT_EAT,		// monster chowing on a large food item (loop)
+	ACT_DIESIMPLE,
+	ACT_DIEBACKWARD,
+	ACT_DIEFORWARD,
+	ACT_DIEVIOLENT,
+	ACT_BARNACLE_HIT,	// barnacle tongue hits a monster
+	ACT_BARNACLE_PULL,	// barnacle is lifting the monster ( loop )
+	ACT_BARNACLE_CHOMP,	// barnacle latches on to the monster
+	ACT_BARNACLE_CHEW,	// barnacle is holding the monster in its mouth ( loop )
+	ACT_SLEEP,
+	ACT_INSPECT_FLOOR,	// for active idles, look at something on or near the floor
+	ACT_INSPECT_WALL,	// for active idles, look at something directly ahead of you
+	ACT_IDLE_ANGRY,	// alternate idle animation in which the monster is clearly agitated. (loop)
+	ACT_WALK_HURT,	// limp  (loop)
+	ACT_RUN_HURT,	// limp  (loop)
+	ACT_HOVER,	// Idle while in flight
+	ACT_GLIDE,	// Fly (don't flap)
+	ACT_FLY_LEFT,	// Turn left in flight
+	ACT_FLY_RIGHT,	// Turn right in flight
+	ACT_DETECT_SCENT,	// this means the monster smells a scent carried by the air
+	ACT_SNIFF,	// this is the act of actually sniffing an item in front of the monster
+	ACT_BITE,		// some large monsters can eat small things in one bite. This plays one time, EAT loops.
+	ACT_THREAT_DISPLAY,	// without attacking, monster demonstrates that it is angry. (Yell, stick out chest, etc )
+	ACT_FEAR_DISPLAY,	// monster just saw something that it is afraid of
+	ACT_EXCITED,	// for some reason, monster is excited. Sees something he really likes to eat, or whatever
+	ACT_SPECIAL_ATTACK1,// very monster specific special attacks.
+	ACT_SPECIAL_ATTACK2,	
+	ACT_COMBAT_IDLE,	// agitated idle.
+	ACT_WALK_SCARED,
+	ACT_RUN_SCARED,
+	ACT_VICTORY_DANCE,	// killed a player, do a victory dance.
+	ACT_DIE_HEADSHOT,	// die, hit in head. 
+	ACT_DIE_CHESTSHOT,	// die, hit in chest
+	ACT_DIE_GUTSHOT,	// die, hit in gut
+	ACT_DIE_BACKSHOT,	// die, hit in back
+	ACT_FLINCH_HEAD,
+	ACT_FLINCH_CHEST,
+	ACT_FLINCH_STOMACH,
+	ACT_FLINCH_LEFTARM,
+	ACT_FLINCH_RIGHTARM,
+	ACT_FLINCH_LEFTLEG,
+	ACT_FLINCH_RIGHTLEG,
+	ACT_VM_NONE,	// weapon viewmodel animations
+	ACT_VM_DEPLOY,	// deploy
+	ACT_VM_DEPLOY_EMPTY,// deploy empty weapon
+	ACT_VM_HOLSTER,	// holster empty weapon
+	ACT_VM_HOLSTER_EMPTY,
+	ACT_VM_IDLE1,
+	ACT_VM_IDLE2,
+	ACT_VM_IDLE3,
+	ACT_VM_RANGE_ATTACK1,
+	ACT_VM_RANGE_ATTACK2,
+	ACT_VM_RANGE_ATTACK3,
+	ACT_VM_MELEE_ATTACK1,
+	ACT_VM_MELEE_ATTACK2,
+	ACT_VM_MELEE_ATTACK3,
+	ACT_VM_SHOOT_EMPTY,
+	ACT_VM_START_RELOAD,
+	ACT_VM_RELOAD,
+	ACT_VM_RELOAD_EMPTY,
+	ACT_VM_TURNON,
+	ACT_VM_TURNOFF,
+	ACT_VM_PUMP,	// pumping gun
+	ACT_VM_PUMP_EMPTY,
+	ACT_VM_START_CHARGE,
+	ACT_VM_CHARGE,
+	ACT_VM_OVERLOAD,
+	ACT_VM_IDLE_EMPTY,
+};
+
+typedef struct
 {
 	int		id;
 	int		version;
@@ -389,6 +495,113 @@ typedef struct
 	int		normindex;	// normal vec3_t
 } mstudiomesh_t;
 
+static activity_map_t activity_map[] =
+{
+{ACT_IDLE,		"ACT_IDLE"		},
+{ACT_GUARD,		"ACT_GUARD"		},
+{ACT_WALK,		"ACT_WALK"		},
+{ACT_RUN,			"ACT_RUN"			},
+{ACT_FLY,			"ACT_FLY"			},
+{ACT_SWIM,		"ACT_SWIM",		},
+{ACT_HOP,			"ACT_HOP",		},
+{ACT_LEAP,		"ACT_LEAP"		},
+{ACT_FALL,		"ACT_FALL"		},
+{ACT_LAND,		"ACT_LAND"		},
+{ACT_STRAFE_LEFT,		"ACT_STRAFE_LEFT"		},
+{ACT_STRAFE_RIGHT,		"ACT_STRAFE_RIGHT"		},
+{ACT_ROLL_LEFT,		"ACT_ROLL_LEFT"		},
+{ACT_ROLL_RIGHT,		"ACT_ROLL_RIGHT"		},
+{ACT_TURN_LEFT,		"ACT_TURN_LEFT"		},
+{ACT_TURN_RIGHT,		"ACT_TURN_RIGHT"		},
+{ACT_CROUCH,		"ACT_CROUCH"		},
+{ACT_CROUCHIDLE,		"ACT_CROUCHIDLE"		},
+{ACT_STAND,		"ACT_STAND"		},
+{ACT_USE,			"ACT_USE"			},
+{ACT_SIGNAL1,		"ACT_SIGNAL1"		},
+{ACT_SIGNAL2,		"ACT_SIGNAL2"		},
+{ACT_SIGNAL3,		"ACT_SIGNAL3"		},
+{ACT_TWITCH,		"ACT_TWITCH"		},
+{ACT_COWER,		"ACT_COWER"		},
+{ACT_SMALL_FLINCH,		"ACT_SMALL_FLINCH"		},
+{ACT_BIG_FLINCH,		"ACT_BIG_FLINCH"		},
+{ACT_RANGE_ATTACK1,		"ACT_RANGE_ATTACK1"		},
+{ACT_RANGE_ATTACK2,		"ACT_RANGE_ATTACK2"		},
+{ACT_MELEE_ATTACK1,		"ACT_MELEE_ATTACK1"		},
+{ACT_MELEE_ATTACK2,		"ACT_MELEE_ATTACK2"		},
+{ACT_RELOAD,		"ACT_RELOAD"		},
+{ACT_ARM,			"ACT_ARM"			},
+{ACT_DISARM,		"ACT_DISARM"		},
+{ACT_EAT,			"ACT_EAT"			},
+{ACT_DIESIMPLE,		"ACT_DIESIMPLE"		},
+{ACT_DIEBACKWARD,		"ACT_DIEBACKWARD"		},
+{ACT_DIEFORWARD,		"ACT_DIEFORWARD"		},
+{ACT_DIEVIOLENT,		"ACT_DIEVIOLENT"		},
+{ACT_BARNACLE_HIT,		"ACT_BARNACLE_HIT"		},
+{ACT_BARNACLE_PULL,		"ACT_BARNACLE_PULL"		},
+{ACT_BARNACLE_CHOMP,	"ACT_BARNACLE_CHOMP"	},
+{ACT_BARNACLE_CHEW,		"ACT_BARNACLE_CHEW"		},
+{ACT_SLEEP,		"ACT_SLEEP"		},
+{ACT_INSPECT_FLOOR,		"ACT_INSPECT_FLOOR"		},
+{ACT_INSPECT_WALL,		"ACT_INSPECT_WALL"		},
+{ACT_IDLE_ANGRY,		"ACT_IDLE_ANGRY"		},
+{ACT_WALK_HURT,		"ACT_WALK_HURT"		},
+{ACT_RUN_HURT,		"ACT_RUN_HURT"		},
+{ACT_HOVER,		"ACT_HOVER"		},
+{ACT_GLIDE,		"ACT_GLIDE"		},
+{ACT_FLY_LEFT,		"ACT_FLY_LEFT"		},
+{ACT_FLY_RIGHT,		"ACT_FLY_RIGHT"		},
+{ACT_DETECT_SCENT,		"ACT_DETECT_SCENT"		},
+{ACT_SNIFF,		"ACT_SNIFF"		},		
+{ACT_BITE,		"ACT_BITE"		},		
+{ACT_THREAT_DISPLAY,	"ACT_THREAT_DISPLAY"	},
+{ACT_FEAR_DISPLAY,		"ACT_FEAR_DISPLAY"		},
+{ACT_EXCITED,		"ACT_EXCITED"		},	
+{ACT_SPECIAL_ATTACK1,	"ACT_SPECIAL_ATTACK1"	},
+{ACT_SPECIAL_ATTACK2,	"ACT_SPECIAL_ATTACK2"	},
+{ACT_COMBAT_IDLE,		"ACT_COMBAT_IDLE"		},
+{ACT_WALK_SCARED,		"ACT_WALK_SCARED"		},
+{ACT_RUN_SCARED,		"ACT_RUN_SCARED"		},
+{ACT_VICTORY_DANCE,		"ACT_VICTORY_DANCE"		},
+{ACT_DIE_HEADSHOT,		"ACT_DIE_HEADSHOT"		},
+{ACT_DIE_CHESTSHOT,		"ACT_DIE_CHESTSHOT"		},
+{ACT_DIE_GUTSHOT,		"ACT_DIE_GUTSHOT"		},
+{ACT_DIE_BACKSHOT,		"ACT_DIE_BACKSHOT"		},
+{ACT_FLINCH_HEAD,		"ACT_FLINCH_HEAD"		},
+{ACT_FLINCH_CHEST,		"ACT_FLINCH_CHEST"		},
+{ACT_FLINCH_STOMACH,	"ACT_FLINCH_STOMACH"	},
+{ACT_FLINCH_LEFTARM,	"ACT_FLINCH_LEFTARM"	},
+{ACT_FLINCH_RIGHTARM,	"ACT_FLINCH_RIGHTARM"	},
+{ACT_FLINCH_LEFTLEG,	"ACT_FLINCH_LEFTLEG"	},
+{ACT_FLINCH_RIGHTLEG,	"ACT_FLINCH_RIGHTLEG"	},
+{ACT_VM_NONE,		"ACT_VM_NONE"		},	// invalid animation
+{ACT_VM_DEPLOY,		"ACT_VM_DEPLOY"		},	// deploy
+{ACT_VM_DEPLOY_EMPTY,	"ACT_VM_DEPLOY_EMPTY"	},	// deploy empty weapon
+{ACT_VM_HOLSTER,		"ACT_VM_HOLSTER"		},	// holster empty weapon
+{ACT_VM_HOLSTER_EMPTY,	"ACT_VM_HOLSTER_EMPTY"	},
+{ACT_VM_IDLE1,		"ACT_VM_IDLE1"		},
+{ACT_VM_IDLE2,		"ACT_VM_IDLE2"		},
+{ACT_VM_IDLE3,		"ACT_VM_IDLE3"		},
+{ACT_VM_RANGE_ATTACK1,	"ACT_VM_RANGE_ATTACK1"	},
+{ACT_VM_RANGE_ATTACK2,	"ACT_VM_RANGE_ATTACK2"	},
+{ACT_VM_RANGE_ATTACK3,	"ACT_VM_RANGE_ATTACK3"	},
+{ACT_VM_MELEE_ATTACK1,	"ACT_VM_MELEE_ATTACK1"	},
+{ACT_VM_MELEE_ATTACK2,	"ACT_VM_MELEE_ATTACK2"	},
+{ACT_VM_MELEE_ATTACK3,	"ACT_VM_MELEE_ATTACK3"	},
+{ACT_VM_SHOOT_EMPTY,	"ACT_VM_SHOOT_EMPTY"	},
+{ACT_VM_START_RELOAD,	"ACT_VM_START_RELOAD"	},
+{ACT_VM_RELOAD,		"ACT_VM_RELOAD"		},
+{ACT_VM_RELOAD_EMPTY,	"ACT_VM_RELOAD_EMPTY"	},
+{ACT_VM_TURNON,		"ACT_VM_TURNON"		},
+{ACT_VM_TURNOFF,		"ACT_VM_TURNOFF"		},
+{ACT_VM_PUMP,		"ACT_VM_PUMP"		},	// user animations
+{ACT_VM_PUMP_EMPTY,		"ACT_VM_PUMP_EMPTY"		},
+{ACT_VM_START_CHARGE,	"ACT_VM_START_CHARGE"	},
+{ACT_VM_CHARGE,		"ACT_VM_CHARGE"		},
+{ACT_VM_OVERLOAD,		"ACT_VM_CHARGE"		},
+{ACT_VM_IDLE_EMPTY,		"ACT_VM_IDLE_EMPTY"		},
+{0, 			NULL			},
+};
+
 /*
 ==============================================================================
 
@@ -639,6 +852,468 @@ MAP CONTENTS & SURFACES DESCRIPTION
 #define SURF_ICE			0x00100000// ice
 #define SURF_STANDARD   		0x00200000// normal footsteps
 #define SURF_STEPMASK		0x000FFC00
+
+/*
+==============================================================================
+
+VIRTUAL MACHINE
+
+a internal virtual machine like as QuakeC, but it has more extensions
+==============================================================================
+*/
+
+// header
+#define QPROGS_VERSION	6	// Quake1 progs version
+#define FPROGS_VERSION	7	// Fte progs version
+#define VPROGS_VERSION	8	// xash progs version
+#define LNNUMS_VERSION	1	// line numbers version
+
+#define VPROGSHEADER16	(('6'<<24)+('1'<<16)+('D'<<8)+'I') // little-endian "ID16"
+#define VPROGSHEADER32	(('2'<<24)+('3'<<16)+('D'<<8)+'I') // little-endian "ID32"
+#define LINENUMSHEADER	(('F'<<24)+('O'<<16)+('N'<<8)+'L') // little-endian "LNOF"
+
+// global ofssets
+#define OFS_NULL		0
+#define OFS_RETURN		1
+#define OFS_PARM0		4
+#define OFS_PARM1		7
+#define OFS_PARM2		10
+#define OFS_PARM3		13
+#define OFS_PARM4		16
+#define OFS_PARM5		19
+#define OFS_PARM6		22
+#define OFS_PARM7		25
+#define RESERVED_OFS	28
+
+// misc flags
+#define DEF_SHARED		(1<<14)
+#define DEF_SAVEGLOBAL	(1<<15)
+
+// compression block flags
+#define COMP_STATEMENTS	1
+#define COMP_DEFS		2
+#define COMP_FIELDS		4
+#define COMP_FUNCTIONS	8
+#define COMP_STRINGS	16
+#define COMP_GLOBALS	32
+#define COMP_LINENUMS	64
+#define COMP_TYPES		128
+#define COMP_SOURCE		256
+#define MAX_PARMS		8
+
+// 16-bit mode
+#define dstatement_t	dstatement16_t
+#define ddef_t		ddef16_t		// these should be the same except the string type
+
+typedef enum 
+{
+	ev_void,
+	ev_string,
+	ev_float,
+	ev_vector,
+	ev_entity,
+	ev_field,
+	ev_function,
+	ev_pointer,
+	ev_integer,
+	ev_variant,
+	ev_struct,
+	ev_union,
+} etype_t;
+
+enum op_state
+{
+	OP_DONE,		// 0
+	OP_MUL_F,
+	OP_MUL_V,
+	OP_MUL_FV,	// (vec3_t) * (float)
+	OP_MUL_VF,          // (float) * (vec3_t)
+	OP_DIV_F,
+	OP_ADD_F,
+	OP_ADD_V,
+	OP_SUB_F,
+	OP_SUB_V,
+	
+	OP_EQ_F,		// 10
+	OP_EQ_V,
+	OP_EQ_S,
+	OP_EQ_E,
+	OP_EQ_FNC,
+	
+	OP_NE_F,
+	OP_NE_V,
+	OP_NE_S,
+	OP_NE_E,
+	OP_NE_FNC,
+	
+	OP_LE,		// = (float) <= (float);
+	OP_GE,		// = (float) >= (float);
+	OP_LT,		// = (float) <  (float);
+	OP_GT,		// = (float) >  (float);
+
+	OP_LOAD_F,
+	OP_LOAD_V,
+	OP_LOAD_S,
+	OP_LOAD_ENT,
+	OP_LOAD_FLD,
+	OP_LOAD_FNC,
+
+	OP_ADDRESS,	// 30
+
+	OP_STORE_F,
+	OP_STORE_V,
+	OP_STORE_S,
+	OP_STORE_ENT,
+	OP_STORE_FLD,
+	OP_STORE_FNC,
+
+	OP_STOREP_F,
+	OP_STOREP_V,
+	OP_STOREP_S,
+	OP_STOREP_ENT,	// 40
+	OP_STOREP_FLD,
+	OP_STOREP_FNC,
+
+	OP_RETURN,
+	OP_NOT_F,
+	OP_NOT_V,
+	OP_NOT_S,
+	OP_NOT_ENT,
+	OP_NOT_FNC,
+	OP_IF,
+	OP_IFNOT,		// 50
+	OP_CALL0,
+	OP_CALL1,
+	OP_CALL2,
+	OP_CALL3,
+	OP_CALL4,
+	OP_CALL5,
+	OP_CALL6,
+	OP_CALL7,
+	OP_CALL8,
+	OP_STATE,		// 60
+	OP_GOTO,
+	OP_AND,
+	OP_OR,
+	
+	OP_BITAND,	// = (float) & (float); // of cource converting into integer in real code
+	OP_BITOR,
+
+	// version 7 started
+	OP_MULSTORE_F,	// f *= f
+	OP_MULSTORE_V,	// v *= f
+	OP_MULSTOREP_F,	// e.f *= f
+	OP_MULSTOREP_V,	// e.v *= f
+
+	OP_DIVSTORE_F,	// f /= f
+	OP_DIVSTOREP_F,	// e.f /= f
+
+	OP_ADDSTORE_F,	// f += f
+	OP_ADDSTORE_V,	// v += v
+	OP_ADDSTOREP_F,	// e.f += f
+	OP_ADDSTOREP_V,	// e.v += v
+
+	OP_SUBSTORE_F,	// f -= f
+	OP_SUBSTORE_V,	// v -= v
+	OP_SUBSTOREP_F,	// e.f -= f
+	OP_SUBSTOREP_V,	// e.v -= v
+
+	OP_FETCH_GBL_F,	// 80
+	OP_FETCH_GBL_V,
+	OP_FETCH_GBL_S,
+	OP_FETCH_GBL_E,
+	OP_FETCH_G_FNC,
+
+	OP_CSTATE,
+	OP_CWSTATE,
+
+	OP_THINKTIME,
+
+	OP_BITSET,	// b  (+) a
+	OP_BITSETP,	// .b (+) a
+	OP_BITCLR,	// b  (-) a
+	OP_BITCLRP,	// .b (-) a
+
+	OP_RAND0,
+	OP_RAND1,
+	OP_RAND2,
+	OP_RANDV0,
+	OP_RANDV1,
+	OP_RANDV2,
+
+	OP_SWITCH_F,	// switches
+	OP_SWITCH_V,	// 100
+	OP_SWITCH_S,
+	OP_SWITCH_E,
+	OP_SWITCH_FNC,
+
+	OP_CASE,
+	OP_CASERANGE,
+
+	OP_STORE_I,
+	OP_STORE_IF,
+	OP_STORE_FI,
+	
+	OP_ADD_I,
+	OP_ADD_FI,	// 110
+	OP_ADD_IF,
+  
+	OP_SUB_I,
+	OP_SUB_FI,
+	OP_SUB_IF,
+
+	OP_CONV_ITOF,
+	OP_CONV_FTOI,
+	OP_CP_ITOF,
+	OP_CP_FTOI,
+	OP_LOAD_I,
+	OP_STOREP_I,	// 120
+	OP_STOREP_IF,
+	OP_STOREP_FI,
+
+	OP_BITAND_I,
+	OP_BITOR_I,
+
+	OP_MUL_I,
+	OP_DIV_I,
+	OP_EQ_I,
+	OP_NE_I,
+
+	OP_IFNOTS,
+	OP_IFS,		// 130
+
+	OP_NOT_I,
+
+	OP_DIV_VF,
+
+	OP_POWER_I,
+	OP_RSHIFT_I,
+	OP_LSHIFT_I,
+
+	OP_GLOBAL_ADD,
+	OP_POINTER_ADD,	// pointer to 32 bit (remember to *3 for vectors)
+
+	OP_LOADA_F,
+	OP_LOADA_V,	
+	OP_LOADA_S,	// 140
+	OP_LOADA_ENT,
+	OP_LOADA_FLD,		
+	OP_LOADA_FNC,
+	OP_LOADA_I,
+
+	OP_STORE_P,
+	OP_LOAD_P,
+
+	OP_LOADP_F,
+	OP_LOADP_V,	
+	OP_LOADP_S,
+	OP_LOADP_ENT,	// 150
+	OP_LOADP_FLD,
+	OP_LOADP_FNC,
+	OP_LOADP_I,
+
+	OP_LE_I,            // (int)c = (int)a <= (int)b;
+	OP_GE_I,		// (int)c = (int)a >= (int)b;
+	OP_LT_I,		// (int)c = (int)a <  (int)b;
+	OP_GT_I,		// (int)c = (int)a >  (int)b;
+
+	OP_LE_IF,           // (float)c = (int)a <= (float)b;
+	OP_GE_IF,		// (float)c = (int)a >= (float)b;
+	OP_LT_IF,		// (float)c = (int)a <  (float)b;
+	OP_GT_IF,		// (float)c = (int)a >  (float)b;
+
+	OP_LE_FI,		// (float)c = (float)a <= (int)b;
+	OP_GE_FI,		// (float)c = (float)a >= (int)b;
+	OP_LT_FI,		// (float)c = (float)a <  (int)b;
+	OP_GT_FI,		// (float)c = (float)a >  (int)b;
+
+	OP_EQ_IF,
+	OP_EQ_FI,
+
+	OP_ADD_SF,	// (char*)c = (char*)a + (float)b
+	OP_SUB_S,		// (float)c = (char*)a - (char*)b
+	OP_STOREP_C,	// (float)c = *(char*)b = (float)a
+	OP_LOADP_C,	// (float)c = *(char*) // 170
+
+	OP_MUL_IF,
+	OP_MUL_FI,
+	OP_MUL_VI,
+	OP_MUL_IV,
+	OP_DIV_IF,
+	OP_DIV_FI,
+	OP_BITAND_IF,
+	OP_BITOR_IF,
+	OP_BITAND_FI,	// 180
+	OP_BITOR_FI,
+	OP_AND_I,
+	OP_OR_I,
+	OP_AND_IF,
+	OP_OR_IF,
+	OP_AND_FI,
+	OP_OR_FI,
+	OP_NE_IF,
+	OP_NE_FI,
+
+	OP_GSTOREP_I,	// 190
+	OP_GSTOREP_F,		
+	OP_GSTOREP_ENT,
+	OP_GSTOREP_FLD,	// integers
+	OP_GSTOREP_S,
+	OP_GSTOREP_FNC,	// pointers
+	OP_GSTOREP_V,
+	OP_GADDRESS,
+	OP_GLOAD_I,
+	OP_GLOAD_F,
+	OP_GLOAD_FLD,	// 200
+	OP_GLOAD_ENT,
+	OP_GLOAD_S,
+	OP_GLOAD_FNC,
+	OP_GLOAD_V,
+	OP_BOUNDCHECK,
+
+	OP_STOREP_P,	// back to ones that we do use.	
+	OP_PUSH,
+	OP_POP,
+
+	// version 8 started
+	OP_NUMOPS,
+};
+
+typedef struct statement16_s
+{
+	word		op;
+	short		a,b,c;
+
+} dstatement16_t;
+
+typedef struct statement32_s
+{
+	dword		op;
+	long		a,b,c;
+
+} dstatement32_t;
+
+typedef struct ddef16_s
+{
+	word		type;		// if DEF_SAVEGLOBAL bit is set
+					// the variable needs to be saved in savegames
+	word		ofs;
+	string_t		s_name;
+} ddef16_t;
+
+typedef struct ddef32_s
+{
+	dword		type;		// if DEF_SAVEGLOBAL bit is set
+					// the variable needs to be saved in savegames
+	dword		ofs;
+	string_t		s_name;
+} ddef32_t;
+
+typedef struct fdef_s
+{
+	uint		type;		// if DEF_SAVEGLOBAL bit is set
+					// the variable needs to be saved in savegames
+	uint		ofs;
+	uint		progsofs;		// used at loading time, so maching field offsets (unions/members) 
+					// are positioned at the same runtime offset.
+	char		*name;
+} fdef_t;
+
+typedef struct
+{
+	int		first_statement;	// negative numbers are builtins
+	int		parm_start;
+	int		locals;		// total ints of parms + locals
+	int		profile;		// runtime
+	string_t		s_name;
+	string_t		s_file;		// source file defined in
+	int		numparms;
+	byte		parm_size[MAX_PARMS];
+} dfunction_t;
+
+typedef struct
+{
+	int		version;		// version number
+	int		crc;		// check of header file
+	
+	uint		ofs_statements;	// comp 1
+	uint		numstatements;	// statement 0 is an error
+	uint		ofs_globaldefs;	// comp 2
+	uint		numglobaldefs;
+	uint		ofs_fielddefs;	// comp 4
+	uint		numfielddefs;
+	uint		ofs_functions;	// comp 8
+	uint		numfunctions;	// function 0 is an empty
+	uint		ofs_strings;	// comp 16
+	uint		numstrings;	// first string is a null string
+	uint		ofs_globals;	// comp 32
+	uint		numglobals;
+	uint		entityfields;
+
+	// version 7 extensions
+	uint		ofsfiles;		// source files always compressed
+	uint		ofslinenums;	// numstatements big // comp 64
+	uint		ofsbodylessfuncs;	// no comp
+	uint		numbodylessfuncs;
+	uint		ofs_types;	// comp 128
+	uint		numtypes;
+	uint		blockscompressed;	// who blocks are compressed (COMP flags)
+
+	int		id;		// version 7 id
+
+} dprograms_t;
+
+typedef struct dlno_s
+{
+	int	header;
+	int	version;
+
+	uint	numglobaldefs;
+	uint	numglobals;
+	uint	numfielddefs;
+	uint	numstatements;
+} dlno_t;
+
+typedef struct mfunction_s
+{
+	int		first_statement;	// negative numbers are builtins
+	int		parm_start;
+	int		locals;		// total ints of parms + locals
+
+	// these are doubles so that they can count up to 54bits or so rather than 32bit
+	double		profile;		// runtime
+	double		builtinsprofile;	// cost of builtin functions called by this function
+	double		callcount;	// times the functions has been called since the last profile call
+
+	int		s_name;
+	int		s_file;		// source file defined in
+	int		numparms;
+	byte		parm_size[MAX_PARMS];
+} mfunction_t;
+
+typedef struct
+{
+	char		filename[128];
+	int		size;
+	int		compsize;
+	int		compmethod;
+	int		ofs;
+} includeddatafile_t;
+
+typedef struct type_s
+{
+	etype_t		type;
+
+	struct type_s	*parentclass;	// type_entity...
+	struct type_s	*next;
+	struct type_s	*aux_type;	// return type or field type
+	struct type_s	*param;
+
+	int		num_parms;	// -1 = variable args
+	uint		ofs;		// inside a structure.
+	uint		size;
+	char		*name;
+} type_t;
 
 /*
 ==============================================================================

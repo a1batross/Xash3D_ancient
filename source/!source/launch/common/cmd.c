@@ -1,29 +1,9 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
+//=======================================================================
+//			Copyright XashXT Group 2007 ©
+//		    cmd.c - script command processing module
+//=======================================================================
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-// cmd.c -- Quake script command processing module
-
-#include "engine.h"
-
-void Cmd_ForwardToServer (void);
-
-//=============================================================================
+#include "launch.h"
 
 #define MAX_CMD_BUFFER	16384
 #define MAX_CMD_LINE	1024
@@ -38,8 +18,6 @@ typedef struct
 int	cmd_wait;
 cmd_t	cmd_text;
 byte	cmd_text_buf[MAX_CMD_BUFFER];
-char	**fs_argv;
-int	fs_argc;
 
 /*
 =============================================================================
@@ -53,13 +31,11 @@ int	fs_argc;
 Cbuf_Init
 ============
 */
-void Cbuf_Init (int argc, char **argv )
+void Cbuf_Init( void )
 {
 	cmd_text.data = cmd_text_buf;
 	cmd_text.maxsize = MAX_CMD_BUFFER;
 	cmd_text.cursize = 0;
-	fs_argc = argc;
-	fs_argv = argv;
 }
 
 /*
@@ -71,16 +47,16 @@ Adds command text at the end of the buffer
 */
 void Cbuf_AddText(const char *text)
 {
-	int	len;
+	int	l;
 
-	len = strlen(text);
-	if (cmd_text.cursize + len >= cmd_text.maxsize)
+	l = strlen(text);
+	if (cmd_text.cursize + l >= cmd_text.maxsize)
 	{
 		MsgDev(D_WARN, "Cbuf_AddText: overflow\n");
 		return;
 	}
-	Mem_Copy(&cmd_text.data[cmd_text.cursize], (char *)text, len);
-	cmd_text.cursize += len;
+	Mem_Copy(&cmd_text.data[cmd_text.cursize], (char *)text, l);
+	cmd_text.cursize += l;
 }
 
 
@@ -105,7 +81,7 @@ void Cbuf_InsertText (const char *text)
 	}
 
 	// move the existing command text
-	for( i = cmd_text.cursize - 1; i >= 0; i-- )
+	for ( i = cmd_text.cursize - 1; i >= 0; i-- )
 	{
 		cmd_text.data[i + len] = cmd_text.data[i];
 	}
@@ -209,8 +185,8 @@ Cmd_StuffCmds_f
 
 Adds command line parameters as script statements
 Commands lead with a +, and continue until a - or another +
-quake +prog jctest.qp +cmd amlev1
-quake -nosound +cmd amlev1
+xash +prog jctest.qp +cmd amlev1
+xash -nosound +cmd amlev1
 ===============
 */
 void Cmd_StuffCmds_f( void )
@@ -225,9 +201,9 @@ void Cmd_StuffCmds_f( void )
 	}
 
 	// no reason to run the commandline arguments twice
-	if(host.stuffcmdsrun) return;
+	if(Sys.stuffcmdsrun) return;
 
-	host.stuffcmdsrun = true;
+	Sys.stuffcmdsrun = true;
 	build[0] = 0;
 
 	for (i = 0; i < fs_argc; i++)
@@ -258,7 +234,7 @@ void Cmd_StuffCmds_f( void )
 	// now terminate the combined string and prepend it to the command buffer
 	// we already reserved space for the terminator
 	build[l++] = 0;
-	Cbuf_InsertText(build);
+	Cbuf_InsertText( build );
 }
 
 /*
@@ -273,7 +249,7 @@ bind g "cmd use rocket ; +attack ; wait ; -attack ; cmd use blaster"
 void Cmd_Wait_f (void)
 {
 	if(Cmd_Argc() == 1) cmd_wait = 1;
-	else cmd_wait = atoi(Cmd_Argv( 1 ));
+	else cmd_wait = com_atoi(Cmd_Argv( 1 ));
 	
 }
 
@@ -293,7 +269,7 @@ void Cmd_Exec_f (void)
 		return;
 	}
 
-	sprintf(rcpath, "scripts/config/%s", Cmd_Argv(1)); 
+	com_sprintf(rcpath, "scripts/config/%s", Cmd_Argv(1)); 
 	FS_DefaultExtension(rcpath, ".rc" ); // append as default
 
 	f = FS_LoadFile(rcpath, &len );
@@ -304,7 +280,7 @@ void Cmd_Exec_f (void)
 	}
 	MsgDev(D_INFO, "execing %s\n",Cmd_Argv(1));
 	Cbuf_InsertText(f);
-	Z_Free (f);
+	Mem_Free(f);
 }
 
 /*
@@ -314,246 +290,13 @@ Cmd_Echo_f
 Just prints the rest of the line to the console
 ===============
 */
-void Cmd_Echo_f (void)
+void Cmd_Echo_f( void )
 {
 	int	i;
 	
 	for(i = 1; i < Cmd_Argc(); i++)
-		Msg ("%s ",Cmd_Argv(i));
+		Msg("%s ",Cmd_Argv(i));
 	Msg ("\n");
-}
-
-/*
-=====================================
-Cmd_GetMapList
-
-Prints or complete map filename
-=====================================
-*/
-bool Cmd_GetMapList (const char *s, char *completedname, int length )
-{
-	search_t		*t;
-	file_t		*f;
-	char		message[MAX_QPATH];
-	char		matchbuf[MAX_QPATH];
-	byte		buf[MAX_SYSPATH]; // 1 kb
-	int		i, nummaps;
-
-	t = FS_Search(va("maps/%s*.bsp", s), true );
-	if( !t ) return false;
-
-	FS_FileBase(t->filenames[0], matchbuf ); 
-	strncpy( completedname, matchbuf, length );
-	if(t->numfilenames == 1) return true;
-
-	for(i = 0, nummaps = 0; i < t->numfilenames; i++)
-	{
-		const char	*data = NULL;
-		char		*entities = NULL;
-		char		entfilename[MAX_QPATH];
-		int		ver = -1, lumpofs = 0, lumplen = 0;
-		const char	*ext = FS_FileExtension( t->filenames[i] ); 
-
-		if( std.stricmp(ext, "bsp" )) continue;
-
-		strncpy(message, "^1error^7", sizeof(message));
-		f = FS_Open(t->filenames[i], "rb" );
-	
-		if( f )
-		{
-			memset(buf, 0, 1024);
-			FS_Read(f, buf, 1024);
-			if(!memcmp(buf, "IBSP", 4))
-			{
-				dheader_t *header = (dheader_t *)buf;
-				ver = LittleLong(((int *)buf)[1]);
-
-				switch(ver)
-				{
-				case 38:	// quake2 (xash)
-				case 46:	// quake3
-				case 47:	// return to castle wolfenstein
-					lumpofs = LittleLong(header->lumps[LUMP_ENTITIES].fileofs);
-					lumplen = LittleLong(header->lumps[LUMP_ENTITIES].filelen);
-					break;
-				}
-			}
-			else
-			{
-				lump_t	ents; // quake1 entity lump
-				memcpy(&ents, buf + 4, sizeof(lump_t)); // skip first four bytes (version)
-				ver = LittleLong(((int *)buf)[0]);
-
-				switch( ver )
-				{
-				case 28:	// quake 1 beta
-				case 29:	// quake 1 regular
-				case 30:	// Half-Life regular
-					lumpofs = LittleLong(ents.fileofs);
-					lumplen = LittleLong(ents.filelen);
-					break;
-				default:
-					ver = 0;
-					break;
-				}
-			}
-
-			std.strncpy(entfilename, t->filenames[i], sizeof(entfilename));
-			FS_StripExtension( entfilename );
-			FS_DefaultExtension( entfilename, ".ent" );
-			entities = (char *)FS_LoadFile(entfilename, NULL);
-
-			if( !entities && lumplen >= 10 )
-			{
-				FS_Seek(f, lumpofs, SEEK_SET);
-				entities = (char *)Z_Malloc(lumplen + 1);
-				FS_Read(f, entities, lumplen);
-			}
-
-			if( entities )
-			{
-				// if there are entities to parse, a missing message key just
-				// means there is no title, so clear the message string now
-				message[0] = 0;
-				data = entities;
-				while(Com_ParseToken(&data))
-				{
-					if(!strcmp(com_token, "{" )) continue;
-					else if(!strcmp(com_token, "}" )) break;
-					else if(!strcmp(com_token, "message" ))
-					{
-						// get the message contents
-						Com_ParseToken(&data);
-						strncpy(message, com_token, sizeof(message));
-					}
-					else if(!strcmp(com_token, "mapversion" ))
-					{
-						// get map version
-						Com_ParseToken(&data);
-						// old xash maps are Half-Life, so don't overwrite version
-						if(ver > 30) ver = atoi(com_token);
-					}
-				}
-			}
-		}
-		if( entities )Z_Free(entities);
-		if( f )FS_Close(f);
-		FS_FileBase(t->filenames[i], matchbuf );
-
-		switch(ver)
-		{
-		case 28:  strncpy((char *)buf, "Quake1 beta", sizeof(buf)); break;
-		case 29:  strncpy((char *)buf, "Quake1", sizeof(buf)); break;
-		case 30:  strncpy((char *)buf, "Half-Life", sizeof(buf)); break;
-		case 38:  strncpy((char *)buf, "Quake 2", sizeof(buf)); break;
-		case 46:  strncpy((char *)buf, "Quake 3", sizeof(buf)); break;
-		case 47:  strncpy((char *)buf, "RTCW", sizeof(buf)); break;
-		case 220: strncpy((char *)buf, "Xash 3D", sizeof(buf)); break;
-		default:	strncpy((char *)buf, "??", sizeof(buf)); break;
-		}
-		Msg("%16s (%s) ^3%s^7\n", matchbuf, buf, message);
-		nummaps++;
-	}
-	Msg("\n^3 %i maps found.\n", nummaps );
-	Z_Free( t );
-
-	// cut shortestMatch to the amount common with s
-	for( i = 0; matchbuf[i]; i++ )
-	{
-		if(tolower(completedname[i]) != tolower(matchbuf[i]))
-			completedname[i] = 0;
-	}
-	return true;
-}
-
-/*
-=====================================
-Cmd_GetDemoList
-
-Prints or complete demo filename
-=====================================
-*/
-bool Cmd_GetDemoList (const char *s, char *completedname, int length )
-{
-	search_t		*t;
-	char		matchbuf[MAX_QPATH];
-	int		i, numdems;
-
-	t = FS_Search(va("demos/%s*.dem", s ), true);
-	if(!t) return false;
-
-	FS_FileBase(t->filenames[0], matchbuf ); 
-	if(completedname && length) strncpy( completedname, matchbuf, length );
-	if(t->numfilenames == 1) return true;
-
-	for(i = 0, numdems = 0; i < t->numfilenames; i++)
-	{
-		const char *ext = FS_FileExtension( t->filenames[i] ); 
-
-		if( std.stricmp(ext, "dem" )) continue;
-		FS_FileBase(t->filenames[i], matchbuf );
-		Msg("%16s\n", matchbuf );
-		numdems++;
-	}
-	Msg("\n^3 %i demos found.\n", numdems );
-	Z_Free(t);
-
-	// cut shortestMatch to the amount common with s
-	if(completedname && length)
-	{
-		for( i = 0; matchbuf[i]; i++ )
-		{
-			if(tolower(completedname[i]) != tolower(matchbuf[i]))
-				completedname[i] = 0;
-		}
-	}
-
-	return true;
-}
-
-/*
-=====================================
-Cmd_GetMovieList
-
-Prints or complete movie filename
-=====================================
-*/
-bool Cmd_GetMovieList (const char *s, char *completedname, int length )
-{
-	search_t		*t;
-	char		matchbuf[MAX_QPATH];
-	int		i, nummovies;
-
-	t = FS_Search(va("video/%s*.roq", s ), true);
-	if(!t) return false;
-
-	FS_FileBase(t->filenames[0], matchbuf ); 
-	if(completedname && length) strncpy( completedname, matchbuf, length );
-	if(t->numfilenames == 1) return true;
-
-	for(i = 0, nummovies = 0; i < t->numfilenames; i++)
-	{
-		const char *ext = FS_FileExtension( t->filenames[i] ); 
-
-		if( std.stricmp(ext, "roq" )) continue;
-		FS_FileBase(t->filenames[i], matchbuf );
-		Msg("%16s\n", matchbuf );
-		nummovies++;
-	}
-	Msg("\n^3 %i movies found.\n", nummovies );
-	Z_Free(t);
-
-	// cut shortestMatch to the amount common with s
-	if(completedname && length)
-	{
-		for( i = 0; matchbuf[i]; i++ )
-		{
-			if(tolower(completedname[i]) != tolower(matchbuf[i]))
-				completedname[i] = 0;
-		}
-	}
-
-	return true;
 }
 
 /*
@@ -572,18 +315,17 @@ typedef struct cmd_function_s
 	xcommand_t		function;
 } cmd_function_t;
 
-
 static int cmd_argc;
 static char *cmd_argv[MAX_STRING_TOKENS];
 static char cmd_tokenized[MAX_INPUTLINE+MAX_STRING_TOKENS]; // will have 0 bytes inserted
-static cmd_function_t *cmd_functions; // possible commands to execute
+static cmd_function_t *cmd_functions;			// possible commands to execute
 
 /*
 ============
 Cmd_Argc
 ============
 */
-int Cmd_Argc (void)
+uint Cmd_Argc (void)
 {
 	return cmd_argc;
 }
@@ -593,9 +335,9 @@ int Cmd_Argc (void)
 Cmd_Argv
 ============
 */
-char *Cmd_Argv (int arg)
+char *Cmd_Argv ( uint arg )
 {
-	if((uint)arg >= cmd_argc )
+	if( arg >= cmd_argc )
 		return "";
 	return cmd_argv[arg];	
 }
@@ -609,17 +351,15 @@ Returns a single string containing argv(1) to argv(argc()-1)
 */
 char *Cmd_Args (void)
 {
-	static char cmd_args[MAX_STRING_CHARS];
-	int	i;
+	static char	cmd_args[MAX_STRING_CHARS];
+	int		i;
 
 	cmd_args[0] = 0;
-
 	// build only for current call
-	for ( i = 1; i < cmd_argc; i++ )
+	for( i = 1; i < cmd_argc; i++ )
 	{
-		strcat( cmd_args, cmd_argv[i] );
-		if ( i != cmd_argc-1 )
-			strcat( cmd_args, " " );
+		com_strcat( cmd_args, cmd_argv[i] );
+		if( i != cmd_argc - 1 ) com_strcat( cmd_args, " " );
 	}
 	return cmd_args;
 }
@@ -640,8 +380,7 @@ void Cmd_TokenizeString (const char *text_in)
 	char		*textOut;
 
 	cmd_argc = 0; // clear previous args
-
-	if(!text_in ) return;
+	if( !text_in ) return;
 
 	text = text_in;
 	textOut = cmd_tokenized;
@@ -697,7 +436,6 @@ void Cmd_TokenizeString (const char *text_in)
 
 			*textOut++ = *text++;
 		}
-
 		*textOut++ = 0;
 		if( !*text ) return; // all tokens parsed
 	}
@@ -722,7 +460,7 @@ void Cmd_AddCommand (const char *cmd_name, xcommand_t function, const char *cmd_
 	}
 
 	// use a small malloc to avoid zone fragmentation
-	cmd = Z_Malloc (sizeof(cmd_function_t));
+	cmd = Malloc(sizeof(cmd_function_t));
 	cmd->name = copystring( cmd_name );
 	cmd->desc = copystring( cmd_desc );
 	cmd->function = function;
@@ -747,9 +485,9 @@ void Cmd_RemoveCommand (const char *cmd_name)
 		if (!strcmp( cmd_name, cmd->name ))
 		{
 			*back = cmd->next;
-			if(cmd->name) Z_Free(cmd->name);
-			if(cmd->desc) Z_Free(cmd->desc);
-			Z_Free(cmd);
+			if(cmd->name) Mem_Free(cmd->name);
+			if(cmd->desc) Mem_Free(cmd->desc);
+			Mem_Free(cmd);
 			return;
 		}
 		back = &cmd->next;
@@ -778,9 +516,9 @@ bool Cmd_Exists (const char *cmd_name)
 {
 	cmd_function_t	*cmd;
 
-	for (cmd=cmd_functions ; cmd ; cmd=cmd->next)
+	for (cmd = cmd_functions; cmd; cmd = cmd->next)
 	{
-		if (!strcmp (cmd_name,cmd->name))
+		if (!com_strcmp(cmd_name, cmd->name))
 			return true;
 	}
 	return false;
@@ -805,7 +543,7 @@ void Cmd_ExecuteString( const char *text )
 	for ( prev = &cmd_functions; *prev; prev = &cmd->next )
 	{
 		cmd = *prev;
-		if(!stricmp( cmd_argv[0], cmd->name ))
+		if(!com_stricmp( cmd_argv[0], cmd->name ))
 		{
 			// rearrange the links so that the command will be
 			// near the head of the list next time it is used
@@ -827,7 +565,8 @@ void Cmd_ExecuteString( const char *text )
 	if(Cvar_Command()) return;
 
 	// send it as a server command if we are connected
-	Cmd_ForwardToServer();
+	if(std.Cmd_ForwardToServer) std.Cmd_ForwardToServer();
+	else MsgDev( D_ERROR, "Cmd_ExecuteString: can't send command to server\n");
 }
 
 /*
@@ -835,7 +574,7 @@ void Cmd_ExecuteString( const char *text )
 Cmd_List_f
 ============
 */
-void Cmd_List_f (void)
+void Cmd_List_f( void )
 {
 	cmd_function_t	*cmd;
 	int		i = 0;
@@ -846,7 +585,7 @@ void Cmd_List_f (void)
 
 	for (cmd = cmd_functions; cmd; cmd = cmd->next)
 	{
-		if (match && !Com_Filter(match, cmd->name, false))
+		if (match && !SC_FilterToken(match, cmd->name, false))
 			continue;
 		Msg("%s\n", cmd->name);
 		i++;
@@ -859,11 +598,9 @@ void Cmd_List_f (void)
 Cmd_Init
 ============
 */
-void Cmd_Init( int argc, char **argv )
+void Cmd_Init( void )
 {
-	char	dev_level[4];
-
-	Cbuf_Init( argc, argv );
+	Cbuf_Init();
 
 	// register our commands
 	Cmd_AddCommand ("exec", Cmd_Exec_f, "execute a script file" );
@@ -871,10 +608,5 @@ void Cmd_Init( int argc, char **argv )
 	Cmd_AddCommand ("wait", Cmd_Wait_f, "make script execution wait for some rendered frames" );
 	Cmd_AddCommand ("cmdlist", Cmd_List_f, "display all console commands beginning with the specified prefix" );
 	Cmd_AddCommand ("stuffcmds", Cmd_StuffCmds_f, "execute commandline parameters (must be present in init.rc script)" );
-
-	// determine debug and developer mode
-	if(FS_CheckParm ("-debug")) host.debug = true;
-	if(FS_GetParmFromCmdLine("-dev", dev_level ))
-		host.developer = atoi(dev_level);
 }
 

@@ -116,7 +116,7 @@ void Netchan_OutOfBand (int net_socket, netadr_t adr, int length, byte *data)
 	SZ_Init (&send, send_buf, sizeof(send_buf));
 	
 	MSG_WriteLong (&send, -1);	// -1 sequence means out of band
-	SZ_Write (&send, data, length);
+	SZ_Write(&send, data, length);
 
 	// send the datagram
 	NET_SendPacket (net_socket, send.cursize, send.data, adr);

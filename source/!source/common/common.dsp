@@ -133,7 +133,7 @@ SOURCE=.\bsplib\flow.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\imglib.c
+SOURCE=.\imglib.c
 # End Source File
 # Begin Source File
 
@@ -193,7 +193,27 @@ SOURCE=.\bsplib\qvis3.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\roqlib\roq_encoder.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\roqlib\roq_main.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\roqlib\roq_vq1.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\roqlib\roq_vq2.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\roqlib\roq_vq4.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\roqlib\roq_yuv.c
 # End Source File
 # Begin Source File
 
@@ -201,15 +221,15 @@ SOURCE=.\bsplib\shaders.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\spritegen.c
+SOURCE=.\spritegen.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\studio.c
+SOURCE=.\studio.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\studio_utils.c
+SOURCE=.\studio_utils.c
 # End Source File
 # Begin Source File
 
@@ -225,7 +245,7 @@ SOURCE=.\bsplib\tree.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\utils.c
+SOURCE=.\utils.c
 # End Source File
 # Begin Source File
 
@@ -241,7 +261,7 @@ SOURCE=.\bsplib\writebsp.c
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
-SOURCE=.\common\blankframe.h
+SOURCE=.\blankframe.h
 # End Source File
 # Begin Source File
 
@@ -249,11 +269,11 @@ SOURCE=.\bsplib\bsplib.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\image.h
+SOURCE=.\image.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\mdllib.h
+SOURCE=.\mdllib.h
 # End Source File
 # Begin Source File
 
@@ -269,11 +289,15 @@ SOURCE=..\public\ref_system.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\roqlib\roq_vq0.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\roqlib\roqlib.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\utils.h
+SOURCE=.\utils.h
 # End Source File
 # End Group
 # End Target
