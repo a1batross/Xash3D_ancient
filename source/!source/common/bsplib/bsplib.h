@@ -6,7 +6,7 @@
 #define BSPLIB_H
 
 #include "platform.h"
-#include <basemath.h>
+#include "mathlib.h"
 #include "utils.h"
 
 #define VALVE_FORMAT	220

@@ -17,8 +17,7 @@
 #include <time.h>
 #include <io.h>
 #include "basetypes.h"
-#include "basemath.h"
-#include "ref_system.h"
+#include "mathlib.h"
 #include "net_msg.h"
 #include "screen.h"
 #include "keycodes.h"

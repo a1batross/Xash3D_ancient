@@ -3,32 +3,19 @@
 //		  filesystem.c - game filesystem based on DP fs
 //=======================================================================
 
-#include <limits.h>
-#include <fcntl.h>
-#include <direct.h>
-#include <sys/stat.h>
-#include <io.h>
 #include "launch.h"
 #include "zip32.h"
 
-#define ZIP_DATA_HEADER		0x504B0304  // "PK\3\4"
-#define ZIP_CDIR_HEADER		0x504B0102  // "PK\1\2"
-#define ZIP_END_HEADER		0x504B0506  // "PK\5\6"
-#define ZIP_MAX_COMMENTS_SIZE		((word)0xFFFF)
 #define ZIP_END_CDIR_SIZE		22
 #define ZIP_CDIR_CHUNK_BASE_SIZE	46
 #define ZIP_LOCAL_CHUNK_BASE_SIZE	30
 
-#define FILE_FLAG_PACKED		(1 << 0) // inside a package (PAK or PK3)
-#define FILE_FLAG_DEFLATED		(1 << 1) //(PK3 only)
+#define FILE_FLAG_PACKED		(1<<0) // inside a package (PAK or PK3)
+#define FILE_FLAG_CRYPTED		(1<<1) // file is crypted (PAK2)
+#define FILE_FLAG_DEFLATED		(1<<2) // (PK3 only)
+#define PACKFILE_FLAG_TRUEOFFS	(1<<0) // the offset in packfile_t is the true contents offset
+#define PACKFILE_FLAG_DEFLATED	(1<<1) // file compressed using the deflate algorithm
 #define FILE_BUFF_SIZE		2048
-#define PACKFILE_FLAG_TRUEOFFS	(1 << 0)// the offset in packfile_t is the true contents offset
-#define PACKFILE_FLAG_DEFLATED	(1 << 1)// file compressed using the deflate algorithm
-#define MAX_FILES_IN_PACK		65536
-
-#ifndef O_NONBLOCK
-#define O_NONBLOCK	0
-#endif
 
 typedef struct
 {
@@ -64,32 +51,6 @@ typedef struct vfile_s
 	fs_offset_t	length;
 	fs_offset_t	offset;
 };
-
-typedef struct pk3_s
-{
-	uint		signature;
-	word		disknum;
-	word		cdir_disknum;	// number of the disk with the start of the central directory
-	word		localentries;	// number of entries in the central directory on this disk
-	word		nbentries;	// total number of entries in the central directory on this disk
-	uint		cdir_size;	// size of the central directory
-	uint		cdir_offset;	// with respect to the starting disk number
-	word		comment_size;
-}pk3_t;
-
-typedef struct dpackfile_s
-{
-	char		name[56];
-	int		filepos;
-	int		filelen;
-} dpackfile_t;
-
-typedef struct dpackheader_s
-{
-	char		id[4];
-	int		dirofs;
-	int		dirlen;
-} dpackheader_t;
 
 typedef struct packfile_s
 {
@@ -161,7 +122,7 @@ PK3_GetEndOfCentralDir
 Extract the end of the central directory from a PK3 package
 ====================
 */
-bool PK3_GetEndOfCentralDir (const char *packfile, int packhandle, pk3_t *eocd)
+bool PK3_GetEndOfCentralDir (const char *packfile, int packhandle, dpak3file_t *eocd)
 {
 	fs_offset_t filesize, maxsize;
 	byte *buffer, *ptr;
@@ -172,12 +133,12 @@ bool PK3_GetEndOfCentralDir (const char *packfile, int packhandle, pk3_t *eocd)
 	if (filesize < ZIP_END_CDIR_SIZE) return false;
 
 	// Load the end of the file in memory
-	if (filesize < ZIP_MAX_COMMENTS_SIZE + ZIP_END_CDIR_SIZE)
+	if (filesize < (word)0xffff + ZIP_END_CDIR_SIZE)
 		maxsize = filesize;
-	else maxsize = ZIP_MAX_COMMENTS_SIZE + ZIP_END_CDIR_SIZE;
+	else maxsize = (word)0xffff + ZIP_END_CDIR_SIZE;
 	buffer = (byte *)Malloc (maxsize);
 	lseek (packhandle, filesize - maxsize, SEEK_SET);
-	if (read (packhandle, buffer, maxsize) != (fs_offset_t) maxsize)
+	if(read(packhandle, buffer, maxsize) != (fs_offset_t)maxsize)
 	{
 		Mem_Free(buffer);
 		return false;
@@ -187,7 +148,7 @@ bool PK3_GetEndOfCentralDir (const char *packfile, int packhandle, pk3_t *eocd)
 	maxsize -= ZIP_END_CDIR_SIZE;
 	ptr = &buffer[maxsize];
 	ind = 0;
-	while (BuffBigLong(ptr) != ZIP_END_HEADER)
+	while(BuffLittleLong(ptr) != IDPK3ENDHEADER)
 	{
 		if (ind == maxsize)
 		{
@@ -200,7 +161,7 @@ bool PK3_GetEndOfCentralDir (const char *packfile, int packhandle, pk3_t *eocd)
 
 	Mem_Copy (eocd, ptr, ZIP_END_CDIR_SIZE);
 
-	eocd->signature = LittleLong (eocd->signature);
+	eocd->ident = LittleLong (eocd->ident);
 	eocd->disknum = LittleShort (eocd->disknum);
 	eocd->cdir_disknum = LittleShort (eocd->cdir_disknum);
 	eocd->localentries = LittleShort (eocd->localentries);
@@ -208,7 +169,6 @@ bool PK3_GetEndOfCentralDir (const char *packfile, int packhandle, pk3_t *eocd)
 	eocd->cdir_size = LittleLong (eocd->cdir_size);
 	eocd->cdir_offset = LittleLong (eocd->cdir_offset);
 	eocd->comment_size = LittleShort (eocd->comment_size);
-          
 	Mem_Free (buffer);
 
 	return true;
@@ -222,7 +182,7 @@ PK3_BuildFileList
 Extract the file list from a PK3 file
 ====================
 */
-int PK3_BuildFileList (pack_t *pack, const pk3_t *eocd)
+int PK3_BuildFileList (pack_t *pack, const dpak3file_t *eocd)
 {
 	byte		*central_dir, *ptr;
 	uint		ind;
@@ -252,7 +212,7 @@ int PK3_BuildFileList (pack_t *pack, const pk3_t *eocd)
 		remaining -= ZIP_CDIR_CHUNK_BASE_SIZE;
 
 		// Check header
-		if (BuffBigLong (ptr) != ZIP_CDIR_HEADER)
+		if (BuffLittleLong (ptr) != IDPK3CDRHEADER)
 		{
 			Mem_Free (central_dir);
 			return -1;
@@ -319,7 +279,7 @@ Create a package entry associated with a PK3 file
 pack_t *FS_LoadPackPK3 (const char *packfile)
 {
 	int packhandle;
-	pk3_t eocd;
+	dpak3file_t eocd;
 	pack_t *pack;
 	int real_nb_files;
 
@@ -374,13 +334,13 @@ bool PK3_GetTrueFileOffset (packfile_t *pfile, pack_t *pack)
 	byte buffer [ZIP_LOCAL_CHUNK_BASE_SIZE];
 	fs_offset_t count;
 
-	// Already found?
+	// already found?
 	if (pfile->flags & PACKFILE_FLAG_TRUEOFFS) return true;
 
 	// Load the local file description
 	lseek (pack->handle, pfile->offset, SEEK_SET);
 	count = read (pack->handle, buffer, ZIP_LOCAL_CHUNK_BASE_SIZE);
-	if (count != ZIP_LOCAL_CHUNK_BASE_SIZE || BuffBigLong (buffer) != ZIP_DATA_HEADER)
+	if (count != ZIP_LOCAL_CHUNK_BASE_SIZE || BuffLittleLong (buffer) != IDPACKV3HEADER)
 	{
 		Msg("Can't retrieve file %s in package %s\n", pfile->name, pack->filename);
 		return false;
@@ -676,7 +636,7 @@ Loads the header and directory, adding the files at the beginning
 of the list so they override previous pack files.
 =================
 */
-pack_t *FS_LoadPackPAK (const char *packfile)
+pack_t *FS_LoadPackPAK(const char *packfile)
 {
 	dpackheader_t header;
 	int i, numpackfiles;
@@ -687,7 +647,7 @@ pack_t *FS_LoadPackPAK (const char *packfile)
 	packhandle = open (packfile, O_RDONLY | O_BINARY);
 	if (packhandle < 0) return NULL;
 	read (packhandle, (void *)&header, sizeof(header));
-	if (memcmp(header.id, "PACK", 4))
+	if(header.ident != IDPACKV1HEADER)
 	{
 		Msg("%s is not a packfile\n", packfile);
 		close(packhandle);
@@ -743,6 +703,82 @@ pack_t *FS_LoadPackPAK (const char *packfile)
 }
 
 /*
+=================
+FS_LoadPackPK2
+
+Takes an explicit (not game tree related) path to a pak file.
+
+Loads the header and directory, adding the files at the beginning
+of the list so they override previous pack files.
+=================
+*/
+pack_t *FS_LoadPackPK2(const char *packfile)
+{
+	dpackheader_t header;
+	int i, numpackfiles;
+	int packhandle;
+	pack_t *pack;
+	dpak2file_t *info;
+
+	packhandle = open (packfile, O_RDONLY | O_BINARY);
+	if (packhandle < 0) return NULL;
+	read (packhandle, (void *)&header, sizeof(header));
+	if(header.ident != IDPACKV2HEADER)
+	{
+		Msg("%s is not a packfile\n", packfile);
+		close(packhandle);
+		return NULL;
+	}
+	header.dirofs = LittleLong (header.dirofs);
+	header.dirlen = LittleLong (header.dirlen);
+
+	if (header.dirlen % sizeof(dpak2file_t))
+	{
+		Msg("%s has an invalid directory size\n", packfile);
+		close(packhandle);
+		return NULL;
+	}
+
+	numpackfiles = header.dirlen / sizeof(dpak2file_t);
+
+	if (numpackfiles > MAX_FILES_IN_PACK)
+	{
+		Msg("%s has %i files\n", packfile, numpackfiles);
+		close(packhandle);
+		return NULL;
+	}
+
+	info = (dpak2file_t *)Malloc( sizeof(*info) * numpackfiles);
+	lseek (packhandle, header.dirofs, SEEK_SET);
+	if(header.dirlen != read(packhandle, (void *)info, header.dirlen))
+	{
+		Msg("%s is an incomplete PAK, not loading\n", packfile);
+		Mem_Free(info);
+		close(packhandle);
+		return NULL;
+	}
+
+	pack = (pack_t *)Mem_Alloc(fs_mempool, sizeof (pack_t));
+	pack->ignorecase = false; // PK2 is case sensitive
+	com_strncpy (pack->filename, packfile, sizeof (pack->filename));
+	pack->handle = packhandle;
+	pack->numfiles = 0;
+	pack->files = (packfile_t *)Mem_Alloc(fs_mempool, numpackfiles * sizeof(packfile_t));
+
+	// parse the directory
+	for (i = 0; i < numpackfiles; i++)
+	{
+		fs_offset_t offset = LittleLong (info[i].filepos);
+		fs_offset_t size = LittleLong (info[i].filelen);
+		FS_AddFileToPack(info[i].name, pack, offset, size, size, PACKFILE_FLAG_TRUEOFFS);
+	}
+
+	Mem_Free(info);
+	MsgDev(D_INFO, "Adding packfile %s (%i files)\n", packfile, numpackfiles);
+	return pack;
+}
+
+/*
 ================
 FS_AddPack_Fullpath
 
@@ -760,7 +796,7 @@ static bool FS_AddPack_Fullpath(const char *pakfile, bool *already_loaded, bool 
 {
 	searchpath_t *search;
 	pack_t *pak = NULL;
-	const char *ext = FS_FileExtension(pakfile);
+	const char *ext = FS_FileExtension( pakfile );
 	
 	for(search = fs_searchpaths; search; search = search->next)
 	{
@@ -774,7 +810,8 @@ static bool FS_AddPack_Fullpath(const char *pakfile, bool *already_loaded, bool 
 	if(already_loaded) *already_loaded = false;
 
 	if(!com_stricmp(ext, "pak")) pak = FS_LoadPackPAK (pakfile);
-	else if(!com_stricmp(ext, "pk3")) pak = FS_LoadPackPK3 (pakfile);
+	else if(!com_stricmp(ext, "pk2")) pak = FS_LoadPackPK2(pakfile);
+	else if(!com_stricmp(ext, "pk3")) pak = FS_LoadPackPK3(pakfile);
 	else Msg("\"%s\" does not have a pack extension\n", pakfile);
 
 	if (pak)
@@ -886,6 +923,16 @@ void FS_AddGameDirectory (const char *dir)
 	for (i = 0;i < list.numstrings;i++)
 	{
 		if (!com_stricmp(FS_FileExtension(list.strings[i]), "pak" ))
+		{
+			com_sprintf (pakfile, "%s%s", dir, list.strings[i]);
+			FS_AddPack_Fullpath(pakfile, NULL, false);
+		}
+	}
+
+	// add any PK2 package in the directory
+	for (i = 0;i < list.numstrings;i++)
+	{
+		if (!com_stricmp(FS_FileExtension(list.strings[i]), "pk2" ))
 		{
 			com_sprintf (pakfile, "%s%s", dir, list.strings[i]);
 			FS_AddPack_Fullpath(pakfile, NULL, false);
@@ -1075,7 +1122,7 @@ void FS_ResetGameInfo( void )
 	com_strcpy(GI.key, "demo" );	
 	com_strcpy(GI.basedir, gs_basedir );
 	com_strcpy(GI.gamedir, gs_basedir );
-	GI.version = 0.0f;
+	GI.version = XASH_VERSION;
 	GI.viewmode = 1;
 	GI.gamemode = 1;
 }
@@ -1087,7 +1134,7 @@ void FS_CreateGameInfo( const char *filename )
 	// make simply gameinfo.txt
 	com_strncat(buffer, "// generated by Xash3D\r\r\nbasedir\t\t\"xash\"\n", MAX_SYSPATH ); // add new string
 	com_strncat(buffer, va("gamedir\t\t\"%s\"\n", gs_basedir ), MAX_SYSPATH);
-	com_strncat(buffer, "title\t\t\"New Game\"\rversion\t\t\"1.0\"\rviewmode\t\"firstperson\"\r", MAX_SYSPATH );
+	com_strncat(buffer, va("title\t\t\"New Game\"\rversion\t\t\"%g\"\rviewmode\t\"firstperson\"\r", XASH_VERSION), MAX_SYSPATH );
 	com_strncat(buffer, va("gamemode\t\t\"singleplayer\"\rgamekey\t\t\"%s\"", GI.key), MAX_SYSPATH );
 
 	FS_WriteFile( filename, buffer, com_strlen(buffer));
@@ -1106,7 +1153,6 @@ void FS_LoadGameInfo( const char *filename )
 	// prepare to loading
 	FS_ClearSearchPath();
 	FS_AddGameHierarchy( gs_basedir );
-	FS_ResetGameInfo();
 
 	// create default gameinfo
 	if(!FS_FileExists( filename )) FS_CreateGameInfo( filename );
@@ -1189,10 +1235,6 @@ void FS_Init( void )
 				FS_FileBase( szTemp, gs_basedir );
 			else com_strcpy(gs_basedir, "xash" ); // default dir
 		}
-	}
-
-	if(Sys.app_name == HOST_NORMAL || Sys.app_name == HOST_DEDICATED)
-	{  
 		// checked nasty path: "bin" it's a reserved word
 		if(FS_CheckNastyPath( gs_basedir, true ) || !com_stricmp("bin", gs_basedir ))
 		{
@@ -1214,6 +1256,8 @@ void FS_Init( void )
 		}
 		stringlistfreecontents(&dirs);
 	}	
+
+	FS_ResetGameInfo();
 	MsgDev(D_INFO, "FS_Init: done\n");
 }
 

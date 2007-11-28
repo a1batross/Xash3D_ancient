@@ -8,8 +8,7 @@
 #include <stdio.h>
 #include <setjmp.h>
 #include <windows.h>
-#include <basetypes.h>
-#include <ref_system.h>
+#include "basetypes.h"
 
 //=====================================
 //	platform export

@@ -1,9 +1,59 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//		      ref_format.h - xash supported formats
+//		        stdref.h - xash supported formats
 //=======================================================================
 #ifndef REF_FORMAT_H
 #define REF_FORMAT_H
+
+/*
+========================================================================
+PAK FILES
+
+The .pak files are just a linear collapse of a directory tree
+========================================================================
+*/
+// header
+#define IDPACKV1HEADER	(('K'<<24)+('C'<<16)+('A'<<8)+'P')	// little-endian "PACK"
+#define IDPACKV2HEADER	(('2'<<24)+('K'<<16)+('A'<<8)+'P')	// little-endian "PAK2"
+#define IDPACKV3HEADER	(('\4'<<24)+('\3'<<16)+('K'<<8)+'P')	// little-endian "PK\3\4"
+#define IDPK3CDRHEADER	(('\2'<<24)+('\1'<<16)+('K'<<8)+'P')	// little-endian "PK\1\2"
+#define IDPK3ENDHEADER	(('\6'<<24)+('\5'<<16)+('K'<<8)+'P')	// little-endian "PK\5\6"
+
+#define MAX_FILES_IN_PACK		65536 // pack\pak2
+
+typedef struct
+{
+	int		ident;
+	int		dirofs;
+	int		dirlen;
+} dpackheader_t;
+
+typedef struct
+{
+	char		name[56];		// total 64 bytes
+	int		filepos;
+	int		filelen;
+} dpackfile_t;
+
+typedef struct
+{
+	char		name[116];	// total 128 bytes
+	int		filepos;
+	int		filelen;
+	uint		attribs;		// file attributes
+} dpak2file_t;
+
+typedef struct
+{
+	int		ident;
+	word		disknum;
+	word		cdir_disknum;	// number of the disk with the start of the central directory
+	word		localentries;	// number of entries in the central directory on this disk
+	word		nbentries;	// total number of entries in the central directory on this disk
+	uint		cdir_size;	// size of the central directory
+	uint		cdir_offset;	// with respect to the starting disk number
+	word		comment_size;
+} dpak3file_t;
 
 /*
 ==============================================================================
@@ -241,7 +291,7 @@ enum ai_activity
 
 typedef struct
 {
-	int		id;
+	int		ident;
 	int		version;
 
 	char		name[64];
@@ -1259,7 +1309,7 @@ typedef struct
 	uint		numtypes;
 	uint		blockscompressed;	// who blocks are compressed (COMP flags)
 
-	int		id;		// version 7 id
+	int		ident;		// version 7 id
 
 } dprograms_t;
 
@@ -1413,5 +1463,468 @@ typedef struct
 	char	name[MAX_QPATH];
 	char	value[MAX_QPATH];
 } dsavecvar_t;
+
+/*
+========================================================================
+
+.PCX image format	(ZSoft Paintbrush)
+
+========================================================================
+*/
+typedef struct
+{
+	char	manufacturer;
+	char	version;
+	char	encoding;
+	char	bits_per_pixel;
+	word	xmin,ymin,xmax,ymax;
+	word	hres,vres;
+	byte	palette[48];
+	char	reserved;
+	char	color_planes;
+	word	bytes_per_line;
+	word	palette_type;
+	char	filler[58];
+} pcx_t;
+
+/*
+========================================================================
+
+.WAL image format	(Wally textures)
+
+========================================================================
+*/
+typedef struct wal_s
+{
+	char	name[32];
+	uint	width, height;
+	uint	offsets[4];	// four mip maps stored
+	char	animname[32];	// next frame in animation chain
+	int	flags;
+	int	contents;
+	int	value;
+} wal_t;
+
+/*
+========================================================================
+
+.LMP image format	(Quake1 gfx lumps)
+
+========================================================================
+*/
+typedef struct lmp_s
+{
+	uint	width;
+	uint	height;
+} lmp_t;
+
+/*
+========================================================================
+
+.MIP image format	(Quake1 textures)
+
+========================================================================
+*/
+typedef struct mip_s
+{
+	char	name[16];
+	uint	width, height;
+	uint	offsets[4];	// four mip maps stored
+} mip_t;
+
+/*
+========================================================================
+
+.FLAT image format	(Doom I\II textures)
+
+========================================================================
+*/
+typedef struct flat_s
+{
+	short	width;
+	short	height;
+	long	desc;		// image desc (not used)
+} flat_t;
+
+/*
+========================================================================
+
+.TGA image format	(Truevision Targa)
+
+========================================================================
+*/
+typedef struct tga_s
+{
+	byte	id_length;
+	byte	colormap_type;
+	byte	image_type;
+	word	colormap_index;
+	word	colormap_length;
+	byte	colormap_size;
+	word	x_origin;
+	word	y_origin;
+	word	width;
+	word	height;
+	byte	pixel_size;
+	byte	attributes;
+} tga_t;
+/*
+========================================================================
+
+.DDS image format
+
+========================================================================
+*/
+#define DDSHEADER	((' '<<24)+('S'<<16)+('D'<<8)+'D') // little-endian "DDS "
+
+//other four-cc types
+#define TYPE_DXT1	(('1'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT1"
+#define TYPE_DXT2	(('2'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT2"
+#define TYPE_DXT3	(('3'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT3"
+#define TYPE_DXT4	(('4'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT4"
+#define TYPE_DXT5	(('5'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT5"
+
+#define TYPE_ATI1	(('1'<<24)+('I'<<16)+('T'<<8)+'A') // little-endian "ATI1"
+#define TYPE_ATI2	(('2'<<24)+('I'<<16)+('T'<<8)+'A') // little-endian "ATI2"
+
+
+#define TYPE_RXGB	(('B'<<24)+('G'<<16)+('X'<<8)+'R') // little-endian "RXGB" doom3 normalmaps
+#define TYPE_$	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'$') // little-endian "$"
+
+#define DDS_CAPS				0x00000001L
+#define DDS_HEIGHT				0x00000002L
+#define DDS_WIDTH				0x00000004L
+
+#define DDS_RGB				0x00000040L
+#define DDS_PIXELFORMAT			0x00001000L
+#define DDS_LUMINANCE			0x00020000L
+
+#define DDS_ALPHAPIXELS			0x00000001L
+#define DDS_ALPHA				0x00000002L
+#define DDS_FOURCC				0x00000004L
+#define DDS_PITCH				0x00000008L
+#define DDS_COMPLEX				0x00000008L
+#define DDS_CUBEMAP				0x00000200L
+#define DDS_CUBEMAP_POSITIVEX			0x00000400L
+#define DDS_CUBEMAP_NEGATIVEX			0x00000800L
+#define DDS_CUBEMAP_POSITIVEY			0x00001000L
+#define DDS_CUBEMAP_NEGATIVEY			0x00002000L
+#define DDS_CUBEMAP_POSITIVEZ			0x00004000L
+#define DDS_CUBEMAP_NEGATIVEZ			0x00008000L
+#define DDS_MIPMAPCOUNT			0x00020000L
+#define DDS_LINEARSIZE			0x00080000L
+#define DDS_VOLUME				0x00200000L
+#define DDS_MIPMAP				0x00400000L
+#define DDS_DEPTH				0x00800000L
+
+typedef struct dds_pf_s
+{
+	uint	dwSize;
+	uint	dwFlags;
+	uint	dwFourCC;
+	uint	dwRGBBitCount;
+	uint	dwRBitMask;
+	uint	dwGBitMask;
+	uint	dwBBitMask;
+	uint	dwABitMask;
+} dds_pixf_t;
+
+//  DDCAPS2
+typedef struct dds_caps_s
+{
+	uint	dwCaps1;
+	uint	dwCaps2;
+	uint	dwCaps3;
+	uint	dwCaps4;
+} dds_caps_t;
+
+typedef struct
+{
+	uint		dwIdent;		// must matched with DDSHEADER
+	uint		dwSize;
+	uint		dwFlags;		// determines what fields are valid
+	uint		dwHeight;
+	uint		dwWidth;
+	uint		dwLinearSize;	// Formless late-allocated optimized surface size
+	uint		dwDepth;		// depth if a volume texture
+	uint		dwMipMapCount;	// number of mip-map levels requested
+	uint		dwAlphaBitDepth;	// depth of alpha buffer requested
+	uint		dwReserved1[10];	// reserved for future expansions
+	dds_pixf_t	dsPixelFormat;
+	dds_caps_t	dsCaps;
+	uint		dwTextureStage;
+} dds_t;
+
+/*
+========================================================================
+
+.JPG image format
+
+========================================================================
+*/
+typedef struct huffman_table_s
+{
+	// Huffman coding tables
+	byte	bits[16];
+	byte	hval[256];
+	byte	size[256];
+	word	code[256];
+
+} huffman_table_t;
+
+typedef struct jpg_s
+{
+	// not a real header
+	file_t	*file;		// file
+	byte	*buffer;		// jpg buffer
+	
+	int	width;		// width image
+	int	height;		// height image
+	byte	*data;		// image
+	int	data_precision;	// bit per component
+	int	num_components;	// number component
+	int	restart_interval;	// restart interval
+	bool	progressive_mode;	// progressive format
+
+	struct
+	{
+		int     id;	// identifier
+		int     h;	// horizontal sampling factor
+		int     v;	// vertical sampling factor
+		int     t;	// quantization table selector
+		int     td;	// DC table selector
+		int     ta;	// AC table selector
+	} component_info[3];	// RGB (alpha not supported)
+    
+	huffman_table_t hac[4];	// AC table
+	huffman_table_t hdc[4];	// DC table
+
+	int	qtable[4][64];	// quantization table
+
+	struct
+	{
+		int     ss,se;	// progressive jpeg spectral selection
+		int     ah,al;	// progressive jpeg successive approx
+	} scan;
+
+	int	dc[3];
+	int	curbit;
+	byte	curbyte;
+
+} jpg_t;
+
+/*
+========================================================================
+
+internal image format
+
+typically expanded to rgba buffer
+========================================================================
+*/
+enum comp_format
+{
+	PF_UNKNOWN = 0,
+	PF_INDEXED_24,	// studio model skins
+	PF_INDEXED_32,	// sprite 32-bit palette
+	PF_RGBA_32,	// already prepared ".bmp", ".tga" or ".jpg" image 
+	PF_ARGB_32,	// uncompressed dds image
+	PF_RGB_24,	// uncompressed dds or another 24-bit image 
+	PF_RGB_24_FLIP,	// flip image for screenshots
+	PF_DXT1,		// nvidia DXT1 format
+	PF_DXT2,		// nvidia DXT2 format
+	PF_DXT3,		// nvidia DXT3 format
+	PF_DXT4,		// nvidia DXT4 format
+	PF_DXT5,		// nvidia DXT5 format
+	PF_ATI1N,		// ati 1N texture
+	PF_ATI2N,		// ati 2N texture
+	PF_LUMINANCE,	// b&w dds image
+	PF_LUMINANCE_16,	// b&w hi-res image
+	PF_LUMINANCE_ALPHA, // b&w dds image with alpha channel
+	PF_RXGB,		// doom3 normal maps
+	PF_ABGR_64,	// uint image
+	PF_RGBA_GN,	// internal generated texture
+	PF_TOTALCOUNT,	// must be last
+};
+
+typedef struct bpc_desc_s
+{
+	int	format;	// pixelformat
+	char	name[8];	// used for debug
+	uint	glmask;	// RGBA mask
+	uint	gltype;	// open gl datatype
+	int	bpp;	// channels (e.g. rgb = 3, rgba = 4)
+	int	bpc;	// sizebytes (byte, short, float)
+	int	block;	// blocksize < 0 needs alternate calc
+} bpc_desc_t;
+
+static const bpc_desc_t PFDesc[] =
+{
+{PF_UNKNOWN,	"raw",	0x1908,	0x1401, 0,  0,  0 },
+{PF_INDEXED_24,	"pal 24",	0x1908,	0x1401, 3,  1,  0 },// expand data to RGBA buffer
+{PF_INDEXED_32,	"pal 32",	0x1908,	0x1401, 4,  1,  0 },
+{PF_RGBA_32,	"RGBA 32",0x1908,	0x1401, 4,  1, -4 },
+{PF_ARGB_32,	"ARGB 32",0x1908,	0x1401, 4,  1, -4 },
+{PF_RGB_24,	"RGB 24",	0x1908,	0x1401, 3,  1, -3 },
+{PF_RGB_24_FLIP,	"RGB 24",	0x1908,	0x1401, 3,  1, -3 },
+{PF_DXT1,		"DXT1",	0x1908,	0x1401, 4,  1,  8 },
+{PF_DXT2,		"DXT2",	0x1908,	0x1401, 4,  1, 16 },
+{PF_DXT3,		"DXT3",	0x1908,	0x1401, 4,  1, 16 },
+{PF_DXT4,		"DXT4",	0x1908,	0x1401, 4,  1, 16 },
+{PF_DXT5,		"DXT5",	0x1908,	0x1401, 4,  1, 16 },
+{PF_ATI1N,	"ATI1N",	0x1908,	0x1401, 1,  1,  8 },
+{PF_ATI2N,	"3DC",	0x1908,	0x1401, 3,  1, 16 },
+{PF_LUMINANCE,	"LUM 8",	0x1909,	0x1401, 1,  1, -1 },
+{PF_LUMINANCE_16,	"LUM 16", 0x1909,	0x1401, 2,  2, -2 },
+{PF_LUMINANCE_ALPHA,"LUM A",	0x190A,	0x1401, 2,  1, -2 },
+{PF_RXGB,		"RXGB",	0x1908,	0x1401, 3,  1, 16 },
+{PF_ABGR_64,	"ABGR 64",0x80E1,	0x1401, 4,  2, -8 },
+{PF_RGBA_GN,	"system",	0x1908,	0x1401, 4,  1, -4 },
+};
+
+// description flags
+#define IMAGE_CUBEMAP	0x00000001
+#define IMAGE_HAS_ALPHA	0x00000002
+#define IMAGE_PREMULT	0x00000004	// indices who need in additional premultiply
+#define IMAGE_GEN_MIPS	0x00000008	// must generate mips
+#define IMAGE_CUBEMAP_FLIP	0x00000010	// it's a cubemap with flipped sides( dds pack )
+
+typedef struct rgbdata_s
+{
+	word	width;		// image width
+	word	height;		// image height
+	byte	numLayers;	// multi-layer volume
+	byte	numMips;		// mipmap count
+	byte	bitsCount;	// RGB bits count
+	uint	type;		// compression type
+	uint	flags;		// misc image flags
+	byte	*palette;		// palette if present
+	byte	*buffer;		// image buffer
+	uint	size;		// for bounds checking
+};
+
+/*
+========================================================================
+
+internal physic data
+
+hold linear and angular velocity, current position stored too
+========================================================================
+*/
+// phys movetype
+typedef enum
+{
+	MOVETYPE_NONE,	// never moves
+	MOVETYPE_NOCLIP,	// origin and angles change with no interaction
+	MOVETYPE_PUSH,	// no clip to world, push on box contact
+	MOVETYPE_WALK,	// gravity
+	MOVETYPE_STEP,	// gravity, special edge handling
+	MOVETYPE_FLY,
+	MOVETYPE_TOSS,	// gravity
+	MOVETYPE_BOUNCE,
+	MOVETYPE_FOLLOW,	// attached models
+	MOVETYPE_CONVEYOR,
+	MOVETYPE_PUSHABLE,
+	MOVETYPE_PHYSIC,	// phys simulation
+} movetype_t;
+
+// phys collision mode
+typedef enum
+{
+	SOLID_NOT,    	// no interaction with other objects
+	SOLID_TRIGGER,	// only touch when inside, after moving
+	SOLID_BBOX,	// touch on edge
+	SOLID_BSP,    	// bsp clip, touch on edge
+	SOLID_BOX,	// physbox
+	SOLID_SPHERE,	// sphere
+	SOLID_CYLINDER,	// cylinder e.g. barrel
+	SOLID_MESH,	// custom convex hull
+} solid_t;
+
+typedef struct physdata_s
+{
+	vec3_t		origin;
+	vec3_t		angles;
+	vec3_t		velocity;
+	vec3_t		avelocity;	// "omega" in newton
+	vec3_t		mins;		// for calculate size 
+	vec3_t		maxs;		// and setup offset matrix
+
+	NewtonCollision	*collision;	// ptr to collision mesh
+	NewtonBody	*physbody;	// ptr to physic body
+} physdata_t;
+
+/*
+========================================================================
+
+GAMEINFO stuff
+
+internal shared gameinfo structure (readonly for engine parts)
+========================================================================
+*/
+typedef struct gameinfo_s
+{
+	// filesystem info
+	char	basedir[MAX_OSPATH];
+	char	gamedir[MAX_OSPATH];
+	char	title[MAX_OSPATH];
+          float	version;		// engine or mod version
+	
+	int	viewmode;
+	int	gamemode;
+
+	// shared system info
+	int	cpunum;		// count of cpu's
+	int64	tickcount;	// cpu frequency in 'ticks'
+	float	cpufreq;		// cpu frequency in MHz
+	bool	rdtsc;		// rdtsc support (profiler stuff)
+	
+	char	key[MAX_INFO_KEY];	// cd-key info
+	char	TXcommand;	// quark command (get rid of this)
+} gameinfo_t;
+
+/*
+========================================================================
+
+internal dll's loader
+
+two main types - native dlls and other win32 libraries will be recognized automatically
+========================================================================
+*/
+typedef struct dll_info_s
+{
+	// generic interface
+	const char	*name;		// library name
+	const dllfunc_t	*fcts;		// list of dll exports	
+	const char	*entry;		// entrypoint name (internal libs only)
+	void		*link;		// hinstance of loading library
+
+	// xash dlls entrypoint
+	void		*(*main)( void*, void* );
+	bool		crash;		// crash if dll not found
+
+	// xash dlls validator
+	size_t		api_size;		// generic interface size
+
+} dll_info_t;
+
+
+/*
+========================================================================
+
+console variables
+
+external and internal cvars struct have some differences
+========================================================================
+*/
+#ifndef LAUNCH_DLL
+typedef struct cvar_s
+{
+	char	*name;
+	char	*string;		// normal string
+	float	value;		// atof( string )
+	int	integer;		// atoi( string )
+	bool	modified;		// set each time the cvar is changed
+} cvar_t;
+#endif
 
 #endif//REF_FORMAT_H

@@ -127,24 +127,24 @@ FindMatches
 
 ===============
 */
-static void FindMatches( const char *s, const char *m )
+static void FindMatches( const char *s, const char *unused1, const char *unused2, void *unused3 )
 {
 	int		i;
 
-	if(strnicmp( s, completionString, strlen( completionString )))
+	if(std.strnicmp( s, completionString, strlen( completionString )))
 		return;
 
 	matchCount++;
 	if ( matchCount == 1 )
 	{
-		strncpy( shortestMatch, s, sizeof( shortestMatch ));
+		std.strncpy( shortestMatch, s, sizeof( shortestMatch ));
 		return;
 	}
 
 	// cut shortestMatch to the amount common with s
 	for ( i = 0; s[i]; i++ )
 	{
-		if ( tolower(shortestMatch[i]) != tolower(s[i]))
+		if ( std.tolower(shortestMatch[i]) != tolower(s[i]))
 			shortestMatch[i] = 0;
 	}
 }
@@ -155,9 +155,9 @@ PrintMatches
 
 ===============
 */
-static void PrintMatches( const char *s, const char *m )
+static void PrintMatches( const char *s, const char *unused1, const char *m, void *unused2 )
 {
-	if(!strnicmp( s, shortestMatch, strlen( shortestMatch )))
+	if(!std.strnicmp( s, shortestMatch, strlen( shortestMatch )))
 	if(m && *m) Msg( "    %s ^3\"%s\"\n", s, m );
 	else Msg( "    %s\n", s ); // variable or command without description
 }
@@ -226,8 +226,8 @@ void Field_CompleteCommand( field_t *field )
 
 	if(!strlen( completionString)) return;
 
-	Cmd_CommandCompletion( FindMatches );
-	Cvar_CommandCompletion( FindMatches );
+	Cmd_LookupCmds( NULL, NULL, FindMatches );
+	Cvar_LookupVars( 0, NULL, NULL, FindMatches );
 
 	if ( matchCount == 0 ) return; // no matches
 	Mem_Copy(&temp, completionField, sizeof(field_t));
@@ -279,8 +279,8 @@ void Field_CompleteCommand( field_t *field )
 	Msg( "]%s\n", completionField->buffer );
 
 	// run through again, printing matches
-	Cmd_CommandCompletion( PrintMatches );
-	Cvar_CommandCompletion( PrintMatches );
+	Cmd_LookupCmds( NULL, NULL, PrintMatches );
+	Cvar_LookupVars( 0, NULL, NULL, PrintMatches );
 }
 
 

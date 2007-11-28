@@ -18,41 +18,26 @@ void SV_AddSaveLump( dsavehdr_t *hdr, file_t *f, int lumpnum, void *data, int le
 	FS_Write(f, data, (len + 3) & ~3 );
 }
 
+static void Cvar_AddToBuffer(const char *name, const char *string, const char *buffer, int *bufsize)
+{
+	if (strlen(name) >= 64 || strlen(string) >= 64)
+	{
+		MsgDev(D_NOTE, "cvar too long: %s = %s\n", name, string);
+		return;
+	}
+	*bufsize = std.strpack((char *)buffer, *bufsize, (char *)name, strlen(name)); 
+	*bufsize = std.strpack((char *)buffer, *bufsize, (char *)string, strlen(string));
+}
+
 void SV_AddCvarLump( dsavehdr_t *hdr, file_t *f )
 {
-	cvar_t	*var;
 	int	bufsize = 1; // null terminator 
-	int	numsavedcvars = 0;
-	char	*cvbuffer;
-	
-	for(var = cvar_vars; var; var = var->next)
-	{
-		if(!(var->flags & CVAR_LATCH)) continue;
-		if (std.strlen(var->name) >= MAX_QPATH || std.strlen(var->string) >= MAX_QPATH)
-		{
-			MsgDev(D_NOTE, "cvar too long: %s = %s\n", var->name, var->string);
-			continue;
-		}
-		numsavedcvars++;
-	}
+	char	*cvbuffer = Z_Malloc( MAX_INPUTLINE );
 
-	cvbuffer = (char *)Z_Malloc( numsavedcvars * MAX_QPATH );
-
-	// second pass
-	for(var = cvar_vars; var; var = var->next)
-	{
-		if(!(var->flags & CVAR_LATCH)) continue;
-		if (strlen(var->name) >= 64 || strlen(var->string) >= 64)
-		{
-			MsgDev(D_NOTE, "cvar too long: %s = %s\n", var->name, var->string);
-			continue;
-		}
-		bufsize = std.strpack(cvbuffer, bufsize, var->name, strlen(var->name)); 
-		bufsize = std.strpack(cvbuffer, bufsize, var->string, strlen(var->name));
-	}
-
+	Cvar_LookupVars( CVAR_LATCH, cvbuffer, &bufsize, Cvar_AddToBuffer );
 	SV_AddSaveLump( hdr, f, LUMP_GAMECVARS, cvbuffer, bufsize );
-	Z_Free( cvbuffer );
+
+	Z_Free( cvbuffer ); // free buffer
 }
 
 void SV_AddCStrLump( dsavehdr_t *hdr, file_t *f )

@@ -496,15 +496,18 @@ void Cmd_RemoveCommand (const char *cmd_name)
 
 /*
 ============
-Cmd_CommandCompletion
+Cmd_LookupCmds
 ============
 */
-void Cmd_CommandCompletion( void(*callback)(const char *s, const char *m))
+void Cmd_LookupCmds( char *buffer, void *ptr, cvarcmd_t callback )
 {
 	cmd_function_t	*cmd;
 	
 	for (cmd = cmd_functions; cmd; cmd = cmd->next)
-		callback( cmd->name, cmd->desc );
+	{
+		if(!buffer) callback( cmd->name, (char *)cmd->function, cmd->desc, ptr );
+		else callback( cmd->name, (char *)cmd->function, buffer, ptr );
+	}
 }
 
 /*

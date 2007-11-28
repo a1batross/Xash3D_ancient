@@ -7,9 +7,8 @@
 
 #include <stdio.h>
 #include <windows.h>
-#include <basetypes.h>
-#include <basemath.h>
-#include <ref_system.h>
+#include "basetypes.h"
+#include "mathlib.h"
 
 extern physic_imp_t pi;
 extern stdlib_api_t std;
@@ -18,15 +17,23 @@ extern NewtonWorld	*gWorld;
 long _ftol2( double dblSource );
 void Phys_LoadBSP( uint *buffer );
 void Phys_FreeBSP( void );
-void DebugShowCollision ( void );
+void DebugShowCollision ( cmdraw_t callback );
 void Phys_Frame( float time );
-void Phys_CreateBOX( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3_t ang, NewtonCollision **newcol, NewtonBody **newbody );
-void Phys_RemoveBOX( NewtonBody *body );
+void Phys_CreateBody( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3_t ang, int solid, NewtonCollision **newcol, NewtonBody **newbody );
+void Phys_RemoveBody( NewtonBody *body );
 
 #define Msg std.printf
 #define MsgDev std.dprintf
 #define MsgWarn std.wprintf
 #define Host_Error std.error
+
+typedef struct physic_s
+{
+	bool	initialized;
+	cmdraw_t	debug_line;
+} physic_t;
+
+extern physic_t ph;
 
 typedef struct NewtonUserMeshCollisionCollideDescTag
 {

@@ -1416,7 +1416,7 @@ bool R_LoadImageARGB( byte *data )
 
 		if(use_gl_extension)
 		{
-			qglTexImage2D( GL_TEXTURE_2D, i, GL_RGB5_A1, w, h, 0, GL_BGRA, GL_UNSIGNED_SHORT_1_5_5_5_REV, data );
+			qglTexImage2D( GL_TEXTURE_2D, i, GL_RGB5_A1, w, h, 0, 0x80E1, GL_UNSIGNED_SHORT_1_5_5_5_REV, data );
 			if(qglGetError()) break; // there were errors
 		}
 		else if(!R_StoreImageARGB(GL_TEXTURE_2D, i, w, h, size, data )) break; 

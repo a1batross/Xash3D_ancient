@@ -34,67 +34,6 @@ void Pfree (void *ptr, int size )
 	Mem_Free( ptr );
 }
 
-_inline void ConvertDimensionToPhysic( vec3_t v )
-{
-	vec3_t	tmp;
-
-	VectorCopy(v, tmp);
-	v[0] = INCH2METER(tmp[0]);
-	v[1] = INCH2METER(tmp[1]);
-	v[2] = INCH2METER(tmp[2]);
-}
-
-_inline void ConvertDimensionToServer( vec3_t v )
-{
-	vec3_t	tmp;
-
-	VectorCopy(v, tmp);
-	v[0] = METER2INCH(tmp[0]);
-	v[1] = METER2INCH(tmp[1]);
-	v[2] = METER2INCH(tmp[2]);
-}
-
-_inline void ConvertPositionToPhysic( vec3_t v )
-{
-	vec3_t	tmp;
-
-	VectorCopy(v, tmp);
-	v[0] = INCH2METER(tmp[0]);
-	v[1] = INCH2METER(tmp[2]);
-	v[2] = INCH2METER(tmp[1]);
-}
-
-_inline void ConvertPositionToServer( vec3_t v )
-{
-	vec3_t	tmp;
-
-	VectorCopy(v, tmp);
-
-	v[2] = METER2INCH(tmp[1]);
-	v[1] = METER2INCH(tmp[2]);
-	v[0] = METER2INCH(tmp[0]);
-}
-
-_inline void ConvertDirectionToPhysic( vec3_t v )
-{
-	vec3_t	tmp;
-
-	VectorCopy(v, tmp);
-	v[0] = tmp[0];
-	v[1] = tmp[2];
-	v[2] = tmp[1];
-}
-
-_inline void ConvertDirectionToServer( vec3_t v )
-{
-	vec3_t	tmp;
-
-	VectorCopy(v, tmp);
-	v[0] = tmp[0];
-	v[1] = tmp[2];
-	v[2] = tmp[1];
-}
-
 /*
 ================
 GL_BuildPolygonFromSurface
@@ -288,21 +227,23 @@ void Phys_ApplyTransform( const NewtonBody* body, const float* matrix )
 	vec3_t		origin, angles;
 
 	Mem_Copy(translate, (float *)matrix, sizeof(matrix4x4));
-	ConvertDirectionToServer( translate[0]);
-	ConvertDirectionToServer( translate[1]);
-	ConvertDirectionToServer( translate[2]);
-	ConvertPositionToServer( translate[3] );
+	ConvertDirectionToGame( translate[0]);
+	ConvertDirectionToGame( translate[1]);
+	ConvertDirectionToGame( translate[2]);
+	ConvertPositionToGame( translate[3] );
 
 	MatrixAngles( translate, origin, angles );
 	pi.Transform( edict, origin, angles );
 }
 
-void Phys_CreateBOX( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3_t ang, NewtonCollision **newcol, NewtonBody **newbody )
+void Phys_CreateBody( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3_t ang, int solid, NewtonCollision **newcol, NewtonBody **newbody )
 {
 	NewtonCollision	*col;
 	NewtonBody	*body;
 	matrix4x4		trans, offset;
 	vec3_t		origin, angles, size, center;
+	float		*vertices;
+	int		numvertices;		
 
 	MatrixLoadIdentity( trans );
 	MatrixLoadIdentity( offset );
@@ -313,7 +254,7 @@ void Phys_CreateBOX( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3_
 	ConvertDirectionToPhysic( angles );
 	AngleVectors( angles, trans[0], trans[1], trans[2] );
 	VectorSubtract (maxs, mins, size );
-	VectorAdd(mins, maxs, center );
+	VectorAdd( mins, maxs, center );
 	ConvertDimensionToPhysic( size );
 	ConvertDimensionToPhysic( center );
 	VectorScale( center, 0.5, center );
@@ -321,8 +262,26 @@ void Phys_CreateBOX( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3_
 
 	VectorCopy(origin, trans[3] );
 	VectorCopy(center, offset[3] );
-          
-	col = NewtonCreateBox( gWorld, size[0], size[1], size[2], &offset[0][0] );
+
+	switch(solid)
+	{          
+	case SOLID_BOX:
+		col = NewtonCreateBox( gWorld, size[0], size[1], size[2], &offset[0][0] );
+		break;
+	case SOLID_SPHERE:
+		col = NewtonCreateSphere( gWorld, size[0], size[1], size[2], &offset[0][0] );
+		break;
+	case SOLID_CYLINDER:
+		col = NewtonCreateCylinder( gWorld, size[0], size[2], &offset[0][0] );
+		break;
+	case SOLID_MESH:
+		vertices = pi.GetModelVerts( ed, &numvertices );
+		col = NewtonCreateConvexHull(gWorld, numvertices, vertices, sizeof(vec3_t), &offset[0][0] );
+		break;
+	default:
+		Host_Error("Phys_CreateBody: unsupported solid type\n");
+		return;
+	}
 	body = NewtonCreateBody( gWorld, col );
 	NewtonBodySetUserData( body, ed );
 	NewtonBodySetMassMatrix( body, 10.0f, size[0], size[1], size[2] ); // 10 kg
@@ -336,47 +295,28 @@ void Phys_CreateBOX( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3_
 	if(body) *newbody = body;
 }
 
-void Phys_RemoveBOX( NewtonBody *body )
+void Phys_RemoveBody( NewtonBody *body )
 {
 	if(body) 
 	{
-		Msg("remove box\n");
+		Msg("remove body\n");
 		NewtonDestroyBody( gWorld, body );
 	}
 } 
 
 void DebugShowGeometryCollision(const NewtonBody* body, int vertexCount, const float* faceVertec, int id) 
 {    
-	int	i = vertexCount - 1;
-	vec3_t	p0, p1;
-
-	VectorSet(p0, faceVertec[i * 3 + 0], faceVertec[i * 3 + 1], faceVertec[i * 3 + 2]);
-	ConvertPositionToServer( p0 );
-
-	for (i = 0; i < vertexCount; i ++)
-	{
-		VectorSet(p1, faceVertec[i * 3 + 0], faceVertec[i * 3 + 1], faceVertec[i * 3 + 2]);
-		ConvertPositionToServer( p1 );
-		glVertex3fv(p0);
-		glVertex3fv(p1);
- 		VectorCopy(p1, p0);
- 	}
+	if(ph.debug_line) ph.debug_line( 0, vertexCount, faceVertec );
 } 
 
 void DebugShowBodyCollision (const NewtonBody* body) 
 { 
-	NewtonBodyForEachPolygonDo (body, DebugShowGeometryCollision); 
+	NewtonBodyForEachPolygonDo(body, DebugShowGeometryCollision); 
 } 
 
 // show all collision geometry 
-void DebugShowCollision ( void ) 
+void DebugShowCollision ( cmdraw_t callback  ) 
 { 
-	//return;
-
-	glDisable(GL_TEXTURE_2D); 
-	glColor3f (1, 0.7f, 0);
-	glBegin(GL_LINES); 
-	NewtonWorldForEachBodyDo (gWorld, DebugShowBodyCollision); 
-	glEnd(); 
-	glEnable (GL_TEXTURE_2D);
+	ph.debug_line = callback; // member draw function
+	NewtonWorldForEachBodyDo(gWorld, DebugShowBodyCollision); 
 }

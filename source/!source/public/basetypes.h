@@ -77,12 +77,17 @@
 #define NULL		((void *)0)
 #endif
 
+#ifndef O_NONBLOCK
+#define O_NONBLOCK		0
+#endif
+
 typedef enum{ false, true }	bool;
 typedef unsigned char 	byte;
 typedef unsigned short	word;
 typedef unsigned long	dword;
 typedef unsigned int	uint;
 typedef signed __int64	int64;
+typedef struct cvar_s	cvar_t;
 typedef struct file_s	file_t;
 typedef struct vfile_s	vfile_t;
 typedef struct image_s	image_t;
@@ -121,8 +126,9 @@ typedef struct { byte r:8; byte g:8; byte b:8; } color24;
 typedef struct { byte r; byte g; byte b; byte a; } color32;
 typedef struct { const char *name; void **func; } dllfunc_t;	// Sys_LoadLibrary stuff
 typedef struct { int ofs; int type; const char *name; } fields_t;	// prvm custom fields
+typedef void (*cmdraw_t)( int color, int numpoints, const float *points );
 typedef struct { int numfilenames; char **filenames; char *filenamesbuffer; } search_t;
-
+typedef void (*cvarcmd_t)(const char *s, const char *m, const char *d, void *ptr );
 
 enum host_state
 {	// paltform states
@@ -136,6 +142,7 @@ enum host_state
 	ROQLIB,		// "roqlib"
 	SPRITE,		// "sprite"
 	STUDIO,		// "studio"
+	PAKLIB,		// "paklib"
 	CREDITS,		// "splash"
 	HOST_INSTALL,	// "install"
 };
@@ -163,6 +170,9 @@ static vec4_t g_color_table[8] =
 };
 
 
-#include "byteorder.h" // byte ordering swap functions
+#include "byteorder.h"	// byte ordering swap functions
+#include "stdref.h"		// reference xash formats
+#include "stdapi.h"		// reference xash stdlib api
+#include "dllapi.h"		// shared api's between engine parts
 
 #endif//BASETYPES_H

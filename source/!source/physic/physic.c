@@ -7,6 +7,7 @@
 
 physic_imp_t	pi;
 stdlib_api_t	std;
+physic_t		ph;	// physic globalstate
 byte		*physpool;
 NewtonWorld	*gWorld;
 
@@ -42,10 +43,10 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 	Phys.Shutdown = FreePhysics;
 	Phys.LoadBSP = Phys_LoadBSP;
 	Phys.FreeBSP = Phys_FreeBSP;
-	Phys.ShowCollision = DebugShowCollision;
+	Phys.DrawCollision = DebugShowCollision;
 	Phys.Frame = Phys_Frame;
-	Phys.CreateBOX = Phys_CreateBOX;
-	Phys.RemoveBOX = Phys_RemoveBOX;
+	Phys.CreateBody = Phys_CreateBody;
+	Phys.RemoveBody = Phys_RemoveBody;
 
 	return &Phys;
 }

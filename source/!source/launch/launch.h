@@ -5,24 +5,20 @@
 #ifndef LAUNCHER_H
 #define LAUNCHER_H
 
+#include <limits.h>
+#include <fcntl.h>
+#include <direct.h>
+#include <sys/stat.h>
 #include <windows.h>
 #include <stdio.h>
 #include <io.h>
+#include <time.h>
 #include <winreg.h>
-#include <fcntl.h>
-#include <basetypes.h>
 
 #define LAUNCH_DLL		// skip alias names
-#include <ref_system.h>
+#include "basetypes.h"
 
-enum
-{
-	ERR_INVALID_ROOT,
-	ERR_CONSOLE_FAIL,
-	ERR_OSINFO_FAIL,
-	ERR_INVALID_VER,
-	ERR_WINDOWS_32S,
-};
+#define XASH_VERSION		0.48f // current version will be shared over gameinfo struct
 
 typedef struct system_s
 {
@@ -60,6 +56,24 @@ typedef struct system_s
 	void ( *Main ) ( void ); // host frame
 	void ( *Free ) ( void ); // close host
 } system_t;
+
+typedef struct cvar_s
+{
+	char	*name;
+	char	*string;		// normal string
+	float	value;		// atof( string )
+	int	integer;		// atoi( string )
+	bool	modified;		// set each time the cvar is changed
+
+	char	*reset_string;	// cvar_restart will reset to this value
+	char	*latched_string;	// for CVAR_LATCH vars
+	char	*description;	// variable descrition info
+	uint	flags;		// state flags
+	uint	modificationCount;	// incremented each time the cvar is changed
+
+	struct cvar_s *next;
+	struct cvar_s *hash;
+};
 
 extern system_t Sys;
 extern gameinfo_t GI;
@@ -154,7 +168,6 @@ int com_snprintf(char *buffer, size_t buffersize, const char *format, ...);
 int com_sprintf(char *buffer, const char *format, ...);
 char *com_pretifymem( float value, int digitsafterdecimal );
 char *va(const char *format, ...);
-
 #define copystring(str)	com_stralloc(str, __FILE__, __LINE__)
 
 //
@@ -246,7 +259,7 @@ cvar_t *Cvar_FindVar (const char *var_name);
 cvar_t *Cvar_Get (const char *var_name, const char *value, int flags, const char *description);
 void Cvar_Set( const char *var_name, const char *value);
 cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force);
-void Cvar_CommandCompletion( void(*callback)(const char *s, const char *m));
+void Cvar_LookupVars( int checkbit, char *buffer, void *ptr, cvarcmd_t callback );
 void Cvar_FullSet (char *var_name, char *value, int flags);
 void Cvar_SetLatched( const char *var_name, const char *value);
 void Cvar_SetValue( const char *var_name, float value);
@@ -280,7 +293,7 @@ void Cmd_Init( void );
 void Cmd_AddCommand(const char *cmd_name, xcommand_t function, const char *cmd_desc);
 void Cmd_RemoveCommand(const char *cmd_name);
 bool Cmd_Exists (const char *cmd_name);
-void Cmd_CommandCompletion( void(*callback)(const char *s, const char *m));
+void Cmd_LookupCmds( char *buffer, void *ptr, cvarcmd_t callback );
 bool Cmd_GetMapList( const char *s, char *completedname, int length );
 bool Cmd_GetDemoList( const char *s, char *completedname, int length );
 bool Cmd_GetMovieList (const char *s, char *completedname, int length );

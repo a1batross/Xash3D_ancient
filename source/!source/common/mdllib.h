@@ -6,7 +6,7 @@
 #define STUDIOMDL_H
 
 #include "platform.h"
-#include <basemath.h>
+#include "mathlib.h"
 #include "utils.h"
 
 #define FILEBUFFER		(2 * 1024 * 1024)
@@ -336,18 +336,12 @@ extern byte *studiopool;
 extern s_mesh_t *pmesh;
 
 void LoadTriangleList (char *filename, triangle_t **pptri, int *numtriangles);
-void R_ConcatTransforms (matrix3x4 in1, matrix3x4 in2, matrix3x4 out);
 int BuildTris (s_trianglevert_t (*x)[3], s_mesh_t *y, byte **ppdata );
 void ResetTextureCoordRanges( s_mesh_t *pmesh, s_texture_t *ptexture );
 void TextureCoordRanges( s_mesh_t *pmesh, s_texture_t *ptexture );
 s_trianglevert_t *lookup_triangle( s_mesh_t *pmesh, int index );
 s_mesh_t *lookup_mesh( s_model_t *pmodel, char *texturename );
-void VectorTransform (const vec3_t in1, const matrix3x4 in2, vec3_t out);
-void AngleMatrix (const vec3_t angles, float (*matrix)[4] );
 void AngleIMatrix (const vec3_t angles, matrix3x4 matrix );
-void AngleQuaternion( const vec3_t angles, vec4_t quaternion );
-void QuaternionMatrix( const vec4_t quaternion, float (*matrix)[4] );
-void QuaternionSlerp( const vec4_t p, vec4_t q, float t, vec4_t qt );
 int lookup_normal( s_model_t *pmodel, s_normal_t *pnormal );
 int lookup_vertex( s_model_t *pmodel, s_vertex_t *pv );
 void MatrixCopy (matrix3x4 in, matrix3x4 out);

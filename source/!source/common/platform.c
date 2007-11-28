@@ -80,6 +80,7 @@ void InitPlatform ( uint funcname, int argc, char **argv )
 	case IMGLIB:
 	case SPRITE:
 	case STUDIO:
+	case PAKLIB:
 		FS_InitRootDir(".");
 		start = Sys_DoubleTime();
 		break;
@@ -125,6 +126,9 @@ void RunPlatform ( void )
 		strcpy(typemod, "maps" );
 		strcpy(searchmask[0], "*.map" );
 		CompileBSPModel(); 
+		break;
+	case PAKLIB:
+		Sys_Break("not implemented\n");
 		break;
 	case QCCLIB: 
 		strcpy(typemod, "progs" );

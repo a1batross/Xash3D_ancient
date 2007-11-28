@@ -123,6 +123,7 @@ void Host_InitPhysic( void )
 	// phys callback
 	pi.api_size = sizeof(physic_imp_t);
 	pi.Transform = SV_Transform;
+	pi.GetModelVerts = SV_GetModelVerts;
 
 	Sys_LoadLibrary( &physic_dll );
 
@@ -151,7 +152,7 @@ void Host_InitRender( void )
 
           // studio callbacks
 	ri.StudioEvent = CL_StudioEvent;
-	ri.ShowCollision = pe->ShowCollision;
+	ri.CM_DrawCollision = pe->DrawCollision;
           
 	Sys_LoadLibrary( &render_dll );
 	
@@ -599,7 +600,7 @@ void Host_Init (uint funcname, int argc, char **argv)
 	if(host.type == HOST_DEDICATED) dedicated = Cvar_Get ("dedicated", "1", CVAR_INIT);
 	else dedicated = Cvar_Get ("dedicated", "0", CVAR_INIT);
 
-	s = va("^1Xash %g ^3%s", XASH_VERSION, buildstring );
+	s = va("^1Xash %g ^3%s", GI->version, buildstring );
 	Cvar_Get ("version", s, CVAR_SERVERINFO|CVAR_INIT);
 
 	if(dedicated->value) Cmd_AddCommand ("quit", Sys_Quit, "quit the game" );

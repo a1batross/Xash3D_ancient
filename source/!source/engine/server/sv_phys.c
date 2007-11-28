@@ -1424,6 +1424,9 @@ void SV_Physics(edict_t *ent)
 	case MOVETYPE_CONVEYOR:
 		SV_Physics_Conveyor(ent);
 		break;
+	case MOVETYPE_PHYSIC:
+		// handled to other place
+		break;
 	default:
 		PRVM_ERROR ("SV_Physics: bad movetype %i", (int)ent->progs.sv->movetype);			
 	}

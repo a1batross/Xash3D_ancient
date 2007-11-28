@@ -803,7 +803,7 @@ void GUI_UpdateDefault( WPARAM wParam )
 		break;
 	case IDM_ABOUT:
 		if(!w_opts.show_console) GUI_ShowConsole();
-		Msg("Xash Resource Editor. ver. %g\n", XASH_VERSION );
+		Msg("Xash Resource Editor. ver. %g\n", GI->version );
 		Msg("Copyright XashXT Group 2007 ©.\n");		
 		break;
 	}
@@ -994,7 +994,7 @@ void InitEditor ( uint funcname, int argc, char **argv )
 	
 	// end of all initializations
 	ShowWindow(s_gui.hWnd, SW_SHOWDEFAULT);
-	MsgDev(D_INFO, "------- Xash Recource Editor ver. %g initialized -------\n", XASH_VERSION );
+	MsgDev(D_INFO, "------- Xash Recource Editor ver. %g initialized -------\n", GI->version );
 }
 
 void EditorMain ( void )

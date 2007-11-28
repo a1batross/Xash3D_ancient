@@ -173,7 +173,12 @@ void SV_LinkEdict (edict_t *ent)
 	VectorSubtract (ent->progs.sv->maxs, ent->progs.sv->mins, ent->progs.sv->size);
 	
 	// encode the size into the entity_state for client prediction
-	if (ent->progs.sv->solid == SOLID_BBOX && !((int)ent->progs.sv->flags & FL_DEADMONSTER))
+	if (ent->progs.sv->movetype == MOVETYPE_PHYSIC)
+	{
+		pe->CreateBody( ent->priv.sv, ent->progs.sv->mins, ent->progs.sv->maxs, ent->progs.sv->origin, ent->progs.sv->angles, ent->progs.sv->solid, &ent->priv.sv->collision, &ent->priv.sv->physbody );
+		ent->priv.sv->solid = 0; // disable prediction
+	}
+	else if (ent->progs.sv->solid == SOLID_BBOX && !((int)ent->progs.sv->flags & FL_DEADMONSTER))
 	{
 		// assume that x/y are equal and symetric
 		i = ent->progs.sv->maxs[0]/8;
@@ -295,7 +300,8 @@ void SV_LinkEdict (edict_t *ent)
 	}
 	ent->priv.sv->linkcount++;
 
-	if (ent->progs.sv->solid == SOLID_NOT) return;
+	if (ent->progs.sv->solid == SOLID_NOT || ent->progs.sv->solid >= SOLID_BOX)
+		return;
 
 	// find the first node that the ent's box crosses
 	node = sv_areanodes;

@@ -25,6 +25,10 @@ cd install
 makefile.nmake
 
 cd ..
+cd paklib
+makefile.nmake
+
+cd ..
 cd roqlib
 makefile.nmake
 

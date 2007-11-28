@@ -1703,7 +1703,7 @@ STUDIO SHARED CMODELS
 word hull_table[] = { 0, 4, 8, 16, 18, 24, 28, 30, 32, 40, 48, 54, 56, 60, 64, 72, 80, 112, 120, 128, 140, 176 };
 #define NUM_HULL_ROUNDS (sizeof(hull_table) / sizeof(word))
 
-void CM_LookUpHullSize(vec3_t size, bool down)
+void CM_RoundUpHullSize(vec3_t size, bool down)
 {
           int	i, j;
 	
@@ -1737,22 +1737,23 @@ cmodel_t *CM_StudioModel (char *name, byte *buffer)
 
 	phdr = (studiohdr_t *)buffer;
 
-	if (phdr->version != STUDIO_VERSION)
+	if(phdr->version != STUDIO_VERSION)
 	{
 		MsgWarn("CM_StudioModel: %s has wrong version number (%i should be %i)", phdr->name, phdr->version, STUDIO_VERSION);
 		return NULL;
 	}
 
 	out = &map_cmodels[numcmodels + numsmodels];
-	out->extradata = NULL;//buffer;
+	if( out->extradata ) Mem_Free( out->extradata );
+	out->extradata = buffer;
 	out->numframes = 0;//reset sprite info
-	strncpy(out->name, name, sizeof(out->name));
+	std.strncpy(out->name, name, sizeof(out->name));
 	
 	if(SV_StudioExtractBbox( phdr, 0, out->mins, out->maxs ))
 	{
-		//normalize bbox
-		CM_LookUpHullSize(out->mins, true );
-		CM_LookUpHullSize(out->maxs, true );  
+		// normalize bbox
+		CM_RoundUpHullSize(out->mins, true );
+		CM_RoundUpHullSize(out->maxs, true );  
 	}
 	else
 	{
@@ -1823,6 +1824,7 @@ cmodel_t *CM_LoadModel( int modelindex )
 		MsgWarn("CM_LoadModel: %s not found\n", name );
 		return NULL;
 	}
+
 	MsgDev(D_NOTE, "CM_LoadModel: load %s\n", name );
 	buffer = FS_LoadFile (name, NULL );
 
@@ -1836,7 +1838,5 @@ cmodel_t *CM_LoadModel( int modelindex )
 		mod = CM_SpriteModel( name, buffer );
 		break;
 	}
-	Mem_Free( buffer );
-
 	return mod;
 }

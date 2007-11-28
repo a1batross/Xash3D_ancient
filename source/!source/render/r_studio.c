@@ -530,15 +530,11 @@ void R_StudioSetUpTransform ( void )
 	vec3_t	angles, modelpos;
 
 	VectorCopy( m_pCurrentEntity->origin, modelpos );
+	VectorCopy( m_pCurrentEntity->angles, angles );
 
 	// TODO: should really be stored with the entity instead of being reconstructed
 	// TODO: should use a look-up table
 	// TODO: could cache lazily, stored in the entity
-
-	angles[PITCH] = m_pCurrentEntity->angles[PITCH];
-	angles[YAW] = m_pCurrentEntity->angles[YAW];
-	angles[ROLL] = m_pCurrentEntity->angles[ROLL];
-
 	if (m_pCurrentEntity->movetype == MOVETYPE_STEP) 
 	{
 		float		f = 0;
@@ -1596,15 +1592,16 @@ void R_DrawStudioModel( int passnum )
 	R_StudioSetUpTransform();
 
 	// see if the bounding box lets us trivially reject, also sets
-	if (!R_StudioCheckBBox()) return;
+	if(!R_StudioCheckBBox()) return;
 		
 	m_pStudioModelCount++; // render data cache cookie
 	m_pxformverts = &g_xformverts[0];
 	m_pvlightvalues = &g_lightvalues[0];
 		
-	//nothing to draw
-	if (m_pStudioHeader->numbodyparts == 0) return;
-	if ( m_pCurrentEntity->flags & RF_WEAPONMODEL && r_lefthand->value == 2) return;
+	// nothing to draw
+	if(m_pStudioHeader->numbodyparts == 0) return;
+	if(m_pCurrentEntity->flags & RF_WEAPONMODEL && r_lefthand->value == 2)
+		return;
 
 	if (m_pCurrentEntity->movetype == MOVETYPE_FOLLOW) 
 		R_StudioMergeBones( m_pRenderModel );

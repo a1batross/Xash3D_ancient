@@ -860,7 +860,7 @@ sound_t S_RegisterSound( const char *name )
 
 	if ( sfx->defaultSound )
 	{
-		MsgDev(D_WARN, "couldn't load %s\n", sfx->soundName );
+		MsgDev(D_LOAD, "couldn't load %s\n", sfx->soundName );
 		return 0;
 	}
 	return sfx - s_knownSfx;
@@ -2288,8 +2288,8 @@ bool S_LoadSound( sfx_t *sfx )
 		return false;
 	}
 
-	if ( info.width == 1 ) MsgDev(D_INFO, "S_LoadSound: %s is a 8 bit wav file\n", sfx->soundName);
-	if ( info.rate != 22050 ) MsgDev(D_INFO, "S_LoadSound: %s is not a 22kHz wav file\n", sfx->soundName);
+	if ( info.width == 1 ) MsgDev(D_NOTE, "S_LoadSound: %s is a 8 bit wav file\n", sfx->soundName);
+	if ( info.rate != 22050 ) MsgDev(D_NOTE, "S_LoadSound: %s is not a 22kHz wav file\n", sfx->soundName);
 
 	samples = Z_Malloc(info.samples * sizeof(short) * 2);
 	sfx->lastTimeUsed = Sys_DoubleTime() + 0.001;

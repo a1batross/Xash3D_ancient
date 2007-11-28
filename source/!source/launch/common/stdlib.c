@@ -3,9 +3,8 @@
 //		        stdlib.c - std lib portable utils
 //=======================================================================
 
-#include <time.h>
 #include "launch.h"
-#include "basemath.h"
+#include "mathlib.h"
 
 void com_strnupr(const char *in, char *out, size_t size_out)
 {

@@ -305,7 +305,7 @@ void SVC_DirectConnect( void )
 	version = atoi(Cmd_Argv(1));
 	if (version != PROTOCOL_VERSION)
 	{
-		Netchan_OutOfBandPrint (NS_SERVER, adr, "print\nServer is version %4.2f.\n", XASH_VERSION);
+		Netchan_OutOfBandPrint (NS_SERVER, adr, "print\nServer is version %4.2f.\n", GI->version );
 		MsgWarn ("SVC_DirectConnect: rejected connect from version %i\n", version);
 		return;
 	}
@@ -725,7 +725,7 @@ void SV_RunGameFrame (void)
 	// don't run if paused
 	if (!sv_paused->value || maxclients->value > 1)
 	{
-		pe->Frame( sv.time );
+		pe->Frame( sv.frametime );
 		SV_RunFrame ();
 
 		// never get more than one tic behind

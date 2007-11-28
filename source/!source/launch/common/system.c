@@ -3,9 +3,8 @@
 //			utils.c - shared launcher utils
 //=======================================================================
 
-#include <time.h>
 #include "launch.h"
-#include "basemath.h"
+#include "mathlib.h"
 
 system_t		Sys;
 stdlib_api_t	std;
@@ -102,19 +101,19 @@ void Sys_GetStdAPI( void )
 	std.Cvar_SetString = Cvar_Set;
 	std.Cvar_GetValue = Cvar_VariableValue;
 	std.Cvar_GetString = Cvar_VariableString;
-	std.Cvar_CommandCompletion = Cvar_CommandCompletion;
+	std.Cvar_LookupVars = Cvar_LookupVars;
 	std.Cvar_FindVar = Cvar_FindVar;
-	std.cvar_vars = &cvar_vars;
 
 	// console commands
 	std.Cmd_Exec = Cbuf_ExecuteText;		// process cmd buffer
 	std.Cmd_Argc = Cmd_Argc;
 	std.Cmd_Args = Cmd_Args;
 	std.Cmd_Argv = Cmd_Argv; 
+	std.Cmd_LookupCmds = Cmd_LookupCmds;
 	std.Cmd_AddCommand = Cmd_AddCommand;
 	std.Cmd_DelCommand = Cmd_RemoveCommand;
 	std.Cmd_TokenizeString = Cmd_TokenizeString;
-	std.Cmd_CommandCompletion = Cmd_CommandCompletion;
+
 
 	// real filesystem
 	std.fopen = FS_Open;		// same as fopen
@@ -231,7 +230,7 @@ void Sys_LookupInstance( void )
 		Sys.con_readonly = false;
 		Sys.linked_dll = &engine_dll;	// pointer to engine.dll info
 		com_sprintf(Sys.log_path, "engine.log", com_timestamp(TIME_NO_SECONDS)); // logs folder
-		com_strcpy(Sys.caption, va("Xash3D Dedicated Server ver.%g", XASH_VERSION ));
+		com_strcpy(Sys.caption, va("Xash3D ver.%g", XASH_VERSION ));
 	}
 	else if(!com_strcmp(Sys.progname, "host_editor"))
 	{
@@ -285,6 +284,13 @@ void Sys_LookupInstance( void )
 		com_sprintf(Sys.log_path, "%s/studiomdl.log", sys_rootdir ); // same as .exe file
 		com_strcpy(Sys.caption, "Xash3D Studio Models Compiler");
 	}
+	else if(!com_strcmp(Sys.progname, "paklib"))
+	{
+		Sys.app_name = PAKLIB;
+		Sys.linked_dll = &common_dll;	// pointer to common.dll info
+		com_sprintf(Sys.log_path, "%s/paklib.log", sys_rootdir ); // same as .exe file
+		com_strcpy(Sys.caption, "Xash3D Pak\\Pk3 maker");
+	}
 	else if(!com_strcmp(Sys.progname, "credits")) // easter egg
 	{
 		Sys.app_name = CREDITS;
@@ -326,9 +332,8 @@ void Sys_CreateInstance( void )
 	case IMGLIB:
 	case SPRITE:
 	case STUDIO:
+	case PAKLIB:
 		CreateHost = (void *)Sys.linked_dll->main;
-
-		// set callback
 		Host = CreateHost( &std, NULL ); // second interface not allowed
 		Sys.Init = Host->Init;
 		Sys.Main = Host->Main;
@@ -368,7 +373,8 @@ void Sys_CreateInstance( void )
 	case IMGLIB:
 	case SPRITE:
 	case STUDIO:
-		 // always run stuffcmds for current instances
+	case PAKLIB:
+		// always run stuffcmds for current instances
 		Cbuf_ExecuteText( EXEC_NOW, "stuffcmds\n" );
 		break;
 	}
@@ -761,6 +767,7 @@ void Sys_Break(const char *error, ...)
 	com_vsprintf (text, error, argptr);
 	va_end (argptr);
 	
+	Sys.error = true;
 	Con_ShowConsole( true );
 	Sys_Print( text );
 	Sys_WaitForQuit();

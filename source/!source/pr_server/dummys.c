@@ -141,18 +141,25 @@ void barrel_spawn(string netname1, string model1, string deathmessage, float dam
 
 void() misc_explobox =
 {	
-	barrel_spawn("Large exploding box", "models/barrel.mdl", " was blown up by an explosive box", 750);
+	barrel_spawn("Large exploding box", "models/barrel2.mdl", " was blown up by an explosive box", 750);
 };
 
 void misc_physbox ( void )
 {
 	precache_model ("models/box.mdl");
 	pev->owner = pev;
-	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_NONE;
+	pev->solid = SOLID_BOX;
+	pev->movetype = MOVETYPE_PHYSIC;
 	setmodel (pev, "models/box.mdl");
+}
 
-	phys_createbox( pev );
+void misc_barrel( void )
+{
+	precache_model ("models/barrel.mdl");
+	pev->owner = pev;
+	pev->solid = SOLID_MESH; //test
+	pev->movetype = MOVETYPE_PHYSIC;
+	setmodel (pev, "models/barrel.mdl");
 }
 
 void env_sprite( void )

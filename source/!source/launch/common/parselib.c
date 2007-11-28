@@ -125,7 +125,7 @@ skip_whitespace:	// skip whitespace
 		// ets++
 		if (*script->script_p == '/') script->script_p++;
 		if (script->script_p[1] == 'T' && script->script_p[2] == 'X')
-			std.com_TXcommand = script->script_p[3];//TX#"-style comment (get rid of this)
+			GI.TXcommand = script->script_p[3];//TX#"-style comment (get rid of this)
 		while (*script->script_p++ != '\n')
 		{
 			if (script->script_p >= script->end_p)

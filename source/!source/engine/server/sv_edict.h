@@ -22,18 +22,6 @@
 #define AI_SPECTATOR			(1<<12)		// spectator mode for clients
 #define AI_WATERJUMP			(1<<13)		// npc or player take out of water
 
-// edict->solid values
-typedef enum
-{
-	SOLID_NOT,    	// no interaction with other objects
-	SOLID_TRIGGER,	// only touch when inside, after moving
-	SOLID_BBOX,	// touch on edge
-	SOLID_BSP,    	// bsp clip, touch on edge
-	SOLID_SPHERE,	// sphere
-	SOLID_CYLINDER,	// cylinder e.g. barrel
-	SOLID_MESH,	// custom convex hull
-} solid_t;
-
 // link_t is only used for entity area links now
 typedef struct link_s
 {

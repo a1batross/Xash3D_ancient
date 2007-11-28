@@ -882,7 +882,7 @@ void PR_WriteDAT( void )
 
 	progs.ofsfiles = 0;
 	progs.ofslinenums = 0;
-	progs.id = 0;
+	progs.ident = 0;
 	progs.ofsbodylessfuncs = 0;
 	progs.numbodylessfuncs = 0;
 	progs.ofs_types = 0;
@@ -895,8 +895,8 @@ void PR_WriteDAT( void )
 		PR_WriteLNOfile( progsoutname );
 		break;
 	case FPROGS_VERSION:
-		if (outputsize == 16) progs.id = VPROGSHEADER16;
-		if (outputsize == 32) progs.id = VPROGSHEADER32;
+		if (outputsize == 16) progs.ident = VPROGSHEADER16;
+		if (outputsize == 32) progs.ident = VPROGSHEADER32;
 
 		progs.ofsbodylessfuncs = FS_Tell(f);
 		progs.numbodylessfuncs = PR_WriteBodylessFuncs(f);		

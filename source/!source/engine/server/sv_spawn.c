@@ -72,8 +72,8 @@ void SV_PutClientInServer (edict_t *ent)
 	}
 	else
 	{
-		ent->progs.sv->angles[PITCH] = ent->progs.sv->angles[ROLL] = 0;
-		ent->progs.sv->angles[YAW] = ent->progs.sv->angles[YAW];
+		ent->progs.sv->angles[PITCH] = 0;
+		ent->progs.sv->angles[ROLL] = 0;
 	}
 
 	VectorCopy(ent->progs.sv->angles, client->ps.viewangles);
@@ -151,7 +151,7 @@ void SV_FreeEdict (edict_t *ed)
 	ed->progs.sv->frame = 0;
 	ed->progs.sv->solid = 0;
 
-	pe->RemoveBOX( ed->priv.sv->physbody );
+	pe->RemoveBody( ed->priv.sv->physbody );
 	VectorClear(ed->progs.sv->origin);
 	VectorClear(ed->progs.sv->angles);
 	ed->progs.sv->nextthink = -1;

@@ -4,7 +4,7 @@
 //=======================================================================
 
 #include "platform.h"
-#include <basemath.h>
+#include "mathlib.h"
 #include "utils.h"
 
 #define MAX_BUFFER_SIZE	((sizeof(frames) * MAX_FRAMES) + (MAX_FRAME_DIM * 2 * MAX_FRAMES))
@@ -26,7 +26,6 @@ typedef struct
 {
 	int		type;	// single frame or group of frames
 	void		*pdata;	// either a dspriteframe_t
-
 } spritepackage_t;
 
 spritepackage_t frames[MAX_FRAMES];

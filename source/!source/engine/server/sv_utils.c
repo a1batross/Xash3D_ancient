@@ -901,17 +901,6 @@ void PF_changepitch (void)
 }
 
 /*
-==============
-PF_createPhysBox
-==============
-*/
-void PF_createPhysBox( void )
-{
-	edict_t	 *ent = PRVM_G_EDICT(OFS_PARM0);
-	pe->CreateBOX( ent->priv.sv, ent->progs.sv->mins, ent->progs.sv->maxs, ent->progs.sv->origin, ent->progs.sv->angles, &ent->priv.sv->collision, &ent->priv.sv->physbody );
-}
-
-/*
 =================
 PF_findradius
 
@@ -1318,7 +1307,7 @@ PF_configstring,				// #105 void configstring(float num, string s)
 PF_makestatic,				// #106 void makestatic(entity e)
 PF_modelframes,				// #107 float model_frames(float modelindex)
 PF_event,					// #108 void set_effect( entity e, float effect )
-PF_createPhysBox,				// #109
+NULL,					// #109
 NULL,					// #110
 NULL,					// #111
 NULL,					// #112

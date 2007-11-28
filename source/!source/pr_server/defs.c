@@ -251,15 +251,21 @@ float 	TRUE					= 1;
 #define	FL_TRACKTRAIN		256	// this is tracktrain entity
 
 // edict.movetype values
-#define	MOVETYPE_NONE		0	// never moves
-#define	MOVETYPE_NOCLIP		1
-#define	MOVETYPE_PUSH		2	// no clip to world, push and crush
-#define	MOVETYPE_WALK		3	// players only
-#define	MOVETYPE_STEP		4	// discrete, not real time unless fall
-#define	MOVETYPE_FLY		5
-#define	MOVETYPE_TOSS		6	// gravity
-#define	MOVETYPE_BOUNCE		7
-#define	MOVETYPE_FOLLOW		8	// attached models
+enum
+{
+	MOVETYPE_NONE,	// never moves
+	MOVETYPE_NOCLIP,	// origin and angles change with no interaction
+	MOVETYPE_PUSH,	// no clip to world, push on box contact
+	MOVETYPE_WALK,	// gravity
+	MOVETYPE_STEP,	// gravity, special edge handling
+	MOVETYPE_FLY,
+	MOVETYPE_TOSS,	// gravity
+	MOVETYPE_BOUNCE,
+	MOVETYPE_FOLLOW,	// attached models
+	MOVETYPE_CONVEYOR,
+	MOVETYPE_PUSHABLE,
+	MOVETYPE_PHYSIC	// phys simulation
+};
 
 #define	RF_MINLIGHT		1		// allways have some light (viewmodel)
 #define	RF_VIEWERMODEL		2		// don't draw through eyes, only mirrors
@@ -273,10 +279,17 @@ float 	TRUE					= 1;
 #define	RF_GLOW			512		// pulse lighting for bonus items
 
 // edict.solid values
-float	SOLID_NOT				= 0;	// no interaction with other objects
-float	SOLID_TRIGGER			= 1;	// touch on edge, but not blocking
-float	SOLID_BBOX			= 2;	// touch on edge, block
-float	SOLID_BSP				= 3;	// bsp clip, touch on edge, block
+enum
+{
+	SOLID_NOT,    	// no interaction with other objects
+	SOLID_TRIGGER,	// only touch when inside, after moving
+	SOLID_BBOX,	// touch on edge
+	SOLID_BSP,    	// bsp clip, touch on edge
+	SOLID_BOX,	// physbox
+	SOLID_SPHERE,	// sphere
+	SOLID_CYLINDER,	// cylinder e.g. barrel
+	SOLID_MESH	// custom convex hull
+};
 
 // range values
 float	RANGE_MELEE				= 0;

@@ -324,6 +324,7 @@ void SV_SetModel (edict_t *ent, const char *name);
 // sv_studio.c
 //
 byte *SV_GetModelPtr(edict_t *ent);
+float *SV_GetModelVerts( sv_edict_t *ent, int *numvertices );
 int SV_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *maxs );
 
 //

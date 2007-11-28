@@ -4,7 +4,7 @@
 //=======================================================================
 
 #include "launch.h"
-#include "basemath.h" // nearest_pow
+#include "mathlib.h" // nearest_pow
 #include "image.h"
 
 // global image variables
@@ -19,6 +19,7 @@ uint image_ptr;
 
 byte *image_palette;	// palette pointer
 byte *image_rgba;		// image pointer (see image_type for details)
+jpg_t jpg_file;		// jpeg read struct
 
 // cubemap variables
 int cubemap_width, cubemap_height;

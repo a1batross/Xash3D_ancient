@@ -111,15 +111,22 @@ char *Cvar_VariableString (const char *var_name)
 
 /*
 ============
-Cvar_CommandCompletion
+Cvar_LookupVars
 ============
 */
-void Cvar_CommandCompletion( void(*callback)(const char *s, const char *m))
+void Cvar_LookupVars( int checkbit, char *buffer, void *ptr, cvarcmd_t callback )
 {
 	cvar_t	*cvar;
-	
+
+	// force checkbit to 0 for lookup all cvars
+	if(!checkbit) checkbit = 0x000003B9;
+
 	for( cvar = cvar_vars; cvar; cvar = cvar->next )
-		callback( cvar->name, cvar->description );
+	{
+		if(!(cvar->flags & checkbit)) continue;
+		if(buffer) callback( cvar->name, cvar->string, buffer, ptr );
+		else callback( cvar->name, cvar->string, cvar->description, ptr );
+	}
 }
 
 /*

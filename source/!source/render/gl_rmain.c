@@ -665,6 +665,42 @@ void R_Flash( void )
 	R_PolyBlend ();
 }
 
+static void R_DrawLine( int color, int numpoints, const float *points )
+{
+	int	i = numpoints - 1;
+	vec3_t	p0, p1;
+
+	VectorSet(p0, points[i * 3 + 0], points[i * 3 + 1], points[i * 3 + 2]);
+	ConvertPositionToGame( p0 );
+
+	for (i = 0; i < numpoints; i ++)
+	{
+		VectorSet(p1, points[i * 3 + 0], points[i * 3 + 1], points[i * 3 + 2]);
+		ConvertPositionToGame( p1 );
+ 
+		qglVertex3fv(p0);
+		qglVertex3fv(p1);
+ 
+ 		VectorCopy(p1, p0);
+ 	}
+}
+
+void R_DebugGraphics( void )
+{
+	if(r_newrefdef.rdflags & RDF_NOWORLDMODEL)
+		return;
+
+	qglDisable(GL_TEXTURE_2D); 
+	qglColor3f (1, 0.7f, 0);
+	qglBegin(GL_LINES);
+
+	// physic debug
+	ri.CM_DrawCollision( R_DrawLine );
+
+	qglEnd(); 
+	qglEnable(GL_TEXTURE_2D);
+}
+
 /*
 ================
 R_RenderView
@@ -705,8 +741,7 @@ void R_RenderView (refdef_t *fd)
 	R_BloomBlend (fd);
 	GL_DrawRadar();
 
-	if(!( r_newrefdef.rdflags & RDF_NOWORLDMODEL ))
-		ri.ShowCollision(); // physic debug
+	R_DebugGraphics();
 }
 
 void R_DrawPauseScreen( void )

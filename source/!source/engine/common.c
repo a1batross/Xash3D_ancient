@@ -28,6 +28,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 =======================================================================
 */
 
+static char sv_info[MAX_INFO_STRING];
+
 /*
 ===============
 Info_Print
@@ -220,28 +222,23 @@ void Info_SetValueForKey (char *s, char *key, char *value)
 	*s = 0;
 }
 
-char *Cvar_BitInfo (int bit)
+static void Cvar_LookupBitInfo(const char *name, const char *string, const char *info, void *unused)
 {
-	static char	info[MAX_INFO_STRING];
-	cvar_t		*var;
-
-	info[0] = 0;
-
-	for (var = cvar_vars; var; var = var->next)
-	{
-		if (var->flags & bit) Info_SetValueForKey (info, var->name, var->string);
-	}
-	return info;
+	Info_SetValueForKey((char *)info, (char *)name, (char *)string);
 }
 
 char *Cvar_Userinfo (void)
 {
-	return Cvar_BitInfo (CVAR_USERINFO);
+	sv_info[0] = 0; // clear previous calls
+	Cvar_LookupVars( CVAR_USERINFO, sv_info, NULL, Cvar_LookupBitInfo ); 
+	return sv_info;
 }
 
 char *Cvar_Serverinfo (void)
 {
-	return Cvar_BitInfo (CVAR_SERVERINFO);
+	sv_info[0] = 0; // clear previous calls
+	Cvar_LookupVars( CVAR_SERVERINFO, sv_info, NULL, Cvar_LookupBitInfo ); 
+	return sv_info;
 }
 
 /*
@@ -491,23 +488,16 @@ Appends lines containing "set variable value" for all variables
 with the archive flag set to true.
 ============
 */
+
+static void Cmd_WriteCvar(const char *name, const char *string, const char *unused, void *f)
+{
+	FS_Printf(f, "seta %s \"%s\"\n", name, string );
+}
+
 void Cmd_WriteVariables( file_t *f )
 {
-	cvar_t	*var;
-	char	buffer[1024];
-
 	FS_Printf (f, "unsetall\n" );
-
-	for(var = cvar_vars; var; var = var->next)
-	{
-		if( var->flags & CVAR_ARCHIVE )
-		{
-			// write the latched value, even if it hasn't taken effect yet
-			if(!var->latched_string ) sprintf(buffer, "seta %s \"%s\"\n", var->name, var->string);
-			else sprintf(buffer, "seta %s \"%s\"\n", var->name, var->latched_string);
-			FS_Printf (f, "%s", buffer);
-		}
-	}
+	Cvar_LookupVars( CVAR_ARCHIVE, NULL, f, Cmd_WriteCvar ); 
 }
 
 float frand(void)

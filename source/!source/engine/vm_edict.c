@@ -870,10 +870,7 @@ void PRVM_ED_ParseGlobals (const char *data)
 			PRVM_ERROR ("PRVM_ED_ParseGlobals: EOF without closing brace\n");
 		if (com_token[0] == '}') break;
 		if (com_token[0] == '{') continue;
-
-		strncpy (keyname, com_token, sizeof(keyname));
-
-		Msg("com_token %s\n", keyname );
+		std.strncpy (keyname, com_token, sizeof(keyname));
 
 		// parse value
 		if (!Com_ParseToken(&data))
@@ -1324,9 +1321,9 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		prog->intsize = 16;
 		break;
 	case FPROGS_VERSION:
-		if(prog->progs->id == VPROGSHEADER16)
+		if(prog->progs->ident == VPROGSHEADER16)
 			prog->intsize = 16;
-		if(prog->progs->id == VPROGSHEADER32)
+		if(prog->progs->ident == VPROGSHEADER32)
 			prog->intsize = 32;
 		break;
 	case VPROGS_VERSION:

@@ -600,7 +600,7 @@ void WriteMDLFile (void)
 	Msg ("writing %s:\n", modeloutname);
 
 	phdr = (studiohdr_t *)pStart;
-	phdr->id = IDSTUDIOHEADER;
+	phdr->ident = IDSTUDIOHEADER;
 	phdr->version = STUDIO_VERSION;
 	strcpy( phdr->name, modeloutname );
 
