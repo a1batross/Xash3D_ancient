@@ -30,7 +30,8 @@ scroll = visible_offset
 5. пофиксить вылет в релизе				OK
 6. навести порядок в dllapi.h				OK
 7. создать paklib					OK
-8. Написать SV_StudioGetVerts
+8. Написать SV_StudioGetVerts				OK
+9. пофиксить баг в_StudioGetVerts если оригин в центре
 9. Подключить roqlib
 
 //==================================================

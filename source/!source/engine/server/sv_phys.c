@@ -820,7 +820,11 @@ void SV_MovePush(edict_t *pusher, float movetime)
 	for (e = 0; e < prog->num_edicts; e++)
 	{
 		edict_t *check = PRVM_PROG_TO_EDICT(e);
-		if (check->progs.sv->movetype == MOVETYPE_NONE || check->progs.sv->movetype == MOVETYPE_PUSH || check->progs.sv->movetype == MOVETYPE_FOLLOW || check->progs.sv->movetype == MOVETYPE_NOCLIP)
+		if (check->progs.sv->movetype == MOVETYPE_NONE
+		|| check->progs.sv->movetype == MOVETYPE_PUSH
+		|| check->progs.sv->movetype == MOVETYPE_FOLLOW
+		|| check->progs.sv->movetype == MOVETYPE_NOCLIP
+		|| check->progs.sv->movetype == MOVETYPE_PHYSIC)
 			continue;
 
 		// if the entity is standing on the pusher, it will definitely be moved
@@ -1392,6 +1396,7 @@ void SV_Physics(edict_t *ent)
 	switch ((int)ent->progs.sv->movetype)
 	{
 	case MOVETYPE_NONE:
+	case MOVETYPE_PHYSIC:
 		SV_PhysicsNone(ent);
 		break;
 	case MOVETYPE_PUSH:
@@ -1423,9 +1428,6 @@ void SV_Physics(edict_t *ent)
 		break;
 	case MOVETYPE_CONVEYOR:
 		SV_Physics_Conveyor(ent);
-		break;
-	case MOVETYPE_PHYSIC:
-		// handled to other place
 		break;
 	default:
 		PRVM_ERROR ("SV_Physics: bad movetype %i", (int)ent->progs.sv->movetype);			

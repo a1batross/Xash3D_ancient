@@ -378,7 +378,8 @@ AngleMatrix
 
 ====================
 */
-_inline void AngleMatrix (const float *angles, float (*matrix)[4] )
+
+_inline void AngleMatrix(const vec3_t angles, matrix3x4 matrix )
 {
 	float		angle;
 	float		sr, sp, sy, cr, cp, cy;
@@ -408,6 +409,95 @@ _inline void AngleMatrix (const float *angles, float (*matrix)[4] )
 	matrix[2][3] = 0.0;
 }
 
+_inline void AngleMatrixFLU( const vec3_t angles, matrix3x4 matrix )
+{
+	float		angle;
+	float		sr, sp, sy, cr, cp, cy;
+	
+	angle = angles[ROLL] * (M_PI*2 / 360);
+	sy = sin(angle);
+	cy = cos(angle);
+	angle = angles[YAW] * (M_PI*2 / 360);
+	sp = sin(angle);
+	cp = cos(angle);
+	angle = angles[PITCH] * (M_PI*2 / 360);
+	sr = sin(angle);
+	cr = cos(angle);
+
+	// matrix = (YAW * PITCH) * ROLL
+	matrix[0][0] = cp*cy;
+	matrix[1][0] = cp*sy;
+	matrix[2][0] = -sp;
+	matrix[0][1] = sr*sp*cy+cr*-sy;
+	matrix[1][1] = sr*sp*sy+cr*cy;
+	matrix[2][1] = sr*cp;
+	matrix[0][2] = (cr*sp*cy+-sr*-sy);
+	matrix[1][2] = (cr*sp*sy+-sr*cy);
+	matrix[2][2] = cr*cp;
+	matrix[0][3] = 0.0;
+	matrix[1][3] = 0.0;
+	matrix[2][3] = 0.0;
+}
+
+_inline void AngleIMatrix(const vec3_t angles, matrix3x4 matrix )
+{
+	float		angle;
+	float		sr, sp, sy, cr, cp, cy;
+	
+	angle = angles[YAW] * (M_PI*2 / 360);
+	sy = sin(angle);
+	cy = cos(angle);
+	angle = angles[PITCH] * (M_PI*2 / 360);
+	sp = sin(angle);
+	cp = cos(angle);
+	angle = angles[ROLL] * (M_PI*2 / 360);
+	sr = sin(angle);
+	cr = cos(angle);
+
+	// matrix = (YAW * PITCH) * ROLL
+	matrix[0][0] = cp*cy;
+	matrix[0][1] = cp*sy;
+	matrix[0][2] = -sp;
+	matrix[1][0] = sr*sp*cy+cr*-sy;
+	matrix[1][1] = sr*sp*sy+cr*cy;
+	matrix[1][2] = sr*cp;
+	matrix[2][0] = (cr*sp*cy+-sr*-sy);
+	matrix[2][1] = (cr*sp*sy+-sr*cy);
+	matrix[2][2] = cr*cp;
+	matrix[0][3] = 0.0;
+	matrix[1][3] = 0.0;
+	matrix[2][3] = 0.0;
+}
+
+_inline void AngleIMatrixFLU(const vec3_t angles, matrix3x4 matrix )
+{
+	float		angle;
+	float		sr, sp, sy, cr, cp, cy;
+	
+	angle = angles[ROLL] * (M_PI*2 / 360);
+	sy = sin(angle);
+	cy = cos(angle);
+	angle = angles[YAW] * (M_PI*2 / 360);
+	sp = sin(angle);
+	cp = cos(angle);
+	angle = angles[PITCH] * (M_PI*2 / 360);
+	sr = sin(angle);
+	cr = cos(angle);
+
+	// matrix = (Z * Y) * X
+	matrix[0][0] = cp*cy;
+	matrix[0][1] = cp*sy;
+	matrix[0][2] = -sp;
+	matrix[1][0] = sr*sp*cy+cr*-sy;
+	matrix[1][1] = sr*sp*sy+cr*cy;
+	matrix[1][2] = sr*cp;
+	matrix[2][0] = (cr*sp*cy+-sr*-sy);
+	matrix[2][1] = (cr*sp*sy+-sr*cy);
+	matrix[2][2] = cr*cp;
+	matrix[0][3] = 0.0;
+	matrix[1][3] = 0.0;
+	matrix[2][3] = 0.0;
+}
 
 /*
 ====================
@@ -588,7 +678,7 @@ _inline void R_ConcatRotations (float in1[3][3], float in2[3][3], float out[3][3
 ConcatTransforms
 ================
 */
-_inline void R_ConcatTransforms (float in1[3][4], float in2[3][4], float out[3][4])
+_inline void R_ConcatTransforms( matrix3x4 in1, matrix3x4 in2, matrix3x4 out )
 {
 	out[0][0] = in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0] + in1[0][2] * in2[2][0];
 	out[0][1] = in1[0][0] * in2[0][1] + in1[0][1] * in2[1][1] + in1[0][2] * in2[2][1];

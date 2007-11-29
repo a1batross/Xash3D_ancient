@@ -51,6 +51,7 @@ int CM_WriteAreaBits (byte *buffer, int area);
 bool CM_HeadnodeVisible (int headnode, byte *visbits);
 void CM_InitBoxHull (void);
 void CM_FloodAreaConnections (void);
+void CM_RoundUpHullSize(vec3_t size, bool down);
 extern byte portalopen[MAX_MAP_AREAPORTALS];
 
 /*

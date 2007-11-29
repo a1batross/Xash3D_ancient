@@ -340,7 +340,7 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, b
 	if( key_overstrikeMode ) cursorChar = 11;
 	else cursorChar = 95;
 
-	i = drawLen - (ColorStrlen(str) + 1);
+	i = drawLen - (std.cstrlen(str) + 1);
 
 	if(size == SMALLCHAR_WIDTH) SCR_DrawSmallChar( x + (edit->cursor - prestep - i) * size, y, cursorChar );
 	else

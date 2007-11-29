@@ -1073,7 +1073,7 @@ void SimplifyModel (void)
 					angle[1]	= sequence[i].panim[q]->rot[j][n][1] * (180.0 / M_PI);
 					angle[2]	= sequence[i].panim[q]->rot[j][n][2] * (180.0 / M_PI);
 
-					AngleMatrix( angle, bonematrix );
+					AngleMatrixFLU( angle, bonematrix );
 
 					bonematrix[0][3] = sequence[i].panim[q]->pos[j][n][0];
 					bonematrix[1][3] = sequence[i].panim[q]->pos[j][n][1];
@@ -1306,17 +1306,17 @@ void Build_Reference( s_model_t *pmodel)
 		{
 			// scale the done pos.
 			// calc rotational matrices
-			AngleMatrix( angle, bonefixup[i].m );
-			AngleIMatrix( angle, bonefixup[i].im );
+			AngleMatrixFLU( angle, bonefixup[i].m );
+			AngleIMatrixFLU( angle, bonefixup[i].im );
 			VectorCopy( pmodel->skeleton[i].pos, bonefixup[i].worldorg );
 		}
 		else
 		{
 			// calc compound rotational matrices
 			// FIXME : Hey, it's orthogical so inv(A) == transpose(A)
-			AngleMatrix( angle, m );
+			AngleMatrixFLU( angle, m );
 			R_ConcatTransforms( bonefixup[parent].m, m, bonefixup[i].m );
-			AngleIMatrix( angle, m );
+			AngleIMatrixFLU( angle, m );
 			R_ConcatTransforms( m, bonefixup[parent].im, bonefixup[i].im );
 
 			// calc true world coord.

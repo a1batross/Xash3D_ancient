@@ -183,6 +183,7 @@ void Phys_LoadBSP( uint *buffer )
 	VectorSubtract( boxP0, extra, boxP0 );
 	VectorAdd( boxP1, extra, boxP1 );
 	NewtonSetWorldSize( gWorld, &boxP0[0], &boxP1[0] ); 
+	NewtonSetSolverModel( gWorld, 1 );
 
 	MsgDev(D_INFO, "physic map generated\n");
 	Mem_Free( map_surfedges );

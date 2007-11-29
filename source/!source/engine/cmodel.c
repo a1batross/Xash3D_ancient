@@ -1716,7 +1716,7 @@ void CM_RoundUpHullSize(vec3_t size, bool down)
 		if(value < 0) negative = true;
 		value = fabs(value);//make positive
 
-		//lookup hull table
+		// lookup hull table
 		for(j = 0; j < NUM_HULL_ROUNDS; j++)
           	{
 			result = value - hull_table[j];
@@ -1752,8 +1752,8 @@ cmodel_t *CM_StudioModel (char *name, byte *buffer)
 	if(SV_StudioExtractBbox( phdr, 0, out->mins, out->maxs ))
 	{
 		// normalize bbox
-		CM_RoundUpHullSize(out->mins, true );
-		CM_RoundUpHullSize(out->maxs, true );  
+		CM_RoundUpHullSize(out->mins, false );
+		CM_RoundUpHullSize(out->maxs, false );  
 	}
 	else
 	{

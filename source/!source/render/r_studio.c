@@ -531,7 +531,7 @@ void R_StudioSetUpTransform ( void )
 
 	VectorCopy( m_pCurrentEntity->origin, modelpos );
 	VectorCopy( m_pCurrentEntity->angles, angles );
-
+	
 	// TODO: should really be stored with the entity instead of being reconstructed
 	// TODO: should use a look-up table
 	// TODO: could cache lazily, stored in the entity

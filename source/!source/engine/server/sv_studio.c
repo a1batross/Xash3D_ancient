@@ -75,15 +75,35 @@ StudioSetUpTransform
 */
 void SV_StudioSetUpTransform ( void )
 {
-	vec3_t	angles, modelpos;
+	vec3_t	mins, maxs, modelpos;
 
-	//VectorCopy( m_pCurrentEntity->progs.sv->origin, modelpos );
-	VectorCopy( m_pCurrentEntity->progs.sv->angles, angles );
-	AngleMatrix(angles, m_pRotationMatrix);
+	SV_StudioExtractBbox( m_pStudioHeader, 0, mins, maxs );
+	CM_RoundUpHullSize(mins, true );
+	CM_RoundUpHullSize(maxs, true ); 
+	VectorAdd( mins, maxs, modelpos );
+	VectorScale( modelpos, 0.5, modelpos );
 
-	//m_pRotationMatrix[0][3] = modelpos[0];
-	//m_pRotationMatrix[1][3] = modelpos[1];
-	//m_pRotationMatrix[2][3] = modelpos[2];
+	VectorSet(m_pRotationMatrix[0],  0, 1,  0 ); 
+	VectorSet(m_pRotationMatrix[1], -1, 0,  0 ); 
+	VectorSet(m_pRotationMatrix[2],  0, 0, -1 );
+//matrix[0] 0 1 0
+//matrix[1] -1 0 0
+//matrix[2] 0 0 -1
+
+         /*	AngleVectors( vec3_angles, m_pRotationMatrix[1], m_pRotationMatrix[0], m_pRotationMatrix[2] );
+
+	// setup model matrix
+	m_pRotationMatrix[0][2] *= -1;
+	m_pRotationMatrix[1][2] *= -1;
+	m_pRotationMatrix[2][2] *= -1;
+          */
+	Msg("matrix[0] %g %g %g\n", m_pRotationMatrix[0][0], m_pRotationMatrix[1][0], m_pRotationMatrix[2][0] );
+	Msg("matrix[1] %g %g %g\n", m_pRotationMatrix[0][1], m_pRotationMatrix[1][1], m_pRotationMatrix[2][1] );
+	Msg("matrix[2] %g %g %g\n", m_pRotationMatrix[0][2], m_pRotationMatrix[1][2], m_pRotationMatrix[2][2] );
+
+	m_pRotationMatrix[0][3] = modelpos[0];
+	m_pRotationMatrix[1][3] = modelpos[1];
+	m_pRotationMatrix[2][3] = modelpos[2];
 }
 
 void SV_StudioCalcRotations ( float pos[][3], vec4_t *q )
