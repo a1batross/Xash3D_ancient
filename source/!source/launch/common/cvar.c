@@ -119,11 +119,9 @@ void Cvar_LookupVars( int checkbit, char *buffer, void *ptr, cvarcmd_t callback 
 	cvar_t	*cvar;
 
 	// force checkbit to 0 for lookup all cvars
-	if(!checkbit) checkbit = 0x000003B9;
-
 	for( cvar = cvar_vars; cvar; cvar = cvar->next )
 	{
-		if(!(cvar->flags & checkbit)) continue;
+		if(checkbit && !(cvar->flags & checkbit)) continue;
 		if(buffer) callback( cvar->name, cvar->string, buffer, ptr );
 		else callback( cvar->name, cvar->string, cvar->description, ptr );
 	}

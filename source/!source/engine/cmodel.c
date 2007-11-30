@@ -1730,7 +1730,7 @@ void CM_RoundUpHullSize(vec3_t size, bool down)
 	}
 }
 
-cmodel_t *CM_StudioModel (char *name, byte *buffer)
+cmodel_t *CM_StudioModel( char *name, edict_t *ent, byte *buffer)
 {
 	cmodel_t		*out;
 	studiohdr_t	*phdr;
@@ -1744,28 +1744,20 @@ cmodel_t *CM_StudioModel (char *name, byte *buffer)
 	}
 
 	out = &map_cmodels[numcmodels + numsmodels];
-	if( out->extradata ) Mem_Free( out->extradata );
 	out->extradata = buffer;
 	out->numframes = 0;//reset sprite info
 	std.strncpy(out->name, name, sizeof(out->name));
-	
-	if(SV_StudioExtractBbox( phdr, 0, out->mins, out->maxs ))
-	{
-		// normalize bbox
-		CM_RoundUpHullSize(out->mins, false );
-		CM_RoundUpHullSize(out->maxs, false );  
-	}
-	else
-	{
-		// default size
-		VectorSet(out->mins, -32, -32, -32 );
-		VectorSet(out->maxs,  32,  32,  32 );
-	}
+	if(!out->mempool) out->mempool = Mem_AllocPool( out->name );// create pool
+	else Mem_EmptyPool( out->mempool );			// clear pool
+
+	// create convex mesh physbuffer
+	SV_CreateMeshBuffer( ent, out );
+
 	numsmodels++;
 	return out;
 }
 
-cmodel_t *CM_SpriteModel (char *name, byte *buffer)
+cmodel_t *CM_SpriteModel( char *name, edict_t *ent, byte *buffer)
 {
 	cmodel_t		*out;
 	dsprite_t		*phdr;
@@ -1780,7 +1772,9 @@ cmodel_t *CM_SpriteModel (char *name, byte *buffer)
 	
 	out = &map_cmodels[numcmodels + numsmodels];
 	out->numframes = phdr->numframes;
-	strncpy(out->name, name, sizeof(out->name));
+	std.strncpy(out->name, name, sizeof(out->name));
+	if(out->mempool) Mem_EmptyPool( out->mempool );	// clear pool
+	else out->mempool = Mem_AllocPool( out->name );	// create pool
 
 	out->mins[0] = out->mins[1] = -phdr->width / 2;
 	out->maxs[0] = out->maxs[1] = phdr->width / 2;
@@ -1791,29 +1785,26 @@ cmodel_t *CM_SpriteModel (char *name, byte *buffer)
 	return out;
 }
 
-cmodel_t *CM_LoadModel( int modelindex )
+cmodel_t *CM_LoadModel( edict_t *ent )
 {
 	char		name[MAX_QPATH];
 	byte		*buffer;
 	cmodel_t		*mod = NULL;
 	int		i, max_models = numcmodels + numsmodels;
+	int		modelindex = ent->progs.sv->modelindex;
 
 	// check for preloading
 	strncpy(name, sv.configstrings[CS_MODELS + modelindex], MAX_QPATH );
-	if(name[0] == '*') 
-	{
-		MsgDev(D_NOTE, "CM_LoadModel: load %s\n", name );
-		return CM_InlineModel( name ); // skip bmodels
-	}
+	if(name[0] == '*') return CM_InlineModel( name ); // skip bmodels
 
-	for(i = numcmodels; i < max_models; i++ )
+	for(i = numsmodels; i < max_models; i++ )
           {
-		mod = map_cmodels + i;
-		if(!stricmp(name, mod->name))
+		mod = &map_cmodels[i];
+		if(!std.strcmp(name, mod->name))
 			return mod;
 	} 
 
-	// new model
+	// register new model
 	if(numcmodels + numsmodels > MAX_MAP_MODELS)
 	{
 		MsgWarn("CM_LoadModel: MAX_MAP_MODELS limit exceeded\n" );
@@ -1826,16 +1817,16 @@ cmodel_t *CM_LoadModel( int modelindex )
 	}
 
 	MsgDev(D_NOTE, "CM_LoadModel: load %s\n", name );
-	buffer = FS_LoadFile (name, NULL );
+	buffer = FS_LoadFile( name, NULL );
 
 	// call the apropriate loader
 	switch (LittleLong(*(uint *)buffer))
 	{
 	case IDSTUDIOHEADER:
-		mod = CM_StudioModel( name, buffer );
+		mod = CM_StudioModel( name, ent, buffer );
 		break;
 	case IDSPRITEHEADER:
-		mod = CM_SpriteModel( name, buffer );
+		mod = CM_SpriteModel( name, ent, buffer );
 		break;
 	}
 	return mod;

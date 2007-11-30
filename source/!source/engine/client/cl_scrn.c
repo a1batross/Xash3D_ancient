@@ -29,8 +29,7 @@ Adjusted for resolution and screen aspect ratio
 */
 void SCR_AdjustSize( float *x, float *y, float *w, float *h )
 {
-	float	xscale;
-	float	yscale;
+	float	xscale, yscale;
 
 	// scale for screen sizes
 	xscale = scr_width->integer / 640.0f;

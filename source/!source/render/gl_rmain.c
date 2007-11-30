@@ -159,6 +159,8 @@ cvar_t	*r_width;
 cvar_t	*r_height;
 cvar_t	*r_mode;
 
+cvar_t	*r_physbdebug;
+
 /*
 =================
 R_CullBox
@@ -690,15 +692,18 @@ void R_DebugGraphics( void )
 	if(r_newrefdef.rdflags & RDF_NOWORLDMODEL)
 		return;
 
-	qglDisable(GL_TEXTURE_2D); 
-	qglColor3f (1, 0.7f, 0);
-	qglBegin(GL_LINES);
+	if(r_physbdebug->integer)
+	{
+		qglDisable(GL_TEXTURE_2D); 
+		qglColor3f (1, 0.7f, 0);
+		qglBegin(GL_LINES);
 
-	// physic debug
-	ri.CM_DrawCollision( R_DrawLine );
+		// physic debug
+		ri.CM_DrawCollision( R_DrawLine );
 
-	qglEnd(); 
-	qglEnable(GL_TEXTURE_2D);
+		qglEnd(); 
+		qglEnable(GL_TEXTURE_2D);
+	}
 }
 
 /*
@@ -959,6 +964,7 @@ void R_Register( void )
 	r_lerpmodels = Cvar_Get ("r_lerpmodels", "1", 0);
 	r_speeds = Cvar_Get ("r_speeds", "0", 0);
 	r_pause = Cvar_Get("paused", "0", 0);
+	r_physbdebug = Cvar_Get( "cm_physdebug", "0", CVAR_ARCHIVE );
 
 	// must been already existing
 	r_width = Cvar_Get("width", "640", 0);
@@ -966,7 +972,6 @@ void R_Register( void )
 	r_mode = Cvar_Get( "r_mode", "0", CVAR_ARCHIVE );
 
 	r_loading = Cvar_Get("scr_loading", "0", 0 );
-
 	r_lightlevel = Cvar_Get ("r_lightlevel", "0", 0);
 	r_emboss_bump = Cvar_Get ("r_emboss_bump", "0", 0);
 

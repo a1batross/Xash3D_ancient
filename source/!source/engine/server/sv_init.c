@@ -210,7 +210,7 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 	for (i = 1; i < CM_NumInlineModels(); i++)
 	{
 		sprintf(sv.configstrings[CS_MODELS+1+i], "*%i", i);
-		sv.models[i+1] = CM_InlineModel (sv.configstrings[CS_MODELS+1+i]);
+		sv.models[i+1] = CM_InlineModel(sv.configstrings[CS_MODELS+1+i]);
 	}
 
 	//
@@ -240,8 +240,7 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 	SV_CreateBaseline ();
 
 	// set serverinfo variable
-	Cvar_FullSet ("mapname", sv.name, CVAR_SERVERINFO | CVAR_INIT);
-
+	Cvar_FullSet("mapname", sv.name, CVAR_SERVERINFO | CVAR_INIT);
 	SV_VM_End();
 }
 

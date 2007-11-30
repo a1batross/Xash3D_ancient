@@ -144,6 +144,7 @@ void PRVM_Init (void);
 extern cvar_t *dedicated;
 extern cvar_t *host_serverstate;
 extern cvar_t *host_frametime;
+extern cvar_t *cm_paused;
 
 /*
 ==============================================================

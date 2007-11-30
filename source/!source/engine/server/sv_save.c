@@ -273,10 +273,20 @@ void Sav_LoadLocals( lump_t *l )
 
 			// parse an edict
 			PRVM_ED_ParseEdict(ents, ent);
+			ent->priv.sv->serialnumber = entnum++; // increase serialnumber
 
 			// link it into the bsp tree
-			if (!ent->priv.sv->free) SV_LinkEdict( ent );
-			entnum++;
+			if (!ent->priv.sv->free) 
+			{
+				//SV_SetModel( ent, PRVM_GetString( ent->progs.sv->model ));
+				SV_LinkEdict( ent );
+				if(ent->progs.sv->movetype == MOVETYPE_PHYSIC)
+				{
+					pe->CreateBody( ent->priv.sv, ent->progs.sv->mins, ent->progs.sv->maxs,
+					ent->progs.sv->origin, ent->progs.sv->angles, ent->progs.sv->solid,
+					&ent->priv.sv->collision, &ent->priv.sv->physbody );
+				}
+			}
 		}
 	}
 	prog->num_edicts = entnum;
@@ -310,7 +320,7 @@ void SV_ReadSaveFile( char *name )
 	Sav_LoadComment(&header->lumps[LUMP_COMMENTS]);
 	Sav_LoadCvars(&header->lumps[LUMP_GAMECVARS]);
 	
-	SV_InitGame (); // start a new game fresh with new cvars
+	SV_InitGame(); // start a new game fresh with new cvars
 	Sav_LoadMapCmds(&header->lumps[LUMP_MAPNAME]);
 }
 
@@ -377,6 +387,7 @@ bool Menu_ReadComment( char *comment, int savenum )
 	sav_base = (byte *)header;
 	Sav_LoadComment(&header->lumps[LUMP_COMMENTS]);
 	std.strncpy( comment, svs.comment, MAX_QPATH );
+	Mem_Free( savfile );
 
 	return true;
 }

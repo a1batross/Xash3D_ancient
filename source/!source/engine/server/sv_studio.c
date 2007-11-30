@@ -7,15 +7,28 @@
 #include "server.h"
 
 edict_t *m_pCurrentEntity;
-mstudiomodel_t *m_pSubModel;
 studiohdr_t *m_pStudioHeader;
+mstudiomodel_t *m_pSubModel;
 mstudiobodyparts_t *m_pBodyPart;
 matrix3x4 m_pRotationMatrix;
-vec3_t g_xStudioVerts[ MAXSTUDIOVERTS ];
-vec3_t g_xModelVerts[ MAXSTUDIOVERTS ];
-matrix3x4 g_xBonesTransform[ MAXSTUDIOBONES ];
-vec3_t *m_pStudioVerts;
+vec3_t g_xVertsTransform[MAXSTUDIOVERTS];
+matrix3x4 g_xBonesTransform[MAXSTUDIOBONES];
+uint m_BodyCount;
+
+// mesh buffer
+vec3_t g_xModelVerts[MAXSTUDIOVERTS];
 uint iNumVertices = 0;
+vec3_t *m_pModelVerts;
+
+void SV_GetBodyCount( void )
+{
+	if(m_pStudioHeader)
+	{
+		m_pBodyPart = (mstudiobodyparts_t *)((byte *)m_pStudioHeader + m_pStudioHeader->bodypartindex);
+		m_BodyCount = m_pBodyPart->nummodels;
+	}
+	else m_BodyCount = 0; // just reset it
+}
 
 int SV_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *maxs )
 {
@@ -30,13 +43,13 @@ int SV_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *m
 	return 1;
 }
 
-byte *SV_GetModelPtr(edict_t *ent)
+byte *SV_GetModelPtr( edict_t *ent )
 {
 	cmodel_t	*cmod;
 	
-	if(!ent || !ent->progs.sv->modelindex) return NULL;
-	cmod = CM_LoadModel( ent->progs.sv->modelindex ); 
-	if(!cmod || !cmod->extradata) return NULL;
+	cmod = CM_LoadModel( ent ); 
+	if(!cmod || !cmod->extradata) 
+		return NULL;
 
 	return cmod->extradata;
 }
@@ -51,7 +64,9 @@ void SV_StudioCalcBoneQuaterion( mstudiobone_t *pbone, float *q )
 {
 	int	i;
 	vec3_t	angle1;
-	for (i = 0; i < 3; i++) angle1[i] = pbone->value[i+3]; // default;
+
+	for (i = 0; i < 3; i++) 
+		angle1[i] = pbone->value[i+3];
 	AngleQuaternion( angle1, q );
 }
 
@@ -64,7 +79,9 @@ StudioCalcBonePosition
 void SV_StudioCalcBonePosition( mstudiobone_t *pbone, float *pos )
 {
 	int	i;
-	for (i = 0; i < 3; i++) pos[i] = pbone->value[i]; // default;
+
+	for (i = 0; i < 3; i++) 
+		pos[i] = pbone->value[i];
 }
 
 /*
@@ -83,27 +100,22 @@ void SV_StudioSetUpTransform ( void )
 	VectorAdd( mins, maxs, modelpos );
 	VectorScale( modelpos, 0.5, modelpos );
 
-	VectorSet(m_pRotationMatrix[0],  0, 1,  0 ); 
-	VectorSet(m_pRotationMatrix[1], -1, 0,  0 ); 
-	VectorSet(m_pRotationMatrix[2],  0, 0, -1 );
-//matrix[0] 0 1 0
-//matrix[1] -1 0 0
-//matrix[2] 0 0 -1
+	// setup matrix
+	m_pRotationMatrix[0][0] = 1;
+	m_pRotationMatrix[1][0] = 0;
+	m_pRotationMatrix[2][0] = 0;
 
-         /*	AngleVectors( vec3_angles, m_pRotationMatrix[1], m_pRotationMatrix[0], m_pRotationMatrix[2] );
+	m_pRotationMatrix[0][1] = 0;
+	m_pRotationMatrix[1][1] = 1;
+	m_pRotationMatrix[2][1] = 0;
 
-	// setup model matrix
-	m_pRotationMatrix[0][2] *= -1;
-	m_pRotationMatrix[1][2] *= -1;
-	m_pRotationMatrix[2][2] *= -1;
-          */
-	Msg("matrix[0] %g %g %g\n", m_pRotationMatrix[0][0], m_pRotationMatrix[1][0], m_pRotationMatrix[2][0] );
-	Msg("matrix[1] %g %g %g\n", m_pRotationMatrix[0][1], m_pRotationMatrix[1][1], m_pRotationMatrix[2][1] );
-	Msg("matrix[2] %g %g %g\n", m_pRotationMatrix[0][2], m_pRotationMatrix[1][2], m_pRotationMatrix[2][2] );
+	m_pRotationMatrix[0][2] = 0;
+	m_pRotationMatrix[1][2] = 0;
+	m_pRotationMatrix[2][2] = -1;
 
 	m_pRotationMatrix[0][3] = modelpos[0];
 	m_pRotationMatrix[1][3] = modelpos[1];
-	m_pRotationMatrix[2][3] = modelpos[2];
+	m_pRotationMatrix[2][3] = modelpos[2];// ? modelpos[2] : maxs[2];
 }
 
 void SV_StudioCalcRotations ( float pos[][3], vec4_t *q )
@@ -111,7 +123,6 @@ void SV_StudioCalcRotations ( float pos[][3], vec4_t *q )
 	int		i;
 	mstudiobone_t	*pbone;
 
-	// add in programtic controllers
 	pbone = (mstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
 	for (i = 0; i < m_pStudioHeader->numbones; i++, pbone++ ) 
 	{
@@ -129,23 +140,12 @@ StudioSetupBones
 void SV_StudioSetupBones( void )
 {
 	int		i;
-	double		f = 1.0f;
-
 	mstudiobone_t	*pbones;
-
 	static float	pos[MAXSTUDIOBONES][3];
 	static vec4_t	q[MAXSTUDIOBONES];
 	matrix3x4		bonematrix;
 
-	static float	pos2[MAXSTUDIOBONES][3];
-	static vec4_t	q2[MAXSTUDIOBONES];
-	static float	pos3[MAXSTUDIOBONES][3];
-	static vec4_t	q3[MAXSTUDIOBONES];
-	static float	pos4[MAXSTUDIOBONES][3];
-	static vec4_t	q4[MAXSTUDIOBONES];
-
 	SV_StudioCalcRotations( pos, q );
-
 	pbones = (mstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
 
 	for (i = 0; i < m_pStudioHeader->numbones; i++) 
@@ -162,59 +162,45 @@ void SV_StudioSetupBones( void )
 	}
 }
 
-void SV_StudioSetupModel ( int bodypart )
+void SV_StudioSetupModel ( int bodypart, int body )
 {
 	int index;
 
 	if(bodypart > m_pStudioHeader->numbodyparts) bodypart = 0;
 	m_pBodyPart = (mstudiobodyparts_t *)((byte *)m_pStudioHeader + m_pStudioHeader->bodypartindex) + bodypart;
 
-	index = m_pCurrentEntity->progs.sv->body / m_pBodyPart->base;
+	index = body / m_pBodyPart->base;
 	index = index % m_pBodyPart->nummodels;
 	m_pSubModel = (mstudiomodel_t *)((byte *)m_pStudioHeader + m_pBodyPart->modelindex) + index;
 }
 
-void SV_StudioAddPolygon( bool order, float *vertex )
+void SV_StudioAddMesh( int mesh )
 {
-	VectorCopy(vertex, g_xModelVerts[iNumVertices]);
+	mstudiomesh_t	*pmesh = (mstudiomesh_t *)((byte *)m_pStudioHeader + m_pSubModel->meshindex) + mesh;
+	short		*ptricmds = (short *)((byte *)m_pStudioHeader + pmesh->triindex);
+	int		i;
 
-	//if(order) 
-	//ConvertPositionToPhysic(g_xModelVerts[iNumVertices]);
-	//else 
-	ConvertDimensionToPhysic(g_xModelVerts[iNumVertices]);
-
-	iNumVertices++;
+	while(i = *(ptricmds++))
+	{
+		for(i = abs(i); i > 0; i--, ptricmds += 4)
+		{
+			if(!ptricmds) Sys_Error("ptricmds == NULL");
+			m_pModelVerts[iNumVertices][0] = INCH2METER(g_xVertsTransform[ptricmds[0]][0]);
+			m_pModelVerts[iNumVertices][1] = INCH2METER(g_xVertsTransform[ptricmds[0]][1]);
+			m_pModelVerts[iNumVertices][2] = INCH2METER(g_xVertsTransform[ptricmds[0]][2]);
+			iNumVertices++;
+		}
+		if(!ptricmds) Sys_Error("ptricmds == NULL");
+	}
+	if(!ptricmds) Sys_Error("ptricmds == NULL");
 }
 
 void SV_StudioDrawMeshes ( void )
 {
-	int	i, j;
-	bool	order = false;
+	int	i;
 
-	mstudiomesh_t *pmesh = (mstudiomesh_t *)((byte *)m_pStudioHeader + m_pSubModel->meshindex);
-
-	for (j = 0; j < m_pSubModel->nummesh; j++) 
-	{
-		short	*ptricmds;
-
-		pmesh = (mstudiomesh_t *)((byte *)m_pStudioHeader + m_pSubModel->meshindex) + j;
-		ptricmds = (short *)((byte *)m_pStudioHeader + pmesh->triindex);
-
-		while(i = *(ptricmds++))
-		{
-			if (i < 0) 
-			{
-				i = -i;
-				order = true;
-			}
-			else order = false;
-			
-			for(; i > 0; i--, ptricmds += 4)
-			{
-				SV_StudioAddPolygon( order, g_xStudioVerts[ptricmds[0]] );
-			}
-		}
-	}
+	for (i = 0; i < m_pSubModel->nummesh; i++) 
+		SV_StudioAddMesh( i );
 }
 
 
@@ -230,35 +216,76 @@ void SV_StudioGetVertices( void )
 
 	for (i = 0; i < m_pSubModel->numverts; i++)
 	{
-		VectorTransform(pstudioverts[i], g_xBonesTransform[pvertbone[i]], g_xStudioVerts[i]);
+		VectorTransform(pstudioverts[i], g_xBonesTransform[pvertbone[i]], g_xVertsTransform[i]);
 	}
 	SV_StudioDrawMeshes();
 }
 
 float *SV_GetModelVerts( sv_edict_t *ent, int *numvertices )
 {
-	int		i;
-	byte		*buffer;
+	cmodel_t	*cmod;
+	int	i;
 
-	*numvertices = iNumVertices = 0;
 	m_pCurrentEntity = PRVM_EDICT_NUM(ent->serialnumber);
-	m_pStudioVerts = &g_xStudioVerts[0];
-	buffer = SV_GetModelPtr( m_pCurrentEntity );
-	if(!buffer) return NULL;
-	m_pStudioHeader = (studiohdr_t *)buffer;
+	i = (int)m_pCurrentEntity->progs.sv->body;
+	cmod = CM_LoadModel( m_pCurrentEntity );
 
-	SV_StudioSetUpTransform();
-	SV_StudioSetupBones();
-
-	for (i = 0; i < m_pStudioHeader->numbodyparts; i++)
+	if(cmod)
 	{
-		SV_StudioSetupModel( i );
-		SV_StudioGetVertices();
-	}
-	if(m_pStudioVerts)
-	{
-		*numvertices = iNumVertices;
-		return (float *)g_xModelVerts;
+		Msg("get physmesh for %s(%s) with index %d(%d)\n", cmod->name, PRVM_GetString(m_pCurrentEntity->progs.sv->model), (int)m_pCurrentEntity->progs.sv->modelindex, ent->serialnumber );
+		*numvertices = cmod->physmesh[i].numverts;
+		return (float *)cmod->physmesh[i].verts;
 	}
 	return NULL;
+}
+
+bool SV_CreateMeshBuffer( edict_t *in, cmodel_t *out )
+{
+	int	i, j;
+
+	// validate args
+	if(!in || !out || !out->extradata)
+		return false;
+
+	// setup global pointers
+	m_pCurrentEntity = in;
+	m_pStudioHeader = (studiohdr_t *)out->extradata;
+	m_pModelVerts = &g_xModelVerts[0];
+
+	SV_GetBodyCount();
+
+	// first we need to recalculate bounding box
+	SV_StudioExtractBbox( m_pStudioHeader, 0, out->mins, out->maxs );
+	CM_RoundUpHullSize(out->mins, false ); // normalize mins ( ceil )
+	CM_RoundUpHullSize(out->maxs, false ); // normalize maxs ( ceil ) 
+
+	Msg("create physmesh for %s\n", out->name );
+	for( i = 0; i < m_BodyCount; i++)
+	{
+		// clear count
+		iNumVertices = 0;
+
+		__try	// FIXME
+		{
+			SV_StudioSetUpTransform();
+			SV_StudioSetupBones();
+
+			for (j = 0; j < m_pStudioHeader->numbodyparts; j++)
+			{
+				SV_StudioSetupModel( j, i );
+				SV_StudioGetVertices();
+			}
+		}
+		__except(EXCEPTION_EXECUTE_HANDLER) 
+		{ 
+			MsgDev(D_ERROR, "m_pSubModel == NULL" ); 
+		}
+		if(iNumVertices)
+		{
+			out->physmesh[i].verts = Mem_Alloc( out->mempool, iNumVertices * sizeof(vec3_t));
+			Mem_Copy(out->physmesh[i].verts,m_pModelVerts, iNumVertices * sizeof(vec3_t));
+			out->physmesh[i].numverts = iNumVertices;
+		}
+	}
+	return true;
 }

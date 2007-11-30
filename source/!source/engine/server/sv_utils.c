@@ -104,11 +104,19 @@ void SV_SetModel (edict_t *ent, const char *name)
 	cmodel_t		*mod;
 
 	i = SV_ModelIndex( name );
+	if(i == 0) return;
 	ent->progs.sv->model = PRVM_SetEngineString(sv.configstrings[CS_MODELS+i]);
-	ent->progs.sv->modelindex = ent->progs.sv->modelindex = i;
+	ent->progs.sv->modelindex = i;
 
-	mod = CM_LoadModel( i );
+	mod = CM_LoadModel( ent );
 	if( mod ) SV_SetMinMaxSize( ent, mod->mins, mod->maxs, false );
+
+	if(ent->progs.sv->movetype == MOVETYPE_PHYSIC)
+	{
+		pe->CreateBody( ent->priv.sv, ent->progs.sv->mins, ent->progs.sv->maxs,
+		ent->progs.sv->origin, ent->progs.sv->angles, ent->progs.sv->solid,
+		&ent->priv.sv->collision, &ent->priv.sv->physbody );
+	}
 }
 
 float SV_AngleMod( float ideal, float current, float speed )

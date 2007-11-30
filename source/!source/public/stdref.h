@@ -1386,18 +1386,26 @@ typedef struct cplane_s
 	byte	pad[2];
 } cplane_t;
 
+typedef struct cmesh_s
+{
+	vec3_t	*verts;
+	uint	numverts;
+} cmesh_t;
 
 typedef struct cmodel_s
 {
-	int	modidx;		//edict index
-	char	name[64];		//model name
+	int	modidx;		// edict index
+	char	name[64];		// model name
+	byte	*mempool;		// personal mempool
 
 	vec3_t	mins, maxs;	// boundbox
 	vec3_t	origin;		// for sounds or lights
 	int	headnode;		// bsp info
 
 	int	numframes;	// sprite framecount
-	void	*extradata;	// for studio models
+	cmesh_t	physmesh[MAXSTUDIOMODELS]; // max bodies
+
+	void	*extradata;	// get rid of this
 } cmodel_t;
 
 typedef struct csurface_s

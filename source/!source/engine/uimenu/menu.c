@@ -1341,7 +1341,7 @@ void M_Credits_MenuDraw( void )
 	int	i, x, y;
 	float	*color;
 
-	y = SCREEN_HEIGHT - (( cls.realtime - credits_start_time ) * 40.0f );
+	y = SCREEN_HEIGHT - (( cls.realtime - credits_start_time ) * 32.0f );
 
 	// draw the credits
 	for ( i = 0; i < credit_numlines && credits[i]; i++, y += 20 )
@@ -1352,14 +1352,12 @@ void M_Credits_MenuDraw( void )
 
 		if((y < (SCREEN_HEIGHT - BIGCHAR_HEIGHT) / 2) && i == credit_numlines - 1)
 		{
-			Msg("draw last\n");
 			if(!credits_fade_time) credits_fade_time = cls.realtime;
 			color = CG_FadeColor( credits_fade_time, credits_show_time );
 			if( color )SCR_DrawBigStringColor( x, (SCREEN_HEIGHT-BIGCHAR_HEIGHT)/2, credits[i], color);
 		}
 		else SCR_DrawBigString( x, y, credits[i], 1.0f );
 	}
-
 	if( y < 0 && !color ) M_PopMenu(); // end of credits
 }
 

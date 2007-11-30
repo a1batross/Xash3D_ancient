@@ -725,8 +725,9 @@ void SV_RunGameFrame (void)
 	// don't run if paused
 	if (!sv_paused->value || maxclients->value > 1)
 	{
-		pe->Frame( sv.frametime * 0.65f );
-		pe->Frame( sv.frametime * 0.65f );
+
+		if(!cm_paused->value) 
+			pe->Frame( sv.frametime );
 		SV_RunFrame ();
 
 		// never get more than one tic behind

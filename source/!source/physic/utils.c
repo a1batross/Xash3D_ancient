@@ -183,7 +183,7 @@ void Phys_LoadBSP( uint *buffer )
 	VectorSubtract( boxP0, extra, boxP0 );
 	VectorAdd( boxP1, extra, boxP1 );
 	NewtonSetWorldSize( gWorld, &boxP0[0], &boxP1[0] ); 
-	NewtonSetSolverModel( gWorld, 1 );
+	//NewtonSetSolverModel( gWorld, 1 );
 
 	MsgDev(D_INFO, "physic map generated\n");
 	Mem_Free( map_surfedges );
@@ -225,15 +225,23 @@ void Phys_ApplyTransform( const NewtonBody* body, const float* matrix )
 {
 	sv_edict_t	*edict = (sv_edict_t *)NewtonBodyGetUserData( body );
 	matrix4x4		translate;// obj matrix
-	vec3_t		origin, angles;
+	vec3_t		origin, ang, angles;
 
 	Mem_Copy(translate, (float *)matrix, sizeof(matrix4x4));
-	ConvertDirectionToGame( translate[0]);
-	ConvertDirectionToGame( translate[1]);
-	ConvertDirectionToGame( translate[2]);
-	ConvertPositionToGame( translate[3] );
+	//ConvertDirectionToGame( translate[0]);
+	//ConvertDirectionToGame( translate[1]);
+	//ConvertDirectionToGame( translate[2]);
+	//ConvertPositionToGame( translate[3] );
 
-	MatrixAngles( translate, origin, angles );
+	MatrixAngles( translate, origin, ang );
+
+	//ConvertDirectionToGame( angles );
+
+	angles[0] = ang[0] - 90;
+	angles[2] = ang[1] + 90;
+	angles[1] = ang[2] - 90;
+
+	ConvertPositionToGame( origin );
 	pi.Transform( edict, origin, angles );
 }
 
@@ -244,7 +252,7 @@ void Phys_CreateBody( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3
 	matrix4x4		trans, offset;
 	vec3_t		origin, angles, size, center;
 	float		*vertices;
-	int		numvertices;		
+	int		numvertices = 0;		
 
 	MatrixLoadIdentity( trans );
 	MatrixLoadIdentity( offset );
@@ -252,7 +260,13 @@ void Phys_CreateBody( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3
 	VectorCopy( org, origin );
 	ConvertPositionToPhysic( origin );
 	VectorCopy( ang, angles );
-	ConvertDirectionToPhysic( angles );
+
+	angles[0] = ang[0] + 90;
+	angles[1] = ang[2] - 90;
+	angles[2] = ang[1] + 90;
+
+	//ConvertDirectionToPhysic( angles );
+
 	AngleVectors( angles, trans[0], trans[1], trans[2] );
 	VectorSubtract (maxs, mins, size );
 	VectorAdd( mins, maxs, center );
@@ -277,6 +291,7 @@ void Phys_CreateBody( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3
 		break;
 	case SOLID_MESH:
 		vertices = pi.GetModelVerts( ed, &numvertices );
+		if(!numvertices) return;
 		col = NewtonCreateConvexHull(gWorld, numvertices, vertices, sizeof(vec3_t), &offset[0][0] );
 		break;
 	default:

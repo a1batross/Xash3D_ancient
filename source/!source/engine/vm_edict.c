@@ -1050,6 +1050,7 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 	init = false;
 
 	// go through all the dictionary pairs
+	MsgDev( D_NOTE, "{\n");
 	while( 1 )
 	{
 		// parse key
@@ -1057,8 +1058,12 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 
 		// just format console messages
 		newline = (com_token[0] == '}') ? true : false;
-		if(!newline) MsgDev(D_NOTE, "Key: \"%s\"", com_token);
-		else break;
+		if(!newline) MsgDev(D_NOTE, "\"%s\"", com_token);
+		else 
+		{
+			MsgDev( D_NOTE, "}\n");
+			break;
+		}
 
 		// anglehack is to allow QuakeEd to write single scalar angles
 		// and allow them to be turned into vectors. (FIXME...)

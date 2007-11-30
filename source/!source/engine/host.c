@@ -33,6 +33,7 @@ cvar_t	*r_fullscreen;
 cvar_t	*vid_gamma;
 cvar_t	*r_xpos;	// X coordinate of window position
 cvar_t	*r_ypos;	// Y coordinate of window position
+cvar_t	*cm_paused;
 
 /*
 =======
@@ -593,6 +594,7 @@ void Host_Init (uint funcname, int argc, char **argv)
 		Cmd_AddCommand ("crash", Host_Crash_f, "a way to force a bus error for development reasons");
           }
           
+	cm_paused = Cvar_Get("cm_paused", "0", 0 );
 	host_frametime = Cvar_Get ("host_frametime", "0.01", 0);
 	host_serverstate = Cvar_Get ("host_serverstate", "0", 0);
 	timescale = Cvar_Get ("timescale", "1", 0);
