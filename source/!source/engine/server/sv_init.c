@@ -259,7 +259,7 @@ void SV_InitGame (void)
 	if( svs.initialized )
 	{
 		// cause any connected clients to reconnect
-		std.strncpy( host.finalmsg, "Server restarted\n", MAX_STRING );
+		com.strncpy( host.finalmsg, "Server restarted\n", MAX_STRING );
 		SV_Shutdown( true );
 	}
 	else

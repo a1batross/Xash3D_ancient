@@ -25,7 +25,7 @@ double __g_ProfilerTotalMsec;
 
 void Profile_Store( void )
 {
-	if (std.GameInfo->rdtsc)
+	if (com.GameInfo->rdtsc)
 	{
 		__g_ProfilerSpare = __g_ProfilerEnd - __g_ProfilerStart - (__g_ProfilerEnd2 - __g_ProfilerEnd);
 	}
@@ -33,7 +33,7 @@ void Profile_Store( void )
 
 void Profile_RatioResults( void )
 {
-	if (std.GameInfo->rdtsc)
+	if (com.GameInfo->rdtsc)
 	{
 		unsigned __int64 total = __g_ProfilerEnd - __g_ProfilerStart - (__g_ProfilerEnd2 - __g_ProfilerEnd);
  		double ratio;
@@ -54,10 +54,10 @@ void Profile_RatioResults( void )
 
 void _Profile_Results( const char *function )
 {
-	if (std.GameInfo->rdtsc)
+	if (com.GameInfo->rdtsc)
 	{
 		unsigned __int64 total = __g_ProfilerEnd - __g_ProfilerStart - (__g_ProfilerEnd2 - __g_ProfilerEnd);
-		double msec = (double)total / std.GameInfo->tickcount; 
+		double msec = (double)total / com.GameInfo->tickcount; 
 		Msg("Profiling stats for %s()\n", function );
 		Msg("----- ticks: %I64d -----\n", total);
 		Msg("----- secs %f ----- \n", msec );
@@ -69,7 +69,7 @@ void _Profile_Results( const char *function )
 
 void Profile_Time( void )
 {
-	if (std.GameInfo->rdtsc)
+	if (com.GameInfo->rdtsc)
 	{
 		Msg("Profiling results:\n");
 		Msg("----- total ticks: %I64d -----\n", __g_ProfilerTotalTicks);

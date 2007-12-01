@@ -45,7 +45,7 @@ memory manager
 #define Z_Free(data) Mem_Free(data)
 
 extern byte *r_temppool;
-extern stdlib_api_t std;
+extern stdlib_api_t com;
 
 // r_utils.c
 void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );
@@ -54,10 +54,7 @@ void PerpendicularVector( vec3_t dst, const vec3_t src );
 void R_ConcatRotations (float in1[3][3], float in2[3][3], float out[3][3]);
 void R_ConcatTransforms (float in1[3][4], float in2[3][4], float out[3][4]);
 
-#define Msg std.printf
-#define MsgDev std.dprintf
-#define MsgWarn std.wprintf
-#define Sys_Error std.error
+#define Sys_Error com.error
 
 #define MAX_RADAR_ENTS	1024
 typedef struct radar_ent_s

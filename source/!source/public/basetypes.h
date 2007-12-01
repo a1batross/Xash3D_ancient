@@ -81,7 +81,9 @@
 #define O_NONBLOCK		0
 #endif
 
+#ifndef __cplusplus
 typedef enum{ false, true }	bool;
+#endif
 typedef unsigned char 	byte;
 typedef unsigned short	word;
 typedef unsigned long	dword;
@@ -109,7 +111,6 @@ typedef vec_t		vec4_t[4];
 typedef long		fs_offset_t;
 typedef vec_t		matrix3x4[3][4];
 typedef vec_t		matrix4x4[4][4];
-typedef struct rgbdata_s	rgbdata_t;
 typedef struct physbody_s	NewtonBody;
 typedef struct physworld_s	NewtonWorld;
 typedef struct physjoint_s	NewtonJoint;

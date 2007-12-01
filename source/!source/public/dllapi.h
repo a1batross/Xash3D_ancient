@@ -156,10 +156,11 @@ typedef struct launch_exp_s
 	// interface validator
 	size_t	api_size;		// must matched with sizeof(launch_api_t)
 
-	void ( *Init ) ( uint funcname, int argc, char **argv ); // init host
-	void ( *Main ) ( void ); // host frame
-	void ( *Free ) ( void ); // close host
-
+	void ( *Init ) ( uint funcname, int argc, char **argv );	// init host
+	void ( *Main ) ( void );				// host frame
+	void ( *Free ) ( void );				// close host
+	void ( *Cmd  ) ( void );				// forward cmd to server
+	void (*CPrint) ( const char *msg );			// host print
 } launch_exp_t;
 
 /*

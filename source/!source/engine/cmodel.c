@@ -1746,7 +1746,7 @@ cmodel_t *CM_StudioModel( char *name, edict_t *ent, byte *buffer)
 	out = &map_cmodels[numcmodels + numsmodels];
 	out->extradata = buffer;
 	out->numframes = 0;//reset sprite info
-	std.strncpy(out->name, name, sizeof(out->name));
+	com.strncpy(out->name, name, sizeof(out->name));
 	if(!out->mempool) out->mempool = Mem_AllocPool( out->name );// create pool
 	else Mem_EmptyPool( out->mempool );			// clear pool
 
@@ -1772,7 +1772,7 @@ cmodel_t *CM_SpriteModel( char *name, edict_t *ent, byte *buffer)
 	
 	out = &map_cmodels[numcmodels + numsmodels];
 	out->numframes = phdr->numframes;
-	std.strncpy(out->name, name, sizeof(out->name));
+	com.strncpy(out->name, name, sizeof(out->name));
 	if(out->mempool) Mem_EmptyPool( out->mempool );	// clear pool
 	else out->mempool = Mem_AllocPool( out->name );	// create pool
 
@@ -1800,7 +1800,7 @@ cmodel_t *CM_LoadModel( edict_t *ent )
 	for(i = numsmodels; i < max_models; i++ )
           {
 		mod = &map_cmodels[i];
-		if(!std.strcmp(name, mod->name))
+		if(!com.strcmp(name, mod->name))
 			return mod;
 	} 
 

@@ -55,6 +55,8 @@ typedef struct system_s
 	void ( *Init ) ( uint funcname, int argc, char **argv );
 	void ( *Main ) ( void ); // host frame
 	void ( *Free ) ( void ); // close host
+	void ( *Cmd  ) ( void ); // cmd forward to server
+	void (*CPrint)( const char *msg ); // console print
 } system_t;
 
 typedef struct cvar_s
@@ -77,7 +79,7 @@ typedef struct cvar_s
 
 extern system_t Sys;
 extern gameinfo_t GI;
-extern stdlib_api_t	std;
+extern stdlib_api_t	com;
 
 //
 // console.c

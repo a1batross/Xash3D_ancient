@@ -107,7 +107,6 @@ typedef struct stdilib_api_s
 	void (*Cmd_AddCommand)(const char *name, xcommand_t function, const char *desc);
 	void (*Cmd_TokenizeString)(const char *text_in);
 	void (*Cmd_DelCommand)(const char *name);
-	void (*Cmd_ForwardToServer)( void );				// engine callback
 
 	// real filesystem
 	file_t *(*fopen)(const char* path, const char* mode);		// same as fopen
@@ -197,172 +196,178 @@ typedef struct stdilib_api_s
 	memory manager funcs
 ==========================================
 */
-#define Mem_Alloc(pool, size)		std.malloc(pool, size, __FILE__, __LINE__)
-#define Mem_Realloc(pool, ptr, size)	std.realloc(pool, ptr, size, __FILE__, __LINE__)
-#define Mem_Move(pool, ptr, data, size)	std.move(pool, ptr, data, size, __FILE__, __LINE__)
-#define Mem_Free(mem)		std.free(mem, __FILE__, __LINE__)
-#define Mem_AllocPool(name)		std.mallocpool(name, __FILE__, __LINE__)
-#define Mem_FreePool(pool)		std.freepool(pool, __FILE__, __LINE__)
-#define Mem_EmptyPool(pool)		std.clearpool(pool, __FILE__, __LINE__)
-#define Mem_Copy(dest, src, size )	std.memcpy(dest, src, size, __FILE__, __LINE__)
-#define Mem_Set(dest, src, size )	std.memset(dest, src, size, __FILE__, __LINE__)
-#define Mem_Check()			std.memcheck(__FILE__, __LINE__)
+#define Mem_Alloc(pool, size)		com.malloc(pool, size, __FILE__, __LINE__)
+#define Mem_Realloc(pool, ptr, size)	com.realloc(pool, ptr, size, __FILE__, __LINE__)
+#define Mem_Move(pool, ptr, data, size)	com.move(pool, ptr, data, size, __FILE__, __LINE__)
+#define Mem_Free(mem)		com.free(mem, __FILE__, __LINE__)
+#define Mem_AllocPool(name)		com.mallocpool(name, __FILE__, __LINE__)
+#define Mem_FreePool(pool)		com.freepool(pool, __FILE__, __LINE__)
+#define Mem_EmptyPool(pool)		com.clearpool(pool, __FILE__, __LINE__)
+#define Mem_Copy(dest, src, size )	com.memcpy(dest, src, size, __FILE__, __LINE__)
+#define Mem_Set(dest, src, size )	com.memset(dest, src, size, __FILE__, __LINE__)
+#define Mem_Check()			com.memcheck(__FILE__, __LINE__)
 
 /*
 ==========================================
 	parsing manager funcs
 ==========================================
 */
-#define Com_ParseToken	std.Com_ParseToken
-#define Com_ParseWord	std.Com_ParseWord
-#define Com_Filter		std.Com_Filter
-#define Com_LoadScript	std.Com_LoadScript
-#define Com_IncludeScript	std.Com_AddScript
-#define Com_ResetScript	std.Com_ResetScript
-#define Com_GetToken	std.Com_ReadToken
-#define Com_TryToken	std.Com_TryToken
-#define Com_FreeToken	std.Com_FreeToken
-#define Com_SkipToken	std.Com_SkipToken
-#define Com_MatchToken	std.Com_MatchToken
-#define com_token		std.com_token
-#define g_TXcommand		std.GameInfo->TXcommand // get rid of this
+#define Com_ParseToken	com.Com_ParseToken
+#define Com_ParseWord	com.Com_ParseWord
+#define Com_Filter		com.Com_Filter
+#define Com_LoadScript	com.Com_LoadScript
+#define Com_IncludeScript	com.Com_AddScript
+#define Com_ResetScript	com.Com_ResetScript
+#define Com_GetToken	com.Com_ReadToken
+#define Com_TryToken	com.Com_TryToken
+#define Com_FreeToken	com.Com_FreeToken
+#define Com_SkipToken	com.Com_SkipToken
+#define Com_MatchToken	com.Com_MatchToken
+#define com_token		com.com_token
+#define g_TXcommand		com.GameInfo->TXcommand // get rid of this
 
 /*
 ===========================================
 filesystem manager
 ===========================================
 */
-#define FS_AddGameHierarchy		std.Com_AddGameHierarchy
-#define FS_LoadGameInfo		std.Com_LoadGameInfo
-#define FS_InitRootDir		std.Com_InitRootDir
-#define FS_LoadFile			std.Com_LoadFile
-#define FS_Search			std.Com_Search
-#define FS_WriteFile		std.Com_WriteFile
-#define FS_Open( path, mode )		std.fopen( path, mode )
-#define FS_Read( file, buffer, size )	std.fread( file, buffer, size )
-#define FS_Write( file, buffer, size )	std.fwrite( file, buffer, size )
-#define FS_StripExtension( path )	std.Com_StripExtension( path )
-#define FS_DefaultExtension		std.Com_DefaultExtension
-#define FS_FileExtension( ext )	std.Com_FileExtension( ext )
-#define FS_FileExists( file )		std.Com_FileExists( file )
-#define FS_Close( file )		std.fclose( file )
-#define FS_FileBase( x, y )		std.Com_FileBase( x, y )
-#define FS_Printf			std.fprintf
-#define FS_Print			std.fprint
-#define FS_Seek			std.fseek
-#define FS_Tell			std.ftell
-#define FS_Gets			std.fgets
-#define FS_Gamedir			std.GameInfo->gamedir
-#define FS_Title			std.GameInfo->title
-#define FS_ClearSearchPath		std.Com_ClearSearchPath
-#define FS_CheckParm		std.Com_CheckParm
-#define FS_GetParmFromCmdLine		std.Com_GetParm
-#define FS_LoadImage		std.Com_LoadImage
-#define FS_SaveImage		std.Com_SaveImage
-#define FS_FreeImage		std.Com_FreeImage
+#define FS_AddGameHierarchy		com.Com_AddGameHierarchy
+#define FS_LoadGameInfo		com.Com_LoadGameInfo
+#define FS_InitRootDir		com.Com_InitRootDir
+#define FS_LoadFile			com.Com_LoadFile
+#define FS_Search			com.Com_Search
+#define FS_WriteFile		com.Com_WriteFile
+#define FS_Open( path, mode )		com.fopen( path, mode )
+#define FS_Read( file, buffer, size )	com.fread( file, buffer, size )
+#define FS_Write( file, buffer, size )	com.fwrite( file, buffer, size )
+#define FS_StripExtension( path )	com.Com_StripExtension( path )
+#define FS_DefaultExtension		com.Com_DefaultExtension
+#define FS_FileExtension( ext )	com.Com_FileExtension( ext )
+#define FS_FileExists( file )		com.Com_FileExists( file )
+#define FS_Close( file )		com.fclose( file )
+#define FS_FileBase( x, y )		com.Com_FileBase( x, y )
+#define FS_Printf			com.fprintf
+#define FS_Print			com.fprint
+#define FS_Seek			com.fseek
+#define FS_Tell			com.ftell
+#define FS_Gets			com.fgets
+#define FS_Gamedir			com.GameInfo->gamedir
+#define FS_Title			com.GameInfo->title
+#define FS_ClearSearchPath		com.Com_ClearSearchPath
+#define FS_CheckParm		com.Com_CheckParm
+#define FS_GetParmFromCmdLine		com.Com_GetParm
+#define FS_LoadImage		com.Com_LoadImage
+#define FS_SaveImage		com.Com_SaveImage
+#define FS_FreeImage		com.Com_FreeImage
 
 /*
 ===========================================
 console variables
 ===========================================
 */
-#define Cvar_Get(name, value, flags)	std.Cvar_Get(name, value, flags, "no description" ) //FIXME
-#define Cvar_LookupVars		std.Cvar_LookupVars
-#define Cvar_Set			std.Cvar_SetString
-#define Cvar_FullSet		std.Cvar_FullSet
-#define Cvar_SetLatched		std.Cvar_SetLatched
-#define Cvar_SetValue		std.Cvar_SetValue
-#define Cvar_VariableValue		std.Cvar_GetValue
-#define Cvar_VariableString		std.Cvar_GetString
-#define Cvar_FindVar		std.Cvar_FindVar
-#define userinfo_modified		std.userinfo_modified
+#define Cvar_Get(name, value, flags)	com.Cvar_Get(name, value, flags, "no description" ) //FIXME
+#define Cvar_LookupVars		com.Cvar_LookupVars
+#define Cvar_Set			com.Cvar_SetString
+#define Cvar_FullSet		com.Cvar_FullSet
+#define Cvar_SetLatched		com.Cvar_SetLatched
+#define Cvar_SetValue		com.Cvar_SetValue
+#define Cvar_VariableValue		com.Cvar_GetValue
+#define Cvar_VariableString		com.Cvar_GetString
+#define Cvar_FindVar		com.Cvar_FindVar
+#define userinfo_modified		com.userinfo_modified
 
 /*
 ===========================================
 console commands
 ===========================================
 */
-#define Cbuf_ExecuteText		std.Cmd_Exec
-#define Cbuf_AddText( text )		std.Cmd_Exec( EXEC_APPEND, text )
-#define Cmd_ExecuteString( text )	std.Cmd_Exec( EXEC_NOW, text )
-#define Cbuf_InsertText( text ) 	std.Cmd_Exec( EXEC_INSERT, text )
-#define Cbuf_Execute()		std.Cmd_Exec( EXEC_NOW, NULL )
+#define Cbuf_ExecuteText		com.Cmd_Exec
+#define Cbuf_AddText( text )		com.Cmd_Exec( EXEC_APPEND, text )
+#define Cmd_ExecuteString( text )	com.Cmd_Exec( EXEC_NOW, text )
+#define Cbuf_InsertText( text ) 	com.Cmd_Exec( EXEC_INSERT, text )
+#define Cbuf_Execute()		com.Cmd_Exec( EXEC_NOW, NULL )
 
-#define Cmd_Argc		std.Cmd_Argc
-#define Cmd_Args		std.Cmd_Args
-#define Cmd_Argv		std.Cmd_Argv
-#define Cmd_TokenizeString	std.Cmd_TokenizeString
-#define Cmd_LookupCmds	std.Cmd_LookupCmds
-#define Cmd_AddCommand	std.Cmd_AddCommand
-#define Cmd_RemoveCommand	std.Cmd_DelCommand
+#define Cmd_Argc		com.Cmd_Argc
+#define Cmd_Args		com.Cmd_Args
+#define Cmd_Argv		com.Cmd_Argv
+#define Cmd_TokenizeString	com.Cmd_TokenizeString
+#define Cmd_LookupCmds	com.Cmd_LookupCmds
+#define Cmd_AddCommand	com.Cmd_AddCommand
+#define Cmd_RemoveCommand	com.Cmd_DelCommand
 
 /*
 ===========================================
 virtual filesystem manager
 ===========================================
 */
-#define VFS_Open		std.vfopen
-#define VFS_Write		std.vfwrite
-#define VFS_Read		std.vfread
-#define VFS_Print		std.vfprint
-#define VFS_Printf		std.vfprintf
-#define VFS_Gets		std.vfgets
-#define VFS_Seek		std.vfseek
-#define VFS_Tell		std.vftell
-#define VFS_Close		std.vfclose
-#define VFS_Unpack		std.vfunpack
+#define VFS_Open		com.vfopen
+#define VFS_Write		com.vfwrite
+#define VFS_Read		com.vfread
+#define VFS_Print		com.vfprint
+#define VFS_Printf		com.vfprintf
+#define VFS_Gets		com.vfgets
+#define VFS_Seek		com.vfseek
+#define VFS_Tell		com.vftell
+#define VFS_Close		com.vfclose
+#define VFS_Unpack		com.vfunpack
 
 /*
 ===========================================
 crclib manager
 ===========================================
 */
-#define CRC_Init		std.crc_init
-#define CRC_Block		std.crc_block
-#define CRC_ProcessByte	std.crc_process
-#define CRC_Sequence	std.crc_sequence
-#define Com_BlockChecksum	std.crc_blockchecksum
-#define Com_BlockChecksumKey	std.crc_blockchecksumkey
+#define CRC_Init		com.crc_init
+#define CRC_Block		com.crc_block
+#define CRC_ProcessByte	com.crc_process
+#define CRC_Sequence	com.crc_sequence
+#define Com_BlockChecksum	com.crc_blockchecksum
+#define Com_BlockChecksumKey	com.crc_blockchecksumkey
 
 /*
 ===========================================
 imagelib utils
 ===========================================
 */
-#define Image_Processing	std.Com_ProcessImage
+#define Image_Processing	com.Com_ProcessImage
 
 /*
 ===========================================
 misc utils
 ===========================================
 */
-#define GI			std.GameInfo
-#define Sys_LoadLibrary		std.Com_LoadLibrary
-#define Sys_FreeLibrary		std.Com_FreeLibrary
-#define Sys_GetProcAddress		std.Com_GetProcAddress
-#define Sys_Sleep			std.sleep
-#define Sys_Print			std.print
-#define Sys_ConsoleInput		std.input
-#define Sys_GetKeyEvents		std.keyevents
-#define Sys_GetClipboardData		std.clipboard
-#define Sys_Quit			std.exit
-#define Sys_Break			std.abort
-#define Sys_ConsoleInput		std.input
-#define GetNumThreads		std.Com_NumThreads
-#define ThreadLock			std.Com_ThreadLock
-#define ThreadUnlock		std.Com_ThreadUnlock
-#define RunThreadsOnIndividual	std.Com_CreateThread
+#define GI			com.GameInfo
+#define Msg			com.printf
+#define MsgDev			com.dprintf
+#define MsgWarn			com.wprintf
+#define Sys_LoadLibrary		com.Com_LoadLibrary
+#define Sys_FreeLibrary		com.Com_FreeLibrary
+#define Sys_GetProcAddress		com.Com_GetProcAddress
+#define Sys_Sleep			com.sleep
+#define Sys_Print			com.print
+#define Sys_ConsoleInput		com.input
+#define Sys_GetKeyEvents		com.keyevents
+#define Sys_GetClipboardData		com.clipboard
+#define Sys_Quit			com.exit
+#define Sys_Break			com.abort
+#define Sys_ConsoleInput		com.input
+#define Sys_DoubleTime		com.Com_DoubleTime
+#define GetNumThreads		com.Com_NumThreads
+#define ThreadLock			com.Com_ThreadLock
+#define ThreadUnlock		com.Com_ThreadUnlock
+#define RunThreadsOnIndividual	com.Com_CreateThread
 
 /*
 ===========================================
 stdlib functions that not across with win stdlib
 ===========================================
 */
-#define timestamp			std.timestamp
-#define copystring(str)		std.stralloc(str, __FILE__, __LINE__)
-#define strcasecmp			std.stricmp
-#define strncasecmp			std.strnicmp
-#define va			std.va
+#define timestamp			com.timestamp
+#define copystring(str)		com.stralloc(str, __FILE__, __LINE__)
+#define strcasecmp			com.stricmp
+#define strncasecmp			com.strnicmp
+#define strlower			com.strlwr
+#define stristr			com.stristr
+#define va			com.va
 
 #endif//LAUNCH_DLL
 

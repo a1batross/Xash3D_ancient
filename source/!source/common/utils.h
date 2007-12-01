@@ -35,7 +35,7 @@ extern byte *zonepool;
 
 #define Profile_Start()\
 {\
-if (std.GameInfo->rdtsc) \
+if (com.GameInfo->rdtsc) \
 { \
 __asm pushad \
 __asm rdtsc \
@@ -68,14 +68,10 @@ void Profile_Store( void );
 void Profile_Time( void );	// total profile time
 #define Profile_Results( name )  _Profile_Results( #name )
 
-extern stdlib_api_t std;
+extern stdlib_api_t com;
 
-#define Msg		std.printf
-#define MsgDev		std.dprintf
-#define MsgWarn		std.wprintf
-#define Sys_Error		std.error
-#define Sys_DoubleTime	std.Com_DoubleTime
 
+#define Sys_Error		com.error
 #define Malloc(size)	Mem_Alloc(basepool, size)  
 #define Z_Malloc(size)	Mem_Alloc(zonepool, size)  
 #define Free(mem)	 	Mem_Free(mem) 
@@ -88,10 +84,6 @@ extern byte *qccpool;
 extern byte *studiopool;
 
 // misc common functions
-#define strlower		std.strlwr
-#define va		std.va
-#define stristr		std.stristr
-
 byte *ReadBMP (char *filename, byte **palette, int *width, int *height);
 
 // misc

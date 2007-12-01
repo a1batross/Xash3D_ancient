@@ -25,8 +25,8 @@ static void Cvar_AddToBuffer(const char *name, const char *string, const char *b
 		MsgDev(D_NOTE, "cvar too long: %s = %s\n", name, string);
 		return;
 	}
-	*bufsize = std.strpack((char *)buffer, *bufsize, (char *)name, strlen(name)); 
-	*bufsize = std.strpack((char *)buffer, *bufsize, (char *)string, strlen(string));
+	*bufsize = com.strpack((char *)buffer, *bufsize, (char *)name, strlen(name)); 
+	*bufsize = com.strpack((char *)buffer, *bufsize, (char *)string, strlen(string));
 }
 
 void SV_AddCvarLump( dsavehdr_t *hdr, file_t *f )
@@ -48,8 +48,8 @@ void SV_AddCStrLump( dsavehdr_t *hdr, file_t *f )
 	// pack the cfg string data
 	for(i = 0; i < MAX_CONFIGSTRINGS; i++)
 	{
-		stringsize = bound(0, std.strlen(sv.configstrings[i]), MAX_QPATH);
-		bufsize = std.strpack(csbuffer, bufsize, sv.configstrings[i], stringsize ); 
+		stringsize = bound(0, com.strlen(sv.configstrings[i]), MAX_QPATH);
+		bufsize = com.strpack(csbuffer, bufsize, sv.configstrings[i], stringsize ); 
 	}	
 	SV_AddSaveLump( hdr, f, LUMP_CFGSTRING, csbuffer, bufsize );
 	Z_Free( csbuffer ); // free memory
@@ -123,7 +123,7 @@ void SV_WriteSaveFile( char *name )
 		return;
 	}
 	
-	if(!std.strcmp(name, "save0.bin")) autosave = true;
+	if(!com.strcmp(name, "save0.bin")) autosave = true;
 	sprintf (path, "save/%s", name );
 	savfile = FS_Open( path, "wb");
 
@@ -182,8 +182,8 @@ void Sav_LoadCvars( lump_t *l )
 
 	while(pos < size)
 	{
-		pos = std.strunpack( in, pos, name );  
-		pos = std.strunpack( in, pos, string );  
+		pos = com.strunpack( in, pos, name );  
+		pos = com.strunpack( in, pos, string );  
 		Cvar_SetLatched(name, string);
 	}
 }
@@ -211,7 +211,7 @@ void Sav_LoadCfgString( lump_t *l )
 	// unpack the cfg string data
 	for(i = 0; i < MAX_CONFIGSTRINGS; i++)
 	{
-		pos = std.strunpack( in, pos, sv.configstrings[i] );  
+		pos = com.strunpack( in, pos, sv.configstrings[i] );  
 	}
 }
 
@@ -386,7 +386,7 @@ bool Menu_ReadComment( char *comment, int savenum )
 
 	sav_base = (byte *)header;
 	Sav_LoadComment(&header->lumps[LUMP_COMMENTS]);
-	std.strncpy( comment, svs.comment, MAX_QPATH );
+	com.strncpy( comment, svs.comment, MAX_QPATH );
 	Mem_Free( savfile );
 
 	return true;

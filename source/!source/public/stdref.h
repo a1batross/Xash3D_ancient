@@ -1808,7 +1808,7 @@ typedef struct rgbdata_s
 	byte	*palette;		// palette if present
 	byte	*buffer;		// image buffer
 	uint	size;		// for bounds checking
-};
+} rgbdata_t;
 
 /*
 ========================================================================

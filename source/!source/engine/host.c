@@ -13,7 +13,7 @@
 physic_exp_t	*pe;
 render_exp_t	*re;
 host_parm_t	host;	// host parms
-stdlib_api_t	std, newstd;
+stdlib_api_t	com, newcom;
 
 byte	*zonepool;
 char	*buildstring = __TIME__ " " __DATE__;
@@ -89,17 +89,10 @@ void Host_InitCommon( uint funcname, int argc, char **argv )
 {
 	char	dev_level[4];
 
-	newstd = std;
+	newcom = com;
 
 	// overload some funcs
-	newstd.print = Host_Print;
-	newstd.printf = Host_Printf;
-	newstd.dprintf = Host_DPrintf;
-	newstd.wprintf = Host_DWarnf;
-	newstd.error = Host_Error;
-
-	// callback
-	std.Cmd_ForwardToServer = Cmd_ForwardToServer;
+	newcom.error = Host_Error;
 
 	// determine debug and developer mode
 	if(FS_CheckParm ("-debug")) host.debug = true;
@@ -129,7 +122,7 @@ void Host_InitPhysic( void )
 	Sys_LoadLibrary( &physic_dll );
 
 	CreatePhysic = (void *)physic_dll.main;
-	pe = CreatePhysic( &newstd, &pi );
+	pe = CreatePhysic( &newcom, &pi );
 	
 	pe->Init();
 }
@@ -158,7 +151,7 @@ void Host_InitRender( void )
 	Sys_LoadLibrary( &render_dll );
 	
 	CreateRender = (void *)render_dll.main;
-	re = CreateRender( &newstd, &ri );
+	re = CreateRender( &newcom, &ri );
 
 	if(!re->Init(GetModuleHandle(NULL), Host_WndProc )) 
 		Sys_Error("VID_InitRender: can't init render.dll\nUpdate your opengl drivers\n");
@@ -412,95 +405,7 @@ void Host_Print( const char *txt )
 		strcat (host.rd.buffer, txt);
 		return;
 	}
-
 	Con_Print( txt ); // echo to client console
-	Sys_Print( txt ); // echo to system console
-	// sys print also stored messages into system log
-}
-
-/*
-=============
-Host_Printf
-
-Both client and server can use this, and it will output
-to the apropriate place.
-=============
-*/
-void Host_Printf( const char *fmt, ... )
-{
-	va_list		argptr;
-	char		msg[MAX_INPUTLINE];
-
-	va_start( argptr, fmt );
-	vsprintf( msg, fmt, argptr );
-	va_end( argptr );
-
-	Host_Print( msg );
-}
-
-
-/*
-================
-Host_DPrintf
-
-A Msg that only shows up in developer mode
-================
-*/
-void Host_DPrintf( int level, const char *fmt, ... )
-{
-	va_list		argptr;
-	char		msg[MAX_INPUTLINE];
-		
-	// don't confuse non-developers with techie stuff...	
-	if(host.developer < level) return;
-
-	va_start( argptr, fmt );
-	vsprintf( msg, fmt, argptr );
-	va_end( argptr );
-
-	switch(level)
-	{
-	case D_INFO:	
-		Host_Print( msg );
-		break;
-	case D_WARN:
-		Host_Print(va("^3Warning:^7 %s", msg));
-		break;
-	case D_ERROR:
-		Host_Print(va("^1Error:^7 %s", msg));
-		break;
-	case D_LOAD:
-		Host_Print(va("^2Loading: ^7%s", msg));
-		break;
-	case D_NOTE:
-		Host_Print( msg );
-		break;
-	case D_MEMORY:
-		Host_Print(va("^6Mem: ^7%s", msg));
-		break;
-	}
-}
-
-/*
-================
-Host_DWarnf
-
-A Warning that only shows up in debug mode
-================
-*/
-void Host_DWarnf( const char *fmt, ... )
-{
-	va_list		argptr;
-	char		msg[MAX_INPUTLINE];
-		
-	// don't confuse non-developers with techie stuff...
-	if (!host.debug) return;
-
-	va_start( argptr, fmt );
-	vsprintf( msg, fmt, argptr );
-	va_end( argptr );
-	
-	Host_Print(va("^3Warning:^7 %s", msg));
 }
 
 /*
@@ -521,7 +426,7 @@ void Host_Error( const char *error, ... )
 
 	if( host.framecount < 3 || host.state == HOST_SHUTDOWN )
 		Sys_Error ("%s", hosterror1 );
-	else Host_Printf("Host_Error: %s", hosterror1);
+	else Msg("Host_Error: %s", hosterror1);
 
 	if(recursive)
 	{ 
@@ -532,7 +437,7 @@ void Host_Error( const char *error, ... )
 
 	recursive = true;
 	sprintf( host.finalmsg, "Server crashed: %s\n", hosterror1 );
-	std.strncpy( host.finalmsg, "Server shutdown\n", MAX_STRING );
+	com.strncpy( host.finalmsg, "Server shutdown\n", MAX_STRING );
 
 	SV_Shutdown( false );
 	CL_Drop(); // drop clients
@@ -640,7 +545,7 @@ void Host_Main( void )
 
 	// prepare host to normal shutdown
 	host.state = HOST_SHUTDOWN;
-	std.strncpy( host.finalmsg, "Server shutdown\n", MAX_STRING );
+	com.strncpy( host.finalmsg, "Server shutdown\n", MAX_STRING );
 }
 
 

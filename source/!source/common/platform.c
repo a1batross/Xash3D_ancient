@@ -11,7 +11,7 @@
 #include "roqlib.h"
 
 bool host_debug = false;
-stdlib_api_t std;
+stdlib_api_t com;
 byte *basepool;
 byte *zonepool;
 static double start, end;
@@ -190,7 +190,7 @@ launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 {
 	static launch_exp_t		Com;
 
-	std = *input;
+	com = *input;
 
 	// generic functions
 	Com.api_size = sizeof(launch_exp_t);

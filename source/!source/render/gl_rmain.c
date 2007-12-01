@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 void R_Clear (void);
 
 render_imp_t	ri;
-stdlib_api_t	std;
+stdlib_api_t	com;
 
 byte *r_temppool;
 
@@ -1556,7 +1556,7 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 {
 	static render_exp_t re;
 
-	std = *input;
+	com = *input;
 	// Sys_LoadLibrary can create fake instance, to check
 	// api version and api size, but second argument will be 0
 	// and always make exception, run simply check for avoid it

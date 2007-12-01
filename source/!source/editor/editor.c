@@ -5,7 +5,7 @@
 
 #include "editor.h"
 
-stdlib_api_t std;
+stdlib_api_t com;
 
 /*
 ==================
@@ -17,13 +17,14 @@ launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 {
 	static launch_exp_t Editor;
 
-	std = *input;
+	com = *input;
 
 	Editor.api_size = sizeof(launch_exp_t);
 
 	Editor.Init = InitEditor;
 	Editor.Main = EditorMain;
 	Editor.Free = FreeEditor;
+	Editor.CPrint = GUI_Print;
 
 	return &Editor;
 }

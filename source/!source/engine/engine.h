@@ -23,7 +23,7 @@
 #include "keycodes.h"
 #include "collision.h"
 
-extern stdlib_api_t		std;
+extern stdlib_api_t		com;
 extern physic_exp_t		*pe;
 extern byte		*zonepool;
 
@@ -87,16 +87,6 @@ memory manager
 
 /*
 ===========================================
-System Events
-===========================================
-*/
-
-#define Msg Host_Printf
-#define MsgDev Host_DPrintf
-#define MsgWarn Host_DWarnf
-
-/*
-===========================================
 Host Interface
 ===========================================
 */
@@ -111,9 +101,6 @@ void Host_AbortCurrentFrame( void );
 
 // message functions
 void Host_Print(const char *txt);
-void Host_Printf(const char *fmt, ...);
-void Host_DPrintf(int level, const char *fmt, ...);
-void Host_DWarnf( const char *fmt, ...);
 void Host_Error( const char *error, ... );
 
 // host dlls managment
@@ -127,7 +114,6 @@ void Host_Error_f( void );
 System utilites
 ===========================================
 */
-double Sys_DoubleTime( void );
 void Sys_Error( const char *msg, ... );
 void Sys_SendKeyEvents( void );
 

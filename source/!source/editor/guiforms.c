@@ -628,7 +628,7 @@ void GUI_Msg( const char *pMsg, ... )
 	GUI_Print( text );
 
 	//echo into system console
-	std.print( text );
+	com.print( text );
 }
 
 void GUI_MsgDev( int level, const char *pMsg, ... )
@@ -644,7 +644,7 @@ void GUI_MsgDev( int level, const char *pMsg, ... )
 		GUI_Print( text );
 
 		//echo into system console
-		std.print( text );
+		com.print( text );
 	}
 }
 
@@ -661,7 +661,7 @@ void GUI_MsgWarn( const char *pMsg, ... )
 		GUI_Print( text );
 
 		//echo into system console
-		std.print( text );
+		com.print( text );
 	}
 }
 
@@ -675,12 +675,11 @@ void GUI_Error( const char *pMsg, ... )
 	va_end (argptr);
 	
 	GUI_DisableMenus();
-	GUI_Print( text );
-	std.print( text );//echo into system console
+	com.print( text );//echo into system console
 	
 	//3. waiting for user input
 	
-	//std.exit();
+	//com.exit();
 }
 
 void GUI_CreateMenus( void )
@@ -918,9 +917,6 @@ void InitEditor ( uint funcname, int argc, char **argv )
 	memset( &wc, 0, sizeof( wc ));
 	s_gui.gHinst = (HINSTANCE)GetModuleHandle( NULL );
 
-	com_argc = argc;
-	memcpy(com_argv, argv, MAX_NUM_ARGVS );
-	
 	wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 	wc.lpfnWndProc = WndProc;
 	wc.cbClsExtra = 0;

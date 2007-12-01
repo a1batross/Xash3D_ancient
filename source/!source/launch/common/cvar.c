@@ -374,7 +374,7 @@ void Cvar_FullSet( char *var_name, char *value, int flags )
 	if (var->flags & CVAR_USERINFO)
 	{
 		// transmit at next oportunity
-		std.userinfo_modified = true;
+		com.userinfo_modified = true;
 	}	
 
 	Mem_Free( var->string ); // free the old value string

@@ -264,7 +264,7 @@ void VM_M_findkeysforcommand(void)
 	(ret = VM_GetTempString())[0] = 0;
 
 	M_FindKeysForCommand((char *)cmd, keys);
-	for(i = 0; i < 2; i++) std.strncat(ret, va(" \'%i\'", keys[i]), VM_STRINGTEMP_LENGTH);
+	for(i = 0; i < 2; i++) com.strncat(ret, va(" \'%i\'", keys[i]), VM_STRINGTEMP_LENGTH);
 	PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString(ret);
 }
 

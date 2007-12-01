@@ -782,7 +782,7 @@ void(void) ctinit_picture =
 
 };
 
-// draws a text (uses the std. way)
+// draws a text (uses the std way)
 void(string text, vector pos, vector size, float alignment, float style, float state) ctdrawtext =
 {
 	vector alignpos;

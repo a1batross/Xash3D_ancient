@@ -870,7 +870,7 @@ void PRVM_ED_ParseGlobals (const char *data)
 			PRVM_ERROR ("PRVM_ED_ParseGlobals: EOF without closing brace\n");
 		if (com_token[0] == '}') break;
 		if (com_token[0] == '{') continue;
-		std.strncpy (keyname, com_token, sizeof(keyname));
+		com.strncpy (keyname, com_token, sizeof(keyname));
 
 		// parse value
 		if (!Com_ParseToken(&data))
@@ -1074,10 +1074,10 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 		}
 		else anglehack = false;
 		
-		std.strncpy (keyname, com_token, sizeof(keyname));
+		com.strncpy (keyname, com_token, sizeof(keyname));
 
 		// another hack to fix keynames with trailing spaces
-		n = std.strlen(keyname);
+		n = com.strlen(keyname);
 		while(n && keyname[n-1] == ' ')
 		{
 			keyname[n-1] = 0;
@@ -1108,8 +1108,8 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 		{
 			char	temp[32];
 			
-			std.strncpy( temp, com_token, sizeof(temp));
-			std.sprintf( com_token, "0 %s 0", temp );
+			com.strncpy( temp, com_token, sizeof(temp));
+			com.sprintf( com_token, "0 %s 0", temp );
 		}
 		if(!PRVM_ED_ParseEpair(ent, key, com_token)) PRVM_ERROR ("PRVM_ED_ParseEdict: parse error");
 	}
@@ -1974,12 +1974,12 @@ int PRVM_GetProgNr()
 
 void *_PRVM_Alloc(size_t buffersize, const char *filename, int fileline)
 {
-	return std.malloc(prog->progs_mempool, buffersize, filename, fileline);
+	return com.malloc(prog->progs_mempool, buffersize, filename, fileline);
 }
 
 void _PRVM_Free(void *buffer, const char *filename, int fileline)
 {
-	std.free(buffer, filename, fileline);
+	com.free(buffer, filename, fileline);
 }
 
 void _PRVM_FreeAll(const char *filename, int fileline)
@@ -1987,7 +1987,7 @@ void _PRVM_FreeAll(const char *filename, int fileline)
 	prog->progs = NULL;
 	prog->fielddefs = NULL;
 	prog->functions = NULL;
-	std.clearpool(prog->progs_mempool, filename, fileline);
+	com.clearpool(prog->progs_mempool, filename, fileline);
 }
 
 // LordHavoc: turned PRVM_EDICT_NUM into a #define for speed reasons

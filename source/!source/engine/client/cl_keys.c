@@ -131,20 +131,20 @@ static void FindMatches( const char *s, const char *unused1, const char *unused2
 {
 	int		i;
 
-	if(std.strnicmp( s, completionString, strlen( completionString )))
+	if(com.strnicmp( s, completionString, strlen( completionString )))
 		return;
 
 	matchCount++;
 	if ( matchCount == 1 )
 	{
-		std.strncpy( shortestMatch, s, sizeof( shortestMatch ));
+		com.strncpy( shortestMatch, s, sizeof( shortestMatch ));
 		return;
 	}
 
 	// cut shortestMatch to the amount common with s
 	for ( i = 0; s[i]; i++ )
 	{
-		if ( std.tolower(shortestMatch[i]) != tolower(s[i]))
+		if ( com.tolower(shortestMatch[i]) != tolower(s[i]))
 			shortestMatch[i] = 0;
 	}
 }
@@ -157,7 +157,7 @@ PrintMatches
 */
 static void PrintMatches( const char *s, const char *unused1, const char *m, void *unused2 )
 {
-	if(!std.strnicmp( s, shortestMatch, strlen( shortestMatch )))
+	if(!com.strnicmp( s, shortestMatch, strlen( shortestMatch )))
 	if(m && *m) Msg( "    %s ^3\"%s\"\n", s, m );
 	else Msg( "    %s\n", s ); // variable or command without description
 }
@@ -340,7 +340,7 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, b
 	if( key_overstrikeMode ) cursorChar = 11;
 	else cursorChar = 95;
 
-	i = drawLen - (std.cstrlen(str) + 1);
+	i = drawLen - (com.cstrlen(str) + 1);
 
 	if(size == SMALLCHAR_WIDTH) SCR_DrawSmallChar( x + (edit->cursor - prestep - i) * size, y, cursorChar );
 	else

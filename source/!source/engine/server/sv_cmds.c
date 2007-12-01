@@ -120,7 +120,7 @@ void SV_Map_f( void )
 		return;
 	}
 
-	std.snprintf( filename, MAX_QPATH, "%s.bsp", Cmd_Argv(1));
+	com.snprintf( filename, MAX_QPATH, "%s.bsp", Cmd_Argv(1));
 	if(!FS_FileExists(va("maps/%s", filename )))
 	{
 		Msg("Can't loading %s\n", filename );
@@ -135,7 +135,7 @@ void SV_Map_f( void )
 	SV_BroadcastCommand ("reconnect\n");
 
 	// archive server state
-	std.strncpy (svs.mapcmd, filename, sizeof(svs.mapcmd) - 1);
+	com.strncpy (svs.mapcmd, filename, sizeof(svs.mapcmd) - 1);
 }
 
 /*
@@ -155,7 +155,7 @@ void SV_Demo_f( void )
 		return;
 	}
 
-	std.snprintf( filename, MAX_QPATH, "%s.dem", Cmd_Argv(1));
+	com.snprintf( filename, MAX_QPATH, "%s.dem", Cmd_Argv(1));
 	if(!FS_FileExists(va("demos/%s", filename )))
 	{
 		Msg("Can't loading %s\n", filename );
@@ -187,7 +187,7 @@ void SV_Movie_f( void )
 		return;
 	}
 
-	std.snprintf( filename, MAX_QPATH, "%s.roq", Cmd_Argv(1));
+	com.snprintf( filename, MAX_QPATH, "%s.roq", Cmd_Argv(1));
 	if(!FS_FileExists(va("video/%s", filename )))
 	{
 		Msg("Can't loading %s\n", filename );
@@ -216,7 +216,7 @@ void SV_Load_f( void )
 		return;
 	}
 
-	std.snprintf( filename, MAX_QPATH, "%s.bin", Cmd_Argv(1));
+	com.snprintf( filename, MAX_QPATH, "%s.bin", Cmd_Argv(1));
 	if(!FS_FileExists(va("save/%s", filename )))
 	{
 		Msg("Can't loading %s\n", filename );
@@ -245,7 +245,7 @@ void SV_Save_f( void )
 		return;
 	}
 
-	std.snprintf( filename, MAX_QPATH, "%s.bin", Cmd_Argv(1));
+	com.snprintf( filename, MAX_QPATH, "%s.bin", Cmd_Argv(1));
 	SV_WriteSaveFile( filename );
 }
 
@@ -267,7 +267,7 @@ void SV_ChangeLevel_f( void )
 		return;
 	}
 
-	std.snprintf( filename, MAX_QPATH, "%s.bsp", Cmd_Argv(1));
+	com.snprintf( filename, MAX_QPATH, "%s.bsp", Cmd_Argv(1));
 	if(!FS_FileExists(va("maps/%s", filename )))
 	{
 		Msg("Can't loading %s\n", filename );
@@ -303,7 +303,7 @@ void SV_ChangeLevel_f( void )
 	SV_BroadcastCommand ("reconnect\n");
 
 	// archive server state
-	std.strncpy (svs.mapcmd, filename, sizeof(svs.mapcmd) - 1);
+	com.strncpy (svs.mapcmd, filename, sizeof(svs.mapcmd) - 1);
 }
 
 /*
@@ -394,7 +394,7 @@ void SV_Status_f( void )
 		}
 
 		Msg("%s", cl->name );
-		l = 16 - std.strlen(cl->name);
+		l = 16 - com.strlen(cl->name);
 		for (j = 0; j < l; j++) Msg (" ");
 		Msg ("%.5f ", svs.realtime - cl->lastmessage );
 		s = NET_AdrToString ( cl->netchan.remote_address);
@@ -426,9 +426,9 @@ void SV_ConSay_f( void )
 	if(*p == '"')
 	{
 		p++;
-		p[std.strlen(p) - 1] = 0;
+		p[com.strlen(p) - 1] = 0;
 	}
-	std.strncat(text, p, MAX_SYSPATH );
+	com.strncat(text, p, MAX_SYSPATH );
 
 	for (i = 0, client = svs.clients; i < maxclients->integer; i++, client++)
 	{
@@ -492,7 +492,7 @@ Kick everyone off, possibly in preparation for a new game
 void SV_KillServer_f (void)
 {
 	if(!svs.initialized) return;
-	std.strncpy( host.finalmsg, "Server was killed\n", MAX_STRING );
+	com.strncpy( host.finalmsg, "Server was killed\n", MAX_STRING );
 	SV_Shutdown( false );
 	NET_Config( false );// close network sockets
 }

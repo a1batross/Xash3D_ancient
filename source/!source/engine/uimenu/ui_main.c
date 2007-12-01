@@ -14,7 +14,7 @@ void UI_Error(const char *format, ...)
 	va_list		argptr;
 
 	va_start( argptr, format );
-	std.vsnprintf(errorstring, sizeof(errorstring), format, argptr);
+	com.vsnprintf(errorstring, sizeof(errorstring), format, argptr);
 	va_end( argptr );
 	Host_Error( "Menu_Error: %s\n", errorstring );
 

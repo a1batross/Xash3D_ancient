@@ -111,7 +111,7 @@ skips color escape codes
 */
 int CG_GetBigStringWidth( const char *str )
 {
-	return std.cstrlen( str ) * 16;
+	return com.cstrlen( str ) * 16;
 }
 
 /*
@@ -350,7 +350,7 @@ void CG_DrawCenterString( void )
 		}
 		linebuffer[l] = 0;
 
-		w = cl.centerPrintCharWidth * std.cstrlen( linebuffer );
+		w = cl.centerPrintCharWidth * com.cstrlen( linebuffer );
 		x = ( SCREEN_WIDTH - w )>>1;
 
 		SCR_DrawStringExt( x, y, cl.centerPrintCharWidth, BIGCHAR_HEIGHT, linebuffer, color, false );
@@ -406,7 +406,7 @@ void CG_DrawCenterPic( int w, int h, char *picname )
 
 void CG_DrawCenterStringBig( char *text, float alpha )
 {
-	int xpos = (SCREEN_WIDTH - std.cstrlen(text) * BIGCHAR_WIDTH)>>1;
+	int xpos = (SCREEN_WIDTH - com.cstrlen(text) * BIGCHAR_WIDTH)>>1;
 	int ypos = (SCREEN_HEIGHT - BIGCHAR_HEIGHT)>>1;
 
 	SCR_DrawBigString(xpos, ypos, text, alpha ); 

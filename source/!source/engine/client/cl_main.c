@@ -400,7 +400,7 @@ void CL_CheckForResend (void)
 	if (cls.state == ca_disconnected && Host_ServerState())
 	{
 		cls.state = ca_connecting;
-		std.strncpy (cls.servername, "localhost", sizeof(cls.servername)-1);
+		com.strncpy (cls.servername, "localhost", sizeof(cls.servername)-1);
 		// we don't need a challenge on the localhost
 		CL_SendConnectPacket ();
 		return;
@@ -442,7 +442,7 @@ void CL_Connect_f (void)
 	if(Host_ServerState())
 	{	
 		// if running a local server, kill it and reissue
-		std.strncpy( host.finalmsg, "Server quit\n", MAX_STRING );
+		com.strncpy( host.finalmsg, "Server quit\n", MAX_STRING );
 		SV_Shutdown( false );
 	}
 	else CL_Disconnect();

@@ -1978,7 +1978,7 @@ void PR_ParseWarning (int type, char *error, ...)
 	{
 		// instead of sys error
 		pr_total_error_count++;
-		std.error( "internal error C%i: %s\n", type, string );
+		com.error( "internal error C%i: %s\n", type, string );
 	}
 	else if (type > ERR_INTERNAL)
 	{
@@ -2019,7 +2019,7 @@ void PR_Message( char *message, ... )
 	_vsnprintf (string, sizeof(string) - 1, message, argptr);
 	va_end (argptr);
 
-	std.print( string );
+	com.print( string );
 }
 
 /*

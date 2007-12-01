@@ -7,62 +7,6 @@
 
 bool debug_mode = false;
 int dev_mode = 0;
-int com_argc;
-char *com_argv[MAX_NUM_ARGVS];
-/*
-================
-CheckParm
-
-Returns the position (1 to argc-1) in the program's argument list
-where the given parameter apears, or 0 if not present
-================
-*/
-int CheckParm (const char *parm)
-{
-	int i;
-
-	for (i = 1; i < com_argc; i++ )
-	{
-		// NEXTSTEP sometimes clears appkit vars.
-		if (!com_argv[i]) continue;
-		if (!strcmp (parm, com_argv[i])) return i;
-	}
-	return 0;
-}
-
-bool _GetParmFromCmdLine( char *parm, char *out, size_t size )
-{
-	int argc = CheckParm( parm );
-
-	if(!argc) return false;
-	if(!out) return false;	
-	if(!com_argv[argc + 1]) return false;
-
-	strncpy( out, com_argv[argc+1], size );
-	return true;
-}
-
-// search case-insensitive for string2 in string
-char *stristr( const char *string, const char *string2 )
-{
-	int c, len;
-	c = tolower( *string2 );
-	len = strlen( string2 );
-
-	while (string)
-	{
-		for ( ; *string && tolower( *string ) != c; string++ );
-		if (*string)
-		{
-			if (strnicmp( string, string2, len ) == 0)
-				break;
-			string++;
-		}
-		else return NULL;
-	}
-	return (char *)string;
-}
-
 /*
 =============================================================================
 

@@ -37,7 +37,7 @@ void Sys_Error( const char *error, ... )
 	va_list		argptr;
 
 	va_start( argptr, error );
-	std.vsprintf( errorstring, error, argptr );
+	com.vsprintf( errorstring, error, argptr );
 	va_end( argptr );
 
 	// don't multiple executes
@@ -55,7 +55,7 @@ void Sys_Error( const char *error, ... )
 	host.state = HOST_ERROR; // lock shutdown state
 	Host_FreeRender();
 
-	std.error("%s", errorstring );
+	com.error("%s", errorstring );
 }
 
 /*
@@ -74,13 +74,6 @@ void Sys_SendKeyEvents (void)
 	
 }
 
-double Sys_DoubleTime( void )
-{
-	// precision timer
-	host.realtime = std.Com_DoubleTime();
-	return host.realtime;
-}
-
 /*
 ==================
 DllMain
@@ -91,13 +84,15 @@ launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 {
          	static launch_exp_t Host;
 
-	std = *input;
+	com = *input;
 
 	Host.api_size = sizeof(launch_exp_t);
 
 	Host.Init = Host_Init;
 	Host.Main = Host_Main;
 	Host.Free = Host_Free;
+	Host.Cmd = Cmd_ForwardToServer;
+	Host.CPrint = Host_Print;
 
 	return &Host;
 }

@@ -467,7 +467,7 @@ void Con_DrawSolidConsole (float frac)
 
 	// draw current time
 	re->SetColor(g_color_table[ColorIndex(COLOR_YELLOW)]);
-	std.snprintf( curtime, MAX_QPATH, "%s ", timestamp( TIME_TIME_ONLY));
+	com.snprintf( curtime, MAX_QPATH, "%s ", timestamp( TIME_TIME_ONLY));
 	i = strlen( curtime );
 	for (x = 0; x < i; x++)
 		SCR_DrawSmallChar(scr_width->integer - ( i - x ) * SMALLCHAR_WIDTH, (lines - (SMALLCHAR_HEIGHT+SMALLCHAR_HEIGHT/2)), curtime[x]);

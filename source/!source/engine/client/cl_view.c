@@ -380,8 +380,7 @@ void CL_PrepRefresh( void )
 	// set sky textures and speed
 	SCR_UpdateScreen();
 	rotate = atof(cl.configstrings[CS_SKYROTATE]);
-	std.atov( axis, cl.configstrings[CS_SKYAXIS], 3 );
-	Msg("Sky Vector %g %g %g\n", axis[0], axis[1], axis[2] );
+	com.atov( axis, cl.configstrings[CS_SKYAXIS], 3 );
 	re->SetSky( cl.configstrings[CS_SKY], rotate, axis);
           Cvar_SetValue("scr_loading", 100.0f ); // all done
 	

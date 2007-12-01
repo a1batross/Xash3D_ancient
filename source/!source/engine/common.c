@@ -278,7 +278,7 @@ bool Cmd_GetMapList (const char *s, char *completedname, int length )
 		int		ver = -1, lumpofs = 0, lumplen = 0;
 		const char	*ext = FS_FileExtension( t->filenames[i] ); 
 
-		if( std.stricmp(ext, "bsp" )) continue;
+		if( com.stricmp(ext, "bsp" )) continue;
 
 		strncpy(message, "^1error^7", sizeof(message));
 		f = FS_Open(t->filenames[i], "rb" );
@@ -322,7 +322,7 @@ bool Cmd_GetMapList (const char *s, char *completedname, int length )
 				}
 			}
 
-			std.strncpy(entfilename, t->filenames[i], sizeof(entfilename));
+			com.strncpy(entfilename, t->filenames[i], sizeof(entfilename));
 			FS_StripExtension( entfilename );
 			FS_DefaultExtension( entfilename, ".ent" );
 			entities = (char *)FS_LoadFile(entfilename, NULL);
@@ -414,7 +414,7 @@ bool Cmd_GetDemoList (const char *s, char *completedname, int length )
 	{
 		const char *ext = FS_FileExtension( t->filenames[i] ); 
 
-		if( std.stricmp(ext, "dem" )) continue;
+		if( com.stricmp(ext, "dem" )) continue;
 		FS_FileBase(t->filenames[i], matchbuf );
 		Msg("%16s\n", matchbuf );
 		numdems++;
@@ -459,7 +459,7 @@ bool Cmd_GetMovieList (const char *s, char *completedname, int length )
 	{
 		const char *ext = FS_FileExtension( t->filenames[i] ); 
 
-		if( std.stricmp(ext, "roq" )) continue;
+		if( com.stricmp(ext, "roq" )) continue;
 		FS_FileBase(t->filenames[i], matchbuf );
 		Msg("%16s\n", matchbuf );
 		nummovies++;

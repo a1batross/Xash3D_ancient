@@ -1348,7 +1348,7 @@ void M_Credits_MenuDraw( void )
 	{
 		// skip not visible lines, but always draw end line
 		if( y <= -16 && i != credit_numlines - 1) continue;
-		x = ( SCREEN_WIDTH - BIGCHAR_WIDTH * std.cstrlen( credits[i] ))/2;
+		x = ( SCREEN_WIDTH - BIGCHAR_WIDTH * com.cstrlen( credits[i] ))/2;
 
 		if((y < (SCREEN_HEIGHT - BIGCHAR_HEIGHT) / 2) && i == credit_numlines - 1)
 		{
@@ -1419,7 +1419,7 @@ void M_Menu_Credits_f( void )
 
 	// run credits
 	credits_start_time = cls.realtime;
-	credits_show_time = bound(0.1f, (float)std.strlen(credits[credit_numlines - 1]), 12.0f );
+	credits_show_time = bound(0.1f, (float)com.strlen(credits[credit_numlines - 1]), 12.0f );
 	credits_fade_time = 0.0f;
 	M_PushMenu( M_Credits_MenuDraw, M_Credits_Key);
 }
@@ -1783,12 +1783,12 @@ void M_AddToServerList (netadr_t adr, char *info)
 	// ignore if duplicated
 	for (i = 0; i < m_num_servers; i++)
 	{
-		if (!std.strcmp(info, local_server_names[i]))
+		if (!com.strcmp(info, local_server_names[i]))
 			return;
 	}
 
 	local_server_netadr[m_num_servers] = adr;
-	std.strncpy (local_server_names[m_num_servers], info, sizeof(local_server_names[0])-1);
+	com.strncpy (local_server_names[m_num_servers], info, sizeof(local_server_names[0])-1);
 	m_num_servers++;
 }
 
@@ -1800,11 +1800,11 @@ void JoinServerFunc( void *self )
 
 	index = (menuaction_s *)self - s_joinserver_server_actions;
 
-	if(!std.stricmp( local_server_names[index], NO_SERVER_STRING ))
+	if(!com.stricmp( local_server_names[index], NO_SERVER_STRING ))
 		return;
 	if(index >= m_num_servers) return;
 
-	std.sprintf(buffer, "connect %s\n", NET_AdrToString(local_server_netadr[index]));
+	com.sprintf(buffer, "connect %s\n", NET_AdrToString(local_server_netadr[index]));
 	Cbuf_AddText(buffer);
 	M_ForceMenuOff();
 }
@@ -1820,7 +1820,7 @@ void SearchLocalGames( void )
 
 	m_num_servers = 0;
 	for (i = 0; i < MAX_LOCAL_SERVERS; i++)
-		std.strcpy(local_server_names[i], NO_SERVER_STRING);
+		com.strcpy(local_server_names[i], NO_SERVER_STRING);
 
 	M_DrawTextBox( 8, 120 - 48, 36, 3 );
 	M_Print( 16 + 16, 120 - 48 + 8,  "Searching for local servers, this" );
@@ -1868,7 +1868,7 @@ void JoinServer_MenuInit( void )
 	for( i = 0; i < MAX_LOCAL_SERVERS; i++ )
 	{
 		s_joinserver_server_actions[i].generic.type = MTYPE_ACTION;
-		std.strcpy (local_server_names[i], NO_SERVER_STRING);
+		com.strcpy (local_server_names[i], NO_SERVER_STRING);
 		s_joinserver_server_actions[i].generic.name = local_server_names[i];
 		s_joinserver_server_actions[i].generic.flags = QMF_LEFT_JUSTIFY;
 		s_joinserver_server_actions[i].generic.x = 0;
@@ -1959,7 +1959,7 @@ void StartServerActionFunc( void *self )
 	int	fraglimit;
 	int	maxclients;
 
-	std.strcpy( startmap, strchr( mapnames[s_startmap_list.curvalue], '\n' ) + 1 );
+	com.strcpy( startmap, strchr( mapnames[s_startmap_list.curvalue], '\n' ) + 1 );
 	maxclients = atoi( s_maxclients_field.field.buffer );
 	timelimit	= atoi( s_timelimit_field.field.buffer );
 	fraglimit	= atoi( s_fraglimit_field.field.buffer );
@@ -2040,7 +2040,7 @@ bool Menu_CheckMapsList( void )
 					break;
 				}
 			}
-			std.strncpy(entfilename, t->filenames[i], sizeof(entfilename));
+			com.strncpy(entfilename, t->filenames[i], sizeof(entfilename));
 			FS_StripExtension( entfilename );
 			FS_DefaultExtension( entfilename, ".ent" );
 			entities = (char *)FS_LoadFile(entfilename, NULL);
@@ -2057,7 +2057,7 @@ bool Menu_CheckMapsList( void )
 				// means there is no title, so clear the message string now
 				message[0] = 0;
 				data = entities;
-				std.strncpy(message, "No Title", MAX_QPATH);
+				com.strncpy(message, "No Title", MAX_QPATH);
 
 				while(Com_ParseToken(&data))
 				{
@@ -2068,14 +2068,14 @@ bool Menu_CheckMapsList( void )
 						// get the message contents
 						Com_ParseToken(&data);
 						if(!strcmp(com_token, "" )) continue;
-						std.strncpy(message, com_token, sizeof(message));
+						com.strncpy(message, com_token, sizeof(message));
 					}
 					else if(!strcmp(com_token, "classname" ))
 					{
 						Com_ParseToken(&data);
-						if(!std.strcmp(com_token, "info_player_deatchmatch"))
+						if(!com.strcmp(com_token, "info_player_deatchmatch"))
 							num_spawnpoints++;
-						else if(!std.strcmp(com_token, "info_player_start"))
+						else if(!com.strcmp(com_token, "info_player_start"))
 							num_spawnpoints++;
 					}
 					if(num_spawnpoints > 0) break; // valid map
@@ -2086,8 +2086,8 @@ bool Menu_CheckMapsList( void )
 			if( f ) FS_Close(f);
 
 			// format: mapname "maptitle"/r
-			std.sprintf(string, "%s \"%s\"\r", mapname, message );
-			std.strcat(buffer, string); // add new string
+			com.sprintf(string, "%s \"%s\"\r", mapname, message );
+			com.strcat(buffer, string); // add new string
 		}
 	}
 	if( t ) Z_Free(t); // free search result
@@ -2152,11 +2152,11 @@ void StartServer_MenuInit( void )
 		char  scratch[200];
 		int   j, l;
 
-		std.strncpy( shortname, Com_ParseToken( &s ), MAX_TOKEN_CHARS );
-		l = std.strlen(shortname);
-		for (j = 0; j < l; j++) shortname[j] = std.toupper(shortname[j]);
-		std.strncpy( longname, Com_ParseToken( &s ), MAX_TOKEN_CHARS );
-		std.snprintf( scratch, 200, "%s\n%s", longname, shortname );
+		com.strncpy( shortname, Com_ParseToken( &s ), MAX_TOKEN_CHARS );
+		l = com.strlen(shortname);
+		for (j = 0; j < l; j++) shortname[j] = com.toupper(shortname[j]);
+		com.strncpy( longname, Com_ParseToken( &s ), MAX_TOKEN_CHARS );
+		com.snprintf( scratch, 200, "%s\n%s", longname, shortname );
 
 		mapnames[i] = Z_Malloc( strlen( scratch ) + 1 );
 		strcpy( mapnames[i], scratch );

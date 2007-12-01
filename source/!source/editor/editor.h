@@ -39,11 +39,8 @@ void GUI_Msg( const char *pMsg, ... );
 void GUI_MsgDev( int level, const char *pMsg, ... );
 void GUI_MsgWarn( const char *pMsg, ... );
 
-extern stdlib_api_t std;
-#define Msg GUI_Msg
-#define MsgDev GUI_MsgDev
-#define MsgWarn GUI_MsgWarn
-#define Sys_Error std.error
+extern stdlib_api_t com;
+#define Sys_Error com.error
 
 typedef enum {
 	Action,

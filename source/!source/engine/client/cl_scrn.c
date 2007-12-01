@@ -285,12 +285,12 @@ void SCR_DrawFPS( void )
 
 	if ((red = (calc < 1.0f)))
 	{
-		std.snprintf(fpsstring, sizeof(fpsstring), "%4i spf", (int)(1.0f / calc + 0.5));
+		com.snprintf(fpsstring, sizeof(fpsstring), "%4i spf", (int)(1.0f / calc + 0.5));
 		color = g_color_table[1];
 	}
 	else
 	{
-		std.snprintf(fpsstring, sizeof(fpsstring), "%4i fps", (int)(calc + 0.5));
+		com.snprintf(fpsstring, sizeof(fpsstring), "%4i fps", (int)(calc + 0.5));
 		color = g_color_table[3];
           }
 	SCR_DrawBigStringColor(SCREEN_WIDTH - 146, SCREEN_HEIGHT - 32, fpsstring, color );

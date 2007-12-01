@@ -7,7 +7,7 @@
 #include "mathlib.h"
 
 system_t		Sys;
-stdlib_api_t	std;
+stdlib_api_t	com;
 launch_exp_t	*Host;	// callback to mainframe 
 FILE		*logfile;
 
@@ -21,171 +21,172 @@ static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t\
 // stubs
 void NullInit( uint funcname, int argc, char **argv ) {}
 void NullFunc( void ) {}
+void Sys_NullPrint( const char *msg ) {}
 
 void Sys_GetStdAPI( void )
 {
 	// interface validator
-	std.api_size = sizeof(stdlib_api_t);
+	com.api_size = sizeof(stdlib_api_t);
 
 	// base events
-	std.printf = Sys_Msg;
-	std.dprintf = Sys_MsgDev;
-	std.wprintf = Sys_MsgWarn;
-	std.error = Sys_Error;
-	std.abort = Sys_Break;
-	std.exit = Sys_Exit;
-	std.print = Sys_Print;
-	std.input = Sys_Input;
-	std.sleep = Sys_Sleep;
-	std.clipboard = Sys_GetClipboardData;
-	std.keyevents = Sys_SendKeyEvents;
+	com.printf = Sys_Msg;
+	com.dprintf = Sys_MsgDev;
+	com.wprintf = Sys_MsgWarn;
+	com.error = Sys_Error;
+	com.abort = Sys_Break;
+	com.exit = Sys_Exit;
+	com.print = Sys_Print;
+	com.input = Sys_Input;
+	com.sleep = Sys_Sleep;
+	com.clipboard = Sys_GetClipboardData;
+	com.keyevents = Sys_SendKeyEvents;
 
 	// crclib.c funcs
-	std.crc_init = CRC_Init;
-	std.crc_block = CRC_Block;
-	std.crc_process = CRC_ProcessByte;
-	std.crc_sequence = CRC_BlockSequence;
-	std.crc_blockchecksum = Com_BlockChecksum;
-	std.crc_blockchecksumkey = Com_BlockChecksumKey;
+	com.crc_init = CRC_Init;
+	com.crc_block = CRC_Block;
+	com.crc_process = CRC_ProcessByte;
+	com.crc_sequence = CRC_BlockSequence;
+	com.crc_blockchecksum = Com_BlockChecksum;
+	com.crc_blockchecksumkey = Com_BlockChecksumKey;
 
 	// memlib.c
-	std.memcpy = _mem_copy;
-	std.memset = _mem_set;
-	std.realloc = _mem_realloc;
-	std.move = _mem_move;
-	std.malloc = _mem_alloc;
-	std.free = _mem_free;
-	std.mallocpool = _mem_allocpool;
-	std.freepool = _mem_freepool;
-	std.clearpool = _mem_emptypool;
-	std.memcheck = _mem_check;
+	com.memcpy = _mem_copy;
+	com.memset = _mem_set;
+	com.realloc = _mem_realloc;
+	com.move = _mem_move;
+	com.malloc = _mem_alloc;
+	com.free = _mem_free;
+	com.mallocpool = _mem_allocpool;
+	com.freepool = _mem_freepool;
+	com.clearpool = _mem_emptypool;
+	com.memcheck = _mem_check;
 
 	// common functions
-	std.Com_InitRootDir = FS_InitRootDir;		// init custom rootdir 
-	std.Com_LoadGameInfo = FS_LoadGameInfo;		// gate game info from script file
-	std.Com_AddGameHierarchy = FS_AddGameHierarchy;	// add base directory in search list
-	std.Com_CheckParm = FS_CheckParm;		// get parm from cmdline
-	std.Com_GetParm = FS_GetParmFromCmdLine;	// get filename without path & ext
-	std.Com_FileBase = FS_FileBase;		// get filename without path & ext
-	std.Com_FileExists = FS_FileExists;		// return true if file exist
-	std.Com_FileSize = FS_FileSize;		// same as Com_FileExists but return filesize
-	std.Com_FileExtension = FS_FileExtension;	// return extension of file
-	std.Com_RemovePath = FS_FileWithoutPath;	// return file without path
-	std.Com_StripExtension = FS_StripExtension;	// remove extension if present
-	std.Com_StripFilePath = FS_ExtractFilePath;	// get file path without filename.ext
-	std.Com_DefaultExtension = FS_DefaultExtension;	// append extension if not present
-	std.Com_ClearSearchPath = FS_ClearSearchPath;	// delete all search pathes
-	std.Com_CreateThread = Sys_RunThreadsOnIndividual;// run individual thread
-	std.Com_ThreadLock = Sys_ThreadLock;		// lock current thread
-	std.Com_ThreadUnlock = Sys_ThreadUnlock;	// unlock numthreads
-	std.Com_NumThreads = Sys_GetNumThreads;		// returns count of active threads
-	std.Com_LoadScript = SC_LoadScript;		// load script into stack from file or bufer
-	std.Com_AddScript = SC_AddScript;		// include script from file or buffer
-	std.Com_ResetScript = SC_ResetScript;		// reset current script state
-	std.Com_ReadToken = SC_GetToken;		// get next token on a line or newline
-	std.Com_TryToken = SC_TryToken;		// return 1 if have token on a line 
-	std.Com_FreeToken = SC_FreeToken;		// free current token to may get it again
-	std.Com_SkipToken = SC_SkipToken;		// skip current token and jump into newline
-	std.Com_MatchToken = SC_MatchToken;		// compare current token with user keyword
-	std.Com_ParseToken = SC_ParseToken;		// parse token from char buffer
-	std.Com_ParseWord = SC_ParseWord;		// parse word from char buffer
-	std.Com_Search = FS_Search;			// returned list of found files
-	std.Com_Filter = SC_FilterToken;		// compare keyword by mask with filter
-	std.com_token = token;			// contains current token
+	com.Com_InitRootDir = FS_InitRootDir;		// init custom rootdir 
+	com.Com_LoadGameInfo = FS_LoadGameInfo;		// gate game info from script file
+	com.Com_AddGameHierarchy = FS_AddGameHierarchy;	// add base directory in search list
+	com.Com_CheckParm = FS_CheckParm;		// get parm from cmdline
+	com.Com_GetParm = FS_GetParmFromCmdLine;	// get filename without path & ext
+	com.Com_FileBase = FS_FileBase;		// get filename without path & ext
+	com.Com_FileExists = FS_FileExists;		// return true if file exist
+	com.Com_FileSize = FS_FileSize;		// same as Com_FileExists but return filesize
+	com.Com_FileExtension = FS_FileExtension;	// return extension of file
+	com.Com_RemovePath = FS_FileWithoutPath;	// return file without path
+	com.Com_StripExtension = FS_StripExtension;	// remove extension if present
+	com.Com_StripFilePath = FS_ExtractFilePath;	// get file path without filename.ext
+	com.Com_DefaultExtension = FS_DefaultExtension;	// append extension if not present
+	com.Com_ClearSearchPath = FS_ClearSearchPath;	// delete all search pathes
+	com.Com_CreateThread = Sys_RunThreadsOnIndividual;// run individual thread
+	com.Com_ThreadLock = Sys_ThreadLock;		// lock current thread
+	com.Com_ThreadUnlock = Sys_ThreadUnlock;	// unlock numthreads
+	com.Com_NumThreads = Sys_GetNumThreads;		// returns count of active threads
+	com.Com_LoadScript = SC_LoadScript;		// load script into stack from file or bufer
+	com.Com_AddScript = SC_AddScript;		// include script from file or buffer
+	com.Com_ResetScript = SC_ResetScript;		// reset current script state
+	com.Com_ReadToken = SC_GetToken;		// get next token on a line or newline
+	com.Com_TryToken = SC_TryToken;		// return 1 if have token on a line 
+	com.Com_FreeToken = SC_FreeToken;		// free current token to may get it again
+	com.Com_SkipToken = SC_SkipToken;		// skip current token and jump into newline
+	com.Com_MatchToken = SC_MatchToken;		// compare current token with user keyword
+	com.Com_ParseToken = SC_ParseToken;		// parse token from char buffer
+	com.Com_ParseWord = SC_ParseWord;		// parse word from char buffer
+	com.Com_Search = FS_Search;			// returned list of found files
+	com.Com_Filter = SC_FilterToken;		// compare keyword by mask with filter
+	com.com_token = token;			// contains current token
 
 	// console variables
-	std.Cvar_Get = Cvar_Get;
-	std.Cvar_FullSet = Cvar_FullSet;
-	std.Cvar_SetLatched = Cvar_SetLatched;
-	std.Cvar_SetValue = Cvar_SetValue;
-	std.Cvar_SetString = Cvar_Set;
-	std.Cvar_GetValue = Cvar_VariableValue;
-	std.Cvar_GetString = Cvar_VariableString;
-	std.Cvar_LookupVars = Cvar_LookupVars;
-	std.Cvar_FindVar = Cvar_FindVar;
+	com.Cvar_Get = Cvar_Get;
+	com.Cvar_FullSet = Cvar_FullSet;
+	com.Cvar_SetLatched = Cvar_SetLatched;
+	com.Cvar_SetValue = Cvar_SetValue;
+	com.Cvar_SetString = Cvar_Set;
+	com.Cvar_GetValue = Cvar_VariableValue;
+	com.Cvar_GetString = Cvar_VariableString;
+	com.Cvar_LookupVars = Cvar_LookupVars;
+	com.Cvar_FindVar = Cvar_FindVar;
 
 	// console commands
-	std.Cmd_Exec = Cbuf_ExecuteText;		// process cmd buffer
-	std.Cmd_Argc = Cmd_Argc;
-	std.Cmd_Args = Cmd_Args;
-	std.Cmd_Argv = Cmd_Argv; 
-	std.Cmd_LookupCmds = Cmd_LookupCmds;
-	std.Cmd_AddCommand = Cmd_AddCommand;
-	std.Cmd_DelCommand = Cmd_RemoveCommand;
-	std.Cmd_TokenizeString = Cmd_TokenizeString;
+	com.Cmd_Exec = Cbuf_ExecuteText;		// process cmd buffer
+	com.Cmd_Argc = Cmd_Argc;
+	com.Cmd_Args = Cmd_Args;
+	com.Cmd_Argv = Cmd_Argv; 
+	com.Cmd_LookupCmds = Cmd_LookupCmds;
+	com.Cmd_AddCommand = Cmd_AddCommand;
+	com.Cmd_DelCommand = Cmd_RemoveCommand;
+	com.Cmd_TokenizeString = Cmd_TokenizeString;
 
 
 	// real filesystem
-	std.fopen = FS_Open;		// same as fopen
-	std.fclose = FS_Close;		// same as fclose
-	std.fwrite = FS_Write;		// same as fwrite
-	std.fread = FS_Read;		// same as fread, can see trough pakfile
-	std.fprint = FS_Print;		// printed message into file		
-	std.fprintf = FS_Printf;		// same as fprintf
-	std.fgets = FS_Gets;		// like a fgets, but can return EOF
-	std.fseek = FS_Seek;		// fseek, can seek in packfiles too
-	std.ftell = FS_Tell;		// like a ftell
+	com.fopen = FS_Open;		// same as fopen
+	com.fclose = FS_Close;		// same as fclose
+	com.fwrite = FS_Write;		// same as fwrite
+	com.fread = FS_Read;		// same as fread, can see trough pakfile
+	com.fprint = FS_Print;		// printed message into file		
+	com.fprintf = FS_Printf;		// same as fprintf
+	com.fgets = FS_Gets;		// like a fgets, but can return EOF
+	com.fseek = FS_Seek;		// fseek, can seek in packfiles too
+	com.ftell = FS_Tell;		// like a ftell
 
 	// virtual filesystem
-	std.vfcreate = VFS_Create;		// create virtual stream
-	std.vfopen = VFS_Open;		// virtual fopen
-	std.vfclose = VFS_Close;		// free buffer or write dump
-	std.vfwrite = VFS_Write;		// write into buffer
-	std.vfread = VFS_Read;		// read from buffer
-	std.vfgets = VFS_Gets;		// read text line 
-	std.vfprint = VFS_Print;		// write message
-	std.vfprintf = VFS_Printf;		// write formatted message
-	std.vfseek = VFS_Seek;		// fseek, can seek in packfiles too
-	std.vfunpack = VFS_Unpack;		// inflate zipped buffer
-	std.vftell = VFS_Tell;		// like a ftell
+	com.vfcreate = VFS_Create;		// create virtual stream
+	com.vfopen = VFS_Open;		// virtual fopen
+	com.vfclose = VFS_Close;		// free buffer or write dump
+	com.vfwrite = VFS_Write;		// write into buffer
+	com.vfread = VFS_Read;		// read from buffer
+	com.vfgets = VFS_Gets;		// read text line 
+	com.vfprint = VFS_Print;		// write message
+	com.vfprintf = VFS_Printf;		// write formatted message
+	com.vfseek = VFS_Seek;		// fseek, can seek in packfiles too
+	com.vfunpack = VFS_Unpack;		// inflate zipped buffer
+	com.vftell = VFS_Tell;		// like a ftell
 
 	// filesystem simply user interface
-	std.Com_LoadFile = FS_LoadFile;		// load file into heap
-	std.Com_WriteFile = FS_WriteFile;		// write file into disk
-	std.Com_LoadImage = FS_LoadImage;		// extract image into rgba buffer
-	std.Com_SaveImage = FS_SaveImage;		// save image into specified format
-	std.Com_ProcessImage = Image_Processing;	// convert and resample image
-	std.Com_FreeImage = FS_FreeImage;		// free image buffer
-	std.Com_LoadLibrary = Sys_LoadLibrary;		// load library 
-	std.Com_FreeLibrary = Sys_FreeLibrary;		// free library
-	std.Com_GetProcAddress = Sys_GetProcAddress;	// gpa
-	std.Com_DoubleTime = Sys_DoubleTime;		// hi-res timer
+	com.Com_LoadFile = FS_LoadFile;		// load file into heap
+	com.Com_WriteFile = FS_WriteFile;		// write file into disk
+	com.Com_LoadImage = FS_LoadImage;		// extract image into rgba buffer
+	com.Com_SaveImage = FS_SaveImage;		// save image into specified format
+	com.Com_ProcessImage = Image_Processing;	// convert and resample image
+	com.Com_FreeImage = FS_FreeImage;		// free image buffer
+	com.Com_LoadLibrary = Sys_LoadLibrary;		// load library 
+	com.Com_FreeLibrary = Sys_FreeLibrary;		// free library
+	com.Com_GetProcAddress = Sys_GetProcAddress;	// gpa
+	com.Com_DoubleTime = Sys_DoubleTime;		// hi-res timer
 
 	// stdlib.c funcs
-	std.strnupr = com_strnupr;
-	std.strnlwr = com_strnlwr;
-	std.strupr = com_strupr;
-	std.strlwr = com_strlwr;
-	std.strlen = com_strlen;
-	std.cstrlen = com_cstrlen;
-	std.toupper = com_toupper;
-	std.tolower = com_tolower;
-	std.strncat = com_strncat;
-	std.strcat = com_strcat;
-	std.strncpy = com_strncpy;
-	std.strcpy = com_strcpy;
-	std.stralloc = com_stralloc;
-	std.atoi = com_atoi;
-	std.atof = com_atof;
-	std.atov = com_atov;
-	std.strchr = com_strchr;
-	std.strrchr = com_strrchr;
-	std.strnicmp = com_strnicmp;
-	std.stricmp = com_stricmp;
-	std.strncmp = com_strncmp;
-	std.strcmp = com_strcmp;
-	std.stristr = com_stristr;
-	std.strstr = com_stristr;		// FIXME
-	std.strpack = com_strpack;
-	std.strunpack = com_strunpack;
-	std.vsprintf = com_vsprintf;
-	std.sprintf = com_sprintf;
-	std.va = va;
-	std.vsnprintf = com_vsnprintf;
-	std.snprintf = com_snprintf;
-	std.timestamp = com_timestamp;
+	com.strnupr = com_strnupr;
+	com.strnlwr = com_strnlwr;
+	com.strupr = com_strupr;
+	com.strlwr = com_strlwr;
+	com.strlen = com_strlen;
+	com.cstrlen = com_cstrlen;
+	com.toupper = com_toupper;
+	com.tolower = com_tolower;
+	com.strncat = com_strncat;
+	com.strcat = com_strcat;
+	com.strncpy = com_strncpy;
+	com.strcpy = com_strcpy;
+	com.stralloc = com_stralloc;
+	com.atoi = com_atoi;
+	com.atof = com_atof;
+	com.atov = com_atov;
+	com.strchr = com_strchr;
+	com.strrchr = com_strrchr;
+	com.strnicmp = com_strnicmp;
+	com.stricmp = com_stricmp;
+	com.strncmp = com_strncmp;
+	com.strcmp = com_strcmp;
+	com.stristr = com_stristr;
+	com.strstr = com_stristr;		// FIXME
+	com.strpack = com_strpack;
+	com.strunpack = com_strunpack;
+	com.vsprintf = com_vsprintf;
+	com.sprintf = com_sprintf;
+	com.va = va;
+	com.vsnprintf = com_vsnprintf;
+	com.snprintf = com_snprintf;
+	com.timestamp = com_timestamp;
 
-	std.GameInfo = &GI;
+	com.GameInfo = &GI;
 }
 
 /*
@@ -334,10 +335,12 @@ void Sys_CreateInstance( void )
 	case STUDIO:
 	case PAKLIB:
 		CreateHost = (void *)Sys.linked_dll->main;
-		Host = CreateHost( &std, NULL ); // second interface not allowed
+		Host = CreateHost( &com, NULL ); // second interface not allowed
 		Sys.Init = Host->Init;
 		Sys.Main = Host->Main;
 		Sys.Free = Host->Free;
+		Sys.CPrint = Host->CPrint;
+		Sys.Cmd = Host->Cmd;
 		break;
 	case CREDITS:
 		Sys_Break( show_credits );
@@ -484,6 +487,7 @@ void Sys_Print(const char *pMsg)
 	int		i = 0;
 
 	if(Sys.con_silentmode) return;
+	if(Sys.CPrint) Sys.CPrint( pMsg );
 
 	// if the message is REALLY long, use just the last portion of it
 	if ( com_strlen( pMsg ) > MAX_INPUTLINE - 1 )
@@ -553,13 +557,34 @@ void Sys_MsgDev( int level, const char *pMsg, ... )
 {
 	va_list	argptr;
 	char	text[MAX_INPUTLINE];
-	
+
 	if(Sys.developer < level) return;
 
 	va_start (argptr, pMsg);
 	com_vsprintf (text, pMsg, argptr);
 	va_end (argptr);
-	Sys_Print( text );
+
+	switch(level)
+	{
+	case D_INFO:	
+		Sys_Print( text );
+		break;
+	case D_WARN:
+		Sys_Print(va("^3Warning:^7 %s", text));
+		break;
+	case D_ERROR:
+		Sys_Print(va("^1Error:^7 %s", text));
+		break;
+	case D_LOAD:
+		Sys_Print(va("^2Loading: ^7%s", text));
+		break;
+	case D_NOTE:
+		Sys_Print( text );
+		break;
+	case D_MEMORY:
+		Sys_Print(va("^6Mem: ^7%s", text));
+		break;
+	}
 }
 
 void Sys_MsgWarn( const char *pMsg, ... )
@@ -572,7 +597,7 @@ void Sys_MsgWarn( const char *pMsg, ... )
 	va_start (argptr, pMsg);
 	com_vsprintf (text, pMsg, argptr);
 	va_end (argptr);
-	Sys_Print( text );
+	Sys_Print(va("^3Warning:^7 %s", text));
 }
 
 /*
@@ -883,7 +908,7 @@ bool Sys_LoadLibrary ( dll_info_t *dll )
 	if(!dll->name) return false;	// nothing to load
 	if(dll->link) return true;	// already loaded
 
-	MsgDev(D_ERROR, "Sys_LoadLibrary: Loading %s", dll->name );
+	MsgDev(D_NOTE, "Sys_LoadLibrary: Loading %s", dll->name );
 
 	if(dll->fcts) 
 	{
@@ -930,7 +955,7 @@ bool Sys_LoadLibrary ( dll_info_t *dll )
 
 		// NOTE: native dlls must support null import!
 		// e.g. see ..\common\platform.c for details
-		check = (void *)dll->main( &std, NULL ); // first iface always stdlib_api_t
+		check = (void *)dll->main( &com, NULL ); // first iface always stdlib_api_t
 
 		if(!check) 
 		{
@@ -943,14 +968,14 @@ bool Sys_LoadLibrary ( dll_info_t *dll )
 			goto error;
 		}	
 	}
-          MsgDev(D_ERROR, " - ok\n");
+          MsgDev(D_NOTE, " - ok\n");
 
 	return true;
 error:
-	MsgDev(D_ERROR, " - failed\n");
+	MsgDev(D_NOTE, " - failed\n");
 	Sys_FreeLibrary ( dll ); // trying to free 
 	if(dll->crash) Sys_Error( errorstring );
-	else MsgDev( D_INFO, errorstring );			
+	else MsgDev( D_ERROR, errorstring );			
 
 	return false;
 }
@@ -970,10 +995,10 @@ bool Sys_FreeLibrary ( dll_info_t *dll )
 	if(Sys.crash)
 	{
 		// we need to hold down all modules, while MSVC can find erorr
-		MsgDev(D_ERROR, "Sys_FreeLibrary: Hold %s for debugging\n", dll->name );
+		MsgDev(D_NOTE, "Sys_FreeLibrary: Hold %s for debugging\n", dll->name );
 		return false;
 	}
-	else MsgDev(D_ERROR, "Sys_FreeLibrary: Unloading %s\n", dll->name );
+	else MsgDev(D_NOTE, "Sys_FreeLibrary: Unloading %s\n", dll->name );
 
 	FreeLibrary (dll->link);
 	dll->link = NULL;

@@ -241,7 +241,7 @@ float *SV_GetModelVerts( sv_edict_t *ent, int *numvertices )
 
 bool SV_CreateMeshBuffer( edict_t *in, cmodel_t *out )
 {
-	int	i, j;
+	//int	i, j;
 
 	// validate args
 	if(!in || !out || !out->extradata)
@@ -260,7 +260,7 @@ bool SV_CreateMeshBuffer( edict_t *in, cmodel_t *out )
 	CM_RoundUpHullSize(out->maxs, false ); // normalize maxs ( ceil ) 
 
 	Msg("create physmesh for %s\n", out->name );
-	for( i = 0; i < m_BodyCount; i++)
+	/*for( i = 0; i < m_BodyCount; i++)
 	{
 		// clear count
 		iNumVertices = 0;
@@ -278,7 +278,7 @@ bool SV_CreateMeshBuffer( edict_t *in, cmodel_t *out )
 		}
 		__except(EXCEPTION_EXECUTE_HANDLER) 
 		{ 
-			MsgDev(D_ERROR, "m_pSubModel == NULL" ); 
+			Sys_Error("m_pSubModel == NULL" ); 
 		}
 		if(iNumVertices)
 		{
@@ -286,6 +286,7 @@ bool SV_CreateMeshBuffer( edict_t *in, cmodel_t *out )
 			Mem_Copy(out->physmesh[i].verts,m_pModelVerts, iNumVertices * sizeof(vec3_t));
 			out->physmesh[i].numverts = iNumVertices;
 		}
-	}
+	}*/
+	
 	return true;
 }

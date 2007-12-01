@@ -5,31 +5,11 @@
 
 #include "physic.h"
 
-physic_imp_t	pi;
-stdlib_api_t	std;
-physic_t		ph;	// physic globalstate
-byte		*physpool;
-NewtonWorld	*gWorld;
-
-bool InitPhysics( void )
-{
-	physpool = Mem_AllocPool("Physics Pool");
-	gWorld = NewtonCreate (Palloc, Pfree); // alloc world
-
-	return true;
-}
-
-void FreePhysics( void )
-{
-	NewtonDestroy( gWorld );
-	Mem_FreePool( &physpool );
-}
-
 physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs )
 {
 	static physic_exp_t		Phys;
 
-	std = *input;
+	com = *input;
 
 	// Sys_LoadLibrary can create fake instance, to check
 	// api version and api size, but second argument will be 0

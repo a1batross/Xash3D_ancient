@@ -568,7 +568,7 @@ void Cmd_ExecuteString( const char *text )
 	if(Cvar_Command()) return;
 
 	// send it as a server command if we are connected
-	if(std.Cmd_ForwardToServer) std.Cmd_ForwardToServer();
+	if(Sys.Cmd) Sys.Cmd();
 	else MsgDev( D_ERROR, "Cmd_ExecuteString: can't send command to server\n");
 }
 
