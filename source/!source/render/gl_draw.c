@@ -296,7 +296,7 @@ void Draw_StretchRaw (int x, int y, int w, int h, int cols, int rows, byte *data
 	for( i = 0;(1<<i) < cols; i++ );
 	for( j = 0;(1<<j) < rows; j++ );
 	if ((1<<i ) != cols || ( 1<<j ) != rows)
-		Sys_Error ("Draw_StretchRaw: size not a power of 2: %i by %i", cols, rows);
+		Sys_Error ("Draw_StretchRaw: size not a power of 2: %i by %i\n", cols, rows);
 	GL_Bind(0);
 	if( dirty ) qglTexImage2D (GL_TEXTURE_2D, 0, gl_tex_solid_format, cols, rows, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
 	GL_TexFilter( false );

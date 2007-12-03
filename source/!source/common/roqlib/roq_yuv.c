@@ -28,7 +28,7 @@ static short cr2g[256];
 void ROQ_InitYUV(void)
 {
 	static bool	initialized = false;
-	int		i;
+	long		i;
 
 	if(initialized) return;
 	initialized = true;

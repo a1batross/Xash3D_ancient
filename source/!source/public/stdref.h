@@ -56,6 +56,23 @@ typedef struct
 } dpak3file_t;
 
 /*
+========================================================================
+ROQ FILES
+
+The .roq file are vector-compressed movies
+========================================================================
+*/
+#define IDQMOVIEHEADER	0x1084	// little-endian "„"
+
+typedef struct roq_s
+{
+	word	ident;
+	short	flags;
+	short	flags2;
+	word	fps;
+} roq_t;
+
+/*
 ==============================================================================
 
 SPRITE MODELS

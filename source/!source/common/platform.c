@@ -69,14 +69,6 @@ void InitPlatform ( uint funcname, int argc, char **argv )
 		PrepareDATProgs( gamedir, source, qccflags );	
 		break;
 	case ROQLIB:
-		if(!FS_GetParmFromCmdLine("-dir", gamedir ))
-			strncpy(gamedir, ".", sizeof(gamedir));
-		if(!FS_GetParmFromCmdLine("+src", source ))
-			strncpy(source, "makefile.qc", sizeof(source));
-
-		start = Sys_DoubleTime();
-		PrepareROQVideo( gamedir, source, roqflags );	
-		break;
 	case IMGLIB:
 	case SPRITE:
 	case STUDIO:
@@ -116,10 +108,11 @@ void RunPlatform ( void )
 	case IMGLIB:
 		CompileMod = ConvertImagePixels; 
 		strcpy(typemod, "images" );
-		strcpy(searchmask[0], "*.pcx" );	// quake2 menu images
-		strcpy(searchmask[1], "*.wal" );	// quake2 textures
-		strcpy(searchmask[2], "*.lmp" );	// quake1 menu images
-		strcpy(searchmask[3], "*.mip" );	// quake1 textures
+		strcpy(searchmask[0], "*.tga" );	// quake2 menu images
+		strcpy(searchmask[1], "*.pcx" );	// quake2 menu images
+		strcpy(searchmask[2], "*.wal" );	// quake2 textures
+		strcpy(searchmask[3], "*.lmp" );	// quake1 menu images
+		strcpy(searchmask[4], "*.mip" );	// quake1 textures
 		Msg("Processing images ...\n\n");
 		break;		
 	case BSPLIB: 
@@ -137,9 +130,9 @@ void RunPlatform ( void )
 		CompileDATProgs(); 
 		break;
 	case ROQLIB:
+		CompileMod = CompileROQVideo;
 		strcpy(typemod, "videos" );
 		strcpy(searchmask[0], "*.qc" );
-		MakeROQ(); 
 		break;
 	case HOST_OFFLINE:
 		strcpy(typemod, "things" );
@@ -181,7 +174,7 @@ elapced_time:
 
 void FreePlatform ( void )
 {
-	Mem_Check(); // check for leaks
+	//Mem_Check(); // check for leaks
 	Mem_FreePool( &basepool );
 	Mem_FreePool( &zonepool );
 }

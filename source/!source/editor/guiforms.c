@@ -609,62 +609,6 @@ void GUI_Print(const char *pMsg)
 	SendMessage( s_gui.hConsole, EM_REPLACESEL, 0, (LPARAM) buffer );
 }
 
-/*
-================
-GUI_Msg
-
-formatted message
-================
-*/
-void GUI_Msg( const char *pMsg, ... )
-{
-	va_list		argptr;
-	char text[MAX_INPUTLINE];
-	
-	va_start (argptr, pMsg);
-	vsprintf (text, pMsg, argptr);
-	va_end (argptr);
-
-	GUI_Print( text );
-
-	//echo into system console
-	com.print( text );
-}
-
-void GUI_MsgDev( int level, const char *pMsg, ... )
-{
-	va_list		argptr;
-	char text[MAX_INPUTLINE];
-	
-	if(dev_mode >= level)
-	{
-		va_start (argptr, pMsg);
-		vsprintf (text, pMsg, argptr);
-		va_end (argptr);
-		GUI_Print( text );
-
-		//echo into system console
-		com.print( text );
-	}
-}
-
-void GUI_MsgWarn( const char *pMsg, ... )
-{
-	va_list		argptr;
-	char text[MAX_INPUTLINE];
-	
-	if(debug_mode)
-	{
-		va_start (argptr, pMsg);
-		vsprintf (text, pMsg, argptr);
-		va_end (argptr);
-		GUI_Print( text );
-
-		//echo into system console
-		com.print( text );
-	}
-}
-
 void GUI_Error( const char *pMsg, ... )
 {
 	va_list		argptr;

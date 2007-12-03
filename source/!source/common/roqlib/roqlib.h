@@ -9,7 +9,7 @@
 #include "utils.h"
 
 typedef struct { byte *rgb; } videoFrame_t;
-typedef struct { int x,y; } motionVector_t;
+typedef struct { long x,y; } motionVector_t;
 typedef struct { byte yuv[6]; } yuvBlock2_t;
 typedef struct { byte indexes[4]; } yuvDiskBlock4_t;
 typedef struct { yuvBlock2_t block[4]; } yuvBlock4_t;
@@ -34,8 +34,8 @@ typedef struct roq_stats_s
 	byte	codebookResults2[256*2*2*3];
 	uint	vectorsProvided4;
 	uint	vectorsQuantized4;
-	int	bytesConsumed;
-	int	bytesMax;
+	long	bytesConsumed;
+	long	bytesMax;
 	byte	*reconstructResult;
 
 } roq_stats_t;
@@ -43,8 +43,8 @@ typedef struct roq_stats_s
 typedef struct possibilityList_s
 {
 	double	bestDownscaleRate;
-	int	mse[259];
-	int	currentMSE;
+	long	mse[259];
+	long	currentMSE;
 	dword	currentSize;
 	word	currentChoice;
 	word	bestDownscaleChoice;
@@ -54,9 +54,9 @@ typedef struct possibilityList_s
 
 typedef struct roq_compressor_s
 {
-	int		initialized;
-	int		wroteInfo;
-	int		frameNum;		// hack to fix RoQ bug
+	long		initialized;
+	long		wroteInfo;
+	long		frameNum;		// hack to fix RoQ bug
 	dword		preferences[ROQENC_PREF_COUNT];
 	videoFrame_t	frames[3];
 	videoFrame_t	*frameCycle[3];
@@ -79,8 +79,8 @@ typedef struct roq_compressor_s
 
 	possibilityList_t	*pList;
 	uint		*listSort;
-	int		*optimizedOut4;
-	int		framesSinceKeyframe;
+	long		*optimizedOut4;
+	long		framesSinceKeyframe;
 
 } roq_compressor_t;
 
@@ -98,22 +98,25 @@ extern rgbBlock2_t codebook2[256];
 extern uint quickDiff[256*256];
 extern yuvBlock2_t yuvCodebook2[256];
 extern yuvDiskBlock4_t yuvDisk4[256];
-extern int *optimizedOut4;
+extern long *optimizedOut4;
 extern roq_stats_t stats;
 
+#define CB_FRAME_SIZE		2560
 #define QUICKDIFF(a,b)		quickDiff[((a)<<8)+(b)]
 #define PERTURBATION_BASE_POWER	6
 
 void ROQ_InitQuickdiff(void);
-int  ROQ_GetCodebooks(void);
+long  ROQ_GetCodebooks(void);
 void ROQ_GenerateBlocks(void);
+int ROQ_ReadCodebook( byte *buffer );
+void ROQ_SaveCodebook( byte *buffer );
 void ROQ_InitYUV(void);
 void YUV2toRGB2(byte *yuv, byte *rgb);
 void RGB2toYUV2(byte *rgb, byte *yuv);
 void YUVPerturb2(yuvBlock2_t *a, yuvBlock2_t *b, uint step);
 uint YUVDifference2(yuvBlock2_t *a, yuvBlock2_t *b);
-int  YUVGenerateCodebooks4(yuvBlock4_t *input, uint inputCount, uint goalCells, uint *resultCount, yuvBlock4_t **resultElements);
-int  YUVGenerateCodebooks2(yuvBlock2_t *input, uint inputCount, uint goalCells, uint *resultCount, yuvBlock2_t **resultElements);
+long  YUVGenerateCodebooks4(yuvBlock4_t *input, uint inputCount, uint goalCells, uint *resultCount, yuvBlock4_t **resultElements);
+long  YUVGenerateCodebooks2(yuvBlock2_t *input, uint inputCount, uint goalCells, uint *resultCount, yuvBlock2_t **resultElements);
 void ROQ_RGBtoYUV(byte r, byte g, byte b, byte *yp, byte *up, byte *vp);
 void ROQ_YUVtoRGB(byte y, byte u, byte v, byte *rp, byte *gp, byte *bp);
 dword ROQ_CompressRGB( roq_compressor_t *compressor, void *file, byte *rgb);

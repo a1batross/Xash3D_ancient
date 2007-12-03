@@ -18,7 +18,6 @@
 #define ROQ_PACKET			0x1030
 #define ZA_SOUND_MONO		0x1020
 #define ZA_SOUND_STEREO		0x1021
-#define MAX_VIDEO_HANDLES		16
 extern int s_paintedtime;
 extern int s_soundtime;		// sample PAIRS
 extern int s_rawend;
@@ -1010,7 +1009,7 @@ redump:
 		break;
 	case ROQ_PACKET:
 		cinTable.inMemory = cinTable.roq_flags;
-		cinTable.RoQFrameSize = 0;           // for header
+		cinTable.RoQFrameSize = 0; // for header
 		break;
 	case ROQ_QUAD_HANG:
 		cinTable.RoQFrameSize = 0;
@@ -1033,13 +1032,13 @@ redump:
 	}
 	
 	framedata	+= cinTable.RoQFrameSize;
-	cinTable.roq_id = framedata[0] + framedata[1]*256;
-	cinTable.RoQFrameSize = framedata[2] + framedata[3]*256 + framedata[4]*65536;
-	cinTable.roq_flags = framedata[6] + framedata[7]*256;
-	cinTable.roqF0	= (char)framedata[7];
-	cinTable.roqF1	= (char)framedata[6];
+	cinTable.roq_id = BuffLittleShort(&framedata[0]);
+	cinTable.RoQFrameSize = BuffLittleShort(&framedata[2]);
+	cinTable.roq_flags = BuffLittleShort(&framedata[6]);
+	cinTable.roqF0 = (char)framedata[7];
+	cinTable.roqF1 = (char)framedata[6];
 
-	if (cinTable.RoQFrameSize > 65536||cinTable.roq_id == 0x1084)
+	if (cinTable.RoQFrameSize > 65536 || cinTable.roq_id == 0x1084)
 	{
 		MsgDev(D_WARN, "RoQInterrupt: roq_size > 65536 || roq_id == 0x1084\n");
 		cinTable.status = FMV_EOF;
@@ -1080,16 +1079,15 @@ static void RoQ_init( void )
 	cinTable.RoQPlayed = 24;
 
 	// get frame rate	
-	cinTable.roqFPS = cin.file[6] + cin.file[7] * 256;
-	
+	cinTable.roqFPS = BuffLittleShort( &cin.file[6] );
 	if (!cinTable.roqFPS) cinTable.roqFPS = 30;
 
 	cinTable.numQuads = -1;
 
-	cinTable.roq_id = cin.file[8] + cin.file[9]*256;
-	cinTable.RoQFrameSize = cin.file[10] + cin.file[11] * 256 + cin.file[12] * 65536;
-	cinTable.roq_flags = cin.file[14] + cin.file[15] * 256;                     
-	MsgDev(D_INFO, "Movie: %s\n", CIN_Status());
+	cinTable.roq_id = BuffLittleShort( &cin.file[8] );
+	cinTable.RoQFrameSize = BuffLittleLong( &cin.file[10] );
+	cinTable.roq_flags = BuffLittleShort( &cin.file[14] );      
+	MsgDev(D_INFO, "Movie: %s [%d fps]\n", CIN_Status(), cinTable.roqFPS );
 }
 
 static void RoQShutdown( void )
@@ -1144,7 +1142,7 @@ e_status CIN_RunCinematic( void )
 
 	thisTime = cls.realtime;
 
-	cinTable.tfps = ((((cls.realtime) - cinTable.startTime) * 0.3) / 0.01); // 30.0 fps as default
+	cinTable.tfps = ((((cls.realtime) - cinTable.startTime) * cinTable.roqFPS / 100) / 0.01);
 	start = cinTable.startTime;
 
 	while((cinTable.tfps != cinTable.numQuads) && (cinTable.status == FMV_PLAY)) 
@@ -1152,7 +1150,7 @@ e_status CIN_RunCinematic( void )
 		RoQInterrupt();
 		if (start != cinTable.startTime)
 		{
-			cinTable.tfps = ((((cls.realtime) - cinTable.startTime)*0.3)/0.01);
+			cinTable.tfps = ((((cls.realtime) - cinTable.startTime) * cinTable.roqFPS / 100)/0.01);
 			start = cinTable.startTime;
 		}
 	}
@@ -1221,7 +1219,7 @@ bool CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemB
 
 	initRoQ();
 	FS_Read (cinTable.iFile, cin.file, 16 );
-	RoQID = (word)(cin.file[0]) + (word)(cin.file[1]) * 256;
+	RoQID = BuffLittleShort(&cin.file[0]);
 
 	if (RoQID == 0x1084)
 	{

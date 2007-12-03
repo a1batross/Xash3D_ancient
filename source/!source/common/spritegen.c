@@ -365,6 +365,16 @@ bool ParseSpriteScript (void)
 			Msg("%s probably studio qc.script, skipping...\n", gs_mapname );
 			return false;
 		}
+		else if(Com_MatchToken( "$videoname" ))//check for studiomdl script
+		{
+			Msg("%s probably roq movie qc.script, skipping...\n", gs_mapname );
+			return false;
+		}
+		else if(Com_MatchToken( "$framemask" ))//check for studiomdl script
+		{
+			Msg("%s probably roq movie qc.script, skipping...\n", gs_mapname );
+			return false;
+		}
 		else Cmd_SpriteUnknown();
 	}
 	return true;

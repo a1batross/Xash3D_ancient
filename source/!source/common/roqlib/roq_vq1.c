@@ -16,7 +16,7 @@ static byte codebookBuffer[2560];
 
 static byte ROQ_IndexCodebook2( yuvBlock2_t *block )
 {
-	int	i;
+	long	i;
 	uint	diff;
 	uint	highestDiff=9999999;
 	byte	choice=0;
@@ -36,7 +36,7 @@ static byte ROQ_IndexCodebook2( yuvBlock2_t *block )
 
 static void ROQ_IndexCodebook4( void )
 {
-	int i,j;
+	long i,j;
 
 	for(i = 0; i < 256; i++)
 	{
@@ -45,7 +45,7 @@ static void ROQ_IndexCodebook4( void )
 	}
 }
 
-int ROQ_MakeCodebooks(void)
+long ROQ_MakeCodebooks(void)
 {
 	yuvBlock2_t	*inputs2;
 	yuvBlock2_t	*results2;
@@ -130,7 +130,7 @@ int ROQ_MakeCodebooks(void)
 
 void GenerateCodebookDebugs(void)
 {
-	int	x,y,n = 0;
+	long	x,y,n = 0;
 
 	for(y = 0; y < 16; y++)
 	{
@@ -144,19 +144,58 @@ void GenerateCodebookDebugs(void)
 	}
 }
 
-int ROQ_GetCodebooks(void)
-{
-	int	i;
+static byte codebookBuffer[CB_FRAME_SIZE];
 
-	if(!ROQ_MakeCodebooks())
+int ReadCodebookCache( void )
+{
+	uint	i, j, n = 0;
+
+	if(!ROQ_ReadCodebook(codebookBuffer))
+		return 0;
+
+	// Parse the codebook data
+	for(i = 0; i < 256; i++)
+		for(j = 0; j < 6; j++)
+			yuvCodebook2[i].yuv[j] = codebookBuffer[n++];
+
+	for(i = 0; i < 256; i++)
+		for(j = 0; j < 4; j++)
+			yuvDisk4[i].indexes[j] = codebookBuffer[n++];
+	return 1;
+}
+
+void WriteCodebookCache(void)
+{
+	uint	i, j, n = 0;
+
+	for(i = 0; i < 256; i++)
+		for(j = 0; j < 6; j++)
+			codebookBuffer[n++] = yuvCodebook2[i].yuv[j];
+
+	for(i = 0; i < 256; i++)
+		for(j = 0; j < 4; j++)
+			codebookBuffer[n++] = yuvDisk4[i].indexes[j];
+
+	ROQ_SaveCodebook(codebookBuffer);
+}
+
+
+long ROQ_GetCodebooks( void )
+{
+	long	i;
+	bool	dontWrite;
+
+	if(!ReadCodebookCache())
 	{
 		// generate codebooks for this frame
-		return 0;
+		if(!ROQ_MakeCodebooks()) return 0;
+		dontWrite = false;
 	}
 	else
 	{
-		stats.vectorsProvided4 = vidWidth * vidHeight / 16;
+		stats.vectorsProvided4 = vidWidth*vidHeight / 16;
 		stats.vectorsQuantized4  = stats.vectorsProvided4;
+		dontWrite = true;
 	}
 
 	// decode the 2x2 codebook
@@ -173,6 +212,7 @@ int ROQ_GetCodebooks(void)
 	// create 8x8 codebooks by oversizing the 4x4 entries
 	for(i = 0; i < 256; i++) ROQ_DoubleSize(codebook4[i].rgb, codebook8[i].rgb, 4);
 	GenerateCodebookDebugs();
+	if(!dontWrite) WriteCodebookCache();
 
 	return 1;
 }

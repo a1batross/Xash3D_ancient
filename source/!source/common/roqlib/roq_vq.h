@@ -10,7 +10,7 @@ static void GLA_ITERATE(GLA_UNIT *input, uint inputCount, GLA_UNIT *book, uint b
 	uint	diff;
 	uint	bestDiff;
 	uint	bestMatch;
-	int	lhits[256];
+	long	lhits[256];
 	double	totalDeviation=0.0;
 
 	// remap the diameter list
@@ -49,11 +49,11 @@ static void GLA_ITERATE(GLA_UNIT *input, uint inputCount, GLA_UNIT *book, uint b
 	for(i = 0; i < inputCount; i++) lhits[mapping[i]]++;
 	for(i = 0; i < bookSize; i++) if(!lhits[i]) misses++;
 
-	GLA_PRINTF("%i misses ", misses);
+	MsgDev(D_NOTE, "%i misses ", misses);
 	GLA_CENTROID(input, inputCount, book, bookSize, mapping);
 }
 
-GLA_FUNCTION_SCOPE int GLA_FUNCTION(GLA_UNIT *input, uint inputCount, uint goalCells, uint *resultCount, GLA_UNIT **resultElements)
+GLA_FUNCTION_SCOPE long GLA_FUNCTION(GLA_UNIT *input, uint inputCount, uint goalCells, uint *resultCount, GLA_UNIT **resultElements)
 {
 	GLA_UNIT	*output=GLA_NULL;
 	GLA_UNIT	*output2=GLA_NULL;
@@ -95,7 +95,7 @@ GLA_FUNCTION_SCOPE int GLA_FUNCTION(GLA_UNIT *input, uint inputCount, uint goalC
 
 	for(cellGoal = 1; cellGoal < goalCells; cellGoal *= 2)
 	{
-		GLA_PRINTF("stdvq: Building codebook size %i...", cellGoal*2);
+		MsgDev(D_NOTE, "Building codebook size %i...\n", cellGoal*2);
 		// split each cell into 2 new cells, then perturb them.
 		// copy the original in so it can be perturbed as well if needed
 		for(i = 0; i < cellGoal; i++)
@@ -110,10 +110,9 @@ GLA_FUNCTION_SCOPE int GLA_FUNCTION(GLA_UNIT *input, uint inputCount, uint goalC
 		output = tempOutput;
 
 		// run GLA passes on the new output
-		GLA_PRINTF("Refining... ", 0);
 		for(i = 0; i < GLA2_MAX_PASSES; i++)
 			GLA_ITERATE(input, inputCount, output, cellGoal*2, mapping, hits, diameters, diamVectors);
-		GLA_PRINTF("Done\n", 0);
+		MsgDev(D_NOTE, "Done\n", 0);
 		step++;
 	}
 
@@ -144,7 +143,7 @@ GLA_FUNCTION_SCOPE int GLA_FUNCTION(GLA_UNIT *input, uint inputCount, uint goalC
 		}
 	}
 
-	GLA_PRINTF("%i splits made.\n", splitTotal);
+	MsgDev(D_NOTE, "%i splits made.\n", splitTotal);
 	Mem_Free(diameters);
 	Mem_Free(diamVectors);
 	Mem_Free(hits);

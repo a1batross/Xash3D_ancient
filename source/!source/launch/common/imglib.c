@@ -1672,7 +1672,6 @@ rgbdata_t *ImagePack( void )
 	pack->bitsCount = image_bits_count;
 	pack->flags = image_flags;
 	pack->palette = image_palette;
-
 	return pack;
 }
 

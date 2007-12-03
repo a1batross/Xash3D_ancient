@@ -52,9 +52,9 @@ uint YUVDifference2(yuvBlock2_t *a, yuvBlock2_t *b)
 
 void YUVPerturb2(yuvBlock2_t *a, yuvBlock2_t *b, uint step)
 {
-	int		i, res, diff = 0;
+	long		i, res, diff = 0;
 	static uint	lastStep = 999;
-	static int	rmax;
+	static long	rmax;
 	
 	if(lastStep != step)
 	{

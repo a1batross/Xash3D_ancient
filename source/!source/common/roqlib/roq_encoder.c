@@ -52,7 +52,7 @@ byte *roqpool;
 byte *rgbFrame0;
 byte *rgbFrame1;
 byte *rgbFrame2;
-int *optimizedOut4;
+long *optimizedOut4;
 rgbBlock8_t codebook8[256];
 rgbBlock4_t codebook4[256];
 rgbBlock2_t codebook2[256];
@@ -81,12 +81,12 @@ uint *chosenPossibilities;
 // REMOVED, THEN MEMORY MUST BE ALLOCATED FOR CHOSENPOSSIBILITIES!!!
 
 uint refinementPasses;
-int bookentryUsed2[256];
-int bookentryUsed4[256];
+long bookentryUsed2[256];
+long bookentryUsed4[256];
 byte bookentryRemap2[256];
 byte bookentryRemap4[256];
-int entriesUsed2;
-int entriesUsed4;
+long entriesUsed2;
+long entriesUsed4;
 uint quickDiff[256*256];	// Quick square-difference table
 roq_stats_t stats;
 
@@ -106,9 +106,9 @@ void ROQ_InitQuickdiff( void )
 	}
 }
 
-static int ROQ_InitializeCompressor( void )
+static long ROQ_InitializeCompressor( void )
 {
-	int	i;
+	long	i;
 	uint	numBlocks;
 	uint	prewriteSize;
 
@@ -132,14 +132,14 @@ static int ROQ_InitializeCompressor( void )
 	INIT_ALLOC(comp->devMotion8, vidWidth*vidHeight*sizeof(uint)/(8*8));
 	INIT_ALLOC(comp->devMotion4, vidWidth*vidHeight*sizeof(uint)/(4*4));
 	INIT_ALLOC(comp->devSkip4, vidWidth*vidHeight*sizeof(uint)/(4*4));
-	INIT_ALLOC(comp->optimizedOut4, vidWidth*vidHeight*sizeof(int)/(4*4));
+	INIT_ALLOC(comp->optimizedOut4, vidWidth*vidHeight*sizeof(long)/(4*4));
 	INIT_ALLOC(comp->motionVectors8, vidWidth*vidHeight*sizeof(motionVector_t)/(8*8));
 	INIT_ALLOC(comp->motionVectors4, vidWidth*vidHeight*sizeof(motionVector_t)/(4*4));
 	INIT_ALLOC(comp->lut8, vidWidth*vidHeight/(8*8));
 	INIT_ALLOC(comp->lut4, vidWidth*vidHeight/(4*4));
 	INIT_ALLOC(comp->lut2, vidWidth*vidHeight/(2*2));
 	INIT_ALLOC(comp->pList, vidWidth*vidHeight*sizeof(possibilityList_t)/(8*8));
-	INIT_ALLOC(comp->listSort, vidWidth*vidHeight*sizeof(uint)/(8*8));
+	INIT_ALLOC(comp->listSort, vidWidth * vidHeight*sizeof(uint) / (8*8));
 	INIT_ALLOC(comp->recon, vidWidth*vidHeight*3);
 
 	numBlocks = vidWidth * vidHeight/64;
@@ -165,7 +165,7 @@ static int ROQ_InitializeCompressor( void )
 	return true;
 }
 
-// RGB2toYUV2 :: Converts a 2x2 RGB block into a 4:2:0 YUV block
+// RGB2toYUV2 :: Converts a 2x2 RGB block longo a 4:2:0 YUV block
 void RGB2toYUV2(byte *rgb, byte *yuv)
 {
 	byte y[4];
@@ -191,7 +191,7 @@ void RGB2toYUV2(byte *rgb, byte *yuv)
 	yuv[5] = (byte)(vtotal/4);
 }
 
-// RGB2toYUV2 :: Converts a YUV 4:2:0 block into a 2x2 RGB block
+// RGB2toYUV2 :: Converts a YUV 4:2:0 block longo a 2x2 RGB block
 void YUV2toRGB2(byte *yuv, byte *rgb)
 {
 	ROQ_YUVtoRGB(yuv[0], yuv[4], yuv[5], rgb+0, rgb+1, rgb+2);
@@ -327,13 +327,13 @@ static void MakeDevLut2(void)
 // 6 7 8
 static motionVector_t mVectors[9] = { {0, 0}, {-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}};
 
-static uint MotionSearch(uint dimension, byte *original, motionVector_t *v, int baseX, int baseY)
+static uint MotionSearch(uint dimension, byte *original, motionVector_t *v, long baseX, long baseY)
 {
 	byte	temp[8*8*3];	// Big enough for anything
 	uint	blockSize = dimension * dimension * 3;
-	int	i, dx = 0, dy = 0;
-	int	offsetX, offsetY;
-	int	pick, stepSize = 4;	// 3 iterations on a start size of 4 makes +/- 7 pixels, RoQ's limit
+	long	i, dx = 0, dy = 0;
+	long	offsetX, offsetY;
+	long	pick, stepSize = 4;	// 3 iterations on a start size of 4 makes +/- 7 pixels, RoQ's limit
 	uint	lowDiff, diffs[9];
 
 	while(stepSize)
@@ -347,7 +347,7 @@ static uint MotionSearch(uint dimension, byte *original, motionVector_t *v, int 
 			offsetY = baseY + dy + mVectors[i].y * stepSize;
 
 			// Don't pick out-of-bounds parts
-			if(offsetX < 0 || offsetY < 0 || offsetX+(int)dimension > (int)vidWidth || offsetY+(int)dimension > (int)vidHeight)
+			if(offsetX < 0 || offsetY < 0 || offsetX+(long)dimension > (long)vidWidth || offsetY+(long)dimension > (long)vidHeight)
 			{
 				diffs[i] = MAX_MSE;
 				continue;
@@ -436,7 +436,7 @@ static void MakeSkip(void)
 
 static void ROQ_MakeMotionTables(void)
 {
-	memset(optimizedOut4, 0, sizeof(int) * vidWidth * vidHeight / (4*4));
+	memset(optimizedOut4, 0, sizeof(long) * vidWidth * vidHeight / (4*4));
 	if(comp->frameNum <= 2) return;// No motion/skip detection for the first 2 frames
 
 	// Make MOT and SKIP first so LUT generation can be optimized
@@ -459,7 +459,7 @@ static void ROQ_MakeDevTables(void)
 }
 
 // MSE possibility list encoding (Progressive/Brute Force method)
-static int possibilityValid[259];
+static long possibilityValid[259];
 static motionVector_t quadOffsets[4] = {{0, 0}, {1, 0}, {0, 1}, {1, 1}};
 static uint possibilitySizes[259];
 
@@ -581,7 +581,7 @@ void CalcMSEShift(possibilityList_t *pList)
 // ComparePList :: Compares two possibility lists, based on validity
 // and potential reduction rate
 
-static int ComparePList(const void *pl1, const void *pl2)
+static long ComparePList(const void *pl1, const void *pl2)
 {
 	possibilityList_t	*v1, *v2;
 	double		d1, d2;
@@ -603,16 +603,16 @@ static int ComparePList(const void *pl1, const void *pl2)
 }
 
 // ComparePListEntries :: qsort compare function for two
-// integer indexes into the possibility list.  Must be done in
+// longeger indexes longo the possibility list.  Must be done in
 // a separate array because the possibility lists are in the
 // order they appear in the image.
 
-static int ComparePListEntries(const void *pl1, const void *pl2)
+static long ComparePListEntries(const void *pl1, const void *pl2)
 {
 	uint	*i1, *i2;
 
-	i1 = (uint *)pl1;
-	i2 = (uint *)pl2;
+	i1 = (dword *)pl1;
+	i2 = (dword *)pl2;
 	return ComparePList(pList + (*i1), pList + (*i2));
 }
 
@@ -626,7 +626,7 @@ static void ProgressiveReduceList(uint goalBits)
 	uint		i, temp, listCount;
 	uint		currentSize;
 	possibilityList_t	*curList;
-	int		firstFrame = 1;
+	long		firstFrame = 1;
 
 	listCount = vidWidth*vidHeight/(8*8);
 
@@ -681,8 +681,8 @@ static void ProgressiveReduceList(uint goalBits)
 void ReconstructImage(void)
 {
 	uint	x, y, bit, sub, choice, mask, idx4, idx2;
-	uint	ox, oy, n = 0;
-	int	dx, dy;
+	uint	ox, oy, n;
+	long	dx, dy;
 	byte	subIndex[4];
 
 	for(n = 0; n < 256; n++) bookentryUsed4[n] = bookentryUsed2[n] = 0;
@@ -690,6 +690,7 @@ void ReconstructImage(void)
 	// WARNING: If listSort is obsoleted, this needs to be changed
 	chosenPossibilities = listSort;
 
+	n = 0;
 	for(y = 0; y < vidHeight; y += 8)
 	{
 		for(x = 0; x < vidWidth; x += 8)
@@ -701,8 +702,8 @@ void ReconstructImage(void)
 			else if(choice == BLOCKMARK_MOTION)
 			{
 				// Blit from an offset in the previous frame
-				dx = (int)x + motionVectors8[n].x;
-				dy = (int)y + motionVectors8[n].y;
+				dx = (long)x + motionVectors8[n].x;
+				dy = (long)y + motionVectors8[n].y;
 				ROQ_Blit(rgbFrame1 + (dx*3) + (dy*vidScanWidth), recon + (x*3) + (y*vidScanWidth), 8*3, vidScanWidth, vidScanWidth, 8);
 			}
 			else if(choice == BLOCKMARK_VECTOR)
@@ -731,8 +732,8 @@ void ReconstructImage(void)
 					else if(mask == BLOCKMARK_MOTION)
 					{
 						// Blit from an offset in the previous frame
-						dx = (int)ox + motionVectors4[idx4].x;
-						dy = (int)oy + motionVectors4[idx4].y;
+						dx = (long)ox + motionVectors4[idx4].x;
+						dy = (long)oy + motionVectors4[idx4].y;
 						ROQ_Blit(rgbFrame1 + (dx*3) + (dy*vidScanWidth), recon+(ox*3)+(oy*vidScanWidth), 4*3, vidScanWidth, vidScanWidth, 4);
 					}
 					else if(mask == BLOCKMARK_VECTOR)
@@ -772,7 +773,7 @@ void ReconstructImage(void)
 
 static void OptimizeCodebooks( void )
 {
-	int	i,j;
+	long	i,j;
 
 	entriesUsed2 = entriesUsed4 = 0;
 
@@ -796,14 +797,14 @@ static void OptimizeCodebooks( void )
 
 // storage control stuff
 byte argumentSpool[64];
-int  argumentSpoolLength;
+long  argumentSpoolLength;
 word typeSpool;
-int  typeSpoolLength;
+long  typeSpoolLength;
 uint storeOffset;
 uint chunkStart;
 file_t *storeFile;
 
-static void StoreByte(int b) { preWrite[storeOffset++] = (byte)b; }
+static void StoreByte(long b) { preWrite[storeOffset++] = (byte)b; }
 static void StoreUShort(word s) { StoreByte(s); StoreByte(s>>8); }
 
 static void BeginChunk(word mark, word parameter)
@@ -831,7 +832,7 @@ static void EndChunk(void)
 // video encode spooling
 static void FlushSpools(void)
 {
-	int i;
+	long i;
 
 	// Flush encode types first
 	StoreByte(typeSpool & 0xff);
@@ -843,7 +844,7 @@ static void FlushSpools(void)
 }
 
 // RoQ parses types in MSB order, then stores them in LSB order.
-static void SpoolType(int type)
+static void SpoolType(long type)
 {
 	if(typeSpoolLength == 16) FlushSpools();
 	typeSpool |= (type & 3) << (14 - typeSpoolLength);
@@ -857,7 +858,7 @@ static void SpoolArgument(byte argument)
 
 static void SpoolMotion(motionVector_t *m)
 {
-	int	ax,ay;
+	long	ax,ay;
 	byte	arg;
 
 	ax = 8 - m->x;
@@ -869,7 +870,7 @@ static void SpoolMotion(motionVector_t *m)
 
 static void WriteCodebooks(void)
 {
-	int	i,j;
+	long	i,j;
 	word	arg;
 
 	// store this stuff in the argument
