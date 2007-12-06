@@ -390,7 +390,7 @@ bool	btVoronoiSimplexSolver::closestPtPointTriangle(const btPoint3& p, const btP
 		return true;
         //return a + w * ac; // barycentric coordinates (1-w,0,w)
     }
-
+#undef va
     // Check if P in edge region of BC, if so return projection of P onto BC
     btScalar va = d3*d6 - d5*d4;
     if (va <= btScalar(0.0) && (d4 - d3) >= btScalar(0.0) && (d5 - d6) >= btScalar(0.0)) {

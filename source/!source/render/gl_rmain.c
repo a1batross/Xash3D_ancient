@@ -667,24 +667,13 @@ void R_Flash( void )
 	R_PolyBlend ();
 }
 
-static void R_DrawLine( int color, int numpoints, const float *points )
+static void R_DrawLine( vec3_t color, vec3_t start, vec3_t end )
 {
-	int	i = numpoints - 1;
-	vec3_t	p0, p1;
-
-	VectorSet(p0, points[i * 3 + 0], points[i * 3 + 1], points[i * 3 + 2]);
-	ConvertPositionToGame( p0 );
-
-	for (i = 0; i < numpoints; i ++)
-	{
-		VectorSet(p1, points[i * 3 + 0], points[i * 3 + 1], points[i * 3 + 2]);
-		ConvertPositionToGame( p1 );
- 
-		qglVertex3fv(p0);
-		qglVertex3fv(p1);
- 
- 		VectorCopy(p1, p0);
- 	}
+	qglBegin(GL_LINES);
+	qglColor3f(color[0], color[1], color[2]);
+	qglVertex3d(start[0], start[1], start[2]);
+	qglVertex3d(end[0], end[1], end[2]);
+	qglEnd();
 }
 
 void R_DebugGraphics( void )
@@ -694,15 +683,8 @@ void R_DebugGraphics( void )
 
 	if(r_physbdebug->integer)
 	{
-		qglDisable(GL_TEXTURE_2D); 
-		qglColor3f (1, 0.7f, 0);
-		qglBegin(GL_LINES);
-
 		// physic debug
-		ri.CM_DrawCollision( R_DrawLine );
-
-		qglEnd(); 
-		qglEnable(GL_TEXTURE_2D);
+		ri.DrawCollision();
 	}
 }
 
@@ -1582,6 +1564,7 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.SetColor = GL_SetColor;
 	re.ScrShot = VID_ScreenShot;
 	re.DrawFill = Draw_Fill;
+	re.DrawLine = R_DrawLine;
 	re.DrawStretchRaw = Draw_StretchRaw;
 	re.DrawStretchPic = Draw_StretchPic;
 

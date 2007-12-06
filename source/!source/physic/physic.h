@@ -20,10 +20,11 @@ extern byte *physpool;
 
 extern void Phys_LoadBSP( uint *buffer );
 extern void Phys_FreeBSP( void );
-extern void DebugShowCollision ( cmdraw_t callback );
+extern void DebugShowCollision ( void );
 extern void Phys_Frame( float time );
-extern void Phys_CreateBody( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3_t ang, int solid, NewtonCollision **newcol, NewtonBody **newbody );
-extern void Phys_RemoveBody( NewtonBody *body );
+extern void Phys_WorldUpdate( void );
+extern physbody_t *Phys_CreateBody( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3_t ang, int solid );
+extern void Phys_RemoveBody( physbody_t *body );
 extern bool InitPhysics( void );
 extern void FreePhysics( void );
 

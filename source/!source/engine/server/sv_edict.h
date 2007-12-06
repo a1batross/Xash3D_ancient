@@ -61,8 +61,7 @@ struct sv_edict_s
 	int			serialnumber;	// unical entity #id
 	int			solid;		// see entity_state_t for details
 	int			event;		// apply sv.events too
-	NewtonBody		*physbody;	// ptr to phys body
-	NewtonCollision		*collision;	// collision callback
+	physbody_t		*physbody;	// ptr to phys body
 
 	// baselines
 	entity_state_t		s;

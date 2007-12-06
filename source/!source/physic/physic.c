@@ -25,6 +25,7 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 	Phys.FreeBSP = Phys_FreeBSP;
 	Phys.DrawCollision = DebugShowCollision;
 	Phys.Frame = Phys_Frame;
+	Phys.Update = Phys_WorldUpdate;
 	Phys.CreateBody = Phys_CreateBody;
 	Phys.RemoveBody = Phys_RemoveBody;
 

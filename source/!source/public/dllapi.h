@@ -192,6 +192,7 @@ typedef struct render_exp_s
 	void	(*SetColor)( const float *rgba );
 	bool	(*ScrShot)( const char *filename, bool force_gamma ); // write screenshot with same name 
 	void	(*DrawFill)(float x, float y, float w, float h );
+	void	(*DrawLine)( vec3_t color, vec3_t from, vec3_t to ); // collision debug draw
 	void	(*DrawStretchRaw) (int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw );
 	void	(*DrawStretchPic)(float x, float y, float w, float h, float s1, float t1, float s2, float t2, char *name);
 
@@ -206,8 +207,7 @@ typedef struct render_imp_s
 
 	// client fundamental callbacks
 	void	(*StudioEvent)( mstudioevent_t *event, entity_t *ent );
-	void	(*CM_DrawCollision)( cmdraw_t drawfunc );
-	void	(*ShowCollision)( void );	// debug
+	void	(*DrawCollision)( void );	// debug
 
 } render_imp_t;
 
@@ -228,12 +228,13 @@ typedef struct physic_exp_s
 
 	void (*LoadBSP)( uint *buf );	// generate tree collision
 	void (*FreeBSP)( void );	// release tree collision
-	void (*DrawCollision)( cmdraw_t callback );// debug
+	void (*DrawCollision)( void );// debug
 	void (*Frame)( float time );	// physics frame
+	void (*Update)( void );	// world frame
 
 	// simple objects
-	void (*CreateBody)( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3_t ang, int solid, NewtonCollision **newcol, NewtonBody **newbody );
-	void (*RemoveBody)( NewtonBody *body );
+	physbody_t *(*CreateBody)( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3_t ang, int solid );
+	void (*RemoveBody)( physbody_t *body );
 
 } physic_exp_t;
 
@@ -244,7 +245,7 @@ typedef struct physic_imp_s
 
 	void (*Transform)( sv_edict_t *ed, vec3_t origin, vec3_t angles );
 	float *(*GetModelVerts)( sv_edict_t *ent, int *numvertices );
-
+	void (*DrawLine)( vec3_t color, vec3_t from, vec3_t to );
 } physic_imp_t;
 
 // this is the only function actually exported at the linker level

@@ -159,7 +159,18 @@ void misc_barrel( void )
 
 	precache_model( name );
 	pev->owner = pev;
-	pev->solid = SOLID_MESH; //test
+	pev->solid = SOLID_CYLINDER; //test
+	pev->movetype = MOVETYPE_PHYSIC;
+	setmodel (pev, name );
+}
+
+void misc_sphere( void )
+{
+	string name = "models/nexplode.mdl";
+
+	precache_model( name );
+	pev->owner = pev;
+	pev->solid = SOLID_SPHERE; //test
 	pev->movetype = MOVETYPE_PHYSIC;
 	setmodel (pev, name );
 }
@@ -168,7 +179,7 @@ void item_healthkit( void )
 {
 	precache_model( "models/w_medkit.mdl" );
 	pev->owner = pev;
-	pev->solid = SOLID_MESH;
+	pev->solid = SOLID_CYLINDER;
 	pev->movetype = MOVETYPE_PHYSIC;
 	setmodel (pev, "models/w_medkit.mdl" );
 }

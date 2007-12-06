@@ -68,5 +68,5 @@ if exist compile.log del /f /q compile.log
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading
 cd D:\Xash3D\
-xash.exe +map qctest -log -debug -dev 3
+xash.exe +map phystest -log -debug -dev 3
 :done

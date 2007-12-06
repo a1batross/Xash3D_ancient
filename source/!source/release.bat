@@ -61,9 +61,9 @@ if exist launch\launch.plg del /f /q launch\launch.plg
 if exist common\common.plg del /f /q common\common.plg
 if exist physic\physic.plg del /f /q physic\physic.plg
 if exist render\render.plg del /f /q render\render.plg
-if exist pr_server\server.dat move pr_server\server.dat D:\Xash3D\xash\vprogs\server.dat
-if exist pr_client\client.dat move pr_client\client.dat D:\Xash3D\xash\vprogs\client.dat
-if exist pr_uimenu\uimenu.dat move pr_uimenu\uimenu.dat D:\Xash3D\xash\vprogs\uimenu.dat
+if exist temp\server.dat move temp\server.dat D:\Xash3D\xash\vprogs\server.dat
+if exist temp\client.dat move temp\client.dat D:\Xash3D\xash\vprogs\client.dat
+if exist temp\uimenu.dat move temp\uimenu.dat D:\Xash3D\xash\vprogs\uimenu.dat
 if exist compile.log del /f /q compile.log
 
 echo 	     Build succeeded!

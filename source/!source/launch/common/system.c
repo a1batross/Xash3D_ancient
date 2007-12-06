@@ -853,6 +853,7 @@ void Sys_Init( void )
 	if(abs((short)hStdout) < 100) Sys.hooked_out = false;
 	else Sys.hooked_out = true;
 	FS_UpdateEnvironmentVariables(); // set working directory
+	SetErrorMode( SEM_FAILCRITICALERRORS );	// no abort/retry/fail errors
 
 	Sys.con_showalways = true;
 	Sys.con_readonly = true;

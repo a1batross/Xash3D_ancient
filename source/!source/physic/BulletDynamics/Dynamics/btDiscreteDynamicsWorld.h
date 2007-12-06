@@ -128,6 +128,7 @@ public:
 		return m_debugDrawer;
 	}
 
+	virtual void	DrawDebug( void );
 	virtual void	setGravity(const btVector3& gravity);
 
 	virtual void	addRigidBody(btRigidBody* body);

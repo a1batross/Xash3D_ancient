@@ -22,7 +22,7 @@ subject to the following restrictions:
 #include <cstdlib>
 #include <cfloat>
 #include <float.h>
-
+#include "physic.h"
 
 
 
@@ -53,7 +53,7 @@ subject to the following restrictions:
 		#endif //__MINGW32__
 
 		#include <assert.h>
-		#define btAssert assert
+		#define btAssert(x) if(!(x)) Host_Error( "assert failed at %s:%i\n", __FILE__, __LINE__ );
 		//btFullAssert is optional, slows down a lot
 		#define btFullAssert(x)
 

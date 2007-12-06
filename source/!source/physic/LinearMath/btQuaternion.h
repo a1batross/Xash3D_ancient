@@ -23,12 +23,10 @@ class btQuaternion : public btQuadWord {
 public:
 	btQuaternion() {}
 
-	//		template <typename btScalar>
-	//		explicit Quaternion(const btScalar *v) : Tuple4<btScalar>(v) {}
+	// template <typename btScalar>
+	// explicit Quaternion(const btScalar *v) : Tuple4<btScalar>(v) {}
 
-	btQuaternion(const btScalar& x, const btScalar& y, const btScalar& z, const btScalar& w) 
-		: btQuadWord(x, y, z, w) 
-	{}
+	btQuaternion(const btScalar& x, const btScalar& y, const btScalar& z, const btScalar& w) : btQuadWord(x, y, z, w) {}
 
 	btQuaternion(const btVector3& axis, const btScalar& angle) 
 	{ 
@@ -45,8 +43,7 @@ public:
 		btScalar d = axis.length();
 		assert(d != btScalar(0.0));
 		btScalar s = btSin(angle * btScalar(0.5)) / d;
-		setValue(axis.x() * s, axis.y() * s, axis.z() * s, 
-			btCos(angle * btScalar(0.5)));
+		setValue(axis.x() * s, axis.y() * s, axis.z() * s, btCos(angle * btScalar(0.5)));
 	}
 
 	void setEuler(const btScalar& yaw, const btScalar& pitch, const btScalar& roll)

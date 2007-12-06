@@ -1855,7 +1855,7 @@ typedef enum
 // phys collision mode
 typedef enum
 {
-	SOLID_NOT,    	// no interaction with other objects
+	SOLID_NOT = 0,    	// no interaction with other objects
 	SOLID_TRIGGER,	// only touch when inside, after moving
 	SOLID_BBOX,	// touch on edge
 	SOLID_BSP,    	// bsp clip, touch on edge
@@ -1874,8 +1874,10 @@ typedef struct physdata_s
 	vec3_t		mins;		// for calculate size 
 	vec3_t		maxs;		// and setup offset matrix
 
-	NewtonCollision	*collision;	// ptr to collision mesh
-	NewtonBody	*physbody;	// ptr to physic body
+	int		movetype;		// moving type
+	int		hulltype;		// solid type
+
+	physbody_t	*body;		// ptr to physic body
 } physdata_t;
 
 /*

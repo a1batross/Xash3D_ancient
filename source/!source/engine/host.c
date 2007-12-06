@@ -109,6 +109,11 @@ void Host_FreeCommon( void )
 	Mem_FreePool( &zonepool );
 }
 
+void Host_DrawLine( vec3_t color, vec3_t from, vec3_t to )
+{
+	if( re ) re->DrawLine( color, from, to);
+}
+
 void Host_InitPhysic( void )
 {
 	static physic_imp_t		pi;
@@ -118,6 +123,7 @@ void Host_InitPhysic( void )
 	pi.api_size = sizeof(physic_imp_t);
 	pi.Transform = SV_Transform;
 	pi.GetModelVerts = SV_GetModelVerts;
+	pi.DrawLine = Host_DrawLine;
 
 	Sys_LoadLibrary( &physic_dll );
 
@@ -146,7 +152,7 @@ void Host_InitRender( void )
 
           // studio callbacks
 	ri.StudioEvent = CL_StudioEvent;
-	ri.CM_DrawCollision = pe->DrawCollision;
+	ri.DrawCollision = pe->DrawCollision;
           
 	Sys_LoadLibrary( &render_dll );
 	

@@ -342,36 +342,6 @@ _inline void AngleVectorsFLU(const vec3_t angles, vec3_t forward, vec3_t left, v
 	}
 }
 
-_inline void MatrixAnglesFLU( const matrix4x4 matrix, vec3_t origin, vec3_t angles )
-{ 
-	vec3_t	forward, left, up;
-	float	xyDist;
-
-	forward[0] = matrix[0][0];
-	forward[1] = matrix[0][1];
-	forward[2] = matrix[0][2];
-	left[0] = matrix[1][0];
-	left[1] = matrix[1][1];
-	left[2] = matrix[1][2];
-	up[2] = matrix[2][2];
-
-	xyDist = sqrt( forward[0] * forward[0] + forward[1] * forward[1] );
-
-	if ( xyDist > EQUAL_EPSILON ) // enough here to get angles?
-	{
-		angles[1] = RAD2DEG( atan2( forward[1], forward[0] ) );
-		angles[0] = RAD2DEG( atan2( -forward[2], xyDist ) );
-		angles[2] = RAD2DEG( atan2( left[2], up[2] ) );
-	}
-	else
-	{
-		angles[1] = RAD2DEG( atan2( -left[0], left[1] ) );
-		angles[0] = RAD2DEG( atan2( -forward[2], xyDist ) );
-		angles[2] = 0;
-	}
-	VectorCopy(matrix[3], origin );// extract origin
-}
-
 /*
 ====================
 AngleMatrix
@@ -517,12 +487,12 @@ _inline void MatrixAngles( const matrix4x4 matrix, vec3_t origin, vec3_t angles 
 	float	xyDist;
 
 	forward[0] = matrix[0][0];
-	forward[1] = matrix[0][1];
-	forward[2] = matrix[0][2];
+	forward[1] = matrix[0][2];
+	forward[2] = matrix[0][1];
 	right[0] = matrix[1][0];
-	right[1] = matrix[1][1];
-	right[2] = matrix[1][2];
-	up[2] = matrix[2][2];
+	right[1] = matrix[1][2];
+	right[2] = matrix[1][1];
+	up[2] = matrix[2][1];
 	
 	xyDist = sqrt( forward[0] * forward[0] + forward[1] * forward[1] );
 	
@@ -541,6 +511,84 @@ _inline void MatrixAngles( const matrix4x4 matrix, vec3_t origin, vec3_t angles 
 	VectorCopy(matrix[3], origin );// extract origin
 }
 
+_inline void MatrixAnglesFLU( const matrix4x4 matrix, vec3_t origin, vec3_t angles )
+{ 
+	vec3_t	forward, left, up;
+	float	xyDist;
+
+	forward[0] = matrix[0][0];
+	forward[1] = matrix[0][2];
+	forward[2] = matrix[0][1];
+	left[0] = matrix[1][0];
+	left[1] = matrix[1][2];
+	left[2] = matrix[1][1];
+	up[2] = matrix[2][1];
+
+	xyDist = sqrt( forward[0] * forward[0] + forward[1] * forward[1] );
+
+	if ( xyDist > EQUAL_EPSILON ) // enough here to get angles?
+	{
+		angles[1] = RAD2DEG( atan2( forward[1], forward[0] ) );
+		angles[0] = RAD2DEG( atan2( -forward[2], xyDist ) );
+		angles[2] = RAD2DEG( atan2( left[2], up[2] ) );
+	}
+	else
+	{
+		angles[1] = RAD2DEG( atan2( -left[0], left[1] ) );
+		angles[0] = RAD2DEG( atan2( -forward[2], xyDist ) );
+		angles[2] = 0;
+	}
+	VectorCopy(matrix[3], origin );// extract origin
+}
+
+_inline void AnglesMatrix(const vec3_t origin, const vec3_t angles, matrix4x4 matrix )
+{
+	float		angle;
+	float		sr, sp, sy, cr, cp, cy;
+
+	angle = angles[YAW] * (M_PI*2 / 360);
+	sy = sin(angle);
+	cy = cos(angle);
+	angle = angles[PITCH] * (M_PI*2 / 360);
+	sp = sin(angle);
+	cp = cos(angle);
+
+	// forward
+	matrix[0][0] = cp*cy;
+	matrix[0][2] = cp*sy;
+	matrix[0][1] = -sp;
+
+	if (angles[ROLL])
+	{
+		angle = angles[ROLL] * (M_PI*2 / 360);
+		sr = sin(angle);
+		cr = cos(angle);
+
+		// right
+		matrix[1][0] = -1*(sr*sp*cy+cr*-sy);
+		matrix[1][2] = -1*(sr*sp*sy+cr*cy);
+		matrix[1][1] = -1*(sr*cp);
+
+		// up
+		matrix[2][0] = (cr*sp*cy+-sr*-sy);
+		matrix[2][2] = (cr*sp*sy+-sr*cy);
+		matrix[2][1] = cr*cp;
+	}
+	else
+	{
+		// right
+		matrix[1][0] = sy;
+		matrix[1][2] = -cy;
+		matrix[1][1] = 0;
+
+		// up
+		matrix[2][0] = (sp*cy);
+		matrix[2][2] = (sp*sy);
+		matrix[2][1] = cp;
+	}
+	VectorCopy(origin, matrix[3] ); // pack origin
+}
+
 
 /*
 ====================
@@ -548,7 +596,7 @@ AngleQuaternion
 
 ====================
 */
-_inline void AngleQuaternion( float *angles, vec4_t quaternion )
+_inline void AngleQuaternion( float *angles, vec4_t q )
 {
 	float		angle;
 	float		sr, sp, sy, cr, cp, cy;
@@ -564,12 +612,27 @@ _inline void AngleQuaternion( float *angles, vec4_t quaternion )
 	sr = sin(angle);
 	cr = cos(angle);
 
-	quaternion[0] = sr*cp*cy-cr*sp*sy; // X
-	quaternion[1] = cr*sp*cy+sr*cp*sy; // Y
-	quaternion[2] = cr*cp*sy-sr*sp*cy; // Z
-	quaternion[3] = cr*cp*cy+sr*sp*sy; // W
+	q[0] = sr*cp*cy-cr*sp*sy; // X
+	q[1] = cr*sp*cy+sr*cp*sy; // Y
+	q[2] = cr*cp*sy-sr*sp*cy; // Z
+	q[3] = cr*cp*cy+sr*sp*sy; // W
 }
 
+_inline void QuaternionAngles( vec4_t q, vec3_t angles )
+{
+	float m11, m12, m13, m23, m33;
+
+	m11 = ( 2.0f * q[3] * q[3] ) + ( 2.0f * q[0] * q[0] ) - 1.0f;
+	m12 = ( 2.0f * q[0] * q[1] ) + ( 2.0f * q[3] * q[2] );
+	m13 = ( 2.0f * q[0] * q[2] ) - ( 2.0f * q[3] * q[1] );
+	m23 = ( 2.0f * q[1] * q[2] ) + ( 2.0f * q[3] * q[0] );
+	m33 = ( 2.0f * q[3] * q[3] ) + ( 2.0f * q[2] * q[2] ) - 1.0f;
+
+	// FIXME: this code has a singularity near PITCH +-90
+	angles[YAW] = RAD2DEG( atan2(m12, m11));
+	angles[PITCH] = RAD2DEG( asin(-m13));
+	angles[ROLL] = RAD2DEG( atan2(m23, m33));
+}
 
 /*
 ====================

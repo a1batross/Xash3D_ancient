@@ -102,14 +102,34 @@ void	btDiscreteDynamicsWorld::saveKinematicState(btScalar timeStep)
 	}
 }
 
-void	btDiscreteDynamicsWorld::synchronizeMotionStates()
+void btDiscreteDynamicsWorld::synchronizeMotionStates()
 {
-	//debug vehicle wheels
-	
-	
+	// todo: iterate over awake simulation islands!
+	for ( int i = 0; i < m_collisionObjects.size(); i++)
 	{
-		//todo: iterate over awake simulation islands!
-		for ( int i=0;i<m_collisionObjects.size();i++)
+		btCollisionObject* colObj = m_collisionObjects[i];
+		btRigidBody* body = btRigidBody::upcast(colObj);
+		if (body && body->getMotionState() && !body->isStaticOrKinematicObject())
+		{
+			// we need to call the update at least once, even for sleeping objects
+			// otherwise the 'graphics' transform never updates properly
+			// so todo: add 'dirty' flag
+			//if (body->getActivationState() != ISLAND_SLEEPING)
+			{
+				btTransform interpolatedTransform;
+				btTransformUtil::integrateTransform(body->getInterpolationWorldTransform(),
+				body->getInterpolationLinearVelocity(),body->getInterpolationAngularVelocity(),m_localTime,interpolatedTransform);
+				body->getMotionState()->setWorldTransform(interpolatedTransform);
+			}
+		}
+	}
+}
+
+void btDiscreteDynamicsWorld::DrawDebug( void )
+{
+	// debug vehicle wheels
+	{
+		for ( int i = 0; i < m_collisionObjects.size(); i++)
 		{
 			btCollisionObject* colObj = m_collisionObjects[i];
 			if (getDebugDrawer() && getDebugDrawer()->getDebugMode() & btIDebugDraw::DBG_DrawWireframe)
@@ -128,69 +148,48 @@ void	btDiscreteDynamicsWorld::synchronizeMotionStates()
 				case DISABLE_SIMULATION:
 					color = btVector3(btScalar(255.),btScalar(255.),btScalar(0.));break;
 				default:
-					{
-						color = btVector3(btScalar(255.),btScalar(0.),btScalar(0.));
-					}
+					color = btVector3(btScalar(255.),btScalar(0.),btScalar(0.)); break;
 				};
-
 				debugDrawObject(colObj->getWorldTransform(),colObj->getCollisionShape(),color);
-			}
-			btRigidBody* body = btRigidBody::upcast(colObj);
-			if (body && body->getMotionState() && !body->isStaticOrKinematicObject())
-			{
-				//we need to call the update at least once, even for sleeping objects
-				//otherwise the 'graphics' transform never updates properly
-				//so todo: add 'dirty' flag
-				//if (body->getActivationState() != ISLAND_SLEEPING)
-				{
-					btTransform interpolatedTransform;
-					btTransformUtil::integrateTransform(body->getInterpolationWorldTransform(),
-						body->getInterpolationLinearVelocity(),body->getInterpolationAngularVelocity(),m_localTime,interpolatedTransform);
-					body->getMotionState()->setWorldTransform(interpolatedTransform);
-				}
 			}
 		}
 	}
 
 	if (getDebugDrawer() && getDebugDrawer()->getDebugMode() & btIDebugDraw::DBG_DrawWireframe)
 	{
-		for ( int i=0;i<this->m_vehicles.size();i++)
+		for ( int i = 0; i < this->m_vehicles.size(); i++)
 		{
-			for (int v=0;v<m_vehicles[i]->getNumWheels();v++)
+			for (int v = 0; v < m_vehicles[i]->getNumWheels(); v++)
 			{
 				btVector3 wheelColor(0,255,255);
 				if (m_vehicles[i]->getWheelInfo(v).m_raycastInfo.m_isInContact)
 				{
-					wheelColor.setValue(0,0,255);
-				} else
+					wheelColor.setValue(0, 0, 255);
+				}
+				else
 				{
-					wheelColor.setValue(255,0,255);
+					wheelColor.setValue(255, 0, 255);
 				}
 
-				//synchronize the wheels with the (interpolated) chassis worldtransform
-				m_vehicles[i]->updateWheelTransform(v,true);
-					
-				btVector3 wheelPosWS = m_vehicles[i]->getWheelInfo(v).m_worldTransform.getOrigin();
 
+				// synchronize the wheels with the (interpolated) chassis worldtransform
+				m_vehicles[i]->updateWheelTransform(v, true);
+
+				btVector3 wheelPosWS = m_vehicles[i]->getWheelInfo(v).m_worldTransform.getOrigin();
 				btVector3 axle = btVector3(	
 					m_vehicles[i]->getWheelInfo(v).m_worldTransform.getBasis()[0][m_vehicles[i]->getRightAxis()],
 					m_vehicles[i]->getWheelInfo(v).m_worldTransform.getBasis()[1][m_vehicles[i]->getRightAxis()],
 					m_vehicles[i]->getWheelInfo(v).m_worldTransform.getBasis()[2][m_vehicles[i]->getRightAxis()]);
 
-
-				//m_vehicles[i]->getWheelInfo(v).m_raycastInfo.m_wheelAxleWS
-				//debug wheels (cylinders)
 				m_debugDrawer->drawLine(wheelPosWS,wheelPosWS+axle,wheelColor);
 				m_debugDrawer->drawLine(wheelPosWS,m_vehicles[i]->getWheelInfo(v).m_raycastInfo.m_contactPointWS,wheelColor);
 
 			}
 		}
 	}
-
 }
 
-
-int	btDiscreteDynamicsWorld::stepSimulation( btScalar timeStep,int maxSubSteps, btScalar fixedTimeStep)
+int btDiscreteDynamicsWorld::stepSimulation( btScalar timeStep,int maxSubSteps, btScalar fixedTimeStep)
 {
 	int numSimulationSubSteps = 0;
 

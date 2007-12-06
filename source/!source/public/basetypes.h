@@ -105,20 +105,13 @@ typedef struct cl_edict_s	cl_edict_t;
 typedef struct ui_edict_s	ui_edict_t;
 typedef int		progsnum_t;
 typedef struct progfuncs_s	progfuncs_t;
+typedef struct physbody_s	physbody_t;
 typedef float		vec_t;
 typedef vec_t		vec3_t[3];
 typedef vec_t		vec4_t[4];
 typedef long		fs_offset_t;
 typedef vec_t		matrix3x4[3][4];
 typedef vec_t		matrix4x4[4][4];
-typedef struct physbody_s	NewtonBody;
-typedef struct physworld_s	NewtonWorld;
-typedef struct physjoint_s	NewtonJoint;
-typedef struct physcontact_s	NewtonContact;
-typedef struct physragdoll_s	NewtonRagDoll;
-typedef struct physmaterial_s	NewtonMaterial;
-typedef struct physcolision_s	NewtonCollision;
-typedef struct physragbone_s	NewtonRagDollBone;
 typedef struct { size_t api_size; } generic_api_t;
 typedef struct { int fileofs; int filelen; } lump_t;		// many formats use lumps to store blocks
 typedef struct { int type; char *name; } activity_map_t;		// studio activity map conversion
@@ -127,7 +120,6 @@ typedef struct { byte r:8; byte g:8; byte b:8; } color24;
 typedef struct { byte r; byte g; byte b; byte a; } color32;
 typedef struct { const char *name; void **func; } dllfunc_t;	// Sys_LoadLibrary stuff
 typedef struct { int ofs; int type; const char *name; } fields_t;	// prvm custom fields
-typedef void (*cmdraw_t)( int color, int numpoints, const float *points );
 typedef struct { int numfilenames; char **filenames; char *filenamesbuffer; } search_t;
 typedef void (*cvarcmd_t)(const char *s, const char *m, const char *d, void *ptr );
 

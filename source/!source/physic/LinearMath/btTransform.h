@@ -92,6 +92,12 @@ public:
 		m_basis.getRotation(q);
 		return q;
 	}
+
+	void getEuler(btScalar& yaw, btScalar& pitch, btScalar& roll) const
+	{
+		m_basis.getEuler(yaw, pitch, roll);
+	}
+
 	template <typename Scalar2>
 		void setValue(const Scalar2 *m) 
 	{

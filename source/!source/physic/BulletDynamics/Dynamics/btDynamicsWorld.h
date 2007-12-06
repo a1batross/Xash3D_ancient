@@ -53,6 +53,7 @@ class btDynamicsWorld : public btCollisionWorld
 
 
 		virtual void	setDebugDrawer(btIDebugDraw*	debugDrawer) = 0;
+		virtual void	DrawDebug( void ){ }; // called from renderer
 
 		virtual btIDebugDraw*	getDebugDrawer() = 0;
 
@@ -68,11 +69,11 @@ class btDynamicsWorld : public btCollisionWorld
 
 		virtual btConstraintSolver* getConstraintSolver() = 0;
 		
-		virtual	int		getNumConstraints() const {	return 0;		}
+		virtual	int		getNumConstraints() const { return 0;	}
 		
-		virtual btTypedConstraint* getConstraint(int index)		{	(void)index;		return 0;		}
+		virtual btTypedConstraint* getConstraint(int index) {	(void)index; return 0; }
 		
-		virtual const btTypedConstraint* getConstraint(int index) const	{	(void)index;	return 0;	}
+		virtual const btTypedConstraint* getConstraint(int index) const { (void)index;	return 0;	}
 
 };
 

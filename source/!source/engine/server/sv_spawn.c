@@ -453,6 +453,7 @@ void SV_RunFrame( void )
 
 	// build the playerstate_t structures for all players
 	ClientEndServerFrames ();
+	pe->Update();
 
 	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(prog->edicts);
 	prog->globals.sv->other = PRVM_EDICT_TO_PROG(prog->edicts);

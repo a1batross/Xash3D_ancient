@@ -17,7 +17,7 @@
 	entity          	pev;		// Pointer EntVars (same as pev)
 	entity		other;
 	entity		world;
-
+ 
 	// timer
 	float		time;
 	float		frametime;
@@ -281,7 +281,7 @@ enum
 // edict.solid values
 enum
 {
-	SOLID_NOT,    	// no interaction with other objects
+	SOLID_NOT = 0,    	// no interaction with other objects
 	SOLID_TRIGGER,	// only touch when inside, after moving
 	SOLID_BBOX,	// touch on edge
 	SOLID_BSP,    	// bsp clip, touch on edge

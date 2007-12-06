@@ -113,9 +113,8 @@ void SV_SetModel (edict_t *ent, const char *name)
 
 	if(ent->progs.sv->movetype == MOVETYPE_PHYSIC)
 	{
-		pe->CreateBody( ent->priv.sv, ent->progs.sv->mins, ent->progs.sv->maxs,
-		ent->progs.sv->origin, ent->progs.sv->angles, ent->progs.sv->solid,
-		&ent->priv.sv->collision, &ent->priv.sv->physbody );
+		ent->priv.sv->physbody = pe->CreateBody( ent->priv.sv, ent->progs.sv->mins, ent->progs.sv->maxs,
+		ent->progs.sv->origin, ent->progs.sv->angles, ent->progs.sv->solid );
 	}
 }
 
