@@ -56,10 +56,25 @@ bool BspLoader::loadBSPFile( uint* memoryBuffer)
 		m_dbrushes.resize(length+extrasize);
 		m_numbrushes = copyLump( header, LUMP_BRUSHES, &m_dbrushes[0], sizeof(dbrush_t));
 
-
 		length = (header->lumps[LUMP_BRUSHSIDES].filelen) / sizeof(dbrushside_t);
 		m_dbrushsides.resize(length+extrasize);
 		m_numbrushsides = copyLump( header, LUMP_BRUSHSIDES, &m_dbrushsides[0], sizeof(dbrushside_t));
+
+		length = (header->lumps[LUMP_VERTEXES].filelen) / sizeof(dvertex_t);
+		m_vertices.resize(length + extrasize);
+		m_numverts = copyLump( header, LUMP_VERTEXES, &m_vertices[0], sizeof(dvertex_t));
+
+		length = (header->lumps[LUMP_EDGES].filelen) / sizeof(dedge_t);
+		m_edges.resize(length + extrasize);
+		m_numedges = copyLump( header, LUMP_EDGES, &m_edges[0], sizeof(dedge_t));
+
+		length = (header->lumps[LUMP_SURFEDGES].filelen) / sizeof(m_surfedges[0]);
+		m_surfedges.resize(length + extrasize);
+		m_numsurfedges = copyLump( header, LUMP_SURFEDGES, &m_surfedges[0], sizeof(m_surfedges[0]));
+
+		length = (header->lumps[LUMP_FACES].filelen) / sizeof(dface_t);
+		m_surfaces.resize(length + extrasize);
+		m_numfaces = copyLump( header, LUMP_FACES, &m_surfaces[0], sizeof(dface_t));
 
 		// swap everything
 		//swapBSPFile();
@@ -68,6 +83,73 @@ bool BspLoader::loadBSPFile( uint* memoryBuffer)
 
 	}
 	return false;
+}
+
+void BspLoader::buildTriMesh( void )
+{
+	int vertStride = 3 * sizeof(btScalar);
+	int indexStride = 3 * sizeof(int);
+	int k;
+
+	// convert from tri-fans to tri-list
+	m_numTris = 0;
+
+	// get number of triangles
+	for(int i = 0; i < m_numfaces; i++)
+	{
+		if(m_surfaces[i].numedges)
+		{ 
+			m_numTris += m_surfaces[i].numedges - 2;
+			Msg("face [%i] numverts[%i]\n", i, m_surfaces[i].numedges );
+		}
+	}
+
+	g_vertices = new btScalar[m_numverts * 3];
+	g_indices = new int[m_numTris * 3];
+
+	// transform all vertices
+	for( i = 0, k = 0; i < m_numverts; i++)
+	{
+		vec3_t temp;
+		VectorCopy(m_vertices[i].point, temp );
+		ConvertPositionToPhysic( temp );
+		g_vertices[k++] = temp[0];
+		g_vertices[k++] = temp[1];
+		g_vertices[k++] = temp[2];
+	}
+	Msg("total verts %d\n", k );
+
+	// build indices list
+	for(k = 0, i = 0; i < m_numfaces; i++)
+	{
+		const dface_t& pFace = m_surfaces[i];
+		int startVertex = pFace.firstedge;
+
+		for(int j = 0; j < pFace.numedges - 2; j++)
+		{
+			int lindex = m_surfedges[startVertex + j];
+			int realIndex;
+
+			if(lindex > 0) realIndex = m_edges[lindex].v[0];
+			else realIndex = m_edges[-lindex].v[1];
+
+			g_indices[k++] = realIndex;
+			g_indices[k++] = realIndex + j + 2;
+			g_indices[k++] = realIndex + j + 1;
+		}
+	}
+	Msg("total verts %d\n", k );
+
+	btTriangleIndexVertexArray* indexVertexArrays = new btTriangleIndexVertexArray(m_numTris, g_indices, indexStride, m_numverts, &g_vertices[0], vertStride);
+	CollisionTree = new btBvhTriangleMeshShape( indexVertexArrays, true );
+
+	btTransform	startTransform;	
+	btRigidBody*	staticBody;
+
+	startTransform.setIdentity();
+	staticBody = g_PhysWorld->AddStaticRigidBody( startTransform, CollisionTree );
+	staticBody->setCollisionFlags(staticBody->getCollisionFlags() | btCollisionObject::CF_STATIC_OBJECT);
+	staticBody->setCollisionFlags(staticBody->getCollisionFlags()  | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
 }
 
 void BspLoader::convertBsp( float scale )

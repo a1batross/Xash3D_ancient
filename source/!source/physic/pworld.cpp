@@ -43,7 +43,8 @@ void Phys_LoadBSP( uint *buffer )
 	BspLoader	WorldHull;
 
 	WorldHull.loadBSPFile( buffer );
-	WorldHull.convertBsp( g_PhysWorld->getScale());
+	//WorldHull.convertBsp( g_PhysWorld->getScale());
+	WorldHull.buildTriMesh();// test
 }
 
 void Phys_FreeBSP( void )

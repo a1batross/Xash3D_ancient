@@ -18,6 +18,7 @@ subject to the following restrictions:
 #include "LinearMath/btAlignedObjectArray.h"
 #include "LinearMath/btVector3.h"
 #include "LinearMath/btGeometryUtil.h"
+#include "BulletCollision/CollisionShapes/btBvhTriangleMeshShape.h"
 #include "physic.h"
 
 class BspLoader
@@ -26,6 +27,7 @@ class BspLoader
 		BspLoader(){ } // constructor
 
 		bool loadBSPFile( uint* memoryBuffer);
+		void buildTriMesh( void );
 		void convertBsp( float scale );
 
 		int copyLump( dheader_t *header, int lump, void *dest, int size );
@@ -41,8 +43,20 @@ class BspLoader
 		int				m_numplanes;
 		btAlignedObjectArray<dplane_t>	m_dplanes;
 
+		int				m_numverts;
+		btAlignedObjectArray<dvertex_t>	m_vertices;
+
+		int				m_numedges;
+		btAlignedObjectArray<dedge_t>		m_edges;
+
+		int				m_numsurfedges;
+		btAlignedObjectArray<int>		m_surfedges;
+
 		int				m_numnodes;
 		btAlignedObjectArray<dnode_t>		m_dnodes;
+
+		int				m_numfaces;
+		btAlignedObjectArray<dface_t>		m_surfaces;
 
 		int				m_numleafsurfaces;
 		btAlignedObjectArray<short>		m_dleafsurfaces;
@@ -58,5 +72,12 @@ class BspLoader
 
 		int				m_numPhysSurfaces;
 		btAlignedObjectArray<csurface_t>	m_physSurfaces;
+
+		// bvh triangle mesh
+		int				m_numTris;
+		int				m_numVerts;
+		btScalar*				g_vertices;
+		int*				g_indices;
+		btBvhTriangleMeshShape*		CollisionTree;
 };
 #endif//BSP_LOADER_H

@@ -26,7 +26,7 @@ subject to the following restrictions:
 
 CM_Debug DebugDrawer;
 
-btBulletPhysic::btBulletPhysic(): m_World(0), m_numBodies(0), m_debugMode(0), m_WorldScale(METERS_PER_INCH)
+btBulletPhysic::btBulletPhysic(): m_World(0), m_debugMode(0), m_WorldScale(METERS_PER_INCH)
 {
 	btVector3 m_worldAabbMin(-1000, -1000, -1000), m_worldAabbMax(1000, 1000, 1000);
 
@@ -59,7 +59,6 @@ void btBulletPhysic::DeleteAllBodies( void )
 		btRigidBody* body = btRigidBody::upcast(obj);
 		m_World->removeRigidBody( body );
 		m_World->removeCollisionObject(obj);
-		m_numBodies--;
 	}
 }
 
@@ -73,7 +72,6 @@ btRigidBody* btBulletPhysic::AddDynamicRigidBody(float mass, const btTransform& 
 	btDefaultMotionState* m_State = new btDefaultMotionState( startTransform );
 	btRigidBody* m_body = new btRigidBody(mass, m_State, shape, localInertia );
 	m_World->addRigidBody(m_body);
-	m_numBodies++;
 	
 	return m_body;
 }
@@ -84,7 +82,6 @@ btRigidBody* btBulletPhysic::AddStaticRigidBody(const btTransform& startTransfor
 	btDefaultMotionState* m_State = new btDefaultMotionState(startTransform);
 	btRigidBody* m_body = new btRigidBody(0.f, m_State, shape);
 	m_World->addRigidBody(m_body);
-	m_numBodies++;
 	
 	return m_body;
 }
@@ -108,7 +105,6 @@ void btBulletPhysic::PhysicFrame( void )
 	if(m_World)
 	{
 		int numObjects = m_World->getNumCollisionObjects();
-		Msg("total bodies %d, realnum %d\n", m_numBodies, numObjects );
 		for (int i = 0; i < numObjects; i++)
 		{
 			btCollisionObject* colObj = m_World->getCollisionObjectArray()[i];

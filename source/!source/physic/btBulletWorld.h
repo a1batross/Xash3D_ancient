@@ -81,7 +81,6 @@ protected:
 
 	int		m_debugMode;	// replace with cvar
 	float		m_WorldScale;	// convert units to meters
-	int		m_numBodies;
 public:
 		
 	btBulletPhysic();
