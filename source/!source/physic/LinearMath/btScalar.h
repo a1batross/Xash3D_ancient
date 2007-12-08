@@ -22,8 +22,6 @@ subject to the following restrictions:
 #include <cstdlib>
 #include <cfloat>
 #include <float.h>
-#include "physic.h"
-
 
 
 #ifdef WIN32
@@ -34,7 +32,8 @@ subject to the following restrictions:
 			#define ATTRIBUTE_ALIGNED16(a) a
 			#define ATTRIBUTE_ALIGNED128(a) a
 		#else
-			#define BT_HAS_ALIGNED_ALLOCATOR
+			// because Xash3D uses custom memory allocator 
+			//#define BT_HAS_ALIGNED_ALLOCATOR
 			#pragma warning(disable:4530)
 			#pragma warning(disable:4996)
 			#pragma warning(disable:4786)
@@ -53,7 +52,7 @@ subject to the following restrictions:
 		#endif //__MINGW32__
 
 		#include <assert.h>
-		#define btAssert(x) if(!(x)) Host_Error( "assert failed at %s:%i\n", __FILE__, __LINE__ );
+		#define btAssert assert
 		//btFullAssert is optional, slows down a lot
 		#define btFullAssert(x)
 

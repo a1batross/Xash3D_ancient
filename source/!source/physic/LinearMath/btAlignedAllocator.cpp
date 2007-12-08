@@ -13,6 +13,7 @@ subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 */
 
+#include "physic.h"
 #include "btAlignedAllocator.h"
 
 
@@ -55,35 +56,36 @@ void	btAlignedFree	(void* ptr)
 
 #else
 
-void*	btAlignedAlloc	(size_t size, int alignment)
+void* btAlignedAlloc ( size_t size, int alignment )
 {
- void *ret;
-  char *real;
-  unsigned long offset;
+	void *ret;
+	char *real;
+	unsigned long offset;
   
-  real = (char *)malloc(size + sizeof(void *) + (alignment-1));
-  if (real) {
-    offset = (alignment - (unsigned long)(real + sizeof(void *))) & (alignment-1);
-    ret = (void *)((real + sizeof(void *)) + offset);
-    *((void **)(ret)-1) = (void *)(real);
-  } else {
-    ret = (void *)(real);
-  }
-  return (ret);
+	real = (char *)Palloc(size + sizeof(void *) + (alignment-1));
+	if(real)
+	{
+		offset = (alignment - (unsigned long)(real + sizeof(void *))) & (alignment-1);
+		ret = (void *)((real + sizeof(void *)) + offset);
+		*((void **)(ret)-1) = (void *)(real);
+	}
+	else
+	{
+		ret = (void *)(real); // NULL
+	}
+	return (ret);
 }
 
-void	btAlignedFree	(void* ptr)
+void btAlignedFree	(void* ptr)
 {
+	void* real;
 
- void* real;
-
-  if (ptr) {
-    real = *((void **)(ptr)-1);
-    free(real);
-  }
+	if (ptr)
+	{
+		real = *((void **)(ptr)-1);
+		Pfree( real );
+	}
 }
+
 #endif //
-
 #endif
-
-

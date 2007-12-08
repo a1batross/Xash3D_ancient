@@ -900,7 +900,7 @@ unsigned btOptimizedBvh::calculateSerializeBufferSize()
 	return baseSize + m_curNodeIndex * sizeof(btOptimizedBvhNode);
 }
 
-bool btOptimizedBvh::serialize(void *o_alignedDataBuffer, unsigned i_dataBufferSize, bool i_swapEndian)
+bool btOptimizedBvh::serialize(void *o_alignedDataBuffer, unsigned i_dataBufferSize)
 {
 	assert(m_subtreeHeaderCount == m_SubtreeHeaders.size());
 	m_subtreeHeaderCount = m_SubtreeHeaders.size();
@@ -919,28 +919,21 @@ bool btOptimizedBvh::serialize(void *o_alignedDataBuffer, unsigned i_dataBufferS
 	// Also, m_leafNodes and m_quantizedLeafNodes will be initialized to default values by the constructor
 	new (targetBvh) btOptimizedBvh;
 
-	if (i_swapEndian)
-	{
-		targetBvh->m_curNodeIndex = btSwapEndian(m_curNodeIndex);
-
-
-		btSwapVector3Endian(m_bvhAabbMin,targetBvh->m_bvhAabbMin);
-		btSwapVector3Endian(m_bvhAabbMax,targetBvh->m_bvhAabbMax);
-		btSwapVector3Endian(m_bvhQuantization,targetBvh->m_bvhQuantization);
-
-		targetBvh->m_traversalMode = (btTraversalMode)btSwapEndian(m_traversalMode);
-		targetBvh->m_subtreeHeaderCount = btSwapEndian(m_subtreeHeaderCount);
-	}
-	else
-	{
-		targetBvh->m_curNodeIndex = m_curNodeIndex;
-		targetBvh->m_bvhAabbMin = m_bvhAabbMin;
-		targetBvh->m_bvhAabbMax = m_bvhAabbMax;
-		targetBvh->m_bvhQuantization = m_bvhQuantization;
-		targetBvh->m_traversalMode = m_traversalMode;
-		targetBvh->m_subtreeHeaderCount = m_subtreeHeaderCount;
-	}
-
+#if BYTE_ORDER == BIG_ENDIAN
+	targetBvh->m_curNodeIndex = btSwapEndian(m_curNodeIndex);
+	btSwapVector3Endian(m_bvhAabbMin,targetBvh->m_bvhAabbMin);
+	btSwapVector3Endian(m_bvhAabbMax,targetBvh->m_bvhAabbMax);
+	btSwapVector3Endian(m_bvhQuantization,targetBvh->m_bvhQuantization);
+	targetBvh->m_traversalMode = (btTraversalMode)btSwapEndian(m_traversalMode);
+	targetBvh->m_subtreeHeaderCount = btSwapEndian(m_subtreeHeaderCount);
+#else
+	targetBvh->m_curNodeIndex = m_curNodeIndex;
+	targetBvh->m_bvhAabbMin = m_bvhAabbMin;
+	targetBvh->m_bvhAabbMax = m_bvhAabbMax;
+	targetBvh->m_bvhQuantization = m_bvhQuantization;
+	targetBvh->m_traversalMode = m_traversalMode;
+	targetBvh->m_subtreeHeaderCount = m_subtreeHeaderCount;
+#endif
 	targetBvh->m_useQuantization = m_useQuantization;
 
 	unsigned char *nodeData = (unsigned char *)targetBvh;
@@ -955,69 +948,60 @@ bool btOptimizedBvh::serialize(void *o_alignedDataBuffer, unsigned i_dataBufferS
 	{
 		targetBvh->m_quantizedContiguousNodes.initializeFromBuffer(nodeData, nodeCount, nodeCount);
 
-		if (i_swapEndian)
+#if BYTE_ORDER == BIG_ENDIAN
+		for (int nodeIndex = 0; nodeIndex < nodeCount; nodeIndex++)
 		{
-			for (int nodeIndex = 0; nodeIndex < nodeCount; nodeIndex++)
-			{
-				targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[0] = btSwapEndian(m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[0]);
-				targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[1] = btSwapEndian(m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[1]);
-				targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[2] = btSwapEndian(m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[2]);
+			targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[0] = btSwapEndian(m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[0]);
+			targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[1] = btSwapEndian(m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[1]);
+			targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[2] = btSwapEndian(m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[2]);
 
-				targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[0] = btSwapEndian(m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[0]);
-				targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[1] = btSwapEndian(m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[1]);
-				targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[2] = btSwapEndian(m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[2]);
+			targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[0] = btSwapEndian(m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[0]);
+			targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[1] = btSwapEndian(m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[1]);
+			targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[2] = btSwapEndian(m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[2]);
 
-				targetBvh->m_quantizedContiguousNodes[nodeIndex].m_escapeIndexOrTriangleIndex = btSwapEndian(m_quantizedContiguousNodes[nodeIndex].m_escapeIndexOrTriangleIndex);
-			}
+			targetBvh->m_quantizedContiguousNodes[nodeIndex].m_escapeIndexOrTriangleIndex = btSwapEndian(m_quantizedContiguousNodes[nodeIndex].m_escapeIndexOrTriangleIndex);
 		}
-		else
+#else
+		for (int nodeIndex = 0; nodeIndex < nodeCount; nodeIndex++)
 		{
-			for (int nodeIndex = 0; nodeIndex < nodeCount; nodeIndex++)
-			{
-	
-				targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[0] = m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[0];
-				targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[1] = m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[1];
-				targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[2] = m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[2];
+			targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[0] = m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[0];
+			targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[1] = m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[1];
+			targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[2] = m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[2];
 
-				targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[0] = m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[0];
-				targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[1] = m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[1];
-				targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[2] = m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[2];
+			targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[0] = m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[0];
+			targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[1] = m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[1];
+			targetBvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[2] = m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[2];
 
-				targetBvh->m_quantizedContiguousNodes[nodeIndex].m_escapeIndexOrTriangleIndex = m_quantizedContiguousNodes[nodeIndex].m_escapeIndexOrTriangleIndex;
-
-
-			}
+			targetBvh->m_quantizedContiguousNodes[nodeIndex].m_escapeIndexOrTriangleIndex = m_quantizedContiguousNodes[nodeIndex].m_escapeIndexOrTriangleIndex;
 		}
+#endif
 		nodeData += sizeof(btQuantizedBvhNode) * nodeCount;
 	}
 	else
 	{
 		targetBvh->m_contiguousNodes.initializeFromBuffer(nodeData, nodeCount, nodeCount);
 
-		if (i_swapEndian)
+#if BYTE_ORDER == BIG_ENDIAN
+		for (int nodeIndex = 0; nodeIndex < nodeCount; nodeIndex++)
 		{
-			for (int nodeIndex = 0; nodeIndex < nodeCount; nodeIndex++)
-			{
-				btSwapVector3Endian(m_contiguousNodes[nodeIndex].m_aabbMinOrg, targetBvh->m_contiguousNodes[nodeIndex].m_aabbMinOrg);
-				btSwapVector3Endian(m_contiguousNodes[nodeIndex].m_aabbMaxOrg, targetBvh->m_contiguousNodes[nodeIndex].m_aabbMaxOrg);
+			btSwapVector3Endian(m_contiguousNodes[nodeIndex].m_aabbMinOrg, targetBvh->m_contiguousNodes[nodeIndex].m_aabbMinOrg);
+			btSwapVector3Endian(m_contiguousNodes[nodeIndex].m_aabbMaxOrg, targetBvh->m_contiguousNodes[nodeIndex].m_aabbMaxOrg);
 
-				targetBvh->m_contiguousNodes[nodeIndex].m_escapeIndex = btSwapEndian(m_contiguousNodes[nodeIndex].m_escapeIndex);
-				targetBvh->m_contiguousNodes[nodeIndex].m_subPart = btSwapEndian(m_contiguousNodes[nodeIndex].m_subPart);
-				targetBvh->m_contiguousNodes[nodeIndex].m_triangleIndex = btSwapEndian(m_contiguousNodes[nodeIndex].m_triangleIndex);
-			}
+			targetBvh->m_contiguousNodes[nodeIndex].m_escapeIndex = btSwapEndian(m_contiguousNodes[nodeIndex].m_escapeIndex);
+			targetBvh->m_contiguousNodes[nodeIndex].m_subPart = btSwapEndian(m_contiguousNodes[nodeIndex].m_subPart);
+			targetBvh->m_contiguousNodes[nodeIndex].m_triangleIndex = btSwapEndian(m_contiguousNodes[nodeIndex].m_triangleIndex);
 		}
-		else
+#else
+		for (int nodeIndex = 0; nodeIndex < nodeCount; nodeIndex++)
 		{
-			for (int nodeIndex = 0; nodeIndex < nodeCount; nodeIndex++)
-			{
-				targetBvh->m_contiguousNodes[nodeIndex].m_aabbMinOrg = m_contiguousNodes[nodeIndex].m_aabbMinOrg;
-				targetBvh->m_contiguousNodes[nodeIndex].m_aabbMaxOrg = m_contiguousNodes[nodeIndex].m_aabbMaxOrg;
+			targetBvh->m_contiguousNodes[nodeIndex].m_aabbMinOrg = m_contiguousNodes[nodeIndex].m_aabbMinOrg;
+			targetBvh->m_contiguousNodes[nodeIndex].m_aabbMaxOrg = m_contiguousNodes[nodeIndex].m_aabbMaxOrg;
 
-				targetBvh->m_contiguousNodes[nodeIndex].m_escapeIndex = m_contiguousNodes[nodeIndex].m_escapeIndex;
-				targetBvh->m_contiguousNodes[nodeIndex].m_subPart = m_contiguousNodes[nodeIndex].m_subPart;
-				targetBvh->m_contiguousNodes[nodeIndex].m_triangleIndex = m_contiguousNodes[nodeIndex].m_triangleIndex;
-			}
+			targetBvh->m_contiguousNodes[nodeIndex].m_escapeIndex = m_contiguousNodes[nodeIndex].m_escapeIndex;
+			targetBvh->m_contiguousNodes[nodeIndex].m_subPart = m_contiguousNodes[nodeIndex].m_subPart;
+			targetBvh->m_contiguousNodes[nodeIndex].m_triangleIndex = m_contiguousNodes[nodeIndex].m_triangleIndex;
 		}
+#endif
 		nodeData += sizeof(btOptimizedBvhNode) * nodeCount;
 	}
 
@@ -1026,46 +1010,42 @@ bool btOptimizedBvh::serialize(void *o_alignedDataBuffer, unsigned i_dataBufferS
 
 	// Now serialize the subtree headers
 	targetBvh->m_SubtreeHeaders.initializeFromBuffer(nodeData, m_subtreeHeaderCount, m_subtreeHeaderCount);
-	if (i_swapEndian)
+#if BYTE_ORDER == BIG_ENDIAN
+	for (int i = 0; i < m_subtreeHeaderCount; i++)
 	{
-		for (int i = 0; i < m_subtreeHeaderCount; i++)
-		{
-			targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMin[0] = btSwapEndian(m_SubtreeHeaders[i].m_quantizedAabbMin[0]);
-			targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMin[1] = btSwapEndian(m_SubtreeHeaders[i].m_quantizedAabbMin[1]);
-			targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMin[2] = btSwapEndian(m_SubtreeHeaders[i].m_quantizedAabbMin[2]);
+		targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMin[0] = btSwapEndian(m_SubtreeHeaders[i].m_quantizedAabbMin[0]);
+		targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMin[1] = btSwapEndian(m_SubtreeHeaders[i].m_quantizedAabbMin[1]);
+		targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMin[2] = btSwapEndian(m_SubtreeHeaders[i].m_quantizedAabbMin[2]);
 
-			targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMax[0] = btSwapEndian(m_SubtreeHeaders[i].m_quantizedAabbMax[0]);
-			targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMax[1] = btSwapEndian(m_SubtreeHeaders[i].m_quantizedAabbMax[1]);
-			targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMax[2] = btSwapEndian(m_SubtreeHeaders[i].m_quantizedAabbMax[2]);
+		targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMax[0] = btSwapEndian(m_SubtreeHeaders[i].m_quantizedAabbMax[0]);
+		targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMax[1] = btSwapEndian(m_SubtreeHeaders[i].m_quantizedAabbMax[1]);
+		targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMax[2] = btSwapEndian(m_SubtreeHeaders[i].m_quantizedAabbMax[2]);
 
-			targetBvh->m_SubtreeHeaders[i].m_rootNodeIndex = btSwapEndian(m_SubtreeHeaders[i].m_rootNodeIndex);
-			targetBvh->m_SubtreeHeaders[i].m_subtreeSize = btSwapEndian(m_SubtreeHeaders[i].m_subtreeSize);
-		}
+		targetBvh->m_SubtreeHeaders[i].m_rootNodeIndex = btSwapEndian(m_SubtreeHeaders[i].m_rootNodeIndex);
+		targetBvh->m_SubtreeHeaders[i].m_subtreeSize = btSwapEndian(m_SubtreeHeaders[i].m_subtreeSize);
 	}
-	else
+#else
+	for (int i = 0; i < m_subtreeHeaderCount; i++)
 	{
-		for (int i = 0; i < m_subtreeHeaderCount; i++)
-		{
-			targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMin[0] = (m_SubtreeHeaders[i].m_quantizedAabbMin[0]);
-			targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMin[1] = (m_SubtreeHeaders[i].m_quantizedAabbMin[1]);
-			targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMin[2] = (m_SubtreeHeaders[i].m_quantizedAabbMin[2]);
+		targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMin[0] = (m_SubtreeHeaders[i].m_quantizedAabbMin[0]);
+		targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMin[1] = (m_SubtreeHeaders[i].m_quantizedAabbMin[1]);
+		targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMin[2] = (m_SubtreeHeaders[i].m_quantizedAabbMin[2]);
 
-			targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMax[0] = (m_SubtreeHeaders[i].m_quantizedAabbMax[0]);
-			targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMax[1] = (m_SubtreeHeaders[i].m_quantizedAabbMax[1]);
-			targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMax[2] = (m_SubtreeHeaders[i].m_quantizedAabbMax[2]);
+		targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMax[0] = (m_SubtreeHeaders[i].m_quantizedAabbMax[0]);
+		targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMax[1] = (m_SubtreeHeaders[i].m_quantizedAabbMax[1]);
+		targetBvh->m_SubtreeHeaders[i].m_quantizedAabbMax[2] = (m_SubtreeHeaders[i].m_quantizedAabbMax[2]);
 
-			targetBvh->m_SubtreeHeaders[i].m_rootNodeIndex = (m_SubtreeHeaders[i].m_rootNodeIndex);
-			targetBvh->m_SubtreeHeaders[i].m_subtreeSize = (m_SubtreeHeaders[i].m_subtreeSize);
-			targetBvh->m_SubtreeHeaders[i] = m_SubtreeHeaders[i];
-		}
+		targetBvh->m_SubtreeHeaders[i].m_rootNodeIndex = (m_SubtreeHeaders[i].m_rootNodeIndex);
+		targetBvh->m_SubtreeHeaders[i].m_subtreeSize = (m_SubtreeHeaders[i].m_subtreeSize);
+		targetBvh->m_SubtreeHeaders[i] = m_SubtreeHeaders[i];
 	}
-
+#endif
 	nodeData += sizeof(btBvhSubtreeInfo) * m_subtreeHeaderCount;
 
 	return true;
 }
 
-btOptimizedBvh *btOptimizedBvh::deSerializeInPlace(void *i_alignedDataBuffer, unsigned i_dataBufferSize, bool i_swapEndian)
+btOptimizedBvh *btOptimizedBvh::deSerializeInPlace(void *i_alignedDataBuffer, unsigned i_dataBufferSize )
 {
 
 	if (i_alignedDataBuffer == NULL)// || (((unsigned)i_alignedDataBuffer & BVH_ALIGNMENT_MASK) != 0))
@@ -1074,17 +1054,16 @@ btOptimizedBvh *btOptimizedBvh::deSerializeInPlace(void *i_alignedDataBuffer, un
 	}
 	btOptimizedBvh *bvh = (btOptimizedBvh *)i_alignedDataBuffer;
 
-	if (i_swapEndian)
-	{
-		bvh->m_curNodeIndex = btSwapEndian(bvh->m_curNodeIndex);
+#if BYTE_ORDER == BIG_ENDIAN
+	bvh->m_curNodeIndex = btSwapEndian(bvh->m_curNodeIndex);
 
-		btUnSwapVector3Endian(bvh->m_bvhAabbMin);
-		btUnSwapVector3Endian(bvh->m_bvhAabbMax);
-		btUnSwapVector3Endian(bvh->m_bvhQuantization);
+	btUnSwapVector3Endian(bvh->m_bvhAabbMin);
+	btUnSwapVector3Endian(bvh->m_bvhAabbMax);
+	btUnSwapVector3Endian(bvh->m_bvhQuantization);
 
-		bvh->m_traversalMode = (btTraversalMode)btSwapEndian(bvh->m_traversalMode);
-		bvh->m_subtreeHeaderCount = btSwapEndian(bvh->m_subtreeHeaderCount);
-	}
+	bvh->m_traversalMode = (btTraversalMode)btSwapEndian(bvh->m_traversalMode);
+	bvh->m_subtreeHeaderCount = btSwapEndian(bvh->m_subtreeHeaderCount);
+#endif
 
 	int calculatedBufSize = bvh->calculateSerializeBufferSize();
 	btAssert(calculatedBufSize <= i_dataBufferSize);
@@ -1110,39 +1089,37 @@ btOptimizedBvh *btOptimizedBvh::deSerializeInPlace(void *i_alignedDataBuffer, un
 	{
 		bvh->m_quantizedContiguousNodes.initializeFromBuffer(nodeData, nodeCount, nodeCount);
 
-		if (i_swapEndian)
+#if BYTE_ORDER == BIG_ENDIAN
+		for (int nodeIndex = 0; nodeIndex < nodeCount; nodeIndex++)
 		{
-			for (int nodeIndex = 0; nodeIndex < nodeCount; nodeIndex++)
-			{
-				bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[0] = btSwapEndian(bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[0]);
-				bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[1] = btSwapEndian(bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[1]);
-				bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[2] = btSwapEndian(bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[2]);
+			bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[0] = btSwapEndian(bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[0]);
+			bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[1] = btSwapEndian(bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[1]);
+			bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[2] = btSwapEndian(bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMin[2]);
 
-				bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[0] = btSwapEndian(bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[0]);
-				bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[1] = btSwapEndian(bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[1]);
-				bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[2] = btSwapEndian(bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[2]);
+			bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[0] = btSwapEndian(bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[0]);
+			bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[1] = btSwapEndian(bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[1]);
+			bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[2] = btSwapEndian(bvh->m_quantizedContiguousNodes[nodeIndex].m_quantizedAabbMax[2]);
 
-				bvh->m_quantizedContiguousNodes[nodeIndex].m_escapeIndexOrTriangleIndex = btSwapEndian(bvh->m_quantizedContiguousNodes[nodeIndex].m_escapeIndexOrTriangleIndex);
-			}
+			bvh->m_quantizedContiguousNodes[nodeIndex].m_escapeIndexOrTriangleIndex = btSwapEndian(bvh->m_quantizedContiguousNodes[nodeIndex].m_escapeIndexOrTriangleIndex);
 		}
+#endif
 		nodeData += sizeof(btQuantizedBvhNode) * nodeCount;
 	}
 	else
 	{
 		bvh->m_contiguousNodes.initializeFromBuffer(nodeData, nodeCount, nodeCount);
 
-		if (i_swapEndian)
+#if BYTE_ORDER == BIG_ENDIAN
+		for (int nodeIndex = 0; nodeIndex < nodeCount; nodeIndex++)
 		{
-			for (int nodeIndex = 0; nodeIndex < nodeCount; nodeIndex++)
-			{
-				btUnSwapVector3Endian(bvh->m_contiguousNodes[nodeIndex].m_aabbMinOrg);
-				btUnSwapVector3Endian(bvh->m_contiguousNodes[nodeIndex].m_aabbMaxOrg);
+			btUnSwapVector3Endian(bvh->m_contiguousNodes[nodeIndex].m_aabbMinOrg);
+			btUnSwapVector3Endian(bvh->m_contiguousNodes[nodeIndex].m_aabbMaxOrg);
 				
-				bvh->m_contiguousNodes[nodeIndex].m_escapeIndex = btSwapEndian(bvh->m_contiguousNodes[nodeIndex].m_escapeIndex);
-				bvh->m_contiguousNodes[nodeIndex].m_subPart = btSwapEndian(bvh->m_contiguousNodes[nodeIndex].m_subPart);
-				bvh->m_contiguousNodes[nodeIndex].m_triangleIndex = btSwapEndian(bvh->m_contiguousNodes[nodeIndex].m_triangleIndex);
-			}
+			bvh->m_contiguousNodes[nodeIndex].m_escapeIndex = btSwapEndian(bvh->m_contiguousNodes[nodeIndex].m_escapeIndex);
+			bvh->m_contiguousNodes[nodeIndex].m_subPart = btSwapEndian(bvh->m_contiguousNodes[nodeIndex].m_subPart);
+			bvh->m_contiguousNodes[nodeIndex].m_triangleIndex = btSwapEndian(bvh->m_contiguousNodes[nodeIndex].m_triangleIndex);
 		}
+#endif
 		nodeData += sizeof(btOptimizedBvhNode) * nodeCount;
 	}
 
@@ -1151,22 +1128,21 @@ btOptimizedBvh *btOptimizedBvh::deSerializeInPlace(void *i_alignedDataBuffer, un
 
 	// Now serialize the subtree headers
 	bvh->m_SubtreeHeaders.initializeFromBuffer(nodeData, bvh->m_subtreeHeaderCount, bvh->m_subtreeHeaderCount);
-	if (i_swapEndian)
+#if BYTE_ORDER == BIG_ENDIAN
+	for (int i = 0; i < bvh->m_subtreeHeaderCount; i++)
 	{
-		for (int i = 0; i < bvh->m_subtreeHeaderCount; i++)
-		{
-			bvh->m_SubtreeHeaders[i].m_quantizedAabbMin[0] = btSwapEndian(bvh->m_SubtreeHeaders[i].m_quantizedAabbMin[0]);
-			bvh->m_SubtreeHeaders[i].m_quantizedAabbMin[1] = btSwapEndian(bvh->m_SubtreeHeaders[i].m_quantizedAabbMin[1]);
-			bvh->m_SubtreeHeaders[i].m_quantizedAabbMin[2] = btSwapEndian(bvh->m_SubtreeHeaders[i].m_quantizedAabbMin[2]);
+		bvh->m_SubtreeHeaders[i].m_quantizedAabbMin[0] = btSwapEndian(bvh->m_SubtreeHeaders[i].m_quantizedAabbMin[0]);
+		bvh->m_SubtreeHeaders[i].m_quantizedAabbMin[1] = btSwapEndian(bvh->m_SubtreeHeaders[i].m_quantizedAabbMin[1]);
+		bvh->m_SubtreeHeaders[i].m_quantizedAabbMin[2] = btSwapEndian(bvh->m_SubtreeHeaders[i].m_quantizedAabbMin[2]);
 
-			bvh->m_SubtreeHeaders[i].m_quantizedAabbMax[0] = btSwapEndian(bvh->m_SubtreeHeaders[i].m_quantizedAabbMax[0]);
-			bvh->m_SubtreeHeaders[i].m_quantizedAabbMax[1] = btSwapEndian(bvh->m_SubtreeHeaders[i].m_quantizedAabbMax[1]);
-			bvh->m_SubtreeHeaders[i].m_quantizedAabbMax[2] = btSwapEndian(bvh->m_SubtreeHeaders[i].m_quantizedAabbMax[2]);
+		bvh->m_SubtreeHeaders[i].m_quantizedAabbMax[0] = btSwapEndian(bvh->m_SubtreeHeaders[i].m_quantizedAabbMax[0]);
+		bvh->m_SubtreeHeaders[i].m_quantizedAabbMax[1] = btSwapEndian(bvh->m_SubtreeHeaders[i].m_quantizedAabbMax[1]);
+		bvh->m_SubtreeHeaders[i].m_quantizedAabbMax[2] = btSwapEndian(bvh->m_SubtreeHeaders[i].m_quantizedAabbMax[2]);
 
-			bvh->m_SubtreeHeaders[i].m_rootNodeIndex = btSwapEndian(bvh->m_SubtreeHeaders[i].m_rootNodeIndex);
-			bvh->m_SubtreeHeaders[i].m_subtreeSize = btSwapEndian(bvh->m_SubtreeHeaders[i].m_subtreeSize);
-		}
+		bvh->m_SubtreeHeaders[i].m_rootNodeIndex = btSwapEndian(bvh->m_SubtreeHeaders[i].m_rootNodeIndex);
+		bvh->m_SubtreeHeaders[i].m_subtreeSize = btSwapEndian(bvh->m_SubtreeHeaders[i].m_subtreeSize);
 	}
+#endif
 
 	return bvh;
 }

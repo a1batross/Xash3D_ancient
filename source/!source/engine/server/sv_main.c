@@ -727,7 +727,7 @@ void SV_RunGameFrame (void)
 	{
 
 		if(!cm_paused->value) 
-			pe->Frame( sv.frametime );
+			pe->Frame( sv.time );
 		SV_RunFrame ();
 
 		// never get more than one tic behind

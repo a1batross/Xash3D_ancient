@@ -367,10 +367,10 @@ public:
 	unsigned calculateSerializeBufferSize();
 
 	/// Data buffer MUST be 16 byte aligned
-	bool serialize(void *o_alignedDataBuffer, unsigned i_dataBufferSize, bool i_swapEndian);
+	bool serialize(void *o_alignedDataBuffer, unsigned i_dataBufferSize );
 
 	///deSerializeInPlace loads and initializes a BVH from a buffer in memory 'in place'
-	static btOptimizedBvh *deSerializeInPlace(void *i_alignedDataBuffer, unsigned i_dataBufferSize, bool i_swapEndian);
+	static btOptimizedBvh *deSerializeInPlace(void *i_alignedDataBuffer, unsigned i_dataBufferSize );
 
 	static unsigned int getAlignmentSerializationPadding();
 

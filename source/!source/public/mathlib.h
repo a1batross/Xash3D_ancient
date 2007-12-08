@@ -558,7 +558,7 @@ _inline void AnglesMatrix(const vec3_t origin, const vec3_t angles, matrix4x4 ma
 	matrix[0][2] = cp*sy;
 	matrix[0][1] = -sp;
 
-	if (angles[ROLL])
+	if (angles[ROLL] == 180)
 	{
 		angle = angles[ROLL] * (M_PI*2 / 360);
 		sr = sin(angle);

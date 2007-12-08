@@ -15,8 +15,10 @@ subject to the following restrictions:
 #ifndef BT_BULLET_WORLD_H
 #define BT_BULLET_WORLD_H
 
-#include "btBulletBspLoader.h"
+#include "physic.h"
 #include "btBulletDynamicsCommon.h"
+
+class BspLoader;
 
 class CM_Debug : public btIDebugDraw
 {
@@ -76,8 +78,11 @@ class btBulletPhysic
 {
 protected:
 	// physic world
-	btDynamicsWorld*	m_World;		
+	btDynamicsWorld*	m_World;		// dynamics world pointer		
+	btRigidBody*	g_World;		// collision mesh world ptr
 	btClock		m_clock;
+	BspLoader*	g_Level;
+
 
 	int		m_debugMode;	// replace with cvar
 	float		m_WorldScale;	// convert units to meters
@@ -113,6 +118,8 @@ public:
 	
 	btRigidBody* AddStaticRigidBody(const btTransform& startTransform,btCollisionShape* shape); // bodies with infinite mass
 	btRigidBody* AddDynamicRigidBody(float mass, const btTransform& startTransform,btCollisionShape* shape);
+	btRigidBody *AddDynamicRigidBody( int num, btScalar mass = 0.0f ); // collision shape is bsp data
+
 	void DelRigidBody(btRigidBody* body)
 	{
 		if( body )m_World->removeRigidBody( body );
@@ -126,6 +133,19 @@ public:
 	sv_edict_t *GetUserData( btRigidBody* body )
 	{
 		return (sv_edict_t *)body->getUserPointer();
+	}
+
+	// set body angles and origin
+	void GetOrigin(btRigidBody* body, vec3_t origin )
+	{
+		btVector3 pos = body->getWorldTransform().getOrigin();
+		VectorSet( origin, METER2INCH( pos.getX()), METER2INCH( pos.getZ()), METER2INCH( pos.getY()));		
+	}
+
+	void GetAngles(btRigidBody* body, vec3_t angles )
+	{
+		body->getWorldTransform().getEuler( angles[0], angles[1], angles[2] );
+		VectorSet( angles, RAD2DEG(angles[2]), RAD2DEG(angles[1]), RAD2DEG(angles[0]));
 	}
 
 	// set body angles and origin
@@ -167,6 +187,11 @@ public:
 		MatrixAngles( matrix, origin, angles );
 		ConvertPositionToGame( origin );
 	}
+
+	// bsploader operations
+	void LoadWorld( uint *buffer );
+	void SaveWorld( void );
+	void FreeWorld( void );
 
 	void UpdateWorld( float timescale );	// update simulation state
 	void DeleteAllBodies( void );		// clear scene

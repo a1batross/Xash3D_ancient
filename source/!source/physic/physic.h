@@ -27,6 +27,8 @@ extern physbody_t *Phys_CreateBody( sv_edict_t *ed, vec3_t mins, vec3_t maxs, ve
 extern void Phys_RemoveBody( physbody_t *body );
 extern bool InitPhysics( void );
 extern void FreePhysics( void );
+extern void* Palloc( int size );
+extern void Pfree( void *ptr );
 
 #ifdef __cplusplus
 }

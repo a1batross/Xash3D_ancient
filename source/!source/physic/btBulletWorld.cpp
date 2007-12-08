@@ -23,10 +23,11 @@ subject to the following restrictions:
 #include "LinearMath/btQuickprof.h"
 #include "LinearMath/btDefaultMotionState.h"
 #include "btBulletWorld.h"
+#include "btBulletBspLoader.h"
 
 CM_Debug DebugDrawer;
 
-btBulletPhysic::btBulletPhysic(): m_World(0), m_debugMode(0), m_WorldScale(METERS_PER_INCH)
+btBulletPhysic::btBulletPhysic(): m_World(0), g_World(0), g_Level(0), m_debugMode(0), m_WorldScale(METERS_PER_INCH)
 {
 	btVector3 m_worldAabbMin(-1000, -1000, -1000), m_worldAabbMax(1000, 1000, 1000);
 
@@ -40,6 +41,8 @@ btBulletPhysic::btBulletPhysic(): m_World(0), m_debugMode(0), m_WorldScale(METER
 	m_World->setGravity(btVector3(0, -9.8, 0));
 	m_World->setDebugDrawer(&DebugDrawer);
 
+	g_Level = new BspLoader();
+
 	m_debugMode |= btIDebugDraw::DBG_DrawAabb;
 	m_debugMode |= btIDebugDraw::DBG_DrawWireframe;
 }
@@ -47,6 +50,29 @@ btBulletPhysic::btBulletPhysic(): m_World(0), m_debugMode(0), m_WorldScale(METER
 btBulletPhysic::~btBulletPhysic()
 {
 	DeleteAllBodies();
+
+	delete g_Level;
+	delete m_World;
+}
+
+void btBulletPhysic::LoadWorld( uint *buffer )
+{
+	g_Level->loadBSPFile( buffer );
+	g_World = g_Level->buildCollisionTree();
+}
+
+void btBulletPhysic::SaveWorld( void )
+{
+	int numBytes = g_Level->GetCollisionTree()->getOptimizedBvh()->calculateSerializeBufferSize();
+	void *buffer = btAlignedAlloc(numBytes, 16);
+	g_Level->GetCollisionTree()->getOptimizedBvh()->serialize( buffer, numBytes );
+
+	FS_WriteFile("bvh.bin", buffer, numBytes );
+}
+
+void btBulletPhysic::FreeWorld( void )
+{
+	DelRigidBody( g_World );
 }
 
 void btBulletPhysic::DeleteAllBodies( void )
@@ -60,6 +86,11 @@ void btBulletPhysic::DeleteAllBodies( void )
 		m_World->removeRigidBody( body );
 		m_World->removeCollisionObject(obj);
 	}
+}
+
+btRigidBody *btBulletPhysic::AddDynamicRigidBody( int num, btScalar mass )
+{
+	return g_Level->buildCollisionTree( num, mass );
 }
 
 btRigidBody* btBulletPhysic::AddDynamicRigidBody(float mass, const btTransform& startTransform, btCollisionShape* shape)
@@ -95,7 +126,6 @@ bool btBulletPhysic::ApplyTransform( btRigidBody* body)
 	vec3_t origin, angles;
 
 	GetTransform( body, origin, angles );
-
 	pi.Transform( edict, origin, angles );
 	return true;
 }
@@ -128,7 +158,7 @@ void btBulletPhysic::PhysicFrame( void )
 
 void btBulletPhysic::UpdateWorld( float timeStep )
 {
-	m_World->stepSimulation( 0.1 );
+	m_World->stepSimulation( timeStep );
 
 	if (m_World->getDebugDrawer())
 		m_World->getDebugDrawer()->setDebugMode( m_debugMode );

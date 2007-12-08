@@ -12,15 +12,9 @@ byte		*physpool;
 
 btBulletPhysic *g_PhysWorld;
 
-void* Palloc( int size )
-{
-	return Mem_Alloc( physpool, size );
-}
-
-void Pfree( void *ptr )
-{
-	Mem_Free( ptr );
-}
+// mem allocations
+void* Palloc( int size ) { return Mem_Alloc( physpool, size ); }
+void Pfree( void *ptr ) { Mem_Free( ptr ); }
 
 bool InitPhysics( void )
 {
@@ -40,16 +34,12 @@ void FreePhysics( void )
 
 void Phys_LoadBSP( uint *buffer )
 {
-	BspLoader	WorldHull;
-
-	WorldHull.loadBSPFile( buffer );
-	//WorldHull.convertBsp( g_PhysWorld->getScale());
-	WorldHull.buildTriMesh();// test
+	g_PhysWorld->LoadWorld( buffer );
 }
 
 void Phys_FreeBSP( void )
 {
-	g_PhysWorld->DeleteAllBodies();
+	g_PhysWorld->FreeWorld();
 }
 
 void Phys_Frame( float time )

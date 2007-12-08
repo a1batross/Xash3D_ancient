@@ -304,7 +304,7 @@ char *SC_ParseToken(const char **data_p)
 
 	// skip whitespace
 skipwhite:
-	while ( (c = *data) <= ' ')
+	while((c = *data) <= ' ')
 	{
 		if (c == 0)
 		{
