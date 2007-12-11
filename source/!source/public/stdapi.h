@@ -80,6 +80,7 @@ typedef struct stdilib_api_s
 	void (*Com_FreeToken)( void );			// free current token to may get it again
 	void (*Com_SkipToken)( void );			// skip current token and jump into newline
 	bool (*Com_MatchToken)( const char *match );		// compare current token with user keyword
+	bool (*Com_ParseToken_Simple)(const char **data_p);	// basic parse (can't handle single characters)
 	char *(*Com_ParseToken)(const char **data );		// parse token from char buffer
 	char *(*Com_ParseWord)( const char **data );		// parse word from char buffer
 	search_t *(*Com_Search)(const char *pattern, int casecmp );	// returned list of found files
@@ -214,6 +215,7 @@ typedef struct stdilib_api_s
 */
 #define Com_ParseToken	com.Com_ParseToken
 #define Com_ParseWord	com.Com_ParseWord
+#define Com_SimpleGetToken	com.Com_ParseToken_Simple
 #define Com_Filter		com.Com_Filter
 #define Com_LoadScript	com.Com_LoadScript
 #define Com_IncludeScript	com.Com_AddScript

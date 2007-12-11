@@ -52,38 +52,9 @@ void Phys_WorldUpdate( void )
 	g_PhysWorld->PhysicFrame();
 }
 
-physbody_t *Phys_CreateBody( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3_t ang, int solid )
+physbody_t *Phys_CreateBody( sv_edict_t *ed, void *buffer, vec3_t org, vec3_t ang )
 {
-	btCollisionShape	*col;
-	vec3_t		size, ofs;
-
-	VectorSubtract (maxs, mins, size );
-	ConvertPositionToPhysic( size );
-	VectorAdd( mins, maxs, ofs );
-	ConvertPositionToPhysic( ofs );
-
-	switch( (solid_t)solid )
-	{          
-	case SOLID_BOX:
-		col = new btBoxShape(btVector3( size[0]/2, size[1]/2, size[2]/2 ));
-		break;
-	case SOLID_SPHERE:
-		col = new btSphereShape( size[0]/2 );
-		break;
-	case SOLID_CYLINDER:
-		col = new btCylinderShape(btVector3( size[0]/2, size[1]/2, size[0]/2 ));
-		break;
-	case SOLID_MESH:
-	default:
-		Host_Error("Phys_CreateBody: unsupported solid type %d\n", solid );
-		return NULL;
-	}
-
-	btTransform offset;
-	offset.setIdentity();
-	offset.setOrigin(btVector3(0, 0, 0));
-
-	btRigidBody* body = g_PhysWorld->AddDynamicRigidBody( 10.0f, offset, col ); // 10 kg
+	btRigidBody* body = g_PhysWorld->AddDynamicRigidBody( buffer, 0, 10.0f ); // 10 kg
 	g_PhysWorld->SetUserData( body, ed );
 
 	// move to position         

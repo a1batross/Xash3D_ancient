@@ -332,6 +332,7 @@ uint Com_BlockChecksumKey(void *buffer, int length, int key);
 bool SC_LoadScript( const char *filename, char *buf, int size );
 bool SC_AddScript( const char *filename, char *buf, int size );
 bool SC_FilterToken(char *filter, char *name, int casecmp);
+bool SC_ParseToken_Simple(const char **data_p);
 char *SC_ParseToken(const char **data_p );
 char *SC_ParseWord( const char **data_p );
 bool SC_MatchToken( const char *match );

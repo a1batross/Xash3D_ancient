@@ -256,9 +256,9 @@ void Sav_LoadLocals( lump_t *l )
 	realsize = LittleLong(((int *)in)[0]);
 
 	ptr = ents = Z_Malloc( realsize );
-	VFS_Unpack( in + 4, size, &ents, realsize );
+	VFS_Unpack( in + sizeof(int), size, &ents, realsize );
 
-	while(Com_ParseToken(&ents))
+	while(Com_SimpleGetToken(&ents))
 	{
 		edict_t	*ent;
 
@@ -282,8 +282,7 @@ void Sav_LoadLocals( lump_t *l )
 				SV_LinkEdict( ent );
 				if(ent->progs.sv->movetype == MOVETYPE_PHYSIC)
 				{
-					ent->priv.sv->physbody = pe->CreateBody( ent->priv.sv, ent->progs.sv->mins, ent->progs.sv->maxs,
-					ent->progs.sv->origin, ent->progs.sv->angles, ent->progs.sv->solid );
+					pe->CreateBody( ent->priv.sv, SV_GetModelPtr(ent), ent->progs.sv->origin, ent->progs.sv->angles );
 				}
 			}
 		}

@@ -233,7 +233,7 @@ typedef struct physic_exp_s
 	void (*Update)( void );	// world frame
 
 	// simple objects
-	physbody_t *(*CreateBody)( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3_t ang, int solid );
+	physbody_t *(*CreateBody)( sv_edict_t *ed, void *buffer, vec3_t org, vec3_t ang );
 	void (*RemoveBody)( physbody_t *body );
 
 } physic_exp_t;

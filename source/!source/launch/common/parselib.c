@@ -278,6 +278,74 @@ bool SC_TokenAvailable (void)
 	return true;
 }
 
+/*
+==============
+SC_ParseToken_Simple
+
+Parse a token out of a string, behaving like the qwcl console
+==============
+*/
+bool SC_ParseToken_Simple(const char **data_p)
+{
+	int len = 0;
+	const char *data;
+
+	token[0] = 0;
+	data = *data_p;
+
+	if(!data)
+	{
+		endofscript = true;
+		*data_p = NULL;
+		return false;
+	}
+
+// skip whitespace
+skipwhite:
+	for (;*data <= ' ';data++)
+	{
+		if (*data == 0)
+		{
+			// end of file
+			endofscript = true;
+			*data_p = NULL;
+			return false;
+		}
+	}
+
+	if (*data == '/' && data[1] == '/')
+	{
+		// comment
+		while (*data && *data != '\n' && *data != '\r')
+			data++;
+		goto skipwhite;
+	}
+	else if (*data == '\"')
+	{
+		// quoted string
+		for (data++;*data && *data != '\"';data++)
+		{
+			// allow escaped " and \ case
+			if (*data == '\\' && (data[1] == '\"' || data[1] == '\\'))
+				data++;
+			if (len < (int)sizeof(token) - 1)
+				token[len++] = *data;
+		}
+		token[len] = 0;
+		if (*data == '\"') data++;
+		*data_p = data;
+	}
+	else
+	{
+		// regular word
+		for (;*data > ' ';data++)
+			if (len < (int)sizeof(token) - 1)
+				token[len++] = *data;
+		token[len] = 0;
+		*data_p = data;
+	}
+	return true;
+}
 
 /*
 ==============
@@ -334,7 +402,7 @@ skipwhite:
 	
 
 	// handle quoted strings specially
-	if (c == '\"')
+	if (*data == '\"' || *data == '\'')
 	{
 		data++;
 		while(1)

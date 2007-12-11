@@ -133,6 +133,10 @@ SOURCE=.\btBulletBspLoader.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\btBulletStudioLoader.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\btBulletWorld.cpp
 # End Source File
 # Begin Source File
@@ -482,6 +486,10 @@ SOURCE=.\btBulletCollisionCommon.h
 # Begin Source File
 
 SOURCE=.\btBulletDynamicsCommon.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\btBulletStudioLoader.h
 # End Source File
 # Begin Source File
 

@@ -105,6 +105,10 @@ public:
 		m_origin.setValue(&m[12]);
 	}
 
+	void transpose( void ) 
+	{
+		m_basis.transpose();
+	}
 	
 	void setFromOpenGLMatrix(const btScalar *m)
 	{
@@ -140,6 +144,10 @@ public:
 		m_basis.setRotation(q);
 	}
 
+	SIMD_FORCE_INLINE void setEulerYPR(btScalar& yaw, btScalar& pitch, btScalar& roll)
+	{
+		m_basis.setEulerYPR(yaw, pitch, roll );
+	}
 
 
 	void setIdentity()

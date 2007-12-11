@@ -19,6 +19,7 @@ subject to the following restrictions:
 #include "btBulletDynamicsCommon.h"
 
 class BspLoader;
+class StudioLoader;
 
 class CM_Debug : public btIDebugDraw
 {
@@ -82,7 +83,7 @@ protected:
 	btRigidBody*	g_World;		// collision mesh world ptr
 	btClock		m_clock;
 	BspLoader*	g_Level;
-
+	StudioLoader*	g_Studio;
 
 	int		m_debugMode;	// replace with cvar
 	float		m_WorldScale;	// convert units to meters
@@ -119,7 +120,7 @@ public:
 	btRigidBody* AddStaticRigidBody(const btTransform& startTransform,btCollisionShape* shape); // bodies with infinite mass
 	btRigidBody* AddDynamicRigidBody(float mass, const btTransform& startTransform,btCollisionShape* shape);
 	btRigidBody *AddDynamicRigidBody( int num, btScalar mass = 0.0f ); // collision shape is bsp data
-
+	btRigidBody *AddDynamicRigidBody( void *buffer, int body, btScalar mass = 0.0f ); // collision shape is stduio model
 	void DelRigidBody(btRigidBody* body)
 	{
 		if( body )m_World->removeRigidBody( body );
@@ -133,6 +134,88 @@ public:
 	sv_edict_t *GetUserData( btRigidBody* body )
 	{
 		return (sv_edict_t *)body->getUserPointer();
+	}
+
+	void MatrixAngles( const matrix4x4 matrix, vec3_t origin, vec3_t angles )
+	{ 
+		vec3_t	forward, right, up;
+		float	xyDist;
+
+		forward[0] = matrix[0][0];
+		forward[1] = matrix[0][2];
+		forward[2] = matrix[0][1];
+		right[0] = matrix[1][0];
+		right[1] = matrix[1][2];
+		right[2] = matrix[1][1];
+		up[2] = matrix[2][1];
+	
+		xyDist = sqrt( forward[0] * forward[0] + forward[1] * forward[1] );
+	
+		if ( xyDist > EQUAL_EPSILON )	// enough here to get angles?
+		{
+			angles[1] = RAD2DEG( atan2( forward[1], forward[0] ));
+			angles[0] = RAD2DEG( atan2( -forward[2], xyDist ));
+			angles[2] = RAD2DEG( atan2( -right[2], up[2] )) + 180;
+		}
+		else
+		{
+			angles[1] = RAD2DEG( atan2( right[0], -right[1] ) );
+			angles[0] = RAD2DEG( atan2( -forward[2], xyDist ) );
+			angles[2] = 180;
+		}
+		VectorCopy(matrix[3], origin );// extract origin
+		ConvertPositionToGame( origin );
+	}
+
+	void AnglesMatrix(const vec3_t origin, const vec3_t angles, matrix4x4 matrix )
+	{
+		float		angle;
+		float		sr, sp, sy, cr, cp, cy;
+
+		angle = DEG2RAD(angles[YAW]);
+		sy = sin(angle);
+		cy = cos(angle);
+		angle = DEG2RAD(angles[PITCH]);
+		sp = sin(angle);
+		cp = cos(angle);
+
+		MatrixLoadIdentity( matrix );
+
+		// forward
+		matrix[0][0] = cp*cy;
+		matrix[0][2] = cp*sy;
+		matrix[0][1] = -sp;
+
+		if (angles[ROLL] == 180)
+		{
+			angle = DEG2RAD(angles[ROLL]);
+			sr = sin(angle);
+			cr = cos(angle);
+
+			// right
+			matrix[1][0] = -1*(sr*sp*cy+cr*-sy);
+			matrix[1][2] = -1*(sr*sp*sy+cr*cy);
+			matrix[1][1] = -1*(sr*cp);
+
+			// up
+			matrix[2][0] = (cr*sp*cy+-sr*-sy);
+			matrix[2][2] = (cr*sp*sy+-sr*cy);
+			matrix[2][1] = cr*cp;
+		}
+		else
+		{
+			// right
+			matrix[1][0] = sy;
+			matrix[1][2] = -cy;
+			matrix[1][1] = 0;
+
+			// up
+			matrix[2][0] = (sp*cy);
+			matrix[2][2] = (sp*sy);
+			matrix[2][1] = cp;
+		}
+		VectorCopy(origin, matrix[3] ); // pack origin
+		ConvertPositionToPhysic( matrix[3] );
 	}
 
 	// set body angles and origin
@@ -172,9 +255,7 @@ public:
 	{
 		matrix4x4 matrix;
 
-		MatrixLoadIdentity( matrix );
 		AnglesMatrix( origin, angles, matrix );
-		ConvertPositionToPhysic( matrix[3] );
 		body->getWorldTransform().setFromOpenGLMatrix((float *)matrix);
 	}
 
@@ -185,7 +266,6 @@ public:
 
 		body->getWorldTransform().getOpenGLMatrix((float *)matrix);
 		MatrixAngles( matrix, origin, angles );
-		ConvertPositionToGame( origin );
 	}
 
 	// bsploader operations

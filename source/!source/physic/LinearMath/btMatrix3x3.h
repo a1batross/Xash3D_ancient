@@ -248,9 +248,6 @@ class btMatrix3x3 {
 			}
 		}
 		
-
-	
-		
 		btMatrix3x3 scaled(const btVector3& s) const
 		{
 			return btMatrix3x3(m_el[0].x() * s.x(), m_el[0].y() * s.y(), m_el[0].z() * s.z(),
@@ -258,7 +255,7 @@ class btMatrix3x3 {
 									 m_el[2].x() * s.x(), m_el[2].y() * s.y(), m_el[2].z() * s.z());
 		}
 
-		btScalar            determinant() const;
+		btScalar determinant() const;
 		btMatrix3x3 adjoint() const;
 		btMatrix3x3 absolute() const;
 		btMatrix3x3 transpose() const;

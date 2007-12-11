@@ -88,6 +88,7 @@ void Sys_GetStdAPI( void )
 	com.Com_FreeToken = SC_FreeToken;		// free current token to may get it again
 	com.Com_SkipToken = SC_SkipToken;		// skip current token and jump into newline
 	com.Com_MatchToken = SC_MatchToken;		// compare current token with user keyword
+	com.Com_ParseToken_Simple = SC_ParseToken_Simple;	// basic parse (can't handle single characters)
 	com.Com_ParseToken = SC_ParseToken;		// parse token from char buffer
 	com.Com_ParseWord = SC_ParseWord;		// parse word from char buffer
 	com.Com_Search = FS_Search;			// returned list of found files

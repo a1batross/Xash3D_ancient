@@ -24,10 +24,11 @@ subject to the following restrictions:
 #include "LinearMath/btDefaultMotionState.h"
 #include "btBulletWorld.h"
 #include "btBulletBspLoader.h"
+#include "btBulletStudioLoader.h"
 
 CM_Debug DebugDrawer;
 
-btBulletPhysic::btBulletPhysic(): m_World(0), g_World(0), g_Level(0), m_debugMode(0), m_WorldScale(METERS_PER_INCH)
+btBulletPhysic::btBulletPhysic(): m_World(0), g_World(0), g_Studio(0), g_Level(0), m_debugMode(0), m_WorldScale(METERS_PER_INCH)
 {
 	btVector3 m_worldAabbMin(-1000, -1000, -1000), m_worldAabbMax(1000, 1000, 1000);
 
@@ -42,6 +43,7 @@ btBulletPhysic::btBulletPhysic(): m_World(0), g_World(0), g_Level(0), m_debugMod
 	m_World->setDebugDrawer(&DebugDrawer);
 
 	g_Level = new BspLoader();
+	g_Studio = new StudioLoader();
 
 	m_debugMode |= btIDebugDraw::DBG_DrawAabb;
 	m_debugMode |= btIDebugDraw::DBG_DrawWireframe;
@@ -52,6 +54,7 @@ btBulletPhysic::~btBulletPhysic()
 	DeleteAllBodies();
 
 	delete g_Level;
+	delete g_Studio;
 	delete m_World;
 }
 
@@ -91,6 +94,12 @@ void btBulletPhysic::DeleteAllBodies( void )
 btRigidBody *btBulletPhysic::AddDynamicRigidBody( int num, btScalar mass )
 {
 	return g_Level->buildCollisionTree( num, mass );
+}
+
+btRigidBody *btBulletPhysic::AddDynamicRigidBody( void *buffer, int body, btScalar mass )
+{
+	g_Studio->loadModel( buffer );
+	return g_Studio->buildCollisionTree( body, mass );
 }
 
 btRigidBody* btBulletPhysic::AddDynamicRigidBody(float mass, const btTransform& startTransform, btCollisionShape* shape)

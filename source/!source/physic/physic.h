@@ -23,7 +23,7 @@ extern void Phys_FreeBSP( void );
 extern void DebugShowCollision ( void );
 extern void Phys_Frame( float time );
 extern void Phys_WorldUpdate( void );
-extern physbody_t *Phys_CreateBody( sv_edict_t *ed, vec3_t mins, vec3_t maxs, vec3_t org, vec3_t ang, int solid );
+extern physbody_t *Phys_CreateBody( sv_edict_t *ed, void *buffer, vec3_t org, vec3_t ang );
 extern void Phys_RemoveBody( physbody_t *body );
 extern bool InitPhysics( void );
 extern void FreePhysics( void );

@@ -866,14 +866,14 @@ void PRVM_ED_ParseGlobals (const char *data)
 	while (1)
 	{
 		// parse key
-		if (!Com_ParseToken(&data))
+		if (!Com_SimpleGetToken(&data))
 			PRVM_ERROR ("PRVM_ED_ParseGlobals: EOF without closing brace\n");
 		if (com_token[0] == '}') break;
 		if (com_token[0] == '{') continue;
 		com.strncpy (keyname, com_token, sizeof(keyname));
 
 		// parse value
-		if (!Com_ParseToken(&data))
+		if (!Com_SimpleGetToken(&data))
 			PRVM_ERROR ("PRVM_ED_ParseGlobals: EOF without closing brace\n");
 
 		if (com_token[0] == '}')
@@ -1054,7 +1054,7 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 	while( 1 )
 	{
 		// parse key
-		if(!Com_ParseToken(&data)) PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
+		if(!Com_SimpleGetToken(&data)) PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
 
 		// just format console messages
 		newline = (com_token[0] == '}') ? true : false;
@@ -1085,7 +1085,7 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 		}
 
 		// parse value
-		if (!Com_ParseToken(&data)) PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
+		if (!Com_SimpleGetToken(&data)) PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
 		MsgDev(D_NOTE, " \"%s\"\n", com_token);
 		if(com_token[0] == '}') PRVM_ERROR ("PRVM_ED_ParseEdict: closing brace without data");
 		init = true;
@@ -1150,7 +1150,7 @@ void PRVM_ED_LoadFromFile (const char *data)
 	while (1)
 	{
 		// parse the opening brace
-		if (!Com_ParseToken(&data)) break;
+		if (!Com_SimpleGetToken(&data)) break;
 		if (com_token[0] != '{')
 			PRVM_ERROR ("PRVM_ED_LoadFromFile: %s: found %s when expecting {", PRVM_NAME, com_token);
 
