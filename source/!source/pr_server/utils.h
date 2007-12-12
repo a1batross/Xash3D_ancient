@@ -2,6 +2,9 @@
 //			Copyright XashXT Group 2007 ©
 //			utils.h - vm builtin functions
 //=======================================================================
+#ifndef UTILS_H
+#define UTILS_H
+
 #define MSG_BROADCAST	1 // unreliable to all
 #define MSG_PHS		2 // unreliable to potential hearable set
 #define MSG_PVS		3 // unreliable to potential visible set
@@ -114,4 +117,5 @@ void configstring(float num, string s)				= #105;
 void makestatic(entity e)					= #106;
 float model_frames(float modelindex)				= #107; 
 void set_effect( entity e, float effect )			= #108;
- 
+
+#endif//UTILS_H 

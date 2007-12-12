@@ -12,6 +12,8 @@
 | refuse to run.                                                             |
 +=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-+
 */
+#pragma version 7		// set right version
+
 // These lines CANNOT be altered/moved
 	// pointers to ents
 	entity          	pev;		// Pointer EntVars (same as pev)

@@ -750,7 +750,8 @@ SV_Frame
 void SV_Frame (float time)
 {
 	// if server is not active, do nothing
-	if (!svs.initialized) return;
+	if (!svs.initialized) 
+		return;
 
 	svs.realtime += time;
 
@@ -947,7 +948,7 @@ Only called at xash.exe startup, not for each game
 */
 void SV_Init (void)
 {
-	SV_InitOperatorCommands	();
+	SV_InitOperatorCommands();
 
 	rcon_password = Cvar_Get ("rcon_password", "", 0);
 	Cvar_Get ("skill", "1", 0);

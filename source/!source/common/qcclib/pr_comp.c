@@ -6651,7 +6651,7 @@ bool PR_ContinueCompile( void )
 			progs_src = saved_progs_src;
 			PR_SetDefaultProperties();
 			autoprototype = false;
-			PR_Message("Compiling...\n");
+			PR_Message("\nCompiling...\n");
 			return true;
 		}
 		return false; // end of compile
@@ -6714,9 +6714,11 @@ void PR_BeginCompilation ( void )
 	strcpy(progsoutname, com_token);
 
 	// this progs.src was written by qcclib without sorting
-	if(!stricmp(progsoutname, "unknown.dat" ))
+	if(!com.stricmp(progsoutname, "unknown.dat" ))
+	{
+		// ready to compile any version
 		autoprototype = true;
-
+	}
 	FS_StripExtension( com_token );
 
 	if (FS_CheckParm("-asm")) asmfile = FS_Open(va("%s.asm", com_token), "wb" );

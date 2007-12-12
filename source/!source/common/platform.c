@@ -108,7 +108,6 @@ void RunPlatform ( void )
 	case IMGLIB:
 		CompileMod = ConvertImagePixels; 
 		strcpy(typemod, "images" );
-		strcpy(searchmask[0], "*.tga" );	// quake2 menu images
 		strcpy(searchmask[1], "*.pcx" );	// quake2 menu images
 		strcpy(searchmask[2], "*.wal" );	// quake2 textures
 		strcpy(searchmask[3], "*.lmp" );	// quake1 menu images
@@ -139,7 +138,7 @@ void RunPlatform ( void )
 		strcpy(searchmask[0], "*.*" );
 		break;
 	}
-	if(!CompileMod) goto elapced_time;//back to shutdown
+	if(!CompileMod) goto elapced_time; // jump to shutdown
 
 	zonepool = Mem_AllocPool("compiler");
 	if(!FS_GetParmFromCmdLine("-file", filename ))
@@ -160,8 +159,12 @@ void RunPlatform ( void )
 		}
 		if(numCompiledMods == 0) 
 		{
-			for(j = 0; j < 8; j++) strcat(errorstring, searchmask[j]);
-			Sys_Break("no %s found in this folder!\n", errorstring );
+			for(j = 0; j < 8; j++) 
+			{
+				if(!strlen(searchmask[j])) continue;
+				strcat(errorstring, va("%s ", searchmask[j]));
+			}
+			Sys_Break("no %sfound in this folder!\n", errorstring );
 		}
 	}
 	else CompileMod( zonepool, filename, parms );

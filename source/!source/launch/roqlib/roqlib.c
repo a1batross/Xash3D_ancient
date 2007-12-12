@@ -4,4 +4,4 @@
 
 #include "../rundll.h"
 
-Run32( roqlib );
+Run( roqlib );

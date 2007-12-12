@@ -827,7 +827,6 @@ long _stdcall Sys_Crash( PEXCEPTION_POINTERS pInfo )
 
 void Sys_Init( void )
 {
-	HANDLE		hStdout;
 	MEMORYSTATUS	lpBuffer;
 	char		dev_level[4];
 
@@ -836,7 +835,6 @@ void Sys_Init( void )
 	GlobalMemoryStatus (&lpBuffer);
 
 	Sys.hInstance = (HINSTANCE)GetModuleHandle( NULL ); // get current hInstance first
-	hStdout = GetStdHandle (STD_OUTPUT_HANDLE); // check for hooked out
 
 	Sys_GetStdAPI();
 	Sys.Init = NullInit;
@@ -849,10 +847,6 @@ void Sys_Init( void )
 	if(FS_CheckParm ("-debug")) Sys.debug = true;
 	if(FS_CheckParm ("-log")) Sys.log_active = true;
 	if(FS_GetParmFromCmdLine("-dev", dev_level )) Sys.developer = com_atoi(dev_level);
-
-	// ugly hack to get pipeline state, but it works
-	if(abs((short)hStdout) < 100) Sys.hooked_out = false;
-	else Sys.hooked_out = true;
 	FS_UpdateEnvironmentVariables(); // set working directory
 	SetErrorMode( SEM_FAILCRITICALERRORS );	// no abort/retry/fail errors
 

@@ -369,15 +369,12 @@ void Con_DestroyConsole( void )
 	if(Sys.crash) MsgDev(D_NOTE, "Sys_FreeLibrary: Hold launch.dll for debugging\n" );
 	else MsgDev(D_NOTE, "Sys_FreeLibrary: Unloading launch.dll\n");
 
-	if(Sys.hooked_out) 
-	{
-		Sys_CloseLog();
-		return;
-	}
+	Sys_CloseLog();
+
+	if(Sys.hooked_out) return;
 
 	if ( s_wcd.hWnd )
 	{
-
 		DeleteObject(s_wcd.hbrEditBackground);
 		DeleteObject( s_wcd.hbrErrorBackground);
                     DeleteObject( s_wcd.hfBufferFont );
@@ -386,9 +383,7 @@ void Con_DestroyConsole( void )
 		DestroyWindow( s_wcd.hWnd );
 		s_wcd.hWnd = 0;
 	}
-
 	UnregisterClass (SYSCONSOLE, Sys.hInstance);
-	Sys_CloseLog();
 }
 
 /*

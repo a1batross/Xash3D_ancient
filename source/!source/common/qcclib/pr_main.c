@@ -61,6 +61,7 @@ void PR_SetDefaultProperties (void)
 	// reset all optimizarions
 	for (i = 0; pr_optimisations[i].enabled; i++) 
 		*pr_optimisations[i].enabled = false;
+
 	target_version = QPROGS_VERSION;
 	PR_DefineName("_QCLIB"); // compiler type
 
@@ -76,7 +77,7 @@ void PR_SetDefaultProperties (void)
 
 	for (i = 1; i < com_argc; i++)
 	{
-		if( !strnicmp(com_argv[i], "/D", 2))
+		if( !com.strnicmp(com_argv[i], "/D", 2))
 		{
 			// #define
 			name = com_argv[i+1];
@@ -92,7 +93,7 @@ void PR_SetDefaultProperties (void)
 				cnst->value[sizeof(cnst->value)-1] = '\0';
 			}
 		}
-		else if ( !strnicmp(com_argv[i], "/V", 2))
+		else if ( !com.strnicmp(com_argv[i], "/V", 2))
 		{
 			// target version
 			if (com_argv[i][2] == '6') target_version = QPROGS_VERSION;
@@ -100,7 +101,7 @@ void PR_SetDefaultProperties (void)
 			else if (com_argv[i][2] == '8') target_version = VPROGS_VERSION;
 			else PR_Warning(0, NULL, WARN_BADPARAMS, "Unrecognised version parametr (%s)", com_argv[i]);
 		}
-		else if( !strnicmp(com_argv[i], "/O", 2))
+		else if( !com.strnicmp(com_argv[i], "/O", 2))
 		{
 			int currentlevel = 0; // optimization level
 			if(com_argv[i][2] == 'd') currentlevel = MASK_DEBUG; // disable optimizations
@@ -148,9 +149,9 @@ void PR_Init( const char *name )
 	static temp_t	ret_temp;
 	int		i;
 
-	strncat(v_copyright, "This file was created with Xash3D QuakeC compiler,\n", sizeof(v_copyright));
-	strncat(v_copyright, "who based on original code of ForeThought's QuakeC compiler.\n", sizeof(v_copyright));
-	strncat(v_copyright, "Thanks to ID Software at all.", sizeof(v_copyright));
+	com.strncat(v_copyright, "This file was created with Xash3D QuakeC compiler,\n", sizeof(v_copyright));
+	com.strncat(v_copyright, "who based on original code of ForeThought's QuakeC compiler.\n", sizeof(v_copyright));
+	com.strncat(v_copyright, "Thanks to ID Software at all.", sizeof(v_copyright));
 
 	// tune limits
 	MAX_REGS		= 65536;
@@ -206,7 +207,7 @@ void PR_Init( const char *name )
 	memset(pr_immediate_string, 0, sizeof(pr_immediate_string));
 
 	if (opt_locals_marshalling) MsgWarn("Locals marshalling might be buggy. Use with caution\n");
-	strncpy( sourcefilename, name, sizeof(sourcefilename));
+	com.strncpy( sourcefilename, name, sizeof(sourcefilename));
 
 	// default parms
 	def_ret.ofs = OFS_RETURN;

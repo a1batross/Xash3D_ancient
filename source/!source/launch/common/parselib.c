@@ -12,6 +12,7 @@ typedef struct
 	byte	*script_p;
 	byte	*end_p;
 	int	line;
+	bool	can_unload;
 } script_t;
 
 // max included scripts
@@ -61,6 +62,9 @@ bool SC_LoadScript( const char *filename, char *buf, int size )
 	script = scriptstack;
 	result = SC_AddScriptToStack( filename, buf, size);
 
+	if(!buf || size <= 0) script->can_unload = true;
+	else script->can_unload = false;
+
 	endofscript = false;
 	tokenready = false;
 	return result;
@@ -68,9 +72,17 @@ bool SC_LoadScript( const char *filename, char *buf, int size )
 
 bool SC_AddScript( const char *filename, char *buf, int size )
 {
+	int result;
+
 	if(!buf || size <= 0)
 		buf = FS_LoadFile (filename, &size );
-	return SC_AddScriptToStack(filename, buf, size);
+
+	result = SC_AddScriptToStack(filename, buf, size);
+
+	if(!buf || size <= 0) script->can_unload = true;
+	else script->can_unload = false;
+
+	return result;
 }
 
 void SC_ResetScript( void )
@@ -117,20 +129,24 @@ skip_whitespace:	// skip whitespace
 	if (script->script_p >= script->end_p)
 		return SC_EndOfScript (newline);
 
-	// ; # // comments
-	if (*script->script_p == ';' || *script->script_p == '#' || ( script->script_p[0] == '/' && script->script_p[1] == '/') )
+	// ; // comments
+	if (*script->script_p == ';' || ( script->script_p[0] == '/' && script->script_p[1] == '/') )
 	{
 		if (!newline) goto line_incomplete;
 
 		// ets++
 		if (*script->script_p == '/') script->script_p++;
-		if (script->script_p[1] == 'T' && script->script_p[2] == 'X')
-			GI.TXcommand = script->script_p[3];//TX#"-style comment (get rid of this)
+		if(*script->script_p == '#' && script->script_p[1] == 'T' && script->script_p[2] == 'X')
+		{
+			GI.TXcommand = script->script_p[3]; // TX#"-style comment
+			Msg("Quark TX command %s\n", GI.TXcommand );
+		}
 		while (*script->script_p++ != '\n')
 		{
 			if (script->script_p >= script->end_p)
 				return SC_EndOfScript (newline);
 		}
+		scriptline = script->line++;
 		goto skip_whitespace;
 	}
 
@@ -207,7 +223,7 @@ skip_whitespace:	// skip whitespace
 	// quake style include & default MSVC style
 	if (!com_strcmp(token, "$include") || !com_strcmp(token, "#include"))
 	{
-		SC_ReadToken (false);
+		SC_ReadToken( false );
 		SC_AddScript(token, NULL, 0 );
 		return SC_ReadToken (newline);
 	}
@@ -231,12 +247,14 @@ bool SC_EndOfScript (bool newline)
 		Sys_Error("%s: line %i is incomplete\n", script->filename, scriptline);
 	}
 
-	if(!com_strcmp (script->filename, "script buffer"))
+	if(!script->can_unload)
 	{
 		endofscript = true;
 		return false;
 	}
 
+	// release script
+	Mem_Free (script->buffer);
 	if(script == scriptstack + 1)
 	{
 		endofscript = true;
@@ -244,10 +262,11 @@ bool SC_EndOfScript (bool newline)
 	}
 
 	script--;
+	token[0] = 0; // clear last token
 	scriptline = script->line;
 	endofscript = true;
 
-	return false;
+	return true;
 }
 
 /*

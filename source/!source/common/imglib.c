@@ -14,7 +14,7 @@ bool ConvertImagePixels ( byte *mempool, const char *name, byte parms )
 
 	if(!image || !image->buffer) return false;
 
-	strncpy( savename,name,sizeof(savename)-1);
+	com.strncpy( savename, name, sizeof(savename)-1);
 	FS_StripExtension( savename ); // remove extension if needed
 	FS_DefaultExtension( savename, ".tga" );// set new extension
 	w = image->width, h = image->height; 
@@ -22,9 +22,9 @@ bool ConvertImagePixels ( byte *mempool, const char *name, byte parms )
 	if(FS_CheckParm("-resample"))
 		Image_Processing( name, &image );
 
+	Msg("%s\n", name );
 	FS_SaveImage( savename, image );// save as TGA
 	FS_FreeImage( image );
-	Msg("\n");
 
 	return true;
 }

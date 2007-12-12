@@ -10,6 +10,7 @@
 +=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-+
 */
 // General Junk
+
 void() event_lightning          = {remove(pev);};
 void() misc_fireball            = {remove(pev);};
 void() misc_explobox2           = {remove(pev);};

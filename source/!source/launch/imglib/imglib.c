@@ -4,4 +4,4 @@
 
 #include "../rundll.h"
 
-Run32( imglib );
+Run( imglib );

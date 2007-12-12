@@ -567,7 +567,7 @@ void WriteModel( void )
 			}
 			numCmdBytes = BuildTris( model[i]->pmesh[j]->triangle, model[i]->pmesh[j], &pCmdSrc );
 
-			pmesh[j].triindex	= (pData - pStart);
+			pmesh[j].triindex = (pData - pStart);
 			memcpy( pData, pCmdSrc, numCmdBytes );
 			pData += numCmdBytes;
 			

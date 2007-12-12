@@ -4,4 +4,4 @@
 
 #include "../rundll.h"
 
-Run32( bsplib );
+Run( bsplib );

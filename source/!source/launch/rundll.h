@@ -18,11 +18,14 @@
 #pragma comment(linker,"/MERGE:.rdata=.text")
 #pragma comment(linker,"/FILEALIGN:512 /SECTION:.text, EWRX /IGNORE:4078")
 
+#define Run( prog ) int main(int argc, char **argv)\
+{ return CreateMain32()( #prog, TRUE ); }
+
 #define Run32( prog ) int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)\
-{ return CreateMain32()( #prog ); }
+{ return CreateMain32()( #prog, FALSE ); }
 
 // engine entry point format
-typedef int (*winmain_t)( char *funcname );
+typedef int (*winmain_t)( char *funcname, int console );
 char szSearch[ 5 ][ 1024 ];
 char szFsPath[ 4096 ];
 HINSTANCE	hmain;

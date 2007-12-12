@@ -282,7 +282,7 @@ void Sav_LoadLocals( lump_t *l )
 				SV_LinkEdict( ent );
 				if(ent->progs.sv->movetype == MOVETYPE_PHYSIC)
 				{
-					pe->CreateBody( ent->priv.sv, SV_GetModelPtr(ent), ent->progs.sv->origin, ent->progs.sv->angles );
+					pe->CreateBody( ent->priv.sv, SV_GetModelPtr(ent), ent->progs.sv->origin, ent->progs.sv->angles, ent->progs.sv->solid );
 				}
 			}
 		}

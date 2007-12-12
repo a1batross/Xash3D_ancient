@@ -5,6 +5,7 @@
 
 #include "qcclib.h"
 #include "time.h"
+#include "mathlib.h"
 
 char	*compilingfile;
 int	pr_source_line;
@@ -548,7 +549,7 @@ bool PR_Precompiler(void)
 				if ((*pr_file_p == ' ' || *pr_file_p == '\t'|| *pr_file_p == '(') && !*com_token)
 				{
 					msg[a] = '\0';
-					strcpy(com_token, msg);
+					com.strcpy(com_token, msg);
 					a=0;
 					continue;
 				}
@@ -564,7 +565,7 @@ bool PR_Precompiler(void)
 
 			if (!*com_token)
 			{
-				strcpy(com_token, msg);
+				com.strcpy(com_token, msg);
 				msg[0] = '\0';
 			}
 
@@ -596,13 +597,17 @@ bool PR_Precompiler(void)
 			{
 				ForcedCRC = atoi(msg);
 			}
-			else if (!stricmp(com_token, "TARGET"))
+			else if (!stricmp(com_token, "target"))
 			{
 				if (!stricmp(msg, "STANDARD")) target_version = QPROGS_VERSION;
-				else if (!stricmp(msg, "ID")) target_version = QPROGS_VERSION;
-				else if (!stricmp(msg, "FTE")) target_version = FPROGS_VERSION;
-				else if (!stricmp(msg, "VPROGS"))target_version = VPROGS_VERSION;
+				else if (!com.stricmp(msg, "ID")) target_version = QPROGS_VERSION;
+				else if (!com.stricmp(msg, "FTE")) target_version = FPROGS_VERSION;
+				else if (!com.stricmp(msg, "VPROGS"))target_version = VPROGS_VERSION;
 				else PR_ParseWarning(WARN_BADTARGET, "Unknown target \'%s\'. Ignored.", msg);
+			}
+			else if (!stricmp(com_token, "version"))
+			{
+				target_version = bound(QPROGS_VERSION, atoi(msg), VPROGS_VERSION);
 			}
 			else if (!stricmp(com_token, "warning"))
 			{

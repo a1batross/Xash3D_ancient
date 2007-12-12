@@ -134,7 +134,7 @@ void(void) dpmod_options_invmouse_refresh;
 // quit message stuff
 const float DPMOD_QUIT_MSG_COUNT = 4;
 
-string dpmod_quitmsg[DPMOD_QUIT_MSG_COUNT] =
+string dpmod_quitmsg[4] =
 {
 "'Tired of fragging''already ?'",
 "'Quit now and forfeit''your bodycount ?'",

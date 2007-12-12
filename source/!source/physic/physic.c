@@ -5,6 +5,26 @@
 
 #include "physic.h"
 
+physic_imp_t	pi;
+stdlib_api_t	com;
+physic_t		ph;	// physic globalstate
+byte		*physpool;
+NewtonWorld	*gWorld;
+
+bool InitPhysics( void )
+{
+	physpool = Mem_AllocPool("Physics Pool");
+	gWorld = NewtonCreate (Palloc, Pfree); // alloc world
+
+	return true;
+}
+
+void FreePhysics( void )
+{
+	NewtonDestroy( gWorld );
+	Mem_FreePool( &physpool );
+}
+
 physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs )
 {
 	static physic_exp_t		Phys;
@@ -25,7 +45,6 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 	Phys.FreeBSP = Phys_FreeBSP;
 	Phys.DrawCollision = DebugShowCollision;
 	Phys.Frame = Phys_Frame;
-	Phys.Update = Phys_WorldUpdate;
 	Phys.CreateBody = Phys_CreateBody;
 	Phys.RemoveBody = Phys_RemoveBody;
 

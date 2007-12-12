@@ -2,6 +2,7 @@
 //			Copyright XashXT Group 2007 ©
 //			    entvars.h - menu edicts
 //=======================================================================
+#pragma version 7		// set right version
 
 	entity	pev;
 	void	m_init( void );

@@ -1560,7 +1560,8 @@ void CL_Frame( float time )
 	static float	extratime;
 	static float  	lasttimecalled;
 
-	if (dedicated->value) return;
+	if (dedicated->value)
+		return;
 
 	extratime += time;
 
