@@ -603,7 +603,7 @@ void PRVM_ED_Print(edict_t *ed)
 
 		v = (int *)((char *)ed->progs.vp + d->ofs*4);
 
-	// if the value is still all 0, skip the field
+		// if the value is still all 0, skip the field
 		type = d->type & ~DEF_SAVEGLOBAL;
 
 		for (j=0 ; j<prvm_type_size[type] ; j++)
@@ -1100,7 +1100,7 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 		key = PRVM_ED_FindField( keyname );
 		if (!key)
 		{
-			MsgDev(D_WARN, "%s: unknown field '%s'\n", PRVM_NAME, keyname);
+			MsgDev(D_NOTE, "%s: unknown field '%s'\n", PRVM_NAME, keyname);
 			continue;
 		}
 
@@ -1182,7 +1182,7 @@ void PRVM_ED_LoadFromFile (const char *data)
 			string_t handle = *(string_t*)&((byte*)ent->progs.vp)[PRVM_ED_FindFieldOffset("classname")];
 			if (!handle)
 			{
-				if(host.debug)
+				if(host.developer >= D_NOTE)
 				{
 					MsgWarn("No classname for:\n");
 					PRVM_ED_Print(ent);
@@ -1196,7 +1196,7 @@ void PRVM_ED_LoadFromFile (const char *data)
 
 			if (!func)
 			{
-				if(host.debug)
+				if(host.developer >= D_NOTE)
 				{
 					MsgWarn("No spawn function for:\n");
 					PRVM_ED_Print(ent);

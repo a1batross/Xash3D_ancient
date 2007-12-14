@@ -12,6 +12,7 @@
 #define BSP_ONLYVIS		0x02
 #define BSP_ONLYRAD		0x04
 #define BSP_FULLCOMPILE	0x08
+#define BSP_ONLYHULL	0x10	// generate collision tree only
 
 // qcclib compile flags
 #define QCC_PROGDEFS	0x01

@@ -11,10 +11,18 @@ physic_t		ph;	// physic globalstate
 byte		*physpool;
 NewtonWorld	*gWorld;
 
+cvar_t		*cm_use_triangles;
+cvar_t		*cm_solver_model;
+cvar_t		*cm_friction_model;
+
 bool InitPhysics( void )
 {
 	physpool = Mem_AllocPool("Physics Pool");
 	gWorld = NewtonCreate (Palloc, Pfree); // alloc world
+
+	cm_use_triangles = Cvar_Get("cm_convert_polygons", "1", CVAR_INIT|CVAR_SYSTEMINFO );//, "convert bsp polygons to triangles, slowly but more safety way" );
+	cm_solver_model = Cvar_Get("cm_solver", "0", CVAR_ARCHIVE );//, "change solver model: 0 - precision, 1 - adaptive, 2 - fast. (changes need restart server to take effect)" );
+	cm_friction_model = Cvar_Get("cm_friction", "0", CVAR_ARCHIVE );//, "change solver model: 0 - precision, 1 - adaptive. (changes need restart server to take effect)" );
 
 	return true;
 }
@@ -41,9 +49,12 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 
 	Phys.Init = InitPhysics;
 	Phys.Shutdown = FreePhysics;
-	Phys.LoadBSP = Phys_LoadBSP;
-	Phys.FreeBSP = Phys_FreeBSP;
+	Phys.LoadBSP = CM_LoadBSP;
+	Phys.FreeBSP = CM_FreeBSP;
+	Phys.WriteCollisionLump = CM_SaveCollisionTree;
 	Phys.DrawCollision = DebugShowCollision;
+	Phys.LoadWorld = CM_LoadWorld;
+	Phys.FreeWorld = CM_FreeWorld;
 	Phys.Frame = Phys_Frame;
 	Phys.CreateBody = Phys_CreateBody;
 	Phys.RemoveBody = Phys_RemoveBody;

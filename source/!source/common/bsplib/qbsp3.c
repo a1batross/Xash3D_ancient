@@ -10,9 +10,12 @@ node_t *block_nodes[10][10];
 
 bool full_compile = false;
 bool onlyents = false;
+bool hullonly = false;
 bool onlyvis = false;
 bool onlyrad = false;
 
+dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(physic_exp_t) };
+physic_exp_t *pe;
 
 /*
 ============
@@ -20,7 +23,7 @@ BlockTree
 
 ============
 */
-node_t	*BlockTree (int xl, int yl, int xh, int yh)
+node_t *BlockTree (int xl, int yl, int xh, int yh)
 {
 	node_t	*node;
 	vec3_t	normal;
@@ -118,7 +121,7 @@ ProcessWorldModel
 
 ============
 */
-void ProcessWorldModel (void)
+void ProcessWorldModel( void )
 {
 	bsp_entity_t	*e;
 	tree_t		*tree;
@@ -148,7 +151,7 @@ void ProcessWorldModel (void)
 	if (block_xh > 3) block_xh = 3;
 	if (block_yh > 3) block_yh = 3;
 
-	for (optimize = false ; optimize <= true ; optimize++)
+	for (optimize = false; optimize <= true; optimize++)
 	{
 		RunThreadsOnIndividual ((block_xh-block_xl+1)*(block_yh-block_yl+1), true, ProcessBlock_Thread);
 
@@ -173,7 +176,9 @@ void ProcessWorldModel (void)
 		MakeTreePortals (tree);
 
 		if (FloodEntities (tree))
+		{
 			FillOutside (tree->headnode);
+		}
 		else
 		{
 			Msg("**** leaked ****\n");
@@ -189,17 +194,16 @@ void ProcessWorldModel (void)
 		}
 	}
 
-	FloodAreas (tree);
-	MakeFaces (tree->headnode);
-	FixTjuncs (tree->headnode);
-	PruneNodes (tree->headnode);
+	FloodAreas(tree);
+	MakeFaces(tree->headnode);
+	FixTjuncs(tree->headnode);
+	PruneNodes(tree->headnode);
 
-	WriteBSP (tree->headnode);
+	WriteBSP(tree->headnode);
 
-	if (!leaked)
-		WritePortalFile (tree);
+	if(!leaked) WritePortalFile( tree );
 
-	FreeTree (tree);
+	FreeTree( tree );
 }
 
 /*
@@ -211,7 +215,7 @@ ProcessSubModel
 void ProcessSubModel (void)
 {
 	bsp_entity_t	*e;
-	int			start, end;
+	int		start, end;
 	tree_t		*tree;
 	bspbrush_t	*list;
 	vec3_t		mins, maxs;
@@ -257,15 +261,29 @@ void ProcessModels (void)
 	EndBSPFile ();
 }
 
+static void AddCollision(void* handle, const void* buffer, size_t size)
+{
+	Mem_Copy( dcollision + dcollisiondatasize, (void *)buffer, size );
+	dcollisiondatasize += size;
+}
+
+void ProcessCollisionTree( void )
+{
+	if( !physic_dll.link ) return;
+
+	dcollisiondatasize = 0;
+	pe->WriteCollisionLump( NULL, AddCollision );
+}
 
 /*
 ============
 WbspMain
 ============
 */
-void WbspMain ( bool option )
+void WbspMain ( bool option, bool option2 )
 {
 	onlyents = option;
+	hullonly = option2;
 	
 	Msg("---- CSG ---- [%s]\n", onlyents ? "onlyents" : "normal" );
 
@@ -276,7 +294,7 @@ void WbspMain ( bool option )
 	remove(path);
 
 	// if onlyents, just grab the entites and resave
-	if (onlyents)
+	if( onlyents )
 	{
 		LoadBSPFile();
 		num_entities = 0;
@@ -287,29 +305,54 @@ void WbspMain ( bool option )
 		UnparseEntities();
 		WriteBSPFile();
 	}
+	else if(hullonly)
+	{
+		LoadBSPFile();
+		ProcessCollisionTree();
+		WriteBSPFile();
+	}
 	else
 	{
 		// start from scratch
-		LoadMapFile ();
-		SetModelNumbers ();
-		SetLightStyles ();
-		ProcessModels ();
+		LoadMapFile();
+		SetModelNumbers();
+		SetLightStyles();
+		ProcessModels();
+		LoadBSPFile();
+		ProcessCollisionTree();
+		WriteBSPFile();
 	}
 }
 
 bool PrepareBSPModel ( const char *dir, const char *name, byte params )
 {
-	int numshaders;
+	static physic_imp_t		pi;
+	launch_t			CreatePhysic;
+	int			numshaders;
+
+	// phys callback
+	pi.api_size = sizeof(physic_imp_t);
 	
 	if( dir ) com.strncpy(gs_basedir, dir, sizeof(gs_basedir));
 	if( name ) com.strncpy(gs_mapname, name, sizeof(gs_mapname));
 
-	//copy state
+	// copy state
 	onlyents = (params & BSP_ONLYENTS) ? true : false;
+	hullonly = (params & BSP_ONLYHULL) ? true : false;
 	onlyvis = (params & BSP_ONLYVIS) ? true : false ;
 	onlyrad = (params & BSP_ONLYRAD) ? true : false;
 	full_compile = (params & BSP_FULLCOMPILE) ? true : false;
 
+	Sys_LoadLibrary( &physic_dll );
+
+	if(physic_dll.link)
+	{
+		CreatePhysic = (void *)physic_dll.main;
+		pe = CreatePhysic( &com, &pi ); // sys_error not overrided
+		pe->Init();
+	}
+	else memset( &pe, 0, sizeof(pe));
+  
 	// don't worry about that
 	FS_LoadGameInfo("gameinfo.txt");
 
@@ -322,16 +365,24 @@ bool PrepareBSPModel ( const char *dir, const char *name, byte params )
 bool CompileBSPModel ( void )
 {
 	// must be first!
-	if( onlyents ) WbspMain( true );
+	if( onlyents ) WbspMain( true, false );
+	else if( hullonly ) WbspMain( false, true );
 	else if( onlyvis && !onlyrad ) WvisMain ( full_compile );
 	else if( onlyrad && !onlyvis ) WradMain( full_compile );
 	else if( onlyrad && onlyvis )
 	{
-		WbspMain( false );
+		WbspMain( false, false );
 		WvisMain( full_compile );
 		WradMain( full_compile );
 	}
-          else WbspMain( false ); //just create bsp
+          else WbspMain( false, false ); //just create bsp
+
+	if(physic_dll.link)
+	{
+		pe->Shutdown();
+		memset( &pe, 0, sizeof(pe));
+	}
+	Sys_FreeLibrary( &physic_dll );
 
 	if( onlyrad && onlyvis && full_compile )
 	{
@@ -343,5 +394,6 @@ bool CompileBSPModel ( void )
 		com.sprintf(path, "%s/maps/%s.log", com.GameInfo->gamedir, gs_mapname);
 		remove(path);
 	}
+
 	return true;
 }

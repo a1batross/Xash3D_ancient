@@ -487,45 +487,41 @@ BeginModel
 */
 int	firstmodleaf;
 extern	int firstmodeledge;
-extern	int	firstmodelface;
+extern	int firstmodelface;
+
 void BeginModel (void)
 {
-	dmodel_t	*mod;
-	int			start, end;
+	dmodel_t		*mod;
 	mapbrush_t	*b;
-	int			j;
 	bsp_entity_t	*e;
+	int		j, start, end;
 	vec3_t		mins, maxs;
 
 	if (nummodels == MAX_MAP_MODELS) Sys_Error ("MAX_MAP_MODELS");
 	mod = &dmodels[nummodels];
 
 	mod->firstface = numfaces;
+//mod->firstbrush = numbrushes;
 
 	firstmodleaf = numleafs;
 	firstmodeledge = numedges;
 	firstmodelface = numfaces;
 
-	//
 	// bound the brushes
-	//
 	e = &entities[entity_num];
-
 	start = e->firstbrush;
 	end = start + e->numbrushes;
 	ClearBounds (mins, maxs);
 
-	for (j=start ; j<end ; j++)
+	for( j = start; j < end; j++ )
 	{
 		b = &mapbrushes[j];
-		if (!b->numsides)
-			continue;	// not a real brush (origin brush)
-		AddPointToBounds (b->mins, mins, maxs);
-		AddPointToBounds (b->maxs, mins, maxs);
+		if (!b->numsides) continue; // not a real brush (origin brush)
+		AddPointToBounds( b->mins, mins, maxs );
+		AddPointToBounds( b->maxs, mins, maxs );
 	}
-
-	VectorCopy (mins, mod->mins);
-	VectorCopy (maxs, mod->maxs);
+	VectorCopy( mins, mod->mins );
+	VectorCopy( maxs, mod->maxs );
 }
 
 
@@ -541,6 +537,7 @@ void EndModel (void)
 	mod = &dmodels[nummodels];
 
 	mod->numfaces = numfaces - mod->firstface;
+//mod->numbrushes = numbrushes - mod->firstbrush;
 
 	nummodels++;
 }

@@ -51,6 +51,7 @@ void InitPlatform ( uint funcname, int argc, char **argv )
 		if(FS_CheckParm("-rad")) bspflags |= BSP_ONLYRAD;
 		if(FS_CheckParm("-full")) bspflags |= BSP_FULLCOMPILE;
 		if(FS_CheckParm("-onlyents")) bspflags |= BSP_ONLYENTS;
+		if(FS_CheckParm("-onlyhull")) bspflags |= BSP_ONLYHULL;
 
 		PrepareBSPModel( gamedir, source, bspflags );
 		break;

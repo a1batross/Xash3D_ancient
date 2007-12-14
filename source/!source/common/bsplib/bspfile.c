@@ -60,7 +60,8 @@ darea_t	dareas[MAX_MAP_AREAS];
 int	numareaportals;
 dareaportal_t	dareaportals[MAX_MAP_AREAPORTALS];
 
-byte	dpop[256];
+byte	dcollision[MAX_MAP_COLLISION];
+int	dcollisiondatasize = 256;
 
 /*
 ===============
@@ -285,7 +286,7 @@ void SwapBSPFile (bool todisk)
 	if (todisk) j = dvis->numclusters;
 	else j = LittleLong(dvis->numclusters);
 	dvis->numclusters = LittleLong (dvis->numclusters);
-	for (i=0 ; i<j ; i++)
+	for (i = 0; i < j; i++)
 	{
 		dvis->bitofs[i][0] = LittleLong (dvis->bitofs[i][0]);
 		dvis->bitofs[i][1] = LittleLong (dvis->bitofs[i][1]);
@@ -294,15 +295,15 @@ void SwapBSPFile (bool todisk)
 
 dheader_t	*header;
 
-int CopyLump (int lump, void *dest, int size)
+int CopyLump( int lump, void *dest, int size )
 {
 	int		length, ofs;
 
 	length = header->lumps[lump].filelen;
 	ofs = header->lumps[lump].fileofs;
 	
-	if (length % size) Sys_Error ("LoadBSPFile: odd lump size");
-	memcpy (dest, (byte *)header + ofs, length);
+	if (length % size) Sys_Error("LoadBSPFile: odd lump size");
+	Mem_Copy(dest, (byte *)header + ofs, length);
 
 	return length / size;
 }
@@ -314,14 +315,18 @@ LoadBSPFile
 */
 bool LoadBSPFile( void )
 {
-	int i, size;
-	char path[MAX_SYSPATH];
+	int	i, size;
+	char	path[MAX_SYSPATH];
+	byte	*buffer;
 	
 	sprintf(path, "maps/%s.bsp", gs_mapname );
-	header = (dheader_t*)((byte *)FS_LoadFile(path, &size)); // load the file header
-
+	buffer = (byte *)FS_LoadFile(path, &size);
 	if(!size) return false;
-          Msg ("reading %s\n", path);
+
+	header = (dheader_t *)buffer; // load the file header
+	if(pe) pe->LoadBSP( buffer );
+
+	MsgDev(D_NOTE, "reading %s\n", path);
 	
 	// swap the header
 	for(i = 0; i < sizeof(dheader_t)/4; i++)
@@ -330,27 +335,25 @@ bool LoadBSPFile( void )
 	if(header->ident != IDBSPMODHEADER) Sys_Error("%s is not a IBSP file", gs_mapname);
 	if(header->version != BSPMOD_VERSION) Sys_Error("%s is version %i, not %i", gs_mapname, header->version, BSPMOD_VERSION);
 
-	nummodels = CopyLump (LUMP_MODELS, dmodels, sizeof(dmodel_t));
-	numvertexes = CopyLump (LUMP_VERTEXES, dvertexes, sizeof(dvertex_t));
+	entdatasize = CopyLump (LUMP_ENTITIES, dentdata, 1);
 	numplanes = CopyLump (LUMP_PLANES, dplanes, sizeof(dplane_t));
-	numleafs = CopyLump (LUMP_LEAFS, dleafs, sizeof(dleaf_t));
+	numvertexes = CopyLump (LUMP_VERTEXES, dvertexes, sizeof(dvertex_t));
+	visdatasize = CopyLump (LUMP_VISIBILITY, dvisdata, 1);
 	numnodes = CopyLump (LUMP_NODES, dnodes, sizeof(dnode_t));
 	numtexinfo = CopyLump (LUMP_TEXINFO, texinfo, sizeof(texinfo_t));
 	numfaces = CopyLump (LUMP_FACES, dfaces, sizeof(dface_t));
+	lightdatasize = CopyLump (LUMP_LIGHTING, dlightdata, 1);
+	numleafs = CopyLump (LUMP_LEAFS, dleafs, sizeof(dleaf_t));
 	numleaffaces = CopyLump (LUMP_LEAFFACES, dleaffaces, sizeof(dleaffaces[0]));
 	numleafbrushes = CopyLump (LUMP_LEAFBRUSHES, dleafbrushes, sizeof(dleafbrushes[0]));
-	numsurfedges = CopyLump (LUMP_SURFEDGES, dsurfedges, sizeof(dsurfedges[0]));
 	numedges = CopyLump (LUMP_EDGES, dedges, sizeof(dedge_t));
+	numsurfedges = CopyLump (LUMP_SURFEDGES, dsurfedges, sizeof(dsurfedges[0]));
+	nummodels = CopyLump (LUMP_MODELS, dmodels, sizeof(dmodel_t));
 	numbrushes = CopyLump (LUMP_BRUSHES, dbrushes, sizeof(dbrush_t));
 	numbrushsides = CopyLump (LUMP_BRUSHSIDES, dbrushsides, sizeof(dbrushside_t));
+	dcollisiondatasize = CopyLump(LUMP_COLLISION, dcollision, 1);
 	numareas = CopyLump (LUMP_AREAS, dareas, sizeof(darea_t));
 	numareaportals = CopyLump (LUMP_AREAPORTALS, dareaportals, sizeof(dareaportal_t));
-
-	visdatasize = CopyLump (LUMP_VISIBILITY, dvisdata, 1);
-	lightdatasize = CopyLump (LUMP_LIGHTING, dlightdata, 1);
-	entdatasize = CopyLump (LUMP_ENTITIES, dentdata, 1);
-
-	CopyLump (LUMP_POP, dpop, 1);
 
 	// swap everything
 	SwapBSPFile (false);
@@ -366,7 +369,7 @@ LoadBSPFileTexinfo
 Only loads the texinfo lump, so qdata can scan for textures
 =============
 */
-void LoadBSPFileTexinfo (char *filename)
+void LoadBSPFileTexinfo( char *filename )
 {
 	int	i;
 	file_t	*f;
@@ -403,13 +406,14 @@ void LoadBSPFileTexinfo (char *filename)
 file_t *wadfile;
 dheader_t	outheader;
 
-void AddLump (int lumpnum, void *data, int len)
+void AddLump (int lumpnum, const void *data, int len)
 {
 	lump_t *lump;
 
 	lump = &header->lumps[lumpnum];
 	lump->fileofs = LittleLong( FS_Tell(wadfile) );
-	lump->filelen = LittleLong(len);
+	lump->filelen = LittleLong( len );
+
 	FS_Write(wadfile, data, (len+3)&~3 );
 }
 
@@ -434,35 +438,35 @@ void WriteBSPFile( void )
 	
 	//build path
 	sprintf (path, "maps/%s.bsp", gs_mapname );
-	Msg ("writing %s\n", path);
+	MsgDev(D_NOTE, "writing %s\n", path);
+	if(pe) pe->FreeBSP();
 	
 	wadfile = FS_Open( path, "wb" );
 	FS_Write( wadfile, header, sizeof(dheader_t));	// overwritten later
 
+	AddLump (LUMP_ENTITIES, dentdata, entdatasize);
 	AddLump (LUMP_PLANES, dplanes, numplanes*sizeof(dplane_t));
-	AddLump (LUMP_LEAFS, dleafs, numleafs*sizeof(dleaf_t));
 	AddLump (LUMP_VERTEXES, dvertexes, numvertexes*sizeof(dvertex_t));
+	AddLump (LUMP_VISIBILITY, dvisdata, visdatasize);
 	AddLump (LUMP_NODES, dnodes, numnodes*sizeof(dnode_t));
 	AddLump (LUMP_TEXINFO, texinfo, numtexinfo*sizeof(texinfo_t));
 	AddLump (LUMP_FACES, dfaces, numfaces*sizeof(dface_t));
-	AddLump (LUMP_BRUSHES, dbrushes, numbrushes*sizeof(dbrush_t));
-	AddLump (LUMP_BRUSHSIDES, dbrushsides, numbrushsides*sizeof(dbrushside_t));
+	AddLump (LUMP_LIGHTING, dlightdata, lightdatasize);
+	AddLump (LUMP_LEAFS, dleafs, numleafs*sizeof(dleaf_t));
 	AddLump (LUMP_LEAFFACES, dleaffaces, numleaffaces*sizeof(dleaffaces[0]));
 	AddLump (LUMP_LEAFBRUSHES, dleafbrushes, numleafbrushes*sizeof(dleafbrushes[0]));
-	AddLump (LUMP_SURFEDGES, dsurfedges, numsurfedges*sizeof(dsurfedges[0]));
 	AddLump (LUMP_EDGES, dedges, numedges*sizeof(dedge_t));
+	AddLump (LUMP_SURFEDGES, dsurfedges, numsurfedges*sizeof(dsurfedges[0]));
 	AddLump (LUMP_MODELS, dmodels, nummodels*sizeof(dmodel_t));
+	AddLump (LUMP_BRUSHES, dbrushes, numbrushes*sizeof(dbrush_t));
+	AddLump (LUMP_BRUSHSIDES, dbrushsides, numbrushsides*sizeof(dbrushside_t));
+	AddLump (LUMP_COLLISION, dcollision, dcollisiondatasize );
 	AddLump (LUMP_AREAS, dareas, numareas*sizeof(darea_t));
 	AddLump (LUMP_AREAPORTALS, dareaportals, numareaportals*sizeof(dareaportal_t));
 
-	AddLump (LUMP_LIGHTING, dlightdata, lightdatasize);
-	AddLump (LUMP_VISIBILITY, dvisdata, visdatasize);
-	AddLump (LUMP_ENTITIES, dentdata, entdatasize);
-	AddLump (LUMP_POP, dpop, sizeof(dpop));
-	
 	FS_Seek( wadfile, 0, SEEK_SET );
 	FS_Write( wadfile, header, sizeof(dheader_t));
-	FS_Close(wadfile);
+	FS_Close( wadfile );
 }
 
 //============================================

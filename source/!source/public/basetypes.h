@@ -120,6 +120,8 @@ typedef struct { byte r:8; byte g:8; byte b:8; } color24;
 typedef struct { byte r; byte g; byte b; byte a; } color32;
 typedef struct { const char *name; void **func; } dllfunc_t;	// Sys_LoadLibrary stuff
 typedef struct { int ofs; int type; const char *name; } fields_t;	// prvm custom fields
+typedef void (*cmread_t) (void* handle, void* buffer, size_t size);
+typedef void (*cmsave_t) (void* handle, const void* buffer, size_t size);
 typedef void (*cmdraw_t)( int color, int numpoints, const float *points );
 typedef struct { int numfilenames; char **filenames; char *filenamesbuffer; } search_t;
 typedef void (*cvarcmd_t)(const char *s, const char *m, const char *d, void *ptr );

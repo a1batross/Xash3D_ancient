@@ -459,8 +459,8 @@ void WradMain ( bool option )
           
 	if(!LoadBSPFile())
 	{
-		//map not exist, create it
-		WbspMain( false );
+		// map not exist, create it
+		WbspMain( false, false );
 		LoadBSPFile();
 	}
 

@@ -9,6 +9,7 @@
 #include <windows.h>
 #include "basetypes.h"
 #include "mathlib.h"
+#include "cm_utils.h"
 
 typedef struct physbody_s	NewtonBody;
 typedef struct physworld_s	NewtonWorld;
@@ -23,6 +24,12 @@ extern physic_imp_t pi;
 extern stdlib_api_t com;
 extern byte *physpool;
 extern NewtonWorld	*gWorld;
+
+// cvars
+extern cvar_t *cm_use_triangles;
+extern cvar_t *cm_solver_model;
+extern cvar_t *cm_friction_model;
+
 long _ftol2( double dblSource );
 void Phys_LoadBSP( uint *buffer );
 void Phys_FreeBSP( void );
@@ -79,8 +86,6 @@ typedef struct NewtonHingeSliderUpdateDescTag
 // Newton callback
 typedef void* (*NewtonAllocMemory) (int sizeInBytes);
 typedef void (*NewtonFreeMemory) (void *ptr, int sizeInBytes);
-typedef void (*NewtonSerialize) (void* serializeHandle, const void* buffer, size_t size);
-typedef void (*NewtonDeserialize) (void* serializeHandle, void* buffer, size_t size);
 typedef void (*NewtonUserMeshCollisionCollideCallback) (NewtonUserMeshCollisionCollideDesc* collideDescData);
 typedef float (*NewtonUserMeshCollisionRayHitCallback) (NewtonUserMeshCollisionRayHitDesc* lineDescData);
 typedef void (*NewtonUserMeshCollisionDestroyCallback) (void* descData);
@@ -195,8 +200,8 @@ NewtonCollision* NewtonCreateTreeCollision (const NewtonWorld* newtonWorld, Newt
 void NewtonTreeCollisionBeginBuild (const NewtonCollision* treeCollision);
 void NewtonTreeCollisionAddFace (const NewtonCollision* treeCollision, int vertexCount, const float* vertexPtr, int strideInBytes, int faceAttribute);
 void NewtonTreeCollisionEndBuild (const NewtonCollision* treeCollision, int optimize);
-void NewtonTreeCollisionSerialize (const NewtonCollision* treeCollision, NewtonSerialize serializeFunction, void* serializeHandle);
-NewtonCollision* NewtonCreateTreeCollisionFromSerialization (const NewtonWorld* newtonWorld, NewtonTreeCollisionCallback userCallback, NewtonDeserialize deserializeFunction, void* serializeHandle);
+void NewtonTreeCollisionSerialize (const NewtonCollision* treeCollision, cmsave_t serializeFunction, void* serializeHandle);
+NewtonCollision* NewtonCreateTreeCollisionFromSerialization (const NewtonWorld* newtonWorld, NewtonTreeCollisionCallback userCallback, cmread_t deserializeFunction, void* serializeHandle);
 int NewtonTreeCollisionGetFaceAtribute (const NewtonCollision* treeCollision, const int* faceIndexArray); 
 void NewtonTreeCollisionSetFaceAtribute (const NewtonCollision* treeCollision, const int* faceIndexArray, int attribute); 
 

@@ -2529,7 +2529,7 @@ fs_offset_t VFS_Read( vfile_t* file, void* buffer, size_t buffersize)
 	if (buffersize == 0) return 1;
 	if (!file) return 0;
 
-	//check for enough room
+	// check for enough room
 	if(file->offset >= file->length)
 	{
 		return 0; //hit EOF

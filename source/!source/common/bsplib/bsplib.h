@@ -32,11 +32,12 @@ extern bool full_compile;
 extern bool onlyents;
 extern bool onlyvis;
 extern bool onlyrad;
+extern physic_exp_t *pe;
 
 // bsplib export functions
 void WradMain ( bool option );
 void WvisMain ( bool option );
-void WbspMain ( bool option );
+void WbspMain ( bool option, bool option2 );
 
 typedef struct plane_s
 {
@@ -349,9 +350,10 @@ extern	int numbrushes;
 extern	dbrush_t	dbrushes[MAX_MAP_BRUSHES];
 extern	int numbrushsides;
 extern	dbrushside_t dbrushsides[MAX_MAP_BRUSHSIDES];
+extern	byte dcollision[MAX_MAP_COLLISION];
+int	dcollisiondatasize;
 
 extern	char outbase[32];
-extern	byte dpop[256];
 
 void 	LoadMapFile ( void );
 int	FindFloatPlane (vec3_t normal, vec_t dist);
@@ -360,6 +362,7 @@ void	LoadBSPFileTexinfo (char *filename);	// just for qdata
 void	WriteBSPFile ( void );
 void	DecompressVis (byte *in, byte *decompressed);
 int	CompressVis (byte *vis, byte *dest);
+void	AddLump (int lumpnum, const void *data, int len);
 
 //=============================================================================
 // textures.c

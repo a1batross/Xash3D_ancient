@@ -222,13 +222,18 @@ typedef struct physic_exp_s
 	size_t	api_size;		// must matched with sizeof(physic_exp_t)
 
 	// initialize
-	bool (*Init)( void );	// init all physic systems
-	void (*Shutdown)( void );	// shutdown all render systems
+	bool (*Init)( void );				// init all physic systems
+	void (*Shutdown)( void );				// shutdown all render systems
 
-	void (*LoadBSP)( uint *buf );	// generate tree collision
-	void (*FreeBSP)( void );	// release tree collision
-	void (*DrawCollision)( cmdraw_t callback );// debug
-	void (*Frame)( float time );	// physics frame
+	void (*LoadBSP)( const void *buf );			// load bspdata ( bsplib use this )
+	void (*FreeBSP)( void );				// free bspdata
+	void (*WriteCollisionLump)( file_t *f, cmsave_t callback );	// write collision data into LUMP_COLLISION
+
+	void (*LoadWorld)( const void *buf );	// loading collision tree or generated if not present ( engine )
+	void (*FreeWorld)( void );				// free world collision
+
+	void (*DrawCollision)( cmdraw_t callback );		// debug draw world
+	void (*Frame)( float time );				// physics frame
 
 	// simple objects
 	physbody_t *(*CreateBody)( sv_edict_t *ed, void *buffer, vec3_t org, vec3_t ang, int solid );
