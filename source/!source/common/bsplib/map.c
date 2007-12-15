@@ -49,27 +49,14 @@ PLANE FINDING
 PlaneTypeForNormal
 =================
 */
-int	PlaneTypeForNormal (vec3_t normal)
+int PlaneTypeForNormal (vec3_t normal)
 {
-	vec_t	ax, ay, az;
+	// NOTE: should these have an epsilon around 1.0?		
+	if(fabs(normal[0]) == 1.0) return PLANE_X;
+	if(fabs(normal[1]) == 1.0) return PLANE_Y;
+	if(fabs(normal[2]) == 1.0) return PLANE_Z;
 	
-// NOTE: should these have an epsilon around 1.0?		
-	if (normal[0] == 1.0 || normal[0] == -1.0)
-		return PLANE_X;
-	if (normal[1] == 1.0 || normal[1] == -1.0)
-		return PLANE_Y;
-	if (normal[2] == 1.0 || normal[2] == -1.0)
-		return PLANE_Z;
-		
-	ax = fabs(normal[0]);
-	ay = fabs(normal[1]);
-	az = fabs(normal[2]);
-	
-	if (ax >= ay && ax >= az)
-		return PLANE_ANYX;
-	if (ay >= ax && ay >= az)
-		return PLANE_ANYY;
-	return PLANE_ANYZ;
+	return 3;
 }
 
 /*
@@ -673,6 +660,8 @@ void ParseBrush (bsp_entity_t *mapent)
 
 		// find default flags and values
 		mt = FindMiptex (td.name);
+		td.size[0] = textureref[mt].size[0];
+		td.size[1] = textureref[mt].size[1];
 		td.flags = textureref[mt].flags;
 		td.value = textureref[mt].value;
 		side->contents = textureref[mt].contents;
@@ -919,7 +908,7 @@ bool	ParseMapEntity (void)
 			if (!strcmp(e->key, "mapversion"))
 			{
 				g_mapversion = atoi(e->value);
-				Msg("mapversion %d\n", g_mapversion );
+				MsgDev(D_NOTE, "mapversion %d\n", g_mapversion );
 			}
 			e->next = mapent->epairs;
 			mapent->epairs = e;

@@ -31,7 +31,7 @@ int	numnodes;
 dnode_t	dnodes[MAX_MAP_NODES];
 
 int	numtexinfo;
-texinfo_t	texinfo[MAX_MAP_TEXINFO];
+dsurfdesc_t	texinfo[MAX_MAP_TEXINFO];
 
 int	numfaces;
 dface_t	dfaces[MAX_MAP_FACES];
@@ -148,7 +148,7 @@ void SwapBSPFile (bool todisk)
 
 	
 	// models	
-	for (i=0 ; i<nummodels ; i++)
+	for (i = 0; i < nummodels; i++)
 	{
 		d = &dmodels[i];
 
@@ -156,28 +156,26 @@ void SwapBSPFile (bool todisk)
 		d->numfaces = LittleLong (d->numfaces);
 		d->headnode = LittleLong (d->headnode);
 		
-		for (j=0 ; j<3 ; j++)
+		for( j = 0; j < 3; j++ )
 		{
 			d->mins[j] = LittleFloat(d->mins[j]);
 			d->maxs[j] = LittleFloat(d->maxs[j]);
-			d->origin[j] = LittleFloat(d->origin[j]);
 		}
 	}
 
 	// vertexes
-	for (i=0 ; i<numvertexes ; i++)
+	for( i = 0; i < numvertexes; i++)
 	{
 		for (j=0 ; j<3 ; j++)
 			dvertexes[i].point[j] = LittleFloat (dvertexes[i].point[j]);
 	}
 		
 	// planes
-	for (i=0 ; i<numplanes ; i++)
+	for(i = 0; i < numplanes; i++)
 	{
-		for (j=0 ; j<3 ; j++)
+		for(j = 0; j < 3; j++)
 			dplanes[i].normal[j] = LittleFloat (dplanes[i].normal[j]);
 		dplanes[i].dist = LittleFloat (dplanes[i].dist);
-		dplanes[i].type = LittleLong (dplanes[i].type);
 	}
 	
 	// texinfos
@@ -193,7 +191,7 @@ void SwapBSPFile (bool todisk)
 	// faces
 	for (i=0 ; i<numfaces ; i++)
 	{
-		dfaces[i].texinfo = LittleShort (dfaces[i].texinfo);
+		dfaces[i].desc = LittleShort (dfaces[i].desc);
 		dfaces[i].planenum = LittleShort (dfaces[i].planenum);
 		dfaces[i].side = LittleShort (dfaces[i].side);
 		dfaces[i].lightofs = LittleLong (dfaces[i].lightofs);
@@ -279,7 +277,7 @@ void SwapBSPFile (bool todisk)
 	for (i=0 ; i<numbrushsides ; i++)
 	{
 		dbrushsides[i].planenum = LittleShort (dbrushsides[i].planenum);
-		dbrushsides[i].texinfo = LittleShort (dbrushsides[i].texinfo);
+		dbrushsides[i].surfdesc = LittleShort (dbrushsides[i].surfdesc);
 	}
 
 	// visibility
@@ -340,7 +338,7 @@ bool LoadBSPFile( void )
 	numvertexes = CopyLump (LUMP_VERTEXES, dvertexes, sizeof(dvertex_t));
 	visdatasize = CopyLump (LUMP_VISIBILITY, dvisdata, 1);
 	numnodes = CopyLump (LUMP_NODES, dnodes, sizeof(dnode_t));
-	numtexinfo = CopyLump (LUMP_TEXINFO, texinfo, sizeof(texinfo_t));
+	numtexinfo = CopyLump (LUMP_SURFDESC, texinfo, sizeof(dsurfdesc_t));
 	numfaces = CopyLump (LUMP_FACES, dfaces, sizeof(dface_t));
 	lightdatasize = CopyLump (LUMP_LIGHTING, dlightdata, 1);
 	numleafs = CopyLump (LUMP_LEAFS, dleafs, sizeof(dleaf_t));
@@ -388,14 +386,14 @@ void LoadBSPFileTexinfo( char *filename )
 	if (header->ident != IDBSPMODHEADER) Sys_Error("%s is not a IBSP file", filename);
 	if (header->version != BSPMOD_VERSION) Sys_Error("%s is version %i, not %i", filename, header->version, BSPMOD_VERSION);
 
-	length = header->lumps[LUMP_TEXINFO].filelen;
-	ofs = header->lumps[LUMP_TEXINFO].fileofs;
+	length = header->lumps[LUMP_SURFDESC].filelen;
+	ofs = header->lumps[LUMP_SURFDESC].fileofs;
 
 	FS_Seek(f, ofs, SEEK_SET);
 	FS_Read(f, texinfo, length );
 	FS_Close(f);
 
-	numtexinfo = length / sizeof(texinfo_t);
+	numtexinfo = length / sizeof(dsurfdesc_t);
 	Free (header); // everything has been copied out
 	SwapBSPFile (false);
 }
@@ -449,7 +447,7 @@ void WriteBSPFile( void )
 	AddLump (LUMP_VERTEXES, dvertexes, numvertexes*sizeof(dvertex_t));
 	AddLump (LUMP_VISIBILITY, dvisdata, visdatasize);
 	AddLump (LUMP_NODES, dnodes, numnodes*sizeof(dnode_t));
-	AddLump (LUMP_TEXINFO, texinfo, numtexinfo*sizeof(texinfo_t));
+	AddLump (LUMP_SURFDESC, texinfo, numtexinfo*sizeof(dsurfdesc_t));
 	AddLump (LUMP_FACES, dfaces, numfaces*sizeof(dface_t));
 	AddLump (LUMP_LIGHTING, dlightdata, lightdatasize);
 	AddLump (LUMP_LEAFS, dleafs, numleafs*sizeof(dleaf_t));

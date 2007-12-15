@@ -487,7 +487,7 @@ void CalcFaceExtents (lightinfo_t *l)
 	vec_t	mins[2], maxs[2], val;
 	int		i,j, e;
 	dvertex_t	*v;
-	texinfo_t	*tex;
+	dsurfdesc_t	*tex;
 	vec3_t		vt;
 
 	s = l->face;
@@ -495,7 +495,7 @@ void CalcFaceExtents (lightinfo_t *l)
 	mins[0] = mins[1] = 999999;
 	maxs[0] = maxs[1] = -99999;
 
-	tex = &texinfo[s->texinfo];
+	tex = &texinfo[s->desc];
 	
 	for (i=0 ; i<s->numedges ; i++)
 	{
@@ -542,14 +542,14 @@ Fills in texorg, worldtotex. and textoworld
 */
 void CalcFaceVectors (lightinfo_t *l)
 {
-	texinfo_t	*tex;
+	dsurfdesc_t	*tex;
 	int	i, j;
 	vec3_t	texnormal;
 	vec_t	distscale;
 	vec_t	dist, len;
 	int	w, h;
 
-	tex = &texinfo[l->face->texinfo];
+	tex = &texinfo[l->face->desc];
 	
 	// convert from float to double
 	for (i=0 ; i<2 ; i++)
@@ -1035,7 +1035,7 @@ void BuildFacelights (int facenum)
 	
 	f = &dfaces[facenum];
 
-	if ( texinfo[f->texinfo].flags & (SURF_WARP|SURF_SKY) )
+	if ( texinfo[f->desc].flags & (SURF_WARP|SURF_SKY) )
 		return;		// non-lit texture
 
 	memset (styletable,0, sizeof(styletable));
@@ -1147,7 +1147,7 @@ void FinalLightFace (int facenum)
 	f = &dfaces[facenum];
 	fl = &facelight[facenum];
 
-	if ( texinfo[f->texinfo].flags & (SURF_WARP|SURF_SKY) )
+	if ( texinfo[f->desc].flags & (SURF_WARP|SURF_SKY) )
 		return;		// non-lit texture
 
 	ThreadLock ();

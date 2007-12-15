@@ -108,7 +108,8 @@ typedef struct
 {
 	char		txcommand;
 	vects_u		vects;
-	char		name[32];
+	char		name[128];
+	int		size[2];
 	int		flags;
 	int		value;
 } brush_texture_t;
@@ -331,7 +332,7 @@ extern	dvertex_t	dvertexes[MAX_MAP_VERTS];
 extern	int numnodes;
 extern	dnode_t dnodes[MAX_MAP_NODES];
 extern	int numtexinfo;
-extern	texinfo_t	texinfo[MAX_MAP_TEXINFO];
+extern	dsurfdesc_t texinfo[MAX_MAP_TEXINFO];
 extern	int numfaces;
 extern	dface_t dfaces[MAX_MAP_FACES];
 extern	int numedges;
@@ -369,12 +370,13 @@ void	AddLump (int lumpnum, const void *data, int len);
 
 typedef struct
 {
-	char	name[64];
+	char	name[128];
+	int	size[2];
 	int	flags;
 	int	value;
 	int	contents;
 	int	numframes;
-	char	animname[64];
+	char	animname[128];
 } textureref_t;
 
 extern	textureref_t	textureref[MAX_MAP_TEXTURES];

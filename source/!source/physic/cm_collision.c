@@ -5,14 +5,20 @@
 
 #include "physic.h"
 
+typedef struct cfacedesc_s
+{
+	int	flags;	// surface description
+} cfacedesc_t;
+
 typedef struct collision_tree_s
 {
 	byte		*pmod_base;	// buffer
 	dvertex_t		*vertices;
 	int		*surfedges;
-	csurface_t	*surfaces;
+	dface_t		*surfaces;
 	dedge_t		*edges;
 	dmodel_t		*models;
+	cfacedesc_t	*surfdesc;
 
 	int		num_models;
 	int		num_faces;	// for bounds checking
@@ -102,8 +108,7 @@ BSP_LoadFaces
 */
 void BSP_LoadFaces( lump_t *l )
 {
-	dface_t		*in;
-	csurface_t	*out;
+	dface_t		*in, *out;
 	int		i;
 
 	in = (void *)(map.pmod_base + l->fileofs);
@@ -115,8 +120,7 @@ void BSP_LoadFaces( lump_t *l )
 	{
 		out->firstedge = LittleLong(in->firstedge);
 		out->numedges = LittleShort(in->numedges);		
-		if( in->side ) out->flags |= SURF_PLANEBACK;			
-		else out->flags = 0; 
+		out->desc = LittleShort(in->desc);
 	}
 }
 
@@ -141,10 +145,33 @@ void BSP_LoadModels( lump_t *l )
 	{
 		CM_ConvertDimensionToMeters( out->mins, in->mins ); 
 		CM_ConvertDimensionToMeters( out->maxs, in->maxs ); 
-		CM_ConvertPositionToMeters( out->origin, in->origin ); 
 		out->headnode = LittleLong( in->headnode );
 		out->firstface = LittleLong( in->firstface );
 		out->numfaces = LittleLong( in->numfaces );
+		out->firstbrush = LittleLong( in->firstbrush );
+		out->numbrushes = LittleLong( in->numbrushes );
+	}
+}
+
+/*
+=================
+BSP_LoadSurfDesc
+=================
+*/
+void BSP_LoadSurfDesc( lump_t *l )
+{
+	dsurfdesc_t	*in;
+	cfacedesc_t	*out;
+	int 		i, count;
+
+	in = (void *)(map.pmod_base + l->fileofs);
+	if (l->filelen % sizeof(*in)) Host_Error("BSP_LoadSurfDesc: funny lump size\n" );
+	count = l->filelen / sizeof(*in);
+          map.surfdesc = out = Mem_Alloc( physpool, count * sizeof(*out));
+
+	for ( i = 0; i < count; i++, in++, out++)
+	{
+		out->flags = LittleLong (in->flags);
 	}
 }
 
@@ -193,8 +220,9 @@ void BSP_BeginBuildTree( void )
 
 void BSP_AddCollisionFace( int facenum )
 {
-	csurface_t	*m_face;
+	dface_t		*m_face;
 	int		j, k;
+	int		flags;
 
 	if(facenum < 0 || facenum >= map.num_faces)
 	{
@@ -203,7 +231,11 @@ void BSP_AddCollisionFace( int facenum )
 	}
 
 	m_face = map.surfaces + facenum;
+	flags = map.surfdesc[m_face->desc].flags;
 	k = m_face->firstedge;
+
+	// sky is noclip for all physobjects
+	if(flags & SURF_SKY) return;
 
 	if( cm_use_triangles->integer )
 	{
@@ -253,6 +285,7 @@ void CM_LoadBSP( const void *buffer )
 	BSP_LoadSurfedges(&header.lumps[LUMP_SURFEDGES]);
 	BSP_LoadFaces(&header.lumps[LUMP_FACES]);
 	BSP_LoadModels(&header.lumps[LUMP_MODELS]);
+	BSP_LoadSurfDesc(&header.lumps[LUMP_SURFDESC]);
 	BSP_LoadCollision(&header.lumps[LUMP_COLLISION]); 
 	map.loaded = true;
 	map.use_thread = true;

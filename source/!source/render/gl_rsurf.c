@@ -1389,10 +1389,13 @@ void GL_BuildPolygonFromSurface(msurface_t *fa)
 			vec = currentmodel->vertexes[r_pedge->v[1]].position;
 		}
 		s = DotProduct (vec, fa->texinfo->vecs[0]) + fa->texinfo->vecs[0][3];
-		s /= fa->texinfo->image->width;
+		if(fa->texinfo->size[0] != -1) s /= fa->texinfo->size[0];
+		else s /= fa->texinfo->image->width;
 
 		t = DotProduct (vec, fa->texinfo->vecs[1]) + fa->texinfo->vecs[1][3];
-		t /= fa->texinfo->image->height;
+		if(fa->texinfo->size[1] != -1) t /= fa->texinfo->size[1];
+		else t /= fa->texinfo->image->height;
+		
 
 		VectorAdd (total, vec, total);
 		VectorCopy (vec, poly->verts[i]);

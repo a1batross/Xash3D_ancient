@@ -78,7 +78,6 @@ typedef struct
 typedef struct
 {
 	vec3_t		mins, maxs;
-	vec3_t		origin;		// for sounds or lights
 	float		radius;
 	int		headnode;
 	int		visleafs;		// not including the solid leaf 0
@@ -94,8 +93,9 @@ typedef struct
 typedef struct mtexinfo_s
 {
 	float		vecs[2][4];
-	int			flags;
-	int			numframes;
+	int		size[2];
+	int		flags;
+	int		numframes;
 	struct mtexinfo_s	*next;		// animation chain
 	image_t		*image;
 } mtexinfo_t;
@@ -153,7 +153,7 @@ typedef struct mnode_s
 
 	struct mnode_s	*parent;
 
-// node specific
+	// node specific
 	cplane_t	*plane;
 	struct mnode_s	*children[2];	
 

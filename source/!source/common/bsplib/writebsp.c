@@ -36,7 +36,6 @@ void EmitPlanes (void)
 		planetranslate[i] = numplanes;
 		VectorCopy ( mp->normal, dp->normal);
 		dp->dist = mp->dist;
-		dp->type = mp->type;
 		numplanes++;
 	}
 }
@@ -191,7 +190,7 @@ void EmitFace (face_t *f)
 
 	df->firstedge = numsurfedges;
 	df->numedges = f->numpoints;
-	df->texinfo = f->texinfo;
+	df->desc = f->texinfo;
 	for (i=0 ; i<f->numpoints ; i++)
 	{
 //		e = GetEdge (f->pts[i], f->pts[(i+1)%f->numpoints], f);
@@ -397,7 +396,7 @@ void EmitBrushes (void)
 			cp = &dbrushsides[numbrushsides];
 			numbrushsides++;
 			cp->planenum = b->original_sides[j].planenum;
-			cp->texinfo = b->original_sides[j].texinfo;
+			cp->surfdesc = b->original_sides[j].texinfo;
 		}
 
 		// add any axis planes not contained in the brush to bevel off corners
@@ -421,8 +420,8 @@ void EmitBrushes (void)
 						Sys_Error ("MAX_MAP_BRUSHSIDES");
 
 					dbrushsides[numbrushsides].planenum = planenum;
-					dbrushsides[numbrushsides].texinfo =
-						dbrushsides[numbrushsides-1].texinfo;
+					dbrushsides[numbrushsides].surfdesc =
+						dbrushsides[numbrushsides-1].surfdesc;
 					numbrushsides++;
 					db->numsides++;
 				}
@@ -443,6 +442,7 @@ void BeginBSPFile (void)
 {
 	// these values may actually be initialized
 	// if the file existed when loaded, so clear them explicitly
+
 	nummodels = 0;
 	numfaces = 0;
 	numnodes = 0;
@@ -451,15 +451,10 @@ void BeginBSPFile (void)
 	numleaffaces = 0;
 	numleafbrushes = 0;
 	numsurfedges = 0;
+	numedges = 1;	// edge 0 is not used, because 0 can't be negated
+	numvertexes = 1;	// leave vertex 0 as an error
+	numleafs = 1;	// leave leaf 0 as an error
 
-	// edge 0 is not used, because 0 can't be negated
-	numedges = 1;
-
-	// leave vertex 0 as an error
-	numvertexes = 1;
-
-	// leave leaf 0 as an error
-	numleafs = 1;
 	dleafs[0].contents = CONTENTS_SOLID;
 }
 
@@ -489,7 +484,7 @@ int	firstmodleaf;
 extern	int firstmodeledge;
 extern	int firstmodelface;
 
-void BeginModel (void)
+void BeginModel( void )
 {
 	dmodel_t		*mod;
 	mapbrush_t	*b;
@@ -501,15 +496,14 @@ void BeginModel (void)
 	mod = &dmodels[nummodels];
 
 	mod->firstface = numfaces;
-//mod->firstbrush = numbrushes;
-
 	firstmodleaf = numleafs;
 	firstmodeledge = numedges;
 	firstmodelface = numfaces;
 
 	// bound the brushes
 	e = &entities[entity_num];
-	start = e->firstbrush;
+	mod->firstbrush = start = e->firstbrush;
+	mod->numbrushes = e->numbrushes;
 	end = start + e->numbrushes;
 	ClearBounds (mins, maxs);
 
@@ -537,8 +531,6 @@ void EndModel (void)
 	mod = &dmodels[nummodels];
 
 	mod->numfaces = numfaces - mod->firstface;
-//mod->numbrushes = numbrushes - mod->firstbrush;
-
 	nummodels++;
 }
 

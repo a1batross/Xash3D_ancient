@@ -158,26 +158,26 @@ BaseLightForFace
 */
 void BaseLightForFace (dface_t *f, vec3_t color)
 {
-	texinfo_t	*tx;
+	dsurfdesc_t	*tx;
 
 	//
 	// check for light emited by texture
 	//
-	tx = &texinfo[f->texinfo];
+	tx = &texinfo[f->desc];
 	if (!(tx->flags & SURF_LIGHT) || tx->value == 0)
 	{
 		VectorClear (color);
 		return;
 	}
 
-	VectorScale (texture_reflectivity[f->texinfo], tx->value, color);
+	VectorScale (texture_reflectivity[f->desc], tx->value, color);
 }
 
 bool IsSky (dface_t *f)
 {
-	texinfo_t	*tx;
+	dsurfdesc_t	*tx;
 
-	tx = &texinfo[f->texinfo];
+	tx = &texinfo[f->desc];
 	if (tx->flags & SURF_SKY)
 		return true;
 	return false;
@@ -238,7 +238,7 @@ void MakePatchForFace (int fn, winding_t *w)
 		patch->area = 1;
 	patch->sky = IsSky (f);
 
-	VectorCopy (texture_reflectivity[f->texinfo], patch->reflectivity);
+	VectorCopy (texture_reflectivity[f->desc], patch->reflectivity);
 
 	// non-bmodel patches can emit light
 	if (fn < dmodels[0].numfaces)

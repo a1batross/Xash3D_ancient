@@ -483,7 +483,7 @@ void R_SetFrustum (void)
 
 	for (i=0 ; i<4 ; i++)
 	{
-		frustum[i].type = PLANE_ANYZ;
+		frustum[i].type = 3;
 		frustum[i].dist = DotProduct (r_origin, frustum[i].normal);
 		frustum[i].signbits = SignbitsForPlane (&frustum[i]);
 	}
@@ -632,8 +632,10 @@ void R_Clear (void)
 		static int trickframe;
 
 		if (gl_clear->value)
+		{
+			qglClearColor( 0.5, 0.5, 0.5, 1 );
 			qglClear (GL_COLOR_BUFFER_BIT);
-
+		}
 		trickframe++;
 		if (trickframe & 1)
 		{
@@ -651,9 +653,11 @@ void R_Clear (void)
 	else
 	{
 		if (gl_clear->value)
+		{
+			qglClearColor( 0.5, 0.5, 0.5, 1 );
 			qglClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		else
-			qglClear (GL_DEPTH_BUFFER_BIT);
+		}
+		else qglClear (GL_DEPTH_BUFFER_BIT);
 		gldepthmin = 0;
 		gldepthmax = 1;
 		qglDepthFunc (GL_LEQUAL);

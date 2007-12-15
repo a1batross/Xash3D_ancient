@@ -154,7 +154,6 @@ void CMod_LoadSubmodels (lump_t *l)
 			// spread the mins / maxs by a pixel
 			out->mins[j] = LittleFloat (in->mins[j]) - 1;
 			out->maxs[j] = LittleFloat (in->maxs[j]) + 1;
-			out->origin[j] = LittleFloat (in->origin[j]);
 		}
 		out->headnode = LittleLong (in->headnode);
 	}
@@ -168,7 +167,7 @@ CMod_LoadSurfaces
 */
 void CMod_LoadSurfaces (lump_t *l)
 {
-	texinfo_t		*in;
+	dsurfdesc_t	*in;
 	mapsurface_t	*out;
 	int		i, count;
 
@@ -320,10 +319,9 @@ CMod_LoadPlanes
 void CMod_LoadPlanes (lump_t *l)
 {
 	int			i, j;
-	cplane_t	*out;
-	dplane_t 	*in;
+	cplane_t			*out;
+	dplane_t			*in;
 	int			count;
-	int			bits;
 	
 	in = (void *)(cmod_base + l->fileofs);
 	if (l->filelen % sizeof(*in)) Host_Error("MOD_LoadBmodel: funny lump size\n");
@@ -338,15 +336,10 @@ void CMod_LoadPlanes (lump_t *l)
 
 	for ( i = 0; i < count; i++, in++, out++)
 	{
-		bits = 0;
-		for (j = 0; j < 3; j++)
-		{
-			out->normal[j] = LittleFloat (in->normal[j]);
-			if (out->normal[j] < 0) bits |= 1<<j;
-		}
+		for (j = 0; j < 3; j++) 
+			out->normal[j] = LittleFloat(in->normal[j]);
 		out->dist = LittleFloat (in->dist);
-		out->type = LittleLong (in->type);
-		out->signbits = bits;
+		PlaneClassify( out );		
 	}
 }
 
@@ -402,7 +395,7 @@ void CMod_LoadBrushSides (lump_t *l)
 	{
 		num = LittleShort (in->planenum);
 		out->plane = &map_planes[num];
-		j = LittleShort (in->texinfo);
+		j = LittleShort (in->surfdesc);
 		if (j >= numtexinfo) Host_Error("Bad brushside texinfo\n");
 		out->surface = &map_surfaces[j];
 	}
@@ -571,7 +564,7 @@ cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum)
 	cmod_base = (byte *)buf;
 
 	// load into heap
-	CMod_LoadSurfaces (&header.lumps[LUMP_TEXINFO]);
+	CMod_LoadSurfaces (&header.lumps[LUMP_SURFDESC]);
 	CMod_LoadLeafs (&header.lumps[LUMP_LEAFS]);
 	CMod_LoadLeafBrushes (&header.lumps[LUMP_LEAFBRUSHES]);
 	CMod_LoadPlanes (&header.lumps[LUMP_PLANES]);

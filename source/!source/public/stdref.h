@@ -676,8 +676,8 @@ BRUSH MODELS
 ==============================================================================
 */
 
-//header
-#define BSPMOD_VERSION	38
+// header
+#define BSPMOD_VERSION	39
 #define IDBSPMODHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'I') // little-endian "IBSP"
 
 // 16 bit short limits
@@ -706,13 +706,13 @@ BRUSH MODELS
 #define MAX_MAP_VISIBILITY		0x100000
 #define MAX_MAP_COLLISION		0x400000
 
-//lump offset
+// lump offset
 #define LUMP_ENTITIES		0
 #define LUMP_PLANES			1
 #define LUMP_VERTEXES		2
 #define LUMP_VISIBILITY		3
 #define LUMP_NODES			4
-#define LUMP_TEXINFO		5
+#define LUMP_SURFDESC		5
 #define LUMP_FACES			6
 #define LUMP_LIGHTING		7
 #define LUMP_LEAFS			8
@@ -726,7 +726,8 @@ BRUSH MODELS
 #define LUMP_COLLISION		16
 #define LUMP_AREAS			17
 #define LUMP_AREAPORTALS		18
-#define HEADER_LUMPS		19
+
+#define LUMP_TOTALCOUNT		32	// max lumps
 
 
 // the visibility lump consists of a header with a count, then
@@ -742,16 +743,17 @@ typedef struct
 {
 	int	ident;
 	int	version;	
-	lump_t	lumps[HEADER_LUMPS];
+	lump_t	lumps[LUMP_TOTALCOUNT];
 } dheader_t;
 
 typedef struct
 {
 	float	mins[3], maxs[3];
-	float	origin[3];	// for sounds or lights
 	int	headnode;
 	int	firstface;	// submodels just draw faces 
 	int	numfaces;		// without walking the bsp tree
+	int	firstbrush;	// physics stuff
+	int	numbrushes;
 } dmodel_t;
 
 typedef struct
@@ -763,41 +765,40 @@ typedef struct
 {
 	float	normal[3];
 	float	dist;
-	int	type;		// PLANE_X - PLANE_ANYZ ?remove? trivial to regenerate
 } dplane_t;
 
 typedef struct
 {
 	int	planenum;
 	int	children[2];	// negative numbers are -(leafs+1), not nodes
-	short	mins[3];		// for frustom culling
-	short	maxs[3];
-	word	firstface;
-	word	numfaces;		// counting both sides
+	int	mins[3];		// for frustom culling
+	int	maxs[3];
+	int	firstface;
+	int	numfaces;		// counting both sides
 } dnode_t;
 
-typedef struct texinfo_s
+typedef struct dsurfdesc_s
 {
-	float	vecs[2][4];	// [s/t][xyz offset]
-	int	flags;		// miptex flags + overrides
+	float	vecs[2][4];	// [s/t][xyz offset] texture s\t
+	int	size[2];		// valid size for current s\t coords (used for replace texture)
+	int	flags;		// surface flags
 	int	value;		// light emission, etc
-	char	texture[32];	// texture name (textures/*.jpg)
 	int	nexttexinfo;	// for animations, -1 = end of chain
-} texinfo_t;
+	char	texture[128];	// texture name (textures/*.jpg)
+} dsurfdesc_t;
 
 typedef struct
 {
-	word	v[2];		// vertex numbers
+	int	v[2];		// vertex numbers
 } dedge_t;
 
-
 typedef struct
 {
-	word	planenum;
-	short	side;
-	int	firstedge;	// we must support > 64k edges
-	short	numedges;	
-	short	texinfo;
+	int	planenum;
+	int	firstedge;
+	int	numedges;	
+	int	desc;
+	short	side;		// get rid of this ?
 
 	// lighting info
 	byte	styles[MAXLIGHTMAPS];
@@ -806,22 +807,24 @@ typedef struct
 
 typedef struct
 {
-	int	contents;		// OR of all brushes (not needed?)
-	short	cluster;
-	short	area;
-	short	mins[3];		// for frustum culling
-	short	maxs[3];
+	int	contents;		// or of all brushes (not needed?)
 
-	word	firstleafface;
-	word	numleaffaces;
-	word	firstleafbrush;
-	word	numleafbrushes;
+	int	cluster;
+	int	area;
+
+	int	mins[3];		// for frustum culling
+	int	maxs[3];
+
+	int	firstleafface;
+	int	numleaffaces;
+	int	firstleafbrush;
+	int	numleafbrushes;
 } dleaf_t;
 
 typedef struct
 {
-	word	planenum;		// facing out of the leaf
-	short	texinfo;
+	int	planenum;		// facing out of the leaf
+	int	surfdesc;		// surface description (s/t coords, flags, etc)
 } dbrushside_t;
 
 typedef struct
@@ -855,12 +858,9 @@ typedef struct
 MAP CONTENTS & SURFACES DESCRIPTION
 ==============================================================================
 */
-#define PLANE_X			0	// 0-2 are axial planes
-#define PLANE_Y			1
+#define PLANE_X			0	// 0 - 2 are axial planes
+#define PLANE_Y			1	// 3 needs alternate calc
 #define PLANE_Z			2
-#define PLANE_ANYX			3
-#define PLANE_ANYY			4
-#define PLANE_ANYZ			5
 
 // lower bits are stronger, and will eat weaker brushes completely
 #define CONTENTS_NONE		0 	// just a mask for source tabulation
@@ -1417,7 +1417,6 @@ typedef struct cmodel_s
 	byte	*mempool;		// personal mempool
 
 	vec3_t	mins, maxs;	// boundbox
-	vec3_t	origin;		// for sounds or lights
 	int	headnode;		// bsp info
 
 	int	numframes;	// sprite framecount

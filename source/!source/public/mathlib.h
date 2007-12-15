@@ -743,6 +743,20 @@ _inline int ColorStrlen( const char *string )
 	return len;
 }
 
+_inline void PlaneClassify( cplane_t *p )
+{
+	// for optimized plane comparisons
+	if (fabs(p->normal[0]) == 1) p->type = PLANE_X;
+	else if (fabs(p->normal[1]) == 1) p->type = PLANE_Y;
+	else if (fabs(p->normal[2]) == 1) p->type = PLANE_Z;
+	else p->type = 3; // needs alternate calc
+
+	// for BoxOnPlaneSide
+	p->signbits = 0;
+	if (p->normal[0] < 0) p->signbits |= 1;
+	if (p->normal[1] < 0) p->signbits |= 2;
+	if (p->normal[2] < 0) p->signbits |= 4;
+}
 
 /*
 ==============

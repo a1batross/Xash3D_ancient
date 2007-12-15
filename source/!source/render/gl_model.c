@@ -383,11 +383,11 @@ void Mod_LoadSubmodels (lump_t *l)
 
 	for ( i=0 ; i<count ; i++, in++, out++)
 	{
-		for (j=0 ; j<3 ; j++)
-		{	// spread the mins / maxs by a pixel
+		for (j = 0; j < 3; j++)
+		{	
+			// spread the mins / maxs by a pixel
 			out->mins[j] = LittleFloat (in->mins[j]) - 1;
 			out->maxs[j] = LittleFloat (in->maxs[j]) + 1;
-			out->origin[j] = LittleFloat (in->origin[j]);
 		}
 		out->radius = RadiusFromBounds (out->mins, out->maxs);
 		out->headnode = LittleLong (in->headnode);
@@ -425,15 +425,15 @@ void Mod_LoadEdges (lump_t *l)
 
 /*
 =================
-Mod_LoadTexinfo
+Mod_LoadSurfDesc
 =================
 */
-void Mod_LoadTexinfo (lump_t *l)
+void Mod_LoadSurfDesc( lump_t *l )
 {
-	texinfo_t *in;
-	mtexinfo_t *out, *step;
-	int 	i, j, count;
-	int	next;
+	dsurfdesc_t	*in;
+	mtexinfo_t	*out, *step;
+	int		i, j, count;
+	int		next;
 
 	in = (void *)(mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
@@ -453,6 +453,10 @@ void Mod_LoadTexinfo (lump_t *l)
 		next = LittleLong (in->nexttexinfo);
 		if (next > 0) out->next = loadmodel->texinfo + next;
 		else out->next = NULL;
+
+		// fixed texture size
+		out->size[0] = LittleLong (in->size[0]);
+		out->size[1] = LittleLong (in->size[1]);
 
 		out->image = R_FindImage (in->texture, NULL, 0, it_wall);
 		if(out->image)
@@ -574,7 +578,7 @@ void Mod_LoadFaces (lump_t *l)
 
 		out->plane = loadmodel->planes + planenum;
 
-		ti = LittleShort (in->texinfo);
+		ti = LittleShort (in->desc);
 		if (ti < 0 || ti >= loadmodel->numtexinfo)
 			Sys_Error("MOD_LoadBmodel: bad texinfo number");
 		out->texinfo = loadmodel->texinfo + ti;
@@ -797,11 +801,10 @@ Mod_LoadPlanes
 */
 void Mod_LoadPlanes (lump_t *l)
 {
-	int			i, j;
-	cplane_t	*out;
-	dplane_t 	*in;
-	int			count;
-	int			bits;
+	int		i, j;
+	cplane_t		*out;
+	dplane_t		*in;
+	int		count;
 	
 	in = (void *)(mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
@@ -812,19 +815,12 @@ void Mod_LoadPlanes (lump_t *l)
 	loadmodel->planes = out;
 	loadmodel->numplanes = count;
 
-	for ( i=0 ; i<count ; i++, in++, out++)
+	for ( i = 0; i < count; i++, in++, out++)
 	{
-		bits = 0;
-		for (j=0 ; j<3 ; j++)
-		{
+		for (j = 0; j < 3; j++)
 			out->normal[j] = LittleFloat (in->normal[j]);
-			if (out->normal[j] < 0)
-				bits |= 1<<j;
-		}
-
-		out->dist = LittleFloat (in->dist);
-		out->type = LittleLong (in->type);
-		out->signbits = bits;
+		out->dist = LittleFloat( in->dist );
+		PlaneClassify( out );
 	}
 }
 
@@ -896,7 +892,7 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer)
 	Mod_LoadSurfedges (&header->lumps[LUMP_SURFEDGES]);
 	Mod_LoadLighting (&header->lumps[LUMP_LIGHTING]);
 	Mod_LoadPlanes (&header->lumps[LUMP_PLANES]);
-	Mod_LoadTexinfo (&header->lumps[LUMP_TEXINFO]);
+	Mod_LoadSurfDesc (&header->lumps[LUMP_SURFDESC]);
 	Mod_LoadFaces (&header->lumps[LUMP_FACES]);
 	Mod_LoadMarksurfaces (&header->lumps[LUMP_LEAFFACES]);
 	Mod_LoadVisibility (&header->lumps[LUMP_VISIBILITY]);

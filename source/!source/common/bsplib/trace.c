@@ -32,7 +32,7 @@ void MakeTnode (int nodenum)
 	node = dnodes + nodenum;
 	plane = dplanes + node->planenum;
 
-	t->type = plane->type;
+	t->type = PlaneTypeForNormal( plane->normal );
 	VectorCopy (plane->normal, t->normal);
 	t->dist = plane->dist;
 	

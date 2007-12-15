@@ -821,7 +821,7 @@ void SubdivideFace (node_t *node, face_t *f)
 	float		mins, maxs;
 	vec_t		v;
 	int			axis, i;
-	texinfo_t	*tex;
+	dsurfdesc_t	*tex;
 	vec3_t		temp;
 	vec_t		dist;
 	winding_t	*w, *frontw, *backw;

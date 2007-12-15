@@ -10,8 +10,9 @@ textureref_t	textureref[MAX_MAP_TEXTURES];
 
 int FindMiptex (char *name)
 {
-	int	i;
-	shader_t	*si;
+	int		i;
+	shader_t		*si;
+	rgbdata_t		*tex;
 	
 	for (i = 0; i < nummiptex; i++ )
 	{
@@ -21,7 +22,16 @@ int FindMiptex (char *name)
 	if (nummiptex == MAX_MAP_TEXTURES) Sys_Error ("MAX_MAP_TEXTURES");
 
 	// register texture
-	strcpy (textureref[i].name, name);
+	strcpy (textureref[i].name, name );
+	tex = FS_LoadImage(textureref[i].name, NULL, 0);
+	if(tex)
+	{
+		Msg("load texture %s\n", name );
+		textureref[i].size[0] = tex->width;		
+		textureref[i].size[1] = tex->height;
+		FS_FreeImage( tex );
+	}
+	else textureref[i].size[0] = textureref[i].size[1] = -1; // technically an error
 
 	si = FindShader( name );
 	if(si)
@@ -50,9 +60,9 @@ textureAxisFromPlane
 vec3_t	baseaxis[18] =
 {
 {0,0,1}, {1,0,0}, {0,-1,0},			// floor
-{0,0,-1}, {1,0,0}, {0,-1,0},		// ceiling
+{0,0,-1}, {1,0,0}, {0,-1,0},			// ceiling
 {1,0,0}, {0,1,0}, {0,0,-1},			// west wall
-{-1,0,0}, {0,1,0}, {0,0,-1},		// east wall
+{-1,0,0}, {0,1,0}, {0,0,-1},			// east wall
 {0,1,0}, {1,0,0}, {0,0,-1},			// south wall
 {0,-1,0}, {1,0,0}, {0,0,-1}			// north wall
 };
@@ -89,7 +99,7 @@ int TexinfoForBrushTexture (plane_t *plane, brush_texture_t *bt, vec3_t origin)
 	int		sv, tv;
 	vec_t		ang, sinv, cosv;
 	vec_t		ns, nt;
-	texinfo_t		tx, *tc;
+	dsurfdesc_t	tx, *tc;
 	int		i, j, k;
 	brush_texture_t	anim;
 	int		mt;
@@ -111,6 +121,8 @@ int TexinfoForBrushTexture (plane_t *plane, brush_texture_t *bt, vec3_t origin)
 		}
 		tx.flags = bt->flags;
 		tx.value = bt->value;
+		tx.size[0] = bt->size[0];
+		tx.size[1] = bt->size[1];
 	}
 	else
 	{
@@ -185,6 +197,8 @@ int TexinfoForBrushTexture (plane_t *plane, brush_texture_t *bt, vec3_t origin)
 		tx.vecs[1][3] = bt->vects.valve.shift[1] + DotProduct(origin, tx.vecs[1]);
 		tx.flags = bt->flags;
 		tx.value = bt->value;
+		tx.size[0] = bt->size[0];
+		tx.size[1] = bt->size[1];
 	}
 
 	// find the texinfo
@@ -195,7 +209,7 @@ int TexinfoForBrushTexture (plane_t *plane, brush_texture_t *bt, vec3_t origin)
 		if (tc->value != tx.value) continue;
 		for (j = 0; j < 2; j++)
 		{
-			if (stricmp (tc->texture, tx.texture))
+			if (com.stricmp (tc->texture, tx.texture))
 				goto skip;
 			for (k = 0; k < 4; k++)
 			{
