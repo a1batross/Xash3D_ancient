@@ -33,12 +33,19 @@ byte	mod_novis[MAX_MAP_LEAFS/8];
 
 #define	MAX_MOD_KNOWN	512
 model_t	mod_known[MAX_MOD_KNOWN];
-int		mod_numknown;
+int	mod_numknown;
 
 // the inline * models from the current map are kept seperate
 model_t	mod_inline[MAX_MOD_KNOWN];
 
 int		registration_sequence;
+
+const char *Mod_GetStringFromTable( int index )
+{
+	if(loadmodel->stringdata)
+		return &loadmodel->stringdata[loadmodel->stringtable[index]];
+	return NULL;
+}
 
 /*
 ===============
@@ -284,6 +291,33 @@ void Mod_LoadLighting (lump_t *l)
 	memcpy(loadmodel->lightdata, mod_base + l->fileofs, l->filelen);
 }
 
+/*
+=================
+Mod_LoadStringData
+=================
+*/
+void Mod_LoadStringData( lump_t *l )
+{
+	if (!l->filelen)
+	{
+		loadmodel->lightdata = NULL;
+		return;
+	}
+	loadmodel->stringdata = (char *)Mem_Alloc( loadmodel->mempool, l->filelen );
+	Mem_Copy(loadmodel->stringdata, mod_base + l->fileofs, l->filelen );
+}
+
+void Mod_LoadStringTable( lump_t *l )
+{	
+	int	*in, *out;
+	int	i, count;
+	
+	in = (void *)(mod_base + l->fileofs);
+	if (l->filelen % sizeof(*in)) Sys_Error("MOD_LoadBmodel: funny lump size in %s\n", loadmodel->name );
+	count = l->filelen / sizeof(*in);
+	loadmodel->stringtable = out = (int *)Mem_Alloc( loadmodel->mempool, l->filelen );
+	for ( i = 0; i < count; i++) out[i] = LittleLong(in[i]);
+}
 
 /*
 =================
@@ -446,11 +480,13 @@ void Mod_LoadSurfDesc( lump_t *l )
 
 	for ( i = 0; i < count; i++, in++, out++)
 	{
+		char texname[128];
+
 		for (j = 0; j < 8; j++)
 			out->vecs[0][j] = LittleFloat(in->vecs[0][j]);
 
 		out->flags = LittleLong (in->flags);
-		next = LittleLong (in->nexttexinfo);
+		next = LittleLong (in->animid);
 		if (next > 0) out->next = loadmodel->texinfo + next;
 		else out->next = NULL;
 
@@ -458,14 +494,15 @@ void Mod_LoadSurfDesc( lump_t *l )
 		out->size[0] = LittleLong (in->size[0]);
 		out->size[1] = LittleLong (in->size[1]);
 
-		out->image = R_FindImage (in->texture, NULL, 0, it_wall);
+		com.strncpy( texname, Mod_GetStringFromTable( LittleLong( in->texid )), sizeof(texname));
+		out->image = R_FindImage( texname, NULL, 0, it_wall );
 		if(out->image)
 		{
 			Cvar_SetValue("scr_loading", r_loading->value + 45.0f/count );
 		}
 		else
 		{
-			Msg("Couldn't load %s\n", in->texture);
+			Msg("Couldn't load %s\n", texname );
 			out->image = r_notexture;
 		}
 	}
@@ -887,6 +924,8 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer)
 	for (i = 0; i < sizeof(dheader_t)/4; i++) ((int *)header)[i] = LittleLong ( ((int *)header)[i]);
 
 	// load into heap
+	Mod_LoadStringData (&header->lumps[LUMP_STRINGDATA]);
+	Mod_LoadStringTable (&header->lumps[LUMP_STRINGTABLE]);
 	Mod_LoadVertexes (&header->lumps[LUMP_VERTEXES]);
 	Mod_LoadEdges (&header->lumps[LUMP_EDGES]);
 	Mod_LoadSurfedges (&header->lumps[LUMP_SURFEDGES]);

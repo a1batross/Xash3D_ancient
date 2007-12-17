@@ -113,6 +113,10 @@ byte	portalopen[MAX_MAP_AREAPORTALS];
 
 cvar_t		*map_noareas;
 
+char	map_stringdata[MAX_MAP_STRINGDATA];
+int	stringdatasize;
+int	map_stringtable[MAX_MAP_NUMSTRINGS];
+int	numstrings;
 
 
 /*
@@ -124,6 +128,13 @@ cvar_t		*map_noareas;
 */
 
 byte	*cmod_base;
+
+const char *CM_GetStringFromTable( int index )
+{
+	// debug
+	MsgDev(D_NOTE, "CM_GetStringFromTable: %s\n", map_stringdata + map_stringtable[index] );
+	return &map_stringdata[map_stringtable[index]];
+}
 
 /*
 =================
@@ -181,10 +192,10 @@ void CMod_LoadSurfaces (lump_t *l)
 	numtexinfo = count;
 	out = map_surfaces;
 
-	for ( i=0 ; i<count ; i++, in++, out++)
+	for ( i = 0; i < count; i++, in++, out++)
 	{
-		strncpy (out->c.name, in->texture, sizeof(out->c.name)-1);
-		strncpy (out->rname, in->texture, sizeof(out->rname)-1);
+		com.strncpy (out->c.name, CM_GetStringFromTable(LittleLong(in->texid)), sizeof(out->c.name)-1);
+		com.strncpy (out->rname, CM_GetStringFromTable(LittleLong(in->texid)), sizeof(out->rname)-1);
 		out->c.flags = LittleLong (in->flags);
 		out->c.value = LittleLong (in->value);
 	}
@@ -496,7 +507,44 @@ void CMod_LoadEntityString (lump_t *l)
 	Mem_Copy(map_entitystring, cmod_base + l->fileofs, l->filelen);
 }
 
+/*
+=================
+CMod_LoadStringData
+=================
+*/
+void CMod_LoadStringData( lump_t *l )
+{	
+	char	*in;
+	int	count;
+	
+	in = (void *)(cmod_base + l->fileofs);
+	if (l->filelen % sizeof(*in)) Host_Error("CMod_LoadStringData: funny lump size\n");
+	count = l->filelen / sizeof(*in);
+	if (count < 1 || count >= MAX_MAP_STRINGDATA) Host_Error("CMod_LoadStringData: funny lump size\n");
+	stringdatasize = count;
 
+	// just copy string data
+	Mem_Copy(&map_stringdata, in, count * sizeof(*in));	
+}
+
+/*
+=================
+CMod_LoadStringTable
+=================
+*/
+void CMod_LoadStringTable( lump_t *l )
+{	
+	int	*in, *out;
+	int	i, count;
+	
+	in = (void *)(cmod_base + l->fileofs);
+	if (l->filelen % sizeof(*in)) Host_Error("CMod_LoadStringTable: funny lump size\n");
+	count = l->filelen / sizeof(*in);
+	if (count < 1 || count >= MAX_MAP_NUMSTRINGS) Host_Error("CMod_LoadStringTable: funny lump size\n");
+	numstrings = count;
+	out = &map_stringtable[0];
+	for ( i = 0; i < count; i++) out[i] = LittleLong(in[i]);
+}
 
 /*
 ==================
@@ -534,7 +582,10 @@ cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum)
 	numsmodels = 0;
 	numvisibility = 0;
 	numentitychars = 0;
+	stringdatasize = 0;
+	numstrings = 0;
 	map_entitystring[0] = 0;
+	map_stringdata[0] = 0;
 	map_name[0] = 0;
 	pe->FreeWorld();
 
@@ -564,6 +615,8 @@ cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum)
 	cmod_base = (byte *)buf;
 
 	// load into heap
+	CMod_LoadStringData (&header.lumps[LUMP_STRINGDATA]);
+	CMod_LoadStringTable (&header.lumps[LUMP_STRINGTABLE]);
 	CMod_LoadSurfaces (&header.lumps[LUMP_SURFDESC]);
 	CMod_LoadLeafs (&header.lumps[LUMP_LEAFS]);
 	CMod_LoadLeafBrushes (&header.lumps[LUMP_LEAFBRUSHES]);

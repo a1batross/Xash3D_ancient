@@ -489,7 +489,7 @@ void WvisMain ( bool option )
 	if(!LoadBSPFile())
 	{
 		// map not exist, create it
-		WbspMain( false, false );
+		WbspMain( false );
 		LoadBSPFile();
 	}
 	if (numnodes == 0 || numfaces == 0) Sys_Error ("Empty map");

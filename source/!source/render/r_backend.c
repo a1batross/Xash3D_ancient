@@ -15,9 +15,6 @@ int gl_tex_alpha_format = 4;
 int gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
 int gl_filter_max = GL_LINEAR;
 
-byte gammatable[256];
-byte basetable[256];
-
 typedef struct
 {
 	char *name;
@@ -69,6 +66,24 @@ void GL_Strings_f( void )
 	Msg("GL_RENDERER: %s\n", gl_config.renderer_string );
 	Msg("GL_VERSION: %s\n", gl_config.version_string );
 	Msg("GL_EXTENSIONS: %s\n", gl_config.extensions_string );
+}
+
+void GL_UpdateGammaRamp( void )
+{
+	int          i, j, v;
+
+	Mem_Copy( gl_config.gamma_ramp, gl_config.original_ramp, sizeof(gl_config.gamma_ramp));
+
+	for(j = 0; j < 3; j++)
+	{
+		for( i = 0; i < 256; i++)
+		{
+			v = 255 * pow((float)(i + 0.5) / 255, vid_gamma->value ) + 0.5;
+			v = bound(v, 0, 255);
+			gl_config.gamma_ramp[j][i] = (WORD)v << 8;
+		}
+	}
+	SetDeviceGammaRamp(glw_state.hDC, gl_config.gamma_ramp );
 }
 
 /*
@@ -353,9 +368,9 @@ void GL_TexEnv( GLenum mode )
 GL_TexFilter
 ===============
 */
-void GL_TexFilter( GLboolean mipmap )
+void GL_TexFilter( void )
 {
-	if (mipmap)
+	if(R_ImageHasMips())
 	{
 		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
 		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
@@ -464,7 +479,6 @@ void GL_SetDefaultState( void )
 	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	qglBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 	GL_TexEnv( GL_REPLACE );
 
 	gl_state.texgen = false;
@@ -512,124 +526,13 @@ void qglPerspective( GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zF
 	ymin = -ymax;
 	xmin = ymin * aspect;
 	xmax = ymax * aspect;
-
 	xmin += -2.0f / zNear;
 	xmax += -2.0f / zNear;
 
 	qglFrustum( xmin, xmax, ymin, ymax, zNear, zFar );
 }
 
-static int gamma_forcenextframe = false;
-static float cachegamma, cachebrightness, cachecontrast, cacheblack[3], cachegrey[3], cachewhite[3];
-static int cachecolorenable, cachehwgamma;
-
-bool vid_activewindow = true;
-bool vid_usinghwgamma = false;
-int vid_gammarampsize = 0;
-word *vid_gammaramps = NULL;
-word *vid_systemgammaramps = NULL;
-
-cvar_t *vid_hardwaregammasupported;
-cvar_t *v_hwgamma;
-cvar_t *v_gamma;
-
-void BuildGammaTable16(float prescale,float gamma,float scale,float base,unsigned short *out,int rampsize)
-{
-	int i,adjusted;
-	double invgamma;
-
-	invgamma = 1.0 / gamma;
-	prescale /= (double) (rampsize - 1);
-	for (i = 0;i < rampsize;i++)
-	{
-		adjusted = (int) (65535.0 * (pow((double) i * prescale,invgamma) * scale + base) + 0.5);
-		out[i] = bound(0,adjusted,65535);
-	}
-}
-
-int VID_SetGamma(word *ramps, int rampsize)
-{
-	HDC hdc = GetDC (NULL);
-	int i = SetDeviceGammaRamp(hdc, ramps);
-	ReleaseDC (NULL, hdc);
-	return i; // return success or failure
-}
-
-int VID_GetGamma(word *ramps, int rampsize)
-{
-	HDC hdc = GetDC (NULL);
-	int i = GetDeviceGammaRamp(hdc, ramps);
-	ReleaseDC (NULL, hdc);
-	return i; // return success or failure
-}
-
-void VID_UpdateGamma(bool force, int rampsize)
-{
-	float f;
-
-	if (!force && !gamma_forcenextframe && cachehwgamma == (vid_activewindow ? v_hwgamma->value : 0) && v_gamma->value == cachegamma)
-		return;
-
-	f = bound(0.1, v_gamma->value, 2.5);
-	if (v_gamma->value != f) Cvar_SetValue("v_gamma", f);
-
-	cachehwgamma = vid_activewindow ? v_hwgamma->value : 0;
-
-	gamma_forcenextframe = false;
-
-	if (cachehwgamma)
-	{
-		if (!vid_usinghwgamma)
-		{
-			vid_usinghwgamma = true;
-			if (vid_gammarampsize != rampsize || !vid_gammaramps)
-			{
-				vid_gammarampsize = rampsize;
-				if (vid_gammaramps) Z_Free(vid_gammaramps);
-				vid_gammaramps = (word *)Z_Malloc(6 * vid_gammarampsize * sizeof(word));
-				vid_systemgammaramps = vid_gammaramps + 3 * vid_gammarampsize;
-			}
-			VID_GetGamma(vid_systemgammaramps, vid_gammarampsize);
-		}
-
-		BuildGammaTable16(1.0f, cachegamma, 1.0f, 1.0f, vid_gammaramps, rampsize);
-		BuildGammaTable16(1.0f, cachegamma, 1.0f, 1.0f, vid_gammaramps + vid_gammarampsize, rampsize);
-		BuildGammaTable16(1.0f, cachegamma, 1.0f, 1.0f, vid_gammaramps + vid_gammarampsize * 2, rampsize);
-
-		// set vid_hardwaregammasupported to true if VID_SetGamma succeeds, OR if vid_hwgamma is >= 2 (forced gamma - ignores driver return value)
-		Cvar_SetValue("vid_hardwaregammasupported", VID_SetGamma(vid_gammaramps, vid_gammarampsize) || cachehwgamma >= 2);
-		// if custom gamma ramps failed (Windows stupidity), restore to system gamma
-		if(!vid_hardwaregammasupported->value)
-		{
-			if (vid_usinghwgamma)
-			{
-				vid_usinghwgamma = false;
-				VID_SetGamma(vid_systemgammaramps, vid_gammarampsize);
-			}
-		}
-	}
-	else
-	{
-		if (vid_usinghwgamma)
-		{
-			vid_usinghwgamma = false;
-			VID_SetGamma(vid_systemgammaramps, vid_gammarampsize);
-		}
-	}
-}
-
-void VID_RestoreSystemGamma(void)
-{
-	if (vid_usinghwgamma)
-	{
-		vid_usinghwgamma = false;
-		Cvar_SetValue("vid_hardwaregammasupported", VID_SetGamma(vid_systemgammaramps, vid_gammarampsize));
-		// force gamma situation to be reexamined next frame
-		gamma_forcenextframe = true;
-	}
-}
-
-bool VID_ScreenShot( const char *filename, bool force_gamma )
+bool VID_ScreenShot( const char *filename, bool levelshot )
 {
 	rgbdata_t 	r_shot;
 
@@ -639,6 +542,11 @@ bool VID_ScreenShot( const char *filename, bool force_gamma )
 	// get screen frame
 	qglReadPixels(0, 0, r_width->integer, r_height->integer, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer );
 
+	if( levelshot )
+	{
+		// FIXME: resample buffer from any size to 320x240
+	}
+
 	memset(&r_shot, 0, sizeof(r_shot));
 	r_shot.width = r_width->integer;
 	r_shot.height = r_height->integer;
@@ -647,65 +555,7 @@ bool VID_ScreenShot( const char *filename, bool force_gamma )
 	r_shot.palette = NULL;
 	r_shot.buffer = r_framebuffer;
 
-	// remove any gamma adjust if need
-	if(force_gamma) VID_ImageBaseScale( (uint *)r_framebuffer, r_width->integer, r_height->integer );
-
 	// write image
 	FS_SaveImage( filename, &r_shot );
 	return true;
-}
-
-void VID_BuildGammaTable( void )
-{
-	float g = vid_gamma->value;
-	float m = 1 / vid_gamma->value;
-	int	i;
-	
-	for ( i = 0; i < 256; i++ )
-	{
-		if ( g == 1 ) gammatable[i] = i;
-		else gammatable[i] = bound(0, 255 * pow ( (i + 0.5)/255.5 , g ) + 0.5, 255);
-	}
-
-	for ( i = 0; i < 256; i++ )
-	{
-		if ( m == 1 ) basetable[i] = i;
-		else basetable[i] = bound(0, pow(i * (1.0 / 255.0), m ) * 255.0, 255);
-	}
-}
-
-/*
-================
-VID_ImageLightScale
-================
-*/
-void VID_ImageLightScale (uint *in, int inwidth, int inheight )
-{
-	int	i, c = inwidth * inheight;
-	byte	*p = (byte *)in;
-
-	for (i = 0; i < c; i++, p += 4)
-	{
-		p[0] = gammatable[p[0]];
-		p[1] = gammatable[p[1]];
-		p[2] = gammatable[p[2]];
-	}
-}
-
-/*
-================
-VID_ImageBaseScale
-================
-*/
-void VID_ImageBaseScale (uint *in, int inwidth, int inheight )
-{
-	int	i, c = inwidth * inheight;
-	byte	*p = (byte *)in;
-
-	for (i = 0; i < c; i++, p += 3)
-	{
-		p[0] = basetable[p[0]];
-		p[1] = basetable[p[1]];
-		p[2] = basetable[p[2]];
-	}
 }

@@ -92,8 +92,6 @@ cvar_t	*r_lefthand;
 cvar_t	*r_loading;
 
 cvar_t	*r_lightlevel;	// FIXME: This is a HACK to get the client's light level
-cvar_t	*r_emboss_bump;
-
 cvar_t	*gl_nosubimage;
 cvar_t	*gl_allow_software;
 
@@ -978,7 +976,6 @@ void R_Register( void )
 
 	r_loading = Cvar_Get("scr_loading", "0", 0 );
 	r_lightlevel = Cvar_Get ("r_lightlevel", "0", 0);
-	r_emboss_bump = Cvar_Get ("r_emboss_bump", "0", 0);
 
  	r_motionblur_intens = Cvar_Get( "r_motionblur_intens", "0.65", CVAR_ARCHIVE );
 	r_motionblur = Cvar_Get( "r_motionblur", "0", CVAR_ARCHIVE );
@@ -1361,7 +1358,7 @@ void R_BeginFrame( void )
 	if ( vid_gamma->modified )
 	{
 		vid_gamma->modified = false;
-          	//put here update gamma
+		GL_UpdateGammaRamp();
 	}
 
 	GLimp_BeginFrame();

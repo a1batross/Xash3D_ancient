@@ -300,6 +300,8 @@ rserr_t GLimp_SetMode( int vid_mode, bool fullscreen )
 */
 void GLimp_Shutdown( void )
 {
+	SetDeviceGammaRamp( glw_state.hDC, gl_config.original_ramp );
+
 	if ( qwglMakeCurrent && !qwglMakeCurrent( NULL, NULL ) )
 		Msg("R_Shutdown() - wglMakeCurrent failed\n");
 	if ( glw_state.hGLRC )
@@ -501,6 +503,11 @@ bool GLimp_InitGL (void)
 	** print out PFD specifics 
 	*/
 	MsgDev(D_NOTE, "GL PFD: color(%d-bits) Z(%d-bit)\n", ( int )pfd.cColorBits, ( int )pfd.cDepthBits );
+
+	ZeroMemory(gl_config.original_ramp, sizeof(gl_config.original_ramp));
+	GetDeviceGammaRamp( glw_state.hDC, gl_config.original_ramp );
+	vid_gamma->modified = true;
+
 	return true;
 fail:
 	if ( glw_state.hGLRC )

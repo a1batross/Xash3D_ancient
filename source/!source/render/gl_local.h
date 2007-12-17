@@ -233,9 +233,6 @@ extern  cvar_t	*r_bloom_intensity;
 extern  cvar_t	*r_bloom_darken;
 extern  cvar_t	*r_bloom_sample_size;
 extern  cvar_t	*r_bloom_fast_sample;
-
-extern	cvar_t	*r_emboss_bump;
-
 extern	cvar_t	*r_motionblur_intens;
 extern	cvar_t	*r_motionblur;
 
@@ -287,17 +284,15 @@ void R_TranslatePlayerSkin (int playernum);
 void GL_Bind (int texnum);
 void GL_MBind( GLenum target, int texnum );
 void GL_TexEnv( GLenum value );
+void GL_UpdateGammaRamp( void );
 void GL_EnableMultitexture( bool enable );
 void GL_SelectTexture( GLenum );
-void GL_TexFilter( GLboolean mipmap );
+void GL_TexFilter( void );
 void GL_SetColor( const void *data );
 void R_SetGL2D ( void );
 void R_LightPoint (vec3_t p, vec3_t color);
 void R_PushDlights (void);
-bool VID_ScreenShot( const char *filename, bool force_gamma );
-void VID_BuildGammaTable( void );
-void VID_ImageLightScale (uint *in, int inwidth, int inheight );
-void VID_ImageBaseScale (uint *in, int inwidth, int inheight );
+bool VID_ScreenShot( const char *filename, bool levelshot );
 
 //====================================================================
 
@@ -376,6 +371,7 @@ void	R_GetPalette (void);
 image_t	*R_RegisterSkin (char *name);
 
 void R_ImageList_f (void);
+bool R_ImageHasMips( void );
 
 image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type );
 image_t *R_FindImage (char *name, char *buffer, int size, imagetype_t type);
@@ -421,17 +417,19 @@ typedef struct
 
 	bool	allow_cds;
 	bool	arb_compressed_teximage;
+
+	word	original_ramp[3][256];
+	word	gamma_ramp[3][256];
+
 } glconfig_t;
 
 typedef struct
 {
-	float inverse_intensity;
-	bool fullscreen;
+	bool	fullscreen;
 
 	int	prev_mode;
-	byte	*d_16to8table;
-
-	int lightmap_textures;
+	int	lightmap_textures;
+	float	inverse_intensity;
 
 	int	currenttextures[2];
 	int	currenttmu;
@@ -440,12 +438,6 @@ typedef struct
 	bool	depth_test;
 	bool	blend;
 	bool	texgen;
-
-	bool	reg_combiners;
-	bool	texshaders;
-	bool	sgis_mipmap;
-	dword	dst_texture;
-	bool	gammaramp;
 
 	int	tex_rectangle_type;
 	int	stencil_warp;
@@ -509,14 +501,14 @@ IMPLEMENTATION SPECIFIC FUNCTIONS
 ====================================================================
 */
 
-void		GLimp_BeginFrame( void );
-void		GLimp_EndFrame( void );
-int 		GLimp_Init( void *hinstance, void *hWnd );
-void		GLimp_Shutdown( void );
-int		GLimp_SetMode( int vid_mode, bool fullscreen );
-void		GLimp_AppActivate( bool active );
-void		GLimp_EnableLogging( bool enable );
-void		GLimp_LogNewFrame( void );
+void GLimp_BeginFrame( void );
+void GLimp_EndFrame( void );
+int  GLimp_Init( void *hinstance, void *hWnd );
+void GLimp_Shutdown( void );
+int  GLimp_SetMode( int vid_mode, bool fullscreen );
+void GLimp_AppActivate( bool active );
+void GLimp_EnableLogging( bool enable );
+void GLimp_LogNewFrame( void );
 
 /*
 ====================================================================

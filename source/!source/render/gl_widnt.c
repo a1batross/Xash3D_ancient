@@ -3032,18 +3032,6 @@ void QGL_Shutdown( void )
 */
 bool QGL_Init( const char *dllname )
 {
-	// update 3Dfx gamma irrespective of underlying DLL
-	{
-		char envbuffer[1024];
-		float g;
-
-		g = 2.00 * ( 0.8 - ( vid_gamma->value - 0.5 ) ) + 1.0F;
-		sprintf( envbuffer, "SSTV2_GAMMA=%f", g );
-		putenv( envbuffer );
-		sprintf( envbuffer, "SST_GAMMA=%f", g );
-		putenv( envbuffer );
-	}
-
 	if (( glw_state.hinstOpenGL = LoadLibrary( dllname ) ) == 0 )
 	{
 		char *buf = NULL;

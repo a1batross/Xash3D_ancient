@@ -3245,10 +3245,10 @@ void VID_MenuInit( void )
 	s_brightness_slider.generic.type = MTYPE_SLIDER;
 	s_brightness_slider.generic.x	= 0;
 	s_brightness_slider.generic.y	= 17;
-	s_brightness_slider.generic.name = "brightness";
+	s_brightness_slider.generic.name = "gamma";
 	s_brightness_slider.generic.callback = BrightnessCallback;
-	s_brightness_slider.minvalue = 5;
-	s_brightness_slider.maxvalue = 13;
+	s_brightness_slider.minvalue = 9;
+	s_brightness_slider.maxvalue = 15;
 	s_brightness_slider.curvalue = ( 1.3 - vid_gamma->value + 0.5 ) * 10;
 
 	s_fs_box.generic.type = MTYPE_SPINCONTROL;

@@ -8,7 +8,7 @@ textureref_t	textureref[MAX_MAP_TEXTURES];
 //==========================================================================
 
 
-int FindMiptex (char *name)
+int FindMiptex( char *name )
 {
 	int		i;
 	shader_t		*si;
@@ -16,17 +16,16 @@ int FindMiptex (char *name)
 	
 	for (i = 0; i < nummiptex; i++ )
 	{
-		if (!stricmp(name, textureref[i].name))
+		if (!stricmp(name, textureref[i].texname))
 			return i;
 	}
-	if (nummiptex == MAX_MAP_TEXTURES) Sys_Error ("MAX_MAP_TEXTURES");
+	if( nummiptex == MAX_MAP_TEXTURES ) Sys_Error ("MAX_MAP_TEXTURES");
 
 	// register texture
-	strcpy (textureref[i].name, name );
-	tex = FS_LoadImage(textureref[i].name, NULL, 0);
-	if(tex)
+	strcpy (textureref[i].texname, name );
+	tex = FS_LoadImage( textureref[i].texname, NULL, 0 );
+	if( tex )
 	{
-		Msg("load texture %s\n", name );
 		textureref[i].size[0] = tex->width;		
 		textureref[i].size[1] = tex->height;
 		FS_FreeImage( tex );
@@ -46,7 +45,7 @@ int FindMiptex (char *name)
 	if (textureref[i].animname[0]) 
 	{
 		// MsgDev(D_INFO, "FindMiptex: animation chain \"%s->%s\"\n", textureref[i].name, textureref[i].animname );
-		FindMiptex(textureref[i].name);
+		FindMiptex(textureref[i].texname);
 	}
 	return i;
 }
@@ -90,9 +89,6 @@ void TextureAxisFromPlane(plane_t *pln, vec3_t xv, vec3_t yv)
 	VectorCopy (baseaxis[bestaxis*3+2], yv);
 }
 
-
-
-
 int TexinfoForBrushTexture (plane_t *plane, brush_texture_t *bt, vec3_t origin)
 {
 	vec3_t		vecs[2];
@@ -104,11 +100,10 @@ int TexinfoForBrushTexture (plane_t *plane, brush_texture_t *bt, vec3_t origin)
 	brush_texture_t	anim;
 	int		mt;
 
-	if (!bt->name[0])
-		return 0;
+	if (!bt->name[0]) return 0;
 
 	memset (&tx, 0, sizeof(tx));
-	strcpy (tx.texture, bt->name);
+	tx.texid = GetIndexFromTable( bt->name );
 
 	if (bt->txcommand)
 	{
@@ -209,9 +204,8 @@ int TexinfoForBrushTexture (plane_t *plane, brush_texture_t *bt, vec3_t origin)
 		if (tc->value != tx.value) continue;
 		for (j = 0; j < 2; j++)
 		{
-			if (com.stricmp (tc->texture, tx.texture))
-				goto skip;
-			for (k = 0; k < 4; k++)
+			if( tc->texid != tx.texid ) goto skip;
+			for( k = 0; k < 4; k++ )
 			{
 				if (tc->vecs[j][k] != tx.vecs[j][k])
 					goto skip;
@@ -224,15 +218,15 @@ skip:;
 	numtexinfo++;
 
 	// load the next animation
-	mt = FindMiptex (bt->name);
+	mt = FindMiptex( bt->name );
 
 	if (textureref[mt].animname[0])
 	{
 		anim = *bt;
 		strcpy (anim.name, textureref[mt].animname);
-		tc->nexttexinfo = TexinfoForBrushTexture (plane, &anim, origin);
+		tc->animid = TexinfoForBrushTexture (plane, &anim, origin);
 	}
-	else  tc->nexttexinfo = -1;
+	else tc->animid = -1;
 
 	return i;
 }

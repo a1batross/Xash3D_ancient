@@ -4,13 +4,13 @@
 //=======================================================================
 
 #include "launch.h"
-#include "mathlib.h" // nearest_pow
 #include "image.h"
+#include "mathlib.h"
 
 // global image variables
 int image_width, image_height;
 byte image_num_layers = 1;	// num layers in
-byte image_num_mips = 4;	// build mipmaps
+byte image_num_mips = 0;	// build mipmaps
 uint image_type;		// main type switcher
 uint image_flags;		// additional image flags
 byte image_bits_count;	// bits per RGBA
@@ -119,14 +119,14 @@ NOTE: must call Image_GetQ2Palette or Image_GetQ1Palette
 before used
 ============
 */
-void Image_Copy8bitRGBA(const byte *in, byte *out, int pixels)
+bool Image_Copy8bitRGBA(const byte *in, byte *out, int pixels)
 {
 	int *iout = (int *)out;
 
 	if(!d_currentpal)
 	{
 		MsgDev(D_ERROR,"Image_Copy8bitRGBA: no palette set\n");
-		return;
+		return false;
 	}
 
 	while (pixels >= 8)
@@ -161,16 +161,17 @@ void Image_Copy8bitRGBA(const byte *in, byte *out, int pixels)
 	}
 	if (pixels & 1)
 		iout[0] = d_currentpal[in[0]];
+
+	return true;
 }
 
 
 void Image_RoundDimensions(int *scaled_width, int *scaled_height)
 {
-	int width = *scaled_width;
-	int height = *scaled_height;
+	int width, height;
 
-	width = nearest_pow( width );
-	height = nearest_pow( height);
+	for( width = 1; width < *scaled_width; width <<= 1 );
+	for( height = 1; height < *scaled_height; height <<= 1 );
 
 	*scaled_width = bound(1, width, 4096 );
 	*scaled_height = bound(1, height, 4096 );
@@ -275,8 +276,8 @@ LoadWAL
 bool LoadWAL( char *name, char *buffer, int filesize )
 {
 	wal_t 	wal;
-	int	pixels, ofs, mipsize;
-	int	flags, value, contents; // wal additional parms
+	int	pixels, ofs[4], mipsize, nummips = 1;// FIXME, adding four mips ?
+	int	w, h, i, flags, value, contents; // wal additional parms
 
 	if (filesize < (int)sizeof(wal))
 	{
@@ -287,31 +288,31 @@ bool LoadWAL( char *name, char *buffer, int filesize )
 
 	flags = LittleLong(wal.flags);
 	value = LittleLong(wal.value);
-	image_width = LittleLong(wal.width);
-	image_height = LittleLong(wal.height);
-	ofs = LittleLong(wal.offsets[0]);
 	contents = LittleLong(wal.contents);
-	
+	w = image_width = LittleLong(wal.width);
+	h = image_height = LittleLong(wal.height);
+	for(i = 0; i < 4; i++) ofs[i] = LittleLong(wal.offsets[i]);
 	if(!Image_ValidSize( name )) return false;
 
-	pixels = image_width * image_height;
-	mipsize = (int)sizeof(wal) + ofs + pixels;
-	image_size = image_width * image_height * 4; // wall can't have alpha
-
-	if (pixels > 256 && filesize < mipsize)
+	pixels = w * h;
+	mipsize = (int)sizeof(wal) + ofs[0] + pixels;
+	if( pixels > 256 && filesize < mipsize )
 	{
 		// wal's width dimensions < 32 have invalid sizes.
 		MsgWarn("LoadWAL: file (%s) have invalid size\n", name );
 		return false;
 	}
 
-	image_rgba = (byte *)Mem_Alloc( Sys.imagepool, image_size );
 	image_num_layers = 1;
 	image_type = PF_RGBA_32;
 
-	Image_GetQ2Palette();// hardcoded
-	Image_Copy8bitRGBA( buffer + ofs, image_rgba,  pixels );
-
+	Image_GetQ2Palette(); // hardcoded
+	for(i = 0; i < nummips; i++ )
+	{
+		if(!FS_AddMipmapToPack( buffer + ofs[i], w, h ))
+			break; // there were errors
+		w = (w+1)>>1, h = (h+1)>>1; // calc size of next mip
+	}
 	return true;
 }
 
@@ -338,6 +339,7 @@ bool LoadLMP( char *name, char *buffer, int filesize )
 
 	image_width = LittleLong(lmp.width);
 	image_height = LittleLong(lmp.height);
+	image_num_mips = 1;
 
 	if(!Image_ValidSize( name )) return false;         
           image_size = image_width * image_height * 4;
@@ -375,7 +377,8 @@ LoadMIP
 bool LoadMIP( char *name, char *buffer, int filesize )
 {
 	mip_t	mip;
-	int	ofs, pixels;
+	int	i, w, h;
+	int	ofs[4], mipsize, nummips = 1;// FIXME, adding four mips ?
 
 	if (filesize < (int)sizeof(mip))
 	{
@@ -384,28 +387,29 @@ bool LoadMIP( char *name, char *buffer, int filesize )
 	}
 
 	Mem_Copy(&mip, buffer, sizeof(mip));
-
-	image_width = LittleLong(mip.width);
-	image_height = LittleLong(mip.height);
-	ofs = LittleLong(mip.offsets[0]);
+	w = image_width = LittleLong(mip.width);
+	h = image_height = LittleLong(mip.height);
+	for(i = 0; i < nummips; i++) ofs[i] = LittleLong(mip.offsets[i]);
 
 	if(!Image_ValidSize( name )) return false;         
-          image_size = image_width * image_height * 4;
-	pixels = image_width * image_height;
+	mipsize = image_width * image_height;
 	
-	if (filesize < (int)sizeof(mip) + pixels)
+	if (filesize < (int)sizeof(mip) + mipsize)
 	{
 		MsgWarn("LoadMIP: file (%s) have invalid size\n", name );
 		return false;
 	}
 
-	image_rgba = (byte *)Mem_Alloc(Sys.imagepool, image_size );
 	image_num_layers = 1;
 	image_type = PF_RGBA_32;
 
 	Image_GetQ1Palette();// hardcoded
-	Image_Copy8bitRGBA( buffer + ofs, image_rgba, pixels );
-
+	for(i = 0; i < nummips; i++ )
+	{
+		if(!FS_AddMipmapToPack( buffer + ofs[i], w, h ))
+			break; // there were errors
+		w = (w+1)>>1, h = (h+1)>>1; // calc size of next mip
+	}
 	return true;
 }
 
@@ -454,6 +458,7 @@ bool LoadPCX( char *name, char *buffer, int filesize )
 	palette = buffer + filesize - 768;
 
 	image_num_layers = 1;
+	image_num_mips = 1;
 	image_type = PF_RGBA_32;
 
 	if(palette)
@@ -547,6 +552,7 @@ bool LoadTGA( char *name, char *buffer, int filesize )
 	if(!Image_ValidSize( name )) return false;
 
 	image_num_layers = 1;
+	image_num_mips = 1;
 	image_type = PF_RGBA_32; //always exctracted to 32-bit buffer
 
 	targa_header.pixel_size = *fin++;
@@ -1049,7 +1055,7 @@ bool LoadDDS( char *name, char *buffer, int filesize )
 
 	fin = buffer;
 
-	//swap header
+	// swap header
 	header.dwIdent = BuffLittleLong(fin); fin += 4;
 	header.dwSize = BuffLittleLong(fin); fin += 4;
 	header.dwFlags = BuffLittleLong(fin); fin += 4;
@@ -1067,7 +1073,7 @@ bool LoadDDS( char *name, char *buffer, int filesize )
 		fin += 4;
 	}
 
-	//pixel format
+	// pixel format
 	header.dsPixelFormat.dwSize = BuffLittleLong(fin); fin += 4;
 	header.dsPixelFormat.dwFlags = BuffLittleLong(fin); fin += 4;
 	header.dsPixelFormat.dwFourCC = BuffLittleLong(fin); fin += 4;
@@ -1077,7 +1083,7 @@ bool LoadDDS( char *name, char *buffer, int filesize )
 	header.dsPixelFormat.dwBBitMask = BuffLittleLong(fin); fin += 4;
 	header.dsPixelFormat.dwABitMask = BuffLittleLong(fin); fin += 4;
 
-	//caps
+	// caps
 	header.dsCaps.dwCaps1 = BuffLittleLong(fin); fin += 4;
 	header.dsCaps.dwCaps2 = BuffLittleLong(fin); fin += 4;
 	header.dsCaps.dwCaps3 = BuffLittleLong(fin); fin += 4;
@@ -1606,6 +1612,7 @@ bool LoadJPG(char *name, char *buffer, int filesize )
 	if(jpg_file.num_components == 3) jpeg_ycbcr2rgba();
 
 	image_num_layers = 1;
+	image_num_mips = 1;
 	image_rgba = jpg_file.data;
 
 	return true;
@@ -1710,6 +1717,22 @@ bool FS_AddImageToPack( const char *name )
 
 	return true;
 }
+
+bool FS_AddMipmapToPack( const byte *in, int width, int height )
+{
+	int mipsize = width * height;
+	int outsize = width * height * 4;
+
+	// reallocate image buffer
+	image_rgba = Mem_Realloc( Sys.imagepool, image_rgba, image_size + outsize );	
+	if(!Image_Copy8bitRGBA( in, image_rgba + image_size, mipsize ))
+		return false; // pallette not installed
+	image_size += outsize;
+	image_num_mips++;
+
+	return true;
+}
+
 
 /*
 ================
@@ -1833,7 +1856,7 @@ void FS_FreeImage( rgbdata_t *pack )
 	image_bits_count = image_flags = 0;
 	cubemap_num_sides = 0;
 	image_num_layers = 1;
-	image_num_mips = 4;
+	image_num_mips = 0;
 	image_type = PF_UNKNOWN;
 	image_palette = NULL;
 	image_rgba = NULL;

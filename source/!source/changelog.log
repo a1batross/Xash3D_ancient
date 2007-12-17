@@ -4,8 +4,6 @@
  оллижен менеджер (который фейсы добавл€ет) на версии 1.53 вылетает при парсинге половины q2 карт почему-то.
 DDS Converter 2.1 некорректно высчитывает размер dds файла (баг в devil ?), юзаем только nvdxt
 
-ќЅя«ј“≈Ћ№Ќќ ”Ѕ»“№ VID_ImageScale!!!!!!!
-
 Quake1			Quake2
 SV_MoveBounds		SV_TraceBounds
 SV_Move			SV_Trace
@@ -35,15 +33,27 @@ scroll = visible_offset
 2. »мплементаци€ save-restore дл€ физики
 
 —мена формата карты: нова€ верси€ bsp		39 XashBSP format
+1. »збавитьс€ от short side в dface_t (перевести рендер в новый режим работы)
+2. сжать entlump зипом
+3. добавить LUMP_MAPINFO (дл€ быстрого поиска имени карты)
 
-1. увеличить число лумпов до 32 (должно хватить на все с запасом)
-5. texinfo_t - удалить value, nexttexinfo, texture расширить до 64 символов
-6. переработка texinfo_t дабы исключить повтор€ющиес€ текстуры в списке
-7. увеличить нужные лимиты
+typedef struct
+{
+	char	mapname[64];	// internal map name
+	char	builddate[32];	// map builddate
+	char	mpentity[32];	// name of multiplayer start entity, like "info_player_deathmath"
+	char	svprogs[32];	// name of custom server.dat (just for debugging)
+	uint	mapversion;	// should be 220 ?
+	uint	checksum;		// compared with COM_Checksum		
+
+} dmapinfo_t;
 
 //==================================================
 //		то, что уже готово
 //==================================================
++наконец-то добавлена аппаратна€ гамма
++добавлена загрузка мипмапов дл€ всех типов текстур
++пофикшен баг с загрузкой мипмпов
 +collision tree теперь сохран€етс€ в lump
 +исправлены баги в parselib.c
 +доделан кастомный парсинг исходников дл€ qcclib

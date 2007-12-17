@@ -190,7 +190,7 @@ typedef struct render_exp_s
 	void	(*EndFrame)( void );
 
 	void	(*SetColor)( const float *rgba );
-	bool	(*ScrShot)( const char *filename, bool force_gamma ); // write screenshot with same name 
+	bool	(*ScrShot)( const char *filename, bool levelshot ); // write screenshot with same name 
 	void	(*DrawFill)(float x, float y, float w, float h );
 	void	(*DrawStretchRaw) (int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw );
 	void	(*DrawStretchPic)(float x, float y, float w, float h, float s1, float t1, float s2, float t2, char *name);

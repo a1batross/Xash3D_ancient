@@ -50,10 +50,8 @@ void BSP_LoadVerts( lump_t *l )
 	count = l->filelen / sizeof(*in);
 	map.vertices = out = Mem_Alloc( physpool, count * sizeof(*out));
 
-	// swap and scale vertices 
 	for ( i = 0; i < count; i++, in++, out++)
 	{
-		//CM_ConvertPositionToMeters( out->point, in->point );
 		out->point[0] = LittleFloat(in->point[0]);
 		out->point[1] = LittleFloat(in->point[1]);
 		out->point[2] = LittleFloat(in->point[2]);
@@ -77,8 +75,8 @@ void BSP_LoadEdges( lump_t *l )
 
 	for ( i = 0; i < count; i++, in++, out++)
 	{
-		out->v[0] = (word)LittleShort(in->v[0]);
-		out->v[1] = (word)LittleShort(in->v[1]);
+		out->v[0] = LittleLong(in->v[0]);
+		out->v[1] = LittleLong(in->v[1]);
 	}
 }
 
@@ -119,8 +117,8 @@ void BSP_LoadFaces( lump_t *l )
 	for( i = 0; i < map.num_faces; i++, in++, out++)
 	{
 		out->firstedge = LittleLong(in->firstedge);
-		out->numedges = LittleShort(in->numedges);		
-		out->desc = LittleShort(in->desc);
+		out->numedges = LittleLong(in->numedges);		
+		out->desc = LittleLong(in->desc);
 	}
 }
 
@@ -188,16 +186,6 @@ void BSP_LoadCollision( lump_t *l )
 	in = (void *)(map.pmod_base + l->fileofs);
 	if (l->filelen % sizeof(*in)) Host_Error("BSP_LoadCollision: funny lump size\n");
 	count = l->filelen / sizeof(*in);
-
-	if(count == 256)
-	{
-		// LUMP_POP always have null array with size of 256 bytes
-		// it's like pop.lmp from Quake1, but never used in Quake2
-		for(i = 0; i < count; i++) if( in[i] != 0 ) break;
-
-		// legacy LUMP_POP, not a collision tree
-		if(i == count) return;
-	}
 	map.world_tree = com.vfcreate( in, count );	
 }
 
@@ -269,7 +257,6 @@ void BSP_EndBuildTree( void )
 static void BSP_LoadTree( vfile_t* handle, void* buffer, size_t size )
 {
 	VFS_Read( handle, buffer, size );
-	Msg("BSP_LoadTree: size %d\n", size );
 }
 
 void CM_LoadBSP( const void *buffer )

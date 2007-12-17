@@ -10,7 +10,6 @@ node_t *block_nodes[10][10];
 
 bool full_compile = false;
 bool onlyents = false;
-bool hullonly = false;
 bool onlyvis = false;
 bool onlyrad = false;
 
@@ -280,10 +279,9 @@ void ProcessCollisionTree( void )
 WbspMain
 ============
 */
-void WbspMain ( bool option, bool option2 )
+void WbspMain ( bool option )
 {
 	onlyents = option;
-	hullonly = option2;
 	
 	Msg("---- CSG ---- [%s]\n", onlyents ? "onlyents" : "normal" );
 
@@ -303,12 +301,6 @@ void WbspMain ( bool option, bool option2 )
 		SetModelNumbers();
 		SetLightStyles();
 		UnparseEntities();
-		WriteBSPFile();
-	}
-	else if(hullonly)
-	{
-		LoadBSPFile();
-		ProcessCollisionTree();
 		WriteBSPFile();
 	}
 	else
@@ -338,7 +330,6 @@ bool PrepareBSPModel ( const char *dir, const char *name, byte params )
 
 	// copy state
 	onlyents = (params & BSP_ONLYENTS) ? true : false;
-	hullonly = (params & BSP_ONLYHULL) ? true : false;
 	onlyvis = (params & BSP_ONLYVIS) ? true : false ;
 	onlyrad = (params & BSP_ONLYRAD) ? true : false;
 	full_compile = (params & BSP_FULLCOMPILE) ? true : false;
@@ -365,17 +356,16 @@ bool PrepareBSPModel ( const char *dir, const char *name, byte params )
 bool CompileBSPModel ( void )
 {
 	// must be first!
-	if( onlyents ) WbspMain( true, false );
-	else if( hullonly ) WbspMain( false, true );
+	if( onlyents ) WbspMain( true );
 	else if( onlyvis && !onlyrad ) WvisMain ( full_compile );
 	else if( onlyrad && !onlyvis ) WradMain( full_compile );
 	else if( onlyrad && onlyvis )
 	{
-		WbspMain( false, false );
+		WbspMain( false );
 		WvisMain( full_compile );
 		WradMain( full_compile );
 	}
-          else WbspMain( false, false ); //just create bsp
+          else WbspMain( false ); // just create bsp
 
 	if(physic_dll.link)
 	{

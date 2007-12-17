@@ -58,17 +58,18 @@ infoParm_t infoParms[] =
 FindShader
 ===============
 */
-shader_t *FindShader( char *texture )
+shader_t *FindShader( const char *texture )
 {
 	shader_t *texshader;
 	char	shader[128];
+	char	texname[128];
 	int i;
 
-	//convert to lower case
-	strlower(texture, texture);
+	// convert to lower case
+	strlower(texture, texname );
           
-	//build full path
-	sprintf (shader, "textures/%s", texture);
+	// build full path
+	sprintf (shader, "textures/%s", texname );
 	
 	// look for it
 	for (i = 0, texshader = shaderInfo; i < numShaderInfo; i++, texshader++)

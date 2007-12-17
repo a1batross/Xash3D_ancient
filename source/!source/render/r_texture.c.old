@@ -25,6 +25,44 @@ bool use_gl_extension = false;
 cvar_t *intensity;
 uint d_8to24table[256];
 
+#define FILTER_SIZE 5 
+#define BLUR_FILTER 0 
+#define LIGHT_BLUR   1 
+#define EDGE_FILTER 1 
+#define EMBOSS_FILTER 3
+
+float FilterMatrix[][FILTER_SIZE][FILTER_SIZE] = 
+{ 
+	{ // regular blur 
+	{0, 0, 0, 0, 0}, 
+	{0, 1, 1, 1, 0}, 
+	{0, 1, 1, 1, 0}, 
+	{0, 1, 1, 1, 0}, 
+	{0, 0, 0, 0, 0}, 
+	}, 
+	{ // light blur 
+	{0, 0, 0, 0, 0}, 
+	{0, 1, 1, 1, 0}, 
+	{0, 1, 4, 1, 0}, 
+	{0, 1, 1, 1, 0}, 
+	{0, 0, 0, 0, 0}, 
+	}, 
+	{ // find edges 
+	{0,  0,  0,  0, 0}, 
+	{0, -1, -1, -1, 0}, 
+	{0, -1,  8, -1, 0}, 
+	{0, -1, -1, -1, 0}, 
+	{0,  0,  0,  0, 0}, 
+	}, 
+	{ // emboss  
+	{-0.7, -0.7, -0.7, -0.7, 0   }, 
+	{-0.7, -0.7, -0.7,  0,   0.7 }, 
+	{-0.7, -0.7,  0,    0.7, 0.7 }, 
+	{-0.7,  0,    0.7,  0.7, 0.7 }, 
+	{ 0,    0.7,  0.7,  0.7, 0.7 }, 
+	}
+}; 
+
 typedef struct
 {
 	int		format;
@@ -84,16 +122,6 @@ void R_ImageList_f (void)
 	Msg( "Total images count (without mipmaps): %i\n", numgltextures);
 }
 
-bool R_ImageHasMips( void )
-{
-	// will be generated later
-	if(image_desc.flags & IMAGE_GEN_MIPS)
-		return true;
-	if( image_desc.MipCount > 1)
-		return true;
-	return false;
-}
-
 /*
 ===============
 R_GetImageSize
@@ -115,7 +143,7 @@ uint R_GetImageSize( int block, int width, int height, int depth, int bpp, int r
 
 /*
 ===============
-R_SetPixelFormat
+R_SetImageSize
 
 prepare image to upload in video memory
 ===============
@@ -139,7 +167,7 @@ void R_SetPixelFormat( int width, int height, int depth )
 	image_desc.SizeOfPlane = image_desc.bps * image_desc.height;
 	image_desc.SizeOfData = image_desc.SizeOfPlane * image_desc.numLayers;
 
-	// NOTE: size of current miplevel or cubemap side, not total (filesize - sizeof(header))
+	// get new size
 	image_desc.SizeOfFile = R_GetImageSize( BlockSize, width, height, depth, image_desc.bpp, image_desc.BitsCount / 8);
 
 	if (image_desc.width * image_desc.height > imagebufsize / 4) // warning
@@ -155,8 +183,8 @@ filled additional info
 */
 bool R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 {
-	int	w, h, d, i, s, BlockSize;
-	size_t	mipsize, totalsize = 0;
+	int	w, h, d, i, BlockSize;
+	size_t	r_size, mipsize;
 
 	if(!pic || !pic->buffer) return false;
 		
@@ -188,11 +216,14 @@ bool R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 		image_desc.BitsCount = pic->bitsCount;
 
 		// now correct buffer size
-		for( i = 0; i < pic->numMips; i++, totalsize += mipsize )
+		for( i = 0; i < pic->numMips; i++, image_desc.SizeOfFile += mipsize )
 		{
 			mipsize = R_GetImageSize( BlockSize, w, h, d, image_desc.bpp, image_desc.BitsCount / 8 );
 			w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1;
 		}
+
+		// restore temp dimensions
+		w = image_desc.width, h = image_desc.height, d = image_desc.numLayers;
 
 		if(type == it_pic || type == it_sky)
 		{
@@ -217,29 +248,18 @@ bool R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 		image_desc.pal = pic->palette;
 	}	
 
-	// restore temp dimensions
-	w = image_desc.width;
-	h = image_desc.height;
-	s = w * h;
-
 	// can use gl extension ?
 	R_RoundImageDimensions(&w, &h);
 
-	if(w == image_desc.width && h == image_desc.height) 
-		use_gl_extension = true;
+	if(w == image_desc.width && h == image_desc.height) use_gl_extension = true;
 	else use_gl_extension = false;
 
-	if(image_desc.flags & IMAGE_CUBEMAP)
-		totalsize *= 6;
+	if(image_desc.flags & IMAGE_CUBEMAP) r_size = image_desc.SizeOfFile * 6;
+	else r_size = image_desc.SizeOfFile;
 
-	if(totalsize != pic->size) // sanity check
+	if(r_size != pic->size) // sanity check
 	{
-		MsgDev(D_WARN, "R_GetPixelFormat: invalid image size (%i should be %i)\n", pic->size, totalsize );
-		return false;
-	}
-	if(s&3) // will be resampled, not error
-	{
-		MsgDev(D_WARN, "R_GetPixelFormat: s&3 [%d x %d]\n", image_desc.width, image_desc.height );
+		MsgDev(D_WARN, "R_GetPixelFormat: invalid image size (%i should be %i)\n", pic->size, r_size );
 		return false;
 	}	
 	return true;
@@ -301,10 +321,10 @@ void R_InitTextures( void )
 	int texsize, i, j;
 
 	r_imagepool = Mem_AllocPool("Texture Pool");
-          gl_maxsize = Cvar_Get( "gl_maxsize", "4096", CVAR_ARCHIVE );
+          gl_maxsize = Cvar_Get ("gl_maxsize", "0", 0);
 	
-	qglGetIntegerv(GL_MAX_TEXTURE_SIZE, &texsize); // merge value
-	if (gl_maxsize->integer != texsize) Cvar_SetValue ("gl_maxsize", texsize );
+	qglGetIntegerv(GL_MAX_TEXTURE_SIZE, &texsize);
+	if (gl_maxsize->value > texsize) Cvar_SetValue ("gl_maxsize", texsize);
 
 	if(texsize < 2048) imagebufsize = 2048*2048*4;
 	else imagebufsize = texsize * texsize * 4;
@@ -317,7 +337,7 @@ void R_InitTextures( void )
 	registration_sequence = 1;
 
 	// init intensity conversions
-	intensity = Cvar_Get ("intensity", "2", 0 );
+	intensity = Cvar_Get ("intensity", "2", 0);
 	if ( intensity->value <= 1 ) Cvar_SetValue( "intensity", 1 );
 	gl_state.inverse_intensity = 1 / intensity->value;
 
@@ -326,18 +346,145 @@ void R_InitTextures( void )
 		j = i * intensity->value;
 		intensitytable[i] = bound(0, j, 255);
 	}
+
 	R_GetPalette();
+	VID_BuildGammaTable();
 }
 
-void R_RoundImageDimensions( int *scaled_width, int *scaled_height )
+/* 
+================== 
+R_FilterTexture 
+
+Applies a 5 x 5 filtering matrix to the texture, then runs it through a simulated OpenGL texture environment 
+blend with the original data to derive a new texture.  Freaky, funky, and *f--king* *fantastic*.  You can do 
+reasonable enough "fake bumpmapping" with this baby... 
+
+Filtering algorithm from http://www.student.kuleuven.ac.be/~m0216922/CG/filtering.html 
+All credit due 
+================== 
+*/
+ 
+void R_FilterTexture (int filterindex, uint *data, int width, int height, float factor, float bias, bool greyscale, GLenum GLBlendOperator) 
+{ 
+	int i, x, y; 
+	int filterX, filterY; 
+	uint *temp; 
+
+	// allocate a temp buffer 
+	temp = Z_Malloc (width * height * 4); 
+
+	for (x = 0; x < width; x++) 
+	{ 
+		for (y = 0; y < height; y++) 
+		{ 
+			float rgbFloat[3] = {0, 0, 0}; 
+
+			for (filterX = 0; filterX < FILTER_SIZE; filterX++) 
+			{ 
+				for (filterY = 0; filterY < FILTER_SIZE; filterY++) 
+				{ 
+					int imageX = (x - (FILTER_SIZE / 2) + filterX + width) % width; 
+					int imageY = (y - (FILTER_SIZE / 2) + filterY + height) % height; 
+
+					// casting's a unary operation anyway, so the othermost set of brackets in the left part 
+					// of the rvalue should not be necessary... but i'm paranoid when it comes to C... 
+					rgbFloat[0] += ((float) ((byte *) &data[imageY * width + imageX])[0]) * FilterMatrix[filterindex][filterX][filterY]; 
+					rgbFloat[1] += ((float) ((byte *) &data[imageY * width + imageX])[1]) * FilterMatrix[filterindex][filterX][filterY]; 
+					rgbFloat[2] += ((float) ((byte *) &data[imageY * width + imageX])[2]) * FilterMatrix[filterindex][filterX][filterY]; 
+				} 
+			} 
+
+			// multiply by factor, add bias, and clamp 
+			for (i = 0; i < 3; i++) 
+			{ 
+				rgbFloat[i] *= factor; 
+				rgbFloat[i] += bias; 
+
+				if (rgbFloat[i] < 0) rgbFloat[i] = 0; 
+				if (rgbFloat[i] > 255) rgbFloat[i] = 255; 
+			} 
+
+			if (greyscale) 
+			{ 
+				// NTSC greyscale conversion standard 
+				float avg = (rgbFloat[0] * 30 + rgbFloat[1] * 59 + rgbFloat[2] * 11) / 100; 
+
+				// divide by 255 so GL operations work as expected 
+				rgbFloat[0] = avg / 255.0; 
+				rgbFloat[1] = avg / 255.0; 
+				rgbFloat[2] = avg / 255.0; 
+			} 
+
+			// write to temp - first, write data in (to get the alpha channel quickly and 
+			// easily, which will be left well alone by this particular operation...!) 
+			temp[y * width + x] = data[y * width + x]; 
+
+			// now write in each element, applying the blend operator.  blend 
+			// operators are based on standard OpenGL TexEnv modes, and the 
+			// formulae are derived from the OpenGL specs (http://www.opengl.org). 
+			for (i = 0; i < 3; i++) 
+			{ 
+				// divide by 255 so GL operations work as expected 
+				float TempTarget; 
+				float SrcData = ((float) ((byte *) &data[y * width + x])[i]) / 255.0; 
+
+				switch (GLBlendOperator) 
+				{ 
+				case GL_ADD: 
+					TempTarget = rgbFloat[i] + SrcData; 
+					break; 
+				case GL_BLEND: 
+					// default is FUNC_ADD here 
+					// CsS + CdD works out as Src * Dst * 2 
+					TempTarget = rgbFloat[i] * SrcData * 2.0; 
+					break; 
+				case GL_DECAL: 
+					// same as GL_REPLACE unless there's alpha, which we ignore for this 
+				case GL_REPLACE: 
+					TempTarget = rgbFloat[i]; 
+					break; 
+				case GL_ADD_SIGNED: 
+					TempTarget = (rgbFloat[i] + SrcData) - 0.5; 
+					break; 
+				case GL_MODULATE: 
+					// same as default 
+				default: 
+					TempTarget = rgbFloat[i] * SrcData; 
+					break; 
+				} 
+
+				// multiply back by 255 to get the proper byte scale 
+				TempTarget *= 255.0; 
+
+				// bound the temp target again now, cos the operation may have thrown it out 
+				if (TempTarget < 0) TempTarget = 0; 
+				if (TempTarget > 255) TempTarget = 255; 
+				// and copy it in 
+				((byte *) &temp[y * width + x])[i] = (byte) TempTarget; 
+			} 
+		} 
+	} 
+
+	memcpy(data, temp, width * height * 4);
+	Z_Free (temp); // release the temp buffer
+}
+
+void R_RoundImageDimensions(int *scaled_width, int *scaled_height )
 {
-	int width, height;
+	int width = *scaled_width;
+	int height = *scaled_height;
 
-	for( width = 1; width < *scaled_width; width <<= 1 );
-	for( height = 1; height < *scaled_height; height <<= 1 );
+	*scaled_width = nearest_pow( *scaled_width );
+	*scaled_height = nearest_pow( *scaled_height);
 
-	*scaled_width = bound(1, width, gl_maxsize->integer );
-	*scaled_height = bound(1, height, gl_maxsize->integer );
+	if (gl_maxsize->value)
+	{
+		if (*scaled_width > gl_maxsize->value) *scaled_width = gl_maxsize->value;
+		if (*scaled_height > gl_maxsize->value) *scaled_height = gl_maxsize->value;
+	}
+
+	if (*scaled_width < 1) *scaled_width = 1;
+	if (*scaled_height < 1) *scaled_height = 1;
 }
 
 bool R_ResampleTexture (uint *in, int inwidth, int inheight, uint *out, int outwidth, int outheight)
@@ -348,14 +495,14 @@ bool R_ResampleTexture (uint *in, int inwidth, int inheight, uint *out, int outw
 	uint	p1[4096], p2[4096];
 	byte	*pix1, *pix2, *pix3, *pix4;
 
-	// check for buffers
+	//check for buffers
 	if(!in || !out || in == out) return false;
 	if(outheight == 0 || outwidth == 0) return false;
 
 	// nothing to resample ?
 	if (inwidth == outwidth && inheight == outheight)
 	{
-		Mem_Copy( out, in, inheight * inwidth * 4 );
+		memcpy(out, in, inwidth * inheight * 4);
 		return false;
 	}
 
@@ -423,7 +570,7 @@ void GL_GenerateMipmaps( void )
 	if( image_desc.flags & IMAGE_GEN_MIPS )
 	{
 		qglTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP_SGIS, GL_TRUE);
-		if(qglGetError()) MsgDev(D_WARN, "GL_GenerateMipmaps: can't create mip levels\n");
+		if(qglGetError()) MsgDev(D_WARN, "R_LoadTexImage: can't create mip levels\n");
 	}
 }
 
@@ -445,7 +592,7 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 	byte	alphas[8], *alpha, *alphamask; 
 	int	w, h, x, y, z, i, j, k, Select; 
 	uint	*scaled = (unsigned *)uploadbuffer;
-	bool	has_alpha = false;
+	bool	has_alpha = false, mipmap = (image_desc.flags & IMAGE_GEN_MIPS) ? true : false;
 	int 	samples;
 
 	if (!data) return false;
@@ -839,7 +986,12 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 	// upload base image or miplevel
 	samples = (has_alpha) ? gl_tex_alpha_format : gl_tex_solid_format;
 	R_ResampleTexture ((uint *)fout, w, h, scaled, scaled_width, scaled_height);
-	if( !level ) GL_GenerateMipmaps(); // generate mips if needed
+
+	// fake embossmaping
+	if (image_desc.type == it_wall && mipmap && r_emboss_bump->value)
+		R_FilterTexture (EMBOSS_FILTER, scaled, scaled_width, scaled_height, 1, 128, true, GL_MODULATE);
+
+	VID_ImageLightScale(scaled, scaled_width, scaled_height ); //check for round
 	qglTexImage2D ( target, level, samples, scaled_width, scaled_height, border, image_desc.glMask, image_desc.glType, (byte *)scaled );
 
 	if(qglGetError()) return false;
@@ -865,12 +1017,44 @@ bool CompressedTexImage2D( uint target, int level, int intformat, uint width, ui
 
 	if(use_gl_extension)
 	{
-		if( !level ) GL_GenerateMipmaps(); // generate mips if needed
 		qglCompressedTexImage2D(target, level, dxtformat, width, height, border, imageSize, data );
 		if(!qglGetError()) return true;
 		// otherwise try loading with software unpacker
 	}
 	return qrsCompressedTexImage2D(target, level, pixformat, width, height, border, imageSize, data );
+}
+
+/*
+===============
+R_LoadTexImage
+===============
+*/
+bool R_LoadTexImage( uint *data )
+{
+	int	samples, miplevel = 0;
+	int	scaled_width, scaled_height;
+	uint	*scaled = (uint *)uploadbuffer;
+	bool	mipmap = (image_desc.flags & IMAGE_GEN_MIPS) ? true : false;
+
+	scaled_width = image_desc.width;
+	scaled_height = image_desc.height;
+	R_RoundImageDimensions(&scaled_width, &scaled_height);
+        
+	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;
+
+	// fake embossmaping
+	if (image_desc.type == it_wall && mipmap && r_emboss_bump->value)
+		R_FilterTexture (EMBOSS_FILTER, data, scaled_width, scaled_height, 1, 128, true, GL_MODULATE);
+
+	R_ResampleTexture (data, image_desc.width, image_desc.height, scaled, scaled_width, scaled_height);
+	VID_ImageLightScale(scaled, scaled_width, scaled_height );
+
+	GL_GenerateMipmaps(); //SGIS_ext
+	qglTexImage2D (GL_TEXTURE_2D, 0, samples, scaled_width, scaled_height, 0, image_desc.glMask, image_desc.glType, scaled);
+	GL_TexFilter( mipmap );
+
+          if(qglGetError()) return false;
+	return true;
 }
 
 /*
@@ -884,6 +1068,7 @@ bool R_LoadImageDXT( byte *data )
 	int w = image_desc.width;
 	int h = image_desc.height;
 	int d = image_desc.numLayers;
+	bool mipmap;
 	
 	for( i = 0; i < image_desc.MipCount; i++, data += size )
 	{
@@ -894,127 +1079,9 @@ bool R_LoadImageDXT( byte *data )
 			break; // there were errors
 		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; //calc size of next mip
 	}
+	mipmap = (i > 1) ? true : false;
 
-	GL_TexFilter();
-	return true;
-}
-
-/*
-===============
-qrsDecompressedTexImage2D
-
-cpu version of loading non paletted rgba buffer
-===============
-*/
-bool qrsDecompressedTexImage2D( uint target, int level, int internalformat, uint width, uint height, int border, uint imageSize, const void* data )
-{
-	byte	*fin;
-	int	i, p, samples; 
-	int	scaled_width, scaled_height;
-	uint	*scaled = (uint *)uploadbuffer;
-	byte	*fout = imagebuffer;
-	bool	noalpha = true;
-
-	if (!data) return false;
-	fin = (byte *)data;
-	scaled_width = width;
-	scaled_height = height;
-
-	switch( PFDesc[internalformat].format )
-	{
-	case PF_INDEXED_24:
-		if (image_desc.flags & IMAGE_HAS_ALPHA)
-		{
-			// studio model indexed texture probably with alphachannel
-			for (i = 0; i < width * height; i++)
-			{
-				p = fin[i];
-				if (p == 255) noalpha = false;
-				fout[(i<<2)+0] = image_desc.pal[p*3+0];
-				fout[(i<<2)+1] = image_desc.pal[p*3+1];
-				fout[(i<<2)+2] = image_desc.pal[p*3+2];
-				fout[(i<<2)+3] = (p == 255) ? 0 : 255;
-			}
-		}
-		else
-		{
-			// studio model indexed texture without alphachannel
-			for (i = 0; i < width * height; i++)
-			{
-				p = fin[i];
-				fout[(i<<2)+0] = image_desc.pal[p*3+0];
-				fout[(i<<2)+1] = image_desc.pal[p*3+1];
-				fout[(i<<2)+2] = image_desc.pal[p*3+2];
-				fout[(i<<2)+3] = 255;
-			}
-		}
-		if( noalpha ) image_desc.flags &= ~IMAGE_HAS_ALPHA;
-		break;
-	case PF_INDEXED_32:
-		// sprite indexed frame with alphachannel
-		for (i = 0; i < width*height; i++ )
-		{
-			fout[(i<<2)+0] = image_desc.pal[fin[i]*4+0];
-			fout[(i<<2)+1] = image_desc.pal[fin[i]*4+1];
-			fout[(i<<2)+2] = image_desc.pal[fin[i]*4+2];
-			fout[(i<<2)+3] = image_desc.pal[fin[i]*4+3];
-		}
-		break;
-	case PF_RGB_24:
-	case PF_RGB_24_FLIP:
-		// 24-bit image, that will not expanded to RGBA in imagelib.c for some reasons
-		for (i = 0; i < width * height; i++ )
-		{
-			fout[(i<<2)+0] = fin[i+0];
-			fout[(i<<2)+1] = fin[i+1];
-			fout[(i<<2)+2] = fin[i+2];
-			fout[(i<<2)+3] = 255;
-		}
-		break;
-	case PF_ABGR_64:
-	case PF_RGBA_32:
-	case PF_RGBA_GN:
-		// nothing to process
-		fout = fin;
-		break;
-	default:
-		MsgDev(D_WARN, "qrsDecompressedTexImage2D: invalid compression type: %s\n", PFDesc[internalformat].name );
-		return false;
-	}
-
-	R_RoundImageDimensions( &scaled_width, &scaled_height );
-	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;
-	R_ResampleTexture((uint *)fout, width, height, scaled, scaled_width, scaled_height);
-	if( !level ) GL_GenerateMipmaps(); // generate mips if needed
-	qglTexImage2D( target, level, samples, scaled_width, scaled_height, border, image_desc.glMask, image_desc.glType, (byte *)scaled );
-
-	if(qglGetError()) return false;
-	return true;
-}
-
-/*
-===============
-R_LoadImageRGBA
-===============
-*/
-bool R_LoadImageRGBA( byte *data )
-{
-	int i, size = 0;
-	int w = image_desc.width;
-	int h = image_desc.height;
-	int d = image_desc.numLayers; // ABGR_64 may using some layers
-
-	for( i = 0; i < image_desc.MipCount; i++, data += size )
-	{
-		R_SetPixelFormat( w, h, d );
-		size = image_desc.SizeOfFile;
-
-		if(!qrsDecompressedTexImage2D(GL_TEXTURE_2D, i, image_desc.format, w, h, 0, size, data ))
-			break; // there were errors
-		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; // calc size of next mip
-	}
-
-	GL_TexFilter();
+	GL_TexFilter( mipmap );
 	return true;
 }
 
@@ -1024,8 +1091,6 @@ bool qrsDecompressImageATI( uint target, int level, int internalformat, uint wid
 	byte	*fin, *fin2, *fout = imagebuffer;
 	byte	Colours[8], XColours[8], YColours[8];
 	uint	bitmask, bitmask2, CurrOffset, Offset = 0;
-	int	scaled_width, scaled_height;
-	uint	*scaled = (uint *)uploadbuffer;
 
 	if (!data) return false;
 
@@ -1136,7 +1201,7 @@ bool qrsDecompressImageATI( uint target, int level, int internalformat, uint wid
 						XColours[6] = 0;
 						XColours[7] = 0xFF;
 					}
-					// decompress pixel data
+					//decompress pixel data
 					CurrOffset = Offset;
 
 					for (k = 0; k < 4; k += 2)
@@ -1176,7 +1241,7 @@ bool qrsDecompressImageATI( uint target, int level, int internalformat, uint wid
 						fin += 3;
 						fin2 += 3;
 					}
-					// skip bytes that were read via Temp2
+					//skip bytes that were read via Temp2
 					fin += 8;
 				}
 				Offset += image_desc.bps * 4;
@@ -1188,16 +1253,12 @@ bool qrsDecompressImageATI( uint target, int level, int internalformat, uint wid
 		return false;
 	}
 
-	scaled_width = w;
-	scaled_height = h;
-
-	R_RoundImageDimensions( &scaled_width, &scaled_height );
-	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;
-	R_ResampleTexture((uint *)fout, width, height, scaled, scaled_width, scaled_height);
-	if( !level ) GL_GenerateMipmaps(); // generate mips if needed
+	// ati images always have power of two sizes
+	VID_ImageLightScale((uint *)fout, width, height ); //check for round
 
 	// upload base image or miplevel
-	qglTexImage2D ( target, level, samples, w, h, border, image_desc.glMask, image_desc.glType, (byte *)scaled );
+	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;
+	qglTexImage2D ( target, level, samples, w, h, border, GL_RGBA, GL_UNSIGNED_BYTE, fout );
 
 	if(qglGetError()) return false;
 	return true;
@@ -1214,6 +1275,7 @@ bool R_LoadImageATI( byte *data )
 	int w = image_desc.width;
 	int h = image_desc.height;
 	int d = image_desc.numLayers;
+	bool mipmap;
 	
 	for( i = 0; i < image_desc.MipCount; i++, data += size )
 	{
@@ -1224,19 +1286,57 @@ bool R_LoadImageATI( byte *data )
 			break; // there were errors
 		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; //calc size of next mip
 	}
+	mipmap = (i > 1) ? true : false;
 
-	GL_TexFilter();
+	GL_TexFilter( mipmap );
 	return true;
 }
 
-bool qrsDecompressImageARGB( uint target, int level, int internalformat, uint width, uint height, int border, uint imageSize, const void* data )
+bool R_StoreImageFloat( uint target, int level, uint width, uint height, uint imageSize, const void* data )
+{
+	float	*dest = (float *)imagebuffer;
+	word	*src = (word *)data; 
+	int	samples;
+
+	if(!data) return false;
+
+	memcpy( dest, src, image_desc.SizeOfData );
+	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;
+	qglTexImage2D (target, level, samples, width, height, 0, GL_RGBA, GL_FLOAT, dest );
+
+	if(qglGetError()) return false;
+	return true;
+}
+
+bool R_DecompressImageFloat( byte *data )
+{
+	int i, size = 0;
+	int w = image_desc.width;
+	int h = image_desc.height;
+	int d = image_desc.numLayers;
+	bool mipmap;
+
+	for( i = 0; i < image_desc.MipCount; i++, data += size )
+	{
+		R_SetPixelFormat( w, h, d );
+		size = image_desc.SizeOfFile;
+		if(!R_StoreImageFloat(GL_TEXTURE_2D, i, w, h, size, data )) break; 
+		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; //calc size of next mip
+	}
+	mipmap = (i > 1) ? true : false;
+
+	GL_TexFilter( mipmap );
+	return true;
+}
+
+bool R_StoreImageARGB( uint target, int level, uint width, uint height, uint imageSize, const void* data )
 {
 	uint	ReadI = 0, TempBpp;
 	uint	RedL, RedR, GreenL, GreenR, BlueL, BlueR, AlphaL, AlphaR;
 	uint	r_bitmask, g_bitmask, b_bitmask, a_bitmask;
 	uint	*scaled = (unsigned *)uploadbuffer;
 	byte	*fin, *fout = imagebuffer;
-	bool	has_alpha = false;
+	bool	has_alpha = false, mipmap = (image_desc.flags & IMAGE_GEN_MIPS) ? true : false;
 	int	scaled_width, scaled_height;
 	int	i, w, h, samples;
 
@@ -1300,7 +1400,6 @@ bool qrsDecompressImageARGB( uint target, int level, int internalformat, uint wi
 			else if (AlphaL >= 4) fout[i+1] = fout[i+1] | (fout[i+3] >> 4);
 		}
 	}
-
 	scaled_width = w;
 	scaled_height = h;
 	R_RoundImageDimensions(&scaled_width, &scaled_height );
@@ -1308,38 +1407,16 @@ bool qrsDecompressImageARGB( uint target, int level, int internalformat, uint wi
 	// upload base image or miplevel
 	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;
 	R_ResampleTexture ((uint *)fout, w, h, scaled, scaled_width, scaled_height);
-	qglTexImage2D ( target, level, samples, scaled_width, scaled_height, border, image_desc.glMask, image_desc.glType, (byte *)scaled );
+
+	// fake embossmaping
+	if (image_desc.type == it_wall && mipmap && r_emboss_bump->value)
+		R_FilterTexture (EMBOSS_FILTER, scaled, scaled_width, scaled_height, 1, 128, true, GL_MODULATE);
+
+	VID_ImageLightScale(scaled, scaled_width, scaled_height ); //check for round
+	qglTexImage2D ( target, level, samples, scaled_width, scaled_height, 0, image_desc.glMask, image_desc.glType, scaled );
 
 	if(qglGetError()) return false;
 	return true;
-}
-
-bool DecompressImageARGB( uint target, int level, int intformat, uint width, uint height, int border, uint imageSize, const void* data )
-{
-	uint argbformat = 0;
-	uint datatype = 0;
-	uint pixformat = PFDesc[intformat].format;
-
-	switch( pixformat )
-	{
-	case PF_ARGB_32:
-	case PF_LUMINANCE:
-	case PF_LUMINANCE_16:
-	case PF_LUMINANCE_ALPHA:
-		argbformat = GL_RGB5_A1;
-		datatype = GL_UNSIGNED_SHORT_1_5_5_5_REV;
-		break;
-	default: use_gl_extension = false; break;
-	}
-
-	if(use_gl_extension)
-	{
-		if( !level ) GL_GenerateMipmaps(); // generate mips if needed
-		qglTexImage2D( target, level, argbformat, width, height, border, image_desc.glMask, datatype, data );
-		if(!qglGetError()) return true;
-		// otherwise try loading with software unpacker
-	}
-	return qrsDecompressImageARGB(target, level, pixformat, width, height, border, imageSize, data );
 }
 
 bool R_LoadImageARGB( byte *data )
@@ -1348,19 +1425,156 @@ bool R_LoadImageARGB( byte *data )
 	int w = image_desc.width;
 	int h = image_desc.height;
 	int d = image_desc.numLayers;
+	bool mipmap;
 	
 	for( i = 0; i < image_desc.MipCount; i++, data += size )
 	{
 		R_SetPixelFormat( w, h, d );
 		size = image_desc.SizeOfFile;
 
-		if(!DecompressImageARGB(GL_TEXTURE_2D, i, image_desc.format, w, h, 0, size, data ))
-			break; //there were errors
-		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; // calc size of next mip
+		if(use_gl_extension)
+		{
+			qglTexImage2D( GL_TEXTURE_2D, i, GL_RGB5_A1, w, h, 0, 0x80E1, GL_UNSIGNED_SHORT_1_5_5_5_REV, data );
+			if(qglGetError()) break; // there were errors
+		}
+		else if(!R_StoreImageARGB(GL_TEXTURE_2D, i, w, h, size, data )) break; 
+		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; //calc size of next mip
+	}
+	mipmap = (i > 1) ? true : false;
+
+	GL_TexFilter( mipmap );
+	return true;
+}
+
+/*
+===============
+R_LoadImageABGR
+===============
+*/
+bool R_LoadImageABGR( byte *data )
+{
+	byte	*trans = imagebuffer;
+	int	i, s = image_desc.width * image_desc.height;
+
+	if (s&3)
+	{
+		MsgDev(D_ERROR, "R_LoadImageABGR: s&3\n");
+		return false;
 	}
 
-	GL_TexFilter();
-	return true;
+	// swap alpha and red
+	for (i = 0; i < s; i++ )
+	{
+		trans[(i<<2)+0] = data[(i<<2)+3];
+		trans[(i<<2)+1] = data[(i<<2)+2];
+		trans[(i<<2)+2] = data[(i<<2)+1];
+		trans[(i<<2)+3] = data[(i<<2)+0];
+	}
+	return R_LoadTexImage((uint*)trans );
+}
+
+/*
+===============
+R_LoadImageRGBA
+===============
+*/
+bool R_LoadImageRGBA (byte *data )
+{
+	byte	*trans = imagebuffer;
+	int	i, s = image_desc.width * image_desc.height;
+
+	// nothing to process
+	if(!image_desc.pal) return R_LoadTexImage((uint*)data );
+
+	if (s&3)
+	{
+		MsgDev(D_ERROR, "R_LoadImageRGBA: s&3\n");
+		return false;
+	}
+	for (i = 0; i < s; i++ )
+	{
+		trans[(i<<2)+0] = image_desc.pal[data[i]*4+0];
+		trans[(i<<2)+1] = image_desc.pal[data[i]*4+1];
+		trans[(i<<2)+2] = image_desc.pal[data[i]*4+2];
+		trans[(i<<2)+3] = image_desc.pal[data[i]*4+3];
+	}
+	return R_LoadTexImage((uint*)trans );
+}
+
+/*
+===============
+R_LoadImageRGB
+===============
+*/
+bool R_LoadImageRGB(byte *data )
+{
+	byte	*trans = imagebuffer;
+	int	i, s = image_desc.width * image_desc.height;
+	bool	noalpha;
+	int	p;
+
+	if (s&3) 
+	{
+		MsgDev(D_ERROR, "R_LoadImageRGB: s&3\n");
+		return false;
+	}
+
+	// if there are no transparent pixels, make it a 3 component
+	// texture even if it was specified as otherwise
+	if (image_desc.flags & IMAGE_HAS_ALPHA)
+	{
+		noalpha = true;
+		if(image_desc.pal)
+		{
+			for (i=0 ; i<s ; i++)
+			{
+				p = data[i];
+				if (p == 255) noalpha = false;
+				trans[(i<<2)+0] = image_desc.pal[p*3+0];
+				trans[(i<<2)+1] = image_desc.pal[p*3+1];
+				trans[(i<<2)+2] = image_desc.pal[p*3+2];
+				trans[(i<<2)+3] = (p==255) ? 0 : 255;
+			}
+			if (noalpha) image_desc.flags &= ~IMAGE_HAS_ALPHA;
+		}
+		else
+		{
+			for (i = 0; i < s; i++)
+			{
+				p = data[i];
+				if (p == 0) noalpha = false;
+				trans[(i<<2)+0] = data[i+0];
+				trans[(i<<2)+1] = data[i+1];
+				trans[(i<<2)+2] = data[i+2];
+				trans[(i<<2)+3] = (p==0) ? 0 : 255;
+			}
+			if (noalpha) image_desc.flags &= ~IMAGE_HAS_ALPHA;
+		}
+	}
+	else
+	{
+		if(image_desc.pal)
+		{
+			for (i = 0; i < s; i+=1)
+			{
+				trans[(i<<2)+0] = image_desc.pal[data[i]*3+0];
+				trans[(i<<2)+1] = image_desc.pal[data[i]*3+1];
+				trans[(i<<2)+2] = image_desc.pal[data[i]*3+2];
+				trans[(i<<2)+3] = 255;
+			}
+		}
+		else
+		{
+			for (i = 0; i < s; i+=1)
+			{
+				trans[(i<<2)+0] = data[i+0];
+				trans[(i<<2)+1] = data[i+1];
+				trans[(i<<2)+2] = data[i+2];
+				trans[(i<<2)+3] = 255;
+			}
+		}
+	}
+	return R_LoadTexImage((uint*)trans );
 }
 
 /*
@@ -1403,7 +1617,7 @@ R_LoadImage
 This is also used as an entry point for the generated r_notexture
 ================
 */
-image_t *R_LoadImage( char *name, rgbdata_t *pic, imagetype_t type )
+image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type )
 {
 	image_t	*image;
           bool	iResult = true;
@@ -1413,7 +1627,7 @@ image_t *R_LoadImage( char *name, rgbdata_t *pic, imagetype_t type )
 	int	skyorder_ms[6] = { 4, 5, 1, 0, 2, 3  }; // Microsoft DDS ordering (reverse)
 	byte	*buf;
 	
-	// nothing to load
+	//nothing to load
 	if (!pic || !pic->buffer) return r_notexture;
 
 	// find a free image_t
@@ -1441,8 +1655,8 @@ image_t *R_LoadImage( char *name, rgbdata_t *pic, imagetype_t type )
 	{
 		numsides = 6;
 		if(pic->flags & IMAGE_CUBEMAP_FLIP)
-			Mem_Copy(image->texorder, skyorder_ms, sizeof(int) * 6 );
-		else Mem_Copy(image->texorder, skyorder_q2, sizeof(int) * 6 );
+			memcpy(image->texorder, skyorder_ms, sizeof(int) * 6 );
+		else memcpy(image->texorder, skyorder_q2, sizeof(int) * 6 );
 	}
 	else memset(image->texorder, 0, sizeof(int) * 6 );
 
@@ -1463,16 +1677,17 @@ image_t *R_LoadImage( char *name, rgbdata_t *pic, imagetype_t type )
 		R_SetPixelFormat( image_desc.width, image_desc.height, image_desc.numLayers );
 		offset = image_desc.SizeOfFile;// move pointer
 
-		MsgDev(D_LOAD, "%s [%s] \n", name, PFDesc[image_desc.format].name );
+		if(pic->numMips > 1) MsgDev(D_INFO, "^3Loading: ^7%s [%s] #%d mips \n", name, PFDesc[image_desc.format].name, pic->numMips );		
+		else MsgDev(D_LOAD, "%s [%s] \n", name, PFDesc[image_desc.format].name );
 
 		switch(pic->type)
 		{
-		case PF_RGB_24:
-		case PF_ABGR_64:
-		case PF_RGBA_32:
-		case PF_RGBA_GN:
-		case PF_INDEXED_24:
+		case PF_INDEXED_24:	iResult = R_LoadImageRGB( buf ); break;
 		case PF_INDEXED_32: iResult = R_LoadImageRGBA( buf ); break;
+		case PF_RGB_24: iResult = R_LoadImageRGB( buf ); break;
+		case PF_ABGR_64:
+		case PF_RGBA_32: 
+		case PF_RGBA_GN: iResult = R_LoadTexImage((uint*)buf ); break;
 		case PF_LUMINANCE:
 		case PF_LUMINANCE_16:
 		case PF_LUMINANCE_ALPHA:

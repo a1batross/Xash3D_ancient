@@ -255,6 +255,10 @@ typedef struct model_s
 
 	byte		*lightdata;
 
+	// stringtable system
+	char		*stringdata;
+	int		*stringtable;
+
 	image_t		*skins[512];
           
           studiohdr_t	*phdr;

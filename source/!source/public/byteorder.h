@@ -152,4 +152,22 @@ _inline double BuffLittleDouble (const byte *buffer)
 	| (buffer[3] << 24) | (buffer[2] << 16) | (buffer[1] << 8) | buffer[0];
 }
 
+/*
+=============
+SwapBlock
+
+generic lump swaping
+=============
+*/
+_inline void SwapBlock( int *block, int sizeOfBlock )
+{
+	int	i;
+
+	sizeOfBlock >>= 2;
+
+	for( i = 0; i < sizeOfBlock; i++ )
+		block[i] = LittleLong( block[i] );
+}
+
+
 #endif//BYTEORDER_H

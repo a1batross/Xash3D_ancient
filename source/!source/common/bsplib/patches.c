@@ -31,20 +31,20 @@ void CalcTextureReflectivity (void)
 	for (i = 0; i < numtexinfo; i++)
 	{
 		// see if an earlier texinfo allready got the value
-		for (j=0 ; j<i ; j++)
+		for (j = 0; j < i; j++)
 		{
-			if (!strcmp (texinfo[i].texture, texinfo[j].texture))
+			if(!com.strcmp(GetStringFromTable(texinfo[i].texid), GetStringFromTable(texinfo[j].texid)))
 			{
 				VectorCopy (texture_reflectivity[j], texture_reflectivity[i]);
 				break;
 			}
 		}
-		if (j != i) continue;
+		if(j != i) continue;
 
 		color[0] = color[1] = color[2] = 0;
 
 		// loading tga, jpg or png texture
-		tex = FS_LoadImage(texinfo[i].texture, NULL, 0);
+		tex = FS_LoadImage(GetStringFromTable( texinfo[i].texid ), NULL, 0);
 		if(tex)		
 		{
 			texels = tex->width * tex->height;
@@ -69,14 +69,14 @@ void CalcTextureReflectivity (void)
 				}
 				break;			
 			default:
-				MsgWarn("Can't calculate reflectivity for %s\n", texinfo[i].texture);
+				MsgWarn("Can't calculate reflectivity for %s\n", GetStringFromTable( texinfo[i].texid ));
 				break;
 			}
 		}
-		else MsgWarn("Couldn't load %s\n", texinfo[i].texture);
+		else MsgWarn("Couldn't load %s\n", GetStringFromTable( texinfo[i].texid ));
 
 		//try also get direct values from shader
-		if(si = FindShader( texinfo[i].texture ))
+		if(si = FindShader( GetStringFromTable(texinfo[i].texid)))
 		{						
 			if(!VectorIsNull(si->color))
 			{

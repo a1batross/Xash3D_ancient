@@ -37,7 +37,7 @@ extern physic_exp_t *pe;
 // bsplib export functions
 void WradMain ( bool option );
 void WvisMain ( bool option );
-void WbspMain ( bool option, bool option2 );
+void WbspMain ( bool option );
 
 typedef struct plane_s
 {
@@ -351,32 +351,33 @@ extern	int numbrushes;
 extern	dbrush_t	dbrushes[MAX_MAP_BRUSHES];
 extern	int numbrushsides;
 extern	dbrushside_t dbrushsides[MAX_MAP_BRUSHSIDES];
+extern	int dcollisiondatasize;
 extern	byte dcollision[MAX_MAP_COLLISION];
-int	dcollisiondatasize;
-
 extern	char outbase[32];
 
-void 	LoadMapFile ( void );
+void	LoadMapFile ( void );
 int	FindFloatPlane (vec3_t normal, vec_t dist);
 bool	LoadBSPFile ( void );
 void	LoadBSPFileTexinfo (char *filename);	// just for qdata
 void	WriteBSPFile ( void );
 void	DecompressVis (byte *in, byte *decompressed);
 int	CompressVis (byte *vis, byte *dest);
-void	AddLump (int lumpnum, const void *data, int len);
+void AddLump (int lumpnum, const void *data, int len);
+const char *GetStringFromTable( int index );
+int GetIndexFromTable( const char *string );
 
 //=============================================================================
 // textures.c
 
 typedef struct
 {
-	char	name[128];
+	char	texname[128];
+	char	animname[128];
 	int	size[2];
 	int	flags;
 	int	value;
 	int	contents;
 	int	numframes;
-	char	animname[128];
 } textureref_t;
 
 extern	textureref_t	textureref[MAX_MAP_TEXTURES];
@@ -465,7 +466,7 @@ void MakeTreePortals (tree_t *tree);
 // shaders.c
 
 int LoadShaderInfo( void );
-shader_t *FindShader( char *texture );
+shader_t *FindShader( const char *texture );
 
 //=============================================================================
 // leakfile.c

@@ -63,6 +63,49 @@ dareaportal_t	dareaportals[MAX_MAP_AREAPORTALS];
 byte	dcollision[MAX_MAP_COLLISION];
 int	dcollisiondatasize = 256;
 
+// string table system
+char	dstringdata[MAX_MAP_STRINGDATA];
+int	stringdatasize;
+int	dstringtable[MAX_MAP_NUMSTRINGS];
+int	numstrings;
+
+/*
+===============
+String table system
+
+===============
+*/
+const char *GetStringFromTable( int index )
+{
+	return &dstringdata[dstringtable[index]];
+}
+
+int GetIndexFromTable( const char *string )
+{
+	int i, len;
+
+	for( i = 0; i < numstrings; i++ )
+	{
+		if(!com.stricmp( string, &dstringdata[dstringtable[i]]))
+			return i; // found index
+	}
+
+	// register new string
+	len = com.strlen( string );
+	if( len + stringdatasize + 1 > MAX_MAP_STRINGDATA )
+		Sys_Error( "GetIndexFromTable: string data lump limit exeeded\n" );
+
+	if( numstrings + 1 > MAX_MAP_NUMSTRINGS )
+		Sys_Error( "GetIndexFromTable: string table lump limit exeeded\n" );
+
+	com.strcpy( &dstringdata[stringdatasize], string );
+	dstringtable[numstrings] = stringdatasize;
+	stringdatasize += len + 1; // null terminator
+	numstrings++;
+
+	return numstrings - 1; // current index
+}
+
 /*
 ===============
 CompressVis
@@ -185,7 +228,7 @@ void SwapBSPFile (bool todisk)
 			texinfo[i].vecs[0][j] = LittleFloat (texinfo[i].vecs[0][j]);
 		texinfo[i].flags = LittleLong (texinfo[i].flags);
 		texinfo[i].value = LittleLong (texinfo[i].value);
-		texinfo[i].nexttexinfo = LittleLong (texinfo[i].nexttexinfo);
+		texinfo[i].animid = LittleLong (texinfo[i].animid);
 	}
 	
 	// faces
@@ -350,6 +393,8 @@ bool LoadBSPFile( void )
 	numbrushes = CopyLump (LUMP_BRUSHES, dbrushes, sizeof(dbrush_t));
 	numbrushsides = CopyLump (LUMP_BRUSHSIDES, dbrushsides, sizeof(dbrushside_t));
 	dcollisiondatasize = CopyLump(LUMP_COLLISION, dcollision, 1);
+	stringdatasize = CopyLump( LUMP_STRINGDATA, dstringdata, sizeof(dstringdata[0]));
+	numstrings = CopyLump( LUMP_STRINGTABLE, dstringtable, sizeof(dstringtable[0]));
 	numareas = CopyLump (LUMP_AREAS, dareas, sizeof(darea_t));
 	numareaportals = CopyLump (LUMP_AREAPORTALS, dareaportals, sizeof(dareaportal_t));
 
@@ -459,6 +504,8 @@ void WriteBSPFile( void )
 	AddLump (LUMP_BRUSHES, dbrushes, numbrushes*sizeof(dbrush_t));
 	AddLump (LUMP_BRUSHSIDES, dbrushsides, numbrushsides*sizeof(dbrushside_t));
 	AddLump (LUMP_COLLISION, dcollision, dcollisiondatasize );
+	AddLump (LUMP_STRINGDATA, dstringdata, stringdatasize * sizeof(dstringdata[0]));
+	AddLump (LUMP_STRINGTABLE, dstringtable, numstrings * sizeof(dstringtable[0]));
 	AddLump (LUMP_AREAS, dareas, numareas*sizeof(darea_t));
 	AddLump (LUMP_AREAPORTALS, dareaportals, numareaportals*sizeof(dareaportal_t));
 

@@ -90,8 +90,10 @@ extern uint *d_currentpal;
 void Image_GetQ1Palette( void );
 void Image_GetQ2Palette( void );
 void Image_GetPalettePCX( byte *pal );
-void Image_Copy8bitRGBA(const byte *in, byte *out, int pixels);
+bool Image_Copy8bitRGBA(const byte *in, byte *out, int pixels);
 void Image_RoundDimensions(int *scaled_width, int *scaled_height);
 byte *Image_Resample(uint *in, int inwidth, int inheight, int outwidth, int outheight, int in_type);
+bool FS_AddMipmapToPack( const byte *in, int width, int height );
+bool FS_AddImageToPack( const char *name );
 
 #endif//IMAGE_H
