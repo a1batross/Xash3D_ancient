@@ -85,6 +85,17 @@ static byte palette_q2[768] =
 159,91,83	
 };
 
+extern int image_width, image_height;
+extern byte image_num_layers;	// num layers in
+extern byte image_num_mips;	// build mipmaps
+extern uint image_type;	// main type switcher
+extern uint image_flags;	// additional image flags
+extern byte image_bits_count;	// bits per RGBA
+extern size_t image_size;	// image rgba size
+extern byte *image_palette;	// palette pointer
+extern byte *image_rgba;	// image pointer (see image_type for details)
+extern uint image_ptr;	// common moveable pointer
+
 // image lib utilites
 extern uint *d_currentpal;
 void Image_GetQ1Palette( void );

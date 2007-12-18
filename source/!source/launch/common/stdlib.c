@@ -618,7 +618,6 @@ char *com_pretifymem( float value, int digitsafterdecimal )
 	return out;
 }
 
-
 /*
 ============
 va

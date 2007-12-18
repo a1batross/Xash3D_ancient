@@ -611,5 +611,6 @@ void Cmd_Init( void )
 	Cmd_AddCommand ("wait", Cmd_Wait_f, "make script execution wait for some rendered frames" );
 	Cmd_AddCommand ("cmdlist", Cmd_List_f, "display all console commands beginning with the specified prefix" );
 	Cmd_AddCommand ("stuffcmds", Cmd_StuffCmds_f, "execute commandline parameters (must be present in init.rc script)" );
-}
 
+	Memory_Init_Commands(); // memlib stats
+}

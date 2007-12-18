@@ -112,6 +112,7 @@ void RunPlatform ( void )
 		strcpy(searchmask[2], "*.wal" );	// quake2 textures
 		strcpy(searchmask[3], "*.lmp" );	// quake1 menu images
 		strcpy(searchmask[4], "*.mip" );	// quake1 textures
+		strcpy(searchmask[5], ".wad3" );	// half-life textures
 		Msg("Processing images ...\n\n");
 		break;		
 	case BSPLIB: 
@@ -143,12 +144,14 @@ void RunPlatform ( void )
 	zonepool = Mem_AllocPool("compiler");
 	if(!FS_GetParmFromCmdLine("-file", filename ))
 	{
-		//search by mask		
+		// search by mask		
 		for( i = 0; i < 8; i++)
 		{
 			// skip blank mask
 			if(!strlen(searchmask[i])) continue;
-			search = FS_Search( searchmask[i], true );
+			if(com.stricmp(searchmask[i], ".wad3" ))
+				search = FS_Search( searchmask[i], true );
+			else search = FS_SearchLump( "*", true ); // hl-textures
 			if(!search) continue; // try next mask
 
 			for( j = 0; j < search->numfilenames; j++ )

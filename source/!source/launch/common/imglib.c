@@ -28,6 +28,10 @@ byte *image_cubemap;	// cubemap pack
 uint cubemap_image_type;	// shared image type
 char *suf[6] = {"ft", "bk", "rt", "lf", "up", "dn"};
 
+#define LUMP_NORMAL		0
+#define LUMP_TRANSPARENT	1
+#define LUMP_DECAL		2
+
 uint d_8toD1table[256];
 uint d_8toQ1table[256];
 uint d_8toQ2table[256];
@@ -36,10 +40,20 @@ uint *d_currentpal;
 bool d1palette_init = false;
 bool q1palette_init = false;
 bool q2palette_init = false;
+int d_rendermode = LUMP_NORMAL;
 
 //=======================================================================
 //			IMGLIB COMMON TOOLS
 //=======================================================================
+void Image_Init( void )
+{
+	Sys.imagepool = Mem_AllocPool( "ImageLib Pool" );
+}
+
+void Image_Shutdown( void )
+{
+	Mem_FreePool( &Sys.imagepool );
+}
 
 bool Image_ValidSize( char *name )
 {
@@ -55,20 +69,47 @@ void Image_GetPalette( byte *pal, uint *d_table )
 {
 	int	i;
 	byte	rgba[4];
-
+	
 	// setup palette
-	for (i = 0; i < 256; i++)
+	switch( d_rendermode )
 	{
-		rgba[0] = 0xFF;
-		rgba[3] = pal[i*3+0];
-		rgba[2] = pal[i*3+1];
-		rgba[1] = pal[i*3+2];
-		d_table[i] = BuffBigLong( rgba );
+	case LUMP_DECAL:
+		for(i = 0; i < 256; i++)
+		{
+			rgba[3] = pal[765];
+			rgba[2] = pal[766];
+			rgba[1] = pal[767];
+			rgba[0] = i;
+			d_table[i] = BuffBigLong( rgba );
+		}
+		break;
+	case LUMP_TRANSPARENT:
+		for (i = 0; i < 256; i++)
+		{
+			rgba[3] = pal[i*3+0];
+			rgba[2] = pal[i*3+1];
+			rgba[1] = pal[i*3+2];
+			rgba[0] = pal[i] == 255 ? pal[i] : 0xFF;
+			d_table[i] = BuffBigLong( rgba );
+		}
+		break;
+	case LUMP_NORMAL:
+		for (i = 0; i < 256; i++)
+		{
+			rgba[3] = pal[i*3+0];
+			rgba[2] = pal[i*3+1];
+			rgba[1] = pal[i*3+2];
+			rgba[0] = 0xFF;
+			d_table[i] = BuffBigLong( rgba );
+		}
+		break;
 	}
 }
 
 void Image_GetD1Palette( void )
 {
+	d_rendermode = LUMP_NORMAL;
+
 	if(!d1palette_init)
 	{
 		Image_GetPalette( palette_d1, d_8toD1table );
@@ -80,6 +121,8 @@ void Image_GetD1Palette( void )
 
 void Image_GetQ1Palette( void )
 {
+	d_rendermode = LUMP_NORMAL;
+
 	if(!q1palette_init)
 	{
 		Image_GetPalette( palette_q1, d_8toQ1table );
@@ -91,6 +134,8 @@ void Image_GetQ1Palette( void )
 
 void Image_GetQ2Palette( void )
 {
+	d_rendermode = LUMP_NORMAL;
+
 	if(!q2palette_init)
 	{
 		Image_GetPalette( palette_q2, d_8toQ2table );
@@ -102,6 +147,8 @@ void Image_GetQ2Palette( void )
 
 void Image_GetPalettePCX( byte *pal )
 {
+	d_rendermode = LUMP_NORMAL;
+
 	if(pal)
 	{
 		Image_GetPalette( pal, d_8to24table );
@@ -109,6 +156,19 @@ void Image_GetPalettePCX( byte *pal )
 		d_currentpal = d_8to24table;
 	}
 	else Image_GetQ2Palette();          
+}
+
+void Image_GetPaletteWAD( byte *pal, int rendermode )
+{
+	d_rendermode = rendermode;
+
+	if(pal)
+	{
+		Image_GetPalette( pal, d_8to24table );
+		d_8to24table[255] &= LittleLong(0xffffff);
+		d_currentpal = d_8to24table;
+	}
+	else Image_GetQ1Palette();          
 }
 
 /*
@@ -242,7 +302,7 @@ bool Image_Processing( const char *name, rgbdata_t **pix )
 	byte		*out;
 	char		width[4], height[4];
 
-	//check for buffers
+	// check for buffers
 	if(!image || !image->buffer) return false;
 
 	w = image->width;
@@ -276,8 +336,8 @@ LoadWAL
 bool LoadWAL( char *name, char *buffer, int filesize )
 {
 	wal_t 	wal;
-	int	pixels, ofs[4], mipsize, nummips = 1;// FIXME, adding four mips ?
-	int	w, h, i, flags, value, contents; // wal additional parms
+	int	pixels, ofs[4], mipsize;// FIXME, adding four mips ?
+	int	i, flags, value, contents; // wal additional parms
 
 	if (filesize < (int)sizeof(wal))
 	{
@@ -289,16 +349,16 @@ bool LoadWAL( char *name, char *buffer, int filesize )
 	flags = LittleLong(wal.flags);
 	value = LittleLong(wal.value);
 	contents = LittleLong(wal.contents);
-	w = image_width = LittleLong(wal.width);
-	h = image_height = LittleLong(wal.height);
+	image_width = LittleLong(wal.width);
+	image_height = LittleLong(wal.height);
 	for(i = 0; i < 4; i++) ofs[i] = LittleLong(wal.offsets[i]);
 	if(!Image_ValidSize( name )) return false;
 
-	pixels = w * h;
+	pixels = image_width * image_height;
 	mipsize = (int)sizeof(wal) + ofs[0] + pixels;
 	if( pixels > 256 && filesize < mipsize )
 	{
-		// wal's width dimensions < 32 have invalid sizes.
+		// note: wal's with dimensions < 32 have invalid sizes.
 		MsgWarn("LoadWAL: file (%s) have invalid size\n", name );
 		return false;
 	}
@@ -307,13 +367,7 @@ bool LoadWAL( char *name, char *buffer, int filesize )
 	image_type = PF_RGBA_32;
 
 	Image_GetQ2Palette(); // hardcoded
-	for(i = 0; i < nummips; i++ )
-	{
-		if(!FS_AddMipmapToPack( buffer + ofs[i], w, h ))
-			break; // there were errors
-		w = (w+1)>>1, h = (h+1)>>1; // calc size of next mip
-	}
-	return true;
+	return FS_AddMipmapToPack( buffer + ofs[0], image_width, image_height );
 }
 
 /*
@@ -377,8 +431,7 @@ LoadMIP
 bool LoadMIP( char *name, char *buffer, int filesize )
 {
 	mip_t	mip;
-	int	i, w, h;
-	int	ofs[4], mipsize, nummips = 1;// FIXME, adding four mips ?
+	int	i, ofs[4], mipsize;
 
 	if (filesize < (int)sizeof(mip))
 	{
@@ -387,9 +440,9 @@ bool LoadMIP( char *name, char *buffer, int filesize )
 	}
 
 	Mem_Copy(&mip, buffer, sizeof(mip));
-	w = image_width = LittleLong(mip.width);
-	h = image_height = LittleLong(mip.height);
-	for(i = 0; i < nummips; i++) ofs[i] = LittleLong(mip.offsets[i]);
+	image_width = LittleLong(mip.width);
+	image_height = LittleLong(mip.height);
+	for(i = 0; i < 4; i++) ofs[i] = LittleLong(mip.offsets[i]);
 
 	if(!Image_ValidSize( name )) return false;         
 	mipsize = image_width * image_height;
@@ -399,18 +452,65 @@ bool LoadMIP( char *name, char *buffer, int filesize )
 		MsgWarn("LoadMIP: file (%s) have invalid size\n", name );
 		return false;
 	}
-
 	image_num_layers = 1;
 	image_type = PF_RGBA_32;
 
 	Image_GetQ1Palette();// hardcoded
-	for(i = 0; i < nummips; i++ )
+	return FS_AddMipmapToPack( buffer + ofs[0], image_width, image_height );
+}
+
+/*
+============
+LoadWAD
+============
+*/
+bool LoadWAD( char *name, char *buffer, int filesize )
+{
+	mip_t	mip;
+	byte	*pal;
+	int	ofs[4], i, rendermode;
+
+	if (filesize < (int)sizeof(mip))
 	{
-		if(!FS_AddMipmapToPack( buffer + ofs[i], w, h ))
-			break; // there were errors
-		w = (w+1)>>1, h = (h+1)>>1; // calc size of next mip
+		MsgWarn("LoadWAD_3: file (%s) have invalid size\n", name );
+		return false;
 	}
-	return true;
+
+	Mem_Copy(&mip, buffer, sizeof(mip));
+	image_width = LittleLong(mip.width);
+	image_height = LittleLong(mip.height);
+	for(i = 0; i < 4; i++) ofs[i] = LittleLong(mip.offsets[i]);
+	if(!Image_ValidSize( name )) return false;
+
+	pal = buffer + mip.offsets[0] + (((image_width * image_height) * 85)>>6);
+	pal += 2;	// get palette
+
+	image_num_layers = 1;
+	image_type = PF_RGBA_32; // always exctracted to 32-bit buffer
+
+	// detect rendermode
+	if( name[0] == '{' )
+	{
+		if(pal[255*3+0] == 0 && pal[255*3+1] == 0 && pal[255*3+2] == 255 && pal[255*3+3] == 0)
+		{
+			Msg("trans ");
+			rendermode = LUMP_TRANSPARENT;
+		}
+		else 
+		{
+			Msg("decal ");
+			rendermode = LUMP_DECAL; 
+		}
+		image_flags |= IMAGE_HAS_ALPHA;
+	}
+	else
+	{
+		Msg("normal ");
+		rendermode = LUMP_NORMAL;
+	}
+
+	Image_GetPaletteWAD( pal, rendermode );
+	return FS_AddMipmapToPack( buffer + mip.offsets[0], image_width, image_height );
 }
 
 /*
@@ -1630,6 +1730,7 @@ loadformat_t load_formats[] =
 	{"textures/%s%s.%s", "dds", LoadDDS},
 	{"textures/%s%s.%s", "tga", LoadTGA},
 	{"textures/%s%s.%s", "jpg", LoadJPG},
+	{"textures/%s%s.%s", "wad3",LoadWAD},
 	{"textures/%s%s.%s", "pcx", LoadPCX},
 	{"textures/%s%s.%s", "wal", LoadWAL},
 	{"textures/%s%s.%s", "lmp", LoadLMP},
@@ -1637,6 +1738,7 @@ loadformat_t load_formats[] =
 	{"%s%s.%s", "dds", LoadDDS},
 	{"%s%s.%s", "tga", LoadTGA},
 	{"%s%s.%s", "jpg", LoadJPG},
+	{"%s%s.%s", "wad3",LoadWAD},
 	{"%s%s.%s", "pcx", LoadPCX},
 	{"%s%s.%s", "wal", LoadWAL},
 	{"%s%s.%s", "lmp", LoadLMP},
@@ -1732,7 +1834,6 @@ bool FS_AddMipmapToPack( const byte *in, int width, int height )
 
 	return true;
 }
-
 
 /*
 ================

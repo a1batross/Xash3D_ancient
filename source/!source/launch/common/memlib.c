@@ -54,7 +54,26 @@ typedef struct mempool_s
 	uint		sentinel2;	// should always be MEMHEADER_SENTINEL1
 } mempool_t;
 
-mempool_t *poolchain = NULL;
+
+typedef struct memarray_s
+{
+	byte	*data;
+	byte	*allocflags;
+	size_t	numflaggedrecords;
+} memcluster_t;
+
+typedef struct memarraypool_s
+{
+	byte		*mempool;
+	size_t		recordsize;
+	size_t		count;
+	size_t		numarrays;
+	size_t		maxarrays;
+	memcluster_t	*arrays;
+
+} memarray_t;
+
+mempool_t *poolchain = NULL; // critical stuff
 
 void _mem_copy(void *dest, const void *src, size_t size, const char *filename, int fileline)
 {
@@ -343,6 +362,166 @@ void _mem_emptypool(byte *poolptr, const char *filename, int fileline)
 	while (pool->chain) _mem_freeblock(pool->chain, filename, fileline);
 }
 
+bool _mem_allocated( mempool_t *pool, void *data )
+{
+	memheader_t *header, *target;
+
+	if( pool )
+	{
+		// search only one pool
+		target = (memheader_t *)((byte *)data - sizeof(memheader_t));
+		for( header = pool->chain; header; header = header->next )
+			if( header == target ) return true;
+	}
+	else
+	{
+		// search all pools
+		for (pool = poolchain; pool; pool = pool->next)
+			if(_mem_allocated( pool, data ))
+				return true;
+	}
+	return false;
+}
+
+/*
+========================
+Check pointer for memory
+allocated by memlib.c
+========================
+*/
+bool _is_allocated( byte *poolptr, void *data )
+{
+	mempool_t	*pool = NULL;
+	if( poolptr ) pool = (mempool_t *)((byte *)poolptr);
+
+	return _mem_allocated( pool, data );
+}
+
+byte *_mem_alloc_array( byte *poolptr, size_t recordsize, int count, const char *filename, int fileline )
+{
+	memarray_t *l = _mem_alloc( poolptr, sizeof(memarray_t), filename, fileline);
+
+	l->mempool = poolptr;
+	l->recordsize = recordsize;
+	l->count = count;
+
+	return (byte *)((memarray_t *)l);
+}
+
+void _mem_free_array( byte *arrayptr, const char *filename, int fileline )
+{
+	memarray_t *l = (memarray_t *)((byte *)arrayptr);
+	size_t i;
+
+	if(l == NULL) Sys_Error("Mem_RemoveArray: array == NULL (called at %s:%i)", filename, fileline );
+
+	if (l->maxarrays)
+	{
+		for (i = 0; i != l->numarrays; i++)
+			_mem_free(l->arrays[i].data, filename, fileline );
+		_mem_free(l->arrays, filename, fileline );
+	}
+	_mem_free( l, filename, fileline); // himself
+}
+
+void *_mem_alloc_array_element( byte *arrayptr, const char *filename, int fileline )
+{
+	memarray_t	*l = (memarray_t *)((byte *)arrayptr);
+	size_t		i, j;
+
+	if(l == NULL) Sys_Error("Mem_AllocElement: array == NULL (called at %s:%i)", filename, fileline );
+
+	for(i = 0; ; i++)
+	{
+		if(i == l->numarrays)
+		{
+			if (l->numarrays == l->maxarrays)
+			{
+				memcluster_t *oldarrays = l->arrays;
+				l->maxarrays = max(l->maxarrays * 2, 128);
+				l->arrays = _mem_alloc( l->mempool, l->maxarrays * sizeof(*l->arrays), filename, fileline);
+				if (oldarrays)
+				{
+					_mem_copy(l->arrays, oldarrays, l->numarrays * sizeof(*l->arrays), filename, fileline);
+					_mem_free(oldarrays, filename, fileline);
+				}
+			}
+			l->arrays[i].numflaggedrecords = 0;
+			l->arrays[i].data = _mem_alloc(l->mempool, (l->recordsize + 1) * l->count, filename, fileline);
+			l->arrays[i].allocflags = l->arrays[i].data + l->recordsize * l->count;
+			l->numarrays++;
+		}
+		if(l->arrays[i].numflaggedrecords < l->count)
+		{
+			for (j = 0; j < l->count; j++)
+			{
+				if(!l->arrays[i].allocflags[j])
+				{
+					l->arrays[i].allocflags[j] = true;
+					l->arrays[i].numflaggedrecords++;
+					return (void *)(l->arrays[i].data + l->recordsize * j);
+				}
+			}
+		}
+	}
+}
+
+void _mem_free_array_element( byte *arrayptr, void *element, const char *filename, int fileline )
+{
+	size_t	i, j;
+	byte	*p = (byte *)element;
+	memarray_t *l = (memarray_t *)((byte *)arrayptr);
+
+	if(l == NULL) Sys_Error("Mem_FreeElement: array == NULL (called at %s:%i)", filename, fileline );
+
+	for (i = 0; i != l->numarrays; i++)
+	{
+		if(p >= l->arrays[i].data && p < (l->arrays[i].data + l->recordsize * l->count))
+		{
+			j = (p - l->arrays[i].data) / l->recordsize;
+			if (p != l->arrays[i].data + j * l->recordsize)
+				Sys_Error("Mem_FreeArrayElement: no such element %p\n", p);
+			if (!l->arrays[i].allocflags[j])
+				Sys_Error("Mem_FreeArrayElement: element %p is already free!\n", p);
+			l->arrays[i].allocflags[j] = false;
+			l->arrays[i].numflaggedrecords--;
+			return;
+		}
+	}
+}
+
+size_t _mem_array_size( byte *arrayptr )
+{
+	size_t i, j, k;
+	memarray_t *l = (memarray_t *)((byte *)arrayptr);
+	
+	if(l && l->numarrays)
+	{
+		i = l->numarrays - 1;
+
+		for (j = 0, k = 0; k < l->arrays[i].numflaggedrecords; j++)
+			if (l->arrays[i].allocflags[j]) k++;
+
+		return l->count * i + j;
+	}
+	return 0;
+}
+
+void *_mem_get_array_element( byte *arrayptr, size_t index )
+{
+	size_t	i, j;
+	memarray_t *l = (memarray_t *)((byte *)arrayptr);
+
+	if(!l) return NULL;
+
+	i = index / l->count;
+	j = index % l->count;
+	if (i >= l->numarrays || !l->arrays[i].allocflags[j])
+		return NULL;
+
+	return (void *)(l->arrays[i].data + j * l->recordsize);
+}
+
 void _mem_checkheadersentinels(void *data, const char *filename, int fileline)
 {
 	memheader_t *mem;
@@ -386,6 +565,58 @@ void _mem_check(const char *filename, int fileline)
 			_mem_checkclumpsentinels(clump, filename, fileline);
 }
 
+void _mem_printstats( void )
+{
+	size_t count = 0, size = 0, realsize = 0;
+	mempool_t *pool;
+
+	Mem_Check();
+	for (pool = poolchain; pool; pool = pool->next)
+	{
+		count++;
+		size += pool->totalsize;
+		realsize += pool->realsize;
+	}
+	Msg("^3%lu^7 memory pools, totalling: ^1%s\n", (dword)count, Mem_Pretify( size ));
+	Msg("Total allocated size: ^1%s\n", Mem_Pretify( realsize ));
+}
+
+void _mem_printlist( size_t minallocationsize )
+{
+	mempool_t		*pool;
+	memheader_t	*mem;
+
+	Mem_Check();
+
+	Msg("memory pool list:\n""  ^3size                    name\n");
+	for (pool = poolchain; pool; pool = pool->next)
+	{
+		Msg("%5luk (%5luk actual) %s (%+3li byte change)\n", (dword) ((pool->totalsize + 1023) / 1024), (dword)((pool->realsize + 1023) / 1024), pool->name, (long)pool->totalsize - pool->lastchecksize );
+		pool->lastchecksize = pool->totalsize;
+		for (mem = pool->chain; mem; mem = mem->next)
+			if (mem->size >= minallocationsize)
+				Msg("%10lu bytes allocated at %s:%i\n", (dword)mem->size, mem->filename, mem->fileline);
+	}
+}
+
+void MemList_f(void)
+{
+	switch(Cmd_Argc())
+	{
+	case 1:
+		_mem_printlist(1<<30);
+		_mem_printstats();
+		break;
+	case 2:
+		_mem_printlist(atoi(Cmd_Argv(1)) * 1024);
+		_mem_printstats();
+		break;
+	default:
+		Msg("memlist: usage: memlist <all>\n");
+		break;
+	}
+}
+
 /*
 ========================
 Memory_Init
@@ -395,13 +626,16 @@ void Memory_Init( void )
 {
 	poolchain = NULL; // init mem chain
 	Sys.basepool = Mem_AllocPool( "Main pool" );
-	Sys.imagepool = Mem_AllocPool( "ImageLib Pool" );
 	Sys.stringpool = Mem_AllocPool( "New string" );
 }
 
 void Memory_Shutdown( void )
 {
 	Mem_FreePool( &Sys.basepool );
-	Mem_FreePool( &Sys.imagepool );
 	Mem_FreePool( &Sys.stringpool );
+}
+
+void Memory_Init_Commands( void )
+{
+	Cmd_AddCommand("memlist", MemList_f, "prints memory pool information (or if used as memlist 5 lists individual allocations of 5K or larger, 0 lists all allocations)");
 }

@@ -790,7 +790,6 @@ typedef struct
 typedef struct dsurfdesc_s
 {
 	float	vecs[2][4];	// [s/t][xyz offset] texture s\t
-	float	lvecs[2][4];	// [s/t][xyz offset] lightmap texture s\t
 	int	size[2];		// valid size for current s\t coords (used for replace texture)
 	int	texid;		// string table texture id number
 	int	animid;		// string table animchain id number 
@@ -1566,6 +1565,35 @@ typedef struct mip_s
 	uint	width, height;
 	uint	offsets[4];	// four mip maps stored
 } mip_t;
+
+/*
+========================================================================
+
+.WAD archive format	(WhereAllData - WAD) Half-Life textures
+
+========================================================================
+*/
+#define IDWAD3HEADER	(('3'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD3"
+#define WAD3_NAMELEN	16
+
+typedef struct
+{
+	int		ident;		// should be WAD3
+	int		numlumps;
+	int		infotableofs;
+} dwadinfo_t;
+
+typedef struct
+{
+	int		filepos;
+	int		disksize;
+	int		size;		// uncompressed
+	char		type;
+	char		compression;	// probably not used
+	char		pad1;
+	char		pad2;
+	char		name[WAD3_NAMELEN];	// must be null terminated
+} dlumpinfo_t;
 
 /*
 ========================================================================

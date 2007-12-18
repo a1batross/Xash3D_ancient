@@ -60,6 +60,12 @@ void Sys_GetStdAPI( void )
 	com.freepool = _mem_freepool;
 	com.clearpool = _mem_emptypool;
 	com.memcheck = _mem_check;
+	com.newarray = _mem_alloc_array;
+	com.delarray = _mem_free_array;
+	com.newelement = _mem_alloc_array_element;
+	com.delelement = _mem_free_array_element;
+	com.getelement = _mem_get_array_element;
+	com.arraysize = _mem_array_size;
 
 	// common functions
 	com.Com_InitRootDir = FS_InitRootDir;		// init custom rootdir 
@@ -91,7 +97,8 @@ void Sys_GetStdAPI( void )
 	com.Com_ParseToken_Simple = SC_ParseToken_Simple;	// basic parse (can't handle single characters)
 	com.Com_ParseToken = SC_ParseToken;		// parse token from char buffer
 	com.Com_ParseWord = SC_ParseWord;		// parse word from char buffer
-	com.Com_Search = FS_Search;			// returned list of found files
+	com.Com_Search = FS_Search;			// returned list of founded files
+	com.Com_SearchLump = FS_SearchLump;		// returned list of founded images in wadfile
 	com.Com_Filter = SC_FilterToken;		// compare keyword by mask with filter
 	com.com_token = token;			// contains current token
 
@@ -859,6 +866,7 @@ void Sys_Init( void )
 	Con_CreateConsole();
 	Sys_InitCPU();
 	Memory_Init();
+	Image_Init();
 	Cmd_Init();
 	Cvar_Init();
 
@@ -881,6 +889,7 @@ void Sys_Exit ( void )
 	Sys_FreeLibrary( Sys.linked_dll );
 
 	FS_Shutdown();
+	Image_Shutdown();
 	Memory_Shutdown();
 	Con_DestroyConsole();
 

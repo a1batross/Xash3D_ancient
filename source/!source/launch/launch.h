@@ -177,6 +177,7 @@ char *va(const char *format, ...);
 //
 void Memory_Init( void );
 void Memory_Shutdown( void );
+void Memory_Init_Commands( void );
 void _mem_move(byte *poolptr, void **dest, void *src, size_t size, const char *filename, int fileline);
 void *_mem_realloc(byte *poolptr, void *memptr, size_t size, const char *filename, int fileline);
 void _mem_copy(void *dest, const void *src, size_t size, const char *filename, int fileline);
@@ -186,7 +187,14 @@ byte *_mem_allocpool(const char *name, const char *filename, int fileline);
 void _mem_freepool(byte **poolptr, const char *filename, int fileline);
 void _mem_emptypool(byte *poolptr, const char *filename, int fileline);
 void _mem_free(void *data, const char *filename, int fileline);
+byte *_mem_alloc_array( byte *poolptr, size_t recordsize, int count, const char *filename, int fileline );
+void _mem_free_array( byte *arrayptr, const char *filename, int fileline );
+void *_mem_alloc_array_element( byte *arrayptr, const char *filename, int fileline );
+void _mem_free_array_element( byte *arrayptr, void *element, const char *filename, int fileline );
+void *_mem_get_array_element( byte *arrayptr, size_t index );
+size_t _mem_array_size( byte *arrayptr );
 void _mem_check(const char *filename, int fileline);
+bool _is_allocated( byte *poolptr, void *data );
 
 #define Mem_Alloc(pool, size) _mem_alloc(pool, size, __FILE__, __LINE__)
 #define Mem_Realloc(pool, ptr, size) _mem_realloc(pool, ptr, size, __FILE__, __LINE__)
@@ -197,6 +205,13 @@ void _mem_check(const char *filename, int fileline);
 #define Mem_Move(pool, dest, src, size ) _mem_move(pool, dest, src, size, __FILE__, __LINE__)
 #define Mem_Copy(dest, src, size ) _mem_copy(dest, src, size, __FILE__, __LINE__)
 #define Mem_Set(dest, src, size ) _mem_set(dest, src, size, __FILE__, __LINE__)
+#define Mem_CreateArray( p, s, n ) _mem_alloc_array( p, s, n, __FILE__, __LINE__)
+#define Mem_RemoveArray( array ) _mem_free_array( array, __FILE__, __LINE__)
+#define Mem_AllocElement( array ) _mem_alloc_array_element( array, __FILE__, __LINE__)
+#define Mem_FreeElement( array, el ) _mem_free_array_element( array, el, __FILE__, __LINE__ )
+#define Mem_GetElement( array, idx ) _mem_get_array_element( array, idx )
+#define Mem_ArraySize( array ) _mem_array_size( array )
+#define Mem_IsAllocated( mem ) _is_allocated( NULL, mem )
 #define Mem_Check() _mem_check(__FILE__, __LINE__)
 #define Mem_Pretify( x ) com_pretifymem(x, 3)
 #define Malloc( size ) Mem_Alloc( Sys.basepool, size )
@@ -233,6 +248,7 @@ void FS_FreeImage( rgbdata_t *pack );
 bool Image_Processing( const char *name, rgbdata_t **pix );
 search_t *FS_Search(const char *pattern, int caseinsensitive );
 search_t *FS_SearchDirs(const char *pattern, int caseinsensitive );
+search_t *FS_SearchLump( const char *pattern, int caseinsensitive );
 
 // files managment (like fopen, fread etc)
 file_t *FS_Open (const char* filepath, const char* mode );
@@ -343,5 +359,11 @@ bool SC_TryToken( void );
 char *SC_GetToken( bool newline );
 char *SC_Token( void );
 extern char token[];
+
+//
+// imglib.c
+//
+void Image_Init( void );
+void Image_Shutdown( void );
 
 #endif//LAUNCHER_H

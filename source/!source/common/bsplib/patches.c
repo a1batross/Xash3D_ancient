@@ -33,7 +33,7 @@ void CalcTextureReflectivity (void)
 		// see if an earlier texinfo allready got the value
 		for (j = 0; j < i; j++)
 		{
-			if(!com.strcmp(GetStringFromTable(texinfo[i].texid), GetStringFromTable(texinfo[j].texid)))
+			if( texinfo[i].texid == texinfo[j].texid )
 			{
 				VectorCopy (texture_reflectivity[j], texture_reflectivity[i]);
 				break;

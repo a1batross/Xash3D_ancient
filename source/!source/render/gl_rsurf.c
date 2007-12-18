@@ -24,18 +24,17 @@ static vec3_t	modelorg;		// relative to viewpoint
 
 msurface_t	*r_alpha_surfaces;
 
-#define DYNAMIC_LIGHT_WIDTH  128
-#define DYNAMIC_LIGHT_HEIGHT 128
-
 #define LIGHTMAP_BYTES 4
 
-#define	BLOCK_WIDTH		128
-#define	BLOCK_HEIGHT	128
+#define BLOCK_WIDTH		128
+#define BLOCK_HEIGHT	128
+#define DYNAMIC_LIGHT_WIDTH	128
+#define DYNAMIC_LIGHT_HEIGHT	128
 
-#define	MAX_LIGHTMAPS	128
+#define MAX_LIGHTMAPS	128
 
-int		c_visible_lightmaps;
-int		c_visible_textures;
+int c_visible_lightmaps;
+int c_visible_textures;
 
 #define GL_LIGHTMAP_FORMAT GL_RGBA
 
@@ -56,9 +55,9 @@ typedef struct
 static gllightmapstate_t gl_lms;
 
 
-static void		LM_InitBlock( void );
-static void		LM_UploadBlock( bool dynamic );
-static bool	LM_AllocBlock (int w, int h, int *x, int *y);
+static void LM_InitBlock( void );
+static void LM_UploadBlock( bool dynamic );
+static bool LM_AllocBlock (int w, int h, int *x, int *y);
 
 extern void R_SetCacheState( msurface_t *surf );
 extern void R_BuildLightMap (msurface_t *surf, byte *dest, int stride);

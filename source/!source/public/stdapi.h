@@ -53,6 +53,14 @@ typedef struct stdilib_api_s
 	void (*clearpool)(byte *poolptr, const char *file, int line);
 	void (*memcheck)(const char *file, int line);		// check memory pools for consistensy
 
+	// xash memlib extension - memory arrays
+	byte *(*newarray)( byte *pool, size_t elementsize, int count, const char *file, int line );
+	void (*delarray)( byte *array, const char *file, int line );
+	void *(*newelement)( byte *array, const char *file, int line );
+	void (*delelement)( byte *array, void *element, const char *file, int line );
+	void *(*getelement)( byte *array, size_t index );
+	size_t (*arraysize)( byte *arrayptr );
+
 	// common functions
 	void (*Com_InitRootDir)( char *path );			// init custom rootdir 
 	void (*Com_LoadGameInfo)( const char *filename );		// gate game info from script file
@@ -84,6 +92,7 @@ typedef struct stdilib_api_s
 	char *(*Com_ParseToken)(const char **data );		// parse token from char buffer
 	char *(*Com_ParseWord)( const char **data );		// parse word from char buffer
 	search_t *(*Com_Search)(const char *pattern, int casecmp );	// returned list of found files
+	search_t *(*Com_SearchLump)(const char *pat, int casecmp );	// returned list of found lumps in wad files
 	bool (*Com_Filter)(char *filter, char *name, int casecmp ); // compare keyword by mask with filter
 	char *com_token;					// contains current token
 
@@ -207,6 +216,12 @@ typedef struct stdilib_api_s
 #define Mem_Copy(dest, src, size )	com.memcpy(dest, src, size, __FILE__, __LINE__)
 #define Mem_Set(dest, src, size )	com.memset(dest, src, size, __FILE__, __LINE__)
 #define Mem_Check()			com.memcheck(__FILE__, __LINE__)
+#define Mem_CreateArray( p, s, n )	com.newarray( p, s, n, __FILE__, __LINE__)
+#define Mem_RemoveArray( array )	com.delarray( array, __FILE__, __LINE__)
+#define Mem_AllocElement( array )	com.newelement( array, __FILE__, __LINE__)
+#define Mem_FreeElement( array, el )	com.delelement( array, el, __FILE__, __LINE__ )
+#define Mem_GetElement( array, idx )	com.getelement( array, idx )
+#define Mem_ArraySize( array )	com.arraysize( array )
 
 /*
 ==========================================
@@ -238,6 +253,7 @@ filesystem manager
 #define FS_InitRootDir		com.Com_InitRootDir
 #define FS_LoadFile			com.Com_LoadFile
 #define FS_Search			com.Com_Search
+#define FS_SearchLump		com.Com_SearchLump
 #define FS_WriteFile		com.Com_WriteFile
 #define FS_Open( path, mode )		com.fopen( path, mode )
 #define FS_Read( file, buffer, size )	com.fread( file, buffer, size )

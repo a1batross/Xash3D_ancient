@@ -5,6 +5,7 @@
 
 #include "launch.h"
 #include "zip32.h"
+#include "image.h"
 
 #define ZIP_END_CDIR_SIZE		22
 #define ZIP_CDIR_CHUNK_BASE_SIZE	46
@@ -70,6 +71,14 @@ typedef struct pack_s
 	packfile_t	*files;
 } pack_t;
 
+typedef struct wadfile_s
+{
+	char		name[64];
+	int		numlumps;
+	file_t		*file;
+	dlumpinfo_t	*lumps;
+} wadfile_t;
+
 typedef struct searchpath_s
 {
 	char		filename[MAX_SYSPATH];
@@ -86,6 +95,7 @@ typedef struct stringlist_s
 } stringlist_t;
 
 byte *fs_mempool;
+byte *fs_searchwads = NULL;
 searchpath_t *fs_searchpaths = NULL;
 
 static void FS_InitMemory( void );
@@ -698,7 +708,7 @@ pack_t *FS_LoadPackPAK(const char *packfile)
 	}
 
 	Mem_Free(info);
-	MsgDev(D_INFO, "Adding packfile %s (%i files)\n", packfile, numpackfiles);
+	MsgDev(D_INFO, "Adding packfile: %s (%i files)\n", packfile, numpackfiles);
 	return pack;
 }
 
@@ -959,6 +969,95 @@ void FS_AddGameDirectory (const char *dir)
 	fs_searchpaths = search;
 }
 
+/*
+====================
+FS_AddWad3File
+====================
+*/
+static bool FS_AddWad3File( const char *filename )
+{
+	dwadinfo_t	header;
+	wadfile_t		*w;
+	int		infotableofs;
+	file_t		*file;
+	int		i, numlumps;
+
+	if(!fs_searchwads) // start from scratch 
+		fs_searchwads = Mem_CreateArray( fs_mempool, sizeof(wadfile_t), 16 );
+
+	for (i = 0; i < Mem_ArraySize( fs_searchwads ); i++ )
+	{
+		w = Mem_GetElement( fs_searchwads, i );
+		if(w && !com_stricmp( filename, w->name ))
+			return false; // already loaded
+	}
+
+	file = FS_Open( filename, "rb" );
+	if(!file)
+	{
+		MsgDev(D_ERROR, "FS_AddWad3File: couldn't find %s\n", filename);
+		return false;
+	}
+
+	if( FS_Read(file, &header, sizeof(dwadinfo_t)) != sizeof(dwadinfo_t))
+	{
+		MsgDev(D_ERROR, "FS_AddWad3File: %s have corrupted header\n");
+		FS_Close( file );
+		return false;
+	}
+	if( header.ident != IDWAD3HEADER )
+	{
+		MsgDev(D_ERROR, "FS_AddWad3File: %s have invalid ident\n", filename );
+		FS_Close( file );
+		return false;
+	}
+
+	numlumps = LittleLong( header.numlumps );
+	if( numlumps > MAX_FILES_IN_PACK )
+	{
+		MsgDev(D_ERROR, "FS_AddWad3File: %s have too many lumps (%i)\n", numlumps);
+		FS_Close( file );
+		return false;
+	}
+
+	infotableofs = LittleLong( header.infotableofs );
+	if(FS_Seek (file, infotableofs, SEEK_SET))
+	{
+		MsgDev(D_ERROR, "FS_AddWad3File: unable to seek to lump table\n");
+		FS_Close( file );
+		return false;
+	}
+
+	w = Mem_AllocElement( fs_searchwads );
+	com_strncpy( w->name, filename, sizeof(w->name));
+	w->file = file;
+	w->numlumps = numlumps;
+	w->lumps = Mem_Alloc( fs_mempool, w->numlumps * sizeof(dlumpinfo_t));
+
+	if(FS_Read(file, w->lumps, sizeof(dlumpinfo_t) * w->numlumps) != (long)sizeof(dlumpinfo_t) * numlumps)
+	{
+		MsgDev(D_ERROR, "FS_AddWad3File: unable to read lump table\n");
+		FS_Close( w->file );
+		w->numlumps = 0;
+		Mem_Free( w->lumps );
+		w->lumps = NULL;
+		w->name[0] = 0;
+		return false;
+	}
+
+	// swap everthing 
+	for (i = 0; i < numlumps; i++)
+	{
+		w->lumps[i].filepos = LittleLong(w->lumps[i].filepos);
+		w->lumps[i].disksize = LittleLong(w->lumps[i].disksize);
+		w->lumps[i].size = LittleLong(w->lumps[i].size);
+		com_strnlwr(w->lumps[i].name, w->lumps[i].name, sizeof(w->lumps[i].name));
+	}
+	// and leaves the file open
+	MsgDev(D_INFO, "Adding wadfile: %s (%i lumps)\n", filename, numlumps );
+	return true;
+}
+
 
 /*
 ================
@@ -967,8 +1066,20 @@ FS_AddGameHierarchy
 */
 void FS_AddGameHierarchy (const char *dir)
 {
+	search_t	*search;
+	int	i, numWads = 0;
+
 	// Add the common game directory
-	if(dir || *dir)FS_AddGameDirectory (va("%s%s/", fs_basedir, dir));
+	if(dir || *dir) 
+	{
+		FS_AddGameDirectory (va("%s%s/", fs_basedir, dir));
+
+		search = FS_Search( "*.wad", true );
+		if(!search) return;
+		for( i = 0; i < search->numfilenames; i++ )
+			FS_AddWad3File( search->filenames[i] );
+		Mem_Free( search );
+	}
 }
 
 
@@ -1037,6 +1148,9 @@ FS_ClearSearchPath
 */
 void FS_ClearSearchPath (void)
 {
+	uint	i;
+	wadfile_t	*w;
+
 	while (fs_searchpaths)
 	{
 		searchpath_t *search = fs_searchpaths;
@@ -1049,6 +1163,20 @@ void FS_ClearSearchPath (void)
 		}
 		Mem_Free(search);
 	}
+
+	// close all wad files and free their lumps data
+	for (i = 0; i < Mem_ArraySize( fs_searchwads ); i++ )
+	{
+		w = Mem_GetElement( fs_searchwads, i );
+		if(!w) continue;
+		if(w->lumps) Mem_Free(w->lumps);
+		w->lumps = NULL;
+		if(w->file) FS_Close(w->file);
+		w->file = NULL;
+		w->name[0] = 0;
+	}
+	if( fs_searchwads ) Mem_RemoveArray( fs_searchwads );
+	fs_searchwads = NULL;
 }
 
 /*
@@ -1206,7 +1334,10 @@ void FS_LoadGameInfo( const char *filename )
 			com_strcpy(GI.key, SC_GetToken( false ));
 		}
 	}
-	if(fs_modified) FS_Rescan(); // create new filesystem
+	if( fs_modified ) 
+	{
+		FS_Rescan(); // create new filesystem
+	}
 }
 
 /*
@@ -1298,6 +1429,23 @@ FS_Shutdown
 */
 void FS_Shutdown (void)
 {
+	wadfile_t		*w;
+	int		i;
+
+	// close all wad files and free their lumps data
+	for (i = 0; i < Mem_ArraySize( fs_searchwads ); i++ )
+	{
+		w = Mem_GetElement( fs_searchwads, i );
+		if(!w) continue;
+		if(w->lumps) Mem_Free(w->lumps);
+		w->lumps = NULL;
+		if(w->file) FS_Close(w->file);
+		w->file = NULL;
+		w->name[0] = 0;
+	}
+	if( fs_searchwads ) Mem_RemoveArray( fs_searchwads );
+	fs_searchwads = NULL;
+
 	Mem_FreePool(&fs_mempool);
 }
 
@@ -1555,6 +1703,118 @@ file_t *FS_OpenReadFile (const char *filename, const char *mode, bool quiet, boo
 
 	// So, we found it in a package...
 	return FS_OpenPackedFile (search->pack, pack_ind);
+}
+
+search_t *FS_SearchLump( const char *pattern, int caseinsensitive )
+{
+	stringlist_t	resultlist;
+	search_t		*search = NULL;
+	int		i, k, resultlistindex, numfiles, numchars;
+	wadfile_t		*w;
+
+	// no wads loaded
+	if(!fs_searchwads) return NULL;
+	
+	stringlistinit(&resultlist);
+	for( k = 0; k < Mem_ArraySize( fs_searchwads ); k++ )
+	{
+		// lookup all wads in list
+		w = (wadfile_t *)Mem_GetElement( fs_searchwads, k );
+		if( !w ) continue;
+
+		for(i = 0; i < (uint)w->numlumps; i++)
+		{
+			if(SC_FilterToken( (char *)pattern, w->lumps[i].name, !caseinsensitive ))
+				stringlistappend(&resultlist, w->lumps[i].name);
+		}
+	}
+
+	// sorting result
+	if (resultlist.numstrings)
+	{
+		stringlistsort(&resultlist);
+		numfiles = resultlist.numstrings;
+		numchars = 0;
+
+		for (resultlistindex = 0; resultlistindex < resultlist.numstrings; resultlistindex++)
+			numchars += (int)com_strlen(resultlist.strings[resultlistindex]) + 1;
+		search = Malloc(sizeof(search_t) + numchars + numfiles * sizeof(char *));
+		search->filenames = (char **)((char *)search + sizeof(search_t));
+		search->filenamesbuffer = (char *)((char *)search + sizeof(search_t) + numfiles * sizeof(char *));
+		search->numfilenames = (int)numfiles;
+		numfiles = 0;
+		numchars = 0;
+		for (resultlistindex = 0; resultlistindex < resultlist.numstrings; resultlistindex++)
+		{
+			size_t textlen;
+			search->filenames[numfiles] = search->filenamesbuffer + numchars;
+			textlen = com_strlen(resultlist.strings[resultlistindex]) + 1;
+			Mem_Copy(search->filenames[numfiles], resultlist.strings[resultlistindex], textlen);
+			numfiles++;
+			numchars += (int)textlen;
+		}
+	}
+	stringlistfreecontents(&resultlist);
+
+	return search;
+}
+
+/*
+===========
+FS_OpenWad3File
+
+Look for a file in the loaded wadfiles and returns buffer with image lump
+===========
+*/
+static byte *FS_OpenWad3File( const char *name, fs_offset_t *filesizeptr )
+{
+	uint	i, k;
+	mip_t	*tex;
+	wadfile_t	*w;
+	char	basename[MAX_QPATH];
+	char	texname[17];
+
+	// no wads loaded
+	if(!fs_searchwads) return NULL;
+
+	// note: wad images can't have real pathes
+	// so, extarct base name from path
+	FS_FileBase( (char *)name, basename );
+	if(filesizeptr) *filesizeptr = 0;
+		
+	if(strlen(basename) >= WAD3_NAMELEN )
+	{
+		Msg("FS_OpenWad3File: %s too long name\n", basename );		
+		return NULL;
+	}
+	com_strnlwr( basename, texname, WAD3_NAMELEN );
+		
+	for( k = 0; k < Mem_ArraySize( fs_searchwads ); k++ )
+	{
+		w = (wadfile_t *)Mem_GetElement( fs_searchwads, k );
+		if( !w ) continue;
+
+		for(i = 0; i < (uint)w->numlumps; i++)
+		{
+			if(!com_strcmp(texname, w->lumps[i].name))
+			{
+				if(FS_Seek(w->file, w->lumps[i].filepos, SEEK_SET))
+				{
+					MsgDev(D_ERROR, "FS_OpenWad3File: corrupt WAD3 file\n");
+					return NULL;
+				}
+				tex = (mip_t *)Mem_Alloc( fs_mempool, w->lumps[i].disksize );
+				if( FS_Read(w->file, tex, w->lumps[i].size) < w->lumps[i].disksize )
+				{
+					MsgDev(D_ERROR, "FS_OpenWad3File: corrupt WAD3 file\n");
+					return NULL;
+				}
+				if(filesizeptr) *filesizeptr = w->lumps[i].disksize;
+				return (byte *)((mip_t *)tex);
+			}
+		}
+	}
+	return NULL;
 }
 
 /*
@@ -2072,9 +2332,10 @@ Always appends a 0 byte.
 */
 byte *FS_LoadFile (const char *path, fs_offset_t *filesizeptr )
 {
-	file_t *file;
-	byte *buf = NULL;
+	file_t	*file;
+	byte	*buf = NULL;
 	fs_offset_t filesize = 0;
+	const char *ext = FS_FileExtension( path );
 
 	file = _FS_Open (path, "rb", true, false);
 	if (file)
@@ -2085,8 +2346,13 @@ byte *FS_LoadFile (const char *path, fs_offset_t *filesizeptr )
 		FS_Read (file, buf, filesize);
 		FS_Close (file);
 	}
-	
-	if (filesizeptr) *filesizeptr = filesize;
+	else if(!com_stricmp("wad3", ext ))
+	{
+		// probably it's image from wad-file
+		buf = FS_OpenWad3File( path, &filesize );
+	}
+
+	if(filesizeptr) *filesizeptr = filesize;
 	return buf;
 }
 
@@ -2350,11 +2616,13 @@ void FS_Mem_FreeSearch(search_t *search)
 
 void FS_InitMemory( void )
 {
-	fs_mempool = Mem_AllocPool( "file management" );	
+	fs_mempool = Mem_AllocPool( "Filesystem Pool" );	
 
 	// add a path separator to the end of the basedir if it lacks one
 	if (fs_basedir[0] && fs_basedir[com_strlen(fs_basedir) - 1] != '/' && fs_basedir[com_strlen(fs_basedir) - 1] != '\\')
 		com_strncat(fs_basedir, "/", sizeof(fs_basedir));
+
+	if( !fs_searchwads ) fs_searchwads = Mem_CreateArray( fs_mempool, sizeof(wadfile_t), 16 );
 }
 
 /*
