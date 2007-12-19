@@ -1005,7 +1005,7 @@ static bool FS_AddWad3File( const char *filename )
 		FS_Close( file );
 		return false;
 	}
-	if( header.ident != IDWAD3HEADER )
+	if( header.ident != IDWAD2HEADER && header.ident != IDWAD3HEADER )
 	{
 		MsgDev(D_ERROR, "FS_AddWad3File: %s have invalid ident\n", filename );
 		FS_Close( file );
@@ -1766,10 +1766,9 @@ FS_OpenWad3File
 Look for a file in the loaded wadfiles and returns buffer with image lump
 ===========
 */
-static byte *FS_OpenWad3File( const char *name, fs_offset_t *filesizeptr )
+static byte *FS_OpenWad3File( const char *name, fs_offset_t *filesizeptr, int matchtype )
 {
 	uint	i, k;
-	mip_t	*tex;
 	wadfile_t	*w;
 	char	basename[MAX_QPATH];
 	char	texname[17];
@@ -1798,19 +1797,51 @@ static byte *FS_OpenWad3File( const char *name, fs_offset_t *filesizeptr )
 		{
 			if(!com_strcmp(texname, w->lumps[i].name))
 			{
+				mip_t		*tex;
+				lmp_t		*lmp;
+				qpic_t		*pic;
+				qfont_t		*fnt;
+				fs_offset_t	size;
+				byte		*buf;
+
+				if(matchtype != (int)w->lumps[i].type) break; // try next wad
 				if(FS_Seek(w->file, w->lumps[i].filepos, SEEK_SET))
 				{
 					MsgDev(D_ERROR, "FS_OpenWad3File: corrupt WAD3 file\n");
 					return NULL;
 				}
-				tex = (mip_t *)Mem_Alloc( fs_mempool, w->lumps[i].disksize );
-				if( FS_Read(w->file, tex, w->lumps[i].size) < w->lumps[i].disksize )
+				switch((int)w->lumps[i].type)
 				{
-					MsgDev(D_ERROR, "FS_OpenWad3File: corrupt WAD3 file\n");
-					return NULL;
-				}
+				case TYPE_QPIC:
+					pic = (qpic_t *)Mem_Alloc( fs_mempool, w->lumps[i].disksize ); 
+					size = FS_Read(w->file, pic, w->lumps[i].size );
+					buf = (byte *)((qpic_t *)pic);
+					break;
+				case TYPE_QFONT:
+					fnt = (qfont_t *)Mem_Alloc( fs_mempool, w->lumps[i].disksize );
+					size = FS_Read(w->file, fnt, w->lumps[i].disksize ); // some gfx.wad requires this
+					buf = (byte *)((qfont_t *)fnt);
+					break;
+				case TYPE_Q1MIP:
+					if(!com_stricmp( w->lumps[i].name, "conchars" ))
+					{
+						// great hack from id software
+						FS_Seek(w->file, w->lumps[i].filepos - w->lumps[i].size, SEEK_SET);
+					}
+					lmp = (lmp_t *)Mem_Alloc( fs_mempool, w->lumps[i].disksize );
+					size = FS_Read(w->file, lmp, w->lumps[i].size );
+					buf = (byte *)((lmp_t *)lmp);
+				case TYPE_HLMIP:
+					tex = (mip_t *)Mem_Alloc( fs_mempool, w->lumps[i].disksize );
+					size = FS_Read(w->file, tex, w->lumps[i].size );
+					buf = (byte *)((mip_t *)tex);
+					break;
+				} 
+				if( size < w->lumps[i].disksize )
+					MsgDev(D_WARN, "FS_OpenWad3File: lump %s is corrupt\n", texname );
+
 				if(filesizeptr) *filesizeptr = w->lumps[i].disksize;
-				return (byte *)((mip_t *)tex);
+				return buf;
 			}
 		}
 	}
@@ -2348,10 +2379,25 @@ byte *FS_LoadFile (const char *path, fs_offset_t *filesizeptr )
 	}
 	else if(!com_stricmp("wad3", ext ))
 	{
-		// probably it's image from wad-file
-		buf = FS_OpenWad3File( path, &filesize );
+		// probably it's half-life texture
+		buf = FS_OpenWad3File( path, &filesize, TYPE_HLMIP );
 	}
-
+	else if(!com_stricmp("lmp", ext ))
+	{
+		// probably it's quake1 texture
+		buf = FS_OpenWad3File( path, &filesize, TYPE_Q1MIP );
+	}
+	else if(!com_stricmp("qpic", ext ))
+	{
+		// probably it's gfx image (q1 or hl)
+		buf = FS_OpenWad3File( path, &filesize, TYPE_QPIC );
+	}
+	else if(!com_stricmp("qfnt", ext ))
+	{
+		// probably it's image from wad-file
+		buf = FS_OpenWad3File( path, &filesize, TYPE_QFONT );
+	}
+	
 	if(filesizeptr) *filesizeptr = filesize;
 	return buf;
 }

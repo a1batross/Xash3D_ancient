@@ -31,6 +31,7 @@ char *suf[6] = {"ft", "bk", "rt", "lf", "up", "dn"};
 #define LUMP_NORMAL		0
 #define LUMP_TRANSPARENT	1
 #define LUMP_DECAL		2
+#define LUMP_QFONT		3
 
 uint d_8toD1table[256];
 uint d_8toQ1table[256];
@@ -90,6 +91,16 @@ void Image_GetPalette( byte *pal, uint *d_table )
 			rgba[2] = pal[i*3+1];
 			rgba[1] = pal[i*3+2];
 			rgba[0] = pal[i] == 255 ? pal[i] : 0xFF;
+			d_table[i] = BuffBigLong( rgba );
+		}
+		break;
+	case LUMP_QFONT:
+		for (i = 1; i < 256; i++)
+		{
+			rgba[3] = pal[i*3+0];
+			rgba[2] = pal[i*3+1];
+			rgba[1] = pal[i*3+2];
+			rgba[0] = 0xFF;
 			d_table[i] = BuffBigLong( rgba );
 		}
 		break;
@@ -162,10 +173,17 @@ void Image_GetPaletteWAD( byte *pal, int rendermode )
 {
 	d_rendermode = rendermode;
 
-	if(pal)
+	if( pal )
 	{
 		Image_GetPalette( pal, d_8to24table );
 		d_8to24table[255] &= LittleLong(0xffffff);
+		d_currentpal = d_8to24table;
+	}
+	else if(rendermode == LUMP_QFONT)
+	{
+		// quake1 base palette and font palette have some diferences
+		Image_GetPalette( palette_q1, d_8to24table );
+		d_8to24table[0] = 0;
 		d_currentpal = d_8to24table;
 	}
 	else Image_GetQ1Palette();          
@@ -378,32 +396,44 @@ LoadLMP
 bool LoadLMP( char *name, char *buffer, int filesize )
 {
 	lmp_t	lmp;
-	byte	*fin;
+	byte	*fin, *pal;
 	int	i, pixels;
+	int	rendermode;
 
 	if (filesize < (int)sizeof(lmp))
 	{
 		MsgWarn("LoadLMP: file (%s) have invalid size\n", name );
 		return false;
 	}
-
 	fin = buffer;
-	Mem_Copy(&lmp, fin, sizeof(lmp));
-	fin += sizeof(lmp);
 
-	image_width = LittleLong(lmp.width);
-	image_height = LittleLong(lmp.height);
-	image_num_mips = 1;
+	// great hack from id software
+	if(!com_stricmp( name, "conchars" ))
+	{
+		image_width = image_height = 128;
+		pixels = image_width * image_height;
+		image_flags |= IMAGE_HAS_ALPHA;
+		rendermode = LUMP_QFONT;
+	}
+	else
+	{
+		Mem_Copy(&lmp, fin, sizeof(lmp));
+		image_width = LittleLong(lmp.width);
+		image_height = LittleLong(lmp.height);
+		fin += sizeof(lmp);
+		pixels = image_width * image_height;
+
+		if (filesize < (int)sizeof(lmp) + pixels)
+		{
+			MsgWarn("LoadLMP: file (%s) have invalid size %d\n", name, filesize );
+			return false;
+		}
+		rendermode = LUMP_NORMAL;
+	}
 
 	if(!Image_ValidSize( name )) return false;         
-          image_size = image_width * image_height * 4;
-	pixels = image_width * image_height;
-	
-	if (filesize < (int)sizeof(lmp) + pixels)
-	{
-		MsgWarn("LoadLMP: file (%s) have invalid size\n", name );
-		return false;
-	}
+          image_size = pixels * 4;
+	image_num_mips = 1;
 
 	image_rgba = (byte *)Mem_Alloc(Sys.imagepool, image_size );
 	image_num_layers = 1;
@@ -414,10 +444,21 @@ bool LoadLMP( char *name, char *buffer, int filesize )
 	{
 		if(fin[i] != 255) continue;
 		image_flags |= IMAGE_HAS_ALPHA;
+		rendermode = LUMP_TRANSPARENT;
 		break; // found			
 	}
 
-	Image_GetQ1Palette();// hardcoded
+	// half-life 1.0.0.1 lmp version with palette
+	if( filesize == (int)sizeof(lmp) + pixels + sizeof(short) + 768)
+	{
+		int numcolors;
+		pal = fin + pixels;
+		numcolors = BuffLittleShort( pal ), pal += 2;
+		if( numcolors != 256 ) pal = NULL; // corrupted lump ?
+	}
+	else pal = NULL;
+
+	Image_GetPaletteWAD( pal, rendermode );
 	Image_Copy8bitRGBA( fin, image_rgba, pixels );
 
 	return true;
@@ -444,7 +485,7 @@ bool LoadMIP( char *name, char *buffer, int filesize )
 	image_height = LittleLong(mip.height);
 	for(i = 0; i < 4; i++) ofs[i] = LittleLong(mip.offsets[i]);
 
-	if(!Image_ValidSize( name )) return false;         
+	if(!Image_ValidSize( name )) return false;
 	mipsize = image_width * image_height;
 	
 	if (filesize < (int)sizeof(mip) + mipsize)
@@ -461,6 +502,121 @@ bool LoadMIP( char *name, char *buffer, int filesize )
 
 /*
 ============
+LoadPIC
+============
+*/
+bool LoadPIC( char *name, char *buffer, int filesize )
+{
+	qpic_t	pic;
+	byte	*pal, *fin;
+	int	numcolors;
+	int	pixels;
+
+	if(filesize < (int)sizeof(pic))
+	{
+		MsgWarn("LoadPIC: file (%s) have invalid size\n", name );
+		return false;
+	}
+
+	Mem_Copy(&pic, buffer, sizeof(pic));
+	image_width = LittleShort(pic.width);
+	image_height = LittleShort(pic.height);
+	if(!Image_ValidSize( name )) return false;
+	pixels = image_width * image_height;
+	fin = buffer + sizeof(pic) - 4;
+	image_num_layers = 1;
+	image_type = PF_RGBA_32;
+
+	// half-life qlmpy version with palette
+	if( filesize == (int)sizeof(pic) - 2 + pixels + sizeof(short) + 768)
+	{
+		pal = fin + pixels;
+		numcolors = BuffLittleShort(pal);
+		if(numcolors != 256)
+		{
+			MsgWarn("LoadPIC: file (%s) have invalid palette size %d\n", name, numcolors );
+			return false;
+		}
+		pal += 2; // skip colorsize
+	}
+	else pal = NULL; // quake1 pic
+	if(fin[0] == 255) image_flags |= IMAGE_HAS_ALPHA;
+
+	Image_GetPaletteWAD( pal, LUMP_NORMAL );
+	return FS_AddMipmapToPack( fin, image_width, image_height );
+}
+
+bool LoadTEST( char *name, char *buffer, int filesize )
+{
+	return false;
+}
+
+/*
+============
+LoadFNT
+============
+*/
+bool LoadFNT( char *name, char *buffer, int filesize )
+{
+	qfont_t	font;
+	byte	*pal, *fin;
+	int	i, pixels, fullsize;
+	int	numcolors;
+
+	if(filesize < (int)sizeof(font))
+	{
+		MsgWarn("LoadFNT: file (%s) have invalid size\n", name );
+		return false;
+	}
+	Mem_Copy(&font, buffer, sizeof(font));
+
+	// swap lumps
+	font.width = LittleShort(font.width);
+	font.height = LittleShort(font.height);
+	font.rowcount = LittleShort(font.rowcount);
+	font.rowheight = LittleShort(font.rowheight);
+	for(i = 0; i < 256; i++)
+	{
+		font.fontinfo[i].startoffset = LittleShort( font.fontinfo[i].startoffset ); 
+		font.fontinfo[i].charwidth = LittleShort( font.fontinfo[i].charwidth );
+	}
+	
+	// last sixty four bytes - what the hell ????
+	fullsize = sizeof(qfont_t)-4+(128 * font.width * QCHAR_WIDTH) + sizeof(short) + 768 + 64;
+
+	if( fullsize != filesize )
+	{
+		// probably it's "creditsfont" or "conchars"
+		MsgWarn("LoadFNT: (%s) it's not a qfont_t structure\n", name );
+		return LoadTEST( name, buffer, filesize );
+	}
+
+	// setup font dimensions
+	image_width = font.width * QCHAR_WIDTH;
+	image_height = font.height;
+	image_num_layers = 1;
+	image_type = PF_RGBA_32;
+
+	if(!Image_ValidSize( name )) return false;
+
+	pixels = ( image_width * image_height );
+	fin = buffer + sizeof(font) - 4, pal = fin + pixels;
+	numcolors = BuffLittleShort( pal ), pal += 2;
+	image_flags |= IMAGE_HAS_ALPHA; // fonts always have transparency
+
+	if(numcolors != 768)
+	{
+		MsgWarn("LoadFNT: file (%s) have invalid palette size %d\n", name, numcolors );
+		return false;
+	}
+
+	// FIXME: convert this to quake-style conchars ?
+	Image_GetPaletteWAD( pal, LUMP_QFONT );
+	return FS_AddMipmapToPack( fin, image_width, image_height );
+}
+
+/*
+============
 LoadWAD
 ============
 */
@@ -468,7 +624,8 @@ bool LoadWAD( char *name, char *buffer, int filesize )
 {
 	mip_t	mip;
 	byte	*pal;
-	int	ofs[4], i, rendermode;
+	int	ofs[4], rendermode;
+	int	i, numcolors;
 
 	if (filesize < (int)sizeof(mip))
 	{
@@ -483,7 +640,13 @@ bool LoadWAD( char *name, char *buffer, int filesize )
 	if(!Image_ValidSize( name )) return false;
 
 	pal = buffer + mip.offsets[0] + (((image_width * image_height) * 85)>>6);
-	pal += 2;	// get palette
+	numcolors = BuffLittleShort( pal ), pal += 2; // skip colorsize
+
+	if(numcolors != 256)
+	{
+		MsgWarn("LoadWAD_3: file (%s) have invalid palette size %d\n", name, numcolors );
+		return false;
+	}
 
 	image_num_layers = 1;
 	image_type = PF_RGBA_32; // always exctracted to 32-bit buffer
@@ -491,24 +654,20 @@ bool LoadWAD( char *name, char *buffer, int filesize )
 	// detect rendermode
 	if( name[0] == '{' )
 	{
+		// note: i trying determine transparent miptex by last color in palette
+		// e.g. valve used in their textures blue color (0,0,255)
+		// other cases for red (255,0,0) ang green (0,255,0) colors,
+		// otherwise - it will use decal palette with ugly results. ughgrrr..
 		if(pal[255*3+0] == 0 && pal[255*3+1] == 0 && pal[255*3+2] == 255 && pal[255*3+3] == 0)
-		{
-			Msg("trans ");
 			rendermode = LUMP_TRANSPARENT;
-		}
-		else 
-		{
-			Msg("decal ");
-			rendermode = LUMP_DECAL; 
-		}
+		else if(pal[255*3+0] == 0 && pal[255*3+1] == 255 && pal[255*3+2] == 0 && pal[255*3+3] == 0)
+			rendermode = LUMP_TRANSPARENT;
+		else if(pal[255*3+0] == 255 && pal[255*3+1] == 0 && pal[255*3+2] == 0 && pal[255*3+3] == 0)
+			rendermode = LUMP_TRANSPARENT;
+		else rendermode = LUMP_DECAL; 
 		image_flags |= IMAGE_HAS_ALPHA;
 	}
-	else
-	{
-		Msg("normal ");
-		rendermode = LUMP_NORMAL;
-	}
-
+	else rendermode = LUMP_NORMAL;
 	Image_GetPaletteWAD( pal, rendermode );
 	return FS_AddMipmapToPack( buffer + mip.offsets[0], image_width, image_height );
 }
@@ -1731,18 +1890,22 @@ loadformat_t load_formats[] =
 	{"textures/%s%s.%s", "tga", LoadTGA},
 	{"textures/%s%s.%s", "jpg", LoadJPG},
 	{"textures/%s%s.%s", "wad3",LoadWAD},
+	{"textures/%s%s.%s", "qpic",LoadPIC},
 	{"textures/%s%s.%s", "pcx", LoadPCX},
 	{"textures/%s%s.%s", "wal", LoadWAL},
 	{"textures/%s%s.%s", "lmp", LoadLMP},
 	{"textures/%s%s.%s", "mip", LoadMIP},
+	{"textures/%s%s.%s", "qfnt",LoadFNT},
 	{"%s%s.%s", "dds", LoadDDS},
 	{"%s%s.%s", "tga", LoadTGA},
 	{"%s%s.%s", "jpg", LoadJPG},
 	{"%s%s.%s", "wad3",LoadWAD},
+	{"%s%s.%s", "qpic",LoadPIC},
 	{"%s%s.%s", "pcx", LoadPCX},
 	{"%s%s.%s", "wal", LoadWAL},
 	{"%s%s.%s", "lmp", LoadLMP},
 	{"%s%s.%s", "mip", LoadMIP},
+	{"%s%s.%s", "qfnt",LoadFNT},
 	{NULL, NULL}
 };
 

@@ -1573,8 +1573,18 @@ typedef struct mip_s
 
 ========================================================================
 */
-#define IDWAD3HEADER	(('3'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD3"
+#define IDWAD2HEADER	(('2'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD2" quake1 gfx.wad
+#define IDWAD3HEADER	(('3'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD3" half-life wads
 #define WAD3_NAMELEN	16
+
+#define	TYPE_QPIC		66	// quake1 and hl pic (qpic_t)
+#define	TYPE_HLMIP	67	// half-life textures (mip_t) TYP_SOUND for Quake1, but never used for it
+#define	TYPE_Q1MIP	68	// quake1 textures    (mip_t)
+#define	TYPE_QFONT	70	// half-life font	(qfont_t)
+
+#define	QCHAR_WIDTH	16
+#define	QFONT_WIDTH	16	// valve fonts used contant sizes	
+#define	QFONT_HEIGHT        ((128 - 32) / 16)
 
 typedef struct
 {
@@ -1594,6 +1604,27 @@ typedef struct
 	char		pad2;
 	char		name[WAD3_NAMELEN];	// must be null terminated
 } dlumpinfo_t;
+
+typedef struct
+{
+	int		width, height;
+	byte		data[4];		// variably sized
+} qpic_t;
+
+typedef struct
+{
+	short startoffset;
+	short charwidth;
+} charset;
+
+typedef struct
+{
+	int 		width, height;
+	int		rowcount;
+	int		rowheight;
+	charset		fontinfo[256];
+	byte 		data[4];		// variable sized
+} qfont_t;
 
 /*
 ========================================================================
