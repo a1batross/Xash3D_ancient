@@ -10,6 +10,19 @@ SV_Move			SV_Trace
 SV_ClipMoveToEntity		CM_BoxTrace
 SV_ClipToLinks		SV_ClipMoveToEntities
 
+case TYPE_Q1MIP:
+	if(FS_Seek(w->file, w->lumps[i].filepos - w->lumps[i].size, SEEK_SET))
+	{
+		MsgDev(D_ERROR, "FS_OpenWad3File: corrupt WAD3 file\n");
+		return NULL;
+	}
+default:
+if(FS_Seek(w->file, w->lumps[i].filepos, SEEK_SET))
+{
+	MsgDev(D_ERROR, "FS_OpenWad3File: corrupt WAD3 file\n");
+	return NULL;
+}
+
 studioframeadvance
 studiorewindframe
 

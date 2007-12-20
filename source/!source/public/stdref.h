@@ -1577,9 +1577,10 @@ typedef struct mip_s
 #define IDWAD3HEADER	(('3'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD3" half-life wads
 #define WAD3_NAMELEN	16
 
-#define	TYPE_QPIC		66	// quake1 and hl pic (qpic_t)
-#define	TYPE_HLMIP	67	// half-life textures (mip_t) TYP_SOUND for Quake1, but never used for it
-#define	TYPE_Q1MIP	68	// quake1 textures    (mip_t)
+#define	TYPE_QPAL		64
+#define	TYPE_QPIC		66	// quake1 and hl pic (lmp_t)
+#define	TYPE_MIPTEX2	67	// half-life (mip_t) previous TYP_SOUND but never used in quake1
+#define	TYPE_MIPTEX	68	// quake1 (mip_t)
 #define	TYPE_QFONT	70	// half-life font	(qfont_t)
 
 #define	QCHAR_WIDTH	16
@@ -1588,11 +1589,12 @@ typedef struct mip_s
 
 typedef struct
 {
-	int		ident;		// should be WAD3
+	int		ident;		// should be IWAD or WAD2 or WAD3
 	int		numlumps;
 	int		infotableofs;
 } dwadinfo_t;
 
+// quake1 and half-life lump header
 typedef struct
 {
 	int		filepos;
@@ -1602,14 +1604,8 @@ typedef struct
 	char		compression;	// probably not used
 	char		pad1;
 	char		pad2;
-	char		name[WAD3_NAMELEN];	// must be null terminated
+	char		name[16];	// must be null terminated
 } dlumpinfo_t;
-
-typedef struct
-{
-	int		width, height;
-	byte		data[4];		// variably sized
-} qpic_t;
 
 typedef struct
 {
