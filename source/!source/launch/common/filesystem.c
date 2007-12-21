@@ -1010,6 +1010,11 @@ static bool FS_AddWad3File( const char *filename )
 
 	switch( header.ident )
 	{
+	case IDIWADHEADER:
+	case IDPWADHEADER:
+		MsgDev(D_ERROR, "FS_AddWad3File: (%s) Doom1 wad-files are not supported\n", filename );
+		FS_Close( file );
+		return false;		
 	case IDWAD2HEADER:
 		com_strncpy( type, "Quake1", 16 );
 		break; 
@@ -1716,59 +1721,39 @@ file_t *FS_OpenReadFile (const char *filename, const char *mode, bool quiet, boo
 	return FS_OpenPackedFile (search->pack, pack_ind);
 }
 
-search_t *FS_SearchLump( const char *pattern, int caseinsensitive )
+/*
+=============================================================================
+
+WAD LOADING
+
+=============================================================================
+*/
+
+
+typedef struct wadtype_s
 {
-	stringlist_t	resultlist;
-	search_t		*search = NULL;
-	int		i, k, resultlistindex, numfiles, numchars;
-	wadfile_t		*w;
+	char	*ext;
+	int	type;
+} wadtype_t;
 
-	// no wads loaded
-	if(!fs_searchwads) return NULL;
-	
-	stringlistinit(&resultlist);
-	for( k = 0; k < Mem_ArraySize( fs_searchwads ); k++ )
-	{
-		// lookup all wads in list
-		w = (wadfile_t *)Mem_GetElement( fs_searchwads, k );
-		if( !w ) continue;
-
-		for(i = 0; i < (uint)w->numlumps; i++)
-		{
-			if(SC_FilterToken( (char *)pattern, w->lumps[i].name, !caseinsensitive ))
-				stringlistappend(&resultlist, w->lumps[i].name);
-		}
-	}
-
-	// sorting result
-	if (resultlist.numstrings)
-	{
-		stringlistsort(&resultlist);
-		numfiles = resultlist.numstrings;
-		numchars = 0;
-
-		for (resultlistindex = 0; resultlistindex < resultlist.numstrings; resultlistindex++)
-			numchars += (int)com_strlen(resultlist.strings[resultlistindex]) + 1;
-		search = Malloc(sizeof(search_t) + numchars + numfiles * sizeof(char *));
-		search->filenames = (char **)((char *)search + sizeof(search_t));
-		search->filenamesbuffer = (char *)((char *)search + sizeof(search_t) + numfiles * sizeof(char *));
-		search->numfilenames = (int)numfiles;
-		numfiles = 0;
-		numchars = 0;
-		for (resultlistindex = 0; resultlistindex < resultlist.numstrings; resultlistindex++)
-		{
-			size_t textlen;
-			search->filenames[numfiles] = search->filenamesbuffer + numchars;
-			textlen = com_strlen(resultlist.strings[resultlistindex]) + 1;
-			Mem_Copy(search->filenames[numfiles], resultlist.strings[resultlistindex], textlen);
-			numfiles++;
-			numchars += (int)textlen;
-		}
-	}
-	stringlistfreecontents(&resultlist);
-
-	return search;
-}
+wadtype_t wad_types[] =
+{
+	// associate extension with wad type
+	{"pal", TYPE_QPAL	},
+	{"lmp", TYPE_QPIC	}, // quake1, hl pic
+	{"mip", TYPE_MIPTEX2}, // hl texture
+	{"mip", TYPE_MIPTEX }, // quake1 mip
+	{"raw", TYPE_RAW	}, // signed raw data
+	{"fnt", TYPE_QFONT	}, // qfont structure (e.g. fonts.wad in hl1)
+	{"dds", TYPE_MIPDDS	}, // dds texture
+	{"tga", TYPE_MIPTGA	}, // tga texture
+	{"dat", TYPE_VPROGS	}, // QC progs
+	{"txt", TYPE_SCRIPT	}, // txt script file
+	{"mdl", TYPE_STUDIO	}, // studio model
+	{"spr", TYPE_SPRITE	}, // sprite
+	{"wav", TYPE_SOUND	}, // sound
+	{NULL, TYPE_NONE }
+};
 
 /*
 ===========
@@ -1808,7 +1793,7 @@ static byte *FS_OpenWadFile( const char *name, fs_offset_t *filesizeptr, int mat
 		{
 			if(!com_strcmp(texname, w->lumps[i].name))
 			{
-				byte		*buf;
+				byte		*buf, *cbuf;
 				size_t		size;
 
 				if(matchtype != (int)w->lumps[i].type) return NULL; // try next type
@@ -1817,16 +1802,57 @@ static byte *FS_OpenWadFile( const char *name, fs_offset_t *filesizeptr, int mat
 					MsgDev(D_ERROR, "FS_OpenWadFile: %s probably corrupted\n", texname );
 					return NULL;
 				}
-				buf = (byte *)Mem_Alloc( fs_mempool, w->lumps[i].disksize );
-				size = FS_Read(w->file, buf, w->lumps[i].disksize );
-				if( size < w->lumps[i].disksize )
+				switch((int)w->lumps[i].compression)
 				{
-					MsgDev(D_WARN, "FS_OpenWadFile: lump %s is corrupt\n", texname );
+				case CMP_NONE:
+					buf = (byte *)Mem_Alloc( fs_mempool, w->lumps[i].disksize );
+					size = FS_Read(w->file, buf, w->lumps[i].disksize );
+					if( size < w->lumps[i].disksize )
+					{
+						Mem_Free( buf );
+						MsgDev(D_WARN, "FS_OpenWadFile: %s probably corrupted\n", texname );
+						return NULL;
+					}
+					break;
+				case CMP_LZSS:
+					// never used by Id Software or Valve ?
+					MsgDev(D_WARN, "FS_OpenWadFile: lump %s have unsupported compression type\n", texname );
 					return NULL;
-				}
+				case CMP_ZLIB:
+					cbuf = (byte *)Mem_Alloc( fs_mempool, w->lumps[i].disksize );
+					size = FS_Read(w->file, cbuf, w->lumps[i].disksize );
+					buf = (byte *)Mem_Alloc( fs_mempool, w->lumps[i].size );
+					if(!VFS_Unpack( cbuf, size, &buf, w->lumps[i].size ))
+					{
+						Mem_Free( buf ), Mem_Free( cbuf );
+						MsgDev(D_WARN, "FS_OpenWadFile: %s probably corrupted\n", texname );
+						return NULL;
+					}
+					Mem_Free( cbuf ); // no reason to keep this data
+					break;
+				}					
 				if(filesizeptr) *filesizeptr = w->lumps[i].disksize;
 				return buf;
 			}
+		}
+	}
+	return NULL;
+}
+
+byte *FS_LoadFileFromWAD( const char *path, fs_offset_t *filesizeptr )
+{
+	wadtype_t		*type;
+          const char	*ext = FS_FileExtension( path );
+	bool		anyformat = !com_stricmp(ext, "") ? true : false;
+	byte		*f;
+
+	// now try all the formats in the selected list
+	for (type = wad_types; type->ext; type++)
+	{
+		if(anyformat || !com_stricmp( ext, type->ext ))
+		{
+			f = FS_OpenWadFile( path, filesizeptr, type->type );
+			if( f ) return f; // found
 		}
 	}
 	return NULL;
@@ -2356,33 +2382,13 @@ byte *FS_LoadFile (const char *path, fs_offset_t *filesizeptr )
 	if (file)
 	{
 		filesize = file->real_length;
-		buf = (byte *)Malloc(filesize + 1);
+		buf = (byte *)Mem_Alloc(fs_mempool, filesize + 1);
 		buf[filesize] = '\0';
 		FS_Read (file, buf, filesize);
 		FS_Close (file);
 	}
-	else if(!com_stricmp("mip", ext ))
-	{
-		// mip-texture form quake1 or half-life 
-		buf = FS_OpenWadFile( path, &filesize, TYPE_MIPTEX );
-		if(!buf) buf = FS_OpenWadFile( path, &filesize, TYPE_MIPTEX2 );
-	}
-	else if(!com_stricmp("lmp", ext ))
-	{
-		// qpic from quake1 or half-life 
-		buf = FS_OpenWadFile( path, &filesize, TYPE_QPIC );
-	}
-	else if(!com_stricmp("fnt", ext ))
-	{
-		// half-life qfont lump
-		buf = FS_OpenWadFile( path, &filesize, TYPE_QFONT );
-	}
-	else if(!com_stricmp("pal", ext ))
-	{
-		// quake1 palette lump
-		buf = FS_OpenWadFile( path, &filesize, TYPE_QPAL );
-	}
-		
+	else buf = FS_LoadFileFromWAD( path, &filesize );
+
 	if(filesizeptr) *filesizeptr = filesize;
 	return buf;
 }
@@ -2512,7 +2518,7 @@ static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet 
 	search_t *search;
 	searchpath_t *searchpath;
 	pack_t *pak;
-	int i, basepathlength, numfiles, numchars, resultlistindex, dirlistindex;
+	int i, k, basepathlength, numfiles, numchars, resultlistindex, dirlistindex;
 	stringlist_t resultlist;
 	stringlist_t dirlist;
 	const char *slash, *backslash, *colon, *separator;
@@ -2603,6 +2609,41 @@ static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet 
 				}
 			}
 			stringlistfreecontents(&dirlist);
+		}
+	}
+
+	// also lookup all wad-files
+	if( fs_searchwads )
+	{
+		wadtype_t		*type;
+		wadfile_t		*w; // names will be associated with lump types
+		const char	*ext = FS_FileExtension( pattern );
+         		bool		anyformat = !com_stricmp(ext, "*") ? true : false;
+		char		lumpname[MAX_SYSPATH];
+
+		FS_FileBase( (char *)pattern, lumpname );
+
+		// lookup all wads in list
+		for( k = 0; k < Mem_ArraySize( fs_searchwads ); k++ )
+		{
+			w = (wadfile_t *)Mem_GetElement( fs_searchwads, k );
+			if( !w ) continue;
+
+			for(i = 0; i < (uint)w->numlumps; i++)
+			{
+				for (type = wad_types; type->ext; type++)
+				{
+					// associate extension with lump->type
+					if(anyformat || (!com_stricmp( ext, type->ext ) && type->type == (int)w->lumps[i].type))
+					{
+						if(SC_FilterToken(lumpname, w->lumps[i].name, !caseinsensitive ))
+						{
+							stringlistappend(&resultlist, w->lumps[i].name);
+							break; // found, compare to next lump
+						}
+					}
+				}
+			}
 		}
 	}
 

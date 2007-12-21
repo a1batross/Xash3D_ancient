@@ -472,26 +472,7 @@ bool ROQ_ParseMovieScript (void)
 		else if (Com_MatchToken( "$framemask" )) Cmd_FrameMask();
 		else if (Com_MatchToken( "$sound" )) Cmd_Sound();
 		else if (Com_MatchToken( "$quality")) Cmd_Quality();
-		else if(Com_MatchToken( "$modelname" ))	// check for studiomdl script
-		{
-			Msg("%s probably studio qc.script, skipping...\n", gs_mapname );
-			return false;
-		}	
-		else if(Com_MatchToken( "$body" ))	// check for studiomdl script
-		{
-			Msg("%s probably studio qc.script, skipping...\n", gs_mapname );
-			return false;
-		}
-		else if (Com_MatchToken("$spritename"))	// check for spritegen script
-		{
-			Msg("%s probably spritegen qc.script, skipping...\n", gs_mapname );
-			return false;
-		}
-		else if (Com_MatchToken("$frame"))	// check for spritegen script
-		{
-			Msg("%s probably spritegen qc.script, skipping...\n", gs_mapname );
-			return false;
-		}
+		else if (!Com_ValidScript( QC_ROQLIB )) return false;
 		else Cmd_MovieUnknown();
 	}
 	return true;

@@ -83,6 +83,16 @@ extern bool host_debug;
 extern byte *qccpool;
 extern byte *studiopool;
 
+enum
+{
+	QC_SPRITEGEN = 1,
+	QC_STUDIOMDL,
+	QC_ROQLIB,
+	QC_WADLIB
+};
+
+bool Com_ValidScript( int scripttype );
+
 // misc common functions
 byte *ReadBMP (char *filename, byte **palette, int *width, int *height);
 
@@ -90,6 +100,7 @@ byte *ReadBMP (char *filename, byte **palette, int *width, int *height);
 bool CompileStudioModel ( byte *mempool, const char *name, byte parms );
 bool CompileSpriteModel ( byte *mempool, const char *name, byte parms );
 bool ConvertImagePixels ( byte *mempool, const char *name, byte parms );
+bool CompileWad3Archive ( byte *mempool, const char *name, byte parms );
 bool CompileROQVideo( byte *mempool, const char *name, byte parms );
 bool PrepareBSPModel ( const char *dir, const char *name, byte params );
 bool CompileBSPModel ( void );

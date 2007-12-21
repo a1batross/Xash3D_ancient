@@ -1569,19 +1569,35 @@ typedef struct mip_s
 /*
 ========================================================================
 
-.WAD archive format	(WhereAllData - WAD) Half-Life textures
+.WAD archive format	(WhereAllData - WAD)
 
 ========================================================================
 */
+#define IDIWADHEADER	(('D'<<24)+('A'<<16)+('W'<<8)+'I')	// little-endian "IWAD" doom1 game wad
+#define IDPWADHEADER	(('D'<<24)+('A'<<16)+('W'<<8)+'P')	// little-endian "PWAD" doom1 game wad
 #define IDWAD2HEADER	(('2'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD2" quake1 gfx.wad
 #define IDWAD3HEADER	(('3'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD3" half-life wads
 #define WAD3_NAMELEN	16
 
-#define	TYPE_QPAL		64
+#define	CMP_NONE		0	// compression none
+#define	CMP_LZSS		1	// RLE compression ?
+#define	CMP_ZLIB		2	// zip-archive compression
+
+#define	TYPE_NONE		0	// blank lump
+#define	TYPE_QPAL		64	// quake palette
+#define	TYPE_QTEX		65	// probably was never used
 #define	TYPE_QPIC		66	// quake1 and hl pic (lmp_t)
 #define	TYPE_MIPTEX2	67	// half-life (mip_t) previous TYP_SOUND but never used in quake1
 #define	TYPE_MIPTEX	68	// quake1 (mip_t)
+#define	TYPE_RAW		69	// raw data
 #define	TYPE_QFONT	70	// half-life font	(qfont_t)
+#define	TYPE_MIPDDS	71	// Xash3D dds texture
+#define	TYPE_MIPTGA	72	// Xash3D tga texture
+#define	TYPE_VPROGS	73	// Xash3D QC progs
+#define	TYPE_SCRIPT	74	// txt script file (e.g. shader)
+#define	TYPE_STUDIO	75	// studio models
+#define	TYPE_SPRITE	76	// normal sprite
+#define	TYPE_SOUND	77	// wav data
 
 #define	QCHAR_WIDTH	16
 #define	QFONT_WIDTH	16	// valve fonts used contant sizes	
@@ -1621,20 +1637,6 @@ typedef struct
 	charset		fontinfo[256];
 	byte 		data[4];		// variable sized
 } qfont_t;
-
-/*
-========================================================================
-
-.FLAT image format	(Doom I\II textures)
-
-========================================================================
-*/
-typedef struct flat_s
-{
-	short	width;
-	short	height;
-	long	desc;		// image desc (not used)
-} flat_t;
 
 /*
 ========================================================================

@@ -4,71 +4,32 @@
 Коллижен менеджер (который фейсы добавляет) на версии 1.53 вылетает при парсинге половины q2 карт почему-то.
 DDS Converter 2.1 некорректно высчитывает размер dds файла (баг в devil ?), юзаем только nvdxt
 
-Quake1			Quake2
-SV_MoveBounds		SV_TraceBounds
-SV_Move			SV_Trace
-SV_ClipMoveToEntity		CM_BoxTrace
-SV_ClipToLinks		SV_ClipMoveToEntities
-
-case TYPE_Q1MIP:
-	if(FS_Seek(w->file, w->lumps[i].filepos - w->lumps[i].size, SEEK_SET))
-	{
-		MsgDev(D_ERROR, "FS_OpenWad3File: corrupt WAD3 file\n");
-		return NULL;
-	}
-default:
-if(FS_Seek(w->file, w->lumps[i].filepos, SEEK_SET))
-{
-	MsgDev(D_ERROR, "FS_OpenWad3File: corrupt WAD3 file\n");
-	return NULL;
-}
-
-studioframeadvance
-studiorewindframe
-
-length = maxchars
-
-widthInChars = visible_length
-maxchars = length
-scroll = visible_offset
-
 // замеченные баги
 1. не выводится текущее значение переменной в консоль		OK
 2. imglib не выводит сообщения в консоль			OK
 3. SC_ParseToken вылетает при парсинге сейв-файла
 4. где-то бьется буффер при -dev 6
 
-Имплементация roqlib
-1. Вернуть read\save codebook			OK
-2. подключить звуковой кодер
+создание wadlib:
+1. придумать синтаксис
 
-1. перевести утилиты в консольный режим		OK
-2. Имплементация save-restore для физики
-
-Смена формата карты: новая версия bsp		39 XashBSP format
-1. Избавиться от short side в dface_t (перевести рендер в новый режим работы)
-2. сжать entlump зипом
-3. добавить LUMP_MAPINFO (для быстрого поиска имени карты)
-4. переписать все свапы для лумпов
-5. придумать как уменьшить размер карты
-
-научить imagelib читать якобы странные картинки creditsfont и conchars (хотя бы conchars)
-
-typedef struct
-{
-	char	mapname[64];	// internal map name
-	char	builddate[32];	// map builddate
-	char	mpentity[32];	// name of multiplayer start entity, like "info_player_deathmath"
-	char	svprogs[32];	// name of custom server.dat (just for debugging)
-	uint	mapversion;	// should be 220 ?
-	uint	checksum;		// compared with COM_Checksum		
-
-} dmapinfo_t;
-
+Текущие задачи:
+1. ввести новые типы для вадов				OK
+2. имлементировать таблицу для их поиска внутри вада		OK
+3. Имплементировать FS_SearchLump в FS_Search			OK
+4. Создать wadlib с поддержкой компрессии лумпов			OK
+5. высвободить память, выделенную в FS_OpenWad3 в imglib		OK
+6. Тест на различные типы файлов, документация
+7. подключить звуковой кодер к roqlib
+8. Имплементация save-restore для физики
+9. Избавиться от оригинальной партиклевой системы
+10. Создать функцию R_CreateImage для удобства
+11. Заменить уже gs_mapname на gs_filename (ато заебало)
 
 //==================================================
 //		то, что уже готово
 //==================================================
++поддержка всех типов для вадов тщательно оттестирована
 +добавлена поддержка ВСЕХ существующих типов внутри вадов
 +добавлена поддержка wad-файлов
 +наконец-то добавлена аппаратная гамма

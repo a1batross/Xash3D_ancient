@@ -98,7 +98,6 @@ void Sys_GetStdAPI( void )
 	com.Com_ParseToken = SC_ParseToken;		// parse token from char buffer
 	com.Com_ParseWord = SC_ParseWord;		// parse word from char buffer
 	com.Com_Search = FS_Search;			// returned list of founded files
-	com.Com_SearchLump = FS_SearchLump;		// returned list of founded images in wadfile
 	com.Com_Filter = SC_FilterToken;		// compare keyword by mask with filter
 	com.com_token = token;			// contains current token
 
@@ -293,11 +292,11 @@ void Sys_LookupInstance( void )
 		com_sprintf(Sys.log_path, "%s/studiomdl.log", sys_rootdir ); // same as .exe file
 		com_strcpy(Sys.caption, "Xash3D Studio Models Compiler");
 	}
-	else if(!com_strcmp(Sys.progname, "paklib"))
+	else if(!com_strcmp(Sys.progname, "wadlib"))
 	{
-		Sys.app_name = PAKLIB;
+		Sys.app_name = WADLIB;
 		Sys.linked_dll = &common_dll;	// pointer to common.dll info
-		com_sprintf(Sys.log_path, "%s/paklib.log", sys_rootdir ); // same as .exe file
+		com_sprintf(Sys.log_path, "%s/wadlib.log", sys_rootdir ); // same as .exe file
 		com_strcpy(Sys.caption, "Xash3D Pak\\Pk3 maker");
 	}
 	else if(!com_strcmp(Sys.progname, "credits")) // easter egg
@@ -341,7 +340,7 @@ void Sys_CreateInstance( void )
 	case IMGLIB:
 	case SPRITE:
 	case STUDIO:
-	case PAKLIB:
+	case WADLIB:
 		CreateHost = (void *)Sys.linked_dll->main;
 		Host = CreateHost( &com, NULL ); // second interface not allowed
 		Sys.Init = Host->Init;
@@ -358,7 +357,7 @@ void Sys_CreateInstance( void )
 		Sys_Exit();
 		break;
 	case HOST_OFFLINE:
-		Sys_Break("Host offline\n Press \"ESC\" to exit\n");		
+		Sys_Break("Host offline\n");		
 		break;
 	}
 
@@ -384,7 +383,7 @@ void Sys_CreateInstance( void )
 	case IMGLIB:
 	case SPRITE:
 	case STUDIO:
-	case PAKLIB:
+	case WADLIB:
 		// always run stuffcmds for current instances
 		Cbuf_ExecuteText( EXEC_NOW, "stuffcmds\n" );
 		break;

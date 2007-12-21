@@ -138,7 +138,7 @@ enum host_state
 	ROQLIB,		// "roqlib"
 	SPRITE,		// "sprite"
 	STUDIO,		// "studio"
-	PAKLIB,		// "paklib"
+	WADLIB,		// "wadlib"
 	CREDITS,		// "splash"
 	HOST_INSTALL,	// "install"
 };

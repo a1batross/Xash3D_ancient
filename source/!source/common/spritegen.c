@@ -355,26 +355,7 @@ bool ParseSpriteScript (void)
 		else if (Com_MatchToken( "$color" )) Cmd_Color();
 		else if (Com_MatchToken( "$load" )) Cmd_Load();
 		else if (Com_MatchToken( "$type" )) Cmd_Type();
-		else if(Com_MatchToken( "$modelname" ))//check for studiomdl script
-		{
-			Msg("%s probably studio qc.script, skipping...\n", gs_mapname );
-			return false;
-		}	
-		else if(Com_MatchToken( "$body" ))//check for studiomdl script
-		{
-			Msg("%s probably studio qc.script, skipping...\n", gs_mapname );
-			return false;
-		}
-		else if(Com_MatchToken( "$videoname" ))//check for studiomdl script
-		{
-			Msg("%s probably roq movie qc.script, skipping...\n", gs_mapname );
-			return false;
-		}
-		else if(Com_MatchToken( "$framemask" ))//check for studiomdl script
-		{
-			Msg("%s probably roq movie qc.script, skipping...\n", gs_mapname );
-			return false;
-		}
+		else if (!Com_ValidScript( QC_SPRITEGEN )) return false;
 		else Cmd_SpriteUnknown();
 	}
 	return true;

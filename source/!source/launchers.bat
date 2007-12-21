@@ -25,7 +25,7 @@ cd install
 makefile.nmake
 
 cd ..
-cd paklib
+cd wadlib
 makefile.nmake
 
 cd ..

@@ -1972,7 +1972,7 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 	// now try all the formats in the selected list
 	for (format = load_formats; format->formatstring; format++)
 	{
-		if(anyformat || !stricmp(ext, format->ext ))
+		if(anyformat || !com_stricmp(ext, format->ext ))
 		{
 			com_sprintf (path, format->formatstring, loadname, "", format->ext );
 			f = FS_LoadFile( path, &filesize );
@@ -1981,7 +1981,10 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 				// this name will be used only for tell user about problems 
 				FS_FileBase( path, texname );
 				if( format->loadfunc(texname, f, filesize ))
-					return ImagePack(); //loaded
+				{
+					Mem_Free(f); // release buffer
+					return ImagePack(); // loaded
+				}
 			}
 		}
 	}
@@ -2004,6 +2007,7 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 						if(FS_AddImageToPack(va("%s%s.%s", loadname, suf[i], format->ext)))
 							break; // loaded
 					}
+					Mem_Free(f);
 				}
 			}
 		}
@@ -2028,7 +2032,7 @@ rgbdata_t *FS_LoadImage(const char *filename, char *buffer, int buffsize )
 
 	for (format = load_formats; format->formatstring; format++)
 	{
-		if(anyformat || !stricmp(ext, format->ext ))
+		if(anyformat || !com_stricmp(ext, format->ext ))
 		{
 			if(buffer && buffsize > 0)
 			{

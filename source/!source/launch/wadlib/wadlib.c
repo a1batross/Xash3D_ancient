@@ -4,4 +4,4 @@
 
 #include "../rundll.h"
 
-Run( paklib );
+Run( wadlib );

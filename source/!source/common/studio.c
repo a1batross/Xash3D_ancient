@@ -2502,26 +2502,7 @@ bool ParseModelScript (void)
 		else if (Com_MatchToken("$renamebone")) Cmd_Renamebone ();
 		else if (Com_MatchToken("$texrendermode")) Cmd_TexRenderMode();
 		else if (Com_MatchToken("$replacetexture")) Cmd_Replace();
-		else if (Com_MatchToken("$spritename"))
-		{
-			Msg("%s probably spritegen qc.script, skipping...\n", gs_mapname );
-			return false;
-		}
-		else if (Com_MatchToken("$frame"))
-		{
-			Msg("%s probably spritegen qc.script, skipping...\n", gs_mapname );
-			return false;
-		}
-		else if(Com_MatchToken( "$videoname" ))//check for studiomdl script
-		{
-			Msg("%s probably roq movie qc.script, skipping...\n", gs_mapname );
-			return false;
-		}
-		else if(Com_MatchToken( "$framemask" ))//check for studiomdl script
-		{
-			Msg("%s probably roq movie qc.script, skipping...\n", gs_mapname );
-			return false;
-		}
+		else if (!Com_ValidScript( QC_STUDIOMDL )) return false;
 		else Cmd_StudioUnknown();
 	}
 

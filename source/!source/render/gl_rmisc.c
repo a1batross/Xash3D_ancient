@@ -24,6 +24,40 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 /*
 ==================
+R_CreateNoTexture
+
+Quake3 style notexture
+==================
+*/
+static void R_CreateNoTexture( void )
+{
+	int		x;
+	byte		data[16][16][4];
+	rgbdata_t 	r_tex;
+
+	// the default image will be a box, to allow you to see the mapping coordinates
+	memset( data, 32, sizeof(data));
+	memset(&r_tex, 0, sizeof(r_tex));
+	
+	for ( x = 0; x < 16; x++ )
+	{
+		data[0][x][0] = data[0][x][1] = data[0][x][2] = data[0][x][3] = 255;
+		data[x][0][0] = data[x][0][1] = data[x][0][2] = data[x][0][3] = 255;
+		data[15][x][0] = data[15][x][1] = data[15][x][2] = data[15][x][3] = 255;
+		data[x][15][0] = data[x][15][1] = data[x][15][2] = data[x][15][3] = 255;
+	}
+
+	r_tex.width = 16;
+	r_tex.height = 16;
+	r_tex.type = PF_RGBA_GN; // generated
+	r_tex.size = r_tex.width * r_tex.height * 4;
+	r_tex.numMips = 1;
+	r_tex.buffer = (byte *)data;
+	r_notexture = R_LoadImage("*r_notexture", &r_tex, it_wall );
+}
+
+/*
+==================
 R_InitParticleTexture
 ==================
 */

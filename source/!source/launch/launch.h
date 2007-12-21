@@ -248,7 +248,6 @@ void FS_FreeImage( rgbdata_t *pack );
 bool Image_Processing( const char *name, rgbdata_t **pix );
 search_t *FS_Search(const char *pattern, int caseinsensitive );
 search_t *FS_SearchDirs(const char *pattern, int caseinsensitive );
-search_t *FS_SearchLump( const char *pattern, int caseinsensitive );
 
 // files managment (like fopen, fread etc)
 file_t *FS_Open (const char* filepath, const char* mode );

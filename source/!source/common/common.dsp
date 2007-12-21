@@ -249,6 +249,10 @@ SOURCE=.\utils.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\wadlib.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\bsplib\winding.c
 # End Source File
 # Begin Source File

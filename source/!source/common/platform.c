@@ -72,7 +72,7 @@ void InitPlatform ( uint funcname, int argc, char **argv )
 	case IMGLIB:
 	case SPRITE:
 	case STUDIO:
-	case PAKLIB:
+	case WADLIB:
 		FS_InitRootDir(".");
 		start = Sys_DoubleTime();
 		break;
@@ -112,7 +112,7 @@ void RunPlatform ( void )
 		strcpy(searchmask[2], "*.wal" );	// quake2 textures
 		strcpy(searchmask[3], "*.lmp" );	// quake1 menu images
 		strcpy(searchmask[4], "*.mip" );	// quake1 textures
-		strcpy(searchmask[5], ".wad3" );	// half-life textures
+		strcpy(searchmask[5], "*.fnt" );	// half-life fonts
 		Msg("Processing images ...\n\n");
 		break;		
 	case BSPLIB: 
@@ -120,13 +120,14 @@ void RunPlatform ( void )
 		strcpy(searchmask[0], "*.map" );
 		CompileBSPModel(); 
 		break;
-	case PAKLIB:
-		Sys_Break("not implemented\n");
+	case WADLIB:
+		CompileMod = CompileWad3Archive;
+		strcpy(typemod, "wads" );
+		strcpy(searchmask[0], "*.qc" );
 		break;
 	case QCCLIB: 
 		strcpy(typemod, "progs" );
 		strcpy(searchmask[0], "*.src" );
-		strcpy(searchmask[1], "*.qc" );	// no longer used
 		CompileDATProgs(); 
 		break;
 	case ROQLIB:
@@ -148,10 +149,8 @@ void RunPlatform ( void )
 		for( i = 0; i < 8; i++)
 		{
 			// skip blank mask
-			if(!strlen(searchmask[i])) continue;
-			if(com.stricmp(searchmask[i], ".wad3" ))
-				search = FS_Search( searchmask[i], true );
-			else search = FS_SearchLump( "*", true ); // hl-textures
+			if(!com.strlen(searchmask[i])) continue;
+			search = FS_Search( searchmask[i], true );
 			if(!search) continue; // try next mask
 
 			for( j = 0; j < search->numfilenames; j++ )
@@ -180,7 +179,7 @@ elapced_time:
 
 void FreePlatform ( void )
 {
-	//Mem_Check(); // check for leaks
+	Mem_Check(); // check for leaks
 	Mem_FreePool( &basepool );
 	Mem_FreePool( &zonepool );
 }

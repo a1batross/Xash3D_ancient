@@ -92,7 +92,6 @@ typedef struct stdilib_api_s
 	char *(*Com_ParseToken)(const char **data );		// parse token from char buffer
 	char *(*Com_ParseWord)( const char **data );		// parse word from char buffer
 	search_t *(*Com_Search)(const char *pattern, int casecmp );	// returned list of found files
-	search_t *(*Com_SearchLump)(const char *pat, int casecmp );	// returned list of found lumps in wad files
 	bool (*Com_Filter)(char *filter, char *name, int casecmp ); // compare keyword by mask with filter
 	char *com_token;					// contains current token
 
@@ -253,7 +252,6 @@ filesystem manager
 #define FS_InitRootDir		com.Com_InitRootDir
 #define FS_LoadFile			com.Com_LoadFile
 #define FS_Search			com.Com_Search
-#define FS_SearchLump		com.Com_SearchLump
 #define FS_WriteFile		com.Com_WriteFile
 #define FS_Open( path, mode )		com.fopen( path, mode )
 #define FS_Read( file, buffer, size )	com.fread( file, buffer, size )
