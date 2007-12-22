@@ -13,6 +13,7 @@ dwadinfo_t	wadfile; // main header
 int		wadheader;
 int		numlumps = 0;
 bool		compress_lumps = false;
+bool		allow_compression = false;
 file_t		*handle = NULL;
 
 void Wad3_NewWad( void )
@@ -25,20 +26,65 @@ void Wad3_NewWad( void )
 	numlumps = 0;
 }
 
+int Lump_GetFileType( const char *name, byte *buf )
+{
+	const char *ext = FS_FileExtension( name );
+
+	if(!buf) return TYPE_NONE;
+
+	switch(LittleLong(*(uint *)buf))
+	{
+	case IDSPRITEHEADER: return TYPE_SPRITE;
+	case IDSTUDIOHEADER: return TYPE_STUDIO;
+	case DDSHEADER: return TYPE_MIPDDS;
+	}
+
+	// otherwise get file type by extension
+	if(!com.stricmp( ext, "tga" )) return TYPE_MIPTGA;
+	else if(!com.stricmp( ext, "mip" )) 
+	{
+		if(wadheader == IDWAD3HEADER)
+			return TYPE_MIPTEX2; // half-life texture
+		return TYPE_MIPTEX;	// quake1 texture
+	}
+	else if(!com.stricmp( ext, "lmp" )) return TYPE_QPIC;	// hud pics
+	else if(!com.stricmp( ext, "pal" )) return TYPE_QPAL;	// palette
+	else if(!com.stricmp( ext, "wav" )) return TYPE_SOUND;	// wav sound
+	else if(!com.stricmp( ext, "txt" )) return TYPE_SCRIPT;	// text file
+	else if(!com.stricmp( ext, "dat" )) return TYPE_VPROGS;	// qc progs
+	else if(!com.stricmp( ext, "raw" )) return TYPE_RAW;	// raw data
+	else if(!com.stricmp( ext, "ent" )) return TYPE_ENTFILE;	// ents file
+	
+	// no compares found
+	return TYPE_NONE;
+}
+
 /*
 ===============
 AddLump
 ===============
 */
-void Wad3_AddLump( const char *name, void *buffer, int length, int type, bool compress )
+void Wad3_AddLump( const char *name, bool compress )
 {
 	dlumpinfo_t	*info;
-	int		ofs;
+	byte		*buffer;
+	int		ofs, type, length;
 
-	if(!buffer || type == TYPE_NONE)
+	Msg("Add lump %s\n", name );
+
+	// we can load file from another wad
+	buffer = FS_LoadFile( name, &length );
+	type = Lump_GetFileType( name, buffer );
+
+	if(!buffer)
 	{
 		MsgWarn("Wad3_AddLump: file %s not found\n", name ); 
 		return;
+	}
+	if(type == TYPE_NONE)
+	{
+		MsgWarn("Wad3_AddLump: file %s have unsupported type\n", name ); 
+		return;		
 	}
 
 	FS_FileBase( (char *)name, lumpname );
@@ -75,35 +121,8 @@ void Wad3_AddLump( const char *name, void *buffer, int length, int type, bool co
 		info->size = info->disksize = LittleLong( length );
 		FS_Write( handle, buffer, length ); // just write file
 	}
+	Mem_Free( buffer );
 	MsgDev(D_NOTE, "AddLump: %s, size %d\n", info->name, info->disksize );
-}
-
-int Lump_GetFileType( const char *name, byte *buf )
-{
-	const char *ext = FS_FileExtension( name );
-
-	if(!buf) return TYPE_NONE;
-
-	switch(LittleLong(*(uint *)buf))
-	{
-	case IDSPRITEHEADER: return TYPE_SPRITE;
-	case IDSTUDIOHEADER: return TYPE_STUDIO;
-	case DDSHEADER: return TYPE_MIPDDS;
-	}
-
-	// otherwise get file type by extension
-	if(!com.stricmp( ext, "tga" )) return TYPE_MIPTGA;
-	else if(!com.stricmp( ext, "mip" )) return TYPE_MIPTEX;	// quake1 texture
-	else if(!com.stricmp( ext, "tex" )) return TYPE_MIPTEX2;	// half-life texture
-	else if(!com.stricmp( ext, "lmp" )) return TYPE_QPIC;	// hud pics
-	else if(!com.stricmp( ext, "pal" )) return TYPE_QPAL;	// palette	
-	else if(!com.stricmp( ext, "wav" )) return TYPE_SOUND;	// wav sound
-	else if(!com.stricmp( ext, "txt" )) return TYPE_SCRIPT;	// text file
-	else if(!com.stricmp( ext, "dat" )) return TYPE_VPROGS;	// qc progs
-	else if(!com.stricmp( ext, "raw" )) return TYPE_RAW;	// raw data
-
-	// no compares found
-	return TYPE_NONE;
 }
 
 void Cmd_WadName( void )
@@ -116,28 +135,57 @@ void Cmd_WadType( void )
 {
 	Com_GetToken( false );
 
-	if (Com_MatchToken( "wad3")) wadheader = IDWAD3HEADER;
-	else if (Com_MatchToken( "wad2")) wadheader = IDWAD2HEADER;
+	if(Com_MatchToken( "Quake1") || Com_MatchToken( "Q1"))
+	{
+		wadheader = IDWAD2HEADER;
+	}
+	else if(Com_MatchToken( "Half-Life") || Com_MatchToken( "Hl1"))
+	{
+		wadheader = IDWAD3HEADER;
+	}
+	else if(Com_MatchToken( "Xash3D"))
+	{
+		wadheader = IDWAD4HEADER;
+	}
 	else wadheader = IDWAD3HEADER; // default
 }
 
 void Cmd_AddLump( void )
 {
-	int	depth = 0;
 	char	filename[MAX_SYSPATH];
-	byte	*buf;
-	size_t	filesize;
 	bool	compress = false;
 
 	Com_GetToken( false );
 	com.strncpy( filename, com_token, sizeof(filename));
-	if(Com_TryToken()) compress = true; 
-	if( compress_lumps ) compress = true;
 
-	Msg("loadfile %s\n", filename );
-	// we can load file from another wad ;)
-	buf = FS_LoadFile( filename, &filesize );
-	Wad3_AddLump( filename, buf, filesize, Lump_GetFileType( filename, buf ), compress );
+	if( allow_compression )
+	{
+		if(Com_TryToken()) compress = true; 
+		if(compress_lumps) compress = true;
+	}
+
+	Wad3_AddLump( filename, compress );
+}
+
+void Cmd_AddLumps( void )
+{
+	int	i, compress = false;
+	search_t	*t;
+
+	Com_GetToken( false );
+	t = FS_Search( com_token, true );
+	if(!t) return;
+
+	if( allow_compression )
+	{
+		if(Com_TryToken()) compress = true; 
+		if(compress_lumps) compress = true;
+	}
+
+	for(i = 0; i < t->numfilenames; i++)
+	{
+		Wad3_AddLump( t->filenames[i], compress );
+	}
 }
 
 /*
@@ -149,7 +197,8 @@ syntax: "$compression"
 */
 void Cmd_WadCompress( void )
 {
-	compress_lumps = true;
+	if( allow_compression )
+		compress_lumps = true;
 }
 
 /*
@@ -167,11 +216,13 @@ void Cmd_WadUnknown( void )
 
 void ResetWADInfo( void )
 {
-	FS_FileBase(gs_mapname, wadoutname );//kill path and ext
-	FS_DefaultExtension( wadoutname, ".wad" );//set new ext
+	FS_FileBase( gs_mapname, wadoutname );		// kill path and ext
+	FS_DefaultExtension( wadoutname, ".wad" );	// set new ext
 	
 	memset (&wadheader, 0, sizeof(wadheader));
 	wadheader = IDWAD3HEADER;
+	compress_lumps = false;
+	allow_compression = false;
 	numlumps = 0;
 	handle = NULL;
 }
@@ -193,17 +244,18 @@ bool ParseWADfileScript( void )
 		else if (Com_MatchToken( "$wadtype" )) Cmd_WadType();
 		else if (Com_MatchToken( "$compression" )) Cmd_WadCompress();
 		else if (Com_MatchToken( "$addlump" )) Cmd_AddLump();
+		else if (Com_MatchToken( "$addlumps" )) Cmd_AddLumps();
 		else if (!Com_ValidScript( QC_WADLIB )) return false;
 		else Cmd_WadUnknown();
 	}
 	return true;
 }
 
-void WriteWADFile( void )
+bool WriteWADFile( void )
 {
 	int		ofs;
 
-	if(!handle) return;
+	if(!handle) return false;
 	
 	// write the lumpingo
 	ofs = FS_Tell( handle );
@@ -217,12 +269,8 @@ void WriteWADFile( void )
 	FS_Seek( handle, 0, SEEK_SET );
 	FS_Write( handle, &wadfile, sizeof(wadfile));
 	FS_Close( handle );
-}
 
-void ClearWADfile( void )
-{
-	compress_lumps = false;
-	handle = NULL;
+	return true;
 }
 
 bool BuildCurrentWAD( const char *name )
@@ -237,9 +285,7 @@ bool BuildCurrentWAD( const char *name )
 	{
 		if(!ParseWADfileScript())
 			return false;
-		WriteWADFile();
-		ClearWADfile();
-		return true;
+		return WriteWADFile();
 	}
 
 	Msg("%s not found\n", gs_mapname );

@@ -587,15 +587,8 @@ bool LoadMIP( char *name, char *buffer, int filesize )
 		// detect rendermode
 		if( name[0] == '{' )
 		{
-			// note: i trying determine transparent miptex by last color in palette
-			// e.g. valve used in their textures blue color (0,0,255)
-			// other cases for red (255,0,0) ang green (0,255,0) colors,
-			// otherwise - it will use decal palette with ugly results. ughgrrr..
-			if(pal[255*3+0] == 0 && pal[255*3+1] == 0 && pal[255*3+2] == 255 && pal[255*3+3] == 0)
-				rendermode = LUMP_TRANSPARENT;
-			else if(pal[255*3+0] == 0 && pal[255*3+1] == 255 && pal[255*3+2] == 0 && pal[255*3+3] == 0)
-				rendermode = LUMP_TRANSPARENT;
-			else if(pal[255*3+0] == 255 && pal[255*3+1] == 0 && pal[255*3+2] == 0 && pal[255*3+3] == 0)
+			// qlumpy used this color for transparent textures, otherwise it's decals
+ 			if(pal[255*3+0] == 0 && pal[255*3+1] == 0 && pal[255*3+2] == 255)
 				rendermode = LUMP_TRANSPARENT;
 			else rendermode = LUMP_DECAL;
 			image_flags |= IMAGE_HAS_ALPHA;

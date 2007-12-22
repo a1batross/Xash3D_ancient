@@ -1021,6 +1021,9 @@ static bool FS_AddWad3File( const char *filename )
 	case IDWAD3HEADER: 
 		com_strncpy( type, "Half-Life", 16 );
 		break; 
+	case IDWAD4HEADER:
+		com_strncpy( type, "Xash3D", 16 );
+		break;
 	default:
 		MsgDev(D_ERROR, "FS_AddWad3File: %s have invalid ident\n", filename );
 		FS_Close( file );
@@ -1752,6 +1755,7 @@ wadtype_t wad_types[] =
 	{"mdl", TYPE_STUDIO	}, // studio model
 	{"spr", TYPE_SPRITE	}, // sprite
 	{"wav", TYPE_SOUND	}, // sound
+	{"ent", TYPE_ENTFILE}, // ents description
 	{NULL, TYPE_NONE }
 };
 
@@ -2638,7 +2642,9 @@ static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet 
 					{
 						if(SC_FilterToken(lumpname, w->lumps[i].name, !caseinsensitive ))
 						{
-							stringlistappend(&resultlist, w->lumps[i].name);
+							com_strncpy(temp, w->lumps[i].name, sizeof(temp));
+							FS_DefaultExtension( temp, va(".%s", type->ext )); // make ext
+							stringlistappend(&resultlist, temp );
 							break; // found, compare to next lump
 						}
 					}

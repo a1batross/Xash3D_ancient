@@ -1577,6 +1577,7 @@ typedef struct mip_s
 #define IDPWADHEADER	(('D'<<24)+('A'<<16)+('W'<<8)+'P')	// little-endian "PWAD" doom1 game wad
 #define IDWAD2HEADER	(('2'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD2" quake1 gfx.wad
 #define IDWAD3HEADER	(('3'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD3" half-life wads
+#define IDWAD4HEADER	(('4'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD4" Xash3D wad type
 #define WAD3_NAMELEN	16
 
 #define	CMP_NONE		0	// compression none
@@ -1593,11 +1594,12 @@ typedef struct mip_s
 #define	TYPE_QFONT	70	// half-life font	(qfont_t)
 #define	TYPE_MIPDDS	71	// Xash3D dds texture
 #define	TYPE_MIPTGA	72	// Xash3D tga texture
-#define	TYPE_VPROGS	73	// Xash3D QC progs
+#define	TYPE_VPROGS	73	// Xash3D QC compiled progs
 #define	TYPE_SCRIPT	74	// txt script file (e.g. shader)
 #define	TYPE_STUDIO	75	// studio models
 #define	TYPE_SPRITE	76	// normal sprite
 #define	TYPE_SOUND	77	// wav data
+#define	TYPE_ENTFILE	78	// map entities description
 
 #define	QCHAR_WIDTH	16
 #define	QFONT_WIDTH	16	// valve fonts used contant sizes	

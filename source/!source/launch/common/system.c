@@ -297,7 +297,7 @@ void Sys_LookupInstance( void )
 		Sys.app_name = WADLIB;
 		Sys.linked_dll = &common_dll;	// pointer to common.dll info
 		com_sprintf(Sys.log_path, "%s/wadlib.log", sys_rootdir ); // same as .exe file
-		com_strcpy(Sys.caption, "Xash3D Pak\\Pk3 maker");
+		com_strcpy(Sys.caption, "Xash3D Wad2\\Wad3 maker");
 	}
 	else if(!com_strcmp(Sys.progname, "credits")) // easter egg
 	{
