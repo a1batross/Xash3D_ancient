@@ -1266,9 +1266,17 @@ bool LoadDDS( char *name, char *buffer, int filesize )
 	header.dwMipMapCount = BuffLittleLong(fin); fin += 4;
 	header.dwAlphaBitDepth = BuffLittleLong(fin); fin += 4;
 
-	// skip unused stuff
-	for (i = 0; i < 10; i++) 
+	for(i = 0; i < 3; i++)
 	{
+		header.fReflectivity[i] = BuffLittleFloat(fin);
+		fin += 4;
+	}
+
+	header.fBumpScale = BuffLittleFloat(fin); fin += 4;
+
+	for (i = 0; i < 6; i++) 
+	{
+		// skip unused stuff
 		header.dwReserved1[i] = BuffLittleLong(fin);
 		fin += 4;
 	}
@@ -2072,12 +2080,102 @@ void FS_FreeImage( rgbdata_t *pack )
 	image_size = 0;
 }
 
+bool SaveBMP( const char *filename, byte *data, int width, int height, bool alpha, int imagetype, byte *palette )
+{
+	file_t		*pfile = NULL;
+	BITMAPFILEHEADER	bmfh;
+	BITMAPINFOHEADER	bmih;
+	RGBQUAD		rgrgbPalette[256];
+	dword		cbBmpBits;
+	byte*		pbBmpBits;
+	byte		*pb, *pbPal = NULL;
+	dword		cbPalBytes;
+	dword		biTrueWidth;
+	int		i, rc = 0;
+
+	// bogus parameter check
+	if(!palette || !data ) return false;
+
+	pfile = FS_Open( filename, "wb");
+	if(!pfile) return false;
+
+	switch( imagetype )
+	{
+	case PF_INDEXED_24:
+	case PF_INDEXED_32:
+		break;
+	default:
+		MsgWarn("SaveBMP: unsupported image type %s\n", PFDesc[imagetype].name );
+		return false;
+	}
+
+	biTrueWidth = ((width + 3) & ~3);
+	cbBmpBits = biTrueWidth * height;
+	cbPalBytes = 256 * sizeof( RGBQUAD );
+
+	// Bogus file header check
+	bmfh.bfType = MAKEWORD( 'B', 'M' );
+	bmfh.bfSize = sizeof(bmfh) + sizeof(bmih) + cbBmpBits + cbPalBytes;
+	bmfh.bfReserved1 = 0;
+	bmfh.bfReserved2 = 0;
+	bmfh.bfOffBits = sizeof(bmfh) + sizeof(bmih) + cbPalBytes;
+
+	// write header
+	FS_Write( pfile, &bmfh, sizeof(bmfh));
+
+	// size of structure
+	bmih.biSize = sizeof bmih;
+	bmih.biWidth = biTrueWidth;
+	bmih.biHeight = height;
+	bmih.biPlanes = 1;
+	bmih.biBitCount = 8;
+	bmih.biCompression = BI_RGB;
+	bmih.biSizeImage = 0;
+	bmih.biXPelsPerMeter = 0;
+	bmih.biYPelsPerMeter = 0;
+	bmih.biClrUsed = 256;
+	bmih.biClrImportant = 0;
+	
+	// Write info header
+	FS_Write( pfile, &bmih, sizeof(bmih));
+	pb = palette;
+
+	// copy over used entries
+	for (i = 0; i < (int)bmih.biClrUsed; i++)
+	{
+		rgrgbPalette[i].rgbRed = *pb++;
+		rgrgbPalette[i].rgbGreen = *pb++;
+		rgrgbPalette[i].rgbBlue = *pb++;
+		rgrgbPalette[i].rgbReserved = 0;
+	}
+
+	// write palette( bmih.biClrUsed entries )
+	cbPalBytes = bmih.biClrUsed * sizeof( RGBQUAD );
+	FS_Write( pfile, rgrgbPalette, cbPalBytes );
+	pbBmpBits = Mem_Alloc( Sys.imagepool, cbBmpBits );
+
+	pb = data;
+	pb += (height - 1) * width;
+
+	for(i = 0; i < bmih.biHeight; i++)
+	{
+		memmove(&pbBmpBits[biTrueWidth * i], pb, width);
+		pb -= width;
+	}
+
+	// write bitmap bits (remainder of file)
+	FS_Write( pfile, pbBmpBits, cbBmpBits );
+	Mem_Free( pbBmpBits );
+
+	return true;
+}
+
 /*
 =============
 SaveTGA
 =============
 */
-bool SaveTGA( const char *filename, byte *data, int width, int height, bool alpha, int imagetype )
+bool SaveTGA( const char *filename, byte *data, int width, int height, bool alpha, int imagetype, byte *palette )
 {
 	int		y, outsize, pixel_size;
 	const byte	*bufend, *in;
@@ -2113,7 +2211,7 @@ bool SaveTGA( const char *filename, byte *data, int width, int height, bool alph
 	case PF_RGB_24: pixel_size = 3; break;
 	case PF_RGBA_32: pixel_size = 4; break;	
 	default:
-		MsgWarn("SaveTGA: unsupported image type %s\n", PFDesc[image_type].name );
+		MsgWarn("SaveTGA: unsupported image type %s\n", PFDesc[imagetype].name );
 		return false;
 	}
 
@@ -2157,12 +2255,13 @@ typedef struct saveformat_s
 {
 	char *formatstring;
 	char *ext;
-	bool (*savefunc)(char *filename, byte *data, int width, int height, bool alpha, int imagetype );
+	bool (*savefunc)(char *filename, byte *data, int width, int height, bool alpha, int imagetype, byte *pal );
 } saveformat_t;
 
 saveformat_t save_formats[] =
 {
 	{"%s%s.%s", "tga", SaveTGA},
+	{"%s%s.%s", "bmp", SaveBMP},
 	{NULL, NULL}
 };
 
@@ -2173,26 +2272,43 @@ FS_SaveImage
 writes image as tga RGBA format
 ================
 */
-void FS_SaveImage(const char *filename, rgbdata_t *pix )
+void FS_SaveImage( const char *filename, rgbdata_t *pix )
 {
-	bool		has_alpha = false;
-	int		i, numsides = 1;
+	saveformat_t	*format;
+          const char	*ext = FS_FileExtension( filename );
+	char		path[128], savename[128];
+	bool		anyformat = !stricmp(ext, "") ? true : false;
+	int		i, filesize = 0;
 	byte		*data;
-	char		savename[256];
+	bool		has_alpha = false;
 
 	if(!pix || !pix->buffer) return;
-
-	data = pix->buffer;
-	FS_StripExtension( (char *)filename );
 	if(pix->flags & IMAGE_HAS_ALPHA) has_alpha = true;
-	if(pix->flags & IMAGE_CUBEMAP) numsides = 6;
+	data = pix->buffer;
 
-	for(i = 0; i < numsides; i++)
+	com_strncpy( savename, filename, sizeof(savename) - 1);
+	FS_StripExtension( savename ); // remove extension if needed
+
+	// developer warning
+	if(!anyformat) MsgDev(D_NOTE, "Note: %s will be saving only with ext .%s\n", savename, ext );
+
+	// now try all the formats in the selected list
+	for (format = save_formats; format->formatstring; format++)
+	{
+		if( anyformat || !com_stricmp( ext, format->ext ))
+		{
+			com_sprintf( path, format->formatstring, savename, "", format->ext );
+			if( format->savefunc( path, data, pix->width, pix->height, has_alpha, pix->type, pix->palette ))
+				return; // saved
+		}
+	}
+
+	/*for(i = 0; i < numsides; i++)
 	{
 		if(numsides > 1) com_sprintf(savename, "%s%s.tga", filename, suf[i] );
 		else com_sprintf(savename, "%s.tga", filename );
 
-		SaveTGA( savename, data, pix->width, pix->height, has_alpha, pix->type );
+		SaveTGA( savename, data, pix->width, pix->height, has_alpha, pix->type, pix->palette );
 		data += pix->width * pix->height * PFDesc[pix->type].bpp;
-	}
+	}*/
 }

@@ -148,6 +148,10 @@ SOURCE=.\common\memlib.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\common\pallib.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\common\parselib.c
 # End Source File
 # Begin Source File
