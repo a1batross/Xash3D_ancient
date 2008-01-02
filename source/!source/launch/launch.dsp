@@ -136,6 +136,10 @@ SOURCE=.\common\filesystem.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\common\image_save.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\common\imglib.c
 # End Source File
 # Begin Source File

@@ -98,6 +98,7 @@ extern uint image_ptr;	// common moveable pointer
 
 // image lib utilites
 extern uint *d_currentpal;
+bool dds_save_image( const char *name, rgbdata_t *pix, int saveformat );
 bool Image_Copy8bitRGBA(const byte *in, byte *out, int pixels);	// convert indexed image to RGBA
 rgbdata_t *Image_CopyRGBA8bit( rgbdata_t *pix, int numcolors );	// convert RGBA image to indexed
 void Image_RoundDimensions(int *scaled_width, int *scaled_height);

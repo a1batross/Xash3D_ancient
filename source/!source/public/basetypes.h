@@ -131,6 +131,7 @@ enum host_state
 	HOST_OFFLINE = 0,	// host_init( funcname *arg ) same much as:
 	HOST_NORMAL,	// "host_shared"
 	HOST_DEDICATED,	// "host_dedicated"
+	HOST_CONVERTOR,	// "host_convertor"
 	HOST_EDITOR,	// "host_editor"
 	BSPLIB,		// "bsplib"
 	IMGLIB,		// "imglib"

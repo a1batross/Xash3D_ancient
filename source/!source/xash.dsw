@@ -15,6 +15,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "comres"=".\comres\comres.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "editor"=".\editor\editor.dsp" - Package Owner=<4>
 
 Package=<5>

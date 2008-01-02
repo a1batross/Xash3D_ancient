@@ -1,0 +1,28 @@
+#=============================
+# Makefile to build xash utils
+# Author: Unkle Mike <xash.ru>
+#
+# Please associate .nmake files as NMAKE.EXE "/f" "%1" for build this file
+#=============================
+
+!include <win32.mak>
+
+MAINTARGET = idconv
+OBJS       = $(MAINTARGET).obj
+RES       = $(MAINTARGET).rc
+
+default: $(MAINTARGET).exe
+
+$(MAINTARGET).exe: $(MAINTARGET).obj idconv.res
+	$(link) $(OBJS) idconv.res /out:"idconv.exe" /subsystem:windows /opt:nowin98 /nodefaultlib:"libc.lib"
+	@del $(MAINTARGET).obj $(MAINTARGET).lib $(MAINTARGET).exp $(MAINTARGET).res > nul
+	@copy $(MAINTARGET).exe D:\Xash3D\bin\$(MAINTARGET).exe
+	@del $(MAINTARGET).exe
+	@echo  Скопировано файлов:         1.
+clean:
+
+.cpp.obj: 
+	$(CC) $(CFLAGS) /c $<
+
+idconv.res : idconv.rc
+	$(RC) $(RCFLAGS) /r idconv.rc

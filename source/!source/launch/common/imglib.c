@@ -124,7 +124,7 @@ void Image_GetPaletteD1( void )
 	if(!d1palette_init)
 	{
 		Image_SetPalette( palette_d1, d_8toD1table );
-		d_8toD1table[255] = 247; // 247 is transparent
+		d_8toD1table[247] = 0; // 247 is transparent
 		d1palette_init = true;
 	}
 	d_currentpal = d_8toD1table;
@@ -484,6 +484,77 @@ bool LoadWAL( char *name, char *buffer, int filesize )
 
 	Image_GetPaletteQ2(); // hardcoded
 	return FS_AddMipmapToPack( buffer + ofs[0], image_width, image_height );
+}
+
+bool LoadFLD( char *name, char *buffer, int filesize )
+{
+	flat_t	flat;
+	vfile_t	*f;
+	word	column_loop, row_loop;
+	int	i, column_offset, pointer_position, first_pos;
+	byte	*Data, post, topdelta, length;
+
+	if(filesize < (int)sizeof(flat))
+	{
+		MsgWarn("LoadFLD: file (%s) have invalid size\n", name );
+		return false;
+	}
+
+	// stupid copypaste from DevIL, but it works
+	f = VFS_Create( buffer, filesize );
+	first_pos = VFS_Tell( f );
+	VFS_Read(f, &flat, sizeof(flat));
+
+	image_width  = LittleShort( flat.width );
+	image_height = LittleShort( flat.height );
+	flat.desc[0] = LittleShort( flat.desc[0] );
+	flat.desc[1] = LittleShort( flat.desc[1] );
+	if(!Image_ValidSize( name )) return false;
+	Data = (byte *)Mem_Alloc( Sys.imagepool, image_width * image_height );
+	memset( Data, 247, image_width * image_height ); // set default transparency
+	image_num_layers = 1;
+	image_type = PF_RGBA_32;
+
+	for( column_loop = 0; column_loop < image_width; column_loop++ )
+	{
+		VFS_Read(f, &column_offset, sizeof(int));
+		pointer_position = VFS_Tell( f );
+		VFS_Seek( f, first_pos + column_offset, SEEK_SET );
+
+		while( 1 )
+		{
+			if(VFS_Read(f, &topdelta, 1) != 1) return false;
+			if(topdelta == 255) break;
+			if(VFS_Read(f, &length, 1) != 1) return false;
+			if(VFS_Read(f, &post, 1) != 1) return false;
+
+			for (row_loop = 0; row_loop < length; row_loop++)
+			{
+				if(VFS_Read(f, &post, 1) != 1) return false;
+				if(row_loop + topdelta < image_height)
+					Data[(row_loop + topdelta) * image_width + column_loop] = post;
+			}
+			VFS_Read(f, &post, 1);
+		}
+		VFS_Seek(f, pointer_position, SEEK_SET );
+	}
+	VFS_Close( f );
+
+	// scan for transparency
+	for (i = 0; i < image_width * image_height; i++)
+	{
+		if( Data[i] == 247 )
+		{
+			image_flags |= IMAGE_HAS_ALPHA;
+			break;
+		}
+	}
+
+	Image_GetPaletteD1();
+	FS_AddMipmapToPack( Data, image_width, image_height );
+	Mem_Free( Data );
+
+	return true;
 }
 
 /*
@@ -1843,6 +1914,7 @@ loadformat_t load_formats[] =
 	{"textures/%s%s.%s", "pcx", LoadPCX},
 	{"textures/%s%s.%s", "lmp", LoadLMP},
 	{"textures/%s%s.%s", "fnt", LoadFNT},
+	{"textures/%s%s.%s", "flat",LoadFLD},
 	{"textures/%s%s.%s", "pal", LoadPAL},
 	{"%s%s.%s", "dds", LoadDDS},
 	{"%s%s.%s", "tga", LoadTGA},
@@ -1852,6 +1924,7 @@ loadformat_t load_formats[] =
 	{"%s%s.%s", "pcx", LoadPCX},
 	{"%s%s.%s", "lmp", LoadLMP},
 	{"%s%s.%s", "fnt", LoadFNT},
+	{"%s%s.%s", "flat",LoadFLD},
 	{"%s%s.%s", "pal", LoadPAL},
 	{NULL, NULL}
 };
@@ -2080,7 +2153,7 @@ void FS_FreeImage( rgbdata_t *pack )
 	image_size = 0;
 }
 
-bool SaveBMP( const char *filename, byte *data, int width, int height, bool alpha, int imagetype, byte *palette )
+bool SaveBMP( const char *filename, rgbdata_t *pix )
 {
 	file_t		*pfile = NULL;
 	BITMAPFILEHEADER	bmfh;
@@ -2094,23 +2167,24 @@ bool SaveBMP( const char *filename, byte *data, int width, int height, bool alph
 	int		i, rc = 0;
 
 	// bogus parameter check
-	if(!palette || !data ) return false;
+	if(!pix->palette || !pix->buffer )
+		return false;
 
 	pfile = FS_Open( filename, "wb");
 	if(!pfile) return false;
 
-	switch( imagetype )
+	switch( pix->type )
 	{
 	case PF_INDEXED_24:
 	case PF_INDEXED_32:
 		break;
 	default:
-		MsgWarn("SaveBMP: unsupported image type %s\n", PFDesc[imagetype].name );
+		MsgWarn("SaveBMP: unsupported image type %s\n", PFDesc[pix->type].name );
 		return false;
 	}
 
-	biTrueWidth = ((width + 3) & ~3);
-	cbBmpBits = biTrueWidth * height;
+	biTrueWidth = ((pix->width + 3) & ~3);
+	cbBmpBits = biTrueWidth * pix->height;
 	cbPalBytes = 256 * sizeof( RGBQUAD );
 
 	// Bogus file header check
@@ -2124,9 +2198,9 @@ bool SaveBMP( const char *filename, byte *data, int width, int height, bool alph
 	FS_Write( pfile, &bmfh, sizeof(bmfh));
 
 	// size of structure
-	bmih.biSize = sizeof bmih;
+	bmih.biSize = sizeof(bmih);
 	bmih.biWidth = biTrueWidth;
-	bmih.biHeight = height;
+	bmih.biHeight = pix->height;
 	bmih.biPlanes = 1;
 	bmih.biBitCount = 8;
 	bmih.biCompression = BI_RGB;
@@ -2138,7 +2212,7 @@ bool SaveBMP( const char *filename, byte *data, int width, int height, bool alph
 	
 	// Write info header
 	FS_Write( pfile, &bmih, sizeof(bmih));
-	pb = palette;
+	pb = pix->palette;
 
 	// copy over used entries
 	for (i = 0; i < (int)bmih.biClrUsed; i++)
@@ -2154,13 +2228,13 @@ bool SaveBMP( const char *filename, byte *data, int width, int height, bool alph
 	FS_Write( pfile, rgrgbPalette, cbPalBytes );
 	pbBmpBits = Mem_Alloc( Sys.imagepool, cbBmpBits );
 
-	pb = data;
-	pb += (height - 1) * width;
+	pb = pix->buffer;
+	pb += (pix->height - 1) * pix->width;
 
 	for(i = 0; i < bmih.biHeight; i++)
 	{
-		memmove(&pbBmpBits[biTrueWidth * i], pb, width);
-		pb -= width;
+		memmove(&pbBmpBits[biTrueWidth * i], pb, pix->width);
+		pb -= pix->width;
 	}
 
 	// write bitmap bits (remainder of file)
@@ -2175,7 +2249,7 @@ bool SaveBMP( const char *filename, byte *data, int width, int height, bool alph
 SaveTGA
 =============
 */
-bool SaveTGA( const char *filename, byte *data, int width, int height, bool alpha, int imagetype, byte *palette )
+bool SaveTGA( const char *filename, rgbdata_t *pix )
 {
 	int		y, outsize, pixel_size;
 	const byte	*bufend, *in;
@@ -2183,44 +2257,44 @@ bool SaveTGA( const char *filename, byte *data, int width, int height, bool alph
 	const char	*comment = "Generated by Xash ImageLib\0";
 	char		mergedname[MAX_SYSPATH];
 
-	if(alpha) outsize = width * height * 4 + 18 + com_strlen(comment);
-	else outsize = width * height * 3 + 18 + com_strlen(comment);
+	if( pix->flags & IMAGE_HAS_ALPHA ) outsize = pix->width * pix->height * 4 + 18 + com_strlen(comment);
+	else outsize = pix->width * pix->height * 3 + 18 + com_strlen(comment);
 
 	com_strncpy(mergedname, filename, MAX_SYSPATH );
 	if(mergedname[0] == '*') mergedname[0] = '!'; // quake1 issues
 
 	buffer = (byte *)Malloc( outsize );
-	memset (buffer, 0, 18);
+	memset( buffer, 0, 18 );
 
 	// prepare header
 	buffer[0] = com_strlen(comment); // tga comment length
 	buffer[2] = 2; // uncompressed type
-	buffer[12] = (width >> 0) & 0xFF;
-	buffer[13] = (width >> 8) & 0xFF;
-	buffer[14] = (height >> 0) & 0xFF;
-	buffer[15] = (height >> 8) & 0xFF;
-	buffer[16] = alpha ? 32 : 24;
-	buffer[17] = alpha ? 8 : 0; // 8 bits of alpha
-	com_strncpy(buffer + 18, comment, com_strlen(comment)); 
+	buffer[12] = (pix->width >> 0) & 0xFF;
+	buffer[13] = (pix->width >> 8) & 0xFF;
+	buffer[14] = (pix->height >> 0) & 0xFF;
+	buffer[15] = (pix->height >> 8) & 0xFF;
+	buffer[16] = ( pix->flags & IMAGE_HAS_ALPHA ) ? 32 : 24;
+	buffer[17] = ( pix->flags & IMAGE_HAS_ALPHA ) ? 8 : 0; // 8 bits of alpha
+	com_strncpy( buffer + 18, comment, com_strlen(comment)); 
 	out = buffer + 18 + com_strlen(comment);
 
 	// get image description
-	switch( imagetype )
+	switch( pix->type )
 	{
 	case PF_RGB_24_FLIP:
 	case PF_RGB_24: pixel_size = 3; break;
 	case PF_RGBA_32: pixel_size = 4; break;	
 	default:
-		MsgWarn("SaveTGA: unsupported image type %s\n", PFDesc[imagetype].name );
+		MsgWarn("SaveTGA: unsupported image type %s\n", PFDesc[pix->type].name );
 		return false;
 	}
 
 	// flip buffer
-	switch( imagetype )
+	switch( pix->type )
 	{
 	case PF_RGB_24_FLIP:
 		// glReadPixels rotating image at 180 degrees, flip it
-		for (in = data; in < data + width * height * pixel_size; in += pixel_size)
+		for (in = pix->buffer; in < pix->buffer + pix->width * pix->height * pixel_size; in += pixel_size)
 		{
 			*out++ = in[2];
 			*out++ = in[1];
@@ -2230,36 +2304,48 @@ bool SaveTGA( const char *filename, byte *data, int width, int height, bool alph
 	case PF_RGB_24:
 	case PF_RGBA_32:
 		// swap rgba to bgra and flip upside down
-		for (y = height - 1; y >= 0; y--)
+		for (y = pix->height - 1; y >= 0; y--)
 		{
-			in = data + y * width * pixel_size;
-			bufend = in + width * pixel_size;
+			in = pix->buffer + y * pix->width * pixel_size;
+			bufend = in + pix->width * pixel_size;
 			for ( ;in < bufend; in += pixel_size)
 			{
 				*out++ = in[2];
 				*out++ = in[1];
 				*out++ = in[0];
-				if(alpha) *out++ = in[3];
+				if( pix->flags & IMAGE_HAS_ALPHA )
+					*out++ = in[3];
 			}
 		}
 	}	
 
-	MsgDev(D_NOTE, "Writing %s[%d]\n", mergedname, alpha ? 32 : 24 );
+	MsgDev(D_NOTE, "Writing %s[%d]\n", mergedname, (pix->flags & IMAGE_HAS_ALPHA) ? 32 : 24 );
 	FS_WriteFile( mergedname, buffer, outsize );
 
 	Mem_Free( buffer );
 	return true;
 } 
 
+/*
+=============
+SaveDDS
+=============
+*/
+bool SaveDDS( const char *filename, rgbdata_t *pix )
+{
+	return dds_save_image( filename, pix, PF_DXT5 ); //FIXME
+}
+
 typedef struct saveformat_s
 {
 	char *formatstring;
 	char *ext;
-	bool (*savefunc)(char *filename, byte *data, int width, int height, bool alpha, int imagetype, byte *pal );
+	bool (*savefunc)( char *filename, rgbdata_t *pix );
 } saveformat_t;
 
 saveformat_t save_formats[] =
 {
+	{"%s%s.%s", "dds", SaveDDS},
 	{"%s%s.%s", "tga", SaveTGA},
 	{"%s%s.%s", "bmp", SaveBMP},
 	{NULL, NULL}
@@ -2278,7 +2364,7 @@ void FS_SaveImage( const char *filename, rgbdata_t *pix )
           const char	*ext = FS_FileExtension( filename );
 	char		path[128], savename[128];
 	bool		anyformat = !stricmp(ext, "") ? true : false;
-	int		i, filesize = 0;
+	int		filesize = 0;
 	byte		*data;
 	bool		has_alpha = false;
 
@@ -2298,7 +2384,7 @@ void FS_SaveImage( const char *filename, rgbdata_t *pix )
 		if( anyformat || !com_stricmp( ext, format->ext ))
 		{
 			com_sprintf( path, format->formatstring, savename, "", format->ext );
-			if( format->savefunc( path, data, pix->width, pix->height, has_alpha, pix->type, pix->palette ))
+			if( format->savefunc( path, pix ))
 				return; // saved
 		}
 	}

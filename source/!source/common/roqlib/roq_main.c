@@ -557,7 +557,7 @@ void ROQ_ProcessAudio( void )
 {
 	return;
 
-	if(!strlen(soundname)) return;
+	if(!com.strlen(soundname)) return;
 
 	com.strcpy( tempoutname, movieoutname );
 	FS_StripExtension( tempoutname );

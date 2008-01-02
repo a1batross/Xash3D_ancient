@@ -14,6 +14,7 @@ FILE		*logfile;
 dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t editor_dll = { "editor.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
+dll_info_t idconv_dll = { "comres.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 
 static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t\
           All Rights Reserved\n\n\t           Visit www.xash.ru\n";
@@ -250,6 +251,16 @@ void Sys_LookupInstance( void )
 		com_strcpy(Sys.log_path, "editor.log" ); // xash3d root directory
 		com_strcpy(Sys.caption, va("Xash3D Editor ver.%g", XASH_VERSION ));
 	}
+	else if(!com_strcmp(Sys.progname, "host_convertor"))
+	{
+		Sys.app_name = HOST_CONVERTOR;
+		Sys.con_readonly = true;
+		Sys.log_active = true; // always create log
+		if(!Sys.debug) Sys.con_showalways = true;
+		Sys.linked_dll = &idconv_dll;	// pointer to comres.dll info
+		com_sprintf(Sys.log_path, "%s/convert.log", sys_rootdir ); // same as .exe file
+		com_strcpy(Sys.caption, va("Resource Convertor ver.%g", XASH_VERSION ));
+	}
 	else if(!com_strcmp(Sys.progname, "bsplib"))
 	{
 		Sys.app_name = BSPLIB;
@@ -334,6 +345,7 @@ void Sys_CreateInstance( void )
 	case HOST_NORMAL:
 	case HOST_DEDICATED:
 	case HOST_EDITOR:		
+	case HOST_CONVERTOR:
 	case BSPLIB:
 	case QCCLIB:
 	case ROQLIB:
@@ -377,6 +389,7 @@ void Sys_CreateInstance( void )
 		break;
 	case HOST_EDITOR:
 		Con_ShowConsole( false );
+	case HOST_CONVERTOR:
 	case BSPLIB:
 	case QCCLIB:
 	case ROQLIB:

@@ -31,7 +31,6 @@ void InitPlatform ( uint funcname, int argc, char **argv )
 	char source[64], gamedir[64];
 
 	basepool = Mem_AllocPool( "Temp" );
-	zonepool = Mem_AllocPool( "Zone" );
 
 	// for custom cmdline parsing
 	com_argc = argc;
@@ -113,6 +112,7 @@ void RunPlatform ( void )
 		strcpy(searchmask[3], "*.lmp" );	// quake1 menu images
 		strcpy(searchmask[4], "*.mip" );	// quake1 textures
 		strcpy(searchmask[5], "*.fnt" );	// half-life fonts
+		strcpy(searchmask[6], "*.flat");	// doom1 textures
 		Msg("Processing images ...\n\n");
 		break;		
 	case BSPLIB: 

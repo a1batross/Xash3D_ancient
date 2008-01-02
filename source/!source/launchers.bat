@@ -21,6 +21,10 @@ cd imglib
 makefile.nmake
 
 cd ..
+cd idconv
+makefile.nmake
+
+cd ..
 cd install
 makefile.nmake
 

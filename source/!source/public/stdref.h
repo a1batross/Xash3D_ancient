@@ -1546,6 +1546,20 @@ typedef struct wal_s
 
 ========================================================================
 */
+typedef struct flat_s
+{
+	short	width;
+	short	height;
+	short	desc[2];		// probably not used
+} flat_t;
+
+/*
+========================================================================
+
+.LMP image format	(Quake1 gfx lumps)
+
+========================================================================
+*/
 typedef struct lmp_s
 {
 	uint	width;
