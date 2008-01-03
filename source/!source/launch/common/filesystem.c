@@ -603,7 +603,7 @@ FS_FileBase
 Extracts the base name of a file (no path, no extension, assumes '/' as path separator)
 ============
 */
-void FS_FileBase (char *in, char *out)
+void FS_FileBase( const char *in, char *out )
 {
 	int len, start, end;
 
@@ -979,9 +979,12 @@ static bool FS_AddWad3File( const char *filename )
 {
 	dwadinfo_t	header;
 	wadfile_t		*w;
+	dlumpfile_t	*doomlumps;	// will be converted to dlumpinfo_t struct
 	int		infotableofs;
-	file_t		*file;
+	bool		flat_images = false;// doom1 wall texture marker
+	bool		skin_images = false;// doom1 skin image ( sprite model ) marker
 	int		i, numlumps;
+	file_t		*file;
 	char		type[16];
 
 	if(!fs_searchwads) // start from scratch 
@@ -1012,9 +1015,8 @@ static bool FS_AddWad3File( const char *filename )
 	{
 	case IDIWADHEADER:
 	case IDPWADHEADER:
-		MsgDev(D_ERROR, "FS_AddWad3File: (%s) Doom1 wad-files are not supported\n", filename );
-		FS_Close( file );
-		return false;		
+		com_strncpy( type, "Doom1", 16 );
+		break; 		
 	case IDWAD2HEADER:
 		com_strncpy( type, "Quake1", 16 );
 		break; 
@@ -1047,21 +1049,76 @@ static bool FS_AddWad3File( const char *filename )
 	}
 
 	w = Mem_AllocElement( fs_searchwads );
-	com_strncpy( w->name, filename, sizeof(w->name));
+	FS_FileBase( filename, w->name ); // wad name
 	w->file = file;
 	w->type = header.ident;
 	w->numlumps = numlumps;
 	w->lumps = Mem_Alloc( fs_mempool, w->numlumps * sizeof(dlumpinfo_t));
 
-	if(FS_Read(file, w->lumps, sizeof(dlumpinfo_t) * w->numlumps) != (long)sizeof(dlumpinfo_t) * numlumps)
+	switch( header.ident )
 	{
-		MsgDev(D_ERROR, "FS_AddWad3File: unable to read lump table\n");
-		FS_Close( w->file );
-		w->numlumps = 0;
-		Mem_Free( w->lumps );
-		w->lumps = NULL;
-		w->name[0] = 0;
-		return false;
+	case IDIWADHEADER:
+	case IDPWADHEADER:
+          	doomlumps = Mem_Alloc( fs_mempool, numlumps * sizeof(dlumpfile_t));
+		if(FS_Read( file, doomlumps, sizeof(dlumpfile_t)*w->numlumps) != (long)sizeof(dlumpfile_t)*numlumps)
+		{
+			MsgDev(D_ERROR, "FS_AddWad3File: unable to read lump table\n");
+			FS_Close( w->file );
+			w->numlumps = 0;
+			Mem_Free( w->lumps );
+			Mem_Free( doomlumps );
+			w->lumps = NULL;
+			w->name[0] = 0;
+			return false;
+		}
+		// turn doom1 format into quake lump 
+		for (i = 0; i < numlumps; i++)
+		{
+			// will swap later
+			w->lumps[i].filepos = doomlumps[i].filepos;
+			w->lumps[i].size = w->lumps[i].disksize = doomlumps[i].size;
+			com_strncpy(w->lumps[i].name, doomlumps[i].name, 9 );
+			w->lumps[i].type = TYPE_NONE;
+			w->lumps[i].compression = CMP_NONE;
+
+			// textures begin
+			if(!com_stricmp("P1_START", w->lumps[i].name ))
+			{
+				flat_images = true;
+				continue; // skip identifier
+			}
+			else if (!com_stricmp("P2_START", w->lumps[i].name ))
+			{
+				flat_images = true;
+				continue; // skip identifier
+			}
+			else if(!com_stricmp("S_START", w->lumps[i].name ))
+			{
+				skin_images = true;
+				continue; // skip identifier
+			}
+			else if(!com_stricmp("P1_END", w->lumps[i].name )) flat_images = false;
+			else if(!com_stricmp("P2_END", w->lumps[i].name )) flat_images = false;
+			else if(!com_stricmp("S_END", w->lumps[i].name )) skin_images = false;
+			if( flat_images ) w->lumps[i].type = TYPE_FLAT; // mark as texture
+			if( skin_images ) w->lumps[i].type = TYPE_SKIN; // mark as skin (sprite model)
+		}
+		Mem_Free( doomlumps ); // no need anymore
+		break;		
+	case IDWAD2HEADER:
+	case IDWAD3HEADER: 
+	case IDWAD4HEADER:
+		if(FS_Read( file, w->lumps, sizeof(dlumpinfo_t)*w->numlumps) != (long)sizeof(dlumpinfo_t)*numlumps)
+		{
+			MsgDev(D_ERROR, "FS_AddWad3File: unable to read lump table\n");
+			FS_Close( w->file );
+			w->numlumps = 0;
+			Mem_Free( w->lumps );
+			w->lumps = NULL;
+			w->name[0] = 0;
+			return false;
+		}
+		break;
 	}
 
 	// swap everthing 
@@ -1157,7 +1214,7 @@ void FS_ExtractFilePath(const char* const path, char* dest)
 		src--;
 
 	Mem_Copy(dest, path, src - path);
-	dest[src - path] = 0;
+	dest[src - path - 1] = 0; // cutoff backslash
 }
 
 /*
@@ -1742,7 +1799,9 @@ typedef struct wadtype_s
 wadtype_t wad_types[] =
 {
 	// associate extension with wad type
-	{"pal", TYPE_QPAL	},
+	{"pal", TYPE_QPAL	}, // palette
+	{"skn", TYPE_SKIN	}, // doom1 sprite model
+	{"flt", TYPE_FLAT	}, // doom1 wall texture
 	{"lmp", TYPE_QPIC	}, // quake1, hl pic
 	{"mip", TYPE_MIPTEX2}, // hl texture
 	{"mip", TYPE_MIPTEX }, // quake1 mip
@@ -1778,7 +1837,7 @@ static byte *FS_OpenWadFile( const char *name, fs_offset_t *filesizeptr, int mat
 
 	// note: wad images can't have real pathes
 	// so, extarct base name from path
-	FS_FileBase( (char *)name, basename );
+	FS_FileBase( name, basename );
 	if(filesizeptr) *filesizeptr = 0;
 		
 	if(strlen(basename) >= WAD3_NAMELEN )
@@ -2625,7 +2684,7 @@ static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet 
          		bool		anyformat = !com_stricmp(ext, "*") ? true : false;
 		char		lumpname[MAX_SYSPATH];
 
-		FS_FileBase( (char *)pattern, lumpname );
+		FS_FileBase( pattern, lumpname );
 
 		// lookup all wads in list
 		for( k = 0; k < Mem_ArraySize( fs_searchwads ); k++ )
@@ -2642,7 +2701,8 @@ static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet 
 					{
 						if(SC_FilterToken(lumpname, w->lumps[i].name, !caseinsensitive ))
 						{
-							com_strncpy(temp, w->lumps[i].name, sizeof(temp));
+							// build path: wadname/lumpname.ext
+							com_snprintf(temp, sizeof(temp), "%s/%s", w->name, w->lumps[i].name );
 							FS_DefaultExtension( temp, va(".%s", type->ext )); // make ext
 							stringlistappend(&resultlist, temp );
 							break; // found, compare to next lump

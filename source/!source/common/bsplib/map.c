@@ -285,7 +285,7 @@ int BrushContents (mapbrush_t *b)
 
 	// if any side is translucent, mark the contents
 	// and change solid to window
-	if ( trans & (SURF_TRANS33|SURF_TRANS66) )
+	if ( trans & (SURF_TRANS|SURF_BLEND) )
 	{
 		contents |= CONTENTS_TRANSLUCENT;
 		if (contents & CONTENTS_SOLID)
@@ -679,7 +679,7 @@ void ParseBrush (bsp_entity_t *mapent)
 		}
 
 		// translucent objects are automatically classified as detail
-		if (side->surf & (SURF_TRANS33|SURF_TRANS66) )
+		if (side->surf & (SURF_TRANS|SURF_BLEND) )
 			side->contents |= CONTENTS_DETAIL;
 		if (side->contents & (CONTENTS_PLAYERCLIP|CONTENTS_MONSTERCLIP) )
 			side->contents |= CONTENTS_DETAIL;

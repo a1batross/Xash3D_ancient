@@ -107,11 +107,13 @@ typedef int		progsnum_t;
 typedef struct progfuncs_s	progfuncs_t;
 typedef struct physbody_s	physbody_t;
 typedef float		vec_t;
+typedef vec_t		vec2_t[2];
 typedef vec_t		vec3_t[3];
 typedef vec_t		vec4_t[4];
 typedef long		fs_offset_t;
 typedef vec_t		matrix3x4[3][4];
 typedef vec_t		matrix4x4[4][4];
+typedef char		string[MAX_STRING];
 typedef struct { size_t api_size; } generic_api_t;
 typedef struct { int fileofs; int filelen; } lump_t;		// many formats use lumps to store blocks
 typedef struct { int type; char *name; } activity_map_t;		// studio activity map conversion

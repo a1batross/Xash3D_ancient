@@ -112,7 +112,7 @@ void RunPlatform ( void )
 		strcpy(searchmask[3], "*.lmp" );	// quake1 menu images
 		strcpy(searchmask[4], "*.mip" );	// quake1 textures
 		strcpy(searchmask[5], "*.fnt" );	// half-life fonts
-		strcpy(searchmask[6], "*.flat");	// doom1 textures
+		strcpy(searchmask[6], "*.flt");	// doom1 textures
 		Msg("Processing images ...\n\n");
 		break;		
 	case BSPLIB: 

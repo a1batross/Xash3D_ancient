@@ -72,20 +72,9 @@ void WriteSprite (vfile_t *f)
 	spritetemp.height = LittleLong (framesmaxs[1]);
 	spritetemp.numframes = LittleLong (sprite.numframes);
 	spritetemp.version = LittleLong (sprite.version);
-	spritetemp.ident = LittleLong (IDSPRITEHEADER);
-
-	//not write enchanced parms into hl sprite
-	switch( spritetemp.version )
-	{
-	case SPRITE_VERSION_HALF:
-		spritetemp.framerate = 0;//old beamlength
-		spritetemp.rgbacolor = 0;//old synctype
-		break;
-	case SPRITE_VERSION_XASH:
-		spritetemp.framerate = LittleFloat (sprite.framerate);
-		spritetemp.rgbacolor = LittleLong (sprite.rgbacolor);
-		break;
-	}
+	spritetemp.ident = LittleLong (IDSPRHLHEADER);
+	spritetemp.beamlength = LittleFloat (sprite.beamlength);
+	spritetemp.synctype = LittleFloat (sprite.synctype);
           
 	VFS_Write( f, &spritetemp, sizeof(spritetemp));
 
@@ -170,19 +159,6 @@ void Cmd_Texture ( void )
 
 /*
 ===============
-Cmd_Framerate
-
-syntax: "$framerate value"
-===============
-*/
-void Cmd_Framerate( void )
-{
-	sprite.framerate = atof(Com_GetToken (false));
-	sprite.version = SPRITE_VERSION_XASH; // enchaned version
-}
-
-/*
-===============
 Cmd_Load
 
 syntax "$load fire01.bmp"
@@ -260,7 +236,6 @@ Cmd_Offset
 syntax: $origin "x_pos y_pos"
 ===============
 */
-
 void Cmd_Offset (void)
 {
 	origin_x = atoi(Com_GetToken (false));
@@ -269,24 +244,26 @@ void Cmd_Offset (void)
 
 /*
 ===============
-Cmd_Color
+Cmd_Beamlength
 
-synatx: "$color r g b <alpha>"
+syntax: "$beamlength length"
 ===============
 */
-void Cmd_Color( void )
+void Cmd_Beamlength( void )
 {
-	byte	rgba[4];
-	rgba[3] = atoi(Com_GetToken (false));
-	rgba[2] = atoi(Com_GetToken (false));
-	rgba[1] = atoi(Com_GetToken (false));
+	sprite.beamlength = com.atof(Com_GetToken(false));
+}
 
-	if(Com_TryToken()) rgba[0] = atoi(com_token);
-	else rgba[0] = 0xFF;//fullbright
-	
-	// pack into one integer
-	sprite.rgbacolor = BuffBigLong( rgba );
-	sprite.version = SPRITE_VERSION_XASH; // enchaned version
+/*
+==============
+Cmd_Sync
+
+syntax: "$sync"
+==============
+*/
+void Cmd_Sync( void )
+{
+	sprite.synctype = ST_SYNC;
 }
 
 /*
@@ -330,9 +307,9 @@ void ResetSpriteInfo( void )
 	if (!lumpbuffer )lumpbuffer = Mem_Alloc(spritepool, (MAX_BUFFER_SIZE) * 2); // *2 for padding
 
 	plump = lumpbuffer;
-	sprite.version = SPRITE_VERSION_HALF;//normal sprite
+	sprite.version = SPRITE_VERSION;//normal sprite
 	sprite.type = SPR_VP_PARALLEL;
-	sprite.rgbacolor = 0xffffffff;
+	sprite.synctype = ST_RAND; // default
 }
 
 /*
@@ -349,12 +326,12 @@ bool ParseSpriteScript (void)
 		if(!Com_GetToken (true))break;
 
 		if (Com_MatchToken( "$spritename" )) Cmd_Spritename();
-		else if (Com_MatchToken( "$framerate" )) Cmd_Framerate();
 		else if (Com_MatchToken( "$texture" )) Cmd_Texture();
 		else if (Com_MatchToken( "$origin" )) Cmd_Offset();
-		else if (Com_MatchToken( "$color" )) Cmd_Color();
 		else if (Com_MatchToken( "$load" )) Cmd_Load();
 		else if (Com_MatchToken( "$type" )) Cmd_Type();
+		else if (Com_MatchToken( "$beamlength" )) Cmd_Beamlength();
+		else if (Com_MatchToken( "$sync" )) Cmd_Sync();
 		else if (!Com_ValidScript( QC_SPRITEGEN )) return false;
 		else Cmd_SpriteUnknown();
 	}

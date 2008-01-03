@@ -251,7 +251,7 @@ model_t *Mod_ForName(char *name, bool crash)
 	case IDSTUDIOHEADER:
 		Mod_LoadStudioModel ( mod, buf );
 		break;
-	case IDSPRITEHEADER:
+	case IDSPRHLHEADER:
 		Mod_LoadSpriteModel ( mod, buf );
 		break;
 	default:
@@ -646,7 +646,7 @@ void Mod_LoadFaces (lump_t *l)
 		}
 
 		// create lightmaps and polygons
-		if ( !(out->texinfo->flags & (SURF_SKY|SURF_TRANS33|SURF_TRANS66|SURF_WARP) ) )
+		if(!(out->texinfo->flags & (SURF_SKY|SURF_BLEND|SURF_WARP) ) )
 			GL_CreateSurfaceLightmap (out);
 
 		if (! (out->texinfo->flags & SURF_WARP) ) 

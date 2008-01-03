@@ -14,7 +14,7 @@ FILE		*logfile;
 dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t editor_dll = { "editor.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
-dll_info_t idconv_dll = { "comres.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
+dll_info_t idconv_dll = { "idconv.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 
 static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t\
           All Rights Reserved\n\n\t           Visit www.xash.ru\n";
@@ -257,7 +257,7 @@ void Sys_LookupInstance( void )
 		Sys.con_readonly = true;
 		Sys.log_active = true; // always create log
 		if(!Sys.debug) Sys.con_showalways = true;
-		Sys.linked_dll = &idconv_dll;	// pointer to comres.dll info
+		Sys.linked_dll = &idconv_dll;	// pointer to idconv.dll info
 		com_sprintf(Sys.log_path, "%s/convert.log", sys_rootdir ); // same as .exe file
 		com_strcpy(Sys.caption, va("Resource Convertor ver.%g", XASH_VERSION ));
 	}

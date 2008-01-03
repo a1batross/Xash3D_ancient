@@ -1810,9 +1810,9 @@ cmodel_t *CM_SpriteModel( char *name, edict_t *ent, byte *buffer)
 
 	phdr = (dsprite_t *)buffer;
 	
-	if(phdr->version != SPRITE_VERSION_HALF && phdr->version != SPRITE_VERSION_XASH)
+	if(phdr->version != SPRITE_VERSION )
 	{
-		MsgWarn("CM_SpriteModel: %s has wrong version number (%i should be %i or %i)\n", name, phdr->version, SPRITE_VERSION_HALF, SPRITE_VERSION_XASH);
+		MsgWarn("CM_SpriteModel: %s has wrong version number (%i should be %i)\n", name, phdr->version, SPRITE_VERSION );
 		return NULL;
 	}
 	
@@ -1871,7 +1871,7 @@ cmodel_t *CM_LoadModel( edict_t *ent )
 	case IDSTUDIOHEADER:
 		mod = CM_StudioModel( name, ent, buffer );
 		break;
-	case IDSPRITEHEADER:
+	case IDSPRHLHEADER:
 		mod = CM_SpriteModel( name, ent, buffer );
 		break;
 	}

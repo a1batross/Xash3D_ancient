@@ -429,7 +429,7 @@ void R_RenderBrushPoly (msurface_t *fa)
 dynamic:
 		if ( gl_dynamic->value )
 		{
-			if (!( fa->texinfo->flags & (SURF_SKY|SURF_TRANS33|SURF_TRANS66|SURF_WARP ) ) )
+			if(!( fa->texinfo->flags & (SURF_SKY|SURF_BLEND|SURF_WARP ) ) )
 			{
 				is_dynamic = true;
 			}
@@ -504,12 +504,9 @@ void R_DrawAlphaSurfaces (void)
 	{
 		GL_Bind(s->texinfo->image->texnum[0]);
 		c_brush_polys++;
-		if (s->texinfo->flags & SURF_TRANS33)
-			qglColor4f (intens,intens,intens,0.33);
-		else if (s->texinfo->flags & SURF_TRANS66)
-			qglColor4f (intens,intens,intens,0.66);
-		else
-			qglColor4f (intens,intens,intens,1);
+		if (s->texinfo->flags & SURF_BLEND)
+			qglColor4f(intens,intens, intens, 0.5);
+		else qglColor4f (intens,intens,intens,1);
 		if (s->flags & SURF_DRAWTURB)
 			EmitWaterPolys (s);
 		else if(s->texinfo->flags & SURF_FLOWING)			// PGM	9/16/98
@@ -620,7 +617,7 @@ static void GL_RenderLightmappedPoly( msurface_t *surf )
 dynamic:
 		if ( gl_dynamic->value )
 		{
-			if ( !(surf->texinfo->flags & (SURF_SKY|SURF_TRANS33|SURF_TRANS66|SURF_WARP ) ) )
+			if(!(surf->texinfo->flags & (SURF_SKY|SURF_BLEND|SURF_WARP ) ) )
 			{
 				is_dynamic = true;
 			}
@@ -814,7 +811,7 @@ void R_DrawInlineBModel (void)
 		// draw the polygon
 		if (((psurf->flags & SURF_PLANEBACK) && (dot < -BACKFACE_EPSILON)) || (!(psurf->flags & SURF_PLANEBACK) && (dot > BACKFACE_EPSILON)))
 		{
-			if (psurf->texinfo->flags & (SURF_TRANS33|SURF_TRANS66) )
+			if (psurf->texinfo->flags & SURF_BLEND)
 			{	// add to the translucent chain
 				psurf->texturechain = r_alpha_surfaces;
 				r_alpha_surfaces = psurf;
@@ -1025,7 +1022,7 @@ void R_RecursiveWorldNode (mnode_t *node)
 		{	// just adds to visible sky bounds
 			R_AddSkySurface (surf);
 		}
-		else if (surf->texinfo->flags & (SURF_TRANS33|SURF_TRANS66))
+		else if (surf->texinfo->flags & SURF_BLEND)
 		{	// add to the translucent chain
 			surf->texturechain = r_alpha_surfaces;
 			r_alpha_surfaces = surf;
@@ -1063,7 +1060,7 @@ void R_RecursiveWorldNode (mnode_t *node)
 		{	// just adds to visible sky bounds
 			R_AddSkySurface (surf);
 		}
-		else if (surf->texinfo->flags & (SURF_TRANS33|SURF_TRANS66))
+		else if (surf->texinfo->flags & SURF_BLEND)
 		{	// add to the translucent chain
 //			surf->texturechain = alpha_surfaces;
 //			alpha_surfaces = surf;
@@ -1626,7 +1623,7 @@ void R_RecursiveRadarNode(mnode_t *node)
 			vec4_t	C;
 
 			if (surf->texinfo->flags & SURF_SKY) continue;
-			if (surf->texinfo->flags & (SURF_WARP|SURF_FLOWING|SURF_TRANS33|SURF_TRANS66))
+			if (surf->texinfo->flags & (SURF_WARP|SURF_FLOWING|SURF_BLEND))
 			{
 				sColor=0.5;
 			}

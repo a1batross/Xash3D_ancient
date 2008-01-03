@@ -228,7 +228,7 @@ void FS_ClearSearchPath (void);
 void FS_AddGameHierarchy (const char *dir);
 int FS_CheckParm (const char *parm);
 void FS_LoadGameInfo( const char *filename );
-void FS_FileBase (char *in, char *out);
+void FS_FileBase( const char *in, char *out);
 const char *FS_FileExtension (const char *in);
 void FS_DefaultExtension (char *path, const char *extension );
 bool FS_GetParmFromCmdLine( char *parm, char *out );

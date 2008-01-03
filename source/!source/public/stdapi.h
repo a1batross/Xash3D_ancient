@@ -67,7 +67,7 @@ typedef struct stdilib_api_s
 	void (*Com_AddGameHierarchy)(const char *dir);		// add base directory in search list
 	int  (*Com_CheckParm)( const char *parm );		// check parm in cmdline  
 	bool (*Com_GetParm)( char *parm, char *out );		// get parm from cmdline
-	void (*Com_FileBase)(char *in, char *out);		// get filename without path & ext
+	void (*Com_FileBase)(const char *in, char *out);		// get filename without path & ext
 	bool (*Com_FileExists)(const char *filename);		// return true if file exist
 	long (*Com_FileSize)(const char *filename);		// same as Com_FileExists but return filesize
 	const char *(*Com_FileExtension)(const char *in);		// return extension of file
@@ -257,6 +257,7 @@ filesystem manager
 #define FS_Read( file, buffer, size )	com.fread( file, buffer, size )
 #define FS_Write( file, buffer, size )	com.fwrite( file, buffer, size )
 #define FS_StripExtension( path )	com.Com_StripExtension( path )
+#define FS_ExtractFilePath( src, dest)	com.Com_StripFilePath( src, dest )
 #define FS_DefaultExtension		com.Com_DefaultExtension
 #define FS_FileExtension( ext )	com.Com_FileExtension( ext )
 #define FS_FileExists( file )		com.Com_FileExists( file )
@@ -316,6 +317,7 @@ console commands
 virtual filesystem manager
 ===========================================
 */
+#define VFS_Create		com.vfcreate
 #define VFS_Open		com.vfopen
 #define VFS_Write		com.vfwrite
 #define VFS_Read		com.vfread

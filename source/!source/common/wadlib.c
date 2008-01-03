@@ -34,7 +34,7 @@ int Lump_GetFileType( const char *name, byte *buf )
 
 	switch(LittleLong(*(uint *)buf))
 	{
-	case IDSPRITEHEADER: return TYPE_SPRITE;
+	case IDSPRHLHEADER: return TYPE_SPRITE;
 	case IDSTUDIOHEADER: return TYPE_STUDIO;
 	case DDSHEADER: return TYPE_MIPDDS;
 	}
@@ -87,7 +87,7 @@ void Wad3_AddLump( const char *name, bool compress )
 		return;		
 	}
 
-	FS_FileBase( (char *)name, lumpname );
+	FS_FileBase( name, lumpname );
 	if(strlen(lumpname) > WAD3_NAMELEN)
 	{
 		MsgWarn("Wad3_AddLump: %s have too long name, max %d symbols\n", lumpname, WAD3_NAMELEN );

@@ -78,36 +78,43 @@ typedef struct roq_s
 SPRITE MODELS
 ==============================================================================
 */
-// header
-#define SPRITE_VERSION_HALF	2
-#define SPRITE_VERSION_XASH	3
-#define IDSPRITEHEADER	(('P'<<24)+('S'<<16)+('D'<<8)+'I') // little-endian "IDSP"
+/*
+==============================================================================
 
-// render format
+.spr Half-Life sprites
+==============================================================================
+*/
+#define SPRITE_VERSION		2
+#define IDSPRHLHEADER		(('P'<<24)+('S'<<16)+('D'<<8)+'I') // little-endian "IDSP"
+#define IDSPRQ2HEADER		(('2'<<24)+('S'<<16)+('D'<<8)+'I') // little-endian "IDS2"
+
 #define SPR_VP_PARALLEL_UPRIGHT	0
 #define SPR_FACING_UPRIGHT		1
 #define SPR_VP_PARALLEL		2
-#define SPR_ORIENTED		3
+#define SPR_ORIENTED		3	// all axis are valid
 #define SPR_VP_PARALLEL_ORIENTED	4
 
-#define SPR_NORMAL			0 // solid sprite
+#define SPR_NORMAL			0	// solid sprite
 #define SPR_ADDITIVE		1
 #define SPR_INDEXALPHA		2
 #define SPR_ALPHTEST		3
-#define SPR_ADDGLOW			4 // same as additive, but without depthtest
+#define SPR_ADDGLOW			4	// same as additive, but without depthtest
+
+typedef enum { ST_SYNC = 0, ST_RAND } synctype_t;
+typedef enum { SPR_SINGLE = 0, SPR_GROUP } frametype_t;
 
 typedef struct
 {
 	int		ident;
 	int		version;
 	int		type;
-	int		texFormat;
-	float		boundingradius;
+	int		texFormat;	// Half-Life stuff only
+	float		boundingradius;	// software rendering stuff
 	int		width;
 	int		height;
 	int		numframes;
-	float		framerate; //xash auto-animate
-	uint		rgbacolor; //packed rgba color
+	float		beamlength;	// software rendering stuff
+	synctype_t	synctype;
 } dsprite_t;
 
 typedef struct
@@ -119,8 +126,18 @@ typedef struct
 
 typedef struct
 {
-	int		type;
-} frametype_t;
+	int		numframes;
+} dspritegroup_t;
+
+typedef struct
+{
+	float		interval;
+} dspriteinterval_t;
+
+typedef struct
+{
+	frametype_t	type;
+} dframetype_t;
 
 /*
 ==============================================================================
@@ -908,8 +925,8 @@ MAP CONTENTS & SURFACES DESCRIPTION
 #define SURF_SLICK			0x2	// effects game physics
 #define SURF_SKY			0x4	// don't draw, but add to skybox
 #define SURF_WARP			0x8	// turbulent water warp
-#define SURF_TRANS33		0x10
-#define SURF_TRANS66		0x20
+#define SURF_TRANS			0x10	// grates
+#define SURF_BLEND			0x20	// windows
 #define SURF_FLOWING		0x40	// scroll towards angle
 #define SURF_NODRAW			0x80	// don't bother referencing the texture
 #define SURF_HINT			0x100	// make a primary bsp splitter
@@ -1599,6 +1616,8 @@ typedef struct mip_s
 #define	CMP_ZLIB		2	// zip-archive compression
 
 #define	TYPE_NONE		0	// blank lump
+#define	TYPE_SKIN		62	// virtual lump type (not a visible charcster)
+#define	TYPE_FLAT		63	// virtual lump type (not a visible charcster)
 #define	TYPE_QPAL		64	// quake palette
 #define	TYPE_QTEX		65	// probably was never used
 #define	TYPE_QPIC		66	// quake1 and hl pic (lmp_t)
@@ -1625,6 +1644,14 @@ typedef struct
 	int		numlumps;
 	int		infotableofs;
 } dwadinfo_t;
+
+// doom1 and doom2 lump header
+typedef struct
+{
+    int			filepos;
+    int			size;
+    char			name[8];
+} dlumpfile_t;
 
 // quake1 and half-life lump header
 typedef struct

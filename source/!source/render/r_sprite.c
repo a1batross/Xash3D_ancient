@@ -77,7 +77,7 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 	dsprite_t		*pin;
 	short		*numi;
 	msprite_t		*psprite;
-	frametype_t	*pframetype;
+	dframetype_t	*pframetype;
 	byte		pal[256][4];
 	vec4_t		rgbacolor;
 	float		framerate;
@@ -85,26 +85,13 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 	pin = (dsprite_t *)buffer;
 	version = LittleLong (pin->version);
 		
-	switch( version )
+	if( version != SPRITE_VERSION)
 	{
-	case SPRITE_VERSION_HALF:
-		ResetRGBA( rgbacolor );
-		framerate = 0.0f;
-		break;
-	case SPRITE_VERSION_XASH:
-		//unpack rgba
-		rgbacolor[0] = LittleLong((pin->rgbacolor & 0x000000FF) >> 0);
-		rgbacolor[1] = LittleLong((pin->rgbacolor & 0x0000FF00) >> 8);
-		rgbacolor[2] = LittleLong((pin->rgbacolor & 0x00FF0000) >> 16);
-		rgbacolor[3] = LittleLong((pin->rgbacolor & 0xFF000000) >> 24);
-
-		TransformRGBA(rgbacolor, rgbacolor ); //convert into float
-		framerate = LittleFloat (pin->framerate);
-		break;
-	default:
-		Msg("Warning: %s has wrong version number (%i should be %i or %i)", mod->name, version, SPRITE_VERSION_HALF, SPRITE_VERSION_XASH );
+		Msg("Warning: %s has wrong version number (%i should be %i)", mod->name, version, SPRITE_VERSION );
 		return;
 	}
+	ResetRGBA( rgbacolor );
+	framerate = 15.0f;
 
 	numframes = LittleLong (pin->numframes);
 	size = sizeof (msprite_t) + (numframes - 1) * sizeof (psprite->frames);
@@ -181,7 +168,7 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 			Msg("Warning: %s has unknown texFormat (%i, should be in range 0-4 )\n", mod->name, psprite->rendermode );
 			break;
 		}
-		pframetype = (frametype_t *)(src);
+		pframetype = (dframetype_t *)(src);
 	}
 	else 
 	{
@@ -206,7 +193,7 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 
 		if(frametype == 0)//SPR_SINGLE
 		{
-			pframetype = (frametype_t *)R_SpriteLoadFrame(mod, pframetype + 1, &psprite->frames[i].frameptr, i, (byte *)(&pal[0][0]));
+			pframetype = (dframetype_t *)R_SpriteLoadFrame(mod, pframetype + 1, &psprite->frames[i].frameptr, i, (byte *)(&pal[0][0]));
 		}
 		else Sys_Error("R_SpriteLoadModel: group frames are not supported\n");
 		if(pframetype == NULL) break;                                                   

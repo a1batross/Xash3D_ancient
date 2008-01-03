@@ -486,7 +486,7 @@ bool LoadWAL( char *name, char *buffer, int filesize )
 	return FS_AddMipmapToPack( buffer + ofs[0], image_width, image_height );
 }
 
-bool LoadFLD( char *name, char *buffer, int filesize )
+bool LoadFLT( char *name, char *buffer, int filesize )
 {
 	flat_t	flat;
 	vfile_t	*f;
@@ -496,7 +496,7 @@ bool LoadFLD( char *name, char *buffer, int filesize )
 
 	if(filesize < (int)sizeof(flat))
 	{
-		MsgWarn("LoadFLD: file (%s) have invalid size\n", name );
+		MsgWarn("LoadFLAT: file (%s) have invalid size\n", name );
 		return false;
 	}
 
@@ -1914,7 +1914,7 @@ loadformat_t load_formats[] =
 	{"textures/%s%s.%s", "pcx", LoadPCX},
 	{"textures/%s%s.%s", "lmp", LoadLMP},
 	{"textures/%s%s.%s", "fnt", LoadFNT},
-	{"textures/%s%s.%s", "flat",LoadFLD},
+	{"textures/%s%s.%s", "flt", LoadFLT},
 	{"textures/%s%s.%s", "pal", LoadPAL},
 	{"%s%s.%s", "dds", LoadDDS},
 	{"%s%s.%s", "tga", LoadTGA},
@@ -1924,7 +1924,7 @@ loadformat_t load_formats[] =
 	{"%s%s.%s", "pcx", LoadPCX},
 	{"%s%s.%s", "lmp", LoadLMP},
 	{"%s%s.%s", "fnt", LoadFNT},
-	{"%s%s.%s", "flat",LoadFLD},
+	{"%s%s.%s", "flt", LoadFLT},
 	{"%s%s.%s", "pal", LoadPAL},
 	{NULL, NULL}
 };
