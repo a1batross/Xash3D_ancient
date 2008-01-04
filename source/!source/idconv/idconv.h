@@ -29,9 +29,9 @@ bool ConvFLT( const char *name, char *buffer, int filesize );
 bool ConvMIP( const char *name, char *buffer, int filesize );
 bool ConvLMP( const char *name, char *buffer, int filesize );
 bool ConvFNT( const char *name, char *buffer, int filesize );
-
-// image common utils
-bool PCX_ConvertImage( const char *name, char *buffer, int filesize );
+bool ConvWAL( const char *name, char *buffer, int filesize );
+bool ConvSKN( const char *name, char *buffer, int filesize );
+bool ConvBSP( const char *name, char *buffer, int filesize );
 
 //=====================================
 //	lump utils
@@ -41,9 +41,10 @@ bool PCX_ConvertImage( const char *name, char *buffer, int filesize );
 #define LUMP_DECAL		2
 #define LUMP_QFONT		3
 
+bool PCX_ConvertImage( const char *name, char *buffer, int filesize );
 bool Lump_ValidSize( char *name, rgbdata_t *pic, int maxwidth, int maxheight );
 bool Conv_Copy8bitRGBA(const byte *in, byte *out, int pixels);
-bool Conv_CreateShader( const char *name, rgbdata_t *pic );
+bool Conv_CreateShader( const char *name, rgbdata_t *pic, const char *animchain, int imageflags, int contents );
 void Conv_GetPaletteLMP( byte *pal, int rendermode );
 void Conv_GetPalettePCX( byte *pal );
 void Conv_GetPaletteQ2( void );

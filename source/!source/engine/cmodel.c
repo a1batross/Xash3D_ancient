@@ -1806,13 +1806,13 @@ cmodel_t *CM_StudioModel( char *name, edict_t *ent, byte *buffer)
 cmodel_t *CM_SpriteModel( char *name, edict_t *ent, byte *buffer)
 {
 	cmodel_t		*out;
-	dsprite_t		*phdr;
+	dspritehl_t	*phdr;
 
-	phdr = (dsprite_t *)buffer;
+	phdr = (dspritehl_t *)buffer;
 	
-	if(phdr->version != SPRITE_VERSION )
+	if(phdr->version != SPRITEHL_VERSION )
 	{
-		MsgWarn("CM_SpriteModel: %s has wrong version number (%i should be %i)\n", name, phdr->version, SPRITE_VERSION );
+		MsgWarn("CM_SpriteModel: %s has wrong version number (%i should be %i)\n", name, phdr->version, SPRITEHL_VERSION );
 		return NULL;
 	}
 	

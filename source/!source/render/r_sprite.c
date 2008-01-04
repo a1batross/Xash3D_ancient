@@ -74,7 +74,7 @@ void *R_SpriteLoadFrame (model_t *mod, void *pin, mspriteframe_t **ppframe, int 
 void R_SpriteLoadModel( model_t *mod, void *buffer )
 {
 	int		i, size, version, numframes;
-	dsprite_t		*pin;
+	dspritehl_t		*pin;
 	short		*numi;
 	msprite_t		*psprite;
 	dframetype_t	*pframetype;
@@ -82,12 +82,12 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 	vec4_t		rgbacolor;
 	float		framerate;
 	
-	pin = (dsprite_t *)buffer;
+	pin = (dspritehl_t *)buffer;
 	version = LittleLong (pin->version);
 		
-	if( version != SPRITE_VERSION)
+	if( version != SPRITEHL_VERSION)
 	{
-		Msg("Warning: %s has wrong version number (%i should be %i)", mod->name, version, SPRITE_VERSION );
+		Msg("Warning: %s has wrong version number (%i should be %i)", mod->name, version, SPRITEHL_VERSION );
 		return;
 	}
 	ResetRGBA( rgbacolor );

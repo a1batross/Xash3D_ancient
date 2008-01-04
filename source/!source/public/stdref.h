@@ -84,7 +84,10 @@ SPRITE MODELS
 .spr Half-Life sprites
 ==============================================================================
 */
-#define SPRITE_VERSION		2
+#define SPRITEQ1_VERSION		1
+#define SPRITEQ2_VERSION		2
+#define SPRITEHL_VERSION		2
+#define SPRITE32_VERSION		32
 #define IDSPRHLHEADER		(('P'<<24)+('S'<<16)+('D'<<8)+'I') // little-endian "IDSP"
 #define IDSPRQ2HEADER		(('2'<<24)+('S'<<16)+('D'<<8)+'I') // little-endian "IDS2"
 
@@ -108,6 +111,19 @@ typedef struct
 	int		ident;
 	int		version;
 	int		type;
+	float		boundingradius;
+	int		width;
+	int		height;
+	int		numframes;
+	float		beamlength;
+	synctype_t	synctype;
+} dsprite_t;
+
+typedef struct
+{
+	int		ident;
+	int		version;
+	int		type;
 	int		texFormat;	// Half-Life stuff only
 	float		boundingradius;	// software rendering stuff
 	int		width;
@@ -115,7 +131,7 @@ typedef struct
 	int		numframes;
 	float		beamlength;	// software rendering stuff
 	synctype_t	synctype;
-} dsprite_t;
+} dspritehl_t;
 
 typedef struct
 {

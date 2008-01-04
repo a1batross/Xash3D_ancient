@@ -1,6 +1,6 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//		  conv_q2sprite.c - convert quake2 sprites
+//		  conv_sprite2.c - convert quake2 sprites
 //=======================================================================
 
 #include "idconv.h"
@@ -90,7 +90,7 @@ bool SP2_WriteScript( const char *name )
 		// because q2 sprites already have "sprites/" in the path
 		FS_Printf(f,"\tframe\t\"%s\"", sprq2_framenames[i] );
 		if(!sprq2_origin[i][0] && !sprq2_origin[i][1]) FS_Print(f, "\n" ); 
-		else FS_Printf(f, "\t%d\t%d\n", (int)sprq2_origin[i][0], (int)sprq2_origin[i][1] );
+		else FS_Printf(f, "\t-%d\t%d\n", (int)sprq2_origin[i][0], (int)sprq2_origin[i][1] );
 	}
 	FS_Print(f,"}\n" );
 	FS_Printf(f,"\nsequence 0\n{\n\tpattern\t" ); // default sequence
@@ -114,11 +114,12 @@ ConvSP2
 bool ConvSP2( const char *name, char *buffer, int filesize )
 {
 	dspriteq2_t	*pin;
+	string		scriptname;
 	int		i;
 
 	pin = (dspriteq2_t *)buffer;
 
-	if( LittleLong(pin->ident) != IDSPRQ2HEADER || LittleLong(pin->version) != SPRITE_VERSION )
+	if( LittleLong(pin->ident) != IDSPRQ2HEADER || LittleLong(pin->version) != SPRITEQ2_VERSION )
 	{
 		Msg("\"%s.spr\" it's not a Quake2 sprite\n", name );
 		return false;
@@ -137,5 +138,6 @@ bool ConvSP2( const char *name, char *buffer, int filesize )
 	}
 
 	// write script file and out
-	return SP2_WriteScript( name );
+	FS_FileBase( name, scriptname );
+	return SP2_WriteScript( scriptname );
 }

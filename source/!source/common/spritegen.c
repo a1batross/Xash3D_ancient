@@ -11,7 +11,7 @@
 #define MAX_FRAMES		1024
 #define MAX_FRAME_DIM	512
 
-dsprite_t	sprite;
+dspritehl_t	sprite;
 byte	*byteimage, *lbmpalette;
 byte	*spritepool;
 int	byteimagewidth, byteimageheight;
@@ -60,7 +60,7 @@ void WriteSprite (vfile_t *f)
 {
 	int i, curframe;
 	short cnt = 256;
-	dsprite_t	spritetemp;
+	dspritehl_t	spritetemp;
 
 	sprite.boundingradius = sqrt(((framesmaxs[0] >> 1) * (framesmaxs[0] >> 1)) + ((framesmaxs[1] >> 1) * (framesmaxs[1] >> 1)));
 
@@ -307,7 +307,7 @@ void ResetSpriteInfo( void )
 	if (!lumpbuffer )lumpbuffer = Mem_Alloc(spritepool, (MAX_BUFFER_SIZE) * 2); // *2 for padding
 
 	plump = lumpbuffer;
-	sprite.version = SPRITE_VERSION;//normal sprite
+	sprite.version = SPRITEHL_VERSION;//normal sprite
 	sprite.type = SPR_VP_PARALLEL;
 	sprite.synctype = ST_RAND; // default
 }

@@ -12,6 +12,11 @@ byte *zonepool;
 static double start, end;
 uint app_name = 0;
 string gs_gamedir;
+string gs_searchmask;
+
+#define	MAX_SEARCHMASK	128
+string	searchmask[MAX_SEARCHMASK];
+int	num_searchmask = 0;
 
 typedef struct convformat_s
 {
@@ -22,13 +27,17 @@ typedef struct convformat_s
 
 convformat_t convert_formats[] =
 {
-	{"%s.%s", "spr", ConvSPR},	// half-life sprite
+	{"%s.%s", "spr", ConvSPR},	// quake1/half-life sprite
+	{"%s.%s","spr32",ConvSPR},	// spr32 sprite
 	{"%s.%s", "sp2", ConvSP2},	// quake2 sprite
 	{"%s.%s", "pcx", ConvPCX},	// quake2 pics
 	{"%s.%s", "flt", ConvFLT},	// doom1 textures
 	{"%s.%s", "mip", ConvMIP},	// Quake1/Half-Life textures
 	{"%s.%s", "lmp", ConvLMP},	// Quake1/Half-Life graphics
 	{"%s.%s", "fnt", ConvFNT},	// Half-Life fonts
+	{"%s.%s", "wal", ConvWAL},	// Quake2 textures
+	{"%s.%s", "skn", ConvSKN},	// doom1 sprite models
+	{"%s.%s", "bsp", ConvBSP},	// Quake1\Half-Life map textures
 	{NULL, NULL } // list terminator
 };
 
@@ -67,6 +76,17 @@ bool ConvertResource( const char *filename )
 	return false;
 }
 
+void AddMask( const char *mask )
+{
+	if( num_searchmask >= MAX_SEARCHMASK )
+	{
+		MsgDev(D_WARN, "AddMask: searchlist is full\n");
+		return;
+	}
+	com.strncpy( searchmask[num_searchmask], mask, MAX_STRING );
+	num_searchmask++;
+}
+
 /*
 ==================
 CommonInit
@@ -81,7 +101,7 @@ void InitConvertor ( uint funcname, int argc, char **argv )
 	basepool = Mem_AllocPool( "Temp" );
 	zonepool = Mem_AllocPool( "Zone" );
           app_name = funcname;
-	
+
 	switch( funcname )
 	{
 	case HOST_CONVERTOR:
@@ -96,68 +116,82 @@ void InitConvertor ( uint funcname, int argc, char **argv )
 void RunConvertor ( void )
 {
 	search_t	*search;
-	char	filename[MAX_QPATH], typemod[16], errorstring[256];
-	string	searchmask[16];
+	string	errorstring;
 	int	i, j, numConvertedRes = 0;
 
-	Mem_Set( searchmask, 0,  MAX_STRING * 16 ); 
+	Mem_Set( searchmask, 0,  MAX_STRING * MAX_SEARCHMASK ); 
 	Mem_Set( errorstring, 0, MAX_STRING ); 
 
 	switch(app_name)
 	{
 	case HOST_CONVERTOR:
-		strcpy(typemod, "resources" );
-		strcpy(searchmask[0], "sprites/*.spr" );	// half-life sprites
-		strcpy(searchmask[1], "sprites/*.sp2" );	// quake2 sprites
-		strcpy(searchmask[2], "pics/*.pcx" );		// quake2 menu images
-		strcpy(searchmask[3], "gfx/*.lmp" );		// quake1 menu images
-		strcpy(searchmask[4], "*.spr" );		// half-life sprites
-		strcpy(searchmask[5], "*.sp2" );		// half-life sprites
-		strcpy(searchmask[6], "*.pcx" );		// quake2 menu images
-		strcpy(searchmask[7], "*.flt" );		// doom1 textures
-		strcpy(searchmask[8], "*.mip" );		// quake1\half-life textures
-		strcpy(searchmask[9], "*.lmp" );		// quake1\half-life pictures
-		strcpy(searchmask[10],"*.fnt" );		// half-life fonts
 		Msg("Converting ...\n\n");
 		break;		
 	case HOST_OFFLINE:
-		break;
+	default: return;
 	}
 
-	if(!FS_GetParmFromCmdLine("-game", gs_gamedir ))
-		com.strncpy(gs_gamedir, "xash", sizeof(gs_gamedir));
-
-	if(!FS_GetParmFromCmdLine("-file", filename ))
+	if(!FS_GetParmFromCmdLine("-mask", gs_searchmask ))
 	{
-		// search by mask		
-		for( i = 0; i < 16; i++)
-		{
-			// skip blank mask
-			if(!com.strlen(searchmask[i])) continue;
-			search = FS_Search( searchmask[i], true );
-			if(!search) continue; // try next mask
-
-			for( j = 0; j < search->numfilenames; j++ )
-			{
-				if(ConvertResource( search->filenames[j] ))
-					numConvertedRes++;
-			}
-		}
-		if(numConvertedRes == 0) 
-		{
-			for(j = 0; j < 16; j++) 
-			{
-				if(!com.strlen(searchmask[j])) continue;
-				com.strcat(errorstring, va("%s ", searchmask[j]));
-			}
-			Sys_Break("no %sfound in this folder!\n", errorstring );
-		}
+		AddMask( "sprites/*.spr" );
+		AddMask( "sprites/*.sp2" );
+		AddMask( "sprites/*.spr32");
+		AddMask( "textures/*.wal" );
+		AddMask( "progs/*.spr32" );
+		AddMask( "progs/*.spr" );
+		AddMask( "pics/*.pcx" );
+		AddMask( "maps/*.bsp" );
+		AddMask( "gfx/*.lmp" );
+		AddMask( "*.spr" );
+		AddMask( "*.sp2" );
+		AddMask( "*.pcx" );
+		AddMask( "*.flt" );
+		AddMask( "*.mip" );
+		AddMask( "*.lmp" );
+		AddMask( "*.fnt" );
 	}
-	else ConvertResource( filename );
+	else AddMask( gs_searchmask ); // custom mask
+	
+	// find subdirectories
+	search = FS_Search("textures/*", true );
+	if( search )
+	{
+		for(i = 0; i < search->numfilenames; i++)
+			AddMask(va("%s/*.wal", search->filenames[i]));
+		Mem_Free( search );
+	}
+
+	// directory to extract
+	com.strncpy(gs_gamedir, "~tmpXash", sizeof(gs_gamedir));
+
+	// search by mask		
+	for( i = 0; i < num_searchmask; i++)
+	{
+		// skip blank mask
+		if(!com.strlen(searchmask[i])) continue;
+		search = FS_Search( searchmask[i], true );
+		if(!search) continue; // try next mask
+
+		for( j = 0; j < search->numfilenames; j++ )
+		{
+			if(ConvertResource( search->filenames[j] ))
+				numConvertedRes++;
+		}
+		Mem_Free( search );
+	}
+	if(numConvertedRes == 0) 
+	{
+		for(j = 0; j < 16; j++) 
+		{
+			if(!com.strlen(searchmask[j])) continue;
+			com.strncat(errorstring, va("%s ", searchmask[j]), MAX_STRING );
+		}
+		Sys_Break("no %sfound in this folder!\n", errorstring );
+	}
 
 	end = Sys_DoubleTime();
 	Msg ("%5.3f seconds elapsed\n", end - start);
-	if(numConvertedRes > 1) Msg("total %d %s compiled\n", numConvertedRes, typemod );
+	if(numConvertedRes > 1) Msg("total %d files compiled\n", numConvertedRes );
 }
 
 void CloseConvertor( void )

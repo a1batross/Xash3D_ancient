@@ -202,7 +202,7 @@ static void _mem_freeblock(memheader_t *mem, const char *filename, int fileline)
 	// memheader has been unlinked, do the actual free now
 	pool->totalsize -= mem->size;
 
-	if ((clump = mem->clump))
+	if((clump = mem->clump))
 	{
 		if (clump->sentinel1 != MEMCLUMP_SENTINEL)
 			Sys_Error("Mem_Free: trashed clump sentinel 1 (free at %s:%i)", filename, fileline);

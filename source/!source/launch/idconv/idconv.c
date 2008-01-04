@@ -4,4 +4,4 @@
 
 #include "../rundll.h"
 
-Run32( host_convertor );
+Run( host_convertor );

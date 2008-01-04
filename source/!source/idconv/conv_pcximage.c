@@ -100,6 +100,7 @@ bool PCX_ConvertImage( const char *name, char *buffer, int filesize )
 	}
 
 	Mem_Free( pbuf ); // free compressed image
+	FS_StripExtension( (char *)name );
 	FS_SaveImage( va("%s/%s.tga", gs_gamedir, name ), &pic ); // save converted image
 	Mem_Free( pic.buffer ); // release buffer
 
@@ -140,7 +141,7 @@ bool ConvPCX( const char *name, char *buffer, int filesize )
 
 	if(PCX_ConvertImage( path, buffer, filesize ))
 	{
-		Msg("%s.pcx\n", name ); // echo to console about current image
+		Msg("%s\n", name ); // echo to console about current image
 		return true;
 	}
 	return false;

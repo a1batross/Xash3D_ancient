@@ -500,8 +500,8 @@ print into window console
 void Sys_Print(const char *pMsg)
 {
 	const char	*msg;
-	char		buffer[MAX_INPUTLINE * 2];
-	char		logbuf[MAX_INPUTLINE * 2];
+	char		buffer[MAX_INPUTLINE * 8];
+	char		logbuf[MAX_INPUTLINE * 8];
 	char		*b = buffer;
 	char		*c = logbuf;	
 	int		i = 0;
@@ -584,7 +584,7 @@ void Sys_MsgDev( int level, const char *pMsg, ... )
 	com_vsprintf (text, pMsg, argptr);
 	va_end (argptr);
 
-	switch(level)
+	switch( level )
 	{
 	case D_INFO:	
 		Sys_Print( text );
@@ -602,7 +602,7 @@ void Sys_MsgDev( int level, const char *pMsg, ... )
 		Sys_Print( text );
 		break;
 	case D_MEMORY:
-		Sys_Print(va("^6Mem: ^7%s", text));
+		Sys_Print( text );
 		break;
 	}
 }

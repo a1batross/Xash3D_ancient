@@ -113,7 +113,7 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\conv_hlsprite.c
+SOURCE=.\conv_bsplumps.c
 # End Source File
 # Begin Source File
 
@@ -129,15 +129,23 @@ SOURCE=.\conv_pcximage.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\conv_q2sprite.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\conv_shader.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\conv_sprite.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\conv_sprite2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\conv_wadlumps.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\conv_wally.c
 # End Source File
 # End Group
 # Begin Group "Header Files"

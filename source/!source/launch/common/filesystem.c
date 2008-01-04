@@ -441,12 +441,12 @@ void stringlistappend(stringlist_t *list, char *text)
 	{
 		oldstrings = list->strings;
 		list->maxstrings += 4096;
-		list->strings = Malloc(list->maxstrings * sizeof(*list->strings));
+		list->strings = Mem_Alloc(fs_mempool, list->maxstrings * sizeof(*list->strings));
 		if (list->numstrings) Mem_Copy(list->strings, oldstrings, list->numstrings * sizeof(*list->strings));
-		if (oldstrings) Mem_Free(oldstrings);
+		if (oldstrings) Mem_Free( oldstrings );
 	}
 	textlen = com_strlen(text) + 1;
-	list->strings[list->numstrings] = Malloc(textlen);
+	list->strings[list->numstrings] = Mem_Alloc( fs_mempool, textlen);
 	Mem_Copy(list->strings[list->numstrings], text, textlen);
 	list->numstrings++;
 }
@@ -683,7 +683,7 @@ pack_t *FS_LoadPackPAK(const char *packfile)
 		return NULL;
 	}
 
-	info = (dpackfile_t *)Malloc( sizeof(*info) * numpackfiles);
+	info = (dpackfile_t *)Mem_Alloc( fs_mempool, sizeof(*info) * numpackfiles);
 	lseek (packhandle, header.dirofs, SEEK_SET);
 	if(header.dirlen != read (packhandle, (void *)info, header.dirlen))
 	{
@@ -759,7 +759,7 @@ pack_t *FS_LoadPackPK2(const char *packfile)
 		return NULL;
 	}
 
-	info = (dpak2file_t *)Malloc( sizeof(*info) * numpackfiles);
+	info = (dpak2file_t *)Mem_Alloc( fs_mempool, sizeof(*info) * numpackfiles);
 	lseek (packhandle, header.dirofs, SEEK_SET);
 	if(header.dirlen != read(packhandle, (void *)info, header.dirlen))
 	{
@@ -2373,7 +2373,7 @@ int FS_Seek (file_t* file, fs_offset_t offset, int whence)
 
 	// We need a big buffer to force inflating into it directly
 	buffersize = 2 * sizeof (file->buff);
-	buffer = (unsigned char *)Malloc(buffersize);
+	buffer = (byte *)Malloc(buffersize );
 
 	// Skip all data until we reach the requested offset
 	while (offset > file->position)
@@ -2539,7 +2539,40 @@ Look for a file in the packages and in the filesystem
 */
 bool FS_FileExists (const char *filename)
 {
-	return (FS_FindFile(filename, NULL, true) != NULL);
+	if(FS_FindFile( filename, NULL, true))
+		return true;
+
+	if( fs_searchwads )
+	{
+		wadtype_t		*type;
+		wadfile_t		*w; // names will be associated with lump types
+		const char	*ext = FS_FileExtension( filename );
+		string		lumpname;
+		int		k, i;
+
+		FS_FileBase( filename, lumpname );
+
+		// lookup all wads in list
+		for( k = 0; k < Mem_ArraySize( fs_searchwads ); k++ )
+		{
+			w = (wadfile_t *)Mem_GetElement( fs_searchwads, k );
+			if( !w ) continue;
+
+			for(i = 0; i < (uint)w->numlumps; i++)
+			{
+				for (type = wad_types; type->ext; type++)
+				{
+					// associate extension with lump->type
+					if((!com_stricmp( ext, type->ext ) && type->type == (int)w->lumps[i].type))
+					{
+						if(!com_stricmp( lumpname, w->lumps[i].name ))
+							return true;
+					}
+				}
+			}
+		}
+	}
+	return false;
 }
 
 
