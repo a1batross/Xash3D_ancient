@@ -317,12 +317,11 @@ byte *Image_Resample(uint *in, int inwidth, int inheight, int outwidth, int outh
 	return (byte *)out;
 }
 
-bool Image_Processing( const char *name, rgbdata_t **pix )
+bool Image_Processing( const char *name, rgbdata_t **pix, int width, int height )
 {
 	int		w, h;
 	rgbdata_t		*image = *pix;
 	byte		*out;
-	char		width[4], height[4];
 
 	// check for buffers
 	if(!image || !image->buffer) return false;
@@ -330,11 +329,11 @@ bool Image_Processing( const char *name, rgbdata_t **pix )
 	w = image->width;
 	h = image->height;
 
-	if(FS_GetParmFromCmdLine("-w", width ) && FS_GetParmFromCmdLine("-h", height ))
+	if(width && height)
 	{
 		// custom size
-		w = bound(4, atoi(width), 1024 );	// maxwidth 1024
-		h = bound(4, atoi(height), 1024);	// maxheight 1024
+		w = bound(4, width, 1024 );	// maxwidth 1024
+		h = bound(4, height, 1024);	// maxheight 1024
 	}
 	else Image_RoundDimensions( &w, &h ); // auto detect new size
 

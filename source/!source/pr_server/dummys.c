@@ -68,7 +68,6 @@ void() monster_army             = {remove(pev);};
 void() monster_wizard           = {remove(pev);};
 void() monster_dog              = {remove(pev);};
 void() monster_zombie           = {remove(pev);};
-void() monster_boss             = {remove(pev);};
 void() monster_tarbaby          = {remove(pev);};
 void() monster_hell_knight      = {remove(pev);};
 void() monster_fish             = {remove(pev);};
@@ -193,4 +192,13 @@ void env_sprite( void )
 	pev->movetype = MOVETYPE_NONE;
 	setmodel (pev, "sprites/explode01.spr");
 	pev->frame = 5;
+}
+
+void env_monster( void )
+{
+	precache_model ("sprites/boss.spr");
+	pev->owner = pev;
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	setmodel (pev, "sprites/boss.spr");
 }

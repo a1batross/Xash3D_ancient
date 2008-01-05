@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // models.c -- model loading and caching
 
 #include "gl_local.h"
+#include "basefiles.h"
 
 model_t	*loadmodel;
 int		modfilelen;
@@ -251,7 +252,7 @@ model_t *Mod_ForName(char *name, bool crash)
 	case IDSTUDIOHEADER:
 		Mod_LoadStudioModel ( mod, buf );
 		break;
-	case IDSPRHLHEADER:
+	case IDSPRITEHEADER:
 		Mod_LoadSpriteModel ( mod, buf );
 		break;
 	default:

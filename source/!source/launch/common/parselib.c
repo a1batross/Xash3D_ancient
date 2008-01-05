@@ -44,8 +44,7 @@ bool SC_AddScriptToStack(const char *name, byte *buffer, int size)
 	
 	script++;
 	com_strncpy(script->filename, name, sizeof(script->filename));
-	script->buffer = Mem_Alloc( Sys.basepool, size );
-	Mem_Move( Sys.basepool, &script->buffer, buffer, size );
+	script->buffer = buffer;
 	script->line = scriptline = 1;
 	script->script_p = script->buffer;
 	script->end_p = script->buffer + size;

@@ -196,6 +196,8 @@ void RunConvertor ( void )
 
 void CloseConvertor( void )
 {
+	// finalize qc-script
+	Skin_FinalizeScript();
 	Mem_Check(); // check for leaks
 	Mem_FreePool( &basepool );
 	Mem_FreePool( &zonepool );

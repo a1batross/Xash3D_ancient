@@ -32,14 +32,7 @@ int Lump_GetFileType( const char *name, byte *buf )
 
 	if(!buf) return TYPE_NONE;
 
-	switch(LittleLong(*(uint *)buf))
-	{
-	case IDSPRHLHEADER: return TYPE_SPRITE;
-	case IDSTUDIOHEADER: return TYPE_STUDIO;
-	case DDSHEADER: return TYPE_MIPDDS;
-	}
-
-	// otherwise get file type by extension
+	// get file type by extension
 	if(!com.stricmp( ext, "tga" )) return TYPE_MIPTGA;
 	else if(!com.stricmp( ext, "mip" )) 
 	{
@@ -47,6 +40,9 @@ int Lump_GetFileType( const char *name, byte *buf )
 			return TYPE_MIPTEX2; // half-life texture
 		return TYPE_MIPTEX;	// quake1 texture
 	}
+	else if(!com.stricmp( ext, "dds" )) return TYPE_MIPDDS;	// ms dds
+	else if(!com.stricmp( ext, "mdl" )) return TYPE_STUDIO;	// hl mdl
+	else if(!com.stricmp( ext, "spr" )) return TYPE_SPRITE;	// spr32
 	else if(!com.stricmp( ext, "lmp" )) return TYPE_QPIC;	// hud pics
 	else if(!com.stricmp( ext, "pal" )) return TYPE_QPAL;	// palette
 	else if(!com.stricmp( ext, "wav" )) return TYPE_SOUND;	// wav sound

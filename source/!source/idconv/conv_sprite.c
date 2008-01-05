@@ -4,6 +4,46 @@
 //=======================================================================
 
 #include "idconv.h"
+#include "mathlib.h"
+#include "basefiles.h"
+
+/*
+========================================================================
+
+.SPR sprite file format
+
+========================================================================
+*/
+#define IDSPRQ1HEADER		(('P'<<24)+('S'<<16)+('D'<<8)+'I')	// little-endian "IDSP"
+
+#define SPRITEQ1_VERSION		1
+#define SPRITEHL_VERSION		2
+#define SPRITE32_VERSION		32
+
+typedef struct
+{
+	int		ident;
+	int		version;
+	int		type;
+	int		texFormat;	// Half-Life stuff only
+	float		boundingradius;	// software rendering stuff
+	int		width;
+	int		height;
+	int		numframes;
+	float		beamlength;	// software rendering stuff
+	synctype_t	synctype;
+} dspritehl_t;
+
+typedef struct
+{
+	int		origin[2];
+	int		width;
+	int		height;
+} dspriteframe_t;
+
+//
+// sprite_decompiler.c
+//
 
 int spr_type;
 int spr_texFormat;
@@ -13,17 +53,18 @@ int spr_numframes;
 int spr_sequence;
 byte spr_palette[256][4];
 bool spr_truecolor = false;
-float spr_framerate = 15.0f;
 string spr_framenames[256];
+string spr_groupnames[256];
 vec2_t spr_origin[256];
+vec2_t spr_size[256];
 
 const char *SPR_RenderMode( void )
 {
 	switch( spr_texFormat )
 	{
 	case SPR_ADDGLOW: return "glow";
-	case SPR_ALPHTEST: return "decal";
-	case SPR_INDEXALPHA: return "decal";
+	case SPR_ALPHTEST: return "alphatest";
+	case SPR_INDEXALPHA: return "indexalpha";
 	case SPR_ADDITIVE: return "additive";
 	case SPR_NORMAL: return "normal";
 	default: return "normal";
@@ -64,7 +105,7 @@ void *SPR_ConvertFrame( const char *name, void *pin, int framenum )
 	fout = Mem_Alloc( zonepool, width * height * 4 );
 	// extract sprite name from path
 	FS_FileBase( name, framename );
-	com.strcat( framename, va("_#%i%i", framenum/10, framenum%10 ));
+	com.strcat( framename, va("_%i", framenum ));
 	memset( &pix, 0, sizeof(pix));
 
 	if( spr_truecolor )
@@ -91,6 +132,8 @@ void *SPR_ConvertFrame( const char *name, void *pin, int framenum )
 	com.strncpy( spr_framenames[framenum], framename, MAX_STRING );
 	spr_origin[framenum][0] = (float)LittleLong(pinframe->origin[0]);
 	spr_origin[framenum][1] = (float)LittleLong(pinframe->origin[1]);
+	spr_size[framenum][0] = (float)LittleLong(pinframe->width);
+	spr_size[framenum][1] = (float)LittleLong(pinframe->height);
 
 	// preparing for write
 	pix.width = width;
@@ -121,13 +164,9 @@ void *SPR_ConvertGroup( const char *name, void *pin, int framenum )
 	numframes = LittleLong( pingroup->numframes );
 	pin_intervals = (dspriteinterval_t *)(pingroup + 1);
 
-	for (i = 0; i < numframes; i++)
+	for (i = 0; i < numframes; i++) 
 	{
-		if(LittleFloat(pin_intervals->interval) <= 0.0)
-		{
-			Sys_Break("negative interval!\n");
-			return NULL; // negate interval
-		}
+		//Msg("frame %d, interval %g\n", i, *pin_intervals );
 		pin_intervals++;
 	}
 
@@ -145,40 +184,34 @@ void *SPR_ConvertGroup( const char *name, void *pin, int framenum )
 bool SPR_WriteScript( const char *name )
 {
 	int	i;
-	file_t	*f = FS_Open( va("%s/sprites/%s.txt", gs_gamedir, name ), "w" );
+	file_t	*f = FS_Open( va("%s/sprites/%s.qc", gs_gamedir, name ), "w" );
 
 	if( !f )
 	{
-		Msg("Can't write sprite header \"%s.txt\"\n", name );
+		Msg("Can't generate qc-script \"%s.qc\"\n", name );
 		return false;
 	}
 
 	// description
 	FS_Printf(f,"//=======================================================================\n");
 	FS_Printf(f,"//\t\t\tCopyright XashXT Group 2007 ©\n");
-	FS_Printf(f,"//\t\t\t%s.spr - Xash Sprite Format\n", name );
+	FS_Printf(f,"//\t\t\twritten by Xash Miptex Decompiler\n", name );
 	FS_Printf(f,"//=======================================================================\n");
 
 	// sprite header
-	FS_Printf(f,"\nheader \"%s\"\n{\n\ttype\t\"%s\"\n\trender\t\"%s\"\n",name,SPR_RenderType(),SPR_RenderMode());
-	FS_Printf(f,"\tframerate\t\"%.1f\"\n\tsequence\t\"%d\"\n}\n", spr_framerate, spr_sequence );
+	FS_Printf(f, "\n$spritename\t%s.spr\n", name );
+	FS_Printf(f, "$type\t\t%s\n",SPR_RenderType());
+	FS_Printf(f, "$texture\t\t%s\n",SPR_RenderMode());
 
 	// frames description
-	FS_Printf(f,"\nframes \"%s\"\n{\n", name );
-	
 	for( i = 0; i < spr_numframes; i++)
 	{
-		FS_Printf(f,"\tframe\t\"sprites/%s\"", spr_framenames[i] );
+		FS_Printf(f,"$load\t\t%s.tga\n", spr_framenames[i] );
+		FS_Printf(f,"$frame\t\t0   0   %.f   %.f", spr_size[i][0], spr_size[i][1] );
 		if(!spr_origin[i][0] && !spr_origin[i][1]) FS_Print(f, "\n" ); 
-		else FS_Printf(f, "\t%d\t%d\n", (int)spr_origin[i][0], (int)spr_origin[i][1] );
+		else FS_Printf(f, "   %.1f   %.f   %.f\n", 0.1f, fabs(spr_origin[i][0]), spr_origin[i][1] );
 	}
-	FS_Print(f,"}\n" );
-	FS_Printf(f,"\nsequence 0\n{\n\tpattern\t" ); // default sequence
-
-	if(spr_numframes > 1) FS_Printf(f,"\"%d..%d\"", 0, spr_numframes - 1 );
-	else FS_Print(f,"\"0\"" );
-	FS_Print(f,"\n}\n" );
-
+	FS_Print(f,"\n" );
 	FS_Close(f);
 	Msg("%s.spr\n", name ); // echo to console about current sprite
 	return true;
@@ -201,7 +234,7 @@ bool ConvSPR( const char *name, char *buffer, int filesize )
 	pin = (dsprite_t *)buffer;
 	version = LittleLong( pin->version );
 
-	if( pin->ident != IDSPRHLHEADER )
+	if( pin->ident != IDSPRQ1HEADER )
 	{
 		Msg("\"%s.spr\" have invalid header\n", name );
 		return false;
@@ -224,7 +257,7 @@ bool ConvSPR( const char *name, char *buffer, int filesize )
 		break;
 	case SPRITE32_VERSION:
 		spr_numframes = LittleLong( pin->numframes );
-		spr_texFormat = SPR_INDEXALPHA; // constant
+		spr_texFormat = SPR_ADDITIVE; // constant
 		spr_type = LittleLong( pin->type );
 		spr_width = LittleLong( pin->width );
 		spr_height = LittleLong( pin->height );

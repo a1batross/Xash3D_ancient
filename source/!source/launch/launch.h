@@ -245,7 +245,7 @@ bool FS_WriteFile (const char *filename, void *data, fs_offset_t len);
 rgbdata_t *FS_LoadImage(const char *filename, char *data, int size );
 void FS_SaveImage(const char *filename, rgbdata_t *buffer );
 void FS_FreeImage( rgbdata_t *pack );
-bool Image_Processing( const char *name, rgbdata_t **pix );
+bool Image_Processing( const char *name, rgbdata_t **pix, int width, int height );
 search_t *FS_Search(const char *pattern, int caseinsensitive );
 search_t *FS_SearchDirs(const char *pattern, int caseinsensitive );
 

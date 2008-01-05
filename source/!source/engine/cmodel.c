@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // cmodel.c -- model loading
 
 #include "engine.h"
+#include "basefiles.h"
 #include "server.h"
 #include "collision.h"
 
@@ -1806,13 +1807,13 @@ cmodel_t *CM_StudioModel( char *name, edict_t *ent, byte *buffer)
 cmodel_t *CM_SpriteModel( char *name, edict_t *ent, byte *buffer)
 {
 	cmodel_t		*out;
-	dspritehl_t	*phdr;
+	dsprite_t		*phdr;
 
-	phdr = (dspritehl_t *)buffer;
+	phdr = (dsprite_t *)buffer;
 	
-	if(phdr->version != SPRITEHL_VERSION )
+	if(phdr->version != SPRITE_VERSION )
 	{
-		MsgWarn("CM_SpriteModel: %s has wrong version number (%i should be %i)\n", name, phdr->version, SPRITEHL_VERSION );
+		MsgWarn("CM_SpriteModel: %s has wrong version number (%i should be %i)\n", name, phdr->version, SPRITE_VERSION );
 		return NULL;
 	}
 	
@@ -1871,7 +1872,7 @@ cmodel_t *CM_LoadModel( edict_t *ent )
 	case IDSTUDIOHEADER:
 		mod = CM_StudioModel( name, ent, buffer );
 		break;
-	case IDSPRHLHEADER:
+	case IDSPRITEHEADER:
 		mod = CM_SpriteModel( name, ent, buffer );
 		break;
 	}

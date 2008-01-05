@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include "basefiles.h"
+
 /*
 
 d*_t structures are on-disk representations
@@ -42,7 +44,14 @@ typedef struct mspriteframe_s
 
 typedef struct
 {
-	int		frametype;
+	int		numframes;
+	float		*intervals;
+	mspriteframe_t	*frames[1];
+} mspritegroup_t;
+
+typedef struct
+{
+	frametype_t	type;
 	mspriteframe_t	*frameptr;
 } mspriteframedesc_t;
 
@@ -53,8 +62,6 @@ typedef struct
 	int		maxwidth;
 	int		maxheight;
 	int		numframes;
-	float		framerate;
-	vec4_t		rgba;
 	mspriteframedesc_t	frames[1];
 } msprite_t;
 

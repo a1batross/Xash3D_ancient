@@ -12,6 +12,9 @@
 
 ========================================================================
 */
+#define SPRITEQ2_VERSION		2
+#define IDSPRQ2HEADER		(('2'<<24)+('S'<<16)+('D'<<8)+'I') // little-endian "IDS2"
+
 typedef struct
 {
 	int		width;
@@ -28,6 +31,10 @@ typedef struct
 	int		numframes;
 	dsprframeq2_t	frames[1];	// variable sized
 } dspriteq2_t;
+
+//
+// sprite2_decompiler.c
+//
 
 int sprq2_width = 1;
 int sprq2_height = 1;

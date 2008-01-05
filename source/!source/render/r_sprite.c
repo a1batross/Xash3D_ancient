@@ -12,86 +12,122 @@
 
 =============================================================
 */
-
 /*
 ====================
 Sprite model loader
 ====================
 */
-void *R_SpriteLoadFrame (model_t *mod, void *pin, mspriteframe_t **ppframe, int framenum, byte *pal )
+dframetype_t *R_SpriteLoadFrame( model_t *mod, void *pin, mspriteframe_t **ppframe, int framenum )
 {
-	dspriteframe_t	*pinframe;
+	dframe_t		*pinframe;
 	mspriteframe_t	*pspriteframe;
 	int		width, height, size, origin[2];
 	char		name[64];
-	rgbdata_t		r_frame;
+	rgbdata_t		*spr_frame;
 	image_t		*image;
 	
-	pinframe = (dspriteframe_t *)pin;
+	pinframe = (dframe_t *)pin;
 
 	width = LittleLong (pinframe->width);
 	height = LittleLong (pinframe->height);
-	size = width * height;
+	size = width * height * 4;
           
 	pspriteframe = Mem_Alloc(mod->mempool, sizeof (mspriteframe_t));
 	memset (pspriteframe, 0, sizeof (mspriteframe_t));
-
+	spr_frame = (rgbdata_t *)Mem_Alloc( mod->mempool, sizeof(rgbdata_t));
 	*ppframe = pspriteframe;
 
-	pspriteframe->width = r_frame.width = width;
-	pspriteframe->height = r_frame.height = height;
-	origin[0] = LittleLong (pinframe->origin[0]);
-	origin[1] = LittleLong (pinframe->origin[1]);
+	pspriteframe->width = spr_frame->width = width;
+	pspriteframe->height = spr_frame->height = height;
+	origin[0] = LittleLong(pinframe->origin[0]);
+	origin[1] = LittleLong(pinframe->origin[1]);
 
 	pspriteframe->up = origin[1];
 	pspriteframe->down = origin[1] - height;
 	pspriteframe->left = origin[0];
 	pspriteframe->right = width + origin[0];
           pspriteframe->texnum = 0;
-	r_frame.type = PF_INDEXED_32;
-	r_frame.numMips = 1;
-	r_frame.flags = IMAGE_HAS_ALPHA;
+	spr_frame->type = PF_RGBA_32;
+	spr_frame->flags = IMAGE_HAS_ALPHA;
+	spr_frame->numMips = 1;
 	
 	// extract sprite name from path
 	FS_FileBase( mod->name, name );
-	strcat(name, va("_%i", framenum));
-	r_frame.palette = pal;
-	r_frame.size = width * height * 4; // for bounds checking
-	r_frame.buffer = (byte *)(pinframe + 1);
+	com.strcat(name, va("_%i", framenum ));
+	spr_frame->size = width * height * 4; // for bounds checking
+	spr_frame->buffer = (byte *)Mem_Alloc( mod->mempool, spr_frame->size );
 
-	image = R_LoadImage( name, &r_frame, it_sprite );
-	
-	if(image)
+	if(!VFS_Unpack((byte *)(pinframe + 1), pinframe->compsize, &spr_frame->buffer, spr_frame->size ))
+	{
+		FS_FreeImage( spr_frame );
+		MsgDev(D_WARN, "R_SpriteLoadFrame: %s probably corrupted\n", name );
+		return (void *)((byte *)(pinframe + 1) + pinframe->compsize);
+	}
+
+	image = R_LoadImage( name, spr_frame, it_sprite );
+	if( image )
 	{
 		pspriteframe->texnum = image->texnum[0];
 		mod->skins[framenum] = image;
           }
-          else MsgWarn("%s has null frame %d\n", image->name, framenum );
-          
-	return (void *)((byte *)(pinframe+1) + size);
+          else MsgDev(D_WARN, "%s has null frame %d\n", image->name, framenum );
+
+	FS_FreeImage( spr_frame );          
+	return (dframetype_t *)((byte *)(pinframe + 1) + pinframe->compsize);
+}
+
+dframetype_t *R_SpriteLoadGroup (model_t *mod, void * pin, mspriteframe_t **ppframe, int framenum )
+{
+	dspritegroup_t	*pingroup;
+	mspritegroup_t	*pspritegroup;
+	dspriteinterval_t	*pin_intervals;
+	float		*poutintervals;
+	int		i, groupsize, numframes;
+	void		*ptemp;
+
+	pingroup = (dspritegroup_t *)pin;
+	numframes = LittleLong(pingroup->numframes);
+
+	groupsize = sizeof(mspritegroup_t) + (numframes - 1) * sizeof(pspritegroup->frames[0]);
+	pspritegroup = Mem_Alloc( mod->mempool, groupsize );
+	pspritegroup->numframes = numframes;
+
+	*ppframe = (mspriteframe_t *)pspritegroup;
+	pin_intervals = (dspriteinterval_t *)(pingroup + 1);
+	poutintervals = Mem_Alloc(mod->mempool, numframes * sizeof (float));
+	pspritegroup->intervals = poutintervals;
+
+	for (i = 0; i < numframes; i++)
+	{
+		*poutintervals = LittleFloat(pin_intervals->interval);
+		if(*poutintervals <= 0.0) *poutintervals = 1.0f; // set error value
+		poutintervals++;
+		pin_intervals++;
+	}
+
+	ptemp = (void *)pin_intervals;
+	for (i = 0; i < numframes; i++ )
+	{
+		ptemp = R_SpriteLoadFrame(mod, ptemp, &pspritegroup->frames[i], framenum + i);
+	}
+	return (dframetype_t *)ptemp;
 }
 
 void R_SpriteLoadModel( model_t *mod, void *buffer )
 {
-	int		i, size, version, numframes;
-	dspritehl_t		*pin;
-	short		*numi;
+	dsprite_t		*pin;
 	msprite_t		*psprite;
 	dframetype_t	*pframetype;
-	byte		pal[256][4];
-	vec4_t		rgbacolor;
-	float		framerate;
+	int		i, size, numframes;
 	
-	pin = (dspritehl_t *)buffer;
-	version = LittleLong (pin->version);
+	pin = (dsprite_t *)buffer;
+	i = LittleLong(pin->version);
 		
-	if( version != SPRITEHL_VERSION)
+	if( i != SPRITE_VERSION)
 	{
-		Msg("Warning: %s has wrong version number (%i should be %i)", mod->name, version, SPRITEHL_VERSION );
+		Msg("Warning: %s has wrong version number (%i should be %i)\n", mod->name, i, SPRITE_VERSION );
 		return;
 	}
-	ResetRGBA( rgbacolor );
-	framerate = 15.0f;
 
 	numframes = LittleLong (pin->numframes);
 	size = sizeof (msprite_t) + (numframes - 1) * sizeof (psprite->frames);
@@ -100,81 +136,16 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 	mod->extradata = psprite; //make link to extradata
 	
 	psprite->type	= LittleLong(pin->type);
-	psprite->maxwidth	= LittleLong (pin->width);
-	psprite->maxheight	= LittleLong (pin->height);
-	psprite->rendermode = LittleLong (pin->texFormat);
-	psprite->framerate	= framerate;
+	psprite->maxwidth	= LittleLong(pin->width);
+	psprite->maxheight	= LittleLong(pin->height);
+	psprite->rendermode = LittleLong(pin->rendermode);
 	psprite->numframes	= numframes;
-          Mem_Copy(psprite->rgba, rgbacolor, sizeof(psprite->rgba));
-	numi = (short *)(pin + 1);
-	
 	mod->mins[0] = mod->mins[1] = -psprite->maxwidth / 2;
 	mod->maxs[0] = mod->maxs[1] = psprite->maxwidth / 2;
 	mod->mins[2] = -psprite->maxheight / 2;
 	mod->maxs[2] = psprite->maxheight / 2;
-	
-	if (LittleShort(*numi) == 256)
-	{	
-		byte *src = (byte *)(numi+1);
-
-		switch( psprite->rendermode )
-		{
-		case SPR_NORMAL:
-			for (i = 0; i < 256; i++)
-			{
-				pal[i][0] = *src++;
-				pal[i][1] = *src++;
-				pal[i][2] = *src++;
-				pal[i][3] = 0;
-			}
-			break;
-		case SPR_ADDGLOW:
-		case SPR_ADDITIVE:
-			for (i = 0; i < 256; i++)
-			{
-				pal[i][0] = *src++;
-				pal[i][1] = *src++;
-				pal[i][2] = *src++;
-				pal[i][3] = 255;
-			}
-			break;
-                    case SPR_INDEXALPHA:
-			for (i = 0; i < 256; i++)
-			{
-				pal[i][0] = *src++;
-				pal[i][1] = *src++;
-				pal[i][2] = *src++;
-				pal[i][3] = i;
-			}
-			break;
-		case SPR_ALPHTEST:		
-			for (i = 0; i < 256; i++)
-			{
-				pal[i][0] = *src++;
-				pal[i][1] = *src++;
-				pal[i][2] = *src++;
-				pal[i][3] = 255;
-			}
-			pal[255][0] = pal[255][1] = pal[255][2] = pal[255][3] = 0;
-                              break;
-		default:
-			for (i = 0; i < 256; i++)
-			{
-				pal[i][0] = *src++;
-				pal[i][1] = *src++;
-				pal[i][2] = *src++;
-				pal[i][3] = 0;
-			}
-			Msg("Warning: %s has unknown texFormat (%i, should be in range 0-4 )\n", mod->name, psprite->rendermode );
-			break;
-		}
-		pframetype = (dframetype_t *)(src);
-	}
-	else 
-	{
-		MsgWarn("%s has wrong number of palette colors %i (should be 256)\n", mod->name, numi);
-		return;
-	}		
+	pframetype = (dframetype_t *)(pin + 1);
+		
 	if(numframes < 1)
 	{
 		MsgWarn("%s has invalid # of frames: %d\n", mod->name, numframes );
@@ -186,17 +157,20 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 
 	for (i = 0; i < numframes; i++ )
 	{
-		int frametype;
+		frametype_t frametype = LittleLong (pframetype->type);
+		psprite->frames[i].type = frametype;
 
-		frametype = LittleLong (pframetype->type);
-		psprite->frames[i].frametype = frametype;
-
-		if(frametype == 0)//SPR_SINGLE
+		switch( frametype )
 		{
-			pframetype = (dframetype_t *)R_SpriteLoadFrame(mod, pframetype + 1, &psprite->frames[i].frameptr, i, (byte *)(&pal[0][0]));
+		case SPR_SINGLE:
+			pframetype = R_SpriteLoadFrame(mod, pframetype + 1, &psprite->frames[i].frameptr, i );
+			break;
+		case SPR_GROUP:
+		case SPR_ANGLED:
+			pframetype = R_SpriteLoadGroup(mod, pframetype + 1, &psprite->frames[i].frameptr, i );
+			break;
 		}
-		else Sys_Error("R_SpriteLoadModel: group frames are not supported\n");
-		if(pframetype == NULL) break;                                                   
+		if(pframetype == NULL) break; // technically an error
 	}
 }
 
@@ -208,8 +182,10 @@ R_GetSpriteFrame
 mspriteframe_t *R_GetSpriteFrame (entity_t *currententity)
 {
 	msprite_t		*psprite;
+	mspritegroup_t	*pspritegroup;
 	mspriteframe_t	*pspriteframe;
-	int		frame;
+	int		i, numframes, frame;
+	float		*pintervals, fullinterval, targettime, time;
 
 	psprite = currententity->model->extradata;
 	frame = currententity->frame;
@@ -220,12 +196,36 @@ mspriteframe_t *R_GetSpriteFrame (entity_t *currententity)
 		frame = 0;
 	}
 
-	if (psprite->frames[frame].frametype == 0) // SPR_SINGLE
+	if (psprite->frames[frame].type == SPR_SINGLE)
 	{
 		pspriteframe = psprite->frames[frame].frameptr;
 	}
-	else Sys_Error("R_GetSpriteFrame: group frames are not supported\n");
+	else if (psprite->frames[frame].type == SPR_GROUP) 
+	{
+		pspritegroup = (mspritegroup_t *)psprite->frames[frame].frameptr;
+		pintervals = pspritegroup->intervals;
+		numframes = pspritegroup->numframes;
+		fullinterval = pintervals[numframes-1];
+		time = r_newrefdef.time;
 
+		// when loading in Mod_LoadSpriteGroup, we guaranteed all interval values
+		// are positive, so we don't have to worry about division by zero
+		targettime = time - ((int)(time / fullinterval)) * fullinterval;
+
+		for (i = 0; i < (numframes - 1); i++)
+		{
+			if (pintervals[i] > targettime)
+				break;
+		}
+		pspriteframe = pspritegroup->frames[i];
+	}
+	else if (psprite->frames[frame].type == SPR_ANGLED)
+	{
+		// e.g. doom-style sprite monsters
+		int angleframe = (int)((r_newrefdef.viewangles[1] - currententity->angles[1])/360*8 + 0.5 - 4) & 7;
+		pspritegroup = (mspritegroup_t *)psprite->frames[frame].frameptr;
+		pspriteframe = pspritegroup->frames[angleframe];
+	}
 	return pspriteframe;
 }
 
@@ -259,10 +259,10 @@ void R_DrawSpriteModel( int passnum )
 {
 	mspriteframe_t	*frame;
 	vec3_t		point, forward, right, up;
-	msprite_t		*psprite;
 	entity_t 		*e = currententity;
 	model_t		*mod = currentmodel;
-	float		realtime = r_newrefdef.time;
+	float		alpha = 1.0f, realtime = r_newrefdef.time;
+	msprite_t		*psprite;
 
 	if(!R_AcceptSpritePass( e, passnum )) return;
 
@@ -270,27 +270,11 @@ void R_DrawSpriteModel( int passnum )
 	// polygon without a surface cache
 
 	psprite = (msprite_t *)mod->extradata;
-
-	// xash auto-animate
-	if(psprite->framerate > 0 && psprite->numframes > 1)
-	{
-		float frametime;
-
-		mod->prevanimtime = mod->animtime;
-		mod->animtime = realtime;
-		frametime = mod->animtime - mod->prevanimtime;
-		if(frametime == 0 ) return;//first call
-		
-		mod->frame += psprite->framerate * frametime;		
-		while (mod->frame > psprite->numframes) mod->frame -= psprite->numframes;
-		while (mod->frame < 0) mod->frame += psprite->numframes;
-		e->frame = mod->frame; // set properly frame
-	}
-	else e->frame = fmod(e->frame, psprite->numframes);
+	e->frame = fmod(e->frame, psprite->numframes);
 	frame = R_GetSpriteFrame(e);
 
 	// merge alpha value
-	if( e->flags & RF_TRANSLUCENT ) psprite->rgba[3] = e->alpha;
+	if( e->flags & RF_TRANSLUCENT ) alpha = e->alpha;
 	if( e->scale == 0 ) e->scale = 1.0f; // merge scale
 	
 	// setup oriented
@@ -343,9 +327,9 @@ void R_DrawSpriteModel( int passnum )
 		break;
 	}                    			
  	
-	GL_Bind(currentmodel->skins[(int)e->frame]->texnum[0]);
+	GL_Bind( frame->texnum );
 	GL_TexEnv( GL_MODULATE );
-	qglColor4fv( psprite->rgba );
+	qglColor4f( 1.0f, 1.0f, 1.0f, alpha );
 
 	qglDisable(GL_CULL_FACE);
 	qglBegin (GL_QUADS);

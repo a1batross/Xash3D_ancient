@@ -146,7 +146,7 @@ typedef struct stdilib_api_s
 	bool (*Com_WriteFile)(const char *path, void *data, long len);	// write file into disk
 	rgbdata_t *(*Com_LoadImage)(const char *path, char *data, int size );	// extract image into rgba buffer
 	void (*Com_SaveImage)(const char *filename, rgbdata_t *buffer );	// save image into specified format
-	bool (*Com_ProcessImage)( const char *name, rgbdata_t **pix );	// convert and resample image
+	bool (*Com_ProcessImage)( const char *name, rgbdata_t **pix, int w, int h ); // resample image
 	void (*Com_FreeImage)( rgbdata_t *pack );			// free image buffer
 	bool (*Com_LoadLibrary)( dll_info_t *dll );			// load library 
 	bool (*Com_FreeLibrary)( dll_info_t *dll );			// free library

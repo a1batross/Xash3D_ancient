@@ -1969,7 +1969,7 @@ syntax: $sequence "seqname"
 }
 ==============
 */
-int Cmd_Sequence( void )
+static int Cmd_Sequence( void )
 {
 	int i, depth = 0;
 	char smdfilename[4][1024];
