@@ -140,6 +140,7 @@ typedef struct stdilib_api_s
 	int (*vfseek)(vfile_t* file, fs_offset_t offset, int whence);	// fseek, can seek in packfiles too
 	bool (*vfunpack)( void* comp, size_t size1, void **buf, size_t size2);// deflate zipped buffer
 	long (*vftell)(vfile_t* file);				// like a ftell
+	bool (*vfeof)( vfile_t* file);				// like a feof
 
 	// filesystem simply user interface
 	byte *(*Com_LoadFile)(const char *path, long *filesize );		// load file into heap
@@ -326,6 +327,7 @@ virtual filesystem manager
 #define VFS_Gets		com.vfgets
 #define VFS_Seek		com.vfseek
 #define VFS_Tell		com.vftell
+#define VFS_Eof		com.vfeof
 #define VFS_Close		com.vfclose
 #define VFS_Unpack		com.vfunpack
 

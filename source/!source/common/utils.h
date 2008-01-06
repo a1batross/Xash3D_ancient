@@ -76,7 +76,7 @@ extern stdlib_api_t com;
 #define Z_Malloc(size)	Mem_Alloc(zonepool, size)  
 #define Free(mem)	 	Mem_Free(mem) 
 
-extern char gs_mapname[ 64 ];
+extern string gs_filename;
 extern char gs_basedir[ MAX_SYSPATH ];
 extern bool host_debug;
 

@@ -21,7 +21,7 @@ if errorlevel 1 set BUILD_ERROR=1
 %MSDEV% common/common.dsp %CONFIG%"common - Win32 Release" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
-%MSDEV% idconv/idconv.dsp %CONFIG%"idconv - Win32 Release" %build_target%
+%MSDEV% ripper/ripper.dsp %CONFIG%"ripper - Win32 Release" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
 %MSDEV% physic/physic.dsp %CONFIG%"physic - Win32 Release" %build_target%
@@ -62,7 +62,7 @@ if exist editor\editor.plg del /f /q editor\editor.plg
 if exist engine\engine.plg del /f /q engine\engine.plg
 if exist launch\launch.plg del /f /q launch\launch.plg
 if exist common\common.plg del /f /q common\common.plg
-if exist idconv\idconv.plg del /f /q idconv\idconv.plg
+if exist ripper\ripper.plg del /f /q ripper\ripper.plg
 if exist physic\physic.plg del /f /q physic\physic.plg
 if exist render\render.plg del /f /q render\render.plg
 if exist temp\server.dat move temp\server.dat D:\Xash3D\xash\vprogs\server.dat

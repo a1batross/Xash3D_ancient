@@ -4,4 +4,4 @@
 
 #include "../rundll.h"
 
-Run32( host_dedicated );
+Run32( dedicated );

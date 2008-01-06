@@ -194,11 +194,22 @@ void env_sprite( void )
 	pev->frame = 5;
 }
 
+void walk_sprite( void )
+{
+	pev->frame++;
+	if(pev->frame > 3) pev->frame = 0;
+	pev->nextthink = time + 0.1;
+}
+
 void env_monster( void )
 {
-	precache_model ("sprites/boss.spr");
+	precache_model ("sprites/head.spr");
 	pev->owner = pev;
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NONE;
-	setmodel (pev, "sprites/boss.spr");
+	setmodel (pev, "sprites/head.spr");
+
+	pev->nextthink = time + 0.1;
+	pev->think = walk_sprite;
+	pev->frame = 0;
 }

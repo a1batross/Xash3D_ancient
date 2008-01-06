@@ -14,7 +14,7 @@ FILE		*logfile;
 dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t editor_dll = { "editor.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
-dll_info_t idconv_dll = { "idconv.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
+dll_info_t ripper_dll = { "ripper.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 
 static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t\
           All Rights Reserved\n\n\t           Visit www.xash.ru\n";
@@ -147,6 +147,7 @@ void Sys_GetStdAPI( void )
 	com.vfseek = VFS_Seek;		// fseek, can seek in packfiles too
 	com.vfunpack = VFS_Unpack;		// inflate zipped buffer
 	com.vftell = VFS_Tell;		// like a ftell
+	com.vfeof = VFS_Eof;		// like a feof
 
 	// filesystem simply user interface
 	com.Com_LoadFile = FS_LoadFile;		// load file into heap
@@ -223,7 +224,7 @@ void Sys_LookupInstance( void )
 	Sys.app_name = HOST_OFFLINE;
 
 	// lookup all instances
-	if(!com_strcmp(Sys.progname, "host_shared"))
+	if(!com_strcmp(Sys.progname, "normal"))
 	{
 		Sys.app_name = HOST_NORMAL;
 		Sys.con_readonly = true;
@@ -233,7 +234,7 @@ void Sys_LookupInstance( void )
 		com_sprintf(Sys.log_path, "engine.log", com_timestamp(TIME_NO_SECONDS)); // logs folder
 		com_strcpy(Sys.caption, va("Xash3D ver.%g", XASH_VERSION ));
 	}
-	else if(!com_strcmp(Sys.progname, "host_dedicated"))
+	else if(!com_strcmp(Sys.progname, "dedicated"))
 	{
 		Sys.app_name = HOST_DEDICATED;
 		Sys.con_readonly = false;
@@ -241,9 +242,9 @@ void Sys_LookupInstance( void )
 		com_sprintf(Sys.log_path, "engine.log", com_timestamp(TIME_NO_SECONDS)); // logs folder
 		com_strcpy(Sys.caption, va("Xash3D ver.%g", XASH_VERSION ));
 	}
-	else if(!com_strcmp(Sys.progname, "host_editor"))
+	else if(!com_strcmp(Sys.progname, "viewer"))
 	{
-		Sys.app_name = HOST_EDITOR;
+		Sys.app_name = HOST_VIEWER;
 		Sys.con_readonly = true;
 		//don't show console as default
 		if(!Sys.debug) Sys.con_showalways = false;
@@ -251,79 +252,118 @@ void Sys_LookupInstance( void )
 		com_strcpy(Sys.log_path, "editor.log" ); // xash3d root directory
 		com_strcpy(Sys.caption, va("Xash3D Editor ver.%g", XASH_VERSION ));
 	}
-	else if(!com_strcmp(Sys.progname, "host_convertor"))
+	else if(!com_strcmp(Sys.progname, "splash"))
 	{
-		Sys.app_name = HOST_CONVERTOR;
-		Sys.con_readonly = true;
-		Sys.log_active = true; // always create log
-		if(!Sys.debug) Sys.con_showalways = true;
-		Sys.linked_dll = &idconv_dll;	// pointer to idconv.dll info
-		com_sprintf(Sys.log_path, "%s/convert.log", sys_rootdir ); // same as .exe file
-		com_strcpy(Sys.caption, va("Resource Convertor ver.%g", XASH_VERSION ));
+		Sys.app_name = HOST_CREDITS;	// easter egg
+		Sys.linked_dll = NULL;	// no need to loading library
+		Sys.log_active = Sys.developer = Sys.debug = 0; // clear all dbg states
+		com_strcpy(Sys.caption, "About");
+		Sys.con_showcredits = true;
+	}
+	else if(!com_strcmp(Sys.progname, "install")) // write path into registry
+	{
+		Sys.app_name =  HOST_INSTALL;
+		Sys.linked_dll = NULL;	// no need to loading library
+		Sys.log_active = Sys.developer = Sys.debug = 0; //clear all dbg states
+		Sys.con_silentmode = true;
 	}
 	else if(!com_strcmp(Sys.progname, "bsplib"))
 	{
-		Sys.app_name = BSPLIB;
+		Sys.app_name = COMP_BSPLIB;
 		Sys.linked_dll = &common_dll;	// pointer to common.dll info
 		com_strcpy(Sys.log_path, "bsplib.log" ); // xash3d root directory
 		com_strcpy(Sys.caption, "Xash3D BSP Compiler");
 	}
-	else if(!com_strcmp(Sys.progname, "imglib"))
-	{
-		Sys.app_name = IMGLIB;
-		Sys.linked_dll = &common_dll;	// pointer to common.dll info
-		com_sprintf(Sys.log_path, "%s/convert.log", sys_rootdir ); // same as .exe file
-		com_strcpy(Sys.caption, "Xash3D Image Converter");
-	}
 	else if(!com_strcmp(Sys.progname, "qcclib"))
 	{
-		Sys.app_name = QCCLIB;
+		Sys.app_name = COMP_QCCLIB;
 		Sys.linked_dll = &common_dll;	// pointer to common.dll info
 		com_sprintf(Sys.log_path, "%s/compile.log", sys_rootdir ); // same as .exe file
 		com_strcpy(Sys.caption, "Xash3D QuakeC Compiler");
 	}
 	else if(!com_strcmp(Sys.progname, "roqlib"))
 	{
-		Sys.app_name = ROQLIB;
+		Sys.app_name = COMP_ROQLIB;
 		Sys.linked_dll = &common_dll;	// pointer to common.dll info
 		com_sprintf(Sys.log_path, "%s/roq.log", sys_rootdir ); // same as .exe file
 		com_strcpy(Sys.caption, "Xash3D ROQ Video Maker");
 	}
 	else if(!com_strcmp(Sys.progname, "sprite"))
 	{
-		Sys.app_name = SPRITE;
+		Sys.app_name = COMP_SPRITE;
 		Sys.linked_dll = &common_dll;	// pointer to common.dll info
 		com_sprintf(Sys.log_path, "%s/spritegen.log", sys_rootdir ); // same as .exe file
 		com_strcpy(Sys.caption, "Xash3D Sprite Compiler");
 	}
 	else if(!com_strcmp(Sys.progname, "studio"))
 	{
-		Sys.app_name = STUDIO;
+		Sys.app_name = COMP_STUDIO;
 		Sys.linked_dll = &common_dll;	// pointer to common.dll info
 		com_sprintf(Sys.log_path, "%s/studiomdl.log", sys_rootdir ); // same as .exe file
 		com_strcpy(Sys.caption, "Xash3D Studio Models Compiler");
 	}
 	else if(!com_strcmp(Sys.progname, "wadlib"))
 	{
-		Sys.app_name = WADLIB;
+		Sys.app_name = COMP_WADLIB;
 		Sys.linked_dll = &common_dll;	// pointer to common.dll info
 		com_sprintf(Sys.log_path, "%s/wadlib.log", sys_rootdir ); // same as .exe file
 		com_strcpy(Sys.caption, "Xash3D Wad2\\Wad3 maker");
 	}
-	else if(!com_strcmp(Sys.progname, "credits")) // easter egg
+	else if(!com_strcmp(Sys.progname, "mipdec"))
 	{
-		Sys.app_name = CREDITS;
-		Sys.linked_dll = NULL; // no need to loading library
-		Sys.log_active = Sys.developer = Sys.debug = 0; // clear all dbg states
-		com_strcpy(Sys.caption, "About");
-		Sys.con_showcredits = true;
+		Sys.app_name = RIPP_MIPDEC;
+		Sys.con_readonly = true;
+		Sys.linked_dll = &ripper_dll;	// pointer to wdclib.dll info
+		com_sprintf(Sys.log_path, "%s/textures.log", sys_rootdir ); // default
+		com_strcpy(Sys.caption, va("Texture Ripper ver.%g", XASH_VERSION ));
 	}
-	else if(!com_strcmp(Sys.progname, "host_setup")) // write path into registry
+	else if(!com_strcmp(Sys.progname, "sprdec"))
 	{
-		Sys.app_name =  HOST_INSTALL;
-		Sys.linked_dll = NULL;	// no need to loading library
-		Sys.log_active = Sys.developer = Sys.debug = 0; //clear all dbg states
-		Sys.con_silentmode = true;
+		Sys.app_name = RIPP_SPRDEC;
+		Sys.con_readonly = true;
+		Sys.linked_dll = &ripper_dll;	// pointer to wdclib.dll info
+		com_sprintf(Sys.log_path, "%s/sprites.log", sys_rootdir ); // default
+		com_strcpy(Sys.caption, va("Sprite Ripper ver.%g", XASH_VERSION ));
+	}
+	else if(!com_strcmp(Sys.progname, "mdldec"))
+	{
+		Sys.app_name = RIPP_MDLDEC;
+		Sys.con_readonly = true;
+		Sys.linked_dll = &ripper_dll;	// pointer to wdclib.dll info
+		com_sprintf(Sys.log_path, "%s/models.log", sys_rootdir ); // default
+		com_strcpy(Sys.caption, va("Model Ripper ver.%g", XASH_VERSION ));
+	}
+	else if(!com_strcmp(Sys.progname, "lmpdec"))
+	{
+		Sys.app_name = RIPP_LMPDEC;
+		Sys.con_readonly = true;
+		Sys.linked_dll = &ripper_dll;	// pointer to wdclib.dll info
+		com_sprintf(Sys.log_path, "%s/lumps.log", sys_rootdir ); // default
+		com_strcpy(Sys.caption, va("Picture Ripper ver.%g", XASH_VERSION ));
+	}
+	else if(!com_strcmp(Sys.progname, "snddec"))
+	{
+		Sys.app_name = RIPP_SNDDEC;
+		Sys.con_readonly = true;
+		Sys.linked_dll = &ripper_dll;	// pointer to wdclib.dll info
+		com_sprintf(Sys.log_path, "%s/sound.log", sys_rootdir ); // default
+		com_strcpy(Sys.caption, va("Sound Ripper ver.%g", XASH_VERSION ));
+	}
+	else if(!com_strcmp(Sys.progname, "bspdec"))
+	{
+		Sys.app_name = RIPP_BSPDEC;
+		Sys.con_readonly = true;
+		Sys.linked_dll = &ripper_dll;	// pointer to wdclib.dll info
+		com_sprintf(Sys.log_path, "%s/maps.log", sys_rootdir ); // default
+		com_strcpy(Sys.caption, va("Bsp Decompiler ver.%g", XASH_VERSION ));
+	}
+	else if(!com_strcmp(Sys.progname, "qccdec"))
+	{
+		Sys.app_name = RIPP_QCCDEC;
+		Sys.con_readonly = true;
+		Sys.linked_dll = &ripper_dll;	// pointer to wdclib.dll info
+		com_sprintf(Sys.log_path, "%s/source.log", sys_rootdir ); // default
+		com_strcpy(Sys.caption, va("QuakeC Decompiler ver.%g", XASH_VERSION ));
 	}
 }
 
@@ -344,15 +384,20 @@ void Sys_CreateInstance( void )
 	{
 	case HOST_NORMAL:
 	case HOST_DEDICATED:
-	case HOST_EDITOR:		
-	case HOST_CONVERTOR:
-	case BSPLIB:
-	case QCCLIB:
-	case ROQLIB:
-	case IMGLIB:
-	case SPRITE:
-	case STUDIO:
-	case WADLIB:
+	case HOST_VIEWER:		
+	case COMP_BSPLIB:
+	case COMP_QCCLIB:
+	case COMP_ROQLIB:
+	case COMP_SPRITE:
+	case COMP_STUDIO:
+	case COMP_WADLIB:
+	case RIPP_MIPDEC:
+	case RIPP_SPRDEC:
+	case RIPP_MDLDEC:
+	case RIPP_LMPDEC:
+	case RIPP_SNDDEC:
+	case RIPP_BSPDEC:
+	case RIPP_QCCDEC:
 		CreateHost = (void *)Sys.linked_dll->main;
 		Host = CreateHost( &com, NULL ); // second interface not allowed
 		Sys.Init = Host->Init;
@@ -361,7 +406,7 @@ void Sys_CreateInstance( void )
 		Sys.CPrint = Host->CPrint;
 		Sys.Cmd = Host->Cmd;
 		break;
-	case CREDITS:
+	case HOST_CREDITS:
 		Sys_Break( show_credits );
 		break;
 	case HOST_INSTALL:
@@ -387,16 +432,22 @@ void Sys_CreateInstance( void )
 		// if stuffcmds wasn't run, then init.rc is probably missing, use default
 		if(!Sys.stuffcmdsrun) Cbuf_ExecuteText( EXEC_NOW, "stuffcmds\n" );
 		break;
-	case HOST_EDITOR:
+	case HOST_VIEWER:
 		Con_ShowConsole( false );
-	case HOST_CONVERTOR:
-	case BSPLIB:
-	case QCCLIB:
-	case ROQLIB:
-	case IMGLIB:
-	case SPRITE:
-	case STUDIO:
-	case WADLIB:
+		// intentional falltrough
+	case COMP_BSPLIB:
+	case COMP_QCCLIB:
+	case COMP_ROQLIB:
+	case COMP_SPRITE:
+	case COMP_STUDIO:
+	case COMP_WADLIB:
+	case RIPP_MIPDEC:
+	case RIPP_SPRDEC:
+	case RIPP_MDLDEC:
+	case RIPP_LMPDEC:
+	case RIPP_SNDDEC:
+	case RIPP_BSPDEC:
+	case RIPP_QCCDEC:
 		// always run stuffcmds for current instances
 		Cbuf_ExecuteText( EXEC_NOW, "stuffcmds\n" );
 		break;

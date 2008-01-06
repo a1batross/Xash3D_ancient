@@ -131,19 +131,25 @@ typedef void (*cvarcmd_t)(const char *s, const char *m, const char *d, void *ptr
 enum host_state
 {	// paltform states
 	HOST_OFFLINE = 0,	// host_init( funcname *arg ) same much as:
-	HOST_NORMAL,	// "host_shared"
-	HOST_DEDICATED,	// "host_dedicated"
-	HOST_CONVERTOR,	// "host_convertor"
-	HOST_EDITOR,	// "host_editor"
-	BSPLIB,		// "bsplib"
-	IMGLIB,		// "imglib"
-	QCCLIB,		// "qcclib"
-	ROQLIB,		// "roqlib"
-	SPRITE,		// "sprite"
-	STUDIO,		// "studio"
-	WADLIB,		// "wadlib"
-	CREDITS,		// "splash"
+	HOST_NORMAL,	// "normal"
+	HOST_DEDICATED,	// "dedicated"
+	HOST_VIEWER,	// "viewer"
+	HOST_CREDITS,	// "splash" (easter egg)
 	HOST_INSTALL,	// "install"
+	COMP_BSPLIB,	// "bsplib"
+	COMP_QCCLIB,	// "qcclib"
+	COMP_ROQLIB,	// "roqlib"
+	COMP_SPRITE,	// "sprite"
+	COMP_STUDIO,	// "studio"
+	COMP_WADLIB,	// "wadlib"
+	RIPP_MIPDEC,	// "mipdec"
+	RIPP_SPRDEC,	// "sprdec"
+	RIPP_MDLDEC,	// "mdldec"
+	RIPP_LMPDEC,	// "lmpdec"
+	RIPP_SNDDEC,	// "snddec"
+	RIPP_BSPDEC,	// "bspdec"
+	RIPP_QCCDEC,	// "qccdec"
+	HOST_NULL,	// terminator
 };
 
 enum dev_level

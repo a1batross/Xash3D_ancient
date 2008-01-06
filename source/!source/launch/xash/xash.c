@@ -4,4 +4,4 @@
 
 #include "../rundll.h"
 
-Run32( host_shared );
+Run32( normal );

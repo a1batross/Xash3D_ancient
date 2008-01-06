@@ -41,7 +41,7 @@ void InitPlatform ( uint funcname, int argc, char **argv )
 
 	switch( funcname )
 	{
-	case BSPLIB:
+	case COMP_BSPLIB:
 		if(!FS_GetParmFromCmdLine("-game", gamedir ))
 			strncpy(gamedir, "xash", sizeof(gamedir));
 		if(!FS_GetParmFromCmdLine("+map", source ))
@@ -53,7 +53,7 @@ void InitPlatform ( uint funcname, int argc, char **argv )
 
 		PrepareBSPModel( gamedir, source, bspflags );
 		break;
-	case QCCLIB:
+	case COMP_QCCLIB:
 		if(!FS_GetParmFromCmdLine("-dir", gamedir ))
 			strncpy(gamedir, ".", sizeof(gamedir));
 		if(!FS_GetParmFromCmdLine("+src", source ))
@@ -67,11 +67,10 @@ void InitPlatform ( uint funcname, int argc, char **argv )
 		start = Sys_DoubleTime();
 		PrepareDATProgs( gamedir, source, qccflags );	
 		break;
-	case ROQLIB:
-	case IMGLIB:
-	case SPRITE:
-	case STUDIO:
-	case WADLIB:
+	case COMP_ROQLIB:
+	case COMP_SPRITE:
+	case COMP_STUDIO:
+	case COMP_WADLIB:
 		FS_InitRootDir(".");
 		start = Sys_DoubleTime();
 		break;
@@ -94,43 +93,32 @@ void RunPlatform ( void )
 
 	switch(app_name)
 	{
-	case SPRITE: 
+	case COMP_SPRITE: 
 		CompileMod = CompileSpriteModel;
 		strcpy(typemod, "sprites" );
 		strcpy(searchmask[0], "*.qc" );
 		break;
-	case STUDIO:
+	case COMP_STUDIO:
 		CompileMod = CompileStudioModel;
 		strcpy(typemod, "models" );
 		strcpy(searchmask[0], "*.qc" );
 		break;
-	case IMGLIB:
-		CompileMod = ConvertImagePixels; 
-		strcpy(typemod, "images" );
-		strcpy(searchmask[1], "*.pcx" );	// quake2 menu images
-		strcpy(searchmask[2], "*.wal" );	// quake2 textures
-		strcpy(searchmask[3], "*.lmp" );	// quake1 menu images
-		strcpy(searchmask[4], "*.mip" );	// quake1 textures
-		strcpy(searchmask[5], "*.fnt" );	// half-life fonts
-		strcpy(searchmask[6], "*.flt");	// doom1 textures
-		Msg("Processing images ...\n\n");
-		break;		
-	case BSPLIB: 
+	case COMP_BSPLIB: 
 		strcpy(typemod, "maps" );
 		strcpy(searchmask[0], "*.map" );
 		CompileBSPModel(); 
 		break;
-	case WADLIB:
+	case COMP_WADLIB:
 		CompileMod = CompileWad3Archive;
 		strcpy(typemod, "wads" );
 		strcpy(searchmask[0], "*.qc" );
 		break;
-	case QCCLIB: 
+	case COMP_QCCLIB: 
 		strcpy(typemod, "progs" );
 		strcpy(searchmask[0], "*.src" );
 		CompileDATProgs(); 
 		break;
-	case ROQLIB:
+	case COMP_ROQLIB:
 		CompileMod = CompileROQVideo;
 		strcpy(typemod, "videos" );
 		strcpy(searchmask[0], "*.qc" );

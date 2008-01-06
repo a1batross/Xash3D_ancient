@@ -136,10 +136,6 @@ SOURCE=.\common\filesystem.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\image_save.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\common\imglib.c
 # End Source File
 # Begin Source File
@@ -149,10 +145,6 @@ SOURCE=.\common\launcher.c
 # Begin Source File
 
 SOURCE=.\common\memlib.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\common\pallib.c
 # End Source File
 # Begin Source File
 

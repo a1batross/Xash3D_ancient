@@ -1549,8 +1549,11 @@ typedef struct mip_s
 #define	CMP_ZLIB		2	// zip-archive compression
 
 #define	TYPE_NONE		0	// blank lump
-#define	TYPE_SKIN		62	// virtual lump type (not a visible charcster)
-#define	TYPE_FLAT		63	// virtual lump type (not a visible charcster)
+#define	TYPE_FLMP		59	// doom1 hud picture (doom1 virtual lump)
+#define	TYPE_SND		60	// doom1 wav sound (doom1 virtual lump)
+#define	TYPE_MUS		61	// doom1 music file (doom1 virtual lump)
+#define	TYPE_SKIN		62	// doom1 sprite model (doom1 virtual lump)
+#define	TYPE_FLAT		63	// doom1 wall texture (doom1 virtual lump)
 #define	TYPE_QPAL		64	// quake palette
 #define	TYPE_QTEX		65	// probably was never used
 #define	TYPE_QPIC		66	// quake1 and hl pic (lmp_t)
@@ -1558,14 +1561,8 @@ typedef struct mip_s
 #define	TYPE_MIPTEX	68	// quake1 (mip_t)
 #define	TYPE_RAW		69	// raw data
 #define	TYPE_QFONT	70	// half-life font	(qfont_t)
-#define	TYPE_MIPDDS	71	// Xash3D dds texture
-#define	TYPE_MIPTGA	72	// Xash3D tga texture
-#define	TYPE_VPROGS	73	// Xash3D QC compiled progs
-#define	TYPE_SCRIPT	74	// txt script file (e.g. shader)
-#define	TYPE_STUDIO	75	// studio models
-#define	TYPE_SPRITE	76	// normal sprite
-#define	TYPE_SOUND	77	// wav data
-#define	TYPE_ENTFILE	78	// map entities description
+#define	TYPE_VPROGS	71	// Xash3D QC compiled progs
+#define	TYPE_SCRIPT	72	// txt script file (e.g. shader)
 
 #define	QCHAR_WIDTH	16
 #define	QFONT_WIDTH	16	// valve fonts used contant sizes	
@@ -1726,64 +1723,6 @@ typedef struct
 	dds_caps_t	dsCaps;
 	uint		dwTextureStage;
 } dds_t;
-
-/*
-========================================================================
-
-.JPG image format
-
-========================================================================
-*/
-typedef struct huffman_table_s
-{
-	// Huffman coding tables
-	byte	bits[16];
-	byte	hval[256];
-	byte	size[256];
-	word	code[256];
-
-} huffman_table_t;
-
-typedef struct jpg_s
-{
-	// not a real header
-	file_t	*file;		// file
-	byte	*buffer;		// jpg buffer
-	
-	int	width;		// width image
-	int	height;		// height image
-	byte	*data;		// image
-	int	data_precision;	// bit per component
-	int	num_components;	// number component
-	int	restart_interval;	// restart interval
-	bool	progressive_mode;	// progressive format
-
-	struct
-	{
-		int     id;	// identifier
-		int     h;	// horizontal sampling factor
-		int     v;	// vertical sampling factor
-		int     t;	// quantization table selector
-		int     td;	// DC table selector
-		int     ta;	// AC table selector
-	} component_info[3];	// RGB (alpha not supported)
-    
-	huffman_table_t hac[4];	// AC table
-	huffman_table_t hdc[4];	// DC table
-
-	int	qtable[4][64];	// quantization table
-
-	struct
-	{
-		int     ss,se;	// progressive jpeg spectral selection
-		int     ah,al;	// progressive jpeg successive approx
-	} scan;
-
-	int	dc[3];
-	int	curbit;
-	byte	curbyte;
-
-} jpg_t;
 
 /*
 ========================================================================

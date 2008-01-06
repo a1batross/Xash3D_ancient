@@ -330,6 +330,7 @@ int VFS_Gets(vfile_t* file, byte *string, size_t bufsize );
 bool VFS_Unpack( void* compbuf, size_t compsize, void **buf, size_t size );
 fs_offset_t VFS_Tell (vfile_t* file);
 file_t *VFS_Close( vfile_t *file );
+bool VFS_Eof( vfile_t* file);
 
 //
 // crclib.c

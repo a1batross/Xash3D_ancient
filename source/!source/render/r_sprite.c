@@ -145,6 +145,8 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 	mod->mins[2] = -psprite->maxheight / 2;
 	mod->maxs[2] = psprite->maxheight / 2;
 	pframetype = (dframetype_t *)(pin + 1);
+
+	Msg("load %s, rendermode %d\n", mod->name, psprite->rendermode );
 		
 	if(numframes < 1)
 	{
@@ -240,7 +242,7 @@ bool R_AcceptSpritePass( entity_t *e, int pass )
 		if(psprite->rendermode == SPR_ADDGLOW) return false;	// draw it at second pass
 		if(psprite->rendermode == SPR_ADDITIVE) return false;	// must be draw first always
 		if(psprite->rendermode == SPR_ALPHTEST) return true;	// already blended by alphatest
-		if(psprite->rendermode == SPR_INDEXALPHA) return true;	// already blended by alphatest
+		if(psprite->rendermode == SPR_INDEXALPHA) return false;	// already blended by alphatest
 	}	
 	if(pass == RENDERPASS_ALPHA)
 	{
@@ -250,7 +252,7 @@ bool R_AcceptSpritePass( entity_t *e, int pass )
 		if(psprite->rendermode == SPR_ADDGLOW) return true;	// can draw
 		if(psprite->rendermode == SPR_ADDITIVE) return true;	// can draw
 		if(psprite->rendermode == SPR_ALPHTEST) return false;	// already drawed
-		if(psprite->rendermode == SPR_INDEXALPHA) return false;	// already drawed
+		if(psprite->rendermode == SPR_INDEXALPHA) return true;	// already drawed
 	}
 	return true;
 }

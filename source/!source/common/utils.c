@@ -14,7 +14,7 @@
 int com_argc;
 char **com_argv;
 char gs_basedir[ MAX_SYSPATH ]; // initial dir before loading gameinfo.txt (used for compilers too)
-char gs_mapname[ MAX_QPATH ]; // used for compilers only
+string	gs_filename; // used for compilers only
 
 unsigned __int64 __g_ProfilerStart;
 unsigned __int64 __g_ProfilerEnd;
@@ -90,42 +90,42 @@ bool Com_ValidScript( int scripttype )
 { 
 	if(Com_MatchToken("$spritename") && scripttype != QC_SPRITEGEN )
 	{
-		Msg("%s probably spritegen qc.script, skipping...\n", gs_mapname );
+		Msg("%s probably spritegen qc.script, skipping...\n", gs_filename );
 		return false;
 	}
 	else if (Com_MatchToken("$frame") && scripttype != QC_SPRITEGEN )
 	{
-		Msg("%s probably spritegen qc.script, skipping...\n", gs_mapname );
+		Msg("%s probably spritegen qc.script, skipping...\n", gs_filename );
 		return false;
 	}
 	else if(Com_MatchToken( "$modelname" ) && scripttype != QC_STUDIOMDL )
 	{
-		Msg("%s probably studio qc.script, skipping...\n", gs_mapname );
+		Msg("%s probably studio qc.script, skipping...\n", gs_filename );
 		return false;
 	}	
 	else if(Com_MatchToken( "$body" ) && scripttype != QC_STUDIOMDL )
 	{
-		Msg("%s probably studio qc.script, skipping...\n", gs_mapname );
+		Msg("%s probably studio qc.script, skipping...\n", gs_filename );
 		return false;
 	}
 	else if(Com_MatchToken( "$videoname" ) && scripttype != QC_ROQLIB )
 	{
-		Msg("%s probably roq movie qc.script, skipping...\n", gs_mapname );
+		Msg("%s probably roq movie qc.script, skipping...\n", gs_filename );
 		return false;
 	}
 	else if(Com_MatchToken( "$framemask" ) && scripttype != QC_ROQLIB )
 	{
-		Msg("%s probably roq movie qc.script, skipping...\n", gs_mapname );
+		Msg("%s probably roq movie qc.script, skipping...\n", gs_filename );
 		return false;
 	}
 	else if(Com_MatchToken( "$wadname" ) && scripttype != QC_WADLIB )
 	{
-		Msg("%s probably wadlib qc.script, skipping...\n", gs_mapname );
+		Msg("%s probably wadlib qc.script, skipping...\n", gs_filename );
 		return false;
 	}
 	else if(Com_MatchToken( "$addlump" ) && scripttype != QC_WADLIB )
 	{
-		Msg("%s probably wadlib qc.script, skipping...\n", gs_mapname );
+		Msg("%s probably wadlib qc.script, skipping...\n", gs_filename );
 		return false;
 	}
 	return true;

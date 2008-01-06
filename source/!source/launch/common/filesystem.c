@@ -983,6 +983,7 @@ static bool FS_AddWad3File( const char *filename )
 	int		infotableofs;
 	bool		flat_images = false;// doom1 wall texture marker
 	bool		skin_images = false;// doom1 skin image ( sprite model ) marker
+	bool		flmp_images = false;// doom1 menu image marker
 	int		i, numlumps;
 	file_t		*file;
 	char		type[16];
@@ -1080,9 +1081,14 @@ static bool FS_AddWad3File( const char *filename )
 			com_strncpy(w->lumps[i].name, doomlumps[i].name, 9 );
 			w->lumps[i].type = TYPE_NONE;
 			w->lumps[i].compression = CMP_NONE;
-
+	
 			// textures begin
-			if(!com_stricmp("P1_START", w->lumps[i].name ))
+			if(!com_stricmp("P_START", w->lumps[i].name ))
+			{
+				flat_images = true;
+				continue; // skip identifier
+			}
+			else if(!com_stricmp("P1_START", w->lumps[i].name ))
 			{
 				flat_images = true;
 				continue; // skip identifier
@@ -1097,11 +1103,26 @@ static bool FS_AddWad3File( const char *filename )
 				skin_images = true;
 				continue; // skip identifier
 			}
+			else if(!com_strnicmp("WI", w->lumps[i].name, 2 )) flmp_images = true;
+			else if(!com_strnicmp("ST", w->lumps[i].name, 2 )) flmp_images = true;
+			else if(!com_strnicmp("M_", w->lumps[i].name, 2 )) flmp_images = true;
+			else if(!com_strnicmp("END", w->lumps[i].name, 3 )) flmp_images = true;
+			else if(!com_strnicmp("HELP", w->lumps[i].name, 4 )) flmp_images = true;
+			else if(!com_strnicmp("CREDIT", w->lumps[i].name, 6 )) flmp_images = true;
+			else if(!com_strnicmp("TITLEPIC", w->lumps[i].name, 8 )) flmp_images = true;
+			else if(!com_strnicmp("VICTORY", w->lumps[i].name, 7 )) flmp_images = true;
+			else if(!com_strnicmp("PFUB", w->lumps[i].name, 4 )) flmp_images = true;
+			else if(!com_stricmp("P_END", w->lumps[i].name )) flat_images = false;
 			else if(!com_stricmp("P1_END", w->lumps[i].name )) flat_images = false;
 			else if(!com_stricmp("P2_END", w->lumps[i].name )) flat_images = false;
 			else if(!com_stricmp("S_END", w->lumps[i].name )) skin_images = false;
+			else flmp_images = false;
+
+			if( flmp_images ) w->lumps[i].type = TYPE_FLMP; // mark as menu pic
 			if( flat_images ) w->lumps[i].type = TYPE_FLAT; // mark as texture
 			if( skin_images ) w->lumps[i].type = TYPE_SKIN; // mark as skin (sprite model)
+			if(!com_strnicmp( w->lumps[i].name, "D_", 2 )) w->lumps[i].type = TYPE_MUS;
+			if(!com_strnicmp( w->lumps[i].name, "DS", 2 )) w->lumps[i].type = TYPE_SND;
 		}
 		Mem_Free( doomlumps ); // no need anymore
 		break;		
@@ -1430,7 +1451,7 @@ void FS_Init( void )
 	FS_InitMemory();
 
 	// ignore commandlineoption "-game" for other stuff
-	if(Sys.app_name == HOST_NORMAL || Sys.app_name == HOST_DEDICATED || Sys.app_name == BSPLIB)
+	if(Sys.app_name == HOST_NORMAL || Sys.app_name == HOST_DEDICATED || Sys.app_name == COMP_BSPLIB)
 	{
 		stringlistinit(&dirs);
 		listdirectory(&dirs, "./");
@@ -1799,22 +1820,19 @@ typedef struct wadtype_s
 wadtype_t wad_types[] =
 {
 	// associate extension with wad type
-	{"pal", TYPE_QPAL	}, // palette
+	{"flp", TYPE_FLMP	}, // doom1 menu picture
+	{"snd", TYPE_SND	}, // doom1 sound
+	{"mus", TYPE_MUS	}, // doom1 .mus format
 	{"skn", TYPE_SKIN	}, // doom1 sprite model
 	{"flt", TYPE_FLAT	}, // doom1 wall texture
+	{"pal", TYPE_QPAL	}, // palette
 	{"lmp", TYPE_QPIC	}, // quake1, hl pic
 	{"mip", TYPE_MIPTEX2}, // hl texture
 	{"mip", TYPE_MIPTEX }, // quake1 mip
 	{"raw", TYPE_RAW	}, // signed raw data
 	{"fnt", TYPE_QFONT	}, // qfont structure (e.g. fonts.wad in hl1)
-	{"dds", TYPE_MIPDDS	}, // dds texture
-	{"tga", TYPE_MIPTGA	}, // tga texture
 	{"dat", TYPE_VPROGS	}, // QC progs
 	{"txt", TYPE_SCRIPT	}, // txt script file
-	{"mdl", TYPE_STUDIO	}, // studio model
-	{"spr", TYPE_SPRITE	}, // sprite
-	{"wav", TYPE_SOUND	}, // sound
-	{"ent", TYPE_ENTFILE}, // ents description
 	{NULL, TYPE_NONE }
 };
 
@@ -2965,7 +2983,9 @@ vfile_t *VFS_Open(file_t *handle, const char* mode)
 
 fs_offset_t VFS_Read( vfile_t* file, void* buffer, size_t buffersize)
 {
-	if (buffersize == 0) return 1;
+	fs_offset_t read_size = 0;
+
+	if ( buffersize == 0 ) return 1;
 	if (!file) return 0;
 
 	// check for enough room
@@ -2977,15 +2997,17 @@ fs_offset_t VFS_Read( vfile_t* file, void* buffer, size_t buffersize)
 	{
 		Mem_Copy( buffer, file->buff + file->offset, buffersize );
 		file->offset += buffersize;
+		read_size = buffersize;
 	}
 	else
 	{
 		int reduced_size = file->length - file->offset;
 		Mem_Copy( buffer, file->buff + file->offset, reduced_size );
 		file->offset += reduced_size;
+		read_size = reduced_size;
 		MsgWarn("VFS_Read: vfs buffer is out\n");
 	}
-	return 1;
+	return read_size;
 }
 
 fs_offset_t VFS_Write( vfile_t *file, const void *buf, size_t size )
@@ -3077,6 +3099,12 @@ fs_offset_t VFS_Tell (vfile_t* file)
 {
 	if (!file) return -1;
 	return file->offset;
+}
+
+bool VFS_Eof( vfile_t* file)
+{
+	if (!file) return true;
+	return (file->offset == file->length) ? true : false;
 }
 
 /*

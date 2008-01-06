@@ -4,4 +4,4 @@
 
 #include "../rundll.h"
 
-Run32( credits );
+Run32( splash );

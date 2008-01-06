@@ -308,7 +308,7 @@ void LoadPortals (void)
 	int		leafnums[2];
 	visplane_t	plane;
 	
-	sprintf (path, "maps/%s.prt", gs_mapname );
+	sprintf (path, "maps/%s.prt", gs_filename );
 	load = Com_LoadScript( path, NULL, 0 );
 	if (!load) Sys_Error ("LoadPortals: couldn't read %s\n", path);
 	Msg ("reading %s\n", path);

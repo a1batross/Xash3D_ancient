@@ -2452,7 +2452,7 @@ void ResetModelInfo( void )
 	FS_ClearSearchPath();//clear all $cd and $cdtexture
 
 	//set default model parms
-	FS_FileBase(gs_mapname, modeloutname );//kill path and ext
+	FS_FileBase(gs_filename, modeloutname );//kill path and ext
 	FS_DefaultExtension( modeloutname, ".mdl" );//set new ext
 }
 
@@ -2538,9 +2538,9 @@ bool CompileCurrentModel( const char *name )
 	cdset = false;
 	cdtextureset = 0;
 	
-	if(name) strcpy( gs_mapname, name );
-	FS_DefaultExtension( gs_mapname, ".qc" );
-	load = Com_LoadScript( gs_mapname, NULL, 0 );
+	if(name) strcpy( gs_filename, name );
+	FS_DefaultExtension( gs_filename, ".qc" );
+	load = Com_LoadScript( gs_filename, NULL, 0 );
 	
 	if(load)
 	{
@@ -2551,7 +2551,7 @@ bool CompileCurrentModel( const char *name )
 		return true;
 	}
 
-	Msg("%s not found\n", gs_mapname );
+	Msg("%s not found\n", gs_filename );
 	return false;
 }
 

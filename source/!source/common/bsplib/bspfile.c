@@ -360,7 +360,7 @@ bool LoadBSPFile( void )
 	char	path[MAX_SYSPATH];
 	byte	*buffer;
 	
-	sprintf(path, "maps/%s.bsp", gs_mapname );
+	sprintf(path, "maps/%s.bsp", gs_filename );
 	buffer = (byte *)FS_LoadFile(path, &size);
 	if(!size) return false;
 
@@ -373,8 +373,8 @@ bool LoadBSPFile( void )
 	for(i = 0; i < sizeof(dheader_t)/4; i++)
 		((int *)header)[i] = LittleLong (((int *)header)[i]);
 
-	if(header->ident != IDBSPMODHEADER) Sys_Error("%s is not a IBSP file", gs_mapname);
-	if(header->version != BSPMOD_VERSION) Sys_Error("%s is version %i, not %i", gs_mapname, header->version, BSPMOD_VERSION);
+	if(header->ident != IDBSPMODHEADER) Sys_Error("%s is not a IBSP file", gs_filename);
+	if(header->version != BSPMOD_VERSION) Sys_Error("%s is version %i, not %i", gs_filename, header->version, BSPMOD_VERSION);
 
 	entdatasize = CopyLump (LUMP_ENTITIES, dentdata, 1);
 	numplanes = CopyLump (LUMP_PLANES, dplanes, sizeof(dplane_t));
@@ -480,7 +480,7 @@ void WriteBSPFile( void )
 	header->version = LittleLong (BSPMOD_VERSION);
 	
 	//build path
-	sprintf (path, "maps/%s.bsp", gs_mapname );
+	sprintf (path, "maps/%s.bsp", gs_filename );
 	MsgDev(D_NOTE, "writing %s\n", path);
 	if(pe) pe->FreeBSP();
 	

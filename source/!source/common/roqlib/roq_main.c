@@ -429,7 +429,7 @@ void Cmd_MovieUnknown( void )
 void ResetMovieInfo( void )
 {
 	// set default sprite parms
-	FS_FileBase(gs_mapname, movieoutname ); // kill path and ext
+	FS_FileBase(gs_filename, movieoutname ); // kill path and ext
 	FS_DefaultExtension( movieoutname, ".roq" );//set new ext
 
 	motionBits = 0;
@@ -571,9 +571,9 @@ bool CompileCurrentMovie( const char *name )
 {
 	bool load = false;
 	
-	if( name ) com.strcpy( gs_mapname, name );
-	FS_DefaultExtension( gs_mapname, ".qc" );
-	load = Com_LoadScript( gs_mapname, NULL, 0 );
+	if( name ) com.strcpy( gs_filename, name );
+	FS_DefaultExtension( gs_filename, ".qc" );
+	load = Com_LoadScript( gs_filename, NULL, 0 );
 	
 	if(load)
 	{
@@ -584,7 +584,7 @@ bool CompileCurrentMovie( const char *name )
 		return true;
 	}
 
-	Msg("%s not found\n", gs_mapname );
+	Msg("%s not found\n", gs_filename );
 	return false;
 }
 

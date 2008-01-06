@@ -286,9 +286,9 @@ void WbspMain ( bool option )
 	Msg("---- CSG ---- [%s]\n", onlyents ? "onlyents" : "normal" );
 
 	// delete portal and line files
-	com.sprintf (path, "%s/maps/%s.prt", com.GameInfo->gamedir, gs_mapname);
+	com.sprintf (path, "%s/maps/%s.prt", com.GameInfo->gamedir, gs_filename);
 	remove(path);
-	com.sprintf (path, "%s/maps/%s.lin", com.GameInfo->gamedir, gs_mapname);
+	com.sprintf (path, "%s/maps/%s.lin", com.GameInfo->gamedir, gs_filename);
 	remove(path);
 
 	// if onlyents, just grab the entites and resave
@@ -326,7 +326,7 @@ bool PrepareBSPModel ( const char *dir, const char *name, byte params )
 	pi.api_size = sizeof(physic_imp_t);
 	
 	if( dir ) com.strncpy(gs_basedir, dir, sizeof(gs_basedir));
-	if( name ) com.strncpy(gs_mapname, name, sizeof(gs_mapname));
+	if( name ) com.strncpy(gs_filename, name, sizeof(gs_filename));
 
 	// copy state
 	onlyents = (params & BSP_ONLYENTS) ? true : false;
@@ -377,11 +377,11 @@ bool CompileBSPModel ( void )
 	if( onlyrad && onlyvis && full_compile )
 	{
 		// delete all temporary files after final compile
-		com.sprintf(path, "%s/maps/%s.prt", com.GameInfo->gamedir, gs_mapname);
+		com.sprintf(path, "%s/maps/%s.prt", com.GameInfo->gamedir, gs_filename);
 		remove(path);
-		com.sprintf(path, "%s/maps/%s.lin", com.GameInfo->gamedir, gs_mapname);
+		com.sprintf(path, "%s/maps/%s.lin", com.GameInfo->gamedir, gs_filename);
 		remove(path);
-		com.sprintf(path, "%s/maps/%s.log", com.GameInfo->gamedir, gs_mapname);
+		com.sprintf(path, "%s/maps/%s.log", com.GameInfo->gamedir, gs_filename);
 		remove(path);
 	}
 

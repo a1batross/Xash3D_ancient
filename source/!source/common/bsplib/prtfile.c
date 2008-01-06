@@ -236,7 +236,7 @@ void WritePortalFile (tree_t *tree)
 	NumberLeafs_r (headnode);
 	
 	// write the file
-	sprintf (path, "maps/%s.prt", gs_mapname );
+	sprintf (path, "maps/%s.prt", gs_filename );
 	pf = FS_Open(path, "w" );
 	if (!pf) Sys_Error ("Error opening %s", path);
 		

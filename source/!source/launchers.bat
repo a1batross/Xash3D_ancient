@@ -13,23 +13,27 @@ cd dedicated
 makefile.nmake
 
 cd ..
-cd editor
-makefile.nmake
-
-cd ..
-cd imglib
-makefile.nmake
-
-cd ..
-cd idconv
-makefile.nmake
-
-cd ..
 cd install
 makefile.nmake
 
 cd ..
-cd wadlib
+cd lmpdec
+makefile.nmake
+
+cd ..
+cd mdldec
+makefile.nmake
+
+cd ..
+cd mipdec
+makefile.nmake
+
+cd ..
+cd qccdec
+makefile.nmake
+
+cd ..
+cd qcclib
 makefile.nmake
 
 cd ..
@@ -37,7 +41,11 @@ cd roqlib
 makefile.nmake
 
 cd ..
-cd qcclib
+cd snddec
+makefile.nmake
+
+cd ..
+cd sprdec
 makefile.nmake
 
 cd ..
@@ -46,6 +54,14 @@ makefile.nmake
 
 cd ..
 cd studio
+makefile.nmake
+
+cd ..
+cd viewer
+makefile.nmake
+
+cd ..
+cd wadlib
 makefile.nmake
 
 cd ..

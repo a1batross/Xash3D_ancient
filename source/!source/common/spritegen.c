@@ -210,32 +210,33 @@ void Cmd_Load (void)
 	FS_DefaultExtension( framename, ".tga" );
 	byteimage = FS_LoadImage( framename, NULL, 0 );
 	if( !byteimage ) Sys_Break("Error: unable to load \"%s\"\n", framename );
-}
 
-void iMemSwap( byte *s1, byte *s2, const uint size )
-{
-	const uint block_size = 4096;
-	const uint blocks = size / block_size;
-	uint i;
-
-	byte *block = Mem_Alloc( zonepool, block_size );
-
-	for( i = 0; i < blocks; i++ )
+	if(Com_TryToken())
 	{
-		Mem_Copy( block, s1, block_size);
-		Mem_Copy( s1, s2, block_size);
-		Mem_Copy( s2, block, block_size);
-		s1 += block_size;
-		s1 += block_size;
+ 		uint	line = byteimage->width * 4;
+		byte	*fout, *fin;
+		int	x, y, c;
+
+		fin = byteimage->buffer;
+		fout = Mem_Alloc( zonepool, byteimage->size );
+			
+		if(Com_MatchToken("flip_x"))
+		{
+			for (y = 0; y < byteimage->height; y++)
+				for (x = byteimage->width - 1; x >= 0; x--)
+					for(c = 0; c < 4; c++, fin++)
+						fout[y*line+x*4+c] = *fin;
+		}
+		else if(Com_MatchToken("flip_y"))
+		{
+			for (y = byteimage->height - 1; y >= 0; y--)
+				for (x = 0; x < byteimage->width; x++)
+					for(c = 0; c < 4; c++, fin++)
+						fout[y*line+x*4+c] = *fin;
+		}
+		Mem_Free( byteimage->buffer );
+		byteimage->buffer = fout;
 	}
-	i = size - i * block_size;
-	if( i > 0 )
-	{
-		Mem_Copy(block, s1, i);
-		Mem_Copy(s1, s2, i);
-		Mem_Copy(s2, block, i);
-	}
-	Mem_Free( block );
 }
 
 /*
@@ -317,50 +318,6 @@ void Cmd_Frame( void )
 		// use center of image
 		pframe->origin[0] = -(w>>1);
 		pframe->origin[1] = h>>1;
-	}
-
-	if(Com_TryToken() && Com_MatchToken("flip_x"))
-	{
-		byte	*Data, *DataPtr, *Temp;
-		int	c;
-
-		Temp = byteimage->buffer;
-		DataPtr = Mem_Alloc( zonepool, pixels * 4 );
-		for (y = 0; y < byteimage->height; y++)
-		{
-			for (x = byteimage->width - 1; x >= 0; x--)
-			{
-				for (c = 0; c < 4; c++, Temp++)
-				{
-					DataPtr[y * 4 + x * 4 + c] = *Temp;
-				}
-			}
-		}
-		byteimage->buffer = DataPtr;
-		/*for (x = byteimage->width - 1; x >= 0; x--)
-		{
-			in = byteimage->buffer + x * byteimage->height * 4;
-			bufend = in + byteimage->height * 4;
-			for ( ;in < bufend; in += 4)
-			{
-				*out++ = in[0];
-				*out++ = in[1];
-				*out++ = in[2];
-				*out++ = in[3];
-			}
-		}
-		for (y = byteimage->height - 1; y >= 0; y--)
-		{
-			in = byteimage->buffer + y * byteimage->width * 4;
-			bufend = in + byteimage->width * 4;
-			for ( ;in < bufend; in += 4)
-			{
-				*out++ = in[2];
-				*out++ = in[1];
-				*out++ = in[0];
-				*out++ = in[3];
-			}
-		}*/
 	}
 
 	pframe->width = w;
@@ -483,7 +440,7 @@ void Cmd_SpriteUnknown( void )
 void ResetSpriteInfo( void )
 {
 	//set default sprite parms
-	FS_FileBase(gs_mapname, spriteoutname );//kill path and ext
+	FS_FileBase(gs_filename, spriteoutname );//kill path and ext
 	FS_DefaultExtension( spriteoutname, ".spr" );//set new ext
 
 	memset (&sprite, 0, sizeof(sprite));
@@ -545,9 +502,9 @@ bool CompileCurrentSprite( const char *name )
 {
 	bool load = false;
 	
-	if(name) strcpy( gs_mapname, name );
-	FS_DefaultExtension( gs_mapname, ".qc" );
-	load = Com_LoadScript( gs_mapname, NULL, 0 );
+	if(name) strcpy( gs_filename, name );
+	FS_DefaultExtension( gs_filename, ".qc" );
+	load = Com_LoadScript( gs_filename, NULL, 0 );
 	
 	if(load)
 	{
@@ -557,7 +514,7 @@ bool CompileCurrentSprite( const char *name )
 		return true;
 	}
 
-	Msg("%s not found\n", gs_mapname );
+	Msg("%s not found\n", gs_filename );
 	return false;
 }
 

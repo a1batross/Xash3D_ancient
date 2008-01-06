@@ -981,7 +981,7 @@ void LoadMapFile (void)
 	bool load;
           char path[MAX_SYSPATH];
 	
-	sprintf (path, "maps/%s.map", gs_mapname );
+	sprintf (path, "maps/%s.map", gs_filename );
 	load = Com_LoadScript(path, NULL, 0);
 
 	nummapbrushsides = 0;

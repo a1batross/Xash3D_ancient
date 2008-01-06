@@ -33,23 +33,9 @@ int Lump_GetFileType( const char *name, byte *buf )
 	if(!buf) return TYPE_NONE;
 
 	// get file type by extension
-	if(!com.stricmp( ext, "tga" )) return TYPE_MIPTGA;
-	else if(!com.stricmp( ext, "mip" )) 
-	{
-		if(wadheader == IDWAD3HEADER)
-			return TYPE_MIPTEX2; // half-life texture
-		return TYPE_MIPTEX;	// quake1 texture
-	}
-	else if(!com.stricmp( ext, "dds" )) return TYPE_MIPDDS;	// ms dds
-	else if(!com.stricmp( ext, "mdl" )) return TYPE_STUDIO;	// hl mdl
-	else if(!com.stricmp( ext, "spr" )) return TYPE_SPRITE;	// spr32
-	else if(!com.stricmp( ext, "lmp" )) return TYPE_QPIC;	// hud pics
-	else if(!com.stricmp( ext, "pal" )) return TYPE_QPAL;	// palette
-	else if(!com.stricmp( ext, "wav" )) return TYPE_SOUND;	// wav sound
-	else if(!com.stricmp( ext, "txt" )) return TYPE_SCRIPT;	// text file
+	if(!com.stricmp( ext, "txt" )) return TYPE_SCRIPT;	// text file
 	else if(!com.stricmp( ext, "dat" )) return TYPE_VPROGS;	// qc progs
 	else if(!com.stricmp( ext, "raw" )) return TYPE_RAW;	// raw data
-	else if(!com.stricmp( ext, "ent" )) return TYPE_ENTFILE;	// ents file
 	
 	// no compares found
 	return TYPE_NONE;
@@ -212,7 +198,7 @@ void Cmd_WadUnknown( void )
 
 void ResetWADInfo( void )
 {
-	FS_FileBase( gs_mapname, wadoutname );		// kill path and ext
+	FS_FileBase( gs_filename, wadoutname );		// kill path and ext
 	FS_DefaultExtension( wadoutname, ".wad" );	// set new ext
 	
 	memset (&wadheader, 0, sizeof(wadheader));
@@ -273,9 +259,9 @@ bool BuildCurrentWAD( const char *name )
 {
 	bool load = false;
 	
-	if(name) com.strncpy( gs_mapname, name, sizeof(gs_mapname));
-	FS_DefaultExtension( gs_mapname, ".qc" );
-	load = Com_LoadScript( gs_mapname, NULL, 0 );
+	if(name) com.strncpy( gs_filename, name, sizeof(gs_filename));
+	FS_DefaultExtension( gs_filename, ".qc" );
+	load = Com_LoadScript( gs_filename, NULL, 0 );
 	
 	if(load)
 	{
@@ -284,7 +270,7 @@ bool BuildCurrentWAD( const char *name )
 		return WriteWADFile();
 	}
 
-	Msg("%s not found\n", gs_mapname );
+	Msg("%s not found\n", gs_filename );
 	return false;
 }
 
