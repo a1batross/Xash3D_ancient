@@ -782,6 +782,9 @@ _inline int BoxOnPlaneSide (vec3_t emins, vec3_t emaxs, cplane_t *p)
 	}
 }
 
+#define PlaneDist(point,plane)  ((plane)->type < 3 ? (point)[(plane)->type] : DotProduct((point), (plane)->normal))
+#define PlaneDiff(point,plane) (((plane)->type < 3 ? (point)[(plane)->type] : DotProduct((point), (plane)->normal)) - (plane)->dist)
+
 _inline void ConvertDimensionToPhysic( vec3_t v )
 {
 	vec3_t	tmp;

@@ -69,7 +69,7 @@ shader_t *FindShader( const char *texture )
 	strlower(texture, texname );
           
 	// build full path
-	sprintf (shader, "textures/%s", texname );
+	com.sprintf (shader, "textures/%s", texname );
 	
 	// look for it
 	for (i = 0, texshader = shaderInfo; i < numShaderInfo; i++, texshader++)

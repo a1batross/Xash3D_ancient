@@ -469,7 +469,7 @@ void WradMain ( bool option )
 	if( extrasamples ) 
 	{
 		numbounce = 8;
-		//ambient = 3; //FIXME: check result
+		ambient = 125; //FIXME: check result
 	}
 	else numbounce = 3;
 	

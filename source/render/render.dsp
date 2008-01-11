@@ -57,8 +57,8 @@ LINK32=link.exe
 # ADD LINK32 msvcrt.lib user32.lib gdi32.lib /nologo /subsystem:windows /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /libpath:"../public/libs/"
 # SUBTRACT LINK32 /debug
 # Begin Custom Build
-TargetDir=\XASH3D\src_main\!source\temp\render\!release
-InputPath=\XASH3D\src_main\!source\temp\render\!release\render.dll
+TargetDir=\XASH3D\src_main\temp\render\!release
+InputPath=\XASH3D\src_main\temp\render\!release\render.dll
 SOURCE="$(InputPath)"
 
 "D:\Xash3D\bin\render.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -94,8 +94,8 @@ LINK32=link.exe
 # ADD LINK32 msvcrt.lib user32.lib gdi32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /nodefaultlib:"msvcrtd.lib" /pdbtype:sept /libpath:"../public/libs/"
 # SUBTRACT LINK32 /profile /incremental:no /map
 # Begin Custom Build
-TargetDir=\XASH3D\src_main\!source\temp\render\!debug
-InputPath=\XASH3D\src_main\!source\temp\render\!debug\render.dll
+TargetDir=\XASH3D\src_main\temp\render\!debug
+InputPath=\XASH3D\src_main\temp\render\!debug\render.dll
 SOURCE="$(InputPath)"
 
 "D:\Xash3D\bin\render.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -162,6 +162,10 @@ SOURCE=.\r_bspmod.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\r_mirror.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\r_sprite.c
 # End Source File
 # Begin Source File
@@ -195,6 +199,10 @@ SOURCE=.\gl_model.h
 # Begin Source File
 
 SOURCE=.\qmenu.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_mirror.h
 # End Source File
 # Begin Source File
 

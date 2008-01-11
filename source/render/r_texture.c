@@ -237,7 +237,7 @@ bool R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 		MsgDev(D_WARN, "R_GetPixelFormat: invalid image size (%i should be %i)\n", pic->size, totalsize );
 		return false;
 	}
-	if(s&3) // will be resampled, not error
+	if(s&3) // will be resample, not error
 	{
 		MsgDev(D_WARN, "R_GetPixelFormat: s&3 [%d x %d]\n", image_desc.width, image_desc.height );
 		return false;

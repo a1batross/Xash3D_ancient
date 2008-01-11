@@ -645,7 +645,6 @@ void Mod_LoadFaces (lump_t *l)
 			}
 			GL_SubdivideSurface (out);	// cut up polygon for warps
 		}
-
 		// create lightmaps and polygons
 		if(!(out->texinfo->flags & (SURF_SKY|SURF_BLEND|SURF_WARP) ) )
 			GL_CreateSurfaceLightmap (out);

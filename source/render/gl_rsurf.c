@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // GL_RSURF.C: surface-related refresh code
 #include "gl_local.h"
+#include "r_mirror.h"
 
 static vec3_t	modelorg;		// relative to viewpoint
 
@@ -1027,6 +1028,17 @@ void R_RecursiveWorldNode (mnode_t *node)
 			surf->texturechain = r_alpha_surfaces;
 			r_alpha_surfaces = surf;
 		}
+		else if (surf->texinfo->flags & SURF_NODRAW)
+		{
+			continue;
+		}
+		else if (r_mirroralpha->value < 1.0f && !mirror_render && surf->texinfo->flags & SURF_MIRROR)
+		{
+			mirror = true;
+			surf->texturechain = mirrorchain;
+			mirrorchain = surf;
+			continue;
+		}
 		else
 		{
 			if ( qglMTexCoord2fSGIS && !( surf->flags & SURF_DRAWTURB ) )
@@ -1168,8 +1180,10 @@ void R_MarkLeaves (void)
 	mleaf_t	*leaf;
 	int		cluster;
 
-	if (r_oldviewcluster == r_viewcluster && r_oldviewcluster2 == r_viewcluster2 && !r_novis->value && r_viewcluster != -1)
+	if( r_oldviewcluster == r_viewcluster && r_oldviewcluster2 == r_viewcluster2 && !r_novis->value && r_viewcluster != -1)
 		return;
+
+	if( mirror ) return;
 
 	// development aid to let you run around and see exactly where
 	// the pvs ends

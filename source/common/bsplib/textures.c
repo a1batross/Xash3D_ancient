@@ -38,7 +38,7 @@ int FindMiptex( char *name )
 		textureref[i].value = LittleLong (si->intensity);
 		textureref[i].flags = LittleLong (si->surfaceFlags);
 		textureref[i].contents = LittleLong (si->contents);			
-		strcpy(textureref[i].animname, si->nextframe);
+		com.strcpy(textureref[i].animname, si->nextframe);
 	}
 	nummiptex++;
 
@@ -107,7 +107,7 @@ int TexinfoForBrushTexture (plane_t *plane, brush_texture_t *bt, vec3_t origin)
 
 	if (bt->txcommand)
 	{
-		memcpy(tx.vecs, bt->vects.quark.vects, sizeof(tx.vecs));
+		Mem_Copy(tx.vecs, bt->vects.quark.vects, sizeof(tx.vecs));
 
 		if (origin[0] || origin[1] || origin[2])
 		{

@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // r_main.c
 #include "gl_local.h"
+#include "r_mirror.h"
 
 void R_Clear (void);
 
@@ -92,6 +93,7 @@ cvar_t	*r_lefthand;
 cvar_t	*r_loading;
 
 cvar_t	*r_lightlevel;	// FIXME: This is a HACK to get the client's light level
+cvar_t	*r_mirroralpha;
 cvar_t	*gl_nosubimage;
 cvar_t	*gl_allow_software;
 
@@ -572,6 +574,8 @@ void R_SetupGL (void)
 	//
 	// set up viewport
 	//
+	qglMatrixMode( GL_PROJECTION );
+	qglLoadIdentity();
 	x = floor(r_newrefdef.x * r_width->integer / r_width->integer);
 	x2 = ceil((r_newrefdef.x + r_newrefdef.width) * r_width->integer / r_width->integer);
 	y = floor(r_height->integer - r_newrefdef.y * r_height->integer / r_height->integer);
@@ -580,21 +584,20 @@ void R_SetupGL (void)
 	w = x2 - x;
 	h = y - y2;
 
+	if( mirror ) Mirror_Scale();
+	else qglCullFace(GL_FRONT);
 	qglViewport (x, y2, w, h);
 
 	//
 	// set up projection matrix
 	//
-    screenaspect = (float)r_newrefdef.width/r_newrefdef.height;
+	screenaspect = (float)r_newrefdef.width/r_newrefdef.height;
 //	yfov = 2*atan((float)r_newrefdef.height/r_newrefdef.width)*180/M_PI;
-	qglMatrixMode(GL_PROJECTION);
-	qglLoadIdentity ();
+
 	qglPerspective (r_newrefdef.fov_y,  screenaspect,  4,  4096);
 
-	qglCullFace(GL_FRONT);
-
 	qglMatrixMode(GL_MODELVIEW);
-    qglLoadIdentity ();
+	qglLoadIdentity ();
 
     qglRotatef (-90,  1, 0, 0);	    // put Z going up
     qglRotatef (90,  0, 0, 1);	    // put Z going up
@@ -610,8 +613,7 @@ void R_SetupGL (void)
 	//
 	if (gl_cull->value)
 		qglEnable(GL_CULL_FACE);
-	else
-		qglDisable(GL_CULL_FACE);
+	else qglDisable(GL_CULL_FACE);
 
 	qglDisable(GL_BLEND);
 	qglDisable(GL_ALPHA_TEST);
@@ -656,11 +658,13 @@ void R_Clear (void)
 			qglClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		}
 		else qglClear (GL_DEPTH_BUFFER_BIT);
+
 		gldepthmin = 0;
-		gldepthmax = 1;
+		if( r_mirroralpha->value < 1.0 )
+			gldepthmax = 0.5;
+		else gldepthmax = 1;
 		qglDepthFunc (GL_LEQUAL);
 	}
-
 	qglDepthRange (gldepthmin, gldepthmax);
 }
 
@@ -716,7 +720,7 @@ R_RenderView
 r_newrefdef must be set before the first call
 ================
 */
-void R_RenderView (refdef_t *fd)
+void R_RenderView( refdef_t *fd )
 {
 	if (r_norefresh->value)
 		return;
@@ -757,6 +761,8 @@ void R_DrawPauseScreen( void )
 	// don't apply post effects for custom window
 	if(r_newrefdef.rdflags & RDF_NOWORLDMODEL)
 		return;
+
+	return;
 
 	if(r_pause->modified )
 	{
@@ -809,7 +815,7 @@ int R_DrawRSpeeds(char *S)
 dword blurtex = 0;
 dword blur_shader = 0;
 
-void R_SetGL2D (void)
+void R_SetGL2D( void )
 {
 	R_DrawPauseScreen();
 		
@@ -946,8 +952,13 @@ R_RenderFrame
 */
 void R_RenderFrame (refdef_t *fd)
 {
+	r_mirroralpha->value = bound( 0.0f, r_mirroralpha->value, 1.0f );	
+	mirror = false;
+	mirror_render = false;
+
 	R_RenderView( fd );
 	R_SetLightLevel ();
+	if( mirror ) R_Mirror( fd );
 	R_SetGL2D ();
 }
 
@@ -999,6 +1010,8 @@ void R_Register( void )
 	r_minimap_zoom = Cvar_Get ("r_minimap_zoom", "1", CVAR_ARCHIVE );
 	r_minimap_style = Cvar_Get ("r_minimap_style", "1", CVAR_ARCHIVE );  
 	r_minimap = Cvar_Get("r_minimap", "0", CVAR_ARCHIVE ); 
+
+	r_mirroralpha = Cvar_Get( "r_mirroralpha", "0.5", CVAR_ARCHIVE );
 
 	gl_modulate = Cvar_Get ("gl_modulate", "1", CVAR_ARCHIVE );
 	gl_log = Cvar_Get( "gl_log", "0", 0 );

@@ -555,6 +555,6 @@ bool VID_ScreenShot( const char *filename, bool levelshot )
 
 	// write image
 	FS_SaveImage( filename, r_shot );
-	FS_FreeImage( r_shot );
+	Mem_Free( r_shot );
 	return true;
 }

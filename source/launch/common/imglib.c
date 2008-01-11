@@ -392,7 +392,7 @@ Image_Resample
 */
 byte *Image_Resample (const void *indata, int inwidth, int inheight, int outwidth, int outheight, int in_type )
 {
-	bool	quality = true; //FIXME
+	bool	quality = false; //FIXME
 	byte	*outdata;
 
 	// nothing to resample ?
@@ -447,9 +447,10 @@ bool Image_Processing( const char *name, rgbdata_t **pix, int width, int height 
 		else if(image->type == PF_RGB_24)  pixel = 3;
 		else if(image->type == PF_RGB_24_FLIP) pixel = 3;
 		else return false; // unknown format
-		MsgDev(D_INFO,"Resampling %s from[%d x %d] to[%d x %d]\n",name, image->width, image->height, w, h );
+		MsgDev(D_INFO,"Resampling %s from[%d x %d] to [%d x %d]\n",name, image->width, image->height,w,h );
 		Mem_Move( Sys.imagepool, &image->buffer, out, w * h * pixel ); // update image->buffer
 		image->width = w, image->height = h;
+		image->size = w * h * pixel;
 		*pix = image;
 		return true;
 	}
