@@ -30,6 +30,7 @@
 cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum);
 cmodel_t *CM_InlineModel (char *name);	// *1, *2, etc
 cmodel_t *CM_LoadModel( edict_t *ent );
+void CM_FreeModels( void );
 int CM_NumClusters (void);
 int CM_NumInlineModels (void);
 char *CM_EntityString (void);

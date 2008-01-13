@@ -56,7 +56,7 @@ void CL_CheckPredictionError (void)
 		VectorCopy (cl.frame.playerstate.pmove.origin, cl.predicted_origins[frame]);
 
 		// save for error itnerpolation
-		for (i = 0; i < 3; i++) cl.prediction_error[i] = delta[i];
+		for (i = 0; i < 3; i++) cl.prediction_error[i] = delta[i] * CL_COORD_FRAC;
 	}
 }
 
@@ -263,6 +263,6 @@ void CL_PredictMovement (void)
 	}
 
 	// copy results out for rendering
-	VectorCopy (pm.s.origin, cl.predicted_origin);
-	VectorCopy (pm.viewangles, cl.predicted_angles);
+	VectorScale(pm.s.origin, CL_COORD_FRAC, cl.predicted_origin);
+	VectorCopy(pm.viewangles, cl.predicted_angles);
 }

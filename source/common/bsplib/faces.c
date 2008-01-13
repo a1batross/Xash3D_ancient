@@ -620,9 +620,6 @@ FACE MERGING
 
 ===========================================================================
 */
-
-#define	CONTINUOUS_EPSILON	0.001
-
 /*
 =============
 TryMergeWinding
@@ -687,9 +684,9 @@ winding_t *TryMergeWinding (winding_t *f1, winding_t *f2, vec3_t planenormal)
 	back = f2->p[(j+2)%f2->numpoints];
 	VectorSubtract (back, p1, delta);
 	dot = DotProduct (delta, normal);
-	if (dot > CONTINUOUS_EPSILON)
+	if (dot > EQUAL_EPSILON)
 		return NULL;			// not a convex polygon
-	keep1 = (bool)(dot < -CONTINUOUS_EPSILON);
+	keep1 = (bool)(dot < -EQUAL_EPSILON);
 	
 	back = f1->p[(i+2)%f1->numpoints];
 	VectorSubtract (back, p2, delta);
@@ -699,9 +696,9 @@ winding_t *TryMergeWinding (winding_t *f1, winding_t *f2, vec3_t planenormal)
 	back = f2->p[(j+f2->numpoints-1)%f2->numpoints];
 	VectorSubtract (back, p2, delta);
 	dot = DotProduct (delta, normal);
-	if (dot > CONTINUOUS_EPSILON)
+	if (dot > EQUAL_EPSILON)
 		return NULL;			// not a convex polygon
-	keep2 = (bool)(dot < -CONTINUOUS_EPSILON);
+	keep2 = (bool)(dot < -EQUAL_EPSILON);
 
 	//
 	// build the new polygon

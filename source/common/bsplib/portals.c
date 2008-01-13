@@ -296,9 +296,6 @@ void MakeHeadnodePortals (tree_t *tree)
 BaseWindingForNode
 ================
 */
-#define	BASE_WINDING_EPSILON	0.001
-#define	SPLIT_WINDING_EPSILON	0.001
-
 winding_t	*BaseWindingForNode (node_t *node)
 {
 	winding_t	*w;
@@ -307,8 +304,7 @@ winding_t	*BaseWindingForNode (node_t *node)
 	vec3_t		normal;
 	vec_t		dist;
 
-	w = BaseWindingForPlane (mapplanes[node->planenum].normal
-		, mapplanes[node->planenum].dist);
+	w = BaseWindingForPlane (mapplanes[node->planenum].normal, mapplanes[node->planenum].dist);
 
 	// clip by all the parents
 	for (n=node->parent ; n && w ; )
@@ -317,13 +313,13 @@ winding_t	*BaseWindingForNode (node_t *node)
 
 		if (n->children[0] == node)
 		{	// take front
-			ChopWindingInPlace (&w, plane->normal, plane->dist, BASE_WINDING_EPSILON);
+			ChopWindingInPlace (&w, plane->normal, plane->dist, EQUAL_EPSILON);
 		}
 		else
 		{	// take back
 			VectorSubtract (vec3_origin, plane->normal, normal);
 			dist = -plane->dist;
-			ChopWindingInPlace (&w, normal, dist, BASE_WINDING_EPSILON);
+			ChopWindingInPlace (&w, normal, dist, EQUAL_EPSILON);
 		}
 		node = n;
 		n = n->parent;
@@ -434,7 +430,7 @@ void SplitNodePortals (node_t *node)
 // cut the portal into two portals, one on each side of the cut plane
 //
 		ClipWindingEpsilon (p->winding, plane->normal, plane->dist,
-			SPLIT_WINDING_EPSILON, &frontwinding, &backwinding);
+			EQUAL_EPSILON, &frontwinding, &backwinding);
 
 		if (frontwinding && WindingIsTiny(frontwinding))
 		{

@@ -217,9 +217,9 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 
 	if (pflags & PS_VIEWANGLES)
 	{
-		MSG_WriteAngle16 (msg, ps->viewangles[0]);
-		MSG_WriteAngle16 (msg, ps->viewangles[1]);
-		MSG_WriteAngle16 (msg, ps->viewangles[2]);
+		MSG_WriteAngle32 (msg, ps->viewangles[0]);
+		MSG_WriteAngle32 (msg, ps->viewangles[1]);
+		MSG_WriteAngle32 (msg, ps->viewangles[2]);
 	}
 
 	if (pflags & PS_KICKANGLES)
@@ -341,7 +341,7 @@ Build a client frame structure
 =============================================================================
 */
 
-byte		fatpvs[65536/8];	// 32767 is MAX_MAP_LEAFS
+byte		fatpvs[MAX_MAP_LEAFS/8];	// 32767 is MAX_MAP_LEAFS
 
 /*
 ============
@@ -361,8 +361,8 @@ void SV_FatPVS (vec3_t org)
 
 	for (i = 0; i < 3; i++)
 	{
-		mins[i] = org[i] - 8;
-		maxs[i] = org[i] + 8;
+		mins[i] = org[i] - SV_COORD_FRAC;
+		maxs[i] = org[i] + SV_COORD_FRAC;
 	}
 
 	count = CM_BoxLeafnums (mins, maxs, leafs, 64, NULL);
@@ -421,7 +421,8 @@ void SV_BuildClientFrame (client_state_t *client)
 	frame->senttime = svs.realtime; // save it for ping calc later
 
 	// find the client's PVS
-	VectorAdd(clent->priv.sv->client->ps.pmove.origin, clent->priv.sv->client->ps.viewoffset, org );  
+	VectorScale( clent->priv.sv->client->ps.pmove.origin, CL_COORD_FRAC, org ); 
+	VectorAdd( org, clent->priv.sv->client->ps.viewoffset, org );  
 
 	leafnum = CM_PointLeafnum (org);
 	clientarea = CM_LeafArea (leafnum);

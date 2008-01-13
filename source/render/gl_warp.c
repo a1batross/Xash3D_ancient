@@ -228,11 +228,11 @@ void EmitWaterPolys (msurface_t *fa)
 			os = v[3];
 			ot = v[4];
 
-			s = os + r_turbsin[(int)((ot * (1.0/8.0) + rdt) * TURBSCALE) & 255];
+			s = os + r_turbsin[(int)((ot * CL_COORD_FRAC + rdt) * TURBSCALE) & 255];
 			s += scroll;
 			s *= (1.0/64);
 
-			t = ot + r_turbsin[(int)((os * (1.0/8.0) + rdt) * TURBSCALE) & 255];
+			t = ot + r_turbsin[(int)((os * CL_COORD_FRAC + rdt) * TURBSCALE) & 255];
 			t *= (1.0/64);
 
 			qglTexCoord2f (s, t);
@@ -373,7 +373,6 @@ return;
 	}
 }
 
-#define	ON_EPSILON		0.1			// point on plane side epsilon
 #define	MAX_CLIP_VERTS	64
 void ClipSkyPolygon (int nump, vec3_t vecs, int stage)
 {
@@ -399,12 +398,12 @@ void ClipSkyPolygon (int nump, vec3_t vecs, int stage)
 	for (i=0, v = vecs ; i<nump ; i++, v+=3)
 	{
 		d = DotProduct (v, norm);
-		if (d > EQUAL_EPSILON)
+		if (d > ON_EPSILON)
 		{
 			front = true;
 			sides[i] = SIDE_FRONT;
 		}
-		else if (d < -EQUAL_EPSILON)
+		else if (d < -ON_EPSILON)
 		{
 			back = true;
 			sides[i] = SIDE_BACK;

@@ -396,21 +396,16 @@ void CL_PrepRefresh( void )
 CalcFov
 ====================
 */
-float CalcFov (float fov_x, float width, float height)
+float CalcFov( float fov_x, float width, float height )
 {
-	float	a;
-	float	x;
+	float	fov_y, x, rad = 360.0f * M_PI;
 
-	if (fov_x < 1 || fov_x > 179)
-	{
-		Host_Error("CalcFov: Bad fov: %f\n", fov_x);
-	}
+	fov_x = bound( 1, fov_x, 179 );
+	x = width / tan( fov_x / rad );
+	fov_y = atan2( height, x );
+	fov_y = (fov_y * rad);
 
-	x = width/tan(fov_x/360*M_PI);
-	a = atan (height/x);
-	a = a*360/M_PI;
-
-	return a;
+	return fov_y;
 }
 
 //============================================================================

@@ -94,6 +94,8 @@ void SV_StudioSetUpTransform ( void )
 {
 	vec3_t	mins, maxs, modelpos;
 
+	// clear count
+	iNumVertices = 0;
 	SV_StudioExtractBbox( m_pStudioHeader, 0, mins, maxs );
 	CM_RoundUpHullSize(mins, true );
 	CM_RoundUpHullSize(maxs, true ); 
@@ -184,18 +186,15 @@ void SV_StudioAddMesh( int mesh )
 	{
 		for(i = abs(i); i > 0; i--, ptricmds += 4)
 		{
-			if(!ptricmds) Sys_Error("ptricmds == NULL");
 			m_pModelVerts[iNumVertices][0] = INCH2METER(g_xVertsTransform[ptricmds[0]][0]);
 			m_pModelVerts[iNumVertices][1] = INCH2METER(g_xVertsTransform[ptricmds[0]][1]);
 			m_pModelVerts[iNumVertices][2] = INCH2METER(g_xVertsTransform[ptricmds[0]][2]);
 			iNumVertices++;
 		}
-		if(!ptricmds) Sys_Error("ptricmds == NULL");
 	}
-	if(!ptricmds) Sys_Error("ptricmds == NULL");
 }
 
-void SV_StudioDrawMeshes ( void )
+void SV_StudioLookMeshes ( void )
 {
 	int	i;
 
@@ -216,9 +215,9 @@ void SV_StudioGetVertices( void )
 
 	for (i = 0; i < m_pSubModel->numverts; i++)
 	{
-		VectorTransform(pstudioverts[i], g_xBonesTransform[pvertbone[i]], g_xVertsTransform[i]);
+		VectorTransform( pstudioverts[i], g_xBonesTransform[pvertbone[i]], g_xVertsTransform[i]);
 	}
-	SV_StudioDrawMeshes();
+	SV_StudioLookMeshes();
 }
 
 float *SV_GetModelVerts( sv_edict_t *ent, int *numvertices )
@@ -230,7 +229,7 @@ float *SV_GetModelVerts( sv_edict_t *ent, int *numvertices )
 	i = (int)m_pCurrentEntity->progs.sv->body;
 	cmod = CM_LoadModel( m_pCurrentEntity );
 
-	if(cmod)
+	if(SV_CreateMeshBuffer( m_pCurrentEntity, cmod ))
 	{
 		Msg("get physmesh for %s(%s) with index %d(%d)\n", cmod->name, PRVM_GetString(m_pCurrentEntity->progs.sv->model), (int)m_pCurrentEntity->progs.sv->modelindex, ent->serialnumber );
 		*numvertices = cmod->physmesh[i].numverts;
@@ -241,52 +240,38 @@ float *SV_GetModelVerts( sv_edict_t *ent, int *numvertices )
 
 bool SV_CreateMeshBuffer( edict_t *in, cmodel_t *out )
 {
-	//int	i, j;
+	int	i, j;
 
 	// validate args
-	if(!in || !out || !out->extradata)
+	if(!in || !out || !out->extradata || in->progs.sv->movetype != MOVETYPE_PHYSIC)
 		return false;
 
 	// setup global pointers
-	m_pCurrentEntity = in;
 	m_pStudioHeader = (studiohdr_t *)out->extradata;
 	m_pModelVerts = &g_xModelVerts[0];
 
 	SV_GetBodyCount();
 
-	// first we need to recalculate bounding box
-	SV_StudioExtractBbox( m_pStudioHeader, 0, out->mins, out->maxs );
-	CM_RoundUpHullSize(out->mins, false ); // normalize mins ( ceil )
-	CM_RoundUpHullSize(out->maxs, false ); // normalize maxs ( ceil ) 
-
-	Msg("create physmesh for %s\n", out->name );
-	/*for( i = 0; i < m_BodyCount; i++)
+	for( i = 0; i < m_BodyCount; i++)
 	{
-		// clear count
-		iNumVertices = 0;
+		// already loaded
+		if( out->physmesh[i].verts )
+			continue;
 
-		__try	// FIXME
+		SV_StudioSetUpTransform();
+		SV_StudioSetupBones();
+
+		for (j = 0; j < m_pStudioHeader->numbodyparts; j++)
 		{
-			SV_StudioSetUpTransform();
-			SV_StudioSetupBones();
-
-			for (j = 0; j < m_pStudioHeader->numbodyparts; j++)
-			{
-				SV_StudioSetupModel( j, i );
-				SV_StudioGetVertices();
-			}
+			SV_StudioSetupModel( j, i );
+			SV_StudioGetVertices();
 		}
-		__except(EXCEPTION_EXECUTE_HANDLER) 
-		{ 
-			Sys_Error("m_pSubModel == NULL" ); 
-		}
-		if(iNumVertices)
+		if( iNumVertices )
 		{
 			out->physmesh[i].verts = Mem_Alloc( out->mempool, iNumVertices * sizeof(vec3_t));
-			Mem_Copy(out->physmesh[i].verts,m_pModelVerts, iNumVertices * sizeof(vec3_t));
+			Mem_Copy(out->physmesh[i].verts, m_pModelVerts, iNumVertices * sizeof(vec3_t));
 			out->physmesh[i].numverts = iNumVertices;
 		}
-	}*/
-	
+	}
 	return true;
 }

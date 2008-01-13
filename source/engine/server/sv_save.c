@@ -278,12 +278,10 @@ void Sav_LoadLocals( lump_t *l )
 			// link it into the bsp tree
 			if (!ent->priv.sv->free) 
 			{
-				//SV_SetModel( ent, PRVM_GetString( ent->progs.sv->model ));
 				SV_LinkEdict( ent );
-				if(ent->progs.sv->movetype == MOVETYPE_PHYSIC)
-				{
-					pe->CreateBody( ent->priv.sv, SV_GetModelPtr(ent), ent->progs.sv->origin, ent->progs.sv->angles, ent->progs.sv->solid );
-				}
+				SV_CreatePhysBody( ent );
+				SV_SetPhysForce( ent ); // restore forces
+				SV_SetMassCentre( ent ); // and mass force
 			}
 		}
 	}

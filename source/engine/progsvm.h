@@ -32,6 +32,7 @@ The code uses void pointers instead.
 #include "sv_edict.h"		// server progs
 #include "cl_edict.h"		// client progs
 #include "ui_edict.h"		// uimenu progs
+#include "mathlib.h"
 
 typedef struct prvm_stack_s
 {

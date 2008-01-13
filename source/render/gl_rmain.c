@@ -177,7 +177,7 @@ bool R_CullBox (vec3_t mins, vec3_t maxs)
 
 	for (i = 0; i < 4; i++)
 	{
-		if ( BoxOnPlaneSide(mins, maxs, &frustum[i]) == SIDE_ON)
+		if ( BoxOnPlaneSide(mins, maxs, &frustum[i]) == SIDE_ON )
 			return true;
 	}
 	return false;
@@ -481,7 +481,7 @@ void R_SetFrustum (void)
 	RotatePointAroundVector( frustum[3].normal, vright, vforward, -( 90 - r_newrefdef.fov_y / 2 ) );
 #endif
 
-	for (i=0 ; i<4 ; i++)
+	for (i = 0; i < 4; i++)
 	{
 		frustum[i].type = 3;
 		frustum[i].dist = DotProduct (r_origin, frustum[i].normal);

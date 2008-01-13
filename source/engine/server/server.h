@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "progsvm.h"
 #include "net_msg.h"
 #include "collision.h"
+#include "mathlib.h"
 
 //=============================================================================
 
@@ -319,6 +320,9 @@ void SV_ShutdownGameProgs (void);
 void SV_InitEdict (edict_t *e);
 void SV_ConfigString (int index, const char *val);
 void SV_SetModel (edict_t *ent, const char *name);
+void SV_CreatePhysBody( edict_t *ent );
+void SV_SetPhysForce( edict_t *ent );
+void SV_SetMassCentre( edict_t *ent);
 
 //
 // sv_studio.c
@@ -333,7 +337,7 @@ bool SV_CreateMeshBuffer( edict_t *in, cmodel_t *out );
 //
 void SV_SpawnEntities (char *mapname, char *entities);
 void SV_StartParticle (vec3_t org, vec3_t dir, int color, int count);
-void SV_Transform( sv_edict_t *ed, vec3_t origin, vec3_t angles );
+void SV_Transform( sv_edict_t *ed, matrix4x3 transform );
 void SV_FreeEdict (edict_t *ed);
 void SV_InitEdict (edict_t *e);
 edict_t *SV_Spawn (void);

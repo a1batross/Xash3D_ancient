@@ -25,6 +25,7 @@
 #define METERS_PER_INCH	0.0254f
 #define EQUAL_EPSILON	0.001f
 #define STOP_EPSILON	0.1f
+#define ON_EPSILON		0.1f
 
 #define ANGLE2CHAR(x)	((int)((x)*256/360) & 255)
 #define CHAR2ANGLE(x)	((x)*(360.0/256))
@@ -85,6 +86,67 @@ _inline int nearest_pow(int size)
 			else return i;
 		}
 	}
+}
+
+_inline void ConvertDimensionToPhysic( vec3_t v )
+{
+	vec3_t	tmp;
+
+	VectorCopy(v, tmp);
+	v[0] = INCH2METER(tmp[0]);
+	v[1] = INCH2METER(tmp[1]);
+	v[2] = INCH2METER(tmp[2]);
+}
+
+_inline void ConvertDimensionToGame( vec3_t v )
+{
+	vec3_t	tmp;
+
+	VectorCopy(v, tmp);
+	v[0] = METER2INCH(tmp[0]);
+	v[1] = METER2INCH(tmp[1]);
+	v[2] = METER2INCH(tmp[2]);
+}
+
+_inline void ConvertPositionToPhysic( vec3_t v )
+{
+	vec3_t	tmp;
+
+	VectorCopy(v, tmp);
+	v[0] = INCH2METER(tmp[0]);
+	v[1] = INCH2METER(tmp[2]);
+	v[2] = INCH2METER(tmp[1]);
+}
+
+_inline void ConvertPositionToGame( vec3_t v )
+{
+	vec3_t	tmp;
+
+	VectorCopy(v, tmp);
+
+	v[2] = METER2INCH(tmp[1]);
+	v[1] = METER2INCH(tmp[2]);
+	v[0] = METER2INCH(tmp[0]);
+}
+
+_inline void ConvertDirectionToPhysic( vec3_t v )
+{
+	vec3_t	tmp;
+
+	VectorCopy(v, tmp);
+	v[0] = tmp[0];
+	v[1] = tmp[2];
+	v[2] = tmp[1];
+}
+
+_inline void ConvertDirectionToGame( vec3_t v )
+{
+	vec3_t	tmp;
+
+	VectorCopy(v, tmp);
+	v[0] = tmp[0];
+	v[1] = tmp[2];
+	v[2] = tmp[1];
 }
 
 _inline void VectorBound(const float min, vec3_t v, const float max)
@@ -469,6 +531,88 @@ _inline void AngleIMatrixFLU(const vec3_t angles, matrix3x4 matrix )
 	matrix[2][3] = 0.0;
 }
 
+_inline void MatrixAngles(matrix4x4 matrix, vec3_t origin, vec3_t angles )
+{ 
+	vec3_t		forward, right, up;
+	float		xyDist;
+
+	forward[0] = matrix[0][0];
+	forward[1] = matrix[0][2];
+	forward[2] = matrix[0][1];
+	right[0] = matrix[1][0];
+	right[1] = matrix[1][2];
+	right[2] = matrix[1][1];
+	up[2] = matrix[2][1];
+	
+	xyDist = sqrt( forward[0] * forward[0] + forward[1] * forward[1] );
+	
+	if ( xyDist > EQUAL_EPSILON )	// enough here to get angles?
+	{
+		angles[1] = RAD2DEG( atan2( forward[1], forward[0] ));
+		angles[0] = RAD2DEG( atan2( -forward[2], xyDist ));
+		angles[2] = RAD2DEG( atan2( -right[2], up[2] ));
+	}
+	else
+	{
+		angles[1] = RAD2DEG( atan2( right[0], -right[1] ) );
+		angles[0] = RAD2DEG( atan2( -forward[2], xyDist ) );
+		angles[2] = 0;
+	}
+	VectorCopy(matrix[3], origin );// extract origin
+	ConvertPositionToGame( origin );
+}
+
+_inline void AnglesMatrix(vec3_t origin, vec3_t angles, matrix4x4 matrix )
+{
+	float		angle;
+	float		sr, sp, sy, cr, cp, cy;
+
+	angle = DEG2RAD(angles[YAW]);
+	sy = sin(angle);
+	cy = cos(angle);
+	angle = DEG2RAD(angles[PITCH]);
+	sp = sin(angle);
+	cp = cos(angle);
+
+	MatrixLoadIdentity( matrix );
+
+	// forward
+	matrix[0][0] = cp*cy;
+	matrix[0][2] = cp*sy;
+	matrix[0][1] = -sp;
+
+	if (angles[ROLL] == 180)
+	{
+		angle = DEG2RAD(angles[ROLL]);
+		sr = sin(angle);
+		cr = cos(angle);
+
+		// right
+		matrix[1][0] = -1*(sr*sp*cy+cr*-sy);
+		matrix[1][2] = -1*(sr*sp*sy+cr*cy);
+		matrix[1][1] = -1*(sr*cp);
+
+		// up
+		matrix[2][0] = (cr*sp*cy+-sr*-sy);
+		matrix[2][2] = (cr*sp*sy+-sr*cy);
+		matrix[2][1] = cr*cp;
+	}
+	else
+	{
+		// right
+		matrix[1][0] = sy;
+		matrix[1][2] = -cy;
+		matrix[1][1] = 0;
+
+		// up
+		matrix[2][0] = (sp*cy);
+		matrix[2][2] = (sp*sy);
+		matrix[2][1] = cp;
+	}
+	VectorCopy(origin, matrix[3] ); // pack origin
+	ConvertPositionToPhysic( matrix[3] );
+}
+
 /*
 ====================
 MatrixCopy
@@ -785,65 +929,35 @@ _inline int BoxOnPlaneSide (vec3_t emins, vec3_t emaxs, cplane_t *p)
 #define PlaneDist(point,plane)  ((plane)->type < 3 ? (point)[(plane)->type] : DotProduct((point), (plane)->normal))
 #define PlaneDiff(point,plane) (((plane)->type < 3 ? (point)[(plane)->type] : DotProduct((point), (plane)->normal)) - (plane)->dist)
 
-_inline void ConvertDimensionToPhysic( vec3_t v )
+#define NUM_HULL_ROUNDS	(sizeof(hull_table) / sizeof(word))
+#define HULL_PRECISION	4
+static word hull_table[] = { 0, 4, 8, 16, 18, 24, 28, 30, 32, 40, 48, 54, 56, 60, 64, 72, 80, 112, 120, 128, 140, 176 };
+
+_inline void CM_RoundUpHullSize( vec3_t size, bool down )
 {
-	vec3_t	tmp;
+          int	i, j;
+	
+	for(i = 0; i < 3; i++)
+	{
+		bool negative = false;
+                    float result, value;
 
-	VectorCopy(v, tmp);
-	v[0] = INCH2METER(tmp[0]);
-	v[1] = INCH2METER(tmp[1]);
-	v[2] = INCH2METER(tmp[2]);
-}
+		value = down ? floor(size[i]) : ceil(size[i]); // round it
+		if(value < 0) negative = true;
+		value = fabs( value ); // make positive
 
-_inline void ConvertDimensionToGame( vec3_t v )
-{
-	vec3_t	tmp;
-
-	VectorCopy(v, tmp);
-	v[0] = METER2INCH(tmp[0]);
-	v[1] = METER2INCH(tmp[1]);
-	v[2] = METER2INCH(tmp[2]);
-}
-
-_inline void ConvertPositionToPhysic( vec3_t v )
-{
-	vec3_t	tmp;
-
-	VectorCopy(v, tmp);
-	v[0] = INCH2METER(tmp[0]);
-	v[1] = INCH2METER(tmp[2]);
-	v[2] = INCH2METER(tmp[1]);
-}
-
-_inline void ConvertPositionToGame( vec3_t v )
-{
-	vec3_t	tmp;
-
-	VectorCopy(v, tmp);
-
-	v[2] = METER2INCH(tmp[1]);
-	v[1] = METER2INCH(tmp[2]);
-	v[0] = METER2INCH(tmp[0]);
-}
-
-_inline void ConvertDirectionToPhysic( vec3_t v )
-{
-	vec3_t	tmp;
-
-	VectorCopy(v, tmp);
-	v[0] = tmp[0];
-	v[1] = tmp[2];
-	v[2] = tmp[1];
-}
-
-_inline void ConvertDirectionToGame( vec3_t v )
-{
-	vec3_t	tmp;
-
-	VectorCopy(v, tmp);
-	v[0] = tmp[0];
-	v[1] = tmp[2];
-	v[2] = tmp[1];
+		// lookup hull table
+		for(j = 0; j < NUM_HULL_ROUNDS; j++)
+          	{
+			result = value - hull_table[j];
+			if(result <= HULL_PRECISION)
+			{ 
+				result = negative ? -hull_table[j] : hull_table[j];
+				break;
+			}
+		}
+		size[i] = result;	// copy new value
+	}
 }
 
 static vec3_t vec3_origin = { 0, 0, 0 };

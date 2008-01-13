@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "basefiles.h"
 #include "server.h"
 #include "collision.h"
+#include "mathlib.h"
 
 typedef struct
 {
@@ -579,8 +580,6 @@ cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum)
 	numplanes = 0;
 	numnodes = 0;
 	numleafs = 0;
-	numcmodels = 0;
-	numsmodels = 0;
 	numvisibility = 0;
 	numentitychars = 0;
 	stringdatasize = 0;
@@ -589,6 +588,7 @@ cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum)
 	map_stringdata[0] = 0;
 	map_name[0] = 0;
 	pe->FreeWorld();
+	CM_FreeModels();
 
 	if (!name || !name[0])
 	{
@@ -1745,38 +1745,6 @@ STUDIO SHARED CMODELS
 
 ===============================================================================
 */
-#define HULL_PRECISION	4
-
-word hull_table[] = { 0, 4, 8, 16, 18, 24, 28, 30, 32, 40, 48, 54, 56, 60, 64, 72, 80, 112, 120, 128, 140, 176 };
-#define NUM_HULL_ROUNDS (sizeof(hull_table) / sizeof(word))
-
-void CM_RoundUpHullSize(vec3_t size, bool down)
-{
-          int	i, j;
-	
-	for(i = 0; i < 3; i++)
-	{
-		bool negative = false;
-                    float result, value;
-
-		value = down ? floor(size[i]) : ceil(size[i]);//round it
-		if(value < 0) negative = true;
-		value = fabs(value);//make positive
-
-		// lookup hull table
-		for(j = 0; j < NUM_HULL_ROUNDS; j++)
-          	{
-			result = value - hull_table[j];
-			if(result <= HULL_PRECISION)
-			{ 
-				result = negative ? -hull_table[j] : hull_table[j];
-				break;
-			}
-		}
-		size[i] = result;//copy new value
-	}
-}
-
 cmodel_t *CM_StudioModel( char *name, edict_t *ent, byte *buffer, uint filesize )
 {
 	cmodel_t		*out;
@@ -1795,10 +1763,7 @@ cmodel_t *CM_StudioModel( char *name, edict_t *ent, byte *buffer, uint filesize 
 	com.strncpy(out->name, name, sizeof(out->name));
 	if(!out->mempool) out->mempool = Mem_AllocPool( out->name );// create pool
 	out->extradata = Mem_Alloc( out->mempool, filesize );
-	Mem_Move( out->mempool, &out->extradata, buffer, filesize );
-
-	// create convex mesh physbuffer
-	SV_CreateMeshBuffer( ent, out );
+	Mem_Copy( out->extradata, buffer, filesize );
 
 	numsmodels++;
 	return out;
@@ -1826,8 +1791,6 @@ cmodel_t *CM_SpriteModel( char *name, edict_t *ent, byte *buffer, uint filesize 
 	out->mins[2] = -phdr->height / 2;
 	out->maxs[2] = phdr->height / 2;
 
-	Msg("register sprite %s, frames %d\n", name, out->numframes );
-
 	numsmodels++;
 	return out;
 }
@@ -1837,14 +1800,14 @@ cmodel_t *CM_LoadModel( edict_t *ent )
 	char		name[MAX_QPATH];
 	byte		*buffer;
 	cmodel_t		*mod = NULL;
-	int		i, max_models = numcmodels + numsmodels;
+	int		i, max_models = numcmodels + numsmodels + 1;
 	int		size, modelindex = ent->progs.sv->modelindex;
 
 	// check for preloading
 	strncpy(name, sv.configstrings[CS_MODELS + modelindex], MAX_QPATH );
 	if(name[0] == '*') return CM_InlineModel( name ); // skip bmodels
 
-	for(i = numsmodels; i < max_models; i++ )
+	for(i = numcmodels; i < max_models; i++ )
           {
 		mod = &map_cmodels[i];
 		if(!com.strcmp(name, mod->name))
@@ -1876,5 +1839,23 @@ cmodel_t *CM_LoadModel( edict_t *ent )
 		mod = CM_SpriteModel( name, ent, buffer, size );
 		break;
 	}
+	Mem_Free( buffer ); 
 	return mod;
+}
+
+void CM_FreeModels( void )
+{
+	cmodel_t	*mod = NULL;
+	int	i;
+
+	for(i = 0; i < MAX_MAP_MODELS; i++ )
+          {
+		mod = &map_cmodels[i];
+		if( mod->mempool ) 
+		{
+			Msg("free pool %s\n", mod->name );//debug			
+			Mem_FreePool( &mod->mempool );
+		}
+	}
+	numcmodels = numsmodels = 0;
 }

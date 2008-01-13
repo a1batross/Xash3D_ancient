@@ -35,8 +35,22 @@ void Phys_LoadBSP( uint *buffer );
 void Phys_FreeBSP( void );
 void DebugShowCollision ( cmdraw_t callback );
 void Phys_Frame( float time );
-physbody_t *Phys_CreateBody( sv_edict_t *ed, void *buffer, vec3_t org, vec3_t ang, int solid );
+
+//
+// cm_rigidbody.c
+//
+physbody_t *Phys_CreateBody( sv_edict_t *ed, void *buffer, matrix4x3 transform, int solid );
+bool Phys_GetForce( physbody_t *body, vec3_t velocity, vec3_t avelocity, vec3_t force, vec3_t torque );
+void Phys_SetForce( physbody_t *body, vec3_t velocity, vec3_t avelocity, vec3_t force, vec3_t torque );
+bool Phys_GetMassCentre( physbody_t *body, matrix3x3 mass );
+void Phys_SetMassCentre( physbody_t *body, matrix3x3 mass );
 void Phys_RemoveBody( physbody_t *body );
+
+//
+// cm_callback.c
+//
+void Callback_ApplyForce( const NewtonBody* body );
+void Callback_ApplyTransform( const NewtonBody* body, const float* matrix );
 
 #define Host_Error com.error
 

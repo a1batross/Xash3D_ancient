@@ -117,6 +117,7 @@ void Host_InitPhysic( void )
 	// phys callback
 	pi.api_size = sizeof(physic_imp_t);
 	pi.Transform = SV_Transform;
+	pi.GetModelVerts = SV_GetModelVerts;
 
 	Sys_LoadLibrary( &physic_dll );
 

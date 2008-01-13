@@ -123,12 +123,13 @@ typedef struct sv_entvars_s
 	vec3_t	old_angles;
 	vec3_t	velocity;
 	vec3_t	avelocity;
+	vec3_t	m_pmatrix[4];
+	vec3_t	m_pcentre[3];
+	vec3_t	torque;
+	vec3_t	force;
 	vec3_t	post_origin;
 	vec3_t	post_angles;
-	vec3_t	post_velocity;
-	vec3_t	post_avelocity;
 	vec3_t	origin_offset;
-	vec3_t	angles_offset;
 	float	ltime;
 	float	bouncetype;
 	float	movetype;
@@ -288,6 +289,6 @@ static fields_t sv_reqfields[] =
 	{217,	1,	"oldmodel"}
 };
 
-#define PROG_CRC_SERVER	64081
+#define PROG_CRC_SERVER	6477
 
 #endif//SV_EDICT_H

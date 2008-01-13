@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "engine.h"
 #include "collision.h"
-
+#include "mathlib.h"
 
 #define	STEPSIZE	18
 
@@ -962,7 +962,7 @@ bool PM_GoodPosition (void)
 
 	if (pm->s.pm_type == PM_SPECTATOR) return true;
 
-	for (i = 0; i < 3; i++) origin[i] = end[i] = pm->s.origin[i];
+	for (i = 0; i < 3; i++) origin[i] = end[i] = pm->s.origin[i] * CL_COORD_FRAC;
 	trace = pm->trace (origin, pm->mins, pm->maxs, end);
 
 	return !trace.allsolid;
@@ -978,10 +978,37 @@ precision of the network channel and in a valid position.
 */
 void PM_SnapPosition (void)
 {
-	VectorCopy( pml.origin, pm->s.origin );
-	VectorCopy( pml.velocity, pm->s.velocity );
+	int		sign[3];
+	int		i, j, bits;
+	short		base[3];
+	// try all single bits first
+	static int jitterbits[8] = {0,4,1,2,3,5,6,7};
 
-	if (PM_GoodPosition()) return;
+	// snap velocity to eigths
+	for (i = 0; i < 3; i++) pm->s.velocity[i] = (int)(pml.velocity[i]*8);
+
+	for (i = 0; i < 3; i++)
+	{
+		if (pml.origin[i] >= 0) sign[i] = 1;
+		else sign[i] = -1;
+		pm->s.origin[i] = (int)(pml.origin[i]*8);
+		if (pm->s.origin[i]*0.125 == pml.origin[i]) sign[i] = 0;
+	}
+	VectorCopy (pm->s.origin, base);
+
+	// try all combinations
+	for (j = 0; j < 8; j++)
+	{
+		bits = jitterbits[j];
+		VectorCopy (base, pm->s.origin);
+		for (i=0 ; i<3 ; i++)
+		{
+			if (bits & (1<<i) ) pm->s.origin[i] += sign[i];
+		}
+		if (PM_GoodPosition()) return;
+	}
+
+	// go back to the last position
 	VectorCopy (pml.previous_origin, pm->s.origin);
 }
 
@@ -1010,8 +1037,8 @@ void PM_InitialSnapPosition(void)
 				pm->s.origin[0] = base[0] + offset[ x ];
 				if (PM_GoodPosition ())
 				{
-					VectorCopy (pm->s.origin, pml.origin);
-					VectorCopy (pm->s.origin, pml.previous_origin);
+					VectorScale(pm->s.origin, CL_COORD_FRAC, pml.origin);
+					VectorCopy(pm->s.origin, pml.previous_origin);
 					return;
 				}
 			}
@@ -1077,8 +1104,8 @@ void Pmove (pmove_t *pmove)
 	memset (&pml, 0, sizeof(pml));
 
 	// convert origin and velocity to float values
-	VectorCopy(pm->s.origin, pml.origin );
-	VectorCopy(pm->s.velocity, pml.velocity);  
+	VectorScale(pm->s.origin, CL_COORD_FRAC, pml.origin );
+	VectorScale(pm->s.velocity, CL_COORD_FRAC, pml.velocity);  
 	VectorCopy (pm->s.origin, pml.previous_origin); // save old org in case we get stuck
 	pml.frametime = pm->cmd.msec * 0.001;
 

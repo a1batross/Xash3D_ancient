@@ -44,7 +44,7 @@ void SV_PutClientInServer (edict_t *ent)
 	memset (&ent->priv.sv->client->ps, 0, sizeof(client->ps));
 
 	// info_player_start
-	VectorCopy(ent->progs.sv->origin, client->ps.pmove.origin);  
+	VectorScale(ent->progs.sv->origin, SV_COORD_FRAC, client->ps.pmove.origin);  
 
 	client->ps.fov = 90;
 	client->ps.fov = bound(1, client->ps.fov, 160);
@@ -344,8 +344,8 @@ void ClientEndServerFrame (edict_t *ent)
 	// If it wasn't updated here, the view position would lag a frame
 	// behind the body position when pushed -- "sinking into plats"
 	//
-	VectorCopy(ent->progs.sv->origin, current_client->ps.pmove.origin ); 
-	VectorCopy(ent->progs.sv->velocity, current_client->ps.pmove.velocity ); 
+	VectorScale(ent->progs.sv->origin, SV_COORD_FRAC, current_client->ps.pmove.origin ); 
+	VectorScale(ent->progs.sv->velocity, SV_COORD_FRAC, current_client->ps.pmove.velocity ); 
 	AngleVectors (ent->priv.sv->client->v_angle, forward, right, up);
 
 	//
@@ -583,8 +583,8 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 
 	pm.s = client->ps.pmove;
 
-	VectorCopy(ent->progs.sv->origin, pm.s.origin );
-	VectorCopy(ent->progs.sv->velocity, pm.s.velocity );
+	VectorScale(ent->progs.sv->origin, SV_COORD_FRAC, pm.s.origin );
+	VectorScale(ent->progs.sv->velocity, SV_COORD_FRAC, pm.s.velocity );
 
 	if (memcmp(&client->old_pmove, &pm.s, sizeof(pm.s)))
 		pm.snapinitial = true;
@@ -601,8 +601,8 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	client->ps.pmove = pm.s;
 	client->old_pmove = pm.s;
 
-	VectorCopy(pm.s.origin, ent->progs.sv->origin);
-	VectorCopy(pm.s.velocity, ent->progs.sv->velocity);
+	VectorScale(pm.s.origin, CL_COORD_FRAC, ent->progs.sv->origin);
+	VectorScale(pm.s.velocity, CL_COORD_FRAC, ent->progs.sv->velocity);
 	VectorCopy (pm.mins, ent->progs.sv->mins);
 	VectorCopy (pm.maxs, ent->progs.sv->maxs);
 	VectorCopy (pm.viewangles, client->v_angle);
@@ -833,12 +833,32 @@ void SV_ClientCommand (edict_t *ent)
 	}
 }
 
-void SV_Transform( sv_edict_t *ed, vec3_t origin, vec3_t angles )
+void SV_Transform( sv_edict_t *ed, matrix4x3 transform )
 {
 	edict_t	*edict;
-	if(!ed) return;
+	vec3_t	origin, angles;
+	matrix4x4	objmatrix;
 
+	if(!ed) return;
 	edict = PRVM_EDICT_NUM( ed->serialnumber );
+
+	// save matrix (fourth value will be reset on save\load)
+	VectorCopy( transform[0], edict->progs.sv->m_pmatrix[0] );
+	VectorCopy( transform[1], edict->progs.sv->m_pmatrix[1] );
+	VectorCopy( transform[2], edict->progs.sv->m_pmatrix[2] );
+	VectorCopy( transform[3], edict->progs.sv->m_pmatrix[3] );
+
+	MatrixLoadIdentity( objmatrix );
+	VectorCopy( transform[0], objmatrix[0] );
+	VectorCopy( transform[1], objmatrix[1] );
+	VectorCopy( transform[2], objmatrix[2] );
+	VectorCopy( transform[3], objmatrix[3] );
+	MatrixAngles( objmatrix, origin, angles );
+
 	VectorCopy( origin, edict->progs.sv->origin );
 	VectorCopy( angles, edict->progs.sv->angles );
+
+	// refresh force and torque
+	pe->GetForce( ed->physbody, edict->progs.sv->velocity, edict->progs.sv->avelocity, edict->progs.sv->force, edict->progs.sv->torque );
+	pe->GetMassCentre( ed->physbody, edict->progs.sv->m_pcentre );
 }  

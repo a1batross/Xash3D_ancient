@@ -146,11 +146,11 @@ void() misc_explobox =
 
 void misc_physbox ( void )
 {
-	precache_model ("models/box.mdl");
+	precache_model ("models/box2.mdl");
 	pev->owner = pev;
 	pev->solid = SOLID_BOX;
 	pev->movetype = MOVETYPE_PHYSIC;
-	setmodel (pev, "models/box.mdl");
+	setmodel (pev, "models/box2.mdl");
 }
 
 void misc_barrel( void )
@@ -159,7 +159,7 @@ void misc_barrel( void )
 
 	precache_model( name );
 	pev->owner = pev;
-	pev->solid = SOLID_CYLINDER; //test
+	pev->solid = SOLID_MESH; //test
 	pev->movetype = MOVETYPE_PHYSIC;
 	setmodel (pev, name );
 }
@@ -179,7 +179,7 @@ void item_healthkit( void )
 {
 	precache_model( "models/w_medkit.mdl" );
 	pev->owner = pev;
-	pev->solid = SOLID_CYLINDER;
+	pev->solid = SOLID_MESH;
 	pev->movetype = MOVETYPE_PHYSIC;
 	setmodel (pev, "models/w_medkit.mdl" );
 }

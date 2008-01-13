@@ -98,6 +98,24 @@ void SV_SetMinMaxSize (edict_t *e, float *min, float *max, bool rotate)
 	SV_LinkEdict (e);
 }
 
+void SV_CreatePhysBody( edict_t *ent )
+{
+	if( !ent || ent->progs.sv->movetype != MOVETYPE_PHYSIC ) return;
+	ent->priv.sv->physbody = pe->CreateBody( ent->priv.sv, SV_GetModelPtr(ent), ent->progs.sv->m_pmatrix, ent->progs.sv->solid );
+}
+
+void SV_SetPhysForce( edict_t *ent )
+{
+	if( !ent || ent->progs.sv->movetype != MOVETYPE_PHYSIC ) return;
+	pe->SetForce( ent->priv.sv->physbody, ent->progs.sv->velocity, ent->progs.sv->avelocity, ent->progs.sv->force, ent->progs.sv->torque );
+}
+
+void SV_SetMassCentre( edict_t *ent )
+{
+	if( !ent || ent->progs.sv->movetype != MOVETYPE_PHYSIC ) return;
+	pe->SetMassCentre( ent->priv.sv->physbody, ent->progs.sv->m_pcentre );
+}
+
 void SV_SetModel (edict_t *ent, const char *name)
 {
 	int		i;
@@ -111,10 +129,11 @@ void SV_SetModel (edict_t *ent, const char *name)
 	mod = CM_LoadModel( ent );
 	if( mod ) SV_SetMinMaxSize( ent, mod->mins, mod->maxs, false );
 
-	if(ent->progs.sv->movetype == MOVETYPE_PHYSIC)
-	{
-		ent->priv.sv->physbody = pe->CreateBody( ent->priv.sv, SV_GetModelPtr(ent), ent->progs.sv->origin, ent->progs.sv->angles, ent->progs.sv->solid );
-	}
+	// setup matrix
+	AngleVectors( ent->progs.sv->angles, ent->progs.sv->m_pmatrix[0], ent->progs.sv->m_pmatrix[1], ent->progs.sv->m_pmatrix[2] );
+	VectorCopy( ent->progs.sv->origin, ent->progs.sv->m_pmatrix[3] );
+	ConvertPositionToPhysic( ent->progs.sv->m_pmatrix[3] );
+	SV_CreatePhysBody( ent );
 }
 
 float SV_AngleMod( float ideal, float current, float speed )

@@ -17,7 +17,6 @@
 #include <time.h>
 #include <io.h>
 #include "basetypes.h"
-#include "mathlib.h"
 #include "net_msg.h"
 #include "screen.h"
 #include "keycodes.h"
@@ -147,7 +146,7 @@ void CL_Frame (float time);
 void SV_Init( void );
 void SV_Shutdown( bool reconnect );
 void SV_Frame( float time );
-void SV_Transform( sv_edict_t *ed, vec3_t origin, vec3_t angles );
+void SV_Transform( sv_edict_t *ed, matrix4x3 transform );
 
 /*
 ==============================================================

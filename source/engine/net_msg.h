@@ -313,8 +313,8 @@ typedef enum
 #define MAX_ENTITIES		128
 #define MAX_DLIGHTS			32
 #define MAX_CLIENTS			256	// absolute limit
-#define MAX_EDICTS			2048	// must change protocol to increase more
-#define MAX_MODELS			256	// these are sent over the net as short
+#define MAX_EDICTS			4096	// must change protocol to increase more
+#define MAX_MODELS			4096	// these are sent over the net as short
 #define MAX_PARTICLES		4096
 #define MAX_LIGHTSTYLES		256
 #define MAX_SOUNDS			256	// so they cannot be blindly increased
@@ -459,7 +459,7 @@ NET
 ==============================================================
 */
 #define PORT_ANY			-1
-#define MAX_MSGLEN			1600		// max length of a message
+#define MAX_MSGLEN			2048		// max length of a message
 #define PACKET_HEADER		10		// two ints and a short
 
 typedef enum { NA_LOOPBACK, NA_BROADCAST, NA_IP, NA_IPX, NA_BROADCAST_IPX } netadrtype_t;

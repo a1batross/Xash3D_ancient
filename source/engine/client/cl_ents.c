@@ -38,7 +38,7 @@ float LerpAngle (float a2, float a1, float frac)
 
 float LerpView(float org1, float org2, float ofs1, float ofs2, float frac)
 {
-	return org1 + ofs1 + frac * (org2 + ofs2 - (org1 + ofs1));
+	return org1 * CL_COORD_FRAC + ofs1 + frac * (org2 * CL_COORD_FRAC + ofs2 - (org1 * CL_COORD_FRAC + ofs1));
 }
 
  
@@ -318,9 +318,9 @@ void CL_ParsePlayerstate (frame_t *oldframe, frame_t *newframe)
 
 	if (flags & PS_VIEWANGLES)
 	{
-		state->viewangles[0] = MSG_ReadAngle16 (&net_message);
-		state->viewangles[1] = MSG_ReadAngle16 (&net_message);
-		state->viewangles[2] = MSG_ReadAngle16 (&net_message);
+		state->viewangles[0] = MSG_ReadAngle32 (&net_message);
+		state->viewangles[1] = MSG_ReadAngle32 (&net_message);
+		state->viewangles[2] = MSG_ReadAngle32 (&net_message);
 	}
 
 	if (flags & PS_KICKANGLES)
@@ -494,7 +494,7 @@ void CL_ParseFrame (void)
 		{
 			cls.state = ca_active;
 			cl.force_refdef = true;
-			VectorCopy( cl.frame.playerstate.pmove.origin, cl.predicted_origin );
+			VectorScale( cl.frame.playerstate.pmove.origin, CL_COORD_FRAC, cl.predicted_origin );
 			VectorCopy( cl.frame.playerstate.viewangles, cl.predicted_angles );
 		}
 		// fire entity events
@@ -821,7 +821,7 @@ void CL_CalcViewValues (void)
 		// smooth out stair climbing
 		delta = cls.realtime - cl.predicted_step_time;
 		if (delta < host_frametime->value)
-			cl.refdef.vieworg[2] -= cl.predicted_step * (host_frametime->value - delta) * host_frametime->value;
+			cl.refdef.vieworg[2] -= cl.predicted_step * (host_frametime->value - delta) * 0.01f;
 	}
 	else
 	{	// just use interpolated values

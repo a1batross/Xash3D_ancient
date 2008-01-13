@@ -11,12 +11,10 @@
 
 #define VALVE_FORMAT	220
 #define MAX_BRUSH_SIDES	128
-#define CLIP_EPSILON	0.1
 #define BOGUS_RANGE		8192
 #define TEXINFO_NODE	-1		// side is allready on a node
 #define MAX_PORTALS		32768
 #define PORTALFILE		"PRT1"
-#define ON_EPSILON		0.1
 #define MAX_POINTS_ON_WINDING	64
 #define PLANENUM_LEAF	-1
 #define MAXEDGES		20

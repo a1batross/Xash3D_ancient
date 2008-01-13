@@ -57,6 +57,10 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 	Phys.FreeWorld = CM_FreeWorld;
 	Phys.Frame = Phys_Frame;
 	Phys.CreateBody = Phys_CreateBody;
+	Phys.GetForce = Phys_GetForce;
+	Phys.SetForce = Phys_SetForce;
+	Phys.GetMassCentre = Phys_GetMassCentre;
+	Phys.SetMassCentre = Phys_SetMassCentre;
 	Phys.RemoveBody = Phys_RemoveBody;
 
 	return &Phys;

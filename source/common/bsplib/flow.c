@@ -112,9 +112,9 @@ viswinding_t	*ChopWinding (viswinding_t *in, pstack_t *stack, visplane_t *split)
 		dot = DotProduct (in->points[i], split->normal);
 		dot -= split->dist;
 		dists[i] = dot;
-		if (dot > EQUAL_EPSILON)
+		if (dot > ON_EPSILON)
 			sides[i] = SIDE_FRONT;
-		else if (dot < -EQUAL_EPSILON)
+		else if (dot < -ON_EPSILON)
 			sides[i] = SIDE_BACK;
 		else
 		{
@@ -245,7 +245,7 @@ viswinding_t	*ClipToSeperators (viswinding_t *source, viswinding_t *pass, viswin
 			+ plane.normal[1] * plane.normal[1]
 			+ plane.normal[2] * plane.normal[2];
 			
-			if (length < EQUAL_EPSILON)
+			if (length < ON_EPSILON)
 				continue;
 
 			length = 1/sqrt(length);
@@ -267,13 +267,13 @@ viswinding_t	*ClipToSeperators (viswinding_t *source, viswinding_t *pass, viswin
 				if (k == i || k == l)
 					continue;
 				d = DotProduct (source->points[k], plane.normal) - plane.dist;
-				if (d < -EQUAL_EPSILON)
+				if (d < -ON_EPSILON)
 				{	// source is on the negative side, so we want all
 					// pass and target on the positive side
 					fliptest = false;
 					break;
 				}
-				else if (d > EQUAL_EPSILON)
+				else if (d > ON_EPSILON)
 				{	// source is on the positive side, so we want all
 					// pass and target on the negative side
 					fliptest = true;
@@ -304,9 +304,9 @@ viswinding_t	*ClipToSeperators (viswinding_t *source, viswinding_t *pass, viswin
 				if (k==j)
 					continue;
 				d = DotProduct (pass->points[k], plane.normal) - plane.dist;
-				if (d < -EQUAL_EPSILON)
+				if (d < -ON_EPSILON)
 					break;
-				else if (d > EQUAL_EPSILON)
+				else if (d > ON_EPSILON)
 					counts[0]++;
 				else
 					counts[2]++;
@@ -319,11 +319,11 @@ viswinding_t	*ClipToSeperators (viswinding_t *source, viswinding_t *pass, viswin
 #else
 			k = (j+1)%pass->numpoints;
 			d = DotProduct (pass->points[k], plane.normal) - plane.dist;
-			if (d < -EQUAL_EPSILON)
+			if (d < -ON_EPSILON)
 				continue;
 			k = (j+pass->numpoints-1)%pass->numpoints;
 			d = DotProduct (pass->points[k], plane.normal) - plane.dist;
-			if (d < -EQUAL_EPSILON)
+			if (d < -ON_EPSILON)
 				continue;			
 #endif
 		//
@@ -648,7 +648,7 @@ void BasePortalVis (int portalnum)
 		{
 			d = DotProduct (w->points[k], p->plane.normal)
 				- p->plane.dist;
-			if (d > EQUAL_EPSILON)
+			if (d > ON_EPSILON)
 				break;
 		}
 		if (k == w->numpoints)
@@ -659,7 +659,7 @@ void BasePortalVis (int portalnum)
 		{
 			d = DotProduct (w->points[k], tp->plane.normal)
 				- tp->plane.dist;
-			if (d < -EQUAL_EPSILON)
+			if (d < -ON_EPSILON)
 				break;
 		}
 		if (k == w->numpoints)

@@ -943,10 +943,8 @@ void R_RecursiveWorldNode (mnode_t *node)
 	if (node->contents == CONTENTS_SOLID)
 		return;		// solid
 
-	if (node->visframe != r_visframecount)
-		return;
-	if (R_CullBox (node->minmaxs, node->minmaxs+3))
-		return;
+	if(node->visframe != r_visframecount) return;
+	if(R_CullBox (node->minmaxs, node->minmaxs+3)) return;
 	
 // if a leaf node, draw stuff
 	if (node->contents != -1)

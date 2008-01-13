@@ -236,9 +236,12 @@ typedef struct physic_exp_s
 	void (*Frame)( float time );				// physics frame
 
 	// simple objects
-	physbody_t *(*CreateBody)( sv_edict_t *ed, void *buffer, vec3_t org, vec3_t ang, int solid );
+	physbody_t *(*CreateBody)( sv_edict_t *ed, void *buffer, matrix4x3 transform, int solid );
+	bool (*GetForce)(physbody_t *body, vec3_t vel, vec3_t avel, vec3_t force, vec3_t torque );
+	void (*SetForce)(physbody_t *body, vec3_t vel, vec3_t avel, vec3_t force, vec3_t torque );
+	bool (*GetMassCentre)( physbody_t *body, matrix3x3 mass );
+	void (*SetMassCentre)( physbody_t *body, matrix3x3 mass );
 	void (*RemoveBody)( physbody_t *body );
-
 } physic_exp_t;
 
 typedef struct physic_imp_s
@@ -246,7 +249,8 @@ typedef struct physic_imp_s
 	// interface validator
 	size_t	api_size;		// must matched with sizeof(physic_imp_t)
 
-	void (*Transform)( sv_edict_t *ed, vec3_t origin, vec3_t angles );
+	void (*Transform)( sv_edict_t *ed, matrix4x3 transform );
+	float *(*GetModelVerts)( sv_edict_t *ent, int *numvertices );
 } physic_imp_t;
 
 // this is the only function actually exported at the linker level

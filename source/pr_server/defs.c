@@ -80,16 +80,17 @@ void end_sys_globals;		// flag for structure dumping
 	// physics description
 	.vector		origin;
 	.vector		angles;
-	.vector		old_origin;
+	.vector		old_origin;	// interpolated values
 	.vector		old_angles;
 	.vector		velocity;
 	.vector		avelocity;
+	.vector		m_pmatrix[4];
+	.vector		m_pcentre[3];	// current centre of mass
+	.vector		torque;
+	.vector		force;
 	.vector		post_origin;
 	.vector		post_angles;
-	.vector		post_velocity;
-	.vector		post_avelocity;
 	.vector		origin_offset;
-	.vector		angles_offset;
 	.float		ltime;
 
 	.float		bouncetype;

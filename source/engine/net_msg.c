@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "engine.h"
+#include "mathlib.h"
 
 /*
 ==============================================================================
@@ -121,9 +122,9 @@ void _MSG_WriteAngle32(sizebuf_t *sb, float f, const char *filename, int filelin
 
 void _MSG_WritePos16(sizebuf_t *sb, vec3_t pos, const char *filename, int fileline)
 {
-	_MSG_WriteCoord32(sb, pos[0] * SV_COORD_FRAC, filename, fileline );
-	_MSG_WriteCoord32(sb, pos[1] * SV_COORD_FRAC, filename, fileline );
-	_MSG_WriteCoord32(sb, pos[2] * SV_COORD_FRAC, filename, fileline );
+	_MSG_WriteCoord16(sb, pos[0], filename, fileline );
+	_MSG_WriteCoord16(sb, pos[1], filename, fileline );
+	_MSG_WriteCoord16(sb, pos[2], filename, fileline );
 }
 
 void _MSG_WritePos32(sizebuf_t *sb, vec3_t pos, const char *filename, int fileline)
@@ -450,9 +451,9 @@ void MSG_ReadPos32(sizebuf_t *msg_read, vec3_t pos)
 
 void MSG_ReadPos16(sizebuf_t *msg_read, vec3_t pos)
 {
-	pos[0] = MSG_ReadShort(msg_read) * CL_COORD_FRAC;
-	pos[1] = MSG_ReadShort(msg_read) * CL_COORD_FRAC;
-	pos[2] = MSG_ReadShort(msg_read) * CL_COORD_FRAC;
+	pos[0] = MSG_ReadCoord16(msg_read);
+	pos[1] = MSG_ReadCoord16(msg_read);
+	pos[2] = MSG_ReadCoord16(msg_read);
 }
 
 float MSG_ReadAngle16(sizebuf_t *msg_read)

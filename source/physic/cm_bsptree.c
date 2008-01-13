@@ -1,6 +1,6 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//		         cm_collision.c - collision hulls
+//			cm_bsptree.c - collision tree
 //=======================================================================
 
 #include "physic.h"
@@ -10,9 +10,9 @@ typedef struct cfacedesc_s
 	int	flags;	// surface description
 } cfacedesc_t;
 
-typedef struct collision_tree_s
+struct collision_tree_s
 {
-	byte		*pmod_base;	// buffer
+	byte		*pmod_base;	// start of buffer
 	dvertex_t		*vertices;
 	int		*surfedges;
 	dface_t		*surfaces;
@@ -22,18 +22,15 @@ typedef struct collision_tree_s
 
 	int		num_models;
 	int		num_faces;	// for bounds checking
-
-	vfile_t		*world_tree;	// pre-calcualated collision tree (not including submodels, worldmodel only)
+	vfile_t		*world_tree;	// pre-calcualated collision tree (worldmodel only)
 
 	NewtonCollision	*collision;
 	NewtonBody	*body;
 	bool		loaded;		// map is loaded?
-	bool		tree_build;	// phys tree is builded ?
+	bool		tree_build;	// phys tree is created ?
 	bool		use_thread;	// bsplib use thread
 
-} collision_tree_t;
-
-collision_tree_t map;
+} map;
 
 /*
 =================
@@ -95,7 +92,6 @@ void BSP_LoadSurfedges( lump_t *l )
 	count = l->filelen / sizeof(*in);
 	if (count < 1 || count >= MAX_MAP_SURFEDGES) Host_Error("BSP_LoadSurfedges: funny lump size\n");
 	map.surfedges = out = Mem_Alloc( physpool, count * sizeof(*out));	
-
 	for ( i = 0; i < count; i++) out[i] = LittleLong(in[i]);
 }
 
@@ -166,11 +162,7 @@ void BSP_LoadSurfDesc( lump_t *l )
 	if (l->filelen % sizeof(*in)) Host_Error("BSP_LoadSurfDesc: funny lump size\n" );
 	count = l->filelen / sizeof(*in);
           map.surfdesc = out = Mem_Alloc( physpool, count * sizeof(*out));
-
-	for ( i = 0; i < count; i++, in++, out++)
-	{
-		out->flags = LittleLong (in->flags);
-	}
+	for ( i = 0; i < count; i++, in++, out++) out->flags = LittleLong (in->flags);
 }
 
 /*
@@ -181,12 +173,12 @@ BSP_LoadModels
 void BSP_LoadCollision( lump_t *l )
 {
 	byte	*in;
-	int	i, count;
+	int	count;
 	
 	in = (void *)(map.pmod_base + l->fileofs);
 	if (l->filelen % sizeof(*in)) Host_Error("BSP_LoadCollision: funny lump size\n");
 	count = l->filelen / sizeof(*in);
-	map.world_tree = com.vfcreate( in, count );	
+	map.world_tree = VFS_Create( in, count );	
 }
 
 void CM_GetPoint( int index, vec3_t out )
@@ -214,7 +206,7 @@ void BSP_AddCollisionFace( int facenum )
 
 	if(facenum < 0 || facenum >= map.num_faces)
 	{
-		MsgDev(D_ERROR, "invalid face number %d, must be in range [0 == %d]\n", map.num_faces - 1);
+		MsgDev(D_ERROR, "invalid face number %d, must be in range [0 == %d]\n", facenum, map.num_faces - 1);
 		return;
 	}
 
@@ -232,10 +224,10 @@ void BSP_AddCollisionFace( int facenum )
 		{
 			vec3_t	face[3]; // triangle
 
-			CM_GetPoint( k, face[0] );
+			CM_GetPoint( k,	face[0] );
 			CM_GetPoint( k+j+1, face[1] );
 			CM_GetPoint( k+j+2, face[2] );
-			NewtonTreeCollisionAddFace( map.collision, 3, (float *)face[0], sizeof(vec3_t), 1);
+			NewtonTreeCollisionAddFace( map.collision, 3, (float *)face[0], sizeof(vec3_t), 1 );
 		}
 	}
 	else
@@ -243,15 +235,15 @@ void BSP_AddCollisionFace( int facenum )
 		vec3_t *face = Mem_Alloc( physpool, m_face->numedges * sizeof(vec3_t));
 		for(j = 0; j < m_face->numedges; j++ ) CM_GetPoint( k+j, face[j] );
 		NewtonTreeCollisionAddFace( map.collision, m_face->numedges, (float *)face[0], sizeof(vec3_t), 1);
-		Mem_Free( face );
+		if( face ) Mem_Free( face ); // polygons with 0 edges ?
 	}
 }
 
 void BSP_EndBuildTree( void )
 {
-	if(map.use_thread) Msg("Optimize collision tree..." );
+	if( map.use_thread ) Msg("Optimize collision tree..." );
 	NewtonTreeCollisionEndBuild( map.collision, true );
-	if(map.use_thread) Msg(" done\n");
+	if( map.use_thread ) Msg(" done\n");
 }
 
 static void BSP_LoadTree( vfile_t* handle, void* buffer, size_t size )
@@ -322,6 +314,8 @@ void CM_SaveCollisionTree( file_t *f, cmsave_t callback )
 void CM_LoadCollisionTree( void )
 {
 	map.collision = NewtonCreateTreeCollisionFromSerialization( gWorld, NULL, BSP_LoadTree, map.world_tree );
+	VFS_Close( map.world_tree );
+	map.world_tree = NULL;
 }
 
 void CM_LoadWorld( const void *buffer )
@@ -334,12 +328,12 @@ void CM_LoadWorld( const void *buffer )
 
 	map.use_thread = false;
 	if(map.world_tree) CM_LoadCollisionTree();
-	else CM_MakeCollisionTree();
+	else CM_MakeCollisionTree(); // can be used for old maps
 
 	map.body = NewtonCreateBody( gWorld, map.collision );
 	NewtonBodyGetMatrix( map.body, &m_matrix[0][0] );	// set the global position of this body 
 	NewtonCollisionCalculateAABB( map.collision, &m_matrix[0][0], &boxP0[0], &boxP1[0] ); 
-	NewtonReleaseCollision (gWorld, map.collision );
+	NewtonReleaseCollision( gWorld, map.collision );
 
 	VectorSubtract( boxP0, extra, boxP0 );
 	VectorAdd( boxP1, extra, boxP1 );
@@ -356,8 +350,6 @@ void CM_FreeWorld( void )
 	if(!map.body) return; 
 	// and physical body release too
 	NewtonDestroyBody( gWorld, map.body );
-	VFS_Close( map.world_tree );
 	map.body = NULL;
 	map.collision = NULL;
-	map.world_tree = NULL;
 }
