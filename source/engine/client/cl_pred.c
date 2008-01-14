@@ -83,17 +83,14 @@ void CL_ClipMoveToEntities ( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end,
 		num = (cl.frame.parse_entities + i)&(MAX_PARSE_ENTITIES-1);
 		ent = &cl_parse_entities[num];
 
-		if (!ent->solid)
-			continue;
-
-		if (ent->number == cl.playernum+1)
-			continue;
+		if(!ent->solid) continue;
+		if(ent->number == cl.playernum + 1) continue;
 
 		if (ent->solid == 31)
-		{	// special value for bmodel
+		{	
+			// special value for bmodel
 			cmodel = cl.model_clip[ent->modelindex];
-			if (!cmodel)
-				continue;
+			if(!cmodel) continue;
 			headnode = cmodel->headnode;
 			angles = ent->angles;
 		}
@@ -115,9 +112,7 @@ void CL_ClipMoveToEntities ( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end,
 		if (tr->allsolid)
 			return;
 
-		trace = CM_TransformedBoxTrace (start, end,
-			mins, maxs, headnode,  MASK_PLAYERSOLID,
-			ent->origin, angles);
+		trace = CM_TransformedBoxTrace (start, end, mins, maxs, headnode, MASK_PLAYERSOLID, ent->origin, angles);
 
 		if (trace.allsolid || trace.startsolid ||
 		trace.fraction < tr->fraction)
@@ -128,8 +123,7 @@ void CL_ClipMoveToEntities ( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end,
 				*tr = trace;
 				tr->startsolid = true;
 			}
-			else
-				*tr = trace;
+			else *tr = trace;
 		}
 		else if (trace.startsolid)
 			tr->startsolid = true;

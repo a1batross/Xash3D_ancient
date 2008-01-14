@@ -120,17 +120,22 @@ void SV_SetModel (edict_t *ent, const char *name)
 {
 	int		i;
 	cmodel_t		*mod;
+	vec3_t		angles;
 
 	i = SV_ModelIndex( name );
 	if(i == 0) return;
-	ent->progs.sv->model = PRVM_SetEngineString(sv.configstrings[CS_MODELS+i]);
+	ent->progs.sv->model = PRVM_SetEngineString( sv.configstrings[CS_MODELS+i] );
 	ent->progs.sv->modelindex = i;
 
-	mod = CM_LoadModel( ent );
+	mod = CM_RegisterModel( name );
 	if( mod ) SV_SetMinMaxSize( ent, mod->mins, mod->maxs, false );
 
-	// setup matrix
-	AngleVectors( ent->progs.sv->angles, ent->progs.sv->m_pmatrix[0], ent->progs.sv->m_pmatrix[1], ent->progs.sv->m_pmatrix[2] );
+	// FIXME: translate angles correctly
+	angles[0] = ent->progs.sv->angles[0] - 90.0f;
+	angles[1] = ent->progs.sv->angles[1];
+	angles[2] = ent->progs.sv->angles[2] + 90.0f;
+
+	AngleVectors( angles, ent->progs.sv->m_pmatrix[0], ent->progs.sv->m_pmatrix[1], ent->progs.sv->m_pmatrix[2] );
 	VectorCopy( ent->progs.sv->origin, ent->progs.sv->m_pmatrix[3] );
 	ConvertPositionToPhysic( ent->progs.sv->m_pmatrix[3] );
 	SV_CreatePhysBody( ent );

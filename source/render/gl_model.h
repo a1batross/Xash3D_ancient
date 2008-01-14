@@ -185,7 +185,7 @@ typedef enum {mod_bad, mod_brush, mod_studio, mod_sprite } modtype_t;
 
 typedef struct model_s
 {
-	char		name[MAX_QPATH];
+	string		name;
 
 	int		registration_sequence;
 

@@ -37,7 +37,7 @@ int SV_FindIndex (const char *name, int start, int end, bool create)
 	if (!name || !name[0]) return 0;
 
 	for (i = 1; i < end && sv.configstrings[start+i][0]; i++)
-		if(!strcmp(sv.configstrings[start+i], name))
+		if(!com.strcmp(sv.configstrings[start+i], name))
 			return i;
 	if(!create) return 0;
 
@@ -130,7 +130,6 @@ void SV_CheckForSavegame (char *savename )
 	if(!savename) sv.loadgame = false;
 	if(!FS_FileExists(va("save/%s", savename )))
 		sv.loadgame = false;
-	SV_ClearWorld();
 }
 
 
@@ -195,22 +194,22 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 
 	if (serverstate != ss_game)
 	{
-		sv.models[1] = CM_LoadMap ("", false, &checksum);	// no real map
+		sv.models[1] = CM_BeginRegistration("", false, &checksum);	// no real map
 	}
 	else
 	{
-		sprintf (sv.configstrings[CS_MODELS+1], "maps/%s", server);
-		sv.models[1] = CM_LoadMap (sv.configstrings[CS_MODELS+1], false, &checksum);
+		sprintf(sv.configstrings[CS_MODELS+1], "maps/%s", server);
+		sv.models[1] = CM_BeginRegistration(sv.configstrings[CS_MODELS+1], false, &checksum);
 	}
-	sprintf (sv.configstrings[CS_MAPCHECKSUM],"%i", checksum);
+	sprintf(sv.configstrings[CS_MAPCHECKSUM], "%i", checksum);
 
 	// clear physics interaction links
-	SV_ClearWorld ();
+	SV_ClearWorld();
 
 	for (i = 1; i < CM_NumInlineModels(); i++)
 	{
-		sprintf(sv.configstrings[CS_MODELS+1+i], "*%i", i);
-		sv.models[i+1] = CM_InlineModel(sv.configstrings[CS_MODELS+1+i]);
+		sprintf( sv.configstrings[CS_MODELS+1+i], "*%i", i );
+		sv.models[i+1] = CM_RegisterModel(sv.configstrings[CS_MODELS+1+i] );
 	}
 
 	//
@@ -220,7 +219,7 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 	// precache and static commands can be issued during
 	// map initialization
 	sv.state = ss_loading;
-	Host_SetServerState (sv.state);
+	Host_SetServerState( sv.state );
 
 	// check for a savegame
 	SV_CheckForSavegame( savename );
@@ -241,6 +240,7 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 
 	// set serverinfo variable
 	Cvar_FullSet("mapname", sv.name, CVAR_SERVERINFO | CVAR_INIT);
+	CM_EndRegistration(); // free unused models
 	SV_VM_End();
 }
 
@@ -419,30 +419,31 @@ void SV_VM_Setup( void )
 {
 	PRVM_Begin;
 	PRVM_InitProg( PRVM_SERVERPROG );
-        
-	// allocate the mempools
-	// TODO: move the magic numbers/constants into #defines [9/13/2006 Black]
-	prog->progs_mempool = Mem_AllocPool("Server Progs" );
-	prog->builtins = vm_sv_builtins;
-	prog->numbuiltins = vm_sv_numbuiltins;
-	prog->max_edicts = 512;
-	prog->limit_edicts = MAX_EDICTS;
-	prog->reserved_edicts = maxclients->value;
-	prog->edictprivate_size = sizeof(sv_edict_t);
-	prog->name = "server";
-	prog->extensionstring = "";
-	prog->loadintoworld = true;
 
-	prog->begin_increase_edicts = SV_VM_BeginIncreaseEdicts;
-	prog->end_increase_edicts = SV_VM_EndIncreaseEdicts;
-	prog->init_edict = SV_VM_InitEdict;
-	prog->free_edict = SV_VM_FreeEdict;
-	prog->count_edicts = SV_VM_CountEdicts;
-	prog->load_edict = SV_VM_LoadEdict;
-	prog->init_cmd = VM_Cmd_Init;
-	prog->reset_cmd = VM_Cmd_Reset;
-	prog->error_cmd = VM_Error;
-	PRVM_LoadProgs( "server.dat", 0, NULL, SV_NUM_REQFIELDS, sv_reqfields );
+	prog->reserved_edicts = maxclients->value;
+	prog->loadintoworld = true;
+		
+	if( !prog->loaded )
+	{        
+		prog->progs_mempool = Mem_AllocPool("Server Progs" );
+		prog->builtins = vm_sv_builtins;
+		prog->numbuiltins = vm_sv_numbuiltins;
+		prog->max_edicts = 512;
+		prog->limit_edicts = MAX_EDICTS;
+		prog->edictprivate_size = sizeof(sv_edict_t);
+		prog->name = "server";
+		prog->extensionstring = "";
+		prog->begin_increase_edicts = SV_VM_BeginIncreaseEdicts;
+		prog->end_increase_edicts = SV_VM_EndIncreaseEdicts;
+		prog->init_edict = SV_VM_InitEdict;
+		prog->free_edict = SV_VM_FreeEdict;
+		prog->count_edicts = SV_VM_CountEdicts;
+		prog->load_edict = SV_VM_LoadEdict;
+		prog->init_cmd = VM_Cmd_Init;
+		prog->reset_cmd = VM_Cmd_Reset;
+		prog->error_cmd = VM_Error;
+		PRVM_LoadProgs( "server.dat", 0, NULL, SV_NUM_REQFIELDS, sv_reqfields );
+	}
 	PRVM_End;
 }
 

@@ -225,7 +225,7 @@ void SV_Load_f( void )
 
 	SV_ReadSaveFile( filename );
 	SV_BroadcastCommand( "changing\n" );
-	SV_SpawnServer(svs.mapcmd, filename, ss_game );
+	SV_SpawnServer( svs.mapcmd, filename, ss_game );
 	SV_BroadcastCommand( "reconnect\n" );
 }
 

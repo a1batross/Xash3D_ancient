@@ -657,6 +657,7 @@ BRUSH MODELS
 #define MAX_MAP_COLLISION		0x800000
 #define MAX_MAP_STRINGDATA		0x40000
 #define MAX_MAP_NUMSTRINGS		0x10000
+#define MAX_MODELS			MAX_MAP_MODELS>>1	// brushmodels and other models
 
 // lump offset
 #define LUMP_ENTITIES		0
@@ -1069,8 +1070,8 @@ enum op_state
 	OP_RANDV2,
 
 	OP_SWITCH_F,	// switches
-	OP_SWITCH_V,	// 100
-	OP_SWITCH_S,
+	OP_SWITCH_V,
+	OP_SWITCH_S,	// 100
 	OP_SWITCH_E,
 	OP_SWITCH_FNC,
 
@@ -1082,8 +1083,8 @@ enum op_state
 	OP_STORE_FI,
 	
 	OP_ADD_I,
-	OP_ADD_FI,	// 110
-	OP_ADD_IF,
+	OP_ADD_FI,
+	OP_ADD_IF,	// 110
   
 	OP_SUB_I,
 	OP_SUB_FI,
@@ -1094,8 +1095,8 @@ enum op_state
 	OP_CP_ITOF,
 	OP_CP_FTOI,
 	OP_LOAD_I,
-	OP_STOREP_I,	// 120
-	OP_STOREP_IF,
+	OP_STOREP_I,
+	OP_STOREP_IF,	// 120
 	OP_STOREP_FI,
 
 	OP_BITAND_I,
@@ -1107,9 +1108,9 @@ enum op_state
 	OP_NE_I,
 
 	OP_IFNOTS,
-	OP_IFS,		// 130
+	OP_IFS,
 
-	OP_NOT_I,
+	OP_NOT_I,		// 130
 
 	OP_DIV_VF,
 
@@ -1122,8 +1123,8 @@ enum op_state
 
 	OP_LOADA_F,
 	OP_LOADA_V,	
-	OP_LOADA_S,	// 140
-	OP_LOADA_ENT,
+	OP_LOADA_S,
+	OP_LOADA_ENT,	// 140
 	OP_LOADA_FLD,		
 	OP_LOADA_FNC,
 	OP_LOADA_I,
@@ -1134,8 +1135,8 @@ enum op_state
 	OP_LOADP_F,
 	OP_LOADP_V,	
 	OP_LOADP_S,
-	OP_LOADP_ENT,	// 150
-	OP_LOADP_FLD,
+	OP_LOADP_ENT,
+	OP_LOADP_FLD,	// 150
 	OP_LOADP_FNC,
 	OP_LOADP_I,
 
@@ -1170,8 +1171,8 @@ enum op_state
 	OP_DIV_FI,
 	OP_BITAND_IF,
 	OP_BITOR_IF,
-	OP_BITAND_FI,	// 180
-	OP_BITOR_FI,
+	OP_BITAND_FI,
+	OP_BITOR_FI,	// 180
 	OP_AND_I,
 	OP_OR_I,
 	OP_AND_IF,
@@ -1181,8 +1182,8 @@ enum op_state
 	OP_NE_IF,
 	OP_NE_FI,
 
-	OP_GSTOREP_I,	// 190
-	OP_GSTOREP_F,		
+	OP_GSTOREP_I,
+	OP_GSTOREP_F,	// 190		
 	OP_GSTOREP_ENT,
 	OP_GSTOREP_FLD,	// integers
 	OP_GSTOREP_S,
@@ -1191,8 +1192,8 @@ enum op_state
 	OP_GADDRESS,
 	OP_GLOAD_I,
 	OP_GLOAD_F,
-	OP_GLOAD_FLD,	// 200
-	OP_GLOAD_ENT,
+	OP_GLOAD_FLD,
+	OP_GLOAD_ENT,	// 200
 	OP_GLOAD_S,
 	OP_GLOAD_FNC,
 	OP_GLOAD_V,
@@ -1371,9 +1372,9 @@ typedef struct cmesh_s
 
 typedef struct cmodel_s
 {
-	int	modidx;		// edict index
-	char	name[64];		// model name
+	string	name;		// model name
 	byte	*mempool;		// personal mempool
+	int	registration_sequence;
 
 	vec3_t	mins, maxs;	// boundbox
 	int	headnode;		// bsp info

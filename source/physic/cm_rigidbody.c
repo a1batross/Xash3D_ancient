@@ -30,8 +30,14 @@ physbody_t *Phys_CreateBody( sv_edict_t *ed, void *buffer, matrix4x3 transform, 
 
 		if( solid == SOLID_BOX )
 		{
-			CM_RoundUpHullSize( mins, false );
-			CM_RoundUpHullSize( maxs, false );
+			CM_RoundUpHullSize( mins );
+			CM_RoundUpHullSize( maxs );
+		}
+		else if( solid == SOLID_CYLINDER )
+		{
+			// barrel always stay on top side
+			VectorSet( vec3_angles, 90.0f, 0.0f, 0.0f );
+			AngleVectors( vec3_angles, offset[0], offset[2], offset[1] );
 		}
 	}
 	else
@@ -64,7 +70,7 @@ physbody_t *Phys_CreateBody( sv_edict_t *ed, void *buffer, matrix4x3 transform, 
 		col = NewtonCreateSphere( gWorld, size[0]/2, size[1]/2, size[2]/2, &offset[0][0] );
 		break;
 	case SOLID_CYLINDER:
-		col = NewtonCreateCylinder( gWorld, size[0], size[1], &offset[0][0] );
+		col = NewtonCreateCylinder( gWorld, size[1]/2, size[2], &offset[0][0] );
 		break;
 	case SOLID_MESH:
 		vertices = pi.GetModelVerts( ed, &numvertices );

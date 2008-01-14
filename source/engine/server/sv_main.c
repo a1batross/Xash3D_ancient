@@ -727,7 +727,7 @@ void SV_RunGameFrame (void)
 	{
 
 		if(!cm_paused->value) 
-			pe->Frame( sv.time );
+			pe->Frame( 0.05 );//FIXME
 		SV_RunFrame ();
 
 		// never get more than one tic behind
@@ -875,13 +875,14 @@ void Master_Shutdown (void)
 		return;		// a private dedicated game
 
 	// send to group master
-	for (i=0 ; i<MAX_MASTERS ; i++)
+	for(i = 0; i < MAX_MASTERS; i++)
+	{
 		if (master_adr[i].port)
 		{
-			if (i > 0)
-				Msg ("Sending heartbeat to %s\n", NET_AdrToString (master_adr[i]));
-			Netchan_OutOfBandPrint (NS_SERVER, master_adr[i], "shutdown");
+			if( i ) Msg ("Sending heartbeat to %s\n", NET_AdrToString (master_adr[i]));
+			Netchan_OutOfBandPrint( NS_SERVER, master_adr[i], "shutdown" );
 		}
+	}
 }
 
 //============================================================================
@@ -1019,13 +1020,11 @@ void SV_FinalMessage (char *message, bool reconnect)
 
 	for (i=0, cl = svs.clients ; i<maxclients->value ; i++, cl++)
 		if (cl->state >= cs_connected)
-			Netchan_Transmit (&cl->netchan, net_message.cursize
-			, net_message.data);
+			Netchan_Transmit (&cl->netchan, net_message.cursize, net_message.data);
 
 	for (i=0, cl = svs.clients ; i<maxclients->value ; i++, cl++)
 		if (cl->state >= cs_connected)
-			Netchan_Transmit (&cl->netchan, net_message.cursize
-			, net_message.data);
+			Netchan_Transmit (&cl->netchan, net_message.cursize, net_message.data);
 }
 
 

@@ -155,11 +155,11 @@ void misc_physbox ( void )
 
 void misc_barrel( void )
 {
-	string name = "models/barrel1.mdl";
+	string name = "models/barrel2.mdl";
 
 	precache_model( name );
 	pev->owner = pev;
-	pev->solid = SOLID_MESH; //test
+	pev->solid = SOLID_CYLINDER; //test
 	pev->movetype = MOVETYPE_PHYSIC;
 	setmodel (pev, name );
 }
@@ -177,11 +177,13 @@ void misc_sphere( void )
 
 void item_healthkit( void )
 {
-	precache_model( "models/w_medkit.mdl" );
+	pev->model = "models/w_medkit.mdl";
+
+	precache_model( pev->model );
 	pev->owner = pev;
 	pev->solid = SOLID_MESH;
 	pev->movetype = MOVETYPE_PHYSIC;
-	setmodel (pev, "models/w_medkit.mdl" );
+	setmodel (pev, pev->model );
 }
 
 void env_sprite( void )

@@ -489,13 +489,12 @@ void CL_ParseConfigString (void)
 	}
 	else if (i >= CS_MODELS && i < CS_MODELS+MAX_MODELS)
 	{
-		if (cl.refresh_prepped)
+		if(cl.refresh_prepped)
 		{
 			cl.model_draw[i-CS_MODELS] = re->RegisterModel (cl.configstrings[i]);
 			if (cl.configstrings[i][0] == '*')
-				cl.model_clip[i-CS_MODELS] = CM_InlineModel (cl.configstrings[i]);
-			else
-				cl.model_clip[i-CS_MODELS] = NULL;
+				cl.model_clip[i-CS_MODELS] = CM_RegisterModel(cl.configstrings[i] );
+			else cl.model_clip[i-CS_MODELS] = NULL;
 		}
 	}
 	else if (i >= CS_SOUNDS && i < CS_SOUNDS+MAX_MODELS)

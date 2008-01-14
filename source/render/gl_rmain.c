@@ -114,7 +114,6 @@ cvar_t	*r_minimap_style;
 
 cvar_t	*gl_ext_swapinterval;
 cvar_t	*gl_ext_multitexture;
-cvar_t	*gl_ext_pointparameters;
 cvar_t	*gl_ext_compiled_vertex_array;
 cvar_t	*r_motionblur_intens;
 cvar_t	*r_motionblur;
@@ -258,7 +257,7 @@ void R_DrawEntitiesOnList (void)
 			currentmodel = currententity->model;
 			if (!currentmodel)
 			{
-				R_DrawNullModel ();
+				R_DrawNullModel();
 				continue;
 			}
 			switch (currentmodel->type)
@@ -386,7 +385,7 @@ R_DrawParticles
 */
 void R_DrawParticles (void)
 {
-	if ( gl_ext_pointparameters->value && qglPointParameterfEXT )
+	if( qglPointParameterfEXT )
 	{
 		int i;
 		unsigned char color[4];
@@ -832,9 +831,6 @@ void R_SetGL2D( void )
 	GL_DisableAlphaTest();
 	GL_EnableBlend();
 
-	if (gl_state.nv_tex_rectangle ) gl_state.tex_rectangle_type = GL_TEXTURE_RECTANGLE_NV;
-	if (gl_state.ati_tex_rectangle) gl_state.tex_rectangle_type = GL_TEXTURE_RECTANGLE_EXT;
-
 	if(!r_motionblur->value && v_blend[3])
 	{	
 		qglDisable (GL_TEXTURE_2D);
@@ -854,7 +850,7 @@ void R_SetGL2D( void )
 	}
 	else if (r_motionblur->value && (r_newrefdef.rdflags & RDF_PAIN))
 	{
-		if(!gl_state.nv_tex_rectangle && !gl_state.ati_tex_rectangle) return;
+		if(!gl_state.tex_rectangle_type) return;
 		if (blurtex)
 		{
 	     		GL_TexEnv(GL_MODULATE);
@@ -879,12 +875,12 @@ void R_SetGL2D( void )
 			qglVertex2f(0,r_height->integer);
 			qglEnd();
   
-			qglDisable(gl_state.tex_rectangle_type);
-			qglEnable(GL_TEXTURE_2D);
+			qglDisable( gl_state.tex_rectangle_type );
+			qglEnable( GL_TEXTURE_2D );
 		}
-		if (!blurtex) qglGenTextures(1,&blurtex);
-		qglBindTexture(gl_state.tex_rectangle_type,blurtex);
-		qglCopyTexImage2D(gl_state.tex_rectangle_type,0,GL_RGB,0,0,r_width->integer,r_height->integer,0);
+		if(!blurtex) qglGenTextures(1,&blurtex);
+		qglBindTexture( gl_state.tex_rectangle_type, blurtex );
+		qglCopyTexImage2D( gl_state.tex_rectangle_type, 0, GL_RGB, 0, 0, r_width->integer, r_height->integer, 0 );
 		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	} 
@@ -1040,7 +1036,6 @@ void R_Register( void )
 
 	gl_ext_swapinterval = Cvar_Get( "gl_ext_swapinterval", "1", CVAR_ARCHIVE );
 	gl_ext_multitexture = Cvar_Get( "gl_ext_multitexture", "1", CVAR_ARCHIVE );
-	gl_ext_pointparameters = Cvar_Get( "gl_ext_pointparameters", "1", CVAR_ARCHIVE );
 	gl_ext_compiled_vertex_array = Cvar_Get( "gl_ext_compiled_vertex_array", "1", CVAR_ARCHIVE );
 
 	gl_drawbuffer = Cvar_Get( "gl_drawbuffer", "GL_BACK", 0 );
@@ -1118,10 +1113,7 @@ R_Init
 */
 int R_Init( void *hinstance, void *hWnd )
 {	
-	char		renderer_buffer[1000];
-	char		vendor_buffer[1000];
-	int		err;
-	int		j;
+	int		j, err;
 	extern float	r_turbsin[256];
           
 	r_temppool = Mem_AllocPool( "Render Memory" );
@@ -1157,162 +1149,95 @@ int R_Init( void *hinstance, void *hWnd )
 	}
 
 	// get our various GL strings
-	gl_config.vendor_string = qglGetString (GL_VENDOR);
-	MsgDev(D_INFO, "GL_VENDOR: %s\n", gl_config.vendor_string );
+	gl_config.vendor_string = qglGetString( GL_VENDOR );
 	gl_config.renderer_string = qglGetString (GL_RENDERER);
-	MsgDev(D_INFO, "GL_RENDERER: %s\n", gl_config.renderer_string );
 	gl_config.version_string = qglGetString (GL_VERSION);
-	MsgDev(D_INFO, "GL_VERSION: %s\n", gl_config.version_string );
 	gl_config.extensions_string = qglGetString (GL_EXTENSIONS);
-	MsgDev(D_INFO, "GL_EXTENSIONS: %s\n", gl_config.extensions_string );
-          
-	strcpy( renderer_buffer, gl_config.renderer_string );
-	strlwr( renderer_buffer );
-
-	strcpy( vendor_buffer, gl_config.vendor_string );
-	strlwr( vendor_buffer );
+	MsgDev(D_INFO, "Video: %s\n", gl_config.renderer_string );
         
-	if ( strstr( renderer_buffer, "voodoo" ) )
+	if(stristr( gl_config.renderer_string, "voodoo" ))
 		gl_config.renderer = GL_RENDERER_VOODOO;
-	if ( strstr( vendor_buffer, "ati" ) )
+	else if(stristr( gl_config.vendor_string, "ati" ))
 		gl_config.renderer = GL_RENDERER_ATI;
-	else if ( strstr( vendor_buffer, "nvidia" ) )
+	else if(stristr( gl_config.vendor_string, "nvidia" ))
 		gl_config.renderer = GL_RENDERER_ATI;
 	else gl_config.renderer = GL_RENDERER_DEFAULT;
-          
 	gl_config.allow_cds = true;
 
-	/*
-	** grab extensions
-	*/
-	if ( strstr( gl_config.extensions_string, "GL_EXT_compiled_vertex_array" ) || strstr( gl_config.extensions_string, "GL_SGI_compiled_vertex_array" ) )
+	// grab extensions
+	if( stristr( gl_config.extensions_string, "GL_EXT_compiled_vertex_array" ) || stristr( gl_config.extensions_string, "GL_SGI_compiled_vertex_array" ))
 	{
-		MsgDev(D_INFO, "...enabling GL_EXT_compiled_vertex_array\n" );
-		qglLockArraysEXT = ( void * ) qwglGetProcAddress( "glLockArraysEXT" );
-		qglUnlockArraysEXT = ( void * ) qwglGetProcAddress( "glUnlockArraysEXT" );
-	}
-	else MsgDev(D_WARN, "...GL_EXT_compiled_vertex_array not found\n" );
-
-	if ( strstr( gl_config.extensions_string, "WGL_EXT_swap_control" ) )
-	{
-		qwglSwapIntervalEXT = ( BOOL (WINAPI *)(int)) qwglGetProcAddress( "wglSwapIntervalEXT" );
-		MsgDev(D_INFO, "...enabling WGL_EXT_swap_control\n" );
-	}
-	else
-	{
-		MsgDev(D_WARN, "...WGL_EXT_swap_control not found\n" );
+		qglLockArraysEXT = (void *)qwglGetProcAddress( "glLockArraysEXT" );
+		qglUnlockArraysEXT = (void *)qwglGetProcAddress( "glUnlockArraysEXT" );
 	}
 
-	if (strstr( gl_config.extensions_string, "GL_ARB_texture_compression" ))
+	if( stristr( gl_config.extensions_string, "WGL_EXT_swap_control" ) )
 	{
-		if (strstr( gl_config.extensions_string, "GL_EXT_texture_compression_s3tc" ))
+		qwglSwapIntervalEXT = (bool(_stdcall *)(int))qwglGetProcAddress( "wglSwapIntervalEXT" );
+	}
+
+	if( stristr( gl_config.extensions_string, "GL_ARB_texture_compression" ))
+	{
+		if(stristr( gl_config.extensions_string, "GL_EXT_texture_compression_s3tc" ))
 		{
-			qglCompressedTexImage2D = ( void *)qwglGetProcAddress("glCompressedTexImage2DARB");
-			qglGetCompressedTexImage = ( void *)qwglGetProcAddress("glGetCompressedTexImageARB");
+			qglCompressedTexImage2D = (void *)qwglGetProcAddress( "glCompressedTexImage2DARB" );
+			qglGetCompressedTexImage = (void *)qwglGetProcAddress( "glGetCompressedTexImageARB" );
 		}
-
 		if (qglCompressedTexImage2D && qglGetCompressedTexImage)
 			gl_config.arb_compressed_teximage = true;
 		else gl_config.arb_compressed_teximage = false;
 	}
  
-	if ( strstr( gl_config.extensions_string, "GL_EXT_point_parameters" ) )
+	if( stristr( gl_config.extensions_string, "GL_EXT_point_parameters" ) )
 	{
-		if ( gl_ext_pointparameters->value )
-		{
-			qglPointParameterfEXT = ( void (APIENTRY *)( GLenum, GLfloat ) ) qwglGetProcAddress( "glPointParameterfEXT" );
-			qglPointParameterfvEXT = ( void (APIENTRY *)( GLenum, const GLfloat * ) ) qwglGetProcAddress( "glPointParameterfvEXT" );
-			MsgDev(D_INFO, "...using GL_EXT_point_parameters\n" );
-		}
-		else
-		{
-			MsgDev(D_INFO, "...ignoring GL_EXT_point_parameters\n" );
-		}
-	}
-	else
-	{
-		MsgDev(D_WARN, "...GL_EXT_point_parameters not found\n" );
+		qglPointParameterfEXT = (void *)qwglGetProcAddress( "glPointParameterfEXT" );
+		qglPointParameterfvEXT = (void *)qwglGetProcAddress( "glPointParameterfvEXT" );
 	}
 
-	if ( strstr( gl_config.extensions_string, "GL_ARB_multitexture" ) )
+	if( stristr( gl_config.extensions_string, "GL_ARB_multitexture" ) )
 	{
-		if ( gl_ext_multitexture->value )
+		if( gl_ext_multitexture->value )
 		{
-			MsgDev(D_INFO, "...using GL_ARB_multitexture\n" );
-			qglMTexCoord2fSGIS = ( void * ) qwglGetProcAddress( "glMultiTexCoord2fARB" );
-			qglActiveTextureARB = ( void * ) qwglGetProcAddress( "glActiveTextureARB" );
-			qglClientActiveTextureARB = ( void * ) qwglGetProcAddress( "glClientActiveTextureARB" );
+			qglMTexCoord2fSGIS = (void *)qwglGetProcAddress( "glMultiTexCoord2fARB" );
+			qglActiveTextureARB = (void *)qwglGetProcAddress( "glActiveTextureARB" );
+			qglClientActiveTextureARB = (void *)qwglGetProcAddress( "glClientActiveTextureARB" );
 			GL_TEXTURE0 = GL_TEXTURE0_ARB;
 			GL_TEXTURE1 = GL_TEXTURE1_ARB;
 		}
-		else
-		{
-			MsgDev(D_INFO, "...ignoring GL_ARB_multitexture\n" );
-		}
-	}
-	else
-	{
-		MsgDev(D_WARN, "...GL_ARB_multitexture not found\n" );
 	}
 
-	if ( strstr( gl_config.extensions_string, "GL_NV_texture_rectangle" ) )
-	{
-		MsgDev(D_INFO, "...using GL_NV_texture_rectangle\n");
-		gl_state.nv_tex_rectangle = true;
-	}
+	if( stristr( gl_config.extensions_string, "GL_NV_texture_rectangle" ))
+		gl_state.tex_rectangle_type = GL_TEXTURE_RECTANGLE_NV;
+	else if( stristr( gl_config.extensions_string, "GL_EXT_texture_rectangle" ))
+		gl_state.tex_rectangle_type = GL_TEXTURE_RECTANGLE_EXT;
 	else
 	{
-		MsgDev(D_WARN, "...GL_NV_texture_rectangle not found\n");
-		gl_state.nv_tex_rectangle = false;
+		MsgDev(D_WARN, "R_Init: rectangle extension not found\n");
+		gl_state.tex_rectangle_type = 0; // no rectangle
 	}
 
-	if ( strstr( gl_config.extensions_string, "GL_EXT_texture_rectangle" ) )
+	if( stristr( gl_config.extensions_string, "GL_SGIS_multitexture" ) )
 	{
-		MsgDev(D_INFO, "...using GL_EXT_texture_rectangle\n");
-		gl_state.ati_tex_rectangle = true;
-	}
-	else
-	{
-		MsgDev(D_WARN, "...GL_EXT_texture_rectangle not found\n");
-		gl_state.ati_tex_rectangle = false;
-	}
-
-	if ( strstr( gl_config.extensions_string, "GL_SGIS_multitexture" ) )
-	{
-		if ( qglActiveTextureARB )
+		if( !qglActiveTextureARB && gl_ext_multitexture->value )
 		{
-			MsgDev(D_INFO, "...GL_SGIS_multitexture deprecated in favor of ARB_multitexture\n" );
-		}
-		else if ( gl_ext_multitexture->value )
-		{
-			MsgDev(D_INFO, "...using GL_SGIS_multitexture\n" );
 			qglMTexCoord2fSGIS = ( void * ) qwglGetProcAddress( "glMTexCoord2fSGIS" );
 			qglSelectTextureSGIS = ( void * ) qwglGetProcAddress( "glSelectTextureSGIS" );
 			GL_TEXTURE0 = GL_TEXTURE0_SGIS;
 			GL_TEXTURE1 = GL_TEXTURE1_SGIS;
 		}
-		else
-		{
-			MsgDev(D_INFO, "...ignoring GL_SGIS_multitexture\n" );
-		}
-	}
-	else
-	{
-		MsgDev(D_WARN, "...GL_SGIS_multitexture not found\n" );
 	}
 
 	GL_SetDefaultState();
-
 	R_InitTextures();
-	Mod_Init ();
-	R_InitParticleTexture ();
-	Draw_InitLocal ();
+	Mod_Init();
+	R_InitParticleTexture();
+	Draw_InitLocal();
           R_StudioInit();
 
-	if(!r_framebuffer) r_framebuffer = Z_Malloc(r_width->integer*r_height->integer*3);
+	if(!r_framebuffer) r_framebuffer = Z_Malloc(r_width->integer * r_height->integer * 3);
 	
 	err = qglGetError();
-	if ( err != GL_NO_ERROR ) MsgWarn("glGetError = 0x%x\n", err);
+	if ( err != GL_NO_ERROR ) MsgWarn("glGetError = 0x%x\n", err );
 
 	return 1;
 }

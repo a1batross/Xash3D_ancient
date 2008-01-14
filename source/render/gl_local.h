@@ -211,7 +211,6 @@ extern cvar_t	*gl_vertex_arrays;
 
 extern cvar_t	*gl_ext_swapinterval;
 extern cvar_t	*gl_ext_multitexture;
-extern cvar_t	*gl_ext_pointparameters;
 extern cvar_t	*gl_ext_compiled_vertex_array;
 
 extern cvar_t	*gl_particle_min_size;
@@ -444,9 +443,6 @@ typedef struct
 	int	stencil_warp;
 	int	stencil_two_side;
 	int	ati_separate_stencil;
-	bool	nv_tex_rectangle;
-	bool	ati_tex_rectangle;
-
 	vec4_t	draw_color;	// using with Draw_* functions
 
 } glstate_t;

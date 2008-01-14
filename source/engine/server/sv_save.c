@@ -144,7 +144,7 @@ void SV_WriteSaveFile( char *name )
 	// write lumps
 	SV_AddSaveLump( header, savfile, LUMP_COMMENTS, comment, sizeof(comment));
           SV_AddCStrLump( header, savfile );
-	SV_AddSaveLump( header, savfile, LUMP_AREASTATE, portalopen, sizeof(portalopen));
+	SV_AddSaveLump( header, savfile, LUMP_AREASTATE, svs.portalopen, sizeof(svs.portalopen));
 	SV_WriteGlobal( header, savfile );
 	SV_AddSaveLump( header, savfile, LUMP_MAPNAME, svs.mapcmd, sizeof(svs.mapcmd));
 	SV_AddCvarLump( header, savfile );
@@ -167,7 +167,7 @@ void Sav_LoadComment( lump_t *l )
 	if (l->filelen % sizeof(*in)) Host_Error("Sav_LoadComment: funny lump size\n" );
 
 	size = l->filelen / sizeof(*in);
-	strncpy(svs.comment, in, size );
+	com.strncpy(svs.comment, in, size );
 }
 
 void Sav_LoadCvars( lump_t *l )
@@ -197,7 +197,7 @@ void Sav_LoadMapCmds( lump_t *l )
 	if (l->filelen % sizeof(*in)) Host_Error("Sav_LoadMapCmds: funny lump size\n" );
 
 	size = l->filelen / sizeof(*in);
-	strncpy (svs.mapcmd, in, size );
+	com.strncpy(svs.mapcmd, in, size );
 }
 
 void Sav_LoadCfgString( lump_t *l )
@@ -225,8 +225,8 @@ void Sav_LoadAreaPortals( lump_t *l )
 	if (l->filelen % sizeof(*in)) Host_Error("Sav_LoadAreaPortals: funny lump size\n" );
 
 	size = l->filelen / sizeof(*in);
-	Mem_Copy(portalopen, in, size);
-	CM_FloodAreaConnections ();
+	Mem_Copy(svs.portalopen, in, size);
+	CM_FloodAreaConnections();
 }
 
 void Sav_LoadGlobal( lump_t *l )
@@ -318,6 +318,8 @@ void SV_ReadSaveFile( char *name )
 	
 	SV_InitGame(); // start a new game fresh with new cvars
 	Sav_LoadMapCmds(&header->lumps[LUMP_MAPNAME]);
+	Mem_Free( savfile );
+	CL_Drop();
 }
 
 /*
@@ -353,6 +355,7 @@ void SV_ReadLevelFile( char *name )
 	Sav_LoadAreaPortals(&header->lumps[LUMP_AREASTATE]);
 	Sav_LoadGlobal(&header->lumps[LUMP_GAMESTATE]);
 	Sav_LoadLocals(&header->lumps[LUMP_GAMEENTS]);
+	Mem_Free( savfile );
 }
 
 bool Menu_ReadComment( char *comment, int savenum )
@@ -376,7 +379,7 @@ bool Menu_ReadComment( char *comment, int savenum )
 
 	if(id != IDSAVEHEADER || i != SAVE_VERSION)
 	{
-		strncpy( comment, "<corrupted>", MAX_QPATH );
+		com.strncpy( comment, "<corrupted>", MAX_QPATH );
 		return false;
 	}
 

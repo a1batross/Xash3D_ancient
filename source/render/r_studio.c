@@ -1084,8 +1084,10 @@ void R_StudioSetupLighting( void )
 	}
 	else
 	{
-		R_LightPoint (m_pCurrentEntity->origin, m_plightcolor );
-	
+		vec3_t light_org;
+		VectorCopy( m_pCurrentEntity->origin, light_org );
+		light_org[2] += 3; // make sure what lightpoint is off thr ground
+		R_LightPoint( light_org, m_plightcolor );
 		if ( m_pCurrentEntity->flags & RF_WEAPONMODEL )
 			r_lightlevel->value = bound(0, VectorLength(m_plightcolor) * 75.0f, 255); 
 

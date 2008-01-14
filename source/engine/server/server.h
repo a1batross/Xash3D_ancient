@@ -84,7 +84,7 @@ typedef struct
 	float		frametime;
 
 	char		name[MAX_QPATH];	// map name, or cinematic name
-	struct cmodel_s	*models[MAX_MODELS];
+	cmodel_t		*models[MAX_MODELS];
 
 	char		configstrings[MAX_CONFIGSTRINGS][MAX_QPATH];
 	entity_state_t	baselines[MAX_EDICTS];
@@ -188,6 +188,7 @@ typedef struct
 
 	char		mapcmd[MAX_TOKEN_CHARS];	// ie: *intro.cin+base 
 	char		comment[MAX_TOKEN_CHARS];	// map name, e.t.c. 
+	byte		portalopen[MAX_MAP_AREAPORTALS];
 
 	int		spawncount;		// incremented each server start
 						// used to check late spawns

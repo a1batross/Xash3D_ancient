@@ -18,7 +18,7 @@ void* Palloc (int size )
 
 void Pfree (void *ptr, int size )
 {
-	Mem_Free( ptr );
+	if( ptr ) Mem_Free( ptr );
 }
 
 void Phys_Frame( float time )

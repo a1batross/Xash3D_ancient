@@ -41,13 +41,13 @@ cvar_t		*cl_stats;
 
 extern bool scr_initialized;
 
-int			r_numdlights;
+int		r_numdlights;
 dlight_t	r_dlights[MAX_DLIGHTS];
 
-int			r_numentities;
+int		r_numentities;
 entity_t	r_entities[MAX_ENTITIES];
 
-int			r_numparticles;
+int		r_numparticles;
 particle_t	r_particles[MAX_PARTICLES];
 
 lightstyle_t	r_lightstyles[MAX_LIGHTSTYLES];
@@ -278,7 +278,7 @@ Call before entering a new level, or after changing dlls
 void CL_PrepRefresh( void )
 {
 	char		mapname[32];
-	char		name[MAX_QPATH];
+	string		name;
 	float		rotate;
 	vec3_t		axis;
 	int		i; 
@@ -306,7 +306,7 @@ void CL_PrepRefresh( void )
 	CL_RegisterTEntModels ();
 
 	num_cl_weaponmodels = 1;
-	strcpy(cl_weaponmodels[0], "weapon.mdl");
+	com.strcpy(cl_weaponmodels[0], "v_glock.mdl");
 
 	for( i = 1; i < MAX_MODELS; i++ )
 	{
@@ -330,27 +330,13 @@ void CL_PrepRefresh( void )
 	// create thread here ?
 	for (i = 1; i < MAX_MODELS && cl.configstrings[CS_MODELS+i][0]; i++)
 	{
-		strcpy(name, cl.configstrings[CS_MODELS+i]);
-		name[37] = 0;	// never go beyond one line
-		if (name[0] != '*') MsgDev(D_LOAD, "%s\n", name); 
+		com.strncpy( name, cl.configstrings[CS_MODELS+i], MAX_STRING );
 		SCR_UpdateScreen();
-		Sys_SendKeyEvents();	// pump message loop
-		if (name[0] == '#')
-		{
-			// special player weapon model
-			if (num_cl_weaponmodels < MAX_CLIENTWEAPONMODELS)
-			{
-				strncpy(cl_weaponmodels[num_cl_weaponmodels], cl.configstrings[CS_MODELS+i]+1,
-					sizeof(cl_weaponmodels[num_cl_weaponmodels]) - 1);
-				num_cl_weaponmodels++;
-			}
-		} 
-		else
-		{
-			cl.model_draw[i] = re->RegisterModel(cl.configstrings[CS_MODELS+i]);
-			if (name[0] == '*') cl.model_clip[i] = CM_InlineModel (cl.configstrings[CS_MODELS+i]);
-			else cl.model_clip[i] = NULL;
-		}
+		Sys_SendKeyEvents(); // pump message loop
+
+		cl.model_draw[i] = re->RegisterModel( name );
+		if (name[0] == '*') cl.model_clip[i] = CM_RegisterModel( name );
+		else cl.model_clip[i] = NULL;//get studio models here?
 		Cvar_SetValue("scr_loading", scr_loading->value + 50.0f/mdlcount );
 		SCR_UpdateScreen();
 	}

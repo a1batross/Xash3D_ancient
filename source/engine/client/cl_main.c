@@ -1196,8 +1196,8 @@ void CL_RequestNextDownload (void)
 	{
 		precache_check = ENV_CNT + 1;
 
-		CM_LoadMap (cl.configstrings[CS_MODELS+1], true, &map_checksum);
-		if (map_checksum != atoi(cl.configstrings[CS_MAPCHECKSUM]))
+		CM_BeginRegistration( cl.configstrings[CS_MODELS+1], true, &map_checksum );
+		if( map_checksum != com.atoi(cl.configstrings[CS_MAPCHECKSUM]))
 		{
 			Host_Error("Local map version differs from server: %i != '%s'\n", map_checksum, cl.configstrings[CS_MAPCHECKSUM]);
 			return;
@@ -1230,26 +1230,24 @@ void CL_RequestNextDownload (void)
 	if (precache_check == TEXTURE_CNT+1)
 	{
 		// from common/cmodel.c
-		extern int numtexinfo;
 		extern mapsurface_t	map_surfaces[];
 
 		if (allow_download->value && allow_download_maps->value)
 		{
-			while (precache_tex < numtexinfo)
+			while( precache_tex < CM_NumTexinfo())
 			{
 				char fn[MAX_OSPATH];
 
-				sprintf(fn, "textures/%s.jpg", map_surfaces[precache_tex++].rname);
-				if (!CL_CheckOrDownloadFile(fn)) return; // started a download
+				sprintf(fn, "textures/%s.tga", CM_TexName( precache_tex++ ));
+				if(!CL_CheckOrDownloadFile(fn)) return; // started a download
 			}
 		}
 		precache_check = TEXTURE_CNT+999;
 	}
 
 //ZOID
-	CL_RegisterSounds ();
-	CL_PrepRefresh ();
-
+	CL_RegisterSounds();
+	CL_PrepRefresh();
 	MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
 	MSG_WriteString (&cls.netchan.message, va("begin %i\n", precache_spawncount) );
 }
@@ -1268,15 +1266,15 @@ void CL_Precache_f (void)
 	// the old precache sequence
 	if(Cmd_Argc() < 2)
 	{
-		uint	map_checksum; // for detecting cheater maps
-		CM_LoadMap(cl.configstrings[CS_MODELS+1], true, &map_checksum );
+		uint map_checksum; // for detecting cheater maps
+		CM_BeginRegistration( cl.configstrings[CS_MODELS+1], true, &map_checksum );
 		CL_RegisterSounds();
 		CL_PrepRefresh();
 		return;
 	}
 
 	precache_check = CS_MODELS;
-	precache_spawncount = atoi(Cmd_Argv(1));
+	precache_spawncount = com.atoi(Cmd_Argv(1));
 	precache_model = 0;
 	precache_model_skin = 0;
 

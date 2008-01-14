@@ -933,7 +933,7 @@ _inline int BoxOnPlaneSide (vec3_t emins, vec3_t emaxs, cplane_t *p)
 #define HULL_PRECISION	4
 static word hull_table[] = { 0, 4, 8, 16, 18, 24, 28, 30, 32, 40, 48, 54, 56, 60, 64, 72, 80, 112, 120, 128, 140, 176 };
 
-_inline void CM_RoundUpHullSize( vec3_t size, bool down )
+_inline void CM_RoundUpHullSize( vec3_t size )
 {
           int	i, j;
 	
@@ -942,7 +942,7 @@ _inline void CM_RoundUpHullSize( vec3_t size, bool down )
 		bool negative = false;
                     float result, value;
 
-		value = down ? floor(size[i]) : ceil(size[i]); // round it
+		value = ceil(size[i] + 0.5f); // round it
 		if(value < 0) negative = true;
 		value = fabs( value ); // make positive
 

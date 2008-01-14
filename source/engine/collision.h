@@ -27,15 +27,19 @@
 #define PMF_TIME_TELEPORT	32	// pm_time is non-moving time
 #define PMF_NO_PREDICTION	64	// temporarily disables prediction (used for grappling hook)
 
-cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum);
-cmodel_t *CM_InlineModel (char *name);	// *1, *2, etc
-cmodel_t *CM_LoadModel( edict_t *ent );
+cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksum );
+cmodel_t *CM_RegisterModel( const char *name );
+void CM_EndRegistration( void );
 void CM_FreeModels( void );
+void CM_FreeWorld( void );
 int CM_NumClusters (void);
+int CM_NumTexinfo( void );
 int CM_NumInlineModels (void);
 char *CM_EntityString (void);
+char *CM_TexName( int index );
 int CM_HeadnodeForBox (vec3_t mins, vec3_t maxs);
 int CM_PointContents (vec3_t p, int headnode);
+const char *CM_GetStringFromTable( int index );
 int CM_TransformedPointContents (vec3_t p, int headnode, vec3_t origin, vec3_t angles);
 trace_t CM_BoxTrace (vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int headnode, int brushmask);
 trace_t CM_TransformedBoxTrace (vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int headnode, int brushmask, vec3_t origin, vec3_t angles);
@@ -52,7 +56,6 @@ int CM_WriteAreaBits (byte *buffer, int area);
 bool CM_HeadnodeVisible (int headnode, byte *visbits);
 void CM_InitBoxHull (void);
 void CM_FloodAreaConnections (void);
-void CM_RoundUpHullSize(vec3_t size, bool down);
 extern byte portalopen[MAX_MAP_AREAPORTALS];
 
 /*

@@ -31,15 +31,14 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer);
 model_t *Mod_LoadModel (model_t *mod, bool crash);
 
 byte	mod_novis[MAX_MAP_LEAFS/8];
-
-#define	MAX_MOD_KNOWN	512
-model_t	mod_known[MAX_MOD_KNOWN];
+model_t	mod_known[MAX_MODELS];
+model_t	mod_inline[MAX_MODELS];
 int	mod_numknown;
 
 // the inline * models from the current map are kept seperate
-model_t	mod_inline[MAX_MOD_KNOWN];
 
-int		registration_sequence;
+
+int registration_sequence;
 
 const char *Mod_GetStringFromTable( int index )
 {
@@ -68,10 +67,8 @@ mleaf_t *Mod_PointInLeaf (vec3_t p, model_t *model)
 			return (mleaf_t *)node;
 		plane = node->plane;
 		d = DotProduct (p,plane->normal) - plane->dist;
-		if (d > 0)
-			node = node->children[0];
-		else
-			node = node->children[1];
+		if (d > 0) node = node->children[0];
+		else node = node->children[1];
 	}
 	
 	return NULL;	// never reached
@@ -130,10 +127,8 @@ Mod_ClusterPVS
 */
 byte *Mod_ClusterPVS (int cluster, model_t *model)
 {
-	if (cluster == -1 || !model->vis)
-		return mod_novis;
-	return Mod_DecompressVis ( (byte *)model->vis + model->vis->bitofs[cluster][DVIS_PVS],
-		model);
+	if (cluster == -1 || !model->vis) return mod_novis;
+	return Mod_DecompressVis ( (byte *)model->vis + model->vis->bitofs[cluster][DVIS_PVS], model);
 }
 
 
@@ -220,11 +215,14 @@ model_t *Mod_ForName(char *name, bool crash)
 	}
 	if (i == mod_numknown)
 	{
-		if (mod_numknown == MAX_MOD_KNOWN)
-			Sys_Error ("mod_numknown == MAX_MOD_KNOWN");
+		if (mod_numknown == MAX_MODELS)
+		{
+			MsgWarn("Mod_ForName: MAX_MODELS limit exceeded\n" );
+			return NULL;
+		}
 		mod_numknown++;
 	}
-	strcpy (mod->name, name);
+	com.strncpy( mod->name, name, MAX_STRING );
 	
 	// load the file
 	buf = (uint *)FS_LoadFile (mod->name, &modfilelen);
@@ -301,7 +299,7 @@ void Mod_LoadStringData( lump_t *l )
 {
 	if (!l->filelen)
 	{
-		loadmodel->lightdata = NULL;
+		loadmodel->stringdata = NULL;
 		return;
 	}
 	loadmodel->stringdata = (char *)Mem_Alloc( loadmodel->mempool, l->filelen );
@@ -334,9 +332,6 @@ void Mod_LoadVisibility (lump_t *l)
 		loadmodel->vis = NULL;
 		return;
 	}
-
-	//TODO: calculate fast visibility from leafs
-
 	loadmodel->vis = Mem_Alloc( loadmodel->mempool, l->filelen);
 	memcpy (loadmodel->vis, mod_base + l->fileofs, l->filelen);
 
@@ -988,7 +983,7 @@ void R_BeginRegistration (char *model)
 	// explicitly free the old map if different
 	// this guarantees that mod_known[0] is the world map
 	flushmap = Cvar_Get ("flushmap", "0", 0);
-	if(strcmp(mod_known[0].name, fullname) || flushmap->value)
+	if(com.strcmp(mod_known[0].name, fullname) || flushmap->value)
 	{
 		Mod_Free (&mod_known[0]);
 	}
@@ -1050,10 +1045,7 @@ void R_EndRegistration (void)
 	{
 		if (!mod->name[0]) continue;
 		if (mod->registration_sequence != registration_sequence)
-		{
-			Msg("free %s\n", mod->name );
 			Mod_Free (mod);
-		}
 	}
 	R_ImageFreeUnused();
 }

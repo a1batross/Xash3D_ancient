@@ -1222,7 +1222,7 @@ PRVM_ResetProg
 ===============
 */
 
-void PRVM_ResetProg()
+void PRVM_ResetProg( void )
 {
 	PRVM_GCALL(reset_cmd)();
 	Mem_FreePool(&prog->progs_mempool);
@@ -1318,7 +1318,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 	prog->filecrc = CRC_Block((unsigned char *)prog->progs, filesize);
 
 	// byte swap the header
-	for (i = 0; i < (int)sizeof(*prog->progs)/4; i++) ((int *)prog->progs)[i] = LittleLong(((int *)prog->progs)[i]);
+	SwapBlock((int *)prog->progs, sizeof(*prog->progs));
 	
 	switch( prog->progs->version )
 	{
@@ -1590,6 +1590,10 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		case OP_DIV_F:
 		case OP_BITAND:
 		case OP_BITOR:
+		case OP_BITSET:
+		case OP_BITSETP:
+		case OP_BITCLR:
+		case OP_BITCLRP:
 		case OP_GE:
 		case OP_LE:
 		case OP_GT:
@@ -1613,6 +1617,33 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		case OP_LOAD_S:
 		case OP_LOAD_FNC:
 		case OP_LOAD_V:
+		case OP_LOADA_F:
+		case OP_LOADA_V:	
+		case OP_LOADA_S:
+		case OP_LOADA_ENT:
+		case OP_LOADA_FLD:		
+		case OP_LOADA_FNC:
+		case OP_LOADA_I:
+		case OP_LE_I:
+		case OP_GE_I:
+		case OP_LT_I:
+		case OP_GT_I:
+		case OP_LE_IF:
+		case OP_GE_IF:
+		case OP_LT_IF:
+		case OP_GT_IF:
+		case OP_LE_FI:
+		case OP_GE_FI:
+		case OP_LT_FI:
+		case OP_GT_FI:
+		case OP_EQ_IF:
+		case OP_EQ_FI:
+		case OP_CONV_ITOF:
+		case OP_CONV_FTOI:
+		case OP_CP_ITOF:
+		case OP_CP_FTOI:
+		case OP_GLOBAL_ADD:
+		case OP_POINTER_ADD:
 			if((word) st->a >= prog->progs->numglobals || (word) st->b >= prog->progs->numglobals || (word)st->c >= prog->progs->numglobals)
 				PRVM_ERROR("PRVM_LoadProgs: out of bounds global index (statement %d)", i);
 			break;
@@ -1639,6 +1670,20 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		case OP_STATE:
 		case OP_STOREP_V:
 		case OP_STORE_V:
+		case OP_MULSTORE_F:
+		case OP_MULSTORE_V:
+		case OP_MULSTOREP_F:
+		case OP_MULSTOREP_V:
+		case OP_DIVSTORE_F:
+		case OP_DIVSTOREP_F:
+		case OP_ADDSTORE_F:
+		case OP_ADDSTORE_V:
+		case OP_ADDSTOREP_F:
+		case OP_ADDSTOREP_V:
+		case OP_SUBSTORE_F:
+		case OP_SUBSTORE_V:
+		case OP_SUBSTOREP_F:
+		case OP_SUBSTOREP_V:
 			if ((word) st->a >= prog->progs->numglobals || (word) st->b >= prog->progs->numglobals)
 				Host_Error("PRVM_LoadProgs: out of bounds global index (statement %d) in %s", i, PRVM_NAME);
 			break;
@@ -1987,7 +2032,7 @@ void _PRVM_FreeAll(const char *filename, int fileline)
 	prog->progs = NULL;
 	prog->fielddefs = NULL;
 	prog->functions = NULL;
-	com.clearpool(prog->progs_mempool, filename, fileline);
+	com.clearpool( prog->progs_mempool, filename, fileline);
 }
 
 // LordHavoc: turned PRVM_EDICT_NUM into a #define for speed reasons
@@ -2026,7 +2071,7 @@ int PRVM_SetEngineString(const char *s)
 		if (prog->knownstrings[i] == s)
 			return -1 - i;
 	// new unknown engine string
-	MsgDev(D_NOTE, "new engine string %p\n", s );
+	MsgDev(D_MEMORY, "new engine string %p\n", s );
 	for (i = prog->firstfreeknownstring;i < prog->numknownstrings;i++)
 		if (!prog->knownstrings[i])
 			break;
