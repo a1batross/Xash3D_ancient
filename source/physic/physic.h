@@ -23,6 +23,7 @@ typedef struct physragbone_s	NewtonRagDollBone;
 extern physic_imp_t pi;
 extern stdlib_api_t com;
 extern byte *physpool;
+extern byte *cmappool;
 extern NewtonWorld	*gWorld;
 
 // cvars
@@ -39,7 +40,7 @@ void Phys_Frame( float time );
 //
 // cm_rigidbody.c
 //
-physbody_t *Phys_CreateBody( sv_edict_t *ed, void *buffer, matrix4x3 transform, int solid );
+physbody_t *Phys_CreateBody( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform, int solid );
 bool Phys_GetForce( physbody_t *body, vec3_t velocity, vec3_t avelocity, vec3_t force, vec3_t torque );
 void Phys_SetForce( physbody_t *body, vec3_t velocity, vec3_t avelocity, vec3_t force, vec3_t torque );
 bool Phys_GetMassCentre( physbody_t *body, matrix3x3 mass );

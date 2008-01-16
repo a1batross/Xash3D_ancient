@@ -794,8 +794,9 @@ void R_DrawInlineBModel (void)
 
 	if ( currententity->flags & RF_TRANSLUCENT )
 	{
-		qglEnable (GL_BLEND);
-		qglColor4f (1,1,1,0.25);
+		GL_EnableBlend();
+		qglBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		qglColor4f( 1.0f, 1.0f, 1.0f, 0.9f );
 		GL_TexEnv( GL_MODULATE );
 	}
 
@@ -830,15 +831,15 @@ void R_DrawInlineBModel (void)
 		}
 	}
 
-	if ( !(currententity->flags & RF_TRANSLUCENT) )
+	if(!(currententity->flags & RF_TRANSLUCENT) )
 	{
-		if ( !qglMTexCoord2fSGIS )
-			R_BlendLightmaps ();
+		if( !qglMTexCoord2fSGIS )
+			R_BlendLightmaps();
 	}
 	else
 	{
-		qglDisable (GL_BLEND);
-		qglColor4f (1,1,1,1);
+		GL_DisableBlend();
+		qglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
 		GL_TexEnv( GL_REPLACE );
 	}
 }

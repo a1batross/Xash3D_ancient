@@ -180,9 +180,6 @@ typedef struct mleaf_s
 //
 // Whole model
 //
-
-typedef enum {mod_bad, mod_brush, mod_studio, mod_sprite } modtype_t;
-
 typedef struct model_s
 {
 	string		name;

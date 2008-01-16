@@ -127,7 +127,7 @@ void SV_SetModel (edict_t *ent, const char *name)
 	ent->progs.sv->model = PRVM_SetEngineString( sv.configstrings[CS_MODELS+i] );
 	ent->progs.sv->modelindex = i;
 
-	mod = CM_RegisterModel( name );
+	mod = pe->RegisterModel( name );
 	if( mod ) SV_SetMinMaxSize( ent, mod->mins, mod->maxs, false );
 
 	// FIXME: translate angles correctly
@@ -310,20 +310,20 @@ void PF_inpvs ( void )
 	p1 = PRVM_G_VECTOR(OFS_PARM0);
 	p2 = PRVM_G_VECTOR(OFS_PARM1);
 
-	leafnum = CM_PointLeafnum (p1);
-	cluster = CM_LeafCluster (leafnum);
-	area1 = CM_LeafArea (leafnum);
-	mask = CM_ClusterPVS (cluster);
+	leafnum = pe->PointLeafnum (p1);
+	cluster = pe->LeafCluster (leafnum);
+	area1 = pe->LeafArea (leafnum);
+	mask = pe->ClusterPVS (cluster);
 
-	leafnum = CM_PointLeafnum (p2);
-	cluster = CM_LeafCluster (leafnum);
-	area2 = CM_LeafArea (leafnum);
+	leafnum = pe->PointLeafnum (p2);
+	cluster = pe->LeafCluster (leafnum);
+	area2 = pe->LeafArea (leafnum);
 
 	if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7)))))
 	{
 		PRVM_G_FLOAT(OFS_RETURN) = 0;
 	}
-	else if (!CM_AreasConnected (area1, area2))
+	else if (!pe->AreasConnected (area1, area2))
 	{
 		PRVM_G_FLOAT(OFS_RETURN) = 0;	// a door blocks sight
 	}
@@ -347,20 +347,20 @@ void PF_inphs (void)
 	p1 = PRVM_G_VECTOR(OFS_PARM0);
 	p2 = PRVM_G_VECTOR(OFS_PARM1);
 
-	leafnum = CM_PointLeafnum (p1);
-	cluster = CM_LeafCluster (leafnum);
-	area1 = CM_LeafArea (leafnum);
-	mask = CM_ClusterPHS (cluster);
+	leafnum = pe->PointLeafnum (p1);
+	cluster = pe->LeafCluster (leafnum);
+	area1 = pe->LeafArea (leafnum);
+	mask = pe->ClusterPHS (cluster);
 
-	leafnum = CM_PointLeafnum (p2);
-	cluster = CM_LeafCluster (leafnum);
-	area2 = CM_LeafArea (leafnum);
+	leafnum = pe->PointLeafnum (p2);
+	cluster = pe->LeafCluster (leafnum);
+	area2 = pe->LeafArea (leafnum);
 
 	if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7)))))
 	{
 		PRVM_G_FLOAT(OFS_RETURN) = 0; // more than one bounce away
 	}
-	else if (!CM_AreasConnected (area1, area2))
+	else if (!pe->AreasConnected (area1, area2))
 	{
 		PRVM_G_FLOAT(OFS_RETURN) = 0;	// a door blocks hearing
 	}
@@ -878,7 +878,7 @@ void PF_configstring( void )
 
 void PF_areaportalstate( void )
 {
-	CM_SetAreaPortalState((int)PRVM_G_FLOAT(OFS_PARM0), (bool)PRVM_G_FLOAT(OFS_PARM1));
+	pe->SetAreaPortalState((int)PRVM_G_FLOAT(OFS_PARM0), (bool)PRVM_G_FLOAT(OFS_PARM1));
 }
 
 /*

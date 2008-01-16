@@ -1196,7 +1196,7 @@ void CL_RequestNextDownload (void)
 	{
 		precache_check = ENV_CNT + 1;
 
-		CM_BeginRegistration( cl.configstrings[CS_MODELS+1], true, &map_checksum );
+		pe->BeginRegistration( cl.configstrings[CS_MODELS+1], true, &map_checksum );
 		if( map_checksum != com.atoi(cl.configstrings[CS_MAPCHECKSUM]))
 		{
 			Host_Error("Local map version differs from server: %i != '%s'\n", map_checksum, cl.configstrings[CS_MAPCHECKSUM]);
@@ -1229,16 +1229,13 @@ void CL_RequestNextDownload (void)
 	// confirm existance of textures, download any that don't exist
 	if (precache_check == TEXTURE_CNT+1)
 	{
-		// from common/cmodel.c
-		extern mapsurface_t	map_surfaces[];
-
 		if (allow_download->value && allow_download_maps->value)
 		{
-			while( precache_tex < CM_NumTexinfo())
+			while( precache_tex < pe->NumTextures())
 			{
 				char fn[MAX_OSPATH];
 
-				sprintf(fn, "textures/%s.tga", CM_TexName( precache_tex++ ));
+				sprintf(fn, "textures/%s.tga", pe->GetTextureName( precache_tex++ ));
 				if(!CL_CheckOrDownloadFile(fn)) return; // started a download
 			}
 		}
@@ -1267,7 +1264,7 @@ void CL_Precache_f (void)
 	if(Cmd_Argc() < 2)
 	{
 		uint map_checksum; // for detecting cheater maps
-		CM_BeginRegistration( cl.configstrings[CS_MODELS+1], true, &map_checksum );
+		pe->BeginRegistration( cl.configstrings[CS_MODELS+1], true, &map_checksum );
 		CL_RegisterSounds();
 		CL_PrepRefresh();
 		return;

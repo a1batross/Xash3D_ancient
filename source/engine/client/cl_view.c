@@ -335,7 +335,7 @@ void CL_PrepRefresh( void )
 		Sys_SendKeyEvents(); // pump message loop
 
 		cl.model_draw[i] = re->RegisterModel( name );
-		if (name[0] == '*') cl.model_clip[i] = CM_RegisterModel( name );
+		if (name[0] == '*') cl.model_clip[i] = pe->RegisterModel( name );
 		else cl.model_clip[i] = NULL;//get studio models here?
 		Cvar_SetValue("scr_loading", scr_loading->value + 50.0f/mdlcount );
 		SCR_UpdateScreen();

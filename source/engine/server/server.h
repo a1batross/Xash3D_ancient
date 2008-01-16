@@ -188,7 +188,6 @@ typedef struct
 
 	char		mapcmd[MAX_TOKEN_CHARS];	// ie: *intro.cin+base 
 	char		comment[MAX_TOKEN_CHARS];	// map name, e.t.c. 
-	byte		portalopen[MAX_MAP_AREAPORTALS];
 
 	int		spawncount;		// incremented each server start
 						// used to check late spawns
@@ -328,7 +327,7 @@ void SV_SetMassCentre( edict_t *ent);
 //
 // sv_studio.c
 //
-byte *SV_GetModelPtr( edict_t *ent );
+cmodel_t *SV_GetModelPtr( edict_t *ent );
 float *SV_GetModelVerts( sv_edict_t *ent, int *numvertices );
 int SV_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *maxs );
 bool SV_CreateMeshBuffer( edict_t *in, cmodel_t *out );
@@ -336,7 +335,7 @@ bool SV_CreateMeshBuffer( edict_t *in, cmodel_t *out );
 //
 // sv_spawn.c
 //
-void SV_SpawnEntities (char *mapname, char *entities);
+void SV_SpawnEntities( const char *mapname, const char *entities );
 void SV_StartParticle (vec3_t org, vec3_t dir, int color, int count);
 void SV_Transform( sv_edict_t *ed, matrix4x3 transform );
 void SV_FreeEdict (edict_t *ed);

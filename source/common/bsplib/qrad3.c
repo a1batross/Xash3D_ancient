@@ -23,13 +23,8 @@ vec3_t	illumination[MAX_PATCHES];		// light arriving at a patch
 vec3_t	face_offset[MAX_MAP_FACES];		// for rotating bmodels
 dplane_t	backplanes[MAX_MAP_PLANES];
 
-char	inbase[32], outbase[32];
-
 int	fakeplanes;			// created planes for origin offset 
-
-int	numbounce;
 bool	extrasamples;
-
 float	subdiv = 64;
 
 void BuildLightmaps (void);
@@ -37,6 +32,7 @@ int TestLine (vec3_t start, vec3_t stop);
 
 int	junk;
 
+int	numbounce = 3;
 float	ambient = 0;
 float	maxlight = 196;
 float	lightscale = 1.0;
@@ -455,6 +451,7 @@ void RadWorld (void)
 
 void WradMain ( bool option )
 {
+	string	cmdparm;
 	extrasamples = option;
           
 	if(!LoadBSPFile())
@@ -468,13 +465,16 @@ void WradMain ( bool option )
 
 	if( extrasamples ) 
 	{
-		numbounce = 8;
-		ambient = 125; //FIXME: check result
+		if(FS_GetParmFromCmdLine("-ambient", cmdparm ))
+			ambient = com.atoi( cmdparm );
+		ambient = bound( 0, ambient, 512 );
 	}
-	else numbounce = 3;
+	if(FS_GetParmFromCmdLine("-bounce", cmdparm ))
+		numbounce = com.atoi( cmdparm );
+	numbounce = bound( 0, numbounce, 32 );
 	
-	ParseEntities ();
-	CalcTextureReflectivity ();
+	ParseEntities();
+	CalcTextureReflectivity();
 
 	if (!visdatasize)
 	{

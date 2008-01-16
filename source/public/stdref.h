@@ -1378,16 +1378,19 @@ typedef struct cmodel_s
 
 	vec3_t	mins, maxs;	// boundbox
 	int	headnode;		// bsp info
-
+	int	type;		// model type
+	int	firstface;	// used to create collision tree
+	int	numfaces;		
+	int	firstbrush;	// used to create collision brush
+	int	numbrushes;
 	int	numframes;	// sprite framecount
+	int	numbodies;	// physmesh numbody
 	cmesh_t	physmesh[MAXSTUDIOMODELS]; // max bodies
-
-	void	*extradata;	// get rid of this
 } cmodel_t;
 
 typedef struct csurface_s
 {
-	char	name[16];
+	string	name;
 	int	flags;
 	int	value;
 
@@ -1395,12 +1398,6 @@ typedef struct csurface_s
 	int	firstedge;	// look up in model->surfedges[], negative numbers
 	int	numedges;		// are backwards edges
 } csurface_t;
-
-typedef struct mapsurface_s
-{
-	csurface_t c;
-	char	rname[32];
-} mapsurface_t;
 
 typedef struct trace_s
 {

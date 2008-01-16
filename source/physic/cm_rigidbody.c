@@ -6,7 +6,7 @@
 #include "physic.h"
 #include "mathlib.h"
 
-physbody_t *Phys_CreateBody( sv_edict_t *ed, void *buffer, matrix4x3 transform, int solid )
+physbody_t *Phys_CreateBody( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform, int solid )
 {
 	NewtonCollision	*col;
 	NewtonBody	*body;
@@ -14,19 +14,15 @@ physbody_t *Phys_CreateBody( sv_edict_t *ed, void *buffer, matrix4x3 transform, 
 	float		*vertices;
 	int		numvertices;		
 	vec3_t		size, center, mins, maxs;
-	studiohdr_t	*phdr = (studiohdr_t *)buffer;
-	mstudioseqdesc_t	*pseqdesc;
 
-	// identity matrixes
+	// setup matrixes
 	MatrixLoadIdentity( trans );
 	MatrixLoadIdentity( offset );
 
-	if( phdr )
+	if( mod )
 	{
-		// custom convex hull
-		pseqdesc = (mstudioseqdesc_t *)((byte *)phdr + phdr->seqindex);
-		VectorCopy( pseqdesc[0].bbmin, mins );
-		VectorCopy( pseqdesc[0].bbmax, maxs );
+		VectorCopy( mod->mins, mins );
+		VectorCopy( mod->maxs, maxs );
 
 		if( solid == SOLID_BOX )
 		{

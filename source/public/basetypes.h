@@ -23,7 +23,7 @@
 #define MAX_NUM_ARGVS	128
 #define MAX_STRING		256
 #define MAX_SYSPATH		1024
-#define MAX_INPUTLINE	16384	// many buffers use this size
+#define MAX_INPUTLINE	16384	// console buffer
 #define MAX_INFO_KEY	64
 #define MAX_INFO_VALUE	64
 #define MAX_INFO_STRING	512
@@ -125,6 +125,7 @@ typedef struct { byte r; byte g; byte b; byte a; } color32;
 typedef struct { const char *name; void **func; } dllfunc_t;	// Sys_LoadLibrary stuff
 typedef struct { int ofs; int type; const char *name; } fields_t;	// prvm custom fields
 typedef void (*cmread_t) (void* handle, void* buffer, size_t size);
+typedef enum { mod_bad, mod_brush, mod_studio, mod_sprite } modtype_t;
 typedef void (*cmsave_t) (void* handle, const void* buffer, size_t size);
 typedef void (*cmdraw_t)( int color, int numpoints, const float *points );
 typedef struct { int numfilenames; char **filenames; char *filenamesbuffer; } search_t;
@@ -144,6 +145,7 @@ enum host_state
 	COMP_SPRITE,	// "sprite"
 	COMP_STUDIO,	// "studio"
 	COMP_WADLIB,	// "wadlib"
+	COMP_SDKLIB,	// "sdklib"
 	RIPP_MIPDEC,	// "mipdec"
 	RIPP_SPRDEC,	// "sprdec"
 	RIPP_MDLDEC,	// "mdldec"
@@ -163,19 +165,6 @@ enum dev_level
 	D_NOTE,		// "-dev 5", show system notifications for engine develeopers
 	D_MEMORY,		// "-dev 6", show memory allocation
 };
-
-static vec4_t g_color_table[8] =
-{
-{0.0, 0.0, 0.0, 1.0},
-{1.0, 0.0, 0.0, 1.0},
-{0.0, 1.0, 0.0, 1.0},
-{1.0, 1.0, 0.0, 1.0},
-{0.0, 0.0, 1.0, 1.0},
-{0.0, 1.0, 1.0, 1.0},
-{1.0, 0.0, 1.0, 1.0},
-{1.0, 1.0, 1.0, 1.0},
-};
-
 
 #include "byteorder.h"	// byte ordering swap functions
 #include "stdref.h"		// reference xash formats

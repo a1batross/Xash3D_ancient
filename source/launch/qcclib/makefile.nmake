@@ -16,7 +16,7 @@ default: $(MAINTARGET).exe
 $(MAINTARGET).exe: $(MAINTARGET).obj qcclib.res
 	$(link) $(OBJS) qcclib.res /out:"qcclib.exe" /subsystem:console /opt:nowin98 /nodefaultlib:"libc.lib"
 	@del $(MAINTARGET).obj $(MAINTARGET).lib $(MAINTARGET).exp $(MAINTARGET).res > nul
-	@copy $(MAINTARGET).exe D:\Xash3D\bin\$(MAINTARGET).exe
+	@copy $(MAINTARGET).exe D:\Xash3D\sdk_main\tools\$(MAINTARGET).exe
 	@del $(MAINTARGET).exe
 	@echo  Скопировано файлов:         1.
 clean:

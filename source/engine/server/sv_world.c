@@ -238,13 +238,13 @@ void SV_LinkEdict (edict_t *ent)
 	ent->priv.sv->areanum2 = 0;
 
 	//get all leafs, including solids
-	num_leafs = CM_BoxLeafnums (ent->progs.sv->absmin, ent->progs.sv->absmax, leafs, MAX_TOTAL_ENT_LEAFS, &topnode);
+	num_leafs = pe->BoxLeafnums (ent->progs.sv->absmin, ent->progs.sv->absmax, leafs, MAX_TOTAL_ENT_LEAFS, &topnode);
 
 	// set areas
 	for (i = 0; i < num_leafs; i++)
 	{
-		clusters[i] = CM_LeafCluster (leafs[i]);
-		area = CM_LeafArea (leafs[i]);
+		clusters[i] = pe->LeafCluster (leafs[i]);
+		area = pe->LeafArea (leafs[i]);
 		if (area)
 		{	// doors may legally straggle two areas,
 			// but nothing should evern need more than that
@@ -399,7 +399,7 @@ int SV_PointContents (vec3_t p)
 	float		*angles;
 
 	// get base contents from world
-	contents = CM_PointContents (p, sv.models[1]->headnode);
+	contents = pe->PointContents (p, sv.models[1]->headnode);
 
 	// or in contents from all the other entities
 	num = SV_AreaEdicts (p, p, touch, MAX_EDICTS, AREA_SOLID);
@@ -412,7 +412,7 @@ int SV_PointContents (vec3_t p)
 		headnode = SV_HullForEntity (hit);
 		angles = hit->progs.sv->angles;
 		if (hit->progs.sv->solid != SOLID_BSP) angles = vec3_origin; // boxes don't rotate
-		c2 = CM_TransformedPointContents (p, headnode, hit->progs.sv->origin, hit->progs.sv->angles);
+		c2 = pe->TransformedPointContents (p, headnode, hit->progs.sv->origin, hit->progs.sv->angles);
 		contents |= c2;
 	}
 	return contents;
@@ -463,7 +463,7 @@ int SV_HullForEntity (edict_t *ent)
 	}
 
 	// create a temp hull from bounding box sizes
-	return CM_HeadnodeForBox (ent->progs.sv->mins, ent->progs.sv->maxs);
+	return pe->HeadnodeForBox (ent->progs.sv->mins, ent->progs.sv->maxs);
 }
 
 /*
@@ -508,11 +508,11 @@ void SV_ClipMoveToEntities ( moveclip_t *clip )
 
 		if ((int)touch->progs.sv->flags & FL_MONSTER)
 		{
-			trace = CM_TransformedBoxTrace (clip->start, clip->end, clip->mins2, clip->maxs2, headnode, clip->contentmask, touch->progs.sv->origin, angles);
+			trace = pe->TransformedBoxTrace (clip->start, clip->end, clip->mins2, clip->maxs2, headnode, clip->contentmask, touch->progs.sv->origin, angles);
 		}
 		else
 		{
-			trace = CM_TransformedBoxTrace (clip->start, clip->end, clip->mins, clip->maxs, headnode,  clip->contentmask, touch->progs.sv->origin, angles);
+			trace = pe->TransformedBoxTrace (clip->start, clip->end, clip->mins, clip->maxs, headnode,  clip->contentmask, touch->progs.sv->origin, angles);
 		}
 		if (trace.allsolid || trace.startsolid || trace.fraction < clip->trace.fraction)
 		{
@@ -573,7 +573,7 @@ trace_t SV_Trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, edict_t *p
 	memset ( &clip, 0, sizeof ( moveclip_t ) );
 
 	// clip to world
-	clip.trace = CM_BoxTrace (start, end, mins, maxs, 0, contentmask);
+	clip.trace = pe->BoxTrace (start, end, mins, maxs, 0, contentmask);
 	clip.trace.ent = prog->edicts;
 	if (clip.trace.fraction == 0) return clip.trace; // blocked by the world
 
@@ -636,5 +636,5 @@ trace_t SV_TraceToss (edict_t *tossent, edict_t *ignore)
 
 trace_t SV_ClipMoveToEntity(edict_t *ent, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int contentsmask)
 {
-	return CM_BoxTrace(start, end, mins, maxs, ent->priv.sv->headnode, contentsmask);
+	return pe->BoxTrace(start, end, mins, maxs, ent->priv.sv->headnode, contentsmask);
 }

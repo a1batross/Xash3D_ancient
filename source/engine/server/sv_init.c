@@ -194,22 +194,22 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 
 	if (serverstate != ss_game)
 	{
-		sv.models[1] = CM_BeginRegistration("", false, &checksum);	// no real map
+		sv.models[1] = pe->BeginRegistration("", false, &checksum);	// no real map
 	}
 	else
 	{
 		sprintf(sv.configstrings[CS_MODELS+1], "maps/%s", server);
-		sv.models[1] = CM_BeginRegistration(sv.configstrings[CS_MODELS+1], false, &checksum);
+		sv.models[1] = pe->BeginRegistration(sv.configstrings[CS_MODELS+1], false, &checksum);
 	}
 	sprintf(sv.configstrings[CS_MAPCHECKSUM], "%i", checksum);
 
 	// clear physics interaction links
 	SV_ClearWorld();
 
-	for (i = 1; i < CM_NumInlineModels(); i++)
+	for (i = 1; i < pe->NumBmodels(); i++)
 	{
 		sprintf( sv.configstrings[CS_MODELS+1+i], "*%i", i );
-		sv.models[i+1] = CM_RegisterModel(sv.configstrings[CS_MODELS+1+i] );
+		sv.models[i+1] = pe->RegisterModel(sv.configstrings[CS_MODELS+1+i] );
 	}
 
 	//
@@ -225,7 +225,7 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 	SV_CheckForSavegame( savename );
 
           if(sv.loadgame) SV_ReadLevelFile( savename );
-	else SV_SpawnEntities ( sv.name, CM_EntityString());
+	else SV_SpawnEntities ( sv.name, pe->GetEntityString());
 
 	// run two frames to allow everything to settle
 	SV_RunFrame();
@@ -240,7 +240,7 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 
 	// set serverinfo variable
 	Cvar_FullSet("mapname", sv.name, CVAR_SERVERINFO | CVAR_INIT);
-	CM_EndRegistration(); // free unused models
+	pe->EndRegistration(); // free unused models
 	SV_VM_End();
 }
 

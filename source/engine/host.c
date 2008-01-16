@@ -18,8 +18,6 @@ stdlib_api_t	com, newcom;
 byte	*zonepool;
 char	*buildstring = __TIME__ " " __DATE__;
 
-//void Key_Init (void);
-
 dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(physic_exp_t) };
 dll_info_t render_dll = { "render.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(render_exp_t) };
 

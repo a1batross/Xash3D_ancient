@@ -27,37 +27,6 @@
 #define PMF_TIME_TELEPORT	32	// pm_time is non-moving time
 #define PMF_NO_PREDICTION	64	// temporarily disables prediction (used for grappling hook)
 
-cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksum );
-cmodel_t *CM_RegisterModel( const char *name );
-void CM_EndRegistration( void );
-void CM_FreeModels( void );
-void CM_FreeWorld( void );
-int CM_NumClusters (void);
-int CM_NumTexinfo( void );
-int CM_NumInlineModels (void);
-char *CM_EntityString (void);
-char *CM_TexName( int index );
-int CM_HeadnodeForBox (vec3_t mins, vec3_t maxs);
-int CM_PointContents (vec3_t p, int headnode);
-const char *CM_GetStringFromTable( int index );
-int CM_TransformedPointContents (vec3_t p, int headnode, vec3_t origin, vec3_t angles);
-trace_t CM_BoxTrace (vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int headnode, int brushmask);
-trace_t CM_TransformedBoxTrace (vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int headnode, int brushmask, vec3_t origin, vec3_t angles);
-byte *CM_ClusterPVS (int cluster);
-byte *CM_ClusterPHS (int cluster);
-int CM_PointLeafnum (vec3_t p);
-int CM_BoxLeafnums (vec3_t mins, vec3_t maxs, int *list, int listsize, int *topnode);
-int CM_LeafContents (int leafnum);
-int CM_LeafCluster (int leafnum);
-int CM_LeafArea (int leafnum);
-void CM_SetAreaPortalState (int portalnum, bool open);
-bool CM_AreasConnected (int area1, int area2);
-int CM_WriteAreaBits (byte *buffer, int area);
-bool CM_HeadnodeVisible (int headnode, byte *visbits);
-void CM_InitBoxHull (void);
-void CM_FloodAreaConnections (void);
-extern byte portalopen[MAX_MAP_AREAPORTALS];
-
 /*
 ==============================================================
 

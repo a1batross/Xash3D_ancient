@@ -193,7 +193,7 @@ typedef struct
 	// locally derived information from server state
 	//
 	model_t		*model_draw[MAX_MODELS];
-	struct cmodel_s	*model_clip[MAX_MODELS];
+	cmodel_t		*model_clip[MAX_MODELS];
 
 	sound_t		sound_precache[MAX_SOUNDS];
 	image_t		*image_precache[MAX_IMAGES];
@@ -287,6 +287,19 @@ typedef struct
 extern client_static_t	cls;
 
 //=============================================================================
+
+// console color typeing
+static vec4_t g_color_table[8] =
+{
+{0.0, 0.0, 0.0, 1.0},
+{1.0, 0.0, 0.0, 1.0},
+{0.0, 1.0, 0.0, 1.0},
+{1.0, 1.0, 0.0, 1.0},
+{0.0, 0.0, 1.0, 1.0},
+{0.0, 1.0, 1.0, 1.0},
+{1.0, 0.0, 1.0, 1.0},
+{1.0, 1.0, 1.0, 1.0},
+};
 
 //
 // cvars

@@ -229,14 +229,40 @@ typedef struct physic_exp_s
 	void (*FreeBSP)( void );				// free bspdata
 	void (*WriteCollisionLump)( file_t *f, cmsave_t callback );	// write collision data into LUMP_COLLISION
 
-	void (*LoadWorld)( const void *buf );	// loading collision tree or generated if not present ( engine )
-	void (*FreeWorld)( void );				// free world collision
-
 	void (*DrawCollision)( cmdraw_t callback );		// debug draw world
 	void (*Frame)( float time );				// physics frame
 
+	cmodel_t *(*BeginRegistration)( const char *name, bool clientload, uint *checksum );
+	cmodel_t *(*RegisterModel)( const char *name );
+	void (*EndRegistration)( void );
+
+	void (*SetAreaPortals)( byte *portals, size_t size );
+	void (*GetAreaPortals)( byte **portals, size_t *size );
+	void (*SetAreaPortalState)( int portalnum, bool open );
+
+	int (*NumClusters)( void );
+	int (*NumTextures)( void );
+	int (*NumBmodels )( void );
+	const char *(*GetEntityString)( void );
+	const char *(*GetTextureName)( int index );
+	int (*HeadnodeForBox)( vec3_t mins, vec3_t maxs );
+	int (*PointContents)( vec3_t p, int headnode );
+	int (*TransformedPointContents)( vec3_t p, int headnode, vec3_t origin, vec3_t angles );
+	trace_t (*BoxTrace)( vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int headnode, int brushmask);
+	trace_t (*TransformedBoxTrace)( vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int headnode, int brushmask, vec3_t origin, vec3_t angles );
+	byte *(*ClusterPVS)( int cluster );
+	byte *(*ClusterPHS)( int cluster );
+	int (*PointLeafnum)( vec3_t p );
+	int (*BoxLeafnums)( vec3_t mins, vec3_t maxs, int *list, int listsize, int *topnode );
+	int (*LeafContents)( int leafnum );	// probably unused
+	int (*LeafCluster)( int leafnum );
+	int (*LeafArea)( int leafnum );
+	bool (*AreasConnected)( int area1, int area2 );
+	int (*WriteAreaBits)( byte *buffer, int area );
+	bool (*HeadnodeVisible)( int headnode, byte *visbits );
+	
 	// simple objects
-	physbody_t *(*CreateBody)( sv_edict_t *ed, void *buffer, matrix4x3 transform, int solid );
+	physbody_t *(*CreateBody)( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform, int solid );
 	bool (*GetForce)(physbody_t *body, vec3_t vel, vec3_t avel, vec3_t force, vec3_t torque );
 	void (*SetForce)(physbody_t *body, vec3_t vel, vec3_t avel, vec3_t force, vec3_t torque );
 	bool (*GetMassCentre)( physbody_t *body, matrix3x3 mass );

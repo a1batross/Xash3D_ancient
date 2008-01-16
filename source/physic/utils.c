@@ -20,8 +20,3 @@ void Pfree (void *ptr, int size )
 {
 	if( ptr ) Mem_Free( ptr );
 }
-
-void Phys_Frame( float time )
-{
-	NewtonUpdate(gWorld, time );
-}

@@ -13,8 +13,9 @@ FILE		*logfile;
 
 dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
-dll_info_t editor_dll = { "viewer.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
+dll_info_t viewer_dll = { "viewer.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t ripper_dll = { "ripper.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
+dll_info_t custom_dll = { "custom.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 
 static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t\
           All Rights Reserved\n\n\t           Visit www.xash.ru\n";
@@ -248,8 +249,8 @@ void Sys_LookupInstance( void )
 		Sys.con_readonly = true;
 		//don't show console as default
 		if(!Sys.debug) Sys.con_showalways = false;
-		Sys.linked_dll = &editor_dll;	// pointer to editor.dll info
-		com_strcpy(Sys.log_path, "viewer.log" ); // xash3d root directory
+		Sys.linked_dll = &viewer_dll;	// pointer to viewer.dll info
+		Sys.log_active = Sys.developer = Sys.debug = 0; // clear all dbg states
 		com_strcpy(Sys.caption, va("Xash3D Resource Viewer ver.%g", XASH_VERSION ));
 	}
 	else if(!com_strcmp(Sys.progname, "splash"))
@@ -365,6 +366,19 @@ void Sys_LookupInstance( void )
 		com_sprintf(Sys.log_path, "%s/source.log", sys_rootdir ); // default
 		com_strcpy(Sys.caption, va("QuakeC Decompiler ver.%g", XASH_VERSION ));
 	}
+	else if(!com_strcmp(Sys.progname, "sdklib"))
+	{
+		string	szTemp;
+
+		// extract caption from exe-name
+		if(GetModuleFileName( NULL, szTemp, MAX_STRING ))
+			FS_FileBase( szTemp, Sys.caption );
+		else com_strcpy( Sys.caption, "Xash Generic Compiler" );
+		Sys.app_name = COMP_SDKLIB;
+		Sys.con_readonly = true;
+		Sys.linked_dll = &custom_dll;	// pointer to custom.dll info
+		com_sprintf(Sys.log_path, "%s/result.log", sys_rootdir ); // default
+	}
 }
 
 /*
@@ -391,6 +405,7 @@ void Sys_CreateInstance( void )
 	case COMP_SPRITE:
 	case COMP_STUDIO:
 	case COMP_WADLIB:
+	case COMP_SDKLIB:
 	case RIPP_MIPDEC:
 	case RIPP_SPRDEC:
 	case RIPP_MDLDEC:
@@ -441,6 +456,7 @@ void Sys_CreateInstance( void )
 	case COMP_SPRITE:
 	case COMP_STUDIO:
 	case COMP_WADLIB:
+	case COMP_SDKLIB:
 	case RIPP_MIPDEC:
 	case RIPP_SPRDEC:
 	case RIPP_MDLDEC:

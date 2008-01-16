@@ -110,6 +110,8 @@ void SV_WriteSaveFile( char *name )
 	dsavehdr_t	*header;
 	file_t		*savfile;
 	bool		autosave = false;
+	byte		*portalopen = Z_Malloc( MAX_MAP_AREAPORTALS );
+	int		portalsize;
 
 	if(sv.state != ss_game) return;
 	if(Cvar_VariableValue("deathmatch"))
@@ -122,7 +124,7 @@ void SV_WriteSaveFile( char *name )
 		MsgDev(D_ERROR, "SV_WriteSaveFile: can't savegame while dead!\n");
 		return;
 	}
-	
+
 	if(!com.strcmp(name, "save0.bin")) autosave = true;
 	sprintf (path, "save/%s", name );
 	savfile = FS_Open( path, "wb");
@@ -142,9 +144,10 @@ void SV_WriteSaveFile( char *name )
 	FS_Write( savfile, header, sizeof(dsavehdr_t));
           
 	// write lumps
+	pe->GetAreaPortals( &portalopen, &portalsize );
 	SV_AddSaveLump( header, savfile, LUMP_COMMENTS, comment, sizeof(comment));
-          SV_AddCStrLump( header, savfile );
-	SV_AddSaveLump( header, savfile, LUMP_AREASTATE, svs.portalopen, sizeof(svs.portalopen));
+	SV_AddCStrLump( header, savfile );
+	SV_AddSaveLump( header, savfile, LUMP_AREASTATE, portalopen, portalsize );
 	SV_WriteGlobal( header, savfile );
 	SV_AddSaveLump( header, savfile, LUMP_MAPNAME, svs.mapcmd, sizeof(svs.mapcmd));
 	SV_AddCvarLump( header, savfile );
@@ -154,6 +157,7 @@ void SV_WriteSaveFile( char *name )
 	FS_Seek( savfile, 0, SEEK_SET );
 	FS_Write( savfile, header, sizeof(dsavehdr_t));
 	FS_Close( savfile );
+	Z_Free( portalopen);
 	Z_Free( header );
 	MsgDev(D_INFO, "done.\n");
 }
@@ -225,8 +229,7 @@ void Sav_LoadAreaPortals( lump_t *l )
 	if (l->filelen % sizeof(*in)) Host_Error("Sav_LoadAreaPortals: funny lump size\n" );
 
 	size = l->filelen / sizeof(*in);
-	Mem_Copy(svs.portalopen, in, size);
-	CM_FloodAreaConnections();
+	pe->SetAreaPortals( in, size );
 }
 
 void Sav_LoadGlobal( lump_t *l )

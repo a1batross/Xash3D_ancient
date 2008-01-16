@@ -14,6 +14,7 @@ int gl_tex_solid_format = 3;
 int gl_tex_alpha_format = 4;
 int gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
 int gl_filter_max = GL_LINEAR;
+byte gammatable[256];
 
 typedef struct
 {
@@ -532,6 +533,31 @@ void qglPerspective( GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zF
 	qglFrustum( xmin, xmax, ymin, ymax, zNear, zFar );
 }
 
+/*
+================
+VID_ImageAdjustGamma
+================
+*/
+void VID_ImageAdjustGamma( byte *in, uint width, uint height )
+{
+	int	i, c = width * height;
+	float	g = vid_gamma->value;
+	byte	*p = in;
+
+	// screenshots gamma	
+	for ( i = 0; i < 256; i++ )
+	{
+		if ( g == 1 ) gammatable[i] = i;
+		else gammatable[i] = bound(0, 255 * pow ( (i + 0.5)/255.5 , g ) + 0.5, 255);
+	}
+	for (i = 0; i < c; i++, p += 3 )
+	{
+		p[0] = gammatable[p[0]];
+		p[1] = gammatable[p[1]];
+		p[2] = gammatable[p[2]];
+	}
+}
+
 bool VID_ScreenShot( const char *filename, bool levelshot )
 {
 	rgbdata_t 	*r_shot;
@@ -550,8 +576,8 @@ bool VID_ScreenShot( const char *filename, bool levelshot )
 	r_shot->palette = NULL;
 	r_shot->buffer = r_framebuffer;
 
-	// levelshot always have const size
-	if( levelshot ) Image_Processing( filename, &r_shot, 512, 384 );
+	if( levelshot ) Image_Processing( filename, &r_shot, 512, 384 ); // resample to 512x384
+	else VID_ImageAdjustGamma( r_shot->buffer, r_shot->width, r_shot->height ); // adjust brightness
 
 	// write image
 	FS_SaveImage( filename, r_shot );

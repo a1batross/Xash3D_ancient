@@ -365,14 +365,14 @@ void SV_FatPVS (vec3_t org)
 		maxs[i] = org[i] + SV_COORD_FRAC;
 	}
 
-	count = CM_BoxLeafnums (mins, maxs, leafs, 64, NULL);
+	count = pe->BoxLeafnums (mins, maxs, leafs, 64, NULL);
 	if (count < 1) Host_Error("SV_FatPVS: count < 1\n");
-	longs = (CM_NumClusters()+31)>>5;
+	longs = (pe->NumClusters()+31)>>5;
 
 	// convert leafs to clusters
-	for (i = 0; i < count; i++) leafs[i] = CM_LeafCluster(leafs[i]);
+	for (i = 0; i < count; i++) leafs[i] = pe->LeafCluster(leafs[i]);
 
-	Mem_Copy(fatpvs, CM_ClusterPVS(leafs[0]), longs<<2);
+	Mem_Copy(fatpvs, pe->ClusterPVS(leafs[0]), longs<<2);
 
 	// or in all the other leaf bits
 	for (i = 1; i < count; i++)
@@ -383,7 +383,7 @@ void SV_FatPVS (vec3_t org)
 				break;
 		}
 		if (j != i) continue; // already have the cluster we want
-		src = CM_ClusterPVS(leafs[i]);
+		src = pe->ClusterPVS(leafs[i]);
 		for (j = 0; j < longs; j++) ((long *)fatpvs)[j] |= ((long *)src)[j];
 	}
 }
@@ -424,18 +424,18 @@ void SV_BuildClientFrame (client_state_t *client)
 	VectorScale( clent->priv.sv->client->ps.pmove.origin, CL_COORD_FRAC, org ); 
 	VectorAdd( org, clent->priv.sv->client->ps.viewoffset, org );  
 
-	leafnum = CM_PointLeafnum (org);
-	clientarea = CM_LeafArea (leafnum);
-	clientcluster = CM_LeafCluster (leafnum);
+	leafnum = pe->PointLeafnum (org);
+	clientarea = pe->LeafArea (leafnum);
+	clientcluster = pe->LeafCluster (leafnum);
 
 	// calculate the visible areas
-	frame->areabytes = CM_WriteAreaBits (frame->areabits, clientarea);
+	frame->areabytes = pe->WriteAreaBits (frame->areabits, clientarea);
 
 	// grab the current player_state_t
 	frame->ps = clent->priv.sv->client->ps;
 
 	SV_FatPVS (org);
-	clientphs = CM_ClusterPHS (clientcluster);
+	clientphs = pe->ClusterPHS (clientcluster);
 
 	// build up the list of visible entities
 	frame->num_entities = 0;
@@ -455,11 +455,11 @@ void SV_BuildClientFrame (client_state_t *client)
 		if (ent != clent)
 		{
 			// check area
-			if (!CM_AreasConnected (clientarea, ent->priv.sv->areanum))
+			if (!pe->AreasConnected (clientarea, ent->priv.sv->areanum))
 			{	
 				// doors can legally straddle two areas, so
 				// we may need to check another one
-				if (!ent->priv.sv->areanum2 || !CM_AreasConnected (clientarea, ent->priv.sv->areanum2))
+				if (!ent->priv.sv->areanum2 || !pe->AreasConnected (clientarea, ent->priv.sv->areanum2))
 					continue;	// blocked by a door
 			}
 
@@ -483,7 +483,7 @@ void SV_BuildClientFrame (client_state_t *client)
 				if (ent->priv.sv->num_clusters == -1)
 				{	
 					// too many leafs for individual check, go by headnode
-					if (!CM_HeadnodeVisible (ent->priv.sv->headnode, bitvector))
+					if (!pe->HeadnodeVisible (ent->priv.sv->headnode, bitvector))
 						continue;
 					c_fullsend++;
 				}

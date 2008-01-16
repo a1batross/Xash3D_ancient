@@ -217,3 +217,11 @@ void env_monster( void )
 	pev->think = walk_sprite;
 	pev->frame = 0;
 }
+
+void func_physbox( void )
+{
+	pev->owner = pev;
+	pev->solid = SOLID_MESH;
+	pev->movetype = MOVETYPE_PHYSIC;
+	setmodel (pev, pev->model );
+}
