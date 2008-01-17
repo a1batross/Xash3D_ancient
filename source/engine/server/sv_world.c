@@ -52,9 +52,6 @@ edict_t	**area_list;
 int		area_count, area_maxcount;
 int		area_type;
 
-int SV_HullForEntity (edict_t *ent);
-
-
 // ClearLink is used for new headnodes
 void ClearLink (link_t *l)
 {
@@ -390,16 +387,15 @@ int SV_AreaEdicts (vec3_t mins, vec3_t maxs, edict_t **list, int maxcount, int a
 SV_PointContents
 =============
 */
-int SV_PointContents (vec3_t p)
+int SV_PointContents( vec3_t p )
 {
 	edict_t		*touch[MAX_EDICTS], *hit;
 	int		i, num;
 	int		contents, c2;
-	int		headnode;
 	float		*angles;
 
 	// get base contents from world
-	contents = pe->PointContents (p, sv.models[1]->headnode);
+	contents = pe->PointContents( p );
 
 	// or in contents from all the other entities
 	num = SV_AreaEdicts (p, p, touch, MAX_EDICTS, AREA_SOLID);
@@ -409,10 +405,9 @@ int SV_PointContents (vec3_t p)
 		hit = touch[i];
 
 		// might intersect, so do an exact clip
-		headnode = SV_HullForEntity (hit);
 		angles = hit->progs.sv->angles;
 		if (hit->progs.sv->solid != SOLID_BSP) angles = vec3_origin; // boxes don't rotate
-		c2 = pe->TransformedPointContents (p, headnode, hit->progs.sv->origin, hit->progs.sv->angles);
+		c2 = pe->TransformedPointContents( p, hit->progs.sv->origin, hit->progs.sv->angles );
 		contents |= c2;
 	}
 	return contents;
@@ -432,40 +427,6 @@ typedef struct
 
 } moveclip_t;
 
-
-
-/*
-================
-SV_HullForEntity
-
-Returns a headnode that can be used for testing or clipping an
-object of mins/maxs size.
-Offset is filled in to contain the adjustment that must be added to the
-testing object's origin to get a point to use with the returned hull.
-================
-*/
-int SV_HullForEntity (edict_t *ent)
-{
-	cmodel_t	*model;
-
-	// decide which clipping hull to use, based on the size
-	if (ent->progs.sv->solid == SOLID_BSP)
-	{	
-		// explicit hulls in the BSP model
-		model = sv.models[ (int)ent->progs.sv->modelindex ];
-
-		if (!model) 
-		{
-			MsgWarn("SV_HullForEntity: movetype_push with a non bsp model\n");
-			return -1;
-		}
-		return model->headnode;
-	}
-
-	// create a temp hull from bounding box sizes
-	return pe->HeadnodeForBox (ent->progs.sv->mins, ent->progs.sv->maxs);
-}
-
 /*
 ====================
 SV_ClipMoveToEntities
@@ -477,7 +438,6 @@ void SV_ClipMoveToEntities ( moveclip_t *clip )
 	int		i, num;
 	edict_t		*touchlist[MAX_EDICTS], *touch;
 	trace_t		trace;
-	int		headnode;
 	float		*angles;
 
 	num = SV_AreaEdicts (clip->boxmins, clip->boxmaxs, touchlist, MAX_EDICTS, AREA_SOLID);
@@ -502,17 +462,16 @@ void SV_ClipMoveToEntities ( moveclip_t *clip )
 			continue;
 
 		// might intersect, so do an exact clip
-		headnode = SV_HullForEntity (touch);
 		angles = touch->progs.sv->angles;
 		if (touch->progs.sv->solid != SOLID_BSP) angles = vec3_origin; // boxes don't rotate
 
 		if ((int)touch->progs.sv->flags & FL_MONSTER)
 		{
-			trace = pe->TransformedBoxTrace (clip->start, clip->end, clip->mins2, clip->maxs2, headnode, clip->contentmask, touch->progs.sv->origin, angles);
+			trace = pe->TransformedBoxTrace (clip->start, clip->end, clip->mins2, clip->maxs2, clip->contentmask, touch->progs.sv->origin, angles);
 		}
 		else
 		{
-			trace = pe->TransformedBoxTrace (clip->start, clip->end, clip->mins, clip->maxs, headnode,  clip->contentmask, touch->progs.sv->origin, angles);
+			trace = pe->TransformedBoxTrace (clip->start, clip->end, clip->mins, clip->maxs, clip->contentmask, touch->progs.sv->origin, angles);
 		}
 		if (trace.allsolid || trace.startsolid || trace.fraction < clip->trace.fraction)
 		{
@@ -573,7 +532,7 @@ trace_t SV_Trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, edict_t *p
 	memset ( &clip, 0, sizeof ( moveclip_t ) );
 
 	// clip to world
-	clip.trace = pe->BoxTrace (start, end, mins, maxs, 0, contentmask);
+	clip.trace = pe->BoxTrace( start, end, mins, maxs, contentmask );
 	clip.trace.ent = prog->edicts;
 	if (clip.trace.fraction == 0) return clip.trace; // blocked by the world
 
@@ -636,5 +595,5 @@ trace_t SV_TraceToss (edict_t *tossent, edict_t *ignore)
 
 trace_t SV_ClipMoveToEntity(edict_t *ent, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int contentsmask)
 {
-	return pe->BoxTrace(start, end, mins, maxs, ent->priv.sv->headnode, contentsmask);
+	return pe->BoxTrace(start, end, mins, maxs, contentsmask);
 }

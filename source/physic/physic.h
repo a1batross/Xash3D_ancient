@@ -55,14 +55,6 @@ void Callback_ApplyTransform( const NewtonBody* body, const float* matrix );
 
 #define Host_Error com.error
 
-typedef struct physic_s
-{
-	bool	initialized;
-	cmdraw_t	debug_line;
-} physic_t;
-
-extern physic_t ph;
-
 typedef struct NewtonUserMeshCollisionCollideDescTag
 {
 	float		m_boxP0[4];		// lower bounding box of intersection query in local space

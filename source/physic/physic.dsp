@@ -113,10 +113,6 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\cm_model.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\cm_callback.c
 # End Source File
 # Begin Source File
@@ -125,7 +121,23 @@ SOURCE=.\cm_debug.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\cm_model.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\cm_portals.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\cm_rigidbody.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\cm_test.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\cm_trace.c
 # End Source File
 # Begin Source File
 

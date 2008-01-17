@@ -3,7 +3,7 @@
 //		    cm_debug.c - draw collision hulls outlines
 //=======================================================================
 
-#include "physic.h"
+#include "cm_local.h"
 
 void DebugShowGeometryCollision( const NewtonBody* body, int vertexCount, const float* faceVertec, int id ) 
 {    

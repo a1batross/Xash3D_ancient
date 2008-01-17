@@ -245,21 +245,18 @@ typedef struct physic_exp_s
 	int (*NumBmodels )( void );
 	const char *(*GetEntityString)( void );
 	const char *(*GetTextureName)( int index );
-	int (*HeadnodeForBox)( vec3_t mins, vec3_t maxs );
-	int (*PointContents)( vec3_t p, int headnode );
-	int (*TransformedPointContents)( vec3_t p, int headnode, vec3_t origin, vec3_t angles );
-	trace_t (*BoxTrace)( vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int headnode, int brushmask);
-	trace_t (*TransformedBoxTrace)( vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int headnode, int brushmask, vec3_t origin, vec3_t angles );
+	int (*PointContents)( const vec3_t p );
+	int (*TransformedPointContents)( const vec3_t p, const vec3_t origin, const vec3_t angles );
+	trace_t (*BoxTrace)( vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int brushmask);
+	trace_t (*TransformedBoxTrace)( const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, int brushmask, vec3_t origin, vec3_t angles );
 	byte *(*ClusterPVS)( int cluster );
 	byte *(*ClusterPHS)( int cluster );
 	int (*PointLeafnum)( vec3_t p );
-	int (*BoxLeafnums)( vec3_t mins, vec3_t maxs, int *list, int listsize, int *topnode );
-	int (*LeafContents)( int leafnum );	// probably unused
+	int (*BoxLeafnums)( vec3_t mins, vec3_t maxs, int *list, int listsize, int *lastleaf );
 	int (*LeafCluster)( int leafnum );
 	int (*LeafArea)( int leafnum );
 	bool (*AreasConnected)( int area1, int area2 );
 	int (*WriteAreaBits)( byte *buffer, int area );
-	bool (*HeadnodeVisible)( int headnode, byte *visbits );
 	
 	// simple objects
 	physbody_t *(*CreateBody)( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform, int solid );

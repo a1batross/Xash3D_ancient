@@ -69,16 +69,15 @@ CL_ClipMoveToEntities
 */
 void CL_ClipMoveToEntities ( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, trace_t *tr )
 {
-	int			i, x, zd, zu;
+	int		i, x, zd, zu;
 	trace_t		trace;
-	int			headnode;
 	float		*angles;
 	entity_state_t	*ent;
-	int			num;
+	int		num;
 	cmodel_t		*cmodel;
 	vec3_t		bmins, bmaxs;
 
-	for (i=0 ; i<cl.frame.num_entities ; i++)
+	for( i = 0; i < cl.frame.num_entities; i++ )
 	{
 		num = (cl.frame.parse_entities + i)&(MAX_PARSE_ENTITIES-1);
 		ent = &cl_parse_entities[num];
@@ -86,12 +85,11 @@ void CL_ClipMoveToEntities ( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end,
 		if(!ent->solid) continue;
 		if(ent->number == cl.playernum + 1) continue;
 
-		if (ent->solid == 31)
+		if( ent->solid == 31 )
 		{	
 			// special value for bmodel
 			cmodel = cl.model_clip[ent->modelindex];
 			if(!cmodel) continue;
-			headnode = cmodel->headnode;
 			angles = ent->angles;
 		}
 		else
@@ -104,18 +102,13 @@ void CL_ClipMoveToEntities ( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end,
 			bmaxs[0] = bmaxs[1] = x;
 			bmins[2] = -zd;
 			bmaxs[2] = zu;
-
-			headnode = pe->HeadnodeForBox (bmins, bmaxs);
-			angles = vec3_origin;	// boxes don't rotate
+			angles = ent->angles;
 		}
+		if( tr->allsolid ) return;
 
-		if (tr->allsolid)
-			return;
+		trace = pe->TransformedBoxTrace( start, end, mins, maxs, MASK_PLAYERSOLID, ent->origin, angles );
 
-		trace = pe->TransformedBoxTrace (start, end, mins, maxs, headnode, MASK_PLAYERSOLID, ent->origin, angles);
-
-		if (trace.allsolid || trace.startsolid ||
-		trace.fraction < tr->fraction)
+		if( trace.allsolid || trace.startsolid || trace.fraction < tr->fraction )
 		{
 			trace.ent = (edict_t *)ent;
 		 	if (tr->startsolid)
@@ -125,8 +118,7 @@ void CL_ClipMoveToEntities ( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end,
 			}
 			else *tr = trace;
 		}
-		else if (trace.startsolid)
-			tr->startsolid = true;
+		else if (trace.startsolid) tr->startsolid = true;
 	}
 }
 
@@ -141,11 +133,11 @@ trace_t CL_PMTrace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end)
 	trace_t	t;
 
 	// check against world
-	t = pe->BoxTrace (start, end, mins, maxs, 0, MASK_PLAYERSOLID);
+	t = pe->BoxTrace( start, end, mins, maxs, MASK_PLAYERSOLID );
 	if (t.fraction < 1.0) t.ent = (edict_t *)1;
 
 	// check all other solid models
-	CL_ClipMoveToEntities (start, mins, maxs, end, &t);
+	CL_ClipMoveToEntities( start, mins, maxs, end, &t );
 
 	return t;
 }
@@ -158,9 +150,9 @@ int CL_PMpointcontents (vec3_t point)
 	cmodel_t		*cmodel;
 	int			contents;
 
-	contents = pe->PointContents (point, 0);
+	contents = pe->PointContents( point );
 
-	for (i=0 ; i<cl.frame.num_entities ; i++)
+	for( i = 0; i < cl.frame.num_entities; i++ )
 	{
 		num = (cl.frame.parse_entities + i)&(MAX_PARSE_ENTITIES-1);
 		ent = &cl_parse_entities[num];
@@ -169,12 +161,10 @@ int CL_PMpointcontents (vec3_t point)
 			continue;
 
 		cmodel = cl.model_clip[ent->modelindex];
-		if (!cmodel)
-			continue;
+		if (!cmodel) continue;
 
-		contents |= pe->TransformedPointContents (point, cmodel->headnode, ent->origin, ent->angles);
+		contents |= pe->TransformedPointContents( point, ent->origin, ent->angles );
 	}
-
 	return contents;
 }
 

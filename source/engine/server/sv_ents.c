@@ -480,11 +480,39 @@ void SV_BuildClientFrame (client_state_t *client)
 				}
 				else bitvector = fatpvs;
 
+				// check individual leafs
+				/*if( !ent->priv.sv->num_clusters )
+				{
+					continue;
+				}
+				for( i = 0, l = 0; i < ent->priv.sv->num_clusters; i++ )
+				{
+					l = ent->priv.sv->clusternums[i];
+					if( bitvector[l>>3] & (1<<(l&7)))
+						break;
+				}
+				// if we haven't found it to be visible,
+				// check overflow clusters that coudln't be stored
+				if( i == ent->priv.sv->num_clusters )
+				{
+					if( svEnt->lastCluster )
+					{
+						for( ; l <= svEnt->lastCluster; l++ )
+						{
+							if( bitvector[l>>3] & (1<<(l&7)))
+								break;
+						}
+						if ( l == svEnt->lastCluster )
+							continue;	// not visible
+					}
+					else continue;
+				}*/
+
 				if (ent->priv.sv->num_clusters == -1)
 				{	
-					// too many leafs for individual check, go by headnode
-					if (!pe->HeadnodeVisible (ent->priv.sv->headnode, bitvector))
-						continue;
+				// too many leafs for individual check, go by headnode
+				//if(!pe->HeadnodeVisible (ent->priv.sv->headnode, bitvector))
+				//	continue;
 					c_fullsend++;
 				}
 				else

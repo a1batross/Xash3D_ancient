@@ -44,20 +44,17 @@ int CM_NumTexinfo( void );
 int CM_NumInlineModels( void );
 const char *CM_EntityString( void );
 const char *CM_TexName( int index );
-int CM_HeadnodeForBox( vec3_t mins, vec3_t maxs );
-int CM_PointContents( vec3_t p, int headnode );
-int CM_TransformedPointContents( vec3_t p, int headnode, vec3_t origin, vec3_t angles );
-trace_t CM_BoxTrace( vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int headnode, int brushmask);
-trace_t CM_TransformedBoxTrace( vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int headnode, int brushmask, vec3_t origin, vec3_t angles );
+int CM_PointContents( const vec3_t p );
+int CM_TransformedPointContents( const vec3_t p, const vec3_t origin, const vec3_t angles );
+trace_t CM_BoxTrace( vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int brushmask );
+trace_t CM_TransformedBoxTrace( const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, int brushmask, vec3_t origin, vec3_t angles );
 byte *CM_ClusterPVS( int cluster );
 byte *CM_ClusterPHS( int cluster );
-int CM_PointLeafnum( vec3_t p );
-int CM_BoxLeafnums( vec3_t mins, vec3_t maxs, int *list, int listsize, int *topnode );
-int CM_LeafContents( int leafnum );	// probably unused
+int CM_PointLeafnum( const vec3_t p );
+int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsize, int *topnode );
 int CM_LeafCluster( int leafnum );
 int CM_LeafArea( int leafnum );
 bool CM_AreasConnected( int area1, int area2 );
 int CM_WriteAreaBits( byte *buffer, int area );
-bool CM_HeadnodeVisible( int headnode, byte *visbits );
 
 #endif//CM_UTILS_H

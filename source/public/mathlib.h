@@ -174,7 +174,7 @@ _inline double VectorLength(vec3_t v)
 	return length;
 }
 
-_inline bool VectorIsNull(vec3_t v)
+_inline bool VectorIsNull( const vec3_t v )
 {
 	int i;
 	float result = 0;
@@ -291,7 +291,7 @@ _inline void VectorVectors(vec3_t forward, vec3_t right, vec3_t up)
 	CrossProduct(right, forward, up);
 }
 
-_inline void AngleVectors (vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
+_inline void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 {
 	float		angle;
 	static float	sr, sp, sy, cr, cp, cy;
