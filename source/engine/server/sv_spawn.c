@@ -173,7 +173,7 @@ void SV_TouchTriggers (edict_t *ent)
 	if ((ent->priv.sv->client || ((int)ent->progs.sv->flags & FL_MONSTER)) && (ent->progs.sv->health <= 0))
 		return;
 
-	num = SV_AreaEdicts(ent->progs.sv->absmin, ent->progs.sv->absmax, touch, MAX_EDICTS, AREA_TRIGGERS);
+	num = SV_AreaEdicts(ent->progs.sv->absmin, ent->progs.sv->absmax, touch, MAX_EDICTS );
 
 	PRVM_PUSH_GLOBALS;
 

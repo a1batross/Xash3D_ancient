@@ -1364,6 +1364,15 @@ typedef struct cplane_s
 	byte	pad[2];
 } cplane_t;
 
+typedef struct
+{
+	int	contents;
+	int	cluster;
+	int	area;
+	int	firstleafbrush;
+	int	numleafbrushes;
+} cleaf_t;
+
 typedef struct cmesh_s
 {
 	vec3_t	*verts;
@@ -1376,8 +1385,8 @@ typedef struct cmodel_s
 	byte	*mempool;		// personal mempool
 	int	registration_sequence;
 
-	vec3_t	mins, maxs;	// boundbox
-	int	headnode;		// bsp info
+	vec3_t	mins, maxs;	// model boundbox
+	cleaf_t	leaf;
 	int	type;		// model type
 	int	firstface;	// used to create collision tree
 	int	numfaces;		

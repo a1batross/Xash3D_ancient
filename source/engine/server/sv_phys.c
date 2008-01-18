@@ -85,7 +85,7 @@ bool SV_CheckBottom (edict_t *ent)
 		{
 			start[0] = x ? maxs[0] : mins[0];
 			start[1] = y ? maxs[1] : mins[1];
-			if (SV_PointContents(start) != CONTENTS_SOLID)
+			if (SV_PointContents(start, ent ) != CONTENTS_SOLID)
 				goto realcheck;
 		}
 	}
@@ -224,7 +224,7 @@ void SV_Impact (edict_t *e1, trace_t *trace)
 		prog->globals.sv->trace_plane_dist =  trace->plane.dist;
 		if (trace->ent) prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG(trace->ent);
 		else prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG(prog->edicts);
-		PRVM_ExecuteProgram (e1->progs.sv->touch, "QC function pev->touch is missing");
+		PRVM_ExecuteProgram (e1->progs.sv->touch, "QC function pev->touch is missing\n");
 	}
 	if (!e1->priv.sv->free && !e2->priv.sv->free && e2->progs.sv->touch && e2->progs.sv->solid != SOLID_NOT)
 	{
@@ -239,7 +239,7 @@ void SV_Impact (edict_t *e1, trace_t *trace)
 		VectorSet (prog->globals.sv->trace_plane_normal, 0, 0, 1);
 		prog->globals.sv->trace_plane_dist = 0;
 		prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG(e1);
-		PRVM_ExecuteProgram (e2->progs.sv->touch, "QC function pev->touch is missing");
+		PRVM_ExecuteProgram (e2->progs.sv->touch, "QC function pev->touch is missing\n");
 	}
 
 	PRVM_POP_GLOBALS;
@@ -381,17 +381,17 @@ bool SV_CheckWater (edict_t *ent)
 
 	ent->progs.sv->waterlevel = 0;
 	ent->progs.sv->watertype = CONTENTS_NONE;
-	cont = SV_PointContents(point);
+	cont = SV_PointContents( point, ent );
 	if (cont & (MASK_WATER))
 	{
 		ent->progs.sv->watertype = cont;
 		ent->progs.sv->waterlevel = 1;
 		point[2] = ent->progs.sv->origin[2] + (ent->progs.sv->mins[2] + ent->progs.sv->maxs[2])*0.5;
-		if (SV_PointContents(point) & (MASK_WATER))
+		if (SV_PointContents(point, ent ) & (MASK_WATER))
 		{
 			ent->progs.sv->waterlevel = 2;
 			point[2] = ent->progs.sv->origin[2] + ent->progs.sv->view_ofs[2];
-			if (SV_PointContents(point) & (MASK_WATER))
+			if (SV_PointContents(point, ent ) & (MASK_WATER))
 				ent->progs.sv->waterlevel = 3;
 		}
 	}
@@ -640,7 +640,7 @@ bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
 			if (trace.fraction == 1)
 			{
 				VectorCopy(trace.endpos, traceendpos);
-				if (((int)ent->progs.sv->aiflags & AI_SWIM) && !(SV_PointContents(traceendpos) & MASK_WATER))
+				if (((int)ent->progs.sv->aiflags & AI_SWIM) && !(SV_PointContents(traceendpos, ent ) & MASK_WATER))
 					return false; // swim monster left water
 
 				VectorCopy (traceendpos, ent->progs.sv->origin);
@@ -1022,7 +1022,7 @@ SV_CheckWaterTransition
 */
 void SV_CheckWaterTransition (edict_t *ent)
 {
-	int	cont = SV_PointContents(ent->progs.sv->origin);
+	int	cont = SV_PointContents(ent->progs.sv->origin, ent );
 
 	if (!ent->progs.sv->watertype)
 	{

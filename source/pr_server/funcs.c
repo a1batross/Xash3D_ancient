@@ -51,6 +51,11 @@ void() func_illusionary =
 	pev->solid = SOLID_TRIGGER;
 };
 
+void func_wall_touch ( void )
+{
+	// null touching function
+}
+
 void animate_wall( void )
 {
 	pev->frame++;
@@ -66,6 +71,7 @@ void() func_wall =
 
 	pev->nextthink = time + 1.0;
 	pev->think = animate_wall;
+	pev->touch = func_wall_touch;
 };
 
 /*

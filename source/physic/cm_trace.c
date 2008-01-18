@@ -4,7 +4,7 @@
 //=======================================================================
 
 #include "cm_local.h"
-#include "basefiles.h"
+#include "cm_utils.h"
 
 #define	DIST_EPSILON	(0.03125)			// 1/32 epsilon to keep floating point happy
 #define	MAX_POSITION_LEAFS	1024
@@ -111,16 +111,13 @@ void CM_TestBoxInBrush( tracework_t *tw, cbrush_t *brush )
 CM_TestInLeaf
 ================
 */
-void CM_TestInLeaf( tracework_t *tw, int leafnum )
+void CM_TestInLeaf( tracework_t *tw, cleaf_t *leaf )
 {
 	int		k;
 	int		brushnum;
-	cleaf_t		*leaf;
 	cbrush_t		*b;
 
-	leaf = &cm.leafs[leafnum];
 	if(!(leaf->contents & maptrace.contents)) return;
-
 	// test box position against all brushes in the leaf
 	for (k = 0; k < leaf->numleafbrushes; k++)
 	{
@@ -300,7 +297,7 @@ void CM_PositionTest( tracework_t *tw )
 	// test the contents of the leafs
 	for( i = 0; i < ll.count; i++)
 	{
-		CM_TestInLeaf( tw, leafs[i] );
+		CM_TestInLeaf( tw, &cm.leafs[leafs[i]] );
 		if( tw->result.allsolid )
 			break;
 	}
@@ -420,22 +417,23 @@ void CM_TraceThroughTree( tracework_t *tw, int num, float p1f, float p2f, vec3_t
 CM_Trace
 ==================
 */
-void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, int brushmask )
+void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, cmodel_t *mod, const vec3_t origin, int brushmask )
 {
 	int		i;
 	tracework_t	tw;
 	vec3_t		offset;
-
+	
 	cm.checkcount++;		// for multi-check avoidance
 
 	// fill in a default trace
 	memset( &tw, 0, sizeof(tw) );
-	tw.result.fraction = 1; // assume it goes the entire distance until shown otherwise
+	tw.result.fraction = 1;	// assume it goes the entire distance until shown otherwise
+	VectorCopy( origin, tw.origin );
 
 	if(!cm.numnodes)
 	{
 		*results = tw.result;
-		return;	// map not loaded, shouldn't happen
+		return;		// map not loaded, shouldn't happen
 	}
 
 	// allow NULL to be passed in for 0,0,0
@@ -510,7 +508,8 @@ void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, vec3_t mi
 	// check for position test special case
 	if( VectorCompare( start, end ))
 	{
-		CM_PositionTest( &tw );
+		if( mod && mod->type == mod_brush ) CM_TestInLeaf( &tw, &mod->leaf );
+		else CM_PositionTest( &tw );
 	}
 	else
 	{
@@ -527,8 +526,10 @@ void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, vec3_t mi
 			tw.extents[1] = tw.maxs[1];
 			tw.extents[2] = tw.maxs[2];
 		}
+
 		// general sweeping through world
-		CM_TraceThroughTree( &tw, 0, 0, 1, tw.start, tw.end );
+		if ( mod && mod->type == mod_brush ) CM_TraceThroughLeaf( &tw, &mod->leaf );
+		else CM_TraceThroughTree( &tw, 0, 0, 1, tw.start, tw.end );
 	}
 
 	// generate endpos from the original, unmodified start/end
@@ -557,15 +558,14 @@ void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, vec3_t mi
 
 ===============================================================================
 */
-
 /*
 ==================
 CM_BoxTrace
 ==================
 */
-trace_t CM_BoxTrace( vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int brushmask )
+trace_t CM_BoxTrace( const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, cmodel_t *model, int brushmask )
 {
-	CM_Trace( &cm.trace, start, end, mins, maxs, brushmask );
+	CM_Trace( &cm.trace, start, end, mins, maxs, model, vec3_origin, brushmask );
 	return cm.trace;
 }
 
@@ -577,7 +577,7 @@ Handles offseting and rotation of the end points for moving and
 rotating entities
 ==================
 */
-trace_t CM_TransformedBoxTrace( const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, int brushmask, vec3_t origin, vec3_t angles )
+trace_t CM_TransformedBoxTrace( const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, cmodel_t *model, int brushmask, vec3_t origin, vec3_t angles )
 {
 	trace_t		trace;
 	vec3_t		start_l, end_l;
@@ -608,7 +608,7 @@ trace_t CM_TransformedBoxTrace( const vec3_t start, const vec3_t end, vec3_t min
 	VectorSubtract( end_l, origin, end_l );
 
 	// rotate start and end into the models frame of reference
-	if (!VectorIsNull( angles )) rotated = true;
+	if(!VectorIsNull( angles )) rotated = true;
 	else rotated = false;
 
 	if( rotated )
@@ -625,7 +625,7 @@ trace_t CM_TransformedBoxTrace( const vec3_t start, const vec3_t end, vec3_t min
 	}
 
 	// sweep the box through the model
-	CM_Trace( &trace, start_l, end_l, symetricSize[0], symetricSize[1], brushmask );
+	CM_Trace( &trace, start_l, end_l, symetricSize[0], symetricSize[1], model, origin, brushmask );
 
 	// if the bmodel was rotated and there was a collision
 	if( rotated && trace.fraction != 1.0 )

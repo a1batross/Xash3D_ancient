@@ -83,14 +83,14 @@ void SV_SetMinMaxSize (edict_t *e, float *min, float *max, bool rotate)
 			PRVM_ERROR("SV_SetMinMaxSize: backwards mins/maxs");
 
 	// set derived values
-	if( rotate && e->progs.sv->solid == SOLID_BBOX)
+	if( rotate && e->progs.sv->solid == SOLID_BBOX )
 	{
 		SV_CalcBBox( e, min, max );
 	}
 	else
 	{
-		VectorCopy (min, e->progs.sv->mins);
-		VectorCopy (max, e->progs.sv->maxs);
+		VectorCopy( min, e->progs.sv->mins);
+		VectorCopy( max, e->progs.sv->maxs);
 	}
 	VectorSubtract (max, min, e->progs.sv->size );
 
@@ -684,7 +684,7 @@ PF_pointcontents
 */
 void PF_pointcontents (void)
 {
-	PRVM_G_FLOAT(OFS_RETURN) = SV_PointContents(PRVM_G_VECTOR(OFS_PARM0));
+	PRVM_G_FLOAT(OFS_RETURN) = SV_PointContents(PRVM_G_VECTOR(OFS_PARM0), NULL );
 }
 
 /*

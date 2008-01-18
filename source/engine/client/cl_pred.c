@@ -106,7 +106,7 @@ void CL_ClipMoveToEntities ( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end,
 		}
 		if( tr->allsolid ) return;
 
-		trace = pe->TransformedBoxTrace( start, end, mins, maxs, MASK_PLAYERSOLID, ent->origin, angles );
+		trace = pe->TransformedBoxTrace( start, end, mins, maxs, cmodel, MASK_PLAYERSOLID, ent->origin, angles );
 
 		if( trace.allsolid || trace.startsolid || trace.fraction < tr->fraction )
 		{
@@ -133,7 +133,7 @@ trace_t CL_PMTrace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end)
 	trace_t	t;
 
 	// check against world
-	t = pe->BoxTrace( start, end, mins, maxs, MASK_PLAYERSOLID );
+	t = pe->BoxTrace( start, end, mins, maxs, NULL, MASK_PLAYERSOLID );
 	if (t.fraction < 1.0) t.ent = (edict_t *)1;
 
 	// check all other solid models
@@ -142,15 +142,15 @@ trace_t CL_PMTrace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end)
 	return t;
 }
 
-int CL_PMpointcontents (vec3_t point)
+int CL_PMpointcontents( vec3_t point )
 {
-	int			i;
+	int		i;
 	entity_state_t	*ent;
-	int			num;
+	int		num;
 	cmodel_t		*cmodel;
-	int			contents;
+	int		contents;
 
-	contents = pe->PointContents( point );
+	contents = pe->PointContents( point, NULL );
 
 	for( i = 0; i < cl.frame.num_entities; i++ )
 	{
@@ -163,7 +163,7 @@ int CL_PMpointcontents (vec3_t point)
 		cmodel = cl.model_clip[ent->modelindex];
 		if (!cmodel) continue;
 
-		contents |= pe->TransformedPointContents( point, ent->origin, ent->angles );
+		contents |= pe->TransformedPointContents( point, cmodel, ent->origin, ent->angles );
 	}
 	return contents;
 }

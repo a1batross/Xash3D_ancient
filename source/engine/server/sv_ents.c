@@ -92,8 +92,7 @@ void SV_EmitPacketEntities (client_frame_t *from, client_frame_t *to, sizebuf_t 
 			newnum = newent->number;
 		}
 
-		if (oldindex >= from_num_entities)
-			oldnum = 9999;
+		if (oldindex >= from_num_entities) oldnum = 9999;
 		else
 		{
 			oldent = &svs.client_entities[(from->first_entity+oldindex)%svs.num_client_entities];
@@ -409,6 +408,7 @@ void SV_BuildClientFrame (client_state_t *client)
 	int		clientarea, clientcluster;
 	int		leafnum;
 	int		c_fullsend;
+	byte		*clientpvs;
 	byte		*clientphs;
 	byte		*bitvector;
 
@@ -434,8 +434,8 @@ void SV_BuildClientFrame (client_state_t *client)
 	// grab the current player_state_t
 	frame->ps = clent->priv.sv->client->ps;
 
-	SV_FatPVS (org);
-	clientphs = pe->ClusterPHS (clientcluster);
+	clientpvs = pe->ClusterPVS( clientcluster );
+	clientphs = pe->ClusterPHS( clientcluster );
 
 	// build up the list of visible entities
 	frame->num_entities = 0;
@@ -474,14 +474,11 @@ void SV_BuildClientFrame (client_state_t *client)
 			{
 				// FIXME: if an ent has a model and a sound, but isn't
 				// in the PVS, only the PHS, clear the model
-				if (ent->progs.sv->noise3)
-				{
-					bitvector = fatpvs;	//clientphs;
-				}
-				else bitvector = fatpvs;
+				if (ent->progs.sv->noise3) bitvector = clientphs;
+				else bitvector = clientpvs;
 
 				// check individual leafs
-				/*if( !ent->priv.sv->num_clusters )
+				if( !ent->priv.sv->num_clusters )
 				{
 					continue;
 				}
@@ -495,38 +492,18 @@ void SV_BuildClientFrame (client_state_t *client)
 				// check overflow clusters that coudln't be stored
 				if( i == ent->priv.sv->num_clusters )
 				{
-					if( svEnt->lastCluster )
+					if( ent->priv.sv->lastcluster )
 					{
-						for( ; l <= svEnt->lastCluster; l++ )
+						for( ; l <= ent->priv.sv->lastcluster; l++ )
 						{
 							if( bitvector[l>>3] & (1<<(l&7)))
 								break;
 						}
-						if ( l == svEnt->lastCluster )
+						if( l == ent->priv.sv->lastcluster )
 							continue;	// not visible
 					}
 					else continue;
-				}*/
-
-				if (ent->priv.sv->num_clusters == -1)
-				{	
-				// too many leafs for individual check, go by headnode
-				//if(!pe->HeadnodeVisible (ent->priv.sv->headnode, bitvector))
-				//	continue;
-					c_fullsend++;
 				}
-				else
-				{	// check individual leafs
-					for (i=0 ; i < ent->priv.sv->num_clusters ; i++)
-					{
-						l = ent->priv.sv->clusternums[i];
-						if (bitvector[l >> 3] & (1 << (l&7) ))
-							break;
-					}
-					if (i == ent->priv.sv->num_clusters)
-						continue;		// not visible
-				}
-
 				if (!ent->progs.sv->modelindex)
 				{	
 					// don't send sounds if they will be attenuated away

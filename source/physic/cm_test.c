@@ -160,7 +160,7 @@ int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsiz
 
 	CM_BoxLeafnums_r( &ll, 0 );
 
-	//if( lastleaf ) *lastleaf = ll.lastleaf;//FIXME
+	if( lastleaf ) *lastleaf = ll.lastleaf;
 	return ll.count;
 }
 
@@ -170,7 +170,7 @@ CM_PointContents
 
 ==================
 */
-int CM_PointContents( const vec3_t p )
+int CM_PointContents( const vec3_t p, cmodel_t *model )
 {
 	int		leafnum;
 	int		i, k;
@@ -182,9 +182,16 @@ int CM_PointContents( const vec3_t p )
 	float		d;
 
 	if(!cm.numnodes) return 0; // map not loaded
-
-	leafnum = CM_PointLeafnum_r (p, 0);
-	leaf = &cm.leafs[leafnum];
+	if( model && model->type == mod_brush )
+	{
+		// ignore studio models
+		leaf = &model->leaf;
+	}
+	else
+	{
+		leafnum = CM_PointLeafnum_r (p, 0);
+		leaf = &cm.leafs[leafnum];
+	}
 
 	contents = 0;
 	for( k = 0; k < leaf->numleafbrushes; k++)
@@ -212,7 +219,7 @@ Handles offseting and rotation of the end points for moving and
 rotating entities
 ==================
 */
-int CM_TransformedPointContents( const vec3_t p, const vec3_t origin, const vec3_t angles )
+int CM_TransformedPointContents( const vec3_t p, cmodel_t *model, const vec3_t origin, const vec3_t angles )
 {
 	vec3_t	p_l;
 	vec3_t	temp;
@@ -230,5 +237,5 @@ int CM_TransformedPointContents( const vec3_t p, const vec3_t origin, const vec3
 		p_l[1] = -DotProduct( temp, right );
 		p_l[2] = DotProduct( temp, up );
 	}
-	return CM_PointContents( p_l );
+	return CM_PointContents( p_l, model );
 }

@@ -515,6 +515,7 @@ void SV_InitOperatorCommands( void )
 	Cmd_AddCommand("movie", SV_Movie_f, "playing video file" );
 	Cmd_AddCommand("changelevel", SV_ChangeLevel_f, "changing level" );
 	Cmd_AddCommand("restart", SV_Restart_f, "restarting current level" );
+	Cmd_AddCommand("sectorlist", SV_SectorList_f, "display pvs sectors" );
 
 	if( dedicated->value ) 
 	{
@@ -540,6 +541,7 @@ void SV_KillOperatorCommands( void )
 	Cmd_RemoveCommand("movie");
 	Cmd_RemoveCommand("changelevel");
 	Cmd_RemoveCommand("restart");
+	Cmd_RemoveCommand("sectorlist");
 
 	if( dedicated->value ) 
 	{

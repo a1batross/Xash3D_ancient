@@ -30,6 +30,14 @@ typedef struct link_s
 	int		entnum; // get edict by number
 } link_t;
 
+typedef struct worldsector_s
+{
+	int			axis;		// -1 = leaf node
+	float			dist;
+	struct worldsector_s	*children[2];
+	sv_edict_t		*entities;
+} worldsector_t;
+
 struct gclient_s
 {
 	player_state_t		ps;		// communicated by server to clients
@@ -51,13 +59,16 @@ struct sv_edict_s
 	float			freetime;	 	// sv.time when the object was freed
 
 	// sv_private_edict_t
+	worldsector_t		*worldsector;	// member of current wolrdsector
+	struct sv_edict_s 		*nextedict;	// next edict in world sector
 	link_t			area;		// linked to a division node or leaf
 	int			clipmask;		// trace info
-	int			headnode;		// unused if num_clusters != -1
+	int			lastcluster;	// unused if num_clusters != -1
 	int			linkcount;
 	int			num_clusters;	// if -1, use headnode instead
 	int			clusternums[MAX_ENT_CLUSTERS];
 	int			areanum, areanum2;
+
 	int			serialnumber;	// unical entity #id
 	int			solid;		// see entity_state_t for details
 	int			event;		// apply sv.events too

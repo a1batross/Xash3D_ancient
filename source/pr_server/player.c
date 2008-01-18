@@ -204,6 +204,10 @@ void() DeathSound =
     sound (pev, CHAN_VOICE, pev->noise, 1, ATTN_NONE);
 };
 
+void PlayerTouch( void )
+{
+}
+
 void () PlayerDie =
 {
     pev->view_ofs = '0 0 -8';

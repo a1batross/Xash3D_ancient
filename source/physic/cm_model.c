@@ -59,6 +59,25 @@ void CM_GetPoint2( int index, vec3_t out )
 	CM_ConvertDimensionToMeters( out, cm.vertices[vert_index].point );
 }
 
+/*
+=================
+CM_BoundBrush
+=================
+*/
+void CM_BoundBrush( cbrush_t *b )
+{
+	cbrushside_t	*sides;
+	sides = &cm.brushsides[b->firstbrushside];
+
+	b->bounds[0][0] = -sides[0].plane->dist;
+	b->bounds[1][0] = sides[1].plane->dist;
+
+	b->bounds[0][1] = -sides[2].plane->dist;
+	b->bounds[1][1] = sides[3].plane->dist;
+
+	b->bounds[0][2] = -sides[4].plane->dist;
+	b->bounds[1][2] = sides[5].plane->dist;
+}
 
 int CM_NumTexinfo( void ) { return cm.numtexinfo; }
 int CM_NumClusters( void ) { return cm.numclusters; }
@@ -231,6 +250,7 @@ void BSP_LoadBrushes( lump_t *l )
 		out->firstbrushside = LittleLong(in->firstside);
 		out->numsides = LittleLong(in->numsides);
 		out->contents = LittleLong(in->contents);
+		CM_BoundBrush( out );
 	}
 
 }
@@ -565,6 +585,19 @@ void BSP_LoadStringData( lump_t *l )
 
 /*
 =================
+BSP_LoadStringData
+=================
+*/
+void BSP_LoadBuiltinProgs( lump_t *l )
+{	
+	if(!l->filelen)
+	{
+		return;
+	}
+}
+
+/*
+=================
 BSP_LoadStringTable
 =================
 */
@@ -660,8 +693,8 @@ void CM_LoadBSP( const void *buffer )
 	BSP_LoadSurfedges(&header.lumps[LUMP_SURFEDGES]);
 	BSP_LoadFaces(&header.lumps[LUMP_FACES]);
 	BSP_LoadSurfDesc(&header.lumps[LUMP_SURFDESC]);
-	BSP_LoadCollision(&header.lumps[LUMP_COLLISION]); 
 	BSP_LoadModels(&header.lumps[LUMP_MODELS]);
+	BSP_LoadCollision(&header.lumps[LUMP_COLLISION]);
 	cm.loaded = true;
 	cm.use_thread = true;
 
@@ -802,8 +835,8 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	BSP_LoadLeafs(&hdr->lumps[LUMP_LEAFS]);
 	BSP_LoadLeafBrushes(&hdr->lumps[LUMP_LEAFBRUSHES]);
 	BSP_LoadPlanes(&hdr->lumps[LUMP_PLANES]);
-	BSP_LoadBrushes(&hdr->lumps[LUMP_BRUSHES]);
 	BSP_LoadBrushSides(&hdr->lumps[LUMP_BRUSHSIDES]);
+	BSP_LoadBrushes(&hdr->lumps[LUMP_BRUSHES]);
 	BSP_LoadNodes(&hdr->lumps[LUMP_NODES]);
 	BSP_LoadAreas(&hdr->lumps[LUMP_AREAS]);
 	BSP_LoadAreaPortals(&hdr->lumps[LUMP_AREAPORTALS]);
@@ -893,7 +926,7 @@ Set up the planes and nodes so that the six floats of a bounding box
 can just be stored out and get a proper clipping hull structure.
 ===================
 */
-void CM_InitBoxHull (void)
+void CM_InitBoxHull( void )
 {
 	cplane_t		*p;
 	cbrushside_t	*s;
@@ -903,7 +936,9 @@ void CM_InitBoxHull (void)
 	box.brush = &cm.brushes[cm.numbrushes];
 	box.brush->numsides = 6;
 	box.brush->firstbrushside = cm.numbrushsides;
-	box.brush->contents = CONTENTS_MONSTER;
+	box.brush->contents = CONTENTS_MONSTER;//FIXME
+	box.model.leaf.numleafbrushes = 1;
+	box.model.leaf.firstleafbrush = cm.numleafbrushes;
 	cm.leafbrushes[cm.numleafbrushes] = cm.numbrushes;
 
 	for (i = 0; i < 6; i++)
@@ -930,6 +965,60 @@ void CM_InitBoxHull (void)
 		PlaneClassify( p );
 	}	
 }
+
+/*
+===================
+CM_TempBoxModel
+
+To keep everything totally uniform, bounding boxes are turned into small
+BSP trees instead of being compared directly.
+Capsules are handled differently though.
+===================
+*/
+int CM_TempBoxModel( const vec3_t mins, const vec3_t maxs )
+{
+	VectorCopy( mins, box.model.mins );
+	VectorCopy( maxs, box.model.maxs );
+
+	box.planes[0].dist = maxs[0];
+	box.planes[1].dist = -maxs[0];
+	box.planes[2].dist = mins[0];
+	box.planes[3].dist = -mins[0];
+	box.planes[4].dist = maxs[1];
+	box.planes[5].dist = -maxs[1];
+	box.planes[6].dist = mins[1];
+	box.planes[7].dist = -mins[1];
+	box.planes[8].dist = maxs[2];
+	box.planes[9].dist = -maxs[2];
+	box.planes[10].dist = mins[2];
+	box.planes[11].dist = -mins[2];
+
+	VectorCopy( mins, box.brush->bounds[0] );
+	VectorCopy( maxs, box.brush->bounds[1] );
+
+	return BOX_MODEL_HANDLE;
+}
+
+/*
+===================
+CM_ModelBounds
+===================
+*/
+void CM_ModelBounds( cmodel_t *cmod, vec3_t mins, vec3_t maxs )
+{
+	if( cmod )
+	{
+		VectorCopy( cmod->mins, mins );
+		VectorCopy( cmod->maxs, maxs );
+	}
+	else
+	{
+		VectorSet( mins, -32, -32, -32 );
+		VectorSet( maxs,  32,  32,  32 );
+		MsgWarn("can't compute bounding box, use default size\n");
+	}
+}
+
 
 /*
 ===============================================================================

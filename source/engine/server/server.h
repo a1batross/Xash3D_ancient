@@ -50,7 +50,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define FL_WORLDBRUSH		(1<<3)	// Not moveable/removeable brush entity
 #define FL_DORMANT			(1<<4)	// Entity is dormant, no updates to client
 #define FL_FRAMETHINK		(1<<5)	// entity will be thinking every frame
-#define FL_GRAPHED			(1<<6)	// worldgraph has this ent listed as something that blocks a connection
+#define FL_GRAPHED			(1<<6)	// worldgraph has this ent listed as something that blocks a conection
 #define FL_FLOAT			(1<<7)	// this entity can be floating. FIXME: remove this ?
 #define FL_TRACKTRAIN		(1<<8)	// old stuff...
 
@@ -299,7 +299,8 @@ void SV_ExecuteClientMessage (client_state_t *cl);
 //
 // sv_ccmds.c
 //
-void SV_Status_f (void);
+void SV_Status_f( void );
+void SV_SectorList_f( void );
 
 //
 // sv_ents.c
@@ -375,7 +376,7 @@ void SV_LinkEdict (edict_t *ent);
 // sets ent->leafnums[] for pvs determination even if the entity
 // is not solid
 
-int SV_AreaEdicts (vec3_t mins, vec3_t maxs, edict_t **list, int maxcount, int areatype);
+int SV_AreaEdicts( const vec3_t mins, const vec3_t maxs, edict_t **list, int maxcount );
 // fills in a table of edict pointers with edicts that have bounding boxes
 // that intersect the given area.  It is possible for a non-axial bmodel
 // to be returned that doesn't actually intersect the area on an exact
@@ -388,13 +389,13 @@ int SV_AreaEdicts (vec3_t mins, vec3_t maxs, edict_t **list, int maxcount, int a
 //
 // functions that interact with everything apropriate
 //
-int SV_PointContents (vec3_t p);
+int SV_PointContents( const vec3_t p, edict_t *passedict );
 // returns the CONTENTS_* value from the world at the given point.
 // Quake 2 extends this to also check entities, to allow moving liquids
 
 
 trace_t SV_ClipMoveToEntity(edict_t *ent, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int contentsmask );
-trace_t SV_Trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, edict_t *passedict, int contentmask);
+trace_t SV_Trace( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, edict_t *passedict, int contentmask );
 trace_t SV_TraceToss (edict_t *tossent, edict_t *ignore);
 // mins and maxs are relative
 

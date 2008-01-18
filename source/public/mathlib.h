@@ -960,6 +960,23 @@ _inline void CM_RoundUpHullSize( vec3_t size )
 	}
 }
 
+/*
+=================
+RadiusFromBounds
+=================
+*/
+_inline float RadiusFromBounds( vec3_t mins, vec3_t maxs )
+{
+	int	i;
+	vec3_t	corner;
+
+	for (i = 0; i < 3; i++)
+	{
+		corner[i] = fabs(mins[i]) > fabs(maxs[i]) ? fabs(mins[i]) : fabs(maxs[i]);
+	}
+	return VectorLength( corner );
+}
+
 static vec3_t vec3_origin = { 0, 0, 0 };
 static vec3_t vec3_angles = { 0, 0, 0 };
 

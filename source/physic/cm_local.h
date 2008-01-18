@@ -7,6 +7,8 @@
 
 #include "physic.h"
 
+#define BOX_MODEL_HANDLE	MAX_MODELS - 1
+
 typedef struct
 {
 	cplane_t		*plane;
@@ -18,15 +20,6 @@ typedef struct
 	cplane_t		*plane;
 	csurface_t	*surface;
 } cbrushside_t;
-
-typedef struct
-{
-	int		contents;
-	int		cluster;
-	int		area;
-	int		firstleafbrush;
-	int		numleafbrushes;
-} cleaf_t;
 
 typedef struct
 {
@@ -138,6 +131,7 @@ typedef struct box_s
 {
 	cplane_t		*planes;
 	cbrush_t		*brush;
+	cmodel_t		model;
 } box_t;
 
 typedef struct mapleaf_s
@@ -171,6 +165,7 @@ typedef struct tracework_s
 	float		maxOffset;	// longest corner length from origin
 	vec3_t		bounds[2];	// enclosing box of start and end surrounding by size
 	vec3_t		extents;		// greatest of abs(size[0]) and abs(size[1])
+	vec3_t		origin;
 	int		contents;
 	bool		ispoint;		// optimized case
 	trace_t		result;		// returned from trace call

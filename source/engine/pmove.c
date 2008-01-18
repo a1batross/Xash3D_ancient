@@ -30,19 +30,26 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 typedef struct
 {
-	vec3_t		origin;			// full float precision
-	vec3_t		velocity;		// full float precision
+	vec3_t		origin;
+	vec3_t		velocity;
+	vec3_t		previous_origin;
+	vec3_t		previous_velocity;
+	int		previous_waterlevel;
 
 	vec3_t		forward, right, up;
 	float		frametime;
+	int		msec;
 
+	bool		walking;
+	bool		onladder;
+	trace_t		groundtrace;
+	float		impact_speed;
 
 	csurface_t	*groundsurface;
 	cplane_t		groundplane;
 	int		groundcontents;
 
-	vec3_t		previous_origin;
-	bool		ladder;
+
 } pml_t;
 
 pmove_t		*pm;
@@ -81,14 +88,15 @@ void PM_ClipVelocity (vec3_t in, vec3_t normal, vec3_t out, float overbounce)
 	float	change;
 	int		i;
 	
-	backoff = DotProduct (in, normal) * overbounce;
+	backoff = DotProduct (in, normal);
 
-	for (i=0 ; i<3 ; i++)
+	if( backoff < 0 ) backoff *= overbounce;
+	else backoff /= overbounce;
+
+	for( i = 0; i < 3; i++ )
 	{
 		change = normal[i]*backoff;
 		out[i] = in[i] - change;
-		if (out[i] > -STOP_EPSILON && out[i] < STOP_EPSILON)
-			out[i] = 0;
 	}
 }
 
@@ -286,48 +294,47 @@ Handles both ground friction and water friction
 ==================
 */
 
-void PM_Friction (void)
+void PM_Friction( void )
 {
+	vec3_t	vec;
 	float	*vel;
 	float	speed, newspeed, control;
-	float	friction;
 	float	drop;
 	
 	vel = pml.velocity;
-	
-	speed = sqrt(vel[0]*vel[0] +vel[1]*vel[1] + vel[2]*vel[2]);
-	if (speed < 1)
+
+	VectorCopy( vel, vec );	
+	if( pml.walking ) vec[2] = 0;	// ignore slope movement
+
+	speed = VectorLength( vec );
+	Msg("speed %g\n", speed );
+	if( speed < 1 )
 	{
-		vel[0] = 0;
-		vel[1] = 0;
+		vel[0] = vel[1] = 0; // allow sinking underwater
+		// FIXME: still have z friction underwater?
 		return;
 	}
-
 	drop = 0;
 
 	// apply ground friction
-	if ((pm->groundentity && pml.groundsurface && !(pml.groundsurface->flags & SURF_SLICK) ) || (pml.ladder) )
+	if( pm->waterlevel <= 1 )
 	{
-		friction = pm_friction;
-		control = speed < pm_stopspeed ? pm_stopspeed : speed;
-		drop += control*friction*pml.frametime;
+		if( pml.walking && !(pml.groundtrace.flags & SURF_SLICK) || (pml.onladder))
+		{
+			control = speed < pm_stopspeed ? pm_stopspeed : speed;
+			drop += control * pm_friction * pml.frametime;
+		}
 	}
 
 	// apply water friction
-	if (pm->waterlevel && !pml.ladder)
-		drop += speed*pm_waterfriction*pm->waterlevel*pml.frametime;
+	if( pm->waterlevel && !pml.onladder ) drop += speed * pm_waterfriction * pm->waterlevel * pml.frametime;
 
 	// scale the velocity
 	newspeed = speed - drop;
-	if (newspeed < 0)
-	{
-		newspeed = 0;
-	}
+	if (newspeed < 0) newspeed = 0;
 	newspeed /= speed;
 
-	vel[0] = vel[0] * newspeed;
-	vel[1] = vel[1] * newspeed;
-	vel[2] = vel[2] * newspeed;
+	VectorScale( vel, newspeed, vel );
 }
 
 
@@ -340,19 +347,17 @@ Handles user intended acceleration
 */
 void PM_Accelerate (vec3_t wishdir, float wishspeed, float accel)
 {
-	int			i;
-	float		addspeed, accelspeed, currentspeed;
+	int	i;
+	float	addspeed, accelspeed, currentspeed;
 
 	currentspeed = DotProduct (pml.velocity, wishdir);
 	addspeed = wishspeed - currentspeed;
-	if (addspeed <= 0)
-		return;
-	accelspeed = accel*pml.frametime*wishspeed;
-	if (accelspeed > addspeed)
-		accelspeed = addspeed;
+	if( addspeed <= 0 ) return;
+	accelspeed = accel * pml.frametime * wishspeed;
+	if( accelspeed > addspeed ) accelspeed = addspeed;
 	
-	for (i=0 ; i<3 ; i++)
-		pml.velocity[i] += accelspeed*wishdir[i];	
+	for( i = 0; i < 3; i++ )
+		pml.velocity[i] += accelspeed * wishdir[i];	
 }
 
 void PM_AirAccelerate (vec3_t wishdir, float wishspeed, float accel)
@@ -384,8 +389,8 @@ void PM_AddCurrents (vec3_t	wishvel)
 	vec3_t	v;
 	float	s;
 
-	// account for ladders
-	if (pml.ladder && fabs(pml.velocity[2]) <= 200)
+	// account for onladders
+	if (pml.onladder && fabs(pml.velocity[2]) <= 200)
 	{
 		if ((pm->viewangles[PITCH] <= -15) && (pm->cmd.forwardmove > 0))
 			wishvel[2] = 200;
@@ -397,7 +402,7 @@ void PM_AddCurrents (vec3_t	wishvel)
 			wishvel[2] = -200;
 		else wishvel[2] = 0;
 
-		// limit horizontal speed when on a ladder
+		// limit horizontal speed when on a onladder
 		if (wishvel[0] < -25)
 			wishvel[0] = -25;
 		else if (wishvel[0] > 25)
@@ -539,7 +544,7 @@ void PM_AirMove (void)
 		wishspeed = maxspeed;
 	}
 	
-	if ( pml.ladder )
+	if ( pml.onladder )
 	{
 		PM_Accelerate (wishdir, wishspeed, pm_accelerate);
 		if (!wishvel[2])
@@ -612,6 +617,7 @@ void PM_CatagorizePosition (void)
 	else
 	{
 		trace = pm->trace (pml.origin, pm->mins, pm->maxs, point);
+		groundtrace = trace;
 		pml.groundplane = trace.plane;
 		pml.groundsurface = trace.surface;
 		pml.groundcontents = trace.contents;
@@ -747,9 +753,9 @@ void PM_CheckSpecialMovement (void)
 
 	if (pm->s.pm_time) return;
 
-	pml.ladder = false;
+	pml.onladder = false;
 
-	// check for ladder
+	// check for onladder
 	flatforward[0] = pml.forward[0];
 	flatforward[1] = pml.forward[1];
 	flatforward[2] = 0;
@@ -758,7 +764,7 @@ void PM_CheckSpecialMovement (void)
 	VectorMA (pml.origin, 1, flatforward, spot);
 	trace = pm->trace (pml.origin, pm->mins, pm->maxs, spot);
 	if ((trace.fraction < 1) && (trace.contents & CONTENTS_LADDER))
-		pml.ladder = true;
+		pml.onladder = true;
 
 	// check for water jump
 	if (pm->waterlevel != 2) return;
@@ -964,6 +970,7 @@ bool PM_GoodPosition (void)
 
 	for (i = 0; i < 3; i++) origin[i] = end[i] = pm->s.origin[i] * CL_COORD_FRAC;
 	trace = pm->trace (origin, pm->mins, pm->maxs, end);
+	pml.groundtrace = trace;
 
 	return !trace.allsolid;
 }

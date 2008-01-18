@@ -186,6 +186,11 @@ void() func_mover_touch =
 	}
 };
 
+void func_mover_null ( void )
+{
+	// null touching function
+}
+
 void() func_mover_use = 
 {
 	if(pev->message)
@@ -221,6 +226,7 @@ void() func_mover =
 	pev->th_die = func_mover_die;
 
 	if(!pev->targetname) pev->touch = func_mover_touch;
+	else pev->touch = func_mover_null;
 
 	//func_mover; DEFAULTS;
 	if (!pev->speed)

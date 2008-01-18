@@ -374,25 +374,6 @@ void Mod_LoadVertexes (lump_t *l)
 
 /*
 =================
-RadiusFromBounds
-=================
-*/
-float RadiusFromBounds (vec3_t mins, vec3_t maxs)
-{
-	int		i;
-	vec3_t	corner;
-
-	for (i=0 ; i<3 ; i++)
-	{
-		corner[i] = fabs(mins[i]) > fabs(maxs[i]) ? fabs(mins[i]) : fabs(maxs[i]);
-	}
-
-	return VectorLength (corner);
-}
-
-
-/*
-=================
 Mod_LoadSubmodels
 =================
 */

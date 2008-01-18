@@ -194,7 +194,7 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 
 	if (serverstate != ss_game)
 	{
-		sv.models[1] = pe->BeginRegistration("", false, &checksum);	// no real map
+		sv.models[1] = pe->BeginRegistration( "", false, &checksum); // no real map
 	}
 	else
 	{

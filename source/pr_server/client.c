@@ -289,6 +289,7 @@ void() PutClientInServer =
 	pev->mass = 90;
 	pev->th_pain = PlayerPain;
 	pev->th_die = PlayerDie;
+	pev->touch = PlayerTouch;
 
 	setstats( pev, STAT_HEALTH_ICON, "hud/i_health");
 	setstats( pev, STAT_HEALTH, ftoa(pev->health));
