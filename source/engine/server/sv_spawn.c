@@ -11,6 +11,11 @@ trace_t PM_trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end)
 	return SV_Trace (start, mins, maxs, end, pm_passent, MASK_DEADSOLID);
 }
 
+int PM_pointcontents( vec3_t point )
+{
+	return SV_PointContents( point, pm_passent );
+}
+
 /*
 ===========
 PutClientInServer
@@ -44,11 +49,11 @@ void SV_PutClientInServer (edict_t *ent)
 	memset (&ent->priv.sv->client->ps, 0, sizeof(client->ps));
 
 	// info_player_start
-	VectorScale(ent->progs.sv->origin, SV_COORD_FRAC, client->ps.pmove.origin);  
+	VectorCopy(ent->progs.sv->origin, client->ps.origin);  
 
 	client->ps.fov = 90;
 	client->ps.fov = bound(1, client->ps.fov, 160);
-	client->ps.gunindex = SV_ModelIndex(PRVM_GetString(ent->progs.sv->weaponmodel));
+	client->ps.vmodel.index = SV_ModelIndex(PRVM_GetString(ent->progs.sv->weaponmodel));
 
 	if(sv.loadgame)
 	{
@@ -64,7 +69,7 @@ void SV_PutClientInServer (edict_t *ent)
 	// set the delta angle
 	for (i = 0; i < 3; i++)
 	{
-		client->ps.pmove.delta_angles[i] = ANGLE2SHORT(ent->progs.sv->angles[i]);
+		client->ps.delta_angles[i] = ANGLE2SHORT(ent->progs.sv->angles[i]);
 	}
 
 	if(sv.loadgame)
@@ -77,7 +82,6 @@ void SV_PutClientInServer (edict_t *ent)
 	}
 
 	VectorCopy(ent->progs.sv->angles, client->ps.viewangles);
-	VectorCopy (client->ps.viewangles, client->v_angle);
 	SV_LinkEdict(ent);
 }
 
@@ -237,38 +241,38 @@ void SV_CalcGunOffset (edict_t *ent)
 	float		delta;
 
 	// gun angles from bobbing
-	ent->priv.sv->client->ps.gunangles[ROLL] = xyspeed * bobfracsin * 0.005;
-	ent->priv.sv->client->ps.gunangles[YAW] = xyspeed * bobfracsin * 0.01;
+	ent->priv.sv->client->ps.vmodel.angles[ROLL] = xyspeed * bobfracsin * 0.005;
+	ent->priv.sv->client->ps.vmodel.angles[YAW] = xyspeed * bobfracsin * 0.01;
 	if (bobcycle & 1)
 	{
-		ent->priv.sv->client->ps.gunangles[ROLL] = -ent->priv.sv->client->ps.gunangles[ROLL];
-		ent->priv.sv->client->ps.gunangles[YAW] = -ent->priv.sv->client->ps.gunangles[YAW];
+		ent->priv.sv->client->ps.vmodel.angles[ROLL] = -ent->priv.sv->client->ps.vmodel.angles[ROLL];
+		ent->priv.sv->client->ps.vmodel.angles[YAW] = -ent->priv.sv->client->ps.vmodel.angles[YAW];
 	}
 
-	ent->priv.sv->client->ps.gunangles[PITCH] = xyspeed * bobfracsin * 0.005;
-	ent->priv.sv->client->ps.viewoffset[2] = 22;
+	ent->priv.sv->client->ps.vmodel.angles[PITCH] = xyspeed * bobfracsin * 0.005;
+	ent->priv.sv->client->ps.viewoffset[2] = ent->priv.sv->client->ps.viewheight;
 
 	// gun angles from delta movement
 	for (i = 0; i < 3; i++)
 	{
-		delta = ent->priv.sv->client->oldviewangles[i] - ent->priv.sv->client->ps.viewangles[i];
+		delta = ent->priv.sv->client->ps.oldviewangles[i] - ent->priv.sv->client->ps.viewangles[i];
 		if (delta > 180) delta -= 360;
 		if (delta < -180) delta += 360;
 		if (delta > 45) delta = 45;
 		if (delta < -45) delta = -45;
-		if (i == YAW) ent->priv.sv->client->ps.gunangles[ROLL] += 0.1*delta;
-		ent->priv.sv->client->ps.gunangles[i] += 0.2 * delta;
+		if (i == YAW) ent->priv.sv->client->ps.vmodel.angles[ROLL] += 0.1*delta;
+		ent->priv.sv->client->ps.vmodel.angles[i] += 0.2 * delta;
 	}
 
 	// gun height
-	VectorClear (ent->priv.sv->client->ps.gunoffset);
+	VectorClear (ent->priv.sv->client->ps.vmodel.offset);
 
 	// gun_x / gun_y / gun_z are development tools
 	for (i = 0; i < 3; i++)
 	{
-		ent->priv.sv->client->ps.gunoffset[i] += forward[i];
-		ent->priv.sv->client->ps.gunoffset[i] += right[i];
-		ent->priv.sv->client->ps.gunoffset[i] += up[i];
+		ent->priv.sv->client->ps.vmodel.offset[i] += forward[i];
+		ent->priv.sv->client->ps.vmodel.offset[i] += right[i];
+		ent->priv.sv->client->ps.vmodel.offset[i] += up[i];
 	}
 }
 
@@ -293,12 +297,12 @@ void SV_CalcViewOffset (edict_t *ent)
 
 	// add angles based on bob
 	delta = bobfracsin * 0.002 * xyspeed;
-	if (ent->priv.sv->client->ps.pmove.pm_flags & PMF_DUCKED)
+	if (ent->priv.sv->client->ps.pm_flags & PMF_DUCKED)
 		delta *= 6; // crouching
 	angles[PITCH] += delta;
 	delta = bobfracsin * 0.002 * xyspeed;
 
-	if (ent->priv.sv->client->ps.pmove.pm_flags & PMF_DUCKED)
+	if (ent->priv.sv->client->ps.pm_flags & PMF_DUCKED)
 		delta *= 6; // crouching
 	if (bobcycle & 1) delta = -delta;
 	angles[ROLL] += delta;
@@ -344,22 +348,22 @@ void ClientEndServerFrame (edict_t *ent)
 	// If it wasn't updated here, the view position would lag a frame
 	// behind the body position when pushed -- "sinking into plats"
 	//
-	VectorScale(ent->progs.sv->origin, SV_COORD_FRAC, current_client->ps.pmove.origin ); 
-	VectorScale(ent->progs.sv->velocity, SV_COORD_FRAC, current_client->ps.pmove.velocity ); 
-	AngleVectors (ent->priv.sv->client->v_angle, forward, right, up);
+	VectorCopy(ent->progs.sv->origin, current_client->ps.origin ); 
+	VectorCopy(ent->progs.sv->velocity, current_client->ps.velocity ); 
+	AngleVectors (ent->priv.sv->client->ps.viewangles, forward, right, up);
 
 	//
 	// set model angles from view angles so other things in
 	// the world can tell which direction you are looking
 	//
-	if (ent->priv.sv->client->v_angle[PITCH] > 180) 
-		ent->progs.sv->angles[PITCH] = (-360 + ent->priv.sv->client->v_angle[PITCH])/3;
-	else ent->progs.sv->angles[PITCH] = ent->priv.sv->client->v_angle[PITCH]/3;
+	if (ent->priv.sv->client->ps.viewangles[PITCH] > 180) 
+		ent->progs.sv->angles[PITCH] = (-360 + ent->priv.sv->client->ps.viewangles[PITCH])/3;
+	else ent->progs.sv->angles[PITCH] = ent->priv.sv->client->ps.viewangles[PITCH]/3;
 
-	ent->progs.sv->angles[YAW] = ent->priv.sv->client->v_angle[YAW];
+	ent->progs.sv->angles[YAW] = ent->priv.sv->client->ps.viewangles[YAW];
 	ent->progs.sv->angles[ROLL] = 0;
 	ent->progs.sv->angles[ROLL] = SV_CalcRoll (ent->progs.sv->angles, ent->progs.sv->velocity)*4;
-	ent->priv.sv->client->ps.pmove.pm_time = ent->progs.sv->teleport_time * 1000; //in msecs
+	ent->priv.sv->client->ps.pm_time = ent->progs.sv->teleport_time * 1000; //in msecs
 
 	//
 	// calculate speed and cycle to be used for
@@ -370,7 +374,7 @@ void ClientEndServerFrame (edict_t *ent)
 	if (xyspeed < 5)
 	{
 		bobmove = 0;
-		current_client->bobtime = 0;	// start at beginning of cycle again
+		current_client->ps.bobtime = 0;	// start at beginning of cycle again
 	}
 	else if (ent->progs.sv->groundentity)
 	{	
@@ -380,9 +384,9 @@ void ClientEndServerFrame (edict_t *ent)
 		else bobmove = 0.0625;
 	}
 	
-	bobtime = (current_client->bobtime += bobmove);
+	bobtime = (current_client->ps.bobtime += bobmove);
 
-	if (current_client->ps.pmove.pm_flags & PMF_DUCKED)
+	if (current_client->ps.pm_flags & PMF_DUCKED)
 		bobtime *= 4;
 
 	bobcycle = (int)bobtime;
@@ -523,7 +527,7 @@ void SV_ClientBegin (edict_t *ent)
 		// state when the game is saved, so we need to compensate
 		// with deltaangles
 		for (i = 0; i < 3; i++)
-			ent->priv.sv->client->ps.pmove.delta_angles[i] = ANGLE2SHORT(ent->priv.sv->client->ps.viewangles[i]);
+			ent->priv.sv->client->ps.delta_angles[i] = ANGLE2SHORT(ent->priv.sv->client->ps.viewangles[i]);
 	}
 	else
 	{
@@ -565,7 +569,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	VectorCopy(ent->progs.sv->origin, oldorigin);
 	VectorCopy(ent->progs.sv->velocity, oldvelocity);
 
-	ent->priv.sv->client->ps.pmove.pm_flags &= ~PMF_NO_PREDICTION;
+	ent->priv.sv->client->ps.pm_flags &= ~PMF_NO_PREDICTION;
 
 	VectorCopy(ent->progs.sv->origin, view);
 
@@ -574,39 +578,34 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	// set up for pmove
 	memset (&pm, 0, sizeof(pm));
 
-	if (ent->progs.sv->movetype == MOVETYPE_NOCLIP) client->ps.pmove.pm_type = PM_SPECTATOR;
-	else client->ps.pmove.pm_type = PM_NORMAL;
-	client->ps.pmove.gravity = sv_gravity->value;
+	if (ent->progs.sv->movetype == MOVETYPE_NOCLIP) client->ps.pm_type = PM_SPECTATOR;
+	else client->ps.pm_type = PM_NORMAL;
+	client->ps.gravity = sv_gravity->value;
 
-	if(ent->progs.sv->teleport_time) client->ps.pmove.pm_flags |= PMF_TIME_TELEPORT; 
-	else client->ps.pmove.pm_flags &= ~PMF_TIME_TELEPORT; 
+	if(ent->progs.sv->teleport_time) client->ps.pm_flags |= PMF_TIME_TELEPORT; 
+	else client->ps.pm_flags &= ~PMF_TIME_TELEPORT; 
 
-	pm.s = client->ps.pmove;
+	pm.ps = client->ps;
 
-	VectorScale(ent->progs.sv->origin, SV_COORD_FRAC, pm.s.origin );
-	VectorScale(ent->progs.sv->velocity, SV_COORD_FRAC, pm.s.velocity );
-
-	if (memcmp(&client->old_pmove, &pm.s, sizeof(pm.s)))
-		pm.snapinitial = true;
+	VectorCopy(ent->progs.sv->origin, pm.ps.origin );
+	VectorCopy(ent->progs.sv->velocity, pm.ps.velocity );
 
 	pm.cmd = *ucmd;
 
 	pm.trace = PM_trace; // adds default parms
-	pm.pointcontents = SV_PointContents;
+	pm.pointcontents = PM_pointcontents;
 
 	// perform a pmove
 	Pmove (&pm);
 
 	// save results of pmove
-	client->ps.pmove = pm.s;
-	client->old_pmove = pm.s;
+	client->ps = pm.ps;
 
-	VectorScale(pm.s.origin, CL_COORD_FRAC, ent->progs.sv->origin);
-	VectorScale(pm.s.velocity, CL_COORD_FRAC, ent->progs.sv->velocity);
-	VectorCopy (pm.mins, ent->progs.sv->mins);
-	VectorCopy (pm.maxs, ent->progs.sv->maxs);
-	VectorCopy (pm.viewangles, client->v_angle);
-	VectorCopy (pm.viewangles, client->ps.viewangles);
+	VectorCopy(pm.ps.origin, ent->progs.sv->origin);
+	VectorCopy(pm.ps.velocity, ent->progs.sv->velocity);
+	VectorCopy(pm.mins, ent->progs.sv->mins);
+	VectorCopy(pm.maxs, ent->progs.sv->maxs);
+	VectorCopy(pm.ps.viewangles, client->ps.viewangles);
 
 	SV_LinkEdict(ent);
 

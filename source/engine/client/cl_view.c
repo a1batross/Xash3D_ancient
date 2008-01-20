@@ -20,7 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // cl_view.c -- player rendering positioning
 
 #include "client.h"
-#include "collision.h"
 
 //=============
 //
@@ -505,7 +504,7 @@ void V_RenderView( void )
 		cl.refdef.dlights = r_dlights;
 		cl.refdef.lightstyles = r_lightstyles;
 
-		cl.refdef.rdflags = cl.frame.playerstate.rdflags;
+		cl.refdef.rdflags = cl.frame.playerstate.effects;
 
 		// sort entities for better cache locality
         		qsort( cl.refdef.entities, cl.refdef.num_entities, sizeof( cl.refdef.entities[0] ), (int (*)(const void *, const void *))entitycmpfnc );

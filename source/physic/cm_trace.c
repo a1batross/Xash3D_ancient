@@ -6,8 +6,10 @@
 #include "cm_local.h"
 #include "cm_utils.h"
 
-#define	DIST_EPSILON	(0.03125)			// 1/32 epsilon to keep floating point happy
-#define	MAX_POSITION_LEAFS	1024
+// keep 1/8 unit away to keep the position valid before network snapping
+// and to avoid various numeric issues
+#define DIST_EPSILON		(0.125)	// 1/8 epsilon to keep floating point happy
+#define MAX_POSITION_LEAFS		1024
 
 /*
 ===============================================================================
@@ -176,7 +178,7 @@ void CM_TraceThroughBrush( tracework_t *tw, cbrush_t *brush )
 		if( d1 > 0 ) startout = true;
 
 		// if completely in front of face, no intersection with the entire brush
-		if(d1 > 0 && ( d2 >= CL_COORD_FRAC || d2 >= d1 )  )
+		if(d1 > 0 && ( d2 >= DIST_EPSILON || d2 >= d1 )  )
 			return;
 
 		// if it doesn't cross the plane, the plane isn't relevent
@@ -186,7 +188,7 @@ void CM_TraceThroughBrush( tracework_t *tw, cbrush_t *brush )
 		if( d1 > d2 )
 		{
 			// enter
-			f = (d1-CL_COORD_FRAC) / (d1-d2);
+			f = (d1 - DIST_EPSILON) / (d1-d2);
 			if( f < 0 ) f = 0;
 			if( f > enterFrac )
 			{
@@ -198,7 +200,7 @@ void CM_TraceThroughBrush( tracework_t *tw, cbrush_t *brush )
 		else
 		{
 			// leave
-			f = (d1+CL_COORD_FRAC) / (d1-d2);
+			f = (d1 + DIST_EPSILON) / (d1-d2);
 			if( f > 1 ) f = 1;
 			if( f < leaveFrac )
 			{
@@ -230,6 +232,7 @@ void CM_TraceThroughBrush( tracework_t *tw, cbrush_t *brush )
 			tw->result.fraction = enterFrac;
 			tw->result.plane = *clipplane;
 			tw->result.flags = leadside->surface->flags;
+			tw->result.surface = leadside->surface;
 			tw->result.contents = brush->contents;
 		}
 	}
@@ -367,20 +370,20 @@ void CM_TraceThroughTree( tracework_t *tw, int num, float p1f, float p2f, vec3_t
 		return;
 	}
 
-	// put the crosspoint CL_COORD_FRAC pixels on the near side
+	// put the crosspoint DIST_EPSILON pixels on the near side
 	if( t1 < t2 )
 	{
 		idist = 1.0/(t1-t2);
 		side = 1;
-		frac2 = (t1 + offset + CL_COORD_FRAC) * idist;
-		frac = (t1 - offset + CL_COORD_FRAC) * idist;
+		frac2 = (t1 + offset + DIST_EPSILON) * idist;
+		frac = (t1 - offset + DIST_EPSILON) * idist;
 	}
 	else if( t1 > t2 )
 	{
 		idist = 1.0/(t1-t2);
 		side = 0;
-		frac2 = (t1 - offset - CL_COORD_FRAC) * idist;
-		frac = (t1 + offset + CL_COORD_FRAC) * idist;
+		frac2 = (t1 - offset - DIST_EPSILON) * idist;
+		frac = (t1 + offset + DIST_EPSILON) * idist;
 	}
 	else
 	{
@@ -428,6 +431,7 @@ void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, vec3_t mi
 	// fill in a default trace
 	memset( &tw, 0, sizeof(tw) );
 	tw.result.fraction = 1;	// assume it goes the entire distance until shown otherwise
+	tw.result.surface = &(cm.nullsurface);
 	VectorCopy( origin, tw.origin );
 
 	if(!cm.numnodes)
@@ -579,7 +583,6 @@ rotating entities
 */
 trace_t CM_TransformedBoxTrace( const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, cmodel_t *model, int brushmask, vec3_t origin, vec3_t angles )
 {
-	trace_t		trace;
 	vec3_t		start_l, end_l;
 	vec3_t		offset;
 	vec3_t		symetricSize[2];
@@ -625,22 +628,21 @@ trace_t CM_TransformedBoxTrace( const vec3_t start, const vec3_t end, vec3_t min
 	}
 
 	// sweep the box through the model
-	CM_Trace( &trace, start_l, end_l, symetricSize[0], symetricSize[1], model, origin, brushmask );
+	CM_Trace( &cm.trace, start_l, end_l, symetricSize[0], symetricSize[1], model, origin, brushmask );
 
 	// if the bmodel was rotated and there was a collision
-	if( rotated && trace.fraction != 1.0 )
+	if( rotated && cm.trace.fraction != 1.0 )
 	{
 		// rotation of bmodel collision plane
 		TransposeMatrix( matrix, transpose );
-		RotatePoint( trace.plane.normal, transpose );
+		RotatePoint( cm.trace.plane.normal, transpose );
 	}
 
 	// re-calculate the end position of the trace because the trace.endpos
 	// calculated by CM_Trace could be rotated and have an offset
-	trace.endpos[0] = start[0] + trace.fraction * (end[0] - start[0]);
-	trace.endpos[1] = start[1] + trace.fraction * (end[1] - start[1]);
-	trace.endpos[2] = start[2] + trace.fraction * (end[2] - start[2]);
+	cm.trace.endpos[0] = start[0] + cm.trace.fraction * (end[0] - start[0]);
+	cm.trace.endpos[1] = start[1] + cm.trace.fraction * (end[1] - start[1]);
+	cm.trace.endpos[2] = start[2] + cm.trace.fraction * (end[2] - start[2]);
 
-	Mem_Copy( &cm.trace, &trace, sizeof(trace_t));
 	return cm.trace;
 }

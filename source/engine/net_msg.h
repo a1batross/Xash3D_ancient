@@ -55,30 +55,6 @@ typedef enum
 	MSG_PVS_R,
 } msgtype_t;
 
-// pmove_state_t is the information necessary for client side movement
-#define PM_NORMAL			0 // can accelerate and turn
-#define PM_SPECTATOR		1
-#define PM_DEAD			2 // no acceleration or turning
-#define PM_GIB			3 // different bounding box
-#define PM_FREEZE			4
-
-// this structure needs to be communicated bit-accurate
-// from the server to the client to guarantee that
-// prediction stays in sync, so no floats are used.
-// if any part of the game code modifies this struct, it
-// will result in a prediction error of some degree.
-typedef struct
-{
-	byte		pm_type;
-	vec3_t		origin;		//
-	vec3_t		velocity;		//
-	byte		pm_flags;		// ducked, jump_held, etc
-	byte		pm_time;		// each unit = 8 ms
-	short		gravity;
-	vec3_t		delta_angles;	// add to command angles to get view direction
-					// changed by spawns, rotating objects, and teleporters
-} pmove_state_t;
-
 #define PS_M_TYPE			(1<<0)
 #define PS_M_ORIGIN			(1<<1)
 #define PS_M_VELOCITY		(1<<2)
@@ -97,33 +73,6 @@ typedef struct
 #define PS_WEAPONBODY		(1<<15)
 #define PS_WEAPONSKIN		(1<<16)
 #define PS_RDFLAGS			(1<<17)
-
-// player_state_t communication
-typedef struct
-{
-	pmove_state_t	pmove;		// for prediction
-
-	// these fields do not need to be communicated bit-precise
-	vec3_t		viewangles;	// for fixed views
-	vec3_t		viewoffset;	// add to pmovestate->origin
-	vec3_t		kick_angles;	// add to view direction to get render angles
-					// set by weapon kicks, pain effects, etc
-
-	vec3_t		gunangles;
-	vec3_t		gunoffset;
-	int		gunindex;
-	int		gunframe;		// studio frame
-	int		sequence;		// stuido animation sequence
-	int		gunbody;
-	int		gunskin; 
-
-	float		blend[4];		// rgba full screen effect
-	
-	float		fov;		// horizontal field of view
-	int		rdflags;		// refdef flags
-	short		stats[32];	// fast status bar updates
-
-} player_state_t;
 
 // ms and light always sent, the others are optional
 #define	CM_ANGLE1 	(1<<0)
@@ -161,17 +110,6 @@ enum player_stats
 	MAX_STATS = 32,
 };
 
-// user_cmd_t communication
-typedef struct usercmd_s
-{
-	byte		msec;
-	byte		buttons;
-	short		angles[3];
-	short		forwardmove, sidemove, upmove;
-	byte		impulse;		// remove?
-	byte		lightlevel;	// light level the player is standing on
-} usercmd_t;
-
 // dmflags->value flags
 #define	DF_NO_HEALTH		0x00000001	// 1
 #define	DF_NO_ITEMS		0x00000002	// 2
@@ -190,34 +128,6 @@ typedef struct usercmd_s
 #define	DF_QUAD_DROP		0x00004000	// 16384
 #define	DF_FIXED_FOV		0x00008000	// 32768
 #define	DF_QUADFIRE_DROP		0x00010000	// 65536
-
-
-#define MAXTOUCH		32
-typedef struct
-{
-	pmove_state_t	s;		// state (in / out)
-
-	// command (in)
-	usercmd_t		cmd;
-	bool		snapinitial;	// if s has been changed outside pmove
-
-	// results (out)
-	int		numtouch;
-	edict_t		*touchents[MAXTOUCH];
-
-	vec3_t		viewangles;	// clamped
-	float		viewheight;
-
-	vec3_t		mins, maxs;	// bounding box size
-
-	edict_t		*groundentity;
-	int		watertype;
-	int		waterlevel;
-
-	// callbacks to test the world
-	trace_t		(*trace) (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end);
-	int		(*pointcontents) (vec3_t point);
-} pmove_t;
 
 // try to pack the common update flags into the first byte
 #define	U_ORIGIN1		(1<<0)

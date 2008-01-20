@@ -38,7 +38,7 @@ float LerpAngle (float a2, float a1, float frac)
 
 float LerpView(float org1, float org2, float ofs1, float ofs2, float frac)
 {
-	return org1 * CL_COORD_FRAC + ofs1 + frac * (org2 * CL_COORD_FRAC + ofs2 - (org1 * CL_COORD_FRAC + ofs1));
+	return org1 + ofs1 + frac * (org2 + ofs2 - (org1 + ofs1));
 }
 
  
@@ -297,16 +297,16 @@ void CL_ParsePlayerstate (frame_t *oldframe, frame_t *newframe)
 	flags = MSG_ReadLong(&net_message);//four bytes
 
 	// parse the pmove_state_t
-	if (flags & PS_M_TYPE) state->pmove.pm_type = MSG_ReadByte (&net_message);
-	if (flags & PS_M_ORIGIN) MSG_ReadPos32(&net_message, state->pmove.origin ); 
-	if (flags & PS_M_VELOCITY) MSG_ReadPos32(&net_message, state->pmove.velocity ); 
-	if (flags & PS_M_TIME) state->pmove.pm_time = MSG_ReadByte (&net_message);
-	if (flags & PS_M_FLAGS) state->pmove.pm_flags = MSG_ReadByte (&net_message);
-	if (flags & PS_M_GRAVITY) state->pmove.gravity = MSG_ReadShort (&net_message);
-	if (flags & PS_M_DELTA_ANGLES) MSG_ReadPos32(&net_message, state->pmove.delta_angles ); 
+	if (flags & PS_M_TYPE) state->pm_type = MSG_ReadByte (&net_message);
+	if (flags & PS_M_ORIGIN) MSG_ReadPos32(&net_message, state->origin ); 
+	if (flags & PS_M_VELOCITY) MSG_ReadPos32(&net_message, state->velocity ); 
+	if (flags & PS_M_TIME) state->pm_time = MSG_ReadByte (&net_message);
+	if (flags & PS_M_FLAGS) state->pm_flags = MSG_ReadByte (&net_message);
+	if (flags & PS_M_GRAVITY) state->gravity = MSG_ReadShort (&net_message);
+	if (flags & PS_M_DELTA_ANGLES) MSG_ReadPos32(&net_message, state->delta_angles ); 
 
 	if(cls.state == ca_cinematic || cl.servercount > 0x10000)
-		state->pmove.pm_type = PM_FREEZE; // demo or movie playback
+		state->pm_type = PM_FREEZE; // demo or movie playback
 
 	// parse the rest of the player_state_t
 	if (flags & PS_VIEWOFFSET)
@@ -332,33 +332,33 @@ void CL_ParsePlayerstate (frame_t *oldframe, frame_t *newframe)
 
 	if (flags & PS_WEAPONINDEX)
 	{
-		state->gunindex = MSG_ReadByte (&net_message);
+		state->vmodel.index = MSG_ReadByte (&net_message);
 	}
 
 	if (flags & PS_WEAPONFRAME)
 	{
-		state->gunframe = MSG_ReadByte (&net_message);
-		state->gunoffset[0] = MSG_ReadChar (&net_message)*0.25;
-		state->gunoffset[1] = MSG_ReadChar (&net_message)*0.25;
-		state->gunoffset[2] = MSG_ReadChar (&net_message)*0.25;
-		state->gunangles[0] = MSG_ReadChar (&net_message)*0.25;
-		state->gunangles[1] = MSG_ReadChar (&net_message)*0.25;
-		state->gunangles[2] = MSG_ReadChar (&net_message)*0.25;
+		state->vmodel.frame = MSG_ReadByte (&net_message);
+		state->vmodel.offset[0] = MSG_ReadChar (&net_message)*0.25;
+		state->vmodel.offset[1] = MSG_ReadChar (&net_message)*0.25;
+		state->vmodel.offset[2] = MSG_ReadChar (&net_message)*0.25;
+		state->vmodel.angles[0] = MSG_ReadChar (&net_message)*0.25;
+		state->vmodel.angles[1] = MSG_ReadChar (&net_message)*0.25;
+		state->vmodel.angles[2] = MSG_ReadChar (&net_message)*0.25;
 	}
 
 	if (flags & PS_WEAPONSEQUENCE)
 	{
-		state->sequence = MSG_ReadByte (&net_message);
+		state->vmodel.sequence = MSG_ReadByte (&net_message);
 	}
 
 	if (flags & PS_WEAPONBODY)
 	{
-		state->gunbody = MSG_ReadByte (&net_message);
+		state->vmodel.body = MSG_ReadByte (&net_message);
 	}
 	
 	if (flags & PS_WEAPONSKIN)
 	{
-		state->gunskin = MSG_ReadByte (&net_message);
+		state->vmodel.skin = MSG_ReadByte (&net_message);
 	}
 
 	if (flags & PS_BLEND)
@@ -373,7 +373,7 @@ void CL_ParsePlayerstate (frame_t *oldframe, frame_t *newframe)
 		state->fov = MSG_ReadByte (&net_message);
 
 	if (flags & PS_RDFLAGS)
-		state->rdflags = MSG_ReadByte (&net_message);
+		state->effects = MSG_ReadByte (&net_message);
 
 	// parse stats
 	statbits = MSG_ReadLong (&net_message);
@@ -494,7 +494,7 @@ void CL_ParseFrame (void)
 		{
 			cls.state = ca_active;
 			cl.force_refdef = true;
-			VectorScale( cl.frame.playerstate.pmove.origin, CL_COORD_FRAC, cl.predicted_origin );
+			VectorCopy( cl.frame.playerstate.origin, cl.predicted_origin );
 			VectorCopy( cl.frame.playerstate.viewangles, cl.predicted_angles );
 		}
 		// fire entity events
@@ -739,14 +739,14 @@ void CL_AddViewWeapon (player_state_t *ps, player_state_t *ops)
 	memset (&gun, 0, sizeof(gun));
 
 	if (gun_model) gun.model = gun_model; // development tool
-	else gun.model = cl.model_draw[ps->gunindex];
+	else gun.model = cl.model_draw[ps->vmodel.index];
 	if (!gun.model) return;
 
 	// set up gun position
 	for (i = 0; i < 3; i++)
 	{
-		gun.origin[i] = cl.refdef.vieworg[i] + ops->gunoffset[i] + cl.lerpfrac * (ps->gunoffset[i] - ops->gunoffset[i]);
-		gun.angles[i] = cl.refdef.viewangles[i] + LerpAngle (ops->gunangles[i], ps->gunangles[i], cl.lerpfrac);
+		gun.origin[i] = cl.refdef.vieworg[i] + ops->vmodel.offset[i] + cl.lerpfrac * (ps->vmodel.offset[i] - ops->vmodel.offset[i]);
+		gun.angles[i] = cl.refdef.viewangles[i] + LerpAngle (ops->vmodel.angles[i], ps->vmodel.angles[i], cl.lerpfrac);
 	}
 
 	if (gun_frame)
@@ -756,14 +756,14 @@ void CL_AddViewWeapon (player_state_t *ps, player_state_t *ops)
 	}
 	else
 	{
-		gun.frame = ps->gunframe;
+		gun.frame = ps->vmodel.frame;
 		if (gun.frame == 0) gun.prev.frame = 0;	// just changed weapons, don't lerp from old
-		else gun.prev.frame = ops->gunframe;
+		else gun.prev.frame = ops->vmodel.frame;
 	}
 
-	gun.body = ps->gunbody;
-	gun.skin = ps->gunskin;
-	gun.sequence = ps->sequence;
+	gun.body = ps->vmodel.body;
+	gun.skin = ps->vmodel.skin;
+	gun.sequence = ps->vmodel.sequence;
 
 	gun.flags = RF_MINLIGHT | RF_DEPTHHACK | RF_WEAPONMODEL;
 	gun.backlerp = 1.0 - cl.lerpfrac;
@@ -796,16 +796,16 @@ void CL_CalcViewValues (void)
 	ops = &oldframe->playerstate;
 
 	// see if the player entity was teleported this frame
-	if (fabs(ops->pmove.origin[0] - ps->pmove.origin[0]) > 2048
-		|| fabs(ops->pmove.origin[1] - ps->pmove.origin[1]) > 2048
-		|| fabs(ops->pmove.origin[2] - ps->pmove.origin[2]) > 2048)
+	if (fabs(ops->origin[0] - ps->origin[0]) > 2048
+		|| fabs(ops->origin[1] - ps->origin[1]) > 2048
+		|| fabs(ops->origin[2] - ps->origin[2]) > 2048)
 		ops = ps;	// don't interpolate
 
 	ent = &cl_entities[cl.playernum+1];
 	lerp = cl.lerpfrac;
 
 	// calculate the origin
-	if ((cl_predict->value) && !(cl.frame.playerstate.pmove.pm_flags & PMF_NO_PREDICTION))
+	if ((cl_predict->value) && !(cl.frame.playerstate.pm_flags & PMF_NO_PREDICTION))
 	{	
 		// use predicted values
 		float	delta;
@@ -826,11 +826,11 @@ void CL_CalcViewValues (void)
 	else
 	{	// just use interpolated values
 		for (i = 0; i < 3; i++)
-			cl.refdef.vieworg[i] = LerpView( ops->pmove.origin[i], ps->pmove.origin[i], ops->viewoffset[i], ps->viewoffset[i], lerp );
+			cl.refdef.vieworg[i] = LerpView( ops->origin[i], ps->origin[i], ops->viewoffset[i], ps->viewoffset[i], lerp );
 	}
 
 	// if not running a demo or on a locked frame, add the local angle movement
-	if ( cl.frame.playerstate.pmove.pm_type < PM_DEAD )
+	if ( cl.frame.playerstate.pm_type < PM_DEAD )
 	{	
 		// use predicted values
 		for (i = 0; i < 3; i++) cl.refdef.viewangles[i] = cl.predicted_angles[i];

@@ -102,7 +102,7 @@ void _MSG_WriteUnterminatedString (sizebuf_t *sb, const char *s, const char *fil
 
 void _MSG_WriteCoord16(sizebuf_t *sb, float f, const char *filename, int fileline)
 {
-	_MSG_WriteShort(sb, (int)(f * SV_COORD_FRAC), filename, fileline );
+	_MSG_WriteShort(sb, (int)(f * 8.0f), filename, fileline );
 }
 
 void _MSG_WriteAngle16 (sizebuf_t *sb, float f, const char *filename, int fileline)
@@ -238,55 +238,67 @@ void _MSG_WriteDeltaEntity (entity_state_t *from, entity_state_t *to, sizebuf_t 
 
 	if (bits & 0xff000000)
 	{
-		_MSG_WriteByte (msg, (bits >> 8 ) & 255, filename, fileline );
-		_MSG_WriteByte (msg, (bits >> 16) & 255, filename, fileline );
-		_MSG_WriteByte (msg, (bits >> 24) & 255, filename, fileline );
+		MSG_WriteByte (msg, (bits >> 8 ) & 255 );
+		MSG_WriteByte (msg, (bits >> 16) & 255 );
+		MSG_WriteByte (msg, (bits >> 24) & 255 );
 	}
 	else if (bits & 0x00ff0000)
 	{
-		_MSG_WriteByte (msg, (bits >> 8 ) & 255, filename, fileline );
-		_MSG_WriteByte (msg, (bits >> 16) & 255, filename, fileline );
+		MSG_WriteByte (msg, (bits >> 8 ) & 255 );
+		MSG_WriteByte (msg, (bits >> 16) & 255 );
 	}
 	else if (bits & 0x0000ff00)
 	{
-		_MSG_WriteByte (msg, (bits >> 8 ) & 255, filename, fileline );
+		MSG_WriteByte (msg, (bits >> 8 ) & 255 );
 	}
-
 	//----------
 
-	if (bits & U_NUMBER16) _MSG_WriteShort (msg, to->number, filename, fileline );
+	if (bits & U_NUMBER16)
+	{
+		MSG_WriteShort (msg, to->number );
+	}
 	else _MSG_WriteByte (msg, to->number, filename, fileline);
 
-	if (bits & U_MODEL) _MSG_WriteShort (msg, to->modelindex, filename, fileline);
+	if (bits & U_MODEL) MSG_WriteShort (msg, to->modelindex );
 	if (bits & U_WEAPONMODEL) _MSG_WriteShort (msg, to->weaponmodel, filename, fileline);
 
 	if (bits & U_FRAME8) _MSG_WriteByte (msg, to->frame, filename, fileline);
-	if (bits & U_FRAME16) _MSG_WriteShort (msg, to->frame, filename, fileline);
+	if (bits & U_FRAME16) MSG_WriteShort (msg, to->frame );
 
 	if (bits & U_SKIN8 ) _MSG_WriteByte (msg, to->skin, filename, fileline);
-	if (bits & U_SKIN16) _MSG_WriteShort (msg, to->skin, filename, fileline);
-
+	if (bits & U_SKIN16) 
+	{
+		MSG_WriteShort( msg, to->skin );
+          }
 	if ( (bits & (U_EFFECTS8|U_EFFECTS16)) == (U_EFFECTS8|U_EFFECTS16))
 		_MSG_WriteLong (msg, to->effects, filename, fileline);
 	else if (bits & U_EFFECTS8) _MSG_WriteByte (msg, to->effects, filename, fileline);
-	else if (bits & U_EFFECTS16) _MSG_WriteShort (msg, to->effects, filename, fileline);
-
+	else if (bits & U_EFFECTS16)
+	{
+		MSG_WriteShort( msg, to->effects );
+          }
 	if ( (bits & (U_RENDERFX8|U_RENDERFX16)) == (U_RENDERFX8|U_RENDERFX16)) 
 		_MSG_WriteLong (msg, to->renderfx, filename, fileline);
 	else if (bits & U_RENDERFX8) _MSG_WriteByte (msg, to->renderfx, filename, fileline);
-	else if (bits & U_RENDERFX16) _MSG_WriteShort (msg, to->renderfx, filename, fileline);
+	else if (bits & U_RENDERFX16) 
+	{
+		MSG_WriteShort( msg, to->renderfx );
+	}
 
-	if (bits & U_ORIGIN1) _MSG_WriteCoord32(msg, to->origin[0], filename, fileline);		
-	if (bits & U_ORIGIN2) _MSG_WriteCoord32(msg, to->origin[1], filename, fileline);
-	if (bits & U_ORIGIN3) _MSG_WriteCoord32(msg, to->origin[2], filename, fileline);
+	if (bits & U_ORIGIN1) MSG_WriteCoord32(msg, to->origin[0]);
+	if (bits & U_ORIGIN2) MSG_WriteCoord32(msg, to->origin[1]);
+	if (bits & U_ORIGIN3) MSG_WriteCoord32(msg, to->origin[2]);
 
-	if (bits & U_ANGLE1) _MSG_WriteAngle32(msg, to->angles[0], filename, fileline);
-	if (bits & U_ANGLE2) _MSG_WriteAngle32(msg, to->angles[1], filename, fileline);
-	if (bits & U_ANGLE3) _MSG_WriteAngle32(msg, to->angles[2], filename, fileline);
+	if (bits & U_ANGLE1) MSG_WriteAngle32(msg, to->angles[0]);
+	if (bits & U_ANGLE2) MSG_WriteAngle32(msg, to->angles[1]);
+	if (bits & U_ANGLE3) MSG_WriteAngle32(msg, to->angles[2]);
 
 	if (bits & U_OLDORIGIN) _MSG_WritePos32(msg, to->old_origin, filename, fileline);
 	if (bits & U_SEQUENCE) _MSG_WriteByte (msg, to->sequence, filename, fileline);
-	if (bits & U_SOLID) _MSG_WriteShort (msg, to->solid, filename, fileline);
+	if (bits & U_SOLID) 
+	{
+		MSG_WriteLong( msg, to->solid );
+	}
 	if (bits & U_ALPHA) _MSG_WriteFloat (msg, to->alpha, filename, fileline);
 	if (bits & U_EVENT) _MSG_WriteByte (msg, to->event, filename, fileline);
 	if (bits & U_SOUNDIDX) _MSG_WriteByte (msg, to->soundindex, filename, fileline); 
@@ -434,7 +446,7 @@ char *MSG_ReadStringLine (sizebuf_t *msg_read)
 
 float MSG_ReadCoord16(sizebuf_t *msg_read)
 {
-	return MSG_ReadShort(msg_read) * CL_COORD_FRAC;
+	return MSG_ReadShort(msg_read) * 0.125f;
 }
 
 float MSG_ReadCoord32(sizebuf_t *msg_read)
@@ -526,7 +538,7 @@ void MSG_ReadDeltaEntity(entity_state_t *from, entity_state_t *to, int number, i
 	if (bits & U_OLDORIGIN) MSG_ReadPos32(&net_message, to->old_origin);
 
 	if (bits & U_SEQUENCE) to->sequence = MSG_ReadByte(&net_message);
-	if (bits & U_SOLID) to->solid = MSG_ReadShort(&net_message);
+	if (bits & U_SOLID) to->solid = MSG_ReadLong(&net_message);
 	if (bits & U_ALPHA) to->alpha = MSG_ReadFloat(&net_message);
 	if (bits & U_EVENT) to->event = MSG_ReadByte (&net_message);
 	if (bits & U_SOUNDIDX) to->soundindex = MSG_ReadByte (&net_message);

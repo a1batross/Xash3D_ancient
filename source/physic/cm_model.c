@@ -122,7 +122,7 @@ void BSP_CreateMeshBuffer( int modelnum )
 
 		// sky is noclip for all physobjects
 		if(flags & SURF_SKY) continue;
-		face = Mem_Alloc( cmappool, m_face->numedges * sizeof(vec3_t));
+		face = Mem_Alloc( loadmodel->mempool, m_face->numedges * sizeof(vec3_t));
 		for(j = 0; j < m_face->numedges; j++ ) 
 		{
 			CM_GetPoint2( k+j, hull.m_pVerts[hull.numverts] );
@@ -133,7 +133,7 @@ void BSP_CreateMeshBuffer( int modelnum )
 	if( hull.numverts )
 	{
 		// grab vertices
-		loadmodel->physmesh[loadmodel->numbodies].verts = Mem_Alloc( cmappool, hull.numverts * sizeof(vec3_t));
+		loadmodel->physmesh[loadmodel->numbodies].verts = Mem_Alloc( loadmodel->mempool, hull.numverts * sizeof(vec3_t));
 		Mem_Copy( loadmodel->physmesh[loadmodel->numbodies].verts, hull.m_pVerts, hull.numverts * sizeof(vec3_t));
 		loadmodel->physmesh[loadmodel->numbodies].numverts = hull.numverts;
 		loadmodel->numbodies++;
@@ -145,9 +145,10 @@ void BSP_LoadModels( lump_t *l )
 	dmodel_t	*in;
 	cmodel_t	*out;
 	int	i, j, count;
+	short	*indexes;
 
 	in = (void *)(cm.mod_base + l->fileofs);
-	if (l->filelen % sizeof(*in)) Host_Error("CMod_LoadSubmodels: funny lump size\n");
+	if (l->filelen % sizeof(*in)) Host_Error("CMod_LoadModels: funny lump size\n");
 	count = l->filelen / sizeof(*in);
 
 	if(count < 1) Host_Error("Map %s without models\n", cm.name );
@@ -167,6 +168,16 @@ void BSP_LoadModels( lump_t *l )
 		out->numfaces = LittleLong( in->numfaces );
 		out->firstbrush = LittleLong( in->firstbrush );
 		out->numbrushes = LittleLong( in->numbrushes );
+
+		com.strncpy( out->name, va("*%i", i ), sizeof(out->name));
+		out->mempool = Mem_AllocPool( out->name );
+
+		// make a "leaf" just to hold the model's brushes and surfaces
+		out->leaf.numleafbrushes = LittleLong( in->numbrushes );
+		indexes = Mem_Alloc( out->mempool, out->leaf.numleafbrushes * sizeof(short));
+		out->leaf.firstleafbrush = indexes - cm.leafbrushes;
+		for( j = 0; j < out->leaf.numleafbrushes; j++ )
+			indexes[j] = LittleLong( in->firstbrush ) + j;
 		BSP_CreateMeshBuffer( i ); // bsp physic
 	}
 }
@@ -863,7 +874,7 @@ CM_FreeModel
 void CM_FreeModel( cmodel_t *mod )
 {
 	Mem_FreePool( &mod->mempool );
-	memset(mod->physmesh, 0, MAXSTUDIOMODELS*sizeof(cmesh_t));
+	memset(mod->physmesh, 0, MAXSTUDIOMODELS * sizeof(cmesh_t));
 	memset(mod, 0, sizeof(*mod));
 	mod = NULL;
 }
@@ -880,14 +891,12 @@ void CM_EndRegistration( void )
 		if(mod->registration_sequence != registration_sequence)
 			CM_FreeModel( mod );
 	}
-#if 0
 	for (i = 0, mod = &cm.bmodels[0]; i < cm.numbmodels; i++, mod++)
 	{
 		if(!mod->name[0]) continue;
 		if(mod->registration_sequence != registration_sequence)
 			CM_FreeModel( mod );
 	}
-#endif
 }
 
 int CM_LeafContents( int leafnum )

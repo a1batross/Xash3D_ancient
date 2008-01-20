@@ -22,14 +22,6 @@
 #define AI_SPECTATOR			(1<<12)		// spectator mode for clients
 #define AI_WATERJUMP			(1<<13)		// npc or player take out of water
 
-// link_t is only used for entity area links now
-typedef struct link_s
-{
-	struct link_s	*prev;
-	struct link_s	*next;
-	int		entnum; // get edict by number
-} link_t;
-
 typedef struct worldsector_s
 {
 	int			axis;		// -1 = leaf node
@@ -42,14 +34,6 @@ struct gclient_s
 {
 	player_state_t		ps;		// communicated by server to clients
 	int			ping;
-
-	pmove_state_t		old_pmove;	// for detecting out-of-pmove changes
-	vec3_t			v_angle;		// aiming direction
-
-	vec3_t			oldviewangles;
-	vec3_t			oldvelocity;
-
-	float			bobtime;		// so off-ground doesn't change it
 };
 
 struct sv_edict_s
@@ -61,7 +45,6 @@ struct sv_edict_s
 	// sv_private_edict_t
 	worldsector_t		*worldsector;	// member of current wolrdsector
 	struct sv_edict_s 		*nextedict;	// next edict in world sector
-	link_t			area;		// linked to a division node or leaf
 	int			clipmask;		// trace info
 	int			lastcluster;	// unused if num_clusters != -1
 	int			linkcount;

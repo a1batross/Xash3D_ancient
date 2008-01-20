@@ -17,8 +17,8 @@
 #endif
 
 // network precision coords factor
-#define SV_COORD_FRAC	(8.0f / 1.0f)
-#define CL_COORD_FRAC	(1.0f / 8.0f)
+#define SV_COORD_FRAC	(1.0f)
+#define CL_COORD_FRAC	(1.0f)
 #define SV_ANGLE_FRAC	(360.0f / 1.0f )
 #define CL_ANGLE_FRAC	(1.0f / 360.0f )
 
@@ -218,9 +218,28 @@ _inline vec_t VectorNormalize (vec3_t v)
 		v[1] *= ilength;
 		v[2] *= ilength;
 	}
-		
 	return length;
+}
 
+_inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
+{
+	float	length, ilength;
+
+	length = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
+	length = sqrt( length );// FIXME
+
+	if (length)
+	{
+		ilength = 1/length;
+		out[0] *= ilength;
+		out[1] *= ilength;
+		out[2] *= ilength;
+	}
+	else
+	{
+		VectorClear( out );
+	}
+	return length;
 }
 
 _inline void VectorRotate (const vec3_t in1, vec3_t in2[3], vec3_t out)

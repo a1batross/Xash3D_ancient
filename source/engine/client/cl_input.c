@@ -583,7 +583,7 @@ void CL_ClampPitch (void)
 {
 	float	pitch;
 
-	pitch = SHORT2ANGLE(cl.frame.playerstate.pmove.delta_angles[PITCH]);
+	pitch = SHORT2ANGLE(cl.frame.playerstate.delta_angles[PITCH]);
 	if (pitch > 180) pitch -= 360;
 
 	if (cl.viewangles[PITCH] + pitch < -360) cl.viewangles[PITCH] += 360; // wrapped
@@ -663,7 +663,7 @@ usercmd_t CL_CreateCmd (void)
 
 void IN_CenterView (void)
 {
-	cl.viewangles[PITCH] = -SHORT2ANGLE(cl.frame.playerstate.pmove.delta_angles[PITCH]);
+	cl.viewangles[PITCH] = -SHORT2ANGLE(cl.frame.playerstate.delta_angles[PITCH]);
 }
 
 /*

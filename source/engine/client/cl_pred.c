@@ -29,10 +29,9 @@ void CL_CheckPredictionError (void)
 {
 	int		frame;
 	int		delta[3];
-	int		i;
 	int		len;
 
-	if (!cl_predict->value || (cl.frame.playerstate.pmove.pm_flags & PMF_NO_PREDICTION))
+	if (!cl_predict->value || (cl.frame.playerstate.pm_flags & PMF_NO_PREDICTION))
 		return;
 
 	// calculate the last usercmd_t we sent that the server has processed
@@ -40,7 +39,7 @@ void CL_CheckPredictionError (void)
 	frame &= (CMD_BACKUP-1);
 
 	// compare what the server returned with what we had predicted it to be
-	VectorSubtract (cl.frame.playerstate.pmove.origin, cl.predicted_origins[frame], delta);
+	VectorSubtract (cl.frame.playerstate.origin, cl.predicted_origins[frame], delta);
 
 	// save the prediction error for interpolation
 	len = abs(delta[0]) + abs(delta[1]) + abs(delta[2]);
@@ -53,10 +52,10 @@ void CL_CheckPredictionError (void)
 		if (cl_showmiss->value && (delta[0] || delta[1] || delta[2]))
 			Msg ("prediction miss on %i: %i\n", cl.frame.serverframe, delta[0] + delta[1] + delta[2]);
 
-		VectorCopy (cl.frame.playerstate.pmove.origin, cl.predicted_origins[frame]);
+		VectorCopy (cl.frame.playerstate.origin, cl.predicted_origins[frame]);
 
 		// save for error itnerpolation
-		for (i = 0; i < 3; i++) cl.prediction_error[i] = delta[i] * CL_COORD_FRAC;
+		VectorCopy( delta, cl.prediction_error );
 	}
 }
 
@@ -85,7 +84,7 @@ void CL_ClipMoveToEntities ( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end,
 		if(!ent->solid) continue;
 		if(ent->number == cl.playernum + 1) continue;
 
-		if( ent->solid == 31 )
+		if( ent->solid == SOLID_BMODEL )
 		{	
 			// special value for bmodel
 			cmodel = cl.model_clip[ent->modelindex];
@@ -94,9 +93,9 @@ void CL_ClipMoveToEntities ( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end,
 		}
 		else
 		{	// encoded bbox
-			x = 8*(ent->solid & 31);
-			zd = 8*((ent->solid>>5) & 31);
-			zu = 8*((ent->solid>>10) & 63) - 32;
+			x =  (ent->solid & 255);
+			zd = ((ent->solid>>8) & 255);
+			zu = ((ent->solid>>16) & 255) - 32;
 
 			bmins[0] = bmins[1] = -x;
 			bmaxs[0] = bmaxs[1] = x;
@@ -157,7 +156,7 @@ int CL_PMpointcontents( vec3_t point )
 		num = (cl.frame.parse_entities + i)&(MAX_PARSE_ENTITIES-1);
 		ent = &cl_parse_entities[num];
 
-		if (ent->solid != 31) // special value for bmodel
+		if (ent->solid != SOLID_BMODEL) // special value for bmodel
 			continue;
 
 		cmodel = cl.model_clip[ent->modelindex];
@@ -190,12 +189,12 @@ void CL_PredictMovement (void)
 	if(cls.state != ca_active) return;
 	if(cl_paused->value) return;
 
-	if (!cl_predict->value || (cl.frame.playerstate.pmove.pm_flags & PMF_NO_PREDICTION))
+	if (!cl_predict->value || (cl.frame.playerstate.pm_flags & PMF_NO_PREDICTION))
 	{	
 		// just set angles
 		for (i = 0; i < 3; i++)
 		{
-			cl.predicted_angles[i] = cl.viewangles[i] + SHORT2ANGLE(cl.frame.playerstate.pmove.delta_angles[i]);
+			cl.predicted_angles[i] = cl.viewangles[i] + SHORT2ANGLE(cl.frame.playerstate.delta_angles[i]);
 		}
 		return;
 	}
@@ -218,7 +217,7 @@ void CL_PredictMovement (void)
 
 	pm_airaccelerate = atof(cl.configstrings[CS_AIRACCEL]);
 
-	pm.s = cl.frame.playerstate.pmove;
+	pm.ps = cl.frame.playerstate;
 
 //	SCR_DebugGraph (current - ack - 1, COLOR_0);
 
@@ -234,19 +233,19 @@ void CL_PredictMovement (void)
 		Pmove (&pm);
 
 		// save for debug checking
-		VectorCopy (pm.s.origin, cl.predicted_origins[frame]);
+		VectorCopy (pm.ps.origin, cl.predicted_origins[frame]);
 	}
 
 	oldframe = (ack-2) & (CMD_BACKUP-1);
 	oldz = cl.predicted_origins[oldframe][2];
-	step = pm.s.origin[2] - oldz;
-	if (step > 63 && step < 160 && (pm.s.pm_flags & PMF_ON_GROUND))
+	step = pm.ps.origin[2] - oldz;
+	if (step > 63 && step < 160 )//&& (pm.ps.pm_flags & PMF_ON_GROUND))
 	{
 		cl.predicted_step = step;
 		cl.predicted_step_time = cls.realtime - cls.frametime * 0.5f;
 	}
 
 	// copy results out for rendering
-	VectorScale(pm.s.origin, CL_COORD_FRAC, cl.predicted_origin);
-	VectorCopy(pm.viewangles, cl.predicted_angles);
+	VectorCopy(pm.ps.origin, cl.predicted_origin);
+	VectorCopy(pm.ps.viewangles, cl.predicted_angles);
 }

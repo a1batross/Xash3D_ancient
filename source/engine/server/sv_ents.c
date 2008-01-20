@@ -20,7 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "engine.h"
 #include "server.h"
-#include "collision.h"
 
 /*
 =============================================================================
@@ -167,13 +166,13 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 	else ops = &from->ps;
 
 	// determine what needs to be sent
-	if (ps->pmove.pm_type != ops->pmove.pm_type) pflags |= PS_M_TYPE;
-	if(!VectorCompare(ps->pmove.origin, ops->pmove.origin)) pflags |= PS_M_ORIGIN;
-	if(!VectorCompare(ps->pmove.velocity, ops->pmove.velocity)) pflags |= PS_M_VELOCITY;
-	if (ps->pmove.pm_time != ops->pmove.pm_time) pflags |= PS_M_TIME;
-	if (ps->pmove.pm_flags != ops->pmove.pm_flags) pflags |= PS_M_FLAGS;
-	if (ps->pmove.gravity != ops->pmove.gravity) pflags |= PS_M_GRAVITY;
-	if(!VectorCompare(ps->pmove.delta_angles, ops->pmove.delta_angles)) pflags |= PS_M_DELTA_ANGLES;
+	if (ps->pm_type != ops->pm_type) pflags |= PS_M_TYPE;
+	if(!VectorCompare(ps->origin, ops->origin)) pflags |= PS_M_ORIGIN;
+	if(!VectorCompare(ps->velocity, ops->velocity)) pflags |= PS_M_VELOCITY;
+	if (ps->pm_time != ops->pm_time) pflags |= PS_M_TIME;
+	if (ps->pm_flags != ops->pm_flags) pflags |= PS_M_FLAGS;
+	if (ps->gravity != ops->gravity) pflags |= PS_M_GRAVITY;
+	if(!VectorCompare(ps->delta_angles, ops->delta_angles)) pflags |= PS_M_DELTA_ANGLES;
 	if(!VectorCompare(ps->viewoffset, ops->viewoffset)) pflags |= PS_VIEWOFFSET;
 	if(!VectorCompare(ps->viewangles, ops->viewangles)) pflags |= PS_VIEWANGLES;
 	if(!VectorCompare(ps->kick_angles, ops->kick_angles)) pflags |= PS_KICKANGLES;
@@ -182,11 +181,11 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 		pflags |= PS_BLEND;
 
 	if (ps->fov != ops->fov) pflags |= PS_FOV;
-	if (ps->rdflags != ops->rdflags) pflags |= PS_RDFLAGS;
-	if (ps->gunframe != ops->gunframe) pflags |= PS_WEAPONFRAME;
-	if (ps->sequence != ops->sequence) pflags |= PS_WEAPONSEQUENCE;
-	if (ps->gunbody != ops->gunbody) pflags |= PS_WEAPONBODY;
-	if (ps->gunskin != ops->gunskin) pflags |= PS_WEAPONSKIN;
+	if (ps->effects != ops->effects) pflags |= PS_RDFLAGS;
+	if (ps->vmodel.frame != ops->vmodel.frame) pflags |= PS_WEAPONFRAME;
+	if (ps->vmodel.sequence != ops->vmodel.sequence) pflags |= PS_WEAPONSEQUENCE;
+	if (ps->vmodel.body != ops->vmodel.body) pflags |= PS_WEAPONBODY;
+	if (ps->vmodel.skin != ops->vmodel.skin) pflags |= PS_WEAPONSKIN;
 
 	pflags |= PS_WEAPONINDEX;
 
@@ -195,14 +194,14 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 	MSG_WriteLong (msg, pflags);
 
 	// write the pmove_state_t
-	if (pflags & PS_M_TYPE) MSG_WriteByte (msg, ps->pmove.pm_type);
+	if (pflags & PS_M_TYPE) MSG_WriteByte (msg, ps->pm_type);
 
-	if (pflags & PS_M_ORIGIN) MSG_WritePos32(msg, ps->pmove.origin);
-	if (pflags & PS_M_VELOCITY) MSG_WritePos32(msg, ps->pmove.velocity);
-	if (pflags & PS_M_TIME) MSG_WriteByte (msg, ps->pmove.pm_time);
-	if (pflags & PS_M_FLAGS) MSG_WriteByte (msg, ps->pmove.pm_flags);
-	if (pflags & PS_M_GRAVITY) MSG_WriteShort (msg, ps->pmove.gravity);
-	if (pflags & PS_M_DELTA_ANGLES) MSG_WritePos32(msg, ps->pmove.delta_angles);
+	if (pflags & PS_M_ORIGIN) MSG_WritePos32(msg, ps->origin);
+	if (pflags & PS_M_VELOCITY) MSG_WritePos32(msg, ps->velocity);
+	if (pflags & PS_M_TIME) MSG_WriteByte (msg, ps->pm_time);
+	if (pflags & PS_M_FLAGS) MSG_WriteByte (msg, ps->pm_flags);
+	if (pflags & PS_M_GRAVITY) MSG_WriteShort (msg, ps->gravity);
+	if (pflags & PS_M_DELTA_ANGLES) MSG_WritePos32(msg, ps->delta_angles);
 
 	//
 	// write the rest of the player_state_t
@@ -230,33 +229,33 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 
 	if (pflags & PS_WEAPONINDEX)
 	{
-		MSG_WriteByte (msg, ps->gunindex);
+		MSG_WriteByte (msg, ps->vmodel.index);
 	}
 
 	if (pflags & PS_WEAPONFRAME)
 	{
-		MSG_WriteByte (msg, ps->gunframe);
-		MSG_WriteChar (msg, ps->gunoffset[0]*4);
-		MSG_WriteChar (msg, ps->gunoffset[1]*4);
-		MSG_WriteChar (msg, ps->gunoffset[2]*4);
-		MSG_WriteChar (msg, ps->gunangles[0]*4);
-		MSG_WriteChar (msg, ps->gunangles[1]*4);
-		MSG_WriteChar (msg, ps->gunangles[2]*4);
+		MSG_WriteByte (msg, ps->vmodel.frame);
+		MSG_WriteChar (msg, ps->vmodel.offset[0]*4);
+		MSG_WriteChar (msg, ps->vmodel.offset[1]*4);
+		MSG_WriteChar (msg, ps->vmodel.offset[2]*4);
+		MSG_WriteChar (msg, ps->vmodel.angles[0]*4);
+		MSG_WriteChar (msg, ps->vmodel.angles[1]*4);
+		MSG_WriteChar (msg, ps->vmodel.angles[2]*4);
 	}
 
 	if (pflags & PS_WEAPONSEQUENCE)
 	{
-		MSG_WriteByte (msg, ps->sequence);
+		MSG_WriteByte (msg, ps->vmodel.sequence);
 	}
 
 	if (pflags & PS_WEAPONBODY)
 	{
-		MSG_WriteByte (msg, ps->gunbody);
+		MSG_WriteByte (msg, ps->vmodel.body);
 	}
 	
 	if (pflags & PS_WEAPONSKIN)
 	{
-		MSG_WriteByte (msg, ps->gunskin);
+		MSG_WriteByte (msg, ps->vmodel.skin);
 	}
 
 	if (pflags & PS_BLEND)
@@ -269,7 +268,7 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 	if (pflags & PS_FOV)
 		MSG_WriteByte (msg, ps->fov);
 	if (pflags & PS_RDFLAGS)
-		MSG_WriteByte (msg, ps->rdflags);
+		MSG_WriteByte (msg, ps->effects);
 
 	// send stats
 	statbits = 0;
@@ -339,55 +338,6 @@ Build a client frame structure
 
 =============================================================================
 */
-
-byte		fatpvs[MAX_MAP_LEAFS/8];	// 32767 is MAX_MAP_LEAFS
-
-/*
-============
-SV_FatPVS
-
-The client will interpolate the view position,
-so we can't use a single PVS point
-===========
-*/
-void SV_FatPVS (vec3_t org)
-{
-	int		leafs[64];
-	int		i, j, count;
-	int		longs;
-	byte		*src;
-	vec3_t		mins, maxs;
-
-	for (i = 0; i < 3; i++)
-	{
-		mins[i] = org[i] - SV_COORD_FRAC;
-		maxs[i] = org[i] + SV_COORD_FRAC;
-	}
-
-	count = pe->BoxLeafnums (mins, maxs, leafs, 64, NULL);
-	if (count < 1) Host_Error("SV_FatPVS: count < 1\n");
-	longs = (pe->NumClusters()+31)>>5;
-
-	// convert leafs to clusters
-	for (i = 0; i < count; i++) leafs[i] = pe->LeafCluster(leafs[i]);
-
-	Mem_Copy(fatpvs, pe->ClusterPVS(leafs[0]), longs<<2);
-
-	// or in all the other leaf bits
-	for (i = 1; i < count; i++)
-	{
-		for (j = 0; j < i; j++)
-		{
-			if (leafs[i] == leafs[j])
-				break;
-		}
-		if (j != i) continue; // already have the cluster we want
-		src = pe->ClusterPVS(leafs[i]);
-		for (j = 0; j < longs; j++) ((long *)fatpvs)[j] |= ((long *)src)[j];
-	}
-}
-
-
 /*
 =============
 SV_BuildClientFrame
@@ -421,7 +371,7 @@ void SV_BuildClientFrame (client_state_t *client)
 	frame->senttime = svs.realtime; // save it for ping calc later
 
 	// find the client's PVS
-	VectorScale( clent->priv.sv->client->ps.pmove.origin, CL_COORD_FRAC, org ); 
+	VectorCopy( clent->priv.sv->client->ps.origin, org ); 
 	VectorAdd( org, clent->priv.sv->client->ps.viewoffset, org );  
 
 	leafnum = pe->PointLeafnum (org);
