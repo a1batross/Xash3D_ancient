@@ -27,6 +27,15 @@ uint cubemap_image_type;	// shared image type
 char *suf[6] = {"ft", "bk", "rt", "lf", "up", "dn"};
 #define LERPBYTE(i) r = resamplerow1[i];out[i] = (byte) ((((resamplerow2[i] - r) * lerp) >> 16) + r)
 
+// palette stuff
+#define LUMP_NORMAL		0
+#define LUMP_TRANSPARENT	1
+#define LUMP_DECAL		2
+#define LUMP_QFONT		3
+
+uint d_currentpal[256];
+int d_rendermode = LUMP_NORMAL;
+
 //=======================================================================
 //			IMGLIB COMMON TOOLS
 //=======================================================================
@@ -47,6 +56,129 @@ bool Image_ValidSize( char *name )
 		MsgWarn( "Image_ValidSize: (%s) dimensions out of range [%dx%d]\n", name, image_width, image_height );
 		return false;
 	}
+	return true;
+}
+
+void Image_SetPalette( byte *pal, uint *d_table )
+{
+	int	i;
+	byte	rgba[4];
+	
+	// setup palette
+	switch( d_rendermode )
+	{
+	case LUMP_DECAL:
+		for(i = 0; i < 256; i++)
+		{
+			rgba[3] = pal[765];
+			rgba[2] = pal[766];
+			rgba[1] = pal[767];
+			rgba[0] = i;
+			d_table[i] = BuffBigLong( rgba );
+		}
+		break;
+	case LUMP_TRANSPARENT:
+		for (i = 0; i < 256; i++)
+		{
+			rgba[3] = pal[i*3+0];
+			rgba[2] = pal[i*3+1];
+			rgba[1] = pal[i*3+2];
+			rgba[0] = pal[i] == 255 ? pal[i] : 0xFF;
+			d_table[i] = BuffBigLong( rgba );
+		}
+		break;
+	case LUMP_QFONT:
+		for (i = 1; i < 256; i++)
+		{
+			rgba[3] = pal[i*3+0];
+			rgba[2] = pal[i*3+1];
+			rgba[1] = pal[i*3+2];
+			rgba[0] = 0xFF;
+			d_table[i] = BuffBigLong( rgba );
+		}
+		break;
+	case LUMP_NORMAL:
+		for (i = 0; i < 256; i++)
+		{
+			rgba[3] = pal[i*3+0];
+			rgba[2] = pal[i*3+1];
+			rgba[1] = pal[i*3+2];
+			rgba[0] = 0xFF;
+			d_table[i] = BuffBigLong( rgba );
+		}
+		break;
+	}
+}
+
+void Image_GetPalette( byte *pal, int rendermode )
+{
+	d_rendermode = rendermode;
+
+	if( !pal )
+	{
+		MsgDev(D_ERROR, "Image_GetPalette: palette not found\n" );
+		return;
+	}
+
+	Image_SetPalette( pal, d_currentpal );
+	d_currentpal[255] &= LittleLong(0xffffff);
+}
+
+/*
+============
+Image_Copy8bitRGBA
+
+NOTE: must call Image_GetPaletteXXX before used
+============
+*/
+bool Image_Copy8bitRGBA(const byte *in, byte *out, int pixels)
+{
+	int *iout = (int *)out;
+
+	if(!d_currentpal)
+	{
+		MsgDev(D_ERROR,"Image_Copy8bitRGBA: no palette set\n");
+		return false;
+	}
+	if(!in)
+	{
+		MsgDev(D_ERROR,"Image_Copy8bitRGBA: no input image\n");
+		return false;
+	}
+
+	while (pixels >= 8)
+	{
+		iout[0] = d_currentpal[in[0]];
+		iout[1] = d_currentpal[in[1]];
+		iout[2] = d_currentpal[in[2]];
+		iout[3] = d_currentpal[in[3]];
+		iout[4] = d_currentpal[in[4]];
+		iout[5] = d_currentpal[in[5]];
+		iout[6] = d_currentpal[in[6]];
+		iout[7] = d_currentpal[in[7]];
+		in += 8;
+		iout += 8;
+		pixels -= 8;
+	}
+	if (pixels & 4)
+	{
+		iout[0] = d_currentpal[in[0]];
+		iout[1] = d_currentpal[in[1]];
+		iout[2] = d_currentpal[in[2]];
+		iout[3] = d_currentpal[in[3]];
+		in += 4;
+		iout += 4;
+	}
+	if (pixels & 2)
+	{
+		iout[0] = d_currentpal[in[0]];
+		iout[1] = d_currentpal[in[1]];
+		in += 2;
+		iout += 2;
+	}
+	if (pixels & 1) // last byte
+		iout[0] = d_currentpal[in[0]];
+
 	return true;
 }
 
@@ -390,7 +522,7 @@ void Image_Resample24Nolerp(const void *indata, int inwidth, int inheight, void 
 Image_Resample
 ================
 */
-byte *Image_Resample (const void *indata, int inwidth, int inheight, int outwidth, int outheight, int in_type )
+byte *Image_Resample( const void *indata, int inwidth, int inheight, int outwidth, int outheight, int in_type )
 {
 	bool	quality = false; //FIXME
 	byte	*outdata;
@@ -447,8 +579,9 @@ bool Image_Processing( const char *name, rgbdata_t **pix, int width, int height 
 		else if(image->type == PF_RGB_24)  pixel = 3;
 		else if(image->type == PF_RGB_24_FLIP) pixel = 3;
 		else return false; // unknown format
-		MsgDev(D_INFO,"Resampling %s from[%d x %d] to [%d x %d]\n",name, image->width, image->height,w,h );
-		Mem_Move( Sys.imagepool, &image->buffer, out, w * h * pixel ); // update image->buffer
+		MsgDev(D_INFO, "Resampling %s from[%d x %d] to [%d x %d]\n", name, image->width, image->height, w, h );
+		image->buffer = out;
+// Mem_Move( Sys.imagepool, &image->buffer, out, w * h * pixel ); // update image->buffer
 		image->width = w, image->height = h;
 		image->size = w * h * pixel;
 		*pix = image;
@@ -818,6 +951,69 @@ bool LoadTGA( char *name, char *buffer, int filesize )
 }
 
 /*
+============
+LoadMIP
+============
+*/
+bool LoadMIP( char *name, char *buffer, int filesize )
+{
+	mip_t	mip;
+	byte	*fin, *pal;
+	int	ofs[4], rendermode;
+	int	i, pixels, numcolors;
+
+	if(filesize < (int)sizeof(mip))
+	{
+		MsgWarn("LoadMIP: file (%s) have invalid size\n", name );
+		return false;
+	}
+
+	Mem_Copy(&mip, buffer, sizeof(mip));
+	image_width = LittleLong(mip.width);
+	image_height = LittleLong(mip.height);
+	for(i = 0; i < 4; i++) ofs[i] = LittleLong(mip.offsets[i]);
+	pixels = image_width * image_height;
+	image_num_layers = 1;
+	image_type = PF_RGBA_32;
+
+	if(filesize >= (int)sizeof(mip) + ((pixels * 85)>>6) + sizeof(short) + 768)
+	{
+		// half-life 1.0.0.1 mip version with palette
+		fin = buffer + mip.offsets[0];
+		pal = buffer + mip.offsets[0] + (((image_width * image_height) * 85)>>6);
+		numcolors = BuffLittleShort( pal );
+		if(numcolors != 256) pal = NULL; // corrupted mip ?
+		else  pal += sizeof(short); // skip colorsize 
+		// detect rendermode
+		if( name[0] == '{' )
+		{
+			// note: i trying determine transparent miptex by last color in palette
+			// e.g. valve used in their textures blue color (0,0,255)
+			// other cases for red (255,0,0) ang green (0,255,0) colors,
+			// otherwise - it will use decal palette with ugly results. ughgrrr..
+			if(pal[255*3+0] == 0 && pal[255*3+1] == 0 && pal[255*3+2] == 255 && pal[255*3+3] == 0)
+				rendermode = LUMP_TRANSPARENT;
+			else if(pal[255*3+0] == 0 && pal[255*3+1] == 255 && pal[255*3+2] == 0 && pal[255*3+3] == 0)
+				rendermode = LUMP_TRANSPARENT;
+			else if(pal[255*3+0] == 255 && pal[255*3+1] == 0 && pal[255*3+2] == 0 && pal[255*3+3] == 0)
+				rendermode = LUMP_TRANSPARENT;
+			else rendermode = LUMP_DECAL;
+			image_flags |= IMAGE_HAS_ALPHA;
+		}
+		else rendermode = LUMP_NORMAL;
+	}
+	else
+	{
+		MsgWarn("LoadMIP: lump (%s) is corrupted\n", name );
+		return false;
+	} 
+
+	if(!Image_ValidSize( name )) return false;
+	Image_GetPalette( pal, rendermode );
+	return FS_AddMipmapToPack( fin, image_width, image_height );
+}
+
+/*
 =============
 LoadDDS
 =============
@@ -1087,8 +1283,10 @@ loadformat_t load_formats[] =
 {
 	{"textures/%s%s.%s", "dds", LoadDDS},
 	{"textures/%s%s.%s", "tga", LoadTGA},
+	{"textures/%s%s.%s", "mip", LoadMIP},
 	{"%s%s.%s", "dds", LoadDDS},
 	{"%s%s.%s", "tga", LoadTGA},
+	{"%s%s.%s", "mip", LoadMIP},
 	{NULL, NULL}
 };
 
@@ -1162,6 +1360,21 @@ bool FS_AddImageToPack( const char *name )
 	Mem_Free( image_rgba );	// memmove aren't help us
 	image_ptr += image_size; 	// move to next
 	cubemap_num_sides++;	// sides counter
+
+	return true;
+}
+
+bool FS_AddMipmapToPack( const byte *in, int width, int height )
+{
+	int mipsize = width * height;
+	int outsize = width * height * 4;
+
+	// reallocate image buffer
+	image_rgba = Mem_Realloc( Sys.imagepool, image_rgba, image_size + outsize );	
+	if(!Image_Copy8bitRGBA( in, image_rgba + image_size, mipsize ))
+		return false; // pallette not installed
+	image_size += outsize;
+	image_num_mips++;
 
 	return true;
 }

@@ -509,7 +509,7 @@ bool MakeBrushWindings (mapbrush_t *ob)
 ParseBrush
 =================
 */
-void ParseBrush (bsp_entity_t *mapent)
+void ParseBrush( bsp_entity_t *mapent )
 {
 	mapbrush_t	*b;
 	int		i,j, k;
@@ -554,14 +554,14 @@ void ParseBrush (bsp_entity_t *mapent)
 		}
 
 		// read the texturedef
-		Com_GetToken (false);
-		strcpy (td.name, com_token);
+		Com_GetToken( false );
+		strcpy( td.name, com_token );
 
 		if(g_mapversion == VALVE_FORMAT) // Worldcraft 2.2+
                     {
 			// texture U axis
-			Com_GetToken(false);
-			if (strcmp(com_token, "[")) Sys_Error("missing '[' in texturedef (U)");
+			Com_GetToken( false );
+			if(!Com_MatchToken("[")) Sys_Error("missing '[' in texturedef (U)");
 			Com_GetToken(false);
 			td.vects.valve.UAxis[0] = atof(com_token);
 			Com_GetToken(false);

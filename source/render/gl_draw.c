@@ -21,25 +21,29 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // draw.c
 
 #include "gl_local.h"
+#include "r_font.h"
 
-image_t		*draw_chars;
-
-byte def_font[] =
-{
-#include "lhfont.h"
-};
-
+image_t	*draw_chars;
 /*
 =============
 Draw_FindPic
 =============
 */
-image_t	*Draw_FindPic (char *name)
+image_t *Draw_FindPic( char *name )
 {
-	char	fullname[MAX_QPATH];
+	string	fullname;
+	byte	*buffer = NULL;
+	long	bufsize = 0;		
 
-	sprintf (fullname, "graphics/%s", name);
-	return R_FindImage (fullname, NULL, 0, it_pic);
+	//HACKHACK: use default font
+	if(stristr(name, "fonts" ))
+	{
+		buffer = def_font;
+		bufsize = sizeof(def_font);
+	}
+
+	com.snprintf( fullname, MAX_STRING, "graphics/%s", name );
+	return R_FindImage( fullname, buffer, bufsize, it_pic );
 }
 
 
@@ -50,12 +54,6 @@ Draw_InitLocal
 */
 void Draw_InitLocal (void)
 {
-	// load console characters (don't bilerp characters)
-	draw_chars = R_FindImage("graphics/fonts/conchars", def_font, sizeof(def_font), it_pic);
-
-	GL_Bind( draw_chars->texnum[0] );
-	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
 
 /*

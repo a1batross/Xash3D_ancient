@@ -9,11 +9,12 @@
 
 MAINTARGET = mipdec
 OBJS       = $(MAINTARGET).obj
+RES       = $(MAINTARGET).rc
 
 default: $(MAINTARGET).exe
 
-$(MAINTARGET).exe: $(MAINTARGET).obj 
-	$(link) $(OBJS) /out:"mipdec.exe" /subsystem:console /opt:nowin98 /nodefaultlib:"libc.lib"
+$(MAINTARGET).exe: $(MAINTARGET).obj mipdec.res
+	$(link) $(OBJS) mipdec.res /out:"mipdec.exe" /subsystem:console /opt:nowin98 /nodefaultlib:"libc.lib"
 	@del $(MAINTARGET).obj $(MAINTARGET).lib $(MAINTARGET).exp > nul
 	@copy $(MAINTARGET).exe D:\Xash3D\sdk_main\tools\$(MAINTARGET).exe
 	@del $(MAINTARGET).exe
@@ -22,3 +23,6 @@ clean:
 
 .cpp.obj: 
 	$(CC) $(CFLAGS) /c $<
+
+mipdec.res : mipdec.rc
+	$(RC) $(RCFLAGS) /r mipdec.rc

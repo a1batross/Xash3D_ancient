@@ -313,7 +313,7 @@ extern	cvar_t	*cl_predict;
 extern	cvar_t	*cl_footsteps;
 extern	cvar_t	*cl_noskins;
 extern	cvar_t	*cl_autoskins;
-
+extern	cvar_t	*cl_showfps;
 extern	cvar_t	*cl_upspeed;
 extern	cvar_t	*cl_forwardspeed;
 extern	cvar_t	*cl_sidespeed;
@@ -476,6 +476,7 @@ void CL_Quit_f (void);
 void CL_ScreenShot_f( void );
 void CL_LevelShot_f( void );
 void CL_SetSky_f( void );
+void CL_SetFont_f( void );
 void CL_ParseLayout (void);
 
 

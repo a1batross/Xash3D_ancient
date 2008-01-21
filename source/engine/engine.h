@@ -165,6 +165,7 @@ char *Cvar_Userinfo( void );
 char *Cvar_Serverinfo( void );
 void Cmd_WriteVariables( file_t *f );
 bool Cmd_GetMapList (const char *s, char *completedname, int length );
+bool Cmd_GetFontList (const char *s, char *completedname, int length );
 bool Cmd_GetDemoList(const char *s, char *completedname, int length );
 bool Cmd_GetMovieList(const char *s, char *completedname, int length);
 

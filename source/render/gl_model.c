@@ -56,7 +56,7 @@ mleaf_t *Mod_PointInLeaf (vec3_t p, model_t *model)
 {
 	mnode_t		*node;
 	float		d;
-	cplane_t	*plane;
+	cplane_t		*plane;
 	
 	if (!model || !model->nodes) Sys_Error("Mod_PointInLeaf: bad model");
 
@@ -351,9 +351,9 @@ Mod_LoadVertexes
 */
 void Mod_LoadVertexes (lump_t *l)
 {
-	dvertex_t	*in;
-	mvertex_t	*out;
-	int			i, count;
+	dvertex_t		*in;
+	mvertex_t		*out;
+	int		i, count;
 
 	in = (void *)(mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
@@ -379,9 +379,9 @@ Mod_LoadSubmodels
 */
 void Mod_LoadSubmodels (lump_t *l)
 {
-	dmodel_t	*in;
-	mmodel_t	*out;
-	int			i, j, count;
+	dmodel_t		*in;
+	mmodel_t		*out;
+	int		i, j, count;
 
 	in = (void *)(mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
@@ -429,8 +429,8 @@ void Mod_LoadEdges (lump_t *l)
 
 	for ( i=0 ; i<count ; i++, in++, out++)
 	{
-		out->v[0] = (unsigned short)LittleShort(in->v[0]);
-		out->v[1] = (unsigned short)LittleShort(in->v[1]);
+		out->v[0] = (uint)LittleLong(in->v[0]);
+		out->v[1] = (uint)LittleLong(in->v[1]);
 	}
 }
 
@@ -504,7 +504,7 @@ void CalcSurfaceExtents (msurface_t *s)
 {
 	float	mins[2], maxs[2], val;
 	int		i,j, e;
-	mvertex_t	*v;
+	mvertex_t		*v;
 	mtexinfo_t	*tex;
 	int		bmins[2], bmaxs[2];
 
@@ -516,10 +516,8 @@ void CalcSurfaceExtents (msurface_t *s)
 	for (i=0 ; i<s->numedges ; i++)
 	{
 		e = loadmodel->surfedges[s->firstedge+i];
-		if (e >= 0)
-			v = &loadmodel->vertexes[loadmodel->edges[e].v[0]];
-		else
-			v = &loadmodel->vertexes[loadmodel->edges[-e].v[1]];
+		if (e >= 0) v = &loadmodel->vertexes[loadmodel->edges[e].v[0]];
+		else v = &loadmodel->vertexes[loadmodel->edges[-e].v[1]];
 		
 		for (j=0 ; j<2 ; j++)
 		{
@@ -581,27 +579,26 @@ void Mod_LoadFaces (lump_t *l)
 	for ( surfnum=0 ; surfnum<count ; surfnum++, in++, out++)
 	{
 		out->firstedge = LittleLong(in->firstedge);
-		out->numedges = LittleShort(in->numedges);		
+		out->numedges = LittleLong(in->numedges);		
 		out->flags = 0;
 		out->polys = NULL;
 
-		planenum = LittleShort(in->planenum);
+		planenum = LittleLong( in->planenum );
 		side = LittleShort(in->side);
-		if (side)
-			out->flags |= SURF_PLANEBACK;			
+		if( side ) out->flags |= SURF_PLANEBACK;			
 
 		out->plane = loadmodel->planes + planenum;
 
-		ti = LittleShort (in->desc);
+		ti = LittleLong (in->desc);
 		if (ti < 0 || ti >= loadmodel->numtexinfo)
 			Sys_Error("MOD_LoadBmodel: bad texinfo number");
 		out->texinfo = loadmodel->texinfo + ti;
 
 		CalcSurfaceExtents (out);
 				
-	// lighting info
+		// lighting info
 
-		for (i=0 ; i<MAXLIGHTMAPS ; i++)
+		for( i = 0; i < MAXLIGHTMAPS; i++)
 			out->styles[i] = in->styles[i];
 		i = LittleLong(in->lightofs);
 		if (i == -1)
@@ -655,9 +652,9 @@ Mod_LoadNodes
 */
 void Mod_LoadNodes (lump_t *l)
 {
-	int			i, j, count, p;
+	int		i, j, count, p;
 	dnode_t		*in;
-	mnode_t 	*out;
+	mnode_t 		*out;
 
 	in = (void *)(mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
@@ -672,15 +669,15 @@ void Mod_LoadNodes (lump_t *l)
 	{
 		for (j=0 ; j<3 ; j++)
 		{
-			out->minmaxs[j] = LittleShort (in->mins[j]);
-			out->minmaxs[3+j] = LittleShort (in->maxs[j]);
+			out->minmaxs[j] = LittleLong (in->mins[j]);
+			out->minmaxs[3+j] = LittleLong (in->maxs[j]);
 		}
 	
 		p = LittleLong(in->planenum);
 		out->plane = loadmodel->planes + p;
 
-		out->firstsurface = LittleShort (in->firstface);
-		out->numsurfaces = LittleShort (in->numfaces);
+		out->firstsurface = LittleLong (in->firstface);
+		out->numsurfaces = LittleLong (in->numfaces);
 		out->contents = -1;	// differentiate from leafs
 
 		for (j=0 ; j<2 ; j++)
@@ -721,19 +718,18 @@ void Mod_LoadLeafs (lump_t *l)
 	{
 		for (j=0 ; j<3 ; j++)
 		{
-			out->minmaxs[j] = LittleShort (in->mins[j]);
-			out->minmaxs[3+j] = LittleShort (in->maxs[j]);
+			out->minmaxs[j] = LittleLong (in->mins[j]);
+			out->minmaxs[3+j] = LittleLong (in->maxs[j]);
 		}
 
 		p = LittleLong(in->contents);
 		out->contents = p;
 
-		out->cluster = LittleShort(in->cluster);
-		out->area = LittleShort(in->area);
+		out->cluster = LittleLong(in->cluster);
+		out->area = LittleLong(in->area);
 
-		out->firstmarksurface = loadmodel->marksurfaces +
-			LittleShort(in->firstleafface);
-		out->nummarksurfaces = LittleShort(in->numleaffaces);
+		out->firstmarksurface = loadmodel->marksurfaces + LittleLong(in->firstleafface);
+		out->nummarksurfaces = LittleLong(in->numleaffaces);
 		
 		// gl underwater warp
 #if 0
@@ -758,8 +754,8 @@ Mod_LoadMarksurfaces
 void Mod_LoadMarksurfaces (lump_t *l)
 {	
 	int		i, j, count;
-	short		*in;
-	msurface_t **out;
+	dword		*in;
+	msurface_t 	**out;
 	
 	in = (void *)(mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
@@ -772,7 +768,7 @@ void Mod_LoadMarksurfaces (lump_t *l)
 
 	for ( i=0 ; i<count ; i++)
 	{
-		j = LittleShort(in[i]);
+		j = LittleLong(in[i]);
 		if (j < 0 ||  j >= loadmodel->numsurfaces)
 			Sys_Error ("Mod_ParseMarksurfaces: bad surface number");
 		out[i] = loadmodel->surfaces + j;

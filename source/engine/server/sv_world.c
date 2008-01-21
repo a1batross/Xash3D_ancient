@@ -428,7 +428,7 @@ void SV_ClipMoveToEntities( moveclip_t *clip )
 		angles = touch->progs.sv->angles;
 
 		if( !touch->progs.sv->solid == SOLID_BSP ) angles = vec3_origin; // boxes don't rotate
-		trace = pe->TransformedBoxTrace((float *)clip->start, (float *)clip->end, (float *)clip->mins, (float *)clip->maxs, cmodel, clip->contentmask, origin, angles );
+		trace = pe->TransformedBoxTrace((float *)clip->start, (float *)clip->end, (float *)clip->mins, (float *)clip->maxs, cmodel, clip->contentmask, origin, angles, false );
 
 		if( trace.allsolid )
 		{
@@ -471,7 +471,7 @@ trace_t SV_Trace( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end
 	memset( &clip, 0, sizeof( moveclip_t ));
 
 	// clip to world
-	clip.trace = pe->BoxTrace( start, end, mins, maxs, NULL, contentmask );
+	clip.trace = pe->BoxTrace( start, end, mins, maxs, NULL, contentmask, true );
 	clip.trace.ent = clip.trace.fraction != 1.0 ? prog->edicts : NULL;
 	if( clip.trace.fraction == 0 ) return clip.trace;	// blocked immediately by the world
 
@@ -567,7 +567,7 @@ trace_t SV_ClipMoveToEntity(edict_t *ent, vec3_t start, vec3_t mins, vec3_t maxs
 	angles = touch->progs.sv->angles;
           if( !touch->progs.sv->solid == SOLID_BSP ) angles = vec3_origin; // boxes don't rotate
 
-	trace = pe->TransformedBoxTrace( start, end, mins, maxs, cmodel, contentsmask, origin, angles );
+	trace = pe->TransformedBoxTrace( start, end, mins, maxs, cmodel, contentsmask, origin, angles, true );
 	if( trace.fraction < 1.0f ) trace.ent = touch;
 
 	return trace;

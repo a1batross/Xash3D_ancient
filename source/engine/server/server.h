@@ -299,6 +299,7 @@ void SV_ExecuteClientMessage (client_state_t *cl);
 // sv_ccmds.c
 //
 void SV_Status_f( void );
+void SV_Newgame_f( void );
 void SV_SectorList_f( void );
 
 //

@@ -16,6 +16,7 @@ cvar_t *scr_loading;
 cvar_t *scr_width;
 cvar_t *scr_height;
 cvar_t *cl_levelshot_name;
+cvar_t *cl_font;
 
 void SCR_TimeRefresh_f( void );
 void SCR_Loading_f( void );
@@ -107,7 +108,7 @@ void SCR_DrawChar( int x, int y, float w, float h, int ch )
 	fcol = (ch & 15)*0.0625f + (0.5f / 256.0f);
 	size = 0.0625f - (1.0f / 256.0f);
 
-	re->DrawStretchPic( ax, ay, aw, ah, fcol, frow, fcol + size, frow + size, "fonts/conchars" );
+	re->DrawStretchPic( ax, ay, aw, ah, fcol, frow, fcol + size, frow + size, va( "fonts/%s", cl_font->string ));
 }
 
 /*
@@ -131,7 +132,7 @@ void SCR_DrawSmallChar( int x, int y, int ch )
 	fcol = (ch & 15)*0.0625f + (0.5f / 256.0f);
 	size = 0.0625f - (1.0f / 256.0f);
 
-	re->DrawStretchPic( x, y, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, fcol, frow, fcol + size, frow + size, "fonts/conchars" );
+	re->DrawStretchPic( x, y, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, fcol, frow, fcol + size, frow + size, va( "fonts/%s", cl_font->string ));
 }
 
 /*
@@ -271,6 +272,7 @@ void SCR_DrawFPS( void )
 	float		*color;
 
 	if(cls.state != ca_active) return; 
+	if(!cl_showfps->integer) return;
 	
 	newtime = Sys_DoubleTime();
 	if (newtime >= nexttime)
@@ -345,12 +347,14 @@ void SCR_Init (void)
 	scr_centertime = Cvar_Get("scr_centertime", "2.5", 0);
 	scr_printspeed = Cvar_Get("scr_printspeed", "8", 0);
 	cl_levelshot_name = Cvar_Get("cl_levelshot_name", "common/black", 0 );
+	cl_font = Cvar_Get("cl_font", "conchars", CVAR_ARCHIVE );
 
 	// register our commands
-	Cmd_AddCommand ("timerefresh", SCR_TimeRefresh_f, "turn quickly and print rendering statistcs" );
-	Cmd_AddCommand ("loading", SCR_Loading_f, "prepare client to a loading new map" );
-	Cmd_AddCommand ("skyname", CL_SetSky_f, "set new skybox by basename" );
-
+	Cmd_AddCommand( "timerefresh", SCR_TimeRefresh_f, "turn quickly and print rendering statistcs" );
+	Cmd_AddCommand( "loading", SCR_Loading_f, "prepare client to a loading new map" );
+	Cmd_AddCommand( "skyname", CL_SetSky_f, "set new skybox by basename" );
+	Cmd_AddCommand( "setfont", CL_SetFont_f, "set new system font" );
+	
 	scr_initialized = true;
 
 }

@@ -40,10 +40,10 @@ int	numedges;
 dedge_t	dedges[MAX_MAP_EDGES];
 
 int	numleaffaces;
-word	dleaffaces[MAX_MAP_LEAFFACES];
+dword	dleaffaces[MAX_MAP_LEAFFACES];
 
 int	numleafbrushes;
-word	dleafbrushes[MAX_MAP_LEAFBRUSHES];
+dword	dleafbrushes[MAX_MAP_LEAFBRUSHES];
 
 int	numsurfedges;
 int	dsurfedges[MAX_MAP_SURFEDGES];

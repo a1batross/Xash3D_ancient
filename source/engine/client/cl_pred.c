@@ -105,7 +105,7 @@ void CL_ClipMoveToEntities ( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end,
 		}
 		if( tr->allsolid ) return;
 
-		trace = pe->TransformedBoxTrace( start, end, mins, maxs, cmodel, MASK_PLAYERSOLID, ent->origin, angles );
+		trace = pe->TransformedBoxTrace( start, end, mins, maxs, cmodel, MASK_PLAYERSOLID, ent->origin, angles, false );
 
 		if( trace.allsolid || trace.startsolid || trace.fraction < tr->fraction )
 		{
@@ -132,7 +132,7 @@ trace_t CL_PMTrace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end)
 	trace_t	t;
 
 	// check against world
-	t = pe->BoxTrace( start, end, mins, maxs, NULL, MASK_PLAYERSOLID );
+	t = pe->BoxTrace( start, end, mins, maxs, NULL, MASK_PLAYERSOLID, true );
 	if (t.fraction < 1.0) t.ent = (edict_t *)1;
 
 	// check all other solid models

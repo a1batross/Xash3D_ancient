@@ -97,7 +97,7 @@ void SC_ResetScript( void )
 SC_ReadToken
 ==============
 */
-bool SC_ReadToken(bool newline)
+bool SC_ReadToken( bool newline )
 {
 	char	*token_p;
 	int	c;
@@ -130,17 +130,12 @@ skip_whitespace:	// skip whitespace
 		return SC_EndOfScript (newline);
 
 	// ; // comments
-	if (*script->script_p == ';' || ( script->script_p[0] == '/' && script->script_p[1] == '/') )
+	if(*script->script_p == ';' || ( script->script_p[0] == '/' && script->script_p[1] == '/') )
 	{
 		if (!newline) goto line_incomplete;
 
 		// ets++
 		if (*script->script_p == '/') script->script_p++;
-		if(*script->script_p == '#' && script->script_p[1] == 'T' && script->script_p[2] == 'X')
-		{
-			GI.TXcommand = script->script_p[3]; // TX#"-style comment
-			Msg("Quark TX command %s\n", GI.TXcommand );
-		}
 		while (*script->script_p++ != '\n')
 		{
 			if (script->script_p >= script->end_p)
@@ -193,7 +188,7 @@ skip_whitespace:	// skip whitespace
 		}
 		script->script_p++;
 	}
-	else if (c == '{' || c == '}' || c == ')' || c == '(' || c == '\'' || c == ':' || c == ',')
+	else if (c == '{' || c == '}' || c == ')' || c == '(' || c == '\'' || c == ':' || c == ',' || c == '[' || c == ']')
 	{
 		// parse single characters
 		*token_p++ = *script->script_p++;
@@ -214,7 +209,7 @@ skip_whitespace:	// skip whitespace
 
 			if (script->script_p == script->end_p)
 				break;
-			if (c == '{' || c == '}'|| c == ')'|| c == '(' || c == '\'' || c == ':' || c == ',' || c == ';')
+			if (c == '{' || c == '}'|| c == ')'|| c == '(' || c == '\'' || c == ':' || c == ',' || c == ';' || c == '[' || c == ']')
 				break;
 		}
           }
@@ -226,6 +221,134 @@ skip_whitespace:	// skip whitespace
 		SC_ReadToken( false );
 		SC_AddScript(token, NULL, 0 );
 		return SC_ReadToken (newline);
+	}
+	return true;
+
+line_incomplete:
+	//invoke error
+	return SC_EndOfScript( newline );
+}
+
+/*
+==============
+SC_ReadTokenSimple
+==============
+*/
+bool SC_ReadTokenSimple( bool newline )
+{
+	char	*token_p;
+
+	if (tokenready) // is a token allready waiting?
+	{
+		tokenready = false;
+		return true;
+	}
+
+	if (script->script_p >= script->end_p)
+		return SC_EndOfScript( newline );
+
+	
+skip_whitespace:	// skip whitespace
+	while (*script->script_p <= 32)
+	{
+		if (script->script_p >= script->end_p)
+			return SC_EndOfScript (newline);
+
+		if (*script->script_p++ == '\n')
+		{
+			if (!newline) goto line_incomplete;
+			scriptline = script->line++;
+		}
+	}
+
+	if (script->script_p >= script->end_p)
+		return SC_EndOfScript (newline);
+
+	// ; # // comments
+	if (*script->script_p == ';' || *script->script_p == '#' || ( script->script_p[0] == '/' && script->script_p[1] == '/') )
+	{
+		if (!newline) goto line_incomplete;
+
+		// ets+++
+		if(*script->script_p == '/') script->script_p++;
+		if(script->script_p[1] == 'T' && script->script_p[2] == 'X')
+		{
+			GI.TXcommand = script->script_p[3];//TX#"-style comment
+			Msg("Quark TX command %s\n", GI.TXcommand );
+		}
+		while (*script->script_p++ != '\n')
+		{
+			if (script->script_p >= script->end_p)
+				return SC_EndOfScript (newline);
+		}
+		goto skip_whitespace;
+	}
+
+	// /* */ comments
+	if (script->script_p[0] == '/' && script->script_p[1] == '*')
+	{
+		if (!newline) goto line_incomplete;
+
+		script->script_p += 2;
+		while (script->script_p[0] != '*' && script->script_p[1] != '/')
+		{
+			if (script->script_p >= script->end_p)
+				return SC_EndOfScript (newline);
+			if (*script->script_p++ == '\n')
+			{
+				if (!newline) goto line_incomplete;
+				scriptline = script->line++;
+			}
+		}
+		script->script_p += 2;
+		goto skip_whitespace;
+	}
+
+	// copy token
+	token_p = token;
+
+	if (*script->script_p == '"')
+	{
+		// quoted token
+		script->script_p++;
+		while (*script->script_p != '"')
+		{
+			if (token_p == &token[MAX_SYSPATH - 1])
+			{
+				MsgDev(D_WARN, "GetToken: Token too large on line %i\n", scriptline);
+				break;
+			}
+			
+			*token_p++ = *script->script_p++;
+			if (script->script_p == script->end_p)
+				break;
+		}
+		script->script_p++;
+	}
+	else // regular token
+	{
+		while ( *script->script_p > 32 && *script->script_p != ';')
+		{
+			if (token_p == &token[MAX_SYSPATH - 1])
+			{
+				MsgWarn("GetToken: Token too large on line %i\n",scriptline);
+				break;
+			}
+		
+			*token_p++ = *script->script_p++;
+			if (script->script_p == script->end_p)
+				break;
+		}
+          }
+          
+	*token_p = 0;
+
+	//quake style include & default MSVC style
+	if (!strcmp(token, "$include"))
+	{
+		SC_ReadTokenSimple(false);
+		SC_AddScript(token, NULL, 0 );
+		return SC_ReadTokenSimple(newline);
 	}
 	return true;
 
@@ -666,8 +789,17 @@ get token on current or newline
 */
 char *SC_GetToken( bool newline )
 {
-	if(SC_ReadToken( newline ))
-		return token;
+	if( Sys.app_name == COMP_BSPLIB )
+	{
+		// don't handle single characters
+		if(SC_ReadTokenSimple( newline ))
+			return token;
+	}
+	else
+	{
+		if(SC_ReadToken( newline ))
+			return token;
+	}
 	return NULL;
 }
 

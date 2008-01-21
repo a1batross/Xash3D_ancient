@@ -13,7 +13,8 @@ typedef struct ui_globalvars_s
 	func_t		m_shutdown;
 	func_t		m_keydown;
 	func_t		m_draw;
-	func_t		m_toggle;
+	func_t		m_show;
+	func_t		m_hide;
 } ui_globalvars_t;
 
 typedef struct ui_entvars_s
@@ -105,6 +106,6 @@ static fields_t ui_reqfields[] =
 	{93,	2,	"find2"}
 };
 
-#define PROG_CRC_UIMENU	31295
+#define PROG_CRC_UIMENU	36416
 
 #endif//UI_EDICT_H

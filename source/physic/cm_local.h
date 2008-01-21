@@ -7,6 +7,7 @@
 
 #include "physic.h"
 
+#define CAPSULE_MODEL_HANDLE	MAX_MODELS - 2
 #define BOX_MODEL_HANDLE	MAX_MODELS - 1
 
 typedef struct
@@ -58,7 +59,7 @@ typedef struct clipmap_s
 	char		*entitystring;
 	cplane_t		*planes;		// 12 extra planes for box hull
 	cleaf_t		*leafs;		// 1 extra leaf for box hull
-	word		*leafbrushes;
+	dword		*leafbrushes;
 	cnode_t		*nodes;		// 6 extra planes for box hull
 	dvertex_t		*vertices;
 	dedge_t		*edges;
@@ -131,7 +132,7 @@ typedef struct box_s
 {
 	cplane_t		*planes;
 	cbrush_t		*brush;
-	cmodel_t		model;
+	cmodel_t		*model;
 } box_t;
 
 typedef struct mapleaf_s
@@ -155,6 +156,14 @@ typedef struct leaflist_s
 	void		(*storeleafs)( struct leaflist_s *ll, int nodenum );
 } leaflist_t;
 
+typedef struct sphere_s
+{
+	bool		use;
+	float		radius;
+	float		halfheight;
+	vec3_t		offset;
+} sphere_t;
+
 typedef struct tracework_s
 {
 	vec3_t		start;
@@ -165,10 +174,11 @@ typedef struct tracework_s
 	float		maxOffset;	// longest corner length from origin
 	vec3_t		bounds[2];	// enclosing box of start and end surrounding by size
 	vec3_t		extents;		// greatest of abs(size[0]) and abs(size[1])
-	vec3_t		origin;
-	int		contents;
+	vec3_t		origin;		// origin of the model tracing through
+	int		contents;		// trace contents
 	bool		ispoint;		// optimized case
 	trace_t		result;		// returned from trace call
+	sphere_t		sphere;		// sphere for oriendted capsule collision
 } tracework_t;
 
 extern clipmap_t cm;
@@ -191,5 +201,7 @@ void CM_StoreBrushes( leaflist_t *ll, int nodenum );
 void CM_BoxLeafnums_r( leaflist_t *ll, int nodenum );
 int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsize, int *lastleaf );
 int CM_BoxBrushes( const vec3_t mins, const vec3_t maxs, cbrush_t **list, int listsize );
+cmodel_t *CM_TempBoxModel( const vec3_t mins, const vec3_t maxs, bool capsule );
+
 
 #endif//CM_LOCAL_H

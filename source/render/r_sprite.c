@@ -293,6 +293,7 @@ void R_DrawSpriteModel( int passnum )
 	entity_t 		*e = currententity;
 	model_t		*mod = currentmodel;
 	float		alpha = 1.0f, angle, sr, cr;
+	vec3_t		distance;
 	msprite_t		*psprite;
 	int		i;
 
@@ -363,7 +364,9 @@ void R_DrawSpriteModel( int passnum )
 		// solid sprite ignore color and light values
 		break;
 	case SPR_ADDGLOW:
-		GL_DisableDepthTest();
+		VectorCopy( r_origin, distance );
+		alpha = VectorLength( distance ) * 0.001;
+		e->scale = 1/(alpha * 1.5);
 		// intentional falltrough
 	case SPR_ADDITIVE:
 		GL_EnableBlend();

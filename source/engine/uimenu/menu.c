@@ -29,6 +29,8 @@ static char *menu_in_sound	= "misc/menu1.wav";
 static char *menu_move_sound	= "misc/menu2.wav";
 static char *menu_out_sound	= "misc/menu3.wav";
 
+cvar_t *menu_progs;
+
 void M_Menu_Main_f (void);
 	void M_Menu_Game_f (void);
 		void M_Menu_LoadGame_f (void);
@@ -119,7 +121,8 @@ void M_ForceMenuOff (void)
 	cls.key_dest = key_game;
 	m_menudepth = 0;
 	Key_ClearStates();
-	Cvar_Set ("paused", "0");
+	Cvar_Set( "paused", "0" );
+	UI_HideMenu();
 }
 
 void M_PopMenu (void)
@@ -439,7 +442,9 @@ const char *M_Main_Key(int key)
 
 void M_Menu_Main_f (void)
 {
-	M_PushMenu (M_Main_Draw, M_Main_Key);
+	if( menu_progs->integer ) UI_ShowMenu();
+	else M_PushMenu (M_Main_Draw, M_Main_Key);
+
 }
 
 /*
@@ -1322,6 +1327,7 @@ static const char *xash_credits[] =
 	"^3THANKS TO"
 	"ID Software at all",
 	"Lord Havoc (Darkplaces Team)",
+	"Georg Destroy for icon graphics",
 	"",
 	"",
 	"",
@@ -1331,8 +1337,7 @@ static const char *xash_credits[] =
 	"",
 	"",
 	"",
-	"",
-	"Copyright XashXT Group 2007 (C)",
+	"Copyright XashXT Group 2008 (C)",
 	0
 };
 
@@ -3397,8 +3402,9 @@ void M_Menu_Quit_f (void)
 M_Init
 =================
 */
-void M_Init (void)
+void M_Init( void )
 {
+	menu_progs = Cvar_Get( "m_progs", "1", CVAR_ARCHIVE ); 
 	Cmd_AddCommand ("menu_main", M_Menu_Main_f, "opens main menu" );
 	Cmd_AddCommand ("menu_game", M_Menu_Game_f, "opens game menu" );
 	Cmd_AddCommand ("menu_loadgame", M_Menu_LoadGame_f, "opens menu loadgame" );
@@ -3415,7 +3421,6 @@ void M_Init (void)
 	Cmd_AddCommand ("menu_options", M_Menu_Options_f, "opens main options menu");
 	Cmd_AddCommand ("menu_keys", M_Menu_Keys_f, "opens redefinition keys menu" );
 	Cmd_AddCommand ("menu_quit", M_Menu_Quit_f, "show quit dialog" );
-	Cmd_AddCommand ("menu_toggle", UI_ToggleMenu_f, "enable progs menu(test)" );
 
 	UI_Init();
 }
@@ -3430,8 +3435,14 @@ void M_Draw (void)
 {
 	if (cls.key_dest != key_menu) return;
 
-	if(m_drawfunc) m_drawfunc();
-	if(ui_active) UI_Draw();
+	if( menu_progs->integer && ui_active )
+	{
+		UI_Draw();
+	}
+	else if( m_drawfunc )
+	{
+		 m_drawfunc();
+	}
 
 	// delay playing the enter sound until after the
 	// menu has been drawn, to avoid delay while
@@ -3453,7 +3464,7 @@ void M_Keydown (int key)
 {
 	const char *s;
 
-	if (m_keyfunc)
+	if( m_keyfunc )
 	{
 		if(( s = m_keyfunc( key )) != 0 )
 			S_StartLocalSound(( char * )s);

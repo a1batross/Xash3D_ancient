@@ -200,6 +200,12 @@ void SV_Movie_f( void )
 	SV_BroadcastCommand( "reconnect\n" );
 }
 
+void SV_Newgame_f( void )
+{
+	// FIXME: do some clear operations
+	Cbuf_ExecuteText(EXEC_APPEND, va("map %s\n", GI->startmap ));
+}
+
 /*
 ==============
 SV_Load_f
@@ -512,6 +518,7 @@ void SV_InitOperatorCommands( void )
 
 	Cmd_AddCommand("map", SV_Map_f, "start new level" );
 	Cmd_AddCommand("demo", SV_Demo_f, "playing a demo file" );
+	Cmd_AddCommand("newgame", SV_Newgame_f, "begin new game" );
 	Cmd_AddCommand("movie", SV_Movie_f, "playing video file" );
 	Cmd_AddCommand("changelevel", SV_ChangeLevel_f, "changing level" );
 	Cmd_AddCommand("restart", SV_Restart_f, "restarting current level" );
@@ -539,6 +546,7 @@ void SV_KillOperatorCommands( void )
 	Cmd_RemoveCommand("map");
 	Cmd_RemoveCommand("demo");
 	Cmd_RemoveCommand("movie");
+	Cmd_RemoveCommand("newgame");
 	Cmd_RemoveCommand("changelevel");
 	Cmd_RemoveCommand("restart");
 	Cmd_RemoveCommand("sectorlist");

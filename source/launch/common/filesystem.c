@@ -1072,7 +1072,7 @@ static bool FS_AddWad3File( const char *filename )
 			w->name[0] = 0;
 			return false;
 		}
-		// turn doom1 format into quake lump 
+		// convert doom1 format into quake lump 
 		for (i = 0; i < numlumps; i++)
 		{
 			// will swap later
@@ -1361,6 +1361,7 @@ void FS_CreateGameInfo( const char *filename )
 	com_strncat(buffer, va("gamedir\t\t\"%s\"\n", gs_basedir ), MAX_SYSPATH);
 	com_strncat(buffer, va("title\t\t\"New Game\"\rversion\t\t\"%g\"\rviewmode\t\"firstperson\"\r", XASH_VERSION), MAX_SYSPATH );
 	com_strncat(buffer, va("gamemode\t\t\"singleplayer\"\rgamekey\t\t\"%s\"", GI.key), MAX_SYSPATH );
+	com_strncat(buffer, "\nstartmap\t\t\"newmap\"", MAX_SYSPATH );
 
 	FS_WriteFile( filename, buffer, com_strlen(buffer));
 	Mem_Free( buffer );
@@ -1409,6 +1410,10 @@ void FS_LoadGameInfo( const char *filename )
 		else if(SC_MatchToken( "title"))
 		{
 			com_strcpy(GI.title, SC_GetToken( false ));
+		}
+		else if(SC_MatchToken( "startmap"))
+		{
+			com_strcpy(GI.startmap, SC_GetToken( false ));
 		}
 		else if(SC_MatchToken( "version"))
 		{
@@ -1459,9 +1464,11 @@ void FS_Init( void )
 
 		if(!FS_GetParmFromCmdLine("-game", gs_basedir ))
 		{
-			if(GetModuleFileName( NULL, szTemp, MAX_SYSPATH ))
+			if( Sys.app_name == COMP_BSPLIB )
+				com_strcpy( gs_basedir, "xash" );
+			else if(GetModuleFileName( NULL, szTemp, MAX_SYSPATH ))
 				FS_FileBase( szTemp, gs_basedir );
-			else com_strcpy(gs_basedir, "xash" ); // default dir
+			else com_strcpy( gs_basedir, "xash" ); // default dir
 		}
 		// checked nasty path: "bin" it's a reserved word
 		if(FS_CheckNastyPath( gs_basedir, true ) || !com_stricmp("bin", gs_basedir ))
@@ -1847,7 +1854,7 @@ static byte *FS_OpenWadFile( const char *name, fs_offset_t *filesizeptr, int mat
 {
 	uint	i, k;
 	wadfile_t	*w;
-	char	basename[MAX_QPATH];
+	string	basename;
 	char	texname[17];
 
 	// no wads loaded
@@ -1858,7 +1865,7 @@ static byte *FS_OpenWadFile( const char *name, fs_offset_t *filesizeptr, int mat
 	FS_FileBase( name, basename );
 	if(filesizeptr) *filesizeptr = 0;
 		
-	if(strlen(basename) >= WAD3_NAMELEN )
+	if(com.strlen(basename) > WAD3_NAMELEN )
 	{
 		Msg("FS_OpenWad3File: %s too long name\n", basename );		
 		return NULL;

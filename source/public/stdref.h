@@ -1886,9 +1886,10 @@ internal shared gameinfo structure (readonly for engine parts)
 typedef struct gameinfo_s
 {
 	// filesystem info
-	char	basedir[MAX_OSPATH];
-	char	gamedir[MAX_OSPATH];
-	char	title[MAX_OSPATH];
+	string	basedir;
+	string	gamedir;
+	string	startmap;
+	string	title;
           float	version;		// engine or mod version
 	
 	int	viewmode;

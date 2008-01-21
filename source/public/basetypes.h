@@ -145,7 +145,6 @@ enum host_state
 	COMP_SPRITE,	// "sprite"
 	COMP_STUDIO,	// "studio"
 	COMP_WADLIB,	// "wadlib"
-	COMP_SDKLIB,	// "sdklib"
 	RIPP_MIPDEC,	// "mipdec"
 	RIPP_SPRDEC,	// "sprdec"
 	RIPP_MDLDEC,	// "mdldec"

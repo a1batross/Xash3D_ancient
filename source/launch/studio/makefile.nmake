@@ -9,11 +9,12 @@
 
 MAINTARGET = studiomdl
 OBJS       = $(MAINTARGET).obj
+RES       = $(MAINTARGET).rc
 
 default: $(MAINTARGET).exe
 
-$(MAINTARGET).exe: $(MAINTARGET).obj 
-	$(link) $(OBJS) /out:"studiomdl.exe" /subsystem:console /opt:nowin98 /nodefaultlib:"libc.lib"
+$(MAINTARGET).exe: $(MAINTARGET).obj studiomdl.res 
+	$(link) $(OBJS) studiomdl.res /out:"studiomdl.exe" /subsystem:console /opt:nowin98 /nodefaultlib:"libc.lib"
 	@del $(MAINTARGET).obj $(MAINTARGET).lib $(MAINTARGET).exp > nul
 	@copy $(MAINTARGET).exe D:\Xash3D\sdk_main\tools\$(MAINTARGET).exe
 	@del $(MAINTARGET).exe
@@ -22,3 +23,6 @@ clean:
 
 .cpp.obj: 
 	$(CC) $(CFLAGS) /c $<
+
+studiomdl.res : studiomdl.rc
+	$(RC) $(RCFLAGS) /r studiomdl.rc

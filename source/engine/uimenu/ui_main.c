@@ -50,10 +50,10 @@ void UI_KeyEvent( int key )
 
 	PRVM_End;
 
-	switch (key)
+	switch( key )
 	{
 	case K_ESCAPE:
-		UI_ToggleMenu_f();
+		UI_HideMenu();
 		break;
 	}
 }
@@ -70,16 +70,27 @@ void UI_Draw( void )
 	PRVM_End;
 }
 
-void UI_ToggleMenu_f( void )
+void UI_ShowMenu( void )
 {
 	PRVM_Begin;
 	PRVM_SetProg(PRVM_MENUPROG);
 
 	// set time
 	*prog->time = cls.realtime;
-	ui_active = !ui_active;
+	ui_active = true;
+	PRVM_ExecuteProgram (prog->globals.ui->m_show, "QC function m_toggle is missing");
+	PRVM_End;
+}
 
-	PRVM_ExecuteProgram (prog->globals.ui->m_toggle, "QC function m_toggle is missing");
+void UI_HideMenu( void )
+{
+	PRVM_Begin;
+	PRVM_SetProg(PRVM_MENUPROG);
+
+	// set time
+	*prog->time = cls.realtime;
+	ui_active = false;
+	PRVM_ExecuteProgram (prog->globals.ui->m_hide, "QC function m_toggle is missing");
 	PRVM_End;
 }
 

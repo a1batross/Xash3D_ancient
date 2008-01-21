@@ -284,7 +284,8 @@ void CL_UpdateMouse( void )
 		return;
 	}
 
-	if( !cl.refresh_prepped || cls.key_dest == key_console )
+	// uimenu.dat using mouse
+	if((!cl.refresh_prepped && cls.key_dest != key_menu) || cls.key_dest == key_console )
 	{
 		// temporarily deactivate if in fullscreen
 		if(!Cvar_VariableValue ("fullscreen"))
@@ -630,7 +631,7 @@ void CL_FinishMove (usercmd_t *cmd)
 	cmd->impulse = in_impulse;
 	in_impulse = 0;
 
-// send the ambient light level at the player's current position
+	// send the ambient light level at the player's current position
 	cmd->lightlevel = (byte)cl_lightlevel->value;
 }
 

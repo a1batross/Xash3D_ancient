@@ -42,7 +42,7 @@ cvar_t	*cl_autoskins;
 cvar_t	*cl_footsteps;
 cvar_t	*cl_timeout;
 cvar_t	*cl_predict;
-//cvar_t	*cl_minfps;
+cvar_t	*cl_showfps;
 cvar_t	*cl_maxfps;
 cvar_t	*cl_gun;
 
@@ -1358,6 +1358,7 @@ void CL_InitLocal (void)
 	gender_auto = Cvar_Get ("gender_auto", "1", CVAR_ARCHIVE);
 	gender->modified = false; // clear this so we know when user sets it manually
 	cl_vwep = Cvar_Get ("cl_vwep", "1", CVAR_ARCHIVE);
+	cl_showfps = Cvar_Get ("cl_showfps", "1", CVAR_ARCHIVE );
 
 	// register our commands
 	Cmd_AddCommand ("cmd", CL_ForwardToServer_f, "send a console commandline to the server" );

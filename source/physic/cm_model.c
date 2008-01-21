@@ -79,6 +79,19 @@ void CM_BoundBrush( cbrush_t *b )
 	b->bounds[1][2] = sides[5].plane->dist;
 }
 
+/*
+================
+CM_FreeModel
+================
+*/
+void CM_FreeModel( cmodel_t *mod )
+{
+	Mem_FreePool( &mod->mempool );
+	memset(mod->physmesh, 0, MAXSTUDIOMODELS * sizeof(cmesh_t));
+	memset(mod, 0, sizeof(*mod));
+	mod = NULL;
+}
+
 int CM_NumTexinfo( void ) { return cm.numtexinfo; }
 int CM_NumClusters( void ) { return cm.numclusters; }
 int CM_NumInlineModels( void ) { return cm.numbmodels; }
@@ -144,8 +157,8 @@ void BSP_LoadModels( lump_t *l )
 {
 	dmodel_t	*in;
 	cmodel_t	*out;
+	int	*indexes;
 	int	i, j, count;
-	short	*indexes;
 
 	in = (void *)(cm.mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in)) Host_Error("CMod_LoadModels: funny lump size\n");
@@ -174,7 +187,7 @@ void BSP_LoadModels( lump_t *l )
 
 		// make a "leaf" just to hold the model's brushes and surfaces
 		out->leaf.numleafbrushes = LittleLong( in->numbrushes );
-		indexes = Mem_Alloc( out->mempool, out->leaf.numleafbrushes * sizeof(short));
+		indexes = Mem_Alloc( out->mempool, out->leaf.numleafbrushes * sizeof(dword));
 		out->leaf.firstleafbrush = indexes - cm.leafbrushes;
 		for( j = 0; j < out->leaf.numleafbrushes; j++ )
 			indexes[j] = LittleLong( in->firstbrush ) + j;
@@ -350,7 +363,7 @@ BSP_LoadLeafBrushes
 */
 void BSP_LoadLeafBrushes( lump_t *l )
 {
-	word	*in, *out;
+	dword	*in, *out;
 	int	i, count;
 	
 	in = (void *)(cm.mod_base + l->fileofs);
@@ -358,7 +371,7 @@ void BSP_LoadLeafBrushes( lump_t *l )
 	count = l->filelen / sizeof(*in);
 
 	if( count < 1 ) Host_Error("Map %s with no leaf brushes\n", cm.name );
-	out = cm.leafbrushes = (word *)Mem_Alloc( cmappool, (count + 1) * sizeof(*out));
+	out = cm.leafbrushes = (dword *)Mem_Alloc( cmappool, (count + 1) * sizeof(*out));
 	cm.numleafbrushes = count;
 	for ( i = 0; i < count; i++, in++, out++) *out = LittleShort(*in);
 }
@@ -775,11 +788,22 @@ void CM_LoadWorld( const void *buffer )
 
 void CM_FreeWorld( void )
 {
+	int 	i;
+	cmodel_t	*mod;
+
 	// free old stuff
 	if( cm.loaded ) Mem_EmptyPool( cmappool );
 	cm.numplanes = cm.numnodes = cm.numleafs = 0;
 	cm.num_models = cm.numfaces = cm.numbmodels = 0;
 	cm.name[0] = 0;
+
+	// free bmodels too
+	for (i = 0, mod = &cm.bmodels[0]; i < cm.numbmodels; i++, mod++)
+	{
+		if(!mod->name[0]) continue;
+		if(mod->registration_sequence != registration_sequence)
+			CM_FreeModel( mod );
+	}
 
 	if( cm.body )
 	{
@@ -866,32 +890,12 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	return &cm.bmodels[0];
 }
 
-/*
-================
-CM_FreeModel
-================
-*/
-void CM_FreeModel( cmodel_t *mod )
-{
-	Mem_FreePool( &mod->mempool );
-	memset(mod->physmesh, 0, MAXSTUDIOMODELS * sizeof(cmesh_t));
-	memset(mod, 0, sizeof(*mod));
-	mod = NULL;
-}
-
-
 void CM_EndRegistration( void )
 {
 	cmodel_t	*mod;
 	int	i;
 
 	for (i = 0, mod = &cm.cmodels[0]; i < cm.numcmodels; i++, mod++)
-	{
-		if(!mod->name[0]) continue;
-		if(mod->registration_sequence != registration_sequence)
-			CM_FreeModel( mod );
-	}
-	for (i = 0, mod = &cm.bmodels[0]; i < cm.numbmodels; i++, mod++)
 	{
 		if(!mod->name[0]) continue;
 		if(mod->registration_sequence != registration_sequence)
@@ -946,8 +950,10 @@ void CM_InitBoxHull( void )
 	box.brush->numsides = 6;
 	box.brush->firstbrushside = cm.numbrushsides;
 	box.brush->contents = CONTENTS_MONSTER;//FIXME
-	box.model.leaf.numleafbrushes = 1;
-	box.model.leaf.firstleafbrush = cm.numleafbrushes;
+	box.model = &cm.bmodels[BOX_MODEL_HANDLE];
+	com.strcpy( box.model->name, "*4095" );
+	box.model->leaf.numleafbrushes = 1;
+	box.model->leaf.firstleafbrush = cm.numleafbrushes;
 	cm.leafbrushes[cm.numleafbrushes] = cm.numbrushes;
 
 	for (i = 0; i < 6; i++)
@@ -973,6 +979,9 @@ void CM_InitBoxHull( void )
 		p->normal[i>>1] = -1;
 		PlaneClassify( p );
 	}	
+
+	// capsule name
+	com.strcpy( cm.bmodels[CAPSULE_MODEL_HANDLE].name, "*4094" );
 }
 
 /*
@@ -984,10 +993,15 @@ BSP trees instead of being compared directly.
 Capsules are handled differently though.
 ===================
 */
-int CM_TempBoxModel( const vec3_t mins, const vec3_t maxs )
+cmodel_t *CM_TempBoxModel( const vec3_t mins, const vec3_t maxs, bool capsule )
 {
-	VectorCopy( mins, box.model.mins );
-	VectorCopy( maxs, box.model.maxs );
+	VectorCopy( mins, box.model->mins );
+	VectorCopy( maxs, box.model->maxs );
+
+	if( capsule )
+	{
+		return &cm.bmodels[CAPSULE_MODEL_HANDLE];
+	}
 
 	box.planes[0].dist = maxs[0];
 	box.planes[1].dist = -maxs[0];
@@ -1005,7 +1019,7 @@ int CM_TempBoxModel( const vec3_t mins, const vec3_t maxs )
 	VectorCopy( mins, box.brush->bounds[0] );
 	VectorCopy( maxs, box.brush->bounds[1] );
 
-	return BOX_MODEL_HANDLE;
+	return &cm.bmodels[BOX_MODEL_HANDLE];
 }
 
 /*

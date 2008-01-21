@@ -247,8 +247,8 @@ typedef struct physic_exp_s
 	const char *(*GetTextureName)( int index );
 	int (*PointContents)( const vec3_t p, cmodel_t *model );
 	int (*TransformedPointContents)( const vec3_t p, cmodel_t *model, const vec3_t origin, const vec3_t angles );
-	trace_t (*BoxTrace)( const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, cmodel_t *model, int brushmask);
-	trace_t (*TransformedBoxTrace)( const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, cmodel_t *model, int brushmask, vec3_t origin, vec3_t angles );
+	trace_t (*BoxTrace)( const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, cmodel_t *model, int brushmask, bool capsule );
+	trace_t (*TransformedBoxTrace)( const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, cmodel_t *model, int brushmask, vec3_t origin, vec3_t angles, bool capsule );
 	byte *(*ClusterPVS)( int cluster );
 	byte *(*ClusterPHS)( int cluster );
 	int (*PointLeafnum)( vec3_t p );

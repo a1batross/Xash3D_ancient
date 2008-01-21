@@ -749,9 +749,9 @@ void R_RenderView( refdef_t *fd )
 	R_DrawParticles ();
 	R_DrawAlphaSurfaces ();
 	R_Flash();
+
 	R_BloomBlend (fd);
 	GL_DrawRadar();
-
 	R_DebugGraphics();
 }
 
@@ -953,8 +953,8 @@ void R_RenderFrame (refdef_t *fd)
 	mirror_render = false;
 
 	R_RenderView( fd );
+	//if( mirror ) R_Mirror( fd );
 	R_SetLightLevel ();
-	if( mirror ) R_Mirror( fd );
 	R_SetGL2D ();
 }
 

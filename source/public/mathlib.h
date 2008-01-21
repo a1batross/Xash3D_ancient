@@ -17,8 +17,6 @@
 #endif
 
 // network precision coords factor
-#define SV_COORD_FRAC	(1.0f)
-#define CL_COORD_FRAC	(1.0f)
 #define SV_ANGLE_FRAC	(360.0f / 1.0f )
 #define CL_ANGLE_FRAC	(1.0f / 360.0f )
 

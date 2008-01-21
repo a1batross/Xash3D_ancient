@@ -113,7 +113,8 @@ extern prvm_builtin_t vm_ui_builtins[];
 
 void UI_Init( void );
 void UI_KeyEvent( int key );
-void UI_ToggleMenu_f( void );
+void UI_ShowMenu( void );
+void UI_HideMenu( void );
 void UI_Shutdown( void );
 void UI_Draw( void );
 

@@ -258,8 +258,8 @@ bool Cmd_GetMapList (const char *s, char *completedname, int length )
 {
 	search_t		*t;
 	file_t		*f;
-	char		message[MAX_QPATH];
-	char		matchbuf[MAX_QPATH];
+	string		message;
+	string		matchbuf;
 	byte		buf[MAX_SYSPATH]; // 1 kb
 	int		i, nummaps;
 
@@ -294,7 +294,8 @@ bool Cmd_GetMapList (const char *s, char *completedname, int length )
 
 				switch(ver)
 				{
-				case 38:	// quake2 (xash)
+				case 38:	// quake2
+				case 39:	// xash3d
 				case 46:	// quake3
 				case 47:	// return to castle wolfenstein
 					lumpofs = LittleLong(header->lumps[LUMP_ENTITIES].fileofs);
@@ -350,13 +351,6 @@ bool Cmd_GetMapList (const char *s, char *completedname, int length )
 						Com_ParseToken(&data);
 						strncpy(message, com_token, sizeof(message));
 					}
-					else if(!strcmp(com_token, "mapversion" ))
-					{
-						// get map version
-						Com_ParseToken(&data);
-						// old xash maps are Half-Life, so don't overwrite version
-						if(ver > 30) ver = atoi(com_token);
-					}
 				}
 			}
 		}
@@ -370,9 +364,9 @@ bool Cmd_GetMapList (const char *s, char *completedname, int length )
 		case 29:  strncpy((char *)buf, "Quake1", sizeof(buf)); break;
 		case 30:  strncpy((char *)buf, "Half-Life", sizeof(buf)); break;
 		case 38:  strncpy((char *)buf, "Quake 2", sizeof(buf)); break;
+		case 39:  strncpy((char *)buf, "Xash 3D", sizeof(buf)); break;
 		case 46:  strncpy((char *)buf, "Quake 3", sizeof(buf)); break;
 		case 47:  strncpy((char *)buf, "RTCW", sizeof(buf)); break;
-		case 220: strncpy((char *)buf, "Xash 3D", sizeof(buf)); break;
 		default:	strncpy((char *)buf, "??", sizeof(buf)); break;
 		}
 		Msg("%16s (%s) ^3%s^7\n", matchbuf, buf, message);
@@ -392,6 +386,51 @@ bool Cmd_GetMapList (const char *s, char *completedname, int length )
 
 /*
 =====================================
+Cmd_GetFontList
+
+Prints or complete font filename
+=====================================
+*/
+bool Cmd_GetFontList (const char *s, char *completedname, int length )
+{
+	search_t		*t;
+	string		matchbuf;
+	int		i, numfonts;
+
+	t = FS_Search(va("graphics/fonts/%s*.dds", s ), true);
+	if(!t) return false;
+
+	FS_FileBase(t->filenames[0], matchbuf ); 
+	if(completedname && length) com.strncpy( completedname, matchbuf, length );
+	if(t->numfilenames == 1) return true;
+
+	for(i = 0, numfonts = 0; i < t->numfilenames; i++)
+	{
+		const char *ext = FS_FileExtension( t->filenames[i] ); 
+
+		if( com.stricmp(ext, "dds" )) continue;
+		FS_FileBase(t->filenames[i], matchbuf );
+		Msg("%16s\n", matchbuf );
+		numfonts++;
+	}
+	Msg("\n^3 %i fonts found.\n", numfonts );
+	Z_Free(t);
+
+	// cut shortestMatch to the amount common with s
+	if(completedname && length)
+	{
+		for( i = 0; matchbuf[i]; i++ )
+		{
+			if(tolower(completedname[i]) != tolower(matchbuf[i]))
+				completedname[i] = 0;
+		}
+	}
+
+	return true;
+}
+
+/*
+=====================================
 Cmd_GetDemoList
 
 Prints or complete demo filename
@@ -400,7 +439,7 @@ Prints or complete demo filename
 bool Cmd_GetDemoList (const char *s, char *completedname, int length )
 {
 	search_t		*t;
-	char		matchbuf[MAX_QPATH];
+	string		matchbuf;
 	int		i, numdems;
 
 	t = FS_Search(va("demos/%s*.dem", s ), true);
@@ -419,7 +458,7 @@ bool Cmd_GetDemoList (const char *s, char *completedname, int length )
 		Msg("%16s\n", matchbuf );
 		numdems++;
 	}
-	Msg("\n^3 %i demos found.\n", numdems );
+	Msg("\n^3 %i fonts found.\n", numdems );
 	Z_Free(t);
 
 	// cut shortestMatch to the amount common with s
@@ -445,7 +484,7 @@ Prints or complete movie filename
 bool Cmd_GetMovieList (const char *s, char *completedname, int length )
 {
 	search_t		*t;
-	char		matchbuf[MAX_QPATH];
+	string		matchbuf;
 	int		i, nummovies;
 
 	t = FS_Search(va("video/%s*.roq", s ), true);

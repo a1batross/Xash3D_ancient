@@ -239,19 +239,23 @@ void Field_CompleteCommand( field_t *field )
 		// autocomplete second arg
 		if(!stricmp(Cmd_Argv(0), "map" ) || !stricmp(Cmd_Argv(0), "\\map" ))
 		{
-			result = Cmd_GetMapList(Cmd_Argv(1), filename, MAX_QPATH );
+			result = Cmd_GetMapList(Cmd_Argv(1), filename, MAX_STRING );
 		}
 		else if(!stricmp(Cmd_Argv(0), "demo" ) || !stricmp(Cmd_Argv(0), "\\demo" ))
 		{
-			result = Cmd_GetDemoList(Cmd_Argv(1), filename, MAX_QPATH );
+			result = Cmd_GetDemoList(Cmd_Argv(1), filename, MAX_STRING );
 		}
 		else if(!stricmp(Cmd_Argv(0), "movie" ) || !stricmp(Cmd_Argv(0), "\\movie" ))
 		{
-			result = Cmd_GetMovieList(Cmd_Argv(1), filename, MAX_QPATH );
+			result = Cmd_GetMovieList(Cmd_Argv(1), filename, MAX_STRING );
 		}
 		else if(!stricmp(Cmd_Argv(0), "changelevel" ) || !stricmp(Cmd_Argv(0), "\\changelevel" ))
 		{
-			result = Cmd_GetMapList(Cmd_Argv(1), filename, MAX_QPATH );
+			result = Cmd_GetMapList(Cmd_Argv(1), filename, MAX_STRING );
+		}
+		else if(!stricmp(Cmd_Argv(0), "setfont" ) || !stricmp(Cmd_Argv(0), "\\setfont" ))
+		{
+			result = Cmd_GetFontList(Cmd_Argv(1), filename, MAX_STRING );
 		}
 		
 		if( result )

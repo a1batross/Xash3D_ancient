@@ -25,9 +25,6 @@ engine\
 engine\client\
 engine\server\
 engine\uimenu\
-pr_client\
-pr_server\
-pr_uimenu\
 launch\
 launch\xash\
 launch\bsplib\

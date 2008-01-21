@@ -357,6 +357,7 @@ void SC_SkipToken( void );
 void SC_FreeToken( void );
 bool SC_TryToken( void );
 char *SC_GetToken( bool newline );
+char *SC_GetTokenSimple( bool newline );
 char *SC_Token( void );
 extern char token[];
 

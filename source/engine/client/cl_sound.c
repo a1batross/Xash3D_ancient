@@ -1978,7 +1978,6 @@ void S_FreeOldestSound( void )
 	sfx->soundData = NULL;
 }
 
-#define DEF_COMSOUNDMEGS	"8"
 /*
 ===============================================================================
 
@@ -2026,16 +2025,16 @@ void SND_setup( void )
 	cvar_t	*cv;
 	int	scs;
 
-	cv = Cvar_Get( "com_soundMegs", DEF_COMSOUNDMEGS, CVAR_LATCH | CVAR_ARCHIVE );
+	cv = Cvar_Get( "s_memory", "4", CVAR_LATCH|CVAR_ARCHIVE );
 
-	scs = (cv->value * 1536);
+	scs = (cv->integer * 1536);
 
 	if(!buffer) buffer = Z_Malloc(scs * sizeof(sndBuffer));
 	// allocate the stack based hunk allocator
 	if(sfxScratchBuffer) sfxScratchBuffer = Z_Malloc(SND_CHUNK_SIZE * sizeof(short) * 4);
 	sfxScratchPointer = NULL;
 
-	inUse = scs*sizeof(sndBuffer);
+	inUse = scs * sizeof(sndBuffer);
 	p = buffer;
 	q = p + scs;
 	while (--q > p) *(sndBuffer **)q = q-1;

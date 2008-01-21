@@ -15,6 +15,16 @@ void SCR_Loading_f (void)
 	S_StopAllSounds();
 }
 
+void CL_SetFont_f( void )
+{
+	if(Cmd_Argc() < 2)
+	{
+		Msg("Usage: setfont <fontname>\n");
+		return;
+	}
+	Cvar_Set("cl_font", Cmd_Argv(1));
+}
+
 /* 
 ================== 
 CL_ScreenshotGetName

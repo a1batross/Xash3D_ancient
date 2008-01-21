@@ -664,7 +664,7 @@ void PF_modelframes (void)
 
 void PF_changelevel (void)
 {
-	Msg("changelevel\n");
+	Cbuf_ExecuteText(EXEC_APPEND, va("changelevel %s\n", PRVM_G_STRING(OFS_PARM0)));
 }
 
 /*
