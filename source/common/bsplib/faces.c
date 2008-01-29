@@ -58,13 +58,13 @@ typedef struct hashvert_s
 } hashvert_t;
 
 
-#define	HASH_SIZE	64
+#define	HASH_SIZE	2048
 
 
 int	vertexchain[MAX_MAP_VERTS];		// the next vertex in a hash chain
 int	hashverts[HASH_SIZE*HASH_SIZE];	// a vertex number, or 0 for no verts
 
-face_t		*edgefaces[MAX_MAP_EDGES][2];
+face_t	*edgefaces[MAX_MAP_EDGES][2];
 
 //============================================================================
 
@@ -73,8 +73,8 @@ unsigned HashVec (vec3_t vec)
 {
 	int			x, y;
 
-	x = (4096 + (int)(vec[0]+0.5)) >> 7;
-	y = (4096 + (int)(vec[1]+0.5)) >> 7;
+	x = (131072 + (int)(vec[0]+0.5)) >> 7;
+	y = (131072 + (int)(vec[1]+0.5)) >> 7;
 
 	if ( x < 0 || x >= HASH_SIZE || y < 0 || y >= HASH_SIZE )
 		Sys_Error ("HashVec: point outside valid range");
@@ -157,8 +157,8 @@ int	GetVertexnum (vec3_t v)
 	{
 		if ( fabs(v[i] - (int)(v[i]+0.5)) < INTEGRAL_EPSILON )
 			v[i] = (int)(v[i]+0.5);
-		if (v[i] < -4096 || v[i] > 4096)
-			Sys_Error ("GetVertexnum: outside +/- 4096");
+		if (v[i] < -131072 || v[i] > 131072)
+			Sys_Error ("GetVertexnum: outside +/- 131072");
 	}
 
 	// search for an existing vertex match
@@ -307,10 +307,10 @@ void FindEdgeVerts (vec3_t v1, vec3_t v2)
 }
 #endif
 
-	x1 = (4096 + (int)(v1[0]+0.5)) >> 7;
-	y1 = (4096 + (int)(v1[1]+0.5)) >> 7;
-	x2 = (4096 + (int)(v2[0]+0.5)) >> 7;
-	y2 = (4096 + (int)(v2[1]+0.5)) >> 7;
+	x1 = (131072 + (int)(v1[0]+0.5)) >> 7;
+	y1 = (131072 + (int)(v1[1]+0.5)) >> 7;
+	x2 = (131072 + (int)(v2[0]+0.5)) >> 7;
+	y2 = (131072 + (int)(v2[1]+0.5)) >> 7;
 
 	if (x1 > x2)
 	{
@@ -568,7 +568,7 @@ void FreeFace (face_t *f)
 {
 	if (f->w)
 		FreeWinding (f->w);
-	Free (f);
+	Mem_Free (f);
 	c_faces--;
 }
 

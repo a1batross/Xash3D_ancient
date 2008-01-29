@@ -429,8 +429,8 @@ void Cmd_MovieUnknown( void )
 void ResetMovieInfo( void )
 {
 	// set default sprite parms
-	FS_FileBase(gs_filename, movieoutname ); // kill path and ext
-	FS_DefaultExtension( movieoutname, ".roq" );//set new ext
+	FS_FileBase(gs_filename, movieoutname );	// kill path and ext
+	FS_DefaultExtension( movieoutname, ".roq" );	//set new ext
 
 	motionBits = 0;
 	keyPerc = 600;
@@ -480,8 +480,10 @@ bool ROQ_ParseMovieScript (void)
 
 void ROQ_ProcessFrame( int num )
 {
-	frame = FS_LoadImage( frames->filenames[num], NULL, 0 ); 
+	frame = Image->LoadImage( frames->filenames[num], NULL, 0 ); 
 	if(!frame || !frame->buffer) return; // technically an error
+
+	Image->ResampleImage( frames->filenames[num], &frame, 512, 256, true ); // resample if needed
 	if(!nextKeyframe)
 	{
 		ROQ_SetPreference(comp, ROQENC_PREF_KEYFRAME, 1);
@@ -497,7 +499,7 @@ void ROQ_ProcessFrame( int num )
 		return;
 	}
 	Sys_GetKeyEvents(); // update console output
-	if(frame) RFree( frame );
+	if( frame ) Image->FreeImage( frame );
 	iTotalFrames++;
 }
 
@@ -527,8 +529,9 @@ void ROQ_ProcessVideo( void )
 		if(!cbFile) Sys_Break("ROQ_ProcessVideo: could not open %s\n", codebookname );
 	}
 
-	frame = FS_LoadImage( frames->filenames[i], NULL, 0 ); 
+	frame = Image->LoadImage( frames->filenames[i], NULL, 0 ); 
 	if(!frame) Sys_Break("frame not loaded\n");
+	Image->ResampleImage( frames->filenames[i], &frame, 512, 256, true ); // resample first frame
 
 	// allocate transform buffer
 	buffer = RQalloc( frame->width * frame->height * 3);

@@ -42,6 +42,7 @@
 #define STRING_COLOR_TAG	'^'
 #define ColorIndex(c)	(((c) - '0') & 7)
 #define IsColorString(p)	( p && *(p) == STRING_COLOR_TAG && *((p)+1) && *((p)+1) != STRING_COLOR_TAG )
+#define bound(min, num, max)	((num) >= (min) ? ((num) < (max) ? (num) : (max)) : (min))
 
 // command buffer modes
 #define EXEC_NOW		0

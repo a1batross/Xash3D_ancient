@@ -98,9 +98,9 @@ bool ConvSKN( const char *name, char *buffer, int filesize )
 	{
 		string	skinpath;
 		FS_FileBase( name, skinpath );
-		FS_SaveImage(va("%s/models/%s.tga", gs_gamedir, skinpath ), pic );
+		Image->SaveImage(va("%s/models/%s.tga", gs_gamedir, skinpath ), pic );
 		Skin_CreateScript( skinpath, pic );
-		FS_FreeImage( pic ); // release buffer
+		Image->FreeImage( pic ); // release buffer
 		Msg("%s.skin\n", skinpath ); // echo to console about current skin
 		return true;
 	}
@@ -119,9 +119,9 @@ bool ConvFLT( const char *name, char *buffer, int filesize )
 	if( pic )
 	{
 		FS_StripExtension( (char *)name );
-		FS_SaveImage(va("%s/textures/%s.tga", gs_gamedir, name ), pic );
+		Image->SaveImage(va("%s/textures/%s.tga", gs_gamedir, name ), pic );
 		Conv_CreateShader( name, pic, "flt", NULL, 0, 0 );
-		FS_FreeImage( pic ); // release buffer
+		Image->FreeImage( pic ); // release buffer
 		Msg("%s.flat\n", name ); // echo to console about current texture
 		return true;
 	}
@@ -141,8 +141,8 @@ bool ConvFLP( const char *name, char *buffer, int filesize )
 	if( pic )
 	{
 		FS_FileBase( name, savedname );
-		FS_SaveImage(va("%s/graphics/%s.tga", gs_gamedir, savedname ), pic );
-		FS_FreeImage( pic ); // release buffer
+		Image->SaveImage(va("%s/graphics/%s.tga", gs_gamedir, savedname ), pic );
+		Image->FreeImage( pic ); // release buffer
 		Msg("%s.flmp\n", savedname ); // echo to console about current pic
 		return true;
 	}
@@ -235,7 +235,7 @@ bool ConvMIP( const char *name, char *buffer, int filesize )
 	Conv_GetPaletteLMP( pal, rendermode );
 	Conv_Copy8bitRGBA( fin, pic.buffer, pixels );
 
-	FS_SaveImage( filepath, &pic ); // save converted image
+	Image->SaveImage( filepath, &pic ); // save converted image
 	Conv_CreateShader( name, &pic, "mip", NULL, 0, 0 );
 	Mem_Free( pic.buffer ); // release buffer
 	Msg("%s.mip\n", savedname ); // echo to console about current texture
@@ -301,7 +301,7 @@ bool ConvLMP( const char *name, char *buffer, int filesize )
 	FS_StripExtension((char *)name );
 	Conv_GetPaletteLMP( pal, LUMP_NORMAL );
 	Conv_Copy8bitRGBA( fin, pic.buffer, pixels );
-	FS_SaveImage(va("%s/graphics/%s.tga", gs_gamedir, name ), &pic ); // save converted image
+	Image->SaveImage(va("%s/graphics/%s.tga", gs_gamedir, name ), &pic ); // save converted image
 	Mem_Free( pic.buffer ); // release buffer
 	Msg("%s.lmp\n", name ); // echo to console about current image
 
@@ -389,7 +389,7 @@ bool ConvFNT( const char *name, char *buffer, int filesize )
 
 	FS_StripExtension((char *)name );
 	Conv_Copy8bitRGBA( fin, pic.buffer, pixels );
-	FS_SaveImage(va("%s/graphics/%s.tga", gs_gamedir, name ), &pic ); // save converted image
+	Image->SaveImage(va("%s/graphics/%s.tga", gs_gamedir, name ), &pic ); // save converted image
 	Mem_Free( pic.buffer ); // release buffer
 	Msg("%s.qfont\n", name ); // echo to console about current font
 

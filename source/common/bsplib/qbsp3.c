@@ -51,7 +51,7 @@ node_t *BlockTree (int xl, int yl, int xh, int yh)
 		normal[0] = 1;
 		normal[1] = 0;
 		normal[2] = 0;
-		dist = mid*1024;
+		dist = mid*32768;
 		node->planenum = FindFloatPlane (normal, dist);
 		node->children[0] = BlockTree ( mid, yl, xh, yh);
 		node->children[1] = BlockTree ( xl, yl, mid-1, yh);
@@ -62,7 +62,7 @@ node_t *BlockTree (int xl, int yl, int xh, int yh)
 		normal[0] = 0;
 		normal[1] = 1;
 		normal[2] = 0;
-		dist = mid*1024;
+		dist = mid*32768;
 		node->planenum = FindFloatPlane (normal, dist);
 		node->children[0] = BlockTree ( xl, mid, xh, yh);
 		node->children[1] = BlockTree ( xl, yl, xh, mid-1);
@@ -90,12 +90,12 @@ void ProcessBlock_Thread (int blocknum)
 	yblock = block_yl + blocknum / (block_xh-block_xl+1);
 	xblock = block_xl + blocknum % (block_xh-block_xl+1);
 
-	mins[0] = xblock*1024;
-	mins[1] = yblock*1024;
-	mins[2] = -4096;
-	maxs[0] = (xblock+1)*1024;
-	maxs[1] = (yblock+1)*1024;
-	maxs[2] = 4096;
+	mins[0] = xblock*32768;
+	mins[1] = yblock*32768;
+	mins[2] = -131072;
+	maxs[0] = (xblock+1)*32768;
+	maxs[1] = (yblock+1)*32768;
+	maxs[2] = 131072;
 
 	// the makelist and chopbrushes could be cached between the passes...
 	brushes = MakeBspBrushList (brush_start, brush_end, mins, maxs);
@@ -136,14 +136,14 @@ void ProcessWorldModel( void )
 	//
 	// perform per-block operations
 	//
-	if (block_xh * 1024 > map_maxs[0])
-		block_xh = floor(map_maxs[0]/1024.0);
-	if ( (block_xl+1) * 1024 < map_mins[0])
-		block_xl = floor(map_mins[0]/1024.0);
-	if (block_yh * 1024 > map_maxs[1])
-		block_yh = floor(map_maxs[1]/1024.0);
-	if ( (block_yl+1) * 1024 < map_mins[1])
-		block_yl = floor(map_mins[1]/1024.0);
+	if (block_xh * 32768 > map_maxs[0])
+		block_xh = floor(map_maxs[0]/32768.0);
+	if ( (block_xl+1) * 32768 < map_mins[0])
+		block_xl = floor(map_mins[0]/32768.0);
+	if (block_yh * 32768 > map_maxs[1])
+		block_yh = floor(map_maxs[1]/32768.0);
+	if ( (block_yl+1) * 32768 < map_mins[1])
+		block_yl = floor(map_mins[1]/32768.0);
 
 	if (block_xl <-4) block_xl = -4;
 	if (block_yl <-4) block_yl = -4;
@@ -161,12 +161,12 @@ void ProcessWorldModel( void )
 		tree = AllocTree ();
 		tree->headnode = BlockTree (block_xl-1, block_yl-1, block_xh+1, block_yh+1);
 
-		tree->mins[0] = (block_xl)*1024;
-		tree->mins[1] = (block_yl)*1024;
+		tree->mins[0] = (block_xl)*32768;
+		tree->mins[1] = (block_yl)*32768;
 		tree->mins[2] = map_mins[2] - 8;
 
-		tree->maxs[0] = (block_xh+1)*1024;
-		tree->maxs[1] = (block_yh+1)*1024;
+		tree->maxs[0] = (block_xh+1)*32768;
+		tree->maxs[1] = (block_yh+1)*32768;
 		tree->maxs[2] = map_maxs[2] + 8;
 
 		//
@@ -224,8 +224,8 @@ void ProcessSubModel (void)
 	start = e->firstbrush;
 	end = start + e->numbrushes;
 
-	mins[0] = mins[1] = mins[2] = -4096;
-	maxs[0] = maxs[1] = maxs[2] = 4096;
+	mins[0] = mins[1] = mins[2] = -131072;
+	maxs[0] = maxs[1] = maxs[2] = 131072;
 	list = MakeBspBrushList (start, end, mins, maxs);
 	list = ChopBrushes (list);
 	tree = BrushBSP (list, mins, maxs);

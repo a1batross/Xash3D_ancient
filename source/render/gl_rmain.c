@@ -151,6 +151,7 @@ cvar_t	*r_bloom_fast_sample;
 
 cvar_t	*gl_3dlabs_broken;
 
+cvar_t	*r_pause_bw;
 cvar_t	*r_fullscreen;
 cvar_t	*vid_gamma;
 cvar_t	*r_pause;
@@ -593,7 +594,7 @@ void R_SetupGL (void)
 	screenaspect = (float)r_newrefdef.width/r_newrefdef.height;
 //	yfov = 2*atan((float)r_newrefdef.height/r_newrefdef.width)*180/M_PI;
 
-	qglPerspective (r_newrefdef.fov_y,  screenaspect,  4,  4096);
+	qglPerspective (r_newrefdef.fov_y,  screenaspect,  4,  131072 );
 
 	qglMatrixMode(GL_MODELVIEW);
 	qglLoadIdentity ();
@@ -748,11 +749,11 @@ void R_RenderView( refdef_t *fd )
 	R_RenderDlights ();
 	R_DrawParticles ();
 	R_DrawAlphaSurfaces ();
+	R_DebugGraphics();
 	R_Flash();
 
 	R_BloomBlend (fd);
 	GL_DrawRadar();
-	R_DebugGraphics();
 }
 
 void R_DrawPauseScreen( void )
@@ -761,7 +762,8 @@ void R_DrawPauseScreen( void )
 	if(r_newrefdef.rdflags & RDF_NOWORLDMODEL)
 		return;
 
-	return;
+	if(!r_pause_bw->integer )
+		return;
 
 	if(r_pause->modified )
 	{
@@ -953,7 +955,7 @@ void R_RenderFrame (refdef_t *fd)
 	mirror_render = false;
 
 	R_RenderView( fd );
-	//if( mirror ) R_Mirror( fd );
+	if( mirror ) R_Mirror( fd );
 	R_SetLightLevel ();
 	R_SetGL2D ();
 }
@@ -971,7 +973,8 @@ void R_Register( void )
 	r_lerpmodels = Cvar_Get ("r_lerpmodels", "1", 0);
 	r_speeds = Cvar_Get ("r_speeds", "0", 0);
 	r_pause = Cvar_Get("paused", "0", 0);
-	r_physbdebug = Cvar_Get( "cm_physdebug", "0", CVAR_ARCHIVE );
+	r_pause_bw = Cvar_Get("r_pause_effect", "0", CVAR_ARCHIVE );
+	r_physbdebug = Cvar_Get( "cm_debugdraw", "0", CVAR_ARCHIVE );
 
 	// must been already existing
 	r_width = Cvar_Get("width", "640", 0);

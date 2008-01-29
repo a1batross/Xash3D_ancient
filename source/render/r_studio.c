@@ -1086,7 +1086,7 @@ void R_StudioSetupLighting( void )
 	{
 		vec3_t light_org;
 		VectorCopy( m_pCurrentEntity->origin, light_org );
-		light_org[2] += 3; // make sure what lightpoint is off thr ground
+		light_org[2] += 3; // make sure what lightpoint is off the ground
 		R_LightPoint( light_org, m_plightcolor );
 		if ( m_pCurrentEntity->flags & RF_WEAPONMODEL )
 			r_lightlevel->value = bound(0, VectorLength(m_plightcolor) * 75.0f, 255); 
@@ -1312,7 +1312,7 @@ void R_StudioDrawPoints ( void )
 		qglPushMatrix();
 		qglLoadIdentity();
 		qglScalef( -1, 1, 1 );
-	    	qglPerspective( r_newrefdef.fov_y, ( float ) r_newrefdef.width / r_newrefdef.height,  4,  4096);
+	    	qglPerspective( r_newrefdef.fov_y, ( float ) r_newrefdef.width / r_newrefdef.height,  4, 131072 );
 		qglMatrixMode( GL_MODELVIEW );
 		qglCullFace( GL_BACK );
 	}          

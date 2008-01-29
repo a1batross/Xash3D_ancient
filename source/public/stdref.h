@@ -618,200 +618,6 @@ static activity_map_t activity_map[] =
 {ACT_VM_IDLE_EMPTY,		"ACT_VM_IDLE_EMPTY"		},
 {0, 			NULL			},
 };
-
-/*
-==============================================================================
-
-BRUSH MODELS
-==============================================================================
-*/
-
-// header
-#define BSPMOD_VERSION	39
-#define IDBSPMODHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'I') // little-endian "IBSP"
-
-// 32 bit limits
-#define MAX_MAP_SIZE		0x40000	// -/+ 131072
-#define MAX_KEY			128
-#define MAX_VALUE			512
-#define MAX_MAP_AREAS		0x100	// don't increase this
-#define MAX_MAP_MODELS		0x2000	// mesh models and sprites too
-#define MAX_MAP_AREAPORTALS		0x400
-#define MAX_MAP_ENTITIES		0x2000
-#define MAX_MAP_TEXINFO		0x2000
-#define MAX_MAP_BRUSHES		0x8000
-#define MAX_MAP_PLANES		0x20000
-#define MAX_MAP_NODES		0x20000
-#define MAX_MAP_BRUSHSIDES		0x20000
-#define MAX_MAP_LEAFS		0x20000
-#define MAX_MAP_VERTS		0x80000
-#define MAX_MAP_FACES		0x20000
-#define MAX_MAP_LEAFFACES		0x20000
-#define MAX_MAP_LEAFBRUSHES		0x40000
-#define MAX_MAP_PORTALS		0x20000
-#define MAX_MAP_EDGES		0x40000
-#define MAX_MAP_SURFEDGES		0x40000
-#define MAX_MAP_ENTSTRING		0x80000
-#define MAX_MAP_LIGHTING		0x800000
-#define MAX_MAP_VISIBILITY		0x800000
-#define MAX_MAP_COLLISION		0x800000
-#define MAX_MAP_STRINGDATA		0x40000
-#define MAX_MAP_NUMSTRINGS		0x10000
-#define MAX_MODELS			MAX_MAP_MODELS>>1	// brushmodels and other models
-
-// lump offset
-#define LUMP_ENTITIES		0
-#define LUMP_PLANES			1
-#define LUMP_LEAFS			2
-#define LUMP_LEAFFACES		3
-#define LUMP_LEAFBRUSHES		4
-#define LUMP_NODES			5
-#define LUMP_VERTEXES		6
-#define LUMP_EDGES			7
-#define LUMP_SURFEDGES		8
-#define LUMP_SURFDESC		9
-#define LUMP_FACES			10
-#define LUMP_MODELS			11
-#define LUMP_BRUSHES		12
-#define LUMP_BRUSHSIDES		13
-#define LUMP_VISIBILITY		14
-#define LUMP_LIGHTING		15
-#define LUMP_COLLISION		16	// newton collision tree (worldmodel coords already convert to meters)
-#define LUMP_BVHSTATIC		17	// bullet collision tree (currently not used)
-#define LUMP_SVPROGS		18	// private server.dat for current map
-#define LUMP_WAYPOINTS		19	// AI navigate tree (like .aas file for quake3)		
-#define LUMP_STRINGDATA		20	// string array
-#define LUMP_STRINGTABLE		21	// string table id's
-
-// get rid of this
-#define LUMP_AREAS			22
-#define LUMP_AREAPORTALS		23
-
-#define LUMP_TOTALCOUNT		32	// max lumps
-
-
-// the visibility lump consists of a header with a count, then
-// byte offsets for the PVS and PHS of each cluster, then the raw
-// compressed bit vectors
-#define DVIS_PVS			0
-#define DVIS_PHS			1
-
-//other limits
-#define MAXLIGHTMAPS		4
-
-typedef struct
-{
-	int	ident;
-	int	version;	
-	lump_t	lumps[LUMP_TOTALCOUNT];
-} dheader_t;
-
-typedef struct
-{
-	float	mins[3];
-	float	maxs[3];
-	int	headnode;
-	int	firstface;	// submodels just draw faces 
-	int	numfaces;		// without walking the bsp tree
-	int	firstbrush;	// physics stuff
-	int	numbrushes;
-} dmodel_t;
-
-typedef struct
-{
-	float	point[3];
-} dvertex_t;
-
-typedef struct
-{
-	float	normal[3];
-	float	dist;
-} dplane_t;
-
-typedef struct
-{
-	int	planenum;
-	int	children[2];	// negative numbers are -(leafs+1), not nodes
-	int	mins[3];		// for frustom culling
-	int	maxs[3];
-	int	firstface;
-	int	numfaces;		// counting both sides
-} dnode_t;
-
-typedef struct dsurfdesc_s
-{
-	float	vecs[2][4];	// [s/t][xyz offset] texture s\t
-	int	size[2];		// valid size for current s\t coords (used for replace texture)
-	int	texid;		// string table texture id number
-	int	animid;		// string table animchain id number 
-	int	flags;		// surface flags
-	int	value;		// used by qrad, not engine
-} dsurfdesc_t;
-
-typedef struct
-{
-	int	v[2];		// vertex numbers
-} dedge_t;
-
-typedef struct
-{
-	int	planenum;
-	int	firstedge;
-	int	numedges;	
-	int	desc;
-
-	// lighting info
-	byte	styles[MAXLIGHTMAPS];
-	int	lightofs;		// start of [numstyles*surfsize] samples
-
-	// get rid of this
-	short	side;
-} dface_t;
-
-typedef struct
-{
-	int	contents;		// or of all brushes (not needed?)
-	int	cluster;
-	int	area;
-	int	mins[3];		// for frustum culling
-	int	maxs[3];
-	int	firstleafface;
-	int	numleaffaces;
-	int	firstleafbrush;
-	int	numleafbrushes;
-} dleaf_t;
-
-typedef struct
-{
-	int	planenum;		// facing out of the leaf
-	int	surfdesc;		// surface description (s/t coords, flags, etc)
-} dbrushside_t;
-
-typedef struct
-{
-	int	firstside;
-	int	numsides;
-	int	contents;
-} dbrush_t;
-
-typedef struct
-{
-	int	numclusters;
-	int	bitofs[8][2];	// bitofs[numclusters][2]
-} dvis_t;
-
-typedef struct
-{
-	int	portalnum;
-	int	otherarea;
-} dareaportal_t;
-
-typedef struct
-{
-	int	numareaportals;
-	int	firstareaportal;
-} darea_t;
-
 /*
 ==============================================================================
 
@@ -1570,6 +1376,7 @@ typedef struct mip_s
 #define	TYPE_QFONT	70	// half-life font	(qfont_t)
 #define	TYPE_VPROGS	71	// Xash3D QC compiled progs
 #define	TYPE_SCRIPT	72	// txt script file (e.g. shader)
+#define	TYPE_GFXPIC	73	// any known image format
 
 #define	QCHAR_WIDTH	16
 #define	QFONT_WIDTH	16	// valve fonts used contant sizes	
@@ -1621,119 +1428,6 @@ typedef struct
 /*
 ========================================================================
 
-.TGA image format	(Truevision Targa)
-
-========================================================================
-*/
-typedef struct tga_s
-{
-	byte	id_length;
-	byte	colormap_type;
-	byte	image_type;
-	word	colormap_index;
-	word	colormap_length;
-	byte	colormap_size;
-	word	x_origin;
-	word	y_origin;
-	word	width;
-	word	height;
-	byte	pixel_size;
-	byte	attributes;
-} tga_t;
-/*
-========================================================================
-
-.DDS image format
-
-========================================================================
-*/
-#define DDSHEADER	((' '<<24)+('S'<<16)+('D'<<8)+'D') // little-endian "DDS "
-
-//other four-cc types
-#define TYPE_DXT1	(('1'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT1"
-#define TYPE_DXT2	(('2'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT2"
-#define TYPE_DXT3	(('3'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT3"
-#define TYPE_DXT4	(('4'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT4"
-#define TYPE_DXT5	(('5'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT5"
-
-#define TYPE_ATI1	(('1'<<24)+('I'<<16)+('T'<<8)+'A') // little-endian "ATI1"
-#define TYPE_ATI2	(('2'<<24)+('I'<<16)+('T'<<8)+'A') // little-endian "ATI2"
-
-
-#define TYPE_RXGB	(('B'<<24)+('G'<<16)+('X'<<8)+'R') // little-endian "RXGB" doom3 normalmaps
-#define TYPE_$	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'$') // little-endian "$"
-
-#define DDS_CAPS				0x00000001L
-#define DDS_HEIGHT				0x00000002L
-#define DDS_WIDTH				0x00000004L
-
-#define DDS_RGB				0x00000040L
-#define DDS_PIXELFORMAT			0x00001000L
-#define DDS_LUMINANCE			0x00020000L
-
-#define DDS_ALPHAPIXELS			0x00000001L
-#define DDS_ALPHA				0x00000002L
-#define DDS_FOURCC				0x00000004L
-#define DDS_PITCH				0x00000008L
-#define DDS_COMPLEX				0x00000008L
-#define DDS_CUBEMAP				0x00000200L
-#define DDS_TEXTURE				0x00001000L
-#define DDS_MIPMAPCOUNT			0x00020000L
-#define DDS_LINEARSIZE			0x00080000L
-#define DDS_VOLUME				0x00200000L
-#define DDS_MIPMAP				0x00400000L
-#define DDS_DEPTH				0x00800000L
-
-#define DDS_CUBEMAP_POSITIVEX			0x00000400L
-#define DDS_CUBEMAP_NEGATIVEX			0x00000800L
-#define DDS_CUBEMAP_POSITIVEY			0x00001000L
-#define DDS_CUBEMAP_NEGATIVEY			0x00002000L
-#define DDS_CUBEMAP_POSITIVEZ			0x00004000L
-#define DDS_CUBEMAP_NEGATIVEZ			0x00008000L
-
-typedef struct dds_pf_s
-{
-	uint	dwSize;
-	uint	dwFlags;
-	uint	dwFourCC;
-	uint	dwRGBBitCount;
-	uint	dwRBitMask;
-	uint	dwGBitMask;
-	uint	dwBBitMask;
-	uint	dwABitMask;
-} dds_pixf_t;
-
-//  DDCAPS2
-typedef struct dds_caps_s
-{
-	uint	dwCaps1;
-	uint	dwCaps2;
-	uint	dwCaps3;
-	uint	dwCaps4;
-} dds_caps_t;
-
-typedef struct
-{
-	uint		dwIdent;		// must matched with DDSHEADER
-	uint		dwSize;
-	uint		dwFlags;		// determines what fields are valid
-	uint		dwHeight;
-	uint		dwWidth;
-	uint		dwLinearSize;	// Formless late-allocated optimized surface size
-	uint		dwDepth;		// depth if a volume texture
-	uint		dwMipMapCount;	// number of mip-map levels requested
-	uint		dwAlphaBitDepth;	// depth of alpha buffer requested
-	float		fReflectivity[3];	// average reflectivity value
-	float		fBumpScale;	// bumpmapping scale factor
-	uint		dwReserved1[6];	// reserved for future expansions
-	dds_pixf_t	dsPixelFormat;
-	dds_caps_t	dsCaps;
-	uint		dwTextureStage;
-} dds_t;
-
-/*
-========================================================================
-
 internal image format
 
 typically expanded to rgba buffer
@@ -1749,17 +1443,13 @@ enum comp_format
 	PF_RGB_24,	// uncompressed dds or another 24-bit image 
 	PF_RGB_24_FLIP,	// flip image for screenshots
 	PF_DXT1,		// nvidia DXT1 format
-	PF_DXT2,		// nvidia DXT2 format
 	PF_DXT3,		// nvidia DXT3 format
-	PF_DXT4,		// nvidia DXT4 format
 	PF_DXT5,		// nvidia DXT5 format
-	PF_ATI1N,		// ati 1N texture
-	PF_ATI2N,		// ati 2N texture
 	PF_LUMINANCE,	// b&w dds image
 	PF_LUMINANCE_16,	// b&w hi-res image
 	PF_LUMINANCE_ALPHA, // b&w dds image with alpha channel
-	PF_RXGB,		// doom3 normal maps
 	PF_ABGR_64,	// uint image
+	PF_ABGR_128F,	// float image
 	PF_RGBA_GN,	// internal generated texture
 	PF_TOTALCOUNT,	// must be last
 };
@@ -1785,17 +1475,13 @@ static const bpc_desc_t PFDesc[] =
 {PF_RGB_24,	"RGB 24",	0x1908,	0x1401, 3,  1, -3 },
 {PF_RGB_24_FLIP,	"RGB 24",	0x1908,	0x1401, 3,  1, -3 },
 {PF_DXT1,		"DXT1",	0x1908,	0x1401, 4,  1,  8 },
-{PF_DXT2,		"DXT2",	0x1908,	0x1401, 4,  1, 16 },
 {PF_DXT3,		"DXT3",	0x1908,	0x1401, 4,  1, 16 },
-{PF_DXT4,		"DXT4",	0x1908,	0x1401, 4,  1, 16 },
 {PF_DXT5,		"DXT5",	0x1908,	0x1401, 4,  1, 16 },
-{PF_ATI1N,	"ATI1N",	0x1908,	0x1401, 1,  1,  8 },
-{PF_ATI2N,	"3DC",	0x1908,	0x1401, 3,  1, 16 },
 {PF_LUMINANCE,	"LUM 8",	0x1909,	0x1401, 1,  1, -1 },
 {PF_LUMINANCE_16,	"LUM 16", 0x1909,	0x1401, 2,  2, -2 },
 {PF_LUMINANCE_ALPHA,"LUM A",	0x190A,	0x1401, 2,  1, -2 },
-{PF_RXGB,		"RXGB",	0x1908,	0x1401, 3,  1, 16 },
 {PF_ABGR_64,	"ABGR 64",0x80E1,	0x1401, 4,  2, -8 },
+{PF_ABGR_128F,	"ABGR128",0x1908,	0x1406, 4,  4, -16},
 {PF_RGBA_GN,	"system",	0x1908,	0x1401, 4,  1, -4 },
 };
 
@@ -1814,6 +1500,7 @@ typedef struct rgbdata_s
 	byte	numMips;		// mipmap count
 	byte	bitsCount;	// RGB bits count
 	uint	type;		// compression type
+	uint	hint;		// save to specified format
 	uint	flags;		// misc image flags
 	byte	*palette;		// palette if present
 	byte	*buffer;		// image buffer

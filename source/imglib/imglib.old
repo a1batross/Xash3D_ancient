@@ -41,7 +41,7 @@ int d_rendermode = LUMP_NORMAL;
 //=======================================================================
 void Image_Init( void )
 {
-	Sys.imagepool = Mem_AllocPool( "ImageLib Pool" );
+	Sys.imagepool = Mem_AllocPool( "imglib" );
 }
 
 void Image_Shutdown( void )
@@ -579,9 +579,9 @@ bool Image_Processing( const char *name, rgbdata_t **pix, int width, int height 
 		else if(image->type == PF_RGB_24)  pixel = 3;
 		else if(image->type == PF_RGB_24_FLIP) pixel = 3;
 		else return false; // unknown format
-		MsgDev(D_INFO, "Resampling %s from[%d x %d] to [%d x %d]\n", name, image->width, image->height, w, h );
+		MsgDev(D_NOTE, "Resampling %s from[%d x %d] to [%d x %d]\n", name, image->width, image->height, w, h );
+		if(Sys.app_name > HOST_VIEWER) Mem_Free( image->buffer );
 		image->buffer = out;
-// Mem_Move( Sys.imagepool, &image->buffer, out, w * h * pixel ); // update image->buffer
 		image->width = w, image->height = h;
 		image->size = w * h * pixel;
 		*pix = image;
@@ -1281,11 +1281,10 @@ typedef struct loadformat_s
 
 loadformat_t load_formats[] =
 {
-	{"textures/%s%s.%s", "dds", LoadDDS},
 	{"textures/%s%s.%s", "tga", LoadTGA},
-	{"textures/%s%s.%s", "mip", LoadMIP},
-	{"%s%s.%s", "dds", LoadDDS},
+	{"textures/%s%s.%s", "dds", LoadDDS},
 	{"%s%s.%s", "tga", LoadTGA},
+	{"%s%s.%s", "dds", LoadDDS},
 	{"%s%s.%s", "mip", LoadMIP},
 	{NULL, NULL}
 };

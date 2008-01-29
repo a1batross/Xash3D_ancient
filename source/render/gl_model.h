@@ -46,8 +46,6 @@ typedef struct
 {
 	int		type;
 	int		rendermode;
-	int		maxwidth;
-	int		maxheight;
 	int		numframes;
 	mspriteframedesc_t	frames[1];
 } msprite_t;

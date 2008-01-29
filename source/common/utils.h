@@ -69,12 +69,11 @@ void Profile_Time( void );	// total profile time
 #define Profile_Results( name )  _Profile_Results( #name )
 
 extern stdlib_api_t com;
-
+extern imglib_exp_t *Image;
 
 #define Sys_Error		com.error
 #define Malloc(size)	Mem_Alloc(basepool, size)  
 #define Z_Malloc(size)	Mem_Alloc(zonepool, size)  
-#define Free(mem)	 	Mem_Free(mem) 
 
 extern string gs_filename;
 extern char gs_basedir[ MAX_SYSPATH ];
@@ -93,7 +92,7 @@ enum
 
 bool Com_ValidScript( int scripttype );
 
-// misc common functions
+// get rid of this
 byte *ReadBMP (char *filename, byte **palette, int *width, int *height);
 
 // misc

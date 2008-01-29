@@ -6,6 +6,7 @@
 #define CM_LOCAL_H
 
 #include "physic.h"
+#include "basefiles.h"
 
 #define CAPSULE_MODEL_HANDLE	MAX_MODELS - 2
 #define BOX_MODEL_HANDLE	MAX_MODELS - 1

@@ -278,8 +278,7 @@ int RecursiveLightPoint (mnode_t *node, vec3_t start, vec3_t end)
 				pointcolor[0] += lightmap[0] * scale[0] * (1.0/255);
 				pointcolor[1] += lightmap[1] * scale[1] * (1.0/255);
 				pointcolor[2] += lightmap[2] * scale[2] * (1.0/255);
-				lightmap += 3*((surf->extents[0]>>4)+1) *
-						((surf->extents[1]>>4)+1);
+				lightmap += 3 * ((surf->extents[0]>>4)+1) * ((surf->extents[1]>>4)+1);
 			}
 		}
 		
@@ -313,7 +312,7 @@ void R_LightPoint (vec3_t p, vec3_t color)
 	
 	end[0] = p[0];
 	end[1] = p[1];
-	end[2] = p[2] - 2048;
+	end[2] = p[2] - 65536;
 	
 	r = RecursiveLightPoint (r_worldmodel->nodes, p, end);
 	
@@ -338,7 +337,7 @@ void R_LightPoint (vec3_t p, vec3_t color)
 						dist);
 		add = dl->intensity - VectorLength(dist);
 		add *= (1.0/256);
-		if (add > 0)
+		if( add > 0 )
 		{
 			VectorMA (color, add, dl->color, color);
 		}

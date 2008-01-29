@@ -293,7 +293,7 @@ byte *ReadBMP (char *filename, byte **palette, int *width, int *height)
 	*palette = pbPal;
 
 	//release buffer if need
-	if( buf ) Free( buf );
+	if( buf ) Mem_Free( buf );
 
 	return pbBmpBits;
 }

@@ -83,10 +83,8 @@ void MakeParents (int nodenum, int parent)
 	for (i=0 ; i<2 ; i++)
 	{
 		j = node->children[i];
-		if (j < 0)
-			leafparents[-j - 1] = nodenum;
-		else
-			MakeParents (j, nodenum);
+		if (j < 0) leafparents[-j - 1] = nodenum;
+		else MakeParents( j, nodenum );
 	}
 }
 
@@ -281,7 +279,7 @@ void FreeTransfers (void)
 	for (i = 0; i < num_patches; i++)
 	{
 		if(patches[i].transfers)
-			Free (patches[i].transfers);
+			Mem_Free (patches[i].transfers);
 		patches[i].transfers = NULL;
 	}
 }
@@ -434,11 +432,9 @@ void RadWorld (void)
 		Msg("Make transfer lists: %5.1f megs\n", (float)total_transfer * sizeof(transfer_t) / (1024*1024));
 
 		// spread light around
-		BounceLight ();
-		
-		FreeTransfers ();
-
-		CheckPatches ();
+		BounceLight();
+		FreeTransfers();
+		CheckPatches();
 	}
 
 	// blend bounced light into direct light and save

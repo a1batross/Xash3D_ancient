@@ -137,7 +137,7 @@ const char* GetProcessorVendorId()
 	static char VendorID[13];
 	register_t vendor = cpuid(0);
 	
-	Mem_Set( VendorID, 0, sizeof(VendorID) );
+	memset( VendorID, 0, sizeof(VendorID) );
 	if( !vendor.retval )
 	{
 		com_strcpy( VendorID, "Generic_x86" ); 
@@ -246,12 +246,12 @@ cpuinfo_t GetCPUInfo( void )
 	
 
 	if( pi.m_size == sizeof(pi) ) return pi;// Has the structure already been initialized and filled out?
-	Mem_Set(&pi, 0, sizeof(pi));		// Redundant, but just in case the user somehow messes with the size.
+	memset(&pi, 0, sizeof(pi));		// Redundant, but just in case the user somehow messes with the size.
 	pi.m_size = sizeof(pi);		// Fill out the structure, and return it:
 	pi.m_speed = CalculateClockSpeed();	// Grab the processor frequency:
 	pi.m_usNumLogicCore = LogicalProcessorsPerPackage();// Get the logical and physical processor counts:
 
-	Mem_Set( &si, 0, sizeof(si) );
+	memset( &si, 0, sizeof(si) );
 	GetSystemInfo( &si );
 
 	pi.m_usNumPhysCore = si.dwNumberOfProcessors / pi.m_usNumLogicCore;

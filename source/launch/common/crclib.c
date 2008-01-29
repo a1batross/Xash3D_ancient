@@ -285,7 +285,7 @@ void MD4Final( byte digest[16], MD4_CTX *context )
 	MD4Update (context, PADDING, padLen);
 	MD4Update (context, bits, 8);
 	Encode (digest, context->state, 16);
-	Mem_Set((POINTER)context, 0, sizeof (*context));
+	memset((POINTER)context, 0, sizeof (*context));
 }
 
 static void MD4Transform (UINT4 state[4], const byte block[64])
@@ -352,7 +352,7 @@ static void MD4Transform (UINT4 state[4], const byte block[64])
 	state[1] += b;
 	state[2] += c;
 	state[3] += d;
-	Mem_Set((POINTER)x, 0, sizeof (x));
+	memset((POINTER)x, 0, sizeof (x));
 }
 
 static void Encode(byte *output, UINT4 *input, uint len)

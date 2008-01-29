@@ -53,7 +53,7 @@ bool ConvWAL( const char *name, char *buffer, int filesize )
 	Conv_Copy8bitRGBA( buffer + ofs[0], pic.buffer, pixels );
 	
 	FS_StripExtension( (char *)name );
-	FS_SaveImage(va("%s/%s.tga", gs_gamedir, name ), &pic ); // save converted image
+	Image->SaveImage(va("%s/%s.tga", gs_gamedir, name ), &pic ); // save converted image
 	FS_FileBase( name, shadername );
 	Conv_CreateShader( name, &pic, "wal", wal.animname, flags, contents );
 	Mem_Free( pic.buffer ); // release buffer

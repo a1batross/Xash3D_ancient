@@ -260,7 +260,7 @@ void FreeBrush (bspbrush_t *brushes)
 	for (i=0 ; i<brushes->numsides ; i++)
 		if (brushes->sides[i].winding)
 			FreeWinding(brushes->sides[i].winding);
-	Free (brushes);
+	Mem_Free (brushes);
 	if (GetNumThreads() == 1)
 		c_active_brushes--;
 }
@@ -571,7 +571,7 @@ bool WindingIsHuge (winding_t *w)
 	for (i=0 ; i<w->numpoints ; i++)
 	{
 		for (j=0 ; j<3 ; j++)
-			if (w->p[i][j] < -8000 || w->p[i][j] > 8000)
+			if (w->p[i][j] < -BOGUS_RANGE || w->p[i][j] > BOGUS_RANGE)
 				return true;
 	}
 	return false;
@@ -951,12 +951,12 @@ void SplitBrush (bspbrush_t *brush, int planenum,
 
 	// see if we have valid polygons on both sides
 
-	for (i=0 ; i<2 ; i++)
+	for( i = 0; i < 2; i++)
 	{
 		BoundBrush (b[i]);
 		for (j=0 ; j<3 ; j++)
 		{
-			if (b[i]->mins[j] < -4096 || b[i]->maxs[j] > 4096)
+			if (b[i]->mins[j] < -131072 || b[i]->maxs[j] > 131072)
 				break;
 		}
 

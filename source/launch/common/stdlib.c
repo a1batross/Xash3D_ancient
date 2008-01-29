@@ -302,7 +302,7 @@ void com_atov( float *vec, const char *str, size_t siz )
 	int	j;
 
 	com_strncpy( buffer, str, MAX_QPATH );
-	Mem_Set( vec, 0, sizeof(vec_t) * siz);
+	memset( vec, 0, sizeof(vec_t) * siz);
 	pstr = pfront = buffer;
 
 	for ( j = 0; j < siz; j++ )

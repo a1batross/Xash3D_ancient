@@ -1118,7 +1118,7 @@ void R_DrawWorld (void)
 
 	// auto cycle the world frame for texture animation
 	memset (&ent, 0, sizeof(ent));
-	ent.frame = (int)(r_newrefdef.time * 0.1);
+	ent.frame = (int)(r_newrefdef.time);
 	currententity = &ent;
 
 	gl_state.currenttextures[0] = gl_state.currenttextures[1] = -1;
@@ -1137,8 +1137,7 @@ void R_DrawWorld (void)
 
 		if ( gl_lightmap->value )
 			GL_TexEnv( GL_REPLACE );
-		else 
-			GL_TexEnv( GL_MODULATE );
+		else  GL_TexEnv( GL_MODULATE );
 
 		R_RecursiveWorldNode (r_worldmodel->nodes);
 

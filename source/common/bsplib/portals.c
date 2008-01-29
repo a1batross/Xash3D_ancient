@@ -32,7 +32,7 @@ void FreePortal (portal_t *p)
 		FreeWinding (p->winding);
 	if (GetNumThreads() == 1)
 		c_active_portals--;
-	Free (p);
+	Mem_Free (p);
 }
 
 //==============================================================
@@ -530,9 +530,9 @@ void MakeTreePortals_r (node_t *node)
 		Msg("WARNING: node without a volume\n");
 	}
 
-	for (i=0 ; i<3 ; i++)
+	for( i = 0; i < 3; i++ )
 	{
-		if (node->mins[i] < -8000 || node->maxs[i] > 8000)
+		if (node->mins[i] < -BOGUS_RANGE || node->maxs[i] > BOGUS_RANGE)
 		{
 			Msg("WARNING: node with unbounded volume\n");
 			break;

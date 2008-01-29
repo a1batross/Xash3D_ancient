@@ -21,6 +21,22 @@
 #define SPRITEHL_VERSION		2
 #define SPRITE32_VERSION		32
 
+typedef enum { ST_SYNC = 0, ST_RAND } synctype_t;
+typedef enum { SPR_SINGLE = 0, SPR_GROUP } frametype_t;
+
+typedef struct
+{
+	int		ident;
+	int		version;
+	int		type;
+	int		boundingradius;
+	int		width;
+	int		height;
+	int		numframes;
+	float		beamlength;
+	synctype_t	synctype;
+} dspriteq1_t;
+
 typedef struct
 {
 	int		ident;
@@ -41,6 +57,21 @@ typedef struct
 	int		width;
 	int		height;
 } dspriteframe_t;
+
+typedef struct
+{
+	int		numframes;
+} dspritegroup_t;
+
+typedef struct
+{
+	float		interval;
+} dspriteinterval_t;
+
+typedef struct
+{
+	frametype_t	type;
+} dframetype_t;
 
 //
 // sprite_decompiler.c
@@ -121,7 +152,7 @@ void *SPR_ConvertFrame( const char *name, void *pin, int framenum, int groupfram
 	if( spr.texFormat >= SPR_INDEXALPHA )
 		pix.flags |= IMAGE_HAS_ALPHA;
 
-	FS_SaveImage( va("%s/sprites/%s.tga", gs_gamedir, framename ), &pix );
+	Image->SaveImage( va("%s/sprites/%s.tga", gs_gamedir, framename ), &pix );
 	Mem_Free( fout ); // release buffer
 
 	// jump to next frame
@@ -177,7 +208,7 @@ bool SPR_WriteScript( const char *name )
 	// sprite header
 	FS_Printf(f, "\n$spritename\t%s.spr\n", name );
 	FS_Printf(f, "$type\t\t%s\n",SPR_RenderType());
-	FS_Printf(f, "$texture\t\t%s\n\n",SPR_RenderMode());
+	FS_Printf(f, "$render\t\t%s\n\n",SPR_RenderMode());
 
 	// frames description
 	for( i = 0; i < spr.totalframes - spr.numgroup; i++)
@@ -218,19 +249,17 @@ bool ConvSPR( const char *name, char *buffer, int filesize )
 	int		i, version;
 	dframetype_t	*pframetype;
 	string		scriptname;
-	dsprite_t		*pin;
+	dspriteq1_t		*pin;
 	dspritehl_t	*pinhl;
 	short		*numi;
 
-	pin = (dsprite_t *)buffer;
+	pin = (dspriteq1_t *)buffer;
 	version = LittleLong( pin->version );
 	memset( &spr, 0, sizeof(spr));
 
 	if( pin->ident != IDSPRQ1HEADER )
 	{
-		// ignore Xash sprites silently
-		if( pin->ident != IDSPRITEHEADER)
-			Msg("\"%s\" have invalid header\n", name );
+		Msg("\"%s\" have invalid header\n", name );
 		return false;
 	}
 	switch( version )

@@ -528,19 +528,23 @@ word PR_WriteProgdefs (char *filename)
 	{
 	case 54730:
 		PR_Message("QuakeWorld unmodified qwprogs.dat\n");
-		if(!strcmp(progsoutname, "unknown.dat")) strcpy(progsoutname, "qwprogs.dat");
+		if(!com.strcmp(progsoutname, "unknown.dat")) strcpy(progsoutname, "qwprogs.dat");
 		break;
 	case 32401:
 		PR_Message("Tenebrae unmodified progs.dat\n");
-		if(!strcmp(progsoutname, "unknown.dat")) strcpy(progsoutname, "progs.dat");
+		if(!com.strcmp(progsoutname, "unknown.dat")) strcpy(progsoutname, "progs.dat");
 		break;
 	case 5927:
 		PR_Message("Quake1 unmodified progs.dat\n");
-		if(!strcmp(progsoutname, "unknown.dat")) strcpy(progsoutname, "progs.dat");
+		if(!com.strcmp(progsoutname, "unknown.dat")) strcpy(progsoutname, "progs.dat");
 		break;
-	case 64081:
+	case 6477:
 		PR_Message("Xash3D unmodified server.dat\n");
-		if(!strcmp(progsoutname, "unknown.dat")) strcpy(progsoutname, "server.dat");
+		if(!com.strcmp(progsoutname, "unknown.dat")) strcpy(progsoutname, "server.dat");
+		break;
+	case 36416:
+		PR_Message("Xash3D unmodified uimenu.dat\n");
+		if(!com.strcmp(progsoutname, "unknown.dat")) strcpy(progsoutname, "uimenu.dat");
 		break;
 	case 12923:
 		PR_Message("Blank progs.dat\n");
@@ -1172,7 +1176,7 @@ buildnewlist:
 			}
 		}
 	}
-	Free( qc ); // free search
+	Mem_Free( qc ); // free search
 	FS_WriteFile("progs.src", newprogs_src, j );
 
 	return newprogs_src;

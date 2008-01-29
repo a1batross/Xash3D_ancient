@@ -12,6 +12,7 @@
 
 =============================================================
 */
+dll_info_t imglib_dll = { "imglib.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(imglib_exp_t) };
 image_t gltextures[MAX_GLTEXTURES];
 int numgltextures;
 byte intensitytable[256];
@@ -24,6 +25,7 @@ int uploadbufsize;
 bool use_gl_extension = false;
 cvar_t *intensity;
 uint d_8to24table[256];
+imglib_exp_t *Image;
 
 typedef struct
 {
@@ -289,6 +291,9 @@ void R_ShutdownTextures (void)
 		else qglDeleteTextures (1, &image->texnum[0] );
 		memset (image, 0, sizeof(*image));
 	}
+
+	Image->Free();
+	Sys_FreeLibrary( &imglib_dll ); // free imagelib
 }
 
 /*
@@ -298,8 +303,14 @@ R_InitTextures
 */
 void R_InitTextures( void )
 {
-	int texsize, i, j;
+	int	texsize, i, j;
+	launch_t	CreateImglib;
 
+	Sys_LoadLibrary( &imglib_dll ); // load imagelib
+	CreateImglib = (void *)imglib_dll.main;
+	Image = CreateImglib( &com, NULL ); // second interface not allowed
+
+	Image->Init( HOST_NORMAL );
 	r_imagepool = Mem_AllocPool("Texture Pool");
           gl_maxsize = Cvar_Get( "gl_maxsize", "4096", CVAR_ARCHIVE );
 	
@@ -437,7 +448,6 @@ cpu version of decompress dds
 bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint width, uint height, int border, uint imageSize, const void* data )
 {
 	color32	colours[4], *col;
-	color16	*color_0, *color_1;
 	uint	bits, bitmask, Offset; 
 	int	scaled_width, scaled_height;
 	word	sAlpha, sColor0, sColor1;
@@ -529,7 +539,6 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 			}
 		}
 		break;
-	case PF_DXT2:
 	case PF_DXT3:
 		for (z = 0; z < image_desc.numLayers; z++)
 		{
@@ -589,12 +598,7 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 				}
 			}
 		}
-
-		// Can do color & alpha same as dxt3, but color is pre-multiplied 
-		// so the result will be wrong unless corrected. 
-		if(image_desc.flags & IMAGE_PREMULT) R_ImageCorrectPreMult( (uint *)fout, image_desc.SizeOfData );
 		break;
-	case PF_DXT4:
 	case PF_DXT5:
 		for (z = 0; z < image_desc.numLayers; z++)
 		{
@@ -694,131 +698,6 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 3;
 								fout[Offset] = alphas[bits & 0x07];
 								if(bits & 0x07) has_alpha = true; 
-							}
-							bits >>= 3;
-						}
-					}
-				}
-			}
-		}
-		// Can do color & alpha same as dxt5, but color is pre-multiplied 
-		// so the result will be wrong unless corrected. 
-		if(image_desc.flags & IMAGE_PREMULT) R_ImageCorrectPreMult( (uint *)fout, image_desc.SizeOfData );
-		break;
-	case PF_RXGB:
-		for (z = 0; z < image_desc.numLayers; z++)
-		{
-			for (y = 0; y < h; y += 4)
-			{
-				for (x = 0; x < w; x += 4)
-				{
-					if (y >= h || x >= w) break;
-					alphas[0] = fin[0];
-					alphas[1] = fin[1];
-					alphamask = fin + 2;
-					fin += 8;
-
-					color_0 = ((color16*)fin);
-					color_1 = ((color16*)(fin+2));
-					bitmask = ((uint*)fin)[1];
-					fin += 8;
-
-					colours[0].r = color_0->r << 3;
-					colours[0].g = color_0->g << 2;
-					colours[0].b = color_0->b << 3;
-					colours[0].a = 0xFF;
-					colours[1].r = color_1->r << 3;
-					colours[1].g = color_1->g << 2;
-					colours[1].b = color_1->b << 3;
-					colours[1].a = 0xFF;
-					// Four-color block: derive the other two colors.    
-					// 00 = color_0, 01 = color_1, 10 = color_2, 11 = color_3
-					// These 2-bit codes correspond to the 2-bit fields 
-					// stored in the 64-bit block.
-					colours[2].b = (2 * colours[0].b + colours[1].b + 1) / 3;
-					colours[2].g = (2 * colours[0].g + colours[1].g + 1) / 3;
-					colours[2].r = (2 * colours[0].r + colours[1].r + 1) / 3;
-					colours[2].a = 0xFF;
-					colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
-					colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
-					colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
-					colours[3].a = 0xFF;
-
-					k = 0;
-					for (j = 0; j < 4; j++)
-					{
-						for (i = 0; i < 4; i++, k++)
-						{
-							Select = (bitmask & (0x03 << k*2)) >> k*2;
-							col = &colours[Select];
-
-							// only put pixels out < width or height
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp;
-								fout[Offset + 0] = col->r;
-								fout[Offset + 1] = col->g;
-								fout[Offset + 2] = col->b;
-							}
-						}
-					}
-
-					// 8-alpha or 6-alpha block?    
-					if (alphas[0] > alphas[1])
-					{    
-						// 8-alpha block:  derive the other six alphas.    
-						// Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
-						alphas[2] = (6 * alphas[0] + 1 * alphas[1] + 3) / 7; // bit code 010
-						alphas[3] = (5 * alphas[0] + 2 * alphas[1] + 3) / 7; // bit code 011
-						alphas[4] = (4 * alphas[0] + 3 * alphas[1] + 3) / 7; // bit code 100
-						alphas[5] = (3 * alphas[0] + 4 * alphas[1] + 3) / 7; // bit code 101
-						alphas[6] = (2 * alphas[0] + 5 * alphas[1] + 3) / 7; // bit code 110
-						alphas[7] = (1 * alphas[0] + 6 * alphas[1] + 3) / 7; // bit code 111
-					}
-					else
-					{
-						// 6-alpha block.
-						// Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
-						alphas[2] = (4 * alphas[0] + 1 * alphas[1] + 2) / 5;	// Bit code 010
-						alphas[3] = (3 * alphas[0] + 2 * alphas[1] + 2) / 5;	// Bit code 011
-						alphas[4] = (2 * alphas[0] + 3 * alphas[1] + 2) / 5;	// Bit code 100
-						alphas[5] = (1 * alphas[0] + 4 * alphas[1] + 2) / 5;	// Bit code 101
-						alphas[6] = 0x00;					// Bit code 110
-						alphas[7] = 0xFF;					// Bit code 111
-					}
-
-					// Note: Have to separate the next two loops,
-					// it operates on a 6-byte system.
-					// First three bytes
-
-					bits = *((int*)alphamask);
-					for (j = 0; j < 2; j++)
-					{
-						for (i = 0; i < 4; i++)
-						{
-							// only put pixels out < width or height
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 0;
-								fout[Offset] = alphas[bits & 0x07];
-								if(bits & 0x07) has_alpha = true; 
-							}
-							bits >>= 3;
-						}
-					}
-
-					// Last three bytes
-					bits = *((int*)&alphamask[3]);
-
-					for (j = 2; j < 4; j++)
-					{
-						for (i = 0; i < 4; i++)
-						{
-							// only put pixels out < width or height
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 0;
-								fout[Offset] = alphas[bits & 0x07];
 							}
 							bits >>= 3;
 						}
@@ -1018,217 +897,6 @@ bool R_LoadImageRGBA( byte *data )
 	return true;
 }
 
-bool qrsDecompressImageATI( uint target, int level, int internalformat, uint width, uint height, int border, uint imageSize, const void* data )
-{
-	int	x, y, z, w, h, i, j, k, t1, t2, samples;
-	byte	*fin, *fin2, *fout = imagebuffer;
-	byte	Colours[8], XColours[8], YColours[8];
-	uint	bitmask, bitmask2, CurrOffset, Offset = 0;
-	int	scaled_width, scaled_height;
-	uint	*scaled = (uint *)uploadbuffer;
-
-	if (!data) return false;
-
-	fin = (byte *)data;
-
-	w = width;
-	h = height;
-
-	switch( PFDesc[internalformat].format )
-	{
-	case PF_ATI1N:
-		for (z = 0; z < image_desc.numLayers; z++)
-		{
-			for (y = 0; y < h; y += 4)
-			{
-				for (x = 0; x < w; x += 4)
-				{
-					//Read palette
-					t1 = Colours[0] = fin[0];
-					t2 = Colours[1] = fin[1];
-					fin += 2;
-
-					if (t1 > t2)
-					{
-						for (i = 2; i < 8; ++i)
-							Colours[i] = t1 + ((t2 - t1)*(i - 1))/7;
-					}
-					else
-					{
-						for (i = 2; i < 6; ++i)
-							Colours[i] = t1 + ((t2 - t1)*(i - 1))/5;
-						Colours[6] = 0;
-						Colours[7] = 0xFF;
-					}
-					//decompress pixel data
-					CurrOffset = Offset;
-					for (k = 0; k < 4; k += 2)
-					{
-						// First three bytes
-						bitmask = ((uint)(fin[0]) << 0) | ((uint)(fin[1]) << 8) | ((uint)(fin[2]) << 16);
-
-						for (j = 0; j < 2; j++)
-						{
-							// only put pixels out < height
-							if ((y + k + j) < h)
-							{
-								for (i = 0; i < 4; i++)
-								{
-									// only put pixels out < width
-									if (((x + i) < w))
-									{
-										t1 = CurrOffset + (x + i);
-										fout[t1] = Colours[bitmask & 0x07];
-									}
-									bitmask >>= 3;
-								}
-								CurrOffset += image_desc.bps;
-							}
-						}
-						fin += 3;
-					}
-				}
-				Offset += image_desc.bps * 4;
-			}
-		}
-		break;
-	case PF_ATI2N:
-		for (z = 0; z < image_desc.numLayers; z++)
-		{
-			for (y = 0; y < h; y += 4)
-			{
-				for (x = 0; x < w; x += 4)
-				{
-					fin2 = fin + 8;
-
-					//Read Y palette
-					t1 = YColours[0] = fin[0];
-					t2 = YColours[1] = fin[1];
-					fin += 2;
-
-					if (t1 > t2)
-					{
-						for (i = 2; i < 8; ++i)
-							YColours[i] = t1 + ((t2 - t1)*(i - 1))/7;
-					}
-					else
-					{
-						for (i = 2; i < 6; ++i)
-							YColours[i] = t1 + ((t2 - t1)*(i - 1))/5;
-						YColours[6] = 0;
-						YColours[7] = 0xFF;
-					}
-
-					// Read X palette
-					t1 = XColours[0] = fin2[0];
-					t2 = XColours[1] = fin2[1];
-					fin2 += 2;
-
-					if (t1 > t2)
-					{
-						for (i = 2; i < 8; ++i)
-							XColours[i] = t1 + ((t2 - t1)*(i - 1))/7;
-					}
-					else
-					{
-						for (i = 2; i < 6; ++i)
-							XColours[i] = t1 + ((t2 - t1)*(i - 1))/5;
-						XColours[6] = 0;
-						XColours[7] = 0xFF;
-					}
-					// decompress pixel data
-					CurrOffset = Offset;
-
-					for (k = 0; k < 4; k += 2)
-					{
-						// First three bytes
-						bitmask = ((uint)(fin[0]) << 0) | ((uint)(fin[1]) << 8) | ((uint)(fin[2]) << 16);
-						bitmask2 = ((uint)(fin2[0]) << 0) | ((uint)(fin2[1]) << 8) | ((uint)(fin2[2]) << 16);
-
-						for (j = 0; j < 2; j++)
-						{
-							// only put pixels out < height
-							if ((y + k + j) < h)
-							{
-								for (i = 0; i < 4; i++)
-								{
-									// only put pixels out < width
-									if (((x + i) < w))
-									{
-										int t, tx, ty;
-
-										t1 = CurrOffset + (x + i)*3;
-										fout[t1 + 1] = ty = YColours[bitmask & 0x07];
-										fout[t1 + 0] = tx = XColours[bitmask2 & 0x07];
-
-										//calculate b (z) component ((r/255)^2 + (g/255)^2 + (b/255)^2 = 1
-										t = 127*128 - (tx - 127)*(tx - 128) - (ty - 127)*(ty - 128);
-
-										if (t > 0) fout[t1 + 2] = (byte)(sqrt(t) + 128);
-										else fout[t1 + 2] = 0x7F;
-									}
-									bitmask >>= 3;
-									bitmask2 >>= 3;
-								}
-								CurrOffset += image_desc.bps;
-							}
-						}
-						fin += 3;
-						fin2 += 3;
-					}
-					// skip bytes that were read via Temp2
-					fin += 8;
-				}
-				Offset += image_desc.bps * 4;
-			}
-		}
-		break;
-	default:
-		MsgDev(D_WARN, "qrsDecompressImageATI: invalid compression type: %s\n", PFDesc[internalformat].name );
-		return false;
-	}
-
-	scaled_width = w;
-	scaled_height = h;
-
-	R_RoundImageDimensions( &scaled_width, &scaled_height );
-	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;
-	R_ResampleTexture((uint *)fout, width, height, scaled, scaled_width, scaled_height);
-	if( !level ) GL_GenerateMipmaps(); // generate mips if needed
-
-	// upload base image or miplevel
-	qglTexImage2D ( target, level, samples, w, h, border, image_desc.glMask, image_desc.glType, (byte *)scaled );
-
-	if(qglGetError()) return false;
-	return true;
-}
-
-/*
-===============
-R_LoadImageATI
-===============
-*/
-bool R_LoadImageATI( byte *data )
-{
-	int i, size = 0;
-	int w = image_desc.width;
-	int h = image_desc.height;
-	int d = image_desc.numLayers;
-	
-	for( i = 0; i < image_desc.MipCount; i++, data += size )
-	{
-		R_SetPixelFormat( w, h, d );
-		size = image_desc.SizeOfFile;
-
-		if(!qrsDecompressImageATI(GL_TEXTURE_2D, i, image_desc.format, w, h, 0, size, data ))
-			break; // there were errors
-		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; //calc size of next mip
-	}
-
-	GL_TexFilter();
-	return true;
-}
-
 bool qrsDecompressImageARGB( uint target, int level, int internalformat, uint width, uint height, int border, uint imageSize, const void* data )
 {
 	uint	ReadI = 0, TempBpp;
@@ -1363,6 +1031,59 @@ bool R_LoadImageARGB( byte *data )
 	return true;
 }
 
+bool qrsDecompressImageFloat( uint target, int level, int internalformat, uint width, uint height, int border, uint imageSize, const void* data )
+{
+	// not implemented
+	return false;
+}
+
+bool DecompressImageFloat( uint target, int level, int intformat, uint width, uint height, int border, uint imageSize, const void* data )
+{
+	uint floatformat = 0;
+	uint datatype = 0;
+	uint pixformat = PFDesc[intformat].format;
+
+	switch( pixformat )
+	{
+	case PF_ABGR_128F:
+		floatformat = GL_FLOAT;
+		datatype = GL_UNSIGNED_SHORT_1_5_5_5_REV;
+		break;
+	default: use_gl_extension = false; break;
+	}
+
+	if(use_gl_extension)
+	{
+		if( !level ) GL_GenerateMipmaps(); // generate mips if needed
+		qglTexImage2D( target, level, floatformat, width, height, border, image_desc.glMask, datatype, data );
+		if(!qglGetError()) return true;
+		// otherwise try loading with software unpacker
+	}
+	return qrsDecompressImageFloat( target, level, pixformat, width, height, border, imageSize, data );
+}
+
+bool R_LoadImageFloat( byte *data )
+{
+	int i, size = 0;
+	int w = image_desc.width;
+	int h = image_desc.height;
+	int d = image_desc.numLayers;
+
+	for( i = 0; i < image_desc.MipCount; i++, data += size )
+	{
+		R_SetPixelFormat( w, h, d );
+		size = image_desc.SizeOfFile;
+
+		if(!DecompressImageFloat(GL_TEXTURE_2D, i, image_desc.format, w, h, 0, size, data ))
+			break; // there were errors 
+		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; // calc size of next mip
+	}
+
+	GL_TexFilter();
+	return true;
+}
+
+
 /*
 ===============
 R_FindImage
@@ -1388,9 +1109,9 @@ image_t *R_FindImage (char *name, char *buffer, int size, imagetype_t type)
 		}
 	}
 
-	pic = FS_LoadImage(name, buffer, size ); //loading form disk or buffer
+	pic = Image->LoadImage(name, buffer, size ); //loading form disk or buffer
 	image = R_LoadImage(name, pic, type ); //upload into video buffer
-	FS_FreeImage(pic ); //free image
+	Image->FreeImage(pic ); //free image
 
 	return image;
 }
@@ -1477,14 +1198,10 @@ image_t *R_LoadImage( char *name, rgbdata_t *pic, imagetype_t type )
 		case PF_LUMINANCE_16:
 		case PF_LUMINANCE_ALPHA:
 		case PF_ARGB_32: iResult = R_LoadImageARGB( buf ); break;
-		case PF_RXGB:
 		case PF_DXT1:
-		case PF_DXT2:
 		case PF_DXT3:
-		case PF_DXT4:
 		case PF_DXT5: iResult = R_LoadImageDXT( buf ); break;
-		case PF_ATI1N:
-		case PF_ATI2N: iResult = R_LoadImageATI( buf ); break;
+		case PF_ABGR_128F: iResult = R_LoadImageFloat( buf ); break;
 		case PF_UNKNOWN: image = r_notexture; break;
 		}
 	}          

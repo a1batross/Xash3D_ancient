@@ -47,7 +47,7 @@ void WriteFrame( file_t *f, int framenum )
 	frametemp.origin[1] = LittleLong (pframe->origin[1]);
 	frametemp.width = LittleLong (pframe->width);
 	frametemp.height = LittleLong (pframe->height);
-	frametemp.compsize = 0; // not used
+	frametemp.compsize = 0; // unknown at this moment
 
 	hdrstart = FS_Tell(f);
 	FS_Write(f, &frametemp, sizeof(frametemp));
@@ -72,7 +72,7 @@ void WriteSprite( file_t *f )
 	int	i, curframe = 0, groupframe = 0;
 
 	// write out the sprite header
-	SwapBlock( (int *)&sprite, sizeof(dsprite_t));
+	SwapBlock((int *)&sprite, sizeof(dsprite_t));
 	FS_Write( f, &sprite, sizeof(sprite));
 
 	for (i = 0; i < sprite.numframes; i++)
@@ -166,36 +166,54 @@ Cmd_Type
 syntax: "$type preset"
 ===============
 */
-void Cmd_Type (void)
+void Cmd_Type( void )
 {
 	Com_GetToken (false);
 
-	if (Com_MatchToken( "vp_parallel_upright" )) sprite.type = SPR_VP_PARALLEL_UPRIGHT;
+	if (Com_MatchToken( "vp_parallel_upright" )) sprite.type = SPR_FWD_PARALLEL_UPRIGHT;
 	else if (Com_MatchToken( "facing_upright" )) sprite.type = SPR_FACING_UPRIGHT;
-	else if (Com_MatchToken( "vp_parallel" )) sprite.type = SPR_VP_PARALLEL;
+	else if (Com_MatchToken( "vp_parallel" )) sprite.type = SPR_FWD_PARALLEL;
 	else if (Com_MatchToken( "oriented" )) sprite.type = SPR_ORIENTED;
-	else if (Com_MatchToken( "vp_parallel_oriented")) sprite.type = SPR_VP_PARALLEL_ORIENTED;
-	else sprite.type = SPR_VP_PARALLEL; // default
+	else if (Com_MatchToken( "vp_parallel_oriented")) sprite.type = SPR_FWD_PARALLEL_ORIENTED;
+	else sprite.type = SPR_FWD_PARALLEL; // default
 }
 
 /*
 ===============
-Cmd_Texture
+Cmd_RenderMode
 
-syntax: "$texture preset"
+syntax: "$rendermode preset"
 ===============
 */
-void Cmd_Texture ( void )
+void Cmd_RenderMode( void )
 {
-	Com_GetToken (false);
+	Com_GetToken( false );
 
 	if (Com_MatchToken( "additive")) sprite.rendermode = SPR_ADDITIVE;
-	else if (Com_MatchToken( "normal")) sprite.rendermode = SPR_NORMAL;
-	else if (Com_MatchToken( "indexalpha")) sprite.rendermode = SPR_INDEXALPHA;
-	else if (Com_MatchToken( "alphatest")) sprite.rendermode = SPR_ALPHTEST;
-	else if (Com_MatchToken( "glow")) sprite.rendermode = SPR_ADDGLOW;
-	else sprite.rendermode = SPR_NORMAL; // default
+	else if (Com_MatchToken( "solid")) sprite.rendermode = SPR_SOLID;
+	else if (Com_MatchToken( "alpha")) sprite.rendermode = SPR_ALPHA;
+	else if (Com_MatchToken( "glow")) sprite.rendermode = SPR_GLOW;
+	else sprite.rendermode = SPR_ADDITIVE; // default
 }
+
+/*
+==============
+Cmd_MoveType
+
+syntax: "$movetype"
+==============
+*/
+void Cmd_MoveType( void )
+{
+	Com_GetToken( false );
+
+	if (Com_MatchToken( "static")) sprite.movetype = SPR_STATIC;
+	else if (Com_MatchToken( "bounce")) sprite.movetype = SPR_BOUNCE;
+	else if (Com_MatchToken( "gravity")) sprite.movetype = SPR_GRAVITY;
+	else if (Com_MatchToken( "fly")) sprite.movetype = SPR_FLYING;
+	else sprite.movetype = SPR_STATIC; // default
+}
+
 
 /*
 ===============
@@ -222,10 +240,10 @@ void Cmd_Load (void)
 {
 	char *framename;
 
-	if( byteimage ) FS_FreeImage( byteimage ); // release old image
+	if( byteimage ) Image->FreeImage( byteimage ); // release old image
 	framename = Com_GetToken(false);
 	FS_DefaultExtension( framename, ".tga" );
-	byteimage = FS_LoadImage( framename, error_tga, sizeof(error_tga));
+	byteimage = Image->LoadImage( framename, error_tga, sizeof(error_tga));
 
 	if(Com_TryToken())
 	{
@@ -287,14 +305,14 @@ void Cmd_Frame( void )
 	{
 		w = min(w, MAX_FRAME_DIM);
 		h = min(h, MAX_FRAME_DIM);
-		Image_Processing( "frame", &byteimage, w, h);
+		Image->ResampleImage( "frame", &byteimage, w, h, true );
 	}
 
 	if((w > byteimage->width) || (h > byteimage->height))
 	{
 		// probably default frame "error.tga" mismatch size
 		// but may be mistake in the script ?
-		Image_Processing( "frame", &byteimage, w, h);
+		Image->ResampleImage( "frame", &byteimage, w, h, true );
 	}
 
 	xh = xl + w;
@@ -343,8 +361,8 @@ void Cmd_Frame( void )
 	pframe->height = h;
 
 	// adjust maxsize
-	if (w > sprite.width) sprite.width = w;
-	if (h > sprite.height) sprite.height = h;
+	if(w > sprite.bounds[0]) sprite.bounds[0] = w;
+	if(h > sprite.bounds[1]) sprite.bounds[1] = h;
 
 	plump = (byte *)(pframe + 1); // move pointer
 	fin = byteimage->buffer + yl * byteimage->width + xl;
@@ -424,31 +442,38 @@ void Cmd_Group( bool angled )
 		framecount--, sprite.numframes--;
 		MsgDev(D_WARN, "Cmd_Group: remove blank group\n");
 	}
+	else if( angled && frames[groupframe].numgroupframes != 8 ) 
+	{
+		// don't create blank groups, rewind frames
+		framecount--, sprite.numframes--;
+		MsgDev(D_WARN, "Cmd_Group: Remove angled group with invalid framecount\n" );
+	}
 }
 
 /*
 ===============
-Cmd_Offset
+Cmd_Origin
 
 syntax: $origin "x_pos y_pos"
 ===============
 */
-void Cmd_Offset (void)
+static void Cmd_Origin( void )
 {
-	origin_x = atoi(Com_GetToken (false));
-	origin_y = atoi(Com_GetToken (false));
+	origin_x = com.atoi(Com_GetToken (false));
+	origin_y = com.atoi(Com_GetToken (false));
 }
 
-/*
-==============
-Cmd_Sync
 
-syntax: "$sync"
-==============
+/*
+===============
+Cmd_Scale
+
+syntax: $scale "value"
+===============
 */
-void Cmd_Sync( void )
+static void Cmd_Scale( void )
 {
-	sprite.synctype = ST_SYNC;
+	sprite.scale = com.atof(Com_GetToken( false ));
 }
 
 /*
@@ -460,7 +485,7 @@ syntax: "$spritename outname"
 */
 void Cmd_Spritename (void)
 {
-	strcpy( spriteoutname, Com_GetToken(false));
+	com.strcpy( spriteoutname, Com_GetToken(false));
 	FS_DefaultExtension( spriteoutname, ".spr" );
 }
 
@@ -476,12 +501,13 @@ void ResetSpriteInfo( void )
 	framecount = origin_x = origin_y = 0;
 	frameinterval = 0.0f;
 
-	sprite.width = -9999999;
-	sprite.height = -9999999;
+	sprite.bounds[0] = -9999;
+	sprite.bounds[1] = -9999;
 	sprite.ident = IDSPRITEHEADER;
 	sprite.version = SPRITE_VERSION;
-	sprite.type = SPR_VP_PARALLEL;
-	sprite.synctype = ST_RAND; // default
+	sprite.type = SPR_FWD_PARALLEL;
+	sprite.movetype = SPR_STATIC;
+	sprite.scale = 1.0f;
 }
 
 /*
@@ -497,11 +523,12 @@ bool ParseSpriteScript (void)
 	{
 		if(!Com_GetToken (true)) break;
 		if (Com_MatchToken( "$spritename" )) Cmd_Spritename();
-		else if (Com_MatchToken( "$texture" )) Cmd_Texture();
-		else if (Com_MatchToken( "$origin" )) Cmd_Offset();
+		else if (Com_MatchToken( "$render" )) Cmd_RenderMode();
+		else if (Com_MatchToken( "$movetype" )) Cmd_MoveType();
+		else if (Com_MatchToken( "$origin" )) Cmd_Origin();
+		else if (Com_MatchToken( "$scale" )) Cmd_Scale();
 		else if (Com_MatchToken( "$load" )) Cmd_Load();
 		else if (Com_MatchToken( "$type" )) Cmd_Type();
-		else if (Com_MatchToken( "$sync" )) Cmd_Sync();
 		else if (Com_MatchToken( "$frame" ))
 		{
 			Cmd_Frame();

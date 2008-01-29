@@ -5,7 +5,6 @@
 
 #include "launch.h"
 #include "zip32.h"
-#include "image.h"
 
 #define ZIP_END_CDIR_SIZE		22
 #define ZIP_CDIR_CHUNK_BASE_SIZE	46
@@ -416,7 +415,7 @@ int matchpattern(const char *in, const char *pattern, bool caseinsensitive)
 
 void stringlistinit(stringlist_t *list)
 {
-	Mem_Set(list, 0, sizeof(*list));
+	memset(list, 0, sizeof(*list));
 }
 
 void stringlistfreecontents(stringlist_t *list)
@@ -584,15 +583,15 @@ FS_Path
 debug info
 ============
 */
-void FS_Path (void)
+void FS_Path_f( void )
 {
 	searchpath_t *s;
 
-	MsgDev(D_INFO, "Current search path:\n");
+	Msg( "Current search path:\n");
 	for (s = fs_searchpaths; s; s = s->next)
 	{
-		if (s->pack) MsgDev(D_INFO, "%s (%i files)\n", s->pack->filename, s->pack->numfiles);
-		else MsgDev(D_INFO, "%s\n", s->filename);
+		if (s->pack) Msg( "%s (%i files)\n", s->pack->filename, s->pack->numfiles );
+		else Msg( "%s\n", s->filename );
 	}
 }
 
@@ -1455,6 +1454,8 @@ void FS_Init( void )
 	
 	FS_InitMemory();
 
+	Cmd_AddCommand( "fs_path", FS_Path_f, "show filesystem search pathes" );
+
 	// ignore commandlineoption "-game" for other stuff
 	if(Sys.app_name == HOST_NORMAL || Sys.app_name == HOST_DEDICATED || Sys.app_name == COMP_BSPLIB)
 	{
@@ -1510,8 +1511,6 @@ void FS_InitRootDir( char *path )
 
 	FS_ClearSearchPath();
 	FS_AddGameHierarchy( path );
-
-	FS_Path();
 }
 
 bool FS_GetParmFromCmdLine( char *parm, char *out )
@@ -1602,7 +1601,7 @@ static file_t* FS_SysOpen (const char* filepath, const char* mode, bool nonblock
 	if (nonblocking) opt |= O_NONBLOCK;
 
 	file = (file_t *)Mem_Alloc (fs_mempool, sizeof (*file));
-	Mem_Set (file, 0, sizeof (*file));
+	memset (file, 0, sizeof (*file));
 	file->ungetc = EOF;
 
 	file->handle = open (filepath, mod | opt, 0666);
@@ -1655,7 +1654,7 @@ file_t *FS_OpenPackedFile (pack_t* pack, int pack_ind)
 	}
 
 	file = (file_t *)Mem_Alloc (fs_mempool, sizeof (*file));
-	Mem_Set (file, 0, sizeof (*file));
+	memset (file, 0, sizeof (*file));
 	file->handle = dup_handle;
 	file->flags = FILE_FLAG_PACKED;
 	file->real_length = pfile->realsize;
@@ -1840,6 +1839,8 @@ wadtype_t wad_types[] =
 	{"fnt", TYPE_QFONT	}, // qfont structure (e.g. fonts.wad in hl1)
 	{"dat", TYPE_VPROGS	}, // QC progs
 	{"txt", TYPE_SCRIPT	}, // txt script file
+	{"dds", TYPE_GFXPIC	}, // any known image
+	{"tga", TYPE_GFXPIC	}, // any known image
 	{NULL, TYPE_NONE }
 };
 

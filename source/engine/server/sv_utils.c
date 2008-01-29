@@ -395,13 +395,13 @@ void PF_droptofloor (void)
 		return;
 	}
 
-	VectorCopy (ent->progs.sv->origin, end);
+	VectorCopy( ent->progs.sv->origin, end );
 	end[2] -= 256;
 	trace = SV_Trace(ent->progs.sv->origin, ent->progs.sv->mins, ent->progs.sv->maxs, end, ent, MASK_SOLID );
 
 	if (trace.startsolid)
 	{
-		VM_Warning("droptofloor: %s startsolid at %g %g %g\n", PRVM_GetString(ent->progs.sv->classname), ent->progs.sv->origin[0], ent->progs.sv->origin[1], ent->progs.sv->origin[2]);
+		VM_Warning("droptofloor: %s startsolid at %g %g %g\n", PRVM_G_STRING(ent->progs.sv->classname), ent->progs.sv->origin[0], ent->progs.sv->origin[1], ent->progs.sv->origin[2]);
 		SV_FreeEdict (ent);
 		return;
 	}

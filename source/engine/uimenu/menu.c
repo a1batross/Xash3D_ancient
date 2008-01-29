@@ -1324,7 +1324,7 @@ static const char *xash_credits[] =
 	"Dj Existence",
 	"",
 	"",
-	"^3THANKS TO"
+	"^3THANKS TO",
 	"ID Software at all",
 	"Lord Havoc (Darkplaces Team)",
 	"Georg Destroy for icon graphics",

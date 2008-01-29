@@ -243,7 +243,7 @@ void Con_CreateConsole( void )
 	}
 	Sys.Con_Print = Con_PrintW;
 
-	Mem_Set( &wc, 0, sizeof( wc ));
+	memset( &wc, 0, sizeof( wc ));
 	wc.style         = 0;
 	wc.lpfnWndProc   = (WNDPROC)Con_WndProc;
 	wc.cbClsExtra    = 0;

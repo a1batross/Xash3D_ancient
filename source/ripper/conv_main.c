@@ -6,7 +6,9 @@
 #include "ripper.h"
 #include "pal_utils.h"
 
+dll_info_t imglib_dll = { "imglib.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(imglib_exp_t) };
 bool host_debug = false;
+imglib_exp_t *Image;
 stdlib_api_t com;
 byte *basepool;
 byte *zonepool;
@@ -87,7 +89,7 @@ bool ConvertResource( const char *filename )
 void ClrMask( void )
 {
 	num_searchmask = 0;
-	Mem_Set( searchmask, 0,  MAX_STRING * MAX_SEARCHMASK ); 
+	memset( searchmask, 0,  MAX_STRING * MAX_SEARCHMASK ); 
 }
 
 void AddMask( const char *mask )
@@ -111,12 +113,19 @@ so do it manually
 */
 void InitConvertor ( uint funcname, int argc, char **argv )
 {
+	launch_t	CreateImglib;
+
 	// init pools
 	basepool = Mem_AllocPool( "Temp" );
 	zonepool = Mem_AllocPool( "Zone" );
           app_name = funcname;
 
+	Sys_LoadLibrary( &imglib_dll ); // load imagelib
+	CreateImglib = (void *)imglib_dll.main;
+	Image = CreateImglib( &com, NULL ); // second interface not allowed
+
 	FS_InitRootDir(".");
+	Image->Init( funcname ); // initialize image support
 	start = Sys_DoubleTime();
 	Msg("Converting ...\n\n");
 }
@@ -127,7 +136,7 @@ void RunConvertor ( void )
 	string	errorstring;
 	int	i, j, numConvertedRes = 0;
 
-	Mem_Set( errorstring, 0, MAX_STRING ); 
+	memset( errorstring, 0, MAX_STRING ); 
 	ClrMask();
 
 	switch(app_name)
@@ -225,6 +234,10 @@ void CloseConvertor( void )
 {
 	// finalize qc-script
 	Skin_FinalizeScript();
+
+	Image->Free();
+	Sys_FreeLibrary( &imglib_dll ); // free imagelib
+
 	Mem_Check(); // check for leaks
 	Mem_FreePool( &basepool );
 	Mem_FreePool( &zonepool );

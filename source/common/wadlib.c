@@ -32,8 +32,18 @@ int Lump_GetFileType( const char *name, byte *buf )
 
 	if(!buf) return TYPE_NONE;
 
-	// get file type by extension
-	if(!com.stricmp( ext, "txt" )) return TYPE_SCRIPT;	// text file
+	// otherwise get file type by extension
+	if(!com.stricmp( ext, "tga" )) return TYPE_GFXPIC;
+	else if(!com.stricmp( ext, "dds" )) return TYPE_GFXPIC;	// directdraw mip
+	else if(!com.stricmp( ext, "mip" )) 
+	{
+		if(wadheader == IDWAD3HEADER)
+			return TYPE_MIPTEX2; // half-life texture
+		return TYPE_MIPTEX;	// quake1 texture
+	}
+	else if(!com.stricmp( ext, "lmp" )) return TYPE_QPIC;	// hud pics
+	else if(!com.stricmp( ext, "pal" )) return TYPE_QPAL;	// palette	
+	else if(!com.stricmp( ext, "txt" )) return TYPE_SCRIPT;	// text file
 	else if(!com.stricmp( ext, "dat" )) return TYPE_VPROGS;	// qc progs
 	else if(!com.stricmp( ext, "raw" )) return TYPE_RAW;	// raw data
 	

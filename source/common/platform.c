@@ -10,7 +10,9 @@
 #include "qcclib.h"
 #include "roqlib.h"
 
+dll_info_t imglib_dll = { "imglib.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(imglib_exp_t) };
 bool host_debug = false;
+imglib_exp_t *Image;
 stdlib_api_t com;
 byte *basepool;
 byte *zonepool;
@@ -27,8 +29,9 @@ so do it manually
 */
 void InitPlatform ( uint funcname, int argc, char **argv )
 {
-	byte bspflags = 0, qccflags = 0, roqflags = 0;
-	char source[64], gamedir[64];
+	byte	bspflags = 0, qccflags = 0, roqflags = 0;
+	char	source[64], gamedir[64];
+	launch_t	CreateImglib;
 
 	basepool = Mem_AllocPool( "Temp" );
 
@@ -36,6 +39,10 @@ void InitPlatform ( uint funcname, int argc, char **argv )
 	com_argc = argc;
 	com_argv = argv;
 	app_name = funcname;
+
+	Sys_LoadLibrary( &imglib_dll ); // load imagelib
+	CreateImglib = (void *)imglib_dll.main;
+	Image = CreateImglib( &com, NULL ); // second interface not allowed
 
 	if(FS_CheckParm("-debug")) host_debug = true;
 
@@ -78,6 +85,7 @@ void InitPlatform ( uint funcname, int argc, char **argv )
 		break;
 	}
 
+	Image->Init( funcname ); // initialize image support
 }
 
 void RunPlatform ( void )
@@ -88,8 +96,8 @@ void RunPlatform ( void )
 	byte	parms = 0; // future expansion
 	int	i, j, numCompiledMods = 0;
 
-	Mem_Set( searchmask, 0, 8 * 16 ); 
-	Mem_Set( errorstring, 0, 256 ); 
+	memset( searchmask, 0, 8 * 16 ); 
+	memset( errorstring, 0, 256 ); 
 
 	switch(app_name)
 	{
@@ -167,6 +175,9 @@ elapced_time:
 
 void FreePlatform ( void )
 {
+	Image->Free();
+	Sys_FreeLibrary( &imglib_dll ); // free imagelib
+
 	Mem_Check(); // check for leaks
 	Mem_FreePool( &basepool );
 	Mem_FreePool( &zonepool );

@@ -102,7 +102,7 @@ bool PCX_ConvertImage( const char *name, char *buffer, int filesize )
 
 	Mem_Free( pbuf ); // free compressed image
 	FS_StripExtension( (char *)name );
-	FS_SaveImage( va("%s/%s.tga", gs_gamedir, name ), &pic ); // save converted image
+	Image->SaveImage( va("%s/%s.tga", gs_gamedir, name ), &pic ); // save converted image
 	Mem_Free( pic.buffer ); // release buffer
 
 	return true;

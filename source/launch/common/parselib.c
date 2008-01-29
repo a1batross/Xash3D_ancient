@@ -12,7 +12,6 @@ typedef struct
 	byte	*script_p;
 	byte	*end_p;
 	int	line;
-	bool	can_unload;
 } script_t;
 
 // max included scripts
@@ -54,16 +53,18 @@ bool SC_AddScriptToStack(const char *name, byte *buffer, int size)
 
 bool SC_LoadScript( const char *filename, char *buf, int size )
 {
-	int result;
+	int	result;
+	string	scriptname;
 
 	if(!buf || size <= 0)
-		buf = FS_LoadFile (filename, &size );
+	{
+		com_strncpy( scriptname, filename, MAX_STRING );
+		buf = FS_LoadFile( filename, &size );
+	}
+	else com_strncpy( scriptname, "*sc_buffer", MAX_STRING );
 
 	script = scriptstack;
-	result = SC_AddScriptToStack( filename, buf, size);
-
-	if(!buf || size <= 0) script->can_unload = true;
-	else script->can_unload = false;
+	result = SC_AddScriptToStack( scriptname, buf, size);
 
 	endofscript = false;
 	tokenready = false;
@@ -72,17 +73,15 @@ bool SC_LoadScript( const char *filename, char *buf, int size )
 
 bool SC_AddScript( const char *filename, char *buf, int size )
 {
-	int result;
+	string	scriptname;
 
 	if(!buf || size <= 0)
-		buf = FS_LoadFile (filename, &size );
-
-	result = SC_AddScriptToStack(filename, buf, size);
-
-	if(!buf || size <= 0) script->can_unload = true;
-	else script->can_unload = false;
-
-	return result;
+	{
+		com_strncpy( scriptname, filename, MAX_STRING );
+		buf = FS_LoadFile( filename, &size );
+	}
+	else com_strncpy( scriptname, "*sc_buffer", MAX_STRING );
+	return SC_AddScriptToStack( scriptname, buf, size );
 }
 
 void SC_ResetScript( void )
@@ -367,10 +366,10 @@ bool SC_EndOfScript (bool newline)
 	if(!newline) 
 	{
 		scriptline = script->line;
-		Sys_Error("%s: line %i is incomplete\n", script->filename, scriptline);
+		Sys_Break("%s: line %i is incomplete\n", script->filename, scriptline);
 	}
 
-	if(!script->can_unload)
+	if(!com_strcmp(script->filename, "*sc_buffer"))
 	{
 		endofscript = true;
 		return false;
@@ -389,7 +388,7 @@ bool SC_EndOfScript (bool newline)
 	scriptline = script->line;
 	endofscript = true;
 
-	return true;
+	return false;
 }
 
 /*

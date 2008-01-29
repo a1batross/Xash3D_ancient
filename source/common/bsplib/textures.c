@@ -23,12 +23,12 @@ int FindMiptex( char *name )
 
 	// register texture
 	strcpy (textureref[i].texname, name );
-	tex = FS_LoadImage( textureref[i].texname, NULL, 0 );
+	tex = Image->LoadImage( textureref[i].texname, NULL, 0 );
 	if( tex )
 	{
 		textureref[i].size[0] = tex->width;		
 		textureref[i].size[1] = tex->height;
-		FS_FreeImage( tex );
+		Image->FreeImage( tex );
 	}
 	else textureref[i].size[0] = textureref[i].size[1] = -1; // technically an error
 

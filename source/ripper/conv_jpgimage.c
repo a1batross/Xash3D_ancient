@@ -559,7 +559,7 @@ bool ConvJPG(const char *name, char *buffer, int filesize )
 	pic.buffer = jpg_file.data;
 
 	FS_StripExtension((char *)name );
-	FS_SaveImage( va("%s/%s.tga", gs_gamedir, name ), &pic ); // save converted image
+	Image->SaveImage( va("%s/%s.tga", gs_gamedir, name ), &pic ); // save converted image
 	Conv_CreateShader( name, &pic, "jpg", NULL, 0, 0 );
 	Msg("%s.jpg\n", name ); // echo to console about current image
 	Mem_Free( pic.buffer ); // release buffer

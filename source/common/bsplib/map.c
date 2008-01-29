@@ -492,11 +492,11 @@ bool MakeBrushWindings (mapbrush_t *ob)
 		}
 	}
 
-	for (i=0 ; i<3 ; i++)
+	for( i = 0; i < 3; i++ )
 	{
-		if (ob->mins[0] < -4096 || ob->maxs[0] > 4096)
+		if( ob->mins[0] < -131072 || ob->maxs[0] > 131072 )
 			Msg ("entity %i, brush %i: bounds out of range\n", ob->entitynum, ob->brushnum);
-		if (ob->mins[0] > 4096 || ob->maxs[0] < -4096)
+		if( ob->mins[0] > 131072 || ob->maxs[0] < -131072 )
 			Msg ("entity %i, brush %i: no visible sides on brush\n", ob->entitynum, ob->brushnum);
 	}
 
@@ -798,7 +798,7 @@ void ParseBrush( bsp_entity_t *mapent )
             		movedir[0] = 0;//deafult x-rotate
             		movedir[1] = 1;
             		movedir[2] = 0;
-            		Msg("Entity %d has origin with invalid form! Make axis form for it", b->entitynum );  
+            		Msg("Entity %d has origin with invalid form! Make axis form for it\n", b->entitynum );  
 		}
 
 		sprintf (string, "%i %i %i", (int)origin[0], (int)origin[1], (int)origin[2]);
@@ -858,7 +858,7 @@ void MoveBrushesToWorld (bsp_entity_t *mapent)
 	entities[0].numbrushes += newbrushes;
 	for (i=1 ; i<num_entities ; i++)
 		entities[i].firstbrush += newbrushes;
-	Free (temp);
+	Mem_Free (temp);
 
 	mapent->numbrushes = 0;
 }
@@ -995,7 +995,7 @@ void LoadMapFile (void)
 	ClearBounds (map_mins, map_maxs);
 	for (i = 0; i < entities[0].numbrushes; i++)
 	{
-		if (mapbrushes[i].mins[0] > 4096)
+		if (mapbrushes[i].mins[0] > 131072)
 			continue;	// no valid points
 		AddPointToBounds (mapbrushes[i].mins, map_mins, map_maxs);
 		AddPointToBounds (mapbrushes[i].maxs, map_mins, map_maxs);

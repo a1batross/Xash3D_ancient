@@ -46,6 +46,7 @@ memory manager
 
 extern byte *r_temppool;
 extern stdlib_api_t com;
+extern imglib_exp_t *Image;
 
 // r_utils.c
 void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );

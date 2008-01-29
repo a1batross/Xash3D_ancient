@@ -41,7 +41,6 @@ typedef struct stdilib_api_s
 
 	// memlib.c funcs
 	void (*memcpy)(void *dest, void *src, size_t size, const char *file, int line);
-	void (*memset)(void *dest, int set, size_t size, const char *file, int line);
 	void *(*realloc)(byte *pool, void *mem, size_t size, const char *file, int line);
 	void (*move)(byte *pool, void **dest, void *src, size_t size, const char *file, int line); // not a memmove
 	void *(*malloc)(byte *pool, size_t size, const char *file, int line);
@@ -145,10 +144,6 @@ typedef struct stdilib_api_s
 	// filesystem simply user interface
 	byte *(*Com_LoadFile)(const char *path, long *filesize );		// load file into heap
 	bool (*Com_WriteFile)(const char *path, void *data, long len);	// write file into disk
-	rgbdata_t *(*Com_LoadImage)(const char *path, char *data, int size );	// extract image into rgba buffer
-	void (*Com_SaveImage)(const char *filename, rgbdata_t *buffer );	// save image into specified format
-	bool (*Com_ProcessImage)( const char *name, rgbdata_t **pix, int w, int h ); // resample image
-	void (*Com_FreeImage)( rgbdata_t *pack );			// free image buffer
 	bool (*Com_LoadLibrary)( dll_info_t *dll );			// load library 
 	bool (*Com_FreeLibrary)( dll_info_t *dll );			// free library
 	void*(*Com_GetProcAddress)( dll_info_t *dll, const char* name );	// gpa
@@ -214,7 +209,6 @@ typedef struct stdilib_api_s
 #define Mem_FreePool(pool)		com.freepool(pool, __FILE__, __LINE__)
 #define Mem_EmptyPool(pool)		com.clearpool(pool, __FILE__, __LINE__)
 #define Mem_Copy(dest, src, size )	com.memcpy(dest, src, size, __FILE__, __LINE__)
-#define Mem_Set(dest, src, size )	com.memset(dest, src, size, __FILE__, __LINE__)
 #define Mem_Check()			com.memcheck(__FILE__, __LINE__)
 #define Mem_CreateArray( p, s, n )	com.newarray( p, s, n, __FILE__, __LINE__)
 #define Mem_RemoveArray( array )	com.delarray( array, __FILE__, __LINE__)
@@ -274,9 +268,6 @@ filesystem manager
 #define FS_ClearSearchPath		com.Com_ClearSearchPath
 #define FS_CheckParm		com.Com_CheckParm
 #define FS_GetParmFromCmdLine		com.Com_GetParm
-#define FS_LoadImage		com.Com_LoadImage
-#define FS_SaveImage		com.Com_SaveImage
-#define FS_FreeImage		com.Com_FreeImage
 
 /*
 ===========================================
@@ -342,13 +333,6 @@ crclib manager
 #define CRC_Sequence	com.crc_sequence
 #define Com_BlockChecksum	com.crc_blockchecksum
 #define Com_BlockChecksumKey	com.crc_blockchecksumkey
-
-/*
-===========================================
-imagelib utils
-===========================================
-*/
-#define Image_Processing	com.Com_ProcessImage
 
 /*
 ===========================================

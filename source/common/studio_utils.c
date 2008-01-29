@@ -535,7 +535,7 @@ s_mesh_t *lookup_mesh( s_model_t *pmodel, char *texturename )
 			return pmodel->pmesh[i];
 	}
 	
-	if (i >= MAXSTUDIOMESHES) Sys_Error( "too many meshes in model: \"%s\"\n", pmodel->name );
+	if (i >= MAXSTUDIOMESHES) Sys_Break( "too many meshes in model: \"%s\"\n", pmodel->name );
 
 	pmodel->nummesh = i + 1;
 	pmodel->pmesh[i] = Kalloc( sizeof( s_mesh_t ) );
@@ -565,7 +565,7 @@ int lookup_normal( s_model_t *pmodel, s_normal_t *pnormal )
 			return i;
 	}
 
-	if (i >= MAXSTUDIOVERTS) Sys_Error( "too many normals in model: \"%s\"\n", pmodel->name);
+	if (i >= MAXSTUDIOVERTS) Sys_Break( "too many normals in model: \"%s\"\n", pmodel->name);
 
 	VectorCopy( pnormal->org, pmodel->normal[i].org );
 	pmodel->normal[i].bone = pnormal->bone;
@@ -589,7 +589,7 @@ int lookup_vertex( s_model_t *pmodel, s_vertex_t *pv )
 			return i;
 	}
 
-	if (i >= MAXSTUDIOVERTS) Sys_Error( "too many vertices in model: \"%s\"\n", pmodel->name);
+	if (i >= MAXSTUDIOVERTS) Sys_Break( "too many vertices in model: \"%s\"\n", pmodel->name);
 
 	VectorCopy( pv->org, pmodel->vert[i].org );
 	pmodel->vert[i].bone = pv->bone;
@@ -837,10 +837,10 @@ void ResizeTexture( s_texture_t *ptexture )
 
 	Msg("BMP %s [%d %d] (%.0f%%)  %6d bytes\n", ptexture->name,  ptexture->skinwidth, ptexture->skinheight, ((ptexture->skinwidth * ptexture->skinheight) / (float)(ptexture->srcwidth * ptexture->srcheight)) * 100.0f, ptexture->size );
 	
-	if (ptexture->size > 1024 * 1024)
+	if( ptexture->size > 1536 * 1536)
 	{
 		Msg("%g %g %g %g\n", ptexture->min_s, ptexture->max_s, ptexture->min_t, ptexture->max_t );
-		Sys_Error("texture too large\n");
+		Sys_Break("texture too large\n");
 	}
 
 	pdest = Kalloc( ptexture->size );
@@ -876,6 +876,6 @@ void ResizeTexture( s_texture_t *ptexture )
 	}
 	else memcpy( pdest, ptexture->ppal, 256 * sizeof( rgb_t ) );
 
-	Free( ptexture->ppicture );
-	Free( ptexture->ppal );
+	Mem_Free( ptexture->ppicture );
+	Mem_Free( ptexture->ppal );
 }

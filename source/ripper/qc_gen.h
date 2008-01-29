@@ -5,7 +5,18 @@
 #ifndef QC_GEN_H
 #define QC_GEN_H
 
-#include "basefiles.h"
+// sprite types
+#define SPR_VP_PARALLEL_UPRIGHT	0
+#define SPR_FACING_UPRIGHT		1
+#define SPR_VP_PARALLEL		2
+#define SPR_ORIENTED		3	// all axis are valid
+#define SPR_VP_PARALLEL_ORIENTED	4
+
+#define SPR_NORMAL			0	// solid sprite
+#define SPR_ADDITIVE		1
+#define SPR_INDEXALPHA		2
+#define SPR_ALPHTEST		3
+#define SPR_ADDGLOW			4	// same as additive, but without depthtest
 
 //
 // sprite_qc
@@ -70,10 +81,10 @@ _inline const char *SPR_RenderMode( void )
 	switch( spr.texFormat )
 	{
 	case SPR_ADDGLOW: return "glow";
-	case SPR_ALPHTEST: return "alphatest";
-	case SPR_INDEXALPHA: return "indexalpha";
+	case SPR_ALPHTEST: return "alpha";
+	case SPR_INDEXALPHA: return "alpha";
 	case SPR_ADDITIVE: return "additive";
-	case SPR_NORMAL: return "normal";
+	case SPR_NORMAL: return "solid";
 	default: return "normal";
 	}
 }

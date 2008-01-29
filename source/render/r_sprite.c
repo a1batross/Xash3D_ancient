@@ -61,7 +61,7 @@ dframetype_t *R_SpriteLoadFrame( model_t *mod, void *pin, mspriteframe_t **ppfra
 
 	if(!VFS_Unpack((byte *)(pinframe + 1), pinframe->compsize, &spr_frame->buffer, spr_frame->size ))
 	{
-		FS_FreeImage( spr_frame );
+		Image->FreeImage( spr_frame );
 		MsgDev(D_WARN, "R_SpriteLoadFrame: %s probably corrupted\n", name );
 		return (void *)((byte *)(pinframe + 1) + pinframe->compsize);
 	}
@@ -75,7 +75,7 @@ dframetype_t *R_SpriteLoadFrame( model_t *mod, void *pin, mspriteframe_t **ppfra
 	}
           else MsgDev(D_WARN, "%s has null frame %d\n", image->name, framenum );
 
-	FS_FreeImage( spr_frame );          
+	Image->FreeImage( spr_frame );          
 	return (dframetype_t *)((byte *)(pinframe + 1) + pinframe->compsize);
 }
 
@@ -140,14 +140,12 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 	mod->numtexinfo = 0; // reset frames
 	
 	psprite->type	= LittleLong(pin->type);
-	psprite->maxwidth	= LittleLong(pin->width);
-	psprite->maxheight	= LittleLong(pin->height);
 	psprite->rendermode = LittleLong(pin->rendermode);
 	psprite->numframes	= numframes;
-	mod->mins[0] = mod->mins[1] = -psprite->maxwidth / 2;
-	mod->maxs[0] = mod->maxs[1] = psprite->maxwidth / 2;
-	mod->mins[2] = -psprite->maxheight / 2;
-	mod->maxs[2] = psprite->maxheight / 2;
+	mod->mins[0] = mod->mins[1] = -LittleLong(pin->bounds[0]) / 2;
+	mod->maxs[0] = mod->maxs[1] = LittleLong(pin->bounds[0]) / 2;
+	mod->mins[2] = -LittleLong(pin->bounds[1]) / 2;
+	mod->maxs[2] = LittleLong(pin->bounds[1]) / 2;
 	pframetype = (dframetype_t *)(pin + 1);
 
 	MsgDev(D_LOAD, "%s, rendermode %d\n", mod->name, psprite->rendermode );
@@ -246,21 +244,19 @@ bool R_AcceptSpritePass( entity_t *e, int pass )
 	if(pass == RENDERPASS_SOLID)
 	{
 		// pass for solid ents
-		if(psprite->rendermode == SPR_NORMAL) return true;	// solid sprite
-		if(psprite->rendermode == SPR_ADDGLOW) return false;	// draw it at second pass
+		if(psprite->rendermode == SPR_SOLID) return true;	// solid sprite
+		if(psprite->rendermode == SPR_GLOW) return false;	// draw it at second pass
 		if(psprite->rendermode == SPR_ADDITIVE) return false;	// must be draw first always
-		if(psprite->rendermode == SPR_ALPHTEST) return false;	// already blended by alphatest
-		if(psprite->rendermode == SPR_INDEXALPHA) return false;	// already blended by alphatest
+		if(psprite->rendermode == SPR_ALPHA) return false;	// already blended by alphatest
 	}	
 	if(pass == RENDERPASS_ALPHA)
 	{
 		// pass for blended ents
 		if(e->flags & RF_TRANSLUCENT) return true;		// solid sprite with custom blend
-		if(psprite->rendermode == SPR_NORMAL) return false;	// solid sprite
-		if(psprite->rendermode == SPR_ADDGLOW) return true;	// can draw
+		if(psprite->rendermode == SPR_SOLID) return false;	// solid sprite
+		if(psprite->rendermode == SPR_GLOW) return true;		// can draw
 		if(psprite->rendermode == SPR_ADDITIVE) return true;	// can draw
-		if(psprite->rendermode == SPR_ALPHTEST) return true;	// already drawed
-		if(psprite->rendermode == SPR_INDEXALPHA) return true;	// already drawed
+		if(psprite->rendermode == SPR_ALPHA) return true;		// already drawed
 	}
 	return true;
 }
@@ -329,13 +325,13 @@ void R_DrawSpriteModel( int passnum )
 		VectorNormalize (right);
 		VectorCopy (vforward, forward);
 		break;
-	case SPR_VP_PARALLEL_UPRIGHT:
+	case SPR_FWD_PARALLEL_UPRIGHT:
 		up[0] = up[1] = 0;
 		up[2] = 1;
 		VectorCopy (vup, right);
 		VectorCopy (vforward, forward);
 		break;
-	case SPR_VP_PARALLEL_ORIENTED:
+	case SPR_FWD_PARALLEL_ORIENTED:
 		angle = e->angles[ROLL] * (M_PI*2/360);
 		sr = sin(angle);
 		cr = cos(angle);
@@ -346,7 +342,7 @@ void R_DrawSpriteModel( int passnum )
 			up[i] = vright[i] * -sr + vup[i] * cr;
 		}
 		break;
-	case SPR_VP_PARALLEL:
+	case SPR_FWD_PARALLEL:
 	default: // normal sprite
 		VectorCopy (vup, up);
 		VectorCopy (vright, right);
@@ -360,10 +356,10 @@ void R_DrawSpriteModel( int passnum )
 	// setup rendermode
 	switch( psprite->rendermode )
 	{
-	case SPR_NORMAL:
+	case SPR_SOLID:
 		// solid sprite ignore color and light values
 		break;
-	case SPR_ADDGLOW:
+	case SPR_GLOW:
 		VectorCopy( r_origin, distance );
 		alpha = VectorLength( distance ) * 0.001;
 		e->scale = 1/(alpha * 1.5);
@@ -373,8 +369,7 @@ void R_DrawSpriteModel( int passnum )
 		qglBlendFunc(GL_SRC_ALPHA, GL_ONE);
 		qglColor4f( 1.0f, 1.0f, 1.0f, alpha );
 		break;
-	case SPR_ALPHTEST:
-	case SPR_INDEXALPHA:
+	case SPR_ALPHA:
 		GL_EnableBlend();
 		qglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		qglColor4f( mod->lightcolor[0], mod->lightcolor[1], mod->lightcolor[2], 1.0f );

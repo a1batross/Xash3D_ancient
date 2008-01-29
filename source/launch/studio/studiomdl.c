@@ -4,4 +4,4 @@
 
 #include "../rundll.h"
 
-Run( studio );
+Run32( studio );

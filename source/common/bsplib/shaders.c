@@ -222,7 +222,7 @@ int LoadShaderInfo( void )
 		ParseShaderFile( search->filenames[i] );
 		numShaderFiles++;
 	}
-	Free( search );
+	Mem_Free( search );
 
 	return numShaderInfo;
 }

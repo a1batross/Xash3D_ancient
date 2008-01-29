@@ -52,7 +52,6 @@ void Sys_GetStdAPI( void )
 
 	// memlib.c
 	com.memcpy = _mem_copy;
-	com.memset = _mem_set;
 	com.realloc = _mem_realloc;
 	com.move = _mem_move;
 	com.malloc = _mem_alloc;
@@ -152,10 +151,6 @@ void Sys_GetStdAPI( void )
 	// filesystem simply user interface
 	com.Com_LoadFile = FS_LoadFile;		// load file into heap
 	com.Com_WriteFile = FS_WriteFile;		// write file into disk
-	com.Com_LoadImage = FS_LoadImage;		// extract image into rgba buffer
-	com.Com_SaveImage = FS_SaveImage;		// save image into specified format
-	com.Com_ProcessImage = Image_Processing;	// convert and resample image
-	com.Com_FreeImage = FS_FreeImage;		// free image buffer
 	com.Com_LoadLibrary = Sys_LoadLibrary;		// load library 
 	com.Com_FreeLibrary = Sys_FreeLibrary;		// free library
 	com.Com_GetProcAddress = Sys_GetProcAddress;	// gpa
@@ -805,7 +800,8 @@ void Sys_WaitForQuit( void )
 
 	if(Sys.hooked_out)
 	{
-		//if(abs((int)GetStdHandle(STD_OUTPUT_HANDLE)) < 100)
+		// in-pipeline mode we don't want to wait for press any key
+		if(abs((int)GetStdHandle(STD_OUTPUT_HANDLE)) <= 100)
 		{
 			Sys_Print("press enter to quit\n");
 			getchar(); // wait for quit
@@ -814,7 +810,7 @@ void Sys_WaitForQuit( void )
 	else
 	{
 		Con_RegisterHotkeys();		
-		Mem_Set(&msg, 0, sizeof(msg));
+		memset(&msg, 0, sizeof(msg));
 
 		// wait for the user to quit
 		while(msg.message != WM_QUIT)
@@ -932,7 +928,6 @@ void Sys_Init( void )
 	Con_CreateConsole();
 	Sys_InitCPU();
 	Memory_Init();
-	Image_Init();
 	Cmd_Init();
 	Cvar_Init();
 
@@ -955,7 +950,6 @@ void Sys_Exit ( void )
 	Sys_FreeLibrary( Sys.linked_dll );
 
 	FS_Shutdown();
-	Image_Shutdown();
 	Memory_Shutdown();
 	Con_DestroyConsole();
 

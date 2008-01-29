@@ -84,15 +84,6 @@ void _mem_copy(void *dest, const void *src, size_t size, const char *filename, i
 	memcpy( dest, src, size );
 }
 
-void _mem_set(void *dest, int set, size_t size, const char *filename, int fileline)
-{
-	if(size <= 0) return; // nothing to set
-	if(dest == NULL) Sys_Error("Mem_Set: dest == NULL (called at %s:%i)\n", filename, fileline);
-
-	// fill block
-	memset( dest, set, size );
-}
-
 void *_mem_alloc(byte *poolptr, size_t size, const char *filename, int fileline)
 {
 	int i, j, k, needed, endbit, largest;
@@ -294,7 +285,7 @@ void _mem_move(byte *poolptr, void **dest, void *src, size_t size, const char *f
 		_mem_free( memptr, filename, fileline );		// release old buffer
 		memptr = _mem_alloc( poolptr, size, filename, fileline );	// alloc new size
 	}
-	else _mem_set( memptr, 0, size, filename, fileline );		// no need to reallocate buffer
+	else memset( memptr, 0, size );				// no need to reallocate buffer
 	
 	_mem_copy( memptr, src, size, filename, fileline );		// move memory...
 	_mem_free( src, filename, fileline );				// ...and free old pointer
@@ -307,7 +298,7 @@ byte *_mem_allocpool(const char *name, const char *filename, int fileline)
 	mempool_t *pool;
 	pool = (mempool_t *)malloc(sizeof(mempool_t));
 	if (pool == NULL) Sys_Error("Mem_AllocPool: out of memory (allocpool at %s:%i)\n", filename, fileline);
-	_mem_set(pool, 0, sizeof(mempool_t), filename, fileline );
+	memset(pool, 0, sizeof(mempool_t));
 
 	// fill header
 	pool->sentinel1 = MEMHEADER_SENTINEL1;
@@ -344,7 +335,7 @@ void _mem_freepool(byte **poolptr, const char *filename, int fileline)
 		// free memory owned by the pool
 		while (pool->chain) _mem_freeblock(pool->chain, filename, fileline);
 		// free the pool itself
-		_mem_set(pool, 0xBF, sizeof(mempool_t), filename, fileline);
+		memset(pool, 0xBF, sizeof(mempool_t));
 		free(pool);
 		*poolptr = NULL;
 	}

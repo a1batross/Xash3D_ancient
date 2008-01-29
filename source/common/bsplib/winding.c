@@ -8,8 +8,6 @@ int	c_peak_windings;
 int	c_winding_allocs;
 int	c_winding_points;
 
-#define	BOGUS_RANGE	8192
-
 /*
 =============
 AllocWinding
@@ -42,7 +40,7 @@ void FreeWinding (winding_t *w)
 
 	if (GetNumThreads() == 1)
 		c_active_windings--;
-	Free (w);
+	Mem_Free (w);
 }
 
 /*
@@ -210,8 +208,8 @@ winding_t *BaseWindingForPlane (vec3_t normal, vec_t dist)
 	
 	CrossProduct (vup, normal, vright);
 	
-	VectorScale (vup, 8192, vup);
-	VectorScale (vright, 8192, vright);
+	VectorScale (vup, BOGUS_RANGE, vup);
+	VectorScale (vright, BOGUS_RANGE, vright);
 
 // project a really big	axis aligned box onto the plane
 	w = AllocWinding (4);

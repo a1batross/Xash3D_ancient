@@ -136,7 +136,7 @@ FreeTriangulation
 */
 void FreeTriangulation (triangulation_t *tr)
 {
-	Free (tr);
+	Mem_Free (tr);
 }
 
 

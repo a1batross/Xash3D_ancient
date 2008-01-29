@@ -15,7 +15,7 @@ vec3_t	texture_reflectivity[MAX_MAP_TEXINFO];
 CalcTextureReflectivity
 ======================
 */
-void CalcTextureReflectivity (void)
+void CalcTextureReflectivity( void )
 {
 	int		j, i, texels;
 	vec3_t		color;
@@ -44,13 +44,18 @@ void CalcTextureReflectivity (void)
 		color[0] = color[1] = color[2] = 0;
 
 		// loading tga, jpg or png texture
-		tex = FS_LoadImage(GetStringFromTable( texinfo[i].texid ), NULL, 0);
-		if(tex)		
+		tex = Image->LoadImage(GetStringFromTable( texinfo[i].texid ), NULL, 0);
+		if( tex )		
 		{
 			texels = tex->width * tex->height;
 
 			switch(tex->type)
 			{
+			case PF_DXT1:
+			case PF_DXT3:
+			case PF_DXT5:
+				if(!Image->DecompressDXTC( &tex )) break;
+				// intentional falltrough
 			case PF_RGBA_32:
 			case PF_ABGR_64:
 				for (j = 0; j < texels; j++, tex->buffer += 4)
@@ -75,7 +80,7 @@ void CalcTextureReflectivity (void)
 		}
 		else MsgWarn("Couldn't load %s\n", GetStringFromTable( texinfo[i].texid ));
 
-		//try also get direct values from shader
+		// try also get direct values from shader
 		if(si = FindShader( GetStringFromTable(texinfo[i].texid)))
 		{						
 			if(!VectorIsNull(si->color))
@@ -102,10 +107,10 @@ void CalcTextureReflectivity (void)
 		// so dim
 		scale = ColorNormalize (texture_reflectivity[i], texture_reflectivity[i]);
 
-		if (scale < 0.5)
+		if( scale < 0.5 )
 		{
 			scale *= 2;
-			VectorScale (texture_reflectivity[i], scale, texture_reflectivity[i]);
+			VectorScale(texture_reflectivity[i], scale, texture_reflectivity[i]);
 		}
 	}
 }

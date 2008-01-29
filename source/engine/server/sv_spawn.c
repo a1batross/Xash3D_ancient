@@ -191,7 +191,10 @@ void SV_TouchTriggers (edict_t *ent)
 		prog->globals.sv->pev = PRVM_EDICT_TO_PROG(hit);
 		prog->globals.sv->other = PRVM_EDICT_TO_PROG(ent);
 		prog->globals.sv->time = sv.time;
-		PRVM_ExecuteProgram (hit->progs.sv->touch, "QC function pev->touch is missing");
+		if( hit->progs.sv->touch )
+		{
+			PRVM_ExecuteProgram (hit->progs.sv->touch, "QC function pev->touch is missing\n");
+		}
 	}
 
 	// restore state
@@ -627,7 +630,10 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 		prog->globals.sv->pev = PRVM_EDICT_TO_PROG(other);
 		prog->globals.sv->other = PRVM_EDICT_TO_PROG(ent);
 		prog->globals.sv->time = sv.time;
-		PRVM_ExecuteProgram (other->progs.sv->touch, "QC function pev->touch is missing");
+		if( other->progs.sv->touch )
+		{
+			PRVM_ExecuteProgram (other->progs.sv->touch, "QC function pev->touch is missing\n");
+		}
 	}
 	PRVM_POP_GLOBALS;
 

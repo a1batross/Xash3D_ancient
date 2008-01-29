@@ -166,6 +166,32 @@ typedef struct launch_exp_s
 /*
 ==============================================================================
 
+IMGLIB.DLL INTERFACE
+==============================================================================
+*/
+typedef struct imglib_exp_s
+{
+	// interface validator
+	size_t	api_size;		// must matched with sizeof(imglib_api_t)
+
+	void ( *Init ) ( uint funcname );	// init host
+	void ( *Free ) ( void );		// close host
+
+	// global operations
+	rgbdata_t *(*LoadImage)(const char *path, char *data, int size );	// extract image into rgba buffer
+	void (*SaveImage)(const char *filename, rgbdata_t *buffer );	// save image into specified format
+
+	bool (*DecompressDXTC)( rgbdata_t **image );
+	bool (*DecompressARGB)( rgbdata_t **image );
+
+	bool (*ResampleImage)( const char *name, rgbdata_t **pix, int w, int h, bool free_baseimage ); // resample image
+	void (*FreeImage)( rgbdata_t *pack );				// free image buffer
+
+} imglib_exp_t;
+
+/*
+==============================================================================
+
 RENDER.DLL INTERFACE
 ==============================================================================
 */

@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "engine.h"
 #include "screen.h"
 #include "mathlib.h"
+#include "basefiles.h"
 
 #define MAX_EDIT_LINE	256
 #define COMMAND_HISTORY	32

@@ -70,7 +70,7 @@ bool SP2_WriteScript( const char *name )
 	// sprite header
 	FS_Printf(f, "\n$spritename\t%s.spr\n", name );
 	FS_Printf(f, "$type\t\t%s\n",SPR_RenderType());
-	FS_Printf(f, "$texture\t\t%s\n\n",SPR_RenderMode());
+	FS_Printf(f, "$render\t\t%s\n\n",SPR_RenderMode());
 
 	// frames description
 	for( i = 0; i < spr.totalframes - spr.numgroup; i++)

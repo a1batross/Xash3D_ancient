@@ -374,7 +374,7 @@ byte *WriteAnimations( byte *pData, byte *pStart, int group )
 						}
 					}
 					if (((byte *)panimvalue - (byte *)panim) > 0xffff)
-						Sys_Error("sequence \"%s\" is greater than 64K\n", sequence[i].name );
+						Sys_Break("sequence \"%s\" is greater than 64K\n", sequence[i].name );
 					panim++;
 				}
 			}
@@ -743,8 +743,8 @@ void SimplifyModel (void)
 	}
 
 	//handle errors
-	if (iError && !(host_debug)) Sys_Error("Unexpected errors, stop compilation\nRun with parm \"-debug\" to avoid this");
-	if (numbones >= MAXSTUDIOBONES) Sys_Error( "Too many bones in model: used %d, max %d\n", numbones, MAXSTUDIOBONES );
+	if (iError && !(host_debug)) Sys_Break("Unexpected errors, stop compilation\nRun with parm \"-debug\" to avoid this");
+	if (numbones >= MAXSTUDIOBONES) Sys_Break( "Too many bones in model: used %d, max %d\n", numbones, MAXSTUDIOBONES );
 
 	// rename sequence bones if needed
 	for (i = 0; i < numseq; i++)
@@ -792,7 +792,7 @@ void SimplifyModel (void)
 	}
 	
 	//handle errors
-	if (iError && !(host_debug)) Sys_Error("unexpected errors, stop compilation\nRun with parm \"-debug\" to avoid this");
+	if (iError && !(host_debug)) Sys_Break("unexpected errors, stop compilation\nRun with parm \"-debug\" to avoid this");
 
 	// link bonecontrollers
 	for (i = 0; i < numbonecontrollers; i++)
@@ -1142,7 +1142,7 @@ void SimplifyModel (void)
 								break;
 							}
 						}
-						if (n == 0) Sys_Error("no animation frames: \"%s\"\n", sequence[i].name );
+						if (n == 0) Sys_Break("no animation frames: \"%s\"\n", sequence[i].name );
 
 						sequence[i].panim[q]->numanim[j][k] = 0;
 						memset( data, 0, sizeof( data ) ); 
@@ -1218,7 +1218,7 @@ void Grab_Skin ( s_texture_t *ptexture )
 	FS_DefaultExtension( filename, ".bmp" ); 
 
 	ptexture->ppicture = ReadBMP ( filename, (byte **)&ptexture->ppal, &ptexture->srcwidth, &ptexture->srcheight);
-	if (!ptexture->ppicture) Sys_Error("unable to load %s\n", filename );
+	if (!ptexture->ppicture) Sys_Break("unable to load %s\n", filename );
 }
 
 void SetSkinValues( void )
@@ -1378,7 +1378,7 @@ void Grab_Triangles( s_model_t *pmodel )
 				for(i = 0; i < 3; i++)
 				{
 					if(!Com_GetToken( true ))
-						Sys_Error( "Unexpected EOF %s at line %d\n", filename, linecount );
+						Sys_Break( "Unexpected EOF %s at line %d\n", filename, linecount );
 					while(Com_TryToken());
 					linecount++;
 				}
@@ -1414,7 +1414,7 @@ void Grab_Triangles( s_model_t *pmodel )
 		                                        
 				//translate triangles
 				if (bone < 0 || bone >= pmodel->numbones) 
-					Sys_Error("bogus bone index %d \n%s line %d", bone, filename, linecount );
+					Sys_Break("bogus bone index %d \n%s line %d", bone, filename, linecount );
 				VectorCopy( p.org, vert[j] );
 				VectorCopy( normal.org, norm[j] );
 
@@ -1493,7 +1493,7 @@ void Grab_Skeleton( s_node_t *pnodes, s_bone_t *pbones )
 			clip_rotations( pbones[index].rot ); 
 		}
 	}
-	Sys_Error( "Unexpected EOF %s at line %d\n", filename, linecount );
+	Sys_Break( "Unexpected EOF %s at line %d\n", filename, linecount );
 }
 
 int Grab_Nodes( s_node_t *pnodes )
@@ -1526,7 +1526,7 @@ int Grab_Nodes( s_node_t *pnodes )
 			pnodes[index].mirrored = pnodes[pnodes[index].parent].mirrored;
 	}
 
-	Sys_Error( "Unexpected EOF %s at line %d\n", filename, linecount );
+	Sys_Break( "Unexpected EOF %s at line %d\n", filename, linecount );
 	return 0;
 }
 
@@ -1538,7 +1538,7 @@ void Grab_Studio ( s_model_t *pmodel )
 
 	FS_DefaultExtension(filename, ".smd" );
 	load = Com_IncludeScript( filename, NULL, 0 );
-	if(!load) Sys_Error("unable to open %s\n", filename );
+	if(!load) Sys_Break("unable to open %s\n", filename );
 	Msg("grabbing %s\n", filename);
 	
 	linecount = 0;
@@ -1770,7 +1770,7 @@ void Grab_Animation( s_animation_t *panim)
 		}
 	}
 
-	Sys_Error( "unexpected EOF: %s\n", panim->name );
+	Sys_Break( "unexpected EOF: %s\n", panim->name );
 }
 
 void Shift_Animation( s_animation_t *panim)
@@ -1803,7 +1803,7 @@ void Option_Animation ( char *name, s_animation_t *panim )
 
 	FS_DefaultExtension(filename, ".smd" );
 	load = Com_IncludeScript( filename, NULL, 0 );
-	if(!load) Sys_Error("unable to open %s\n", filename );
+	if(!load) Sys_Break("unable to open %s\n", filename );
 	Msg("grabbing %s\n", filename);	
 
 	linecount = 0;
@@ -1924,7 +1924,7 @@ syntax: $scale <value>
 */
 void Cmd_ScaleUp (void)
 {
-	default_scale = scale_up = atof (Com_GetToken (false));
+	default_scale = scale_up = com.atof (Com_GetToken (false));
 }
 
 /*
@@ -2448,8 +2448,9 @@ void ResetModelInfo( void )
 	//make an option
 	dump_hboxes = 0;
 
+	strcpy( gs_filename, "model" );
 	strcpy( sequencegroup.label, "default" );
-	FS_ClearSearchPath();//clear all $cd and $cdtexture
+	FS_ClearSearchPath(); //clear all $cd and $cdtexture
 
 	//set default model parms
 	FS_FileBase(gs_filename, modeloutname );//kill path and ext
@@ -2513,6 +2514,37 @@ bool ParseModelScript (void)
 	return true;
 }
 
+void CreateModelScript( void )
+{
+	file_t	*f = FS_Open( "model.qc", "w" );
+	search_t	*t = FS_Search( "*.smd", false );
+	int	i;
+
+	// header
+	FS_Printf( f, "\n$modelname \"model.mdl\"" );
+	FS_Printf( f, "\n$cd \".\\\"" );
+	FS_Printf( f, "\n$cdtexture \".\\\"" );
+	FS_Printf( f, "\n$scale 1.0" );
+	FS_Printf( f, "\n$cliptotextures\n\n" );
+
+	// body FIXME: parse for real reference
+	FS_Printf( f, "\n//reference mesh(es)" );
+	FS_Printf( f, "\n$body \"studio\" \"reference\"" );
+
+	// write animations
+	for( i = 0; t && i < t->numfilenames; i++ )
+	{
+		// FIXME: make cases for "attack_%"
+		FS_Printf( f, "$sequence \"t->filenames[i]\" \"t->filenames[i]\"" );
+		if(stristr(t->filenames[i], "walk" )) FS_Printf( f, "LX fps 30 loop ACT_WALK 1\n" );
+		else if(stristr(t->filenames[i], "run" )) FS_Printf( f, "LX fps 30 loop ACT_RUN 1\n" );		
+		else if(stristr(t->filenames[i], "idle")) FS_Printf( f, "fps 16 loop ACT_IDLE 50\n" );
+		else FS_Printf( f, "fps 16\n" );
+	}
+	FS_Printf(f, "\n" ); //finished
+	FS_Close( f );
+}
+
 void ClearModel( void )
 {
 	cdset = false;
@@ -2538,11 +2570,16 @@ bool CompileCurrentModel( const char *name )
 	cdset = false;
 	cdtextureset = 0;
 	
-	if(name) strcpy( gs_filename, name );
+	if( name ) com.strcpy( gs_filename, name );
 	FS_DefaultExtension( gs_filename, ".qc" );
+	if(!FS_FileExists( gs_filename ))
+	{
+		// try to create qc-file
+		CreateModelScript();
+	}
+
 	load = Com_LoadScript( gs_filename, NULL, 0 );
-	
-	if(load)
+	if( load )
 	{
 		if(!ParseModelScript())
 			return false;

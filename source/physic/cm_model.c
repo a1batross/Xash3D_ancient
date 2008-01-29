@@ -1289,10 +1289,10 @@ bool CM_SpriteModel( byte *buffer, uint filesize )
 	loadmodel->type = mod_sprite;
 	loadmodel->numbodies = 0; // sprites don't have bodies
 	loadmodel->numframes = phdr->numframes;
-	loadmodel->mins[0] = loadmodel->mins[1] = -phdr->width / 2;
-	loadmodel->maxs[0] = loadmodel->maxs[1] = phdr->width / 2;
-	loadmodel->mins[2] = -phdr->height / 2;
-	loadmodel->maxs[2] = phdr->height / 2;
+	loadmodel->mins[0] = loadmodel->mins[1] = -phdr->bounds[0] / 2;
+	loadmodel->maxs[0] = loadmodel->maxs[1] = phdr->bounds[0] / 2;
+	loadmodel->mins[2] = -phdr->bounds[1] / 2;
+	loadmodel->maxs[2] = phdr->bounds[1] / 2;
 	return true;
 }
 

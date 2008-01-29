@@ -10,12 +10,13 @@ backup.lst
 backup.bat
 release.bat
 launchers.bat
-changelog.log
+todo.log
 
 public\
 viewer\
 physic\
 render\
+imglib\
 ripper\
 common\
 common\bsplib

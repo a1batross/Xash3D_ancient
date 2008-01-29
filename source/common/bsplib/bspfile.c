@@ -439,7 +439,7 @@ void LoadBSPFileTexinfo( char *filename )
 	FS_Close(f);
 
 	numtexinfo = length / sizeof(dsurfdesc_t);
-	Free (header); // everything has been copied out
+	Mem_Free (header); // everything has been copied out
 	SwapBSPFile (false);
 }
 
@@ -654,7 +654,7 @@ void SetKeyValue (bsp_entity_t *ent, char *key, char *value)
 	for (ep=ent->epairs ; ep ; ep=ep->next)
 		if (!strcmp (ep->key, key) )
 		{
-			Free (ep->value);
+			Mem_Free (ep->value);
 			ep->value = copystring(value);
 			return;
 		}

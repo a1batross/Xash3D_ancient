@@ -37,8 +37,8 @@ void BoundPoly (int numverts, float *verts, vec3_t mins, vec3_t maxs)
 	int		i, j;
 	float	*v;
 
-	mins[0] = mins[1] = mins[2] = 9999;
-	maxs[0] = maxs[1] = maxs[2] = -9999;
+	mins[0] = mins[1] = mins[2] = 99999;
+	maxs[0] = maxs[1] = maxs[2] = -99999;
 	v = verts;
 	for (i=0 ; i<numverts ; i++)
 		for (j=0 ; j<3 ; j++, v++)
@@ -497,8 +497,8 @@ void R_ClearSkyBox (void)
 
 	for (i=0 ; i<6 ; i++)
 	{
-		skymins[0][i] = skymins[1][i] = 9999;
-		skymaxs[0][i] = skymaxs[1][i] = -9999;
+		skymins[0][i] = skymins[1][i] = 99999;
+		skymaxs[0][i] = skymaxs[1][i] = -99999;
 	}
 }
 
@@ -508,9 +508,9 @@ void MakeSkyVec (float s, float t, int axis)
 	vec3_t		v, b;
 	int		j, k;
 
-	b[0] = s*2300;
-	b[1] = t*2300;
-	b[2] = 2300;
+	b[0] = s * 65800;
+	b[1] = t * 65800;
+	b[2] = 65800;
 
 	for (j = 0; j < 3; j++)
 	{
