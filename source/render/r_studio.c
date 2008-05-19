@@ -87,7 +87,7 @@ image_t *R_StudioLoadTexture( model_t *mod, mstudiotexture_t *ptexture, byte *pi
 	r_skin.buffer = pin + ptexture->index; // texdata
 	r_skin.size = ptexture->width * ptexture->height * 3; // for bounds cheking
 			
-	//load studio texture and bind it
+	// load studio texture and bind it
 	image = R_LoadImage(ptexture->name, &r_skin, it_skin );
 	if(!image) 
 	{

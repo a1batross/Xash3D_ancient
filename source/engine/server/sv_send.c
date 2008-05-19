@@ -174,9 +174,6 @@ void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename,
 		else Msg("MSG_Send: origin == NULL (called at %s:%i)\n", filename, fileline);
 		return;
 	}*/
-
-	// if doing a serverrecord, store everything
-	if (svs.demofile) SZ_Write (&svs.demo_multicast, sv.multicast.data, sv.multicast.cursize);
 	
 	switch (to)
 	{
@@ -373,6 +370,32 @@ void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int soundindex,
 	}
 }           
 
+void SV_AmbientSound( edict_t *entity, int soundindex, float volume, float attenuation )
+{
+	vec3_t		origin_v;
+	int		i;
+
+	if(entity->progs.sv->solid == SOLID_BSP)
+	{
+		for(i = 0; i < 3; i++)
+		{
+			origin_v[i] = entity->progs.sv->origin[i]+0.5*(entity->progs.sv->mins[i]+entity->progs.sv->maxs[i]);
+		}
+	}
+	else
+	{
+		VectorCopy( entity->progs.sv->origin, origin_v );
+	}
+
+	if( sv.state != ss_loading )
+	{
+		MSG_Begin( svc_ambientsound );
+			MSG_WriteWord(&sv.multicast, entity->priv.sv->serialnumber);
+			MSG_WriteWord(&sv.multicast, soundindex);
+			MSG_WritePos32(&sv.multicast, origin_v );
+		MSG_Send (MSG_ALL_R, origin_v, NULL);
+	}
+}
 
 /*
 ===============================================================================

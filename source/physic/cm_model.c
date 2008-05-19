@@ -830,6 +830,7 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 
 	if(!com.strlen(name))
 	{
+		CM_FreeWorld(); // release old map
 		// cinematic servers won't have anything at all
 		cm.numleafs = cm.numclusters = cm.numareas = 1;
 		*checksum = 0;
@@ -1261,7 +1262,6 @@ bool CM_StudioModel( byte *buffer, uint filesize )
 		return false;
 	}
 
-	loadmodel->numframes = 0;
 	loadmodel->numbodies = 0;
 	loadmodel->type = mod_studio;
 
@@ -1269,6 +1269,8 @@ bool CM_StudioModel( byte *buffer, uint filesize )
 	pseqdesc = (mstudioseqdesc_t *)((byte *)phdr + phdr->seqindex);
 	VectorCopy( pseqdesc[0].bbmin, loadmodel->mins );
 	VectorCopy( pseqdesc[0].bbmax, loadmodel->maxs );
+	loadmodel->numframes = pseqdesc[0].numframes;	// FIXME: get numframes from current sequence (not first)
+
 	CM_CreateMeshBuffer( buffer ); // newton collision mesh
 
 	return true;

@@ -103,8 +103,8 @@ worldsector_t *SV_CreateWorldSector( int depth, vec3_t mins, vec3_t maxs )
 	VectorCopy(maxs, maxs2);	
 	
 	maxs1[anode->axis] = mins2[anode->axis] = anode->dist;
-	anode->children[0] = SV_CreateWorldSector( depth+1, mins2, maxs2);
-	anode->children[1] = SV_CreateWorldSector( depth+1, mins1, maxs1);
+	anode->children[0] = SV_CreateWorldSector( depth + 1, mins2, maxs2);
+	anode->children[1] = SV_CreateWorldSector( depth + 1, mins1, maxs1);
 
 	return anode;
 }

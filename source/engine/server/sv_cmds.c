@@ -174,7 +174,7 @@ void SV_Demo_f( void )
 ==================
 SV_Movie_f
 
-Playing a roq video with specified name
+Playing a Darkplaces video with specified name
 ==================
 */
 void SV_Movie_f( void )

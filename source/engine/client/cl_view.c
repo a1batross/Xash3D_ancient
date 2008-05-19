@@ -38,8 +38,6 @@ cvar_t		*cl_testblend;
 
 cvar_t		*cl_stats;
 
-extern bool scr_initialized;
-
 int		r_numdlights;
 dlight_t	r_dlights[MAX_DLIGHTS];
 
@@ -521,8 +519,8 @@ V_PreRender
 */
 bool V_PreRender( void )
 {
-	if(!scr_initialized)
-		return false;
+	// too early
+	if(!re) return false;
 		
 	re->BeginFrame();
 

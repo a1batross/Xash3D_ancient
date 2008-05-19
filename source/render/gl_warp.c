@@ -216,8 +216,8 @@ void EmitWaterPolys (msurface_t *fa)
 
 	if (fa->texinfo->flags & SURF_FLOWING)
 		scroll = -64 * ( (r_newrefdef.time * 0.5) - (int)(r_newrefdef.time * 0.5));
-	else
-		scroll = 0;
+	else scroll = 0;
+
 	for (bp = fa->polys; bp; bp = bp->next)
 	{
 		p = bp;

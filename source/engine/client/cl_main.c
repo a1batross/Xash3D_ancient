@@ -1638,6 +1638,7 @@ void CL_Init (void)
 	
 	SCR_Init();
 	CL_InitLocal();
+	S_ClearLoopingSounds( true );
 }
 
 

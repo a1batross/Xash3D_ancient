@@ -138,6 +138,7 @@ typedef struct sv_entvars_s
 	float	frame;
 	float	sequence;
 	float	renderfx;
+	float	animtime;
 	float	effects;
 	float	skin;
 	float	body;
@@ -283,6 +284,6 @@ static fields_t sv_reqfields[] =
 	{217,	1,	"oldmodel"}
 };
 
-#define PROG_CRC_SERVER	6477
+#define PROG_CRC_SERVER	406
 
 #endif//SV_EDICT_H

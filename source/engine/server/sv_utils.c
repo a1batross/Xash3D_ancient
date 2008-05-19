@@ -482,7 +482,7 @@ PF_ambientsound
 void ambientsound( entity e, string sample)
 =================
 */
-void PF_ambientsound (void)
+void PF_ambientsound( void )
 {
 	const char	*samp;
 	edict_t		*soundent;
@@ -490,8 +490,7 @@ void PF_ambientsound (void)
 	soundent = PRVM_G_EDICT(OFS_PARM0);
 	samp = PRVM_G_STRING(OFS_PARM1);
 
-	// check to see if samp was properly precached
-	soundent->progs.sv->noise3 = SV_SoundIndex( samp );
+	if( soundent ) SV_AmbientSound( soundent, SV_SoundIndex( samp ), 0.0f, 0.0f ); // unused parms
 }
 
 /*
@@ -658,8 +657,15 @@ void PF_create( void )
 	VM_create();
 }
 
-void PF_modelframes (void)
+void PF_modelframes( void )
 {
+	cmodel_t	*mod;
+	float	framecount = 0.0f;
+	
+	mod = pe->RegisterModel( sv.configstrings[CS_MODELS + (int)PRVM_G_FLOAT(OFS_PARM0)] );
+
+	if( mod ) framecount = ( float )mod->numframes;
+	PRVM_G_FLOAT(OFS_RETURN) = framecount;
 }
 
 void PF_changelevel (void)

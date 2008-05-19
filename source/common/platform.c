@@ -50,7 +50,7 @@ void InitPlatform ( uint funcname, int argc, char **argv )
 	{
 	case COMP_BSPLIB:
 		if(!FS_GetParmFromCmdLine("-game", gamedir ))
-			strncpy(gamedir, "xash", sizeof(gamedir));
+			strncpy(gamedir, "tmpQuArK", sizeof(gamedir));
 		if(!FS_GetParmFromCmdLine("+map", source ))
 			strncpy(source, "newmap", sizeof(source));
 		if(FS_CheckParm("-vis")) bspflags |= BSP_ONLYVIS;

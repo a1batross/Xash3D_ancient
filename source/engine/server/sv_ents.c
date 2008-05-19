@@ -44,12 +44,13 @@ void SV_UpdateEntityState( edict_t *ent)
 
 	ent->priv.sv->s.skin = (short)ent->progs.sv->skin;	// studio model skin
 	ent->priv.sv->s.body = (byte)ent->progs.sv->body;		// studio model submodel 
-	ent->priv.sv->s.frame = (short)ent->progs.sv->frame;	// any model current frame
+	ent->priv.sv->s.frame = ent->progs.sv->frame;		// any model current frame
 	ent->priv.sv->s.sequence = (byte)ent->progs.sv->sequence;	// studio model sequence
 	ent->priv.sv->s.effects = (uint)ent->progs.sv->effects;	// shared client and render flags
 	ent->priv.sv->s.renderfx = (int)ent->progs.sv->renderfx;	// renderer flags
 	ent->priv.sv->s.alpha = ent->progs.sv->alpha;		// alpha value
-	ent->priv.sv->s.soundindex = SV_SoundIndex(PRVM_GetString(ent->progs.sv->noise3));
+	ent->priv.sv->s.animtime = ent->progs.sv->animtime;	// auto-animating time
+	ent->priv.sv->s.soundindex = (int)ent->progs.sv->sounds;
 }
 
 /*
@@ -485,58 +486,3 @@ void SV_BuildClientFrame (client_state_t *client)
 		frame->num_entities++;
 	}
 }
-
-
-/*
-==================
-SV_RecordDemoMessage
-
-Save everything in the world out without deltas.
-Used for recording footage for merged or assembled demos
-==================
-*/
-void SV_RecordDemoMessage (void)
-{
-	int		e;
-	edict_t		*ent;
-	entity_state_t	nostate;
-	sizebuf_t	buf;
-	byte		buf_data[32768];
-	int		len;
-
-	if (!svs.demofile) return;
-
-	memset (&nostate, 0, sizeof(nostate));
-	SZ_Init (&buf, buf_data, sizeof(buf_data));
-
-	// write a frame message that doesn't contain a player_state_t
-	MSG_WriteByte (&buf, svc_frame);
-	MSG_WriteLong (&buf, sv.framenum);
-	MSG_WriteByte (&buf, svc_packetentities);
-
-	e = 1;
-	ent = PRVM_EDICT_NUM(e);
-	while (e < prog->num_edicts) 
-	{
-		// ignore ents without visible models unless they have an effect
-		if (!ent->priv.sv->free && ent->priv.sv->serialnumber && (ent->priv.sv->s.modelindex || ent->progs.sv->effects || ent->progs.sv->noise3 || ent->priv.sv->event))
-		{
-			SV_UpdateEntityState( ent );
-			MSG_WriteDeltaEntity (&nostate, &ent->priv.sv->s, &buf, false, true);
-		}
-		e++;
-		ent = PRVM_EDICT_NUM(e);
-	}
-
-	MSG_WriteShort (&buf, 0);		// end of packetentities
-
-	// now add the accumulated multicast information
-	SZ_Write (&buf, svs.demo_multicast.data, svs.demo_multicast.cursize);
-	SZ_Clear (&svs.demo_multicast);
-
-	// now write the entire message to the file, prefixed by the length
-	len = LittleLong (buf.cursize);
-	FS_Write (svs.demofile, &len, 4);
-	FS_Write (svs.demofile, buf.data, buf.cursize);
-}
-

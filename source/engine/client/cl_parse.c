@@ -33,6 +33,7 @@ char *svc_strings[256] =
 	"svc_disconnect",
 	"svc_reconnect",
 	"svc_sound",
+	"svc_ambientsound",
 	"svc_print",
 	"svc_stufftext",
 	"svc_serverdata",
@@ -577,6 +578,20 @@ void CL_ParseStartSoundPacket(void)
 	S_StartSound (pos, ent, channel, cl.sound_precache[sound_num]);
 }       
 
+void CL_ParseAmbientSound( void )
+{
+	sound_t		loopSoundHandle;
+	int		entityNum, soundNum;
+	vec3_t		ambient_org;
+
+	entityNum = MSG_ReadShort (&net_message);
+	soundNum = MSG_ReadShort (&net_message);
+	MSG_ReadPos32 (&net_message, ambient_org);	
+	loopSoundHandle = S_RegisterSound( cl.configstrings[CS_SOUNDS + soundNum] );
+
+	// add ambient looping sound
+	S_AddRealLoopingSound( entityNum, ambient_org, vec3_origin, loopSoundHandle );
+}
 
 void SHOWNET(char *s)
 {
@@ -672,6 +687,10 @@ void CL_ParseServerMessage (void)
 			CL_ParseStartSoundPacket();
 			break;
 			
+		case svc_ambientsound:
+			CL_ParseAmbientSound();
+			break;
+
 		case svc_spawnbaseline:
 			CL_ParseBaseline ();
 			break;

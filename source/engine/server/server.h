@@ -200,11 +200,6 @@ typedef struct
 	float		last_heartbeat;
 
 	challenge_t	challenges[MAX_CHALLENGES];	// to prevent invalid IPs from connecting
-
-	// serverrecord values
-	file_t		*demofile;
-	sizebuf_t		demo_multicast;
-	byte		demo_multicast_buf[MAX_MSGLEN];
 } server_static_t;
 
 //=============================================================================
@@ -285,6 +280,7 @@ void SV_FlushRedirect (int sv_redirected, char *outputbuf);
 
 void SV_DemoCompleted (void);
 void SV_SendClientMessages (void);
+void SV_AmbientSound( edict_t *entity, int soundindex, float volume, float attenuation );
 void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int index, float vol, float attn, float timeofs);
 void SV_ClientPrintf (client_state_t *cl, int level, char *fmt, ...);
 void SV_BroadcastPrintf (int level, char *fmt, ...);

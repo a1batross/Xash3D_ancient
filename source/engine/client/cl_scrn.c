@@ -5,7 +5,6 @@
 
 #include "client.h"
 
-bool	scr_initialized;		// ready to draw
 vrect_t	scr_vrect;		// position of render window on screen
 
 cvar_t *scr_viewsize;
@@ -354,7 +353,4 @@ void SCR_Init (void)
 	Cmd_AddCommand( "loading", SCR_Loading_f, "prepare client to a loading new map" );
 	Cmd_AddCommand( "skyname", CL_SetSky_f, "set new skybox by basename" );
 	Cmd_AddCommand( "setfont", CL_SetFont_f, "set new system font" );
-	
-	scr_initialized = true;
-
 }

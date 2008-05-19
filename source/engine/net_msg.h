@@ -20,6 +20,7 @@ enum svc_ops_e
 	svc_disconnect,
 	svc_reconnect,
 	svc_sound,		// <see code>
+	svc_ambientsound,		// ambient looping sound
 	svc_print,		// [byte] id [string] null terminated string
 	svc_stufftext,		// [string] stuffed into client's console buffer, should be \n terminated
 	svc_serverdata,		// [long] protocol ...
@@ -134,7 +135,7 @@ enum player_stats
 #define	U_ORIGIN2		(1<<1)
 #define	U_ANGLE2		(1<<2)
 #define	U_ANGLE3		(1<<3)
-#define	U_FRAME8		(1<<4)		// frame is a byte
+#define	U_FRAME		(1<<4)		// sv. interpolated value
 #define	U_SKIN8		(1<<5)
 #define	U_REMOVE		(1<<6)		// REMOVE this entity, don't add it
 #define	U_MOREBITS1	(1<<7)		// read one additional byte
@@ -150,7 +151,7 @@ enum player_stats
 
 // third byte
 #define	U_SKIN16		(1<<16)
-#define	U_FRAME16		(1<<17)		// frame is a short
+#define	U_ANIMTIME	(1<<17)		// auto-animating time
 #define	U_RENDERFX16	(1<<18)		// 8 + 16 = 32
 #define	U_EFFECTS16	(1<<19)		// 8 + 16 = 32
 #define	U_WEAPONMODEL	(1<<20)		// weapons, flags, etc
@@ -179,7 +180,7 @@ typedef struct entity_state_s
 	int		weaponmodel;
 
 	short		skin;		// skin for studiomodels
-	short		frame;		// % playback position in animation sequences (0..512)
+	float		frame;		// % playback position in animation sequences (0..512)
 	byte		body;		// sub-model selection for studiomodels
 	byte		sequence;		// animation sequence (0 - 255)
 	uint		effects;		// PGM - we're filling it, so it needs to be unsigned
@@ -191,6 +192,7 @@ typedef struct entity_state_s
 					// events only go out for a single frame, they
 					// are automatically cleared each frame
 	float		alpha;		// alpha value
+	float		animtime;		// auto-animating time
 
 } entity_state_t;
 

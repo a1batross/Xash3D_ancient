@@ -176,7 +176,7 @@ aborts the current host frame and goes on with the next one
 */
 void Host_AbortCurrentFrame( void )
 {
-	longjmp(host.abortframe, 1);
+	longjmp( host.abortframe, 1 );
 }
 
 /*
@@ -400,7 +400,7 @@ void Host_Print( const char *txt )
 				*host.rd.buffer = 0;
 			}
 		}
-		strcat (host.rd.buffer, txt);
+		com.strcat (host.rd.buffer, txt);
 		return;
 	}
 	Con_Print( txt ); // echo to client console
@@ -434,7 +434,7 @@ void Host_Error( const char *error, ... )
 	}
 
 	recursive = true;
-	sprintf( host.finalmsg, "Server crashed: %s\n", hosterror1 );
+	com.sprintf( host.finalmsg, "Server crashed: %s\n", hosterror1 );
 	com.strncpy( host.finalmsg, "Server shutdown\n", MAX_STRING );
 
 	SV_Shutdown( false );

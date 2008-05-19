@@ -97,7 +97,6 @@ BRUSH MODELS
 #define IDBSPMODHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'I') // little-endian "IBSP"
 
 // 32 bit limits
-#define MAX_MAP_SIZE		0x40000	// -/+ 131072
 #define MAX_KEY			128
 #define MAX_VALUE			512
 #define MAX_MAP_AREAS		0x100	// don't increase this
@@ -123,7 +122,12 @@ BRUSH MODELS
 #define MAX_MAP_COLLISION		0x800000
 #define MAX_MAP_STRINGDATA		0x40000
 #define MAX_MAP_NUMSTRINGS		0x10000
+
+// game limits
 #define MAX_MODELS			MAX_MAP_MODELS>>1	// brushmodels and other models
+#define MAX_WORLD_COORD		( 128 * 1024 )
+#define MIN_WORLD_COORD		(-128 * 1024 )
+#define WORLD_SIZE			( MAX_WORLD_COORD - MIN_WORLD_COORD )
 
 // lump offset
 #define LUMP_ENTITIES		0

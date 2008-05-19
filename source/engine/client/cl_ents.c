@@ -603,7 +603,8 @@ void CL_AddPacketEntities (frame_t *frame)
 		ent.alpha = s1->alpha;
 		ent.body = s1->body;
 		ent.sequence = s1->sequence;		
-
+		ent.animtime = s1->animtime;
+		
 		if (renderfx & (RF_FRAMELERP|RF_BEAM))
 		{
 			// step origin discretely, because the frames

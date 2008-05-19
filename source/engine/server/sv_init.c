@@ -224,8 +224,12 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 	// check for a savegame
 	SV_CheckForSavegame( savename );
 
-          if(sv.loadgame) SV_ReadLevelFile( savename );
-	else SV_SpawnEntities ( sv.name, pe->GetEntityString());
+	if( serverstate == ss_game )
+	{
+		// ignore ents for demo or cinematic servers
+		if(sv.loadgame) SV_ReadLevelFile( savename );
+		else SV_SpawnEntities ( sv.name, pe->GetEntityString());
+	}        
 
 	// run two frames to allow everything to settle
 	SV_RunFrame();

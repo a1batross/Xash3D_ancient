@@ -1,22 +1,7 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
+//=======================================================================
+//			Copyright XashXT Group 2007 ©
+//			sv_utils.c - server vm utils
+//=======================================================================
 
 #include "engine.h"
 #include "server.h"
@@ -796,9 +781,6 @@ void SV_Frame (float time)
 	// send messages back to the clients that had packets read this frame
 	SV_SendClientMessages ();
 
-	// save the entire world state if recording a serverdemo
-	SV_RecordDemoMessage ();
-
 	// send a heartbeat to the master if needed
 	Master_Heartbeat ();
 
@@ -1056,7 +1038,6 @@ void SV_Shutdown( bool reconnect )
 	// free server static data
 	if (svs.clients) Z_Free (svs.clients);
 	if (svs.client_entities) Z_Free (svs.client_entities);
-	if (svs.demofile) FS_Close (svs.demofile);
 	memset (&svs, 0, sizeof(svs));
 }
 

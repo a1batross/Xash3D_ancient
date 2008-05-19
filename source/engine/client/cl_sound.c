@@ -1148,7 +1148,7 @@ void S_ClearLoopingSounds( bool killall )
 
 	for ( i = 0; i < MAX_MAP_ENTITIES; i++)
 	{
-		if (killall || loopSounds[i].kill == true || (loopSounds[i].sfx && loopSounds[i].sfx->soundLength == 0))
+		if( killall || loopSounds[i].kill == true || (loopSounds[i].sfx && loopSounds[i].sfx->soundLength == 0))
 		{
 			loopSounds[i].kill = false;
 			S_StopLoopingSound( i );
@@ -1271,10 +1271,9 @@ void S_AddLoopSounds (void)
 	float		time;
 
 	numLoopChannels = 0;
-
 	time = Sys_DoubleTime();
-
 	loopFrame++;
+
 	for ( i = 0; i < MAX_MAP_ENTITIES; i++)
 	{
 		loop = &loopSounds[i];
