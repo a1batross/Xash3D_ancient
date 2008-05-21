@@ -56,7 +56,6 @@ cvar_t	*cl_showmiss;
 cvar_t	*cl_showclamp;
 
 cvar_t	*cl_paused;
-cvar_t	*cl_timedemo;
 
 cvar_t	*lookspring;
 cvar_t	*lookstrafe;
@@ -99,168 +98,6 @@ extern	cvar_t *allow_download_sounds;
 extern	cvar_t *allow_download_maps;
 //======================================================================
 
-
-/*
-====================
-CL_WriteDemoMessage
-
-Dumps the current net message, prefixed by the length
-====================
-*/
-void CL_WriteDemoMessage (void)
-{
-	int len, swlen;
-
-	// the first eight bytes are just packet sequencing stuff
-	len = net_message.cursize-8;
-	swlen = LittleLong(len);
-	FS_Write (cls.demofile, &swlen, 4);
-	FS_Write (cls.demofile, net_message.data + 8, len );
-}
-
-
-/*
-====================
-CL_Stop_f
-
-stop recording a demo
-====================
-*/
-void CL_Stop_f (void)
-{
-	int		len;
-
-	if (!cls.demorecording)
-	{
-		Msg ("Not recording a demo.\n");
-		return;
-	}
-
-	// finish up
-	len = -1;
-	FS_Write (cls.demofile, &len, 4 );
-	FS_Close (cls.demofile);
-	cls.demofile = NULL;
-	cls.demorecording = false;
-	Msg ("Stopped demo.\n");
-}
-
-/*
-====================
-CL_Record_f
-
-record <demoname>
-
-Begins recording a demo from the current position
-====================
-*/
-void CL_Record_f (void)
-{
-	char	name[MAX_OSPATH];
-	char	buf_data[MAX_MSGLEN];
-	sizebuf_t	buf;
-	int		i;
-	int		len;
-	entity_state_t	*ent;
-	entity_state_t	nullstate;
-
-	if (Cmd_Argc() != 2)
-	{
-		Msg ("record <demoname>\n");
-		return;
-	}
-
-	if (cls.demorecording)
-	{
-		Msg ("Already recording.\n");
-		return;
-	}
-
-	if (cls.state != ca_active)
-	{
-		Msg ("You must be in a level to record.\n");
-		return;
-	}
-
-	// open the demo file
-	sprintf (name, "demos/%s.dem", Cmd_Argv(1));
-
-	Msg ("recording to %s.\n", name);
-	cls.demofile = FS_Open (name, "wb");
-	if (!cls.demofile)
-	{
-		Msg ("ERROR: couldn't open.\n");
-		return;
-	}
-	cls.demorecording = true;
-
-	// don't start saving messages until a non-delta compressed message is received
-	cls.demowaiting = true;
-
-	//
-	// write out messages to hold the startup information
-	//
-	SZ_Init (&buf, buf_data, sizeof(buf_data));
-
-	// send the serverdata
-	MSG_WriteByte (&buf, svc_serverdata);
-	MSG_WriteLong (&buf, PROTOCOL_VERSION);
-	MSG_WriteLong (&buf, 0x10000 + cl.servercount);
-	MSG_WriteShort (&buf, cl.playernum);
-	MSG_WriteString (&buf, cl.configstrings[CS_NAME]);
-
-	// configstrings
-	for (i=0 ; i<MAX_CONFIGSTRINGS ; i++)
-	{
-		if (cl.configstrings[i][0])
-		{
-			if (buf.cursize + strlen (cl.configstrings[i]) + 32 > buf.maxsize)
-			{	// write it out
-				len = LittleLong (buf.cursize);
-				FS_Write (cls.demofile, &len, 4 );
-				FS_Write (cls.demofile, buf.data, buf.cursize );
-				buf.cursize = 0;
-			}
-
-			MSG_WriteByte (&buf, svc_configstring);
-			MSG_WriteShort (&buf, i);
-			MSG_WriteString (&buf, cl.configstrings[i]);
-		}
-
-	}
-
-	// baselines
-	memset (&nullstate, 0, sizeof(nullstate));
-	for (i=0; i<MAX_EDICTS ; i++)
-	{
-		ent = &cl_entities[i].baseline;
-		if (!ent->modelindex)
-			continue;
-
-		if (buf.cursize + 64 > buf.maxsize)
-		{	// write it out
-			len = LittleLong (buf.cursize);
-			FS_Write(cls.demofile, &len, 4 );
-			FS_Write(cls.demofile, buf.data, buf.cursize );
-			buf.cursize = 0;
-		}
-
-		MSG_WriteByte (&buf, svc_spawnbaseline);		
-		MSG_WriteDeltaEntity (&nullstate, &cl_entities[i].baseline, &buf, true, true);
-	}
-
-	MSG_WriteByte (&buf, svc_stufftext);
-	MSG_WriteString (&buf, "precache\n");
-
-	// write it to the demo file
-
-	len = LittleLong (buf.cursize);
-	FS_Write (cls.demofile, &len, 4 );
-	FS_Write (cls.demofile, buf.data, buf.cursize );
-
-	// the rest of the demo file will be individual frames
-}
-
 //======================================================================
 
 /*
@@ -275,6 +112,8 @@ so when they are typed in at the console, they will need to be forwarded.
 void Cmd_ForwardToServer (void)
 {
 	char	*cmd;
+
+	if( cls.demoplayback ) return; // not really connected
 
 	cmd = Cmd_Argv(0);
 	if (cls.state <= ca_connected || *cmd == '-' || *cmd == '+')
@@ -299,6 +138,7 @@ CL_ForwardToServer_f
 */
 void CL_ForwardToServer_f (void)
 {
+	if( cls.demoplayback ) return; // not really connected
 	if (cls.state != ca_connected && cls.state != ca_active)
 	{
 		Msg("Can't \"%s\", not connected\n", Cmd_Argv(0));
@@ -373,7 +213,7 @@ void CL_SendConnectPacket (void)
 
 	if(!NET_StringToAdr (cls.servername, &adr))
 	{
-		Msg ("Bad server address\n");
+		MsgDev( D_INFO, "CL_SendConnectPacket: bad server address\n");
 		cls.connect_time = 0;
 		return;
 	}
@@ -407,12 +247,13 @@ void CL_CheckForResend (void)
 	}
 
 	// resend if we haven't gotten a reply yet
-	if(cls.state != ca_connecting) return;
+	if(cls.demoplayback || cls.state != ca_connecting)
+		return;
 	if(cls.realtime - cls.connect_time < 3.0f) return;
 
 	if(!NET_StringToAdr (cls.servername, &adr))
 	{
-		Msg ("Bad server address\n");
+		MsgDev(D_INFO, "CL_CheckForResend: bad server address\n");
 		cls.state = ca_disconnected;
 		return;
 	}
@@ -555,29 +396,21 @@ void CL_Disconnect (void)
 	if (cls.state == ca_disconnected)
 		return;
 
-	if (cl_timedemo && cl_timedemo->value)
-	{
-		float	time;
-		
-		time = Sys_DoubleTime() - cl.timedemo_start;
-		if (time > 0) Msg ("%i frames, %3.1f seconds: %3.1f fps\n", cl.timedemo_frames, time, cl.timedemo_frames / time);
-	}
-
 	VectorClear (cl.refdef.blend);
 	M_ForceMenuOff ();
 
 	cls.connect_time = 0;
 
-	SCR_StopCinematic ();
+	SCR_StopCinematic();
 
-	if(cls.demorecording) CL_Stop_f ();
+	CL_Stop_f();
 
 	// send a disconnect message to the server
 	final[0] = clc_stringcmd;
-	strcpy ((char *)final+1, "disconnect");
-	Netchan_Transmit (&cls.netchan, strlen(final), final);
-	Netchan_Transmit (&cls.netchan, strlen(final), final);
-	Netchan_Transmit (&cls.netchan, strlen(final), final);
+	com.strcpy ((char *)final+1, "disconnect");
+	Netchan_Transmit(&cls.netchan, strlen(final), final);
+	Netchan_Transmit(&cls.netchan, strlen(final), final);
+	Netchan_Transmit(&cls.netchan, strlen(final), final);
 
 	CL_ClearState ();
 
@@ -889,6 +722,38 @@ void CL_DumpPackets (void)
 	}
 }
 
+void CL_ReadNetMessage( void )
+{
+	while (NET_GetPacket (NS_CLIENT, &net_from, &net_message))
+	{
+		// remote command packet
+		if(*(int *)net_message.data == -1)
+		{
+			CL_ConnectionlessPacket();
+			continue;
+		}
+
+		if( cls.state == ca_disconnected || cls.state == ca_connecting )
+			continue;	// dump it if not connected
+
+		if( net_message.cursize < 8 )
+		{
+			Msg( "%s: Runt packet\n", NET_AdrToString(net_from));
+			continue;
+		}
+
+		// packet from server
+		if (!NET_CompareAdr (net_from, cls.netchan.remote_address))
+		{
+			MsgWarn("CL_ReadPackets: %s:sequenced packet without connection\n",NET_AdrToString(net_from));
+			continue;
+		}
+		if(!Netchan_Process(&cls.netchan, &net_message))
+			continue;	// wasn't accepted for some reason
+		CL_ParseServerMessage( &net_message );
+	}
+}
+
 /*
 =================
 CL_ReadPackets
@@ -896,40 +761,10 @@ CL_ReadPackets
 */
 void CL_ReadPackets (void)
 {
-	while (NET_GetPacket (NS_CLIENT, &net_from, &net_message))
-	{
-		//Msg ("packet\n");
-		//
-		// remote command packet
-		//
-		if (*(int *)net_message.data == -1)
-		{
-			CL_ConnectionlessPacket ();
-			continue;
-		}
-
-		if (cls.state == ca_disconnected || cls.state == ca_connecting)
-			continue;		// dump it if not connected
-
-		if (net_message.cursize < 8)
-		{
-			Msg ("%s: Runt packet\n",NET_AdrToString(net_from));
-			continue;
-		}
-
-		//
-		// packet from server
-		//
-		if (!NET_CompareAdr (net_from, cls.netchan.remote_address))
-		{
-			MsgWarn("CL_ReadPackets: %s:sequenced packet without connection\n",NET_AdrToString(net_from));
-			continue;
-		}
-		if (!Netchan_Process(&cls.netchan, &net_message))
-			continue;	// wasn't accepted for some reason
-		CL_ParseServerMessage ();
-	}
-
+	if( cls.demoplayback )
+		CL_ReadDemoMessage();
+	else CL_ReadNetMessage();
+          
 	//
 	// check timeout
 	//
@@ -1027,8 +862,15 @@ void CL_RequestNextDownload (void)
 	char fn[MAX_OSPATH];
 	studiohdr_t *pheader;
 
-	if (cls.state != ca_connected)
+	if(cls.state != ca_connected)
 		return;
+
+	if( cls.demoplayback )
+	{
+		CL_RegisterSounds();
+		CL_PrepRefresh();
+		return;
+	}
 
 	if (!allow_download->value && precache_check < ENV_CNT)
 		precache_check = ENV_CNT;
@@ -1245,8 +1087,8 @@ void CL_RequestNextDownload (void)
 //ZOID
 	CL_RegisterSounds();
 	CL_PrepRefresh();
-	MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
-	MSG_WriteString (&cls.netchan.message, va("begin %i\n", precache_spawncount) );
+	MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
+	MSG_WriteString( &cls.netchan.message, va("begin %i\n", precache_spawncount));
 }
 
 /*
@@ -1336,7 +1178,6 @@ void CL_InitLocal (void)
 	cl_showclamp = Cvar_Get ("showclamp", "0", 0);
 	cl_timeout = Cvar_Get ("cl_timeout", "120", 0);
 	cl_paused = Cvar_Get ("paused", "0", 0);
-	cl_timedemo = Cvar_Get ("timedemo", "0", 0);
 
 	rcon_client_password = Cvar_Get ("rcon_password", "", 0);
 	rcon_address = Cvar_Get ("rcon_address", "", 0);
@@ -1371,7 +1212,8 @@ void CL_InitLocal (void)
 	Cmd_AddCommand ("changing", CL_Changing_f, "sent by server to tell client to wait for level change" );
 	Cmd_AddCommand ("disconnect", CL_Disconnect_f, "disconnect from server" );
 	Cmd_AddCommand ("record", CL_Record_f, "record a demo" );
-	Cmd_AddCommand ("stop", CL_Stop_f, "stop recording a demo" );
+	Cmd_AddCommand ("playdemo", CL_PlayDemo_f, "playing a demo" );
+	Cmd_AddCommand ("stop", CL_Stop_f, "stop playing or recording a demo" );
 
 	Cmd_AddCommand ("quit", CL_Quit_f, "quit from game" );
 	Cmd_AddCommand ("exit", CL_Quit_f, "quit from game" );
@@ -1474,7 +1316,6 @@ typedef struct
 
 cheatvar_t	cheatvars[] = {
 	{"timescale", "1"},
-	{"timedemo", "0"},
 	{"r_drawworld", "1"},
 	{"cl_testlights", "0"},
 	{"r_fullbright", "0"},
@@ -1556,18 +1397,14 @@ void CL_Frame( float time )
 	static float	extratime;
 	static float  	lasttimecalled;
 
-	if (dedicated->value)
-		return;
+	if( dedicated->integer ) return;
 
 	extratime += time;
 
-	if (!cl_timedemo->value)
-	{
-		if (cls.state == ca_connected && extratime < 0.01f)
-			return;	// don't flood packets out while connecting
-		if (extratime < 1.0f / cl_maxfps->value)
-			return;			// framerate is too high
-	}
+	if (cls.state == ca_connected && extratime < 0.01f)
+		return;	// don't flood packets out while connecting
+	if (extratime < 1.0f / cl_maxfps->value)
+		return;	// framerate is too high
 
 	// let the mouse activate or deactivate
 	CL_UpdateMouse();

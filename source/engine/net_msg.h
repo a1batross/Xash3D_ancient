@@ -358,9 +358,9 @@ float MSG_ReadAngle16(sizebuf_t *sb);
 float MSG_ReadAngle32(sizebuf_t *sb);
 void MSG_ReadPos16(sizebuf_t *sb, vec3_t pos);
 void MSG_ReadPos32(sizebuf_t *sb, vec3_t pos);
-void MSG_ReadDeltaUsercmd (sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd);
-void MSG_ReadDeltaEntity(entity_state_t *from, entity_state_t *to, int number, int bits);
 void MSG_ReadData (sizebuf_t *sb, void *buffer, int size);
+void MSG_ReadDeltaUsercmd (sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd);
+void MSG_ReadDeltaEntity(sizebuf_t *sb, entity_state_t *from, entity_state_t *to, int number, int bits);
 
 /*
 ==============================================================

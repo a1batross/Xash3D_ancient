@@ -152,7 +152,6 @@ static void FindMatches( const char *s, const char *unused1, const char *unused2
 /*
 ===============
 PrintMatches
-
 ===============
 */
 static void PrintMatches( const char *s, const char *unused1, const char *m, void *unused2 )
@@ -241,7 +240,7 @@ void Field_CompleteCommand( field_t *field )
 		{
 			result = Cmd_GetMapList(Cmd_Argv(1), filename, MAX_STRING );
 		}
-		else if(!stricmp(Cmd_Argv(0), "demo" ) || !stricmp(Cmd_Argv(0), "\\demo" ))
+		else if(!stricmp(Cmd_Argv(0), "playdemo" ) || !stricmp(Cmd_Argv(0), "\\playdemo" ))
 		{
 			result = Cmd_GetDemoList(Cmd_Argv(1), filename, MAX_STRING );
 		}

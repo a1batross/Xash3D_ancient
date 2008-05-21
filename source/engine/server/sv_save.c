@@ -372,7 +372,7 @@ bool Menu_ReadComment( char *comment, int savenum )
 
 	if(!savfile) 
 	{
-		strncpy( comment, "<empty>", MAX_QPATH );
+		com.strncpy( comment, "<empty>", MAX_QPATH );
 		return false;
 	}
 

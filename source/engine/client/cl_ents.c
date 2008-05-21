@@ -51,26 +51,26 @@ Returns the entity number and the header bits
 =================
 */
 int	bitcounts[32];	/// just for protocol profiling
-int CL_ParseEntityBits (uint *bits)
+int CL_ParseEntityBits( sizebuf_t *msg, uint *bits )
 {
 	unsigned	b, total;
 	int			i;
 	int			number;
 
-	total = MSG_ReadByte (&net_message);
+	total = MSG_ReadByte (msg);
 	if (total & U_MOREBITS1)
 	{
-		b = MSG_ReadByte (&net_message);
+		b = MSG_ReadByte (msg);
 		total |= b<<8;
 	}
 	if (total & U_MOREBITS2)
 	{
-		b = MSG_ReadByte (&net_message);
+		b = MSG_ReadByte (msg);
 		total |= b<<16;
 	}
 	if (total & U_MOREBITS3)
 	{
-		b = MSG_ReadByte (&net_message);
+		b = MSG_ReadByte (msg);
 		total |= b<<24;
 	}
 
@@ -78,8 +78,8 @@ int CL_ParseEntityBits (uint *bits)
 	for (i = 0; i < 32; i++)
 		if (total&(1<<i)) bitcounts[i]++;
 
-	if (total & U_NUMBER16) number = MSG_ReadShort (&net_message);
-	else number = MSG_ReadByte (&net_message);
+	if (total & U_NUMBER16) number = MSG_ReadShort (msg);
+	else number = MSG_ReadByte (msg);
 
 	*bits = total;
 
@@ -94,7 +94,7 @@ Parses deltas from the given base and adds the resulting entity
 to the current frame
 ==================
 */
-void CL_DeltaEntity (frame_t *frame, int newnum, entity_state_t *old, int bits)
+void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t *old, int bits )
 {
 	centity_t	*ent;
 	entity_state_t	*state;
@@ -105,19 +105,13 @@ void CL_DeltaEntity (frame_t *frame, int newnum, entity_state_t *old, int bits)
 	cl.parse_entities++;
 	frame->num_entities++;
 
-	MSG_ReadDeltaEntity(old, state, newnum, bits);
+	MSG_ReadDeltaEntity( msg, old, state, newnum, bits );
 
 	// some data changes will force no lerping
-	if (state->modelindex != ent->current.modelindex
-		|| state->weaponmodel != ent->current.weaponmodel
-		|| state->body != ent->current.body
-		|| state->sequence != ent->current.sequence
-		|| abs(state->origin[0] - ent->current.origin[0]) > 512
-		|| abs(state->origin[1] - ent->current.origin[1]) > 512
-		|| abs(state->origin[2] - ent->current.origin[2]) > 512
-		|| state->event == EV_PLAYER_TELEPORT
-		|| state->event == EV_OTHER_TELEPORT
-		)
+	if (state->modelindex != ent->current.modelindex || state->weaponmodel != ent->current.weaponmodel || state->body != ent->current.body
+		|| state->sequence != ent->current.sequence || abs(state->origin[0] - ent->current.origin[0]) > 512
+		|| abs(state->origin[1] - ent->current.origin[1]) > 512 || abs(state->origin[2] - ent->current.origin[2]) > 512
+		|| state->event == EV_PLAYER_TELEPORT || state->event == EV_OTHER_TELEPORT )
 	{
 		ent->serverframe = -99;
 	}
@@ -155,12 +149,12 @@ An svc_packetentities has just been parsed, deal with the
 rest of the data stream.
 ==================
 */
-void CL_ParsePacketEntities (frame_t *oldframe, frame_t *newframe)
+void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newframe )
 {
-	int			newnum;
-	int			bits;
+	int		newnum;
+	int		bits;
 	entity_state_t	*oldstate;
-	int			oldindex, oldnum;
+	int		oldindex, oldnum;
 
 	newframe->parse_entities = cl.parse_entities;
 	newframe->num_entities = 0;
@@ -182,11 +176,11 @@ void CL_ParsePacketEntities (frame_t *oldframe, frame_t *newframe)
 
 	while (1)
 	{
-		newnum = CL_ParseEntityBits (&bits);
+		newnum = CL_ParseEntityBits( msg, &bits );
 		if (newnum >= MAX_EDICTS)
 			Host_Error("CL_ParsePacketEntities: bad number:%i\n", newnum);
 
-		if (net_message.readcount > net_message.cursize)
+		if (msg->readcount > msg->cursize)
 			Host_Error("CL_ParsePacketEntities: end of message\n");
 
 		if (!newnum) break;
@@ -195,7 +189,7 @@ void CL_ParsePacketEntities (frame_t *oldframe, frame_t *newframe)
 		{	
 			// one or more entities from the old packet are unchanged
 			if (cl_shownet->value == 3) Msg ("   unchanged: %i\n", oldnum);
-			CL_DeltaEntity (newframe, oldnum, oldstate, 0);
+			CL_DeltaEntity( msg, newframe, oldnum, oldstate, 0);
 			
 			oldindex++;
 
@@ -231,7 +225,7 @@ void CL_ParsePacketEntities (frame_t *oldframe, frame_t *newframe)
 		{	// delta from previous state
 			if (cl_shownet->value == 3)
 				Msg ("   delta: %i\n", newnum);
-			CL_DeltaEntity (newframe, newnum, oldstate, bits);
+			CL_DeltaEntity( msg, newframe, newnum, oldstate, bits );
 
 			oldindex++;
 
@@ -246,10 +240,11 @@ void CL_ParsePacketEntities (frame_t *oldframe, frame_t *newframe)
 		}
 
 		if (oldnum > newnum)
-		{	// delta from baseline
+		{	
+			// delta from baseline
 			if (cl_shownet->value == 3)
 				Msg ("   baseline: %i\n", newnum);
-			CL_DeltaEntity (newframe, newnum, &cl_entities[newnum].baseline, bits);
+			CL_DeltaEntity( msg, newframe, newnum, &cl_entities[newnum].baseline, bits );
 			continue;
 		}
 
@@ -260,7 +255,7 @@ void CL_ParsePacketEntities (frame_t *oldframe, frame_t *newframe)
 	{	// one or more entities from the old packet are unchanged
 		if (cl_shownet->value == 3)
 			Msg ("   unchanged: %i\n", oldnum);
-		CL_DeltaEntity (newframe, oldnum, oldstate, 0);
+		CL_DeltaEntity( msg, newframe, oldnum, oldstate, 0 );
 		
 		oldindex++;
 
@@ -281,12 +276,12 @@ void CL_ParsePacketEntities (frame_t *oldframe, frame_t *newframe)
 CL_ParsePlayerstate
 ===================
 */
-void CL_ParsePlayerstate (frame_t *oldframe, frame_t *newframe)
+void CL_ParsePlayerstate( sizebuf_t *msg, frame_t *oldframe, frame_t *newframe )
 {
-	int			flags;
+	int		flags;
 	player_state_t	*state;
-	int			i;
-	int			statbits;
+	int		i;
+	int		statbits;
 
 	state = &newframe->playerstate;
 
@@ -294,16 +289,16 @@ void CL_ParsePlayerstate (frame_t *oldframe, frame_t *newframe)
 	if (oldframe) *state = oldframe->playerstate;
 	else memset (state, 0, sizeof(*state));
 
-	flags = MSG_ReadLong(&net_message);//four bytes
+	flags = MSG_ReadLong(msg);//four bytes
 
 	// parse the pmove_state_t
-	if (flags & PS_M_TYPE) state->pm_type = MSG_ReadByte (&net_message);
-	if (flags & PS_M_ORIGIN) MSG_ReadPos32(&net_message, state->origin ); 
-	if (flags & PS_M_VELOCITY) MSG_ReadPos32(&net_message, state->velocity ); 
-	if (flags & PS_M_TIME) state->pm_time = MSG_ReadByte (&net_message);
-	if (flags & PS_M_FLAGS) state->pm_flags = MSG_ReadByte (&net_message);
-	if (flags & PS_M_GRAVITY) state->gravity = MSG_ReadShort (&net_message);
-	if (flags & PS_M_DELTA_ANGLES) MSG_ReadPos32(&net_message, state->delta_angles ); 
+	if (flags & PS_M_TYPE) state->pm_type = MSG_ReadByte (msg);
+	if (flags & PS_M_ORIGIN) MSG_ReadPos32(msg, state->origin ); 
+	if (flags & PS_M_VELOCITY) MSG_ReadPos32(msg, state->velocity ); 
+	if (flags & PS_M_TIME) state->pm_time = MSG_ReadByte (msg);
+	if (flags & PS_M_FLAGS) state->pm_flags = MSG_ReadByte (msg);
+	if (flags & PS_M_GRAVITY) state->gravity = MSG_ReadShort (msg);
+	if (flags & PS_M_DELTA_ANGLES) MSG_ReadPos32(msg, state->delta_angles ); 
 
 	if(cls.state == ca_cinematic || cl.servercount > 0x10000)
 		state->pm_type = PM_FREEZE; // demo or movie playback
@@ -311,74 +306,74 @@ void CL_ParsePlayerstate (frame_t *oldframe, frame_t *newframe)
 	// parse the rest of the player_state_t
 	if (flags & PS_VIEWOFFSET)
 	{
-		state->viewoffset[0] = MSG_ReadChar (&net_message) * 0.25;
-		state->viewoffset[1] = MSG_ReadChar (&net_message) * 0.25;
-		state->viewoffset[2] = MSG_ReadChar (&net_message) * 0.25;
+		state->viewoffset[0] = MSG_ReadChar (msg) * 0.25;
+		state->viewoffset[1] = MSG_ReadChar (msg) * 0.25;
+		state->viewoffset[2] = MSG_ReadChar (msg) * 0.25;
 	}
 
 	if (flags & PS_VIEWANGLES)
 	{
-		state->viewangles[0] = MSG_ReadAngle32 (&net_message);
-		state->viewangles[1] = MSG_ReadAngle32 (&net_message);
-		state->viewangles[2] = MSG_ReadAngle32 (&net_message);
+		state->viewangles[0] = MSG_ReadAngle32 (msg);
+		state->viewangles[1] = MSG_ReadAngle32 (msg);
+		state->viewangles[2] = MSG_ReadAngle32 (msg);
 	}
 
 	if (flags & PS_KICKANGLES)
 	{
-		state->kick_angles[0] = MSG_ReadChar (&net_message) * 0.25;
-		state->kick_angles[1] = MSG_ReadChar (&net_message) * 0.25;
-		state->kick_angles[2] = MSG_ReadChar (&net_message) * 0.25;
+		state->kick_angles[0] = MSG_ReadChar (msg) * 0.25;
+		state->kick_angles[1] = MSG_ReadChar (msg) * 0.25;
+		state->kick_angles[2] = MSG_ReadChar (msg) * 0.25;
 	}
 
 	if (flags & PS_WEAPONINDEX)
 	{
-		state->vmodel.index = MSG_ReadByte (&net_message);
+		state->vmodel.index = MSG_ReadByte (msg);
 	}
 
 	if (flags & PS_WEAPONFRAME)
 	{
-		state->vmodel.frame = MSG_ReadByte (&net_message);
-		state->vmodel.offset[0] = MSG_ReadChar (&net_message)*0.25;
-		state->vmodel.offset[1] = MSG_ReadChar (&net_message)*0.25;
-		state->vmodel.offset[2] = MSG_ReadChar (&net_message)*0.25;
-		state->vmodel.angles[0] = MSG_ReadChar (&net_message)*0.25;
-		state->vmodel.angles[1] = MSG_ReadChar (&net_message)*0.25;
-		state->vmodel.angles[2] = MSG_ReadChar (&net_message)*0.25;
+		state->vmodel.frame = MSG_ReadByte (msg);
+		state->vmodel.offset[0] = MSG_ReadChar (msg)*0.25;
+		state->vmodel.offset[1] = MSG_ReadChar (msg)*0.25;
+		state->vmodel.offset[2] = MSG_ReadChar (msg)*0.25;
+		state->vmodel.angles[0] = MSG_ReadChar (msg)*0.25;
+		state->vmodel.angles[1] = MSG_ReadChar (msg)*0.25;
+		state->vmodel.angles[2] = MSG_ReadChar (msg)*0.25;
 	}
 
 	if (flags & PS_WEAPONSEQUENCE)
 	{
-		state->vmodel.sequence = MSG_ReadByte (&net_message);
+		state->vmodel.sequence = MSG_ReadByte (msg);
 	}
 
 	if (flags & PS_WEAPONBODY)
 	{
-		state->vmodel.body = MSG_ReadByte (&net_message);
+		state->vmodel.body = MSG_ReadByte (msg);
 	}
 	
 	if (flags & PS_WEAPONSKIN)
 	{
-		state->vmodel.skin = MSG_ReadByte (&net_message);
+		state->vmodel.skin = MSG_ReadByte (msg);
 	}
 
 	if (flags & PS_BLEND)
 	{
-		state->blend[0] = MSG_ReadByte (&net_message) / 255.0;
-		state->blend[1] = MSG_ReadByte (&net_message) / 255.0;
-		state->blend[2] = MSG_ReadByte (&net_message) / 255.0;
-		state->blend[3] = MSG_ReadByte (&net_message) / 255.0;
+		state->blend[0] = MSG_ReadByte (msg) / 255.0;
+		state->blend[1] = MSG_ReadByte (msg) / 255.0;
+		state->blend[2] = MSG_ReadByte (msg) / 255.0;
+		state->blend[3] = MSG_ReadByte (msg) / 255.0;
 	}
 
 	if (flags & PS_FOV)
-		state->fov = MSG_ReadByte (&net_message);
+		state->fov = MSG_ReadByte (msg);
 
 	if (flags & PS_RDFLAGS)
-		state->effects = MSG_ReadByte (&net_message);
+		state->effects = MSG_ReadByte (msg);
 
 	// parse stats
-	statbits = MSG_ReadLong (&net_message);
+	statbits = MSG_ReadLong (msg);
 	for (i = 0; i < MAX_STATS; i++)
-		if (statbits & (1<<i) ) state->stats[i] = MSG_ReadShort(&net_message);
+		if (statbits & (1<<i) ) state->stats[i] = MSG_ReadShort(msg);
 }
 
 
@@ -412,11 +407,11 @@ void CL_FireEntityEvents (frame_t *frame)
 CL_ParseFrame
 ================
 */
-void CL_ParseFrame (void)
+void CL_ParseFrame( sizebuf_t *msg )
 {
-	int			cmd;
-	int			len;
-	frame_t			*old;
+	int     		cmd;
+	int     		len;
+	frame_t 		*old;
 
 	memset (&cl.frame, 0, sizeof(cl.frame));
 
@@ -424,12 +419,12 @@ void CL_ParseFrame (void)
 	CL_ClearProjectiles(); // clear projectiles for new frame
 #endif
 
-	cl.frame.serverframe = MSG_ReadLong (&net_message);
-	cl.frame.deltaframe = MSG_ReadLong (&net_message);
+	cl.frame.serverframe = MSG_ReadLong (msg);
+	cl.frame.deltaframe = MSG_ReadLong (msg);
 	cl.frame.servertime = cl.frame.serverframe * host_frametime->value;
 
 	// BIG HACK to let old demos continue to work
-	if (cls.serverProtocol != 26) cl.surpressCount = MSG_ReadByte (&net_message);
+	if (cls.serverProtocol != 26) cl.surpressCount = MSG_ReadByte (msg);
 	if (cl_shownet->value == 3) Msg ("   frame:%i  delta:%i\n", cl.frame.serverframe, cl.frame.deltaframe);
 
 	// If the frame is delta compressed from data that we
@@ -468,20 +463,20 @@ void CL_ParseFrame (void)
 	else if (cl.time < cl.frame.servertime - host_frametime->value) cl.time = cl.frame.servertime - host_frametime->value;
 
 	// read areabits
-	len = MSG_ReadByte (&net_message);
-	MSG_ReadData (&net_message, &cl.frame.areabits, len);
+	len = MSG_ReadByte (msg);
+	MSG_ReadData (msg, &cl.frame.areabits, len);
 
 	// read playerinfo
-	cmd = MSG_ReadByte (&net_message);
-	SHOWNET(svc_strings[cmd]);
+	cmd = MSG_ReadByte (msg);
+	SHOWNET( msg, svc_strings[cmd] );
 	if (cmd != svc_playerinfo) Host_Error("CL_ParseFrame: not playerinfo\n");
-	CL_ParsePlayerstate (old, &cl.frame);
+	CL_ParsePlayerstate( msg, old, &cl.frame );
 
 	// read packet entities
-	cmd = MSG_ReadByte (&net_message);
-	SHOWNET(svc_strings[cmd]);
+	cmd = MSG_ReadByte (msg);
+	SHOWNET( msg, svc_strings[cmd] );
 	if (cmd != svc_packetentities) Host_Error("CL_ParseFrame: not packetentities\n");
-	CL_ParsePacketEntities (old, &cl.frame);
+	CL_ParsePacketEntities( msg, old, &cl.frame );
 
 
 	// save the frame off in the backup array for later delta comparisons
@@ -831,17 +826,18 @@ void CL_CalcViewValues (void)
 	}
 
 	// if not running a demo or on a locked frame, add the local angle movement
-	if ( cl.frame.playerstate.pm_type < PM_DEAD )
+	if( cls.demoplayback )
+	{
+		for (i = 0; i < 3; i++)
+			cl.refdef.viewangles[i] = LerpAngle (ops->viewangles[i], ps->viewangles[i], lerp);
+	}
+	else //if ( cl.frame.playerstate.pm_type < PM_DEAD )
 	{	
-		// use predicted values
+		// in-game use predicted values
 		for (i = 0; i < 3; i++) cl.refdef.viewangles[i] = cl.predicted_angles[i];
 	}
-	else
-	{	// just use interpolated values
-		for (i = 0; i < 3; i++) cl.refdef.viewangles[i] = LerpAngle (ops->viewangles[i], ps->viewangles[i], lerp);
-	}
 
-	for (i=0 ; i<3 ; i++)
+	for( i = 0; i < 3; i++ )
 		cl.refdef.viewangles[i] += LerpAngle (ops->kick_angles[i], ps->kick_angles[i], lerp);
 
 	// sound engine requiried left-side hand
@@ -887,9 +883,7 @@ void CL_AddEntities (void)
 	}
 	else cl.lerpfrac = 1.0 - (cl.frame.servertime - cl.time) * host_frametime->value;
 
-	if (cl_timedemo->value) cl.lerpfrac = 1.0;
-
-	CL_CalcViewValues ();
+	CL_CalcViewValues();
 	// PMM - moved this here so the heat beam has the right values for the vieworg, and can lock the beam to the gun
 	CL_AddPacketEntities (&cl.frame);
 	CL_AddTEnts ();

@@ -536,13 +536,13 @@ bool CG_GetInteger( const char *name, int *value )
 CG_ParseInventory
 ================
 */
-void CG_ParseInventory (void)
+void CG_ParseInventory( sizebuf_t *msg )
 {
 	int		i;
 
 	for (i = 0; i < MAX_ITEMS; i++)
 	{
-		cl.inventory[i] = MSG_ReadShort (&net_message);
+		cl.inventory[i] = MSG_ReadShort( msg );
 	}
 }
 

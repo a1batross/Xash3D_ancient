@@ -146,11 +146,9 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 {
 	uint	i, checksum;
 
-	if(serverstate == ss_demo || serverstate == ss_cinematic)
-		Cvar_Set ("paused", "0");
+	if( serverstate == ss_cinematic ) Cvar_Set ("paused", "0");
 
 	Msg("SpawnServer [%s]\n", server );
-	if (sv.demofile) FS_Close (sv.demofile);
 
 	svs.spawncount++; // any partially connected client will be restarted
 	sv.state = ss_dead;
@@ -226,7 +224,7 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 
 	if( serverstate == ss_game )
 	{
-		// ignore ents for demo or cinematic servers
+		// ignore ents for cinematic servers
 		if(sv.loadgame) SV_ReadLevelFile( savename );
 		else SV_SpawnEntities ( sv.name, pe->GetEntityString());
 	}        
@@ -321,7 +319,7 @@ void SV_InitGame (void)
 	NET_StringToAdr (idmaster, &master_adr[0]);
 
 	// init game
-	SV_InitGameProgs();
+	SV_InitServerProgs();
 
 	SV_VM_Begin();
 
@@ -334,132 +332,4 @@ void SV_InitGame (void)
 	}
 
 	SV_VM_End();
-}
-
-void SV_VM_BeginIncreaseEdicts(void)
-{
-	int		i;
-	edict_t		*ent;
-
-	PRVM_Free( sv.moved_edicts );
-	sv.moved_edicts = (edict_t **)PRVM_Alloc(prog->max_edicts * sizeof(edict_t *));
-
-	// links don't survive the transition, so unlink everything
-	for (i = 0, ent = prog->edicts; i < prog->max_edicts; i++, ent++)
-	{
-		if (!ent->priv.sv->free) SV_UnlinkEdict(prog->edicts + i); //free old entity
-		memset(&ent->priv.sv->clusternums, 0, sizeof(ent->priv.sv->clusternums));
-	}
-	SV_ClearWorld();
-}
-
-void SV_VM_EndIncreaseEdicts(void)
-{
-	int		i;
-	edict_t		*ent;
-
-	for (i = 0, ent = prog->edicts; i < prog->max_edicts; i++, ent++)
-	{
-		// link every entity except world
-		if (!ent->priv.sv->free) SV_LinkEdict(ent);
-	}
-}
-
-void SV_VM_InitEdict(edict_t *e)
-{
-	SV_InitEdict( e );
-}
-
-void SV_VM_FreeEdict(edict_t *e)
-{
-	SV_UnlinkEdict(e);	// unlink from world bsp
-	SV_FreeEdict( e );
-}
-
-void SV_VM_CountEdicts( void )
-{
-	int		i;
-	edict_t	*ent;
-	int		active = 0, models = 0, solid = 0, step = 0;
-
-	for (i = 0; i < prog->num_edicts; i++)
-	{
-		ent = PRVM_EDICT_NUM(i);
-		if (ent->priv.sv->free)
-			continue;
-		active++;
-		if (ent->progs.sv->solid) solid++;
-		if (ent->progs.sv->model) models++;
-		if (ent->progs.sv->movetype == MOVETYPE_STEP) step++;
-	}
-
-	Msg("num_edicts:%3i\n", prog->num_edicts);
-	Msg("active    :%3i\n", active);
-	Msg("view      :%3i\n", models);
-	Msg("touch     :%3i\n", solid);
-	Msg("step      :%3i\n", step);
-}
-
-bool SV_VM_LoadEdict(edict_t *ent)
-{
-	int current_skill = (int)Cvar_VariableValue ("skill");
-
-	// remove things from different skill levels or deathmatch
-	if(Cvar_VariableValue ("deathmatch"))
-	{
-		if (((int)ent->progs.sv->spawnflags & SPAWNFLAG_NOT_DEATHMATCH))
-		{
-			return false;
-		}
-	}
-	else if ((current_skill <= 0 && ((int)ent->progs.sv->spawnflags & SPAWNFLAG_NOT_EASY  )) || (current_skill == 1 && ((int)ent->progs.sv->spawnflags & SPAWNFLAG_NOT_MEDIUM)) || (current_skill >= 2 && ((int)ent->progs.sv->spawnflags & SPAWNFLAG_NOT_HARD  )))
-	{
-		return false;
-	}
-	return true;
-}
-
-void SV_VM_Setup( void )
-{
-	PRVM_Begin;
-	PRVM_InitProg( PRVM_SERVERPROG );
-
-	prog->reserved_edicts = maxclients->value;
-	prog->loadintoworld = true;
-		
-	if( !prog->loaded )
-	{        
-		prog->progs_mempool = Mem_AllocPool("Server Progs" );
-		prog->builtins = vm_sv_builtins;
-		prog->numbuiltins = vm_sv_numbuiltins;
-		prog->max_edicts = 512;
-		prog->limit_edicts = MAX_EDICTS;
-		prog->edictprivate_size = sizeof(sv_edict_t);
-		prog->name = "server";
-		prog->extensionstring = "";
-		prog->begin_increase_edicts = SV_VM_BeginIncreaseEdicts;
-		prog->end_increase_edicts = SV_VM_EndIncreaseEdicts;
-		prog->init_edict = SV_VM_InitEdict;
-		prog->free_edict = SV_VM_FreeEdict;
-		prog->count_edicts = SV_VM_CountEdicts;
-		prog->load_edict = SV_VM_LoadEdict;
-		prog->init_cmd = VM_Cmd_Init;
-		prog->reset_cmd = VM_Cmd_Reset;
-		prog->error_cmd = VM_Error;
-		PRVM_LoadProgs( "server.dat", 0, NULL, SV_NUM_REQFIELDS, sv_reqfields );
-	}
-	PRVM_End;
-}
-
-void SV_VM_Begin(void)
-{
-	PRVM_Begin;
-	PRVM_SetProg( PRVM_SERVERPROG );
-
-	if(prog) *prog->time = sv.time;
-}
-
-void SV_VM_End(void)
-{
-	PRVM_End;
 }

@@ -249,9 +249,9 @@ extern const int vm_sv_numbuiltins;
 extern const int vm_cl_numbuiltins;
 extern const int vm_m_numbuiltins;
 
-extern char * vm_sv_extensions;
-extern char * vm_cl_extensions;
-extern char * vm_m_extensions;
+extern char *vm_sv_extensions;
+extern char *vm_cl_extensions;
+extern char *vm_m_extensions;
 
 void VM_SV_Cmd_Init(void);
 void VM_SV_Cmd_Reset(void);

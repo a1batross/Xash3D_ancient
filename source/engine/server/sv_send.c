@@ -450,23 +450,6 @@ bool SV_SendClientDatagram (client_state_t *client)
 	return true;
 }
 
-
-/*
-==================
-SV_DemoCompleted
-==================
-*/
-void SV_DemoCompleted (void)
-{
-	if (sv.demofile)
-	{
-		FS_Close (sv.demofile);
-		sv.demofile = NULL;
-	}
-	SV_Nextserver ();
-}
-
-
 /*
 =======================
 SV_RateDrop
@@ -515,33 +498,6 @@ void SV_SendClientMessages (void)
 
 	msglen = 0;
 
-	// read the next demo message if needed
-	if (sv.state == ss_demo && sv.demofile)
-	{
-		if (sv_paused->value) msglen = 0;
-		else
-		{
-			// get the next message
-			if(!FS_Read (sv.demofile, &msglen, 4))
-			{
-				SV_DemoCompleted ();
-				return;
-			}
-			msglen = LittleLong (msglen);
-			if (msglen == -1)
-			{
-				SV_DemoCompleted ();
-				return;
-			}
-			if (msglen > MAX_MSGLEN) Host_Error("SV_SendClientMessages: msglen > MAX_MSGLEN\n");
-			if(!FS_Read (sv.demofile, msgbuf, msglen))
-			{
-				SV_DemoCompleted ();
-				return;
-			}
-		}
-	}
-
 	// send a message to each connected client
 	for (i = 0, c = svs.clients; i < maxclients->value; i++, c++)
 	{
@@ -556,7 +512,7 @@ void SV_SendClientMessages (void)
 			SV_DropClient (c);
 		}
 
-		if (sv.state == ss_cinematic || sv.state == ss_demo)
+		if (sv.state == ss_cinematic )
 		{
 			Netchan_Transmit (&c->netchan, msglen, msgbuf);
 		}

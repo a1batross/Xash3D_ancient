@@ -497,7 +497,7 @@ void MSG_ReadDeltaUsercmd (sizebuf_t *msg_read, usercmd_t *from, usercmd_t *move
 	move->lightlevel = MSG_ReadByte (msg_read); // read the light level
 }
 
-void MSG_ReadDeltaEntity(entity_state_t *from, entity_state_t *to, int number, int bits)
+void MSG_ReadDeltaEntity( sizebuf_t *msg_read, entity_state_t *from, entity_state_t *to, int number, int bits )
 {
 	// set everything to the state we are delta'ing from
 	*to = *from;
@@ -505,41 +505,41 @@ void MSG_ReadDeltaEntity(entity_state_t *from, entity_state_t *to, int number, i
 	VectorCopy (from->origin, to->old_origin);
 	to->number = number;
 
-	if (bits & U_MODEL) to->modelindex = MSG_ReadShort (&net_message);
-	if (bits & U_WEAPONMODEL) to->weaponmodel = MSG_ReadShort (&net_message);
+	if (bits & U_MODEL) to->modelindex = MSG_ReadShort (msg_read);
+	if (bits & U_WEAPONMODEL) to->weaponmodel = MSG_ReadShort (msg_read);
 		
-	if (bits & U_FRAME ) to->frame = MSG_ReadFloat (&net_message);
-	if (bits & U_SKIN8 ) to->skin = MSG_ReadByte(&net_message);
-	if (bits & U_SKIN16) to->skin = MSG_ReadShort(&net_message);
+	if (bits & U_FRAME ) to->frame = MSG_ReadFloat (msg_read);
+	if (bits & U_SKIN8 ) to->skin = MSG_ReadByte(msg_read);
+	if (bits & U_SKIN16) to->skin = MSG_ReadShort(msg_read);
 
 	if ( (bits & (U_EFFECTS8|U_EFFECTS16)) == (U_EFFECTS8|U_EFFECTS16) )
-		to->effects = MSG_ReadLong(&net_message);
-	else if (bits & U_EFFECTS8 ) to->effects = MSG_ReadByte(&net_message);
-	else if (bits & U_EFFECTS16) to->effects = MSG_ReadShort(&net_message);
+		to->effects = MSG_ReadLong(msg_read);
+	else if (bits & U_EFFECTS8 ) to->effects = MSG_ReadByte(msg_read);
+	else if (bits & U_EFFECTS16) to->effects = MSG_ReadShort(msg_read);
 
 	if ( (bits & (U_RENDERFX8|U_RENDERFX16)) == (U_RENDERFX8|U_RENDERFX16) )
-		to->renderfx = MSG_ReadLong(&net_message);
-	else if (bits & U_RENDERFX8 ) to->renderfx = MSG_ReadByte(&net_message);
-	else if (bits & U_RENDERFX16) to->renderfx = MSG_ReadShort(&net_message);
+		to->renderfx = MSG_ReadLong(msg_read);
+	else if (bits & U_RENDERFX8 ) to->renderfx = MSG_ReadByte(msg_read);
+	else if (bits & U_RENDERFX16) to->renderfx = MSG_ReadShort(msg_read);
 
-	if (bits & U_ORIGIN1) to->origin[0] = MSG_ReadCoord32(&net_message);
-	if (bits & U_ORIGIN2) to->origin[1] = MSG_ReadCoord32(&net_message);
-	if (bits & U_ORIGIN3) to->origin[2] = MSG_ReadCoord32(&net_message);
+	if (bits & U_ORIGIN1) to->origin[0] = MSG_ReadCoord32(msg_read);
+	if (bits & U_ORIGIN2) to->origin[1] = MSG_ReadCoord32(msg_read);
+	if (bits & U_ORIGIN3) to->origin[2] = MSG_ReadCoord32(msg_read);
 		
-	if (bits & U_ANGLE1) to->angles[0] = MSG_ReadAngle32(&net_message);
-	if (bits & U_ANGLE2) to->angles[1] = MSG_ReadAngle32(&net_message);
-	if (bits & U_ANGLE3) to->angles[2] = MSG_ReadAngle32(&net_message);
-	if (bits & U_OLDORIGIN) MSG_ReadPos32(&net_message, to->old_origin);
+	if (bits & U_ANGLE1) to->angles[0] = MSG_ReadAngle32(msg_read);
+	if (bits & U_ANGLE2) to->angles[1] = MSG_ReadAngle32(msg_read);
+	if (bits & U_ANGLE3) to->angles[2] = MSG_ReadAngle32(msg_read);
+	if (bits & U_OLDORIGIN) MSG_ReadPos32(msg_read, to->old_origin);
 
-	if (bits & U_SEQUENCE) to->sequence = MSG_ReadByte(&net_message);
-	if (bits & U_SOLID) to->solid = MSG_ReadLong(&net_message);
-	if (bits & U_ALPHA) to->alpha = MSG_ReadFloat(&net_message);
-	if (bits & U_EVENT) to->event = MSG_ReadByte (&net_message);
-	if (bits & U_SOUNDIDX) to->soundindex = MSG_ReadByte (&net_message);
+	if (bits & U_SEQUENCE) to->sequence = MSG_ReadByte(msg_read);
+	if (bits & U_SOLID) to->solid = MSG_ReadLong(msg_read);
+	if (bits & U_ALPHA) to->alpha = MSG_ReadFloat(msg_read);
+	if (bits & U_EVENT) to->event = MSG_ReadByte (msg_read);
+	if (bits & U_SOUNDIDX) to->soundindex = MSG_ReadByte (msg_read);
 	else to->event = 0;
 
-	if (bits & U_BODY) to->body = MSG_ReadByte (&net_message);
-	if (bits & U_ANIMTIME) to->animtime = MSG_ReadFloat (&net_message);
+	if (bits & U_BODY) to->body = MSG_ReadByte (msg_read);
+	if (bits & U_ANIMTIME) to->animtime = MSG_ReadFloat (msg_read);
 }
 
 void MSG_ReadData (sizebuf_t *msg_read, void *data, int len)
@@ -579,7 +579,7 @@ void *_SZ_GetSpace (sizebuf_t *buf, int length, const char *filename, int fileli
 	if (buf->cursize + length > buf->maxsize)
 	{
 		if (length > buf->maxsize)
-			Host_Error("SZ_GetSpace: length[%i] > buffer maxsize [%i]\n", length, buf->maxsize );
+			Host_Error("SZ_GetSpace: length[%i] > buffer maxsize [%i], called at %s:%i\n", length, buf->maxsize, filename, fileline );
 			
 		MsgWarn("SZ_GetSpace: overflow [cursize %d maxsize %d], called at %s:%i\n", buf->cursize + length, buf->maxsize, filename, fileline );
 		SZ_Clear (buf); 

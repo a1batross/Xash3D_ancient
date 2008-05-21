@@ -32,21 +32,6 @@ USER STRINGCMD EXECUTION
 sv_client and sv_player will be valid.
 ============================================================
 */
-
-/*
-==================
-SV_BeginDemoServer
-==================
-*/
-void SV_BeginDemoserver (void)
-{
-	char		name[MAX_OSPATH];
-
-	sprintf (name, "demos/%s", sv.name);
-	sv.demofile = FS_Open(name, "rb" );
-	if (!sv.demofile) Host_Error("Couldn't open %s\n", name);
-}
-
 /*
 ================
 SV_New_f
@@ -63,13 +48,6 @@ void SV_New_f (void)
 	if (sv_client->state != cs_connected)
 	{
 		Msg ("New not valid -- already spawned\n");
-		return;
-	}
-
-	// demo servers just dump the file message
-	if (sv.state == ss_demo)
-	{
-		SV_BeginDemoserver();
 		return;
 	}
 
@@ -366,43 +344,6 @@ void SV_ShowServerinfo_f (void)
 	Info_Print (Cvar_Serverinfo());
 }
 
-
-void SV_Nextserver (void)
-{
-	char	*v;
-
-	// can't nextserver while playing a normal game
-	if (sv.state == ss_game) return;
-
-	svs.spawncount++;	// make sure another doesn't sneak in
-	v = Cvar_VariableString ("nextserver");
-	if (!v[0]) Cbuf_AddText ("killserver\n");
-	else
-	{
-		Cbuf_AddText (v);
-		Cbuf_AddText ("\n");
-	}
-	Cvar_Set ("nextserver","");
-}
-
-/*
-==================
-SV_Nextserver_f
-
-A cinematic has completed or been aborted by a client, so move
-to the next server,
-==================
-*/
-void SV_Nextserver_f (void)
-{
-	if ( atoi(Cmd_Argv(1)) != svs.spawncount )
-	{
-		MsgWarn("SV_Nextserver_f: loading wrong level, from %s\n", sv_client->name);
-		return; // leftover from last server
-	}
-	SV_Nextserver ();
-}
-
 typedef struct
 {
 	char	*name;
@@ -416,7 +357,6 @@ ucmd_t ucmds[] =
 	{"configstrings", SV_Configstrings_f},
 	{"baselines", SV_Baselines_f},
 	{"begin", SV_Begin_f},
-	{"nextserver", SV_Nextserver_f},
 	{"disconnect", SV_Disconnect_f},
 	{"info", SV_ShowServerinfo_f},
 	{"download", SV_BeginDownload_f},

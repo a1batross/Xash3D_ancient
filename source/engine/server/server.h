@@ -39,10 +39,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SPAWNFLAG_NOT_DEATHMATCH	0x00000800
 
 // client printf level
-#define PRINT_LOW			0		// pickup messages
-#define PRINT_MEDIUM		1		// death messages
-#define PRINT_HIGH			2		// critical messages
-#define PRINT_CHAT			3		// chat messages
+#define PRINT_LOW			0	// pickup messages
+#define PRINT_MEDIUM		1	// death messages
+#define PRINT_HIGH			2	// critical messages
+#define PRINT_CHAT			3	// chat messages
 
 #define FL_CLIENT			(1<<0)	// this is client
 #define FL_MONSTER			(1<<1)	// this is npc
@@ -59,9 +59,7 @@ typedef enum
 	ss_dead,		// no map loaded
 	ss_loading,	// spawning level edicts
 	ss_game,		// actively running
-	ss_cinematic,
-	ss_demo,
-
+	ss_cinematic
 } sv_state_t;
 
 typedef enum
@@ -94,10 +92,6 @@ typedef struct
 	// it is only used to marshall data until SV_Message is called
 	sizebuf_t		multicast;
 	byte		multicast_buf[MAX_MSGLEN];
-
-	// demo server information
-	file_t		*demofile;
-	bool		timedemo;		// don't time sync
 
 	float		lastchecktime;
 	int		lastcheck;
@@ -253,7 +247,6 @@ void SV_InitGame (void);
 void SV_Map(char *levelstring, char *savename );
 void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate );
 int SV_FindIndex (const char *name, int start, int end, bool create);
-void SV_VM_Setup(void);
 void SV_VM_Begin(void);
 void SV_VM_End(void);
 
@@ -278,7 +271,6 @@ extern char sv_outputbuf[SV_OUTPUTBUF_LENGTH];
 
 void SV_FlushRedirect (int sv_redirected, char *outputbuf);
 
-void SV_DemoCompleted (void);
 void SV_SendClientMessages (void);
 void SV_AmbientSound( edict_t *entity, int soundindex, float volume, float attenuation );
 void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int index, float vol, float attn, float timeofs);
@@ -303,7 +295,6 @@ void SV_SectorList_f( void );
 // sv_ents.c
 //
 void SV_WriteFrameToClient (client_state_t *client, sizebuf_t *msg);
-void SV_RecordDemoMessage (void);
 void SV_BuildClientFrame (client_state_t *client);
 void SV_UpdateEntityState( edict_t *ent);
 void SV_FatPVS ( vec3_t org );
@@ -313,8 +304,9 @@ void SV_Error (char *error, ...);
 //
 // sv_game.c
 //
-void SV_InitGameProgs (void);
-void SV_ShutdownGameProgs (void);
+void SV_InitServerProgs( void );
+void SV_FreeServerProgs( void );
+
 void SV_InitEdict (edict_t *e);
 void SV_ConfigString (int index, const char *val);
 void SV_SetModel (edict_t *ent, const char *name);

@@ -140,38 +140,6 @@ void SV_Map_f( void )
 
 /*
 ==================
-SV_Demo_f
-
-Playing a demo with specified name
-==================
-*/
-void SV_Demo_f( void )
-{
-	char	filename[MAX_QPATH];
-
-	if(Cmd_Argc() != 2)
-	{
-		Msg("Usage: demo <filename>\n");
-		return;
-	}
-
-	com.snprintf( filename, MAX_QPATH, "%s.dem", Cmd_Argv(1));
-	if(!FS_FileExists(va("demos/%s", filename )))
-	{
-		Msg("Can't loading %s\n", filename );
-		return;
-	}
-
-	// the game is just starting
-	if(sv.state == ss_dead) SV_InitGame();
-
-	SV_BroadcastCommand( "changing\n" );
-	SV_SpawnServer(filename, NULL, ss_demo );
-	SV_BroadcastCommand( "reconnect\n" );
-}
-
-/*
-==================
 SV_Movie_f
 
 Playing a Darkplaces video with specified name
@@ -203,6 +171,7 @@ void SV_Movie_f( void )
 void SV_Newgame_f( void )
 {
 	// FIXME: do some clear operations
+	// FIXME: parse newgame script
 	Cbuf_ExecuteText(EXEC_APPEND, va("map %s\n", GI->startmap ));
 }
 
@@ -517,7 +486,6 @@ void SV_InitOperatorCommands( void )
 	Cmd_AddCommand ("clientinfo", SV_ClientInfo_f, "print user infostring (player num required)" );
 
 	Cmd_AddCommand("map", SV_Map_f, "start new level" );
-	Cmd_AddCommand("demo", SV_Demo_f, "playing a demo file" );
 	Cmd_AddCommand("newgame", SV_Newgame_f, "begin new game" );
 	Cmd_AddCommand("movie", SV_Movie_f, "playing video file" );
 	Cmd_AddCommand("changelevel", SV_ChangeLevel_f, "changing level" );
@@ -544,21 +512,18 @@ void SV_KillOperatorCommands( void )
 	Cmd_RemoveCommand("clientinfo");
 
 	Cmd_RemoveCommand("map");
-	Cmd_RemoveCommand("demo");
 	Cmd_RemoveCommand("movie");
 	Cmd_RemoveCommand("newgame");
 	Cmd_RemoveCommand("changelevel");
 	Cmd_RemoveCommand("restart");
 	Cmd_RemoveCommand("sectorlist");
 
-	if( dedicated->value ) 
+	if( dedicated->integer ) 
 	{
 		Cmd_RemoveCommand("say");
 		Cmd_RemoveCommand("setmaster");
 	}
 
-	Cmd_RemoveCommand("serverrecord");
-	Cmd_RemoveCommand("serverstop");
 	Cmd_RemoveCommand("save");
 	Cmd_RemoveCommand("load");
 	Cmd_RemoveCommand("killserver");

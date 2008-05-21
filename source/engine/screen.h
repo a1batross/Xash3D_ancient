@@ -101,7 +101,7 @@ bool CG_ExecBuiltins( void );
 void CG_MakeLevelShot( void );
 void CG_DrawPause( void );
 void CG_Init( void );
-void CG_ParseInventory( void );
+void CG_ParseInventory( sizebuf_t *msg );
 void CG_DrawInventory( void );
 void CG_DrawLayout( void );
 

@@ -127,13 +127,10 @@ extern int num_cl_weaponmodels;
 //
 typedef struct
 {
-	int			timeoutcount;
+	int		timeoutcount;
 
-	int			timedemo_frames;
-	float			timedemo_start;
-
-	bool	refresh_prepped;		// false if on new level or new ref dll
-	bool	force_refdef;		// vid has changed, so we can't use a paused refdef
+	bool		refresh_prepped;		// false if on new level or new ref dll
+	bool		force_refdef;		// vid has changed, so we can't use a paused refdef
 
 	int		parse_entities;		// index (not anded off) into cl_parse_entities[]
 
@@ -244,7 +241,7 @@ typedef struct
 	float			frametime;			// seconds since last frame
 
 	// connection information
-	char		servername[MAX_OSPATH];	// name of server from original connect
+	string		servername;		// name of server from original connect
 	float		connect_time;		// for connection retransmits
 
 	int			quakePort;			// a 16 bit value that allows quake servers
@@ -257,18 +254,22 @@ typedef struct
 	file_t		*download;			// file transfer from server
 	char		downloadtempname[MAX_OSPATH];
 	char		downloadname[MAX_OSPATH];
-	int			downloadnumber;
-	dltype_t	downloadtype;
-	int			downloadpercent;
+	int		downloadnumber;
+	dltype_t		downloadtype;
+	int		downloadpercent;
 
 	// demo recording info must be here, so it isn't cleared on level change
-	bool	demorecording;
-	bool	demowaiting;	// don't record until a non-delta message is received
+	bool		demorecording;
+	bool		demoplayback;
+	bool		demowaiting;	// don't record until a non-delta message is received
+	string		demoname;		// for demo looping
+
 	file_t		*demofile;
+
+	// hudprogram stack
 	byte		*hud_program;
 	uint		hud_program_size;
 
-	// hudprogram stack
 	bool		cg_init;
 	char		cg_function[MAX_QPATH];
 	char		cg_builtin[MAX_QPATH];
@@ -345,7 +346,6 @@ extern	cvar_t	*freelook;
 extern	cvar_t	*cl_lightlevel;	// FIXME HACK
 
 extern	cvar_t	*cl_paused;
-extern	cvar_t	*cl_timedemo;
 extern	cvar_t	*cl_levelshot_name;
 
 extern	cvar_t	*cl_vwep;
@@ -450,11 +450,11 @@ void CL_WidowSplash (vec3_t org);
 // PGM
 // ========
 
-int CL_ParseEntityBits (unsigned *bits);
-void CL_ParseFrame (void);
+int CL_ParseEntityBits( sizebuf_t *msg, uint *bits );
+void CL_ParseFrame( sizebuf_t *msg );
 
-void CL_ParseTEnt (void);
-void CL_ParseConfigString (void);
+void CL_ParseTEnt( sizebuf_t *msg );
+void CL_ParseConfigString( sizebuf_t *msg );
 void SmokeAndFlash(vec3_t origin);
 
 void CL_SetLightstyle (int i);
@@ -478,8 +478,6 @@ void CL_ScreenShot_f( void );
 void CL_LevelShot_f( void );
 void CL_SetSky_f( void );
 void CL_SetFont_f( void );
-void CL_ParseLayout (void);
-
 
 //
 // cl_main
@@ -534,9 +532,13 @@ char *Key_KeynumToString (int keynum);
 //
 // cl_demo.c
 //
-void CL_WriteDemoMessage (void);
-void CL_Stop_f (void);
-void CL_Record_f (void);
+void CL_WriteDemoMessage( void );
+void CL_ReadDemoMessage( void );
+void CL_StopPlayback( void );
+void CL_StopRecord( void );
+void CL_PlayDemo_f( void );
+void CL_Record_f( void );
+void CL_Stop_f( void );
 
 //
 // cl_sound.c
@@ -597,10 +599,10 @@ extern cvar_t	*s_separation;
 //
 extern	char *svc_strings[256];
 
-void CL_ParseServerMessage (void);
+void CL_ParseServerMessage( sizebuf_t *msg );
 void CL_LoadClientinfo (clientinfo_t *ci, char *s);
-void SHOWNET(char *s);
-void CL_ParseClientinfo (int player);
+void SHOWNET( sizebuf_t *msg, char *s );
+void CL_ParseClientinfo( int player );
 void CL_Download_f (void);
 
 //

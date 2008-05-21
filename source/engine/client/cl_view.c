@@ -433,13 +433,6 @@ void V_RenderView( void )
 	if (cls.state != ca_active) return;
 	if (!cl.refresh_prepped) return; // still loading
 
-	if (cl_timedemo->value)
-	{
-		if (!cl.timedemo_start)
-			cl.timedemo_start = Sys_DoubleTime();
-		cl.timedemo_frames++;
-	}
-
 	// an invalid frame will just use the exact previous refdef
 	// we can't use the old frame if the video mode has changed, though...
 	if ( cl.frame.valid && (cl.force_refdef || !cl_paused->value) )

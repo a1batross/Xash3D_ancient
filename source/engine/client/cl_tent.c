@@ -268,16 +268,16 @@ void CL_SmokeAndFlash(vec3_t origin)
 CL_ParseParticles
 =================
 */
-void CL_ParseParticles (void)
+void CL_ParseParticles( sizebuf_t *msg )
 {
 	int		color, count;
 	vec3_t	pos, dir;
 
-	MSG_ReadPos32(&net_message, pos);
-	MSG_ReadPos32(&net_message, dir);
+	MSG_ReadPos32(msg, pos);
+	MSG_ReadPos32(msg, dir);
 
-	color = MSG_ReadByte(&net_message);
-	count = MSG_ReadByte(&net_message);
+	color = MSG_ReadByte(msg);
+	count = MSG_ReadByte(msg);
 
 	CL_ParticleEffect(pos, dir, color, count);
 }
@@ -287,17 +287,17 @@ void CL_ParseParticles (void)
 CL_ParseBeam
 =================
 */
-int CL_ParseBeam (model_t *model)
+int CL_ParseBeam( sizebuf_t *msg, model_t *model )
 {
 	int		ent;
 	vec3_t	start, end;
 	beam_t	*b;
 	int		i;
 	
-	ent = MSG_ReadShort (&net_message);
+	ent = MSG_ReadShort (msg);
 	
-	MSG_ReadPos32(&net_message, start);
-	MSG_ReadPos32(&net_message, end);
+	MSG_ReadPos32(msg, start);
+	MSG_ReadPos32(msg, end);
 
 	// override any beam with the same entity
 	for (i=0, b=cl_beams ; i< MAX_BEAMS ; i++, b++)
@@ -335,18 +335,18 @@ int CL_ParseBeam (model_t *model)
 CL_ParseBeam2
 =================
 */
-int CL_ParseBeam2 (model_t *model)
+int CL_ParseBeam2( sizebuf_t *msg, model_t *model )
 {
 	int		ent;
 	vec3_t	start, end, offset;
 	beam_t	*b;
 	int		i;
 	
-	ent = MSG_ReadShort (&net_message);
+	ent = MSG_ReadShort (msg);
 	
-	MSG_ReadPos32(&net_message, start);
-	MSG_ReadPos32(&net_message, end);
-	MSG_ReadPos32(&net_message, offset);
+	MSG_ReadPos32(msg, start);
+	MSG_ReadPos32(msg, end);
+	MSG_ReadPos32(msg, offset);
 
 //	Msg ("end- %f %f %f\n", end[0], end[1], end[2]);
 
@@ -387,18 +387,18 @@ int CL_ParseBeam2 (model_t *model)
 CL_ParseLightning
 =================
 */
-int CL_ParseLightning (model_t *model)
+int CL_ParseLightning( sizebuf_t *msg, model_t *model )
 {
 	int		srcEnt, destEnt;
 	vec3_t	start, end;
 	beam_t	*b;
 	int		i;
 	
-	srcEnt = MSG_ReadShort (&net_message);
-	destEnt = MSG_ReadShort (&net_message);
+	srcEnt = MSG_ReadShort (msg);
+	destEnt = MSG_ReadShort (msg);
 
-	MSG_ReadPos32(&net_message, start);
-	MSG_ReadPos32(&net_message, end);
+	MSG_ReadPos32(msg, start);
+	MSG_ReadPos32(msg, end);
 
 	// override any beam with the same source AND destination entities
 	for (i=0, b=cl_beams ; i< MAX_BEAMS ; i++, b++)
@@ -440,15 +440,15 @@ int CL_ParseLightning (model_t *model)
 CL_ParseLaser
 =================
 */
-void CL_ParseLaser (int colors)
+void CL_ParseLaser( sizebuf_t *msg, int colors )
 {
 	vec3_t	start;
 	vec3_t	end;
 	laser_t	*l;
 	int		i;
 
-	MSG_ReadPos32(&net_message, start);
-	MSG_ReadPos32(&net_message, end);
+	MSG_ReadPos32(msg, start);
+	MSG_ReadPos32(msg, end);
 
 	for (i=0, l=cl_lasers ; i< MAX_LASERS ; i++, l++)
 	{
@@ -474,7 +474,7 @@ CL_ParseTEnt
 */
 static byte splash_color[] = {0x00, 0xe0, 0xb0, 0x50, 0xd0, 0xe0, 0xe8};
 
-void CL_ParseTEnt (void)
+void CL_ParseTEnt( sizebuf_t *msg )
 {
 	int		type;
 	vec3_t	pos, pos2, dir;
@@ -484,21 +484,21 @@ void CL_ParseTEnt (void)
 	int		r;
 	int		ent;
 
-	type = MSG_ReadByte (&net_message);
+	type = MSG_ReadByte (msg);
 
 	switch (type)
 	{
 	case TE_BLOOD:			// bullet hitting flesh
-		MSG_ReadPos32(&net_message, pos);
-		MSG_ReadPos32(&net_message, dir);
+		MSG_ReadPos32(msg, pos);
+		MSG_ReadPos32(msg, dir);
 		CL_ParticleEffect (pos, dir, 0xe8, 60);
 		break;
 
 	case TE_GUNSHOT:			// bullet hitting wall
 	case TE_SPARKS:
 	case TE_BULLET_SPARKS:
-		MSG_ReadPos32(&net_message, pos);
-		MSG_ReadPos32(&net_message, dir);
+		MSG_ReadPos32(msg, pos);
+		MSG_ReadPos32(msg, dir);
 		if (type == TE_GUNSHOT)
 			CL_ParticleEffect (pos, dir, 0, 40);
 		else
@@ -522,8 +522,8 @@ void CL_ParseTEnt (void)
 		
 	case TE_SCREEN_SPARKS:
 	case TE_SHIELD_SPARKS:
-		MSG_ReadPos32(&net_message, pos);
-		MSG_ReadPos32(&net_message, dir);
+		MSG_ReadPos32(msg, pos);
+		MSG_ReadPos32(msg, dir);
 		if (type == TE_SCREEN_SPARKS)
 			CL_ParticleEffect (pos, dir, 0xd0, 40);
 		else
@@ -533,17 +533,17 @@ void CL_ParseTEnt (void)
 		break;
 		
 	case TE_SHOTGUN:			// bullet hitting wall
-		MSG_ReadPos32 (&net_message, pos);
-		MSG_ReadPos32 (&net_message, dir);
+		MSG_ReadPos32 (msg, pos);
+		MSG_ReadPos32 (msg, dir);
 		CL_ParticleEffect (pos, dir, 0, 20);
 		CL_SmokeAndFlash(pos);
 		break;
 
 	case TE_SPLASH:			// bullet hitting water
-		cnt = MSG_ReadByte (&net_message);
-		MSG_ReadPos32 (&net_message, pos);
-		MSG_ReadPos32 (&net_message, dir);
-		r = MSG_ReadByte (&net_message);
+		cnt = MSG_ReadByte (msg);
+		MSG_ReadPos32 (msg, pos);
+		MSG_ReadPos32 (msg, dir);
+		r = MSG_ReadByte (msg);
 		if (r > 6)
 			color = 0x00;
 		else
@@ -552,23 +552,23 @@ void CL_ParseTEnt (void)
 		break;
 
 	case TE_LASER_SPARKS:
-		cnt = MSG_ReadByte (&net_message);
-		MSG_ReadPos32 (&net_message, pos);
-		MSG_ReadPos32 (&net_message, dir);
-		color = MSG_ReadByte (&net_message);
+		cnt = MSG_ReadByte (msg);
+		MSG_ReadPos32 (msg, pos);
+		MSG_ReadPos32 (msg, dir);
+		color = MSG_ReadByte (msg);
 		CL_ParticleEffect2 (pos, dir, color, cnt);
 		break;
 
 	// RAFAEL
 	case TE_BLUEHYPERBLASTER:
-		MSG_ReadPos32 (&net_message, pos);
-		MSG_ReadPos32 (&net_message, dir);
+		MSG_ReadPos32 (msg, pos);
+		MSG_ReadPos32 (msg, dir);
 		CL_BlasterParticles (pos, dir);
 		break;
 
 	case TE_BLASTER:			// blaster hitting wall
-		MSG_ReadPos32 (&net_message, pos);
-		MSG_ReadPos32 (&net_message, dir);
+		MSG_ReadPos32 (msg, pos);
+		MSG_ReadPos32 (msg, dir);
 		CL_BlasterParticles (pos, dir);
 
 		ex = CL_AllocExplosion ();
@@ -596,8 +596,8 @@ void CL_ParseTEnt (void)
 		break;
 		
 	case TE_RAILTRAIL:			// railgun effect
-		MSG_ReadPos32 (&net_message, pos);
-		MSG_ReadPos32 (&net_message, pos2);
+		MSG_ReadPos32 (msg, pos);
+		MSG_ReadPos32 (msg, pos2);
 		CL_RailTrail (pos, pos2);
 		S_StartSound (pos2, 0, 0, cl_sfx_railg);
 		break;
@@ -605,7 +605,7 @@ void CL_ParseTEnt (void)
 	case TE_EXPLOSION2:
 	case TE_GRENADE_EXPLOSION:
 	case TE_GRENADE_EXPLOSION_WATER:
-		MSG_ReadPos32 (&net_message, pos);
+		MSG_ReadPos32 (msg, pos);
 
 		ex = CL_AllocExplosion ();
 		VectorCopy (pos, ex->ent.origin);
@@ -629,7 +629,7 @@ void CL_ParseTEnt (void)
 
 	// RAFAEL
 	case TE_PLASMA_EXPLOSION:
-		MSG_ReadPos32 (&net_message, pos);
+		MSG_ReadPos32 (msg, pos);
 		ex = CL_AllocExplosion ();
 		VectorCopy (pos, ex->ent.origin);
 		ex->type = ex_poly;
@@ -650,7 +650,7 @@ void CL_ParseTEnt (void)
 	case TE_EXPLOSION1:
 	case TE_ROCKET_EXPLOSION:
 	case TE_ROCKET_EXPLOSION_WATER:
-		MSG_ReadPos32 (&net_message, pos);
+		MSG_ReadPos32 (msg, pos);
 
 		ex = CL_AllocExplosion ();
 		VectorCopy (pos, ex->ent.origin);
@@ -673,7 +673,7 @@ void CL_ParseTEnt (void)
 		break;
 
 	case TE_BFG_EXPLOSION:
-		MSG_ReadPos32 (&net_message, pos);
+		MSG_ReadPos32 (msg, pos);
 		ex = CL_AllocExplosion ();
 		VectorCopy (pos, ex->ent.origin);
 		ex->type = ex_poly;
@@ -690,27 +690,27 @@ void CL_ParseTEnt (void)
 		break;
 
 	case TE_BFG_BIGEXPLOSION:
-		MSG_ReadPos32 (&net_message, pos);
+		MSG_ReadPos32 (msg, pos);
 		CL_BFGExplosionParticles (pos);
 		break;
 
 	case TE_BFG_LASER:
-		CL_ParseLaser (0xd0d1d2d3);
+		CL_ParseLaser( msg, 0xd0d1d2d3 );
 		break;
 
 	case TE_BUBBLETRAIL:
-		MSG_ReadPos32 (&net_message, pos);
-		MSG_ReadPos32 (&net_message, pos2);
+		MSG_ReadPos32 (msg, pos);
+		MSG_ReadPos32 (msg, pos2);
 		CL_BubbleTrail (pos, pos2);
 		break;
 
 	case TE_PARASITE_ATTACK:
 	case TE_MEDIC_CABLE_ATTACK:
-		ent = CL_ParseBeam (cl_mod_laser);
+		ent = CL_ParseBeam( msg, cl_mod_laser );
 		break;
 
 	case TE_BOSSTPORT:	// boss teleporting to station
-		MSG_ReadPos32 (&net_message, pos);
+		MSG_ReadPos32 (msg, pos);
 		CL_BigTeleportParticles (pos);
 		S_StartSound (pos, 0, 0, S_RegisterSound ("misc/bigtele.wav"));
 		break;
@@ -720,10 +720,10 @@ void CL_ParseTEnt (void)
 
 	// RAFAEL
 	case TE_WELDING_SPARKS:
-		cnt = MSG_ReadByte (&net_message);
-		MSG_ReadPos32 (&net_message, pos);
-		MSG_ReadPos32 (&net_message, dir);
-		color = MSG_ReadByte (&net_message);
+		cnt = MSG_ReadByte (msg);
+		MSG_ReadPos32 (msg, pos);
+		MSG_ReadPos32 (msg, dir);
+		color = MSG_ReadByte (msg);
 		CL_ParticleEffect2 (pos, dir, color, cnt);
 
 		ex = CL_AllocExplosion ();
@@ -742,29 +742,29 @@ void CL_ParseTEnt (void)
 		break;
 
 	case TE_GREENBLOOD:
-		MSG_ReadPos32 (&net_message, pos);
-		MSG_ReadPos32 (&net_message, dir);
+		MSG_ReadPos32 (msg, pos);
+		MSG_ReadPos32 (msg, dir);
 		CL_ParticleEffect2 (pos, dir, 0xdf, 30);
 		break;
 
 	case TE_FLASHLIGHT:
-		MSG_ReadPos32(&net_message, pos);
-		ent = MSG_ReadShort(&net_message);
+		MSG_ReadPos32(msg, pos);
+		ent = MSG_ReadShort(msg);
 		CL_Flashlight(ent, pos);
 		break;
 
 	case TE_DEBUGTRAIL:
-		MSG_ReadPos32 (&net_message, pos);
-		MSG_ReadPos32 (&net_message, pos2);
+		MSG_ReadPos32 (msg, pos);
+		MSG_ReadPos32 (msg, pos2);
 		CL_DebugTrail (pos, pos2);
 		break;
 
 	// RAFAEL
 	case TE_TUNNEL_SPARKS:
-		cnt = MSG_ReadByte (&net_message);
-		MSG_ReadPos32 (&net_message, pos);
-		MSG_ReadPos32 (&net_message, dir);
-		color = MSG_ReadByte (&net_message);
+		cnt = MSG_ReadByte (msg);
+		MSG_ReadPos32 (msg, pos);
+		MSG_ReadPos32 (msg, dir);
+		color = MSG_ReadByte (msg);
 		CL_ParticleEffect3 (pos, dir, color, cnt);
 		break;
 	default:

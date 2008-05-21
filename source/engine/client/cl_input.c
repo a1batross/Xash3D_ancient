@@ -767,6 +767,8 @@ void CL_SendCmd (void)
 	if(cls.state == ca_cinematic || cl.servercount > 0x10000)
 		return;
 
+	if( cls.demoplayback ) return;
+
 	if( cls.state == ca_connected)
 	{
 		if (cls.netchan.message.cursize || host.realtime - cls.netchan.last_sent > 1.0f )

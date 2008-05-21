@@ -204,22 +204,22 @@ CL_ParseDownload
 A download message has been received from the server
 =====================
 */
-void CL_ParseDownload (void)
+void CL_ParseDownload( sizebuf_t *msg )
 {
 	int		size, percent;
-	char	name[MAX_OSPATH];
+	string		name;
 	int		r;
 
 	// read the data
-	size = MSG_ReadShort (&net_message);
-	percent = MSG_ReadByte (&net_message);
+	size = MSG_ReadShort( msg );
+	percent = MSG_ReadByte( msg );
 	if (size == -1)
 	{
-		Msg ("Server does not have this file.\n");
+		Msg("Server does not have this file.\n");
 		if (cls.download)
 		{
 			// if here, we tried to resume a file but the server said no
-			FS_Close (cls.download);
+			FS_Close(cls.download);
 			cls.download = NULL;
 		}
 		CL_RequestNextDownload ();
@@ -234,15 +234,15 @@ void CL_ParseDownload (void)
 		cls.download = FS_Open (name, "wb");
 		if (!cls.download)
 		{
-			net_message.readcount += size;
+			msg->readcount += size;
 			Msg ("Failed to open %s\n", cls.downloadtempname);
 			CL_RequestNextDownload ();
 			return;
 		}
 	}
 
-	FS_Write (cls.download, net_message.data + net_message.readcount, size );
-	net_message.readcount += size;
+	FS_Write (cls.download, msg->data + msg->readcount, size );
+	msg->readcount += size;
 
 	if (percent != 100)
 	{
@@ -289,7 +289,7 @@ void CL_ParseDownload (void)
 CL_ParseServerData
 ==================
 */
-void CL_ParseServerData (void)
+void CL_ParseServerData( sizebuf_t *msg )
 {
 	char		*str;
 	int		i;
@@ -301,18 +301,18 @@ void CL_ParseServerData (void)
 	cls.state = ca_connected;
 
 	// parse protocol version number
-	i = MSG_ReadLong (&net_message);
+	i = MSG_ReadLong( msg );
 	cls.serverProtocol = i;
 
 	if (i != PROTOCOL_VERSION) Host_Error("Server returned version %i, not %i", i, PROTOCOL_VERSION);
 
-	cl.servercount = MSG_ReadLong (&net_message);
+	cl.servercount = MSG_ReadLong( msg );
 
 	// parse player entity number
-	cl.playernum = MSG_ReadShort (&net_message);
+	cl.playernum = MSG_ReadShort( msg );
 
 	// get the full level name
-	str = MSG_ReadString (&net_message);
+	str = MSG_ReadString( msg );
 
 	if (cl.playernum == -1)
 	{	
@@ -333,7 +333,7 @@ void CL_ParseServerData (void)
 CL_ParseBaseline
 ==================
 */
-void CL_ParseBaseline (void)
+void CL_ParseBaseline( sizebuf_t *msg )
 {
 	entity_state_t	*es;
 	int		bits;
@@ -342,9 +342,9 @@ void CL_ParseBaseline (void)
 
 	memset (&nullstate, 0, sizeof(nullstate));
 
-	newnum = CL_ParseEntityBits (&bits);
+	newnum = CL_ParseEntityBits( msg, &bits );
 	es = &cl_entities[newnum].baseline;
-	MSG_ReadDeltaEntity(&nullstate, es, newnum, bits);
+	MSG_ReadDeltaEntity( msg, &nullstate, es, newnum, bits);
 }
 
 
@@ -467,15 +467,15 @@ void CL_ParseClientinfo (int player)
 CL_ParseConfigString
 ================
 */
-void CL_ParseConfigString (void)
+void CL_ParseConfigString( sizebuf_t *msg )
 {
 	int		i;
-	char	*s;
-	char	olds[MAX_QPATH];
+	char		*s;
+	string		olds;
 
-	i = MSG_ReadShort (&net_message);
+	i = MSG_ReadShort( msg );
 	if (i < 0 || i >= MAX_CONFIGSTRINGS) Host_Error("configstring > MAX_CONFIGSTRINGS\n");
-	s = MSG_ReadString(&net_message);
+	s = MSG_ReadString( msg );
 
 	strncpy (olds, cl.configstrings[i], sizeof(olds));
 	olds[sizeof(olds) - 1] = 0;
@@ -529,9 +529,9 @@ ACTION MESSAGES
 CL_ParseStartSoundPacket
 ==================
 */
-void CL_ParseStartSoundPacket(void)
+void CL_ParseStartSoundPacket( sizebuf_t *msg )
 {
-	vec3_t  pos_v;
+	vec3_t	pos_v;
 	float	*pos;
 	int 	channel, ent;
 	int 	sound_num;
@@ -540,22 +540,22 @@ void CL_ParseStartSoundPacket(void)
 	int	flags;
 	float	ofs;
 
-	flags = MSG_ReadByte (&net_message);
-	sound_num = MSG_ReadByte (&net_message);
+	flags = MSG_ReadByte( msg );
+	sound_num = MSG_ReadByte( msg );
 
-	if (flags & SND_VOLUME) volume = MSG_ReadByte (&net_message) / 255.0;
+	if (flags & SND_VOLUME) volume = MSG_ReadByte( msg ) / 255.0;
 	else volume = DEFAULT_SOUND_PACKET_VOL;
 	
-	if (flags & SND_ATTENUATION) attenuation = MSG_ReadByte (&net_message) / 64.0;
+	if (flags & SND_ATTENUATION) attenuation = MSG_ReadByte( msg ) / 64.0;
 	else attenuation = DEFAULT_SOUND_PACKET_ATTN;	
 
-	if (flags & SND_OFFSET) ofs = MSG_ReadByte (&net_message) / 1000.0;
+	if (flags & SND_OFFSET) ofs = MSG_ReadByte( msg ) / 1000.0;
 	else ofs = 0;
 
 	if (flags & SND_ENT)
 	{	
 		// entity reletive
-		channel = MSG_ReadShort(&net_message); 
+		channel = MSG_ReadShort( msg ); 
 		ent = channel>>3;
 		if (ent > MAX_EDICTS) Host_Error("CL_ParseStartSoundPacket: ent out of range\n" );
 		channel &= 7;
@@ -569,7 +569,7 @@ void CL_ParseStartSoundPacket(void)
 	if (flags & SND_POS)
 	{	
 		// positioned in space
-		MSG_ReadPos32(&net_message, pos_v);
+		MSG_ReadPos32( msg, pos_v);
 		pos = pos_v;
 	}
 	else pos = NULL; // use entity number
@@ -578,24 +578,24 @@ void CL_ParseStartSoundPacket(void)
 	S_StartSound (pos, ent, channel, cl.sound_precache[sound_num]);
 }       
 
-void CL_ParseAmbientSound( void )
+void CL_ParseAmbientSound( sizebuf_t *msg )
 {
 	sound_t		loopSoundHandle;
 	int		entityNum, soundNum;
 	vec3_t		ambient_org;
 
-	entityNum = MSG_ReadShort (&net_message);
-	soundNum = MSG_ReadShort (&net_message);
-	MSG_ReadPos32 (&net_message, ambient_org);	
+	entityNum = MSG_ReadShort( msg );
+	soundNum = MSG_ReadShort( msg );
+	MSG_ReadPos32( msg, ambient_org);	
 	loopSoundHandle = S_RegisterSound( cl.configstrings[CS_SOUNDS + soundNum] );
 
 	// add ambient looping sound
 	S_AddRealLoopingSound( entityNum, ambient_org, vec3_origin, loopSoundHandle );
 }
 
-void SHOWNET(char *s)
+void SHOWNET( sizebuf_t *msg, char *s )
 {
-	if (cl_shownet->value >= 2) Msg ("%3i:%s\n", net_message.readcount-1, s);
+	if (cl_shownet->value >= 2) Msg ("%3i:%s\n", msg->readcount-1, s);
 }
 
 /*
@@ -603,36 +603,36 @@ void SHOWNET(char *s)
 CL_ParseServerMessage
 =====================
 */
-void CL_ParseServerMessage (void)
+void CL_ParseServerMessage( sizebuf_t *msg )
 {
 	int		i, cmd;
 	char		*s;
 
 	// if recording demos, copy the message out
-	if (cl_shownet->value == 1) Msg ("%i ",net_message.cursize);
+	if (cl_shownet->value == 1) Msg ("%i ",msg->cursize);
 	else if (cl_shownet->value >= 2) Msg ("------------------\n");
 
 	// parse the message
-	while (1)
+	while( 1 )
 	{
-		if (net_message.readcount > net_message.cursize)
+		if (msg->readcount > msg->cursize)
 		{
 			Host_Error("CL_ParseServerMessage: Bad server message\n");
 			break;
 		}
 
-		cmd = MSG_ReadByte (&net_message);
+		cmd = MSG_ReadByte( msg );
 
 		if (cmd == -1)
 		{
-			SHOWNET("END OF MESSAGE");
+			SHOWNET( msg, "END OF MESSAGE" );
 			break;
 		}
 
 		if (cl_shownet->value >= 2)
 		{
-			if (!svc_strings[cmd]) Msg ("%3i:BAD CMD %i\n", net_message.readcount - 1, cmd);
-			else SHOWNET(svc_strings[cmd]);
+			if (!svc_strings[cmd]) Msg ("%3i:BAD CMD %i\n", msg->readcount - 1, cmd);
+			else SHOWNET( msg, svc_strings[cmd] );
 		}
 	
 		// other commands
@@ -660,60 +660,60 @@ void CL_ParseServerMessage (void)
 			break;
 
 		case svc_print:
-			i = MSG_ReadByte (&net_message);
+			i = MSG_ReadByte( msg );
 			if (i == 3) S_StartLocalSound ("misc/talk.wav"); // chat
-			Msg ("^6%s", MSG_ReadString (&net_message));
+			Msg ("^6%s", MSG_ReadString( msg ));
 			break;
 			
 		case svc_centerprint:
-			CG_CenterPrint(MSG_ReadString (&net_message), SCREEN_HEIGHT/2, BIGCHAR_WIDTH );
+			CG_CenterPrint(MSG_ReadString( msg ), SCREEN_HEIGHT/2, BIGCHAR_WIDTH );
 			break;
 			
 		case svc_stufftext:
-			s = MSG_ReadString (&net_message);
+			s = MSG_ReadString( msg );
 			Cbuf_AddText (s);
 			break;
 			
 		case svc_serverdata:
 			Cbuf_Execute ();		// make sure any stuffed commands are done
-			CL_ParseServerData ();
+			CL_ParseServerData( msg );
 			break;
 			
 		case svc_configstring:
-			CL_ParseConfigString ();
+			CL_ParseConfigString( msg );
 			break;
 			
 		case svc_sound:
-			CL_ParseStartSoundPacket();
+			CL_ParseStartSoundPacket( msg );
 			break;
 			
 		case svc_ambientsound:
-			CL_ParseAmbientSound();
+			CL_ParseAmbientSound( msg );
 			break;
 
 		case svc_spawnbaseline:
-			CL_ParseBaseline ();
+			CL_ParseBaseline( msg );
 			break;
 
 		case svc_temp_entity:
-			CL_ParseTEnt ();
+			CL_ParseTEnt( msg );
 			break;
 
 		case svc_download:
-			CL_ParseDownload ();
+			CL_ParseDownload( msg );
 			break;
 
 		case svc_frame:
-			CL_ParseFrame ();
+			CL_ParseFrame( msg );
 			break;
 
 		case svc_inventory:
-			CG_ParseInventory();
+			CG_ParseInventory( msg );
 			break;
 
 		case svc_layout:
-			s = MSG_ReadString (&net_message);
-			strncpy(cl.layout, s, sizeof(cl.layout)-1);
+			s = MSG_ReadString( msg );
+			com.strncpy(cl.layout, s, sizeof(cl.layout)-1);
 			break;
 
 		case svc_playerinfo:
@@ -730,7 +730,7 @@ void CL_ParseServerMessage (void)
 	// we don't know if it is ok to save a demo message until
 	// after we have parsed the frame
 	if (cls.demorecording && !cls.demowaiting)
-		CL_WriteDemoMessage ();
+		CL_WriteDemoMessage();
 
 }
 

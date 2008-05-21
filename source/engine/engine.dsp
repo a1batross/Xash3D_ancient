@@ -57,8 +57,8 @@ LINK32=link.exe
 # ADD LINK32 winmm.lib user32.lib msvcrt.lib ole32.lib /nologo /subsystem:windows /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /opt:nowin98
 # SUBTRACT LINK32 /debug /nodefaultlib
 # Begin Custom Build
-TargetDir=\XASH3D\src_main\temp\engine\!release
-InputPath=\XASH3D\src_main\temp\engine\!release\engine.dll
+TargetDir=\Xash3D\src_main\temp\engine\!release
+InputPath=\Xash3D\src_main\temp\engine\!release\engine.dll
 SOURCE="$(InputPath)"
 
 "D:\Xash3D\bin\engine.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -94,8 +94,8 @@ LINK32=link.exe
 # ADD LINK32 winmm.lib user32.lib msvcrt.lib ole32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /nodefaultlib:"msvcrtd.lib" /pdbtype:sept
 # SUBTRACT LINK32 /incremental:no /map /nodefaultlib
 # Begin Custom Build
-TargetDir=\XASH3D\src_main\temp\engine\!debug
-InputPath=\XASH3D\src_main\temp\engine\!debug\engine.dll
+TargetDir=\Xash3D\src_main\temp\engine\!debug
+InputPath=\Xash3D\src_main\temp\engine\!debug\engine.dll
 SOURCE="$(InputPath)"
 
 "D:\Xash3D\bin\engine.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -127,6 +127,10 @@ SOURCE=.\client\cl_cmds.c
 # Begin Source File
 
 SOURCE=.\client\cl_console.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\client\cl_demo.c
 # End Source File
 # Begin Source File
 
@@ -215,6 +219,10 @@ SOURCE=.\server\sv_cmds.c
 # Begin Source File
 
 SOURCE=.\server\sv_ents.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\server\sv_game.c
 # End Source File
 # Begin Source File
 

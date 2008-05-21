@@ -422,7 +422,7 @@ bool Cmd_GetFontList (const char *s, char *completedname, int length )
 	{
 		for( i = 0; matchbuf[i]; i++ )
 		{
-			if(tolower(completedname[i]) != tolower(matchbuf[i]))
+			if(com.tolower(completedname[i]) != tolower(matchbuf[i]))
 				completedname[i] = 0;
 		}
 	}
@@ -467,7 +467,7 @@ bool Cmd_GetDemoList (const char *s, char *completedname, int length )
 	{
 		for( i = 0; matchbuf[i]; i++ )
 		{
-			if(tolower(completedname[i]) != tolower(matchbuf[i]))
+			if(com.tolower(completedname[i]) != tolower(matchbuf[i]))
 				completedname[i] = 0;
 		}
 	}
@@ -512,7 +512,7 @@ bool Cmd_GetMovieList (const char *s, char *completedname, int length )
 	{
 		for( i = 0; matchbuf[i]; i++ )
 		{
-			if(tolower(completedname[i]) != tolower(matchbuf[i]))
+			if(com.tolower(completedname[i]) != tolower(matchbuf[i]))
 				completedname[i] = 0;
 		}
 	}
