@@ -2087,7 +2087,7 @@ bool Menu_CheckMapsList( void )
 				}
 			}
 
-			if( entities) Z_Free(entities);
+			if( entities) Mem_Free(entities);
 			if( f ) FS_Close(f);
 
 			// format: mapname "maptitle"/r
@@ -2095,12 +2095,12 @@ bool Menu_CheckMapsList( void )
 			com.strcat(buffer, string); // add new string
 		}
 	}
-	if( t ) Z_Free(t); // free search result
+	if( t ) Mem_Free(t); // free search result
 
 	// write generated maps.lst
 	if(FS_WriteFile("scripts/maps.lst", buffer, strlen(buffer)))
 	{
-          	if( buffer ) Z_Free(buffer);
+          	if( buffer ) Mem_Free(buffer);
 		return true;
 	}
 	return false;
@@ -2169,7 +2169,7 @@ void StartServer_MenuInit( void )
 
 	mapnames[nummaps] = 0;
 	if( fp ) FS_Close(fp);
-	if( buffer ) Z_Free( buffer );
+	if( buffer ) Mem_Free( buffer );
 
 	// initialize the menu stuff
 	SCR_AdjustSize( &x, NULL, NULL, NULL );
@@ -2285,8 +2285,8 @@ const char *StartServer_MenuKey( int key )
 			int i;
 
 			for ( i = 0; i < nummaps; i++ )
-				Z_Free( mapnames[i] );
-			Z_Free( mapnames );
+				Mem_Free( mapnames[i] );
+			Mem_Free( mapnames );
 		}
 		mapnames = 0;
 		nummaps = 0;
@@ -2932,7 +2932,7 @@ static bool PlayerConfig_ScanDirectories( void )
 		strcpy( s_pmi[s_numplayermodels].directory, name );
 		s_numplayermodels++;
 	}
-	if ( search ) Z_Free( search );
+	if ( search ) Mem_Free( search );
 
 	return true;
 }

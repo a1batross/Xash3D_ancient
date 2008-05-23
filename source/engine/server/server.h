@@ -58,7 +58,7 @@ typedef enum
 {
 	ss_dead,		// no map loaded
 	ss_loading,	// spawning level edicts
-	ss_game,		// actively running
+	ss_active,	// actively running
 	ss_cinematic
 } sv_state_t;
 

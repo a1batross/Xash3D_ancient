@@ -190,7 +190,7 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 	strcpy(sv.name, server);
 	FS_FileBase(server, sv.configstrings[CS_NAME]);
 
-	if (serverstate != ss_game)
+	if (serverstate != ss_active)
 	{
 		sv.models[1] = pe->BeginRegistration( "", false, &checksum); // no real map
 	}
@@ -222,7 +222,7 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 	// check for a savegame
 	SV_CheckForSavegame( savename );
 
-	if( serverstate == ss_game )
+	if( serverstate == ss_active )
 	{
 		// ignore ents for cinematic servers
 		if(sv.loadgame) SV_ReadLevelFile( savename );

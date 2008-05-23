@@ -64,7 +64,7 @@ void SV_New_f (void)
 	MSG_WriteString (&sv_client->netchan.message, sv.configstrings[CS_NAME]);
 
 	// game server
-	if (sv.state == ss_game)
+	if (sv.state == ss_active)
 	{
 		// set up the entity for the client
 		ent = PRVM_EDICT_NUM(playernum + 1);
@@ -385,7 +385,7 @@ void SV_ExecuteUserCommand (char *s)
 		}
 	}
 
-	if (!u->name && sv.state == ss_game)
+	if (!u->name && sv.state == ss_active)
 	{
 		// custom client commands
 		prog->globals.sv->pev = PRVM_EDICT_TO_PROG(sv_player);

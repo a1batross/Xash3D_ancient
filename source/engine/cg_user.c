@@ -13,10 +13,10 @@ extern cvar_t	*scr_showpause;
 
 char *cg_nums[11] =
 {
-"hud/num0", "hud/num1", "hud/num2", 
-"hud/num3", "hud/num4", "hud/num5",
-"hud/num6", "hud/num7", "hud/num8", 
-"hud/num9", "hud/num-",
+"hud/num_0", "hud/num_1", "hud/num_2", 
+"hud/num_3", "hud/num_4", "hud/num_5",
+"hud/num_6", "hud/num_7", "hud/num_8", 
+"hud/num_9", "hud/num_-",
 };
 
 /*
@@ -153,6 +153,18 @@ void CG_ResetColor( void )
 	re->SetColor( cls.cg_color );
 }
 
+void CG_SetScale( float x, float y )
+{
+	cls.cg_scale[0] = x;
+	cls.cg_scale[1] = y;
+}
+
+void CG_ResetScale( void )
+{
+	cls.cg_scale[0] = cls.cg_scale[1] = 1.0f;
+}
+
+
 /*
 ================
 CG_DrawLayout
@@ -235,7 +247,7 @@ void CG_DrawInventory( void )
 				break;
 			}
 		}
-		sprintf(string, "%6s %3i %s", bind, cl.inventory[item], cl.configstrings[CS_ITEMS+item] );
+		com.sprintf(string, "%6s %3i %s", bind, cl.inventory[item], cl.configstrings[CS_ITEMS+item] );
 		if (item != selected)
 		{
 			select_color = GetRGBA( 1.0f, 0.5f, 0.0f, 1.0f );
@@ -254,28 +266,35 @@ void CG_DrawInventory( void )
 
 }
 
-void CG_DrawField( int value, int x, int y, int color )
+void CG_DrawField( int value, int x, int y )
 {
 	char	num[16], *ptr;
 	int	l, frame;
+	vec2_t	scale;
 
 	sprintf(num, "%i", value );
 	l = strlen( num );
 	ptr = num;
 
-	re->SetColor( g_color_table[ColorIndex(color)] );
+	if( cls.cg_scale[0] == 1.0f )
+		scale[0] = GIANTCHAR_WIDTH; 
+	else scale[0] = cls.cg_scale[0];
+	if( cls.cg_scale[1] == 1.0f )
+		scale[1] = GIANTCHAR_HEIGHT; 
+	else scale[1] = cls.cg_scale[1];
 
 	while (*ptr && l)
 	{
 		if (*ptr == '-') frame = STAT_MINUS;
 		else frame = *ptr -'0';
-		SCR_DrawPic( x, y, GIANTCHAR_WIDTH, GIANTCHAR_HEIGHT, cg_nums[frame]);
-		x += GIANTCHAR_WIDTH;
+		SCR_DrawPic( x, y, scale[0], scale[1], cg_nums[frame]);
+		x += scale[0];
 		ptr++;
 		l--;
 	}
 
 	re->SetColor( NULL );
+	CG_ResetScale();
 }
 
 void CG_DrawBarImage( float percent, char *picname, int x, int y, int w, int h )
@@ -832,10 +851,10 @@ bool CG_ExecBuiltins( void )
 	else if(Com_MatchToken("DrawField"))
 	{
 		// displayed health, armor, e.t.c.
-		if(!CG_ParseArgs( 4 )) return false;
+		if(!CG_ParseArgs( 3 )) return false;
 		if(!CG_GetInteger(cls.cg_argv[0], &value))
 			MsgDev(D_ERROR, "%s: can't use undefined alias %s\n", cls.cg_builtin, cls.cg_argv[0]);
-		else CG_DrawField( value, atoi(cls.cg_argv[1]), atoi(cls.cg_argv[2]), atoi(cls.cg_argv[3]));
+		else CG_DrawField( value, atoi(cls.cg_argv[1]), atoi(cls.cg_argv[2]));
 	}
 	else if(Com_MatchToken("SetColor"))
 	{
@@ -848,6 +867,18 @@ bool CG_ExecBuiltins( void )
 		// reset custom color
 		if(!CG_ParseArgs( 0 )) return false;
 		CG_ResetColor();
+	}
+	else if(Com_MatchToken("SetScale"))
+	{
+		// set custom scale
+		if(!CG_ParseArgs( 2 )) return false;
+		CG_SetScale(atof(cls.cg_argv[0]), atof(cls.cg_argv[1])); 
+	}
+	else if(Com_MatchToken("ResetScale"))
+	{
+		// reset custom scale
+		if(!CG_ParseArgs( 0 )) return false;
+		CG_ResetScale();
 	}
 	else if(Com_MatchToken("DrawPic"))
 	{

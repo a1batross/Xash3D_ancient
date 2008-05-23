@@ -1326,7 +1326,7 @@ void CIN_DrawCinematic( void )
 		}
 		re->DrawStretchRaw( x, y, w, h, 256, 256, (byte *)buf2, true );
 		cinTable.dirty = false;
-		Z_Free( buf2 );
+		Mem_Free( buf2 );
 		return;
 	}
 

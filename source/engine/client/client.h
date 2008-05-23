@@ -283,6 +283,7 @@ typedef struct
 	cg_cvars_t	cg_cvars[128];
 	uint		cg_numcvars;
 	vec4_t		cg_color;
+	vec2_t		cg_scale;
 		
 } client_static_t;
 

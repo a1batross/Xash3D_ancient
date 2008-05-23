@@ -1032,8 +1032,8 @@ void SV_Shutdown( bool reconnect )
 	Host_SetServerState (sv.state);
 
 	// free server static data
-	if (svs.clients) Z_Free (svs.clients);
-	if (svs.client_entities) Z_Free (svs.client_entities);
+	if (svs.clients) Mem_Free (svs.clients);
+	if (svs.client_entities) Mem_Free (svs.client_entities);
 	memset (&svs, 0, sizeof(svs));
 }
 

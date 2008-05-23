@@ -355,7 +355,7 @@ bool Cmd_GetMapList (const char *s, char *completedname, int length )
 				}
 			}
 		}
-		if( entities )Z_Free(entities);
+		if( entities )Mem_Free(entities);
 		if( f )FS_Close(f);
 		FS_FileBase(t->filenames[i], matchbuf );
 
@@ -374,7 +374,7 @@ bool Cmd_GetMapList (const char *s, char *completedname, int length )
 		nummaps++;
 	}
 	Msg("\n^3 %i maps found.\n", nummaps );
-	Z_Free( t );
+	Mem_Free( t );
 
 	// cut shortestMatch to the amount common with s
 	for( i = 0; matchbuf[i]; i++ )
@@ -415,7 +415,7 @@ bool Cmd_GetFontList (const char *s, char *completedname, int length )
 		numfonts++;
 	}
 	Msg("\n^3 %i fonts found.\n", numfonts );
-	Z_Free(t);
+	Mem_Free(t);
 
 	// cut shortestMatch to the amount common with s
 	if(completedname && length)
@@ -460,7 +460,7 @@ bool Cmd_GetDemoList (const char *s, char *completedname, int length )
 		numdems++;
 	}
 	Msg("\n^3 %i fonts found.\n", numdems );
-	Z_Free(t);
+	Mem_Free(t);
 
 	// cut shortestMatch to the amount common with s
 	if(completedname && length)
@@ -505,7 +505,7 @@ bool Cmd_GetMovieList (const char *s, char *completedname, int length )
 		nummovies++;
 	}
 	Msg("\n^3 %i movies found.\n", nummovies );
-	Z_Free(t);
+	Mem_Free(t);
 
 	// cut shortestMatch to the amount common with s
 	if(completedname && length)

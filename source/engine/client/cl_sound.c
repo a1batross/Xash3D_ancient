@@ -2282,7 +2282,7 @@ bool S_LoadSound( sfx_t *sfx )
 	if ( info.channels != 1 )
 	{
 		MsgDev(D_INFO, "%s is a stereo wav file\n", sfx->soundName);
-		Z_Free( data );
+		Mem_Free( data );
 		return false;
 	}
 
@@ -2313,8 +2313,8 @@ bool S_LoadSound( sfx_t *sfx )
 		ResampleSfx( sfx, info.rate, info.width, data + info.dataofs, false );
 	}
 	
-	Z_Free( samples );
-	Z_Free( data );
+	Mem_Free( samples );
+	Mem_Free( data );
 
 	return true;
 }

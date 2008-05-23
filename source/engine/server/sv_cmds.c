@@ -131,7 +131,7 @@ void SV_Map_f( void )
 
 	SV_BroadcastCommand("changing\n");
 	SV_SendClientMessages();
-	SV_SpawnServer( filename, NULL, ss_game );
+	SV_SpawnServer( filename, NULL, ss_active );
 	SV_BroadcastCommand ("reconnect\n");
 
 	// archive server state
@@ -200,7 +200,7 @@ void SV_Load_f( void )
 
 	SV_ReadSaveFile( filename );
 	SV_BroadcastCommand( "changing\n" );
-	SV_SpawnServer( svs.mapcmd, filename, ss_game );
+	SV_SpawnServer( svs.mapcmd, filename, ss_active );
 	SV_BroadcastCommand( "reconnect\n" );
 }
 
@@ -249,7 +249,7 @@ void SV_ChangeLevel_f( void )
 		return;
 	}
 
-	if(sv.state == ss_game)
+	if(sv.state == ss_active)
 	{
 		bool		*savedFree;
 		client_state_t	*cl;
@@ -268,13 +268,13 @@ void SV_ChangeLevel_f( void )
 		// we must restore these for clients to transfer over correctly
 		for (i = 0, cl = svs.clients; i < maxclients->integer; i++, cl++)
 			cl->edict->priv.sv->free = savedFree[i];
-		Z_Free(savedFree);
+		Mem_Free(savedFree);
 	}
 
 	SV_InitGame(); // reset previous state
 	SV_BroadcastCommand("changing\n");
 	SV_SendClientMessages();
-	SV_SpawnServer( filename, NULL, ss_game );
+	SV_SpawnServer( filename, NULL, ss_active );
 	SV_BroadcastCommand ("reconnect\n");
 
 	// archive server state
@@ -292,7 +292,7 @@ void SV_Restart_f( void )
 {
 	char	filename[MAX_QPATH];
 	
-	if(sv.state != ss_game) return;
+	if(sv.state != ss_active) return;
 
 	strncpy( filename, svs.mapcmd, MAX_QPATH );
 	FS_StripExtension( filename );

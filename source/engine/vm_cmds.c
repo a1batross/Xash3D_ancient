@@ -203,7 +203,7 @@ void VM_sprint( void )
 
 	//find client for this entity
 	num = (int)PRVM_G_FLOAT(OFS_PARM0);
-	if (sv.state != ss_game || num < 0 || num >= host.maxclients || svs.clients[num].state != cs_spawned)
+	if (sv.state != ss_active || num < 0 || num >= host.maxclients || svs.clients[num].state != cs_spawned)
 	{
 		VM_Warning("VM_sprint: %s: invalid client or server is not active !\n", PRVM_NAME);
 		return;
@@ -253,7 +253,7 @@ void VM_clientcmd (void)
 	VM_SAFEPARMCOUNT(2, VM_clientcmd);
 
 	i = (int)PRVM_G_FLOAT(OFS_PARM0);
-	if (sv.state != ss_game  || i < 0 || i >= maxclients->value || svs.clients[i].state != cs_spawned)
+	if (sv.state != ss_active  || i < 0 || i >= maxclients->value || svs.clients[i].state != cs_spawned)
 	{
 		VM_Warning("VM_clientcommand: %s: invalid client/server is not active !\n", PRVM_NAME);
 		return;
@@ -1196,7 +1196,7 @@ void VM_changelevel (void)
 
 	VM_SAFEPARMCOUNT(1, VM_changelevel);
 
-	if(sv.state != ss_game)
+	if(sv.state != ss_active)
 	{
 		VM_Warning("VM_changelevel: game is not server (%s)\n", PRVM_NAME);
 		return;
@@ -1840,7 +1840,7 @@ void VM_isserver(void)
 {
 	VM_SAFEPARMCOUNT(0,VM_serverstate);
 
-	PRVM_G_FLOAT(OFS_RETURN) = (sv.state == ss_game) ? true : false;
+	PRVM_G_FLOAT(OFS_RETURN) = (sv.state == ss_active) ? true : false;
 }
 
 /*
@@ -2762,10 +2762,10 @@ static void BufStr_ClearBuffer (int index)
 		{
 			for(i=0;i<b->num_strings;i++)
 				if(b->strings[i])
-					Z_Free(b->strings[i]);
+					Mem_Free(b->strings[i]);
 			num_qcstringbuffers--;
 		}
-		Z_Free(qcstringbuffers[index]);
+		Mem_Free(qcstringbuffers[index]);
 		qcstringbuffers[index] = NULL;
 	}
 }
@@ -2969,7 +2969,7 @@ void VM_buf_sort (void)
 				break;
 			else
 			{
-				Z_Free(b->strings[i]);
+				Mem_Free(b->strings[i]);
 				--b->num_strings;
 				b->strings[i] = NULL;
 			}
@@ -3092,7 +3092,7 @@ void VM_bufstr_set (void)
 		return;
 	}
 	if(b->strings[strindex])
-		Z_Free(b->strings[strindex]);
+		Mem_Free(b->strings[strindex]);
 	alloclen = strlen(news) + 1;
 	b->strings[strindex] = (char *)Z_Malloc(alloclen);
 	memcpy(b->strings[strindex], news, alloclen);
@@ -3154,7 +3154,7 @@ void VM_bufstr_add (void)
 		b->num_strings++;
 	}
 	if(b->strings[strindex])
-		Z_Free(b->strings[strindex]);
+		Mem_Free(b->strings[strindex]);
 	alloclen = strlen(string) + 1;
 	b->strings[strindex] = (char *)Z_Malloc(alloclen);
 	memcpy(b->strings[strindex], string, alloclen);
@@ -3187,7 +3187,7 @@ void VM_bufstr_free (void)
 		return;
 	}
 	if(b->strings[i])
-		Z_Free(b->strings[i]);
+		Mem_Free(b->strings[i]);
 	b->strings[i] = NULL;
 	if(i+1 == b->num_strings)
 		--b->num_strings;

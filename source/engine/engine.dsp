@@ -214,6 +214,10 @@ SOURCE=.\uimenu\qmenu.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\server\sv_client.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\server\sv_cmds.c
 # End Source File
 # Begin Source File
@@ -238,10 +242,6 @@ SOURCE=.\server\sv_phys.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\server\sv_save.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\server\sv_send.c
 # End Source File
 # Begin Source File
@@ -255,10 +255,6 @@ SOURCE=.\server\sv_studio.c
 # Begin Source File
 
 SOURCE=.\server\sv_user.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\server\sv_utils.c
 # End Source File
 # Begin Source File
 

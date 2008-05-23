@@ -53,7 +53,7 @@ typedef struct host_parm_s
 	host_redirect_t	rd;		// remote console
 	jmp_buf		abortframe;	// abort current frame
 
-	char		finalmsg[MAX_STRING];// server shutdown final message
+	string		finalmsg;		// server shutdown final message
 
 	dword		framecount;	// global framecount
 	double		realtime;		// host realtime
@@ -71,7 +71,7 @@ typedef struct host_parm_s
 
 
 
-	uint		maxclients;	// host max clients
+	uint		maxclients;	// host max clients (unused)
 
 } host_parm_t;
 
@@ -80,9 +80,8 @@ typedef struct host_parm_s
 memory manager
 ===========================================
 */
-// z_malloc-free
-#define Z_Malloc(size) Mem_Alloc(zonepool, size)
-#define Z_Free(data) Mem_Free(data)
+// zone malloc
+#define Z_Malloc(size) Mem_Alloc( zonepool, size )
 
 /*
 ===========================================
