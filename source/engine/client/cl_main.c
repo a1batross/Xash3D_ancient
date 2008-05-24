@@ -1464,6 +1464,7 @@ void CL_Init (void)
 	Con_Init();	
 	VID_Init();
 	V_Init();
+	CL_InitClientProgs();
 	CG_Init();
 
 	net_message.data = net_message_buffer;
@@ -1490,7 +1491,8 @@ void CL_Shutdown(void)
 	// already freed
 	if(host.state == HOST_ERROR) return;
 
-	CL_WriteConfiguration (); 
+	CL_WriteConfiguration(); 
+	CL_FreeClientProgs();
 	S_Shutdown();
 	CL_ShutdownInput();
 }

@@ -1622,6 +1622,10 @@ typedef struct gameinfo_s
 	int64	tickcount;	// cpu frequency in 'ticks'
 	float	cpufreq;		// cpu frequency in MHz
 	bool	rdtsc;		// rdtsc support (profiler stuff)
+
+	string	server_prog;	// path to server.dat
+	string	client_prog;	// path to client.dat
+	string	uimenu_prog;	// path to uimenu.dat
 	
 	char	key[MAX_INFO_KEY];	// cd-key info
 	char	TXcommand;	// quark command (get rid of this)

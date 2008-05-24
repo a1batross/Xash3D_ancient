@@ -166,6 +166,10 @@ SOURCE=.\client\cl_pred.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\client\cl_progs.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\client\cl_scrn.c
 # End Source File
 # Begin Source File
@@ -226,10 +230,6 @@ SOURCE=.\server\sv_ents.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\server\sv_game.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\server\sv_init.c
 # End Source File
 # Begin Source File
@@ -239,6 +239,10 @@ SOURCE=.\server\sv_main.c
 # Begin Source File
 
 SOURCE=.\server\sv_phys.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\server\sv_progs.c
 # End Source File
 # Begin Source File
 
@@ -291,6 +295,10 @@ SOURCE=.\vm_exec.c
 # Begin Source File
 
 SOURCE=..\public\basetypes.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\client\cl_edict.h
 # End Source File
 # Begin Source File
 

@@ -111,7 +111,7 @@ skips color escape codes
 */
 int CG_GetBigStringWidth( const char *str )
 {
-	return com.cstrlen( str ) * 16;
+	return com.cstrlen( str ) * BIGCHAR_WIDTH;
 }
 
 /*

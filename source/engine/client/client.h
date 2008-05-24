@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define CLIENT_H
 
 #include "engine.h"
+#include "progsvm.h"
 #include "screen.h"
 #include "mathlib.h"
 #include "basefiles.h"
@@ -246,10 +247,11 @@ typedef struct
 
 	int			quakePort;			// a 16 bit value that allows quake servers
 									// to work around address translating routers
-	netchan_t	netchan;
-	int			serverProtocol;		// in case we are doing some kind of version hack
+	netchan_t		netchan;
+	sizebuf_t		*multicast;		// ptr for current message buffer (net or demo flow)
+	int		serverProtocol;		// in case we are doing some kind of version hack
 
-	int			challenge;			// from the server to use for connecting
+	int		challenge;			// from the server to use for connecting
 
 	file_t		*download;			// file transfer from server
 	char		downloadtempname[MAX_OSPATH];
@@ -540,6 +542,12 @@ void CL_StopRecord( void );
 void CL_PlayDemo_f( void );
 void CL_Record_f( void );
 void CL_Stop_f( void );
+
+//
+// cl_progs.c
+//
+void CL_InitClientProgs( void );
+void CL_FreeClientProgs( void );
 
 //
 // cl_sound.c

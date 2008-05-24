@@ -67,6 +67,7 @@ struct edict_s
 		vm_edict_t		*ed;	// vm edict state 
 		void			*vp;	// generic edict
 		sv_edict_t		*sv;	// sv edict state
+		cl_edict_t		*cl;	// cl edict state
 		ui_edict_t		*ui;	// ui edict state
 	} priv;
 
@@ -75,6 +76,7 @@ struct edict_s
 	{
 		void			*vp;	// generic entvars
 		sv_entvars_t		*sv;	// server entvars
+		cl_entvars_t		*cl;	// client entvars
 		ui_entvars_t		*ui;	// uimenu entvars
 	} progs;
 
@@ -120,6 +122,7 @@ typedef struct prvm_prog_s
 	{
 		float			*gp;
 		sv_globalvars_t		*sv;
+		cl_globalvars_t		*cl;
 		ui_globalvars_t		*ui;
 	} globals;
 

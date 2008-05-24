@@ -1,6 +1,6 @@
 //=======================================================================
 //			Copyright XashXT Group 2008 ©
-//		        sv_game.c - server.dat interface
+//		        sv_progs.c - server.dat interface
 //=======================================================================
 
 #include "engine.h"
@@ -2092,7 +2092,7 @@ void SV_InitServerProgs( void )
 		prog->reset_cmd = VM_Cmd_Reset;
 		prog->error_cmd = VM_Error;
 		prog->flag |= PRVM_OP_STATE; // enable op_state feature
-		PRVM_LoadProgs( "server.dat", 0, NULL, SV_NUM_REQFIELDS, sv_reqfields );
+		PRVM_LoadProgs( GI->server_prog, 0, NULL, SV_NUM_REQFIELDS, sv_reqfields );
 	}
 	PRVM_End;
 }

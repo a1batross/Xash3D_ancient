@@ -131,7 +131,7 @@ void UI_Init( void )
 	prog->reset_cmd = VM_Cmd_Reset;
 	prog->error_cmd = UI_Error;
 
-	PRVM_LoadProgs( "uimenu.dat", 0, NULL, UI_NUM_REQFIELDS, ui_reqfields );
+	PRVM_LoadProgs( GI->uimenu_prog, 0, NULL, UI_NUM_REQFIELDS, ui_reqfields );
 	*prog->time = cls.realtime;
 
 	PRVM_ExecuteProgram (prog->globals.ui->m_init, "QC function m_init is missing");

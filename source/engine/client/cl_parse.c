@@ -612,6 +612,8 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 	if (cl_shownet->value == 1) Msg ("%i ",msg->cursize);
 	else if (cl_shownet->value >= 2) Msg ("------------------\n");
 
+	cls.multicast = msg; // client progs can recivied messages too
+
 	// parse the message
 	while( 1 )
 	{

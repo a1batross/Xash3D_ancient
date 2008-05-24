@@ -487,7 +487,7 @@ extern cvar_t *prvm_statementprofiling;
 extern int PRVM_ED_FindFieldOffset (const char *field);
 extern ddef_t* PRVM_ED_FindGlobal(const char *name);
 
-void PRVM_ExecuteProgram (func_t fnum, const char *errormessage)
+void PRVM_ExecuteProgram( func_t fnum, const char *errormessage )
 {
 	dstatement_t	*st, *startst;
 	mfunction_t	*f, *newf;
@@ -496,9 +496,9 @@ void PRVM_ExecuteProgram (func_t fnum, const char *errormessage)
 	int		switchtype, exitdepth;
 	int		i, jumpcount, cachedpr_trace;
 
-	if (!fnum || fnum >= (unsigned int)prog->progs->numfunctions)
+	if( !fnum || fnum >= (uint)prog->progs->numfunctions )
 	{
-		if (prog->pev && PRVM_G_INT(prog->pev->ofs))
+		if( prog->pev && PRVM_G_INT(prog->pev->ofs) )
 			PRVM_ED_Print(PRVM_PROG_TO_EDICT(PRVM_G_INT(prog->pev->ofs)));
 		PRVM_ERROR ("PRVM_ExecuteProgram: %s", errormessage);
 		return;

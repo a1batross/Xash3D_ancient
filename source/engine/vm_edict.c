@@ -1315,7 +1315,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		PRVM_ERROR("PRVM_LoadProgs: couldn't load %s for %s\n", filename, PRVM_NAME);
 
 	MsgDev(D_INFO, "%s programs occupy %iK.\n", PRVM_NAME, filesize/1024);
-	prog->filecrc = CRC_Block((unsigned char *)prog->progs, filesize);
+	prog->filecrc = CRC_Block((byte *)prog->progs, filesize);
 
 	// byte swap the header
 	SwapBlock((int *)prog->progs, sizeof(*prog->progs));
@@ -1341,6 +1341,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 	switch(prog->progs->crc)
 	{
 	case PROG_CRC_SERVER:
+	case PROG_CRC_CLIENT:
 	case PROG_CRC_UIMENU:
 		break;
 	default:

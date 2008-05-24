@@ -39,7 +39,7 @@ typedef struct vrect_s
 #define SMALLCHAR_WIDTH	8
 #define SMALLCHAR_HEIGHT	16
 #define BIGCHAR_WIDTH	16
-#define BIGCHAR_HEIGHT	16
+#define BIGCHAR_HEIGHT	24
 #define GIANTCHAR_WIDTH	32
 #define GIANTCHAR_HEIGHT	48
 
