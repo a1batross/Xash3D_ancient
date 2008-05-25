@@ -253,6 +253,7 @@ void SV_VM_End(void);
 //
 // sv_phys.c
 //
+void SV_PlayerMove( sv_edict_t *ed );
 void SV_PrepWorldFrame (void);
 void SV_Physics (edict_t *ent);
 void SV_DropToFloor (edict_t *ent);

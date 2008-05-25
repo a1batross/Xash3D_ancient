@@ -15,17 +15,19 @@ NewtonWorld	*gWorld;
 cvar_t *cm_use_triangles;
 cvar_t *cm_solver_model;
 cvar_t *cm_friction_model;
+cvar_t *cm_physics_model;
 
 bool InitPhysics( void )
 {
 	physpool = Mem_AllocPool("Physics Pool");
 	cmappool = Mem_AllocPool("CM Zone");
-	gWorld = NewtonCreate (Palloc, Pfree); // alloc world
+	gWorld = NewtonCreate( Palloc, Pfree ); // alloc world
 
 	cm_noareas = Cvar_Get( "cm_noareas", "0", 0 );
 	cm_use_triangles = Cvar_Get("cm_convert_polygons", "1", CVAR_INIT|CVAR_SYSTEMINFO );//, "convert bsp polygons to triangles, slowly but more safety way" );
 	cm_solver_model = Cvar_Get("cm_solver", "0", CVAR_ARCHIVE );//, "change solver model: 0 - precision, 1 - adaptive, 2 - fast. (changes need restart server to take effect)" );
 	cm_friction_model = Cvar_Get("cm_friction", "0", CVAR_ARCHIVE );//, "change solver model: 0 - precision, 1 - adaptive. (changes need restart server to take effect)" );
+	cm_physics_model = Cvar_Get("cm_physic", "1", CVAR_ARCHIVE );//, "change physic model: 0 - Classic Quake Physic, 1 - Physics Engine" );
 
 	return true;
 }
@@ -91,6 +93,12 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 
 	Phys.Frame = PhysFrame;
 	Phys.CreateBody = Phys_CreateBody;
+	Phys.CreatePlayer = Phys_CreatePlayer;
+
+	Phys.PlayerMove = CM_PlayerMove;
+	Phys.ServerMove = CM_ServerMove;
+	Phys.ClientMove = CM_ClientMove;
+
 	Phys.GetForce = Phys_GetForce;
 	Phys.SetForce = Phys_SetForce;
 	Phys.GetMassCentre = Phys_GetMassCentre;

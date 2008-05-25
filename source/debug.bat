@@ -63,5 +63,5 @@ if exist viewer\viewer.plg del /f /q viewer\viewer.plg
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading
 cd D:\Xash3D\
-xash.exe -log -game tmpQuArK -debug -dev 3 +map qctest
+xash.exe -log -game tmpQuArK -debug -dev 3 +map start
 :done

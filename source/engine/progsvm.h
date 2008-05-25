@@ -29,7 +29,6 @@ The code uses void pointers instead.
 #ifndef PROGSVM_H
 #define PROGSVM_H
 
-#include "pmove.h"
 #include "sv_edict.h"		// server progs
 #include "cl_edict.h"		// client progs
 #include "ui_edict.h"		// uimenu progs

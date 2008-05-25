@@ -30,6 +30,7 @@ extern NewtonWorld	*gWorld;
 extern cvar_t *cm_use_triangles;
 extern cvar_t *cm_solver_model;
 extern cvar_t *cm_friction_model;
+extern cvar_t *cm_physics_model;		// 0 - classic Quake Physic, 1 - Newton Physic
 
 long _ftol2( double dblSource );
 void Phys_LoadBSP( uint *buffer );
@@ -41,6 +42,7 @@ void Phys_Frame( float time );
 // cm_rigidbody.c
 //
 physbody_t *Phys_CreateBody( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform, int solid );
+physbody_t *Phys_CreatePlayer( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform );
 bool Phys_GetForce( physbody_t *body, vec3_t velocity, vec3_t avelocity, vec3_t force, vec3_t torque );
 void Phys_SetForce( physbody_t *body, vec3_t velocity, vec3_t avelocity, vec3_t force, vec3_t torque );
 bool Phys_GetMassCentre( physbody_t *body, matrix3x3 mass );
@@ -51,6 +53,7 @@ void Phys_RemoveBody( physbody_t *body );
 // cm_callback.c
 //
 void Callback_ApplyForce( const NewtonBody* body );
+void Callback_PmoveApplyForce( const NewtonBody* body );
 void Callback_ApplyTransform( const NewtonBody* body, const float* matrix );
 
 #define Host_Error com.error

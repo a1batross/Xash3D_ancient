@@ -33,6 +33,7 @@ typedef struct worldsector_s
 struct gclient_s
 {
 	player_state_t		ps;		// communicated by server to clients
+	usercmd_t			ucmd;		// memeber current frame commands
 	int			ping;
 };
 

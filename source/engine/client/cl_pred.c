@@ -214,9 +214,6 @@ void CL_PredictMovement (void)
 	memset (&pm, 0, sizeof(pm));
 	pm.trace = CL_PMTrace;
 	pm.pointcontents = CL_PMpointcontents;
-
-	pm_airaccelerate = atof(cl.configstrings[CS_AIRACCEL]);
-
 	pm.ps = cl.frame.playerstate;
 
 //	SCR_DebugGraph (current - ack - 1, COLOR_0);
@@ -230,7 +227,7 @@ void CL_PredictMovement (void)
 		cmd = &cl.cmds[frame];
 
 		pm.cmd = *cmd;
-		Pmove (&pm);
+		pe->PlayerMove( &pm, true );
 
 		// save for debug checking
 		VectorCopy (pm.ps.origin, cl.predicted_origins[frame]);

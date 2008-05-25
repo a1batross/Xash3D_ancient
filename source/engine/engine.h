@@ -20,7 +20,6 @@
 #include "net_msg.h"
 #include "screen.h"
 #include "keycodes.h"
-#include "pmove.h"
 
 extern stdlib_api_t		com;
 extern physic_exp_t		*pe;

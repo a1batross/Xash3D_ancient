@@ -210,10 +210,6 @@ SOURCE=.\net_wins.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\pmove.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\uimenu\qmenu.c
 # End Source File
 # Begin Source File

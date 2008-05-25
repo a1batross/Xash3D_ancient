@@ -192,6 +192,20 @@ extern physic_t ph;
 
 extern cvar_t *cm_noareas;
 
+// test variables
+extern int	characterID; 
+extern uint	m_jumpTimer;
+extern bool	m_isStopped;
+extern bool	m_isAirBorne;
+extern float	m_maxStepHigh;
+extern float	m_yawAngle;
+extern float	m_maxTranslation;
+extern vec3_t	m_size;
+extern vec3_t	m_stepContact;
+extern vec3_t	m_forceVector;
+extern matrix4x4	m_matrix;
+extern float	*m_upVector;
+
 //
 // cm_test.c
 //

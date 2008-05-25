@@ -52,8 +52,8 @@ void Sys_Error( const char *error, ... )
 
 	// prepare host to close
 	sprintf( host.finalmsg, "Server fatal crashed: %s\n", errorstring );
-	host.state = HOST_ERROR; // lock shutdown state
-	Host_FreeRender();
+	host.state = HOST_ERROR;	// lock shutdown state
+	Host_FreeRender();		// close render to show message error
 
 	com.error("%s", errorstring );
 }

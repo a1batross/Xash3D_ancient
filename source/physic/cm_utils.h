@@ -57,5 +57,10 @@ int CM_LeafArea( int leafnum );
 bool CM_AreasConnected( int area1, int area2 );
 int CM_WriteAreaBits( byte *buffer, int area );
 void CM_ModelBounds( cmodel_t *model, vec3_t mins, vec3_t maxs );
+float CM_FindFloor( vec3_t p0, float maxDist );
+
+void CM_PlayerMove( pmove_t *pmove, bool clientmove );
+void CM_ServerMove( pmove_t *pmove );
+void CM_ClientMove( pmove_t *pmove );
 
 #endif//CM_UTILS_H

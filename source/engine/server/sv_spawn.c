@@ -49,7 +49,7 @@ void SV_PutClientInServer (edict_t *ent)
 	memset (&ent->priv.sv->client->ps, 0, sizeof(client->ps));
 
 	// info_player_start
-	VectorCopy(ent->progs.sv->origin, client->ps.origin);  
+	VectorCopy( ent->progs.sv->origin, client->ps.origin );  
 
 	client->ps.fov = 90;
 	client->ps.fov = bound(1, client->ps.fov, 160);
@@ -81,8 +81,10 @@ void SV_PutClientInServer (edict_t *ent)
 		ent->progs.sv->angles[ROLL] = 0;
 	}
 
-	VectorCopy(ent->progs.sv->angles, client->ps.viewangles);
+	VectorCopy( ent->progs.sv->angles, client->ps.viewangles );
+
 	SV_LinkEdict(ent);
+	ent->priv.sv->physbody = pe->CreatePlayer( ent->priv.sv, SV_GetModelPtr( ent ), ent->progs.sv->m_pmatrix );
 }
 
 /*
@@ -512,6 +514,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	else client->ps.pm_flags &= ~PMF_TIME_TELEPORT; 
 
 	pm.ps = client->ps;
+	memcpy( &client->ucmd, ucmd, sizeof(usercmd_t));//IMPORTANT!!!
 
 	VectorCopy(ent->progs.sv->origin, pm.ps.origin );
 	VectorCopy(ent->progs.sv->velocity, pm.ps.velocity );
@@ -522,7 +525,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	pm.pointcontents = PM_pointcontents;
 
 	// perform a pmove
-	Pmove (&pm);
+	pe->PlayerMove( &pm, false );
 
 	// save results of pmove
 	client->ps = pm.ps;
@@ -669,7 +672,7 @@ void Cmd_Say_f (edict_t *ent, bool team, bool arg0)
 	// don't let text be too long for malicious reasons
 	if (strlen(text) > 150) text[150] = 0;
 
-	strcat(text, "\n");
+	com.strcat(text, "\n");
 
 	if (dedicated->value) 
 		PF_cprintf(NULL, PRINT_CHAT, "%s", text);
@@ -789,4 +792,50 @@ void SV_Transform( sv_edict_t *ed, matrix4x3 transform )
 	// refresh force and torque
 	pe->GetForce( ed->physbody, edict->progs.sv->velocity, edict->progs.sv->avelocity, edict->progs.sv->force, edict->progs.sv->torque );
 	pe->GetMassCentre( ed->physbody, edict->progs.sv->m_pcentre );
+}
+
+/*
+==============
+CV_ClientMove
+
+grab user cmd from player_state_t
+send it to transform callback
+==============
+*/
+void SV_PlayerMove( sv_edict_t *ed )
+{
+	pmove_t		pm;
+	gclient_t		*client;
+	edict_t		*player;
+
+	client = ed->client;
+	player = PRVM_PROG_TO_EDICT( ed->serialnumber );
+	memset( &pm, 0, sizeof(pm) );
+
+	if( player->progs.sv->movetype == MOVETYPE_NOCLIP )
+		client->ps.pm_type = PM_SPECTATOR;
+	else client->ps.pm_type = PM_NORMAL;
+	client->ps.gravity = sv_gravity->value;
+
+	if( player->progs.sv->teleport_time )
+		client->ps.pm_flags |= PMF_TIME_TELEPORT; 
+	else client->ps.pm_flags &= ~PMF_TIME_TELEPORT; 
+
+	pm.ps = client->ps;
+	pm.cmd = client->ucmd;
+	pm.body = ed->physbody;	// member body ptr
+	
+	VectorCopy( player->progs.sv->origin, pm.ps.origin );
+	VectorCopy( player->progs.sv->velocity, pm.ps.velocity );
+
+	pe->ServerMove( &pm );
+
+	// save results of pmove
+	client->ps = pm.ps;
+
+	VectorCopy(pm.ps.origin, player->progs.sv->origin);
+	VectorCopy(pm.ps.velocity, player->progs.sv->velocity);
+	VectorCopy(pm.mins, player->progs.sv->mins);
+	VectorCopy(pm.maxs, player->progs.sv->maxs);
+	VectorCopy(pm.ps.viewangles, client->ps.viewangles);
 }  

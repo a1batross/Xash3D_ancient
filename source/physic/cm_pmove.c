@@ -1,26 +1,22 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
+//=======================================================================
+//			Copyright XashXT Group 2007 ©
+//		        cm_pmove.c - player movement code
+//=======================================================================
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
+#include "cm_local.h"
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-
-#include "engine.h"
-#include "pmove.h"
-#include "mathlib.h"
+int	characterID; 
+uint	m_jumpTimer;
+bool	m_isStopped;
+bool	m_isAirBorne;
+float	m_maxStepHigh;
+float	m_yawAngle;
+float	m_maxTranslation;
+vec3_t	m_size;
+vec3_t	m_stepContact;
+vec3_t	m_forceVector;
+float	*m_upVector;
+matrix4x4	m_matrix;
 
 #define PM_SPEED		160.f
 #define STEPSIZE		18
@@ -75,6 +71,16 @@ float	pm_waterfriction = 1.0f;
 float	pm_flightfriction = 3.0f;
 
 /*
+==============================================================
+
+PLAYER MOVEMENT CODE
+
+Common between server and client so prediction matches
+
+==============================================================
+*/
+
+/*
   walking up a step should kill some velocity
 */
 
@@ -108,7 +114,7 @@ void PM_AddTouchEnt( edict_t *entity )
 {
 	int		i;
 
-	if( pm->numtouch == MAXTOUCH )
+	if( pm->numtouch == PM_MAXTOUCH )
 		return;
 
 	// see if it is already added
@@ -1474,7 +1480,7 @@ Pmove
 Can be called by either the server or the client
 ================
 */
-void Pmove( pmove_t *pmove )
+void Quake_PMove( pmove_t *pmove )
 {
 	pm = pmove;
 
@@ -1584,4 +1590,232 @@ void Pmove( pmove_t *pmove )
 		pmove->cmd.upmove = 20;
 	}
 	//PM_CheckStuck();
+}
+
+void CM_CmdUpdateForce( usercmd_t *cmd )
+{
+	m_forceVector[0] = cmd->forwardmove;// / 200;
+	m_forceVector[2] = cmd->sidemove;// / 200;
+
+	if( cmd->upmove != 0.0f)
+	{
+		m_jumpTimer = 4;
+	}
+}
+
+void CM_ServerMove( pmove_t *pmove )
+{
+	float		mass, Ixx, Iyy, Izz, dist, floor, accelY;
+	float		newScale, deltaHeight, steerAngle, timestep, timestepInv;
+	vec3_t		force, add_force, torque, omega, heading, velocity, step;
+	matrix4x4		matrix, collisionPaddingMatrix;
+	vec3_t		head1, head2, vec_view, pin;
+	NewtonCollision	*col;
+	NewtonBody	*body;
+
+	pm = pmove;
+	body = pm->body;
+
+	PM_UpdateViewAngles( &pm->ps, &pm->cmd );
+	CM_CmdUpdateForce( &pm->cmd );
+	
+	// get the current world timestep
+	timestep = NewtonGetTimeStep( gWorld );
+	timestepInv = 1.0f / timestep;
+          col = NewtonBodyGetCollision( body );
+
+	// get the character mass
+	NewtonBodyGetMassMatrix( body, &mass, &Ixx, &Iyy, &Izz);
+	VectorSet( force, 0.0f, mass * -9.8f, 0.0f);
+	NewtonBodyGetVelocity( body, &velocity[0] );	// get the velocity vector
+	NewtonBodyGetMatrix( body, &matrix[0][0] );
+
+	// if the floor is with in reach then the character must be snap to the ground
+	// the max allow distance for snapping i 0.25 of a meter
+	if( m_isAirBorne && !m_jumpTimer )
+	{ 
+		floor = CM_FindFloor( matrix[3], m_size[2] + 0.25f );
+		deltaHeight = (matrix[3][2] - m_size[2]) - floor;
+		if((deltaHeight < (0.25f - 0.001f)) && (deltaHeight > 0.01f))
+		{
+			// snap to floor only if the floor is lower than the character feet		
+			accelY = - (deltaHeight * timestepInv + velocity[2]) * timestepInv;
+			force[2] = mass * accelY;
+		}
+	}
+	else if( m_jumpTimer == 4 ) //JUMP_TIMER
+	{
+		vec3_t	veloc;
+		VectorSet( veloc, 0.0f, 0.4f, 0.0f );
+		NewtonAddBodyImpulse( body, &veloc[0], &matrix[3][0] );
+	}
+
+	m_jumpTimer = m_jumpTimer ? m_jumpTimer - 1 : 0;
+	
+	// rotate the force direction to align with the camera
+	VectorIRotate( m_forceVector, m_matrix, heading );
+
+	newScale = 1.0f / sqrt( DotProduct(heading, heading) + 1.0e-6f );
+	VectorScale( heading, newScale, heading );
+	VectorScale( heading, mass * 30.0f, head1 );
+	VectorScale( heading, 2.0f * DotProduct( velocity, heading ), head2 );
+			
+	VectorSubtract( head1, head2, add_force ); 
+	VectorAdd( force, add_force, force );
+	NewtonBodySetForce( body, &force[0] );
+
+	// estimate the final horizontal translation for to next force and velocity
+	VectorScale( force, timestep / mass, force );
+	VectorAdd( force, velocity, step );
+	VectorScale( step, timestep, step );
+
+	VectorSet( step, DotProduct(step, m_matrix[0]), DotProduct(step, m_matrix[2]), DotProduct(step, m_matrix[1]));
+	MatrixLoadIdentity( collisionPaddingMatrix );
+
+	step[2] = 0.0f;
+	dist = DotProduct( step, step );
+
+	if( dist > m_maxTranslation * m_maxTranslation )
+	{
+		matrix4x4	transp;
+
+		// when the velocity is high enough that can miss collision we will enlarge the collision 
+		// long the vector velocity
+		dist = sqrt( dist );
+		VectorScale( step, 1.0f / dist, step );
+
+		// make a rotation matrix that will align the velocity vector with the front vector
+		collisionPaddingMatrix[0][0] =  step[0];
+		collisionPaddingMatrix[0][2] = -step[2];
+		collisionPaddingMatrix[2][0] =  step[2];
+		collisionPaddingMatrix[2][2] =  step[0];
+
+		// get the transpose of the matrix
+		MatrixTranspose( transp, collisionPaddingMatrix );
+
+		VectorScale( transp[0], dist/m_maxTranslation, transp[0] );
+
+		// calculate and oblique scale matrix by using a similar transformation matrix of the for, R'* S * R
+		MatrixConcat( collisionPaddingMatrix, collisionPaddingMatrix, transp ); 
+	}
+
+	// set the collision modifierMatrix;
+	NewtonConvexHullModifierSetMatrix( col, &collisionPaddingMatrix[0][0] );
+
+	// calculate the torque vector
+	VectorMultiply( m_matrix[0], pm->ps.viewangles, vec_view );
+	steerAngle = bound( -1.0f, vec_view[2], -1.0f );
+	steerAngle = asin( steerAngle ); 
+	NewtonBodyGetOmega( body, &omega[0] );
+
+	VectorSet( torque, 0.0f, 0.5f * Iyy * (steerAngle * timestepInv - omega[2]) * timestepInv, 0.0f );
+	NewtonBodySetTorque( body, &torque[0] );
+
+	// assume the character is on the air. this variable will be set to false if the contact detect 
+	//the character is landed 
+	m_isAirBorne = true;
+	VectorSet( m_stepContact, 0.0f, -m_size[2], 0.0f );   
+
+	VectorSet( pin, 0.0f, 1.0f, 0.0f);
+	NewtonUpVectorSetPin( m_upVector, &pin[0] );
+}
+
+void CM_ClientMove( pmove_t *pmove )
+{
+
+}
+
+// find floor for character placement
+float CM_FindFloor( vec3_t p0, float maxDist )
+{
+	// shot a vertical ray from a high altitude and collected the intersection parameter.
+	vec3_t	p1;
+
+	VectorCopy( p0, p1 ); 
+	p1[2] -= INCH2METER( maxDist ); // FIXME
+
+	NewtonWorldRayCast( gWorld, &p0[0], &p1[0], NULL, NULL );
+
+	// the intersection is the interpolated value
+	return p0[2] - maxDist * INCH2METER( 1.2f ); //FIXME
+}
+
+physbody_t *Phys_CreatePlayer( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform )
+{
+	NewtonCollision	*col, *hull;
+	NewtonBody	*body;
+
+	matrix4x4		trans;
+	vec3_t		radius, mins, maxs, upDirection;
+
+	if( !cm_physics_model->integer )
+		return NULL;
+
+	// setup matrixes
+	MatrixLoadIdentity( trans );
+
+	if( mod )
+	{
+		// player m_size
+		VectorCopy( mod->mins, mins );
+		VectorCopy( mod->maxs, maxs );
+		VectorSubtract( maxs, mins, m_size );
+		VectorScale( m_size, 0.5f, radius );
+	}
+	ConvertDimensionToPhysic( m_size );
+	ConvertDimensionToPhysic( radius );
+
+	VectorSet( m_stepContact, 0.0f, -m_size[2], 0.0f );   
+	m_maxTranslation = m_size[0] * 0.25f;
+	m_maxStepHigh = -m_size[2] * 0.5f;
+
+	// setup translation matrix
+	VectorCopy( transform[0], trans[0] );
+	VectorCopy( transform[1], trans[1] );
+	VectorCopy( transform[2], trans[2] );
+	VectorCopy( transform[3], trans[3] );
+
+	trans[3][2] = CM_FindFloor( trans[3], 100 ) + radius[2]; // merge floor position
+
+	// place a sphere at the center
+	col = NewtonCreateSphere( gWorld, radius[0], radius[2], radius[1], NULL ); 
+
+	// wrap the character collision under a transform, modifier for tunneling trught walls avoidance
+	hull = NewtonCreateConvexHullModifier( gWorld, col );
+	NewtonReleaseCollision( gWorld, col );		
+	body = NewtonCreateBody( gWorld, hull );	// create the rigid body
+	NewtonBodySetAutoFreeze( body, 0 );		// disable auto freeze management for the player
+	NewtonWorldUnfreezeBody( gWorld, body );	// keep the player always active 
+
+	// reset angular and linear damping
+	NewtonBodySetLinearDamping( body, 0.0f );
+	NewtonBodySetAngularDamping( body, vec3_origin );
+	NewtonBodySetMaterialGroupID( body, characterID );// set material Id for this object
+
+	// setup generic callback to engine.dll
+	NewtonBodySetUserData( body, ed );
+	NewtonBodySetTransformCallback( body, Callback_ApplyTransform );
+	NewtonBodySetForceAndTorqueCallback( body, Callback_PmoveApplyForce );
+	NewtonBodySetMassMatrix( body, 10.0f, m_size[0], m_size[1], m_size[2] ); // 10 kg
+	NewtonBodySetMatrix(body, &trans[0][0] );// origin
+
+	// release the collision geometry when not need it
+	NewtonReleaseCollision( gWorld, hull );
+
+  	// add and up vector constraint to help in keeping the body upright
+	VectorSet( upDirection, 0.0f, 1.0f, 0.0f );
+	m_upVector = (float *)NewtonConstraintCreateUpVector( gWorld, &upDirection[0], body ); 
+
+	return (physbody_t *)body;
+}
+
+/*
+===============================================================================
+			PMOVE ENTRY POINT
+===============================================================================
+*/
+void CM_PlayerMove( pmove_t *pmove, bool clientmove )
+{
+	if( !cm_physics_model->integer )
+		Quake_PMove( pmove );
 }

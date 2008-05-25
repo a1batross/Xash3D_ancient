@@ -85,32 +85,6 @@ typedef enum
 #define	CM_BUTTONS	(1<<6)
 #define	CM_IMPULSE	(1<<7)
 
-// player_state->stats[] indexes
-enum player_stats
-{
-	STAT_HEALTH_ICON = 0,
-	STAT_HEALTH,
-	STAT_AMMO_ICON,
-	STAT_AMMO,
-	STAT_ARMOR_ICON,
-	STAT_ARMOR,
-	STAT_SELECTED_ICON,
-	STAT_PICKUP_ICON,
-	STAT_PICKUP_STRING,
-	STAT_TIMER_ICON,
-	STAT_TIMER,
-	STAT_HELPICON,
-	STAT_SELECTED_ITEM,
-	STAT_LAYOUTS,
-	STAT_FRAGS,
-	STAT_FLASHES,	// cleared each frame, 1 = health, 2 = armor
-	STAT_CHASE,
-	STAT_SPECTATOR,
-	STAT_SPEED = 22,
-	STAT_ZOOM,
-	MAX_STATS = 32,
-};
-
 // dmflags->value flags
 #define	DF_NO_HEALTH		0x00000001	// 1
 #define	DF_NO_ITEMS		0x00000002	// 2

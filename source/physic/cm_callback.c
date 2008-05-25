@@ -1,23 +1,29 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			cm_callback.c - game callbacks
+//			cm_callback.c - generic callbacks
 //=======================================================================
 
-#include "physic.h"
+#include "cm_local.h"
 
 
 void Callback_ApplyForce( const NewtonBody* body ) 
 { 
 	float	mass; 
-	vec3_t	size, force, torque; 
+	vec3_t	m_size, force, torque; 
 
-	NewtonBodyGetMassMatrix (body, &mass, &size[0], &size[1], &size[2]); 
+	NewtonBodyGetMassMatrix (body, &mass, &m_size[0], &m_size[1], &m_size[2]); 
 
 	VectorSet( torque, 0.0f, 0.0f, 0.0f );
 	VectorSet( force, 0.0f, -9.8f * mass, 0.0f );
 
 	NewtonBodyAddForce (body, force); 
 	NewtonBodyAddTorque (body, torque); 
+}
+
+void Callback_PmoveApplyForce( const NewtonBody* body )
+{
+	// grab state and jump to CM_ServerMove
+	pi.ClientMove((sv_edict_t *)NewtonBodyGetUserData( body ));
 }
 
 void Callback_ApplyTransform( const NewtonBody* body, const float* matrix )
