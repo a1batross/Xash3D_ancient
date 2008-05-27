@@ -1035,6 +1035,6 @@ _inline float RadiusFromBounds( vec3_t mins, vec3_t maxs )
 
 static vec3_t vec3_origin = { 0, 0, 0 };
 static vec3_t vec3_angles = { 0, 0, 0 };
-
+static vec3_t vec3_up = { 0.0f, 1.0f, 0.0f }; // unconverted up vector
 
 #endif//BASEMATH_H

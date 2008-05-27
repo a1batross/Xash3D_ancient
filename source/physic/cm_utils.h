@@ -12,6 +12,13 @@ _inline void CM_ConvertPositionToMeters( vec3_t out, vec3_t in )
 	out[2] = LittleFloat(INCH2METER(in[1]));
 }
 
+_inline void CM_ConvertDirectionToMeters( vec3_t out, vec3_t in )
+{
+	out[0] = LittleFloat(INCH2METER(in[0]));
+	out[1] = LittleFloat(INCH2METER(in[2]));
+	out[2] = LittleFloat(INCH2METER(in[1]));
+}
+
 _inline void CM_ConvertDimensionToMeters( vec3_t out, vec3_t in )
 {
 	out[0] = LittleFloat(INCH2METER(in[0]));

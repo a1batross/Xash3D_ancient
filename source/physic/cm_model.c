@@ -609,11 +609,12 @@ void BSP_LoadStringData( lump_t *l )
 
 /*
 =================
-BSP_LoadStringData
+BSP_LoadBuiltinProgs
 =================
 */
 void BSP_LoadBuiltinProgs( lump_t *l )
 {	
+	// not implemented
 	if(!l->filelen)
 	{
 		return;
@@ -763,7 +764,6 @@ void CM_LoadCollisionTree( void )
 
 void CM_LoadWorld( const void *buffer )
 {
-	matrix4x4		m_matrix;
 	vec3_t		boxP0, boxP1;
 	vec3_t		extra = { 10.0f, 10.0f, 10.0f }; 
 
@@ -774,8 +774,8 @@ void CM_LoadWorld( const void *buffer )
 	else CM_MakeCollisionTree(); // can be used for old maps
 
 	cm.body = NewtonCreateBody( gWorld, cm.collision );
-	NewtonBodyGetMatrix( cm.body, &m_matrix[0][0] );	// set the global position of this body 
-	NewtonCollisionCalculateAABB( cm.collision, &m_matrix[0][0], &boxP0[0], &boxP1[0] ); 
+	NewtonBodyGetMatrix( cm.body, &cm.matrix[0][0] );	// set the global position of this body 
+	NewtonCollisionCalculateAABB( cm.collision, &cm.matrix[0][0], &boxP0[0], &boxP1[0] ); 
 	NewtonReleaseCollision( gWorld, cm.collision );
 
 	VectorSubtract( boxP0, extra, boxP0 );
@@ -796,7 +796,8 @@ void CM_FreeWorld( void )
 	cm.numplanes = cm.numnodes = cm.numleafs = 0;
 	cm.num_models = cm.numfaces = cm.numbmodels = 0;
 	cm.name[0] = 0;
-
+	memset( cm.matrix, 0, sizeof(matrix4x4));
+	
 	// free bmodels too
 	for (i = 0, mod = &cm.bmodels[0]; i < cm.numbmodels; i++, mod++)
 	{

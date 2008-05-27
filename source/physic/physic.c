@@ -95,6 +95,7 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 	Phys.CreateBody = Phys_CreateBody;
 	Phys.CreatePlayer = Phys_CreatePlayer;
 
+	Phys.SetParameters = Phys_SetParameters;
 	Phys.PlayerMove = CM_PlayerMove;
 	Phys.ServerMove = CM_ServerMove;
 	Phys.ClientMove = CM_ClientMove;

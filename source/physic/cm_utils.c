@@ -1,6 +1,6 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			 utils.c - physics callbacks
+//			cm_utils.c - physics callbacks
 //=======================================================================
 
 #include "physic.h"

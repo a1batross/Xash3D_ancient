@@ -149,7 +149,7 @@ SOURCE=.\physic.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\utils.c
+SOURCE=.\cm_utils.c
 # End Source File
 # End Group
 # Begin Group "Header Files"

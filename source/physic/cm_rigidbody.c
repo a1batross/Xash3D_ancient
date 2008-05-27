@@ -34,6 +34,7 @@ physbody_t *Phys_CreateBody( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform,
 			// barrel always stay on top side
 			VectorSet( vec3_angles, 90.0f, 0.0f, 0.0f );
 			AngleVectors( vec3_angles, offset[0], offset[2], offset[1] );
+			VectorSet( vec3_angles, 0.0f, 0.0f, 0.0f ); // don't forget reset angles
 		}
 	}
 	else
@@ -93,6 +94,18 @@ physbody_t *Phys_CreateBody( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform,
 void Phys_RemoveBody( physbody_t *body )
 {
 	if( body ) NewtonDestroyBody( gWorld, (NewtonBody*)body );
+}
+
+void Phys_SetParameters( physbody_t *body, cmodel_t *mod, int material, float mass )
+{
+	vec3_t	size;
+
+	if( !body ) return;
+
+	VectorSubtract( mod->maxs, mod->mins, size );
+	ConvertDimensionToPhysic( size );
+	if( !mass ) mass = VectorLength2( size ) * 9.8f; // volume factor
+	NewtonBodySetMassMatrix( body, mass, size[0], size[1], size[2] );
 }
 
 bool Phys_GetForce( physbody_t *body, vec3_t velocity, vec3_t avelocity, vec3_t force, vec3_t torque )

@@ -5,6 +5,32 @@
 
 #include "cm_local.h"
 
+static float RayCastPlacement(const NewtonBody* body, const float* normal, int collisionID, void* userData, float intersetParam )
+{
+	float	*paramPtr;
+
+	paramPtr = (float *)userData;
+	paramPtr[0] = intersetParam;
+	return intersetParam;
+}
+
+
+// find floor for character placement
+float CM_FindFloor( vec3_t p0, float maxDist )
+{
+	vec3_t	p1;
+	float	floor_dist = 1.2f;
+
+	VectorCopy( p0, p1 ); 
+	p1[1] -= maxDist;
+
+	// shot a vertical ray from a high altitude and collected the intersection parameter.
+	NewtonWorldRayCast( gWorld, &p0[0], &p1[0], RayCastPlacement, &floor_dist, NULL );
+
+	// the intersection is the interpolated value
+	return p0[1] - maxDist * floor_dist;
+}
+
 /*
 ==================
 CM_PointLeafnum_r

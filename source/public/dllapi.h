@@ -448,6 +448,7 @@ typedef struct physic_exp_s
 	physbody_t *(*CreateBody)( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform, int solid );
 	physbody_t *(*CreatePlayer)( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform );
 
+	void (*SetParameters)( physbody_t *body, cmodel_t *mod, int material, float mass );
 	bool (*GetForce)(physbody_t *body, vec3_t vel, vec3_t avel, vec3_t force, vec3_t torque );
 	void (*SetForce)(physbody_t *body, vec3_t vel, vec3_t avel, vec3_t force, vec3_t torque );
 	bool (*GetMassCentre)( physbody_t *body, matrix3x3 mass );

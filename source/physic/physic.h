@@ -43,6 +43,7 @@ void Phys_Frame( float time );
 //
 physbody_t *Phys_CreateBody( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform, int solid );
 physbody_t *Phys_CreatePlayer( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform );
+void Phys_SetParameters( physbody_t *body, cmodel_t *mod, int material, float mass );
 bool Phys_GetForce( physbody_t *body, vec3_t velocity, vec3_t avelocity, vec3_t force, vec3_t torque );
 void Phys_SetForce( physbody_t *body, vec3_t velocity, vec3_t avelocity, vec3_t force, vec3_t torque );
 bool Phys_GetMassCentre( physbody_t *body, matrix3x3 mass );
@@ -145,7 +146,7 @@ void NewtonWorldForEachBodyDo (const NewtonWorld* newtonWorld, NewtonBodyIterato
 void NewtonWorldSetUserData (const NewtonWorld* newtonWorld, void* userData);
 void* NewtonWorldGetUserData (const NewtonWorld* newtonWorld);
 int NewtonWorldGetVersion (const NewtonWorld* newtonWorld);
-void NewtonWorldRayCast (const NewtonWorld* newtonWorld, const float* p0, const float* p1, NewtonWorldRayFilterCallback filter, void* userData);
+void NewtonWorldRayCast(const NewtonWorld* newtonWorld, const float* p0, const float* p1, NewtonWorldRayFilterCallback filter, void* userData, NewtonWorldRayPrefilterCallback prefilter);
 
 // Physics Material Section
 int NewtonMaterialGetDefaultGroupID(const NewtonWorld* newtonWorld);

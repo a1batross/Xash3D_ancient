@@ -104,6 +104,8 @@ void SV_CreatePhysBody( edict_t *ent )
 {
 	if( !ent || ent->progs.sv->movetype != MOVETYPE_PHYSIC ) return;
 	ent->priv.sv->physbody = pe->CreateBody( ent->priv.sv, SV_GetModelPtr(ent), ent->progs.sv->m_pmatrix, ent->progs.sv->solid );
+
+	pe->SetParameters( ent->priv.sv->physbody, SV_GetModelPtr(ent), 0, ent->progs.sv->mass ); 
 }
 
 void SV_SetPhysForce( edict_t *ent )

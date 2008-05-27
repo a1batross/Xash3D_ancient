@@ -97,6 +97,8 @@ typedef struct clipmap_s
 
 	// misc stuff
 	NewtonBody	*body;
+	matrix4x4		matrix;		// world matrix
+	NewtonJoint	*upVector;	// world upvector
 	bool		loaded;		// map is loaded?
 	bool		tree_build;	// phys tree is created ?
 	bool		use_thread;	// bsplib use thread
