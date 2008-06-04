@@ -23,6 +23,8 @@ bool InitPhysics( void )
 	cmappool = Mem_AllocPool("CM Zone");
 	gWorld = NewtonCreate( Palloc, Pfree ); // alloc world
 
+	CM_InitMaterials();
+
 	cm_noareas = Cvar_Get( "cm_noareas", "0", 0 );
 	cm_use_triangles = Cvar_Get("cm_convert_polygons", "1", CVAR_INIT|CVAR_SYSTEMINFO );//, "convert bsp polygons to triangles, slowly but more safety way" );
 	cm_solver_model = Cvar_Get("cm_solver", "0", CVAR_ARCHIVE );//, "change solver model: 0 - precision, 1 - adaptive, 2 - fast. (changes need restart server to take effect)" );

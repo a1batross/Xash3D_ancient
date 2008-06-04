@@ -463,6 +463,7 @@ typedef struct physic_imp_s
 
 	void (*ClientMove)( sv_edict_t *ed );
 	void (*Transform)( sv_edict_t *ed, matrix4x3 transform );
+	void (*PlaySound)( sv_edict_t *ed, float volume, const char *sample );
 	float *(*GetModelVerts)( sv_edict_t *ent, int *numvertices );
 } physic_imp_t;
 

@@ -14,7 +14,6 @@ float		m_yawAngle;
 float		m_maxTranslation;
 vec3_t		m_size;
 vec3_t		m_stepContact;
-vec3_t		m_forceVector;
 matrix4x4		m_matrix;
 
 
@@ -37,6 +36,8 @@ typedef struct
 	vec3_t		forward, right, up;
 	vec3_t		previous_origin;
 	vec3_t		previous_velocity;
+
+	vec3_t		movedir;	// already aligned by world
 	int		previous_waterlevel;
 	float		impact_speed;
 	trace_t		groundtrace;
@@ -1607,9 +1608,9 @@ void CM_CmdUpdateForce( void )
 	VectorNormalize( pml.right );
 
 	for( i = 0; i < 3; i++ )
-		m_forceVector[i] = pml.forward[i] * fmove + pml.right[i] * smove;
+		pml.movedir[i] = pml.forward[i] * fmove + pml.right[i] * smove;
 
-	ConvertDirectionToPhysic( m_forceVector );
+	ConvertDirectionToPhysic( pml.movedir );
 
 	if( pm->cmd.upmove > 0.0f )
 	{
@@ -1672,8 +1673,8 @@ void CM_ServerMove( pmove_t *pmove )
 		float	speed_factor;
 		vec3_t	tmp1, tmp2, result;
 
-		speed_factor = sqrt( DotProduct( m_forceVector, m_forceVector ) + 1.0e-6f );  
-		VectorScale( m_forceVector, 1.0f / speed_factor, heading ); 
+		speed_factor = sqrt( DotProduct( pml.movedir, pml.movedir ) + 1.0e-6f );  
+		VectorScale( pml.movedir, 1.0f / speed_factor, heading ); 
 
 		VectorScale( heading, mass * 20.0f, tmp1 );
 		VectorScale( heading, 2.0f * DotProduct( velocity, heading ), tmp2 );

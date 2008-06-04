@@ -329,6 +329,7 @@ bool SV_CreateMeshBuffer( edict_t *in, cmodel_t *out );
 void SV_SpawnEntities( const char *mapname, const char *entities );
 void SV_StartParticle (vec3_t org, vec3_t dir, int color, int count);
 void SV_Transform( sv_edict_t *ed, matrix4x3 transform );
+void SV_PlaySound( sv_edict_t *ed, float volume, const char *sample );
 void SV_FreeEdict (edict_t *ed);
 void SV_InitEdict (edict_t *e);
 edict_t *SV_Spawn (void);

@@ -121,6 +121,10 @@ SOURCE=.\cm_debug.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\cm_materials.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\cm_model.c
 # End Source File
 # Begin Source File
@@ -145,11 +149,11 @@ SOURCE=.\cm_trace.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\physic.c
+SOURCE=.\cm_utils.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\cm_utils.c
+SOURCE=.\physic.c
 # End Source File
 # End Group
 # Begin Group "Header Files"

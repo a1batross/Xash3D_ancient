@@ -8,6 +8,7 @@
 #include "physic.h"
 #include "basefiles.h"
 
+#define MAX_MATERIALS	64
 #define CAPSULE_MODEL_HANDLE	MAX_MODELS - 2
 #define BOX_MODEL_HANDLE	MAX_MODELS - 1
 
@@ -39,6 +40,25 @@ typedef struct
 	int		floodnum;		// if two areas have equal floodnums, they are connected
 	int		floodvalid;
 } carea_t;
+
+typedef struct material_info_s
+{
+	string	name;
+	float	softness;
+	float	elasticity;
+	float	friction_static;
+	float	friction_kinetic;
+
+} material_info_t;
+
+typedef struct collide_info_s
+{
+	NewtonBody	*m_body0;
+	NewtonBody	*m_body1;
+	vec3_t		position;
+	float		normal_speed;
+	float		tangent_speed;
+} collide_info_t;
 
 typedef struct clipmap_s
 {
@@ -99,6 +119,9 @@ typedef struct clipmap_s
 	NewtonBody	*body;
 	matrix4x4		matrix;		// world matrix
 	NewtonJoint	*upVector;	// world upvector
+	material_info_t	mat[MAX_MATERIALS];
+	uint		num_materials;	// number of parsed materials
+	collide_info_t	touch_info;	// global info about two touching objects
 	bool		loaded;		// map is loaded?
 	bool		tree_build;	// phys tree is created ?
 	bool		use_thread;	// bsplib use thread
@@ -204,7 +227,6 @@ extern float	m_yawAngle;
 extern float	m_maxTranslation;
 extern vec3_t	m_size;
 extern vec3_t	m_stepContact;
-extern vec3_t	m_forceVector;
 extern matrix4x4	m_matrix;
 extern float	*m_upVector;
 
@@ -220,5 +242,16 @@ int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsiz
 int CM_BoxBrushes( const vec3_t mins, const vec3_t maxs, cbrush_t **list, int listsize );
 cmodel_t *CM_TempBoxModel( const vec3_t mins, const vec3_t maxs, bool capsule );
 
+//
+// cm_callbacks.c
+//
+int Callback_ContactBegin( const NewtonMaterial* material, const NewtonBody* body0, const NewtonBody* body1 );
+int Callback_ContactProcess( const NewtonMaterial* material, const NewtonContact* contact );
+void Callback_ContactEnd( const NewtonMaterial* material );
+
+//
+// cm_materials.c
+//
+void CM_InitMaterials( void );
 
 #endif//CM_LOCAL_H

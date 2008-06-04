@@ -160,14 +160,17 @@ CL_Pause_f
 */
 void CL_Pause_f (void)
 {
+	if(!Host_ServerState() && !cls.demoplayback )
+		return; // but allow pause in demos
+
 	// never pause in multiplayer
-	if (Cvar_VariableValue ("maxclients") > 1 || !Host_ServerState ())
+	if( Cvar_VariableValue ("maxclients") > 1 )
 	{
 		Cvar_SetValue ("paused", 0);
 		return;
 	}
 
-	Cvar_SetValue ("paused", !cl_paused->value);
+	Cvar_SetValue( "paused", !cl_paused->value );
 }
 
 /*
@@ -767,13 +770,18 @@ void CL_ReadPackets (void)
 	//
 	// check timeout
 	//
-	if (cls.state >= ca_connected && cls.realtime - cls.netchan.last_received > cl_timeout->value)
+	if( cls.state >= ca_connected && !cls.demoplayback )
 	{
-		if (++cl.timeoutcount > 5) // timeoutcount saves debugger
+		if( cls.realtime - cls.netchan.last_received > cl_timeout->value)
 		{
-			Msg ("\nServer connection timed out.\n");
-			CL_Disconnect ();
-			return;
+			cl.timeoutcount++;	// timeoutcount saves debugger
+
+			if( cl.timeoutcount > 5 )
+			{
+				Msg ("\nServer connection timed out.\n");
+				CL_Disconnect ();
+				return;
+			}
 		}
 	}
 	else cl.timeoutcount = 0;
@@ -857,19 +865,12 @@ static const char *env_suf[6] = {"rt", "bk", "lf", "ft", "up", "dn"};
 
 void CL_RequestNextDownload (void)
 {
-	unsigned	map_checksum;		// for detecting cheater maps
-	char fn[MAX_OSPATH];
-	studiohdr_t *pheader;
+	uint		map_checksum;	// for detecting cheater maps
+	char		fn[MAX_OSPATH];
+	studiohdr_t	*pheader;
 
 	if(cls.state != ca_connected)
 		return;
-
-	if( cls.demoplayback )
-	{
-		CL_RegisterSounds();
-		CL_PrepRefresh();
-		return;
-	}
 
 	if (!allow_download->value && precache_check < ENV_CNT)
 		precache_check = ENV_CNT;
@@ -1100,17 +1101,6 @@ before allowing the client into the server
 */
 void CL_Precache_f (void)
 {
-	// Yet another hack to let old demos work
-	// the old precache sequence
-	if(Cmd_Argc() < 2)
-	{
-		uint map_checksum; // for detecting cheater maps
-		pe->BeginRegistration( cl.configstrings[CS_MODELS+1], true, &map_checksum );
-		CL_RegisterSounds();
-		CL_PrepRefresh();
-		return;
-	}
-
 	precache_check = CS_MODELS;
 	precache_spawncount = com.atoi(Cmd_Argv(1));
 	precache_model = 0;

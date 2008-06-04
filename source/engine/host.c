@@ -115,6 +115,7 @@ void Host_InitPhysic( void )
 	// phys callback
 	pi.api_size = sizeof(physic_imp_t);
 	pi.Transform = SV_Transform;
+	pi.PlaySound = SV_PlaySound;
 	pi.ClientMove = SV_PlayerMove;
 	pi.GetModelVerts = SV_GetModelVerts;
 

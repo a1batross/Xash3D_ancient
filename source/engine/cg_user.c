@@ -671,7 +671,7 @@ bool CG_ParseArgs( int num_argc )
 {
 	cls.cg_argc = 0;
 	memset(cls.cg_argv, 0, MAX_PARMS * MAX_QPATH );
-	strncpy( cls.cg_builtin, com_token, MAX_QPATH );
+	com.strncpy( cls.cg_builtin, com_token, MAX_QPATH );
 
 	// bound range silently 
 	num_argc = bound(0, num_argc, MAX_PARMS - 1); 
@@ -688,7 +688,7 @@ bool CG_ParseArgs( int num_argc )
 		else if(Com_MatchToken(",")) cls.cg_argc++;	// new argument
 		else if(Com_MatchToken("(") || Com_MatchToken(")"))
 			continue; // skip punctuation
-		else strncpy(cls.cg_argv[cls.cg_argc], com_token, MAX_QPATH ); // fill stack
+		else com.strncpy(cls.cg_argv[cls.cg_argc], com_token, MAX_QPATH ); // fill stack
 	}
 
 	if(num_argc > 0 && cls.cg_argc < num_argc - 1)
@@ -958,7 +958,7 @@ void CG_ExecuteProgram( char *section )
 	bool	skip = true;
 
 	Com_ResetScript();
-	strncpy( cls.cg_function, section, MAX_QPATH );
+	com.strncpy( cls.cg_function, section, MAX_QPATH );
 	cls.cg_depth = 0;
 
 	// not loaded

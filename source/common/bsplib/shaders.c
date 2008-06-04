@@ -129,7 +129,7 @@ static void ParseShaderFile( char *filename )
 		if ( !Com_GetToken( true )) break;
 
 		si = AllocShaderInfo();
-		strcpy( si->name, com_token );
+		com.strcpy( si->name, com_token );
 		Com_GetToken( true );
 		
 		if(!Com_MatchToken( "{" ))

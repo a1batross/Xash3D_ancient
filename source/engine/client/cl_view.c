@@ -284,6 +284,8 @@ void CL_PrepRefresh( void )
 	if (!cl.configstrings[CS_MODELS+1][0])
 		return; // no map loaded
 
+	Msg("CL_PrepRefresh: %s\n", cl.configstrings[CS_NAME] );
+
 	// get splash name
 	Cvar_Set( "cl_levelshot_name", va("background/%s.tga", cl.configstrings[CS_NAME]));
 	if(!FS_FileExists(va("graphics/%s", Cvar_VariableString("cl_levelshot_name")))) 
