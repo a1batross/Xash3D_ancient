@@ -63,7 +63,7 @@ struct sv_edict_s
 	struct gclient_s		*client;		//get rid of this
 };
 
-typedef struct sv_globalvars_s
+struct sv_globalvars_s
 {
 	int	pad[28];
 	int	pev;
@@ -105,9 +105,9 @@ typedef struct sv_globalvars_s
 	func_t	PutClientInServer;
 	func_t	ClientDisconnect;
 	func_t	ClientCommand;
-} sv_globalvars_t;
+};
 
-typedef struct sv_entvars_s
+struct sv_entvars_s
 {
 	string_t	classname;
 	string_t	globalname;
@@ -210,7 +210,7 @@ typedef struct sv_entvars_s
 	float	dmg;
 	float	dmgtime;
 	float	speed;
-} sv_entvars_t;
+};
 
 #define SV_NUM_REQFIELDS (sizeof(sv_reqfields) / sizeof(fields_t))
 
@@ -284,7 +284,5 @@ static fields_t sv_reqfields[] =
 	{216,	1,	"target_dest"},
 	{217,	1,	"oldmodel"}
 };
-
-#define PROG_CRC_SERVER	406
 
 #endif//SV_EDICT_H

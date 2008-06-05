@@ -58,7 +58,7 @@ typedef struct hashvert_s
 } hashvert_t;
 
 
-#define	HASH_SIZE	2048
+#define	HASH_SIZE	1536
 
 
 int	vertexchain[MAX_MAP_VERTS];		// the next vertex in a hash chain

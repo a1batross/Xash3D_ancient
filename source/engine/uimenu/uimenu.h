@@ -8,8 +8,8 @@
 
 #include "engine.h"
 #include "client.h"
-#include "progsvm.h"
 #include "keycodes.h"
+#include "ui_edict.h"
 
 #define MAXMENUITEMS	64
 

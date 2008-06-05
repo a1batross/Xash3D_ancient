@@ -1,11 +1,14 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//		        pr_main.c - QuakeC progs compiler
+//		       pr_main.c - PRVM compiler-executor
 //=======================================================================
 
-#include "qcclib.h"
+#include "vprogs.h"
 
+stdlib_api_t	com;
 byte		*qccpool;
+int		com_argc;
+char		**com_argv;
 char		v_copyright[1024];
 uint		MAX_REGS;
 int		MAX_ERRORS;
@@ -28,23 +31,30 @@ int		*statement_linenums;
 char		sourcedir[MAX_SYSPATH];
 cachedsourcefile_t	*sourcefile;
 dfunction_t	*functions;
-int		numfunctions;
-ddef_t		*qcc_globals;
-int		numglobaldefs;
-ddef_t		*fields;
-int		numfielddefs;
-hashtable_t	compconstantstable;
-hashtable_t	globalstable;
-hashtable_t	localstable;
-hashtable_t	intconstdefstable;
-hashtable_t	floatconstdefstable;
-hashtable_t	stringconstdefstable;
-bool		pr_warning[WARN_MAX];
-int		target_version;
-bool		bodylessfuncs;
-type_t		*qcc_typeinfo;
-int		numtypeinfos;
-int		maxtypeinfos;
+int	numfunctions;
+ddef_t	*qcc_globals;
+int	numglobaldefs;
+ddef_t	*fields;
+int	numfielddefs;
+bool	pr_warning[WARN_MAX];
+int	target_version;
+bool	bodylessfuncs;
+type_t	*qcc_typeinfo;
+int	numtypeinfos;
+int	maxtypeinfos;
+int	prvm_developer;
+vprogs_exp_t	vm;
+
+hashtable_t compconstantstable;
+hashtable_t globalstable;
+hashtable_t localstable;
+hashtable_t intconstdefstable;
+hashtable_t floatconstdefstable;
+hashtable_t stringconstdefstable;
+
+cvar_t *prvm_traceqc;
+cvar_t *prvm_boundscheck;
+cvar_t *prvm_statementprofiling;
 
 void PR_SetDefaultProperties (void)
 {
@@ -52,14 +62,14 @@ void PR_SetDefaultProperties (void)
 	int	i, j;
 	char	*name, *val;
 
-	Hash_InitTable(&compconstantstable, MAX_CONSTANTS);
+	Hash_InitTable( &compconstantstable, MAX_CONSTANTS );
 	
 	ForcedCRC = 0;
 	// enable all warnings
 	memset(pr_warning, 0, sizeof(pr_warning));
 
 	// reset all optimizarions
-	for (i = 0; pr_optimisations[i].enabled; i++) 
+	for( i = 0; pr_optimisations[i].enabled; i++ ) 
 		*pr_optimisations[i].enabled = false;
 
 	target_version = QPROGS_VERSION;
@@ -81,14 +91,14 @@ void PR_SetDefaultProperties (void)
 		{
 			// #define
 			name = com_argv[i+1];
-			val = strchr(name, '=');
+			val = com.strchr(name, '=');
 			if (val) { *val = '\0', val++; }
 			cnst = PR_DefineName(name);
 			if (val)
 			{
-				if(strlen(val) + 1 >= sizeof(cnst->value))
+				if(com.strlen(val) + 1 >= sizeof(cnst->value))
 					PR_ParseError(ERR_INTERNAL, "compiler constant value is too long\n");
-				strncpy(cnst->value, val, sizeof(cnst->value)-1);
+				com.strncpy(cnst->value, val, sizeof(cnst->value)-1);
 				PR_Message("value %s\n", val );
 				cnst->value[sizeof(cnst->value)-1] = '\0';
 			}
@@ -99,7 +109,7 @@ void PR_SetDefaultProperties (void)
 			if (com_argv[i][2] == '6') target_version = QPROGS_VERSION;
 			else if (com_argv[i][2] == '7') target_version = FPROGS_VERSION;
 			else if (com_argv[i][2] == '8') target_version = VPROGS_VERSION;
-			else PR_Warning(0, NULL, WARN_BADPARAMS, "Unrecognised version parametr (%s)", com_argv[i]);
+			else PR_Warning(0, NULL, WARN_BADPARAMS,"Unrecognized version parametr (%s)",com_argv[i]);
 		}
 		else if( !com.strnicmp(com_argv[i], "/O", 2))
 		{
@@ -124,7 +134,7 @@ void PR_SetDefaultProperties (void)
 				char *abbrev = com_argv[i]+2; // custom optimisation
 				for (j = 0; pr_optimisations[j].enabled; j++)
 				{
-					if(!strcmp(pr_optimisations[j].shortname, abbrev)) 
+					if(!com.strcmp(pr_optimisations[j].shortname, abbrev)) 
 					{
 						*pr_optimisations[j].enabled = true;
 						break;
@@ -149,9 +159,9 @@ void PR_Init( const char *name )
 	static temp_t	ret_temp;
 	int		i;
 
-	com.strncat(v_copyright, "This file was created with Xash3D QuakeC compiler,\n", sizeof(v_copyright));
-	com.strncat(v_copyright, "who based on original code of ForeThought's QuakeC compiler.\n", sizeof(v_copyright));
-	com.strncat(v_copyright, "Thanks to ID Software at all.", sizeof(v_copyright));
+	com.strncat(v_copyright,"This file was created with Xash3D QuakeC compiler,\n", sizeof(v_copyright));
+	com.strncat(v_copyright,"who based on original code of ForeThought's QuakeC compiler.\n",sizeof(v_copyright));
+	com.strncat(v_copyright,"Thanks to ID Software at all.", sizeof(v_copyright));
 
 	// tune limits
 	MAX_REGS		= 65536;
@@ -226,27 +236,101 @@ void PR_Init( const char *name )
 		def_parms[i].type = NULL;
 		def_parms[i].ofs = OFS_PARM0 + 3*i;
 		def_parms[i].name = parmname[i];
-		sprintf(parmname[i], "parm%i", i);
+		com.sprintf(parmname[i], "parm%i", i);
 	}
 }
 
-bool PrepareDATProgs ( const char *dir, const char *name, byte params )
+void PRVM_Init( uint funcname, int argc, char **argv )
 {
-	qccpool = Mem_AllocPool( "QCC Compiler" );
+	char	dev_level[4];
 
-	FS_InitRootDir( (char *)dir );
-	PR_Init( name );
+	com_argc = argc;
+	com_argv = argv;
 
-	return true;
+	qccpool = Mem_AllocPool( "VM progs" );
+
+	if(FS_GetParmFromCmdLine("-dev", dev_level ))
+		prvm_developer = com.atoi(dev_level);
+
+	Cmd_AddCommand("prvm_edict", PRVM_ED_PrintEdict_f, "print all data about an entity number in the selected VM (server, client, menu)");
+	Cmd_AddCommand("prvm_edicts", PRVM_ED_PrintEdicts_f, "set a property on an entity number in the selected VM (server, client, menu)");
+	Cmd_AddCommand("prvm_edictcount", PRVM_ED_Count_f, "prints number of active entities in the selected VM (server, client, menu)");
+	Cmd_AddCommand("prvm_profile", PRVM_Profile_f, "prints execution statistics about the most used QuakeC functions in the selected VM (server, client, menu)");
+	Cmd_AddCommand("prvm_fields", PRVM_Fields_f, "prints usage statistics on properties (how many entities have non-zero values) in the selected VM (server, client, menu)");
+	Cmd_AddCommand("prvm_globals", PRVM_Globals_f, "prints all global variables in the selected VM (server, client, menu)");
+	Cmd_AddCommand("prvm_global", PRVM_Global_f, "prints value of a specified global variable in the selected VM (server, client, menu)");
+	Cmd_AddCommand("prvm_globalset", PRVM_GlobalSet_f, "sets value of a specified global variable in the selected VM (server, client, menu)");
+	Cmd_AddCommand("prvm_edictset", PRVM_ED_EdictSet_f, "changes value of a specified property of a specified entity in the selected VM (server, client, menu)");
+	Cmd_AddCommand("prvm_printfunction", PRVM_PrintFunction_f, "prints a disassembly (QuakeC instructions) of the specified function in the selected VM (server, client, menu)");
+
+	// LordHavoc: optional runtime bounds checking (speed drain, but worth it for security, on by default - breaks most QCCX features (used by CRMod and others))
+	prvm_boundscheck = Cvar_Get( "prvm_boundscheck", "0", 0 );
+	prvm_traceqc = Cvar_Get( "prvm_traceqc", "0", 0 );
+	prvm_statementprofiling = Cvar_Get ("prvm_statementprofiling", "0", 0);
 }
 
-bool CompileDATProgs ( void )
+void PRVM_Shutdown( void )
+{
+	Mem_FreePool( &qccpool );
+}
+
+void PRVM_PrepareProgs( const char *dir, const char *name )
+{
+	FS_InitRootDir((char *)dir);
+	PR_Init( name );
+}
+
+void PRVM_CompileProgs( void )
 {
 	PR_BeginCompilation();
 	while(PR_ContinueCompile());
 	PR_FinishCompilation();          
+}
 
-	Mem_FreePool( &qccpool );
+vprogs_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
+{
+	com = *input;
 
-	return true;
+	// generic functions
+	vm.api_size = sizeof(vprogs_exp_t);
+
+	vm.Init = PRVM_Init;
+	vm.Free = PRVM_Shutdown;
+	vm.PrepareDAT = PRVM_PrepareProgs;
+	vm.CompileDAT = PRVM_CompileProgs;
+
+	vm.WriteGlobals = PRVM_ED_WriteGlobals;
+	vm.ParseGlobals = PRVM_ED_ParseGlobals;
+	vm.PrintEdict = PRVM_ED_Print;
+	vm.WriteEdict = PRVM_ED_Write;
+	vm.ParseEdict = PRVM_ED_ParseEdict;
+	vm.AllocEdict = PRVM_ED_Alloc;
+	vm.FreeEdict = PRVM_ED_Free;
+	vm.IncreaseEdicts = PRVM_MEM_IncreaseEdicts;
+
+	vm.LoadFromFile = PRVM_ED_LoadFromFile;
+	vm.GetString = PRVM_GetString;
+	vm.SetEngineString = PRVM_SetEngineString;
+	vm.AllocString = PRVM_AllocString;
+	vm.FreeString = PRVM_FreeString;
+
+	vm.InitProg = PRVM_InitProg;
+	vm.SetProg = PRVM_SetProg;
+	vm.LoadProgs = PRVM_LoadProgs;
+	vm.ResetProg = PRVM_ResetProg;
+
+	vm.FindFunctionOffset = PRVM_ED_FindFunctionOffset;
+	vm.FindGlobalOffset = PRVM_ED_FindGlobalOffset;	
+	vm.FindFieldOffset = PRVM_ED_FindFieldOffset;	
+	vm.FindFunction = PRVM_ED_FindFunction;
+	vm.FindGlobal = PRVM_ED_FindGlobal;
+	vm.FindField = PRVM_ED_FindField;
+
+	vm.StackTrace = PRVM_StackTrace;
+	vm.Warning = VM_Warning;
+	vm.Error = VM_Error;
+	vm.ExecuteProgram = PRVM_ExecuteProgram;
+	vm.Crash = PRVM_Crash;
+
+	return &vm;
 }

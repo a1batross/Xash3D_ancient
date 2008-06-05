@@ -122,7 +122,7 @@ rgbdata_t *Image_Load(const char *filename, char *buffer, int buffsize )
 	loadformat_t	*format;
           const char	*ext = FS_FileExtension( filename );
 	char		path[128], loadname[128], texname[128];
-	bool		anyformat = !stricmp(ext, "") ? true : false;
+	bool		anyformat = !com.stricmp(ext, "") ? true : false;
 	int		i, filesize = 0;
 	byte		*f;
 
@@ -160,7 +160,7 @@ rgbdata_t *Image_Load(const char *filename, char *buffer, int buffsize )
 	{
 		for( format = load_formats; format->formatstring; format++ )
 		{
-			if( anyformat || !stricmp(ext, format->ext ))
+			if( anyformat || !com.stricmp(ext, format->ext ))
 			{
 				com.sprintf (path, format->formatstring, loadname, suf[i], format->ext );
 				f = FS_LoadFile( path, &filesize );

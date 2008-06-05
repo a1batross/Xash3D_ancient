@@ -3,8 +3,9 @@
 //			pr_lex.c - qcclib lexemes set
 //=======================================================================
 
-#include "qcclib.h"
-#include "time.h"
+#include <stdio.h>
+//#include <time.h>
+#include "vprogs.h"
 #include "mathlib.h"
 
 char	*compilingfile;
@@ -110,26 +111,35 @@ char pr_parm_names[MAX_PARMS + MAX_PARMS_EXTRA][MAX_NAME];
 def_t def_ret, def_parms[MAX_PARMS];
 includechunk_t *currentchunk;
 
-void PR_IncludeChunk (char *data, bool duplicate, char *filename)
+void PR_IncludeChunkEx( char *data, bool duplicate, char *filename, const_t *cnst )
 {
-	includechunk_t *chunk = Qalloc(sizeof(includechunk_t));
+	includechunk_t *chunk = Qalloc( sizeof(includechunk_t));
 	chunk->prev = currentchunk;
 	currentchunk = chunk;
 
 	chunk->currentdatapoint = pr_file_p;
 	chunk->currentlinenumber = pr_source_line;
+	chunk->cnst = cnst;
+	if( cnst ) cnst->inside++;
 
 	if (duplicate)
 	{
-		pr_file_p = Qalloc(strlen(data)+1);
-		strcpy(pr_file_p, data);
+		pr_file_p = Qalloc(com.strlen( data ) + 1);
+		com.strcpy( pr_file_p, data );
 	}
 	else pr_file_p = data;
+}
+
+void PR_IncludeChunk( char *data, bool duplicate, char *filename )
+{
+	PR_IncludeChunkEx( data, duplicate, filename, NULL );
 }
 
 bool PR_UnInclude(void)
 {
 	if (!currentchunk) return false;
+
+	if( currentchunk->cnst ) currentchunk->cnst->inside--;
 	pr_file_p = currentchunk->currentdatapoint;
 	pr_source_line = currentchunk->currentlinenumber;
 
@@ -161,15 +171,15 @@ void PR_FindBestInclude(char *newfile, char *currentfile, char *rootpath)
 	if (!*newfile) return;
 
 	doubledots = 0;
-	while(!strncmp(newfile, "../", 3) || !strncmp(newfile, "..\\", 3))
+	while(!com.strncmp(newfile, "../", 3) || !com.strncmp(newfile, "..\\", 3))
 	{
 		newfile += 3;
 		doubledots++;
 	}
 
-	currentfile += strlen(rootpath); // could this be bad?
+	currentfile += com.strlen(rootpath); // could this be bad?
 
-	for(stripfrom = currentfile + strlen(currentfile) - 1; stripfrom>currentfile; stripfrom--)
+	for(stripfrom = currentfile + com.strlen(currentfile) - 1; stripfrom>currentfile; stripfrom--)
 	{
 		if (*stripfrom == '/' || *stripfrom == '\\')
 		{
@@ -182,18 +192,18 @@ void PR_FindBestInclude(char *newfile, char *currentfile, char *rootpath)
 		}
 	}
 
-	strcpy(end, rootpath); 
-	end = end + strlen(end);
+	com.strcpy(end, rootpath); 
+	end = end + com.strlen(end);
 
 	if (*fullname && end[-1] != '/')
 	{
-		strcpy(end, "/");
-		end = end+strlen(end);
+		com.strcpy(end, "/");
+		end = end+com.strlen(end);
 	}
 
-	strncpy(end, currentfile, stripfrom - currentfile); 
+	com.strncpy(end, currentfile, stripfrom - currentfile); 
 	end += stripfrom - currentfile; *end = '\0';
-	strcpy(end, newfile);
+	com.strcpy(end, newfile);
 
 	PR_Include(fullname);
 }
@@ -224,13 +234,13 @@ bool PR_Precompiler(void)
 				PR_ParseError(ERR_UNKNOWNPUCTUATION, "Hanging # with no directive\n");
 			if (*directive > ' ') break;
 		}
-		if (!strncmp(directive, "define", 6))
+		if (!com.strncmp(directive, "define", 6))
 		{
 			pr_file_p = directive;
 			PR_ConditionCompilation();
 			GoToEndLine();
 		}
-		else if (!strncmp(directive, "undef", 5))
+		else if (!com.strncmp(directive, "undef", 5))
 		{
 			pr_file_p = directive+5;
 			while(*pr_file_p <= ' ') pr_file_p++;
@@ -239,16 +249,16 @@ bool PR_Precompiler(void)
 			PR_UndefineName(pr_token);
                               GoToEndLine();
 		}
-		else if (!strncmp(directive, "if", 2))
+		else if (!com.strncmp(directive, "if", 2))
 		{
 			int originalline = pr_source_line;
  			pr_file_p = directive + 2;
-			if (!strncmp(pr_file_p, "def ", 4))
+			if (!com.strncmp(pr_file_p, "def ", 4))
 			{
 				ifmode = 0;
 				pr_file_p+=4;
 			}
-			else if (!strncmp(pr_file_p, "ndef ", 5))
+			else if (!com.strncmp(pr_file_p, "ndef ", 5))
 			{
 				ifmode = 1;
 				pr_file_p+=5;
@@ -266,7 +276,7 @@ bool PR_Precompiler(void)
 
 			if (ifmode == 2)
 			{
-				if (atof(pr_token)) eval = true;
+				if (com.atof(pr_token)) eval = true;
 			}
 			else
 			{
@@ -295,11 +305,11 @@ bool PR_Precompiler(void)
 						pr_file_p++;
 						while(*pr_file_p==' ' || *pr_file_p == '\t')
 							pr_file_p++;
-						if (!strncmp(pr_file_p, "endif", 5))
+						if (!com.strncmp(pr_file_p, "endif", 5))
 							level--;
-						if (!strncmp(pr_file_p, "if", 2))
+						if (!com.strncmp(pr_file_p, "if", 2))
 							level++;
-						if (!strncmp(pr_file_p, "else", 4) && level == 1)
+						if (!com.strncmp(pr_file_p, "else", 4) && level == 1)
 						{
 							ifs++;
 							GoToEndLine();
@@ -313,7 +323,7 @@ bool PR_Precompiler(void)
 				}
 			}
 		}
-		else if (!strncmp(directive, "else", 4))
+		else if (!com.strncmp(directive, "else", 4))
 		{
 			int originalline = pr_source_line;
 
@@ -338,11 +348,11 @@ bool PR_Precompiler(void)
 					while(*pr_file_p==' ' || *pr_file_p == '\t')
 						pr_file_p++;
 
-					if (!strncmp(pr_file_p, "endif", 5))
+					if (!com.strncmp(pr_file_p, "endif", 5))
 						level--;
-					if (!strncmp(pr_file_p, "if", 2))
+					if (!com.strncmp(pr_file_p, "if", 2))
 							level++;
-					if (!strncmp(pr_file_p, "else", 4) && level == 1)
+					if (!com.strncmp(pr_file_p, "else", 4) && level == 1)
 					{
 						ifs+=1;
 						break;
@@ -355,18 +365,18 @@ bool PR_Precompiler(void)
 				pr_source_line++;
 			}
 		}
-		else if (!strncmp(directive, "endif", 5))
+		else if (!com.strncmp(directive, "endif", 5))
 		{		
                               GoToEndLine();
 			if (ifs <= 0) PR_ParseError(ERR_NOPRECOMPILERIF, "unmatched #endif");
 			else ifs -= 1;
 		}
-		else if (!strncmp(directive, "eof", 3))
+		else if (!com.strncmp(directive, "eof", 3))
 		{
 			pr_file_p = NULL;
 			return true;
 		}
-		else if (!strncmp(directive, "error", 5))
+		else if (!com.strncmp(directive, "error", 5))
 		{		
 			pr_file_p = directive+5;
 			for (a = 0; a < 1023 && pr_file_p[a] != '\n' && pr_file_p[a] != '\0'; a++)
@@ -377,7 +387,7 @@ bool PR_Precompiler(void)
 			GoToEndLine();
 			PR_ParseError(ERR_PRECOMPILERMESSAGE, "#error: %s", msg);
 		}
-		else if (!strncmp(directive, "warning", 7))
+		else if (!com.strncmp(directive, "warning", 7))
 		{		
 			pr_file_p = directive+7;
 			for (a = 0; a < 1023 && pr_file_p[a] != '\n' && pr_file_p[a] != '\0'; a++)
@@ -388,7 +398,7 @@ bool PR_Precompiler(void)
 			GoToEndLine();
 			PR_ParseWarning(WARN_PRECOMPILERMESSAGE, "#warning: %s", msg);
 		}
-		else if (!strncmp(directive, "message", 7))
+		else if (!com.strncmp(directive, "message", 7))
 		{		
 			pr_file_p = directive+7;
 			for (a = 0; a < 1023 && pr_file_p[a] != '\n' && pr_file_p[a] != '\0'; a++)
@@ -399,7 +409,7 @@ bool PR_Precompiler(void)
 			GoToEndLine();
 			PR_Message("#message: %s\n", msg);
 		}
-		else if (!strncmp(directive, "copyright", 9))
+		else if (!com.strncmp(directive, "copyright", 9))
 		{
 			pr_file_p = directive+9;
 			for (a = 0; a < 1023 && pr_file_p[a] != '\n' && pr_file_p[a] != '\0'; a++)
@@ -408,11 +418,11 @@ bool PR_Precompiler(void)
 			msg[a-1] = '\0';
 
 			GoToEndLine();
-			if (strlen(msg) >= sizeof(v_copyright))
+			if (com.strlen(msg) >= sizeof(v_copyright))
 				PR_ParseWarning(WARN_STRINGTOOLONG, "Copyright message is too long\n");
-			strncpy(v_copyright, msg, sizeof(v_copyright)-1);
+			com.strncpy(v_copyright, msg, sizeof(v_copyright)-1);
 		}
-		else if (!strncmp(directive, "forcecrc", 8))
+		else if (!com.strncmp(directive, "forcecrc", 8))
 		{		
 			pr_file_p=directive+8;
 
@@ -426,7 +436,7 @@ bool PR_Precompiler(void)
 			msg[a-1] = '\0';
 			GoToEndLine();	
 		}
-		else if (!strncmp(directive, "includelist", 11))
+		else if (!com.strncmp(directive, "includelist", 11))
 		{
 			pr_file_p=directive+11;
 
@@ -446,7 +456,7 @@ bool PR_Precompiler(void)
 					}
 					continue;
 				}
-				if (!strcmp(pr_token, "#endlist"))
+				if (!com.strcmp(pr_token, "#endlist"))
 					break;
 
 				PR_FindBestInclude(pr_token, compilingfile, sourcedir);
@@ -463,7 +473,7 @@ bool PR_Precompiler(void)
 			}
                               GoToEndLine();
 		}
-		else if (!strncmp(directive, "include", 7))
+		else if (!com.strncmp(directive, "include", 7))
 		{
 			char sm;
 
@@ -502,7 +512,7 @@ bool PR_Precompiler(void)
 				pr_file_p++;
 			GoToEndLine();
 		}
-		else if (!strncmp(directive, "library", 8))
+		else if (!com.strncmp(directive, "library", 8))
 		{		
 			pr_file_p=directive+8;
 
@@ -520,14 +530,14 @@ bool PR_Precompiler(void)
 			msg[a-1] = '\0';
                               GoToEndLine();
 		}
-		else if (!strncmp(directive, "output", 6))
+		else if (!com.strncmp(directive, "output", 6))
 		{
 			pr_file_p = directive + 6;
 
 			while(*pr_file_p <= ' ') pr_file_p++;
 
 			PR_LexString();
-			strcpy(progsoutname, pr_token);
+			com.strcpy(progsoutname, pr_token);
 			PR_Message("Outputfile: %s\n", progsoutname);
 
 			pr_file_p++;
@@ -538,7 +548,7 @@ bool PR_Precompiler(void)
 			msg[a-1] = '\0';
 			GoToEndLine();
 		}
-		else if (!strncmp(directive, "pragma", 6))
+		else if (!com.strncmp(directive, "pragma", 6))
 		{
 			pr_file_p = directive+6;
 			while(*pr_file_p <= ' ') pr_file_p++;
@@ -575,7 +585,7 @@ bool PR_Precompiler(void)
 					*end = '\0';
 			}
 
-			if (!stricmp(com_token, "DONT_COMPILE_THIS_FILE"))
+			if (!com.stricmp(com_token, "DONT_COMPILE_THIS_FILE"))
 			{
 				while (*pr_file_p)
 				{
@@ -587,36 +597,36 @@ bool PR_Precompiler(void)
 					}
 				}
 			}
-			else if (!stricmp(com_token, "COPYRIGHT"))
+			else if (!com.stricmp(com_token, "COPYRIGHT"))
 			{
-				if (strlen(msg) >= sizeof(v_copyright))
+				if (com.strlen(msg) >= sizeof(v_copyright))
 					PR_ParseWarning(WARN_STRINGTOOLONG, "Copyright message is too long\n");
-				strncpy(v_copyright, msg, sizeof(v_copyright)-1);
+				com.strncpy(v_copyright, msg, sizeof(v_copyright)-1);
 			}
-			else if (!strncmp(directive, "forcecrc", 8))
+			else if (!com.strncmp(directive, "forcecrc", 8))
 			{
-				ForcedCRC = atoi(msg);
+				ForcedCRC = com.atoi(msg);
 			}
-			else if (!stricmp(com_token, "target"))
+			else if (!com.stricmp(com_token, "target"))
 			{
-				if (!stricmp(msg, "STANDARD")) target_version = QPROGS_VERSION;
+				if (!com.stricmp(msg, "STANDARD")) target_version = QPROGS_VERSION;
 				else if (!com.stricmp(msg, "ID")) target_version = QPROGS_VERSION;
 				else if (!com.stricmp(msg, "FTE")) target_version = FPROGS_VERSION;
 				else if (!com.stricmp(msg, "VPROGS"))target_version = VPROGS_VERSION;
 				else PR_ParseWarning(WARN_BADTARGET, "Unknown target \'%s\'. Ignored.", msg);
 			}
-			else if (!stricmp(com_token, "version"))
+			else if (!com.stricmp(com_token, "version"))
 			{
-				target_version = bound(QPROGS_VERSION, atoi(msg), VPROGS_VERSION);
+				target_version = bound(QPROGS_VERSION, com.atoi(msg), VPROGS_VERSION);
 			}
-			else if (!stricmp(com_token, "warning"))
+			else if (!com.stricmp(com_token, "warning"))
 			{
 				int st;
 
 				Com_ParseToken(&msg);
-				if (!stricmp(com_token, "enable") || !stricmp(com_token, "on")) st = 0;
-				else if (!stricmp(com_token, "disable") || !stricmp(com_token, "off")) st = 1;
-				else if (!stricmp(com_token, "toggle")) st = 2;
+				if (!com.stricmp(com_token, "enable") || !com.stricmp(com_token, "on")) st = 0;
+				else if (!com.stricmp(com_token, "disable") || !com.stricmp(com_token, "off")) st = 1;
+				else if (!com.stricmp(com_token, "toggle")) st = 2;
 				else
 				{
 					PR_ParseWarning(WARN_BADPRAGMA, "warning state not recognized");
@@ -626,7 +636,7 @@ bool PR_Precompiler(void)
 				{
 					int wn;
 					Com_ParseToken(&msg); // just a number of warning
-					wn = atoi(com_token);
+					wn = com.atoi(com_token);
 					if (wn < 0 || wn > WARN_CONSTANTCOMPARISON)
 					{
 						PR_ParseWarning(WARN_BADPRAGMA, "warning id not recognised");
@@ -761,7 +771,7 @@ void PR_LexString (void)
 			pr_token[len] = 0;
 			pr_token_type = tt_immediate;
 			pr_immediate_type = type_string;
-			strcpy (pr_immediate_string, pr_token);			
+			com.strcpy (pr_immediate_string, pr_token);			
 			return;
 		}
 		else if (c == '#')
@@ -802,10 +812,10 @@ void PR_LexString (void)
 			if (cnst)
 			{
 				PR_ParseWarning(WARN_MACROINSTRING, "Macro expansion in string");
-				if (len+strlen(cnst) >= sizeof(pr_token)-1)
+				if (len+com.strlen(cnst) >= sizeof(pr_token)-1)
 					PR_ParseError(ERR_INTERNAL, "String length exceeds %i", sizeof(pr_token)-1);
-				strcpy(pr_token+len, cnst);
-				len+=strlen(cnst);
+				com.strcpy(pr_token+len, cnst);
+				len+=com.strlen(cnst);
 				pr_file_p = end;
 				continue;
 			}
@@ -845,7 +855,7 @@ int PR_LexInteger (void)
 	} while ((c >= '0' && c<= '9') || c == '.' || (c>='a' && c <= 'f'));
 
 	pr_token[len] = 0;
-	return atoi (pr_token);
+	return com.atoi (pr_token);
 }
 
 void PR_LexNumber (void)
@@ -938,7 +948,7 @@ float PR_LexFloat (void)
 	} while ((c >= '0' && c<= '9') || (c == '.'&&pr_file_p[1]!='.')); 
 
 	pr_token[len] = 0;
-	return (float)atof (pr_token);
+	return (float)com.atof (pr_token);
 }
 
 /*
@@ -1055,10 +1065,10 @@ void PR_LexPunctuation (void)
 	
 	for (i = 0; (p = pr_punctuation1[i]) != NULL; i++)
 	{
-		len = strlen(p);
-		if (!strncmp(p, pr_file_p, len) )
+		len = com.strlen(p);
+		if (!com.strncmp(p, pr_file_p, len) )
 		{
-			strcpy (pr_token, pr_punctuation2[i]);
+			com.strcpy (pr_token, pr_punctuation2[i]);
 			if (p[0] == '{') pr_bracelevel++;
 			else if (p[0] == '}') pr_bracelevel--;
 			pr_file_p += len;
@@ -1152,7 +1162,7 @@ int PR_FindMacro (char *name)
 	}
 	for (i = pr_nummacros - 1; i >= 0; i--)
 	{
-		if (!stricmp (name, pr_framemacros[i]))
+		if (!com.stricmp (name, pr_framemacros[i]))
 		{
 			PR_ParseWarning(WARN_CASEINSENSATIVEFRAMEMACRO, "Case insensative frame macro");
 			return pr_framemacrovalue[i];
@@ -1167,7 +1177,7 @@ void PR_ExpandMacro(void)
 
 	if (i < 0) PR_ParseError (ERR_BADFRAMEMACRO, "Unknown frame macro $%s", pr_token);
 
-	sprintf (pr_token,"%d", i);
+	com.sprintf (pr_token,"%d", i);
 	pr_token_type = tt_immediate;
 	pr_immediate_type = type_float;
 	pr_immediate._float = (float)i;
@@ -1221,10 +1231,15 @@ void PR_MacroFrame(char *name, int value)
 		}
 	}
 
-	strcpy (pr_framemacros[pr_nummacros], name);
-	pr_framemacrovalue[pr_nummacros] = value;
-	pr_nummacros++;
-	if (pr_nummacros >= MAX_FRAMES) PR_ParseError(ERR_TOOMANYFRAMEMACROS, "Too many frame macros defined");
+	if( com.strlen(name)+1 > sizeof(pr_framemacros[0]))
+		PR_ParseWarning(ERR_TOOMANYFRAMEMACROS, "Name for frame macro %s is too long", name);
+	else
+	{
+		com.strcpy( pr_framemacros[pr_nummacros], name );
+		pr_framemacrovalue[pr_nummacros] = value;
+		pr_nummacros++;
+		if(pr_nummacros >= MAX_FRAMES) PR_ParseError(ERR_TOOMANYFRAMEMACROS, "Too many frame macros defined");
+	}
 }
 
 void PR_ParseFrame (void)
@@ -1339,7 +1354,7 @@ void PR_LexGrab (void)
 	else if (!STRCMP (pr_token, "framevalue"))
 	{
 		PR_SimpleGetToken ();
-		pr_macrovalue = atoi(pr_token);
+		pr_macrovalue = com.atoi(pr_token);
 		PR_Lex ();
 	}
 	else if (!STRCMP (pr_token, "framerestore"))
@@ -1357,7 +1372,7 @@ void PR_LexGrab (void)
 		if (*pr_framemodelname)
 			PR_MacroFrame(pr_framemodelname, pr_macrovalue);
 
-		strncpy(pr_framemodelname, pr_token, sizeof(pr_framemodelname)-1);
+		com.strncpy(pr_framemodelname, pr_token, sizeof(pr_framemodelname)-1);
 		pr_framemodelname[sizeof(pr_framemodelname)-1] = '\0';
 
 		i = PR_FindMacro(pr_framemodelname);
@@ -1387,7 +1402,7 @@ const_t *PR_DefineName(char *name)
 	int	i;
 	const_t	*cnst;
 
-	if (strlen(name) >= MAX_NAME || !*name)
+	if (com.strlen(name) >= MAX_NAME || !*name)
 		PR_ParseError(ERR_CONSTANTTOOLONG, "Compiler constant name length is too long or short");
 	
 	cnst = Hash_Get(&compconstantstable, name);
@@ -1400,8 +1415,8 @@ const_t *PR_DefineName(char *name)
 	cnst = Qalloc(sizeof(const_t));
 	cnst->used = false;
 	cnst->numparams = 0;
-	strcpy(cnst->name, name);
-	cnst->namelen = strlen(name);
+	com.strcpy(cnst->name, name);
+	cnst->namelen = com.strlen(name);
 	*cnst->value = '\0';
 	for (i = 0; i < MAX_PARMS; i++) cnst->params[i][0] = '\0';
 
@@ -1486,7 +1501,7 @@ void PR_ConditionCompilation(void)
 		{
 			if (*pr_file_p == ',')
 			{
-				strncpy(cnst->params[cnst->numparams], s, pr_file_p-s);
+				com.strncpy(cnst->params[cnst->numparams], s, pr_file_p-s);
 				cnst->params[cnst->numparams][pr_file_p-s] = '\0';
 				cnst->numparams++;
 				if (cnst->numparams > MAX_PARMS)
@@ -1496,7 +1511,7 @@ void PR_ConditionCompilation(void)
 			}
 			if (*pr_file_p == ')')
 			{
-				strncpy(cnst->params[cnst->numparams], s, pr_file_p-s);
+				com.strncpy(cnst->params[cnst->numparams], s, pr_file_p-s);
 				cnst->params[cnst->numparams][pr_file_p-s] = '\0';
 				cnst->numparams++;
 				if (cnst->numparams > MAX_PARMS)
@@ -1513,11 +1528,19 @@ void PR_ConditionCompilation(void)
 	while(*s == ' ' || *s == '\t') s++;
 	while(1)
 	{
-		if (*s == '\r' || *s == '\n' || *s == '\0')
+		if( *s == '\\' )
 		{
-			if (s[-1] == '\\');
-			else if (s[-2] == '\\' && s[-1] == '\r' && s[0] == '\n');
-			else break;
+			// read over a newline if necessary
+			if( s[1] == '\n' || s[1] == '\r' )
+			{
+				s++;
+				*d++ = *s++;
+				if(s[-1] == '\r' && s[0] == '\n') *d++ = *s++;
+			}
+		} 
+		else if(*s == '\r' || *s == '\n' || *s == '\0')
+		{
+			break;
 		}
 
 		if (!quote && s[0]=='/'&&(s[1]=='/'||s[1]=='*')) break;
@@ -1530,20 +1553,21 @@ void PR_ConditionCompilation(void)
 	d--;
 	while(*d<= ' ' && d >= cnst->value) *d-- = '\0';
 
-	if (strlen(cnst->value) >= sizeof(cnst->value))	//this is too late.
-		PR_ParseError(ERR_CONSTANTTOOLONG, "Macro %s too long (%i not %i)", cnst->name, strlen(cnst->value), sizeof(cnst->value));
+	if (com.strlen(cnst->value) >= sizeof(cnst->value))	//this is too late.
+		PR_ParseError(ERR_CONSTANTTOOLONG, "Macro %s too long (%i not %i)", cnst->name, com.strlen(cnst->value), sizeof(cnst->value));
 
 	if (oldval)
 	{	
 		// we always warn if it was already defined
 		// we use different warning codes so that -Wno-mundane can be used to ignore identical redefinitions.
-		if (strcmp(oldval, cnst->value))
+		if (com.strcmp(oldval, cnst->value))
 			PR_ParseWarning(WARN_DUPLICATEPRECOMPILER, "Alternate precompiler definition of %s", pr_token);
 		else PR_ParseWarning(WARN_IDENTICALPRECOMPILER, "Identical precompiler definition of %s", pr_token);
 	}
+	pr_file_p = s;
 }
 
-int PR_CheakCompConst(void)
+int PR_CheakCompConst( void )
 {
 	char	*oldpr_file_p = pr_file_p;
 	int	whitestart;
@@ -1576,14 +1600,14 @@ int PR_CheakCompConst(void)
 		if (*end == '#') break;
 	}
 
-	strncpy(pr_token, pr_file_p, end - pr_file_p);
+	Mem_Copy(pr_token, pr_file_p, end - pr_file_p);
 	pr_token[end - pr_file_p] = '\0';
 
 	c = Hash_Get(&compconstantstable, pr_token);
 
 	if (c && !c->inside)
 	{
-		pr_file_p = oldpr_file_p + strlen(c->name);
+		pr_file_p = oldpr_file_p + com.strlen(c->name);
 		while(*pr_file_p == ' ' || *pr_file_p == '\t') pr_file_p++;
 		if (c->numparams>=0)
 		{
@@ -1602,8 +1626,16 @@ int PR_CheakCompConst(void)
 
 				while(1)
 				{
-					if (*pr_file_p == '(') plevel++;
-					else if (!plevel && (*pr_file_p == ',' || *pr_file_p == ')'))
+					// handle strings correctly by ignoring them
+					if( *pr_file_p == '\"' )
+					{
+						do
+						{
+							pr_file_p++;
+						} while((pr_file_p[-1] == '\\' || pr_file_p[0] != '\"') && *pr_file_p && *pr_file_p != '\n');
+					}
+					if(*pr_file_p == '(') plevel++;
+					else if(!plevel && (*pr_file_p == ',' || *pr_file_p == ')'))
 					{
 						paramoffset[param++] = start;
 						start = pr_file_p+1;
@@ -1616,11 +1648,15 @@ int PR_CheakCompConst(void)
 						*pr_file_p = '\0';
 						pr_file_p++;
 						while(*pr_file_p == ' ' || *pr_file_p == '\t') pr_file_p++;
+
+						// move back by one char because we move forward by one at the end of the loop
+						pr_file_p--;
 						if (param == MAX_PARMS)
 							PR_ParseError(ERR_TOOMANYPARAMS, "Too many parameters in macro call");
-					} else if (*pr_file_p == ')' ) plevel--;
+					}
+					else if(*pr_file_p == ')') plevel--;
 
-					if (!*pr_file_p) PR_ParseError(ERR_EOF, "EOF on macro call");
+					if(!*pr_file_p) PR_ParseError( ERR_EOF, "EOF on macro call" );
 					pr_file_p++;
 				}
 				if (param < c->numparams)
@@ -1633,7 +1669,7 @@ int PR_CheakCompConst(void)
 
 				while( 1 )
 				{
-					whitestart = p = strlen(buffer);
+					whitestart = p = com.strlen(buffer);
 					while(*pr_file_p <= ' ') // copy across whitespace
 					{
 						if (!*pr_file_p) break;
@@ -1660,16 +1696,16 @@ int PR_CheakCompConst(void)
 							{
 								if (!STRCMP(com_token, c->params[p]))
 								{
-									strcat(buffer, "\"");
-									strcat(buffer, paramoffset[p]);
-									strcat(buffer, "\"");
+									com.strcat(buffer, "\"");
+									com.strcat(buffer, paramoffset[p]);
+									com.strcat(buffer, "\"");
 									break;
 								}
 							}
 							if (p == param)
 							{
-								strcat(buffer, "#");
-								strcat(buffer, com_token);
+								com.strcat(buffer, "#");
+								com.strcat(buffer, com_token);
 								PR_ParseWarning(0, "Stringification ignored");
 							}
 							continue;// already did this one
@@ -1682,90 +1718,76 @@ int PR_CheakCompConst(void)
 					{
 						if (!STRCMP(com_token, c->params[p]))
 						{
-							strcat(buffer, paramoffset[p]);
+							com.strcat(buffer, paramoffset[p]);
 							break;
 						}
 					}
-					if (p == param) strcat(buffer, com_token);
+					if (p == param) com.strcat(buffer, com_token);
 				}
 
 				for (p = 0; p < param-1; p++)
-					paramoffset[p][strlen(paramoffset[p])] = ',';
-				paramoffset[p][strlen(paramoffset[p])] = ')';
+					paramoffset[p][com.strlen(paramoffset[p])] = ',';
+				paramoffset[p][com.strlen(paramoffset[p])] = ')';
 				pr_file_p = oldpr_file_p;
-				PR_IncludeChunk(buffer, true, NULL);
+				PR_IncludeChunkEx(buffer, true, NULL, c );
 			}
 			else PR_ParseError(ERR_TOOFEWPARAMS, "Macro without opening brace");
 		}
-		else PR_IncludeChunk(c->value, false, NULL);
+		else PR_IncludeChunkEx(c->value, false, NULL, c );
 
-		c->inside++;
 		PR_Lex();
-		c->inside--;
 		return true;
 	}
 
 	// start of macros variables
-	if (!strncmp(pr_file_p, "__TIME__", 8))
+	if (!com.strncmp(pr_file_p, "__TIME__", 8))
 	{
-		static char retbuf[128];
-
-		time_t long_time;
-		time( &long_time );
-		strftime( retbuf, sizeof(retbuf), "\"%H:%M\"", localtime( &long_time ));
-
-		pr_file_p = retbuf;
+		pr_file_p = (char *)timestamp( TIME_TIME_ONLY );
 		PR_Lex();// translate the macro's value
 		pr_file_p = oldpr_file_p + 8;
 
 		return true;
 	}
-	if (!strncmp(pr_file_p, "__DATE__", 8))
+	if (!com.strncmp(pr_file_p, "__DATE__", 8))
 	{
-		static char retbuf[128];
-
-		time_t long_time;
-		time( &long_time );
-		strftime( retbuf, sizeof(retbuf), "\"%a %d %b %Y\"", localtime( &long_time ));
-
-		pr_file_p = retbuf;
+		pr_file_p = (char *)timestamp( TIME_DATE_ONLY );
 		PR_Lex();	// translate the macro's value
 		pr_file_p = oldpr_file_p + 8;
 
 		return true;
 	}
-	if (!strncmp(pr_file_p, "__FILE__", 8))
+	if (!com.strncmp(pr_file_p, "__FILE__", 8))
 	{		
 		static char retbuf[256];
-		sprintf(retbuf, "\"%s\"", strings + s_file);
+		com.sprintf(retbuf, "\"%s\"", strings + s_file);
 		pr_file_p = retbuf;
 		PR_Lex();	// translate the macro's value
 		pr_file_p = oldpr_file_p + 8;
 
 		return true;
 	}
-	if (!strncmp(pr_file_p, "__LINE__", 8))
+	if (!com.strncmp(pr_file_p, "__LINE__", 8))
 	{
 		static char retbuf[256];
-		sprintf(retbuf, "\"%i\"", pr_source_line);
+		com.sprintf(retbuf, "\"%i\"", pr_source_line);
 		pr_file_p = retbuf;
 		PR_Lex();	//translate the macro's value
 		pr_file_p = oldpr_file_p + 8;
 		return true;
 	}
-	if (!strncmp(pr_file_p, "__FUNC__", 8))
+	if (!com.strncmp(pr_file_p, "__FUNC__", 8))
 	{		
 		static char retbuf[256];
-		sprintf(retbuf, "\"%s\"", pr_scope->name);
+		com.sprintf(retbuf, "\"%s\"", pr_scope->name);
 		pr_file_p = retbuf;
 		PR_Lex();	//translate the macro's value
 		pr_file_p = oldpr_file_p+8;
 		return true;
 	}
-	if (!strncmp(pr_file_p, "__NULL__", 8))
+	if (!com.strncmp(pr_file_p, "__NULL__", 8))
 	{
 		static char retbuf[256];
-		sprintf(retbuf, "~0");
+		com.sprintf(retbuf, "~0");
 		pr_file_p = retbuf;
 		PR_Lex();	//translate the macro's value
 		pr_file_p = oldpr_file_p + 8;
@@ -1862,7 +1884,7 @@ void PR_Lex (void)
 		pr_file_p++;
 		if (!PR_CheakCompConst())
 		{
-			if (!PR_SimpleGetToken()) strcpy(pr_token, "unknown");
+			if (!PR_SimpleGetToken()) com.strcpy(pr_token, "unknown");
 			PR_ParseError(ERR_CONSTANTNOTDEFINED, "Explicit precompiler usage when not defined %s", pr_token);
 		}
 		else if (pr_token_type == tt_eof) PR_Lex();
@@ -1930,7 +1952,7 @@ void PR_ParseError (int errortype, char *error, ...)
 	char	string[1024];
 
 	va_start( argptr, error );
-	_vsnprintf(string, sizeof(string) - 1, error, argptr);
+	com.vsnprintf(string, sizeof(string) - 1, error, argptr);
 	va_end( argptr );
 
 	if(errortype == ERR_INTERNAL)
@@ -1952,7 +1974,7 @@ void PR_ParseErrorPrintDef (int errortype, def_t *def, char *error, ...)
 	char		string[1024];
 
 	va_start (argptr,error);
-	_vsnprintf (string, sizeof(string)-1, error, argptr);
+	com.vsnprintf (string, sizeof(string)-1, error, argptr);
 	va_end (argptr);
 
 	PR_PrintScope();
@@ -1975,7 +1997,7 @@ void PR_ParseWarning (int type, char *error, ...)
 	if (type < ERR_PARSEERRORS && pr_warning[type]) return;
 
 	va_start (argptr,error);
-	_vsnprintf (string,sizeof(string) - 1, error,argptr);
+	com.vsnprintf (string,sizeof(string) - 1, error,argptr);
 	va_end (argptr);
 
 	PR_PrintScope();
@@ -2006,7 +2028,7 @@ void PR_Warning (int type, char *file, int line, char *error, ...)
 	if (pr_warning[type]) return;
 
 	va_start (argptr,error);
-	_vsnprintf (string,sizeof(string) - 1, error,argptr);
+	com.vsnprintf (string,sizeof(string) - 1, error,argptr);
 	va_end (argptr);
 
 	PR_PrintScope();
@@ -2021,7 +2043,7 @@ void PR_Message( char *message, ... )
 	char		string[1024];
 
 	va_start (argptr, message);
-	_vsnprintf (string, sizeof(string) - 1, message, argptr);
+	com.vsnprintf (string, sizeof(string) - 1, message, argptr);
 	va_end (argptr);
 
 	com.print( string );
@@ -2088,7 +2110,7 @@ bool PR_MatchKeyword( int keyword )
 			// not keyword for current version
 			if(pr_keywords[i].version > target_version) return false;
 			if(!STRCMP(pr_token, pr_keywords[i].name)) return true;
-			if(strlen(pr_keywords[i].alias) && !STRCMP(pr_token, pr_keywords[i].alias))
+			if(com.strlen(pr_keywords[i].alias) && !STRCMP(pr_token, pr_keywords[i].alias))
 				return true; // use alias
 			break; // match found
 		}
@@ -2131,13 +2153,13 @@ char *PR_ParseName (void)
 	char		*ret;
 	
 	if (pr_token_type != tt_name) PR_ParseError (ERR_NOTANAME, "\"%s\" - not a name", pr_token);	
-	if (strlen(pr_token) >= MAX_NAME-1) PR_ParseError (ERR_NAMETOOLONG, "name too long");
+	if (com.strlen(pr_token) >= MAX_NAME-1) PR_ParseError (ERR_NAMETOOLONG, "name too long");
 
-	strcpy (ident, pr_token);
+	com.strcpy (ident, pr_token);
 	PR_Lex ();
 	
-	ret = Qalloc(strlen(ident) + 1);
-	strcpy(ret, ident);
+	ret = Qalloc(com.strlen(ident) + 1);
+	com.strcpy(ret, ident);
 	return ret;
 }
 
@@ -2220,26 +2242,26 @@ char *TypeName(type_t *type)
 
 	if (type->type == ev_function)
 	{
-		strcat(ret, type->aux_type->name);
-		strcat(ret, " (");
+		com.strcat(ret, type->aux_type->name);
+		com.strcat(ret, " (");
 		type = type->param;
 
 		while(type)
 		{
-			strcat(ret, type->name);
+			com.strcat(ret, type->name);
 			type = type->next;
-			if (type) strcat(ret, ", ");
+			if (type) com.strcat(ret, ", ");
 		}
-		strcat(ret, ")");
+		com.strcat(ret, ")");
 	}
 	else if (type->type == ev_entity && type->parentclass)
 	{
 		ret = buffer[op&1];
 		*ret = 0;
-		strcat(ret, "class ");
-		strcat(ret, type->name);
+		com.strcat(ret, "class ");
+		com.strcat(ret, type->name);
 	}
-	else strcpy(ret, type->name);
+	else com.strcpy(ret, type->name);
 
 	return buffer[op&1];
 }
@@ -2340,9 +2362,9 @@ type_t *PR_ParseFunctionType (int newtype, type_t *returntype)
 				if (STRCMP(pr_token, ",") && STRCMP(pr_token, ")"))
 				{
 					name = PR_ParseName ();
-					if (definenames) strcpy (pr_parm_names[ftype->num_parms], name);
+					if (definenames) com.strcpy (pr_parm_names[ftype->num_parms], name);
 				}
-				else if (definenames) strcpy (pr_parm_names[ftype->num_parms], "");
+				else if (definenames) com.strcpy (pr_parm_names[ftype->num_parms], "");
 				ftype->num_parms++;
 			} while (PR_CheckToken (","));
 	          }
@@ -2359,7 +2381,7 @@ type_t *PR_PointerType (type_t *pointsto)
 	type_t	*ptype;
 	char	name[128];
 
-	sprintf(name, "*%s", pointsto->name);
+	com.sprintf(name, "*%s", pointsto->name);
 	ptype = PR_NewType(name, ev_pointer);
 	ptype->aux_type = pointsto;
 
@@ -2371,7 +2393,7 @@ type_t *PR_FieldType (type_t *pointsto)
 	type_t	*ptype;
 	char	name[128];
 
-	sprintf(name, "FIELD TYPE(%s)", pointsto->name);
+	com.sprintf(name, "FIELD TYPE(%s)", pointsto->name);
 	ptype = PR_NewType(name, ev_field);
 	ptype->aux_type = pointsto;
 	ptype->size = ptype->aux_type->size;
@@ -2449,7 +2471,7 @@ type_t *PR_ParseType (int newtype)
 				PR_Lex();
 				if (PR_CheckToken("["))
 				{
-					type->next->size*=atoi(pr_token);
+					type->next->size*=com.atoi(pr_token);
 					PR_Lex();
 					PR_Expect("]");
 				}
@@ -2457,7 +2479,7 @@ type_t *PR_ParseType (int newtype)
 			}
 			else newparm->name = PR_CopyString("", opt_noduplicatestrings )+strings;
 
-			sprintf(membername, "%s::"MEMBERFIELDNAME, classname, newparm->name);
+			com.sprintf(membername, "%s::"MEMBERFIELDNAME, classname, newparm->name);
 			fieldtype = PR_NewType(newparm->name, ev_field);
 			fieldtype->aux_type = newparm;
 			fieldtype->size = newparm->size;
@@ -2498,7 +2520,7 @@ type_t *PR_ParseType (int newtype)
 				PR_Lex();
 				if (PR_CheckToken("["))
 				{
-					newparm->size*=atoi(pr_token);
+					newparm->size*=com.atoi(pr_token);
 					PR_Lex();
 					PR_Expect("]");
 				}

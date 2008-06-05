@@ -7,6 +7,7 @@
 
 #include <math.h>
 #include "basetypes.h"
+#include "stdref.h"
 
 #define SIDE_FRONT		0
 #define SIDE_BACK		1

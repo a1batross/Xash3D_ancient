@@ -21,10 +21,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef SERVER_H
 #define SERVER_H
 
-#include "progsvm.h"
 #include "net_msg.h"
 #include "mathlib.h"
 #include "basefiles.h"
+#include "sv_edict.h"
 
 //=============================================================================
 
@@ -86,7 +86,6 @@ typedef struct
 
 	char		configstrings[MAX_CONFIGSTRINGS][MAX_QPATH];
 	entity_state_t	baselines[MAX_EDICTS];
-	edict_t		**moved_edicts;	// [MAX_EDICTS]
 
 	// the multicast buffer is used to send a message to a set of clients
 	// it is only used to marshall data until SV_Message is called

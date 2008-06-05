@@ -1803,6 +1803,7 @@ physbody_t *Phys_CreatePlayer( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transfor
   	// add and up vector constraint to help in keeping the body upright
 	VectorSet( upDirection, 0.0f, 1.0f, 0.0f );
 	cm.upVector = NewtonConstraintCreateUpVector( gWorld, &upDirection[0], body ); 
+	NewtonBodySetContinuousCollisionMode( body, 1 );
 
 	return (physbody_t *)body;
 }

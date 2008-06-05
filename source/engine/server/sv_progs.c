@@ -601,9 +601,6 @@ void SV_BeginIncreaseEdicts(void)
 	int		i;
 	edict_t		*ent;
 
-	PRVM_Free( sv.moved_edicts );
-	sv.moved_edicts = (edict_t **)PRVM_Alloc(prog->max_edicts * sizeof(edict_t *));
-
 	// links don't survive the transition, so unlink everything
 	for (i = 0, ent = prog->edicts; i < prog->max_edicts; i++, ent++)
 	{
@@ -2025,9 +2022,6 @@ void SV_SpawnEntities( const char *mapname, const char *entities )
 
 	MsgDev( D_NOTE, "SV_SpawnEntities()\n" );
 
-	// used by PushMove to move back pushed entities
-	sv.moved_edicts = (edict_t **)PRVM_Alloc(prog->max_edicts * sizeof(edict_t *));
-
 	prog->protect_world = false; // allow to change world parms
 
 	ent = PRVM_EDICT_NUM( 0 );
@@ -2071,7 +2065,7 @@ void SV_InitServerProgs( void )
 
 	prog->reserved_edicts = maxclients->integer;
 	prog->loadintoworld = true;
-		
+
 	if( !prog->loaded )
 	{        
 		prog->progs_mempool = Mem_AllocPool("Server Progs" );

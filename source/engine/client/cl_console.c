@@ -376,9 +376,9 @@ Con_DrawNotify
 Draws the last few lines of output transparently over the game top
 ================
 */
-void Con_DrawNotify (void)
+void Con_DrawNotify( void )
 {
-	int		x, v;
+	int		x, v = 0;
 	short		*text;
 	int		i;
 	float		time;
@@ -388,7 +388,6 @@ void Con_DrawNotify (void)
 	currentColor = 7;
 	re->SetColor( g_color_table[currentColor] );
 
-	v = 0;
 	for (i = con.current - NUM_CON_TIMES + 1; i <= con.current; i++)
 	{
 		if (i < 0) continue;
@@ -396,7 +395,7 @@ void Con_DrawNotify (void)
 		if (time == 0) continue;
 		time = cls.realtime - time;
 		if (time > con_notifytime->value) continue;
-		text = con.text + (i % con.totallines)*con.linewidth;
+		text = con.text + (i % con.totallines) * con.linewidth;
 
 		for (x = 0 ; x < con.linewidth ; x++)
 		{

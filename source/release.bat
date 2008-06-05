@@ -32,6 +32,9 @@ if errorlevel 1 set BUILD_ERROR=1
 %MSDEV% viewer/viewer.dsp %CONFIG%"viewer - Win32 Release" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
+%MSDEV% vprogs/vprogs.dsp %CONFIG%"vprogs - Win32 Release" %build_target%
+if errorlevel 1 set BUILD_ERROR=1
+
 if "%BUILD_ERROR%"=="" goto build_ok
 
 echo *********************
@@ -59,9 +62,10 @@ if exist ripper\ripper.plg del /f /q ripper\ripper.plg
 if exist physic\physic.plg del /f /q physic\physic.plg
 if exist render\render.plg del /f /q render\render.plg
 if exist viewer\viewer.plg del /f /q viewer\viewer.plg
+if exist vprogs\vprogs.plg del /f /q vprogs\vprogs.plg
 
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading
 cd D:\Xash3D\
-xash.exe -game tmpQuArK +map qctest -dev 3 -debug -log
+xash.exe -game tmpQuArK +map walk_test -dev 3 -debug -log
 :done

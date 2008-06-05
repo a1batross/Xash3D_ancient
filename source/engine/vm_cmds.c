@@ -5,7 +5,6 @@
 // also applies here
 
 #include "engine.h"
-#include "progsvm.h"
 #include "server.h"
 #include "client.h"
 
@@ -1038,7 +1037,6 @@ VM_stackdump
 stackdump()
 =========
 */
-void PRVM_StackTrace(void);
 void VM_stackdump (void)
 {
 	VM_SAFEPARMCOUNT(0, VM_stackdump);
@@ -1053,7 +1051,6 @@ VM_crash
 crash()
 =========
 */
-
 void VM_crash(void)
 {
 	VM_SAFEPARMCOUNT(0, VM_crash);
@@ -1100,7 +1097,7 @@ void VM_eprint (void)
 {
 	VM_SAFEPARMCOUNT(1,VM_eprint);
 
-	PRVM_ED_PrintNum (PRVM_G_EDICTNUM(OFS_PARM0));
+	PRVM_ED_Print(PRVM_G_EDICT(OFS_PARM0));
 }
 
 /*

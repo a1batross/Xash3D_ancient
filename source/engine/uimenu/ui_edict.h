@@ -5,7 +5,7 @@
 #ifndef UI_EDICT_H
 #define UI_EDICT_H
 
-typedef struct ui_globalvars_s
+struct ui_globalvars_s
 {
 	int		pad[28];
 	int		pev;
@@ -15,9 +15,9 @@ typedef struct ui_globalvars_s
 	func_t		m_draw;
 	func_t		m_show;
 	func_t		m_hide;
-} ui_globalvars_t;
+};
 
-typedef struct ui_entvars_s
+struct ui_entvars_s
 {
 	string_t		type;
 	string_t		parent;
@@ -26,7 +26,7 @@ typedef struct ui_entvars_s
 	int		_next;
 	int		_prev;
 	int		_child;
-} ui_entvars_t;
+};
 
 struct ui_edict_s
 {
@@ -105,7 +105,5 @@ static fields_t ui_reqfields[] =
 	{92,	4,	"find1"},
 	{93,	2,	"find2"}
 };
-
-#define PROG_CRC_UIMENU	36416
 
 #endif//UI_EDICT_H

@@ -22,7 +22,6 @@
 #define SPRITE32_VERSION		32
 
 typedef enum { ST_SYNC = 0, ST_RAND } synctype_t;
-typedef enum { SPR_SINGLE = 0, SPR_GROUP } frametype_t;
 
 typedef struct
 {
@@ -57,21 +56,6 @@ typedef struct
 	int		width;
 	int		height;
 } dspriteframe_t;
-
-typedef struct
-{
-	int		numframes;
-} dspritegroup_t;
-
-typedef struct
-{
-	float		interval;
-} dspriteinterval_t;
-
-typedef struct
-{
-	frametype_t	type;
-} dframetype_t;
 
 //
 // sprite_decompiler.c

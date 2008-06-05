@@ -18,8 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "engine.h"
-#include "progsvm.h"
+#include "vprogs.h"
 
 char *prvm_opnames[] =
 {
@@ -125,14 +124,14 @@ extern cvar_t *prvm_statementprofiling;
 void PRVM_PrintStatement (dstatement_t *s)
 {
 	size_t i;
-	int opnum = (int)(s - prog->statements);
+	int opnum = (int)(s - vm.prog->statements);
 
 	Msg("s%i: ", opnum);
-	if( prog->statement_linenums )
-		Msg( "%s:%i: ", PRVM_GetString( prog->xfunction->s_file ), prog->statement_linenums[ opnum ] );
+	if( vm.prog->statement_linenums )
+		Msg( "%s:%i: ", PRVM_GetString( vm.prog->xfunction->s_file ), vm.prog->statement_linenums[ opnum ] );
 
 	if (prvm_statementprofiling->value)
-		Msg("%7.0f ", prog->statement_profile[s - prog->statements]);
+		Msg("%7.0f ", vm.prog->statement_profile[s - vm.prog->statements]);
 
 	if ( (unsigned)s->op < sizeof(prvm_opnames)/sizeof(prvm_opnames[0]))
 	{
@@ -205,17 +204,17 @@ void PRVM_PrintFunctionStatements (const char *name)
 	}
 
 	// find the end statement
-	endstatement = prog->progs->numstatements;
-	for (i = 0;i < prog->progs->numfunctions;i++)
-		if (endstatement > prog->functions[i].first_statement && firststatement < prog->functions[i].first_statement)
-			endstatement = prog->functions[i].first_statement;
+	endstatement = vm.prog->progs->numstatements;
+	for (i = 0;i < vm.prog->progs->numfunctions;i++)
+		if (endstatement > vm.prog->functions[i].first_statement && firststatement < vm.prog->functions[i].first_statement)
+			endstatement = vm.prog->functions[i].first_statement;
 
 	// now print the range of statements
 	Msg("%s progs: disassembly of function %s (statements %i-%i):\n", PRVM_NAME, name, firststatement, endstatement);
 	for (i = firststatement;i < endstatement;i++)
 	{
-		PRVM_PrintStatement(prog->statements + i);
-		prog->statement_profile[i] = 0;
+		PRVM_PrintStatement(vm.prog->statements + i);
+		vm.prog->statement_profile[i] = 0;
 	}
 }
 
@@ -233,13 +232,12 @@ void PRVM_PrintFunction_f (void)
 		return;
 	}
 
-	PRVM_Begin;
 	if(!PRVM_SetProgFromString(Cmd_Argv(1)))
 		return;
 
 	PRVM_PrintFunctionStatements(Cmd_Argv(2));
 
-	PRVM_End;
+	vm.prog = NULL;
 }
 
 /*
@@ -252,16 +250,16 @@ void PRVM_StackTrace (void)
 	mfunction_t	*f;
 	int			i;
 
-	prog->stack[prog->depth].s = prog->xstatement;
-	prog->stack[prog->depth].f = prog->xfunction;
-	for (i = prog->depth;i > 0;i--)
+	vm.prog->stack[vm.prog->depth].s = vm.prog->xstatement;
+	vm.prog->stack[vm.prog->depth].f = vm.prog->xfunction;
+	for (i = vm.prog->depth;i > 0;i--)
 	{
-		f = prog->stack[i].f;
+		f = vm.prog->stack[i].f;
 
 		if (!f)
 			Msg("<NULL FUNCTION>\n");
 		else
-			Msg("%12s : %s : statement %i\n", PRVM_GetString(f->s_file), PRVM_GetString(f->s_name), prog->stack[i].s - f->first_statement);
+			Msg("%12s : %s : statement %i\n", PRVM_GetString(f->s_file), PRVM_GetString(f->s_name), vm.prog->stack[i].s - f->first_statement);
 	}
 }
 
@@ -279,9 +277,9 @@ void PRVM_Profile (int maxfunctions, int mininstructions)
 	{
 		max = 0;
 		best = NULL;
-		for (i=0 ; i<prog->progs->numfunctions ; i++)
+		for (i=0 ; i<vm.prog->progs->numfunctions ; i++)
 		{
-			f = &prog->functions[i];
+			f = &vm.prog->functions[i];
 			if (max < f->profile + f->builtinsprofile + f->callcount)
 			{
 				max = f->profile + f->builtinsprofile + f->callcount;
@@ -317,26 +315,25 @@ void PRVM_Profile_f (void)
 
 	howmany = 1<<30;
 	if (Cmd_Argc() == 3)
-		howmany = atoi(Cmd_Argv(2));
+		howmany = com.atoi(Cmd_Argv(2));
 	else if (Cmd_Argc() != 2)
 	{
 		Msg("prvm_profile <program name>\n");
 		return;
 	}
 
-	PRVM_Begin;
 	if(!PRVM_SetProgFromString(Cmd_Argv(1)))
 		return;
 
 	PRVM_Profile(howmany, 1);
 
-	PRVM_End;
+	vm.prog = NULL;
 }
 
 void PRVM_CrashAll()
 {
 	int i;
-	prvm_prog_t *oldprog = prog;
+	prvm_prog_t *oldprog = vm.prog;
 
 	for(i = 0; i < PRVM_MAXPROGS; i++)
 	{
@@ -345,18 +342,17 @@ void PRVM_CrashAll()
 		PRVM_SetProg(i);
 		PRVM_Crash();
 	}
-
-	prog = oldprog;
+	vm.prog = oldprog;
 }
 
 void PRVM_PrintState(void)
 {
 	int i;
-	if (prog->xfunction)
+	if( vm.prog->xfunction )
 	{
-		for (i = -7; i <= 0;i++)
-			if (prog->xstatement + i >= prog->xfunction->first_statement)
-				PRVM_PrintStatement (prog->statements + prog->xstatement + i);
+		for(i = -7; i <= 0;i++)
+			if (vm.prog->xstatement + i >= vm.prog->xfunction->first_statement)
+				PRVM_PrintStatement (vm.prog->statements + vm.prog->xstatement + i);
 	}
 	else
 		Msg("null function executing??\n");
@@ -365,21 +361,21 @@ void PRVM_PrintState(void)
 
 void PRVM_Crash()
 {
-	if (prog == NULL)
+	if( vm.prog == NULL )
 		return;
 
-	if( prog->depth > 0 )
+	if( vm.prog->depth > 0 )
 	{
 		Msg("QuakeC crash report for %s:\n", PRVM_NAME);
 		PRVM_PrintState();
 	}
 
 	// dump the stack so host_error can shutdown functions
-	prog->depth = 0;
-	prog->localstack_used = 0;
+	vm.prog->depth = 0;
+	vm.prog->localstack_used = 0;
 
 	// reset the prog pointer
-	prog = NULL;
+	vm.prog = NULL;
 }
 
 /*
@@ -404,20 +400,20 @@ int PRVM_EnterFunction (mfunction_t *f)
 	if (!f)
 		PRVM_ERROR ("PRVM_EnterFunction: NULL function in %s", PRVM_NAME);
 
-	prog->stack[prog->depth].s = prog->xstatement;
-	prog->stack[prog->depth].f = prog->xfunction;
-	prog->depth++;
-	if (prog->depth >=PRVM_MAX_STACK_DEPTH)
+	vm.prog->stack[vm.prog->depth].s = vm.prog->xstatement;
+	vm.prog->stack[vm.prog->depth].f = vm.prog->xfunction;
+	vm.prog->depth++;
+	if (vm.prog->depth >=PRVM_MAX_STACK_DEPTH)
 		PRVM_ERROR ("stack overflow");
 
 // save off any locals that the new function steps on
 	c = f->locals;
-	if (prog->localstack_used + c > PRVM_LOCALSTACK_SIZE)
+	if (vm.prog->localstack_used + c > PRVM_LOCALSTACK_SIZE)
 		PRVM_ERROR ("PRVM_ExecuteProgram: locals stack overflow in %s", PRVM_NAME);
 
 	for (i=0 ; i < c ; i++)
-		prog->localstack[prog->localstack_used+i] = ((int *)prog->globals.gp)[f->parm_start + i];
-	prog->localstack_used += c;
+		vm.prog->localstack[vm.prog->localstack_used+i] = ((int *)vm.prog->globals.gp)[f->parm_start + i];
+	vm.prog->localstack_used += c;
 
 // copy parameters
 	o = f->parm_start;
@@ -425,12 +421,12 @@ int PRVM_EnterFunction (mfunction_t *f)
 	{
 		for (j=0 ; j<f->parm_size[i] ; j++)
 		{
-			((int *)prog->globals.gp)[o] = ((int *)prog->globals.gp)[OFS_PARM0+i*3+j];
+			((int *)vm.prog->globals.gp)[o] = ((int *)vm.prog->globals.gp)[OFS_PARM0+i*3+j];
 			o++;
 		}
 	}
 
-	prog->xfunction = f;
+	vm.prog->xfunction = f;
 	return f->first_statement - 1;	// offset the s++
 }
 
@@ -443,31 +439,31 @@ int PRVM_LeaveFunction (void)
 {
 	int		i, c;
 
-	if (prog->depth <= 0)
+	if (vm.prog->depth <= 0)
 		PRVM_ERROR ("prog stack underflow in %s", PRVM_NAME);
 
-	if (!prog->xfunction)
+	if (!vm.prog->xfunction)
 		PRVM_ERROR ("PR_LeaveFunction: NULL function in %s", PRVM_NAME);
 // restore locals from the stack
-	c = prog->xfunction->locals;
-	prog->localstack_used -= c;
-	if (prog->localstack_used < 0)
+	c = vm.prog->xfunction->locals;
+	vm.prog->localstack_used -= c;
+	if (vm.prog->localstack_used < 0)
 		PRVM_ERROR ("PRVM_ExecuteProgram: locals stack underflow in %s", PRVM_NAME);
 
 	for (i=0 ; i < c ; i++)
-		((int *)prog->globals.gp)[prog->xfunction->parm_start + i] = prog->localstack[prog->localstack_used+i];
+		((int *)vm.prog->globals.gp)[vm.prog->xfunction->parm_start + i] = vm.prog->localstack[vm.prog->localstack_used+i];
 
 // up stack
-	prog->depth--;
-	prog->xfunction = prog->stack[prog->depth].f;
-	return prog->stack[prog->depth].s;
+	vm.prog->depth--;
+	vm.prog->xfunction = vm.prog->stack[vm.prog->depth].f;
+	return vm.prog->stack[vm.prog->depth].s;
 }
 
 void PRVM_Init_Exec(void)
 {
 	// dump the stack
-	prog->depth = 0;
-	prog->localstack_used = 0;
+	vm.prog->depth = 0;
+	vm.prog->localstack_used = 0;
 	// reset the string table
 	// nothing here yet
 }
@@ -478,9 +474,9 @@ PRVM_ExecuteProgram
 ====================
 */
 // LordHavoc: optimized
-#define OPA ((prvm_eval_t *)&prog->globals.gp[(word) st->a])
-#define OPB ((prvm_eval_t *)&prog->globals.gp[(word) st->b])
-#define OPC ((prvm_eval_t *)&prog->globals.gp[(word) st->c])
+#define OPA ((prvm_eval_t *)&vm.prog->globals.gp[(word) st->a])
+#define OPB ((prvm_eval_t *)&vm.prog->globals.gp[(word) st->b])
+#define OPC ((prvm_eval_t *)&vm.prog->globals.gp[(word) st->c])
 extern cvar_t *prvm_boundscheck;
 extern cvar_t *prvm_traceqc;
 extern cvar_t *prvm_statementprofiling;
@@ -496,23 +492,23 @@ void PRVM_ExecuteProgram( func_t fnum, const char *errormessage )
 	int		switchtype, exitdepth;
 	int		i, jumpcount, cachedpr_trace;
 
-	if( !fnum || fnum >= (uint)prog->progs->numfunctions )
+	if( !fnum || fnum >= (uint)vm.prog->progs->numfunctions )
 	{
-		if( prog->pev && PRVM_G_INT(prog->pev->ofs) )
-			PRVM_ED_Print(PRVM_PROG_TO_EDICT(PRVM_G_INT(prog->pev->ofs)));
+		if( vm.prog->pev && PRVM_G_INT(vm.prog->pev->ofs) )
+			PRVM_ED_Print(PRVM_PROG_TO_EDICT(PRVM_G_INT(vm.prog->pev->ofs)));
 		PRVM_ERROR ("PRVM_ExecuteProgram: %s", errormessage);
 		return;
 	}
 
-	f = &prog->functions[fnum];
+	f = &vm.prog->functions[fnum];
 
-	prog->trace = prvm_traceqc->value;
+	vm.prog->trace = prvm_traceqc->value;
 
 	// we know we're done when pr_depth drops to this
-	exitdepth = prog->depth;
+	exitdepth = vm.prog->depth;
 
 	// make a stack frame
-	st = &prog->statements[PRVM_EnterFunction (f)];
+	st = &vm.prog->statements[PRVM_EnterFunction (f)];
 	// save the starting statement pointer for profiling
 	// (when the function exits or jumps, the (st - startst) integer value is
 	// added to the function's profile counter)
@@ -520,17 +516,17 @@ void PRVM_ExecuteProgram( func_t fnum, const char *errormessage )
 	// instead of counting instructions, we count jumps
 	jumpcount = 0;
 	// add one to the callcount of this function because otherwise engine-called functions aren't counted
-	prog->xfunction->callcount++;
+	vm.prog->xfunction->callcount++;
 
 chooseexecprogram:
-	cachedpr_trace = prog->trace;
+	cachedpr_trace = vm.prog->trace;
 
 	while (1)
 	{
 		st++;
 
-		if (prog->trace) PRVM_PrintStatement(st);
-		if (prvm_statementprofiling->value) prog->statement_profile[st - prog->statements]++;
+		if (vm.prog->trace) PRVM_PrintStatement(st);
+		if (prvm_statementprofiling->value) vm.prog->statement_profile[st - vm.prog->statements]++;
 
 		switch (st->op)
 		{
@@ -677,7 +673,7 @@ chooseexecprogram:
 					OPC->_float = true;
 				else OPC->_float = false;
 			}
-			else OPC->_float = !strcmp(PRVM_GetString(OPA->string), PRVM_GetString(OPB->string));
+			else OPC->_float = !com.strcmp(PRVM_GetString(OPA->string), PRVM_GetString(OPB->string));
 			break;
 		case OP_EQ_E:
 			OPC->_float = (float)(OPA->_int == OPB->_int);
@@ -705,7 +701,7 @@ chooseexecprogram:
 					OPC->_float = false;
 				else OPC->_float = true;
 			}
-			else OPC->_float = strcmp(PRVM_GetString(OPA->string), PRVM_GetString(OPB->string));
+			else OPC->_float = com.strcmp(PRVM_GetString(OPA->string), PRVM_GetString(OPB->string));
 			break;
 		case OP_NE_E:
 			OPC->_float = (float)(OPA->_int != OPB->_int);
@@ -837,22 +833,22 @@ chooseexecprogram:
 			OPC->vector[2] = (ptr->vector[2] -= OPA->vector[2]);
 			break;
 		case OP_ADDRESS:
-			if (prvm_boundscheck->value && ((uint)(OPB->_int) >= (uint)(prog->progs->entityfields)))
+			if (prvm_boundscheck->value && ((uint)(OPB->_int) >= (uint)(vm.prog->progs->entityfields)))
 			{
-				prog->xfunction->profile += (st - startst);
-				prog->xstatement = st - prog->statements;
+				vm.prog->xfunction->profile += (st - startst);
+				vm.prog->xstatement = st - vm.prog->statements;
 				PRVM_ERROR("%s attempted to address an invalid field (%i) in an edict", PRVM_NAME, OPB->_int);
 				return;
 			}
-			if (OPA->edict == 0 && prog->protect_world)
+			if (OPA->edict == 0 && vm.prog->protect_world)
 			{
-				prog->xfunction->profile += (st - startst);
-				prog->xstatement = st - prog->statements;
+				vm.prog->xfunction->profile += (st - startst);
+				vm.prog->xstatement = st - vm.prog->statements;
 				PRVM_ERROR("forbidden assignment to null/world entity in %s", PRVM_NAME);
 				return;
 			}
 			ed = PRVM_PROG_TO_EDICT(OPA->edict);
-			OPC->_int = (byte *)((int *)ed->progs.vp + OPB->_int) - (byte *)prog->edictsfields;
+			OPC->_int = (byte *)((int *)ed->progs.vp + OPB->_int) - (byte *)vm.prog->edictsfields;
 			break;
 		case OP_LOAD_I:
 		case OP_LOAD_F:
@@ -860,10 +856,10 @@ chooseexecprogram:
 		case OP_LOAD_ENT:
 		case OP_LOAD_S:
 		case OP_LOAD_FNC:
-			if (prvm_boundscheck->value && ((uint)(OPB->_int) >= (uint)(prog->progs->entityfields)))
+			if (prvm_boundscheck->value && ((uint)(OPB->_int) >= (uint)(vm.prog->progs->entityfields)))
 			{
-				prog->xfunction->profile += (st - startst);
-				prog->xstatement = st - prog->statements;
+				vm.prog->xfunction->profile += (st - startst);
+				vm.prog->xstatement = st - vm.prog->statements;
 				PRVM_ERROR("%s attempted to read an invalid field in an edict (%i)", PRVM_NAME, OPB->_int);
 				return;
 			}
@@ -871,10 +867,10 @@ chooseexecprogram:
 			OPC->_int = ((prvm_eval_t *)((int *)ed->progs.vp + OPB->_int))->_int;
 			break;
 		case OP_LOAD_V:
-			if (prvm_boundscheck->value && (OPB->_int < 0 || OPB->_int + 2 >= prog->progs->entityfields))
+			if (prvm_boundscheck->value && (OPB->_int < 0 || OPB->_int + 2 >= vm.prog->progs->entityfields))
 			{
-				prog->xfunction->profile += (st - startst);
-				prog->xstatement = st - prog->statements;
+				vm.prog->xfunction->profile += (st - startst);
+				vm.prog->xstatement = st - vm.prog->statements;
 				PRVM_ERROR("%s attempted to read an invalid field in an edict (%i)", PRVM_NAME, OPB->_int);
 				return;
 			}
@@ -886,7 +882,7 @@ chooseexecprogram:
 		case OP_IFNOTS:
 			if (!OPA->string || !*PRVM_GetString(OPA->string))
 			{
-				prog->xfunction->profile += (st - startst);
+				vm.prog->xfunction->profile += (st - startst);
 				st += st->b - 1;	// offset the s++
 				startst = st;
 				PRVM_CHECK_INFINITE();
@@ -895,7 +891,7 @@ chooseexecprogram:
 		case OP_IFNOT:
 			if (!OPA->_int)
 			{
-				prog->xfunction->profile += (st - startst);
+				vm.prog->xfunction->profile += (st - startst);
 				st += st->b - 1;	// offset the s++
 				startst = st;
 				PRVM_CHECK_INFINITE();
@@ -904,7 +900,7 @@ chooseexecprogram:
 		case OP_IFS:
 			if (OPA->string && *PRVM_GetString(OPA->string))
 			{
-				prog->xfunction->profile += (st - startst);
+				vm.prog->xfunction->profile += (st - startst);
 				st += st->b - 1;	// offset the s++
 				startst = st;
 				PRVM_CHECK_INFINITE();
@@ -913,14 +909,14 @@ chooseexecprogram:
 		case OP_IF:
 			if (OPA->_int)
 			{
-				prog->xfunction->profile += (st - startst);
+				vm.prog->xfunction->profile += (st - startst);
 				st += st->b - 1;	// offset the s++
 				startst = st;
 				PRVM_CHECK_INFINITE();
 			}
 			break;
 		case OP_GOTO:
-			prog->xfunction->profile += (st - startst);
+			vm.prog->xfunction->profile += (st - startst);
 			st += st->a - 1;	// offset the s++
 			startst = st;
 			PRVM_CHECK_INFINITE();
@@ -934,53 +930,53 @@ chooseexecprogram:
 		case OP_CALL6:
 		case OP_CALL7:
 		case OP_CALL8:
-			prog->xfunction->profile += (st - startst);
+			vm.prog->xfunction->profile += (st - startst);
 			startst = st;
-			prog->xstatement = st - prog->statements;
-			prog->argc = st->op - OP_CALL0;
+			vm.prog->xstatement = st - vm.prog->statements;
+			vm.prog->argc = st->op - OP_CALL0;
 			if (!OPA->function) PRVM_ERROR("NULL function in %s", PRVM_NAME);
 
-			newf = &prog->functions[OPA->function];
+			newf = &vm.prog->functions[OPA->function];
 			newf->callcount++;
 
 			if (newf->first_statement < 0)
 			{
 				// negative statements are built in functions
 				int builtinnumber = -newf->first_statement;
-				prog->xfunction->builtinsprofile++;
-				if (builtinnumber < prog->numbuiltins && prog->builtins[builtinnumber])
-					prog->builtins[builtinnumber]();
+				vm.prog->xfunction->builtinsprofile++;
+				if (builtinnumber < vm.prog->numbuiltins && vm.prog->builtins[builtinnumber])
+					vm.prog->builtins[builtinnumber]();
 				else PRVM_ERROR("No such builtin #%i in %s", builtinnumber, PRVM_NAME);
 			}
-			else st = prog->statements + PRVM_EnterFunction(newf);
+			else st = vm.prog->statements + PRVM_EnterFunction(newf);
 			startst = st;
 			break;
 		case OP_DONE:
 		case OP_RETURN:
-			prog->xfunction->profile += (st - startst);
-			prog->xstatement = st - prog->statements;
+			vm.prog->xfunction->profile += (st - startst);
+			vm.prog->xstatement = st - vm.prog->statements;
 
-			prog->globals.gp[OFS_RETURN+0] = prog->globals.gp[(word) st->a+0];
-			prog->globals.gp[OFS_RETURN+1] = prog->globals.gp[(word) st->a+1];
-			prog->globals.gp[OFS_RETURN+2] = prog->globals.gp[(word) st->a+2];
+			vm.prog->globals.gp[OFS_RETURN+0] = vm.prog->globals.gp[(word) st->a+0];
+			vm.prog->globals.gp[OFS_RETURN+1] = vm.prog->globals.gp[(word) st->a+1];
+			vm.prog->globals.gp[OFS_RETURN+2] = vm.prog->globals.gp[(word) st->a+2];
 
-			st = prog->statements + PRVM_LeaveFunction();
+			st = vm.prog->statements + PRVM_LeaveFunction();
 			startst = st;
-			if (prog->depth <= exitdepth) return; // all done
-			if (prog->trace != cachedpr_trace) goto chooseexecprogram;
+			if (vm.prog->depth <= exitdepth) return; // all done
+			if (vm.prog->trace != cachedpr_trace) goto chooseexecprogram;
 			break;
 		case OP_STATE:
-			if(prog->flag & PRVM_OP_STATE)
+			if(vm.prog->flag & PRVM_OP_STATE)
 			{
-				ed = PRVM_PROG_TO_EDICT(PRVM_G_INT(prog->pev->ofs));
-				PRVM_E_FLOAT(ed, PRVM_ED_FindField ("nextthink")->ofs) = *prog->time + 0.1;
+				ed = PRVM_PROG_TO_EDICT(PRVM_G_INT(vm.prog->pev->ofs));
+				PRVM_E_FLOAT(ed, PRVM_ED_FindField ("nextthink")->ofs) = *vm.prog->time + 0.1;
 				PRVM_E_FLOAT(ed, PRVM_ED_FindField ("frame")->ofs) = OPA->_float;
 				*(func_t *)((float*)ed->progs.vp + PRVM_ED_FindField ("think")->ofs) = OPB->function;
 			}
 			else
 			{
-				prog->xfunction->profile += (st - startst);
-				prog->xstatement = st - prog->statements;
+				vm.prog->xfunction->profile += (st - startst);
+				vm.prog->xstatement = st - vm.prog->statements;
 				PRVM_ERROR("OP_STATE not supported by %s", PRVM_NAME);
 			}
 			break;
@@ -1038,7 +1034,7 @@ chooseexecprogram:
 			break;
 		case OP_GLOBAL_ADD:
 			ed = PRVM_PROG_TO_EDICT(OPA->edict);
-			OPC->_int = (byte *)((int *)OPB->_int) - (byte *)prog->edictsfields;
+			OPC->_int = (byte *)((int *)OPB->_int) - (byte *)vm.prog->edictsfields;
 			break;
 		case OP_POINTER_ADD:
 			OPC->_int = OPA->_int + OPB->_int * 4;
@@ -1097,26 +1093,26 @@ chooseexecprogram:
 		case OP_FETCH_GBL_E:
 		case OP_FETCH_G_FNC:
 			i = (int)OPB->_float;
-			if(prvm_boundscheck->value && (i < 0 || i > ((prvm_eval_t *)&prog->globals.gp[st->a-1])->_int))
+			if(prvm_boundscheck->value && (i < 0 || i > ((prvm_eval_t *)&vm.prog->globals.gp[st->a-1])->_int))
 			{
-				prog->xfunction->profile += (st - startst);
-				prog->xstatement = st - prog->statements;
+				vm.prog->xfunction->profile += (st - startst);
+				vm.prog->xstatement = st - vm.prog->statements;
 				PRVM_ERROR ("%s Progs array index out of bounds", PRVM_NAME);
 				return;
 			}
-			ptr = (prvm_eval_t *)&prog->globals.gp[(word)st->a + i];
+			ptr = (prvm_eval_t *)&vm.prog->globals.gp[(word)st->a + i];
 			OPC->_int = ptr->_int;
 			break;
 		case OP_FETCH_GBL_V:
 			i = (int)OPB->_float;
-			if(prvm_boundscheck->value && (i < 0 || i > ((prvm_eval_t *)&prog->globals.gp[st->a-1])->_int))
+			if(prvm_boundscheck->value && (i < 0 || i > ((prvm_eval_t *)&vm.prog->globals.gp[st->a-1])->_int))
 			{
-				prog->xfunction->profile += (st - startst);
-				prog->xstatement = st - prog->statements;
+				vm.prog->xfunction->profile += (st - startst);
+				vm.prog->xstatement = st - vm.prog->statements;
 				PRVM_ERROR ("%s Progs array index out of bounds", PRVM_NAME);
 				return;
 			}
-			ptr = (prvm_eval_t *)&prog->globals.gp[(word)st->a + ((int)OPB->_float)*3];
+			ptr = (prvm_eval_t *)&vm.prog->globals.gp[(word)st->a + ((int)OPB->_float)*3];
 			OPC->vector[0] = ptr->vector[0];
 			OPC->vector[1] = ptr->vector[1];
 			OPC->vector[2] = ptr->vector[2];
@@ -1142,7 +1138,7 @@ chooseexecprogram:
 		case OP_SWITCH_FNC:
 			_switch = OPA;
 			switchtype = st->op;
-			prog->xfunction->profile += (st - startst);
+			vm.prog->xfunction->profile += (st - startst);
 			st += st->b - 1;	// offset the s++
 			startst = st;
 			PRVM_CHECK_INFINITE();
@@ -1153,7 +1149,7 @@ chooseexecprogram:
 			case OP_SWITCH_F:
 				if (_switch->_float == OPA->_float)
 				{
-					prog->xfunction->profile += (st - startst);
+					vm.prog->xfunction->profile += (st - startst);
 					st += st->b - 1;	// offset the s++
 					startst = st;
 					PRVM_CHECK_INFINITE();
@@ -1163,7 +1159,7 @@ chooseexecprogram:
 			case OP_SWITCH_FNC:
 				if (_switch->_int == OPA->_int)
 				{
-					prog->xfunction->profile += (st - startst);
+					vm.prog->xfunction->profile += (st - startst);
 					st += st->b - 1;	// offset the s++
 					startst = st;
 					PRVM_CHECK_INFINITE();
@@ -1172,16 +1168,16 @@ chooseexecprogram:
 			case OP_SWITCH_S:
 				if (_switch->_int == OPA->_int)
 				{
-					prog->xfunction->profile += (st - startst);
+					vm.prog->xfunction->profile += (st - startst);
 					st += st->b - 1;	// offset the s++
 					startst = st;
 					PRVM_CHECK_INFINITE();
 				}
 				if((!_switch->_int && PRVM_GetString(OPA->string)) || (!OPA->_int && PRVM_GetString(_switch->string)))
 					break;
-				if(!strcmp(PRVM_GetString(_switch->string), PRVM_GetString(OPA->string)))
+				if(!com.strcmp(PRVM_GetString(_switch->string), PRVM_GetString(OPA->string)))
 				{
-					prog->xfunction->profile += (st - startst);
+					vm.prog->xfunction->profile += (st - startst);
 					st += st->b - 1;	// offset the s++
 					startst = st;
 					PRVM_CHECK_INFINITE();
@@ -1190,7 +1186,7 @@ chooseexecprogram:
 			case OP_SWITCH_V:
 				if (_switch->vector[0] == OPA->vector[0] && _switch->vector[1] == OPA->vector[1] && _switch->vector[2] == OPA->vector[2])
 				{
-					prog->xfunction->profile += (st - startst);
+					vm.prog->xfunction->profile += (st - startst);
 					st += st->b - 1;	// offset the s++
 					startst = st;
 					PRVM_CHECK_INFINITE();
@@ -1207,7 +1203,7 @@ chooseexecprogram:
 			case OP_SWITCH_F:
 				if (_switch->_float >= OPA->_float && _switch->_float <= OPB->_float)
 				{
-					prog->xfunction->profile += (st - startst);
+					vm.prog->xfunction->profile += (st - startst);
 					st += st->b - 1;	// offset the s++
 					startst = st;
 					PRVM_CHECK_INFINITE();
@@ -1285,37 +1281,37 @@ chooseexecprogram:
 		case OP_GSTOREP_FLD:		// integers
 		case OP_GSTOREP_S:
 		case OP_GSTOREP_FNC:		// pointers
-			if (prvm_boundscheck->value && (OPB->_int < 0 || OPB->_int >= (uint)prog->progs->numglobaldefs))
+			if (prvm_boundscheck->value && (OPB->_int < 0 || OPB->_int >= (uint)vm.prog->progs->numglobaldefs))
 			{
-				prog->xfunction->profile += (st - startst);
-				prog->xstatement = st - prog->statements;
+				vm.prog->xfunction->profile += (st - startst);
+				vm.prog->xstatement = st - vm.prog->statements;
 				PRVM_ERROR ("%s Progs attempted to write to an invalid indexed global", PRVM_NAME);
 				return;
 			}
-			prog->globals.gp[OPB->_int] = OPA->_float;
+			vm.prog->globals.gp[OPB->_int] = OPA->_float;
 			break;
 		case OP_GSTOREP_V:
-			if (prvm_boundscheck->value && (OPB->_int < 0 || OPB->_int + 2 >= (uint)prog->progs->numglobaldefs))
+			if (prvm_boundscheck->value && (OPB->_int < 0 || OPB->_int + 2 >= (uint)vm.prog->progs->numglobaldefs))
 			{
-				prog->xfunction->profile += (st - startst);
-				prog->xstatement = st - prog->statements;
+				vm.prog->xfunction->profile += (st - startst);
+				vm.prog->xstatement = st - vm.prog->statements;
 				PRVM_ERROR ("%s Progs attempted to write to an invalid indexed global", PRVM_NAME);
 				return;
 			}
-			prog->globals.gp[OPB->_int+0] = OPA->vector[0];
-			prog->globals.gp[OPB->_int+1] = OPA->vector[1];
-			prog->globals.gp[OPB->_int+2] = OPA->vector[2];
+			vm.prog->globals.gp[OPB->_int+0] = OPA->vector[0];
+			vm.prog->globals.gp[OPB->_int+1] = OPA->vector[1];
+			vm.prog->globals.gp[OPB->_int+2] = OPA->vector[2];
 			break;
 		case OP_GADDRESS:
 			i = OPA->_int + (int)OPB->_float;
-			if (prvm_boundscheck->value && (i < 0 || i >= (uint)prog->progs->numglobaldefs))
+			if (prvm_boundscheck->value && (i < 0 || i >= (uint)vm.prog->progs->numglobaldefs))
 			{
-				prog->xfunction->profile += (st - startst);
-				prog->xstatement = st - prog->statements;
+				vm.prog->xfunction->profile += (st - startst);
+				vm.prog->xstatement = st - vm.prog->statements;
 				PRVM_ERROR ("%s Progs attempted to address an out of bounds global", PRVM_NAME);
 				return;
 			}
-			OPC->_float = prog->globals.gp[i];
+			OPC->_float = vm.prog->globals.gp[i];
 			break;	
 		case OP_GLOAD_I:
 		case OP_GLOAD_F:
@@ -1323,32 +1319,32 @@ chooseexecprogram:
 		case OP_GLOAD_ENT:
 		case OP_GLOAD_S:
 		case OP_GLOAD_FNC:
-			if (prvm_boundscheck->value && (OPA->_int < 0 || OPA->_int >= (uint)prog->progs->numglobaldefs))
+			if (prvm_boundscheck->value && (OPA->_int < 0 || OPA->_int >= (uint)vm.prog->progs->numglobaldefs))
 			{
-				prog->xfunction->profile += (st - startst);
-				prog->xstatement = st - prog->statements;
+				vm.prog->xfunction->profile += (st - startst);
+				vm.prog->xstatement = st - vm.prog->statements;
 				PRVM_ERROR ("%s Progs attempted to read an invalid indexed global", PRVM_NAME);
 				return;
 			}
-			OPC->_float = prog->globals.gp[OPA->_int];
+			OPC->_float = vm.prog->globals.gp[OPA->_int];
 			break;
 		case OP_GLOAD_V:
-			if (prvm_boundscheck->value && (OPA->_int < 0 || OPA->_int + 2 >= (uint)prog->progs->numglobaldefs))
+			if (prvm_boundscheck->value && (OPA->_int < 0 || OPA->_int + 2 >= (uint)vm.prog->progs->numglobaldefs))
 			{
-				prog->xfunction->profile += (st - startst);
-				prog->xstatement = st - prog->statements;
+				vm.prog->xfunction->profile += (st - startst);
+				vm.prog->xstatement = st - vm.prog->statements;
 				PRVM_ERROR ("%s Progs attempted to read an invalid indexed global", PRVM_NAME);
 				return;
 			}
-			OPC->vector[0] = prog->globals.gp[OPA->_int+0];
-			OPC->vector[1] = prog->globals.gp[OPA->_int+1];
-			OPC->vector[2] = prog->globals.gp[OPA->_int+2];
+			OPC->vector[0] = vm.prog->globals.gp[OPA->_int+0];
+			OPC->vector[1] = vm.prog->globals.gp[OPA->_int+1];
+			OPC->vector[2] = vm.prog->globals.gp[OPA->_int+2];
 			break;
 		case OP_BOUNDCHECK:
 			if (OPA->_int < 0 || OPA->_int >= st->b)
 			{
-				prog->xfunction->profile += (st - startst);
-				prog->xstatement = st - prog->statements;
+				vm.prog->xfunction->profile += (st - startst);
+				vm.prog->xstatement = st - vm.prog->statements;
 				PRVM_ERROR ("%s Progs boundcheck failed at line number %d, value is < 0 or >= %d", PRVM_NAME, st->b, st->c);
 				return;
 			}
@@ -1358,8 +1354,8 @@ chooseexecprogram:
 			PRVM_ERROR("OP_CSTATE or OP_CWSTATE not supported by %s", PRVM_NAME);
 			break;
 		default:
-			prog->xfunction->profile += (st - startst);
-			prog->xstatement = st - prog->statements;
+			vm.prog->xfunction->profile += (st - startst);
+			vm.prog->xstatement = st - vm.prog->statements;
 			PRVM_ERROR ("Bad opcode %i in %s", st->op, PRVM_NAME);
 		}
 	}

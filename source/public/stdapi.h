@@ -40,7 +40,7 @@ typedef struct stdilib_api_s
 	uint (*crc_blockchecksumkey)(void *buf, int len, int key);	// process key checksum
 
 	// memlib.c funcs
-	void (*memcpy)(void *dest, void *src, size_t size, const char *file, int line);
+	void (*memcpy)(void *dest, const void *src, size_t size, const char *file, int line);
 	void *(*realloc)(byte *pool, void *mem, size_t size, const char *file, int line);
 	void (*move)(byte *pool, void **dest, void *src, size_t size, const char *file, int line); // not a memmove
 	void *(*malloc)(byte *pool, size_t size, const char *file, int line);

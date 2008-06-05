@@ -7,7 +7,6 @@
 #include "utils.h"
 #include "bsplib.h"
 #include "mdllib.h"
-#include "qcclib.h"
 #include "blankframe.h"
 
 

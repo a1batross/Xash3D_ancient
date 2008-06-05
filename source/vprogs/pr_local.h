@@ -1,12 +1,11 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			   qcclib.h - qcclib header
+//		    pr_local.h - virtual machine definitions
 //=======================================================================
-#ifndef QCCLIB_H
-#define QCCLIB_H
+#ifndef PR_LOCAL_H
+#define PR_LOCAL_H
 
-#include "platform.h"
-#include "utils.h"
+#include <setjmp.h>
 
 /*
 
@@ -60,13 +59,16 @@ TODO:
 #define Qalloc( size )	Mem_Alloc(qccpool, size )
 #define Qrealloc( ptr, size )	Mem_Realloc(qccpool, ptr, size )
 
+extern int com_argc;
+extern char **com_argv;
+
 //loading files
 #define QCC_LoadFile(f, c)	PR_LoadFile(f, c, FT_CODE)
 #define QCC_LoadData(f)	PR_LoadFile(f, true, FT_DATA)
 
 #define BytesForBuckets(b)	(sizeof(bucket_t)*b)
-#define STRCMP(s1, s2)	(((*s1)!=(*s2)) || strcmp(s1+1,s2+1))
-#define STRNCMP(s1, s2, l)	(((*s1)!=(*s2)) || strncmp(s1+1,s2+1,l))
+#define STRCMP(s1, s2)	(((*s1)!=(*s2)) || com.strcmp(s1+1,s2+1))
+#define STRNCMP(s1, s2, l)	(((*s1)!=(*s2)) || com.strncmp(s1+1,s2+1,l))
 
 #define statements16 ((dstatement16_t*) statements)
 #define statements32 statements
@@ -158,14 +160,6 @@ typedef struct cachedsourcefile_s
 	struct cachedsourcefile_s *next; // chain
 } cachedsourcefile_t;
 
-typedef struct includechunk_s
-{
-	struct includechunk_s	*prev;
-	char			*filename;
-	char			*currentdatapoint;
-	int			currentlinenumber;
-} includechunk_t;
-
 struct function_s
 {
 	int		builtin;		// if non 0, call an internal function
@@ -224,6 +218,15 @@ typedef struct
 	bool		inside;
 	int		namelen;
 } const_t;
+
+typedef struct includechunk_s
+{
+	struct includechunk_s	*prev;
+	char			*filename;
+	char			*currentdatapoint;
+	int			currentlinenumber;
+	const_t			*cnst;
+} includechunk_t;
 
 typedef struct freeoffset_s
 {
@@ -657,10 +660,4 @@ void PR_BeginCompilation ( void );
 bool PR_ContinueCompile ( void );
 void PR_FinishCompilation ( void );
 
-//
-// pr_main.c
-//
-bool PrepareDATProgs ( const char *dir, const char *name, byte params );
-bool CompileDATProgs ( void );
-
-#endif//QCCLIB_H
+#endif//PR_LOCAL_H

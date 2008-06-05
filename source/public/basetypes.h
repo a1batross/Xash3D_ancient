@@ -104,6 +104,9 @@ typedef struct gclient_s	gclient_t;
 typedef struct sv_edict_s	sv_edict_t;
 typedef struct cl_edict_s	cl_edict_t;
 typedef struct ui_edict_s	ui_edict_t;
+typedef struct sv_entvars_s	sv_entvars_t;
+typedef struct cl_entvars_s	cl_entvars_t;
+typedef struct ui_entvars_s	ui_entvars_t;
 typedef int		progsnum_t;
 typedef struct progfuncs_s	progfuncs_t;
 typedef struct physbody_s	physbody_t;
@@ -116,6 +119,9 @@ typedef vec_t		matrix3x3[3][3];
 typedef vec_t		matrix3x4[3][4];
 typedef vec_t		matrix4x3[4][3];
 typedef vec_t		matrix4x4[4][4];
+typedef struct sv_globalvars_s sv_globalvars_t;
+typedef struct cl_globalvars_s cl_globalvars_t;
+typedef struct ui_globalvars_s ui_globalvars_t;
 typedef char		string[MAX_STRING];
 typedef struct { size_t api_size; } generic_api_t;
 typedef struct { int fileofs; int filelen; } lump_t;		// many formats use lumps to store blocks
@@ -167,8 +173,5 @@ enum dev_level
 };
 
 #include "byteorder.h"	// byte ordering swap functions
-#include "stdref.h"		// reference xash formats
-#include "stdapi.h"		// reference xash stdlib api
-#include "dllapi.h"		// shared api's between engine parts
 
 #endif//BASETYPES_H

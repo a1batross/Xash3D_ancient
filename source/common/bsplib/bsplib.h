@@ -12,7 +12,7 @@
 
 #define VALVE_FORMAT	220
 #define MAX_BRUSH_SIDES	128
-#define BOGUS_RANGE		131072 * 2
+#define BOGUS_RANGE		131072
 #define TEXINFO_NODE	-1		// side is allready on a node
 #define MAX_PORTALS		32768
 #define PORTALFILE		"PRT1"

@@ -467,6 +467,67 @@ typedef struct physic_imp_s
 	float *(*GetModelVerts)( sv_edict_t *ent, int *numvertices );
 } physic_imp_t;
 
+/*
+==============================================================================
+
+IMGLIB.DLL INTERFACE
+==============================================================================
+*/
+typedef struct vprogs_exp_s
+{
+	// interface validator
+	size_t	api_size;		// must matched with sizeof(vprogs_api_t)
+
+	void ( *Init ) ( uint funcname, int argc, char **argv );	// init host
+	void ( *Free ) ( void );				// close host
+
+	// compiler functions
+	void ( *PrepareDAT )( const char *dir, const char *name );
+	void ( *CompileDAT )( void );
+
+	// edict operations
+	void (*WriteGlobals)( vfile_t *f );
+	void (*ParseGlobals)( const char *data );
+	void (*PrintEdict)( edict_t *ed );
+	void (*WriteEdict)( vfile_t *f, edict_t *ed );
+	const char *(*ParseEdict)( const char *data, edict_t *ed );
+	edict_t *(*AllocEdict)( void );
+	void (*FreeEdict)( edict_t *ed );
+	void (*IncreaseEdicts)( void );
+
+	// load ents description
+	void (*LoadFromFile)( const char *data );
+
+	// string manipulations
+	const char *(*GetString)( int num );
+	int (*SetEngineString)( const char *s );
+	int (*AllocString)( size_t bufferlength, char **pointer );
+	void (*FreeString)( int num );
+
+	void (*InitProg)( int prognr );
+	void (*SetProg)( int prognr );
+	void (*LoadProgs)( const char *filename, int numrequiredfunc, char **required_func, int numrequiredfields, fields_t *required_field );
+	void (*ResetProg)( void );
+
+	// abstract layer for searching globals and locals
+	func_t (*FindFunctionOffset)( const char *function );
+	int (*FindGlobalOffset)( const char *global );	
+	int (*FindFieldOffset)( const char *field );	
+	mfunction_t *(*FindFunction)( const char *name );
+	ddef_t *(*FindGlobal)( const char *name );
+	ddef_t *(*FindField)( const char *name );
+
+	void (*StackTrace)( void );
+	void (*Warning)( const char *fmt, ... );
+	void (*Error)( const char *fmt, ... );
+
+	void (*ExecuteProgram)( func_t fnum, const char *errormessage );
+	void (*Crash)( void );	// crash virtual machine
+
+	prvm_prog_t *prog;		// virtual machine state
+
+} vprogs_exp_t;
+
 // this is the only function actually exported at the linker level
 typedef void *(*launch_t)( stdlib_api_t*, void* );
 

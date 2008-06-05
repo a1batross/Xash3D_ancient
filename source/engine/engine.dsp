@@ -276,14 +276,6 @@ SOURCE=.\uimenu\ui_main.c
 
 SOURCE=.\vm_cmds.c
 # End Source File
-# Begin Source File
-
-SOURCE=.\vm_edict.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\vm_exec.c
-# End Source File
 # End Group
 # Begin Group "Header Files"
 
@@ -315,10 +307,6 @@ SOURCE=.\net_msg.h
 # Begin Source File
 
 SOURCE=.\progdefs.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\progsvm.h
 # End Source File
 # Begin Source File
 

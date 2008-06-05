@@ -14,7 +14,7 @@ struct cl_edict_s
 	// ui_private_edict_t starts here
 };
 
-typedef struct cl_globalvars_s
+struct cl_globalvars_s
 {
 	int	pad[28];
 	int	pev;
@@ -56,9 +56,9 @@ typedef struct cl_globalvars_s
 	vec3_t	pmove_vel;
 	vec3_t	pmove_mins;
 	vec3_t	pmove_maxs;
-} cl_globalvars_t;
+};
 
-typedef struct cl_entvars_s
+struct cl_entvars_s
 {
 	float	modelindex;
 	vec3_t	absmin;
@@ -88,7 +88,7 @@ typedef struct cl_entvars_s
 	float	alpha;
 	float	renderflags;
 	float	scale;
-} cl_entvars_t;
+};
 
 
 #define CL_NUM_REQFIELDS (sizeof(cl_reqfields) / sizeof(fields_t))
@@ -99,7 +99,5 @@ static fields_t cl_reqfields[] =
 	{49,	2,	"enttype"},
 	{50,	2,	"sv_entnum"}
 };
-
-#define PROG_CRC_CLIENT	7430
 
 #endif//CL_EDICT_H

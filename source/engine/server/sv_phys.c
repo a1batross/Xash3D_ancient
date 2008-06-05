@@ -771,14 +771,18 @@ void SV_MovePush(edict_t *pusher, float movetime)
 		SV_LinkEdict(pusher);
 		return;
 	default:
-		MsgWarn("SV_MovePush: %s, have invalid solid type %g\n", PRVM_ED_Info(pusher), pusher->progs.sv->solid);
+		MsgWarn("SV_MovePush:"); 
+		PRVM_ED_Print(pusher);
+		MsgWarn(", have invalid solid type %g\n", pusher->progs.sv->solid );
 		return;
 	}
 
 	index = (int)pusher->progs.sv->modelindex;
 	if (index < 1 || index >= MAX_MODELS)
 	{
-		MsgWarn("SV_MovePush: %s, has an invalid modelindex %g\n", PRVM_ED_Info(pusher), pusher->progs.sv->modelindex);
+		MsgWarn("SV_MovePush:"); 
+		PRVM_ED_Print(pusher);
+		MsgWarn(", has an invalid modelindex %g\n", pusher->progs.sv->modelindex );
 		return;
 	}
 	pushermodel = sv.models[index];
@@ -855,7 +859,6 @@ void SV_MovePush(edict_t *pusher, float movetime)
 
 		VectorCopy (check->progs.sv->origin, check->progs.sv->post_origin);
 		VectorCopy (check->progs.sv->angles, check->progs.sv->post_angles);
-		sv.moved_edicts[num_moved++] = check;
 
 		// try moving the contacted entity
 		pusher->progs.sv->solid = SOLID_NOT;
@@ -905,15 +908,6 @@ void SV_MovePush(edict_t *pusher, float movetime)
 					VectorCopy (pushang, pusher->progs.sv->angles);
 					pusher->progs.sv->ltime = pushltime;
 					SV_LinkEdict (pusher);
-
-					// move back any entities we already moved
-					for (i = 0; i < num_moved; i++)
-					{
-						edict_t *ed = sv.moved_edicts[i];
-						VectorCopy (ed->progs.sv->post_origin, ed->progs.sv->origin);
-						VectorCopy (ed->progs.sv->post_angles, ed->progs.sv->angles);
-						SV_LinkEdict (ed);
-					}
 
 					// if the pusher has a "blocked" function, call it, otherwise just stay in place until the obstacle is gone
 					if (pusher->progs.sv->blocked)

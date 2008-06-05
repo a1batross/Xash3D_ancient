@@ -12,6 +12,7 @@
 
 physic_exp_t	*pe;
 render_exp_t	*re;
+vprogs_exp_t	*vm;
 host_parm_t	host;	// host parms
 stdlib_api_t	com, newcom;
 
@@ -20,6 +21,7 @@ char	*buildstring = __TIME__ " " __DATE__;
 
 dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(physic_exp_t) };
 dll_info_t render_dll = { "render.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(render_exp_t) };
+dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vprogs_exp_t) };
 
 cvar_t	*timescale;
 cvar_t	*fixedtime;
@@ -167,6 +169,28 @@ void Host_FreeRender( void )
 		memset( &re, 0, sizeof(re));
 	}
 	Sys_FreeLibrary( &render_dll );
+}
+
+void Host_InitVprogs( int argc, char **argv )
+{
+	launch_t			CreateVprogs;  
+
+	Sys_LoadLibrary( &vprogs_dll );
+
+	CreateVprogs = (void *)vprogs_dll.main;
+	vm = CreateVprogs( &newcom, NULL ); // second interface not allowed
+	
+	vm->Init( host.type, argc, argv );
+}
+
+void Host_FreeVprogs( void )
+{
+	if(vprogs_dll.link)
+	{
+		vm->Free();
+		memset( &vm, 0, sizeof(vm));
+	}
+	Sys_FreeLibrary( &vprogs_dll );
 }
 
 /*
@@ -479,7 +503,6 @@ void Host_Init (uint funcname, int argc, char **argv)
 
 	Host_InitCommon( funcname, argc, argv ); // loading common.dll
 	Key_Init();
-	PRVM_Init();
 
 	// get default configuration
 #if 1
@@ -515,7 +538,8 @@ void Host_Init (uint funcname, int argc, char **argv)
 	NET_Init();
 	Netchan_Init();
 	Host_InitPhysic();
-       
+	Host_InitVprogs( argc, argv );
+      
 	SV_Init();
 	CL_Init();
 	Sys_DoubleTime(); // initialize timer
@@ -560,6 +584,7 @@ void Host_Free( void )
 	CL_Shutdown();
 	Host_FreeRender();
 	NET_Shutdown();
+	Host_FreeVprogs();
 	Host_FreePhysic();
 	Host_FreeCommon();
 }

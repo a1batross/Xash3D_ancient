@@ -710,7 +710,7 @@ void SV_RunGameFrame (void)
 	{
 
 		if(!cm_paused->value) 
-			pe->Frame( 0.05 );//FIXME
+			pe->Frame( 0.1 );//FIXME
 		SV_RunFrame ();
 
 		// never get more than one tic behind

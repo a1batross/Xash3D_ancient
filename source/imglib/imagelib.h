@@ -7,6 +7,10 @@
 
 #include <windows.h>
 #include "basetypes.h"
+#include "stdapi.h"
+#include "stdref.h"
+#include "basefiles.h"
+#include "dllapi.h"
 
 #define IMAGE_MAXWIDTH	4096
 #define IMAGE_MAXHEIGHT	4096

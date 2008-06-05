@@ -13,13 +13,6 @@
 #define BSP_ONLYRAD		0x04
 #define BSP_FULLCOMPILE	0x08
 
-// qcclib compile flags
-#define QCC_PROGDEFS	0x01
-#define QCC_OPT_LEVEL_0	0x02
-#define QCC_OPT_LEVEL_1	0x04
-#define QCC_OPT_LEVEL_2	0x08
-#define QCC_OPT_LEVEL_3	0x10
-
 #define ALIGN( a ) a = (byte *)((int)((byte *)a + 3) & ~ 3)
 
 extern unsigned __int64 __g_ProfilerStart;
@@ -70,6 +63,7 @@ void Profile_Time( void );	// total profile time
 
 extern stdlib_api_t com;
 extern imglib_exp_t *Image;
+extern vprogs_exp_t *PRVM;
 
 #define Sys_Error			com.error
 #define Malloc(size)		Mem_Alloc(basepool, size)  
@@ -80,7 +74,6 @@ extern string gs_filename;
 extern char gs_basedir[ MAX_SYSPATH ];
 extern bool host_debug;
 
-extern byte *qccpool;
 extern byte *studiopool;
 
 enum
@@ -108,6 +101,4 @@ bool CompileWad3Archive ( byte *mempool, const char *name, byte parms );
 bool CompileROQVideo( byte *mempool, const char *name, byte parms );
 bool PrepareBSPModel ( const char *dir, const char *name, byte params );
 bool CompileBSPModel ( void );
-bool PrepareDATProgs ( const char *dir, const char *name, byte params );
-bool CompileDATProgs ( void );
 #endif//UTILS_H

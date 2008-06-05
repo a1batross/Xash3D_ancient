@@ -3,7 +3,7 @@
 //			pr_comp.c - progs compiler base
 //=======================================================================
 
-#include "qcclib.h"
+#include "vprogs.h"
 
 #define TOP_PRIORITY	7
 #define NOT_PRIORITY	5
@@ -541,15 +541,15 @@ char *PR_NameFromType( etype_t type )
 	memset( typeinfo, 0, 32 );
 	switch( type )
 	{
-	case ev_float: strncpy(typeinfo, "float", 32 ); break;
-	case ev_string: strncpy(typeinfo, "string", 32 ); break;
-	case ev_vector: strncpy(typeinfo, "vector", 32 ); break;
-	case ev_entity: strncpy(typeinfo, "entity", 32 ); break;
-	case ev_integer: strncpy(typeinfo, "int", 32 ); break;
-	case ev_variant: strncpy(typeinfo, "var", 32 ); break;
-	case ev_struct: strncpy(typeinfo, "struct", 32 ); break;
-	case ev_union: strncpy(typeinfo, "union", 32 ); break;
-	case ev_void: strncpy(typeinfo, "void", 32 ); break;
+	case ev_float: com.strncpy(typeinfo, "float", 32 ); break;
+	case ev_string: com.strncpy(typeinfo, "string", 32 ); break;
+	case ev_vector: com.strncpy(typeinfo, "vector", 32 ); break;
+	case ev_entity: com.strncpy(typeinfo, "entity", 32 ); break;
+	case ev_integer: com.strncpy(typeinfo, "int", 32 ); break;
+	case ev_variant: com.strncpy(typeinfo, "var", 32 ); break;
+	case ev_struct: com.strncpy(typeinfo, "struct", 32 ); break;
+	case ev_union: com.strncpy(typeinfo, "union", 32 ); break;
+	case ev_void: com.strncpy(typeinfo, "void", 32 ); break;
 	}
 	return typeinfo;
 }
@@ -602,12 +602,12 @@ void PR_GetEntvarsName( void )
 
 	for (d = pr.def_head.next; d; d = d->next)
 	{
-		if (!strcmp (d->name, "end_sys_globals")) break;
+		if (!com.strcmp (d->name, "end_sys_globals")) break;
 		if (d->ofs < RESERVED_OFS) continue;
 		if (d->type->type == ev_entity)
 		{
-			strncpy(pevname, d->name, 32 );
-			strncpy(opevname, va("o%s", pevname), 32 );
+			com.strncpy(pevname, d->name, 32 );
+			com.strncpy(opevname, va("o%s", pevname), 32 );
 			pr_setevarsname = true;
 			break;
 		}
@@ -896,9 +896,9 @@ static void PR_RemapLockedTemp(temp_t *t, int firststatement, int laststatement)
 				def = PR_DummyDef(type_float, NULL, pr_scope, t->size, newofs, false);
 				def->nextlocal = pr.localvars;
 				def->constant = false;
-				sprintf(buffer, "locked_%i", t->ofs);
-				def->name = Qalloc(strlen(buffer)+1);
-				strcpy(def->name, buffer);
+				com.sprintf(buffer, "locked_%i", t->ofs);
+				def->name = Qalloc(com.strlen(buffer)+1);
+				com.strcpy(def->name, buffer);
 				pr.localvars = def;
 			}
 			st->a = newofs;
@@ -913,9 +913,9 @@ static void PR_RemapLockedTemp(temp_t *t, int firststatement, int laststatement)
 				def = PR_DummyDef(type_float, NULL, pr_scope, t->size, newofs, false);
 				def->nextlocal = pr.localvars;
 				def->constant = false;
-				sprintf(buffer, "locked_%i", t->ofs);
-				def->name = Qalloc(strlen(buffer)+1);
-				strcpy(def->name, buffer);
+				com.sprintf(buffer, "locked_%i", t->ofs);
+				def->name = Qalloc(com.strlen(buffer)+1);
+				com.strcpy(def->name, buffer);
 				pr.localvars = def;
 			}
 			st->b = newofs;
@@ -930,9 +930,9 @@ static void PR_RemapLockedTemp(temp_t *t, int firststatement, int laststatement)
 				def = PR_DummyDef(type_float, NULL, pr_scope, t->size, newofs, false);
 				def->nextlocal = pr.localvars;
 				def->constant = false;
-				sprintf(buffer, "locked_%i", t->ofs);
-				def->name = Qalloc(strlen(buffer)+1);
-				strcpy(def->name, buffer);
+				com.sprintf(buffer, "locked_%i", t->ofs);
+				def->name = Qalloc(com.strlen(buffer)+1);
+				com.strcpy(def->name, buffer);
 				pr.localvars = def;
 			}
 			st->c = newofs;
@@ -990,8 +990,8 @@ static const char *PR_VarAtOffset(uint ofs, uint size)
 	{
 		if (ofs >= t->ofs && ofs < t->ofs + t->size)
 		{
-			if (size < t->size) sprintf(message, "temp_%i_%c", i, 'x' + (ofs-t->ofs)%3);
-			else sprintf(message, "temp_%i", i);
+			if (size < t->size) com.sprintf(message, "temp_%i_%c", i, 'x' + (ofs-t->ofs)%3);
+			else com.sprintf(message, "temp_%i", i);
 			return message;
 		}
 	}
@@ -1006,8 +1006,8 @@ static const char *PR_VarAtOffset(uint ofs, uint size)
 			{
 				// continue, don't get bogged down by multiple bits of code
 				if (!STRCMP(var->name, "IMMEDIATE")) continue;
-				if (size < var->type->size) sprintf(message, "%s_%c", var->name, 'x' + (ofs-var->ofs)%3);
-				else sprintf(message, "%s", var->name);
+				if (size < var->type->size) com.sprintf(message, "%s_%c", var->name, 'x' + (ofs-var->ofs)%3);
+				else com.sprintf(message, "%s", var->name);
 				return message;
 			}
 		}
@@ -1027,24 +1027,24 @@ static const char *PR_VarAtOffset(uint ofs, uint size)
 					switch(var->type->type)
 					{
 					case ev_string:
-						sprintf(message, "\"%.1020s\"", &strings[((int *)pr_globals)[var->ofs]]);
+						com.sprintf(message, "\"%.1020s\"", &strings[((int *)pr_globals)[var->ofs]]);
 						return message;
 					case ev_integer:
-						sprintf(message, "%i", ((int *)pr_globals)[var->ofs]);
+						com.sprintf(message, "%i", ((int *)pr_globals)[var->ofs]);
 						return message;
 					case ev_float:
-						sprintf(message, "%f", pr_globals[var->ofs]);
+						com.sprintf(message, "%f", pr_globals[var->ofs]);
 						return message;
 					case ev_vector:
-						sprintf(message, "'%f %f %f'", pr_globals[var->ofs], pr_globals[var->ofs+1], pr_globals[var->ofs+2]);
+						com.sprintf(message, "'%f %f %f'", pr_globals[var->ofs], pr_globals[var->ofs+1], pr_globals[var->ofs+2]);
 						return message;
 					default:
-						sprintf(message, "IMMEDIATE");
+						com.sprintf(message, "IMMEDIATE");
 						return message;
 					}
 				}
-				if (size < var->type->size) sprintf(message, "%s_%c", var->name, 'x' + (ofs-var->ofs)%3);
-				else sprintf(message, "%s", var->name);
+				if (size < var->type->size) com.sprintf(message, "%s_%c", var->name, 'x' + (ofs-var->ofs)%3);
+				else com.sprintf(message, "%s", var->name);
 				return message;
 			}
 		}
@@ -1052,15 +1052,15 @@ static const char *PR_VarAtOffset(uint ofs, uint size)
 
 	if (size >= 3)
 	{
-		if (ofs >= OFS_RETURN && ofs < OFS_PARM0) sprintf(message, "return");
-		else if (ofs >= OFS_PARM0 && ofs < RESERVED_OFS) sprintf(message, "parm%i", (ofs-OFS_PARM0)/3);
-		else sprintf(message, "offset_%i", ofs);
+		if (ofs >= OFS_RETURN && ofs < OFS_PARM0) com.sprintf(message, "return");
+		else if (ofs >= OFS_PARM0 && ofs < RESERVED_OFS) com.sprintf(message, "parm%i", (ofs-OFS_PARM0)/3);
+		else com.sprintf(message, "offset_%i", ofs);
 	}
 	else
 	{
-		if (ofs >= OFS_RETURN && ofs < OFS_PARM0) sprintf(message, "return_%c", 'x' + ofs-OFS_RETURN);
-		else if (ofs >= OFS_PARM0 && ofs < RESERVED_OFS) sprintf(message, "parm%i_%c", (ofs-OFS_PARM0)/3, 'x' + (ofs-OFS_PARM0)%3);
-		else sprintf(message, "offset_%i", ofs);
+		if (ofs >= OFS_RETURN && ofs < OFS_PARM0) com.sprintf(message, "return_%c", 'x' + ofs-OFS_RETURN);
+		else if (ofs >= OFS_PARM0 && ofs < RESERVED_OFS) com.sprintf(message, "parm%i_%c", (ofs-OFS_PARM0)/3, 'x' + (ofs-OFS_PARM0)%3);
+		else com.sprintf(message, "offset_%i", ofs);
 	}
 	return message;
 }
@@ -1102,7 +1102,7 @@ def_t *PR_Statement ( opcode_t *op, def_t *var_a, def_t *var_b, dstatement_t **o
 		{
 			if (var_a->type != var_b->type)
 			{
-				if (strcmp(var_a->type->name, var_b->type->name))
+				if (com.strcmp(var_a->type->name, var_b->type->name))
 					PR_ParseWarning(0, "Inexplict cast");
 			}
 		}
@@ -1739,7 +1739,7 @@ def_t *PR_ParseFunctionCall (def_t *func)
 	{
 		// intrinsics. These base functions have variable arguments. I would check for (...) args too, 
 		// but that might be used for extended builtin functionality. (this code wouldn't compile otherwise)
-		if (!strcmp(func->name, "spawn"))
+		if (!com.strcmp(func->name, "spawn"))
 		{
 			type_t *rettype;
 			if (PR_CheckToken(")"))
@@ -1762,7 +1762,7 @@ def_t *PR_ParseFunctionCall (def_t *func)
 			if (rettype != type_entity)
 			{
 				char genfunc[2048];
-				sprintf(genfunc, "Class*%s", rettype->name);
+				com.sprintf(genfunc, "Class*%s", rettype->name);
 				func = PR_GetDef(type_function, genfunc, NULL, true, 1);
 				func->references++;
 			}
@@ -1770,7 +1770,7 @@ def_t *PR_ParseFunctionCall (def_t *func)
 			def_ret.type = rettype;
 			return &def_ret;
 		}
-		else if (!strcmp(func->name, "entnum") && !PR_CheckToken(")"))
+		else if (!com.strcmp(func->name, "entnum") && !PR_CheckToken(")"))
 		{
 			// t = (a/%1) / (nextent(world)/%1)
 			// a/%1 does a (int)entity to float conversion type thing
@@ -1794,7 +1794,7 @@ def_t *PR_ParseFunctionCall (def_t *func)
 	if (opt_precache_file)
 	{
 		// should we strip out all precache_file calls?
-		if (!strncmp(func->name,"precache_file", 13))
+		if (!com.strncmp(func->name,"precache_file", 13))
 		{
 			if (pr_token_type == tt_immediate && pr_immediate_type->type == ev_string)
 			{
@@ -2016,7 +2016,7 @@ def_t *PR_ParseFunctionCall (def_t *func)
 	}
 	else old = NULL;
 
-	if (strchr(func->name, ':') && laststatement && statements[laststatement-1].op == OP_LOAD_FNC && statements[laststatement-1].c == func->ofs)
+	if( com.strchr(func->name, ':') && laststatement && statements[laststatement-1].op == OP_LOAD_FNC && statements[laststatement-1].c == func->ofs)
 	{	
 		// we're entering C++ code with a different pevname.
 		// FIXME: problems could occur with hexen2 calling conventions when parm0/1 is 'pev' or 'self'
@@ -2197,11 +2197,11 @@ def_t *PR_MemberInParentClass(char *name, type_t *class)
 	np = class->num_parms;
 	for (p = 0, mt = class->param; p < np; p++, mt = mt->next)
 	{
-		if (strcmp(mt->name, name))
+		if (com.strcmp(mt->name, name))
 			continue;
 
 		// the parent has it.
-		sprintf(membername, "%s::"MEMBERFIELDNAME, class->name, mt->name);
+		com.sprintf(membername, "%s::"MEMBERFIELDNAME, class->name, mt->name);
 		def = PR_GetDef(NULL, membername, NULL, false, 0);
 		return def;
 	}
@@ -2243,7 +2243,7 @@ void PR_EmitFieldsForMembers(type_t *class)
 
 	for (p = 0; p < np; p++, mt = mt->next)
 	{
-		sprintf(membername, "%s::"MEMBERFIELDNAME, class->name, mt->name);
+		com.sprintf(membername, "%s::"MEMBERFIELDNAME, class->name, mt->name);
 		m = PR_GetDef(NULL, membername, NULL, false, 0);
 
 		f = PR_MemberInParentClass(mt->name, class->parentclass);
@@ -2267,7 +2267,7 @@ void PR_EmitFieldsForMembers(type_t *class)
 			ft->aux_type->aux_type = type_void;
 			ft->size = ft->aux_type->size;
 			ft = PR_FindType(ft);
-			sprintf(membername, "__f_%s_%i", ft->name, ++basictypefield[mt->type]);
+			com.sprintf(membername, "__f_%s_%i", ft->name, ++basictypefield[mt->type]);
 			f = PR_GetDef(ft, membername, NULL, true, 1);
 		
 			for (o = 0; o < m->type->size; o++)
@@ -2301,7 +2301,7 @@ void PR_EmitClassFunctionTable(type_t *class, type_t *childclass, def_t *ed, def
 	{
 		for (oc = childclass; oc != class; oc = oc->parentclass)
 		{
-			sprintf(membername, "%s::"MEMBERFIELDNAME, oc->name, type->name);
+			com.sprintf(membername, "%s::"MEMBERFIELDNAME, oc->name, type->name);
 			if (PR_GetDef(NULL, membername, NULL, false, 0))
 				break; // a child class overrides.
 		}
@@ -2309,19 +2309,19 @@ void PR_EmitClassFunctionTable(type_t *class, type_t *childclass, def_t *ed, def
 		if (type->type == ev_function)
 		{
 			// FIXME: inheritance will not install all the member functions.
-			sprintf(membername, "%s::"MEMBERFIELDNAME, class->name, type->name);
+			com.sprintf(membername, "%s::"MEMBERFIELDNAME, class->name, type->name);
 			member = PR_GetDef(NULL, membername, NULL, false, 1);
 			if (!member)
 			{
 				PR_Warning(0, NULL, 0, "Member function %s was not defined", membername);
 				continue;
 			}
-			if (!strcmp(type->name, class->name))
+			if (!com.strcmp(type->name, class->name))
 			{
 				*constructor = member;
 			}
 			point = PR_Statement(&pr_opcodes[OP_ADDRESS], ed, member, NULL);
-			sprintf(membername, "%s::%s", class->name, type->name);
+			com.sprintf(membername, "%s::%s", class->name, type->name);
 			virt = PR_GetDef(type, membername, NULL, false, 1);
 			PR_Statement(&pr_opcodes[OP_STOREP_FNC], virt, point, NULL);
 		}
@@ -2439,7 +2439,7 @@ def_t *PR_ParseValue (type_t *assumeclass)
 		// try getting a member.
 		while(type != type_entity && type)
 		{
-			sprintf(membername, "%s::"MEMBERFIELDNAME, type->name, name);
+			com.sprintf(membername, "%s::"MEMBERFIELDNAME, type->name, name);
 			od = d = PR_GetDef (NULL, membername, pr_scope, false, 0);
 			if (d) break;
 			type = type->parentclass;
@@ -2451,15 +2451,15 @@ def_t *PR_ParseValue (type_t *assumeclass)
 	if (!d)
 	{
 		// intrinsics, any old function with no args will do.
-		if ((!strcmp(name, "spawn")) || (!strcmp(name, "entnum")))
+		if ((!com.strcmp(name, "spawn")) || (!com.strcmp(name, "entnum")))
 			od = d = PR_GetDef (type_function, name, NULL, true, 1);
-		else if (PR_KeywordEnabled(KEYWORD_CLASS) && !strcmp(name, "this"))
+		else if (PR_KeywordEnabled(KEYWORD_CLASS) && !com.strcmp(name, "this"))
 		{
 			if (!pr_classtype) PR_ParseError(ERR_NOTANAME, "Cannot use 'this' outside of an OO function\n");
 			od = PR_GetDef(NULL, pevname, NULL, true, 1);
 			od = d = PR_DummyDef(pr_classtype, "this", pr_scope, 1, od->ofs, true);
 		}
-		else if (PR_KeywordEnabled(KEYWORD_CLASS) && !strcmp(name, "super"))
+		else if (PR_KeywordEnabled(KEYWORD_CLASS) && !com.strcmp(name, "super"))
 		{
 			if (!pr_classtype) PR_ParseError(ERR_NOTANAME, "Cannot use 'super' outside of an OO function\n");
 			od = PR_GetDef(NULL, pevname, NULL, true, 1);
@@ -3210,7 +3210,7 @@ def_t *PR_Expression (int priority, bool allowcomma)
 				{
 					// hehehe... was a minus all along...
 					PR_IncludeChunk(pr_token, true, NULL);
-					strcpy(pr_token, "+"); // two negatives would make a positive.
+					com.strcpy(pr_token, "+"); // two negatives would make a positive.
 					pr_token_type = tt_punct;
 				}
 			}
@@ -3531,7 +3531,7 @@ void PR_GotoStatement (dstatement_t *patch2, char *labelname)
 		pr_gotos = Qrealloc(pr_gotos, sizeof(*pr_gotos)*max_gotos);
 	}
 
-	strncpy(pr_gotos[num_gotos].name, labelname, sizeof(pr_gotos[num_gotos].name) -1);
+	com.strncpy(pr_gotos[num_gotos].name, labelname, sizeof(pr_gotos[num_gotos].name) -1);
 	pr_gotos[num_gotos].lineno = pr_source_line;
 	pr_gotos[num_gotos].statementno = patch2 - statements;
 	num_gotos++;
@@ -4145,7 +4145,7 @@ void PR_ParseStatement (void)
 			pr_labels = Qrealloc(pr_labels, sizeof(*pr_labels)*max_labels);
 		}
 
-		strncpy(pr_labels[num_labels].name, pr_token, sizeof(pr_labels[num_labels].name) -1);
+		com.strncpy(pr_labels[num_labels].name, pr_token, sizeof(pr_labels[num_labels].name) -1);
 		pr_labels[num_labels].lineno = pr_source_line;
 		pr_labels[num_labels].statementno = numstatements;
 		num_labels++;
@@ -4888,7 +4888,7 @@ void PR_WriteAsmFunction(def_t *sc, uint firststatement, gofs_t firstparm)
 		FS_Printf(asmfile, "\t%s", pr_opcodes[statements[i].op].opname);
 		if (pr_opcodes[statements[i].op].type_a != &type_void)
 		{
-			if (strlen(pr_opcodes[statements[i].op].opname) < 6)
+			if (com.strlen(pr_opcodes[statements[i].op].opname) < 6)
 				FS_Printf(asmfile, "\t");
 			if (pr_opcodes[statements[i].op].type_a)
 				FS_Printf(asmfile, "\t%s", PR_VarAtOffset(statements[i].a, (*pr_opcodes[statements[i].op].type_a)->size));
@@ -5031,7 +5031,7 @@ function_t *PR_ParseImmediateStatements (type_t *type)
 		{
 			for (j = 0; j < num_labels; j++)
 			{
-				if (!strcmp(pr_gotos[i].name, pr_labels[j].name))
+				if (!com.strcmp(pr_gotos[i].name, pr_labels[j].name))
 				{
 					if (!pr_opcodes[statements[pr_gotos[i].statementno].op].type_a)
 						statements[pr_gotos[i].statementno].a += pr_labels[j].statementno - pr_gotos[i].statementno;
@@ -5160,9 +5160,6 @@ void PR_EmitArrayGetFunction(def_t *scope, char *arrayname)
 	dfunction_t	*df;
 	dstatement_t	*st;
 	def_t		*eq, *def, *index;
-	def_t		*fasttrackpossible;
-
-	fasttrackpossible = PR_GetDef(type_float, "__ext__fasttrackarrays", NULL, true, 1);
 
 	def = PR_GetDef(NULL, arrayname, NULL, false, 0);
 
@@ -5181,20 +5178,7 @@ void PR_EmitArrayGetFunction(def_t *scope, char *arrayname)
 	df->numparms = 1;
 	df->parm_start = numpr_globals;
 	index = PR_GetDef(type_float, "indexg___", def, true, 1);
-
 	G_FUNCTION(scope->ofs) = df - functions;
-
-	if (fasttrackpossible)
-	{
-		PR_Statement(pr_opcodes+OP_IFNOT, fasttrackpossible, NULL, &st);
-		// fetch_gbl takes: (float size, variant array[]), float index, variant pos
-		// note that the array size is coded into the globals, one index before the array.
-		if (def->type->size >= 3) PR_Statement3(&pr_opcodes[OP_FETCH_GBL_V], def, index, &def_ret, true);
-		else PR_Statement3(&pr_opcodes[OP_FETCH_GBL_F], def, index, &def_ret, true);
-
-		// finish the jump
-		st->b = &statements[numstatements] - st;
-	}
 
 	if (vectortrick)
 	{
@@ -5302,9 +5286,6 @@ void PR_EmitArraySetFunction(def_t *scope, char *arrayname)
 {
 	dfunction_t	*df;
 	def_t		*def, *index, *value;
-	def_t		*fasttrackpossible;
-
-	fasttrackpossible = PR_GetDef(NULL, "__ext__fasttrackarrays", NULL, true, 1);
 
 	def = PR_GetDef(NULL, arrayname, NULL, false, 0);
 	pr_scope = scope;
@@ -5323,28 +5304,7 @@ void PR_EmitArraySetFunction(def_t *scope, char *arrayname)
 	value = PR_GetDef(def->type, "value___", def, true, 1);
 	locals_end = numpr_globals;
 	df->locals = locals_end - df->parm_start;
-
 	G_FUNCTION(scope->ofs) = df - functions;
-
-	if (fasttrackpossible)
-	{
-		dstatement_t *st;
-
-		PR_Statement(pr_opcodes+OP_IFNOT, fasttrackpossible, NULL, &st);
-		// note that the array size is coded into the globals, one index before the array.
-
-		// address stuff is integer based, but standard qc (which this accelerates in supported engines) only supports floats
-		PR_Statement3(&pr_opcodes[OP_CONV_FTOI], index, NULL, index, true);
-		PR_SimpleStatement (OP_BOUNDCHECK, index->ofs, ((int*)pr_globals)[def->ofs-1], 0, true); // annoy the programmer. :p
-		if (def->type->size != 1)//shift it upwards for larger types
-			PR_Statement3(&pr_opcodes[OP_MUL_I], index, PR_MakeIntDef(def->type->size), index, true);
-		PR_Statement3(&pr_opcodes[OP_GLOBAL_ADD], def, index, index, true); // comes with built in add
-		if (def->type->size >= 3) PR_Statement3(&pr_opcodes[OP_STOREP_V], value, index, NULL, true); // *b = a
-		else PR_Statement3(&pr_opcodes[OP_STOREP_F], value, index, NULL, true);
-
-		// finish the jump
-		st->b = &statements[numstatements] - st;
-	}
 
 	PR_Statement3(pr_opcodes+OP_BITAND, index, index, index, false);
 	PR_ArraySetRecurseDivide(def, index, value, 0, def->arraysize);
@@ -5377,9 +5337,9 @@ def_t *PR_DummyDef(type_t *type, char *name, def_t *scope, int arraysize, uint o
 	for (a = 0; a < arraysize; a++)
 	{
 		if (a == 0) *array = '\0';
-		else sprintf(array, "[%i]", a);
+		else com.sprintf(array, "[%i]", a);
 
-		if (name) sprintf(newname, "%s%s", name, array);
+		if (name) com.sprintf(newname, "%s%s", name, array);
 		else *newname = *"";
 
 		// allocate a new def
@@ -5397,8 +5357,8 @@ def_t *PR_DummyDef(type_t *type, char *name, def_t *scope, int arraysize, uint o
 
 		def->s_line = pr_source_line;
 		def->s_file = s_file;
-		def->name = (void *)Qalloc (strlen(newname)+1);
-		strcpy (def->name, newname);
+		def->name = (void *)Qalloc (com.strlen(newname)+1);
+		com.strcpy (def->name, newname);
 		def->type = type;
 		def->scope = scope;	
 		def->constant = true;
@@ -5417,13 +5377,13 @@ def_t *PR_DummyDef(type_t *type, char *name, def_t *scope, int arraysize, uint o
 				switch (parttype->type)
 				{
 				case ev_vector:
-					sprintf(newname, "%s%s.%s", name, array, parttype->name);
+					com.sprintf(newname, "%s%s.%s", name, array, parttype->name);
 					PR_DummyDef(parttype, newname, scope, 1, ofs + type->size*a + parttype->ofs, false);
-					sprintf(newname, "%s%s.%s_x", name, array, parttype->name);
+					com.sprintf(newname, "%s%s.%s_x", name, array, parttype->name);
 					PR_DummyDef(type_float, newname, scope, 1, ofs + type->size*a + parttype->ofs, false);
-					sprintf(newname, "%s%s.%s_y", name, array, parttype->name);
+					com.sprintf(newname, "%s%s.%s_y", name, array, parttype->name);
 					PR_DummyDef(type_float, newname, scope, 1, ofs + type->size*a + parttype->ofs+1, false);
-					sprintf(newname, "%s%s.%s_z", name, array, parttype->name);
+					com.sprintf(newname, "%s%s.%s_z", name, array, parttype->name);
 					PR_DummyDef(type_float, newname, scope, 1, ofs + type->size*a + parttype->ofs+2, false);
 					break;
 				case ev_float:
@@ -5435,11 +5395,11 @@ def_t *PR_DummyDef(type_t *type, char *name, def_t *scope, int arraysize, uint o
 				case ev_struct:
 				case ev_union:
 				case ev_variant: // for lack of any better alternative
-					sprintf(newname, "%s%s.%s", name, array, parttype->name);
+					com.sprintf(newname, "%s%s.%s", name, array, parttype->name);
 					PR_DummyDef(parttype, newname, scope, 1, ofs + type->size*a + parttype->ofs, false);
 					break;
 				case ev_function:
-					sprintf(newname, "%s%s.%s", name, array, parttype->name);
+					com.sprintf(newname, "%s%s.%s", name, array, parttype->name);
 					PR_DummyDef(parttype, newname, scope, 1, ofs + type->size*a +parttype->ofs, false)->initialized = true;
 					break;
 				case ev_void:
@@ -5451,11 +5411,11 @@ def_t *PR_DummyDef(type_t *type, char *name, def_t *scope, int arraysize, uint o
 		else if (type->type == ev_vector)
 		{	
 			// do the vector thing.
-			sprintf(newname, "%s%s_x", name, array);
+			com.sprintf(newname, "%s%s_x", name, array);
 			PR_DummyDef(type_float, newname, scope, 1, ofs + type->size*a+0, referable);
-			sprintf(newname, "%s%s_y", name, array);
+			com.sprintf(newname, "%s%s_y", name, array);
 			PR_DummyDef(type_float, newname, scope, 1, ofs + type->size*a+1, referable);
-			sprintf(newname, "%s%s_z", name, array);
+			com.sprintf(newname, "%s%s_z", name, array);
 			PR_DummyDef(type_float, newname, scope, 1, ofs + type->size*a+2, referable);
 		}
 		else if (type->type == ev_field)
@@ -5463,11 +5423,11 @@ def_t *PR_DummyDef(type_t *type, char *name, def_t *scope, int arraysize, uint o
 			if (type->aux_type->type == ev_vector)
 			{
 				// do the vector thing.
-				sprintf(newname, "%s%s_x", name, array);
+				com.sprintf(newname, "%s%s_x", name, array);
 				PR_DummyDef(type_floatfield, newname, scope, 1, ofs + type->size*a+0, referable);
-				sprintf(newname, "%s%s_y", name, array);
+				com.sprintf(newname, "%s%s_y", name, array);
 				PR_DummyDef(type_floatfield, newname, scope, 1, ofs + type->size*a+1, referable);
-				sprintf(newname, "%s%s_z", name, array);
+				com.sprintf(newname, "%s%s_z", name, array);
 				PR_DummyDef(type_floatfield, newname, scope, 1, ofs + type->size*a+2, referable);
 			}
 		}
@@ -5661,11 +5621,11 @@ def_t *PR_DummyFieldDef(type_t *type, char *name, def_t *scope, int arraysize, u
 	for (a = 0; a < arraysize; a++)
 	{
 		if (a == 0) *array = '\0';
-		else sprintf(array, "[%i]", a);
+		else com.sprintf(array, "[%i]", a);
 
 		if (*name)
 		{
-			sprintf(newname, "%s%s", name, array);
+			com.sprintf(newname, "%s%s", name, array);
 
 			// allocate a new def
 			def = (void *)Qalloc (sizeof(def_t));
@@ -5679,8 +5639,8 @@ def_t *PR_DummyFieldDef(type_t *type, char *name, def_t *scope, int arraysize, u
 			def->s_line = pr_source_line;
 			def->s_file = s_file;
 
-			def->name = (void *)Qalloc (strlen(newname)+1);
-			strcpy (def->name, newname);
+			def->name = (void *)Qalloc (com.strlen(newname)+1);
+			com.strcpy (def->name, newname);
 			def->type = type;
 			def->scope = scope;	
 			def->ofs = PR_GetFreeOffsetSpace(1);
@@ -5705,8 +5665,8 @@ def_t *PR_DummyFieldDef(type_t *type, char *name, def_t *scope, int arraysize, u
 				{
 				case ev_union:
 				case ev_struct:
-					if (*name) sprintf(newname, "%s%s.%s", name, array, parttype->name);
-					else sprintf(newname, "%s%s", parttype->name, array);
+					if (*name) com.sprintf(newname, "%s%s.%s", name, array, parttype->name);
+					else com.sprintf(newname, "%s%s", parttype->name, array);
 					def = PR_DummyFieldDef(parttype, newname, scope, 1, fieldofs);
 					break;
 				case ev_float:
@@ -5717,8 +5677,8 @@ def_t *PR_DummyFieldDef(type_t *type, char *name, def_t *scope, int arraysize, u
 				case ev_pointer:
 				case ev_integer:
 				case ev_variant:
-					if (*name) sprintf(newname, "%s%s.%s", name, array, parttype->name);
-					else sprintf(newname, "%s%s", parttype->name, array);
+					if (*name) com.sprintf(newname, "%s%s.%s", name, array, parttype->name);
+					else com.sprintf(newname, "%s%s", parttype->name, array);
 					ftype = PR_NewType("FIELD TYPE", ev_field);
 					ftype->aux_type = parttype;
 					// vector fields create a _y and _z too, so we need this still.
@@ -5732,8 +5692,8 @@ def_t *PR_DummyFieldDef(type_t *type, char *name, def_t *scope, int arraysize, u
 					}
 					break;
 				case ev_function:
-					if (*name) sprintf(newname, "%s%s.%s", name, array, parttype->name);
-					else sprintf(newname, "%s%s", parttype->name, array);
+					if (*name) com.sprintf(newname, "%s%s.%s", name, array, parttype->name);
+					else com.sprintf(newname, "%s%s", parttype->name, array);
 					ftype = PR_NewType("FIELD TYPE", ev_field);
 					ftype->aux_type = parttype;
 					def = PR_GetDef(ftype, newname, scope, true, 1);
@@ -5990,11 +5950,11 @@ void PR_ParseDefs (char *classname)
 		if (classname)
 		{
 			char *membername = name;
-			name = Qalloc(strlen(classname) + strlen(name) + 3);
-			sprintf(name, "%s::"MEMBERFIELDNAME, classname, membername);
+			name = Qalloc(com.strlen(classname) + com.strlen(name) + 3);
+			com.sprintf(name, "%s::"MEMBERFIELDNAME, classname, membername);
 			if (!PR_GetDef(NULL, name, NULL, false, 0))
 				PR_ParseError(ERR_NOTANAME, "%s %s is not a member of class %s\n", TypeName(type), membername, classname);
-			sprintf(name, "%s::%s", classname, membername);
+			com.sprintf(name, "%s::%s", classname, membername);
 
 			pr_classtype = TypeForName(classname);
 			if (!pr_classtype || !pr_classtype->parentclass)
@@ -6524,8 +6484,8 @@ void PR_CompileFile (char *string, char *filename)
 		
 	if (opt_filenames)
 	{
-		pr_file_p = Qalloc(strlen(filename)+1);
-		strcpy(pr_file_p, filename);
+		pr_file_p = Qalloc(com.strlen(filename)+1);
+		com.strcpy(pr_file_p, filename);
 		s_file = pr_file_p - strings;
 		s_file2 = 0;
 	}
@@ -6590,17 +6550,17 @@ void PR_FinishCompilation( void )
 		{
 			if (d->initialized == 0)
 			{
-				if (!strncmp(d->name, "ArrayGet*", 9))
+				if (!com.strncmp(d->name, "ArrayGet*", 9))
 				{
 					PR_EmitArrayGetFunction(d, d->name + 9);
 					pr_scope = NULL;
 				}
-				else if (!strncmp(d->name, "ArraySet*", 9))
+				else if (!com.strncmp(d->name, "ArraySet*", 9))
 				{
 					PR_EmitArraySetFunction(d, d->name + 9);
 					pr_scope = NULL;
 				}
-				else if (!strncmp(d->name, "Class*", 6))
+				else if (!com.strncmp(d->name, "Class*", 6))
 				{
 					PR_EmitClassFromFunction(d, d->name + 6);
 					pr_scope = NULL;
@@ -6704,14 +6664,14 @@ void PR_BeginCompilation ( void )
 	numpr_globals = RESERVED_OFS; // default
 
 	freeofs = NULL;
-	sprintf (sourcefilename, "%sprogs.src", sourcedir );
+	com.sprintf (sourcefilename, "%sprogs.src", sourcedir );
 	progs_src = QCC_LoadFile( sourcefilename, false );// loading progs.src
 	if(!progs_src) progs_src = PR_CreateProgsSRC();	// virtual list
 
 	while(*progs_src && *progs_src < ' ') progs_src++;
 
 	pr_file_p = Com_ParseToken(&progs_src);
-	strcpy(progsoutname, com_token);
+	com.strcpy(progsoutname, com_token);
 
 	// this progs.src was written by qcclib without sorting
 	if(!com.stricmp(progsoutname, "unknown.dat" ))

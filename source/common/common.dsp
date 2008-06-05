@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PLATFORM_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "./" /I "../public" /I "./bsplib/" /I "./qcclib" /I "./roqlib" /I "./common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "./" /I "../public" /I "./bsplib/" /I "./roqlib" /I "./common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -56,8 +56,8 @@ LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386 /opt:nowin98
 # ADD LINK32 msvcrt.lib /nologo /dll /profile /machine:I386 /nodefaultlib:"libc.lib" /opt:nowin98
 # Begin Custom Build
-TargetDir=\XASH3D\src_main\temp\common\!release
-InputPath=\XASH3D\src_main\temp\common\!release\common.dll
+TargetDir=\Xash3D\src_main\temp\common\!release
+InputPath=\Xash3D\src_main\temp\common\!release\common.dll
 SOURCE="$(InputPath)"
 
 "D:\Xash3D\bin\common.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -79,7 +79,7 @@ SOURCE="$(InputPath)"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PLATFORM_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /I "./" /I "../public" /I "./bsplib/" /I "./qcclib" /I "./roqlib" /I "./common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /I "./" /I "../public" /I "./bsplib/" /I "./roqlib" /I "./common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /GZ /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -93,8 +93,8 @@ LINK32=link.exe
 # ADD LINK32 msvcrt.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"msvcrtd.lib" /pdbtype:sept
 # SUBTRACT LINK32 /incremental:no /nodefaultlib
 # Begin Custom Build
-TargetDir=\XASH3D\src_main\temp\common\!debug
-InputPath=\XASH3D\src_main\temp\common\!debug\common.dll
+TargetDir=\Xash3D\src_main\temp\common\!debug
+InputPath=\Xash3D\src_main\temp\common\!debug\common.dll
 SOURCE="$(InputPath)"
 
 "D:\Xash3D\bin\common.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -154,22 +154,6 @@ SOURCE=.\platform.c
 # Begin Source File
 
 SOURCE=.\bsplib\portals.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\qcclib\pr_comp.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\qcclib\pr_lex.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\qcclib\pr_main.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\qcclib\pr_utils.c
 # End Source File
 # Begin Source File
 
@@ -278,10 +262,6 @@ SOURCE=.\mdllib.h
 # Begin Source File
 
 SOURCE=.\platform.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\qcclib\qcclib.h
 # End Source File
 # Begin Source File
 

@@ -18,10 +18,10 @@ physic\
 render\
 imglib\
 ripper\
+vprogs\
 common\
 common\bsplib
 common\roqlib
-common\qcclib
 engine\
 engine\client\
 engine\server\
