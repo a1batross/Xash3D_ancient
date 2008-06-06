@@ -447,6 +447,9 @@ void Sys_CreateInstance( void )
 		Cbuf_ExecuteText( EXEC_NOW, "stuffcmds\n" );
 		break;
 	}
+
+	Cmd_RemoveCommand( "setc" );	// potentially backdoor for change system settings
+	Sys.app_state = SYS_FRAME;	// system is now active
 }
 
 uint Sys_SendKeyEvents( void )
@@ -519,11 +522,21 @@ void Sys_InitLog( void )
 
 void Sys_CloseLog( void )
 {
+	string	event_name;
+
 	if(!logfile) return;
+
+	switch( Sys.app_state )
+	{
+	case SYS_CRASH: com_strncpy( event_name, "crashed", MAX_STRING ); break;
+	case SYS_ABORT: com_strncpy( event_name, "aborted by user", MAX_STRING ); break;
+	case SYS_ERROR: com_strncpy( event_name, "stopped with error", MAX_STRING ); break;
+	default: com_strncpy( event_name, "stopped", MAX_STRING ); break;
+	}
 
 	fprintf(logfile, "\n");
 	fprintf(logfile, "=======================================================================");
-	fprintf(logfile, "\n\t%s %sed at %s\n", Sys.caption, Sys.crash ? "crash" : "stopp", com_timestamp(TIME_FULL));
+	fprintf(logfile, "\n\t%s %s at %s\n", Sys.caption, event_name, com_timestamp(TIME_FULL));
 	fprintf(logfile, "=======================================================================");
 
 	fclose(logfile);
@@ -838,13 +851,15 @@ void Sys_Error(const char *error, ...)
 	va_list		argptr;
 	char		text[MAX_INPUTLINE];
          
-	if(Sys.error) return; // don't multiple executes
-	
+	if( Sys.app_state == SYS_ERROR )
+		return; // don't multiple executes
+
+	Sys.error = true;
+	Sys.app_state = SYS_ERROR;	
 	va_start (argptr, error);
 	com_vsprintf (text, error, argptr);
 	va_end (argptr);
          
-	Sys.error = true;
 	Con_ShowConsole( true );
 	if(Sys.developer) Sys_Print( text );		// print error message
 	else Sys_Print( "Internal engine error\n" );	// don't confuse non-developers with technique stuff
@@ -861,21 +876,33 @@ void Sys_Break(const char *error, ...)
 	va_start (argptr, error);
 	com_vsprintf (text, error, argptr);
 	va_end (argptr);
-	
-	Sys.error = true;
+
+	Sys.error = true;	
+	Sys.app_state = SYS_ERROR;
 	Con_ShowConsole( true );
 	Sys_Print( text );
 	Sys_WaitForQuit();
 	Sys_Exit();
 }
 
+void Sys_Abort( void )
+{
+	// to avoid double calling
+	if( Sys.app_state != SYS_FRAME ) return;
+
+	// aborting by user, run normal shutdown procedure
+	Sys.app_state = SYS_ABORT;
+	Sys_Exit();
+}
+
 long _stdcall Sys_Crash( PEXCEPTION_POINTERS pInfo )
 {
 	// save config
-	if(!Sys.crash)
+	if(Sys.app_state != SYS_CRASH )
 	{
 		// check to avoid recursive call
-		Sys.crash = true;
+		Sys.error = true;
+		Sys.app_state = SYS_CRASH;
 		Sys.Free(); // prepare host to close
 		Sys_FreeLibrary( Sys.linked_dll );
 
@@ -918,6 +945,7 @@ void Sys_Init( void )
 	if(FS_GetParmFromCmdLine("-dev", dev_level )) Sys.developer = com_atoi(dev_level);
 	FS_UpdateEnvironmentVariables(); // set working directory
 	SetErrorMode( SEM_FAILCRITICALERRORS );	// no abort/retry/fail errors
+	if( Sys.hooked_out ) atexit( Sys_Abort );
 
 	Sys.con_showalways = true;
 	Sys.con_readonly = true;
@@ -943,8 +971,11 @@ NOTE: we must prepare engine to shutdown
 before call this
 ================
 */
-void Sys_Exit ( void )
+void Sys_Exit( void )
 {
+	if( Sys.app_state == SYS_FRAME )
+		Sys.app_state = SYS_SHUTDOWN;
+
 	// prepare host to close
 	Sys.Free();
 	Sys_FreeLibrary( Sys.linked_dll );
@@ -1057,7 +1088,7 @@ bool Sys_FreeLibrary ( dll_info_t *dll )
 {
 	if(!dll || !dll->link) // invalid desc or alredy freed
 		return false;
-	if(Sys.crash)
+	if( Sys.app_state == SYS_CRASH )
 	{
 		// we need to hold down all modules, while MSVC can find erorr
 		MsgDev(D_NOTE, "Sys_FreeLibrary: Hold %s for debugging\n", dll->name );

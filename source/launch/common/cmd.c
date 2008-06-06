@@ -285,6 +285,27 @@ void Cmd_Exec_f (void)
 
 /*
 ===============
+Cmd_SystemCfg_f
+===============
+*/
+void Cmd_SystemCfg_f( void )
+{
+	char	*f;
+	size_t	len;
+
+	f = FS_LoadFile( "system.rc", &len );
+	if (!f)
+	{
+		MsgWarn("couldn't exec system.rc\n" );
+		return;
+	}
+	MsgDev(D_INFO, "execing system.rc\n" );
+	Cbuf_InsertText(f);
+	Mem_Free(f);
+}
+
+/*
+===============
 Cmd_Echo_f
 
 Just prints the rest of the line to the console
@@ -607,6 +628,7 @@ void Cmd_Init( void )
 
 	// register our commands
 	Cmd_AddCommand ("exec", Cmd_Exec_f, "execute a script file" );
+	Cmd_AddCommand ("systemcfg", Cmd_SystemCfg_f, "execute a system config script" );
 	Cmd_AddCommand ("echo", Cmd_Echo_f, "print a message to the console (useful in scripts)" );
 	Cmd_AddCommand ("wait", Cmd_Wait_f, "make script execution wait for some rendered frames" );
 	Cmd_AddCommand ("cmdlist", Cmd_List_f, "display all console commands beginning with the specified prefix" );

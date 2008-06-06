@@ -59,7 +59,7 @@
 #define CVAR_ARCHIVE	1	// set to cause it to be saved to vars.rc
 #define CVAR_USERINFO	2	// added to userinfo  when changed
 #define CVAR_SERVERINFO	4	// added to serverinfo when changed
-#define CVAR_SYSTEMINFO	8	// these cvars will be duplicated on all clients
+#define CVAR_SYSTEMINFO	8	// don't changed from console, saved into system.rc
 #define CVAR_INIT		16	// don't allow change from console at all, but can be set from the command line
 #define CVAR_LATCH		32	// save changes until server restart
 #define CVAR_READ_ONLY	64	// display only, cannot be set by user at all

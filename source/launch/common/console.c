@@ -81,7 +81,7 @@ static long _stdcall Con_WndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		return TRUE;
 		break;
 	case WM_CLOSE:
-		if(Sys.error)
+		if( Sys.app_state == SYS_ERROR )
 		{
 			// send windows message
 			PostQuitMessage( 0 );
@@ -366,7 +366,7 @@ destroy win32 console
 void Con_DestroyConsole( void )
 {
 	// last text message into console or log 
-	if(Sys.crash) MsgDev(D_NOTE, "Sys_FreeLibrary: Hold launch.dll for debugging\n" );
+	if( Sys.app_state == SYS_CRASH ) MsgDev(D_NOTE, "Sys_FreeLibrary: Hold launch.dll for debugging\n" );
 	else MsgDev(D_NOTE, "Sys_FreeLibrary: Unloading launch.dll\n");
 
 	Sys_CloseLog();

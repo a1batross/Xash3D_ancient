@@ -208,7 +208,7 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags, const 
 	// allocate a new cvar
 	if( cvar_numIndexes >= MAX_CVARS )
 	{
-		MsgWarn("Cvar_Get: MAX_CVARS limit exceeded\n" );
+		MsgDev( D_ERROR, "Cvar_Get: MAX_CVARS limit exceeded\n" );
 		return NULL;
 	}
 
@@ -256,7 +256,7 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 		value = "default";
 	}
 
-	var = Cvar_FindVar (var_name);
+	var = Cvar_FindVar( var_name );
 	if(!var)
 	{
 		if( !value ) return NULL;
@@ -282,6 +282,11 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 		if (var->flags & CVAR_INIT)
 		{
 			MsgDev(D_INFO, "%s is write protected.\n", var_name);
+			return var;
+		}
+		if (var->flags & CVAR_SYSTEMINFO)
+		{
+			MsgDev(D_INFO, "%s is system variable.\n", var_name);
 			return var;
 		}
 		if (var->flags & CVAR_LATCH)
@@ -363,10 +368,10 @@ void Cvar_FullSet( char *var_name, char *value, int flags )
 	cvar_t	*var;
 	
 	var = Cvar_FindVar (var_name);
-	if (!var) 
+	if(!var) 
 	{
 		// create it
-		Cvar_Get(var_name, value, flags, "" );
+		Cvar_Get( var_name, value, flags, "" );
 		return;
 	}
 	var->modified = true;
@@ -596,6 +601,24 @@ void Cvar_SetA_f( void )
 
 /*
 ============
+Cvar_SetC_f
+
+As Cvar_Set, but also flags it as systeminfo
+============
+*/
+void Cvar_SetC_f( void )
+{
+	if( Cmd_Argc() != 3 )
+	{
+		Msg("usage: setc <variable> <value>\n");
+		return;
+	}
+
+	Cvar_FullSet( Cmd_Argv(1), Cmd_Argv(2), CVAR_SYSTEMINFO );
+}
+
+/*
+============
 Cvar_Reset_f
 ============
 */
@@ -675,7 +698,7 @@ void Cvar_Restart_f( void )
 
 		// don't mess with rom values, or some inter-module
 		// communication will get broken (com_cl_running, etc)
-		if ( var->flags & ( CVAR_READ_ONLY | CVAR_INIT ))
+		if ( var->flags & ( CVAR_READ_ONLY|CVAR_INIT|CVAR_SYSTEMINFO ))
 		{
 			prev = &var->next;
 			continue;
@@ -714,6 +737,7 @@ void Cvar_Init (void)
 	Cmd_AddCommand ("set", Cvar_Set_f, "create or change the value of a console variable" );
 	Cmd_AddCommand ("sets", Cvar_SetS_f, "create or change the value of a serverinfo variable");
 	Cmd_AddCommand ("setu", Cvar_SetU_f, "create or change the value of a userinfo variable");
+	Cmd_AddCommand ("setc", Cvar_SetC_f, "create or change the value of a systeminfo variable");
 	Cmd_AddCommand ("seta", Cvar_SetA_f, "create or change the value of a console variable that will be saved to vars.rc");
 	Cmd_AddCommand ("reset", Cvar_Reset_f, "reset any type variable to initial value" );
 	Cmd_AddCommand ("cvarlist", Cvar_List_f, "display all console variables beginning with the specified prefix" );

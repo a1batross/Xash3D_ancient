@@ -24,10 +24,20 @@
 
 #define XASH_VERSION		0.48f // current version will be shared over gameinfo struct
 
+enum state_e
+{
+	SYS_SHUTDOWN = 0,
+	SYS_CRASH,
+	SYS_ABORT,
+	SYS_ERROR,
+	SYS_FRAME,
+};
+
 typedef struct system_s
 {
 	char			progname[MAX_QPATH];
 	int			app_name;
+	int			app_state;
 
 	bool			debug;
 	bool			developer;
@@ -45,12 +55,11 @@ typedef struct system_s
 	bool			con_showalways;
 	bool			con_showcredits;
 	bool			con_silentmode;
-	bool			error;
-	bool			crash;
 	byte			*basepool;
 	byte			*zonepool;
 	byte			*imagepool;
 	byte			*stringpool;
+	bool			error;
 
 	// simply profiling
 	double			start, end;
@@ -109,6 +118,7 @@ char *Sys_GetClipboardData( void );
 void Sys_Sleep( int msec );
 void Sys_Init( void );
 void Sys_Exit( void );
+void Sys_Abort( void );
 bool Sys_LoadLibrary ( dll_info_t *dll );
 void* Sys_GetProcAddress ( dll_info_t *dll, const char* name );
 bool Sys_FreeLibrary ( dll_info_t *dll );
@@ -277,7 +287,7 @@ bool FS_Eof( file_t* file);
 cvar_t *Cvar_FindVar (const char *var_name);
 cvar_t *Cvar_Get (const char *var_name, const char *value, int flags, const char *description);
 void Cvar_Set( const char *var_name, const char *value);
-cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force);
+cvar_t *Cvar_Set2( const char *var_name, const char *value, bool force );
 void Cvar_LookupVars( int checkbit, char *buffer, void *ptr, cvarcmd_t callback );
 void Cvar_FullSet (char *var_name, char *value, int flags);
 void Cvar_SetLatched( const char *var_name, const char *value);

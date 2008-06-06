@@ -274,6 +274,33 @@ void ProcessCollisionTree( void )
 	pe->WriteCollisionLump( NULL, AddCollision );
 }
 
+void Init_PhysicsLibrary( void )
+{
+	static physic_imp_t		pi;
+	launch_t			CreatePhysic;
+
+	pi.api_size = sizeof(physic_imp_t);
+	Sys_LoadLibrary( &physic_dll );
+
+	if(physic_dll.link)
+	{
+		CreatePhysic = (void *)physic_dll.main;
+		pe = CreatePhysic( &com, &pi ); // sys_error not overrided
+		pe->Init(); // initialize phys callback
+	}
+	else memset( &pe, 0, sizeof(pe));
+}
+
+void Free_PhysicLibrary( void )
+{
+	if(physic_dll.link)
+	{
+		pe->Shutdown();
+		memset( &pe, 0, sizeof(pe));
+	}
+	Sys_FreeLibrary( &physic_dll );
+}
+
 /*
 ============
 WbspMain
@@ -318,12 +345,7 @@ void WbspMain ( bool option )
 
 bool PrepareBSPModel ( const char *dir, const char *name, byte params )
 {
-	static physic_imp_t		pi;
-	launch_t			CreatePhysic;
-	int			numshaders;
-
-	// phys callback
-	pi.api_size = sizeof(physic_imp_t);
+	int	numshaders;
 	
 	if( dir ) com.strncpy(gs_basedir, dir, sizeof(gs_basedir));
 	if( name ) com.strncpy(gs_filename, name, sizeof(gs_filename));
@@ -334,19 +356,9 @@ bool PrepareBSPModel ( const char *dir, const char *name, byte params )
 	onlyrad = (params & BSP_ONLYRAD) ? true : false;
 	full_compile = (params & BSP_FULLCOMPILE) ? true : false;
 
-	Sys_LoadLibrary( &physic_dll );
+	FS_LoadGameInfo( "gameinfo.txt" ); // same as normal gamemode
 
-	if(physic_dll.link)
-	{
-		CreatePhysic = (void *)physic_dll.main;
-		pe = CreatePhysic( &com, &pi ); // sys_error not overrided
-		pe->Init();
-	}
-	else memset( &pe, 0, sizeof(pe));
-  
-	// don't worry about that
-	FS_LoadGameInfo("gameinfo.txt");
-
+	Init_PhysicsLibrary();
 	numshaders = LoadShaderInfo();
 	Msg( "%5i shaderInfo\n", numshaders );
 
@@ -367,12 +379,7 @@ bool CompileBSPModel ( void )
 	}
           else WbspMain( false ); // just create bsp
 
-	if(physic_dll.link)
-	{
-		pe->Shutdown();
-		memset( &pe, 0, sizeof(pe));
-	}
-	Sys_FreeLibrary( &physic_dll );
+	Free_PhysicLibrary();
 
 	if( onlyrad && onlyvis && full_compile )
 	{

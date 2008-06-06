@@ -517,7 +517,7 @@ void Host_Init (uint funcname, int argc, char **argv)
 	// init commands and vars
 	if(host.developer)
 	{
-		host_cheats = Cvar_Get("host_cheats", "1", CVAR_READ_ONLY | CVAR_SYSTEMINFO );
+		host_cheats = Cvar_Get("host_cheats", "1", CVAR_SYSTEMINFO );
 		Cmd_AddCommand ("error", Host_Error_f, "just throw a fatal error to test shutdown procedures" );
 		Cmd_AddCommand ("crash", Host_Crash_f, "a way to force a bus error for development reasons");
           }
@@ -531,7 +531,7 @@ void Host_Init (uint funcname, int argc, char **argv)
 	else dedicated = Cvar_Get ("dedicated", "0", CVAR_INIT);
 
 	s = va("^1Xash %g ^3%s", GI->version, buildstring );
-	Cvar_Get ("version", s, CVAR_SERVERINFO|CVAR_INIT);
+	Cvar_Get ("version", s, CVAR_SERVERINFO|CVAR_INIT );
 
 	if(dedicated->value) Cmd_AddCommand ("quit", Sys_Quit, "quit the game" );
        

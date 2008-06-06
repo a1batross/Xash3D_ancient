@@ -17,6 +17,8 @@
 #define PACKFILE_FLAG_DEFLATED	(1<<1) // file compressed using the deflate algorithm
 #define FILE_BUFF_SIZE		2048
 
+#define FS_READONLY_PATH		1
+
 typedef struct
 {
 	z_stream		zstream;
@@ -83,6 +85,7 @@ typedef struct searchpath_s
 {
 	char		filename[MAX_SYSPATH];
 	pack_t		*pack;
+	int		flags;
 	struct searchpath_s *next;
 } searchpath_t;
 
@@ -115,6 +118,8 @@ char gs_mapname[ 64 ]; // used for compilers only
 int fs_argc;
 char *fs_argv[MAX_NUM_ARGVS];
 bool fs_ext_path = false; // attempt to read\write from ./ or ../ pathes 
+bool fs_use_wads = false; // some utilities needs this
+cvar_t *fs_wadsupport;
 
 gameinfo_t GI;
 
@@ -578,7 +583,7 @@ void FS_CreatePath (char *path)
 
 /*
 ============
-FS_Path
+FS_Path_f
 
 debug info
 ============
@@ -593,6 +598,18 @@ void FS_Path_f( void )
 		if (s->pack) Msg( "%s (%i files)\n", s->pack->filename, s->pack->numfiles );
 		else Msg( "%s\n", s->filename );
 	}
+}
+
+/*
+============
+FS_Path_f
+
+debug info
+============
+*/
+void FS_ClearPaths_f( void )
+{
+	FS_ClearSearchPath();
 }
 
 /*
@@ -916,7 +933,7 @@ Sets fs_gamedir, adds the directory to the head of the path,
 then loads and adds pak1.pak pak2.pak ...
 ================
 */
-void FS_AddGameDirectory (const char *dir)
+void FS_AddGameDirectory( const char *dir, int flags )
 {
 	int i;
 	stringlist_t list;
@@ -966,6 +983,7 @@ void FS_AddGameDirectory (const char *dir)
 	search = (searchpath_t *)Mem_Alloc(fs_mempool, sizeof(searchpath_t));
 	com_strncpy (search->filename, dir, sizeof (search->filename));
 	search->next = fs_searchpaths;
+	search->flags = flags;
 	fs_searchpaths = search;
 }
 
@@ -1162,19 +1180,22 @@ FS_AddGameHierarchy
 */
 void FS_AddGameHierarchy (const char *dir)
 {
-	search_t	*search;
-	int	i, numWads = 0;
-
 	// Add the common game directory
 	if(dir || *dir) 
 	{
-		FS_AddGameDirectory (va("%s%s/", fs_basedir, dir));
+		FS_AddGameDirectory( va("%s%s/", fs_basedir, dir), 0 );
 
-		search = FS_Search( "*.wad", true );
-		if(!search) return;
-		for( i = 0; i < search->numfilenames; i++ )
-			FS_AddWad3File( search->filenames[i] );
-		Mem_Free( search );
+		if( fs_wadsupport->integer || fs_use_wads )
+		{
+			search_t	*search;
+			int	i, numWads = 0;
+		          
+			search = FS_Search( "*.wad", true );
+			if(!search) return;
+			for( i = 0; i < search->numfilenames; i++ )
+				FS_AddWad3File( search->filenames[i] );
+			Mem_Free( search );
+		}
 	}
 }
 
@@ -1242,22 +1263,30 @@ void FS_ExtractFilePath(const char* const path, char* dest)
 FS_ClearSearchPath
 ================
 */
-void FS_ClearSearchPath (void)
+void FS_ClearSearchPath( void )
 {
 	uint	i;
 	wadfile_t	*w;
 
-	while (fs_searchpaths)
+	while( fs_searchpaths )
 	{
 		searchpath_t *search = fs_searchpaths;
-		fs_searchpaths = search->next;
-		if (search->pack)
+
+		if( search->flags & FS_READONLY_PATH )
 		{
-			if (search->pack->files) 
+			// skip read-only pathes e.g. "bin"
+			if( search->next ) fs_searchpaths = search->next->next;
+			else break;
+		}
+		else fs_searchpaths = search->next;
+
+		if( search->pack )
+		{
+			if( search->pack->files ) 
 				Mem_Free(search->pack->files);
 			Mem_Free(search->pack);
 		}
-		Mem_Free(search);
+		Mem_Free( search );
 	}
 
 	// close all wad files and free their lumps data
@@ -1378,7 +1407,7 @@ void FS_LoadGameInfo( const char *filename )
 
 	// lock uplevel of gamedir for read\write
 	fs_ext_path = false;
-	
+
 	// prepare to loading
 	FS_ClearSearchPath();
 	FS_AddGameHierarchy( gs_basedir );
@@ -1470,7 +1499,11 @@ void FS_Init( void )
 	
 	FS_InitMemory();
 
+	FS_AddGameDirectory( "bin/", FS_READONLY_PATH ); // execute system config
+
 	Cmd_AddCommand( "fs_path", FS_Path_f, "show filesystem search pathes" );
+	Cmd_AddCommand( "fs_clearpaths", FS_ClearPaths_f, "clear filesystem search pathes" );
+	fs_wadsupport = Cvar_Get( "fs_wadsupport", "0", CVAR_SYSTEMINFO, "enable wad-archive support" );
 
 	// ignore commandlineoption "-game" for other stuff
 	if(Sys.app_name == HOST_NORMAL || Sys.app_name == HOST_DEDICATED || Sys.app_name == COMP_BSPLIB)
@@ -1509,6 +1542,24 @@ void FS_Init( void )
 		stringlistfreecontents(&dirs);
 	}	
 
+	// enable temporary wad support for some tools
+	switch( Sys.app_name )
+	{
+	case COMP_WADLIB:
+	case RIPP_MIPDEC:
+	case RIPP_MDLDEC:
+	case RIPP_LMPDEC:
+	case RIPP_SNDDEC: 
+		fs_use_wads = true;
+		break;
+	default:
+		fs_use_wads = false;
+		break;
+	}
+
+	Cbuf_ExecuteText( EXEC_NOW, "systemcfg\n" );
+	Cbuf_Execute(); // apply system cvars immediately
+
 	FS_ResetGameInfo();
 	MsgDev(D_INFO, "FS_Init: done\n");
 }
@@ -1542,28 +1593,48 @@ bool FS_GetParmFromCmdLine( char *parm, char *out )
 }
 
 /*
+============
+FS_WriteVariables
+
+Appends lines containing "set variable value" for all variables
+with the archive flag set to true.
+============
+*/
+static void FS_WriteCvar( const char *name, const char *string, const char *unused, void *f )
+{
+	FS_Printf(f, "setc %s \"%s\"\n", name, string );
+}
+
+void FS_WriteVariables( file_t *f )
+{
+	FS_Printf (f, "unsetall\n" );
+	Cvar_LookupVars( CVAR_SYSTEMINFO, NULL, f, FS_WriteCvar ); 
+}
+
+/*
 ================
 FS_Shutdown
 ================
 */
-void FS_Shutdown (void)
+void FS_Shutdown( void )
 {
-	wadfile_t		*w;
-	int		i;
+	file_t		*f;
 
-	// close all wad files and free their lumps data
-	for (i = 0; i < Mem_ArraySize( fs_searchwads ); i++ )
+	FS_ClearSearchPath();				// release all wad files too
+	FS_UpdateEnvironmentVariables(); 			// merge working directory
+	com_strncpy( fs_gamedir, "bin", sizeof(fs_gamedir));	// set write directory for system config
+
+	f = FS_Open( "system.rc", "w" );
+	if( f )
 	{
-		w = Mem_GetElement( fs_searchwads, i );
-		if(!w) continue;
-		if(w->lumps) Mem_Free(w->lumps);
-		w->lumps = NULL;
-		if(w->file) FS_Close(w->file);
-		w->file = NULL;
-		w->name[0] = 0;
+		FS_Printf (f, "//=======================================================================\n");
+		FS_Printf (f, "//\t\t\tCopyright XashXT Group 2008 ©\n");
+		FS_Printf (f, "//\t\tsystem.rc - archive of system cvars\n");
+		FS_Printf (f, "//=======================================================================\n");
+		FS_WriteVariables( f );
+		FS_Close (f);	
 	}
-	if( fs_searchwads ) Mem_RemoveArray( fs_searchwads );
-	fs_searchwads = NULL;
+	else MsgWarn("Couldn't write system.rc.\n");
 
 	Mem_FreePool(&fs_mempool);
 }
@@ -2834,8 +2905,6 @@ void FS_InitMemory( void )
 	// add a path separator to the end of the basedir if it lacks one
 	if (fs_basedir[0] && fs_basedir[com_strlen(fs_basedir) - 1] != '/' && fs_basedir[com_strlen(fs_basedir) - 1] != '\\')
 		com_strncat(fs_basedir, "/", sizeof(fs_basedir));
-
-	if( !fs_searchwads ) fs_searchwads = Mem_CreateArray( fs_mempool, sizeof(wadfile_t), 16 );
 }
 
 /*
