@@ -180,8 +180,8 @@ CL_Quit_f
 */
 void CL_Quit_f (void)
 {
-	CL_Disconnect ();
-	host.type = HOST_OFFLINE;
+	CL_Disconnect();
+	Sys_Quit();
 }
 
 /*

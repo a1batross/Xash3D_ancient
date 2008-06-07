@@ -73,6 +73,8 @@ void R_Mirror( refdef_t *fd )
 		gldepthmax = 0.5;
 		qglDepthRange( gldepthmin, gldepthmax );
 		qglDepthFunc( GL_LEQUAL );
+
+		GL_EnableBlend();
 		qglMatrixMode( GL_PROJECTION );
 
 		if (mirror_plane->normal[2])
@@ -82,7 +84,7 @@ void R_Mirror( refdef_t *fd )
 		qglCullFace( GL_FRONT );
 		qglMatrixMode( GL_MODELVIEW );
 		qglLoadMatrixf( r_base_world_matrix );
-		GL_EnableBlend();
+
 		qglBlendFunc(GL_SRC_ALPHA, GL_ONE);
 		qglColor4f( 1.0f, 1.0f, 1.0f, mirror_alpha );
 		GL_Bind(s->texinfo->image->texnum[0]);

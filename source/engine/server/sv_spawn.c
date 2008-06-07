@@ -163,7 +163,7 @@ float SV_CalcRoll (vec3_t angles, vec3_t velocity)
 SV_CalcGunOffset
 ==============
 */
-void SV_CalcGunOffset (edict_t *ent)
+void SV_CalcGunOffset( edict_t *ent )
 {
 	int		i;
 	float		delta;
@@ -171,14 +171,12 @@ void SV_CalcGunOffset (edict_t *ent)
 	// gun angles from bobbing
 	ent->priv.sv->client->ps.vmodel.angles[ROLL] = xyspeed * bobfracsin * 0.005;
 	ent->priv.sv->client->ps.vmodel.angles[YAW] = xyspeed * bobfracsin * 0.01;
-	if (bobcycle & 1)
+	if( bobcycle & 1 )
 	{
 		ent->priv.sv->client->ps.vmodel.angles[ROLL] = -ent->priv.sv->client->ps.vmodel.angles[ROLL];
 		ent->priv.sv->client->ps.vmodel.angles[YAW] = -ent->priv.sv->client->ps.vmodel.angles[YAW];
 	}
-
 	ent->priv.sv->client->ps.vmodel.angles[PITCH] = xyspeed * bobfracsin * 0.005;
-	ent->priv.sv->client->ps.viewoffset[2] = ent->priv.sv->client->ps.viewheight;
 
 	// gun angles from delta movement
 	for (i = 0; i < 3; i++)
@@ -198,9 +196,9 @@ void SV_CalcGunOffset (edict_t *ent)
 	// gun_x / gun_y / gun_z are development tools
 	for (i = 0; i < 3; i++)
 	{
-		ent->priv.sv->client->ps.vmodel.offset[i] += forward[i];
-		ent->priv.sv->client->ps.vmodel.offset[i] += right[i];
-		ent->priv.sv->client->ps.vmodel.offset[i] += up[i];
+		//ent->priv.sv->client->ps.vmodel.offset[i] += forward[i];
+		//ent->priv.sv->client->ps.vmodel.offset[i] += right[i];
+		//ent->priv.sv->client->ps.vmodel.offset[i] += up[i];
 	}
 }
 

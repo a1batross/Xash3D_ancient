@@ -566,10 +566,6 @@ void Host_Main( void )
 		// engine frame
 		Host_Frame( time );
 	}
-
-	// prepare host to normal shutdown
-	host.state = HOST_SHUTDOWN;
-	com.strncpy( host.finalmsg, "Server shutdown\n", MAX_STRING );
 }
 
 
@@ -580,6 +576,9 @@ Host_Shutdown
 */
 void Host_Free( void )
 {
+	host.state = HOST_SHUTDOWN;	// prepare host to normal shutdown
+	com.strncpy( host.finalmsg, "Server shutdown\n", MAX_STRING );
+
 	SV_Shutdown( false );
 	CL_Shutdown();
 	Host_FreeRender();

@@ -22,7 +22,7 @@
 #include "basefiles.h"
 #include "dllapi.h"
 
-#define XASH_VERSION		0.48f // current version will be shared over gameinfo struct
+#define XASH_VERSION		0.51f // current version will be shared across gameinfo struct
 
 enum state_e
 {
@@ -59,6 +59,7 @@ typedef struct system_s
 	byte			*zonepool;
 	byte			*imagepool;
 	byte			*stringpool;
+	bool			shutdown_issued;
 	bool			error;
 
 	// simply profiling

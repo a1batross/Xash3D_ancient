@@ -887,9 +887,6 @@ void Sys_Break(const char *error, ...)
 
 void Sys_Abort( void )
 {
-	// to avoid double calling
-	if( Sys.app_state != SYS_FRAME ) return;
-
 	// aborting by user, run normal shutdown procedure
 	Sys.app_state = SYS_ABORT;
 	Sys_Exit();
@@ -913,6 +910,8 @@ long _stdcall Sys_Crash( PEXCEPTION_POINTERS pInfo )
 			Msg("Sys_Crash: call %p at address %p\n", pInfo->ExceptionRecord->ExceptionCode, pInfo->ExceptionRecord->ExceptionAddress );
 			Sys_WaitForQuit();
 		}
+		FS_Shutdown();
+		Memory_Shutdown();
 		Con_DestroyConsole();	
           }
 
@@ -973,8 +972,8 @@ before call this
 */
 void Sys_Exit( void )
 {
-	if( Sys.app_state == SYS_FRAME )
-		Sys.app_state = SYS_SHUTDOWN;
+	if( Sys.shutdown_issued ) return;
+	Sys.shutdown_issued = true;
 
 	// prepare host to close
 	Sys.Free();
@@ -997,7 +996,7 @@ bool Sys_LoadLibrary ( dll_info_t *dll )
 {
 	const dllfunc_t	*func;
 	bool		native_lib = false;
-	char		errorstring[MAX_QPATH];
+	string		errorstring;
 
 	// check errors
 	if(!dll) return false;	// invalid desc
@@ -1090,7 +1089,7 @@ bool Sys_FreeLibrary ( dll_info_t *dll )
 		return false;
 	if( Sys.app_state == SYS_CRASH )
 	{
-		// we need to hold down all modules, while MSVC can find erorr
+		// we need to hold down all modules, while MSVC can find error
 		MsgDev(D_NOTE, "Sys_FreeLibrary: Hold %s for debugging\n", dll->name );
 		return false;
 	}
@@ -1124,37 +1123,37 @@ int Sys_GetNumThreads( void )
 
 void Sys_ThreadLock( void )
 {
-	if (!threaded) return;
-	EnterCriticalSection(&crit);
-	if (enter) Sys_Error( "Recursive ThreadLock\n" ); 
-	enter = 1;
+	if( !threaded ) return;
+	EnterCriticalSection( &crit );
+	if( enter ) Sys_Error( "Recursive Sys_ThreadLock\n" ); 
+	enter = true;
 }
 
 void Sys_ThreadUnlock( void )
 {
-	if (!threaded) return;
-	if (!enter) Sys_Error( "ThreadUnlock without lock\n" ); 
-	enter = 0;
-	LeaveCriticalSection (&crit);
+	if( !threaded ) return;
+	if( !enter ) Sys_Error( "Sys_ThreadUnlock without lock\n" ); 
+	enter = false;
+	LeaveCriticalSection( &crit );
 }
 
 int Sys_GetThreadWork( void )
 {
 	int	r, f;
 
-	Sys_ThreadLock ();
+	Sys_ThreadLock();
 
-	if (dispatch == workcount)
+	if( dispatch == workcount )
 	{
 		Sys_ThreadUnlock();
 		return -1;
 	}
 
 	f = 10 * dispatch / workcount;
-	if (f != oldf)
+	if( f != oldf )
 	{
 		oldf = f;
-		if (pacifier) Msg("%i...", f);
+		if( pacifier ) Msg( "%i...", f );
 	}
 
 	r = dispatch;
@@ -1164,32 +1163,32 @@ int Sys_GetThreadWork( void )
 	return r;
 }
 
-void Sys_ThreadWorkerFunction (int threadnum)
+void Sys_ThreadWorkerFunction( int threadnum )
 {
 	int		work;
 
-	while (1)
+	while( 1 )
 	{
 		work = Sys_GetThreadWork();
-		if (work == -1) break;
-		workfunction(work);
+		if( work == -1 ) break;
+		workfunction( work );
 	}
 }
 
-void Sys_ThreadSetDefault (void)
+void Sys_ThreadSetDefault( void )
 {
-	if(numthreads == -1) // not set manually
+	if( numthreads == -1 ) // not set manually
 	{
 		// NOTE: we must init Plat_InitCPU() first
 		numthreads = GI.cpunum;
-		if (numthreads < 1 || numthreads > MAX_THREADS)
+		if( numthreads < 1 || numthreads > MAX_THREADS )
 			numthreads = 1;
 	}
 }
 
-void Sys_RunThreadsOnIndividual(int workcnt, bool showpacifier, void(*func)(int))
+void Sys_RunThreadsOnIndividual( int workcnt, bool showpacifier, void(*func)(int))
 {
-	if (numthreads == -1) Sys_ThreadSetDefault ();
+	if (numthreads == -1) Sys_ThreadSetDefault();
 	workfunction = func;
 	Sys_RunThreadsOn (workcnt, showpacifier, Sys_ThreadWorkerFunction);
 }
@@ -1199,7 +1198,7 @@ void Sys_RunThreadsOnIndividual(int workcnt, bool showpacifier, void(*func)(int)
 Sys_RunThreadsOn
 =============
 */
-void Sys_RunThreadsOn (int workcnt, bool showpacifier, void(*func)(int))
+void Sys_RunThreadsOn( int workcnt, bool showpacifier, void(*func)(int))
 {
 	int	i, threadid[MAX_THREADS];
 	HANDLE	threadhandle[MAX_THREADS];
@@ -1213,7 +1212,7 @@ void Sys_RunThreadsOn (int workcnt, bool showpacifier, void(*func)(int))
 	threaded = true;
 
 	// run threads in parallel
-	InitializeCriticalSection (&crit);
+	InitializeCriticalSection(&crit);
 
 	if (numthreads == 1) func(0); // use same thread
 	else
@@ -1224,14 +1223,14 @@ void Sys_RunThreadsOn (int workcnt, bool showpacifier, void(*func)(int))
 		}
 		for (i = 0; i < numthreads; i++)
 		{
-			WaitForSingleObject (threadhandle[i], INFINITE);
+			WaitForSingleObject(threadhandle[i], INFINITE);
 		}
 	}
-	DeleteCriticalSection (&crit);
+	DeleteCriticalSection(&crit);
 
 	threaded = false;
 	end = Sys_DoubleTime();
-	if (pacifier) Msg(" Done [%.2f sec]\n", end - start);
+	if( pacifier ) Msg(" Done [%.2f sec]\n", end - start);
 }
 
 //=======================================================================

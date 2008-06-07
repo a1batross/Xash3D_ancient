@@ -1256,6 +1256,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 		PRVM_ERROR ("PRVM_LoadProgs: there is already a %s program loaded!", PRVM_NAME );
 	}
 
+	if( vm.prog->progs ) Mem_Free( vm.prog->progs ); // release progs file
 	vm.prog->progs = (dprograms_t *)FS_LoadFile(va("vprogs/%s", filename ), &filesize);
 
 	if (vm.prog->progs == NULL || filesize < (fs_offset_t)sizeof(dprograms_t))
@@ -1522,6 +1523,9 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 			if((word)st->a >= vm.prog->progs->numglobals || st->b + i < 0 || st->b + i >= vm.prog->progs->numstatements)
 				PRVM_ERROR("PRVM_LoadProgs: out of bounds IF/IFNOT (statement %d) in %s", i, PRVM_NAME);
 			break;
+		case OP_IFNOTS:
+			// FIXME: make work
+			break;
 		case OP_GOTO:
 			if(st->a + i < 0 || st->a + i >= vm.prog->progs->numstatements)
 				PRVM_ERROR("PRVM_LoadProgs: out of bounds GOTO (statement %d) in %s", i, PRVM_NAME);
@@ -1663,7 +1667,7 @@ void PRVM_LoadProgs (const char *filename, int numedfunc, char **ed_func, int nu
 
 	// set flags & ddef_ts in prog
 	vm.prog->flag = 0;
-	vm.prog->pev = PRVM_ED_FindGlobal("pev");
+	vm.prog->pev = PRVM_ED_FindGlobal("pev");	// critical stuff
 
 	if( PRVM_ED_FindGlobal("time") && PRVM_ED_FindGlobal("time")->type & ev_float )
 		vm.prog->time = &PRVM_G_FLOAT(PRVM_ED_FindGlobal("time")->ofs);

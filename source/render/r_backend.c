@@ -548,7 +548,7 @@ void VID_ImageAdjustGamma( byte *in, uint width, uint height )
 	for ( i = 0; i < 256; i++ )
 	{
 		if ( g == 1 ) gammatable[i] = i;
-		else gammatable[i] = bound(0, 255 * pow ( (i + 0.5)/255.5 , g ) + 0.5, 255);
+		else gammatable[i] = bound(0, 255 * pow((i + 0.5)/255.5 , g ) + 0.5, 255);
 	}
 	for (i = 0; i < c; i++, p += 3 )
 	{
@@ -568,7 +568,7 @@ bool VID_ScreenShot( const char *filename, bool levelshot )
 	// get screen frame
 	qglReadPixels(0, 0, r_width->integer, r_height->integer, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer );
 
-	r_shot  = Z_Malloc( sizeof(rgbdata_t));
+	r_shot = Z_Malloc( sizeof(rgbdata_t));
 	r_shot->width = r_width->integer;
 	r_shot->height = r_height->integer;
 	r_shot->type = PF_RGB_24_FLIP;

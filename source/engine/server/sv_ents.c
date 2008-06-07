@@ -185,6 +185,7 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 	if (ps->effects != ops->effects) pflags |= PS_RDFLAGS;
 	if (ps->vmodel.frame != ops->vmodel.frame) pflags |= PS_WEAPONFRAME;
 	if (ps->vmodel.sequence != ops->vmodel.sequence) pflags |= PS_WEAPONSEQUENCE;
+	if (!VectorCompare(ps->vmodel.offset, ops->vmodel.offset)) pflags |= PS_WEAPONOFFSET;
 	if (ps->vmodel.body != ops->vmodel.body) pflags |= PS_WEAPONBODY;
 	if (ps->vmodel.skin != ops->vmodel.skin) pflags |= PS_WEAPONSKIN;
 
@@ -236,6 +237,10 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 	if (pflags & PS_WEAPONFRAME)
 	{
 		MSG_WriteByte (msg, ps->vmodel.frame);
+	}
+
+	if (pflags & PS_WEAPONOFFSET)
+	{
 		MSG_WriteChar (msg, ps->vmodel.offset[0]*4);
 		MSG_WriteChar (msg, ps->vmodel.offset[1]*4);
 		MSG_WriteChar (msg, ps->vmodel.offset[2]*4);
@@ -273,10 +278,10 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 
 	// send stats
 	statbits = 0;
-	for (i=0 ; i<MAX_STATS ; i++)
-		if (ps->stats[i] != ops->stats[i])
+	for( i = 0; i < MAX_STATS; i++ )
+		if( ps->stats[i] != ops->stats[i] )
 			statbits |= 1<<i;
-	MSG_WriteLong (msg, statbits);
+	MSG_WriteLong( msg, statbits );
 	for (i=0 ; i<MAX_STATS ; i++)
 		if (statbits & (1<<i) )
 			MSG_WriteShort (msg, ps->stats[i]);
