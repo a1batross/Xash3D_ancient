@@ -233,11 +233,17 @@ _inline edict_t *PRVM_EDICT_NUM( int n )
 #define PRVM_ED_FindGlobal		vm->FindGlobal
 #define PRVM_ED_FindFunction		vm->FindFunction
 
+// helper common functions
+const char *VM_VarArgs( int start_arg );
+bool VM_ValidateArgs( const char *builtin, int num_argc );
+
 // builtins and other general functions
+void VM_ConPrintf( void );
 
 char *VM_GetTempString(void);
 void VM_CheckEmptyString (const char *s);
 void VM_VarString(int first, char *out, int outlength);
+
 
 void VM_checkextension (void);
 void VM_error (void);

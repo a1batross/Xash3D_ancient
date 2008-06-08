@@ -368,6 +368,7 @@ typedef enum
 	ev_variant,
 	ev_struct,
 	ev_union,
+	ev_bool,
 } etype_t;
 
 typedef struct statement16_s

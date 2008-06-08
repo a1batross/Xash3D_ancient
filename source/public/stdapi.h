@@ -69,6 +69,7 @@ typedef struct stdilib_api_s
 	void (*Com_FileBase)(const char *in, char *out);		// get filename without path & ext
 	bool (*Com_FileExists)(const char *filename);		// return true if file exist
 	long (*Com_FileSize)(const char *filename);		// same as Com_FileExists but return filesize
+	long (*Com_FileTime)(const char *filename);		// same as Com_FileExists but return filetime
 	const char *(*Com_FileExtension)(const char *in);		// return extension of file
 	const char *(*Com_RemovePath)(const char *in);		// return file without path
 	void (*Com_StripExtension)(char *path);			// remove extension if present
@@ -256,6 +257,8 @@ filesystem manager
 #define FS_DefaultExtension		com.Com_DefaultExtension
 #define FS_FileExtension( ext )	com.Com_FileExtension( ext )
 #define FS_FileExists( file )		com.Com_FileExists( file )
+#define FS_FileSize( file )		com.Com_FileSize( file )
+#define FS_FileTime( file )		com.Com_FileTime( file )
 #define FS_Close( file )		com.fclose( file )
 #define FS_FileBase( x, y )		com.Com_FileBase( x, y )
 #define FS_Printf			com.fprintf

@@ -636,7 +636,7 @@ char *va(const char *format, ...)
 	s = string[stringindex];
 	stringindex = (stringindex + 1) & 7;
 	va_start (argptr, format);
-	com_vsnprintf (s, sizeof (string[0]), format, argptr);
+	com_vsnprintf (s, sizeof(string[0]), format, argptr);
 	va_end (argptr);
 	return s;
 }

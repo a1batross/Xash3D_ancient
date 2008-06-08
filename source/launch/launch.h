@@ -272,6 +272,7 @@ int FS_Seek (file_t* file, fs_offset_t offset, int whence);
 int FS_Gets (file_t* file, byte *string, size_t bufsize );
 int FS_Printf(file_t* file, const char* format, ...);
 fs_offset_t FS_FileSize (const char *filename);
+fs_offset_t FS_FileTime (const char *filename);
 int FS_Print(file_t* file, const char *msg);
 bool FS_FileExists (const char *filename);
 int FS_UnGetc (file_t* file, byte c);

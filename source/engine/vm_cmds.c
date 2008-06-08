@@ -1204,44 +1204,6 @@ void VM_changelevel (void)
 }
 
 /*
-=========
-VM_sin
-
-float	sin(float)
-=========
-*/
-void VM_sin (void)
-{
-	VM_SAFEPARMCOUNT(1,VM_sin);
-	PRVM_G_FLOAT(OFS_RETURN) = sin(PRVM_G_FLOAT(OFS_PARM0));
-}
-
-/*
-=========
-VM_cos
-float	cos(float)
-=========
-*/
-void VM_cos (void)
-{
-	VM_SAFEPARMCOUNT(1,VM_cos);
-	PRVM_G_FLOAT(OFS_RETURN) = cos(PRVM_G_FLOAT(OFS_PARM0));
-}
-
-/*
-=========
-VM_sqrt
-
-float	sqrt(float)
-=========
-*/
-void VM_sqrt (void)
-{
-	VM_SAFEPARMCOUNT(1,VM_sqrt);
-	PRVM_G_FLOAT(OFS_RETURN) = sqrt(PRVM_G_FLOAT(OFS_PARM0));
-}
-
-/*
 =================
 VM_randomvec
 

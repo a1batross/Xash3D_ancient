@@ -66,7 +66,8 @@ char *basictypenames[] =
 	"pointer",
 	"integer",
 	"struct",
-	"union"
+	"union",
+	"bool",
 };
 
 //========================================
@@ -370,6 +371,7 @@ keyword_t pr_keywords[] =
 {6, KEYWORD_VAR,		"var",		"",	0 },
 {7, KEYWORD_UNION,		"union",		"",	0 },
 {7, KEYWORD_THINKTIME,	"thinktime",	"",	0 },
+{8, KEYWORD_BOOL,		"bool",		"BOOL",	0 },
 {8, KEYWORD_ASM,		"asm",		"_asm",	0 },
 {8, KEYWORD_SHARED,		"shared",		"_export",0 },	// multiprogs stuff
 {8, KEYWORD_NOSAVE,		"nosave",		"",	0 },
@@ -3073,7 +3075,7 @@ def_t *PR_Term( void )
 		if (PR_CheckToken ("("))
 		{
 			// float is always enabled
-			if (PR_CheckToken("float")) // check for type casts
+			if (PR_CheckForKeyword( KEYWORD_FLOAT )) // check for type casts
 			{
 				PR_Expect (")");
 				e = PR_Term();

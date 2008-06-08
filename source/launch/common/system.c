@@ -76,6 +76,7 @@ void Sys_GetStdAPI( void )
 	com.Com_FileBase = FS_FileBase;		// get filename without path & ext
 	com.Com_FileExists = FS_FileExists;		// return true if file exist
 	com.Com_FileSize = FS_FileSize;		// same as Com_FileExists but return filesize
+	com.Com_FileTime = FS_FileTime;		// same as Com_FileExists but return filetime
 	com.Com_FileExtension = FS_FileExtension;	// return extension of file
 	com.Com_RemovePath = FS_FileWithoutPath;	// return file without path
 	com.Com_StripExtension = FS_StripExtension;	// remove extension if present

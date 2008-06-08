@@ -368,6 +368,12 @@ char *PRVM_ValueString (etype_t type, prvm_eval_t *val)
 
 	switch (type)
 	{
+	case ev_struct:
+		com.strncpy ( line, "struct", sizeof (line));
+		break;
+	case ev_union:
+		com.strncpy ( line, "union", sizeof (line));
+		break;
 	case ev_string:
 		com.strncpy (line, PRVM_GetString (val->string), sizeof (line));
 		break;
@@ -375,8 +381,7 @@ char *PRVM_ValueString (etype_t type, prvm_eval_t *val)
 		n = val->edict;
 		if (n < 0 || n >= vm.prog->limit_edicts)
 			com.sprintf (line, "entity %i (invalid!)", n);
-		else
-			com.sprintf (line, "entity %i", n);
+		else com.sprintf (line, "entity %i", n);
 		break;
 	case ev_function:
 		f = vm.prog->functions + val->function;
@@ -384,17 +389,19 @@ char *PRVM_ValueString (etype_t type, prvm_eval_t *val)
 		break;
 	case ev_field:
 		def = PRVM_ED_FieldAtOfs ( val->_int );
-		com.sprintf (line, ".%s", PRVM_GetString(def->s_name));
+		if(!def) com.sprintf (line, ".???", val->_int );
+		else com.sprintf (line, ".%s", PRVM_GetString(def->s_name));
 		break;
 	case ev_void:
 		com.sprintf (line, "void");
 		break;
 	case ev_float:
-		// LordHavoc: changed from %5.1f to %10.4f
 		com.sprintf (line, "%10.4f", val->_float);
 		break;
+	case ev_integer:
+		com.sprintf (line, "%i", val->_int);
+		break;
 	case ev_vector:
-		// LordHavoc: changed from %5.1f to %10.4f
 		com.sprintf (line, "'%10.4f %10.4f %10.4f'", val->vector[0], val->vector[1], val->vector[2]);
 		break;
 	case ev_pointer:
@@ -471,8 +478,10 @@ char *PRVM_UglyValueString (etype_t type, prvm_eval_t *val)
 	case ev_vector:
 		com.sprintf (line, "%f %f %f", val->vector[0], val->vector[1], val->vector[2]);
 		break;
-	case ev_pointer:
 	case ev_integer:
+		com.sprintf (line, "%i", val->_int);
+		break;
+	case ev_pointer:
 	case ev_variant:
 	case ev_struct:
 	case ev_union:

@@ -2713,6 +2713,22 @@ fs_offset_t FS_FileSize (const char *filename)
 	return length;
 }
 
+/*
+==================
+FS_FileTime
+
+return time of creation file in seconds
+==================
+*/
+fs_offset_t FS_FileTime (const char *filename)
+{
+	struct stat buf;
+	
+	if( stat( filename, &buf) == -1 )
+		return -1;
+	
+	return buf.st_mtime;
+}
 
 /*
 ===========

@@ -184,7 +184,7 @@ VM_atof,					// #41 float atof(string s)
 VM_ftoa,					// #42 string ftoa(float s)
 VM_vtoa,					// #43 string vtoa(vector v)
 VM_atov,					// #44 vector atov(string s)
-VM_print,					// #45 void Msg( ... )
+VM_ConPrintf,				// #45 void Msg( ... )
 VM_wprint,				// #46 void MsgWarn( ... )
 VM_objerror,				// #47 void Error( ... )
 VM_bprint,				// #48 void bprint(string s)
@@ -215,6 +215,7 @@ NULL,					// #70
 // clientfuncs_t
 PF_ScreenAdjustSize,			// #71 void SCR_AdjustSize( void )
 PF_FillRect,				// #72 void SCR_FillRect( float x, float y, float w, float h, vector col )
+VM_create,				// #73
 };
 
 const int vm_cl_numbuiltins = sizeof(vm_cl_builtins) / sizeof(prvm_builtin_t); //num of builtins

@@ -67,5 +67,5 @@ if exist vprogs\vprogs.plg del /f /q vprogs\vprogs.plg
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading
 cd D:\Xash3D\
-xash.exe -game tmpQuArK +map walk_test -dev 3 -debug -log
+quake.exe -game tmpQuArK -dev 3 -debug -log
 :done
