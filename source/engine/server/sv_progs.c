@@ -785,6 +785,8 @@ void PF_sprint( void )
 	int		num;
 	char		string[VM_STRINGTEMP_LENGTH];
 
+	//FIXME: allow to centerprint here
+
 	num = PRVM_G_EDICTNUM(OFS_PARM0);
 
 	if( num < 1 || num > maxclients->value || svs.clients[num - 1].state != cs_spawned )
@@ -1003,14 +1005,6 @@ void PF_sound (void)
           
           sound_idx = SV_SoundIndex( sample );
 	SV_StartSound (NULL, entity, channel, sound_idx, volume / 255.0f, attenuation, 0 );
-}
-
-void PF_event( void )
-{
-	edict_t	*ent = PRVM_G_EDICT(OFS_PARM0);
-
-	// event effects
-	ent->priv.sv->event = (int)PRVM_G_FLOAT(OFS_PARM1);
 }
 
 /*
@@ -1760,249 +1754,174 @@ void PF_spawnclient( void )
 //NOTE: intervals between various "interfaces" was leave for future expansions
 prvm_builtin_t vm_sv_builtins[] = 
 {
-NULL,					// #0
+NULL,				// #0  (leave blank as default, but can include easter egg ) 
 
-// network messaging
-PF_BeginMessage,				// #1 void MsgBegin (float dest)
-PF_WriteByte,				// #2 void WriteByte (float f)
-PF_WriteChar,				// #3 void WriteChar (float f)
-PF_WriteShort,				// #4 void WriteShort (float f)
-PF_WriteLong,				// #5 void WriteLong (float f)
-PF_WriteFloat,				// #6 void WriteFloat (float f)
-PF_WriteAngle,				// #7 void WriteAngle (float f)
-PF_WriteCoord,				// #8 void WriteCoord (float f)
-PF_WriteString,				// #9 void WriteString (string s)
-PF_WriteEntity,				// #10 void WriteEntity (entity s)
-PF_EndMessage,				// #11 void MsgEnd(float to, vector pos, entity e)
+// system events
+VM_ConPrintf,			// #1  void Con_Printf( ... )
+VM_ConDPrintf,			// #2  void Con_DPrintf( float level, ... )
+VM_HostError,			// #3  void Com_Error( ... )
+VM_SysExit,			// #4  void Sys_Exit( void )
+VM_CmdArgv,			// #5  string Cmd_Argv( float arg )
+VM_CmdArgc,			// #6  float Cmd_Argc( void )
+NULL,				// #7  -- reserved --
+NULL,				// #8  -- reserved --
+NULL,				// #9  -- reserved --
+NULL,				// #10 -- reserved --
+
+// common tools
+VM_ComTrace,			// #11 void Com_Trace( float enable )
+VM_ComFileExists,			// #12 float Com_FileExists( string filename )
+VM_ComFileSize,			// #13 float Com_FileSize( string filename )
+VM_ComFileTime,			// #14 float Com_FileTime( string filename )
+VM_ComLoadScript,			// #15 float Com_LoadScript( string filename )
+VM_ComResetScript,			// #16 void Com_ResetScript( void )
+VM_ComReadToken,			// #17 string Com_ReadToken( float newline )
+VM_ComFilterToken,			// #18 float Com_Filter( string mask, string s, float casecmp )
+VM_ComSearchFiles,			// #19 float Com_Search( string mask, float casecmp )
+VM_ComSearchNames,			// #20 string Com_SearchFilename( float num )
+VM_RandomLong,			// #21 float RandomLong( float min, float max )
+VM_RandomFloat,			// #22 float RandomFloat( float min, float max )
+VM_RandomVector,			// #23 vector RandomVector( vector min, vector max )
+VM_CvarRegister,			// #24 void Cvar_Register( string name, string value, float flags )
+VM_CvarSetValue,			// #25 void Cvar_SetValue( string name, float value )
+VM_CvarGetValue,			// #26 float Cvar_GetValue( string name )
+VM_ComVA,				// #27 string va( ... )
+VM_ComStrlen,			// #28 float strlen( string text )
+VM_TimeStamp,			// #29 string Com_TimeStamp( float format )
+VM_LocalCmd,			// #30 void LocalCmd( ... )
+NULL,				// #31 -- reserved --
+NULL,				// #32 -- reserved --
+NULL,				// #33 -- reserved --
+NULL,				// #34 -- reserved --
+NULL,				// #35 -- reserved --
+NULL,				// #36 -- reserved --
+NULL,				// #37 -- reserved --
+NULL,				// #38 -- reserved --
+NULL,				// #39 -- reserved --
+NULL,				// #40 -- reserved --
+
+// quakec intrinsics ( compiler will be lookup this functions, don't remove or rename )
+VM_SpawnEdict,			// #41 entity spawn( void )
+VM_RemoveEdict,			// #42 void remove( entity ent )
+VM_NextEdict,			// #43 entity nextent( entity ent )
+VM_CopyEdict,			// #44 void copyentity( entity src, entity dst )
+NULL,				// #45 -- reserved --
+NULL,				// #46 -- reserved --
+NULL,				// #47 -- reserved --
+NULL,				// #48 -- reserved --
+NULL,				// #49 -- reserved --
+NULL,				// #50 -- reserved --
+
+// filesystem
+VM_FS_Open,			// #51 float fopen( string filename, float mode )
+VM_FS_Close,			// #52 void fclose( float handle )
+VM_FS_Gets,			// #53 string fgets( float handle )
+VM_FS_Gete,			// #54 entity fgete( float handle )
+VM_FS_Puts,			// #55 void fputs( float handle, string s )
+VM_FS_Pute,			// #56 void fpute( float handle, entity e )
+NULL,				// #57 -- reserved --
+NULL,				// #58 -- reserved --
+NULL,				// #59 -- reserved --
+NULL,				// #60 -- reserved --
 
 // mathlib
-VM_min,					// #12 float min(float a, float b )
-VM_max,					// #13 float max(float a, float b )
-VM_bound,					// #14 float bound(float min, float val, float max)
-VM_pow,					// #15 float pow(float x, float y)
-VM_sin,					// #16 float sin(float f)
-VM_cos,					// #17 float cos(float f)
-VM_sqrt,					// #18 float sqrt(float f)
-VM_rint,					// #19 float rint (float v)
-VM_floor,					// #20 float floor(float v)
-VM_ceil,					// #21 float ceil (float v)
-VM_fabs,					// #22 float fabs (float f)
-VM_random_long,				// #23 float random_long( void )
-VM_random_float,				// #24 float random_float( void )
-NULL,                                             // #25
-NULL,                                             // #26
-NULL,                                             // #27
-NULL,                                             // #28
-NULL,                                             // #29
-NULL,                                             // #30
-
-// vector mathlib
-VM_normalize,				// #31 vector normalize(vector v) 
-VM_veclength,				// #32 float veclength(vector v) 
-VM_vectoyaw,				// #33 float vectoyaw(vector v) 
-VM_vectoangles,				// #34 vector vectoangles(vector v) 
-VM_randomvec,				// #35 vector randomvec( void )
-VM_vectorvectors,				// #36 void vectorvectors(vector dir)
-VM_makevectors,				// #37 void makevectors(vector dir)
-VM_makevectors2,				// #38 void makevectors2(vector dir)
-NULL,					// #39
-NULL,					// #40
-
-// stdlib functions
-VM_atof,					// #41 float atof(string s)
-VM_ftoa,					// #42 string ftoa(float s)
-VM_vtoa,					// #43 string vtoa(vector v)
-VM_atov,					// #44 vector atov(string s)
-VM_print,					// #45 void Msg( ... )
-VM_wprint,				// #46 void MsgWarn( ... )
-VM_objerror,				// #47 void Error( ... )
-VM_bprint,				// #48 void bprint(string s)
-PF_sprint,				// #49 void sprint(entity client, string s)
-PF_centerprint,				// #50 void centerprint(entity client, strings) 
-VM_cvar,					// #51 float cvar(string s)
-VM_cvar_set,				// #52 void cvar_set(string var, string val)
-VM_allocstring,				// #53 string AllocString(string s)
-VM_freestring,				// #54 void FreeString(string s)
-VM_strlen,				// #55 float strlen(string s)
-VM_strcat,				// #56 string strcat(string s1, string s2)
-VM_argv,					// #57 string argv( float parm )
-NULL,					// #58
-NULL,					// #59
-NULL,					// #60
-
-// internal debugger
-VM_break,					// #61 void break( void )
-VM_crash,					// #62 void crash( void )
-VM_coredump,				// #63 void coredump( void )
-VM_stackdump,				// #64 void stackdump( void )
-VM_traceon,				// #65 void trace_on( void )
-VM_traceoff,				// #66 void trace_off( void )
-VM_eprint,				// #67 void dump_edict(entity e) 
-VM_nextent,				// #68 entity nextent(entity e)
-NULL,					// #69
-NULL,					// #70
+VM_min,				// #61 float min(float a, float b )
+VM_max,				// #62 float max(float a, float b )
+VM_bound,				// #63 float bound(float min, float val, float max)
+VM_pow,				// #64 float pow(float x, float y)
+VM_sin,				// #65 float sin(float f)
+VM_cos,				// #66 float cos(float f)
+VM_tan,				// #67 float tan(float f)
+VM_asin,				// #68 float asin(float f)
+VM_acos,				// #69 float acos(float f)
+VM_atan,				// #70 float atan(float f)
+VM_sqrt,				// #71 float sqrt(float f)
+VM_rint,				// #72 float rint (float v)
+VM_floor,				// #73 float floor(float v)
+VM_ceil,				// #74 float ceil (float v)
+VM_fabs,				// #75 float fabs (float f)
+VM_mod,				// #76 float fmod( float val, float m )
+NULL,				// #77 -- reserved --
+NULL,				// #78 -- reserved --
+VM_VectorNormalize,			// #79 vector VectorNormalize( vector v )
+VM_VectorLength,			// #80 float VectorLength( vector v )
+e10, e10,				// #81 - #100 are reserved for future expansions
 
 // engine functions (like half-life enginefuncs_s)
-PF_precache_model,				// #71 float precache_model(string s) 
-PF_precache_sound,				// #72 float precache_sound(string s) 
-PF_setmodel,				// #73 float setmodel(entity e, string m) 
-PF_modelindex,				// #74 float model_index(string s)
-PF_decalindex,				// #75 float decal_index(string s)
-PF_imageindex,				// #76 float image_index(string s)
-PF_setsize,				// #77 void setsize(entity e, vector min, vector max)
-PF_changelevel,				// #78 void changelevel(string mapname, string spotname)
-PF_changeyaw,				// #79 void ChangeYaw( void )
-PF_changepitch,				// #80 void ChangePitch( void )
-VM_find,					// #81 entity find(entity start, .string fld, string match)
-PF_getlightlevel,				// #82 float getEntityIllum( entity e )
-PF_findradius,				// #83 entity FindInSphere(vector org, float rad)
-PF_inpvs,					// #84 float InPVS( vector v1, vector v2 )				
-PF_inphs,					// #85 float InPHS( vector v1, vector v2 )
-PF_create,				// #86 entity create( string name, string model, vector org )
-VM_remove,				// #87 void remove( entity e )
-PF_droptofloor,				// #88 float droptofloor( void )
-PF_walkmove,				// #89 float walkmove(float yaw, float dist)
-PF_setorigin,				// #90 void setorigin(entity e, vector o)
-PF_sound,					// #91 void sound(entity e, float chan, string samp, float vol, float attn)
-PF_ambientsound,				// #92 void ambientsound(entity e, string samp)
-PF_traceline,				// #93 void traceline(vector v1, vector v2, float mask, entity ignore)
-PF_tracetoss,				// #94 void tracetoss (entity e, entity ignore)
-PF_tracebox,				// #95 void tracebox (vector v1, vector mins, vector maxs, vector v2, float mask, entity ignore)
-PF_checkbottom,				// #96 float checkbottom(entity e) 
-PF_lightstyle,				// #97 void lightstyle(float style, string value)
-PF_pointcontents,				// #98 float pointcontents(vector v) 
-PF_aim,					// #99 vector aim(entity e, float speed)
-VM_servercmd,				// #100 void server_command( string command )
-VM_clientcmd,				// #101 void client_command( entity e, string s)
-PF_particle,				// #102 void particle(vector o, vector d, float color, float count)
-PF_areaportalstate,				// #103 void areaportal_state( float num, float state )
-PF_setstats,				// #104 void setstats(entity e, float f, string stats)
-PF_configstring,				// #105 void configstring(float num, string s)
-PF_makestatic,				// #106 void makestatic(entity e)
-PF_modelframes,				// #107 float model_frames(float modelindex)
-PF_event,					// #108 void set_effect( entity e, float effect )
-NULL,					// #109
-NULL,					// #110
-NULL,					// #111
-NULL,					// #112
-NULL,					// #113
-NULL,					// #114
-NULL,					// #115
-NULL,					// #116
-NULL,					// #117
-NULL,					// #118
-NULL,					// #119
-e10, e10, e10, e10, e10, e10, e10, e10,		// #120-199
-NULL,					// #200
-NULL,					// #201
-NULL,					// #202
-NULL,					// #203
-NULL,					// #204
-NULL,					// #205
-NULL,					// #206
-NULL,					// #207
-NULL,					// #208
-NULL,					// #209
-NULL,					// #210
-NULL,					// #211
-NULL,					// #212
-NULL,					// #213
-NULL,					// #214
-NULL,					// #215
-NULL,					// #216
-NULL,					// #217
-NULL,					// #218
-NULL,					// #219
-e10,					// #220-#229
-e10,					// #230-#239
-e10,					// #240-#249
-e10,					// #250-#259
-e10,					// #260-#269
-e10,					// #270-#279
-e10,					// #280-#289
-e10,					// #290-#299
-e10, e10, e10, e10, e10, e10, e10, e10, e10, e10,	// #300-399
-NULL,					// #400
-NULL,					// #401
-VM_findchain,				// #402 entity(.string fld, string match) findchain (DP_QC_FINDCHAIN)
-VM_findchainfloat,				// #403 entity(.float fld, float match) findchainfloat (DP_QC_FINDCHAINFLOAT)
-NULL,					// #404 void(vector org, string modelname, float startframe, float endframe, float framerate) effect (DP_SV_EFFECT)
-NULL,					// #405 void(vector org, vector velocity, float howmany) te_blood (DP_TE_BLOOD)
-NULL,					// #406 void(vector mincorner, vector maxcorner, float explosionspeed, float howmany) te_bloodshower (DP_TE_BLOODSHOWER)
-NULL,					// #407 void(vector org, vector color) te_explosionrgb (DP_TE_EXPLOSIONRGB)
-NULL,					// #408 void(vector mincorner, vector maxcorner, vector vel, float howmany, float color, float gravityflag, float randomveljitter) te_particlecube (DP_TE_PARTICLECUBE)
-NULL,					// #409 void(vector mincorner, vector maxcorner, vector vel, float howmany, float color) te_particlerain (DP_TE_PARTICLERAIN)
-NULL,					// #410 void(vector mincorner, vector maxcorner, vector vel, float howmany, float color) te_particlesnow (DP_TE_PARTICLESNOW)
-NULL,					// #411 void(vector org, vector vel, float howmany) te_spark (DP_TE_SPARK)
-NULL,					// #412 void(vector org) te_gunshotquad (DP_QUADEFFECTS1)
-NULL,					// #413 void(vector org) te_spikequad (DP_QUADEFFECTS1)
-NULL,					// #414 void(vector org) te_superspikequad (DP_QUADEFFECTS1)
-NULL,					// #415 void(vector org) te_explosionquad (DP_QUADEFFECTS1)
-NULL,					// #416 void(vector org) te_smallflash (DP_TE_SMALLFLASH)
-NULL,					// #417 void(vector org, float radius, float lifetime, vector color) te_customflash (DP_TE_CUSTOMFLASH)
-NULL,					// #418 void(vector org) te_gunshot (DP_TE_STANDARDEFFECTBUILTINS)
-NULL,					// #419 void(vector org) te_spike (DP_TE_STANDARDEFFECTBUILTINS)
-NULL,					// #420 void(vector org) te_superspike (DP_TE_STANDARDEFFECTBUILTINS)
-NULL,					// #421 void(vector org) te_explosion (DP_TE_STANDARDEFFECTBUILTINS)
-NULL,					// #422 void(vector org) te_tarexplosion (DP_TE_STANDARDEFFECTBUILTINS)
-NULL,					// #423 void(vector org) te_wizspike (DP_TE_STANDARDEFFECTBUILTINS)
-NULL,					// #424 void(vector org) te_knightspike (DP_TE_STANDARDEFFECTBUILTINS)
-NULL,					// #425 void(vector org) te_lavasplash (DP_TE_STANDARDEFFECTBUILTINS)
-NULL,					// #426 void(vector org) te_teleport (DP_TE_STANDARDEFFECTBUILTINS)
-NULL,					// #427 void(vector org, float colorstart, float colorlength) te_explosion2 (DP_TE_STANDARDEFFECTBUILTINS)
-NULL,					// #428 void(entity own, vector start, vector end) te_lightning1 (DP_TE_STANDARDEFFECTBUILTINS)
-NULL,					// #429 void(entity own, vector start, vector end) te_lightning2 (DP_TE_STANDARDEFFECTBUILTINS)
-NULL,					// #430 void(entity own, vector start, vector end) te_lightning3 (DP_TE_STANDARDEFFECTBUILTINS)
-NULL,					// #431 void(entity own, vector start, vector end) te_beam (DP_TE_STANDARDEFFECTBUILTINS)
-NULL,					// #432
-NULL,					// #433 void(vector org) te_plasmaburn (DP_TE_PLASMABURN)
-NULL,					// #434 float(entity e, float s) getsurfacenumpoints (DP_QC_GETSURFACE)
-NULL,					// #435 vector(entity e, float s, float n) getsurfacepoint (DP_QC_GETSURFACE)
-NULL,					// #436 vector(entity e, float s) getsurfacenormal (DP_QC_GETSURFACE)
-NULL,					// #437 string(entity e, float s) getsurfacetexture (DP_QC_GETSURFACE)
-NULL,					// #438 float(entity e, vector p) getsurfacenearpoint (DP_QC_GETSURFACE)
-NULL,					// #439 vector(entity e, float s, vector p) getsurfaceclippedpoint (DP_QC_GETSURFACE)
-NULL,					// #440
-VM_tokenize,				// #441 float(string s) tokenize (KRIMZON_SV_PARSECLIENTCOMMAND)
-VM_argv,					// #442 string(float n) argv (KRIMZON_SV_PARSECLIENTCOMMAND)
-NULL,					// #443 void(entity e, entity tagentity, string tagname) setattachment (DP_GFX_QUAKE3MODELTAGS)
-VM_search_begin,				// #444 float(string pattern, float caseinsensitive, float quiet) search_begin (DP_FS_SEARCH)
-VM_search_end,				// #445 void(float handle) search_end (DP_FS_SEARCH)
-VM_search_getsize,				// #446 float(float handle) search_getsize (DP_FS_SEARCH)
-VM_search_getfilename,			// #447 string(float handle, float num) search_getfilename (DP_FS_SEARCH)
-VM_cvar_string,				// #448 string(string s) cvar_string (DP_QC_CVAR_STRING)
-VM_findflags,				// #449 entity(entity start, .float fld, float match) findflags (DP_QC_FINDFLAGS)
-VM_findchainflags,				// #450 entity(.float fld, float match) findchainflags (DP_QC_FINDCHAINFLAGS)
-NULL,					// #451 float(entity ent, string tagname) gettagindex (DP_QC_GETTAGINFO)
-NULL,					// #452 vector(entity ent, float tagindex) gettaginfo (DP_QC_GETTAGINFO)
-PF_dropclient,				// #453 void(entity clent) dropclient (DP_SV_DROPCLIENT)
-PF_spawnclient,				// #454 entity() spawnclient (DP_SV_BOTCLIENT)
-NULL,					// #455
-NULL,					// #456
-NULL,					// #457 void(vector org, vector vel, float howmany) te_flamejet = #457 (DP_TE_FLAMEJET)
-NULL,					// #458
-NULL,					// #459
-VM_buf_create,				// #460 float() buf_create (DP_QC_STRINGBUFFERS)
-VM_buf_del,				// #461 void(float bufhandle) buf_del (DP_QC_STRINGBUFFERS)
-VM_buf_getsize,				// #462 float(float bufhandle) buf_getsize (DP_QC_STRINGBUFFERS)
-VM_buf_copy,				// #463 void(float bufhandle_from, float bufhandle_to) buf_copy (DP_QC_STRINGBUFFERS)
-VM_buf_sort,				// #464 void(float bufhandle, float sortpower, float backward) buf_sort (DP_QC_STRINGBUFFERS)
-VM_buf_implode,				// #465 string(float bufhandle, string glue) buf_implode (DP_QC_STRINGBUFFERS)
-VM_bufstr_get,				// #466 string(float bufhandle, float string_index) bufstr_get (DP_QC_STRINGBUFFERS)
-VM_bufstr_set,				// #467 void(float bufhandle, float string_index, string str) bufstr_set (DP_QC_STRINGBUFFERS)
-VM_bufstr_add,				// #468 float(float bufhandle, string str, float order) bufstr_add (DP_QC_STRINGBUFFERS)
-VM_bufstr_free,				// #469 void(float bufhandle, float string_index) bufstr_free (DP_QC_STRINGBUFFERS)
-NULL,					// #470
-NULL,					// #471
-NULL,					// #472
-NULL,					// #473
-NULL,					// #474
-NULL,					// #475
-NULL,					// #476
-NULL,					// #477
-NULL,					// #478
-NULL,					// #479
-e10, e10					// #480-499 (LordHavoc)
+PF_precache_model,			// #101 float precache_model(string s) 
+PF_precache_sound,			// #102 float precache_sound(string s) 
+PF_setmodel,			// #103 float setmodel(entity e, string m) 
+PF_modelindex,			// #104 float model_index(string s)
+PF_modelframes,			// #105 float model_frames(float modelindex)
+PF_setsize,			// #106 void setsize(entity e, vector min, vector max)
+PF_changelevel,			// #107 void changelevel(string mapname, string spotname)
+NULL,				// #108 getSpawnParms
+NULL,				// #109 SaveSpawnParms
+VM_vectoyaw,			// #110 float vectoyaw(vector v) 
+VM_vectoangles,			// #111 vector vectoangles(vector v) 
+NULL,				// #112 moveToOrigin
+PF_changeyaw,			// #113 void ChangeYaw( void )
+PF_changepitch,			// #114 void ChangePitch( void )
+VM_FindEdict,			// #115 entity find(entity start, .string fld, string match)
+PF_getlightlevel,			// #116 float getEntityIllum( entity e )
+PF_findradius,			// #117 entity FindInSphere(vector org, float rad)
+PF_inpvs,				// #118 float EntitiesInPVS( vector v1, vector v2 )
+PF_inphs,				// #119 float EntitiesInPHS( vector v1, vector v2 )
+VM_makevectors,			// #120 void makevectors(vector dir)
+NULL,				// #121 AngleVectors (really need ?)
+VM_SpawnEdict,			// #122 entity create( void )
+VM_RemoveEdict,			// #123 void remove( entity ent )
+PF_create,			// #124 createNamedEntity
+PF_makestatic,			// #125 void makestatic(entity e)
+NULL,				// #126 isEntOnFloor
+PF_droptofloor,			// #127 float droptofloor( void )
+PF_walkmove,			// #128 float walkmove(float yaw, float dist)
+PF_setorigin,			// #129 void setorigin(entity e, vector o)
+PF_sound,				// #130 void EmitSound(entity e, float chan, string samp, float vol, float attn)
+PF_ambientsound,			// #131 void EmitAmbientSound(entity e, string samp)
+PF_traceline,			// #132 void traceline(vector v1, vector v2, float mask, entity ignore)
+PF_tracetoss,			// #133 void tracetoss (entity e, entity ignore)
+NULL,				// #134 traceMonsterHull
+PF_tracebox,			// #135 void tracebox (vector v1, vector mins, vector maxs, vector v2, float mask, entity ignore)
+NULL,				// #136 traceModel
+NULL,				// #137 traceTexture
+NULL,				// #138 traceSphere
+PF_aim,				// #139 vector aim(entity e, float speed)
+VM_servercmd,			// #140 void server_command( string command )
+NULL,				// #141 server_execute
+VM_clientcmd,			// #142 void client_command( entity e, string s)
+PF_particle,			// #143 void particle(vector o, vector d, float color, float count)
+PF_lightstyle,			// #144 void lightstyle(float style, string value)
+PF_decalindex,			// #145 float decal_index(string s)
+PF_pointcontents,			// #146 float pointcontents(vector v) 
+PF_BeginMessage,			// #147 void MsgBegin (float dest)
+PF_EndMessage,			// #148 void MsgEnd(float to, vector pos, entity e)
+PF_WriteByte,			// #149 void WriteByte (float f)
+PF_WriteChar,			// #150 void WriteChar (float f)
+PF_WriteShort,			// #151 void WriteShort (float f)
+PF_WriteLong,			// #152 void WriteLong (float f)
+PF_WriteAngle,			// #153 void WriteAngle (float f)
+PF_WriteCoord,			// #154 void WriteCoord (float f)
+PF_WriteString,			// #155 void WriteString (string s)
+PF_WriteEntity,			// #156 void WriteEntity (entity s)
+NULL,				// #157 getModelPtr
+NULL,				// #158 regUserMsg
+PF_checkbottom,			// #159 float checkbottom(entity e) 
+NULL,				// #160 getBonePosition
+PF_sprint,			// #161 void ClientPrint(entity client, string s)
+VM_bprint,			// #162 void ServerPrint(string s)
+NULL,				// #163 getAttachment
+NULL,				// #164 setView
+NULL,				// #165 crosshairangle
+PF_areaportalstate,			// #166 void areaportal_state( float num, float state )
+NULL,				// #167 compareFileTime
+PF_setstats,			// #168 void setstats(entity e, float f, string stats)
+NULL,				// #169 GetInfoKeyBuffer
+NULL,				// #170 InfoKeyValue
+NULL,				// #171 SetKeyValue
+NULL,				// #172 SetClientKeyValue
+PF_configstring,			// #173 void configstring(float num, string s)
+NULL,				// #174 staticDecal
 };
 
 const int vm_sv_numbuiltins = sizeof(vm_sv_builtins) / sizeof(prvm_builtin_t); //num of builtins

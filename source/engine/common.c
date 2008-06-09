@@ -5,6 +5,9 @@
 
 #include "engine.h"
 #include "basefiles.h"
+#include "mathlib.h"
+
+static search_t *vm_search;
 
 /*
 =======================================================================
@@ -26,6 +29,12 @@ bool VM_ValidateArgs( const char *builtin, int num_argc )
 	}
 	return true;
 }
+
+void VM_ValidateString( const char *s )
+{
+	if( s[0] <= ' ' ) PRVM_ERROR( "%s: bad string", PRVM_NAME );
+}
+
 
 /*
 =========
@@ -56,12 +65,16 @@ const char *VM_VarArgs( int start_arg )
 	s = PRVM_G_STRING((OFS_PARM0 + start_arg * 3));
 	out = vm_string;
 	outend = out + MAX_STRING_CHARS - 1;
+	memset( vm_string, 0, MAX_STRING_CHARS - 1 );
 
 	while( out < outend && *s )
 	{
-		*out++ = *s++;	         	// copy symbols
 		if( arg > prog->argc ) break;	// simple boundschecker
-		if( *s != '%' ) continue;    	// wait for percents
+		if( *s != '%' )
+		{
+			*out++ = *s++;	// copy symbols
+			continue;    	// wait for percents
+		}
 
 		switch((int)s[1])
 		{
@@ -70,9 +83,7 @@ const char *VM_VarArgs( int start_arg )
 		case 's': com.snprintf( vm_arg, MAX_STRING, "%s", PRVM_G_STRING(OFS_PARM0+arg*3)); break;
 		case 'f': com.snprintf( vm_arg, MAX_STRING, "%f", PRVM_G_FLOAT(OFS_PARM0+arg*3)); break;
 		case 'g': com.snprintf( vm_arg, MAX_STRING, "%g", PRVM_G_FLOAT(OFS_PARM0+arg*3)); break;
-		case 'e': 
-			com.snprintf( vm_arg, MAX_STRING, "%i", PRVM_G_EDICTNUM(OFS_PARM0+arg*3));
-			break;
+		case 'e': com.snprintf( vm_arg, MAX_STRING, "%i", PRVM_G_EDICTNUM(OFS_PARM0+arg*3)); break;
 		case 'p': // function ptr
 			func = prog->functions + PRVM_G_INT(OFS_PARM0+arg*3);
 			if(!func->s_name) com.strncpy( vm_arg, "(null)", MAX_STRING ); // MSVCRT style
@@ -220,6 +231,7 @@ void VM_ComFileExists( void )
 	if(!VM_ValidateArgs( "Com_FileExists", 1 ))
 		return;
 
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0)); 
 	PRVM_G_FLOAT(OFS_RETURN) = FS_FileExists(PRVM_G_STRING(OFS_PARM0)) ? 1.0f : 0.0f; 
 }
 
@@ -235,6 +247,7 @@ void VM_ComFileSize( void )
 	if(!VM_ValidateArgs( "Com_FileSize", 1 ))
 		return;
 
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0)); 
 	PRVM_G_FLOAT(OFS_RETURN) = (float)FS_FileSize(PRVM_G_STRING(OFS_PARM0)); 
 }
 
@@ -250,97 +263,509 @@ void VM_ComFileTime( void )
 	if(!VM_ValidateArgs( "Com_FileTime", 1 ))
 		return;
 
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
 	PRVM_G_FLOAT(OFS_RETURN) = (float)FS_FileTime(PRVM_G_STRING(OFS_PARM0)); 
 }
 
+/*
+=========
+VM_ComLoadScript
+
+float Com_LoadScript( string filename )
+=========
+*/
 void VM_ComLoadScript( void )
 {
+	static byte	*script;
+	static size_t	length;
+
+	if(!VM_ValidateArgs( "Com_LoadScript", 1 ))
+		return;
+
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0)); 
+
+	// place script into memory
+	if( script && length ) Mem_Free( script );
+	script = FS_LoadFile( PRVM_G_STRING(OFS_PARM0), &length );	
+
+	PRVM_G_FLOAT(OFS_RETURN) = (float)Com_LoadScript( "VM script", script, length );
 }
 
+/*
+=========
+VM_ComResetScript
+
+void Com_ResetScript( void )
+=========
+*/
 void VM_ComResetScript( void )
 {
+	if(!VM_ValidateArgs( "Com_ResetScript", 0 ))
+		return;
+
+	Com_ResetScript();
 }
 
+/*
+=========
+VM_ComReadToken
+
+string Com_ReadToken( float newline )
+=========
+*/
 void VM_ComReadToken( void )
 {
+	if(!VM_ValidateArgs( "Com_ReadToken", 1 ))
+		return;
+
+	// using slow, but safe parsing method
+	if( PRVM_G_FLOAT(OFS_PARM0) )
+	{
+		Com_GetToken( true ); // newline token is always safe
+		PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( com_token );
+	}
+	else
+	{
+		if(Com_TryToken()) // token available
+			PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( com_token );
+		else PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( NULL );
+	}
 }
 
+/*
+=========
+VM_ComFilterToken
+
+float Com_Filter( string mask, string s, float casecmp )
+=========
+*/
 void VM_ComFilterToken( void )
 {
+	const char *mask, *name;
+	bool	casecmp;
+
+	if(!VM_ValidateArgs( "Com_Filter", 3 ))
+		return;
+
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM1));
+
+	mask = PRVM_G_STRING(OFS_PARM0);
+	name = PRVM_G_STRING(OFS_PARM1);
+	casecmp = PRVM_G_FLOAT(OFS_PARM2) ? true : false;
+
+	PRVM_G_FLOAT(OFS_RETURN) = (float)Com_Filter( (char *)mask, (char *)name, casecmp );
 }
 
+/*
+=========
+VM_ComSearchFiles
+
+float Com_Search( string mask, float casecmp )
+=========
+*/
 void VM_ComSearchFiles( void )
 {
+	const char *mask;
+	bool	casecmp;
+	int	numfiles = 0;
+	
+	if(!VM_ValidateArgs( "Com_Search", 2 ))
+		return;
+
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+
+	// release previous search
+	if( vm_search ) Mem_Free( vm_search );
+
+	mask = PRVM_G_STRING(OFS_PARM0);
+	casecmp = PRVM_G_FLOAT(OFS_PARM1) ? true : false;
+
+	vm_search = FS_Search( mask, casecmp );
+
+	if( vm_search ) numfiles = vm_search->numfilenames;
+	PRVM_G_FLOAT(OFS_RETURN) = (float)numfiles;
 }
 
+/*
+=========
+VM_ComSearchNames
+
+string Com_SearchFilename( float num )
+=========
+*/
 void VM_ComSearchNames( void )
 {
+	int	num;
+
+	if(!VM_ValidateArgs( "Com_SearchFilename", 1 ))
+		return;
+
+	num = PRVM_G_FLOAT(OFS_PARM0);
+
+	if( vm_search && vm_search->numfilenames > num ) // in-range
+		PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( vm_search->filenames[num] );
+	else PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( NULL );
 }
 
+/*
+=========
+VM_RandomLong
+
+float RandomLong( float min, float max )
+=========
+*/
 void VM_RandomLong( void )
 {
+	if(!VM_ValidateArgs( "RandomLong", 2 ))
+		return;
+
+	PRVM_G_FLOAT(OFS_RETURN) = RANDOM_LONG(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1));
 }
 
+/*
+=========
+VM_RandomFloat
+
+float RandomFloat( float min, float max )
+=========
+*/
 void VM_RandomFloat( void )
 {
+	if(!VM_ValidateArgs( "RandomFloat", 2 ))
+		return;
+
+	PRVM_G_FLOAT(OFS_RETURN) = RANDOM_FLOAT(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1));
 }
 
+/*
+=========
+VM_RandomVector
+
+float RandomVector( vector min, vector max )
+=========
+*/
 void VM_RandomVector( void )
 {
+	vec3_t	temp;
+	float	*min, *max;
+
+	if(!VM_ValidateArgs( "RandomVector", 2 ))
+		return;
+
+	min = PRVM_G_VECTOR(OFS_PARM0);
+	max = PRVM_G_VECTOR(OFS_PARM1);
+
+	temp[0] = RANDOM_FLOAT(min[0], max[0]);
+	temp[1] = RANDOM_FLOAT(min[1], max[1]);
+	temp[2] = RANDOM_FLOAT(min[2], max[2]);
+
+	VectorNormalize2( temp, PRVM_G_VECTOR(OFS_RETURN));
 }
 
+/*
+=========
+VM_CvarRegister
+
+void Cvar_Register( string name, string value, float flags )
+=========
+*/
 void VM_CvarRegister( void )
 {
+	const char *name, *value;
+	int	flags = 0;
+
+	if(!VM_ValidateArgs( "Cvar_Register", 3 ))
+		return;
+
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM1));
+
+	name = PRVM_G_STRING(OFS_PARM0);
+	value = PRVM_G_STRING(OFS_PARM1);
+
+	if((int)PRVM_G_FLOAT(OFS_PARM2) & 1)
+		flags |= CVAR_ARCHIVE;
+
+	if((int)PRVM_G_FLOAT(OFS_PARM2) & 2)
+		flags |= CVAR_CHEAT;
+
+	// register new cvar	
+	Cvar_Get( name, value, flags );
 }
 
+/*
+=========
+VM_CvarSetValue
+
+void Cvar_SetValue( string name, float value )
+=========
+*/
 void VM_CvarSetValue( void )
 {
+	const char	*name;
+	float		value;
+
+	if(!VM_ValidateArgs( "Cvar_SetValue", 2 ))
+		return;
+
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+	name = PRVM_G_STRING(OFS_PARM0);
+	value = PRVM_G_FLOAT(OFS_PARM1);
+
+	// set new value
+	Cvar_SetValue( name, value );
 }
 
+/*
+=========
+VM_CvarGetValue
+
+float Cvar_GetValue( string name )
+=========
+*/
 void VM_CvarGetValue( void )
 {
+	const char *name;
+
+	if(!VM_ValidateArgs( "Cvar_GetValue", 1 ))
+		return;
+
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+	name = PRVM_G_STRING(OFS_PARM0);
+	PRVM_G_FLOAT(OFS_RETURN) = Cvar_VariableValue( name );
+
 }
 
+/*
+=================
+VM_LocalCmd
+
+cmd( string, ... )
+=================
+*/
+void VM_LocalCmd( void )
+{
+	Cbuf_AddText(VM_VarArgs( 0 ));
+}
+
+/*
+=========
+VM_ComVA
+
+string va( ... )
+=========
+*/
 void VM_ComVA( void )
 {
+	PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString(VM_VarArgs( 0 ));
+	
 }
 
-void VM_ComAtof( void )
-{
-}
+/*
+=========
+VM_ComStrlen
 
-void VM_ComFtoa( void )
-{
-}
-
-void VM_ComAtov( void )
-{
-}
-
-void VM_ComVtoa( void )
-{
-}
-
+float strlen( string text )
+=========
+*/
 void VM_ComStrlen( void )
 {
+	if(!VM_ValidateArgs( "Com_Strlen", 1 )) return;
+	PRVM_G_FLOAT(OFS_RETURN) = com.cstrlen(PRVM_G_STRING(OFS_PARM0));
 }
 
+/*
+=========
+VM_TimeStamp
+
+string Com_TimeStamp( float format )
+=========
+*/
 void VM_TimeStamp( void )
 {
+	if(!VM_ValidateArgs( "Com_TimeStamp", 1 ))
+		return;
+
+	PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString(timestamp((int)PRVM_G_FLOAT(OFS_PARM0)));
 }
 
+/*
+=========
+VM_SpawnEdict
+
+entity spawn( void )
+=========
+*/
 void VM_SpawnEdict( void )
 {
+	edict_t	*ed;
+
+	prog->xfunction->builtinsprofile += 20;
+	ed = PRVM_ED_Alloc();
+	VM_RETURN_EDICT( ed );
 }
 
+/*
+=========
+VM_RemoveEdict
+
+void remove( entity ent )
+=========
+*/
 void VM_RemoveEdict( void )
 {
+	edict_t	*ed;
+
+	if(!VM_ValidateArgs( "remove", 1 ))
+		return;
+
+	prog->xfunction->builtinsprofile += 20;
+	ed = PRVM_G_EDICT(OFS_PARM0);
+	if( PRVM_NUM_FOR_EDICT(ed) <= prog->reserved_edicts )
+	{
+		if( host.developer >= D_INFO )
+			VM_Warning( "VM_RemoveEdict: tried to remove the null entity or a reserved entity!\n" );
+	}
+	else if( ed->priv.ed->free )
+	{
+		if( host.developer >= D_INFO )
+			VM_Warning( "VM_RemoveEdict: tried to remove an already freed entity!\n" );
+	}
+	else PRVM_ED_Free( ed );
 }
 
+/*
+=========
+VM_NextEdict
+
+void nextent( entity ent )
+=========
+*/
 void VM_NextEdict( void )
 {
+	edict_t	*ent;
+	int	i;
+
+	if(!VM_ValidateArgs( "nextent", 1 ))
+		return;
+
+	i = PRVM_G_EDICTNUM( OFS_PARM0 );
+	while( 1 )
+	{
+		prog->xfunction->builtinsprofile++;
+		i++;
+		if( i == prog->num_edicts )
+		{
+			VM_RETURN_EDICT( prog->edicts );
+			return;
+		}
+		ent = PRVM_EDICT_NUM(i);
+		if(!ent->priv.ed->free)
+		{
+			VM_RETURN_EDICT( ent );
+			return;
+		}
+	}
 }
 
+/*
+=================
+VM_copyentity
+
+void copyentity( entity src, entity dst )
+=================
+*/
+void VM_CopyEdict( void )
+{
+	edict_t *in, *out;
+
+	if(!VM_ValidateArgs( "copyentity", 1 ))
+		return;
+
+	in = PRVM_G_EDICT(OFS_PARM0);
+	out = PRVM_G_EDICT(OFS_PARM1);
+	Mem_Copy( out->progs.vp, in->progs.vp, prog->progs->entityfields * 4 );
+}
+
+/*
+=========
+VM_FindEdict
+
+entity find( entity start, .string field, string match )
+=========
+*/
+void VM_FindEdict( void )
+{
+	int		e, f;
+	const char	*s, *t;
+	edict_t		*ed;
+
+	if(!VM_ValidateArgs( "find", 2 ))
+		return;
+
+	e = PRVM_G_EDICTNUM(OFS_PARM0);
+	f = PRVM_G_INT(OFS_PARM1);
+	s = PRVM_G_STRING(OFS_PARM2);
+	if(!s) s = "";
+
+	for( e++; e < prog->num_edicts; e++ )
+	{
+		prog->xfunction->builtinsprofile++;
+		ed = PRVM_EDICT_NUM(e);
+		if( ed->priv.ed->free )continue;
+		t = PRVM_E_STRING( ed, f );
+		if(!t) t = "";
+		if(!com.strcmp( t, s ))
+		{
+			VM_RETURN_EDICT( ed );
+			return;
+		}
+	}
+	VM_RETURN_EDICT( prog->edicts );
+}
+
+/*
+=========
+VM_FindField
+
+entity findfloat(entity start, .float field, float match)
+=========
+*/
+void VM_FindField( void )
+{
+	int	e, f;
+	float	s;
+	edict_t	*ed;
+
+	if(!VM_ValidateArgs( "findfloat", 2 ))
+		return;
+
+	e = PRVM_G_EDICTNUM(OFS_PARM0);
+	f = PRVM_G_INT(OFS_PARM1);
+	s = PRVM_G_FLOAT(OFS_PARM2);
+
+	for( e++; e < prog->num_edicts; e++ )
+	{
+		prog->xfunction->builtinsprofile++;
+		ed = PRVM_EDICT_NUM(e);
+		if( ed->priv.ed->free ) continue;
+		if( PRVM_E_FLOAT(ed, f) == s )
+		{
+			VM_RETURN_EDICT( ed );
+			return;
+		}
+	}
+
+	VM_RETURN_EDICT( prog->edicts );
+}
+
+/*
+=======================================================================
+
+		    VIRTUAL MACHINE FILESYSTEM API
+=======================================================================
+*/
 void VM_FS_Open( void )
 {
 }
@@ -366,65 +791,254 @@ void VM_FS_Close( void )
 }
 
 /*
+=======================================================================
+
+		    VIRTUAL MACHINE MATHLIB
+=======================================================================
+*/
+/*
+=================
+VM_min
+
+float min( float a, float b )
+=================
+*/
+void VM_min( void )
+{
+	if(!VM_ValidateArgs( "min", 2 )) return;
+	PRVM_G_FLOAT(OFS_RETURN) = min(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1));
+}
+
+/*
+=================
+VM_max
+
+float max( float a, float b )
+=================
+*/
+void VM_max( void )
+{
+	if(!VM_ValidateArgs( "max", 2 )) return;
+	PRVM_G_FLOAT(OFS_RETURN) = max(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1));
+}
+
+/*
+=================
+VM_bound
+
+float bound( float min, float value, float max )
+=================
+*/
+void VM_bound( void )
+{
+	if(!VM_ValidateArgs( "bound", 3 )) return;
+	PRVM_G_FLOAT(OFS_RETURN) = bound(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1), PRVM_G_FLOAT(OFS_PARM2));
+}
+
+/*
+=================
+VM_pow
+
+float pow( float a, float b )
+=================
+*/
+void VM_pow( void )
+{
+	if(!VM_ValidateArgs( "pow", 2 )) return;
+	PRVM_G_FLOAT(OFS_RETURN) = pow(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1));
+}
+
+/*
 =========
 VM_sin
 
-float	sin(float)
+float sin( float f )
 =========
 */
-void VM_sin (void)
+void VM_sin( void )
 {
-	VM_SAFEPARMCOUNT(1,VM_sin);
+	if(!VM_ValidateArgs( "sin", 1 )) return;
 	PRVM_G_FLOAT(OFS_RETURN) = sin(PRVM_G_FLOAT(OFS_PARM0));
 }
 
 /*
 =========
 VM_cos
-float	cos(float)
+
+float cos( float f )
 =========
 */
-void VM_cos (void)
+void VM_cos( void )
 {
-	VM_SAFEPARMCOUNT(1,VM_cos);
+	if(!VM_ValidateArgs( "cos", 1 )) return;
 	PRVM_G_FLOAT(OFS_RETURN) = cos(PRVM_G_FLOAT(OFS_PARM0));
 }
 
-void VM_tan (void)
+/*
+=========
+VM_tan
+
+float tan( float f )
+=========
+*/
+void VM_tan( void )
 {
+	if(!VM_ValidateArgs( "tan", 1 )) return;
+	PRVM_G_FLOAT(OFS_RETURN) = tan(PRVM_G_FLOAT(OFS_PARM0));
 }
 
-void VM_asin (void)
+/*
+=========
+VM_asin
+
+float asin( float f )
+=========
+*/
+void VM_asin( void )
 {
+	if(!VM_ValidateArgs( "asin", 1 )) return;
+	PRVM_G_FLOAT(OFS_RETURN) = asin(PRVM_G_FLOAT(OFS_PARM0));
 }
 
-void VM_acos (void)
+/*
+=========
+VM_acos
+
+float acos( float f )
+=========
+*/
+void VM_acos( void )
 {
+	if(!VM_ValidateArgs( "acos", 1 )) return;
+	PRVM_G_FLOAT(OFS_RETURN) = acos(PRVM_G_FLOAT(OFS_PARM0));
 }
 
-void VM_atan (void)
+/*
+=========
+VM_atan
+
+float atan( float f )
+=========
+*/
+void VM_atan( void )
 {
+	if(!VM_ValidateArgs( "atan", 1 )) return;
+	PRVM_G_FLOAT(OFS_RETURN) = atan(PRVM_G_FLOAT(OFS_PARM0));
 }
 
 /*
 =========
 VM_sqrt
 
-float	sqrt(float)
+float sqrt( float f )
 =========
 */
-void VM_sqrt (void)
+void VM_sqrt( void )
 {
-	VM_SAFEPARMCOUNT(1,VM_sqrt);
+	if(!VM_ValidateArgs( "sqrt", 1 )) return;
 	PRVM_G_FLOAT(OFS_RETURN) = sqrt(PRVM_G_FLOAT(OFS_PARM0));
 }
 
-void VM_VectorLength( void )
+/*
+=========
+VM_rint
+
+float rint( float f )
+=========
+*/
+void VM_rint( void )
 {
+	float	f;
+
+	if(!VM_ValidateArgs( "rint", 1 ))
+		return;
+
+	f = PRVM_G_FLOAT(OFS_PARM0);
+	if( f > 0 ) PRVM_G_FLOAT(OFS_RETURN) = floor(f + 0.5);
+	else PRVM_G_FLOAT(OFS_RETURN) = ceil(f - 0.5);
 }
 
+/*
+=========
+VM_floor
+
+float floor( float f )
+=========
+*/
+void VM_floor( void )
+{
+	if(!VM_ValidateArgs( "floor", 1 )) return;
+	PRVM_G_FLOAT(OFS_RETURN) = floor(PRVM_G_FLOAT(OFS_PARM0));
+}
+
+/*
+=========
+VM_ceil
+
+float ceil( float f )
+=========
+*/
+void VM_ceil( void )
+{
+	if(!VM_ValidateArgs( "ceil", 1 )) return;
+	PRVM_G_FLOAT(OFS_RETURN) = ceil(PRVM_G_FLOAT(OFS_PARM0));
+}
+
+/*
+=========
+VM_fabs
+
+float fabs( float f )
+=========
+*/
+void VM_fabs( void )
+{
+	if(!VM_ValidateArgs( "fabs", 1 )) return;
+	PRVM_G_FLOAT(OFS_RETURN) = fabs(PRVM_G_FLOAT(OFS_PARM0));
+}
+
+/*
+=========
+VM_modulo
+
+float mod( float val, float m )
+=========
+*/
+void VM_mod( void )
+{
+	int val, m;
+
+	if(!VM_ValidateArgs( "fmod", 2 )) return;
+
+	val = (int)PRVM_G_FLOAT(OFS_PARM0);
+	m = (int)PRVM_G_FLOAT(OFS_PARM1);
+	PRVM_G_FLOAT(OFS_RETURN) = (float)(val % m);
+}
+
+/*
+=========
+VM_VectorNormalize
+
+vector VectorNormalize( vector v )
+=========
+*/
 void VM_VectorNormalize( void )
 {
+	if(!VM_ValidateArgs( "normalize", 1 )) return;
+	VectorNormalize2( PRVM_G_VECTOR(OFS_PARM0), PRVM_G_VECTOR(OFS_RETURN));
+}
+
+/*
+=========
+VM_VectorLength
+
+float VectorLength( vector v )
+=========
+*/
+void VM_VectorLength( void )
+{
+	if(!VM_ValidateArgs( "veclength", 1 )) return;
+	PRVM_G_FLOAT(OFS_RETURN) = VectorLength(PRVM_G_VECTOR(OFS_PARM0));
 }
 
 prvm_builtin_t std_builtins[] = 
@@ -452,21 +1066,21 @@ VM_ComLoadScript,			// #15 float Com_LoadScript( string filename )
 VM_ComResetScript,			// #16 void Com_ResetScript( void )
 VM_ComReadToken,			// #17 string Com_ReadToken( float newline )
 VM_ComFilterToken,			// #18 float Com_Filter( string mask, string s, float casecmp )
-VM_ComSearchFiles,			// #19 float float Com_Search( string mask, float casecmp )
+VM_ComSearchFiles,			// #19 float Com_Search( string mask, float casecmp )
 VM_ComSearchNames,			// #20 string Com_SearchFilename( float num )
 VM_RandomLong,			// #21 float RandomLong( float min, float max )
 VM_RandomFloat,			// #22 float RandomFloat( float min, float max )
 VM_RandomVector,			// #23 vector RandomVector( vector min, vector max )
 VM_CvarRegister,			// #24 void Cvar_Register( string name, string value, float flags )
-VM_CvarSetValue,			// #25 void Cvar_SetValue( string name, string value )
-VM_CvarGetValue,			// #26 string Cvar_GetValue( string name )
+VM_CvarSetValue,			// #25 void Cvar_SetValue( string name, float value )
+VM_CvarGetValue,			// #26 float Cvar_GetValue( string name )
 VM_ComVA,				// #27 string va( ... )
-VM_ComAtof,			// #28 float atof( string s )
-VM_ComFtoa,			// #29 string ftoa( float f )
-VM_ComAtov,			// #30 vector atov( string s )
-VM_ComVtoa,			// #31 string vtoa( vector v )
-VM_ComStrlen,			// #32 float Com_Strlen( string text, float is_colortext )
-VM_TimeStamp,			// #33 string Com_TimeStamp( float format )
+VM_ComStrlen,			// #28 float strlen( string text )
+VM_TimeStamp,			// #29 string Com_TimeStamp( float format )
+VM_LocalCmd,			// #30 void LocalCmd( ... )
+NULL,				// #31 -- reserved --
+NULL,				// #32 -- reserved --
+NULL,				// #33 -- reserved --
 NULL,				// #34 -- reserved --
 NULL,				// #35 -- reserved --
 NULL,				// #36 -- reserved --
@@ -479,7 +1093,7 @@ NULL,				// #40 -- reserved --
 VM_SpawnEdict,			// #41 entity spawn( void )
 VM_RemoveEdict,			// #42 void remove( entity ent )
 VM_NextEdict,			// #43 entity nextent( entity ent )
-NULL,				// #44 -- reserved --
+VM_CopyEdict,			// #44 void copyentity( entity src, entity dst )
 NULL,				// #45 -- reserved --
 NULL,				// #46 -- reserved --
 NULL,				// #47 -- reserved --
@@ -515,11 +1129,11 @@ VM_rint,				// #72 float rint (float v)
 VM_floor,				// #73 float floor(float v)
 VM_ceil,				// #74 float ceil (float v)
 VM_fabs,				// #75 float fabs (float f)
-VM_VectorNormalize,			// #76 vector VectorNormalize( vector v )
-VM_VectorLength,			// #77 float VectorLength( vector v )
+VM_mod,				// #76 float fmod( float val, float m )
+NULL,				// #77 -- reserved --
 NULL,				// #78 -- reserved --
-NULL,				// #79 -- reserved --
-NULL,				// #80 -- reserved --
+VM_VectorNormalize,			// #79 vector VectorNormalize( vector v )
+VM_VectorLength,			// #80 float VectorLength( vector v )
 e10, e10				// #81 - #100 are reserved for future expansions
 };
 

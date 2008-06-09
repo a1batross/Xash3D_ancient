@@ -161,51 +161,41 @@ type_t *PR_NewType (char *name, int basictype)
 	return &qcc_typeinfo[numtypeinfos-1];
 }
 
-void PR_FindBestInclude(char *newfile, char *currentfile, char *rootpath)
+void PR_FindBestInclude( char *newfile, char *currentfile, char *rootpath )
 {
 	char	fullname[10248];
 	char	*stripfrom;
-	int	doubledots;
 	char	*end = fullname;
 
-	if (!*newfile) return;
+	if( !*newfile ) return;
 
-	doubledots = 0;
-	while(!com.strncmp(newfile, "../", 3) || !com.strncmp(newfile, "..\\", 3))
+	// allow to include ../pathes/
+	currentfile += com.strlen( rootpath ); // could this be bad?
+
+	for( stripfrom = currentfile + com.strlen(currentfile) - 1; stripfrom > currentfile; stripfrom-- )
 	{
-		newfile += 3;
-		doubledots++;
-	}
-
-	currentfile += com.strlen(rootpath); // could this be bad?
-
-	for(stripfrom = currentfile + com.strlen(currentfile) - 1; stripfrom>currentfile; stripfrom--)
-	{
-		if (*stripfrom == '/' || *stripfrom == '\\')
+		if( *stripfrom == '/' || *stripfrom == '\\' )
 		{
-			if (doubledots>0) doubledots--;
-			else
-			{
-				stripfrom++;
-				break;
-			}
+			stripfrom++;
+			break;
 		}
 	}
 
-	com.strcpy(end, rootpath); 
+	com.strcpy( end, rootpath ); 
 	end = end + com.strlen(end);
 
-	if (*fullname && end[-1] != '/')
+	if(*fullname && end[-1] != '/')
 	{
-		com.strcpy(end, "/");
-		end = end+com.strlen(end);
+		com.strcpy( end, "/" );
+		end = end + com.strlen(end);
 	}
 
-	com.strncpy(end, currentfile, stripfrom - currentfile); 
+	com.strncpy( end, currentfile, stripfrom - currentfile ); 
 	end += stripfrom - currentfile; *end = '\0';
-	com.strcpy(end, newfile);
+	com.strcpy( end, newfile );
 
-	PR_Include(fullname);
+	Msg("include: %s\n", fullname );
+	PR_Include( fullname );
 }
 
 /*

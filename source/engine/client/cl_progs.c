@@ -131,91 +131,115 @@ void PF_ReadEntity (void){ VM_RETURN_EDICT( PRVM_PROG_TO_EDICT( MSG_ReadShort( c
 //NOTE: intervals between various "interfaces" was leave for future expansions
 prvm_builtin_t vm_cl_builtins[] = 
 {
-NULL,					// #0
+NULL,				// #0  (leave blank as default, but can include easter egg ) 
 
-// network messaging
-PF_BeginRead,				// #1 void MsgBegin( void )
-NULL,					// #2
-PF_ReadChar,				// #3 float ReadChar (float f)
-PF_ReadShort,				// #4 float ReadShort (float f)
-PF_ReadLong,				// #5 float ReadLong (float f)
-PF_ReadFloat,				// #6 float ReadFloat (float f)
-PF_ReadAngle,				// #7 float ReadAngle (float f)
-PF_ReadCoord,				// #8 float ReadCoord (float f)
-PF_ReadString,				// #9 string ReadString (string s)
-PF_ReadEntity,				// #10 entity ReadEntity (entity s)
-PF_EndRead,				// #11 void MsgEnd( void )
+// system events
+VM_ConPrintf,			// #1  void Con_Printf( ... )
+VM_ConDPrintf,			// #2  void Con_DPrintf( float level, ... )
+VM_HostError,			// #3  void Com_Error( ... )
+VM_SysExit,			// #4  void Sys_Exit( void )
+VM_CmdArgv,			// #5  string Cmd_Argv( float arg )
+VM_CmdArgc,			// #6  float Cmd_Argc( void )
+NULL,				// #7  -- reserved --
+NULL,				// #8  -- reserved --
+NULL,				// #9  -- reserved --
+NULL,				// #10 -- reserved --
+
+// common tools
+VM_ComTrace,			// #11 void Com_Trace( float enable )
+VM_ComFileExists,			// #12 float Com_FileExists( string filename )
+VM_ComFileSize,			// #13 float Com_FileSize( string filename )
+VM_ComFileTime,			// #14 float Com_FileTime( string filename )
+VM_ComLoadScript,			// #15 float Com_LoadScript( string filename )
+VM_ComResetScript,			// #16 void Com_ResetScript( void )
+VM_ComReadToken,			// #17 string Com_ReadToken( float newline )
+VM_ComFilterToken,			// #18 float Com_Filter( string mask, string s, float casecmp )
+VM_ComSearchFiles,			// #19 float Com_Search( string mask, float casecmp )
+VM_ComSearchNames,			// #20 string Com_SearchFilename( float num )
+VM_RandomLong,			// #21 float RandomLong( float min, float max )
+VM_RandomFloat,			// #22 float RandomFloat( float min, float max )
+VM_RandomVector,			// #23 vector RandomVector( vector min, vector max )
+VM_CvarRegister,			// #24 void Cvar_Register( string name, string value, float flags )
+VM_CvarSetValue,			// #25 void Cvar_SetValue( string name, float value )
+VM_CvarGetValue,			// #26 float Cvar_GetValue( string name )
+VM_ComVA,				// #27 string va( ... )
+VM_ComStrlen,			// #28 float strlen( string text )
+VM_TimeStamp,			// #29 string Com_TimeStamp( float format )
+VM_LocalCmd,			// #30 void LocalCmd( ... )
+NULL,				// #31 -- reserved --
+NULL,				// #32 -- reserved --
+NULL,				// #33 -- reserved --
+NULL,				// #34 -- reserved --
+NULL,				// #35 -- reserved --
+NULL,				// #36 -- reserved --
+NULL,				// #37 -- reserved --
+NULL,				// #38 -- reserved --
+NULL,				// #39 -- reserved --
+NULL,				// #40 -- reserved --
+
+// quakec intrinsics ( compiler will be lookup this functions, don't remove or rename )
+VM_SpawnEdict,			// #41 entity spawn( void )
+VM_RemoveEdict,			// #42 void remove( entity ent )
+VM_NextEdict,			// #43 entity nextent( entity ent )
+VM_CopyEdict,			// #44 void copyentity( entity src, entity dst )
+NULL,				// #45 -- reserved --
+NULL,				// #46 -- reserved --
+NULL,				// #47 -- reserved --
+NULL,				// #48 -- reserved --
+NULL,				// #49 -- reserved --
+NULL,				// #50 -- reserved --
+
+// filesystem
+VM_FS_Open,			// #51 float fopen( string filename, float mode )
+VM_FS_Close,			// #52 void fclose( float handle )
+VM_FS_Gets,			// #53 string fgets( float handle )
+VM_FS_Gete,			// #54 entity fgete( float handle )
+VM_FS_Puts,			// #55 void fputs( float handle, string s )
+VM_FS_Pute,			// #56 void fpute( float handle, entity e )
+NULL,				// #57 -- reserved --
+NULL,				// #58 -- reserved --
+NULL,				// #59 -- reserved --
+NULL,				// #60 -- reserved --
 
 // mathlib
-VM_min,					// #12 float min(float a, float b )
-VM_max,					// #13 float max(float a, float b )
-VM_bound,					// #14 float bound(float min, float val, float max)
-VM_pow,					// #15 float pow(float x, float y)
-VM_sin,					// #16 float sin(float f)
-VM_cos,					// #17 float cos(float f)
-VM_sqrt,					// #18 float sqrt(float f)
-VM_rint,					// #19 float rint (float v)
-VM_floor,					// #20 float floor(float v)
-VM_ceil,					// #21 float ceil (float v)
-VM_fabs,					// #22 float fabs (float f)
-VM_random_long,				// #23 float random_long( void )
-VM_random_float,				// #24 float random_float( void )
-NULL,                                             // #25
-NULL,                                             // #26
-NULL,                                             // #27
-NULL,                                             // #28
-NULL,                                             // #29
-NULL,                                             // #30
+VM_min,				// #61 float min(float a, float b )
+VM_max,				// #62 float max(float a, float b )
+VM_bound,				// #63 float bound(float min, float val, float max)
+VM_pow,				// #64 float pow(float x, float y)
+VM_sin,				// #65 float sin(float f)
+VM_cos,				// #66 float cos(float f)
+VM_tan,				// #67 float tan(float f)
+VM_asin,				// #68 float asin(float f)
+VM_acos,				// #69 float acos(float f)
+VM_atan,				// #70 float atan(float f)
+VM_sqrt,				// #71 float sqrt(float f)
+VM_rint,				// #72 float rint (float v)
+VM_floor,				// #73 float floor(float v)
+VM_ceil,				// #74 float ceil (float v)
+VM_fabs,				// #75 float fabs (float f)
+VM_mod,				// #76 float fmod( float val, float m )
+NULL,				// #77 -- reserved --
+NULL,				// #78 -- reserved --
+VM_VectorNormalize,			// #79 vector VectorNormalize( vector v )
+VM_VectorLength,			// #80 float VectorLength( vector v )
+e10, e10,				// #81 - #100 are reserved for future expansions
 
-// vector mathlib
-VM_normalize,				// #31 vector normalize(vector v) 
-VM_veclength,				// #32 float veclength(vector v) 
-VM_vectoyaw,				// #33 float vectoyaw(vector v) 
-VM_vectoangles,				// #34 vector vectoangles(vector v) 
-VM_randomvec,				// #35 vector randomvec( void )
-VM_vectorvectors,				// #36 void vectorvectors(vector dir)
-VM_makevectors,				// #37 void makevectors(vector dir)
-VM_makevectors2,				// #38 void makevectors2(vector dir)
-NULL,					// #39
-NULL,					// #40
+// network messaging
+PF_BeginRead,			// #101 void MsgBegin( void )
+NULL,				// #102
+PF_ReadChar,			// #103 float ReadChar (float f)
+PF_ReadShort,			// #104 float ReadShort (float f)
+PF_ReadLong,			// #105 float ReadLong (float f)
+PF_ReadFloat,			// #106 float ReadFloat (float f)
+PF_ReadAngle,			// #107 float ReadAngle (float f)
+PF_ReadCoord,			// #108 float ReadCoord (float f)
+PF_ReadString,			// #109 string ReadString (string s)
+PF_ReadEntity,			// #110 entity ReadEntity (entity s)
+PF_EndRead,			// #111 void MsgEnd( void )
 
-// stdlib functions
-VM_atof,					// #41 float atof(string s)
-VM_ftoa,					// #42 string ftoa(float s)
-VM_vtoa,					// #43 string vtoa(vector v)
-VM_atov,					// #44 vector atov(string s)
-VM_ConPrintf,				// #45 void Msg( ... )
-VM_wprint,				// #46 void MsgWarn( ... )
-VM_objerror,				// #47 void Error( ... )
-VM_bprint,				// #48 void bprint(string s)
-NULL,					// #49
-NULL,					// #50 
-VM_cvar,					// #51 float cvar(string s)
-VM_cvar_set,				// #52 void cvar_set(string var, string val)
-VM_allocstring,				// #53 string AllocString(string s)
-VM_freestring,				// #54 void FreeString(string s)
-VM_strlen,				// #55 float strlen(string s)
-VM_strcat,				// #56 string strcat(string s1, string s2)
-VM_argv,					// #57 string argv( float parm )
-NULL,					// #58
-NULL,					// #59
-NULL,					// #60
-
-// internal debugger
-VM_break,					// #61 void break( void )
-VM_crash,					// #62 void crash( void )
-VM_coredump,				// #63 void coredump( void )
-VM_stackdump,				// #64 void stackdump( void )
-VM_traceon,				// #65 void trace_on( void )
-VM_traceoff,				// #66 void trace_off( void )
-VM_eprint,				// #67 void dump_edict(entity e) 
-VM_nextent,				// #68 entity nextent(entity e)
-NULL,					// #69
-NULL,					// #70
 // clientfuncs_t
-PF_ScreenAdjustSize,			// #71 void SCR_AdjustSize( void )
-PF_FillRect,				// #72 void SCR_FillRect( float x, float y, float w, float h, vector col )
-VM_create,				// #73
+PF_ScreenAdjustSize,		// #112 void SCR_AdjustSize( void )
+PF_FillRect,			// #113 void SCR_FillRect( float x, float y, float w, float h, vector col )
 };
 
 const int vm_cl_numbuiltins = sizeof(vm_cl_builtins) / sizeof(prvm_builtin_t); //num of builtins

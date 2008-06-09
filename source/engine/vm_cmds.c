@@ -483,23 +483,6 @@ void VM_break (void)
 
 /*
 =================
-VM_localcmd
-
-Sends text over to the client's execution buffer
-
-[localcmd (string, ...) or]
-cmd (string, ...)
-=================
-*/
-void VM_localcmd (void)
-{
-	char string[VM_STRINGTEMP_LENGTH];
-	VM_VarString(0, string, sizeof(string));
-	Cbuf_AddText(string);
-}
-
-/*
-=================
 VM_cvar
 
 float cvar (string)
@@ -596,24 +579,6 @@ void VM_ftoa (void)
 	else sprintf(s, "%f", v);
 
 	PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString(s);
-}
-
-/*
-=========
-VM_fabs
-
-float fabs(float)
-=========
-*/
-
-void VM_fabs (void)
-{
-	float	v;
-
-	VM_SAFEPARMCOUNT(1,VM_fabs);
-
-	v = PRVM_G_FLOAT(OFS_PARM0);
-	PRVM_G_FLOAT(OFS_RETURN) = fabs(v);
 }
 
 /*
@@ -743,88 +708,6 @@ void VM_remove (void)
 			VM_Warning( "VM_remove: tried to remove an already freed entity!\n" );
 	}
 	else PRVM_ED_Free (ed);
-}
-
-/*
-=========
-VM_find
-
-entity	find(entity start, .string field, string match)
-=========
-*/
-
-void VM_find (void)
-{
-	int		e;
-	int		f;
-	const char	*s, *t;
-	edict_t	*ed;
-
-	VM_SAFEPARMCOUNT(3,VM_find);
-
-	e = PRVM_G_EDICTNUM(OFS_PARM0);
-	f = PRVM_G_INT(OFS_PARM1);
-	s = PRVM_G_STRING(OFS_PARM2);
-
-	// LordHavoc: apparently BloodMage does a find(world, weaponmodel, "") and
-	// expects it to find all the monsters, so we must be careful to support
-	// searching for ""
-	if (!s) s = "";
-
-	for (e++ ; e < prog->num_edicts ; e++)
-	{
-		prog->xfunction->builtinsprofile++;
-		ed = PRVM_EDICT_NUM(e);
-		if (ed->priv.ed->free)
-			continue;
-		t = PRVM_E_STRING(ed,f);
-		if (!t) t = "";
-		if (!strcmp(t,s))
-		{
-			VM_RETURN_EDICT(ed);
-			return;
-		}
-	}
-
-	VM_RETURN_EDICT(prog->edicts);
-}
-
-/*
-=========
-VM_findfloat
-
-  entity	findfloat(entity start, .float field, float match)
-  entity	findentity(entity start, .entity field, entity match)
-=========
-*/
-// LordHavoc: added this for searching float, int, and entity reference fields
-void VM_findfloat (void)
-{
-	int		e;
-	int		f;
-	float	s;
-	edict_t	*ed;
-
-	VM_SAFEPARMCOUNT(3,VM_findfloat);
-
-	e = PRVM_G_EDICTNUM(OFS_PARM0);
-	f = PRVM_G_INT(OFS_PARM1);
-	s = PRVM_G_FLOAT(OFS_PARM2);
-
-	for (e++ ; e < prog->num_edicts ; e++)
-	{
-		prog->xfunction->builtinsprofile++;
-		ed = PRVM_EDICT_NUM(e);
-		if (ed->priv.ed->free)
-			continue;
-		if (PRVM_E_FLOAT(ed,f) == s)
-		{
-			VM_RETURN_EDICT(ed);
-			return;
-		}
-	}
-
-	VM_RETURN_EDICT(prog->edicts);
 }
 
 /*
@@ -1101,52 +984,6 @@ void VM_eprint (void)
 }
 
 /*
-=========
-VM_rint
-
-float	rint(float)
-=========
-*/
-void VM_rint (void)
-{
-	float f;
-	VM_SAFEPARMCOUNT(1,VM_rint);
-
-	f = PRVM_G_FLOAT(OFS_PARM0);
-	if (f > 0) PRVM_G_FLOAT(OFS_RETURN) = floor(f + 0.5);
-	else PRVM_G_FLOAT(OFS_RETURN) = ceil(f - 0.5);
-}
-
-/*
-=========
-VM_floor
-
-float	floor(float)
-=========
-*/
-void VM_floor (void)
-{
-	VM_SAFEPARMCOUNT(1,VM_floor);
-
-	PRVM_G_FLOAT(OFS_RETURN) = floor(PRVM_G_FLOAT(OFS_PARM0));
-}
-
-/*
-=========
-VM_ceil
-
-float	ceil(float)
-=========
-*/
-void VM_ceil (void)
-{
-	VM_SAFEPARMCOUNT(1,VM_ceil);
-
-	PRVM_G_FLOAT(OFS_RETURN) = ceil(PRVM_G_FLOAT(OFS_PARM0));
-}
-
-
-/*
 =============
 VM_nextent
 
@@ -1258,64 +1095,6 @@ void VM_registercvar (void)
 
 	Cvar_Get(name, value, flags);
 	PRVM_G_FLOAT(OFS_RETURN) = 1; // success
-}
-
-/*
-=================
-VM_min
-
-returns the minimum of two supplied floats
-
-float min(float a, float b)
-=================
-*/
-void VM_min (void)
-{
-	PRVM_G_FLOAT(OFS_RETURN) = min(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1));
-}
-
-/*
-=================
-VM_max
-
-returns the maximum of two supplied floats
-
-float	max(float a, float b)
-=================
-*/
-void VM_max (void)
-{
-	PRVM_G_FLOAT(OFS_RETURN) = max(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1));
-}
-
-/*
-=================
-VM_bound
-
-returns number bounded by supplied range
-
-float	bound(float min, float value, float max)
-=================
-*/
-void VM_bound (void)
-{
-	VM_SAFEPARMCOUNT(3,VM_bound);
-	PRVM_G_FLOAT(OFS_RETURN) = bound(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1), PRVM_G_FLOAT(OFS_PARM2));
-}
-
-/*
-=================
-VM_pow
-
-returns a raised to power b
-
-float	pow(float a, float b)
-=================
-*/
-void VM_pow (void)
-{
-	VM_SAFEPARMCOUNT(2,VM_pow);
-	PRVM_G_FLOAT(OFS_RETURN) = pow(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1));
 }
 
 /*
@@ -1861,20 +1640,6 @@ void VM_gettime(void)
 }
 
 /*
-=========
-VM_loadfromdata
-
-loadfromdata(string data)
-=========
-*/
-void VM_loadfromdata(void)
-{
-	VM_SAFEPARMCOUNT(1,VM_loadentsfromfile);
-
-	PRVM_ED_LoadFromFile(PRVM_G_STRING(OFS_PARM0));
-}
-
-/*
 ========================
 VM_parseentitydata
 
@@ -1900,57 +1665,6 @@ void VM_parseentitydata(void)
 		PRVM_ERROR ("VM_parseentitydata: %s: Couldn't parse entity data:\n%s", PRVM_NAME, data );
 
 	PRVM_ED_ParseEdict (data, ent);
-}
-
-/*
-=========
-VM_loadfromfile
-
-loadfromfile(string file)
-=========
-*/
-void VM_loadfromfile(void)
-{
-	const char *filename;
-	char *data;
-
-	VM_SAFEPARMCOUNT(1,VM_loadfromfile);
-
-	filename = PRVM_G_STRING(OFS_PARM0);
-	// .. is parent directory on many platforms
-	// / is parent directory on Amiga
-	// : is root of drive on Amiga (also used as a directory separator on Mac, but / works there too, so that's a bad idea)
-	// \ is a windows-ism (so it's naughty to use it, / works on all platforms)
-	if ((filename[0] == '.' && filename[1] == '.') || filename[0] == '/' || strrchr(filename, ':') || strrchr(filename, '\\'))
-	{
-		PRVM_G_FLOAT(OFS_RETURN) = -4;
-		VM_Warning("VM_loadfromfile: %s dangerous or non-portable filename \"%s\" not allowed. (contains : or \\ or begins with .. or /)\n", PRVM_NAME, filename);
-		return;
-	}
-
-	// not conform with VM_fopen
-	data = (char *)FS_LoadFile(filename, NULL);
-	if (data == NULL) PRVM_G_FLOAT(OFS_RETURN) = -1;
-	PRVM_ED_LoadFromFile( data );
-}
-
-
-/*
-=========
-VM_modulo
-
-float	mod(float val, float m)
-=========
-*/
-void VM_modulo(void)
-{
-	int val, m;
-	VM_SAFEPARMCOUNT(2,VM_module);
-
-	val = (int) PRVM_G_FLOAT(OFS_PARM0);
-	m	= (int) PRVM_G_FLOAT(OFS_PARM1);
-
-	PRVM_G_FLOAT(OFS_RETURN) = (float) (val % m);
 }
 
 void VM_Search_Init(void)
@@ -2143,179 +1857,7 @@ void VM_iscachedpic(void)
 	PRVM_G_FLOAT(OFS_RETURN) = false;
 }
 
-/*
-=========
-VM_precache_pic
 
-string	precache_pic(string pic)
-=========
-*/
-void VM_precache_pic(void)
-{
-	const char		*s;
-
-	VM_SAFEPARMCOUNT(1, VM_precache_pic);
-
-	s = PRVM_G_STRING(OFS_PARM0);
-	PRVM_G_INT(OFS_RETURN) = PRVM_G_INT(OFS_PARM0);
-
-	if(!s) PRVM_ERROR ("VM_precache_pic: %s: NULL", PRVM_NAME);
-
-	VM_CheckEmptyString (s);
-
-	re->RegisterPic((char *)s); //may return empty frame
-}
-
-/*
-=========
-VM_drawcharacter
-
-float	drawcharacter(vector position, float character, vector scale, vector rgb, float alpha, float flag)
-=========
-*/
-void VM_drawcharacter(void)
-{
-	char		character;
-	float		*pos, *rgb, *scale, alpha;
-
-	VM_SAFEPARMCOUNT(5, VM_drawcharacter);
-	character = (char)PRVM_G_FLOAT(OFS_PARM1);
-	if(character == 0)
-	{
-		PRVM_G_FLOAT(OFS_RETURN) = -1;
-		VM_Warning("VM_drawcharacter: %s passed null character !\n", PRVM_NAME);
-		return;
-	}
-
-	pos = PRVM_G_VECTOR(OFS_PARM0);
-	scale = PRVM_G_VECTOR(OFS_PARM2);
-	rgb = PRVM_G_VECTOR(OFS_PARM3);
-	alpha = PRVM_G_FLOAT(OFS_PARM4);
-
-	if(pos[2]) Msg("VM_drawcharacter: z value from \"pos\" discarded\n" );
-	if(scale[2]) Msg("VM_drawcharacter: z value from \"scale\" discarded\n" );
-
-	re->SetColor( GetRGBA(rgb[0], rgb[1], rgb[2], alpha ));
-	SCR_DrawChar( pos[0], pos[1], scale[0], scale[1], character );
-	re->SetColor( NULL );
-	PRVM_G_FLOAT(OFS_RETURN) = 1;
-}
-
-/*
-=========
-VM_drawstring
-
-float	drawstring(vector position, string text, vector scale, vector rgb, float alpha, float flag)
-=========
-*/
-void VM_drawstring(void)
-{
-	float *pos, *scale, *rgb, alpha;
-	const char  *string;
-	int flag;
-	VM_SAFEPARMCOUNT(6,VM_drawstring);
-
-	string = PRVM_G_STRING(OFS_PARM1);
-	if(!string)
-	{
-		PRVM_G_FLOAT(OFS_RETURN) = -1;
-		VM_Warning("VM_drawstring: %s passed null string !\n",PRVM_NAME);
-		return;
-	}
-
-	pos = PRVM_G_VECTOR(OFS_PARM0);
-	scale = PRVM_G_VECTOR(OFS_PARM2);
-	rgb = PRVM_G_VECTOR(OFS_PARM3);
-	alpha = PRVM_G_FLOAT(OFS_PARM4);
-	flag = (int)PRVM_G_FLOAT(OFS_PARM5);
-
-	SCR_DrawStringExt( pos[0], pos[1], scale[0], scale[1], string, GetRGBA(rgb[0], rgb[1], rgb[2], alpha ), true ); 
-	PRVM_G_FLOAT(OFS_RETURN) = 1;
-}
-
-/*
-=========
-VM_getimagesize
-
-vector	getimagesize(string pic)
-=========
-*/
-void VM_getimagesize(void)
-{
-	const char	*p;
-	int		w, h;
-
-	VM_SAFEPARMCOUNT(1, VM_getimagesize);
-	p = PRVM_G_STRING(OFS_PARM0);
-
-	if(!p) PRVM_ERROR("VM_getimagepos: %s passed null picture name !", PRVM_NAME);
-
-	VM_CheckEmptyString(p);
-	re->DrawGetPicSize( &w, &h, (char *)p );
-
-	PRVM_G_VECTOR(OFS_RETURN)[0] = w;
-	PRVM_G_VECTOR(OFS_RETURN)[1] = h;
-	PRVM_G_VECTOR(OFS_RETURN)[2] = 0;
-}
-
-/*
-=========
-VM_drawpic
-
-float	drawpic(vector position, string pic, vector size, vector rgb, float alpha, float flag)
-=========
-*/
-void VM_drawpic(void)
-{
-	const char	*picname;
-	float		*size, *pos, *rgb, alpha;
-
-	VM_SAFEPARMCOUNT(5, VM_drawpic);
-	picname = PRVM_G_STRING(OFS_PARM1);
-
-	if(!picname)
-	{
-		PRVM_G_FLOAT(OFS_RETURN) = -1;
-		VM_Warning("VM_drawpic: %s passed null picture name !\n", PRVM_NAME);
-		return;
-	}
-
-	VM_CheckEmptyString (picname);
-
-	pos = PRVM_G_VECTOR(OFS_PARM0);
-	size = PRVM_G_VECTOR(OFS_PARM2);
-	rgb = PRVM_G_VECTOR(OFS_PARM3);
-	alpha = PRVM_G_FLOAT(OFS_PARM4);
-
-	re->SetColor( GetRGBA(rgb[0], rgb[1], rgb[2], alpha ));
-	SCR_DrawPic( pos[0], pos[1], size[0], size[1], (char *)picname );
-	re->SetColor( NULL );
-	PRVM_G_FLOAT(OFS_RETURN) = 1;
-}
-
-/*
-=========
-VM_drawfill
-
-float drawfill(vector position, vector size, vector rgb, float alpha, float flag)
-=========
-*/
-void VM_drawfill(void)
-{
-	float	*size, *pos, *rgb, alpha;
-	int	flag;
-
-	VM_SAFEPARMCOUNT(5, VM_drawfill);
-
-	pos = PRVM_G_VECTOR(OFS_PARM0);
-	size = PRVM_G_VECTOR(OFS_PARM1);
-	rgb = PRVM_G_VECTOR(OFS_PARM2);
-	alpha = PRVM_G_FLOAT(OFS_PARM3);
-	flag = (int)PRVM_G_FLOAT(OFS_PARM4);
-
-	SCR_FillRect( pos[0], pos[1], size[0], size[1], GetRGBA( rgb[0], rgb[1], rgb[2], alpha )); 
-	PRVM_G_FLOAT(OFS_RETURN) = 1;
-}
 
 /*
 ========================
