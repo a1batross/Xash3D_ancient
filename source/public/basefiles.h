@@ -569,7 +569,6 @@ typedef struct prvm_prog_s
 	int		edictareasize;	// in bytes (for bound checking)
 	int		pev_save;		// used by PRVM_PUSH_GLOBALS\PRVM_POP_GLOBALS
 	int		other_save;	// used by PRVM_PUSH_GLOBALS\PRVM_POP_GLOBALS	
-
 	int		*statement_linenums;// NULL if not available
 	double		*statement_profile; // only incremented if prvm_statementprofiling is on
 
@@ -583,104 +582,52 @@ typedef struct prvm_prog_s
 
 	int		maxknownstrings;
 	int		numknownstrings;
-
-	// this is updated whenever a string is removed or added
-	// (simple optimization of the free string search)
 	int		firstfreeknownstring;
 	const char	**knownstrings;
 	byte		*knownstrings_freeable;
 	const char	***stringshash;
-
-	// all memory allocations related to this vm_prog (code, edicts, strings)
-	byte		*progs_mempool;	// [INIT]
-
-	prvm_builtin_t	*builtins;	// [INIT]
-	int		numbuiltins;	// [INIT]
-
+	byte		*progs_mempool;
+	prvm_builtin_t	*builtins;
+	int		numbuiltins;
 	int		argc;
-
 	int		trace;
 	mfunction_t	*xfunction;
 	int		xstatement;
-
-	// stacktrace writes into stack[MAX_STACK_DEPTH]
-	// thus increase the array, so depth wont be overwritten
 	prvm_stack_t	stack[PRVM_MAX_STACK_DEPTH + 1];
 	int		depth;
-
 	int		localstack[PRVM_LOCALSTACK_SIZE];
 	int		localstack_used;
-
 	word		filecrc;
 	int		intsize;
-
-	//============================================================================
-	// until this point everything also exists (with the pr_ prefix) in the old vm
-
-	vfile_t		*openfiles[PRVM_MAX_OPENFILES];
-	search_t		*opensearches[PRVM_MAX_OPENSEARCHES];
-
-	// copies of some vars that were former read from sv
+	vfile_t		*file[PRVM_MAX_OPENFILES];
+	search_t		*search;
 	int		num_edicts;
-	// number of edicts for which space has been (should be) allocated
-	int		max_edicts;	// [INIT]
-	// used instead of the constant MAX_EDICTS
-	int		limit_edicts;	// [INIT]
-
-	// number of reserved edicts (allocated from 1)
-	int		reserved_edicts;	// [INIT]
-
-	edict_t	*edicts;
+	int		max_edicts;
+	int		limit_edicts;
+	int		reserved_edicts;
+	edict_t		*edicts;
 	void		*edictsfields;
 	void		*edictprivate;
-
-	// size of the engine private struct
-	int		edictprivate_size;	// [INIT]
-
-	// has to be updated every frame - so the vm time is up-to-date
-	// AK changed so time will point to the time field (if there is one) else it points to _time
-	// actually should be double, but qc doesnt support it
+	int		edictprivate_size;
 	float		*time;
 	float		_time;
-
-	// allow writing to world entity fields, this is set by server init and
-	// cleared before first server frame
 	bool		protect_world;
-
-	// name of the prog, e.g. "Server", "Client" or "Menu" (used for text output)
-	char		*name;		// [INIT]
-
-	// flag - used to store general flags like PRVM_GE_PEV, etc.
-	int		flag;
-
-	char		*extensionstring;	// [INIT]
-
-	bool		loadintoworld;	// [INIT]
-
-	// used to indicate whether a prog is loaded
+	bool		loadintoworld;
 	bool		loaded;
-
-	//============================================================================
-
+	char		*name;
+	int		flag;
 	ddef_t		*pev; // if pev != 0 then there is a global pev
 
-	//============================================================================
 	// function pointers
-
-	void		(*begin_increase_edicts)(void); // [INIT] used by PRVM_MEM_Increase_Edicts
-	void		(*end_increase_edicts)(void); // [INIT]
-
-	void		(*init_edict)(edict_t *edict); // [INIT] used by PRVM_ED_ClearEdict
-	void		(*free_edict)(edict_t *ed); // [INIT] used by PRVM_ED_Free
-
-	void		(*count_edicts)(void); // [INIT] used by PRVM_ED_Count_f
-
-	bool		(*load_edict)(edict_t *ent); // [INIT] used by PRVM_ED_LoadFromFile
-
-	void		(*init_cmd)(void);	// [INIT] used by PRVM_InitProg
-	void		(*reset_cmd)(void);	// [INIT] used by PRVM_ResetProg
-
-	void		(*error_cmd)(const char *format, ...); // [INIT]
+	void		(*begin_increase_edicts)(void);
+	void		(*end_increase_edicts)(void);
+	void		(*init_edict)(edict_t *edict);
+	void		(*free_edict)(edict_t *ed);
+	void		(*count_edicts)(void);
+	bool		(*load_edict)(edict_t *ent);
+	void		(*init_cmd)(void);
+	void		(*reset_cmd)(void);
+	void		(*error_cmd)(const char *format, ...);
 
 } prvm_prog_t;
 

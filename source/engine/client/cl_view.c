@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // cl_view.c -- player rendering positioning
 
+#include "common.h"
 #include "client.h"
 
 //=============
@@ -418,7 +419,7 @@ void V_Gun_Model_f (void)
 		gun_model = NULL;
 		return;
 	}
-	sprintf (name, "models/weapons/v_%s.mdl", Cmd_Argv(1));
+	com.sprintf (name, "models/weapons/v_%s.mdl", Cmd_Argv(1));
 	gun_model = re->RegisterModel (name);
 }
 

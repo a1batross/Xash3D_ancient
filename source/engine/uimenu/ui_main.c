@@ -125,7 +125,6 @@ void UI_Init( void )
 	prog->limit_edicts = UI_MAX_EDICTS;
 	prog->name = "uimenu";
 	prog->num_edicts = 1;
-	prog->extensionstring = "";
 	prog->loadintoworld = false;
 	prog->init_cmd = VM_Cmd_Init;
 	prog->reset_cmd = VM_Cmd_Reset;

@@ -3,9 +3,8 @@
 //		        cl_progs.c - client.dat interface
 //=======================================================================
 
+#include "common.h"
 #include "client.h"
-#include "sv_edict.h"
-#include "cl_edict.h"
 
 /*
 ===============================================================================
@@ -80,7 +79,7 @@ void CL_CountEdicts( void )
 	for (i = 0; i < prog->num_edicts; i++ )
 	{
 		ent = PRVM_EDICT_NUM(i);
-		if( ent->priv.sv->free ) continue;
+		if( ent->priv.cl->free ) continue;
 
 		active++;
 		if( ent->progs.cl->solid ) solid++;
@@ -162,11 +161,11 @@ VM_RandomVector,			// #23 vector RandomVector( vector min, vector max )
 VM_CvarRegister,			// #24 void Cvar_Register( string name, string value, float flags )
 VM_CvarSetValue,			// #25 void Cvar_SetValue( string name, float value )
 VM_CvarGetValue,			// #26 float Cvar_GetValue( string name )
-VM_ComVA,				// #27 string va( ... )
-VM_ComStrlen,			// #28 float strlen( string text )
-VM_TimeStamp,			// #29 string Com_TimeStamp( float format )
-VM_LocalCmd,			// #30 void LocalCmd( ... )
-NULL,				// #31 -- reserved --
+VM_CvarSetString,			// #27 void Cvar_SetString( string name, string value )
+VM_ComVA,				// #28 string va( ... )
+VM_ComStrlen,			// #29 float strlen( string text )
+VM_TimeStamp,			// #30 string Com_TimeStamp( float format )
+VM_LocalCmd,			// #31 void LocalCmd( ... )
 NULL,				// #32 -- reserved --
 NULL,				// #33 -- reserved --
 NULL,				// #34 -- reserved --
@@ -193,9 +192,9 @@ NULL,				// #50 -- reserved --
 VM_FS_Open,			// #51 float fopen( string filename, float mode )
 VM_FS_Close,			// #52 void fclose( float handle )
 VM_FS_Gets,			// #53 string fgets( float handle )
-VM_FS_Gete,			// #54 entity fgete( float handle )
-VM_FS_Puts,			// #55 void fputs( float handle, string s )
-VM_FS_Pute,			// #56 void fpute( float handle, entity e )
+VM_FS_Puts,			// #54 void fputs( float handle, string s )
+NULL,				// #55 -- reserved --
+NULL,				// #56 -- reserved --
 NULL,				// #57 -- reserved --
 NULL,				// #58 -- reserved --
 NULL,				// #59 -- reserved --
@@ -266,7 +265,6 @@ void CL_InitClientProgs( void )
 		prog->free_edict = CL_FreeEdict;
 		prog->count_edicts = CL_CountEdicts;
 		prog->load_edict = CL_LoadEdict;
-		prog->extensionstring = "";
 
 		// using default builtins
 		prog->init_cmd = VM_Cmd_Init;

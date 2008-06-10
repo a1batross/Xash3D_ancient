@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // cl.input.c  -- builds an intended movement command to send to the server
 
+#include "common.h"
 #include "client.h"
 
 cvar_t	*cl_nodelta;
@@ -45,6 +46,8 @@ bool	mouseparmsvalid;
 int	window_center_x, window_center_y;
 RECT	window_rect;
 
+cvar_t	*cl_sensitivity;
+cvar_t	*ui_sensitivity;
 /*
 ============================================================
 
@@ -220,11 +223,11 @@ void CL_MouseMove (usercmd_t *cmd)
 	old_pos.x = mx;
 	old_pos.y = my;
 
-	mouse_x *= sensitivity->value;
-	mouse_y *= sensitivity->value;
-
-	if(cls.key_dest != key_menu)
+	if( cls.key_dest != key_menu )
 	{
+		mouse_x *= cl_sensitivity->value;
+		mouse_y *= cl_sensitivity->value;
+	
 		// add mouse X/Y movement to cmd
 		if ( (in_strafe.state & 1) || (lookstrafe->value && mlooking ))
 			cmd->sidemove += m_side->value * mouse_x;
@@ -233,6 +236,11 @@ void CL_MouseMove (usercmd_t *cmd)
 		if((mlooking || freelook->value) && !(in_strafe.state & 1))
 			cl.viewangles[PITCH] += m_pitch->value * mouse_y;
 		else cmd->forwardmove -= m_forward->value * mouse_y;
+	}
+	else
+	{
+		mouse_x *= ui_sensitivity->value;
+		mouse_y *= ui_sensitivity->value;
 	}
 
 	// force the mouse to the center, so there's room to move
@@ -677,6 +685,8 @@ void CL_InitInput (void)
 	// mouse variables
 	m_filter = Cvar_Get("m_filter", "0", 0);
 	m_mouse = Cvar_Get("mouse", "1", CVAR_ARCHIVE);
+	cl_sensitivity = Cvar_Get( "cl_sensitivity", "3", CVAR_ARCHIVE );
+	ui_sensitivity = Cvar_Get( "ui_sensitivity", "0.5", CVAR_ARCHIVE );
 
 	// centering
 	v_centermove = Cvar_Get ("v_centermove", "0.15", 0);

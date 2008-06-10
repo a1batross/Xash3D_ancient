@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // cl_parse.c  -- parse a message received from the server
 
+#include "common.h"
 #include "client.h"
 
 char *svc_strings[256] =
@@ -138,7 +139,7 @@ void	CL_Download_f (void)
 		return;
 	}
 
-	sprintf(filename, "%s", Cmd_Argv(1));
+	com.sprintf(filename, "%s", Cmd_Argv(1));
 
 	if (strstr (filename, ".."))
 	{
@@ -378,9 +379,9 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 
 	if (cl_noskins->value || *s == 0)
 	{
-		sprintf (model_filename, "models/players/gordon/player.mdl");
-		sprintf (weapon_filename, "models/weapons/w_glock.mdl");
-		strcpy (ci->iconname, "hud/i_fixme");
+		com.sprintf (model_filename, "models/players/gordon/player.mdl");
+		com.sprintf (weapon_filename, "models/weapons/w_glock.mdl");
+		com.strcpy (ci->iconname, "hud/i_fixme");
 		ci->model = re->RegisterModel (model_filename);
 		memset(ci->weaponmodel, 0, sizeof(ci->weaponmodel));
 		ci->weaponmodel[0] = re->RegisterModel (weapon_filename);
@@ -389,7 +390,7 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 	else
 	{
 		// isolate the model name
-		strcpy (model_name, s);
+		com.strcpy (model_name, s);
 		t = strstr(model_name, "/");
 		if (!t) t = strstr(model_name, "\\");
 		if (!t) t = model_name;
@@ -399,12 +400,12 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 		strcpy (skin_name, s + strlen(model_name) + 1);
 
 		// model file
-		sprintf (model_filename, "models/players/%s/player.mdl", model_name);
+		com.sprintf (model_filename, "models/players/%s/player.mdl", model_name);
 		ci->model = re->RegisterModel (model_filename);
 		if (!ci->model)
 		{
-			strcpy(model_name, "gordon");
-			sprintf (model_filename, "models/players/gordon/player.mdl");
+			com.strcpy(model_name, "gordon");
+			com.sprintf (model_filename, "models/players/gordon/player.mdl");
 			ci->model = re->RegisterModel (model_filename);
 		}
 
@@ -413,15 +414,15 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
  		if (!ci->skin && strcasecmp(model_name, "male"))
 		{
 			// change model to male
-			strcpy(model_name, "male");
-			sprintf (model_filename, "models/players/gordon/player.mdl");
+			com.strcpy(model_name, "male");
+			com.sprintf (model_filename, "models/players/gordon/player.mdl");
 			ci->model = re->RegisterModel (model_filename);
 		}
 
 		// weapon file
 		for (i = 0; i < num_cl_weaponmodels; i++)
 		{
-			sprintf (weapon_filename, "models/weapons/%s", cl_weaponmodels[i]);
+			com.sprintf (weapon_filename, "models/weapons/%s", cl_weaponmodels[i]);
 			ci->weaponmodel[i] = re->RegisterModel(weapon_filename);
 			if (!cl_vwep->value) break; // only one when vwep is off
 		}
@@ -663,7 +664,7 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 
 		case svc_print:
 			i = MSG_ReadByte( msg );
-			if (i == 3) S_StartLocalSound ("misc/talk.wav"); // chat
+			if( i == PRINT_CHAT ) S_StartLocalSound ("misc/talk.wav"); // chat
 			Msg ("^6%s", MSG_ReadString( msg ));
 			break;
 			

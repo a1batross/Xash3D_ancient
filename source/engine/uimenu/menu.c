@@ -275,13 +275,13 @@ void M_DrawCursor( int x, int y, int f )
 
 		for ( i = 0; i < NUM_CURSOR_FRAMES; i++ )
 		{
-			sprintf( cursorname, "menu/m_cursor%d", i );
+			com.sprintf( cursorname, "menu/m_cursor%d", i );
 			re->RegisterPic( cursorname );
 		}
 		cached = true;
 	}
 
-	sprintf( cursorname, "menu/m_cursor%d", f );
+	com.sprintf( cursorname, "menu/m_cursor%d", f );
 	SCR_DrawPic( x, y, -1, -1, cursorname );
 }
 
@@ -924,7 +924,7 @@ static const char *Keys_MenuKey( int key )
 		{
 			char cmd[1024];
 
-			sprintf (cmd, "bind \"%s\" \"%s\"\n", Key_KeynumToString(key), bindnames[item->generic.localdata[0]][0]);
+			com.sprintf (cmd, "bind \"%s\" \"%s\"\n", Key_KeynumToString(key), bindnames[item->generic.localdata[0]][0]);
 			Cbuf_InsertText (cmd);
 		}
 		
@@ -1013,7 +1013,7 @@ static void ControlsSetMenuItemValues( void )
 	s_options_sfxvolume_slider.curvalue = Cvar_VariableValue( "s_volume" ) * 10;
 	s_options_musicvolume_slider.curvalue = Cvar_VariableValue( "s_musicvolume" ) * 10;
 	s_options_quality_list.curvalue = !(Cvar_VariableValue( "s_khz" ) == 22);
-	s_options_sensitivity_slider.curvalue = ( sensitivity->value ) * 2;
+	s_options_sensitivity_slider.curvalue = ( cl_sensitivity->value ) * 2;
 
 	Cvar_SetValue( "cl_run", ClampCvar( 0, 1, cl_run->value ) );
 	s_options_alwaysrun_box.curvalue = cl_run->value;
@@ -2427,7 +2427,7 @@ static void DMFlagCallback( void *self )
 
 setvalue:
 	Cvar_SetValue ("dmflags", flags);
-	sprintf( dmoptions_statusbar, "dmflags = %d", flags );
+	com.sprintf( dmoptions_statusbar, "dmflags = %d", flags );
 }
 
 void DMOptions_MenuInit( void )
@@ -2769,7 +2769,7 @@ void AddressBook_MenuInit( void )
 		cvar_t *adr;
 		char buffer[20];
 
-		sprintf( buffer, "adr%d", i );
+		com.sprintf( buffer, "adr%d", i );
 
 		adr = Cvar_Get( buffer, "", CVAR_ARCHIVE );
 
@@ -2797,7 +2797,7 @@ const char *AddressBook_MenuKey( int key )
 
 		for ( index = 0; index < NUM_ADDRESSBOOK_ENTRIES; index++ )
 		{
-			sprintf( buffer, "adr%d", index );
+			com.sprintf( buffer, "adr%d", index );
 			Cvar_Set( buffer, s_addressbook_fields[index].field.buffer );
 		}
 	}
@@ -3094,7 +3094,7 @@ void PlayerConfig_MenuDraw( void )
 
 		memset( &entity, 0, sizeof( entity ) );
 
-		sprintf( scratch, "models/players/%s/player.mdl", s_pmi[s_player_model_box.curvalue].directory );
+		com.sprintf( scratch, "models/players/%s/player.mdl", s_pmi[s_player_model_box.curvalue].directory );
 		entity.model = re->RegisterModel( scratch );
 		entity.flags = RF_FULLBRIGHT;
 		entity.origin[0] = 80;

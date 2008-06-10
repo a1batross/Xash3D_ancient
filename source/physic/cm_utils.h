@@ -65,6 +65,7 @@ bool CM_AreasConnected( int area1, int area2 );
 int CM_WriteAreaBits( byte *buffer, int area );
 void CM_ModelBounds( cmodel_t *model, vec3_t mins, vec3_t maxs );
 float CM_FindFloor( vec3_t p0, float maxDist );
+void CM_SetOrigin( physbody_t *body, vec3_t origin );
 
 void CM_PlayerMove( pmove_t *pmove, bool clientmove );
 void CM_ServerMove( pmove_t *pmove );

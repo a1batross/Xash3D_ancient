@@ -3,8 +3,7 @@
 //			host.c - dedicated and shared host
 //=======================================================================
 
-#include <setjmp.h>
-#include "engine.h"
+#include "common.h"
 #include "server.h"
 #include "client.h"
 
@@ -445,7 +444,7 @@ void Host_Error( const char *error, ... )
 	va_list		argptr;
 
 	va_start( argptr, error );
-	vsprintf( hosterror1, error, argptr );
+	com.vsprintf( hosterror1, error, argptr );
 	va_end( argptr );
 
 	if( host.framecount < 3 || host.state == HOST_SHUTDOWN )

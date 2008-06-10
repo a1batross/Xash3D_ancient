@@ -3,11 +3,60 @@
 //		common.c - misc functions used in client and server
 //=======================================================================
 
-#include "engine.h"
+#include "common.h"
 #include "basefiles.h"
 #include "mathlib.h"
 
-static search_t *vm_search;
+/*
+===============================================================================
+
+SYSTEM IO
+
+===============================================================================
+*/
+void Sys_Error( const char *error, ... )
+{
+	char		errorstring[MAX_INPUTLINE];
+	static bool	recursive = false;
+	va_list		argptr;
+
+	va_start( argptr, error );
+	com.vsprintf( errorstring, error, argptr );
+	va_end( argptr );
+
+	// don't multiple executes
+	if( recursive )
+	{
+		// echo to system console and log
+		Sys_Print( va("Sys_RecursiveError: %s\n", errorstring ));
+		return;
+	}	
+
+	recursive = true;
+
+	// prepare host to close
+	com.sprintf( host.finalmsg, "Server fatal crashed: %s\n", errorstring );
+	host.state = HOST_ERROR;	// lock shutdown state
+	Host_FreeRender();		// close render to show message error
+
+	com.error("%s", errorstring );
+}
+
+/*
+================
+Sys_SendKeyEvents
+
+Send Key_Event calls
+================
+*/
+void Sys_SendKeyEvents( void )
+{
+	// grab frame time 
+	host.sv_timer = Sys_GetKeyEvents();
+	host.cl_timer = host.realtime * 1000;
+	host.realtime = Sys_DoubleTime();
+	
+}
 
 /*
 =======================================================================
@@ -32,7 +81,7 @@ bool VM_ValidateArgs( const char *builtin, int num_argc )
 
 void VM_ValidateString( const char *s )
 {
-	if( s[0] <= ' ' ) PRVM_ERROR( "%s: bad string", PRVM_NAME );
+	if( s[0] <= ' ' ) PRVM_ERROR( "%s: bad string\n", PRVM_NAME );
 }
 
 
@@ -103,9 +152,54 @@ const char *VM_VarArgs( int start_arg )
 		while( out < outend && *m )
 			*out++ = *m++;	// copy next arg
 	}
-
 	return vm_string;
 }
+
+vfile_t *VM_GetFileHandle( int index )
+{
+	if( index < 0 || index >= PRVM_MAX_OPENFILES )
+	{
+		Msg("VM_GetFileHandle: invalid file handle %i\n", index );
+		return NULL;
+	}
+	if( prog->file[index] == NULL )
+	{
+		Msg("VM_GetFileHandle: no such file handle %i (or file has been closed)\n", index );
+		return NULL;
+	}
+	return prog->file[index];
+}
+
+void VM_Files_Init( void )
+{
+	int	i;
+	for( i = 0; i < PRVM_MAX_OPENFILES; i++ )
+		prog->file[i] = NULL;
+}
+
+void VM_Files_CloseAll( void )
+{
+	int	i;
+
+	for( i = 0; i < PRVM_MAX_OPENFILES; i++ )
+	{
+		if( prog->file[i] )
+			FS_Close(VFS_Close(prog->file[i]));
+		prog->file[i] = NULL;
+	}
+}
+
+void VM_Cmd_Init( void )
+{
+	// only init the stuff for the current prog
+	VM_Files_Init();
+}
+
+void VM_Cmd_Reset( void )
+{
+	VM_Files_CloseAll();
+}
+
 
 /*
 =======================================================================
@@ -148,7 +242,39 @@ void Com_Error( ... )
 */
 void VM_HostError( void )
 {
-	Host_Error(VM_VarArgs( 0 ));
+	edict_t		*ed;
+	const char	*s = VM_VarArgs( 0 );
+
+	Msg( "====== %s ERROR in %s:\n%s\n", PRVM_NAME, PRVM_GetString(prog->xfunction->s_name), s );
+	if( prog->pev )
+	{
+		ed = PRVM_G_EDICT( prog->pev->ofs );
+		PRVM_ED_Print( ed );
+	}
+	Host_Error("%s: Program error in function %s:\n%s\n", PRVM_NAME, PRVM_GetString(prog->xfunction->s_name), s );
+}
+
+/*
+=================
+VM_EdictError
+
+void Ed_Error( ... )
+=================
+*/
+void VM_EdictError( void )
+{
+	edict_t		*ed;
+	const char	*s = VM_VarArgs( 0 );
+
+	Msg( "======OBJECT ERROR======\n", PRVM_NAME, PRVM_GetString(prog->xfunction->s_name), s );
+	if( prog->pev )
+	{
+		ed = PRVM_G_EDICT( prog->pev->ofs );
+		PRVM_ED_Print( ed );
+		PRVM_ED_Free( ed );
+	}
+	else PRVM_ERROR ("VM_objecterror: pev not defined !");
+	Msg("%s OBJECT ERROR in %s:\n%s\n", PRVM_NAME, PRVM_GetString(prog->xfunction->s_name), s );
 }
 
 /*
@@ -376,14 +502,14 @@ void VM_ComSearchFiles( void )
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
 
 	// release previous search
-	if( vm_search ) Mem_Free( vm_search );
+	if( prog->search ) Mem_Free( prog->search );
 
 	mask = PRVM_G_STRING(OFS_PARM0);
 	casecmp = PRVM_G_FLOAT(OFS_PARM1) ? true : false;
 
-	vm_search = FS_Search( mask, casecmp );
+	prog->search = FS_Search( mask, casecmp );
 
-	if( vm_search ) numfiles = vm_search->numfilenames;
+	if( prog->search ) numfiles = prog->search->numfilenames;
 	PRVM_G_FLOAT(OFS_RETURN) = (float)numfiles;
 }
 
@@ -403,8 +529,8 @@ void VM_ComSearchNames( void )
 
 	num = PRVM_G_FLOAT(OFS_PARM0);
 
-	if( vm_search && vm_search->numfilenames > num ) // in-range
-		PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( vm_search->filenames[num] );
+	if( prog->search && prog->search->numfilenames > num ) // in-range
+		PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( prog->search->filenames[num] );
 	else PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( NULL );
 }
 
@@ -515,6 +641,29 @@ void VM_CvarSetValue( void )
 
 	// set new value
 	Cvar_SetValue( name, value );
+}
+
+/*
+=========
+VM_CvarSetString
+
+void Cvar_SetString( string name, string value )
+=========
+*/
+void VM_CvarSetString( void )
+{
+	const char	*name, *value;
+
+	if(!VM_ValidateArgs( "Cvar_SetString", 2 ))
+		return;
+
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM1));
+	name = PRVM_G_STRING(OFS_PARM0);
+	value = PRVM_G_STRING(OFS_PARM1);
+
+	// set new value
+	Cvar_Set( name, value );
 }
 
 /*
@@ -714,7 +863,7 @@ void VM_FindEdict( void )
 		prog->xfunction->builtinsprofile++;
 		ed = PRVM_EDICT_NUM(e);
 		if( ed->priv.ed->free )continue;
-		t = PRVM_E_STRING( ed, f );
+		t = PRVM_GetString(*(string_t *)&((float*)ed->progs.vp)[f]);
 		if(!t) t = "";
 		if(!com.strcmp( t, s ))
 		{
@@ -750,13 +899,12 @@ void VM_FindField( void )
 		prog->xfunction->builtinsprofile++;
 		ed = PRVM_EDICT_NUM(e);
 		if( ed->priv.ed->free ) continue;
-		if( PRVM_E_FLOAT(ed, f) == s )
+		if(((float*)ed->progs.vp)[f] == s )
 		{
 			VM_RETURN_EDICT( ed );
 			return;
 		}
 	}
-
 	VM_RETURN_EDICT( prog->edicts );
 }
 
@@ -766,28 +914,111 @@ void VM_FindField( void )
 		    VIRTUAL MACHINE FILESYSTEM API
 =======================================================================
 */
+/*
+=========
+VM_FS_Open
+
+float fopen( string filename, float mode )
+=========
+*/
 void VM_FS_Open( void )
 {
+	int		filenum, mode;
+	const char	*modestring, *filename;
+
+	if(!VM_ValidateArgs( "fopen", 2 )) return;
+	for( filenum = 0; filenum < PRVM_MAX_OPENFILES; filenum++ )
+		if( prog->file[filenum] == NULL ) break;
+
+	if( filenum >= PRVM_MAX_OPENFILES )
+	{
+		PRVM_G_FLOAT(OFS_RETURN) = -2;
+		VM_Warning( "fopen: %s file handles limit exceeded( max %i )\n", PRVM_NAME, PRVM_MAX_OPENFILES );
+		return;
+	}
+
+	mode = (int)PRVM_G_FLOAT( OFS_PARM1 );
+	switch( mode )
+	{
+	case 0: modestring = "rb"; break; // FILE_READ
+	case 1: modestring = "ab"; break; // FILE_APPEND
+	case 2: modestring = "wb"; break; // FILE_WRITE
+	default:
+		PRVM_G_FLOAT(OFS_RETURN) = -3;
+		VM_Warning( "fopen: no such mode %i\n", mode );
+		return;
+	}
+	filename = PRVM_G_STRING(OFS_PARM0);
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+
+	prog->file[filenum] = VFS_Open(FS_Open( filename, modestring ), modestring );
+
+	if (prog->file[filenum] == NULL)
+	{
+		PRVM_G_FLOAT(OFS_RETURN) = -1;
+		VM_Warning("fopen: can't open %s [%s]\n", filename, modestring );
+	}
+	else PRVM_G_FLOAT(OFS_RETURN) = filenum;
 }
 
-void VM_FS_Gets( void )
-{
-}
+/*
+=========
+VM_FS_Close
 
-void VM_FS_Gete( void )
-{
-}
-
-void VM_FS_Puts( void )
-{
-}
-
-void VM_FS_Pute( void )
-{
-}
-
+float fclose( float handle )
+=========
+*/
 void VM_FS_Close( void )
 {
+	vfile_t	*handle;
+
+	if(!VM_ValidateArgs( "fclose", 2 )) return;
+	handle = VM_GetFileHandle((int)PRVM_G_FLOAT( OFS_PARM0 ));
+	if(!handle) return;
+
+	FS_Close(VFS_Close( handle ));
+}
+
+/*
+=========
+VM_FS_Gets
+
+string fgets( float handle )
+=========
+*/
+void VM_FS_Gets( void )
+{
+	static char	string[MAX_INPUTLINE];
+	vfile_t		*handle;
+	int		c;
+
+	if(!VM_ValidateArgs( "fgets", 1 )) return;
+	handle = VM_GetFileHandle((int)PRVM_G_FLOAT( OFS_PARM0 ));
+	if(!handle) return;
+
+	c = VFS_Gets( handle, string, MAX_INPUTLINE );
+	if( c >= 0 ) PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( string );
+	else PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( NULL );
+}
+
+/*
+=========
+VM_FS_Puts
+
+string fputs( float handle )
+=========
+*/
+void VM_FS_Puts( void )
+{
+	vfile_t		*handle;
+	const char	*s;
+
+	if(!VM_ValidateArgs( "fputs", 1 )) return;
+	handle = VM_GetFileHandle((int)PRVM_G_FLOAT( OFS_PARM0 ));
+	if(!handle) return;
+
+	s = VM_VarArgs( 1 );
+	VFS_Print( handle, s );
 }
 
 /*
@@ -1074,11 +1305,11 @@ VM_RandomVector,			// #23 vector RandomVector( vector min, vector max )
 VM_CvarRegister,			// #24 void Cvar_Register( string name, string value, float flags )
 VM_CvarSetValue,			// #25 void Cvar_SetValue( string name, float value )
 VM_CvarGetValue,			// #26 float Cvar_GetValue( string name )
-VM_ComVA,				// #27 string va( ... )
-VM_ComStrlen,			// #28 float strlen( string text )
-VM_TimeStamp,			// #29 string Com_TimeStamp( float format )
-VM_LocalCmd,			// #30 void LocalCmd( ... )
-NULL,				// #31 -- reserved --
+VM_CvarSetString,			// #27 void Cvar_SetString( string name, string value )
+VM_ComVA,				// #28 string va( ... )
+VM_ComStrlen,			// #29 float strlen( string text )
+VM_TimeStamp,			// #30 string Com_TimeStamp( float format )
+VM_LocalCmd,			// #31 void LocalCmd( ... )
 NULL,				// #32 -- reserved --
 NULL,				// #33 -- reserved --
 NULL,				// #34 -- reserved --
@@ -1105,9 +1336,9 @@ NULL,				// #50 -- reserved --
 VM_FS_Open,			// #51 float fopen( string filename, float mode )
 VM_FS_Close,			// #52 void fclose( float handle )
 VM_FS_Gets,			// #53 string fgets( float handle )
-VM_FS_Gete,			// #54 entity fgete( float handle )
-VM_FS_Puts,			// #55 void fputs( float handle, string s )
-VM_FS_Pute,			// #56 void fpute( float handle, entity e )
+VM_FS_Puts,			// #54 void fputs( float handle, string s )
+NULL,				// #55 -- reserved --
+NULL,				// #56 -- reserved --
 NULL,				// #57 -- reserved --
 NULL,				// #58 -- reserved --
 NULL,				// #59 -- reserved --
@@ -1317,17 +1548,17 @@ void Info_SetValueForKey (char *s, char *key, char *value)
 	}
 
 	Info_RemoveKey (s, key);
-	if (!value || !strlen(value)) return;
-	sprintf (newi, "\\%s\\%s", key, value);
+	if (!value || !com.strlen(value)) return;
+	com.sprintf (newi, "\\%s\\%s", key, value);
 
-	if (strlen(newi) + strlen(s) > maxsize)
+	if (com.strlen(newi) + com.strlen(s) > maxsize)
 	{
 		Msg ("Info string length exceeded\n");
 		return;
 	}
 
 	// only copy ascii values
-	s += strlen(s);
+	s += com.strlen(s);
 	v = newi;
 	while (*v)
 	{

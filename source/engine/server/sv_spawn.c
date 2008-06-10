@@ -1,4 +1,4 @@
-#include "engine.h"
+#include "common.h"
 #include "server.h"
 
 edict_t	*pm_passent;
@@ -625,7 +625,7 @@ void PF_cprintf (edict_t *ent, int level, char *fmt, ...)
 	}
 
 	va_start (argptr,fmt);
-	vsprintf (msg, fmt, argptr);
+	com.vsprintf (msg, fmt, argptr);
 	va_end (argptr);
 
 	if (ent) SV_ClientPrintf (svs.clients+(n-1), level, "%s", msg);
@@ -647,7 +647,7 @@ void Cmd_Say_f (edict_t *ent, bool team, bool arg0)
 
 	if (Cmd_Argc () < 2 && !arg0) return;
 
-	sprintf (text, "%s: ", "all");
+	com.sprintf (text, "%s: ", "all");
 
 	if (arg0)
 	{
@@ -696,7 +696,7 @@ void SV_HelpComputer (edict_t *ent)
 	char	string[1024];
 	char	*sk = "medium";
 
-	sprintf (string, "xv 32 yv 8 picn help "	// background
+	com.sprintf (string, "xv 32 yv 8 picn help "	// background
 		"xv 202 yv 12 string2 \"%s\" "	// skill
 		"xv 0 yv 24 cstring2 \"%s\" "		// level name
 		"xv 0 yv 54 cstring2 \"%s\" "		// help 1

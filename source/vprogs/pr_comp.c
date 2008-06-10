@@ -6637,8 +6637,6 @@ called before compiling a batch of files, clears the pr struct
 void PR_BeginCompilation ( void )
 {
 	pr.def_tail = &pr.def_head;
-
-	PR_ResetErrorScope();
 	pr_scope = NULL;
 
 	type_void = PR_NewType("void", ev_void);

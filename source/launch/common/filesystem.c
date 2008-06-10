@@ -3128,9 +3128,9 @@ fs_offset_t VFS_Write( vfile_t *file, const void *buf, size_t size )
 
 		if (file->buffsize < newsize)
 		{
-			//reallocate buffer now
+			// reallocate buffer now
 			file->buff = Mem_Realloc(fs_mempool, file->buff, newsize );		
-			file->buffsize = newsize; //merge buffsize
+			file->buffsize = newsize; // merge buffsize
 		}
 	}
 
@@ -3146,7 +3146,7 @@ fs_offset_t VFS_Write( vfile_t *file, const void *buf, size_t size )
 
 /*
 ====================
-FS_Print
+VFS_Print
 
 Print a string into a file
 ====================

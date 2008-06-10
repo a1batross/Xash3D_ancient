@@ -3,6 +3,6 @@
 //		        sv_client.c - client interactions
 //=======================================================================
 
-#include "engine.h"
+#include "common.h"
 #include "server.h"
 

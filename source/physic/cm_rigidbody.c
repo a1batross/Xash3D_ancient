@@ -108,6 +108,17 @@ void Phys_SetParameters( physbody_t *body, cmodel_t *mod, int material, float ma
 	NewtonBodySetMassMatrix( body, mass, size[0], size[1], size[2] );
 }
 
+void CM_SetOrigin( physbody_t *body, vec3_t origin )
+{
+	matrix4x4		trans;
+
+	if( !body ) return;
+
+	NewtonBodyGetMatrix( body, &trans[0][0] );
+	CM_ConvertPositionToMeters( trans[3], origin );	// merge position
+	NewtonBodySetMatrix( body, &trans[0][0] );	// set new origin
+}
+
 bool Phys_GetForce( physbody_t *body, vec3_t velocity, vec3_t avelocity, vec3_t force, vec3_t torque )
 {
 	if(!body) return false;

@@ -610,7 +610,6 @@ void PR_ParseState (void);
 char *PR_ParseName( void );
 void PR_Expect (char *string);
 char *TypeName( type_t *type );
-void PR_ResetErrorScope( void );
 void PR_SkipToSemicolon( void );
 type_t *TypeForName(char *name);
 void PR_ClearGrabMacros( void );

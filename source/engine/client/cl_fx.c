@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // cl_fx.c -- entity effects parsing and management
 
+#include "common.h"
 #include "client.h"
 
 void CL_LogoutEffect (vec3_t org, int type);

@@ -3,7 +3,7 @@
 //			net_msg.c - network messages
 //=======================================================================
 
-#include "engine.h"
+#include "common.h"
 #include "mathlib.h"
 
 /*

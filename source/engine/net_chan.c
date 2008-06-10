@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "engine.h"
+#include "common.h"
 #include "mathlib.h"
 
 /*
@@ -136,7 +136,7 @@ void Netchan_OutOfBandPrint (int net_socket, netadr_t adr, char *format, ...)
 	static char		string[MAX_MSGLEN - 4];
 	
 	va_start (argptr, format);
-	vsprintf (string, format,argptr);
+	com.vsprintf (string, format,argptr);
 	va_end (argptr);
 
 	Netchan_OutOfBand (net_socket, adr, strlen(string), (byte *)string);

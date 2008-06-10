@@ -3,6 +3,7 @@
 //			cl_console.c - client console
 //=======================================================================
 
+#include "common.h"
 #include "client.h"
 
 cvar_t	*con_notifytime;

@@ -3,6 +3,7 @@
 //		cg_user.c - stuff that will moved into client.dat
 //=======================================================================
 
+#include "common.h"
 #include "client.h"
 
 extern cvar_t	*scr_centertime;
@@ -237,7 +238,7 @@ void CG_DrawInventory( void )
 	{
 		item = index[i];
 		// search for a binding
-		sprintf(binding, "use %s", cl.configstrings[CS_ITEMS + item]);
+		com.sprintf(binding, "use %s", cl.configstrings[CS_ITEMS + item]);
 		bind = "";
 		for (j = 0; j < 256; j++)
 		{
@@ -272,7 +273,7 @@ void CG_DrawField( int value, int x, int y )
 	int	l, frame;
 	vec2_t	scale;
 
-	sprintf(num, "%i", value );
+	com.sprintf(num, "%i", value );
 	l = strlen( num );
 	ptr = num;
 

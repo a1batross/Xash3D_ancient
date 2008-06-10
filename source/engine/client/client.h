@@ -22,10 +22,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef CLIENT_H
 #define CLIENT_H
 
-#include "engine.h"
-#include "screen.h"
 #include "mathlib.h"
 #include "basefiles.h"
+#include "cl_edict.h"
 
 #define MAX_EDIT_LINE	256
 #define COMMAND_HISTORY	32
@@ -335,7 +334,8 @@ extern	cvar_t	*cl_showclamp;
 
 extern	cvar_t	*lookspring;
 extern	cvar_t	*lookstrafe;
-extern	cvar_t	*sensitivity;
+extern	cvar_t	*cl_sensitivity;
+extern	cvar_t	*ui_sensitivity;
 
 extern	cvar_t	*m_pitch;
 extern	cvar_t	*m_yaw;

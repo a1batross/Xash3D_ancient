@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // cl_main.c  -- client main loop
 
-#include <windows.h>
+#include "common.h"
 #include "client.h"
 
 cvar_t	*freelook;
@@ -59,7 +59,6 @@ cvar_t	*cl_paused;
 
 cvar_t	*lookspring;
 cvar_t	*lookstrafe;
-cvar_t	*sensitivity;
 
 cvar_t	*m_pitch;
 cvar_t	*m_yaw;
@@ -597,7 +596,7 @@ void CL_PingServers_f (void)
 	// send a packet to each address book entry
 	for (i = 0; i < 16; i++)
 	{
-		sprintf (name, "adr%i", i);
+		com.sprintf (name, "adr%i", i);
 		adrstring = Cvar_VariableString (name);
 		if (!adrstring || !adrstring[0])
 			continue;
@@ -954,7 +953,7 @@ void CL_RequestNextDownload (void)
 					precache_check++;
 					continue;
 				}
-				sprintf(fn, "sound/%s", cl.configstrings[precache_check++]);
+				com.sprintf(fn, "sound/%s", cl.configstrings[precache_check++]);
 				if (!CL_CheckOrDownloadFile(fn)) return; // started a download
 			}
 		}
@@ -965,7 +964,7 @@ void CL_RequestNextDownload (void)
 		if (precache_check == CS_IMAGES) precache_check++; // zero is blank
 		while (precache_check < CS_IMAGES+MAX_IMAGES && cl.configstrings[precache_check][0])
 		{
-			sprintf(fn, "pics/%s.pcx", cl.configstrings[precache_check++]);
+			com.sprintf(fn, "pics/%s.pcx", cl.configstrings[precache_check++]);
 			if (!CL_CheckOrDownloadFile(fn)) return; // started a download
 		}
 		precache_check = CS_PLAYERSKINS;
@@ -1007,7 +1006,7 @@ void CL_RequestNextDownload (void)
 				switch (n)
 				{
 				case 0: // model
-					sprintf(fn, "models/players/%s/player.mdl", model);
+					com.sprintf(fn, "models/players/%s/player.mdl", model);
 					if (!CL_CheckOrDownloadFile(fn))
 					{
 						precache_check = CS_PLAYERSKINS + i * PLAYER_MULT + 1;
@@ -1017,7 +1016,7 @@ void CL_RequestNextDownload (void)
 					/*FALL THROUGH*/
 
 				case 1: // weapon model
-					sprintf(fn, "weapons/%s.mdl", model);
+					com.sprintf(fn, "weapons/%s.mdl", model);
 					if (!CL_CheckOrDownloadFile(fn))
 					{
 						precache_check = CS_PLAYERSKINS + i * PLAYER_MULT + 2;
@@ -1054,8 +1053,8 @@ void CL_RequestNextDownload (void)
 			{
 				int n = precache_check++ - ENV_CNT - 1;
 
-				if (n & 1) sprintf(fn, "textures/env_skybox/%s.dds", cl.configstrings[CS_SKY] ); // cubemap pack
-				else sprintf(fn, "textures/env_skybox/%s%s.tga", cl.configstrings[CS_SKY], env_suf[n/2]);
+				if (n & 1) com.sprintf(fn, "textures/env_skybox/%s.dds", cl.configstrings[CS_SKY] ); // cubemap pack
+				else com.sprintf(fn, "textures/env_skybox/%s%s.tga", cl.configstrings[CS_SKY], env_suf[n/2]);
 				if (!CL_CheckOrDownloadFile(fn)) return; // started a download
 			}
 		}
@@ -1077,7 +1076,7 @@ void CL_RequestNextDownload (void)
 			{
 				char fn[MAX_OSPATH];
 
-				sprintf(fn, "textures/%s.tga", pe->GetTextureName( precache_tex++ ));
+				com.sprintf(fn, "textures/%s.tga", pe->GetTextureName( precache_tex++ ));
 				if(!CL_CheckOrDownloadFile(fn)) return; // started a download
 			}
 		}
@@ -1155,7 +1154,6 @@ void CL_InitLocal (void)
 	freelook = Cvar_Get( "freelook", "0", CVAR_ARCHIVE );
 	lookspring = Cvar_Get ("lookspring", "0", CVAR_ARCHIVE);
 	lookstrafe = Cvar_Get ("lookstrafe", "0", CVAR_ARCHIVE);
-	sensitivity = Cvar_Get ("sensitivity", "3", CVAR_ARCHIVE);
 
 	m_pitch = Cvar_Get ("m_pitch", "0.022", CVAR_ARCHIVE);
 	m_yaw = Cvar_Get ("m_yaw", "0.022", 0);

@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // cl_ents.c -- entity parsing and management
 
+#include "common.h"
 #include "client.h"
 
 /*
@@ -536,23 +537,23 @@ model_t *S_RegisterSexedModel (entity_state_t *ent, char *base)
 	}
 	// if we can't figure it out, they're male
 	if (!model[0])
-		strcpy(model, "gordon");
+		com.strcpy(model, "gordon");
 
-	sprintf (buffer, "players/%s/%s", model, base+1);
+	com.sprintf (buffer, "players/%s/%s", model, base+1);
 	mdl = re->RegisterModel(buffer);
 	if (!mdl) {
 		// not found, try default weapon model
-		sprintf (buffer, "weapons/%s.mdl", model);
+		com.sprintf (buffer, "weapons/%s.mdl", model);
 		mdl = re->RegisterModel(buffer);
 		if (!mdl)
 		{
 			// no, revert to the male model
-			sprintf (buffer, "models/players/%s/%s", "male", base+1);
+			com.sprintf (buffer, "models/players/%s/%s", "male", base+1);
 			mdl = re->RegisterModel(buffer);
 			if (!mdl)
 			{
 				// last try, default male weapon.mdl
-				sprintf (buffer, "weapons/w_glock.mdl");
+				com.sprintf (buffer, "weapons/w_glock.mdl");
 				mdl = re->RegisterModel(buffer);
 			}
 		} 

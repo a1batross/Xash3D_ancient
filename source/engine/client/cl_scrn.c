@@ -3,6 +3,7 @@
 //			cl_scrn.c - build client frame
 //=======================================================================
 
+#include "common.h"
 #include "client.h"
 
 vrect_t	scr_vrect;		// position of render window on screen

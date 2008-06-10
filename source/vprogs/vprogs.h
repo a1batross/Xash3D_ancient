@@ -375,8 +375,6 @@ edict_t *PRVM_EDICT_NUM_ERROR(int n, char *filename, int fileline);
 #define PRVM_NEXT_EDICT(e) ((e) + 1)
 #define PRVM_EDICT_TO_PROG(e) (PRVM_NUM_FOR_EDICT(e))
 #define PRVM_PROG_TO_EDICT(n) (PRVM_EDICT_NUM(n))
-#define PRVM_PUSH_GLOBALS vm.prog->pev_save = vm.prog->globals.sv->pev, vm.prog->other_save = vm.prog->globals.sv->other
-#define PRVM_POP_GLOBALS vm.prog->globals.sv->pev = vm.prog->pev_save, vm.prog->globals.sv->other = vm.prog->other_save
 #define PRVM_ED_POINTER(p) (prvm_eval_t *)((byte *)vm.prog->edictsfields + p->_int)
 #define PRVM_EM_POINTER(p) (prvm_eval_t *)((byte *)vm.prog->edictsfields + (p))
 #define PRVM_EV_POINTER(p) (prvm_eval_t *)(((byte *)vm.prog->edicts) + p->_int) 	// this is correct ???

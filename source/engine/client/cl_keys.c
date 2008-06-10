@@ -3,6 +3,7 @@
 //			cl_keys.c - client key events
 //=======================================================================
 
+#include "common.h"
 #include "client.h"
 
 typedef struct key_s
@@ -259,7 +260,7 @@ void Field_CompleteCommand( field_t *field )
 		
 		if( result )
 		{         
-			sprintf( completionField->buffer, "%s %s", Cmd_Argv(0), filename ); 
+			com.sprintf( completionField->buffer, "%s %s", Cmd_Argv(0), filename ); 
 			completionField->cursor = strlen( completionField->buffer );
 			return;
 		}
@@ -267,7 +268,7 @@ void Field_CompleteCommand( field_t *field )
 
 	if( matchCount == 1 )
 	{
-		sprintf( completionField->buffer, "\\%s", shortestMatch );
+		com.sprintf( completionField->buffer, "\\%s", shortestMatch );
 		if ( Cmd_Argc() == 1 ) strncat( completionField->buffer, " ", sizeof( completionField->buffer ));
 		else ConcatRemaining( temp.buffer, completionString );
 		completionField->cursor = strlen( completionField->buffer );
@@ -275,7 +276,7 @@ void Field_CompleteCommand( field_t *field )
 	}
 
 	// multiple matches, complete to shortest
-	sprintf( completionField->buffer, "\\%s", shortestMatch );
+	com.sprintf( completionField->buffer, "\\%s", shortestMatch );
 	completionField->cursor = strlen( completionField->buffer );
 	ConcatRemaining( temp.buffer, completionString );
 
@@ -553,8 +554,8 @@ void Key_Console(int key)
 		{
 			char	temp[MAX_STRING_CHARS];
 
-			strncpy( temp, g_consoleField.buffer, sizeof( temp ));
-			sprintf( g_consoleField.buffer, "\\%s", temp );
+			com.strncpy( temp, g_consoleField.buffer, sizeof( temp ));
+			com.sprintf( g_consoleField.buffer, "\\%s", temp );
 			g_consoleField.cursor++;
 		}
 
@@ -689,8 +690,8 @@ void Key_Message( int key )
 	{
 		if ( chatField.buffer[0] && cls.state == ca_active )
 		{
-			if (chat_team) sprintf( buffer, "say_team \"%s\"\n", chatField.buffer );
-			else sprintf( buffer, "say \"%s\"\n", chatField.buffer );
+			if (chat_team) com.sprintf( buffer, "say_team \"%s\"\n", chatField.buffer );
+			else com.sprintf( buffer, "say \"%s\"\n", chatField.buffer );
 
 			Cbuf_AddText( buffer );
 			Cbuf_AddText("\"\n");//exec
@@ -1054,7 +1055,7 @@ void Key_AddKeyUpCommands( int key, char *kb )
 			{
 				// button commands add keynum and time as parms so that multiple
 				// sources can be discriminated and subframe corrected
-				sprintf(cmd, "-%s %i %i\n", button+1, key, time);
+				com.sprintf(cmd, "-%s %i %i\n", button+1, key, time);
 				Cbuf_AddText (cmd);
 				keyevent = true;
 			}
@@ -1187,7 +1188,7 @@ void Key_Event(int key, bool down, uint time)
 					{
 						// button commands add keynum and time as parms so that multiple
 						// sources can be discriminated and subframe corrected
-						sprintf(cmd, "%s %i %i\n", button, key, time);
+						com.sprintf(cmd, "%s %i %i\n", button, key, time);
 						Cbuf_AddText(cmd);
 					}
 					else

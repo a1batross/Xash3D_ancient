@@ -6,9 +6,9 @@
 #ifndef UIMENU_H
 #define UIMENU_H
 
-#include "engine.h"
+#include "common.h"
+#include "screen.h"
 #include "client.h"
-#include "keycodes.h"
 #include "ui_edict.h"
 
 #define MAXMENUITEMS	64

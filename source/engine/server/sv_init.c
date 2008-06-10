@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "engine.h"
+#include "common.h"
 #include "server.h"
 
 server_static_t	svs;	// persistant server info
@@ -189,17 +189,17 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 	}
 	else
 	{
-		sprintf(sv.configstrings[CS_MODELS+1], "maps/%s", server);
+		com.sprintf(sv.configstrings[CS_MODELS+1], "maps/%s", server);
 		sv.models[1] = pe->BeginRegistration(sv.configstrings[CS_MODELS+1], false, &checksum);
 	}
-	sprintf(sv.configstrings[CS_MAPCHECKSUM], "%i", checksum);
+	com.sprintf(sv.configstrings[CS_MAPCHECKSUM], "%i", checksum);
 
 	// clear physics interaction links
 	SV_ClearWorld();
 
 	for (i = 1; i < pe->NumBmodels(); i++)
 	{
-		sprintf( sv.configstrings[CS_MODELS+1+i], "*%i", i );
+		com.sprintf( sv.configstrings[CS_MODELS+1+i], "*%i", i );
 		sv.models[i+1] = pe->RegisterModel(sv.configstrings[CS_MODELS+1+i] );
 	}
 
@@ -308,7 +308,7 @@ void SV_InitGame (void)
 
 	// heartbeats will always be sent to the id master
 	svs.last_heartbeat = -99999.0f; // send immediately
-	sprintf(idmaster, "192.246.40.37:%i", PORT_MASTER);
+	com.sprintf(idmaster, "192.246.40.37:%i", PORT_MASTER);
 	NET_StringToAdr (idmaster, &master_adr[0]);
 
 	// init game

@@ -190,6 +190,10 @@ SOURCE=.\common.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\engine.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\host.c
 # End Source File
 # Begin Source File
@@ -262,19 +266,11 @@ SOURCE=.\server\sv_world.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\system.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\uimenu\ui_cmds.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\uimenu\ui_main.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\vm_cmds.c
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -291,6 +287,10 @@ SOURCE=.\client\cl_edict.h
 # Begin Source File
 
 SOURCE=.\client\client.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\common.h
 # End Source File
 # Begin Source File
 

@@ -3,7 +3,7 @@
 //			sv_physics.c - server physic
 //=======================================================================
 
-#include "engine.h"
+#include "common.h"
 #include "server.h"
 
 #define STEPSIZE		18

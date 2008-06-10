@@ -3,6 +3,7 @@
 //		       cl_demo.c - demo record & playback
 //=======================================================================
 
+#include "common.h"
 #include "client.h"
 
 /*

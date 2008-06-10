@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // sv_main.c -- server main program
 
-#include "engine.h"
+#include "common.h"
 #include "server.h"
 
 /*
@@ -41,7 +41,7 @@ void SV_FlushRedirect (int sv_redirected, char *outputbuf)
 	else if (sv_redirected == RD_CLIENT)
 	{
 		MSG_WriteByte (&sv_client->netchan.message, svc_print);
-		MSG_WriteByte (&sv_client->netchan.message, PRINT_HIGH);
+		MSG_WriteByte (&sv_client->netchan.message, PRINT_CONSOLE );
 		MSG_WriteString (&sv_client->netchan.message, outputbuf);
 	}
 }
@@ -72,7 +72,7 @@ void SV_ClientPrintf (client_state_t *cl, int level, char *fmt, ...)
 		return;
 	
 	va_start (argptr,fmt);
-	vsprintf (string, fmt,argptr);
+	com.vsprintf (string, fmt,argptr);
 	va_end (argptr);
 	
 	MSG_WriteByte (&cl->netchan.message, svc_print);
@@ -95,7 +95,7 @@ void SV_BroadcastPrintf (int level, char *fmt, ...)
 	int			i;
 
 	va_start (argptr,fmt);
-	vsprintf (string, fmt,argptr);
+	com.vsprintf (string, fmt,argptr);
 	va_end (argptr);
 	
 	// echo to console
@@ -136,7 +136,7 @@ void SV_BroadcastCommand (char *fmt, ...)
 	
 	if (!sv.state) return;
 	va_start (argptr,fmt);
-	vsprintf (string, fmt,argptr);
+	com.vsprintf (string, fmt,argptr);
 	va_end (argptr);
 
 	MSG_Begin(svc_stufftext);
@@ -508,7 +508,7 @@ void SV_SendClientMessages (void)
 		{
 			SZ_Clear (&c->netchan.message);
 			SZ_Clear (&c->datagram);
-			SV_BroadcastPrintf (PRINT_HIGH, "%s overflowed\n", c->name);
+			SV_BroadcastPrintf (PRINT_CONSOLE, "%s overflowed\n", c->name);
 			SV_DropClient (c);
 		}
 

@@ -3,7 +3,7 @@
 //			sv_studio.c - cm inline studio
 //=======================================================================
 
-#include "engine.h"
+#include "common.h"
 #include "server.h"
 
 cmodel_t *SV_GetModelPtr( edict_t *ent )

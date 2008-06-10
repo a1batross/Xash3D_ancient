@@ -23,7 +23,6 @@ int	pr_warning_count;
 int	pr_total_error_count;
 const_t	*CompilerConstant;
 int	numCompilerConstants;
-void	*errorscope;
 int	ForcedCRC;
 bool	recursivefunctiontype;
 
@@ -193,8 +192,6 @@ void PR_FindBestInclude( char *newfile, char *currentfile, char *rootpath )
 	com.strncpy( end, currentfile, stripfrom - currentfile ); 
 	end += stripfrom - currentfile; *end = '\0';
 	com.strcpy( end, newfile );
-
-	Msg("include: %s\n", fullname );
 	PR_Include( fullname );
 }
 
@@ -1462,7 +1459,7 @@ void PR_Undefine(void)
 	PR_UndefineName(pr_token);
 }
 
-void PR_ConditionCompilation(void)
+void PR_ConditionCompilation( void )
 {
 	char	*oldval;
 	char	*d;
@@ -1908,27 +1905,8 @@ end_of_file:
 
 void PR_ParsePrintDef (int type, def_t *def)
 {
-	if (pr_warning[type]) return;
-	if (def->s_file) PR_Message ("%s:%i:    %s  is defined here\n", strings + def->s_file, def->s_line, def->name);
-}
-
-void PR_PrintScope (void)
-{
-	if (pr_scope)
-	{
-		if (errorscope != pr_scope) PR_Message ("in function %s (line %i),\n", pr_scope->name, pr_scope->s_line);
-		errorscope = pr_scope;
-	}
-	else
-	{
-		if (errorscope) PR_Message ("at global scope,\n");
-		errorscope = NULL;
-	}
-}
-
-void PR_ResetErrorScope(void)
-{
-	errorscope = NULL;
+	if(pr_warning[type]) return;
+	if(def->s_file) PR_Message ("%s:%i: '%s' is defined here\n", strings + def->s_file, def->s_line, def->name);
 }
 
 /*
@@ -1945,14 +1923,13 @@ void PR_ParseError (int errortype, char *error, ...)
 	com.vsnprintf(string, sizeof(string) - 1, error, argptr);
 	va_end( argptr );
 
-	if(errortype == ERR_INTERNAL)
+	if( errortype == ERR_INTERNAL )
 	{
 		// because sys_error hide message in non-developer mode
 		Sys_Break( "internal error: %s\n", string );
 	}
 	else
 	{
-		PR_PrintScope();
 		PR_Message("%s:%i: error: %s\n", strings + s_file, pr_source_line, string);
 		longjmp (pr_parse_abort, 1);
 	}
@@ -1967,7 +1944,6 @@ void PR_ParseErrorPrintDef (int errortype, def_t *def, char *error, ...)
 	com.vsnprintf (string, sizeof(string)-1, error, argptr);
 	va_end (argptr);
 
-	PR_PrintScope();
 	PR_Message ("%s:%i: error: %s\n", strings + s_file, pr_source_line, string);
 
 	PR_ParsePrintDef(WARN_ERROR, def);
@@ -1990,7 +1966,6 @@ void PR_ParseWarning (int type, char *error, ...)
 	com.vsnprintf (string,sizeof(string) - 1, error,argptr);
 	va_end (argptr);
 
-	PR_PrintScope();
 	if(type == ERR_INTERNAL)
 	{
 		// instead of sys error
@@ -2021,7 +1996,6 @@ void PR_Warning (int type, char *file, int line, char *error, ...)
 	com.vsnprintf (string,sizeof(string) - 1, error,argptr);
 	va_end (argptr);
 
-	PR_PrintScope();
 	if (file) PR_Message ("%s(%i) : warning C%i: %s\n", file, line, type, string);
 	else PR_Message ("warning C%i: %s\n", type, string);
 	pr_warning_count++;

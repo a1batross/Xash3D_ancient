@@ -3,7 +3,7 @@
 //		        sv_cmds.c - server console commands
 //=======================================================================
 
-#include "engine.h"
+#include "common.h"
 #include "server.h"
 
 /*
@@ -234,11 +234,11 @@ Saves the state of the map just being exited and goes to a new map.
 void SV_ChangeLevel_f( void )
 {
 	char	filename[MAX_QPATH];
+	int	c = Cmd_Argc();
 
-
-	if(Cmd_Argc() != 2)
+	if( c != 2 && c != 3 )
 	{
-		Msg ("Usage: changelevel <map>\n");
+		Msg ("Usage: changelevel <map> [landmark]\n");
 		return;
 	}
 
@@ -323,8 +323,8 @@ void SV_Kick_f( void )
 	}
 	if(!SV_SetPlayer()) return;
 
-	SV_BroadcastPrintf (PRINT_HIGH, "%s was kicked\n", sv_client->name);
-	SV_ClientPrintf(sv_client, PRINT_HIGH, "You were kicked from the game\n");
+	SV_BroadcastPrintf (PRINT_CONSOLE, "%s was kicked\n", sv_client->name);
+	SV_ClientPrintf(sv_client, PRINT_CONSOLE, "You were kicked from the game\n");
 	SV_DropClient(sv_client);
 	sv_client->lastmessage = svs.realtime; // min case there is a funny zombie
 }

@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // cl_tent.c -- client side temporary entities
 
+#include "common.h"
 #include "client.h"
 
 typedef enum
@@ -171,7 +172,7 @@ void CL_RegisterTEntSounds (void)
 
 	for (i=0 ; i<4 ; i++)
 	{
-		sprintf (name, "player/step%i.wav", i+1);
+		com.sprintf (name, "player/step%i.wav", i+1);
 		cl_sfx_footsteps[i] = S_RegisterSound (name);
 	}
 }	

@@ -3,7 +3,7 @@
 //			sv_utils.c - server vm utils
 //=======================================================================
 
-#include "engine.h"
+#include "common.h"
 #include "server.h"
 
 netadr_t	master_adr[MAX_MASTERS];	// address of group servers
@@ -134,7 +134,7 @@ char *SV_StatusString (void)
 		cl = &svs.clients[i];
 		if (cl->state == cs_connected || cl->state == cs_spawned )
 		{
-			sprintf (player, "%i %i \"%s\"\n", cl->edict->priv.sv->client->ps.stats[STAT_FRAGS], cl->ping, cl->name);
+			com.sprintf (player, "%i %i \"%s\"\n", cl->edict->priv.sv->client->ps.stats[STAT_FRAGS], cl->ping, cl->name);
 			playerLength = strlen(player);
 			if (statusLength + playerLength >= sizeof(status) )
 				break;		// can't hold any more
@@ -189,7 +189,7 @@ void SVC_Info (void)
 	version = atoi (Cmd_Argv(1));
 
 	if (version != PROTOCOL_VERSION)
-		sprintf (string, "%s: wrong version\n", hostname->string, sizeof(string));
+		com.sprintf (string, "%s: wrong version\n", hostname->string, sizeof(string));
 	else
 	{
 		count = 0;
@@ -197,7 +197,7 @@ void SVC_Info (void)
 			if (svs.clients[i].state >= cs_connected)
 				count++;
 
-		sprintf (string, "%16s %8s %2i/%2i\n", hostname->string, sv.name, count, (int)maxclients->value);
+		com.sprintf (string, "%16s %8s %2i/%2i\n", hostname->string, sv.name, count, (int)maxclients->value);
 	}
 
 	Netchan_OutOfBandPrint(NS_SERVER, net_from, "info\n%s", string);
@@ -660,7 +660,7 @@ void SV_CheckTimeouts (void)
 		}
 		if ( (cl->state == cs_connected || cl->state == cs_spawned) && cl->lastmessage < droppoint)
 		{
-			SV_BroadcastPrintf (PRINT_HIGH, "%s timed out\n", cl->name);
+			SV_BroadcastPrintf (PRINT_CONSOLE, "%s timed out\n", cl->name);
 			SV_DropClient (cl); 
 			cl->state = cs_free;	// don't bother with zombie state
 		}
@@ -983,7 +983,7 @@ void SV_FinalMessage (char *message, bool reconnect)
 	
 	SZ_Clear (&net_message);
 	MSG_WriteByte (&net_message, svc_print);
-	MSG_WriteByte (&net_message, PRINT_HIGH);
+	MSG_WriteByte (&net_message, PRINT_CONSOLE);
 	MSG_WriteString (&net_message, message);
 
 	if (reconnect)

@@ -3,6 +3,7 @@
 //			 cl_cin.c - roq video player
 //=======================================================================
 
+#include "common.h"
 #include "client.h"
 
 #define MAXSIZE			8
@@ -1198,7 +1199,7 @@ bool CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemB
 	char	name[MAX_OSPATH];
 
 	memset(&cin, 0, sizeof(cinematics_t));
-	sprintf(name, "video/%s", arg);
+	com.sprintf(name, "video/%s", arg);
 	FS_DefaultExtension(name, ".roq" );
 	strcpy(cinTable.fileName, name);
 

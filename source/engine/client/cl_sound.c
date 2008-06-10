@@ -3,6 +3,7 @@
 //			   cl_sound.c - sound engine
 //=======================================================================
 
+#include "common.h"
 #include "client.h"
 #include <dsound.h>
 
@@ -1671,8 +1672,8 @@ void S_Play_f( void )
 	
 	while ( i < Cmd_Argc())
 	{
-		if ( !strrchr(Cmd_Argv(i), '.')) sprintf( name, "%s.wav", Cmd_Argv(1) );
-		else strncpy( name, Cmd_Argv(i), sizeof(name) );
+		if ( !com.strrchr(Cmd_Argv(i), '.')) com.sprintf( name, "%s.wav", Cmd_Argv(1) );
+		else com.strncpy( name, Cmd_Argv(i), sizeof(name) );
 		S_StartLocalSound( name );
 		i++;
 	}
@@ -1796,7 +1797,7 @@ void S_StartBackgroundTrack( const char *intro, const char *loop )
 	MsgDev(D_INFO,"S_StartBackgroundTrack( %s, %s )\n", intro, loop );
 
 	FS_StripExtension( (char *)intro );
-	sprintf (name, "music/%s", intro );
+	com.sprintf (name, "music/%s", intro );
 	FS_DefaultExtension( name, ".wav" );
 
 	if ( !intro[0] ) return;
@@ -2274,7 +2275,7 @@ bool S_LoadSound( sfx_t *sfx )
 
 	// load it in
 	if (sfx->soundName[0] == '#') strcpy(namebuffer, &sfx->soundName[1]);
-	else sprintf (namebuffer, "sound/%s", sfx->soundName);
+	else com.sprintf (namebuffer, "sound/%s", sfx->soundName);
 	data = FS_LoadFile( namebuffer, &size );
 	if ( !data ) return false;
 
