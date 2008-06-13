@@ -12,6 +12,7 @@
 physic_exp_t	*pe;
 render_exp_t	*re;
 vprogs_exp_t	*vm;
+vsound_exp_t	*se;
 host_parm_t	host;	// host parms
 stdlib_api_t	com, newcom;
 
@@ -21,6 +22,7 @@ char	*buildstring = __TIME__ " " __DATE__;
 dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(physic_exp_t) };
 dll_info_t render_dll = { "render.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(render_exp_t) };
 dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vprogs_exp_t) };
+dll_info_t vsound_dll = { "vsound.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vsound_exp_t) };
 
 cvar_t	*timescale;
 cvar_t	*fixedtime;
@@ -148,16 +150,15 @@ void Host_InitRender( void )
           // studio callbacks
 	ri.StudioEvent = CL_StudioEvent;
 	ri.ShowCollision = pe->DrawCollision;
+	ri.WndProc = Host_WndProc;
           
 	Sys_LoadLibrary( &render_dll );
 	
 	CreateRender = (void *)render_dll.main;
 	re = CreateRender( &newcom, &ri );
 
-	if(!re->Init(GetModuleHandle(NULL), Host_WndProc )) 
+	if(!re->Init(GetModuleHandle(NULL))) 
 		Sys_Error("VID_InitRender: can't init render.dll\nUpdate your opengl drivers\n");
-
-	CL_Snd_Restart_f();
 }
 
 void Host_FreeRender( void )
@@ -172,7 +173,7 @@ void Host_FreeRender( void )
 
 void Host_InitVprogs( int argc, char **argv )
 {
-	launch_t			CreateVprogs;  
+	launch_t		CreateVprogs;  
 
 	Sys_LoadLibrary( &vprogs_dll );
 
@@ -190,6 +191,36 @@ void Host_FreeVprogs( void )
 		memset( &vm, 0, sizeof(vm));
 	}
 	Sys_FreeLibrary( &vprogs_dll );
+}
+
+void Host_InitSound( void )
+{
+	static vsound_imp_t		si;
+	launch_t			CreateSound;  
+
+	// phys callback
+	si.api_size = sizeof(vsound_imp_t);
+	si.GetSoundSpatialization = CL_GetEntitySoundSpatialization;
+	si.PointContents = CL_PMpointcontents;
+	si.AddLoopingSounds = CL_AddLoopingSounds;
+	si.GetClientTime = CL_GetTime;
+
+	Sys_LoadLibrary( &vsound_dll );
+
+	CreateSound = (void *)vsound_dll.main;
+	se = CreateSound( &newcom, &si );
+	
+	se->Init( host.hWnd );
+}
+
+void Host_FreeSound( void )
+{
+	if(vsound_dll.link)
+	{
+		se->Shutdown();
+		memset( &se, 0, sizeof(se));
+	}
+	Sys_FreeLibrary( &vsound_dll );
 }
 
 /*
@@ -242,6 +273,21 @@ void Host_VidRestart_f( void )
 }
 
 /*
+=================
+Host_SndRestart_f
+
+Restart the audio subsystem
+=================
+*/
+void Host_SndRestart_f( void )
+{
+	Host_FreeSound();		// release vsound.dll
+	Host_InitSound();		// load it again
+
+	CL_RegisterSounds();
+}
+
+/*
 ============
 VID_Init
 ============
@@ -251,9 +297,12 @@ void VID_Init( void )
 	scr_width = Cvar_Get("width", "640", 0 );
 	scr_height = Cvar_Get("height", "480", 0 );
 	vid_gamma = Cvar_Get( "vid_gamma", "1", CVAR_ARCHIVE );
+
 	Cmd_AddCommand ("vid_restart", Host_VidRestart_f, "restarts video system" );
+	Cmd_AddCommand ("snd_restart", Host_SndRestart_f, "restarts audio system" );
 
 	Host_InitRender();
+	Host_InitSound();
 }
 
 /*
@@ -297,7 +346,7 @@ Host_WndProc
 main window procedure
 ====================
 */
-long _stdcall Host_WndProc( HWND hWnd, uint uMsg, WPARAM wParam, LPARAM lParam)
+long Host_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 {
 	int	 	temp = 0;
 
@@ -332,8 +381,8 @@ long _stdcall Host_WndProc( HWND hWnd, uint uMsg, WPARAM wParam, LPARAM lParam)
 		else if(LOWORD(wParam) == WA_INACTIVE) host.state = HOST_NOFOCUS;
 		else host.state = HOST_FRAME;
 
+		if( se ) se->Activate( (host.state == HOST_FRAME) ? true : false );
 		Key_ClearStates();	// FIXME!!!
-		SNDDMA_Activate();
 
 		if( host.state == HOST_FRAME )
 		{

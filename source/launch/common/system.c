@@ -100,6 +100,7 @@ void Sys_GetStdAPI( void )
 	com.Com_ParseWord = SC_ParseWord;		// parse word from char buffer
 	com.Com_Search = FS_Search;			// returned list of founded files
 	com.Com_Filter = SC_FilterToken;		// compare keyword by mask with filter
+	com.Com_HashKey = SC_HashKey;			// returns hash key for a string (generic fucntion)
 	com.com_token = token;			// contains current token
 
 	// console variables

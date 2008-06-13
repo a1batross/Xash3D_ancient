@@ -56,6 +56,7 @@
 #define VectorLength2(a) (DotProduct(a, a))
 #define VectorDistance(a, b) (sqrt(VectorDistance2(a,b)))
 #define VectorDistance2(a, b) (((a)[0] - (b)[0]) * ((a)[0] - (b)[0]) + ((a)[1] - (b)[1]) * ((a)[1] - (b)[1]) + ((a)[2] - (b)[2]) * ((a)[2] - (b)[2]))
+#define VectorAverage(a,b,o)	((o)[0]=((a)[0]+(b)[0])*0.5,(o)[1]=((a)[1]+(b)[1])*0.5,(o)[2]=((a)[2]+(b)[2])*0.5)
 #define VectorSet(v, x, y, z) {v[0] = x; v[1] = y; v[2] = z;}
 #define Vector4Set(v, x, y, z, w) {v[0] = x, v[1] = y, v[2] = z, v[3] = w;}
 #define VectorClear(x) {x[0] = x[1] = x[2] = 0;}

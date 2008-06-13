@@ -1091,7 +1091,7 @@ static void UpdateSoundQualityFunc( void *unused )
 
 	// the text box won't show up unless we do a buffer swap
 	re->EndFrame();
-	CL_Snd_Restart_f();
+	Host_SndRestart_f();
 }
 
 void Options_MenuInit( void )

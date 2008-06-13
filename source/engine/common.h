@@ -22,6 +22,7 @@
 extern stdlib_api_t		com;
 extern physic_exp_t		*pe;
 extern vprogs_exp_t		*vm;
+extern vsound_exp_t		*se;
 
 /*
 ==============================================================
@@ -137,7 +138,7 @@ HOST INTERFACE
 */
 typedef enum
 {
-	HOST_INIT,	// initalize operations
+	HOST_INIT = 0,	// initalize operations
 	HOST_FRAME,	// host running
 	HOST_SHUTDOWN,	// shutdown operations	
 	HOST_ERROR,	// host stopped by error
@@ -179,7 +180,7 @@ typedef struct host_parm_s
 } host_parm_t;
 
 extern host_parm_t host;
-long _stdcall Host_WndProc( HWND hWnd, uint uMsg, WPARAM wParam, LPARAM lParam);
+long Host_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam );
 void Host_Init ( uint funcname, int argc, char **argv );
 void Host_Main ( void );
 void Host_Free ( void );
@@ -193,6 +194,7 @@ void Host_Error( const char *error, ... );
 
 // host dlls managment
 void Host_FreeRender( void );
+void Host_SndRestart_f( void );
 
 // host cmds
 void Host_Error_f( void );
@@ -365,7 +367,12 @@ enum e_clprint
 extern byte *zonepool;
 
 #define Z_Malloc(size) Mem_Alloc( zonepool, size )
+void CL_GetEntitySoundSpatialization( int ent, vec3_t origin, vec3_t velocity );
 void SV_Transform( sv_edict_t *ed, matrix4x3 transform );
+int CL_PMpointcontents( vec3_t point );
+void CL_AddLoopingSounds( void );
+void CL_RegisterSounds( void );
+float CL_GetTime( void );
 void CL_Drop( void );
 char *Info_ValueForKey( char *s, char *key );
 void Info_RemoveKey( char *s, char *key );

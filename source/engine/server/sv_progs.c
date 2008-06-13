@@ -1116,6 +1116,7 @@ void PF_inpvs( void )
 	if(!VM_ValidateArgs( "EntitiesInPVS", 2 )) return;
 	pvsent = PRVM_G_EDICT(OFS_PARM0);
 	playeronly = (bool)PRVM_G_FLOAT(OFS_PARM1);
+	chain = (edict_t *)prog->edicts;
 
 	if( playeronly ) 
 	{
@@ -1162,6 +1163,7 @@ void PF_inphs( void )
 	if(!VM_ValidateArgs( "EntitiesInPHS", 2 )) return;
 	pvsent = PRVM_G_EDICT(OFS_PARM0);
 	playeronly = (bool)PRVM_G_FLOAT(OFS_PARM1);
+	chain = (edict_t *)prog->edicts;
 
 	if( playeronly ) 
 	{
@@ -1458,7 +1460,9 @@ void PF_ambientsound( void )
 	soundent = PRVM_G_EDICT(OFS_PARM0);
 	samp = PRVM_G_STRING(OFS_PARM1);
 
-	if( soundent ) SV_AmbientSound( soundent, SV_SoundIndex( samp ), 0.0f, 0.0f ); // unused parms
+	// check to see if samp was properly precached
+	if( soundent ) soundent->progs.sv->loopsound = SV_SoundIndex( samp );
+	//SV_AmbientSound( soundent, SV_SoundIndex( samp ), 0.0f, 0.0f ); // unused parms
 }
 
 /*

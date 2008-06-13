@@ -54,15 +54,14 @@ typedef struct mempool_s
 	uint		sentinel2;	// should always be MEMHEADER_SENTINEL1
 } mempool_t;
 
-
-typedef struct memarray_s
+typedef struct memcluster_s
 {
 	byte	*data;
 	byte	*allocflags;
 	size_t	numflaggedrecords;
 } memcluster_t;
 
-typedef struct memarraypool_s
+typedef struct memarray_s
 {
 	byte		*mempool;
 	size_t		recordsize;

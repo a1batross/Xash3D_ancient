@@ -512,11 +512,17 @@ void CL_ParseTEnt( sizebuf_t *msg )
 			// impact sound
 			cnt = rand()&15;
 			if (cnt == 1)
+			{
 				S_StartSound (pos, 0, 0, cl_sfx_ric1);
+			}
 			else if (cnt == 2)
+			{
 				S_StartSound (pos, 0, 0, cl_sfx_ric2);
+			}
 			else if (cnt == 3)
+			{
 				S_StartSound (pos, 0, 0, cl_sfx_ric3);
+			}
 		}
 
 		break;
@@ -623,9 +629,13 @@ void CL_ParseTEnt( sizebuf_t *msg )
 		ex->ent.angles[1] = rand() % 360;
 		CL_ExplosionParticles (pos);
 		if (type == TE_GRENADE_EXPLOSION_WATER)
+		{
 			S_StartSound (pos, 0, 0, cl_sfx_watrexp);
+		}
 		else
+		{
 			S_StartSound (pos, 0, 0, cl_sfx_grenexp);
+		}
 		break;
 
 	// RAFAEL
@@ -668,9 +678,13 @@ void CL_ParseTEnt( sizebuf_t *msg )
 		ex->frames = 8;
 		CL_ExplosionParticles (pos);									// PMM
 		if (type == TE_ROCKET_EXPLOSION_WATER)
+		{
 			S_StartSound (pos, 0, 0, cl_sfx_watrexp);
+		}
 		else
+		{
 			S_StartSound (pos, 0, 0, cl_sfx_rockexp);
+		}
 		break;
 
 	case TE_BFG_EXPLOSION:

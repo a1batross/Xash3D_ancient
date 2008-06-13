@@ -54,7 +54,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386 /opt:nowin98
-# ADD LINK32 winmm.lib user32.lib msvcrt.lib ole32.lib /nologo /subsystem:windows /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /opt:nowin98
+# ADD LINK32 winmm.lib user32.lib msvcrt.lib /nologo /subsystem:windows /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /opt:nowin98
 # SUBTRACT LINK32 /debug /nodefaultlib
 # Begin Custom Build
 TargetDir=\Xash3D\src_main\temp\engine\!release
@@ -91,7 +91,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386
-# ADD LINK32 winmm.lib user32.lib msvcrt.lib ole32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /nodefaultlib:"msvcrtd.lib" /pdbtype:sept
+# ADD LINK32 winmm.lib user32.lib msvcrt.lib /nologo /subsystem:windows /dll /debug /machine:I386 /nodefaultlib:"msvcrtd.lib" /pdbtype:sept
 # SUBTRACT LINK32 /incremental:no /map /nodefaultlib
 # Begin Custom Build
 TargetDir=\Xash3D\src_main\temp\engine\!debug
@@ -171,10 +171,6 @@ SOURCE=.\client\cl_progs.c
 # Begin Source File
 
 SOURCE=.\client\cl_scrn.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\client\cl_sound.c
 # End Source File
 # Begin Source File
 
@@ -306,10 +302,6 @@ SOURCE=.\net_msg.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\progdefs.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\uimenu\qmenu.h
 # End Source File
 # Begin Source File
@@ -319,14 +311,6 @@ SOURCE=.\client\screen.h
 # Begin Source File
 
 SOURCE=.\server\server.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\client\snd_loc.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\client\sound.h
 # End Source File
 # Begin Source File
 

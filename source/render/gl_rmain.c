@@ -1114,7 +1114,7 @@ bool R_SetMode (void)
 R_Init
 ===============
 */
-int R_Init( void *hinstance, void *hWnd )
+int R_Init( void *hinstance )
 {	
 	int		j, err;
 	extern float	r_turbsin[256];
@@ -1137,7 +1137,7 @@ int R_Init( void *hinstance, void *hWnd )
 	}
 
 	// initialize OS-specific parts of OpenGL
-	if ( !GLimp_Init( hinstance, hWnd ) )
+	if ( !GLimp_Init( hinstance ))
 	{
 		QGL_Shutdown();
 		return false;

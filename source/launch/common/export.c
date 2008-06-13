@@ -1,6 +1,6 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			launcher.c - main engine launcher
+//			export.c - main engine launcher
 //=======================================================================
 
 #include "launch.h"

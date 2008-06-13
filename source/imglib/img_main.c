@@ -16,7 +16,7 @@ void ImageLib_Init ( uint funcname )
 	zonepool = Mem_AllocPool( "ImageLib Pool" );
           app_name = funcname;
 
-	img_resample_lerp = Cvar_Get( "img_lerping", "1", CVAR_ARCHIVE );
+	img_resample_lerp = Cvar_Get( "img_lerping", "1", CVAR_SYSTEMINFO );
 }
 
 void ImageLib_Free ( void )

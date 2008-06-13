@@ -918,3 +918,82 @@ void CL_GetEntitySoundOrigin (int ent, vec3_t org)
 
 	// FIXME: bmodel issues...
 }
+
+//
+// sound engine implementation
+//
+
+void CL_GetEntitySoundSpatialization( int ent, vec3_t origin, vec3_t velocity )
+{
+	centity_t		*cent;
+	cmodel_t		*cmodel;
+	vec3_t		midPoint;
+
+	if( ent < 0 || ent >= MAX_EDICTS )
+	{
+		MsgDev( D_ERROR, "CL_GetEntitySoundSpatialization: invalid entnum", ent );
+		VectorCopy( vec3_origin, origin );
+		VectorCopy( vec3_origin, velocity );
+		return;
+	}
+
+	cent = &cl_entities[ent];
+
+	if( cent->current.renderfx & (RF_FRAMELERP|RF_BEAM))
+	{
+		// calculate origin
+		origin[0] = cent->current.old_origin[0] + (cent->current.origin[0] - cent->current.old_origin[0]) * cl.lerpfrac;
+		origin[1] = cent->current.old_origin[1] + (cent->current.origin[1] - cent->current.old_origin[1]) * cl.lerpfrac;
+		origin[2] = cent->current.old_origin[2] + (cent->current.origin[2] - cent->current.old_origin[2]) * cl.lerpfrac;
+
+		// calculate velocity
+		VectorSubtract( cent->current.origin, cent->current.old_origin, velocity );
+		VectorScale(velocity, 10, velocity);
+	}
+	else
+	{
+		// calculate origin
+		origin[0] = cent->prev.origin[0] + (cent->current.origin[0] - cent->prev.origin[0]) * cl.lerpfrac;
+		origin[1] = cent->prev.origin[1] + (cent->current.origin[1] - cent->prev.origin[1]) * cl.lerpfrac;
+		origin[2] = cent->prev.origin[2] + (cent->current.origin[2] - cent->prev.origin[2]) * cl.lerpfrac;
+
+		// calculate velocity
+		VectorSubtract(cent->current.origin, cent->prev.origin, velocity);
+		VectorScale(velocity, 10, velocity);
+	}
+
+	// if a brush model, offset the origin
+	if( cent->current.solid == SOLID_BMODEL )
+	{
+		cmodel = cl.model_clip[cent->current.modelindex];
+		if(!cmodel) return;
+		VectorAverage(cmodel->mins, cmodel->maxs, midPoint);
+		VectorAdd(origin, midPoint, origin);
+	}
+}
+
+/*
+=================
+S_AddLoopingSounds
+
+Entities with a sound field will generate looping sounds that are
+automatically started and stopped as the entities are sent to the
+client
+=================
+*/
+void CL_AddLoopingSounds( void )
+{
+	entity_state_t	*ent;
+	int		num, i;
+
+	if( cl_paused->value ) return;
+	if( cls.state != ca_active ) return;
+	//if( !cl.sound_prepped ) return;
+
+	for( i = 0; i < cl.frame.num_entities; i++ )
+	{
+		num = (cl.frame.parse_entities + i)&(MAX_PARSE_ENTITIES-1);
+		ent = &cl_parse_entities[num];
+		se->AddLoopingSound( ent->number, cl.sound_precache[ent->soundindex], 1.0f, ATTN_IDLE );
+	}
+}

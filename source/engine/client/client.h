@@ -129,6 +129,7 @@ typedef struct
 	int		timeoutcount;
 
 	bool		refresh_prepped;		// false if on new level or new ref dll
+	bool		sound_prepped;		// false if on new level or new snd dll
 	bool		force_refdef;		// vid has changed, so we can't use a paused refdef
 
 	int		parse_entities;		// index (not anded off) into cl_parse_entities[]
@@ -551,48 +552,29 @@ void CL_FreeClientProgs( void );
 //
 // cl_sound.c
 //
-void S_Init( void );
-void S_Shutdown( void );
+#define S_Shutdown			se->Shutdown
 
 // if origin is NULL, the sound will be dynamically sourced from the entity
-void S_StartSound( vec3_t origin, int entnum, int entchannel, sound_t sfx );
-int S_StartLocalSound( const char *name );
-void S_StartBackgroundTrack( const char *intro, const char *loop );
-void S_StopBackgroundTrack( void );
-
-// cinematics and voice-over-network will send raw samples
-// 1.0 volume will be direct output of source samples
-void S_RawSamples (int samples, int rate, int width, int channels,  const byte *data, float volume);
-
-// stop all sounds and the background track
-void S_StopAllSounds( void );
-
-// all continuous looping sounds must be added before calling S_Update
-void S_ClearLoopingSounds( bool killall );
-void S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sound_t sfx );
-void S_AddRealLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sound_t sfx );
-void S_StopLoopingSound(int entityNum );
+#define S_StartStreaming		se->StartStreaming
+#define S_RegisterSound		se->RegisterSound
+#define S_StartSound( a, b, c, d )	se->StartSound( a, b, c, d, 1.0f, ATTN_NORM );
+#define S_StartLocalSound		se->StartLocalSound
+#define S_StartBackgroundTrack	se->StartBackgroundTrack
+#define S_StopBackgroundTrack		se->StopBackgroundTrack
+#define S_RawSamples 		se->StreamRawSamples
+#define S_StopAllSounds		se->StopAllSounds
 
 // recompute the reletive volumes for all running sounds
 // reletive to the given entityNum / orientation
-void S_Respatialize( int entityNum, const vec3_t origin, vec3_t v_forward, vec3_t v_left, vec3_t v_up );
-
-// let the sound system know where an entity currently is
-void S_UpdateEntityPosition( int entityNum, const vec3_t origin );
-void S_Update( void );
-void S_DisableSounds( void );
-void S_EnableSounds( void );
-void S_BeginRegistration( void );
-void S_EndRegistration( void );
+#define S_Update			se->Frame
+#define S_BeginRegistration		se->BeginRegistration
+#define S_EndRegistration		se->EndRegistration
 
 // RegisterSound will allways return a valid sample, even if it
 // has to create a placeholder.  This prevents continuous filesystem
 // checks for missing files
-sound_t S_RegisterSound( const char *sample );
-void S_DisplayFreeMemory(void);
-void S_ClearSoundBuffer( void );
+
 void SNDDMA_Activate( void );
-void S_UpdateBackgroundTrack( void );
 
 extern cvar_t	*s_volume;
 extern cvar_t	*s_nosound;
@@ -646,6 +628,12 @@ void CL_SmokeAndFlash(vec3_t origin);
 void CL_InitPrediction (void);
 void CL_PredictMove (void);
 void CL_CheckPredictionError (void);
+
+//
+// cl_ents.c
+//
+void CL_GetEntitySoundSpatialization( int ent, vec3_t origin, vec3_t velocity );
+void CL_AddLoopingSounds( void );
 
 //
 // cl_fx.c

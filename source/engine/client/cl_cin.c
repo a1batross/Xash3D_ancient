@@ -19,9 +19,6 @@
 #define ROQ_PACKET			0x1030
 #define ZA_SOUND_MONO		0x1020
 #define ZA_SOUND_STEREO		0x1021
-extern int s_paintedtime;
-extern int s_soundtime;		// sample PAIRS
-extern int s_rawend;
 
 static void RoQ_init( void );
 static long ROQ_YY_tab[256];
@@ -983,7 +980,7 @@ redump:
 		if (!cinTable.silent)
 		{
 			ssize = RllDecodeMonoToStereo( framedata, sbuf, cinTable.RoQFrameSize, 0, (word)cinTable.roq_flags);
-			S_RawSamples( ssize, 22050, 2, 1, (byte *)sbuf, s_volume->value );
+			S_RawSamples( ssize, 22050, 2, 1, (byte *)sbuf );
 		}
 		break;
 	case ZA_SOUND_STEREO:
@@ -991,11 +988,10 @@ redump:
 		{
 			if (cinTable.numQuads == -1)
 			{
-				S_Update();
-				s_rawend = s_soundtime;
+				//S_Update();
 			}
 			ssize = RllDecodeStereoToStereo( framedata, sbuf, cinTable.RoQFrameSize, 0, (word)cinTable.roq_flags);
-			S_RawSamples( ssize, 22050, 2, 2, (byte *)sbuf, s_volume->value );
+			S_RawSamples( ssize, 22050, 2, 2, (byte *)sbuf );
 		}
 		break;
 	case ROQ_QUAD_INFO:
@@ -1230,8 +1226,6 @@ bool CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemB
 
 		M_ForceMenuOff();
 		Con_Close();
-
-		s_rawend = s_soundtime;
 		return true;
 	}
 
@@ -1347,6 +1341,7 @@ bool SCR_PlayCinematic( char *name, int bits )
 		SCR_StopCinematic();
 
 	S_StopAllSounds();
+	S_StartStreaming();
 
 	if (CIN_PlayCinematic( name, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, bits ))
 	{

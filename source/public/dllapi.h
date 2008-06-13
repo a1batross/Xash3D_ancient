@@ -71,6 +71,23 @@
 
 #define PM_MAXTOUCH		32
 
+// sound channels
+#define CHAN_AUTO		0
+#define CHAN_WEAPON		1
+#define CHAN_VOICE		2
+#define CHAN_ITEM		3
+#define CHAN_BODY		4
+#define CHAN_ANNOUNCER	5  // announcer
+// flags
+#define CHAN_NO_PHS_ADD	8  // Send to all clients, not just ones in PHS (ATTN 0 will also do this)
+#define CHAN_RELIABLE	16 // Send by reliable message, not datagram
+
+// Sound attenuation values
+#define ATTN_NONE		0  // Full volume the entire level
+#define ATTN_NORM		1
+#define ATTN_IDLE		2
+#define ATTN_STATIC		3  // Diminish very rapidly with distance
+
 // player_state->stats[] indexes
 enum player_stats
 {
@@ -355,7 +372,7 @@ typedef struct render_exp_s
 	size_t	api_size;		// must matched with sizeof(render_exp_t)
 
 	// initialize
-	bool (*Init)( void *hInstance, void *WndProc );	// init all render systems
+	bool (*Init)( void *hInst );	// init all render systems
 	void (*Shutdown)( void );	// shutdown all render systems
 
 	void	(*BeginRegistration) (char *map);
@@ -387,7 +404,7 @@ typedef struct render_imp_s
 	// client fundamental callbacks
 	void	(*StudioEvent)( mstudioevent_t *event, entity_t *ent );
 	void	(*ShowCollision)( cmdraw_t callback );	// debug
-
+	long	(*WndProc)( void *hWnd, uint uMsg, uint wParam, long lParam );
 } render_imp_t;
 
 /*
@@ -471,7 +488,7 @@ typedef struct physic_imp_s
 /*
 ==============================================================================
 
-IMGLIB.DLL INTERFACE
+VPROGS.DLL INTERFACE
 ==============================================================================
 */
 typedef struct vprogs_exp_s
@@ -525,9 +542,57 @@ typedef struct vprogs_exp_s
 	void (*ExecuteProgram)( func_t fnum, const char *errormessage );
 	void (*Crash)( void );	// crash virtual machine
 
-	prvm_prog_t *prog;		// virtual machine state
+	prvm_prog_t *prog;		// virtual machine current state
 
 } vprogs_exp_t;
+
+/*
+==============================================================================
+
+VSOUND.DLL INTERFACE
+==============================================================================
+*/
+typedef struct vsound_exp_s
+{
+	// interface validator
+	size_t	api_size;		// must matched with sizeof(vprogs_api_t)
+
+	void (*Init)( void *hInst );	// init host
+	void (*Shutdown)( void );	// close host
+
+	// sound manager
+	void (*BeginRegistration)( void );
+	sound_t (*RegisterSound)( const char *name );
+	void (*EndRegistration)( void );
+
+	void (*StartSound)( const vec3_t pos, int entnum, int channel, sound_t sfx, float vol, float attn );
+	void (*StreamRawSamples)( int samples, int rate, int width, int channels, const byte *data );
+	bool (*AddLoopingSound)( int entnum, sound_t handle, float volume, float attn );
+	bool (*StartLocalSound)( const char *name );
+	void (*StartBackgroundTrack)( const char *introTrack, const char *loopTrack );
+	void (*StopBackgroundTrack)( void );
+
+	void (*StartStreaming)( void );
+	void (*StopStreaming)( void );
+
+	void (*Frame)( int entnum, const vec3_t pos, const vec3_t vel, const vec3_t at, const vec3_t up );
+	void (*StopAllSounds)( void );
+	void (*FreeSounds)( void );
+
+	void (*Activate)( bool active );
+
+} vsound_exp_t;
+
+typedef struct vsound_imp_s
+{
+	// interface validator
+	size_t	api_size;		// must matched with sizeof(vsound_imp_t)
+
+	void (*GetSoundSpatialization)( int entnum, vec3_t origin, vec3_t velocity );
+	int  (*PointContents)( vec3_t point );
+	void (*AddLoopingSounds)( void );
+	float (*GetClientTime)( void );
+} vsound_imp_t;
 
 // this is the only function actually exported at the linker level
 typedef void *(*launch_t)( stdlib_api_t*, void* );

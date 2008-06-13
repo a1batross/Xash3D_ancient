@@ -591,7 +591,7 @@ void CL_ParseAmbientSound( sizebuf_t *msg )
 	loopSoundHandle = S_RegisterSound( cl.configstrings[CS_SOUNDS + soundNum] );
 
 	// add ambient looping sound
-	S_AddRealLoopingSound( entityNum, ambient_org, vec3_origin, loopSoundHandle );
+	// S_AddRealLoopingSound( entityNum, ambient_org, vec3_origin, loopSoundHandle );
 }
 
 void SHOWNET( sizebuf_t *msg, char *s )

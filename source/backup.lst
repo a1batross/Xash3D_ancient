@@ -19,6 +19,7 @@ render\
 imglib\
 ripper\
 vprogs\
+vsound\
 common\
 common\bsplib
 common\roqlib

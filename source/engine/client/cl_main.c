@@ -198,6 +198,10 @@ void CL_Drop (void)
 	CL_Disconnect();
 }
 
+float CL_GetTime( void )
+{
+	return cl.time;
+}
 
 /*
 =======================
@@ -832,21 +836,6 @@ void CL_Userinfo_f (void)
 	Info_Print (Cvar_Userinfo());
 }
 
-/*
-=================
-CL_Snd_Restart_f
-
-Restart the sound subsystem so it can pick up
-new parameters and flush all sounds
-=================
-*/
-void CL_Snd_Restart_f (void)
-{
-	S_Shutdown();
-	S_Init();
-	CL_RegisterSounds();
-}
-
 int precache_check; // for autodownload of precache items
 int precache_spawncount;
 int precache_tex;
@@ -1086,6 +1075,8 @@ void CL_RequestNextDownload (void)
 //ZOID
 	CL_RegisterSounds();
 	CL_PrepRefresh();
+
+	if( cls.demoplayback ) return; // not really connected
 	MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
 	MSG_WriteString( &cls.netchan.message, va("begin %i\n", precache_spawncount));
 }
@@ -1193,8 +1184,6 @@ void CL_InitLocal (void)
 	Cmd_AddCommand ("pingservers", CL_PingServers_f, "send a broadcast packet" );
 
 	Cmd_AddCommand ("userinfo", CL_Userinfo_f, "print current client userinfo" );
-	Cmd_AddCommand ("snd_restart", CL_Snd_Restart_f, "restart sound system" );
-
 	Cmd_AddCommand ("changing", CL_Changing_f, "sent by server to tell client to wait for level change" );
 	Cmd_AddCommand ("disconnect", CL_Disconnect_f, "disconnect from server" );
 	Cmd_AddCommand ("record", CL_Record_f, "record a demo" );
@@ -1421,8 +1410,7 @@ void CL_Frame( float time )
 	SCR_UpdateScreen();
 
 	// update audio
-	S_Update();
-	S_Respatialize( cl.playernum + 1, cl.refdef.vieworg, cl.v_forward, cl.v_left, cl.v_up );
+	S_Update( cl.playernum + 1, cl.refdef.vieworg, vec3_origin, cl.v_forward, cl.v_up );
 
 	// advance local effects for next frame
 	CL_RunDLights ();
@@ -1442,7 +1430,7 @@ void CL_Frame( float time )
 CL_Init
 ====================
 */
-void CL_Init (void)
+void CL_Init( void )
 {
 	if (dedicated->value) return; // nothing running on the client
 
@@ -1462,7 +1450,6 @@ void CL_Init (void)
 	
 	SCR_Init();
 	CL_InitLocal();
-	S_ClearLoopingSounds( true );
 }
 
 

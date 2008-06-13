@@ -239,18 +239,6 @@ typedef enum
 #define SND_ENT			(1<<3)		// a short 0-2: channel, 3-12: entity
 #define SND_OFFSET			(1<<4)		// a byte, msec offset from frame start
 
-// sound channels
-// channel 0 never willingly overrides
-// other channels (1-7) allways override a playing sound on that channel
-#define CHAN_AUTO			0
-#define CHAN_WEAPON			1
-#define CHAN_VOICE			2
-#define CHAN_ITEM			3
-#define CHAN_BODY			4
-#define CHAN_ANNOUNCER		5  // announcer
-#define CHAN_NO_PHS_ADD		8  // send to all clients, not just ones in PHS (ATTN 0 will also do this)
-#define CHAN_RELIABLE		16 // send by reliable message, not datagram
-
 // 0-compressed fields
 #define DEFAULT_SOUND_PACKET_VOL	1.0
 #define DEFAULT_SOUND_PACKET_ATTN	1.0

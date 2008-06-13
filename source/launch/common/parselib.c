@@ -945,3 +945,21 @@ bool SC_FilterToken(char *filter, char *name, int casecmp)
 	}
 	return true;
 }
+
+/*
+=================
+SC_HashKey
+
+returns hash key for string
+=================
+*/
+uint SC_HashKey( const char *string, uint hashSize )
+{
+	uint	hashKey = 0;
+	int	i;
+
+	for( i = 0; string[i]; i++ )
+		hashKey = (hashKey + i) * 37 + com_tolower(string[i]);
+
+	return (hashKey % hashSize);
+}

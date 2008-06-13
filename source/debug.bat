@@ -35,6 +35,9 @@ if errorlevel 1 set BUILD_ERROR=1
 %MSDEV% vprogs/vprogs.dsp %CONFIG%"vprogs - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
+%MSDEV% vsound/vsound.dsp %CONFIG%"vsound - Win32 Debug" %build_target%
+if errorlevel 1 set BUILD_ERROR=1
+
 if "%BUILD_ERROR%"=="" goto build_ok
 
 echo *********************
@@ -63,9 +66,10 @@ if exist physic\physic.plg del /f /q physic\physic.plg
 if exist render\render.plg del /f /q render\render.plg
 if exist viewer\viewer.plg del /f /q viewer\viewer.plg
 if exist vprogs\vprogs.plg del /f /q vprogs\vprogs.plg
+if exist vsound\vsound.plg del /f /q vsound\vsound.plg
 
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading
 cd D:\Xash3D\
-quake.exe -log -game tmpQuArK -debug -dev 3 +map qctest
+quake.exe -log -game tmpQuArK -debug -dev 3 +map start
 :done

@@ -50,7 +50,7 @@ void SV_UpdateEntityState( edict_t *ent)
 	ent->priv.sv->s.renderfx = (int)ent->progs.sv->renderfx;	// renderer flags
 	ent->priv.sv->s.alpha = ent->progs.sv->alpha;		// alpha value
 	ent->priv.sv->s.animtime = ent->progs.sv->animtime;	// auto-animating time
-	ent->priv.sv->s.soundindex = (int)ent->progs.sv->sounds;
+	ent->priv.sv->s.soundindex = ent->progs.sv->loopsound;
 }
 
 /*
@@ -404,7 +404,7 @@ void SV_BuildClientFrame (client_state_t *client)
 		ent = PRVM_EDICT_NUM(e);
 
 		// ignore ents without visible models unless they have an effect
-		if (!ent->progs.sv->modelindex && !ent->progs.sv->effects && !ent->progs.sv->noise3 && !ent->priv.sv->event)
+		if (!ent->progs.sv->modelindex && !ent->progs.sv->effects && !ent->progs.sv->loopsound && !ent->priv.sv->event)
 			continue;
 
 		// ignore if not touching a PV leaf
@@ -430,7 +430,7 @@ void SV_BuildClientFrame (client_state_t *client)
 			{
 				// FIXME: if an ent has a model and a sound, but isn't
 				// in the PVS, only the PHS, clear the model
-				if (ent->progs.sv->noise3) bitvector = clientphs;
+				if (ent->progs.sv->loopsound ) bitvector = clientphs;
 				else bitvector = clientpvs;
 
 				// check individual leafs

@@ -93,6 +93,7 @@ typedef struct stdilib_api_s
 	char *(*Com_ParseWord)( const char **data );		// parse word from char buffer
 	search_t *(*Com_Search)(const char *pattern, int casecmp );	// returned list of found files
 	bool (*Com_Filter)(char *filter, char *name, int casecmp ); // compare keyword by mask with filter
+	uint (*Com_HashKey)( const char *string, uint hashSize );	// returns hash key for a string
 	char *com_token;					// contains current token
 
 	// console variables
@@ -227,6 +228,7 @@ typedef struct stdilib_api_s
 #define Com_ParseWord	com.Com_ParseWord
 #define Com_SimpleGetToken	com.Com_ParseToken_Simple
 #define Com_Filter		com.Com_Filter
+#define Com_HashKey		com.Com_HashKey
 #define Com_LoadScript	com.Com_LoadScript
 #define Com_IncludeScript	com.Com_AddScript
 #define Com_ResetScript	com.Com_ResetScript

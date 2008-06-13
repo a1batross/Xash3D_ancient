@@ -126,6 +126,7 @@ struct sv_entvars_s
 	vec3_t	post_angles;
 	vec3_t	origin_offset;
 	float	ltime;
+	string_t	loopsound;
 	float	bouncetype;
 	float	movetype;
 	float	solid;

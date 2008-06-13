@@ -1,11 +1,9 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			   cl_sound.c - sound engine
+//			   snd_main.c - sound engine
 //=======================================================================
 
-#include "common.h"
-#include "client.h"
-#include <dsound.h>
+#include "sound.h"
 
 #define	PAINTBUFFER_SIZE	4096			// this is in samples
 
@@ -145,6 +143,9 @@ void		SND_free(sndBuffer *v);
 sndBuffer*	SND_malloc();
 void		SND_setup();
 
+HWND	hWnd;
+uint	framecount = 0;
+
 void S_PaintChannels(int endtime);
 
 void S_memoryLoad(sfx_t *sfx);
@@ -231,7 +232,7 @@ void SNDDMA_Shutdown( void )
 		if ( pDS )
 		{
 			MsgDev(D_INFO, "...setting NORMAL coop level\n" );
-			pDS->lpVtbl->SetCooperativeLevel( pDS, host.hWnd, DSSCL_PRIORITY );
+			pDS->lpVtbl->SetCooperativeLevel( pDS, hWnd, DSSCL_PRIORITY );
 		}
 
 		if ( pDSBuf )
@@ -289,7 +290,7 @@ int SNDDMA_InitDS( void )
 	MsgDev(D_INFO, "ok\n" );
 
 	MsgDev(D_INFO, "...setting DSSCL_PRIORITY coop level: " );
-	if(DS_OK != pDS->lpVtbl->SetCooperativeLevel( pDS, host.hWnd, DSSCL_PRIORITY ))
+	if(DS_OK != pDS->lpVtbl->SetCooperativeLevel( pDS, hWnd, DSSCL_PRIORITY ))
 	{
 		MsgDev(D_INFO, "failed\n");
 		SNDDMA_Shutdown ();
@@ -489,7 +490,7 @@ void SNDDMA_Activate( void )
 {
 	if( !pDS ) return;
 
-	if( DS_OK != pDS->lpVtbl->SetCooperativeLevel( pDS, host.hWnd, DSSCL_PRIORITY ))
+	if( DS_OK != pDS->lpVtbl->SetCooperativeLevel( pDS, hWnd, DSSCL_PRIORITY ))
 	{
 		MsgDev(D_INFO, "sound SetCooperativeLevel failed\n");
 		SNDDMA_Shutdown();
@@ -586,9 +587,11 @@ void S_SoundInfo_f( void )
 S_Init
 ================
 */
-void S_Init( void )
+void S_Init( void *hInst )
 {
 	cvar_t	*cv;
+
+	S_Init_OpenAL();
 
 	s_volume = Cvar_Get ("s_volume", "0.8", CVAR_ARCHIVE);
 	s_musicVolume = Cvar_Get ("s_musicvolume", "0.25", CVAR_ARCHIVE);
@@ -608,6 +611,10 @@ void S_Init( void )
 	Cmd_AddCommand("snd_list", S_SoundList_f, "display loaded sounds" );
 	Cmd_AddCommand("snd_info", S_SoundInfo_f, "print sound system information" );
 	Cmd_AddCommand("snd_stop", S_StopAllSounds, "stop all sounds" );
+
+	hWnd = hInst;
+
+	sndpool = Mem_AllocPool("Sound Zone");
 
 	if (SNDDMA_Init())
 	{
@@ -663,8 +670,9 @@ void S_Shutdown( void )
 {
 	if ( !s_soundStarted ) return;
 	SNDDMA_Shutdown();
-	s_soundStarted = 0;
+	Mem_FreePool( &sndpool );
 
+	s_soundStarted = 0;
 	Cmd_RemoveCommand("play");
 	Cmd_RemoveCommand("music");
 	Cmd_RemoveCommand("stopsound");
@@ -940,7 +948,7 @@ if pos is NULL, the sound will be dynamically sourced from the entity
 Entchannel 0 will never override a playing sound
 ====================
 */
-void S_StartSound(vec3_t origin, int entityNum, int entchannel, sound_t sfxHandle )
+void S_StartSound( const vec3_t origin, int entityNum, int entchannel, sound_t sfxHandle, float vol, float attn )
 {
 	channel_t		*ch;
 	sfx_t		*sfx;
@@ -1075,7 +1083,7 @@ int S_StartLocalSound( const char *name )
 		return false;
 	}
 
-	S_StartSound (NULL, listener_number, CHAN_AUTO, sfxHandle );
+	S_StartSound (NULL, listener_number, CHAN_AUTO, sfxHandle, ATTN_NORM, 1.0f );
 	return true;
 }
 
@@ -1205,14 +1213,14 @@ void S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocit
 		lena = VectorDistance2(loopSounds[listener_number].origin, loopSounds[entityNum].origin);
 		VectorAdd(loopSounds[entityNum].origin, loopSounds[entityNum].velocity, out);
 		lenb = VectorDistance2(loopSounds[listener_number].origin, out);
-		if ((loopSounds[entityNum].framenum + 1) != cls.framecount)
+		if ((loopSounds[entityNum].framenum + 1) != framecount)
 			loopSounds[entityNum].oldDopplerScale = 1.0;
 		else loopSounds[entityNum].oldDopplerScale = loopSounds[entityNum].dopplerScale;
 		loopSounds[entityNum].dopplerScale = lenb/(lena * 100);
 		if (loopSounds[entityNum].dopplerScale<=1.0)
 			loopSounds[entityNum].doppler = false;	// don't bother doing the math
 	}
-	loopSounds[entityNum].framenum = cls.framecount;
+	loopSounds[entityNum].framenum = framecount;
 }
 
 /*
@@ -1464,7 +1472,7 @@ S_Respatialize
 Change the volumes of all the playing sounds for changes in their positions
 ============
 */
-void S_Respatialize( int entityNum, const vec3_t head, vec3_t v_forward, vec3_t v_right, vec3_t v_up )
+void S_Respatialize( int entityNum, const vec3_t head, const vec3_t v_forward, const vec3_t v_right, const vec3_t v_up )
 {
 	int		i;
 	channel_t		*ch;
@@ -1665,36 +1673,6 @@ console functions
 
 ===============================================================================
 */
-void S_Play_f( void )
-{
-	int 	i = 1;
-	char	name[256];
-	
-	while ( i < Cmd_Argc())
-	{
-		if ( !com.strrchr(Cmd_Argv(i), '.')) com.sprintf( name, "%s.wav", Cmd_Argv(1) );
-		else com.strncpy( name, Cmd_Argv(i), sizeof(name) );
-		S_StartLocalSound( name );
-		i++;
-	}
-}
-
-void S_Music_f( void )
-{
-	int	c = Cmd_Argc();
-
-	if ( c == 2 )
-	{
-		S_StartBackgroundTrack( Cmd_Argv(1), Cmd_Argv(1) );
-		s_backgroundLoop[0] = 0;
-	} 
-	else if ( c == 3 )
-	{
-		S_StartBackgroundTrack( Cmd_Argv(1), Cmd_Argv(2) );
-	}
-	else Msg("music <musicfile> [loopfile]\n");
-}
-
 void S_SoundList_f( void )
 {
 	sfx_t	*sfx;
@@ -2264,11 +2242,11 @@ of a forced fallback of a player specific sound
 */
 bool S_LoadSound( sfx_t *sfx )
 {
-	byte	*data;
-	short	*samples;
-	wavinfo_t	info;
-	int	size;
-	char	namebuffer[MAX_QPATH];
+	byte		*data;
+	short		*samples;
+	wavinfo_t		info;
+	int		size;
+	string		namebuffer;
 
 	// player specific sounds are never directly loaded
 	if ( sfx->soundName[0] == '*') return false;

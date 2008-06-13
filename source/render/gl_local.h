@@ -310,8 +310,8 @@ extern	int		registration_sequence;
 
 void V_AddBlend (float r, float g, float b, float a, float *v_blend);
 
-int 	R_Init( void *hinstance, void *hWnd );
-void	R_Shutdown( void );
+int  R_Init( void *hinstance );
+void R_Shutdown( void );
 
 void R_RenderView (refdef_t *fd);
 void R_DrawStudioModel( int passnum );
@@ -505,7 +505,7 @@ IMPLEMENTATION SPECIFIC FUNCTIONS
 
 void GLimp_BeginFrame( void );
 void GLimp_EndFrame( void );
-int  GLimp_Init( void *hinstance, void *hWnd );
+int  GLimp_Init( void *hinstance );
 void GLimp_Shutdown( void );
 int  GLimp_SetMode( int vid_mode, bool fullscreen );
 void GLimp_AppActivate( bool active );
