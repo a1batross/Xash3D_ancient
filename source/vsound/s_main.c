@@ -5,66 +5,43 @@
 
 #include "sound.h"
 
-cvar_t	*s_initSound;
-cvar_t	*s_show;
-cvar_t	*s_alDevice;
-cvar_t	*s_allowExtensions;
-cvar_t	*s_soundfx;
-cvar_t	*s_ignoreALErrors;
-cvar_t	*s_masterVolume;
-cvar_t	*s_sfxVolume;
-cvar_t	*s_musicVolume;
-cvar_t	*s_minDistance;
-cvar_t	*s_maxDistance;
-cvar_t	*s_rolloffFactor;
-cvar_t	*s_dopplerFactor;
-cvar_t	*s_dopplerVelocity;
-
 #define MAX_PLAYSOUNDS		128
-
 #define MAX_CHANNELS		64
 
 static playSound_t	s_playSounds[MAX_PLAYSOUNDS];
 static playSound_t	s_freePlaySounds;
 static playSound_t	s_pendingPlaySounds;
-
-static channel_t	s_channels[MAX_CHANNELS];
-static int			s_numChannels;
-
-static listener_t	s_listener;
-
-static int			s_frameCount;
+static channel_t s_channels[MAX_CHANNELS];
+static listener_t s_listener;
 
 const guid_t DSPROPSETID_EAX20_ListenerProperties = {0x306a6a8, 0xb224, 0x11d2, {0x99, 0xe5, 0x0, 0x0, 0xe8, 0xd8, 0xc7, 0x22}};
 const guid_t DSPROPSETID_EAX20_BufferProperties = {0x306a6a7, 0xb224, 0x11d2, {0x99, 0xe5, 0x0, 0x0, 0xe8, 0xd8, 0xc7, 0x22}};
 
-cvar_t	*s_initSound;
-cvar_t	*s_show;
-cvar_t	*s_alDriver;
+cvar_t	*host_sound;
 cvar_t	*s_alDevice;
-cvar_t	*s_allowExtensions;
-cvar_t	*s_ext_eax;
-cvar_t	*s_ignoreALErrors;
-cvar_t	*s_masterVolume;
-cvar_t	*s_sfxVolume;
-cvar_t	*s_musicVolume;
+cvar_t	*s_soundfx;
+cvar_t	*s_check_errors;
+cvar_t	*s_volume;	// master volume
+cvar_t	*s_musicvolume;	// background track volume
+
 cvar_t	*s_minDistance;
 cvar_t	*s_maxDistance;
 cvar_t	*s_rolloffFactor;
 cvar_t	*s_dopplerFactor;
 cvar_t	*s_dopplerVelocity;
-
 
 /*
 =================
 S_CheckForErrors
 =================
 */
-static void S_CheckForErrors( void )
+void S_CheckForErrors( void )
 {
 	int		err;
 	char	*str;
 
+	if( !s_check_errors->integer )
+		return;
 	if((err = palGetError()) == AL_NO_ERROR)
 		return;
 
@@ -154,7 +131,23 @@ static void S_PlayChannel( channel_t *ch, sfx_t *sfx )
 	palSourcei(ch->sourceNum, AL_BUFFER, sfx->bufferNum);
 	palSourcei(ch->sourceNum, AL_LOOPING, ch->loopsound);
 	palSourcei(ch->sourceNum, AL_SOURCE_RELATIVE, false);
-	palSourcePlay(ch->sourceNum);
+
+	if( sfx->loopstart > -1 )
+	{
+		if( sfx->loopfirst )
+		{
+			sfx->loopfirst = false;
+			Msg( "loopsound playing at first\n" );
+			palSourcei( ch->sourceNum, AL_SAMPLE_OFFSET, 0 );
+		}
+		else
+		{
+			Msg( "loopsound playing loop from %d\n", sfx->loopstart );
+			palSourcei( ch->sourceNum, AL_SAMPLE_OFFSET, sfx->loopstart );
+		}
+	}
+	else palSourcei( ch->sourceNum, AL_SAMPLE_OFFSET, 0 );
+	palSourcePlay( ch->sourceNum );
 }
 
 /*
@@ -210,7 +203,7 @@ static void S_SpatializeChannel( channel_t *ch )
 	palSourcef( ch->sourceNum, AL_MAX_DISTANCE, s_maxDistance->value );
 
 	// update volume and rolloff factor
-	palSourcef( ch->sourceNum, AL_GAIN, s_sfxVolume->value * ch->volume );
+	palSourcef( ch->sourceNum, AL_GAIN, ch->volume );
 	palSourcef( ch->sourceNum, AL_ROLLOFF_FACTOR, s_rolloffFactor->value );
 }
 
@@ -226,7 +219,7 @@ channel_t *S_PickChannel( int entnum, int entChannel )
 	channel_t		*ch;
 	int		i;
 	int		firstToDie = -1;
-	int		oldestTime = si.GetClientTime();
+	int		oldestTime = Sys_DoubleTime();
 
 	if( entnum < 0 || entChannel < 0 )
 		Host_Error( "S_PickChannel: entnum or entChannel less than 0" );
@@ -269,7 +262,7 @@ channel_t *S_PickChannel( int entnum, int entChannel )
 
 	ch->entnum = entnum;
 	ch->entchannel = entChannel;
-	ch->startTime = si.GetClientTime();
+	ch->startTime = Sys_DoubleTime();
 
 	// Make sure this channel is stopped
 	palSourceStop(ch->sourceNum);
@@ -298,7 +291,7 @@ bool S_AddLoopingSound( int entnum, sound_t handle, float volume, float attn )
 	sfx = S_GetSfxByHandle( handle );
 
 	// default looped sound it's terrible :)
-	if( !sfx || !sfx->loaded || sfx->default_snd )
+	if( !sfx || !sfx->loaded || sfx->default_sound )
 		return false;
 
 	// if this entity is already playing the same sound effect on an
@@ -391,11 +384,15 @@ static void S_IssuePlaySounds( void )
 	{
 		ps = s_pendingPlaySounds.next;
 		if(ps == &s_pendingPlaySounds)
+		{
+			Msg("no more pending playsounds\n");
 			break; // no more pending playSounds
-
-		if( ps->beginTime > si.GetClientTime())
+		}
+		if( ps->beginTime > Sys_DoubleTime())
+		{
+			Msg("no more pending playsounds\n");
 			break;	// No more pending playSounds this frame
-
+		}	
 		// pick a channel and start the sound effect
 		ch = S_PickChannel( ps->entnum, ps->entchannel );
 		if(!ch)
@@ -405,8 +402,12 @@ static void S_IssuePlaySounds( void )
 			S_FreePlaySound( ps );
 			continue;
 		}
+		// check for looping sounds with "cue " marker
+		if( ps->sfx->loopstart > -1 )
+		{
+			ps->sfx->loopfirst = true;
+		}
 
-		ch->loopsound = false;
 		ch->fixedPosition = ps->fixedPosition;
 		VectorCopy( ps->position, ch->position );
 		ch->volume = ps->volume;
@@ -419,6 +420,16 @@ static void S_IssuePlaySounds( void )
 
 		// free the playSound
 		S_FreePlaySound( ps );
+
+		if( S_ChannelState( ch ) == AL_STOPPED )
+		{
+			if( ch->sfx->loopstart > -1 )
+			{
+				Msg("playing %s again form offset %d\n", ch->sfx->name, ch->sfx->loopstart );
+				S_PlayChannel( ch, ch->sfx );
+			}
+		}
+
 	}
 }
 
@@ -438,10 +449,9 @@ void S_StartSound( const vec3_t position, int entnum, int entChannel, sound_t ha
 
 	if(!al_state.initialized )
 		return;
-
 	sfx = S_GetSfxByHandle( handle );
 	if( !sfx ) return;
-
+	Msg("CL_StartSound %s ( entnum %d, channel %d)\n", sfx->name, entnum, entChannel );
 	// Make sure the sound is loaded
 	if(!S_LoadSound(sfx)) return;
 
@@ -453,7 +463,6 @@ void S_StartSound( const vec3_t position, int entnum, int entChannel, sound_t ha
 		else MsgDev( D_ERROR, "dropped sound \"sound/%s\"\n", sfx->name );
 		return;
 	}
-
 	ps->sfx = sfx;
 	ps->entnum = entnum;
 	ps->entchannel = entChannel;
@@ -467,7 +476,7 @@ void S_StartSound( const vec3_t position, int entnum, int entChannel, sound_t ha
 
 	ps->volume = volume;
 	ps->attenuation = attenuation;
-	ps->beginTime = si.GetClientTime();
+	ps->beginTime = Sys_DoubleTime();
 
 	// Sort into the pending playSounds list
 	for( sort = s_pendingPlaySounds.next; sort != &s_pendingPlaySounds&& sort->beginTime < ps->beginTime; sort = sort->next );
@@ -493,7 +502,7 @@ bool S_StartLocalSound( const char *name )
 		return false;
 
 	sfxHandle = S_RegisterSound( name );
-	S_StartSound( NULL, al_state.clientnum, 0, sfxHandle, 1.0f, ATTN_NONE );
+	S_StartSound( NULL, al_state.clientnum, CHAN_BODY, sfxHandle, 1.0f, ATTN_NONE );
 	return true;
 }
 
@@ -589,7 +598,7 @@ void S_Update( int clientnum, const vec3_t position, const vec3_t velocity, cons
 	palListenerfv(AL_POSITION, s_listener.position);
 	palListenerfv(AL_VELOCITY, s_listener.velocity);
 	palListenerfv(AL_ORIENTATION, s_listener.orientation);
-	palListenerf(AL_GAIN, (al_state.active) ? s_masterVolume->value : 0.0f );
+	palListenerf(AL_GAIN, (al_state.active) ? s_volume->value : 0.0f );
 
 	// Set state
 	palDistanceModel( AL_INVERSE_DISTANCE_CLAMPED );
@@ -636,8 +645,7 @@ void S_Update( int clientnum, const vec3_t position, const vec3_t velocity, cons
 	}
 
 	// check for errors
-	if(!s_ignoreALErrors->integer)
-		S_CheckForErrors();
+	S_CheckForErrors();
 }
 
 /*
@@ -655,7 +663,7 @@ void S_Activate( bool active )
 		return;
 
 	al_state.active = active;
-	if( active ) palListenerf( AL_GAIN, s_masterVolume->value );
+	if( active ) palListenerf( AL_GAIN, s_volume->value );
 	else palListenerf( AL_GAIN, 0.0 );
 }
 
@@ -739,14 +747,12 @@ void S_SoundInfo_f( void )
 */
 void S_Init( void *hInst )
 {
-	s_initSound = Cvar_Get("s_initsound", "1", CVAR_SYSTEMINFO );
+	host_sound = Cvar_Get("host_sound", "1", CVAR_SYSTEMINFO );
 	s_alDevice = Cvar_Get("s_device", "Generic Software", CVAR_LATCH|CVAR_ARCHIVE );
-	s_allowExtensions = Cvar_Get("s_allowextensions", "1", CVAR_LATCH|CVAR_ARCHIVE );
 	s_soundfx = Cvar_Get("s_soundfx", "1", CVAR_LATCH|CVAR_ARCHIVE );
-	s_ignoreALErrors = Cvar_Get("s_ignoreALErrors", "1", CVAR_ARCHIVE );
-	s_masterVolume = Cvar_Get("s_volume", "1.0", CVAR_ARCHIVE );
-	s_sfxVolume = Cvar_Get("s_soundvolume", "1.0", CVAR_ARCHIVE );
-	s_musicVolume = Cvar_Get("s_musicvolume", "1.0", CVAR_ARCHIVE );
+	s_check_errors = Cvar_Get("s_check_errors", "1", CVAR_ARCHIVE );
+	s_volume = Cvar_Get("s_volume", "1.0", CVAR_ARCHIVE );
+	s_musicvolume = Cvar_Get("s_musicvolume", "1.0", CVAR_ARCHIVE );
 	s_minDistance = Cvar_Get("s_mindistance", "240.0", CVAR_ARCHIVE );
 	s_maxDistance = Cvar_Get("s_maxdistance", "8192.0", CVAR_ARCHIVE );
 	s_rolloffFactor = Cvar_Get("s_rollofffactor", "1.0", CVAR_ARCHIVE );
@@ -759,9 +765,9 @@ void S_Init( void *hInst )
 	Cmd_AddCommand("s_info", S_SoundInfo_f, "print sound system information" );
 	Cmd_AddCommand("soundlist", S_SoundList_f, "display loaded sounds" );
 
-	if(!s_initSound->integer)
+	if(!host_sound->integer)
 	{
-		MsgDev(D_INFO, "S_Init: sound system disabled\n" );
+		MsgDev(D_INFO, "Audio: disabled\n" );
 		return;
 	}
 
@@ -776,9 +782,7 @@ void S_Init( void *hInst )
 
 	S_AllocChannels();
 	S_StopAllSounds();
-
-	if(!s_ignoreALErrors->integer)
-		S_CheckForErrors();
+	S_CheckForErrors();
 
 	al_state.active = true; // enabled
 }

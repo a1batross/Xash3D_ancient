@@ -164,7 +164,7 @@ void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename,
 	int		leafnum = 0, cluster = 0;
 	int		area1 = 0, area2 = 0;
 	int		j, numclients = maxclients->value;
-	client_state_t		*client, *current = svs.clients;
+	client_state_t	*client, *current = svs.clients;
 	bool		reliable = false;
 
 	/*if(origin == NULL || ent == NULL) 

@@ -365,7 +365,7 @@ void CL_PrepRefresh( void )
 
 	// set sky textures and speed
 	SCR_UpdateScreen();
-	rotate = atof(cl.configstrings[CS_SKYROTATE]);
+	rotate = com.atof(cl.configstrings[CS_SKYROTATE]);
 	com.atov( axis, cl.configstrings[CS_SKYAXIS], 3 );
 	re->SetSky( cl.configstrings[CS_SKY], rotate, axis);
           Cvar_SetValue("scr_loading", 100.0f ); // all done

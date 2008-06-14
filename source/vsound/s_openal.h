@@ -69,6 +69,11 @@ typedef struct alcontext_s alcontext;
 #define AL_BUFFERS_QUEUED                         0x1015
 #define AL_BUFFERS_PROCESSED                      0x1016
 
+// source buffer position information
+#define AL_SEC_OFFSET                             0x1024
+#define AL_SAMPLE_OFFSET                          0x1025
+#define AL_BYTE_OFFSET                            0x1026
+
 // openal errors
 #define AL_NO_ERROR                               0
 #define AL_INVALID_NAME                           0xA001

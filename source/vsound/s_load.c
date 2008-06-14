@@ -8,9 +8,8 @@
 #define MAX_SFX		4096
 static sfx_t s_knownSfx[MAX_SFX];
 static int s_numSfx = 0;
-
-#define SFX_HASHSIZE	128
-static sfx_t *sfxHash[SFX_HASHSIZE];
+int s_registration_sequence = 0;
+bool s_registering = false;
 
 /*
 =================
@@ -47,9 +46,7 @@ void S_SoundList_f( void )
 
 			if( sfx->name[0] == '#' ) Msg("%s", &sfx->name[1]);
 			else Msg("sound/%s", sfx->name);
-
-			if( sfx->default_snd ) Msg(" (DEFAULTED)\n");
-			else Msg("\n");
+			Msg( "\n" );
 		}
 		else
 		{
@@ -59,8 +56,8 @@ void S_SoundList_f( void )
 	}
 
 	Msg("-------------------------------------------\n");
-	Msg("%i total samples\n", samples);
-	Msg("%i total sounds\n", s_numSfx);
+	Msg("%i total samples\n", samples );
+	Msg("%i total sounds\n", s_numSfx );
 	Msg("\n");
 }
 
@@ -162,7 +159,7 @@ S_LoadWAV
 static bool S_LoadWAV( const char *name, byte **wav, wavinfo_t *info )
 {
 	byte	*buffer, *out;
-	int	length;
+	int	length, samples;
 
 	buffer = FS_LoadFile( name, &length );
 	if( !buffer ) return false;
@@ -216,7 +213,33 @@ static bool S_LoadWAV( const char *name, byte **wav, wavinfo_t *info )
 		return false;
 	}
 
-	// Find data chunk
+	// get cue chunk
+	S_FindChunk("cue ");
+	if( iff_dataPtr )
+	{
+		iff_dataPtr += 32;
+		info->loopstart = S_GetLittleLong();
+		Msg("found 'cue '\n" );
+		// if the next chunk is a LIST chunk, look for a cue length marker
+		S_FindNextChunk("LIST");
+		if( iff_dataPtr )
+		{
+			if(!com.strncmp ((const char *)iff_dataPtr + 28, "mark", 4))
+			{	
+				// this is not a proper parse, but it works with CoolEdit...
+				iff_dataPtr += 24;
+				info->samples = info->loopstart + S_GetLittleLong(); // samples in loop
+				Msg("loopstart = %d, samples %d\n", info->loopstart, info->samples );
+			}
+		}
+	}
+	else 
+	{
+		info->loopstart = -1;
+		info->samples = 0;
+	}
+
+	// find data chunk
 	S_FindChunk("data");
 	if( !iff_dataPtr )
 	{
@@ -226,7 +249,17 @@ static bool S_LoadWAV( const char *name, byte **wav, wavinfo_t *info )
 	}
 
 	iff_dataPtr += 4;
-	info->samples = S_GetLittleLong() / info->width;
+	samples = S_GetLittleLong() / info->width;
+
+	if( info->samples )
+	{
+		if( samples < info->samples )
+		{
+			MsgDev( D_ERROR, "S_LoadWAV: %s has a bad loop length\n", name );
+			return false;
+		}
+	}
+	else info->samples = samples;
 
 	if( info->samples <= 0 )
 	{
@@ -268,8 +301,9 @@ static void S_UploadSound( byte *data, int width, int channels, sfx_t *sfx )
 	}
 
 	// upload the sound
-	palGenBuffers(1, &sfx->bufferNum);
+	palGenBuffers( 1, &sfx->bufferNum );
 	palBufferData( sfx->bufferNum, sfx->format, data, size, sfx->rate );
+	S_CheckForErrors();
 }
 
 /*
@@ -288,8 +322,19 @@ static void S_CreateDefaultSound( byte **wav, wavinfo_t *info )
 	info->samples = 11025;
 
 	*wav = out = Z_Malloc( info->samples * info->width );
-	for( i = 0; i < info->samples; i++ )
-		((short *)out)[i] = sin(i * 0.1f) * 20000;
+
+	if( s_check_errors->integer )
+	{
+		// create 1 kHz tone as default sound
+		for( i = 0; i < info->samples; i++ )
+			((short *)out)[i] = sin(i * 0.1f) * 20000;
+	}
+	else
+	{
+		// create silent sound
+		for( i = 0; i < info->samples; i++ )
+			((short *)out)[i] =  i;
+	}
 }
 
 /*
@@ -314,19 +359,20 @@ bool S_LoadSound( sfx_t *sfx )
 
 	if(!S_LoadWAV(name, &data, &info))
 	{
-		sfx->default_snd = true;
-
-		MsgWarn( "couldn't find sound '%s', using default...\n", name );
+		sfx->default_sound = true;
+		MsgDev(D_WARN, "couldn't load %s\n", sfx->name );
 		S_CreateDefaultSound( &data, &info );
+		info.loopstart = -1;
 	}
 
 	// load it in
-	sfx->loaded = true;
+	sfx->loopstart = info.loopstart;
 	sfx->samples = info.samples;
 	sfx->rate = info.rate;
-
 	S_UploadSound( data, info.width, info.channels, sfx );
-	Mem_Free(data);
+	sfx->loaded = true;
+
+	Mem_Free( data );
 
 	return true;
 }
@@ -335,82 +381,53 @@ bool S_LoadSound( sfx_t *sfx )
 // Load a sound
 // =======================================================================
 /*
-================
-return a hash value for the sfx name
-================
-*/
-static long S_HashSFXName( const char *name )
-{
-	int	i = 0;
-	long	hash = 0;
-	char	letter;
-
-	while( name[i] != '\0' )
-	{
-		letter = com.tolower(name[i]);
-		if (letter =='.') break;		// don't include extension
-		if (letter =='\\') letter = '/';	// damn path names
-		hash += (long)(letter)*(i+119);
-		i++;
-	}
-	hash &= (SFX_HASHSIZE-1);
-	return hash;
-}
-
-/*
 =================
 S_FindSound
 =================
 */
 sfx_t *S_FindSound( const char *name )
 {
-	int	i, hash;
 	sfx_t	*sfx;
+	int	i;
 
-	if( !name || !name[0] )
-	{
-		MsgWarn("S_FindSound: empty name\n");
-		return NULL;
-	}
+	if( !name || !name[0] ) return NULL;
 	if( com.strlen(name) >= MAX_STRING )
 	{
-		MsgWarn("S_FindSound: sound name too long: %s", name);
+		MsgDev( D_ERROR, "S_FindSound: sound name too long: %s", name );
 		return NULL;
 	}
 
-	hash = S_HashSFXName(name);
-	sfx = sfxHash[hash];
-
-	// see if already loaded
-	while( sfx )
-	{
-		if (!stricmp(sfx->name, name))
-			return sfx;
-		sfx = sfx->nextHash;
-	}
-
-	// find a free sfx slot
-	for (i = 0; i < s_numSfx; i++)
-	{
-		if(!s_knownSfx[i].name[0])
-			break;
-	}
-
-	if (i == s_numSfx)
-	{
-		if (s_numSfx == MAX_SFX)
+	for( i = 0; i < s_numSfx; i++ )
+          {
+		sfx = &s_knownSfx[i];
+		if( !sfx->name[0] ) continue;
+		if( !com.strcmp( name, sfx->name ))
 		{
-			MsgWarn("S_FindName: MAX_SFX limit exceeded\n");
+			// prolonge registration
+			sfx->registration_sequence = s_registration_sequence;
+			return sfx;
+		}
+	} 
+
+	// find a free sfx slot spot
+	for( i = 0, sfx = s_knownSfx; i < s_numSfx; i++, sfx++)
+	{
+		if(!sfx->name[0]) break; // free spot
+	}
+	if( i == s_numSfx )
+	{
+		if( s_numSfx == MAX_SFX )
+		{
+			MsgWarn("S_FindName: MAX_SFX limit exceeded\n" );
 			return NULL;
 		}
 		s_numSfx++;
 	}
 
 	sfx = &s_knownSfx[i];
-	memset (sfx, 0, sizeof(*sfx));
-	strcpy (sfx->name, name);
-	sfx->nextHash = sfxHash[hash];
-	sfxHash[hash] = sfx;
+	memset( sfx, 0, sizeof(*sfx));
+	com.strncpy( sfx->name, name, MAX_STRING );
+	sfx->registration_sequence = s_registration_sequence;
 
 	return sfx;
 }
@@ -422,6 +439,8 @@ S_BeginRegistration
 */
 void S_BeginRegistration( void )
 {
+	s_registration_sequence++;
+	s_registering = true;
 }
 
 /*
@@ -431,6 +450,29 @@ S_EndRegistration
 */
 void S_EndRegistration( void )
 {
+	sfx_t	*sfx;
+	int	i;
+
+	// free any sounds not from this registration sequence
+	for( i = 0, sfx = s_knownSfx; i < s_numSfx; i++, sfx++ )
+	{
+		if( !sfx->name[0] ) continue;
+		if( sfx->registration_sequence != s_registration_sequence )
+		{	
+			// don't need this sound
+			palDeleteBuffers( 1, &sfx->bufferNum );
+			sfx->name[0] = '\0'; // free spot
+			sfx->loaded = false;
+		}
+	}
+
+	// load everything in
+	for( i = 0, sfx = s_knownSfx; i < s_numSfx; i++, sfx++ )
+	{
+		if( !sfx->name[0] )continue;
+		S_LoadSound( sfx );
+	}
+	s_registering = false;
 }
 
 /*
@@ -446,9 +488,11 @@ sound_t S_RegisterSound( const char *name )
 		return 0;
 
 	sfx = S_FindSound( name );
-	S_LoadSound( sfx );
-
 	if( !sfx ) return 0;
+
+	sfx->registration_sequence = s_registration_sequence;
+	if( !s_registering ) S_LoadSound( sfx );
+
 	return sfx - s_knownSfx;
 }
 
@@ -469,22 +513,20 @@ sfx_t *S_GetSfxByHandle( sound_t handle )
 */
 void S_FreeSounds( void )
 {
-
 	sfx_t	*sfx;
-	int		i;
+	int	i;
 
-	// Stop all sounds
+	// stop all sounds
 	S_StopAllSounds();
 
-	// Free all sounds
+	// free all sounds
 	for (i = 0; i < s_numSfx; i++)
 	{
 		sfx = &s_knownSfx[i];
+		if( !sfx->loaded ) continue;
 		palDeleteBuffers(1, &sfx->bufferNum);
 	}
 
-	memset( sfxHash, 0, sizeof(sfx_t *)*SFX_HASHSIZE);
 	memset( s_knownSfx, 0, sizeof(s_knownSfx));
-
 	s_numSfx = 0;
 }

@@ -198,11 +198,6 @@ void CL_Drop (void)
 	CL_Disconnect();
 }
 
-float CL_GetTime( void )
-{
-	return cl.time;
-}
-
 /*
 =======================
 CL_SendConnectPacket

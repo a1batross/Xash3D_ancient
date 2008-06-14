@@ -135,7 +135,7 @@ void S_StreamBackgroundTrack( void )
 	int	size, read, dummy;
 	uint	buffer;
 
-	if( !s_bgTrack.file || !s_musicVolume->value )
+	if( !s_bgTrack.file || !s_musicvolume->value )
 		return;
 	if(!s_streamingChannel) return;
 
@@ -199,7 +199,7 @@ void S_StreamBackgroundTrack( void )
 	}
 
 	// update volume
-	palSourcef( s_streamingChannel->sourceNum, AL_GAIN, s_musicVolume->value );
+	palSourcef( s_streamingChannel->sourceNum, AL_GAIN, s_musicvolume->value );
 
 	// if not playing, then do so
 	palGetSourcei( s_streamingChannel->sourceNum, AL_SOURCE_STATE, &state );
@@ -359,7 +359,7 @@ void S_StreamRawSamples( int samples, int rate, int width, int channels, const b
 	palSourceQueueBuffers( s_streamingChannel->sourceNum, 1, &buffer );
 
 	// update volume
-	palSourcef( s_streamingChannel->sourceNum, AL_GAIN, s_sfxVolume->value );
+	palSourcef( s_streamingChannel->sourceNum, AL_GAIN, 1.0f );
 
 	// if not playing, then do so
 	palGetSourcei(s_streamingChannel->sourceNum, AL_SOURCE_STATE, &state);

@@ -197,16 +197,16 @@ typedef enum
 */
 
 // per-level limits
-#define MAX_ENTITIES		128
-#define MAX_DLIGHTS			32
+#define MAX_ENTITIES		512	// refdef ents
+#define MAX_DLIGHTS			64
 #define MAX_CLIENTS			256	// absolute limit
-#define MAX_PARTICLES		4096
+#define MAX_PARTICLES		512
 #define MAX_LIGHTSTYLES		256
-#define MAX_SOUNDS			256	// so they cannot be blindly increased
+#define MAX_SOUNDS			512	// so they cannot be blindly increased
 #define MAX_IMAGES			256	// hud graphics
 #define MAX_DECALS			256	// various decals
-#define MAX_ITEMS			512	// player items
-#define MAX_GENERAL			(MAX_CLIENTS*2)	// general config strings
+#define MAX_ITEMS			128	// player items
+#define MAX_GENERAL			(MAX_CLIENTS * 2)	// general config strings
 
 // config strings are a general means of communication from
 // the server to all connected clients.

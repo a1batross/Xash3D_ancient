@@ -18,10 +18,6 @@ int numgltextures;
 byte intensitytable[256];
 cvar_t *gl_maxsize;
 byte *r_imagepool;
-byte *imagebuffer;
-int imagebufsize;
-byte *uploadbuffer;
-int uploadbufsize;
 bool use_gl_extension = false;
 cvar_t *intensity;
 uint d_8to24table[256];
@@ -47,6 +43,8 @@ typedef struct
 
 	int		flags;
 	byte		*pal;
+	byte		*source;
+	byte		*scaled;
 } pixformat_desc_t;
 
 static pixformat_desc_t image_desc;
@@ -143,9 +141,6 @@ void R_SetPixelFormat( int width, int height, int depth )
 
 	// NOTE: size of current miplevel or cubemap side, not total (filesize - sizeof(header))
 	image_desc.SizeOfFile = R_GetImageSize( BlockSize, width, height, depth, image_desc.bpp, image_desc.BitsCount / 8);
-
-	if (image_desc.width * image_desc.height > imagebufsize / 4) // warning
-		MsgWarn("R_SetPixelFormat: image too big [%i*%i]\n", image_desc.width, image_desc.height);
 }
 
 /*
@@ -161,7 +156,8 @@ bool R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 	size_t	mipsize, totalsize = 0;
 
 	if(!pic || !pic->buffer) return false;
-		
+
+	Mem_EmptyPool( r_imagepool ); // flush buffers		
 	memset( &image_desc, 0, sizeof(image_desc));
 	for(i = 0; i < PF_TOTALCOUNT; i++)
 	{
@@ -230,6 +226,9 @@ bool R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 	if(w == image_desc.width && h == image_desc.height) 
 		use_gl_extension = true;
 	else use_gl_extension = false;
+
+	image_desc.source = Mem_Alloc( r_imagepool, s * 4 );	// source buffer
+	image_desc.scaled = Mem_Alloc( r_imagepool, w * h * 4 );	// scaled buffer
 
 	if(image_desc.flags & IMAGE_CUBEMAP)
 		totalsize *= 6;
@@ -315,27 +314,19 @@ void R_InitTextures( void )
           gl_maxsize = Cvar_Get( "gl_maxsize", "4096", CVAR_ARCHIVE );
 	
 	qglGetIntegerv(GL_MAX_TEXTURE_SIZE, &texsize); // merge value
-	if (gl_maxsize->integer != texsize) Cvar_SetValue ("gl_maxsize", texsize );
-
-	if(texsize < 2048) imagebufsize = 2048*2048*4;
-	else imagebufsize = texsize * texsize * 4;
-	uploadbufsize = texsize * texsize * 4;
-	
-	// create intermediate & upload image buffer
-	imagebuffer = Mem_Alloc( r_imagepool, imagebufsize );
-          uploadbuffer = Mem_Alloc( r_imagepool, uploadbufsize );
+	if( gl_maxsize->integer != texsize ) Cvar_SetValue( "gl_maxsize", texsize );
 
 	registration_sequence = 1;
 
 	// init intensity conversions
 	intensity = Cvar_Get ("intensity", "2", 0 );
-	if ( intensity->value <= 1 ) Cvar_SetValue( "intensity", 1 );
+	if( intensity->value <= 1 ) Cvar_SetValue( "intensity", 1 );
 	gl_state.inverse_intensity = 1 / intensity->value;
 
 	for (i = 0; i < 256; i++)
 	{
 		j = i * intensity->value;
-		intensitytable[i] = bound(0, j, 255);
+		intensitytable[i] = bound( 0, j, 255 );
 	}
 	R_GetPalette();
 }
@@ -347,8 +338,8 @@ void R_RoundImageDimensions( int *scaled_width, int *scaled_height )
 	for( width = 1; width < *scaled_width; width <<= 1 );
 	for( height = 1; height < *scaled_height; height <<= 1 );
 
-	*scaled_width = bound(1, width, gl_maxsize->integer );
-	*scaled_height = bound(1, height, gl_maxsize->integer );
+	*scaled_width = bound( 1, width, gl_maxsize->integer );
+	*scaled_height = bound( 1, height, gl_maxsize->integer );
 }
 
 bool R_ResampleTexture (uint *in, int inwidth, int inheight, uint *out, int outwidth, int outheight)
@@ -451,10 +442,10 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 	uint	bits, bitmask, Offset; 
 	int	scaled_width, scaled_height;
 	word	sAlpha, sColor0, sColor1;
-	byte	*fin, *fout = imagebuffer;
+	byte	*fin, *fout = image_desc.source;
 	byte	alphas[8], *alpha, *alphamask; 
 	int	w, h, x, y, z, i, j, k, Select; 
-	uint	*scaled = (unsigned *)uploadbuffer;
+	uint	*scaled = (uint *)image_desc.scaled;
 	bool	has_alpha = false;
 	int 	samples;
 
@@ -790,8 +781,8 @@ bool qrsDecompressedTexImage2D( uint target, int level, int internalformat, uint
 	byte	*fin;
 	int	i, p, samples; 
 	int	scaled_width, scaled_height;
-	uint	*scaled = (uint *)uploadbuffer;
-	byte	*fout = imagebuffer;
+	uint	*scaled = (uint *)image_desc.scaled;
+	byte	*fout = image_desc.source;
 	bool	noalpha = true;
 
 	if (!data) return false;
@@ -853,8 +844,7 @@ bool qrsDecompressedTexImage2D( uint target, int level, int internalformat, uint
 	case PF_ABGR_64:
 	case PF_RGBA_32:
 	case PF_RGBA_GN:
-		// nothing to process
-		fout = fin;
+		fout = fin; // nothing to process
 		break;
 	default:
 		MsgDev(D_WARN, "qrsDecompressedTexImage2D: invalid compression type: %s\n", PFDesc[internalformat].name );
@@ -902,8 +892,8 @@ bool qrsDecompressImageARGB( uint target, int level, int internalformat, uint wi
 	uint	ReadI = 0, TempBpp;
 	uint	RedL, RedR, GreenL, GreenR, BlueL, BlueR, AlphaL, AlphaR;
 	uint	r_bitmask, g_bitmask, b_bitmask, a_bitmask;
-	uint	*scaled = (unsigned *)uploadbuffer;
-	byte	*fin, *fout = imagebuffer;
+	uint	*scaled = (unsigned *)image_desc.scaled;
+	byte	*fin, *fout = image_desc.source;
 	bool	has_alpha = false;
 	int	scaled_width, scaled_height;
 	int	i, w, h, samples;

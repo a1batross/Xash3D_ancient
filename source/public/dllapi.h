@@ -591,7 +591,7 @@ typedef struct vsound_imp_s
 	void (*GetSoundSpatialization)( int entnum, vec3_t origin, vec3_t velocity );
 	int  (*PointContents)( vec3_t point );
 	void (*AddLoopingSounds)( void );
-	float (*GetClientTime)( void );
+
 } vsound_imp_t;
 
 // this is the only function actually exported at the linker level

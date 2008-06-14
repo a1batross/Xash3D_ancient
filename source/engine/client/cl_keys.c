@@ -241,6 +241,10 @@ void Field_CompleteCommand( field_t *field )
 		{
 			result = Cmd_GetMapList(Cmd_Argv(1), filename, MAX_STRING );
 		}
+		else if(!stricmp(Cmd_Argv(0), "play" ) || !stricmp(Cmd_Argv(0), "\\play" ))
+		{
+			result = Cmd_GetSoundList(Cmd_Argv(1), filename, MAX_STRING );
+		}
 		else if(!stricmp(Cmd_Argv(0), "playdemo" ) || !stricmp(Cmd_Argv(0), "\\playdemo" ))
 		{
 			result = Cmd_GetDemoList(Cmd_Argv(1), filename, MAX_STRING );

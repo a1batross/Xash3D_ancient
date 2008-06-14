@@ -1867,6 +1867,51 @@ bool Cmd_GetMovieList (const char *s, char *completedname, int length )
 }
 
 /*
+=====================================
+Cmd_GetSoundList
+
+Prints or complete sound filename
+=====================================
+*/
+bool Cmd_GetSoundList (const char *s, char *completedname, int length )
+{
+	search_t		*t;
+	string		matchbuf;
+	int		i, numsounds;
+
+	t = FS_Search(va("sound/%s*.wav", s ), true);
+	if(!t) return false;
+
+	FS_FileBase(t->filenames[0], matchbuf ); 
+	if(completedname && length) com.strncpy( completedname, matchbuf, length );
+	if(t->numfilenames == 1) return true;
+
+	for(i = 0, numsounds = 0; i < t->numfilenames; i++)
+	{
+		const char *ext = FS_FileExtension( t->filenames[i] ); 
+
+		if( com.stricmp(ext, "wav" )) continue;
+		FS_FileBase(t->filenames[i], matchbuf );
+		Msg("%16s\n", matchbuf );
+		numsounds++;
+	}
+	Msg("\n^3 %i sounds found.\n", numsounds );
+	Mem_Free(t);
+
+	// cut shortestMatch to the amount common with s
+	if(completedname && length)
+	{
+		for( i = 0; matchbuf[i]; i++ )
+		{
+			if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
+				completedname[i] = 0;
+		}
+	}
+
+	return true;
+}
+
+/*
 ============
 Cmd_WriteVariables
 

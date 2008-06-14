@@ -19,7 +19,7 @@ int FindMiptex( char *name )
 		if (!stricmp(name, textureref[i].texname))
 			return i;
 	}
-	if( nummiptex == MAX_MAP_TEXTURES ) Sys_Error ("MAX_MAP_TEXTURES");
+	if( nummiptex == MAX_MAP_TEXTURES ) Sys_Break("MAX_MAP_TEXTURES limit exceeds\n");
 
 	// register texture
 	strcpy (textureref[i].texname, name );

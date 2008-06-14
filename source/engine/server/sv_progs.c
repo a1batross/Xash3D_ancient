@@ -81,7 +81,7 @@ void SV_SetMinMaxSize (edict_t *e, float *min, float *max, bool rotate)
 	int		i;
 
 	for (i = 0; i < 3; i++)
-		if (min[i] > max[i])
+		if( min[i] > max[i] )
 			PRVM_ERROR("SV_SetMinMaxSize: backwards mins/maxs");
 
 	// set derived values
@@ -1439,8 +1439,9 @@ void PF_sound( void )
 		VM_Warning("SV_StartSound: channel must be in range 0-7\n");
 		return;
 	}
-          
-          sound_idx = SV_SoundIndex( sample );
+
+	channel |= CHAN_RELIABLE|CHAN_NO_PHS_ADD;          
+	sound_idx = SV_SoundIndex( sample );
 	SV_StartSound (NULL, entity, channel, sound_idx, volume / 255.0f, attenuation, 0 );
 }
 

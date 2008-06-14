@@ -372,7 +372,6 @@ void SV_Transform( sv_edict_t *ed, matrix4x3 transform );
 int CL_PMpointcontents( vec3_t point );
 void CL_AddLoopingSounds( void );
 void CL_RegisterSounds( void );
-float CL_GetTime( void );
 void CL_Drop( void );
 char *Info_ValueForKey( char *s, char *key );
 void Info_RemoveKey( char *s, char *key );
@@ -383,10 +382,11 @@ void Cmd_ForwardToServer( void ); // client callback
 char *Cvar_Userinfo( void );
 char *Cvar_Serverinfo( void );
 void Cmd_WriteVariables( file_t *f );
-bool Cmd_GetMapList (const char *s, char *completedname, int length );
-bool Cmd_GetFontList (const char *s, char *completedname, int length );
+bool Cmd_GetMapList(const char *s, char *completedname, int length );
+bool Cmd_GetFontList(const char *s, char *completedname, int length );
 bool Cmd_GetDemoList(const char *s, char *completedname, int length );
-bool Cmd_GetMovieList(const char *s, char *completedname, int length);
+bool Cmd_GetMovieList(const char *s, char *completedname, int length );
+bool Cmd_GetSoundList(const char *s, char *completedname, int length );
 void Sys_Error( const char *msg, ... );
 void Sys_SendKeyEvents( void );
 

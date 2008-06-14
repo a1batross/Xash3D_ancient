@@ -203,7 +203,6 @@ void Host_InitSound( void )
 	si.GetSoundSpatialization = CL_GetEntitySoundSpatialization;
 	si.PointContents = CL_PMpointcontents;
 	si.AddLoopingSounds = CL_AddLoopingSounds;
-	si.GetClientTime = CL_GetTime;
 
 	Sys_LoadLibrary( &vsound_dll );
 
