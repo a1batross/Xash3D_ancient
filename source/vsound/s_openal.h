@@ -25,6 +25,8 @@ typedef struct alcontext_s alcontext;
 #define ALC_ALL_ATTRIBUTES                        0x1003
 #define ALC_FREQUENCY			0x1007
 #define ALC_MAX_AUXILIARY_SENDS		0x20003
+#define ALC_MONO_SOURCES			0x1010
+#define ALC_STEREO_SOURCES			0x1011
 
 #define AL_SOURCE_RELATIVE                        0x202
 #define AL_CONE_INNER_ANGLE                       0x1001

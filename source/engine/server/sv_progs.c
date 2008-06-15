@@ -493,16 +493,20 @@ void Sav_LoadLocals( lump_t *l )
 			ent->priv.sv->free = false;
 
 			// parse an edict
-			PRVM_ED_ParseEdict(ents, ent);
+			PRVM_ED_ParseEdict( ents, ent );
 			ent->priv.sv->serialnumber = entnum++; // increase serialnumber
 
 			// link it into the bsp tree
-			if (!ent->priv.sv->free) 
+			if(!ent->priv.sv->free) 
 			{
 				SV_LinkEdict( ent );
 				SV_CreatePhysBody( ent );
 				SV_SetPhysForce( ent ); // restore forces ...
 				SV_SetMassCentre( ent ); // and mass force
+			}
+			if( ent->progs.sv->loopsound )
+			{
+				ent->priv.sv->s.soundindex = SV_SoundIndex(PRVM_GetString(ent->progs.sv->loopsound));
 			}
 		}
 	}
@@ -1455,15 +1459,19 @@ void EmitAmbientSound(entity e, string samp)
 void PF_ambientsound( void )
 {
 	const char	*samp;
-	edict_t		*soundent;
+	edict_t		*ent;
 
 	if(!VM_ValidateArgs( "EmitAmbientSound", 2 )) return;
-	soundent = PRVM_G_EDICT(OFS_PARM0);
+	ent = PRVM_G_EDICT(OFS_PARM0);
 	samp = PRVM_G_STRING(OFS_PARM1);
 
+	if( !ent ) return;
 	// check to see if samp was properly precached
-	if( soundent ) soundent->progs.sv->loopsound = SV_SoundIndex( samp );
-	//SV_AmbientSound( soundent, SV_SoundIndex( samp ), 0.0f, 0.0f ); // unused parms
+	ent->progs.sv->loopsound = PRVM_G_INT(OFS_PARM1);
+	ent->priv.sv->s.soundindex = SV_SoundIndex( samp );
+	if(!ent->progs.sv->modelindex ) SV_LinkEdict( ent );
+
+	//SV_AmbientSound( ent, SV_SoundIndex( samp ), 0.0f, 0.0f ); // unused parms
 }
 
 /*
@@ -1785,7 +1793,7 @@ void PF_lightstyle( void )
 	style = (int)PRVM_G_FLOAT(OFS_PARM0);
 	val = PRVM_G_STRING(OFS_PARM1);
 
-	if((uint) style >= MAX_LIGHTSTYLES )
+	if((uint)style >= MAX_LIGHTSTYLES )
 		PRVM_ERROR( "PF_lightstyle: style: %i >= %d", style, MAX_LIGHTSTYLES );
 	SV_ConfigString( CS_LIGHTS + style, val );
 }
@@ -1902,7 +1910,7 @@ void PF_ClientPrint( void )
 	type = (int)PRVM_G_FLOAT( OFS_PARM0 );
 	if( num < 1 || num > maxclients->value || svs.clients[num - 1].state != cs_spawned )
 	{
-		VM_Warning("ClientPrint: tried print to a non-client!\n");
+		VM_Warning("ClientPrint: tired print to a non-client!\n");
 		return;
 	}
 	client = svs.clients + num - 1;

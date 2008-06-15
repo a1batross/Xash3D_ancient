@@ -50,7 +50,6 @@ void SV_UpdateEntityState( edict_t *ent)
 	ent->priv.sv->s.renderfx = (int)ent->progs.sv->renderfx;	// renderer flags
 	ent->priv.sv->s.alpha = ent->progs.sv->alpha;		// alpha value
 	ent->priv.sv->s.animtime = ent->progs.sv->animtime;	// auto-animating time
-	ent->priv.sv->s.soundindex = ent->progs.sv->loopsound;
 }
 
 /*
@@ -105,7 +104,7 @@ void SV_EmitPacketEntities (client_frame_t *from, client_frame_t *to, sizebuf_t 
 			// in any bytes being emited if the entity has not changed at all
 			// note that players are always 'newentities', this updates their oldorigin always
 			// and prevents warping
-			MSG_WriteDeltaEntity (oldent, newent, msg, false, newent->number <= maxclients->value);
+			MSG_WriteDeltaEntity( oldent, newent, msg, false, newent->number <= maxclients->value );
 			oldindex++;
 			newindex++;
 			continue;
@@ -118,14 +117,13 @@ void SV_EmitPacketEntities (client_frame_t *from, client_frame_t *to, sizebuf_t 
 			continue;
 		}
 
-		if (newnum > oldnum)
+		if( newnum > oldnum )
 		{	
 			// the old entity isn't present in the new message
 			bits = U_REMOVE;
-			if (oldnum >= 256) bits |= U_NUMBER16 | U_MOREBITS1;
 
-			MSG_WriteByte (msg,	bits&255 );
-			if (bits & 0x0000ff00) MSG_WriteByte (msg, (bits>>8)&255 );
+			MSG_WriteByte( msg,	bits & 255 );
+			if( bits & 0x0000ff00 ) MSG_WriteByte( msg, (bits>>8) & 255 );
 
 			if (bits & U_NUMBER16)
 			{
@@ -139,7 +137,7 @@ void SV_EmitPacketEntities (client_frame_t *from, client_frame_t *to, sizebuf_t 
 			continue;
 		}
 	}
-	MSG_WriteShort (msg, 0);	// end of packetentities
+	MSG_WriteShort( msg, 0 ); // end of packetentities
 }
 
 
@@ -352,7 +350,7 @@ Decides which entities are going to be visible to the client, and
 copies off the playerstat and areabits.
 =============
 */
-void SV_BuildClientFrame (client_state_t *client)
+void SV_BuildClientFrame( client_state_t *client )
 {
 	int		e, i;
 	vec3_t		org;
@@ -404,7 +402,7 @@ void SV_BuildClientFrame (client_state_t *client)
 		ent = PRVM_EDICT_NUM(e);
 
 		// ignore ents without visible models unless they have an effect
-		if (!ent->progs.sv->modelindex && !ent->progs.sv->effects && !ent->progs.sv->loopsound && !ent->priv.sv->event)
+		if( !ent->progs.sv->modelindex && !ent->progs.sv->effects && !ent->priv.sv->s.soundindex && !ent->priv.sv->event )
 			continue;
 
 		// ignore if not touching a PV leaf
@@ -430,7 +428,7 @@ void SV_BuildClientFrame (client_state_t *client)
 			{
 				// FIXME: if an ent has a model and a sound, but isn't
 				// in the PVS, only the PHS, clear the model
-				if (ent->progs.sv->loopsound ) bitvector = clientphs;
+				if (ent->priv.sv->s.soundindex ) bitvector = clientphs;
 				else bitvector = clientpvs;
 
 				// check individual leafs
@@ -460,15 +458,25 @@ void SV_BuildClientFrame (client_state_t *client)
 					}
 					else continue;
 				}
-				if (!ent->progs.sv->modelindex)
+				if( !ent->progs.sv->modelindex )
 				{	
 					// don't send sounds if they will be attenuated away
-					vec3_t	delta;
+					vec3_t	delta, entorigin;
 					float	len;
 
-					VectorSubtract (org, ent->progs.sv->origin, delta);
-					len = VectorLength (delta);
-					if (len > 400) continue;
+					if(VectorIsNull( ent->progs.sv->origin ))
+					{
+						VectorAdd( ent->progs.sv->mins, ent->progs.sv->maxs, entorigin );
+						VectorScale( entorigin, 0.5, entorigin );
+                                                  }
+					else
+					{
+						VectorCopy( ent->progs.sv->origin, entorigin );
+					}
+
+					VectorSubtract( org, entorigin, delta );	
+					len = VectorLength( delta );
+					if( len > 400 ) continue;
 				}
 			}
 		}

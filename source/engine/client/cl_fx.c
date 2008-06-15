@@ -88,20 +88,21 @@ void CL_RunLightStyles (void)
 }
 
 
-void CL_SetLightstyle (int i)
+void CL_SetLightstyle( int i )
 {
 	char		*s;
 	int		j, k;
 
 	s = cl.configstrings[i+CS_LIGHTS];
 
-	j = strlen (s);
-	if (j >= MAX_QPATH)
-		Host_Error("CL_SetLightStyle: lightstyle %s is too long\n", s );
+	Msg("CL_SetLightStyle: %d (%s)\n", i, s );
+
+	j = com.strlen( s );
+	if( j >= MAX_QPATH ) Host_Error("CL_SetLightStyle: lightstyle %s is too long\n", s );
 
 	cl_lightstyle[i].length = j;
 
-	for (k=0 ; k<j ; k++)
+	for( k = 0; k < j; k++ )
 		cl_lightstyle[i].map[k] = (float)(s[k]-'a')/(float)('m'-'a');
 }
 
@@ -279,11 +280,9 @@ typedef struct cparticle_s
 
 #define	PARTICLE_GRAVITY	40
 */
-
-cparticle_t	*active_particles, *free_particles;
-
-cparticle_t	particles[MAX_PARTICLES];
-int			cl_numparticles = MAX_PARTICLES;
+cparticle_t *active_particles, *free_particles;
+cparticle_t particles[MAX_PARTICLES];
+int cl_numparticles = MAX_PARTICLES;
 
 
 /*
@@ -291,16 +290,16 @@ int			cl_numparticles = MAX_PARTICLES;
 CL_ClearParticles
 ===============
 */
-void CL_ClearParticles (void)
+void CL_ClearParticles( void )
 {
 	int		i;
 	
 	free_particles = &particles[0];
 	active_particles = NULL;
 
-	for (i=0 ;i<cl_numparticles ; i++)
-		particles[i].next = &particles[i+1];
-	particles[cl_numparticles-1].next = NULL;
+	for( i = 0; i < cl_numparticles; i++ )
+		particles[i].next = &particles[i + 1];
+	particles[cl_numparticles - 1].next = NULL;
 }
 
 
@@ -344,6 +343,54 @@ void CL_ParticleEffect (vec3_t org, vec3_t dir, int color, int count)
 	}
 }
 
+/*
+===============
+CL_TeleportSplash
+
+===============
+*/
+void CL_TeleportSplash( vec3_t org )
+{
+	int		i, j, k;
+	cparticle_t	*p;
+	float		vel;
+	vec3_t		dir;
+
+	for( i = -16; i < 16; i += 4 )
+	{
+		for( j = -16; j < 16; j += 4 )
+		{
+			for( k = -24; k < 32; k += 4 )
+			{
+				if(!free_particles) return;
+				p = free_particles;
+				free_particles = p->next;
+				p->next = active_particles;
+				active_particles = p;
+		
+				p->time = cl.time + RANDOM_FLOAT( 0.02f, 0.2f );
+				p->color = 0xdb;
+				
+				dir[0] = j * 8;
+				dir[1] = i * 8;
+				dir[2] = k * 8;
+	
+				p->org[0] = org[0] + i + (rand()&3);
+				p->org[1] = org[1] + j + (rand()&3);
+				p->org[2] = org[2] + k + (rand()&3);
+
+				p->accel[0] = p->accel[1] = 0;
+				p->accel[2] = -PARTICLE_GRAVITY;
+				p->alphavel = -0.5;
+				p->alpha = 1.0;
+	
+				VectorNormalize( dir );						
+				vel = 50 + (rand()&63);
+				VectorScale( dir, vel, p->vel );
+			}
+		}
+	}
+}
 
 /*
 ===============
@@ -1380,14 +1427,14 @@ void CL_AddParticles (void)
 	active = NULL;
 	tail = NULL;
 
-	for (p=active_particles ; p ; p=next)
+	for( p = active_particles; p; p = next )
 	{
 		next = p->next;
 
 		// PMM - added INSTANT_PARTICLE handling for heat beam
-		if (p->alphavel != INSTANT_PARTICLE)
+		if( p->alphavel != INSTANT_PARTICLE )
 		{
-			time = (cl.time - p->time)*0.001;
+			time = (cl.time - p->time);
 			alpha = p->alpha + time*p->alphavel;
 			if (alpha <= 0)
 			{	// faded out

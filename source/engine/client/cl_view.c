@@ -155,7 +155,7 @@ V_AddLightStyle
 
 =====================
 */
-void V_AddLightStyle (int style, float r, float g, float b)
+void V_AddLightStyle( int style, float r, float g, float b )
 {
 	lightstyle_t	*ls;
 

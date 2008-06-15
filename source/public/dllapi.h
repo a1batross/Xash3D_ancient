@@ -565,7 +565,7 @@ typedef struct vsound_exp_s
 	sound_t (*RegisterSound)( const char *name );
 	void (*EndRegistration)( void );
 
-	void (*StartSound)( const vec3_t pos, int entnum, int channel, sound_t sfx, float vol, float attn );
+	void (*StartSound)( const vec3_t pos, int entnum, int channel, sound_t sfx, float vol, float attn, bool use_loop );
 	void (*StreamRawSamples)( int samples, int rate, int width, int channels, const byte *data );
 	bool (*AddLoopingSound)( int entnum, sound_t handle, float volume, float attn );
 	bool (*StartLocalSound)( const char *name );

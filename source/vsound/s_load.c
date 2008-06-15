@@ -4,12 +4,20 @@
 //=======================================================================
 
 #include "sound.h"
+#include "s_stream.h"
 
 #define MAX_SFX		4096
 static sfx_t s_knownSfx[MAX_SFX];
 static int s_numSfx = 0;
 int s_registration_sequence = 0;
 bool s_registering = false;
+
+typedef struct loadformat_s
+{
+	char *formatstring;
+	char *ext;
+	bool (*loadfunc)( const char *name, byte **wav, wavinfo_t *info );
+} loadformat_t;
 
 /*
 =================
@@ -219,9 +227,7 @@ static bool S_LoadWAV( const char *name, byte **wav, wavinfo_t *info )
 	{
 		iff_dataPtr += 32;
 		info->loopstart = S_GetLittleLong();
-		Msg("found 'cue '\n" );
-		// if the next chunk is a LIST chunk, look for a cue length marker
-		S_FindNextChunk("LIST");
+		S_FindNextChunk("LIST"); // if the next chunk is a LIST chunk, look for a cue length marker
 		if( iff_dataPtr )
 		{
 			if(!com.strncmp ((const char *)iff_dataPtr + 28, "mark", 4))
@@ -229,7 +235,6 @@ static bool S_LoadWAV( const char *name, byte **wav, wavinfo_t *info )
 				// this is not a proper parse, but it works with CoolEdit...
 				iff_dataPtr += 24;
 				info->samples = info->loopstart + S_GetLittleLong(); // samples in loop
-				Msg("loopstart = %d, samples %d\n", info->loopstart, info->samples );
 			}
 		}
 	}
@@ -272,6 +277,153 @@ static bool S_LoadWAV( const char *name, byte **wav, wavinfo_t *info )
 	*wav = out = Z_Malloc( info->samples * info->width );
 	Mem_Copy( out, buffer + (iff_dataPtr - buffer), info->samples * info->width );
 	Mem_Free( buffer );
+
+	return true;
+}
+
+/*
+ =======================================================================
+
+ OGG LOADING
+
+ =======================================================================
+*/
+typedef struct
+{
+	byte		*buffer;
+	ogg_int64_t	ind;
+	ogg_int64_t	buffsize;
+} ov_decode_t;
+
+static size_t ovc_read( void *ptr, size_t size, size_t nb, void *datasource )
+{
+	ov_decode_t *sound = (ov_decode_t *)datasource;
+	size_t	remain, length;
+
+	remain = sound->buffsize - sound->ind;
+	length = size * nb;
+	if( remain < length ) length = remain - remain % size;
+
+	Mem_Copy( ptr, sound->buffer + sound->ind, length );
+	sound->ind += length;
+
+	return length / size;
+}
+
+static int ovc_seek ( void *datasource, ogg_int64_t offset, int whence )
+{
+	ov_decode_t *sound = (ov_decode_t*)datasource;
+
+	switch( whence )
+	{
+		case SEEK_SET:
+			break;
+		case SEEK_CUR:
+			offset += sound->ind;
+			break;
+		case SEEK_END:
+			offset += sound->buffsize;
+			break;
+		default:
+			return -1;
+	}
+	if( offset < 0 || offset > sound->buffsize )
+		return -1;
+
+	sound->ind = offset;
+	return 0;
+}
+
+static int ovc_close( void *datasource )
+{
+	return 0;
+}
+
+static long ovc_tell (void *datasource)
+{
+	return ((ov_decode_t*)datasource)->ind;
+}
+
+/*
+=================
+S_LoadOGG
+=================
+*/
+static bool S_LoadOGG( const char *name, byte **wav, wavinfo_t *info )
+{
+	vorbisfile_t	vf;
+	vorbis_info_t	*vi;
+	vorbis_comment_t	*vc;
+	fs_offset_t	filesize;
+	ov_decode_t	ov_decode;
+	ogg_int64_t	length, done = 0;
+	ov_callbacks_t	ov_callbacks = { ovc_read, ovc_seek, ovc_close, ovc_tell };
+	byte		*data, *buffer;
+	const char	*comm;
+	int		dummy;
+	long		ret;
+
+	// load the file
+	data = FS_LoadFile( name, &filesize );
+	if( !data ) return false;
+
+	// Open it with the VorbisFile API
+	ov_decode.buffer = data;
+	ov_decode.ind = 0;
+	ov_decode.buffsize = filesize;
+	if( ov_open_callbacks( &ov_decode, &vf, NULL, 0, ov_callbacks ) < 0 )
+	{
+		MsgDev( D_ERROR, "S_LoadOGG: couldn't open ogg stream %s\n", name );
+		Mem_Free( data );
+		return false;
+	}
+
+	// get the stream information
+	vi = ov_info( &vf, -1 );
+	if( vi->channels != 1 )
+	{
+		MsgDev( D_ERROR, "S_LoadOGG: only mono OGG files supported (%s)\n", name );
+		ov_clear( &vf );
+		Mem_Free( data );
+		return false;
+	}
+
+	info->channels = vi->channels;
+	info->rate = vi->rate;
+	info->width = 2; // always 16-bit PCM
+	info->loopstart = -1;
+	length = ov_pcm_total( &vf, -1 ) * vi->channels * 2;  // 16 bits => "* 2"
+	if( !length )
+	{
+		// bad ogg file
+		MsgDev( D_ERROR, "S_LoadOGG: (%s) is probably corrupted\n", name );
+		ov_clear( &vf );
+		Mem_Free( data );
+		return false;
+	}
+	buffer = (byte *)Z_Malloc( length );
+
+	// decompress ogg into pcm wav format
+	while((ret = ov_read( &vf, &buffer[done], (int)(length - done), big_endian, 2, 1, &dummy )) > 0)
+		done += ret;
+	info->samples = done / ( vi->channels * 2 );
+	vc = ov_comment( &vf, -1 );
+
+	if( vc )
+	{
+		comm = vorbis_comment_query( vc, "LOOP_START", 0 );
+		if( comm ) 
+		{
+			//FXIME: implement
+			Msg("ogg 'cue' %d\n", com.atoi(comm) );
+			//info->loopstart = bound( 0, com.atoi(comm), info->samples );
+ 		}
+ 	}
+
+	// close file
+	ov_clear( &vf );
+	Mem_Free( data );
+	*wav = buffer;	// load the data
 
 	return true;
 }
@@ -342,36 +494,60 @@ static void S_CreateDefaultSound( byte **wav, wavinfo_t *info )
 S_LoadSound
 =================
 */
+loadformat_t load_formats[] =
+{
+	{"sound/%s.%s", "ogg", S_LoadOGG},
+	{"sound/%s.%s", "wav", S_LoadWAV},
+	{"%s.%s", "ogg", S_LoadOGG},
+	{"%s.%s", "wav", S_LoadWAV},
+	{NULL, NULL}
+};
 bool S_LoadSound( sfx_t *sfx )
 {
-	string		name;
 	byte		*data;
 	wavinfo_t		info;
+	const char	*ext;
+	string		loadname, path;
+	loadformat_t	*format;
+	bool		anyformat;
 
 	if( !sfx ) return false;
 	if( sfx->name[0] == '*' ) return false;
 	if( sfx->loaded ) return true;	// see if still in memory
 
 	// load it from disk
-	if( sfx->name[0] == '#' )
-		com.snprintf( name, sizeof(name), "%s", &sfx->name[1]);
-	else com.snprintf( name, sizeof(name), "sound/%s", sfx->name );
+	ext = FS_FileExtension( sfx->name );
+	anyformat = !com.stricmp(ext, "") ? true : false;
 
-	if(!S_LoadWAV(name, &data, &info))
+	com.strncpy( loadname, sfx->name, sizeof(loadname) - 1);
+	FS_StripExtension( loadname ); // remove extension if needed
+
+	// developer warning
+	if(!anyformat) MsgDev(D_NOTE, "Note: %s will be loading only with ext .%s\n", loadname, ext );
+
+	// now try all the formats in the selected list
+	for( format = load_formats; format->formatstring; format++ )
 	{
-		sfx->default_sound = true;
-		MsgDev(D_WARN, "couldn't load %s\n", sfx->name );
-		S_CreateDefaultSound( &data, &info );
-		info.loopstart = -1;
+		if( anyformat || !com.stricmp( ext, format->ext ))
+		{
+			com.sprintf( path, format->formatstring, loadname, format->ext );
+			if( format->loadfunc( path, &data, &info ))
+				goto snd_loaded;
+		}
 	}
 
+	sfx->default_sound = true;
+	MsgDev(D_WARN, "FS_LoadSound: couldn't load %s\n", sfx->name );
+	S_CreateDefaultSound( &data, &info );
+	info.loopstart = -1;
+
+snd_loaded:
 	// load it in
 	sfx->loopstart = info.loopstart;
 	sfx->samples = info.samples;
 	sfx->rate = info.rate;
 	S_UploadSound( data, info.width, info.channels, sfx );
 	sfx->loaded = true;
-
 	Mem_Free( data );
 
 	return true;

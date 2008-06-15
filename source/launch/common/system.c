@@ -124,7 +124,6 @@ void Sys_GetStdAPI( void )
 	com.Cmd_DelCommand = Cmd_RemoveCommand;
 	com.Cmd_TokenizeString = Cmd_TokenizeString;
 
-
 	// real filesystem
 	com.fopen = FS_Open;		// same as fopen
 	com.fclose = FS_Close;		// same as fclose
@@ -157,6 +156,9 @@ void Sys_GetStdAPI( void )
 	com.Com_FreeLibrary = Sys_FreeLibrary;		// free library
 	com.Com_GetProcAddress = Sys_GetProcAddress;	// gpa
 	com.Com_DoubleTime = Sys_DoubleTime;		// hi-res timer
+
+	com.Com_RandomLong = Com_RandomLong;
+	com.Com_RandomFloat = Com_RandomFloat;
 
 	// stdlib.c funcs
 	com.strnupr = com_strnupr;

@@ -1150,7 +1150,6 @@ void CL_InitLocal (void)
 	cl_showmiss = Cvar_Get ("cl_showmiss", "0", 0);
 	cl_showclamp = Cvar_Get ("showclamp", "0", 0);
 	cl_timeout = Cvar_Get ("cl_timeout", "120", 0);
-	cl_paused = Cvar_Get ("paused", "0", 0);
 
 	rcon_client_password = Cvar_Get ("rcon_password", "", 0);
 	rcon_address = Cvar_Get ("rcon_address", "", 0);
@@ -1431,6 +1430,7 @@ void CL_Init( void )
 
 	// all archived variables will now be loaded
 	scr_loading = Cvar_Get("scr_loading", "0", 0 );
+	cl_paused = Cvar_Get( "paused", "0", 0 );
 
 	Con_Init();	
 	VID_Init();

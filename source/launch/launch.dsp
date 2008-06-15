@@ -56,8 +56,8 @@ LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386 /opt:nowin98
 # ADD LINK32 common\zlib.lib user32.lib gdi32.lib advapi32.lib winmm.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /opt:nowin98
 # Begin Custom Build
-TargetDir=\XASH3D\src_main\temp\launch\!release
-InputPath=\XASH3D\src_main\temp\launch\!release\launch.dll
+TargetDir=\Xash3D\src_main\temp\launch\!release
+InputPath=\Xash3D\src_main\temp\launch\!release\launch.dll
 SOURCE="$(InputPath)"
 
 "D:\Xash3D\bin\launch.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -92,8 +92,8 @@ LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
 # ADD LINK32 common\zlib.lib user32.lib gdi32.lib advapi32.lib winmm.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"libc.lib" /pdbtype:sept
 # Begin Custom Build
-TargetDir=\XASH3D\src_main\temp\launch\!debug
-InputPath=\XASH3D\src_main\temp\launch\!debug\launch.dll
+TargetDir=\Xash3D\src_main\temp\launch\!debug
+InputPath=\Xash3D\src_main\temp\launch\!debug\launch.dll
 SOURCE="$(InputPath)"
 
 "D:\Xash3D\bin\launch.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -132,11 +132,11 @@ SOURCE=.\common\cvar.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\filesystem.c
+SOURCE=.\common\export.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\export.c
+SOURCE=.\common\filesystem.c
 # End Source File
 # Begin Source File
 
@@ -145,6 +145,10 @@ SOURCE=.\common\memlib.c
 # Begin Source File
 
 SOURCE=.\common\parselib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\random.c
 # End Source File
 # Begin Source File
 

@@ -12,8 +12,8 @@ cvar_t	*con_speed;
 vec4_t console_color = {1.0, 1.0, 1.0, 1.0};
 int g_console_field_width = 78;
 
-#define NUM_CON_TIMES	4
-#define CON_TEXTSIZE	MAX_INPUTLINE * 8 // 128 kb buffer
+#define NUM_CON_TIMES	5		// need for 4 lines
+#define CON_TEXTSIZE	MAX_INPUTLINE * 8	// 128 kb buffer
 #define DEFAULT_CONSOLE_WIDTH	78
 
 typedef struct
@@ -53,7 +53,7 @@ void Con_ToggleConsole_f (void)
 	Field_Clear( &g_consoleField );
 	g_consoleField.widthInChars = g_console_field_width;
 
-	Con_ClearNotify ();
+	Con_ClearNotify();
 
 	if (cls.key_dest == key_console)
 	{
@@ -90,7 +90,7 @@ void Con_ToggleChat_f (void)
 	}
 	else cls.key_dest = key_console;
 	
-	Con_ClearNotify ();
+	Con_ClearNotify();
 }
 
 /*
@@ -112,12 +112,12 @@ void Con_Clear_f (void)
 Con_ClearNotify
 ================
 */
-void Con_ClearNotify (void)
+void Con_ClearNotify( void )
 {
 	int		i;
 	
-	for (i = 0; i < NUM_CON_TIMES; i++)
-		con.times[i] = 0;
+	for( i = 0; i < NUM_CON_TIMES; i++ )
+		con.times[i] = 0.0f;
 }
 
 						
@@ -234,7 +234,7 @@ void Con_Init (void)
 	Cmd_AddCommand ("messagemode2", Con_MessageMode2_f, "input a chat message to say to only your team" );
 	Cmd_AddCommand ("clear", Con_Clear_f, "clear console history" );
 	con.initialized = true;
-	MsgDev(D_INFO, "Console initialized.\n");
+	MsgDev( D_NOTE, "Console initialized.\n" );
 }
 
 
@@ -243,14 +243,14 @@ void Con_Init (void)
 Con_Linefeed
 ===============
 */
-void Con_Linefeed (bool skipnotify)
+void Con_Linefeed( bool skipnotify )
 {
 	int	i;
 
 	// mark time for transparent overlay
 	if (con.current >= 0)
 	{
-		if(skipnotify) con.times[con.current % NUM_CON_TIMES] = 0.0f;
+		if( skipnotify ) con.times[con.current % NUM_CON_TIMES] = 0.0f;
 		else con.times[con.current % NUM_CON_TIMES] = cls.realtime;
 	}
 
@@ -280,7 +280,7 @@ void Con_Print( const char *txt )
 	if(host.type == HOST_DEDICATED) return;
           if(!con.initialized) return;
 
-	if(!strncmp( txt, "[skipnotify]", 12 ))
+	if(!com.strncmp( txt, "[skipnotify]", 12 ))
 	{
 		skipnotify = true;
 		txt += 12;
@@ -330,9 +330,9 @@ void Con_Print( const char *txt )
 	}
 
 	// mark time for transparent overlay
-	if (con.current >= 0)
+	if( con.current >= 0 )
 	{
-		if ( skipnotify )
+		if( skipnotify )
 		{
 			prev = con.current % NUM_CON_TIMES - 1;
 			if ( prev < 0 ) prev = NUM_CON_TIMES - 1;
@@ -389,22 +389,22 @@ void Con_DrawNotify( void )
 	currentColor = 7;
 	re->SetColor( g_color_table[currentColor] );
 
-	for (i = con.current - NUM_CON_TIMES + 1; i <= con.current; i++)
+	for( i = con.current - NUM_CON_TIMES + 1; i <= con.current; i++ )
 	{
-		if (i < 0) continue;
+		if( i < 0 ) continue;
 		time = con.times[i % NUM_CON_TIMES];
-		if (time == 0) continue;
+		if( time == 0.0f ) continue;
 		time = cls.realtime - time;
-		if (time > con_notifytime->value) continue;
+		if( time > con_notifytime->value ) continue;
 		text = con.text + (i % con.totallines) * con.linewidth;
 
-		for (x = 0 ; x < con.linewidth ; x++)
+		for( x = 0; x < con.linewidth; x++)
 		{
-			if ( ( text[x] & 0xff ) == ' ' ) continue;
-			if ( ( (text[x]>>8)&7 ) != currentColor )
+			if((text[x] & 0xff ) == ' ' ) continue;
+			if(((text[x]>>8)&7 ) != currentColor )
 			{
 				currentColor = (text[x]>>8)&7;
-				re->SetColor( g_color_table[currentColor] );
+				re->SetColor(g_color_table[currentColor]);
 			}
 			SCR_DrawSmallChar( con.xadjust + (x+1)*SMALLCHAR_WIDTH, v, text[x] & 0xff );
 		}
@@ -414,7 +414,7 @@ void Con_DrawNotify( void )
 	re->SetColor( NULL );
 
 	// draw the chat line
-	if ( cls.key_dest == key_message )
+	if( cls.key_dest == key_message )
 	{
 		if (chat_team)
 		{
@@ -625,7 +625,7 @@ void Con_Bottom( void )
 void Con_Close( void )
 {
 	Field_Clear( &g_consoleField );
-	Con_ClearNotify ();
+	Con_ClearNotify();
 	con.finalFrac = 0; // none visible
 	con.displayFrac = 0;
 }

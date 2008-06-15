@@ -177,6 +177,9 @@ typedef struct vorbisfile_s
 // libvorbis exports
 int ov_open_callbacks( void *datasource, vorbisfile_t *vf, char *initial, long ibytes, ov_callbacks_t callbacks );
 long ov_read( vorbisfile_t *vf, char *buffer, int length, int bigendianp, int word, int sgned, int *bitstream );
+char *vorbis_comment_query( vorbis_comment_t *vc, char *tag, int count );
+vorbis_comment_t *ov_comment( vorbisfile_t *vf, int link );
+ogg_int64_t ov_pcm_total( vorbisfile_t *vf, int i );
 vorbis_info_t *ov_info( vorbisfile_t *vf, int link );
 int ov_raw_seek( vorbisfile_t *vf, ogg_int64_t pos );
 ogg_int64_t ov_raw_tell( vorbisfile_t *vf );

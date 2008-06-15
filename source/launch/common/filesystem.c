@@ -2737,9 +2737,9 @@ FS_Search
 Allocate and fill a search structure with information on matching filenames.
 ===========
 */
-static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet )
+static search_t *_FS_Search( const char *pattern, int caseinsensitive, int quiet )
 {
-	search_t *search;
+	search_t *search = NULL;
 	searchpath_t *searchpath;
 	pack_t *pak;
 	int i, k, basepathlength, numfiles, numchars, resultlistindex, dirlistindex;
@@ -2750,29 +2750,28 @@ static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet 
 	char netpath[MAX_OSPATH];
 	char temp[MAX_OSPATH];
 
-	for (i = 0; pattern[i] == '.' || pattern[i] == ':' || pattern[i] == '/' || pattern[i] == '\\'; i++);
+	for( i = 0; pattern[i] == '.' || pattern[i] == ':' || pattern[i] == '/' || pattern[i] == '\\'; i++ );
 
-	if (i > 0)
+	if( i > 0 )
 	{
-		Msg("Don't use punctuation at the beginning of a search pattern!\n");
+		MsgDev( D_INFO, "FS_Search: don't use punctuation at the beginning of a search pattern!\n");
 		return NULL;
 	}
 
 	stringlistinit(&resultlist);
 	stringlistinit(&dirlist);
-	search = NULL;
 	slash = com_strrchr(pattern, '/');
 	backslash = com_strrchr(pattern, '\\');
 	colon = com_strrchr(pattern, ':');
 	separator = max(slash, backslash);
 	separator = max(separator, colon);
 	basepathlength = separator ? (separator + 1 - pattern) : 0;
-	basepath = Malloc(basepathlength + 1);
-	if (basepathlength) Mem_Copy(basepath, pattern, basepathlength);
+	basepath = Malloc( basepathlength + 1 );
+	if( basepathlength ) Mem_Copy(basepath, pattern, basepathlength);
 	basepath[basepathlength] = 0;
 
 	// search through the path, one element at a time
-	for (searchpath = fs_searchpaths;searchpath;searchpath = searchpath->next)
+	for( searchpath = fs_searchpaths; searchpath; searchpath = searchpath->next )
 	{
 		// is the element a pak file?
 		if (searchpath->pack)
@@ -2784,7 +2783,7 @@ static search_t *_FS_Search(const char *pattern, int caseinsensitive, int quiet 
 				com_strncpy(temp, pak->files[i].name, sizeof(temp));
 				while (temp[0])
 				{
-					if (matchpattern(temp, (char *)pattern, true))
+					if( matchpattern(temp, (char *)pattern, true))
 					{
 						for (resultlistindex = 0;resultlistindex < resultlist.numstrings;resultlistindex++)
 							if (!com_strcmp(resultlist.strings[resultlistindex], temp))

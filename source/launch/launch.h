@@ -188,6 +188,12 @@ char *va(const char *format, ...);
 #define copystring(str)	com_stralloc(str, __FILE__, __LINE__)
 
 //
+// random.c
+//
+long Com_RandomLong( long lMin, long lMax );
+float Com_RandomFloat( float fMin, float fMax );
+
+//
 // memlib.c
 //
 void Memory_Init( void );

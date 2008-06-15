@@ -47,6 +47,7 @@ typedef struct
 // and broadcast.
 typedef enum
 {
+	TE_TELEPORT = 0,
 	TE_GUNSHOT,
 	TE_BLOOD,
 	TE_BLASTER,
@@ -79,7 +80,6 @@ typedef enum
 	TE_TUNNEL_SPARKS,
 	TE_FLASHLIGHT,
 	TE_DEBUGTRAIL,
-
 } temp_event_t;
 
 
@@ -489,6 +489,10 @@ void CL_ParseTEnt( sizebuf_t *msg )
 
 	switch (type)
 	{
+	case TE_TELEPORT:
+		MSG_ReadPos32( msg, pos );
+		CL_TeleportSplash( pos );
+		break;
 	case TE_BLOOD:			// bullet hitting flesh
 		MSG_ReadPos32(msg, pos);
 		MSG_ReadPos32(msg, dir);

@@ -394,6 +394,8 @@ void CL_ParticleEffect3 (vec3_t org, vec3_t dir, int color, int count);
 
 // ========
 // PGM
+#define MAX_PARTICLES	32768
+
 typedef struct cparticle_s
 {
 	struct cparticle_s	*next;
@@ -430,6 +432,7 @@ void CL_IonripperTrail (vec3_t start, vec3_t end);
 
 // ========
 // PGM
+void CL_TeleportSplash( vec3_t org );
 void CL_BlasterParticles2 (vec3_t org, vec3_t dir, unsigned int color);
 void CL_BlasterTrail2 (vec3_t start, vec3_t end);
 void CL_DebugTrail (vec3_t start, vec3_t end);
@@ -557,7 +560,7 @@ void CL_FreeClientProgs( void );
 // if origin is NULL, the sound will be dynamically sourced from the entity
 #define S_StartStreaming		se->StartStreaming
 #define S_RegisterSound		se->RegisterSound
-#define S_StartSound( a, b, c, d )	se->StartSound( a, b, c, d, 1.0f, ATTN_NORM );
+#define S_StartSound( a, b, c, d )	se->StartSound( a, b, c, d, 1.0f, ATTN_NORM, true );
 #define S_StartLocalSound		se->StartLocalSound
 #define S_StartBackgroundTrack	se->StartBackgroundTrack
 #define S_StopBackgroundTrack		se->StopBackgroundTrack

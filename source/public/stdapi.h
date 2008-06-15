@@ -151,6 +151,10 @@ typedef struct stdilib_api_s
 	void*(*Com_GetProcAddress)( dll_info_t *dll, const char* name );	// gpa
 	double (*Com_DoubleTime)( void );				// hi-res timer
 
+	// random generator
+	long (*Com_RandomLong)( long lMin, long lMax );			// returns random integer
+	float (*Com_RandomFloat)( float fMin, float fMax );		// returns random float
+
 	// stdlib.c funcs
 	void (*strnupr)(const char *in, char *out, size_t size_out);	// convert string to upper case
 	void (*strnlwr)(const char *in, char *out, size_t size_out);	// convert string to lower case
@@ -364,6 +368,8 @@ misc utils
 #define ThreadLock			com.Com_ThreadLock
 #define ThreadUnlock		com.Com_ThreadUnlock
 #define RunThreadsOnIndividual	com.Com_CreateThread
+#define Com_RandomLong		com.Com_RandomLong
+#define Com_RandomFloat		com.Com_RandomFloat
 
 /*
 ===========================================

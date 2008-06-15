@@ -21,6 +21,13 @@ extern stdlib_api_t com;
 extern vsound_imp_t	si;
 extern byte *sndpool;
 
+enum
+{
+	CHAN_FIRSTPLAY,
+	CHAN_LOOPED,
+	CHAN_NORMAL,
+};
+
 typedef struct
 {
 	int	rate;
@@ -35,7 +42,6 @@ typedef struct sfx_s
 	string		name;
 	bool		loaded;
 	int		loopstart;	// looping point (in samples)
-	bool		loopfirst;	// check it for set properly offset in samples
 	int		samples;
 	int		rate;
 	uint		format;
@@ -67,22 +73,27 @@ typedef struct playsound_s
 	int		entnum;
 	int		entchannel;
 	bool		fixedPosition;	// Use position instead of fetching entity's origin
+	bool		use_loop;		// ignore looping sounds for local sound
 	vec3_t		position;		// Only use if fixedPosition is set
 	float		volume;
 	float		attenuation;
-	int		beginTime;	// Begin at this time
+	float		beginTime;	// Begin at this time
 } playSound_t;
 
 typedef struct
 {
 	bool		streaming;
 	sfx_t		*sfx;		// NULL if unused
+	int		state;		// channel state
 	int		entnum;		// to allow overriding a specific sound
 	int		entchannel;
-	int		startTime;	// for overriding oldest sounds
+	float		startTime;	// for overriding oldest sounds
+
 	bool		loopsound;	// is looping sound ?
 	int		loopnum;		// looping entity number
 	int		loopframe;	// for stopping looping sounds
+	int		loopstart;	// check it for set properly offset in samples
+
 	bool		fixedPosition;	// use position instead of fetching entity's origin
 	vec3_t		position;		// only use if fixedPosition is set
 	float		volume;
@@ -146,7 +157,7 @@ void S_Shutdown( void );
 void S_Activate( bool active );
 void S_SoundList_f( void );
 void S_CheckForErrors( void );
-void S_StartSound( const vec3_t origin, int entnum, int entchannel, sound_t sfx, float vol, float attn );
+void S_StartSound( const vec3_t pos, int entnum, int channel, sound_t sfx, float vol, float attn, bool use_loop );
 void S_Update( int clientnum, const vec3_t pos, const vec3_t vel, const vec3_t at, const vec3_t up );
 void S_StreamRawSamples( int samples, int rate, int width, int channels, const byte *data );
 bool S_AddLoopingSound( int entnum, sound_t handle, float volume, float attn );

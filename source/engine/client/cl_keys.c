@@ -241,7 +241,7 @@ void Field_CompleteCommand( field_t *field )
 		{
 			result = Cmd_GetMapList(Cmd_Argv(1), filename, MAX_STRING );
 		}
-		else if(!stricmp(Cmd_Argv(0), "play" ) || !stricmp(Cmd_Argv(0), "\\play" ))
+		else if(!stricmp(Cmd_Argv(0), "playsound" ) || !stricmp(Cmd_Argv(0), "\\playsound" ))
 		{
 			result = Cmd_GetSoundList(Cmd_Argv(1), filename, MAX_STRING );
 		}
@@ -261,11 +261,15 @@ void Field_CompleteCommand( field_t *field )
 		{
 			result = Cmd_GetFontList(Cmd_Argv(1), filename, MAX_STRING );
 		}
+		else if(!stricmp(Cmd_Argv(0), "music" ) || !stricmp(Cmd_Argv(0), "\\music" ))
+		{
+			result = Cmd_GetMusicList(Cmd_Argv(1), filename, MAX_STRING );
+		}
 		
 		if( result )
 		{         
 			com.sprintf( completionField->buffer, "%s %s", Cmd_Argv(0), filename ); 
-			completionField->cursor = strlen( completionField->buffer );
+			completionField->cursor = com.strlen( completionField->buffer );
 			return;
 		}
 	}  
@@ -273,9 +277,9 @@ void Field_CompleteCommand( field_t *field )
 	if( matchCount == 1 )
 	{
 		com.sprintf( completionField->buffer, "\\%s", shortestMatch );
-		if ( Cmd_Argc() == 1 ) strncat( completionField->buffer, " ", sizeof( completionField->buffer ));
+		if ( Cmd_Argc() == 1 ) com.strncat( completionField->buffer, " ", sizeof( completionField->buffer ));
 		else ConcatRemaining( temp.buffer, completionString );
-		completionField->cursor = strlen( completionField->buffer );
+		completionField->cursor = com.strlen( completionField->buffer );
 		return;
 	}
 

@@ -386,6 +386,7 @@ bool Cmd_GetMapList(const char *s, char *completedname, int length );
 bool Cmd_GetFontList(const char *s, char *completedname, int length );
 bool Cmd_GetDemoList(const char *s, char *completedname, int length );
 bool Cmd_GetMovieList(const char *s, char *completedname, int length );
+bool Cmd_GetMusicList(const char *s, char *completedname, int length );
 bool Cmd_GetSoundList(const char *s, char *completedname, int length );
 void Sys_Error( const char *msg, ... );
 void Sys_SendKeyEvents( void );

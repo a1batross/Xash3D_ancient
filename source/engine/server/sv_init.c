@@ -101,7 +101,7 @@ void SV_CreateBaseline (void)
 	{
 		svent = PRVM_EDICT_NUM(entnum);
 		if (svent->priv.sv->free) continue;
-		if (!svent->progs.sv->modelindex && !svent->progs.sv->loopsound && !svent->progs.sv->effects)
+		if (!svent->progs.sv->modelindex && !svent->priv.sv->s.soundindex && !svent->progs.sv->effects)
 			continue;
 		svent->priv.sv->serialnumber = entnum;
 

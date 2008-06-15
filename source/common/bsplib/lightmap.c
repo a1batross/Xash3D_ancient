@@ -800,7 +800,7 @@ void CreateDirectLights (void)
 	{
 		e = &entities[i];
 		name = ValueForKey (e, "classname");
-		if (strncmp (name, "light", 5))
+		if( com.strncmp (name, "light", 5 ))
 			continue;
 
 		numdlights++;
@@ -819,9 +819,8 @@ void CreateDirectLights (void)
 		dl->next = directlights[cluster];
 		directlights[cluster] = dl;
 
-		intensity = FloatForKey (e, "light");
-		if (!intensity)
-			intensity = FloatForKey (e, "_light");
+		intensity = FloatForKey( e, "light" );
+		if( !intensity ) intensity = FloatForKey( e, "_light" );
 		if (!intensity)
 			intensity = 300;
 		_color = ValueForKey (e, "_color");

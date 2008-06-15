@@ -865,10 +865,10 @@ void R_DrawBrushModel ( int passnum )
 	//currententity = e;
 	gl_state.currenttextures[0] = gl_state.currenttextures[1] = -1;
 
-	if (e->angles[0] || e->angles[1] || e->angles[2])
+	if( !VectorIsNull( e->angles ))
 	{
 		rotated = true;
-		for (i=0 ; i<3 ; i++)
+		for( i = 0; i < 3; i++ )
 		{
 			mins[i] = e->origin[i] - currentmodel->radius;
 			maxs[i] = e->origin[i] + currentmodel->radius;

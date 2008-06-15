@@ -5,7 +5,7 @@
 
 #include "sound.h"
 
-#define MAX_PLAYSOUNDS		128
+#define MAX_PLAYSOUNDS		256
 #define MAX_CHANNELS		64
 
 static playSound_t	s_playSounds[MAX_PLAYSOUNDS];
@@ -23,7 +23,7 @@ cvar_t	*s_soundfx;
 cvar_t	*s_check_errors;
 cvar_t	*s_volume;	// master volume
 cvar_t	*s_musicvolume;	// background track volume
-
+cvar_t	*s_pause;
 cvar_t	*s_minDistance;
 cvar_t	*s_maxDistance;
 cvar_t	*s_rolloffFactor;
@@ -131,22 +131,15 @@ static void S_PlayChannel( channel_t *ch, sfx_t *sfx )
 	palSourcei(ch->sourceNum, AL_BUFFER, sfx->bufferNum);
 	palSourcei(ch->sourceNum, AL_LOOPING, ch->loopsound);
 	palSourcei(ch->sourceNum, AL_SOURCE_RELATIVE, false);
+	palSourcei( ch->sourceNum, AL_SAMPLE_OFFSET, 0 );
 
-	if( sfx->loopstart > -1 )
+	if( ch->loopstart >= 0 )
 	{
-		if( sfx->loopfirst )
-		{
-			sfx->loopfirst = false;
-			Msg( "loopsound playing at first\n" );
-			palSourcei( ch->sourceNum, AL_SAMPLE_OFFSET, 0 );
-		}
-		else
-		{
-			Msg( "loopsound playing loop from %d\n", sfx->loopstart );
+		if( ch->state == CHAN_FIRSTPLAY )
+			ch->state = CHAN_LOOPED;
+		else if( ch->state == CHAN_LOOPED )
 			palSourcei( ch->sourceNum, AL_SAMPLE_OFFSET, sfx->loopstart );
-		}
 	}
-	else palSourcei( ch->sourceNum, AL_SAMPLE_OFFSET, 0 );
 	palSourcePlay( ch->sourceNum );
 }
 
@@ -214,23 +207,22 @@ S_PickChannel
 Tries to find a free channel, or tries to replace an active channel
 =================
 */
-channel_t *S_PickChannel( int entnum, int entChannel )
+channel_t *S_PickChannel( int entnum, int channel )
 {
 	channel_t		*ch;
 	int		i;
 	int		firstToDie = -1;
-	int		oldestTime = Sys_DoubleTime();
+	float		oldestTime = Sys_DoubleTime();
 
-	if( entnum < 0 || entChannel < 0 )
-		Host_Error( "S_PickChannel: entnum or entChannel less than 0" );
+	if( entnum < 0 || channel < 0 ) return NULL; // invalid channel or entnum
 
 	for( i = 0, ch = s_channels; i < al_state.num_channels; i++, ch++ )
 	{
 		// don't let game sounds override streaming sounds
-		if( ch->streaming )continue;
+		if( ch->streaming ) continue;
 
 		// check if this channel is active
-		if( !ch->sfx )
+		if( channel == CHAN_AUTO && !ch->sfx )
 		{
 			// free channel
 			firstToDie = i;
@@ -238,7 +230,7 @@ channel_t *S_PickChannel( int entnum, int entChannel )
 		}
 
 		// channel 0 never overrides
-		if( entChannel != 0 && (ch->entnum == entnum && ch->entchannel == entChannel))
+		if( channel != CHAN_AUTO && (ch->entnum == entnum && ch->entchannel == channel))
 		{
 			// always override sound from same entity
 			firstToDie = i;
@@ -261,12 +253,13 @@ channel_t *S_PickChannel( int entnum, int entChannel )
 	ch = &s_channels[firstToDie];
 
 	ch->entnum = entnum;
-	ch->entchannel = entChannel;
+	ch->entchannel = channel;
 	ch->startTime = Sys_DoubleTime();
+	ch->state = CHAN_NORMAL;	// remove any loop sound
+	ch->loopstart = -1;		// clear loopstate
 
-	// Make sure this channel is stopped
-	palSourceStop(ch->sourceNum);
-	palSourcei(ch->sourceNum, AL_BUFFER, 0);
+	// make sure this channel is stopped
+	S_StopChannel( ch );
 
 	return ch;
 }
@@ -384,15 +377,9 @@ static void S_IssuePlaySounds( void )
 	{
 		ps = s_pendingPlaySounds.next;
 		if(ps == &s_pendingPlaySounds)
-		{
-			Msg("no more pending playsounds\n");
 			break; // no more pending playSounds
-		}
 		if( ps->beginTime > Sys_DoubleTime())
-		{
-			Msg("no more pending playsounds\n");
 			break;	// No more pending playSounds this frame
-		}	
 		// pick a channel and start the sound effect
 		ch = S_PickChannel( ps->entnum, ps->entchannel );
 		if(!ch)
@@ -402,10 +389,13 @@ static void S_IssuePlaySounds( void )
 			S_FreePlaySound( ps );
 			continue;
 		}
+
 		// check for looping sounds with "cue " marker
-		if( ps->sfx->loopstart > -1 )
+		if( ps->use_loop && ps->sfx->loopstart >= 0 )
 		{
-			ps->sfx->loopfirst = true;
+			// jump to loopstart at next playing
+			ch->state = CHAN_FIRSTPLAY;
+			ch->loopstart = ps->sfx->loopstart;
 		}
 
 		ch->fixedPosition = ps->fixedPosition;
@@ -420,16 +410,6 @@ static void S_IssuePlaySounds( void )
 
 		// free the playSound
 		S_FreePlaySound( ps );
-
-		if( S_ChannelState( ch ) == AL_STOPPED )
-		{
-			if( ch->sfx->loopstart > -1 )
-			{
-				Msg("playing %s again form offset %d\n", ch->sfx->name, ch->sfx->loopstart );
-				S_PlayChannel( ch, ch->sfx );
-			}
-		}
-
 	}
 }
 
@@ -442,7 +422,7 @@ if origin is NULL, the sound will be dynamically sourced from the entity.
 entchannel 0 will never override a playing sound.
 =================
 */
-void S_StartSound( const vec3_t position, int entnum, int entChannel, sound_t handle, float volume, float attenuation )
+void S_StartSound( const vec3_t pos, int entnum, int channel, sound_t handle, float vol, float attn, bool use_loop )
 {
 	playSound_t	*ps, *sort;
 	sfx_t		*sfx = NULL;
@@ -451,7 +431,7 @@ void S_StartSound( const vec3_t position, int entnum, int entChannel, sound_t ha
 		return;
 	sfx = S_GetSfxByHandle( handle );
 	if( !sfx ) return;
-	Msg("CL_StartSound %s ( entnum %d, channel %d)\n", sfx->name, entnum, entChannel );
+
 	// Make sure the sound is loaded
 	if(!S_LoadSound(sfx)) return;
 
@@ -465,21 +445,22 @@ void S_StartSound( const vec3_t position, int entnum, int entChannel, sound_t ha
 	}
 	ps->sfx = sfx;
 	ps->entnum = entnum;
-	ps->entchannel = entChannel;
+	ps->entchannel = channel;
+	ps->use_loop = use_loop;
 
-	if( position )
+	if( pos )
 	{
 		ps->fixedPosition = true;
-		VectorCopy( position, ps->position );
+		VectorCopy( pos, ps->position );
 	}
 	else ps->fixedPosition = false;
 
-	ps->volume = volume;
-	ps->attenuation = attenuation;
+	ps->volume = vol;
+	ps->attenuation = attn;
 	ps->beginTime = Sys_DoubleTime();
 
 	// Sort into the pending playSounds list
-	for( sort = s_pendingPlaySounds.next; sort != &s_pendingPlaySounds&& sort->beginTime < ps->beginTime; sort = sort->next );
+	for( sort = s_pendingPlaySounds.next; sort != &s_pendingPlaySounds && sort->beginTime < ps->beginTime; sort = sort->next );
 
 	ps->next = sort;
 	ps->prev = sort->prev;
@@ -502,7 +483,7 @@ bool S_StartLocalSound( const char *name )
 		return false;
 
 	sfxHandle = S_RegisterSound( name );
-	S_StartSound( NULL, al_state.clientnum, CHAN_BODY, sfxHandle, 1.0f, ATTN_NONE );
+	S_StartSound( NULL, al_state.clientnum, CHAN_AUTO, sfxHandle, 1.0f, ATTN_NONE, false );
 	return true;
 }
 
@@ -577,13 +558,15 @@ void S_Update( int clientnum, const vec3_t position, const vec3_t velocity, cons
 	channel_t		*ch;
 	int		i;
 
-	if(!al_state.initialized ) return;
 
-	// Bump frame count
+	if(!al_state.initialized ) return;
+//if( s_pause->integer ) return;		
+
+	// bump frame count
 	al_state.framecount++;
 	al_state.clientnum = clientnum;
 
-	// Set up listener
+	// set up listener
 	VectorSet( s_listener.position, position[1], position[2], -position[0]);
 	VectorSet( s_listener.velocity, velocity[1], velocity[2], -velocity[0]);
 
@@ -631,13 +614,17 @@ void S_Update( int clientnum, const vec3_t position, const vec3_t velocity, cons
 				continue;
 			}
 		}
-		else
+		else if( ch->loopstart >= 0 )
 		{
 			if( S_ChannelState( ch ) == AL_STOPPED )
 			{
-				S_StopChannel( ch );
-				continue;
+				S_PlayChannel( ch, ch->sfx );
 			}
+		}
+		else if( S_ChannelState( ch ) == AL_STOPPED )
+		{
+			S_StopChannel( ch );
+			continue;
 		}
 
 		// respatialize channel
@@ -672,23 +659,14 @@ void S_Activate( bool active )
 S_Play_f
 =================
 */
-void S_Play_f( void )
+void S_PlaySound_f( void )
 {
-	int 	i = 1;
-	string	name;
-
 	if( Cmd_Argc() == 1 )
 	{
-		Msg("Usage: play <soundfile> [...]\n");
+		Msg("Usage: playsound <soundfile>\n");
 		return;
 	}
-	while ( i < Cmd_Argc())
-	{
-		if ( !com.strrchr(Cmd_Argv(i), '.')) com.sprintf( name, "%s.wav", Cmd_Argv(1) );
-		else com.strncpy( name, Cmd_Argv(i), sizeof(name) );
-		S_StartLocalSound( name );
-		i++;
-	}
+	S_StartLocalSound(Cmd_Argv(1));
 }
 
 /*
@@ -747,6 +725,8 @@ void S_SoundInfo_f( void )
 */
 void S_Init( void *hInst )
 {
+	int	num_mono_src, num_stereo_src;
+
 	host_sound = Cvar_Get("host_sound", "1", CVAR_SYSTEMINFO );
 	s_alDevice = Cvar_Get("s_device", "Generic Software", CVAR_LATCH|CVAR_ARCHIVE );
 	s_soundfx = Cvar_Get("s_soundfx", "1", CVAR_LATCH|CVAR_ARCHIVE );
@@ -758,8 +738,9 @@ void S_Init( void *hInst )
 	s_rolloffFactor = Cvar_Get("s_rollofffactor", "1.0", CVAR_ARCHIVE );
 	s_dopplerFactor = Cvar_Get("s_dopplerfactor", "1.0", CVAR_ARCHIVE );
 	s_dopplerVelocity = Cvar_Get("s_dopplervelocity", "10976.0", CVAR_ARCHIVE );
+	s_pause = Cvar_Get( "paused", "0", 0 );
 
-	Cmd_AddCommand("play", S_Play_f, "playing a specified sound file" );
+	Cmd_AddCommand("playsound", S_PlaySound_f, "playing a specified sound file" );
 	Cmd_AddCommand("music", S_Music_f, "starting a background track" );
 	Cmd_AddCommand("s_stop", S_StopSound_f, "stop all sounds" );
 	Cmd_AddCommand("s_info", S_SoundInfo_f, "print sound system information" );
@@ -776,6 +757,10 @@ void S_Init( void *hInst )
 		MsgDev( D_INFO, "S_Init: sound system can't initialized\n");
 		return;
 	}
+
+	palcGetIntegerv( al_state.hDevice, ALC_MONO_SOURCES, sizeof(int), &num_mono_src );
+	palcGetIntegerv( al_state.hDevice, ALC_STEREO_SOURCES, sizeof(int), &num_stereo_src );
+	Msg("Mono sources %d, stereo %d\n", num_mono_src, num_stereo_src );
 
 	sndpool = Mem_AllocPool("Sound Zone");
 	al_state.initialized = true;

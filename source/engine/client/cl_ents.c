@@ -76,12 +76,11 @@ int CL_ParseEntityBits( sizebuf_t *msg, uint *bits )
 	}
 
 	// count the bits for net profiling
-	for (i = 0; i < 32; i++)
-		if (total&(1<<i)) bitcounts[i]++;
+	for( i = 0; i < 32; i++ )
+		if( total&(1<<i)) bitcounts[i]++;
 
 	if (total & U_NUMBER16) number = MSG_ReadShort (msg);
 	else number = MSG_ReadByte (msg);
-
 	*bits = total;
 
 	return number;
@@ -162,8 +161,7 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 
 	// delta from the entities present in oldframe
 	oldindex = 0;
-	if (!oldframe)
-		oldnum = 99999;
+	if( !oldframe ) oldnum = 99999;
 	else
 	{
 		if (oldindex >= oldframe->num_entities)
@@ -182,7 +180,7 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 			Host_Error("CL_ParsePacketEntities: bad number:%i\n", newnum);
 
 		if (msg->readcount > msg->cursize)
-			Host_Error("CL_ParsePacketEntities: end of message\n");
+			Host_Error("CL_ParsePacketEntities: end of message %d > %d\n", msg->readcount, msg->cursize );
 
 		if (!newnum) break;
 
@@ -204,16 +202,14 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 		}
 
 		if (bits & U_REMOVE)
-		{	// the entity present in oldframe is not in the current frame
-			if (cl_shownet->value == 3)
-				Msg ("   remove: %i\n", newnum);
-			if (oldnum != newnum)
-				Msg ("U_REMOVE: oldnum != newnum\n");
+		{	
+			// the entity present in oldframe is not in the current frame
+			if( cl_shownet->value == 3 ) Msg("   remove: %i\n", newnum);
+			if( oldnum != newnum ) Msg("U_REMOVE: oldnum != newnum\n");
 
 			oldindex++;
 
-			if (oldindex >= oldframe->num_entities)
-				oldnum = 99999;
+			if( oldindex >= oldframe->num_entities ) oldnum = 99999;
 			else
 			{
 				oldstate = &cl_parse_entities[(oldframe->parse_entities+oldindex) & (MAX_PARSE_ENTITIES-1)];
@@ -963,7 +959,7 @@ void CL_GetEntitySoundSpatialization( int ent, vec3_t origin, vec3_t velocity )
 	}
 
 	// if a brush model, offset the origin
-	if( cent->current.solid == SOLID_BMODEL )
+	if( VectorIsNull( origin ))
 	{
 		cmodel = cl.model_clip[cent->current.modelindex];
 		if(!cmodel) return;
@@ -994,6 +990,7 @@ void CL_AddLoopingSounds( void )
 	{
 		num = (cl.frame.parse_entities + i)&(MAX_PARSE_ENTITIES-1);
 		ent = &cl_parse_entities[num];
+		if(!ent->soundindex) continue;
 		se->AddLoopingSound( ent->number, cl.sound_precache[ent->soundindex], 1.0f, ATTN_IDLE );
 	}
 }

@@ -546,7 +546,7 @@ void VM_RandomLong( void )
 	if(!VM_ValidateArgs( "RandomLong", 2 ))
 		return;
 
-	PRVM_G_FLOAT(OFS_RETURN) = RANDOM_LONG(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1));
+	PRVM_G_FLOAT(OFS_RETURN) = Com_RandomLong(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1));
 }
 
 /*
@@ -561,7 +561,7 @@ void VM_RandomFloat( void )
 	if(!VM_ValidateArgs( "RandomFloat", 2 ))
 		return;
 
-	PRVM_G_FLOAT(OFS_RETURN) = RANDOM_FLOAT(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1));
+	PRVM_G_FLOAT(OFS_RETURN) = Com_RandomFloat(PRVM_G_FLOAT(OFS_PARM0), PRVM_G_FLOAT(OFS_PARM1));
 }
 
 /*
@@ -1601,7 +1601,7 @@ Cmd_GetMapList
 Prints or complete map filename
 =====================================
 */
-bool Cmd_GetMapList (const char *s, char *completedname, int length )
+bool Cmd_GetMapList( const char *s, char *completedname, int length )
 {
 	search_t		*t;
 	file_t		*f;
@@ -1738,7 +1738,7 @@ Cmd_GetFontList
 Prints or complete font filename
 =====================================
 */
-bool Cmd_GetFontList (const char *s, char *completedname, int length )
+bool Cmd_GetFontList( const char *s, char *completedname, int length )
 {
 	search_t		*t;
 	string		matchbuf;
@@ -1783,7 +1783,7 @@ Cmd_GetDemoList
 Prints or complete demo filename
 =====================================
 */
-bool Cmd_GetDemoList (const char *s, char *completedname, int length )
+bool Cmd_GetDemoList( const char *s, char *completedname, int length )
 {
 	search_t		*t;
 	string		matchbuf;
@@ -1828,7 +1828,7 @@ Cmd_GetMovieList
 Prints or complete movie filename
 =====================================
 */
-bool Cmd_GetMovieList (const char *s, char *completedname, int length )
+bool Cmd_GetMovieList( const char *s, char *completedname, int length )
 {
 	search_t		*t;
 	string		matchbuf;
@@ -1868,30 +1868,78 @@ bool Cmd_GetMovieList (const char *s, char *completedname, int length )
 
 /*
 =====================================
+Cmd_GetMusicList
+
+Prints or complete background track filename
+=====================================
+*/
+bool Cmd_GetMusicList( const char *s, char *completedname, int length )
+{
+	search_t		*t;
+	string		matchbuf;
+	int		i, numtracks;
+
+	t = FS_Search(va("music/%s*.ogg", s ), true);
+	if(!t) return false;
+
+	FS_FileBase(t->filenames[0], matchbuf ); 
+	if(completedname && length) strncpy( completedname, matchbuf, length );
+	if(t->numfilenames == 1) return true;
+
+	for(i = 0, numtracks = 0; i < t->numfilenames; i++)
+	{
+		const char *ext = FS_FileExtension( t->filenames[i] ); 
+
+		if( com.stricmp(ext, "ogg" )) continue;
+		FS_FileBase(t->filenames[i], matchbuf );
+		Msg("%16s\n", matchbuf );
+		numtracks++;
+	}
+	Msg("\n^3 %i soundtracks found.\n", numtracks );
+	Mem_Free(t);
+
+	// cut shortestMatch to the amount common with s
+	if(completedname && length)
+	{
+		for( i = 0; matchbuf[i]; i++ )
+		{
+			if(com.tolower(completedname[i]) != tolower(matchbuf[i]))
+				completedname[i] = 0;
+		}
+	}
+
+	return true;
+}
+
+/*
+=====================================
 Cmd_GetSoundList
 
 Prints or complete sound filename
 =====================================
 */
-bool Cmd_GetSoundList (const char *s, char *completedname, int length )
+bool Cmd_GetSoundList( const char *s, char *completedname, int length )
 {
 	search_t		*t;
 	string		matchbuf;
 	int		i, numsounds;
+	const char	*snddir = "sound/"; // constant
 
-	t = FS_Search(va("sound/%s*.wav", s ), true);
+	t = FS_Search(va("%s%s*.*", snddir, s ), true);
 	if(!t) return false;
 
-	FS_FileBase(t->filenames[0], matchbuf ); 
-	if(completedname && length) com.strncpy( completedname, matchbuf, length );
+	com.strncpy( matchbuf, t->filenames[0] + com.strlen(snddir), MAX_STRING ); 
+	FS_StripExtension( matchbuf ); 
+	if( completedname && length ) com.strncpy( completedname, matchbuf, length );
 	if(t->numfilenames == 1) return true;
 
 	for(i = 0, numsounds = 0; i < t->numfilenames; i++)
 	{
 		const char *ext = FS_FileExtension( t->filenames[i] ); 
 
-		if( com.stricmp(ext, "wav" )) continue;
-		FS_FileBase(t->filenames[i], matchbuf );
+		if(com.stricmp(ext, "wav") && com.stricmp(ext, "ogg")) continue;
+		com.strncpy( matchbuf, t->filenames[i] + com.strlen(snddir), MAX_STRING ); 
+		FS_StripExtension( matchbuf );
 		Msg("%16s\n", matchbuf );
 		numsounds++;
 	}
@@ -1899,7 +1947,7 @@ bool Cmd_GetSoundList (const char *s, char *completedname, int length )
 	Mem_Free(t);
 
 	// cut shortestMatch to the amount common with s
-	if(completedname && length)
+	if( completedname && length )
 	{
 		for( i = 0; matchbuf[i]; i++ )
 		{

@@ -54,10 +54,10 @@ void PRVM_MEM_Alloc(void)
 PRVM_MEM_IncreaseEdicts
 ===============
 */
-void PRVM_MEM_IncreaseEdicts(void)
+void PRVM_MEM_IncreaseEdicts( void )
 {
-	int		i;
-	int		oldmaxedicts = vm.prog->max_edicts;
+	int	i;
+	int	oldmaxedicts = vm.prog->max_edicts;
 	void	*oldedictsfields = vm.prog->edictsfields;
 	void	*oldedictprivate = vm.prog->edictprivate;
 
@@ -567,11 +567,11 @@ void PRVM_ED_Print(edict_t *ed)
 
 	tempstring[0] = 0;
 	com.sprintf(tempstring, "\n%s EDICT %i:\n", PRVM_NAME, PRVM_NUM_FOR_EDICT(ed));
-	for (i=1 ; i<vm.prog->progs->numfielddefs ; i++)
+	for( i = 1; i < vm.prog->progs->numfielddefs; i++ )
 	{
 		d = &vm.prog->fielddefs[i];
 		name = PRVM_GetString(d->s_name);
-		if (name[com.strlen(name)-2] == '_')
+		if(name[com.strlen(name)-2] == '_')
 			continue;	// skip _x, _y, _z vars
 
 		v = (int *)((char *)ed->progs.vp + d->ofs*4);
@@ -866,11 +866,10 @@ bool PRVM_ED_ParseEpair(edict_t *ent, ddef_t *key, const char *s)
 	prvm_eval_t *val;
 	mfunction_t *func;
 
-	if (ent)
-		val = (prvm_eval_t *)((int *)ent->progs.vp + key->ofs);
-	else
-		val = (prvm_eval_t *)((int *)vm.prog->globals.gp + key->ofs);
-	switch (key->type & ~DEF_SAVEGLOBAL)
+	if( ent ) val = (prvm_eval_t *)((int *)ent->progs.vp + key->ofs);
+	else val = (prvm_eval_t *)((int *)vm.prog->globals.gp + key->ofs);
+
+	switch( key->type & ~DEF_SAVEGLOBAL )
 	{
 	case ev_string:
 		l = (int)com.strlen(s) + 1;
@@ -891,28 +890,20 @@ bool PRVM_ED_ParseEpair(edict_t *ent, ddef_t *key, const char *s)
 				*new_p++ = s[i];
 		}
 		break;
-
 	case ev_float:
-		while (*s && *s <= ' ')
-			s++;
+		while(*s && *s <= ' ') s++;
 		val->_float = com.atof(s);
 		break;
-
 	case ev_vector:
-		for (i = 0;i < 3;i++)
+		for (i = 0; i < 3; i++)
 		{
-			while (*s && *s <= ' ')
-				s++;
-			if (!*s)
-				break;
+			while (*s && *s <= ' ') s++;
+			if (!*s) break;
 			val->vector[i] = com.atof(s);
-			while (*s > ' ')
-				s++;
-			if (!*s)
-				break;
+			while (*s > ' ') s++;
+			if (!*s) break;
 		}
 		break;
-
 	case ev_entity:
 		while (*s && *s <= ' ')
 			s++;
@@ -1051,10 +1042,11 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 
 		// keynames with a leading underscore are used for utility comments,
 		// and are immediately discarded by quake
-		if (keyname[0] == '_') continue;
+		if(!stricmp( keyname, "light" )) continue;	// ignore lightvalue
+		if( keyname[0] == '_' ) continue;
 
 		key = PRVM_ED_FindField( keyname );
-		if (!key)
+		if( !key )
 		{
 			MsgDev(D_NOTE, "%s: unknown field '%s'\n", PRVM_NAME, keyname);
 			continue;

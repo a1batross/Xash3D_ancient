@@ -51,9 +51,6 @@ static int ovc_seek ( void *datasource, ogg_int64_t offset, int whence )
 
 static int ovc_close( void *datasource )
 {
-	bg_track_t *track = (bg_track_t *)datasource;
-
-	//FIXME: FS_Close( track->file );
 	return 0;
 }
 
@@ -158,7 +155,7 @@ void S_StreamBackgroundTrack( void )
 		// stream from disk
 		while( size < BUFFER_SIZE )
 		{
-			read = ov_read( s_bgTrack.vorbisFile, data + size, BUFFER_SIZE - size, 0, 2, 1, &dummy );
+			read = ov_read( s_bgTrack.vorbisFile, data + size, BUFFER_SIZE - size, big_endian, 2, 1, &dummy );
 			if( read == 0 )
 			{
 				// end of file

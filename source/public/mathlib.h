@@ -178,6 +178,7 @@ _inline bool VectorIsNull( const vec3_t v )
 	int i;
 	float result = 0;
 
+	if(!v) return true;
 	for (i = 0; i< 3; i++) result += v[i];
 	if(result != 0) return false;
 	return true;		
