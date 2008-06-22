@@ -7,6 +7,50 @@
 
 /*
 =========
+PF_newgame
+
+void NewGame( void )
+=========
+*/
+void PF_newgame( void )
+{
+	if(!VM_ValidateArgs( "NewGame", 0 ))
+		return;
+		
+	// disable updates and start the cinematic going
+	cl.servercount = -1;
+	Cvar_SetValue( "deathmatch", 0 );
+	Cvar_SetValue( "gamerules", 0 );
+	Cvar_SetValue( "paused", 0 );
+	Cvar_SetValue( "coop", 0 );
+
+	Cbuf_AddText("loading; killserver; wait; newgame\n");
+	cls.key_dest = key_game;
+}
+
+/*
+=========
+PF_readcomment
+
+string ReadComment( float savenum )
+=========
+*/
+void PF_readcomment( void )
+{
+	int	savenum;
+	static	string comment[32];
+
+	if(!VM_ValidateArgs( "ReadComment", 1 ))
+		return;
+
+	savenum = (int)PRVM_G_FLOAT(OFS_PARM0);
+
+	PRVM_G_FLOAT(OFS_PARM1) = (float)SV_ReadComment( comment[savenum], savenum );
+	PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( comment[savenum] );
+}
+
+/*
+=========
 PF_substring
 
 string substring( string s, float start, float length )
@@ -514,6 +558,8 @@ PF_getimagesize,			// #115 vector getimagesize( string pic )
 PF_setkeydest,			// #116 void setkeydest( float dest )
 PF_callfunction,			// #117 void callfunction( ..., string function_name )
 PF_testfunction,			// #118 float testfunction( string function_name )
+PF_newgame,			// #119 void NewGame( void )
+PF_readcomment,			// #120 string ReadComment( float savenum )
 };
 
 const int vm_ui_numbuiltins = sizeof(vm_ui_builtins) / sizeof(prvm_builtin_t);

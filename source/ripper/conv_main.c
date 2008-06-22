@@ -198,7 +198,7 @@ void RunConvertor ( void )
 	}
 
 	// directory to extract
-	com.strncpy(gs_gamedir, "~tmpXash", sizeof(gs_gamedir));
+	com.strncpy(gs_gamedir, "tmpQuArK", sizeof(gs_gamedir));
 
 	// search by mask		
 	for( i = 0; i < num_searchmask; i++)

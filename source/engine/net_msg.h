@@ -70,11 +70,12 @@ typedef enum
 #define PS_FOV			(1<<11)
 #define PS_WEAPONINDEX		(1<<12)
 #define PS_WEAPONOFFSET		(1<<13)
-#define PS_WEAPONFRAME		(1<<14)
-#define PS_WEAPONSEQUENCE		(1<<15)
-#define PS_WEAPONBODY		(1<<16)
-#define PS_WEAPONSKIN		(1<<17)
-#define PS_RDFLAGS			(1<<18)
+#define PS_WEAPONANGLES		(1<<14)
+#define PS_WEAPONFRAME		(1<<15)
+#define PS_WEAPONSEQUENCE		(1<<16)
+#define PS_WEAPONBODY		(1<<17)
+#define PS_WEAPONSKIN		(1<<18)
+#define PS_RDFLAGS			(1<<19)
 
 // ms and light always sent, the others are optional
 #define	CM_ANGLE1 	(1<<0)

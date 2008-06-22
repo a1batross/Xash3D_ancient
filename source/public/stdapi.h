@@ -145,7 +145,7 @@ typedef struct stdilib_api_s
 
 	// filesystem simply user interface
 	byte *(*Com_LoadFile)(const char *path, long *filesize );		// load file into heap
-	bool (*Com_WriteFile)(const char *path, void *data, long len);	// write file into disk
+	bool (*Com_WriteFile)(const char *path, const void *data, long len );	// write file into disk
 	bool (*Com_LoadLibrary)( dll_info_t *dll );			// load library 
 	bool (*Com_FreeLibrary)( dll_info_t *dll );			// free library
 	void*(*Com_GetProcAddress)( dll_info_t *dll, const char* name );	// gpa

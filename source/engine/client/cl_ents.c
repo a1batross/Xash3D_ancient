@@ -297,7 +297,7 @@ void CL_ParsePlayerstate( sizebuf_t *msg, frame_t *oldframe, frame_t *newframe )
 	if (flags & PS_M_GRAVITY) state->gravity = MSG_ReadShort (msg);
 	if (flags & PS_M_DELTA_ANGLES) MSG_ReadPos32(msg, state->delta_angles ); 
 
-	if(cls.state == ca_cinematic || cl.servercount > 0x10000)
+	if( cls.state == ca_cinematic || cls.demoplayback )
 		state->pm_type = PM_FREEZE; // demo or movie playback
 
 	// parse the rest of the player_state_t
@@ -329,7 +329,7 @@ void CL_ParsePlayerstate( sizebuf_t *msg, frame_t *oldframe, frame_t *newframe )
 
 	if (flags & PS_WEAPONFRAME)
 	{
-		state->vmodel.frame = MSG_ReadByte (msg);
+		state->vmodel.frame = MSG_ReadFloat (msg);
 	}
 
 
@@ -338,6 +338,10 @@ void CL_ParsePlayerstate( sizebuf_t *msg, frame_t *oldframe, frame_t *newframe )
 		state->vmodel.offset[0] = MSG_ReadChar (msg)*0.25;
 		state->vmodel.offset[1] = MSG_ReadChar (msg)*0.25;
 		state->vmodel.offset[2] = MSG_ReadChar (msg)*0.25;
+	}
+
+	if (flags & PS_WEAPONANGLES)
+	{
 		state->vmodel.angles[0] = MSG_ReadChar (msg)*0.25;
 		state->vmodel.angles[1] = MSG_ReadChar (msg)*0.25;
 		state->vmodel.angles[2] = MSG_ReadChar (msg)*0.25;
@@ -982,8 +986,8 @@ void CL_AddLoopingSounds( void )
 	entity_state_t	*ent;
 	int		num, i;
 
-	if( cl_paused->value ) return;
 	if( cls.state != ca_active ) return;
+	if( cl_paused->integer ) return;
 	//if( !cl.sound_prepped ) return;
 
 	for( i = 0; i < cl.frame.num_entities; i++ )

@@ -1101,7 +1101,7 @@ image_t *R_FindImage (char *name, char *buffer, int size, imagetype_t type)
 
 	pic = Image->LoadImage(name, buffer, size ); //loading form disk or buffer
 	image = R_LoadImage(name, pic, type ); //upload into video buffer
-	Image->FreeImage(pic ); //free image
+	Image->FreeImage( pic ); //free image
 
 	return image;
 }
@@ -1123,18 +1123,15 @@ image_t *R_LoadImage( char *name, rgbdata_t *pic, imagetype_t type )
 	int	skyorder_q2[6] = { 2, 3, 1, 0, 4, 5, }; // Quake, Half-Life skybox ordering
 	int	skyorder_ms[6] = { 4, 5, 1, 0, 2, 3  }; // Microsoft DDS ordering (reverse)
 	byte	*buf;
-	
-	// nothing to load
-	if (!pic || !pic->buffer) return r_notexture;
 
 	// find a free image_t
-	for (i = 0, image = gltextures; i < numgltextures; i++, image++)
+	for( i = 0, image = gltextures; i < numgltextures; i++, image++ )
 	{
 		if (!image->texnum[0]) break;
 	}
-	if (i == numgltextures)
+	if( i == numgltextures )
 	{
-		if (numgltextures == MAX_GLTEXTURES)
+		if( numgltextures == MAX_GLTEXTURES )
 		{
 			MsgDev(D_ERROR, "R_LoadImage: gl_textures limit is out\n");
 			return NULL;
@@ -1143,7 +1140,17 @@ image_t *R_LoadImage( char *name, rgbdata_t *pic, imagetype_t type )
 	}
 	image = &gltextures[i];
 
-	if (strlen(name) >= sizeof(image->name)) MsgDev( D_WARN, "R_LoadImage: \"%s\" is too long", name);
+	if( com.strlen(name) >= sizeof(image->name)) MsgDev( D_WARN, "R_LoadImage: \"%s\" is too long", name);
+
+	// nothing to load
+	if( !pic || !pic->buffer )
+	{
+		// create notexture with another name
+		Mem_Copy( image, r_notexture, sizeof(image_t));
+		com.strncpy( image->name, name, sizeof(image->name));
+		image->registration_sequence = registration_sequence;
+		return image;
+	}
 
 	com.strncpy (image->name, name, sizeof(image->name));
 	image->registration_sequence = registration_sequence;

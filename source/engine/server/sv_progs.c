@@ -590,8 +590,7 @@ void SV_ReadLevelFile( char *name )
 	Mem_Free( savfile );
 }
 
-//FIXME: move into ui_cmds.c
-bool Menu_ReadComment( char *comment, int savenum )
+bool SV_ReadComment( char *comment, int savenum )
 {
 	dsavehdr_t	*header;
 	byte		*savfile;

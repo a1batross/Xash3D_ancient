@@ -53,7 +53,7 @@ void SV_PutClientInServer (edict_t *ent)
 
 	client->ps.fov = 90;
 	client->ps.fov = bound(1, client->ps.fov, 160);
-	client->ps.vmodel.index = SV_ModelIndex(PRVM_GetString(ent->progs.sv->weaponmodel));
+	client->ps.vmodel.index = SV_ModelIndex(PRVM_GetString(ent->progs.sv->v_model));
 
 	if(sv.loadgame)
 	{
@@ -533,6 +533,14 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	VectorCopy(pm.mins, ent->progs.sv->mins);
 	VectorCopy(pm.maxs, ent->progs.sv->maxs);
 	VectorCopy(pm.ps.viewangles, client->ps.viewangles);
+
+	// copy viewmodel info
+	client->ps.vmodel.frame = ent->progs.sv->v_frame;
+	client->ps.vmodel.body = ent->progs.sv->v_body;
+	client->ps.vmodel.skin = ent->progs.sv->v_skin;
+	client->ps.vmodel.sequence = ent->progs.sv->v_sequence;
+	VectorCopy(ent->progs.sv->v_offset, client->ps.vmodel.offset );
+	VectorCopy(ent->progs.sv->v_angles, client->ps.vmodel.angles );
 
 	SV_LinkEdict(ent);
 

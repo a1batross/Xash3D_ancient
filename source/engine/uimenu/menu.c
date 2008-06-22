@@ -1596,8 +1596,6 @@ LOADGAME MENU
 
 #define	MAX_SAVEGAMES	15
 
-bool Menu_ReadComment( char *title, int savenum );
-
 static menuframework_s	s_savegame_menu;
 static menuframework_s	s_loadgame_menu;
 static menuaction_s		s_loadgame_actions[MAX_SAVEGAMES];
@@ -1611,7 +1609,7 @@ void Create_Savestrings (void)
 
 	for (i = 0; i < MAX_SAVEGAMES; i++)
 	{
-		m_savevalid[i] = Menu_ReadComment(m_savestrings[i], i);
+		m_savevalid[i] = SV_ReadComment(m_savestrings[i], i);
 	}
 }
 

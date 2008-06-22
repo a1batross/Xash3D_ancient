@@ -7,33 +7,6 @@
 
 bool ui_active = false;
 
-void UI_Error(const char *format, ...)
-{
-	static bool	processingError = false;
-	char		errorstring[MAX_INPUTLINE];
-	va_list		argptr;
-
-	va_start( argptr, format );
-	com.vsnprintf(errorstring, sizeof(errorstring), format, argptr);
-	va_end( argptr );
-	Host_Error( "Menu_Error: %s\n", errorstring );
-
-	if( !processingError )
-	{
-		processingError = true;
-		PRVM_Crash();
-		processingError = false;
-	}
-	else Host_Error( "Menu_RecursiveError: call to UI_Error (from PRVM_Crash)!\n" );
-
-	// fall back to the normal menu
-	Msg("Falling back to normal menu\n");
-	cls.key_dest = key_game;
-
-	// init the normal menu now -> this will also correct the menu router pointers
-	Host_AbortCurrentFrame();
-}
-
 void UI_KeyEvent( int key )
 {
 	const char *ascii = Key_KeynumToString(key);
@@ -128,7 +101,7 @@ void UI_Init( void )
 	prog->loadintoworld = false;
 	prog->init_cmd = VM_Cmd_Init;
 	prog->reset_cmd = VM_Cmd_Reset;
-	prog->error_cmd = UI_Error;
+	prog->error_cmd = VM_Error;
 
 	PRVM_LoadProgs( GI->uimenu_prog, 0, NULL, UI_NUM_REQFIELDS, ui_reqfields );
 	*prog->time = cls.realtime;

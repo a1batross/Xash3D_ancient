@@ -1925,7 +1925,7 @@ void VM_Error( const char *fmt, ... )
 PRVM_InitProg
 ===============
 */
-void PRVM_InitProg(int prognr)
+void PRVM_InitProg( int prognr )
 {
 	if(prognr < 0 || prognr >= PRVM_MAXPROGS)
 		Host_Error("PRVM_InitProg: Invalid program number %i",prognr);

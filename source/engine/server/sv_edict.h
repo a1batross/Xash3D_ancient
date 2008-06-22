@@ -112,6 +112,12 @@ struct sv_entvars_s
 	string_t	classname;
 	string_t	globalname;
 	float	modelindex;
+	func_t	precache;
+	func_t	activate;
+	func_t	use;
+	func_t	touch;
+	func_t	think;
+	func_t	blocked;
 	vec3_t	origin;
 	vec3_t	angles;
 	vec3_t	old_origin;
@@ -121,169 +127,178 @@ struct sv_entvars_s
 	vec3_t	m_pmatrix[4];
 	vec3_t	m_pcentre[3];
 	vec3_t	torque;
+	vec3_t	movedir;
 	vec3_t	force;
 	vec3_t	post_origin;
 	vec3_t	post_angles;
 	vec3_t	origin_offset;
-	float	ltime;
-	string_t	loopsound;
-	float	bouncetype;
-	float	movetype;
-	float	solid;
 	vec3_t	absmin;
 	vec3_t	absmax;
 	vec3_t	mins;
 	vec3_t	maxs;
 	vec3_t	size;
+	float	solid;
+	float	movetype;
+	float	bouncetype;
+	float	waterlevel;
+	float	watertype;
+	float	ltime;
+	float	mass;
 	int	chain;
 	string_t	model;
 	float	frame;
+	float	body;
+	float	skin;
+	float	alpha;
+	float	speed;
 	float	sequence;
-	float	renderfx;
 	float	animtime;
 	float	effects;
-	float	skin;
-	float	body;
-	string_t	weaponmodel;
-	float	weaponframe;
-	func_t	use;
-	func_t	touch;
-	func_t	think;
-	func_t	blocked;
-	func_t	activate;
-	func_t	walk;
-	func_t	jump;
-	func_t	duck;
+	float	renderfx;
 	float	flags;
 	float	aiflags;
 	float	spawnflags;
-	int	groundentity;
-	float	nextthink;
-	float	takedamage;
-	float	health;
-	float	frags;
-	float	weapon;
-	float	items;
-	string_t	target;
-	string_t	parent;
-	string_t	targetname;
-	int	aiment;
-	int	goalentity;
 	vec3_t	punchangle;
-	float	deadflag;
 	vec3_t	view_ofs;
-	float	button0;
-	float	button1;
-	float	button2;
-	float	impulse;
-	float	fixangle;
 	vec3_t	v_angle;
-	float	idealpitch;
-	string_t	netname;
+	string_t	v_model;
+	float	v_frame;
+	float	v_body;
+	float	v_skin;
+	vec3_t	v_offset;
+	vec3_t	v_angles;
+	float	v_sequence;
+	string_t	p_model;
+	float	p_frame;
+	float	p_body;
+	float	p_skin;
+	float	p_sequence;
+	string_t	loopsound;
+	float	loopsndvol;
+	float	loopsndattn;
+	int	owner;
 	int	enemy;
-	float	alpha;
-	float	team;
-	float	max_health;
-	float	teleport_time;
-	float	armortype;
-	float	armorvalue;
-	float	waterlevel;
-	float	watertype;
+	int	aiment;
 	float	ideal_yaw;
 	float	yaw_speed;
-	float	dmg_take;
-	float	dmg_save;
-	int	dmg_inflictor;
-	int	owner;
-	vec3_t	movedir;
-	string_t	message;
-	float	sounds;
-	string_t	noise;
-	string_t	noise1;
-	string_t	noise2;
-	string_t	noise3;
-	float	jumpup;
-	float	jumpdn;
-	int	movetarget;
-	float	mass;
-	float	density;
+	float	teleport_time;
+	int	groundentity;
+	float	takedamage;
+	float	nextthink;
+	float	health;
 	float	gravity;
-	float	dmg;
-	float	dmgtime;
-	float	speed;
+	float	team;
 };
 
 #define SV_NUM_REQFIELDS (sizeof(sv_reqfields) / sizeof(fields_t))
 
 static fields_t sv_reqfields[] = 
 {
-	{141,	6,	"th_stand"},
-	{142,	6,	"th_walk"},
-	{143,	6,	"th_run"},
-	{144,	6,	"th_pain"},
-	{145,	6,	"th_die"},
-	{146,	6,	"th_missile"},
-	{147,	6,	"th_melee"},
-	{148,	1,	"wad"},
-	{149,	1,	"map"},
-	{150,	1,	"landmark"},
-	{151,	2,	"worldtype"},
-	{152,	2,	"delay"},
-	{153,	2,	"wait"},
-	{154,	2,	"lip"},
-	{155,	2,	"light_lev"},
-	{156,	2,	"style"},
-	{157,	2,	"skill"},
-	{158,	1,	"killtarget"},
-	{159,	3,	"pos1"},
-	{162,	3,	"pos2"},
-	{165,	3,	"mangle"},
-	{168,	2,	"pain_finished"},
-	{169,	2,	"air_finished"},
-	{170,	3,	"camview"},
-	{173,	2,	"aflag"},
-	{174,	4,	"trigger_field"},
-	{175,	2,	"anim_time"},
-	{176,	2,	"anim_end"},
-	{177,	2,	"anim_priority"},
-	{178,	2,	"anim_run"},
-	{179,	2,	"showhelp"},
-	{180,	2,	"touched"},
-	{181,	1,	"name"},
-	{182,	4,	"triggerer"},
-	{183,	1,	"targ"},
-	{184,	1,	"targ[1]"},
-	{185,	1,	"targ[2]"},
-	{186,	1,	"targ[3]"},
-	{187,	1,	"targ[4]"},
-	{188,	1,	"targ[5]"},
-	{189,	1,	"targ[6]"},
-	{190,	1,	"targ[7]"},
-	{191,	1,	"oldtarg"},
-	{192,	1,	"oldtarg[1]"},
-	{193,	1,	"oldtarg[2]"},
-	{194,	1,	"oldtarg[3]"},
-	{195,	1,	"oldtarg[4]"},
-	{196,	1,	"oldtarg[5]"},
-	{197,	1,	"oldtarg[6]"},
-	{198,	1,	"oldtarg[7]"},
-	{199,	2,	"twait"},
-	{200,	2,	"twait[1]"},
-	{201,	2,	"twait[2]"},
-	{202,	2,	"twait[3]"},
-	{203,	2,	"twait[4]"},
-	{204,	2,	"twait[5]"},
-	{205,	2,	"twait[6]"},
-	{206,	2,	"twait[7]"},
-	{207,	2,	"olddelay"},
-	{208,	1,	"message1"},
-	{209,	1,	"message2"},
-	{210,	2,	"count"},
-	{211,	2,	"state"},
-	{212,	2,	"used"},
-	{213,	3,	"dest"},
-	{216,	1,	"target_dest"},
-	{217,	1,	"oldmodel"}
+	{142,	6,	"walk"},
+	{143,	6,	"jump"},
+	{144,	6,	"duck"},
+	{145,	2,	"v_animtime"},
+	{146,	2,	"frags"},
+	{147,	2,	"weapon"},
+	{148,	2,	"items"},
+	{149,	1,	"target"},
+	{150,	1,	"parent"},
+	{151,	1,	"targetname"},
+	{152,	4,	"goalentity"},
+	{153,	2,	"deadflag"},
+	{154,	2,	"button0"},
+	{155,	2,	"button1"},
+	{156,	2,	"button2"},
+	{157,	2,	"impulse"},
+	{158,	2,	"fixangle"},
+	{159,	2,	"idealpitch"},
+	{160,	1,	"netname"},
+	{161,	2,	"max_health"},
+	{162,	2,	"armortype"},
+	{163,	2,	"armorvalue"},
+	{164,	2,	"dmg_take"},
+	{165,	2,	"dmg_save"},
+	{166,	4,	"dmg_inflictor"},
+	{167,	1,	"message"},
+	{168,	2,	"sounds"},
+	{169,	1,	"noise"},
+	{170,	1,	"noise1"},
+	{171,	1,	"noise2"},
+	{172,	1,	"noise3"},
+	{173,	2,	"jumpup"},
+	{174,	2,	"jumpdn"},
+	{175,	4,	"movetarget"},
+	{176,	2,	"density"},
+	{177,	2,	"dmg"},
+	{178,	2,	"dmgtime"},
+	{179,	6,	"th_stand"},
+	{180,	6,	"th_walk"},
+	{181,	6,	"th_run"},
+	{182,	6,	"th_pain"},
+	{183,	6,	"th_die"},
+	{184,	6,	"th_missile"},
+	{185,	6,	"th_melee"},
+	{186,	2,	"walkframe"},
+	{187,	2,	"attack_finished"},
+	{188,	2,	"pain_finished"},
+	{189,	2,	"invincible_finished"},
+	{190,	2,	"invisible_finished"},
+	{191,	2,	"super_damage_finished"},
+	{192,	2,	"radsuit_finished"},
+	{193,	2,	"invincible_time"},
+	{194,	2,	"invincible_sound"},
+	{195,	2,	"invisible_time"},
+	{196,	2,	"invisible_sound"},
+	{197,	2,	"super_time"},
+	{198,	2,	"super_sound"},
+	{199,	2,	"rad_time"},
+	{200,	2,	"fly_sound"},
+	{201,	1,	"wad"},
+	{202,	1,	"map"},
+	{203,	1,	"landmark"},
+	{204,	2,	"worldtype"},
+	{205,	2,	"delay"},
+	{206,	2,	"wait"},
+	{207,	2,	"lip"},
+	{208,	2,	"light_lev"},
+	{209,	2,	"style"},
+	{210,	2,	"skill"},
+	{211,	1,	"killtarget"},
+	{212,	1,	"noise4"},
+	{213,	3,	"pos1"},
+	{216,	3,	"pos2"},
+	{219,	3,	"mangle"},
+	{222,	2,	"count"},
+	{223,	6,	"movedone"},
+	{224,	3,	"finaldest"},
+	{227,	3,	"finalangle"},
+	{230,	2,	"t_length"},
+	{231,	2,	"t_width"},
+	{232,	3,	"dest"},
+	{235,	3,	"dest1"},
+	{238,	3,	"dest2"},
+	{241,	2,	"state"},
+	{242,	2,	"height"},
+	{243,	2,	"cnt"},
+	{244,	2,	"air_finished"},
+	{245,	3,	"camview"},
+	{248,	2,	"aflag"},
+	{249,	4,	"trigger_field"},
+	{250,	2,	"m_fSequenceLoops"},
+	{251,	2,	"m_fSequenceFinished"},
+	{252,	2,	"framerate"},
+	{253,	2,	"anim_time"},
+	{254,	2,	"anim_end"},
+	{255,	2,	"anim_priority"},
+	{256,	2,	"anim_run"},
+	{257,	2,	"showhelp"},
+	{258,	2,	"showinventory"},
+	{259,	2,	"touched"},
+	{260,	1,	"name"},
+	{261,	4,	"triggerer"},
+	{262,	2,	"used"},
+	{263,	1,	"target_dest"},
+	{264,	1,	"oldmodel"}
 };
 
 #endif//SV_EDICT_H

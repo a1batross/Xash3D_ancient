@@ -369,6 +369,7 @@ extern byte *zonepool;
 #define Z_Malloc(size) Mem_Alloc( zonepool, size )
 void CL_GetEntitySoundSpatialization( int ent, vec3_t origin, vec3_t velocity );
 void SV_Transform( sv_edict_t *ed, matrix4x3 transform );
+bool SV_ReadComment( char *comment, int savenum );
 int CL_PMpointcontents( vec3_t point );
 void CL_AddLoopingSounds( void );
 void CL_RegisterSounds( void );

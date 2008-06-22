@@ -538,15 +538,15 @@ word PR_WriteProgdefs (char *filename)
 		PR_Message("Quake1 unmodified progs.dat\n");
 		if(!com.strcmp(progsoutname, "unknown.dat")) com.strcpy(progsoutname, "progs.dat");
 		break;
-	case 406:
+	case PROG_CRC_SERVER:
 		PR_Message("Xash3D unmodified server.dat\n");
 		if(!com.strcmp(progsoutname, "unknown.dat")) com.strcpy(progsoutname, "server.dat");
 		break;
-	case 7430:
+	case PROG_CRC_CLIENT:
 		PR_Message("Xash3D unmodified client.dat\n");
 		if(!com.strcmp(progsoutname, "unknown.dat")) com.strcpy(progsoutname, "client.dat");
 		break;		
-	case 36416:
+	case PROG_CRC_UIMENU:
 		PR_Message("Xash3D unmodified uimenu.dat\n");
 		if(!com.strcmp(progsoutname, "unknown.dat")) com.strcpy(progsoutname, "uimenu.dat");
 		break;

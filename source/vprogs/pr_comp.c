@@ -6636,6 +6636,8 @@ called before compiling a batch of files, clears the pr struct
 */
 void PR_BeginCompilation ( void )
 {
+	string		compilename;
+	
 	pr.def_tail = &pr.def_head;
 	pr_scope = NULL;
 
@@ -6671,7 +6673,7 @@ void PR_BeginCompilation ( void )
 	while(*progs_src && *progs_src < ' ') progs_src++;
 
 	pr_file_p = Com_ParseToken(&progs_src);
-	com.strcpy(progsoutname, com_token);
+	com.strcpy( progsoutname, com_token );
 
 	// this progs.src was written by qcclib without sorting
 	if(!com.stricmp(progsoutname, "unknown.dat" ))
@@ -6679,12 +6681,12 @@ void PR_BeginCompilation ( void )
 		// ready to compile any version
 		autoprototype = true;
 	}
-	FS_StripExtension( com_token );
+	FS_FileBase( com_token, compilename );
 
 	if (FS_CheckParm("-asm")) asmfile = FS_Open(va("%s.asm", com_token), "wb" );
 
 	// msvc6.0 style message
-	PR_Message("------------Configuration: %s - Vm16 %s------------\n", com_token, opt_writelinenums ? "Debug" : "Release" ); 
+	PR_Message("------------Configuration: %s - Vm16 %s------------\n", compilename, opt_writelinenums ? "Debug" : "Release" ); 
 	
 	currentchunk = NULL;
 	saved_progs_src = progs_src; // save it for prototyping

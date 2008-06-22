@@ -184,6 +184,7 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 	if (ps->vmodel.frame != ops->vmodel.frame) pflags |= PS_WEAPONFRAME;
 	if (ps->vmodel.sequence != ops->vmodel.sequence) pflags |= PS_WEAPONSEQUENCE;
 	if (!VectorCompare(ps->vmodel.offset, ops->vmodel.offset)) pflags |= PS_WEAPONOFFSET;
+	if (!VectorCompare(ps->vmodel.angles, ops->vmodel.angles)) pflags |= PS_WEAPONANGLES;
 	if (ps->vmodel.body != ops->vmodel.body) pflags |= PS_WEAPONBODY;
 	if (ps->vmodel.skin != ops->vmodel.skin) pflags |= PS_WEAPONSKIN;
 
@@ -234,7 +235,7 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 
 	if (pflags & PS_WEAPONFRAME)
 	{
-		MSG_WriteByte (msg, ps->vmodel.frame);
+		MSG_WriteFloat( msg, ps->vmodel.frame );
 	}
 
 	if (pflags & PS_WEAPONOFFSET)
@@ -242,10 +243,14 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 		MSG_WriteChar (msg, ps->vmodel.offset[0]*4);
 		MSG_WriteChar (msg, ps->vmodel.offset[1]*4);
 		MSG_WriteChar (msg, ps->vmodel.offset[2]*4);
+	}
+
+	if (pflags & PS_WEAPONANGLES)
+	{
 		MSG_WriteChar (msg, ps->vmodel.angles[0]*4);
 		MSG_WriteChar (msg, ps->vmodel.angles[1]*4);
 		MSG_WriteChar (msg, ps->vmodel.angles[2]*4);
-	}
+	} 
 
 	if (pflags & PS_WEAPONSEQUENCE)
 	{

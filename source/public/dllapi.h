@@ -237,7 +237,7 @@ typedef struct vmodel_state_s
 	vec3_t		angles;	// can be some different with viewangles
 	vec3_t		offset;	// center offset
 	int		sequence;	// studio animation sequence
-	int		frame;	// studio frame
+	float		frame;	// studio frame
 	int		body;	// weapon body
 	int		skin;	// weapon skin 
 } vmodel_state_t;

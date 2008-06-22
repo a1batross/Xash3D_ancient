@@ -121,6 +121,19 @@ static int S_ChannelState( channel_t *ch )
 
 /*
 =================
+S_StopChannel
+=================
+*/
+static void S_StopChannel( channel_t *ch )
+{
+	ch->sfx = NULL;
+
+	palSourceStop(ch->sourceNum);
+	palSourcei(ch->sourceNum, AL_BUFFER, 0);
+}
+
+/*
+=================
 S_PlayChannel
 =================
 */
@@ -135,25 +148,16 @@ static void S_PlayChannel( channel_t *ch, sfx_t *sfx )
 
 	if( ch->loopstart >= 0 )
 	{
-		if( ch->state == CHAN_FIRSTPLAY )
-			ch->state = CHAN_LOOPED;
-		else if( ch->state == CHAN_LOOPED )
-			palSourcei( ch->sourceNum, AL_SAMPLE_OFFSET, sfx->loopstart );
+		// kill any looping sounds
+		if( s_pause->integer )
+		{
+			palSourceStop( ch->sourceNum );
+			return;
+		}
+		if( ch->state == CHAN_FIRSTPLAY ) ch->state = CHAN_LOOPED;
+		else if( ch->state == CHAN_LOOPED ) palSourcei( ch->sourceNum, AL_SAMPLE_OFFSET, sfx->loopstart );
 	}
 	palSourcePlay( ch->sourceNum );
-}
-
-/*
-=================
-S_StopChannel
-=================
-*/
-static void S_StopChannel( channel_t *ch )
-{
-	ch->sfx = NULL;
-
-	palSourceStop(ch->sourceNum);
-	palSourcei(ch->sourceNum, AL_BUFFER, 0);
 }
 
 /*
@@ -180,18 +184,18 @@ static void S_SpatializeChannel( channel_t *ch )
 		}
 		else
 		{
-			if( ch->loopsound ) si.GetSoundSpatialization(ch->loopnum, position, velocity);
-			else si.GetSoundSpatialization( ch->entnum, position, velocity);
+			if( ch->loopsound ) si.GetSoundSpatialization( ch->loopnum, position, velocity );
+			else si.GetSoundSpatialization( ch->entnum, position, velocity );
 
-			palSource3f(ch->sourceNum, AL_POSITION, position[1], position[2], -position[0]);
-			palSource3f(ch->sourceNum, AL_VELOCITY, velocity[1], velocity[2], -velocity[0]);
+			palSource3f( ch->sourceNum, AL_POSITION, position[1], position[2], -position[0] );
+			palSource3f( ch->sourceNum, AL_VELOCITY, velocity[1], velocity[2], -velocity[0] );
 		}
 	}
 
 	// Update min/max distance
 	if( ch->distanceMult )
-		palSourcef(ch->sourceNum, AL_REFERENCE_DISTANCE, s_minDistance->value * ch->distanceMult );
-	else palSourcef(ch->sourceNum, AL_REFERENCE_DISTANCE, s_maxDistance->value );
+		palSourcef( ch->sourceNum, AL_REFERENCE_DISTANCE, s_minDistance->value * ch->distanceMult );
+	else palSourcef( ch->sourceNum, AL_REFERENCE_DISTANCE, s_maxDistance->value );
 
 	palSourcef( ch->sourceNum, AL_MAX_DISTANCE, s_maxDistance->value );
 
@@ -256,7 +260,8 @@ channel_t *S_PickChannel( int entnum, int channel )
 	ch->entchannel = channel;
 	ch->startTime = Sys_DoubleTime();
 	ch->state = CHAN_NORMAL;	// remove any loop sound
-	ch->loopstart = -1;		// clear loopstate
+	ch->loopsound = false;	// clear loopstate
+	ch->loopstart = -1;	
 
 	// make sure this channel is stopped
 	S_StopChannel( ch );
@@ -558,9 +563,8 @@ void S_Update( int clientnum, const vec3_t position, const vec3_t velocity, cons
 	channel_t		*ch;
 	int		i;
 
-
 	if(!al_state.initialized ) return;
-//if( s_pause->integer ) return;		
+	//if( s_pause->integer ) return;		
 
 	// bump frame count
 	al_state.framecount++;

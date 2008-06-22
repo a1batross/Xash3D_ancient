@@ -260,7 +260,7 @@ extern int fs_argc;
 
 // simply files managment interface
 byte *FS_LoadFile (const char *path, fs_offset_t *filesizeptr );
-bool FS_WriteFile (const char *filename, void *data, fs_offset_t len);
+bool FS_WriteFile (const char *filename, const void *data, fs_offset_t len);
 rgbdata_t *FS_LoadImage(const char *filename, char *data, int size );
 void FS_SaveImage(const char *filename, rgbdata_t *buffer );
 void FS_FreeImage( rgbdata_t *pack );

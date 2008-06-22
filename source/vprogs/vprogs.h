@@ -23,7 +23,7 @@ extern int prvm_developer;
 
 #define Host_Error com.error
 
-#define PROG_CRC_SERVER	14510
+#define PROG_CRC_SERVER	5103
 #define PROG_CRC_CLIENT	7430
 #define PROG_CRC_UIMENU	36416
 

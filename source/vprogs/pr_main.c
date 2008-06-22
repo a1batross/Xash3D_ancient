@@ -5,6 +5,10 @@
 
 #include "vprogs.h"
 
+#include "server.h"
+#include "client.h"
+#include "uimenu.h"
+
 stdlib_api_t	com;
 byte		*qccpool;
 int		com_argc;
@@ -267,6 +271,14 @@ void PRVM_Init( uint funcname, int argc, char **argv )
 	prvm_boundscheck = Cvar_Get( "prvm_boundscheck", "0", 0 );
 	prvm_traceqc = Cvar_Get( "prvm_traceqc", "0", 0 );
 	prvm_statementprofiling = Cvar_Get ("prvm_statementprofiling", "0", 0);
+
+	if( funcname == HOST_NORMAL || funcname == HOST_DEDICATED )
+	{
+		// dump internal copies of progs into hdd if missing
+		if(!FS_FileExists("vprogs/server.dat")) FS_WriteFile( "vprogs/server.dat", server_dat, sizeof(server_dat)); 
+		if(!FS_FileExists("vprogs/client.dat")) FS_WriteFile( "vprogs/client.dat", client_dat, sizeof(client_dat));
+		if(!FS_FileExists("vprogs/uimenu.dat")) FS_WriteFile( "vprogs/uimenu.dat", uimenu_dat, sizeof(uimenu_dat));
+	}
 }
 
 void PRVM_Shutdown( void )
