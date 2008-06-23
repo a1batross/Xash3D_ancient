@@ -323,6 +323,7 @@ vprogs_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 	vm.LoadFromFile = PRVM_ED_LoadFromFile;
 	vm.GetString = PRVM_GetString;
 	vm.SetEngineString = PRVM_SetEngineString;
+	vm.SetTempString = PRVM_SetTempString;
 	vm.AllocString = PRVM_AllocString;
 	vm.FreeString = PRVM_FreeString;
 

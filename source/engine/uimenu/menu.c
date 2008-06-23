@@ -1831,7 +1831,7 @@ void SearchLocalGames( void )
 	M_Print( 16 + 16, 120 - 48 + 24, "please be patient." );
 	
 	re->EndFrame();	// the text box won't show up unless we do a buffer swap
-	CL_PingServers_f();	// send out info packets
+	//CL_PingServers_f();	// send out info packets
 }
 
 void SearchLocalGamesFunc( void *self )
@@ -1978,132 +1978,6 @@ void StartServerActionFunc( void *self )
 	M_ForceMenuOff();
 }
 
-bool Menu_CheckMapsList( void )
-{
-	byte	buf[MAX_SYSPATH]; // 1 kb
-	char	*buffer, string[MAX_STRING];
-	search_t	*t;
-	file_t	*f;
-	int	i;
-
-	if(FS_FileExists("scripts/maps.lst"))
-		return true; // exist 
-
-	t = FS_Search( "maps/*.bsp", false );
-	if(!t) return false;
-
-	buffer = Z_Malloc( t->numfilenames * 2 * sizeof(string));
-	for(i = 0; i < t->numfilenames; i++)
-	{
-		const char	*data = NULL;
-		char		*entities = NULL;
-		char		entfilename[MAX_QPATH];
-		int		ver = -1, lumpofs = 0, lumplen = 0;
-		char		mapname[MAX_QPATH], message[MAX_QPATH];
-
-		f = FS_Open(t->filenames[i], "rb");
-		FS_FileBase( t->filenames[i], mapname );
-
-		if( f )
-		{
-			int num_spawnpoints = 0;
-
-			memset(buf, 0, 1024);
-			FS_Read(f, buf, 1024);
-			if(!memcmp(buf, "IBSP", 4))
-			{
-				dheader_t *header = (dheader_t *)buf;
-				ver = LittleLong(((int *)buf)[1]);
-				switch(ver)
-				{
-				case 38:	// quake2 (xash)
-				case 46:	// quake3
-				case 47:	// return to castle wolfenstein
-					lumpofs = LittleLong(header->lumps[LUMP_ENTITIES].fileofs);
-					lumplen = LittleLong(header->lumps[LUMP_ENTITIES].filelen);
-					break;
-				}
-			}
-			else
-			{
-				lump_t	ents; // quake1 entity lump
-				memcpy(&ents, buf + 4, sizeof(lump_t)); // skip first four bytes (version)
-				ver = LittleLong(((int *)buf)[0]);
-
-				switch( ver )
-				{
-				case 28:	// quake 1 beta
-				case 29:	// quake 1 regular
-				case 30:	// Half-Life regular
-					lumpofs = LittleLong(ents.fileofs);
-					lumplen = LittleLong(ents.filelen);
-					break;
-				default:
-					ver = 0;
-					break;
-				}
-			}
-			com.strncpy(entfilename, t->filenames[i], sizeof(entfilename));
-			FS_StripExtension( entfilename );
-			FS_DefaultExtension( entfilename, ".ent" );
-			entities = (char *)FS_LoadFile(entfilename, NULL);
-
-			if( !entities && lumplen >= 10 )
-			{
-				FS_Seek(f, lumpofs, SEEK_SET);
-				entities = (char *)Z_Malloc(lumplen + 1);
-				FS_Read(f, entities, lumplen);
-			}
-			if(entities)
-			{
-				// if there are entities to parse, a missing message key just
-				// means there is no title, so clear the message string now
-				message[0] = 0;
-				data = entities;
-				com.strncpy(message, "No Title", MAX_QPATH);
-
-				while(Com_ParseToken(&data))
-				{
-					if(!strcmp(com_token, "{" )) continue;
-					else if(!strcmp(com_token, "}" )) break;
-					else if(!strcmp(com_token, "message" ))
-					{
-						// get the message contents
-						Com_ParseToken(&data);
-						if(!strcmp(com_token, "" )) continue;
-						com.strncpy(message, com_token, sizeof(message));
-					}
-					else if(!strcmp(com_token, "classname" ))
-					{
-						Com_ParseToken(&data);
-						if(!com.strcmp(com_token, "info_player_deatchmatch"))
-							num_spawnpoints++;
-						else if(!com.strcmp(com_token, "info_player_start"))
-							num_spawnpoints++;
-					}
-					if(num_spawnpoints > 0) break; // valid map
-				}
-			}
-
-			if( entities) Mem_Free(entities);
-			if( f ) FS_Close(f);
-
-			// format: mapname "maptitle"/r
-			com.sprintf(string, "%s \"%s\"\r", mapname, message );
-			com.strcat(buffer, string); // add new string
-		}
-	}
-	if( t ) Mem_Free(t); // free search result
-
-	// write generated maps.lst
-	if(FS_WriteFile("scripts/maps.lst", buffer, strlen(buffer)))
-	{
-          	if( buffer ) Mem_Free(buffer);
-		return true;
-	}
-	return false;
-}
-
 void StartServer_MenuInit( void )
 {
 	static const char *dm_coop_names[] =
@@ -2119,7 +1993,7 @@ void StartServer_MenuInit( void )
 	file_t	*fp;
 
 	// create new maplist if not exist
-	if(!Menu_CheckMapsList())
+	if(!Cmd_CheckMapsList())
 	{
 		MsgWarn("StartServer_MenuInit: maps.lst not found\n");
 		return;

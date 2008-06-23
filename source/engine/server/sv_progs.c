@@ -323,7 +323,7 @@ SV_WriteSaveFile
 void SV_WriteSaveFile( char *name )
 {
 	char		path[MAX_SYSPATH];
-	char		comment[32];
+	string		comment;
 	dsavehdr_t	*header;
 	file_t		*savfile;
 	bool		autosave = false;
@@ -390,7 +390,7 @@ void Sav_LoadComment( lump_t *l )
 	if (l->filelen % sizeof(*in)) Host_Error("Sav_LoadComment: funny lump size\n" );
 
 	size = l->filelen / sizeof(*in);
-	com.strncpy(svs.comment, in, size );
+	com.strncpy( svs.comment, in, size );
 }
 
 void Sav_LoadCvars( lump_t *l )
@@ -601,7 +601,7 @@ bool SV_ReadComment( char *comment, int savenum )
 
 	if(!savfile) 
 	{
-		com.strncpy( comment, "<empty>", MAX_QPATH );
+		com.strncpy( comment, "<empty>", MAX_STRING );
 		return false;
 	}
 
@@ -611,13 +611,13 @@ bool SV_ReadComment( char *comment, int savenum )
 
 	if(id != IDSAVEHEADER || i != SAVE_VERSION)
 	{
-		com.strncpy( comment, "<corrupted>", MAX_QPATH );
+		com.strncpy( comment, "<corrupted>", MAX_STRING );
 		return false;
 	}
 
 	sav_base = (byte *)header;
 	Sav_LoadComment(&header->lumps[LUMP_COMMENTS]);
-	com.strncpy( comment, svs.comment, MAX_QPATH );
+	com.strncpy( comment, svs.comment, MAX_STRING );
 	Mem_Free( savfile );
 
 	return true;
@@ -2217,11 +2217,11 @@ VM_CvarRegister,			// #24 void Cvar_Register( string name, string value, float f
 VM_CvarSetValue,			// #25 void Cvar_SetValue( string name, float value )
 VM_CvarGetValue,			// #26 float Cvar_GetValue( string name )
 VM_CvarSetString,			// #27 void Cvar_SetString( string name, string value )
-VM_ComVA,				// #28 string va( ... )
-VM_ComStrlen,			// #29 float strlen( string text )
-VM_TimeStamp,			// #30 string Com_TimeStamp( float format )
-VM_LocalCmd,			// #31 void LocalCmd( ... )
-NULL,				// #32 -- reserved --
+VM_CvarGetString,			// #28 void VM_CvarGetString( void )
+VM_ComVA,				// #29 string va( ... )
+VM_ComStrlen,			// #30 float strlen( string text )
+VM_TimeStamp,			// #31 string Com_TimeStamp( float format )
+VM_LocalCmd,			// #32 void LocalCmd( ... )
 NULL,				// #33 -- reserved --
 NULL,				// #34 -- reserved --
 NULL,				// #35 -- reserved --

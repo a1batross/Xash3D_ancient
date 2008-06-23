@@ -375,8 +375,9 @@ bool SC_EndOfScript (bool newline)
 		return false;
 	}
 
-	// release script
-	Mem_Free (script->buffer);
+	// FIXME: stupid xash bug
+	if(Mem_IsAllocated( script->buffer ))
+		Mem_Free( script->buffer );
 	if(script == scriptstack + 1)
 	{
 		endofscript = true;

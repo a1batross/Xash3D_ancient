@@ -316,6 +316,16 @@ typedef struct pmove_s
 	int		(*pointcontents)( vec3_t point );
 } pmove_t;
 
+typedef struct sizebuf_s
+{
+	bool	overflowed;	// set to true if the buffer size failed
+	byte	*data;
+	int	maxsize;
+	int	cursize;
+	int	readcount;
+	int	errorcount;		// cause by errors
+} sizebuf_t;
+
 /*
 ==============================================================================
 
@@ -519,6 +529,7 @@ typedef struct vprogs_exp_s
 	// string manipulations
 	const char *(*GetString)( int num );
 	int (*SetEngineString)( const char *s );
+	int (*SetTempString)( const char *s );
 	int (*AllocString)( size_t bufferlength, char **pointer );
 	void (*FreeString)( int num );
 

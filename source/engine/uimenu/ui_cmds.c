@@ -44,9 +44,137 @@ void PF_readcomment( void )
 		return;
 
 	savenum = (int)PRVM_G_FLOAT(OFS_PARM0);
-
-	PRVM_G_FLOAT(OFS_PARM1) = (float)SV_ReadComment( comment[savenum], savenum );
+	SV_ReadComment( comment[savenum], savenum );
 	PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( comment[savenum] );
+}
+
+/*
+=========
+PF_joinserver
+
+float JoinServer( float serevernum )
+=========
+*/
+void PF_joinserver( void )
+{
+	string		buffer;
+	int		i;
+
+	if(!VM_ValidateArgs( "JoinServer", 1 ))
+		return;
+	i = (int)PRVM_G_FLOAT(OFS_PARM0);
+	PRVM_G_FLOAT(OFS_RETURN) = 0;
+
+	if( i < cls.numservers && cls.serverlist[i].maxplayers > 1 && cls.serverlist[i].netaddress )
+	{
+		com.sprintf( buffer, "connect %s\n", cls.serverlist[i].netaddress );
+		Cbuf_AddText( buffer );
+		PRVM_G_FLOAT(OFS_RETURN) = 1;
+	}
+}
+
+/*
+=========
+PF_getserverinfo
+
+string ServerInfo( float num )
+=========
+*/
+void PF_getserverinfo( void )
+{
+	static string	serverinfo[MAX_SERVERS];
+	serverinfo_t	*s;
+	int		i;
+
+	if(!VM_ValidateArgs( "ServerInfo", 1 ))
+		return;
+
+	i = (int)PRVM_G_FLOAT(OFS_PARM0);
+	PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( "<empty>" );
+		
+	if( i < cls.numservers )
+	{
+		s = &cls.serverlist[i];
+		if( s && s->hostname && s->maxplayers > 1 ) // ignore singleplayer servers
+		{
+			com.snprintf( serverinfo[i], MAX_STRING, "%s %15s %7i/%i %7i\n", s->hostname, s->mapname, s->numplayers, s->maxplayers, s->ping );
+			PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( serverinfo[i] );
+		}
+	}
+}
+
+/*
+=========
+PF_getmapslist
+
+string GetMapsList( void )
+=========
+*/
+int mapcount = 0;
+
+void PF_getmapslist( void )
+{
+	static char	mapstring[MAX_INPUTLINE];
+
+	if(!VM_ValidateArgs( "GetMapsList", 0 ))
+		return;
+
+	PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( "'none'" );
+	mapstring[0] = '\0';
+	mapcount = 0;
+
+	// create new maplist if not exist
+	if(!Cmd_CheckMapsList())
+	{
+		MsgWarn("GetMapsList: maps.lst not found\n");
+		return;
+	}
+
+	// paranoid mode :-)
+	if(!Com_LoadScript( "scripts/maps.lst", NULL, 0 ))
+		return;
+
+	while(Com_GetToken( true ))
+	{
+		com.strcat( mapstring, va("'%s'", com_token ));
+		while(Com_TryToken()); // skip other stuff
+		mapcount++;
+	}
+	PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( mapstring );
+}
+
+/*
+=========
+PF_getmapscount
+
+string GetMapsCount( void )
+=========
+*/
+void PF_getmapscount( void )
+{
+	if(!VM_ValidateArgs( "GetMapsCount", 0 ))
+		return;
+
+	PRVM_G_FLOAT(OFS_RETURN) = mapcount;
+}
+
+/*
+=========
+PF_newserver
+
+void NewServer( string mapname )
+=========
+*/
+void PF_newserver( void )
+{
+	const char	*s;
+
+	if(!VM_ValidateArgs( "NewServer", 1 ))
+		return;
+	s = PRVM_G_STRING(OFS_PARM0);
+	VM_ValidateString( s );
+
+	Cbuf_AddText( va("map %s\n", s ));
 }
 
 /*
@@ -478,11 +606,11 @@ VM_CvarRegister,			// #24 void Cvar_Register( string name, string value, float f
 VM_CvarSetValue,			// #25 void Cvar_SetValue( string name, float value )
 VM_CvarGetValue,			// #26 float Cvar_GetValue( string name )
 VM_CvarSetString,			// #27 void Cvar_SetString( string name, string value )
-VM_ComVA,				// #28 string va( ... )
-VM_ComStrlen,			// #29 float strlen( string text )
-VM_TimeStamp,			// #30 string Com_TimeStamp( float format )
-VM_LocalCmd,			// #31 void LocalCmd( ... )
-NULL,				// #32 -- reserved --
+VM_CvarGetString,			// #28 void VM_CvarGetString( void )
+VM_ComVA,				// #29 string va( ... )
+VM_ComStrlen,			// #30 float strlen( string text )
+VM_TimeStamp,			// #31 string Com_TimeStamp( float format )
+VM_LocalCmd,			// #32 void LocalCmd( ... )
 NULL,				// #33 -- reserved --
 NULL,				// #34 -- reserved --
 NULL,				// #35 -- reserved --
@@ -560,6 +688,11 @@ PF_callfunction,			// #117 void callfunction( ..., string function_name )
 PF_testfunction,			// #118 float testfunction( string function_name )
 PF_newgame,			// #119 void NewGame( void )
 PF_readcomment,			// #120 string ReadComment( float savenum )
+PF_joinserver,			// #121 float JoinServer( float num )
+PF_getserverinfo,			// #122 string ServerInfo( float num )
+PF_getmapslist,			// #123 string GetMapsList( void )
+PF_getmapscount,			// #124 float GetMapsCount( void )
+PF_newserver,			// #125 void NewServer( string mapname )
 };
 
 const int vm_ui_numbuiltins = sizeof(vm_ui_builtins) / sizeof(prvm_builtin_t);

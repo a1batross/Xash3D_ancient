@@ -687,6 +687,26 @@ void VM_CvarGetValue( void )
 }
 
 /*
+=========
+VM_CvarGetString
+
+string Cvar_GetString( string name )
+=========
+*/
+void VM_CvarGetString( void )
+{
+	const char *name;
+
+	if(!VM_ValidateArgs( "Cvar_GetString", 1 ))
+		return;
+
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+	name = PRVM_G_STRING(OFS_PARM0);
+	PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString(Cvar_VariableString( name ));
+
+}
+
+/*
 =================
 VM_LocalCmd
 
@@ -1306,11 +1326,11 @@ VM_CvarRegister,			// #24 void Cvar_Register( string name, string value, float f
 VM_CvarSetValue,			// #25 void Cvar_SetValue( string name, float value )
 VM_CvarGetValue,			// #26 float Cvar_GetValue( string name )
 VM_CvarSetString,			// #27 void Cvar_SetString( string name, string value )
-VM_ComVA,				// #28 string va( ... )
-VM_ComStrlen,			// #29 float strlen( string text )
-VM_TimeStamp,			// #30 string Com_TimeStamp( float format )
-VM_LocalCmd,			// #31 void LocalCmd( ... )
-NULL,				// #32 -- reserved --
+VM_CvarGetString,			// #28 void VM_CvarGetString( void )
+VM_ComVA,				// #29 string va( ... )
+VM_ComStrlen,			// #30 float strlen( string text )
+VM_TimeStamp,			// #31 string Com_TimeStamp( float format )
+VM_LocalCmd,			// #32 void LocalCmd( ... )
 NULL,				// #33 -- reserved --
 NULL,				// #34 -- reserved --
 NULL,				// #35 -- reserved --
@@ -1384,14 +1404,14 @@ Info_Print
 printing current key-value pair
 ===============
 */
-void Info_Print (char *s)
+void Info_Print( char *s )
 {
 	char	key[512];
 	char	value[512];
 	char	*o;
 	int	l;
 
-	if (*s == '\\') s++;
+	if( *s == '\\' )s++;
 
 	while (*s)
 	{
@@ -1431,7 +1451,7 @@ Searches the string for the given
 key and returns the associated value, or an empty string.
 ===============
 */
-char *Info_ValueForKey (char *s, char *key)
+char *Info_ValueForKey( char *s, char *key )
 {
 	char	pkey[512];
 	static	char value[2][512];	// use two buffers so compares work without stomping on each other
@@ -1439,13 +1459,13 @@ char *Info_ValueForKey (char *s, char *key)
 	char	*o;
 	
 	valueindex ^= 1;
-	if (*s == '\\') s++;
-	while (1)
+	if( *s == '\\' ) s++;
+	while( 1 )
 	{
 		o = pkey;
-		while (*s != '\\')
+		while( *s != '\\' && *s != '\n' )
 		{
-			if (!*s) return "";
+			if(!*s) return "";
 			*o++ = *s++;
 		}
 		*o = 0;
@@ -1453,15 +1473,15 @@ char *Info_ValueForKey (char *s, char *key)
 
 		o = value[valueindex];
 
-		while (*s != '\\' && *s)
+		while( *s != '\\' && *s != '\n' && *s)
 		{
 			if (!*s) return "";
 			*o++ = *s++;
 		}
 		*o = 0;
 
-		if (!strcmp (key, pkey) ) return value[valueindex];
-		if (!*s) return "";
+		if(!com.strcmp( key, pkey )) return value[valueindex];
+		if(!*s) return "";
 		s++;
 	}
 }
@@ -1957,6 +1977,133 @@ bool Cmd_GetSoundList( const char *s, char *completedname, int length )
 	}
 
 	return true;
+}
+
+bool Cmd_CheckMapsList( void )
+{
+	byte	buf[MAX_SYSPATH]; // 1 kb
+	char	*buffer, string[MAX_STRING];
+	search_t	*t;
+	file_t	*f;
+	int	i;
+
+	if(FS_FileExists("scripts/maps.lst"))
+		return true; // exist 
+
+	t = FS_Search( "maps/*.bsp", false );
+	if(!t) return false;
+
+	buffer = Z_Malloc( t->numfilenames * 2 * sizeof(string));
+	for( i = 0; i < t->numfilenames; i++ )
+	{
+		const char	*data = NULL;
+		char		*entities = NULL;
+		char		entfilename[MAX_QPATH];
+		int		ver = -1, lumpofs = 0, lumplen = 0;
+		char		mapname[MAX_QPATH], message[MAX_QPATH];
+
+		f = FS_Open(t->filenames[i], "rb");
+		FS_FileBase( t->filenames[i], mapname );
+
+		if( f )
+		{
+			int num_spawnpoints = 0;
+
+			memset(buf, 0, 1024);
+			FS_Read(f, buf, 1024);
+			if(!memcmp(buf, "IBSP", 4))
+			{
+				dheader_t *header = (dheader_t *)buf;
+				ver = LittleLong(((int *)buf)[1]);
+				switch(ver)
+				{
+				case 38:	// quake2
+				case 39:	// xash
+				case 46:	// quake3
+				case 47:	// return to castle wolfenstein
+					lumpofs = LittleLong(header->lumps[LUMP_ENTITIES].fileofs);
+					lumplen = LittleLong(header->lumps[LUMP_ENTITIES].filelen);
+					break;
+				}
+			}
+			else
+			{
+				lump_t	ents; // quake1 entity lump
+				memcpy(&ents, buf + 4, sizeof(lump_t)); // skip first four bytes (version)
+				ver = LittleLong(((int *)buf)[0]);
+
+				switch( ver )
+				{
+				case 28:	// quake 1 beta
+				case 29:	// quake 1 regular
+				case 30:	// Half-Life regular
+					lumpofs = LittleLong(ents.fileofs);
+					lumplen = LittleLong(ents.filelen);
+					break;
+				default:
+					ver = 0;
+					break;
+				}
+			}
+			com.strncpy(entfilename, t->filenames[i], sizeof(entfilename));
+			FS_StripExtension( entfilename );
+			FS_DefaultExtension( entfilename, ".ent" );
+			entities = (char *)FS_LoadFile(entfilename, NULL);
+
+			if( !entities && lumplen >= 10 )
+			{
+				FS_Seek(f, lumpofs, SEEK_SET);
+				entities = (char *)Z_Malloc(lumplen + 1);
+				FS_Read(f, entities, lumplen);
+			}
+			if(entities)
+			{
+				// if there are entities to parse, a missing message key just
+				// means there is no title, so clear the message string now
+				message[0] = 0;
+				data = entities;
+				com.strncpy(message, "No Title", MAX_QPATH);
+
+				while(Com_ParseToken(&data))
+				{
+					if(!strcmp(com_token, "{" )) continue;
+					else if(!strcmp(com_token, "}" )) break;
+					else if(!strcmp(com_token, "message" ))
+					{
+						// get the message contents
+						Com_ParseToken(&data);
+						if(!strcmp(com_token, "" )) continue;
+						com.strncpy(message, com_token, sizeof(message));
+					}
+					else if(!strcmp(com_token, "classname" ))
+					{
+						Com_ParseToken(&data);
+						if(!com.strcmp(com_token, "info_player_deatchmatch"))
+							num_spawnpoints++;
+						else if(!com.strcmp(com_token, "info_player_start"))
+							num_spawnpoints++;
+					}
+					if(num_spawnpoints > 0) break; // valid map
+				}
+			}
+
+			if( entities) Mem_Free(entities);
+			if( f ) FS_Close(f);
+
+			// format: mapname "maptitle"\n
+			com.sprintf(string, "%s \"%s\"\n", mapname, message );
+			com.strcat(buffer, string); // add new string
+		}
+	}
+	if( t ) Mem_Free(t); // free search result
+
+	// write generated maps.lst
+	if(FS_WriteFile("scripts/maps.lst", buffer, strlen(buffer)))
+	{
+          	if( buffer ) Mem_Free(buffer);
+		return true;
+	}
+	return false;
 }
 
 /*

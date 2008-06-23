@@ -372,7 +372,7 @@ void CL_ClearState (void)
 	CL_ClearEffects ();
 	CL_ClearTEnts ();
 
-// wipe the entire cl structure
+	// wipe the entire cl structure
 	memset (&cl, 0, sizeof(cl));
 	memset (&cl_entities, 0, sizeof(cl_entities));
 
@@ -556,60 +556,169 @@ void CL_ParseStatusMessage (void)
 	M_AddToServerList (net_from, s);
 }
 
-
 /*
-=================
-CL_PingServers_f
-=================
+===================
+CL_StatusLocal_f
+===================
 */
-void CL_PingServers_f (void)
+void CL_GetServerList_f( void )
 {
-	int			i;
 	netadr_t	adr;
-	char		name[32];
-	char		*adrstring;
-	cvar_t		*noudp;
-	cvar_t		*noipx;
 
-	NET_Config (true);		// allow remote
+	NET_Config( true );	// allow remote
 
 	// send a broadcast packet
-	Msg ("pinging broadcast...\n");
+	MsgDev( D_INFO, "status pinging broadcast...\n" );
+	cls.pingtime = cls.realtime;
 
-	noudp = Cvar_Get ("noudp", "0", CVAR_INIT);
-	if (!noudp->value)
+	adr.type = NA_BROADCAST;
+	adr.port = BigShort( PORT_SERVER );
+	Netchan_OutOfBandPrint( NS_CLIENT, adr, "status" );
+}
+
+/*
+=============
+CL_FreeServerInfo
+=============
+*/
+static void CL_FreeServerInfo( serverinfo_t *server )
+{
+	if( server->mapname ) Mem_Free( server->mapname );
+	if( server->hostname ) Mem_Free( server->hostname );
+	if( server->shortname ) Mem_Free( server->shortname );
+	if( server->gamename ) Mem_Free( server->gamename );
+	if( server->netaddress ) Mem_Free( server->netaddress );
+	if( server->playerstr ) Mem_Free( server->playerstr );
+	if( server->pingstring ) Mem_Free( server->pingstring);
+	memset( server, 0, sizeof(serverinfo_t));
+}
+
+/*
+=============
+CL_FreeServerList
+=============
+*/
+static void CL_FreeServerList_f( void )
+{
+	int		i;
+
+	for( i = 0; i < cls.numservers; i++ )
+		CL_FreeServerInfo( &cls.serverlist[i] );
+	cls.numservers = 0;
+}
+
+/*
+=============
+CL_DupeCheckServerList
+
+Checks for duplicates and returns true if there is one...
+Since status has higher priority than info, if there is already an instance and
+it's not status, and the current one is status, the old one is removed.
+=============
+*/
+static bool CL_DupeCheckServerList( char *adr, bool status )
+{
+	int	i;
+
+	for( i = 0; i < cls.numservers; i++ )
 	{
-		adr.type = NA_BROADCAST;
-		adr.port = BigShort(PORT_SERVER);
-		Netchan_OutOfBandPrint (NS_CLIENT, adr, va("info %i", PROTOCOL_VERSION));
-	}
-
-	noipx = Cvar_Get ("noipx", "0", CVAR_INIT);
-	if (!noipx->value)
-	{
-		adr.type = NA_BROADCAST_IPX;
-		adr.port = BigShort(PORT_SERVER);
-		Netchan_OutOfBandPrint (NS_CLIENT, adr, va("info %i", PROTOCOL_VERSION));
-	}
-
-	// send a packet to each address book entry
-	for (i = 0; i < 16; i++)
-	{
-		com.sprintf (name, "adr%i", i);
-		adrstring = Cvar_VariableString (name);
-		if (!adrstring || !adrstring[0])
-			continue;
-
-		Msg ("pinging %s...\n", adrstring);
-		if (!NET_StringToAdr (adrstring, &adr))
+		if(!cls.serverlist[i].netaddress && !cls.serverlist[i].hostname )
 		{
-			Msg ("Bad address: %s\n", adrstring);
+			CL_FreeServerInfo( &cls.serverlist[i] );
 			continue;
 		}
-		if (!adr.port)
-			adr.port = BigShort(PORT_SERVER);
-		Netchan_OutOfBandPrint (NS_CLIENT, adr, va("info %i", PROTOCOL_VERSION));
+		if( cls.serverlist[i].netaddress && !com.strcmp( cls.serverlist[i].netaddress, adr ))
+		{
+			if( cls.serverlist[i].statusPacket && status )
+			{
+				return true;
+			}
+			else if( status )
+			{
+				CL_FreeServerInfo( &cls.serverlist[i] );
+				return false;
+			}
+		}
 	}
+	return false;
+}
+
+/*
+=============
+CL_ParseServerStatus
+
+Parses a status packet from a server
+FIXME: check against a list of sent status requests so it's not attempting to parse things it shouldn't
+=============
+*/
+bool CL_ParseServerStatus( char *adr, char *info )
+{
+	serverinfo_t	*server;
+	char		*token;
+	char		shortName[32];
+
+	if( !info || !info[0] )return false;
+	if( !adr || !adr[0] ) return false;
+	if( !com.strchr( info, '\\')) return false;
+
+	if( cls.numservers >= MAX_SERVERS )
+		return true;
+	if( CL_DupeCheckServerList( adr, true ))
+		return true;
+
+	server = &cls.serverlist[cls.numservers];
+	CL_FreeServerInfo( server );
+	cls.numservers++;
+
+	// add net address
+	server->netaddress = copystring( adr );
+	server->mapname = copystring(Info_ValueForKey( info, "mapname"));
+	server->maxplayers = com.atoi(Info_ValueForKey( info, "maxclients"));
+	server->gamename = copystring(Info_ValueForKey( info, "gamename"));
+	server->hostname = copystring(Info_ValueForKey( info, "hostname"));
+	if( server->hostname )
+	{
+		com.strncpy( shortName, server->hostname, sizeof(shortName));
+		server->shortname = copystring( shortName );
+	}
+
+	// Check the player count
+	server->numplayers = com.atoi(Info_ValueForKey( info, "curplayers"));
+	if( server->numplayers <= 0 )
+	{
+		server->numplayers = 0;
+
+		token = strtok( info, "\n" );
+		if( token )
+		{
+			token = strtok( NULL, "\n" );
+			while( token )
+			{
+				server->numplayers++;
+				token = strtok( NULL, "\n" );
+			}
+		}
+	}
+
+	// check if it's valid
+	if( !server->mapname[0] && !server->maxplayers && !server->gamename[0] && !server->hostname[0] )
+	{
+		CL_FreeServerInfo( server );
+		return false;
+	}
+
+	server->playerstr = copystring( va("%i/%i", server->numplayers, server->maxplayers ));
+
+	// add the ping
+	server->ping = (int)(cls.realtime - cls.pingtime) * 1000.0f;
+	server->pingstring = copystring( va("%ims", server->ping ));
+	server->statusPacket = true;
+
+	// print information
+	MsgDev( D_NOTE, "%s %s ", server->hostname, server->mapname );
+	MsgDev( D_NOTE, "%i/%i %ims\n", server->numplayers, server->maxplayers, server->ping );
+
+	return true;
 }
 
 /*
@@ -619,10 +728,9 @@ CL_ConnectionlessPacket
 Responses to broadcasts, etc
 =================
 */
-void CL_ConnectionlessPacket (void)
+void CL_ConnectionlessPacket( void )
 {
-	char	*s;
-	char	*c;
+	char	*s, *c;
 	
 	MSG_BeginReading (&net_message);
 	MSG_ReadLong (&net_message); // skip the -1
@@ -630,7 +738,6 @@ void CL_ConnectionlessPacket (void)
 	s = MSG_ReadStringLine (&net_message);
 
 	Cmd_TokenizeString(s);
-
 	c = Cmd_Argv(0);
 
 	MsgDev(D_INFO, "%s: %s\n", NET_AdrToString (net_from), c);
@@ -675,8 +782,10 @@ void CL_ConnectionlessPacket (void)
 	// print command from somewhere
 	if (!strcmp(c, "print"))
 	{
+		// print command from somewhere
 		s = MSG_ReadString (&net_message);
-		Msg ("%s", s);
+		if(!CL_ParseServerStatus( NET_AdrToString(net_from), s ))
+			Msg( s );
 		return;
 	}
 
@@ -701,7 +810,6 @@ void CL_ConnectionlessPacket (void)
 		Netchan_OutOfBandPrint (NS_CLIENT, net_from, "%s", Cmd_Argv(1) );
 		return;
 	}
-
 	Msg ("Unknown command.\n");
 }
 
@@ -1175,7 +1283,8 @@ void CL_InitLocal (void)
 	// register our commands
 	Cmd_AddCommand ("cmd", CL_ForwardToServer_f, "send a console commandline to the server" );
 	Cmd_AddCommand ("pause", CL_Pause_f, "pause the game (if the server allows pausing)" );
-	Cmd_AddCommand ("pingservers", CL_PingServers_f, "send a broadcast packet" );
+	Cmd_AddCommand ("getserverlist", CL_GetServerList_f, "get info about local servers" );
+	Cmd_AddCommand ("freeserverlist", CL_FreeServerList_f, "clear info about local servers" );
 
 	Cmd_AddCommand ("userinfo", CL_Userinfo_f, "print current client userinfo" );
 	Cmd_AddCommand ("changing", CL_Changing_f, "sent by server to tell client to wait for level change" );

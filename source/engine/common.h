@@ -262,6 +262,7 @@ void VM_Cmd_Reset( void );
 
 #define PRVM_GetString	vm->GetString
 #define PRVM_SetEngineString	vm->SetEngineString
+#define PRVM_SetTempString	vm->SetTempString
 #define PRVM_AllocString	vm->AllocString
 #define PRVM_FreeString	vm->FreeString
 
@@ -317,6 +318,7 @@ void VM_CvarRegister( void );
 void VM_CvarSetValue( void );
 void VM_CvarGetValue( void );
 void VM_CvarSetString( void );
+void VM_CvarGetString( void );
 void VM_ComVA( void );
 void VM_ComStrlen( void );
 void VM_TimeStamp( void );
@@ -389,6 +391,7 @@ bool Cmd_GetDemoList(const char *s, char *completedname, int length );
 bool Cmd_GetMovieList(const char *s, char *completedname, int length );
 bool Cmd_GetMusicList(const char *s, char *completedname, int length );
 bool Cmd_GetSoundList(const char *s, char *completedname, int length );
+bool Cmd_CheckMapsList( void );
 void Sys_Error( const char *msg, ... );
 void Sys_SendKeyEvents( void );
 

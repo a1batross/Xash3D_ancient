@@ -6,6 +6,7 @@
 #include "vprogs.h"
 
 static prvm_prog_t prog_list[PRVM_MAXPROGS];
+sizebuf_t vm_tempstringsbuf;
 
 int prvm_type_size[8] = {1, sizeof(string_t)/4,1,3,1,1, sizeof(func_t)/4, sizeof(void *)/4};
 
@@ -1972,29 +1973,55 @@ edict_t *PRVM_EDICT_NUM_ERROR(int n, char *filename, int fileline)
 
 const char *PRVM_GetString(int num)
 {
-	if (num >= 0 && num < vm.prog->stringssize)
-		return vm.prog->strings + num;
-	else if (num < 0 && num >= -vm.prog->numknownstrings)
+	if( num >= 0 )
 	{
-		num = -1 - num;
-		if (!vm.prog->knownstrings[num])
-			PRVM_ERROR("PRVM_GetString: attempt to get string that is already freed");
-		return vm.prog->knownstrings[num];
+		if( num < vm.prog->stringssize ) return vm.prog->strings + num;
+		else if( num <= vm.prog->stringssize + vm_tempstringsbuf.maxsize)
+		{
+			num -= vm.prog->stringssize;
+			if( num < vm_tempstringsbuf.cursize )
+				return (char *)vm_tempstringsbuf.data + num;
+			else
+			{
+				VM_Warning("PRVM_GetString: Invalid temp-string offset (%i >= %i vm_tempstringsbuf.cursize)\n", num, vm_tempstringsbuf.cursize);
+				return "";
+			}
+		}
+		else
+		{
+			VM_Warning("PRVM_GetString: Invalid constant-string offset (%i >= %i prog->stringssize)\n", num, vm.prog->stringssize);
+			return "";
+		}
 	}
 	else
 	{
-		PRVM_ERROR("PRVM_GetString: invalid string offset %i", num);
-		return "";
+		num = -1 - num;
+		if (num < vm.prog->numknownstrings)
+		{
+			if (!vm.prog->knownstrings[num])
+				VM_Warning("PRVM_GetString: Invalid zone-string offset (%i has been freed)\n", num);
+			return vm.prog->knownstrings[num];
+		}
+		else
+		{
+			VM_Warning("PRVM_GetString: Invalid zone-string offset (%i >= %i)\n", num, vm.prog->numknownstrings);
+			return "";
+		}
 	}
 }
 
-int PRVM_SetEngineString(const char *s)
+int PRVM_SetEngineString( const char *s )
 {
 	int i;
 	if (!s)
 		return 0;
 	if (s >= vm.prog->strings && s <= vm.prog->strings + vm.prog->stringssize)
 		PRVM_ERROR("PRVM_SetEngineString: s in vm.prog->strings area");
+	// if it's in the tempstrings area, use a reserved range
+	// (otherwise we'd get millions of useless string offsets cluttering the database)
+	if (s >= (char *)vm_tempstringsbuf.data && s < (char *)vm_tempstringsbuf.data + vm_tempstringsbuf.maxsize)
+		return vm.prog->stringssize + (s - (char *)vm_tempstringsbuf.data);
+	// see if it's a known string address
 	for (i = 0;i < vm.prog->numknownstrings;i++)
 		if (vm.prog->knownstrings[i] == s)
 			return -1 - i;
@@ -2023,6 +2050,44 @@ int PRVM_SetEngineString(const char *s)
 	vm.prog->firstfreeknownstring = i + 1;
 	vm.prog->knownstrings[i] = s;
 	return -1 - i;
+}
+
+// temp string handling
+
+// all tempstrings go into this buffer consecutively, and it is reset
+// whenever PRVM_ExecuteProgram returns to the engine
+// (technically each PRVM_ExecuteProgram call saves the cursize value and
+//  restores it on return, so multiple recursive calls can share the same
+//  buffer)
+// the buffer size is automatically grown as needed
+
+int PRVM_SetTempString( const char *s )
+{
+	int size;
+	char *t;
+
+	if (!s) return 0;
+
+	size = (int)com.strlen(s) + 1;
+	MsgDev( D_MEMORY, "PRVM_SetTempString: cursize %i, size %i\n", vm_tempstringsbuf.cursize, size);
+	if (vm_tempstringsbuf.maxsize < vm_tempstringsbuf.cursize + size)
+	{
+		size_t old_maxsize = vm_tempstringsbuf.maxsize;
+		if( vm_tempstringsbuf.cursize + size >= 1<<28 )
+			PRVM_ERROR("PRVM_SetTempString: ran out of tempstring memory!  (refusing to grow tempstring buffer over 256MB, cursize %i, size %i)\n", vm_tempstringsbuf.cursize, size);
+		vm_tempstringsbuf.maxsize = max( vm_tempstringsbuf.maxsize, 65536 );
+		while( vm_tempstringsbuf.maxsize < vm_tempstringsbuf.cursize + size )
+			vm_tempstringsbuf.maxsize *= 2;
+		if (vm_tempstringsbuf.maxsize != old_maxsize || vm_tempstringsbuf.data == NULL)
+		{
+			MsgDev( D_NOTE, "PRVM_SetTempString: enlarging tempstrings buffer (%iKB -> %iKB)\n", old_maxsize/1024, vm_tempstringsbuf.maxsize/1024);
+			vm_tempstringsbuf.data = Mem_Realloc( vm.prog->progs_mempool, vm_tempstringsbuf.data, vm_tempstringsbuf.maxsize );
+		}
+	}
+	t = (char *)vm_tempstringsbuf.data + vm_tempstringsbuf.cursize;
+	Mem_Copy( t, s, size );
+	vm_tempstringsbuf.cursize += size;
+	return PRVM_SetEngineString( t );
 }
 
 int PRVM_AllocString(size_t bufferlength, char **pointer)

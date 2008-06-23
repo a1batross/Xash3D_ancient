@@ -250,16 +250,6 @@ typedef enum
 	       Handles byte ordering and avoids alignment errors
 ==============================================================================
 */
-typedef struct sizebuf_s
-{
-	bool	overflowed;	// set to true if the buffer size failed
-	byte	*data;
-	int	maxsize;
-	int	cursize;
-	int	readcount;
-	int	errorcount;		// cause by errors
-} sizebuf_t;
-
 #define SZ_GetSpace(buf, len) _SZ_GetSpace(buf, len, __FILE__, __LINE__ )
 #define SZ_Write(buf, data, len) _SZ_Write(buf, data, len, __FILE__, __LINE__ )
 void SZ_Init (sizebuf_t *buf, byte *data, int length);

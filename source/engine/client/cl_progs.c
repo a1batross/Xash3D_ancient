@@ -162,11 +162,11 @@ VM_CvarRegister,			// #24 void Cvar_Register( string name, string value, float f
 VM_CvarSetValue,			// #25 void Cvar_SetValue( string name, float value )
 VM_CvarGetValue,			// #26 float Cvar_GetValue( string name )
 VM_CvarSetString,			// #27 void Cvar_SetString( string name, string value )
-VM_ComVA,				// #28 string va( ... )
-VM_ComStrlen,			// #29 float strlen( string text )
-VM_TimeStamp,			// #30 string Com_TimeStamp( float format )
-VM_LocalCmd,			// #31 void LocalCmd( ... )
-NULL,				// #32 -- reserved --
+VM_CvarGetString,			// #28 void VM_CvarGetString( void )
+VM_ComVA,				// #29 string va( ... )
+VM_ComStrlen,			// #30 float strlen( string text )
+VM_TimeStamp,			// #31 string Com_TimeStamp( float format )
+VM_LocalCmd,			// #32 void LocalCmd( ... )
 NULL,				// #33 -- reserved --
 NULL,				// #34 -- reserved --
 NULL,				// #35 -- reserved --

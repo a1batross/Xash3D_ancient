@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MAX_EDIT_LINE	256
 #define COMMAND_HISTORY	32
+#define MAX_SERVERS		64
 
 //=============================================================================
 typedef struct
@@ -229,6 +230,24 @@ typedef enum {
 	dl_single
 } dltype_t;		// download type
 
+typedef struct serverinfo_s
+{
+	char		*mapname;
+	char		*hostname;
+	char		*shortname;
+	char		*gamename;
+	char		*netaddress;
+
+	char		*playerstr;
+	int		numplayers;
+	int		maxplayers;
+
+	char		*pingstring;
+	bool		statusPacket;
+	int		ping;
+
+} serverinfo_t;
+
 typedef enum {key_game, key_console, key_message, key_menu} keydest_t;
 
 typedef struct
@@ -236,9 +255,9 @@ typedef struct
 	connstate_t	state;
 	keydest_t	key_dest;
 
-	int			framecount;
-	float			realtime;			// always increasing, no clamping, etc
-	float			frametime;			// seconds since last frame
+	int		framecount;
+	float		realtime;			// always increasing, no clamping, etc
+	float		frametime;			// seconds since last frame
 
 	// connection information
 	string		servername;		// name of server from original connect
@@ -266,6 +285,9 @@ typedef struct
 	string		demoname;		// for demo looping
 
 	file_t		*demofile;
+	serverinfo_t	serverlist[MAX_SERVERS];	// servers to join
+	int		numservers;
+	float		pingtime;			// servers timebase
 
 	// hudprogram stack
 	byte		*hud_program;

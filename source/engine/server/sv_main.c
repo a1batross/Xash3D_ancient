@@ -125,20 +125,20 @@ char *SV_StatusString (void)
 	int		statusLength;
 	int		playerLength;
 
-	strcpy (status, Cvar_Serverinfo());
-	strcat (status, "\n");
+	com.strcpy( status, Cvar_Serverinfo());
+	com.strcat( status, "\n" );
 	statusLength = strlen(status);
 
-	for (i=0 ; i<maxclients->value ; i++)
+	for( i = 0; i < maxclients->value; i++ )
 	{
 		cl = &svs.clients[i];
 		if (cl->state == cs_connected || cl->state == cs_spawned )
 		{
 			com.sprintf (player, "%i %i \"%s\"\n", cl->edict->priv.sv->client->ps.stats[STAT_FRAGS], cl->ping, cl->name);
 			playerLength = strlen(player);
-			if (statusLength + playerLength >= sizeof(status) )
-				break;		// can't hold any more
-			strcpy (status + statusLength, player);
+			if( statusLength + playerLength >= sizeof(status))
+				break; // can't hold any more
+			com.strcpy( status + statusLength, player );
 			statusLength += playerLength;
 		}
 	}
@@ -479,13 +479,13 @@ void SV_ConnectionlessPacket (void)
 	c = Cmd_Argv(0);
 	MsgWarn("SV_ConnectionlessPacket: %s : %s\n", NET_AdrToString(net_from), c);
 
-	if (!strcmp(c, "ping")) SVC_Ping ();
-	else if (!strcmp(c, "ack")) SVC_Ack ();
-	else if (!strcmp(c,"status")) SVC_Status ();
-	else if (!strcmp(c,"info")) SVC_Info ();
-	else if (!strcmp(c,"getchallenge")) SVC_GetChallenge ();
-	else if (!strcmp(c,"connect")) SVC_DirectConnect ();
-	else if (!strcmp(c, "rcon")) SVC_RemoteCommand ();
+	if (!strcmp(c, "ping")) SVC_Ping();
+	else if (!strcmp(c, "ack")) SVC_Ack();
+	else if (!strcmp(c,"status")) SVC_Status();
+	else if (!strcmp(c,"info")) SVC_Info();
+	else if (!strcmp(c,"getchallenge")) SVC_GetChallenge();
+	else if (!strcmp(c,"connect")) SVC_DirectConnect();
+	else if (!strcmp(c, "rcon")) SVC_RemoteCommand();
 	else Msg ("bad connectionless packet from %s:\n%s\n", NET_AdrToString (net_from), s);
 }
 

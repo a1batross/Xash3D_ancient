@@ -22,13 +22,6 @@ void UI_KeyEvent( int key )
 	PRVM_ExecuteProgram (prog->globals.ui->m_keydown, "QC function m_keydown is missing");
 
 	PRVM_End;
-
-	switch( key )
-	{
-	case K_ESCAPE:
-		UI_HideMenu();
-		break;
-	}
 }
 
 void UI_Draw( void )
