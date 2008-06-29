@@ -240,6 +240,7 @@ extern  cvar_t	*r_bloom_fast_sample;
 extern	cvar_t	*r_motionblur_intens;
 extern	cvar_t	*r_motionblur;
 extern cvar_t	*r_mirroralpha;
+extern cvar_t	*r_interpolate;
 
 extern	cvar_t	*gl_nosubimage;
 extern	cvar_t	*gl_bitdepth;

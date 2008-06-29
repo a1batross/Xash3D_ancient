@@ -141,7 +141,7 @@ bool ConvFLP( const char *name, char *buffer, int filesize )
 	if( pic )
 	{
 		FS_FileBase( name, savedname );
-		Image->SaveImage(va("%s/graphics/%s.tga", gs_gamedir, savedname ), pic );
+		Image->SaveImage(va("%s/gfx/%s.tga", gs_gamedir, savedname ), pic );
 		Image->FreeImage( pic ); // release buffer
 		Msg("%s.flmp\n", savedname ); // echo to console about current pic
 		return true;
@@ -193,7 +193,7 @@ bool ConvMIP( const char *name, char *buffer, int filesize )
 		pixels = pic.width * pic.height;
 		pal = NULL; // clear palette
 		fin = buffer;
-		com.snprintf( filepath, MAX_STRING, "%s/graphics/%s.tga", gs_gamedir, savedname );
+		com.snprintf( filepath, MAX_STRING, "%s/gfx/%s.tga", gs_gamedir, savedname );
 	}
 	else if(filesize >= (int)sizeof(mip) + ((pixels * 85)>>6) + sizeof(short) + 768)
 	{
@@ -301,7 +301,7 @@ bool ConvLMP( const char *name, char *buffer, int filesize )
 	FS_StripExtension((char *)name );
 	Conv_GetPaletteLMP( pal, LUMP_NORMAL );
 	Conv_Copy8bitRGBA( fin, pic.buffer, pixels );
-	Image->SaveImage(va("%s/graphics/%s.tga", gs_gamedir, name ), &pic ); // save converted image
+	Image->SaveImage(va("%s/gfx/%s.tga", gs_gamedir, name ), &pic ); // save converted image
 	Mem_Free( pic.buffer ); // release buffer
 	Msg("%s.lmp\n", name ); // echo to console about current image
 
@@ -389,7 +389,7 @@ bool ConvFNT( const char *name, char *buffer, int filesize )
 
 	FS_StripExtension((char *)name );
 	Conv_Copy8bitRGBA( fin, pic.buffer, pixels );
-	Image->SaveImage(va("%s/graphics/%s.tga", gs_gamedir, name ), &pic ); // save converted image
+	Image->SaveImage(va("%s/gfx/%s.tga", gs_gamedir, name ), &pic ); // save converted image
 	Mem_Free( pic.buffer ); // release buffer
 	Msg("%s.qfont\n", name ); // echo to console about current font
 

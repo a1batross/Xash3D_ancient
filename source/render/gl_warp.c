@@ -605,7 +605,7 @@ void R_SetSky (char *name, float rotate, vec3_t axis)
 	skyrotate = rotate;
 	VectorCopy(axis, skyaxis);
 
-	sprintf(pathname, "env_skybox/%s", skyname);
+	sprintf(pathname, "gfx/env/%s", skyname);
 	sky_image = R_FindImage (pathname, NULL, 0, it_sky);
 	if (!sky_image) sky_image = r_notexture;
 

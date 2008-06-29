@@ -381,11 +381,9 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 	{
 		com.sprintf (model_filename, "models/players/gordon/player.mdl");
 		com.sprintf (weapon_filename, "models/weapons/w_glock.mdl");
-		com.strcpy (ci->iconname, "hud/i_fixme");
 		ci->model = re->RegisterModel (model_filename);
 		memset(ci->weaponmodel, 0, sizeof(ci->weaponmodel));
 		ci->weaponmodel[0] = re->RegisterModel (weapon_filename);
-		ci->icon = re->RegisterPic (ci->iconname);
 	}
 	else
 	{
@@ -426,17 +424,12 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 			ci->weaponmodel[i] = re->RegisterModel(weapon_filename);
 			if (!cl_vwep->value) break; // only one when vwep is off
 		}
-
-		// icon file
-		strcpy (ci->iconname, "hud/i_fixme");
-		ci->icon = re->RegisterPic (ci->iconname);
 	}
 
 	// must have loaded all data types to be valud
-	if (!ci->skin || !ci->icon || !ci->model || !ci->weaponmodel[0])
+	if (!ci->skin || !ci->model || !ci->weaponmodel[0])
 	{
 		ci->skin = NULL;
-		ci->icon = NULL;
 		ci->model = NULL;
 		ci->weaponmodel[0] = NULL;
 		return;

@@ -110,8 +110,6 @@ typedef struct
 	char	name[MAX_QPATH];
 	char	cinfo[MAX_QPATH];
 	image_t	*skin;
-	image_t	*icon;
-	char	iconname[MAX_QPATH];
 	model_t	*model;
 	model_t	*weaponmodel[MAX_CLIENTWEAPONMODELS];
 } clientinfo_t;
@@ -638,6 +636,7 @@ void V_AddEntity (entity_t *ent);
 void V_AddParticle (vec3_t org, int color, float alpha);
 void V_AddLight (vec3_t org, float intensity, float r, float g, float b);
 void V_AddLightStyle (int style, float r, float g, float b);
+float V_CalcFov( float fov_x, float width, float height );
 
 //
 // cl_tent.c
@@ -674,16 +673,6 @@ void CL_TrapParticles (entity_t *ent);
 void CL_StudioEvent ( mstudioevent_t *event, entity_t *ent );
 
 //
-// menus
-//
-void M_Init (void);
-void M_Keydown (int key);
-void M_Draw (void);
-void M_Menu_Main_f (void);
-void M_ForceMenuOff (void);
-void M_AddToServerList (netadr_t adr, char *info);
-
-//
 // cl_pred.c
 //
 void CL_PredictMovement (void);
@@ -714,6 +703,21 @@ extern int g_console_field_width;
 extern field_t historyEditLines[COMMAND_HISTORY];
 extern field_t g_consoleField;
 extern field_t chatField;
+
+//
+// cl_keys.c
+//
+extern bool ui_active;
+extern const int vm_ui_numbuiltins;
+extern prvm_builtin_t vm_ui_builtins[];
+
+void UI_Init( void );
+void UI_DrawCredits( void );
+void UI_KeyEvent( int key );
+void UI_ShowMenu( void );
+void UI_HideMenu( void );
+void UI_Shutdown( void );
+void UI_Draw( void );
 
 //
 // cl_keys.c

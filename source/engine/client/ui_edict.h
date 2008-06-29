@@ -10,22 +10,24 @@ struct ui_globalvars_s
 	int		pad[28];
 	int		pev;
 	func_t		m_init;
-	func_t		m_shutdown;
-	func_t		m_keydown;
-	func_t		m_draw;
 	func_t		m_show;
+	func_t		m_draw;
 	func_t		m_hide;
+	func_t		m_endofcredits;
+	func_t		m_keydown;
+	func_t		m_shutdown;
+	float		time;
 };
 
 struct ui_entvars_s
 {
-	string_t		type;
-	string_t		parent;
 	string_t		name;
+	string_t		parent;
+	string_t		type;
 	int		_parent;
+	int		_child;
 	int		_next;
 	int		_prev;
-	int		_child;
 };
 
 struct ui_edict_s
@@ -65,40 +67,40 @@ static fields_t ui_reqfields[] =
 	{38,	6,	"_action"},
 	{39,	6,	"_draw"},
 	{40,	6,	"_key"},
-	{41,	3,	"color"},
-	{44,	2,	"alpha"},
-	{45,	2,	"drawflag"},
-	{46,	1,	"link"},
-	{47,	1,	"picture"},
-	{48,	3,	"pos"},
-	{51,	3,	"size"},
-	{54,	1,	"text"},
-	{55,	3,	"font_size"},
-	{58,	2,	"alignment"},
-	{59,	1,	"picture_selected"},
-	{60,	1,	"picture_pressed"},
-	{61,	1,	"sound_selected"},
-	{62,	1,	"sound_pressed"},
-	{63,	3,	"color_selected"},
-	{66,	3,	"color_pressed"},
-	{69,	2,	"alpha_selected"},
-	{70,	2,	"alpha_pressed"},
-	{71,	2,	"drawflag_selected"},
-	{72,	2,	"drawflag_pressed"},
-	{73,	2,	"_press_time"},
-	{74,	2,	"hold_pressed"},
-	{75,	2,	"_button_state"},
-	{76,	2,	"style"},
-	{77,	1,	"picture_bar"},
-	{78,	1,	"sound_changed"},
-	{79,	2,	"min_value"},
-	{80,	2,	"max_value"},
-	{81,	2,	"value"},
-	{82,	2,	"step"},
-	{83,	3,	"slider_size"},
-	{86,	6,	"slidermove"},
-	{87,	6,	"switchchange"},
-	{88,	1,	"cvarname"},
+	{41,	2,	"savecount"},
+	{42,	2,	"save_valid"},
+	{43,	3,	"color"},
+	{46,	2,	"alpha"},
+	{47,	1,	"link"},
+	{48,	1,	"picture"},
+	{49,	3,	"pos"},
+	{52,	3,	"size"},
+	{55,	1,	"text"},
+	{56,	3,	"font_size"},
+	{59,	2,	"alignment"},
+	{60,	1,	"picture_selected"},
+	{61,	1,	"picture_pressed"},
+	{62,	1,	"sound_selected"},
+	{63,	1,	"sound_pressed"},
+	{64,	3,	"color_selected"},
+	{67,	3,	"color_pressed"},
+	{70,	2,	"alpha_selected"},
+	{71,	2,	"alpha_pressed"},
+	{72,	2,	"_press_time"},
+	{73,	2,	"hold_pressed"},
+	{74,	2,	"_button_state"},
+	{75,	2,	"style"},
+	{76,	1,	"picture_bar"},
+	{77,	1,	"sound_changed"},
+	{78,	2,	"min_value"},
+	{79,	2,	"max_value"},
+	{80,	2,	"value"},
+	{81,	2,	"step"},
+	{82,	3,	"slider_size"},
+	{85,	6,	"slidermove"},
+	{86,	6,	"switchchange"},
+	{87,	1,	"cvarname"},
+	{88,	1,	"cvarstring"},
 	{89,	2,	"cvartype"},
 	{90,	4,	"_link"},
 	{91,	2,	"maxlen"},

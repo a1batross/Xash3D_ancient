@@ -1135,10 +1135,10 @@ void Key_Event(int key, bool down, uint time)
 			break;
 		case key_game:
 		case key_console:
-			M_Menu_Main_f();
+			UI_ShowMenu();
 			break;
 		case key_menu:
-			M_Keydown( key );
+			UI_KeyEvent( key );
 			break;
 		default:
 			MsgWarn("Key_Event: bad cls.key_dest\n");
@@ -1168,7 +1168,7 @@ void Key_Event(int key, bool down, uint time)
 	}
 	else if(cls.key_dest == key_menu)
 	{
-		M_Keydown( key );
+		UI_KeyEvent( key );
 	}
 	else if(cls.key_dest == key_console)
 	{
@@ -1178,11 +1178,11 @@ void Key_Event(int key, bool down, uint time)
 	{
 		// send the bound action
 		kb = keys[key].binding;
-		if ( !kb )
+		if( !kb )
 		{
-			if (key >= 200) Msg("%s is unbound, use controls menu to set.\n", Key_KeynumToString(key));
+			if (key >= 200) Msg( "%s is unbound, use controls menu to set.\n", Key_KeynumToString(key));
 		}
-		else if (kb[0] == '+')
+		else if( kb[0] == '+' )
 		{	
 			int	i;
 			char	button[1024], *buttonPtr;

@@ -1591,6 +1591,8 @@ void R_DrawStudioModel( int passnum )
           m_pTextureHeader = m_pRenderModel->thdr;
 	m_PassNum = passnum;
 
+	m_fDoInterp = r_interpolate->integer;
+
 	R_StudioSetUpTransform();
 
 	// see if the bounding box lets us trivially reject, also sets

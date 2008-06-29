@@ -257,7 +257,7 @@ void SCR_DrawNet( void )
 	if (cls.netchan.outgoing_sequence - cls.netchan.incoming_acknowledged < CMD_BACKUP-1)
 		return;
 
-	SCR_DrawPic( scr_vrect.x+64, scr_vrect.y, 48, 48, "hud/net" );
+	SCR_DrawPic( scr_vrect.x+64, scr_vrect.y, 48, 48, "common/net" );
 }
 
 void SCR_DrawFPS( void )

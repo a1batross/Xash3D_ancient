@@ -34,10 +34,10 @@ typedef struct loadformat_s
 
 loadformat_t load_formats[] =
 {
-	{"textures/%s%s.%s", "tga", Image_LoadTGA},
 	{"textures/%s%s.%s", "dds", Image_LoadDDS},
-	{"%s%s.%s", "tga", Image_LoadTGA},
+	{"textures/%s%s.%s", "tga", Image_LoadTGA},
 	{"%s%s.%s", "dds", Image_LoadDDS},
+	{"%s%s.%s", "tga", Image_LoadTGA},
 	{NULL, NULL}
 };
 

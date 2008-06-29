@@ -1764,7 +1764,7 @@ bool Cmd_GetFontList( const char *s, char *completedname, int length )
 	string		matchbuf;
 	int		i, numfonts;
 
-	t = FS_Search(va("graphics/fonts/%s*.dds", s ), true);
+	t = FS_Search(va("gfx/fonts/%s*.dds", s ), true);
 	if(!t) return false;
 
 	FS_FileBase(t->filenames[0], matchbuf ); 

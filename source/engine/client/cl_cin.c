@@ -1224,7 +1224,7 @@ bool CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemB
 		cinTable.status = FMV_PLAY;
 		cls.state = ca_cinematic;
 
-		M_ForceMenuOff();
+		UI_HideMenu();
 		Con_Close();
 		return true;
 	}

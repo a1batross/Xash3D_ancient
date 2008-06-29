@@ -289,7 +289,7 @@ void CL_PrepRefresh( void )
 
 	// get splash name
 	Cvar_Set( "cl_levelshot_name", va("background/%s.tga", cl.configstrings[CS_NAME]));
-	if(!FS_FileExists(va("graphics/%s", Cvar_VariableString("cl_levelshot_name")))) 
+	if(!FS_FileExists(va("gfx/%s", Cvar_VariableString("cl_levelshot_name")))) 
 	{
 		Cvar_Set("cl_levelshot_name", "common/black");
 		cl.make_levelshot = true; // make levelshot
@@ -379,10 +379,10 @@ void CL_PrepRefresh( void )
 
 /*
 ====================
-CalcFov
+V_CalcFov
 ====================
 */
-float CalcFov( float fov_x, float width, float height )
+float V_CalcFov( float fov_x, float width, float height )
 {
 	float	fov_y, x, rad = 360.0f * M_PI;
 
@@ -474,7 +474,7 @@ void V_RenderView( void )
 		cl.refdef.y = scr_vrect.y;
 		cl.refdef.width = scr_vrect.width;
 		cl.refdef.height = scr_vrect.height;
-		cl.refdef.fov_y = CalcFov (cl.refdef.fov_x, cl.refdef.width, cl.refdef.height);
+		cl.refdef.fov_y = V_CalcFov (cl.refdef.fov_x, cl.refdef.width, cl.refdef.height);
 		cl.refdef.time = cls.realtime; // render use realtime now
 
 		cl.refdef.areabits = cl.frame.areabits;
@@ -537,7 +537,7 @@ void V_PostRender( void )
 	SCR_DrawNet();
 	SCR_DrawFPS();
 	Con_DrawConsole();
-	M_Draw();
+	UI_Draw();
 	re->EndFrame();
 }
 

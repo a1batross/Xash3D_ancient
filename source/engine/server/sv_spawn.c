@@ -255,7 +255,6 @@ void SV_CalcViewOffset (edict_t *ent)
 
 void SV_SetStats (edict_t *ent)
 {
-	ent->priv.sv->client->ps.stats[STAT_HEALTH_ICON] = SV_ImageIndex("hud/i_health");
 	ent->priv.sv->client->ps.stats[STAT_HEALTH] = ent->progs.sv->health;
 }
 

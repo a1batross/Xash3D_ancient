@@ -389,7 +389,7 @@ Sends a disconnect message to the server
 This is also called on Host_Error, so it shouldn't cause any errors
 =====================
 */
-void CL_Disconnect (void)
+void CL_Disconnect( void )
 {
 	byte	final[32];
 
@@ -397,7 +397,7 @@ void CL_Disconnect (void)
 		return;
 
 	VectorClear (cl.refdef.blend);
-	M_ForceMenuOff ();
+	UI_HideMenu();
 
 	cls.connect_time = 0;
 
@@ -537,23 +537,6 @@ void CL_Reconnect_f (void)
 		cls.state = ca_connecting;
 		Msg ("reconnecting...\n");
 	}
-}
-
-/*
-=================
-CL_ParseStatusMessage
-
-Handle a reply from a ping
-=================
-*/
-void CL_ParseStatusMessage (void)
-{
-	char	*s;
-
-	s = MSG_ReadString(&net_message);
-
-	Msg ("%s\n", s);
-	M_AddToServerList (net_from, s);
 }
 
 /*
@@ -719,6 +702,23 @@ bool CL_ParseServerStatus( char *adr, char *info )
 	MsgDev( D_NOTE, "%i/%i %ims\n", server->numplayers, server->maxplayers, server->ping );
 
 	return true;
+}
+
+/*
+=================
+CL_ParseStatusMessage
+
+Handle a reply from a ping
+=================
+*/
+void CL_ParseStatusMessage (void)
+{
+	char	*s;
+
+	s = MSG_ReadString(&net_message);
+
+	Msg ("%s\n", s);
+	CL_ParseServerStatus( NET_AdrToString(net_from), s );
 }
 
 /*
@@ -1145,8 +1145,8 @@ void CL_RequestNextDownload (void)
 			{
 				int n = precache_check++ - ENV_CNT - 1;
 
-				if (n & 1) com.sprintf(fn, "textures/env_skybox/%s.dds", cl.configstrings[CS_SKY] ); // cubemap pack
-				else com.sprintf(fn, "textures/env_skybox/%s%s.tga", cl.configstrings[CS_SKY], env_suf[n/2]);
+				if (n & 1) com.sprintf(fn, "gfx/env/%s.dds", cl.configstrings[CS_SKY] ); // cubemap pack
+				else com.sprintf(fn, "gfx/env/%s%s.tga", cl.configstrings[CS_SKY], env_suf[n/2]);
 				if (!CL_CheckOrDownloadFile(fn)) return; // started a download
 			}
 		}
@@ -1550,8 +1550,7 @@ void CL_Init( void )
 	net_message.data = net_message_buffer;
 	net_message.maxsize = sizeof(net_message_buffer);
 
-	M_Init ();	
-	
+	UI_Init();
 	SCR_Init();
 	CL_InitLocal();
 }

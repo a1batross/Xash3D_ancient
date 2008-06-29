@@ -57,12 +57,12 @@ void Con_ToggleConsole_f (void)
 
 	if (cls.key_dest == key_console)
 	{
-		M_ForceMenuOff();
+		UI_HideMenu();
 		Cvar_SetValue("paused", 0 );
 	}
 	else
 	{
-		M_ForceMenuOff();
+		UI_HideMenu();
 		cls.key_dest = key_console;	
 
 		if(Cvar_VariableValue ("maxclients") == 1  && Host_ServerState())
@@ -84,7 +84,7 @@ void Con_ToggleChat_f (void)
 	{
 		if (cls.state == ca_active)
 		{
-			M_ForceMenuOff();
+			UI_HideMenu();
 			cls.key_dest = key_game;
 		}
 	}

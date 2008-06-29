@@ -39,7 +39,7 @@ convformat_t convert_formats[] =
 	{"%s.%s", "flt", ConvFLT},	// doom1 textures
 	{"%s.%s", "flp", ConvFLP},	// doom1 menu pics
 	{"%s.%s", "mip", ConvMIP},	// Quake1/Half-Life textures
-	{"%s.%s", "lmp", ConvLMP},	// Quake1/Half-Life graphics
+	{"%s.%s", "lmp", ConvLMP},	// Quake1/Half-Life gfx
 	{"%s.%s", "fnt", ConvFNT},	// Half-Life fonts
 	{"%s.%s", "wal", ConvWAL},	// Quake2 textures
 	{"%s.%s", "skn", ConvSKN},	// doom1 sprite models

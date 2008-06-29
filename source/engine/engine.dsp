@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /Ob0 /I "./" /I "uimenu" /I "server" /I "client" /I "../public" /I "../platform/formats" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /Ob0 /I "./" /I "network" /I "server" /I "client" /I "../public" /I "../platform/formats" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -80,7 +80,7 @@ SOURCE="$(InputPath)"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /c
-# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "uimenu" /I "server" /I "client" /I "../public" /I "../platform/formats" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /c
+# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "network" /I "server" /I "client" /I "../public" /I "../platform/formats" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -154,6 +154,10 @@ SOURCE=.\client\cl_main.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\client\cl_menu.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\client\cl_newfx.c
 # End Source File
 # Begin Source File
@@ -194,23 +198,15 @@ SOURCE=.\host.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\uimenu\menu.c
+SOURCE=.\network\net_chan.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\net_chan.c
+SOURCE=.\network\net_msg.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\net_msg.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\net_wins.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\uimenu\qmenu.c
+SOURCE=.\network\net_wins.c
 # End Source File
 # Begin Source File
 
@@ -260,14 +256,6 @@ SOURCE=.\server\sv_user.c
 
 SOURCE=.\server\sv_world.c
 # End Source File
-# Begin Source File
-
-SOURCE=.\uimenu\ui_cmds.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\uimenu\ui_main.c
-# End Source File
 # End Group
 # Begin Group "Header Files"
 
@@ -290,19 +278,11 @@ SOURCE=.\common.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\const.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\engine.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\net_msg.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\uimenu\qmenu.h
+SOURCE=.\network\net_msg.h
 # End Source File
 # Begin Source File
 
@@ -314,11 +294,7 @@ SOURCE=.\server\server.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\uimenu\uimenu.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\vm_cmds.h
+SOURCE=.\client\ui_edict.h
 # End Source File
 # End Group
 # End Target

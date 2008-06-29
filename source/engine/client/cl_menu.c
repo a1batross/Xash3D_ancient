@@ -1,9 +1,140 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			ui_cmds.c - ui menu builtins
+//		         cl_menu.c - progs user interface
 //=======================================================================
 
-#include "uimenu.h"
+#include "common.h"
+#include "client.h"
+#include "ui_edict.h"
+#include "builtin.h"
+
+// progs menu
+#define UI_MAX_EDICTS	(1 << 12) // should be enough for a menu
+
+bool ui_active = false;
+static float credits_start_time;
+static float credits_fade_time;
+static float credits_show_time;
+static const char **credits;
+static char *creditsIndex[2048];
+static char *creditsBuffer;
+static uint credit_numlines;
+static bool credits_active;
+
+void UI_KeyEvent( int key )
+{
+	const char *ascii = Key_KeynumToString(key);
+	PRVM_Begin;
+	PRVM_SetProg( PRVM_MENUPROG );
+
+	// set time
+	*prog->time = cls.realtime;
+
+	// setup args
+	PRVM_G_FLOAT(OFS_PARM0) = key;
+	PRVM_G_INT(OFS_PARM1) = PRVM_SetEngineString(ascii);
+	PRVM_ExecuteProgram (prog->globals.ui->m_keydown, "QC function m_keydown is missing");
+
+	PRVM_End;
+}
+
+void UI_Draw( void )
+{
+	if( !ui_active || cls.key_dest != key_menu )
+		return;
+
+	PRVM_Begin;
+	PRVM_SetProg(PRVM_MENUPROG);
+
+	// set time
+	*prog->time = cls.realtime;
+
+	PRVM_ExecuteProgram (prog->globals.ui->m_draw, "QC function m_draw is missing");
+	UI_DrawCredits(); // display game credits
+	PRVM_End;
+}
+
+void UI_DrawCredits( void )
+{
+	int	i, x, y;
+	float	*color;
+	float	white_color[4] = { 1.0f, 1.0f, 1.0f, 1.0f };	
+
+	if( !credits_active ) return;
+
+	y = SCREEN_HEIGHT - (( cls.realtime - credits_start_time ) * 32.0f );
+
+	// draw the credits
+	for ( i = 0; i < credit_numlines && credits[i]; i++, y += 20 )
+	{
+		// skip not visible lines, but always draw end line
+		if( y <= -16 && i != credit_numlines - 1) continue;
+		x = ( SCREEN_WIDTH - BIGCHAR_WIDTH * com.cstrlen( credits[i] ))/2;
+
+		if((y < (SCREEN_HEIGHT - BIGCHAR_HEIGHT) / 2) && i == credit_numlines - 1)
+		{
+			if(!credits_fade_time) credits_fade_time = cls.realtime;
+			color = CG_FadeColor( credits_fade_time, credits_show_time );
+			if( color ) SCR_DrawStringExt( x, (SCREEN_HEIGHT - BIGCHAR_HEIGHT)/2, 16, 16, credits[i], color, true );
+		}
+		else SCR_DrawStringExt( x, y, 16, 16, credits[i], white_color, false );
+	}
+	if( y < 0 && !color )
+	{
+		credits_active = false; // end of credits
+
+		// let menu progs known about credits state
+		PRVM_ExecuteProgram( prog->globals.ui->m_endofcredits, "QC function m_endofcredits is missing");
+	}
+}
+
+void UI_ShowMenu( void )
+{
+	PRVM_Begin;
+	PRVM_SetProg(PRVM_MENUPROG);
+
+	// set time
+	*prog->time = cls.realtime;
+	ui_active = true;
+	PRVM_ExecuteProgram (prog->globals.ui->m_show, "QC function m_toggle is missing");
+	PRVM_End;
+}
+
+void UI_HideMenu( void )
+{
+	cls.key_dest = key_game;
+	Key_ClearStates();
+	
+	PRVM_Begin;
+	PRVM_SetProg(PRVM_MENUPROG);
+
+	// set time
+	*prog->time = cls.realtime;
+	ui_active = false;
+	prog->globals.ui->time = cls.realtime;
+	PRVM_ExecuteProgram (prog->globals.ui->m_hide, "QC function m_toggle is missing");
+	PRVM_End;
+}
+
+void UI_Shutdown( void )
+{
+	PRVM_Begin;
+	PRVM_SetProg(PRVM_MENUPROG);
+
+	// set time
+	//*prog->time = cls.realtime;
+
+	PRVM_ExecuteProgram (prog->globals.ui->m_shutdown, "QC function m_shutdown is missing");
+
+	// reset key_dest
+	cls.key_dest = key_game;
+
+	// AK not using this cause Im not sure whether this is useful at all instead :
+	PRVM_ResetProg();
+
+	PRVM_End;
+}
+
 
 /*
 =========
@@ -38,14 +169,14 @@ string ReadComment( float savenum )
 void PF_readcomment( void )
 {
 	int	savenum;
-	static	string comment[32];
+	string	comment;
 
 	if(!VM_ValidateArgs( "ReadComment", 1 ))
 		return;
 
 	savenum = (int)PRVM_G_FLOAT(OFS_PARM0);
-	SV_ReadComment( comment[savenum], savenum );
-	PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( comment[savenum] );
+	SV_ReadComment( comment, savenum );
+	PRVM_G_INT(OFS_RETURN) = PRVM_SetTempString( comment );
 }
 
 /*
@@ -82,7 +213,7 @@ string ServerInfo( float num )
 */
 void PF_getserverinfo( void )
 {
-	static string	serverinfo[MAX_SERVERS];
+	string		serverinfo;
 	serverinfo_t	*s;
 	int		i;
 
@@ -97,8 +228,8 @@ void PF_getserverinfo( void )
 		s = &cls.serverlist[i];
 		if( s && s->hostname && s->maxplayers > 1 ) // ignore singleplayer servers
 		{
-			com.snprintf( serverinfo[i], MAX_STRING, "%s %15s %7i/%i %7i\n", s->hostname, s->mapname, s->numplayers, s->maxplayers, s->ping );
-			PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( serverinfo[i] );
+			com.snprintf( serverinfo, MAX_STRING, "%s %15s %7i/%i %7i\n", s->hostname, s->mapname, s->numplayers, s->maxplayers, s->ping );
+			PRVM_G_INT(OFS_RETURN) = PRVM_SetTempString( serverinfo );
 		}
 	}
 }
@@ -114,7 +245,7 @@ int mapcount = 0;
 
 void PF_getmapslist( void )
 {
-	static char	mapstring[MAX_INPUTLINE];
+	char	mapstring[MAX_INPUTLINE];
 
 	if(!VM_ValidateArgs( "GetMapsList", 0 ))
 		return;
@@ -140,7 +271,7 @@ void PF_getmapslist( void )
 		while(Com_TryToken()); // skip other stuff
 		mapcount++;
 	}
-	PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( mapstring );
+	PRVM_G_INT(OFS_RETURN) = PRVM_SetTempString( mapstring );
 }
 
 /*
@@ -186,8 +317,8 @@ string substring( string s, float start, float length )
 */
 void PF_substring( void )
 {
-	static string	tempstring;
 	int		i, start, length;
+	string		tempstring;
 	const char	*s;
 
 	if(!VM_ValidateArgs( "substring", 3 ))
@@ -203,7 +334,7 @@ void PF_substring( void )
 		tempstring[i] = *s;
 	tempstring[i] = 0;
 
-	PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( tempstring );
+	PRVM_G_INT(OFS_RETURN) = PRVM_SetTempString( tempstring );
 }
 
 /*
@@ -458,6 +589,70 @@ void PF_drawfill( void )
 
 /*
 =========
+PF_drawmodel
+
+void drawmodel( vector pos, vector size, string model, vector origin, vector angles, float sequence )
+=========
+*/
+void PF_drawmodel( void )
+{
+	float		*size, *pos, *origin, *angles;
+	const char	*modname;
+	refdef_t		refdef;
+	int		sequence;
+	static float	frame;
+	entity_t		entity;
+
+	if(!VM_ValidateArgs( "drawmodel", 4 ))
+		return;
+
+	pos = PRVM_G_VECTOR(OFS_PARM0);
+	size = PRVM_G_VECTOR(OFS_PARM1);
+	modname = PRVM_G_STRING(OFS_PARM2);
+	origin = PRVM_G_VECTOR(OFS_PARM3);
+	angles = PRVM_G_VECTOR(OFS_PARM4);
+	sequence = (int)PRVM_G_FLOAT(OFS_PARM5);
+
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM2));
+	memset( &entity, 0, sizeof( entity ));
+	memset( &refdef, 0, sizeof( refdef ) );
+
+	SCR_AdjustSize( &pos[0], &pos[1], &size[0], &size[1] );
+	
+	refdef.x = pos[0];
+	refdef.y = pos[1];
+	refdef.width = size[0];
+	refdef.height = size[1];
+	refdef.fov_x = 50;
+	refdef.fov_y = V_CalcFov( refdef.fov_x, refdef.width, refdef.height );
+	refdef.time = cls.realtime;
+
+	entity.model = re->RegisterModel( (char *)modname );
+	entity.flags = RF_FULLBRIGHT;
+	VectorCopy( origin, entity.origin );
+	VectorCopy( entity.origin, entity.oldorigin );
+	VectorCopy( angles, entity.angles );
+	entity.frame = frame += 0.7f;//FXIME
+	entity.sequence = sequence;
+	entity.prev.frame = 0;
+	entity.backlerp = 0.0;
+	entity.controller[0] = 90.0;
+	entity.controller[1] = 90.0;
+	entity.controller[2] = 180.0;
+	entity.controller[3] = 180.0;
+
+	refdef.areabits = 0;
+	refdef.num_entities = 1;
+	refdef.entities = &entity;
+	refdef.lightstyles = 0;
+	refdef.rdflags = RDF_NOWORLDMODEL;
+
+	re->RenderFrame( &refdef );
+	re->EndFrame();
+}
+
+/*
+=========
 PF_getimagesize
 
 vector getimagesize( string pic )
@@ -554,7 +749,7 @@ PF_testfunction
 float testfunction( string function_name )
 =========
 */
-void PF_testfunction(void)
+void PF_testfunction( void )
 {
 	mfunction_t	*func;
 	const char	*s;
@@ -563,13 +758,127 @@ void PF_testfunction(void)
 		return;
 
 	s = PRVM_G_STRING(OFS_PARM0);
-	if(!s) PRVM_ERROR("PF_testfunction: null string !");
 	VM_ValidateString( s );
 
 	func = PRVM_ED_FindFunction( s );
 
 	if(func) PRVM_G_FLOAT(OFS_RETURN) = true;
 	else PRVM_G_FLOAT(OFS_RETURN) = false;
+}
+
+/*
+=========
+PF_loadcredits
+
+void loadcredits( string filename )
+=========
+*/
+void PF_loadcredits( void )
+{
+	uint		count;
+	char		*p;
+	const char	*s;
+
+	if(!VM_ValidateArgs( "loadcredits", 1 ))
+		return;
+
+	s = PRVM_G_STRING(OFS_PARM0);
+	VM_ValidateString( s );
+	
+	if(!creditsBuffer)
+	{
+		// load credits if needed
+		creditsBuffer = FS_LoadFile( s, &count );
+		if( count )
+		{
+			if(creditsBuffer[count - 1] != '\n' && creditsBuffer[count - 1] != '\r')
+			{
+				creditsBuffer = Mem_Realloc( zonepool, creditsBuffer, count + 2 );
+				com.strncpy( creditsBuffer + count, "\r", 1 ); // add terminator
+				count += 2;
+                    	}
+
+			p = creditsBuffer;
+			for( credit_numlines = 0; credit_numlines < 2048; credit_numlines++)
+			{
+				creditsIndex[credit_numlines] = p;
+				while( *p != '\r' && *p != '\n')
+				{
+					p++;
+					if( --count == 0 ) break;
+				}
+				if( *p == '\r' )
+				{
+					*p++ = 0;
+					if (--count == 0) break;
+				}
+				*p++ = 0;
+				if (--count == 0) break;
+			}
+			creditsIndex[++credit_numlines] = 0;
+			credits = creditsIndex;
+		}
+		else
+		{
+			// use built-in credits
+			credits = xash_credits;
+			credit_numlines = (sizeof(xash_credits) / sizeof(xash_credits[0])) - 1; // skip term
+		}
+	}
+	credits_active = false;
+}
+
+/*
+=========
+PF_runcredits
+
+void runcredits( void )
+=========
+*/
+void PF_runcredits( void )
+{
+	if(!VM_ValidateArgs( "runcredits", 0 ))
+		return;
+
+	// run credits
+	credits_start_time = cls.realtime;
+	credits_show_time = bound(0.1f, (float)com.strlen(credits[credit_numlines - 1]), 12.0f );
+	credits_fade_time = 0.0f;
+	credits_active = true;
+}
+
+/*
+=========
+PF_stopcredits
+
+void stopcredits( void )
+=========
+*/
+void PF_stopcredits( void )
+{
+	if(!VM_ValidateArgs( "stopcredits", 0 ))
+		return;
+
+	// stop credits
+	credits_active = false;
+}
+
+/*
+=========
+PF_creditsactive
+
+void creditsactive( void )
+=========
+*/
+void PF_creditsactive( void )
+{
+	if(!VM_ValidateArgs( "creditsactive", 0 ))
+		return;
+
+	// check state
+	if( credits_active )
+		PRVM_G_FLOAT(OFS_RETURN) = 1;
+	else PRVM_G_FLOAT(OFS_RETURN) = 0; 
 }
 
 prvm_builtin_t vm_ui_builtins[] = 
@@ -682,17 +991,47 @@ PF_drawcharacter,			// #111 float drawchar( vector pos, float char, vector scale
 PF_drawstring,			// #112 float drawstring( vector pos, string text, vector scale, vector rgb, float alpha )
 PF_drawpic,			// #113 float drawpic( vector pos, string pic, vector size, vector rgb, float alpha )
 PF_drawfill,			// #114 void drawfill( vector pos, vector size, vector rgb, float alpha )
-PF_getimagesize,			// #115 vector getimagesize( string pic )
-PF_setkeydest,			// #116 void setkeydest( float dest )
-PF_callfunction,			// #117 void callfunction( ..., string function_name )
-PF_testfunction,			// #118 float testfunction( string function_name )
-PF_newgame,			// #119 void NewGame( void )
-PF_readcomment,			// #120 string ReadComment( float savenum )
-PF_joinserver,			// #121 float JoinServer( float num )
-PF_getserverinfo,			// #122 string ServerInfo( float num )
-PF_getmapslist,			// #123 string GetMapsList( void )
-PF_getmapscount,			// #124 float GetMapsCount( void )
-PF_newserver,			// #125 void NewServer( string mapname )
+PF_drawmodel,			// #115 void drawmodel( vector pos, vector size, string model, vector origin, vector angles, float sequence )
+PF_getimagesize,			// #116 vector getimagesize( string pic )
+PF_setkeydest,			// #117 void setkeydest( float dest )
+PF_callfunction,			// #118 void callfunction( ..., string function_name )
+PF_testfunction,			// #119 float testfunction( string function_name )
+PF_newgame,			// #120 void NewGame( void )
+PF_readcomment,			// #121 string ReadComment( float savenum )
+PF_joinserver,			// #122 float JoinServer( float num )
+PF_getserverinfo,			// #123 string ServerInfo( float num )
+PF_getmapslist,			// #124 string GetMapsList( void )
+PF_getmapscount,			// #125 float GetMapsCount( void )
+PF_newserver,			// #126 void NewServer( string mapname )
+PF_loadcredits,			// #127 void loadcredits( string filename )
+PF_runcredits,			// #128 void runcredits( void )
+PF_stopcredits,			// #129 void stopcredits( void )
+PF_creditsactive,			// #130 float creditsactive( void )
+VM_EdictError,			// #131 void objerror( string s )
 };
 
 const int vm_ui_numbuiltins = sizeof(vm_ui_builtins) / sizeof(prvm_builtin_t);
+
+void UI_Init( void )
+{
+	PRVM_Begin;
+	PRVM_InitProg( PRVM_MENUPROG );
+
+	prog->progs_mempool = Mem_AllocPool( "Uimenu Progs" );
+	prog->builtins = vm_ui_builtins;
+	prog->numbuiltins = vm_ui_numbuiltins;
+	prog->edictprivate_size = sizeof(ui_edict_t);
+	prog->limit_edicts = UI_MAX_EDICTS;
+	prog->name = "uimenu";
+	prog->num_edicts = 1;
+	prog->loadintoworld = false;
+	prog->init_cmd = VM_Cmd_Init;
+	prog->reset_cmd = VM_Cmd_Reset;
+	prog->error_cmd = VM_Error;
+
+	PRVM_LoadProgs( GI->uimenu_prog, 0, NULL, UI_NUM_REQFIELDS, ui_reqfields );
+	*prog->time = cls.realtime;
+
+	PRVM_ExecuteProgram (prog->globals.ui->m_init, "QC function m_init is missing");
+	PRVM_End;
+}

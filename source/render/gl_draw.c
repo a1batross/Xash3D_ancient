@@ -33,7 +33,7 @@ image_t *Draw_FindPic( char *name )
 {
 	string	fullname;
 	byte	*buffer = NULL;
-	long	bufsize = 0;		
+	size_t	bufsize = 0;		
 
 	//HACKHACK: use default font
 	if(stristr(name, "fonts" ))
@@ -42,7 +42,7 @@ image_t *Draw_FindPic( char *name )
 		bufsize = sizeof(def_font);
 	}
 
-	com.snprintf( fullname, MAX_STRING, "graphics/%s", name );
+	com.snprintf( fullname, MAX_STRING, "gfx/%s", name );
 	return R_FindImage( fullname, buffer, bufsize, it_pic );
 }
 
@@ -136,11 +136,11 @@ void Draw_StretchPic (float x, float y, float w, float h, float s1, float t1, fl
 	gl = Draw_FindPic( pic );
 	if(!gl) return;
 
-	GL_Bind (gl->texnum[0]);
+	GL_Bind( gl->texnum[0] );
 
 	GL_EnableBlend();
 	GL_TexEnv( GL_MODULATE );
-	if(gl_state.draw_color[3] != 1.0f )
+	if( gl_state.draw_color[3] != 1.0f )
 	{
 		GL_DisableAlphaTest();
 		qglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );

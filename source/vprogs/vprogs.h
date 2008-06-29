@@ -25,7 +25,7 @@ extern int prvm_developer;
 
 #define PROG_CRC_SERVER	5103
 #define PROG_CRC_CLIENT	7430
-#define PROG_CRC_UIMENU	36416
+#define PROG_CRC_UIMENU	2460
 
 enum op_state
 {

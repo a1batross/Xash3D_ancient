@@ -160,6 +160,7 @@ cvar_t	*r_height;
 cvar_t	*r_mode;
 
 cvar_t	*r_physbdebug;
+cvar_t	*r_interpolate;
 
 /*
 =================
@@ -1011,6 +1012,7 @@ void R_Register( void )
 	r_minimap = Cvar_Get("r_minimap", "0", CVAR_ARCHIVE ); 
 
 	r_mirroralpha = Cvar_Get( "r_mirroralpha", "0.5", CVAR_ARCHIVE );
+	r_interpolate = Cvar_Get( "r_interpolate", "0", CVAR_ARCHIVE );
 
 	gl_modulate = Cvar_Get ("gl_modulate", "1", CVAR_ARCHIVE );
 	gl_log = Cvar_Get( "gl_log", "0", 0 );
