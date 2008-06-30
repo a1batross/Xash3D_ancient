@@ -48,7 +48,7 @@ void Profile_RatioResults( void )
 			Msg("Second code is %.2f%% faster\n", ratio * 100);
 		}
 	}
-	else MsgWarn("--- Profiler not supported ---\n");
+	else MsgDev( D_ERROR, "--- Profiler not supported ---\n");
 }
 
 void _Profile_Results( const char *function )
@@ -63,7 +63,7 @@ void _Profile_Results( const char *function )
 		__g_ProfilerTotalTicks += total;
 		__g_ProfilerTotalMsec += msec;
 	}
-	else MsgWarn("--- Profiler not supported ---\n");
+	else MsgDev( D_ERROR, "--- Profiler not supported ---\n");
 }
 
 void Profile_Time( void )
@@ -74,7 +74,7 @@ void Profile_Time( void )
 		Msg("----- total ticks: %I64d -----\n", __g_ProfilerTotalTicks);
 		Msg("----- total secs %f ----- \n", __g_ProfilerTotalMsec  );
 	}
-	else MsgWarn("--- Profiler not supported ---\n");
+	else MsgDev( D_ERROR, "--- Profiler not supported ---\n");
 }
 
 /*
@@ -235,7 +235,7 @@ byte *ReadBMP (char *filename, byte **palette, int *width, int *height)
 		//blank_frame
 		buf_p = (char *)blank_frame; 
 		filesize = sizeof(blank_frame);
-		MsgWarn("ReadBMP: couldn't load %s, use blank image\n", filename );
+		MsgDev( D_WARN, "ReadBMP: couldn't load %s, use blank image\n", filename );
 	}
 
 	bhdr.id[0] = *buf_p++;
@@ -261,28 +261,28 @@ byte *ReadBMP (char *filename, byte **palette, int *width, int *height)
 
 	if (memcmp(bhdr.id, "BM", 2))
 	{
-		MsgWarn("ReadBMP: only Windows-style BMP files supported (%s)\n", filename );
+		MsgDev( D_ERROR, "ReadBMP: only Windows-style BMP files supported (%s)\n", filename );
 		return NULL;
 	} 
 
 	// Bogus info header check
 	if (bhdr.fileSize != filesize)
 	{
-		MsgWarn("ReadBMP: incorrect file size %i should be %i\n", filesize, bhdr.fileSize);
+		MsgDev( D_ERROR, "ReadBMP: incorrect file size %i should be %i\n", filesize, bhdr.fileSize);
 		return NULL;
           }
           
 	// Bogus bit depth?  Only 8-bit supported.
 	if (bhdr.bitsPerPixel != 8)
 	{
-		MsgWarn("ReadBMP: %d not a 8 bit image\n", bhdr.bitsPerPixel );
+		MsgDev( D_ERROR, "ReadBMP: %d not a 8 bit image\n", bhdr.bitsPerPixel );
 		return NULL;
 	}
 	
 	// Bogus compression?  Only non-compressed supported.
 	if (bhdr.compression != BI_RGB) 
 	{
-		Msg("ReadBMP: it's compressed file\n");
+		MsgDev( D_ERROR, "ReadBMP: it's compressed file\n");
 		return NULL;
           }
           

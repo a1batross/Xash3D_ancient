@@ -289,7 +289,7 @@ void SVC_DirectConnect( void )
 	if (version != PROTOCOL_VERSION)
 	{
 		Netchan_OutOfBandPrint (NS_SERVER, adr, "print\nServer is version %4.2f.\n", GI->version );
-		MsgWarn ("SVC_DirectConnect: rejected connect from version %i\n", version);
+		MsgDev( D_ERROR, "SVC_DirectConnect: rejected connect from version %i\n", version);
 		return;
 	}
 
@@ -344,7 +344,7 @@ void SVC_DirectConnect( void )
 		{
 			if (!NET_IsLocalAddress (adr) && (svs.realtime - cl->lastconnect) < sv_reconnect_limit->value)
 			{
-				MsgWarn("SVC_DirectConnect: %s:reconnect rejected : too soon\n", NET_AdrToString (adr));
+				MsgDev( D_ERROR, "SVC_DirectConnect: %s:reconnect rejected : too soon\n", NET_AdrToString (adr));
 				return;
 			}
 			Msg ("%s:reconnect\n", NET_AdrToString (adr));
@@ -388,7 +388,7 @@ gotnewcl:
 		if (*Info_ValueForKey (userinfo, "rejmsg")) 
 			Netchan_OutOfBandPrint (NS_SERVER, adr, "print\n%s\nConnection refused.\n", Info_ValueForKey (userinfo, "rejmsg"));
 		else Netchan_OutOfBandPrint (NS_SERVER, adr, "print\nConnection refused.\n" );
-		MsgWarn("SVC_DirectConnect: Game rejected a connection.\n");
+		MsgDev( D_ERROR, "SVC_DirectConnect: Game rejected a connection.\n");
 		return;
 	}
 
@@ -477,7 +477,7 @@ void SV_ConnectionlessPacket (void)
 	Cmd_TokenizeString(s);
 
 	c = Cmd_Argv(0);
-	MsgWarn("SV_ConnectionlessPacket: %s : %s\n", NET_AdrToString(net_from), c);
+	MsgDev( D_INFO, "SV_ConnectionlessPacket: %s : %s\n", NET_AdrToString(net_from), c);
 
 	if (!strcmp(c, "ping")) SVC_Ping();
 	else if (!strcmp(c, "ack")) SVC_Ack();
@@ -931,37 +931,36 @@ void SV_Init (void)
 {
 	SV_InitOperatorCommands();
 
-	rcon_password = Cvar_Get ("rcon_password", "", 0);
-	Cvar_Get ("skill", "1", 0);
-	Cvar_Get ("deathmatch", "0", CVAR_LATCH);
-	Cvar_Get ("coop", "0", CVAR_LATCH);
-	Cvar_Get ("dmflags", va("%i", DF_INSTANT_ITEMS), CVAR_SERVERINFO);
-	Cvar_Get ("fraglimit", "0", CVAR_SERVERINFO);
-	Cvar_Get ("timelimit", "0", CVAR_SERVERINFO);
-	Cvar_Get ("cheats", "0", CVAR_SERVERINFO|CVAR_LATCH);
-	Cvar_Get ("protocol", va("%i", PROTOCOL_VERSION), CVAR_SERVERINFO|CVAR_INIT);
-	maxclients = Cvar_Get ("maxclients", "1", CVAR_SERVERINFO | CVAR_LATCH);
-	hostname = Cvar_Get ("hostname", "unnamed", CVAR_SERVERINFO | CVAR_ARCHIVE);
-	timeout = Cvar_Get ("timeout", "125", 0);
-	zombietime = Cvar_Get ("zombietime", "2", 0);
-	sv_showclamp = Cvar_Get ("showclamp", "0", 0);
-	sv_paused = Cvar_Get ("paused", "0", 0);
-	sv_enforcetime = Cvar_Get ("sv_enforcetime", "0", 0);
-	allow_download = Cvar_Get ("allow_download", "1", CVAR_ARCHIVE);
-	allow_download_players  = Cvar_Get ("allow_download_players", "0", CVAR_ARCHIVE);
-	allow_download_models = Cvar_Get ("allow_download_models", "1", CVAR_ARCHIVE);
-	allow_download_sounds = Cvar_Get ("allow_download_sounds", "1", CVAR_ARCHIVE);
-	allow_download_maps	  = Cvar_Get ("allow_download_maps", "1", CVAR_ARCHIVE);
+	rcon_password = Cvar_Get( "rcon_password", "", 0, "remote connect password" );
+	Cvar_Get ("skill", "1", 0, "game skill level" );
+	Cvar_Get ("deathmatch", "0", CVAR_LATCH, "displays deathmatch state" );
+	Cvar_Get ("coop", "0", CVAR_LATCH, "displays cooperative state" );
+	Cvar_Get ("dmflags", va("%i", DF_INSTANT_ITEMS), CVAR_SERVERINFO, "setup deathmatch flags" );
+	Cvar_Get ("fraglimit", "0", CVAR_SERVERINFO, "multiplayer fraglimit" );
+	Cvar_Get ("timelimit", "0", CVAR_SERVERINFO, "multiplayer timelimit" );
+	Cvar_Get ("protocol", va("%i", PROTOCOL_VERSION), CVAR_SERVERINFO|CVAR_INIT, "displays server protocol version" );
+	maxclients = Cvar_Get ("maxclients", "1", CVAR_SERVERINFO | CVAR_LATCH, "max count of clients for current game" );
+	hostname = Cvar_Get ("hostname", "unnamed", CVAR_SERVERINFO | CVAR_ARCHIVE, "host name" );
+	timeout = Cvar_Get ("timeout", "125", 0, "connection timeout" );
+	zombietime = Cvar_Get ("zombietime", "2", 0, "timeout for clients-zombie (who died but not respawned)" );
+	sv_showclamp = Cvar_Get ("showclamp", "0", 0, "show server clamping messages" );
+	sv_paused = Cvar_Get ("paused", "0", 0, "server pause" );
+	sv_enforcetime = Cvar_Get ("sv_enforcetime", "0", 0, "client enforce time" );
+	allow_download = Cvar_Get ("allow_download", "1", CVAR_ARCHIVE, "allow download resources" );
+	allow_download_players  = Cvar_Get ("allow_download_players", "0", CVAR_ARCHIVE, "let downloading playermodels" );
+	allow_download_models = Cvar_Get ("allow_download_models", "1", CVAR_ARCHIVE, "let downloading models");
+	allow_download_sounds = Cvar_Get ("allow_download_sounds", "1", CVAR_ARCHIVE, "let downloading sounds" );
+	allow_download_maps	  = Cvar_Get ("allow_download_maps", "1", CVAR_ARCHIVE, "let downloading maps" );
 
-	sv_noreload = Cvar_Get ("sv_noreload", "0", 0);
+	sv_noreload = Cvar_Get ("sv_noreload", "0", 0, "ignore savepoints for singleplayer" );
 
-	sv_airaccelerate = Cvar_Get("sv_airaccelerate", "0", CVAR_LATCH);
-	sv_maxvelocity = Cvar_Get("sv_maxvelocity", "2000", 0 );
-          sv_gravity = Cvar_Get("sv_gravity", "800", 0 );
+	sv_airaccelerate = Cvar_Get("sv_airaccelerate", "0", CVAR_LATCH, "player accellerate in air" );
+	sv_maxvelocity = Cvar_Get("sv_maxvelocity", "2000", 0, "max world velocity" );
+          sv_gravity = Cvar_Get("sv_gravity", "800", 0, "world gravity" );
 	
-	public_server = Cvar_Get ("public", "0", 0);
+	public_server = Cvar_Get ("public", "0", 0, "change server type from private to public" );
 
-	sv_reconnect_limit = Cvar_Get ("sv_reconnect_limit", "3", CVAR_ARCHIVE);
+	sv_reconnect_limit = Cvar_Get ("sv_reconnect_limit", "3", CVAR_ARCHIVE, "max reconnect attempts" );
 
 	SZ_Init (&net_message, net_message_buffer, sizeof(net_message_buffer));
 }

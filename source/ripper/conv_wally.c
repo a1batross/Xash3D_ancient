@@ -21,7 +21,7 @@ bool ConvWAL( const char *name, char *buffer, int filesize )
 
 	if (filesize < (int)sizeof(wal))
 	{
-		MsgWarn("LoadWAL: file (%s) have invalid size\n", name );
+		MsgDev( D_ERROR, "LoadWAL: file (%s) have invalid size\n", name );
 		return false;
 	}
 	Mem_Copy(&wal, buffer, sizeof(wal));
@@ -41,8 +41,8 @@ bool ConvWAL( const char *name, char *buffer, int filesize )
 	mipsize = (int)sizeof(wal) + ofs[0] + pixels;
 	if( pixels > 256 && filesize < mipsize )
 	{
-		// note: wal's with dimensions < 32 have invalid sizes.
-		MsgWarn("LoadWAL: file (%s) have invalid size\n", name );
+		// NOTE: wal's with dimensions < 32 have invalid sizes.
+		MsgDev( D_ERROR, "LoadWAL: file (%s) have invalid size\n", name );
 		return false;
 	}
 	pic.buffer = Mem_Alloc( zonepool, pic.size );

@@ -1230,7 +1230,7 @@ bool CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemB
 	}
 
 shutdown:
-	MsgWarn("CIN_PlayCinematic: can't loading %s\n", arg );
+	MsgDev( D_ERROR, "CIN_PlayCinematic: can't loading %s\n", arg );
 	RoQShutdown();
 	return false;
 }

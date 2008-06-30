@@ -152,7 +152,7 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 		
 	if(numframes < 1)
 	{
-		MsgWarn("%s has invalid # of frames: %d\n", mod->name, numframes );
+		MsgDev( D_ERROR, "%s has invalid # of frames: %d\n", mod->name, numframes );
 		return;
 	}	
 

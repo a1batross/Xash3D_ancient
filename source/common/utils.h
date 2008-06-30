@@ -72,7 +72,6 @@ extern vprogs_exp_t *PRVM;
 
 extern string gs_filename;
 extern char gs_basedir[ MAX_SYSPATH ];
-extern bool host_debug;
 
 extern byte *studiopool;
 

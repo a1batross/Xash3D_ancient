@@ -490,7 +490,7 @@ void SV_BuildClientFrame( client_state_t *client )
 		state = &svs.client_entities[svs.next_client_entities % svs.num_client_entities];
 		if (ent->priv.sv->serialnumber != e)
 		{
-			MsgWarn ("SV_BuildClientFrame: invalid ent->priv.sv->serialnumber %d\n", ent->priv.sv->serialnumber );
+			MsgDev( D_WARN, "SV_BuildClientFrame: invalid ent->priv.sv->serialnumber %d\n", ent->priv.sv->serialnumber );
 			ent->priv.sv->serialnumber = e; // ptr to current entity such as entnumber
 		}
 

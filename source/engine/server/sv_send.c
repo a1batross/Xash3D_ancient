@@ -210,7 +210,7 @@ void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename,
 		numclients = 1; // send to one
 		break;
 	default:
-		MsgWarn("MSG_Send: bad destination: %i (called at %s:%i)\n", to, filename, fileline);
+		MsgDev( D_ERROR, "MSG_Send: bad destination: %i (called at %s:%i)\n", to, filename, fileline);
 		return;
 	}
 
@@ -282,17 +282,17 @@ void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int soundindex,
 
 	if (volume < 0 || volume > 1.0)
 	{
-		MsgWarn("SV_StartSound: volume = %f\n", volume);
+		MsgDev( D_WARN, "SV_StartSound: volume = %f\n", volume);
 		volume = bound(0, volume, 1.0);
 	}
 	if (attenuation < 0 || attenuation > 4)
 	{
-		MsgWarn("SV_StartSound: attenuation = %f\n", attenuation);
+		MsgDev( D_WARN, "SV_StartSound: attenuation = %f\n", attenuation);
 		attenuation = bound(0, volume, 4);
 	}
 	if (timeofs < 0 || timeofs > 0.255)
 	{
-		MsgWarn("SV_StartSound: timeofs = %f\n", timeofs);
+		MsgDev( D_WARN, "SV_StartSound: timeofs = %f\n", timeofs);
 		timeofs = bound(0, timeofs, 0.255 );
 	}
 	ent = PRVM_NUM_FOR_EDICT(entity);

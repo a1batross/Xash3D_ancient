@@ -220,7 +220,7 @@ void PR_Init( const char *name )
 	memset(&ret_temp, 0, sizeof(ret_temp));
 	memset(pr_immediate_string, 0, sizeof(pr_immediate_string));
 
-	if (opt_locals_marshalling) MsgWarn("Locals marshalling might be buggy. Use with caution\n");
+	if (opt_locals_marshalling) MsgDev( D_INFO, "Locals marshalling might be buggy. Use with caution\n");
 	com.strncpy( sourcefilename, name, sizeof(sourcefilename));
 
 	// default parms
@@ -268,9 +268,9 @@ void PRVM_Init( uint funcname, int argc, char **argv )
 	Cmd_AddCommand("prvm_printfunction", PRVM_PrintFunction_f, "prints a disassembly (QuakeC instructions) of the specified function in the selected VM (server, client, menu)");
 
 	// LordHavoc: optional runtime bounds checking (speed drain, but worth it for security, on by default - breaks most QCCX features (used by CRMod and others))
-	prvm_boundscheck = Cvar_Get( "prvm_boundscheck", "0", 0 );
-	prvm_traceqc = Cvar_Get( "prvm_traceqc", "0", 0 );
-	prvm_statementprofiling = Cvar_Get ("prvm_statementprofiling", "0", 0);
+	prvm_boundscheck = Cvar_Get( "prvm_boundscheck", "0", 0, "enable vm internal boundschecker" );
+	prvm_traceqc = Cvar_Get( "prvm_traceqc", "0", 0, "enable tracing (only for debug)" );
+	prvm_statementprofiling = Cvar_Get ("prvm_statementprofiling", "0", 0, "counts how many times each QC statement has been executed" );
 
 	if( funcname == HOST_NORMAL || funcname == HOST_DEDICATED )
 	{

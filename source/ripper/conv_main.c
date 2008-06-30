@@ -7,7 +7,6 @@
 #include "pal_utils.h"
 
 dll_info_t imglib_dll = { "imglib.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(imglib_exp_t) };
-bool host_debug = false;
 imglib_exp_t *Image;
 stdlib_api_t com;
 byte *basepool;

@@ -78,7 +78,7 @@ extern cvar_t	*scr_width;
 extern cvar_t	*scr_height;
 
 void SCR_AdjustSize( float *x, float *y, float *w, float *h );
-void SCR_DrawPic( float x, float y, float width, float height, char *picname );
+void SCR_DrawPic( float x, float y, float width, float height, const char *picname );
 void SCR_FillRect( float x, float y, float width, float height, const float *color );
 void SCR_DrawSmallChar( int x, int y, int ch );
 void SCR_DrawChar( int x, int y, float w, float h, int ch );

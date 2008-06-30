@@ -137,7 +137,6 @@ void SV_UnlinkEdict( edict_t *ent )
 	ws = sv_ent->worldsector;
 	if( !ws ) return;		// not linked in anywhere
 	sv_ent->worldsector = NULL;
-//sv_ent->linked = false;
 
 	if( ws->entities == sv_ent )
 	{
@@ -153,7 +152,7 @@ void SV_UnlinkEdict( edict_t *ent )
 			return;
 		}
 	}
-	MsgWarn("SV_UnlinkEdict: not found in worldSector\n" );
+	MsgDev( D_ERROR, "SV_UnlinkEdict: not found in worldSector\n" );
 }
 
 /*
@@ -257,7 +256,7 @@ void SV_LinkEdict( edict_t *ent )
 				if (ent->priv.sv->areanum2 && ent->priv.sv->areanum2 != area && sv.state == ss_loading )
 				{
 					float *v = ent->progs.sv->absmin;
-					MsgWarn("SV_LinkEdict: object touching 3 areas at %f %f %f\n", v[0], v[1], v[2]);
+					MsgDev( D_WARN, "SV_LinkEdict: object touching 3 areas at %f %f %f\n", v[0], v[1], v[2]);
 				}
 				ent->priv.sv->areanum2 = area;
 			}
@@ -308,8 +307,6 @@ void SV_LinkEdict( edict_t *ent )
 	sv_ent->worldsector = node;
 	sv_ent->nextedict = node->entities;
 	node->entities = sv_ent;
-
-//sv_ent->linked = true;
 }
 
 /*

@@ -31,7 +31,6 @@ void FreeViewer ( void );
 
 extern int com_argc;
 extern int dev_mode;
-extern bool debug_mode;
 extern char *com_argv[MAX_NUM_ARGVS];
 
 /*
@@ -39,10 +38,6 @@ extern char *com_argv[MAX_NUM_ARGVS];
 System Events
 ===========================================
 */
-void GUI_Msg( const char *pMsg, ... );
-void GUI_MsgDev( int level, const char *pMsg, ... );
-void GUI_MsgWarn( const char *pMsg, ... );
-
 extern stdlib_api_t com;
 #define Sys_Error com.error
 

@@ -22,7 +22,7 @@ bool PCX_ConvertImage( const char *name, char *buffer, int filesize )
 	if (pcx.manufacturer != 0x0a || pcx.version != 5 || pcx.encoding != 1 ) return false;
 	if (filesize < (int)sizeof(pcx) + 768)
 	{
-		MsgWarn("ConvPCX: file (%s) have invalid size\n", name );
+		MsgDev( D_ERROR, "ConvPCX: file (%s) have invalid size\n", name );
 		return false;
 	}
 	memset( &pic, 0, sizeof(pic));
@@ -41,12 +41,12 @@ bool PCX_ConvertImage( const char *name, char *buffer, int filesize )
 
 	if( pcx.bits_per_pixel != 8 || pcx.manufacturer != 0x0a || pcx.version != 5 || pcx.encoding != 1)
 	{
-		MsgWarn("ConvPCX: (%s) have illegal pixel size '%d'\n", name, pcx.bits_per_pixel );
+		MsgDev( D_ERROR, "ConvPCX: (%s) have illegal pixel size '%d'\n", name, pcx.bits_per_pixel );
 		return false;
 	}
-	if(pic.width > 512 || pic.height > 512 || pic.width <= 0 || pic.height <= 0)
+	if(pic.width > 640 || pic.height > 640 || pic.width <= 0 || pic.height <= 0)
 	{
-		MsgWarn( "ConvPCX: (%s) dimensions out of range [%dx%d]\n", name, pic.width, pic.height );
+		MsgDev( D_ERROR, "ConvPCX: (%s) dimensions out of range [%dx%d]\n", name, pic.width, pic.height );
 		return false;
 	}
 	palette = buffer + filesize - 768;

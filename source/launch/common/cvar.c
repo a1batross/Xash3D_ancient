@@ -202,6 +202,8 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags, const 
 			Cvar_Set2( var_name, s, true );
 			Mem_Free( s );
 		}
+		// update description if needs
+		if( var_desc ) var->description = copystring(var_desc);
 		return var;
 	}
 
@@ -216,7 +218,8 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags, const 
 	cvar_numIndexes++;
 	var->name = copystring(var_name);
 	var->string = copystring(var_value);
-	var->description = copystring(var_desc);
+	if( var_desc ) var->description = copystring(var_desc);
+
 	var->modified = true;
 	var->modificationCount = 1;
 	var->value = com_atof(var->string);
@@ -262,8 +265,8 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 		if( !value ) return NULL;
 
 		// create it
-		if ( !force ) return Cvar_Get( var_name, value, CVAR_USER_CREATED, "user variable" );
-		else return Cvar_Get (var_name, value, 0, "" );
+		if ( !force ) return Cvar_Get( var_name, value, CVAR_USER_CREATED, NULL );
+		else return Cvar_Get (var_name, value, 0, NULL );
 	}
 
 	if(!value ) value = var->reset_string;

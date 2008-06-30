@@ -377,7 +377,7 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 		s = t+1;
 	}
 
-	if (cl_noskins->value || *s == 0)
+	if( *s == 0)
 	{
 		com.sprintf (model_filename, "models/players/gordon/player.mdl");
 		com.sprintf (weapon_filename, "models/weapons/w_glock.mdl");

@@ -75,21 +75,21 @@ static bool S_OpenBackgroundTrack (const char *name, bg_track_t *track)
 	track->file = FS_Open( name, "rb" );
 	if( !track->file )
 	{
-		MsgWarn( "S_OpenBackgroundTrack: couldn't find %s\n", name );
+		MsgDev( D_ERROR, "S_OpenBackgroundTrack: couldn't find %s\n", name );
 		return false;
 	}
 	track->vorbisFile = vorbisFile = Z_Malloc(sizeof(vorbisfile_t));
 
 	if( ov_open_callbacks(track, vorbisFile, NULL, 0, vorbisCallbacks) < 0 )
 	{
-		MsgWarn( "S_OpenBackgroundTrack: couldn't open ogg stream %s\n", name );
+		MsgDev( D_ERROR, "S_OpenBackgroundTrack: couldn't open ogg stream %s\n", name );
 		return false;
 	}
 
 	vorbisInfo = ov_info( vorbisFile, -1 );
 	if( vorbisInfo->channels != 1 && vorbisInfo->channels != 2)
 	{
-		MsgWarn( "S_OpenBackgroundTrack: only mono and stereo ogg files supported %s\n", name );
+		MsgDev( D_ERROR, "S_OpenBackgroundTrack: only mono and stereo ogg files supported %s\n", name );
 		return false;
 	}
 

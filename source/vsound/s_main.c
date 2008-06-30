@@ -731,18 +731,18 @@ void S_Init( void *hInst )
 {
 	int	num_mono_src, num_stereo_src;
 
-	host_sound = Cvar_Get("host_sound", "1", CVAR_SYSTEMINFO );
-	s_alDevice = Cvar_Get("s_device", "Generic Software", CVAR_LATCH|CVAR_ARCHIVE );
-	s_soundfx = Cvar_Get("s_soundfx", "1", CVAR_LATCH|CVAR_ARCHIVE );
-	s_check_errors = Cvar_Get("s_check_errors", "1", CVAR_ARCHIVE );
-	s_volume = Cvar_Get("s_volume", "1.0", CVAR_ARCHIVE );
-	s_musicvolume = Cvar_Get("s_musicvolume", "1.0", CVAR_ARCHIVE );
-	s_minDistance = Cvar_Get("s_mindistance", "240.0", CVAR_ARCHIVE );
-	s_maxDistance = Cvar_Get("s_maxdistance", "8192.0", CVAR_ARCHIVE );
-	s_rolloffFactor = Cvar_Get("s_rollofffactor", "1.0", CVAR_ARCHIVE );
-	s_dopplerFactor = Cvar_Get("s_dopplerfactor", "1.0", CVAR_ARCHIVE );
-	s_dopplerVelocity = Cvar_Get("s_dopplervelocity", "10976.0", CVAR_ARCHIVE );
-	s_pause = Cvar_Get( "paused", "0", 0 );
+	host_sound = Cvar_Get("host_sound", "1", CVAR_SYSTEMINFO, "enable sound system" );
+	s_alDevice = Cvar_Get("s_device", "Generic Software", CVAR_LATCH|CVAR_ARCHIVE, "OpenAL curent device name" );
+	s_soundfx = Cvar_Get("s_soundfx", "1", CVAR_LATCH|CVAR_ARCHIVE, "allow OpenAl extensions" );
+	s_check_errors = Cvar_Get("s_check_errors", "1", CVAR_ARCHIVE, "ignore sound engine errors" );
+	s_volume = Cvar_Get("s_volume", "1.0", CVAR_ARCHIVE, "sound volume" );
+	s_musicvolume = Cvar_Get("s_musicvolume", "1.0", CVAR_ARCHIVE, "background music volume" );
+	s_minDistance = Cvar_Get("s_mindistance", "240.0", CVAR_ARCHIVE, "3d sound min distance" );
+	s_maxDistance = Cvar_Get("s_maxdistance", "8192.0", CVAR_ARCHIVE, "3d sound max distance" );
+	s_rolloffFactor = Cvar_Get("s_rollofffactor", "1.0", CVAR_ARCHIVE, "3d sound rolloff factor" );
+	s_dopplerFactor = Cvar_Get("s_dopplerfactor", "1.0", CVAR_ARCHIVE, "cutoff doppler effect value" );
+	s_dopplerVelocity = Cvar_Get("s_dopplervelocity", "10976.0", CVAR_ARCHIVE, "doppler effect maxvelocity" );
+	s_pause = Cvar_Get( "paused", "0", 0, "sound engine pause" );
 
 	Cmd_AddCommand("playsound", S_PlaySound_f, "playing a specified sound file" );
 	Cmd_AddCommand("music", S_Music_f, "starting a background track" );

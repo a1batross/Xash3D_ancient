@@ -399,10 +399,10 @@ typedef struct render_exp_s
 	void	(*SetColor)( const float *rgba );
 	bool	(*ScrShot)( const char *filename, bool levelshot ); // write screenshot with same name 
 	void	(*DrawFill)(float x, float y, float w, float h );
-	void	(*DrawStretchRaw) (int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw );
-	void	(*DrawStretchPic)(float x, float y, float w, float h, float s1, float t1, float s2, float t2, char *name);
+	void	(*DrawStretchRaw)( int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw );
+	void	(*DrawStretchPic)( float x, float y, float w, float h, float s1, float t1, float s2, float t2, const char *name );
 
-	void	(*DrawGetPicSize) (int *w, int *h, char *name);	// get rid of this
+	void	(*DrawGetPicSize)( int *w, int *h, const char *name );
 
 } render_exp_t;
 

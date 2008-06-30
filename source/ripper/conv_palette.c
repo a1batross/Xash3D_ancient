@@ -227,7 +227,7 @@ bool ConvPAL( const char *name, char *buffer, int filesize )
 {
 	if( filesize != 768 )
 	{
-		MsgWarn("LoadPAL: file (%s) have invalid size\n", name );
+		MsgDev( D_ERROR, "LoadPAL: file (%s) have invalid size\n", name );
 		return false;
 	}
 
@@ -300,7 +300,7 @@ bool Lump_ValidSize( char *name, rgbdata_t *pic, int maxwidth, int maxheight )
 {
 	if(pic->width > maxwidth || pic->height > maxheight || pic->width <= 0 || pic->height <= 0)
 	{
-		MsgWarn( "Lump_ValidSize: (%s) dimensions out of range [%dx%d]\n", name, pic->width, pic->height );
+		MsgDev( D_WARN, "Lump_ValidSize: (%s) dimensions out of range [%dx%d]\n", name, pic->width, pic->height );
 		return false;
 	}
 	return true;

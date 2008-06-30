@@ -973,7 +973,7 @@ void PRVM_ED_EdictSet_f(void)
 	ed = PRVM_EDICT_NUM(com.atoi(Cmd_Argv(2)));
 
 	if((key = PRVM_ED_FindField(Cmd_Argv(3))) == 0)
-		MsgWarn("Key %s not found !\n", Cmd_Argv(3));
+		MsgDev( D_WARN, "Key %s not found !\n", Cmd_Argv(3));
 	else PRVM_ED_ParseEpair(ed, key, Cmd_Argv(4));
 
 	vm.prog = NULL;
@@ -1133,7 +1133,7 @@ void PRVM_ED_LoadFromFile (const char *data)
 			{
 				if(prvm_developer >= D_NOTE)
 				{
-					MsgWarn("No classname for:\n");
+					MsgDev( D_ERROR, "No classname for:\n");
 					PRVM_ED_Print(ent);
 				}
 				PRVM_ED_Free (ent);
@@ -1147,7 +1147,7 @@ void PRVM_ED_LoadFromFile (const char *data)
 			{
 				if(prvm_developer >= D_NOTE)
 				{
-					MsgWarn("No spawn function for:\n");
+					MsgDev( D_ERROR, "No spawn function for:\n");
 					PRVM_ED_Print(ent);
 				}
 				PRVM_ED_Free (ent);

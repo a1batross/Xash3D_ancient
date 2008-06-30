@@ -32,7 +32,6 @@ void Sys_GetStdAPI( void )
 	// base events
 	com.printf = Sys_Msg;
 	com.dprintf = Sys_MsgDev;
-	com.wprintf = Sys_MsgWarn;
 	com.error = Sys_Error;
 	com.abort = Sys_Break;
 	com.exit = Sys_Exit;
@@ -670,19 +669,6 @@ void Sys_MsgDev( int level, const char *pMsg, ... )
 	}
 }
 
-void Sys_MsgWarn( const char *pMsg, ... )
-{
-	va_list	argptr;
-	char	text[MAX_INPUTLINE];
-	
-	if(!Sys.debug) return;
-
-	va_start (argptr, pMsg);
-	com_vsprintf (text, pMsg, argptr);
-	va_end (argptr);
-	Sys_Print(va("^3Warning:^7 %s", text));
-}
-
 /*
 ================
 Sys_DoubleTime
@@ -865,7 +851,7 @@ void Sys_Error(const char *error, ...)
 	va_end (argptr);
          
 	Con_ShowConsole( true );
-	if(Sys.developer) Sys_Print( text );		// print error message
+	if(Sys.debug) Sys_Print( text );		// print error message
 	else Sys_Print( "Internal engine error\n" );	// don't confuse non-developers with technique stuff
 
 	Sys_WaitForQuit();

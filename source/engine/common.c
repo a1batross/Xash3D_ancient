@@ -6,6 +6,7 @@
 #include "common.h"
 #include "basefiles.h"
 #include "mathlib.h"
+#include "client.h"
 
 /*
 ===============================================================================
@@ -617,7 +618,7 @@ void VM_CvarRegister( void )
 		flags |= CVAR_CHEAT;
 
 	// register new cvar	
-	Cvar_Get( name, value, flags );
+	Cvar_Get( name, value, flags, va("%s variable", prog->name ));
 }
 
 /*
@@ -1039,6 +1040,240 @@ void VM_FS_Puts( void )
 
 	s = VM_VarArgs( 1 );
 	VFS_Print( handle, s );
+}
+
+/*
+=======================================================================
+
+		    PICTURE & MODEL DRAWING STUFF
+=======================================================================
+*/
+/*
+=========
+VM_precache_pic
+
+float precache_pic( string pic )
+=========
+*/
+void VM_precache_pic( void )
+{
+	if(!VM_ValidateArgs( "precache_pic", 1 ))
+		return;
+
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+	if(re->RegisterPic((char *)PRVM_G_STRING(OFS_PARM0)))
+		PRVM_G_FLOAT(OFS_RETURN) = true;
+	else PRVM_G_FLOAT(OFS_RETURN) = false;
+}
+
+/*
+=========
+VM_drawcharacter
+
+float drawchar( vector pos, float char, vector scale, vector rgb, float alpha )
+=========
+*/
+void VM_drawcharacter( void )
+{
+	char	character;
+	float	*pos, *rgb, *scale, alpha;
+
+	if(!VM_ValidateArgs( "drawchar", 5 ))
+		return;
+
+	character = (char)PRVM_G_FLOAT(OFS_PARM1);
+	if( character == 0 )
+	{
+		PRVM_G_FLOAT(OFS_RETURN) = false;
+		VM_Warning( "PF_drawcharacter: %s passed null character!\n", PRVM_NAME );
+		return;
+	}
+
+	pos = PRVM_G_VECTOR(OFS_PARM0);
+	scale = PRVM_G_VECTOR(OFS_PARM2);
+	rgb = PRVM_G_VECTOR(OFS_PARM3);
+	alpha = PRVM_G_FLOAT(OFS_PARM4);
+
+	re->SetColor( GetRGBA(rgb[0], rgb[1], rgb[2], alpha ));
+	SCR_DrawChar( pos[0], pos[1], scale[0], scale[1], character );
+	re->SetColor( NULL );
+	PRVM_G_FLOAT(OFS_RETURN) = true;
+}
+
+/*
+=========
+VM_drawstring
+
+float drawstring( vector pos, string text, vector scale, vector rgb, float alpha )
+=========
+*/
+void VM_drawstring( void )
+{
+	float		*pos, *scale, *rgb, *rgba, alpha;
+	const char	*string;
+
+	if(!VM_ValidateArgs( "drawstring", 5 ))
+		return;
+
+	string = PRVM_G_STRING(OFS_PARM1);
+	if( !string )
+	{
+		PRVM_G_FLOAT(OFS_RETURN) = false;
+		VM_Warning( "PF_drawstring: %s passed null string!\n", PRVM_NAME );
+		return;
+	}
+
+	pos = PRVM_G_VECTOR(OFS_PARM0);
+	scale = PRVM_G_VECTOR(OFS_PARM2);
+	rgb = PRVM_G_VECTOR(OFS_PARM3);
+	alpha = PRVM_G_FLOAT(OFS_PARM4);
+	rgba = GetRGBA(rgb[0], rgb[1], rgb[2], alpha );
+
+	SCR_DrawStringExt( pos[0], pos[1], scale[0], scale[1], string, rgba, true ); 
+	PRVM_G_FLOAT(OFS_RETURN) = true;
+}
+
+/*
+=========
+VM_drawpic
+
+float drawpic( vector pos, string pic, vector size, vector rgb, float alpha )
+=========
+*/
+void VM_drawpic( void )
+{
+	const char	*picname;
+	float		*size, *pos, *rgb, alpha;
+
+	if(!VM_ValidateArgs( "drawpic", 5 ))
+		return;
+
+	picname = PRVM_G_STRING(OFS_PARM1);
+	if(!picname)
+	{
+		VM_Warning( "PF_drawpic: %s passed null picture name!\n", PRVM_NAME );
+		PRVM_G_FLOAT(OFS_RETURN) = false;
+		return;
+	}
+
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM1));
+	pos = PRVM_G_VECTOR(OFS_PARM0);
+	size = PRVM_G_VECTOR(OFS_PARM2);
+	rgb = PRVM_G_VECTOR(OFS_PARM3);
+	alpha = PRVM_G_FLOAT(OFS_PARM4);
+
+	re->SetColor( GetRGBA(rgb[0], rgb[1], rgb[2], alpha ));
+	SCR_DrawPic( pos[0], pos[1], size[0], size[1], (char *)picname );
+	re->SetColor( NULL );
+	PRVM_G_FLOAT(OFS_RETURN) = true;
+}
+
+/*
+=========
+VM_drawfill
+
+void drawfill( vector pos, vector size, vector rgb, float alpha )
+=========
+*/
+void VM_drawfill( void )
+{
+	float	*size, *pos, *rgb, alpha;
+
+	if(!VM_ValidateArgs( "drawfill", 4 ))
+		return;
+
+	pos = PRVM_G_VECTOR(OFS_PARM0);
+	size = PRVM_G_VECTOR(OFS_PARM1);
+	rgb = PRVM_G_VECTOR(OFS_PARM2);
+	alpha = PRVM_G_FLOAT(OFS_PARM3);
+
+	SCR_FillRect( pos[0], pos[1], size[0], size[1], GetRGBA( rgb[0], rgb[1], rgb[2], alpha )); 
+}
+
+/*
+=========
+VM_drawmodel
+
+void drawmodel( vector pos, vector size, string model, vector origin, vector angles, float sequence )
+=========
+*/
+void VM_drawmodel( void )
+{
+	float		*size, *pos, *origin, *angles;
+	const char	*modname;
+	refdef_t		refdef;
+	int		sequence;
+	static float	frame;
+	entity_t		entity;
+
+	if(!VM_ValidateArgs( "drawmodel", 4 ))
+		return;
+
+	pos = PRVM_G_VECTOR(OFS_PARM0);
+	size = PRVM_G_VECTOR(OFS_PARM1);
+	modname = PRVM_G_STRING(OFS_PARM2);
+	origin = PRVM_G_VECTOR(OFS_PARM3);
+	angles = PRVM_G_VECTOR(OFS_PARM4);
+	sequence = (int)PRVM_G_FLOAT(OFS_PARM5);
+
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM2));
+	memset( &entity, 0, sizeof( entity ));
+	memset( &refdef, 0, sizeof( refdef ) );
+
+	SCR_AdjustSize( &pos[0], &pos[1], &size[0], &size[1] );
+	
+	refdef.x = pos[0];
+	refdef.y = pos[1];
+	refdef.width = size[0];
+	refdef.height = size[1];
+	refdef.fov_x = 50;
+	refdef.fov_y = V_CalcFov( refdef.fov_x, refdef.width, refdef.height );
+	refdef.time = cls.realtime;
+
+	entity.model = re->RegisterModel( (char *)modname );
+	entity.flags = RF_FULLBRIGHT;
+	VectorCopy( origin, entity.origin );
+	VectorCopy( entity.origin, entity.oldorigin );
+	VectorCopy( angles, entity.angles );
+	entity.frame = frame += 0.7f;//FXIME
+	entity.sequence = sequence;
+	entity.prev.frame = 0;
+	entity.backlerp = 0.0;
+	entity.controller[0] = 90.0;
+	entity.controller[1] = 90.0;
+	entity.controller[2] = 180.0;
+	entity.controller[3] = 180.0;
+
+	refdef.areabits = 0;
+	refdef.num_entities = 1;
+	refdef.entities = &entity;
+	refdef.lightstyles = 0;
+	refdef.rdflags = RDF_NOWORLDMODEL;
+
+	re->RenderFrame( &refdef );
+	re->EndFrame();
+}
+
+/*
+=========
+VM_getimagesize
+
+vector getimagesize( string pic )
+=========
+*/
+void VM_getimagesize( void )
+{
+	const char	*p;
+	int		w, h;
+
+	if(!VM_ValidateArgs( "getimagesize", 1 ))
+		return;
+
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+	p = PRVM_G_STRING(OFS_PARM0);
+
+	re->DrawGetPicSize( &w, &h, (char *)p);
+	VectorSet(PRVM_G_VECTOR(OFS_RETURN), w, h, 0 ); 
 }
 
 /*
@@ -2115,14 +2350,15 @@ with the archive flag set to true.
 ============
 */
 
-static void Cmd_WriteCvar(const char *name, const char *string, const char *unused, void *f)
+static void Cmd_WriteCvar(const char *name, const char *string, const char *desc, void *f )
 {
+	//if(!desc) return; // ignore fantom cvars
 	FS_Printf(f, "seta %s \"%s\"\n", name, string );
 }
 
 void Cmd_WriteVariables( file_t *f )
 {
-	FS_Printf (f, "unsetall\n" );
+	FS_Printf( f, "unsetall\n" );
 	Cvar_LookupVars( CVAR_ARCHIVE, NULL, f, Cmd_WriteCvar ); 
 }
 

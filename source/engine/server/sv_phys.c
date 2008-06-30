@@ -152,12 +152,12 @@ void SV_CheckVelocity (edict_t *ent)
 	{
 		if (IS_NAN(ent->progs.sv->velocity[i]))
 		{
-			MsgWarn("Got a NaN velocity on %s\n", PRVM_GetString(ent->progs.sv->classname));
+			MsgDev( D_WARN, "Got a NaN velocity on %s\n", PRVM_GetString(ent->progs.sv->classname));
 			ent->progs.sv->velocity[i] = 0;
 		}
 		if (IS_NAN(ent->progs.sv->origin[i]))
 		{
-			MsgWarn("Got a NaN origin on %s\n", PRVM_GetString(ent->progs.sv->classname));
+			MsgDev( D_WARN, "Got a NaN origin on %s\n", PRVM_GetString(ent->progs.sv->classname));
 			ent->progs.sv->origin[i] = 0;
 		}
 	}
@@ -307,7 +307,7 @@ static void SV_CheckStuck (edict_t *ent)
 	VectorCopy (ent->progs.sv->old_origin, ent->progs.sv->origin);
 	if (!SV_TestEntityPosition(ent))
 	{
-		MsgWarn("Unstuck player entity %i (classname \"%s\") by restoring old_origin.\n", (int)PRVM_EDICT_TO_PROG(ent), PRVM_GetString(ent->progs.sv->classname));
+		MsgDev( D_INFO, "Unstuck player entity %i (classname \"%s\") by restoring old_origin.\n", (int)PRVM_EDICT_TO_PROG(ent), PRVM_GetString(ent->progs.sv->classname));
 		SV_LinkEdict (ent);
 		return;
 	}
@@ -321,14 +321,14 @@ static void SV_CheckStuck (edict_t *ent)
 				ent->progs.sv->origin[2] = org[2] + z;
 				if (!SV_TestEntityPosition(ent))
 				{
-					MsgWarn("Unstuck player entity %i (classname \"%s\") with offset %f %f %f.\n", (int)PRVM_EDICT_TO_PROG(ent), PRVM_GetString(ent->progs.sv->classname), (float)i, (float)j, (float)z);
+					MsgDev( D_INFO, "Unstuck player entity %i (classname \"%s\") with offset %f %f %f.\n", (int)PRVM_EDICT_TO_PROG(ent), PRVM_GetString(ent->progs.sv->classname), (float)i, (float)j, (float)z);
 					SV_LinkEdict (ent);
 					return;
 				}
 			}
 
 	VectorCopy (org, ent->progs.sv->origin);
-	MsgWarn("Stuck player entity %i (classname \"%s\").\n", (int)PRVM_EDICT_TO_PROG(ent), PRVM_GetString(ent->progs.sv->classname));
+	MsgDev( D_ERROR, "Stuck player entity %i (classname \"%s\").\n", (int)PRVM_EDICT_TO_PROG(ent), PRVM_GetString(ent->progs.sv->classname));
 }
 
 static void SV_UnstickEntity (edict_t *ent)
@@ -771,18 +771,18 @@ void SV_MovePush(edict_t *pusher, float movetime)
 		SV_LinkEdict(pusher);
 		return;
 	default:
-		MsgWarn("SV_MovePush:"); 
+		MsgDev( D_ERROR, "SV_MovePush:"); 
 		PRVM_ED_Print(pusher);
-		MsgWarn(", have invalid solid type %g\n", pusher->progs.sv->solid );
+		MsgDev( D_ERROR, ", have invalid solid type %g\n", pusher->progs.sv->solid );
 		return;
 	}
 
 	index = (int)pusher->progs.sv->modelindex;
 	if (index < 1 || index >= MAX_MODELS)
 	{
-		MsgWarn("SV_MovePush:"); 
+		MsgDev( D_ERROR, "SV_MovePush:"); 
 		PRVM_ED_Print(pusher);
-		MsgWarn(", has an invalid modelindex %g\n", pusher->progs.sv->modelindex );
+		MsgDev( D_ERROR, ", has an invalid modelindex %g\n", pusher->progs.sv->modelindex );
 		return;
 	}
 	pushermodel = sv.models[index];

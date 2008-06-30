@@ -1040,7 +1040,7 @@ void CM_ModelBounds( cmodel_t *cmod, vec3_t mins, vec3_t maxs )
 	{
 		VectorSet( mins, -32, -32, -32 );
 		VectorSet( maxs,  32,  32,  32 );
-		MsgWarn("can't compute bounding box, use default size\n");
+		MsgDev( D_WARN, "can't compute bounding box, use default size\n");
 	}
 }
 
@@ -1259,7 +1259,7 @@ bool CM_StudioModel( byte *buffer, uint filesize )
 	phdr = (studiohdr_t *)buffer;
 	if( phdr->version != STUDIO_VERSION )
 	{
-		MsgWarn("CM_StudioModel: %s has wrong version number (%i should be %i)", phdr->name, phdr->version, STUDIO_VERSION);
+		MsgDev( D_ERROR, "CM_StudioModel: %s has wrong version number (%i should be %i)", phdr->name, phdr->version, STUDIO_VERSION);
 		return false;
 	}
 
@@ -1285,7 +1285,7 @@ bool CM_SpriteModel( byte *buffer, uint filesize )
 
 	if( phdr->version != SPRITE_VERSION )
 	{
-		MsgWarn("CM_SpriteModel: %s has wrong version number (%i should be %i)\n", loadmodel->name, phdr->version, SPRITE_VERSION );
+		MsgDev( D_ERROR, "CM_SpriteModel: %s has wrong version number (%i should be %i)\n", loadmodel->name, phdr->version, SPRITE_VERSION );
 		return false;
 	}
           
@@ -1346,7 +1346,7 @@ cmodel_t *CM_RegisterModel( const char *name )
 	{
 		if( cm.numcmodels == MAX_MODELS )
 		{
-			MsgWarn("CM_LoadModel: MAX_MODELS limit exceeded\n" );
+			MsgDev( D_ERROR, "CM_LoadModel: MAX_MODELS limit exceeded\n" );
 			return NULL;
 		}
 		cm.numcmodels++;
@@ -1356,7 +1356,7 @@ cmodel_t *CM_RegisterModel( const char *name )
 	buf = FS_LoadFile( name, &size );
 	if(!buf)
 	{
-		MsgWarn("CM_LoadModel: %s not found\n", name );
+		MsgDev( D_ERROR, "CM_LoadModel: %s not found\n", name );
 		memset(mod->name, 0, sizeof(mod->name));
 		return NULL;
 	}

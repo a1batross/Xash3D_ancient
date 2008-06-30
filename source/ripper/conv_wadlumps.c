@@ -19,7 +19,7 @@ rgbdata_t *Conv_FlatImage( const char *name, char *buffer, int filesize )
 
 	if(filesize < (int)sizeof(flat))
 	{
-		MsgWarn("LoadFLAT: file (%s) have invalid size\n", name );
+		MsgDev( D_ERROR, "LoadFLAT: file (%s) have invalid size\n", name );
 		return NULL;
 	}
 
@@ -165,7 +165,7 @@ bool ConvMIP( const char *name, char *buffer, int filesize )
 
 	if (filesize < (int)sizeof(mip))
 	{
-		MsgWarn("LoadMIP: file (%s) have invalid size\n", name );
+		MsgDev( D_ERROR, "LoadMIP: file (%s) have invalid size\n", name );
 		return false;
 	}
 	memset( &pic, 0, sizeof(pic));
@@ -225,7 +225,7 @@ bool ConvMIP( const char *name, char *buffer, int filesize )
 	}
 	else
 	{
-		MsgWarn("LoadMIP: lump (%s) is corrupted\n", savedname );
+		MsgDev( D_ERROR, "LoadMIP: lump (%s) is corrupted\n", savedname );
 		return false;
 	} 
 
@@ -257,7 +257,7 @@ bool ConvLMP( const char *name, char *buffer, int filesize )
 
 	if (filesize < (int)sizeof(lmp))
 	{
-		MsgWarn("LoadLMP: file (%s) have invalid size\n", name );
+		MsgDev( D_ERROR, "LoadLMP: file (%s) have invalid size\n", name );
 		return false;
 	}
 	memset( &pic, 0, sizeof(pic));
@@ -271,7 +271,7 @@ bool ConvLMP( const char *name, char *buffer, int filesize )
 
 	if(filesize < (int)sizeof(lmp) + pixels)
 	{
-		MsgWarn("LoadLMP: file (%s) have invalid size %d\n", name, filesize );
+		MsgDev( D_ERROR, "LoadLMP: file (%s) have invalid size %d\n", name, filesize );
 		return false;
 	}
 
@@ -323,7 +323,7 @@ bool ConvFNT( const char *name, char *buffer, int filesize )
 
 	if(filesize < (int)sizeof(font))
 	{
-		MsgWarn("LoadFNT: file (%s) have invalid size\n", name );
+		MsgDev( D_ERROR, "LoadFNT: file (%s) have invalid size\n", name );
 		return false;
 	}
 	Mem_Copy(&font, buffer, sizeof(font));
@@ -377,7 +377,7 @@ bool ConvFNT( const char *name, char *buffer, int filesize )
 	}
 	else 
 	{
-		MsgWarn("LoadFNT: file (%s) have invalid palette size %d\n", name, numcolors );
+		MsgDev( D_ERROR, "LoadFNT: file (%s) have invalid palette size %d\n", name, numcolors );
 		return false;
 	}
 

@@ -422,7 +422,7 @@ syntax: "blabla"
 */
 void Cmd_MovieUnknown( void )
 {
-	MsgWarn("Cmd_MovieUnknown: bad command %s\n", com_token);
+	MsgDev( D_WARN, "Cmd_MovieUnknown: bad command %s\n", com_token);
 	while(Com_TryToken());
 }
 
@@ -495,7 +495,7 @@ void ROQ_ProcessFrame( int num )
 
 	if(!ROQ_CompressRGB(comp, roqFile, ROQ_MakeUprightRGB( frames->filenames[num], frame )))
 	{
-		MsgWarn("ROQ_CompressRGB: frame encode failed\n");
+		MsgDev( D_ERROR, "ROQ_CompressRGB: frame encode failed\n");
 		return;
 	}
 	Sys_GetKeyEvents(); // update console output

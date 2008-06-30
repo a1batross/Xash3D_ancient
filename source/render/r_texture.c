@@ -311,7 +311,7 @@ void R_InitTextures( void )
 
 	Image->Init( HOST_NORMAL );
 	r_imagepool = Mem_AllocPool("Texture Pool");
-          gl_maxsize = Cvar_Get( "gl_maxsize", "4096", CVAR_ARCHIVE );
+          gl_maxsize = Cvar_Get( "gl_maxsize", "4096", CVAR_ARCHIVE, "texture dimension max size" );
 	
 	qglGetIntegerv(GL_MAX_TEXTURE_SIZE, &texsize); // merge value
 	if( gl_maxsize->integer != texsize ) Cvar_SetValue( "gl_maxsize", texsize );
@@ -319,7 +319,7 @@ void R_InitTextures( void )
 	registration_sequence = 1;
 
 	// init intensity conversions
-	intensity = Cvar_Get ("intensity", "2", 0 );
+	intensity = Cvar_Get ("intensity", "2", 0, "gamma intensity value" );
 	if( intensity->value <= 1 ) Cvar_SetValue( "intensity", 1 );
 	gl_state.inverse_intensity = 1 / intensity->value;
 
@@ -1205,7 +1205,7 @@ image_t *R_LoadImage( char *name, rgbdata_t *pic, imagetype_t type )
 	// check for errors
 	if(!iResult)
 	{
-		MsgWarn("R_LoadImage: can't loading %s with bpp %d\n", name, image_desc.bpp ); 
+		MsgDev( D_ERROR, "R_LoadImage: can't loading %s with bpp %d\n", name, image_desc.bpp ); 
 		return r_notexture;
 	} 
 	return image;

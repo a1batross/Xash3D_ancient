@@ -36,7 +36,7 @@ bool SC_AddScriptToStack(const char *name, byte *buffer, int size)
 {
 	if (script == &scriptstack[MAX_INCLUDES - 1])
 	{
-		MsgWarn("AddScriptToStack: script file limit exceeded %d\n", MAX_INCLUDES );
+		MsgDev( D_ERROR, "AddScriptToStack: script file limit exceeded %d\n", MAX_INCLUDES );
 		return false;
 	}
           if(!buffer || !size) return false;
@@ -199,7 +199,7 @@ skip_whitespace:	// skip whitespace
 		{
 			if (token_p == &token[MAX_SYSPATH - 1])
 			{
-				MsgWarn("GetToken: Token too large on line %i\n",scriptline);
+				MsgDev( D_WARN, "GetToken: Token too large on line %i\n",scriptline);
 				break;
 			}
 			*token_p = c;
@@ -330,7 +330,7 @@ skip_whitespace:	// skip whitespace
 		{
 			if (token_p == &token[MAX_SYSPATH - 1])
 			{
-				MsgWarn("GetToken: Token too large on line %i\n",scriptline);
+				MsgDev( D_WARN, "GetToken: Token too large on line %i\n",scriptline);
 				break;
 			}
 		

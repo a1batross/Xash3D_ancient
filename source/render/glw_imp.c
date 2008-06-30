@@ -164,8 +164,8 @@ bool VID_CreateWindow( int width, int height, bool fullscreen )
 	}
 	else
 	{
-		r_xpos = Cvar_Get ("r_xpos", "3", 0);
-		r_ypos = Cvar_Get ("r_ypos", "22", 0);
+		r_xpos = Cvar_Get ("r_xpos", "3", CVAR_ARCHIVE, "window position by horizontal" );
+		r_ypos = Cvar_Get ("r_ypos", "22", CVAR_ARCHIVE, "window position by vertical" );
 		x = r_xpos->value;
 		y = r_ypos->value;
 	}

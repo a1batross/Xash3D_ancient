@@ -64,7 +64,7 @@ SCR_DrawPic
 Coordinates are 640*480 virtual values
 ================
 */
-void SCR_DrawPic( float x, float y, float width, float height, char *picname )
+void SCR_DrawPic( float x, float y, float width, float height, const char *picname )
 {
 	int	w, h;
 
@@ -317,16 +317,16 @@ void SCR_UpdateScreen( void )
 		SCR_DrawCinematic();
 		break;
 	case ca_disconnected:
-		V_RenderSplash();
+		CL_DrawHUD();
 		break;
 	case ca_connecting:
 	case ca_connected:
-		V_RenderLogo();
+		CL_DrawHUD();
 		break;
 	case ca_active:
 		V_CalcRect();
 		V_RenderView();
-		V_RenderHUD();
+		CL_DrawHUD();
 		break;
 	default:
 		Host_Error("SCR_UpdateScreen: bad cls.state" );
@@ -343,11 +343,11 @@ SCR_Init
 */
 void SCR_Init (void)
 {
-	scr_showpause = Cvar_Get("scr_showpause", "1", 0);
-	scr_centertime = Cvar_Get("scr_centertime", "2.5", 0);
-	scr_printspeed = Cvar_Get("scr_printspeed", "8", 0);
-	cl_levelshot_name = Cvar_Get("cl_levelshot_name", "common/black", 0 );
-	cl_font = Cvar_Get("cl_font", "conchars", CVAR_ARCHIVE );
+	scr_showpause = Cvar_Get("scr_showpause", "1", 0, "show pause picture" );
+	scr_centertime = Cvar_Get("scr_centertime", "2.5", 0, "centerprint hold time" );
+	scr_printspeed = Cvar_Get("scr_printspeed", "8", 0, "centerprint speed of print" );
+	cl_levelshot_name = Cvar_Get("cl_levelshot_name", "common/black", 0, "contains path to current levelshot" );
+	cl_font = Cvar_Get("cl_font", "conchars", CVAR_ARCHIVE, "contains path to current charset" );
 
 	// register our commands
 	Cmd_AddCommand( "timerefresh", SCR_TimeRefresh_f, "turn quickly and print rendering statistcs" );

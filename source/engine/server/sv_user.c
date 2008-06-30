@@ -297,7 +297,7 @@ void SV_BeginDownload_f(void)
 
 	if (!sv_client->download)
 	{
-		MsgWarn("SV_BeginDownload_f: couldn't download %s to %s\n", name, sv_client->name);
+		MsgDev( D_ERROR, "SV_BeginDownload_f: couldn't download %s to %s\n", name, sv_client->name);
 		if (sv_client->download)
 		{
 			sv_client->download = NULL;
@@ -409,7 +409,7 @@ void SV_ClientThink (client_state_t *cl, usercmd_t *cmd)
 
 	if (cl->commandMsec < 0 && sv_enforcetime->value )
 	{
-		MsgWarn("SV_ClientThink: commandMsec underflow from %s\n", cl->name);
+		MsgDev( D_ERROR, "SV_ClientThink: commandMsec underflow from %s\n", cl->name);
 		return;
 	}
 	ClientThink (cl->edict, cmd);
@@ -449,7 +449,7 @@ void SV_ExecuteClientMessage (client_state_t *cl)
 	{
 		if (net_message.readcount > net_message.cursize)
 		{
-			MsgWarn("SV_ReadClientMessage: bad read\n");
+			MsgDev( D_ERROR, "SV_ReadClientMessage: bad read\n");
 			SV_DropClient (cl);
 			return;
 		}	
@@ -460,7 +460,7 @@ void SV_ExecuteClientMessage (client_state_t *cl)
 		switch (c)
 		{
 		default:
-			MsgWarn("SV_ReadClientMessage: unknown command char\n");
+			MsgDev( D_ERROR, "SV_ReadClientMessage: unknown command char\n");
 			SV_DropClient (cl);
 			return;
 					
@@ -504,7 +504,7 @@ void SV_ExecuteClientMessage (client_state_t *cl)
 
 			if (calculatedChecksum != checksum)
 			{
-				MsgWarn("SV_ExecuteClientMessage: failed command checksum for %s (%d != %d)/%d\n", cl->name, calculatedChecksum, checksum,  cl->netchan.incoming_sequence);
+				MsgDev( D_ERROR, "SV_ExecuteClientMessage: failed command checksum for %s (%d != %d)/%d\n", cl->name, calculatedChecksum, checksum,  cl->netchan.incoming_sequence);
 				return;
 			}
 

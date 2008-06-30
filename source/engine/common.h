@@ -172,9 +172,7 @@ typedef struct host_parm_s
 
 	HWND		hWnd;		// main window
 
-	bool		debug;		// show all warnings mode
 	int		developer;	// show all developer's message
-
 	bool		paused;		// freeze server
 	bool		stuffcmdsrun;	// sturtup script
 } host_parm_t;
@@ -333,6 +331,13 @@ void VM_FS_Open( void );
 void VM_FS_Close( void );
 void VM_FS_Gets( void );
 void VM_FS_Puts( void );
+void VM_precache_pic( void );
+void VM_drawcharacter( void );
+void VM_drawstring( void );
+void VM_drawpic( void );
+void VM_drawfill( void );
+void VM_drawmodel( void );
+void VM_getimagesize( void );
 void VM_min( void );
 void VM_max( void );
 void VM_bound( void );

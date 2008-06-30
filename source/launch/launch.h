@@ -131,7 +131,6 @@ void Sys_Break(const char *error, ...);
 void Sys_PrintLog( const char *pMsg );
 void Sys_Print(const char *pMsg);
 void Sys_Msg( const char *pMsg, ... );
-void Sys_MsgWarn( const char *pMsg, ... );
 void Sys_MsgDev( int level, const char *pMsg, ... );
 int Sys_GetThreadWork( void );
 void Sys_ThreadWorkerFunction (int threadnum);
@@ -144,7 +143,6 @@ void Sys_RunThreadsOn (int workcnt, bool showpacifier, void(*func)(int));
 
 #define Msg Sys_Msg
 #define MsgDev Sys_MsgDev
-#define MsgWarn Sys_MsgWarn
 
 // registry common tools
 bool REG_GetValue( HKEY hKey, const char *SubKey, const char *Value, char *pBuffer);

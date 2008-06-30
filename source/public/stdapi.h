@@ -22,7 +22,6 @@ typedef struct stdilib_api_s
 	void (*print)( const char *msg );			// basic text message
 	void (*printf)( const char *msg, ... );			// formatted text message
 	void (*dprintf)( int level, const char *msg, ...);	// developer text message
-	void (*wprintf)( const char *msg, ... );		// warning text message
 	void (*error)( const char *msg, ... );			// abnormal termination with message
 	void (*abort)( const char *msg, ... );			// normal tremination with message
 	void (*exit)( void );				// normal silent termination
@@ -283,7 +282,7 @@ filesystem manager
 console variables
 ===========================================
 */
-#define Cvar_Get(name, value, flags)	com.Cvar_Get(name, value, flags, "no description" ) //FIXME
+#define Cvar_Get			com.Cvar_Get
 #define Cvar_LookupVars		com.Cvar_LookupVars
 #define Cvar_Set			com.Cvar_SetString
 #define Cvar_FullSet		com.Cvar_FullSet
@@ -351,7 +350,6 @@ misc utils
 #define GI			com.GameInfo
 #define Msg			com.printf
 #define MsgDev			com.dprintf
-#define MsgWarn			com.wprintf
 #define Sys_LoadLibrary		com.Com_LoadLibrary
 #define Sys_FreeLibrary		com.Com_FreeLibrary
 #define Sys_GetProcAddress		com.Com_GetProcAddress
@@ -373,7 +371,7 @@ misc utils
 
 /*
 ===========================================
-stdlib functions that not across with win stdlib
+stdlib function names that not across with windows stdlib
 ===========================================
 */
 #define timestamp			com.timestamp

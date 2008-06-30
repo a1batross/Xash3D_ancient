@@ -217,7 +217,7 @@ model_t *Mod_ForName(char *name, bool crash)
 	{
 		if (mod_numknown == MAX_MODELS)
 		{
-			MsgWarn("Mod_ForName: MAX_MODELS limit exceeded\n" );
+			MsgDev( D_ERROR, "Mod_ForName: MAX_MODELS limit exceeded\n" );
 			return NULL;
 		}
 		mod_numknown++;
@@ -950,17 +950,15 @@ Specifies the model that will be used as the world
 void R_BeginRegistration (char *model)
 {
 	char	fullname[MAX_QPATH];
-	cvar_t	*flushmap;
 
 	registration_sequence++;
 	r_oldviewcluster = -1;		// force markleafs
 
-	sprintf (fullname, "maps/%s.bsp", model);
+	com.sprintf (fullname, "maps/%s.bsp", model);
 
 	// explicitly free the old map if different
 	// this guarantees that mod_known[0] is the world map
-	flushmap = Cvar_Get ("flushmap", "0", 0);
-	if(com.strcmp(mod_known[0].name, fullname) || flushmap->value)
+	if(com.strcmp(mod_known[0].name, fullname))
 	{
 		Mod_Free (&mod_known[0]);
 	}

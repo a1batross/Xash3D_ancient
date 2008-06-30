@@ -74,11 +74,11 @@ void CalcTextureReflectivity( void )
 				}
 				break;			
 			default:
-				MsgWarn("Can't calculate reflectivity for %s\n", GetStringFromTable( texinfo[i].texid ));
+				MsgDev( D_WARN, "Can't calculate reflectivity for %s\n", GetStringFromTable( texinfo[i].texid ));
 				break;
 			}
 		}
-		else MsgWarn("Couldn't load %s\n", GetStringFromTable( texinfo[i].texid ));
+		else MsgDev( D_ERROR, "Couldn't load %s\n", GetStringFromTable( texinfo[i].texid ));
 
 		// try also get direct values from shader
 		if(si = FindShader( GetStringFromTable(texinfo[i].texid)))

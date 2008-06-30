@@ -25,7 +25,6 @@ dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, true, siz
 dll_info_t vsound_dll = { "vsound.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vsound_exp_t) };
 
 cvar_t	*timescale;
-cvar_t	*fixedtime;
 cvar_t	*dedicated;
 cvar_t	*host_serverstate;
 cvar_t	*host_frametime;
@@ -95,10 +94,9 @@ void Host_InitCommon( uint funcname, int argc, char **argv )
 	// overload some funcs
 	newcom.error = Host_Error;
 
-	// determine debug and developer mode
-	if(FS_CheckParm ("-debug")) host.debug = true;
+	// check developer mode
 	if(FS_GetParmFromCmdLine("-dev", dev_level ))
-		host.developer = atoi(dev_level);
+		host.developer = com.atoi(dev_level);
 
 	// TODO: init basedir here
 	FS_LoadGameInfo("gameinfo.txt");
@@ -293,9 +291,9 @@ VID_Init
 */
 void VID_Init( void )
 {
-	scr_width = Cvar_Get("width", "640", 0 );
-	scr_height = Cvar_Get("height", "480", 0 );
-	vid_gamma = Cvar_Get( "vid_gamma", "1", CVAR_ARCHIVE );
+	scr_width = Cvar_Get("width", "640", 0, "screen width" );
+	scr_height = Cvar_Get("height", "480", 0, "screen height" );
+	vid_gamma = Cvar_Get( "vid_gamma", "1", CVAR_ARCHIVE, "screen gamma" );
 
 	Cmd_AddCommand ("vid_restart", Host_VidRestart_f, "restarts video system" );
 	Cmd_AddCommand ("snd_restart", Host_SndRestart_f, "restarts audio system" );
@@ -365,9 +363,9 @@ long Host_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 		break;
 	case WM_CREATE:
 		host.hWnd = hWnd;
-		r_xpos = Cvar_Get("r_xpos", "3", CVAR_ARCHIVE );
-		r_ypos = Cvar_Get("r_ypos", "22", CVAR_ARCHIVE );
-		r_fullscreen = Cvar_Get("fullscreen", "0", CVAR_ARCHIVE | CVAR_LATCH );
+		r_xpos = Cvar_Get("r_xpos", "3", CVAR_ARCHIVE, "window position by horizontal" );
+		r_ypos = Cvar_Get("r_ypos", "22", CVAR_ARCHIVE, "window position by vertical" );
+		r_fullscreen = Cvar_Get("fullscreen", "0", CVAR_ARCHIVE | CVAR_LATCH, "set in 1 to enable fullscreen mode" );
 		break;
 	case WM_DESTROY:
 		host.hWnd = NULL;
@@ -564,21 +562,20 @@ void Host_Init (uint funcname, int argc, char **argv)
 	// init commands and vars
 	if(host.developer)
 	{
-		host_cheats = Cvar_Get("host_cheats", "1", CVAR_SYSTEMINFO );
+		host_cheats = Cvar_Get("host_cheats", "1", CVAR_SYSTEMINFO, "allow cheat variables to enable" );
 		Cmd_AddCommand ("error", Host_Error_f, "just throw a fatal error to test shutdown procedures" );
 		Cmd_AddCommand ("crash", Host_Crash_f, "a way to force a bus error for development reasons");
           }
           
-	cm_paused = Cvar_Get("cm_paused", "0", 0 );
-	host_frametime = Cvar_Get ("host_frametime", "0.01", 0);
-	host_serverstate = Cvar_Get ("host_serverstate", "0", 0);
-	timescale = Cvar_Get ("timescale", "1", 0);
-	fixedtime = Cvar_Get ("fixedtime", "0", 0);
-	if(host.type == HOST_DEDICATED) dedicated = Cvar_Get ("dedicated", "1", CVAR_INIT);
-	else dedicated = Cvar_Get ("dedicated", "0", CVAR_INIT);
+	cm_paused = Cvar_Get("cm_paused", "0", 0, "physics module pause" );
+	host_frametime = Cvar_Get ("host_frametime", "0.01", 0, "host frametime" );
+	host_serverstate = Cvar_Get ("host_serverstate", "0", 0, "displays current server state" );
+	timescale = Cvar_Get ("timescale", "1", 0, "physics world timescale" );
+	if(host.type == HOST_DEDICATED) dedicated = Cvar_Get ("dedicated", "1", CVAR_INIT, "currently server is in dedicated mode" );
+	else dedicated = Cvar_Get ("dedicated", "0", CVAR_INIT, "currently server is in shared mode" );
 
 	s = va("^1Xash %g ^3%s", GI->version, buildstring );
-	Cvar_Get ("version", s, CVAR_SERVERINFO|CVAR_INIT );
+	Cvar_Get( "version", s, CVAR_SERVERINFO|CVAR_INIT, "engine current version" );
 
 	if(dedicated->value) Cmd_AddCommand ("quit", Sys_Quit, "quit the game" );
        

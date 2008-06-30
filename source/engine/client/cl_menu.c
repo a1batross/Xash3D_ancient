@@ -155,8 +155,8 @@ void PF_newgame( void )
 	Cvar_SetValue( "paused", 0 );
 	Cvar_SetValue( "coop", 0 );
 
-	Cbuf_AddText("loading; killserver; wait; newgame\n");
 	cls.key_dest = key_game;
+	Cbuf_AddText("loading; killserver; wait; newgame\n");
 }
 
 /*
@@ -257,7 +257,7 @@ void PF_getmapslist( void )
 	// create new maplist if not exist
 	if(!Cmd_CheckMapsList())
 	{
-		MsgWarn("GetMapsList: maps.lst not found\n");
+		MsgDev( D_ERROR, "GetMapsList: maps.lst not found\n");
 		return;
 	}
 
@@ -443,234 +443,6 @@ void PF_loadfromfile( void )
 
 	PRVM_ED_LoadFromFile( data );
 	PRVM_G_FLOAT(OFS_RETURN) = true;
-}
-
-/*
-=========
-PF_precache_pic
-
-float precache_pic( string pic )
-=========
-*/
-void PF_precache_pic( void )
-{
-	if(!VM_ValidateArgs( "precache_pic", 1 ))
-		return;
-
-	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
-	if(re->RegisterPic((char *)PRVM_G_STRING(OFS_PARM0)))
-		PRVM_G_FLOAT(OFS_RETURN) = true;
-	else PRVM_G_FLOAT(OFS_RETURN) = false;
-}
-
-/*
-=========
-PF_drawcharacter
-
-float drawchar( vector pos, float char, vector scale, vector rgb, float alpha )
-=========
-*/
-void PF_drawcharacter( void )
-{
-	char	character;
-	float	*pos, *rgb, *scale, alpha;
-
-	if(!VM_ValidateArgs( "drawchar", 5 ))
-		return;
-
-	character = (char)PRVM_G_FLOAT(OFS_PARM1);
-	if( character == 0 )
-	{
-		PRVM_G_FLOAT(OFS_RETURN) = false;
-		VM_Warning( "PF_drawcharacter: %s passed null character!\n", PRVM_NAME );
-		return;
-	}
-
-	pos = PRVM_G_VECTOR(OFS_PARM0);
-	scale = PRVM_G_VECTOR(OFS_PARM2);
-	rgb = PRVM_G_VECTOR(OFS_PARM3);
-	alpha = PRVM_G_FLOAT(OFS_PARM4);
-
-	re->SetColor( GetRGBA(rgb[0], rgb[1], rgb[2], alpha ));
-	SCR_DrawChar( pos[0], pos[1], scale[0], scale[1], character );
-	re->SetColor( NULL );
-	PRVM_G_FLOAT(OFS_RETURN) = true;
-}
-
-/*
-=========
-PF_drawstring
-
-float drawstring( vector pos, string text, vector scale, vector rgb, float alpha )
-=========
-*/
-void PF_drawstring( void )
-{
-	float		*pos, *scale, *rgb, *rgba, alpha;
-	const char	*string;
-
-	if(!VM_ValidateArgs( "drawstring", 5 ))
-		return;
-
-	string = PRVM_G_STRING(OFS_PARM1);
-	if( !string )
-	{
-		PRVM_G_FLOAT(OFS_RETURN) = false;
-		VM_Warning( "PF_drawstring: %s passed null string!\n", PRVM_NAME );
-		return;
-	}
-
-	pos = PRVM_G_VECTOR(OFS_PARM0);
-	scale = PRVM_G_VECTOR(OFS_PARM2);
-	rgb = PRVM_G_VECTOR(OFS_PARM3);
-	alpha = PRVM_G_FLOAT(OFS_PARM4);
-	rgba = GetRGBA(rgb[0], rgb[1], rgb[2], alpha );
-
-	SCR_DrawStringExt( pos[0], pos[1], scale[0], scale[1], string, rgba, true ); 
-	PRVM_G_FLOAT(OFS_RETURN) = true;
-}
-
-/*
-=========
-PF_drawpic
-
-float drawpic( vector pos, string pic, vector size, vector rgb, float alpha )
-=========
-*/
-void PF_drawpic( void )
-{
-	const char	*picname;
-	float		*size, *pos, *rgb, alpha;
-
-	if(!VM_ValidateArgs( "drawpic", 5 ))
-		return;
-
-	picname = PRVM_G_STRING(OFS_PARM1);
-	if(!picname)
-	{
-		VM_Warning( "PF_drawpic: %s passed null picture name!\n", PRVM_NAME );
-		PRVM_G_FLOAT(OFS_RETURN) = false;
-		return;
-	}
-
-	VM_ValidateString(PRVM_G_STRING(OFS_PARM1));
-	pos = PRVM_G_VECTOR(OFS_PARM0);
-	size = PRVM_G_VECTOR(OFS_PARM2);
-	rgb = PRVM_G_VECTOR(OFS_PARM3);
-	alpha = PRVM_G_FLOAT(OFS_PARM4);
-
-	re->SetColor( GetRGBA(rgb[0], rgb[1], rgb[2], alpha ));
-	SCR_DrawPic( pos[0], pos[1], size[0], size[1], (char *)picname );
-	re->SetColor( NULL );
-	PRVM_G_FLOAT(OFS_RETURN) = true;
-}
-
-/*
-=========
-PF_drawfill
-
-void drawfill( vector pos, vector size, vector rgb, float alpha )
-=========
-*/
-void PF_drawfill( void )
-{
-	float	*size, *pos, *rgb, alpha;
-
-	if(!VM_ValidateArgs( "drawfill", 4 ))
-		return;
-
-	pos = PRVM_G_VECTOR(OFS_PARM0);
-	size = PRVM_G_VECTOR(OFS_PARM1);
-	rgb = PRVM_G_VECTOR(OFS_PARM2);
-	alpha = PRVM_G_FLOAT(OFS_PARM3);
-
-	SCR_FillRect( pos[0], pos[1], size[0], size[1], GetRGBA( rgb[0], rgb[1], rgb[2], alpha )); 
-}
-
-/*
-=========
-PF_drawmodel
-
-void drawmodel( vector pos, vector size, string model, vector origin, vector angles, float sequence )
-=========
-*/
-void PF_drawmodel( void )
-{
-	float		*size, *pos, *origin, *angles;
-	const char	*modname;
-	refdef_t		refdef;
-	int		sequence;
-	static float	frame;
-	entity_t		entity;
-
-	if(!VM_ValidateArgs( "drawmodel", 4 ))
-		return;
-
-	pos = PRVM_G_VECTOR(OFS_PARM0);
-	size = PRVM_G_VECTOR(OFS_PARM1);
-	modname = PRVM_G_STRING(OFS_PARM2);
-	origin = PRVM_G_VECTOR(OFS_PARM3);
-	angles = PRVM_G_VECTOR(OFS_PARM4);
-	sequence = (int)PRVM_G_FLOAT(OFS_PARM5);
-
-	VM_ValidateString(PRVM_G_STRING(OFS_PARM2));
-	memset( &entity, 0, sizeof( entity ));
-	memset( &refdef, 0, sizeof( refdef ) );
-
-	SCR_AdjustSize( &pos[0], &pos[1], &size[0], &size[1] );
-	
-	refdef.x = pos[0];
-	refdef.y = pos[1];
-	refdef.width = size[0];
-	refdef.height = size[1];
-	refdef.fov_x = 50;
-	refdef.fov_y = V_CalcFov( refdef.fov_x, refdef.width, refdef.height );
-	refdef.time = cls.realtime;
-
-	entity.model = re->RegisterModel( (char *)modname );
-	entity.flags = RF_FULLBRIGHT;
-	VectorCopy( origin, entity.origin );
-	VectorCopy( entity.origin, entity.oldorigin );
-	VectorCopy( angles, entity.angles );
-	entity.frame = frame += 0.7f;//FXIME
-	entity.sequence = sequence;
-	entity.prev.frame = 0;
-	entity.backlerp = 0.0;
-	entity.controller[0] = 90.0;
-	entity.controller[1] = 90.0;
-	entity.controller[2] = 180.0;
-	entity.controller[3] = 180.0;
-
-	refdef.areabits = 0;
-	refdef.num_entities = 1;
-	refdef.entities = &entity;
-	refdef.lightstyles = 0;
-	refdef.rdflags = RDF_NOWORLDMODEL;
-
-	re->RenderFrame( &refdef );
-	re->EndFrame();
-}
-
-/*
-=========
-PF_getimagesize
-
-vector getimagesize( string pic )
-=========
-*/
-void PF_getimagesize( void )
-{
-	const char	*p;
-	int		w, h;
-
-	if(!VM_ValidateArgs( "getimagesize", 1 ))
-		return;
-
-	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
-	p = PRVM_G_STRING(OFS_PARM0);
-
-	re->DrawGetPicSize( &w, &h, (char *)p);
-	VectorSet(PRVM_G_VECTOR(OFS_RETURN), w, h, 0 ); 
 }
 
 /*
@@ -986,13 +758,13 @@ PF_localsound,			// #106 void localsound( string sample )
 PF_getmousepos,			// #107 vector getmousepos( void )
 PF_loadfromdata,			// #108 void loadfromdata( string data )
 PF_loadfromfile,			// #109 float loadfromfile( string file )
-PF_precache_pic,			// #110 float precache_pic( string pic )
-PF_drawcharacter,			// #111 float drawchar( vector pos, float char, vector scale, vector rgb, float alpha )
-PF_drawstring,			// #112 float drawstring( vector pos, string text, vector scale, vector rgb, float alpha )
-PF_drawpic,			// #113 float drawpic( vector pos, string pic, vector size, vector rgb, float alpha )
-PF_drawfill,			// #114 void drawfill( vector pos, vector size, vector rgb, float alpha )
-PF_drawmodel,			// #115 void drawmodel( vector pos, vector size, string model, vector origin, vector angles, float sequence )
-PF_getimagesize,			// #116 vector getimagesize( string pic )
+VM_precache_pic,			// #110 float precache_pic( string pic )
+VM_drawcharacter,			// #111 float drawchar( vector pos, float char, vector scale, vector rgb, float alpha )
+VM_drawstring,			// #112 float drawstring( vector pos, string text, vector scale, vector rgb, float alpha )
+VM_drawpic,			// #113 float drawpic( vector pos, string pic, vector size, vector rgb, float alpha )
+VM_drawfill,			// #114 void drawfill( vector pos, vector size, vector rgb, float alpha )
+VM_drawmodel,			// #115 void drawmodel( vector pos, vector size, string model, vector origin, vector angles, float sequence )
+VM_getimagesize,			// #116 vector getimagesize( string pic )
 PF_setkeydest,			// #117 void setkeydest( float dest )
 PF_callfunction,			// #118 void callfunction( ..., string function_name )
 PF_testfunction,			// #119 float testfunction( string function_name )

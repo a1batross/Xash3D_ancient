@@ -29,7 +29,7 @@ image_t	*draw_chars;
 Draw_FindPic
 =============
 */
-image_t *Draw_FindPic( char *name )
+image_t *Draw_FindPic( const char *name )
 {
 	string	fullname;
 	byte	*buffer = NULL;
@@ -110,7 +110,7 @@ void Draw_Char (float x, float y, int num)
 Draw_GetPicSize
 =============
 */
-void Draw_GetPicSize (int *w, int *h, char *pic)
+void Draw_GetPicSize (int *w, int *h, const char *pic)
 {
 	image_t *gl;
 
@@ -129,7 +129,7 @@ void Draw_GetPicSize (int *w, int *h, char *pic)
 Draw_StretchPic
 =============
 */
-void Draw_StretchPic (float x, float y, float w, float h, float s1, float t1, float s2, float t2, char *pic)
+void Draw_StretchPic (float x, float y, float w, float h, float s1, float t1, float s2, float t2, const char *pic)
 {
 	image_t *gl;
 
@@ -175,7 +175,7 @@ void Draw_StretchPic (float x, float y, float w, float h, float s1, float t1, fl
 Draw_Pic
 =============
 */
-void Draw_Pic (int x, int y, char *pic)
+void Draw_Pic (int x, int y, const char *pic)
 {
 	image_t *gl;
 

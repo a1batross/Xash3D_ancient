@@ -1141,7 +1141,7 @@ void Key_Event(int key, bool down, uint time)
 			UI_KeyEvent( key );
 			break;
 		default:
-			MsgWarn("Key_Event: bad cls.key_dest\n");
+			MsgDev( D_ERROR, "Key_Event: bad cls.key_dest\n");
 			break;
 		}
 		return;

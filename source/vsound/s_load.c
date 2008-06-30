@@ -594,7 +594,7 @@ sfx_t *S_FindSound( const char *name )
 	{
 		if( s_numSfx == MAX_SFX )
 		{
-			MsgWarn("S_FindName: MAX_SFX limit exceeded\n" );
+			MsgDev( D_ERROR, "S_FindName: MAX_SFX limit exceeded\n" );
 			return NULL;
 		}
 		s_numSfx++;
@@ -676,7 +676,7 @@ sfx_t *S_GetSfxByHandle( sound_t handle )
 {
 	if( handle < 0 || handle >= s_numSfx )
 	{
-		MsgWarn("S_GetSfxByHandle: handle %i out of range (%i)\n", handle, s_numSfx );
+		MsgDev( D_ERROR, "S_GetSfxByHandle: handle %i out of range (%i)\n", handle, s_numSfx );
 		return NULL;
 	}
 	return &s_knownSfx[handle];

@@ -566,12 +566,12 @@ void V_Init (void)
 
 	Cmd_AddCommand ("viewpos", V_Viewpos_f, "prints current player origin" );
 
-	crosshair = Cvar_Get ("crosshair", "0", CVAR_ARCHIVE);
+	crosshair = Cvar_Get ("crosshair", "0", CVAR_ARCHIVE, "crosshair style" );
 
-	cl_testblend = Cvar_Get ("cl_testblend", "0", 0);
-	cl_testparticles = Cvar_Get ("cl_testparticles", "0", 0);
-	cl_testentities = Cvar_Get ("cl_testentities", "0", 0);
-	cl_testlights = Cvar_Get ("cl_testlights", "0", 0);
+	cl_testblend = Cvar_Get ("cl_testblend", "0", 0, "test blending" );
+	cl_testparticles = Cvar_Get ("cl_testparticles", "0", 0, "test particle engine" );
+	cl_testentities = Cvar_Get ("cl_testentities", "0", 0, "test client entities" );
+	cl_testlights = Cvar_Get ("cl_testlights", "0", 0, "test dynamic lights" );
 
-	cl_stats = Cvar_Get ("cl_stats", "0", 0);
+	cl_stats = Cvar_Get ("cl_stats", "0", 0, "enable client stats" );
 }

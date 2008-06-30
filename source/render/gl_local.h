@@ -359,9 +359,9 @@ char	*va(char *format, ...);
 void COM_StripExtension (char *in, char *out);
 void COM_FileBase (char *in, char *out);
 
-void	Draw_GetPicSize (int *w, int *h, char *name);
-void	Draw_Pic (int x, int y, char *name);
-void	Draw_StretchPic(float x, float y, float w, float h, float s1, float t1, float s2, float t2, char *pic);
+void	Draw_GetPicSize( int *w, int *h, const char *name );
+void	Draw_Pic (int x, int y, const char *name);
+void	Draw_StretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, const char *pic );
 void	Draw_Char (float x, float y, int c);
 void	Draw_String (int x, int y, char *str);
 void	Draw_TileClear (int x, int y, int w, int h, char *name);

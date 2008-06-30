@@ -6,6 +6,7 @@
 #include "mdllib.h"
 
 bool		cdset;
+bool		ignore_errors;
 
 byte		*studiopool;
 byte		*pData;
@@ -731,7 +732,7 @@ void SimplifyModel (void)
 
 					if (n != m)
 					{
-						MsgWarn("SimplifyModel: illegal parent bone replacement in model \"%s\"\n\t\"%s\" has \"%s\", previously was \"%s\"\n", model[i]->name, model[i]->node[j].name, (n != -1) ? bonetable[n].name : "ROOT", (m != -1) ? bonetable[m].name : "ROOT" );
+						MsgDev( D_ERROR, "SimplifyModel: illegal parent bone replacement in model \"%s\"\n\t\"%s\" has \"%s\", previously was \"%s\"\n", model[i]->name, model[i]->node[j].name, (n != -1) ? bonetable[n].name : "ROOT", (m != -1) ? bonetable[m].name : "ROOT" );
 						iError++;
 					}
 				}
@@ -742,9 +743,9 @@ void SimplifyModel (void)
 		}
 	}
 
-	//handle errors
-	if (iError && !(host_debug)) Sys_Break("Unexpected errors, stop compilation\nRun with parm \"-debug\" to avoid this");
-	if (numbones >= MAXSTUDIOBONES) Sys_Break( "Too many bones in model: used %d, max %d\n", numbones, MAXSTUDIOBONES );
+	// handle errors
+	if( iError && !ignore_errors ) Sys_Break("Unexpected errors, compilation aborted\n");
+	if( numbones >= MAXSTUDIOBONES ) Sys_Break( "Too many bones in model: used %d, max %d\n", numbones, MAXSTUDIOBONES );
 
 	// rename sequence bones if needed
 	for (i = 0; i < numseq; i++)
@@ -782,7 +783,7 @@ void SimplifyModel (void)
 
 				if (strcmp(szAnim, szNode))
 				{
-					MsgWarn("SimplifyModel: illegal parent bone replacement in sequence \"%s\"\n\t\"%s\" has \"%s\", reference has \"%s\"\n", sequence[i].name, sequence[i].panim[0]->node[j].name, szAnim, szNode );
+					MsgDev( D_ERROR, "SimplifyModel: illegal parent bone replacement in sequence \"%s\"\n\t\"%s\" has \"%s\", reference has \"%s\"\n", sequence[i].name, sequence[i].panim[0]->node[j].name, szAnim, szNode );
 					iError++;
 				}
 				sequence[i].panim[0]->bonemap[j] = k;
@@ -792,7 +793,7 @@ void SimplifyModel (void)
 	}
 	
 	//handle errors
-	if (iError && !(host_debug)) Sys_Break("unexpected errors, stop compilation\nRun with parm \"-debug\" to avoid this");
+	if( iError && !ignore_errors ) Sys_Break("unexpected errors, compilation aborted\n" );
 
 	// link bonecontrollers
 	for (i = 0; i < numbonecontrollers; i++)
@@ -804,7 +805,7 @@ void SimplifyModel (void)
 		}
 		if (j >= numbones)
 		{
-			MsgWarn("SimplifyModel: unknown bonecontroller link '%s'\n", bonecontroller[i].name );
+			MsgDev( D_WARN, "SimplifyModel: unknown bonecontroller link '%s'\n", bonecontroller[i].name );
 			j = numbones - 1;	
 		}
 		bonecontroller[i].bone = j;
@@ -820,7 +821,7 @@ void SimplifyModel (void)
 		}
 		if (j >= numbones)
 		{
-			MsgWarn("SimplifyModel: unknown attachment link '%s'\n", attachment[i].bonename );
+			MsgDev( D_WARN, "SimplifyModel: unknown attachment link '%s'\n", attachment[i].bonename );
 			j = numbones - 1;
 		}
 		attachment[i].bone = j;
@@ -847,7 +848,7 @@ void SimplifyModel (void)
 		}
 		if (k >= numbones)
 		{
-			MsgWarn( "SimplifyModel: cannot find bone %s for hitgroup %d\n", hitgroup[j].name, hitgroup[j].group );
+			MsgDev( D_WARN, "SimplifyModel: cannot find bone %s for hitgroup %d\n", hitgroup[j].name, hitgroup[j].group );
 			continue;
 		}
 	}
@@ -936,7 +937,7 @@ void SimplifyModel (void)
 			}
 			if (k >= numbones) 
 			{
-				MsgWarn("SimplifyModel: cannot find bone %s for bbox\n", hitbox[j].name );
+				MsgDev( D_WARN, "SimplifyModel: cannot find bone %s for bbox\n", hitbox[j].name );
 				continue;
 			}
 		}
@@ -1371,10 +1372,10 @@ void Grab_Triangles( s_model_t *pmodel )
 					break;
 				}
 			}
-			if (strlen(texturename) < 5)//invalid name
+			if(com.strlen(texturename) < 5)//invalid name
 			{
 				// weird model problem, skip them
-				MsgWarn("Grab_Triangles: triangle with invalid texname\n");
+				MsgDev( D_ERROR, "Grab_Triangles: triangle with invalid texname\n" );
 				for(i = 0; i < 3; i++)
 				{
 					if(!Com_GetToken( true ))
@@ -1454,7 +1455,7 @@ void Grab_Triangles( s_model_t *pmodel )
 			tcount++;
 		}
 	}
-	if (vmin[2] != 0.0) MsgWarn("Grab_Triangles: lowest vector at %f\n", vmin[2] );
+	if (vmin[2] != 0.0) MsgDev( D_NOTE, "Grab_Triangles: lowest vector at %f\n", vmin[2] );
 }
 
 void Grab_Skeleton( s_node_t *pnodes, s_bone_t *pbones )
@@ -1472,7 +1473,7 @@ void Grab_Skeleton( s_node_t *pnodes, s_bone_t *pbones )
 		{
 			//check time
 			time += atoi(Com_GetToken( false ));
-			if(time > 0) MsgWarn("Grab_Skeleton: Warning! An animation file is probably used as a reference\n"); 
+			if(time > 0) MsgDev( D_WARN, "Grab_Skeleton: Warning! An animation file is probably used as a reference\n"); 
 			continue;
 		}
                     else
@@ -1551,7 +1552,7 @@ void Grab_Studio ( s_model_t *pmodel )
 		if (Com_MatchToken( "version" ))
 		{
 			int option = atoi(Com_GetToken( false ));
-			if (option != 1) MsgWarn("Grab_Studio: %s bad version file\n", filename );
+			if (option != 1) MsgDev( D_ERROR, "Grab_Studio: %s bad version file\n", filename );
 		}
 		else if (Com_MatchToken( "nodes" ))
 		{
@@ -1565,7 +1566,7 @@ void Grab_Studio ( s_model_t *pmodel )
 		{
 			Grab_Triangles( pmodel );
 		}
-		else MsgWarn("Grab_Studio: unknown studio command %s at line %d\n", com_token, linecount );
+		else MsgDev( D_WARN, "Grab_Studio: unknown studio command %s at line %d\n", com_token, linecount );
 	}
 }
 
@@ -1830,8 +1831,8 @@ void Option_Animation ( char *name, s_animation_t *panim )
 		}
 		else 
 		{
-			MsgWarn("Option_Animation: unknown studio command : %s\n", com_token );
-			while(Com_TryToken());//skip other tokens at line
+			MsgDev( D_WARN, "Option_Animation: unknown studio command : %s\n", com_token );
+			while(Com_TryToken()); // skip other tokens at line
 		}
 	}
 }
@@ -1842,11 +1843,11 @@ int Option_Motion ( s_sequence_t *psequence )
 	return 0;
 }
 
-int Option_Event ( s_sequence_t *psequence )
+int Option_Event( s_sequence_t *psequence )
 {
 	if (psequence->numevents + 1 >= MAXSTUDIOEVENTS)
 	{
-		MsgWarn("Option_Event: MAXSTUDIOEVENTS limit excedeed.\n");
+		MsgDev( D_ERROR, "Option_Event: MAXSTUDIOEVENTS limit excedeed.\n");
 		return 0;
 	}
 
@@ -2064,7 +2065,7 @@ static int Cmd_Sequence( void )
 
 	if (numblends == 0) 
 	{
-		MsgWarn("Cmd_Sequence: \"%s\" has no animations. skipped...\n", sequence[numseq].name);
+		MsgDev( D_INFO, "Cmd_Sequence: \"%s\" has no animations. skipped...\n", sequence[numseq].name);
 		return 0;
 	}
 	for (i = 0; i < numblends; i++)
@@ -2128,22 +2129,22 @@ Cmd_Controller
 syntax: $controller "mouth"|<number> ("name") <type> <start> <end>
 ==============
 */
-int Cmd_Controller (void)
+int Cmd_Controller( void )
 {
 	if (Com_GetToken (false))
 	{
 		//mouth is hardcoded at four controller
 		if (Com_MatchToken( "mouth" )) bonecontroller[numbonecontrollers].index = 4;
-		else bonecontroller[numbonecontrollers].index = atoi(com_token);
+		else bonecontroller[numbonecontrollers].index = com.atoi(com_token);
 
 		if (Com_GetToken(false))
 		{
-			strncpy( bonecontroller[numbonecontrollers].name, com_token, sizeof(bonecontroller[numbonecontrollers].name));
+			com.strncpy( bonecontroller[numbonecontrollers].name, com_token, sizeof(bonecontroller[numbonecontrollers].name));
 
 			Com_GetToken(false);
 			if ((bonecontroller[numbonecontrollers].type = lookupControl(com_token)) == -1) 
 			{
-				MsgWarn("Cmd_Controller: unknown bonecontroller type '%s'\n", com_token );
+				MsgDev( D_ERROR, "Cmd_Controller: unknown bonecontroller type '%s'\n", com_token );
 				return 0;
 			}
 
@@ -2241,7 +2242,7 @@ int Cmd_TextureGroup( void )
 
 	if (numtextures == 0) 
 	{
-		MsgWarn("Cmd_TextureGroup: texturegroups must follow model loading\n");
+		MsgDev( D_ERROR, "Cmd_TextureGroup: texturegroups must follow model loading\n");
 		return 0;
 	}
           
@@ -2252,7 +2253,7 @@ int Cmd_TextureGroup( void )
 	{
 		if(!Com_GetToken(true))
 		{
-                              if (depth)MsgWarn("missing }\n");
+                              if (depth)MsgDev( D_ERROR, "missing }\n");
 			break;
                     }
 
@@ -2383,7 +2384,7 @@ void Cmd_TexRenderMode( void )
 	{
 		texture[lookup_texture(tex_name)].flags |= STUDIO_NF_BLENDED;
 	}
-	else MsgWarn("Cmd_TexRenderMode: texture '%s' have unknown render mode '%s'!\n", tex_name, com_token);
+	else MsgDev( D_WARN, "Cmd_TexRenderMode: texture '%s' have unknown render mode '%s'!\n", tex_name, com_token);
 
 }
 
@@ -2435,6 +2436,18 @@ void Cmd_CdTextureSet( void )
 	else Msg("Warning: $cdtexture already set\n");
 }
 
+/*
+==============
+Cmd_DebugBuild
+
+syntax: $debug
+==============
+*/
+void Cmd_DebugBuild( void )
+{
+	ignore_errors = true;
+}
+
 void ResetModelInfo( void )
 {
 	default_scale = 1.0;
@@ -2466,7 +2479,7 @@ syntax: "blabla"
 */
 void Cmd_StudioUnknown( void )
 {
-	MsgWarn("Cmd_StudioUnknown: skip command \"%s\"\n", com_token);
+	MsgDev( D_WARN, "Cmd_StudioUnknown: skip command \"%s\"\n", com_token);
 	while(Com_TryToken());
 }
 
@@ -2480,6 +2493,7 @@ bool ParseModelScript (void)
 
 		if (Com_MatchToken("$modelname")) Cmd_Modelname ();
 		else if (Com_MatchToken("$cd")) Cmd_CdSet();
+		else if (Com_MatchToken("$debug")) Cmd_DebugBuild();
 		else if (Com_MatchToken("$cdtexture")) Cmd_CdTextureSet();
 		else if (Com_MatchToken("$scale")) Cmd_ScaleUp ();
 		else if (Com_MatchToken("$rotate")) Cmd_Rotate();
@@ -2549,6 +2563,7 @@ void ClearModel( void )
 {
 	cdset = false;
 	cdtextureset = 0;
+	ignore_errors = false;
 
 	numrep = gflags = numseq = nummirrored = 0;
 	numxnodes = numrenamedbones = totalframes = numbones = numhitboxes = 0;
@@ -2560,7 +2575,7 @@ void ClearModel( void )
 	memset(numtexturelayers, 0, sizeof(int) * 32);
 	memset(numtexturereps, 0, sizeof(int) * 32);
 	memset(bodypart, 0, sizeof(s_bodypart_t) * MAXSTUDIOBODYPARTS);
-	Mem_EmptyPool( studiopool );	//free all memory
+	Mem_EmptyPool( studiopool );	// free all memory
 }
 
 bool CompileCurrentModel( const char *name )

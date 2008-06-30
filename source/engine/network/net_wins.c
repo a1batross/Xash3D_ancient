@@ -412,7 +412,7 @@ bool	NET_GetPacket (netsrc_t sock, netadr_t *net_from, sizebuf_t *net_message)
 				continue;
 			if (err == WSAEMSGSIZE)
 			{
-				MsgWarn("NET_GetPacket: Oversize packet from %s\n", NET_AdrToString(*net_from));
+				MsgDev( D_ERROR, "NET_GetPacket: Oversize packet from %s\n", NET_AdrToString(*net_from));
 				continue;
 			}
 
@@ -471,7 +471,7 @@ void NET_SendPacket (netsrc_t sock, int length, void *data, netadr_t to)
 	}
 	else
 	{
-		MsgWarn("NET_SendPacket: bad address type\n");
+		MsgDev( D_ERROR, "NET_SendPacket: bad address type\n");
 		return;
 	}
 
@@ -498,7 +498,7 @@ void NET_SendPacket (netsrc_t sock, int length, void *data, netadr_t to)
 		{
 			if (err == WSAEADDRNOTAVAIL)
 			{
-				MsgWarn("NET_SendPacket: %s : %s\n", NET_ErrorString(), NET_AdrToString (to));
+				MsgDev( D_ERROR, "NET_SendPacket: %s : %s\n", NET_ErrorString(), NET_AdrToString (to));
 			}
 			else
 			{
@@ -581,19 +581,19 @@ void NET_OpenIP (void)
 	int		port;
 	int		dedicated;
 
-	ip = Cvar_Get ("ip", "localhost", CVAR_INIT);
+	ip = Cvar_Get ("ip", "localhost", CVAR_INIT, "network ip address" );
 
 	dedicated = Cvar_VariableValue ("dedicated");
 
 	if (!ip_sockets[NS_SERVER])
 	{
-		port = Cvar_Get("ip_hostport", "0", CVAR_INIT)->value;
+		port = Cvar_Get("ip_hostport", "0", CVAR_INIT, "no description" )->value;
 		if (!port)
 		{
-			port = Cvar_Get("hostport", "0", CVAR_INIT)->value;
+			port = Cvar_Get("hostport", "0", CVAR_INIT, "no description" )->value;
 			if (!port)
 			{
-				port = Cvar_Get("port", va("%i", PORT_SERVER), CVAR_INIT)->value;
+				port = Cvar_Get("port", va("%i", PORT_SERVER), CVAR_INIT, "no description" )->value;
 			}
 		}
 		ip_sockets[NS_SERVER] = NET_IPSocket (ip->string, port);
@@ -606,10 +606,10 @@ void NET_OpenIP (void)
 
 	if (!ip_sockets[NS_CLIENT])
 	{
-		port = Cvar_Get("ip_clientport", "0", CVAR_INIT)->value;
+		port = Cvar_Get("ip_clientport", "0", CVAR_INIT, "no description" )->value;
 		if (!port)
 		{
-			port = Cvar_Get("clientport", va("%i", PORT_CLIENT), CVAR_INIT)->value;
+			port = Cvar_Get("clientport", va("%i", PORT_CLIENT), CVAR_INIT, "no description" )->value;
 			if (!port)
 				port = PORT_ANY;
 		}
@@ -687,13 +687,13 @@ void NET_OpenIPX (void)
 
 	if (!ipx_sockets[NS_SERVER])
 	{
-		port = Cvar_Get("ipx_hostport", "0", CVAR_INIT)->value;
+		port = Cvar_Get("ipx_hostport", "0", CVAR_INIT, "no description" )->value;
 		if (!port)
 		{
-			port = Cvar_Get("hostport", "0", CVAR_INIT)->value;
+			port = Cvar_Get("hostport", "0", CVAR_INIT, "no description" )->value;
 			if (!port)
 			{
-				port = Cvar_Get("port", va("%i", PORT_SERVER), CVAR_INIT)->value;
+				port = Cvar_Get("port", va("%i", PORT_SERVER ), CVAR_INIT, "no description" )->value;
 			}
 		}
 		ipx_sockets[NS_SERVER] = NET_IPXSocket (port);
@@ -705,10 +705,10 @@ void NET_OpenIPX (void)
 
 	if (!ipx_sockets[NS_CLIENT])
 	{
-		port = Cvar_Get("ipx_clientport", "0", CVAR_INIT)->value;
+		port = Cvar_Get("ipx_clientport", "0", CVAR_INIT, "no description" )->value;
 		if (!port)
 		{
-			port = Cvar_Get("clientport", va("%i", PORT_CLIENT), CVAR_INIT)->value;
+			port = Cvar_Get("clientport", va("%i", PORT_CLIENT), CVAR_INIT, "no description" )->value;
 			if (!port)
 				port = PORT_ANY;
 		}
@@ -810,10 +810,10 @@ void NET_Init (void)
 
 	MsgDev(D_NOTE, "NET_Init()\n");
 
-	noudp = Cvar_Get ("noudp", "0", CVAR_INIT);
-	noipx = Cvar_Get ("noipx", "0", CVAR_INIT);
+	noudp = Cvar_Get ("noudp", "0", CVAR_INIT, "no description" );
+	noipx = Cvar_Get ("noipx", "0", CVAR_INIT, "no description" );
 
-	net_shownet = Cvar_Get ("net_shownet", "0", 0);
+	net_shownet = Cvar_Get ("net_shownet", "0", 0, "show network status" );
 }
 
 

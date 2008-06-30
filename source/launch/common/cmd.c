@@ -113,7 +113,7 @@ void Cbuf_ExecuteText (int exec_when, const char *text)
 		Cbuf_AddText (text);
 		break;
 	default:
-		MsgWarn("Cbuf_ExecuteText: bad execute target\n");
+		MsgDev( D_ERROR, "Cbuf_ExecuteText: bad execute target\n");
 		break;
 	}
 }
@@ -275,7 +275,7 @@ void Cmd_Exec_f (void)
 	f = FS_LoadFile(rcpath, &len );
 	if (!f)
 	{
-		MsgWarn("couldn't exec %s\n", Cmd_Argv(1));
+		MsgDev( D_WARN, "couldn't exec %s\n", Cmd_Argv(1));
 		return;
 	}
 	MsgDev(D_INFO, "execing %s\n",Cmd_Argv(1));
@@ -296,7 +296,7 @@ void Cmd_SystemCfg_f( void )
 	f = FS_LoadFile( "system.rc", &len );
 	if (!f)
 	{
-		MsgWarn("couldn't exec system.rc\n" );
+		MsgDev( D_WARN, "couldn't exec system.rc\n" );
 		return;
 	}
 	MsgDev(D_INFO, "execing system.rc\n" );

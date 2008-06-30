@@ -186,7 +186,7 @@ void ClusterMerge (int leafnum)
 	numvis = LeafVectorFromPortalVector(portalvector, uncompressed);
 
 	if (uncompressed[leafnum>>3] & (1<<(leafnum&7)))
-		MsgWarn("Leaf portals saw into leaf\n");
+		MsgDev( D_WARN, "Leaf portals saw into leaf\n");
 		
 	uncompressed[leafnum>>3] |= (1<<(leafnum&7));
 	numvis++;	// count the leaf itself

@@ -48,7 +48,7 @@ Con_ToggleConsole_f
 */
 void Con_ToggleConsole_f (void)
 {
-	if(!host.debug && !host.developer) return;
+	if(!host.developer) return;
 
 	Field_Clear( &g_consoleField );
 	g_consoleField.widthInChars = g_console_field_width;
@@ -217,8 +217,8 @@ void Con_Init (void)
 	Con_CheckResize();
 
 	// register our commands
-	con_notifytime = Cvar_Get ("con_notifytime", "3", 0);
-	con_speed = Cvar_Get ("con_speed", "3", 0);
+	con_notifytime = Cvar_Get ("con_notifytime", "3", 0, "notify time to live" );
+	con_speed = Cvar_Get ("con_speed", "3", 0, "console moving speed" );
 
 	Field_Clear( &g_consoleField );
 	g_consoleField.widthInChars = g_console_field_width;
@@ -530,7 +530,7 @@ Con_DrawConsole
 */
 void Con_DrawConsole( void )
 {
-	if(!host.debug && !host.developer) return;
+	if(!host.developer) return;
 
 	// check for console width changes from a vid mode change
 	Con_CheckResize ();
@@ -572,7 +572,7 @@ Scroll it up or down
 */
 void Con_RunConsole( void )
 {
-	if(!host.debug && !host.developer) return;
+	if(!host.developer) return;
 
 	// decide on the destination height of the console
 	if (cls.key_dest == key_console)

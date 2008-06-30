@@ -96,9 +96,9 @@ void Netchan_Init (void)
 	// pick a port value that should be nice and random
 	port = RANDOM_LONG(1, 65535);
 
-	showpackets = Cvar_Get ("showpackets", "0", 0);
-	showdrop = Cvar_Get ("showdrop", "0", 0);
-	qport = Cvar_Get ("qport", va("%i", port), CVAR_INIT);
+	showpackets = Cvar_Get ("showpackets", "0", 0, "show network packets" );
+	showdrop = Cvar_Get ("showdrop", "0", 0, "show packets that are dropped" );
+	qport = Cvar_Get( "qport", va("%i", port), CVAR_INIT, "current netport" );
 }
 
 /*
@@ -261,7 +261,7 @@ void Netchan_Transmit (netchan_t *chan, int length, byte *data)
 	// add the unreliable part if space is available
 	if (send.maxsize - send.cursize >= length) 
 		SZ_Write (&send, data, length);
-	else MsgWarn("Netchan_Transmit: dumped unreliable\n");
+	else MsgDev( D_WARN, "Netchan_Transmit: dumped unreliable\n");
 
 	// send the datagram
 	NET_SendPacket (chan->sock, send.cursize, send.data, chan->remote_address);

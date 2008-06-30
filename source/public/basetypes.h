@@ -165,7 +165,7 @@ enum host_state
 enum dev_level
 {
 	D_INFO = 1,	// "-dev 1", shows various system messages
-	D_WARN,		// "-dev 2", shows not critical system warnings, same as MsgWarn
+	D_WARN,		// "-dev 2", shows not critical system warnings
 	D_ERROR,		// "-dev 3", shows critical warnings 
 	D_LOAD,		// "-dev 4", show messages about loading resources
 	D_NOTE,		// "-dev 5", show system notifications for engine develeopers

@@ -70,19 +70,19 @@ void Wad3_AddLump( const char *name, bool compress )
 
 	if(!buffer)
 	{
-		MsgWarn("Wad3_AddLump: file %s not found\n", name ); 
+		MsgDev( D_ERROR, "Wad3_AddLump: file %s not found\n", name ); 
 		return;
 	}
 	if(type == TYPE_NONE)
 	{
-		MsgWarn("Wad3_AddLump: file %s have unsupported type\n", name ); 
+		MsgDev( D_ERROR, "Wad3_AddLump: file %s have unsupported type\n", name ); 
 		return;		
 	}
 
 	FS_FileBase( name, lumpname );
 	if(strlen(lumpname) > WAD3_NAMELEN)
 	{
-		MsgWarn("Wad3_AddLump: %s have too long name, max %d symbols\n", lumpname, WAD3_NAMELEN );
+		MsgDev( D_ERROR, "Wad3_AddLump: %s have too long name, max %d symbols\n", lumpname, WAD3_NAMELEN );
 		return;
 	}
 
@@ -202,7 +202,7 @@ syntax: "blabla"
 */
 void Cmd_WadUnknown( void )
 {
-	MsgWarn("Cmd_WadUnknown: skip command \"%s\"\n", com_token);
+	MsgDev( D_WARN, "Cmd_WadUnknown: skip command \"%s\"\n", com_token);
 	while(Com_TryToken());
 }
 

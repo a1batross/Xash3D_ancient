@@ -420,8 +420,7 @@ void GUI_ResetWndOptions( void )
 {
 	char	dev_level[4];
 
-	//get info about debug mode
-	if(FS_CheckParm ("-debug")) debug_mode = true;	
+	//get info about developer mode
 	if(FS_GetParmFromCmdLine("-dev", dev_level ))
 		dev_mode = atoi(dev_level);
 	
@@ -786,7 +785,7 @@ void GUI_HotKeys( WPARAM wParam )
 			GUI_HideConsole(); 
 		break;
 	default:
-		MsgWarn("GUI_HotKeys: call unused hotkey %d\n", LOWORD(wParam));
+		MsgDev( D_WARN, "GUI_HotKeys: call unused hotkey %d\n", LOWORD(wParam));
 		break; 
 	}
 }
@@ -907,12 +906,12 @@ void InitViewer ( uint funcname, int argc, char **argv )
 		{
 			if(config_dat->id != IDVIEWERHEADER)
 			{
-				MsgWarn("InitViewer: viewer.rc have mismath header!\n");
+				MsgDev( D_ERROR, "InitViewer: viewer.rc have mismath header!\n");
 				iErrors++;
 			}
 			if(config_dat->csize != config_size)
 			{
-				MsgWarn("InitViewer: viewer.rc have mismath size!\n");
+				MsgDev( D_ERROR, "InitViewer: viewer.rc have mismath size!\n");
 				iErrors++;
 			}
 			//copy settings into main structure

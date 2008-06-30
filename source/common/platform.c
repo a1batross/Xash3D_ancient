@@ -11,7 +11,6 @@
 
 dll_info_t imglib_dll = { "imglib.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(imglib_exp_t) };
 dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vprogs_exp_t) };
-bool host_debug = false;
 imglib_exp_t *Image;
 vprogs_exp_t *PRVM;
 stdlib_api_t com;
@@ -44,8 +43,6 @@ void InitPlatform ( uint funcname, int argc, char **argv )
 	Sys_LoadLibrary( &imglib_dll ); // load imagelib
 	CreateImglib = (void *)imglib_dll.main;
 	Image = CreateImglib( &com, NULL ); // second interface not allowed
-
-	if(FS_CheckParm("-debug")) host_debug = true;
 
 	switch( funcname )
 	{

@@ -335,8 +335,6 @@ extern	cvar_t	*cl_add_particles;
 extern	cvar_t	*cl_add_entities;
 extern	cvar_t	*cl_predict;
 extern	cvar_t	*cl_footsteps;
-extern	cvar_t	*cl_noskins;
-extern	cvar_t	*cl_autoskins;
 extern	cvar_t	*cl_showfps;
 extern	cvar_t	*cl_upspeed;
 extern	cvar_t	*cl_forwardspeed;
@@ -372,6 +370,9 @@ extern	cvar_t	*cl_paused;
 extern	cvar_t	*cl_levelshot_name;
 
 extern	cvar_t	*cl_vwep;
+
+extern cvar_t *scr_centertime;
+extern cvar_t *scr_showpause;
 
 typedef struct
 {
@@ -510,9 +511,7 @@ void CL_SetFont_f( void );
 //
 extern render_exp_t		*re;
 
-void CL_Init (void);
-
-void CL_FixUpGender(void);
+void CL_Init( void );
 void CL_Disconnect (void);
 void CL_Disconnect_f (void);
 void CL_GetChallengePacket (void);
@@ -571,6 +570,8 @@ void CL_Stop_f( void );
 //
 void CL_InitClientProgs( void );
 void CL_FreeClientProgs( void );
+void CL_DrawHUD( void );
+
 
 //
 // cl_sound.c

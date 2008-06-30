@@ -77,7 +77,7 @@ bool Image_LoadTGA( const char *name, byte *buffer, size_t filesize )
 
 	if( targa_header.attributes & 0x10 )
 	{
-		MsgWarn("LoadTGA: (%s): top right and bottom right origin are not supported\n", name );
+		MsgDev( D_WARN, "LoadTGA: (%s): top right and bottom right origin are not supported\n", name );
 		return false;
 	}
 
@@ -85,7 +85,7 @@ bool Image_LoadTGA( const char *name, byte *buffer, size_t filesize )
 	alphabits = targa_header.attributes & 0x0F;
 	if( alphabits != 8 && alphabits != 0 )
 	{
-		MsgWarn("LoadTGA: (%s) have invalid attributes '%i'\n", name, alphabits );
+		MsgDev( D_WARN, "LoadTGA: (%s) have invalid attributes '%i'\n", name, alphabits );
 		return false;
 	}
 
@@ -279,7 +279,7 @@ bool Image_SaveTGA( const char *name, rgbdata_t *pix, int saveformat )
 	case PF_RGB_24: pixel_size = 3; break;
 	case PF_RGBA_32: pixel_size = 4; break;	
 	default:
-		MsgWarn("SaveTGA: unsupported image type %s\n", PFDesc[pix->type].name );
+		MsgDev( D_ERROR, "SaveTGA: unsupported image type %s\n", PFDesc[pix->type].name );
 		return false;
 	}
 

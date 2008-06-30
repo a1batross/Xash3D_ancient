@@ -298,7 +298,7 @@ void Cmd_Frame( void )
 	if((xl & 0x07)||(yl & 0x07)||(w & 0x07)||(h & 0x07))
 	{
 		// render will be resampled image, just throw warning
-		MsgWarn("frame dimensions not multiples of 8\n" );
+		MsgDev( D_WARN, "frame dimensions not multiples of 8\n" );
 		//return;
 	}
 	if ((w > MAX_FRAME_DIM) || (h > MAX_FRAME_DIM))
@@ -387,7 +387,7 @@ syntax: "blabla"
 */
 void Cmd_SpriteUnknown( void )
 {
-	MsgWarn("Cmd_SpriteUnknown: bad command %s\n", com_token);
+	MsgDev( D_WARN, "Cmd_SpriteUnknown: bad command %s\n", com_token);
 	while(Com_TryToken());
 }
 

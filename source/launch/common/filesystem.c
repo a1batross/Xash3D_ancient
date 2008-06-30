@@ -886,7 +886,7 @@ static bool FS_AddPack_Fullpath(const char *pakfile, bool *already_loaded, bool 
 	}
 	else
 	{
-		MsgWarn("FS_AddPack_Fullpath: unable to load pak \"%s\"\n", pakfile);
+		MsgDev( D_ERROR, "FS_AddPack_Fullpath: unable to load pak \"%s\"\n", pakfile);
 		return false;
 	}
 }
@@ -918,7 +918,7 @@ bool FS_AddPack(const char *pakfile, bool *already_loaded, bool keep_plain_dirs)
 	search = FS_FindFile(pakfile, &index, true);
 	if(!search || search->pack)
 	{
-		MsgWarn("FS_AddPack: could not find pak \"%s\"\n", pakfile);
+		MsgDev( D_WARN, "FS_AddPack: could not find pak \"%s\"\n", pakfile);
 		return false;
 	}
 	com_sprintf(fullpath, "%s%s", search->filename, pakfile);
@@ -1523,7 +1523,7 @@ void FS_Init( void )
 		// checked nasty path: "bin" it's a reserved word
 		if(FS_CheckNastyPath( gs_basedir, true ) || !com_stricmp("bin", gs_basedir ))
 		{
-			MsgWarn("FS_Init: invalid game directory \"%s\"\n", gs_basedir );		
+			MsgDev( D_INFO, "FS_Init: invalid game directory \"%s\"\n", gs_basedir );		
 			com_strcpy(gs_basedir, "tmpQuArK" ); // default dir
 		}
 
@@ -1536,7 +1536,7 @@ void FS_Init( void )
 
 		if(i == dirs.numstrings)
 		{ 
-			MsgWarn("FS_Init: game directory \"%s\" not exist\n", gs_basedir );		
+			MsgDev( D_INFO, "FS_Init: game directory \"%s\" not exist\n", gs_basedir );		
 			com_strcpy(gs_basedir, "tmpQuArK" ); // default dir
 		}
 		stringlistfreecontents(&dirs);
@@ -1633,7 +1633,7 @@ void FS_Shutdown( void )
 		FS_WriteVariables( f );
 		FS_Close (f);	
 	}
-	else MsgWarn("Couldn't write system.rc.\n");
+	else MsgDev( D_ERROR, "Couldn't write system.rc.\n");
 
 	Mem_FreePool(&fs_mempool);
 }
@@ -2052,7 +2052,7 @@ file_t* _FS_Open (const char* filepath, const char* mode, bool quiet, bool nonbl
 {
 	if (FS_CheckNastyPath(filepath, false))
 	{
-		MsgWarn("FS_Open: (\"%s\", \"%s\"): nasty filename rejected\n", filepath, mode );
+		MsgDev( D_ERROR, "FS_Open: (\"%s\", \"%s\"): nasty filename rejected\n", filepath, mode );
 		return NULL;
 	}
 
@@ -2583,7 +2583,7 @@ bool FS_WriteFile (const char *filename, const void *data, fs_offset_t len)
 	file = _FS_Open (filename, "wb", false, false);
 	if (!file)
 	{
-		MsgWarn("FS_WriteFile: failed on %s\n", filename);
+		MsgDev( D_ERROR, "FS_WriteFile: failed on %s\n", filename);
 		return false;
 	}
 
@@ -3082,7 +3082,7 @@ vfile_t *VFS_Open(file_t *handle, const char* mode)
 	else
 	{
 		Mem_Free( file );
-		MsgWarn("VFS_Open: unsupported mode %s\n", mode );
+		MsgDev( D_ERROR, "VFS_Open: unsupported mode %s\n", mode );
 		return NULL;
 	}
 	return file;
@@ -3112,7 +3112,7 @@ fs_offset_t VFS_Read( vfile_t* file, void* buffer, size_t buffersize)
 		Mem_Copy( buffer, file->buff + file->offset, reduced_size );
 		file->offset += reduced_size;
 		read_size = reduced_size;
-		MsgWarn("VFS_Read: vfs buffer is out\n");
+		MsgDev( D_NOTE, "VFS_Read: vfs buffer is out\n");
 	}
 	return read_size;
 }

@@ -24,7 +24,7 @@ void _MSG_WriteChar (sizebuf_t *sb, int c, const char *filename, int fileline)
 	byte	*buf;
 	
 	if (c < -128 || c > 127) 
-		MsgWarn("MSG_WriteChar: range error %d (called at %s:%i)\n", c, filename, fileline);
+		MsgDev( D_ERROR, "MSG_WriteChar: range error %d (called at %s:%i)\n", c, filename, fileline);
 
 	buf = _SZ_GetSpace (sb, 1, filename, fileline );
 	buf[0] = c;
@@ -35,7 +35,7 @@ void _MSG_WriteByte (sizebuf_t *sb, int c, const char *filename, int fileline)
 	byte	*buf;
 	
 	if (c < 0 || c > 255)
-		MsgWarn("MSG_WriteByte: range error %d (called at %s:%i)\n", c, filename, fileline);
+		MsgDev( D_ERROR, "MSG_WriteByte: range error %d (called at %s:%i)\n", c, filename, fileline);
 
 	buf = _SZ_GetSpace (sb, 1, filename, fileline);
 	buf[0] = c;
@@ -46,7 +46,7 @@ void _MSG_WriteShort (sizebuf_t *sb, int c, const char *filename, int fileline)
 	byte	*buf;
 	
 	if (c < -32767 || c > 32767)
-		MsgWarn("MSG_WriteShort: range error %d (called at %s:%i)\n", c, filename, fileline);
+		MsgDev( D_ERROR, "MSG_WriteShort: range error %d (called at %s:%i)\n", c, filename, fileline);
 
 	buf = _SZ_GetSpace (sb, 2, filename, fileline);
 	buf[0] = c&0xff;
@@ -58,7 +58,7 @@ void _MSG_WriteWord (sizebuf_t *sb, int c, const char *filename, int fileline)
 	byte	*buf;
 	
 	if (c < 0 || c > 65535)
-		MsgWarn("MSG_WriteWord: range error %d (called at %s:%i)\n", c, filename, fileline);
+		MsgDev( D_ERROR, "MSG_WriteWord: range error %d (called at %s:%i)\n", c, filename, fileline);
 
 	buf = _SZ_GetSpace (sb, 2, filename, fileline);
 	buf[0] = c&0xff;
@@ -315,7 +315,7 @@ void MSG_BeginReading (sizebuf_t *msg)
 void MSG_EndReading (sizebuf_t *msg)
 {
 	if(!msg->errorcount) return;
-	MsgWarn("MSG_EndReading: received with errors\n");
+	MsgDev( D_ERROR, "MSG_EndReading: received with errors\n");
 }
 
 // returns -1 if no more characters are available
@@ -581,7 +581,7 @@ void *_SZ_GetSpace (sizebuf_t *buf, int length, const char *filename, int fileli
 		if (length > buf->maxsize)
 			Host_Error("SZ_GetSpace: length[%i] > buffer maxsize [%i], called at %s:%i\n", length, buf->maxsize, filename, fileline );
 			
-		MsgWarn("SZ_GetSpace: overflow [cursize %d maxsize %d], called at %s:%i\n", buf->cursize + length, buf->maxsize, filename, fileline );
+		MsgDev( D_WARN, "SZ_GetSpace: overflow [cursize %d maxsize %d], called at %s:%i\n", buf->cursize + length, buf->maxsize, filename, fileline );
 		SZ_Clear (buf); 
 		buf->overflowed = true;
 	}

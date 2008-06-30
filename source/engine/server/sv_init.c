@@ -43,7 +43,7 @@ int SV_FindIndex (const char *name, int start, int end, bool create)
 
 	if (i == end) 
 	{
-		MsgWarn ("SV_FindIndex: %d out of range [%d - %d]\n", start, end );
+		MsgDev( D_WARN, "SV_FindIndex: %d out of range [%d - %d]\n", start, end );
 		return 0;
 	}
 

@@ -23,22 +23,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client.h"
 
 cvar_t	*freelook;
-
-cvar_t	*adr0;
-cvar_t	*adr1;
-cvar_t	*adr2;
-cvar_t	*adr3;
-cvar_t	*adr4;
-cvar_t	*adr5;
-cvar_t	*adr6;
-cvar_t	*adr7;
-cvar_t	*adr8;
-
 cvar_t	*rcon_client_password;
 cvar_t	*rcon_address;
 
-cvar_t	*cl_noskins;
-cvar_t	*cl_autoskins;
 cvar_t	*cl_footsteps;
 cvar_t	*cl_timeout;
 cvar_t	*cl_predict;
@@ -77,8 +64,6 @@ cvar_t	*skin;
 cvar_t	*rate;
 cvar_t	*fov;
 cvar_t	*hand;
-cvar_t	*gender;
-cvar_t	*gender_auto;
 
 cvar_t	*cl_vwep;
 
@@ -853,7 +838,7 @@ void CL_ReadNetMessage( void )
 		// packet from server
 		if (!NET_CompareAdr (net_from, cls.netchan.remote_address))
 		{
-			MsgWarn("CL_ReadPackets: %s:sequenced packet without connection\n",NET_AdrToString(net_from));
+			MsgDev( D_WARN, "CL_ReadPackets: %s:sequenced packet without connection\n",NET_AdrToString(net_from));
 			continue;
 		}
 		if(!Netchan_Process(&cls.netchan, &net_message))
@@ -896,38 +881,6 @@ void CL_ReadPackets (void)
 
 
 //=============================================================================
-
-/*
-==============
-CL_FixUpGender_f
-==============
-*/
-void CL_FixUpGender(void)
-{
-	char *p;
-	char sk[80];
-
-	if (gender_auto->value) {
-
-		if (gender->modified) {
-			// was set directly, don't override the user
-			gender->modified = false;
-			return;
-		}
-
-		strncpy(sk, skin->string, sizeof(sk) - 1);
-		if ((p = strchr(sk, '/')) != NULL)
-			*p = 0;
-		if (strcasecmp(sk, "male") == 0 || strcasecmp(sk, "cyborg") == 0)
-			Cvar_Set ("gender", "male");
-		else if (strcasecmp(sk, "female") == 0 || strcasecmp(sk, "crackhor") == 0)
-			Cvar_Set ("gender", "female");
-		else
-			Cvar_Set ("gender", "none");
-		gender->modified = false;
-	}
-}
-
 /*
 ==============
 CL_Userinfo_f
@@ -1214,71 +1167,56 @@ void CL_InitLocal (void)
 	cls.realtime = 1.0f;
 	CL_InitInput();
 
-	adr0 = Cvar_Get( "adr0", "", CVAR_ARCHIVE );
-	adr1 = Cvar_Get( "adr1", "", CVAR_ARCHIVE );
-	adr2 = Cvar_Get( "adr2", "", CVAR_ARCHIVE );
-	adr3 = Cvar_Get( "adr3", "", CVAR_ARCHIVE );
-	adr4 = Cvar_Get( "adr4", "", CVAR_ARCHIVE );
-	adr5 = Cvar_Get( "adr5", "", CVAR_ARCHIVE );
-	adr6 = Cvar_Get( "adr6", "", CVAR_ARCHIVE );
-	adr7 = Cvar_Get( "adr7", "", CVAR_ARCHIVE );
-	adr8 = Cvar_Get( "adr8", "", CVAR_ARCHIVE );
-
 	// register our variables
-	cl_add_blend = Cvar_Get ("cl_blend", "1", 0);
-	cl_add_lights = Cvar_Get ("cl_lights", "1", 0);
-	cl_add_particles = Cvar_Get ("cl_particles", "1", 0);
-	cl_add_entities = Cvar_Get ("cl_entities", "1", 0);
-	cl_gun = Cvar_Get ("cl_gun", "1", 0);
-	cl_footsteps = Cvar_Get ("cl_footsteps", "1", 0);
-	cl_noskins = Cvar_Get ("cl_noskins", "0", 0);
-	cl_autoskins = Cvar_Get ("cl_autoskins", "0", 0);
-	cl_predict = Cvar_Get ("cl_predict", "1", 0);
+	cl_add_blend = Cvar_Get ("cl_blend", "1", 0, "disables client blends" );
+	cl_add_lights = Cvar_Get ("cl_lights", "1", 0, "disables dynamic lights" );
+	cl_add_particles = Cvar_Get ("cl_particles", "1", 0, "disables particles engine" );
+	cl_add_entities = Cvar_Get ("cl_entities", "1", 0, "disables client entities" );
+	cl_gun = Cvar_Get ("cl_gun", "1", 0, "hide firstperson viewmodel" );
+	cl_footsteps = Cvar_Get ("cl_footsteps", "1", 0, "disables player footsteps" );
+	cl_predict = Cvar_Get ("cl_predict", "1", 0, "disables client movement prediction" );
 //	cl_minfps = Cvar_Get ("cl_minfps", "5", 0);
-	cl_maxfps = Cvar_Get ("cl_maxfps", "1000", 0);
+	cl_maxfps = Cvar_Get ("cl_maxfps", "1000", 0, "maximum client fps" );
 
-	cl_upspeed = Cvar_Get ("cl_upspeed", "200", 0);
-	cl_forwardspeed = Cvar_Get ("cl_forwardspeed", "200", 0);
-	cl_sidespeed = Cvar_Get ("cl_sidespeed", "200", 0);
-	cl_yawspeed = Cvar_Get ("cl_yawspeed", "140", 0);
-	cl_pitchspeed = Cvar_Get ("cl_pitchspeed", "150", 0);
-	cl_anglespeedkey = Cvar_Get ("cl_anglespeedkey", "1.5", 0);
+	cl_upspeed = Cvar_Get ("cl_upspeed", "200", 0, "client upspeed limit" );
+	cl_forwardspeed = Cvar_Get ("cl_forwardspeed", "200", 0, "client forward speed limit" );
+	cl_sidespeed = Cvar_Get ("cl_sidespeed", "200", 0, "client side-speed limit" );
+	cl_yawspeed = Cvar_Get ("cl_yawspeed", "140", 0, "client yaw speed" );
+	cl_pitchspeed = Cvar_Get ("cl_pitchspeed", "150", 0, "client pitch speed" );
+	cl_anglespeedkey = Cvar_Get ("cl_anglespeedkey", "1.5", 0, "client anglespeed" );
 
-	cl_run = Cvar_Get ("cl_run", "0", CVAR_ARCHIVE);
-	freelook = Cvar_Get( "freelook", "0", CVAR_ARCHIVE );
-	lookspring = Cvar_Get ("lookspring", "0", CVAR_ARCHIVE);
-	lookstrafe = Cvar_Get ("lookstrafe", "0", CVAR_ARCHIVE);
+	cl_run = Cvar_Get ("cl_run", "0", CVAR_ARCHIVE, "keep client for always run mode" );
+	freelook = Cvar_Get( "freelook", "1", CVAR_ARCHIVE, "enables mouse look" );
+	lookspring = Cvar_Get ("lookspring", "0", CVAR_ARCHIVE, "allow look spring" );
+	lookstrafe = Cvar_Get ("lookstrafe", "0", CVAR_ARCHIVE, "allow look strafe" );
 
-	m_pitch = Cvar_Get ("m_pitch", "0.022", CVAR_ARCHIVE);
-	m_yaw = Cvar_Get ("m_yaw", "0.022", 0);
-	m_forward = Cvar_Get ("m_forward", "1", 0);
-	m_side = Cvar_Get ("m_side", "1", 0);
+	m_pitch = Cvar_Get ("m_pitch", "0.022", CVAR_ARCHIVE, "mouse pitch value" );
+	m_yaw = Cvar_Get ("m_yaw", "0.022", 0, "mouse yaw value" );
+	m_forward = Cvar_Get ("m_forward", "1", 0, "mouse forward speed" );
+	m_side = Cvar_Get ("m_side", "1", 0, "mouse side speed" );
 
-	cl_shownet = Cvar_Get ("cl_shownet", "0", 0);
-	cl_showmiss = Cvar_Get ("cl_showmiss", "0", 0);
-	cl_showclamp = Cvar_Get ("showclamp", "0", 0);
-	cl_timeout = Cvar_Get ("cl_timeout", "120", 0);
+	cl_shownet = Cvar_Get ("cl_shownet", "0", 0, "client show network packets" );
+	cl_showmiss = Cvar_Get ("cl_showmiss", "0", 0, "client show network errors" );
+	cl_showclamp = Cvar_Get ("showclamp", "0", 0, "show client clamping" );
+	cl_timeout = Cvar_Get ("cl_timeout", "120", 0, "connect timeout (in-seconds)" );
 
-	rcon_client_password = Cvar_Get ("rcon_password", "", 0);
-	rcon_address = Cvar_Get ("rcon_address", "", 0);
+	rcon_client_password = Cvar_Get ("rcon_password", "", 0, "remote control client password" );
+	rcon_address = Cvar_Get ("rcon_address", "", 0, "remote control address" );
 
-	cl_lightlevel = Cvar_Get ("r_lightlevel", "0", 0);
+	cl_lightlevel = Cvar_Get ("r_lightlevel", "0", 0, "no description" );
 
 	//
 	// userinfo
 	//
-	info_password = Cvar_Get ("password", "", CVAR_USERINFO);
-	info_spectator = Cvar_Get ("spectator", "0", CVAR_USERINFO);
-	name = Cvar_Get ("name", "unnamed", CVAR_USERINFO | CVAR_ARCHIVE);
-	skin = Cvar_Get ("skin", "male/grunt", CVAR_USERINFO | CVAR_ARCHIVE);
-	rate = Cvar_Get ("rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE);	// FIXME
-	hand = Cvar_Get ("hand", "0", CVAR_USERINFO | CVAR_ARCHIVE);
-	fov = Cvar_Get ("fov", "90", CVAR_USERINFO | CVAR_ARCHIVE);
-	gender = Cvar_Get ("gender", "male", CVAR_USERINFO | CVAR_ARCHIVE);
-	gender_auto = Cvar_Get ("gender_auto", "1", CVAR_ARCHIVE);
-	gender->modified = false; // clear this so we know when user sets it manually
-	cl_vwep = Cvar_Get ("cl_vwep", "1", CVAR_ARCHIVE);
-	cl_showfps = Cvar_Get ("cl_showfps", "1", CVAR_ARCHIVE );
+	info_password = Cvar_Get ("password", "", CVAR_USERINFO, "player password" );
+	info_spectator = Cvar_Get ("spectator", "0", CVAR_USERINFO, "spectator mode" );
+	name = Cvar_Get ("name", "unnamed", CVAR_USERINFO | CVAR_ARCHIVE, "player name" );
+	skin = Cvar_Get ("skin", "male/grunt", CVAR_USERINFO | CVAR_ARCHIVE, "playerskin" );
+	rate = Cvar_Get ("rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE, "player network rate" );	// FIXME
+	hand = Cvar_Get ("hand", "0", CVAR_USERINFO | CVAR_ARCHIVE, "viewmodel handedness" );
+	fov = Cvar_Get ("fov", "90", CVAR_USERINFO | CVAR_ARCHIVE, "client fov" );
+	cl_vwep = Cvar_Get ("cl_vwep", "1", CVAR_ARCHIVE, "no description" );
+	cl_showfps = Cvar_Get ("cl_showfps", "1", CVAR_ARCHIVE, "show client fps" );
 
 	// register our commands
 	Cmd_AddCommand ("cmd", CL_ForwardToServer_f, "send a console commandline to the server" );
@@ -1362,7 +1300,7 @@ void CL_WriteConfiguration (void)
 		Key_WriteBindings(f);
 		FS_Close (f);
 	}
-	else MsgWarn("Couldn't write keys.rc.\n");
+	else MsgDev( D_ERROR, "Couldn't write keys.rc.\n");
 
 	f = FS_Open("scripts/config/vars.rc", "w");
 	if(f)
@@ -1374,7 +1312,7 @@ void CL_WriteConfiguration (void)
 		Cmd_WriteVariables(f);
 		FS_Close (f);	
 	}
-	else MsgWarn("Couldn't write vars.rc.\n");
+	else MsgDev( D_ERROR, "Couldn't write vars.rc.\n");
 }
 
 
@@ -1399,7 +1337,6 @@ cheatvar_t	cheatvars[] = {
 	{"r_fullbright", "0"},
 	{"r_drawflat", "0"},
 	{"paused", "0"},
-	{"fixedtime", "0"},
 	{"sw_draworder", "0"},
 	{"gl_lightmap", "0"},
 	{"gl_saturatelighting", "0"},
@@ -1423,7 +1360,7 @@ void CL_FixCvarCheats (void)
 		while (cheatvars[numcheatvars].name)
 		{
 			cheatvars[numcheatvars].var = Cvar_Get (cheatvars[numcheatvars].name,
-					cheatvars[numcheatvars].value, 0);
+					cheatvars[numcheatvars].value, 0, "no description" );
 			numcheatvars++;
 		}
 	}
@@ -1538,8 +1475,8 @@ void CL_Init( void )
 	if (dedicated->value) return; // nothing running on the client
 
 	// all archived variables will now be loaded
-	scr_loading = Cvar_Get("scr_loading", "0", 0 );
-	cl_paused = Cvar_Get( "paused", "0", 0 );
+	scr_loading = Cvar_Get("scr_loading", "0", 0, "loading bar progress" );
+	cl_paused = Cvar_Get( "paused", "0", 0, "game paused" );
 
 	Con_Init();	
 	VID_Init();

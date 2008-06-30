@@ -151,7 +151,7 @@ void IN_StartupMouse (void)
 {
 	cvar_t		*cv;
 
-	cv = Cvar_Get ("in_initmouse", "1", CVAR_INIT);
+	cv = Cvar_Get ("in_initmouse", "1", CVAR_INIT, "allow mouse device" );
 	if ( !cv->value ) return; 
 
 	mouseinitialized = true;
@@ -683,15 +683,15 @@ CL_InitInput
 void CL_InitInput (void)
 {
 	// mouse variables
-	m_filter = Cvar_Get("m_filter", "0", 0);
-	m_mouse = Cvar_Get("mouse", "1", CVAR_ARCHIVE);
-	cl_sensitivity = Cvar_Get( "cl_sensitivity", "3", CVAR_ARCHIVE );
-	ui_sensitivity = Cvar_Get( "ui_sensitivity", "0.5", CVAR_ARCHIVE );
+	m_filter = Cvar_Get("m_filter", "0", 0, "enable mouse filter" );
+	m_mouse = Cvar_Get("mouse", "1", CVAR_ARCHIVE, "allow mouse in-game" );
+	cl_sensitivity = Cvar_Get( "cl_sensitivity", "3", CVAR_ARCHIVE, "mouse in-game sensitivity" );
+	ui_sensitivity = Cvar_Get( "ui_sensitivity", "0.5", CVAR_ARCHIVE, "mouse in-menu sensitivity" );
 
 	// centering
-	v_centermove = Cvar_Get ("v_centermove", "0.15", 0);
-	v_centerspeed = Cvar_Get ("v_centerspeed", "500",	0);
-	cl_nodelta = Cvar_Get ("cl_nodelta", "0", 0);
+	v_centermove = Cvar_Get ("v_centermove", "0.15", 0, "client center moving" );
+	v_centerspeed = Cvar_Get ("v_centerspeed", "500",	0, "client center speed" );
+	cl_nodelta = Cvar_Get ("cl_nodelta", "0", 0, "disable delta-compression for usercommnds" );
 
 	Cmd_AddCommand ("centerview", IN_CenterView, "gradually recenter view (stop looking up/down)" );
 
@@ -789,7 +789,6 @@ void CL_SendCmd (void)
 	// send a userinfo update if needed
 	if (userinfo_modified)
 	{
-		CL_FixUpGender();
 		userinfo_modified = false;
 		MSG_WriteByte (&cls.netchan.message, clc_userinfo);
 		MSG_WriteString (&cls.netchan.message, Cvar_Userinfo());

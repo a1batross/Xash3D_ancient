@@ -42,7 +42,7 @@ physbody_t *Phys_CreateBody( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform,
 		// default size
 		VectorSet( mins, -32, -32, -32 );
 		VectorSet( maxs,  32,  32,  32 );
-		MsgWarn("can't compute bounding box, use default size\n");
+		MsgDev( D_WARN, "can't compute bounding box, use default size\n");
 	}
 
 	// setup offset matrix

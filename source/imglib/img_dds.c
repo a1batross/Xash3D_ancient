@@ -1209,7 +1209,7 @@ uint Image_DXTCalcSize( const char *name, dds_t *hdr, size_t filesize )
 
 	if(filesize != buffsize) // main check
 	{
-		MsgWarn("LoadDDS: (%s) probably corrupted(%i should be %i)\n", name, buffsize, filesize );
+		MsgDev( D_WARN, "LoadDDS: (%s) probably corrupted(%i should be %i)\n", name, buffsize, filesize );
 		return false;
 	}
 	return buffsize;
@@ -1274,12 +1274,12 @@ bool Image_LoadDDS( const char *name, byte *buffer, size_t filesize )
 	if(header.dwIdent != DDSHEADER) return false; // it's not a dds file, just skip it
 	if(header.dwSize != sizeof(dds_t) - 4 ) // size of the structure (minus MagicNum)
 	{
-		MsgWarn("LoadDDS: (%s) have corrupt header\n", name );
+		MsgDev( D_ERROR, "LoadDDS: (%s) have corrupt header\n", name );
 		return false;
 	}
 	if(header.dsPixelFormat.dwSize != sizeof(dds_pixf_t)) // size of the structure
 	{
-		MsgWarn("LoadDDS: (%s) have corrupt pixelformat header\n", name );
+		MsgDev( D_ERROR, "LoadDDS: (%s) have corrupt pixelformat header\n", name );
 		return false;
 	}
 
@@ -1294,7 +1294,7 @@ bool Image_LoadDDS( const char *name, byte *buffer, size_t filesize )
 
 	if (image_type == PF_UNKNOWN) 
 	{
-		MsgWarn("LoadDDS: (%s) have unsupported compression type\n", name );
+		MsgDev( D_WARN, "LoadDDS: (%s) have unsupported compression type\n", name );
 		return false; //unknown type
 	}
 
