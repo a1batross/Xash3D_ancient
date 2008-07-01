@@ -61,13 +61,62 @@ void CL_DrawHUD( void )
 	// setup pparms
 	prog->globals.cl->health = cl.frame.playerstate.stats[STAT_HEALTH];
 	prog->globals.cl->maxclients = com.atoi(cl.configstrings[CS_MAXCLIENTS]);
-	prog->globals.cl->time = cl.time;
+	prog->globals.cl->realtime = cls.realtime;
 	prog->globals.cl->paused = cl_paused->integer;
 
 	// setup args
 	PRVM_G_FLOAT(OFS_PARM0) = (float)cls.state;
 	PRVM_ExecuteProgram (prog->globals.cl->HUD_Render, "QC function HUD_Render is missing");
 
+	PRVM_End;
+}
+
+bool CL_ParseUserMessage( int svc_number )
+{
+	bool	msg_parsed = false;
+
+	PRVM_Begin;
+	PRVM_SetProg( PRVM_CLIENTPROG );
+
+	// set time
+	*prog->time = cls.realtime;
+
+	// setup pparms
+	prog->globals.cl->health = cl.frame.playerstate.stats[STAT_HEALTH];
+	prog->globals.cl->maxclients = com.atoi(cl.configstrings[CS_MAXCLIENTS]);
+	prog->globals.cl->realtime = cls.realtime;
+	prog->globals.cl->paused = cl_paused->integer;
+
+	// setup args
+	PRVM_G_FLOAT(OFS_PARM0) = (float)svc_number;
+	PRVM_ExecuteProgram (prog->globals.cl->HUD_ParseMessage, "QC function HUD_ParseMessage is missing");
+	msg_parsed = PRVM_G_FLOAT(OFS_RETURN);
+	PRVM_End;
+
+	return msg_parsed; 
+}
+
+/*
+====================
+StudioEvent
+
+Event callback for studio models
+====================
+*/
+void CL_StudioEvent ( mstudioevent_t *event, entity_t *ent )
+{
+	PRVM_Begin;
+	PRVM_SetProg( PRVM_CLIENTPROG );
+
+	// set time
+	*prog->time = cls.realtime;
+
+	// setup args
+	PRVM_G_FLOAT(OFS_PARM0) = (float)event->event;
+	PRVM_G_INT(OFS_PARM1) = PRVM_SetEngineString( event->options );
+	VectorCopy( ent->origin, PRVM_G_VECTOR(OFS_PARM2));
+	VectorCopy( ent->angles, PRVM_G_VECTOR(OFS_PARM3));
+	PRVM_ExecuteProgram( prog->globals.cl->HUD_StudioEvent, "QC function HUD_StudioEvent is missing");
 	PRVM_End;
 }
 
@@ -193,28 +242,24 @@ void PF_drawfield( void )
 =========
 PF_drawnet
 
-void DrawNet( vector pos, vector size, string image )
+void DrawNet( vector pos, string image )
 =========
 */
 void PF_drawnet( void )
 {
-	float	*pos, *size;
+	float	*pos;
 	const char *pic;
 
-	if(!VM_ValidateArgs( "drawnet", 3 ))
+	if(!VM_ValidateArgs( "drawnet", 2 ))
 		return;
 	if(cls.netchan.outgoing_sequence - cls.netchan.incoming_acknowledged < CMD_BACKUP-1)
 		return;
 
 	pos = PRVM_G_VECTOR(OFS_PARM0);
-	size = PRVM_G_VECTOR(OFS_PARM1);
-	pic = PRVM_G_STRING(OFS_PARM2);
+	pic = PRVM_G_STRING(OFS_PARM1);
 	VM_ValidateString( pic );
 
-	if(size[0] == 0.0f) size[0] = 48; 
-	if(size[1] == 0.0f) size[1] = 48; 
-
-	SCR_DrawPic( pos[0], pos[1], size[0], size[1], pic );
+	SCR_DrawPic( pos[0], pos[1], -1, -1, pic );
 }
 
 /*
@@ -438,7 +483,7 @@ VM_ComVA,				// #29 string va( ... )
 VM_ComStrlen,			// #30 float strlen( string text )
 VM_TimeStamp,			// #31 string Com_TimeStamp( float format )
 VM_LocalCmd,			// #32 void LocalCmd( ... )
-NULL,				// #33 -- reserved --
+VM_SubString,			// #33 string substring( string s, float start, float length )
 NULL,				// #34 -- reserved --
 NULL,				// #35 -- reserved --
 NULL,				// #36 -- reserved --
@@ -516,12 +561,13 @@ VM_drawfill,			// #116 void DrawFill( vector pos, vector size, vector rgb, float
 VM_drawmodel,			// #117 void DrawModel( vector pos, vector size, string mod, vector org, vector ang, float seq )
 PF_drawfield,			// #118 void DrawField( float value, vector pos, vector size )
 VM_getimagesize,			// #119 vector getimagesize( string pic )
-PF_drawnet,			// #120 void DrawNet( vector pos, vector size, string image )
+PF_drawnet,			// #120 void DrawNet( vector pos, string image )
 PF_drawfps,			// #121 void DrawFPS( vector pos )
 PF_drawcenterprint,			// #122 void DrawCenterPrint( void )
 PF_centerprint,			// #123 void HUD_CenterPrint( string text, float y, float charwidth )
 PF_levelshot,			// #124 float HUD_MakeLevelShot( void )
 PF_setcolor,			// #125 void HUD_SetColor( vector rgb, float alpha )
+VM_localsound,			// #126 void HUD_PlaySound( string sample )
 };
 
 const int vm_cl_numbuiltins = sizeof(vm_cl_builtins) / sizeof(prvm_builtin_t); //num of builtins
@@ -558,7 +604,7 @@ void CL_InitClientProgs( void )
 	}
 
 	// init some globals
-	prog->globals.cl->time = cl.time;
+	prog->globals.cl->realtime = cls.realtime;
 	prog->globals.cl->pev = 0;
 	prog->globals.cl->mapname = PRVM_SetEngineString( cls.servername );
 	prog->globals.cl->playernum = cl.playernum;
@@ -572,7 +618,7 @@ void CL_FreeClientProgs( void )
 {
 	CL_VM_Begin();
 
-	prog->globals.cl->time = cl.time;
+	prog->globals.cl->realtime = cls.realtime;
 	prog->globals.cl->pev = 0;
 	PRVM_ExecuteProgram(prog->globals.cl->HUD_Shutdown, "QC function HUD_Shutdown is missing");
 	PRVM_ResetProg();

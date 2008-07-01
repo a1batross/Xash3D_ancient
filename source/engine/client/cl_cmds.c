@@ -137,7 +137,7 @@ void CL_SetSky_f( void )
 SCR_TimeRefresh_f
 ================
 */
-void SCR_TimeRefresh_f (void)
+void SCR_TimeRefresh_f( void )
 {
 	int		i;
 	float		start, stop;
@@ -148,22 +148,22 @@ void SCR_TimeRefresh_f (void)
 
 	start = Sys_DoubleTime();
 
-	if (Cmd_Argc() == 2)
+	if( Cmd_Argc() == 2 )
 	{	
 		// run without page flipping
 		re->BeginFrame();
-		for (i = 0; i < 128; i++)
+		for( i = 0; i < 128; i++ )
 		{
-			cl.refdef.viewangles[1] = i/128.0*360.0;
+			cl.refdef.viewangles[1] = i/128.0 * 360.0f;
 			re->RenderFrame (&cl.refdef);
 		}
 		re->EndFrame();
 	}
 	else
 	{
-		for (i = 0; i < 128; i++)
+		for( i = 0; i < 128; i++ )
 		{
-			cl.refdef.viewangles[1] = i/128.0*360.0;
+			cl.refdef.viewangles[1] = i/128.0 * 360.0f;
 
 			re->BeginFrame();
 			re->RenderFrame(&cl.refdef);
@@ -173,5 +173,5 @@ void SCR_TimeRefresh_f (void)
 
 	stop = Sys_DoubleTime();
 	time = stop - start;
-	Msg ("%f seconds (%f fps)\n", time, 128/time);
+	Msg( "%f seconds (%f fps)\n", time, 128 / time );
 }

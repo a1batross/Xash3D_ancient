@@ -128,6 +128,10 @@ extern cvar_t *dedicated;
 extern cvar_t *host_serverstate;
 extern cvar_t *host_frametime;
 extern cvar_t *cm_paused;
+extern cvar_t *crosshair;
+extern cvar_t *scr_loading;
+extern cvar_t *scr_width;
+extern cvar_t *scr_height;
 
 /*
 ==============================================================
@@ -320,7 +324,9 @@ void VM_CvarGetString( void );
 void VM_ComVA( void );
 void VM_ComStrlen( void );
 void VM_TimeStamp( void );
+void VM_SubString( void );
 void VM_LocalCmd( void );
+void VM_localsound( void );
 void VM_SpawnEdict( void );
 void VM_RemoveEdict( void );
 void VM_NextEdict( void );
@@ -400,7 +406,8 @@ bool Cmd_CheckMapsList( void );
 void Sys_Error( const char *msg, ... );
 void Sys_SendKeyEvents( void );
 
-
+#define MAX_ENTNUMBER	99999		// for server and client parsing
+#define MAX_HEARTBEAT	-99999.0f		// connection time
 
 
 // get rid of this

@@ -692,50 +692,6 @@ void Cmd_Say_f (edict_t *ent, bool team, bool arg0)
 }
 
 /*
-==================
-HelpComputer
-
-Draw help computer.
-==================
-*/
-void SV_HelpComputer (edict_t *ent)
-{
-	char	string[1024];
-	char	*sk = "medium";
-
-	com.sprintf (string, "xv 32 yv 8 picn help "	// background
-		"xv 202 yv 12 string2 \"%s\" "	// skill
-		"xv 0 yv 24 cstring2 \"%s\" "		// level name
-		"xv 0 yv 54 cstring2 \"%s\" "		// help 1
-		"xv 0 yv 110 cstring2 \"%s\" "	// help 2
-		"xv 50 yv 164 string2 \" kills     goals    secrets\" "
-		"xv 50 yv 172 string2 \"%3i/%3i     %i/%i       %i/%i\" ", 
-		sk,
-		sv.name,
-		"",
-		"",
-		0, 0, 
-		0, 0,
-		0, 0);
-
-	MSG_Begin (svc_layout);
-		MSG_WriteString (&sv.multicast, string);
-	MSG_Send (MSG_ONE_R, NULL, ent );
-}
-
-/*
-==================
-Cmd_Help_f
-
-Display the current help message
-==================
-*/
-void Cmd_Help_f (edict_t *ent)
-{
-	SV_HelpComputer (ent);
-}
-
-/*
 =================
 SV_ClientCommand
 =================
@@ -760,11 +716,6 @@ void SV_ClientCommand (edict_t *ent)
 	if (strcasecmp (cmd, "say_team") == 0)
 	{
 		Cmd_Say_f (ent, true, false);
-		return;
-	}
-	if (strcasecmp (cmd, "help") == 0)
-	{
-		Cmd_Help_f (ent);
 		return;
 	}
 }

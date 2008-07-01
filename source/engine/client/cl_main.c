@@ -280,7 +280,7 @@ void CL_Connect_f (void)
 
 	cls.state = ca_connecting;
 	strncpy (cls.servername, server, sizeof(cls.servername)-1);
-	cls.connect_time = -99999;	// CL_CheckForResend() will fire immediately
+	cls.connect_time = MAX_HEARTBEAT; // CL_CheckForResend() will fire immediately
 }
 
 
@@ -355,14 +355,11 @@ void CL_ClearState (void)
 {
 	S_StopAllSounds ();
 	CL_ClearEffects ();
-	CL_ClearTEnts ();
 
 	// wipe the entire cl structure
 	memset (&cl, 0, sizeof(cl));
 	memset (&cl_entities, 0, sizeof(cl_entities));
-
 	SZ_Clear (&cls.netchan.message);
-
 }
 
 /*
@@ -517,7 +514,7 @@ void CL_Reconnect_f (void)
 			CL_Disconnect();
 			cls.connect_time = cls.realtime - 1.5f;
 		}
-		else cls.connect_time = -99999; // fire immediately
+		else cls.connect_time = MAX_HEARTBEAT; // fire immediately
 
 		cls.state = ca_connecting;
 		Msg ("reconnecting...\n");
@@ -1482,7 +1479,6 @@ void CL_Init( void )
 	VID_Init();
 	V_Init();
 	CL_InitClientProgs();
-	CG_Init();
 
 	net_message.data = net_message_buffer;
 	net_message.maxsize = sizeof(net_message_buffer);

@@ -276,7 +276,7 @@ void R_SpriteSetupLighting( model_t *mod )
 		R_LightPoint( currententity->origin, mod->lightcolor );
 
 		// doom sprite models	
-		if( currententity->flags & RF_WEAPONMODEL )
+		if( currententity->flags & RF_VIEWMODEL )
 			r_lightlevel->value = bound(0, VectorLength(mod->lightcolor) * 75.0f, 255); 
 
 	}

@@ -9,20 +9,16 @@
 
 #define MAX_LIGHTSTYLES	256
 
-#define	EF_TELEPORTER	(1<<0)		// particle fountain
-#define	EF_ROTATE		(1<<1)		// rotate (bonus items)
+#define	EF_ROTATE		(1<<0)		// rotate (bonus items)
 
 // shared client/renderer flags
 #define	RF_MINLIGHT	1		// allways have some light (viewmodel)
-#define	RF_VIEWERMODEL	2		// don't draw through eyes, only mirrors
-#define	RF_WEAPONMODEL	4		// only draw through eyes
+#define	RF_PLAYERMODEL	2		// don't draw through eyes, only mirrors
+#define	RF_VIEWMODEL	4		// it's a viewmodel
 #define	RF_FULLBRIGHT	8		// allways draw full intensity
 #define	RF_DEPTHHACK	16		// for view weapon Z crunching
 #define	RF_TRANSLUCENT	32
-#define	RF_FRAMELERP	64
-#define	RF_BEAM		128
-#define	RF_IR_VISIBLE	256		// skin is an index in image_precache
-#define	RF_GLOW		512		// pulse lighting for bonus items
+#define	RF_IR_VISIBLE	64		// skin is an index in image_precache
 
 // render private flags
 #define	RDF_NOWORLDMODEL	1		// used for player configuration screen
@@ -114,17 +110,6 @@ enum player_stats
 	MAX_STATS = 32,
 };
 
-typedef enum 
-{
-	R_BEAM,
-	R_SPRITE,
-	R_POLYGON,
-	R_BSPMODEL,
-	R_VIEWMODEL,			// studio model that drawn trough eyes
-	R_STUDIOMODEL,
-	R_TYPES_COUNT,
-} reftype_t;
-
 typedef struct dlight_s
 {
 	vec3_t	origin;
@@ -199,8 +184,6 @@ typedef struct entity_s
 
 	int		lightstyle;	// for flashing entities
 	float		alpha;		// ignore if RF_TRANSLUCENT isn't set
-
-	image_t		*image;		// NULL for inline skin
 	int		flags;
 
 } entity_t;

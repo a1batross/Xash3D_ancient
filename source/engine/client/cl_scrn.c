@@ -248,58 +248,6 @@ void SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, 
 }
 
 /*
-==============
-SCR_DrawNet
-==============
-*/
-void SCR_DrawNet( void )
-{
-	if (cls.netchan.outgoing_sequence - cls.netchan.incoming_acknowledged < CMD_BACKUP-1)
-		return;
-
-	SCR_DrawPic( scr_vrect.x+64, scr_vrect.y, 48, 48, "common/net" );
-}
-
-void SCR_DrawFPS( void )
-{
-	float		calc;
-	static double	nexttime = 0, lasttime = 0;
-	static double	framerate = 0;
-	static int	framecount = 0;
-	double		newtime;
-	bool		red = false; // fps too low
-	char		fpsstring[32];
-	float		*color;
-
-	if(cls.state != ca_active) return; 
-	if(!cl_showfps->integer) return;
-	
-	newtime = Sys_DoubleTime();
-	if (newtime >= nexttime)
-	{
-		framerate = framecount / (newtime - lasttime);
-		lasttime = newtime;
-		nexttime = max(nexttime + 1, lasttime - 1);
-		framecount = 0;
-	}
-	framecount++;
-	calc = framerate;
-
-	if ((red = (calc < 1.0f)))
-	{
-		com.snprintf(fpsstring, sizeof(fpsstring), "%4i spf", (int)(1.0f / calc + 0.5));
-		color = g_color_table[1];
-	}
-	else
-	{
-		com.snprintf(fpsstring, sizeof(fpsstring), "%4i fps", (int)(calc + 0.5));
-		color = g_color_table[3];
-          }
-	SCR_DrawBigStringColor(SCREEN_WIDTH - 146, SCREEN_HEIGHT - 32, fpsstring, color );
-}
-
-
-/*
 ==================
 SCR_UpdateScreen
 
@@ -332,7 +280,6 @@ void SCR_UpdateScreen( void )
 		Host_Error("SCR_UpdateScreen: bad cls.state" );
 		break;
 	}
-
 	V_PostRender();
 }
 

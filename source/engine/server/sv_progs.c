@@ -1896,7 +1896,7 @@ void PF_checkbottom( void )
 =================
 PF_ClientPrint
 
-void ClientPrint( float type, entity client, string s )
+void ClientPrintf( float type, entity client, string s )
 =================
 */
 void PF_ClientPrint( void )
@@ -2222,7 +2222,7 @@ VM_ComVA,				// #29 string va( ... )
 VM_ComStrlen,			// #30 float strlen( string text )
 VM_TimeStamp,			// #31 string Com_TimeStamp( float format )
 VM_LocalCmd,			// #32 void LocalCmd( ... )
-NULL,				// #33 -- reserved --
+VM_SubString,			// #33 string substring( string s, float start, float length )
 NULL,				// #34 -- reserved --
 NULL,				// #35 -- reserved --
 NULL,				// #36 -- reserved --

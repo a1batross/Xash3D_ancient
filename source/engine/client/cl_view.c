@@ -26,8 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 // development tools for weapons
 //
-int			gun_frame;
-model_t			*gun_model;
+model_t *gun_model;
 
 //=============
 
@@ -56,14 +55,7 @@ int num_cl_weaponmodels;
 int entitycmpfnc( const entity_t *a, const entity_t *b )
 {
 	// all other models are sorted by model then skin
-	if ( a->model == b->model )
-	{
-		return ((int)a->image - (int)b->image);
-	}
-	else
-	{
-		return ((int)a->model - (int)b->model);
-	}
+	return ((int)a->model - (int)b->model);
 }
 
 /*
@@ -227,7 +219,6 @@ void V_TestEntities (void)
 			cl.v_right[j]*r;
 
 		ent->model = cl.baseclientinfo.model;
-		ent->image = cl.baseclientinfo.skin;
 	}
 }
 
@@ -300,10 +291,8 @@ void CL_PrepRefresh( void )
 	// let the render dll load the map
 	FS_FileBase( cl.configstrings[CS_MODELS+1], mapname ); 
 	SCR_UpdateScreen();
-	re->BeginRegistration( mapname );	// load map
+	re->BeginRegistration( mapname ); // load map
 	SCR_UpdateScreen();
-	CG_ExecuteProgram( "Hud_Precache" );	// get alias names
-	CL_RegisterTEntModels ();
 
 	num_cl_weaponmodels = 1;
 	com.strcpy(cl_weaponmodels[0], "v_glock.mdl");
@@ -392,35 +381,6 @@ float V_CalcFov( float fov_x, float width, float height )
 	fov_y = (fov_y * rad);
 
 	return fov_y;
-}
-
-//============================================================================
-
-// gun frame debugging functions
-void V_Gun_Next_f (void)
-{
-	gun_frame++;
-	Msg ("frame %i\n", gun_frame);
-}
-
-void V_Gun_Prev_f (void)
-{
-	gun_frame--;
-	if (gun_frame < 0) gun_frame = 0;
-	Msg ("frame %i\n", gun_frame);
-}
-
-void V_Gun_Model_f (void)
-{
-	char	name[MAX_QPATH];
-
-	if (Cmd_Argc() != 2)
-	{
-		gun_model = NULL;
-		return;
-	}
-	com.sprintf (name, "models/weapons/v_%s.mdl", Cmd_Argv(1));
-	gun_model = re->RegisterModel (name);
 }
 
 //============================================================================
@@ -534,10 +494,8 @@ V_PostRender
 */
 void V_PostRender( void )
 {
-	SCR_DrawNet();
-	SCR_DrawFPS();
-	Con_DrawConsole();
 	UI_Draw();
+	Con_DrawConsole();
 	re->EndFrame();
 }
 
@@ -546,9 +504,9 @@ void V_PostRender( void )
 V_Viewpos_f
 =============
 */
-void V_Viewpos_f (void)
+void V_Viewpos_f( void )
 {
-	Msg ("(%i %i %i) : %i\n", (int)cl.refdef.vieworg[0],
+	Msg("(%i %i %i) : %i\n", (int)cl.refdef.vieworg[0],
 		(int)cl.refdef.vieworg[1], (int)cl.refdef.vieworg[2], 
 		(int)cl.refdef.viewangles[YAW]);
 }
@@ -560,18 +518,12 @@ V_Init
 */
 void V_Init (void)
 {
-	Cmd_AddCommand ("gun_next", V_Gun_Next_f, "decrease viewmodel current frame" );
-	Cmd_AddCommand ("gun_prev", V_Gun_Prev_f, "increase viewmodel current frame" );
-	Cmd_AddCommand ("gun_model", V_Gun_Model_f, "change gun (not a weapon, just viewmodel)" );
-
 	Cmd_AddCommand ("viewpos", V_Viewpos_f, "prints current player origin" );
 
 	crosshair = Cvar_Get ("crosshair", "0", CVAR_ARCHIVE, "crosshair style" );
-
 	cl_testblend = Cvar_Get ("cl_testblend", "0", 0, "test blending" );
 	cl_testparticles = Cvar_Get ("cl_testparticles", "0", 0, "test particle engine" );
 	cl_testentities = Cvar_Get ("cl_testentities", "0", 0, "test client entities" );
 	cl_testlights = Cvar_Get ("cl_testlights", "0", 0, "test dynamic lights" );
-
 	cl_stats = Cvar_Get ("cl_stats", "0", 0, "enable client stats" );
 }

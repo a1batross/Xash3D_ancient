@@ -48,7 +48,7 @@ void SV_SetMaster_f( void )
 		Netchan_OutOfBandPrint (NS_SERVER, master_adr[slot], "ping");
 		slot++;
 	}
-	svs.last_heartbeat = -99999.0f;
+	svs.last_heartbeat = MAX_HEARTBEAT;
 }
 
 /*
@@ -419,7 +419,7 @@ SV_Heartbeat_f
 */
 void SV_Heartbeat_f (void)
 {
-	svs.last_heartbeat = -99999.0f;
+	svs.last_heartbeat = MAX_HEARTBEAT;
 }
 
 /*

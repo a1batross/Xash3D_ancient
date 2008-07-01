@@ -249,34 +249,27 @@ void R_DrawEntitiesOnList (void)
 	for (i = 0; i < r_newrefdef.num_entities; i++)
 	{
 		currententity = &r_newrefdef.entities[i];
+		currentmodel = currententity->model;
 
-		if ( currententity->flags & RF_BEAM )
+		if (!currentmodel)
 		{
-			R_DrawBeam( currententity );
+			R_DrawNullModel();
+			continue;
 		}
-		else
+		switch (currentmodel->type)
 		{
-			currentmodel = currententity->model;
-			if (!currentmodel)
-			{
-				R_DrawNullModel();
-				continue;
-			}
-			switch (currentmodel->type)
-			{
-			case mod_brush:
-				R_DrawBrushModel( RENDERPASS_SOLID );
-				break;
-			case mod_sprite:
-				R_DrawSpriteModel( RENDERPASS_SOLID );
-				break;
-			case mod_studio:
-				R_DrawStudioModel( RENDERPASS_SOLID );
-				break;
-			default:
-				Sys_Error ("Bad modeltype. Pass: solid");
-				break;
-			}
+		case mod_brush:
+			R_DrawBrushModel( RENDERPASS_SOLID );
+			break;
+		case mod_sprite:
+			R_DrawSpriteModel( RENDERPASS_SOLID );
+			break;
+		case mod_studio:
+			R_DrawStudioModel( RENDERPASS_SOLID );
+			break;
+		default:
+			Sys_Error ("Bad modeltype. Pass: solid");
+			break;
 		}
 	}
 
@@ -286,35 +279,27 @@ void R_DrawEntitiesOnList (void)
 	for (i = 0; i < r_newrefdef.num_entities; i++)
 	{
 		currententity = &r_newrefdef.entities[i];
+		currentmodel = currententity->model;
 
-		if ( currententity->flags & RF_BEAM )
+		if (!currentmodel)
 		{
-			R_DrawBeam( currententity );
+			R_DrawNullModel ();
+			continue;
 		}
-		else
+		switch (currentmodel->type)
 		{
-			currentmodel = currententity->model;
-
-			if (!currentmodel)
-			{
-				R_DrawNullModel ();
-				continue;
-			}
-			switch (currentmodel->type)
-			{
-			case mod_brush:
-				R_DrawBrushModel( RENDERPASS_ALPHA );
-				break;
-			case mod_sprite:
-				R_DrawSpriteModel( RENDERPASS_ALPHA );
-				break;
-			case mod_studio:
-				R_DrawStudioModel( RENDERPASS_ALPHA );
-				break;
-			default:
-				Sys_Error ("Bad modeltype. Pass: alpha");
-				break;
-			}
+		case mod_brush:
+			R_DrawBrushModel( RENDERPASS_ALPHA );
+			break;
+		case mod_sprite:
+			R_DrawSpriteModel( RENDERPASS_ALPHA );
+			break;
+		case mod_studio:
+			R_DrawStudioModel( RENDERPASS_ALPHA );
+			break;
+		default:
+			Sys_Error ("Bad modeltype. Pass: alpha");
+			break;
 		}
 	}
 	qglDepthMask(1);// back to writing
@@ -1395,75 +1380,6 @@ void R_SetPalette ( const byte *palette)
 	qglClearColor (0,0,0,0);
 	qglClear (GL_COLOR_BUFFER_BIT);
 	qglClearColor (1, 0, 0.5, 0.5);
-}
-
-/*
-** R_DrawBeam
-*/
-void R_DrawBeam( entity_t *e )
-{
-#define NUM_BEAM_SEGS 6
-
-	int	i;
-	float r, g, b;
-
-	vec3_t perpvec;
-	vec3_t direction, normalized_direction;
-	vec3_t	start_points[NUM_BEAM_SEGS], end_points[NUM_BEAM_SEGS];
-	vec3_t oldorigin, origin;
-
-	oldorigin[0] = e->oldorigin[0];
-	oldorigin[1] = e->oldorigin[1];
-	oldorigin[2] = e->oldorigin[2];
-
-	origin[0] = e->origin[0];
-	origin[1] = e->origin[1];
-	origin[2] = e->origin[2];
-
-	normalized_direction[0] = direction[0] = oldorigin[0] - origin[0];
-	normalized_direction[1] = direction[1] = oldorigin[1] - origin[1];
-	normalized_direction[2] = direction[2] = oldorigin[2] - origin[2];
-
-	if ( VectorNormalize( normalized_direction ) == 0 )
-		return;
-
-	PerpendicularVector( perpvec, normalized_direction );
-	VectorScale( perpvec, e->frame / 2, perpvec );
-
-	for ( i = 0; i < 6; i++ )
-	{
-		RotatePointAroundVector( start_points[i], normalized_direction, perpvec, (360.0/NUM_BEAM_SEGS)*i );
-		VectorAdd( start_points[i], origin, start_points[i] );
-		VectorAdd( start_points[i], direction, end_points[i] );
-	}
-
-	qglDisable( GL_TEXTURE_2D );
-	qglEnable( GL_BLEND );
-	qglDepthMask( GL_FALSE );
-
-	r = ( d_8to24table[e->skinnum & 0xFF] ) & 0xFF;
-	g = ( d_8to24table[e->skinnum & 0xFF] >> 8 ) & 0xFF;
-	b = ( d_8to24table[e->skinnum & 0xFF] >> 16 ) & 0xFF;
-
-	r *= 1/255.0F;
-	g *= 1/255.0F;
-	b *= 1/255.0F;
-
-	qglColor4f( r, g, b, e->alpha );
-
-	qglBegin( GL_TRIANGLE_STRIP );
-	for ( i = 0; i < NUM_BEAM_SEGS; i++ )
-	{
-		qglVertex3fv( start_points[i] );
-		qglVertex3fv( end_points[i] );
-		qglVertex3fv( start_points[(i+1)%NUM_BEAM_SEGS] );
-		qglVertex3fv( end_points[(i+1)%NUM_BEAM_SEGS] );
-	}
-	qglEnd();
-
-	qglEnable( GL_TEXTURE_2D );
-	qglDisable( GL_BLEND );
-	qglDepthMask( GL_TRUE );
 }
 
 /*

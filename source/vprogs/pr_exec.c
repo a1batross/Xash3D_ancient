@@ -106,7 +106,56 @@ char *prvm_opnames[] =
 "^2OR",
 
 "BITAND",
-"BITOR"
+"BITOR",
+"MULSTORE_F",
+"MULSTORE_V",
+"MULSTOREP_F",
+"MULSTOREP_V",
+
+"DIVSTORE_F",
+"DIVSTOREP_F",
+
+"ADDSTORE_F",
+"ADDSTORE_V",
+"ADDSTOREP_F",
+"ADDSTOREP_V",
+
+"SUBSTORE_F",
+"SUBSTORE_V",
+"SUBSTOREP_F",
+"SUBSTOREP_V",
+
+"FETCH_GBL_F",
+"FETCH_GBL_V",
+"FETCH_GBL_S",
+"FETCH_GBL_E",
+"FETCH_G_FNC",
+
+"^9CSTATE",
+"^9CWSTATE",
+
+"^6THINKTIME",
+
+"^4BITSET",
+"^4BITSETP",
+"^4BITCLR",
+"^4BITCLRP",
+
+"^9RAND0",
+"^9RAND1",
+"^9RAND2",
+"^9RANDV0",
+"^9RANDV1",
+"^9RANDV2",
+
+"^6SWITCH_F",
+"^6SWITCH_V",
+"^6SWITCH_S",
+"^6SWITCH_E",
+"^6SWITCH_FNC",
+
+"^6CASE",
+"^6CASERANGE"
 };
 
 char *PRVM_GlobalString (int ofs);
@@ -397,8 +446,7 @@ int PRVM_EnterFunction (mfunction_t *f)
 {
 	int		i, j, c, o;
 
-	if (!f)
-		PRVM_ERROR ("PRVM_EnterFunction: NULL function in %s", PRVM_NAME);
+	if( !f ) PRVM_ERROR ("PRVM_EnterFunction: NULL function in %s", PRVM_NAME);
 
 	vm.prog->stack[vm.prog->depth].s = vm.prog->xstatement;
 	vm.prog->stack[vm.prog->depth].f = vm.prog->xfunction;
@@ -406,7 +454,7 @@ int PRVM_EnterFunction (mfunction_t *f)
 	if (vm.prog->depth >=PRVM_MAX_STACK_DEPTH)
 		PRVM_ERROR ("stack overflow");
 
-// save off any locals that the new function steps on
+	// save off any locals that the new function steps on
 	c = f->locals;
 	if (vm.prog->localstack_used + c > PRVM_LOCALSTACK_SIZE)
 		PRVM_ERROR ("PRVM_ExecuteProgram: locals stack overflow in %s", PRVM_NAME);
@@ -415,7 +463,7 @@ int PRVM_EnterFunction (mfunction_t *f)
 		vm.prog->localstack[vm.prog->localstack_used+i] = ((int *)vm.prog->globals.gp)[f->parm_start + i];
 	vm.prog->localstack_used += c;
 
-// copy parameters
+	// copy parameters
 	o = f->parm_start;
 	for (i=0 ; i<f->numparms ; i++)
 	{
@@ -435,7 +483,7 @@ int PRVM_EnterFunction (mfunction_t *f)
 PRVM_LeaveFunction
 ====================
 */
-int PRVM_LeaveFunction (void)
+int PRVM_LeaveFunction( void )
 {
 	int		i, c;
 
@@ -444,7 +492,7 @@ int PRVM_LeaveFunction (void)
 
 	if (!vm.prog->xfunction)
 		PRVM_ERROR ("PR_LeaveFunction: NULL function in %s", PRVM_NAME);
-// restore locals from the stack
+	// restore locals from the stack
 	c = vm.prog->xfunction->locals;
 	vm.prog->localstack_used -= c;
 	if (vm.prog->localstack_used < 0)
@@ -453,7 +501,7 @@ int PRVM_LeaveFunction (void)
 	for (i=0 ; i < c ; i++)
 		((int *)vm.prog->globals.gp)[vm.prog->xfunction->parm_start + i] = vm.prog->localstack[vm.prog->localstack_used+i];
 
-// up stack
+	// up stack
 	vm.prog->depth--;
 	vm.prog->xfunction = vm.prog->stack[vm.prog->depth].f;
 	return vm.prog->stack[vm.prog->depth].s;
@@ -474,9 +522,9 @@ PRVM_ExecuteProgram
 ====================
 */
 // LordHavoc: optimized
-#define OPA ((prvm_eval_t *)&vm.prog->globals.gp[(word) st->a])
-#define OPB ((prvm_eval_t *)&vm.prog->globals.gp[(word) st->b])
-#define OPC ((prvm_eval_t *)&vm.prog->globals.gp[(word) st->c])
+#define OPA ((prvm_eval_t *)&vm.prog->globals.gp[(word)st->a])
+#define OPB ((prvm_eval_t *)&vm.prog->globals.gp[(word)st->b])
+#define OPC ((prvm_eval_t *)&vm.prog->globals.gp[(word)st->c])
 extern cvar_t *prvm_boundscheck;
 extern cvar_t *prvm_traceqc;
 extern cvar_t *prvm_statementprofiling;
@@ -521,7 +569,7 @@ void PRVM_ExecuteProgram( func_t fnum, const char *errormessage )
 chooseexecprogram:
 	cachedpr_trace = vm.prog->trace;
 
-	while (1)
+	while( 1 )
 	{
 		st++;
 
@@ -1062,7 +1110,7 @@ chooseexecprogram:
 			break;
 		case OP_LOADP_C:
 			ptr = PRVM_EM_POINTER(OPA->_int + (int)OPB->_float);
-			OPC->_float = *(unsigned char *)ptr;
+			OPC->_float = *(byte *)ptr;
 			break;
 		case OP_LOADP_I:
 		case OP_LOADP_F:

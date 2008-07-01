@@ -8,30 +8,27 @@
 // server to client
 enum svc_ops_e
 {
-	svc_bad,
-
-	// these ops are known to the game dll
-	svc_temp_entity,
-	svc_layout,
-	svc_inventory,
-
-	// the rest are private to the client and server
-	svc_nop,
-	svc_disconnect,
-	svc_reconnect,
+	// user messages
+	svc_bad = 0,
 	svc_sound,		// <see code>
 	svc_ambientsound,		// ambient looping sound
+	svc_temp_entity,		// client effects
 	svc_print,		// [byte] id [string] null terminated string
+	svc_centerprint,		// [string] to put in center of the screen
+
+	// engine messages
+	svc_nop = 201,		// end of user messages
+	svc_disconnect,		// kick client from server
+	svc_reconnect,		// reconnecting server request
 	svc_stufftext,		// [string] stuffed into client's console buffer, should be \n terminated
 	svc_serverdata,		// [long] protocol ...
 	svc_configstring,		// [short] [string]
-	svc_spawnbaseline,		
-	svc_centerprint,		// [string] to put in center of the screen
+	svc_spawnbaseline,		// valid only at spawn		
 	svc_download,		// [short] size [size bytes]
 	svc_playerinfo,		// variable
 	svc_packetentities,		// [...]
 	svc_deltapacketentities,	// [...]
-	svc_frame,
+	svc_frame,		// server frame
 };
 
 // client to server
@@ -140,7 +137,7 @@ typedef enum
 #define	U_BODY		(1<<25)
 #define	U_SOLID		(1<<26)
 #define	U_ALPHA		(1<<27)		// alpha value
-#define	U_EVENT		(1<<28)		// remove this
+
 #define	U_MOREBITS4	(1<<31)		// read one additional byte
 
 // entity_state_t communication
@@ -164,30 +161,10 @@ typedef struct entity_state_s
 	int		solid;		// for client side prediction, 8*(bits 0-4) is x/y radius
 					// 8*(bits 5-9) is z down distance, 8(bits10-15) is z up
 					// gi.linkentity sets this properly
-	int		event;		// impulse events -- muzzle flashes, footsteps, etc
-					// events only go out for a single frame, they
-					// are automatically cleared each frame
 	float		alpha;		// alpha value
 	float		animtime;		// auto-animating time
 
 } entity_state_t;
-
-// entity_state_t->event values
-// ertity events are for effects that take place reletive
-// to an existing entities origin.  Very network efficient.
-// All muzzle flashes really should be converted to events...
-typedef enum
-{
-	EV_NONE,
-	EV_ITEM_RESPAWN,
-	EV_FOOTSTEP,
-	EV_FALLSHORT,
-	EV_FALL,
-	EV_FALLFAR,
-	EV_PLAYER_TELEPORT,
-	EV_OTHER_TELEPORT
-
-} entity_event_t;
 
 /*
 ==========================================================
@@ -392,7 +369,7 @@ extern netadr_t	net_from;
 extern sizebuf_t	net_message;
 extern byte	net_message_buffer[MAX_MSGLEN];
 
-#define PROTOCOL_VERSION	34
+#define PROTOCOL_VERSION	35
 #define PORT_MASTER		27900
 #define PORT_CLIENT		27901
 #define PORT_SERVER		27910

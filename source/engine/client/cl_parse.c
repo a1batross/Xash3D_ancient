@@ -22,32 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "common.h"
 #include "client.h"
 
-char *svc_strings[256] =
-{
-	"svc_bad",
-
-	"svc_temp_entity",
-	"svc_layout",
-	"svc_inventory",
-
-	"svc_nop",
-	"svc_disconnect",
-	"svc_reconnect",
-	"svc_sound",
-	"svc_ambientsound",
-	"svc_print",
-	"svc_stufftext",
-	"svc_serverdata",
-	"svc_configstring",
-	"svc_spawnbaseline",	
-	"svc_centerprint",
-	"svc_download",
-	"svc_playerinfo",
-	"svc_packetentities",
-	"svc_deltapacketentities",
-	"svc_frame"
-};
-
 //=============================================================================
 
 void CL_DownloadFileName(char *dest, int destlen, char *fn)
@@ -184,10 +158,9 @@ CL_RegisterSounds
 */
 void CL_RegisterSounds (void)
 {
-	int		i;
+	int	i;
 
 	S_BeginRegistration();
-	CL_RegisterTEntSounds ();
 	for (i = 1; i < MAX_SOUNDS; i++)
 	{
 		if (!cl.configstrings[CS_SOUNDS+i][0]) break;
@@ -599,8 +572,8 @@ CL_ParseServerMessage
 */
 void CL_ParseServerMessage( sizebuf_t *msg )
 {
-	int		i, cmd;
-	char		*s;
+	char	*s;
+	int	cmd;
 
 	// if recording demos, copy the message out
 	if (cl_shownet->value == 1) Msg ("%i ",msg->cursize);
@@ -624,101 +597,68 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			SHOWNET( msg, "END OF MESSAGE" );
 			break;
 		}
-
-		if (cl_shownet->value >= 2)
-		{
-			if (!svc_strings[cmd]) Msg ("%3i:BAD CMD %i\n", msg->readcount - 1, cmd);
-			else SHOWNET( msg, svc_strings[cmd] );
-		}
 	
 		// other commands
-		switch (cmd)
+		switch( cmd )
 		{
 		case svc_nop:
-//			Msg ("svc_nop\n");
+			MsgDev( D_ERROR, "CL_ParseServerMessage: user message out of bounds\n" );
 			break;
-			
 		case svc_disconnect:
 			CL_Drop ();
 			Host_AbortCurrentFrame();
 			break;
-
 		case svc_reconnect:
-			Msg ("Server disconnected, reconnecting\n");
-			if (cls.download)
+			Msg( "Server disconnected, reconnecting\n" );
+			if( cls.download )
 			{
-				//ZOID, close download
-				FS_Close (cls.download);
+				FS_Close( cls.download );
 				cls.download = NULL;
 			}
 			cls.state = ca_connecting;
-			cls.connect_time = -99999;	// CL_CheckForResend() will fire immediately
+			cls.connect_time = MAX_HEARTBEAT; // CL_CheckForResend() will fire immediately
 			break;
-
-		case svc_print:
-			i = MSG_ReadByte( msg );
-			if( i == PRINT_CHAT ) S_StartLocalSound ("misc/talk.wav"); // chat
-			Msg ("^6%s", MSG_ReadString( msg ));
-			break;
-			
-		case svc_centerprint:
-			CG_CenterPrint(MSG_ReadString( msg ), SCREEN_HEIGHT/2, BIGCHAR_WIDTH );
-			break;
-			
 		case svc_stufftext:
 			s = MSG_ReadString( msg );
-			Cbuf_AddText (s);
+			Cbuf_AddText( s );
 			break;
-			
 		case svc_serverdata:
-			Cbuf_Execute ();		// make sure any stuffed commands are done
+			Cbuf_Execute();		// make sure any stuffed commands are done
 			CL_ParseServerData( msg );
 			break;
-			
 		case svc_configstring:
 			CL_ParseConfigString( msg );
 			break;
-			
 		case svc_sound:
 			CL_ParseStartSoundPacket( msg );
 			break;
-			
 		case svc_ambientsound:
 			CL_ParseAmbientSound( msg );
 			break;
-
 		case svc_spawnbaseline:
 			CL_ParseBaseline( msg );
 			break;
-
 		case svc_temp_entity:
-			CL_ParseTEnt( msg );
+			CL_ParseTempEnts( msg );
 			break;
-
 		case svc_download:
 			CL_ParseDownload( msg );
 			break;
-
 		case svc_frame:
 			CL_ParseFrame( msg );
 			break;
-
-		case svc_inventory:
-			CG_ParseInventory( msg );
-			break;
-
-		case svc_layout:
-			s = MSG_ReadString( msg );
-			com.strncpy(cl.layout, s, sizeof(cl.layout)-1);
-			break;
-
 		case svc_playerinfo:
 		case svc_packetentities:
 		case svc_deltapacketentities:
-			Host_Error("Out of place frame data\n");
+			Host_Error("CL_ParseServerMessage: out of place frame data\n");
+			break;
+		case svc_bad:
+			Host_Error("CL_ParseServerMessage: svc_bad\n" );
 			break;
 		default:
-			Host_Error("CL_ParseServerMessage: Illegible server message %d\n", cmd );
+			// parse user messages
+			if(!CL_ParseUserMessage( cmd ))
+				Host_Error("CL_ParseServerMessage: illegible server message %d\n", cmd );
 			break;
 		}
 	}
@@ -729,5 +669,3 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 		CL_WriteDemoMessage();
 
 }
-
-

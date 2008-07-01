@@ -213,16 +213,14 @@ void _MSG_WriteDeltaEntity (entity_state_t *from, entity_state_t *to, sizebuf_t 
 
 	if ( to->frame != from->frame ) bits |= U_FRAME;
 	if ( to->solid != from->solid ) bits |= U_SOLID;
-	if ( to->event ) bits |= U_EVENT; // event is not delta compressed, just 0 compressed
-	
 	if ( to->modelindex != from->modelindex ) bits |= U_MODEL;
 	if ( to->weaponmodel != from->weaponmodel ) bits |= U_WEAPONMODEL;
 	if ( to->body != from->body ) bits |= U_BODY;
 	if ( to->sequence != from->sequence ) bits |= U_SEQUENCE;
 	if ( to->soundindex != from->soundindex ) bits |= U_SOUNDIDX;
-	if (newentity || (to->renderfx & RF_BEAM)) bits |= U_OLDORIGIN;
 	if ( to->alpha != from->alpha ) bits |= U_ALPHA;
 	if ( to->animtime != from->animtime ) bits |= U_ANIMTIME;
+	if ( newentity ) bits |= U_OLDORIGIN;
 	
 	// write the message
 	if (!bits && !force) return; // nothing to send!
@@ -295,7 +293,6 @@ void _MSG_WriteDeltaEntity (entity_state_t *from, entity_state_t *to, sizebuf_t 
 		MSG_WriteLong( msg, to->solid );
 	}
 	if (bits & U_ALPHA) _MSG_WriteFloat (msg, to->alpha, filename, fileline);
-	if (bits & U_EVENT) _MSG_WriteByte (msg, to->event, filename, fileline);
 	if (bits & U_SOUNDIDX) _MSG_WriteByte (msg, to->soundindex, filename, fileline); 
 	if (bits & U_BODY) _MSG_WriteByte (msg,	to->body, filename, fileline);
 	if (bits & U_ANIMTIME) _MSG_WriteFloat (msg, to->animtime, filename, fileline); 
@@ -534,9 +531,7 @@ void MSG_ReadDeltaEntity( sizebuf_t *msg_read, entity_state_t *from, entity_stat
 	if (bits & U_SEQUENCE) to->sequence = MSG_ReadByte(msg_read);
 	if (bits & U_SOLID) to->solid = MSG_ReadLong(msg_read);
 	if (bits & U_ALPHA) to->alpha = MSG_ReadFloat(msg_read);
-	if (bits & U_EVENT) to->event = MSG_ReadByte (msg_read);
 	if (bits & U_SOUNDIDX) to->soundindex = MSG_ReadByte (msg_read);
-	else to->event = 0;
 
 	if (bits & U_BODY) to->body = MSG_ReadByte (msg_read);
 	if (bits & U_ANIMTIME) to->animtime = MSG_ReadFloat (msg_read);

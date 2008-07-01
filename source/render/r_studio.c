@@ -1027,7 +1027,7 @@ static bool R_StudioCheckBBox( void )
 
 	int aggregatemask = ~0;
 
-	if(m_pCurrentEntity->flags & RF_WEAPONMODEL)
+	if(m_pCurrentEntity->flags & RF_VIEWMODEL)
 		return true;          
 	if(!R_StudioComputeBBox( bbox ))
           	return false;
@@ -1088,7 +1088,7 @@ void R_StudioSetupLighting( void )
 		VectorCopy( m_pCurrentEntity->origin, light_org );
 		light_org[2] += 3; // make sure what lightpoint is off the ground
 		R_LightPoint( light_org, m_plightcolor );
-		if ( m_pCurrentEntity->flags & RF_WEAPONMODEL )
+		if ( m_pCurrentEntity->flags & RF_VIEWMODEL )
 			r_lightlevel->value = bound(0, VectorLength(m_plightcolor) * 75.0f, 255); 
 
 	}
@@ -1306,7 +1306,7 @@ void R_StudioDrawPoints ( void )
 	if (currententity->flags & RF_DEPTHHACK) // hack the depth range to prevent view model from poking into walls
 		qglDepthRange (gldepthmin, gldepthmin + 0.3 * (gldepthmax-gldepthmin));
 
-	if (( m_pCurrentEntity->flags & RF_WEAPONMODEL ) && ( r_lefthand->value == 1.0F ))
+	if (( m_pCurrentEntity->flags & RF_VIEWMODEL ) && ( r_lefthand->value == 1.0F ))
 	{
 		qglMatrixMode( GL_PROJECTION );
 		qglPushMatrix();
@@ -1332,7 +1332,7 @@ void R_StudioDrawPoints ( void )
 		qglColor4f( 1, 1, 1, 1 ); //reset color
 		qglDisable(GL_BLEND);
 	}	
-	if (( m_pCurrentEntity->flags & RF_WEAPONMODEL ) && ( r_lefthand->value == 1.0F ))
+	if (( m_pCurrentEntity->flags & RF_VIEWMODEL ) && ( r_lefthand->value == 1.0F ))
 	{
 		qglMatrixMode( GL_PROJECTION );
 		qglPopMatrix();
@@ -1522,7 +1522,7 @@ void R_StudioDrawHulls ( void )
 	int i;
 	vec3_t		bbox[8];
 
-	if(m_pCurrentEntity->flags & RF_WEAPONMODEL) return;
+	if(m_pCurrentEntity->flags & RF_VIEWMODEL) return;
 	if(!R_StudioComputeBBox( bbox )) return;
 
 	qglDisable( GL_CULL_FACE );
@@ -1604,7 +1604,7 @@ void R_DrawStudioModel( int passnum )
 		
 	// nothing to draw
 	if(m_pStudioHeader->numbodyparts == 0) return;
-	if(m_pCurrentEntity->flags & RF_WEAPONMODEL && r_lefthand->value == 2)
+	if(m_pCurrentEntity->flags & RF_VIEWMODEL && r_lefthand->value == 2)
 		return;
 
 	if (m_pCurrentEntity->movetype == MOVETYPE_FOLLOW) 
@@ -1638,21 +1638,15 @@ void R_DrawStudioModel( int passnum )
 	if(r_minimap->value > 1) 
 	{
 		if(numRadarEnts >= MAX_RADAR_ENTS) return;
-		if(currententity->flags & RF_VIEWERMODEL) return;
-		if(currententity->flags & RF_WEAPONMODEL) return;
+		if(currententity->flags & RF_VIEWMODEL) return;
 
-		if( currententity->flags & RF_GLOW)
-		{ 
-			RadarEnts[numRadarEnts].color[0]= 0.0;
-			RadarEnts[numRadarEnts].color[1]= 1.0;
-			RadarEnts[numRadarEnts].color[2]= 0.0;
-			RadarEnts[numRadarEnts].color[3]= 0.5;
-	 	} 
-		/*else if( currententity->flags & RF2_MONSTER)
+		/*
+		if( currententity->flags & RF2_MONSTER)
 		{ 
 			Vector4Set(RadarEnts[numRadarEnts].color, 1.0f, 0.0f, 2.0f, 1.0f ); 
-		}*/
+		}
 		else
+		*/
 		{
 			Vector4Set(RadarEnts[numRadarEnts].color, 0.0f, 1.0f, 1.0f, 0.5f ); 
 		}
@@ -1661,7 +1655,7 @@ void R_DrawStudioModel( int passnum )
 		numRadarEnts++;
 	}
 
-	if (gl_shadows->value && !(m_pCurrentEntity->flags & (RF_TRANSLUCENT | RF_WEAPONMODEL)))
+	if (gl_shadows->value && !(m_pCurrentEntity->flags & (RF_TRANSLUCENT | RF_VIEWMODEL)))
 	{
 		qglPushMatrix();
 		R_RotateForEntity(m_pCurrentEntity);

@@ -918,7 +918,7 @@ void PR_LexNumber (void)
 	pr_immediate._float = (float)(num*sign);
 }
 
-float PR_LexFloat (void)
+float PR_LexFloat( void )
 {
 	int	c;
 	int	len;
@@ -932,7 +932,7 @@ float PR_LexFloat (void)
 		pr_file_p++;
 		c = *pr_file_p;
 		// only allow a . if the next isn't too...
-	} while ((c >= '0' && c<= '9') || (c == '.'&&pr_file_p[1]!='.')); 
+	} while((c >= '0' && c <= '9') || (c == '.'&&pr_file_p[1]!='.') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')); 
 
 	pr_token[len] = 0;
 	return (float)com.atof (pr_token);

@@ -762,6 +762,60 @@ void VM_TimeStamp( void )
 
 /*
 =========
+VM_SubString
+
+string substring( string s, float start, float length )
+=========
+*/
+void VM_SubString( void )
+{
+	int		i, start, length;
+	string		tempstring;
+	const char	*s;
+
+	if(!VM_ValidateArgs( "substring", 3 ))
+		return;
+
+	s = PRVM_G_STRING(OFS_PARM0);
+	start = (int)PRVM_G_FLOAT(OFS_PARM1);
+	length = (int)PRVM_G_FLOAT(OFS_PARM2);
+	if(!s) s = ""; // evil stuff...
+
+	for (i = 0; i < start && *s; i++, s++ );
+	for (i = 0; i < MAX_STRING - 1 && *s && i < length; i++, s++)
+		tempstring[i] = *s;
+	tempstring[i] = 0;
+
+	PRVM_G_INT(OFS_RETURN) = PRVM_SetTempString( tempstring );
+}
+
+/*
+=========
+VM_localsound
+
+void localsound( string sample )
+=========
+*/
+void VM_localsound( void )
+{
+	const char *s;
+
+	if(!VM_ValidateArgs( "localsound", 1 ))
+		return;
+
+	s = PRVM_G_STRING( OFS_PARM0 );
+
+	if(!S_StartLocalSound(s))
+	{
+		VM_Warning("localsound: can't play %s!\n", s );
+		PRVM_G_FLOAT(OFS_RETURN) = 0;
+		return;
+	}
+	PRVM_G_FLOAT(OFS_RETURN) = 1;
+}
+
+/*
+=========
 VM_SpawnEdict
 
 entity spawn( void )

@@ -668,29 +668,6 @@ void SV_CheckTimeouts (void)
 }
 
 /*
-================
-SV_PrepWorldFrame
-
-This has to be done before the world logic, because
-player processing happens outside RunWorldFrame
-================
-*/
-void SV_PrepWorldFrame (void)
-{
-	edict_t		*ent;
-	int		i;
-
-	for (i = 0; i < prog->num_edicts ; i++, ent++)
-	{
-		ent = PRVM_EDICT_NUM(i);
-		// events only last for a single message
-		ent->priv.sv->event = 0;
-	}
-
-}
-
-
-/*
 =================
 SV_RunGameFrame
 =================
@@ -781,9 +758,6 @@ void SV_Frame (float time)
 
 	// send a heartbeat to the master if needed
 	Master_Heartbeat ();
-
-	// clear teleport flags, etc for next frame
-	SV_PrepWorldFrame ();
 
 	// end the server VM frame
 	SV_VM_End();

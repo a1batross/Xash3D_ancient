@@ -307,7 +307,7 @@ void SV_InitGame (void)
 	NET_Config ( (maxclients->value > 1) );
 
 	// heartbeats will always be sent to the id master
-	svs.last_heartbeat = -99999.0f; // send immediately
+	svs.last_heartbeat = MAX_HEARTBEAT; // send immediately
 	com.sprintf(idmaster, "192.246.40.37:%i", PORT_MASTER);
 	NET_StringToAdr (idmaster, &master_adr[0]);
 

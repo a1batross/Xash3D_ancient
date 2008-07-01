@@ -388,7 +388,7 @@ void Field_Paste( field_t *edit )
 	if ( !cbd ) return;
 
 	// send as if typed, so insert / overstrike works properly
-	pasteLen = strlen( cbd );
+	pasteLen = com.strlen( cbd );
 	for ( i = 0 ; i < pasteLen ; i++ ) Field_CharEvent( edit, cbd[i] );
 	Mem_Free( cbd );
 }
@@ -414,14 +414,7 @@ void Field_KeyDownEvent( field_t *edit, int key )
 		return;
 	}
 
-	// ctrl+v is paste
-	if( key == 'v' && keys[K_CTRL].down )
-	{
-		Field_Paste( edit );
-		return;
-	}
-
-	len = strlen( edit->buffer );
+	len = com.strlen( edit->buffer );
 
 	if ( key == K_DEL )
 	{

@@ -245,7 +245,7 @@ Misc helper function
 
 void _MSG_Begin( int dest, const char *filename, int fileline )
 {
-	_MSG_WriteChar (&sv.multicast, dest, filename, fileline );
+	_MSG_WriteByte( &sv.multicast, dest, filename, fileline );
 }
 
 /*  

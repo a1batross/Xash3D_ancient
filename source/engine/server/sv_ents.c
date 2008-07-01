@@ -33,7 +33,6 @@ void SV_UpdateEntityState( edict_t *ent)
 	// copy progs values to state
 	ent->priv.sv->s.number = ent->priv.sv->serialnumber;
 	ent->priv.sv->s.solid = ent->priv.sv->solid;
-	ent->priv.sv->s.event = ent->priv.sv->event;
 
 	VectorCopy (ent->progs.sv->origin, ent->priv.sv->s.origin);
 	VectorCopy (ent->progs.sv->angles, ent->priv.sv->s.angles);
@@ -81,17 +80,22 @@ void SV_EmitPacketEntities (client_frame_t *from, client_frame_t *to, sizebuf_t 
 
 	newindex = 0;
 	oldindex = 0;
-	while (newindex < to->num_entities || oldindex < from_num_entities)
+	while( newindex < to->num_entities || oldindex < from_num_entities )
 	{
-		if (newindex >= to->num_entities)
-			newnum = 9999;
+		if( newindex >= to->num_entities )
+		{
+			newnum = MAX_ENTNUMBER;
+		}
 		else
 		{
 			newent = &svs.client_entities[(to->first_entity+newindex)%svs.num_client_entities];
 			newnum = newent->number;
 		}
 
-		if (oldindex >= from_num_entities) oldnum = 9999;
+		if( oldindex >= from_num_entities )
+		{
+			oldnum = MAX_ENTNUMBER;
+		}
 		else
 		{
 			oldent = &svs.client_entities[(from->first_entity+oldindex)%svs.num_client_entities];
@@ -99,7 +103,8 @@ void SV_EmitPacketEntities (client_frame_t *from, client_frame_t *to, sizebuf_t 
 		}
 
 		if (newnum == oldnum)
-		{	// delta update from old position
+		{	
+			// delta update from old position
 			// because the force parm is false, this will not result
 			// in any bytes being emited if the entity has not changed at all
 			// note that players are always 'newentities', this updates their oldorigin always
@@ -110,7 +115,7 @@ void SV_EmitPacketEntities (client_frame_t *from, client_frame_t *to, sizebuf_t 
 			continue;
 		}
 
-		if (newnum < oldnum)
+		if( newnum < oldnum )
 		{	// this is a new entity, send it from the baseline
 			MSG_WriteDeltaEntity (&sv.baselines[newnum], newent, msg, true, true);
 			newindex++;
@@ -407,11 +412,11 @@ void SV_BuildClientFrame( client_state_t *client )
 		ent = PRVM_EDICT_NUM(e);
 
 		// ignore ents without visible models unless they have an effect
-		if( !ent->progs.sv->modelindex && !ent->progs.sv->effects && !ent->priv.sv->s.soundindex && !ent->priv.sv->event )
+		if( !ent->progs.sv->modelindex && !ent->progs.sv->effects && !ent->priv.sv->s.soundindex )
 			continue;
 
 		// ignore if not touching a PV leaf
-		if (ent != clent)
+		if( ent != clent )
 		{
 			// check area
 			if (!pe->AreasConnected (clientarea, ent->priv.sv->areanum))
@@ -422,67 +427,57 @@ void SV_BuildClientFrame( client_state_t *client )
 					continue;	// blocked by a door
 			}
 
-			// beams just check one point for PHS
-			if ((int)ent->progs.sv->renderfx & RF_BEAM)
+			// FIXME: if an ent has a model and a sound, but isn't
+			// in the PVS, only the PHS, clear the model
+			if (ent->priv.sv->s.soundindex ) bitvector = clientphs;
+			else bitvector = clientpvs;
+
+			// check individual leafs
+			if( !ent->priv.sv->num_clusters )
 			{
-				l = ent->priv.sv->clusternums[0];
-				if ( !(clientphs[l >> 3] & (1 << (l&7) )) )
-					continue;
+				continue;
 			}
-			else
+			for( i = 0, l = 0; i < ent->priv.sv->num_clusters; i++ )
 			{
-				// FIXME: if an ent has a model and a sound, but isn't
-				// in the PVS, only the PHS, clear the model
-				if (ent->priv.sv->s.soundindex ) bitvector = clientphs;
-				else bitvector = clientpvs;
-
-				// check individual leafs
-				if( !ent->priv.sv->num_clusters )
+				l = ent->priv.sv->clusternums[i];
+				if( bitvector[l>>3] & (1<<(l&7)))
+					break;
+			}
+			// if we haven't found it to be visible,
+			// check overflow clusters that coudln't be stored
+			if( i == ent->priv.sv->num_clusters )
+			{
+				if( ent->priv.sv->lastcluster )
 				{
-					continue;
-				}
-				for( i = 0, l = 0; i < ent->priv.sv->num_clusters; i++ )
-				{
-					l = ent->priv.sv->clusternums[i];
-					if( bitvector[l>>3] & (1<<(l&7)))
-						break;
-				}
-				// if we haven't found it to be visible,
-				// check overflow clusters that coudln't be stored
-				if( i == ent->priv.sv->num_clusters )
-				{
-					if( ent->priv.sv->lastcluster )
+					for( ; l <= ent->priv.sv->lastcluster; l++ )
 					{
-						for( ; l <= ent->priv.sv->lastcluster; l++ )
-						{
-							if( bitvector[l>>3] & (1<<(l&7)))
-								break;
-						}
-						if( l == ent->priv.sv->lastcluster )
-							continue;	// not visible
+						if( bitvector[l>>3] & (1<<(l&7)))
+							break;
 					}
-					else continue;
+					if( l == ent->priv.sv->lastcluster )
+						continue;	// not visible
 				}
-				if( !ent->progs.sv->modelindex )
-				{	
-					// don't send sounds if they will be attenuated away
-					vec3_t	delta, entorigin;
-					float	len;
+				else continue;
+			}
+			if( !ent->progs.sv->modelindex )
+			{	
+				// don't send sounds if they will be attenuated away
+				vec3_t	delta, entorigin;
+				float	len;
 
-					if(VectorIsNull( ent->progs.sv->origin ))
-					{
-						VectorAdd( ent->progs.sv->mins, ent->progs.sv->maxs, entorigin );
-						VectorScale( entorigin, 0.5, entorigin );
-                                                  }
-					else
-					{
-						VectorCopy( ent->progs.sv->origin, entorigin );
-					}
-
-					VectorSubtract( org, entorigin, delta );	
-					len = VectorLength( delta );
-					if( len > 400 ) continue;
+				if(VectorIsNull( ent->progs.sv->origin ))
+				{
+					VectorAdd( ent->progs.sv->mins, ent->progs.sv->maxs, entorigin );
+					VectorScale( entorigin, 0.5, entorigin );
 				}
+				else
+				{
+					VectorCopy( ent->progs.sv->origin, entorigin );
+				}
+
+				VectorSubtract( org, entorigin, delta );	
+				len = VectorLength( delta );
+				if( len > 400 ) continue;
 			}
 		}
 

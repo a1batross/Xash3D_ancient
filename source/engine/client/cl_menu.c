@@ -74,7 +74,7 @@ void UI_DrawCredits( void )
 		if((y < (SCREEN_HEIGHT - BIGCHAR_HEIGHT) / 2) && i == credit_numlines - 1)
 		{
 			if(!credits_fade_time) credits_fade_time = cls.realtime;
-			color = CG_FadeColor( credits_fade_time, credits_show_time );
+			color = CL_FadeColor( credits_fade_time, credits_show_time );
 			if( color ) SCR_DrawStringExt( x, (SCREEN_HEIGHT - BIGCHAR_HEIGHT)/2, 16, 16, credits[i], color, true );
 		}
 		else SCR_DrawStringExt( x, y, 16, 16, credits[i], white_color, false );
@@ -310,35 +310,6 @@ void PF_newserver( void )
 
 /*
 =========
-PF_substring
-
-string substring( string s, float start, float length )
-=========
-*/
-void PF_substring( void )
-{
-	int		i, start, length;
-	string		tempstring;
-	const char	*s;
-
-	if(!VM_ValidateArgs( "substring", 3 ))
-		return;
-
-	s = PRVM_G_STRING(OFS_PARM0);
-	start = (int)PRVM_G_FLOAT(OFS_PARM1);
-	length = (int)PRVM_G_FLOAT(OFS_PARM2);
-	if(!s) s = ""; // evil stuff...
-
-	for (i = 0; i < start && *s; i++, s++ );
-	for (i = 0; i < MAX_STRING - 1 && *s && i < length; i++, s++)
-		tempstring[i] = *s;
-	tempstring[i] = 0;
-
-	PRVM_G_INT(OFS_RETURN) = PRVM_SetTempString( tempstring );
-}
-
-/*
-=========
 PF_serverstate
 
 float serverstate( void )
@@ -363,31 +334,6 @@ void PF_clientstate( void )
 	if(!VM_ValidateArgs( "clientstate", 0 ))
 		return;
 	PRVM_G_FLOAT(OFS_RETURN) = cls.state;
-}
-
-/*
-=========
-PF_localsound
-
-void localsound( string sample )
-=========
-*/
-void PF_localsound(void)
-{
-	const char *s;
-
-	if(!VM_ValidateArgs( "localsound", 1 ))
-		return;
-
-	s = PRVM_G_STRING( OFS_PARM0 );
-
-	if(!S_StartLocalSound(s))
-	{
-		VM_Warning("PF_localsound: can't play %s!\n", s );
-		PRVM_G_FLOAT(OFS_RETURN) = 0;
-		return;
-	}
-	PRVM_G_FLOAT(OFS_RETURN) = 1;
 }
 
 /*
@@ -692,7 +638,7 @@ VM_ComVA,				// #29 string va( ... )
 VM_ComStrlen,			// #30 float strlen( string text )
 VM_TimeStamp,			// #31 string Com_TimeStamp( float format )
 VM_LocalCmd,			// #32 void LocalCmd( ... )
-NULL,				// #33 -- reserved --
+VM_SubString,			// #33 string substring( string s, float start, float length )
 NULL,				// #34 -- reserved --
 NULL,				// #35 -- reserved --
 NULL,				// #36 -- reserved --
@@ -751,10 +697,10 @@ e10, e10,				// #81 - #100 are reserved for future expansions
 // uimenufuncs_t
 VM_FindEdict,			// #101 entity find( entity start, .string field, string match )
 VM_FindField,			// #102 entity findfloat( entity start, .float field, float match )
-PF_substring,			// #103 string substring( string s, float start, float length )
+NULL,				// #103 -- reserved --
 PF_serverstate,			// #104 float serverstate( void )
 PF_clientstate,			// #105 float clientstate( void )
-PF_localsound,			// #106 void localsound( string sample )
+VM_localsound,			// #106 void localsound( string sample )
 PF_getmousepos,			// #107 vector getmousepos( void )
 PF_loadfromdata,			// #108 void loadfromdata( string data )
 PF_loadfromfile,			// #109 float loadfromfile( string file )

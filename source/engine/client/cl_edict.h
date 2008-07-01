@@ -10,8 +10,12 @@ struct cl_edict_s
 	// generic_edict_t (don't move these fields!)
 	bool		free;
 	float		freetime;	 	// cl.time when the object was freed
+	int		serverframe;	// if not current, this ent isn't in the frame
 
-	// ui_private_edict_t starts here
+	// cl_private_edict_t
+	entity_state_t	baseline;		// delta from this if not from a previous frame
+	entity_state_t	current;
+	entity_state_t	prev;		// will always be valid, but might just be a copy of current
 };
 
 struct cl_globalvars_s
@@ -25,37 +29,38 @@ struct cl_globalvars_s
 	vec3_t	v_forward;
 	vec3_t	v_right;
 	vec3_t	v_up;
-	float	time;
+	float	realtime;
 	float	frametime;
-	float	intermission;
-	float	paused;
-	float	spectator;
 	float	onground;
 	float	waterlevel;
+	float	clientflags;
+	float	intermission;
+	float	paused;
 	vec3_t	simvel;
 	vec3_t	simorg;
-	vec3_t	viewheight;
 	float	idealpitch;
+	vec3_t	viewheight;
 	vec3_t	cl_viewangles;
 	float	health;
-	vec3_t	crosshairangle;
 	vec3_t	punchangle;
+	vec3_t	crosshairangle;
+	float	smoothing;
 	float	maxclients;
 	int	viewentity;
 	float	playernum;
-	float	max_entities;
 	float	demoplayback;
-	float	smoothing;
 	float	screen_x;
 	float	screen_y;
 	float	screen_w;
 	float	screen_h;
 	vec3_t	blend_color;
 	float	blend_alpha;
+	float	max_entities;
 	func_t	HUD_Init;
-	func_t	HUD_Render;
-	func_t	HUD_ConsoleCommand;
+	func_t	HUD_StudioEvent;
 	func_t	HUD_ParseMessage;
+	func_t	HUD_Render;
+	func_t	HUD_UpdateEntities;
 	func_t	HUD_Shutdown;
 	func_t	V_CalcRefdef;
 };
@@ -63,19 +68,8 @@ struct cl_globalvars_s
 struct cl_entvars_s
 {
 	string_t	classname;
-	string_t	model;
 	int	chain;
-	float	frame;
-	vec3_t	origin;
-	vec3_t	angles;
-	float	sequence;
-	float	animtime;
-	float	framerate;
-	float	alpha;
-	float	body;
-	float	skin;
-	float	effects;
-	float	renderflags;
+	string_t	model;
 };
 
 
@@ -83,7 +77,7 @@ struct cl_entvars_s
 
 static fields_t cl_reqfields[] = 
 {
-	{18,	2,	"flags"}
+	{3,	2,	"flags"}
 };
 
 #endif//CL_EDICT_H
