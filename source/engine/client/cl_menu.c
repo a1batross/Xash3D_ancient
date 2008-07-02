@@ -21,21 +21,26 @@ static char *creditsBuffer;
 static uint credit_numlines;
 static bool credits_active;
 
+void UI_VM_Begin( void )
+{
+	PRVM_Begin;
+	PRVM_SetProg(PRVM_MENUPROG);
+
+	// set time
+	if( prog ) *prog->time = cls.realtime;
+}
+
 void UI_KeyEvent( int key )
 {
 	const char *ascii = Key_KeynumToString(key);
-	PRVM_Begin;
-	PRVM_SetProg( PRVM_MENUPROG );
-
-	// set time
-	*prog->time = cls.realtime;
+	UI_VM_Begin();
 
 	// setup args
 	PRVM_G_FLOAT(OFS_PARM0) = key;
 	PRVM_G_INT(OFS_PARM1) = PRVM_SetEngineString(ascii);
 	PRVM_ExecuteProgram (prog->globals.ui->m_keydown, "QC function m_keydown is missing");
 
-	PRVM_End;
+	CL_VM_Begin(); 	// restore clvm state
 }
 
 void UI_Draw( void )
@@ -43,15 +48,12 @@ void UI_Draw( void )
 	if( !ui_active || cls.key_dest != key_menu )
 		return;
 
-	PRVM_Begin;
-	PRVM_SetProg(PRVM_MENUPROG);
-
-	// set time
-	*prog->time = cls.realtime;
+	UI_VM_Begin();
 
 	PRVM_ExecuteProgram (prog->globals.ui->m_draw, "QC function m_draw is missing");
 	UI_DrawCredits(); // display game credits
-	PRVM_End;
+
+	CL_VM_Begin(); 	// restore clvm state
 }
 
 void UI_DrawCredits( void )
@@ -90,14 +92,11 @@ void UI_DrawCredits( void )
 
 void UI_ShowMenu( void )
 {
-	PRVM_Begin;
-	PRVM_SetProg(PRVM_MENUPROG);
+	UI_VM_Begin();
 
-	// set time
-	*prog->time = cls.realtime;
 	ui_active = true;
 	PRVM_ExecuteProgram (prog->globals.ui->m_show, "QC function m_toggle is missing");
-	PRVM_End;
+	CL_VM_Begin(); 	// restore clvm state
 }
 
 void UI_HideMenu( void )
@@ -105,28 +104,18 @@ void UI_HideMenu( void )
 	cls.key_dest = key_game;
 	Key_ClearStates();
 	
-	PRVM_Begin;
-	PRVM_SetProg(PRVM_MENUPROG);
-
-	// set time
-	*prog->time = cls.realtime;
+	UI_VM_Begin();
 	ui_active = false;
 	prog->globals.ui->time = cls.realtime;
 	PRVM_ExecuteProgram (prog->globals.ui->m_hide, "QC function m_toggle is missing");
-	PRVM_End;
+	CL_VM_Begin(); 	// restore clvm state
 }
 
 void UI_Shutdown( void )
 {
-	PRVM_Begin;
-	PRVM_SetProg(PRVM_MENUPROG);
-
-	// set time
-	//*prog->time = cls.realtime;
+	UI_VM_Begin();
 
 	PRVM_ExecuteProgram (prog->globals.ui->m_shutdown, "QC function m_shutdown is missing");
-
-	// reset key_dest
 	cls.key_dest = key_game;
 
 	// AK not using this cause Im not sure whether this is useful at all instead :

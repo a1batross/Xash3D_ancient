@@ -53,15 +53,6 @@ typedef struct field_s
 	int	maxchars; // menu stuff
 } field_t;
 
-typedef struct
-{
-	entity_state_t	baseline;		// delta from this if not from a previous frame
-	entity_state_t	current;
-	entity_state_t	prev;			// will always be valid, but might just be a copy of current
-
-	int		serverframe;		// if not current, this ent isn't in the frame
-} centity_t;
-
 #define MAX_CLIENTWEAPONMODELS		20		// PGM -- upped from 16 to fit the chainfist vwep
 
 typedef struct
@@ -318,7 +309,6 @@ typedef struct
 	float	minlight;			// don't add when contributing less
 } cdlight_t;
 
-extern	centity_t	cl_entities[MAX_EDICTS];
 extern	cdlight_t	cl_dlights[MAX_DLIGHTS];
 
 // the cl_parse_entities must be large enough to hold UPDATE_BACKUP frames of
@@ -477,8 +467,24 @@ void CL_Stop_f( void );
 void CL_InitClientProgs( void );
 void CL_FreeClientProgs( void );
 void CL_DrawHUD( void );
+edict_t *CL_GetEdict( int entnum );
 float *CL_FadeColor( float starttime, float endtime );
 bool CL_ParseUserMessage( int svc_number );
+void CL_FreeEdicts( void );
+void CL_VM_Begin( void );
+void CL_VM_End( void );
+
+_inline edict_t *CLVM_EDICT_NUM( int entnum )
+{
+	edict_t	*ent;
+
+	while( entnum >= prog->max_edicts ) PRVM_MEM_IncreaseEdicts();
+	ent = PRVM_EDICT_NUM( entnum );
+	memset(ent->progs.cl, 0, prog->progs->entityfields * 4);
+	ent->priv.cl->free = false;
+
+	return ent;
+}
 
 //
 // cl_sound.c

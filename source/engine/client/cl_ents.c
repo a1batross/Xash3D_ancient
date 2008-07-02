@@ -93,10 +93,10 @@ to the current frame
 */
 void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t *old, int bits )
 {
-	centity_t	*ent;
+	edict_t		*ent;
 	entity_state_t	*state;
 
-	ent = &cl_entities[newnum];
+	ent = PRVM_EDICT_NUM( newnum );
 
 	state = &cl_parse_entities[cl.parse_entities & (MAX_PARSE_ENTITIES-1)];
 	cl.parse_entities++;
@@ -105,26 +105,26 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 	MSG_ReadDeltaEntity( msg, old, state, newnum, bits );
 
 	// some data changes will force no lerping
-	if (state->modelindex != ent->current.modelindex || state->weaponmodel != ent->current.weaponmodel || state->body != ent->current.body
-		|| state->sequence != ent->current.sequence || abs(state->origin[0] - ent->current.origin[0]) > 512
-		|| abs(state->origin[1] - ent->current.origin[1]) > 512 || abs(state->origin[2] - ent->current.origin[2]) > 512 )
+	if( state->modelindex != ent->priv.cl->current.modelindex || state->weaponmodel != ent->priv.cl->current.weaponmodel || state->body != ent->priv.cl->current.body
+		|| state->sequence != ent->priv.cl->current.sequence || abs(state->origin[0] - ent->priv.cl->current.origin[0]) > 512
+		|| abs(state->origin[1] - ent->priv.cl->current.origin[1]) > 512 || abs(state->origin[2] - ent->priv.cl->current.origin[2]) > 512 )
 	{
-		ent->serverframe = -99;
+		ent->priv.cl->serverframe = -99;
 	}
 
-	if( ent->serverframe != cl.frame.serverframe - 1 )
+	if( ent->priv.cl->serverframe != cl.frame.serverframe - 1 )
 	{	
 		// duplicate the current state so lerping doesn't hurt anything
-		ent->prev = *state;
-		VectorCopy (state->old_origin, ent->prev.origin);
+		ent->priv.cl->prev = *state;
+		VectorCopy (state->old_origin, ent->priv.cl->prev.origin);
 	}
 	else
 	{	// shuffle the last state to previous
-		ent->prev = ent->current;
+		ent->priv.cl->prev = ent->priv.cl->current;
 	}
 
-	ent->serverframe = cl.frame.serverframe;
-	ent->current = *state;
+	ent->priv.cl->serverframe = cl.frame.serverframe;
+	ent->priv.cl->current = *state;
 }
 
 /*
@@ -230,7 +230,8 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 		if( oldnum > newnum )
 		{	
 			// delta from baseline
-			CL_DeltaEntity( msg, newframe, newnum, &cl_entities[newnum].baseline, bits );
+			edict_t *ent = PRVM_EDICT_NUM( newnum );
+			CL_DeltaEntity( msg, newframe, newnum, &ent->priv.cl->baseline, bits );
 			continue;
 		}
 
@@ -470,11 +471,11 @@ CL_AddPacketEntities
 */
 void CL_AddPacketEntities( frame_t *frame )
 {
-	entity_t		ent;
+	entity_t		refent;
 	entity_state_t	*s1;
 	float		autorotate;
 	int		i, pnum;
-	centity_t		*cent;
+	edict_t		*ent;
 	int		autoanim;
 	uint		effects, renderfx;
 
@@ -484,58 +485,63 @@ void CL_AddPacketEntities( frame_t *frame )
 	// brush models can auto animate their frames
 	autoanim = 2 * cl.time/1000;
 
-	memset( &ent, 0, sizeof(ent));
+	memset( &refent, 0, sizeof(refent));
 
 	for( pnum = 0; pnum < frame->num_entities; pnum++ )
 	{
 		s1 = &cl_parse_entities[(frame->parse_entities+pnum)&(MAX_PARSE_ENTITIES-1)];
 
-		cent = &cl_entities[s1->number];
+		ent = PRVM_EDICT_NUM( s1->number );
 
 		effects = s1->effects;
 		renderfx = s1->renderfx;
-		ent.frame = s1->frame;
+		refent.frame = s1->frame;
+
+		// copy state to progs
+		ent->progs.cl->modelindex = ent->priv.cl->current.modelindex;
+		ent->progs.cl->soundindex = ent->priv.cl->current.soundindex;
+//ent->progs.cl->model = PRVM_SetEngineString( cl.configstrings[CS_MODELS+ent->priv.cl->current.modelindex] ); 
 
 		// copy state to render
-		ent.prev.frame = cent->prev.frame;
-		ent.backlerp = 1.0 - cl.lerpfrac;
-		ent.alpha = s1->alpha;
-		ent.body = s1->body;
-		ent.sequence = s1->sequence;		
-		ent.animtime = s1->animtime;
+		refent.prev.frame = ent->priv.cl->prev.frame;
+		refent.backlerp = 1.0 - cl.lerpfrac;
+		refent.alpha = s1->alpha;
+		refent.body = s1->body;
+		refent.sequence = s1->sequence;		
+		refent.animtime = s1->animtime;
 		
 		// interpolate origin
 		for( i = 0; i < 3; i++ )
 		{
-			ent.origin[i] = LerpPoint( cent->prev.origin[i], cent->current.origin[i], cl.lerpfrac );
-			ent.oldorigin[i] = ent.origin[i];
+			refent.origin[i] = LerpPoint( ent->priv.cl->prev.origin[i], ent->priv.cl->current.origin[i], cl.lerpfrac );
+			refent.oldorigin[i] = refent.origin[i];
 		}
 
 		// set skin
-		ent.skin = s1->skin;
-		ent.model = cl.model_draw[s1->modelindex];
-		ent.flags = renderfx;
+		refent.skin = s1->skin;
+		refent.model = cl.model_draw[s1->modelindex];
+		refent.flags = renderfx;
 
 		// calculate angles
 		if( effects & EF_ROTATE )
 		{	
 			// some bonus items auto-rotate
-			ent.angles[0] = 0;
-			ent.angles[1] = autorotate;
-			ent.angles[2] = 0;
+			refent.angles[0] = 0;
+			refent.angles[1] = autorotate;
+			refent.angles[2] = 0;
 		}
 		else
 		{	
 			// interpolate angles
 			for( i = 0; i < 3; i++ )
 			{
-				ent.angles[i] = LerpAngle( cent->prev.angles[i], cent->current.angles[i], cl.lerpfrac );
+				refent.angles[i] = LerpAngle( ent->priv.cl->prev.angles[i], ent->priv.cl->current.angles[i], cl.lerpfrac );
 			}
 		}
 
 		if( s1->number == cl.playernum + 1 )
 		{
-			ent.flags |= RF_PLAYERMODEL;	// only draw from mirrors
+			refent.flags |= RF_PLAYERMODEL;	// only draw from mirrors
 			continue;
 		}
 
@@ -543,19 +549,19 @@ void CL_AddPacketEntities( frame_t *frame )
 		if( !s1->modelindex ) continue;
 
 		// add to refresh list
-		V_AddEntity( &ent );
+		V_AddEntity( &refent );
 
-		ent.skin = 0;
-		ent.flags = 0;
-		ent.alpha = 0;
+		refent.skin = 0;
+		refent.flags = 0;
+		refent.alpha = 0;
 
 		// duplicate for linked models
 		if( s1->weaponmodel )
 		{
-			ent.model = cl.model_draw[s1->weaponmodel];
-			V_AddEntity (&ent);
-			ent.flags = 0;
-			ent.alpha = 0;
+			refent.model = cl.model_draw[s1->weaponmodel];
+			V_AddEntity (&refent);
+			refent.flags = 0;
+			refent.alpha = 0;
 		}
 	}
 }
@@ -617,7 +623,6 @@ void CL_CalcViewValues( void )
 {
 	int		i;
 	float		lerp, backlerp;
-	centity_t		*ent;
 	frame_t		*oldframe;
 	player_state_t	*ps, *ops;
 
@@ -633,7 +638,6 @@ void CL_CalcViewValues( void )
 	if( fabs(ops->origin[0] - ps->origin[0]) > 2048 || fabs(ops->origin[1] - ps->origin[1]) > 2048 || fabs(ops->origin[2] - ps->origin[2]) > 2048)
 		ops = ps;	// don't interpolate
 
-	ent = &cl_entities[cl.playernum + 1];
 	lerp = cl.lerpfrac;
 
 	// calculate the origin
@@ -727,35 +731,35 @@ void CL_AddEntities( void )
 // sound engine implementation
 //
 
-void CL_GetEntitySoundSpatialization( int ent, vec3_t origin, vec3_t velocity )
+void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity )
 {
-	centity_t		*cent;
+	edict_t		*ent;
 	cmodel_t		*cmodel;
 	vec3_t		midPoint;
 
-	if( ent < 0 || ent >= MAX_EDICTS )
+	if( entnum < 0 || entnum >= MAX_EDICTS )
 	{
-		MsgDev( D_ERROR, "CL_GetEntitySoundSpatialization: invalid entnum", ent );
+		MsgDev( D_ERROR, "CL_GetEntitySoundSpatialization: invalid entnum %d\n", entnum );
 		VectorCopy( vec3_origin, origin );
 		VectorCopy( vec3_origin, velocity );
 		return;
 	}
 
-	cent = &cl_entities[ent];
+	ent = PRVM_EDICT_NUM( entnum );
 
 	// calculate origin
-	origin[0] = cent->prev.origin[0] + (cent->current.origin[0] - cent->prev.origin[0]) * cl.lerpfrac;
-	origin[1] = cent->prev.origin[1] + (cent->current.origin[1] - cent->prev.origin[1]) * cl.lerpfrac;
-	origin[2] = cent->prev.origin[2] + (cent->current.origin[2] - cent->prev.origin[2]) * cl.lerpfrac;
+	origin[0] = ent->priv.cl->prev.origin[0] + (ent->priv.cl->current.origin[0] - ent->priv.cl->prev.origin[0]) * cl.lerpfrac;
+	origin[1] = ent->priv.cl->prev.origin[1] + (ent->priv.cl->current.origin[1] - ent->priv.cl->prev.origin[1]) * cl.lerpfrac;
+	origin[2] = ent->priv.cl->prev.origin[2] + (ent->priv.cl->current.origin[2] - ent->priv.cl->prev.origin[2]) * cl.lerpfrac;
 
 	// calculate velocity
-	VectorSubtract(cent->current.origin, cent->prev.origin, velocity);
+	VectorSubtract( ent->priv.cl->current.origin, ent->priv.cl->prev.origin, velocity);
 	VectorScale(velocity, 10, velocity);
 
 	// if a brush model, offset the origin
 	if( VectorIsNull( origin ))
 	{
-		cmodel = cl.model_clip[cent->current.modelindex];
+		cmodel = cl.model_clip[ent->priv.cl->current.modelindex];
 		if(!cmodel) return;
 		VectorAverage(cmodel->mins, cmodel->maxs, midPoint);
 		VectorAdd(origin, midPoint, origin);

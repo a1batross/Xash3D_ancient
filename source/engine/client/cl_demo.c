@@ -31,9 +31,10 @@ void CL_WriteDemoMessage( void )
 void CL_WriteDemoHeader( const char *name )
 {
 	char		buf_data[MAX_MSGLEN];
-	entity_state_t	*ent, nullstate;
-	int		i, len;
+	entity_state_t	*state, nullstate;
+	edict_t		*ent;
 	sizebuf_t		buf;
+	int		i, len;
 
 	MsgDev(D_INFO, "recording to %s.\n", name );
 	cls.demofile = FS_Open( name, "wb" );
@@ -78,13 +79,16 @@ void CL_WriteDemoHeader( const char *name )
 
 	}
 
+	CL_VM_Begin();
+
 	// baselines
 	memset(&nullstate, 0, sizeof(nullstate));
 
-	for( i = 0; i < MAX_EDICTS; i++ )
+	for( i = 0; i < prog->num_edicts; i++ )
 	{
-		ent = &cl_entities[i].baseline;
-		if(!ent->modelindex) continue;
+		ent = PRVM_EDICT_NUM( i );
+		state = &ent->priv.cl->baseline;
+		if(!state->modelindex) continue;
 
 		if( buf.cursize + 64 > buf.maxsize )
 		{	
@@ -94,8 +98,8 @@ void CL_WriteDemoHeader( const char *name )
 			FS_Write( cls.demofile, buf.data, buf.cursize );
 			buf.cursize = 0;
 		}
-		MSG_WriteByte (&buf, svc_spawnbaseline);		
-		MSG_WriteDeltaEntity (&nullstate, &cl_entities[i].baseline, &buf, true, true);
+		MSG_WriteByte( &buf, svc_spawnbaseline );		
+		MSG_WriteDeltaEntity (&nullstate, &ent->priv.cl->baseline, &buf, true, true);
 	}
 
 	MSG_WriteByte( &buf, svc_stufftext );
@@ -105,6 +109,8 @@ void CL_WriteDemoHeader( const char *name )
 	len = LittleLong( buf.cursize );
 	FS_Write( cls.demofile, &len, 4 );
 	FS_Write( cls.demofile, buf.data, buf.cursize );
+
+	CL_VM_End();
 }
 
 /*

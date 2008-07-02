@@ -224,12 +224,14 @@ PRVM INTERACTIONS
 ==============================================================
 */
 #define prog	vm->prog	// global callback to vprogs.dll
+#define PRVM_EDICT_NUM( num )	_PRVM_EDICT_NUM( num, __FILE__, __LINE__ )
 
-_inline edict_t *PRVM_EDICT_NUM( int n )
+_inline edict_t *_PRVM_EDICT_NUM( int n, const char * file, const int line )
 {
+	if(!prog) Host_Error(" prog unset at (%s:%d)\n", file, line );
 	if((n >= 0) && (n < prog->max_edicts))
 		return prog->edicts + n;
-	prog->error_cmd( "PRVM_EDICT_NUM: %s: bad number %i (called at %s:%i)\n", prog->name, n, __FILE__, __LINE__ );
+	prog->error_cmd( "PRVM_EDICT_NUM: %s: bad number %i (called at %s:%i)\n", prog->name, n, file, line );
 	return NULL;	
 }
 

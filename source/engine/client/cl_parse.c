@@ -309,16 +309,19 @@ CL_ParseBaseline
 */
 void CL_ParseBaseline( sizebuf_t *msg )
 {
-	entity_state_t	*es;
 	int		bits;
 	int		newnum;
 	entity_state_t	nullstate;
+	edict_t		*ent;
 
 	memset (&nullstate, 0, sizeof(nullstate));
-
 	newnum = CL_ParseEntityBits( msg, &bits );
-	es = &cl_entities[newnum].baseline;
-	MSG_ReadDeltaEntity( msg, &nullstate, es, newnum, bits);
+
+	// allocate edicts
+	while( newnum >= prog->num_edicts ) PRVM_ED_Alloc();
+	ent = PRVM_EDICT_NUM( newnum );
+
+	MSG_ReadDeltaEntity( msg, &nullstate, &ent->priv.cl->baseline, newnum, bits );
 }
 
 

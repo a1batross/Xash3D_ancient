@@ -70,8 +70,6 @@ cvar_t	*cl_vwep;
 client_static_t	cls;
 client_t		cl;
 
-centity_t		cl_entities[MAX_EDICTS];
-
 entity_state_t	cl_parse_entities[MAX_PARSE_ENTITIES];
 
 extern	cvar_t *allow_download;
@@ -355,10 +353,10 @@ void CL_ClearState (void)
 {
 	S_StopAllSounds ();
 	CL_ClearEffects ();
+	CL_FreeEdicts();
 
 	// wipe the entire cl structure
 	memset (&cl, 0, sizeof(cl));
-	memset (&cl_entities, 0, sizeof(cl_entities));
 	SZ_Clear (&cls.netchan.message);
 }
 
@@ -1430,6 +1428,9 @@ void CL_Frame( float time )
 	// if in the debugger last frame, don't timeout
 	if (time > 5.0f) cls.netchan.last_received = host.realtime;
 
+	// setup the VM frame
+	CL_VM_Begin();
+
 	// fetch results from server
 	CL_ReadPackets();
 
@@ -1455,6 +1456,9 @@ void CL_Frame( float time )
 
 	SCR_RunCinematic();
 	Con_RunConsole();
+
+	// end the client VM frame
+	CL_VM_End();
 
 	cls.framecount++;
 }
@@ -1504,6 +1508,7 @@ void CL_Shutdown(void)
 
 	CL_WriteConfiguration(); 
 	CL_FreeClientProgs();
+	UI_Shutdown();
 	S_Shutdown();
 	CL_ShutdownInput();
 }

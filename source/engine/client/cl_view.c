@@ -407,6 +407,7 @@ void V_RenderView( void )
 		// build a refresh entity list and calc cl.sim*
 		// this also calls CL_CalcViewValues which loads
 		// v_forward, etc.
+		CL_VM_Begin();
 		CL_AddEntities ();
 
 		if (cl_testparticles->value)

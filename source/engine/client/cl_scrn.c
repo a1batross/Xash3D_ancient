@@ -280,6 +280,7 @@ void SCR_UpdateScreen( void )
 		Host_Error("SCR_UpdateScreen: bad cls.state" );
 		break;
 	}
+
 	V_PostRender();
 }
 

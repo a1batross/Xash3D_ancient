@@ -52,11 +52,7 @@ float *CL_FadeColor( float starttime, float endtime )
 
 void CL_DrawHUD( void )
 {
-	PRVM_Begin;
-	PRVM_SetProg( PRVM_CLIENTPROG );
-
-	// set time
-	*prog->time = cls.realtime;
+	if(!prog) return; // too early (just skip one frame)
 
 	// setup pparms
 	prog->globals.cl->health = cl.frame.playerstate.stats[STAT_HEALTH];
@@ -67,19 +63,11 @@ void CL_DrawHUD( void )
 	// setup args
 	PRVM_G_FLOAT(OFS_PARM0) = (float)cls.state;
 	PRVM_ExecuteProgram (prog->globals.cl->HUD_Render, "QC function HUD_Render is missing");
-
-	PRVM_End;
 }
 
 bool CL_ParseUserMessage( int svc_number )
 {
 	bool	msg_parsed = false;
-
-	PRVM_Begin;
-	PRVM_SetProg( PRVM_CLIENTPROG );
-
-	// set time
-	*prog->time = cls.realtime;
 
 	// setup pparms
 	prog->globals.cl->health = cl.frame.playerstate.stats[STAT_HEALTH];
@@ -91,7 +79,6 @@ bool CL_ParseUserMessage( int svc_number )
 	PRVM_G_FLOAT(OFS_PARM0) = (float)svc_number;
 	PRVM_ExecuteProgram (prog->globals.cl->HUD_ParseMessage, "QC function HUD_ParseMessage is missing");
 	msg_parsed = PRVM_G_FLOAT(OFS_RETURN);
-	PRVM_End;
 
 	return msg_parsed; 
 }
@@ -105,19 +92,12 @@ Event callback for studio models
 */
 void CL_StudioEvent ( mstudioevent_t *event, entity_t *ent )
 {
-	PRVM_Begin;
-	PRVM_SetProg( PRVM_CLIENTPROG );
-
-	// set time
-	*prog->time = cls.realtime;
-
 	// setup args
 	PRVM_G_FLOAT(OFS_PARM0) = (float)event->event;
 	PRVM_G_INT(OFS_PARM1) = PRVM_SetEngineString( event->options );
 	VectorCopy( ent->origin, PRVM_G_VECTOR(OFS_PARM2));
 	VectorCopy( ent->angles, PRVM_G_VECTOR(OFS_PARM3));
 	PRVM_ExecuteProgram( prog->globals.cl->HUD_StudioEvent, "QC function HUD_StudioEvent is missing");
-	PRVM_End;
 }
 
 /*
@@ -127,36 +107,72 @@ Client Builtin Functions
 mathlib, debugger, and various misc helpers
 ===============================================================================
 */
-
 void CL_BeginIncreaseEdicts( void )
 {
+	int		i;
+	edict_t		*ent;
+
 	// links don't survive the transition, so unlink everything
+	for (i = 0, ent = prog->edicts; i < prog->max_edicts; i++, ent++)
+	{
+	}
 }
 
 void CL_EndIncreaseEdicts( void )
 {
+	int		i;
+	edict_t		*ent;
+
+	for (i = 0, ent = prog->edicts; i < prog->max_edicts; i++, ent++)
+	{
+	}
 }
 
 void CL_InitEdict( edict_t *e )
 {
+	e->priv.cl->serialnumber = PRVM_NUM_FOR_EDICT(e);
+	e->priv.cl->free = false;
 }
 
 void CL_FreeEdict( edict_t *ed )
 {
+	ed->priv.cl->freetime = cl.time;
+	ed->priv.cl->free = true;
+
+	ed->progs.cl->model = 0;
+	ed->progs.cl->modelindex = 0;
+	ed->progs.cl->soundindex = 0;
+	ed->progs.cl->skin = 0;
+	ed->progs.cl->frame = 0;
+	VectorClear(ed->progs.cl->origin);
+	VectorClear(ed->progs.cl->angles);
+}
+
+void CL_FreeEdicts( void )
+{
+	int	i;
+	edict_t	*ent;
+
+	CL_VM_Begin();
+	for( i = 1; prog && i < prog->num_edicts; i++ )
+	{
+		ent = PRVM_EDICT_NUM(i);
+		CL_FreeEdict( ent );
+	}
+	CL_VM_End();
 }
 
 void CL_CountEdicts( void )
 {
-	int	i;
 	edict_t	*ent;
-	int	active = 0, models = 0;
+	int	i, active = 0, models = 0;
 
-	for (i = 0; i < prog->num_edicts; i++ )
+	for (i = 0; i < prog->num_edicts; i++)
 	{
 		ent = PRVM_EDICT_NUM(i);
-		if( ent->priv.cl->free ) continue;
-
+		if (ent->priv.cl->free) continue;
 		active++;
+		if (ent->progs.cl->model) models++;
 	}
 
 	Msg("num_edicts:%3i\n", prog->num_edicts);
@@ -585,8 +601,7 @@ void CL_InitClientProgs( void )
 		prog->builtins = vm_cl_builtins;
 		prog->numbuiltins = vm_cl_numbuiltins;
 		prog->edictprivate_size = sizeof(cl_edict_t);
-		prog->num_edicts = 1;
-		prog->max_edicts = 512;
+		prog->max_edicts = MAX_EDICTS<<2;
 		prog->limit_edicts = MAX_EDICTS;
 		prog->begin_increase_edicts = CL_BeginIncreaseEdicts;
 		prog->end_increase_edicts = CL_EndIncreaseEdicts;
