@@ -232,7 +232,7 @@ void CL_CheckForResend (void)
 	// resend if we haven't gotten a reply yet
 	if(cls.demoplayback || cls.state != ca_connecting)
 		return;
-	if(cls.realtime - cls.connect_time < 3.0f) return;
+	if(cls.realtime - cls.connect_time < 3000) return;
 
 	if(!NET_StringToAdr (cls.servername, &adr))
 	{
@@ -510,7 +510,7 @@ void CL_Reconnect_f (void)
 		if (cls.state >= ca_connected)
 		{
 			CL_Disconnect();
-			cls.connect_time = cls.realtime - 1.5f;
+			cls.connect_time = cls.realtime - 1500;
 		}
 		else cls.connect_time = MAX_HEARTBEAT; // fire immediately
 
@@ -673,7 +673,7 @@ bool CL_ParseServerStatus( char *adr, char *info )
 	server->playerstr = copystring( va("%i/%i", server->numplayers, server->maxplayers ));
 
 	// add the ping
-	server->ping = (int)(cls.realtime - cls.pingtime) * 1000.0f;
+	server->ping = cls.realtime - cls.pingtime;
 	server->pingstring = copystring( va("%ims", server->ping ));
 	server->statusPacket = true;
 
@@ -858,11 +858,9 @@ void CL_ReadPackets (void)
 	//
 	if( cls.state >= ca_connected && !cls.demoplayback )
 	{
-		if( cls.realtime - cls.netchan.last_received > cl_timeout->value)
+		if( cls.realtime - cls.netchan.last_received > cl_timeout->value * 1000 )
 		{
-			cl.timeoutcount++;	// timeoutcount saves debugger
-
-			if( cl.timeoutcount > 5 )
+			if( ++cl.timeoutcount > 5 ) // timeoutcount saves debugger
 			{
 				Msg ("\nServer connection timed out.\n");
 				CL_Disconnect ();
@@ -1159,7 +1157,7 @@ CL_InitLocal
 void CL_InitLocal (void)
 {
 	cls.state = ca_disconnected;
-	cls.realtime = 1.0f;
+	cls.realtime = Sys_Milliseconds();
 	CL_InitInput();
 
 	// register our variables
@@ -1402,31 +1400,32 @@ CL_Frame
 
 ==================
 */
-void CL_Frame( float time )
+void CL_Frame( dword time )
 {
-	static float	extratime;
-	static float  	lasttimecalled;
+	static dword extratime;
 
 	if( dedicated->integer ) return;
 
 	extratime += time;
 
-	if (cls.state == ca_connected && extratime < 0.01f)
+	if( cls.state == ca_connected && extratime < 100 )
 		return;	// don't flood packets out while connecting
-	if (extratime < 1.0f / cl_maxfps->value)
+	if( extratime < 1000 / cl_maxfps->value)
 		return;	// framerate is too high
 
 	// let the mouse activate or deactivate
 	CL_UpdateMouse();
 
 	// decide the simulation time
-	cls.frametime = extratime;
 	cl.time += extratime;
-	cls.realtime = host.realtime;
+	cls.realtime = Sys_Milliseconds();
+	cls.frametime = extratime * 0.001;
 	extratime = 0;
 
+	if( cls.frametime > (1.0 / 5)) cls.frametime = (1.0 / 5);
+
 	// if in the debugger last frame, don't timeout
-	if (time > 5.0f) cls.netchan.last_received = host.realtime;
+	if( time > 5000 ) cls.netchan.last_received = Sys_Milliseconds();
 
 	// setup the VM frame
 	CL_VM_Begin();

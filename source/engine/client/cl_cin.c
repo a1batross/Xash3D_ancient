@@ -51,8 +51,8 @@ typedef struct
 	bool	looping, holdAtEnd, dirty, silent;
 	file_t	*iFile;
 	e_status	status;
-	float	startTime;
-	float	lastTime;
+	dword	startTime;
+	dword	lastTime;
 	long	tfps;
 	long	RoQPlayed;
 	long	ROQSize;
@@ -945,7 +945,7 @@ static void RoQInterrupt( void )
 
 	// new frame is ready
 redump:
-	switch(cinTable.roq_id) 
+	switch( cinTable.roq_id ) 
 	{
 	case ROQ_QUAD_VQ:
 		if ((cinTable.numQuads&1))
@@ -986,7 +986,7 @@ redump:
 	case ZA_SOUND_STEREO:
 		if (!cinTable.silent)
 		{
-			if (cinTable.numQuads == -1)
+			if( cinTable.numQuads == -1 )
 			{
 				//S_Update();
 			}
@@ -1132,14 +1132,14 @@ Fetch and decompress the pending frame
 e_status CIN_RunCinematic( void )
 {
 	float	start = 0;
-	float     thisTime = 0;
+	dword     thisTime = 0;
 
 	if(cinTable.status == FMV_EOF) return FMV_EOF;
 	if ( cls.state != ca_cinematic ) return cinTable.status;
 
 	thisTime = cls.realtime;
 
-	cinTable.tfps = ((((cls.realtime) - cinTable.startTime) * cinTable.roqFPS / 100) / 0.01);
+	cinTable.tfps = ((((cls.realtime) - cinTable.startTime) * 3)/100);
 	start = cinTable.startTime;
 
 	while((cinTable.tfps != cinTable.numQuads) && (cinTable.status == FMV_PLAY)) 
@@ -1147,7 +1147,7 @@ e_status CIN_RunCinematic( void )
 		RoQInterrupt();
 		if (start != cinTable.startTime)
 		{
-			cinTable.tfps = ((((cls.realtime) - cinTable.startTime) * cinTable.roqFPS / 100)/0.01);
+			cinTable.tfps = ((((cls.realtime) - cinTable.startTime) * 3)/100);
 			start = cinTable.startTime;
 		}
 	}

@@ -234,12 +234,22 @@ void Host_AbortCurrentFrame( void )
 
 /*
 ==================
+Host_GetFrameTime
+==================
+*/
+float Host_FrameTime( void )
+{
+	return Cvar_VariableValue( "host_frametime" );
+}
+
+/*
+==================
 Host_GetServerState
 ==================
 */
 int Host_ServerState( void )
 {
-	return host_serverstate->integer;
+	return (int)Cvar_VariableValue( "host_serverstate" );
 }
 
 /*
@@ -307,14 +317,13 @@ void VID_Init( void )
 Host_Frame
 =================
 */
-void Host_Frame( double time )
+void Host_Frame( dword time )
 {
 	char		*s;
 
 	if(setjmp(host.abortframe)) return;
 
 	rand(); // keep the random time dependent
-
 	Sys_SendKeyEvents(); // get new key events
 
 	do
@@ -568,7 +577,7 @@ void Host_Init (uint funcname, int argc, char **argv)
           }
           
 	cm_paused = Cvar_Get("cm_paused", "0", 0, "physics module pause" );
-	host_frametime = Cvar_Get ("host_frametime", "0.01", 0, "host frametime" );
+	host_frametime = Cvar_Get ("host_frametime", "0.1", 0, "host frametime" );
 	host_serverstate = Cvar_Get ("host_serverstate", "0", 0, "displays current server state" );
 	timescale = Cvar_Get ("timescale", "1", 0, "physics world timescale" );
 	if(host.type == HOST_DEDICATED) dedicated = Cvar_Get ("dedicated", "1", CVAR_INIT, "currently server is in dedicated mode" );
@@ -586,7 +595,6 @@ void Host_Init (uint funcname, int argc, char **argv)
       
 	SV_Init();
 	CL_Init();
-	Sys_DoubleTime(); // initialize timer
 }
 
 /*
@@ -596,19 +604,22 @@ Host_Main
 */
 void Host_Main( void )
 {
-	static double	time, oldtime, newtime;
+	static dword	time, oldtime, newtime;
 
-	oldtime = host.realtime;
+	oldtime = Sys_Milliseconds(); // initialize timer
 
 	// main window message loop
 	while( host.type != HOST_OFFLINE )
 	{
-		oldtime = newtime;
-		newtime = Sys_DoubleTime();
-		time = newtime - oldtime;
+		do 
+		{
+			newtime = Sys_Milliseconds();
+			time = newtime - oldtime;
+		} while( time < 1 );
 
 		// engine frame
 		Host_Frame( time );
+		oldtime = newtime;
 	}
 }
 

@@ -149,6 +149,7 @@ typedef struct stdilib_api_s
 	bool (*Com_FreeLibrary)( dll_info_t *dll );			// free library
 	void*(*Com_GetProcAddress)( dll_info_t *dll, const char* name );	// gpa
 	double (*Com_DoubleTime)( void );				// hi-res timer
+	dword (*Com_Milliseconds)( void );				// hi-res timer
 
 	// random generator
 	long (*Com_RandomLong)( long lMin, long lMax );			// returns random integer
@@ -362,6 +363,7 @@ misc utils
 #define Sys_Break			com.abort
 #define Sys_ConsoleInput		com.input
 #define Sys_DoubleTime		com.Com_DoubleTime
+#define Sys_Milliseconds		com.Com_Milliseconds
 #define GetNumThreads		com.Com_NumThreads
 #define ThreadLock			com.Com_ThreadLock
 #define ThreadUnlock		com.Com_ThreadUnlock

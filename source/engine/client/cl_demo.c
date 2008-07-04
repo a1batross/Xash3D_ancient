@@ -205,7 +205,7 @@ void CL_ReadDemoMessage( void )
 		return;
 	}
 
-	cl.time = cls.realtime;
+	//cl.time = cls.realtime;//CHECK VALID
 	buf.readcount = 0;
 	CL_ParseServerMessage( &buf );
 }

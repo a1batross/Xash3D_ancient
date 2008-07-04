@@ -279,7 +279,6 @@ void CL_ParsePlayerstate( sizebuf_t *msg, frame_t *oldframe, frame_t *newframe )
 	flags = MSG_ReadLong(msg);//four bytes
 
 	// parse the pmove_state_t
-	if (flags & PS_M_TYPE) state->pm_type = MSG_ReadByte (msg);
 	if (flags & PS_M_ORIGIN) MSG_ReadPos32(msg, state->origin ); 
 	if (flags & PS_M_VELOCITY) MSG_ReadPos32(msg, state->velocity ); 
 	if (flags & PS_M_TIME) state->pm_time = MSG_ReadByte (msg);
@@ -386,7 +385,7 @@ void CL_ParseFrame( sizebuf_t *msg )
 	memset( &cl.frame, 0, sizeof(cl.frame));
 	cl.frame.serverframe = MSG_ReadLong (msg);
 	cl.frame.deltaframe = MSG_ReadLong (msg);
-	cl.frame.servertime = cl.frame.serverframe * host_frametime->value;
+	cl.frame.servertime = cl.frame.serverframe * 100;
 	cl.surpressCount = MSG_ReadByte (msg);
 
 	// If the frame is delta compressed from data that we
@@ -422,8 +421,8 @@ void CL_ParseFrame( sizebuf_t *msg )
 
 	// clamp time 
 	if( cl.time > cl.frame.servertime ) cl.time = cl.frame.servertime;
-	else if( cl.time < cl.frame.servertime - host_frametime->value )
-		cl.time = cl.frame.servertime - host_frametime->value;
+	else if( cl.time < cl.frame.servertime - 100 )
+		cl.time = cl.frame.servertime - 100;
 
 	// read areabits
 	len = MSG_ReadByte( msg );
@@ -449,7 +448,7 @@ void CL_ParseFrame( sizebuf_t *msg )
 			cls.state = ca_active;
 			cl.force_refdef = true;
 			// getting a valid frame message ends the connection process
-			VectorCopy( cl.frame.playerstate.origin, cl.predicted_origin );
+			VectorScale( cl.frame.playerstate.origin, CL_COORD_FRAC, cl.predicted_origin );
 			VectorCopy( cl.frame.playerstate.viewangles, cl.predicted_angles );
 		}
 		CL_CheckPredictionError();
@@ -626,6 +625,27 @@ void CL_CalcViewValues( void )
 	frame_t		*oldframe;
 	player_state_t	*ps, *ops;
 
+	// clamp time
+	if( cl.time > cl.frame.servertime )
+	{
+		if( cl_showclamp->value )
+			Msg ("high clamp %i\n", cl.time - cl.frame.servertime);
+		cl.time = cl.frame.servertime;
+		cl.lerpfrac = 1.0f;
+	}
+	else if (cl.time < cl.frame.servertime - 100 )
+	{
+		if (cl_showclamp->value)
+			Msg ("low clamp %i\n", cl.frame.servertime - host_frametime->value - cl.time);
+		cl.time = cl.frame.servertime - 100;
+		cl.lerpfrac = 0.0f;
+	}
+	else
+	{
+		cl.lerpfrac = 1.0 - (cl.frame.servertime - cl.time) * 0.01f;
+		//Msg("cl.lerpfrac %g\n", cl.lerpfrac );
+	}
+
 	// find the previous frame to interpolate from
 	ps = &cl.frame.playerstate;
 	i = (cl.frame.serverframe - 1) & UPDATE_MASK;
@@ -644,7 +664,7 @@ void CL_CalcViewValues( void )
 	if((cl_predict->value) && !(cl.frame.playerstate.pm_flags & PMF_NO_PREDICTION))
 	{	
 		// use predicted values
-		float	delta;
+		int	delta;
 
 		backlerp = 1.0 - lerp;
 		for( i = 0; i < 3; i++ )
@@ -655,13 +675,12 @@ void CL_CalcViewValues( void )
 
 		// smooth out stair climbing
 		delta = cls.realtime - cl.predicted_step_time;
-		if( delta < host_frametime->value )
-			cl.refdef.vieworg[2] -= cl.predicted_step * (host_frametime->value - delta) * 0.01f;
+		if( delta < 100 ) cl.refdef.vieworg[2] -= cl.predicted_step * (100 - delta) * 0.01f;
 	}
 	else
 	{	// just use interpolated values
 		for( i = 0; i < 3; i++ )
-			cl.refdef.vieworg[i] = LerpView( ops->origin[i], ps->origin[i], ops->viewoffset[i], ps->viewoffset[i], lerp );
+			cl.refdef.vieworg[i] = LerpView( ops->origin[i] * CL_COORD_FRAC, ps->origin[i] * CL_COORD_FRAC, ops->viewoffset[i], ps->viewoffset[i], lerp );
 	}
 
 	// if not running a demo or on a locked frame, add the local angle movement
@@ -703,22 +722,6 @@ void CL_AddEntities( void )
 {
 	if( cls.state != ca_active )
 		return;
-
-	if( cl.time > cl.frame.servertime )
-	{
-		if( cl_showclamp->value )
-			Msg ("high clamp %i\n", cl.time - cl.frame.servertime);
-		cl.time = cl.frame.servertime;
-		cl.lerpfrac = 1.0;
-	}
-	else if (cl.time < cl.frame.servertime - host_frametime->value)
-	{
-		if (cl_showclamp->value)
-			Msg ("low clamp %i\n", cl.frame.servertime - host_frametime->value - cl.time);
-		cl.time = cl.frame.servertime - host_frametime->value;
-		cl.lerpfrac = 0;
-	}
-	else cl.lerpfrac = 1.0 - (cl.frame.servertime - cl.time) * host_frametime->value;
 
 	CL_CalcViewValues();
 	CL_AddPacketEntities( &cl.frame );

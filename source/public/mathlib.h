@@ -17,7 +17,17 @@
 #define M_PI		(float)3.14159265358979323846
 #endif
 
+//#define USE_COORD_FRAC
+
 // network precision coords factor
+#ifdef USE_COORD_FRAC
+	#define SV_COORD_FRAC	(8.0f / 1.0f)
+	#define CL_COORD_FRAC	(1.0f / 8.0f)
+#else
+	#define SV_COORD_FRAC	1.0f
+	#define CL_COORD_FRAC	1.0f
+#endif
+
 #define SV_ANGLE_FRAC	(360.0f / 1.0f )
 #define CL_ANGLE_FRAC	(1.0f / 360.0f )
 
@@ -194,12 +204,12 @@ _inline bool VectorCompare (const vec3_t v1, const vec3_t v2)
 	return true;
 }
 
-_inline bool VectorICompare (const short* v1, const short* v2)
+_inline bool VectorICompare( const int* v1, const int* v2 )
 {
 	int		i;
 	
-	for (i = 0; i < 3; i++ )
-		if (abs(v1[i] - v2[i]) > 0)
+	for( i = 0; i < 3; i++ )
+		if( abs(v1[i] - v2[i]) > 0)
 			return false;
 	return true;
 }

@@ -115,6 +115,7 @@ uint Sys_SendKeyEvents( void );
 void Sys_ParseCommandLine (LPSTR lpCmdLine);
 void Sys_LookupInstance( void );
 double Sys_DoubleTime( void );
+dword Sys_Milliseconds( void );
 char *Sys_GetClipboardData( void );
 void Sys_Sleep( int msec );
 void Sys_Init( void );

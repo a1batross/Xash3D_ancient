@@ -29,8 +29,6 @@ cvar_t	*m_filter;	// mouse sensetivity
 cvar_t	*m_mouse;
 
 uint	frame_msec;
-uint	old_sys_frame_time;
-
 int	mouse_buttons;
 int	mouse_oldbuttonstate;
 POINT	cur_pos, old_pos;
@@ -376,7 +374,7 @@ void KeyDown (kbutton_t *b)
 
 	// save timestamp
 	c = Cmd_Argv(2);
-	b->downtime = atoi(c);
+	b->downtime = com.atoi(c);
 
 	if (!b->downtime) b->downtime = host.cl_timer - 100;
 	b->state |= 1 + 2;	// down + impulse down
@@ -410,7 +408,7 @@ void KeyUp (kbutton_t *b)
 
 	// save timestamp
 	c = Cmd_Argv(2);
-	uptime = atoi(c);
+	uptime = com.atoi(c);
 	if (uptime) b->msec += uptime - b->downtime;
 	else b->msec += 10;
 
@@ -652,7 +650,7 @@ usercmd_t CL_CreateCmd (void)
 {
 	usercmd_t	cmd;
 
-	frame_msec = host.cl_timer - old_sys_frame_time;
+	frame_msec = host.cl_timer - host.old_cl_timer;
 	if (frame_msec < 1) frame_msec = 1;
 	if (frame_msec > 200) frame_msec = 200;
 	
@@ -662,7 +660,7 @@ usercmd_t CL_CreateCmd (void)
 
 	CL_FinishMove (&cmd);
 
-	old_sys_frame_time = host.cl_timer;
+	host.old_cl_timer = host.cl_timer;
 
 	//cmd.impulse = cls.framecount;
 
@@ -756,6 +754,7 @@ void CL_SendCmd (void)
 	usercmd_t		*cmd, *oldcmd;
 	usercmd_t		nullcmd;
 	int		checksumIndex;
+	int		curtime;
 
 	// build a command even if not connected
 
@@ -763,6 +762,7 @@ void CL_SendCmd (void)
 	i = cls.netchan.outgoing_sequence & (CMD_BACKUP-1);
 	cmd = &cl.cmds[i];
 	cl.cmd_time[i] = cls.realtime; // for netgraph ping calculation
+	curtime = Sys_Milliseconds();
 
 	*cmd = CL_CreateCmd ();
 
@@ -781,7 +781,7 @@ void CL_SendCmd (void)
 
 	if( cls.state == ca_connected)
 	{
-		if (cls.netchan.message.cursize || host.realtime - cls.netchan.last_sent > 1.0f )
+		if (cls.netchan.message.cursize || curtime - cls.netchan.last_sent > 1000 )
 			Netchan_Transmit (&cls.netchan, 0, buf.data);	
 		return;
 	}

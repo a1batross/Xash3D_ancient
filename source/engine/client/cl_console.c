@@ -12,7 +12,7 @@ cvar_t	*con_speed;
 vec4_t console_color = {1.0, 1.0, 1.0, 1.0};
 int g_console_field_width = 78;
 
-#define NUM_CON_TIMES	5		// need for 4 lines
+#define NUM_CON_TIMES	4		// need for 4 lines
 #define CON_TEXTSIZE	MAX_INPUTLINE * 8	// 128 kb buffer
 #define DEFAULT_CONSOLE_WIDTH	78
 
@@ -34,7 +34,7 @@ typedef struct
 	float	finalFrac;	// 0.0 to 1.0 lines of console to display
 
 	int	vislines;		// in scanlines
-	float	times[NUM_CON_TIMES]; // cls.realtime time the line was generated for transparent notify lines
+	dword	times[NUM_CON_TIMES]; // cls.realtime time the line was generated for transparent notify lines
 	vec4_t	color;
 
 } console_t;
@@ -55,17 +55,16 @@ void Con_ToggleConsole_f (void)
 
 	Con_ClearNotify();
 
-	if (cls.key_dest == key_console)
+	if( cls.key_dest == key_console )
 	{
 		UI_HideMenu();
-		Cvar_SetValue("paused", 0 );
 	}
 	else
 	{
 		UI_HideMenu();
 		cls.key_dest = key_console;	
 
-		if(Cvar_VariableValue ("maxclients") == 1  && Host_ServerState())
+		if(Cvar_VariableValue ("maxclients") == 1 && Host_ServerState())
 			Cvar_SetValue("paused", 1 );
 	}
 }
@@ -117,7 +116,7 @@ void Con_ClearNotify( void )
 	int		i;
 	
 	for( i = 0; i < NUM_CON_TIMES; i++ )
-		con.times[i] = 0.0f;
+		con.times[i] = 0;
 }
 
 						
@@ -250,7 +249,7 @@ void Con_Linefeed( bool skipnotify )
 	// mark time for transparent overlay
 	if (con.current >= 0)
 	{
-		if( skipnotify ) con.times[con.current % NUM_CON_TIMES] = 0.0f;
+		if( skipnotify ) con.times[con.current % NUM_CON_TIMES] = 0;
 		else con.times[con.current % NUM_CON_TIMES] = cls.realtime;
 	}
 
@@ -336,7 +335,7 @@ void Con_Print( const char *txt )
 		{
 			prev = con.current % NUM_CON_TIMES - 1;
 			if ( prev < 0 ) prev = NUM_CON_TIMES - 1;
-			con.times[prev] = 0.0f;
+			con.times[prev] = 0;
 		}
 		else con.times[con.current % NUM_CON_TIMES] = cls.realtime;
 	}
@@ -382,7 +381,7 @@ void Con_DrawNotify( void )
 	int		x, v = 0;
 	short		*text;
 	int		i;
-	float		time;
+	int		time;
 	int		skip;
 	int		currentColor;
 
@@ -393,9 +392,9 @@ void Con_DrawNotify( void )
 	{
 		if( i < 0 ) continue;
 		time = con.times[i % NUM_CON_TIMES];
-		if( time == 0.0f ) continue;
+		if( time == 0 ) continue;
 		time = cls.realtime - time;
-		if( time > con_notifytime->value ) continue;
+		if( time > con_notifytime->value * 1000 ) continue;
 		text = con.text + (i % con.totallines) * con.linewidth;
 
 		for( x = 0; x < con.linewidth; x++)
@@ -468,7 +467,7 @@ void Con_DrawSolidConsole (float frac)
 	// draw current time
 	re->SetColor(g_color_table[ColorIndex(COLOR_YELLOW)]);
 	com.snprintf( curtime, MAX_QPATH, "%s ", timestamp( TIME_TIME_ONLY));
-	i = strlen( curtime );
+	i = com.strlen( curtime );
 	for (x = 0; x < i; x++)
 		SCR_DrawSmallChar(scr_width->integer - ( i - x ) * SMALLCHAR_WIDTH, (lines - (SMALLCHAR_HEIGHT+SMALLCHAR_HEIGHT/2)), curtime[x]);
 	re->SetColor(NULL);
@@ -628,6 +627,7 @@ void Con_Close( void )
 	Con_ClearNotify();
 	con.finalFrac = 0; // none visible
 	con.displayFrac = 0;
+	Cvar_SetValue( "paused", 0 );
 }
 
 bool Con_Active( void )

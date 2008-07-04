@@ -169,10 +169,9 @@ typedef struct host_parm_s
 	string		finalmsg;		// server shutdown final message
 
 	dword		framecount;	// global framecount
-	double		realtime;		// host realtime
-	float		frametime;	// frametime (default 0.1)
 	uint		sv_timer;		// SV_Input msg time
 	uint		cl_timer;		// CL_Input msg time
+	uint		old_cl_timer;	// save old msg time
 
 	HWND		hWnd;		// main window
 
@@ -188,6 +187,7 @@ void Host_Main ( void );
 void Host_Free ( void );
 void Host_SetServerState( int state );
 int Host_ServerState( void );
+float Host_FrameTime( void );
 void Host_AbortCurrentFrame( void );
 
 // message functions
@@ -210,11 +210,11 @@ CLIENT / SERVER SYSTEMS
 */
 void CL_Init( void );
 void CL_Shutdown( void );
-void CL_Frame( float time );
+void CL_Frame( dword time );
 
 void SV_Init( void );
 void SV_Shutdown( bool reconnect );
-void SV_Frame( float time );
+void SV_Frame( dword time );
 
 /*
 ==============================================================
@@ -409,7 +409,7 @@ void Sys_Error( const char *msg, ... );
 void Sys_SendKeyEvents( void );
 
 #define MAX_ENTNUMBER	99999		// for server and client parsing
-#define MAX_HEARTBEAT	-99999.0f		// connection time
+#define MAX_HEARTBEAT	-99999		// connection time
 
 
 // get rid of this

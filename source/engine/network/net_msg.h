@@ -338,8 +338,8 @@ typedef struct netchan_s
 
 	int			dropped;			// between last packet and previous
 
-	float			last_received;		// for timeouts
-	float			last_sent;		// for retransmits
+	int			last_received;		// for timeouts
+	int			last_sent;		// for retransmits
 
 	netadr_t			remote_address;
 	int			qport;			// qport value to write when transmitting

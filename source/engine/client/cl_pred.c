@@ -56,7 +56,7 @@ void CL_CheckPredictionError (void)
 		VectorCopy (cl.frame.playerstate.origin, cl.predicted_origins[frame]);
 
 		// save for error itnerpolation
-		VectorCopy( delta, cl.prediction_error );
+		VectorScale( delta, CL_COORD_FRAC, cl.prediction_error );
 	}
 }
 
@@ -178,14 +178,14 @@ Sets cl.predicted_origin and cl.predicted_angles
 */
 void CL_PredictMovement (void)
 {
-	int			ack, current;
-	int			frame;
-	int			oldframe;
-	usercmd_t	*cmd;
+	int		ack, current;
+	int		frame;
+	int		oldframe;
+	usercmd_t		*cmd;
 	pmove_t		pm;
-	int			i;
-	int			step;
-	int			oldz;
+	int		i;
+	float		step;
+	float		oldz;
 
 	if(cls.state != ca_active) return;
 	if(cl_paused->value) return;
@@ -235,12 +235,16 @@ void CL_PredictMovement (void)
 	}
 
 	oldframe = (ack-2) & (CMD_BACKUP-1);
-	oldz = cl.predicted_origins[oldframe][2];
-	step = pm.ps.origin[2] - oldz;
-	if (step > 63 && step < 160 )//&& (pm.ps.pm_flags & PMF_ON_GROUND))
+
+	//if( pm.ps.pm_flags & PMF_ON_GROUND )//FIXME
 	{
-		cl.predicted_step = step;
-		cl.predicted_step_time = cls.realtime - cls.frametime * 0.5f;
+		oldz = cl.predicted_origins[oldframe][2];
+		step = pm.ps.origin[2] - oldz;
+		if( step > 4 && step < 24 )
+		{
+			cl.predicted_step = step * CL_COORD_FRAC;
+			cl.predicted_step_time = cls.realtime - cls.frametime * 500;
+		}
 	}
 
 	// copy results out for rendering

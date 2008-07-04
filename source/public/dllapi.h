@@ -230,7 +230,7 @@ typedef struct pmodel_state_s
 {
 	int		index;	// client modelindex
 	int		sequence;	// studio animation sequence
-	int		frame;	// studio frame
+	float		frame;	// studio frame
 } pmodel_state_t;
 
 // player_state_t communication

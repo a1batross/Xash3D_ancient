@@ -140,13 +140,13 @@ SCR_TimeRefresh_f
 void SCR_TimeRefresh_f( void )
 {
 	int		i;
-	float		start, stop;
+	int		start, stop;
 	float		time;
 
 	if ( cls.state != ca_active )
 		return;
 
-	start = Sys_DoubleTime();
+	start = Sys_Milliseconds();
 
 	if( Cmd_Argc() == 2 )
 	{	
@@ -171,7 +171,7 @@ void SCR_TimeRefresh_f( void )
 		}
 	}
 
-	stop = Sys_DoubleTime();
-	time = stop - start;
+	stop = Sys_Milliseconds();
+	time = (stop - start) / 1000.0;
 	Msg( "%f seconds (%f fps)\n", time, 128 / time );
 }

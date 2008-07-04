@@ -54,9 +54,7 @@ void Sys_SendKeyEvents( void )
 {
 	// grab frame time 
 	host.sv_timer = Sys_GetKeyEvents();
-	host.cl_timer = host.realtime * 1000;
-	host.realtime = Sys_DoubleTime();
-	
+	host.cl_timer = Sys_Milliseconds();
 }
 
 /*
@@ -1282,7 +1280,7 @@ void VM_drawmodel( void )
 	refdef.height = size[1];
 	refdef.fov_x = 50;
 	refdef.fov_y = V_CalcFov( refdef.fov_x, refdef.width, refdef.height );
-	refdef.time = cls.realtime;
+	refdef.time = cls.realtime * 0.001f;
 
 	entity.model = re->RegisterModel( (char *)modname );
 	entity.flags = RF_FULLBRIGHT;

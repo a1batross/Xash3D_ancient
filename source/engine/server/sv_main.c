@@ -11,6 +11,7 @@ netadr_t	master_adr[MAX_MASTERS];	// address of group servers
 client_state_t	*sv_client;			// current client
 
 cvar_t	*sv_paused;
+cvar_t	*sv_fps;
 cvar_t	*sv_enforcetime;
 
 cvar_t	*timeout;				// seconds without any message
@@ -31,8 +32,6 @@ cvar_t	*sv_gravity;
 cvar_t	*sv_noreload;			// don't reload level state when reentering
 
 cvar_t	*maxclients;			// FIXME: rename sv_maxclients
-cvar_t	*sv_showclamp;
-
 cvar_t	*hostname;
 cvar_t	*public_server; // should heartbeats be sent
 
@@ -231,10 +230,12 @@ void SVC_GetChallenge (void)
 {
 	int		i;
 	int		oldest;
-	float		oldestTime;
+	int		oldestTime;
+	int		curtime;
 
 	oldest = 0;
-	oldestTime = 2147483647.0f;
+	oldestTime = 0x7fffffff;
+	curtime = Sys_Milliseconds();
 
 	// see if we already have a challenge for this ip
 	for (i = 0 ; i < MAX_CHALLENGES ; i++)
@@ -253,7 +254,7 @@ void SVC_GetChallenge (void)
 		// overwrite the oldest
 		svs.challenges[oldest].challenge = rand() & 0x7fff;
 		svs.challenges[oldest].adr = net_from;
-		svs.challenges[oldest].time = svs.realtime;
+		svs.challenges[oldest].time = curtime;
 		i = oldest;
 	}
 
@@ -342,7 +343,7 @@ void SVC_DirectConnect( void )
 		if (cl->state == cs_free) continue;
 		if (NET_CompareBaseAdr (adr, cl->netchan.remote_address) && ( cl->netchan.qport == qport || adr.port == cl->netchan.remote_address.port))
 		{
-			if (!NET_IsLocalAddress (adr) && (svs.realtime - cl->lastconnect) < sv_reconnect_limit->value)
+			if (!NET_IsLocalAddress (adr) && (svs.realtime - cl->lastconnect) < sv_reconnect_limit->value * 1000 )
 			{
 				MsgDev( D_ERROR, "SVC_DirectConnect: %s:reconnect rejected : too soon\n", NET_AdrToString (adr));
 				return;
@@ -619,7 +620,7 @@ void SV_ReadPackets (void)
 			}
 			break;
 		}
-		if (i != maxclients->value) continue;
+		if( i != maxclients->integer ) continue;
 	}
 }
 
@@ -643,8 +644,8 @@ void SV_CheckTimeouts (void)
 	float			droppoint;
 	float			zombiepoint;
 
-	droppoint = svs.realtime - timeout->value;
-	zombiepoint = svs.realtime - zombietime->value;
+	droppoint = svs.realtime - 1000 * timeout->value;
+	zombiepoint = svs.realtime - 1000 * zombietime->value;
 
 	for (i=0,cl=svs.clients ; i<maxclients->value ; i++,cl++)
 	{
@@ -674,31 +675,27 @@ SV_RunGameFrame
 */
 void SV_RunGameFrame (void)
 {
+	if( sv_paused->integer && maxclients->integer == 1 )
+		return;
+
 	// we always need to bump framenum, even if we
 	// don't run the world, otherwise the delta
 	// compression can get confused when a client
 	// has the "current" frame
 	sv.framenum++;
-	sv.frametime = host_frametime->value; // 100 fps as default
+	sv.frametime = 0.1f;//const
 	sv.time = sv.framenum * sv.frametime;
 
-	// don't run if paused
-	if (!sv_paused->value || maxclients->value > 1)
+	if(!cm_paused->value) 
+		pe->Frame( sv.frametime );//FIXME
+	SV_RunFrame ();
+
+	// never get more than one tic behind
+	if( sv.time * 1000 < svs.realtime )
 	{
-
-		if(!cm_paused->value) 
-			pe->Frame( 0.1 );//FIXME
-		SV_RunFrame ();
-
-		// never get more than one tic behind
-		if (sv.time < svs.realtime)
-		{
-			if (sv_showclamp->value)
-				Msg ("sv highclamp\n");
-			svs.realtime = sv.time;
-		}
+		Msg ("sv highclamp\n");
+		svs.realtime = sv.time * 1000;
 	}
-	sv.time += sv.frametime;
 }
 
 /*
@@ -707,11 +704,10 @@ SV_Frame
 
 ==================
 */
-void SV_Frame (float time)
+void SV_Frame( dword time )
 {
 	// if server is not active, do nothing
-	if (!svs.initialized) 
-		return;
+	if( !svs.initialized ) return;
 
 	svs.realtime += time;
 
@@ -728,19 +724,17 @@ void SV_Frame (float time)
 	SV_ReadPackets ();
 
 	// move autonomous things around if enough time has passed
-	if( svs.realtime < sv.time )
+	if( svs.realtime < sv.time * 1000 )
 	{
 		// never let the time get too far off
-		if (sv.time - svs.realtime > sv.frametime)
+		if((sv.time * 1000) - svs.realtime > 100 )
 		{
-			if (sv_showclamp->value)
-				Msg ("sv lowclamp\n");
-			svs.realtime = sv.time - sv.frametime;
+			Msg ("sv lowclamp\n");
+			svs.realtime = (sv.time * 1000 ) - 100;
 		}
 
-		NET_Sleep((sv.time - svs.realtime) * 1000);
+		NET_Sleep( ( sv.time * 1000 )- svs.realtime );
 		SV_VM_End(); //end frame
-
 		return;
 	}
 
@@ -790,7 +784,7 @@ void Master_Heartbeat (void)
 	// check for time wraparound
 	if (svs.last_heartbeat > svs.realtime) svs.last_heartbeat = svs.realtime;
 
-	if (svs.realtime - svs.last_heartbeat < HEARTBEAT_SECONDS)
+	if( svs.realtime - svs.last_heartbeat < HEARTBEAT_SECONDS * 1000 )
 		return;		// not time to send yet
 
 	svs.last_heartbeat = svs.realtime;
@@ -913,11 +907,12 @@ void SV_Init (void)
 	Cvar_Get ("fraglimit", "0", CVAR_SERVERINFO, "multiplayer fraglimit" );
 	Cvar_Get ("timelimit", "0", CVAR_SERVERINFO, "multiplayer timelimit" );
 	Cvar_Get ("protocol", va("%i", PROTOCOL_VERSION), CVAR_SERVERINFO|CVAR_INIT, "displays server protocol version" );
+
+	sv_fps = Cvar_Get( "sv_fps", "60", CVAR_ARCHIVE|CVAR_LATCH, "running server at" );
 	maxclients = Cvar_Get ("maxclients", "1", CVAR_SERVERINFO | CVAR_LATCH, "max count of clients for current game" );
 	hostname = Cvar_Get ("hostname", "unnamed", CVAR_SERVERINFO | CVAR_ARCHIVE, "host name" );
 	timeout = Cvar_Get ("timeout", "125", 0, "connection timeout" );
 	zombietime = Cvar_Get ("zombietime", "2", 0, "timeout for clients-zombie (who died but not respawned)" );
-	sv_showclamp = Cvar_Get ("showclamp", "0", 0, "show server clamping messages" );
 	sv_paused = Cvar_Get ("paused", "0", 0, "server pause" );
 	sv_enforcetime = Cvar_Get ("sv_enforcetime", "0", 0, "client enforce time" );
 	allow_download = Cvar_Get ("allow_download", "1", CVAR_ARCHIVE, "allow download resources" );

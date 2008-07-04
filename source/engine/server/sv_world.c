@@ -184,15 +184,15 @@ void SV_LinkEdict( edict_t *ent )
 	if (ent->progs.sv->solid == SOLID_BBOX && !((int)ent->progs.sv->flags & FL_DEADMONSTER))
 	{
 		// assume that x/y are equal and symetric
-		i = ent->progs.sv->maxs[0];
+		i = ent->progs.sv->maxs[0] / SV_COORD_FRAC;
 		i = bound( 1, i, 255 );
 
 		// z is not symetric
-		j = (-ent->progs.sv->mins[2]);
+		j = (-ent->progs.sv->mins[2]) / SV_COORD_FRAC;
 		j = bound( 1, j, 255 );
 
 		// and z maxs can be negative...
-		k = (ent->progs.sv->maxs[2] + 32);
+		k = (ent->progs.sv->maxs[2] + 32)/SV_COORD_FRAC;
 		k = bound( 1, k, 255 );
 		sv_ent->solid = (k<<16) | (j<<8) | i;
 	}

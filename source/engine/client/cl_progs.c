@@ -34,7 +34,7 @@ float *CL_FadeColor( float starttime, float endtime )
 	float		time, fade_time;
 
 	if( starttime == 0 ) return NULL;
-	time = cls.realtime - starttime;
+	time = (cls.realtime * 0.001f) - starttime;
 	if( time >= endtime ) return NULL;
 
 	// fade time is 1/4 of endtime
@@ -57,7 +57,7 @@ void CL_DrawHUD( void )
 	// setup pparms
 	prog->globals.cl->health = cl.frame.playerstate.stats[STAT_HEALTH];
 	prog->globals.cl->maxclients = com.atoi(cl.configstrings[CS_MAXCLIENTS]);
-	prog->globals.cl->realtime = cls.realtime;
+	prog->globals.cl->realtime = cls.realtime * 0.001f;
 	prog->globals.cl->paused = cl_paused->integer;
 
 	// setup args
@@ -72,7 +72,7 @@ bool CL_ParseUserMessage( int svc_number )
 	// setup pparms
 	prog->globals.cl->health = cl.frame.playerstate.stats[STAT_HEALTH];
 	prog->globals.cl->maxclients = com.atoi(cl.configstrings[CS_MAXCLIENTS]);
-	prog->globals.cl->realtime = cls.realtime;
+	prog->globals.cl->realtime = cls.realtime * 0.001f;
 	prog->globals.cl->paused = cl_paused->integer;
 
 	// setup args
@@ -136,7 +136,7 @@ void CL_InitEdict( edict_t *e )
 
 void CL_FreeEdict( edict_t *ed )
 {
-	ed->priv.cl->freetime = cl.time;
+	ed->priv.cl->freetime = cl.time * 0.001f;
 	ed->priv.cl->free = true;
 
 	ed->progs.cl->model = 0;
@@ -185,7 +185,7 @@ void CL_VM_Begin( void )
 	PRVM_Begin;
 	PRVM_SetProg( PRVM_CLIENTPROG );
 
-	if( prog ) *prog->time = cl.time;
+	if( prog ) *prog->time = cl.time * 0.001f;
 }
 
 void CL_VM_End( void )
@@ -343,10 +343,10 @@ void PF_drawcenterprint( void )
 	if(!VM_ValidateArgs( "DrawCenterPrint", 0 ))
 		return;
 
-	color = CL_FadeColor( cl.centerPrintTime, scr_centertime->value );
+	color = CL_FadeColor( cl.centerPrintTime * 0.001f, scr_centertime->value );
 	if( !color ) 
 	{
-		cl.centerPrintTime = 0.0f;
+		cl.centerPrintTime = 0;
 		return;
 	}
 
@@ -619,7 +619,7 @@ void CL_InitClientProgs( void )
 	}
 
 	// init some globals
-	prog->globals.cl->realtime = cls.realtime;
+	prog->globals.cl->realtime = cls.realtime * 0.001f;
 	prog->globals.cl->pev = 0;
 	prog->globals.cl->mapname = PRVM_SetEngineString( cls.servername );
 	prog->globals.cl->playernum = cl.playernum;
@@ -633,7 +633,7 @@ void CL_FreeClientProgs( void )
 {
 	CL_VM_Begin();
 
-	prog->globals.cl->realtime = cls.realtime;
+	prog->globals.cl->realtime = cls.realtime * 0.001f;
 	prog->globals.cl->pev = 0;
 	PRVM_ExecuteProgram(prog->globals.cl->HUD_Shutdown, "QC function HUD_Shutdown is missing");
 	PRVM_ResetProg();

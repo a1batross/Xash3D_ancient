@@ -201,7 +201,6 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 
 	// write the pmove_state_t
 	if (pflags & PS_M_TYPE) MSG_WriteByte (msg, ps->pm_type);
-
 	if (pflags & PS_M_ORIGIN) MSG_WritePos32(msg, ps->origin);
 	if (pflags & PS_M_VELOCITY) MSG_WritePos32(msg, ps->velocity);
 	if (pflags & PS_M_TIME) MSG_WriteByte (msg, ps->pm_time);
@@ -385,7 +384,7 @@ void SV_BuildClientFrame( client_state_t *client )
 	frame->senttime = svs.realtime; // save it for ping calc later
 
 	// find the client's PVS
-	VectorCopy( clent->priv.sv->client->ps.origin, org ); 
+	VectorScale( clent->priv.sv->client->ps.origin, CL_COORD_FRAC, org ); 
 	VectorAdd( org, clent->priv.sv->client->ps.viewoffset, org );  
 
 	leafnum = pe->PointLeafnum (org);

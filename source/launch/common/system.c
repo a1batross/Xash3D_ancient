@@ -155,6 +155,7 @@ void Sys_GetStdAPI( void )
 	com.Com_FreeLibrary = Sys_FreeLibrary;		// free library
 	com.Com_GetProcAddress = Sys_GetProcAddress;	// gpa
 	com.Com_DoubleTime = Sys_DoubleTime;		// hi-res timer
+	com.Com_Milliseconds = Sys_Milliseconds;
 
 	com.Com_RandomLong = Com_RandomLong;
 	com.Com_RandomFloat = Com_RandomFloat;
@@ -676,76 +677,29 @@ Sys_DoubleTime
 */
 double Sys_DoubleTime( void )
 {
-	static int first = true;
-	static bool nohardware_timer = false;
+	static bool first = true;
 	static double oldtime = 0.0, curtime = 0.0;
+	static bool firsttimegettime = true;
 	double newtime;
-	
-	// LordHavoc: note to people modifying this code, 
-	// DWORD is specifically defined as an unsigned 32bit number, 
-	// therefore the 65536.0 * 65536.0 is fine.
-	if (GI.cpunum > 1 || nohardware_timer)
+
+	if( firsttimegettime )
 	{
-		static int firsttimegettime = true;
-		// timeGetTime
-		// platform:
-		// Windows 95/98/ME/NT/2000/XP
-		// features:
-		// reasonable accuracy (millisecond)
-		// issues:
-		// wraps around every 47 days or so (but this is non-fatal to us, 
-		// odd times are rejected, only causes a one frame stutter)
-
-		// make sure the timer is high precision, otherwise different versions of
-		// windows have varying accuracy
-		if (firsttimegettime)
-		{
-			timeBeginPeriod (1);
-			firsttimegettime = false;
-		}
-
-		newtime = (double)timeGetTime () * 0.001;
+		timeBeginPeriod (1);
+		firsttimegettime = false;
 	}
-	else
-	{
-		// QueryPerformanceCounter
-		// platform:
-		// Windows 95/98/ME/NT/2000/XP
-		// features:
-		// very accurate (CPU cycles)
-		// known issues:
-		// does not necessarily match realtime too well
-		// (tends to get faster and faster in win98)
-		// wraps around occasionally on some platforms
-		// (depends on CPU speed and probably other unknown factors)
-		double timescale;
-		LARGE_INTEGER PerformanceFreq;
-		LARGE_INTEGER PerformanceCount;
+	newtime = ( double )timeGetTime() * 0.001;
 
-		if (!QueryPerformanceFrequency (&PerformanceFreq))
-		{
-			Msg("No hardware timer available\n");
-			// fall back to timeGetTime
-			nohardware_timer = true;
-			return Sys_DoubleTime();
-		}
-		QueryPerformanceCounter (&PerformanceCount);
-
-		timescale = 1.0 / ((double) PerformanceFreq.LowPart + (double) PerformanceFreq.HighPart * 65536.0 * 65536.0);
-		newtime = ((double) PerformanceCount.LowPart + (double) PerformanceCount.HighPart * 65536.0 * 65536.0) * timescale;
-	}
-
-	if (first)
+	if( first )
 	{
 		first = false;
 		oldtime = newtime;
 	}
 
-	if (newtime < oldtime)
+	if( newtime < oldtime )
 	{
 		// warn if it's significant
-		if (newtime - oldtime < -0.01)
-			Msg("Plat_DoubleTime: time stepped backwards (went from %f to %f, difference %f)\n", oldtime, newtime, newtime - oldtime);
+		if( newtime - oldtime < -0.01 )
+			MsgDev( D_ERROR, "Sys_DoubleTime: time stepped backwards (went from %f to %f, difference %f)\n", oldtime, newtime, newtime - oldtime);
 	}
 	else curtime += newtime - oldtime;
 	oldtime = newtime;
@@ -753,6 +707,26 @@ double Sys_DoubleTime( void )
 	return curtime;
 }
 
+/*
+================
+Sys_Milliseconds
+================
+*/
+dword Sys_Milliseconds( void )
+{
+	static dword	timebase;
+	static bool	firsttimegettime = true;
+	dword		curtime;
+
+	if( firsttimegettime )
+	{
+		timebase = timeGetTime();
+		firsttimegettime = false;
+	}
+	curtime = timeGetTime() - timebase;
+
+	return curtime;
+}
 /*
 ================
 Sys_GetClipboardData

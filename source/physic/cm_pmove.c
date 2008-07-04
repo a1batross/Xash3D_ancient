@@ -1495,9 +1495,9 @@ void Quake_PMove( pmove_t *pmove )
 	memset (&pml, 0, sizeof(pml));
 
 	// save old org in case we get stuck
-	VectorCopy( pm->ps.origin, pml.previous_origin );
+	VectorScale( pm->ps.origin, CL_COORD_FRAC, pml.previous_origin );
 	// save old velocity for crashlanding
-	VectorCopy( pm->ps.velocity, pml.previous_velocity );
+	VectorScale( pm->ps.velocity, CL_COORD_FRAC, pml.previous_velocity );
 
 	pml.frametime = pm->cmd.msec * 0.001;
 

@@ -492,9 +492,10 @@ SV_SendClientMessages
 void SV_SendClientMessages (void)
 {
 	int		i;
-	client_state_t		*c;
+	client_state_t	*c;
 	int		msglen;
 	byte		msgbuf[MAX_MSGLEN];
+	uint		curtime = Sys_Milliseconds();
 
 	msglen = 0;
 
@@ -525,8 +526,8 @@ void SV_SendClientMessages (void)
 		else
 		{
 			// just update reliable if needed
-			if (c->netchan.message.cursize || host.realtime - c->netchan.last_sent > 1.0f )
-				Netchan_Transmit (&c->netchan, 0, NULL);
+			if( c->netchan.message.cursize || curtime - c->netchan.last_sent > 1000 )
+				Netchan_Transmit( &c->netchan, 0, NULL );
 		}
 	}
 }

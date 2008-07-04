@@ -371,7 +371,7 @@ void SV_Status_f( void )
 		Msg("%s", cl->name );
 		l = 16 - com.strlen(cl->name);
 		for (j = 0; j < l; j++) Msg (" ");
-		Msg ("%.5f ", svs.realtime - cl->lastmessage );
+		Msg ("%7i ", svs.realtime - cl->lastmessage );
 		s = NET_AdrToString ( cl->netchan.remote_address);
 		Msg ("%s", s);
 		l = 22 - strlen(s);

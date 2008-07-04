@@ -436,7 +436,7 @@ void V_RenderView( void )
 		cl.refdef.width = scr_vrect.width;
 		cl.refdef.height = scr_vrect.height;
 		cl.refdef.fov_y = V_CalcFov (cl.refdef.fov_x, cl.refdef.width, cl.refdef.height);
-		cl.refdef.time = cls.realtime; // render use realtime now
+		cl.refdef.time = cl.time * 0.001f; // render use realtime now
 
 		cl.refdef.areabits = cl.frame.areabits;
 

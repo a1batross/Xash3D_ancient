@@ -49,7 +49,7 @@ void SV_PutClientInServer (edict_t *ent)
 	memset (&ent->priv.sv->client->ps, 0, sizeof(client->ps));
 
 	// info_player_start
-	VectorCopy( ent->progs.sv->origin, client->ps.origin );  
+	VectorScale( ent->progs.sv->origin, SV_COORD_FRAC, client->ps.origin );  
 
 	client->ps.fov = 90;
 	client->ps.fov = bound(1, client->ps.fov, 160);
@@ -273,8 +273,8 @@ void ClientEndServerFrame (edict_t *ent)
 	// If it wasn't updated here, the view position would lag a frame
 	// behind the body position when pushed -- "sinking into plats"
 	//
-	VectorCopy(ent->progs.sv->origin, current_client->ps.origin ); 
-	VectorCopy(ent->progs.sv->velocity, current_client->ps.velocity ); 
+	VectorScale(ent->progs.sv->origin, SV_COORD_FRAC, current_client->ps.origin ); 
+	VectorScale(ent->progs.sv->velocity, SV_COORD_FRAC, current_client->ps.velocity ); 
 	AngleVectors (ent->priv.sv->client->ps.viewangles, forward, right, up);
 
 	//
@@ -513,8 +513,8 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	pm.ps = client->ps;
 	memcpy( &client->ucmd, ucmd, sizeof(usercmd_t));//IMPORTANT!!!
 
-	VectorCopy(ent->progs.sv->origin, pm.ps.origin );
-	VectorCopy(ent->progs.sv->velocity, pm.ps.velocity );
+	VectorScale(ent->progs.sv->origin, SV_COORD_FRAC, pm.ps.origin );
+	VectorScale(ent->progs.sv->velocity, SV_COORD_FRAC, pm.ps.velocity );
 
 	pm.cmd = *ucmd;
 
@@ -527,8 +527,8 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	// save results of pmove
 	client->ps = pm.ps;
 
-	VectorCopy(pm.ps.origin, ent->progs.sv->origin);
-	VectorCopy(pm.ps.velocity, ent->progs.sv->velocity);
+	VectorScale(pm.ps.origin, CL_COORD_FRAC, ent->progs.sv->origin);
+	VectorScale(pm.ps.velocity, CL_COORD_FRAC, ent->progs.sv->velocity);
 	VectorCopy(pm.mins, ent->progs.sv->mins);
 	VectorCopy(pm.maxs, ent->progs.sv->maxs);
 	VectorCopy(pm.ps.viewangles, client->ps.viewangles);

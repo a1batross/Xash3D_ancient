@@ -248,6 +248,26 @@ void SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, 
 }
 
 /*
+=================
+SCR_DrawDemoRecording
+=================
+*/
+void SCR_DrawDemoRecording( void )
+{
+	char		string[1024];
+	fs_offset_t	pos;
+	uint		w;
+
+	if( !cls.demorecording ) return;
+
+	pos = FS_Tell( cls.demofile );
+	com.sprintf( string, "RECORDING %s: %ik", cls.demoname, pos / 1024 );
+	w = com.strlen( string );
+
+	SCR_DrawBigStringColor((SCREEN_WIDTH - w)/2, SCREEN_HEIGHT/4, string, g_color_table[7] ); 
+}
+
+/*
 ==================
 SCR_UpdateScreen
 
@@ -275,6 +295,7 @@ void SCR_UpdateScreen( void )
 		V_CalcRect();
 		V_RenderView();
 		CL_DrawHUD();
+		SCR_DrawDemoRecording();
 		break;
 	default:
 		Host_Error("SCR_UpdateScreen: bad cls.state" );

@@ -38,7 +38,7 @@ typedef struct
 } clightstyle_t;
 
 clightstyle_t	cl_lightstyle[MAX_LIGHTSTYLES];
-static float	lastofs;
+static int	lastofs;
 	
 /*
 ================
@@ -58,11 +58,11 @@ CL_RunLightStyles
 */
 void CL_RunLightStyles (void)
 {
-	float		ofs;
+	int		ofs;
 	clightstyle_t	*ls;
 	int		i;
 	
-	ofs = cl.time * 10;
+	ofs = cl.time / 100;
 	if( ofs == lastofs ) return;
 	lastofs = ofs;
 
@@ -74,7 +74,7 @@ void CL_RunLightStyles (void)
 			continue;
 		}
 		if( ls->length == 1 ) ls->value[0] = ls->value[1] = ls->value[2] = ls->map[0];
-		else ls->value[0] = ls->value[1] = ls->value[2] = ls->map[(int)fmod( ofs, ls->length)];
+		else ls->value[0] = ls->value[1] = ls->value[2] = ls->map[ofs%ls->length];
 	}
 }
 
@@ -335,7 +335,7 @@ void CL_TeleportSplash( vec3_t org )
 				p->next = active_particles;
 				active_particles = p;
 		
-				p->time = cl.time + RANDOM_FLOAT( 0.02f, 0.2f );
+				p->time = cl.time + RANDOM_FLOAT( 200, 2000 );
 				p->color = 0xdb;
 				
 				dir[0] = j * 8;

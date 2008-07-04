@@ -347,7 +347,7 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, b
 
 	// draw the cursor
 	if(!showCursor ) return;
-	if((int)( cls.realtime * 4.0f ) & 1 ) return; // off blink
+	if((int)(cls.realtime >> 8) & 1) return; // off blink
 
 	if( key_overstrikeMode ) cursorChar = 11;
 	else cursorChar = 95;

@@ -18,9 +18,9 @@ be accurate for client side prediction
 */
 void SV_ClampCoord( vec3_t coord )
 {
-	coord[0] -= floor(coord[0]);
-	coord[1] -= floor(coord[1]);
-	coord[2] -= floor(coord[2]);
+	coord[0] -= SV_COORD_FRAC * floor(coord[0] * CL_COORD_FRAC);
+	coord[1] -= SV_COORD_FRAC * floor(coord[1] * CL_COORD_FRAC);
+	coord[2] -= SV_COORD_FRAC * floor(coord[2] * CL_COORD_FRAC);
 }
 
 void SV_ClampAngle( vec3_t angle )
@@ -632,8 +632,8 @@ bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink)
 			if (i == 0 && enemy != prog->edicts)
 			{
 				dz = ent->progs.sv->origin[2] - PRVM_PROG_TO_EDICT(ent->progs.sv->enemy)->progs.sv->origin[2];
-				if (dz > 40) neworg[2] -= 8;
-				if (dz < 30) neworg[2] += 8;
+				if (dz > 40) neworg[2] -= SV_COORD_FRAC;
+				if (dz < 30) neworg[2] += SV_COORD_FRAC;
 			}
 			trace = SV_Trace(ent->progs.sv->origin, ent->progs.sv->mins, ent->progs.sv->maxs, neworg, ent, MASK_SOLID);
 
@@ -1213,7 +1213,7 @@ void SV_WalkMove (edict_t *ent)
 	if (clip & 2)
 	{
 		// if move was not trying to move into the step, return
-		if (fabs(start_velocity[0]) < 0.125 && fabs(start_velocity[1]) < 0.125)
+		if (fabs(start_velocity[0]) < CL_COORD_FRAC && fabs(start_velocity[1]) < CL_COORD_FRAC)
 			return;
 
 		if (ent->progs.sv->movetype != MOVETYPE_FLY)
@@ -1247,7 +1247,7 @@ void SV_WalkMove (edict_t *ent)
 
 		// check for stuckness, possibly due to the limited precision of floats
 		// in the clipping hulls
-		if (clip && fabs(originalmove_origin[1] - ent->progs.sv->origin[1]) < 0.125 && fabs(originalmove_origin[0] - ent->progs.sv->origin[0]) < 0.125)
+		if (clip && fabs(originalmove_origin[1] - ent->progs.sv->origin[1]) < CL_COORD_FRAC && fabs(originalmove_origin[0] - ent->progs.sv->origin[0]) < CL_COORD_FRAC)
 		{
 			//Msg("wall\n");
 			// stepping up didn't make any progress, revert to original move
@@ -1267,7 +1267,7 @@ void SV_WalkMove (edict_t *ent)
 		if (clip & 2) SV_WallFriction (ent, stepnormal);
 	}
 	// skip out if stepdown is enabled, moving downward, not in water, and the move started onground and ended offground
-	else if (ent->progs.sv->waterlevel < 2 && start_velocity[2] < 0.125 && oldonground && !((int)ent->progs.sv->aiflags & AI_ONGROUND))
+	else if (ent->progs.sv->waterlevel < 2 && start_velocity[2] < CL_COORD_FRAC && oldonground && !((int)ent->progs.sv->aiflags & AI_ONGROUND))
 		return;
 
 	// move down

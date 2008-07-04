@@ -102,7 +102,7 @@ void _MSG_WriteUnterminatedString (sizebuf_t *sb, const char *s, const char *fil
 
 void _MSG_WriteCoord16(sizebuf_t *sb, float f, const char *filename, int fileline)
 {
-	_MSG_WriteShort(sb, (int)(f * 8.0f), filename, fileline );
+	_MSG_WriteShort(sb, (int)(f * SV_COORD_FRAC), filename, fileline );
 }
 
 void _MSG_WriteAngle16 (sizebuf_t *sb, float f, const char *filename, int fileline)
@@ -439,7 +439,7 @@ char *MSG_ReadStringLine (sizebuf_t *msg_read)
 
 float MSG_ReadCoord16(sizebuf_t *msg_read)
 {
-	return MSG_ReadShort(msg_read) * 0.125f;
+	return MSG_ReadShort(msg_read) * CL_COORD_FRAC;
 }
 
 float MSG_ReadCoord32(sizebuf_t *msg_read)
@@ -454,7 +454,7 @@ void MSG_ReadPos32(sizebuf_t *msg_read, vec3_t pos)
 	pos[2] = MSG_ReadFloat(msg_read);
 }
 
-void MSG_ReadPos16(sizebuf_t *msg_read, vec3_t pos)
+void MSG_ReadPos16( sizebuf_t *msg_read, vec3_t pos )
 {
 	pos[0] = MSG_ReadCoord16(msg_read);
 	pos[1] = MSG_ReadCoord16(msg_read);

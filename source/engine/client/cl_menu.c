@@ -12,9 +12,9 @@
 #define UI_MAX_EDICTS	(1 << 12) // should be enough for a menu
 
 bool ui_active = false;
-static float credits_start_time;
-static float credits_fade_time;
-static float credits_show_time;
+static dword credits_start_time;
+static dword credits_fade_time;
+static dword credits_show_time;
 static const char **credits;
 static char *creditsIndex[2048];
 static char *creditsBuffer;
@@ -27,7 +27,7 @@ void UI_VM_Begin( void )
 	PRVM_SetProg(PRVM_MENUPROG);
 
 	// set time
-	if( prog ) *prog->time = cls.realtime;
+	if( prog ) *prog->time = cls.realtime * 0.001f;
 }
 
 void UI_KeyEvent( int key )
@@ -37,6 +37,7 @@ void UI_KeyEvent( int key )
 
 	// setup args
 	PRVM_G_FLOAT(OFS_PARM0) = key;
+	prog->globals.ui->time = cls.realtime * 0.001f;
 	PRVM_G_INT(OFS_PARM1) = PRVM_SetEngineString(ascii);
 	PRVM_ExecuteProgram (prog->globals.ui->m_keydown, "QC function m_keydown is missing");
 
@@ -49,7 +50,7 @@ void UI_Draw( void )
 		return;
 
 	UI_VM_Begin();
-
+	prog->globals.ui->time = cls.realtime * 0.001f;
 	PRVM_ExecuteProgram (prog->globals.ui->m_draw, "QC function m_draw is missing");
 	UI_DrawCredits(); // display game credits
 
@@ -64,7 +65,7 @@ void UI_DrawCredits( void )
 
 	if( !credits_active ) return;
 
-	y = SCREEN_HEIGHT - (( cls.realtime - credits_start_time ) * 32.0f );
+	y = SCREEN_HEIGHT - (( cls.realtime - credits_start_time ) / 40.0f );
 
 	// draw the credits
 	for ( i = 0; i < credit_numlines && credits[i]; i++, y += 20 )
@@ -76,7 +77,7 @@ void UI_DrawCredits( void )
 		if((y < (SCREEN_HEIGHT - BIGCHAR_HEIGHT) / 2) && i == credit_numlines - 1)
 		{
 			if(!credits_fade_time) credits_fade_time = cls.realtime;
-			color = CL_FadeColor( credits_fade_time, credits_show_time );
+			color = CL_FadeColor( credits_fade_time * 0.001f, credits_show_time * 0.001f );
 			if( color ) SCR_DrawStringExt( x, (SCREEN_HEIGHT - BIGCHAR_HEIGHT)/2, 16, 16, credits[i], color, true );
 		}
 		else SCR_DrawStringExt( x, y, 16, 16, credits[i], white_color, false );
@@ -95,6 +96,7 @@ void UI_ShowMenu( void )
 	UI_VM_Begin();
 
 	ui_active = true;
+	prog->globals.ui->time = cls.realtime * 0.001f;
 	PRVM_ExecuteProgram (prog->globals.ui->m_show, "QC function m_toggle is missing");
 	CL_VM_Begin(); 	// restore clvm state
 }
@@ -102,11 +104,12 @@ void UI_ShowMenu( void )
 void UI_HideMenu( void )
 {
 	cls.key_dest = key_game;
+	Cvar_Set( "paused", "0" );
 	Key_ClearStates();
 	
 	UI_VM_Begin();
 	ui_active = false;
-	prog->globals.ui->time = cls.realtime;
+	prog->globals.ui->time = cls.realtime * 0.001f;
 	PRVM_ExecuteProgram (prog->globals.ui->m_hide, "QC function m_toggle is missing");
 	CL_VM_Begin(); 	// restore clvm state
 }
@@ -549,8 +552,8 @@ void PF_runcredits( void )
 
 	// run credits
 	credits_start_time = cls.realtime;
-	credits_show_time = bound(0.1f, (float)com.strlen(credits[credit_numlines - 1]), 12.0f );
-	credits_fade_time = 0.0f;
+	credits_show_time = bound( 100, com.strlen(credits[credit_numlines - 1]) * 1000, 12000 );
+	credits_fade_time = 0;
 	credits_active = true;
 }
 
@@ -737,7 +740,7 @@ void UI_Init( void )
 	prog->error_cmd = VM_Error;
 
 	PRVM_LoadProgs( GI->uimenu_prog, 0, NULL, UI_NUM_REQFIELDS, ui_reqfields );
-	*prog->time = cls.realtime;
+	*prog->time = cls.realtime * 0.001f;
 
 	PRVM_ExecuteProgram (prog->globals.ui->m_init, "QC function m_init is missing");
 	PRVM_End;

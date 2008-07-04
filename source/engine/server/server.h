@@ -64,15 +64,15 @@ typedef enum
 
 } cl_state_t;
 
-typedef struct
+typedef struct server_s
 {
 	sv_state_t	state;		// precache commands are only valid during load
 
 	bool		loadgame;		// client begins should reuse existing entity
 
-	float		time;		// always sv.framenum * 100 msec
-	int		framenum;
+	float		time;		// always sv.framenum * 50 msec
 	float		frametime;
+	int		framenum;
 
 	char		name[MAX_QPATH];	// map name, or cinematic name
 	cmodel_t		*models[MAX_MODELS];
@@ -85,7 +85,7 @@ typedef struct
 	sizebuf_t		multicast;
 	byte		multicast_buf[MAX_MSGLEN];
 
-	float		lastchecktime;
+	int		lastchecktime;
 	int		lastcheck;
 
 	bool		autosaved;
@@ -98,7 +98,7 @@ typedef struct
 	player_state_t	ps;
 	int  		num_entities;
 	int  		first_entity;		// into the circular sv_packet_entities[]
-	float		senttime;			// for ping calculations
+	int		senttime;			// for ping calculations
 
 } client_frame_t;
 
@@ -136,8 +136,8 @@ typedef struct client_state_s
 	int		downloadsize;		// total bytes (can't use EOF because of paks)
 	int		downloadcount;		// bytes sent
 
-	float		lastmessage;		// sv.framenum when packet was last received
-	float		lastconnect;
+	int		lastmessage;		// sv.framenum when packet was last received
+	int		lastconnect;
 
 	int		challenge;		// challenge of this user, randomly generated
 
@@ -163,14 +163,14 @@ typedef struct
 {
 	netadr_t		adr;
 	int		challenge;
-	float		time;
+	int		time;
 
 } challenge_t;
 
 typedef struct
 {
 	bool		initialized;		// sv_init has completed
-	float		realtime;			// always increasing, no clamping, etc
+	dword		realtime;			// always increasing, no clamping, etc
 
 	char		mapcmd[MAX_TOKEN_CHARS];	// ie: *intro.cin+base 
 	char		comment[MAX_TOKEN_CHARS];	// map name, e.t.c. 
@@ -183,7 +183,7 @@ typedef struct
 	int		next_client_entities;	// next client_entity to use
 	entity_state_t	*client_entities;		// [num_client_entities]
 
-	float		last_heartbeat;
+	int		last_heartbeat;
 
 	challenge_t	challenges[MAX_CHALLENGES];	// to prevent invalid IPs from connecting
 } server_static_t;
@@ -204,10 +204,10 @@ extern	cvar_t		*sv_noreload;		// don't reload level state when reentering
 extern	cvar_t		*sv_airaccelerate;		// don't reload level state when reentering
 extern	cvar_t		*sv_maxvelocity;
 extern	cvar_t		*sv_gravity;
-						// development tool
+extern	cvar_t		*sv_fps;			// running server at
 extern	cvar_t		*sv_enforcetime;
 
-extern	client_state_t		*sv_client;
+extern	client_state_t	*sv_client;
 extern	edict_t		*sv_player;
 
 
