@@ -527,8 +527,6 @@ void qglPerspective( GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zF
 	ymin = -ymax;
 	xmin = ymin * aspect;
 	xmax = ymax * aspect;
-	xmin += -2.0f / zNear;
-	xmax += -2.0f / zNear;
 
 	qglFrustum( xmin, xmax, ymin, ymax, zNear, zFar );
 }

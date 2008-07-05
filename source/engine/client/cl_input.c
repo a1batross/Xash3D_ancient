@@ -376,7 +376,7 @@ void KeyDown (kbutton_t *b)
 	c = Cmd_Argv(2);
 	b->downtime = com.atoi(c);
 
-	if (!b->downtime) b->downtime = host.cl_timer - 100;
+	if (!b->downtime) b->downtime = host.cl_timer - HOST_FRAMETIME;
 	b->state |= 1 + 2;	// down + impulse down
 }
 
@@ -626,8 +626,7 @@ void CL_FinishMove (usercmd_t *cmd)
 
 	// send milliseconds of time to apply the move
 	ms = cls.frametime * 1000;
-	if (ms > 250)
-		ms = 100;		// time was unreasonable
+	if( ms > 250 ) ms = 100; // time was unreasonable
 	cmd->msec = ms;
 
 	CL_ClampPitch ();
@@ -774,12 +773,10 @@ void CL_SendCmd (void)
 		return;
 
 	// ignore commands for demo mode
-	if(cls.state == ca_cinematic || cl.servercount > 0x10000)
+	if(cls.state == ca_cinematic || cls.demoplayback)
 		return;
 
-	if( cls.demoplayback ) return;
-
-	if( cls.state == ca_connected)
+	if( cls.state == ca_connected )
 	{
 		if (cls.netchan.message.cursize || curtime - cls.netchan.last_sent > 1000 )
 			Netchan_Transmit (&cls.netchan, 0, buf.data);	

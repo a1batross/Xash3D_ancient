@@ -858,12 +858,13 @@ void CL_ReadPackets (void)
 	//
 	if( cls.state >= ca_connected && !cls.demoplayback )
 	{
-		if( cls.realtime - cls.netchan.last_received > cl_timeout->value * 1000 )
+		if( cls.realtime - cls.netchan.last_received > cl_timeout->integer * 1000 )
 		{
-			if( ++cl.timeoutcount > 5 ) // timeoutcount saves debugger
+			cl.timeoutcount++;
+			if( cl.timeoutcount > 5 ) // timeoutcount saves debugger
 			{
 				Msg ("\nServer connection timed out.\n");
-				CL_Disconnect ();
+				CL_Disconnect();
 				return;
 			}
 		}
@@ -1167,7 +1168,7 @@ void CL_InitLocal (void)
 	cl_add_entities = Cvar_Get ("cl_entities", "1", 0, "disables client entities" );
 	cl_gun = Cvar_Get ("cl_gun", "1", 0, "hide firstperson viewmodel" );
 	cl_footsteps = Cvar_Get ("cl_footsteps", "1", 0, "disables player footsteps" );
-	cl_predict = Cvar_Get ("cl_predict", "1", 0, "disables client movement prediction" );
+	cl_predict = Cvar_Get ("cl_predict", "1", CVAR_ARCHIVE, "disables client movement prediction" );
 //	cl_minfps = Cvar_Get ("cl_minfps", "5", 0);
 	cl_maxfps = Cvar_Get ("cl_maxfps", "1000", 0, "maximum client fps" );
 
@@ -1408,7 +1409,7 @@ void CL_Frame( dword time )
 
 	extratime += time;
 
-	if( cls.state == ca_connected && extratime < 100 )
+	if( cls.state == ca_connected && extratime < HOST_FRAMETIME )
 		return;	// don't flood packets out while connecting
 	if( extratime < 1000 / cl_maxfps->value)
 		return;	// framerate is too high

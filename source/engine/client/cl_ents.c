@@ -385,7 +385,7 @@ void CL_ParseFrame( sizebuf_t *msg )
 	memset( &cl.frame, 0, sizeof(cl.frame));
 	cl.frame.serverframe = MSG_ReadLong (msg);
 	cl.frame.deltaframe = MSG_ReadLong (msg);
-	cl.frame.servertime = cl.frame.serverframe * 100;
+	cl.frame.servertime = cl.frame.serverframe * HOST_FRAMETIME;
 	cl.surpressCount = MSG_ReadByte (msg);
 
 	// If the frame is delta compressed from data that we
@@ -421,8 +421,8 @@ void CL_ParseFrame( sizebuf_t *msg )
 
 	// clamp time 
 	if( cl.time > cl.frame.servertime ) cl.time = cl.frame.servertime;
-	else if( cl.time < cl.frame.servertime - 100 )
-		cl.time = cl.frame.servertime - 100;
+	else if( cl.time < cl.frame.servertime - HOST_FRAMETIME )
+		cl.time = cl.frame.servertime - HOST_FRAMETIME;
 
 	// read areabits
 	len = MSG_ReadByte( msg );
@@ -508,6 +508,14 @@ void CL_AddPacketEntities( frame_t *frame )
 		refent.body = s1->body;
 		refent.sequence = s1->sequence;		
 		refent.animtime = s1->animtime;
+
+		// setup latchedvars
+		refent.prev.animtime = ent->priv.cl->prev.animtime;
+		VectorCopy( ent->priv.cl->prev.origin, refent.prev.origin );
+		VectorCopy( ent->priv.cl->prev.angles, refent.prev.angles );
+		refent.prev.sequence = ent->priv.cl->prev.sequence;
+		refent.prev.frame = ent->priv.cl->prev.frame;
+		//refent.prev.sequencetime;
 		
 		// interpolate origin
 		for( i = 0; i < 3; i++ )
@@ -519,6 +527,7 @@ void CL_AddPacketEntities( frame_t *frame )
 		// set skin
 		refent.skin = s1->skin;
 		refent.model = cl.model_draw[s1->modelindex];
+		refent.weaponmodel = cl.model_draw[s1->weaponmodel];
 		refent.flags = renderfx;
 
 		// calculate angles
@@ -541,7 +550,14 @@ void CL_AddPacketEntities( frame_t *frame )
 		if( s1->number == cl.playernum + 1 )
 		{
 			refent.flags |= RF_PLAYERMODEL;	// only draw from mirrors
-			continue;
+
+			// just only for test
+			refent.controller[0] = 90.0;
+			refent.controller[1] = 90.0;
+			refent.controller[2] = 180.0;
+			refent.controller[3] = 180.0;
+			refent.sequence = 0;
+			refent.frame = 0;
 		}
 
 		// if set to invisible, skip
@@ -549,19 +565,6 @@ void CL_AddPacketEntities( frame_t *frame )
 
 		// add to refresh list
 		V_AddEntity( &refent );
-
-		refent.skin = 0;
-		refent.flags = 0;
-		refent.alpha = 0;
-
-		// duplicate for linked models
-		if( s1->weaponmodel )
-		{
-			refent.model = cl.model_draw[s1->weaponmodel];
-			V_AddEntity (&refent);
-			refent.flags = 0;
-			refent.alpha = 0;
-		}
 	}
 }
 
@@ -592,7 +595,7 @@ void CL_AddViewWeapon( player_state_t *ps, player_state_t *ops )
 	// set up gun position
 	for( i = 0; i < 3; i++ )
 	{
-		gun.origin[i] = cl.refdef.vieworg[i] + ops->vmodel.offset[i] + cl.lerpfrac * (ps->vmodel.offset[i] - ops->vmodel.offset[i]);
+		gun.origin[i] = gun.oldorigin[i] = cl.refdef.vieworg[i] + ops->vmodel.offset[i] + (ps->vmodel.offset[i] - ops->vmodel.offset[i]) * cl.lerpfrac;
 		gun.angles[i] = cl.refdef.viewangles[i] + LerpAngle (ops->vmodel.angles[i], ps->vmodel.angles[i], cl.lerpfrac);
 	}
 
@@ -633,11 +636,11 @@ void CL_CalcViewValues( void )
 		cl.time = cl.frame.servertime;
 		cl.lerpfrac = 1.0f;
 	}
-	else if (cl.time < cl.frame.servertime - 100 )
+	else if (cl.time < cl.frame.servertime - HOST_FRAMETIME )
 	{
 		if (cl_showclamp->value)
 			Msg ("low clamp %i\n", cl.frame.servertime - host_frametime->value - cl.time);
-		cl.time = cl.frame.servertime - 100;
+		cl.time = cl.frame.servertime - HOST_FRAMETIME;
 		cl.lerpfrac = 0.0f;
 	}
 	else
@@ -655,13 +658,12 @@ void CL_CalcViewValues( void )
 	ops = &oldframe->playerstate;
 
 	// see if the player entity was teleported this frame
-	if( fabs(ops->origin[0] - ps->origin[0]) > 2048 || fabs(ops->origin[1] - ps->origin[1]) > 2048 || fabs(ops->origin[2] - ps->origin[2]) > 2048)
+	if( ps->pm_flags & PMF_TIME_TELEPORT )
 		ops = ps;	// don't interpolate
-
 	lerp = cl.lerpfrac;
 
 	// calculate the origin
-	if((cl_predict->value) && !(cl.frame.playerstate.pm_flags & PMF_NO_PREDICTION))
+	if((cl_predict->value) && !(cl.frame.playerstate.pm_flags & PMF_NO_PREDICTION) && !cls.demoplayback )
 	{	
 		// use predicted values
 		int	delta;
@@ -675,10 +677,11 @@ void CL_CalcViewValues( void )
 
 		// smooth out stair climbing
 		delta = cls.realtime - cl.predicted_step_time;
-		if( delta < 100 ) cl.refdef.vieworg[2] -= cl.predicted_step * (100 - delta) * 0.01f;
+		if( delta < HOST_FRAMETIME ) cl.refdef.vieworg[2] -= cl.predicted_step * (HOST_FRAMETIME - delta) * 0.01f;
 	}
 	else
-	{	// just use interpolated values
+	{
+		// just use interpolated values
 		for( i = 0; i < 3; i++ )
 			cl.refdef.vieworg[i] = LerpView( ops->origin[i] * CL_COORD_FRAC, ps->origin[i] * CL_COORD_FRAC, ops->viewoffset[i], ps->viewoffset[i], lerp );
 	}

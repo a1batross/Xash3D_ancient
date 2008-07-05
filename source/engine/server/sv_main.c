@@ -529,14 +529,8 @@ void SV_CalcPings (void)
 				total += cl->frame_latency[j];
 			}
 		}
-		if (!count)
-			cl->ping = 0;
-		else
-#if 0
-			cl->ping = total*100/count - 100;
-#else
-			cl->ping = total / count;
-#endif
+		if( !count ) cl->ping = 0;
+		else cl->ping = total / count;
 
 		// let the game dll know about the ping
 		cl->edict->priv.sv->client->ping = cl->ping;
@@ -675,6 +669,8 @@ SV_RunGameFrame
 */
 void SV_RunGameFrame (void)
 {
+	int	i;
+
 	if( sv_paused->integer && maxclients->integer == 1 )
 		return;
 
@@ -683,11 +679,12 @@ void SV_RunGameFrame (void)
 	// compression can get confused when a client
 	// has the "current" frame
 	sv.framenum++;
-	sv.frametime = 0.1f;//const
+	sv.frametime = HOST_FRAMETIME * 0.001f;
 	sv.time = sv.framenum * sv.frametime;
 
 	if(!cm_paused->value) 
-		pe->Frame( sv.frametime );//FIXME
+		for( i = 0; i < 6; i++ )
+			pe->Frame( sv.frametime * i );//FIXME
 	SV_RunFrame ();
 
 	// never get more than one tic behind
@@ -724,16 +721,16 @@ void SV_Frame( dword time )
 	SV_ReadPackets ();
 
 	// move autonomous things around if enough time has passed
-	if( svs.realtime < sv.time * 1000 )
+	if( svs.realtime < (sv.time * 1000))
 	{
 		// never let the time get too far off
-		if((sv.time * 1000) - svs.realtime > 100 )
+		if((sv.time * 1000) - svs.realtime > HOST_FRAMETIME )
 		{
 			Msg ("sv lowclamp\n");
-			svs.realtime = (sv.time * 1000 ) - 100;
+			svs.realtime = (sv.time * 1000 ) - HOST_FRAMETIME;
 		}
 
-		NET_Sleep( ( sv.time * 1000 )- svs.realtime );
+		NET_Sleep((sv.time*1000) - svs.realtime);
 		SV_VM_End(); //end frame
 		return;
 	}

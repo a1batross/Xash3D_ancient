@@ -334,7 +334,7 @@ bool R_CullBox (vec3_t mins, vec3_t maxs);
 void R_RotateForEntity (entity_t *e);
 void R_MarkLeaves (void);
 
-void GL_DrawRadar( void );
+void GL_DrawRadar( refdef_t *fd );
 void R_BloomBlend ( refdef_t *fd );
 void R_Bloom_InitTextures( void );
 

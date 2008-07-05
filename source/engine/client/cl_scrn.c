@@ -256,15 +256,12 @@ void SCR_DrawDemoRecording( void )
 {
 	char		string[1024];
 	fs_offset_t	pos;
-	uint		w;
 
-	if( !cls.demorecording ) return;
-
+	if(!(host.developer && cls.demorecording))
+		return;
 	pos = FS_Tell( cls.demofile );
 	com.sprintf( string, "RECORDING %s: %ik", cls.demoname, pos / 1024 );
-	w = com.strlen( string );
-
-	SCR_DrawBigStringColor((SCREEN_WIDTH - w)/2, SCREEN_HEIGHT/4, string, g_color_table[7] ); 
+	SCR_DrawBigStringColor( 320 - com.strlen( string ) * 8, 80, string, g_color_table[7] ); 
 }
 
 /*

@@ -65,7 +65,7 @@ void SV_SectorList_f( void )
 	{
 		sec = &sv_worldsectors[i], c = 0;
 		for( ent = sec->entities; ent; ent = ent->nextedict ) c++;
-		if(c) Msg( "sector %i: %i entities\n", i, c );
+		if( c ) Msg( "sector %i: %i entities\n", i, c );
 	}
 }
 
@@ -174,8 +174,8 @@ void SV_LinkEdict( edict_t *ent )
 	sv_ent = ent->priv.sv;
 
 	if( sv_ent->worldsector ) SV_UnlinkEdict( ent ); // unlink from old position
-	if (ent == prog->edicts) return; // don't add the world
-	if (ent->priv.sv->free) return;
+	if( ent == prog->edicts ) return; // don't add the world
+	if( ent->priv.sv->free ) return;
 
 	// set the size
 	VectorSubtract( ent->progs.sv->maxs, ent->progs.sv->mins, ent->progs.sv->size );

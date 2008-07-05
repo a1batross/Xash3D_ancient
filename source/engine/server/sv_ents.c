@@ -39,7 +39,13 @@ void SV_UpdateEntityState( edict_t *ent)
 	VectorCopy (ent->progs.sv->old_origin, ent->priv.sv->s.old_origin);
 	
 	ent->priv.sv->s.modelindex = (int)ent->progs.sv->modelindex;
-	ent->priv.sv->s.weaponmodel = 0; // attached weaponmodel
+
+	if( ent->priv.sv->client )
+	{
+		// attached weaponmodel
+		// FIXME: let any entity send weaponmodel
+		ent->priv.sv->s.weaponmodel = ent->priv.sv->client->ps.pmodel.index;
+	}
 
 	ent->priv.sv->s.skin = (short)ent->progs.sv->skin;	// studio model skin
 	ent->priv.sv->s.body = (byte)ent->progs.sv->body;		// studio model submodel 
@@ -188,8 +194,8 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 	if (ps->effects != ops->effects) pflags |= PS_RDFLAGS;
 	if (ps->vmodel.frame != ops->vmodel.frame) pflags |= PS_WEAPONFRAME;
 	if (ps->vmodel.sequence != ops->vmodel.sequence) pflags |= PS_WEAPONSEQUENCE;
-	if (!VectorCompare(ps->vmodel.offset, ops->vmodel.offset)) pflags |= PS_WEAPONOFFSET;
-	if (!VectorCompare(ps->vmodel.angles, ops->vmodel.angles)) pflags |= PS_WEAPONANGLES;
+	//if (!VectorCompare(ps->vmodel.offset, ops->vmodel.offset)) pflags |= PS_WEAPONOFFSET;
+	//if (!VectorCompare(ps->vmodel.angles, ops->vmodel.angles)) pflags |= PS_WEAPONANGLES;
 	if (ps->vmodel.body != ops->vmodel.body) pflags |= PS_WEAPONBODY;
 	if (ps->vmodel.skin != ops->vmodel.skin) pflags |= PS_WEAPONSKIN;
 

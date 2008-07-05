@@ -12,6 +12,7 @@ cplane_t	*mirror_plane;
 msurface_t *mirrorchain = NULL;
 bool	mirror_render;	// true when reflections are being rendered
 float	r_base_world_matrix[16];
+entity_t *mirror_entity = NULL;
 
 void Mirror_Scale( void )
 {
@@ -52,10 +53,10 @@ void R_Mirror( refdef_t *fd )
 	{
 		mirror_plane = s->plane;
 
-		d = PlaneDiff( old_vieworg, mirror_plane);
+		d = PlaneDiff( old_vieworg, mirror_plane );
 		VectorMA( old_vieworg, -2 * d, mirror_plane->normal, r_newrefdef.vieworg);
 
-		d = DotProduct( old_vforward, mirror_plane->normal);
+		d = DotProduct( old_vforward, mirror_plane->normal );
 		VectorMA( old_vforward, -2 * d, mirror_plane->normal, vforward);
 
 		r_newrefdef.viewangles[0] = -asin(vforward[2]) / M_PI * 180;
@@ -77,17 +78,27 @@ void R_Mirror( refdef_t *fd )
 		GL_EnableBlend();
 		qglMatrixMode( GL_PROJECTION );
 
-		if (mirror_plane->normal[2])
-			qglScalef (1, -1, 1);
-		else qglScalef (-1, 1, 1);
+		if( mirror_plane->normal[2] )
+			qglScalef( 1, -1, 1 );
+		else qglScalef( -1, 1, 1 );
 
 		qglCullFace( GL_FRONT );
 		qglMatrixMode( GL_MODELVIEW );
 		qglLoadMatrixf( r_base_world_matrix );
 
-		qglBlendFunc(GL_SRC_ALPHA, GL_ONE);
+		qglBlendFunc( GL_SRC_ALPHA, GL_ONE );
 		qglColor4f( 1.0f, 1.0f, 1.0f, mirror_alpha );
-		GL_Bind(s->texinfo->image->texnum[0]);
+		GL_Bind( s->texinfo->image->texnum[0] );
+
+		if( mirror_entity )
+		{
+			qglPushMatrix();
+			mirror_entity->angles[0] = -mirror_entity->angles[0];	// stupid quake bug
+			mirror_entity->angles[2] = -mirror_entity->angles[2];	// stupid quake bug
+			R_RotateForEntity( mirror_entity );
+			mirror_entity->angles[0] = -mirror_entity->angles[0];	// stupid quake bug
+			mirror_entity->angles[2] = -mirror_entity->angles[2];	// stupid quake bug
+		}
 
 		p = s->polys;
 		v = p->verts[0];
@@ -95,13 +106,14 @@ void R_Mirror( refdef_t *fd )
 		qglBegin( GL_POLYGON );
 
 		// draw mirror surface
-		for (i = 0; i < p->numverts; i++, v += VERTEXSIZE)
+		for( i = 0; i < p->numverts; i++, v += VERTEXSIZE )
 		{
-			qglTexCoord2fv(&v[3]);
+			qglTexCoord2f( v[3], v[4] );
 			qglVertex3fv(v);
 		}
 		qglEnd();
 		qglColor4f( 1.0, 1.0f, 1.0f, 1.0f );
+		if( mirror_entity ) qglPopMatrix ();
 		GL_DisableBlend();
 	}
 

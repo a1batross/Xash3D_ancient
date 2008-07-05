@@ -172,6 +172,6 @@ void SCR_TimeRefresh_f( void )
 	}
 
 	stop = Sys_Milliseconds();
-	time = (stop - start) / 1000.0;
+	time = (stop - start) / 1000.0f;
 	Msg( "%f seconds (%f fps)\n", time, 128 / time );
 }

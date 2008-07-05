@@ -234,7 +234,35 @@ typedef struct
 
 extern client_static_t	cls;
 
-//=============================================================================
+/*
+==============================================================
+
+SCREEN CONSTS
+
+==============================================================
+*/
+// all drawing is done to a 640*480 virtual screen size
+// and will be automatically scaled to the real resolution
+#define SCREEN_WIDTH	640
+#define SCREEN_HEIGHT	480
+
+#define TINYCHAR_WIDTH	(SMALLCHAR_WIDTH)
+#define TINYCHAR_HEIGHT	(SMALLCHAR_HEIGHT/2)
+#define SMALLCHAR_WIDTH	8
+#define SMALLCHAR_HEIGHT	16
+#define BIGCHAR_WIDTH	16
+#define BIGCHAR_HEIGHT	24
+#define GIANTCHAR_WIDTH	32
+#define GIANTCHAR_HEIGHT	48
+
+typedef struct vrect_s
+{
+	int	x, y;
+	int	width;
+	int	height;
+} vrect_t;
+
+extern vrect_t scr_vrect;	// position of render window
 
 // console color typeing
 static vec4_t g_color_table[8] =
@@ -507,30 +535,32 @@ _inline edict_t *CLVM_EDICT_NUM( int entnum )
 #define S_BeginRegistration		se->BeginRegistration
 #define S_EndRegistration		se->EndRegistration
 
-// RegisterSound will allways return a valid sample, even if it
-// has to create a placeholder.  This prevents continuous filesystem
-// checks for missing files
-
-void SNDDMA_Activate( void );
-
-extern cvar_t	*s_volume;
-extern cvar_t	*s_nosound;
-extern cvar_t	*s_khz;
-extern cvar_t	*s_show;
-extern cvar_t	*s_mixahead;
-extern cvar_t	*s_testsound;
-extern cvar_t	*s_separation;
-
 //
 // cl_parse.c
 //
-extern	char *svc_strings[256];
-
 void CL_ParseServerMessage( sizebuf_t *msg );
 void CL_LoadClientinfo (clientinfo_t *ci, char *s);
 void SHOWNET( sizebuf_t *msg, char *s );
 void CL_ParseClientinfo( int player );
 void CL_Download_f (void);
+
+//
+// cl_scrn.c
+//
+void SCR_Init( void );
+void SCR_UpdateScreen( void );
+void VID_Init( void );
+void SCR_AdjustSize( float *x, float *y, float *w, float *h );
+void SCR_DrawPic( float x, float y, float width, float height, const char *picname );
+void SCR_FillRect( float x, float y, float width, float height, const float *color );
+void SCR_DrawSmallChar( int x, int y, int ch );
+void SCR_DrawChar( int x, int y, float w, float h, int ch );
+void SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, bool forceColor );
+void SCR_DrawStringExt( int x, int y, float w, float h, const char *string, float *setColor, bool forceColor );
+void SCR_DrawBigString( int x, int y, const char *s, float alpha );
+void SCR_DrawBigStringColor( int x, int y, const char *s, vec4_t color );
+void SCR_DrawFPS( void );
+void SCR_DrawNet( void );
 
 //
 // cl_view.c

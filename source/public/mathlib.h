@@ -17,20 +17,6 @@
 #define M_PI		(float)3.14159265358979323846
 #endif
 
-//#define USE_COORD_FRAC
-
-// network precision coords factor
-#ifdef USE_COORD_FRAC
-	#define SV_COORD_FRAC	(8.0f / 1.0f)
-	#define CL_COORD_FRAC	(1.0f / 8.0f)
-#else
-	#define SV_COORD_FRAC	1.0f
-	#define CL_COORD_FRAC	1.0f
-#endif
-
-#define SV_ANGLE_FRAC	(360.0f / 1.0f )
-#define CL_ANGLE_FRAC	(1.0f / 360.0f )
-
 #define METERS_PER_INCH	0.0254f
 #define EQUAL_EPSILON	0.001f
 #define STOP_EPSILON	0.1f

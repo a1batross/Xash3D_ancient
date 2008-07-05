@@ -22,7 +22,7 @@ void CL_WriteDemoMessage( void )
 
 	// the first eight bytes are just packet sequencing stuff
 	len = net_message.cursize - 8;
-	swlen = LittleLong(len);
+	swlen = LittleLong( len );
 
 	FS_Write( cls.demofile, &swlen, 4);
 	FS_Write( cls.demofile, net_message.data + 8, len );
@@ -36,7 +36,7 @@ void CL_WriteDemoHeader( const char *name )
 	sizebuf_t		buf;
 	int		i, len;
 
-	MsgDev(D_INFO, "recording to %s.\n", name );
+	MsgDev( D_INFO, "recording to %s.\n", name );
 	cls.demofile = FS_Open( name, "wb" );
 	if( !cls.demofile )
 	{
@@ -55,7 +55,7 @@ void CL_WriteDemoHeader( const char *name )
 	// send the serverdata
 	MSG_WriteByte( &buf, svc_serverdata );
 	MSG_WriteLong( &buf, PROTOCOL_VERSION );
-	MSG_WriteLong( &buf, 0x10000 + cl.servercount );
+	MSG_WriteLong( &buf, cl.servercount );
 	MSG_WriteShort( &buf, cl.playernum );
 	MSG_WriteString( &buf, cl.configstrings[CS_NAME] );
 
@@ -174,6 +174,10 @@ void CL_ReadDemoMessage( void )
 	}
 	if( cl_paused->value ) return;
 
+	// don't need another message yet
+	if( cl.time <= cl.frame.servertime )
+		return;
+
 	// init the message
 	SZ_Init( &buf, bufData, sizeof( bufData ));
 
@@ -205,7 +209,7 @@ void CL_ReadDemoMessage( void )
 		return;
 	}
 
-	//cl.time = cls.realtime;//CHECK VALID
+	cls.connect_time = cls.realtime;
 	buf.readcount = 0;
 	CL_ParseServerMessage( &buf );
 }

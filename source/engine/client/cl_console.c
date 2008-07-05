@@ -12,7 +12,7 @@ cvar_t	*con_speed;
 vec4_t console_color = {1.0, 1.0, 1.0, 1.0};
 int g_console_field_width = 78;
 
-#define NUM_CON_TIMES	4		// need for 4 lines
+#define NUM_CON_TIMES	5		// need for 4 lines
 #define CON_TEXTSIZE	MAX_INPUTLINE * 8	// 128 kb buffer
 #define DEFAULT_CONSOLE_WIDTH	78
 

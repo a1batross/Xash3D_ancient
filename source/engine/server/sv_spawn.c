@@ -54,6 +54,7 @@ void SV_PutClientInServer (edict_t *ent)
 	client->ps.fov = 90;
 	client->ps.fov = bound(1, client->ps.fov, 160);
 	client->ps.vmodel.index = SV_ModelIndex(PRVM_GetString(ent->progs.sv->v_model));
+	client->ps.pmodel.index = SV_ModelIndex(PRVM_GetString(ent->progs.sv->p_model));
 
 	if(sv.loadgame)
 	{
@@ -182,23 +183,22 @@ void SV_CalcGunOffset( edict_t *ent )
 	for (i = 0; i < 3; i++)
 	{
 		delta = ent->priv.sv->client->ps.oldviewangles[i] - ent->priv.sv->client->ps.viewangles[i];
-		if (delta > 180) delta -= 360;
-		if (delta < -180) delta += 360;
-		if (delta > 45) delta = 45;
-		if (delta < -45) delta = -45;
-		if (i == YAW) ent->priv.sv->client->ps.vmodel.angles[ROLL] += 0.1*delta;
+		if( delta > 180 ) delta -= 360;
+		if( delta < -180 ) delta += 360;
+		if( delta > 45 ) delta = 45;
+		if( delta < -45 ) delta = -45;
+		if( i == YAW ) ent->priv.sv->client->ps.vmodel.angles[ROLL] += 0.1f * delta;
 		ent->priv.sv->client->ps.vmodel.angles[i] += 0.2 * delta;
 	}
 
 	// gun height
-	VectorClear (ent->priv.sv->client->ps.vmodel.offset);
+	VectorClear( ent->priv.sv->client->ps.vmodel.offset );
 
-	// gun_x / gun_y / gun_z are development tools
-	for (i = 0; i < 3; i++)
+	for( i = 0; i < 3; i++ )
 	{
-		//ent->priv.sv->client->ps.vmodel.offset[i] += forward[i];
-		//ent->priv.sv->client->ps.vmodel.offset[i] += right[i];
-		//ent->priv.sv->client->ps.vmodel.offset[i] += up[i];
+		ent->priv.sv->client->ps.vmodel.offset[i] += forward[i];
+		ent->priv.sv->client->ps.vmodel.offset[i] += right[i];
+		ent->priv.sv->client->ps.vmodel.offset[i] += up[i] * -1;
 	}
 }
 
@@ -233,24 +233,19 @@ void SV_CalcViewOffset (edict_t *ent)
 	if (bobcycle & 1) delta = -delta;
 	angles[ROLL] += delta;
 
-
-	// base origin
-	VectorClear (v);
-
-	// add view height
-	v[2] += 22;
+	VectorCopy( ent->progs.sv->view_ofs, v ); // base origin
+	if( ent->priv.sv->client->ps.pm_flags & PMF_DUCKED )
+		v[2] = -2;
 
 	// add bob height
 	bob = bobfracsin * xyspeed * 0.005;
-	if (bob > 6) bob = 6;
+	if( bob > 6 ) bob = 6;
 	v[2] += bob;
 
-
-	v[0] = bound(-14, v[0], 14);
-	v[1] = bound(-14, v[1], 14);
-	v[2] = bound(-22, v[0], 30);
-
-	VectorCopy (v, ent->priv.sv->client->ps.viewoffset);
+	v[0] = bound( -14, v[0], 14 );
+	v[1] = bound( -14, v[1], 14 );
+	v[2] = bound( -22, v[2], 48 );
+	VectorCopy( v, ent->priv.sv->client->ps.viewoffset );
 }
 
 void SV_SetStats (edict_t *ent)
@@ -288,7 +283,6 @@ void ClientEndServerFrame (edict_t *ent)
 	ent->progs.sv->angles[YAW] = ent->priv.sv->client->ps.viewangles[YAW];
 	ent->progs.sv->angles[ROLL] = 0;
 	ent->progs.sv->angles[ROLL] = SV_CalcRoll (ent->progs.sv->angles, ent->progs.sv->velocity)*4;
-	ent->priv.sv->client->ps.pm_time = ent->progs.sv->teleport_time * 1000; //in msecs
 
 	//
 	// calculate speed and cycle to be used for
@@ -507,7 +501,12 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	else client->ps.pm_type = PM_NORMAL;
 	client->ps.gravity = sv_gravity->value;
 
-	if(ent->progs.sv->teleport_time) client->ps.pm_flags |= PMF_TIME_TELEPORT; 
+	if(ent->progs.sv->teleport_time) 
+	{
+		// next frame will be cleared teleport flag
+		client->ps.pm_flags |= PMF_TIME_TELEPORT; 
+		ent->progs.sv->teleport_time = 0;
+	}
 	else client->ps.pm_flags &= ~PMF_TIME_TELEPORT; 
 
 	pm.ps = client->ps;

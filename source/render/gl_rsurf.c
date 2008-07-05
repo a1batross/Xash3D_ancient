@@ -814,9 +814,18 @@ void R_DrawInlineBModel (void)
 		if (((psurf->flags & SURF_PLANEBACK) && (dot < -BACKFACE_EPSILON)) || (!(psurf->flags & SURF_PLANEBACK) && (dot > BACKFACE_EPSILON)))
 		{
 			if (psurf->texinfo->flags & SURF_BLEND)
-			{	// add to the translucent chain
+			{	
+				// add to the translucent chain
 				psurf->texturechain = r_alpha_surfaces;
 				r_alpha_surfaces = psurf;
+			}
+			else if (r_mirroralpha->value < 1.0f && !mirror_render && psurf->texinfo->flags & SURF_MIRROR)
+			{
+				mirror = true;
+				psurf->texturechain = mirrorchain;
+				mirror_entity = currententity;
+				mirrorchain = psurf;
+				continue;
 			}
 			else if ( qglMTexCoord2fSGIS && !( psurf->flags & SURF_DRAWTURB ) )
 			{
@@ -1035,6 +1044,7 @@ void R_RecursiveWorldNode (mnode_t *node)
 		{
 			mirror = true;
 			surf->texturechain = mirrorchain;
+			mirror_entity = NULL;
 			mirrorchain = surf;
 			continue;
 		}
@@ -1675,14 +1685,14 @@ void R_RecursiveRadarNode(mnode_t *node)
 int numRadarEnts = 0;
 radar_ent_t RadarEnts[MAX_RADAR_ENTS];
 
-void GL_DrawRadar( void )
+void GL_DrawRadar( refdef_t *fd )
 {  
 	int		i;
 	vec4_t		fS;
 
 	Vector4Set(fS, 0, 0, -1.0/512.0, 0 );  
-	if(r_newrefdef.rdflags & RDF_NOWORLDMODEL ) return;
-	if(!r_minimap->value) return;
+	if(fd->rdflags & RDF_NOWORLDMODEL ) return;
+	if(!r_minimap->value || mirror_render ) return;
 
 	qglViewport(r_width->integer - r_minimap_size->value, 0, r_minimap_size->value, r_minimap_size->value );  
 	
@@ -1751,7 +1761,7 @@ void GL_DrawRadar( void )
 	if(r_minimap_style->value)
 	{
 		qglPushMatrix();  
-		qglRotatef(90.0f - r_newrefdef.viewangles[1], 0.0f, 0.0f, -1.0f);        
+		qglRotatef(90.0f - fd->viewangles[1], 0.0f, 0.0f, -1.0f);        
 		
 		qglDisable(GL_TEXTURE_2D);
 		qglBegin(GL_TRIANGLES);  
@@ -1774,9 +1784,9 @@ void GL_DrawRadar( void )
 		qglVertex3f(24.0f, -32.0f, 0.0f );
 		qglVertex3f(-24.0f, -32.0f, 0.0f );
 		qglEnd();
-		qglRotatef (90.0f - r_newrefdef.viewangles[1], 0.0f, 0.0f, 1.0f);        
+		qglRotatef (90.0f - fd->viewangles[1], 0.0f, 0.0f, 1.0f);        
 	}
-	qglTranslatef(-r_newrefdef.vieworg[0], -r_newrefdef.vieworg[1], -r_newrefdef.vieworg[2]);  
+	qglTranslatef(-fd->vieworg[0], -fd->vieworg[1], -fd->vieworg[2]);  
 
 	if(r_minimap->value > 1)
 	{
@@ -1802,7 +1812,7 @@ void GL_DrawRadar( void )
 	GL_EnableBlend();
 	qglColor3f(1,1,1);
 	  
-	fS[3] = 0.5 + r_newrefdef.vieworg[2] / 512.0;
+	fS[3] = 0.5 + fd->vieworg[2] / 512.0;
 	qglTexGenf(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
 		
 	GL_EnableTexGen();

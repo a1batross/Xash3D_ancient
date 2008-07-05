@@ -16,13 +16,30 @@
 #include "basefiles.h"
 #include "dllapi.h"
 #include "net_msg.h"
-#include "screen.h"
 
 // linked interfaces
 extern stdlib_api_t		com;
 extern physic_exp_t		*pe;
 extern vprogs_exp_t		*vm;
 extern vsound_exp_t		*se;
+
+#define MAX_ENTNUMBER	99999		// for server and client parsing
+#define MAX_HEARTBEAT	-99999		// connection time
+#define HOST_FRAMETIME	100		// host.frametime in msecs (change with caution)
+
+//#define USE_COORD_FRAC
+
+// network precision coords factor
+#ifdef USE_COORD_FRAC
+	#define SV_COORD_FRAC	(8.0f / 1.0f)
+	#define CL_COORD_FRAC	(1.0f / 8.0f)
+#else
+	#define SV_COORD_FRAC	1.0f
+	#define CL_COORD_FRAC	1.0f
+#endif
+
+#define SV_ANGLE_FRAC	(360.0f / 1.0f )
+#define CL_ANGLE_FRAC	(1.0f / 360.0f )
 
 /*
 ==============================================================
@@ -407,10 +424,6 @@ bool Cmd_GetSoundList(const char *s, char *completedname, int length );
 bool Cmd_CheckMapsList( void );
 void Sys_Error( const char *msg, ... );
 void Sys_SendKeyEvents( void );
-
-#define MAX_ENTNUMBER	99999		// for server and client parsing
-#define MAX_HEARTBEAT	-99999		// connection time
-
 
 // get rid of this
 float frand(void);	// 0 to 1

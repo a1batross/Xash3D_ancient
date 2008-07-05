@@ -270,19 +270,15 @@ SOURCE=.\common.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\engine.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\network\net_msg.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\client\screen.h
+SOURCE=.\server\server.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\server\server.h
+SOURCE=.\server\sv_edict.h
 # End Source File
 # Begin Source File
 

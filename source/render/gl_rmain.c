@@ -739,7 +739,6 @@ void R_RenderView( refdef_t *fd )
 	R_Flash();
 
 	R_BloomBlend (fd);
-	GL_DrawRadar();
 }
 
 void R_DrawPauseScreen( void )
@@ -942,6 +941,7 @@ void R_RenderFrame (refdef_t *fd)
 
 	R_RenderView( fd );
 	if( mirror ) R_Mirror( fd );
+	GL_DrawRadar( fd );
 	R_SetLightLevel ();
 	R_SetGL2D ();
 }
@@ -952,7 +952,7 @@ void R_Register( void )
 	r_lefthand = Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE, "viewmodel handedness" );
 	r_norefresh = Cvar_Get ("r_norefresh", "0", 0, "no description" );
 	r_fullbright = Cvar_Get ("r_fullbright", "0", 0, "disable lightmaps" );
-	r_drawentities = Cvar_Get ("r_drawentities", "1", 0, "render entities" );
+	r_drawentities = Cvar_Get ("r_drawentities", "1", CVAR_ARCHIVE, "render entities" );
 	r_drawworld = Cvar_Get ("r_drawworld", "1", 0, "render world" );
 	r_novis = Cvar_Get ("r_novis", "0", 0, "ignore vis information (perfomance test)");
 	r_nocull = Cvar_Get ("r_nocull", "0", 0, "ignore frustrum culling (perfomance test)");

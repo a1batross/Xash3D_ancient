@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "gl_local.h"
+#include "r_mirror.h"
 
 /*
 =============================================================
@@ -30,7 +31,7 @@ vec3_t g_xformverts[ MAXSTUDIOVERTS ];
 vec3_t g_lightvalues[MAXSTUDIOVERTS];
 
 //chrome stuff
-int g_chrome[MAXSTUDIOVERTS][2];	// texture coords for surface normals
+float g_chrome[MAXSTUDIOVERTS][2];	// texture coords for surface normals
 int g_chromeage[MAXSTUDIOBONES];	// last time chrome vectors were updated
 vec3_t g_chromeup[MAXSTUDIOBONES];	// chrome vector "up" in bone reference frames
 vec3_t g_chromeright[MAXSTUDIOBONES];	// chrome vector "right" in bone reference frames
@@ -586,7 +587,7 @@ void R_StudioSetUpTransform ( void )
 
 	//Msg("%.0f %0.f %0.f\n", modelpos[0], modelpos[1], modelpos[2] );
 	//Msg("%.0f %0.f %0.f\n", angles[0], angles[1], angles[2] );
-	AngleMatrix (angles, m_protationmatrix);
+	AngleMatrix( angles, m_protationmatrix);
 
 	m_protationmatrix[0][3] = modelpos[0];
 	m_protationmatrix[1][3] = modelpos[1];
@@ -982,7 +983,7 @@ void R_StudioCalcAttachments( void )
 	memcpy( m_pCurrentEntity->attachment, m_pCurrentEntity->attachment, sizeof( vec3_t ) * MAXSTUDIOATTACHMENTS );
 }
 
-static bool R_StudioComputeBBox( vec3_t *bbox )
+static bool R_StudioComputeBBox( vec3_t bbox[8] )
 {
 	vec3_t vectors[3];
 	entity_t *e = m_pCurrentEntity;
@@ -992,7 +993,7 @@ static bool R_StudioComputeBBox( vec3_t *bbox )
 	if(!R_ExtractBbox( seq, mins, maxs ))
 		return false;
 
-	//compute a full bounding box
+	// compute a full bounding box
 	for ( i = 0; i < 8; i++ )
 	{
 		if ( i & 1 ) tmp[0] = mins[0];
@@ -1004,16 +1005,15 @@ static bool R_StudioComputeBBox( vec3_t *bbox )
 		VectorCopy( tmp, bbox[i] );
 	}
 
-	//rotate the bounding box
-	VectorCopy( e->angles, angles );
-	angles[PITCH] = -angles[PITCH];
-	AngleVectors( angles, vectors[0], vectors[1], vectors[2] );
+	// rotate the bounding box
+	VectorScale( e->angles, -1, angles );
+	AngleVectorsFLU( angles, vectors[0], vectors[1], vectors[2] );
 
 	for ( i = 0; i < 8; i++ )
 	{
 		VectorCopy( bbox[i], tmp );
 		bbox[i][0] = DotProduct( vectors[0], tmp );
-		bbox[i][1] = -DotProduct( vectors[1], tmp );
+		bbox[i][1] = DotProduct( vectors[1], tmp );
 		bbox[i][2] = DotProduct( vectors[2], tmp );
 		VectorAdd( e->origin, bbox[i], bbox[i] );
 	}
@@ -1129,7 +1129,7 @@ void R_StudioLighting (float *lv, int bone, int flags, vec3_t normal)
 	*lv = illum / 255.0; // Light from 0 to 1.0
 }
 
-void R_StudioSetupChrome(int *pchrome, int bone, vec3_t normal)
+void R_StudioSetupChrome(float *pchrome, int bone, vec3_t normal)
 {
 	float n;
 
@@ -1158,30 +1158,30 @@ void R_StudioSetupChrome(int *pchrome, int bone, vec3_t normal)
 
 	// calc s coord
 	n = DotProduct( normal, g_chromeright[bone] );
-	pchrome[0] = (n + 1.0) * 32;// FIXME: make this a float
+	pchrome[0] = (n + 1.0) * 32.0f;
 
 	// calc t coord
 	n = DotProduct( normal, g_chromeup[bone] );
-	pchrome[1] = (n + 1.0) * 32;// FIXME: make this a float
+	pchrome[1] = (n + 1.0) * 32.0f;
 }
 
 bool R_AcceptStudioPass( int flags, int pass )
 {
-	if(pass == RENDERPASS_SOLID)
+	if( pass == RENDERPASS_SOLID )
 	{
 		if(!flags) return true;			// draw all
-		if(flags & STUDIO_NF_CHROME) return true;	// chrome drawing once
-		if(flags & STUDIO_NF_ADDITIVE) return false;	// draw it at second pass
+		if(flags & STUDIO_NF_ADDITIVE) return false;	// draw it at second pass (and chrome too)
+		if(flags & STUDIO_NF_CHROME) return true;	// chrome drawing once (without additive)
 		if(flags & STUDIO_NF_TRANSPARENT) return true;	// must be draw first always
 	}	
-	if(pass == RENDERPASS_ALPHA)
+	if( pass == RENDERPASS_ALPHA )
 	{
 		//pass for blended ents
 		if(m_pCurrentEntity->flags & RF_TRANSLUCENT) 	return true;
 		if(!flags) return false;			// skip all
 		if(flags & STUDIO_NF_TRANSPARENT) return false;	// must be draw first always
 		if(flags & STUDIO_NF_ADDITIVE) return true;	// draw it at second pass
-		if(flags & STUDIO_NF_CHROME) return false;	// no need draw it again
+		if(flags & STUDIO_NF_CHROME) return false;	// skip chrome without additive
 	}
 	return true;
 }
@@ -1255,21 +1255,20 @@ void R_StudioDrawMeshes ( mstudiotexture_t * ptexture, short *pskinref, int pass
                                         
                                         if ( m_pCurrentEntity->flags & RF_FULLBRIGHT )
 					lv = &fbright[0];
-                                        if ( m_pCurrentEntity->flags & RF_MINLIGHT )//used for viewmodel only
+                                        if ( m_pCurrentEntity->flags & RF_MINLIGHT ) // used for viewmodel only
 					VectorBound(0.01f, lv, 1.0f );
 
 				if ( r_newrefdef.rdflags & RDF_IRGOGGLES && m_pCurrentEntity->flags & RF_IR_VISIBLE)
 					lv = &irgoggles[0];
 
-				if (flags & STUDIO_NF_ADDITIVE)//additive is self-lighting texture
+				if (flags & STUDIO_NF_ADDITIVE) // additive is self-lighting texture
 					qglColor4f( 1.0f, 1.0f, 1.0f, 0.8f );
 				else if(m_pCurrentEntity->flags & RF_TRANSLUCENT)
 					qglColor4f( 1.0f, 1.0f, 1.0f, m_pCurrentEntity->alpha );
-				else qglColor4f( lv[0], lv[1], lv[2], 1.0f );//get light from floor
+				else qglColor4f( lv[0], lv[1], lv[2], 1.0f ); // get light from floor
 
 				av = m_pxformverts[ptricmds[0]];
-
-				qglVertex3f(av[0], av[1], av[2]);
+				qglVertex3f( av[0], av[1], av[2] );
 			}
 			qglEnd();
 		}
@@ -1528,11 +1527,13 @@ void R_StudioDrawHulls ( void )
 	qglDisable( GL_CULL_FACE );
 	qglPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 	qglDisable( GL_TEXTURE_2D );
-	qglBegin( GL_TRIANGLE_STRIP );
-	for ( i = 0; i < 8; i++ )
+	qglBegin (GL_QUAD_STRIP);
+
+	for (i = 0; i < 10; i++)
 	{
-		qglVertex3fv( bbox[i] );
+		qglVertex3fv( bbox[i & 7] );
 	}
+
 	qglEnd();
 	qglEnable( GL_TEXTURE_2D );
 	qglPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
@@ -1567,12 +1568,15 @@ void R_StudioRenderModel( void )
 		R_StudioDrawPoints();
 	}
 
-	switch((int)r_drawentities->value)
+	if(!( r_newrefdef.rdflags & RDF_NOWORLDMODEL ))
 	{
-	case 2: R_StudioDrawBones(); break;
-	case 3: R_StudioDrawHitboxes(); break;
-	case 4: R_StudioDrawAttachments(); break;
-	case 5: R_StudioDrawHulls(); break;
+		switch((int)r_drawentities->value)
+		{
+		case 2: R_StudioDrawBones(); break;
+		case 3: R_StudioDrawHitboxes(); break;
+		case 4: R_StudioDrawAttachments(); break;
+		case 5: R_StudioDrawHulls(); break;
+		}
 	}
 }
 
@@ -1593,6 +1597,19 @@ void R_DrawStudioModel( int passnum )
 
 	m_fDoInterp = r_interpolate->integer;
 
+	if( !mirror_render && m_pCurrentEntity->flags & RF_PLAYERMODEL )
+		return;
+
+	if( m_pCurrentEntity->flags & RF_VIEWMODEL )
+	{
+		if( mirror_render || r_lefthand->value == 2 )
+			return;
+	}
+
+	// nothing to draw
+	if( m_pStudioHeader->numbodyparts == 0 )
+		return;
+	
 	R_StudioSetUpTransform();
 
 	// see if the bounding box lets us trivially reject, also sets
@@ -1601,13 +1618,8 @@ void R_DrawStudioModel( int passnum )
 	m_pStudioModelCount++; // render data cache cookie
 	m_pxformverts = &g_xformverts[0];
 	m_pvlightvalues = &g_lightvalues[0];
-		
-	// nothing to draw
-	if(m_pStudioHeader->numbodyparts == 0) return;
-	if(m_pCurrentEntity->flags & RF_VIEWMODEL && r_lefthand->value == 2)
-		return;
 
-	if (m_pCurrentEntity->movetype == MOVETYPE_FOLLOW) 
+	if( m_pCurrentEntity->movetype == MOVETYPE_FOLLOW ) 
 		R_StudioMergeBones( m_pRenderModel );
 	else R_StudioSetupBones();
 
@@ -1624,6 +1636,7 @@ void R_DrawStudioModel( int passnum )
 		model_t *pweaponmodel = m_pCurrentEntity->weaponmodel;
 		
 		m_pStudioHeader = pweaponmodel->phdr;
+		m_pTextureHeader = pweaponmodel->thdr;
 		R_StudioMergeBones( pweaponmodel);
 
 		R_StudioRenderModel();

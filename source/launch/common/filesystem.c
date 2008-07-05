@@ -2515,11 +2515,13 @@ Give the current position in a file
 */
 fs_offset_t FS_Tell (file_t* file)
 {
+	if( !file ) return 0;
 	return file->position - file->buff_len + file->buff_ind;
 }
 
 bool FS_Eof( file_t* file)
 {
+	if( !file ) return true;
 	return (file->position == file->real_length) ? true : false;
 }
 
@@ -2530,7 +2532,7 @@ FS_Purge
 Erases any buffered input or output data
 ====================
 */
-void FS_Purge (file_t* file)
+void FS_Purge( file_t* file )
 {
 	file->buff_len = 0;
 	file->buff_ind = 0;

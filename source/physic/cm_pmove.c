@@ -1456,7 +1456,7 @@ void PM_UpdateViewAngles( player_state_t *ps, const usercmd_t *cmd )
 	}
 	if( pm->ps.pm_flags & PMF_TIME_TELEPORT)
 	{
-		ps->viewangles[YAW] = SHORT2ANGLE( pm->cmd.angles[YAW] + pm->ps.delta_angles[YAW] );
+		ps->viewangles[YAW] = SHORT2ANGLE( pm->cmd.angles[YAW] - pm->ps.delta_angles[YAW] );
 		ps->viewangles[PITCH] = 0;
 		ps->viewangles[ROLL] = 0;
 	}

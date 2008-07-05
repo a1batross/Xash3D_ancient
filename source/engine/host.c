@@ -611,8 +611,7 @@ void Host_Main( void )
 	// main window message loop
 	while( host.type != HOST_OFFLINE )
 	{
-		do 
-		{
+		do {
 			newtime = Sys_Milliseconds();
 			time = newtime - oldtime;
 		} while( time < 1 );
