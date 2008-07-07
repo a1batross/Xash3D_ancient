@@ -340,8 +340,8 @@ void PF_getmousepos( void )
 	if(!VM_ValidateArgs( "getmousepos", 0 ))
 		return;
 
-	PRVM_G_VECTOR(OFS_RETURN)[0] = mouse_x;
-	PRVM_G_VECTOR(OFS_RETURN)[1] = mouse_y;
+	PRVM_G_VECTOR(OFS_RETURN)[0] = cls.mouse_x;
+	PRVM_G_VECTOR(OFS_RETURN)[1] = cls.mouse_y;
 	PRVM_G_VECTOR(OFS_RETURN)[2] = 0;
 }
 

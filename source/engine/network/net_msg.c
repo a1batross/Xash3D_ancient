@@ -41,6 +41,16 @@ void _MSG_WriteByte (sizebuf_t *sb, int c, const char *filename, int fileline)
 	buf[0] = c;
 }
 
+void _MSG_WriteData( sizebuf_t *sb, const void *data, size_t length, const char *filename, int fileline )
+{
+	int	i;
+
+	for( i = 0; i < length; i++ )
+	{
+		_MSG_WriteByte( sb, ((byte *)data)[i], filename, fileline );
+	}
+}
+
 void _MSG_WriteShort (sizebuf_t *sb, int c, const char *filename, int fileline)
 {
 	byte	*buf;
@@ -554,7 +564,7 @@ void MSG_ReadData (sizebuf_t *msg_read, void *data, int len)
 =======================
 */
 
-void SZ_Init (sizebuf_t *buf, byte *data, int length)
+void SZ_Init( sizebuf_t *buf, byte *data, size_t length )
 {
 	memset (buf, 0, sizeof(*buf));
 	buf->data = data;

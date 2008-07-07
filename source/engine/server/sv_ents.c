@@ -21,6 +21,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "common.h"
 #include "server.h"
 
+void SV_PacketEvent( netadr_t from, sizebuf_t *msg )
+{
+}
+
 /*
 =============================================================================
 

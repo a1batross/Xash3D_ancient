@@ -26,6 +26,7 @@ extern vsound_exp_t		*se;
 #define MAX_ENTNUMBER	99999		// for server and client parsing
 #define MAX_HEARTBEAT	-99999		// connection time
 #define HOST_FRAMETIME	100		// host.frametime in msecs (change with caution)
+#define MAX_EVENTS		1024
 
 //#define USE_COORD_FRAC
 
@@ -48,6 +49,7 @@ INPUT
 
 ==============================================================
 */
+#define WM_MOUSEWHEEL		( WM_MOUSELAST + 1 ) // message that will be supported by the OS 
 
 typedef enum e_keycodes
 {
@@ -133,15 +135,15 @@ static byte scan_to_key[128] =
 	0,0,0,K_F11,K_F12,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 };
-
-// mouse support
-void M_Activate( void );
-void M_Event( int mstate );
-#define WM_MOUSEWHEEL (WM_MOUSELAST + 1) // message that will be supported by the OS 
-extern int mouse_x, mouse_y, old_mouse_x, old_mouse_y, mx_accum, my_accum;
+//
+// input.c
+//
+void IN_Init( void );
+void IN_Frame( void );
+void IN_Shutdown( void );
+void IN_MouseEvent( int mstate );
 
 // cvars
-extern cvar_t *dedicated;
 extern cvar_t *host_serverstate;
 extern cvar_t *host_frametime;
 extern cvar_t *cm_paused;
@@ -184,17 +186,23 @@ typedef struct host_parm_s
 	jmp_buf		abortframe;	// abort current frame
 
 	string		finalmsg;		// server shutdown final message
-
-	dword		framecount;	// global framecount
-	uint		sv_timer;		// SV_Input msg time
-	uint		cl_timer;		// CL_Input msg time
-	uint		old_cl_timer;	// save old msg time
-
 	HWND		hWnd;		// main window
 
 	int		developer;	// show all developer's message
 	bool		paused;		// freeze server
 	bool		stuffcmdsrun;	// sturtup script
+	dword		framecount;	// global framecount
+	dword		frametime[2];	// second value is old frametime
+
+	int		events_head;
+	int		events_tail;
+	sys_event_t	events[MAX_EVENTS];
+	file_t		*journal;		// journal file
+
+	// get rid of this
+	bool		sv_running;	// server is running ?
+	bool		cl_running;	// client is running ?
+
 } host_parm_t;
 
 extern host_parm_t host;
@@ -206,6 +214,7 @@ void Host_SetServerState( int state );
 int Host_ServerState( void );
 float Host_FrameTime( void );
 void Host_AbortCurrentFrame( void );
+dword Host_EventLoop( void );
 
 // message functions
 void Host_Print(const char *txt);
@@ -228,10 +237,12 @@ CLIENT / SERVER SYSTEMS
 void CL_Init( void );
 void CL_Shutdown( void );
 void CL_Frame( dword time );
+void CL_PacketEvent( netadr_t from, sizebuf_t *msg );
 
 void SV_Init( void );
 void SV_Shutdown( bool reconnect );
 void SV_Frame( dword time );
+void SV_PacketEvent( netadr_t from, sizebuf_t *msg );
 
 /*
 ==============================================================
@@ -423,7 +434,6 @@ bool Cmd_GetMusicList(const char *s, char *completedname, int length );
 bool Cmd_GetSoundList(const char *s, char *completedname, int length );
 bool Cmd_CheckMapsList( void );
 void Sys_Error( const char *msg, ... );
-void Sys_SendKeyEvents( void );
 
 // get rid of this
 float frand(void);	// 0 to 1

@@ -69,6 +69,7 @@ typedef struct server_s
 	sv_state_t	state;		// precache commands are only valid during load
 
 	bool		loadgame;		// client begins should reuse existing entity
+	bool		autosaved;
 
 	float		time;		// always sv.framenum * 50 msec
 	float		frametime;
@@ -77,7 +78,7 @@ typedef struct server_s
 	char		name[MAX_QPATH];	// map name, or cinematic name
 	cmodel_t		*models[MAX_MODELS];
 
-	char		configstrings[MAX_CONFIGSTRINGS][MAX_QPATH];
+	string		configstrings[MAX_CONFIGSTRINGS];
 	entity_state_t	baselines[MAX_EDICTS];
 
 	// the multicast buffer is used to send a message to a set of clients
@@ -87,8 +88,6 @@ typedef struct server_s
 
 	int		lastchecktime;
 	int		lastcheck;
-
-	bool		autosaved;
 } server_t;
 
 typedef struct

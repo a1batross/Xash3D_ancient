@@ -190,15 +190,15 @@ SOURCE=.\host.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\input.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\network\net_chan.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\network\net_msg.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\network\net_wins.c
 # End Source File
 # Begin Source File
 

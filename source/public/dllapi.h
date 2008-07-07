@@ -60,9 +60,9 @@
 
 // button bits
 #define	BUTTON_ATTACK	1
-#define	BUTTON_USE	2
-#define	BUTTON_ATTACK2	4
-#define	BUTTONS_ATTACK	(BUTTON_ATTACK | BUTTON_ATTACK2)
+#define	BUTTON_ATTACK2	2
+#define	BUTTON_USE	4
+#define	BUTTON_WALKING	8
 #define	BUTTON_ANY	128 // any key whatsoever
 
 #define PM_MAXTOUCH		32
@@ -268,12 +268,17 @@ typedef struct player_state_s
 // user_cmd_t communication
 typedef struct usercmd_s
 {
-	byte		msec;
-	byte		buttons;
-	short		angles[3];
-	byte		impulse;		// remove?
+	int		buttons;
+	int		angles[3];
+	int		servertime;
+	byte		impulse;
+	signed char	forwardmove;
+	signed char	sidemove;
+	signed char	upmove;
+
+	// get rid of this	
 	byte		lightlevel;	// light level the player is standing on
-	short		forwardmove, sidemove, upmove;
+	byte		msec;
 } usercmd_t;
 
 typedef struct pmove_s
@@ -299,16 +304,6 @@ typedef struct pmove_s
 	int		(*pointcontents)( vec3_t point );
 } pmove_t;
 
-typedef struct sizebuf_s
-{
-	bool	overflowed;	// set to true if the buffer size failed
-	byte	*data;
-	int	maxsize;
-	int	cursize;
-	int	readcount;
-	int	errorcount;		// cause by errors
-} sizebuf_t;
-
 /*
 ==============================================================================
 
@@ -325,6 +320,7 @@ typedef struct launch_exp_s
 	void ( *Free ) ( void );				// close host
 	void ( *Cmd  ) ( void );				// forward cmd to server
 	void (*CPrint) ( const char *msg );			// host print
+	void (*SZInit)( sizebuf_t *buf, byte *data, size_t length );// init sizebuf from events
 } launch_exp_t;
 
 /*

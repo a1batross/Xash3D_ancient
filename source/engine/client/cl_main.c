@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "common.h"
 #include "client.h"
 
-cvar_t	*freelook;
 cvar_t	*rcon_client_password;
 cvar_t	*rcon_address;
 
@@ -37,11 +36,11 @@ cvar_t	*cl_add_particles;
 cvar_t	*cl_add_lights;
 cvar_t	*cl_add_entities;
 cvar_t	*cl_add_blend;
-
+cvar_t	*cl_maxpackets;
 cvar_t	*cl_shownet;
 cvar_t	*cl_showmiss;
 cvar_t	*cl_showclamp;
-
+cvar_t	*cl_mouselook;
 cvar_t	*cl_paused;
 
 cvar_t	*lookspring;
@@ -339,7 +338,7 @@ void CL_Rcon_f (void)
 			to.port = BigShort (PORT_SERVER);
 	}
 	
-	NET_SendPacket (NS_CLIENT, strlen(message)+1, message, to);
+	NET_SendPacket( NS_CLIENT, strlen(message)+1, message, to);
 }
 
 
@@ -459,7 +458,7 @@ void CL_Packet_f (void)
 	}
 	*out = 0;
 
-	NET_SendPacket (NS_CLIENT, out-send, send, adr);
+	NET_SendPacket( NS_CLIENT, out-send, send, adr);
 }
 
 /*
@@ -804,7 +803,7 @@ when they overflow
 */
 void CL_DumpPackets (void)
 {
-	while (NET_GetPacket (NS_CLIENT, &net_from, &net_message))
+	while (Sys_RecvPacket (&net_from, &net_message))
 	{
 		Msg ("dumnping a packet\n");
 	}
@@ -812,7 +811,7 @@ void CL_DumpPackets (void)
 
 void CL_ReadNetMessage( void )
 {
-	while (NET_GetPacket (NS_CLIENT, &net_from, &net_message))
+	while (Sys_RecvPacket (&net_from, &net_message))
 	{
 		// remote command packet
 		if(*(int *)net_message.data == -1)
@@ -1178,9 +1177,10 @@ void CL_InitLocal (void)
 	cl_yawspeed = Cvar_Get ("cl_yawspeed", "140", 0, "client yaw speed" );
 	cl_pitchspeed = Cvar_Get ("cl_pitchspeed", "150", 0, "client pitch speed" );
 	cl_anglespeedkey = Cvar_Get ("cl_anglespeedkey", "1.5", 0, "client anglespeed" );
+	cl_maxpackets = Cvar_Get( "cl_maxpackets", "30", CVAR_ARCHIVE, "number of usercmd packets" );
 
 	cl_run = Cvar_Get ("cl_run", "0", CVAR_ARCHIVE, "keep client for always run mode" );
-	freelook = Cvar_Get( "freelook", "1", CVAR_ARCHIVE, "enables mouse look" );
+	cl_mouselook = Cvar_Get( "cl_mouselook", "1", CVAR_ARCHIVE, "enables mouse look" );
 	lookspring = Cvar_Get ("lookspring", "0", CVAR_ARCHIVE, "allow look spring" );
 	lookstrafe = Cvar_Get ("lookstrafe", "0", CVAR_ARCHIVE, "allow look strafe" );
 
@@ -1405,7 +1405,12 @@ void CL_Frame( dword time )
 {
 	static dword extratime;
 
-	if( dedicated->integer ) return;
+	if( host.type == HOST_DEDICATED )
+		return;
+
+	// get server to client packets
+	Host_EventLoop();
+	Cbuf_Execute();
 
 	extratime += time;
 
@@ -1413,9 +1418,6 @@ void CL_Frame( dword time )
 		return;	// don't flood packets out while connecting
 	if( extratime < 1000 / cl_maxfps->value)
 		return;	// framerate is too high
-
-	// let the mouse activate or deactivate
-	CL_UpdateMouse();
 
 	// decide the simulation time
 	cl.time += extratime;
@@ -1473,7 +1475,8 @@ CL_Init
 */
 void CL_Init( void )
 {
-	if (dedicated->value) return; // nothing running on the client
+	if( host.type == HOST_DEDICATED )
+		return; // nothing running on the client
 
 	// all archived variables will now be loaded
 	scr_loading = Cvar_Get("scr_loading", "0", 0, "loading bar progress" );
@@ -1490,6 +1493,7 @@ void CL_Init( void )
 	UI_Init();
 	SCR_Init();
 	CL_InitLocal();
+	host.cl_running = true;
 }
 
 
@@ -1511,6 +1515,7 @@ void CL_Shutdown(void)
 	UI_Shutdown();
 	S_Shutdown();
 	CL_ShutdownInput();
+	host.cl_running = false;
 }
 
 

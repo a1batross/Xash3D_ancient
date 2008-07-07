@@ -18,7 +18,7 @@ void SV_SetMaster_f( void )
 	int		i, slot;
 
 	// only dedicated servers send heartbeats
-	if(!dedicated->value)
+	if( host.type == HOST_DEDICATED )
 	{
 		Msg("Only dedicated servers use masters.\n");
 		return;
@@ -492,7 +492,7 @@ void SV_InitOperatorCommands( void )
 	Cmd_AddCommand("restart", SV_Restart_f, "restarting current level" );
 	Cmd_AddCommand("sectorlist", SV_SectorList_f, "display pvs sectors" );
 
-	if( dedicated->value ) 
+	if( host.type == HOST_DEDICATED ) 
 	{
 		Cmd_AddCommand ("say", SV_ConSay_f, "send a chat message to everyone on the server" );
 		Cmd_AddCommand("setmaster", SV_SetMaster_f, "set ip address for dedicated server" );
@@ -518,7 +518,7 @@ void SV_KillOperatorCommands( void )
 	Cmd_RemoveCommand("restart");
 	Cmd_RemoveCommand("sectorlist");
 
-	if( dedicated->integer ) 
+	if( host.type == HOST_DEDICATED ) 
 	{
 		Cmd_RemoveCommand("say");
 		Cmd_RemoveCommand("setmaster");

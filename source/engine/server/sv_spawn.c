@@ -678,7 +678,7 @@ void Cmd_Say_f (edict_t *ent, bool team, bool arg0)
 
 	com.strcat(text, "\n");
 
-	if (dedicated->value) 
+	if( host.type == HOST_DEDICATED ) 
 		PF_cprintf(NULL, PRINT_CHAT, "%s", text);
 
 	for (j = 1; j <= maxclients->value; j++)

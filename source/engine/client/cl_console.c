@@ -275,9 +275,12 @@ void Con_Print( const char *txt )
 	bool	skipnotify = false;
 	int	prev;
 
+	if( !con.initialized )
+		return;
+
 	// client not running
-	if(host.type == HOST_DEDICATED) return;
-          if(!con.initialized) return;
+	if( host.type == HOST_DEDICATED )
+		return;
 
 	if(!com.strncmp( txt, "[skipnotify]", 12 ))
 	{

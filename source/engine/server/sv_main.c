@@ -576,7 +576,7 @@ void SV_ReadPackets (void)
 	client_state_t	*cl;
 	int			qport;
 
-	while (NET_GetPacket (NS_SERVER, &net_from, &net_message))
+	while (Sys_RecvPacket(&net_from, &net_message))
 	{
 		// check for connectionless packet (0xffffffff) first
 		if (*(int *)net_message.data == -1)
@@ -730,7 +730,7 @@ void SV_Frame( dword time )
 			svs.realtime = (sv.time * 1000 ) - HOST_FRAMETIME;
 		}
 
-		NET_Sleep((sv.time*1000) - svs.realtime);
+		//NET_Sleep((sv.time*1000) - svs.realtime);
 		SV_VM_End(); //end frame
 		return;
 	}
@@ -770,9 +770,8 @@ void Master_Heartbeat (void)
 	char		*string;
 	int			i;
 
-	// pgm post3.19 change, cvar pointer not validated before dereferencing
-	if (!dedicated || !dedicated->value)
-		return;		// only dedicated servers send heartbeats
+	if( host.type == HOST_DEDICATED )
+		return;	// only dedicated servers send heartbeats
 
 	// pgm post3.19 change, cvar pointer not validated before dereferencing
 	if (!public_server || !public_server->value)
@@ -811,9 +810,8 @@ void Master_Shutdown (void)
 {
 	int			i;
 
-	// pgm post3.19 change, cvar pointer not validated before dereferencing
-	if (!dedicated || !dedicated->value)
-		return;		// only dedicated servers send heartbeats
+	if( host.type == HOST_DEDICATED )
+		return; // only dedicated servers send heartbeats
 
 	// pgm post3.19 change, cvar pointer not validated before dereferencing
 	if (!public_server || !public_server->value)
@@ -929,6 +927,8 @@ void SV_Init (void)
 	sv_reconnect_limit = Cvar_Get ("sv_reconnect_limit", "3", CVAR_ARCHIVE, "max reconnect attempts" );
 
 	SZ_Init (&net_message, net_message_buffer, sizeof(net_message_buffer));
+
+	host.sv_running = true;
 }
 
 /*
@@ -1000,5 +1000,6 @@ void SV_Shutdown( bool reconnect )
 	if (svs.clients) Mem_Free (svs.clients);
 	if (svs.client_entities) Mem_Free (svs.client_entities);
 	memset (&svs, 0, sizeof(svs));
+	host.sv_running = false;
 }
 

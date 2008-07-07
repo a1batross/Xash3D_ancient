@@ -8,21 +8,21 @@
 // Processor Information:
 typedef struct cpuinfo_s
 {
-	bool m_bRDTSC	: 1;	// Is RDTSC supported?
-	bool m_bCMOV	: 1;	// Is CMOV supported?
-	bool m_bFCMOV	: 1;	// Is FCMOV supported?
-	bool m_bSSE	: 1;	// Is SSE supported?
-	bool m_bSSE2	: 1;	// Is SSE2 Supported?
-	bool m_b3DNow	: 1;	// Is 3DNow! Supported?
-	bool m_bMMX	: 1;	// Is MMX supported?
-	bool m_bHT	: 1;	// Is HyperThreading supported?
+	bool	m_bRDTSC	: 1;	// Is RDTSC supported?
+	bool	m_bCMOV	: 1;	// Is CMOV supported?
+	bool	m_bFCMOV	: 1;	// Is FCMOV supported?
+	bool	m_bSSE	: 1;	// Is SSE supported?
+	bool	m_bSSE2	: 1;	// Is SSE2 Supported?
+	bool	m_b3DNow	: 1;	// Is 3DNow! Supported?
+	bool	m_bMMX	: 1;	// Is MMX supported?
+	bool	m_bHT	: 1;	// Is HyperThreading supported?
 
-	byte m_usNumLogicCore;	// Number op logical processors.
-	byte m_usNumPhysCore;	// Number of physical processors
+	byte	m_usNumLogicCore;	// Number op logical processors.
+	byte	m_usNumPhysCore;	// Number of physical processors
 
-	int64 m_speed;		// In cycles per second.
-	int   m_size;		// structure size
-	char* m_szCPUID;		// Processor vendor Identification.
+	int64	m_speed;		// In cycles per second.
+	int	m_size;		// structure size
+	char*	m_szCPUID;	// Processor vendor Identification.
 } cpuinfo_t;
 
 typedef struct register_s
@@ -34,7 +34,7 @@ typedef struct register_s
 	bool	retval;
 } register_t;
 
-static register_t cpuid(uint function )
+static register_t cpuid( uint function )
 {
 	register_t local;
           
@@ -65,7 +65,7 @@ static register_t cpuid(uint function )
 	return local;
 }
 
-bool CheckMMXTechnology(void)
+bool CheckMMXTechnology( void )
 {
 	register_t mmx = cpuid(1);
 
@@ -73,7 +73,7 @@ bool CheckMMXTechnology(void)
 	return ( mmx.edx & 0x800000 ) != 0;
 }
 
-bool CheckSSETechnology(void)
+bool CheckSSETechnology( void )
 {
 	register_t sse = cpuid(1);
 	
@@ -81,7 +81,7 @@ bool CheckSSETechnology(void)
 	return ( sse.edx & 0x2000000L ) != 0;
 }
 
-bool CheckSSE2Technology(void)
+bool CheckSSE2Technology( void )
 {
 	register_t sse2 = cpuid(1);
 
@@ -89,7 +89,7 @@ bool CheckSSE2Technology(void)
 	return ( sse2.edx & 0x04000000 ) != 0;
 }
 
-bool Check3DNowTechnology(void)
+bool Check3DNowTechnology( void )
 {
 	register_t amd = cpuid( 0x80000000 );
 	
@@ -103,7 +103,7 @@ bool Check3DNowTechnology(void)
 	return false;
 }
 
-bool CheckCMOVTechnology()
+bool CheckCMOVTechnology( void )
 {
 	register_t cmov = cpuid(1);
 
@@ -111,7 +111,7 @@ bool CheckCMOVTechnology()
 	return ( cmov.edx & (1<<15) ) != 0;
 }
 
-bool CheckFCMOVTechnology(void)
+bool CheckFCMOVTechnology( void )
 {
 	register_t fcmov = cpuid(1);
 
@@ -119,7 +119,7 @@ bool CheckFCMOVTechnology(void)
 	return ( fcmov.edx & (1<<16) ) != 0;
 }
 
-bool CheckRDTSCTechnology(void)
+bool CheckRDTSCTechnology( void )
 {
 	register_t rdtsc = cpuid(1);
 
@@ -132,7 +132,7 @@ bool CheckRDTSCTechnology(void)
 Return the Processor's vendor identification string, or "Generic_x86" if it doesn't exist on this CPU
 ================
 */
-const char* GetProcessorVendorId()
+const char* GetProcessorVendorId( void )
 {
 	static char VendorID[13];
 	register_t vendor = cpuid(0);
@@ -157,7 +157,7 @@ Returns non-zero if Hyper-Threading Technology is supported on the processors an
 This does not mean that Hyper-Threading Technology is necessarily enabled.
 ================
 */
-static bool HTSupported(void)
+static bool HTSupported( void )
 {
 	const uint HT_BIT	= 0x10000000;	// EDX[28] - Bit 28 set indicates Hyper-Threading Technology is supported in hardware.
 	const uint FAMILY_ID = 0x0f00;	// EAX[11:8] - Bit 11 thru 8 contains family processor id
@@ -182,7 +182,7 @@ static bool HTSupported(void)
 Returns the number of logical processors per physical processors.
 ================
 */
-static byte LogicalProcessorsPerPackage(void)
+static byte LogicalProcessorsPerPackage( void )
 {
 	const unsigned NUM_LOGICAL_BITS = 0x00FF0000; // EBX[23:16] indicate number of logical processors per package
           register_t core = cpuid(1);
@@ -213,7 +213,7 @@ Measure the processor clock speed by sampling the cycle count, waiting
 for some fraction of a second, then measuring the elapsed number of cycles.
 ================
 */
-static int64 CalculateClockSpeed()
+static int64 CalculateClockSpeed( void )
 {
 	LARGE_INTEGER waitTime, startCount, curCount;
 	int scale = 5; // Take 1/32 of a second for the measurement.
@@ -309,10 +309,10 @@ void Sys_InitCPU( void )
 	if( cpu.m_bCMOV ) com_strcat(szFeatureString, "CMOV " );
 	if( cpu.m_bFCMOV ) com_strcat(szFeatureString, "FCMOV " );
 
-	// Remove the trailing space.  There will always be one.
+	// remove the trailing space.  There will always be one.
 	szFeatureString[com_strlen(szFeatureString)-1] = '\0';
 
-	// Dump CPU information:
+	// dump CPU information:
 	if( cpu.m_usNumLogicCore == 1 ) MsgDev( D_INFO, "CPU: %s [1 core]. Frequency: %.01f %s\n", cpu.m_szCPUID, fFrequency, szFrequencyDenomination );
 	else
 	{

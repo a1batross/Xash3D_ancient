@@ -44,20 +44,6 @@ void Sys_Error( const char *error, ... )
 }
 
 /*
-================
-Sys_SendKeyEvents
-
-Send Key_Event calls
-================
-*/
-void Sys_SendKeyEvents( void )
-{
-	// grab frame time 
-	host.sv_timer = Sys_GetKeyEvents();
-	host.cl_timer = Sys_Milliseconds();
-}
-
-/*
 =======================================================================
 
 		    VIRTUAL MACHINE COMMON UTILS

@@ -67,7 +67,8 @@ typedef struct
 extern char cl_weaponmodels[MAX_CLIENTWEAPONMODELS][MAX_QPATH];
 extern int num_cl_weaponmodels;
 
-#define	CMD_BACKUP		64	// allow a lot of command backups for very fast systems
+#define	CMD_BACKUP	64	// allow a lot of command backups for very fast systems
+#define	CMD_MASK		(CMD_BACKUP - 1)
 
 //
 // the client_t structure is wiped completely at every
@@ -85,8 +86,8 @@ typedef struct
 
 	usercmd_t	cmd;
 	usercmd_t		cmds[CMD_BACKUP];			// each mesage will send several old cmds
-	dword		cmd_time[CMD_BACKUP];		// time sent, for calculating pings
 	float		predicted_origins[CMD_BACKUP][3];	// for debug comparing against server
+	int		cmd_number;
 
 	float		predicted_step;				// for stair up smoothing
 	uint		predicted_step_time;
@@ -98,6 +99,13 @@ typedef struct
 	frame_t		frame;		// received from server
 	int		surpressCount;	// number of messages rate supressed
 	frame_t		frames[UPDATE_BACKUP];
+	outpacket_t	packets[PACKET_BACKUP];	// information about each packet we have sent out
+
+	// mouse current position
+	int		mouse_x[2];
+	int		mouse_y[2];
+	int		mouse_step;
+	float		mouse_sens;
 
 	// the client maintains its own idea of view angles, which are
 	// sent to the server each frame.  It is cleared to 0 upon entering each level.
@@ -230,6 +238,12 @@ typedef struct
 	serverinfo_t	serverlist[MAX_SERVERS];	// servers to join
 	int		numservers;
 	int		pingtime;			// servers timebase
+
+	int		last_sent;		// for retransmits
+
+	// cursor mouse pos for uimenu
+	int		mouse_x;
+	int		mouse_y;
 } client_static_t;
 
 extern client_static_t	cls;
@@ -298,7 +312,7 @@ extern	cvar_t	*cl_pitchspeed;
 extern	cvar_t	*cl_run;
 
 extern	cvar_t	*cl_anglespeedkey;
-
+extern	cvar_t	*cl_maxpackets;
 extern	cvar_t	*cl_shownet;
 extern	cvar_t	*cl_showmiss;
 extern	cvar_t	*cl_showclamp;
@@ -310,11 +324,10 @@ extern	cvar_t	*ui_sensitivity;
 
 extern	cvar_t	*m_pitch;
 extern	cvar_t	*m_yaw;
-extern	cvar_t	*m_forward;
 extern	cvar_t	*m_side;
-extern	cvar_t	*m_mouse;
+extern	cvar_t	*m_forward;
+extern	cvar_t	*cl_mouselook;
 
-extern	cvar_t	*freelook;
 
 extern	cvar_t	*cl_lightlevel;	// FIXME HACK
 
@@ -446,18 +459,6 @@ void CL_RequestNextDownload (void);
 //
 // cl_input
 //
-typedef struct
-{
-	int			down[2];		// key nums holding it down
-	unsigned	downtime;		// msec timestamp
-	unsigned	msec;			// msec down this frame
-	int			state;
-} kbutton_t;
-
-extern	kbutton_t	in_mlook, in_klook;
-extern 	kbutton_t 	in_strafe;
-extern 	kbutton_t 	in_speed;
-
 void CL_InitInput( void );
 void CL_ShutdownInput( void );
 void CL_UpdateMouse( void );
@@ -473,9 +474,8 @@ void CL_WriteToServer (usercmd_t *cmd);
 void CL_BaseMove (usercmd_t *cmd);
 
 void IN_CenterView (void);
-
-float CL_KeyState (kbutton_t *key);
 void CL_CharEvent( int key );
+void CL_MouseEvent( int dx, int dy, int time );
 char *Key_KeynumToString (int keynum);
 
 //

@@ -1,318 +1,111 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-// cl.input.c  -- builds an intended movement command to send to the server
+//=======================================================================
+//			Copyright XashXT Group 2007 ©
+//			cl_input.c - movement commands
+//=======================================================================
 
 #include "common.h"
 #include "client.h"
 
+typedef struct
+{
+	int	down[2];		// key nums holding it down
+	uint	downtime;		// msec timestamp
+	uint	msec;		// msec down this frame
+	bool	active;		// button is active ?
+	bool	was_pressed;	// set when down, not cleared when up
+} kbutton_t;
+
+cvar_t	*cl_run;
+cvar_t	*cl_upspeed;
+cvar_t	*cl_yawspeed;
+cvar_t	*cl_sidespeed;
+cvar_t	*cl_pitchspeed;
+cvar_t	*cl_forwardspeed;
+cvar_t	*cl_anglespeedkey;
 cvar_t	*cl_nodelta;
 cvar_t	*v_centermove;
 cvar_t	*v_centerspeed;
-cvar_t	*m_filter;	// mouse sensetivity
-cvar_t	*m_mouse;
-
-uint	frame_msec;
-int	mouse_buttons;
-int	mouse_oldbuttonstate;
-POINT	cur_pos, old_pos;
-int	mouse_x, mouse_y, mx_accum, my_accum;
-
-bool	mouseactive;	// false when not focus app
-
-bool	restore_spi;
-bool	mouseinitialized;
-int	originalmouseparms[3], newmouseparms[3] = {0, 0, 1};
-bool	mouseparmsvalid;
-
-int	window_center_x, window_center_y;
-RECT	window_rect;
-
+cvar_t	*cl_mouseaccel;
 cvar_t	*cl_sensitivity;
 cvar_t	*ui_sensitivity;
+cvar_t	*m_filter;		// mouse filtering
+uint	frame_msec;
+int	in_impulse;
+
+kbutton_t	in_left, in_right, in_forward, in_back;
+kbutton_t	in_lookup, in_lookdown, in_moveleft, in_moveright;
+kbutton_t	in_strafe, in_speed, in_use, in_attack, in_attack2;
+kbutton_t	in_up, in_down;
+
 /*
 ============================================================
 
-  MOUSE CONTROL
+	MOUSE EVENTS
 
 ============================================================
 */
-
-// mouse variables
-
-
-bool	mlooking;
-
-void IN_MLookDown (void)
-{
-	mlooking = true;
-}
-
-void IN_MLookUp (void)
-{
-	mlooking = false;
-	if(!freelook->value && lookspring->value)
-		IN_CenterView ();
-}
-
-
-
-
 /*
-===========
-IN_ActivateMouse
-
-Called when the window gains focus or changes in some way
-===========
+=================
+CL_MouseEvent
+=================
 */
-void IN_ActivateMouse( void )
+void CL_MouseEvent( int mx, int my, int time )
 {
-	int	width, height;
-
-	if(!mouseinitialized) return;
-
-	if(!m_mouse->integer)
-	{
-		mouseactive = false;
-		return;
-	}
-
-	if(mouseactive) return;
-	mouseactive = true;
-
-	if( mouseparmsvalid ) restore_spi = SystemParametersInfo (SPI_SETMOUSE, 0, newmouseparms, 0);
-
-	width = GetSystemMetrics(SM_CXSCREEN);
-	height = GetSystemMetrics(SM_CYSCREEN);
-
-	GetWindowRect( host.hWnd, &window_rect);
-	if (window_rect.left < 0) window_rect.left = 0;
-	if (window_rect.top < 0) window_rect.top = 0;
-	if (window_rect.right >= width) window_rect.right = width - 1;
-	if (window_rect.bottom >= height-1) window_rect.bottom = height - 1;
-
-	window_center_x = (window_rect.right + window_rect.left)/2;
-	window_center_y = (window_rect.top + window_rect.bottom)/2;
-	SetCursorPos( window_center_x, window_center_y );
-
-	SetCapture( host.hWnd );
-	ClipCursor(&window_rect);
-	while( ShowCursor(false) >= 0 );
-}
-
-
-/*
-===========
-IN_DeactivateMouse
-
-Called when the window loses focus
-===========
-*/
-void IN_DeactivateMouse (void)
-{
-	if(!mouseinitialized || !mouseactive)
-		return;
-
-	if( restore_spi ) SystemParametersInfo (SPI_SETMOUSE, 0, originalmouseparms, 0);
-
-	mouseactive = false;
-
-	ClipCursor( NULL );
-	ReleaseCapture();
-	while( ShowCursor(true) < 0 );
-}
-
-
-
-/*
-===========
-IN_StartupMouse
-===========
-*/
-void IN_StartupMouse (void)
-{
-	cvar_t		*cv;
-
-	cv = Cvar_Get ("in_initmouse", "1", CVAR_INIT, "allow mouse device" );
-	if ( !cv->value ) return; 
-
-	mouseinitialized = true;
-	mouseparmsvalid = SystemParametersInfo(SPI_GETMOUSE, 0, originalmouseparms, 0);
-	mouse_buttons = 3;
+	cl.mouse_x[cl.mouse_step] += mx;
+	cl.mouse_y[cl.mouse_step] += my;
 }
 
 /*
-===========
-M_Event
-===========
-*/
-void M_Event( int mstate )
-{
-	int		i;
-
-	if(!mouseinitialized) return;
-
-	// perform button actions
-	for (i = 0; i < mouse_buttons; i++)
-	{
-		if((mstate & (1<<i)) && !(mouse_oldbuttonstate & (1<<i)) )
-		{
-			Key_Event (K_MOUSE1 + i, true, host.sv_timer);
-		}
-		if ( !(mstate & (1<<i)) && (mouse_oldbuttonstate & (1<<i)) )
-		{
-			Key_Event (K_MOUSE1 + i, false, host.sv_timer);
-		}
-	}	
-	mouse_oldbuttonstate = mstate;
-}
-
-
-/*
-===========
+=================
 CL_MouseMove
-===========
+=================
 */
-void CL_MouseMove (usercmd_t *cmd)
+void CL_MouseMove( usercmd_t *cmd )
 {
-	int		mx, my;
+	float	mx, my, rate;
+	float	accel_sensitivity;
 
-	if (!mouseactive) return;
-
-	// find mouse movement
-	if (!GetCursorPos (&cur_pos))
-		return;
-
-	mx = cur_pos.x - window_center_x;
-	my = cur_pos.y - window_center_y;
-
-#if 0
-	if (!mx && !my)
-		return;
-#endif
-
-	if (m_filter->value)
+	// allow mouse smoothing
+	if( m_filter->integer )
 	{
-		mouse_x = (mx + old_pos.x) * 0.5;
-		mouse_y = (my + old_pos.y) * 0.5;
+		mx = (cl.mouse_x[0] + cl.mouse_x[1]) * 0.5;
+		my = (cl.mouse_y[0] + cl.mouse_y[1]) * 0.5;
 	}
 	else
 	{
-		mouse_x = mx;
-		mouse_y = my;
+		mx = cl.mouse_x[cl.mouse_step];
+		my = cl.mouse_y[cl.mouse_step];
 	}
+	cl.mouse_step ^= 1;
+	cl.mouse_x[cl.mouse_step] = 0;
+	cl.mouse_y[cl.mouse_step] = 0;
 
-	old_pos.x = mx;
-	old_pos.y = my;
+	rate = sqrt( mx * mx + my * my ) / (float)frame_msec;
 
 	if( cls.key_dest != key_menu )
 	{
-		mouse_x *= cl_sensitivity->value;
-		mouse_y *= cl_sensitivity->value;
-	
-		// add mouse X/Y movement to cmd
-		if ( (in_strafe.state & 1) || (lookstrafe->value && mlooking ))
-			cmd->sidemove += m_side->value * mouse_x;
-		else cl.viewangles[YAW] -= m_yaw->value * mouse_x;
+		accel_sensitivity = cl_sensitivity->value + rate * cl_mouseaccel->value;
+		accel_sensitivity *= cl.mouse_sens; // scale by fov
+		mx *= accel_sensitivity;
+		my *= accel_sensitivity;
 
-		if((mlooking || freelook->value) && !(in_strafe.state & 1))
-			cl.viewangles[PITCH] += m_pitch->value * mouse_y;
-		else cmd->forwardmove -= m_forward->value * mouse_y;
+		if( !mx && !my ) return;
+
+		// add mouse X/Y movement to cmd
+		if( in_strafe.active )
+			cmd->sidemove = bound( -128, cmd->sidemove + m_side->value * mx, 127 );
+		else cl.viewangles[YAW] -= m_yaw->value * mx;
+
+		if( cl_mouselook->value && !in_strafe.active )
+			cl.viewangles[PITCH] += m_pitch->value * my;
+		else cmd->forwardmove = bound( -128, cmd->forwardmove - m_forward->value * my, 127 );
 	}
 	else
 	{
-		mouse_x *= ui_sensitivity->value;
-		mouse_y *= ui_sensitivity->value;
+		accel_sensitivity = ui_sensitivity->value + rate * cl_mouseaccel->value;
+		cls.mouse_x = mx * accel_sensitivity;
+		cls.mouse_y = my * accel_sensitivity;
 	}
-
-	// force the mouse to the center, so there's room to move
-	if(mx || my) SetCursorPos( window_center_x, window_center_y );
-}
-
-
-/*
-=========================================================================
-
-VIEW CENTERING
-
-=========================================================================
-*/
-
-
-/*
-===========
-M_Activate
-
-Called when the main window gains or loses focus.
-The window may have been destroyed and recreated
-between a deactivate and an activate.
-===========
-*/
-void M_Activate( void )
-{
-	// force a new window check or turn off
-	if(host.state == HOST_FRAME)
-		mouseactive = false;
-	else mouseactive = true;
-}
-
-
-/*
-==================
-CL_UpdateMouse
-
-Called every frame, even if not generating commands
-==================
-*/
-void CL_UpdateMouse( void )
-{
-	if(!mouseinitialized) return;
-
-	if(!m_mouse || host.state != HOST_FRAME)
-	{
-		IN_DeactivateMouse();
-		return;
-	}
-
-	// uimenu.dat using mouse
-	if((!cl.refresh_prepped && cls.key_dest != key_menu) || cls.key_dest == key_console )
-	{
-		// temporarily deactivate if in fullscreen
-		if(!Cvar_VariableValue ("fullscreen"))
-		{
-			IN_DeactivateMouse();
-			return;
-		}
-	}
-	IN_ActivateMouse();
-}
-
-/*
-===================
-IN_ClearStates
-===================
-*/
-void IN_ClearStates (void)
-{
-	mx_accum = 0;
-	my_accum = 0;
-	mouse_oldbuttonstate = 0;
 }
 
 /*
@@ -334,123 +127,70 @@ state bit 1 is edge triggered on the up to down transition
 state bit 2 is edge triggered on the down to up transition
 
 
-Key_Event (int key, bool down, unsigned time);
+CL_KeyEvent( int key, bool down, uint time );
 
-  +mlook src time
-
++mlook src time
 ===============================================================================
 */
-
-
-kbutton_t	in_klook;
-kbutton_t	in_left, in_right, in_forward, in_back;
-kbutton_t	in_lookup, in_lookdown, in_moveleft, in_moveright;
-kbutton_t	in_strafe, in_speed, in_use, in_attack;
-kbutton_t	in_up, in_down;
-
-int in_impulse;
-
-void KeyDown (kbutton_t *b)
+void IN_KeyDown( kbutton_t *b )
 {
 	int	k;
 	char	*c;
 	
-	c = Cmd_Argv(1);
-	if (c[0]) k = atoi(c);
+	c = Cmd_Argv( 1 );
+	if (c[0]) k = com.atoi(c);
 	else k = -1; // typed manually at the console for continuous down
 
 	if (k == b->down[0] || k == b->down[1])
 		return; // repeating key
 	
-	if (!b->down[0]) b->down[0] = k;
-	else if (!b->down[1]) b->down[1] = k;
+	if( !b->down[0] ) b->down[0] = k;
+	else if( !b->down[1] ) b->down[1] = k;
 	else
 	{
-		Msg ("Three keys down for a button!\n");
+		MsgDev( D_ERROR, "three keys down for a button!\n");
 		return;
 	}
 	
-	if (b->state & 1) return; // still down
+	if( b->active & 1 ) return; // still down
 
 	// save timestamp
 	c = Cmd_Argv(2);
 	b->downtime = com.atoi(c);
-
-	if (!b->downtime) b->downtime = host.cl_timer - HOST_FRAMETIME;
-	b->state |= 1 + 2;	// down + impulse down
+	b->active = true;
+	b->was_pressed = true;
 }
 
-void KeyUp (kbutton_t *b)
+void IN_KeyUp( kbutton_t *b )
 {
 	int	k;
 	char	*c;
 	uint	uptime;
 
-	c = Cmd_Argv(1);
-	if (c[0]) k = atoi(c);
+	c = Cmd_Argv( 1 );
+	if (c[0]) k = com.atoi(c);
 	else
 	{
 		// typed manually at the console, assume for unsticking, so clear all
 		b->down[0] = b->down[1] = 0;
-		b->state = 4; // impulse up
+		b->active = false; // impulse up
 		return;
 	}
 
-	if (b->down[0] == k) b->down[0] = 0;
-	else if (b->down[1] == k) b->down[1] = 0;
+	if( b->down[0] == k ) b->down[0] = 0;
+	else if( b->down[1] == k ) b->down[1] = 0;
 	else return; // key up without coresponding down (menu pass through)
 
-	if (b->down[0] || b->down[1])
+	if( b->down[0] || b->down[1] )
 		return; // some other key is still holding it down
 
-	if (!(b->state & 1))
-		return; // still up (this should not happen)
-
-	// save timestamp
-	c = Cmd_Argv(2);
-	uptime = com.atoi(c);
-	if (uptime) b->msec += uptime - b->downtime;
-	else b->msec += 10;
-
-	b->state &= ~1; // now up
-	b->state |= 4; // impulse up
+	// save timestamp for partial frame summing
+	c = Cmd_Argv( 2 );
+	uptime = com.atoi( c );
+	if( uptime ) b->msec += uptime - b->downtime;
+	else b->msec += frame_msec / 2;
+	b->active = false;
 }
-
-void IN_KLookDown (void) {KeyDown(&in_klook);}
-void IN_KLookUp (void) {KeyUp(&in_klook);}
-void IN_UpDown(void) {KeyDown(&in_up);}
-void IN_UpUp(void) {KeyUp(&in_up);}
-void IN_DownDown(void) {KeyDown(&in_down);}
-void IN_DownUp(void) {KeyUp(&in_down);}
-void IN_LeftDown(void) {KeyDown(&in_left);}
-void IN_LeftUp(void) {KeyUp(&in_left);}
-void IN_RightDown(void) {KeyDown(&in_right);}
-void IN_RightUp(void) {KeyUp(&in_right);}
-void IN_ForwardDown(void) {KeyDown(&in_forward);}
-void IN_ForwardUp(void) {KeyUp(&in_forward);}
-void IN_BackDown(void) {KeyDown(&in_back);}
-void IN_BackUp(void) {KeyUp(&in_back);}
-void IN_LookupDown(void) {KeyDown(&in_lookup);}
-void IN_LookupUp(void) {KeyUp(&in_lookup);}
-void IN_LookdownDown(void) {KeyDown(&in_lookdown);}
-void IN_LookdownUp(void) {KeyUp(&in_lookdown);}
-void IN_MoveleftDown(void) {KeyDown(&in_moveleft);}
-void IN_MoveleftUp(void) {KeyUp(&in_moveleft);}
-void IN_MoverightDown(void) {KeyDown(&in_moveright);}
-void IN_MoverightUp(void) {KeyUp(&in_moveright);}
-
-void IN_SpeedDown(void) {KeyDown(&in_speed);}
-void IN_SpeedUp(void) {KeyUp(&in_speed);}
-void IN_StrafeDown(void) {KeyDown(&in_strafe);}
-void IN_StrafeUp(void) {KeyUp(&in_strafe);}
-
-void IN_AttackDown(void) {KeyDown(&in_attack);}
-void IN_AttackUp(void) {KeyUp(&in_attack);}
-
-void IN_UseDown (void) {KeyDown(&in_use);}
-void IN_UseUp (void) {KeyUp(&in_use);}
-
-void IN_Impulse (void) {in_impulse=atoi(Cmd_Argv(1));}
 
 /*
 ===============
@@ -459,55 +199,62 @@ CL_KeyState
 Returns the fraction of the frame that the key was down
 ===============
 */
-float CL_KeyState (kbutton_t *key)
+float CL_KeyState( kbutton_t *key )
 {
-	float		val;
-	int			msec;
-
-	key->state &= 1;		// clear impulses
+	float	val;
+	int	msec;
 
 	msec = key->msec;
 	key->msec = 0;
 
-	if (key->state)
-	{	// still down
-		msec += host.cl_timer - key->downtime;
-		key->downtime = host.cl_timer;
+	if( key->active )
+	{	
+		// still down
+		if( !key->downtime ) msec = host.frametime[0];
+		else msec += host.frametime[0] - key->downtime;
+		key->downtime = host.frametime[0];
 	}
-
-#if 0
-	if (msec)
-	{
-		Msg ("%i ", msec);
-	}
-#endif
-
-	val = (float)msec / frame_msec;
-	if (val < 0)
-		val = 0;
-	if (val > 1)
-		val = 1;
-
-	return val;
+	val = ( float )msec / frame_msec;
+	return bound( 0, val, 1 );
 }
 
-
+void IN_UpDown(void) {IN_KeyDown(&in_up);}
+void IN_UpUp(void) {IN_KeyUp(&in_up);}
+void IN_DownDown(void) {IN_KeyDown(&in_down);}
+void IN_DownUp(void) {IN_KeyUp(&in_down);}
+void IN_LeftDown(void) {IN_KeyDown(&in_left);}
+void IN_LeftUp(void) {IN_KeyUp(&in_left);}
+void IN_RightDown(void) {IN_KeyDown(&in_right);}
+void IN_RightUp(void) {IN_KeyUp(&in_right);}
+void IN_ForwardDown(void) {IN_KeyDown(&in_forward);}
+void IN_ForwardUp(void) {IN_KeyUp(&in_forward);}
+void IN_BackDown(void) {IN_KeyDown(&in_back);}
+void IN_BackUp(void) {IN_KeyUp(&in_back);}
+void IN_LookupDown(void) {IN_KeyDown(&in_lookup);}
+void IN_LookupUp(void) {IN_KeyUp(&in_lookup);}
+void IN_LookdownDown(void) {IN_KeyDown(&in_lookdown);}
+void IN_LookdownUp(void) {IN_KeyUp(&in_lookdown);}
+void IN_MoveleftDown(void) {IN_KeyDown(&in_moveleft);}
+void IN_MoveleftUp(void) {IN_KeyUp(&in_moveleft);}
+void IN_MoverightDown(void) {IN_KeyDown(&in_moveright);}
+void IN_MoverightUp(void) {IN_KeyUp(&in_moveright);}
+void IN_MLookDown( void ){Cvar_SetValue( "cl_mouselook", 1 );}
+void IN_MLookUp( void ){Cvar_SetValue( "cl_mouselook", 0 );}
+void IN_Impulse (void) {in_impulse = com.atoi(Cmd_Argv(1));}
+void IN_SpeedDown(void) {IN_KeyDown(&in_speed);}
+void IN_SpeedUp(void) {IN_KeyUp(&in_speed);}
+void IN_StrafeDown(void) {IN_KeyDown(&in_strafe);}
+void IN_StrafeUp(void) {IN_KeyUp(&in_strafe);}
+void IN_AttackDown(void) {IN_KeyDown(&in_attack);}
+void IN_AttackUp(void) {IN_KeyUp(&in_attack);}
+void IN_Attack2Down(void) {IN_KeyDown(&in_attack2);}
+void IN_Attack2Up(void) {IN_KeyUp(&in_attack2);}
+void IN_UseDown (void) {IN_KeyDown(&in_use);}
+void IN_UseUp (void) {IN_KeyUp(&in_use);}
+void IN_CenterView (void) {cl.viewangles[PITCH] = -SHORT2ANGLE(cl.frame.playerstate.delta_angles[PITCH]);}
 
 
 //==========================================================================
-
-cvar_t	*cl_upspeed;
-cvar_t	*cl_forwardspeed;
-cvar_t	*cl_sidespeed;
-
-cvar_t	*cl_yawspeed;
-cvar_t	*cl_pitchspeed;
-
-cvar_t	*cl_run;
-
-cvar_t	*cl_anglespeedkey;
-
-
 /*
 ================
 CL_AdjustAngles
@@ -518,86 +265,77 @@ Moves the local angle positions
 void CL_AdjustAngles( void )
 {
 	float	speed;
-	float	up, down;
 	
-	if (in_speed.state & 1)
-		speed = cls.frametime * cl_anglespeedkey->value;
-	else
-		speed = cls.frametime;
+	if( in_speed.active )
+		speed = 0.001 * cls.frametime * cl_anglespeedkey->value;
+	else speed = 0.001 * cls.frametime;
 
-	if (!(in_strafe.state & 1))
+	if(!in_strafe.active )
 	{
-		cl.viewangles[YAW] -= speed*cl_yawspeed->value*CL_KeyState (&in_right);
-		cl.viewangles[YAW] += speed*cl_yawspeed->value*CL_KeyState (&in_left);
-	}
-	if (in_klook.state & 1)
-	{
-		cl.viewangles[PITCH] -= speed*cl_pitchspeed->value * CL_KeyState (&in_forward);
-		cl.viewangles[PITCH] += speed*cl_pitchspeed->value * CL_KeyState (&in_back);
+		cl.viewangles[YAW] -= speed * cl_yawspeed->value * CL_KeyState( &in_right );
+		cl.viewangles[YAW] += speed * cl_yawspeed->value * CL_KeyState( &in_left );
 	}
 	
-	up = CL_KeyState (&in_lookup);
-	down = CL_KeyState(&in_lookdown);
-	
-	cl.viewangles[PITCH] -= speed*cl_pitchspeed->value * up;
-	cl.viewangles[PITCH] += speed*cl_pitchspeed->value * down;
+	cl.viewangles[PITCH] -= speed * cl_pitchspeed->value * CL_KeyState( &in_lookup );
+	cl.viewangles[PITCH] += speed * cl_pitchspeed->value * CL_KeyState( &in_lookdown );
 }
 
 /*
 ================
-CL_BaseMove
+CL_KeyMove
 
-Send the intended movement message to the server
+Sets the usercmd_t based on key states
 ================
 */
-void CL_BaseMove (usercmd_t *cmd)
-{	
-	CL_AdjustAngles ();
-	
-	memset (cmd, 0, sizeof(*cmd));
-	
-	VectorCopy (cl.viewangles, cmd->angles);
-	if (in_strafe.state & 1)
+void CL_KeyMove( usercmd_t *cmd )
+{
+	int	movespeed;
+	int	forward = 0, side = 0, up = 0;
+
+	// adjust for speed key / running
+	// the walking flag is to keep animations consistant
+	// even during acceleration and develeration
+	if( in_speed.active ^ cl_run->integer )
 	{
-		cmd->sidemove += cl_sidespeed->value * CL_KeyState (&in_right);
-		cmd->sidemove -= cl_sidespeed->value * CL_KeyState (&in_left);
+		movespeed = 127;
+		cmd->buttons &= ~BUTTON_WALKING;
+	}
+	else
+	{
+		cmd->buttons |= BUTTON_WALKING;
+		movespeed = 64;
 	}
 
-	cmd->sidemove += cl_sidespeed->value * CL_KeyState (&in_moveright);
-	cmd->sidemove -= cl_sidespeed->value * CL_KeyState (&in_moveleft);
-
-	cmd->upmove += cl_upspeed->value * CL_KeyState (&in_up);
-	cmd->upmove -= cl_upspeed->value * CL_KeyState (&in_down);
-
-	if (! (in_klook.state & 1) )
-	{	
-		cmd->forwardmove += cl_forwardspeed->value * CL_KeyState (&in_forward);
-		cmd->forwardmove -= cl_forwardspeed->value * CL_KeyState (&in_back);
-	}	
-
-//
-// adjust for speed key / running
-//
-	if ( (in_speed.state & 1) ^ (int)(cl_run->value) )
+	if( in_strafe.active )
 	{
-		cmd->forwardmove *= 2;
-		cmd->sidemove *= 2;
-		cmd->upmove *= 2;
-	}	
+		side += movespeed * CL_KeyState( &in_right );
+		side -= movespeed * CL_KeyState( &in_left );
+	}
+	side += movespeed * CL_KeyState( &in_moveright );
+	side -= movespeed * CL_KeyState( &in_moveleft );
+	up += movespeed * CL_KeyState( &in_up );
+	up -= movespeed * CL_KeyState( &in_down );
+	forward += movespeed * CL_KeyState( &in_forward );
+	forward -= movespeed * CL_KeyState( &in_back );
+
+	cmd->forwardmove = bound( -128, forward, 127 );
+	cmd->sidemove = bound( -128, side, 127 );
+	cmd->upmove = bound( -128, up, 127 );
 }
 
-void CL_ClampPitch (void)
+/*
+==============
+CL_CmdButtons
+==============
+*/
+void CL_CmdButtons( usercmd_t *cmd )
 {
-	float	pitch;
+	if( in_attack.active ) cmd->buttons |= BUTTON_ATTACK;
+	if( in_attack2.active ) cmd->buttons |= BUTTON_ATTACK2;
+	if( in_use.active ) cmd->buttons |= BUTTON_USE;
 
-	pitch = SHORT2ANGLE(cl.frame.playerstate.delta_angles[PITCH]);
-	if (pitch > 180) pitch -= 360;
-
-	if (cl.viewangles[PITCH] + pitch < -360) cl.viewangles[PITCH] += 360; // wrapped
-	if (cl.viewangles[PITCH] + pitch > 360) cl.viewangles[PITCH] -= 360; // wrapped
-
-	if (cl.viewangles[PITCH] + pitch > 89) cl.viewangles[PITCH] = 89 - pitch;
-	if (cl.viewangles[PITCH] + pitch < -89) cl.viewangles[PITCH] = -89 - pitch;
+	if( anykeydown && cls.key_dest == key_game)
+		cmd->buttons |= BUTTON_ANY;
 }
 
 /*
@@ -605,71 +343,243 @@ void CL_ClampPitch (void)
 CL_FinishMove
 ==============
 */
-void CL_FinishMove (usercmd_t *cmd)
+void CL_FinishMove( usercmd_t *cmd )
 {
-	int		ms;
-	int		i;
-
-//
-// figure button bits
-//	
-	if ( in_attack.state & 3 )
-		cmd->buttons |= BUTTON_ATTACK;
-	in_attack.state &= ~2;
-	
-	if (in_use.state & 3)
-		cmd->buttons |= BUTTON_USE;
-	in_use.state &= ~2;
-
-	if (anykeydown && cls.key_dest == key_game)
-		cmd->buttons |= BUTTON_ANY;
+	int	i, ms;
 
 	// send milliseconds of time to apply the move
 	ms = cls.frametime * 1000;
 	if( ms > 250 ) ms = 100; // time was unreasonable
 	cmd->msec = ms;
 
-	CL_ClampPitch ();
-	for (i=0 ; i<3 ; i++)
+	for( i = 0; i < 3; i++ )
 		cmd->angles[i] = ANGLE2SHORT(cl.viewangles[i]);
 
+	cmd->servertime = cl.frame.servertime;
 	cmd->impulse = in_impulse;
 	in_impulse = 0;
 
-	// send the ambient light level at the player's current position
+	// FIXME: send the ambient light level for all! entities properly
 	cmd->lightlevel = (byte)cl_lightlevel->value;
 }
+
 
 /*
 =================
 CL_CreateCmd
 =================
 */
-usercmd_t CL_CreateCmd (void)
+usercmd_t CL_CreateCmd( void )
 {
-	usercmd_t	cmd;
+	usercmd_t		cmd;
+	vec3_t		old_angles;
 
-	frame_msec = host.cl_timer - host.old_cl_timer;
-	if (frame_msec < 1) frame_msec = 1;
-	if (frame_msec > 200) frame_msec = 200;
+	VectorCopy( cl.viewangles, old_angles );
+
+	// keyboard angle adjustment
+	CL_AdjustAngles ();
 	
+	memset( &cmd, 0, sizeof( cmd ));
+
+	CL_CmdButtons( &cmd );
+
 	// get basic movement from keyboard
-	CL_BaseMove(&cmd);
-	CL_MouseMove(&cmd);
+	CL_KeyMove( &cmd );
 
-	CL_FinishMove (&cmd);
+	// get basic movement from mouse
+	CL_MouseMove( &cmd );
 
-	host.old_cl_timer = host.cl_timer;
+	// check to make sure the angles haven't wrapped
+	if( cl.viewangles[PITCH] - old_angles[PITCH] > 90 )
+		cl.viewangles[PITCH] = old_angles[PITCH] + 90;
+	else if ( old_angles[PITCH] - cl.viewangles[PITCH] > 90 )
+		cl.viewangles[PITCH] = old_angles[PITCH] - 90;
 
-	//cmd.impulse = cls.framecount;
+	// store out the final values
+	CL_FinishMove( &cmd );
 
 	return cmd;
 }
 
+/*
+=================
+CL_CreateNewCommands
 
-void IN_CenterView (void)
+Create a new usercmd_t structure for this frame
+=================
+*/
+void CL_CreateNewCommands( void )
 {
-	cl.viewangles[PITCH] = -SHORT2ANGLE(cl.frame.playerstate.delta_angles[PITCH]);
+	int	cmd_num;
+
+	frame_msec = host.frametime[0] - host.frametime[1];
+	if( frame_msec > 200 ) frame_msec = 200;
+	host.frametime[1] = host.frametime[0];
+
+	// generate a command for this frame
+	cl.cmd_number++;
+	cmd_num = cl.cmd_number & CMD_MASK;
+	cl.cmds[cmd_num] = CL_CreateCmd();
+}
+
+/*
+=================
+CL_ReadyToSendPacket
+
+Returns qfalse if we are over the maxpackets limit
+and should choke back the bandwidth a bit by not sending
+a packet this frame.  All the commands will still get
+delivered in the next packet, but saving a header and
+getting more delta compression will reduce total bandwidth.
+=================
+*/
+bool CL_ReadyToSendPacket( void )
+{
+	int	old_packetnum;
+	int	delta;
+
+	// don't send anything if playing back a demo
+	if( cls.demoplayback || cls.state == ca_cinematic )
+		return false;
+
+	// If we are downloading, we send no less than 50ms between packets
+	if( *cls.downloadtempname && cls.realtime - cls.last_sent < 50 )
+		return false;
+
+	// if we don't have a valid gamestate yet, only send
+	// one packet a second
+	if( cls.state < ca_connected &&  !*cls.downloadtempname && cls.realtime - cls.last_sent < 1000 )
+		return false;
+
+	// send every frame for loopbacks
+	if( cls.netchan.remote_address.type == NA_LOOPBACK )
+		return true;
+
+	// send every frame for LAN
+	if( NET_IsLANAddress( cls.netchan.remote_address ))
+		return true;
+
+	// check for exceeding cl_maxpackets
+	if ( cl_maxpackets->integer < 15 )
+		Cvar_Set( "cl_maxpackets", "15" );
+	else if( cl_maxpackets->integer > 125 )
+		Cvar_Set( "cl_maxpackets", "125" );
+
+	old_packetnum = (cls.netchan.outgoing_sequence - 1) & PACKET_MASK;
+	delta = cls.realtime - cl.packets[old_packetnum].realtime;
+
+	// the accumulated commands will go out in the next packet
+	if( delta < 1000 / cl_maxpackets->integer )
+		return false;
+	return true;
+}
+
+/*
+===================
+CL_WritePacket
+
+Create and send the command packet to the server
+Including both the reliable commands and the usercmds
+
+During normal gameplay, a client packet will contain something like:
+
+1	clc_move
+1	checksum byte
+4	serverframe	( -1 disable delta compression )
+4	command_count
+<count * usercmds>
+===================
+*/
+void CL_WritePacket( void )
+{
+	sizebuf_t	buf;
+	byte	data[MAX_MSGLEN];
+	int	i, j;
+	usercmd_t	*cmd, *oldcmd, nullcmd;
+	int	packet_num, old_packetnum;
+	int	count, checksumIndex, crc;
+
+	// don't send anything if playing back a demo
+	if( cls.demoplayback || cls.state == ca_cinematic )
+		return;
+
+	memset( &nullcmd, 0, sizeof(nullcmd));
+	oldcmd = &nullcmd;
+
+	SZ_Init( &buf, data, sizeof(data));
+
+	// send a userinfo update if needed
+	if( userinfo_modified )
+	{
+		userinfo_modified = false;
+		MSG_WriteByte( &buf, clc_userinfo);
+		MSG_WriteString (&buf, Cvar_Userinfo());
+	}
+
+	old_packetnum = ( cls.netchan.outgoing_sequence - 2 ) & PACKET_MASK;
+	count = cl.cmd_number - cl.packets[old_packetnum].cmdnumber;
+	if( count > PACKET_BACKUP ) count = PACKET_BACKUP;
+
+	if( count >= 1 )
+	{
+		// begin a client move command
+		MSG_WriteByte (&buf, clc_move);
+
+		// save the position for a checksum byte
+		checksumIndex = buf.cursize;
+		MSG_WriteByte( &buf, 0 );
+
+		// let the server know what the last frame we
+		// got was, so the next message can be delta compressed
+		if( cl_nodelta->value || !cl.frame.valid || cls.demowaiting )
+		{
+			MSG_WriteLong( &buf, -1 );	// no compression
+		}
+		else MSG_WriteLong( &buf, cl.frame.serverframe );
+		MSG_WriteByte( &buf, count );		// write the command count
+
+		// write all the commands, including the predicted command
+		for( i = 0; i < count; i++ )
+		{
+			j = (cl.cmd_number - count + i + 1) & CMD_MASK;
+			cmd = &cl.cmds[j];
+			MSG_WriteDeltaUsercmd( &buf, oldcmd, cmd );
+			oldcmd = cmd;
+		}
+	}
+	MSG_WriteByte( &buf, clc_eof ); // end of message
+
+	// deliver the message
+	packet_num = cls.netchan.outgoing_sequence & PACKET_MASK;
+	cl.packets[packet_num].realtime = cls.realtime;
+	cl.packets[packet_num].servertime = oldcmd->servertime;
+	cl.packets[packet_num].cmdnumber = cl.cmd_number;
+	cls.last_sent = cls.realtime;
+
+	// calculate a checksum over the move commands
+	crc = CRC_Sequence( buf.data+checksumIndex+1, buf.cursize-checksumIndex-1, cls.netchan.outgoing_sequence);
+	buf.data[checksumIndex] = crc;
+	Netchan_Transmit( &cls.netchan, buf.cursize, buf.data );
+
+	// just in case, not really needed
+	while( cls.netchan.unsent_fragments )
+		Netchan_TransmitNextFragment( &cls.netchan );
+}
+
+/*
+=================
+CL_SendCmd
+
+Called every frame to builds and sends a command packet to the server.
+=================
+*/
+void CL_SendCmd( void )
+{
+	// we create commands even if a demo is playing,
+	CL_CreateNewCommands();
+
+	// don't send a packet if the last packet was sent too recently
+	if(CL_ReadyToSendPacket()) CL_WritePacket();
 }
 
 /*
@@ -681,15 +591,15 @@ void CL_InitInput (void)
 {
 	// mouse variables
 	m_filter = Cvar_Get("m_filter", "0", 0, "enable mouse filter" );
-	m_mouse = Cvar_Get("mouse", "1", CVAR_ARCHIVE, "allow mouse in-game" );
 	cl_sensitivity = Cvar_Get( "cl_sensitivity", "3", CVAR_ARCHIVE, "mouse in-game sensitivity" );
 	ui_sensitivity = Cvar_Get( "ui_sensitivity", "0.5", CVAR_ARCHIVE, "mouse in-menu sensitivity" );
+	cl_mouseaccel = Cvar_Get( "cl_mouseaccelerate", "0", CVAR_ARCHIVE, "mouse accelerate factor" ); 
 
 	// centering
 	v_centermove = Cvar_Get ("v_centermove", "0.15", 0, "client center moving" );
 	v_centerspeed = Cvar_Get ("v_centerspeed", "500",	0, "client center speed" );
 	cl_nodelta = Cvar_Get ("cl_nodelta", "0", 0, "disable delta-compression for usercommnds" );
-
+	
 	Cmd_AddCommand ("centerview", IN_CenterView, "gradually recenter view (stop looking up/down)" );
 
 	// input commands
@@ -719,15 +629,13 @@ void CL_InitInput (void)
 	Cmd_AddCommand ("-speed", IN_SpeedUp, "deactivate run mode");
 	Cmd_AddCommand ("+attack", IN_AttackDown, "begin firing");
 	Cmd_AddCommand ("-attack", IN_AttackUp, "stop firing");
+	Cmd_AddCommand ("+attack2", IN_Attack2Down, "begin alternate firing");
+	Cmd_AddCommand ("-attack2", IN_Attack2Up, "stop alternate firing");
 	Cmd_AddCommand ("+use", IN_UseDown, "use item (doors, monsters, inventory, etc" );
 	Cmd_AddCommand ("-use", IN_UseUp, "stop using item" );
 	Cmd_AddCommand ("impulse", IN_Impulse, "send an impulse number to server (select weapon, use item, etc)");
-	Cmd_AddCommand ("+klook", IN_KLookDown, "activate keyboard looking mode, do not recenter view");
-	Cmd_AddCommand ("-klook", IN_KLookUp, "deactivate keyboard looking mode");
 	Cmd_AddCommand ("+mlook", IN_MLookDown, "activate mouse looking mode, do not recenter view" );
 	Cmd_AddCommand ("-mlook", IN_MLookUp, "deactivate mouse looking mode" );
-
-	IN_StartupMouse(); // init mouse
 }
 
 /*
@@ -737,104 +645,40 @@ CL_ShutdownInput
 */
 void CL_ShutdownInput( void )
 {
-	IN_DeactivateMouse();
+	Cmd_RemoveCommand ("centerview" );
+
+	// input commands
+	Cmd_RemoveCommand ("+moveup" );
+	Cmd_RemoveCommand ("-moveup" );
+	Cmd_RemoveCommand ("+movedown" );
+	Cmd_RemoveCommand ("-movedown" );
+	Cmd_RemoveCommand ("+left" );
+	Cmd_RemoveCommand ("-left" );
+	Cmd_RemoveCommand ("+right" );
+	Cmd_RemoveCommand ("-right" );
+	Cmd_RemoveCommand ("+forward" );
+	Cmd_RemoveCommand ("-forward" );
+	Cmd_RemoveCommand ("+back" );
+	Cmd_RemoveCommand ("-back" );
+	Cmd_RemoveCommand ("+lookup" );
+	Cmd_RemoveCommand ("-lookup" );
+	Cmd_RemoveCommand ("+lookdown" );
+	Cmd_RemoveCommand ("-lookdown" );
+	Cmd_RemoveCommand ("+strafe" );
+	Cmd_RemoveCommand ("-strafe" );
+	Cmd_RemoveCommand ("+moveleft" );
+	Cmd_RemoveCommand ("-moveleft" );
+	Cmd_RemoveCommand ("+moveright" );
+	Cmd_RemoveCommand ("-moveright" );
+	Cmd_RemoveCommand ("+speed" );
+	Cmd_RemoveCommand ("-speed" );
+	Cmd_RemoveCommand ("+attack" );
+	Cmd_RemoveCommand ("-attack" );
+	Cmd_RemoveCommand ("+attack2" );
+	Cmd_RemoveCommand ("-attack2" );
+	Cmd_RemoveCommand ("+use" );
+	Cmd_RemoveCommand ("-use" );
+	Cmd_RemoveCommand ("impulse" );
+	Cmd_RemoveCommand ("+mlook" );
+	Cmd_RemoveCommand ("-mlook" );
 }
-
-/*
-=================
-CL_SendCmd
-=================
-*/
-void CL_SendCmd (void)
-{
-	sizebuf_t		buf;
-	byte		data[128];
-	int		i;
-	usercmd_t		*cmd, *oldcmd;
-	usercmd_t		nullcmd;
-	int		checksumIndex;
-	int		curtime;
-
-	// build a command even if not connected
-
-	// save this command off for prediction
-	i = cls.netchan.outgoing_sequence & (CMD_BACKUP-1);
-	cmd = &cl.cmds[i];
-	cl.cmd_time[i] = cls.realtime; // for netgraph ping calculation
-	curtime = Sys_Milliseconds();
-
-	*cmd = CL_CreateCmd ();
-
-	cl.cmd = *cmd;
-
-	SZ_Init (&buf, data, sizeof(data));
-
-	if(cls.state == ca_disconnected || cls.state == ca_connecting)
-		return;
-
-	// ignore commands for demo mode
-	if(cls.state == ca_cinematic || cls.demoplayback)
-		return;
-
-	if( cls.state == ca_connected )
-	{
-		if (cls.netchan.message.cursize || curtime - cls.netchan.last_sent > 1000 )
-			Netchan_Transmit (&cls.netchan, 0, buf.data);	
-		return;
-	}
-
-	// send a userinfo update if needed
-	if (userinfo_modified)
-	{
-		userinfo_modified = false;
-		MSG_WriteByte (&cls.netchan.message, clc_userinfo);
-		MSG_WriteString (&cls.netchan.message, Cvar_Userinfo());
-	}
-
-	// begin a client move command
-	MSG_WriteByte (&buf, clc_move);
-
-	// save the position for a checksum byte
-	checksumIndex = buf.cursize;
-	MSG_WriteByte (&buf, 0);
-
-	// let the server know what the last frame we
-	// got was, so the next message can be delta compressed
-	if (cl_nodelta->value || !cl.frame.valid || cls.demowaiting)
-	{
-		MSG_WriteLong (&buf, -1);	// no compression
-	}
-	else
-	{
-		MSG_WriteLong (&buf, cl.frame.serverframe);
-	}
-
-	// send this and the previous cmds in the message, so
-	// if the last packet was dropped, it can be recovered
-	i = (cls.netchan.outgoing_sequence-2) & (CMD_BACKUP-1);
-	cmd = &cl.cmds[i];
-	memset (&nullcmd, 0, sizeof(nullcmd));
-	MSG_WriteDeltaUsercmd (&buf, &nullcmd, cmd);
-	oldcmd = cmd;
-
-	i = (cls.netchan.outgoing_sequence-1) & (CMD_BACKUP-1);
-	cmd = &cl.cmds[i];
-	MSG_WriteDeltaUsercmd (&buf, oldcmd, cmd);
-	oldcmd = cmd;
-
-	i = (cls.netchan.outgoing_sequence) & (CMD_BACKUP-1);
-	cmd = &cl.cmds[i];
-	MSG_WriteDeltaUsercmd (&buf, oldcmd, cmd);
-
-	// calculate a checksum over the move commands
-	buf.data[checksumIndex] = CRC_Sequence(
-		buf.data + checksumIndex + 1, buf.cursize - checksumIndex - 1,
-		cls.netchan.outgoing_sequence);
-
-	//
-	// deliver the message
-	//
-	Netchan_Transmit (&cls.netchan, buf.cursize, buf.data);	
-}
-
-

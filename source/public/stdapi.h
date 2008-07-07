@@ -28,7 +28,9 @@ typedef struct stdilib_api_s
 	char *(*input)( void );				// system console input	
 	void (*sleep)( int msec );				// sleep for some msec
 	char *(*clipboard)( void );				// get clipboard data
-	uint (*keyevents)( void );				// peek windows message
+	void (*queevent)( dword time, ev_type_t type, int value, int value2, int length, void *ptr );
+	sys_event_t (*getevent)( void );			// get system events
+	uint (*keyevents)( void );				// peek windows message (remove this)
 
 	// crclib.c funcs
 	void (*crc_init)(word *crcvalue);			// set initial crc value
@@ -58,6 +60,17 @@ typedef struct stdilib_api_s
 	void (*delelement)( byte *array, void *element, const char *file, int line );
 	void *(*getelement)( byte *array, size_t index );
 	size_t (*arraysize)( byte *arrayptr );
+
+	// network.c funcs
+	void (*NET_Init)( void );
+	void (*NET_Shutdown)( void );
+	void (*NET_ShowIP)( void );
+	void (*NET_Config)( bool net_enable );
+	char *(*NET_AdrToString)( netadr_t a );
+	bool (*NET_IsLANAddress)( netadr_t adr );
+	bool (*NET_StringToAdr)( const char *s, netadr_t *a );
+	bool (*NET_RecvPacket)( netadr_t *net_from, sizebuf_t *net_message );
+	void (*NET_SendPacket)( int length, const void *data, netadr_t to  );
 
 	// common functions
 	void (*Com_InitRootDir)( char *path );			// init custom rootdir 
@@ -280,6 +293,21 @@ filesystem manager
 
 /*
 ===========================================
+network messages
+===========================================
+*/
+#define NET_Init			com.NET_Init
+#define NET_Shutdown		com.NET_Shutdown
+#define NET_ShowIP			com.NET_ShowIP
+#define NET_Config			com.NET_Config
+#define NET_AdrToString		com.NET_AdrToString
+#define NET_IsLANAddress		com.NET_IsLANAddress
+#define Sys_StringToAdr		com.NET_StringToAdr
+#define Sys_RecvPacket		com.NET_RecvPacket
+#define Sys_SendPacket		com.NET_SendPacket
+
+/*
+===========================================
 console variables
 ===========================================
 */
@@ -357,6 +385,8 @@ misc utils
 #define Sys_Sleep			com.sleep
 #define Sys_Print			com.print
 #define Sys_ConsoleInput		com.input
+#define Sys_GetEvent		com.getevent
+#define Sys_QueEvent		com.queevent
 #define Sys_GetKeyEvents		com.keyevents
 #define Sys_GetClipboardData		com.clipboard
 #define Sys_Quit			com.exit

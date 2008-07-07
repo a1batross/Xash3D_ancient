@@ -144,6 +144,10 @@ SOURCE=.\common\memlib.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\common\network.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\common\parselib.c
 # End Source File
 # Begin Source File

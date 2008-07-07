@@ -45,6 +45,8 @@ typedef struct system_s
 	char			log_path[MAX_SYSPATH];
 	bool			hooked_out;
 	bool			stuffcmdsrun;
+	byte			packet_received[MAX_MSGLEN];	// network data
+	uint			msg_time;			// GetMessage time
 
 	HINSTANCE			hInstance;
 	LPTOP_LEVEL_EXCEPTION_FILTER	oldFilter;		
@@ -70,7 +72,8 @@ typedef struct system_s
 	void ( *Main ) ( void ); // host frame
 	void ( *Free ) ( void ); // close host
 	void ( *Cmd  ) ( void ); // cmd forward to server
-	void (*CPrint)( const char *msg ); // console print
+	void (*CPrint) ( const char *msg ); // console print
+	void (*SZ_Init)( sizebuf_t *buf, byte *data, size_t length );
 } system_t;
 
 typedef struct cvar_s
@@ -117,6 +120,7 @@ void Sys_LookupInstance( void );
 double Sys_DoubleTime( void );
 dword Sys_Milliseconds( void );
 char *Sys_GetClipboardData( void );
+char *Sys_GetCurrentUser( void );
 void Sys_Sleep( int msec );
 void Sys_Init( void );
 void Sys_Exit( void );
@@ -133,6 +137,8 @@ void Sys_PrintLog( const char *pMsg );
 void Sys_Print(const char *pMsg);
 void Sys_Msg( const char *pMsg, ... );
 void Sys_MsgDev( int level, const char *pMsg, ... );
+sys_event_t Sys_GetEvent( void );
+void Sys_QueEvent( dword time, ev_type_t type, int value, int value2, int length, void *ptr );
 int Sys_GetThreadWork( void );
 void Sys_ThreadWorkerFunction (int threadnum);
 void Sys_ThreadSetDefault (void);
@@ -148,6 +154,19 @@ void Sys_RunThreadsOn (int workcnt, bool showpacifier, void(*func)(int));
 // registry common tools
 bool REG_GetValue( HKEY hKey, const char *SubKey, const char *Value, char *pBuffer);
 bool REG_SetValue( HKEY hKey, const char *SubKey, const char *Value, char *pBuffer);
+
+//
+// network.c
+//
+void NET_Init( void );
+void NET_Shutdown( void );
+void NET_ShowIP( void );			// just for debug
+void NET_Config( bool net_enable );
+char *NET_AdrToString( netadr_t a );
+bool NET_IsLANAddress( netadr_t adr );
+bool NET_StringToAdr( const char *s, netadr_t *a );
+bool NET_GetPacket( netadr_t *net_from, sizebuf_t *net_message );
+void NET_SendPacket( int length, const void *data, netadr_t to );
 
 //
 // stdlib.c

@@ -99,7 +99,7 @@ void SV_BroadcastPrintf (int level, char *fmt, ...)
 	va_end (argptr);
 	
 	// echo to console
-	if (dedicated->value)
+	if( host.type == HOST_DEDICATED )
 	{
 		char	echo[1024];
 		int	i;
@@ -531,4 +531,3 @@ void SV_SendClientMessages (void)
 		}
 	}
 }
-

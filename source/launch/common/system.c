@@ -6,9 +6,14 @@
 #include "launch.h"
 #include "mathlib.h"
 
+#define MAX_QUED_EVENTS		256
+#define MASK_QUED_EVENTS		(MAX_QUED_EVENTS - 1)
+
 system_t		Sys;
 stdlib_api_t	com;
 launch_exp_t	*Host;	// callback to mainframe 
+sys_event_t	event_que[MAX_QUED_EVENTS];
+int		event_head, event_tail;
 FILE		*logfile;
 
 dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
@@ -16,7 +21,7 @@ dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, siz
 dll_info_t viewer_dll = { "viewer.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t ripper_dll = { "ripper.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 
-static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t\
+static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2008 ©\n\t\
           All Rights Reserved\n\n\t           Visit www.xash.ru\n";
 
 // stubs
@@ -39,6 +44,8 @@ void Sys_GetStdAPI( void )
 	com.input = Sys_Input;
 	com.sleep = Sys_Sleep;
 	com.clipboard = Sys_GetClipboardData;
+	com.queevent = Sys_QueEvent;			// new system event
+	com.getevent = Sys_GetEvent;			// get system events
 	com.keyevents = Sys_SendKeyEvents;
 
 	// crclib.c funcs
@@ -65,6 +72,17 @@ void Sys_GetStdAPI( void )
 	com.delelement = _mem_free_array_element;
 	com.getelement = _mem_get_array_element;
 	com.arraysize = _mem_array_size;
+
+	// network.c funcs
+	com.NET_Init = NET_Init;
+	com.NET_Shutdown = NET_Shutdown;
+	com.NET_ShowIP = NET_ShowIP;
+	com.NET_Config = NET_Config;
+	com.NET_AdrToString = NET_AdrToString;
+	com.NET_IsLANAddress = NET_IsLANAddress;
+	com.NET_StringToAdr = NET_StringToAdr;
+	com.NET_RecvPacket = NET_GetPacket;
+	com.NET_SendPacket = NET_SendPacket;
 
 	// common functions
 	com.Com_InitRootDir = FS_InitRootDir;		// init custom rootdir 
@@ -404,6 +422,7 @@ void Sys_CreateInstance( void )
 		Sys.Free = Host->Free;
 		Sys.CPrint = Host->CPrint;
 		Sys.Cmd = Host->Cmd;
+		Sys.SZ_Init = Host->SZInit;
 		break;
 	case HOST_CREDITS:
 		Sys_Break( show_credits );
@@ -684,7 +703,7 @@ double Sys_DoubleTime( void )
 
 	if( firsttimegettime )
 	{
-		timeBeginPeriod (1);
+		timeBeginPeriod( 1 );
 		firsttimegettime = false;
 	}
 	newtime = ( double )timeGetTime() * 0.001;
@@ -757,6 +776,25 @@ char *Sys_GetClipboardData( void )
 	return data;
 }
 
+/*
+================
+Sys_GetCurrentUser
+
+returns username for current profile
+================
+*/
+char *Sys_GetCurrentUser( void )
+{
+	static string s_userName;
+	dword size = sizeof( s_userName );
+
+	if( !GetUserName( s_userName, &size ))
+		com_strcpy( s_userName, "player" );
+	if( !s_userName[0] )
+		com_strcpy( s_userName, "player" );
+
+	return s_userName;
+}
 
 /*
 ================
@@ -1195,6 +1233,118 @@ void Sys_RunThreadsOn( int workcnt, bool showpacifier, void(*func)(int))
 	threaded = false;
 	end = Sys_DoubleTime();
 	if( pacifier ) Msg(" Done [%.2f sec]\n", end - start);
+}
+
+/*
+================
+Sys_QueEvent
+
+A time of 0 will get the current time
+Ptr should either be null, or point to a block of data that can
+be freed by the game later.
+================
+*/
+void Sys_QueEvent( dword time, ev_type_t type, int value, int value2, int length, void *ptr )
+{
+	sys_event_t	*ev;
+
+	ev = &event_que[event_head & MASK_QUED_EVENTS];
+	if( event_head - event_tail >= MAX_QUED_EVENTS )
+	{
+		MsgDev( D_ERROR, "Sys_QueEvent: overflow\n");
+		// make sure what memory is allocated by engine
+		if(Mem_IsAllocated( ev->data )) Mem_Free( ev->data );
+		event_tail++;
+	}
+	event_head++;
+
+	// presets
+	if( time == 0 ) time = Sys_Milliseconds();
+	else if( time == -1 ) time = Sys.msg_time;
+
+	ev->time = time;
+	ev->type = type;
+	ev->value[0] = value;
+	ev->value[1] = value2;
+	ev->length = length;
+	ev->data = ptr;
+}
+
+/*
+================
+Sys_GetEvent
+
+================
+*/
+sys_event_t Sys_GetEvent( void )
+{
+	MSG		msg;
+	sys_event_t	ev;
+	char		*s;
+	sizebuf_t		netmsg;
+	netadr_t		adr;
+
+	// return if we have data
+	if( event_head > event_tail )
+	{
+		event_tail++;
+		return event_que[(event_tail-1) & MASK_QUED_EVENTS];
+	}
+
+	// pump the message loop
+	while( PeekMessage( &msg, NULL, 0, 0, PM_NOREMOVE ))
+	{
+		if(!GetMessage( &msg, NULL, 0, 0))
+		{
+			Sys.error = true;
+			Sys_Exit();
+		}
+		Sys.msg_time = msg.time;
+		TranslateMessage(&msg );
+      		DispatchMessage( &msg );
+	}
+
+	// check for console commands
+	s = Sys_Input();
+	if( s )
+	{
+		char	*b;
+		int	len;
+
+		len = com_strlen( s ) + 1;
+		b = Malloc( len );
+		com_strncpy( b, s, len - 1 );
+		Sys_QueEvent( 0, SE_CONSOLE, 0, 0, len, b );
+	}
+
+	// check for network packets
+	if( Sys.SZ_Init ) Sys.SZ_Init( &netmsg, Sys.packet_received, sizeof( Sys.packet_received ));
+	if( NET_GetPacket( &adr, &netmsg ))
+	{
+		netadr_t		*buf;
+		int		len;
+
+		// copy out to a seperate buffer for qeueing
+		// the readcount stepahead is for SOCKS support
+		len = sizeof(netadr_t) + netmsg.cursize - netmsg.readcount;
+		buf = Malloc( len );
+		*buf = adr;
+		Mem_Copy( buf + 1, &netmsg.data[netmsg.readcount], netmsg.cursize - netmsg.readcount );
+		Sys_QueEvent( 0, SE_PACKET, 0, 0, len, buf );
+	}
+
+	// return if we have data
+	if( event_head > event_tail )
+	{
+		event_tail++;
+		return event_que[(event_tail - 1) & MASK_QUED_EVENTS];
+	}
+
+	// create an empty event to return
+	memset( &ev, 0, sizeof(ev));
+	ev.time = timeGetTime();
+
+	return ev;
 }
 
 //=======================================================================

@@ -25,7 +25,7 @@ dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, true, siz
 dll_info_t vsound_dll = { "vsound.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vsound_exp_t) };
 
 cvar_t	*timescale;
-cvar_t	*dedicated;
+cvar_t	*host_journal;
 cvar_t	*host_serverstate;
 cvar_t	*host_frametime;
 cvar_t	*host_cheats;
@@ -34,6 +34,8 @@ cvar_t	*vid_gamma;
 cvar_t	*r_xpos;	// X coordinate of window position
 cvar_t	*r_ypos;	// Y coordinate of window position
 cvar_t	*cm_paused;
+
+cvar_t	*host_maxfps;
 
 /*
 =======
@@ -83,29 +85,6 @@ static int Host_MapKey( int key )
 		}
 		return result;
 	}
-}
-
-void Host_InitCommon( uint funcname, int argc, char **argv )
-{
-	char	dev_level[4];
-
-	newcom = com;
-
-	// overload some funcs
-	newcom.error = Host_Error;
-
-	// check developer mode
-	if(FS_GetParmFromCmdLine("-dev", dev_level ))
-		host.developer = com.atoi(dev_level);
-
-	// TODO: init basedir here
-	FS_LoadGameInfo("gameinfo.txt");
-	zonepool = Mem_AllocPool("Zone Engine");
-}
-
-void Host_FreeCommon( void )
-{
-	Mem_FreePool( &zonepool );
 }
 
 void Host_InitPhysic( void )
@@ -314,9 +293,306 @@ void VID_Init( void )
 
 /*
 =================
+Host_InitJournaling
+=================
+*/
+void Host_InitJournaling( void )
+{
+	host_journal = Cvar_Get( "host_journal", "0", CVAR_SYSTEMINFO, "journaling system events (1 = record, 2 = playback)" );
+	if( !host_journal->integer ) return;
+
+	if( host_journal->integer == 1 )
+	{
+		MsgDev( D_NOTE, "Host_InitJournaling: record mode\n" ); 
+		host.journal = FS_Open( "vprogs/events.dat", "wb" );
+	}
+	else if( host_journal->integer == 2 )
+	{
+		MsgDev( D_NOTE, "Host_InitJournaling: playback mode\n" ); 
+		host.journal = FS_Open( "vprogs/events.dat", "rb" );
+	}
+}
+
+/*
+=================
+Host_GetRealEvent
+=================
+*/
+sys_event_t Host_GetRealEvent( void )
+{
+	sys_event_t	ev;
+	int		r;
+
+	// either get an event from the system or the journal file
+	if( host_journal->integer == 2 )
+	{
+		r = FS_Read( host.journal, &ev, sizeof(ev) );
+		if( r != sizeof(ev))
+		{
+			Sys_Error( "Host_GetRealEvent: error reading from journal file\n" );
+			return ev;
+		}
+		if( ev.length )
+		{
+			ev.data = Z_Malloc( ev.length );
+			r = FS_Read( host.journal, ev.data, ev.length );
+			if( r != ev.length )
+			{
+				Sys_Error( "Host_GetRealEvent: error reading from journal file\n" );
+				return ev;
+			}
+		}
+	}
+	else
+	{
+		ev = Sys_GetEvent();
+
+		// write the journal value out if needed
+		if( host_journal->integer == 1 )
+		{
+			r = FS_Write( host.journal, &ev, sizeof(ev));
+			if( r != sizeof(ev) )
+			{
+				Sys_Error( "Host_GetRealEvent: error writing to journal file" );
+				return ev;
+			}
+			if( ev.length )
+			{
+				r = FS_Write( host.journal, ev.data, ev.length );
+				if( r != ev.length )
+				{
+					Sys_Error( "Host_GetRealEvent: error writing to journal file" );
+					return ev;
+				}
+			}
+		}
+	}
+	return ev;
+}
+
+
+/*
+=================
+Host_InitPushEvent
+=================
+*/
+void Host_InitPushEvent( void )
+{
+	memset( host.events, 0, sizeof(host.events));
+	host.events_head = 0;
+	host.events_tail = 0;
+}
+
+
+/*
+=================
+Host_PushEvent
+=================
+*/
+void Host_PushEvent( sys_event_t *event )
+{
+	sys_event_t	*ev;
+	static bool	overflow = false;
+
+	ev = &host.events[host.events_head & (MAX_EVENTS-1)];
+
+	if( host.events_head - host.events_tail >= MAX_EVENTS )
+	{
+		if( !overflow )
+		{
+			MsgDev( D_WARN, "Host_PushEvent overflow\n" );
+			overflow = true;
+		}
+		if( ev->data ) Mem_Free( ev->data );
+		host.events_tail++;
+	}
+	else overflow = false;
+
+	*ev = *event;
+	host.events_head++;
+}
+
+/*
+=================
+Host_GetEvent
+=================
+*/
+sys_event_t Host_GetEvent( void )
+{
+	if( host.events_head > host.events_tail )
+	{
+		host.events_tail++;
+		return host.events[(host.events_tail - 1)&(MAX_EVENTS-1)];
+	}
+	return Host_GetRealEvent();
+}
+
+/*
+=================
+Host_EventLoop
+
+Returns last event time
+=================
+*/
+dword Host_EventLoop( void )
+{
+	sys_event_t	ev;
+	netadr_t		ev_from;
+	byte		bufData[MAX_MSGLEN];
+	sizebuf_t		buf;
+
+	SZ_Init( &buf, bufData, sizeof( bufData ));
+
+	while( 1 )
+	{
+		ev = Host_GetEvent();
+
+		// if no more events are available
+		if( ev.type == SE_NONE )
+		{
+			// manually send packet events for the loopback channel
+			while( NET_GetLoopPacket( NS_CLIENT, &ev_from, &buf ))
+			{
+				CL_PacketEvent( ev_from, &buf );
+			}
+			while( NET_GetLoopPacket( NS_SERVER, &ev_from, &buf ))
+			{
+				SV_PacketEvent( ev_from, &buf );
+			}
+			return ev.time;
+		}
+		switch ( ev.type )
+		{
+		case SE_NONE:
+			break;
+		case SE_KEY:
+			Key_Event( ev.value[0], ev.value[1], ev.time );
+			break;
+		case SE_CHAR:
+			CL_CharEvent( ev.value[0] );
+			break;
+		case SE_MOUSE:
+			CL_MouseEvent( ev.value[0], ev.value[1], ev.time );
+			break;
+		case SE_CONSOLE:
+			Cbuf_AddText( va( "%s\n", ev.data ));
+			break;
+		case SE_PACKET:
+			ev_from = *(netadr_t *)ev.data;
+			buf.cursize = ev.length - sizeof( ev_from );
+
+			// we must copy the contents of the message out, because
+			// the event buffers are only large enough to hold the
+			// exact payload, but channel messages need to be large
+			// enough to hold fragment reassembly
+			if((uint)buf.cursize > buf.maxsize )
+			{
+				MsgDev( D_WARN, "Host_EventLoop: oversize packet\n");
+				continue;
+			}
+			Mem_Copy( buf.data, (byte *)((netadr_t *)ev.data + 1), buf.cursize );
+			if ( host.sv_running ) SV_PacketEvent( ev_from, &buf );
+			else CL_PacketEvent( ev_from, &buf );
+			break;
+		default:
+			Host_Error( "Host_EventLoop: bad event type %i", ev.type );
+			break;
+		}
+		if( ev.data ) Mem_Free( ev.data );
+	}
+	return 0;	// never reached
+}
+
+/*
+================
+Host_Milliseconds
+
+Can be used for profiling, but will be journaled accurately
+================
+*/
+int Host_Milliseconds( void )
+{
+	sys_event_t	ev;
+
+	// get events and push them until we get a null event with the current time
+	do {
+		ev = Host_GetRealEvent();
+		if( ev.type != SE_NONE )
+			Host_PushEvent( &ev );
+	} while( ev.type != SE_NONE );
+	
+	return ev.time;
+}
+
+/*
+================
+Host_ModifyMsec
+================
+*/
+int Host_ModifyTime( int msec )
+{
+	int	clamp_time;
+
+	// modify time for debugging values
+	if( timescale->value ) msec *= timescale->value;
+	if( msec < 1 && timescale->value ) msec = 1;
+
+	if( host.type == HOST_DEDICATED )
+	{
+		// dedicated servers don't want to clamp for a much longer
+		// period, because it would mess up all the client's views of time.
+		if( msec > 500 ) MsgDev( D_WARN, "Host_ModifyTimer: %i msec frame time\n", msec );
+		clamp_time = 5000;
+	}
+	else 
+	{
+		// for local single player gaming
+		// we may want to clamp the time to prevent players from
+		// flying off edges when something hitches.
+		clamp_time = 200;
+	}
+	if( msec > clamp_time ) msec = clamp_time;
+	return msec;
+}
+
+
+/*
+=================
 Host_Frame
 =================
 */
+void Host_Frame( void )
+{
+	dword		time, min_time;
+	static int	last_time;
+
+	if( setjmp(host.abortframe))
+		return;
+
+	rand(); // keep the random time dependent
+	// we may want to spin here if things are going too fast
+	if( host.type != HOST_DEDICATED && host_maxfps->integer > 0 )
+		min_time = 1000 / host_maxfps->integer;
+	else min_time = 1;
+
+	do {
+		host.frametime[0] = Host_EventLoop();
+		if( last_time > host.frametime[0] )
+			last_time = host.frametime[0];
+		time = host.frametime[0] - last_time;
+	} while( time < min_time );
+	Cbuf_Execute();
+
+	last_time = host.frametime[0];
+	time = Host_ModifyTime( time );
+
+	SV_Frame( time );	// server frame
+	CL_Frame( time );	// client frame
+
+	host.framecount++;
+}
+
+/*
 void Host_Frame( dword time )
 {
 	char		*s;
@@ -344,6 +620,7 @@ void Host_Frame( dword time )
 
 	host.framecount++;
 }
+*/
 
 /*
 ====================
@@ -361,13 +638,13 @@ long Host_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 	case WM_MOUSEWHEEL:
 		if((short)HIWORD(wParam) > 0)
 		{
-			Key_Event( K_MWHEELUP, true, host.sv_timer );
-			Key_Event( K_MWHEELUP, false, host.sv_timer );
+			Sys_QueEvent( -1, SE_KEY, K_MWHEELUP, true, 0, NULL );
+			Sys_QueEvent( -1, SE_KEY, K_MWHEELUP, false, 0, NULL );
 		}
 		else
 		{
-			Key_Event( K_MWHEELDOWN, true, host.sv_timer );
-			Key_Event( K_MWHEELDOWN, false, host.sv_timer );
+			Sys_QueEvent( -1, SE_KEY, K_MWHEELDOWN, true, 0, NULL );
+			Sys_QueEvent( -1, SE_KEY, K_MWHEELDOWN, false, 0, NULL );
 		}
 		break;
 	case WM_CREATE:
@@ -392,7 +669,6 @@ long Host_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 
 		if( host.state == HOST_FRAME )
 		{
-			M_Activate();
 			SetForegroundWindow( hWnd );
 			ShowWindow( hWnd, SW_RESTORE );
 		}
@@ -419,7 +695,6 @@ long Host_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 			Cvar_SetValue( "r_ypos", yPos + r.top);
 			r_xpos->modified = false;
 			r_ypos->modified = false;
-			M_Activate();
 		}
 		break;
 	case WM_LBUTTONDOWN:
@@ -432,27 +707,27 @@ long Host_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 		if(wParam & MK_LBUTTON) temp |= 1;
 		if(wParam & MK_RBUTTON) temp |= 2;
 		if(wParam & MK_MBUTTON) temp |= 4;
-		M_Event( temp );
+		IN_MouseEvent( temp );
 		break;
 	case WM_SYSCOMMAND:
 		if( wParam == SC_SCREENSAVE ) return 0;
 		break;
 	case WM_SYSKEYDOWN:
-		if( wParam == 13 && r_fullscreen)
+		if( wParam == 13 && r_fullscreen )
 		{
 			Cvar_SetValue( "fullscreen", !r_fullscreen->value );
 			return 0;
 		}
 		// intentional fallthrough
 	case WM_KEYDOWN:
-		Key_Event( Host_MapKey( lParam ), true, host.sv_timer);
+		Sys_QueEvent( -1, SE_KEY, Host_MapKey( lParam ), true, 0, NULL );
 		break;
 	case WM_SYSKEYUP:
 	case WM_KEYUP:
-		Key_Event( Host_MapKey( lParam ), false, host.sv_timer);
+		Sys_QueEvent( -1, SE_KEY, Host_MapKey( lParam ), false, 0, NULL );
 		break;
 	case WM_CHAR:
-		CL_CharEvent( wParam );
+		Sys_QueEvent( -1, SE_CHAR, wParam, 0, 0, NULL );
 		break;
 	}
 	return DefWindowProc( hWnd, uMsg, wParam, lParam );
@@ -541,6 +816,35 @@ static void Host_Crash_f (void)
 	*(int *)0 = 0xffffffff;
 }
 
+void Host_InitCommon( uint funcname, int argc, char **argv )
+{
+	char	dev_level[4];
+
+	newcom = com;
+
+	// overload some funcs
+	newcom.error = Host_Error;
+
+	// check developer mode
+	if(FS_GetParmFromCmdLine("-dev", dev_level ))
+		host.developer = com.atoi(dev_level);
+
+	Host_InitPushEvent();
+	Host_InitJournaling();
+
+	// TODO: init basedir here
+	FS_LoadGameInfo("gameinfo.txt");
+	zonepool = Mem_AllocPool("Zone Engine");
+
+	IN_Init();
+}
+
+void Host_FreeCommon( void )
+{
+	IN_Shutdown();
+	Mem_FreePool( &zonepool );
+}
+
 /*
 =================
 Host_Init
@@ -575,18 +879,16 @@ void Host_Init (uint funcname, int argc, char **argv)
 		Cmd_AddCommand ("error", Host_Error_f, "just throw a fatal error to test shutdown procedures" );
 		Cmd_AddCommand ("crash", Host_Crash_f, "a way to force a bus error for development reasons");
           }
-          
+
+	host_maxfps = Cvar_Get( "host_maxfps", "100", CVAR_ARCHIVE, "host fps upper limit" );
 	cm_paused = Cvar_Get("cm_paused", "0", 0, "physics module pause" );
 	host_frametime = Cvar_Get ("host_frametime", "0.1", 0, "host frametime" );
 	host_serverstate = Cvar_Get ("host_serverstate", "0", 0, "displays current server state" );
 	timescale = Cvar_Get ("timescale", "1", 0, "physics world timescale" );
-	if(host.type == HOST_DEDICATED) dedicated = Cvar_Get ("dedicated", "1", CVAR_INIT, "currently server is in dedicated mode" );
-	else dedicated = Cvar_Get ("dedicated", "0", CVAR_INIT, "currently server is in shared mode" );
 
 	s = va("^1Xash %g ^3%s", GI->version, buildstring );
 	Cvar_Get( "version", s, CVAR_SERVERINFO|CVAR_INIT, "engine current version" );
-
-	if(dedicated->value) Cmd_AddCommand ("quit", Sys_Quit, "quit the game" );
+	if( host.type == HOST_DEDICATED ) Cmd_AddCommand ("quit", Sys_Quit, "quit the game" );
        
 	NET_Init();
 	Netchan_Init();
@@ -595,6 +897,8 @@ void Host_Init (uint funcname, int argc, char **argv)
       
 	SV_Init();
 	CL_Init();
+
+	host.frametime[0] = Host_Milliseconds();
 }
 
 /*
@@ -604,21 +908,11 @@ Host_Main
 */
 void Host_Main( void )
 {
-	static dword	time, oldtime, newtime;
-
-	oldtime = Sys_Milliseconds(); // initialize timer
-
 	// main window message loop
 	while( host.type != HOST_OFFLINE )
 	{
-		do {
-			newtime = Sys_Milliseconds();
-			time = newtime - oldtime;
-		} while( time < 1 );
-
-		// engine frame
-		Host_Frame( time );
-		oldtime = newtime;
+		IN_Frame();
+		Host_Frame();
 	}
 }
 
