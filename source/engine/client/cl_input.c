@@ -267,8 +267,8 @@ void CL_AdjustAngles( void )
 	float	speed;
 	
 	if( in_speed.active )
-		speed = 0.001 * cls.frametime * cl_anglespeedkey->value;
-	else speed = 0.001 * cls.frametime;
+		speed = cls.frametime * cl_anglespeedkey->value;
+	else speed = cls.frametime;
 
 	if(!in_strafe.active )
 	{
@@ -345,12 +345,7 @@ CL_FinishMove
 */
 void CL_FinishMove( usercmd_t *cmd )
 {
-	int	i, ms;
-
-	// send milliseconds of time to apply the move
-	ms = cls.frametime * 1000;
-	if( ms > 250 ) ms = 100; // time was unreasonable
-	cmd->msec = ms;
+	int	i;
 
 	for( i = 0; i < 3; i++ )
 		cmd->angles[i] = ANGLE2SHORT(cl.viewangles[i]);
@@ -448,7 +443,7 @@ bool CL_ReadyToSendPacket( void )
 
 	// if we don't have a valid gamestate yet, only send
 	// one packet a second
-	if( cls.state < ca_connected &&  !*cls.downloadtempname && cls.realtime - cls.last_sent < 1000 )
+	if( cls.state < ca_connected && !*cls.downloadtempname && cls.realtime - cls.last_sent < 1000 )
 		return false;
 
 	// send every frame for loopbacks
@@ -492,21 +487,32 @@ During normal gameplay, a client packet will contain something like:
 */
 void CL_WritePacket( void )
 {
-	sizebuf_t	buf;
-	byte	data[MAX_MSGLEN];
 	int	i, j;
+	sizebuf_t	buf;
 	usercmd_t	*cmd, *oldcmd, nullcmd;
 	int	packet_num, old_packetnum;
 	int	count, checksumIndex, crc;
+	byte	data[MAX_MSGLEN];
 
 	// don't send anything if playing back a demo
 	if( cls.demoplayback || cls.state == ca_cinematic )
 		return;
 
+
+	if( cls.state == ca_connected )
+	{
+		if( cl.netmsg.cursize || cls.realtime - cls.last_sent > 1000 )
+		{
+			Msg("CL_WritePacket: %s\n", cl.netmsg.data );
+			Netchan_Transmit( &cls.netchan, cl.netmsg.cursize, cl.netmsg.data);	
+			SZ_Clear( &cl.netmsg );
+		}
+		return;
+	}
+
+	SZ_Init( &buf, data, sizeof( data ));
 	memset( &nullcmd, 0, sizeof(nullcmd));
 	oldcmd = &nullcmd;
-
-	SZ_Init( &buf, data, sizeof(data));
 
 	// send a userinfo update if needed
 	if( userinfo_modified )
@@ -514,6 +520,7 @@ void CL_WritePacket( void )
 		userinfo_modified = false;
 		MSG_WriteByte( &buf, clc_userinfo);
 		MSG_WriteString (&buf, Cvar_Userinfo());
+		MSG_WriteByte( &buf, clc_eof ); // end of message
 	}
 
 	old_packetnum = ( cls.netchan.outgoing_sequence - 2 ) & PACKET_MASK;
@@ -560,7 +567,6 @@ void CL_WritePacket( void )
 	crc = CRC_Sequence( buf.data+checksumIndex+1, buf.cursize-checksumIndex-1, cls.netchan.outgoing_sequence);
 	buf.data[checksumIndex] = crc;
 	Netchan_Transmit( &cls.netchan, buf.cursize, buf.data );
-
 	// just in case, not really needed
 	while( cls.netchan.unsent_fragments )
 		Netchan_TransmitNextFragment( &cls.netchan );

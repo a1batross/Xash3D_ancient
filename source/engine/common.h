@@ -302,6 +302,7 @@ void VM_Cmd_Reset( void );
 #define PRVM_InitProg	vm->InitProg
 #define PRVM_ResetProg	vm->ResetProg
 #define PRVM_LoadProgs	vm->LoadProgs
+#define PRVM_ProgLoaded	vm->ProgLoaded
 #define PRVM_ExecuteProgram	vm->ExecuteProgram
 #define PRVM_ED_LoadFromFile	vm->LoadFromFile
 #define PRVM_ED_ParseGlobals	vm->ParseGlobals

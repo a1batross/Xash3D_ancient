@@ -17,78 +17,6 @@ int PM_pointcontents( vec3_t point )
 }
 
 /*
-===========
-PutClientInServer
-
-Called when a player connects to a server or respawns in
-a deathmatch.
-============
-*/
-void SV_PutClientInServer (edict_t *ent)
-{
-	int		index;
-	gclient_t		*client;
-	int		i;
-          
-	index = PRVM_NUM_FOR_EDICT(ent) - 1;
-	client = ent->priv.sv->client;
-
-	prog->globals.sv->time = sv.time;
-	prog->globals.sv->pev = PRVM_EDICT_TO_PROG( ent );
-
-	if(sv.loadgame)
-	{
-	}
-	else PRVM_ExecuteProgram (prog->globals.sv->PutClientInServer, "QC function PutClientInServer is missing");
-
-	ent->priv.sv->client = svs.gclients + index;
-	ent->priv.sv->free = false;
-	(int)ent->progs.sv->flags &= ~FL_DEADMONSTER;
- 
-	// clear playerstate values
-	memset (&ent->priv.sv->client->ps, 0, sizeof(client->ps));
-
-	// info_player_start
-	VectorScale( ent->progs.sv->origin, SV_COORD_FRAC, client->ps.origin );  
-
-	client->ps.fov = 90;
-	client->ps.fov = bound(1, client->ps.fov, 160);
-	client->ps.vmodel.index = SV_ModelIndex(PRVM_GetString(ent->progs.sv->v_model));
-	client->ps.pmodel.index = SV_ModelIndex(PRVM_GetString(ent->progs.sv->p_model));
-
-	if(sv.loadgame)
-	{
-	}
-	else
-	{
-		ent->progs.sv->frame = 0;
-		ent->progs.sv->origin[2] += 1; // make sure off ground
-	}
-
-	VectorCopy(ent->progs.sv->origin, ent->progs.sv->old_origin);
-
-	// set the delta angle
-	for (i = 0; i < 3; i++)
-	{
-		client->ps.delta_angles[i] = ANGLE2SHORT(ent->progs.sv->angles[i]);
-	}
-
-	if(sv.loadgame)
-	{
-	}
-	else
-	{
-		ent->progs.sv->angles[PITCH] = 0;
-		ent->progs.sv->angles[ROLL] = 0;
-	}
-
-	VectorCopy( ent->progs.sv->angles, client->ps.viewangles );
-
-	SV_LinkEdict(ent);
-	ent->priv.sv->physbody = pe->CreatePlayer( ent->priv.sv, SV_GetModelPtr( ent ), ent->progs.sv->m_pmatrix );
-}
-
-/*
 ============
 SV_TouchTriggers
 
@@ -128,7 +56,7 @@ void SV_TouchTriggers (edict_t *ent)
 }
 
 static edict_t	*current_player;
-static gclient_t	*current_client;
+static sv_client_t	*current_client;
 static vec3_t	forward, right, up;
 float		xyspeed, bobmove, bobfracsin;	// sin(bobfrac*M_PI)
 int		bobcycle;			// odd cycles are right foot going forward
@@ -389,7 +317,6 @@ void SV_RunFrame( void )
 bool SV_ClientConnect (edict_t *ent, char *userinfo)
 {
 	// they can connect
-	ent->priv.sv->client = svs.gclients + PRVM_NUM_FOR_EDICT(ent) - 1;
 	ent->progs.sv->flags = 0; // make sure we start with known default
 	ent->progs.sv->health = 100;
 
@@ -399,28 +326,6 @@ bool SV_ClientConnect (edict_t *ent, char *userinfo)
 	PRVM_ExecuteProgram (prog->globals.sv->ClientConnect, "QC function ClientConnect is missing");
 
 	return true;
-}
-
-void SV_ClientUserinfoChanged (edict_t *ent, char *userinfo)
-{
-	char	*s;
-	int	playernum;
-          
-	// check for malformed or illegal info strings
-	if (!Info_Validate(userinfo))
-	{
-		strcpy (userinfo, "\\name\\badinfo\\skin\\male/grunt");
-	}
-
-	// set skin
-	s = Info_ValueForKey (userinfo, "skin");
-
-	playernum = PRVM_NUM_FOR_EDICT(ent);
-
-	// combine name and skin into a configstring
-	SV_ConfigString (CS_PLAYERSKINS + playernum, va("%s\\%s", Info_ValueForKey (userinfo, "name"), Info_ValueForKey (userinfo, "skin")));
-
-	ent->priv.sv->client->ps.fov = bound(1, atoi(Info_ValueForKey(userinfo, "fov")), 160);
 }
 
 /*
@@ -434,8 +339,6 @@ to be placed into the game.  This will happen every level load.
 void SV_ClientBegin (edict_t *ent)
 {
 	int		i;
-
-	ent->priv.sv->client = svs.gclients + PRVM_NUM_FOR_EDICT(ent) - 1;
 
 	// if there is already a body waiting for us (a loadgame), just
 	// take it, otherwise spawn one from scratch
@@ -471,7 +374,7 @@ usually be a couple times for each server frame.
 */
 void ClientThink (edict_t *ent, usercmd_t *ucmd)
 {
-	gclient_t		*client;
+	sv_client_t	*client;
 	edict_t		*other;
 	pmove_t		pm;
 	vec3_t		view;
@@ -531,6 +434,8 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	VectorCopy(pm.mins, ent->progs.sv->mins);
 	VectorCopy(pm.maxs, ent->progs.sv->maxs);
 	VectorCopy(pm.ps.viewangles, client->ps.viewangles);
+	VectorCopy(pm.ps.viewangles, ent->progs.sv->v_angle);
+	VectorCopy(pm.ps.viewangles, ent->progs.sv->angles);
 
 	// copy viewmodel info
 	client->ps.vmodel.frame = ent->progs.sv->v_frame;
@@ -581,7 +486,7 @@ Called when a player drops from the server.
 Will not be called between levels.
 ============
 */
-void SV_ClientDisconnect (edict_t *ent)
+void SV_ClientDisconnect( edict_t *ent )
 {
 	int	playernum;
 
@@ -596,6 +501,10 @@ void SV_ClientDisconnect (edict_t *ent)
 	playernum = PRVM_NUM_FOR_EDICT(ent) - 1;
 	SV_ConfigString (CS_PLAYERSKINS + playernum, "");
 
+	// let the game known about client state
+	prog->globals.sv->time = sv.time;
+	prog->globals.sv->pev = PRVM_EDICT_TO_PROG( ent );
+	PRVM_ExecuteProgram( prog->globals.sv->ClientDisconnect, "QC function ClientDisconnect is missing\n" );
 }
 
 /*
@@ -760,7 +669,7 @@ send it to transform callback
 void SV_PlayerMove( sv_edict_t *ed )
 {
 	pmove_t		pm;
-	gclient_t		*client;
+	sv_client_t	*client;
 	edict_t		*player;
 
 	client = ed->client;

@@ -240,8 +240,9 @@ typedef struct player_state_s
 	float		bobtime;
 	byte		pm_type;		// player movetype
 	byte		pm_flags;		// ducked, jump_held, etc
-	byte		pm_time;		// each unit = 8 ms
-
+	int		pm_time;		// each unit = 8 ms
+	int		cmd_time;		// cmd->servertime of last executed command
+	
 	vec3_t		origin;
 	vec3_t		velocity;
 	vec3_t		delta_angles;	// add to command angles to get view direction
@@ -278,7 +279,6 @@ typedef struct usercmd_s
 
 	// get rid of this	
 	byte		lightlevel;	// light level the player is standing on
-	byte		msec;
 } usercmd_t;
 
 typedef struct pmove_s
@@ -320,7 +320,6 @@ typedef struct launch_exp_s
 	void ( *Free ) ( void );				// close host
 	void ( *Cmd  ) ( void );				// forward cmd to server
 	void (*CPrint) ( const char *msg );			// host print
-	void (*SZInit)( sizebuf_t *buf, byte *data, size_t length );// init sizebuf from events
 } launch_exp_t;
 
 /*
@@ -514,6 +513,7 @@ typedef struct vprogs_exp_s
 
 	void (*InitProg)( int prognr );
 	void (*SetProg)( int prognr );
+	bool (*ProgLoaded)( int prognr );
 	void (*LoadProgs)( const char *filename, int numrequiredfunc, char **required_func, int numrequiredfields, fields_t *required_field );
 	void (*ResetProg)( void );
 

@@ -1867,14 +1867,14 @@ static void Cvar_LookupBitInfo(const char *name, const char *string, const char 
 	Info_SetValueForKey((char *)info, (char *)name, (char *)string);
 }
 
-char *Cvar_Userinfo (void)
+char *Cvar_Userinfo( void )
 {
 	sv_info[0] = 0; // clear previous calls
 	Cvar_LookupVars( CVAR_USERINFO, sv_info, NULL, Cvar_LookupBitInfo ); 
 	return sv_info;
 }
 
-char *Cvar_Serverinfo (void)
+char *Cvar_Serverinfo( void )
 {
 	sv_info[0] = 0; // clear previous calls
 	Cvar_LookupVars( CVAR_SERVERINFO, sv_info, NULL, Cvar_LookupBitInfo ); 

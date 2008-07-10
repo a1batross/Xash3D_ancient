@@ -84,7 +84,6 @@ typedef struct
 
 	int		parse_entities;		// index (not anded off) into cl_parse_entities[]
 
-	usercmd_t	cmd;
 	usercmd_t		cmds[CMD_BACKUP];			// each mesage will send several old cmds
 	float		predicted_origins[CMD_BACKUP][3];	// for debug comparing against server
 	int		cmd_number;
@@ -100,6 +99,10 @@ typedef struct
 	int		surpressCount;	// number of messages rate supressed
 	frame_t		frames[UPDATE_BACKUP];
 	outpacket_t	packets[PACKET_BACKUP];	// information about each packet we have sent out
+
+	// network channel to server
+	sizebuf_t		netmsg;
+	byte		netbuf[MAX_MSGLEN];
 
 	// mouse current position
 	int		mouse_x[2];
@@ -203,24 +206,24 @@ typedef enum {key_game, key_console, key_message, key_menu} keydest_t;
 typedef struct
 {
 	connstate_t	state;
-	keydest_t	key_dest;
+	keydest_t		key_dest;
 
 	int		framecount;
 	dword		realtime;			// always increasing, no clamping, etc
-	float		frametime;			// seconds since last frame
+	float		frametime;		// seconds since last frame
 
 	// connection information
 	string		servername;		// name of server from original connect
 	float		connect_time;		// for connection retransmits
-
-	int		quakePort;		// a 16 bit value that allows quake servers
 						// to work around address translating routers
-	netchan_t		netchan;
-	sizebuf_t		*multicast;		// ptr for current message buffer (net or demo flow)
+	netchan_t		netchan;			// network channel from server
+	netadr_t		from;
+	sizebuf_t		netmsg;
+	byte		netbuf[MAX_MSGLEN];
 	int		serverProtocol;		// in case we are doing some kind of version hack
+	sizebuf_t		*multicast;		// ptr for current message buffer (net or demo flow)
 
 	int		challenge;		// from the server to use for connecting
-
 	file_t		*download;		// file transfer from server
 	char		downloadtempname[MAX_OSPATH];
 	char		downloadname[MAX_OSPATH];
@@ -239,7 +242,8 @@ typedef struct
 	int		numservers;
 	int		pingtime;			// servers timebase
 
-	int		last_sent;		// for retransmits
+	int		last_received;		// for retransmits
+	int		last_sent;		// last sending message
 
 	// cursor mouse pos for uimenu
 	int		mouse_x;
@@ -359,10 +363,6 @@ extern	cdlight_t	cl_dlights[MAX_DLIGHTS];
 extern	entity_state_t	cl_parse_entities[MAX_PARSE_ENTITIES];
 
 //=============================================================================
-
-extern	netadr_t	net_from;
-extern	sizebuf_t	net_message;
-
 bool CL_CheckOrDownloadFile (char *filename);
 
 void CL_AddNetgraph (void);
@@ -481,7 +481,7 @@ char *Key_KeynumToString (int keynum);
 //
 // cl_demo.c
 //
-void CL_WriteDemoMessage( void );
+void CL_WriteDemoMessage( sizebuf_t *msg, int head_size );
 void CL_ReadDemoMessage( void );
 void CL_StopPlayback( void );
 void CL_StopRecord( void );

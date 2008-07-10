@@ -26,7 +26,7 @@ common\roqlib
 engine\
 engine\client\
 engine\server\
-engine\network\
+engine\common\
 launch\
 launch\xash\
 launch\bsplib\

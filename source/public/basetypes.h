@@ -101,7 +101,6 @@ typedef struct edict_s	edict_t;
 typedef int		sound_t;
 typedef int		string_t;
 typedef void (*xcommand_t)	(void);
-typedef struct gclient_s	gclient_t;
 typedef struct sv_edict_s	sv_edict_t;
 typedef struct cl_edict_s	cl_edict_t;
 typedef struct ui_edict_s	ui_edict_t;
@@ -170,7 +169,6 @@ typedef enum
 	SE_CHAR,		// ev.value is an ascii char
 	SE_MOUSE,		// ev.value and ev.value2 are reletive signed x / y moves
 	SE_CONSOLE,	// ev.data is a char*
-	SE_PACKET		// ev.data is a netadr_t followed by data bytes to ev.length
 } ev_type_t;
 
 typedef struct

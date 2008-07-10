@@ -6,6 +6,8 @@
 #include "common.h"
 #include "client.h"
 
+//FIXME: move to launch.dll
+
 bool in_mouseactive;	// false when not focus app
 bool in_restore_spi;
 bool in_mouseinitialized;

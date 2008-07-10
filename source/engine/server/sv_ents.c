@@ -21,10 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "common.h"
 #include "server.h"
 
-void SV_PacketEvent( netadr_t from, sizebuf_t *msg )
-{
-}
-
 /*
 =============================================================================
 
@@ -213,7 +209,7 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 	if (pflags & PS_M_TYPE) MSG_WriteByte (msg, ps->pm_type);
 	if (pflags & PS_M_ORIGIN) MSG_WritePos32(msg, ps->origin);
 	if (pflags & PS_M_VELOCITY) MSG_WritePos32(msg, ps->velocity);
-	if (pflags & PS_M_TIME) MSG_WriteByte (msg, ps->pm_time);
+	if (pflags & PS_M_TIME) MSG_WriteLong (msg, ps->pm_time);
 	if (pflags & PS_M_FLAGS) MSG_WriteByte (msg, ps->pm_flags);
 	if (pflags & PS_M_GRAVITY) MSG_WriteShort (msg, ps->gravity);
 	if (pflags & PS_M_DELTA_ANGLES) MSG_WritePos32(msg, ps->delta_angles);
@@ -310,7 +306,7 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 SV_WriteFrameToClient
 ==================
 */
-void SV_WriteFrameToClient (client_state_t *client, sizebuf_t *msg)
+void SV_WriteFrameToClient (sv_client_t *client, sizebuf_t *msg)
 {
 	client_frame_t		*frame, *oldframe;
 	int					lastframe;
@@ -369,7 +365,7 @@ Decides which entities are going to be visible to the client, and
 copies off the playerstat and areabits.
 =============
 */
-void SV_BuildClientFrame( client_state_t *client )
+void SV_BuildClientFrame( sv_client_t *client )
 {
 	int		e, i;
 	vec3_t		org;
@@ -389,9 +385,7 @@ void SV_BuildClientFrame( client_state_t *client )
 	if (!clent->priv.sv->client) return;// not in game yet
 
 	// this is the frame we are creating
-	frame = &client->frames[sv.framenum & UPDATE_MASK];
-
-	frame->senttime = svs.realtime; // save it for ping calc later
+	frame = &client->frames[client->netchan.outgoing_sequence & UPDATE_MASK];
 
 	// find the client's PVS
 	VectorScale( clent->priv.sv->client->ps.origin, CL_COORD_FRAC, org ); 

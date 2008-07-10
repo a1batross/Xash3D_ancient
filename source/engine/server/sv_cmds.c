@@ -61,7 +61,7 @@ Sets sv_client and sv_player to the player with idnum Cmd_Argv(1)
 bool SV_SetPlayer( void )
 {
 	char		*s;
-	client_state_t	*cl;
+	sv_client_t	*cl;
 	int		i, idnum;
 
 	if(Cmd_Argc() < 2) return false;
@@ -252,7 +252,7 @@ void SV_ChangeLevel_f( void )
 	if(sv.state == ss_active)
 	{
 		bool		*savedFree;
-		client_state_t	*cl;
+		sv_client_t	*cl;
 		int		i;
 	
 		// clear all the client free flags before saving so that
@@ -338,7 +338,7 @@ SV_Status_f
 void SV_Status_f( void )
 {
 	int		i;
-	client_state_t	*cl;
+	sv_client_t	*cl;
 
 	if(!svs.clients)
 	{
@@ -390,7 +390,7 @@ SV_ConSay_f
 void SV_ConSay_f( void )
 {
 	char		*p, text[MAX_SYSPATH];
-	client_state_t	*client;
+	sv_client_t	*client;
 	int		i;
 
 	if(Cmd_Argc() < 2) return;
@@ -469,7 +469,6 @@ void SV_KillServer_f (void)
 	if(!svs.initialized) return;
 	com.strncpy( host.finalmsg, "Server was killed\n", MAX_STRING );
 	SV_Shutdown( false );
-	NET_Config( false );// close network sockets
 }
 
 /*

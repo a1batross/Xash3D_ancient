@@ -59,7 +59,7 @@ typedef enum
 {
 	cs_free,		// can be reused for a new connection
 	cs_zombie,	// client has been disconnected, but don't reuse connection for a couple seconds
-	cs_connected,	// has been assigned to a client_state_t, but not in game yet
+	cs_connected,	// has been assigned to a sv_client_t, but not in game yet
 	cs_spawned	// client is fully in game
 
 } cl_state_t;
@@ -97,18 +97,27 @@ typedef struct
 	player_state_t	ps;
 	int  		num_entities;
 	int  		first_entity;		// into the circular sv_packet_entities[]
-	int		senttime;			// for ping calculations
 
+	int		msg_sent;		// time the message was transmitted
+	int		msg_acked;	// time the message was acked
+	int		msg_size;		// used to rate drop packets
 } client_frame_t;
 
-typedef struct client_state_s
+typedef struct sv_client_s
 {
 	cl_state_t	state;
 
 	char		userinfo[MAX_INFO_STRING];	// name, etc
 
+	player_state_t	ps;			// current playerstate
+
 	int		lastframe;		// for delta compression
 	usercmd_t		lastcmd;			// for filling in big drops
+	usercmd_t		ucmd;			// current user commands
+
+	netchan_t		netchan;			// network channel
+	sizebuf_t		netmsg;			// network message queue
+	byte		netbuf[MAX_MSGLEN];
 
 	int		commandMsec;		// every seconds this is reset, if user
 						// commands exhaust it, assume time cheating
@@ -124,11 +133,6 @@ typedef struct client_state_s
 	char		name[32];			// extracted from userinfo, high bits masked
 	int		messagelevel;		// for filtering printed messages
 
-	// The datagram is written to by sound calls, prints, temp ents, etc.
-	// It can be harmlessly overflowed.
-	sizebuf_t		datagram;
-	byte		datagram_buf[MAX_MSGLEN];
-
 	client_frame_t	frames[UPDATE_BACKUP];	// updates can be delta'd from here
 
 	byte		*download;		// file being downloaded
@@ -137,11 +141,10 @@ typedef struct client_state_s
 
 	int		lastmessage;		// sv.framenum when packet was last received
 	int		lastconnect;
+	int		nextmsgtime;		// time of next message to client
 
 	int		challenge;		// challenge of this user, randomly generated
-
-	netchan_t		netchan;
-} client_state_t;
+} sv_client_t;
 
 /*
 =============================================================================
@@ -162,8 +165,8 @@ typedef struct
 {
 	netadr_t		adr;
 	int		challenge;
-	int		time;
-
+	int		time;			// time the last packet was sent to the authorize server
+	bool		connected;
 } challenge_t;
 
 typedef struct
@@ -176,21 +179,21 @@ typedef struct
 
 	int		spawncount;		// incremented each server start
 						// used to check late spawns
-	gclient_t		*gclients;		// [maxclients->value]
-	client_state_t	*clients;			// [maxclients->value]
+	sv_client_t	*clients;			// [maxclients->value]
 	int		num_client_entities;	// maxclients->value*UPDATE_BACKUP*MAX_PACKET_ENTITIES
 	int		next_client_entities;	// next client_entity to use
 	entity_state_t	*client_entities;		// [num_client_entities]
 
 	int		last_heartbeat;
+	netadr_t		redirect_address;		// using for redirect command
+	netadr_t		from;
+	sizebuf_t		netmsg;
+	byte		netbuf[MAX_MSGLEN];
 
 	challenge_t	challenges[MAX_CHALLENGES];	// to prevent invalid IPs from connecting
 } server_static_t;
 
 //=============================================================================
-
-extern	netadr_t	net_from;
-extern	sizebuf_t	net_message;
 
 extern	netadr_t	master_adr[MAX_MASTERS];		// address of the master server
 
@@ -205,8 +208,9 @@ extern	cvar_t		*sv_maxvelocity;
 extern	cvar_t		*sv_gravity;
 extern	cvar_t		*sv_fps;			// running server at
 extern	cvar_t		*sv_enforcetime;
-
-extern	client_state_t	*sv_client;
+extern	cvar_t		*sv_reconnect_limit;
+extern	cvar_t		*allow_download;
+extern	sv_client_t	*sv_client;
 extern	edict_t		*sv_player;
 
 
@@ -215,19 +219,19 @@ extern	edict_t		*sv_player;
 // sv_main.c
 //
 void SV_FinalMessage (char *message, bool reconnect);
-void SV_DropClient (client_state_t *drop);
+void SV_DropClient (sv_client_t *drop);
 
 int SV_ModelIndex (const char *name);
 int SV_SoundIndex (const char *name);
 int SV_ImageIndex (const char *name);
 int SV_DecalIndex (const char *name);
 
-void SV_WriteClientdataToMessage (client_state_t *client, sizebuf_t *msg);
-void SV_ExecuteUserCommand (char *s);
+void SV_WriteClientdataToMessage (sv_client_t *client, sizebuf_t *msg);
+void SV_ExecuteClientCommand( sv_client_t *cl, char *s );
 void SV_InitOperatorCommands( void );
 void SV_KillOperatorCommands( void );
-void SV_SendServerinfo (client_state_t *client);
-void SV_UserinfoChanged (client_state_t *cl);
+void SV_SendServerinfo( sv_client_t *client );
+void SV_UserinfoChanged( sv_client_t *cl );
 void Master_Heartbeat (void);
 void Master_Packet (void);
 
@@ -266,15 +270,17 @@ void SV_FlushRedirect (int sv_redirected, char *outputbuf);
 void SV_SendClientMessages (void);
 void SV_AmbientSound( edict_t *entity, int soundindex, float volume, float attenuation );
 void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int index, float vol, float attn, float timeofs);
-void SV_ClientPrintf (client_state_t *cl, int level, char *fmt, ...);
+void SV_ClientPrintf (sv_client_t *cl, int level, char *fmt, ...);
 void SV_BroadcastPrintf (int level, char *fmt, ...);
 void SV_BroadcastCommand (char *fmt, ...);
 
 //
-// sv_user.c
+// sv_client.c
 //
-void SV_Nextserver (void);
-void SV_ExecuteClientMessage (client_state_t *cl);
+void SV_GetChallenge( netadr_t from );
+void SV_DirectConnect( netadr_t from );
+void SV_PutClientInServer( edict_t *ent );
+void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg );
 
 //
 // sv_ccmds.c
@@ -286,8 +292,8 @@ void SV_SectorList_f( void );
 //
 // sv_ents.c
 //
-void SV_WriteFrameToClient (client_state_t *client, sizebuf_t *msg);
-void SV_BuildClientFrame (client_state_t *client);
+void SV_WriteFrameToClient (sv_client_t *client, sizebuf_t *msg);
+void SV_BuildClientFrame (sv_client_t *client);
 void SV_UpdateEntityState( edict_t *ent);
 void SV_FatPVS ( vec3_t org );
 
@@ -325,7 +331,6 @@ void SV_FreeEdict (edict_t *ed);
 void SV_InitEdict (edict_t *e);
 edict_t *SV_Spawn (void);
 void SV_RunFrame (void);
-void SV_ClientUserinfoChanged (edict_t *ent, char *userinfo);
 bool SV_ClientConnect (edict_t *ent, char *userinfo);
 void SV_ClientBegin (edict_t *ent);
 void ClientThink (edict_t *ent, usercmd_t *ucmd);

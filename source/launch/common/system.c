@@ -422,7 +422,6 @@ void Sys_CreateInstance( void )
 		Sys.Free = Host->Free;
 		Sys.CPrint = Host->CPrint;
 		Sys.Cmd = Host->Cmd;
-		Sys.SZ_Init = Host->SZInit;
 		break;
 	case HOST_CREDITS:
 		Sys_Break( show_credits );
@@ -1281,8 +1280,6 @@ sys_event_t Sys_GetEvent( void )
 	MSG		msg;
 	sys_event_t	ev;
 	char		*s;
-	sizebuf_t		netmsg;
-	netadr_t		adr;
 
 	// return if we have data
 	if( event_head > event_tail )
@@ -1316,23 +1313,6 @@ sys_event_t Sys_GetEvent( void )
 		com_strncpy( b, s, len - 1 );
 		Sys_QueEvent( 0, SE_CONSOLE, 0, 0, len, b );
 	}
-
-	// check for network packets
-	if( Sys.SZ_Init ) Sys.SZ_Init( &netmsg, Sys.packet_received, sizeof( Sys.packet_received ));
-	if( NET_GetPacket( &adr, &netmsg ))
-	{
-		netadr_t		*buf;
-		int		len;
-
-		// copy out to a seperate buffer for qeueing
-		// the readcount stepahead is for SOCKS support
-		len = sizeof(netadr_t) + netmsg.cursize - netmsg.readcount;
-		buf = Malloc( len );
-		*buf = adr;
-		Mem_Copy( buf + 1, &netmsg.data[netmsg.readcount], netmsg.cursize - netmsg.readcount );
-		Sys_QueEvent( 0, SE_PACKET, 0, 0, len, buf );
-	}
-
 	// return if we have data
 	if( event_head > event_tail )
 	{

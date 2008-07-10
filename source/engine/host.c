@@ -25,7 +25,6 @@ dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, true, siz
 dll_info_t vsound_dll = { "vsound.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vsound_exp_t) };
 
 cvar_t	*timescale;
-cvar_t	*host_journal;
 cvar_t	*host_serverstate;
 cvar_t	*host_frametime;
 cvar_t	*host_cheats;
@@ -293,90 +292,10 @@ void VID_Init( void )
 
 /*
 =================
-Host_InitJournaling
+Host_InitEvents
 =================
 */
-void Host_InitJournaling( void )
-{
-	host_journal = Cvar_Get( "host_journal", "0", CVAR_SYSTEMINFO, "journaling system events (1 = record, 2 = playback)" );
-	if( !host_journal->integer ) return;
-
-	if( host_journal->integer == 1 )
-	{
-		MsgDev( D_NOTE, "Host_InitJournaling: record mode\n" ); 
-		host.journal = FS_Open( "vprogs/events.dat", "wb" );
-	}
-	else if( host_journal->integer == 2 )
-	{
-		MsgDev( D_NOTE, "Host_InitJournaling: playback mode\n" ); 
-		host.journal = FS_Open( "vprogs/events.dat", "rb" );
-	}
-}
-
-/*
-=================
-Host_GetRealEvent
-=================
-*/
-sys_event_t Host_GetRealEvent( void )
-{
-	sys_event_t	ev;
-	int		r;
-
-	// either get an event from the system or the journal file
-	if( host_journal->integer == 2 )
-	{
-		r = FS_Read( host.journal, &ev, sizeof(ev) );
-		if( r != sizeof(ev))
-		{
-			Sys_Error( "Host_GetRealEvent: error reading from journal file\n" );
-			return ev;
-		}
-		if( ev.length )
-		{
-			ev.data = Z_Malloc( ev.length );
-			r = FS_Read( host.journal, ev.data, ev.length );
-			if( r != ev.length )
-			{
-				Sys_Error( "Host_GetRealEvent: error reading from journal file\n" );
-				return ev;
-			}
-		}
-	}
-	else
-	{
-		ev = Sys_GetEvent();
-
-		// write the journal value out if needed
-		if( host_journal->integer == 1 )
-		{
-			r = FS_Write( host.journal, &ev, sizeof(ev));
-			if( r != sizeof(ev) )
-			{
-				Sys_Error( "Host_GetRealEvent: error writing to journal file" );
-				return ev;
-			}
-			if( ev.length )
-			{
-				r = FS_Write( host.journal, ev.data, ev.length );
-				if( r != ev.length )
-				{
-					Sys_Error( "Host_GetRealEvent: error writing to journal file" );
-					return ev;
-				}
-			}
-		}
-	}
-	return ev;
-}
-
-
-/*
-=================
-Host_InitPushEvent
-=================
-*/
-void Host_InitPushEvent( void )
+void Host_InitEvents( void )
 {
 	memset( host.events, 0, sizeof(host.events));
 	host.events_head = 0;
@@ -424,7 +343,7 @@ sys_event_t Host_GetEvent( void )
 		host.events_tail++;
 		return host.events[(host.events_tail - 1)&(MAX_EVENTS-1)];
 	}
-	return Host_GetRealEvent();
+	return Sys_GetEvent();
 }
 
 /*
@@ -437,34 +356,14 @@ Returns last event time
 dword Host_EventLoop( void )
 {
 	sys_event_t	ev;
-	netadr_t		ev_from;
-	byte		bufData[MAX_MSGLEN];
-	sizebuf_t		buf;
-
-	SZ_Init( &buf, bufData, sizeof( bufData ));
 
 	while( 1 )
 	{
 		ev = Host_GetEvent();
-
-		// if no more events are available
-		if( ev.type == SE_NONE )
-		{
-			// manually send packet events for the loopback channel
-			while( NET_GetLoopPacket( NS_CLIENT, &ev_from, &buf ))
-			{
-				CL_PacketEvent( ev_from, &buf );
-			}
-			while( NET_GetLoopPacket( NS_SERVER, &ev_from, &buf ))
-			{
-				SV_PacketEvent( ev_from, &buf );
-			}
-			return ev.time;
-		}
 		switch ( ev.type )
 		{
 		case SE_NONE:
-			break;
+			return ev.time;
 		case SE_KEY:
 			Key_Event( ev.value[0], ev.value[1], ev.time );
 			break;
@@ -476,23 +375,6 @@ dword Host_EventLoop( void )
 			break;
 		case SE_CONSOLE:
 			Cbuf_AddText( va( "%s\n", ev.data ));
-			break;
-		case SE_PACKET:
-			ev_from = *(netadr_t *)ev.data;
-			buf.cursize = ev.length - sizeof( ev_from );
-
-			// we must copy the contents of the message out, because
-			// the event buffers are only large enough to hold the
-			// exact payload, but channel messages need to be large
-			// enough to hold fragment reassembly
-			if((uint)buf.cursize > buf.maxsize )
-			{
-				MsgDev( D_WARN, "Host_EventLoop: oversize packet\n");
-				continue;
-			}
-			Mem_Copy( buf.data, (byte *)((netadr_t *)ev.data + 1), buf.cursize );
-			if ( host.sv_running ) SV_PacketEvent( ev_from, &buf );
-			else CL_PacketEvent( ev_from, &buf );
 			break;
 		default:
 			Host_Error( "Host_EventLoop: bad event type %i", ev.type );
@@ -516,7 +398,7 @@ int Host_Milliseconds( void )
 
 	// get events and push them until we get a null event with the current time
 	do {
-		ev = Host_GetRealEvent();
+		ev = Sys_GetEvent();
 		if( ev.type != SE_NONE )
 			Host_PushEvent( &ev );
 	} while( ev.type != SE_NONE );
@@ -781,7 +663,7 @@ void Host_Error( const char *error, ... )
 		Sys_Error ("%s", hosterror1 );
 	else Msg("Host_Error: %s", hosterror1);
 
-	if(recursive)
+	if( recursive )
 	{ 
 		Msg("Host_RecursiveError: %s", hosterror2 );
 		Sys_Error ("%s", hosterror1 );
@@ -790,7 +672,6 @@ void Host_Error( const char *error, ... )
 
 	recursive = true;
 	com.sprintf( host.finalmsg, "Server crashed: %s\n", hosterror1 );
-	com.strncpy( host.finalmsg, "Server shutdown\n", MAX_STRING );
 
 	SV_Shutdown( false );
 	CL_Drop(); // drop clients
@@ -811,7 +692,7 @@ void Host_Error_f( void )
 Host_Crash_f
 =================
 */
-static void Host_Crash_f (void)
+static void Host_Crash_f( void )
 {
 	*(int *)0 = 0xffffffff;
 }
@@ -829,8 +710,7 @@ void Host_InitCommon( uint funcname, int argc, char **argv )
 	if(FS_GetParmFromCmdLine("-dev", dev_level ))
 		host.developer = com.atoi(dev_level);
 
-	Host_InitPushEvent();
-	Host_InitJournaling();
+	Host_InitEvents();
 
 	// TODO: init basedir here
 	FS_LoadGameInfo("gameinfo.txt");

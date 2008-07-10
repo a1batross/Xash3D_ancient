@@ -576,7 +576,7 @@ void Cmd_ExecuteString( const char *text )
 			cmd_functions = cmd;
 
 			// perform the action
-			if(!cmd->function )
+			if( !cmd->function )
 			{	// forward to server command
 				Cmd_ExecuteString(va("cmd %s", text));
 			}

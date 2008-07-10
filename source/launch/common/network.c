@@ -62,7 +62,7 @@ dll_info_t winsock_dll = { "wsock32.dll", winsock_funcs, NULL, NULL, NULL, true,
 static WSADATA winsockdata;
 static bool winsockInitialized = false;
 static bool usingSocks = false;
-static bool networkingEnabled = false;
+static bool net_active = false;
 
 static cvar_t *net_socks_enabled;
 static cvar_t *net_socks_server;
@@ -696,10 +696,10 @@ void NET_GetLocalAddress( void )
 	while(( p = hostInfo->h_addr_list[numIP] ) != NULL && numIP < MAX_IPS )
 	{
 		ip = pNtohl( *(int *)p);
-		localIP[ numIP ][0] = p[0];
-		localIP[ numIP ][1] = p[1];
-		localIP[ numIP ][2] = p[2];
-		localIP[ numIP ][3] = p[3];
+		localIP[numIP][0] = p[0];
+		localIP[numIP][1] = p[1];
+		localIP[numIP][2] = p[2];
+		localIP[numIP][3] = p[3];
 		MsgDev( D_INFO, "IP: %i.%i.%i.%i\n", (ip>>24) & 0xff, (ip>>16) & 0xff, (ip>>8) & 0xff, ip & 0xff );
 		numIP++;
 	}
@@ -715,6 +715,7 @@ void NET_OpenIP( void )
 	cvar_t	*ip;
 	int	i, port;
 
+	Msg("NET_OpenIP\n");
 	ip = Cvar_Get( "net_ip", "localhost", CVAR_LATCH, "network ip address" );
 	port = Cvar_Get( "net_port", va( "%i", PORT_SERVER ), CVAR_LATCH, "network default port" )->integer;
 
@@ -781,10 +782,10 @@ void NET_Config( bool net_enable )
 	modified = NET_GetCvars();
 
 	// if enable state is the same and no cvars were modified, we have nothing to do
-	if( net_enable == networkingEnabled && !modified )
+	if( net_enable == net_active && !modified )
 		return;
 
-	if( net_enable == networkingEnabled )
+	if( net_enable == net_active )
 	{
 		if( net_enable )
 		{
@@ -809,11 +810,12 @@ void NET_Config( bool net_enable )
 			stop = true;
 			start = false;
 		}
-		networkingEnabled = net_enable;
+		net_active = net_enable;
 	}
 
 	if( stop )
 	{
+		Msg("NET_CloseIP\n");
 		if( ip_socket && ip_socket != INVALID_SOCKET )
 		{
 			pCloseSocket( ip_socket );

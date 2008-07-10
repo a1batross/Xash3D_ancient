@@ -51,12 +51,6 @@ channel matches even if the IP port differs.  The IP port should be updated
 to the new value before sending out any replies.
 */
 
-#define MAX_PACKETLEN		1400		// max size of a network packet
-#define FRAGMENT_SIZE		(MAX_PACKETLEN - 100)
-#define PACKET_HEADER		10		// two ints and a short
-#define MAX_LOOPBACK		16
-#define FRAGMENT_BIT		(1<<31)
-
 cvar_t *showpackets;
 cvar_t *showdrop;
 cvar_t *qport;
@@ -80,9 +74,6 @@ typedef struct
 } loopback_t;
 
 loopback_t	loopbacks[2];
-netadr_t		net_from;
-sizebuf_t		net_message;
-byte		net_message_buffer[MAX_MSGLEN];
 
 /*
 ===============
@@ -144,9 +135,7 @@ void Netchan_TransmitNextFragment( netchan_t *chan )
 	// copy the reliable message to the packet first
 	fragment_length = FRAGMENT_SIZE;
 	if( chan->unsent_fragment_start + fragment_length > chan->unsent_length )
-	{
 		fragment_length = chan->unsent_length - chan->unsent_fragment_start;
-	}
 
 	MSG_WriteShort( &send, chan->unsent_fragment_start );
 	MSG_WriteShort( &send, fragment_length );
@@ -189,6 +178,7 @@ void Netchan_Transmit( netchan_t *chan, int length, const byte *data )
 		chan->unsent_length = length;
 		Mem_Copy( chan->unsent_buffer, data, length );
 		// only send the first fragment now
+		Msg("netchan transmit nextfragment %d\n", length );
 		Netchan_TransmitNextFragment( chan );
 		return;
 	}
@@ -199,8 +189,7 @@ void Netchan_Transmit( netchan_t *chan, int length, const byte *data )
 	chan->outgoing_sequence++;
 
 	// send the qport if we are a client
-	if( chan->sock == NS_CLIENT )
-		MSG_WriteShort( &send, qport->integer );
+	if( chan->sock == NS_CLIENT ) MSG_WriteWord( &send, qport->integer );
 
 	MSG_WriteData( &send, data, length );
 	NET_SendPacket( chan->sock, send.cursize, send.data, chan->remote_address ); // send the datagram
@@ -345,7 +334,7 @@ void Netchan_OutOfBand( netsrc_t sock, netadr_t adr, int length, byte *data )
 
 	// write the packet header
 	SZ_Init( &send, send_buf, sizeof(send_buf));
-	MSG_WriteLong( &send, 0xffffffff );	// -1 sequence means out of band
+	MSG_WriteLong( &send, -1 );	// -1 sequence means out of band
 	SZ_Write( &send, data, length );
 
 	// send the datagram
@@ -472,7 +461,7 @@ void NET_SendLoopPacket( netsrc_t sock, int length, const void *data, netadr_t t
 /*
 =============================================================================
 
-		NETCHAN TRANSMIT UTILS
+		NETCHAN TRANSMIT\RECEIVED UTILS
 
 =============================================================================
 */
@@ -490,6 +479,14 @@ void NET_SendPacket( netsrc_t sock, int length, const void *data, netadr_t to )
 
 	if( to.type == NA_NONE ) return;
 	Sys_SendPacket( length, data, to );
+}
+
+bool NET_GetPacket( netsrc_t sock, netadr_t *from, sizebuf_t *msg )
+{
+	if( NET_GetLoopPacket( sock, from, msg ))
+		return true;
+
+	return Sys_RecvPacket( from, msg );	
 }
 
 /*

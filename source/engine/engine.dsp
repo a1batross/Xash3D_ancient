@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /Ob0 /I "./" /I "network" /I "server" /I "client" /I "../public" /I "../platform/formats" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /Ob0 /I "./" /I "common" /I "server" /I "client" /I "../public" /I "../platform/formats" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -80,7 +80,7 @@ SOURCE="$(InputPath)"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /c
-# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "network" /I "server" /I "client" /I "../public" /I "../platform/formats" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /c
+# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "common" /I "server" /I "client" /I "../public" /I "../platform/formats" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -194,11 +194,11 @@ SOURCE=.\input.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\network\net_chan.c
+SOURCE=.\common\net_chan.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\network\net_msg.c
+SOURCE=.\common\net_msg.c
 # End Source File
 # Begin Source File
 
@@ -211,6 +211,10 @@ SOURCE=.\server\sv_cmds.c
 # Begin Source File
 
 SOURCE=.\server\sv_ents.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\server\sv_frame.c
 # End Source File
 # Begin Source File
 
@@ -270,7 +274,7 @@ SOURCE=.\common.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\network\net_msg.h
+SOURCE=.\common\net_msg.h
 # End Source File
 # Begin Source File
 

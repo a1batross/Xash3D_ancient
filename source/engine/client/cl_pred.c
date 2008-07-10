@@ -36,8 +36,7 @@ void CL_CheckPredictionError (void)
 		return;
 
 	// calculate the last usercmd_t we sent that the server has processed
-	frame = cls.netchan.incoming_acknowledged;
-	frame &= (CMD_BACKUP-1);
+	frame = cl.cmd_number & CMD_MASK;
 
 	// compare what the server returned with what we had predicted it to be
 	VectorSubtract (cl.frame.playerstate.origin, cl.predicted_origins[frame], delta);
@@ -200,8 +199,8 @@ void CL_PredictMovement (void)
 		return;
 	}
 
-	ack = cls.netchan.incoming_acknowledged;
-	current = cls.netchan.outgoing_sequence;
+	ack = cl.cmd_number & CMD_MASK;
+	current = cl.cmd_number;
 
 	// if we are too far out of date, just freeze
 	if (current - ack >= CMD_BACKUP)

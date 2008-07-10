@@ -29,7 +29,6 @@ cvar_t	*cl_footsteps;
 cvar_t	*cl_timeout;
 cvar_t	*cl_predict;
 cvar_t	*cl_showfps;
-cvar_t	*cl_maxfps;
 cvar_t	*cl_gun;
 
 cvar_t	*cl_add_particles;
@@ -72,10 +71,6 @@ client_t		cl;
 entity_state_t	cl_parse_entities[MAX_PARSE_ENTITIES];
 
 extern	cvar_t *allow_download;
-extern	cvar_t *allow_download_players;
-extern	cvar_t *allow_download_models;
-extern	cvar_t *allow_download_sounds;
-extern	cvar_t *allow_download_maps;
 //======================================================================
 
 //======================================================================
@@ -102,13 +97,14 @@ void Cmd_ForwardToServer (void)
 		return;
 	}
 
-	MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
-	SZ_Print (&cls.netchan.message, cmd);
+	MSG_WriteByte (&cl.netmsg, clc_stringcmd);
+	SZ_Print (&cl.netmsg, cmd);
 	if (Cmd_Argc() > 1)
 	{
-		SZ_Print (&cls.netchan.message, " ");
-		SZ_Print (&cls.netchan.message, Cmd_Args());
+		SZ_Print (&cl.netmsg, " ");
+		SZ_Print (&cl.netmsg, Cmd_Args());
 	}
+	MSG_WriteByte( &cl.netmsg, clc_eof ); // end of message
 }
 
 /*
@@ -128,8 +124,10 @@ void CL_ForwardToServer_f (void)
 	// don't forward the first argument
 	if (Cmd_Argc() > 1)
 	{
-		MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
-		SZ_Print (&cls.netchan.message, Cmd_Args());
+		SZ_Init (&cl.netmsg, cl.netbuf, sizeof( cl.netbuf ));
+		MSG_WriteByte( &cl.netmsg, clc_stringcmd );
+		SZ_Print( &cl.netmsg, Cmd_Args());
+		MSG_WriteByte( &cl.netmsg, clc_eof ); // end of message
 	}
 }
 
@@ -188,7 +186,7 @@ We have gotten a challenge from the server, so try and
 connect.
 ======================
 */
-void CL_SendConnectPacket (void)
+void CL_SendConnectPacket( void )
 {
 	netadr_t	adr;
 	int		port;
@@ -199,11 +197,11 @@ void CL_SendConnectPacket (void)
 		cls.connect_time = 0;
 		return;
 	}
-	if(adr.port == 0) adr.port = BigShort (PORT_SERVER);
-	port = Cvar_VariableValue ("qport");
+	if(adr.port == 0) adr.port = BigShort( PORT_SERVER );
+	port = Cvar_VariableValue( "net_qport" );
 
 	userinfo_modified = false;
-	Netchan_OutOfBandPrint(NS_CLIENT, adr, "connect %i %i %i \"%s\"\n", PROTOCOL_VERSION, port, cls.challenge, Cvar_Userinfo() );
+	Netchan_OutOfBandPrint(NS_CLIENT, adr, "connect %i %i %i \"%s\"\n", PROTOCOL_VERSION, port, cls.challenge, Cvar_Userinfo());
 }
 
 /*
@@ -242,7 +240,7 @@ void CL_CheckForResend (void)
 	if (adr.port == 0) adr.port = BigShort (PORT_SERVER);
 	cls.connect_time = cls.realtime; // for retransmit requests
 	Msg ("Connecting to %s...\n", cls.servername);
-	Netchan_OutOfBandPrint (NS_CLIENT, adr, "getchallenge\n");
+	Netchan_OutOfBandPrint( NS_CLIENT, adr, "getchallenge\n" );
 }
 
 
@@ -272,11 +270,10 @@ void CL_Connect_f (void)
 
 	server = Cmd_Argv (1);
 
-	NET_Config( true );	// allow remote
 	CL_Disconnect();
 
 	cls.state = ca_connecting;
-	strncpy (cls.servername, server, sizeof(cls.servername)-1);
+	com.strncpy( cls.servername, server, sizeof(cls.servername) - 1);
 	cls.connect_time = MAX_HEARTBEAT; // CL_CheckForResend() will fire immediately
 }
 
@@ -307,8 +304,6 @@ void CL_Rcon_f (void)
 	message[2] = (char)255;
 	message[3] = (char)255;
 	message[4] = 0;
-
-	NET_Config (true);		// allow remote
 
 	strcat (message, "rcon ");
 
@@ -356,7 +351,7 @@ void CL_ClearState (void)
 
 	// wipe the entire cl structure
 	memset (&cl, 0, sizeof(cl));
-	SZ_Clear (&cls.netchan.message);
+	SZ_Clear (&cl.netmsg);
 }
 
 /*
@@ -386,7 +381,8 @@ void CL_Disconnect( void )
 
 	// send a disconnect message to the server
 	final[0] = clc_stringcmd;
-	com.strcpy ((char *)final+1, "disconnect");
+	com.strcpy((char *)final + 1, "disconnect");
+	final[com.strlen(final)] = clc_eof;
 	Netchan_Transmit(&cls.netchan, strlen(final), final);
 	Netchan_Transmit(&cls.netchan, strlen(final), final);
 	Netchan_Transmit(&cls.netchan, strlen(final), final);
@@ -401,6 +397,35 @@ void CL_Disconnect( void )
 	}
 
 	cls.state = ca_disconnected;
+}
+
+/*
+===================
+CL_DisconnectPacket
+
+Sometimes the server can drop the client and the netchan based
+disconnect can be lost.  If the client continues to send packets
+to the server, the server will send out of band disconnect packets
+to the client so it doesn't have to wait for the full timeout period.
+===================
+*/
+void CL_DisconnectPacket( netadr_t from )
+{
+	if( cls.state == ca_disconnected )
+		return;
+
+	// if not from our server, ignore it
+	if(!NET_CompareAdr( from, cls.netchan.remote_address ))
+		return;
+
+	// if we have received packets within three seconds, ignore it
+	// (it might be a malicious spoof)
+	if( cls.realtime - cls.last_received < 3000 )
+		return;
+
+	// drop the connection
+	MsgDev( D_ERROR, "Server disconnected for unknown reason\n" );
+	CL_Disconnect();
 }
 
 void CL_Disconnect_f (void)
@@ -430,8 +455,6 @@ void CL_Packet_f (void)
 		Msg ("packet <destination> <contents>\n");
 		return;
 	}
-
-	NET_Config (true);		// allow remote
 
 	if (!NET_StringToAdr (Cmd_Argv(1), &adr))
 	{
@@ -499,8 +522,9 @@ void CL_Reconnect_f (void)
 	{
 		Msg ("reconnecting...\n");
 		cls.state = ca_connected;
-		MSG_WriteChar (&cls.netchan.message, clc_stringcmd);
-		MSG_WriteString (&cls.netchan.message, "new");		
+		MSG_WriteChar (&cl.netmsg, clc_stringcmd);
+		MSG_WriteString (&cl.netmsg, "new");		
+		MSG_WriteByte( &cl.netmsg, clc_eof ); // end of message
 		return;
 	}
 
@@ -526,8 +550,6 @@ CL_StatusLocal_f
 void CL_GetServerList_f( void )
 {
 	netadr_t	adr;
-
-	NET_Config( true );	// allow remote
 
 	// send a broadcast packet
 	MsgDev( D_INFO, "status pinging broadcast...\n" );
@@ -690,14 +712,14 @@ CL_ParseStatusMessage
 Handle a reply from a ping
 =================
 */
-void CL_ParseStatusMessage (void)
+void CL_ParseStatusMessage( netadr_t from, sizebuf_t *msg )
 {
 	char	*s;
 
-	s = MSG_ReadString(&net_message);
+	s = MSG_ReadString( msg );
 
 	Msg ("%s\n", s);
-	CL_ParseServerStatus( NET_AdrToString(net_from), s );
+	CL_ParseServerStatus( NET_AdrToString(from), s );
 }
 
 /*
@@ -707,53 +729,55 @@ CL_ConnectionlessPacket
 Responses to broadcasts, etc
 =================
 */
-void CL_ConnectionlessPacket( void )
+void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 {
 	char	*s, *c;
 	
-	MSG_BeginReading (&net_message);
-	MSG_ReadLong (&net_message); // skip the -1
+	MSG_BeginReading( msg );
+	MSG_ReadLong( msg ); // skip the -1
 
-	s = MSG_ReadStringLine (&net_message);
+	s = MSG_ReadStringLine( msg );
 
-	Cmd_TokenizeString(s);
+	Cmd_TokenizeString( s );
 	c = Cmd_Argv(0);
 
-	MsgDev(D_INFO, "%s: %s\n", NET_AdrToString (net_from), c);
+	MsgDev(D_INFO, "%s: %s\n", NET_AdrToString (from), c);
 
 	// server connection
-	if (!strcmp(c, "client_connect"))
+	if(!com.strcmp( c, "client_connect"))
 	{
 		if (cls.state == ca_connected)
 		{
 			Msg ("Dup connect received.  Ignored.\n");
 			return;
 		}
-		Netchan_Setup (NS_CLIENT, &cls.netchan, net_from, cls.quakePort);
-		MSG_WriteChar (&cls.netchan.message, clc_stringcmd);
-		MSG_WriteString (&cls.netchan.message, "new");	
+		Netchan_Setup( NS_CLIENT, &cls.netchan, from, Cvar_VariableValue( "net_qport" ));
+		SZ_Init (&cl.netmsg, cl.netbuf, sizeof( cl.netbuf ));
+		MSG_WriteChar( &cl.netmsg, clc_stringcmd );
+		MSG_WriteString( &cl.netmsg, "new" );	
+		MSG_WriteByte( &cl.netmsg, clc_eof ); // end of message
 		cls.state = ca_connected;
 		return;
 	}
 
 	// server responding to a status broadcast
-	if (!strcmp(c, "info"))
+	if(!com.strcmp( c, "info"))
 	{
-		CL_ParseStatusMessage ();
+		CL_ParseStatusMessage( from, msg );
 		return;
 	}
 
 	// remote command from gui front end
-	if (!strcmp(c, "cmd"))
+	if(!strcmp(c, "cmd"))
 	{
-		if(!NET_IsLocalAddress(net_from))
+		if(!NET_IsLocalAddress(from))
 		{
 			Msg ("Command packet from remote host.  Ignored.\n");
 			return;
 		}
 		ShowWindow( host.hWnd, SW_RESTORE);
 		SetForegroundWindow ( host.hWnd );
-		s = MSG_ReadString (&net_message);
+		s = MSG_ReadString( msg );
 		Cbuf_AddText(s);
 		Cbuf_AddText("\n");
 		return;
@@ -762,8 +786,8 @@ void CL_ConnectionlessPacket( void )
 	if (!strcmp(c, "print"))
 	{
 		// print command from somewhere
-		s = MSG_ReadString (&net_message);
-		if(!CL_ParseServerStatus( NET_AdrToString(net_from), s ))
+		s = MSG_ReadString( msg );
+		if(!CL_ParseServerStatus( NET_AdrToString( from ), s ))
 			Msg( s );
 		return;
 	}
@@ -771,14 +795,14 @@ void CL_ConnectionlessPacket( void )
 	// ping from somewhere
 	if (!strcmp(c, "ping"))
 	{
-		Netchan_OutOfBandPrint (NS_CLIENT, net_from, "ack");
+		Netchan_OutOfBandPrint( NS_CLIENT, from, "ack" );
 		return;
 	}
 
 	// challenge from the server we are connecting to
 	if (!strcmp(c, "challenge"))
 	{
-		cls.challenge = atoi(Cmd_Argv(1));
+		cls.challenge = com.atoi(Cmd_Argv(1));
 		CL_SendConnectPacket ();
 		return;
 	}
@@ -786,92 +810,19 @@ void CL_ConnectionlessPacket( void )
 	// echo request from server
 	if (!strcmp(c, "echo"))
 	{
-		Netchan_OutOfBandPrint (NS_CLIENT, net_from, "%s", Cmd_Argv(1) );
+		Netchan_OutOfBandPrint( NS_CLIENT, from, "%s", Cmd_Argv(1) );
+		return;
+	}
+
+	// a disconnect message from the server, which will happen if the server
+	// dropped the connection but it is still getting packets from us
+	if(!com.strcmp( c, "disconnect" ))
+	{
+		CL_DisconnectPacket( from );
 		return;
 	}
 	Msg ("Unknown command.\n");
 }
-
-
-/*
-=================
-CL_DumpPackets
-
-A vain attempt to help bad TCP stacks that cause problems
-when they overflow
-=================
-*/
-void CL_DumpPackets (void)
-{
-	while (Sys_RecvPacket (&net_from, &net_message))
-	{
-		Msg ("dumnping a packet\n");
-	}
-}
-
-void CL_ReadNetMessage( void )
-{
-	while (Sys_RecvPacket (&net_from, &net_message))
-	{
-		// remote command packet
-		if(*(int *)net_message.data == -1)
-		{
-			CL_ConnectionlessPacket();
-			continue;
-		}
-
-		if( cls.state == ca_disconnected || cls.state == ca_connecting )
-			continue;	// dump it if not connected
-
-		if( net_message.cursize < 8 )
-		{
-			Msg( "%s: Runt packet\n", NET_AdrToString(net_from));
-			continue;
-		}
-
-		// packet from server
-		if (!NET_CompareAdr (net_from, cls.netchan.remote_address))
-		{
-			MsgDev( D_WARN, "CL_ReadPackets: %s:sequenced packet without connection\n",NET_AdrToString(net_from));
-			continue;
-		}
-		if(!Netchan_Process(&cls.netchan, &net_message))
-			continue;	// wasn't accepted for some reason
-		CL_ParseServerMessage( &net_message );
-	}
-}
-
-/*
-=================
-CL_ReadPackets
-=================
-*/
-void CL_ReadPackets (void)
-{
-	if( cls.demoplayback )
-		CL_ReadDemoMessage();
-	else CL_ReadNetMessage();
-          
-	//
-	// check timeout
-	//
-	if( cls.state >= ca_connected && !cls.demoplayback )
-	{
-		if( cls.realtime - cls.netchan.last_received > cl_timeout->integer * 1000 )
-		{
-			cl.timeoutcount++;
-			if( cl.timeoutcount > 5 ) // timeoutcount saves debugger
-			{
-				Msg ("\nServer connection timed out.\n");
-				CL_Disconnect();
-				return;
-			}
-		}
-	}
-	else cl.timeoutcount = 0;
-	
-}
-
 
 //=============================================================================
 /*
@@ -912,88 +863,82 @@ void CL_RequestNextDownload (void)
 	if (!allow_download->value && precache_check < ENV_CNT)
 		precache_check = ENV_CNT;
 
-//ZOID
-	if (precache_check == CS_MODELS)
+	if( precache_check == CS_MODELS )
 	{
 		// confirm map
 		precache_check = CS_MODELS+2; // 0 isn't used
-		if (allow_download_maps->value)
-			if (!CL_CheckOrDownloadFile(cl.configstrings[CS_MODELS+1]))
-				return; // started a download
+		if(!CL_CheckOrDownloadFile(cl.configstrings[CS_MODELS+1]))
+			return; // started a download
 	}
 	if (precache_check >= CS_MODELS && precache_check < CS_MODELS+MAX_MODELS)
 	{
-		if (allow_download_models->value)
+		while (precache_check < CS_MODELS+MAX_MODELS && cl.configstrings[precache_check][0])
 		{
-			while (precache_check < CS_MODELS+MAX_MODELS &&
-				cl.configstrings[precache_check][0]) {
-				if (cl.configstrings[precache_check][0] == '*' ||
-					cl.configstrings[precache_check][0] == '#') {
+			if (cl.configstrings[precache_check][0] == '*' || cl.configstrings[precache_check][0] == '#')
+			{
+				precache_check++;
+				continue;
+			}
+			if (precache_model_skin == 0)
+			{
+				if (!CL_CheckOrDownloadFile(cl.configstrings[precache_check]))
+				{
+					precache_model_skin = 1;
+					return; // started a download
+				}
+				precache_model_skin = 1;
+			}
+
+			// checking for skins in the model
+			if (!precache_model)
+			{
+                              	precache_model = FS_LoadFile (cl.configstrings[precache_check], NULL);
+				if (!precache_model)
+				{
+					precache_model_skin = 0;
+					precache_check++;
+					continue; // couldn't load it
+				}
+				if (LittleLong(*(uint *)precache_model) != IDSTUDIOHEADER)
+				{
+					// not an studio model
+					precache_model = 0;
+					precache_model_skin = 0;
 					precache_check++;
 					continue;
 				}
-				if (precache_model_skin == 0) {
-					if (!CL_CheckOrDownloadFile(cl.configstrings[precache_check])) {
-						precache_model_skin = 1;
-						return; // started a download
-					}
-					precache_model_skin = 1;
-				}
-
-				// checking for skins in the model
-				if (!precache_model) {
-
-					precache_model = FS_LoadFile (cl.configstrings[precache_check], NULL);
-					if (!precache_model)
-					{
-						precache_model_skin = 0;
-						precache_check++;
-						continue; // couldn't load it
-					}
-					if (LittleLong(*(uint *)precache_model) != IDSTUDIOHEADER)
-					{
-						// not an studio model
-						precache_model = 0;
-						precache_model_skin = 0;
-						precache_check++;
-						continue;
-					}
-					pheader = (studiohdr_t *)precache_model;
-					if (LittleLong (pheader->version) != STUDIO_VERSION)
-					{
-						precache_check++;
-						precache_model_skin = 0;
-						continue; // couldn't load it
-					}
-				}
-
 				pheader = (studiohdr_t *)precache_model;
-
-				if (precache_model)
-				{ 
-					precache_model = 0;
+				if (LittleLong (pheader->version) != STUDIO_VERSION)
+				{
+					precache_check++;
+					precache_model_skin = 0;
+					continue; // couldn't load it
 				}
-				precache_model_skin = 0;
-				precache_check++;
 			}
+
+			pheader = (studiohdr_t *)precache_model;
+
+			if (precache_model)
+			{ 
+				precache_model = 0;
+			}
+			precache_model_skin = 0;
+			precache_check++;
 		}
 		precache_check = CS_SOUNDS;
 	}
 	if (precache_check >= CS_SOUNDS && precache_check < CS_SOUNDS+MAX_SOUNDS)
 	{ 
-		if (allow_download_sounds->value)
+		if (precache_check == CS_SOUNDS) precache_check++; // zero is blank
+		while (precache_check < CS_SOUNDS+MAX_SOUNDS && cl.configstrings[precache_check][0])
 		{
-			if (precache_check == CS_SOUNDS) precache_check++; // zero is blank
-			while (precache_check < CS_SOUNDS+MAX_SOUNDS && cl.configstrings[precache_check][0])
+			if (cl.configstrings[precache_check][0] == '*')
 			{
-				if (cl.configstrings[precache_check][0] == '*')
-				{
-					precache_check++;
-					continue;
-				}
-				com.sprintf(fn, "sound/%s", cl.configstrings[precache_check++]);
-				if (!CL_CheckOrDownloadFile(fn)) return; // started a download
+				precache_check++;
+				continue;
 			}
+			com.sprintf(fn, "sound/%s", cl.configstrings[precache_check++]);
+			if (!CL_CheckOrDownloadFile(fn)) return; // started a download
 		}
 		precache_check = CS_IMAGES;
 	}
@@ -1012,59 +957,57 @@ void CL_RequestNextDownload (void)
 	// so precache_check is now *3
 	if (precache_check >= CS_PLAYERSKINS && precache_check < CS_PLAYERSKINS + MAX_CLIENTS * PLAYER_MULT)
 	{
-		if (allow_download_players->value)
+		while (precache_check < CS_PLAYERSKINS + MAX_CLIENTS * PLAYER_MULT)
 		{
-			while (precache_check < CS_PLAYERSKINS + MAX_CLIENTS * PLAYER_MULT)
+			int i, n;
+			char model[MAX_QPATH], skin[MAX_QPATH], *p;
+
+			i = (precache_check - CS_PLAYERSKINS)/PLAYER_MULT;
+			n = (precache_check - CS_PLAYERSKINS)%PLAYER_MULT;
+
+			if (!cl.configstrings[CS_PLAYERSKINS+i][0])
 			{
-				int i, n;
-				char model[MAX_QPATH], skin[MAX_QPATH], *p;
+				precache_check = CS_PLAYERSKINS + (i + 1) * PLAYER_MULT;
+				continue;
+			}
 
-				i = (precache_check - CS_PLAYERSKINS)/PLAYER_MULT;
-				n = (precache_check - CS_PLAYERSKINS)%PLAYER_MULT;
-
-				if (!cl.configstrings[CS_PLAYERSKINS+i][0]) {
-					precache_check = CS_PLAYERSKINS + (i + 1) * PLAYER_MULT;
-					continue;
-				}
-
-				if ((p = strchr(cl.configstrings[CS_PLAYERSKINS+i], '\\')) != NULL)
-					p++;
-				else p = cl.configstrings[CS_PLAYERSKINS+i];
+			if ((p = strchr(cl.configstrings[CS_PLAYERSKINS+i], '\\')) != NULL)
+				p++;
+			else p = cl.configstrings[CS_PLAYERSKINS+i];
 				strcpy(model, p);
 				p = strchr(model, '/');
-				if (!p)
-					p = strchr(model, '\\');
-				if (p)
-				{
-					*p++ = 0;
-					strcpy(skin, p);
-				}
-				else *skin = 0;
+			if (!p)
+				p = strchr(model, '\\');
+			if (p)
+			{
+				*p++ = 0;
+				strcpy(skin, p);
+			}
+			else *skin = 0;
 
-				switch (n)
+			switch (n)
+			{
+			case 0: // model
+				com.sprintf(fn, "models/players/%s/player.mdl", model);
+				if (!CL_CheckOrDownloadFile(fn))
 				{
-				case 0: // model
-					com.sprintf(fn, "models/players/%s/player.mdl", model);
-					if (!CL_CheckOrDownloadFile(fn))
-					{
-						precache_check = CS_PLAYERSKINS + i * PLAYER_MULT + 1;
-						return; // started a download
-					}
-					n++;
-					/*FALL THROUGH*/
-
-				case 1: // weapon model
-					com.sprintf(fn, "weapons/%s.mdl", model);
-					if (!CL_CheckOrDownloadFile(fn))
-					{
-						precache_check = CS_PLAYERSKINS + i * PLAYER_MULT + 2;
-						return; // started a download
-					}
-					n++;
-					/*FALL THROUGH*/
-				default:
-					break;
+					precache_check = CS_PLAYERSKINS + i * PLAYER_MULT + 1;
+					return; // started a download
 				}
+				n++;
+				/*FALL THROUGH*/
+
+			case 1: // weapon model
+				com.sprintf(fn, "weapons/%s.mdl", model);
+				if (!CL_CheckOrDownloadFile(fn))
+				{
+					precache_check = CS_PLAYERSKINS + i * PLAYER_MULT + 2;
+					return; // started a download
+				}
+				n++;
+				/*FALL THROUGH*/
+			default:
+				break;
 			}
 		}
 		// precache phase completed
@@ -1085,7 +1028,7 @@ void CL_RequestNextDownload (void)
 
 	if (precache_check > ENV_CNT && precache_check < TEXTURE_CNT)
 	{
-		if (allow_download->value && allow_download_maps->value)
+		if( allow_download->value )
 		{
 			while (precache_check < TEXTURE_CNT)
 			{
@@ -1108,7 +1051,7 @@ void CL_RequestNextDownload (void)
 	// confirm existance of textures, download any that don't exist
 	if (precache_check == TEXTURE_CNT+1)
 	{
-		if (allow_download->value && allow_download_maps->value)
+		if (allow_download->value )
 		{
 			while( precache_tex < pe->NumTextures())
 			{
@@ -1121,13 +1064,13 @@ void CL_RequestNextDownload (void)
 		precache_check = TEXTURE_CNT+999;
 	}
 
-//ZOID
 	CL_RegisterSounds();
 	CL_PrepRefresh();
 
 	if( cls.demoplayback ) return; // not really connected
-	MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
-	MSG_WriteString( &cls.netchan.message, va("begin %i\n", precache_spawncount));
+	MSG_WriteByte( &cl.netmsg, clc_stringcmd );
+	MSG_WriteString( &cl.netmsg, va("begin %i\n", precache_spawncount));
+	MSG_WriteByte( &cl.netmsg, clc_eof ); // end of message
 }
 
 /*
@@ -1169,7 +1112,6 @@ void CL_InitLocal (void)
 	cl_footsteps = Cvar_Get ("cl_footsteps", "1", 0, "disables player footsteps" );
 	cl_predict = Cvar_Get ("cl_predict", "1", CVAR_ARCHIVE, "disables client movement prediction" );
 //	cl_minfps = Cvar_Get ("cl_minfps", "5", 0);
-	cl_maxfps = Cvar_Get ("cl_maxfps", "1000", 0, "maximum client fps" );
 
 	cl_upspeed = Cvar_Get ("cl_upspeed", "200", 0, "client upspeed limit" );
 	cl_forwardspeed = Cvar_Get ("cl_forwardspeed", "200", 0, "client forward speed limit" );
@@ -1309,91 +1251,89 @@ void CL_WriteConfiguration (void)
 	else MsgDev( D_ERROR, "Couldn't write vars.rc.\n");
 }
 
-
-/*
-==================
-CL_FixCvarCheats
-
-==================
-*/
-
-typedef struct
-{
-	char	*name;
-	char	*value;
-	cvar_t	*var;
-} cheatvar_t;
-
-cheatvar_t	cheatvars[] = {
-	{"timescale", "1"},
-	{"r_drawworld", "1"},
-	{"cl_testlights", "0"},
-	{"r_fullbright", "0"},
-	{"r_drawflat", "0"},
-	{"paused", "0"},
-	{"sw_draworder", "0"},
-	{"gl_lightmap", "0"},
-	{"gl_saturatelighting", "0"},
-	{NULL, NULL}
-};
-
-int		numcheatvars;
-
-void CL_FixCvarCheats (void)
-{
-	int			i;
-	cheatvar_t	*var;
-
-	if ( !strcmp(cl.configstrings[CS_MAXCLIENTS], "1") 
-		|| !cl.configstrings[CS_MAXCLIENTS][0] )
-		return;		// single player can cheat
-
-	// find all the cvars if we haven't done it yet
-	if (!numcheatvars)
-	{
-		while (cheatvars[numcheatvars].name)
-		{
-			cheatvars[numcheatvars].var = Cvar_Get (cheatvars[numcheatvars].name,
-					cheatvars[numcheatvars].value, 0, "no description" );
-			numcheatvars++;
-		}
-	}
-
-	// make sure they are all set to the proper values
-	for (i=0, var = cheatvars ; i<numcheatvars ; i++, var++)
-	{
-		if ( strcmp (var->var->string, var->value) )
-		{
-			Cvar_Set (var->name, var->value);
-		}
-	}
-}
-
 //============================================================================
+void CL_ReadNetMessage( void )
+{
+	sizebuf_t	*msg = &cls.netmsg;
+
+	SZ_Init( msg, cls.netbuf, sizeof(cls.netbuf));
+	while( NET_GetPacket(NS_CLIENT, &cls.from, msg ))
+	{
+		if( msg->cursize >= 4 && *(int *)msg->data == -1 )
+		{
+			cls.last_received = cls.realtime;
+			CL_ConnectionlessPacket( cls.from, msg );
+			continue;
+		}
+
+		// can't be a valid sequenced packet	
+		if( cls.state < ca_connected ) continue;
+
+		if( msg->cursize < 8 )
+		{
+			MsgDev( D_WARN, "%s: runt packet\n", NET_AdrToString( cls.from ));
+			continue;
+		}
+
+		// packet from server
+		if (!NET_CompareAdr( cls.from, cls.netchan.remote_address))
+		{
+			MsgDev( D_WARN, "CL_ReadPackets: %s:sequenced packet without connection\n", NET_AdrToString( cls.from ));
+			continue;
+		}
+
+		if(Netchan_Process( &cls.netchan, msg ))
+		{
+			// the header is different lengths for reliable and unreliable messages
+			int headerBytes = msg->readcount;
+
+			Msg("header bytes %d\n", headerBytes );
+			cls.last_received = cls.realtime;
+			CL_ParseServerMessage( msg );
+
+			// we don't know if it is ok to save a demo message until
+			// after we have parsed the frame
+			if( cls.demorecording && !cls.demowaiting )
+				CL_WriteDemoMessage( msg, headerBytes );
+		}
+	}
+}
+
+/*
+=================
+CL_ReadPackets
+=================
+*/
+void CL_ReadPackets (void)
+{
+	if( cls.demoplayback )
+		CL_ReadDemoMessage();
+	else CL_ReadNetMessage();
+}
 
 /*
 ==================
-CL_SendCommand
-
+CL_CheckTimeout
 ==================
 */
-void CL_SendCommand (void)
+void CL_CheckTimeout( void )
 {
-	// get new key events
-	Sys_SendKeyEvents ();
-
-	// process console commands
-	Cbuf_Execute ();
-
-	// fix any cheating cvars
-	CL_FixCvarCheats ();
-
-	// send intentions now
-	CL_SendCmd ();
-
-	// resend a connection request if necessary
-	CL_CheckForResend ();
+	// check timeout
+	if( !cl_paused->integer && cls.state >= ca_connected && cls.state != ca_cinematic && !cls.demoplayback )
+	{
+		if( cls.realtime - cls.last_received > cl_timeout->integer * 1000 )
+		{
+			if( ++cl.timeoutcount > 5 ) // timeoutcount saves debugger
+			{
+				Msg ("\nServer connection timed out.\n");
+				CL_Disconnect();
+				return;
+			}
+		}
+	}
+	else cl.timeoutcount = 0;
 }
+
 
 /*
 ==================
@@ -1403,32 +1343,13 @@ CL_Frame
 */
 void CL_Frame( dword time )
 {
-	static dword extratime;
-
 	if( host.type == HOST_DEDICATED )
 		return;
 
-	// get server to client packets
-	Host_EventLoop();
-	Cbuf_Execute();
-
-	extratime += time;
-
-	if( cls.state == ca_connected && extratime < HOST_FRAMETIME )
-		return;	// don't flood packets out while connecting
-	if( extratime < 1000 / cl_maxfps->value)
-		return;	// framerate is too high
-
 	// decide the simulation time
-	cl.time += extratime;
-	cls.realtime = Sys_Milliseconds();
-	cls.frametime = extratime * 0.001;
-	extratime = 0;
-
-	if( cls.frametime > (1.0 / 5)) cls.frametime = (1.0 / 5);
-
-	// if in the debugger last frame, don't timeout
-	if( time > 5000 ) cls.netchan.last_received = Sys_Milliseconds();
+	cl.time += time;
+	cls.realtime = Sys_Milliseconds(); //FIXME: teseing with += time;
+	cls.frametime = time * 0.001;
 
 	// setup the VM frame
 	CL_VM_Begin();
@@ -1436,14 +1357,20 @@ void CL_Frame( dword time )
 	// fetch results from server
 	CL_ReadPackets();
 
-	// send a new command message to the server
-	CL_SendCommand();
+	// if we haven't gotten a packet in a long time, drop the connection          
+          CL_CheckTimeout();
+
+	// send intentions now
+	CL_SendCmd();
+
+	// resend a connection request if necessary
+	CL_CheckForResend();
 
 	// predict all unacknowledged movements
-	CL_PredictMovement ();
+	CL_PredictMovement();
 
 	// allow rendering DLL change
-	if(!cl.refresh_prepped && cls.state == ca_active)
+	if(!cl.refresh_prepped && cls.state == ca_active )
 		CL_PrepRefresh();
 
 	// update the screen
@@ -1486,9 +1413,6 @@ void CL_Init( void )
 	VID_Init();
 	V_Init();
 	CL_InitClientProgs();
-
-	net_message.data = net_message_buffer;
-	net_message.maxsize = sizeof(net_message_buffer);
 
 	UI_Init();
 	SCR_Init();

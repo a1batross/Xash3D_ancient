@@ -173,7 +173,7 @@ void _MSG_WriteDeltaUsercmd (sizebuf_t *buf, usercmd_t *from, usercmd_t *cmd, co
  	if (bits & CM_BUTTONS) _MSG_WriteByte (buf, cmd->buttons, filename, fileline );
  	if (bits & CM_IMPULSE) _MSG_WriteByte (buf, cmd->impulse, filename, fileline );
 
-	_MSG_WriteByte (buf, cmd->msec, filename, fileline );
+	_MSG_WriteLong (buf, cmd->servertime, filename, fileline );
 	_MSG_WriteByte (buf, cmd->lightlevel, filename, fileline );
 }
 
@@ -500,7 +500,7 @@ void MSG_ReadDeltaUsercmd (sizebuf_t *msg_read, usercmd_t *from, usercmd_t *move
 	if (bits & CM_BUTTONS) move->buttons = MSG_ReadByte (msg_read);
 	if (bits & CM_IMPULSE) move->impulse = MSG_ReadByte (msg_read);
 	
-	move->msec = MSG_ReadByte (msg_read); // read time to run command
+	move->servertime = MSG_ReadLong (msg_read); // read time to run command
 	move->lightlevel = MSG_ReadByte (msg_read); // read the light level
 }
 
@@ -566,7 +566,7 @@ void MSG_ReadData (sizebuf_t *msg_read, void *data, int len)
 
 void SZ_Init( sizebuf_t *buf, byte *data, size_t length )
 {
-	memset (buf, 0, sizeof(*buf));
+	memset( buf, 0, sizeof(sizebuf_t));
 	buf->data = data;
 	buf->maxsize = length;
 }

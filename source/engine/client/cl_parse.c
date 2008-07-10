@@ -81,14 +81,16 @@ bool	CL_CheckOrDownloadFile (char *filename)
 
 		// give the server an offset to start the download
 		Msg ("Resuming %s\n", cls.downloadname);
-		MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
-		MSG_WriteString (&cls.netchan.message, va("download %s %i", cls.downloadname, len));
+		MSG_WriteByte (&cl.netmsg, clc_stringcmd);
+		MSG_WriteString (&cl.netmsg, va("download %s %i", cls.downloadname, len));
+		MSG_WriteByte( &cl.netmsg, clc_eof ); // end of message
 	}
 	else
 	{
 		Msg ("Downloading %s\n", cls.downloadname);
-		MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
-		MSG_WriteString (&cls.netchan.message, va("download %s", cls.downloadname));
+		MSG_WriteByte (&cl.netmsg, clc_stringcmd);
+		MSG_WriteString (&cl.netmsg, va("download %s", cls.downloadname));
+		MSG_WriteByte( &cl.netmsg, clc_eof ); // end of message
 	}
 
 	cls.downloadnumber++;
@@ -144,9 +146,9 @@ void	CL_Download_f (void)
 	FS_StripExtension (cls.downloadtempname);
 	FS_DefaultExtension(cls.downloadtempname, ".tmp");
 
-	MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
-	MSG_WriteString (&cls.netchan.message,
-		va("download %s", cls.downloadname));
+	MSG_WriteByte (&cl.netmsg, clc_stringcmd);
+	MSG_WriteString (&cl.netmsg, va("download %s", cls.downloadname));
+	MSG_WriteByte( &cl.netmsg, clc_eof ); // end of message
 
 	cls.downloadnumber++;
 }
@@ -165,7 +167,7 @@ void CL_RegisterSounds (void)
 	{
 		if (!cl.configstrings[CS_SOUNDS+i][0]) break;
 		cl.sound_precache[i] = S_RegisterSound (cl.configstrings[CS_SOUNDS+i]);
-		Sys_SendKeyEvents (); // pump message loop
+		Host_EventLoop(); // pump message loop
 	}
 	S_EndRegistration();
 }
@@ -223,8 +225,9 @@ void CL_ParseDownload( sizebuf_t *msg )
 		// request next block
 		cls.downloadpercent = percent;
 
-		MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
-		SZ_Print (&cls.netchan.message, "nextdl");
+		MSG_WriteByte (&cl.netmsg, clc_stringcmd);
+		SZ_Print (&cl.netmsg, "nextdl");
+		MSG_WriteByte( &cl.netmsg, clc_eof ); // end of message
 	}
 	else
 	{
@@ -453,7 +456,6 @@ void CL_ParseConfigString( sizebuf_t *msg )
 	strcpy (cl.configstrings[i], s);
 
 	// do something apropriate 
-
 	if (i >= CS_LIGHTS && i < CS_LIGHTS+MAX_LIGHTSTYLES)
 	{
 		CL_SetLightstyle (i - CS_LIGHTS);
@@ -594,19 +596,20 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 		}
 
 		cmd = MSG_ReadByte( msg );
-
 		if (cmd == -1)
 		{
 			SHOWNET( msg, "END OF MESSAGE" );
 			break;
 		}
-	
 		// other commands
 		switch( cmd )
 		{
 		case svc_nop:
 			MsgDev( D_ERROR, "CL_ParseServerMessage: user message out of bounds\n" );
 			break;
+		case svc_eof:
+			MsgDev( D_INFO, "CL_ParseServerMessage: message received\n" );
+			break;			
 		case svc_disconnect:
 			CL_Drop ();
 			Host_AbortCurrentFrame();
@@ -624,6 +627,7 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 		case svc_stufftext:
 			s = MSG_ReadString( msg );
 			Cbuf_AddText( s );
+			Cbuf_Execute();
 			break;
 		case svc_serverdata:
 			Cbuf_Execute();		// make sure any stuffed commands are done
@@ -665,10 +669,4 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			break;
 		}
 	}
-
-	// we don't know if it is ok to save a demo message until
-	// after we have parsed the frame
-	if (cls.demorecording && !cls.demowaiting)
-		CL_WriteDemoMessage();
-
 }

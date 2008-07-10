@@ -30,13 +30,6 @@ typedef struct worldsector_s
 	sv_edict_t		*entities;
 } worldsector_t;
 
-struct gclient_s
-{
-	player_state_t		ps;		// communicated by server to clients
-	usercmd_t			ucmd;		// memeber current frame commands
-	int			ping;
-};
-
 struct sv_edict_s
 {
 	// generic_edict_t (don't move these fields!)
@@ -46,6 +39,8 @@ struct sv_edict_s
 	// sv_private_edict_t
 	worldsector_t		*worldsector;	// member of current wolrdsector
 	struct sv_edict_s 		*nextedict;	// next edict in world sector
+	struct sv_client_s		*client;		// filled for player ents
+
 	int			clipmask;		// trace info
 	int			lastcluster;	// unused if num_clusters != -1
 	int			linkcount;
@@ -57,9 +52,8 @@ struct sv_edict_s
 	int			solid;		// see entity_state_t for details
 	physbody_t		*physbody;	// ptr to phys body
 
-	// baselines
+	// baseline
 	entity_state_t		s;
-	struct gclient_s		*client;		//get rid of this
 };
 
 struct sv_globalvars_s
@@ -104,6 +98,7 @@ struct sv_globalvars_s
 	func_t	PutClientInServer;
 	func_t	ClientDisconnect;
 	func_t	ClientCommand;
+	func_t	ClientUserInfoChanged;
 };
 
 struct sv_entvars_s

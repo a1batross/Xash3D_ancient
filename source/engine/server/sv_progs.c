@@ -1732,7 +1732,7 @@ void clientcommand( float client, string s )
 */
 void PF_clientcmd( void )
 {
-	client_state_t	*client;
+	sv_client_t	*client;
 	int		i;
 
 	if(!VM_ValidateArgs( "ClientCommand", 2 )) return;
@@ -1746,8 +1746,8 @@ void PF_clientcmd( void )
 	}
 
 	client = svs.clients + i;
-	MSG_WriteByte(&client->netchan.message, svc_stufftext );
-	MSG_WriteString( &client->netchan.message, PRVM_G_STRING(OFS_PARM1));
+	MSG_WriteByte( &client->netmsg, svc_stufftext );
+	MSG_WriteString( &client->netmsg, PRVM_G_STRING(OFS_PARM1));
 	MSG_Send(MSG_ONE_R, NULL, client->edict );
 }
 
@@ -1901,7 +1901,7 @@ void ClientPrintf( float type, entity client, string s )
 */
 void PF_ClientPrint( void )
 {
-	client_state_t	*client;
+	sv_client_t	*client;
 	int		num, type;
 	const char	*s;
 
@@ -2040,7 +2040,7 @@ void Info_Print( entity client )
 */
 void PF_InfoPrint( void )
 {
-	client_state_t	*client;
+	sv_client_t	*client;
 	int		num;
 
 	if(!VM_ValidateArgs( "Info_Print", 1 )) return;
@@ -2063,7 +2063,7 @@ string Info_ValueForKey( entity client, string key )
 */
 void PF_InfoValueForKey( void )
 {
-	client_state_t	*client;
+	sv_client_t	*client;
 	int		num;
 	const char	*key;
 
@@ -2091,7 +2091,7 @@ void Info_RemoveKey( entity client, string key )
 */
 void PF_InfoRemoveKey( void )
 {
-	client_state_t	*client;
+	sv_client_t	*client;
 	int		num;
 	const char	*key;
 
@@ -2119,7 +2119,7 @@ void Info_SetValueForKey( entity client, string key, string value )
 */
 void PF_InfoSetValueForKey( void )
 {
-	client_state_t	*client;
+	sv_client_t	*client;
 	int		num;
 	const char	*key, *value;
 
@@ -2393,7 +2393,7 @@ void SV_SpawnEntities( const char *mapname, const char *entities )
 	{
 		// setup all clients
 		ent = PRVM_EDICT_NUM( i );
-		ent->priv.sv->client = svs.gclients + i - 1;
+		ent->priv.sv->client = svs.clients + i - 1;
 	}
 
 	PRVM_ED_LoadFromFile( entities );
@@ -2455,17 +2455,14 @@ void SV_FreeServerProgs( void )
 	edict_t	*ent;
 	int	i;
 
-	SV_VM_Begin();
-
-	for (i = 1; prog && i < prog->num_edicts; i++)
+	if( PRVM_ProgLoaded( PRVM_SERVERPROG ))
 	{
-		ent = PRVM_EDICT_NUM(i);
-		SV_FreeEdict( ent );// release physic
+		SV_VM_Begin();
+		for( i = 1; prog && i < prog->num_edicts; i++ )
+		{
+			ent = PRVM_EDICT_NUM( i );
+			SV_FreeEdict( ent );// release physic
+		}
+		SV_VM_End();
 	}
-	SV_VM_End();
-
-	if(!svs.gclients) return;
-	Mem_Free( svs.gclients );
-	svs.gclients = NULL;
-
 }

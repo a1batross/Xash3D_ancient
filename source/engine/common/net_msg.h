@@ -8,6 +8,12 @@
 #define PACKET_BACKUP	32
 #define PACKET_MASK		( PACKET_BACKUP - 1 )
 
+#define MAX_PACKETLEN	1400		// max size of a network packet
+#define FRAGMENT_SIZE	(MAX_PACKETLEN - 100)
+#define PACKET_HEADER	10		// two ints and a short
+#define MAX_LOOPBACK	16
+#define FRAGMENT_BIT	(1<<31)
+
 // server to client
 enum svc_ops_e
 {
@@ -38,7 +44,7 @@ enum svc_ops_e
 // client to server
 enum clc_ops_e
 {
-	clc_bad,
+	clc_bad = 0,
 	clc_nop, 		
 	clc_move,				// [[usercmd_t]
 	clc_userinfo,			// [[userinfo string]
@@ -313,7 +319,7 @@ NET
 ==============================================================
 */
 void NET_SendPacket( netsrc_t sock, int length, const void *data, netadr_t to );
-bool NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, sizebuf_t *message );
+bool NET_GetPacket( netsrc_t sock, netadr_t *from, sizebuf_t *msg );
 bool NET_StringToAdr( const char *s, netadr_t *a );
 bool NET_CompareBaseAdr( netadr_t a, netadr_t b );
 bool NET_CompareAdr( netadr_t a, netadr_t b );
@@ -323,10 +329,10 @@ bool NET_IsLocalAddress( netadr_t adr );
 typedef struct netchan_s
 {
 	netsrc_t	sock;
-
+	int	dropped;		// between last packet and previous
 	netadr_t	remote_address;
 	int	qport;		// qport value to write when transmitting
-	int	dropped;		// between last packet and previous
+
 
 	// sequencing variables
 	int	incoming_sequence;
@@ -343,19 +349,7 @@ typedef struct netchan_s
 	int	unsent_fragment_start;
 	int	unsent_length;
 	byte	unsent_buffer[MAX_MSGLEN];
-
-	// legacy variables
-	// reliable staging and holding areas
-	sizebuf_t	message;			// writing buffer to send to server
-	byte	message_buf[MAX_MSGLEN-16];	// leave space for header
-	int	incoming_acknowledged;
-	int	last_received;		// for timeouts
-	int	last_sent;		// for retransmits
 } netchan_t;
-
-extern netadr_t	net_from;
-extern sizebuf_t	net_message;
-extern byte	net_message_buffer[MAX_MSGLEN];
 
 #define PROTOCOL_VERSION	35
 #define PORT_MASTER		27900

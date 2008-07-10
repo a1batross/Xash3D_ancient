@@ -43,6 +43,7 @@ typedef struct
 	trace_t		groundtrace;
 	bool		groundplane;
 	float		frametime;
+	int		msec;
 
 	// states
 	bool		air_borne;
@@ -1417,19 +1418,15 @@ PM_DropTimers
 */
 static void PM_DropTimers( void )
 {
+	// drop misc timing counter
 	if( pm->ps.pm_time )
 	{
-		int	msec;
-
-		msec = pm->cmd.msec>>3;
-		if(!msec) msec = 1;
-
-		if( msec >= pm->ps.pm_time) 
+		if( pml.msec >= pm->ps.pm_time )
 		{
 			pm->ps.pm_flags &= ~PMF_ALL_TIMES;
 			pm->ps.pm_time = 0;
 		}
-		else pm->ps.pm_time -= msec;
+		else pm->ps.pm_time -= pml.msec;
 	}
 }
 
@@ -1494,12 +1491,16 @@ void Quake_PMove( pmove_t *pmove )
 	// clear all pmove local vars
 	memset (&pml, 0, sizeof(pml));
 
+	// determine the time
+	pml.msec = bound( 1, pmove->cmd.servertime - pm->ps.cmd_time, 200 );
+	pm->ps.cmd_time = pmove->cmd.servertime;
+
 	// save old org in case we get stuck
 	VectorScale( pm->ps.origin, CL_COORD_FRAC, pml.previous_origin );
 	// save old velocity for crashlanding
 	VectorScale( pm->ps.velocity, CL_COORD_FRAC, pml.previous_velocity );
 
-	pml.frametime = pm->cmd.msec * 0.001;
+	pml.frametime = pml.msec * 0.001;
 
 	// update the viewangles
 	PM_UpdateViewAngles( &pm->ps, &pm->cmd );
@@ -1815,6 +1816,38 @@ physbody_t *Phys_CreatePlayer( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transfor
 */
 void CM_PlayerMove( pmove_t *pmove, bool clientmove )
 {
-	if( !cm_physics_model->integer )
+	int	finaltime;
+
+	if( cm_physics_model->integer ) return;
+	finaltime = pmove->cmd.servertime;
+
+	if( finaltime < pmove->ps.cmd_time )
+		return;	// should not happen
+
+	if( finaltime > pmove->ps.cmd_time + 1000 )
+		pmove->ps.cmd_time = finaltime - 1000;
+
+	// chop the move up if it is too long, to prevent framerate
+	// dependent behavior
+	while( pmove->ps.cmd_time != finaltime )
+	{
+		int msec = finaltime - pmove->ps.cmd_time;
+
+		/*if( pmove->pmove_fixed )
+		{
+			if( msec > pmove->pmove_msec )
+				msec = pmove->pmove_msec;
+			}
+		}
+		else*/
+		{
+			if ( msec > 66 ) msec = 66;
+		}
+		pmove->cmd.servertime = pmove->ps.cmd_time + msec;
 		Quake_PMove( pmove );
+
+		if( pmove->ps.pm_flags & PMF_JUMP_HELD )
+			pmove->cmd.upmove = 20;
+	}
+	//PM_CheckStuck();
 }

@@ -22,10 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "common.h"
 #include "client.h"
 
-void CL_PacketEvent( netadr_t from, sizebuf_t *msg )
-{
-}
-
 /*
 =========================================================================
 
@@ -285,7 +281,7 @@ void CL_ParsePlayerstate( sizebuf_t *msg, frame_t *oldframe, frame_t *newframe )
 	// parse the pmove_state_t
 	if (flags & PS_M_ORIGIN) MSG_ReadPos32(msg, state->origin ); 
 	if (flags & PS_M_VELOCITY) MSG_ReadPos32(msg, state->velocity ); 
-	if (flags & PS_M_TIME) state->pm_time = MSG_ReadByte (msg);
+	if (flags & PS_M_TIME) state->pm_time = MSG_ReadLong (msg);
 	if (flags & PS_M_FLAGS) state->pm_flags = MSG_ReadByte (msg);
 	if (flags & PS_M_GRAVITY) state->gravity = MSG_ReadShort (msg);
 	if (flags & PS_M_DELTA_ANGLES) MSG_ReadPos32(msg, state->delta_angles ); 
