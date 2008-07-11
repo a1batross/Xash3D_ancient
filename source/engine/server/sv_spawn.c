@@ -379,7 +379,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	pmove_t		pm;
 	vec3_t		view;
 	vec3_t		oldorigin, oldvelocity;
-	int		i, j;
+	int		i, j, msec;
 
 	client = ent->priv.sv->client;
 
@@ -415,6 +415,21 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	pm.ps = client->ps;
 	memcpy( &client->ucmd, ucmd, sizeof(usercmd_t));//IMPORTANT!!!
 
+	// sanity check the command time to prevent speedup cheating
+	if( client->ucmd.servertime > ( sv.time * 1000 ) + 200 )
+	{
+		client->ucmd.servertime = ( sv.time * 1000 ) + 200;
+		Msg("serverTime <<<<<\n" );
+	}
+	if( client->ucmd.servertime < ( sv.time * 1000 ) - 1000 )
+	{
+		client->ucmd.servertime = ( sv.time * 1000 ) - 1000;
+		Msg("serverTime >>>>>\n" );
+	} 
+
+	msec = client->ucmd.servertime - client->ps.cmd_time;
+	if( msec > 200 ) msec = 200;
+
 	VectorScale(ent->progs.sv->origin, SV_COORD_FRAC, pm.ps.origin );
 	VectorScale(ent->progs.sv->velocity, SV_COORD_FRAC, pm.ps.velocity );
 
@@ -445,7 +460,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	VectorCopy(ent->progs.sv->v_offset, client->ps.vmodel.offset );
 	VectorCopy(ent->progs.sv->v_angles, client->ps.vmodel.angles );
 
-	SV_LinkEdict(ent);
+	SV_LinkEdict( ent );
 
 	if (ent->progs.sv->movetype != MOVETYPE_NOCLIP)
 		SV_TouchTriggers (ent);

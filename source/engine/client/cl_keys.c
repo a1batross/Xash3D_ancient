@@ -1115,7 +1115,7 @@ void Key_Event( int key, bool down, uint time )
 	// escape is always handled special
 	if ( key == K_ESCAPE && down )
 	{
-		if (cl.frame.playerstate.stats[STAT_LAYOUTS] && cls.key_dest == key_game)
+		if (cl.frame.ps.stats[STAT_LAYOUTS] && cls.key_dest == key_game)
 		{	
 			// put away help computer / inventory
 			Cbuf_AddText ("cmd putaway\n");

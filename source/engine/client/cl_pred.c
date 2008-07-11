@@ -32,14 +32,15 @@ void CL_CheckPredictionError (void)
 	int		delta[3];
 	int		len;
 
-	if (!cl_predict->value || (cl.frame.playerstate.pm_flags & PMF_NO_PREDICTION))
+	if (!cl_predict->value || (cl.frame.ps.pm_flags & PMF_NO_PREDICTION))
 		return;
 
 	// calculate the last usercmd_t we sent that the server has processed
-	frame = cl.cmd_number & CMD_MASK;
+	frame = cls.netchan.incoming_acknowledged;
+	frame &= (CMD_BACKUP-1);
 
 	// compare what the server returned with what we had predicted it to be
-	VectorSubtract (cl.frame.playerstate.origin, cl.predicted_origins[frame], delta);
+	VectorSubtract (cl.frame.ps.origin, cl.predicted_origins[frame], delta);
 
 	// save the prediction error for interpolation
 	len = abs(delta[0]) + abs(delta[1]) + abs(delta[2]);
@@ -52,7 +53,7 @@ void CL_CheckPredictionError (void)
 		if (cl_showmiss->value && (delta[0] || delta[1] || delta[2]))
 			Msg ("prediction miss on %i: %i\n", cl.frame.serverframe, delta[0] + delta[1] + delta[2]);
 
-		VectorCopy (cl.frame.playerstate.origin, cl.predicted_origins[frame]);
+		VectorCopy (cl.frame.ps.origin, cl.predicted_origins[frame]);
 
 		// save for error itnerpolation
 		VectorScale( delta, CL_COORD_FRAC, cl.prediction_error );
@@ -189,18 +190,18 @@ void CL_PredictMovement (void)
 	if(cls.state != ca_active) return;
 	if(cl_paused->value) return;
 
-	if (!cl_predict->value || (cl.frame.playerstate.pm_flags & PMF_NO_PREDICTION))
+	if (!cl_predict->value || (cl.frame.ps.pm_flags & PMF_NO_PREDICTION))
 	{	
 		// just set angles
 		for (i = 0; i < 3; i++)
 		{
-			cl.predicted_angles[i] = cl.viewangles[i] + SHORT2ANGLE(cl.frame.playerstate.delta_angles[i]);
+			cl.predicted_angles[i] = cl.viewangles[i] + SHORT2ANGLE(cl.frame.ps.delta_angles[i]);
 		}
 		return;
 	}
 
-	ack = cl.cmd_number & CMD_MASK;
-	current = cl.cmd_number;
+	ack = cls.netchan.incoming_acknowledged;
+	current = cls.netchan.outgoing_sequence;
 
 	// if we are too far out of date, just freeze
 	if (current - ack >= CMD_BACKUP)
@@ -214,7 +215,7 @@ void CL_PredictMovement (void)
 	memset (&pm, 0, sizeof(pm));
 	pm.trace = CL_PMTrace;
 	pm.pointcontents = CL_PMpointcontents;
-	pm.ps = cl.frame.playerstate;
+	pm.ps = cl.frame.ps;
 
 //	SCR_DebugGraph (current - ack - 1, COLOR_0);
 

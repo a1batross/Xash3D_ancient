@@ -270,10 +270,10 @@ void CL_ParsePlayerstate( sizebuf_t *msg, frame_t *oldframe, frame_t *newframe )
 	int		i;
 	int		statbits;
 
-	state = &newframe->playerstate;
+	state = &newframe->ps;
 
 	// clear to old value before delta parsing
-	if (oldframe) *state = oldframe->playerstate;
+	if (oldframe) *state = oldframe->ps;
 	else memset (state, 0, sizeof(*state));
 
 	flags = MSG_ReadLong(msg);//four bytes
@@ -281,7 +281,8 @@ void CL_ParsePlayerstate( sizebuf_t *msg, frame_t *oldframe, frame_t *newframe )
 	// parse the pmove_state_t
 	if (flags & PS_M_ORIGIN) MSG_ReadPos32(msg, state->origin ); 
 	if (flags & PS_M_VELOCITY) MSG_ReadPos32(msg, state->velocity ); 
-	if (flags & PS_M_TIME) state->pm_time = MSG_ReadLong (msg);
+	if (flags & PS_M_TIME) state->pm_time = MSG_ReadByte (msg);
+	if (flags & PS_M_COMMANDMSEC) state->cmd_time = MSG_ReadLong (msg);
 	if (flags & PS_M_FLAGS) state->pm_flags = MSG_ReadByte (msg);
 	if (flags & PS_M_GRAVITY) state->gravity = MSG_ReadShort (msg);
 	if (flags & PS_M_DELTA_ANGLES) MSG_ReadPos32(msg, state->delta_angles ); 
@@ -448,8 +449,8 @@ void CL_ParseFrame( sizebuf_t *msg )
 			cls.state = ca_active;
 			cl.force_refdef = true;
 			// getting a valid frame message ends the connection process
-			VectorScale( cl.frame.playerstate.origin, CL_COORD_FRAC, cl.predicted_origin );
-			VectorCopy( cl.frame.playerstate.viewangles, cl.predicted_angles );
+			VectorScale( cl.frame.ps.origin, CL_COORD_FRAC, cl.predicted_origin );
+			VectorCopy( cl.frame.ps.viewangles, cl.predicted_angles );
 		}
 		CL_CheckPredictionError();
 	}
@@ -650,12 +651,12 @@ void CL_CalcViewValues( void )
 	}
 
 	// find the previous frame to interpolate from
-	ps = &cl.frame.playerstate;
+	ps = &cl.frame.ps;
 	i = (cl.frame.serverframe - 1) & UPDATE_MASK;
 	oldframe = &cl.frames[i];
 	if( oldframe->serverframe != cl.frame.serverframe-1 || !oldframe->valid )
 		oldframe = &cl.frame; // previous frame was dropped or invalid
-	ops = &oldframe->playerstate;
+	ops = &oldframe->ps;
 
 	// see if the player entity was teleported this frame
 	if( ps->pm_flags & PMF_TIME_TELEPORT )
@@ -663,7 +664,7 @@ void CL_CalcViewValues( void )
 	lerp = cl.lerpfrac;
 
 	// calculate the origin
-	if((cl_predict->value) && !(cl.frame.playerstate.pm_flags & PMF_NO_PREDICTION) && !cls.demoplayback )
+	if((cl_predict->value) && !(cl.frame.ps.pm_flags & PMF_NO_PREDICTION) && !cls.demoplayback )
 	{	
 		// use predicted values
 		int	delta;

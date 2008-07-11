@@ -34,13 +34,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 typedef struct
 {
 	bool		valid;			// cleared if delta parsing was invalid
-	int				serverframe;
-	int				servertime;		// server time the message is valid for (in msec)
-	int				deltaframe;
-	byte			areabits[MAX_MAP_AREAS/8];		// portalarea visibility bits
-	player_state_t	playerstate;
-	int				num_entities;
-	int				parse_entities;	// non-masked index into cl_parse_entities array
+	int		serverframe;
+	int		servertime;		// server time the message is valid for (in msec)
+	int		deltaframe;
+	byte		areabits[MAX_MAP_AREAS/8];	// portalarea visibility bits
+	int		num_entities;
+	int		parse_entities;	// non-masked index into cl_parse_entities array
+	player_state_t	ps;
 } frame_t;
 
 // console stuff
@@ -99,10 +99,6 @@ typedef struct
 	int		surpressCount;	// number of messages rate supressed
 	frame_t		frames[UPDATE_BACKUP];
 	outpacket_t	packets[PACKET_BACKUP];	// information about each packet we have sent out
-
-	// network channel to server
-	sizebuf_t		netmsg;
-	byte		netbuf[MAX_MSGLEN];
 
 	// mouse current position
 	int		mouse_x[2];
@@ -217,9 +213,6 @@ typedef struct
 	float		connect_time;		// for connection retransmits
 						// to work around address translating routers
 	netchan_t		netchan;			// network channel from server
-	netadr_t		from;
-	sizebuf_t		netmsg;
-	byte		netbuf[MAX_MSGLEN];
 	int		serverProtocol;		// in case we are doing some kind of version hack
 	sizebuf_t		*multicast;		// ptr for current message buffer (net or demo flow)
 
@@ -241,9 +234,6 @@ typedef struct
 	serverinfo_t	serverlist[MAX_SERVERS];	// servers to join
 	int		numservers;
 	int		pingtime;			// servers timebase
-
-	int		last_received;		// for retransmits
-	int		last_sent;		// last sending message
 
 	// cursor mouse pos for uimenu
 	int		mouse_x;

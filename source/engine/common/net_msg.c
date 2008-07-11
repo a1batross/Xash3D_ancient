@@ -162,15 +162,15 @@ void _MSG_WriteDeltaUsercmd (sizebuf_t *buf, usercmd_t *from, usercmd_t *cmd, co
 
 	_MSG_WriteByte (buf, bits, filename, fileline );
 
-	if (bits & CM_ANGLE1) _MSG_WriteShort (buf, cmd->angles[0], filename, fileline );
-	if (bits & CM_ANGLE2) _MSG_WriteShort (buf, cmd->angles[1], filename, fileline );
-	if (bits & CM_ANGLE3) _MSG_WriteShort (buf, cmd->angles[2], filename, fileline );
+	if (bits & CM_ANGLE1) _MSG_WriteLong (buf, cmd->angles[0], filename, fileline );
+	if (bits & CM_ANGLE2) _MSG_WriteLong (buf, cmd->angles[1], filename, fileline );
+	if (bits & CM_ANGLE3) _MSG_WriteLong (buf, cmd->angles[2], filename, fileline );
 	
-	if (bits & CM_FORWARD) _MSG_WriteShort (buf, cmd->forwardmove, filename, fileline );
-	if (bits & CM_SIDE) _MSG_WriteShort (buf, cmd->sidemove, filename, fileline );
-	if (bits & CM_UP) _MSG_WriteShort (buf, cmd->upmove, filename, fileline );
+	if (bits & CM_FORWARD) _MSG_WriteChar (buf, cmd->forwardmove, filename, fileline );
+	if (bits & CM_SIDE) _MSG_WriteChar (buf, cmd->sidemove, filename, fileline );
+	if (bits & CM_UP) _MSG_WriteChar (buf, cmd->upmove, filename, fileline );
 
- 	if (bits & CM_BUTTONS) _MSG_WriteByte (buf, cmd->buttons, filename, fileline );
+ 	if (bits & CM_BUTTONS) _MSG_WriteLong (buf, cmd->buttons, filename, fileline );
  	if (bits & CM_IMPULSE) _MSG_WriteByte (buf, cmd->impulse, filename, fileline );
 
 	_MSG_WriteLong (buf, cmd->servertime, filename, fileline );
@@ -487,17 +487,17 @@ void MSG_ReadDeltaUsercmd (sizebuf_t *msg_read, usercmd_t *from, usercmd_t *move
 	Mem_Copy (move, from, sizeof(*move));
 
 	// read current angles
-	if (bits & CM_ANGLE1) move->angles[0] = MSG_ReadShort (msg_read);
-	if (bits & CM_ANGLE2) move->angles[1] = MSG_ReadShort (msg_read);
-	if (bits & CM_ANGLE3) move->angles[2] = MSG_ReadShort (msg_read);
+	if (bits & CM_ANGLE1) move->angles[0] = MSG_ReadLong (msg_read);
+	if (bits & CM_ANGLE2) move->angles[1] = MSG_ReadLong (msg_read);
+	if (bits & CM_ANGLE3) move->angles[2] = MSG_ReadLong (msg_read);
 		
 	// read movement
-	if (bits & CM_FORWARD) move->forwardmove = MSG_ReadShort (msg_read);
-	if (bits & CM_SIDE) move->sidemove = MSG_ReadShort (msg_read);
-	if (bits & CM_UP) move->upmove = MSG_ReadShort (msg_read);
+	if (bits & CM_FORWARD) move->forwardmove = MSG_ReadChar (msg_read);
+	if (bits & CM_SIDE) move->sidemove = MSG_ReadChar (msg_read);
+	if (bits & CM_UP) move->upmove = MSG_ReadChar (msg_read);
 	
 	// read buttons
-	if (bits & CM_BUTTONS) move->buttons = MSG_ReadByte (msg_read);
+	if (bits & CM_BUTTONS) move->buttons = MSG_ReadLong (msg_read);
 	if (bits & CM_IMPULSE) move->impulse = MSG_ReadByte (msg_read);
 	
 	move->servertime = MSG_ReadLong (msg_read); // read time to run command

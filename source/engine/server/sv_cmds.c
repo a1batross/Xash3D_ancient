@@ -355,13 +355,13 @@ void SV_Status_f( void )
 		int	j, l, ping;
 		char	*s;
 
-		if (!cl->state) continue;
+		if( cl->state == cs_free ) continue;
 
 		Msg("%3i ", i);
 		Msg("%5i ", cl->edict->priv.sv->client->ps.stats[STAT_FRAGS]);
 
-		if (cl->state == cs_connected) Msg("Connect");
-		else if (cl->state == cs_zombie) Msg ("Zombie ");
+		if( cl->state == cs_connected ) Msg("Connect");
+		else if( cl->state == cs_zombie ) Msg( "Zombie ");
 		else
 		{
 			ping = cl->ping < 9999 ? cl->ping : 9999;

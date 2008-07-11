@@ -85,7 +85,7 @@ void CL_MouseMove( usercmd_t *cmd )
 	if( cls.key_dest != key_menu )
 	{
 		accel_sensitivity = cl_sensitivity->value + rate * cl_mouseaccel->value;
-		accel_sensitivity *= cl.mouse_sens; // scale by fov
+//accel_sensitivity *= cl.mouse_sens; // scale by fov
 		mx *= accel_sensitivity;
 		my *= accel_sensitivity;
 
@@ -251,7 +251,7 @@ void IN_Attack2Down(void) {IN_KeyDown(&in_attack2);}
 void IN_Attack2Up(void) {IN_KeyUp(&in_attack2);}
 void IN_UseDown (void) {IN_KeyDown(&in_use);}
 void IN_UseUp (void) {IN_KeyUp(&in_use);}
-void IN_CenterView (void) {cl.viewangles[PITCH] = -SHORT2ANGLE(cl.frame.playerstate.delta_angles[PITCH]);}
+void IN_CenterView (void) {cl.viewangles[PITCH] = -SHORT2ANGLE(cl.frame.ps.delta_angles[PITCH]);}
 
 
 //==========================================================================
@@ -407,6 +407,8 @@ void CL_CreateNewCommands( void )
 {
 	int	cmd_num;
 
+	if( cls.state < ca_connected ) return;
+
 	frame_msec = host.frametime[0] - host.frametime[1];
 	if( frame_msec > 200 ) frame_msec = 200;
 	host.frametime[1] = host.frametime[0];
@@ -438,12 +440,12 @@ bool CL_ReadyToSendPacket( void )
 		return false;
 
 	// If we are downloading, we send no less than 50ms between packets
-	if( *cls.downloadtempname && cls.realtime - cls.last_sent < 50 )
+	if( *cls.downloadtempname && cls.realtime - cls.netchan.last_sent < 50 )
 		return false;
 
 	// if we don't have a valid gamestate yet, only send
 	// one packet a second
-	if( cls.state < ca_connected && !*cls.downloadtempname && cls.realtime - cls.last_sent < 1000 )
+	if( cls.state < ca_connected && !*cls.downloadtempname && cls.realtime - cls.netchan.last_sent < 1000 )
 		return false;
 
 	// send every frame for loopbacks
@@ -488,29 +490,24 @@ During normal gameplay, a client packet will contain something like:
 void CL_WritePacket( void )
 {
 	int	i, j;
-	sizebuf_t	buf;
 	usercmd_t	*cmd, *oldcmd, nullcmd;
 	int	packet_num, old_packetnum;
 	int	count, checksumIndex, crc;
 	byte	data[MAX_MSGLEN];
+	sizebuf_t	usercmd;
 
 	// don't send anything if playing back a demo
 	if( cls.demoplayback || cls.state == ca_cinematic )
 		return;
 
-
 	if( cls.state == ca_connected )
 	{
-		if( cl.netmsg.cursize || cls.realtime - cls.last_sent > 1000 )
-		{
-			Msg("CL_WritePacket: %s\n", cl.netmsg.data );
-			Netchan_Transmit( &cls.netchan, cl.netmsg.cursize, cl.netmsg.data);	
-			SZ_Clear( &cl.netmsg );
-		}
+		if (cls.netchan.message.cursize || cls.realtime - cls.netchan.last_sent > 1000 )
+			Netchan_Transmit (&cls.netchan, 0, NULL );	
 		return;
 	}
 
-	SZ_Init( &buf, data, sizeof( data ));
+	SZ_Init(&usercmd, data, sizeof(data));
 	memset( &nullcmd, 0, sizeof(nullcmd));
 	oldcmd = &nullcmd;
 
@@ -518,58 +515,48 @@ void CL_WritePacket( void )
 	if( userinfo_modified )
 	{
 		userinfo_modified = false;
-		MSG_WriteByte( &buf, clc_userinfo);
-		MSG_WriteString (&buf, Cvar_Userinfo());
-		MSG_WriteByte( &buf, clc_eof ); // end of message
+		MSG_WriteByte( &cls.netchan.message, clc_userinfo);
+		MSG_WriteString (&cls.netchan.message, Cvar_Userinfo());
 	}
 
 	old_packetnum = ( cls.netchan.outgoing_sequence - 2 ) & PACKET_MASK;
-	count = cl.cmd_number - cl.packets[old_packetnum].cmdnumber;
+	count = cl.cmd_number - cl.packets[old_packetnum].cmd_number;
 	if( count > PACKET_BACKUP ) count = PACKET_BACKUP;
 
 	if( count >= 1 )
 	{
 		// begin a client move command
-		MSG_WriteByte (&buf, clc_move);
-
+		MSG_WriteByte (&usercmd, clc_move);
 		// save the position for a checksum byte
-		checksumIndex = buf.cursize;
-		MSG_WriteByte( &buf, 0 );
+		checksumIndex = usercmd.cursize;
+		MSG_WriteByte( &usercmd, 0 );
 
 		// let the server know what the last frame we
 		// got was, so the next message can be delta compressed
 		if( cl_nodelta->value || !cl.frame.valid || cls.demowaiting )
 		{
-			MSG_WriteLong( &buf, -1 );	// no compression
+			MSG_WriteLong( &usercmd, -1 );	// no compression
 		}
-		else MSG_WriteLong( &buf, cl.frame.serverframe );
-		MSG_WriteByte( &buf, count );		// write the command count
+		else MSG_WriteLong( &usercmd, cl.frame.serverframe );
+		MSG_WriteByte( &usercmd, count );		// write the command count
 
 		// write all the commands, including the predicted command
 		for( i = 0; i < count; i++ )
 		{
-			j = (cl.cmd_number - count + i + 1) & CMD_MASK;
+			j = (cls.netchan.outgoing_sequence - count + i + 1) & CMD_MASK;
 			cmd = &cl.cmds[j];
-			MSG_WriteDeltaUsercmd( &buf, oldcmd, cmd );
+			MSG_WriteDeltaUsercmd( &usercmd, oldcmd, cmd );
 			oldcmd = cmd;
 		}
+
+		// calculate a checksum over the move commands
+		crc = CRC_Sequence( usercmd.data+checksumIndex+1, usercmd.cursize-checksumIndex-1, cls.netchan.outgoing_sequence);
+		usercmd.data[checksumIndex] = crc;
 	}
-	MSG_WriteByte( &buf, clc_eof ); // end of message
 
 	// deliver the message
-	packet_num = cls.netchan.outgoing_sequence & PACKET_MASK;
-	cl.packets[packet_num].realtime = cls.realtime;
-	cl.packets[packet_num].servertime = oldcmd->servertime;
-	cl.packets[packet_num].cmdnumber = cl.cmd_number;
-	cls.last_sent = cls.realtime;
-
-	// calculate a checksum over the move commands
-	crc = CRC_Sequence( buf.data+checksumIndex+1, buf.cursize-checksumIndex-1, cls.netchan.outgoing_sequence);
-	buf.data[checksumIndex] = crc;
-	Netchan_Transmit( &cls.netchan, buf.cursize, buf.data );
-	// just in case, not really needed
-	while( cls.netchan.unsent_fragments )
-		Netchan_TransmitNextFragment( &cls.netchan );
+	cls.netchan.last_sent = cls.realtime;
+	Netchan_Transmit( &cls.netchan, usercmd.cursize, usercmd.data );
 }
 
 /*

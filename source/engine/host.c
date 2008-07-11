@@ -633,7 +633,7 @@ void Host_Print( const char *txt )
 		{
 			if(host.rd.flush)
 			{
-				host.rd.flush(host.rd.target, host.rd.buffer);
+				host.rd.flush( host.rd.address, host.rd.target, host.rd.buffer);
 				*host.rd.buffer = 0;
 			}
 		}

@@ -30,7 +30,7 @@
 #define MAX_STRING_TOKENS	80
 #define MAX_TOKEN_CHARS	128
 #define MAX_STRING_CHARS	1024
-#define MAX_MSGLEN		16384	// max length of a message, which may be fragmented into multiple packets
+#define MAX_MSGLEN		1400	// max length of a message, which may be fragmented into multiple packets
 
 #define COLOR_BLACK		'0'
 #define COLOR_RED		'1'

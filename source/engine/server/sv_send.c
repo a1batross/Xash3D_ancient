@@ -34,40 +34,18 @@ Msg redirection
 
 char sv_outputbuf[SV_OUTPUTBUF_LENGTH];
 
-void SV_FlushRedirect( int sv_redirected, char *outputbuf )
+void SV_FlushRedirect( netadr_t adr, int sv_redirected, char *outputbuf )
 {
 	if (sv_redirected == RD_PACKET)
 	{
-		Netchan_OutOfBandPrint (NS_SERVER, svs.redirect_address, "print\n%s", outputbuf);
+		Netchan_OutOfBandPrint (NS_SERVER, adr, "print\n%s", outputbuf);
 	}
 	else if (sv_redirected == RD_CLIENT)
 	{
-		MSG_WriteByte (&sv_client->netmsg, svc_print);
-		MSG_WriteByte (&sv_client->netmsg, PRINT_CONSOLE );
-		MSG_WriteString (&sv_client->netmsg, outputbuf);
+		MSG_WriteByte (&sv_client->netchan.message, svc_print);
+		MSG_WriteByte (&sv_client->netchan.message, PRINT_CONSOLE );
+		MSG_WriteString (&sv_client->netchan.message, outputbuf);
 	}
-}
-
-/*
-====================
-SV_RateMsec
-
-Return the number of msec a given size message is supposed
-to take to clear, based on the current rate
-====================
-*/
-
-static int SV_RateMsec( sv_client_t *client, int msg_size )
-{
-	int	rate, rate_msec;
-
-	// individual messages will never be larger than fragment size
-	if( msg_size > 1500 ) msg_size = 1500;
-
-	rate = client->rate;
-	rate_msec = (msg_size + HEADER_RATE_BYTES) * 1000 / rate;
-
-	return rate_msec;
 }
 
 /*
@@ -98,9 +76,9 @@ void SV_ClientPrintf (sv_client_t *cl, int level, char *fmt, ...)
 	com.vsprintf (string, fmt,argptr);
 	va_end (argptr);
 	
-	MSG_WriteByte (&cl->netmsg, svc_print);
-	MSG_WriteByte (&cl->netmsg, level);
-	MSG_WriteString (&cl->netmsg, string);
+	MSG_WriteByte (&cl->netchan.message, svc_print);
+	MSG_WriteByte (&cl->netchan.message, level);
+	MSG_WriteString (&cl->netchan.message, string);
 }
 
 /*
@@ -139,9 +117,9 @@ void SV_BroadcastPrintf (int level, char *fmt, ...)
 		if (level < cl->messagelevel) continue;
 		if (cl->state != cs_spawned) continue;
 
-		MSG_WriteByte (&cl->netmsg, svc_print);
-		MSG_WriteByte (&cl->netmsg, level);
-		MSG_WriteString (&cl->netmsg, string);
+		MSG_WriteByte (&cl->netchan.message, svc_print);
+		MSG_WriteByte (&cl->netchan.message, level);
+		MSG_WriteString (&cl->netchan.message, string);
 	}
 }
 
@@ -252,8 +230,8 @@ void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename,
 			if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7))))) continue;
 		}
 
-		if (reliable) _SZ_Write (&client->netmsg, sv.multicast.data, sv.multicast.cursize, filename, fileline);
-		else _SZ_Write (&client->netmsg, sv.multicast.data, sv.multicast.cursize, filename, fileline);
+		if (reliable) _SZ_Write (&client->netchan.message, sv.multicast.data, sv.multicast.cursize, filename, fileline);
+		else _SZ_Write (&client->datagram, sv.multicast.data, sv.multicast.cursize, filename, fileline);
 	}
 	SZ_Clear (&sv.multicast);
 }
@@ -427,56 +405,77 @@ FRAME UPDATES
 
 ===============================================================================
 */
-
-
-
 /*
 =======================
 SV_SendClientDatagram
 =======================
 */
-void SV_SendClientDatagram (sv_client_t *client )
+void SV_SendClientDatagram( sv_client_t *client )
 {
-	int		rate_msec;
+	sizebuf_t		msg;
+	byte		msg_buf[MAX_MSGLEN];
 
 	SV_BuildClientFrame( client );
+	SZ_Init( &msg, msg_buf, sizeof(msg_buf));
 
 	// send over all the relevant entity_state_t
 	// and the player_state_t
-	SV_WriteFrameToClient( client, &client->netmsg );
+	SV_WriteFrameToClient( client, &msg );
 
-	if( client->netmsg.overflowed )
+	// copy the accumulated multicast datagram
+	// for this client out to the message
+	// it is necessary for this to be after the WriteEntities
+	// so that entity references will be current
+	if (client->datagram.overflowed)
+		MsgDev( D_WARN, "datagram overflowed for %s\n", client->name );
+	else SZ_Write( &msg, client->datagram.data, client->datagram.cursize );
+	SZ_Clear( &client->datagram );
+
+	if( msg.overflowed )
 	{	
 		// must have room left for the packet header
-		MsgDev( D_WARN, "msg overflowed for %s\n", client->name);
-		SZ_Clear( &client->netmsg );
+		MsgDev( D_WARN, "msg overflowed for %s\n", client->name );
+		SZ_Clear( &msg );
 	}
 
 	// record information about the message
-	client->frames[client->netchan.outgoing_sequence & PACKET_MASK].msg_size = client->netmsg.cursize;
+	client->frames[client->netchan.outgoing_sequence & PACKET_MASK].msg_size = msg.cursize;
 	client->frames[client->netchan.outgoing_sequence & PACKET_MASK].msg_sent = svs.realtime;
 	client->frames[client->netchan.outgoing_sequence & PACKET_MASK].msg_acked = -1;
 
 	// send the datagram
-	Netchan_Transmit( &client->netchan, client->netmsg.cursize, client->netmsg.data );
-		
-	if( NET_IsLocalAddress( client->netchan.remote_address ) || NET_IsLANAddress( client->netchan.remote_address ))
-	{
-		client->nextmsgtime = svs.realtime - 1;
-		return;
-	}
+	Netchan_Transmit( &client->netchan, msg.cursize, msg.data );
+}
 
-	// normal rate / snapshotMsec calculation
-	rate_msec = SV_RateMsec( client, client->netmsg.cursize );
-	client->nextmsgtime = svs.realtime + rate_msec;
+/*
+=======================
+SV_RateDrop
 
-	// don't pile up empty snapshots while connecting
-	if( client->state != cs_spawned )
+Returns true if the client is over its current
+bandwidth estimation and should not be sent another packet
+=======================
+*/
+bool SV_RateDrop( sv_client_t *cl )
+{
+	int	i, total = 0;
+
+	// never drop over the loopback
+	if( NET_IsLocalAddress( cl->netchan.remote_address ))
+		return false;
+	
+	if( NET_IsLANAddress( cl->netchan.remote_address ))
+		return false;
+
+	for( i = 0; i < UPDATE_BACKUP; i++ )
+		total += cl->frames[i].msg_size;
+
+	if( total > cl->rate )
 	{
-		if( client->nextmsgtime < svs.realtime + 1000 )
-			client->nextmsgtime = svs.realtime + 1000;
+		cl->surpressCount++;
+		cl->frames[cl->netchan.outgoing_sequence & PACKET_MASK].msg_size = 0;
+		return true;
 	}
-	SZ_Clear( &client->netmsg );
+	return false;
 }
 
 /*
@@ -493,29 +492,29 @@ void SV_SendClientMessages( void )
 	for( i = 0, cl = svs.clients; i < maxclients->integer; i++, cl++ )
 	{
 		if( !cl->state ) continue;
-		if( svs.realtime < cl->nextmsgtime ) continue; // not time yet
-
-		if( cl->state != cs_spawned )
+		if( cl->netchan.message.overflowed )
 		{
-			if( cl->netmsg.cursize || svs.realtime - cl->lastmessage > 1000 )
-			{
-				Msg("SV_WritePacket: %s\n", cl->netmsg.data );
-				Netchan_Transmit( &cl->netchan, cl->netmsg.cursize, cl->netmsg.data );
-				SZ_Clear( &cl->netmsg );
-				continue;
-			}
+			SZ_Clear(&cl->netchan.message);
+			SZ_Clear(&cl->datagram);
+			SV_BroadcastPrintf (PRINT_CONSOLE, "%s overflowed\n", cl->name);
+			SV_DropClient( cl );
 		}
 
-		if( cl->netchan.unsent_fragments )
+		if( sv.state == ss_cinematic )
 		{
-			// send additional message fragments if the last message was too large to send at once
-			int packet_size = cl->netchan.unsent_length - cl->netchan.unsent_fragment_start;
-			cl->nextmsgtime = svs.realtime + SV_RateMsec( cl, packet_size );
-			Netchan_TransmitNextFragment( &cl->netchan );
-			continue;
+			Netchan_Transmit( &cl->netchan, 0, NULL );
 		}
-
-		// generate and send a new message
-		SV_SendClientDatagram( cl );
+		else if( cl->state == cs_spawned)
+		{
+			// don't overrun bandwidth
+			if( SV_RateDrop( cl )) continue;
+			SV_SendClientDatagram( cl );
+		}
+		else
+		{
+			// just update reliable if needed
+			if( cl->netchan.message.cursize || svs.realtime - cl->netchan.last_sent > 1000 )
+				Netchan_Transmit( &cl->netchan, 0, NULL );
+		}
 	}
 }

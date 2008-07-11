@@ -66,7 +66,7 @@ typedef enum
 
 typedef struct
 {
-	int	cmdnumber;	// cl.cmdnumber when packet was sent
+	int	cmd_number;	// cl.cmdnumber when packet was sent
 	int	servertime;	// usercmd->servertime when packet was sent
 	int	realtime;		// cls.realtime when packet was sent
 } outpacket_t;
@@ -75,22 +75,23 @@ typedef struct
 #define PS_M_ORIGIN			(1<<1)
 #define PS_M_VELOCITY		(1<<2)
 #define PS_M_TIME			(1<<3)
-#define PS_M_FLAGS			(1<<4)
-#define PS_M_GRAVITY		(1<<5)
-#define PS_M_DELTA_ANGLES		(1<<6)
-#define PS_VIEWOFFSET		(1<<7)
-#define PS_VIEWANGLES		(1<<8)
-#define PS_KICKANGLES		(1<<9)
-#define PS_BLEND			(1<<10)
-#define PS_FOV			(1<<11)
-#define PS_WEAPONINDEX		(1<<12)
-#define PS_WEAPONOFFSET		(1<<13)
-#define PS_WEAPONANGLES		(1<<14)
-#define PS_WEAPONFRAME		(1<<15)
-#define PS_WEAPONSEQUENCE		(1<<16)
-#define PS_WEAPONBODY		(1<<17)
-#define PS_WEAPONSKIN		(1<<18)
-#define PS_RDFLAGS			(1<<19)
+#define PS_M_COMMANDMSEC		(1<<4)
+#define PS_M_FLAGS			(1<<5)
+#define PS_M_GRAVITY		(1<<6)
+#define PS_M_DELTA_ANGLES		(1<<7)
+#define PS_VIEWOFFSET		(1<<8)
+#define PS_VIEWANGLES		(1<<9)
+#define PS_KICKANGLES		(1<<10)
+#define PS_BLEND			(1<<11)
+#define PS_FOV			(1<<12)
+#define PS_WEAPONINDEX		(1<<13)
+#define PS_WEAPONOFFSET		(1<<14)
+#define PS_WEAPONANGLES		(1<<15)
+#define PS_WEAPONFRAME		(1<<16)
+#define PS_WEAPONSEQUENCE		(1<<17)
+#define PS_WEAPONBODY		(1<<18)
+#define PS_WEAPONSKIN		(1<<19)
+#define PS_RDFLAGS			(1<<20)
 
 // ms and light always sent, the others are optional
 #define	CM_ANGLE1 	(1<<0)
@@ -328,27 +329,33 @@ bool NET_IsLocalAddress( netadr_t adr );
 //============================================================================
 typedef struct netchan_s
 {
-	netsrc_t	sock;
-	int	dropped;		// between last packet and previous
-	netadr_t	remote_address;
-	int	qport;		// qport value to write when transmitting
+	netsrc_t		sock;
+	int		dropped;		// between last packet and previous
+	netadr_t		remote_address;
 
+	int		last_received;	// for timeouts
+	int		last_sent;	// for retransmits
+
+	int		qport;		// qport value to write when transmitting
 
 	// sequencing variables
-	int	incoming_sequence;
-	int	outgoing_sequence;
+	int		incoming_sequence;
+	int		incoming_acknowledged;
+	int		incoming_reliable_acknowledged;	// single bit
 
-	// incoming fragment assembly buffer
-	int	fragment_sequence;
-	int	fragment_length;	
-	byte	fragment_buffer[MAX_MSGLEN];
+	int		incoming_reliable_sequence;		// single bit, maintained local
 
-	// outgoing fragment buffer
-	// we need to space out the sending of large fragmented messages
-	bool	unsent_fragments;
-	int	unsent_fragment_start;
-	int	unsent_length;
-	byte	unsent_buffer[MAX_MSGLEN];
+	int		outgoing_sequence;
+	int		reliable_sequence;			// single bit
+	int		last_reliable_sequence;		// sequence number of last send
+
+	// reliable staging and holding areas
+	sizebuf_t		message;				// writing buffer to send to server
+	byte		message_buf[MAX_MSGLEN-16];		// leave space for header
+
+	// message is copied to this buffer when it is first transfered
+	int		reliable_length;
+	byte		reliable_buf[MAX_MSGLEN-16];		// unacked reliable message
 } netchan_t;
 
 #define PROTOCOL_VERSION	35

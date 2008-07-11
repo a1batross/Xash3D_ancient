@@ -1746,8 +1746,8 @@ void PF_clientcmd( void )
 	}
 
 	client = svs.clients + i;
-	MSG_WriteByte( &client->netmsg, svc_stufftext );
-	MSG_WriteString( &client->netmsg, PRVM_G_STRING(OFS_PARM1));
+	MSG_WriteByte( &client->netchan.message, svc_stufftext );
+	MSG_WriteString( &client->netchan.message, PRVM_G_STRING(OFS_PARM1));
 	MSG_Send(MSG_ONE_R, NULL, client->edict );
 }
 
@@ -2359,7 +2359,7 @@ const int vm_sv_numbuiltins = sizeof(vm_sv_builtins) / sizeof(prvm_builtin_t); /
 
 /*
 ==============
-SpawnEntities
+SV_SpawnEntities
 
 Creates a server's entity / program execution context by
 parsing textual entity definitions out of an ent file.
@@ -2389,11 +2389,11 @@ void SV_SpawnEntities( const char *mapname, const char *entities )
 	*prog->time = sv.time;
 
 	// set client fields on player ents
-	for (i = 1; i < maxclients->value; i++)
+	for (i = 0; i < maxclients->value; i++)
 	{
 		// setup all clients
 		ent = PRVM_EDICT_NUM( i );
-		ent->priv.sv->client = svs.clients + i - 1;
+		ent->priv.sv->client = svs.clients + i;
 	}
 
 	PRVM_ED_LoadFromFile( entities );

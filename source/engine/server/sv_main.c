@@ -37,10 +37,10 @@ void Master_Shutdown (void);
 static int rd_target;
 static char *rd_buffer;
 static int rd_buffersize;
-static void (*rd_flush)(int target, char *buffer);
+static void (*rd_flush)( netadr_t adr, int target, char *buffer);
 
 //============================================================================
-void SVC_BeginRedirect (int target, char *buffer, int buffersize, void (*flush))
+void SVC_BeginRedirect( netadr_t adr, int target, char *buffer, int buffersize, void (*flush))
 {
 	if (!target || !buffer || !buffersize || !flush) return;
 
@@ -48,14 +48,16 @@ void SVC_BeginRedirect (int target, char *buffer, int buffersize, void (*flush))
 	host.rd.buffer = buffer;
 	host.rd.buffersize = buffersize;
 	host.rd.flush = flush;
+	host.rd.address = adr;
 
 	*host.rd.buffer = 0;
 }
 
-void SVC_EndRedirect (void)
+void SVC_EndRedirect( netadr_t adr )
 {
-	host.rd.flush(rd_target, rd_buffer);
+	host.rd.flush( adr, rd_target, rd_buffer );
 
+	memset( &host.rd.address, 0, sizeof(netadr_t));
 	host.rd.target = 0;
 	host.rd.buffer = NULL;
 	host.rd.buffersize = 0;
@@ -205,7 +207,7 @@ void SVC_RemoteCommand( netadr_t from, sizebuf_t *msg )
 
 	if (i == 0) MsgDev(D_INFO, "Bad rcon from %s:\n%s\n", NET_AdrToString (from), msg->data + 4);
 	else MsgDev(D_INFO, "Rcon from %s:\n%s\n", NET_AdrToString (from), msg->data + 4);
-	SVC_BeginRedirect (RD_PACKET, sv_outputbuf, SV_OUTPUTBUF_LENGTH, SV_FlushRedirect);
+	SVC_BeginRedirect( from, RD_PACKET, sv_outputbuf, SV_OUTPUTBUF_LENGTH, SV_FlushRedirect );
 
 	if (!Rcon_Validate()) Msg("Bad rcon_password.\n");
 	else
@@ -219,7 +221,7 @@ void SVC_RemoteCommand( netadr_t from, sizebuf_t *msg )
 		}
 		Cmd_ExecuteString (remaining);
 	}
-	SVC_EndRedirect ();
+	SVC_EndRedirect( from );
 }
 
 /*
@@ -341,15 +343,18 @@ void SV_ReadPackets( void )
 {
 	sv_client_t	*cl;
 	int		i, qport;
-	sizebuf_t		*msg = &svs.netmsg;
+	sizebuf_t		net_message;
+	sizebuf_t		*msg = &net_message;
+	byte		buffer[MAX_MSGLEN];
+	netadr_t		net_from;
 
-	SZ_Init( msg, svs.netbuf, sizeof(svs.netbuf));
-	while( NET_GetPacket( NS_SERVER, &svs.from, msg ))
+	SZ_Init( msg, buffer, sizeof(buffer));
+	while( NET_GetPacket( NS_SERVER, &net_from, msg ))
 	{
 		// check for connectionless packet (0xffffffff) first
 		if( msg->cursize >= 4 && *(int *)msg->data == -1 )
 		{
-			SV_ConnectionlessPacket( svs.from, msg );
+			SV_ConnectionlessPacket( net_from, msg );
 			continue;
 		}
 
@@ -357,18 +362,19 @@ void SV_ReadPackets( void )
 		// stupid address translating routers
 		MSG_BeginReading( msg );
 		MSG_ReadLong( msg );	// sequence number
+		MSG_ReadLong( msg );	// sequence number
 		qport = MSG_ReadShort( msg ) & 0xffff;
 
 		// check for packets from connected clients
 		for( i = 0, cl = svs.clients; i < maxclients->value; i++, cl++ )
 		{
 			if( cl->state == cs_free ) continue;
-			if( !NET_CompareBaseAdr( svs.from, cl->netchan.remote_address)) continue;
+			if( !NET_CompareBaseAdr( net_from, cl->netchan.remote_address)) continue;
 			if( cl->netchan.qport != qport ) continue;
-			if( cl->netchan.remote_address.port != svs.from.port )
+			if( cl->netchan.remote_address.port != net_from.port )
 			{
 				MsgDev(D_INFO, "SV_PacketEvent: fixing up a translated port\n");
-				cl->netchan.remote_address.port = svs.from.port;
+				cl->netchan.remote_address.port = net_from.port;
 			}
 			// make sure it is a valid, in sequence packet
 			if( Netchan_Process(&cl->netchan, msg))

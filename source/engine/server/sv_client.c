@@ -154,8 +154,8 @@ void SV_DirectConnect( netadr_t from )
 	}
 	if( !newcl )
 	{
-		Netchan_OutOfBandPrint (NS_SERVER, from, "print\nServer is full.\n");
-		MsgDev(D_INFO, "SVC_DirectConnect: rejected a connection.\n");
+		Netchan_OutOfBandPrint( NS_SERVER, from, "print\nServer is full.\n" );
+		MsgDev( D_INFO, "SVC_DirectConnect: rejected a connection.\n");
 		return;
 	}
 
@@ -186,13 +186,15 @@ gotnewcl:
 	com.strncpy( newcl->userinfo, userinfo, sizeof(newcl->userinfo) - 1);
 	SV_UserinfoChanged( newcl );
 
+	// send the connect packet to the client
+	Netchan_OutOfBandPrint( NS_SERVER, from, "client_connect" );
+
 	Netchan_Setup( NS_SERVER, &newcl->netchan, from, qport );
-	SZ_Init( &newcl->netmsg, newcl->netbuf, sizeof( newcl->netbuf ));
+	SZ_Init( &newcl->datagram, newcl->datagram_buf, sizeof(newcl->datagram_buf));
 	
 	newcl->state = cs_connected;
 	newcl->lastmessage = svs.realtime;
 	newcl->lastconnect = svs.realtime;
-	newcl->nextmsgtime = svs.realtime;
 
 	// if this was the first client on the server, or the last client
 	// the server can hold, send a heartbeat to the master.
@@ -200,9 +202,6 @@ gotnewcl:
 		if( cl->state >= cs_connected ) count++;
 	if( count == 1 || count == maxclients->integer )
 		svs.last_heartbeat = MAX_HEARTBEAT;
-
-	// send the connect packet to the client
-	Netchan_OutOfBandPrint( NS_SERVER, from, "client_connect" );
 }
 
 /*
@@ -222,7 +221,7 @@ void SV_DropClient( sv_client_t *drop )
 		return;		// already dropped
 
 	// add the disconnect
-	MSG_WriteByte( &drop->netmsg, svc_disconnect );
+	MSG_WriteByte( &drop->netchan.message, svc_disconnect );
 
 	// let the game known about client state
 	prog->globals.sv->time = sv.time;
@@ -280,12 +279,13 @@ void SV_PutClientInServer( edict_t *ent )
  
 	// setup playerstate
 	memset( &client->ps, 0, sizeof(client->ps));
- 
+
 	client->ps.fov = 90;
 	client->ps.fov = bound(1, client->ps.fov, 160);
 	client->ps.vmodel.index = SV_ModelIndex(PRVM_GetString(ent->progs.sv->v_model));
 	client->ps.pmodel.index = SV_ModelIndex(PRVM_GetString(ent->progs.sv->p_model));
-	VectorCopy( ent->progs.sv->origin, client->ps.origin );
+	client->ps.cmd_time = ( sv.time * 1000 ) - 100;
+	VectorScale( ent->progs.sv->origin, SV_COORD_FRAC, client->ps.origin );
 	VectorCopy( ent->progs.sv->v_angle, client->ps.viewangles );
 	for( i = 0; i < 3; i++ ) client->ps.delta_angles[i] = ANGLE2SHORT(ent->progs.sv->v_angle[i]);
 
@@ -322,11 +322,14 @@ void SV_New_f( sv_client_t *cl )
 	playernum = cl - svs.clients;
           
 	// send the serverdata
-	MSG_WriteByte( &cl->netmsg, svc_serverdata );
-	MSG_WriteLong( &cl->netmsg, PROTOCOL_VERSION);
-	MSG_WriteLong( &cl->netmsg, svs.spawncount );
-	MSG_WriteShort( &cl->netmsg, playernum );
-	MSG_WriteString( &cl->netmsg, sv.configstrings[CS_NAME] );
+	MSG_WriteByte( &cl->netchan.message, svc_serverdata );
+	MSG_WriteLong( &cl->netchan.message, PROTOCOL_VERSION);
+	MSG_WriteLong( &cl->netchan.message, svs.spawncount );
+
+	if(sv.state == ss_cinematic) playernum = -1;
+	else playernum = sv_client - svs.clients;
+	MSG_WriteShort( &cl->netchan.message, playernum );
+	MSG_WriteString( &cl->netchan.message, sv.configstrings[CS_NAME] );
 
 	// game server
 	if( sv.state == ss_active )
@@ -338,8 +341,8 @@ void SV_New_f( sv_client_t *cl )
 		memset( &cl->lastcmd, 0, sizeof(cl->lastcmd));
 
 		// begin fetching configstrings
-		MSG_WriteByte( &cl->netmsg, svc_stufftext );
-		MSG_WriteString( &cl->netmsg, va("cmd configstrings %i 0\n",svs.spawncount) );
+		MSG_WriteByte( &cl->netchan.message, svc_stufftext );
+		MSG_WriteString( &cl->netchan.message, va("cmd configstrings %i 0\n",svs.spawncount) );
 	}
 }
 
@@ -370,13 +373,13 @@ void SV_Configstrings_f( sv_client_t *cl )
 	start = com.atoi(Cmd_Argv(2));
 
 	// write a packet full of data
-	while( cl->netmsg.cursize < MAX_MSGLEN / 2 && start < MAX_CONFIGSTRINGS )
+	while( cl->netchan.message.cursize < MAX_MSGLEN / 2 && start < MAX_CONFIGSTRINGS )
 	{
 		if( sv.configstrings[start][0])
 		{
-			MSG_WriteByte( &cl->netmsg, svc_configstring );
-			MSG_WriteShort( &cl->netmsg, start );
-			MSG_WriteString( &cl->netmsg, sv.configstrings[start] );
+			MSG_WriteByte( &cl->netchan.message, svc_configstring );
+			MSG_WriteShort( &cl->netchan.message, start );
+			MSG_WriteString( &cl->netchan.message, sv.configstrings[start] );
 		}
 		start++;
 	}
@@ -385,8 +388,8 @@ void SV_Configstrings_f( sv_client_t *cl )
 	else com.snprintf( cs, MAX_STRING, "cmd configstrings %i %i\n", svs.spawncount, start );
  
 	// send next command
-	MSG_WriteByte( &cl->netmsg, svc_stufftext );
-	MSG_WriteString( &cl->netmsg, cs );
+	MSG_WriteByte( &cl->netchan.message, svc_stufftext );
+	MSG_WriteString( &cl->netchan.message, cs );
 }
 
 /*
@@ -419,13 +422,13 @@ void SV_Baselines_f( sv_client_t *cl )
 	memset( &nullstate, 0, sizeof(nullstate));
 
 	// write a packet full of data
-	while( cl->netmsg.cursize < MAX_MSGLEN / 2 && start < MAX_EDICTS )
+	while( cl->netchan.message.cursize < MAX_MSGLEN / 2 && start < MAX_EDICTS )
 	{
 		base = &sv.baselines[start];
 		if( base->modelindex || base->soundindex || base->effects )
 		{
-			MSG_WriteByte( &cl->netmsg, svc_spawnbaseline );
-			MSG_WriteDeltaEntity( &nullstate, base, &cl->netmsg, true, true );
+			MSG_WriteByte( &cl->netchan.message, svc_spawnbaseline );
+			MSG_WriteDeltaEntity( &nullstate, base, &cl->netchan.message, true, true );
 		}
 		start++;
 	}
@@ -434,8 +437,8 @@ void SV_Baselines_f( sv_client_t *cl )
 	else com.snprintf( baseline, MAX_STRING, "cmd baselines %i %i\n",svs.spawncount, start );
 
 	// send next command
-	MSG_WriteByte( &cl->netmsg, svc_stufftext );
-	MSG_WriteString( &cl->netmsg, baseline );
+	MSG_WriteByte( &cl->netchan.message, svc_stufftext );
+	MSG_WriteString( &cl->netchan.message, baseline );
 }
 
 /*
@@ -471,15 +474,15 @@ void SV_NextDownload_f( sv_client_t *cl )
 	r = cl->downloadsize - cl->downloadcount;
 	if( r > 1024 ) r = 1024;
 
-	MSG_WriteByte( &cl->netmsg, svc_download );
-	MSG_WriteShort( &cl->netmsg, r );
+	MSG_WriteByte( &cl->netchan.message, svc_download );
+	MSG_WriteShort( &cl->netchan.message, r );
 
 	cl->downloadcount += r;
 	size = cl->downloadsize;
 	if( !size ) size = 1;
 	percent = cl->downloadcount * 100 / size;
-	MSG_WriteByte( &cl->netmsg, percent );
-	SZ_Write( &cl->netmsg, cl->download + cl->downloadcount - r, r );
+	MSG_WriteByte( &cl->netchan.message, percent );
+	SZ_Write( &cl->netchan.message, cl->download + cl->downloadcount - r, r );
 	if( cl->downloadcount == cl->downloadsize ) cl->download = NULL;
 }
 
@@ -503,9 +506,9 @@ void SV_BeginDownload_f( sv_client_t *cl )
 	{
 		MsgDev( D_ERROR, "SV_BeginDownload_f: couldn't download %s to %s\n", name, cl->name );
 		if( cl->download ) cl->download = NULL;
-		MSG_WriteByte( &cl->netmsg, svc_download );
-		MSG_WriteShort( &cl->netmsg, -1 );
-		MSG_WriteByte( &cl->netmsg, 0 );
+		MSG_WriteByte( &cl->netchan.message, svc_download );
+		MSG_WriteShort( &cl->netchan.message, -1 );
+		MSG_WriteByte( &cl->netchan.message, 0 );
 		return;
 	}
 
@@ -635,7 +638,6 @@ void SV_ExecuteClientCommand( sv_client_t *cl, char *s )
 	{
 		if(!com.strcmp(Cmd_Argv(0), u->name))
 		{
-			Msg("ucmd->%s\n", u->name );
 			u->func( cl );
 			break;
 		}
@@ -661,11 +663,8 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 {
 	cl->lastcmd = *cmd;
 
-	Msg("SV_ClientThink: %s\n", cl->name );
-
 	// may have been kicked during the last usercmd
-	if( cl->state != cs_spawned || sv_paused->integer )
-		return;
+	if( sv_paused->integer ) return;
 	ClientThink( cl->edict, cmd );
 }
 
@@ -730,8 +729,8 @@ static void SV_UserMove( sv_client_t *cl, sizebuf_t *msg )
 
 	if( calculatedChecksum != checksum )
 	{
-		//MsgDev( D_ERROR, "SV_UserMove: failed checksum for %s (%d != %d)\n", cl->name, calculatedChecksum, checksum );
-		//return;
+		MsgDev( D_ERROR, "SV_UserMove: failed checksum for %s (%d != %d)\n", cl->name, calculatedChecksum, checksum );
+		return;
 	}
 
 	// usually, the first couple commands will be duplicates
@@ -766,6 +765,8 @@ void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg )
 	{
 		c = MSG_ReadByte( msg );
 		if( c == clc_eof ) break;
+		if( c == -1 ) break;
+
 		switch( c )
 		{
 		case clc_nop:

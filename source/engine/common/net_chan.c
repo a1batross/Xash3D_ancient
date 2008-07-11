@@ -31,13 +31,6 @@ packet header (quake2)
 1	acknowledge receipt of even/odd message
 16	qport
 
-packet header (quake3)
--------------
-4	outgoing sequence.  high bit will be set if this is a fragmented message
-[2	qport (only for client to server)]
-[2	fragment start byte]
-[2	fragment length. if < FRAGMENT_SIZE, this is the last fragment]
-
 if the sequence number is -1, the packet should be handled as an out-of-band
 message instead of as part of a netcon.
 
@@ -107,52 +100,44 @@ void Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qport )
 	chan->qport = qport;
 	chan->incoming_sequence = 0;
 	chan->outgoing_sequence = 1;
+	chan->last_received = Sys_Milliseconds();
+
+	SZ_Init( &chan->message, chan->message_buf, sizeof(chan->message_buf));
 }
 
 /*
-=================
-Netchan_TransmitNextFragment
+===============
+Netchan_CanReliable
 
-Send one fragment of the current message
-=================
+Returns true if the last reliable message has acked
+================
 */
-void Netchan_TransmitNextFragment( netchan_t *chan )
+bool Netchan_CanReliable( netchan_t *chan )
 {
-	sizebuf_t		send;
-	byte		send_buf[MAX_PACKETLEN];
-	int		fragment_length;
+	if( chan->reliable_length )
+		return false; // waiting for ack
+	return true;
+}
 
-	// write the packet header
-	SZ_Init( &send, send_buf, sizeof(send_buf));
-	MSG_WriteLong( &send, chan->outgoing_sequence | FRAGMENT_BIT );
 
-	// send the qport if we are a client
-	if( chan->sock == NS_CLIENT )
+bool Netchan_NeedReliable( netchan_t *chan )
+{
+	bool	send_reliable;
+
+	// if the remote side dropped the last reliable message, resend it
+	send_reliable = false;
+
+	if (chan->incoming_acknowledged > chan->last_reliable_sequence
+	&& chan->incoming_reliable_acknowledged != chan->reliable_sequence)
+		send_reliable = true;
+
+	// if the reliable transmit buffer is empty, copy the current message out
+	if( !chan->reliable_length && chan->message.cursize )
 	{
-		MSG_WriteShort( &send, qport->integer );
+		send_reliable = true;
 	}
 
-	// copy the reliable message to the packet first
-	fragment_length = FRAGMENT_SIZE;
-	if( chan->unsent_fragment_start + fragment_length > chan->unsent_length )
-		fragment_length = chan->unsent_length - chan->unsent_fragment_start;
-
-	MSG_WriteShort( &send, chan->unsent_fragment_start );
-	MSG_WriteShort( &send, fragment_length );
-	MSG_WriteData( &send, chan->unsent_buffer + chan->unsent_fragment_start, fragment_length );
-
-	// send the datagram
-	NET_SendPacket( chan->sock, send.cursize, send.data, chan->remote_address );
-
-	if( showpackets->integer )
-		MsgDev( D_INFO, "%s send %4i : s=%i fragment=%i,%i\n", netsrcString[chan->sock], send.cursize, chan->outgoing_sequence, chan->unsent_fragment_start, fragment_length );
-
-	chan->unsent_fragment_start += fragment_length;
-	if ( chan->unsent_fragment_start == chan->unsent_length && fragment_length != FRAGMENT_SIZE )
-	{
-		chan->outgoing_sequence++;
-		chan->unsent_fragments = false;
-	}
+	return send_reliable;
 }
 
 /*
@@ -166,36 +151,74 @@ A 0 length will still generate a packet.
 void Netchan_Transmit( netchan_t *chan, int length, const byte *data )
 {
 	sizebuf_t	send;
-	byte	send_buf[MAX_PACKETLEN];
+	byte	send_buf[MAX_MSGLEN];
+	bool	send_reliable;
+	uint	w1, w2;
 
-	if( length > MAX_MSGLEN ) Host_Error( "Netchan_Transmit: %i > MAX_MSGLEN\n", length );
-	chan->unsent_fragment_start = 0;
-
-	// fragment large reliable messages
-	if( length >= FRAGMENT_SIZE )
+	// check for message overflow
+	if (chan->message.overflowed)
 	{
-		chan->unsent_fragments = true;
-		chan->unsent_length = length;
-		Mem_Copy( chan->unsent_buffer, data, length );
-		// only send the first fragment now
-		Msg("netchan transmit nextfragment %d\n", length );
-		Netchan_TransmitNextFragment( chan );
+		Host_Error( "%s:Outgoing message overflow\n", NET_AdrToString (chan->remote_address));
 		return;
 	}
 
+	send_reliable = Netchan_NeedReliable (chan);
+
+	if (!chan->reliable_length && chan->message.cursize)
+	{
+		memcpy (chan->reliable_buf, chan->message_buf, chan->message.cursize);
+		chan->reliable_length = chan->message.cursize;
+		chan->message.cursize = 0;
+		chan->reliable_sequence ^= 1;
+	}
+
+
 	// write the packet header
-	SZ_Init( &send, send_buf, sizeof(send_buf));
-	MSG_WriteLong( &send, chan->outgoing_sequence );
+	SZ_Init (&send, send_buf, sizeof(send_buf));
+
+	w1 = ( chan->outgoing_sequence & ~(1<<31) ) | (send_reliable<<31);
+	w2 = ( chan->incoming_sequence & ~(1<<31) ) | (chan->incoming_reliable_sequence<<31);
+
 	chan->outgoing_sequence++;
+	chan->last_sent = Sys_Milliseconds();
+
+	MSG_WriteLong (&send, w1);
+	MSG_WriteLong (&send, w2);
 
 	// send the qport if we are a client
-	if( chan->sock == NS_CLIENT ) MSG_WriteWord( &send, qport->integer );
+	if (chan->sock == NS_CLIENT) MSG_WriteWord (&send, qport->value);
 
-	MSG_WriteData( &send, data, length );
-	NET_SendPacket( chan->sock, send.cursize, send.data, chan->remote_address ); // send the datagram
+	// copy the reliable message to the packet first
+	if (send_reliable)
+	{
+		SZ_Write (&send, chan->reliable_buf, chan->reliable_length);
+		chan->last_reliable_sequence = chan->outgoing_sequence;
+	}
+	
+	// add the unreliable part if space is available
+	if (send.maxsize - send.cursize >= length) 
+		SZ_Write (&send, data, length);
+	else MsgDev( D_WARN, "Netchan_Transmit: dumped unreliable\n");
 
-	if( showpackets->integer )
-		MsgDev( D_INFO, "%s send %4i : s=%i ack=%i\n", netsrcString[chan->sock], send.cursize, chan->outgoing_sequence - 1, chan->incoming_sequence );
+	// send the datagram
+	NET_SendPacket (chan->sock, send.cursize, send.data, chan->remote_address);
+
+	if (showpackets->value)
+	{
+		if (send_reliable)
+			Msg ("send %4i : s=%i reliable=%i ack=%i rack=%i\n"
+				, send.cursize
+				, chan->outgoing_sequence - 1
+				, chan->reliable_sequence
+				, chan->incoming_sequence
+				, chan->incoming_reliable_sequence);
+		else
+			Msg ("send %4i : s=%i ack=%i rack=%i\n"
+				, send.cursize
+				, chan->outgoing_sequence - 1
+				, chan->incoming_sequence
+				, chan->incoming_reliable_sequence);
+	}
 }
 
 /*
@@ -212,111 +235,82 @@ copied out.
 */
 bool Netchan_Process( netchan_t *chan, sizebuf_t *msg )
 {
-	int	sequence;
+	uint	sequence, sequence_ack;
+	uint	reliable_ack, reliable_message;
 	int	qport;
-	int	fragment_start = 0, fragment_length = 0;
-	bool	fragmented = false;
 
 	// get sequence numbers		
-	MSG_BeginReading( msg );
-	sequence = MSG_ReadLong( msg );
-
-	// check for fragment information
-	if( sequence & FRAGMENT_BIT )
-	{
-		sequence &= ~FRAGMENT_BIT;
-		fragmented = true;
-	}
+	MSG_BeginReading (msg);
+	sequence = MSG_ReadLong (msg);
+	sequence_ack = MSG_ReadLong (msg);
 
 	// read the qport if we are a server
-	if( chan->sock == NS_SERVER )
-		qport = MSG_ReadShort( msg );
+	if (chan->sock == NS_SERVER)
+		qport = MSG_ReadShort (msg);
 
-	// read the fragment information
-	if( fragmented )
+	reliable_message = sequence >> 31;
+	reliable_ack = sequence_ack >> 31;
+
+	sequence &= ~(1<<31);
+	sequence_ack &= ~(1<<31);	
+
+	if (showpackets->value)
 	{
-		fragment_start = MSG_ReadShort( msg );
-		fragment_length = MSG_ReadShort( msg );
+		if (reliable_message)
+			Msg ("recv %4i : s=%i reliable=%i ack=%i rack=%i\n"
+				, msg->cursize
+				, sequence
+				, chan->incoming_reliable_sequence ^ 1
+				, sequence_ack
+				, reliable_ack);
+		else
+			Msg ("recv %4i : s=%i ack=%i rack=%i\n"
+				, msg->cursize
+				, sequence
+				, sequence_ack
+				, reliable_ack);
 	}
 
-	if( showpackets->integer )
+	// discard stale or duplicated packets
+	if (sequence <= chan->incoming_sequence)
 	{
-		if( fragmented )
-			MsgDev( D_INFO, "%s recv %4i : s=%i fragment=%i,%i\n", netsrcString[chan->sock], msg->cursize, sequence, fragment_start, fragment_length );
-		else MsgDev( D_INFO, "%s recv %4i : s=%i\n", netsrcString[chan->sock], msg->cursize, sequence );
-	}
-
-	// discard out of order or duplicated packets
-	if( sequence <= chan->incoming_sequence )
-	{
-		if( showdrop->integer || showpackets->integer )
-			MsgDev( D_INFO, "%s:Out of order packet %i at %i\n", NET_AdrToString(chan->remote_address),  sequence, chan->incoming_sequence );
+		if (showdrop->value)
+			Msg ("%s:Out of order packet %i at %i\n"
+				, NET_AdrToString (chan->remote_address)
+				,  sequence
+				, chan->incoming_sequence);
 		return false;
 	}
 
 	// dropped packets don't keep the message from being used
-	chan->dropped = sequence - (chan->incoming_sequence + 1);
-	if( chan->dropped > 0 )
+	chan->dropped = sequence - (chan->incoming_sequence+1);
+	if (chan->dropped > 0)
 	{
-		if( showdrop->integer || showpackets->integer )
-			MsgDev( D_INFO, "%s:Dropped %i packets at %i\n", NET_AdrToString( chan->remote_address ), chan->dropped, sequence );
+		if (showdrop->value)
+			Msg ("%s:Dropped %i packets at %i\n"
+			, NET_AdrToString (chan->remote_address)
+			, chan->dropped
+			, sequence);
 	}
+
+	//
+	// if the current outgoing reliable message has been acknowledged
+	// clear the buffer to make way for the next
+	//
+	if (reliable_ack == chan->reliable_sequence)
+		chan->reliable_length = 0;	// it has been received
 	
-
-	// if this is the final framgent of a reliable message, bump incoming_reliable_sequence 
-	if( fragmented )
-	{
-		if( sequence != chan->fragment_sequence )
-		{
-			chan->fragment_sequence = sequence;
-			chan->fragment_length = 0;
-		}
-		// if we missed a fragment, dump the message
-		if( fragment_start != chan->fragment_length )
-		{
-			if( showdrop->integer || showpackets->integer )
-				MsgDev( D_INFO, "%s:Dropped a message fragment\n", NET_AdrToString( chan->remote_address ), sequence);
-			return false;
-		}
-
-		// copy the fragment to the fragment buffer
-		if( fragment_length < 0 || msg->readcount + fragment_length > msg->cursize || chan->fragment_length + fragment_length > sizeof( chan->fragment_buffer ))
-		{
-			if( showdrop->integer || showpackets->integer )
-				MsgDev( D_INFO, "%s:illegal fragment length\n", NET_AdrToString (chan->remote_address ));
-			return false;
-		}
-
-		Mem_Copy( chan->fragment_buffer + chan->fragment_length, msg->data + msg->readcount, fragment_length );
-		chan->fragment_length += fragment_length;
-
-		// if this wasn't the last fragment, don't process anything
-		if( fragment_length == FRAGMENT_SIZE )
-			return false;
-
-		if( chan->fragment_length > msg->maxsize )
-		{
-			MsgDev( D_INFO, "%s:fragmentLength %i > msg->maxsize\n", NET_AdrToString (chan->remote_address ), chan->fragment_length );
-			return false;
-		}
-
-		// copy the full message over the partial fragment
-		// make sure the sequence number is still there
-		*(int *)msg->data = LittleLong( sequence );
-
-		Mem_Copy( msg->data + 4, chan->fragment_buffer, chan->fragment_length );
-		msg->cursize = chan->fragment_length + 4;
-		chan->fragment_length = 0;
-		msg->readcount = 4;	// past the sequence number
-		msg->bit = 32;	// past the sequence number
-
-		// clients were not acking fragmented messages
-		chan->incoming_sequence = sequence;
-		return true;
-	}
-	// the message can now be read from the current message pointer
+	// if this message contains a reliable message, bump incoming_reliable_sequence 
 	chan->incoming_sequence = sequence;
+	chan->incoming_acknowledged = sequence_ack;
+	chan->incoming_reliable_acknowledged = reliable_ack;
+	if (reliable_message)
+	{
+		chan->incoming_reliable_sequence ^= 1;
+	}
 
+	// the message can now be read from the current message pointer
+	chan->last_received = Sys_Milliseconds();
 	return true;
 }
 

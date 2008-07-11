@@ -97,14 +97,14 @@ void Cmd_ForwardToServer (void)
 		return;
 	}
 
-	MSG_WriteByte (&cl.netmsg, clc_stringcmd);
-	SZ_Print (&cl.netmsg, cmd);
+	MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
+	SZ_Print (&cls.netchan.message, cmd);
 	if (Cmd_Argc() > 1)
 	{
-		SZ_Print (&cl.netmsg, " ");
-		SZ_Print (&cl.netmsg, Cmd_Args());
+		SZ_Print (&cls.netchan.message, " ");
+		SZ_Print (&cls.netchan.message, Cmd_Args());
+		Msg("clc_stringcmd: %s\n", Cmd_Args());
 	}
-	MSG_WriteByte( &cl.netmsg, clc_eof ); // end of message
 }
 
 /*
@@ -124,10 +124,8 @@ void CL_ForwardToServer_f (void)
 	// don't forward the first argument
 	if (Cmd_Argc() > 1)
 	{
-		SZ_Init (&cl.netmsg, cl.netbuf, sizeof( cl.netbuf ));
-		MSG_WriteByte( &cl.netmsg, clc_stringcmd );
-		SZ_Print( &cl.netmsg, Cmd_Args());
-		MSG_WriteByte( &cl.netmsg, clc_eof ); // end of message
+		MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
+		SZ_Print( &cls.netchan.message, Cmd_Args());
 	}
 }
 
@@ -351,7 +349,7 @@ void CL_ClearState (void)
 
 	// wipe the entire cl structure
 	memset (&cl, 0, sizeof(cl));
-	SZ_Clear (&cl.netmsg);
+	SZ_Clear (&cls.netchan.message);
 }
 
 /*
@@ -382,7 +380,6 @@ void CL_Disconnect( void )
 	// send a disconnect message to the server
 	final[0] = clc_stringcmd;
 	com.strcpy((char *)final + 1, "disconnect");
-	final[com.strlen(final)] = clc_eof;
 	Netchan_Transmit(&cls.netchan, strlen(final), final);
 	Netchan_Transmit(&cls.netchan, strlen(final), final);
 	Netchan_Transmit(&cls.netchan, strlen(final), final);
@@ -420,7 +417,7 @@ void CL_DisconnectPacket( netadr_t from )
 
 	// if we have received packets within three seconds, ignore it
 	// (it might be a malicious spoof)
-	if( cls.realtime - cls.last_received < 3000 )
+	if( cls.realtime - cls.netchan.last_received < 3000 )
 		return;
 
 	// drop the connection
@@ -522,9 +519,8 @@ void CL_Reconnect_f (void)
 	{
 		Msg ("reconnecting...\n");
 		cls.state = ca_connected;
-		MSG_WriteChar (&cl.netmsg, clc_stringcmd);
-		MSG_WriteString (&cl.netmsg, "new");		
-		MSG_WriteByte( &cl.netmsg, clc_eof ); // end of message
+		MSG_WriteChar (&cls.netchan.message, clc_stringcmd);
+		MSG_WriteString (&cls.netchan.message, "new");		
 		return;
 	}
 
@@ -752,10 +748,8 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 			return;
 		}
 		Netchan_Setup( NS_CLIENT, &cls.netchan, from, Cvar_VariableValue( "net_qport" ));
-		SZ_Init (&cl.netmsg, cl.netbuf, sizeof( cl.netbuf ));
-		MSG_WriteChar( &cl.netmsg, clc_stringcmd );
-		MSG_WriteString( &cl.netmsg, "new" );	
-		MSG_WriteByte( &cl.netmsg, clc_eof ); // end of message
+		MSG_WriteChar( &cls.netchan.message, clc_stringcmd );
+		MSG_WriteString( &cls.netchan.message, "new" );	
 		cls.state = ca_connected;
 		return;
 	}
@@ -1068,9 +1062,8 @@ void CL_RequestNextDownload (void)
 	CL_PrepRefresh();
 
 	if( cls.demoplayback ) return; // not really connected
-	MSG_WriteByte( &cl.netmsg, clc_stringcmd );
-	MSG_WriteString( &cl.netmsg, va("begin %i\n", precache_spawncount));
-	MSG_WriteByte( &cl.netmsg, clc_eof ); // end of message
+	MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
+	MSG_WriteString( &cls.netchan.message, va("begin %i\n", precache_spawncount));
 }
 
 /*
@@ -1254,15 +1247,19 @@ void CL_WriteConfiguration (void)
 //============================================================================
 void CL_ReadNetMessage( void )
 {
-	sizebuf_t	*msg = &cls.netmsg;
+	sizebuf_t		net_message;
+	sizebuf_t		*msg = &net_message;
+	byte		buffer[MAX_MSGLEN];
+	netadr_t		net_from;
 
-	SZ_Init( msg, cls.netbuf, sizeof(cls.netbuf));
-	while( NET_GetPacket(NS_CLIENT, &cls.from, msg ))
+	SZ_Init( msg, buffer, sizeof(buffer));
+
+	while( NET_GetPacket(NS_CLIENT, &net_from, msg ))
 	{
 		if( msg->cursize >= 4 && *(int *)msg->data == -1 )
 		{
-			cls.last_received = cls.realtime;
-			CL_ConnectionlessPacket( cls.from, msg );
+			cls.netchan.last_received = cls.realtime;
+			CL_ConnectionlessPacket( net_from, msg );
 			continue;
 		}
 
@@ -1271,14 +1268,14 @@ void CL_ReadNetMessage( void )
 
 		if( msg->cursize < 8 )
 		{
-			MsgDev( D_WARN, "%s: runt packet\n", NET_AdrToString( cls.from ));
+			MsgDev( D_WARN, "%s: runt packet\n", NET_AdrToString( net_from ));
 			continue;
 		}
 
 		// packet from server
-		if (!NET_CompareAdr( cls.from, cls.netchan.remote_address))
+		if (!NET_CompareAdr( net_from, cls.netchan.remote_address))
 		{
-			MsgDev( D_WARN, "CL_ReadPackets: %s:sequenced packet without connection\n", NET_AdrToString( cls.from ));
+			MsgDev( D_WARN, "CL_ReadPackets: %s:sequenced packet without connection\n", NET_AdrToString( net_from ));
 			continue;
 		}
 
@@ -1287,8 +1284,7 @@ void CL_ReadNetMessage( void )
 			// the header is different lengths for reliable and unreliable messages
 			int headerBytes = msg->readcount;
 
-			Msg("header bytes %d\n", headerBytes );
-			cls.last_received = cls.realtime;
+			cls.netchan.last_received = cls.realtime;
 			CL_ParseServerMessage( msg );
 
 			// we don't know if it is ok to save a demo message until
@@ -1321,7 +1317,7 @@ void CL_CheckTimeout( void )
 	// check timeout
 	if( !cl_paused->integer && cls.state >= ca_connected && cls.state != ca_cinematic && !cls.demoplayback )
 	{
-		if( cls.realtime - cls.last_received > cl_timeout->integer * 1000 )
+		if( cls.realtime - cls.netchan.last_received > cl_timeout->integer * 1000 )
 		{
 			if( ++cl.timeoutcount > 5 ) // timeoutcount saves debugger
 			{
@@ -1334,6 +1330,26 @@ void CL_CheckTimeout( void )
 	else cl.timeoutcount = 0;
 }
 
+/*
+==================
+CL_SendCommand
+
+==================
+*/
+void CL_SendCommand (void)
+{
+	// get new key events
+	CL_CheckTimeout();
+
+	// process console commands
+	Cbuf_Execute();
+
+	// send intentions now
+	CL_SendCmd();
+
+	// resend a connection request if necessary
+	CL_CheckForResend();
+}
 
 /*
 ==================
@@ -1343,14 +1359,24 @@ CL_Frame
 */
 void CL_Frame( dword time )
 {
+	static dword extratime;
+
 	if( host.type == HOST_DEDICATED )
 		return;
 
-	// decide the simulation time
-	cl.time += time;
-	cls.realtime = Sys_Milliseconds(); //FIXME: teseing with += time;
-	cls.frametime = time * 0.001;
+	extratime += time;
 
+	if( cls.state == ca_connected && extratime < HOST_FRAMETIME )
+		return;	// don't flood packets out while connecting
+
+	// decide the simulation time
+	cl.time += extratime;
+	cls.realtime = Sys_Milliseconds(); //FIXME: teseing with += time;
+	cls.frametime = extratime * 0.001;
+	extratime = 0;
+          
+          if( cls.frametime > (1.0 / 5)) cls.frametime = (1.0 / 5);
+	
 	// setup the VM frame
 	CL_VM_Begin();
 
@@ -1361,10 +1387,7 @@ void CL_Frame( dword time )
           CL_CheckTimeout();
 
 	// send intentions now
-	CL_SendCmd();
-
-	// resend a connection request if necessary
-	CL_CheckForResend();
+	CL_SendCommand();
 
 	// predict all unacknowledged movements
 	CL_PredictMovement();

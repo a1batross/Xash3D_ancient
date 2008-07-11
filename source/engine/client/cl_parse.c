@@ -81,16 +81,14 @@ bool	CL_CheckOrDownloadFile (char *filename)
 
 		// give the server an offset to start the download
 		Msg ("Resuming %s\n", cls.downloadname);
-		MSG_WriteByte (&cl.netmsg, clc_stringcmd);
-		MSG_WriteString (&cl.netmsg, va("download %s %i", cls.downloadname, len));
-		MSG_WriteByte( &cl.netmsg, clc_eof ); // end of message
+		MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
+		MSG_WriteString (&cls.netchan.message, va("download %s %i", cls.downloadname, len));
 	}
 	else
 	{
 		Msg ("Downloading %s\n", cls.downloadname);
-		MSG_WriteByte (&cl.netmsg, clc_stringcmd);
-		MSG_WriteString (&cl.netmsg, va("download %s", cls.downloadname));
-		MSG_WriteByte( &cl.netmsg, clc_eof ); // end of message
+		MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
+		MSG_WriteString (&cls.netchan.message, va("download %s", cls.downloadname));
 	}
 
 	cls.downloadnumber++;
@@ -146,9 +144,8 @@ void	CL_Download_f (void)
 	FS_StripExtension (cls.downloadtempname);
 	FS_DefaultExtension(cls.downloadtempname, ".tmp");
 
-	MSG_WriteByte (&cl.netmsg, clc_stringcmd);
-	MSG_WriteString (&cl.netmsg, va("download %s", cls.downloadname));
-	MSG_WriteByte( &cl.netmsg, clc_eof ); // end of message
+	MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
+	MSG_WriteString (&cls.netchan.message, va("download %s", cls.downloadname));
 
 	cls.downloadnumber++;
 }
@@ -225,9 +222,8 @@ void CL_ParseDownload( sizebuf_t *msg )
 		// request next block
 		cls.downloadpercent = percent;
 
-		MSG_WriteByte (&cl.netmsg, clc_stringcmd);
-		SZ_Print (&cl.netmsg, "nextdl");
-		MSG_WriteByte( &cl.netmsg, clc_eof ); // end of message
+		MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
+		SZ_Print (&cls.netchan.message, "nextdl");
 	}
 	else
 	{
@@ -270,8 +266,6 @@ void CL_ParseServerData( sizebuf_t *msg )
 {
 	char		*str;
 	int		i;
-
-	MsgDev(D_INFO, "Serverdata packet received.\n");
 
 	// wipe the client_t struct
 	CL_ClearState ();

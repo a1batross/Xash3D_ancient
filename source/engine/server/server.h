@@ -57,7 +57,7 @@ typedef enum
 
 typedef enum
 {
-	cs_free,		// can be reused for a new connection
+	cs_free = 0,	// can be reused for a new connection
 	cs_zombie,	// client has been disconnected, but don't reuse connection for a couple seconds
 	cs_connected,	// has been assigned to a sv_client_t, but not in game yet
 	cs_spawned	// client is fully in game
@@ -115,12 +115,12 @@ typedef struct sv_client_s
 	usercmd_t		lastcmd;			// for filling in big drops
 	usercmd_t		ucmd;			// current user commands
 
-	netchan_t		netchan;			// network channel
-	sizebuf_t		netmsg;			// network message queue
-	byte		netbuf[MAX_MSGLEN];
-
 	int		commandMsec;		// every seconds this is reset, if user
 						// commands exhaust it, assume time cheating
+	// The datagram is written to by sound calls, prints, temp ents, etc.
+	// It can be harmlessly overflowed.
+	sizebuf_t		datagram;
+	byte		datagram_buf[MAX_MSGLEN];
 
 	int		frame_latency[LATENCY_COUNTS];
 	int		ping;
@@ -141,9 +141,10 @@ typedef struct sv_client_s
 
 	int		lastmessage;		// sv.framenum when packet was last received
 	int		lastconnect;
-	int		nextmsgtime;		// time of next message to client
 
 	int		challenge;		// challenge of this user, randomly generated
+
+	netchan_t		netchan;			// network channel
 } sv_client_t;
 
 /*
@@ -185,10 +186,6 @@ typedef struct
 	entity_state_t	*client_entities;		// [num_client_entities]
 
 	int		last_heartbeat;
-	netadr_t		redirect_address;		// using for redirect command
-	netadr_t		from;
-	sizebuf_t		netmsg;
-	byte		netbuf[MAX_MSGLEN];
 
 	challenge_t	challenges[MAX_CHALLENGES];	// to prevent invalid IPs from connecting
 } server_static_t;
@@ -265,7 +262,7 @@ typedef enum {RD_NONE, RD_CLIENT, RD_PACKET} redirect_t;
 
 extern char sv_outputbuf[SV_OUTPUTBUF_LENGTH];
 
-void SV_FlushRedirect (int sv_redirected, char *outputbuf);
+void SV_FlushRedirect( netadr_t adr, int sv_redirected, char *outputbuf );
 
 void SV_SendClientMessages (void);
 void SV_AmbientSound( edict_t *entity, int soundindex, float volume, float attenuation );

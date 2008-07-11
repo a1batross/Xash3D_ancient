@@ -180,6 +180,7 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 	if(!VectorCompare(ps->origin, ops->origin)) pflags |= PS_M_ORIGIN;
 	if(!VectorCompare(ps->velocity, ops->velocity)) pflags |= PS_M_VELOCITY;
 	if (ps->pm_time != ops->pm_time) pflags |= PS_M_TIME;
+	if (ps->cmd_time != ops->cmd_time) pflags |= PS_M_COMMANDMSEC;
 	if (ps->pm_flags != ops->pm_flags) pflags |= PS_M_FLAGS;
 	if (ps->gravity != ops->gravity) pflags |= PS_M_GRAVITY;
 	if(!VectorCompare(ps->delta_angles, ops->delta_angles)) pflags |= PS_M_DELTA_ANGLES;
@@ -209,7 +210,8 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 	if (pflags & PS_M_TYPE) MSG_WriteByte (msg, ps->pm_type);
 	if (pflags & PS_M_ORIGIN) MSG_WritePos32(msg, ps->origin);
 	if (pflags & PS_M_VELOCITY) MSG_WritePos32(msg, ps->velocity);
-	if (pflags & PS_M_TIME) MSG_WriteLong (msg, ps->pm_time);
+	if (pflags & PS_M_TIME) MSG_WriteByte (msg, ps->pm_time);
+	if (pflags & PS_M_COMMANDMSEC) MSG_WriteLong (msg, ps->cmd_time);
 	if (pflags & PS_M_FLAGS) MSG_WriteByte (msg, ps->pm_flags);
 	if (pflags & PS_M_GRAVITY) MSG_WriteShort (msg, ps->gravity);
 	if (pflags & PS_M_DELTA_ANGLES) MSG_WritePos32(msg, ps->delta_angles);

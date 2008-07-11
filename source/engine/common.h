@@ -175,7 +175,8 @@ typedef struct host_redirect_s
 	int	target;
 	char	*buffer;
 	int	buffersize;
-	void	(*flush)(int target, char *buffer);
+	netadr_t	address;
+	void	(*flush)( netadr_t adr, int target, char *buffer );
 } host_redirect_t;
 
 typedef struct host_parm_s

@@ -55,7 +55,7 @@ void CL_DrawHUD( void )
 	if(!prog) return; // too early (just skip one frame)
 
 	// setup pparms
-	prog->globals.cl->health = cl.frame.playerstate.stats[STAT_HEALTH];
+	prog->globals.cl->health = cl.frame.ps.stats[STAT_HEALTH];
 	prog->globals.cl->maxclients = com.atoi(cl.configstrings[CS_MAXCLIENTS]);
 	prog->globals.cl->realtime = cls.realtime * 0.001f;
 	prog->globals.cl->paused = cl_paused->integer;
@@ -70,7 +70,7 @@ bool CL_ParseUserMessage( int svc_number )
 	bool	msg_parsed = false;
 
 	// setup pparms
-	prog->globals.cl->health = cl.frame.playerstate.stats[STAT_HEALTH];
+	prog->globals.cl->health = cl.frame.ps.stats[STAT_HEALTH];
 	prog->globals.cl->maxclients = com.atoi(cl.configstrings[CS_MAXCLIENTS]);
 	prog->globals.cl->realtime = cls.realtime * 0.001f;
 	prog->globals.cl->paused = cl_paused->integer;

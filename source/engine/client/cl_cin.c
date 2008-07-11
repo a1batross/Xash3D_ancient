@@ -1387,7 +1387,6 @@ Called when either the cinematic completes, or it is aborted
 void SCR_FinishCinematic( void )
 {
 	// tell the server to advance to the next map / cinematic
-	MSG_WriteByte( &cl.netmsg, clc_stringcmd );
-	SZ_Print(&cl.netmsg, "disconnect" );
-	MSG_WriteByte( &cl.netmsg, clc_eof ); // end of message
+	MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
+	SZ_Print(&cls.netchan.message, "disconnect" );
 }
