@@ -13,7 +13,7 @@ CL_WriteDemoMessage
 Dumps the current net message, prefixed by the length
 ====================
 */
-void CL_WriteDemoMessage( sizebuf_t *msg, int head_size )
+void CL_WriteDemoMessage( void )
 {
 	int len, swlen;
 
@@ -21,11 +21,11 @@ void CL_WriteDemoMessage( sizebuf_t *msg, int head_size )
 	if( cl_paused->value ) return;
 
 	// the first eight bytes are just packet sequencing stuff
-	len = msg->cursize - head_size;
+	len = net_message.cursize - 8;
 	swlen = LittleLong( len );
 
 	FS_Write( cls.demofile, &swlen, 4);
-	FS_Write( cls.demofile, msg->data + head_size, len );
+	FS_Write( cls.demofile, net_message.data + 8, len );
 }
 
 void CL_WriteDemoHeader( const char *name )
@@ -79,6 +79,8 @@ void CL_WriteDemoHeader( const char *name )
 
 	}
 
+	CL_VM_Begin();
+
 	// baselines
 	memset(&nullstate, 0, sizeof(nullstate));
 
@@ -107,6 +109,8 @@ void CL_WriteDemoHeader( const char *name )
 	len = LittleLong( buf.cursize );
 	FS_Write( cls.demofile, &len, 4 );
 	FS_Write( cls.demofile, buf.data, buf.cursize );
+
+	CL_VM_End();
 }
 
 /*

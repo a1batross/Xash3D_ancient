@@ -11,8 +11,7 @@ typedef struct
 	int	down[2];		// key nums holding it down
 	uint	downtime;		// msec timestamp
 	uint	msec;		// msec down this frame
-	bool	active;		// button is active ?
-	bool	was_pressed;	// set when down, not cleared when up
+	int	state;
 } kbutton_t;
 
 cvar_t	*cl_run;
@@ -92,11 +91,11 @@ void CL_MouseMove( usercmd_t *cmd )
 		if( !mx && !my ) return;
 
 		// add mouse X/Y movement to cmd
-		if( in_strafe.active )
+		if( in_strafe.state & 1 )
 			cmd->sidemove = bound( -128, cmd->sidemove + m_side->value * mx, 127 );
 		else cl.viewangles[YAW] -= m_yaw->value * mx;
 
-		if( cl_mouselook->value && !in_strafe.active )
+		if( cl_mouselook->value && !in_strafe.state & 1 )
 			cl.viewangles[PITCH] += m_pitch->value * my;
 		else cmd->forwardmove = bound( -128, cmd->forwardmove - m_forward->value * my, 127 );
 	}
@@ -137,28 +136,29 @@ void IN_KeyDown( kbutton_t *b )
 	int	k;
 	char	*c;
 	
-	c = Cmd_Argv( 1 );
-	if (c[0]) k = com.atoi(c);
+	c = Cmd_Argv(1);
+	if (c[0]) k = atoi(c);
 	else k = -1; // typed manually at the console for continuous down
 
 	if (k == b->down[0] || k == b->down[1])
 		return; // repeating key
 	
-	if( !b->down[0] ) b->down[0] = k;
-	else if( !b->down[1] ) b->down[1] = k;
+	if (!b->down[0]) b->down[0] = k;
+	else if (!b->down[1]) b->down[1] = k;
 	else
 	{
-		MsgDev( D_ERROR, "three keys down for a button!\n");
+		Msg ("Three keys down for a button!\n");
 		return;
 	}
 	
-	if( b->active & 1 ) return; // still down
+	if (b->state & 1) return; // still down
 
 	// save timestamp
 	c = Cmd_Argv(2);
 	b->downtime = com.atoi(c);
-	b->active = true;
-	b->was_pressed = true;
+
+	if (!b->downtime) b->downtime = host.frametime[0] - HOST_FRAMETIME;
+	b->state |= 1 + 2;	// down + impulse down
 }
 
 void IN_KeyUp( kbutton_t *b )
@@ -167,29 +167,34 @@ void IN_KeyUp( kbutton_t *b )
 	char	*c;
 	uint	uptime;
 
-	c = Cmd_Argv( 1 );
-	if (c[0]) k = com.atoi(c);
+	c = Cmd_Argv(1);
+	if (c[0]) k = atoi(c);
 	else
 	{
 		// typed manually at the console, assume for unsticking, so clear all
 		b->down[0] = b->down[1] = 0;
-		b->active = false; // impulse up
+		b->state = 4; // impulse up
 		return;
 	}
 
-	if( b->down[0] == k ) b->down[0] = 0;
-	else if( b->down[1] == k ) b->down[1] = 0;
+	if (b->down[0] == k) b->down[0] = 0;
+	else if (b->down[1] == k) b->down[1] = 0;
 	else return; // key up without coresponding down (menu pass through)
 
-	if( b->down[0] || b->down[1] )
+	if (b->down[0] || b->down[1])
 		return; // some other key is still holding it down
 
-	// save timestamp for partial frame summing
-	c = Cmd_Argv( 2 );
-	uptime = com.atoi( c );
-	if( uptime ) b->msec += uptime - b->downtime;
-	else b->msec += frame_msec / 2;
-	b->active = false;
+	if (!(b->state & 1))
+		return; // still up (this should not happen)
+
+	// save timestamp
+	c = Cmd_Argv(2);
+	uptime = com.atoi(c);
+	if (uptime) b->msec += uptime - b->downtime;
+	else b->msec += 10;
+
+	b->state &= ~1; // now up
+	b->state |= 4; // impulse up
 }
 
 /*
@@ -201,21 +206,34 @@ Returns the fraction of the frame that the key was down
 */
 float CL_KeyState( kbutton_t *key )
 {
-	float	val;
-	int	msec;
+	float		val;
+	int			msec;
+
+	key->state &= 1;		// clear impulses
 
 	msec = key->msec;
 	key->msec = 0;
 
-	if( key->active )
-	{	
-		// still down
-		if( !key->downtime ) msec = host.frametime[0];
-		else msec += host.frametime[0] - key->downtime;
+	if (key->state)
+	{	// still down
+		msec += host.frametime[0] - key->downtime;
 		key->downtime = host.frametime[0];
 	}
-	val = ( float )msec / frame_msec;
-	return bound( 0, val, 1 );
+
+#if 0
+	if (msec)
+	{
+		Msg ("%i \n", msec);
+	}
+#endif
+
+	val = (float)msec / frame_msec;
+	if (val < 0)
+		val = 0;
+	if (val > 1)
+		val = 1;
+
+	return val;
 }
 
 void IN_UpDown(void) {IN_KeyDown(&in_up);}
@@ -266,11 +284,11 @@ void CL_AdjustAngles( void )
 {
 	float	speed;
 	
-	if( in_speed.active )
+	if( in_speed.state & 1 )
 		speed = cls.frametime * cl_anglespeedkey->value;
 	else speed = cls.frametime;
 
-	if(!in_strafe.active )
+	if(!in_strafe.state & 1 )
 	{
 		cl.viewangles[YAW] -= speed * cl_yawspeed->value * CL_KeyState( &in_right );
 		cl.viewangles[YAW] += speed * cl_yawspeed->value * CL_KeyState( &in_left );
@@ -282,45 +300,55 @@ void CL_AdjustAngles( void )
 
 /*
 ================
-CL_KeyMove
+CL_BaseMove
 
-Sets the usercmd_t based on key states
+Send the intended movement message to the server
 ================
 */
-void CL_KeyMove( usercmd_t *cmd )
-{
-	int	movespeed;
-	int	forward = 0, side = 0, up = 0;
+void CL_BaseMove( usercmd_t *cmd )
+{	
+	CL_AdjustAngles ();
+	
+	memset (cmd, 0, sizeof(*cmd));
+	
+	VectorCopy (cl.viewangles, cmd->angles);
+	if (in_strafe.state & 1)
+	{
+		cmd->sidemove += cl_sidespeed->value * CL_KeyState (&in_right);
+		cmd->sidemove -= cl_sidespeed->value * CL_KeyState (&in_left);
+	}
+
+	cmd->sidemove += cl_sidespeed->value * CL_KeyState (&in_moveright);
+	cmd->sidemove -= cl_sidespeed->value * CL_KeyState (&in_moveleft);
+
+	cmd->upmove += cl_upspeed->value * CL_KeyState (&in_up);
+	cmd->upmove -= cl_upspeed->value * CL_KeyState (&in_down);
+
+	cmd->forwardmove += cl_forwardspeed->value * CL_KeyState (&in_forward);
+	cmd->forwardmove -= cl_forwardspeed->value * CL_KeyState (&in_back);
 
 	// adjust for speed key / running
-	// the walking flag is to keep animations consistant
-	// even during acceleration and develeration
-	if( in_speed.active ^ cl_run->integer )
+	if( in_speed.state & 1 ^ cl_run->integer )
 	{
-		movespeed = 127;
 		cmd->buttons &= ~BUTTON_WALKING;
+		cmd->forwardmove *= 2;
+		cmd->sidemove *= 2;
+		cmd->upmove *= 2;
 	}
-	else
-	{
-		cmd->buttons |= BUTTON_WALKING;
-		movespeed = 64;
-	}
+	else cmd->buttons |= BUTTON_WALKING;	
+}
 
-	if( in_strafe.active )
-	{
-		side += movespeed * CL_KeyState( &in_right );
-		side -= movespeed * CL_KeyState( &in_left );
-	}
-	side += movespeed * CL_KeyState( &in_moveright );
-	side -= movespeed * CL_KeyState( &in_moveleft );
-	up += movespeed * CL_KeyState( &in_up );
-	up -= movespeed * CL_KeyState( &in_down );
-	forward += movespeed * CL_KeyState( &in_forward );
-	forward -= movespeed * CL_KeyState( &in_back );
+void CL_ClampPitch (void)
+{
+	float	pitch;
 
-	cmd->forwardmove = bound( -128, forward, 127 );
-	cmd->sidemove = bound( -128, side, 127 );
-	cmd->upmove = bound( -128, up, 127 );
+	pitch = SHORT2ANGLE(cl.frame.ps.delta_angles[PITCH]);
+	if( pitch > 180 ) pitch -= 360;
+
+	if( cl.viewangles[PITCH] + pitch < -360 ) cl.viewangles[PITCH] += 360; // wrapped
+	if( cl.viewangles[PITCH] + pitch > 360 ) cl.viewangles[PITCH] -= 360; // wrapped
+	if( cl.viewangles[PITCH] + pitch > 89 ) cl.viewangles[PITCH] = 89 - pitch;
+	if( cl.viewangles[PITCH] + pitch < -89 ) cl.viewangles[PITCH] = -89 - pitch;
 }
 
 /*
@@ -330,9 +358,17 @@ CL_CmdButtons
 */
 void CL_CmdButtons( usercmd_t *cmd )
 {
-	if( in_attack.active ) cmd->buttons |= BUTTON_ATTACK;
-	if( in_attack2.active ) cmd->buttons |= BUTTON_ATTACK2;
-	if( in_use.active ) cmd->buttons |= BUTTON_USE;
+	if ( in_attack.state & 3 )
+		cmd->buttons |= BUTTON_ATTACK;
+	in_attack.state &= ~2;
+
+	if ( in_attack2.state & 3 )
+		cmd->buttons |= BUTTON_ATTACK2;
+	in_attack2.state &= ~2;	
+
+	if (in_use.state & 3)
+		cmd->buttons |= BUTTON_USE;
+	in_use.state &= ~2;
 
 	if( anykeydown && cls.key_dest == key_game)
 		cmd->buttons |= BUTTON_ANY;
@@ -345,12 +381,18 @@ CL_FinishMove
 */
 void CL_FinishMove( usercmd_t *cmd )
 {
-	int	i;
+	int	i, ms;
+
+	// send milliseconds of time to apply the move
+	ms = cls.frametime * 1000;
+	if( ms > 250 ) ms = 100; // time was unreasonable
+	cmd->msec = ms;
+
+	CL_ClampPitch();
 
 	for( i = 0; i < 3; i++ )
 		cmd->angles[i] = ANGLE2SHORT(cl.viewangles[i]);
 
-	cmd->servertime = cl.frame.servertime;
 	cmd->impulse = in_impulse;
 	in_impulse = 0;
 
@@ -367,196 +409,20 @@ CL_CreateCmd
 usercmd_t CL_CreateCmd( void )
 {
 	usercmd_t		cmd;
-	vec3_t		old_angles;
-
-	VectorCopy( cl.viewangles, old_angles );
-
-	// keyboard angle adjustment
-	CL_AdjustAngles ();
-	
-	memset( &cmd, 0, sizeof( cmd ));
-
-	CL_CmdButtons( &cmd );
-
-	// get basic movement from keyboard
-	CL_KeyMove( &cmd );
-
-	// get basic movement from mouse
-	CL_MouseMove( &cmd );
-
-	// check to make sure the angles haven't wrapped
-	if( cl.viewangles[PITCH] - old_angles[PITCH] > 90 )
-		cl.viewangles[PITCH] = old_angles[PITCH] + 90;
-	else if ( old_angles[PITCH] - cl.viewangles[PITCH] > 90 )
-		cl.viewangles[PITCH] = old_angles[PITCH] - 90;
-
-	// store out the final values
-	CL_FinishMove( &cmd );
-
-	return cmd;
-}
-
-/*
-=================
-CL_CreateNewCommands
-
-Create a new usercmd_t structure for this frame
-=================
-*/
-void CL_CreateNewCommands( void )
-{
-	int	cmd_num;
-
-	if( cls.state < ca_connected ) return;
 
 	frame_msec = host.frametime[0] - host.frametime[1];
+	if( frame_msec < 1 ) frame_msec = 1;
 	if( frame_msec > 200 ) frame_msec = 200;
+
+	// get basic movement from mouse
+	CL_BaseMove( &cmd );
+	CL_MouseMove( &cmd );
+	CL_CmdButtons( &cmd );
+	CL_FinishMove( &cmd );
+
 	host.frametime[1] = host.frametime[0];
 
-	// generate a command for this frame
-	cl.cmd_number++;
-	cmd_num = cl.cmd_number & CMD_MASK;
-	cl.cmds[cmd_num] = CL_CreateCmd();
-}
-
-/*
-=================
-CL_ReadyToSendPacket
-
-Returns qfalse if we are over the maxpackets limit
-and should choke back the bandwidth a bit by not sending
-a packet this frame.  All the commands will still get
-delivered in the next packet, but saving a header and
-getting more delta compression will reduce total bandwidth.
-=================
-*/
-bool CL_ReadyToSendPacket( void )
-{
-	int	old_packetnum;
-	int	delta;
-
-	// don't send anything if playing back a demo
-	if( cls.demoplayback || cls.state == ca_cinematic )
-		return false;
-
-	// If we are downloading, we send no less than 50ms between packets
-	if( *cls.downloadtempname && cls.realtime - cls.netchan.last_sent < 50 )
-		return false;
-
-	// if we don't have a valid gamestate yet, only send
-	// one packet a second
-	if( cls.state < ca_connected && !*cls.downloadtempname && cls.realtime - cls.netchan.last_sent < 1000 )
-		return false;
-
-	// send every frame for loopbacks
-	if( cls.netchan.remote_address.type == NA_LOOPBACK )
-		return true;
-
-	// send every frame for LAN
-	if( NET_IsLANAddress( cls.netchan.remote_address ))
-		return true;
-
-	// check for exceeding cl_maxpackets
-	if ( cl_maxpackets->integer < 15 )
-		Cvar_Set( "cl_maxpackets", "15" );
-	else if( cl_maxpackets->integer > 125 )
-		Cvar_Set( "cl_maxpackets", "125" );
-
-	old_packetnum = (cls.netchan.outgoing_sequence - 1) & PACKET_MASK;
-	delta = cls.realtime - cl.packets[old_packetnum].realtime;
-
-	// the accumulated commands will go out in the next packet
-	if( delta < 1000 / cl_maxpackets->integer )
-		return false;
-	return true;
-}
-
-/*
-===================
-CL_WritePacket
-
-Create and send the command packet to the server
-Including both the reliable commands and the usercmds
-
-During normal gameplay, a client packet will contain something like:
-
-1	clc_move
-1	checksum byte
-4	serverframe	( -1 disable delta compression )
-4	command_count
-<count * usercmds>
-===================
-*/
-void CL_WritePacket( void )
-{
-	int	i, j;
-	usercmd_t	*cmd, *oldcmd, nullcmd;
-	int	packet_num, old_packetnum;
-	int	count, checksumIndex, crc;
-	byte	data[MAX_MSGLEN];
-	sizebuf_t	usercmd;
-
-	// don't send anything if playing back a demo
-	if( cls.demoplayback || cls.state == ca_cinematic )
-		return;
-
-	if( cls.state == ca_connected )
-	{
-		if (cls.netchan.message.cursize || cls.realtime - cls.netchan.last_sent > 1000 )
-			Netchan_Transmit (&cls.netchan, 0, NULL );	
-		return;
-	}
-
-	SZ_Init(&usercmd, data, sizeof(data));
-	memset( &nullcmd, 0, sizeof(nullcmd));
-	oldcmd = &nullcmd;
-
-	// send a userinfo update if needed
-	if( userinfo_modified )
-	{
-		userinfo_modified = false;
-		MSG_WriteByte( &cls.netchan.message, clc_userinfo);
-		MSG_WriteString (&cls.netchan.message, Cvar_Userinfo());
-	}
-
-	old_packetnum = ( cls.netchan.outgoing_sequence - 2 ) & PACKET_MASK;
-	count = cl.cmd_number - cl.packets[old_packetnum].cmd_number;
-	if( count > PACKET_BACKUP ) count = PACKET_BACKUP;
-
-	if( count >= 1 )
-	{
-		// begin a client move command
-		MSG_WriteByte (&usercmd, clc_move);
-		// save the position for a checksum byte
-		checksumIndex = usercmd.cursize;
-		MSG_WriteByte( &usercmd, 0 );
-
-		// let the server know what the last frame we
-		// got was, so the next message can be delta compressed
-		if( cl_nodelta->value || !cl.frame.valid || cls.demowaiting )
-		{
-			MSG_WriteLong( &usercmd, -1 );	// no compression
-		}
-		else MSG_WriteLong( &usercmd, cl.frame.serverframe );
-		MSG_WriteByte( &usercmd, count );		// write the command count
-
-		// write all the commands, including the predicted command
-		for( i = 0; i < count; i++ )
-		{
-			j = (cls.netchan.outgoing_sequence - count + i + 1) & CMD_MASK;
-			cmd = &cl.cmds[j];
-			MSG_WriteDeltaUsercmd( &usercmd, oldcmd, cmd );
-			oldcmd = cmd;
-		}
-
-		// calculate a checksum over the move commands
-		crc = CRC_Sequence( usercmd.data+checksumIndex+1, usercmd.cursize-checksumIndex-1, cls.netchan.outgoing_sequence);
-		usercmd.data[checksumIndex] = crc;
-	}
-
-	// deliver the message
-	cls.netchan.last_sent = cls.realtime;
-	Netchan_Transmit( &cls.netchan, usercmd.cursize, usercmd.data );
+	return cmd;
 }
 
 /*
@@ -568,11 +434,87 @@ Called every frame to builds and sends a command packet to the server.
 */
 void CL_SendCmd( void )
 {
-	// we create commands even if a demo is playing,
-	CL_CreateNewCommands();
+	sizebuf_t		buf;
+	byte		data[128];
+	int		i;
+	usercmd_t		*cmd, *oldcmd;
+	usercmd_t		nullcmd;
+	int		checksumIndex;
+	int		curtime;
 
-	// don't send a packet if the last packet was sent too recently
-	if(CL_ReadyToSendPacket()) CL_WritePacket();
+	// build a command even if not connected
+
+	// save this command off for prediction
+	i = cls.netchan.outgoing_sequence & (CMD_BACKUP-1);
+	cmd = &cl.cmds[i];
+	curtime = Sys_Milliseconds();
+	*cmd = CL_CreateCmd ();
+
+	if(cls.state == ca_disconnected || cls.state == ca_connecting)
+		return;
+
+	// ignore commands for demo mode
+	if(cls.state == ca_cinematic || cls.demoplayback)
+		return;
+
+	if( cls.state == ca_connected )
+	{
+		if (cls.netchan.message.cursize || cls.realtime - cls.netchan.last_sent > 1000 )
+			Netchan_Transmit (&cls.netchan, 0, NULL );	
+		return;
+	}
+
+	// send a userinfo update if needed
+	if (userinfo_modified)
+	{
+		userinfo_modified = false;
+		MSG_WriteByte (&cls.netchan.message, clc_userinfo);
+		MSG_WriteString (&cls.netchan.message, Cvar_Userinfo());
+	}
+
+	// begin a client move command
+	SZ_Init (&buf, data, sizeof(data));
+	MSG_WriteByte (&buf, clc_move);
+
+	// save the position for a checksum byte
+	checksumIndex = buf.cursize;
+	MSG_WriteByte (&buf, 0);
+
+	// let the server know what the last frame we
+	// got was, so the next message can be delta compressed
+	if (cl_nodelta->value || !cl.frame.valid || cls.demowaiting)
+	{
+		MSG_WriteLong (&buf, -1);	// no compression
+	}
+	else
+	{
+		MSG_WriteLong (&buf, cl.frame.serverframe);
+	}
+
+	// send this and the previous cmds in the message, so
+	// if the last packet was dropped, it can be recovered
+	i = (cls.netchan.outgoing_sequence-2) & (CMD_BACKUP-1);
+	cmd = &cl.cmds[i];
+	memset (&nullcmd, 0, sizeof(nullcmd));
+	MSG_WriteDeltaUsercmd (&buf, &nullcmd, cmd);
+	oldcmd = cmd;
+
+	i = (cls.netchan.outgoing_sequence-1) & (CMD_BACKUP-1);
+	cmd = &cl.cmds[i];
+	MSG_WriteDeltaUsercmd (&buf, oldcmd, cmd);
+	oldcmd = cmd;
+
+	i = (cls.netchan.outgoing_sequence) & (CMD_BACKUP-1);
+	cmd = &cl.cmds[i];
+	MSG_WriteDeltaUsercmd (&buf, oldcmd, cmd);
+
+	// calculate a checksum over the move commands
+	buf.data[checksumIndex] = CRC_Sequence(
+		buf.data + checksumIndex + 1, buf.cursize - checksumIndex - 1,
+		cls.netchan.outgoing_sequence);
+
+	// deliver the message
+	Netchan_Transmit (&cls.netchan, buf.cursize, buf.data);
 }
 
 /*

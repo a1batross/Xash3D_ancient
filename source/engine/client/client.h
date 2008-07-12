@@ -39,7 +39,7 @@ typedef struct
 	int		deltaframe;
 	byte		areabits[MAX_MAP_AREAS/8];	// portalarea visibility bits
 	int		num_entities;
-	int		parse_entities;	// non-masked index into cl_parse_entities array
+	int		parse_entities;		// non-masked index into cl_parse_entities array
 	player_state_t	ps;
 } frame_t;
 
@@ -67,8 +67,8 @@ typedef struct
 extern char cl_weaponmodels[MAX_CLIENTWEAPONMODELS][MAX_QPATH];
 extern int num_cl_weaponmodels;
 
-#define	CMD_BACKUP	64	// allow a lot of command backups for very fast systems
-#define	CMD_MASK		(CMD_BACKUP - 1)
+#define	CMD_BACKUP		64	// allow a lot of command backups for very fast systems
+#define	CMD_MASK			(CMD_BACKUP - 1)
 
 //
 // the client_t structure is wiped completely at every
@@ -85,8 +85,8 @@ typedef struct
 	int		parse_entities;		// index (not anded off) into cl_parse_entities[]
 
 	usercmd_t		cmds[CMD_BACKUP];			// each mesage will send several old cmds
-	float		predicted_origins[CMD_BACKUP][3];	// for debug comparing against server
 	int		cmd_number;
+	int		predicted_origins[CMD_BACKUP][3];	// for debug comparing against server
 
 	float		predicted_step;				// for stair up smoothing
 	uint		predicted_step_time;
@@ -98,7 +98,6 @@ typedef struct
 	frame_t		frame;		// received from server
 	int		surpressCount;	// number of messages rate supressed
 	frame_t		frames[UPDATE_BACKUP];
-	outpacket_t	packets[PACKET_BACKUP];	// information about each packet we have sent out
 
 	// mouse current position
 	int		mouse_x[2];
@@ -206,17 +205,18 @@ typedef struct
 
 	int		framecount;
 	dword		realtime;			// always increasing, no clamping, etc
-	float		frametime;		// seconds since last frame
+	float		frametime;			// seconds since last frame
 
 	// connection information
 	string		servername;		// name of server from original connect
 	float		connect_time;		// for connection retransmits
-						// to work around address translating routers
-	netchan_t		netchan;			// network channel from server
-	int		serverProtocol;		// in case we are doing some kind of version hack
+
+	netchan_t		netchan;
 	sizebuf_t		*multicast;		// ptr for current message buffer (net or demo flow)
+	int		serverProtocol;		// in case we are doing some kind of version hack
 
 	int		challenge;		// from the server to use for connecting
+
 	file_t		*download;		// file transfer from server
 	char		downloadtempname[MAX_OSPATH];
 	char		downloadname[MAX_OSPATH];
@@ -306,7 +306,7 @@ extern	cvar_t	*cl_pitchspeed;
 extern	cvar_t	*cl_run;
 
 extern	cvar_t	*cl_anglespeedkey;
-extern	cvar_t	*cl_maxpackets;
+
 extern	cvar_t	*cl_shownet;
 extern	cvar_t	*cl_showmiss;
 extern	cvar_t	*cl_showclamp;
@@ -318,10 +318,9 @@ extern	cvar_t	*ui_sensitivity;
 
 extern	cvar_t	*m_pitch;
 extern	cvar_t	*m_yaw;
-extern	cvar_t	*m_side;
 extern	cvar_t	*m_forward;
+extern	cvar_t	*m_side;
 extern	cvar_t	*cl_mouselook;
-
 
 extern	cvar_t	*cl_lightlevel;	// FIXME HACK
 
@@ -353,6 +352,10 @@ extern	cdlight_t	cl_dlights[MAX_DLIGHTS];
 extern	entity_state_t	cl_parse_entities[MAX_PARSE_ENTITIES];
 
 //=============================================================================
+
+extern	netadr_t	net_from;
+extern	sizebuf_t	net_message;
+
 bool CL_CheckOrDownloadFile (char *filename);
 
 void CL_AddNetgraph (void);
@@ -447,7 +450,7 @@ void CL_Snd_Restart_f (void);
 void CL_RequestNextDownload (void);
 
 //
-// cl_input
+// cl_input.c
 //
 void CL_InitInput( void );
 void CL_ShutdownInput( void );
@@ -464,14 +467,14 @@ void CL_WriteToServer (usercmd_t *cmd);
 void CL_BaseMove (usercmd_t *cmd);
 
 void IN_CenterView (void);
+
 void CL_CharEvent( int key );
-void CL_MouseEvent( int dx, int dy, int time );
 char *Key_KeynumToString (int keynum);
 
 //
 // cl_demo.c
 //
-void CL_WriteDemoMessage( sizebuf_t *msg, int head_size );
+void CL_WriteDemoMessage( void );
 void CL_ReadDemoMessage( void );
 void CL_StopPlayback( void );
 void CL_StopRecord( void );

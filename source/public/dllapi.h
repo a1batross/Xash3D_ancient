@@ -240,11 +240,10 @@ typedef struct player_state_s
 	float		bobtime;
 	byte		pm_type;		// player movetype
 	byte		pm_flags;		// ducked, jump_held, etc
-	int		pm_time;		// each unit = 8 ms
-	int		cmd_time;		// cmd->servertime of last executed command
+	byte		pm_time;		// each unit = 8 ms
 	
-	vec3_t		origin;
-	vec3_t		velocity;
+	int		origin[3];
+	int		velocity[3];
 	vec3_t		delta_angles;	// add to command angles to get view direction
 	short		gravity;		// gravity value
 	short		speed;		// maxspeed
@@ -269,16 +268,12 @@ typedef struct player_state_s
 // user_cmd_t communication
 typedef struct usercmd_s
 {
-	int		buttons;
-	int		angles[3];
-	int		servertime;
-	byte		impulse;
-	signed char	forwardmove;
-	signed char	sidemove;
-	signed char	upmove;
-
-	// get rid of this	
+	byte		msec;
+	byte		buttons;
+	short		angles[3];
+	byte		impulse;		// remove?
 	byte		lightlevel;	// light level the player is standing on
+	short		forwardmove, sidemove, upmove;
 } usercmd_t;
 
 typedef struct pmove_s

@@ -5,15 +5,6 @@
 #ifndef NET_MSG_H
 #define NET_MSG_H
 
-#define PACKET_BACKUP	32
-#define PACKET_MASK		( PACKET_BACKUP - 1 )
-
-#define MAX_PACKETLEN	1400		// max size of a network packet
-#define FRAGMENT_SIZE	(MAX_PACKETLEN - 100)
-#define PACKET_HEADER	10		// two ints and a short
-#define MAX_LOOPBACK	16
-#define FRAGMENT_BIT	(1<<31)
-
 // server to client
 enum svc_ops_e
 {
@@ -38,18 +29,16 @@ enum svc_ops_e
 	svc_packetentities,		// [...]
 	svc_deltapacketentities,	// [...]
 	svc_frame,		// server frame
-	svc_eof,			// end of messages
 };
 
 // client to server
 enum clc_ops_e
 {
-	clc_bad = 0,
+	clc_bad,
 	clc_nop, 		
 	clc_move,				// [[usercmd_t]
 	clc_userinfo,			// [[userinfo string]
-	clc_stringcmd,			// [string] message
-	clc_eof,				// end of messages
+	clc_stringcmd			// [string] message
 };
 
 typedef enum
@@ -63,13 +52,6 @@ typedef enum
 	MSG_PHS_R,
 	MSG_PVS_R,
 } msgtype_t;
-
-typedef struct
-{
-	int	cmd_number;	// cl.cmdnumber when packet was sent
-	int	servertime;	// usercmd->servertime when packet was sent
-	int	realtime;		// cls.realtime when packet was sent
-} outpacket_t;
 
 #define PS_M_TYPE			(1<<0)
 #define PS_M_ORIGIN			(1<<1)
@@ -248,8 +230,8 @@ typedef struct entity_state_s
 */
 #define SZ_GetSpace(buf, len) _SZ_GetSpace(buf, len, __FILE__, __LINE__ )
 #define SZ_Write(buf, data, len) _SZ_Write(buf, data, len, __FILE__, __LINE__ )
-void SZ_Init( sizebuf_t *buf, byte *data, size_t length );
-void SZ_Clear( sizebuf_t *buf );
+void SZ_Init (sizebuf_t *buf, byte *data, int length);
+void SZ_Clear (sizebuf_t *buf);
 void *_SZ_GetSpace (sizebuf_t *buf, int length, const char *filename, int fileline);
 void _SZ_Write (sizebuf_t *buf, const void *data, int length, const char *filename, int fileline);
 void SZ_Print (sizebuf_t *buf, char *data);	// strcats onto the sizebuf
@@ -262,14 +244,13 @@ void _MSG_WriteWord (sizebuf_t *sb, int c, const char *filename, int fileline);
 void _MSG_WriteLong (sizebuf_t *sb, int c, const char *filename, int fileline);
 void _MSG_WriteFloat (sizebuf_t *sb, float f, const char *filename, int fileline);
 void _MSG_WriteString (sizebuf_t *sb, const char *s, const char *filename, int fileline);
-void _MSG_WriteCoord16(sizebuf_t *sb, float f, const char *filename, int fileline);
+void _MSG_WriteCoord16(sizebuf_t *sb, int f, const char *filename, int fileline);
 void _MSG_WriteCoord32(sizebuf_t *sb, float f, const char *filename, int fileline);
 void _MSG_WriteAngle16(sizebuf_t *sb, float f, const char *filename, int fileline);
 void _MSG_WriteAngle32(sizebuf_t *sb, float f, const char *filename, int fileline);
-void _MSG_WritePos16(sizebuf_t *sb, vec3_t pos, const char *filename, int fileline);
+void _MSG_WritePos16(sizebuf_t *sb, int pos[3], const char *filename, int fileline);
 void _MSG_WritePos32(sizebuf_t *sb, vec3_t pos, const char *filename, int fileline);
 void _MSG_WriteUnterminatedString (sizebuf_t *sb, const char *s, const char *filename, int fileline);
-void _MSG_WriteData (sizebuf_t *sb, const void *data, size_t length, const char *filename, int fileline);
 void _MSG_WriteDeltaUsercmd (sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd, const char *filename, int fileline);
 void _MSG_WriteDeltaEntity (struct entity_state_s *from, struct entity_state_s *to, sizebuf_t *msg, bool force, bool newentity, const char *filename, int fileline);
 void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename, int fileline);
@@ -277,7 +258,6 @@ void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename,
 #define MSG_Begin( x ) _MSG_Begin( x, __FILE__, __LINE__);
 #define MSG_WriteChar(x,y) _MSG_WriteChar (x, y, __FILE__, __LINE__);
 #define MSG_WriteByte(x,y) _MSG_WriteByte (x, y, __FILE__, __LINE__);
-#define MSG_WriteData(x,y,z) _MSG_WriteData (x, y, z,__FILE__, __LINE__);
 #define MSG_WriteShort(x,y) _MSG_WriteShort (x, y, __FILE__, __LINE__);
 #define MSG_WriteWord(x,y) _MSG_WriteWord (x, y, __FILE__, __LINE__);
 #define MSG_WriteLong(x,y) _MSG_WriteLong (x, y, __FILE__, __LINE__);
@@ -306,7 +286,7 @@ float MSG_ReadCoord16(sizebuf_t *sb);
 float MSG_ReadCoord32(sizebuf_t *sb);
 float MSG_ReadAngle16(sizebuf_t *sb);
 float MSG_ReadAngle32(sizebuf_t *sb);
-void MSG_ReadPos16(sizebuf_t *sb, vec3_t pos);
+void MSG_ReadPos16(sizebuf_t *sb, int pos[3]);
 void MSG_ReadPos32(sizebuf_t *sb, vec3_t pos);
 void MSG_ReadData (sizebuf_t *sb, void *buffer, int size);
 void MSG_ReadDeltaUsercmd (sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd);
@@ -319,7 +299,8 @@ NET
 
 ==============================================================
 */
-void NET_SendPacket( netsrc_t sock, int length, const void *data, netadr_t to );
+bool NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, sizebuf_t *net_message );
+void NET_SendPacket( netsrc_t sock, int length, void *data, netadr_t to );
 bool NET_GetPacket( netsrc_t sock, netadr_t *from, sizebuf_t *msg );
 bool NET_StringToAdr( const char *s, netadr_t *a );
 bool NET_CompareBaseAdr( netadr_t a, netadr_t b );
@@ -327,36 +308,47 @@ bool NET_CompareAdr( netadr_t a, netadr_t b );
 bool NET_IsLocalAddress( netadr_t adr );
 
 //============================================================================
+
+#define OLD_AVG		0.99		// total = oldtotal*OLD_AVG + new*(1-OLD_AVG)
+#define MAX_LATENT		32
+
 typedef struct netchan_s
 {
-	netsrc_t		sock;
-	int		dropped;		// between last packet and previous
-	netadr_t		remote_address;
+	bool			fatal_error;
+	netsrc_t			sock;
 
-	int		last_received;	// for timeouts
-	int		last_sent;	// for retransmits
+	int			dropped;			// between last packet and previous
 
-	int		qport;		// qport value to write when transmitting
+	int			last_received;		// for timeouts
+	int			last_sent;		// for retransmits
+
+	netadr_t			remote_address;
+	int			qport;			// qport value to write when transmitting
 
 	// sequencing variables
-	int		incoming_sequence;
-	int		incoming_acknowledged;
-	int		incoming_reliable_acknowledged;	// single bit
+	int			incoming_sequence;
+	int			incoming_acknowledged;
+	int			incoming_reliable_acknowledged;	// single bit
 
-	int		incoming_reliable_sequence;		// single bit, maintained local
+	int			incoming_reliable_sequence;		// single bit, maintained local
 
-	int		outgoing_sequence;
-	int		reliable_sequence;			// single bit
-	int		last_reliable_sequence;		// sequence number of last send
+	int			outgoing_sequence;
+	int			reliable_sequence;			// single bit
+	int			last_reliable_sequence;		// sequence number of last send
 
 	// reliable staging and holding areas
-	sizebuf_t		message;				// writing buffer to send to server
-	byte		message_buf[MAX_MSGLEN-16];		// leave space for header
+	sizebuf_t			message;				// writing buffer to send to server
+	byte			message_buf[MAX_MSGLEN-16];		// leave space for header
 
 	// message is copied to this buffer when it is first transfered
-	int		reliable_length;
-	byte		reliable_buf[MAX_MSGLEN-16];		// unacked reliable message
+	int			reliable_length;
+	byte			reliable_buf[MAX_MSGLEN-16];		// unacked reliable message
+
 } netchan_t;
+
+extern netadr_t	net_from;
+extern sizebuf_t	net_message;
+extern byte	net_message_buffer[MAX_MSGLEN];
 
 #define PROTOCOL_VERSION	35
 #define PORT_MASTER		27900
@@ -365,12 +357,13 @@ typedef struct netchan_s
 #define UPDATE_BACKUP	64	// copies of entity_state_t to keep buffered, must be power of two
 #define UPDATE_MASK		(UPDATE_BACKUP - 1)
 
-void Netchan_Init( void );
-void Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qport );
-void Netchan_Transmit( netchan_t *chan, int length, const byte *data );
-void Netchan_TransmitNextFragment( netchan_t *chan );
-bool Netchan_Process( netchan_t *chan, sizebuf_t *msg );
+void Netchan_Init (void);
+void Netchan_Setup (netsrc_t sock, netchan_t *chan, netadr_t adr, int qport);
+bool Netchan_NeedReliable (netchan_t *chan);
+void Netchan_Transmit (netchan_t *chan, int length, byte *data);
 void Netchan_OutOfBand (int net_socket, netadr_t adr, int length, byte *data);
-void Netchan_OutOfBandPrint (int net_socket, netadr_t adr, const char *format, ...);
+void Netchan_OutOfBandPrint (int net_socket, netadr_t adr, char *format, ...);
+bool Netchan_Process (netchan_t *chan, sizebuf_t *msg);
+bool Netchan_CanReliable (netchan_t *chan);
 
 #endif//NET_MSG_H

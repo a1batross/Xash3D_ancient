@@ -214,10 +214,6 @@ SOURCE=.\server\sv_ents.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\server\sv_frame.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\server\sv_init.c
 # End Source File
 # Begin Source File

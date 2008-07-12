@@ -18,7 +18,7 @@ void SV_SetMaster_f( void )
 	int		i, slot;
 
 	// only dedicated servers send heartbeats
-	if( host.type == HOST_DEDICATED )
+	if( host.type != HOST_DEDICATED )
 	{
 		Msg("Only dedicated servers use masters.\n");
 		return;
@@ -355,13 +355,13 @@ void SV_Status_f( void )
 		int	j, l, ping;
 		char	*s;
 
-		if( cl->state == cs_free ) continue;
+		if (!cl->state) continue;
 
 		Msg("%3i ", i);
 		Msg("%5i ", cl->edict->priv.sv->client->ps.stats[STAT_FRAGS]);
 
-		if( cl->state == cs_connected ) Msg("Connect");
-		else if( cl->state == cs_zombie ) Msg( "Zombie ");
+		if (cl->state == cs_connected) Msg("Connect");
+		else if (cl->state == cs_zombie) Msg ("Zombie ");
 		else
 		{
 			ping = cl->ping < 9999 ? cl->ping : 9999;
@@ -491,7 +491,7 @@ void SV_InitOperatorCommands( void )
 	Cmd_AddCommand("restart", SV_Restart_f, "restarting current level" );
 	Cmd_AddCommand("sectorlist", SV_SectorList_f, "display pvs sectors" );
 
-	if( host.type == HOST_DEDICATED ) 
+	if( host.type == HOST_DEDICATED )
 	{
 		Cmd_AddCommand ("say", SV_ConSay_f, "send a chat message to everyone on the server" );
 		Cmd_AddCommand("setmaster", SV_SetMaster_f, "set ip address for dedicated server" );
@@ -517,7 +517,7 @@ void SV_KillOperatorCommands( void )
 	Cmd_RemoveCommand("restart");
 	Cmd_RemoveCommand("sectorlist");
 
-	if( host.type == HOST_DEDICATED ) 
+	if( host.type == HOST_DEDICATED )
 	{
 		Cmd_RemoveCommand("say");
 		Cmd_RemoveCommand("setmaster");

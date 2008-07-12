@@ -1084,7 +1084,7 @@ CL_KeyEvent
 Called by the system for both key up and key down events
 ===================
 */
-void Key_Event( int key, bool down, uint time )
+void Key_Event(int key, bool down, uint time)
 {
 	char	*kb;
 	char	cmd[1024];

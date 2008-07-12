@@ -40,7 +40,6 @@ struct sv_edict_s
 	worldsector_t		*worldsector;	// member of current wolrdsector
 	struct sv_edict_s 		*nextedict;	// next edict in world sector
 	struct sv_client_s		*client;		// filled for player ents
-
 	int			clipmask;		// trace info
 	int			lastcluster;	// unused if num_clusters != -1
 	int			linkcount;
@@ -52,7 +51,7 @@ struct sv_edict_s
 	int			solid;		// see entity_state_t for details
 	physbody_t		*physbody;	// ptr to phys body
 
-	// baseline
+	// baselines
 	entity_state_t		s;
 };
 

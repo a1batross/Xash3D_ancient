@@ -21,7 +21,7 @@ dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, siz
 dll_info_t viewer_dll = { "viewer.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t ripper_dll = { "ripper.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 
-static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2008 ©\n\t\
+static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t\
           All Rights Reserved\n\n\t           Visit www.xash.ru\n";
 
 // stubs
@@ -44,7 +44,7 @@ void Sys_GetStdAPI( void )
 	com.input = Sys_Input;
 	com.sleep = Sys_Sleep;
 	com.clipboard = Sys_GetClipboardData;
-	com.queevent = Sys_QueEvent;			// new system event
+	com.queevent = Sys_QueEvent;			// add event to queue
 	com.getevent = Sys_GetEvent;			// get system events
 	com.keyevents = Sys_SendKeyEvents;
 
@@ -702,7 +702,7 @@ double Sys_DoubleTime( void )
 
 	if( firsttimegettime )
 	{
-		timeBeginPeriod( 1 );
+		timeBeginPeriod (1);
 		firsttimegettime = false;
 	}
 	newtime = ( double )timeGetTime() * 0.001;
@@ -775,25 +775,6 @@ char *Sys_GetClipboardData( void )
 	return data;
 }
 
-/*
-================
-Sys_GetCurrentUser
-
-returns username for current profile
-================
-*/
-char *Sys_GetCurrentUser( void )
-{
-	static string s_userName;
-	dword size = sizeof( s_userName );
-
-	if( !GetUserName( s_userName, &size ))
-		com_strcpy( s_userName, "player" );
-	if( !s_userName[0] )
-		com_strcpy( s_userName, "player" );
-
-	return s_userName;
-}
 
 /*
 ================

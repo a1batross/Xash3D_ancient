@@ -329,7 +329,7 @@ vprogs_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 
 	vm.InitProg = PRVM_InitProg;
 	vm.SetProg = PRVM_SetProg;
-	vm.ProgLoaded = PRVM_ProgLoaded;
+	vm.ProgLoaded = PRVM_ProgLoaded; 
 	vm.LoadProgs = PRVM_LoadProgs;
 	vm.ResetProg = PRVM_ResetProg;
 

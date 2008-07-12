@@ -177,10 +177,9 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 
 	// determine what needs to be sent
 	if (ps->pm_type != ops->pm_type) pflags |= PS_M_TYPE;
-	if(!VectorCompare(ps->origin, ops->origin)) pflags |= PS_M_ORIGIN;
-	if(!VectorCompare(ps->velocity, ops->velocity)) pflags |= PS_M_VELOCITY;
+	if(!VectorICompare(ps->origin, ops->origin)) pflags |= PS_M_ORIGIN;
+	if(!VectorICompare(ps->velocity, ops->velocity)) pflags |= PS_M_VELOCITY;
 	if (ps->pm_time != ops->pm_time) pflags |= PS_M_TIME;
-	if (ps->cmd_time != ops->cmd_time) pflags |= PS_M_COMMANDMSEC;
 	if (ps->pm_flags != ops->pm_flags) pflags |= PS_M_FLAGS;
 	if (ps->gravity != ops->gravity) pflags |= PS_M_GRAVITY;
 	if(!VectorCompare(ps->delta_angles, ops->delta_angles)) pflags |= PS_M_DELTA_ANGLES;
@@ -208,10 +207,9 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 
 	// write the pmove_state_t
 	if (pflags & PS_M_TYPE) MSG_WriteByte (msg, ps->pm_type);
-	if (pflags & PS_M_ORIGIN) MSG_WritePos32(msg, ps->origin);
-	if (pflags & PS_M_VELOCITY) MSG_WritePos32(msg, ps->velocity);
+	if (pflags & PS_M_ORIGIN) MSG_WritePos16(msg, ps->origin);
+	if (pflags & PS_M_VELOCITY) MSG_WritePos16(msg, ps->velocity);
 	if (pflags & PS_M_TIME) MSG_WriteByte (msg, ps->pm_time);
-	if (pflags & PS_M_COMMANDMSEC) MSG_WriteLong (msg, ps->cmd_time);
 	if (pflags & PS_M_FLAGS) MSG_WriteByte (msg, ps->pm_flags);
 	if (pflags & PS_M_GRAVITY) MSG_WriteShort (msg, ps->gravity);
 	if (pflags & PS_M_DELTA_ANGLES) MSG_WritePos32(msg, ps->delta_angles);
@@ -387,7 +385,9 @@ void SV_BuildClientFrame( sv_client_t *client )
 	if (!clent->priv.sv->client) return;// not in game yet
 
 	// this is the frame we are creating
-	frame = &client->frames[client->netchan.outgoing_sequence & UPDATE_MASK];
+	frame = &client->frames[sv.framenum & UPDATE_MASK];
+
+	frame->senttime = svs.realtime; // save it for ping calc later
 
 	// find the client's PVS
 	VectorScale( clent->priv.sv->client->ps.origin, CL_COORD_FRAC, org ); 

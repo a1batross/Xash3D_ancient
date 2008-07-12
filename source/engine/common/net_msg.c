@@ -41,16 +41,6 @@ void _MSG_WriteByte (sizebuf_t *sb, int c, const char *filename, int fileline)
 	buf[0] = c;
 }
 
-void _MSG_WriteData( sizebuf_t *sb, const void *data, size_t length, const char *filename, int fileline )
-{
-	int	i;
-
-	for( i = 0; i < length; i++ )
-	{
-		_MSG_WriteByte( sb, ((byte *)data)[i], filename, fileline );
-	}
-}
-
 void _MSG_WriteShort (sizebuf_t *sb, int c, const char *filename, int fileline)
 {
 	byte	*buf;
@@ -110,9 +100,9 @@ void _MSG_WriteUnterminatedString (sizebuf_t *sb, const char *s, const char *fil
 	if (s && *s) _SZ_Write (sb, (byte *)s, (int)strlen(s), filename, fileline);
 }
 
-void _MSG_WriteCoord16(sizebuf_t *sb, float f, const char *filename, int fileline)
+void _MSG_WriteCoord16(sizebuf_t *sb, int f, const char *filename, int fileline)
 {
-	_MSG_WriteShort(sb, (int)(f * SV_COORD_FRAC), filename, fileline );
+	_MSG_WriteLong(sb, f * SV_COORD_FRAC, filename, fileline );
 }
 
 void _MSG_WriteAngle16 (sizebuf_t *sb, float f, const char *filename, int fileline)
@@ -130,7 +120,7 @@ void _MSG_WriteAngle32(sizebuf_t *sb, float f, const char *filename, int filelin
 	_MSG_WriteFloat(sb, f, filename, fileline );
 }
 
-void _MSG_WritePos16(sizebuf_t *sb, vec3_t pos, const char *filename, int fileline)
+void _MSG_WritePos16(sizebuf_t *sb, int pos[3], const char *filename, int fileline)
 {
 	_MSG_WriteCoord16(sb, pos[0], filename, fileline );
 	_MSG_WriteCoord16(sb, pos[1], filename, fileline );
@@ -162,18 +152,18 @@ void _MSG_WriteDeltaUsercmd (sizebuf_t *buf, usercmd_t *from, usercmd_t *cmd, co
 
 	_MSG_WriteByte (buf, bits, filename, fileline );
 
-	if (bits & CM_ANGLE1) _MSG_WriteLong (buf, cmd->angles[0], filename, fileline );
-	if (bits & CM_ANGLE2) _MSG_WriteLong (buf, cmd->angles[1], filename, fileline );
-	if (bits & CM_ANGLE3) _MSG_WriteLong (buf, cmd->angles[2], filename, fileline );
+	if (bits & CM_ANGLE1) _MSG_WriteShort (buf, cmd->angles[0], filename, fileline );
+	if (bits & CM_ANGLE2) _MSG_WriteShort (buf, cmd->angles[1], filename, fileline );
+	if (bits & CM_ANGLE3) _MSG_WriteShort (buf, cmd->angles[2], filename, fileline );
 	
-	if (bits & CM_FORWARD) _MSG_WriteChar (buf, cmd->forwardmove, filename, fileline );
-	if (bits & CM_SIDE) _MSG_WriteChar (buf, cmd->sidemove, filename, fileline );
-	if (bits & CM_UP) _MSG_WriteChar (buf, cmd->upmove, filename, fileline );
+	if (bits & CM_FORWARD) _MSG_WriteShort (buf, cmd->forwardmove, filename, fileline );
+	if (bits & CM_SIDE) _MSG_WriteShort (buf, cmd->sidemove, filename, fileline );
+	if (bits & CM_UP) _MSG_WriteShort (buf, cmd->upmove, filename, fileline );
 
- 	if (bits & CM_BUTTONS) _MSG_WriteLong (buf, cmd->buttons, filename, fileline );
+ 	if (bits & CM_BUTTONS) _MSG_WriteByte (buf, cmd->buttons, filename, fileline );
  	if (bits & CM_IMPULSE) _MSG_WriteByte (buf, cmd->impulse, filename, fileline );
 
-	_MSG_WriteLong (buf, cmd->servertime, filename, fileline );
+	_MSG_WriteByte (buf, cmd->msec, filename, fileline );
 	_MSG_WriteByte (buf, cmd->lightlevel, filename, fileline );
 }
 
@@ -449,7 +439,7 @@ char *MSG_ReadStringLine (sizebuf_t *msg_read)
 
 float MSG_ReadCoord16(sizebuf_t *msg_read)
 {
-	return MSG_ReadShort(msg_read) * CL_COORD_FRAC;
+	return MSG_ReadLong( msg_read ) * CL_COORD_FRAC;
 }
 
 float MSG_ReadCoord32(sizebuf_t *msg_read)
@@ -464,7 +454,7 @@ void MSG_ReadPos32(sizebuf_t *msg_read, vec3_t pos)
 	pos[2] = MSG_ReadFloat(msg_read);
 }
 
-void MSG_ReadPos16( sizebuf_t *msg_read, vec3_t pos )
+void MSG_ReadPos16( sizebuf_t *msg_read, int pos[3])
 {
 	pos[0] = MSG_ReadCoord16(msg_read);
 	pos[1] = MSG_ReadCoord16(msg_read);
@@ -487,20 +477,20 @@ void MSG_ReadDeltaUsercmd (sizebuf_t *msg_read, usercmd_t *from, usercmd_t *move
 	Mem_Copy (move, from, sizeof(*move));
 
 	// read current angles
-	if (bits & CM_ANGLE1) move->angles[0] = MSG_ReadLong (msg_read);
-	if (bits & CM_ANGLE2) move->angles[1] = MSG_ReadLong (msg_read);
-	if (bits & CM_ANGLE3) move->angles[2] = MSG_ReadLong (msg_read);
+	if (bits & CM_ANGLE1) move->angles[0] = MSG_ReadShort (msg_read);
+	if (bits & CM_ANGLE2) move->angles[1] = MSG_ReadShort (msg_read);
+	if (bits & CM_ANGLE3) move->angles[2] = MSG_ReadShort (msg_read);
 		
 	// read movement
-	if (bits & CM_FORWARD) move->forwardmove = MSG_ReadChar (msg_read);
-	if (bits & CM_SIDE) move->sidemove = MSG_ReadChar (msg_read);
-	if (bits & CM_UP) move->upmove = MSG_ReadChar (msg_read);
+	if (bits & CM_FORWARD) move->forwardmove = MSG_ReadShort (msg_read);
+	if (bits & CM_SIDE) move->sidemove = MSG_ReadShort (msg_read);
+	if (bits & CM_UP) move->upmove = MSG_ReadShort (msg_read);
 	
 	// read buttons
-	if (bits & CM_BUTTONS) move->buttons = MSG_ReadLong (msg_read);
+	if (bits & CM_BUTTONS) move->buttons = MSG_ReadByte (msg_read);
 	if (bits & CM_IMPULSE) move->impulse = MSG_ReadByte (msg_read);
 	
-	move->servertime = MSG_ReadLong (msg_read); // read time to run command
+	move->msec = MSG_ReadByte (msg_read); // read time to run command
 	move->lightlevel = MSG_ReadByte (msg_read); // read the light level
 }
 
@@ -564,9 +554,9 @@ void MSG_ReadData (sizebuf_t *msg_read, void *data, int len)
 =======================
 */
 
-void SZ_Init( sizebuf_t *buf, byte *data, size_t length )
+void SZ_Init (sizebuf_t *buf, byte *data, int length)
 {
-	memset( buf, 0, sizeof(sizebuf_t));
+	memset (buf, 0, sizeof(*buf));
 	buf->data = data;
 	buf->maxsize = length;
 }

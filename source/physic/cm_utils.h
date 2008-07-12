@@ -5,20 +5,6 @@
 #ifndef CM_UTILS_H
 #define CM_UTILS_H
 
-//#define USE_COORD_FRAC
-
-// network precision coords factor
-#ifdef USE_COORD_FRAC
-	#define SV_COORD_FRAC	(8.0f / 1.0f)
-	#define CL_COORD_FRAC	(1.0f / 8.0f)
-#else
-	#define SV_COORD_FRAC	1.0f
-	#define CL_COORD_FRAC	1.0f
-#endif
-
-#define SV_ANGLE_FRAC	(360.0f / 1.0f )
-#define CL_ANGLE_FRAC	(1.0f / 360.0f )
-
 _inline void CM_ConvertPositionToMeters( vec3_t out, vec3_t in )
 {
 	out[0] = LittleFloat(INCH2METER(in[0]));

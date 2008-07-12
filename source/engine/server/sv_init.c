@@ -298,9 +298,9 @@ void SV_InitGame (void)
 	}
 
 	svs.spawncount = rand();
-	svs.clients = Z_Malloc( sizeof(sv_client_t) * maxclients->value );
-	svs.num_client_entities = maxclients->value * UPDATE_BACKUP * 64;
-	svs.client_entities = Z_Malloc( sizeof(entity_state_t) * svs.num_client_entities );
+	svs.clients = Z_Malloc (sizeof(sv_client_t)*maxclients->value);
+	svs.num_client_entities = maxclients->value*UPDATE_BACKUP*64;
+	svs.client_entities = Z_Malloc (sizeof(entity_state_t)*svs.num_client_entities);
 
 	// heartbeats will always be sent to the id master
 	svs.last_heartbeat = MAX_HEARTBEAT; // send immediately

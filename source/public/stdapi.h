@@ -6,6 +6,7 @@
 #define REF_SYSTEM_H
 
 #include "stdref.h"
+#include "protocol.h"
 
 /*
 ==============================================================================
@@ -30,7 +31,7 @@ typedef struct stdilib_api_s
 	char *(*clipboard)( void );				// get clipboard data
 	void (*queevent)( dword time, ev_type_t type, int value, int value2, int length, void *ptr );
 	sys_event_t (*getevent)( void );			// get system events
-	uint (*keyevents)( void );				// peek windows message (remove this)
+	uint (*keyevents)( void );				// peek windows message
 
 	// crclib.c funcs
 	void (*crc_init)(word *crcvalue);			// set initial crc value

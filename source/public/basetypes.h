@@ -30,7 +30,6 @@
 #define MAX_STRING_TOKENS	80
 #define MAX_TOKEN_CHARS	128
 #define MAX_STRING_CHARS	1024
-#define MAX_MSGLEN		1400	// max length of a message, which may be fragmented into multiple packets
 
 #define COLOR_BLACK		'0'
 #define COLOR_RED		'1'
@@ -101,6 +100,7 @@ typedef struct edict_s	edict_t;
 typedef int		sound_t;
 typedef int		string_t;
 typedef void (*xcommand_t)	(void);
+typedef struct gclient_s	gclient_t;
 typedef struct sv_edict_s	sv_edict_t;
 typedef struct cl_edict_s	cl_edict_t;
 typedef struct ui_edict_s	ui_edict_t;
@@ -169,6 +169,7 @@ typedef enum
 	SE_CHAR,		// ev.value is an ascii char
 	SE_MOUSE,		// ev.value and ev.value2 are reletive signed x / y moves
 	SE_CONSOLE,	// ev.data is a char*
+	SE_PACKET		// ev.data is a netadr_t followed by data bytes to ev.length
 } ev_type_t;
 
 typedef struct
@@ -179,28 +180,6 @@ typedef struct
 	void		*data;
 	size_t		length;
 } sys_event_t;
-
-typedef enum { NA_NONE, NA_LOOPBACK, NA_BROADCAST, NA_IP } netadrtype_t;
-typedef enum { NS_CLIENT, NS_SERVER } netsrc_t;
-
-typedef struct
-{
-	netadrtype_t	type;
-	byte		ip[4];
-	word		port;
-} netadr_t;
-
-typedef struct sizebuf_s
-{
-	bool	overflowed;	// set to true if the buffer size failed
-
-	byte	*data;
-	int	maxsize;
-	int	cursize;
-	int	readcount;
-	int	errorcount;	// cause by errors
-	int	bit;		// for bitwise reads and writes
-} sizebuf_t;
 
 enum dev_level
 {

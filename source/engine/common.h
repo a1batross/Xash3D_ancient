@@ -28,20 +28,6 @@ extern vsound_exp_t		*se;
 #define HOST_FRAMETIME	100		// host.frametime in msecs (change with caution)
 #define MAX_EVENTS		1024
 
-//#define USE_COORD_FRAC
-
-// network precision coords factor
-#ifdef USE_COORD_FRAC
-	#define SV_COORD_FRAC	(8.0f / 1.0f)
-	#define CL_COORD_FRAC	(1.0f / 8.0f)
-#else
-	#define SV_COORD_FRAC	1.0f
-	#define CL_COORD_FRAC	1.0f
-#endif
-
-#define SV_ANGLE_FRAC	(360.0f / 1.0f )
-#define CL_ANGLE_FRAC	(1.0f / 360.0f )
-
 /*
 ==============================================================
 
@@ -49,7 +35,7 @@ INPUT
 
 ==============================================================
 */
-#define WM_MOUSEWHEEL		( WM_MOUSELAST + 1 ) // message that will be supported by the OS 
+#define WM_MOUSEWHEEL	( WM_MOUSELAST + 1 ) // message that will be supported by the OS 
 
 typedef enum e_keycodes
 {
@@ -135,6 +121,7 @@ static byte scan_to_key[128] =
 	0,0,0,K_F11,K_F12,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 };
+
 //
 // input.c
 //
@@ -175,8 +162,7 @@ typedef struct host_redirect_s
 	int	target;
 	char	*buffer;
 	int	buffersize;
-	netadr_t	address;
-	void	(*flush)( netadr_t adr, int target, char *buffer );
+	void	(*flush)(int target, char *buffer);
 } host_redirect_t;
 
 typedef struct host_parm_s
@@ -185,25 +171,16 @@ typedef struct host_parm_s
 	uint		type;		// running at
 	host_redirect_t	rd;		// remote console
 	jmp_buf		abortframe;	// abort current frame
-
 	string		finalmsg;		// server shutdown final message
-	HWND		hWnd;		// main window
 
-	int		developer;	// show all developer's message
-	bool		paused;		// freeze server
-	bool		stuffcmdsrun;	// sturtup script
 	dword		framecount;	// global framecount
 	dword		frametime[2];	// second value is old frametime
-
 	int		events_head;
 	int		events_tail;
 	sys_event_t	events[MAX_EVENTS];
-	file_t		*journal;		// journal file
 
-	// get rid of this
-	bool		sv_running;	// server is running ?
-	bool		cl_running;	// client is running ?
-
+	HWND		hWnd;		// main window
+	int		developer;	// show all developer's message
 } host_parm_t;
 
 extern host_parm_t host;
@@ -416,6 +393,7 @@ void CL_GetEntitySoundSpatialization( int ent, vec3_t origin, vec3_t velocity );
 void SV_Transform( sv_edict_t *ed, matrix4x3 transform );
 bool SV_ReadComment( char *comment, int savenum );
 int CL_PMpointcontents( vec3_t point );
+void CL_MouseEvent( int mx, int my, int time );
 void CL_AddLoopingSounds( void );
 void CL_RegisterSounds( void );
 void CL_Drop( void );
@@ -436,6 +414,7 @@ bool Cmd_GetMusicList(const char *s, char *completedname, int length );
 bool Cmd_GetSoundList(const char *s, char *completedname, int length );
 bool Cmd_CheckMapsList( void );
 void Sys_Error( const char *msg, ... );
+void Sys_SendKeyEvents( void );
 
 // get rid of this
 float frand(void);	// 0 to 1

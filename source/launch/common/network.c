@@ -4,12 +4,18 @@
 //=======================================================================
 
 #include <winsock.h>
+#include <wsipx.h>
 #include "launch.h"
 
 #define MAX_IPS		16
 #define PORT_ANY		-1
 #define PORT_SERVER		27960
-
+#define DO( src, dest )	\
+	copy[0] = s[src];	\
+	copy[1] = s[src + 1];	\
+	sscanf( copy, "%x", &val );	\
+	((struct sockaddr_ipx *)sadr)->dest = val
+	
 // wsock32.dll exports
 static int (_stdcall *pWSACleanup)( void );
 static word (_stdcall *pNtohs)( word netshort );
@@ -72,6 +78,7 @@ static cvar_t *net_socks_password;
 static struct sockaddr socksRelayAddr;
 static SOCKET ip_socket;
 static SOCKET socks_socket;
+static SOCKET ipx_socket;
 static char socksBuf[4096];
 static byte localIP[MAX_IPS][4];
 static int numIP;
@@ -159,6 +166,20 @@ void NetadrToSockadr( netadr_t *a, struct sockaddr *s )
 		((struct sockaddr_in *)s)->sin_addr.s_addr = *(int *)&a->ip;
 		((struct sockaddr_in *)s)->sin_port = a->port;
 	}
+	else if (a->type == NA_IPX)
+	{
+		((struct sockaddr_ipx *)s)->sa_family = AF_IPX;
+		memcpy(((struct sockaddr_ipx *)s)->sa_netnum, &a->ipx[0], 4);
+		memcpy(((struct sockaddr_ipx *)s)->sa_nodenum, &a->ipx[4], 6);
+		((struct sockaddr_ipx *)s)->sa_socket = a->port;
+	}
+	else if (a->type == NA_BROADCAST_IPX)
+	{
+		((struct sockaddr_ipx *)s)->sa_family = AF_IPX;
+		memset(((struct sockaddr_ipx *)s)->sa_netnum, 0, 4);
+		memset(((struct sockaddr_ipx *)s)->sa_nodenum, 0xff, 6);
+		((struct sockaddr_ipx *)s)->sa_socket = a->port;
+	}
 }
 
 
@@ -170,7 +191,13 @@ void SockadrToNetadr( struct sockaddr *s, netadr_t *a )
 		*(int *)&a->ip = ((struct sockaddr_in *)s)->sin_addr.s_addr;
 		a->port = ((struct sockaddr_in *)s)->sin_port;
 	}
-	else a->type = NA_NONE;
+	else if (s->sa_family == AF_IPX)
+	{
+		a->type = NA_IPX;
+		memcpy(&a->ipx[0], ((struct sockaddr_ipx *)s)->sa_netnum, 4);
+		memcpy(&a->ipx[4], ((struct sockaddr_ipx *)s)->sa_nodenum, 6);
+		a->port = ((struct sockaddr_ipx *)s)->sa_socket;
+	}
 }
 
 
@@ -180,26 +207,48 @@ NET_StringToAdr
 
 idnewt
 192.246.40.70
+12121212.121212121212
 =============
 */
 bool NET_StringToSockaddr( const char *s, struct sockaddr *sadr )
 {
 	struct hostent	*h;
+	int		val;
+	char		copy[MAX_STRING_CHARS];
 	
 	memset( sadr, 0, sizeof( *sadr ) );
-
-	((struct sockaddr_in *)sadr)->sin_family = AF_INET;
-	((struct sockaddr_in *)sadr)->sin_port = 0;
-
-	if( s[0] >= '0' && s[0] <= '9' )
+	// check for an IPX address
+	if(( com_strlen( s ) == 21 ) && ( s[8] == '.' ))
 	{
-		*(int *)&((struct sockaddr_in *)sadr)->sin_addr = pInet_Addr(s);
+		((struct sockaddr_ipx *)sadr)->sa_family = AF_IPX;
+		((struct sockaddr_ipx *)sadr)->sa_socket = 0;
+		copy[2] = 0;
+		DO(0, sa_netnum[0]);
+		DO(2, sa_netnum[1]);
+		DO(4, sa_netnum[2]);
+		DO(6, sa_netnum[3]);
+		DO(9, sa_nodenum[0]);
+		DO(11, sa_nodenum[1]);
+		DO(13, sa_nodenum[2]);
+		DO(15, sa_nodenum[3]);
+		DO(17, sa_nodenum[4]);
+		DO(19, sa_nodenum[5]);
 	}
 	else
 	{
-		if(( h = pGetHostByName(s)) == 0 )
-			return 0;
-		*(int *)&((struct sockaddr_in *)sadr)->sin_addr = *(int *)h->h_addr_list[0];
+		((struct sockaddr_in *)sadr)->sin_family = AF_INET;
+		((struct sockaddr_in *)sadr)->sin_port = 0;
+
+		if( s[0] >= '0' && s[0] <= '9' )
+		{
+			*(int *)&((struct sockaddr_in *)sadr)->sin_addr = pInet_Addr(s);
+		}
+		else
+		{
+			if(( h = pGetHostByName(s)) == 0 )
+				return 0;
+			*(int *)&((struct sockaddr_in *)sadr)->sin_addr = *(int *)h->h_addr_list[0];
+		}
 	}
 	return true;
 }
@@ -208,12 +257,20 @@ char *NET_AdrToString( netadr_t a )
 {
 	static char	s[64];
 
-	if( a.type == NA_LOOPBACK ) com_sprintf (s, "loopback");
+	if( a.type == NA_LOOPBACK )
+	{
+		com_snprintf( s, sizeof(s), "loopback" );
+	}
 	else if( a.type == NA_IP )
 	{
-		com_sprintf( s, "%i.%i.%i.%i:%i", a.ip[0], a.ip[1], a.ip[2], a.ip[3], pNtohs(a.port));
+		com_snprintf( s, sizeof(s), "%i.%i.%i.%i:%hu", a.ip[0], a.ip[1], a.ip[2], a.ip[3], BigShort(a.port));
 	}
-	else memset( s, 0, sizeof(s));
+	else
+	{
+		com_snprintf( s, sizeof(s), "%02x%02x%02x%02x.%02x%02x%02x%02x%02x%02x:%hu",
+		a.ipx[0], a.ipx[1], a.ipx[2], a.ipx[3], a.ipx[4], a.ipx[5], a.ipx[6], a.ipx[7], a.ipx[8], a.ipx[9], 
+		BigShort(a.port));
+	}
 	return s;
 }
 
@@ -245,50 +302,62 @@ Never called by the game logic, just the system event queing
 */
 bool NET_GetPacket( netadr_t *net_from, sizebuf_t *net_message )
 {
-	int		ret;
+	int 		ret, err;
 	struct sockaddr	from;
 	int		fromlen;
 	int		net_socket;
-	int		err;
+	int		protocol;
 
-	net_socket = ip_socket;
-	fromlen = sizeof(from);
-	ret = pRecvFrom( ip_socket, net_message->data, net_message->maxsize, 0, (struct sockaddr *)&from, &fromlen );
-	if( ret == SOCKET_ERROR )
+	for( protocol = 0; protocol < 2; protocol++ )
 	{
-		err = pWSAGetLastError();
-		if( err == WSAEWOULDBLOCK || err == WSAECONNRESET )
-			return false;
-		MsgDev( D_ERROR, "NET_GetPacket: %s\n", NET_ErrorString());
-		return false;
-	}
-	memset(((struct sockaddr_in *)&from)->sin_zero, 0, 8 );
+		if( protocol == 0 ) net_socket = ip_socket;
+		else net_socket = ipx_socket;
 
-	if( usingSocks && memcmp( &from, &socksRelayAddr, fromlen ) == 0 )
-	{
-		if( ret < 10 || net_message->data[0] != 0 || net_message->data[1] != 0 || net_message->data[2] != 0 || net_message->data[3] != 1 )
-			return false;
-		net_from->type = NA_IP;
-		net_from->ip[0] = net_message->data[4];
-		net_from->ip[1] = net_message->data[5];
-		net_from->ip[2] = net_message->data[6];
-		net_from->ip[3] = net_message->data[7];
-		net_from->port = *(short *)&net_message->data[8];
-		net_message->readcount = 10;
-	}
-	else
-	{
-		SockadrToNetadr( &from, net_from );
-		net_message->readcount = 0;
-	}
-	if( ret == net_message->maxsize )
-	{
-		MsgDev( D_ERROR, "NET_GetPacket: Oversize packet from %s\n", NET_AdrToString(*net_from));
-		return false;
-	}
+		if( !net_socket ) continue;
 
-	net_message->cursize = ret;
-	return true;
+		fromlen = sizeof( from );
+		ret = pRecvFrom( net_socket, net_message->data, net_message->maxsize, 0, (struct sockaddr *)&from, &fromlen );
+		if (ret == SOCKET_ERROR)
+		{
+			err = pWSAGetLastError();
+
+			if( err == WSAEWOULDBLOCK || err == WSAECONNRESET )
+				continue;
+			MsgDev( D_ERROR, "NET_GetPacket: %s\n", NET_ErrorString());
+			continue;
+		}
+		if( net_socket == ip_socket )
+		{
+			memset( ((struct sockaddr_in *)&from)->sin_zero, 0, 8 );
+		}
+
+		if( usingSocks && net_socket == ip_socket && memcmp( &from, &socksRelayAddr, fromlen ) == 0 )
+		{
+			if( ret < 10 || net_message->data[0] != 0 || net_message->data[1] != 0 || net_message->data[2] != 0 || net_message->data[3] != 1 )
+				continue;
+			net_from->type = NA_IP;
+			net_from->ip[0] = net_message->data[4];
+			net_from->ip[1] = net_message->data[5];
+			net_from->ip[2] = net_message->data[6];
+			net_from->ip[3] = net_message->data[7];
+			net_from->port = *(short *)&net_message->data[8];
+			net_message->readcount = 10;
+		}
+		else
+		{
+			SockadrToNetadr( &from, net_from );
+			net_message->readcount = 0;
+		}
+
+		if( ret == net_message->maxsize )
+		{
+			MsgDev( D_WARN, "oversize packet from %s\n", NET_AdrToString (*net_from) );
+			continue;
+		}
+		net_message->cursize = ret;
+		return true;
+	}
+	return false;
 }
 
 /*
@@ -307,36 +376,44 @@ void NET_SendPacket( int length, const void *data, netadr_t to )
 	case NA_IP:
 	case NA_BROADCAST:
 		net_socket = ip_socket;
+		break;
+	case NA_IPX:
+	case NA_BROADCAST_IPX:
+		net_socket = ipx_socket;		
+		break;
 	default:
 		MsgDev( D_ERROR, "NET_SendPacket: bad address type\n");
 		return;
 	}
 
+	if( !net_socket ) return;
 	NetadrToSockadr( &to, &addr );
+
 	if( usingSocks && to.type == NA_IP )
 	{
 		socksBuf[0] = 0;	// reserved
-		socksBuf[1] = 0;	// reserved
-		socksBuf[2] = 0;	// fragment ( not fragmented )
+		socksBuf[1] = 0;
+		socksBuf[2] = 0;	// fragment (not fragmented)
 		socksBuf[3] = 1;	// address type: IPV4
 		*(int *)&socksBuf[4] = ((struct sockaddr_in *)&addr)->sin_addr.s_addr;
 		*(short *)&socksBuf[8] = ((struct sockaddr_in *)&addr)->sin_port;
-		Mem_Copy( &socksBuf[10], data, length );
-		ret = pSendTo( net_socket, socksBuf, length + 10, 0, &socksRelayAddr, sizeof(socksRelayAddr));
+		memcpy( &socksBuf[10], data, length );
+		ret = pSendTo( net_socket, socksBuf, length+10, 0, &socksRelayAddr, sizeof(socksRelayAddr) );
 	}
-	else ret = pSendTo( net_socket, data, length, 0, &addr, sizeof(addr));
+	else ret = pSendTo( net_socket, data, length, 0, &addr, sizeof(addr) );
 
 	if( ret == SOCKET_ERROR )
 	{
 		int err = pWSAGetLastError();
 
 		// wouldblock is silent
-		if( err == WSAEWOULDBLOCK ) return;
+		if( err == WSAEWOULDBLOCK )
+			return;
 
 		// some PPP links do not allow broadcasts and return an error
-		if( err == WSAEADDRNOTAVAIL && to.type == NA_BROADCAST )
+		if(( err == WSAEADDRNOTAVAIL ) && (( to.type == NA_BROADCAST ) || ( to.type == NA_BROADCAST_IPX )))
 			return;
-		MsgDev( D_ERROR, "NET_SendPacket: %s\n", NET_ErrorString());
+		MsgDev( D_ERROR, "NET_SendPacket: %s\n", NET_ErrorString() );
 	}
 }
 
@@ -352,6 +429,9 @@ bool NET_IsLANAddress( netadr_t adr )
 	int	i;
 
 	if( adr.type == NA_LOOPBACK )
+		return true;
+
+	if( adr.type == NA_IPX )
 		return true;
 
 	if( adr.type != NA_IP )
@@ -659,6 +739,70 @@ void NET_OpenSocks( int port )
 	usingSocks = true;
 }
 
+/*
+====================
+NET_IPXSocket
+====================
+*/
+int NET_IPXSocket( int port )
+{
+	SOCKET		newsocket;
+	struct sockaddr_ipx	address;
+	int   		_true = 1;
+	int   		err;
+
+	if(( newsocket = pSocket( AF_IPX, SOCK_DGRAM, NSPROTO_IPX )) == INVALID_SOCKET )
+	{
+		err = pWSAGetLastError();
+		if( err != WSAEAFNOSUPPORT )
+			MsgDev( D_WARN, "IPX_Socket: socket: %s\n", NET_ErrorString());
+		return 0;
+	}
+
+	// make it non-blocking
+	if( pIoctlSocket( newsocket, FIONBIO, &_true ) == SOCKET_ERROR )
+	{
+		MsgDev( D_WARN, "IPX_Socket: ioctl FIONBIO: %s\n", NET_ErrorString());
+		return 0;
+	}
+
+	// make it broadcast capable
+	if( pSetSockopt( newsocket, SOL_SOCKET, SO_BROADCAST, (char *)&_true, sizeof( _true ) ) == SOCKET_ERROR )
+	{
+		MsgDev( D_WARN, "IPX_Socket: setsockopt SO_BROADCAST: %s\n", NET_ErrorString());
+		return 0;
+	}
+
+	address.sa_family = AF_IPX;
+	memset( address.sa_netnum, 0, 4 );
+	memset( address.sa_nodenum, 0, 6 );
+	if( port == PORT_ANY ) address.sa_socket = 0;
+	else address.sa_socket = pHtons( (short)port );
+
+	if( pBind( newsocket, (void *)&address, sizeof(address)) == SOCKET_ERROR )
+	{
+		MsgDev( D_WARN, "IPX_Socket: bind: %s\n", NET_ErrorString());
+		pCloseSocket( newsocket );
+		return 0;
+	}
+	return newsocket;
+}
+
+
+/*
+====================
+NET_OpenIPX
+====================
+*/
+void NET_OpenIPX( void )
+{
+	int	port;
+
+	port = Cvar_Get( "net_port", va( "%i", PORT_SERVER ), CVAR_LATCH, "network ip address" )->integer;
+	ipx_socket = NET_IPXSocket( port );
+}
+
+
 
 /*
 =====================
@@ -715,7 +859,6 @@ void NET_OpenIP( void )
 	cvar_t	*ip;
 	int	i, port;
 
-	Msg("NET_OpenIP\n");
 	ip = Cvar_Get( "net_ip", "localhost", CVAR_LATCH, "network ip address" );
 	port = Cvar_Get( "net_port", va( "%i", PORT_SERVER ), CVAR_LATCH, "network default port" )->integer;
 
@@ -815,7 +958,6 @@ void NET_Config( bool net_enable )
 
 	if( stop )
 	{
-		Msg("NET_CloseIP\n");
 		if( ip_socket && ip_socket != INVALID_SOCKET )
 		{
 			pCloseSocket( ip_socket );
@@ -827,8 +969,17 @@ void NET_Config( bool net_enable )
 			pCloseSocket( socks_socket );
 			socks_socket = 0;
 		}
+		if( ipx_socket && ipx_socket != INVALID_SOCKET )
+		{
+			pCloseSocket( ipx_socket );
+			ipx_socket = 0;
+		}
 	}
-	if( start ) NET_OpenIP();
+	if( start )
+	{
+		NET_OpenIP();
+		NET_OpenIPX();
+	}
 }
 
 
@@ -850,7 +1001,7 @@ void NET_Init( void )
 	}
 
 	winsockInitialized = true;
-	MsgDev( D_NOTE, "NET_Init: suceeded\n" );
+	MsgDev( D_NOTE, "NET_Init()\n" );
 	NET_GetCvars();	// register cvars
 	NET_Config( true );	// FIXME: testing!
 }

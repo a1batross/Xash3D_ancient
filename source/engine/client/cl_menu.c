@@ -24,7 +24,7 @@ static bool credits_active;
 void UI_VM_Begin( void )
 {
 	PRVM_Begin;
-	PRVM_SetProg(PRVM_UIMENUPROG);
+	PRVM_SetProg(PRVM_MENUPROG);
 
 	// set time
 	if( prog ) *prog->time = cls.realtime * 0.001f;
@@ -725,7 +725,7 @@ const int vm_ui_numbuiltins = sizeof(vm_ui_builtins) / sizeof(prvm_builtin_t);
 void UI_Init( void )
 {
 	PRVM_Begin;
-	PRVM_InitProg( PRVM_UIMENUPROG );
+	PRVM_InitProg( PRVM_MENUPROG );
 
 	prog->progs_mempool = Mem_AllocPool( "Uimenu Progs" );
 	prog->builtins = vm_ui_builtins;

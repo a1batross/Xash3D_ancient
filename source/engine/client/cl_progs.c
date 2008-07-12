@@ -153,11 +153,13 @@ void CL_FreeEdicts( void )
 	int	i;
 	edict_t	*ent;
 
+	CL_VM_Begin();
 	for( i = 1; prog && i < prog->num_edicts; i++ )
 	{
 		ent = PRVM_EDICT_NUM(i);
 		CL_FreeEdict( ent );
 	}
+	CL_VM_End();
 }
 
 void CL_CountEdicts( void )
@@ -261,13 +263,12 @@ void DrawNet( vector pos, string image )
 */
 void PF_drawnet( void )
 {
-	float		*pos;
-	const char	*pic;
-	usercmd_t		*cmd;
+	float	*pos;
+	const char *pic;
 
-	if(!VM_ValidateArgs( "drawnet", 2 )) return;
-	cmd = &cl.cmds[cl.cmd_number & CMD_MASK];
-	if( cmd->servertime <= cl.frame.servertime || cmd->servertime > cl.time )
+	if(!VM_ValidateArgs( "drawnet", 2 ))
+		return;
+	if(cls.netchan.outgoing_sequence - cls.netchan.incoming_acknowledged < CMD_BACKUP-1)
 		return;
 
 	pos = PRVM_G_VECTOR(OFS_PARM0);

@@ -274,10 +274,8 @@ void CL_PrepRefresh( void )
 	int		mdlcount = 0, imgcount = 0, cl_count = 0;
 
 	if (!cl.configstrings[CS_MODELS+1][0])
-	{
-		Msg("no map loaded\n");
 		return; // no map loaded
-	}
+
 	Msg("CL_PrepRefresh: %s\n", cl.configstrings[CS_NAME] );
 
 	// get splash name
@@ -323,7 +321,7 @@ void CL_PrepRefresh( void )
 	{
 		com.strncpy( name, cl.configstrings[CS_MODELS+i], MAX_STRING );
 		SCR_UpdateScreen();
-		//Host_EventLoop(); // pump message loop
+		Sys_SendKeyEvents(); // pump message loop
 
 		cl.model_draw[i] = re->RegisterModel( name );
 		if (name[0] == '*') cl.model_clip[i] = pe->RegisterModel( name );
@@ -337,9 +335,9 @@ void CL_PrepRefresh( void )
 	for (i = 1; i < MAX_IMAGES && cl.configstrings[CS_IMAGES+i][0]; i++)
 	{
 		cl.image_precache[i] = re->RegisterPic (cl.configstrings[CS_IMAGES+i]);
+		Sys_SendKeyEvents (); // pump message loop
 		Cvar_SetValue("scr_loading", scr_loading->value + 3.0f/imgcount );
 		SCR_UpdateScreen();
-		//Host_EventLoop();
 	}
 
 	// create thread here ?	
@@ -348,7 +346,7 @@ void CL_PrepRefresh( void )
 		if(!cl.configstrings[CS_PLAYERSKINS+i][0]) continue;
 		Cvar_SetValue("scr_loading", scr_loading->value + 2.0f/cl_count );
 		SCR_UpdateScreen ();
-		//Host_EventLoop();	// pump message loop
+		Sys_SendKeyEvents();	// pump message loop
 		CL_ParseClientinfo(i);
 	}
 
@@ -409,6 +407,7 @@ void V_RenderView( void )
 		// build a refresh entity list and calc cl.sim*
 		// this also calls CL_CalcViewValues which loads
 		// v_forward, etc.
+		CL_VM_Begin();
 		CL_AddEntities ();
 
 		if (cl_testparticles->value)

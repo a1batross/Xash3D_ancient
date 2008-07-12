@@ -28,13 +28,13 @@ cvar_t	*timescale;
 cvar_t	*host_serverstate;
 cvar_t	*host_frametime;
 cvar_t	*host_cheats;
-cvar_t	*r_fullscreen;
-cvar_t	*vid_gamma;
-cvar_t	*r_xpos;	// X coordinate of window position
-cvar_t	*r_ypos;	// Y coordinate of window position
-cvar_t	*cm_paused;
-
 cvar_t	*host_maxfps;
+cvar_t	*r_fullscreen;
+cvar_t	*r_xpos;		// X coordinate of window position
+cvar_t	*r_ypos;		// Y coordinate of window position
+cvar_t	*vid_gamma;
+
+cvar_t	*cm_paused;	// remove this	
 
 /*
 =======
@@ -302,7 +302,6 @@ void Host_InitEvents( void )
 	host.events_tail = 0;
 }
 
-
 /*
 =================
 Host_PushEvent
@@ -356,6 +355,11 @@ Returns last event time
 dword Host_EventLoop( void )
 {
 	sys_event_t	ev;
+	netadr_t		ev_from;
+	byte		bufData[MAX_MSGLEN];
+	sizebuf_t		buf;
+
+	SZ_Init( &buf, bufData, sizeof( bufData ));
 
 	while( 1 )
 	{
@@ -363,6 +367,15 @@ dword Host_EventLoop( void )
 		switch ( ev.type )
 		{
 		case SE_NONE:
+			// manually send packet events for the loopback channel
+			/*while( NET_GetLoopPacket( NS_CLIENT, &ev_from, &buf ))
+			{
+				CL_PacketEvent( ev_from, &buf );
+			}
+			while( NET_GetLoopPacket( NS_SERVER, &ev_from, &buf ))
+			{
+				SV_PacketEvent( ev_from, &buf );
+			}*/
 			return ev.time;
 		case SE_KEY:
 			Key_Event( ev.value[0], ev.value[1], ev.time );
@@ -376,6 +389,21 @@ dword Host_EventLoop( void )
 		case SE_CONSOLE:
 			Cbuf_AddText( va( "%s\n", ev.data ));
 			break;
+			ev_from = *(netadr_t *)ev.data;
+			buf.cursize = ev.length - sizeof( ev_from );
+
+			// we must copy the contents of the message out, because
+			// the event buffers are only large enough to hold the
+			// exact payload, but channel messages need to be large
+			// enough to hold fragment reassembly
+			if((uint)buf.cursize > buf.maxsize )
+			{
+				MsgDev( D_WARN, "Host_EventLoop: oversize packet\n");
+				continue;
+			}
+			Mem_Copy( buf.data, (byte *)((netadr_t *)ev.data + 1), buf.cursize );
+			if ( svs.initialized ) SV_PacketEvent( ev_from, &buf );
+			else CL_PacketEvent( ev_from, &buf );
 		default:
 			Host_Error( "Host_EventLoop: bad event type %i", ev.type );
 			break;
@@ -437,12 +465,12 @@ int Host_ModifyTime( int msec )
 	return msec;
 }
 
-
 /*
 =================
 Host_Frame
 =================
 */
+#if 1
 void Host_Frame( void )
 {
 	dword		time, min_time;
@@ -474,7 +502,8 @@ void Host_Frame( void )
 	host.framecount++;
 }
 
-/*
+#else
+
 void Host_Frame( dword time )
 {
 	char		*s;
@@ -502,7 +531,7 @@ void Host_Frame( dword time )
 
 	host.framecount++;
 }
-*/
+#endif
 
 /*
 ====================
@@ -513,9 +542,9 @@ main window procedure
 */
 long Host_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 {
-	int	 	temp = 0;
+	int	 temp = 0;
 
-	switch (uMsg)
+	switch( uMsg )
 	{
 	case WM_MOUSEWHEEL:
 		if((short)HIWORD(wParam) > 0)
@@ -595,7 +624,7 @@ long Host_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 		if( wParam == SC_SCREENSAVE ) return 0;
 		break;
 	case WM_SYSKEYDOWN:
-		if( wParam == 13 && r_fullscreen )
+		if( wParam == 13 && r_fullscreen)
 		{
 			Cvar_SetValue( "fullscreen", !r_fullscreen->value );
 			return 0;
@@ -633,7 +662,7 @@ void Host_Print( const char *txt )
 		{
 			if(host.rd.flush)
 			{
-				host.rd.flush( host.rd.address, host.rd.target, host.rd.buffer);
+				host.rd.flush(host.rd.target, host.rd.buffer);
 				*host.rd.buffer = 0;
 			}
 		}
@@ -663,7 +692,7 @@ void Host_Error( const char *error, ... )
 		Sys_Error ("%s", hosterror1 );
 	else Msg("Host_Error: %s", hosterror1);
 
-	if( recursive )
+	if(recursive)
 	{ 
 		Msg("Host_RecursiveError: %s", hosterror2 );
 		Sys_Error ("%s", hosterror1 );
@@ -672,6 +701,7 @@ void Host_Error( const char *error, ... )
 
 	recursive = true;
 	com.sprintf( host.finalmsg, "Server crashed: %s\n", hosterror1 );
+	com.strncpy( host.finalmsg, "Server shutdown\n", MAX_STRING );
 
 	SV_Shutdown( false );
 	CL_Drop(); // drop clients
@@ -692,7 +722,7 @@ void Host_Error_f( void )
 Host_Crash_f
 =================
 */
-static void Host_Crash_f( void )
+static void Host_Crash_f (void)
 {
 	*(int *)0 = 0xffffffff;
 }
@@ -759,7 +789,7 @@ void Host_Init (uint funcname, int argc, char **argv)
 		Cmd_AddCommand ("error", Host_Error_f, "just throw a fatal error to test shutdown procedures" );
 		Cmd_AddCommand ("crash", Host_Crash_f, "a way to force a bus error for development reasons");
           }
-
+          
 	host_maxfps = Cvar_Get( "host_maxfps", "100", CVAR_ARCHIVE, "host fps upper limit" );
 	cm_paused = Cvar_Get("cm_paused", "0", 0, "physics module pause" );
 	host_frametime = Cvar_Get ("host_frametime", "0.1", 0, "host frametime" );
@@ -769,12 +799,12 @@ void Host_Init (uint funcname, int argc, char **argv)
 	s = va("^1Xash %g ^3%s", GI->version, buildstring );
 	Cvar_Get( "version", s, CVAR_SERVERINFO|CVAR_INIT, "engine current version" );
 	if( host.type == HOST_DEDICATED ) Cmd_AddCommand ("quit", Sys_Quit, "quit the game" );
-       
+
 	NET_Init();
 	Netchan_Init();
 	Host_InitPhysic();
 	Host_InitVprogs( argc, argv );
-      
+
 	SV_Init();
 	CL_Init();
 

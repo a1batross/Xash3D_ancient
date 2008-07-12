@@ -1,29 +1,14 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
+//=======================================================================
+//			Copyright XashXT Group 2008 ©
+//			net_chan.c - network channel
+//=======================================================================
 
 #include "common.h"
 #include "mathlib.h"
 
 /*
 
-packet header (quake2)
+packet header
 -------------
 31	sequence
 1	does this message contain a reliable payload
@@ -31,10 +16,35 @@ packet header (quake2)
 1	acknowledge receipt of even/odd message
 16	qport
 
-if the sequence number is -1, the packet should be handled as an out-of-band
-message instead of as part of a netcon.
+The remote connection never knows if it missed a reliable message, the
+local side detects that it has been dropped by seeing a sequence acknowledge
+higher thatn the last reliable sequence, but without the correct evon/odd
+bit for the reliable set.
 
-All fragments will have the same sequence numbers.
+If the sender notices that a reliable message has been dropped, it will be
+retransmitted.  It will not be retransmitted again until a message after
+the retransmit has been acknowledged and the reliable still failed to get there.
+
+if the sequence number is -1, the packet should be handled without a netcon
+
+The reliable message can be added to at any time by doing
+MSG_Write* (&netchan->message, <data>).
+
+If the message buffer is overflowed, either by a single message, or by
+multiple frames worth piling up while the last reliable transmit goes
+unacknowledged, the netchan signals a fatal error.
+
+Reliable messages are always placed first in a packet, then the unreliable
+message is included if there is sufficient room.
+
+To the receiver, there is no distinction between the reliable and unreliable
+parts of the message, they are just processed out as a single larger message.
+
+Illogical packet sequence numbers cause the packet to be dropped, but do
+not kill the connection.  This, combined with the tight window of valid
+reliable acknowledgement numbers provides protection against malicious
+address spoofing.
+
 
 The qport field is a workaround for bad address translating routers that
 sometimes remap the client's source port on a packet during gameplay.
@@ -42,21 +52,28 @@ sometimes remap the client's source port on a packet during gameplay.
 If the base part of the net address matches and the qport matches, then the
 channel matches even if the IP port differs.  The IP port should be updated
 to the new value before sending out any replies.
+
+
+If there is no information that needs to be transfered on a given frame,
+such as during the connection stage while waiting for the client to load,
+then a packet only needs to be delivered if there is something in the
+unacknowledged reliable
 */
 
-cvar_t *showpackets;
-cvar_t *showdrop;
-cvar_t *qport;
+#define MAX_LOOPBACK		4
+#define MASK_LOOPBACK		(MAX_LOOPBACK - 1)
 
-static char *netsrcString[2] =
-{
-"client",
-"server"
-};
+cvar_t	*net_showpackets;
+cvar_t	*net_showdrop;
+cvar_t	*net_qport;
+
+netadr_t	net_from;
+sizebuf_t	net_message;
+byte	net_message_buffer[MAX_MSGLEN];
 
 typedef struct
 {
-	byte	data[MAX_PACKETLEN];
+	byte	data[MAX_MSGLEN];
 	int	datalen;
 } loopmsg_t;
 
@@ -68,20 +85,23 @@ typedef struct
 
 loopback_t	loopbacks[2];
 
+
 /*
 ===============
 Netchan_Init
 
 ===============
 */
-void Netchan_Init( void )
+void Netchan_Init (void)
 {
+	int		port;
+	
 	// pick a port value that should be nice and random
-	int port = RANDOM_LONG( 1, 65535 );
+	port = RANDOM_LONG( 1, 65535 );
 
-	showpackets = Cvar_Get ("net_showpackets", "0", CVAR_TEMP, "show network packets" );
-	showdrop = Cvar_Get ("net_showdrop", "0", CVAR_TEMP, "show packets that are dropped" );
-	qport = Cvar_Get ("net_qport", va("%i", port), CVAR_INIT, "current quake netport" );
+	net_showpackets = Cvar_Get ("net_showpackets", "0", CVAR_TEMP, "show network packets" );
+	net_showdrop = Cvar_Get ("net_showdrop", "0", CVAR_TEMP, "show packets that are dropped" );
+	net_qport = Cvar_Get ("net_qport", va("%i", port), CVAR_INIT, "current quake netport" );
 }
 
 /*
@@ -91,18 +111,59 @@ Netchan_Setup
 called to open a channel to a remote system
 ==============
 */
-void Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qport )
+void Netchan_Setup (netsrc_t sock, netchan_t *chan, netadr_t adr, int qport)
 {
 	memset( chan, 0, sizeof(*chan));
 	
 	chan->sock = sock;
 	chan->remote_address = adr;
 	chan->qport = qport;
+	chan->last_received = Sys_Milliseconds();
 	chan->incoming_sequence = 0;
 	chan->outgoing_sequence = 1;
-	chan->last_received = Sys_Milliseconds();
 
-	SZ_Init( &chan->message, chan->message_buf, sizeof(chan->message_buf));
+	SZ_Init (&chan->message, chan->message_buf, sizeof(chan->message_buf));
+}
+
+/*
+===============
+Netchan_OutOfBand
+
+Sends an out-of-band datagram
+================
+*/
+void Netchan_OutOfBand (int net_socket, netadr_t adr, int length, byte *data)
+{
+	sizebuf_t	send;
+	byte		send_buf[MAX_MSGLEN];
+
+	// write the packet header
+	SZ_Init (&send, send_buf, sizeof(send_buf));
+	
+	MSG_WriteLong (&send, -1);	// -1 sequence means out of band
+	SZ_Write(&send, data, length);
+
+	// send the datagram
+	NET_SendPacket (net_socket, send.cursize, send.data, adr);
+}
+
+/*
+===============
+Netchan_OutOfBandPrint
+
+Sends a text message in an out-of-band datagram
+================
+*/
+void Netchan_OutOfBandPrint (int net_socket, netadr_t adr, char *format, ...)
+{
+	va_list		argptr;
+	static char		string[MAX_MSGLEN - 4];
+	
+	va_start (argptr, format);
+	com.vsprintf (string, format,argptr);
+	va_end (argptr);
+
+	Netchan_OutOfBand (net_socket, adr, strlen(string), (byte *)string);
 }
 
 /*
@@ -112,15 +173,15 @@ Netchan_CanReliable
 Returns true if the last reliable message has acked
 ================
 */
-bool Netchan_CanReliable( netchan_t *chan )
+bool Netchan_CanReliable (netchan_t *chan)
 {
-	if( chan->reliable_length )
-		return false; // waiting for ack
+	if (chan->reliable_length)
+		return false;			// waiting for ack
 	return true;
 }
 
 
-bool Netchan_NeedReliable( netchan_t *chan )
+bool Netchan_NeedReliable (netchan_t *chan)
 {
 	bool	send_reliable;
 
@@ -132,7 +193,7 @@ bool Netchan_NeedReliable( netchan_t *chan )
 		send_reliable = true;
 
 	// if the reliable transmit buffer is empty, copy the current message out
-	if( !chan->reliable_length && chan->message.cursize )
+	if (!chan->reliable_length && chan->message.cursize)
 	{
 		send_reliable = true;
 	}
@@ -144,11 +205,13 @@ bool Netchan_NeedReliable( netchan_t *chan )
 ===============
 Netchan_Transmit
 
-Sends a message to a connection, fragmenting if necessary
-A 0 length will still generate a packet.
+tries to send an unreliable message to a connection, and handles the
+transmition / retransmition of the reliable messages.
+
+A 0 length will still generate a packet and deal with the reliable messages.
 ================
 */
-void Netchan_Transmit( netchan_t *chan, int length, const byte *data )
+void Netchan_Transmit (netchan_t *chan, int length, byte *data)
 {
 	sizebuf_t	send;
 	byte	send_buf[MAX_MSGLEN];
@@ -158,7 +221,8 @@ void Netchan_Transmit( netchan_t *chan, int length, const byte *data )
 	// check for message overflow
 	if (chan->message.overflowed)
 	{
-		Host_Error( "%s:Outgoing message overflow\n", NET_AdrToString (chan->remote_address));
+		chan->fatal_error = true;
+		Msg ("%s:Outgoing message overflow\n", NET_AdrToString (chan->remote_address));
 		return;
 	}
 
@@ -186,7 +250,7 @@ void Netchan_Transmit( netchan_t *chan, int length, const byte *data )
 	MSG_WriteLong (&send, w2);
 
 	// send the qport if we are a client
-	if (chan->sock == NS_CLIENT) MSG_WriteWord (&send, qport->value);
+	if (chan->sock == NS_CLIENT) MSG_WriteWord (&send, Cvar_VariableValue( "net_qport" ));
 
 	// copy the reliable message to the packet first
 	if (send_reliable)
@@ -203,7 +267,7 @@ void Netchan_Transmit( netchan_t *chan, int length, const byte *data )
 	// send the datagram
 	NET_SendPacket (chan->sock, send.cursize, send.data, chan->remote_address);
 
-	if (showpackets->value)
+	if( net_showpackets->value )
 	{
 		if (send_reliable)
 			Msg ("send %4i : s=%i reliable=%i ack=%i rack=%i\n"
@@ -225,15 +289,11 @@ void Netchan_Transmit( netchan_t *chan, int length, const byte *data )
 =================
 Netchan_Process
 
-Returns qfalse if the message should not be processed due to being
-out of order or a fragment.
-
-Msg must be large enough to hold MAX_MSGLEN, because if this is the
-final fragment of a multi-part message, the entire thing will be
-copied out.
+called when the current net_message is from remote_address
+modifies net_message so that it points to the packet payload
 =================
 */
-bool Netchan_Process( netchan_t *chan, sizebuf_t *msg )
+bool Netchan_Process (netchan_t *chan, sizebuf_t *msg)
 {
 	uint	sequence, sequence_ack;
 	uint	reliable_ack, reliable_message;
@@ -254,7 +314,7 @@ bool Netchan_Process( netchan_t *chan, sizebuf_t *msg )
 	sequence &= ~(1<<31);
 	sequence_ack &= ~(1<<31);	
 
-	if (showpackets->value)
+	if (net_showpackets->value)
 	{
 		if (reliable_message)
 			Msg ("recv %4i : s=%i reliable=%i ack=%i rack=%i\n"
@@ -274,7 +334,7 @@ bool Netchan_Process( netchan_t *chan, sizebuf_t *msg )
 	// discard stale or duplicated packets
 	if (sequence <= chan->incoming_sequence)
 	{
-		if (showdrop->value)
+		if (net_showdrop->value)
 			Msg ("%s:Out of order packet %i at %i\n"
 				, NET_AdrToString (chan->remote_address)
 				,  sequence
@@ -286,17 +346,17 @@ bool Netchan_Process( netchan_t *chan, sizebuf_t *msg )
 	chan->dropped = sequence - (chan->incoming_sequence+1);
 	if (chan->dropped > 0)
 	{
-		if (showdrop->value)
+		if (net_showdrop->value)
 			Msg ("%s:Dropped %i packets at %i\n"
 			, NET_AdrToString (chan->remote_address)
 			, chan->dropped
 			, sequence);
 	}
 
-	//
-	// if the current outgoing reliable message has been acknowledged
-	// clear the buffer to make way for the next
-	//
+//
+// if the current outgoing reliable message has been acknowledged
+// clear the buffer to make way for the next
+//
 	if (reliable_ack == chan->reliable_sequence)
 		chan->reliable_length = 0;	// it has been received
 	
@@ -312,46 +372,6 @@ bool Netchan_Process( netchan_t *chan, sizebuf_t *msg )
 	// the message can now be read from the current message pointer
 	chan->last_received = Sys_Milliseconds();
 	return true;
-}
-
-/*
-===============
-Netchan_OutOfBand
-
-Sends a data message in an out-of-band datagram (only used for "connect")
-================
-*/
-void Netchan_OutOfBand( netsrc_t sock, netadr_t adr, int length, byte *data )
-{
-	sizebuf_t	send;
-	byte	send_buf[MAX_MSGLEN];
-
-	// write the packet header
-	SZ_Init( &send, send_buf, sizeof(send_buf));
-	MSG_WriteLong( &send, -1 );	// -1 sequence means out of band
-	SZ_Write( &send, data, length );
-
-	// send the datagram
-	NET_SendPacket( sock, send.cursize, send.data, adr );
-}
-
-/*
-===============
-Netchan_OutOfBandPrint
-
-Sends a text message in an out-of-band datagram
-================
-*/
-void Netchan_OutOfBandPrint( netsrc_t sock, netadr_t adr, const char *format, ... )
-{
-	va_list		argptr;
-	static char	string[MAX_MSGLEN - 4];
-	
-	va_start( argptr, format );
-	com.vsprintf( string, format, argptr );
-	va_end( argptr );
-
-	Netchan_OutOfBand( sock, adr, com.strlen(string), (byte *)string );
 }
 
 /*
@@ -430,7 +450,7 @@ bool NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, sizebuf_t *net_messag
 	i = loop->get & (MAX_LOOPBACK-1);
 	loop->get++;
 
-	Mem_Copy( net_message->data, loop->msgs[i].data, loop->msgs[i].datalen );
+	memcpy( net_message->data, loop->msgs[i].data, loop->msgs[i].datalen );
 	net_message->cursize = loop->msgs[i].datalen;
 	memset( net_from, 0, sizeof(*net_from));
 	net_from->type = NA_LOOPBACK;
@@ -438,7 +458,7 @@ bool NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, sizebuf_t *net_messag
 
 }
 
-void NET_SendLoopPacket( netsrc_t sock, int length, const void *data, netadr_t to )
+void NET_SendLoopPacket( netsrc_t sock, int length, void *data, netadr_t to )
 {
 	int		i;
 	loopback_t	*loop;
@@ -459,10 +479,10 @@ void NET_SendLoopPacket( netsrc_t sock, int length, const void *data, netadr_t t
 
 =============================================================================
 */
-void NET_SendPacket( netsrc_t sock, int length, const void *data, netadr_t to )
+void NET_SendPacket( netsrc_t sock, int length, void *data, netadr_t to )
 {
 	// sequenced packets are shown in netchan, so just show oob
-	if( showpackets->integer && *(int *)data == -1 )
+	if( net_showpackets->integer && *(int *)data == -1 )
 		MsgDev( D_INFO, "send packet %4i\n", length);
 
 	if( to.type == NA_LOOPBACK )
@@ -530,4 +550,8 @@ bool NET_StringToAdr( const char *s, netadr_t *a )
 	else a->port = BigShort( PORT_SERVER );
 
 	return true;
+}
+
+void NET_Sleep( int msec )
+{
 }

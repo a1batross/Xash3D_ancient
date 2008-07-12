@@ -17,6 +17,53 @@ int PM_pointcontents( vec3_t point )
 }
 
 /*
+===========
+PutClientInServer
+
+Called when a player connects to a server or respawns in
+a deathmatch.
+============
+*/
+void SV_PutClientInServer (edict_t *ent)
+{
+	int		index;
+	sv_client_t	*client;
+	int		i;
+          
+	index = PRVM_NUM_FOR_EDICT( ent ) - 1;
+	client = ent->priv.sv->client;
+
+	prog->globals.sv->time = sv.time;
+	prog->globals.sv->pev = PRVM_EDICT_TO_PROG( ent );
+
+	ent->priv.sv->free = false;
+	(int)ent->progs.sv->flags &= ~FL_DEADMONSTER;
+
+	if( !sv.loadgame )
+	{	
+		// fisrt entering
+		PRVM_ExecuteProgram( prog->globals.sv->PutClientInServer, "QC function PutClientInServer is missing\n" );
+		ent->progs.sv->v_angle[ROLL] = 0;	// cut off any camera rolling
+		ent->progs.sv->origin[2] += 1;	// make sure off ground
+		VectorCopy( ent->progs.sv->origin, ent->progs.sv->old_origin );
+	}
+ 
+	// setup playerstate
+	memset( &client->ps, 0, sizeof(client->ps));
+
+	client->ps.fov = 90;
+	client->ps.fov = bound(1, client->ps.fov, 160);
+	client->ps.vmodel.index = SV_ModelIndex(PRVM_GetString(ent->progs.sv->v_model));
+	client->ps.pmodel.index = SV_ModelIndex(PRVM_GetString(ent->progs.sv->p_model));
+	VectorScale( ent->progs.sv->origin, SV_COORD_FRAC, client->ps.origin );
+	VectorCopy( ent->progs.sv->v_angle, client->ps.viewangles );
+	for( i = 0; i < 3; i++ ) client->ps.delta_angles[i] = ANGLE2SHORT(ent->progs.sv->v_angle[i]);
+
+	SV_LinkEdict( ent ); // m_pmatrix calculated here, so we need call this before pe->CreatePlayer
+	ent->priv.sv->physbody = pe->CreatePlayer( ent->priv.sv, SV_GetModelPtr( ent ), ent->progs.sv->m_pmatrix );
+}
+
+/*
 ============
 SV_TouchTriggers
 
@@ -328,6 +375,28 @@ bool SV_ClientConnect (edict_t *ent, char *userinfo)
 	return true;
 }
 
+void SV_ClientUserinfoChanged (edict_t *ent, char *userinfo)
+{
+	char	*s;
+	int	playernum;
+          
+	// check for malformed or illegal info strings
+	if (!Info_Validate(userinfo))
+	{
+		strcpy (userinfo, "\\name\\badinfo\\skin\\male/grunt");
+	}
+
+	// set skin
+	s = Info_ValueForKey (userinfo, "skin");
+
+	playernum = PRVM_NUM_FOR_EDICT(ent);
+
+	// combine name and skin into a configstring
+	SV_ConfigString (CS_PLAYERSKINS + playernum, va("%s\\%s", Info_ValueForKey (userinfo, "name"), Info_ValueForKey (userinfo, "skin")));
+
+	ent->priv.sv->client->ps.fov = bound(1, atoi(Info_ValueForKey(userinfo, "fov")), 160);
+}
+
 /*
 ===========
 SV_ClientBegin
@@ -379,7 +448,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	pmove_t		pm;
 	vec3_t		view;
 	vec3_t		oldorigin, oldvelocity;
-	int		i, j, msec;
+	int		i, j;
 
 	client = ent->priv.sv->client;
 
@@ -413,22 +482,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	else client->ps.pm_flags &= ~PMF_TIME_TELEPORT; 
 
 	pm.ps = client->ps;
-	memcpy( &client->ucmd, ucmd, sizeof(usercmd_t));//IMPORTANT!!!
-
-	// sanity check the command time to prevent speedup cheating
-	if( client->ucmd.servertime > ( sv.time * 1000 ) + 200 )
-	{
-		client->ucmd.servertime = ( sv.time * 1000 ) + 200;
-		Msg("serverTime <<<<<\n" );
-	}
-	if( client->ucmd.servertime < ( sv.time * 1000 ) - 1000 )
-	{
-		client->ucmd.servertime = ( sv.time * 1000 ) - 1000;
-		Msg("serverTime >>>>>\n" );
-	} 
-
-	msec = client->ucmd.servertime - client->ps.cmd_time;
-	if( msec > 200 ) msec = 200;
+	memcpy( &client->lastcmd, ucmd, sizeof(usercmd_t));//IMPORTANT!!!
 
 	VectorScale(ent->progs.sv->origin, SV_COORD_FRAC, pm.ps.origin );
 	VectorScale(ent->progs.sv->velocity, SV_COORD_FRAC, pm.ps.velocity );
@@ -448,7 +502,6 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	VectorScale(pm.ps.velocity, CL_COORD_FRAC, ent->progs.sv->velocity);
 	VectorCopy(pm.mins, ent->progs.sv->mins);
 	VectorCopy(pm.maxs, ent->progs.sv->maxs);
-	VectorCopy(pm.ps.viewangles, client->ps.viewangles);
 	VectorCopy(pm.ps.viewangles, ent->progs.sv->v_angle);
 	VectorCopy(pm.ps.viewangles, ent->progs.sv->angles);
 
@@ -460,7 +513,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	VectorCopy(ent->progs.sv->v_offset, client->ps.vmodel.offset );
 	VectorCopy(ent->progs.sv->v_angles, client->ps.vmodel.angles );
 
-	SV_LinkEdict( ent );
+	SV_LinkEdict(ent);
 
 	if (ent->progs.sv->movetype != MOVETYPE_NOCLIP)
 		SV_TouchTriggers (ent);
@@ -501,7 +554,7 @@ Called when a player drops from the server.
 Will not be called between levels.
 ============
 */
-void SV_ClientDisconnect( edict_t *ent )
+void SV_ClientDisconnect (edict_t *ent)
 {
 	int	playernum;
 
@@ -516,10 +569,6 @@ void SV_ClientDisconnect( edict_t *ent )
 	playernum = PRVM_NUM_FOR_EDICT(ent) - 1;
 	SV_ConfigString (CS_PLAYERSKINS + playernum, "");
 
-	// let the game known about client state
-	prog->globals.sv->time = sv.time;
-	prog->globals.sv->pev = PRVM_EDICT_TO_PROG( ent );
-	PRVM_ExecuteProgram( prog->globals.sv->ClientDisconnect, "QC function ClientDisconnect is missing\n" );
 }
 
 /*
@@ -602,7 +651,7 @@ void Cmd_Say_f (edict_t *ent, bool team, bool arg0)
 
 	com.strcat(text, "\n");
 
-	if( host.type == HOST_DEDICATED ) 
+	if( host.type == HOST_DEDICATED )
 		PF_cprintf(NULL, PRINT_CHAT, "%s", text);
 
 	for (j = 1; j <= maxclients->value; j++)
@@ -701,7 +750,7 @@ void SV_PlayerMove( sv_edict_t *ed )
 	else client->ps.pm_flags &= ~PMF_TIME_TELEPORT; 
 
 	pm.ps = client->ps;
-	pm.cmd = client->ucmd;
+	pm.cmd = client->lastcmd;
 	pm.body = ed->physbody;	// member body ptr
 	
 	VectorCopy( player->progs.sv->origin, pm.ps.origin );
