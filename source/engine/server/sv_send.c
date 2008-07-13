@@ -25,31 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /*
 =============================================================================
 
-Msg redirection
-
-=============================================================================
-*/
-
-char sv_outputbuf[SV_OUTPUTBUF_LENGTH];
-
-void SV_FlushRedirect (int sv_redirected, char *outputbuf)
-{
-	if (sv_redirected == RD_PACKET)
-	{
-		Netchan_OutOfBandPrint (NS_SERVER, net_from, "print\n%s", outputbuf);
-	}
-	else if (sv_redirected == RD_CLIENT)
-	{
-		MSG_WriteByte (&sv_client->netchan.message, svc_print);
-		MSG_WriteByte (&sv_client->netchan.message, PRINT_CONSOLE );
-		MSG_WriteString (&sv_client->netchan.message, outputbuf);
-	}
-}
-
-
-/*
-=============================================================================
-
 EVENT MESSAGES
 
 =============================================================================
@@ -92,33 +67,25 @@ void SV_BroadcastPrintf (int level, char *fmt, ...)
 	va_list		argptr;
 	char		string[2048];
 	sv_client_t	*cl;
-	int			i;
+	int		i;
 
-	va_start (argptr,fmt);
-	com.vsprintf (string, fmt,argptr);
-	va_end (argptr);
+	va_start( argptr, fmt );
+	com.vsprintf( string, fmt, argptr );
+	va_end( argptr );
 	
 	// echo to console
 	if( host.type == HOST_DEDICATED )
 	{
-		char	echo[1024];
-		int	i;
-		
-		// mask off high bits
-		for (i = 0; i < 1023 && string[i]; i++)
-			echo[i] = string[i] & 127;
-		echo[i] = 0;
-		Msg ("%s", echo );
+		Msg ("%s", string );
 	}
 
-	for (i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
+	for( i = 0, cl = svs.clients; i < maxclients->value; i++, cl++ )
 	{
-		if (level < cl->messagelevel) continue;
-		if (cl->state != cs_spawned) continue;
-
-		MSG_WriteByte (&cl->netchan.message, svc_print);
-		MSG_WriteByte (&cl->netchan.message, level);
-		MSG_WriteString (&cl->netchan.message, string);
+		if( level < cl->messagelevel) continue;
+		if( cl->state != cs_spawned ) continue;
+		MSG_WriteByte( &cl->netchan.message, svc_print );
+		MSG_WriteByte( &cl->netchan.message, level );
+		MSG_WriteString( &cl->netchan.message, string );
 	}
 }
 
@@ -229,10 +196,10 @@ void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename,
 			if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7))))) continue;
 		}
 
-		if (reliable) _SZ_Write (&client->netchan.message, sv.multicast.data, sv.multicast.cursize, filename, fileline);
-		else _SZ_Write (&client->datagram, sv.multicast.data, sv.multicast.cursize, filename, fileline);
+		if (reliable) _MSG_WriteData (&client->netchan.message, sv.multicast.data, sv.multicast.cursize, filename, fileline);
+		else _MSG_WriteData (&client->datagram, sv.multicast.data, sv.multicast.cursize, filename, fileline);
 	}
-	SZ_Clear (&sv.multicast);
+	MSG_Clear( &sv.multicast );
 }
 
 /*
@@ -412,14 +379,14 @@ FRAME UPDATES
 SV_SendClientDatagram
 =======================
 */
-bool SV_SendClientDatagram (sv_client_t *client)
+bool SV_SendClientDatagram( sv_client_t *client )
 {
 	byte		msg_buf[MAX_MSGLEN];
 	sizebuf_t		msg;
 
-	SV_BuildClientFrame (client);
+	SV_BuildClientFrame( client );
 
-	SZ_Init (&msg, msg_buf, sizeof(msg_buf));
+	MSG_Init( &msg, msg_buf, sizeof(msg_buf));
 
 	// send over all the relevant entity_state_t
 	// and the player_state_t
@@ -432,20 +399,22 @@ bool SV_SendClientDatagram (sv_client_t *client)
 	if (client->datagram.overflowed)
 		Msg ("WARNING: datagram overflowed for %s\n", client->name);
 	else
-		SZ_Write (&msg, client->datagram.data, client->datagram.cursize);
-	SZ_Clear (&client->datagram);
+		MSG_WriteData (&msg, client->datagram.data, client->datagram.cursize);
+	MSG_Clear( &client->datagram );
 
 	if (msg.overflowed)
 	{	// must have room left for the packet header
 		Msg ("WARNING: msg overflowed for %s\n", client->name);
-		SZ_Clear (&msg);
+		MSG_Clear( &msg );
 	}
 
 	// send the datagram
 	Netchan_Transmit (&client->netchan, msg.cursize, msg.data);
 
 	// record the size for rate estimation
-	client->message_size[sv.framenum % RATE_MESSAGES] = msg.cursize;
+	// record information about the message
+	client->frames[client->netchan.outgoing_sequence & UPDATE_MASK].msg_size = msg.cursize;
+	client->frames[client->netchan.outgoing_sequence & UPDATE_MASK].msg_sent = svs.realtime;
 
 	return true;
 }
@@ -458,29 +427,26 @@ Returns true if the client is over its current
 bandwidth estimation and should not be sent another packet
 =======================
 */
-bool SV_RateDrop (sv_client_t *c)
+bool SV_RateDrop( sv_client_t *cl )
 {
-	int		total;
-	int		i;
+	int	i, total = 0;
 
 	// never drop over the loopback
-	if (c->netchan.remote_address.type == NA_LOOPBACK)
+	if( NET_IsLocalAddress( cl->netchan.remote_address ))
+		return false;
+	
+	if( NET_IsLANAddress( cl->netchan.remote_address ))
 		return false;
 
-	total = 0;
+	for( i = 0; i < UPDATE_BACKUP; i++ )
+		total += cl->frames[i].msg_size;
 
-	for (i = 0 ; i < RATE_MESSAGES ; i++)
+	if( total > cl->rate )
 	{
-		total += c->message_size[i];
-	}
-
-	if (total > c->rate)
-	{
-		c->surpressCount++;
-		c->message_size[sv.framenum % RATE_MESSAGES] = 0;
+		cl->surpressCount++;
+		cl->frames[cl->netchan.outgoing_sequence & UPDATE_MASK].msg_size = 0;
 		return true;
 	}
-
 	return false;
 }
 
@@ -507,8 +473,8 @@ void SV_SendClientMessages (void)
 		// drop the client
 		if (c->netchan.message.overflowed)
 		{
-			SZ_Clear (&c->netchan.message);
-			SZ_Clear (&c->datagram);
+			MSG_Clear( &c->netchan.message );
+			MSG_Clear( &c->datagram );
 			SV_BroadcastPrintf (PRINT_CONSOLE, "%s overflowed\n", c->name);
 			SV_DropClient (c);
 		}

@@ -17,53 +17,6 @@ int PM_pointcontents( vec3_t point )
 }
 
 /*
-===========
-PutClientInServer
-
-Called when a player connects to a server or respawns in
-a deathmatch.
-============
-*/
-void SV_PutClientInServer (edict_t *ent)
-{
-	int		index;
-	sv_client_t	*client;
-	int		i;
-          
-	index = PRVM_NUM_FOR_EDICT( ent ) - 1;
-	client = ent->priv.sv->client;
-
-	prog->globals.sv->time = sv.time;
-	prog->globals.sv->pev = PRVM_EDICT_TO_PROG( ent );
-
-	ent->priv.sv->free = false;
-	(int)ent->progs.sv->flags &= ~FL_DEADMONSTER;
-
-	if( !sv.loadgame )
-	{	
-		// fisrt entering
-		PRVM_ExecuteProgram( prog->globals.sv->PutClientInServer, "QC function PutClientInServer is missing\n" );
-		ent->progs.sv->v_angle[ROLL] = 0;	// cut off any camera rolling
-		ent->progs.sv->origin[2] += 1;	// make sure off ground
-		VectorCopy( ent->progs.sv->origin, ent->progs.sv->old_origin );
-	}
- 
-	// setup playerstate
-	memset( &client->ps, 0, sizeof(client->ps));
-
-	client->ps.fov = 90;
-	client->ps.fov = bound(1, client->ps.fov, 160);
-	client->ps.vmodel.index = SV_ModelIndex(PRVM_GetString(ent->progs.sv->v_model));
-	client->ps.pmodel.index = SV_ModelIndex(PRVM_GetString(ent->progs.sv->p_model));
-	VectorScale( ent->progs.sv->origin, SV_COORD_FRAC, client->ps.origin );
-	VectorCopy( ent->progs.sv->v_angle, client->ps.viewangles );
-	for( i = 0; i < 3; i++ ) client->ps.delta_angles[i] = ANGLE2SHORT(ent->progs.sv->v_angle[i]);
-
-	SV_LinkEdict( ent ); // m_pmatrix calculated here, so we need call this before pe->CreatePlayer
-	ent->priv.sv->physbody = pe->CreatePlayer( ent->priv.sv, SV_GetModelPtr( ent ), ent->progs.sv->m_pmatrix );
-}
-
-/*
 ============
 SV_TouchTriggers
 
@@ -94,7 +47,7 @@ void SV_TouchTriggers (edict_t *ent)
 		prog->globals.sv->time = sv.time;
 		if( hit->progs.sv->touch )
 		{
-			PRVM_ExecuteProgram (hit->progs.sv->touch, "QC function pev->touch is missing\n");
+			PRVM_ExecuteProgram (hit->progs.sv->touch, "pev->touch");
 		}
 	}
 
@@ -335,7 +288,7 @@ void SV_RunFrame( void )
 	prog->globals.sv->other = PRVM_EDICT_TO_PROG(prog->edicts);
 	prog->globals.sv->time = sv.time;
 	prog->globals.sv->frametime = sv.frametime;
-	PRVM_ExecuteProgram (prog->globals.sv->StartFrame, "QC function StartFrame is missing");
+	PRVM_ExecuteProgram (prog->globals.sv->StartFrame, "StartFrame");
 
 	for (i = 1; i < prog->num_edicts; i++ )
 	{
@@ -355,7 +308,7 @@ void SV_RunFrame( void )
 	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(prog->edicts);
 	prog->globals.sv->other = PRVM_EDICT_TO_PROG(prog->edicts);
 	prog->globals.sv->time = sv.time;
-	PRVM_ExecuteProgram (prog->globals.sv->EndFrame, "QC function EndFrame is missing");
+	PRVM_ExecuteProgram (prog->globals.sv->EndFrame, "EndFrame");
 
 	// decrement prog->num_edicts if the highest number entities died
 	for ( ;PRVM_EDICT_NUM(prog->num_edicts - 1)->priv.sv->free; prog->num_edicts-- );
@@ -370,7 +323,7 @@ bool SV_ClientConnect (edict_t *ent, char *userinfo)
 	MsgDev(D_NOTE, "SV_ClientConnect()\n");
 	prog->globals.sv->time = sv.time;
 	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(ent);
-	PRVM_ExecuteProgram (prog->globals.sv->ClientConnect, "QC function ClientConnect is missing");
+	PRVM_ExecuteProgram (prog->globals.sv->ClientConnect, "ClientConnect");
 
 	return true;
 }
@@ -455,7 +408,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	// call standard client pre-think
 	prog->globals.sv->time = sv.time;
 	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(ent);
-	PRVM_ExecuteProgram (prog->globals.sv->PlayerPreThink, "QC function PlayerPreThink is missing");
+	PRVM_ExecuteProgram (prog->globals.sv->PlayerPreThink, "PlayerPreThink");
 
 	VectorCopy(ent->progs.sv->origin, oldorigin);
 	VectorCopy(ent->progs.sv->velocity, oldvelocity);
@@ -535,7 +488,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 		prog->globals.sv->time = sv.time;
 		if( other->progs.sv->touch )
 		{
-			PRVM_ExecuteProgram (other->progs.sv->touch, "QC function pev->touch is missing\n");
+			PRVM_ExecuteProgram (other->progs.sv->touch, "pev->touch");
 		}
 	}
 	PRVM_POP_GLOBALS;
@@ -543,7 +496,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	// call standard player post-think
 	prog->globals.sv->time = sv.time;
 	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(ent);
-	PRVM_ExecuteProgram (prog->globals.sv->PlayerPostThink, "QC function PlayerPostThink is missing");
+	PRVM_ExecuteProgram (prog->globals.sv->PlayerPostThink, "PlayerPostThink");
 }
 
 /*

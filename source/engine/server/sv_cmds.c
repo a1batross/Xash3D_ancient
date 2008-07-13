@@ -6,6 +6,8 @@
 #include "common.h"
 #include "server.h"
 
+sv_client_t *sv_client; // current client
+
 /*
 ====================
 SV_SetMaster_f
@@ -78,7 +80,6 @@ bool SV_SetPlayer( void )
 			return false;
 		}
 		sv_client = &svs.clients[idnum];
-		sv_player = sv_client->edict;
 		if (!sv_client->state)
 		{
 			Msg("Client %i is not active\n", idnum);
@@ -94,7 +95,6 @@ bool SV_SetPlayer( void )
 		if (!strcmp(cl->name, s))
 		{
 			sv_client = cl;
-			sv_player = sv_client->edict;
 			return true;
 		}
 	}
@@ -355,7 +355,7 @@ void SV_Status_f( void )
 		int	j, l, ping;
 		char	*s;
 
-		if (!cl->state) continue;
+		if( !cl->state ) continue;
 
 		Msg("%3i ", i);
 		Msg("%5i ", cl->edict->priv.sv->client->ps.stats[STAT_FRAGS]);
@@ -371,7 +371,7 @@ void SV_Status_f( void )
 		Msg("%s", cl->name );
 		l = 16 - com.strlen(cl->name);
 		for (j = 0; j < l; j++) Msg (" ");
-		Msg ("%7i ", svs.realtime - cl->lastmessage );
+		Msg ("%9i ", svs.realtime - cl->lastmessage );
 		s = NET_AdrToString ( cl->netchan.remote_address);
 		Msg ("%s", s);
 		l = 22 - strlen(s);

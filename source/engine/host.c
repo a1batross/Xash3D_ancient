@@ -359,7 +359,7 @@ dword Host_EventLoop( void )
 	byte		bufData[MAX_MSGLEN];
 	sizebuf_t		buf;
 
-	SZ_Init( &buf, bufData, sizeof( bufData ));
+	MSG_Init( &buf, bufData, sizeof( bufData ));
 
 	while( 1 )
 	{
@@ -368,14 +368,14 @@ dword Host_EventLoop( void )
 		{
 		case SE_NONE:
 			// manually send packet events for the loopback channel
-			/*while( NET_GetLoopPacket( NS_CLIENT, &ev_from, &buf ))
+			while( NET_GetLoopPacket( NS_CLIENT, &ev_from, &buf ))
 			{
 				CL_PacketEvent( ev_from, &buf );
 			}
 			while( NET_GetLoopPacket( NS_SERVER, &ev_from, &buf ))
 			{
 				SV_PacketEvent( ev_from, &buf );
-			}*/
+			}
 			return ev.time;
 		case SE_KEY:
 			Key_Event( ev.value[0], ev.value[1], ev.time );
@@ -387,8 +387,9 @@ dword Host_EventLoop( void )
 			CL_MouseEvent( ev.value[0], ev.value[1], ev.time );
 			break;
 		case SE_CONSOLE:
-			Cbuf_AddText( va( "%s\n", ev.data ));
+			Cbuf_AddText(va( "%s\n", ev.data ));
 			break;
+		case SE_PACKET:
 			ev_from = *(netadr_t *)ev.data;
 			buf.cursize = ev.length - sizeof( ev_from );
 
@@ -404,6 +405,7 @@ dword Host_EventLoop( void )
 			Mem_Copy( buf.data, (byte *)((netadr_t *)ev.data + 1), buf.cursize );
 			if ( svs.initialized ) SV_PacketEvent( ev_from, &buf );
 			else CL_PacketEvent( ev_from, &buf );
+			break;
 		default:
 			Host_Error( "Host_EventLoop: bad event type %i", ev.type );
 			break;
@@ -656,17 +658,17 @@ If no console is visible, the text will appear at the top of the game window
 */
 void Host_Print( const char *txt )
 {
-	if(host.rd.target)
+	if( host.rd.target )
 	{
-		if((strlen (txt) + strlen(host.rd.buffer)) > (host.rd.buffersize - 1))
+		if((com.strlen (txt) + com.strlen(host.rd.buffer)) > (host.rd.buffersize - 1))
 		{
-			if(host.rd.flush)
+			if( host.rd.flush )
 			{
-				host.rd.flush(host.rd.target, host.rd.buffer);
+				host.rd.flush( host.rd.address, host.rd.target, host.rd.buffer );
 				*host.rd.buffer = 0;
 			}
 		}
-		com.strcat (host.rd.buffer, txt);
+		com.strcat( host.rd.buffer, txt );
 		return;
 	}
 	Con_Print( txt ); // echo to client console

@@ -223,8 +223,8 @@ void CL_ParseDownload( sizebuf_t *msg )
 		// request next block
 		cls.downloadpercent = percent;
 
-		MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
-		SZ_Print (&cls.netchan.message, "nextdl");
+		MSG_WriteByte(&cls.netchan.message, clc_stringcmd);
+		MSG_WriteString(&cls.netchan.message, "nextdl");
 	}
 	else
 	{
@@ -271,14 +271,14 @@ void CL_ParseServerData( sizebuf_t *msg )
 	MsgDev(D_INFO, "Serverdata packet received.\n");
 
 	// wipe the client_t struct
-	CL_ClearState ();
+	CL_ClearState();
 	cls.state = ca_connected;
 
 	// parse protocol version number
 	i = MSG_ReadLong( msg );
 	cls.serverProtocol = i;
 
-	if (i != PROTOCOL_VERSION) Host_Error("Server returned version %i, not %i", i, PROTOCOL_VERSION);
+	if( i != PROTOCOL_VERSION ) Host_Error("Server returned version %i, not %i", i, PROTOCOL_VERSION );
 
 	cl.servercount = MSG_ReadLong( msg );
 
@@ -288,13 +288,21 @@ void CL_ParseServerData( sizebuf_t *msg )
 	// get the full level name
 	str = MSG_ReadString( msg );
 
-	if (cl.playernum == -1)
+	if( cl.playernum == -1 )
 	{	
 		// playing a cinematic or showing a pic, not a level
 		SCR_PlayCinematic( str, 0 );
 	}
 	else
 	{
+		// get splash name
+		Cvar_Set( "cl_levelshot_name", va("background/%s.tga", str ));
+		Cvar_SetValue("scr_loading", 0.0f ); // reset progress bar
+		if(!FS_FileExists(va("gfx/%s", Cvar_VariableString("cl_levelshot_name")))) 
+		{
+			Cvar_Set("cl_levelshot_name", "common/black");
+			cl.make_levelshot = true; // make levelshot
+		}
 		// seperate the printfs so the server message can have a color
 		Msg("\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
 		// need to prep refresh at next oportunity
@@ -321,7 +329,7 @@ void CL_ParseBaseline( sizebuf_t *msg )
 	while( newnum >= prog->num_edicts ) PRVM_ED_Alloc();
 	ent = PRVM_EDICT_NUM( newnum );
 
-	MSG_ReadDeltaEntity( msg, &nullstate, &ent->priv.cl->baseline, newnum, bits );
+	MSG_ReadDeltaEntity( msg, &nullstate, &ent->priv.cl->baseline, newnum );
 }
 
 
@@ -582,24 +590,20 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 	if (cl_shownet->value == 1) Msg ("%i ",msg->cursize);
 	else if (cl_shownet->value >= 2) Msg ("------------------\n");
 
+	MSG_UseHuffman( msg, true );
 	cls.multicast = msg; // client progs can recivied messages too
 
 	// parse the message
 	while( 1 )
 	{
-		if (msg->readcount > msg->cursize)
+		if( msg->readcount > msg->cursize )
 		{
 			Host_Error("CL_ParseServerMessage: Bad server message\n");
 			break;
 		}
 
 		cmd = MSG_ReadByte( msg );
-
-		if (cmd == -1)
-		{
-			SHOWNET( msg, "END OF MESSAGE" );
-			break;
-		}
+		if( cmd == -1 ) break;
 	
 		// other commands
 		switch( cmd )
@@ -623,6 +627,7 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			break;
 		case svc_stufftext:
 			s = MSG_ReadString( msg );
+			Msg("CL<-svc_stufftext %s\n", s );
 			Cbuf_AddText( s );
 			break;
 		case svc_serverdata:
@@ -665,10 +670,4 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			break;
 		}
 	}
-
-	// we don't know if it is ok to save a demo message until
-	// after we have parsed the frame
-	if (cls.demorecording && !cls.demowaiting)
-		CL_WriteDemoMessage();
-
 }

@@ -102,7 +102,7 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 	cl.parse_entities++;
 	frame->num_entities++;
 
-	MSG_ReadDeltaEntity( msg, old, state, newnum, bits );
+	MSG_ReadDeltaEntity( msg, old, state, newnum );
 
 	// some data changes will force no lerping
 	if( state->modelindex != ent->priv.cl->current.modelindex || state->weaponmodel != ent->priv.cl->current.weaponmodel || state->body != ent->priv.cl->current.body
@@ -381,7 +381,7 @@ void CL_ParseFrame( sizebuf_t *msg )
 	int     		cmd;
 	int     		len;
 	frame_t 		*old;
-
+          
 	memset( &cl.frame, 0, sizeof(cl.frame));
 	cl.frame.serverframe = MSG_ReadLong (msg);
 	cl.frame.deltaframe = MSG_ReadLong (msg);

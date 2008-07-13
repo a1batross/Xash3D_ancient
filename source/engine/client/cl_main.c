@@ -103,12 +103,12 @@ void Cmd_ForwardToServer (void)
 		return;
 	}
 
-	MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
-	SZ_Print (&cls.netchan.message, cmd);
+	MSG_WriteByte(&cls.netchan.message, clc_stringcmd);
+	MSG_WriteString(&cls.netchan.message, cmd);
 	if (Cmd_Argc() > 1)
 	{
-		SZ_Print (&cls.netchan.message, " ");
-		SZ_Print (&cls.netchan.message, Cmd_Args());
+		MSG_WriteString(&cls.netchan.message, " ");
+		MSG_WriteString(&cls.netchan.message, Cmd_Args());
 	}
 }
 
@@ -127,10 +127,11 @@ void CL_ForwardToServer_f (void)
 	}
 	
 	// don't forward the first argument
-	if (Cmd_Argc() > 1)
+	if( Cmd_Argc() > 1 )
 	{
-		MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
-		SZ_Print (&cls.netchan.message, Cmd_Args());
+		MSG_WriteByte(&cls.netchan.message, clc_stringcmd);
+		MSG_WriteString(&cls.netchan.message, Cmd_Args());
+		Msg("CL->clc_stringcmd %s\n", Cmd_Args());
 	}
 }
 
@@ -200,11 +201,11 @@ void CL_SendConnectPacket (void)
 		cls.connect_time = 0;
 		return;
 	}
-	if(adr.port == 0) adr.port = BigShort (PORT_SERVER);
-	port = Cvar_VariableValue ("net_qport");
+	if( adr.port == 0 ) adr.port = BigShort( PORT_SERVER );
+	port = Cvar_VariableValue( "net_qport" );
 
 	userinfo_modified = false;
-	Netchan_OutOfBandPrint(NS_CLIENT, adr, "connect %i %i %i \"%s\"\n", PROTOCOL_VERSION, port, cls.challenge, Cvar_Userinfo() );
+	Netchan_OutOfBandPrint(NS_CLIENT, adr, "connect %i %i %i \"%s\"\n", PROTOCOL_VERSION, port, cls.challenge, Cvar_Userinfo());
 }
 
 /*
@@ -354,7 +355,7 @@ void CL_ClearState (void)
 
 	// wipe the entire cl structure
 	memset (&cl, 0, sizeof(cl));
-	SZ_Clear (&cls.netchan.message);
+	MSG_Clear( &cls.netchan.message );
 }
 
 /*
@@ -684,14 +685,14 @@ CL_ParseStatusMessage
 Handle a reply from a ping
 =================
 */
-void CL_ParseStatusMessage (void)
+void CL_ParseStatusMessage( netadr_t from, sizebuf_t *msg )
 {
 	char	*s;
 
-	s = MSG_ReadString(&net_message);
+	s = MSG_ReadString( msg );
 
 	Msg ("%s\n", s);
-	CL_ParseServerStatus( NET_AdrToString(net_from), s );
+	CL_ParseServerStatus( NET_AdrToString(from), s );
 }
 
 /*
@@ -701,53 +702,53 @@ CL_ConnectionlessPacket
 Responses to broadcasts, etc
 =================
 */
-void CL_ConnectionlessPacket( void )
+void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 {
 	char	*s, *c;
 	
-	MSG_BeginReading (&net_message);
-	MSG_ReadLong (&net_message); // skip the -1
+	MSG_BeginReading( msg );
+	MSG_ReadLong( msg ); // skip the -1
 
-	s = MSG_ReadStringLine (&net_message);
+	s = MSG_ReadStringLine( msg );
 
-	Cmd_TokenizeString(s);
+	Cmd_TokenizeString( s );
 	c = Cmd_Argv(0);
 
-	MsgDev(D_INFO, "%s: %s\n", NET_AdrToString (net_from), c);
+	MsgDev(D_INFO, "%s: %s\n", NET_AdrToString (from), c);
 
 	// server connection
-	if (!strcmp(c, "client_connect"))
+	if(!com.strcmp( c, "client_connect"))
 	{
 		if (cls.state == ca_connected)
 		{
 			Msg ("Dup connect received.  Ignored.\n");
 			return;
 		}
-		Netchan_Setup (NS_CLIENT, &cls.netchan, net_from, Cvar_VariableValue ("net_qport"));
-		MSG_WriteChar (&cls.netchan.message, clc_stringcmd);
-		MSG_WriteString (&cls.netchan.message, "new");	
+		Netchan_Setup( NS_CLIENT, &cls.netchan, from, Cvar_VariableValue( "net_qport" ));
+		MSG_WriteChar( &cls.netchan.message, clc_stringcmd );
+		MSG_WriteString( &cls.netchan.message, "new" );	
 		cls.state = ca_connected;
 		return;
 	}
 
 	// server responding to a status broadcast
-	if (!strcmp(c, "info"))
+	if(!com.strcmp( c, "info"))
 	{
-		CL_ParseStatusMessage ();
+		CL_ParseStatusMessage( from, msg );
 		return;
 	}
 
 	// remote command from gui front end
-	if (!strcmp(c, "cmd"))
+	if(!strcmp(c, "cmd"))
 	{
-		if(!NET_IsLocalAddress(net_from))
+		if(!NET_IsLocalAddress(from))
 		{
 			Msg ("Command packet from remote host.  Ignored.\n");
 			return;
 		}
 		ShowWindow( host.hWnd, SW_RESTORE);
 		SetForegroundWindow ( host.hWnd );
-		s = MSG_ReadString (&net_message);
+		s = MSG_ReadString( msg );
 		Cbuf_AddText(s);
 		Cbuf_AddText("\n");
 		return;
@@ -756,8 +757,8 @@ void CL_ConnectionlessPacket( void )
 	if (!strcmp(c, "print"))
 	{
 		// print command from somewhere
-		s = MSG_ReadString (&net_message);
-		if(!CL_ParseServerStatus( NET_AdrToString(net_from), s ))
+		s = MSG_ReadString( msg );
+		if(!CL_ParseServerStatus( NET_AdrToString( from ), s ))
 			Msg( s );
 		return;
 	}
@@ -765,74 +766,33 @@ void CL_ConnectionlessPacket( void )
 	// ping from somewhere
 	if (!strcmp(c, "ping"))
 	{
-		Netchan_OutOfBandPrint (NS_CLIENT, net_from, "ack");
+		Netchan_OutOfBandPrint( NS_CLIENT, from, "ack" );
 		return;
 	}
 
 	// challenge from the server we are connecting to
 	if (!strcmp(c, "challenge"))
 	{
-		cls.challenge = atoi(Cmd_Argv(1));
-		CL_SendConnectPacket ();
+		cls.challenge = com.atoi(Cmd_Argv(1));
+		CL_SendConnectPacket();
 		return;
 	}
 
 	// echo request from server
 	if (!strcmp(c, "echo"))
 	{
-		Netchan_OutOfBandPrint (NS_CLIENT, net_from, "%s", Cmd_Argv(1) );
+		Netchan_OutOfBandPrint( NS_CLIENT, from, "%s", Cmd_Argv(1) );
+		return;
+	}
+
+	// a disconnect message from the server, which will happen if the server
+	// dropped the connection but it is still getting packets from us
+	if(!com.strcmp( c, "disconnect" ))
+	{
+		CL_Disconnect();
 		return;
 	}
 	Msg ("Unknown command.\n");
-}
-
-
-/*
-=================
-CL_DumpPackets
-
-A vain attempt to help bad TCP stacks that cause problems
-when they overflow
-=================
-*/
-void CL_DumpPackets (void)
-{
-	while (NET_GetPacket (NS_CLIENT, &net_from, &net_message))
-	{
-		Msg ("dumnping a packet\n");
-	}
-}
-
-void CL_ReadNetMessage( void )
-{
-	while (NET_GetPacket (NS_CLIENT, &net_from, &net_message))
-	{
-		// remote command packet
-		if(*(int *)net_message.data == -1)
-		{
-			CL_ConnectionlessPacket();
-			continue;
-		}
-
-		if( cls.state == ca_disconnected || cls.state == ca_connecting )
-			continue;	// dump it if not connected
-
-		if( net_message.cursize < 8 )
-		{
-			Msg( "%s: Runt packet\n", NET_AdrToString(net_from));
-			continue;
-		}
-
-		// packet from server
-		if (!NET_CompareAdr (net_from, cls.netchan.remote_address))
-		{
-			MsgDev( D_WARN, "CL_ReadPackets: %s:sequenced packet without connection\n",NET_AdrToString(net_from));
-			continue;
-		}
-		if(!Netchan_Process(&cls.netchan, &net_message))
-			continue;	// wasn't accepted for some reason
-		CL_ParseServerMessage( &net_message );
-	}
 }
 
 /*
@@ -842,13 +802,52 @@ CL_ReadPackets
 */
 void CL_PacketEvent( netadr_t from, sizebuf_t *msg )
 {
+	if( host.type == HOST_DEDICATED || cls.demoplayback )
+		return;
+
+	CL_VM_Begin();
+	
+	if( msg->cursize >= 4 && *(int *)msg->data == -1 )
+	{
+		cls.netchan.last_received = cls.realtime;
+		CL_ConnectionlessPacket( from, msg );
+		return;
+	}
+
+	// can't be a valid sequenced packet	
+	if( cls.state < ca_connected ) return;
+
+	if( msg->cursize < 8 )
+	{
+		MsgDev( D_WARN, "%s: runt packet\n", NET_AdrToString( from ));
+		return;
+	}
+
+	// packet from server
+	if (!NET_CompareAdr( from, cls.netchan.remote_address))
+	{
+		MsgDev( D_WARN, "CL_ReadPackets: %s:sequenced packet without connection\n", NET_AdrToString( from ));
+		return;
+	}
+	if(Netchan_Process( &cls.netchan, msg ))
+	{
+		// the header is different lengths for reliable and unreliable messages
+		int headerBytes = msg->readcount;
+
+		cls.netchan.last_received = cls.realtime;
+		CL_ParseServerMessage( msg );
+
+		// we don't know if it is ok to save a demo message until
+		// after we have parsed the frame
+		if( cls.demorecording && !cls.demowaiting )
+			CL_WriteDemoMessage( msg, headerBytes );
+	}
+	CL_VM_End();
 }
 
-void CL_ReadPackets (void)
+void CL_ReadPackets( void )
 {
-	if( cls.demoplayback )
-		CL_ReadDemoMessage();
-	else CL_ReadNetMessage();
+	if( cls.demoplayback ) CL_ReadDemoMessage();
 
 	if(NET_IsLocalAddress( cls.netchan.remote_address ))
 		return;
@@ -1377,12 +1376,6 @@ CL_SendCommand
 */
 void CL_SendCommand (void)
 {
-	// get new key events
-	Sys_SendKeyEvents ();
-
-	// process console commands
-	Cbuf_Execute ();
-
 	// fix any cheating cvars
 	CL_FixCvarCheats ();
 
@@ -1401,23 +1394,13 @@ CL_Frame
 */
 void CL_Frame( dword time )
 {
-	static dword extratime;
-
 	if( host.type == HOST_DEDICATED )
 		return;
 
-	extratime += time;
-
-	if( cls.state == ca_connected && extratime < HOST_FRAMETIME )
-		return;	// don't flood packets out while connecting
-	if( extratime < 1000 / cl_maxfps->value)
-		return;	// framerate is too high
-
 	// decide the simulation time
-	cl.time += extratime;
-	cls.realtime = Sys_Milliseconds();
-	cls.frametime = extratime * 0.001;
-	extratime = 0;
+	cl.time += time;		// can be merged by cl.frame.servertime 
+	cls.realtime += time;
+	cls.frametime = time * 0.001;
 
 	if( cls.frametime > (1.0 / 5)) cls.frametime = (1.0 / 5);
 
@@ -1480,10 +1463,6 @@ void CL_Init( void )
 	VID_Init();
 	V_Init();
 	CL_InitClientProgs();
-
-	net_message.data = net_message_buffer;
-	net_message.maxsize = sizeof(net_message_buffer);
-
 	UI_Init();
 	SCR_Init();
 	CL_InitLocal();

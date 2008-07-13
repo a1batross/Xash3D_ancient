@@ -93,13 +93,14 @@ typedef struct server_s
 
 typedef struct
 {
+	player_state_t	ps;
 	int  		areabytes;
 	byte 		areabits[MAX_MAP_AREAS/8];	// portalarea visibility bits
-	player_state_t	ps;
 	int  		num_entities;
 	int  		first_entity;		// into the circular sv_packet_entities[]
-	int		senttime;			// for ping calculations
-
+	int		msg_sent;			// time the message was transmitted
+	int		msg_size;			// used to rate drop packets
+	int		latency;			// message latency time
 } client_frame_t;
 
 typedef struct sv_client_s
@@ -112,12 +113,8 @@ typedef struct sv_client_s
 	int		lastframe;		// for delta compression
 	usercmd_t		lastcmd;			// for filling in big drops
 
-	int		commandMsec;		// every seconds this is reset, if user
 						// commands exhaust it, assume time cheating
-	int		frame_latency[LATENCY_COUNTS];
 	int		ping;
-
-	int		message_size[RATE_MESSAGES];	// used to rate drop packets
 	int		rate;
 	int		surpressCount;		// number of messages rate supressed
 
@@ -164,7 +161,7 @@ typedef struct
 	netadr_t		adr;
 	int		challenge;
 	int		time;
-
+	bool		connected;
 } challenge_t;
 
 typedef struct
@@ -189,9 +186,6 @@ typedef struct
 
 //=============================================================================
 
-extern	netadr_t	net_from;
-extern	sizebuf_t	net_message;
-
 extern	netadr_t	master_adr[MAX_MASTERS];		// address of the master server
 
 extern	server_static_t	svs;			// persistant server info
@@ -205,10 +199,12 @@ extern	cvar_t		*sv_maxvelocity;
 extern	cvar_t		*sv_gravity;
 extern	cvar_t		*sv_fps;			// running server at
 extern	cvar_t		*sv_enforcetime;
+extern	cvar_t		*sv_reconnect_limit;
+extern	cvar_t		*allow_download;
+extern	cvar_t		*rcon_password;
+extern	cvar_t		*hostname;
 
 extern	sv_client_t	*sv_client;
-extern	edict_t		*sv_player;
-
 
 //===========================================================
 //
@@ -256,13 +252,6 @@ bool SV_CheckBottom (edict_t *ent);
 //
 // sv_send.c
 //
-typedef enum {RD_NONE, RD_CLIENT, RD_PACKET} redirect_t;
-#define	SV_OUTPUTBUF_LENGTH	(MAX_MSGLEN - 16)
-
-extern char sv_outputbuf[SV_OUTPUTBUF_LENGTH];
-
-void SV_FlushRedirect (int sv_redirected, char *outputbuf);
-
 void SV_SendClientMessages (void);
 void SV_AmbientSound( edict_t *entity, int soundindex, float volume, float attenuation );
 void SV_StartSound (vec3_t origin, edict_t *entity, int channel, int index, float vol, float attn, float timeofs);
@@ -271,10 +260,14 @@ void SV_BroadcastPrintf (int level, char *fmt, ...);
 void SV_BroadcastCommand (char *fmt, ...);
 
 //
-// sv_user.c
+// sv_client.c
 //
-void SV_Nextserver (void);
-void SV_ExecuteClientMessage (sv_client_t *cl);
+char *SV_StatusString( void );
+void SV_GetChallenge( netadr_t from );
+void SV_DirectConnect( netadr_t from );
+void SV_PutClientInServer( edict_t *ent );
+void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg );
+void SV_ConnectionlessPacket( netadr_t from, sizebuf_t *msg );
 
 //
 // sv_ccmds.c

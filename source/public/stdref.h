@@ -1150,7 +1150,8 @@ typedef struct gameinfo_s
 	string	gamedir;
 	string	startmap;
 	string	title;
-          float	version;		// engine or mod version
+	string	username;		// OS current user
+	float	version;		// engine or mod version
 	
 	int	viewmode;
 	int	gamemode;

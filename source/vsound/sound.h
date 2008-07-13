@@ -13,13 +13,13 @@
 #include "stdref.h"
 #include "basefiles.h"
 #include "dllapi.h"
-#include "mathlib.h"
-
 #include "s_openal.h"
 
 extern stdlib_api_t com;
 extern vsound_imp_t	si;
 extern byte *sndpool;
+
+#include "mathlib.h"
 
 enum
 {

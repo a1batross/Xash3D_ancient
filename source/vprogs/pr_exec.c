@@ -531,7 +531,7 @@ extern cvar_t *prvm_statementprofiling;
 extern int PRVM_ED_FindFieldOffset (const char *field);
 extern ddef_t* PRVM_ED_FindGlobal(const char *name);
 
-void PRVM_ExecuteProgram( func_t fnum, const char *errormessage )
+void PRVM_ExecuteProgram( func_t fnum, const char *name, const char *file, const int line )
 {
 	dstatement_t	*st, *startst;
 	mfunction_t	*f, *newf;
@@ -544,7 +544,7 @@ void PRVM_ExecuteProgram( func_t fnum, const char *errormessage )
 	{
 		if( vm.prog->pev && PRVM_G_INT(vm.prog->pev->ofs) )
 			PRVM_ED_Print(PRVM_PROG_TO_EDICT(PRVM_G_INT(vm.prog->pev->ofs)));
-		PRVM_ERROR ("PRVM_ExecuteProgram: %s", errormessage);
+		PRVM_ERROR( "PRVM_ExecuteProgram: QC function %s is missing( called at %s:%i)\n", name, file, line );
 		return;
 	}
 
@@ -573,10 +573,10 @@ chooseexecprogram:
 	{
 		st++;
 
-		if (vm.prog->trace) PRVM_PrintStatement(st);
-		if (prvm_statementprofiling->value) vm.prog->statement_profile[st - vm.prog->statements]++;
+		if( vm.prog->trace ) PRVM_PrintStatement(st);
+		if( prvm_statementprofiling->value ) vm.prog->statement_profile[st - vm.prog->statements]++;
 
-		switch (st->op)
+		switch( st->op )
 		{
 		case OP_ADD_F:
 			OPC->_float = OPA->_float + OPB->_float;
@@ -1404,7 +1404,7 @@ chooseexecprogram:
 		default:
 			vm.prog->xfunction->profile += (st - startst);
 			vm.prog->xstatement = st - vm.prog->statements;
-			PRVM_ERROR ("Bad opcode %i in %s", st->op, PRVM_NAME);
+			PRVM_ERROR( "Bad opcode %i in %s (called at %s:%i)\n", st->op, PRVM_NAME, file, line );
 		}
 	}
 }

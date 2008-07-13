@@ -92,12 +92,12 @@ void CL_MouseMove( usercmd_t *cmd )
 
 		// add mouse X/Y movement to cmd
 		if( in_strafe.state & 1 )
-			cmd->sidemove = bound( -128, cmd->sidemove + m_side->value * mx, 127 );
+			cmd->sidemove = cmd->sidemove + m_side->value * mx;
 		else cl.viewangles[YAW] -= m_yaw->value * mx;
 
 		if( cl_mouselook->value && !in_strafe.state & 1 )
 			cl.viewangles[PITCH] += m_pitch->value * my;
-		else cmd->forwardmove = bound( -128, cmd->forwardmove - m_forward->value * my, 127 );
+		else cmd->forwardmove = cmd->forwardmove - m_forward->value * my;
 	}
 	else
 	{
@@ -256,9 +256,6 @@ void IN_MoveleftDown(void) {IN_KeyDown(&in_moveleft);}
 void IN_MoveleftUp(void) {IN_KeyUp(&in_moveleft);}
 void IN_MoverightDown(void) {IN_KeyDown(&in_moveright);}
 void IN_MoverightUp(void) {IN_KeyUp(&in_moveright);}
-void IN_MLookDown( void ){Cvar_SetValue( "cl_mouselook", 1 );}
-void IN_MLookUp( void ){Cvar_SetValue( "cl_mouselook", 0 );}
-void IN_Impulse (void) {in_impulse = com.atoi(Cmd_Argv(1));}
 void IN_SpeedDown(void) {IN_KeyDown(&in_speed);}
 void IN_SpeedUp(void) {IN_KeyUp(&in_speed);}
 void IN_StrafeDown(void) {IN_KeyDown(&in_strafe);}
@@ -269,6 +266,9 @@ void IN_Attack2Down(void) {IN_KeyDown(&in_attack2);}
 void IN_Attack2Up(void) {IN_KeyUp(&in_attack2);}
 void IN_UseDown (void) {IN_KeyDown(&in_use);}
 void IN_UseUp (void) {IN_KeyUp(&in_use);}
+void IN_Impulse (void) {in_impulse = com.atoi(Cmd_Argv(1));}
+void IN_MLookDown( void ){Cvar_SetValue( "cl_mouselook", 1 );}
+void IN_MLookUp( void ){ IN_CenterView(); Cvar_SetValue( "cl_mouselook", 0 );}
 void IN_CenterView (void) {cl.viewangles[PITCH] = -SHORT2ANGLE(cl.frame.ps.delta_angles[PITCH]);}
 
 
@@ -473,7 +473,7 @@ void CL_SendCmd( void )
 	}
 
 	// begin a client move command
-	SZ_Init (&buf, data, sizeof(data));
+	MSG_Init(&buf, data, sizeof(data));
 	MSG_WriteByte (&buf, clc_move);
 
 	// save the position for a checksum byte
@@ -509,10 +509,11 @@ void CL_SendCmd( void )
 	MSG_WriteDeltaUsercmd (&buf, oldcmd, cmd);
 
 	// calculate a checksum over the move commands
-	buf.data[checksumIndex] = CRC_Sequence(
-		buf.data + checksumIndex + 1, buf.cursize - checksumIndex - 1,
-		cls.netchan.outgoing_sequence);
-
+//FIXME
+/*buf.data[checksumIndex] = CRC_Sequence(
+	buf.data + checksumIndex + 1, buf.cursize - checksumIndex - 1,
+	cls.netchan.outgoing_sequence);
+*/
 	// deliver the message
 	Netchan_Transmit (&cls.netchan, buf.cursize, buf.data);
 }

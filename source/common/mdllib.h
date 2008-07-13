@@ -6,8 +6,8 @@
 #define STUDIOMDL_H
 
 #include "platform.h"
-#include "mathlib.h"
 #include "utils.h"
+#include "mathlib.h"
 
 #define FILEBUFFER		(2 * 1024 * 1024)
 #define MAXTRIANGLES	2048		//TODO: tune this

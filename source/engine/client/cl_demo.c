@@ -13,7 +13,7 @@ CL_WriteDemoMessage
 Dumps the current net message, prefixed by the length
 ====================
 */
-void CL_WriteDemoMessage( void )
+void CL_WriteDemoMessage( sizebuf_t *msg, int head_size )
 {
 	int len, swlen;
 
@@ -21,11 +21,12 @@ void CL_WriteDemoMessage( void )
 	if( cl_paused->value ) return;
 
 	// the first eight bytes are just packet sequencing stuff
-	len = net_message.cursize - 8;
+	len = msg->cursize - head_size;
 	swlen = LittleLong( len );
 
+	if( !swlen ) return; // ignore null messages
 	FS_Write( cls.demofile, &swlen, 4);
-	FS_Write( cls.demofile, net_message.data + 8, len );
+	FS_Write( cls.demofile, msg->data + head_size, len );
 }
 
 void CL_WriteDemoHeader( const char *name )
@@ -50,7 +51,7 @@ void CL_WriteDemoHeader( const char *name )
 	cls.demowaiting = true;
 
 	// write out messages to hold the startup information
-	SZ_Init( &buf, buf_data, sizeof(buf_data));
+	MSG_Init( &buf, buf_data, sizeof(buf_data));
 
 	// send the serverdata
 	MSG_WriteByte( &buf, svc_serverdata );
@@ -99,7 +100,7 @@ void CL_WriteDemoHeader( const char *name )
 			buf.cursize = 0;
 		}
 		MSG_WriteByte( &buf, svc_spawnbaseline );		
-		MSG_WriteDeltaEntity (&nullstate, &ent->priv.cl->baseline, &buf, true, true);
+		MSG_WriteDeltaEntity (&nullstate, &ent->priv.cl->baseline, &buf, true );
 	}
 
 	MSG_WriteByte( &buf, svc_stufftext );
@@ -111,6 +112,23 @@ void CL_WriteDemoHeader( const char *name )
 	FS_Write( cls.demofile, buf.data, buf.cursize );
 
 	CL_VM_End();
+}
+
+/*
+=================
+CL_DrawDemoRecording
+=================
+*/
+void CL_DrawDemoRecording( void )
+{
+	char		string[1024];
+	fs_offset_t	pos;
+
+	if(!(host.developer && cls.demorecording))
+		return;
+	pos = FS_Tell( cls.demofile );
+	com.sprintf( string, "RECORDING %s: %ik", cls.demoname, pos / 1024 );
+	SCR_DrawBigStringColor( 320 - com.strlen( string ) * 8, 80, string, g_color_table[7] ); 
 }
 
 /*
@@ -179,7 +197,7 @@ void CL_ReadDemoMessage( void )
 		return;
 
 	// init the message
-	SZ_Init( &buf, bufData, sizeof( bufData ));
+	MSG_Init( &buf, bufData, sizeof( bufData ));
 
 	// get the length
 	r = FS_Read( cls.demofile, &buf.cursize, 4 );
@@ -199,12 +217,13 @@ void CL_ReadDemoMessage( void )
 	if( buf.cursize > buf.maxsize )
 	{
 		Host_Error( "CL_ReadDemoMessage: demoMsglen > MAX_MSGLEN\n" );
+		return;
 	}
 	r = FS_Read( cls.demofile, buf.data, buf.cursize );
 
 	if( r != buf.cursize )
 	{
-		MsgDev( D_ERROR, "CL_ReadDemoMessage: demo file was truncated\n");
+		MsgDev( D_ERROR, "CL_ReadDemoMessage: demo file was truncated( %d )\n", cls.state );
 		CL_DemoCompleted();
 		return;
 	}

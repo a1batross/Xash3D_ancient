@@ -6,8 +6,8 @@
 #include "platform.h"
 #include "basefiles.h"
 #include "baseimages.h"
-#include "mathlib.h"
 #include "utils.h"
+#include "mathlib.h"
 
 #define MAX_FRAMES		512
 #define MAX_FRAME_DIM	512

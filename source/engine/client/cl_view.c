@@ -278,16 +278,6 @@ void CL_PrepRefresh( void )
 
 	Msg("CL_PrepRefresh: %s\n", cl.configstrings[CS_NAME] );
 
-	// get splash name
-	Cvar_Set( "cl_levelshot_name", va("background/%s.tga", cl.configstrings[CS_NAME]));
-	if(!FS_FileExists(va("gfx/%s", Cvar_VariableString("cl_levelshot_name")))) 
-	{
-		Cvar_Set("cl_levelshot_name", "common/black");
-		cl.make_levelshot = true; // make levelshot
-	}
-	Con_Close();
-	Cvar_SetValue("scr_loading", 0.0f ); // reset progress bar
-
 	// let the render dll load the map
 	FS_FileBase( cl.configstrings[CS_MODELS+1], mapname ); 
 	SCR_UpdateScreen();

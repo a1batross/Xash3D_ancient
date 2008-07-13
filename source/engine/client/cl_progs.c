@@ -52,7 +52,7 @@ float *CL_FadeColor( float starttime, float endtime )
 
 void CL_DrawHUD( void )
 {
-	if(!prog) return; // too early (just skip one frame)
+	CL_VM_Begin();
 
 	// setup pparms
 	prog->globals.cl->health = cl.frame.ps.stats[STAT_HEALTH];
@@ -62,7 +62,7 @@ void CL_DrawHUD( void )
 
 	// setup args
 	PRVM_G_FLOAT(OFS_PARM0) = (float)cls.state;
-	PRVM_ExecuteProgram (prog->globals.cl->HUD_Render, "QC function HUD_Render is missing");
+	PRVM_ExecuteProgram (prog->globals.cl->HUD_Render, "HUD_Render");
 }
 
 bool CL_ParseUserMessage( int svc_number )
@@ -77,7 +77,7 @@ bool CL_ParseUserMessage( int svc_number )
 
 	// setup args
 	PRVM_G_FLOAT(OFS_PARM0) = (float)svc_number;
-	PRVM_ExecuteProgram (prog->globals.cl->HUD_ParseMessage, "QC function HUD_ParseMessage is missing");
+	PRVM_ExecuteProgram (prog->globals.cl->HUD_ParseMessage, "HUD_ParseMessage");
 	msg_parsed = PRVM_G_FLOAT(OFS_RETURN);
 
 	return msg_parsed; 
@@ -97,7 +97,7 @@ void CL_StudioEvent ( mstudioevent_t *event, entity_t *ent )
 	PRVM_G_INT(OFS_PARM1) = PRVM_SetEngineString( event->options );
 	VectorCopy( ent->origin, PRVM_G_VECTOR(OFS_PARM2));
 	VectorCopy( ent->angles, PRVM_G_VECTOR(OFS_PARM3));
-	PRVM_ExecuteProgram( prog->globals.cl->HUD_StudioEvent, "QC function HUD_StudioEvent is missing");
+	PRVM_ExecuteProgram( prog->globals.cl->HUD_StudioEvent, "HUD_StudioEvent");
 }
 
 /*
@@ -625,7 +625,7 @@ void CL_InitClientProgs( void )
 	prog->globals.cl->playernum = cl.playernum;
 
 	// call the prog init
-	PRVM_ExecuteProgram( prog->globals.cl->HUD_Init, "QC function HUD_Init is missing");
+	PRVM_ExecuteProgram( prog->globals.cl->HUD_Init, "HUD_Init");
 	PRVM_End;
 }
 
@@ -635,7 +635,7 @@ void CL_FreeClientProgs( void )
 
 	prog->globals.cl->realtime = cls.realtime * 0.001f;
 	prog->globals.cl->pev = 0;
-	PRVM_ExecuteProgram(prog->globals.cl->HUD_Shutdown, "QC function HUD_Shutdown is missing");
+	PRVM_ExecuteProgram(prog->globals.cl->HUD_Shutdown, "HUD_Shutdown");
 	PRVM_ResetProg();
 
 	CL_VM_End();

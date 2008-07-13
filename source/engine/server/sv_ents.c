@@ -115,7 +115,7 @@ void SV_EmitPacketEntities (client_frame_t *from, client_frame_t *to, sizebuf_t 
 			// in any bytes being emited if the entity has not changed at all
 			// note that players are always 'newentities', this updates their oldorigin always
 			// and prevents warping
-			MSG_WriteDeltaEntity( oldent, newent, msg, false, newent->number <= maxclients->value );
+			MSG_WriteDeltaEntity( oldent, newent, msg, false );
 			oldindex++;
 			newindex++;
 			continue;
@@ -123,7 +123,7 @@ void SV_EmitPacketEntities (client_frame_t *from, client_frame_t *to, sizebuf_t 
 
 		if( newnum < oldnum )
 		{	// this is a new entity, send it from the baseline
-			MSG_WriteDeltaEntity (&sv.baselines[newnum], newent, msg, true, true);
+			MSG_WriteDeltaEntity (&sv.baselines[newnum], newent, msg, true );
 			newindex++;
 			continue;
 		}
@@ -339,8 +339,8 @@ void SV_WriteFrameToClient (sv_client_t *client, sizebuf_t *msg)
 	client->surpressCount = 0;
 
 	// send over the areabits
-	MSG_WriteByte (msg, frame->areabytes);
-	SZ_Write (msg, frame->areabits, frame->areabytes);
+	MSG_WriteByte(msg, frame->areabytes);
+	MSG_WriteData(msg, frame->areabits, frame->areabytes);
 
 	// delta encode the playerstate
 	SV_WritePlayerstateToClient (oldframe, frame, msg);
@@ -387,7 +387,7 @@ void SV_BuildClientFrame( sv_client_t *client )
 	// this is the frame we are creating
 	frame = &client->frames[sv.framenum & UPDATE_MASK];
 
-	frame->senttime = svs.realtime; // save it for ping calc later
+	frame->msg_sent = svs.realtime; // save it for ping calc later
 
 	// find the client's PVS
 	VectorScale( clent->priv.sv->client->ps.origin, CL_COORD_FRAC, org ); 

@@ -7,8 +7,8 @@
 
 #include "platform.h"
 #include "basefiles.h"
-#include "mathlib.h"
 #include "utils.h"
+#include "mathlib.h"
 
 #define VALVE_FORMAT	220
 #define MAX_BRUSH_SIDES	128

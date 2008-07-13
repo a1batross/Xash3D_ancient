@@ -450,8 +450,8 @@ void Con_DrawSolidConsole (float frac)
 	char	curtime[MAX_QPATH];
 
 	lines = scr_height->integer * frac;
-	if (lines <= 0) return;
-	if (lines > scr_height->integer) lines = scr_height->integer;
+	if( lines <= 0 ) return;
+	if( lines > scr_height->integer ) lines = scr_height->integer;
 
 	con.xadjust = 0; // on wide screens, we will center the text
 	SCR_AdjustSize( &con.xadjust, NULL, NULL, NULL );
@@ -541,16 +541,16 @@ void Con_DrawConsole( void )
 		break;
 	case ca_connected:
 	case ca_connecting:
-		if(host.developer)
+		if( host.developer )
 		{
 			// show console in devmode
-			Con_DrawSolidConsole( 0.5 );
+			Con_DrawSolidConsole( 0.5f );
 		}
 		break;
 	case ca_disconnected:
-		if(cls.key_dest != key_menu)
+		if( cls.key_dest != key_menu )
 		{
-			Con_DrawSolidConsole( 1.0 );
+			Con_DrawSolidConsole( 1.0f );
 			cls.key_dest = key_console;
 		}
 		break;
@@ -571,10 +571,10 @@ Scroll it up or down
 */
 void Con_RunConsole( void )
 {
-	if(!host.developer) return;
+	if( !host.developer ) return;
 
 	// decide on the destination height of the console
-	if (cls.key_dest == key_console)
+	if( cls.key_dest == key_console )
 	{
 		if ( cls.state == ca_disconnected )
 			con.finalFrac = 1.0;// full screen
@@ -588,7 +588,7 @@ void Con_RunConsole( void )
 		if (con.finalFrac > con.displayFrac)
 			con.displayFrac = con.finalFrac;
 	}
-	else if (con.finalFrac > con.displayFrac)
+	else if( con.finalFrac > con.displayFrac )
 	{
 		con.displayFrac += con_speed->value * cls.frametime;
 		if (con.finalFrac < con.displayFrac)

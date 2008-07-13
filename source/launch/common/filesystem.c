@@ -1375,6 +1375,7 @@ void FS_ResetGameInfo( void )
 	com_strcpy(GI.key, "demo" );	
 	com_strcpy(GI.basedir, gs_basedir );
 	com_strcpy(GI.gamedir, gs_basedir );
+	com_strcpy(GI.username, Sys_GetCurrentUser());
 	GI.version = XASH_VERSION;
 	GI.viewmode = 1;
 	GI.gamemode = 1;

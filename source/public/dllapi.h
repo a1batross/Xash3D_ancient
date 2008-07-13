@@ -213,69 +213,6 @@ typedef struct
 
 } refdef_t;
 
-// viewmodel state
-typedef struct vmodel_state_s
-{
-	int		index;	// client modelindex
-	vec3_t		angles;	// can be some different with viewangles
-	vec3_t		offset;	// center offset
-	int		sequence;	// studio animation sequence
-	float		frame;	// studio frame
-	int		body;	// weapon body
-	int		skin;	// weapon skin 
-} vmodel_state_t;
-
-// thirdperson model state
-typedef struct pmodel_state_s
-{
-	int		index;	// client modelindex
-	int		sequence;	// studio animation sequence
-	float		frame;	// studio frame
-} pmodel_state_t;
-
-// player_state_t communication
-typedef struct player_state_s
-{
-	int		bobcycle;		// for view bobbing and footstep generation
-	float		bobtime;
-	byte		pm_type;		// player movetype
-	byte		pm_flags;		// ducked, jump_held, etc
-	byte		pm_time;		// each unit = 8 ms
-	
-	int		origin[3];
-	int		velocity[3];
-	vec3_t		delta_angles;	// add to command angles to get view direction
-	short		gravity;		// gravity value
-	short		speed;		// maxspeed
-	edict_t		*groundentity;	// current ground entity
-	int		viewheight;	// height over ground
-	int		effects;		// copied to entity_state_t->effects
-	int		weapon;		// copied to entity_state_t->weapon
-	vec3_t		viewangles;	// for fixed views
-	vec3_t		viewoffset;	// add to pmovestate->origin
-	vec3_t		kick_angles;	// add to view direction to get render angles
-	vec3_t		oldviewangles;	// for lerping viewmodel position
-	vec4_t		blend;		// rgba full screen effect
-	short		stats[MAX_STATS];
-	float		fov;		// horizontal field of view
-
-	// player model and viewmodel
-	vmodel_state_t	vmodel;
-	pmodel_state_t	pmodel;
-
-} player_state_t;
-
-// user_cmd_t communication
-typedef struct usercmd_s
-{
-	byte		msec;
-	byte		buttons;
-	short		angles[3];
-	byte		impulse;		// remove?
-	byte		lightlevel;	// light level the player is standing on
-	short		forwardmove, sidemove, upmove;
-} usercmd_t;
-
 typedef struct pmove_s
 {
 	player_state_t	ps;		// state (in / out)
@@ -315,6 +252,7 @@ typedef struct launch_exp_s
 	void ( *Free ) ( void );				// close host
 	void ( *Cmd  ) ( void );				// forward cmd to server
 	void (*CPrint) ( const char *msg );			// host print
+	void (*MSG_Init)( sizebuf_t *buf, byte *data, size_t len );	// MSG network buffer
 } launch_exp_t;
 
 /*
@@ -524,7 +462,7 @@ typedef struct vprogs_exp_s
 	void (*Warning)( const char *fmt, ... );
 	void (*Error)( const char *fmt, ... );
 
-	void (*ExecuteProgram)( func_t fnum, const char *errormessage );
+	void (*ExecuteProgram)( func_t fnum, const char *name, const char *file, const int line );
 	void (*Crash)( void );	// crash virtual machine
 
 	prvm_prog_t *prog;		// virtual machine current state

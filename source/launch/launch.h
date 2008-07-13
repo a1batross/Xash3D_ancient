@@ -73,6 +73,7 @@ typedef struct system_s
 	void ( *Free ) ( void ); // close host
 	void ( *Cmd  ) ( void ); // cmd forward to server
 	void (*CPrint)( const char *msg ); // console print
+	void (*MSG_Init)( sizebuf_t *buf, byte *data, size_t length );
 } system_t;
 
 typedef struct cvar_s
@@ -119,6 +120,7 @@ void Sys_LookupInstance( void );
 double Sys_DoubleTime( void );
 dword Sys_Milliseconds( void );
 char *Sys_GetClipboardData( void );
+char *Sys_GetCurrentUser( void );
 void Sys_Sleep( int msec );
 void Sys_Init( void );
 void Sys_Exit( void );

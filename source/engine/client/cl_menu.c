@@ -39,7 +39,7 @@ void UI_KeyEvent( int key )
 	PRVM_G_FLOAT(OFS_PARM0) = key;
 	prog->globals.ui->time = cls.realtime * 0.001f;
 	PRVM_G_INT(OFS_PARM1) = PRVM_SetEngineString(ascii);
-	PRVM_ExecuteProgram (prog->globals.ui->m_keydown, "QC function m_keydown is missing");
+	PRVM_ExecuteProgram (prog->globals.ui->m_keydown, "m_keydown");
 
 	CL_VM_Begin(); 	// restore clvm state
 }
@@ -51,7 +51,7 @@ void UI_Draw( void )
 
 	UI_VM_Begin();
 	prog->globals.ui->time = cls.realtime * 0.001f;
-	PRVM_ExecuteProgram (prog->globals.ui->m_draw, "QC function m_draw is missing");
+	PRVM_ExecuteProgram (prog->globals.ui->m_draw, "m_draw");
 	UI_DrawCredits(); // display game credits
 
 	CL_VM_Begin(); 	// restore clvm state
@@ -87,7 +87,7 @@ void UI_DrawCredits( void )
 		credits_active = false; // end of credits
 
 		// let menu progs known about credits state
-		PRVM_ExecuteProgram( prog->globals.ui->m_endofcredits, "QC function m_endofcredits is missing");
+		PRVM_ExecuteProgram( prog->globals.ui->m_endofcredits, "m_endofcredits");
 	}
 }
 
@@ -97,7 +97,7 @@ void UI_ShowMenu( void )
 
 	ui_active = true;
 	prog->globals.ui->time = cls.realtime * 0.001f;
-	PRVM_ExecuteProgram (prog->globals.ui->m_show, "QC function m_toggle is missing");
+	PRVM_ExecuteProgram (prog->globals.ui->m_show, "m_toggle");
 	CL_VM_Begin(); 	// restore clvm state
 }
 
@@ -110,7 +110,7 @@ void UI_HideMenu( void )
 	UI_VM_Begin();
 	ui_active = false;
 	prog->globals.ui->time = cls.realtime * 0.001f;
-	PRVM_ExecuteProgram (prog->globals.ui->m_hide, "QC function m_toggle is missing");
+	PRVM_ExecuteProgram (prog->globals.ui->m_hide, "m_toggle");
 	CL_VM_Begin(); 	// restore clvm state
 }
 
@@ -118,7 +118,7 @@ void UI_Shutdown( void )
 {
 	UI_VM_Begin();
 
-	PRVM_ExecuteProgram (prog->globals.ui->m_shutdown, "QC function m_shutdown is missing");
+	PRVM_ExecuteProgram (prog->globals.ui->m_shutdown, "m_shutdown");
 	cls.key_dest = key_game;
 
 	// AK not using this cause Im not sure whether this is useful at all instead :
@@ -742,6 +742,6 @@ void UI_Init( void )
 	PRVM_LoadProgs( GI->uimenu_prog, 0, NULL, UI_NUM_REQFIELDS, ui_reqfields );
 	*prog->time = cls.realtime * 0.001f;
 
-	PRVM_ExecuteProgram (prog->globals.ui->m_init, "QC function m_init is missing");
+	PRVM_ExecuteProgram (prog->globals.ui->m_init, "m_init");
 	PRVM_End;
 }

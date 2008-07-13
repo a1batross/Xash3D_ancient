@@ -292,7 +292,7 @@ void CL_ParticleEffect (vec3_t org, vec3_t dir, int color, int count)
 		p->next = active_particles;
 		active_particles = p;
 
-		p->time = cl.time;
+		p->time = cl.time * 0.001;
 		p->color = color + (rand()&7);
 
 		d = rand()&31;
@@ -335,7 +335,7 @@ void CL_TeleportSplash( vec3_t org )
 				p->next = active_particles;
 				active_particles = p;
 		
-				p->time = cl.time + RANDOM_FLOAT( 200, 2000 );
+				p->time = (cl.time * 0.001) + RANDOM_FLOAT( 0.02f, 0.2f );
 				p->color = 0xdb;
 				
 				dir[0] = j * 8;
@@ -383,10 +383,11 @@ void CL_AddParticles (void)
 		// PMM - added INSTANT_PARTICLE handling for heat beam
 		if( p->alphavel != INSTANT_PARTICLE )
 		{
-			time = (cl.time - p->time);
-			alpha = p->alpha + time*p->alphavel;
-			if (alpha <= 0)
-			{	// faded out
+			time = ( cl.time * 0.001 ) - p->time;
+			alpha = p->alpha + time * p->alphavel;
+			if( alpha <= 0 )
+			{	
+				// faded out
 				p->next = free_particles;
 				free_particles = p;
 				continue;

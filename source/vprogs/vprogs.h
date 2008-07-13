@@ -328,7 +328,7 @@ void PRVM_Globals_f( void );
 void PRVM_Global_f( void );
 void PRVM_Fields_f( void );
 
-void PRVM_ExecuteProgram (func_t fnum, const char *errormessage);
+void PRVM_ExecuteProgram( func_t fnum, const char *name, const char *file, const int line );
 
 #define PRVM_Alloc(buffersize) _PRVM_Alloc(buffersize, __FILE__, __LINE__)
 #define PRVM_Free(buffer) _PRVM_Free(buffer, __FILE__, __LINE__)

@@ -224,7 +224,7 @@ void SV_Impact (edict_t *e1, trace_t *trace)
 		prog->globals.sv->trace_plane_dist =  trace->plane.dist;
 		if (trace->ent) prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG(trace->ent);
 		else prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG(prog->edicts);
-		PRVM_ExecuteProgram (e1->progs.sv->touch, "QC function pev->touch is missing\n");
+		PRVM_ExecuteProgram( e1->progs.sv->touch, "pev->touch" );
 	}
 	if (!e1->priv.sv->free && !e2->priv.sv->free && e2->progs.sv->touch && e2->progs.sv->solid != SOLID_NOT)
 	{
@@ -239,7 +239,7 @@ void SV_Impact (edict_t *e1, trace_t *trace)
 		VectorSet (prog->globals.sv->trace_plane_normal, 0, 0, 1);
 		prog->globals.sv->trace_plane_dist = 0;
 		prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG(e1);
-		PRVM_ExecuteProgram (e2->progs.sv->touch, "QC function pev->touch is missing\n");
+		PRVM_ExecuteProgram (e2->progs.sv->touch, "pev->touch");
 	}
 
 	PRVM_POP_GLOBALS;
@@ -594,7 +594,7 @@ bool SV_RunThink (edict_t *ent)
 	prog->globals.sv->time = thinktime;
 	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(ent);
 	prog->globals.sv->other = PRVM_EDICT_TO_PROG(prog->edicts);
-	PRVM_ExecuteProgram (ent->progs.sv->think, "QC function pev->think is missing");
+	PRVM_ExecuteProgram (ent->progs.sv->think, "pev->think");
 
 	return !ent->priv.sv->free;
 }
@@ -914,7 +914,7 @@ void SV_MovePush(edict_t *pusher, float movetime)
 					{
 						prog->globals.sv->pev = PRVM_EDICT_TO_PROG(pusher);
 						prog->globals.sv->other = PRVM_EDICT_TO_PROG(check);
-						PRVM_ExecuteProgram (pusher->progs.sv->blocked, "QC function self.blocked is missing");
+						PRVM_ExecuteProgram (pusher->progs.sv->blocked, "pev->blocked");
 					}
 					break;
 				}
@@ -996,7 +996,7 @@ void SV_PhysicsPush(edict_t *ent)
 		prog->globals.sv->time = sv.time;
 		prog->globals.sv->pev = PRVM_EDICT_TO_PROG(ent);
 		prog->globals.sv->other = PRVM_EDICT_TO_PROG(prog->edicts);
-		PRVM_ExecuteProgram (ent->progs.sv->think, "QC function pev->think is missing");
+		PRVM_ExecuteProgram (ent->progs.sv->think, "pev->think");
 	}
 }
 

@@ -30,7 +30,7 @@ void IN_StartupMouse( void )
 	cvar_t	*cv;
 
 	cv = Cvar_Get( "in_initmouse", "1", CVAR_SYSTEMINFO, "allow mouse device" );
-	if ( !cv->value ) return; 
+	if( !cv->value ) return; 
 
 	in_mouse_buttons = 3;
 	in_mouseparmsvalid = SystemParametersInfo( SPI_GETMOUSE, 0, in_originalmouseparms, 0 );

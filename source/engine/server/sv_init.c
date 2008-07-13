@@ -53,7 +53,7 @@ int SV_FindIndex (const char *name, int start, int end, bool create)
 	if (sv.state != ss_loading)
 	{	
 		// send the update to everyone
-		SZ_Clear (&sv.multicast);
+		MSG_Clear( &sv.multicast );
 		MSG_Begin(svc_configstring);
 		MSG_WriteShort (&sv.multicast, start + i);
 		MSG_WriteString (&sv.multicast, (char *)name);
@@ -164,7 +164,7 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 		com.sprintf( sv.configstrings[CS_AIRACCEL], "%g", sv_airaccelerate->value );
 	else com.strcpy( sv.configstrings[CS_AIRACCEL], "0" );
 
-	SZ_Init(&sv.multicast, sv.multicast_buf, sizeof(sv.multicast_buf));
+	MSG_Init(&sv.multicast, sv.multicast_buf, sizeof(sv.multicast_buf));
 	com.strcpy( sv.name, server );
 
 	SV_VM_Begin();

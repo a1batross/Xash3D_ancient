@@ -422,6 +422,7 @@ void Sys_CreateInstance( void )
 		Sys.Free = Host->Free;
 		Sys.CPrint = Host->CPrint;
 		Sys.Cmd = Host->Cmd;
+		Sys.MSG_Init = Host->MSG_Init;
 		break;
 	case HOST_CREDITS:
 		Sys_Break( show_credits );
@@ -775,6 +776,25 @@ char *Sys_GetClipboardData( void )
 	return data;
 }
 
+/*
+================
+Sys_GetCurrentUser
+
+returns username for current profile
+================
+*/
+char *Sys_GetCurrentUser( void )
+{
+	static string s_userName;
+	dword size = sizeof( s_userName );
+
+	if( !GetUserName( s_userName, &size ))
+		com_strcpy( s_userName, "player" );
+	if( !s_userName[0] )
+		com_strcpy( s_userName, "player" );
+
+	return s_userName;
+}
 
 /*
 ================
@@ -1261,7 +1281,10 @@ sys_event_t Sys_GetEvent( void )
 	MSG		msg;
 	sys_event_t	ev;
 	char		*s;
-
+	sizebuf_t		netmsg;
+	netadr_t		adr;
+	static bool	msg_init = false;
+	
 	// return if we have data
 	if( event_head > event_tail )
 	{
@@ -1294,6 +1317,32 @@ sys_event_t Sys_GetEvent( void )
 		com_strncpy( b, s, len - 1 );
 		Sys_QueEvent( 0, SE_CONSOLE, 0, 0, len, b );
 	}
+
+	// check for network packets
+	if( Sys.MSG_Init )
+	{
+		msg_init = true;
+		Sys.MSG_Init( &netmsg, Sys.packet_received, sizeof( Sys.packet_received ));
+		if( NET_GetPacket( &adr, &netmsg ))
+		{
+			netadr_t		*buf;
+			int		len;
+
+			// copy out to a seperate buffer for qeueing
+			// the readcount stepahead is for SOCKS support
+			len = sizeof(netadr_t) + netmsg.cursize - netmsg.readcount;
+			buf = Malloc( len );
+			*buf = adr;
+			Mem_Copy( buf + 1, &netmsg.data[netmsg.readcount], netmsg.cursize - netmsg.readcount );
+			Sys_QueEvent( 0, SE_PACKET, 0, 0, len, buf );
+		}
+	}
+	else if( !msg_init )
+	{
+		MsgDev( D_NOTE, "Sys_GetEvent: network support disabled\n" ); 
+		msg_init = true;
+	}
+
 	// return if we have data
 	if( event_head > event_tail )
 	{

@@ -141,32 +141,6 @@ typedef enum
 
 #define	U_MOREBITS4	(1<<31)		// read one additional byte
 
-// entity_state_t communication
-typedef struct entity_state_s
-{
-	uint		number;		// edict index
-
-	vec3_t		origin;
-	vec3_t		angles;
-	vec3_t		old_origin;	// for lerping animation
-	int		modelindex;
-	int		soundindex;
-	int		weaponmodel;
-
-	short		skin;		// skin for studiomodels
-	float		frame;		// % playback position in animation sequences (0..512)
-	byte		body;		// sub-model selection for studiomodels
-	byte		sequence;		// animation sequence (0 - 255)
-	uint		effects;		// PGM - we're filling it, so it needs to be unsigned
-	int		renderfx;
-	int		solid;		// for client side prediction, 8*(bits 0-4) is x/y radius
-					// 8*(bits 5-9) is z down distance, 8(bits10-15) is z up
-					// gi.linkentity sets this properly
-	float		alpha;		// alpha value
-	float		animtime;		// auto-animating time
-
-} entity_state_t;
-
 /*
 ==========================================================
 
@@ -228,32 +202,30 @@ typedef struct entity_state_s
 	       Handles byte ordering and avoids alignment errors
 ==============================================================================
 */
-#define SZ_GetSpace(buf, len) _SZ_GetSpace(buf, len, __FILE__, __LINE__ )
-#define SZ_Write(buf, data, len) _SZ_Write(buf, data, len, __FILE__, __LINE__ )
-void SZ_Init (sizebuf_t *buf, byte *data, int length);
-void SZ_Clear (sizebuf_t *buf);
-void *_SZ_GetSpace (sizebuf_t *buf, int length, const char *filename, int fileline);
-void _SZ_Write (sizebuf_t *buf, const void *data, int length, const char *filename, int fileline);
-void SZ_Print (sizebuf_t *buf, char *data);	// strcats onto the sizebuf
 
-void _MSG_Begin ( int dest, const char *filename, int fileline );
-void _MSG_WriteChar (sizebuf_t *sb, int c, const char *filename, int fileline);
-void _MSG_WriteByte (sizebuf_t *sb, int c, const char *filename, int fileline);
-void _MSG_WriteShort (sizebuf_t *sb, int c, const char *filename, int fileline);
-void _MSG_WriteWord (sizebuf_t *sb, int c, const char *filename, int fileline);
-void _MSG_WriteLong (sizebuf_t *sb, int c, const char *filename, int fileline);
-void _MSG_WriteFloat (sizebuf_t *sb, float f, const char *filename, int fileline);
-void _MSG_WriteString (sizebuf_t *sb, const char *s, const char *filename, int fileline);
-void _MSG_WriteCoord16(sizebuf_t *sb, int f, const char *filename, int fileline);
-void _MSG_WriteCoord32(sizebuf_t *sb, float f, const char *filename, int fileline);
-void _MSG_WriteAngle16(sizebuf_t *sb, float f, const char *filename, int fileline);
-void _MSG_WriteAngle32(sizebuf_t *sb, float f, const char *filename, int fileline);
-void _MSG_WritePos16(sizebuf_t *sb, int pos[3], const char *filename, int fileline);
-void _MSG_WritePos32(sizebuf_t *sb, vec3_t pos, const char *filename, int fileline);
-void _MSG_WriteUnterminatedString (sizebuf_t *sb, const char *s, const char *filename, int fileline);
-void _MSG_WriteDeltaUsercmd (sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd, const char *filename, int fileline);
-void _MSG_WriteDeltaEntity (struct entity_state_s *from, struct entity_state_s *to, sizebuf_t *msg, bool force, bool newentity, const char *filename, int fileline);
-void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename, int fileline);
+void MSG_Init( sizebuf_t *buf, byte *data, size_t length );
+void MSG_Clear( sizebuf_t *buf );
+void MSG_UseHuffman( sizebuf_t *buf, bool state );
+void _MSG_WriteBits( sizebuf_t *msg, int value, int bits, const char *filename, int fileline );
+int _MSG_ReadBits( sizebuf_t *msg, int bits, const char *filename, int fileline );
+void _MSG_Begin( int dest, const char *filename, int fileline );
+void _MSG_WriteChar( sizebuf_t *sb, int c, const char *filename, int fileline );
+void _MSG_WriteByte( sizebuf_t *sb, int c, const char *filename, int fileline );
+void _MSG_WriteShort( sizebuf_t *sb, int c, const char *filename, int fileline );
+void _MSG_WriteWord( sizebuf_t *sb, int c, const char *filename, int fileline );
+void _MSG_WriteLong( sizebuf_t *sb, int c, const char *filename, int fileline );
+void _MSG_WriteFloat( sizebuf_t *sb, float f, const char *filename, int fileline );
+void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int fileline );
+void _MSG_WriteCoord16( sizebuf_t *sb, int f, const char *filename, int fileline );
+void _MSG_WriteCoord32( sizebuf_t *sb, float f, const char *filename, int fileline );
+void _MSG_WriteAngle16( sizebuf_t *sb, float f, const char *filename, int fileline );
+void _MSG_WriteAngle32( sizebuf_t *sb, float f, const char *filename, int fileline );
+void _MSG_WritePos16( sizebuf_t *sb, int pos[3], const char *filename, int fileline );
+void _MSG_WritePos32( sizebuf_t *sb, vec3_t pos, const char *filename, int fileline );
+void _MSG_WriteData( sizebuf_t *sb, const void *data, size_t length, const char *filename, int fileline );
+void _MSG_WriteDeltaUsercmd( sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd, const char *filename, const int fileline );
+void _MSG_WriteDeltaEntity( struct entity_state_s *from, struct entity_state_s *to, sizebuf_t *msg, bool force, const char *filename, int fileline );
+void _MSG_Send( msgtype_t to, vec3_t origin, edict_t *ent, const char *filename, int fileline );
 
 #define MSG_Begin( x ) _MSG_Begin( x, __FILE__, __LINE__);
 #define MSG_WriteChar(x,y) _MSG_WriteChar (x, y, __FILE__, __LINE__);
@@ -269,29 +241,33 @@ void _MSG_Send (msgtype_t to, vec3_t origin, edict_t *ent, const char *filename,
 #define MSG_WriteAngle32(x, y) _MSG_WriteAngle32(x, y, __FILE__, __LINE__);
 #define MSG_WritePos16(x, y) _MSG_WritePos16(x, y, __FILE__, __LINE__);
 #define MSG_WritePos32(x, y) _MSG_WritePos32(x, y, __FILE__, __LINE__);
-#define MSG_WriteUnterminatedString(x, y) _MSG_WriteUnterminatedString (x, y, __FILE__, __LINE__);
+#define MSG_WriteData(x,y,z) _MSG_WriteData (x, y, z, __FILE__, __LINE__);
 #define MSG_WriteDeltaUsercmd(x, y, z) _MSG_WriteDeltaUsercmd (x, y, z, __FILE__, __LINE__);
-#define MSG_WriteDeltaEntity(x, y, z, t, m) _MSG_WriteDeltaEntity (x, y, z, t, m, __FILE__, __LINE__);
+#define MSG_WriteDeltaEntity(x, y, z, t ) _MSG_WriteDeltaEntity (x, y, z, t, __FILE__, __LINE__);
+#define MSG_WriteBits( buf, value, bits ) _MSG_WriteBits( buf, value, bits, __FILE__, __LINE__ )
+#define MSG_ReadBits( buf, bits ) _MSG_ReadBits( buf, bits, __FILE__, __LINE__ )
 #define MSG_Send(x, y, z) _MSG_Send(x, y, z, __FILE__, __LINE__);
 
 void MSG_BeginReading (sizebuf_t *sb);
-int MSG_ReadChar (sizebuf_t *sb);
-int MSG_ReadByte (sizebuf_t *sb);
-int MSG_ReadShort (sizebuf_t *sb);
-int MSG_ReadLong (sizebuf_t *sb);
-float MSG_ReadFloat (sizebuf_t *sb);
-char *MSG_ReadString (sizebuf_t *sb);
-char *MSG_ReadStringLine (sizebuf_t *sb);
-float MSG_ReadCoord16(sizebuf_t *sb);
-float MSG_ReadCoord32(sizebuf_t *sb);
-float MSG_ReadAngle16(sizebuf_t *sb);
-float MSG_ReadAngle32(sizebuf_t *sb);
-void MSG_ReadPos16(sizebuf_t *sb, int pos[3]);
-void MSG_ReadPos32(sizebuf_t *sb, vec3_t pos);
-void MSG_ReadData (sizebuf_t *sb, void *buffer, int size);
-void MSG_ReadDeltaUsercmd (sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd);
-void MSG_ReadDeltaEntity(sizebuf_t *sb, entity_state_t *from, entity_state_t *to, int number, int bits);
-
+int MSG_ReadChar( sizebuf_t *sb );
+int MSG_ReadByte( sizebuf_t *sb );
+int MSG_ReadShort( sizebuf_t *sb );
+int MSG_ReadWord( sizebuf_t *sb );
+int MSG_ReadLong( sizebuf_t *sb );
+float MSG_ReadFloat( sizebuf_t *sb );
+char *MSG_ReadString( sizebuf_t *sb );
+char *MSG_ReadStringLine( sizebuf_t *sb );
+long MSG_ReadCoord16( sizebuf_t *sb );
+float MSG_ReadCoord32( sizebuf_t *sb );
+float MSG_ReadAngle16( sizebuf_t *sb );
+float MSG_ReadAngle32( sizebuf_t *sb );
+void MSG_ReadPos16( sizebuf_t *sb, int pos[3] );
+void MSG_ReadPos32( sizebuf_t *sb, vec3_t pos );
+void MSG_ReadData( sizebuf_t *sb, void *buffer, size_t size );
+void MSG_ReadDeltaUsercmd( sizebuf_t *sb, usercmd_t *from, usercmd_t *cmd );
+void MSG_ReadDeltaEntity( sizebuf_t *sb, entity_state_t *from, entity_state_t *to, int number );
+void MSG_WriteDeltaPlayerstate( player_state_t *from, player_state_t *to, sizebuf_t *msg );
+void MSG_ReadDeltaPlayerstate( sizebuf_t *msg, player_state_t *from, player_state_t *to );
 /*
 ==============================================================
 
@@ -299,7 +275,7 @@ NET
 
 ==============================================================
 */
-bool NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, sizebuf_t *net_message );
+bool NET_GetLoopPacket( netsrc_t sock, netadr_t *from, sizebuf_t *msg );
 void NET_SendPacket( netsrc_t sock, int length, void *data, netadr_t to );
 bool NET_GetPacket( netsrc_t sock, netadr_t *from, sizebuf_t *msg );
 bool NET_StringToAdr( const char *s, netadr_t *a );
@@ -346,10 +322,6 @@ typedef struct netchan_s
 
 } netchan_t;
 
-extern netadr_t	net_from;
-extern sizebuf_t	net_message;
-extern byte	net_message_buffer[MAX_MSGLEN];
-
 #define PROTOCOL_VERSION	35
 #define PORT_MASTER		27900
 #define PORT_CLIENT		27901
@@ -365,5 +337,7 @@ void Netchan_OutOfBand (int net_socket, netadr_t adr, int length, byte *data);
 void Netchan_OutOfBandPrint (int net_socket, netadr_t adr, char *format, ...);
 bool Netchan_Process (netchan_t *chan, sizebuf_t *msg);
 bool Netchan_CanReliable (netchan_t *chan);
+
+extern cvar_t	*cl_shownet;
 
 #endif//NET_MSG_H

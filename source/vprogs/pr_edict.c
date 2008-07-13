@@ -1129,7 +1129,7 @@ void PRVM_ED_LoadFromFile (const char *data)
 		if(vm.prog->pev && vm.prog->flag & PRVM_FE_CLASSNAME)
 		{
 			string_t handle = *(string_t*)&((byte*)ent->progs.vp)[PRVM_ED_FindFieldOffset("classname")];
-			if (!handle)
+			if( !handle )
 			{
 				if(prvm_developer >= D_NOTE)
 				{
@@ -1143,7 +1143,7 @@ void PRVM_ED_LoadFromFile (const char *data)
 			// look for the spawn function
 			func = PRVM_ED_FindFunction (PRVM_GetString(handle));
 
-			if (!func)
+			if( !func )
 			{
 				if(prvm_developer >= D_NOTE)
 				{
@@ -1156,7 +1156,7 @@ void PRVM_ED_LoadFromFile (const char *data)
 
 			// pev = ent
 			PRVM_G_INT(vm.prog->pev->ofs) = PRVM_EDICT_TO_PROG(ent);
-			PRVM_ExecuteProgram (func - vm.prog->functions, "" );
+			PRVM_ExecuteProgram( func - vm.prog->functions, "", __FILE__, __LINE__ );
 		}
 
 		spawned++;

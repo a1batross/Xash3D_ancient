@@ -300,8 +300,6 @@ a internal virtual machine like as QuakeC, but it has more extensions
 #define VPROGSHEADER32	(('2'<<24)+('3'<<16)+('D'<<8)+'I') // little-endian "ID32"
 #define LINENUMSHEADER	(('F'<<24)+('O'<<16)+('N'<<8)+'L') // little-endian "LNOF"
 
-#define MAX_EDICTS		4096	// must change protocol to increase more
-
 #define PRVM_OP_STATE	1
 #define PRVM_FE_CHAIN	4
 #define PRVM_FE_CLASSNAME	8

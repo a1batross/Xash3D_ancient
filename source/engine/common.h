@@ -157,12 +157,21 @@ typedef enum
 
 } host_state;
 
+typedef enum
+{
+	RD_NONE = 0,
+	RD_CLIENT,
+	RD_PACKET,
+
+} e_redirect_t;
+
 typedef struct host_redirect_s
 {
 	int	target;
 	char	*buffer;
 	int	buffersize;
-	void	(*flush)(int target, char *buffer);
+	netadr_t	address;
+	void	(*flush)( netadr_t adr, int target, char *buffer );
 } host_redirect_t;
 
 typedef struct host_parm_s
@@ -281,7 +290,6 @@ void VM_Cmd_Reset( void );
 #define PRVM_ResetProg	vm->ResetProg
 #define PRVM_LoadProgs	vm->LoadProgs
 #define PRVM_ProgLoaded	vm->ProgLoaded
-#define PRVM_ExecuteProgram	vm->ExecuteProgram
 #define PRVM_ED_LoadFromFile	vm->LoadFromFile
 #define PRVM_ED_ParseGlobals	vm->ParseGlobals
 #define PRVM_ED_WriteGlobals	vm->WriteGlobals
@@ -291,6 +299,7 @@ void VM_Cmd_Reset( void );
 #define PRVM_ED_Alloc	vm->AllocEdict
 #define PRVM_ED_Free	vm->FreeEdict
 #define PRVM_MEM_IncreaseEdicts vm->IncreaseEdicts
+#define PRVM_ExecuteProgram( func, name )	vm->ExecuteProgram( func, name, __FILE__, __LINE__ )
 
 #define PRVM_StackTrace	vm->StackTrace
 #define VM_Warning		vm->Warning

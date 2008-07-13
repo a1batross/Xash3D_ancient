@@ -162,7 +162,7 @@ of server connections
 
 typedef enum
 {
-	ca_uninitialized,
+	ca_uninitialized = 0,
 	ca_disconnected, 	// not talking to a server
 	ca_connecting,	// sending request packets to the server
 	ca_connected,	// netchan_t established, waiting for svc_serverdata
@@ -307,7 +307,6 @@ extern	cvar_t	*cl_run;
 
 extern	cvar_t	*cl_anglespeedkey;
 
-extern	cvar_t	*cl_shownet;
 extern	cvar_t	*cl_showmiss;
 extern	cvar_t	*cl_showclamp;
 
@@ -352,9 +351,6 @@ extern	cdlight_t	cl_dlights[MAX_DLIGHTS];
 extern	entity_state_t	cl_parse_entities[MAX_PARSE_ENTITIES];
 
 //=============================================================================
-
-extern	netadr_t	net_from;
-extern	sizebuf_t	net_message;
 
 bool CL_CheckOrDownloadFile (char *filename);
 
@@ -474,7 +470,8 @@ char *Key_KeynumToString (int keynum);
 //
 // cl_demo.c
 //
-void CL_WriteDemoMessage( void );
+void CL_DrawDemoRecording( void );
+void CL_WriteDemoMessage( sizebuf_t *msg, int head_size );
 void CL_ReadDemoMessage( void );
 void CL_StopPlayback( void );
 void CL_StopRecord( void );

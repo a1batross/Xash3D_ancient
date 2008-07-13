@@ -248,23 +248,6 @@ void SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, 
 }
 
 /*
-=================
-SCR_DrawDemoRecording
-=================
-*/
-void SCR_DrawDemoRecording( void )
-{
-	char		string[1024];
-	fs_offset_t	pos;
-
-	if(!(host.developer && cls.demorecording))
-		return;
-	pos = FS_Tell( cls.demofile );
-	com.sprintf( string, "RECORDING %s: %ik", cls.demoname, pos / 1024 );
-	SCR_DrawBigStringColor( 320 - com.strlen( string ) * 8, 80, string, g_color_table[7] ); 
-}
-
-/*
 ==================
 SCR_UpdateScreen
 
@@ -278,12 +261,7 @@ void SCR_UpdateScreen( void )
 
 	switch( cls.state )
 	{
-	case ca_cinematic:
-		SCR_DrawCinematic();
-		break;
 	case ca_disconnected:
-		CL_DrawHUD();
-		break;
 	case ca_connecting:
 	case ca_connected:
 		CL_DrawHUD();
@@ -292,7 +270,10 @@ void SCR_UpdateScreen( void )
 		V_CalcRect();
 		V_RenderView();
 		CL_DrawHUD();
-		SCR_DrawDemoRecording();
+		CL_DrawDemoRecording();
+		break;
+	case ca_cinematic:
+		SCR_DrawCinematic();
 		break;
 	default:
 		Host_Error("SCR_UpdateScreen: bad cls.state" );

@@ -185,7 +185,7 @@ void SV_ConfigString (int index, const char *val)
 	if( sv.state != ss_loading )
 	{
 		// send the update to everyone
-		SZ_Clear (&sv.multicast);
+		MSG_Clear( &sv.multicast );
 		MSG_Begin(svc_configstring);
 		MSG_WriteShort (&sv.multicast, index);
 		MSG_WriteString (&sv.multicast, (char *)val);
