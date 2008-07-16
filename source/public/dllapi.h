@@ -6,6 +6,7 @@
 #define REF_SHARED_H
 
 #include "stdref.h"
+#include "protocol.h"
 
 #define MAX_LIGHTSTYLES	256
 

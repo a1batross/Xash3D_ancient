@@ -71,15 +71,14 @@ SV_EmitPacketEntities
 Writes a delta update of an entity_state_t list to the message->
 =============
 */
-void SV_EmitPacketEntities (client_frame_t *from, client_frame_t *to, sizebuf_t *msg)
+void SV_EmitPacketEntities( client_frame_t *from, client_frame_t *to, sizebuf_t *msg )
 {
 	entity_state_t	*oldent, *newent;
 	int		oldindex, newindex;
 	int		oldnum, newnum;
 	int		from_num_entities;
-	int		bits;
 
-	MSG_WriteByte (msg, svc_packetentities);
+	MSG_WriteByte( msg, svc_packetentities );
 
 	if (!from) from_num_entities = 0;
 	else from_num_entities = from->num_entities;
@@ -97,7 +96,6 @@ void SV_EmitPacketEntities (client_frame_t *from, client_frame_t *to, sizebuf_t 
 			newent = &svs.client_entities[(to->first_entity+newindex)%svs.num_client_entities];
 			newnum = newent->number;
 		}
-
 		if( oldindex >= from_num_entities )
 		{
 			oldnum = MAX_ENTNUMBER;
@@ -108,47 +106,35 @@ void SV_EmitPacketEntities (client_frame_t *from, client_frame_t *to, sizebuf_t 
 			oldnum = oldent->number;
 		}
 
-		if (newnum == oldnum)
+		if( newnum == oldnum )
 		{	
 			// delta update from old position
 			// because the force parm is false, this will not result
 			// in any bytes being emited if the entity has not changed at all
 			// note that players are always 'newentities', this updates their oldorigin always
 			// and prevents warping
-			MSG_WriteDeltaEntity( oldent, newent, msg, false );
+			MSG_WriteDeltaEntity( oldent, newent, msg, false, newent->number <= maxclients->value );
 			oldindex++;
 			newindex++;
 			continue;
 		}
 
 		if( newnum < oldnum )
-		{	// this is a new entity, send it from the baseline
-			MSG_WriteDeltaEntity (&sv.baselines[newnum], newent, msg, true );
+		{	
+			// this is a new entity, send it from the baseline
+			MSG_WriteDeltaEntity( &sv.baselines[newnum], newent, msg, true, true );
 			newindex++;
 			continue;
 		}
 
 		if( newnum > oldnum )
 		{	
-			// the old entity isn't present in the new message
-			bits = U_REMOVE;
-
-			MSG_WriteByte( msg,	bits & 255 );
-			if( bits & 0x0000ff00 ) MSG_WriteByte( msg, (bits>>8) & 255 );
-
-			if (bits & U_NUMBER16)
-			{
-				MSG_WriteShort (msg, oldnum);
-			}
-			else
-			{
-				MSG_WriteByte (msg, oldnum);
-			}
+			MSG_WriteDeltaEntity( oldent, NULL, msg, true, true );
 			oldindex++;
 			continue;
 		}
 	}
-	MSG_WriteShort( msg, 0 ); // end of packetentities
+	MSG_WriteBits( msg, 0, NET_WORD ); // end of packetentities
 }
 
 
@@ -308,8 +294,8 @@ SV_WriteFrameToClient
 */
 void SV_WriteFrameToClient (sv_client_t *client, sizebuf_t *msg)
 {
-	client_frame_t		*frame, *oldframe;
-	int					lastframe;
+	client_frame_t	*frame, *oldframe;
+	int		lastframe;
 
 	//Msg ("%i -> %i\n", client->lastframe, sv.framenum);
 	// this is the frame we are creating
@@ -346,7 +332,7 @@ void SV_WriteFrameToClient (sv_client_t *client, sizebuf_t *msg)
 	SV_WritePlayerstateToClient (oldframe, frame, msg);
 
 	// delta encode the entities
-	SV_EmitPacketEntities (oldframe, frame, msg);
+	SV_EmitPacketEntities( oldframe, frame, msg );
 }
 
 

@@ -49,7 +49,7 @@ void Cbuf_AddText(const char *text)
 {
 	int	l;
 
-	l = strlen(text);
+	l = com_strlen(text);
 	if (cmd_text.cursize + l >= cmd_text.maxsize)
 	{
 		MsgDev(D_WARN, "Cbuf_AddText: overflow\n");

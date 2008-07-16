@@ -6,8 +6,7 @@
 #define REF_SYSTEM_H
 
 #include "stdref.h"
-#include "protocol.h"
-
+        
 /*
 ==============================================================================
 

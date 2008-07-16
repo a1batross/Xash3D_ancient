@@ -82,6 +82,13 @@ extern	cvar_t *allow_download_maps;
 //======================================================================
 
 /*
+=======================================================================
+
+CLIENT RELIABLE COMMAND COMMUNICATION
+
+=======================================================================
+*/
+/*
 ===================
 Cmd_ForwardToServer
 
@@ -102,13 +109,10 @@ void Cmd_ForwardToServer (void)
 		Msg ("Unknown command \"%s\"\n", cmd);
 		return;
 	}
-
-	MSG_WriteByte(&cls.netchan.message, clc_stringcmd);
-	MSG_WriteString(&cls.netchan.message, cmd);
-	if (Cmd_Argc() > 1)
+	if(Cmd_Argc() > 1)
 	{
-		MSG_WriteString(&cls.netchan.message, " ");
-		MSG_WriteString(&cls.netchan.message, Cmd_Args());
+		MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
+		MSG_Print( &cls.netchan.message, Cmd_Args());
 	}
 }
 
@@ -129,9 +133,8 @@ void CL_ForwardToServer_f (void)
 	// don't forward the first argument
 	if( Cmd_Argc() > 1 )
 	{
-		MSG_WriteByte(&cls.netchan.message, clc_stringcmd);
-		MSG_WriteString(&cls.netchan.message, Cmd_Args());
-		Msg("CL->clc_stringcmd %s\n", Cmd_Args());
+		MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
+		MSG_Print( &cls.netchan.message, Cmd_Args());
 	}
 }
 
@@ -496,8 +499,8 @@ void CL_Reconnect_f (void)
 	{
 		Msg ("reconnecting...\n");
 		cls.state = ca_connected;
-		MSG_WriteChar (&cls.netchan.message, clc_stringcmd);
-		MSG_WriteString (&cls.netchan.message, "new");		
+		MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
+		MSG_Print( &cls.netchan.message, "new" );
 		return;
 	}
 
@@ -714,7 +717,7 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 	Cmd_TokenizeString( s );
 	c = Cmd_Argv(0);
 
-	MsgDev(D_INFO, "%s: %s\n", NET_AdrToString (from), c);
+	MsgDev(D_INFO, "CL_ConnectionlessPacket: %s : %s\n", NET_AdrToString( from ), c );
 
 	// server connection
 	if(!com.strcmp( c, "client_connect"))
@@ -725,8 +728,8 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 			return;
 		}
 		Netchan_Setup( NS_CLIENT, &cls.netchan, from, Cvar_VariableValue( "net_qport" ));
-		MSG_WriteChar( &cls.netchan.message, clc_stringcmd );
-		MSG_WriteString( &cls.netchan.message, "new" );	
+		MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
+		MSG_Print( &cls.netchan.message, "new" );
 		cls.state = ca_connected;
 		return;
 	}
@@ -1125,7 +1128,7 @@ void CL_RequestNextDownload (void)
 
 	if( cls.demoplayback ) return; // not really connected
 	MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
-	MSG_WriteString( &cls.netchan.message, va("begin %i\n", precache_spawncount));
+	MSG_Print( &cls.netchan.message, va("begin %i\n", precache_spawncount));
 }
 
 /*

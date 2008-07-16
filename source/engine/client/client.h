@@ -405,7 +405,6 @@ typedef enum
 #define	PARTICLE_GRAVITY	40
 #define INSTANT_PARTICLE	-10000.0
 void CL_TeleportSplash( vec3_t org );
-
 int CL_ParseEntityBits( sizebuf_t *msg, uint *bits );
 void CL_ParseFrame( sizebuf_t *msg );
 

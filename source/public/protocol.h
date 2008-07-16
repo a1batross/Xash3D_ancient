@@ -2,15 +2,19 @@
 //			Copyright XashXT Group 2008 ©
 //		        protocol.h - engine network protocol
 //=======================================================================
-#ifndef PROTOCOL_H
-#define PROTOCOL_H
+#ifndef NET_PROTOCOL_H
+#define NET_PROTOCOL_H
 
 #define USE_COORD_FRAC
 
+#define NETENT_MAXFLAGS		4		// 4 bytes * ( int )
+
 #define MAXEDICT_BITS		12		// 4096 entity per one map
 #define MAX_EDICTS			(1<<MAXEDICT_BITS)	// must change protocol to increase more
+#define INVALID_EDICT		(MAX_EDICTS - 1)
+#define INVALID_DELTA		-99		// packet no contains delta message
 #define MAX_DATAGRAM		1400		// datagram size
-#define MAX_MSGLEN			1600		// max length of network message
+#define MAX_MSGLEN			2048		// max length of network message
 
 // network precision coords factor
 #ifdef USE_COORD_FRAC
@@ -38,15 +42,38 @@ typedef struct
 typedef struct sizebuf_s
 {
 	bool	overflowed;	// set to true if the buffer size failed
-	bool	huffman;		// using huffman compression
+	bool	bitstream;	// using bitstream
 
 	byte	*data;
 	int	maxsize;
 	int	cursize;
 	int	readcount;
 	int	errorcount;	// cause by errors
-	int	bit;		// for bitwise reads and writes
+	int	bitpos;		// for bitwise reads and writes
 } sizebuf_t;
+
+enum net_types_e
+{
+	NET_BAD = 0,
+	NET_BIT,
+	NET_CHAR,
+	NET_BYTE,
+	NET_SHORT,
+	NET_WORD,
+	NET_LONG,
+	NET_FLOAT,
+	NET_ANGLE,
+	NET_COORD,
+	NET_TYPES,
+};
+
+typedef struct net_desc_s
+{
+	int	type;	// pixelformat
+	char	name[8];	// used for debug
+	int	min_range;
+	int	max_range;
+} net_desc_t;
 
 // communication state description
 typedef struct net_field_s
@@ -54,6 +81,7 @@ typedef struct net_field_s
 	char	*name;
 	int	offset;
 	int	bits;
+	bool	force;			// will be send for newentity
 } net_field_t;
 
 // entity_state_t communication
@@ -136,45 +164,58 @@ typedef struct player_state_s
 // usercmd_t communication
 typedef struct usercmd_s
 {
-	byte		msec;
-	short		angles[3];
-	short		forwardmove;
-	short		sidemove;
-	short		upmove;
-	byte		buttons;
-	byte		impulse;
-	byte		lightlevel;
+	int		msec;
+	int		angles[3];
+	int		forwardmove;
+	int		sidemove;
+	int		upmove;
+	int		buttons;
+	int		impulse;
+	int		lightlevel;
 
 } usercmd_t;
 
-// 0 bits invoke to sending half or full float ( 13 or 31 bit )
-#define ENT_FIELD(x) #x,(int)&((entity_state_t*)0)->x
+static const net_desc_t NWDesc[] =
+{
+{ NET_BAD,	"none",	0,		0	},
+{ NET_BIT,	"Bit",	0,		1	},
+{ NET_CHAR,	"Char",	-128,		127	},
+{ NET_BYTE,	"Byte",	0,		255	},
+{ NET_SHORT,	"Short",	-32767,		32767	},
+{ NET_WORD,	"Word",	0,		65535	},
+{ NET_LONG,	"Long",	-2147483647,	2147483646},
+{ NET_FLOAT,	"Float",	-2147483647,	2147483646},
+{ NET_ANGLE,	"Angle",	-360,		360	},
+{ NET_COORD,	"Coord",	-262140,		262140	},
+};
+
+#define ES_FIELD(x) #x,(int)&((entity_state_t*)0)->x
 #define PS_FIELD(x) #x,(int)&((player_state_t*)0)->x
+#define CM_FIELD(x) #x,(int)&((usercmd_t*)0)->x
 
 static net_field_t ent_fields[] =
 {
-{ ENT_FIELD(number), MAXEDICT_BITS },		// 4096 ents
-{ ENT_FIELD(origin[0]), 0 },
-{ ENT_FIELD(origin[1]), 0 },
-{ ENT_FIELD(origin[2]), 0 },
-{ ENT_FIELD(angles[0]), 0 },
-{ ENT_FIELD(angles[1]), 0 },
-{ ENT_FIELD(angles[2]), 0 },
-{ ENT_FIELD(old_origin[0]), 0 },
-{ ENT_FIELD(old_origin[1]), 0 },
-{ ENT_FIELD(old_origin[2]), 0 },
-{ ENT_FIELD(modelindex), MAXEDICT_BITS },	// 4096 models
-{ ENT_FIELD(soundindex), 10 },		// 512 sounds ( OpenAL software limit is 255 )
-{ ENT_FIELD(weaponmodel), MAXEDICT_BITS },	// 4096 models
-{ ENT_FIELD(skin), 8 },			// 255 skins
-{ ENT_FIELD(frame), 0 },			// interpolate value
-{ ENT_FIELD(body), 8 },			// 255 bodies
-{ ENT_FIELD(sequence), 10 },			// 1024 sequences
-{ ENT_FIELD(effects), 32 },			// effect flags
-{ ENT_FIELD(renderfx), 32 },			// renderfx flags
-{ ENT_FIELD(solid), 24 },			// encoded mins/maxs
-{ ENT_FIELD(alpha), 0 },			// alpha value (FIXME: send a byte ? )
-{ ENT_FIELD(animtime), 0 },			// auto-animating time
+{ ES_FIELD(origin[0]),	NET_FLOAT, false	},
+{ ES_FIELD(origin[1]),	NET_FLOAT, false	},
+{ ES_FIELD(origin[2]),	NET_FLOAT, false	},
+{ ES_FIELD(angles[0]),	NET_FLOAT, false	},
+{ ES_FIELD(angles[1]),	NET_FLOAT, false	},
+{ ES_FIELD(angles[2]),	NET_FLOAT, false	},
+{ ES_FIELD(old_origin[0]),	NET_FLOAT, true	},
+{ ES_FIELD(old_origin[1]),	NET_FLOAT, true	},
+{ ES_FIELD(old_origin[2]),	NET_FLOAT, true	},
+{ ES_FIELD(modelindex),	NET_WORD,	 false	},	// 4096 models
+{ ES_FIELD(soundindex),	NET_WORD,	 false	},	// 512 sounds ( OpenAL software limit is 255 )
+{ ES_FIELD(weaponmodel),	NET_WORD,	 false	},	// 4096 models
+{ ES_FIELD(skin),		NET_BYTE,	 false	},	// 255 skins
+{ ES_FIELD(frame),		NET_FLOAT, false	},	// interpolate value
+{ ES_FIELD(body),		NET_BYTE,	 false	},	// 255 bodies
+{ ES_FIELD(sequence),	NET_WORD,	 false	},	// 1024 sequences
+{ ES_FIELD(effects),	NET_LONG,	 false	},	// effect flags
+{ ES_FIELD(renderfx),	NET_LONG,	 false	},	// renderfx flags
+{ ES_FIELD(solid),		NET_LONG,	 false	},	// encoded mins/maxs
+{ ES_FIELD(alpha),		NET_FLOAT, false	},	// alpha value (FIXME: send a byte ? )
+{ ES_FIELD(animtime),	NET_FLOAT, false	},	// auto-animating time
 };
 
 static net_field_t ps_fields[] =
@@ -225,5 +266,18 @@ static net_field_t ps_fields[] =
 { PS_FIELD(vmodel.frame), 0 },		// interpolate value
 };
 
+// probably usercmd_t never reached 32 field integer limit (in theory of course)
+static net_field_t cmd_fields[] =
+{
+{ CM_FIELD(angles[0]),	NET_WORD,  false	},
+{ CM_FIELD(angles[1]),	NET_WORD,  false	},
+{ CM_FIELD(angles[2]),	NET_WORD,  false	},
+{ CM_FIELD(forwardmove),	NET_SHORT, false	},
+{ CM_FIELD(sidemove),	NET_SHORT, false	},
+{ CM_FIELD(upmove),		NET_SHORT, false	},
+{ CM_FIELD(buttons),	NET_BYTE,  false	},
+{ CM_FIELD(impulse),	NET_BYTE,  false	},
+{ CM_FIELD(lightlevel),	NET_BYTE,  false	},
+};
 
-#endif//PROTOCOL_H
+#endif//NET_PROTOCOL_H

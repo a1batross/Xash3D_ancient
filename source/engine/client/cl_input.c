@@ -460,7 +460,7 @@ void CL_SendCmd( void )
 	if( cls.state == ca_connected )
 	{
 		if (cls.netchan.message.cursize || cls.realtime - cls.netchan.last_sent > 1000 )
-			Netchan_Transmit (&cls.netchan, 0, NULL );	
+			Netchan_Transmit( &cls.netchan, 0, NULL );	
 		return;
 	}
 
@@ -509,13 +509,10 @@ void CL_SendCmd( void )
 	MSG_WriteDeltaUsercmd (&buf, oldcmd, cmd);
 
 	// calculate a checksum over the move commands
-//FIXME
-/*buf.data[checksumIndex] = CRC_Sequence(
-	buf.data + checksumIndex + 1, buf.cursize - checksumIndex - 1,
-	cls.netchan.outgoing_sequence);
-*/
+	buf.data[checksumIndex] = CRC_Sequence( buf.data + checksumIndex + 1, buf.cursize - checksumIndex - 1, cls.netchan.outgoing_sequence);
+
 	// deliver the message
-	Netchan_Transmit (&cls.netchan, buf.cursize, buf.data);
+	Netchan_Transmit( &cls.netchan, buf.cursize, buf.data );
 }
 
 /*

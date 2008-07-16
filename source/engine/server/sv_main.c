@@ -99,7 +99,7 @@ void SV_PacketEvent( netadr_t from, sizebuf_t *msg )
 	SV_VM_Begin();
 
 	// check for connectionless packet (0xffffffff) first
-	if(*(int *)msg->data == -1)
+	if( msg->cursize >= 4 && *(int *)msg->data == -1 )
 	{
 		SV_ConnectionlessPacket( from, msg );
 		return;
@@ -110,7 +110,7 @@ void SV_PacketEvent( netadr_t from, sizebuf_t *msg )
 	MSG_BeginReading( msg );
 	MSG_ReadLong( msg );	// sequence number
 	MSG_ReadLong( msg );	// sequence number
-	qport = MSG_ReadShort( msg ) & 0xffff;
+	qport = (int)MSG_ReadShort( msg ) & 0xffff;
 
 	// check for packets from connected clients
 	for( i = 0, cl = svs.clients; i < maxclients->value; i++, cl++ )

@@ -513,7 +513,7 @@ void SV_New_f( sv_client_t *cl )
 	}
 
 	playernum = cl - svs.clients;
-          
+
 	// send the serverdata
 	MSG_WriteByte( &cl->netchan.message, svc_serverdata );
 	MSG_WriteLong( &cl->netchan.message, PROTOCOL_VERSION);
@@ -535,7 +535,7 @@ void SV_New_f( sv_client_t *cl )
 
 		// begin fetching configstrings
 		MSG_WriteByte( &cl->netchan.message, svc_stufftext );
-		MSG_WriteString( &cl->netchan.message, va("cmd configstrings %i 0\n",svs.spawncount) );
+		MSG_WriteString( &cl->netchan.message, va("cmd configstrings %i %i\n", svs.spawncount, 0 ));
 	}
 }
 
@@ -576,10 +576,9 @@ void SV_Configstrings_f( sv_client_t *cl )
 		}
 		start++;
 	}
-	if( start == MAX_CONFIGSTRINGS )com.snprintf( cs, MAX_STRING, "cmd baselines %i 0\n", svs.spawncount );
+	if( start == MAX_CONFIGSTRINGS )com.snprintf( cs, MAX_STRING, "cmd baselines %i %i\n", svs.spawncount, 0 );
 	else com.snprintf( cs, MAX_STRING, "cmd configstrings %i %i\n", svs.spawncount, start );
 
-	Msg("SV->svc_stufftext: %s\n", cs );	 
 	// send next command
 	MSG_WriteByte( &cl->netchan.message, svc_stufftext );
 	MSG_WriteString( &cl->netchan.message, cs );
@@ -621,7 +620,7 @@ void SV_Baselines_f( sv_client_t *cl )
 		if( base->modelindex || base->soundindex || base->effects )
 		{
 			MSG_WriteByte( &cl->netchan.message, svc_spawnbaseline );
-			MSG_WriteDeltaEntity( &nullstate, base, &cl->netchan.message, true );
+			MSG_WriteDeltaEntity( &nullstate, base, &cl->netchan.message, true, true );
 		}
 		start++;
 	}
@@ -940,13 +939,12 @@ static void SV_UserMove( sv_client_t *cl, sizebuf_t *msg )
 	}
 
 	// if the checksum fails, ignore the rest of the packet
-	//calculatedChecksum = CRC_Sequence( msg->data + checksumIndex + 1, msg->readcount - checksumIndex - 1, cl->netchan.incoming_sequence );
-//FIXME
-	/*if( calculatedChecksum != checksum )
+	calculatedChecksum = CRC_Sequence( msg->data + checksumIndex + 1, msg->readcount - checksumIndex - 1, cl->netchan.incoming_sequence );
+	if( calculatedChecksum != checksum )
 	{
 		MsgDev( D_ERROR, "SV_UserMove: failed command checksum for %s (%d != %d)\n", cl->name, calculatedChecksum, checksum );
 		return;
-	}*/
+	}
 
 	if( !sv_paused->value )
 	{
@@ -979,8 +977,6 @@ void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg )
 	bool	move_issued = false;
 	char	*s;
 
-	MSG_UseHuffman( msg, true );
-	
 	// read optional clientCommand strings
 	while( cl->state != cs_zombie )
 	{

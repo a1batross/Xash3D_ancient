@@ -34,11 +34,13 @@ enum svc_ops_e
 // client to server
 enum clc_ops_e
 {
-	clc_bad,
-	clc_nop, 		
+	clc_bad = 0,
+
+	// engine messages
+	clc_nop = 201, 		
 	clc_move,				// [[usercmd_t]
 	clc_userinfo,			// [[userinfo string]
-	clc_stringcmd			// [string] message
+	clc_stringcmd,			// [string] message
 };
 
 typedef enum
@@ -205,62 +207,50 @@ typedef enum
 
 void MSG_Init( sizebuf_t *buf, byte *data, size_t length );
 void MSG_Clear( sizebuf_t *buf );
-void MSG_UseHuffman( sizebuf_t *buf, bool state );
+void MSG_Print( sizebuf_t *msg, char *data );
+void MSG_Bitstream( sizebuf_t *buf, bool state );
 void _MSG_WriteBits( sizebuf_t *msg, int value, int bits, const char *filename, int fileline );
 int _MSG_ReadBits( sizebuf_t *msg, int bits, const char *filename, int fileline );
 void _MSG_Begin( int dest, const char *filename, int fileline );
-void _MSG_WriteChar( sizebuf_t *sb, int c, const char *filename, int fileline );
-void _MSG_WriteByte( sizebuf_t *sb, int c, const char *filename, int fileline );
-void _MSG_WriteShort( sizebuf_t *sb, int c, const char *filename, int fileline );
-void _MSG_WriteWord( sizebuf_t *sb, int c, const char *filename, int fileline );
-void _MSG_WriteLong( sizebuf_t *sb, int c, const char *filename, int fileline );
-void _MSG_WriteFloat( sizebuf_t *sb, float f, const char *filename, int fileline );
 void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int fileline );
-void _MSG_WriteCoord16( sizebuf_t *sb, int f, const char *filename, int fileline );
-void _MSG_WriteCoord32( sizebuf_t *sb, float f, const char *filename, int fileline );
-void _MSG_WriteAngle16( sizebuf_t *sb, float f, const char *filename, int fileline );
-void _MSG_WriteAngle32( sizebuf_t *sb, float f, const char *filename, int fileline );
+void _MSG_WriteFloat( sizebuf_t *sb, float f, const char *filename, int fileline );
 void _MSG_WritePos16( sizebuf_t *sb, int pos[3], const char *filename, int fileline );
 void _MSG_WritePos32( sizebuf_t *sb, vec3_t pos, const char *filename, int fileline );
 void _MSG_WriteData( sizebuf_t *sb, const void *data, size_t length, const char *filename, int fileline );
 void _MSG_WriteDeltaUsercmd( sizebuf_t *sb, struct usercmd_s *from, struct usercmd_s *cmd, const char *filename, const int fileline );
-void _MSG_WriteDeltaEntity( struct entity_state_s *from, struct entity_state_s *to, sizebuf_t *msg, bool force, const char *filename, int fileline );
+void _MSG_WriteDeltaEntity( struct entity_state_s *from, struct entity_state_s *to, sizebuf_t *msg, bool force, bool newentity, const char *filename, int fileline );
 void _MSG_Send( msgtype_t to, vec3_t origin, edict_t *ent, const char *filename, int fileline );
 
-#define MSG_Begin( x ) _MSG_Begin( x, __FILE__, __LINE__);
-#define MSG_WriteChar(x,y) _MSG_WriteChar (x, y, __FILE__, __LINE__);
-#define MSG_WriteByte(x,y) _MSG_WriteByte (x, y, __FILE__, __LINE__);
-#define MSG_WriteShort(x,y) _MSG_WriteShort (x, y, __FILE__, __LINE__);
-#define MSG_WriteWord(x,y) _MSG_WriteWord (x, y, __FILE__, __LINE__);
-#define MSG_WriteLong(x,y) _MSG_WriteLong (x, y, __FILE__, __LINE__);
-#define MSG_WriteFloat(x, y) _MSG_WriteFloat (x, y, __FILE__, __LINE__);
-#define MSG_WriteString(x,y) _MSG_WriteString (x, y, __FILE__, __LINE__);
-#define MSG_WriteCoord16(x, y) _MSG_WriteCoord16(x, y, __FILE__, __LINE__);
-#define MSG_WriteCoord32(x, y) _MSG_WriteCoord32(x, y, __FILE__, __LINE__);
-#define MSG_WriteAngle16(x, y) _MSG_WriteAngle16(x, y, __FILE__, __LINE__);
-#define MSG_WriteAngle32(x, y) _MSG_WriteAngle32(x, y, __FILE__, __LINE__);
-#define MSG_WritePos16(x, y) _MSG_WritePos16(x, y, __FILE__, __LINE__);
-#define MSG_WritePos32(x, y) _MSG_WritePos32(x, y, __FILE__, __LINE__);
-#define MSG_WriteData(x,y,z) _MSG_WriteData (x, y, z, __FILE__, __LINE__);
-#define MSG_WriteDeltaUsercmd(x, y, z) _MSG_WriteDeltaUsercmd (x, y, z, __FILE__, __LINE__);
-#define MSG_WriteDeltaEntity(x, y, z, t ) _MSG_WriteDeltaEntity (x, y, z, t, __FILE__, __LINE__);
+#define MSG_Begin( x ) _MSG_Begin( x, __FILE__, __LINE__)
+#define MSG_WriteChar(x,y) _MSG_WriteBits (x, y, NET_CHAR, __FILE__, __LINE__)
+#define MSG_WriteByte(x,y) _MSG_WriteBits (x, y, NET_BYTE, __FILE__, __LINE__)
+#define MSG_WriteShort(x,y) _MSG_WriteBits(x, y, NET_SHORT,__FILE__, __LINE__)
+#define MSG_WriteWord(x,y) _MSG_WriteBits (x, y, NET_WORD, __FILE__, __LINE__)
+#define MSG_WriteLong(x,y) _MSG_WriteBits (x, y, NET_LONG, __FILE__, __LINE__)
+#define MSG_WriteFloat(x,y) _MSG_WriteFloat(x, y, __FILE__, __LINE__)
+#define MSG_WriteString(x,y) _MSG_WriteString (x, y, __FILE__, __LINE__)
+#define MSG_WriteCoord16(x, y) _MSG_WriteBits(x, y, NET_COORD, __FILE__, __LINE__)
+#define MSG_WriteCoord32(x, y) _MSG_WriteBits(x, y, NET_FLOAT, __FILE__, __LINE__)
+#define MSG_WriteAngle16(x, y) _MSG_WriteBits(x, y, NET_ANGLE, __FILE__, __LINE__)
+#define MSG_WriteAngle32(x, y) _MSG_WriteBits(x, y, NET_FLOAT, __FILE__, __LINE__)
+#define MSG_WritePos16(x, y) _MSG_WritePos16(x, y, __FILE__, __LINE__)
+#define MSG_WritePos32(x, y) _MSG_WritePos32(x, y, __FILE__, __LINE__)
+#define MSG_WriteData(x,y,z) _MSG_WriteData (x, y, z, __FILE__, __LINE__)
+#define MSG_WriteDeltaUsercmd(x, y, z) _MSG_WriteDeltaUsercmd (x, y, z, __FILE__, __LINE__)
+#define MSG_WriteDeltaEntity(from, to, msg, force, new ) _MSG_WriteDeltaEntity (from, to, msg, force, new, __FILE__, __LINE__)
 #define MSG_WriteBits( buf, value, bits ) _MSG_WriteBits( buf, value, bits, __FILE__, __LINE__ )
 #define MSG_ReadBits( buf, bits ) _MSG_ReadBits( buf, bits, __FILE__, __LINE__ )
-#define MSG_Send(x, y, z) _MSG_Send(x, y, z, __FILE__, __LINE__);
+#define MSG_Send(x, y, z) _MSG_Send(x, y, z, __FILE__, __LINE__)
 
 void MSG_BeginReading (sizebuf_t *sb);
-int MSG_ReadChar( sizebuf_t *sb );
-int MSG_ReadByte( sizebuf_t *sb );
-int MSG_ReadShort( sizebuf_t *sb );
-int MSG_ReadWord( sizebuf_t *sb );
-int MSG_ReadLong( sizebuf_t *sb );
-float MSG_ReadFloat( sizebuf_t *sb );
+#define MSG_ReadChar( x ) _MSG_ReadBits( x, NET_CHAR, __FILE__, __LINE__ )
+#define MSG_ReadByte( x ) _MSG_ReadBits( x, NET_BYTE, __FILE__, __LINE__ )
+#define MSG_ReadShort( x) _MSG_ReadBits( x, NET_SHORT, __FILE__, __LINE__ )
+#define MSG_ReadWord( x ) _MSG_ReadBits( x, NET_WORD, __FILE__, __LINE__ )
+#define MSG_ReadLong( x ) _MSG_ReadBits( x, NET_LONG, __FILE__, __LINE__ )
+float MSG_ReadFloat( sizebuf_t *msg );
 char *MSG_ReadString( sizebuf_t *sb );
 char *MSG_ReadStringLine( sizebuf_t *sb );
-long MSG_ReadCoord16( sizebuf_t *sb );
-float MSG_ReadCoord32( sizebuf_t *sb );
-float MSG_ReadAngle16( sizebuf_t *sb );
-float MSG_ReadAngle32( sizebuf_t *sb );
 void MSG_ReadPos16( sizebuf_t *sb, int pos[3] );
 void MSG_ReadPos32( sizebuf_t *sb, vec3_t pos );
 void MSG_ReadData( sizebuf_t *sb, void *buffer, size_t size );

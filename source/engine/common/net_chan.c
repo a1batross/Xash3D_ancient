@@ -157,19 +157,12 @@ void Netchan_OutOfBandPrint( int net_socket, netadr_t adr, char *format, ... )
 {
 	va_list	argptr;
 	char	string[MAX_MSGLEN];
-	
-	// set the header
-	string[0] = -1;
-	string[1] = -1;
-	string[2] = -1;
-	string[3] = -1;
 
 	va_start( argptr, format );
-	com.vsprintf( string + 4, format, argptr );
+	com.vsprintf( string, format, argptr );
 	va_end( argptr );
 
-	// send the datagram
-	NET_SendPacket( net_socket, com.strlen(string), string, adr );
+	Netchan_OutOfBand( net_socket, adr, com.strlen( string ), string );
 }
 
 /*
@@ -229,7 +222,7 @@ void Netchan_Transmit( netchan_t *chan, int length, byte *data )
 		MsgDev( D_ERROR, "%s:outgoing message overflow\n", NET_AdrToString( chan->remote_address ));
 		return;
 	}
-
+ 
 	send_reliable = Netchan_NeedReliable( chan );
 
 	if( !chan->reliable_length && chan->message.cursize )
@@ -242,7 +235,6 @@ void Netchan_Transmit( netchan_t *chan, int length, byte *data )
 
 	// write the packet header
 	MSG_Init( &send, send_buf, sizeof(send_buf));
-	MSG_UseHuffman( &send, false );
 
 	w1 = (chan->outgoing_sequence & ~(1<<31)) | (send_reliable<<31);
 	w2 = (chan->incoming_sequence & ~(1<<31)) | (chan->incoming_reliable_sequence<<31);

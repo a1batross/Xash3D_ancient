@@ -192,5 +192,6 @@ enum dev_level
 };
 
 #include "byteorder.h"	// byte ordering swap functions
+#include "protocol.h"	// network protocol
 
 #endif//BASETYPES_H

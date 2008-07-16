@@ -91,18 +91,27 @@ Parses deltas from the given base and adds the resulting entity
 to the current frame
 ==================
 */
-void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t *old, int bits )
+void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t *old, bool unchanged )
 {
 	edict_t		*ent;
 	entity_state_t	*state;
 
 	ent = PRVM_EDICT_NUM( newnum );
-
 	state = &cl_parse_entities[cl.parse_entities & (MAX_PARSE_ENTITIES-1)];
+
+	if( unchanged )
+	{
+		*state = *old;
+	}
+	else
+	{
+		MSG_ReadDeltaEntity( msg, old, state, newnum );
+	}
+
+	if( state->number == -1 ) return; // entity was delta removed
+
 	cl.parse_entities++;
 	frame->num_entities++;
-
-	MSG_ReadDeltaEntity( msg, old, state, newnum );
 
 	// some data changes will force no lerping
 	if( state->modelindex != ent->priv.cl->current.modelindex || state->weaponmodel != ent->priv.cl->current.weaponmodel || state->body != ent->priv.cl->current.body
@@ -138,7 +147,6 @@ rest of the data stream.
 void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newframe )
 {
 	int		newnum;
-	int		bits;
 	entity_state_t	*oldstate;
 	int		oldindex, oldnum;
 
@@ -147,6 +155,7 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 
 	// delta from the entities present in oldframe
 	oldindex = 0;
+	oldstate = NULL;
 	if( !oldframe ) oldnum = MAX_ENTNUMBER;
 	else
 	{
@@ -163,38 +172,18 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 
 	while( 1 )
 	{
-		newnum = CL_ParseEntityBits( msg, &bits );
-		if (newnum >= MAX_EDICTS)
-			Host_Error("CL_ParsePacketEntities: bad number:%i\n", newnum);
+		// read the entity index number
+		newnum = MSG_ReadShort( msg );
+		if(!newnum) break; // end of packet entities
 
-		if (msg->readcount > msg->cursize)
-			Host_Error("CL_ParsePacketEntities: end of message %d > %d\n", msg->readcount, msg->cursize );
+		if( msg->readcount > msg->cursize )
+			Host_Error("CL_ParsePacketEntities: end of message[%d > %d]\n", msg->readcount, msg->cursize );
 
-		if (!newnum) break;
-
-		while (oldnum < newnum)
+		while( oldnum < newnum )
 		{	
 			// one or more entities from the old packet are unchanged
-			CL_DeltaEntity( msg, newframe, oldnum, oldstate, 0);
+			CL_DeltaEntity( msg, newframe, oldnum, oldstate, true );
 			
-			oldindex++;
-
-			if (oldindex >= oldframe->num_entities)
-			{
-				oldnum = MAX_ENTNUMBER;
-			}
-			else
-			{
-				oldstate = &cl_parse_entities[(oldframe->parse_entities+oldindex) & (MAX_PARSE_ENTITIES-1)];
-				oldnum = oldstate->number;
-			}
-		}
-
-		if( bits & U_REMOVE )
-		{	
-			// the entity present in oldframe is not in the current frame
-			if( oldnum != newnum ) Msg("U_REMOVE: oldnum != newnum\n");
-
 			oldindex++;
 
 			if( oldindex >= oldframe->num_entities )
@@ -206,13 +195,11 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 				oldstate = &cl_parse_entities[(oldframe->parse_entities+oldindex) & (MAX_PARSE_ENTITIES-1)];
 				oldnum = oldstate->number;
 			}
-			continue;
 		}
-
 		if( oldnum == newnum )
 		{	
 			// delta from previous state
-			CL_DeltaEntity( msg, newframe, newnum, oldstate, bits );
+			CL_DeltaEntity( msg, newframe, newnum, oldstate, false );
 			oldindex++;
 
 			if( oldindex >= oldframe->num_entities )
@@ -231,7 +218,7 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 		{	
 			// delta from baseline
 			edict_t *ent = PRVM_EDICT_NUM( newnum );
-			CL_DeltaEntity( msg, newframe, newnum, &ent->priv.cl->baseline, bits );
+			CL_DeltaEntity( msg, newframe, newnum, &ent->priv.cl->baseline, false );
 			continue;
 		}
 
@@ -241,7 +228,7 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 	while( oldnum != MAX_ENTNUMBER )
 	{	
 		// one or more entities from the old packet are unchanged
-		CL_DeltaEntity( msg, newframe, oldnum, oldstate, 0 );
+		CL_DeltaEntity( msg, newframe, oldnum, oldstate, true );
 		oldindex++;
 
 		if( oldindex >= oldframe->num_entities )
@@ -299,9 +286,9 @@ void CL_ParsePlayerstate( sizebuf_t *msg, frame_t *oldframe, frame_t *newframe )
 
 	if (flags & PS_VIEWANGLES)
 	{
-		state->viewangles[0] = MSG_ReadAngle32 (msg);
-		state->viewangles[1] = MSG_ReadAngle32 (msg);
-		state->viewangles[2] = MSG_ReadAngle32 (msg);
+		state->viewangles[0] = MSG_ReadBits( msg, NET_FLOAT );
+		state->viewangles[1] = MSG_ReadBits( msg, NET_FLOAT );
+		state->viewangles[2] = MSG_ReadBits( msg, NET_FLOAT );
 	}
 
 	if (flags & PS_KICKANGLES)
@@ -386,7 +373,7 @@ void CL_ParseFrame( sizebuf_t *msg )
 	cl.frame.serverframe = MSG_ReadLong (msg);
 	cl.frame.deltaframe = MSG_ReadLong (msg);
 	cl.frame.servertime = cl.frame.serverframe * HOST_FRAMETIME;
-	cl.surpressCount = MSG_ReadByte (msg);
+	cl.surpressCount = MSG_ReadByte( msg );
 
 	// If the frame is delta compressed from data that we
 	// no longer have available, we must suck up the rest of

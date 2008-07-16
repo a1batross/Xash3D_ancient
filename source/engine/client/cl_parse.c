@@ -81,14 +81,14 @@ bool	CL_CheckOrDownloadFile (char *filename)
 
 		// give the server an offset to start the download
 		Msg ("Resuming %s\n", cls.downloadname);
-		MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
-		MSG_WriteString (&cls.netchan.message, va("download %s %i", cls.downloadname, len));
+		MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
+		MSG_Print( &cls.netchan.message, va("download %s %i", cls.downloadname, len));
 	}
 	else
 	{
 		Msg ("Downloading %s\n", cls.downloadname);
-		MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
-		MSG_WriteString (&cls.netchan.message, va("download %s", cls.downloadname));
+		MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
+		MSG_Print( &cls.netchan.message, va("download %s", cls.downloadname));
 	}
 
 	cls.downloadnumber++;
@@ -144,10 +144,8 @@ void	CL_Download_f (void)
 	FS_StripExtension (cls.downloadtempname);
 	FS_DefaultExtension(cls.downloadtempname, ".tmp");
 
-	MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
-	MSG_WriteString (&cls.netchan.message,
-		va("download %s", cls.downloadname));
-
+	MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
+	MSG_Print( &cls.netchan.message, va("download %s", cls.downloadname));
 	cls.downloadnumber++;
 }
 
@@ -222,9 +220,8 @@ void CL_ParseDownload( sizebuf_t *msg )
 	{
 		// request next block
 		cls.downloadpercent = percent;
-
-		MSG_WriteByte(&cls.netchan.message, clc_stringcmd);
-		MSG_WriteString(&cls.netchan.message, "nextdl");
+		MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
+		MSG_Print( &cls.netchan.message, "nextdl" );
 	}
 	else
 	{
@@ -317,13 +314,13 @@ CL_ParseBaseline
 */
 void CL_ParseBaseline( sizebuf_t *msg )
 {
-	int		bits;
 	int		newnum;
 	entity_state_t	nullstate;
 	edict_t		*ent;
 
-	memset (&nullstate, 0, sizeof(nullstate));
-	newnum = CL_ParseEntityBits( msg, &bits );
+	CL_VM_Begin();
+	memset( &nullstate, 0, sizeof(nullstate));
+	newnum = MSG_ReadBits( msg, NET_WORD );
 
 	// allocate edicts
 	while( newnum >= prog->num_edicts ) PRVM_ED_Alloc();
@@ -590,7 +587,6 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 	if (cl_shownet->value == 1) Msg ("%i ",msg->cursize);
 	else if (cl_shownet->value >= 2) Msg ("------------------\n");
 
-	MSG_UseHuffman( msg, true );
 	cls.multicast = msg; // client progs can recivied messages too
 
 	// parse the message
@@ -604,7 +600,7 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 
 		cmd = MSG_ReadByte( msg );
 		if( cmd == -1 ) break;
-	
+
 		// other commands
 		switch( cmd )
 		{
@@ -627,7 +623,6 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			break;
 		case svc_stufftext:
 			s = MSG_ReadString( msg );
-			Msg("CL<-svc_stufftext %s\n", s );
 			Cbuf_AddText( s );
 			break;
 		case svc_serverdata:

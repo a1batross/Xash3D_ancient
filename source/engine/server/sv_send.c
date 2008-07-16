@@ -212,7 +212,7 @@ Misc helper function
 
 void _MSG_Begin( int dest, const char *filename, int fileline )
 {
-	_MSG_WriteByte( &sv.multicast, dest, filename, fileline );
+	_MSG_WriteBits( &sv.multicast, dest, NET_BYTE, filename, fileline );
 }
 
 /*  
@@ -407,7 +407,6 @@ bool SV_SendClientDatagram( sv_client_t *client )
 		Msg ("WARNING: msg overflowed for %s\n", client->name);
 		MSG_Clear( &msg );
 	}
-
 	// send the datagram
 	Netchan_Transmit (&client->netchan, msg.cursize, msg.data);
 

@@ -100,7 +100,7 @@ void CL_WriteDemoHeader( const char *name )
 			buf.cursize = 0;
 		}
 		MSG_WriteByte( &buf, svc_spawnbaseline );		
-		MSG_WriteDeltaEntity (&nullstate, &ent->priv.cl->baseline, &buf, true );
+		MSG_WriteDeltaEntity (&nullstate, &ent->priv.cl->baseline, &buf, true, true );
 	}
 
 	MSG_WriteByte( &buf, svc_stufftext );
