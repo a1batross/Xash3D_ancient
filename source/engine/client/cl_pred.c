@@ -236,7 +236,7 @@ void CL_PredictMovement (void)
 
 	oldframe = (ack-2) & (CMD_BACKUP-1);
 
-	//if( pm.ps.pm_flags & PMF_ON_GROUND )//FIXME
+	if( pm.ps.pm_flags & PMF_ON_GROUND )
 	{
 		oldz = cl.predicted_origins[oldframe][2];
 		step = pm.ps.origin[2] - oldz;

@@ -9,6 +9,84 @@
 sv_client_t *sv_client; // current client
 
 /*
+=================
+SV_ClientPrintf
+
+Sends text across to be displayed if the level passes
+=================
+*/
+void SV_ClientPrintf( sv_client_t *cl, int level, char *fmt, ... )
+{
+	va_list	argptr;
+	char	string[MAX_STRING_CHARS];
+	
+	if( level < cl->messagelevel )
+		return;
+	
+	va_start( argptr, fmt );
+	com.vsprintf( string, fmt, argptr );
+	va_end( argptr );
+	
+	MSG_WriteByte( &cl->netchan.message, svc_print );
+	MSG_WriteByte( &cl->netchan.message, level );
+	MSG_WriteString( &cl->netchan.message, string );
+}
+
+/*
+=================
+SV_BroadcastPrintf
+
+Sends text to all active clients
+=================
+*/
+void SV_BroadcastPrintf( int level, char *fmt, ... )
+{
+	char		string[MAX_STRING_CHARS];
+	va_list		argptr;
+	sv_client_t	*cl;
+	int		i;
+
+	va_start( argptr, fmt );
+	com.vsprintf( string, fmt, argptr );
+	va_end( argptr );
+	
+	// echo to console
+	if( host.type == HOST_DEDICATED )
+		Msg( "%s", string );
+
+	for( i = 0, cl = svs.clients; i < maxclients->value; i++, cl++ )
+	{
+		if( level < cl->messagelevel) continue;
+		if( cl->state != cs_spawned ) continue;
+		MSG_WriteByte( &cl->netchan.message, svc_print );
+		MSG_WriteByte( &cl->netchan.message, level );
+		MSG_WriteString( &cl->netchan.message, string );
+	}
+}
+
+/*
+=================
+SV_BroadcastCommand
+
+Sends text to all active clients
+=================
+*/
+void SV_BroadcastCommand( char *fmt, ... )
+{
+	va_list	argptr;
+	char	string[MAX_STRING_CHARS];
+	
+	if( !sv.state ) return;
+	va_start( argptr, fmt );
+	com.vsprintf( string, fmt, argptr );
+	va_end( argptr );
+
+	MSG_Begin( svc_stufftext );
+	MSG_WriteString( &sv.multicast, string );
+	MSG_Send( MSG_ALL_R, NULL, NULL );
+}
+
+/*
 ====================
 SV_SetMaster_f
 
@@ -329,6 +407,26 @@ void SV_Kick_f( void )
 	sv_client->lastmessage = svs.realtime; // min case there is a funny zombie
 }
 
+void SV_Noclip_f( void )
+{
+	sv_client_t	*cl;
+          
+	if( maxclients->integer != 1 ) return;
+
+	cl = svs.clients; // use first client
+	if( !cl->state ) return;
+
+	if( cl->edict->progs.sv->movetype == MOVETYPE_WALK )
+	{
+		Msg("noclip on\n" );
+		cl->edict->progs.sv->movetype = MOVETYPE_NOCLIP;
+	}
+	else
+	{
+		Msg("noclip off\n" );
+		cl->edict->progs.sv->movetype =  MOVETYPE_WALK;
+	}
+}
 
 /*
 ================
@@ -490,6 +588,7 @@ void SV_InitOperatorCommands( void )
 	Cmd_AddCommand("changelevel", SV_ChangeLevel_f, "changing level" );
 	Cmd_AddCommand("restart", SV_Restart_f, "restarting current level" );
 	Cmd_AddCommand("sectorlist", SV_SectorList_f, "display pvs sectors" );
+	Cmd_AddCommand("noclip", SV_Noclip_f, "enable player noclip" );
 
 	if( host.type == HOST_DEDICATED )
 	{

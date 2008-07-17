@@ -68,6 +68,29 @@ float	pm_waterspeed = 400;
 
 */
 
+/*
+===============
+PM_AddTouchEnt
+===============
+*/
+void PM_AddTouchEnt( edict_t *entity )
+{
+	int		i;
+
+	if( pm->numtouch == PM_MAXTOUCH )
+		return;
+
+	// see if it is already added
+	for( i = 0; i < pm->numtouch; i++ )
+	{
+		if( pm->touchents[i] == entity )
+			return;
+	}
+
+	// add it
+	pm->touchents[pm->numtouch] = entity;
+	pm->numtouch++;
+}
 
 /*
 ==================
@@ -154,11 +177,7 @@ void PM_StepSlideMove_ (void)
 			 break;		// moved the entire distance
 
 		// save entity for contact
-		if (pm->numtouch < PM_MAXTOUCH && trace.ent)
-		{
-			pm->touchents[pm->numtouch] = trace.ent;
-			pm->numtouch++;
-		}
+		PM_AddTouchEnt( trace.ent );
 		
 		time_left -= time_left * trace.fraction;
 
@@ -289,7 +308,7 @@ Handles both ground friction and water friction
 ==================
 */
 
-void PM_Friction (void)
+void PM_Friction( void )
 {
 	float	*vel;
 	float	speed, newspeed, control;
@@ -308,7 +327,7 @@ void PM_Friction (void)
 	drop = 0;
 
 	// apply ground friction
-	if((pm->ps.groundentity && pml.groundsurface && !(pml.groundsurface->flags & SURF_SLICK) ) || (pml.onladder) )
+	if((pm->ps.groundentity && pml.groundsurface && !(pml.groundsurface->flags & SURF_SLICK)) || (pml.onladder))
 	{
 		control = speed < pm_stopspeed ? pm_stopspeed : speed;
 		drop += control * pm_friction * pml.frametime;
@@ -320,15 +339,10 @@ void PM_Friction (void)
 
 	// scale the velocity
 	newspeed = speed - drop;
-	if (newspeed < 0)
-	{
-		newspeed = 0;
-	}
+	if( newspeed < 0 ) newspeed = 0;
 	newspeed /= speed;
 
-	vel[0] = vel[0] * newspeed;
-	vel[1] = vel[1] * newspeed;
-	vel[2] = vel[2] * newspeed;
+	VectorScale( vel, newspeed, vel );
 }
 
 /*
@@ -468,7 +482,7 @@ PM_WaterMove
 
 ===================
 */
-void PM_WaterMove (void)
+void PM_WaterMove( void )
 {
 	int		i;
 	vec3_t	wishvel;
@@ -586,13 +600,13 @@ void PM_AirMove (void)
 PM_CatagorizePosition
 =============
 */
-void PM_CatagorizePosition (void)
+void PM_CatagorizePosition( void )
 {
 	vec3_t		point;
-	int			cont;
+	int	      	cont;
 	trace_t		trace;
-	int			sample1;
-	int			sample2;
+	int	      	sample1;
+	int	      	sample2;
 
 	// if the player hull point one unit down is solid, the player
 	// is on ground
@@ -602,7 +616,7 @@ void PM_CatagorizePosition (void)
 	point[1] = pml.origin[1];
 	point[2] = pml.origin[2] - 0.25;
 
-	if (pml.velocity[2] > 180)
+	if( pml.velocity[2] > 180 )
 	{
 		pm->ps.pm_flags &= ~PMF_ON_GROUND;
 		pm->ps.groundentity = NULL;
@@ -615,7 +629,7 @@ void PM_CatagorizePosition (void)
 		pml.groundsurface = trace.surface;
 		pml.groundcontents = trace.contents;
 
-		if (!trace.ent || (trace.plane.normal[2] < 0.7 && !trace.startsolid) )
+		if( !trace.ent || (trace.plane.normal[2] < 0.7 && !trace.startsolid ))
 		{
 			pm->ps.groundentity = NULL;
 			pm->ps.pm_flags &= ~PMF_ON_GROUND;
@@ -623,7 +637,6 @@ void PM_CatagorizePosition (void)
 		else
 		{
 			pm->ps.groundentity = trace.ent;
-
 			// hitting solid ground will end a waterjump
 			if (pm->ps.pm_flags & PMF_TIME_WATERJUMP)
 			{
@@ -631,7 +644,7 @@ void PM_CatagorizePosition (void)
 				pm->ps.pm_time = 0;
 			}
 
-			if (! (pm->ps.pm_flags & PMF_ON_GROUND) )
+			if(!(pm->ps.pm_flags & PMF_ON_GROUND) )
 			{
 				// just hit the ground
 				pm->ps.pm_flags |= PMF_ON_GROUND;
@@ -897,7 +910,7 @@ void PM_CheckDuck (void)
 	{
 		pm->ps.pm_flags |= PMF_DUCKED;
 	}
-	else if (pm->cmd.upmove < 0 && (pm->ps.pm_flags & PMF_ON_GROUND) )
+	else if (pm->cmd.upmove < 0 && (pm->ps.pm_flags & PMF_ON_GROUND))
 	{
 		// duck
 		pm->ps.pm_flags |= PMF_DUCKED;
@@ -905,12 +918,12 @@ void PM_CheckDuck (void)
 	else
 	{
 		// stand up if possible
-		if (pm->ps.pm_flags & PMF_DUCKED)
+		if( pm->ps.pm_flags & PMF_DUCKED )
 		{
 			// try to stand up
 			pm->maxs[2] = 32;
-			trace = pm->trace (pml.origin, pm->mins, pm->maxs, pml.origin);
-			if (!trace.allsolid) pm->ps.pm_flags &= ~PMF_DUCKED;
+			trace = pm->trace( pml.origin, pm->mins, pm->maxs, pml.origin );
+			if(!trace.allsolid) pm->ps.pm_flags &= ~PMF_DUCKED;
 		}
 	}
 

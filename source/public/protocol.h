@@ -13,8 +13,8 @@
 #define MAX_EDICTS			(1<<MAXEDICT_BITS)	// must change protocol to increase more
 #define INVALID_EDICT		(MAX_EDICTS - 1)
 #define INVALID_DELTA		-99		// packet no contains delta message
-#define MAX_DATAGRAM		1400		// datagram size
-#define MAX_MSGLEN			2048		// max length of network message
+#define MAX_DATAGRAM		2048		// datagram size
+#define MAX_MSGLEN			32768		// max length of network message
 
 // network precision coords factor
 #ifdef USE_COORD_FRAC
@@ -42,20 +42,16 @@ typedef struct
 typedef struct sizebuf_s
 {
 	bool	overflowed;	// set to true if the buffer size failed
-	bool	bitstream;	// using bitstream
 
 	byte	*data;
 	int	maxsize;
 	int	cursize;
 	int	readcount;
-	int	errorcount;	// cause by errors
-	int	bitpos;		// for bitwise reads and writes
 } sizebuf_t;
 
 enum net_types_e
 {
 	NET_BAD = 0,
-	NET_BIT,
 	NET_CHAR,
 	NET_BYTE,
 	NET_SHORT,
@@ -63,7 +59,9 @@ enum net_types_e
 	NET_LONG,
 	NET_FLOAT,
 	NET_ANGLE,
+	NET_SCALE,
 	NET_COORD,
+	NET_COLOR,
 	NET_TYPES,
 };
 
@@ -138,9 +136,13 @@ typedef struct player_state_s
 	int		pm_type;		// player movetype
 	int		pm_flags;		// ducked, jump_held, etc
 	int		pm_time;		// each unit = 8 ms
-	
+#ifdef USE_COORD_FRAC	
 	int		origin[3];
 	int		velocity[3];
+#else
+	vec3_t		origin;
+	vec3_t		velocity;
+#endif
 	vec3_t		delta_angles;	// add to command angles to get view direction
 	int		gravity;		// gravity value
 	int		speed;		// maxspeed
@@ -177,16 +179,17 @@ typedef struct usercmd_s
 
 static const net_desc_t NWDesc[] =
 {
-{ NET_BAD,	"none",	0,		0	},
-{ NET_BIT,	"Bit",	0,		1	},
+{ NET_BAD,	"none",	0,		0	}, // full range
 { NET_CHAR,	"Char",	-128,		127	},
 { NET_BYTE,	"Byte",	0,		255	},
 { NET_SHORT,	"Short",	-32767,		32767	},
 { NET_WORD,	"Word",	0,		65535	},
-{ NET_LONG,	"Long",	-2147483647,	2147483646},
-{ NET_FLOAT,	"Float",	-2147483647,	2147483646},
+{ NET_LONG,	"Long",	0,		0	},
+{ NET_FLOAT,	"Float",	0,		0	},
 { NET_ANGLE,	"Angle",	-360,		360	},
+{ NET_SCALE,	"Scale",	0,		0	},
 { NET_COORD,	"Coord",	-262140,		262140	},
+{ NET_COLOR,	"Color",	0,		255	},
 };
 
 #define ES_FIELD(x) #x,(int)&((entity_state_t*)0)->x
@@ -216,59 +219,69 @@ static net_field_t ent_fields[] =
 { ES_FIELD(solid),		NET_LONG,	 false	},	// encoded mins/maxs
 { ES_FIELD(alpha),		NET_FLOAT, false	},	// alpha value (FIXME: send a byte ? )
 { ES_FIELD(animtime),	NET_FLOAT, false	},	// auto-animating time
+{ NULL },						// terminator
 };
 
 static net_field_t ps_fields[] =
 {
-{ PS_FIELD(pm_type), 4 },			// 16 player movetypes allowed
-{ PS_FIELD(pm_flags), 16 },			// 16 movetype flags allowed
-{ PS_FIELD(pm_time), 8 },			// each unit 8 msec
-{ PS_FIELD(origin[0]), 32 },
-{ PS_FIELD(origin[1]), 32 },
-{ PS_FIELD(origin[2]), 32 },
-{ PS_FIELD(velocity[0]), 32 },
-{ PS_FIELD(velocity[1]), 32 },
-{ PS_FIELD(velocity[2]), 32 },
-{ PS_FIELD(delta_angles[0]), 0 },
-{ PS_FIELD(delta_angles[1]), 0 },
-{ PS_FIELD(delta_angles[2]), 0 },
-{ PS_FIELD(gravity), 16 },			// may be 12 bits ?
-{ PS_FIELD(speed), 16 },
-{ PS_FIELD(viewheight), -8 },			// why hegative ?
-{ PS_FIELD(effects), 32 },			// copied to entity_state_t->effects
-{ PS_FIELD(viewangles[0]), 0 },		// for fixed views
-{ PS_FIELD(viewangles[1]), 0 },
-{ PS_FIELD(viewangles[2]), 0 },
-{ PS_FIELD(viewoffset[0]), 0 },		// get rid of this
-{ PS_FIELD(viewoffset[1]), 0 },
-{ PS_FIELD(viewoffset[2]), 0 },
-{ PS_FIELD(kick_angles[0]), 0 },
-{ PS_FIELD(kick_angles[1]), 0 },
-{ PS_FIELD(kick_angles[2]), 0 },
-{ PS_FIELD(blend[0]), 0 },			// FIXME: calc on client, don't send over the net
-{ PS_FIELD(blend[1]), 0 },
-{ PS_FIELD(blend[2]), 0 },
-{ PS_FIELD(blend[3]), 0 },
-{ PS_FIELD(fov), 0 },			// FIXME: send with userinfo ?
-{ PS_FIELD(vmodel.index), MAXEDICT_BITS },	// 4096 models 
-{ PS_FIELD(vmodel.angles[0]), 0 },		// can be some different with viewangles
-{ PS_FIELD(vmodel.angles[1]), 0 },
-{ PS_FIELD(vmodel.angles[2]), 0 },
-{ PS_FIELD(vmodel.offset[0]), 0 },		// center offset
-{ PS_FIELD(vmodel.offset[1]), 0 },
-{ PS_FIELD(vmodel.offset[2]), 0 },
-{ PS_FIELD(vmodel.sequence), 10 },		// 1024 sequences
-{ PS_FIELD(vmodel.frame), 0 },		// interpolate value
-{ PS_FIELD(vmodel.body), 8 },			// 255 bodies
-{ PS_FIELD(vmodel.skin), 8 },			// 255 skins
-{ PS_FIELD(pmodel.index), MAXEDICT_BITS },	// 4096 models 
-{ PS_FIELD(pmodel.sequence), 10 },		// 1024 sequences
-{ PS_FIELD(vmodel.frame), 0 },		// interpolate value
+{ PS_FIELD(pm_type),	NET_BYTE,  false	},	// 16 player movetypes allowed
+{ PS_FIELD(pm_flags),	NET_WORD,  true	},	// 16 movetype flags allowed
+{ PS_FIELD(pm_time),	NET_BYTE,  true	},	// each unit 8 msec
+#ifdef USE_COORD_FRAC
+{ PS_FIELD(origin[0]),	NET_COORD, false	},
+{ PS_FIELD(origin[1]),	NET_COORD, false	},
+{ PS_FIELD(origin[2]),	NET_COORD, false	},
+{ PS_FIELD(velocity[0]),	NET_COORD, false	},
+{ PS_FIELD(velocity[1]),	NET_COORD, false	},
+{ PS_FIELD(velocity[2]),	NET_COORD, false	},
+#else
+{ PS_FIELD(origin[0]),	NET_FLOAT, false	},
+{ PS_FIELD(origin[1]),	NET_FLOAT, false	},
+{ PS_FIELD(origin[2]),	NET_FLOAT, false	},
+{ PS_FIELD(velocity[0]),	NET_FLOAT, false	},
+{ PS_FIELD(velocity[1]),	NET_FLOAT, false	},
+{ PS_FIELD(velocity[2]),	NET_FLOAT, false	},
+#endif
+{ PS_FIELD(delta_angles[0]),	NET_FLOAT, false	},
+{ PS_FIELD(delta_angles[1]),	NET_FLOAT, false	},
+{ PS_FIELD(delta_angles[2]),	NET_FLOAT, false	},
+{ PS_FIELD(gravity),	NET_SHORT, false	},	// may be 12 bits ?
+{ PS_FIELD(effects),	NET_LONG,  false	},	// copied to entity_state_t->effects
+{ PS_FIELD(viewangles[0]),	NET_FLOAT, false	},	// for fixed views
+{ PS_FIELD(viewangles[1]),	NET_FLOAT, false	},
+{ PS_FIELD(viewangles[2]),	NET_FLOAT, false	},
+{ PS_FIELD(viewoffset[0]),	NET_SCALE, false	},	// get rid of this
+{ PS_FIELD(viewoffset[1]),	NET_SCALE, false	},
+{ PS_FIELD(viewoffset[2]),	NET_SCALE, false	},
+{ PS_FIELD(kick_angles[0]),	NET_SCALE, false	},
+{ PS_FIELD(kick_angles[1]),	NET_SCALE, false	},
+{ PS_FIELD(kick_angles[2]),	NET_SCALE, false	},
+{ PS_FIELD(blend[0]),	NET_COLOR, false	},	// FIXME: calc on client, don't send over the net
+{ PS_FIELD(blend[1]),	NET_COLOR, false	},
+{ PS_FIELD(blend[2]),	NET_COLOR, false	},
+{ PS_FIELD(blend[3]),	NET_COLOR, false	},
+{ PS_FIELD(fov),		NET_FLOAT, false	},	// FIXME: send as byte * 4 ?
+{ PS_FIELD(vmodel.index),	NET_WORD,  false	},	// 4096 models 
+{ PS_FIELD(vmodel.angles[0]), NET_SCALE, false	},	// can be some different with viewangles
+{ PS_FIELD(vmodel.angles[1]), NET_SCALE, false	},
+{ PS_FIELD(vmodel.angles[2]), NET_SCALE, false	},
+{ PS_FIELD(vmodel.offset[0]), NET_SCALE, false	},	// center offset
+{ PS_FIELD(vmodel.offset[1]),	NET_SCALE, false	},
+{ PS_FIELD(vmodel.offset[2]),	NET_SCALE, false	},
+{ PS_FIELD(vmodel.sequence),	NET_WORD,  false	},	// 1024 sequences
+{ PS_FIELD(vmodel.frame),	NET_FLOAT, false	},	// interpolate value
+{ PS_FIELD(vmodel.body),	NET_BYTE,  false	},	// 255 bodies
+{ PS_FIELD(vmodel.skin),	NET_BYTE,  false	},	// 255 skins
+{ PS_FIELD(pmodel.index),	NET_WORD,  false	},	// 4096 models 
+{ PS_FIELD(pmodel.sequence),	NET_WORD,  false	},	// 1024 sequences
+{ PS_FIELD(vmodel.frame),	NET_FLOAT, false	},	// interpolate value
+{ NULL },						// terminator
 };
 
 // probably usercmd_t never reached 32 field integer limit (in theory of course)
 static net_field_t cmd_fields[] =
 {
+{ CM_FIELD(msec),		NET_BYTE,  true	},
 { CM_FIELD(angles[0]),	NET_WORD,  false	},
 { CM_FIELD(angles[1]),	NET_WORD,  false	},
 { CM_FIELD(angles[2]),	NET_WORD,  false	},
@@ -278,6 +291,7 @@ static net_field_t cmd_fields[] =
 { CM_FIELD(buttons),	NET_BYTE,  false	},
 { CM_FIELD(impulse),	NET_BYTE,  false	},
 { CM_FIELD(lightlevel),	NET_BYTE,  false	},
+{ NULL },
 };
 
 #endif//NET_PROTOCOL_H

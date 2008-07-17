@@ -6,6 +6,7 @@
 #include "common.h"
 #include "server.h"
 
+// g-cont: my stupid callbacks
 cmodel_t *SV_GetModelPtr( edict_t *ent )
 {
 	return pe->RegisterModel( sv.configstrings[CS_MODELS + (int)ent->progs.sv->modelindex] );

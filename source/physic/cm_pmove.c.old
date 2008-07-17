@@ -884,7 +884,7 @@ static void PM_AirMove( void )
 				if( pm->ps.velocity[2] > 0 ) pm->ps.velocity[2] = 0;
 			}
 		}
-	}
+	} 
 	else if( pml.groundplane )
 	{
 		PM_ClipVelocity (pm->ps.velocity, pml.groundtrace.plane.normal, pm->ps.velocity, OVERCLIP );

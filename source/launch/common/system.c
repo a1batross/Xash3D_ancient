@@ -41,12 +41,10 @@ void Sys_GetStdAPI( void )
 	com.abort = Sys_Break;
 	com.exit = Sys_Exit;
 	com.print = Sys_Print;
-	com.input = Sys_Input;
 	com.sleep = Sys_Sleep;
 	com.clipboard = Sys_GetClipboardData;
 	com.queevent = Sys_QueEvent;			// add event to queue
 	com.getevent = Sys_GetEvent;			// get system events
-	com.keyevents = Sys_SendKeyEvents;
 
 	// crclib.c funcs
 	com.crc_init = CRC_Init;
@@ -81,7 +79,6 @@ void Sys_GetStdAPI( void )
 	com.NET_AdrToString = NET_AdrToString;
 	com.NET_IsLANAddress = NET_IsLANAddress;
 	com.NET_StringToAdr = NET_StringToAdr;
-	com.NET_RecvPacket = NET_GetPacket;
 	com.NET_SendPacket = NET_SendPacket;
 
 	// common functions
@@ -421,7 +418,6 @@ void Sys_CreateInstance( void )
 		Sys.Main = Host->Main;
 		Sys.Free = Host->Free;
 		Sys.CPrint = Host->CPrint;
-		Sys.Cmd = Host->Cmd;
 		Sys.MSG_Init = Host->MSG_Init;
 		break;
 	case HOST_CREDITS:

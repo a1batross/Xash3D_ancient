@@ -498,7 +498,7 @@ void ROQ_ProcessFrame( int num )
 		MsgDev( D_ERROR, "ROQ_CompressRGB: frame encode failed\n");
 		return;
 	}
-	Sys_GetKeyEvents(); // update console output
+	Sys_GetEvent(); // update console output
 	if( frame ) Image->FreeImage( frame );
 	iTotalFrames++;
 }

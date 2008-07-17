@@ -411,7 +411,6 @@ void Info_RemoveKey( char *s, char *key );
 void Info_SetValueForKey( char *s, char *key, char *value );
 bool Info_Validate( char *s );
 void Info_Print( char *s );
-void Cmd_ForwardToServer( void ); // client callback
 char *Cvar_Userinfo( void );
 char *Cvar_Serverinfo( void );
 void Cmd_WriteVariables( file_t *f );

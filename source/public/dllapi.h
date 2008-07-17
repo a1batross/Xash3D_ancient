@@ -251,9 +251,8 @@ typedef struct launch_exp_s
 	void ( *Init ) ( uint funcname, int argc, char **argv );	// init host
 	void ( *Main ) ( void );				// host frame
 	void ( *Free ) ( void );				// close host
-	void ( *Cmd  ) ( void );				// forward cmd to server
 	void (*CPrint) ( const char *msg );			// host print
-	void (*MSG_Init)( sizebuf_t *buf, byte *data, size_t len );	// MSG network buffer
+	void (*MSG_Init)( sizebuf_t *buf, byte *data, size_t len );	// MSG init network buffer
 } launch_exp_t;
 
 /*

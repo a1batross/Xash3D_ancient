@@ -48,42 +48,6 @@ float LerpPoint( float oldpoint, float curpoint, float frac )
 }
 
 /*
-=================
-CL_ParseEntityBits
-
-Returns the entity number and the header bits
-=================
-*/
-int CL_ParseEntityBits( sizebuf_t *msg, uint *bits )
-{
-	uint	b, total;
-	int	number;
-
-	total = MSG_ReadByte (msg);
-	if (total & U_MOREBITS1)
-	{
-		b = MSG_ReadByte (msg);
-		total |= b<<8;
-	}
-	if (total & U_MOREBITS2)
-	{
-		b = MSG_ReadByte (msg);
-		total |= b<<16;
-	}
-	if (total & U_MOREBITS3)
-	{
-		b = MSG_ReadByte (msg);
-		total |= b<<24;
-	}
-
-	if( total & U_NUMBER16 ) number = MSG_ReadShort( msg );
-	else number = MSG_ReadByte( msg );
-	*bits = total;
-
-	return number;
-}
-
-/*
 ==================
 CL_DeltaEntity
 
@@ -243,121 +207,6 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 	}
 }
 
-
-
-/*
-===================
-CL_ParsePlayerstate
-===================
-*/
-void CL_ParsePlayerstate( sizebuf_t *msg, frame_t *oldframe, frame_t *newframe )
-{
-	int		flags;
-	player_state_t	*state;
-	int		i;
-	int		statbits;
-
-	state = &newframe->ps;
-
-	// clear to old value before delta parsing
-	if (oldframe) *state = oldframe->ps;
-	else memset (state, 0, sizeof(*state));
-
-	flags = MSG_ReadLong(msg);//four bytes
-
-	// parse the pmove_state_t
-	if (flags & PS_M_ORIGIN) MSG_ReadPos16(msg, state->origin ); 
-	if (flags & PS_M_VELOCITY) MSG_ReadPos16(msg, state->velocity ); 
-	if (flags & PS_M_TIME) state->pm_time = MSG_ReadByte (msg);
-	if (flags & PS_M_FLAGS) state->pm_flags = MSG_ReadByte (msg);
-	if (flags & PS_M_GRAVITY) state->gravity = MSG_ReadShort (msg);
-	if (flags & PS_M_DELTA_ANGLES) MSG_ReadPos32(msg, state->delta_angles ); 
-
-	if( cls.state == ca_cinematic || cls.demoplayback )
-		state->pm_type = PM_FREEZE; // demo or movie playback
-
-	// parse the rest of the player_state_t
-	if (flags & PS_VIEWOFFSET)
-	{
-		state->viewoffset[0] = MSG_ReadChar (msg) * 0.25;
-		state->viewoffset[1] = MSG_ReadChar (msg) * 0.25;
-		state->viewoffset[2] = MSG_ReadChar (msg) * 0.25;
-	}
-
-	if (flags & PS_VIEWANGLES)
-	{
-		state->viewangles[0] = MSG_ReadBits( msg, NET_FLOAT );
-		state->viewangles[1] = MSG_ReadBits( msg, NET_FLOAT );
-		state->viewangles[2] = MSG_ReadBits( msg, NET_FLOAT );
-	}
-
-	if (flags & PS_KICKANGLES)
-	{
-		state->kick_angles[0] = MSG_ReadChar (msg) * 0.25;
-		state->kick_angles[1] = MSG_ReadChar (msg) * 0.25;
-		state->kick_angles[2] = MSG_ReadChar (msg) * 0.25;
-	}
-
-	if (flags & PS_WEAPONINDEX)
-	{
-		state->vmodel.index = MSG_ReadByte (msg);
-	}
-
-	if (flags & PS_WEAPONFRAME)
-	{
-		state->vmodel.frame = MSG_ReadFloat (msg);
-	}
-
-
-	if (flags & PS_WEAPONOFFSET)
-	{
-		state->vmodel.offset[0] = MSG_ReadChar (msg)*0.25;
-		state->vmodel.offset[1] = MSG_ReadChar (msg)*0.25;
-		state->vmodel.offset[2] = MSG_ReadChar (msg)*0.25;
-	}
-
-	if (flags & PS_WEAPONANGLES)
-	{
-		state->vmodel.angles[0] = MSG_ReadChar (msg)*0.25;
-		state->vmodel.angles[1] = MSG_ReadChar (msg)*0.25;
-		state->vmodel.angles[2] = MSG_ReadChar (msg)*0.25;
-	}
-
-	if (flags & PS_WEAPONSEQUENCE)
-	{
-		state->vmodel.sequence = MSG_ReadByte (msg);
-	}
-
-	if (flags & PS_WEAPONBODY)
-	{
-		state->vmodel.body = MSG_ReadByte (msg);
-	}
-	
-	if (flags & PS_WEAPONSKIN)
-	{
-		state->vmodel.skin = MSG_ReadByte (msg);
-	}
-
-	if (flags & PS_BLEND)
-	{
-		state->blend[0] = MSG_ReadByte (msg) / 255.0;
-		state->blend[1] = MSG_ReadByte (msg) / 255.0;
-		state->blend[2] = MSG_ReadByte (msg) / 255.0;
-		state->blend[3] = MSG_ReadByte (msg) / 255.0;
-	}
-
-	if (flags & PS_FOV)
-		state->fov = MSG_ReadByte (msg);
-
-	if (flags & PS_RDFLAGS)
-		state->effects = MSG_ReadByte (msg);
-
-	// parse stats
-	statbits = MSG_ReadLong (msg);
-	for( i = 0; i < MAX_STATS; i++ )
-		if(statbits & (1<<i)) state->stats[i] = MSG_ReadShort( msg );
-}
-
 /*
 ================
 CL_ParseFrame
@@ -418,11 +267,16 @@ void CL_ParseFrame( sizebuf_t *msg )
 	// read playerinfo
 	cmd = MSG_ReadByte( msg );
 	if( cmd != svc_playerinfo ) Host_Error( "CL_ParseFrame: not playerinfo\n" );
-	CL_ParsePlayerstate( msg, old, &cl.frame );
+	if( old ) MSG_ReadDeltaPlayerstate( msg, &old->ps, &cl.frame.ps );
+	else MSG_ReadDeltaPlayerstate( msg, NULL, &cl.frame.ps );
+
+	// HACKHACK
+	if( cls.state == ca_cinematic || cls.demoplayback )
+		cl.frame.ps.pm_type = PM_FREEZE; // demo or movie playback
 
 	// read packet entities
-	cmd = MSG_ReadByte (msg);
-	if( cmd != svc_packetentities ) Host_Error("CL_ParseFrame: not packetentities\n" );
+	cmd = MSG_ReadByte( msg );
+	if( cmd != svc_packetentities ) Host_Error("CL_ParseFrame: not packetentities[%d]\n", cmd );
 	CL_ParsePacketEntities( msg, old, &cl.frame );
 
 	// save the frame off in the backup array for later delta comparisons
@@ -754,8 +608,8 @@ void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity
 	{
 		cmodel = cl.model_clip[ent->priv.cl->current.modelindex];
 		if(!cmodel) return;
-		VectorAverage(cmodel->mins, cmodel->maxs, midPoint);
-		VectorAdd(origin, midPoint, origin);
+		VectorAverage( cmodel->mins, cmodel->maxs, midPoint );
+		VectorAdd( origin, midPoint, origin );
 	}
 }
 

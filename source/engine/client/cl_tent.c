@@ -45,18 +45,18 @@ void CL_ParseTempEnts( sizebuf_t *msg )
 	switch( type )
 	{
 	case TE_TELEPORT:
-		MSG_ReadPos32( msg, pos );
+		MSG_ReadPos( msg, pos );
 		CL_TeleportSplash( pos );
 		break;
 	case TE_BLOOD:			// bullet hitting flesh
-		MSG_ReadPos32(msg, pos);
-		MSG_ReadPos32(msg, dir);
+		MSG_ReadPos(msg, pos);
+		MSG_ReadPos(msg, dir);
 		CL_ParticleEffect (pos, dir, 0xe8, 60);
 		break;
 
 	case TE_GUNSHOT:	// bullet hitting wall
-		MSG_ReadPos32(msg, pos);
-		MSG_ReadPos32(msg, dir);
+		MSG_ReadPos(msg, pos);
+		MSG_ReadPos(msg, dir);
 		CL_ParticleEffect( pos, dir, 0, 40 );
 		break;
 	default:

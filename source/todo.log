@@ -38,10 +38,32 @@ fopen завешивает приложение, при попытке создать файл в несуществующей директори
 15. перенести код от 11.07.08		OK
 16. переписать код message		OK
 17. Исправить сохранялки		OK
+18. Сжатие сетевых пакетов		OK
+19. вызов ClientThink из RunFrame	OK
+20. удалить все лишние функции из com.	OK
+21. включить external network		OK
 
 
-1.Кол-во полей = кол-ву флагов, кот. нужно сохранить.
-32 поля == 32 флага + системные.
+NEW RENDERER
+1. Доделать поддержку DXT-форматов
+2. Нормальная линковка OpenGL32.dll
+
+
+Список доступных рендереров:  	Что в них интересного
+0. Q3Fusion			(Mirrors, Portals)
+1. MhQuake			(Caustics)
+2. Xash 0.45			(Mirrors, Portals, Monitors, Rain, Sky)
+3. Paranoia			(Sky)
+4. EGL				(Effects, Shaders)
+5. Quake2Evolved			(Effects, Shaders, Structure)
+6. Quake2XP			(Effects, Glass, Shadows)
+7. Tenebrae			(Mirrors, Cubemap Projection, Bump)
+8. Venegeance			(Reflective Water)
+9. ftewqw				(some model loadings)
+10.Darkplaces			ALL!!!!!!!!!!!!!!!111111111111
+11.MHQuakeII			(auto-luma)
+
+
 
 Физика игрока:
 1. Убрать отскоки от стен

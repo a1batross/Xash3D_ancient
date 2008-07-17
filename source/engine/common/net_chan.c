@@ -120,6 +120,7 @@ void Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qport )
 	chan->last_received = Sys_Milliseconds();
 	chan->incoming_sequence = 0;
 	chan->outgoing_sequence = 1;
+	chan->compress = true;
 
 	MSG_Init( &chan->message, chan->message_buf, sizeof(chan->message_buf));
 }
@@ -267,6 +268,7 @@ void Netchan_Transmit( netchan_t *chan, int length, byte *data )
 		if( !overflow ) MsgDev( D_WARN, "Netchan_Transmit: unreliable msg overflow\n" );
 		overflow = true;
 	}
+	if( chan->compress ) Huff_CompressPacket(&send, (chan->sock == NS_CLIENT) ? 10 : 8);
 
 	// send the datagram
 	NET_SendPacket( chan->sock, send.cursize, send.data, chan->remote_address );
@@ -333,6 +335,7 @@ bool Netchan_Process( netchan_t *chan, sizebuf_t *msg )
 	chan->incoming_acknowledged = sequence_ack;
 	chan->incoming_reliable_acknowledged = reliable_ack;
 	if( recv_reliable ) chan->incoming_reliable_sequence ^= 1;
+	if( chan->compress ) Huff_DecompressPacket( msg, ( chan->sock == NS_SERVER) ? 10 : 8 );
 
 	// the message can now be read from the current message pointer
 	chan->last_received = Sys_Milliseconds();
@@ -469,14 +472,6 @@ void NET_SendPacket( netsrc_t sock, int length, void *data, netadr_t to )
 	Sys_SendPacket( length, data, to );
 }
 
-bool NET_GetPacket( netsrc_t sock, netadr_t *from, sizebuf_t *msg )
-{
-	if( NET_GetLoopPacket( sock, from, msg ))
-		return true;
-
-	return Sys_RecvPacket( from, msg );	
-}
-
 /*
 =============
 NET_StringToAdr
@@ -528,4 +523,5 @@ bool NET_StringToAdr( const char *s, netadr_t *a )
 
 void NET_Sleep( int msec )
 {
+	// not using
 }

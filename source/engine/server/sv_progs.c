@@ -1415,37 +1415,71 @@ void PF_sound( void )
 	const char	*sample;
 	int		channel, sound_idx;
 	edict_t		*entity;
-	int 		volume;
 	float		attenuation;
+	int 		flags = 0, ent, volume;
+	vec3_t		snd_origin;
+	int		sendchan;
+	bool		use_phs;
 
 	if(!VM_ValidateArgs( "EmitSound", 5 )) return;
 	entity = PRVM_G_EDICT(OFS_PARM0);
 	channel = (int)PRVM_G_FLOAT(OFS_PARM1);
 	sample = PRVM_G_STRING(OFS_PARM2);
-	volume = (int)(PRVM_G_FLOAT(OFS_PARM3) * 255);
+	volume = PRVM_G_FLOAT(OFS_PARM3);
 	attenuation = PRVM_G_FLOAT(OFS_PARM4);
+	ent = PRVM_NUM_FOR_EDICT( entity );
 
-	if (volume < 0 || volume > 255)
-	{
-		VM_Warning("SV_StartSound: volume must be in range 0 - 255\n");
-		return;
-	}
-
-	if (attenuation < 0 || attenuation > 4)
+	if( attenuation < 0 || attenuation > 4 )
 	{
 		VM_Warning("SV_StartSound: attenuation must be in range 0-4\n");
 		return;
 	}
-
-	if (channel < 0 || channel > 7)
+	if( channel < 0 || channel > 7 )
 	{
 		VM_Warning("SV_StartSound: channel must be in range 0-7\n");
 		return;
 	}
 
-	channel |= CHAN_RELIABLE|CHAN_NO_PHS_ADD;          
+	if( volume != 1.0f ) flags |= SND_VOL;
+	if( attenuation != 1.0f ) flags |= SND_ATTN;
+	flags |= SND_POS|SND_ENT;
+
+	// use the entity origin unless it is a bmodel or explicitly specified
+	if( entity->progs.sv->solid == SOLID_BSP || VectorIsNull( entity->progs.sv->origin ))
+	{
+		VectorAverage( entity->progs.sv->mins, entity->progs.sv->maxs, snd_origin );
+		VectorAdd( snd_origin, entity->progs.sv->origin, snd_origin );
+		channel |= CHAN_RELIABLE;
+		use_phs = false;
+		channel &= 7;
+	}
+	else
+	{
+		VectorCopy( entity->progs.sv->origin, snd_origin );
+		use_phs = true;
+	}
 	sound_idx = SV_SoundIndex( sample );
-	SV_StartSound (NULL, entity, channel, sound_idx, volume / 255.0f, attenuation, 0 );
+	sendchan = (ent<<3)|(channel & 7);
+
+	MSG_Begin( svc_sound );
+	MSG_WriteByte( &sv.multicast, flags );
+	MSG_WriteByte( &sv.multicast, sound_idx );
+
+	if( flags & SND_VOL ) MSG_WriteBits( &sv.multicast, volume, NET_COLOR );
+	if( flags & SND_ATTN) MSG_WriteByte( &sv.multicast, attenuation );
+	if( flags & SND_ENT ) MSG_WriteWord( &sv.multicast, sendchan );
+	if( flags & SND_POS ) MSG_WritePos( &sv.multicast, snd_origin );
+
+	if( channel & CHAN_RELIABLE )
+	{
+		if( use_phs ) MSG_Send( MSG_PHS_R, snd_origin, NULL );
+		else MSG_Send( MSG_ALL_R, snd_origin, NULL );
+	}
+	else
+	{
+		if( use_phs ) MSG_Send( MSG_PHS, snd_origin, NULL );
+		else MSG_Send( MSG_ALL, snd_origin, NULL );
+	}
 }
 
 /*
@@ -1469,8 +1503,6 @@ void PF_ambientsound( void )
 	ent->progs.sv->loopsound = PRVM_G_INT(OFS_PARM1);
 	ent->priv.sv->s.soundindex = SV_SoundIndex( samp );
 	if(!ent->progs.sv->modelindex ) SV_LinkEdict( ent );
-
-	//SV_AmbientSound( ent, SV_SoundIndex( samp ), 0.0f, 0.0f ); // unused parms
 }
 
 /*

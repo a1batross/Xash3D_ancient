@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_SERVERS		64
 
 //=============================================================================
-typedef struct
+typedef struct frame_s
 {
 	bool		valid;			// cleared if delta parsing was invalid
 	int		serverframe;
@@ -299,7 +299,7 @@ extern	cvar_t	*cl_showfps;
 extern	cvar_t	*cl_upspeed;
 extern	cvar_t	*cl_forwardspeed;
 extern	cvar_t	*cl_sidespeed;
-
+extern	cvar_t	*cl_shownet;
 extern	cvar_t	*cl_yawspeed;
 extern	cvar_t	*cl_pitchspeed;
 
@@ -511,7 +511,7 @@ _inline edict_t *CLVM_EDICT_NUM( int entnum )
 // if origin is NULL, the sound will be dynamically sourced from the entity
 #define S_StartStreaming		se->StartStreaming
 #define S_RegisterSound		se->RegisterSound
-#define S_StartSound( a, b, c, d )	se->StartSound( a, b, c, d, 1.0f, ATTN_NORM, true );
+#define S_StartSound( a,b,c,d,e,f )	se->StartSound( a, b, c, d, e, f, true );
 #define S_StartLocalSound		se->StartLocalSound
 #define S_StartBackgroundTrack	se->StartBackgroundTrack
 #define S_StopBackgroundTrack		se->StopBackgroundTrack

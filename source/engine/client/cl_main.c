@@ -97,25 +97,6 @@ things like godmode, noclip, etc, are commands directed to the server,
 so when they are typed in at the console, they will need to be forwarded.
 ===================
 */
-void Cmd_ForwardToServer (void)
-{
-	char	*cmd;
-
-	if( cls.demoplayback ) return; // not really connected
-
-	cmd = Cmd_Argv(0);
-	if (cls.state <= ca_connected || *cmd == '-' || *cmd == '+')
-	{
-		Msg ("Unknown command \"%s\"\n", cmd);
-		return;
-	}
-	if(Cmd_Argc() > 1)
-	{
-		MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
-		MSG_Print( &cls.netchan.message, Cmd_Args());
-	}
-}
-
 /*
 ==================
 CL_ForwardToServer_f

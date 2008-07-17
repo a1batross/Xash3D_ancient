@@ -27,9 +27,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //=============================================================================
 
-#define MAX_MASTERS		8 	// max recipients for heartbeat packets
-#define LATENCY_COUNTS	16
-#define RATE_MESSAGES	10
+#define MAX_MASTERS			8 	// max recipients for heartbeat packets
+#define LATENCY_COUNTS		16
+#define RATE_MESSAGES		10
+#define DF_NO_FRIENDLY_FIRE		0x00000001
 
 // classic quake flags
 #define SPAWNFLAG_NOT_EASY		0x00000100
@@ -202,6 +203,7 @@ extern	cvar_t		*sv_enforcetime;
 extern	cvar_t		*sv_reconnect_limit;
 extern	cvar_t		*allow_download;
 extern	cvar_t		*rcon_password;
+extern	cvar_t		*sv_fatpvs;
 extern	cvar_t		*hostname;
 
 extern	sv_client_t	*sv_client;

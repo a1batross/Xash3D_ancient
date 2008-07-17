@@ -120,6 +120,7 @@ char *fs_argv[MAX_NUM_ARGVS];
 bool fs_ext_path = false; // attempt to read\write from ./ or ../ pathes 
 bool fs_use_wads = false; // some utilities needs this
 cvar_t *fs_wadsupport;
+cvar_t *fs_defaultdir;
 
 gameinfo_t GI;
 
@@ -1505,6 +1506,10 @@ void FS_Init( void )
 	Cmd_AddCommand( "fs_path", FS_Path_f, "show filesystem search pathes" );
 	Cmd_AddCommand( "fs_clearpaths", FS_ClearPaths_f, "clear filesystem search pathes" );
 	fs_wadsupport = Cvar_Get( "fs_wadsupport", "0", CVAR_SYSTEMINFO, "enable wad-archive support" );
+	fs_defaultdir = Cvar_Get( "fs_defaultfir", "tmpQuArK", CVAR_SYSTEMINFO, "engine default directory" );
+
+	Cbuf_ExecuteText( EXEC_NOW, "systemcfg\n" );
+	Cbuf_Execute(); // apply system cvars immediately
 
 	// ignore commandlineoption "-game" for other stuff
 	if(Sys.app_name == HOST_NORMAL || Sys.app_name == HOST_DEDICATED || Sys.app_name == COMP_BSPLIB)
@@ -1516,16 +1521,16 @@ void FS_Init( void )
 		if(!FS_GetParmFromCmdLine("-game", gs_basedir ))
 		{
 			if( Sys.app_name == COMP_BSPLIB )
-				com_strcpy( gs_basedir, "tmpQuArK" );
+				com_strcpy( gs_basedir, fs_defaultdir->string );
 			else if(GetModuleFileName( NULL, szTemp, MAX_SYSPATH ))
 				FS_FileBase( szTemp, gs_basedir );
-			else com_strcpy( gs_basedir, "tmpQuArK" ); // default dir
+			else com_strcpy( gs_basedir, fs_defaultdir->string ); // default dir
 		}
 		// checked nasty path: "bin" it's a reserved word
 		if(FS_CheckNastyPath( gs_basedir, true ) || !com_stricmp("bin", gs_basedir ))
 		{
 			MsgDev( D_INFO, "FS_Init: invalid game directory \"%s\"\n", gs_basedir );		
-			com_strcpy(gs_basedir, "tmpQuArK" ); // default dir
+			com_strcpy(gs_basedir, fs_defaultdir->string ); // default dir
 		}
 
 		// validate directories
@@ -1538,7 +1543,7 @@ void FS_Init( void )
 		if(i == dirs.numstrings)
 		{ 
 			MsgDev( D_INFO, "FS_Init: game directory \"%s\" not exist\n", gs_basedir );		
-			com_strcpy(gs_basedir, "tmpQuArK" ); // default dir
+			com_strcpy(gs_basedir, fs_defaultdir->string ); // default dir
 		}
 		stringlistfreecontents(&dirs);
 	}	
@@ -1557,9 +1562,6 @@ void FS_Init( void )
 		fs_use_wads = false;
 		break;
 	}
-
-	Cbuf_ExecuteText( EXEC_NOW, "systemcfg\n" );
-	Cbuf_Execute(); // apply system cvars immediately
 
 	FS_ResetGameInfo();
 	MsgDev(D_INFO, "FS_Init: done\n");

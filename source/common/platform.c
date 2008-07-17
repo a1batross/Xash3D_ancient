@@ -48,9 +48,9 @@ void InitPlatform ( uint funcname, int argc, char **argv )
 	{
 	case COMP_BSPLIB:
 		if(!FS_GetParmFromCmdLine("-game", gamedir ))
-			strncpy(gamedir, "tmpQuArK", sizeof(gamedir));
+			com.strncpy(gamedir, Cvar_VariableString( "fs_defaultdir" ), sizeof(gamedir));
 		if(!FS_GetParmFromCmdLine("+map", source ))
-			strncpy(source, "newmap", sizeof(source));
+			com.strncpy(source, "newmap", sizeof(source));
 		if(FS_CheckParm("-vis")) bspflags |= BSP_ONLYVIS;
 		if(FS_CheckParm("-rad")) bspflags |= BSP_ONLYRAD;
 		if(FS_CheckParm("-full")) bspflags |= BSP_FULLCOMPILE;

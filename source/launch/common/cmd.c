@@ -577,20 +577,14 @@ void Cmd_ExecuteString( const char *text )
 
 			// perform the action
 			if(!cmd->function )
-			{	// forward to server command
 				Cmd_ExecuteString(va("cmd %s", text));
-			}
 			else cmd->function();
 			return;
 		}
 	}
 	
 	// check cvars
-	if(Cvar_Command()) return;
-
-	// send it as a server command if we are connected
-	if(Sys.Cmd) Sys.Cmd();
-	else MsgDev( D_ERROR, "Cmd_ExecuteString: can't send command to server\n");
+	Cvar_Command();
 }
 
 /*

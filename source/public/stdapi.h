@@ -25,12 +25,10 @@ typedef struct stdilib_api_s
 	void (*error)( const char *msg, ... );			// abnormal termination with message
 	void (*abort)( const char *msg, ... );			// normal tremination with message
 	void (*exit)( void );				// normal silent termination
-	char *(*input)( void );				// system console input	
 	void (*sleep)( int msec );				// sleep for some msec
 	char *(*clipboard)( void );				// get clipboard data
 	void (*queevent)( dword time, ev_type_t type, int value, int value2, int length, void *ptr );
 	sys_event_t (*getevent)( void );			// get system events
-	uint (*keyevents)( void );				// peek windows message
 
 	// crclib.c funcs
 	void (*crc_init)(word *crcvalue);			// set initial crc value
@@ -69,7 +67,6 @@ typedef struct stdilib_api_s
 	char *(*NET_AdrToString)( netadr_t a );
 	bool (*NET_IsLANAddress)( netadr_t adr );
 	bool (*NET_StringToAdr)( const char *s, netadr_t *a );
-	bool (*NET_RecvPacket)( netadr_t *net_from, sizebuf_t *net_message );
 	void (*NET_SendPacket)( int length, const void *data, netadr_t to  );
 
 	// common functions
@@ -303,7 +300,6 @@ network messages
 #define NET_AdrToString		com.NET_AdrToString
 #define NET_IsLANAddress		com.NET_IsLANAddress
 #define Sys_StringToAdr		com.NET_StringToAdr
-#define Sys_RecvPacket		com.NET_RecvPacket
 #define Sys_SendPacket		com.NET_SendPacket
 
 /*
@@ -384,14 +380,11 @@ misc utils
 #define Sys_GetProcAddress		com.Com_GetProcAddress
 #define Sys_Sleep			com.sleep
 #define Sys_Print			com.print
-#define Sys_ConsoleInput		com.input
 #define Sys_GetEvent		com.getevent
 #define Sys_QueEvent		com.queevent
-#define Sys_GetKeyEvents		com.keyevents
 #define Sys_GetClipboardData		com.clipboard
 #define Sys_Quit			com.exit
 #define Sys_Break			com.abort
-#define Sys_ConsoleInput		com.input
 #define Sys_DoubleTime		com.Com_DoubleTime
 #define Sys_Milliseconds		com.Com_Milliseconds
 #define GetNumThreads		com.Com_NumThreads
@@ -407,7 +400,7 @@ stdlib function names that not across with windows stdlib
 ===========================================
 */
 #define timestamp			com.timestamp
-#define copystring(str)		com.stralloc(str, __FILE__, __LINE__)
+#define copystring( str )		com.stralloc( str, __FILE__, __LINE__ )
 #define strcasecmp			com.stricmp
 #define strncasecmp			com.strnicmp
 #define strlower			com.strlwr

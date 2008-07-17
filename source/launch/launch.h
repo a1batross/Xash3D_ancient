@@ -71,7 +71,6 @@ typedef struct system_s
 	void ( *Init ) ( uint funcname, int argc, char **argv );
 	void ( *Main ) ( void ); // host frame
 	void ( *Free ) ( void ); // close host
-	void ( *Cmd  ) ( void ); // cmd forward to server
 	void (*CPrint)( const char *msg ); // console print
 	void (*MSG_Init)( sizebuf_t *buf, byte *data, size_t length );
 } system_t;

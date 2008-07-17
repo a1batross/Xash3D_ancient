@@ -6,7 +6,7 @@ edict_t	*pm_passent;
 // pmove doesn't need to know about passent and contentmask
 trace_t PM_trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end)
 {
-	if (pm_passent->progs.sv->health > 0)
+	if( pm_passent->progs.sv->health > 0 )
 		return SV_Trace (start, mins, maxs, end, pm_passent, MASK_PLAYERSOLID);
 	return SV_Trace (start, mins, maxs, end, pm_passent, MASK_DEADSOLID);
 }
@@ -457,6 +457,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	VectorCopy(pm.maxs, ent->progs.sv->maxs);
 	VectorCopy(pm.ps.viewangles, ent->progs.sv->v_angle);
 	VectorCopy(pm.ps.viewangles, ent->progs.sv->angles);
+	ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG( pm.ps.groundentity );
 
 	// copy viewmodel info
 	client->ps.vmodel.frame = ent->progs.sv->v_frame;
@@ -729,5 +730,5 @@ void SV_PlaySound( sv_edict_t *ed, float volume, const char *sample )
 	if( !ed ) ed = prog->edicts->priv.sv;
 	ent = PRVM_PROG_TO_EDICT( ed->serialnumber );
 
-	SV_StartSound( ent->progs.sv->origin, ent, CHAN_BODY, sound_idx, vol, 1.0f, 0 );
+	//SV_StartSound( ent->progs.sv->origin, ent, CHAN_BODY, sound_idx, vol, 1.0f, 0 );
 }  

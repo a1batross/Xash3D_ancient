@@ -507,66 +507,38 @@ CL_ParseStartSoundPacket
 void CL_ParseStartSoundPacket( sizebuf_t *msg )
 {
 	vec3_t	pos_v;
-	float	*pos;
-	int 	channel, ent;
+	float	*pos = NULL;
+	int 	channel = 0;
 	int 	sound_num;
 	float 	volume;
-	float 	attenuation;  
-	int	flags;
-	float	ofs;
+	int 	attenuation;  
+	int	flags, ent = 0;
 
 	flags = MSG_ReadByte( msg );
 	sound_num = MSG_ReadByte( msg );
 
-	if (flags & SND_VOLUME) volume = MSG_ReadByte( msg ) / 255.0;
-	else volume = DEFAULT_SOUND_PACKET_VOL;
-	
-	if (flags & SND_ATTENUATION) attenuation = MSG_ReadByte( msg ) / 64.0;
-	else attenuation = DEFAULT_SOUND_PACKET_ATTN;	
+	if( flags & SND_VOL ) volume = MSG_ReadBits( msg, NET_COLOR );
+	else volume = 1.0f;
+	if( flags & SND_ATTN ) attenuation = MSG_ReadByte( msg );
+	else attenuation = ATTN_NORM;	
 
-	if (flags & SND_OFFSET) ofs = MSG_ReadByte( msg ) / 1000.0;
-	else ofs = 0;
-
-	if (flags & SND_ENT)
+	if( flags & SND_ENT )
 	{	
 		// entity reletive
 		channel = MSG_ReadShort( msg ); 
 		ent = channel>>3;
-		if (ent > MAX_EDICTS) Host_Error("CL_ParseStartSoundPacket: ent out of range\n" );
+		if( ent > MAX_EDICTS ) Host_Error("CL_ParseStartSoundPacket: ent out of range\n" );
 		channel &= 7;
 	}
-	else
-	{
-		ent = 0;
-		channel = 0;
-	}
-
-	if (flags & SND_POS)
+	if( flags & SND_POS )
 	{	
 		// positioned in space
-		MSG_ReadPos32( msg, pos_v);
+		MSG_ReadPos( msg, pos_v );
 		pos = pos_v;
 	}
-	else pos = NULL; // use entity number
-
-	if (!cl.sound_precache[sound_num]) return;
-	S_StartSound (pos, ent, channel, cl.sound_precache[sound_num]);
+	if(!cl.sound_precache[sound_num]) return;
+	S_StartSound( pos, ent, channel, cl.sound_precache[sound_num], volume, attenuation );
 }       
-
-void CL_ParseAmbientSound( sizebuf_t *msg )
-{
-	sound_t		loopSoundHandle;
-	int		entityNum, soundNum;
-	vec3_t		ambient_org;
-
-	entityNum = MSG_ReadShort( msg );
-	soundNum = MSG_ReadShort( msg );
-	MSG_ReadPos32( msg, ambient_org);	
-	loopSoundHandle = S_RegisterSound( cl.configstrings[CS_SOUNDS + soundNum] );
-
-	// add ambient looping sound
-	// S_AddRealLoopingSound( entityNum, ambient_org, vec3_origin, loopSoundHandle );
-}
 
 void SHOWNET( sizebuf_t *msg, char *s )
 {
@@ -634,9 +606,6 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			break;
 		case svc_sound:
 			CL_ParseStartSoundPacket( msg );
-			break;
-		case svc_ambientsound:
-			CL_ParseAmbientSound( msg );
 			break;
 		case svc_spawnbaseline:
 			CL_ParseBaseline( msg );

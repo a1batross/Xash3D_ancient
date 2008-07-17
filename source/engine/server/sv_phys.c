@@ -1385,7 +1385,7 @@ void SV_PhysicsNone (edict_t *ent)
 		SV_RunThink (ent);
 }
 
-void SV_Physics(edict_t *ent)
+void SV_Physics( edict_t *ent )
 {
 	switch ((int)ent->progs.sv->movetype)
 	{
@@ -1411,14 +1411,14 @@ void SV_Physics(edict_t *ent)
 		SV_PhysicsToss(ent);
 		break;
 	case MOVETYPE_WALK:
-		if(SV_RunThink (ent))
+		if(SV_RunThink( ent ))
 		{
 			if (!SV_CheckWater(ent) && ! ((int)ent->progs.sv->aiflags & AI_WATERJUMP) )
 				SV_AddGravity (ent);
-			SV_CheckStuck (ent);
-			SV_WalkMove (ent);
-			SV_LinkEdict (ent);
-		};
+			SV_CheckStuck( ent );
+			SV_WalkMove( ent );
+			SV_LinkEdict( ent );
+		}
 		break;
 	case MOVETYPE_CONVEYOR:
 		SV_Physics_Conveyor(ent);

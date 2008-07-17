@@ -20,8 +20,8 @@ launch_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 	Host.Init = Host_Init;
 	Host.Main = Host_Main;
 	Host.Free = Host_Free;
-	Host.Cmd = Cmd_ForwardToServer;
 	Host.CPrint = Host_Print;
+	Host.MSG_Init = MSG_Init;
 
 	return &Host;
 }

@@ -198,6 +198,10 @@ SOURCE=.\common\net_chan.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\common\net_huff.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\common\net_msg.c
 # End Source File
 # Begin Source File
@@ -210,7 +214,7 @@ SOURCE=.\server\sv_cmds.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\server\sv_ents.c
+SOURCE=.\server\sv_frame.c
 # End Source File
 # Begin Source File
 
@@ -227,10 +231,6 @@ SOURCE=.\server\sv_phys.c
 # Begin Source File
 
 SOURCE=.\server\sv_progs.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\server\sv_send.c
 # End Source File
 # Begin Source File
 

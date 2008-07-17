@@ -178,6 +178,10 @@ Called every frame, even if not generating commands
 */
 void IN_Frame( void )
 {
+	// if at a full screen console, don't update unless needed
+	if( host.state != HOST_FRAME || host.type == HOST_DEDICATED )
+		Sys_Sleep( 20 );
+
 	if( !in_mouseinitialized )
 		return;
 	if( host.state != HOST_FRAME )

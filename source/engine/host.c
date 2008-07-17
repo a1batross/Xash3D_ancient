@@ -472,7 +472,6 @@ int Host_ModifyTime( int msec )
 Host_Frame
 =================
 */
-#if 1
 void Host_Frame( void )
 {
 	dword		time, min_time;
@@ -503,37 +502,6 @@ void Host_Frame( void )
 
 	host.framecount++;
 }
-
-#else
-
-void Host_Frame( dword time )
-{
-	char		*s;
-
-	if(setjmp(host.abortframe)) return;
-
-	rand(); // keep the random time dependent
-	Sys_SendKeyEvents(); // get new key events
-
-	do
-	{
-		s = Sys_ConsoleInput ();
-		if(s) Cbuf_AddText (va("%s\n",s));
-	} while( s );
-	Cbuf_Execute();
-
-	// if at a full screen console, don't update unless needed
-	if( host.state != HOST_FRAME || host.type == HOST_DEDICATED )
-	{
-		Sys_Sleep( 20 );
-	}
-
-	SV_Frame( time );
-	CL_Frame( time );
-
-	host.framecount++;
-}
-#endif
 
 /*
 ====================

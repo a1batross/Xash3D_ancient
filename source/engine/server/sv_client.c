@@ -519,7 +519,7 @@ void SV_New_f( sv_client_t *cl )
 	MSG_WriteLong( &cl->netchan.message, PROTOCOL_VERSION);
 	MSG_WriteLong( &cl->netchan.message, svs.spawncount );
 
-	if(sv.state == ss_cinematic) playernum = -1;
+	if( sv.state == ss_cinematic ) playernum = -1;
 	else playernum = sv_client - svs.clients;
 	MSG_WriteShort( &cl->netchan.message, playernum );
 	MSG_WriteString( &cl->netchan.message, sv.configstrings[CS_NAME] );
@@ -566,7 +566,7 @@ void SV_Configstrings_f( sv_client_t *cl )
 	start = com.atoi(Cmd_Argv(2));
 
 	// write a packet full of data
-	while( cl->netchan.message.cursize < MAX_DATAGRAM/2 && start < MAX_CONFIGSTRINGS )
+	while( start < MAX_CONFIGSTRINGS )
 	{
 		if( sv.configstrings[start][0])
 		{
@@ -614,7 +614,7 @@ void SV_Baselines_f( sv_client_t *cl )
 	memset( &nullstate, 0, sizeof(nullstate));
 
 	// write a packet full of data
-	while( cl->netchan.message.cursize < MAX_DATAGRAM/2 && start < MAX_EDICTS )
+	while( start < MAX_EDICTS )
 	{
 		base = &sv.baselines[start];
 		if( base->modelindex || base->soundindex || base->effects )
@@ -845,6 +845,108 @@ void SV_ExecuteClientCommand( sv_client_t *cl, char *s )
 
 /*
 =================
+MSG_Begin
+
+Misc helper function
+=================
+*/
+
+void _MSG_Begin( int dest, const char *filename, int fileline )
+{
+	_MSG_WriteBits( &sv.multicast, dest, NET_BYTE, filename, fileline );
+}
+
+/*
+=================
+SV_Send
+
+Sends the contents of sv.multicast to a subset of the clients,
+then clears sv.multicast.
+
+MULTICAST_ONE	send to one client (ent can't be NULL)
+MULTICAST_ALL	same as broadcast (origin can be NULL)
+MULTICAST_PVS	send to clients potentially visible from org
+MULTICAST_PHS	send to clients potentially hearable from org
+=================
+*/
+void _MSG_Send( msgtype_t msg_type, vec3_t origin, edict_t *ent, const char *filename, int fileline )
+{
+	byte		*mask = NULL;
+	int		leafnum = 0, cluster = 0;
+	int		area1 = 0, area2 = 0;
+	int		j, numclients = maxclients->value;
+	sv_client_t	*cl, *current = svs.clients;
+	bool		reliable = false;
+
+	switch( msg_type )
+	{
+	case MSG_ALL_R:
+		reliable = true;
+		// intentional fallthrough
+	case MSG_ALL:
+		// nothing to sort	
+		break;
+	case MSG_PHS_R:
+		reliable = true;
+		// intentional fallthrough
+	case MSG_PHS:
+		if( origin == NULL ) return;
+		leafnum = pe->PointLeafnum( origin );
+		cluster = pe->LeafCluster( leafnum );
+		mask = pe->ClusterPHS( cluster );
+		area1 = pe->LeafArea( leafnum );
+		break;
+	case MSG_PVS_R:
+		reliable = true;
+		// intentional fallthrough
+	case MSG_PVS:
+		if( origin == NULL ) return;
+		leafnum = pe->PointLeafnum( origin );
+		cluster = pe->LeafCluster( leafnum );
+		mask = pe->ClusterPVS( cluster );
+		area1 = pe->LeafArea( leafnum );
+		break;
+	case MSG_ONE_R:
+		reliable = true;
+		// intentional fallthrough
+	case MSG_ONE:
+		if( ent == NULL ) return;
+		j = PRVM_NUM_FOR_EDICT( ent );
+		if( j < 1 || j > numclients ) return;
+		current = svs.clients + (j - 1);
+		numclients = 1; // send to one
+		break;
+	default:
+		MsgDev( D_ERROR, "MSG_Send: bad destination: %i (called at %s:%i)\n", msg_type, filename, fileline );
+		return;
+	}
+
+	// send the data to all relevent clients (or once only)
+	for( j = 0, cl = current; j < numclients; j++, cl++ )
+	{
+		if( cl->state == cs_free || cl->state == cs_zombie )
+			continue;
+		if( cl->state != cs_spawned && !reliable )
+			continue;
+
+		if( mask )
+		{
+			area2 = pe->LeafArea( leafnum );
+			cluster = pe->LeafCluster( leafnum );
+			leafnum = pe->PointLeafnum( cl->edict->progs.sv->origin );
+			if(!pe->AreasConnected( area1, area2 )) continue;
+			if( mask && (!(mask[cluster>>3] & (1<<(cluster&7)))))
+				continue;
+		}
+
+		if( reliable ) MSG_WriteData( &cl->netchan.message, sv.multicast.data, sv.multicast.cursize );
+		else MSG_WriteData( &cl->datagram, sv.multicast.data, sv.multicast.cursize );
+	}
+	MSG_Clear( &sv.multicast );
+}
+
+/*
+=================
 SV_ConnectionlessPacket
 
 A connectionless packet has four leading 0xff
@@ -890,7 +992,8 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 	cl->lastcmd = *cmd;
 
 	// may have been kicked during the last usercmd
-	if( sv_paused->integer ) return;
+	if( sv_paused->integer )
+		return;
 	ClientThink( cl->edict, cmd );
 }
 
