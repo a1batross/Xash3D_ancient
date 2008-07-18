@@ -22,6 +22,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "common.h"
 #include "client.h"
 
+// refdef ents
+#define MAX_ENTITIES		4096	// FIXME: wrote dynamic allocator
+
 //=============
 //
 // development tools for weapons
@@ -39,10 +42,7 @@ cvar_t		*cl_testblend;
 cvar_t		*cl_stats;
 
 int		r_numdlights;
-dlight_t	r_dlights[MAX_DLIGHTS];
-
-int		r_numentities;
-entity_t	r_entities[MAX_ENTITIES];
+dlight_t		r_dlights[MAX_DLIGHTS];
 
 int		r_numparticles;
 particle_t	r_particles[MAX_PARTICLES];
@@ -68,7 +68,7 @@ Specifies the model that will be used as the world
 void V_ClearScene (void)
 {
 	r_numdlights = 0;
-	r_numentities = 0;
+	cls.ref_numents = 0;
 	r_numparticles = 0;
 }
 
@@ -96,9 +96,9 @@ V_AddEntity
 */
 void V_AddEntity (entity_t *ent)
 {
-	if (r_numentities >= MAX_ENTITIES)
+	if( cls.ref_numents >= host.max_edicts )
 		return;
-	r_entities[r_numentities++] = *ent;
+	cls.ref_entities[cls.ref_numents++] = *ent;
 }
 
 
@@ -200,24 +200,22 @@ If cl_testentities is set, create 32 player models
 */
 void V_TestEntities (void)
 {
-	int			i, j;
+	int		i, j;
 	float		f, r;
-	entity_t	*ent;
+	entity_t		*ent;
 
-	r_numentities = 32;
-	memset (r_entities, 0, sizeof(r_entities));
+	cls.ref_numents = 32;
+	memset( cls.ref_entities, 0, sizeof(entity_t));
 
-	for (i = 0; i < r_numentities; i++)
+	for( i = 0; i < cls.ref_numents; i++ )
 	{
-		ent = &r_entities[i];
+		ent = &cls.ref_entities[i];
 
-		r = 64 * ( (i%4) - 1.5 );
+		r = 64 * ((i%4) - 1.5 );
 		f = 64 * (i/4) + 128;
 
-		for (j=0 ; j<3 ; j++)
-			ent->origin[j] = cl.refdef.vieworg[j] + cl.v_forward[j]*f +
-			cl.v_right[j]*r;
-
+		for( j = 0; j < 3; j++ )
+			ent->origin[j] = cl.refdef.vieworg[j] + cl.v_forward[j]*f + cl.v_right[j] * r;
 		ent->model = cl.baseclientinfo.model;
 	}
 }
@@ -430,8 +428,8 @@ void V_RenderView( void )
 
 		cl.refdef.areabits = cl.frame.areabits;
 
-		if (!cl_add_entities->value)
-			r_numentities = 0;
+		if( !cl_add_entities->value )
+			cls.ref_numents = 0;
 		if (!cl_add_particles->value)
 			r_numparticles = 0;
 		if (!cl_add_lights->value)
@@ -441,8 +439,8 @@ void V_RenderView( void )
 			VectorClear (cl.refdef.blend);
 		}
 
-		cl.refdef.num_entities = r_numentities;
-		cl.refdef.entities = r_entities;
+		cl.refdef.num_entities = cls.ref_numents;
+		cl.refdef.entities = cls.ref_entities;
 		cl.refdef.num_particles = r_numparticles;
 		cl.refdef.particles = r_particles;
 		cl.refdef.num_dlights = r_numdlights;
@@ -452,10 +450,10 @@ void V_RenderView( void )
 		cl.refdef.rdflags = cl.frame.ps.effects;
 
 		// sort entities for better cache locality
-        		qsort( cl.refdef.entities, cl.refdef.num_entities, sizeof( cl.refdef.entities[0] ), (int (*)(const void *, const void *))entitycmpfnc );
+        		qsort( cl.refdef.entities, cl.refdef.num_entities, sizeof( cl.refdef.entities[0] ), (int(*)(const void *, const void *))entitycmpfnc );
 	}
 	re->RenderFrame (&cl.refdef);
-	if (cl_stats->value) Msg ("ent:%i  lt:%i  part:%i\n", r_numentities, r_numdlights, r_numparticles);
+	if( cl_stats->value ) Msg("ent:%i  lt:%i  part:%i\n", cls.ref_numents, r_numdlights, r_numparticles );
 }
 
 /*
@@ -497,9 +495,7 @@ V_Viewpos_f
 */
 void V_Viewpos_f( void )
 {
-	Msg("(%i %i %i) : %i\n", (int)cl.refdef.vieworg[0],
-		(int)cl.refdef.vieworg[1], (int)cl.refdef.vieworg[2], 
-		(int)cl.refdef.viewangles[YAW]);
+	Msg("(%g %g %g) : %g\n", cl.refdef.vieworg[0], cl.refdef.vieworg[1], cl.refdef.vieworg[2], cl.refdef.viewangles[YAW]);
 }
 
 /*
@@ -517,4 +513,11 @@ void V_Init (void)
 	cl_testentities = Cvar_Get ("cl_testentities", "0", 0, "test client entities" );
 	cl_testlights = Cvar_Get ("cl_testlights", "0", 0, "test dynamic lights" );
 	cl_stats = Cvar_Get ("cl_stats", "0", 0, "enable client stats" );
+	cls.mempool = Mem_AllocPool( "Client Static" );
+	cls.ref_entities = Mem_Alloc( cls.mempool, sizeof(entity_t) * host.max_edicts );	
+}
+
+void V_Shutdown( void )
+{
+	Mem_FreePool( &cls.mempool );
 }

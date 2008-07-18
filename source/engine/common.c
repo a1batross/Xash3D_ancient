@@ -767,7 +767,7 @@ string substring( string s, float start, float length )
 void VM_SubString( void )
 {
 	int		i, start, length;
-	string		tempstring;
+	static string	tempstring;
 	const char	*s;
 
 	if(!VM_ValidateArgs( "substring", 3 ))
@@ -783,7 +783,7 @@ void VM_SubString( void )
 		tempstring[i] = *s;
 	tempstring[i] = 0;
 
-	PRVM_G_INT(OFS_RETURN) = PRVM_SetTempString( tempstring );
+	PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( tempstring );
 }
 
 /*
@@ -800,6 +800,9 @@ void VM_localsound( void )
 	if(!VM_ValidateArgs( "localsound", 1 ))
 		return;
 
+	// OpenAL without update cause errors
+	if( cls.state == ca_connecting || cls.state == ca_connected )
+		return;
 	s = PRVM_G_STRING( OFS_PARM0 );
 
 	if(!S_StartLocalSound(s))

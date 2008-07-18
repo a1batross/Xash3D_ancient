@@ -358,8 +358,7 @@ void CL_Disconnect( void )
 	if (cls.state == ca_disconnected)
 		return;
 
-	VectorClear (cl.refdef.blend);
-	UI_HideMenu();
+	VectorClear( cl.refdef.blend );
 
 	cls.connect_time = 0;
 
@@ -712,6 +711,7 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 		MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
 		MSG_Print( &cls.netchan.message, "new" );
 		cls.state = ca_connected;
+		UI_HideMenu();
 		return;
 	}
 
@@ -1248,6 +1248,8 @@ void CL_InitLocal (void)
 	Cmd_AddCommand ("invdrop", NULL, NULL );
 	Cmd_AddCommand ("weapnext", NULL, NULL );
 	Cmd_AddCommand ("weapprev", NULL, NULL );
+
+	UI_ShowMenu();
 }
 
 
@@ -1461,7 +1463,7 @@ FIXME: this is a callback from Sys_Quit and Host_Error.  It would be better
 to run quit through here before the final handoff to the sys code.
 ===============
 */
-void CL_Shutdown(void)
+void CL_Shutdown( void )
 {
 	// already freed
 	if( host.state == HOST_ERROR )
@@ -1473,6 +1475,7 @@ void CL_Shutdown(void)
 	CL_FreeClientProgs();
 	UI_Shutdown();
 	S_Shutdown();
+	V_Shutdown();
 	CL_ShutdownInput();
 }
 

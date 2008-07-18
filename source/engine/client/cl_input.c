@@ -91,13 +91,12 @@ void CL_MouseMove( usercmd_t *cmd )
 		if( !mx && !my ) return;
 
 		// add mouse X/Y movement to cmd
-		if( in_strafe.state & 1 )
-			cmd->sidemove = cmd->sidemove + m_side->value * mx;
-		else cl.viewangles[YAW] -= m_yaw->value * mx;
+		if( cl_mouselook->value ) cl.viewangles[YAW] -= m_yaw->value * mx;
+		else if( in_strafe.state & 1 ) cmd->sidemove = cmd->sidemove + m_side->value * mx;
+		
 
-		if( cl_mouselook->value && !in_strafe.state & 1 )
-			cl.viewangles[PITCH] += m_pitch->value * my;
-		else cmd->forwardmove = cmd->forwardmove - m_forward->value * my;
+		if( cl_mouselook->value ) cl.viewangles[PITCH] += m_pitch->value * my;
+		else if( in_strafe.state & 1 ) cmd->forwardmove = cmd->forwardmove - m_forward->value * my;
 	}
 	else
 	{
@@ -167,8 +166,8 @@ void IN_KeyUp( kbutton_t *b )
 	char	*c;
 	uint	uptime;
 
-	c = Cmd_Argv(1);
-	if (c[0]) k = atoi(c);
+	c = Cmd_Argv( 1 );
+	if( c[0] ) k = com.atoi( c );
 	else
 	{
 		// typed manually at the console, assume for unsticking, so clear all
@@ -176,23 +175,21 @@ void IN_KeyUp( kbutton_t *b )
 		b->state = 4; // impulse up
 		return;
 	}
-
-	if (b->down[0] == k) b->down[0] = 0;
-	else if (b->down[1] == k) b->down[1] = 0;
+	if( b->down[0] == k ) b->down[0] = 0;
+	else if( b->down[1] == k ) b->down[1] = 0;
 	else return; // key up without coresponding down (menu pass through)
 
-	if (b->down[0] || b->down[1])
+	if( b->down[0] || b->down[1] )
 		return; // some other key is still holding it down
 
-	if (!(b->state & 1))
-		return; // still up (this should not happen)
+	if(!(b->state & 1)) return; // still up (this should not happen)
 
 	// save timestamp
-	c = Cmd_Argv(2);
+	c = Cmd_Argv( 2 );
 	uptime = com.atoi(c);
-	if (uptime) b->msec += uptime - b->downtime;
+	if( uptime ) b->msec += uptime - b->downtime;
 	else b->msec += 10;
-
+          
 	b->state &= ~1; // now up
 	b->state |= 4; // impulse up
 }
@@ -206,16 +203,17 @@ Returns the fraction of the frame that the key was down
 */
 float CL_KeyState( kbutton_t *key )
 {
-	float		val;
-	int			msec;
+	float	val;
+	int	msec;
 
 	key->state &= 1;		// clear impulses
 
 	msec = key->msec;
 	key->msec = 0;
 
-	if (key->state)
-	{	// still down
+	if( key->state )
+	{	
+		// still down
 		msec += host.frametime[0] - key->downtime;
 		key->downtime = host.frametime[0];
 	}
@@ -288,7 +286,7 @@ void CL_AdjustAngles( void )
 		speed = cls.frametime * cl_anglespeedkey->value;
 	else speed = cls.frametime;
 
-	if(!in_strafe.state & 1 )
+	if(!(in_strafe.state & 1))
 	{
 		cl.viewangles[YAW] -= speed * cl_yawspeed->value * CL_KeyState( &in_right );
 		cl.viewangles[YAW] += speed * cl_yawspeed->value * CL_KeyState( &in_left );
@@ -312,7 +310,7 @@ void CL_BaseMove( usercmd_t *cmd )
 	memset (cmd, 0, sizeof(*cmd));
 	
 	VectorCopy (cl.viewangles, cmd->angles);
-	if (in_strafe.state & 1)
+	if( in_strafe.state & 1 )
 	{
 		cmd->sidemove += cl_sidespeed->value * CL_KeyState (&in_right);
 		cmd->sidemove -= cl_sidespeed->value * CL_KeyState (&in_left);
@@ -520,7 +518,7 @@ void CL_SendCmd( void )
 CL_InitInput
 ============
 */
-void CL_InitInput (void)
+void CL_InitInput( void )
 {
 	// mouse variables
 	m_filter = Cvar_Get("m_filter", "0", 0, "enable mouse filter" );

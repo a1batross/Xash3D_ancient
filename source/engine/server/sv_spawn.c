@@ -25,13 +25,16 @@ SV_TouchTriggers
 void SV_TouchTriggers (edict_t *ent)
 {
 	int		i, num;
-	edict_t		*touch[MAX_EDICTS], *hit;
+	edict_t		**touch, *hit;
+
+	// list of pointers, not data
+	touch = Z_Malloc( sizeof(*touch) * host.max_edicts );
 
 	// dead things don't activate triggers!
 	if ((ent->priv.sv->client || ((int)ent->progs.sv->flags & FL_MONSTER)) && (ent->progs.sv->health <= 0))
 		return;
 
-	num = SV_AreaEdicts(ent->progs.sv->absmin, ent->progs.sv->absmax, touch, MAX_EDICTS );
+	num = SV_AreaEdicts(ent->progs.sv->absmin, ent->progs.sv->absmax, touch, host.max_edicts );
 
 	PRVM_PUSH_GLOBALS;
 
@@ -50,6 +53,7 @@ void SV_TouchTriggers (edict_t *ent)
 			PRVM_ExecuteProgram (hit->progs.sv->touch, "pev->touch");
 		}
 	}
+	Mem_Free( touch );
 
 	// restore state
 	PRVM_POP_GLOBALS;

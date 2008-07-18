@@ -481,7 +481,7 @@ void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t 
 		return;
 	}
 
-	if( to->number < 0 || to->number >= MAX_EDICTS )
+	if( to->number < 0 || to->number >= host.max_edicts )
 		Host_Error( "MSG_WriteDeltaEntity: Bad entity number: %i (called at %s:%i)\n", to->number, filename, fileline );
 
 	MSG_WriteBits( msg, to->number, NET_WORD );
@@ -518,7 +518,7 @@ MSG_ReadDeltaEntity
 The entity number has already been read from the message, which
 is how the from state is identified.
                              
-If the delta removes the entity, entityState_t->number will be set to MAX_EDICTS-1
+If the delta removes the entity, entity_state_t->number will be set to -1
 
 Can go from either a baseline or a previous packet_entity
 ==================
@@ -529,7 +529,7 @@ void MSG_ReadDeltaEntity( sizebuf_t *msg, entity_state_t *from, entity_state_t *
 	int		i, flags;
 	int		*fromF, *toF;
 
-	if( number < 0 || number >= MAX_EDICTS )
+	if( number < 0 || number >= host.max_edicts )
 		Host_Error( "MSG_ReadDeltaEntity: bad delta entity number: %i\n", number );
 
 	*to = *from;

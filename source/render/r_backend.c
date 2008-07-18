@@ -564,13 +564,13 @@ bool VID_ScreenShot( const char *filename, bool levelshot )
 	if(!r_framebuffer) return false;
 
 	// get screen frame
-	qglReadPixels(0, 0, r_width->integer, r_height->integer, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer );
+	qglReadPixels( 0, 0, r_width->integer, r_height->integer, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer );
 
 	r_shot = Z_Malloc( sizeof(rgbdata_t));
 	r_shot->width = r_width->integer;
 	r_shot->height = r_height->integer;
 	r_shot->type = PF_RGB_24_FLIP;
-	r_shot->hint = PF_RGB_24; // save format
+	r_shot->hint = PF_DXT3; // save format
 	r_shot->size = r_shot->width * r_shot->height * 3;
 	r_shot->numLayers = 1;
 	r_shot->numMips = 1;

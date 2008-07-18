@@ -148,7 +148,7 @@ void SV_EmitPacketEntities( client_frame_t *from, client_frame_t *to, sizebuf_t 
 		if( newnum < oldnum )
 		{	
 			// this is a new entity, send it from the baseline
-			MSG_WriteDeltaEntity( &sv.baselines[newnum], newent, msg, true, true );
+			MSG_WriteDeltaEntity( &svs.baselines[newnum], newent, msg, true, true );
 			newindex++;
 			continue;
 		}

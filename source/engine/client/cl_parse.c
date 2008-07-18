@@ -527,7 +527,7 @@ void CL_ParseStartSoundPacket( sizebuf_t *msg )
 		// entity reletive
 		channel = MSG_ReadShort( msg ); 
 		ent = channel>>3;
-		if( ent > MAX_EDICTS ) Host_Error("CL_ParseStartSoundPacket: ent out of range\n" );
+		if( ent > host.max_edicts ) Host_Error("CL_ParseStartSoundPacket: ent out of range\n" );
 		channel &= 7;
 	}
 	if( flags & SND_POS )

@@ -1121,7 +1121,7 @@ void Key_Event(int key, bool down, uint time)
 			Cbuf_AddText ("cmd putaway\n");
 			return;
 		}
-		switch (cls.key_dest)
+		switch( cls.key_dest )
 		{
 		case key_message:
 			Key_Message( key );
@@ -1144,7 +1144,7 @@ void Key_Event(int key, bool down, uint time)
 	// a button command (leading + sign).  These will be processed even in
 	// console mode and menu mode, to keep the character from continuing 
 	// an action started before a mode switch.
-	if (!down)
+	if( !down )
 	{
 		kb = keys[key].binding;
 

@@ -133,6 +133,7 @@ void IN_MouseEvent( int mstate );
 // cvars
 extern cvar_t *host_serverstate;
 extern cvar_t *host_frametime;
+extern cvar_t *host_cheats;
 extern cvar_t *cm_paused;
 extern cvar_t *crosshair;
 extern cvar_t *scr_loading;
@@ -190,6 +191,7 @@ typedef struct host_parm_s
 
 	HWND		hWnd;		// main window
 	int		developer;	// show all developer's message
+	word		max_edicts;
 } host_parm_t;
 
 extern host_parm_t host;

@@ -483,9 +483,9 @@ void Sav_LoadLocals( lump_t *l )
 	{
 		edict_t	*ent;
 
-		if(com_token[0] == '{')
+		if( com_token[0] == '{' )
 		{
-			if( entnum >= MAX_EDICTS )
+			if( entnum >= host.max_edicts )
 				Host_Error("Sav_LoadLocals: too many edicts in save file\n" );
 			while(entnum >= prog->max_edicts) PRVM_MEM_IncreaseEdicts();
 			ent = PRVM_EDICT_NUM( entnum );
@@ -2454,8 +2454,8 @@ void SV_InitServerProgs( void )
 		prog->name = "server";
 		prog->builtins = vm_sv_builtins;
 		prog->numbuiltins = vm_sv_numbuiltins;
-		prog->max_edicts = MAX_EDICTS<<2;
-		prog->limit_edicts = MAX_EDICTS;
+		prog->max_edicts = host.max_edicts<<2;
+		prog->limit_edicts = host.max_edicts;
 		prog->edictprivate_size = sizeof(sv_edict_t);
 		prog->begin_increase_edicts = SV_BeginIncreaseEdicts;
 		prog->end_increase_edicts = SV_EndIncreaseEdicts;

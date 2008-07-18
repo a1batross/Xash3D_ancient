@@ -111,7 +111,7 @@ void SV_CreateBaseline (void)
 		VectorCopy (svent->progs.sv->origin, svent->progs.sv->old_origin);
 		SV_UpdateEntityState( svent );
 
-		sv.baselines[entnum] = svent->priv.sv->s;
+		svs.baselines[entnum] = svent->priv.sv->s;
 	}
 }
 
@@ -142,7 +142,7 @@ clients along with it.
 
 ================
 */
-void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
+void SV_SpawnServer( char *server, char *savename, sv_state_t serverstate )
 {
 	uint	i, checksum;
 
@@ -219,7 +219,7 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 	{
 		// ignore ents for cinematic servers
 		if(sv.loadgame) SV_ReadLevelFile( savename );
-		else SV_SpawnEntities ( sv.name, pe->GetEntityString());
+		else SV_SpawnEntities( sv.name, pe->GetEntityString());
 	}        
 
 	// run two frames to allow everything to settle
@@ -228,7 +228,7 @@ void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate )
 
 	// all precaches are complete
 	sv.state = serverstate;
-	Host_SetServerState (sv.state);
+	Host_SetServerState( sv.state );
 
 	// create a baseline for more efficient communications
 	SV_CreateBaseline ();
@@ -246,7 +246,7 @@ SV_InitGame
 A brand new game has been started
 ==============
 */
-void SV_InitGame (void)
+void SV_InitGame( void )
 {
 	char		i, idmaster[32];
 	edict_t		*ent;
@@ -297,15 +297,16 @@ void SV_InitGame (void)
 		Cvar_FullSet ("maxclients", "1", CVAR_SERVERINFO | CVAR_LATCH);
 	}
 
-	svs.spawncount = rand();
+	svs.spawncount = RANDOM_LONG( 0, 65535 );
 	svs.clients = Z_Malloc (sizeof(sv_client_t)*maxclients->value);
-	svs.num_client_entities = maxclients->value*UPDATE_BACKUP*64;
-	svs.client_entities = Z_Malloc (sizeof(entity_state_t)*svs.num_client_entities);
+	svs.num_client_entities = maxclients->value * UPDATE_BACKUP * 64;
+	svs.client_entities = Z_Malloc( sizeof(entity_state_t) * svs.num_client_entities );
+	svs.baselines = Z_Malloc( sizeof(entity_state_t) * host.max_edicts );
 
 	// heartbeats will always be sent to the id master
 	svs.last_heartbeat = MAX_HEARTBEAT; // send immediately
-	com.sprintf(idmaster, "192.246.40.37:%i", PORT_MASTER);
-	NET_StringToAdr (idmaster, &master_adr[0]);
+	com.sprintf( idmaster, "192.246.40.37:%i", PORT_MASTER );
+	NET_StringToAdr( idmaster, &master_adr[0] );
 
 	// init game
 	SV_InitServerProgs();

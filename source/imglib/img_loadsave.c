@@ -216,8 +216,8 @@ rgbdata_t *Image_Load(const char *filename, char *buffer, int buffsize )
 
 typedef struct saveformat_s
 {
-	char *formatstring;
-	char *ext;
+	const char *formatstring;
+	const char *ext;
 	bool (*savefunc)( const char *name, rgbdata_t *pix, int saveformat );
 } saveformat_t;
 

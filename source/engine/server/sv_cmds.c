@@ -588,7 +588,11 @@ void SV_InitOperatorCommands( void )
 	Cmd_AddCommand("changelevel", SV_ChangeLevel_f, "changing level" );
 	Cmd_AddCommand("restart", SV_Restart_f, "restarting current level" );
 	Cmd_AddCommand("sectorlist", SV_SectorList_f, "display pvs sectors" );
-	Cmd_AddCommand("noclip", SV_Noclip_f, "enable player noclip" );
+
+	if( host_cheats->integer )
+	{
+		Cmd_AddCommand("noclip", SV_Noclip_f, "enable player noclip" );
+	}
 
 	if( host.type == HOST_DEDICATED )
 	{

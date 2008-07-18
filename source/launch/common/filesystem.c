@@ -3133,16 +3133,16 @@ fs_offset_t VFS_Write( vfile_t *file, const void *buf, size_t size )
 		if (file->buffsize < newsize)
 		{
 			// reallocate buffer now
-			file->buff = Mem_Realloc(fs_mempool, file->buff, newsize );		
+			file->buff = Mem_Realloc( fs_mempool, file->buff, newsize );		
 			file->buffsize = newsize; // merge buffsize
 		}
 	}
 
 	// write into buffer
-	Mem_Copy(file->buff + file->offset, (byte *)buf, size );
+	Mem_Copy( file->buff + file->offset, (byte *)buf, size );
 	file->offset += size;
 
-	if (file->offset > file->length) 
+	if( file->offset > file->length ) 
 		file->length = file->offset;
 
 	return file->length;

@@ -202,6 +202,10 @@ typedef struct
 {
 	connstate_t	state;
 	keydest_t		key_dest;
+	byte		*mempool;
+
+	int		ref_numents;
+	entity_t		*ref_entities;
 
 	int		framecount;
 	dword		realtime;			// always increasing, no clamping, etc
@@ -558,6 +562,7 @@ extern model_t *gun_model;
 
 void V_Init (void);
 void V_CalcRect( void );
+void V_Shutdown( void );
 bool V_PreRender( void );
 void V_RenderHUD( void );
 void V_PostRender( void );

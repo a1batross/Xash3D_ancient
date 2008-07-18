@@ -79,7 +79,6 @@ typedef struct server_s
 	cmodel_t		*models[MAX_MODELS];
 
 	char		configstrings[MAX_CONFIGSTRINGS][MAX_QPATH];
-	entity_state_t	baselines[MAX_EDICTS];
 
 	// the multicast buffer is used to send a message to a set of clients
 	// it is only used to marshall data until SV_Message is called
@@ -179,6 +178,7 @@ typedef struct
 	int		num_client_entities;	// maxclients->value*UPDATE_BACKUP*MAX_PACKET_ENTITIES
 	int		next_client_entities;	// next client_entity to use
 	entity_state_t	*client_entities;		// [num_client_entities]
+	entity_state_t	*baselines;		// [host.max_edicts]
 
 	int		last_heartbeat;
 

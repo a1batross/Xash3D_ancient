@@ -394,12 +394,14 @@ SV_ClipMoveToEntities
 void SV_ClipMoveToEntities( moveclip_t *clip )
 {
 	int		i, num;
-	edict_t		*touchlist[MAX_EDICTS], *touch;
+	edict_t		**touchlist, *touch;
 	trace_t		trace;
 	cmodel_t		*cmodel;
 	float		*origin, *angles;
 
-	num = SV_AreaEdicts( clip->boxmins, clip->boxmaxs, touchlist, MAX_EDICTS );
+	// list of pointers, not data
+	touchlist = Z_Malloc( sizeof(*touchlist) * host.max_edicts );
+	num = SV_AreaEdicts( clip->boxmins, clip->boxmaxs, touchlist, host.max_edicts );
 
 	for( i = 0; i < num; i++ )
 	{
@@ -448,6 +450,7 @@ void SV_ClipMoveToEntities( moveclip_t *clip )
 			clip->trace.startsolid |= oldStart;
 		}
 	}
+	Mem_Free( touchlist );
 }
 
 /*
@@ -577,17 +580,19 @@ SV_PointContents
 */
 int SV_PointContents( const vec3_t p, edict_t *passedict )
 {
-	edict_t		*touch[MAX_EDICTS], *hit;
+	edict_t		**touch, *hit;
 	int		i, num;
 	int		contents, c2;
 	cmodel_t		*cmodel;
 	float		*angles;
 
+	touch = Z_Malloc( sizeof(*touch) * host.max_edicts );
+
 	// get base contents from world
 	contents = pe->PointContents( p, NULL );
 
 	// or in contents from all the other entities
-	num = SV_AreaEdicts( p, p, touch, MAX_EDICTS );
+	num = SV_AreaEdicts( p, p, touch, host.max_edicts );
 
 	for( i = 0; i < num; i++ )
 	{
@@ -601,5 +606,7 @@ int SV_PointContents( const vec3_t p, edict_t *passedict )
 		c2 = pe->TransformedPointContents( p, cmodel, hit->progs.sv->origin, angles );
 		contents |= c2;
 	}
+	Mem_Free( touch );
+
 	return contents;
 }

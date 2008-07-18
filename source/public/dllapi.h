@@ -204,7 +204,7 @@ typedef struct
 	lightstyle_t	*lightstyles;	// [MAX_LIGHTSTYLES]
 
 	int		num_entities;
-	entity_t		*entities;
+	entity_t		*entities;	// [MAX_EDICTS]
 
 	int		num_dlights;
 	dlight_t		*dlights;

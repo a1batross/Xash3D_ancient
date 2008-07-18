@@ -755,11 +755,11 @@ void Host_Init (uint funcname, int argc, char **argv)
 	// init commands and vars
 	if(host.developer)
 	{
-		host_cheats = Cvar_Get("host_cheats", "1", CVAR_SYSTEMINFO, "allow cheat variables to enable" );
 		Cmd_AddCommand ("error", Host_Error_f, "just throw a fatal error to test shutdown procedures" );
 		Cmd_AddCommand ("crash", Host_Crash_f, "a way to force a bus error for development reasons");
           }
-          
+
+	host_cheats = Cvar_Get("host_cheats", "1", CVAR_SYSTEMINFO, "allow cheat variables to enable" );          
 	host_maxfps = Cvar_Get( "host_maxfps", "100", CVAR_ARCHIVE, "host fps upper limit" );
 	cm_paused = Cvar_Get("cm_paused", "0", 0, "physics module pause" );
 	host_frametime = Cvar_Get ("host_frametime", "0.1", 0, "host frametime" );
@@ -774,6 +774,9 @@ void Host_Init (uint funcname, int argc, char **argv)
 	Netchan_Init();
 	Host_InitPhysic();
 	Host_InitVprogs( argc, argv );
+
+	// per level user limit
+	host.max_edicts = bound( 8, Cvar_VariableValue("prvm_maxedicts"), 65535 );
 
 	SV_Init();
 	CL_Init();

@@ -46,7 +46,7 @@ static console_t con;
 Con_ToggleConsole_f
 ================
 */
-void Con_ToggleConsole_f (void)
+void Con_ToggleConsole_f( void )
 {
 	if(!host.developer) return;
 

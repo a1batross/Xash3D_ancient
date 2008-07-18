@@ -601,8 +601,8 @@ void CL_InitClientProgs( void )
 		prog->builtins = vm_cl_builtins;
 		prog->numbuiltins = vm_cl_numbuiltins;
 		prog->edictprivate_size = sizeof(cl_edict_t);
-		prog->max_edicts = MAX_EDICTS<<2;
-		prog->limit_edicts = MAX_EDICTS;
+		prog->max_edicts = host.max_edicts<<2;
+		prog->limit_edicts = host.max_edicts;
 		prog->begin_increase_edicts = CL_BeginIncreaseEdicts;
 		prog->end_increase_edicts = CL_EndIncreaseEdicts;
 		prog->init_edict = CL_InitEdict;

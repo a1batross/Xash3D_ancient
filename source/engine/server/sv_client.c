@@ -614,9 +614,9 @@ void SV_Baselines_f( sv_client_t *cl )
 	memset( &nullstate, 0, sizeof(nullstate));
 
 	// write a packet full of data
-	while( start < MAX_EDICTS )
+	while( start < host.max_edicts )
 	{
-		base = &sv.baselines[start];
+		base = &svs.baselines[start];
 		if( base->modelindex || base->soundindex || base->effects )
 		{
 			MSG_WriteByte( &cl->netchan.message, svc_spawnbaseline );
@@ -625,7 +625,7 @@ void SV_Baselines_f( sv_client_t *cl )
 		start++;
 	}
 
-	if( start == MAX_EDICTS ) com.snprintf( baseline, MAX_STRING, "precache %i\n", svs.spawncount );
+	if( start == host.max_edicts ) com.snprintf( baseline, MAX_STRING, "precache %i\n", svs.spawncount );
 	else com.snprintf( baseline, MAX_STRING, "cmd baselines %i %i\n",svs.spawncount, start );
 
 	// send next command
@@ -964,19 +964,18 @@ void SV_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 	MSG_ReadLong( msg );// skip the -1 marker
 
 	s = MSG_ReadStringLine( msg );
-
 	Cmd_TokenizeString( s );
 
 	c = Cmd_Argv( 0 );
 	MsgDev( D_INFO, "SV_ConnectionlessPacket: %s : %s\n", NET_AdrToString(from), c);
 
-	if (!strcmp(c, "ping")) SV_Ping( from );
-	else if (!strcmp(c, "ack")) SV_Ack( from );
-	else if (!strcmp(c,"status")) SV_Status( from );
-	else if (!strcmp(c,"info")) SV_Info( from );
-	else if (!strcmp(c,"getchallenge")) SV_GetChallenge( from );
-	else if (!strcmp(c,"connect")) SV_DirectConnect( from );
-	else if (!strcmp(c, "rcon")) SV_RemoteCommand( from, msg );
+	if(!com.strcmp(c, "ping")) SV_Ping( from );
+	else if(!com.strcmp(c, "ack")) SV_Ack( from );
+	else if(!com.strcmp(c,"status")) SV_Status( from );
+	else if(!com.strcmp(c,"info")) SV_Info( from );
+	else if(!com.strcmp(c,"getchallenge")) SV_GetChallenge( from );
+	else if(!com.strcmp(c,"connect")) SV_DirectConnect( from );
+	else if(!com.strcmp(c, "rcon")) SV_RemoteCommand( from, msg );
 	else MsgDev( D_ERROR, "bad connectionless packet from %s:\n%s\n", NET_AdrToString( from ), s );
 }
 

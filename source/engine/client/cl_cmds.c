@@ -39,7 +39,7 @@ void CL_ScreenshotGetName( int lastnum, char *filename )
 	if(lastnum < 0 || lastnum > 9999)
 	{
 		// bound
-		com.sprintf( filename, "scrshots/%s/shot9999.tga", cl.configstrings[CS_NAME] );
+		com.sprintf( filename, "scrshots/%s/shot9999.dds", cl.configstrings[CS_NAME] );
 		return;
 	}
 
@@ -51,7 +51,7 @@ void CL_ScreenshotGetName( int lastnum, char *filename )
 	lastnum -= c * 10;
 	d = lastnum;
 
-	com.sprintf( filename, "scrshots/%s/shot%i%i%i%i.tga", cl.configstrings[CS_NAME], a, b, c, d );
+	com.sprintf( filename, "scrshots/%s/shot%i%i%i%i.dds", cl.configstrings[CS_NAME], a, b, c, d );
 }
 
 /* 
@@ -96,7 +96,7 @@ void CL_LevelShot_f( void )
 	char		checkname[MAX_OSPATH];	
 
 	// check for exist
-	com.sprintf( checkname, "gfx/background/%s.tga", cl.configstrings[CS_NAME] );
+	com.sprintf( checkname, "gfx/background/%s.dds", cl.configstrings[CS_NAME] );
 	if(!FS_FileExists( checkname )) re->ScrShot( checkname, true );
 	else Msg("levelshot for this map already created\nFirst remove old image if you wants do it again\n" );
 }

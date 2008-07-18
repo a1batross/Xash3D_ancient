@@ -9,7 +9,7 @@
 #include "builtin.h"
 
 // progs menu
-#define UI_MAX_EDICTS	(1 << 12) // should be enough for a menu
+#define UI_MAXEDICTS	(1 << 10) // should be enough for a menu
 
 bool ui_active = false;
 static dword credits_start_time;
@@ -97,7 +97,7 @@ void UI_ShowMenu( void )
 
 	ui_active = true;
 	prog->globals.ui->time = cls.realtime * 0.001f;
-	PRVM_ExecuteProgram (prog->globals.ui->m_show, "m_toggle");
+	PRVM_ExecuteProgram (prog->globals.ui->m_show, "m_show");
 	CL_VM_Begin(); 	// restore clvm state
 }
 
@@ -110,7 +110,7 @@ void UI_HideMenu( void )
 	UI_VM_Begin();
 	ui_active = false;
 	prog->globals.ui->time = cls.realtime * 0.001f;
-	PRVM_ExecuteProgram (prog->globals.ui->m_hide, "m_toggle");
+	PRVM_ExecuteProgram (prog->globals.ui->m_hide, "m_hide");
 	CL_VM_Begin(); 	// restore clvm state
 }
 
@@ -731,7 +731,7 @@ void UI_Init( void )
 	prog->builtins = vm_ui_builtins;
 	prog->numbuiltins = vm_ui_numbuiltins;
 	prog->edictprivate_size = sizeof(ui_edict_t);
-	prog->limit_edicts = UI_MAX_EDICTS;
+	prog->limit_edicts = UI_MAXEDICTS;
 	prog->name = "uimenu";
 	prog->num_edicts = 1;
 	prog->loadintoworld = false;

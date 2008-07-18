@@ -6,7 +6,837 @@
 #include "imagelib.h"
 #include "img_formats.h"
 
-#define Sum(c) ((c)->r + (c)->g + (c)->b)
+// TODO: tune this ?
+#define REDWEIGHT		4
+#define GREENWEIGHT		16
+#define BLUEWEIGHT		1
+
+#define CHAN_MAX		255
+#define ALPHACUT		127
+
+static void Image_BaseColorSearch( byte *blkaddr, byte srccolors[4][4][4], byte *bestcolor[2], int numxpixels, int numypixels, int type, bool haveAlpha )
+{
+	// use same luminance-weighted distance metric to determine encoding as for finding the base colors
+
+	// TODO: could also try to find a better encoding for the 3-color-encoding type, this really should be done
+	// if it's rgba_dxt1 and we have alpha in the block, currently even values which will be mapped to black
+	// due to their alpha value will influence the result
+	int	i, j, colors, z;
+	uint	pixerror, pixerrorred, pixerrorgreen, pixerrorblue, pixerrorbest;
+	int	colordist, blockerrlin[2][3];
+	byte	nrcolor[2];
+	int	pixerrorcolorbest[3];
+	byte	enc = 0;
+	byte	cv[4][4];
+	byte	testcolor[2][3];
+
+	if(((bestcolor[0][0] & 0xf8) << 8 | (bestcolor[0][1] & 0xfc) << 3 | bestcolor[0][2] >> 3) < ((bestcolor[1][0] & 0xf8) << 8 | (bestcolor[1][1] & 0xfc) << 3 | bestcolor[1][2] >> 3))
+	{
+		testcolor[0][0] = bestcolor[0][0];
+		testcolor[0][1] = bestcolor[0][1];
+		testcolor[0][2] = bestcolor[0][2];
+		testcolor[1][0] = bestcolor[1][0];
+		testcolor[1][1] = bestcolor[1][1];
+		testcolor[1][2] = bestcolor[1][2];
+	}
+	else
+	{
+		testcolor[1][0] = bestcolor[0][0];
+		testcolor[1][1] = bestcolor[0][1];
+		testcolor[1][2] = bestcolor[0][2];
+		testcolor[0][0] = bestcolor[1][0];
+		testcolor[0][1] = bestcolor[1][1];
+		testcolor[0][2] = bestcolor[1][2];
+	}
+
+	for( i = 0; i < 3; i ++ )
+	{
+		cv[0][i] = testcolor[0][i];
+		cv[1][i] = testcolor[1][i];
+		cv[2][i] = (testcolor[0][i] * 2 + testcolor[1][i]) / 3;
+		cv[3][i] = (testcolor[0][i] + testcolor[1][i] * 2) / 3;
+	}
+
+	blockerrlin[0][0] = 0;
+	blockerrlin[0][1] = 0;
+	blockerrlin[0][2] = 0;
+	blockerrlin[1][0] = 0;
+	blockerrlin[1][1] = 0;
+	blockerrlin[1][2] = 0;
+
+	nrcolor[0] = 0;
+	nrcolor[1] = 0;
+
+	for( j = 0; j < numypixels; j++ )
+	{
+		for( i = 0; i < numxpixels; i++ )
+		{
+			pixerrorbest = 0xffffffff;
+			for( colors = 0; colors < 4; colors++ )
+			{
+				colordist = srccolors[j][i][0] - (cv[colors][0]);
+				pixerror = colordist * colordist * REDWEIGHT;
+				pixerrorred = colordist;
+				colordist = srccolors[j][i][1] - (cv[colors][1]);
+				pixerror += colordist * colordist * GREENWEIGHT;
+				pixerrorgreen = colordist;
+				colordist = srccolors[j][i][2] - (cv[colors][2]);
+				pixerror += colordist * colordist * BLUEWEIGHT;
+				pixerrorblue = colordist;
+				if( pixerror < pixerrorbest )
+				{
+					enc = colors;
+					pixerrorbest = pixerror;
+					pixerrorcolorbest[0] = pixerrorred;
+					pixerrorcolorbest[1] = pixerrorgreen;
+					pixerrorcolorbest[2] = pixerrorblue;
+				}
+			}
+			if( enc == 0 )
+			{
+				for( z = 0; z < 3; z++ )
+				{
+					blockerrlin[0][z] += 3 * pixerrorcolorbest[z];
+				}
+				nrcolor[0] += 3;
+			}
+			else if( enc == 2 )
+			{
+				for( z = 0; z < 3; z++ )
+				{
+					blockerrlin[0][z] += 2 * pixerrorcolorbest[z];
+				}
+				nrcolor[0] += 2;
+				for( z = 0; z < 3; z++ )
+				{
+					blockerrlin[1][z] += 1 * pixerrorcolorbest[z];
+				}
+				nrcolor[1] += 1;
+			}
+			else if( enc == 3 )
+			{
+				for( z = 0; z < 3; z++ )
+				{
+					blockerrlin[0][z] += 1 * pixerrorcolorbest[z];
+				}
+				nrcolor[0] += 1;
+				for( z = 0; z < 3; z++ )
+				{
+					blockerrlin[1][z] += 2 * pixerrorcolorbest[z];
+				}
+				nrcolor[1] += 2;
+			}
+			else if( enc == 1 )
+			{
+				for( z = 0; z < 3; z++ )
+				{
+					blockerrlin[1][z] += 3 * pixerrorcolorbest[z];
+				}
+				nrcolor[1] += 3;
+			}
+		}
+	}
+
+	if( nrcolor[0] == 0 ) nrcolor[0] = 1;
+	if( nrcolor[1] == 0 ) nrcolor[1] = 1;
+
+	for( i = 0; i < 3; i++ )
+	{
+		if((testcolor[0][i] + blockerrlin[0][i] / nrcolor[0]) <= 0)
+			testcolor[0][i] = 0;
+		else testcolor[0][i] = (testcolor[0][i] + blockerrlin[0][i] / nrcolor[0]);
+	}
+
+	for( i = 0; i < 3; i++ )
+	{
+		if((testcolor[1][i] + blockerrlin[1][i] / nrcolor[1]) >= 255)
+			testcolor[1][i] = 255;
+		else testcolor[1][i] = (testcolor[1][i] + blockerrlin[1][i] / nrcolor[1]);
+	}
+
+	if((abs(testcolor[0][0] - testcolor[1][0]) < 8) && (abs(testcolor[0][1] - testcolor[1][1]) < 4) && (abs(testcolor[0][2] - testcolor[1][2]) < 8))
+	{
+		// both colors are so close they might get encoded as the same 16bit values
+		byte	coldiffred, coldiffgreen, coldiffblue, coldiffmax, factor, ind0, ind1;
+
+		coldiffred = abs(testcolor[0][0] - testcolor[1][0]);
+		coldiffgreen = 2 * abs(testcolor[0][1] - testcolor[1][1]);
+		coldiffblue = abs(testcolor[0][2] - testcolor[1][2]);
+		coldiffmax = coldiffred;
+
+		if( coldiffmax < coldiffgreen ) coldiffmax = coldiffgreen;
+		if( coldiffmax < coldiffblue ) coldiffmax = coldiffblue;
+		if( coldiffmax > 0 )
+		{
+			if( coldiffmax > 4 ) factor = 2;
+			else if( coldiffmax > 2 ) factor = 3;
+			else factor = 4;
+
+			// won't do much if the color value is near 255...
+			// argh so many ifs
+			if( testcolor[1][1] >= testcolor[0][1] )
+			{
+				ind1 = 1;
+				ind0 = 0;
+			}
+			else
+			{
+				ind1 = 0;
+				ind0 = 1;
+			}
+
+			if((testcolor[ind1][1] + factor * coldiffgreen) <= 255 )
+				testcolor[ind1][1] += factor * coldiffgreen;
+			else testcolor[ind1][1] = 255;
+
+			if((testcolor[ind1][0] - testcolor[ind0][1]) > 0 )
+			{
+				if((testcolor[ind1][0] + factor * coldiffred) <= 255 )
+					testcolor[ind1][0] += factor * coldiffred;
+				else testcolor[ind1][0] = 255;
+			}
+			else
+			{
+				if((testcolor[ind0][0] + factor * coldiffred) <= 255 )
+					testcolor[ind0][0] += factor * coldiffred;
+				else testcolor[ind0][0] = 255;
+			}
+
+			if((testcolor[ind1][2] - testcolor[ind0][2]) > 0 )
+			{
+				if((testcolor[ind1][2] + factor * coldiffblue) <= 255 )
+					testcolor[ind1][2] += factor * coldiffblue;
+				else testcolor[ind1][2] = 255;
+			}
+			else
+			{
+				if((testcolor[ind0][2] + factor * coldiffblue) <= 255 )
+					testcolor[ind0][2] += factor * coldiffblue;
+				else testcolor[ind0][2] = 255;
+			}
+		}
+	}
+
+	if(((testcolor[0][0] & 0xf8) << 8 | (testcolor[0][1] & 0xfc) << 3 | testcolor[0][2] >> 3) < ((testcolor[1][0] & 0xf8) << 8 | (testcolor[1][1] & 0xfc) << 3 | testcolor[1][2]) >> 3)
+	{
+		for( i = 0; i < 3; i++ )
+		{
+			bestcolor[0][i] = testcolor[0][i];
+			bestcolor[1][i] = testcolor[1][i];
+		}
+	}
+	else
+	{
+		for( i = 0; i < 3; i++ )
+		{
+			bestcolor[0][i] = testcolor[1][i];
+			bestcolor[1][i] = testcolor[0][i];
+		}
+	}
+}
+
+static void Image_StoreBlock( byte *blkaddr, byte srccolors[4][4][4], byte *bestcolor[2], int numxpixels, int numypixels, uint type, bool haveAlpha )
+{
+	// use same luminance-weighted distance metric to determine encoding as for finding the base colors
+	int	i, j, colors;
+	uint	testerror, testerror2, pixerror, pixerrorbest;
+	int	colordist;
+	word	color0, color1, tempcolor;
+	uint	bits = 0, bits2 = 0;
+	byte	*colorptr;
+	byte	enc = 0;
+	byte	cv[4][4];
+
+	bestcolor[0][0] = bestcolor[0][0] & 0xf8;
+	bestcolor[0][1] = bestcolor[0][1] & 0xfc;
+	bestcolor[0][2] = bestcolor[0][2] & 0xf8;
+	bestcolor[1][0] = bestcolor[1][0] & 0xf8;
+	bestcolor[1][1] = bestcolor[1][1] & 0xfc;
+	bestcolor[1][2] = bestcolor[1][2] & 0xf8;
+
+	color0 = bestcolor[0][0] << 8 | bestcolor[0][1] << 3 | bestcolor[0][2] >> 3;
+	color1 = bestcolor[1][0] << 8 | bestcolor[1][1] << 3 | bestcolor[1][2] >> 3;
+
+	if( color0 < color1 )
+	{
+		tempcolor = color0; color0 = color1; color1 = tempcolor;
+		colorptr = bestcolor[0]; bestcolor[0] = bestcolor[1]; bestcolor[1] = colorptr;
+	}
+
+	for( i = 0; i < 3; i++ )
+	{
+		cv[0][i] = bestcolor[0][i];
+		cv[1][i] = bestcolor[1][i];
+		cv[2][i] = (bestcolor[0][i] * 2 + bestcolor[1][i]) / 3;
+		cv[3][i] = (bestcolor[0][i] + bestcolor[1][i] * 2) / 3;
+	}
+
+	testerror = 0;
+	for( j = 0; j < numypixels; j++ )
+	{
+		for( i = 0; i < numxpixels; i++ )
+		{
+			pixerrorbest = 0xffffffff;
+
+			for( colors = 0; colors < 4; colors++ )
+			{
+				colordist = srccolors[j][i][0] - cv[colors][0];
+				pixerror = colordist * colordist * REDWEIGHT;
+				colordist = srccolors[j][i][1] - cv[colors][1];
+				pixerror += colordist * colordist * GREENWEIGHT;
+				colordist = srccolors[j][i][2] - cv[colors][2];
+				pixerror += colordist * colordist * BLUEWEIGHT;
+
+				if( pixerror < pixerrorbest )
+				{
+					pixerrorbest = pixerror;
+					enc = colors;
+				}
+			}
+			testerror += pixerrorbest;
+			bits |= enc << (2 * (j * 4 + i));
+		}
+	}
+
+	for( i = 0; i < 3; i++ )
+	{
+		cv[2][i] = (bestcolor[0][i] + bestcolor[1][i]) / 2;
+
+		// this isn't used. Looks like the black color constant can only be used
+		// with RGB_DXT1 if I read the spec correctly (note though that the radeon gpu disagrees,
+		// it will decode 3 to black even with DXT3/5), and due to how the color searching works
+		// it won't get used even then
+		cv[3][i] = 0;
+	}
+
+	testerror2 = 0;
+	for( j = 0; j < numypixels; j++ )
+	{
+		for( i = 0; i < numxpixels; i++ )
+		{
+			pixerrorbest = 0xffffffff;
+			if((type == PF_DXT1) && (srccolors[j][i][3] <= ALPHACUT))
+			{
+				enc = 3;
+				pixerrorbest = 0; // don't calculate error
+			}
+			else
+			{
+				// we're calculating the same what we have done already for colors 0-1 above...
+				for( colors = 0; colors < 3; colors++ )
+				{
+					colordist = srccolors[j][i][0] - cv[colors][0];
+					pixerror = colordist * colordist * REDWEIGHT;
+					colordist = srccolors[j][i][1] - cv[colors][1];
+					pixerror += colordist * colordist * GREENWEIGHT;
+					colordist = srccolors[j][i][2] - cv[colors][2];
+					pixerror += colordist * colordist * BLUEWEIGHT;
+
+					if( pixerror < pixerrorbest )
+					{
+						pixerrorbest = pixerror;
+
+						// need to exchange colors later
+						if( colors > 1 ) enc = colors;
+						else enc = colors ^ 1;
+					}
+				}
+			}
+			testerror2 += pixerrorbest;
+			bits2 |= enc << (2 * (j * 4 + i));
+		}
+	}
+
+	// finally we're finished, write back colors and bits
+	if((testerror > testerror2) || (haveAlpha))
+	{
+		*blkaddr++ = color1 & 0xFF;
+		*blkaddr++ = color1 >> 8;
+		*blkaddr++ = color0 & 0xFF;
+		*blkaddr++ = color0 >> 8;
+		*blkaddr++ = bits2 & 0xFF;
+		*blkaddr++ = (bits2 >> 8) & 0xFF;
+		*blkaddr++ = (bits2 >> 16) & 0xFF;
+		*blkaddr = bits2 >> 24;
+	}
+	else
+	{
+		*blkaddr++ = color0 & 0xFF;
+		*blkaddr++ = color0 >> 8;
+		*blkaddr++ = color1 & 0xFF;
+		*blkaddr++ = color1 >> 8;
+		*blkaddr++ = bits & 0xFF;
+		*blkaddr++ = ( bits >> 8) & 0xFF;
+		*blkaddr++ = ( bits >> 16) & 0xFF;
+		*blkaddr = bits >> 24;
+	}
+}
+
+static void Image_EncodeColorBlock( byte *blkaddr, byte srccolors[4][4][4], int numxpixels, int numypixels, uint type )
+{
+	// simplistic approach. We need two base colors, simply use the "highest" and the "lowest" color
+	// present in the picture as base colors
+
+	// define lowest and highest color as shortest and longest vector to 0/0/0, though the
+	// vectors are weighted similar to their importance in rgb-luminance conversion
+	// doesn't work too well though...
+	// this seems to be a rather difficult problem
+	byte	*bestcolor[2];
+	byte	basecolors[2][3];
+	uint	lowcv, highcv, testcv;
+	bool	haveAlpha = false;
+	byte	i, j;
+
+	lowcv = highcv = srccolors[0][0][0] * srccolors[0][0][0] * REDWEIGHT + srccolors[0][0][1] * srccolors[0][0][1] * GREENWEIGHT + srccolors[0][0][2] * srccolors[0][0][2] * BLUEWEIGHT;
+	bestcolor[0] = bestcolor[1] = srccolors[0][0];
+
+	for( j = 0; j < numypixels; j++ )
+	{
+		for( i = 0; i < numxpixels; i++ )
+		{
+			// don't use this as a base color if the pixel will get black/transparent anyway
+			if((type != PF_DXT1) || (srccolors[j][i][3] <= ALPHACUT))
+			{
+				testcv = srccolors[j][i][0] * srccolors[j][i][0] * REDWEIGHT + srccolors[j][i][1] * srccolors[j][i][1] * GREENWEIGHT + srccolors[j][i][2] * srccolors[j][i][2] * BLUEWEIGHT;
+				if( testcv > highcv )
+				{
+					highcv = testcv;
+					bestcolor[1] = srccolors[j][i];
+				}
+				else if( testcv < lowcv )
+				{
+					lowcv = testcv;
+					bestcolor[0] = srccolors[j][i];
+				}
+			}
+			else haveAlpha = true;
+		}
+	}
+
+	// make sure the original color values won't get touched...
+	for( j = 0; j < 2; j++ )
+	{
+		for( i = 0; i < 3; i++ )
+		{
+			basecolors[j][i] = bestcolor[j][i];
+		}
+	}
+
+	bestcolor[0] = basecolors[0];
+	bestcolor[1] = basecolors[1];
+
+	// try to find better base colors
+	Image_BaseColorSearch( blkaddr, srccolors, bestcolor, numxpixels, numypixels, type, haveAlpha );
+	// find the best encoding for these colors, and store the result
+	Image_StoreBlock( blkaddr, srccolors, bestcolor, numxpixels, numypixels, type, haveAlpha );
+}
+
+static void Image_EncodeDXT5alpha( byte *blkaddr, byte srccolors[4][4][4], int numxpixels, int numypixels )
+{
+	byte	alphabase[2], alphause[2];
+	short	alphatest[2];
+	uint	alphablockerror1, alphablockerror2, alphablockerror3;
+	byte	i, j, aindex, acutValues[7];
+	byte	alphaenc1[16], alphaenc2[16], alphaenc3[16];
+	bool	alphaabsmin = false;
+	bool	alphaabsmax = false;
+	short	alphadist;
+
+	// find lowest and highest alpha value in block, alphabase[0] lowest, alphabase[1] highest
+	alphabase[0] = 0xFF;
+	alphabase[1] = 0x00;
+
+	for( j = 0; j < numypixels; j++ )
+	{
+		for( i = 0; i < numxpixels; i++ )
+		{
+			if( srccolors[j][i][3] == 0 )
+				alphaabsmin = true;
+			else if( srccolors[j][i][3] == 255 )
+				alphaabsmax = true;
+			else
+			{
+				if( srccolors[j][i][3] > alphabase[1] )
+					alphabase[1] = srccolors[j][i][3];
+				if( srccolors[j][i][3] < alphabase[0] )
+					alphabase[0] = srccolors[j][i][3];
+			}
+		}
+	}
+
+	if((alphabase[0] > alphabase[1]) && !(alphaabsmin && alphaabsmax))
+	{
+		// one color, either max or min
+		// shortcut here since it is a very common case (and also avoids later problems)
+		// || (alphabase[0] == alphabase[1] && !alphaabsmin && !alphaabsmax)
+		// could also thest for alpha0 == alpha1 (and not min/max), but probably not common, so don't bother
+
+		alphabase[0] = srccolors[0][0][3];
+		*blkaddr++ = alphabase[0];
+		*blkaddr++;
+		*blkaddr++ = 0;
+		*blkaddr++ = 0;
+		*blkaddr++ = 0;
+		*blkaddr++ = 0;
+		*blkaddr++ = 0;
+		*blkaddr++ = 0;
+		return;
+	}
+
+	// find best encoding for alpha0 > alpha1
+	// it's possible this encoding is better even if both alphaabsmin and alphaabsmax are true
+	alphablockerror1 = 0x0;
+	alphablockerror2 = 0xFFFFFF;
+	alphablockerror3 = 0xFFFFFF;
+
+	if( alphaabsmin ) alphause[0] = 0;
+	else alphause[0] = alphabase[0];
+
+	if( alphaabsmax ) alphause[1] = 255;
+	else alphause[1] = alphabase[1];
+
+	// calculate the 7 cut values, just the middle between 2 of the computed alpha values
+	for( aindex = 0; aindex < 7; aindex++ )
+	{
+		// don't forget here is always rounded down
+		acutValues[aindex] = (alphause[0] * (2*aindex + 1) + alphause[1] * (14 - (2*aindex + 1))) / 14;
+	}
+
+	for( j = 0; j < numypixels; j++ )
+	{
+		for( i = 0; i < numxpixels; i++ )
+		{
+			// maybe it's overkill to have the most complicated calculation just for the error
+			// calculation which we only need to figure out if encoding1 or encoding2 is better...
+			if( srccolors[j][i][3] > acutValues[0] )
+			{
+				alphaenc1[4*j + i] = 0;
+				alphadist = srccolors[j][i][3] - alphause[1];
+			}
+			else if( srccolors[j][i][3] > acutValues[1] )
+			{
+				alphaenc1[4*j + i] = 2;
+				alphadist = srccolors[j][i][3] - (alphause[1] * 6 + alphause[0] * 1) / 7;
+			}
+			else if( srccolors[j][i][3] > acutValues[2] )
+			{
+				alphaenc1[4*j + i] = 3;
+				alphadist = srccolors[j][i][3] - (alphause[1] * 5 + alphause[0] * 2) / 7;
+			}
+			else if( srccolors[j][i][3] > acutValues[3] )
+			{
+				alphaenc1[4*j + i] = 4;
+				alphadist = srccolors[j][i][3] - (alphause[1] * 4 + alphause[0] * 3) / 7;
+			}
+			else if( srccolors[j][i][3] > acutValues[4] )
+			{
+				alphaenc1[4*j + i] = 5;
+				alphadist = srccolors[j][i][3] - (alphause[1] * 3 + alphause[0] * 4) / 7;
+			}
+			else if( srccolors[j][i][3] > acutValues[5] )
+			{
+				alphaenc1[4*j + i] = 6;
+				alphadist = srccolors[j][i][3] - (alphause[1] * 2 + alphause[0] * 5) / 7;
+			}
+			else if( srccolors[j][i][3] > acutValues[6] )
+			{
+				alphaenc1[4*j + i] = 7;
+				alphadist = srccolors[j][i][3] - (alphause[1] * 1 + alphause[0] * 6) / 7;
+			}
+			else
+			{
+				alphaenc1[4*j + i] = 1;
+				alphadist = srccolors[j][i][3] - alphause[0];
+			}
+			alphablockerror1 += alphadist * alphadist;
+		}
+	}
+
+	// it's not very likely this encoding is better if both alphaabsmin and alphaabsmax
+	// are false but try it anyway
+	if( alphablockerror1 >= 32 )
+	{
+		// don't bother if encoding is already very good, this condition should also imply
+		// we have valid alphabase colors which we absolutely need (alphabase[0] <= alphabase[1])
+		alphablockerror2 = 0;
+
+		for( aindex = 0; aindex < 5; aindex++ )
+		{
+			// don't forget here is always rounded down
+			acutValues[aindex] = (alphabase[0] * (10 - (2*aindex + 1)) + alphabase[1] * (2*aindex + 1)) / 10;
+		}
+
+		for( j = 0; j < numypixels; j++ )
+		{
+			for( i = 0; i < numxpixels; i++ )
+			{
+				// maybe it's overkill to have the most complicated calculation just for the error
+				// calculation which we only need to figure out if encoding1 or encoding2 is better...
+				if( srccolors[j][i][3] == 0 )
+				{
+					alphaenc2[4*j + i] = 6;
+					alphadist = 0;
+				}
+				else if( srccolors[j][i][3] == 255 )
+				{
+					alphaenc2[4*j + i] = 7;
+					alphadist = 0;
+				}
+				else if( srccolors[j][i][3] <= acutValues[0] )
+				{
+					alphaenc2[4*j + i] = 0;
+					alphadist = srccolors[j][i][3] - alphabase[0];
+				}
+				else if( srccolors[j][i][3] <= acutValues[1] )
+				{
+					alphaenc2[4*j + i] = 2;
+					alphadist = srccolors[j][i][3] - (alphabase[0] * 4 + alphabase[1] * 1) / 5;
+				}
+				else if( srccolors[j][i][3] <= acutValues[2] )
+				{
+					alphaenc2[4*j + i] = 3;
+					alphadist = srccolors[j][i][3] - (alphabase[0] * 3 + alphabase[1] * 2) / 5;
+				}
+				else if( srccolors[j][i][3] <= acutValues[3] )
+				{
+					alphaenc2[4*j + i] = 4;
+					alphadist = srccolors[j][i][3] - (alphabase[0] * 2 + alphabase[1] * 3) / 5;
+				}
+				else if( srccolors[j][i][3] <= acutValues[4] )
+				{
+					alphaenc2[4*j + i] = 5;
+					alphadist = srccolors[j][i][3] - (alphabase[0] * 1 + alphabase[1] * 4) / 5;
+				}
+				else
+				{
+					alphaenc2[4*j + i] = 1;
+					alphadist = srccolors[j][i][3] - alphabase[1];
+				}
+				alphablockerror2 += alphadist * alphadist;
+			}
+		}
+
+		// skip this if the error is already very small
+		// this encoding is MUCH better on average than #2 though, but expensive!
+		if((alphablockerror2 > 96) && (alphablockerror1 > 96))
+		{
+			short	blockerrlin1 = 0;
+			short	blockerrlin2 = 0;
+			byte	nralphainrangelow = 0;
+			byte	nralphainrangehigh = 0;
+
+			alphatest[0] = 0xff;
+			alphatest[1] = 0x0;
+			// if we have large range it's likely there are values close to 0/255, try to map them to 0/255
+			for( j = 0; j < numypixels; j++ )
+			{
+				for( i = 0; i < numxpixels; i++ )
+				{
+					if((srccolors[j][i][3] > alphatest[1]) && (srccolors[j][i][3] < (255 -(alphabase[1] - alphabase[0]) / 28)))
+						alphatest[1] = srccolors[j][i][3];
+					if((srccolors[j][i][3] < alphatest[0]) && (srccolors[j][i][3] > (alphabase[1] - alphabase[0]) / 28))
+						alphatest[0] = srccolors[j][i][3];
+				}
+			}
+			// shouldn't happen too often, don't really care about those degenerated cases
+			if( alphatest[1] <= alphatest[0] )
+			{
+				alphatest[0] = 1;
+				alphatest[1] = 254;
+			}
+
+			for( aindex = 0; aindex < 5; aindex++ )
+			{
+				// don't forget here is always rounded down
+				acutValues[aindex] = (alphatest[0] * (10 - (2*aindex + 1)) + alphatest[1] * (2*aindex + 1)) / 10;
+			}
+
+			// find the "average" difference between the alpha values and the next encoded value.
+			// this is then used to calculate new base values.
+			// should there be some weighting, i.e. those values closer to alphatest[x] have more weight,
+			// since they will see more improvement, and also because the values in the middle are somewhat
+			// likely to get no improvement at all (because the base values might move in different directions)?
+			// OTOH it would mean the values in the middle are even less likely to get an improvement
+
+			for( j = 0; j < numypixels; j++ )
+			{
+				for( i = 0; i < numxpixels; i++ )
+				{
+					if( srccolors[j][i][3] <= alphatest[0] / 2 )
+					{
+						// this does nothing
+					}
+					else if( srccolors[j][i][3] > ((255 + alphatest[1]) / 2))
+					{
+						// this does nothing
+					}
+					else if( srccolors[j][i][3] <= acutValues[0] )
+					{
+						blockerrlin1 += (srccolors[j][i][3] - alphatest[0]);
+						nralphainrangelow += 1;
+					}
+					else if( srccolors[j][i][3] <= acutValues[1] )
+					{
+						blockerrlin1 += (srccolors[j][i][3] - (alphatest[0] * 4 + alphatest[1] * 1) / 5);
+						blockerrlin2 += (srccolors[j][i][3] - (alphatest[0] * 4 + alphatest[1] * 1) / 5);
+						nralphainrangelow += 1;
+						nralphainrangehigh += 1;
+					}
+					else if( srccolors[j][i][3] <= acutValues[2] )
+					{
+						blockerrlin1 += (srccolors[j][i][3] - (alphatest[0] * 3 + alphatest[1] * 2) / 5);
+						blockerrlin2 += (srccolors[j][i][3] - (alphatest[0] * 3 + alphatest[1] * 2) / 5);
+						nralphainrangelow += 1;
+						nralphainrangehigh += 1;
+					}
+					else if( srccolors[j][i][3] <= acutValues[3] )
+					{
+						blockerrlin1 += (srccolors[j][i][3] - (alphatest[0] * 2 + alphatest[1] * 3) / 5);
+						blockerrlin2 += (srccolors[j][i][3] - (alphatest[0] * 2 + alphatest[1] * 3) / 5);
+						nralphainrangelow += 1;
+						nralphainrangehigh += 1;
+					}
+					else if( srccolors[j][i][3] <= acutValues[4] )
+					{
+						blockerrlin1 += (srccolors[j][i][3] - (alphatest[0] * 1 + alphatest[1] * 4) / 5);
+						blockerrlin2 += (srccolors[j][i][3] - (alphatest[0] * 1 + alphatest[1] * 4) / 5);
+						nralphainrangelow += 1;
+						nralphainrangehigh += 1;
+					}
+					else
+					{
+						blockerrlin2 += (srccolors[j][i][3] - alphatest[1]);
+						nralphainrangehigh += 1;
+					}
+				}
+			}
+
+			// shouldn't happen often, needed to avoid div by zero
+			if( nralphainrangelow == 0 ) nralphainrangelow = 1;
+			if( nralphainrangehigh == 0 ) nralphainrangehigh = 1;
+			alphatest[0] = alphatest[0] + (blockerrlin1 / nralphainrangelow);
+
+			// again shouldn't really happen often...
+			if( alphatest[0] < 0 )
+			{
+				alphatest[0] = 0;
+			}
+			alphatest[1] = alphatest[1] + (blockerrlin2 / nralphainrangehigh);
+			if( alphatest[1] > 255 )
+			{
+				alphatest[1] = 255;
+			}
+			alphablockerror3 = 0;
+
+			for( aindex = 0; aindex < 5; aindex++ )
+			{
+				// don't forget here is always rounded down
+				acutValues[aindex] = (alphatest[0] * (10 - (2*aindex + 1)) + alphatest[1] * (2*aindex + 1)) / 10;
+			}
+
+			for( j = 0; j < numypixels; j++ )
+			{
+				for( i = 0; i < numxpixels; i++ )
+				{
+					// maybe it's overkill to have the most complicated calculation just for the error
+                  				// calculation which we only need to figure out if encoding1 or encoding2 is better...
+					if( srccolors[j][i][3] <= alphatest[0] / 2 )
+					{
+						alphaenc3[4*j + i] = 6;
+						alphadist = srccolors[j][i][3];
+					}
+					else if( srccolors[j][i][3] > ((255 + alphatest[1]) / 2))
+					{
+						alphaenc3[4*j + i] = 7;
+						alphadist = 255 - srccolors[j][i][3];
+					}
+					else if( srccolors[j][i][3] <= acutValues[0] )
+					{
+						alphaenc3[4*j + i] = 0;
+						alphadist = srccolors[j][i][3] - alphatest[0];
+					}
+					else if( srccolors[j][i][3] <= acutValues[1] )
+					{
+						alphaenc3[4*j + i] = 2;
+						alphadist = srccolors[j][i][3] - (alphatest[0] * 4 + alphatest[1] * 1) / 5;
+					}
+					else if( srccolors[j][i][3] <= acutValues[2] )
+					{
+						alphaenc3[4*j + i] = 3;
+						alphadist = srccolors[j][i][3] - (alphatest[0] * 3 + alphatest[1] * 2) / 5;
+					}
+					else if( srccolors[j][i][3] <= acutValues[3] )
+					{
+						alphaenc3[4*j + i] = 4;
+						alphadist = srccolors[j][i][3] - (alphatest[0] * 2 + alphatest[1] * 3) / 5;
+					}
+					else if( srccolors[j][i][3] <= acutValues[4] )
+					{
+						alphaenc3[4*j + i] = 5;
+						alphadist = srccolors[j][i][3] - (alphatest[0] * 1 + alphatest[1] * 4) / 5;
+					}
+					else
+					{
+						alphaenc3[4*j + i] = 1;
+						alphadist = srccolors[j][i][3] - alphatest[1];
+					}
+					alphablockerror3 += alphadist * alphadist;
+				}
+			}
+		}
+	}
+
+	// write the alpha values and encoding back.
+	if((alphablockerror1 <= alphablockerror2) && (alphablockerror1 <= alphablockerror3))
+	{
+		*blkaddr++ = alphause[1];
+		*blkaddr++ = alphause[0];
+		*blkaddr++ = alphaenc1[0] | (alphaenc1[1] << 3) | ((alphaenc1[2] & 3) << 6);
+		*blkaddr++ = (alphaenc1[2] >> 2) | (alphaenc1[3] << 1) | (alphaenc1[4] << 4) | ((alphaenc1[5] & 1) << 7);
+		*blkaddr++ = (alphaenc1[5] >> 1) | (alphaenc1[6] << 2) | (alphaenc1[7] << 5);
+		*blkaddr++ = alphaenc1[8] | (alphaenc1[9] << 3) | ((alphaenc1[10] & 3) << 6);
+		*blkaddr++ = (alphaenc1[10] >> 2) | (alphaenc1[11] << 1) | (alphaenc1[12] << 4) | ((alphaenc1[13] & 1) << 7);
+		*blkaddr++ = (alphaenc1[13] >> 1) | (alphaenc1[14] << 2) | (alphaenc1[15] << 5);
+	}
+	else if( alphablockerror2 <= alphablockerror3 )
+	{
+		*blkaddr++ = alphabase[0];
+		*blkaddr++ = alphabase[1];
+		*blkaddr++ = alphaenc2[0] | (alphaenc2[1] << 3) | ((alphaenc2[2] & 3) << 6);
+		*blkaddr++ = (alphaenc2[2] >> 2) | (alphaenc2[3] << 1) | (alphaenc2[4] << 4) | ((alphaenc2[5] & 1) << 7);
+		*blkaddr++ = (alphaenc2[5] >> 1) | (alphaenc2[6] << 2) | (alphaenc2[7] << 5);
+		*blkaddr++ = alphaenc2[8] | (alphaenc2[9] << 3) | ((alphaenc2[10] & 3) << 6);
+		*blkaddr++ = (alphaenc2[10] >> 2) | (alphaenc2[11] << 1) | (alphaenc2[12] << 4) | ((alphaenc2[13] & 1) << 7);
+		*blkaddr++ = (alphaenc2[13] >> 1) | (alphaenc2[14] << 2) | (alphaenc2[15] << 5);
+	}
+	else
+	{
+		*blkaddr++ = alphatest[0];
+		*blkaddr++ = alphatest[1];
+		*blkaddr++ = alphaenc3[0] | (alphaenc3[1] << 3) | ((alphaenc3[2] & 3) << 6);
+		*blkaddr++ = (alphaenc3[2] >> 2) | (alphaenc3[3] << 1) | (alphaenc3[4] << 4) | ((alphaenc3[5] & 1) << 7);
+		*blkaddr++ = (alphaenc3[5] >> 1) | (alphaenc3[6] << 2) | (alphaenc3[7] << 5);
+		*blkaddr++ = alphaenc3[8] | (alphaenc3[9] << 3) | ((alphaenc3[10] & 3) << 6);
+		*blkaddr++ = (alphaenc3[10] >> 2) | (alphaenc3[11] << 1) | (alphaenc3[12] << 4) | ((alphaenc3[13] & 1) << 7);
+		*blkaddr++ = (alphaenc3[13] >> 1) | (alphaenc3[14] << 2) | (alphaenc3[15] << 5);
+	}
+}
+
+static void Image_ExtractColors( byte srcpixels[4][4][4], const byte *srcaddr, int srcRowStride, int numxpixels, int numypixels, int comps )
+{
+	const byte *curaddr;
+	byte	i, j, c;
+
+	for( j = 0; j < numypixels; j++ )
+	{
+		curaddr = srcaddr + j * srcRowStride * comps;
+		for( i = 0; i < numxpixels; i++ )
+		{
+			for( c = 0; c < comps; c++ )
+				srcpixels[j][i][c] = *curaddr++ / (CHAN_MAX / 255);
+		}
+	}
+}
 
 /*
 ====================
@@ -86,14 +916,6 @@ void Image_GetBitsFromMask( uint Mask, uint *ShiftLeft, uint *ShiftRight )
 	*ShiftLeft = 8 - i;
 }
 
-void Image_ShortToColor565( word Pixel, color16 *Colour )
-{
-	Colour->r = (Pixel & 0xF800) >> 11;
-	Colour->g = (Pixel & 0x07E0) >> 5;
-	Colour->b = (Pixel & 0x001F);
-}
-
-
 void Image_ShortToColor888( word Pixel, color24 *Colour )
 {
 	Colour->r = ((Pixel & 0xF800) >> 11) << 3;
@@ -109,94 +931,6 @@ word Image_Color565ToShort( color16 *Colour )
 word Image_Color888ToShort( color24 *Colour )
 {
 	return ((Colour->r >> 3) << 11) | ((Colour->g >> 2) << 5) | (Colour->b >> 3);
-}
-
-void Image_ChooseEndpoints( word *Block, word *ex0, word *ex1 )
-{
-	uint	i;
-	color24	Colours[16];
-	int	Lowest = 0, Highest = 0;
-
-	for (i = 0; i < 16; i++)
-	{
-		Image_ShortToColor888(Block[i], &Colours[i]);
-		if(Sum(&Colours[i]) < Sum(&Colours[Lowest])) Lowest = i;
-		if(Sum(&Colours[i]) > Sum(&Colours[Highest])) Highest = i;
-	}
-	*ex0 = Block[Highest];
-	*ex1 = Block[Lowest];
-}
-
-void Image_CorrectEndDXT1( word *ex0, word *ex1, bool HasAlpha )
-{
-	word	Temp;
-
-	if( HasAlpha )
-	{
-		if(*ex0 > *ex1)
-		{
-			Temp = *ex0;
-			*ex0 = *ex1;
-			*ex1 = Temp;
-		}
-	}
-	else
-	{
-		if (*ex0 < *ex1)
-		{
-			Temp = *ex0;
-			*ex0 = *ex1;
-			*ex1 = Temp;
-		}
-	}
-}
-
-void Image_ChooseAlphaEndpoints( byte *Block, byte *a0, byte *a1 )
-{
-	uint	i, Lowest = 0xFF, Highest = 0;
-
-	for (i = 0; i < 16; i++)
-	{
-		if( Block[i] < Lowest ) Lowest = Block[i];
-		if( Block[i] > Highest) Highest = Block[i];
-	}
-	*a0 = Lowest;
-	*a1 = Highest;
-}
-
-// Assumed to be 16-bit (5:6:5).
-bool Image_GetBlock( word *Block, word *Data, rgbdata_t *pix, uint XPos, uint YPos )
-{
-	uint x, y, i = 0, Offset = YPos * pix->width + XPos;
-
-	for( y = 0; y < 4; y++)
-	{
-		for (x = 0; x < 4; x++)
-		{
-			if(x < pix->width && y < pix->height)
-				Block[i++] = Data[Offset + x];
-			else Block[i++] = Data[Offset];
-		}
-		Offset += pix->width;
-	}
-	return true;
-}
-
-bool Image_GetAlphaBlock( byte *Block, byte *Data, rgbdata_t *pix, uint XPos, uint YPos )
-{
-	uint x, y, i = 0, Offset = YPos * pix->width + XPos;
-
-	for (y = 0; y < 4; y++)
-	{
-		for (x = 0; x < 4; x++)
-		{
-			if (x < pix->width && y < pix->height)
-				Block[i++] = Data[Offset + x];
-			else Block[i++] = Data[Offset];
-		}
-		Offset += pix->width;
-	}
-	return true;
 }
 
 size_t Image_DXTGetLinearSize( int image_type, int width, int height, int depth, int rgbcount )
@@ -291,192 +1025,6 @@ bool Image_DXTWriteHeader( vfile_t *f, rgbdata_t *pix, uint cubemap_flags, uint 
 	VFS_Write(f, 0, sizeof(uint) * 3 ); // other caps and TextureStage
 
 	return true;
-}
-
-byte* Image_GetAlpha( rgbdata_t *pix )
-{
-	byte	*Alpha;
-	uint	i, j, Bpc, Size, AlphaOff;
-
-	Bpc = PFDesc[pix->type].bpc;
-	if( Bpc == 0 ) return NULL;
-
-	Size = pix->width * pix->height * pix->numLayers * PFDesc[pix->type].bpp;
-	Alpha = (byte*)Mem_Alloc( zonepool, Size / PFDesc[pix->type].bpp * Bpc);
-
-	switch( pix->type )
-	{
-		case PF_RGB_24:
-		case PF_RGB_24_FLIP:
-		case PF_LUMINANCE:
-			memset( Alpha, 0xFF, Size / PFDesc[pix->type].bpp * Bpc );
-			return Alpha;
-	}
-
-	if( pix->type == PF_LUMINANCE_ALPHA )
-		AlphaOff = 2;
-	else AlphaOff = 4;
-
-	for (i = AlphaOff - 1, j = 0; i < Size; i += AlphaOff, j++ )
-		Alpha[j] = pix->buffer[i];
-
-	return Alpha;
-}
-
-uint Image_RMSAlpha( byte *Orig, byte *Test )
-{
-	uint	RMS = 0, i;
-	int	d;
-
-	for (i = 0; i < 16; i++)
-	{
-		d = Orig[i] - Test[i];
-		RMS += d*d;
-	}
-	return RMS;
-}
-
-uint Image_DXTDistance(color24 *c1, color24 *c2)
-{
-	return (c1->r-c2->r)*(c1->r-c2->r)+(c1->g-c2->g)*(c1->g-c2->g)+(c1->b-c2->b)*(c1->b-c2->b);
-}
-
-uint Image_GenBitMask( word ex0, word ex1, uint NumCols, word *In, byte *Alpha, color24 *OutCol )
-{
-	uint		i, j, Closest, Dist, BitMask = 0;
-	byte		Mask[16];
-	color24		c, Colours[4];
-
-	Image_ShortToColor888(ex0, &Colours[0]);
-	Image_ShortToColor888(ex1, &Colours[1]);
-	if (NumCols == 3)
-	{
-		Colours[2].r = (Colours[0].r + Colours[1].r) / 2;
-		Colours[2].g = (Colours[0].g + Colours[1].g) / 2;
-		Colours[2].b = (Colours[0].b + Colours[1].b) / 2;
-		Colours[3].r = (Colours[0].r + Colours[1].r) / 2;
-		Colours[3].g = (Colours[0].g + Colours[1].g) / 2;
-		Colours[3].b = (Colours[0].b + Colours[1].b) / 2;
-	}
-	else
-	{	// NumCols == 4
-		Colours[2].r = (2 * Colours[0].r + Colours[1].r + 1) / 3;
-		Colours[2].g = (2 * Colours[0].g + Colours[1].g + 1) / 3;
-		Colours[2].b = (2 * Colours[0].b + Colours[1].b + 1) / 3;
-		Colours[3].r = (Colours[0].r + 2 * Colours[1].r + 1) / 3;
-		Colours[3].g = (Colours[0].g + 2 * Colours[1].g + 1) / 3;
-		Colours[3].b = (Colours[0].b + 2 * Colours[1].b + 1) / 3;
-	}
-
-	for (i = 0; i < 16; i++)
-	{
-		if (Alpha)
-		{
-			// Test to see if we have 1-bit transparency
-			if (Alpha[i] < 128)
-			{
-				Mask[i] = 3;  // Transparent
-				if (OutCol)
-				{
-					OutCol[i].r = Colours[3].r;
-					OutCol[i].g = Colours[3].g;
-					OutCol[i].b = Colours[3].b;
-				}
-				continue;
-			}
-		}
-
-		// if no transparency, try to find which colour is the closest.
-		Closest = UINT_MAX;
-		Image_ShortToColor888(In[i], &c);
-		for (j = 0; j < NumCols; j++)
-		{
-			Dist = Image_DXTDistance(&c, &Colours[j]);
-			if( Dist < Closest )
-			{
-				Closest = Dist;
-				Mask[i] = j;
-				if( OutCol )
-				{
-					OutCol[i].r = Colours[j].r;
-					OutCol[i].g = Colours[j].g;
-					OutCol[i].b = Colours[j].b;
-				}
-			}
-		}
-	}
-
-	for( i = 0; i < 16; i++ )
-	{
-		BitMask |= (Mask[i] << (i*2));
-	}
-	return BitMask;
-}
-
-
-void Image_GenAlphaBitMask( byte a0, byte a1, byte *In, byte *Mask, byte *Out )
-{
-	byte 	Alphas[8], M[16];
-	uint	i, j, Closest, Dist;
-
-	Alphas[0] = a0;
-	Alphas[1] = a1;
-
-	// 8-alpha or 6-alpha block?
-	if (a0 > a1)
-	{
-		// 8-alpha block:  derive the other six alphas.
-		// Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
-		Alphas[2] = (6 * Alphas[0] + 1 * Alphas[1] + 3) / 7;	// bit code 010
-		Alphas[3] = (5 * Alphas[0] + 2 * Alphas[1] + 3) / 7;	// bit code 011
-		Alphas[4] = (4 * Alphas[0] + 3 * Alphas[1] + 3) / 7;	// bit code 100
-		Alphas[5] = (3 * Alphas[0] + 4 * Alphas[1] + 3) / 7;	// bit code 101
-		Alphas[6] = (2 * Alphas[0] + 5 * Alphas[1] + 3) / 7;	// bit code 110
-		Alphas[7] = (1 * Alphas[0] + 6 * Alphas[1] + 3) / 7;	// bit code 111
-	}
-	else
-	{
-		// 6-alpha block.
-		// Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
-		Alphas[2] = (4 * Alphas[0] + 1 * Alphas[1] + 2) / 5;	// Bit code 010
-		Alphas[3] = (3 * Alphas[0] + 2 * Alphas[1] + 2) / 5;	// Bit code 011
-		Alphas[4] = (2 * Alphas[0] + 3 * Alphas[1] + 2) / 5;	// Bit code 100
-		Alphas[5] = (1 * Alphas[0] + 4 * Alphas[1] + 2) / 5;	// Bit code 101
-		Alphas[6] = 0x00;										// Bit code 110
-		Alphas[7] = 0xFF;										// Bit code 111
-	}
-
-	for (i = 0; i < 16; i++)
-	{
-		Closest = UINT_MAX;
-		for (j = 0; j < 8; j++)
-		{
-			Dist = abs((int)In[i] - (int)Alphas[j]);
-			if (Dist < Closest)
-			{
-				Closest = Dist;
-				M[i] = j;
-			}
-		}
-	}
-
-	if( Out )
-	{
-		for (i = 0; i < 16; i++)
-		{
-			Out[i] = Alphas[M[i]];
-		}
-	}
-
-	// First three bytes.
-	Mask[0] = (M[0]) | (M[1] << 3) | ((M[2] & 0x03) << 6);
-	Mask[1] = ((M[2] & 0x04) >> 2) | (M[3] << 1) | (M[4] << 4) | ((M[5] & 0x01) << 7);
-	Mask[2] = ((M[5] & 0x06) >> 1) | (M[6] << 2) | (M[7] << 5);
-
-	// Second three bytes.
-	Mask[3] = (M[8]) | (M[9] << 3) | ((M[10] & 0x03) << 6);
-	Mask[4] = ((M[10] & 0x04) >> 2) | (M[11] << 1) | (M[12] << 4) | ((M[13] & 0x01) << 7);
-	Mask[5] = ((M[13] & 0x06) >> 1) | (M[14] << 2) | (M[15] << 5);
 }
 
 /*
@@ -959,127 +1507,113 @@ byte *Image_Compress88( rgbdata_t *pix )
 
 size_t Image_CompressDXT( vfile_t *f, int saveformat, rgbdata_t *pix )
 {
-	word	*Data, Block[16], ex0, ex1, *Runner16, t0, t1;
-	byte	*Alpha, AlphaBlock[16], AlphaBitMask[6], a0, a1;
-	uint	x, y, z, i, BitMask;
-	byte	*Runner8;
-	bool	HasAlpha;
-	size_t	Count = 0;
+	byte	srcpixels[4][4][4];
+	int	numxpixels, numypixels;
+	int	i, j, width, height;
+	const byte *srcaddr;
+	byte	*blkaddr, *dest;
+	size_t	dst_size;
+	int	srccomps;
 
 	if(!pix || !pix->buffer )
 		return 0;
 
-	Data = Image_Compress565( pix );
-	if(!Data) return 0;
-	Alpha = Image_GetAlpha( pix );
-	if(!Alpha)
+	width = pix->width;
+	height = pix->height;
+	dst_size = Image_DXTGetLinearSize( saveformat, width, height, 1, 0 );
+	srccomps = PFDesc[pix->type].bpp;
+
+	if( pix->type == PF_RGB_24_FLIP )
 	{
-		Mem_Free(Data);
-		return 0;
+		int	x, y, c;
+		byte	*in = pix->buffer;
+ 		uint	line = pix->width * srccomps;
+		byte	*out = Mem_Alloc( zonepool, pix->size ); // alloc src image size
+ 
+		for( y = pix->height - 1; y >= 0; y-- )
+			for( x = 0; x < pix->width; x++ )
+				for( c = 0; c < srccomps; c++, in++)
+					pix->buffer[y*line+x*srccomps+c] = *in;
+		//FIXME: Mem_Free( pix->buffer );
+		pix->buffer = out;
 	}
 
-	Runner8 = Alpha;
-	Runner16 = Data;
+	blkaddr = dest = Mem_Alloc( zonepool, dst_size ); // alloc dst image size
 
 	switch( saveformat )
 	{
 	case PF_DXT1:
-		for (z = 0; z < pix->numLayers; z++)
+		for( j = 0; j < height; j += 4 )
 		{
-			for (y = 0; y < pix->height; y += 4)
-			{
-				for (x = 0; x < pix->width; x += 4)
-				{
-					Image_GetAlphaBlock(AlphaBlock, Runner8, pix, x, y);
-					HasAlpha = false;
-					for (i = 0; i < 16; i++)
-					{
-						if(AlphaBlock[i] < 128)
-						{
-							HasAlpha = true;
-							break;
-						}
-					}
-
-					Image_GetBlock(Block, Runner16, pix, x, y);
-					Image_ChooseEndpoints(Block, &ex0, &ex1);
-					Image_CorrectEndDXT1(&ex0, &ex1, HasAlpha);
-					VFS_Write(f, &ex0, sizeof(word));
-					VFS_Write(f, &ex1, sizeof(word));
-					if (HasAlpha) BitMask = Image_GenBitMask(ex0, ex1, 3, Block, AlphaBlock, NULL);
-					else BitMask = Image_GenBitMask(ex0, ex1, 4, Block, NULL, NULL);
-					VFS_Write(f, AlphaBitMask, sizeof(uint));
-					Count += 8;
-				}
+			if( height > j + 3 ) numypixels = 4;
+			else numypixels = height - j;
+			srcaddr = pix->buffer + j * width * srccomps;
+         			for( i = 0; i < width; i += 4 )
+         			{
+				if( width > i + 3 ) numxpixels = 4;
+				else numxpixels = width - i;
+				Image_ExtractColors( srcpixels, srcaddr, width, numxpixels, numypixels, srccomps );
+				Image_EncodeColorBlock( blkaddr, srcpixels, numxpixels, numypixels, saveformat );
+				srcaddr += srccomps * numxpixels;
+				blkaddr += 8;
 			}
-			Runner16 += pix->width * pix->height;
-			Runner8 += pix->width * pix->height;
 		}
 		break;
 	case PF_DXT3:
-		for (z = 0; z < pix->numLayers; z++)
+		for( j = 0; j < height; j += 4 )
 		{
-			for (y = 0; y < pix->height; y += 4)
+			if( height > j + 3 ) numypixels = 4;
+			else numypixels = height - j;
+			srcaddr = pix->buffer + j * width * srccomps;
+
+			for( i = 0; i < width; i += 4 )
 			{
-				for (x = 0; x < pix->width; x += 4)
-				{
-					Image_GetAlphaBlock(AlphaBlock, Runner8, pix, x, y);
-					for (i = 0; i < 16; i += 2)
-					{
-						byte tempBlock = ((AlphaBlock[i]>>4)<<4) | (AlphaBlock[i+1]>>4);
-						VFS_Write(f, &tempBlock, 1 );
-					}
-					Image_GetBlock(Block, Runner16, pix, x, y);
-					Image_ChooseEndpoints(Block, &t0, &t1);
-					ex0 = max(t0, t1);
-					ex1 = min(t0, t1);
-					Image_CorrectEndDXT1(&ex0, &ex1, 0);
-					VFS_Write(f, &ex0, sizeof(word));
-					VFS_Write(f, &ex1, sizeof(word));
-					BitMask = Image_GenBitMask(ex0, ex1, 4, Block, NULL, NULL);
-					VFS_Write(f, AlphaBitMask, sizeof(uint));
-					Count += 16;
-				}
+				if( width > i + 3 ) numxpixels = 4;
+				else numxpixels = width - i;
+				Image_ExtractColors( srcpixels, srcaddr, width, numxpixels, numypixels, srccomps );
+				*blkaddr++ = (srcpixels[0][0][3] >> 4) | (srcpixels[0][1][3] & 0xf0);
+				*blkaddr++ = (srcpixels[0][2][3] >> 4) | (srcpixels[0][3][3] & 0xf0);
+				*blkaddr++ = (srcpixels[1][0][3] >> 4) | (srcpixels[1][1][3] & 0xf0);
+				*blkaddr++ = (srcpixels[1][2][3] >> 4) | (srcpixels[1][3][3] & 0xf0);
+				*blkaddr++ = (srcpixels[2][0][3] >> 4) | (srcpixels[2][1][3] & 0xf0);
+				*blkaddr++ = (srcpixels[2][2][3] >> 4) | (srcpixels[2][3][3] & 0xf0);
+				*blkaddr++ = (srcpixels[3][0][3] >> 4) | (srcpixels[3][1][3] & 0xf0);
+				*blkaddr++ = (srcpixels[3][2][3] >> 4) | (srcpixels[3][3][3] & 0xf0);
+				Image_EncodeColorBlock( blkaddr, srcpixels, numxpixels, numypixels, saveformat );
+				srcaddr += srccomps * numxpixels;
+				blkaddr += 8;
 			}
-			Runner16 += pix->width * pix->height;
-			Runner8 += pix->width * pix->height;
 		}
 		break;
 	case PF_DXT5:
-		for (z = 0; z < pix->numLayers; z++)
+		for( j = 0; j < height; j += 4 )
 		{
-			for (y = 0; y < pix->height; y += 4)
+			if( height > j + 3 ) numypixels = 4;
+			else numypixels = height - j;
+			srcaddr = pix->buffer + j * width * srccomps;
+
+			for( i = 0; i < width; i += 4 )
 			{
-				for (x = 0; x < pix->width; x += 4)
-				{
-					Image_GetAlphaBlock(AlphaBlock, Runner8, pix, x, y);
-					Image_ChooseAlphaEndpoints(AlphaBlock, &a0, &a1);
-					Image_GenAlphaBitMask(a0, a1, AlphaBlock, AlphaBitMask, NULL/*AlphaOut*/);
-					VFS_Write(f, &a0, sizeof(byte));
-					VFS_Write(f, &a1, sizeof(byte));
-                                                 	VFS_Write(f, &AlphaBitMask, sizeof(byte) * 6 );
-                                                 	Image_GetBlock(Block, Runner16, pix, x, y);
-					Image_ChooseEndpoints(Block, &t0, &t1);
-					ex0 = max(t0, t1);
-					ex1 = min(t0, t1);
-					Image_CorrectEndDXT1(&ex0, &ex1, 0);
-					VFS_Write(f, &ex0, sizeof(word));
-					VFS_Write(f, &ex1, sizeof(word));
-					BitMask = Image_GenBitMask(ex0, ex1, 4, Block, NULL, NULL);
-					VFS_Write(f, &BitMask, sizeof(uint));
-					Count += 16;
-				}
+				if( width > i + 3 ) numxpixels = 4;
+				else numxpixels = width - i;
+
+				Image_ExtractColors( srcpixels, srcaddr, width, numxpixels, numypixels, srccomps );
+				Image_EncodeDXT5alpha( blkaddr, srcpixels, numxpixels, numypixels );
+				Image_EncodeColorBlock( blkaddr + 8, srcpixels, numxpixels, numypixels, saveformat );
+				srcaddr += srccomps * numxpixels;
+				blkaddr += 16;
 			}
-			Runner16 += pix->width * pix->height;
-			Runner8 += pix->width * pix->height;
 		}
 		break;
+	default:
+      		MsgDev( D_ERROR, "Image_CompressDXT: bad destination format %d\n", saveformat );
+		if( dest ) Mem_Free( dest );
+		return 0;
 	}
+	dst_size = VFS_Write( f, dest, dst_size );
+	if( dest ) Mem_Free( dest );
 
-	Mem_Free( Data );
-	Mem_Free( Alpha);
-
-	return Count;
+	return dst_size;
 }
 
 void Image_DXTGetPixelFormat( dds_t *hdr )

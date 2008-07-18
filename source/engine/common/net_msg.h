@@ -63,10 +63,9 @@ typedef enum
 */
 
 // per-level limits
-#define MAX_ENTITIES		MAX_EDICTS// refdef ents
 #define MAX_DLIGHTS			128	// dynamic lights
 #define MAX_CLIENTS			256	// absolute limit
-#define MAX_LIGHTSTYLES		256
+#define MAX_LIGHTSTYLES		256	// compiler limit
 #define MAX_SOUNDS			512	// so they cannot be blindly increased
 #define MAX_IMAGES			256	// hud graphics
 #define MAX_DECALS			256	// various decals
