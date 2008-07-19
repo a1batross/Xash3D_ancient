@@ -309,6 +309,7 @@ enum
 	PRVM_SERVERPROG = 0,
 	PRVM_CLIENTPROG,
 	PRVM_MENUPROG,
+	PRVM_DECOMPILED,
 	PRVM_MAXPROGS,	// must be last			
 };
 
@@ -561,6 +562,7 @@ typedef struct prvm_prog_s
 	ddef_t		*fielddefs;
 	ddef_t		*globaldefs;
 	dstatement_t	*statements;
+	includeddatafile_t	*sources;		// debug version include packed source files
 	int		*linenums;	// debug versions only
 	type_t		*types;
 	int		edict_size;	// in bytes

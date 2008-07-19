@@ -294,4 +294,6 @@ static fields_t sv_reqfields[] =
 	{264,	1,	"oldmodel"}
 };
 
+#define PROG_CRC_SERVER		1320
+
 #endif//SV_EDICT_H

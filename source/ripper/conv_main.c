@@ -7,7 +7,9 @@
 #include "pal_utils.h"
 
 dll_info_t imglib_dll = { "imglib.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(imglib_exp_t) };
+dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vprogs_exp_t) };
 imglib_exp_t *Image;
+vprogs_exp_t *PRVM;
 stdlib_api_t com;
 byte *basepool;
 byte *zonepool;
@@ -112,8 +114,9 @@ so do it manually
 */
 void InitConvertor ( uint funcname, int argc, char **argv )
 {
-	launch_t	CreateImglib;
-
+	launch_t	CreateImglib, CreateVprogs;
+	string	source, gamedir;
+	
 	// init pools
 	basepool = Mem_AllocPool( "Temp" );
 	zonepool = Mem_AllocPool( "Zone" );
@@ -123,13 +126,34 @@ void InitConvertor ( uint funcname, int argc, char **argv )
 	CreateImglib = (void *)imglib_dll.main;
 	Image = CreateImglib( &com, NULL ); // second interface not allowed
 
-	FS_InitRootDir(".");
-	Image->Init( funcname ); // initialize image support
+	switch( funcname )
+	{
+	case RIPP_QCCDEC:
+		Sys_LoadLibrary( &vprogs_dll ); // load qcclib
+		CreateVprogs = (void *)vprogs_dll.main;
+		PRVM = CreateVprogs( &com, NULL ); // second interface not allowed
+
+		PRVM->Init( funcname, argc, argv );
+
+		if(!FS_GetParmFromCmdLine("-dir", gamedir ))
+			com.strncpy( gamedir, ".", sizeof(gamedir));
+		if(!FS_GetParmFromCmdLine("+dat", source ))
+			com.strncpy( source, "progs.dat", sizeof(source));
+
+		start = Sys_DoubleTime();
+		PRVM->PrepareDAT( gamedir, source );
+		break;
+	default:
+		FS_InitRootDir(".");
+		Image->Init( funcname ); // initialize image support
+		break;	
+	}
+
 	start = Sys_DoubleTime();
 	Msg("Converting ...\n\n");
 }
 
-void RunConvertor ( void )
+void RunConvertor( void )
 {
 	search_t	*search;
 	string	errorstring;
@@ -183,9 +207,13 @@ void RunConvertor ( void )
 		AddMask( "*.snd" );
 		AddMask( "*.mus" );
 		break;
-	case RIPP_BSPDEC:
 	case RIPP_QCCDEC:
-		Sys_Break(" not implemented\n");		
+		if(PRVM->DecompileDAT())
+			numConvertedRes++;
+		break;
+	case RIPP_BSPDEC:
+		Sys_Break(" not implemented\n");
+		break;
 	case HOST_OFFLINE:
 	default: return;
 	}
@@ -197,7 +225,7 @@ void RunConvertor ( void )
 	}
 
 	// directory to extract
-	com.strncpy(gs_gamedir, "tmpQuArK", sizeof(gs_gamedir));
+	com.strncpy( gs_gamedir, "tmpQuArK", sizeof(gs_gamedir));
 
 	// search by mask		
 	for( i = 0; i < num_searchmask; i++)
@@ -214,7 +242,7 @@ void RunConvertor ( void )
 		}
 		Mem_Free( search );
 	}
-	if(numConvertedRes == 0) 
+	if( numConvertedRes == 0 ) 
 	{
 		for(j = 0; j < 16; j++) 
 		{

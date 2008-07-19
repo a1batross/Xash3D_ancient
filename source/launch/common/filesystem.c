@@ -1393,9 +1393,9 @@ void FS_CreateGameInfo( const char *filename )
 	com_strncat(buffer, va("gamemode\t\t\"singleplayer\"\rgamekey\t\t\"%s\"", GI.key), MAX_SYSPATH );
 	com_strncat(buffer, "\nstartmap\t\t\"newmap\"\n\n", MAX_SYSPATH );
 	com_strncat(buffer, "// name or each prog (\"\" - ignore to load)", MAX_SYSPATH );
-	com_strncat(buffer, "\nserver\t\t\"server.dat\"", MAX_SYSPATH );
-	com_strncat(buffer, "\nclient\t\t\"client.dat\"", MAX_SYSPATH );
-	com_strncat(buffer, "\nuimenu\t\t\"uimenu.dat\"", MAX_SYSPATH );
+	com_strncat(buffer, "\nserver\t\t\"vprogs/server.dat\"", MAX_SYSPATH );
+	com_strncat(buffer, "\nclient\t\t\"vprogs/client.dat\"", MAX_SYSPATH );
+	com_strncat(buffer, "\nuimenu\t\t\"vrpogs/uimenu.dat\"", MAX_SYSPATH );
 	
 	FS_WriteFile( filename, buffer, com_strlen(buffer));
 	Mem_Free( buffer );

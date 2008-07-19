@@ -139,19 +139,15 @@ static void Image_BaseColorSearch( byte *blkaddr, byte srccolors[4][4][4], byte 
 
 	if( nrcolor[0] == 0 ) nrcolor[0] = 1;
 	if( nrcolor[1] == 0 ) nrcolor[1] = 1;
-
-	for( i = 0; i < 3; i++ )
+	for( j = 0; j < 2; j++ )
 	{
-		if((testcolor[0][i] + blockerrlin[0][i] / nrcolor[0]) <= 0)
-			testcolor[0][i] = 0;
-		else testcolor[0][i] = (testcolor[0][i] + blockerrlin[0][i] / nrcolor[0]);
-	}
-
-	for( i = 0; i < 3; i++ )
-	{
-		if((testcolor[1][i] + blockerrlin[1][i] / nrcolor[1]) >= 255)
-			testcolor[1][i] = 255;
-		else testcolor[1][i] = (testcolor[1][i] + blockerrlin[1][i] / nrcolor[1]);
+		for( i = 0; i < 3; i++ )
+		{
+			int newvalue = testcolor[j][i] + blockerrlin[j][i] / nrcolor[j];
+			if( newvalue <= 0 ) testcolor[j][i] = 0;
+			else if( newvalue >= 255 ) testcolor[j][i] = 255;
+			else testcolor[j][i] = newvalue;
+		}
 	}
 
 	if((abs(testcolor[0][0] - testcolor[1][0]) < 8) && (abs(testcolor[0][1] - testcolor[1][1]) < 4) && (abs(testcolor[0][2] - testcolor[1][2]) < 8))
@@ -259,8 +255,12 @@ static void Image_StoreBlock( byte *blkaddr, byte srccolors[4][4][4], byte *best
 
 	if( color0 < color1 )
 	{
-		tempcolor = color0; color0 = color1; color1 = tempcolor;
-		colorptr = bestcolor[0]; bestcolor[0] = bestcolor[1]; bestcolor[1] = colorptr;
+		tempcolor = color0;
+		color0 = color1;
+		color1 = tempcolor;
+		colorptr = bestcolor[0];
+		bestcolor[0] = bestcolor[1];
+		bestcolor[1] = colorptr;
 	}
 
 	for( i = 0; i < 3; i++ )
@@ -372,7 +372,7 @@ static void Image_StoreBlock( byte *blkaddr, byte srccolors[4][4][4], byte *best
 	}
 }
 
-static void Image_EncodeColorBlock( byte *blkaddr, byte srccolors[4][4][4], int numxpixels, int numypixels, uint type )
+static void Image_EncodeColorBlock( byte *blkaddr, byte srccolors[4][4][4], int numxpixels, int numypixels, uint type, int flags )
 {
 	// simplistic approach. We need two base colors, simply use the "highest" and the "lowest" color
 	// present in the picture as base colors
@@ -413,6 +413,13 @@ static void Image_EncodeColorBlock( byte *blkaddr, byte srccolors[4][4][4], int 
 		}
 	}
 
+	if( type != PF_DXT1 )
+	{	
+		// manually set alpha for DXT3 or DXT5
+		if( flags & IMAGE_HAS_ALPHA ) haveAlpha = true;
+		else haveAlpha = false;
+	}
+
 	// make sure the original color values won't get touched...
 	for( j = 0; j < 2; j++ )
 	{
@@ -429,6 +436,18 @@ static void Image_EncodeColorBlock( byte *blkaddr, byte srccolors[4][4][4], int 
 	Image_BaseColorSearch( blkaddr, srccolors, bestcolor, numxpixels, numypixels, type, haveAlpha );
 	// find the best encoding for these colors, and store the result
 	Image_StoreBlock( blkaddr, srccolors, bestcolor, numxpixels, numypixels, type, haveAlpha );
+}
+
+static void Image_StoreAlphaBlock( byte *blkaddr, byte alphabase1, byte alphabase2, byte alphaenc[16] )
+{
+	*blkaddr++ = alphabase1;
+	*blkaddr++ = alphabase2;
+	*blkaddr++ = alphaenc[0] | (alphaenc[1] << 3) | ((alphaenc[2] & 3) << 6);
+	*blkaddr++ = (alphaenc[2] >> 2) | (alphaenc[3] << 1) | (alphaenc[4] << 4) | ((alphaenc[5] & 1) << 7);
+	*blkaddr++ = (alphaenc[5] >> 1) | (alphaenc[6] << 2) | (alphaenc[7] << 5);
+	*blkaddr++ = alphaenc[8] | (alphaenc[9] << 3) | ((alphaenc[10] & 3) << 6);
+	*blkaddr++ = (alphaenc[10] >> 2) | (alphaenc[11] << 1) | (alphaenc[12] << 4) | ((alphaenc[13] & 1) << 7);
+	*blkaddr++ = (alphaenc[13] >> 1) | (alphaenc[14] << 2) | (alphaenc[15] << 5);
 }
 
 static void Image_EncodeDXT5alpha( byte *blkaddr, byte srccolors[4][4][4], int numxpixels, int numypixels )
@@ -486,8 +505,8 @@ static void Image_EncodeDXT5alpha( byte *blkaddr, byte srccolors[4][4][4], int n
 	// find best encoding for alpha0 > alpha1
 	// it's possible this encoding is better even if both alphaabsmin and alphaabsmax are true
 	alphablockerror1 = 0x0;
-	alphablockerror2 = 0xFFFFFF;
-	alphablockerror3 = 0xFFFFFF;
+	alphablockerror2 = 0xffffffff;
+	alphablockerror3 = 0xffffffff;
 
 	if( alphaabsmin ) alphause[0] = 0;
 	else alphause[0] = alphabase[0];
@@ -788,38 +807,10 @@ static void Image_EncodeDXT5alpha( byte *blkaddr, byte srccolors[4][4][4], int n
 
 	// write the alpha values and encoding back.
 	if((alphablockerror1 <= alphablockerror2) && (alphablockerror1 <= alphablockerror3))
-	{
-		*blkaddr++ = alphause[1];
-		*blkaddr++ = alphause[0];
-		*blkaddr++ = alphaenc1[0] | (alphaenc1[1] << 3) | ((alphaenc1[2] & 3) << 6);
-		*blkaddr++ = (alphaenc1[2] >> 2) | (alphaenc1[3] << 1) | (alphaenc1[4] << 4) | ((alphaenc1[5] & 1) << 7);
-		*blkaddr++ = (alphaenc1[5] >> 1) | (alphaenc1[6] << 2) | (alphaenc1[7] << 5);
-		*blkaddr++ = alphaenc1[8] | (alphaenc1[9] << 3) | ((alphaenc1[10] & 3) << 6);
-		*blkaddr++ = (alphaenc1[10] >> 2) | (alphaenc1[11] << 1) | (alphaenc1[12] << 4) | ((alphaenc1[13] & 1) << 7);
-		*blkaddr++ = (alphaenc1[13] >> 1) | (alphaenc1[14] << 2) | (alphaenc1[15] << 5);
-	}
+		Image_StoreAlphaBlock( blkaddr, alphause[1], alphause[0], alphaenc1 );
 	else if( alphablockerror2 <= alphablockerror3 )
-	{
-		*blkaddr++ = alphabase[0];
-		*blkaddr++ = alphabase[1];
-		*blkaddr++ = alphaenc2[0] | (alphaenc2[1] << 3) | ((alphaenc2[2] & 3) << 6);
-		*blkaddr++ = (alphaenc2[2] >> 2) | (alphaenc2[3] << 1) | (alphaenc2[4] << 4) | ((alphaenc2[5] & 1) << 7);
-		*blkaddr++ = (alphaenc2[5] >> 1) | (alphaenc2[6] << 2) | (alphaenc2[7] << 5);
-		*blkaddr++ = alphaenc2[8] | (alphaenc2[9] << 3) | ((alphaenc2[10] & 3) << 6);
-		*blkaddr++ = (alphaenc2[10] >> 2) | (alphaenc2[11] << 1) | (alphaenc2[12] << 4) | ((alphaenc2[13] & 1) << 7);
-		*blkaddr++ = (alphaenc2[13] >> 1) | (alphaenc2[14] << 2) | (alphaenc2[15] << 5);
-	}
-	else
-	{
-		*blkaddr++ = alphatest[0];
-		*blkaddr++ = alphatest[1];
-		*blkaddr++ = alphaenc3[0] | (alphaenc3[1] << 3) | ((alphaenc3[2] & 3) << 6);
-		*blkaddr++ = (alphaenc3[2] >> 2) | (alphaenc3[3] << 1) | (alphaenc3[4] << 4) | ((alphaenc3[5] & 1) << 7);
-		*blkaddr++ = (alphaenc3[5] >> 1) | (alphaenc3[6] << 2) | (alphaenc3[7] << 5);
-		*blkaddr++ = alphaenc3[8] | (alphaenc3[9] << 3) | ((alphaenc3[10] & 3) << 6);
-		*blkaddr++ = (alphaenc3[10] >> 2) | (alphaenc3[11] << 1) | (alphaenc3[12] << 4) | ((alphaenc3[13] & 1) << 7);
-		*blkaddr++ = (alphaenc3[13] >> 1) | (alphaenc3[14] << 2) | (alphaenc3[15] << 5);
-	}
+		Image_StoreAlphaBlock( blkaddr, alphabase[0], alphabase[1], alphaenc2 );
+	else Image_StoreAlphaBlock( blkaddr, (byte)alphatest[0], (byte)alphatest[1], alphaenc3 );
 }
 
 static void Image_ExtractColors( byte srcpixels[4][4][4], const byte *srcaddr, int srcRowStride, int numxpixels, int numypixels, int comps )
@@ -1509,9 +1500,9 @@ size_t Image_CompressDXT( vfile_t *f, int saveformat, rgbdata_t *pix )
 {
 	byte	srcpixels[4][4][4];
 	int	numxpixels, numypixels;
+	byte	*blkaddr, *dest, *flip = NULL;
 	int	i, j, width, height;
 	const byte *srcaddr;
-	byte	*blkaddr, *dest;
 	size_t	dst_size;
 	int	srccomps;
 
@@ -1528,14 +1519,13 @@ size_t Image_CompressDXT( vfile_t *f, int saveformat, rgbdata_t *pix )
 		int	x, y, c;
 		byte	*in = pix->buffer;
  		uint	line = pix->width * srccomps;
-		byte	*out = Mem_Alloc( zonepool, pix->size ); // alloc src image size
- 
+
+		flip = Mem_Alloc( zonepool, pix->size ); // alloc src image size
 		for( y = pix->height - 1; y >= 0; y-- )
 			for( x = 0; x < pix->width; x++ )
 				for( c = 0; c < srccomps; c++, in++)
-					pix->buffer[y*line+x*srccomps+c] = *in;
-		//FIXME: Mem_Free( pix->buffer );
-		pix->buffer = out;
+					flip[y*line+x*srccomps+c] = *in;
+		pix->buffer = flip;
 	}
 
 	blkaddr = dest = Mem_Alloc( zonepool, dst_size ); // alloc dst image size
@@ -1553,7 +1543,7 @@ size_t Image_CompressDXT( vfile_t *f, int saveformat, rgbdata_t *pix )
 				if( width > i + 3 ) numxpixels = 4;
 				else numxpixels = width - i;
 				Image_ExtractColors( srcpixels, srcaddr, width, numxpixels, numypixels, srccomps );
-				Image_EncodeColorBlock( blkaddr, srcpixels, numxpixels, numypixels, saveformat );
+				Image_EncodeColorBlock( blkaddr, srcpixels, numxpixels, numypixels, saveformat, pix->flags );
 				srcaddr += srccomps * numxpixels;
 				blkaddr += 8;
 			}
@@ -1579,7 +1569,7 @@ size_t Image_CompressDXT( vfile_t *f, int saveformat, rgbdata_t *pix )
 				*blkaddr++ = (srcpixels[2][2][3] >> 4) | (srcpixels[2][3][3] & 0xf0);
 				*blkaddr++ = (srcpixels[3][0][3] >> 4) | (srcpixels[3][1][3] & 0xf0);
 				*blkaddr++ = (srcpixels[3][2][3] >> 4) | (srcpixels[3][3][3] & 0xf0);
-				Image_EncodeColorBlock( blkaddr, srcpixels, numxpixels, numypixels, saveformat );
+				Image_EncodeColorBlock( blkaddr, srcpixels, numxpixels, numypixels, saveformat, pix->flags );
 				srcaddr += srccomps * numxpixels;
 				blkaddr += 8;
 			}
@@ -1599,7 +1589,7 @@ size_t Image_CompressDXT( vfile_t *f, int saveformat, rgbdata_t *pix )
 
 				Image_ExtractColors( srcpixels, srcaddr, width, numxpixels, numypixels, srccomps );
 				Image_EncodeDXT5alpha( blkaddr, srcpixels, numxpixels, numypixels );
-				Image_EncodeColorBlock( blkaddr + 8, srcpixels, numxpixels, numypixels, saveformat );
+				Image_EncodeColorBlock( blkaddr + 8, srcpixels, numxpixels, numypixels, saveformat, pix->flags );
 				srcaddr += srccomps * numxpixels;
 				blkaddr += 16;
 			}
@@ -1612,6 +1602,7 @@ size_t Image_CompressDXT( vfile_t *f, int saveformat, rgbdata_t *pix )
 	}
 	dst_size = VFS_Write( f, dest, dst_size );
 	if( dest ) Mem_Free( dest );
+	if( flip ) Mem_Free( flip );
 
 	return dst_size;
 }

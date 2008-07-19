@@ -90,4 +90,6 @@ static fields_t cl_reqfields[] =
 	{16,	2,	"flags"}
 };
 
+#define PROG_CRC_CLIENT		9488
+
 #endif//CL_EDICT_H

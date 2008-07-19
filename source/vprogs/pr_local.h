@@ -564,6 +564,13 @@ extern int	maxtypeinfos;
 extern int	numtemps;
 
 //
+// pr_main.c
+//
+void PR_InitCompile( const char *name );
+void PR_InitDecompile( const char *name );
+bool PRVM_DecompileProgs( void );
+
+//
 // pr_utils.c
 //
 extern int typecmp(type_t *a, type_t *b);
@@ -659,5 +666,10 @@ def_t *PR_DummyDef(type_t *type, char *name, def_t *scope, int arraysize, uint o
 void PR_BeginCompilation ( void );
 bool PR_ContinueCompile ( void );
 void PR_FinishCompilation ( void );
+
+//
+// pr_decomp.c
+//
+bool PR_Decompile( void );
 
 #endif//PR_LOCAL_H

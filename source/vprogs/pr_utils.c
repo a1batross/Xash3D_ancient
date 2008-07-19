@@ -294,11 +294,11 @@ int PR_WriteSourceFiles(file_t *h, dprograms_t *progs, bool sourceaswell)
 	if (!num) return 0;
 
 	idf = Qalloc(sizeof(includeddatafile_t) * num);
-	for (f = sourcefile, num = 0; f; f = f->next)
+	for( f = sourcefile, num = 0; f; f = f->next )
 	{
-		if (f->type == FT_CODE && !sourceaswell)
+		if( f->type == FT_CODE && !sourceaswell )
 			continue;
-		com.strcpy(idf[num].filename, f->filename);
+		com.strcpy( idf[num].filename, f->filename );
 		idf[num].size = f->size;
 		idf[num].compmethod = CMPW_DEFLATE;
 		idf[num].ofs = FS_Tell(h);
@@ -306,8 +306,8 @@ int PR_WriteSourceFiles(file_t *h, dprograms_t *progs, bool sourceaswell)
 		num++;
 	}
 	ofs = FS_Tell(h);	
-	FS_Write(h, &num, sizeof(int));
-	FS_Write(h, idf, sizeof(includeddatafile_t)*num);
+	FS_Write( h, &num, sizeof(int));
+	FS_Write( h, idf, sizeof(includeddatafile_t) * num );
 	sourcefile = NULL;
 
 	return ofs;
@@ -538,15 +538,15 @@ word PR_WriteProgdefs (char *filename)
 		PR_Message("Quake1 unmodified progs.dat\n");
 		if(!com.strcmp(progsoutname, "unknown.dat")) com.strcpy(progsoutname, "progs.dat");
 		break;
-	case PROG_CRC_SERVER:
+	case 1320:
 		PR_Message("Xash3D unmodified server.dat\n");
 		if(!com.strcmp(progsoutname, "unknown.dat")) com.strcpy(progsoutname, "server.dat");
 		break;
-	case PROG_CRC_CLIENT:
+	case 9488:
 		PR_Message("Xash3D unmodified client.dat\n");
 		if(!com.strcmp(progsoutname, "unknown.dat")) com.strcpy(progsoutname, "client.dat");
 		break;		
-	case PROG_CRC_UIMENU:
+	case 2460:
 		PR_Message("Xash3D unmodified uimenu.dat\n");
 		if(!com.strcmp(progsoutname, "unknown.dat")) com.strcpy(progsoutname, "uimenu.dat");
 		break;

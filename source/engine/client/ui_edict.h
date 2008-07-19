@@ -108,4 +108,6 @@ static fields_t ui_reqfields[] =
 	{93,	2,	"find2"}
 };
 
+#define PROG_CRC_UIMENU		2460
+
 #endif//UI_EDICT_H

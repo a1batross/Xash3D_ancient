@@ -570,7 +570,7 @@ bool VID_ScreenShot( const char *filename, bool levelshot )
 	r_shot->width = r_width->integer;
 	r_shot->height = r_height->integer;
 	r_shot->type = PF_RGB_24_FLIP;
-	r_shot->hint = PF_DXT3; // save format
+	r_shot->hint = PF_RGB_24; // save format
 	r_shot->size = r_shot->width * r_shot->height * 3;
 	r_shot->numLayers = 1;
 	r_shot->numMips = 1;

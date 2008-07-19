@@ -44,7 +44,7 @@ bool PCX_ConvertImage( const char *name, char *buffer, int filesize )
 		MsgDev( D_ERROR, "ConvPCX: (%s) have illegal pixel size '%d'\n", name, pcx.bits_per_pixel );
 		return false;
 	}
-	if(pic.width > 640 || pic.height > 640 || pic.width <= 0 || pic.height <= 0)
+	if(pic.width >= 640 || pic.height >= 480 || pic.width <= 0 || pic.height <= 0)
 	{
 		MsgDev( D_ERROR, "ConvPCX: (%s) dimensions out of range [%dx%d]\n", name, pic.width, pic.height );
 		return false;
@@ -89,7 +89,7 @@ bool PCX_ConvertImage( const char *name, char *buffer, int filesize )
 	for (i = 0; i < s; i++)
 	{
 		p = pbuf[i];
-		if (p == 255)
+		if( p == 255 )
 		{
 			pic.flags |= IMAGE_HAS_ALPHA; // found alpha channel
 			((byte *)&trans[i])[0] = ((byte *)&d_currentpal[0])[0];

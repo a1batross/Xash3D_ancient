@@ -738,6 +738,7 @@ void UI_Init( void )
 	prog->init_cmd = VM_Cmd_Init;
 	prog->reset_cmd = VM_Cmd_Reset;
 	prog->error_cmd = VM_Error;
+	prog->filecrc = PROG_CRC_UIMENU;
 
 	PRVM_LoadProgs( GI->uimenu_prog, 0, NULL, UI_NUM_REQFIELDS, ui_reqfields );
 	*prog->time = cls.realtime * 0.001f;

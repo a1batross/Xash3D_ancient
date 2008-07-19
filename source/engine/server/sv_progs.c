@@ -2463,7 +2463,8 @@ void SV_InitServerProgs( void )
 		prog->free_edict = SV_FreeEdict;
 		prog->count_edicts = SV_CountEdicts;
 		prog->load_edict = SV_LoadEdict;
-
+                    prog->filecrc = PROG_CRC_SERVER;
+		
 		// using default builtins
 		prog->init_cmd = VM_Cmd_Init;
 		prog->reset_cmd = VM_Cmd_Reset;

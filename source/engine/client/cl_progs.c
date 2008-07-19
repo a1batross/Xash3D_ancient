@@ -609,6 +609,7 @@ void CL_InitClientProgs( void )
 		prog->free_edict = CL_FreeEdict;
 		prog->count_edicts = CL_CountEdicts;
 		prog->load_edict = CL_LoadEdict;
+		prog->filecrc = PROG_CRC_CLIENT;
 
 		// using default builtins
 		prog->init_cmd = VM_Cmd_Init;

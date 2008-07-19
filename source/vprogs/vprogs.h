@@ -23,10 +23,6 @@ extern int prvm_developer;
 
 #define Host_Error com.error
 
-#define PROG_CRC_SERVER	1320
-#define PROG_CRC_CLIENT	9488
-#define PROG_CRC_UIMENU	2460
-
 enum op_state
 {
 	OP_DONE,		// 0
@@ -357,7 +353,7 @@ void PRVM_MEM_IncreaseEdicts(void);
 edict_t *PRVM_ED_Alloc (void);
 void PRVM_ED_Free (edict_t *ed);
 void PRVM_ED_ClearEdict (edict_t *e);
-
+ddef_t *PRVM_ED_GlobalAtOfs( int ofs );
 void PRVM_PrintFunctionStatements (const char *name);
 void PRVM_ED_Print(edict_t *ed);
 void PRVM_ED_Write (vfile_t *f, edict_t *ed);

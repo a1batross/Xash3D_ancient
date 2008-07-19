@@ -282,6 +282,7 @@ bool ConvLMP( const char *name, char *buffer, int filesize )
 	pic.buffer = (byte *)Mem_Alloc(zonepool, pic.size );
 	pic.numLayers = 1;
 	pic.type = PF_RGBA_32;
+	pic.hint = PF_RGBA_32;
 
 	// half-life 1.0.0.1 lmp version with palette
 	if( filesize > (int)sizeof(lmp) + pixels )
@@ -301,7 +302,7 @@ bool ConvLMP( const char *name, char *buffer, int filesize )
 	FS_StripExtension((char *)name );
 	Conv_GetPaletteLMP( pal, LUMP_NORMAL );
 	Conv_Copy8bitRGBA( fin, pic.buffer, pixels );
-	Image->SaveImage(va("%s/gfx/%s.tga", gs_gamedir, name ), &pic ); // save converted image
+	Image->SaveImage(va("%s/%s.tga", gs_gamedir, name ), &pic ); // save converted image
 	Mem_Free( pic.buffer ); // release buffer
 	Msg("%s.lmp\n", name ); // echo to console about current image
 

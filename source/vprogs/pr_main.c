@@ -35,18 +35,19 @@ int		*statement_linenums;
 char		sourcedir[MAX_SYSPATH];
 cachedsourcefile_t	*sourcefile;
 dfunction_t	*functions;
-int	numfunctions;
-ddef_t	*qcc_globals;
-int	numglobaldefs;
-ddef_t	*fields;
-int	numfielddefs;
-bool	pr_warning[WARN_MAX];
-int	target_version;
-bool	bodylessfuncs;
-type_t	*qcc_typeinfo;
-int	numtypeinfos;
-int	maxtypeinfos;
-int	prvm_developer;
+int		numfunctions;
+ddef_t		*qcc_globals;
+int		numglobaldefs;
+ddef_t		*fields;
+int		numfielddefs;
+bool		pr_warning[WARN_MAX];
+int		target_version;
+bool		bodylessfuncs;
+type_t		*qcc_typeinfo;
+int		numtypeinfos;
+int		maxtypeinfos;
+int		prvm_developer;
+int		host_instance;
 vprogs_exp_t	vm;
 
 hashtable_t compconstantstable;
@@ -61,7 +62,7 @@ cvar_t *prvm_traceqc;
 cvar_t *prvm_boundscheck;
 cvar_t *prvm_statementprofiling;
 
-void PR_SetDefaultProperties (void)
+void PR_SetDefaultProperties( void )
 {
 	const_t	*cnst;
 	int	i, j;
@@ -158,7 +159,7 @@ PR_Init
 initialize compiler and hash tables
 ===================
 */
-void PR_Init( const char *name )
+void PR_InitCompile( const char *name )
 {
 	static char	parmname[12][MAX_PARMS];
 	static temp_t	ret_temp;
@@ -245,6 +246,28 @@ void PR_Init( const char *name )
 	}
 }
 
+void PR_InitDecompile( const char *name )
+{
+	string	progsname;
+
+	com.strncpy( sourcefilename, name, sizeof(sourcefilename));
+	FS_FileBase( name, progsname );
+
+	PRVM_InitProg( PRVM_DECOMPILED );
+
+	vm.prog->reserved_edicts = 1;
+	vm.prog->loadintoworld = true;
+	vm.prog->name = copystring( progsname );
+	vm.prog->builtins = NULL;
+	vm.prog->numbuiltins = 0;
+	vm.prog->max_edicts = 4096;
+	vm.prog->limit_edicts = 4096;
+	vm.prog->edictprivate_size = sizeof(vm_edict_t);
+	vm.prog->error_cmd = VM_Error;
+	vm.prog->flag |= PRVM_OP_STATE; // enable op_state feature
+	vm.prog->progs_mempool = qccpool;
+}
+
 void PRVM_Init( uint funcname, int argc, char **argv )
 {
 	char	dev_level[4];
@@ -253,6 +276,7 @@ void PRVM_Init( uint funcname, int argc, char **argv )
 	com_argv = argv;
 
 	qccpool = Mem_AllocPool( "VM progs" );
+	host_instance = funcname;
 
 	if(FS_GetParmFromCmdLine("-dev", dev_level ))
 		prvm_developer = com.atoi(dev_level);
@@ -274,7 +298,7 @@ void PRVM_Init( uint funcname, int argc, char **argv )
 	prvm_statementprofiling = Cvar_Get ("prvm_statementprofiling", "0", 0, "counts how many times each QC statement has been executed" );
 	prvm_maxedicts = Cvar_Get( "prvm_maxedicts", "4096", CVAR_SYSTEMINFO, "user limit edicts number fof server, client and renderer, absolute limit 65535" );
 
-	if( funcname == HOST_NORMAL || funcname == HOST_DEDICATED )
+	if( host_instance == HOST_NORMAL || host_instance == HOST_DEDICATED )
 	{
 		// dump internal copies of progs into hdd if missing
 		if(!FS_FileExists("vprogs/server.dat")) FS_WriteFile( "vprogs/server.dat", server_dat, sizeof(server_dat)); 
@@ -290,8 +314,24 @@ void PRVM_Shutdown( void )
 
 void PRVM_PrepareProgs( const char *dir, const char *name )
 {
-	FS_InitRootDir((char *)dir);
-	PR_Init( name );
+	switch( host_instance )
+	{
+	case COMP_QCCLIB:
+		FS_InitRootDir((char *)dir);
+		PR_InitCompile( name );
+		break;
+	case RIPP_QCCDEC:
+		FS_InitRootDir((char *)dir);
+		PR_InitDecompile( name );
+		break;
+	case HOST_NORMAL:
+	case HOST_DEDICATED:
+		PR_InitCompile( name );
+		break;
+	default:
+		Sys_Break("PRVM_PrepareProgs: can't prepare progs for instance %d\n", host_instance );
+		break;
+	}
 }
 
 void PRVM_CompileProgs( void )
@@ -299,6 +339,11 @@ void PRVM_CompileProgs( void )
 	PR_BeginCompilation();
 	while(PR_ContinueCompile());
 	PR_FinishCompilation();          
+}
+
+bool PRVM_DecompileProgs( void )
+{
+	return PR_Decompile();
 }
 
 vprogs_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
@@ -312,6 +357,7 @@ vprogs_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 	vm.Free = PRVM_Shutdown;
 	vm.PrepareDAT = PRVM_PrepareProgs;
 	vm.CompileDAT = PRVM_CompileProgs;
+	vm.DecompileDAT = PRVM_DecompileProgs;
 
 	vm.WriteGlobals = PRVM_ED_WriteGlobals;
 	vm.ParseGlobals = PRVM_ED_ParseGlobals;
