@@ -2470,7 +2470,7 @@ void SV_InitServerProgs( void )
 		prog->reset_cmd = VM_Cmd_Reset;
 		prog->error_cmd = VM_Error;
 		prog->flag |= PRVM_OP_STATE; // enable op_state feature
-		PRVM_LoadProgs( GI->server_prog, 0, NULL, SV_NUM_REQFIELDS, sv_reqfields );
+		PRVM_LoadProgs( va("%s/server.dat", GI->vprogs_dir ), 0, NULL, SV_NUM_REQFIELDS, sv_reqfields );
 	}
 	PRVM_End;
 }

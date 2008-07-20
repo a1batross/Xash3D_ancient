@@ -78,6 +78,7 @@ string_t	s_file, s_file2;	// filename for function definition
 uint	locals_start;	// for tracking local variables vs temps
 uint	locals_end;	// for tracking local variables vs temps
 jmp_buf	pr_parse_abort;	// longjump with this on parse error
+jmp_buf	pr_int_error;	// longjump with internal error
 void	PR_ParseDefs (char *classname);
 bool	qcc_usefulstatement;
 int	max_breaks;
@@ -1547,7 +1548,7 @@ def_t *PR_Statement ( opcode_t *op, def_t *var_a, def_t *var_b, dstatement_t **o
 	{	// allocate result space
 		var_c = PR_GetTemp(*op->type_c);
 		statement->c = var_c->ofs;
-		if (op->type_b == &type_field)
+		if( op->type_b == &type_field )
 		{
 			var_c->name = var_b->name;
 			var_c->s_file = var_b->s_file;
@@ -6476,7 +6477,7 @@ PR_CompileFile
 compiles the 0 terminated text, adding defintions to the pr structure
 ============
 */
-void PR_CompileFile (char *string, char *filename)
+void PR_CompileFile( char *string, char *filename )
 {	
 	jmp_buf		abort_parse;
 
@@ -6484,24 +6485,24 @@ void PR_CompileFile (char *string, char *filename)
 	PR_ClearGrabMacros();// clear the frame macros
 	compilingfile = filename;
 		
-	if (opt_filenames)
+	if( opt_filenames )
 	{
 		pr_file_p = Qalloc(com.strlen(filename)+1);
 		com.strcpy(pr_file_p, filename);
 		s_file = pr_file_p - strings;
 		s_file2 = 0;
 	}
-	else s_file = s_file2 = PR_CopyString (filename, opt_noduplicatestrings );
+	else s_file = s_file2 = PR_CopyString( filename, opt_noduplicatestrings );
 
 	pr_file_p = string;
 	pr_source_line = 0;
-	PR_NewLine (false);
-	PR_Lex (); // read first token
+	PR_NewLine( false );
+	PR_Lex(); // read first token
 
 	// save state
 	Mem_Copy(&abort_parse, &pr_parse_abort, sizeof(abort_parse));
 
-	while (pr_token_type != tt_eof)
+	while( pr_token_type != tt_eof )
 	{
 		if (setjmp(pr_parse_abort))
 		{
@@ -6522,7 +6523,7 @@ void PR_CompileFile (char *string, char *filename)
 		}
 		// outside all functions
 		pr_scope = NULL;
-		PR_ParseDefs (NULL);
+		PR_ParseDefs( NULL );
 	}
 
 	PR_GetEntvarsName(); // set entavrs default name e.g. "self"
@@ -6546,7 +6547,7 @@ void PR_FinishCompilation( void )
 	currentchunk = NULL;
 
 	// check to make sure all functions prototyped have code
-	for (d = pr.def_head.next; d; d = d->next)
+	for( d = pr.def_head.next; d; d = d->next )
 	{
 		if (d->type->type == ev_function && !d->scope)// function parms are ok
 		{
@@ -6579,15 +6580,23 @@ void PR_FinishCompilation( void )
 
 	pr_scope = NULL;
 	// compilation failed ?
-	if(errors) 
+	if( errors ) 
 	{
-		Sys_Break("%s - %i error(s), %i warning(s)\n", progsoutname, pr_total_error_count, pr_warning_count);
+		string	errormsg;
+		com.sprintf( errormsg, "%s - %i error(s), %i warning(s)\n", progsoutname, pr_total_error_count, pr_warning_count );		
+		if( host_instance == HOST_NORMAL || host_instance == HOST_DEDICATED )
+		{
+			PR_Message( errormsg );
+			prvm_state = comp_error; // abort compilation
+			longjmp( pr_int_error, 1 );
+		}
+		else Sys_Break( errormsg );
 		return;
 	}
 	PR_WriteDAT();
 
-	PR_Message ("Скопировано файлов:         1.\n\n");// enigma from M$ :)
-	PR_Message ("%s - %i error(s), %i warning(s)\n", progsoutname, pr_total_error_count, pr_warning_count);
+	PR_Message( "Скопировано файлов:         1.\n\n");// enigma from M$ :)
+	PR_Message( "%s - %i error(s), %i warning(s)\n", progsoutname, pr_total_error_count, pr_warning_count );
 }
 
 /*
@@ -6619,9 +6628,11 @@ bool PR_ContinueCompile( void )
 		return false; // end of compile
 	}
 
-	PR_Message ("%s\n", com_token);
-	qc_file = QCC_LoadFile (com_token, true );
-	PR_CompileFile (qc_file, com_token);
+	PR_Message( "%s\n", com_token );
+	qc_file = QCC_LoadFile( com_token, true );
+	if( prvm_state == comp_error )
+		return false;
+	PR_CompileFile( qc_file, com_token );
 
 	return true;
 }
@@ -6666,8 +6677,7 @@ void PR_BeginCompilation ( void )
 	numpr_globals = RESERVED_OFS; // default
 
 	freeofs = NULL;
-	com.sprintf (sourcefilename, "%sprogs.src", sourcedir );
-	progs_src = QCC_LoadFile( sourcefilename, false );// loading progs.src
+	progs_src = QCC_LoadFile( "progs.src", false );// loading progs.src
 	if(!progs_src) progs_src = PR_CreateProgsSRC();	// virtual list
 
 	while(*progs_src && *progs_src < ' ') progs_src++;

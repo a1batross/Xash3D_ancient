@@ -371,7 +371,7 @@ PR_WriteProgdefs
 write advanced progdefs.h into disk
 ====================
 */
-word PR_WriteProgdefs (char *filename)
+word PR_WriteProgdefs( char *filename )
 {
 	char		file[PROGDEFS_MAX_SIZE];
 	char		header_name[MAX_QPATH];
@@ -516,7 +516,7 @@ word PR_WriteProgdefs (char *filename)
 		break;
 	}
 	ADD2("\n#endif//PROGDEFS_H");
-	if(ForcedCRC) crc = ForcedCRC;
+	if( ForcedCRC ) crc = ForcedCRC;
 
 	if (FS_CheckParm("-progdefs"))
 	{
@@ -524,7 +524,19 @@ word PR_WriteProgdefs (char *filename)
 		FS_WriteFile(filename, file, com.strlen(file));
 	}
 
-	switch (crc)
+	if( host_instance == HOST_NORMAL || host_instance == HOST_DEDICATED )
+	{
+		char	*path = progsoutname;
+		string	current;
+
+		com.strncpy( current, progsoutname, MAX_STRING );
+		if((path = strstr( current, ".." ))) path += 3; // skip ../
+
+		// make sure what progs file will be placed into right directory
+		com.snprintf( progsoutname, MAX_SYSPATH, "%s/%s", GI->vprogs_dir, path );
+	}
+
+	switch( crc )
 	{
 	case 54730:
 		PR_Message("QuakeWorld unmodified qwprogs.dat\n");
@@ -582,6 +594,7 @@ void PR_WriteLNOfile(char *destname)
 	lno.numstatements = numstatements;
 
 	f = FS_Open( filename, "w" );
+	if( !f ) PR_ParseError( ERR_INTERNAL, "Couldn't open file %s", filename );
 	FS_Write(f, &lno, sizeof(dlno_t)); // header
 	FS_Write(f, statement_linenums, numstatements * sizeof(int));
 
@@ -754,14 +767,19 @@ void PR_WriteDAT( void )
 	strofs = (strofs + 3) & ~3;
 
 	PR_Message("Linking...\n");
-	MsgDev(D_INFO, "%6i strofs (of %i)\n", strofs, MAX_STRINGS);
-	MsgDev(D_INFO, "%6i numstatements (of %i)\n", numstatements, MAX_STATEMENTS);
-	MsgDev(D_INFO, "%6i numfunctions (of %i)\n", numfunctions, MAX_FUNCTIONS);
-	MsgDev(D_INFO, "%6i numglobaldefs (of %i)\n", numglobaldefs, MAX_GLOBALS);
-	MsgDev(D_INFO, "%6i numfielddefs (%i unique) (of %i)\n", numfielddefs, pr.size_fields, MAX_FIELDS);
-	MsgDev(D_INFO, "%6i numpr_globals (of %i)\n", numpr_globals, MAX_REGS);	
-	
+	if( host_instance == COMP_QCCLIB )
+	{
+		// don't flood into engine console
+		MsgDev(D_INFO, "%6i strofs (of %i)\n", strofs, MAX_STRINGS);
+		MsgDev(D_INFO, "%6i numstatements (of %i)\n", numstatements, MAX_STATEMENTS);
+		MsgDev(D_INFO, "%6i numfunctions (of %i)\n", numfunctions, MAX_FUNCTIONS);
+		MsgDev(D_INFO, "%6i numglobaldefs (of %i)\n", numglobaldefs, MAX_GLOBALS);
+		MsgDev(D_INFO, "%6i numfielddefs (%i unique) (of %i)\n", numfielddefs, pr.size_fields, MAX_FIELDS);
+		MsgDev(D_INFO, "%6i numpr_globals (of %i)\n", numpr_globals, MAX_REGS);	
+	}	
+
 	f = FS_Open( progsoutname, "wb" );
+	if( !f ) PR_ParseError( ERR_INTERNAL, "Couldn't open file %s", progsoutname );
 	FS_Write(f, &progs, sizeof(progs));
 	FS_Write(f, "\r\n\r\n", 4);
 	FS_Write(f, v_copyright, com.strlen(v_copyright) + 1);
@@ -941,10 +959,11 @@ void PR_WriteDAT( void )
 	for (i = 0; i < sizeof(progs)/4; i++)((int *)&progs)[i] = LittleLong (((int *)&progs)[i]);
 	FS_Seek(f, 0, SEEK_SET);
 	FS_Write(f, &progs, sizeof(progs));
-	if (asmfile) FS_Close(asmfile);
+	if( asmfile ) FS_Close(asmfile);
 
-	MsgDev(D_INFO, "Writing %s, total size %i bytes\n", progsoutname, progsize );
-	FS_Close(f);
+	if( host_instance == COMP_QCCLIB )
+		MsgDev(D_INFO, "Writing %s, total size %i bytes\n", progsoutname, progsize );
+	FS_Close( f );
 }
 
 /*
@@ -991,22 +1010,40 @@ void PR_UnmarshalLocals( void )
 	if (maxo-ofs) PR_Message("Total of %i marshalled globals\n", maxo-ofs);
 }
 
-byte *PR_LoadFile(char *filename, bool crash, int type )
+byte *PR_LoadFile( char *filename, bool crash, int type )
 {
-	int	length;
+	int		length;
 	cachedsourcefile_t	*newfile;
-	byte	*file = FS_LoadFile( filename, &length );
-	
-	if (!length) 
+	string		fullname;
+	byte		*file;
+	char		*path;
+
+	// NOTE: in-game we can't use ../pathes, but root directory always
+	// ahead over ../pathes, so tranlate path from
+	// ../common/svc_user.h to source/common/svc_user.h
+	if( host_instance == HOST_NORMAL || host_instance == HOST_DEDICATED )
 	{
-		if(crash) PR_ParseError(ERR_INTERNAL, "Couldn't open file %s", filename);
+		if((path = strstr( filename, ".." )))
+		{
+			path += 2; // skip ..
+			com.snprintf( fullname, MAX_STRING, "%s%s", GI->source_dir, path );
+		}
+		else com.snprintf( fullname, MAX_STRING, "%s/%s/%s", GI->source_dir, sourcedir, filename );
+	}
+	else com.strncpy( fullname, filename, MAX_STRING );
+ 
+	file = FS_LoadFile( fullname, &length );
+	
+	if( !file || !length ) 
+	{
+		if( crash ) PR_ParseError(ERR_INTERNAL, "Couldn't open file %s", filename);
 		else return NULL;
 	}
-	newfile = (cachedsourcefile_t*)Qalloc( sizeof(cachedsourcefile_t) );
+	newfile = (cachedsourcefile_t*)Qalloc(sizeof(cachedsourcefile_t));
 	newfile->next = sourcefile;
 	sourcefile = newfile; // make chain
           
-	com.strcpy(sourcefile->filename, filename);
+	com.strcpy(sourcefile->filename, fullname );
 	sourcefile->file = file;
 	sourcefile->type = type;
 	sourcefile->size = length;
@@ -1014,7 +1051,7 @@ byte *PR_LoadFile(char *filename, bool crash, int type )
 	return sourcefile->file;
 }
 
-bool PR_Include(char *filename)
+bool PR_Include( char *filename )
 {
 	char		*newfile;
 	char		fname[512];
@@ -1032,10 +1069,10 @@ bool PR_Include(char *filename)
 	oldcurrentchunk = currentchunk;
 
 	com.strcpy(fname, filename);
-	newfile = QCC_LoadFile(fname, true );
+	newfile = QCC_LoadFile( fname, true );
 	currentchunk = NULL;
 	pr_file_p = newfile;
-	PR_CompileFile(newfile, fname);
+	PR_CompileFile( newfile, fname );
 	currentchunk = oldcurrentchunk;
 
 	compilingfile = ocompilingfile;

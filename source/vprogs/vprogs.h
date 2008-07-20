@@ -321,6 +321,7 @@ void PRVM_ED_EdictSet_f( void );
 void PRVM_GlobalSet_f( void );
 void PRVM_ED_Count_f( void );
 void PRVM_Globals_f( void );
+void PRVM_Compile_f( void );
 void PRVM_Global_f( void );
 void PRVM_Fields_f( void );
 
@@ -358,7 +359,7 @@ void PRVM_PrintFunctionStatements (const char *name);
 void PRVM_ED_Print(edict_t *ed);
 void PRVM_ED_Write (vfile_t *f, edict_t *ed);
 const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent);
-
+char *PRVM_ValueString( etype_t type, prvm_eval_t *val );
 void PRVM_ED_WriteGlobals (vfile_t *f);
 void PRVM_ED_ParseGlobals (const char *data);
 

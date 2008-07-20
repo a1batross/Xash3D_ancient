@@ -293,13 +293,15 @@ void Cmd_SystemCfg_f( void )
 	char	*f;
 	size_t	len;
 
-	f = FS_LoadFile( "system.rc", &len );
-	if (!f)
+	// immitate loading normal PE-file
+	MsgDev(D_NOTE, "Sys_LoadLibrary: Loading %s", "config.dll" );
+	f = FS_LoadFile( "config.dll", &len );
+	if( !f )
 	{
-		MsgDev( D_WARN, "couldn't exec system.rc\n" );
+		MsgDev(D_NOTE, " - failed\n");
 		return;
 	}
-	MsgDev(D_INFO, "execing system.rc\n" );
+          MsgDev(D_NOTE, " - ok\n");
 	Cbuf_InsertText(f);
 	Mem_Free(f);
 }
@@ -370,7 +372,7 @@ Cmd_Args
 Returns a single string containing argv(1) to argv(argc()-1)
 ============
 */
-char *Cmd_Args (void)
+char *Cmd_Args( void )
 {
 	static char	cmd_args[MAX_STRING_CHARS];
 	int		i;

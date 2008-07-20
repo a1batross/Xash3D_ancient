@@ -11,7 +11,7 @@
 
 stdlib_api_t	com;
 byte		*qccpool;
-int		com_argc;
+int		com_argc = 0;
 char		**com_argv;
 char		v_copyright[1024];
 uint		MAX_REGS;
@@ -48,6 +48,7 @@ int		numtypeinfos;
 int		maxtypeinfos;
 int		prvm_developer;
 int		host_instance;
+int		prvm_state;
 vprogs_exp_t	vm;
 
 hashtable_t compconstantstable;
@@ -250,9 +251,7 @@ void PR_InitDecompile( const char *name )
 {
 	string	progsname;
 
-	com.strncpy( sourcefilename, name, sizeof(sourcefilename));
 	FS_FileBase( name, progsname );
-
 	PRVM_InitProg( PRVM_DECOMPILED );
 
 	vm.prog->reserved_edicts = 1;
@@ -266,6 +265,8 @@ void PR_InitDecompile( const char *name )
 	vm.prog->error_cmd = VM_Error;
 	vm.prog->flag |= PRVM_OP_STATE; // enable op_state feature
 	vm.prog->progs_mempool = qccpool;
+
+	PR_InitTypes();
 }
 
 void PRVM_Init( uint funcname, int argc, char **argv )
@@ -291,6 +292,7 @@ void PRVM_Init( uint funcname, int argc, char **argv )
 	Cmd_AddCommand("prvm_globalset", PRVM_GlobalSet_f, "sets value of a specified global variable in the selected VM (server, client, menu)");
 	Cmd_AddCommand("prvm_edictset", PRVM_ED_EdictSet_f, "changes value of a specified property of a specified entity in the selected VM (server, client, menu)");
 	Cmd_AddCommand("prvm_printfunction", PRVM_PrintFunction_f, "prints a disassembly (QuakeC instructions) of the specified function in the selected VM (server, client, menu)");
+	Cmd_AddCommand("compile", PRVM_Compile_f, "compile specified VM (server, client, menu), changes will take affect after map restart");
 
 	// LordHavoc: optional runtime bounds checking (speed drain, but worth it for security, on by default - breaks most QCCX features (used by CRMod and others))
 	prvm_boundscheck = Cvar_Get( "prvm_boundscheck", "0", 0, "enable vm internal boundschecker" );
@@ -314,6 +316,8 @@ void PRVM_Shutdown( void )
 
 void PRVM_PrepareProgs( const char *dir, const char *name )
 {
+	int	i;
+
 	switch( host_instance )
 	{
 	case COMP_QCCLIB:
@@ -326,7 +330,12 @@ void PRVM_PrepareProgs( const char *dir, const char *name )
 		break;
 	case HOST_NORMAL:
 	case HOST_DEDICATED:
+		com_argc = Cmd_Argc();
+		for( i = 0; i < com_argc; i++ )
+			com_argv[i] = copystring(Cmd_Argv(i));
+		com.strncpy( sourcedir, name, MAX_SYSPATH );
 		PR_InitCompile( name );
+		prvm_state = comp_begin;
 		break;
 	default:
 		Sys_Break("PRVM_PrepareProgs: can't prepare progs for instance %d\n", host_instance );
@@ -341,9 +350,52 @@ void PRVM_CompileProgs( void )
 	PR_FinishCompilation();          
 }
 
-bool PRVM_DecompileProgs( void )
+void PRVM_Frame( dword time )
 {
-	return PR_Decompile();
+	if(setjmp(pr_int_error))
+		return;
+
+	switch( prvm_state )
+	{
+	case comp_begin:
+		PR_BeginCompilation();
+		prvm_state = comp_frame;
+		break;
+	case comp_frame:
+		if(PR_ContinueCompile());
+		else prvm_state = comp_done;
+		break;
+	case comp_done:
+		prvm_state = comp_inactive;
+		PR_FinishCompilation();
+		break;
+	case comp_error:
+		prvm_state = comp_inactive;
+		break;
+	case comp_inactive:
+	default: return;
+	}	 
+}
+
+bool PRVM_DecompileProgs( const char *name )
+{
+	return PR_Decompile( name );
+}
+
+void PRVM_Compile_f( void )
+{
+	if( Cmd_Argc() < 2)
+	{
+		Msg( "Usage: compile <program name> </D=DEFINE> </O<level>> </O<abbrev>>\n");
+		return;
+	}
+	if( prvm_state != comp_inactive )
+	{
+		Msg("Compile already in progress, please wait\n" );
+		return;
+	}
+	// engine already known about vprogs and vsource directory
+	PRVM_PrepareProgs( NULL, Cmd_Argv( 1 ));
 }
 
 vprogs_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
@@ -358,6 +410,7 @@ vprogs_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 	vm.PrepareDAT = PRVM_PrepareProgs;
 	vm.CompileDAT = PRVM_CompileProgs;
 	vm.DecompileDAT = PRVM_DecompileProgs;
+	vm.Update = PRVM_Frame;
 
 	vm.WriteGlobals = PRVM_ED_WriteGlobals;
 	vm.ParseGlobals = PRVM_ED_ParseGlobals;

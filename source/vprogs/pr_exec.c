@@ -235,7 +235,7 @@ void PRVM_PrintStatement (dstatement_t *s)
 	Msg("\n");
 }
 
-void PRVM_PrintFunctionStatements (const char *name)
+void PRVM_PrintFunctionStatements( const char *name )
 {
 	int i, firststatement, endstatement;
 	mfunction_t *func;

@@ -499,6 +499,7 @@ void Host_Frame( void )
 
 	SV_Frame( time );	// server frame
 	CL_Frame( time );	// client frame
+	VM_Frame( time );	// vprogs frame
 
 	host.framecount++;
 }

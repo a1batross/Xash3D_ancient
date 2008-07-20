@@ -287,6 +287,7 @@ void VM_Cmd_Reset( void );
 #define PRVM_AllocString	vm->AllocString
 #define PRVM_FreeString	vm->FreeString
 
+#define VM_Frame		vm->Update
 #define PRVM_SetProg	vm->SetProg
 #define PRVM_InitProg	vm->InitProg
 #define PRVM_ResetProg	vm->ResetProg

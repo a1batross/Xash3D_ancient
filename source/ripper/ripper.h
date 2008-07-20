@@ -17,6 +17,8 @@ extern byte *zonepool;
 extern string gs_gamedir;
 #define Sys_Error com.error
 extern imglib_exp_t *Image;
+extern vprogs_exp_t *PRVM;
+extern uint app_name;
 
 //=====================================
 //	convertor modules
@@ -37,5 +39,6 @@ bool ConvBSP( const char *name, char *buffer, int filesize );	// Extract texture
 bool ConvSND( const char *name, char *buffer, int filesize );	// not implemented
 bool ConvMID( const char *name, char *buffer, int filesize );	// Doom1 music files (midi)
 bool ConvRAW( const char *name, char *buffer, int filesize );	// write file without converting
+bool ConvDAT( const char *name, char *buffer, int filesize );	// quakec progs into source.qc
 
 #endif//BASECONVERTOR_H

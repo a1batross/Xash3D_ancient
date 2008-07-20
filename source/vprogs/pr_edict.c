@@ -297,7 +297,7 @@ ddef_t *PRVM_ED_FieldAtOfs (int ofs)
 PRVM_ED_FindField
 ============
 */
-ddef_t *PRVM_ED_FindField (const char *name)
+ddef_t *PRVM_ED_FindField( const char *name )
 {
 	ddef_t *def;
 	int i;
@@ -358,7 +358,7 @@ PRVM_ValueString
 Returns a string describing *data in a type specific manner
 =============
 */
-char *PRVM_ValueString (etype_t type, prvm_eval_t *val)
+char *PRVM_ValueString( etype_t type, prvm_eval_t *val )
 {
 	static char line[MAX_INPUTLINE];
 	ddef_t *def;
@@ -1261,7 +1261,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 	if( vm.prog->progs ) Mem_Free( vm.prog->progs ); // release progs file
 	vm.prog->progs = (dprograms_t *)FS_LoadFile(va("%s", filename ), &filesize);
 
-	if (vm.prog->progs == NULL || filesize < (fs_offset_t)sizeof(dprograms_t))
+	if( vm.prog->progs == NULL || filesize < (fs_offset_t)sizeof(dprograms_t))
 		PRVM_ERROR("PRVM_LoadProgs: couldn't load %s for %s\n", filename, PRVM_NAME);
 
 	MsgDev(D_INFO, "%s programs occupy %iK.\n", PRVM_NAME, filesize/1024);
@@ -1315,7 +1315,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 	}
 
 	// decompress progs if needed
-	if( vm.prog->progs->blockscompressed & COMP_STATEMENTS )
+	if( vm.prog->progs->version >= FPROGS_VERSION && vm.prog->progs->blockscompressed & COMP_STATEMENTS )
 	{
 		switch(vm.prog->intsize)
 		{
@@ -1336,7 +1336,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
 
-	if( vm.prog->progs->blockscompressed & COMP_DEFS )
+	if( vm.prog->progs->version >= FPROGS_VERSION && vm.prog->progs->blockscompressed & COMP_DEFS )
 	{
 		switch(vm.prog->intsize)
 		{
@@ -1357,7 +1357,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
 
-	if( vm.prog->progs->blockscompressed & COMP_FIELDS )
+	if( vm.prog->progs->version >= FPROGS_VERSION && vm.prog->progs->blockscompressed & COMP_FIELDS )
 	{
 		switch(vm.prog->intsize)
 		{
@@ -1378,7 +1378,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
 
-	if( vm.prog->progs->blockscompressed & COMP_FUNCTIONS )
+	if( vm.prog->progs->version >= FPROGS_VERSION && vm.prog->progs->blockscompressed & COMP_FUNCTIONS )
 	{
 		len = sizeof(dfunction_t) * vm.prog->progs->numfunctions;
 		complen = LittleLong(*(int*)dfunctions);
@@ -1390,7 +1390,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
 
-	if( vm.prog->progs->blockscompressed & COMP_STRINGS )
+	if( vm.prog->progs->version >= FPROGS_VERSION && vm.prog->progs->blockscompressed & COMP_STRINGS )
 	{
 		len = sizeof(char) * vm.prog->progs->numstrings;
 		complen = LittleLong(*(int*)vm.prog->strings);
@@ -1404,7 +1404,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
 
-	if( vm.prog->progs->blockscompressed & COMP_GLOBALS )
+	if( vm.prog->progs->version >= FPROGS_VERSION && vm.prog->progs->blockscompressed & COMP_GLOBALS )
 	{
 		len = sizeof(float) * vm.prog->progs->numglobals;
 		complen = LittleLong(*(int*)vm.prog->globals.gp);
@@ -1418,14 +1418,8 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 
 	if( vm.prog->sources ) // source always are packed
 	{
-		int		i, numsources = LittleLong(*(int*)vm.prog->sources);
+		int		numsources = LittleLong(*(int*)vm.prog->sources);
 		includeddatafile_t	*src = (includeddatafile_t *)(((int *)vm.prog->sources)+1);
-
-		for( i = 0; i < numsources; i++, src++ )
-		{
-			Msg("Source: %s\n", src->filename );
-			Msg("Ofs, size: %d, %d\n", src->ofs, src->size );
-		}
 	}
 
 	if( vm.prog->linenums && vm.prog->progs->blockscompressed & COMP_LINENUMS )
@@ -1521,7 +1515,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 		if( PRVM_ED_FindFunction( ed_func[i] ) == 0 )
 			PRVM_ERROR("%s: %s not found in %s",PRVM_NAME, ed_func[i], filename);
 
-	for (i=0 ; i<vm.prog->progs->numglobals ; i++)
+	for( i = 0; i < vm.prog->progs->numglobals; i++ )
 		((int *)vm.prog->globals.gp)[i] = LittleLong (((int *)vm.prog->globals.gp)[i]);
 
 	// moved edict_size calculation down here, below field adding code
@@ -1671,7 +1665,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 				Host_Error("PRVM_LoadProgs: out of bounds global index (statement %d) in %s", i, PRVM_NAME);
 			break;
 		default:
-			MsgDev(D_NOTE, "PRVM_LoadProgs: unknown opcode %d at statement %d in %s\n", st->op, i, PRVM_NAME);
+			MsgDev(D_WARN, "PRVM_LoadProgs: unknown opcode OP_%s at statement %d in %s\n", pr_opcodes[st->op].opname, i, PRVM_NAME);
 			break;
 		}
 	}

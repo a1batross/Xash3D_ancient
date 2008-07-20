@@ -146,9 +146,9 @@ bool PR_UnInclude(void)
 	return true;
 }
 
-type_t *PR_NewType (char *name, int basictype)
+type_t *PR_NewType( char *name, int basictype )
 {
-	if (numtypeinfos>= maxtypeinfos) PR_ParseError(ERR_INTERNAL, "Too many types");
+	if( numtypeinfos >= maxtypeinfos ) PR_ParseError(ERR_INTERNAL, "Too many types");
 	memset(&qcc_typeinfo[numtypeinfos], 0, sizeof(type_t));
 	qcc_typeinfo[numtypeinfos].type = basictype;
 	qcc_typeinfo[numtypeinfos].name = name;
@@ -162,7 +162,7 @@ type_t *PR_NewType (char *name, int basictype)
 
 void PR_FindBestInclude( char *newfile, char *currentfile, char *rootpath )
 {
-	char	fullname[10248];
+	char	fullname[MAX_SYSPATH];
 	char	*stripfrom;
 	char	*end = fullname;
 
@@ -1914,7 +1914,7 @@ void PR_ParsePrintDef (int type, def_t *def)
 PR_ParseError
 ============
 */
-void PR_ParseError (int errortype, char *error, ...)
+void PR_ParseError( int errortype, char *error, ... )
 {
 	va_list	argptr;
 	char	string[1024];
@@ -1926,16 +1926,24 @@ void PR_ParseError (int errortype, char *error, ...)
 	if( errortype == ERR_INTERNAL )
 	{
 		// because sys_error hide message in non-developer mode
-		Sys_Break( "internal error: %s\n", string );
+		// but in-game engine replaced Sys_Error with Host_Error and
+		// we can use it here
+		if( host_instance == HOST_NORMAL || host_instance == HOST_DEDICATED )
+		{
+			PR_Message( "^3Error:^7 %s\n", string );
+			prvm_state = comp_error; // abort compilation
+			longjmp( pr_int_error, 1 );
+		}
+		else Sys_Break( "internal error: %s\n", string );
 	}
 	else
 	{
 		PR_Message("%s:%i: error: %s\n", strings + s_file, pr_source_line, string);
-		longjmp (pr_parse_abort, 1);
+		longjmp( pr_parse_abort, 1 );
 	}
 }
 
-void PR_ParseErrorPrintDef (int errortype, def_t *def, char *error, ...)
+void PR_ParseErrorPrintDef( int errortype, def_t *def, char *error, ... )
 {
 	va_list		argptr;
 	char		string[1024];

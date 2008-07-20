@@ -423,7 +423,8 @@ typedef struct vprogs_exp_s
 	// compiler functions
 	void ( *PrepareDAT )( const char *dir, const char *name );
 	void ( *CompileDAT )( void );
-	bool ( *DecompileDAT )( void );
+	bool ( *DecompileDAT )( const char *name );
+	void ( *Update )( dword time );			// refreshing compile, exec some programs e.t.c
 
 	// edict operations
 	void (*WriteGlobals)( vfile_t *f );

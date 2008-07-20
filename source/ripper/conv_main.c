@@ -47,6 +47,7 @@ convformat_t convert_formats[] =
 	{"%s.%s", "bsp", ConvBSP},	// Quake1\Half-Life map textures
 	{"%s.%s", "mus", ConvMID},	// Quake1\Half-Life map textures
 	{"%s.%s", "snd", ConvSND},	// Quake1\Half-Life map textures
+	{"%s.%s", "dat", ConvDAT},	// Decompile Quake1 qc-progs
 	{"%s.%s", "txt", ConvRAW},	// (hidden) Xash-extract scripts
 	{"%s.%s", "dat", ConvRAW},	// (hidden) Xash-extract progs
 	{NULL, NULL }		// list terminator
@@ -69,10 +70,10 @@ bool ConvertResource( const char *filename )
 	{
 		if( anyformat || !com.stricmp( ext, format->ext ))
 		{
-			com.sprintf (path, format->formatstring, convname, format->ext );
+			com.sprintf( path, format->formatstring, convname, format->ext );
 			buffer = FS_LoadFile( path, &filesize );
 			FS_FileBase( path, basename );
-			if(buffer && filesize > 0)
+			if( buffer && filesize > 0 )
 			{
 				// this path may contains wadname: wadfile/lumpname
 				if( format->convfunc( path, buffer, filesize ))
@@ -115,7 +116,7 @@ so do it manually
 void InitConvertor ( uint funcname, int argc, char **argv )
 {
 	launch_t	CreateImglib, CreateVprogs;
-	string	source, gamedir;
+	string	gamedir;
 	
 	// init pools
 	basepool = Mem_AllocPool( "Temp" );
@@ -137,11 +138,8 @@ void InitConvertor ( uint funcname, int argc, char **argv )
 
 		if(!FS_GetParmFromCmdLine("-dir", gamedir ))
 			com.strncpy( gamedir, ".", sizeof(gamedir));
-		if(!FS_GetParmFromCmdLine("+dat", source ))
-			com.strncpy( source, "progs.dat", sizeof(source));
-
 		start = Sys_DoubleTime();
-		PRVM->PrepareDAT( gamedir, source );
+		PRVM->PrepareDAT( gamedir, "progs.dat" ); // generic name
 		break;
 	default:
 		FS_InitRootDir(".");
@@ -208,8 +206,7 @@ void RunConvertor( void )
 		AddMask( "*.mus" );
 		break;
 	case RIPP_QCCDEC:
-		if(PRVM->DecompileDAT())
-			numConvertedRes++;
+		AddMask( "*.dat" );
 		break;
 	case RIPP_BSPDEC:
 		Sys_Break(" not implemented\n");

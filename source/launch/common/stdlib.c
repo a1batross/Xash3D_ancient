@@ -191,8 +191,8 @@ char *com_stralloc(const char *s, const char *filename, int fileline)
 
 	if(!s) return NULL;
 
-	b = _mem_alloc(Sys.stringpool, com_strlen(s) + 1, filename, fileline );
-	com_strcpy(b, s);
+	b = _mem_alloc( Sys.stringpool, com_strlen(s) + 1, filename, fileline );
+	com_strcpy( b, s );
 
 	return b;
 }

@@ -82,7 +82,17 @@ extern char **com_argv;
 typedef uint		gofs_t;	// offset in global data block
 typedef struct function_s	function_t;
 
-typedef enum {
+typedef enum
+{
+	comp_inactive = 0,
+	comp_begin,
+	comp_frame,
+	comp_done,
+	comp_error,
+} comp_state_t;
+	
+typedef enum
+{
 	tt_eof,		// end of file reached
 	tt_name,		// an alphanumeric name token
 	tt_punct,		// code punctuation
@@ -239,7 +249,7 @@ typedef struct freeoffset_s
 
 typedef struct
 {
-	uint		version;	//weather we need to mark the progs as a newer version
+	uint		version;		// weather we need to mark the progs as a newer version
 	char		*name;
 	char		*opname;
 	int		priority;
@@ -250,9 +260,9 @@ typedef struct
 		ASSOC_RIGHT,
 	} associative;
 
-	struct type_s	**type_a;
-	struct type_s	**type_b;
-	struct type_s	**type_c;
+	type_t		**type_a;
+	type_t		**type_b;
+	type_t		**type_c;
 } opcode_t;
 
 typedef struct def_s
@@ -346,9 +356,12 @@ typedef enum {
 	WARN_IMAGETOOBIG,
 	WARN_IGNOREDONLEFT,
 
+	// decompiling warns
+	WARN_UNKNOWNTEMPTYPE,		//
+
 	ERR_PARSEERRORS,			//caused by pr_parseerror being called.
 
-	//these are definatly my fault...
+	// these are definatly my fault...
 	ERR_INTERNAL,
 	ERR_TOOCOMPLEX,
 	ERR_BADOPCODE,
@@ -362,7 +375,7 @@ typedef enum {
 	ERR_CONSTANTTOOLONG,
 	ERR_TOOMANYFRAMEMACROS,
 
-	//limitations, some are imposed by compiler, some arn't.
+	// limitations, some are imposed by compiler, some arn't.
 	ERR_TOOMANYGLOBALS,
 	ERR_TOOMANYGOTOS,
 	ERR_TOOMANYBREAKS,
@@ -373,7 +386,7 @@ typedef enum {
 	ERR_TOOMANYPARAMETERSVARARGS,
 	ERR_TOOMANYTOTALPARAMETERS,
 
-	//these are probably yours, or qcc being fussy.
+	// these are probably yours, or qcc being fussy.
 	ERR_BADEXTENSION,
 	ERR_BADIMMEDIATETYPE,
 	ERR_NOOUTPUT,
@@ -497,6 +510,9 @@ extern char	pr_token[8192];
 extern token_type_t	pr_token_type;
 extern type_t	*pr_immediate_type;
 extern eval_t	pr_immediate;
+extern char	*basictypenames[];
+extern int	host_instance;
+extern int	prvm_state;
 
 extern bool	opt_laxcasts;
 extern bool	opt_ifstring;
@@ -530,7 +546,8 @@ extern bool	pr_subscopedlocals;
 extern bool 	pr_warning[WARN_MAX];
 extern char	pr_parm_names[MAX_PARMS + MAX_PARMS_EXTRA][MAX_NAME];
 extern def_t	*extra_parms[MAX_PARMS_EXTRA];
-extern jmp_buf	pr_parse_abort; // longjump with this on parse error
+extern jmp_buf	pr_parse_abort;	// longjump with this on parse error
+extern jmp_buf	pr_int_error;	// casued in-game instead of Host_Error
 extern int	pr_source_line;
 extern char	*pr_file_p;
 extern def_t	*pr_scope;
@@ -568,7 +585,7 @@ extern int	numtemps;
 //
 void PR_InitCompile( const char *name );
 void PR_InitDecompile( const char *name );
-bool PRVM_DecompileProgs( void );
+bool PRVM_DecompileProgs( const char *name );
 
 //
 // pr_utils.c
@@ -670,6 +687,7 @@ void PR_FinishCompilation ( void );
 //
 // pr_decomp.c
 //
-bool PR_Decompile( void );
+void PR_InitTypes( void );
+bool PR_Decompile( const char *name );
 
 #endif//PR_LOCAL_H
