@@ -57,8 +57,8 @@ LINK32=link.exe
 # ADD LINK32 msvcrt.lib user32.lib gdi32.lib /nologo /subsystem:windows /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /libpath:"../public/libs/"
 # SUBTRACT LINK32 /debug
 # Begin Custom Build
-TargetDir=\XASH3D\src_main\temp\render\!release
-InputPath=\XASH3D\src_main\temp\render\!release\render.dll
+TargetDir=\Xash3D\src_main\temp\render\!release
+InputPath=\Xash3D\src_main\temp\render\!release\render.dll
 SOURCE="$(InputPath)"
 
 "D:\Xash3D\bin\render.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -91,11 +91,11 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /debug /machine:I386
-# ADD LINK32 msvcrt.lib user32.lib gdi32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /nodefaultlib:"msvcrtd.lib" /pdbtype:sept /libpath:"../public/libs/"
+# ADD LINK32 msvcrtd.lib user32.lib gdi32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /nodefaultlib:"msvcrt.lib" /pdbtype:sept /libpath:"../public/libs/"
 # SUBTRACT LINK32 /profile /incremental:no /map
 # Begin Custom Build
-TargetDir=\XASH3D\src_main\temp\render\!debug
-InputPath=\XASH3D\src_main\temp\render\!debug\render.dll
+TargetDir=\Xash3D\src_main\temp\render\!debug
+InputPath=\Xash3D\src_main\temp\render\!debug\render.dll
 SOURCE="$(InputPath)"
 
 "D:\Xash3D\bin\render.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -142,14 +142,6 @@ SOURCE=.\gl_warp.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\gl_widnt.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\glw_imp.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\r_backend.c
 # End Source File
 # Begin Source File
@@ -163,6 +155,10 @@ SOURCE=.\r_bspmod.c
 # Begin Source File
 
 SOURCE=.\r_mirror.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_opengl.c
 # End Source File
 # Begin Source File
 

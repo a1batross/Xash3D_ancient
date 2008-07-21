@@ -366,49 +366,49 @@ void R_DrawSpriteModel( int passnum )
 		// intentional falltrough
 	case SPR_ADDITIVE:
 		GL_EnableBlend();
-		qglBlendFunc(GL_SRC_ALPHA, GL_ONE);
-		qglColor4f( 1.0f, 1.0f, 1.0f, alpha );
+		pglBlendFunc(GL_SRC_ALPHA, GL_ONE);
+		pglColor4f( 1.0f, 1.0f, 1.0f, alpha );
 		break;
 	case SPR_ALPHA:
 		GL_EnableBlend();
-		qglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		qglColor4f( mod->lightcolor[0], mod->lightcolor[1], mod->lightcolor[2], 1.0f );
+		pglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		pglColor4f( mod->lightcolor[0], mod->lightcolor[1], mod->lightcolor[2], 1.0f );
 		break;
 	}                    			
 
 	if (currententity->flags & RF_DEPTHHACK) // hack the depth range to prevent view model from poking into walls
-		qglDepthRange (gldepthmin, gldepthmin + 0.3 * (gldepthmax-gldepthmin));
+		pglDepthRange (gldepthmin, gldepthmin + 0.3 * (gldepthmax-gldepthmin));
 
-	qglDisable(GL_CULL_FACE);
-	qglBegin (GL_QUADS);
-		qglTexCoord2f (0, 0);
+	pglDisable(GL_CULL_FACE);
+	pglBegin (GL_QUADS);
+		pglTexCoord2f (0, 0);
 		VectorMA (e->origin, frame->up * e->scale, up, point);
 		VectorMA (point, frame->left * e->scale, right, point);
-		qglVertex3fv (point);
+		pglVertex3fv (point);
 
-		qglTexCoord2f (1, 0);
+		pglTexCoord2f (1, 0);
 		VectorMA (e->origin, frame->up * e->scale, up, point);
 		VectorMA (point, frame->right * e->scale, right, point);
-		qglVertex3fv (point);
+		pglVertex3fv (point);
 
-		qglTexCoord2f (1, 1);
+		pglTexCoord2f (1, 1);
 		VectorMA (e->origin, frame->down * e->scale, up, point);
 		VectorMA (point, frame->right * e->scale, right, point);
-		qglVertex3fv (point);
+		pglVertex3fv (point);
 
-          	qglTexCoord2f (0, 1);
+          	pglTexCoord2f (0, 1);
 		VectorMA (e->origin, frame->down * e->scale, up, point);
 		VectorMA (point, frame->left * e->scale, right, point);
-		qglVertex3fv (point);
-	qglEnd();
+		pglVertex3fv (point);
+	pglEnd();
 
 	// restore states
 	GL_DisableBlend();
 	GL_EnableDepthTest();
 	GL_TexEnv(GL_REPLACE);
-	qglEnable(GL_CULL_FACE);
-	if(e->flags & RF_DEPTHHACK) qglDepthRange (gldepthmin, gldepthmax);
-	qglColor4f( 1, 1, 1, 1 );
+	pglEnable(GL_CULL_FACE);
+	if(e->flags & RF_DEPTHHACK) pglDepthRange (gldepthmin, gldepthmax);
+	pglColor4f( 1, 1, 1, 1 );
 
 }
 

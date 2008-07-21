@@ -52,21 +52,21 @@ void R_RenderDlight (dlight_t *light)
 	}
 #endif
 
-	qglBegin (GL_TRIANGLE_FAN);
-	qglColor3f (light->color[0]*0.2, light->color[1]*0.2, light->color[2]*0.2);
+	pglBegin (GL_TRIANGLE_FAN);
+	pglColor3f (light->color[0]*0.2, light->color[1]*0.2, light->color[2]*0.2);
 	for (i=0 ; i<3 ; i++)
 		v[i] = light->origin[i] - vforward[i]*rad;
-	qglVertex3fv (v);
-	qglColor3f (0,0,0);
+	pglVertex3fv (v);
+	pglColor3f (0,0,0);
 	for (i=16 ; i>=0 ; i--)
 	{
 		a = i/16.0 * M_PI*2;
 		for (j=0 ; j<3 ; j++)
 			v[j] = light->origin[j] + vright[j]*cos(a)*rad
 				+ vup[j]*sin(a)*rad;
-		qglVertex3fv (v);
+		pglVertex3fv (v);
 	}
-	qglEnd ();
+	pglEnd ();
 }
 
 /*
@@ -84,21 +84,21 @@ void R_RenderDlights (void)
 
 	r_dlightframecount = r_framecount + 1;	// because the count hasn't
 											//  advanced yet for this frame
-	qglDepthMask (0);
-	qglDisable (GL_TEXTURE_2D);
-	qglShadeModel (GL_SMOOTH);
-	qglEnable (GL_BLEND);
-	qglBlendFunc (GL_ONE, GL_ONE);
+	pglDepthMask (0);
+	pglDisable (GL_TEXTURE_2D);
+	pglShadeModel (GL_SMOOTH);
+	pglEnable (GL_BLEND);
+	pglBlendFunc (GL_ONE, GL_ONE);
 
 	l = r_newrefdef.dlights;
 	for (i=0 ; i<r_newrefdef.num_dlights ; i++, l++)
 		R_RenderDlight (l);
 
-	qglColor3f (1,1,1);
-	qglDisable (GL_BLEND);
-	qglEnable (GL_TEXTURE_2D);
-	qglBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	qglDepthMask (1);
+	pglColor3f (1,1,1);
+	pglDisable (GL_BLEND);
+	pglEnable (GL_TEXTURE_2D);
+	pglBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	pglDepthMask (1);
 }
 
 
@@ -463,12 +463,12 @@ void R_BuildLightMap (msurface_t *surf, byte *dest, int stride)
 	lightstyle_t	*style;
 
 	if ( surf->texinfo->flags & (SURF_SKY|SURF_BLEND|SURF_WARP) )
-		Sys_Error("R_BuildLightMap called for non-lit surface");
+		Host_Error("R_BuildLightMap called for non-lit surface");
 
 	smax = (surf->extents[0]>>4)+1;
 	tmax = (surf->extents[1]>>4)+1;
 	size = smax*tmax;
-	if (size > (sizeof(s_blocklights)>>4) ) Sys_Error("Bad s_blocklights size");
+	if (size > (sizeof(s_blocklights)>>4) ) Host_Error("Bad s_blocklights size");
 
 // set to full bright if no light data
 	if (!surf->samples)

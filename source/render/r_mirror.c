@@ -17,9 +17,9 @@ entity_t *mirror_entity = NULL;
 void Mirror_Scale( void )
 {
 	if( mirror_plane->normal[2] )
-		qglScalef( 1, -1, 1);
-	else qglScalef(-1, 1, 1);
-	qglCullFace( GL_BACK );
+		pglScalef( 1, -1, 1);
+	else pglScalef(-1, 1, 1);
+	pglCullFace( GL_BACK );
 }
 
 /*
@@ -65,34 +65,34 @@ void R_Mirror( refdef_t *fd )
 
 		gldepthmin = 0.5;
 		gldepthmax = 1;
-		qglDepthRange( gldepthmin, gldepthmax );
-		qglDepthFunc( GL_LEQUAL );
+		pglDepthRange( gldepthmin, gldepthmax );
+		pglDepthFunc( GL_LEQUAL );
 
 		R_RenderView( &r_newrefdef ); // do reflection
 
 		gldepthmin = 0;
 		gldepthmax = 0.5;
-		qglDepthRange( gldepthmin, gldepthmax );
-		qglDepthFunc( GL_LEQUAL );
+		pglDepthRange( gldepthmin, gldepthmax );
+		pglDepthFunc( GL_LEQUAL );
 
 		GL_EnableBlend();
-		qglMatrixMode( GL_PROJECTION );
+		pglMatrixMode( GL_PROJECTION );
 
 		if( mirror_plane->normal[2] )
-			qglScalef( 1, -1, 1 );
-		else qglScalef( -1, 1, 1 );
+			pglScalef( 1, -1, 1 );
+		else pglScalef( -1, 1, 1 );
 
-		qglCullFace( GL_FRONT );
-		qglMatrixMode( GL_MODELVIEW );
-		qglLoadMatrixf( r_base_world_matrix );
+		pglCullFace( GL_FRONT );
+		pglMatrixMode( GL_MODELVIEW );
+		pglLoadMatrixf( r_base_world_matrix );
 
-		qglBlendFunc( GL_SRC_ALPHA, GL_ONE );
-		qglColor4f( 1.0f, 1.0f, 1.0f, mirror_alpha );
+		pglBlendFunc( GL_SRC_ALPHA, GL_ONE );
+		pglColor4f( 1.0f, 1.0f, 1.0f, mirror_alpha );
 		GL_Bind( s->texinfo->image->texnum[0] );
 
 		if( mirror_entity )
 		{
-			qglPushMatrix();
+			pglPushMatrix();
 			mirror_entity->angles[0] = -mirror_entity->angles[0];	// stupid quake bug
 			mirror_entity->angles[2] = -mirror_entity->angles[2];	// stupid quake bug
 			R_RotateForEntity( mirror_entity );
@@ -103,17 +103,17 @@ void R_Mirror( refdef_t *fd )
 		p = s->polys;
 		v = p->verts[0];
 
-		qglBegin( GL_POLYGON );
+		pglBegin( GL_POLYGON );
 
 		// draw mirror surface
 		for( i = 0; i < p->numverts; i++, v += VERTEXSIZE )
 		{
-			qglTexCoord2f( v[3], v[4] );
-			qglVertex3fv(v);
+			pglTexCoord2f( v[3], v[4] );
+			pglVertex3fv(v);
 		}
-		qglEnd();
-		qglColor4f( 1.0, 1.0f, 1.0f, 1.0f );
-		if( mirror_entity ) qglPopMatrix ();
+		pglEnd();
+		pglColor4f( 1.0, 1.0f, 1.0f, 1.0f );
+		if( mirror_entity ) pglPopMatrix ();
 		GL_DisableBlend();
 	}
 

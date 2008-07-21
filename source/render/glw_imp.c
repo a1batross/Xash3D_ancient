@@ -40,58 +40,13 @@ bool GLimp_InitGL (void);
 glwstate_t glw_state;
 static char wndname[128];
 
-#define num_vidmodes	((int)(sizeof(vidmode) / sizeof(vidmode[0])) - 1)
 
-typedef struct vidmode_s
-{
-	const char	*desc;
-	int		width; 
-	int		height;
-	float		pixelheight;
-} vidmode_t;
-
-vidmode_t vidmode[] =
-{
-{"Mode  0: 4x3",	640,	480,	1	},
-{"Mode  1: 4x3",	800,	600,	1	},
-{"Mode  2: 4x3",	1024,	768,	1	},
-{"Mode  3: 4x3",	1152,	864,	1	},
-{"Mode  4: 4x3",	1280,	960,	1	},
-{"Mode  5: 4x3",	1400,	1050,	1	},
-{"Mode  6: 4x3",	1600,	1200,	1	},
-{"Mode  7: 4x3",	1920,	1440,	1	},
-{"Mode  8: 4x3",	2048,	1536,	1	},
-{"Mode  9: 14x9",	840,	540,	1	},
-{"Mode 10: 14x9",	1680,	1080,	1	},
-{"Mode 11: 16x9",	640,	360,	1	},
-{"Mode 12: 16x9",	683,	384,	1	},
-{"Mode 13: 16x9",	960,	540,	1	},
-{"Mode 14: 16x9",	1280,	720,	1	},
-{"Mode 15: 16x9",	1366,	768,	1	},
-{"Mode 16: 16x9",	1920,	1080,	1	},
-{"Mode 17: 16x9",	2560,	1440,	1	},
-{"Mode 18: NTSC",	360,	240,	1.125	},
-{"Mode 19: NTSC",	720,	480,	1.125	},
-{"Mode 20: PAL ",	360,	283,	0.9545	},
-{"Mode 21: PAL ",	720,	566,	0.9545	},
-{NULL,		0,	0,	0	},
-};
-
-void R_GetVideoMode( int vid_mode )
-{
-	int	i = bound(0, vid_mode, num_vidmodes); // check range
-
-	Cvar_SetValue("width", vidmode[i].width );
-	Cvar_SetValue("height", vidmode[i].height );
-	Cvar_SetValue("r_mode", i ); // merge if out of bounds
-	MsgDev(D_NOTE, "Set: %s [%dx%d]\n", vidmode[i].desc, vidmode[i].width, vidmode[i].height );
-}
 
 static bool VerifyDriver( void )
 {
 	char buffer[1024];
 
-	strcpy( buffer, qglGetString( GL_RENDERER ));
+	strcpy( buffer, pglGetString( GL_RENDERER ));
 	strlwr( buffer );
 
 	if (!strcmp( buffer, "gdi generic" ))
@@ -123,8 +78,8 @@ bool VID_CreateWindow( int width, int height, bool fullscreen )
 	wc.lpfnWndProc   = (WNDPROC)glw_state.wndproc;
 	wc.cbClsExtra    = 0;
 	wc.cbWndExtra    = 0;
-	wc.hInstance     = glw_state.hInstance;
-	wc.hIcon         = LoadIcon( glw_state.hInstance, MAKEINTRESOURCE(101));
+	wc.hInstance     = glw_state.hInst;
+	wc.hIcon         = LoadIcon( glw_state.hInst, MAKEINTRESOURCE(101));
 	wc.hCursor       = LoadCursor (NULL,IDC_ARROW);
 	wc.hbrBackground = (void *)COLOR_3DSHADOW;
 	wc.lpszMenuName  = 0;
@@ -170,7 +125,7 @@ bool VID_CreateWindow( int width, int height, bool fullscreen )
 		y = r_ypos->value;
 	}
 
-	glw_state.hWnd = CreateWindowEx( exstyle, WINDOW_CLASS_NAME, wndname, stylebits, x, y, w, h, NULL, NULL, glw_state.hInstance, NULL);
+	glw_state.hWnd = CreateWindowEx( exstyle, WINDOW_CLASS_NAME, wndname, stylebits, x, y, w, h, NULL, NULL, glw_state.hInst, NULL);
 
 	if (!glw_state.hWnd) 
 	{
@@ -302,11 +257,11 @@ void GLimp_Shutdown( void )
 {
 	SetDeviceGammaRamp( glw_state.hDC, gl_config.original_ramp );
 
-	if ( qwglMakeCurrent && !qwglMakeCurrent( NULL, NULL ) )
+	if ( pwglMakeCurrent && !pwglMakeCurrent( NULL, NULL ) )
 		Msg("R_Shutdown() - wglMakeCurrent failed\n");
 	if ( glw_state.hGLRC )
 	{
-		if (  qwglDeleteContext && !qwglDeleteContext( glw_state.hGLRC ) )
+		if (  pwglDeleteContext && !pwglDeleteContext( glw_state.hGLRC ) )
 			Msg("R_Shutdown() - wglDeleteContext failed\n");
 		glw_state.hGLRC = NULL;
 	}
@@ -328,7 +283,7 @@ void GLimp_Shutdown( void )
 		glw_state.log_fp = 0;
 	}
 
-	UnregisterClass (WINDOW_CLASS_NAME, glw_state.hInstance);
+	UnregisterClass (WINDOW_CLASS_NAME, glw_state.hInst);
 
 	if ( gl_state.fullscreen )
 	{
@@ -382,7 +337,7 @@ bool GLimp_Init( void *hinstance )
 		return false;
 	}
 
-	glw_state.hInstance = ( HINSTANCE ) hinstance;
+	glw_state.hInst = ( HINSTANCE ) hinstance;
 	glw_state.wndproc = ri.WndProc;
 
 	return true;
@@ -429,17 +384,17 @@ bool GLimp_InitGL (void)
 
 	if ( glw_state.minidriver )
 	{
-		if ( (pixelformat = qwglChoosePixelFormat( glw_state.hDC, &pfd)) == 0 )
+		if ( (pixelformat = pwglChoosePixelFormat( glw_state.hDC, &pfd)) == 0 )
 		{
-			Msg("GLimp_Init() - qwglChoosePixelFormat failed\n");
+			Msg("GLimp_Init() - pwglChoosePixelFormat failed\n");
 			return false;
 		}
-		if ( qwglSetPixelFormat( glw_state.hDC, pixelformat, &pfd) == FALSE )
+		if ( pwglSetPixelFormat( glw_state.hDC, pixelformat, &pfd) == FALSE )
 		{
-			Msg("GLimp_Init() - qwglSetPixelFormat failed\n");
+			Msg("GLimp_Init() - pwglSetPixelFormat failed\n");
 			return false;
 		}
-		qwglDescribePixelFormat( glw_state.hDC, pixelformat, sizeof( pfd ), &pfd );
+		pwglDescribePixelFormat( glw_state.hDC, pixelformat, sizeof( pfd ), &pfd );
 	}
 	else
 	{
@@ -474,15 +429,15 @@ bool GLimp_InitGL (void)
 	** startup the OpenGL subsystem by creating a context and making
 	** it current
 	*/
-	if ( ( glw_state.hGLRC = qwglCreateContext( glw_state.hDC ) ) == 0 )
+	if ( ( glw_state.hGLRC = pwglCreateContext( glw_state.hDC ) ) == 0 )
 	{
-		Msg("GLimp_Init() - qwglCreateContext failed\n");
+		Msg("GLimp_Init() - pwglCreateContext failed\n");
 		goto fail;
 	}
 
-	if ( !qwglMakeCurrent( glw_state.hDC, glw_state.hGLRC ) )
+	if ( !pwglMakeCurrent( glw_state.hDC, glw_state.hGLRC ) )
 	{
-		Msg("GLimp_Init() - qwglMakeCurrent failed\n");
+		Msg("GLimp_Init() - pwglMakeCurrent failed\n");
 		goto fail;
 	}
 
@@ -493,11 +448,11 @@ bool GLimp_InitGL (void)
 	}
 
 	// Vertex arrays
-	qglEnableClientState (GL_VERTEX_ARRAY);
-	qglEnableClientState (GL_TEXTURE_COORD_ARRAY);
-	qglTexCoordPointer (2, GL_FLOAT, sizeof(tex_array[0]), tex_array[0]);
-	qglVertexPointer (3, GL_FLOAT, sizeof(vert_array[0]),vert_array[0]);
-	qglColorPointer (4, GL_FLOAT, sizeof(col_array[0]), col_array[0]);
+	pglEnableClientState (GL_VERTEX_ARRAY);
+	pglEnableClientState (GL_TEXTURE_COORD_ARRAY);
+	pglTexCoordPointer (2, GL_FLOAT, sizeof(tex_array[0]), tex_array[0]);
+	pglVertexPointer (3, GL_FLOAT, sizeof(vert_array[0]),vert_array[0]);
+	pglColorPointer (4, GL_FLOAT, sizeof(col_array[0]), col_array[0]);
 
 	/*
 	** print out PFD specifics 
@@ -512,7 +467,7 @@ bool GLimp_InitGL (void)
 fail:
 	if ( glw_state.hGLRC )
 	{
-		qwglDeleteContext( glw_state.hGLRC );
+		pwglDeleteContext( glw_state.hGLRC );
 		glw_state.hGLRC = NULL;
 	}
 
@@ -538,7 +493,7 @@ void GLimp_BeginFrame( void )
 		}
 		gl_bitdepth->modified = false;
 	}
-	qglDrawBuffer( GL_BACK );
+	pglDrawBuffer( GL_BACK );
 }
 
 /*
@@ -552,12 +507,12 @@ void GLimp_EndFrame (void)
 {
 	int err;
 
-	err = qglGetError();
+	err = pglGetError();
 	assert( err == GL_NO_ERROR );
 
 	if ( stricmp( gl_drawbuffer->string, "GL_BACK" ) == 0 )
 	{
-		if ( !qwglSwapBuffers( glw_state.hDC ) )
+		if ( !pwglSwapBuffers( glw_state.hDC ) )
 			Sys_Error("GLimp_EndFrame() - SwapBuffers() failed!\n" );
 	}
 }   

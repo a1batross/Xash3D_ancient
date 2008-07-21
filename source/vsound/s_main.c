@@ -37,7 +37,7 @@ S_CheckForErrors
 */
 void S_CheckForErrors( void )
 {
-	int		err;
+	int	err;
 	char	*str;
 
 	if( !s_check_errors->integer )
@@ -734,7 +734,7 @@ void S_Init( void *hInst )
 	host_sound = Cvar_Get("host_sound", "1", CVAR_SYSTEMINFO, "enable sound system" );
 	s_alDevice = Cvar_Get("s_device", "Generic Software", CVAR_LATCH|CVAR_ARCHIVE, "OpenAL curent device name" );
 	s_soundfx = Cvar_Get("s_soundfx", "1", CVAR_LATCH|CVAR_ARCHIVE, "allow OpenAl extensions" );
-	s_check_errors = Cvar_Get("s_check_errors", "1", CVAR_ARCHIVE, "ignore sound engine errors" );
+	s_check_errors = Cvar_Get("s_check_errors", "1", CVAR_ARCHIVE, "ignore audio engine errors" );
 	s_volume = Cvar_Get("s_volume", "1.0", CVAR_ARCHIVE, "sound volume" );
 	s_musicvolume = Cvar_Get("s_musicvolume", "1.0", CVAR_ARCHIVE, "background music volume" );
 	s_minDistance = Cvar_Get("s_mindistance", "240.0", CVAR_ARCHIVE, "3d sound min distance" );

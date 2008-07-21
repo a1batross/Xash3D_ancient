@@ -65,7 +65,7 @@ void SubdividePolygon (int numverts, float *verts)
 	vec3_t	total;
 	float	total_s, total_t;
 
-	if (numverts > 60) Sys_Error ("numverts = %i", numverts);
+	if (numverts > 60) Host_Error ("numverts = %i", numverts);
 
 	BoundPoly (numverts, verts, mins, maxs);
 
@@ -222,7 +222,7 @@ void EmitWaterPolys (msurface_t *fa)
 	{
 		p = bp;
 
-		qglBegin (GL_TRIANGLE_FAN);
+		pglBegin (GL_TRIANGLE_FAN);
 		for (i=0,v=p->verts[0] ; i<p->numverts ; i++, v+=VERTEXSIZE)
 		{
 			os = v[3];
@@ -235,10 +235,10 @@ void EmitWaterPolys (msurface_t *fa)
 			t = ot + r_turbsin[(int)((os * 0.125f + rdt) * TURBSCALE) & 255];
 			t *= (1.0/64);
 
-			qglTexCoord2f (s, t);
-			qglVertex3fv (v);
+			pglTexCoord2f (s, t);
+			pglVertex3fv (v);
 		}
-		qglEnd ();
+		pglEnd ();
 	}
 }
 
@@ -305,7 +305,7 @@ glBegin (GL_POLYGON);
 for (i=0 ; i<nump ; i++, vecs+=3)
 {
 	VectorAdd(vecs, r_origin, v);
-	qglVertex3fv (v);
+	pglVertex3fv (v);
 }
 glEnd();
 return;
@@ -386,7 +386,7 @@ void ClipSkyPolygon (int nump, vec3_t vecs, int stage)
 	int		newc[2];
 	int		i, j;
 
-	if (nump > MAX_CLIP_VERTS-2) Sys_Error ("ClipSkyPolygon: MAX_CLIP_VERTS");
+	if (nump > MAX_CLIP_VERTS-2) Host_Error ("ClipSkyPolygon: MAX_CLIP_VERTS");
 	if (stage == 6)
 	{	// fully clipped, so draw it
 		DrawSkyPolygon (nump, vecs);
@@ -529,8 +529,8 @@ void MakeSkyVec (float s, float t, int axis)
 	else if (t > sky_max) t = sky_max;
 
 	t = 1.0 - t;
-	qglTexCoord2f (s, t);
-	qglVertex3fv (v);
+	pglTexCoord2f (s, t);
+	pglVertex3fv (v);
 }
 
 /*
@@ -563,9 +563,9 @@ void R_DrawSkyBox (void)
 		if (i == 6) return;	// nothing visible
 	}
 
-	qglPushMatrix ();
-	qglTranslatef (r_origin[0], r_origin[1], r_origin[2]);
-	qglRotatef (r_newrefdef.time * skyrotate, skyaxis[0], skyaxis[1], skyaxis[2]);
+	pglPushMatrix ();
+	pglTranslatef (r_origin[0], r_origin[1], r_origin[2]);
+	pglRotatef (r_newrefdef.time * skyrotate, skyaxis[0], skyaxis[1], skyaxis[2]);
 
 	for (i = 0; i < 6; i++)
 	{
@@ -582,14 +582,14 @@ void R_DrawSkyBox (void)
 
 		GL_Bind(sky_image->texnum[sky_image->texorder[i]]);
 
-		qglBegin (GL_QUADS);
+		pglBegin (GL_QUADS);
 		MakeSkyVec (skymins[0][i], skymins[1][i], i);
 		MakeSkyVec (skymins[0][i], skymaxs[1][i], i);
 		MakeSkyVec (skymaxs[0][i], skymaxs[1][i], i);
 		MakeSkyVec (skymaxs[0][i], skymins[1][i], i);
-		qglEnd ();
+		pglEnd ();
 	}
-	qglPopMatrix ();
+	pglPopMatrix ();
 }
 
 /*

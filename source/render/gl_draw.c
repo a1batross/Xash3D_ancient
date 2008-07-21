@@ -101,7 +101,7 @@ void Draw_Char (float x, float y, int num)
 	VA_SetElem2(vert_array[3],x, y+8);
 	
 	GL_LockArrays( 4 );
-	qglDrawArrays(GL_QUADS, 0, 4);
+	pglDrawArrays(GL_QUADS, 0, 4);
 	GL_UnlockArrays();
 }
 
@@ -135,7 +135,6 @@ void Draw_StretchPic (float x, float y, float w, float h, float s1, float t1, fl
 
 	gl = Draw_FindPic( pic );
 	if(!gl) return;
-
 	GL_Bind( gl->texnum[0] );
 
 	GL_EnableBlend();
@@ -143,15 +142,15 @@ void Draw_StretchPic (float x, float y, float w, float h, float s1, float t1, fl
 	if( gl_state.draw_color[3] != 1.0f )
 	{
 		GL_DisableAlphaTest();
-		qglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+		pglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 	}
 	else 
 	{
 		GL_EnableAlphaTest();
-		qglBlendFunc(GL_ONE, GL_ZERO);
+		pglBlendFunc(GL_ONE, GL_ZERO);
 	}
 
-	qglColor4fv( gl_state.draw_color );
+	pglColor4fv( gl_state.draw_color );
 	VA_SetElem2(tex_array[0], s1, t1);
 	VA_SetElem2(vert_array[0], x, y);
 	VA_SetElem2(tex_array[1], s2, t1);
@@ -162,7 +161,7 @@ void Draw_StretchPic (float x, float y, float w, float h, float s1, float t1, fl
 	VA_SetElem2(vert_array[3], x, y+h);
 
 	GL_LockArrays( 4 );
-	qglDrawArrays(GL_QUADS, 0, 4);
+	pglDrawArrays(GL_QUADS, 0, 4);
 	GL_UnlockArrays();
 
 	GL_DisableBlend();
@@ -183,16 +182,16 @@ void Draw_Pic (int x, int y, const char *pic)
 	if (!gl) return;
 
 	GL_Bind (gl->texnum[0]);
-	qglBegin (GL_QUADS);
-	qglTexCoord2f (0, 0);
-	qglVertex2f (x, y);
-	qglTexCoord2f (1, 0);
-	qglVertex2f (x+gl->width, y);
-	qglTexCoord2f (1, 1);
-	qglVertex2f (x+gl->width, y+gl->height);
-	qglTexCoord2f (0, 1);
-	qglVertex2f (x, y+gl->height);
-	qglEnd ();
+	pglBegin (GL_QUADS);
+	pglTexCoord2f (0, 0);
+	pglVertex2f (x, y);
+	pglTexCoord2f (1, 0);
+	pglVertex2f (x+gl->width, y);
+	pglTexCoord2f (1, 1);
+	pglVertex2f (x+gl->width, y+gl->height);
+	pglTexCoord2f (0, 1);
+	pglVertex2f (x, y+gl->height);
+	pglEnd ();
 }
 
 /*
@@ -211,16 +210,16 @@ void Draw_TileClear (int x, int y, int w, int h, char *pic)
 	if (!image) return;
 
 	GL_Bind (image->texnum[0]);
-	qglBegin (GL_QUADS);
-	qglTexCoord2f (x/64.0, y/64.0);
-	qglVertex2f (x, y);
-	qglTexCoord2f ( (x+w)/64.0, y/64.0);
-	qglVertex2f (x+w, y);
-	qglTexCoord2f ( (x+w)/64.0, (y+h)/64.0);
-	qglVertex2f (x+w, y+h);
-	qglTexCoord2f ( x/64.0, (y+h)/64.0 );
-	qglVertex2f (x, y+h);
-	qglEnd ();
+	pglBegin (GL_QUADS);
+	pglTexCoord2f (x/64.0, y/64.0);
+	pglVertex2f (x, y);
+	pglTexCoord2f ( (x+w)/64.0, y/64.0);
+	pglVertex2f (x+w, y);
+	pglTexCoord2f ( (x+w)/64.0, (y+h)/64.0);
+	pglVertex2f (x+w, y+h);
+	pglTexCoord2f ( x/64.0, (y+h)/64.0 );
+	pglVertex2f (x, y+h);
+	pglEnd ();
 }
 
 
@@ -233,23 +232,22 @@ Fills a box of pixels with a single color
 */
 void Draw_Fill(float x, float y, float w, float h)
 {
-	qglDisable (GL_TEXTURE_2D);
-	qglColor4fv(gl_state.draw_color);
+	pglDisable (GL_TEXTURE_2D);
+	pglColor4fv(gl_state.draw_color);
 	GL_EnableBlend();
-
 	if(gl_state.draw_color[3] != 1.0f )
-		qglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-	else qglBlendFunc(GL_ONE, GL_ZERO);
+		pglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+	else pglBlendFunc(GL_ONE, GL_ZERO);
 
-	qglBegin (GL_QUADS);
-		qglVertex2f(x, y);
-		qglVertex2f(x + w, y);
-		qglVertex2f(x + w, y + h);
-		qglVertex2f(x, y + h);
-	qglEnd();
+	pglBegin (GL_QUADS);
+		pglVertex2f(x, y);
+		pglVertex2f(x + w, y);
+		pglVertex2f(x + w, y + h);
+		pglVertex2f(x, y + h);
+	pglEnd();
 
 	GL_DisableBlend();
-	qglEnable (GL_TEXTURE_2D);
+	pglEnable (GL_TEXTURE_2D);
 }
 
 //=============================================================================
@@ -262,20 +260,20 @@ Draw_FadeScreen
 */
 void Draw_FadeScreen (void)
 {
-	qglEnable (GL_BLEND);
-	qglDisable (GL_TEXTURE_2D);
-	qglColor4f (0, 0, 0, 0.8);
-	qglBegin (GL_QUADS);
+	pglEnable (GL_BLEND);
+	pglDisable (GL_TEXTURE_2D);
+	pglColor4f (0, 0, 0, 0.8);
+	pglBegin (GL_QUADS);
 
-	qglVertex2f (0,0);
-	qglVertex2f (r_width->integer, 0);
-	qglVertex2f (r_width->integer, r_height->integer);
-	qglVertex2f (0, r_height->integer);
+	pglVertex2f (0,0);
+	pglVertex2f (r_width->integer, 0);
+	pglVertex2f (r_width->integer, r_height->integer);
+	pglVertex2f (0, r_height->integer);
 
-	qglEnd ();
-	qglColor4f (1,1,1,1);
-	qglEnable (GL_TEXTURE_2D);
-	qglDisable (GL_BLEND);
+	pglEnd ();
+	pglColor4f (1,1,1,1);
+	pglEnable (GL_TEXTURE_2D);
+	pglDisable (GL_BLEND);
 }
 
 
@@ -289,27 +287,27 @@ void Draw_StretchRaw (int x, int y, int w, int h, int cols, int rows, byte *data
 {
 	int	i, j;
 
-	qglFinish();
+	pglFinish();
 	// make sure rows and cols are powers of 2
 	for( i = 0;(1<<i) < cols; i++ );
 	for( j = 0;(1<<j) < rows; j++ );
 	if ((1<<i ) != cols || ( 1<<j ) != rows)
-		Sys_Error ("Draw_StretchRaw: size not a power of 2: %i by %i\n", cols, rows);
-	GL_Bind(0);
-	if( dirty ) qglTexImage2D (GL_TEXTURE_2D, 0, gl_tex_solid_format, cols, rows, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
-	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_max);
-	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
+		Host_Error( "Draw_StretchRaw: size not a power of 2: %i by %i\n", cols, rows );
+	GL_Bind( 0 );
+	if( dirty ) pglTexImage2D (GL_TEXTURE_2D, 0, gl_tex_solid_format, cols, rows, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
+	pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_max);
+	pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
 	R_SetGL2D();
 
-	qglColor4fv(gl_state.draw_color);
-	qglBegin(GL_QUADS);
-	qglTexCoord2f( 0.5f / cols,  0.5f / rows );
-	qglVertex2f (x, y);
-	qglTexCoord2f((cols - 0.5f) / cols ,  0.5f / rows );
-	qglVertex2f (x+w, y);
-	qglTexCoord2f((cols - 0.5f) / cols, (rows - 0.5f) / rows );
-	qglVertex2f (x+w, y+h);
-	qglTexCoord2f(0.5f / cols, ( rows - 0.5f )/rows );
-	qglVertex2f (x, y+h);
-	qglEnd();
+	pglColor4fv(gl_state.draw_color);
+	pglBegin(GL_QUADS);
+	pglTexCoord2f( 0.5f / cols,  0.5f / rows );
+	pglVertex2f (x, y);
+	pglTexCoord2f((cols - 0.5f) / cols ,  0.5f / rows );
+	pglVertex2f (x+w, y);
+	pglTexCoord2f((cols - 0.5f) / cols, (rows - 0.5f) / rows );
+	pglVertex2f (x+w, y+h);
+	pglTexCoord2f(0.5f / cols, ( rows - 0.5f )/rows );
+	pglVertex2f (x, y+h);
+	pglEnd();
 }

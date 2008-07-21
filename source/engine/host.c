@@ -595,7 +595,7 @@ long Host_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 		if( wParam == SC_SCREENSAVE ) return 0;
 		break;
 	case WM_SYSKEYDOWN:
-		if( wParam == 13 && r_fullscreen)
+		if( wParam == 13 && r_fullscreen )
 		{
 			Cvar_SetValue( "fullscreen", !r_fullscreen->value );
 			return 0;

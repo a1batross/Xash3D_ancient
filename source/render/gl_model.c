@@ -58,7 +58,7 @@ mleaf_t *Mod_PointInLeaf (vec3_t p, model_t *model)
 	float		d;
 	cplane_t		*plane;
 	
-	if (!model || !model->nodes) Sys_Error("Mod_PointInLeaf: bad model");
+	if (!model || !model->nodes) Host_Error("Mod_PointInLeaf: bad model");
 
 	node = model->nodes;
 	while (1)
@@ -228,7 +228,7 @@ model_t *Mod_ForName(char *name, bool crash)
 	buf = (uint *)FS_LoadFile (mod->name, &modfilelen);
 	if (!buf)
 	{
-		if (crash) Sys_Error ("Mod_NumForName: %s not found", mod->name);
+		if (crash) Host_Error ("Mod_NumForName: %s not found", mod->name);
 		memset (mod->name, 0, sizeof(mod->name));
 		return NULL;
 	}
@@ -312,7 +312,7 @@ void Mod_LoadStringTable( lump_t *l )
 	int	i, count;
 	
 	in = (void *)(mod_base + l->fileofs);
-	if (l->filelen % sizeof(*in)) Sys_Error("MOD_LoadBmodel: funny lump size in %s\n", loadmodel->name );
+	if (l->filelen % sizeof(*in)) Host_Error("MOD_LoadBmodel: funny lump size in %s\n", loadmodel->name );
 	count = l->filelen / sizeof(*in);
 	loadmodel->stringtable = out = (int *)Mem_Alloc( loadmodel->mempool, l->filelen );
 	for ( i = 0; i < count; i++) out[i] = LittleLong(in[i]);
@@ -357,7 +357,7 @@ void Mod_LoadVertexes (lump_t *l)
 
 	in = (void *)(mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
-		Sys_Error("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
+		Host_Error("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
 	count = l->filelen / sizeof(*in);
 	out = Mem_Alloc( loadmodel->mempool, count*sizeof(*out));
 
@@ -385,7 +385,7 @@ void Mod_LoadSubmodels (lump_t *l)
 
 	in = (void *)(mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
-		Sys_Error ("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
+		Host_Error ("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
 	count = l->filelen / sizeof(*in);
           out = Mem_Alloc( loadmodel->mempool, count*sizeof(*out));
 	
@@ -420,7 +420,7 @@ void Mod_LoadEdges (lump_t *l)
 
 	in = (void *)(mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
-		Sys_Error("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
+		Host_Error("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
 	count = l->filelen / sizeof(*in);
 	out = Mem_Alloc( loadmodel->mempool, count * sizeof(*out));
 
@@ -448,7 +448,7 @@ void Mod_LoadSurfDesc( lump_t *l )
 
 	in = (void *)(mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
-		Sys_Error("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
+		Host_Error("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
 	count = l->filelen / sizeof(*in);
           out = Mem_Alloc( loadmodel->mempool, count * sizeof(*out));
 	
@@ -541,7 +541,7 @@ void CalcSurfaceExtents (msurface_t *s)
 		s->extents[i] = (bmaxs[i] - bmins[i]) * 16;
 
 //		if ( !(tex->flags & TEX_SPECIAL) && s->extents[i] > 512 /* 256 */ )
-//			Sys_Error ("Bad surface extents");
+//			Host_Error ("Bad surface extents");
 	}
 }
 
@@ -565,7 +565,7 @@ void Mod_LoadFaces (lump_t *l)
 	int			ti;
 
 	in = (void *)(mod_base + l->fileofs);
-	if (l->filelen % sizeof(*in)) Sys_Error("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
+	if (l->filelen % sizeof(*in)) Host_Error("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
 	count = l->filelen / sizeof(*in);
 	out = Mem_Alloc( loadmodel->mempool, count*sizeof(*out));	
 
@@ -591,7 +591,7 @@ void Mod_LoadFaces (lump_t *l)
 
 		ti = LittleLong (in->desc);
 		if (ti < 0 || ti >= loadmodel->numtexinfo)
-			Sys_Error("MOD_LoadBmodel: bad texinfo number");
+			Host_Error("MOD_LoadBmodel: bad texinfo number");
 		out->texinfo = loadmodel->texinfo + ti;
 
 		CalcSurfaceExtents (out);
@@ -658,7 +658,7 @@ void Mod_LoadNodes (lump_t *l)
 
 	in = (void *)(mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
-		Sys_Error("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
+		Host_Error("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
 	count = l->filelen / sizeof(*in);
 	out = Mem_Alloc( loadmodel->mempool, count*sizeof(*out));
 
@@ -707,7 +707,7 @@ void Mod_LoadLeafs (lump_t *l)
 
 	in = (void *)(mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
-		Sys_Error ("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
+		Host_Error ("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
 	count = l->filelen / sizeof(*in);
 	out = Mem_Alloc( loadmodel->mempool, count*sizeof(*out));
 
@@ -759,7 +759,7 @@ void Mod_LoadMarksurfaces (lump_t *l)
 	
 	in = (void *)(mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
-		Sys_Error ("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
+		Host_Error ("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
 	count = l->filelen / sizeof(*in);
 	out = Mem_Alloc( loadmodel->mempool, count*sizeof(*out));
 
@@ -770,7 +770,7 @@ void Mod_LoadMarksurfaces (lump_t *l)
 	{
 		j = LittleLong(in[i]);
 		if (j < 0 ||  j >= loadmodel->numsurfaces)
-			Sys_Error ("Mod_ParseMarksurfaces: bad surface number");
+			Host_Error ("Mod_ParseMarksurfaces: bad surface number");
 		out[i] = loadmodel->surfaces + j;
 	}
 }
@@ -787,10 +787,10 @@ void Mod_LoadSurfedges (lump_t *l)
 	
 	in = (void *)(mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
-		Sys_Error ("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
+		Host_Error ("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
 	count = l->filelen / sizeof(*in);
 	if (count < 1 || count >= MAX_MAP_SURFEDGES)
-		Sys_Error ("MOD_LoadBmodel: bad surfedges count in %s: %i",
+		Host_Error ("MOD_LoadBmodel: bad surfedges count in %s: %i",
 		loadmodel->name, count);
 
 	out = Mem_Alloc( loadmodel->mempool, count*sizeof(*out));	
@@ -817,7 +817,7 @@ void Mod_LoadPlanes (lump_t *l)
 	
 	in = (void *)(mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
-		Sys_Error ("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
+		Host_Error ("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
 	count = l->filelen / sizeof(*in);
 	out = Mem_Alloc( loadmodel->mempool, count*2*sizeof(*out));	
 	
@@ -855,7 +855,7 @@ void Mod_SetupSubmodels( model_t *mod )
 		starmod->nummodelsurfaces = bm->numfaces;
 		starmod->firstnode = bm->headnode;
 		if (starmod->firstnode >= loadmodel->numnodes)
-			Sys_Error ("Inline model %i has bad firstnode", i);
+			Host_Error ("Inline model %i has bad firstnode", i);
 
 		VectorCopy (bm->maxs, starmod->maxs);
 		VectorCopy (bm->mins, starmod->mins);
@@ -888,7 +888,7 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer)
 
 	i = LittleLong (header->version);
 	if (i != BSPMOD_VERSION)
-		Sys_Error ("Mod_LoadBrushModel: %s has wrong version number (%i should be %i)", mod->name, i, BSPMOD_VERSION);
+		Host_Error ("Mod_LoadBrushModel: %s has wrong version number (%i should be %i)", mod->name, i, BSPMOD_VERSION);
 
 	// swap all the lumps
 	mod_base = (byte *)header;

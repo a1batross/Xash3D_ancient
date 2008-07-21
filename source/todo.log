@@ -52,4 +52,15 @@ fopen завешивает приложение, при попытке создать файл в несуществующей директори
 7. триггеры реагируют на игрока		OK
 8. телепорт игрока				OK
 
+
+
+
+QGL_Init( loading OpenGL32.dll )
+GLimp_Init( get HINSTANCE )
+R_SetMode( GLimp_SetMode->GLimp_Shutdown( destroy all ), VID_CreateWindow( RegisterClass, GetDC )
+CheckExtensions
+
+
+
+
 Alt+Enter для fullscreen

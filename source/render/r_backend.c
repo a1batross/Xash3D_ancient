@@ -69,6 +69,71 @@ void GL_Strings_f( void )
 	Msg("GL_EXTENSIONS: %s\n", gl_config.extensions_string );
 }
 
+void GL_SetExtension( int r_ext, int enable )
+{
+	if( r_ext >= 0 && r_ext < R_EXTCOUNT )
+		gl_config.extension[r_ext] = enable ? GL_TRUE : GL_FALSE;
+	else MsgDev( D_ERROR, "GL_SetExtension: invalid extension %d\n", r_ext );
+}
+
+bool GL_Support( int r_ext )
+{
+	if( r_ext >= 0 && r_ext < R_EXTCOUNT )
+		return gl_config.extension[r_ext] ? true : false;
+	MsgDev( D_ERROR, "GL_Support: invalid extension %d\n", r_ext );
+	return false;		
+}
+
+void *GL_GetProcAddress( const char *name )
+{
+	void	*p = NULL;
+
+	if( pwglGetProcAddress != NULL )
+		p = (void *)pwglGetProcAddress( name );
+	if( !p )  p = (void *)Sys_GetProcAddress( &opengl_dll, name );
+
+	return p;
+}
+
+void GL_CheckExtension( const char *name, const dllfunc_t *funcs, const char *cvarname, int r_ext )
+{
+	const dllfunc_t	*func;
+	cvar_t		*parm;
+
+	MsgDev( D_NOTE, "GL_CheckExtension: %s ", name );
+
+	for( func = funcs; func && func->name; func++ )
+		*func->func = NULL;
+
+	if( cvarname )
+	{
+		// system config disable extensions
+		parm = Cvar_Get( cvarname, "1", CVAR_SYSTEMINFO, "enable or disable gl_extension" );
+		GL_SetExtension( r_ext, parm->integer );	// update render info
+		if( parm->integer == 0 )
+		{
+			MsgDev( D_NOTE, "- disabled\n");
+			return; // nothing to process at
+		}
+	}
+
+	if((name[2] == '_' || name[3] == '_') && !com.strstr( gl_config.extensions_string, name ))
+	{
+		GL_SetExtension( r_ext, false );	// update render info
+		MsgDev( D_NOTE, "- failed\n");
+		return;
+	}
+
+	GL_SetExtension( r_ext, true ); // predict extension state
+	for( func = funcs; func && func->name != NULL; func++ )
+	{
+		// functions are cleared before all the extensions are evaluated
+		if(!(*func->func = (void *)GL_GetProcAddress( func->name )))
+			GL_SetExtension( r_ext, false ); // one or more functions are invalid, extension will be disabled
+	}
+	if(GL_Support( r_ext )) MsgDev( D_NOTE, "- enabled\n");
+}
+
 void GL_UpdateGammaRamp( void )
 {
 	int          i, j, v;
@@ -94,14 +159,14 @@ GL_ArraysState
 */
 void GL_LockArrays( int count )
 {
-	if (qglLockArraysEXT != 0)
-		qglLockArraysEXT(0, count);
+	if (pglLockArraysEXT != 0)
+		pglLockArraysEXT(0, count);
 }
 
 void GL_UnlockArrays( void )
 {
-	if (qglUnlockArraysEXT != 0)
-		qglUnlockArraysEXT();
+	if (pglUnlockArraysEXT != 0)
+		pglUnlockArraysEXT();
 }
 
 /*
@@ -113,7 +178,7 @@ void GL_EnableAlphaTest ( void )
 {
 	if (!gl_state.alpha_test)
 	{
-		qglEnable(GL_ALPHA_TEST);
+		pglEnable(GL_ALPHA_TEST);
 		gl_state.alpha_test = true;
 	}
 }
@@ -122,7 +187,7 @@ void GL_DisableAlphaTest ( void )
 {
 	if (gl_state.alpha_test)
 	{
-		qglDisable(GL_ALPHA_TEST);
+		pglDisable(GL_ALPHA_TEST);
 		gl_state.alpha_test = false;
 	}
 }
@@ -136,7 +201,7 @@ void GL_EnableBlend( void )
 {
 	if (!gl_state.blend)
 	{
-		qglEnable(GL_BLEND);
+		pglEnable(GL_BLEND);
 		gl_state.blend = true;
 	}
 }
@@ -145,7 +210,7 @@ void GL_DisableBlend( void )
 {
 	if (gl_state.blend)
 	{
-		qglDisable(GL_BLEND);
+		pglDisable(GL_BLEND);
 		gl_state.blend = false;
 	}
 }
@@ -159,7 +224,7 @@ void GL_EnableDepthTest( void )
 {
 	if (!gl_state.depth_test)
 	{
-		qglEnable( GL_DEPTH_TEST );
+		pglEnable( GL_DEPTH_TEST );
 		gl_state.depth_test = true;
 	}
 }
@@ -168,7 +233,7 @@ void GL_DisableDepthTest( void )
 {
 	if (gl_state.depth_test)
 	{
-		qglDisable( GL_DEPTH_TEST );
+		pglDisable( GL_DEPTH_TEST );
 		gl_state.depth_test = false;
 	}
 }
@@ -181,20 +246,20 @@ GL_StateTexGen
 void GL_EnableTexGen( void )
 {
 	if (gl_state.texgen) return;
-	qglEnable(GL_TEXTURE_GEN_S);
-	qglEnable(GL_TEXTURE_GEN_T);
-	qglEnable(GL_TEXTURE_GEN_R);
-	qglEnable(GL_TEXTURE_GEN_Q);
+	pglEnable(GL_TEXTURE_GEN_S);
+	pglEnable(GL_TEXTURE_GEN_T);
+	pglEnable(GL_TEXTURE_GEN_R);
+	pglEnable(GL_TEXTURE_GEN_Q);
 	gl_state.texgen = true;
 }
 
 void GL_DisableTexGen( void )
 {
 	if (!gl_state.texgen) return;
-	qglDisable(GL_TEXTURE_GEN_S);
-	qglDisable(GL_TEXTURE_GEN_T);
-	qglDisable(GL_TEXTURE_GEN_R);
-	qglDisable(GL_TEXTURE_GEN_Q);
+	pglDisable(GL_TEXTURE_GEN_S);
+	pglDisable(GL_TEXTURE_GEN_T);
+	pglDisable(GL_TEXTURE_GEN_R);
+	pglDisable(GL_TEXTURE_GEN_Q);
 	gl_state.texgen = false;
 }
 
@@ -229,8 +294,8 @@ void GL_TextureMode( char *string )
 		if (glt->type != it_pic && glt->type != it_sky )
 		{
 			GL_Bind (glt->texnum[0]);
-			qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
-			qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
+			pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
+			pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
 		}
 	}
 }
@@ -290,19 +355,19 @@ GL_EnableMultitexture
 */
 void GL_EnableMultitexture( bool enable )
 {
-	if ( !qglSelectTextureSGIS && !qglActiveTextureARB )
+	if ( !pglSelectTextureSGIS && !pglActiveTextureARB )
 		return;
 
 	if ( enable )
 	{
 		GL_SelectTexture( GL_TEXTURE1 );
-		qglEnable( GL_TEXTURE_2D );
+		pglEnable( GL_TEXTURE_2D );
 		GL_TexEnv( GL_REPLACE );
 	}
 	else
 	{
 		GL_SelectTexture( GL_TEXTURE1 );
-		qglDisable( GL_TEXTURE_2D );
+		pglDisable( GL_TEXTURE_2D );
 		GL_TexEnv( GL_REPLACE );
 	}
 	GL_SelectTexture( GL_TEXTURE0 );
@@ -318,7 +383,7 @@ void GL_SelectTexture( GLenum texture )
 {
 	int tmu;
 
-	if ( !qglSelectTextureSGIS && !qglActiveTextureARB )
+	if ( !pglSelectTextureSGIS && !pglActiveTextureARB )
 		return;
 
 	if ( texture == GL_TEXTURE0 )
@@ -337,14 +402,14 @@ void GL_SelectTexture( GLenum texture )
 
 	gl_state.currenttmu = tmu;
 
-	if ( qglSelectTextureSGIS )
+	if ( pglSelectTextureSGIS )
 	{
-		qglSelectTextureSGIS( texture );
+		pglSelectTextureSGIS( texture );
 	}
-	else if ( qglActiveTextureARB )
+	else if ( pglActiveTextureARB )
 	{
-		qglActiveTextureARB( texture );
-		qglClientActiveTextureARB( texture );
+		pglActiveTextureARB( texture );
+		pglClientActiveTextureARB( texture );
 	}
 }
 
@@ -359,7 +424,7 @@ void GL_TexEnv( GLenum mode )
 
 	if ( mode != lastmodes[gl_state.currenttmu] )
 	{
-		qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, mode );
+		pglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, mode );
 		lastmodes[gl_state.currenttmu] = mode;
 	}
 }
@@ -373,13 +438,13 @@ void GL_TexFilter( void )
 {
 	if(R_ImageHasMips())
 	{
-		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
-		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
+		pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
+		pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
 	}
 	else
 	{
-		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_max);
-		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
+		pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_max);
+		pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
 	}
 }
 
@@ -397,7 +462,7 @@ void GL_Bind (int texnum)
 	if ( gl_state.currenttextures[gl_state.currenttmu] == texnum)
 		return;
 	gl_state.currenttextures[gl_state.currenttmu] = texnum;
-	qglBindTexture (GL_TEXTURE_2D, texnum);
+	pglBindTexture (GL_TEXTURE_2D, texnum);
 }
 
 /*
@@ -448,45 +513,44 @@ GL_SetDefaultState
 */
 void GL_SetDefaultState( void )
 {
-	qglClearColor (1,0, 0.5 , 0.5);
-	qglCullFace(GL_FRONT);
-	qglEnable(GL_TEXTURE_2D);
+	pglClearColor (1,0, 0.5 , 0.5);
+	pglCullFace(GL_FRONT);
+	pglEnable(GL_TEXTURE_2D);
 
-	qglEnable(GL_ALPHA_TEST);
-	qglAlphaFunc(GL_GREATER, 0.666);
+	pglEnable(GL_ALPHA_TEST);
+	pglAlphaFunc(GL_GREATER, 0.666);
 
-	qglDisable (GL_DEPTH_TEST);
-	qglDisable (GL_CULL_FACE);
-	qglDisable (GL_BLEND);
+	pglDisable (GL_DEPTH_TEST);
+	pglDisable (GL_CULL_FACE);
+	pglDisable (GL_BLEND);
 	gl_state.blend = false;
-	
-	qglColor4f (1,1,1,1);
+	pglColor4f (1,1,1,1);
 
 	Vector4Set(gl_state.draw_color, 1.0f, 1.0f, 1.0f, 1.0f );
 
-	qglHint(GL_GENERATE_MIPMAP_HINT_SGIS, GL_NICEST);
-	qglHint (GL_FOG_HINT, GL_FASTEST);
-	qglPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
-	qglShadeModel (GL_FLAT);
-
+	pglHint(GL_GENERATE_MIPMAP_HINT_SGIS, GL_NICEST);
+	pglHint (GL_FOG_HINT, GL_FASTEST);
+	pglPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
+	pglShadeModel (GL_FLAT);
+	
 	GL_TextureMode( gl_texturemode->string );
 	GL_TextureAlphaMode( gl_texturealphamode->string );
 	GL_TextureSolidMode( gl_texturesolidmode->string );
 
-	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
-	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
+	pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
+	pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
 
-	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-	qglBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	pglBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	GL_TexEnv( GL_REPLACE );
 
 	gl_state.texgen = false;
-	qglDisable(GL_TEXTURE_GEN_S);
-	qglDisable(GL_TEXTURE_GEN_T);
+	pglDisable(GL_TEXTURE_GEN_S);
+	pglDisable(GL_TEXTURE_GEN_T);
 
-	if ( qglPointParameterfEXT )
+	if ( pglPointParameterfEXT )
 	{
 		float attenuations[3];
 
@@ -494,10 +558,10 @@ void GL_SetDefaultState( void )
 		attenuations[1] = gl_particle_att_b->value;
 		attenuations[2] = gl_particle_att_c->value;
 
-		qglEnable( GL_POINT_SMOOTH );
-		qglPointParameterfEXT( GL_POINT_SIZE_MIN_EXT, gl_particle_min_size->value );
-		qglPointParameterfEXT( GL_POINT_SIZE_MAX_EXT, gl_particle_max_size->value );
-		qglPointParameterfvEXT( GL_DISTANCE_ATTENUATION_EXT, attenuations );
+		pglEnable( GL_POINT_SMOOTH );
+		pglPointParameterfEXT( GL_POINT_SIZE_MIN_EXT, gl_particle_min_size->value );
+		pglPointParameterfEXT( GL_POINT_SIZE_MAX_EXT, gl_particle_max_size->value );
+		pglPointParameterfvEXT( GL_DISTANCE_ATTENUATION_EXT, attenuations );
 	}
 
 	GL_UpdateSwapInterval();
@@ -514,12 +578,12 @@ void GL_UpdateSwapInterval( void )
 	{
 		gl_swapinterval->modified = false;
 
-		if ( qwglSwapIntervalEXT )
-			qwglSwapIntervalEXT( gl_swapinterval->value );
+		if ( pwglSwapIntervalEXT )
+			pwglSwapIntervalEXT( gl_swapinterval->value );
 	}
 }
 
-void qglPerspective( GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar )
+void pglPerspective( GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar )
 {
 	GLdouble xmin, xmax, ymin, ymax;
 
@@ -528,7 +592,7 @@ void qglPerspective( GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zF
 	xmin = ymin * aspect;
 	xmax = ymax * aspect;
 
-	qglFrustum( xmin, xmax, ymin, ymax, zNear, zFar );
+	pglFrustum( xmin, xmax, ymin, ymax, zNear, zFar );
 }
 
 /*
@@ -564,7 +628,7 @@ bool VID_ScreenShot( const char *filename, bool levelshot )
 	if(!r_framebuffer) return false;
 
 	// get screen frame
-	qglReadPixels( 0, 0, r_width->integer, r_height->integer, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer );
+	pglReadPixels( 0, 0, r_width->integer, r_height->integer, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer );
 
 	r_shot = Z_Malloc( sizeof(rgbdata_t));
 	r_shot->width = r_width->integer;

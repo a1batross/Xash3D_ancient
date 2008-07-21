@@ -286,8 +286,8 @@ void R_ShutdownTextures (void)
 
 		// free it
 		if(image->type == it_sky || image->type == it_cubemap)
-			for(k = 0; k < 6; k++) qglDeleteTextures (1, &image->texnum[k] );
-		else qglDeleteTextures (1, &image->texnum[0] );
+			for(k = 0; k < 6; k++) pglDeleteTextures (1, &image->texnum[k] );
+		else pglDeleteTextures (1, &image->texnum[0] );
 		memset (image, 0, sizeof(*image));
 	}
 
@@ -313,7 +313,7 @@ void R_InitTextures( void )
 	r_imagepool = Mem_AllocPool("Texture Pool");
           gl_maxsize = Cvar_Get( "gl_maxsize", "4096", CVAR_ARCHIVE, "texture dimension max size" );
 	
-	qglGetIntegerv(GL_MAX_TEXTURE_SIZE, &texsize); // merge value
+	pglGetIntegerv(GL_MAX_TEXTURE_SIZE, &texsize); // merge value
 	if( gl_maxsize->integer != texsize ) Cvar_SetValue( "gl_maxsize", texsize );
 
 	registration_sequence = 1;
@@ -415,7 +415,7 @@ void R_ImageCorrectPreMult( uint *data, int datasize )
 
 /*
 ===============
-qglGenerateMipmaps
+pglGenerateMipmaps
 
 sgis generate mipmap
 ===============
@@ -424,8 +424,8 @@ void GL_GenerateMipmaps( void )
 {
 	if( image_desc.flags & IMAGE_GEN_MIPS )
 	{
-		qglTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP_SGIS, GL_TRUE);
-		if(qglGetError()) MsgDev(D_WARN, "GL_GenerateMipmaps: can't create mip levels\n");
+		pglTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP_SGIS, GL_TRUE);
+		if(pglGetError()) MsgDev(D_WARN, "GL_GenerateMipmaps: can't create mip levels\n");
 	}
 }
 
@@ -710,9 +710,9 @@ bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint w
 	samples = (has_alpha) ? gl_tex_alpha_format : gl_tex_solid_format;
 	R_ResampleTexture ((uint *)fout, w, h, scaled, scaled_width, scaled_height);
 	if( !level ) GL_GenerateMipmaps(); // generate mips if needed
-	qglTexImage2D ( target, level, samples, scaled_width, scaled_height, border, image_desc.glMask, image_desc.glType, (byte *)scaled );
+	pglTexImage2D ( target, level, samples, scaled_width, scaled_height, border, image_desc.glMask, image_desc.glType, (byte *)scaled );
 
-	if(qglGetError()) return false;
+	if(pglGetError()) return false;
 	return true;
 }
 
@@ -736,8 +736,8 @@ bool CompressedTexImage2D( uint target, int level, int intformat, uint width, ui
 	if(use_gl_extension)
 	{
 		if( !level ) GL_GenerateMipmaps(); // generate mips if needed
-		qglCompressedTexImage2D(target, level, dxtformat, width, height, border, imageSize, data );
-		if(!qglGetError()) return true;
+		pglCompressedTexImage2D(target, level, dxtformat, width, height, border, imageSize, data );
+		if(!pglGetError()) return true;
 		// otherwise try loading with software unpacker
 	}
 	return qrsCompressedTexImage2D(target, level, pixformat, width, height, border, imageSize, data );
@@ -855,9 +855,9 @@ bool qrsDecompressedTexImage2D( uint target, int level, int internalformat, uint
 	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;
 	R_ResampleTexture((uint *)fout, width, height, scaled, scaled_width, scaled_height);
 	if( !level ) GL_GenerateMipmaps(); // generate mips if needed
-	qglTexImage2D( target, level, samples, scaled_width, scaled_height, border, image_desc.glMask, image_desc.glType, (byte *)scaled );
+	pglTexImage2D( target, level, samples, scaled_width, scaled_height, border, image_desc.glMask, image_desc.glType, (byte *)scaled );
 
-	if(qglGetError()) return false;
+	if(pglGetError()) return false;
 	return true;
 }
 
@@ -966,9 +966,9 @@ bool qrsDecompressImageARGB( uint target, int level, int internalformat, uint wi
 	// upload base image or miplevel
 	samples = (image_desc.flags & IMAGE_HAS_ALPHA) ? gl_tex_alpha_format : gl_tex_solid_format;
 	R_ResampleTexture ((uint *)fout, w, h, scaled, scaled_width, scaled_height);
-	qglTexImage2D ( target, level, samples, scaled_width, scaled_height, border, image_desc.glMask, image_desc.glType, (byte *)scaled );
+	pglTexImage2D ( target, level, samples, scaled_width, scaled_height, border, image_desc.glMask, image_desc.glType, (byte *)scaled );
 
-	if(qglGetError()) return false;
+	if(pglGetError()) return false;
 	return true;
 }
 
@@ -993,8 +993,8 @@ bool DecompressImageARGB( uint target, int level, int intformat, uint width, uin
 	if(use_gl_extension)
 	{
 		if( !level ) GL_GenerateMipmaps(); // generate mips if needed
-		qglTexImage2D( target, level, argbformat, width, height, border, image_desc.glMask, datatype, data );
-		if(!qglGetError()) return true;
+		pglTexImage2D( target, level, argbformat, width, height, border, image_desc.glMask, datatype, data );
+		if(!pglGetError()) return true;
 		// otherwise try loading with software unpacker
 	}
 	return qrsDecompressImageARGB(target, level, pixformat, width, height, border, imageSize, data );
@@ -1045,8 +1045,8 @@ bool DecompressImageFloat( uint target, int level, int intformat, uint width, ui
 	if(use_gl_extension)
 	{
 		if( !level ) GL_GenerateMipmaps(); // generate mips if needed
-		qglTexImage2D( target, level, floatformat, width, height, border, image_desc.glMask, datatype, data );
-		if(!qglGetError()) return true;
+		pglTexImage2D( target, level, floatformat, width, height, border, image_desc.glMask, datatype, data );
+		if(!pglGetError()) return true;
 		// otherwise try loading with software unpacker
 	}
 	return qrsDecompressImageFloat( target, level, pixformat, width, height, border, imageSize, data );
@@ -1235,8 +1235,8 @@ void R_ImageFreeUnused(void)
 		if (!image->registration_sequence) continue; // free image_t slot
 		if (image->type == it_pic) continue; // don't free pics
 		if (image->type == it_sky || image->type == it_cubemap)
-			for(k = 0; k < 6; k++) qglDeleteTextures (1, &image->texnum[k] );
-		else qglDeleteTextures (1, &image->texnum[0] );
+			for(k = 0; k < 6; k++) pglDeleteTextures (1, &image->texnum[k] );
+		else pglDeleteTextures (1, &image->texnum[0] );
 		memset(image, 0, sizeof(*image));
 	}
 }

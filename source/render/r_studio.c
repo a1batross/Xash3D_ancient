@@ -501,7 +501,7 @@ mstudioanim_t *R_StudioGetAnim( model_t *m_pSubModel, mstudioseqdesc_t *pseqdesc
 		buf = FS_LoadFile (pseqgroup->name, &filesize);
 		if (!buf)
 		{
-			Sys_Error("R_StudioGetAnim: %s not found", pseqgroup->name);
+			Host_Error("R_StudioGetAnim: %s not found", pseqgroup->name);
 			memset (pseqgroup->name, 0, sizeof(pseqgroup->name));
 			return NULL;
 		}
@@ -1231,26 +1231,26 @@ void R_StudioDrawMeshes ( mstudiotexture_t * ptexture, short *pskinref, int pass
 		t = 1.0/(float)ptexture[pskinref[pmesh->skinref]].height;
 
 		GL_Bind( ptexture[pskinref[pmesh->skinref]].index );
-		qglShadeModel (GL_SMOOTH);
+		pglShadeModel (GL_SMOOTH);
 		GL_TexEnv( GL_MODULATE );
 
 		while (i = *(ptricmds++))
 		{
 			if (i < 0)
 			{
-				qglBegin( GL_TRIANGLE_FAN );
+				pglBegin( GL_TRIANGLE_FAN );
 				i = -i;
 			}
 			else
 			{
-				qglBegin( GL_TRIANGLE_STRIP );
+				pglBegin( GL_TRIANGLE_STRIP );
 			}
 
 			for(; i > 0; i--, ptricmds += 4)
 			{
 				if (flags & STUDIO_NF_CHROME)
-					qglTexCoord2f(g_chrome[ptricmds[1]][0]*s, g_chrome[ptricmds[1]][1]*t);
-				else qglTexCoord2f(ptricmds[2]*s, ptricmds[3]*t);
+					pglTexCoord2f(g_chrome[ptricmds[1]][0]*s, g_chrome[ptricmds[1]][1]*t);
+				else pglTexCoord2f(ptricmds[2]*s, ptricmds[3]*t);
 				lv = m_pvlightvalues[ptricmds[1]];
                                         
                                         if ( m_pCurrentEntity->flags & RF_FULLBRIGHT )
@@ -1262,15 +1262,15 @@ void R_StudioDrawMeshes ( mstudiotexture_t * ptexture, short *pskinref, int pass
 					lv = &irgoggles[0];
 
 				if (flags & STUDIO_NF_ADDITIVE) // additive is self-lighting texture
-					qglColor4f( 1.0f, 1.0f, 1.0f, 0.8f );
+					pglColor4f( 1.0f, 1.0f, 1.0f, 0.8f );
 				else if(m_pCurrentEntity->flags & RF_TRANSLUCENT)
-					qglColor4f( 1.0f, 1.0f, 1.0f, m_pCurrentEntity->alpha );
-				else qglColor4f( lv[0], lv[1], lv[2], 1.0f ); // get light from floor
+					pglColor4f( 1.0f, 1.0f, 1.0f, m_pCurrentEntity->alpha );
+				else pglColor4f( lv[0], lv[1], lv[2], 1.0f ); // get light from floor
 
 				av = m_pxformverts[ptricmds[0]];
-				qglVertex3f( av[0], av[1], av[2] );
+				pglVertex3f( av[0], av[1], av[2] );
 			}
-			qglEnd();
+			pglEnd();
 		}
 	}
 }
@@ -1303,40 +1303,40 @@ void R_StudioDrawPoints ( void )
 	}
 
 	if (currententity->flags & RF_DEPTHHACK) // hack the depth range to prevent view model from poking into walls
-		qglDepthRange (gldepthmin, gldepthmin + 0.3 * (gldepthmax-gldepthmin));
+		pglDepthRange (gldepthmin, gldepthmin + 0.3 * (gldepthmax-gldepthmin));
 
 	if (( m_pCurrentEntity->flags & RF_VIEWMODEL ) && ( r_lefthand->value == 1.0F ))
 	{
-		qglMatrixMode( GL_PROJECTION );
-		qglPushMatrix();
-		qglLoadIdentity();
-		qglScalef( -1, 1, 1 );
-	    	qglPerspective( r_newrefdef.fov_y, ( float ) r_newrefdef.width / r_newrefdef.height,  4, 131072 );
-		qglMatrixMode( GL_MODELVIEW );
-		qglCullFace( GL_BACK );
+		pglMatrixMode( GL_PROJECTION );
+		pglPushMatrix();
+		pglLoadIdentity();
+		pglScalef( -1, 1, 1 );
+	    	pglPerspective( r_newrefdef.fov_y, ( float ) r_newrefdef.width / r_newrefdef.height,  4, 131072 );
+		pglMatrixMode( GL_MODELVIEW );
+		pglCullFace( GL_BACK );
 	}          
 	if(m_PassNum == RENDERPASS_SOLID && !(m_pCurrentEntity->flags & RF_TRANSLUCENT)) //setup for solid format
 	{
-		qglEnable (GL_ALPHA_TEST);
-		qglBlendFunc(GL_ZERO, GL_ZERO);
+		pglEnable (GL_ALPHA_TEST);
+		pglBlendFunc(GL_ZERO, GL_ZERO);
                     R_StudioDrawMeshes( ptexture, pskinref, m_PassNum );
-		qglColor4f( 1, 1, 1, 1 ); //reset color
-		qglDisable(GL_ALPHA_TEST);
+		pglColor4f( 1, 1, 1, 1 ); //reset color
+		pglDisable(GL_ALPHA_TEST);
 	}
 	if(m_PassNum == RENDERPASS_ALPHA) //setup for alpha format
 	{
-		qglEnable(GL_BLEND);
-		qglBlendFunc(GL_SRC_ALPHA, GL_ONE);
+		pglEnable(GL_BLEND);
+		pglBlendFunc(GL_SRC_ALPHA, GL_ONE);
 		R_StudioDrawMeshes( ptexture, pskinref, m_PassNum );
-		qglColor4f( 1, 1, 1, 1 ); //reset color
-		qglDisable(GL_BLEND);
+		pglColor4f( 1, 1, 1, 1 ); //reset color
+		pglDisable(GL_BLEND);
 	}	
 	if (( m_pCurrentEntity->flags & RF_VIEWMODEL ) && ( r_lefthand->value == 1.0F ))
 	{
-		qglMatrixMode( GL_PROJECTION );
-		qglPopMatrix();
-		qglMatrixMode( GL_MODELVIEW );
-		qglCullFace( GL_FRONT );
+		pglMatrixMode( GL_PROJECTION );
+		pglPopMatrix();
+		pglMatrixMode( GL_MODELVIEW );
+		pglCullFace( GL_FRONT );
 	}
 }
 
@@ -1344,58 +1344,58 @@ void R_StudioDrawBones ( void )
 {
 	int i;
 	mstudiobone_t *pbones = (mstudiobone_t *) ((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
-	qglDisable (GL_TEXTURE_2D);
-	qglDisable (GL_DEPTH_TEST);
+	pglDisable (GL_TEXTURE_2D);
+	pglDisable (GL_DEPTH_TEST);
 
 	for (i = 0; i < m_pStudioHeader->numbones; i++)
 	{
 		if (pbones[i].parent >= 0)
 		{
-			qglPointSize (3.0f);
-			qglColor3f (1, 0.7f, 0);
-			qglBegin (GL_LINES);
-			qglVertex3f (m_pbonestransform[pbones[i].parent][0][3], m_pbonestransform[pbones[i].parent][1][3], m_pbonestransform[pbones[i].parent][2][3]);
-			qglVertex3f (m_pbonestransform[i][0][3], m_pbonestransform[i][1][3], m_pbonestransform[i][2][3]);
-			qglEnd ();
+			pglPointSize (3.0f);
+			pglColor3f (1, 0.7f, 0);
+			pglBegin (GL_LINES);
+			pglVertex3f (m_pbonestransform[pbones[i].parent][0][3], m_pbonestransform[pbones[i].parent][1][3], m_pbonestransform[pbones[i].parent][2][3]);
+			pglVertex3f (m_pbonestransform[i][0][3], m_pbonestransform[i][1][3], m_pbonestransform[i][2][3]);
+			pglEnd ();
 
-			qglColor3f (0, 0, 0.8f);
-			qglBegin (GL_POINTS);
+			pglColor3f (0, 0, 0.8f);
+			pglBegin (GL_POINTS);
 			if (pbones[pbones[i].parent].parent != -1)
-				qglVertex3f (m_pbonestransform[pbones[i].parent][0][3], m_pbonestransform[pbones[i].parent][1][3], m_pbonestransform[pbones[i].parent][2][3]);
-			qglVertex3f (m_pbonestransform[i][0][3], m_pbonestransform[i][1][3], m_pbonestransform[i][2][3]);
-			qglEnd ();
+				pglVertex3f (m_pbonestransform[pbones[i].parent][0][3], m_pbonestransform[pbones[i].parent][1][3], m_pbonestransform[pbones[i].parent][2][3]);
+			pglVertex3f (m_pbonestransform[i][0][3], m_pbonestransform[i][1][3], m_pbonestransform[i][2][3]);
+			pglEnd ();
 		}
 		else
 		{
 			// draw parent bone node
-			qglPointSize (5.0f);
-			qglColor3f (0.8f, 0, 0);
-			qglBegin (GL_POINTS);
-			qglVertex3f (m_pbonestransform[i][0][3], m_pbonestransform[i][1][3], m_pbonestransform[i][2][3]);
-			qglEnd ();
+			pglPointSize (5.0f);
+			pglColor3f (0.8f, 0, 0);
+			pglBegin (GL_POINTS);
+			pglVertex3f (m_pbonestransform[i][0][3], m_pbonestransform[i][1][3], m_pbonestransform[i][2][3]);
+			pglEnd ();
 		}
 	}
 
-	qglPointSize (1.0f);
-	qglEnable (GL_DEPTH_TEST);
-	qglEnable (GL_TEXTURE_2D);
+	pglPointSize (1.0f);
+	pglEnable (GL_DEPTH_TEST);
+	pglEnable (GL_TEXTURE_2D);
 }
 
 void R_StudioDrawHitboxes ( void )
 {
 	int i, j;
 
-	qglDisable (GL_TEXTURE_2D);
-	qglDisable (GL_CULL_FACE);
+	pglDisable (GL_TEXTURE_2D);
+	pglDisable (GL_CULL_FACE);
 
-	if (m_pCurrentEntity->alpha < 1.0f ) qglDisable (GL_DEPTH_TEST);
-	else qglEnable (GL_DEPTH_TEST);
+	if (m_pCurrentEntity->alpha < 1.0f ) pglDisable (GL_DEPTH_TEST);
+	else pglEnable (GL_DEPTH_TEST);
 
-	qglColor4f (1, 0, 0, 0.5f);
+	pglColor4f (1, 0, 0, 0.5f);
 
-	qglPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
-	qglEnable (GL_BLEND);
-	qglBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	pglPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
+	pglEnable (GL_BLEND);
+	pglBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	for (i = 0; i < m_pStudioHeader->numhitboxes; i++)
 	{
@@ -1446,38 +1446,38 @@ void R_StudioDrawHitboxes ( void )
 		VectorTransform (v[6], m_pbonestransform[pbboxes[i].bone], v2[6]);
 		VectorTransform (v[7], m_pbonestransform[pbboxes[i].bone], v2[7]);
 
-		qglBegin (GL_QUAD_STRIP);
-		for (j = 0; j < 10; j++) qglVertex3fv (v2[j & 7]);
-		qglEnd ();
+		pglBegin (GL_QUAD_STRIP);
+		for (j = 0; j < 10; j++) pglVertex3fv (v2[j & 7]);
+		pglEnd ();
 	
-		qglBegin  (GL_QUAD_STRIP);
-		qglVertex3fv (v2[6]);
-		qglVertex3fv (v2[0]);
-		qglVertex3fv (v2[4]);
-		qglVertex3fv (v2[2]);
-		qglEnd ();
+		pglBegin  (GL_QUAD_STRIP);
+		pglVertex3fv (v2[6]);
+		pglVertex3fv (v2[0]);
+		pglVertex3fv (v2[4]);
+		pglVertex3fv (v2[2]);
+		pglEnd ();
 
-		qglBegin  (GL_QUAD_STRIP);
-		qglVertex3fv (v2[1]);
-		qglVertex3fv (v2[7]);
-		qglVertex3fv (v2[3]);
-		qglVertex3fv (v2[5]);
-		qglEnd ();			
+		pglBegin  (GL_QUAD_STRIP);
+		pglVertex3fv (v2[1]);
+		pglVertex3fv (v2[7]);
+		pglVertex3fv (v2[3]);
+		pglVertex3fv (v2[5]);
+		pglEnd ();			
 	}
 
-	qglPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
-	qglEnable(GL_TEXTURE_2D);
-	qglEnable(GL_CULL_FACE);
-	qglEnable (GL_DEPTH_TEST);
+	pglPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
+	pglEnable(GL_TEXTURE_2D);
+	pglEnable(GL_CULL_FACE);
+	pglEnable (GL_DEPTH_TEST);
 }
 
 void R_StudioDrawAttachments( void )
 {
 	int i;
 	
-	qglDisable (GL_TEXTURE_2D);
-	qglDisable (GL_CULL_FACE);
-	qglDisable (GL_DEPTH_TEST);
+	pglDisable (GL_TEXTURE_2D);
+	pglDisable (GL_CULL_FACE);
+	pglDisable (GL_DEPTH_TEST);
 	
 	for (i = 0; i < m_pStudioHeader->numattachments; i++)
 	{
@@ -1489,31 +1489,31 @@ void R_StudioDrawAttachments( void )
 		VectorTransform (pattachments[i].vectors[1], m_pbonestransform[pattachments[i].bone], v[2]);
 		VectorTransform (pattachments[i].vectors[2], m_pbonestransform[pattachments[i].bone], v[3]);
 		
-		qglBegin (GL_LINES);
-		qglColor3f (1, 0, 0);
-		qglVertex3fv (v[0]);
-		qglColor3f (1, 1, 1);
-		qglVertex3fv (v[1]);
-		qglColor3f (1, 0, 0);
-		qglVertex3fv (v[0]);
-		qglColor3f (1, 1, 1);
-		qglVertex3fv (v[2]);
-		qglColor3f (1, 0, 0);
-		qglVertex3fv (v[0]);
-		qglColor3f (1, 1, 1);
-		qglVertex3fv (v[3]);
-		qglEnd ();
+		pglBegin (GL_LINES);
+		pglColor3f (1, 0, 0);
+		pglVertex3fv (v[0]);
+		pglColor3f (1, 1, 1);
+		pglVertex3fv (v[1]);
+		pglColor3f (1, 0, 0);
+		pglVertex3fv (v[0]);
+		pglColor3f (1, 1, 1);
+		pglVertex3fv (v[2]);
+		pglColor3f (1, 0, 0);
+		pglVertex3fv (v[0]);
+		pglColor3f (1, 1, 1);
+		pglVertex3fv (v[3]);
+		pglEnd ();
 
-		qglPointSize (5.0f);
-		qglColor3f (0, 1, 0);
-		qglBegin (GL_POINTS);
-		qglVertex3fv (v[0]);
-		qglEnd ();
-		qglPointSize (1.0f);
+		pglPointSize (5.0f);
+		pglColor3f (0, 1, 0);
+		pglBegin (GL_POINTS);
+		pglVertex3fv (v[0]);
+		pglEnd ();
+		pglPointSize (1.0f);
 	}
-	qglEnable(GL_TEXTURE_2D);
-	qglEnable(GL_CULL_FACE);
-	qglEnable (GL_DEPTH_TEST);
+	pglEnable(GL_TEXTURE_2D);
+	pglEnable(GL_CULL_FACE);
+	pglEnable (GL_DEPTH_TEST);
 }
 
 void R_StudioDrawHulls ( void )
@@ -1524,20 +1524,20 @@ void R_StudioDrawHulls ( void )
 	if(m_pCurrentEntity->flags & RF_VIEWMODEL) return;
 	if(!R_StudioComputeBBox( bbox )) return;
 
-	qglDisable( GL_CULL_FACE );
-	qglPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-	qglDisable( GL_TEXTURE_2D );
-	qglBegin (GL_QUAD_STRIP);
+	pglDisable( GL_CULL_FACE );
+	pglPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+	pglDisable( GL_TEXTURE_2D );
+	pglBegin (GL_QUAD_STRIP);
 
 	for (i = 0; i < 10; i++)
 	{
-		qglVertex3fv( bbox[i & 7] );
+		pglVertex3fv( bbox[i & 7] );
 	}
 
-	qglEnd();
-	qglEnable( GL_TEXTURE_2D );
-	qglPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-	qglEnable( GL_CULL_FACE );
+	pglEnd();
+	pglEnable( GL_TEXTURE_2D );
+	pglPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+	pglEnable( GL_CULL_FACE );
 }
 
 extern	vec3_t lightspot;
@@ -1645,8 +1645,8 @@ void R_DrawStudioModel( int passnum )
 	}
 
 	GL_TexEnv( GL_REPLACE );
-	qglShadeModel (GL_FLAT);
-	if(m_pCurrentEntity->flags & RF_DEPTHHACK) qglDepthRange (gldepthmin, gldepthmax);
+	pglShadeModel (GL_FLAT);
+	if(m_pCurrentEntity->flags & RF_DEPTHHACK) pglDepthRange (gldepthmin, gldepthmax);
 
 	if(r_minimap->value > 1) 
 	{
@@ -1670,15 +1670,15 @@ void R_DrawStudioModel( int passnum )
 
 	if (gl_shadows->value && !(m_pCurrentEntity->flags & (RF_TRANSLUCENT | RF_VIEWMODEL)))
 	{
-		qglPushMatrix();
+		pglPushMatrix();
 		R_RotateForEntity(m_pCurrentEntity);
-		qglDisable (GL_TEXTURE_2D);
-		qglEnable (GL_BLEND);
-		qglColor4f (0.0f, 0.0f, 0.0f, 0.5f );
+		pglDisable (GL_TEXTURE_2D);
+		pglEnable (GL_BLEND);
+		pglColor4f (0.0f, 0.0f, 0.0f, 0.5f );
 		R_StudioDrawShadow();
-		qglEnable (GL_TEXTURE_2D);
-		qglDisable (GL_BLEND);
-		qglPopMatrix ();
+		pglEnable (GL_TEXTURE_2D);
+		pglDisable (GL_BLEND);
+		pglPopMatrix ();
 	}
-	qglColor4f(1.0f, 1.0f, 1.0f, 1.0f );
+	pglColor4f(1.0f, 1.0f, 1.0f, 1.0f );
 }

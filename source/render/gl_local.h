@@ -51,6 +51,7 @@ memory manager
 extern byte *r_temppool;
 extern stdlib_api_t com;
 extern imglib_exp_t *Image;
+extern dll_info_t opengl_dll;
 
 // r_utils.c
 void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );
@@ -59,7 +60,7 @@ void PerpendicularVector( vec3_t dst, const vec3_t src );
 void R_ConcatRotations (float in1[3][3], float in2[3][3], float out[3][3]);
 void R_ConcatTransforms (float in1[3][4], float in2[3][4], float out[3][4]);
 
-#define Sys_Error com.error
+#define Host_Error com.error
 
 #define MAX_RADAR_ENTS	1024
 typedef struct radar_ent_s
@@ -195,6 +196,7 @@ extern	vec3_t	r_origin;
 extern	refdef_t	r_newrefdef;
 extern	int	r_viewcluster, r_viewcluster2, r_oldviewcluster, r_oldviewcluster2;
 
+extern	cvar_t	*r_check_errors;
 extern	cvar_t	*r_norefresh;
 extern	cvar_t	*r_lefthand;
 extern	cvar_t	*r_drawentities;
@@ -346,16 +348,6 @@ void R_DrawSkyBox (void);
 void R_MarkLights (dlight_t *light, int bit, mnode_t *node);
 void R_RoundImageDimensions(int *scaled_width, int *scaled_height);
 
-#if 0
-short LittleShort (short l);
-short BigShort (short l);
-int	LittleLong (int l);
-float LittleFloat (float f);
-
-char	*va(char *format, ...);
-// does a varargs printf into a temp buffer
-#endif
-
 void COM_StripExtension (char *in, char *out);
 void COM_FileBase (char *in, char *out);
 
@@ -427,6 +419,8 @@ typedef struct
 	word	original_ramp[3][256];
 	word	gamma_ramp[3][256];
 
+	// list of supported extensions
+	byte	extension[R_EXTCOUNT];
 } glconfig_t;
 
 typedef struct
@@ -451,10 +445,32 @@ typedef struct
 	int	ati_separate_stencil;
 	vec4_t	draw_color;	// using with Draw_* functions
 
+	// new stuff
+	int	textureunits;
+	int	max_3d_texture_size;
+	int	max_cubemap_texture_size;
+	int	max_anisotropy;
 } glstate_t;
 
 extern glconfig_t  gl_config;
 extern glstate_t   gl_state;
+
+//
+// r_opengl.c
+//
+bool R_SetMode( void );
+void R_EndFrame( void );
+bool R_Init_OpenGL( void );
+void R_Free_OpenGL( void );
+void R_InitExtensions( void );
+void R_CheckForErrors( void );
+
+//
+// r_backend.c
+//
+bool GL_Support( int r_ext );
+void GL_SetExtension( int r_ext, int enable );
+void GL_CheckExtension( const char *name, const dllfunc_t *funcs, const char *cvarname, int r_ext );
 
 /*
 ====================================================================
