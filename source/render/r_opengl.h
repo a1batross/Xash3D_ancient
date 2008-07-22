@@ -14,6 +14,7 @@ typedef enum
 {
 	R_OPENGL_110 = 0,		// base
 	R_WGL_SWAPCONTROL,
+	R_EXT_POINTPARAMETERS,
 	R_COMBINE_EXT,
 	R_DRAWRANGEELMENTS,
 	R_ARB_MULTITEXTURE,
@@ -311,8 +312,6 @@ extern int gl_max_anisotropy;
 #define GL_POINT_SIZE_MAX_EXT			0x8127
 #define GL_POINT_FADE_THRESHOLD_SIZE_EXT	0x8128
 #define GL_DISTANCE_ATTENUATION_EXT		0x8129
-#define GL_TEXTURE0_SGIS			0x835E
-#define GL_TEXTURE1_SGIS			0x835F
 #define GL_ACTIVE_TEXTURE_ARB			0x84E0
 #define GL_CLIENT_ACTIVE_TEXTURE_ARB		0x84E1
 #define GL_MAX_TEXTURE_UNITS_ARB		0x84E2
@@ -826,11 +825,8 @@ void ( APIENTRY *pglPointParameterfEXT)( GLenum param, GLfloat value );
 void ( APIENTRY *pglPointParameterfvEXT)( GLenum param, const GLfloat *value );
 void ( APIENTRY *pglLockArraysEXT) (int , int);
 void ( APIENTRY *pglUnlockArraysEXT) (void);
-void ( APIENTRY *pglMTexCoord2fSGIS)( GLenum, GLfloat, GLfloat );
-void ( APIENTRY *pglSelectTextureSGIS)( GLenum );
 void ( APIENTRY *pglActiveTextureARB)( GLenum );
 void ( APIENTRY *pglClientActiveTextureARB)( GLenum );
-void ( APIENTRY *pglCompressedTexImage2D)( GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid* data );
 void ( APIENTRY *pglGetCompressedTexImage)( GLenum target, GLint lod, const GLvoid* data );
 void ( APIENTRY *pglDrawRangeElements)(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const GLvoid *indices);
 void ( APIENTRY *pglDrawElements)(GLenum mode, GLsizei count, GLenum type, const GLvoid *indices);

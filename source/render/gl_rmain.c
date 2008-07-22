@@ -96,7 +96,6 @@ cvar_t	*r_loading;
 cvar_t	*r_lightlevel;	// FIXME: This is a HACK to get the client's light level
 cvar_t	*r_mirroralpha;
 cvar_t	*gl_nosubimage;
-cvar_t	*gl_allow_software;
 
 cvar_t	*gl_vertex_arrays;
 
@@ -947,104 +946,6 @@ void R_RenderFrame (refdef_t *fd)
 	R_SetGL2D ();
 }
 
-
-void R_Register( void )
-{
-	r_check_errors = Cvar_Get("r_check_errors", "1", CVAR_ARCHIVE, "ignore video engine errors" );
-	r_lefthand = Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE, "viewmodel handedness" );
-	r_norefresh = Cvar_Get ("r_norefresh", "0", 0, "no description" );
-	r_fullbright = Cvar_Get ("r_fullbright", "0", 0, "disable lightmaps" );
-	r_drawentities = Cvar_Get ("r_drawentities", "1", CVAR_ARCHIVE, "render entities" );
-	r_drawworld = Cvar_Get ("r_drawworld", "1", 0, "render world" );
-	r_novis = Cvar_Get ("r_novis", "0", 0, "ignore vis information (perfomance test)");
-	r_nocull = Cvar_Get ("r_nocull", "0", 0, "ignore frustrum culling (perfomance test)");
-	r_lerpmodels = Cvar_Get ("r_lerpmodels", "1", 0, "lerping model animations" );
-	r_speeds = Cvar_Get ("r_speeds", "0", 0, "shows r_speeds" );
-	r_pause = Cvar_Get("paused", "0", 0, "renderer pause" );
-	r_pause_bw = Cvar_Get("r_pause_effect", "0", CVAR_ARCHIVE, "allow pause effect" );
-	r_physbdebug = Cvar_Get( "cm_debugdraw", "0", CVAR_ARCHIVE, "draw physics hulls" );
-
-	// must been already existing
-	r_width = Cvar_Get("width", "640", 0, "screen width" );
-	r_height = Cvar_Get("height", "480", 0, "screen height" );
-	r_mode = Cvar_Get( "r_mode", "0", CVAR_ARCHIVE, "display resolution mode" );
-
-	r_loading = Cvar_Get("scr_loading", "0", 0, "loading bar progress" );
-	r_lightlevel = Cvar_Get ("r_lightlevel", "0", 0, "no description" );
-
- 	r_motionblur_intens = Cvar_Get( "r_motionblur_intens", "0.65", CVAR_ARCHIVE, "no description" );
-	r_motionblur = Cvar_Get( "r_motionblur", "0", CVAR_ARCHIVE, "no description" );
-
-	gl_nosubimage = Cvar_Get( "gl_nosubimage", "0", 0, "no description" );
-	gl_allow_software = Cvar_Get( "gl_allow_software", "0", 0, "no description" );
-
-	gl_particle_min_size = Cvar_Get( "gl_particle_min_size", "2", CVAR_ARCHIVE, "no description" );
-	gl_particle_max_size = Cvar_Get( "gl_particle_max_size", "40", CVAR_ARCHIVE, "no description" );
-	gl_particle_size = Cvar_Get( "gl_particle_size", "40", CVAR_ARCHIVE, "no description" );
-	gl_particle_att_a = Cvar_Get( "gl_particle_att_a", "0.01", CVAR_ARCHIVE, "no description" );
-	gl_particle_att_b = Cvar_Get( "gl_particle_att_b", "0.0", CVAR_ARCHIVE, "no description" );
-	gl_particle_att_c = Cvar_Get( "gl_particle_att_c", "0.01", CVAR_ARCHIVE, "no description" );
-
-	r_bloom = Cvar_Get( "r_bloom", "0", CVAR_ARCHIVE, "no description" );
-	r_bloom_alpha = Cvar_Get( "r_bloom_alpha", "0.5", CVAR_ARCHIVE, "no description" );
-	r_bloom_diamond_size = Cvar_Get( "r_bloom_diamond_size", "8", CVAR_ARCHIVE, "no description" );
-	r_bloom_intensity = Cvar_Get( "r_bloom_intensity", "0.6", CVAR_ARCHIVE, "no description" );
-	r_bloom_darken = Cvar_Get( "r_bloom_darken", "4", CVAR_ARCHIVE, "no description" );
-	r_bloom_sample_size = Cvar_Get( "r_bloom_sample_size", "128", CVAR_ARCHIVE, "no description" );
-	r_bloom_fast_sample = Cvar_Get( "r_bloom_fast_sample", "0", CVAR_ARCHIVE, "no description" );
-
-	r_minimap_size = Cvar_Get ("r_minimap_size", "256", CVAR_ARCHIVE, "no description" );
-	r_minimap_zoom = Cvar_Get ("r_minimap_zoom", "1", CVAR_ARCHIVE, "no description" );
-	r_minimap_style = Cvar_Get ("r_minimap_style", "1", CVAR_ARCHIVE, "no description" );  
-	r_minimap = Cvar_Get("r_minimap", "0", CVAR_ARCHIVE, "no description" ); 
-
-	r_mirroralpha = Cvar_Get( "r_mirroralpha", "0.5", CVAR_ARCHIVE, "no description" );
-	r_interpolate = Cvar_Get( "r_interpolate", "0", CVAR_ARCHIVE, "no description" );
-
-	gl_modulate = Cvar_Get ("gl_modulate", "1", CVAR_ARCHIVE, "no description" );
-	gl_log = Cvar_Get( "gl_log", "0", 0, "no description" );
-	gl_bitdepth = Cvar_Get( "gl_bitdepth", "0", 0, "no description" );
-
-	gl_lightmap = Cvar_Get ("gl_lightmap", "0", 0, "no description" );
-	gl_shadows = Cvar_Get ("gl_shadows", "0", CVAR_ARCHIVE, "no description" );
-	gl_dynamic = Cvar_Get ("gl_dynamic", "1", 0, "no description" );
-	gl_nobind = Cvar_Get ("gl_nobind", "0", 0, "no description" );
-	gl_round_down = Cvar_Get ("gl_round_down", "1", 0, "no description" );
-	gl_skymip = Cvar_Get ("gl_skymip", "0", 0, "no description" );
-	gl_showtris = Cvar_Get ("gl_showtris", "0", 0, "no description" );
-	gl_ztrick = Cvar_Get ("gl_ztrick", "0", 0, "no description" );
-	gl_finish = Cvar_Get ("gl_finish", "0", CVAR_ARCHIVE, "no description" );
-	gl_clear = Cvar_Get ("gl_clear", "0", 0, "no description" );
-	gl_cull = Cvar_Get ("gl_cull", "1", 0, "no description" );
-	gl_polyblend = Cvar_Get ("gl_polyblend", "1", 0, "no description" );
-	gl_flashblend = Cvar_Get ("gl_flashblend", "0", 0, "no description" );
-	gl_playermip = Cvar_Get ("gl_playermip", "0", 0, "no description" );
-	gl_texturemode = Cvar_Get( "gl_texturemode", "GL_LINEAR_MIPMAP_NEAREST", CVAR_ARCHIVE, "no description" );
-	gl_texturealphamode = Cvar_Get( "gl_texturealphamode", "default", CVAR_ARCHIVE, "no description" );
-	gl_texturesolidmode = Cvar_Get( "gl_texturesolidmode", "default", CVAR_ARCHIVE, "no description" );
-	gl_lockpvs = Cvar_Get( "gl_lockpvs", "0", 0, "no description" );
-
-	gl_vertex_arrays = Cvar_Get( "gl_vertex_arrays", "0", CVAR_ARCHIVE, "no description" );
-
-	gl_ext_swapinterval = Cvar_Get( "gl_ext_swapinterval", "1", CVAR_ARCHIVE, "no description" );
-	gl_ext_multitexture = Cvar_Get( "gl_ext_multitexture", "1", CVAR_ARCHIVE, "no description" );
-	gl_ext_compiled_vertex_array = Cvar_Get( "gl_ext_compiled_vertex_array", "1", CVAR_ARCHIVE, "no description" );
-
-	gl_drawbuffer = Cvar_Get( "gl_drawbuffer", "GL_BACK", 0, "no description" );
-	gl_swapinterval = Cvar_Get( "gl_swapinterval", "1", CVAR_ARCHIVE, "no description" );
-
-	gl_saturatelighting = Cvar_Get( "gl_saturatelighting", "0", 0, "no description" );
-
-	gl_3dlabs_broken = Cvar_Get( "gl_3dlabs_broken", "1", CVAR_ARCHIVE, "no description" );
-
-	r_fullscreen = Cvar_Get( "fullscreen", "0", CVAR_ARCHIVE, "set in 1 to enable fullscreen mode" );
-	vid_gamma = Cvar_Get( "vid_gamma", "1", CVAR_ARCHIVE, "screen gamma" );
-
-	Cmd_AddCommand( "imagelist", R_ImageList_f, "display loaded images list" );
-	Cmd_AddCommand( "modellist", Mod_Modellist_f, "display loaded models list" );
-	Cmd_AddCommand( "gl_strings", GL_Strings_f, "display openGL supported extensions" );
-}
-
 /*
 ===============
 R_Init
@@ -1052,73 +953,23 @@ R_Init
 */
 int R_Init( void *hinstance )
 {	
-	int		j;
-	extern float	r_turbsin[256];
-          
-	r_temppool = Mem_AllocPool( "Render Memory" );
-	glw_state.hInst = GetModuleHandle( NULL );
-	glw_state.wndproc = ri.WndProc;
-	
-	for( j = 0; j < 256; j++ )
-	{
-		r_turbsin[j] *= 0.5;
-	}
-
-	R_GetPalette ();
-	R_Register();
+	GL_InitBackend();
 
 	// create the window and set up the context
-	if( !R_SetMode())
+	if(!R_Init_OpenGL())
 	{
 		R_Free_OpenGL();
-        		MsgDev( D_ERROR, "R_Init: could not R_SetMode()\n" );
 		return false;
 	}
-          
+
 	R_InitExtensions();
 
-	// vertex arrays
+	// vertex arrays (get rid of this)
 	pglEnableClientState( GL_VERTEX_ARRAY );
 	pglEnableClientState( GL_TEXTURE_COORD_ARRAY );
 	pglTexCoordPointer( 2, GL_FLOAT, sizeof(tex_array[0]), tex_array[0] );
 	pglVertexPointer( 3, GL_FLOAT, sizeof(vert_array[0]),vert_array[0] );
 	pglColorPointer( 4, GL_FLOAT, sizeof(col_array[0]), col_array[0] );
-
-	if(GL_Support( R_TEXTURE_COMPRESSION_EXT ))
-		gl_config.arb_compressed_teximage = true;
-	else gl_config.arb_compressed_teximage = false;
- 
-	if( stristr( gl_config.extensions_string, "GL_EXT_point_parameters" ) )
-	{
-		pglPointParameterfEXT = (void *)pwglGetProcAddress( "glPointParameterfEXT" );
-		pglPointParameterfvEXT = (void *)pwglGetProcAddress( "glPointParameterfvEXT" );
-	}
-
-	if(GL_Support( R_ARB_MULTITEXTURE ))
-	{
-		GL_TEXTURE0 = GL_TEXTURE0_ARB;
-		GL_TEXTURE1 = GL_TEXTURE1_ARB;
-	}
-
-	if( stristr( gl_config.extensions_string, "GL_NV_texture_rectangle" ))
-		gl_state.tex_rectangle_type = GL_TEXTURE_RECTANGLE_NV;
-	else if( stristr( gl_config.extensions_string, "GL_EXT_texture_rectangle" ))
-		gl_state.tex_rectangle_type = GL_TEXTURE_RECTANGLE_EXT;
-	else
-	{
-		MsgDev(D_WARN, "R_Init: rectangle extension not found\n");
-		gl_state.tex_rectangle_type = 0; // no rectangle
-	}
-	if( stristr( gl_config.extensions_string, "GL_SGIS_multitexture" ) )
-	{
-		if( !pglActiveTextureARB && gl_ext_multitexture->value )
-		{
-			pglMTexCoord2fSGIS = ( void * ) pwglGetProcAddress( "glMTexCoord2fSGIS" );
-			pglSelectTextureSGIS = ( void * ) pwglGetProcAddress( "glSelectTextureSGIS" );
-			GL_TEXTURE0 = GL_TEXTURE0_SGIS;
-			GL_TEXTURE1 = GL_TEXTURE1_SGIS;
-		}
-	}
 
 	GL_SetDefaultState();
 	R_InitTextures();
@@ -1126,9 +977,6 @@ int R_Init( void *hinstance )
 	R_InitParticleTexture();
 	Draw_InitLocal();
           R_StudioInit();
-
-	if(!r_framebuffer) r_framebuffer = Z_Malloc(r_width->integer * r_height->integer * 3);
-	
 	R_CheckForErrors();
 
 	return 1;
@@ -1139,13 +987,13 @@ int R_Init( void *hinstance )
 R_Shutdown
 ===============
 */
-void R_Shutdown (void)
+void R_Shutdown( void )
 {	
 	Cmd_RemoveCommand ("modellist");
 	Cmd_RemoveCommand ("imagelist");
 	Cmd_RemoveCommand ("gl_strings");
 
-	if(r_framebuffer) Z_Free(r_framebuffer);
+	if( r_framebuffer ) Z_Free( r_framebuffer );
 
 	Mod_FreeAll ();
           R_StudioShutdown();

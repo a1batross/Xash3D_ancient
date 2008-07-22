@@ -228,6 +228,46 @@ void DrawGLPolyChain( glpoly_t *p, float soffset, float toffset )
 	}
 }
 
+void R_DrawLumaChains( void )
+{
+	image_t		*image;
+	msurface_t	*s;
+	int		j;
+
+	pglDepthMask( 0 );
+	GL_EnableBlend();
+	pglBlendFunc( GL_ONE, GL_ONE );
+	GL_TexEnv( GL_REPLACE );
+
+	for( j = 0, image = gltextures; j < numgltextures; j++, image++ ) 
+	{
+		// not registered
+		if(!image->registration_sequence) continue;
+		if(!image->lumatex[0]) continue;
+
+		// see have we got a texture chain, skip if not
+		s = image->texturechain;
+		if( !s )
+		{
+			Msg("lumatex not chain\n");
+			continue;
+                    }
+		if(!(s->texinfo->flags & SURF_LIGHT)) continue;
+                    
+		Msg("draw luma chain\n" );
+		// bind the texture (once per texture rather than any of that other messing)
+		GL_Bind( image->lumatex[0] );
+
+		for( ; s; s = s->texturechain ) 
+			DrawGLPoly( s->polys );
+		image->texturechain = NULL;
+	}
+
+	pglDepthMask( 1 );
+	pglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+	GL_DisableBlend();
+}
+
 /*
 ** R_BlendLightMaps
 **
@@ -538,7 +578,7 @@ void DrawTextureChains (void)
 
 //	GL_TexEnv( GL_REPLACE );
 
-	if ( !pglSelectTextureSGIS && !pglActiveTextureARB )
+	if(!GL_Support( R_ARB_MULTITEXTURE ))
 	{
 		for ( i = 0, image=gltextures ; i<numgltextures ; i++,image++)
 		{
@@ -688,8 +728,8 @@ dynamic:
 				pglBegin (GL_POLYGON);
 				for (i=0 ; i< nv; i++, v+= VERTEXSIZE)
 				{
-					pglMTexCoord2fSGIS( GL_TEXTURE0, (v[3]+scroll), v[4]);
-					pglMTexCoord2fSGIS( GL_TEXTURE1, v[5], v[6]);
+					pglMultiTexCoord2f( GL_TEXTURE0, (v[3]+scroll), v[4]);
+					pglMultiTexCoord2f( GL_TEXTURE1, v[5], v[6]);
 					pglVertex3fv (v);
 				}
 				pglEnd ();
@@ -703,8 +743,8 @@ dynamic:
 				pglBegin (GL_POLYGON);
 				for (i=0 ; i< nv; i++, v+= VERTEXSIZE)
 				{
-					pglMTexCoord2fSGIS( GL_TEXTURE0, v[3], v[4]);
-					pglMTexCoord2fSGIS( GL_TEXTURE1, v[5], v[6]);
+					pglMultiTexCoord2f( GL_TEXTURE0, v[3], v[4]);
+					pglMultiTexCoord2f( GL_TEXTURE1, v[5], v[6]);
 					pglVertex3fv (v);
 				}
 				pglEnd ();
@@ -736,8 +776,8 @@ dynamic:
 				pglBegin (GL_POLYGON);
 				for (i=0 ; i< nv; i++, v+= VERTEXSIZE)
 				{
-					pglMTexCoord2fSGIS( GL_TEXTURE0, (v[3]+scroll), v[4]);
-					pglMTexCoord2fSGIS( GL_TEXTURE1, v[5], v[6]);
+					pglMultiTexCoord2f( GL_TEXTURE0, (v[3]+scroll), v[4]);
+					pglMultiTexCoord2f( GL_TEXTURE1, v[5], v[6]);
 					pglVertex3fv (v);
 				}
 				pglEnd ();
@@ -753,8 +793,8 @@ dynamic:
 				pglBegin (GL_POLYGON);
 				for (i=0 ; i< nv; i++, v+= VERTEXSIZE)
 				{
-					pglMTexCoord2fSGIS( GL_TEXTURE0, v[3], v[4]);
-					pglMTexCoord2fSGIS( GL_TEXTURE1, v[5], v[6]);
+					pglMultiTexCoord2f( GL_TEXTURE0, v[3], v[4]);
+					pglMultiTexCoord2f( GL_TEXTURE1, v[5], v[6]);
 					pglVertex3fv (v);
 				}
 				pglEnd ();
@@ -827,7 +867,7 @@ void R_DrawInlineBModel (void)
 				mirrorchain = psurf;
 				continue;
 			}
-			else if ( pglMTexCoord2fSGIS && !( psurf->flags & SURF_DRAWTURB ) )
+			else if ( pglMultiTexCoord2f && !( psurf->flags & SURF_DRAWTURB ) )
 			{
 				GL_RenderLightmappedPoly( psurf );
 			}
@@ -842,7 +882,7 @@ void R_DrawInlineBModel (void)
 
 	if(!(currententity->flags & RF_TRANSLUCENT) )
 	{
-		if( !pglMTexCoord2fSGIS )
+		if( !pglMultiTexCoord2f )
 			R_BlendLightmaps();
 	}
 	else
@@ -1050,7 +1090,7 @@ void R_RecursiveWorldNode (mnode_t *node)
 		}
 		else
 		{
-			if ( pglMTexCoord2fSGIS && !( surf->flags & SURF_DRAWTURB ) )
+			if ( pglMultiTexCoord2f && !( surf->flags & SURF_DRAWTURB ) )
 			{
 				GL_RenderLightmappedPoly( surf );
 			}
@@ -1088,7 +1128,7 @@ void R_RecursiveWorldNode (mnode_t *node)
 		}
 		else
 		{
-			if ( pglMTexCoord2fSGIS && !( surf->flags & SURF_DRAWTURB ) )
+			if ( pglMultiTexCoord2f && !( surf->flags & SURF_DRAWTURB ) )
 			{
 				GL_RenderLightmappedPoly( surf );
 			}
@@ -1137,7 +1177,7 @@ void R_DrawWorld (void)
 	memset (gl_lms.lightmap_surfaces, 0, sizeof(gl_lms.lightmap_surfaces));
 	R_ClearSkyBox ();
 
-	if ( pglMTexCoord2fSGIS )
+	if ( pglMultiTexCoord2f )
 	{
 		GL_EnableMultitexture( true );
 
@@ -1162,8 +1202,9 @@ void R_DrawWorld (void)
 	** theoretically nothing should happen in the next two functions
 	** if multitexture is enabled
 	*/
-	DrawTextureChains ();
-	R_BlendLightmaps ();
+	DrawTextureChains();
+	R_DrawLumaChains();
+	R_BlendLightmaps();
 	
 	R_DrawSkyBox ();
 

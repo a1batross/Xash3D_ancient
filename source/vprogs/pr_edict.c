@@ -1264,7 +1264,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 	if( vm.prog->progs == NULL || filesize < (fs_offset_t)sizeof(dprograms_t))
 		PRVM_ERROR("PRVM_LoadProgs: couldn't load %s for %s\n", filename, PRVM_NAME);
 
-	MsgDev(D_INFO, "%s programs occupy %iK.\n", PRVM_NAME, filesize/1024);
+	MsgDev(D_NOTE, "%s programs occupy %iK.\n", PRVM_NAME, filesize/1024);
 	SwapBlock((int *)vm.prog->progs, sizeof(*vm.prog->progs)); 	// byte swap the header
 	
 	switch( vm.prog->progs->version )
@@ -1293,7 +1293,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 	{ 
 		PRVM_ERROR("%s: %s system vars have been modified, progdefs.h is out of date %d\n", PRVM_NAME, filename );	
 	}
-	else MsgDev(D_INFO, "Loading %s [CRC %d]\n", filename, vm.prog->progs->crc );
+	else MsgDev(D_LOAD, "%s [^2CRC %d^7]\n", filename, vm.prog->progs->crc );
 
 	// set initial pointers
 	vm.prog->statements = (dstatement_t *)((byte *)vm.prog->progs + vm.prog->progs->ofs_statements);
@@ -1665,7 +1665,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 				Host_Error("PRVM_LoadProgs: out of bounds global index (statement %d) in %s", i, PRVM_NAME);
 			break;
 		default:
-			MsgDev(D_WARN, "PRVM_LoadProgs: unknown opcode OP_%s at statement %d in %s\n", pr_opcodes[st->op].opname, i, PRVM_NAME);
+			MsgDev( D_NOTE, "PRVM_LoadProgs: unknown opcode OP_%s at statement %d in %s\n", pr_opcodes[st->op].opname, i, PRVM_NAME);
 			break;
 		}
 	}

@@ -16,12 +16,16 @@ dll_info_t imglib_dll = { "imglib.dll", NULL, "CreateAPI", NULL, NULL, true, siz
 image_t gltextures[MAX_GLTEXTURES];
 int numgltextures;
 byte intensitytable[256];
+byte lumatable[256];
 cvar_t *gl_maxsize;
 byte *r_imagepool;
 bool use_gl_extension = false;
 cvar_t *intensity;
 uint d_8to24table[256];
 imglib_exp_t *Image;
+
+#define STAGE_NORMAL	0
+#define STAGE_LUMA		1
 
 typedef struct
 {
@@ -40,6 +44,7 @@ typedef struct
 	uint		glMask;
 	uint		glType;
 	imagetype_t	type;
+	int		stage;
 
 	int		flags;
 	byte		*pal;
@@ -304,6 +309,7 @@ void R_InitTextures( void )
 {
 	int	texsize, i, j;
 	launch_t	CreateImglib;
+	float	f;
 
 	Sys_LoadLibrary( &imglib_dll ); // load imagelib
 	CreateImglib = (void *)imglib_dll.main;
@@ -328,6 +334,18 @@ void R_InitTextures( void )
 		j = i * intensity->value;
 		intensitytable[i] = bound( 0, j, 255 );
 	}
+
+	// make a luma table by squaring the intensity twice
+	for( i = 0; i < 256; i++ )
+	{
+		f = ( float )i/255.0f;
+
+		f *= f;
+		f *= 2;
+		f *= f;
+		f *= 2;
+		lumatable[i] = ( byte )(bound(0,f,1) * 255.0f);
+	}
 	R_GetPalette();
 }
 
@@ -342,7 +360,7 @@ void R_RoundImageDimensions( int *scaled_width, int *scaled_height )
 	*scaled_height = bound( 1, height, gl_maxsize->integer );
 }
 
-bool R_ResampleTexture (uint *in, int inwidth, int inheight, uint *out, int outwidth, int outheight)
+bool R_ResampleTexture( uint *in, int inwidth, int inheight, uint *out, int outwidth, int outheight )
 {
 	int	i, j;
 	uint	frac, fracstep;
@@ -353,9 +371,20 @@ bool R_ResampleTexture (uint *in, int inwidth, int inheight, uint *out, int outw
 	// check for buffers
 	if(!in || !out || in == out) return false;
 	if(outheight == 0 || outwidth == 0) return false;
+	
+	if( image_desc.stage == STAGE_LUMA )
+	{
+		// apply the double-squared luminescent version
+		for( i = 0, pix1 = (byte *)in; i < inwidth * inheight; i++, pix1 += 4 ) 
+		{
+			pix1[0] = lumatable[pix1[0]];
+			pix1[1] = lumatable[pix1[1]];
+			pix1[2] = lumatable[pix1[2]];
+		}
+	}
 
 	// nothing to resample ?
-	if (inwidth == outwidth && inheight == outheight)
+	if( inwidth == outwidth && inheight == outheight)
 	{
 		Mem_Copy( out, in, inheight * inwidth * 4 );
 		return false;
@@ -424,7 +453,8 @@ void GL_GenerateMipmaps( void )
 {
 	if( image_desc.flags & IMAGE_GEN_MIPS )
 	{
-		pglTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP_SGIS, GL_TRUE);
+		pglHint( GL_GENERATE_MIPMAP_HINT_SGIS, GL_NICEST );
+		pglTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP_SGIS, GL_TRUE );
 		if(pglGetError()) MsgDev(D_WARN, "GL_GenerateMipmaps: can't create mip levels\n");
 	}
 }
@@ -721,7 +751,7 @@ bool CompressedTexImage2D( uint target, int level, int intformat, uint width, ui
 	uint dxtformat = 0;
 	uint pixformat = PFDesc[intformat].format;
 
-	if(gl_config.arb_compressed_teximage)
+	if(GL_Support( R_TEXTURE_COMPRESSION_EXT ))
 	{
 		switch( pixformat )
 		{
@@ -733,10 +763,10 @@ bool CompressedTexImage2D( uint target, int level, int intformat, uint width, ui
 	}
 	else use_gl_extension = false;
 
-	if(use_gl_extension)
+	if( use_gl_extension )
 	{
 		if( !level ) GL_GenerateMipmaps(); // generate mips if needed
-		pglCompressedTexImage2D(target, level, dxtformat, width, height, border, imageSize, data );
+		pglCompressedTexImage2DARB(target, level, dxtformat, width, height, border, imageSize, data );
 		if(!pglGetError()) return true;
 		// otherwise try loading with software unpacker
 	}
@@ -1106,6 +1136,31 @@ image_t *R_FindImage (char *name, char *buffer, int size, imagetype_t type)
 	return image;
 }
 
+bool R_UploadTexture( byte *buffer, int type )
+{
+	bool	iResult;
+
+	switch( type )
+	{
+	case PF_RGB_24:
+	case PF_ABGR_64:
+	case PF_RGBA_32:
+	case PF_RGBA_GN:
+	case PF_INDEXED_24:
+	case PF_INDEXED_32: iResult = R_LoadImageRGBA( buffer ); break;
+	case PF_LUMINANCE:
+	case PF_LUMINANCE_16:
+	case PF_LUMINANCE_ALPHA:
+	case PF_ARGB_32: iResult = R_LoadImageARGB( buffer ); break;
+	case PF_DXT1:
+	case PF_DXT3:
+	case PF_DXT5: iResult = R_LoadImageDXT( buffer ); break;
+	case PF_ABGR_128F: iResult = R_LoadImageFloat( buffer ); break;
+	case PF_UNKNOWN: iResult = false; break;
+	}
+
+	return iResult;
+}
 
 /*
 ================
@@ -1176,31 +1231,19 @@ image_t *R_LoadImage( char *name, rgbdata_t *pic, imagetype_t type )
 	for(i = 0; i < numsides; i++, buf += offset )
 	{
 		image->texnum[i] = TEXNUM_IMAGES + numgltextures++;
-		GL_Bind(image->texnum[i]);
+		GL_Bind( image->texnum[i] );
 		
 		R_SetPixelFormat( image_desc.width, image_desc.height, image_desc.numLayers );
 		offset = image_desc.SizeOfFile;// move pointer
 
 		MsgDev(D_LOAD, "%s [%s] \n", name, PFDesc[image_desc.format].name );
-
-		switch(pic->type)
-		{
-		case PF_RGB_24:
-		case PF_ABGR_64:
-		case PF_RGBA_32:
-		case PF_RGBA_GN:
-		case PF_INDEXED_24:
-		case PF_INDEXED_32: iResult = R_LoadImageRGBA( buf ); break;
-		case PF_LUMINANCE:
-		case PF_LUMINANCE_16:
-		case PF_LUMINANCE_ALPHA:
-		case PF_ARGB_32: iResult = R_LoadImageARGB( buf ); break;
-		case PF_DXT1:
-		case PF_DXT3:
-		case PF_DXT5: iResult = R_LoadImageDXT( buf ); break;
-		case PF_ABGR_128F: iResult = R_LoadImageFloat( buf ); break;
-		case PF_UNKNOWN: image = r_notexture; break;
-		}
+		image_desc.stage = STAGE_NORMAL;
+		R_UploadTexture( buf, pic->type );
+                    
+		image->lumatex[i] = TEXNUM_LUMAS + (image - gltextures);
+		GL_Bind( image->lumatex[i] );
+		image_desc.stage = STAGE_LUMA;
+		R_UploadTexture( buf, pic->type );
 	}          
 	// check for errors
 	if(!iResult)

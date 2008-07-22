@@ -122,10 +122,15 @@ typedef struct image_s
 	int		texnum[6];		// gl texture binding
 	bool 		paletted;
 	int		texorder[6];		// drawing order pattern
+
+	int		lumatex[6];		// luminescence cubemaps ?
+	int		normtex[6];
 };
 
 #define	TEXNUM_LIGHTMAPS	1024
 #define	TEXNUM_IMAGES	1152
+#define	TEXNUM_LUMAS	4096
+
 #define	MAX_GLTEXTURES	1024
 
 //===================================================================
@@ -239,10 +244,12 @@ extern  cvar_t	*r_bloom_intensity;
 extern  cvar_t	*r_bloom_darken;
 extern  cvar_t	*r_bloom_sample_size;
 extern  cvar_t	*r_bloom_fast_sample;
-extern	cvar_t	*r_motionblur_intens;
-extern	cvar_t	*r_motionblur;
+extern cvar_t	*r_motionblur_intens;
+extern cvar_t	*r_motionblur;
 extern cvar_t	*r_mirroralpha;
 extern cvar_t	*r_interpolate;
+extern cvar_t	*r_physbdebug;
+extern cvar_t	*r_pause_bw;
 
 extern	cvar_t	*gl_nosubimage;
 extern	cvar_t	*gl_bitdepth;
@@ -286,7 +293,8 @@ extern	int		gl_tex_alpha_format;
 extern	int		c_visible_lightmaps;
 extern	int		c_visible_textures;
 
-extern	float	r_world_matrix[16];
+extern float r_world_matrix[16];
+extern float r_turbsin[256];
 
 void R_TranslatePlayerSkin (int playernum);
 void GL_Bind (int texnum);
@@ -411,15 +419,12 @@ typedef struct
 	const char *renderer_string;
 	const char *vendor_string;
 	const char *version_string;
-	const char *extensions_string;
-
-	bool	allow_cds;
-	bool	arb_compressed_teximage;
 
 	word	original_ramp[3][256];
 	word	gamma_ramp[3][256];
 
 	// list of supported extensions
+	const char *extensions_string;
 	byte	extension[R_EXTCOUNT];
 } glconfig_t;
 
@@ -458,7 +463,6 @@ extern glstate_t   gl_state;
 //
 // r_opengl.c
 //
-bool R_SetMode( void );
 void R_EndFrame( void );
 bool R_Init_OpenGL( void );
 void R_Free_OpenGL( void );
@@ -468,6 +472,7 @@ void R_CheckForErrors( void );
 //
 // r_backend.c
 //
+void GL_InitBackend( void );
 bool GL_Support( int r_ext );
 void GL_SetExtension( int r_ext, int enable );
 void GL_CheckExtension( const char *name, const dllfunc_t *funcs, const char *cvarname, int r_ext );

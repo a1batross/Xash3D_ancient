@@ -168,6 +168,13 @@ static dllfunc_t opengl_110funcs[] =
 	{NULL, NULL}
 };
 
+static dllfunc_t pointparametersfunc[] =
+{
+	{"glPointParameterfEXT", (void **) &pglPointParameterfEXT},
+	{"glPointParameterfvEXT", (void **) &pglPointParameterfvEXT},
+	{NULL, NULL}
+};
+
 static dllfunc_t drawrangeelementsfuncs[] =
 {
 	{"glDrawRangeElements", (void **) &pglDrawRangeElements},
@@ -189,7 +196,6 @@ static dllfunc_t multitexturefuncs[] =
 	{"glActiveTextureARB", (void **) &pglActiveTextureARB},
 	{"glClientActiveTextureARB", (void **) &pglClientActiveTexture},
 	{"glClientActiveTextureARB", (void **) &pglClientActiveTextureARB},
-	{"glMultiTexCoord2fARB", (void **) &pglMTexCoord2fSGIS},//FIXME
 	{NULL, NULL}
 };
 
@@ -312,7 +318,6 @@ static dllfunc_t texturecompressionfuncs[] =
 	{"glCompressedTexSubImage2DARB", (void **) &pglCompressedTexSubImage2DARB},
 	{"glCompressedTexSubImage1DARB", (void **) &pglCompressedTexSubImage1DARB},
 	{"glGetCompressedTexImageARB",   (void **) &pglGetCompressedTexImage},
-	{"glCompressedTexImage2DARB",    (void **) &pglCompressedTexImage2D},//FIXME
 	{NULL, NULL}
 };
 
@@ -333,7 +338,7 @@ bool R_DeleteContext( void )
 	return false;
 }
 
-bool R_Init_OpenGL( void )
+bool R_SetPixelformat( void )
 {
 	long	flags = PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_GENERIC_ACCELERATED|PFD_DOUBLEBUFFER;
 	int	pixelformat;	
@@ -505,7 +510,7 @@ bool R_CreateWindow( int width, int height, bool fullscreen )
 	UpdateWindow( glw_state.hWnd );
 
 	// init all the gl stuff for the window
-	if(!R_Init_OpenGL())
+	if(!R_SetPixelformat())
 	{
 		MsgDev( D_ERROR, "OpenGL driver not installed\n" );
 		return false;
@@ -587,10 +592,10 @@ rserr_t R_ChangeDisplaySettings( int vid_mode, bool fullscreen )
 
 /*
 ==================
-R_SetMode
+R_Init_OpenGL
 ==================
 */
-bool R_SetMode( void )
+bool R_Init_OpenGL( void )
 {
 	rserr_t	err;
 	bool	fullscreen;
@@ -690,27 +695,26 @@ void R_InitExtensions( void )
 	gl_config.renderer_string = pglGetString( GL_RENDERER );
 	gl_config.version_string = pglGetString( GL_VERSION );
 	gl_config.extensions_string = pglGetString( GL_EXTENSIONS );
-	MsgDev(D_INFO, "Video: %s\n", gl_config.renderer_string );
+	MsgDev( D_INFO, "Video: %s\n", gl_config.renderer_string );
 
 	GL_CheckExtension( "WGL_EXT_swap_control", wglswapintervalfuncs, NULL, R_WGL_SWAPCONTROL );
 	GL_CheckExtension( "glDrawRangeElements", drawrangeelementsfuncs, "gl_drawrangeelments", R_DRAWRANGEELMENTS );
-	if(!GL_Support( R_DRAWRANGEELMENTS ))
-		GL_CheckExtension("GL_EXT_draw_range_elements", drawrangeelementsextfuncs, "gl_drawrangeelments", R_DRAWRANGEELMENTS );
+	if(!GL_Support( R_DRAWRANGEELMENTS )) GL_CheckExtension("GL_EXT_draw_range_elements", drawrangeelementsextfuncs, "gl_drawrangeelments", R_DRAWRANGEELMENTS );
 
+	// multitexture
 	GL_CheckExtension("GL_ARB_multitexture", multitexturefuncs, "gl_arb_multitexture", R_ARB_MULTITEXTURE );
-
 	if(GL_Support( R_ARB_MULTITEXTURE ))
 	{
 		pglGetIntegerv( GL_MAX_TEXTURE_UNITS_ARB, &gl_state.textureunits );
 		GL_CheckExtension( "GL_ARB_texture_env_combine", NULL, "gl_texture_env_combine", R_COMBINE_EXT );
-		if(!GL_Support( R_COMBINE_EXT ))
-			GL_CheckExtension("GL_EXT_texture_env_combine", NULL, "gl_texture_env_combine", R_COMBINE_EXT );
-		if(GL_Support( R_COMBINE_EXT ))
-			GL_CheckExtension( "GL_ARB_texture_env_dot3", NULL, "gl_texture_env_dot3", R_DOT3_ARB_EXT );
+		if(!GL_Support( R_COMBINE_EXT )) GL_CheckExtension("GL_EXT_texture_env_combine", NULL, "gl_texture_env_combine", R_COMBINE_EXT );
+		if(GL_Support( R_COMBINE_EXT )) GL_CheckExtension( "GL_ARB_texture_env_dot3", NULL, "gl_texture_env_dot3", R_DOT3_ARB_EXT );
+		GL_TEXTURE0 = GL_TEXTURE0_ARB;
+		GL_TEXTURE1 = GL_TEXTURE1_ARB;
 	}
 
+	// 3d texture support
 	GL_CheckExtension( "GL_EXT_texture3D", texture3dextfuncs, "gl_texture_3d", R_TEXTURE_3D_EXT );
-
 	if(GL_Support( R_TEXTURE_3D_EXT ))
 	{
 		pglGetIntegerv( GL_MAX_3D_TEXTURE_SIZE, &gl_state.max_3d_texture_size );
@@ -721,17 +725,19 @@ void R_InitExtensions( void )
 		}
 	}
 
+	// hardware cubemaps
 	GL_CheckExtension( "GL_ARB_texture_cube_map", NULL, "gl_texture_cubemap", R_TEXTURECUBEMAP_EXT );
 	if(GL_Support( R_TEXTURECUBEMAP_EXT )) pglGetIntegerv( GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB, &gl_state.max_cubemap_texture_size );
+
+	// point particles extension
+	GL_CheckExtension( "GL_EXT_point_parameters", pointparametersfunc, NULL, R_EXT_POINTPARAMETERS );
 
 	GL_CheckExtension( "GL_ARB_texture_non_power_of_two", NULL, "gl_texture_npot", R_ARB_TEXTURE_NPOT_EXT );
 	GL_CheckExtension( "GL_ARB_texture_compression", texturecompressionfuncs, "gl_dds_hardware_support", R_TEXTURE_COMPRESSION_EXT );
 	GL_CheckExtension( "GL_EXT_compiled_vertex_array", compiledvertexarrayfuncs, "gl_cva_support", R_CUSTOM_VERTEX_ARRAY_EXT );
-	if(!GL_Support(R_CUSTOM_VERTEX_ARRAY_EXT))
-		GL_CheckExtension( "GL_SGI_compiled_vertex_array", compiledvertexarrayfuncs, "gl_cva_support", R_CUSTOM_VERTEX_ARRAY_EXT );		
+	if(!GL_Support(R_CUSTOM_VERTEX_ARRAY_EXT)) GL_CheckExtension( "GL_SGI_compiled_vertex_array", compiledvertexarrayfuncs, "gl_cva_support", R_CUSTOM_VERTEX_ARRAY_EXT );		
 	GL_CheckExtension( "GL_EXT_texture_edge_clamp", NULL, "gl_clamp_to_edge", R_CLAMPTOEDGE_EXT );
-	if(!GL_Support( R_CLAMPTOEDGE_EXT )) 
-		GL_CheckExtension("GL_SGIS_texture_edge_clamp", NULL, "gl_clamp_to_edge", R_CLAMPTOEDGE_EXT );
+	if(!GL_Support( R_CLAMPTOEDGE_EXT )) GL_CheckExtension("GL_SGIS_texture_edge_clamp", NULL, "gl_clamp_to_edge", R_CLAMPTOEDGE_EXT );
 
 	GL_CheckExtension( "GL_EXT_texture_filter_anisotropic", NULL, "gl_texture_anisotropy", R_ANISOTROPY_EXT );
 	if(GL_Support( R_ANISOTROPY_EXT )) pglGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &gl_state.max_anisotropy );
@@ -740,8 +746,7 @@ void R_InitExtensions( void )
 	GL_CheckExtension( "GL_EXT_blend_subtract", blendequationfuncs, "gl_ext_customblend", R_BLEND_SUBTRACT_EXT );
 
 	GL_CheckExtension( "glStencilOpSeparate", gl2separatestencilfuncs, "gl_separate_stencil",R_SEPARATESTENCIL_EXT );
-	if(!GL_Support( R_SEPARATESTENCIL_EXT ))
-		GL_CheckExtension("GL_ATI_separate_stencil", atiseparatestencilfuncs, "gl_separate_stencil", R_SEPARATESTENCIL_EXT );
+	if(!GL_Support( R_SEPARATESTENCIL_EXT )) GL_CheckExtension("GL_ATI_separate_stencil", atiseparatestencilfuncs, "gl_separate_stencil", R_SEPARATESTENCIL_EXT );
 
 	GL_CheckExtension( "GL_EXT_stencil_two_side", stenciltwosidefuncs, "gl_stenciltwoside", R_STENCILTWOSIDE_EXT );
 	GL_CheckExtension( "GL_ARB_vertex_buffer_object", vbofuncs, "gl_vertex_buffer_object", R_ARB_VERTEX_BUFFER_OBJECT_EXT );
@@ -749,8 +754,16 @@ void R_InitExtensions( void )
 	// we don't care if it's an extension or not, they are identical functions, so keep it simple in the rendering code
 	if( pglDrawRangeElements == NULL ) pglDrawRangeElements = pglDrawRangeElementsEXT;
 
+	// vp and fp shaders
 	GL_CheckExtension( "GL_ARB_shader_objects", shaderobjectsfuncs, "gl_shaderobjects", R_SHADER_OBJECTS_EXT );
 	GL_CheckExtension( "GL_ARB_shading_language_100", NULL, "gl_glslprogram", R_SHADER_GLSL100_EXT );
 	GL_CheckExtension( "GL_ARB_vertex_shader", vertexshaderfuncs, "gl_vertexshader", R_VERTEX_SHADER_EXT );
 	GL_CheckExtension( "GL_ARB_fragment_shader", NULL, "gl_pixelshader", R_FRAGMENT_SHADER_EXT );
+
+	// rectangle textures support
+	if( com.strstr( gl_config.extensions_string, "GL_NV_texture_rectangle" ))
+		gl_state.tex_rectangle_type = GL_TEXTURE_RECTANGLE_NV;
+	else if( com.strstr( gl_config.extensions_string, "GL_EXT_texture_rectangle" ))
+		gl_state.tex_rectangle_type = GL_TEXTURE_RECTANGLE_EXT;
+	else gl_state.tex_rectangle_type = 0; // no rectangle
 }
