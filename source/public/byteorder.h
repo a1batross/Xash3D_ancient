@@ -5,8 +5,6 @@
 #ifndef BYTEORDER_H
 #define BYTEORDER_H
 
-#include "basetypes.h"
-
 // byte order swap functions
 _inline word WordSwap( word swap )
 {

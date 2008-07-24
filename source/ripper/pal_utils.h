@@ -5,6 +5,8 @@
 #ifndef PAL_UTILS_H
 #define PAL_UTILS_H
 
+#include "byteorder.h"
+
 //=====================================
 //	lump utils
 //=====================================

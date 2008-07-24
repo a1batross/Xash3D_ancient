@@ -23,12 +23,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define CLIENT_H
 
 #include "mathlib.h"
-#include "basefiles.h"
 #include "cl_edict.h"
 
 #define MAX_EDIT_LINE	256
 #define COMMAND_HISTORY	32
 #define MAX_SERVERS		64
+#define ColorIndex(c)	(((c) - '0') & 7)
 
 //=============================================================================
 typedef struct frame_s
@@ -222,8 +222,8 @@ typedef struct
 	int		challenge;		// from the server to use for connecting
 
 	file_t		*download;		// file transfer from server
-	char		downloadtempname[MAX_OSPATH];
-	char		downloadname[MAX_OSPATH];
+	string		downloadtempname;
+	string		downloadname;
 	int		downloadnumber;
 	dltype_t		downloadtype;
 	int		downloadpercent;

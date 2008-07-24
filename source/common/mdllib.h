@@ -49,7 +49,7 @@ typedef struct
 typedef struct
 {
 	vec3_t		verts[3];
-}triangle_t;
+} triangle_t;
 
 typedef struct 
 {
@@ -295,7 +295,7 @@ typedef struct
 typedef struct
 {
 	aliaspoint_t	pt[3];
-}tf_triangle;
+} tf_triangle;
 
 extern int numseq;
 extern int numani;

@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "imagelib.h"
+#include "byteorder.h"
 #include "img_formats.h"
 
 // TODO: tune this ?
@@ -1745,11 +1746,11 @@ uint Image_DXTCalcSize( const char *name, dds_t *hdr, size_t filesize )
 Image_LoadDDS
 =============
 */
-bool Image_LoadDDS( const char *name, byte *buffer, size_t filesize )
+bool Image_LoadDDS( const char *name, const byte *buffer, size_t filesize )
 {
-	dds_t	header;
-	byte	*fin;
-	uint	i;
+	dds_t		header;
+	const byte	*fin;
+	uint		i;
 
 	fin = buffer;
 

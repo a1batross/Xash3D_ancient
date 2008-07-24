@@ -5,6 +5,8 @@
 #ifndef CM_UTILS_H
 #define CM_UTILS_H
 
+#include "byteorder.h"
+
 _inline void CM_ConvertPositionToMeters( vec3_t out, vec3_t in )
 {
 	out[0] = LittleFloat(INCH2METER(in[0]));

@@ -245,10 +245,6 @@ SOURCE=.\bsplib\writebsp.c
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
-SOURCE=.\blankframe.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\bsplib\bsplib.h
 # End Source File
 # Begin Source File
@@ -262,14 +258,6 @@ SOURCE=.\mdllib.h
 # Begin Source File
 
 SOURCE=.\platform.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\public\ref_system.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\roqlib\roq_vq0.h
 # End Source File
 # Begin Source File
 

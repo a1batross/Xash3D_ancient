@@ -6,6 +6,7 @@
 #define PR_LOCAL_H
 
 #include <setjmp.h>
+#include "byteorder.h"
 
 /*
 
@@ -24,7 +25,7 @@ TODO:
 #define MAX_NAME		64		// chars long
 #define MAX_PARMS		8
 #define MAX_PARMS_EXTRA	128
-#define PROGDEFS_MAX_SIZE	MAX_INPUTLINE	// 16 kbytes
+#define PROGDEFS_MAX_SIZE	MAX_MSGLEN	// 32 kbytes
 
 #define CMPW_COPY		0
 #define CMPW_ENCRYPT	1
@@ -99,7 +100,8 @@ typedef enum
 	tt_immediate,	// string, float, vector
 } token_type_t;
 
-enum {
+enum
+{
 	// progs 6 keywords
 	KEYWORD_DO,
 	KEYWORD_IF,
@@ -145,6 +147,23 @@ enum {
 	NUM_KEYWORDS		
 };
 
+typedef enum 
+{
+	ev_void,
+	ev_string,
+	ev_float,
+	ev_vector,
+	ev_entity,
+	ev_field,
+	ev_function,
+	ev_pointer,
+	ev_integer,
+	ev_variant,
+	ev_struct,
+	ev_union,
+	ev_bool,
+} etype_t;
+
 typedef struct bucket_s
 {
 	void		*data;
@@ -181,6 +200,21 @@ struct function_s
 	uint		parm_ofs[MAX_PARMS];// always contiguous, right?
 };
 
+typedef struct type_s
+{
+	etype_t		type;
+
+	struct type_s	*parentclass;	// type_entity...
+	struct type_s	*next;
+	struct type_s	*aux_type;	// return type or field type
+	struct type_s	*param;
+
+	int		num_parms;	// -1 = variable args
+	uint		ofs;		// inside a structure.
+	uint		size;
+	char		*name;
+} type_t;
+
 typedef struct temp_s
 {
 	gofs_t		ofs;
@@ -193,13 +227,24 @@ typedef struct temp_s
 
 typedef union eval_s
 {
+	float		_float;
+	int		_int;
+	float		vector[3];
+	func_t		function;
 	string_t		string;
+	union eval_s	*ptr;
+} eval_t;
+
+// virtual typedef
+typedef union prvm_eval_s
+{
+	int		edict;
+	int		_int;
 	float		_float;
 	float		vector[3];
 	func_t		function;
-	int		_int;
-	union eval_s	*ptr;
-} eval_t;
+	string_t		string;
+} prvm_eval_t;
 
 typedef struct
 {

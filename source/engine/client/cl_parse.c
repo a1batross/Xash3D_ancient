@@ -105,7 +105,7 @@ Request a download from the server
 */
 void	CL_Download_f (void)
 {
-	char filename[MAX_OSPATH];
+	string		filename;
 
 	if (Cmd_Argc() != 2)
 	{
@@ -225,8 +225,7 @@ void CL_ParseDownload( sizebuf_t *msg )
 	}
 	else
 	{
-		char	oldn[MAX_OSPATH];
-		char	newn[MAX_OSPATH];
+		string	oldn, newn;
 
 		FS_Close (cls.download);
 

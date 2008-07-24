@@ -29,7 +29,7 @@ typedef struct loadformat_s
 {
 	char *formatstring;
 	char *ext;
-	bool (*loadfunc)( const char *name, byte *buffer, size_t filesize );
+	bool (*loadfunc)( const char *name, const byte *buffer, size_t filesize );
 } loadformat_t;
 
 loadformat_t load_formats[] =
@@ -117,7 +117,7 @@ FS_LoadImage
 loading and unpack to rgba any known image
 ================
 */
-rgbdata_t *Image_Load(const char *filename, char *buffer, int buffsize )
+rgbdata_t *Image_Load(const char *filename, const byte *buffer, size_t buffsize )
 {
 	loadformat_t	*format;
           const char	*ext = FS_FileExtension( filename );

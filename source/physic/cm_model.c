@@ -4,7 +4,6 @@
 //=======================================================================
 
 #include "cm_local.h"
-#include "basefiles.h"
 
 clipmap_t		cm;
 studio_t		studio;

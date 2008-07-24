@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "roqlib.h"
+#include "byteorder.h"
 #include "mathlib.h"
 
 uint keyBits = 0;
@@ -305,8 +306,8 @@ static void ROQ_WriteHeader(file_t *file)
 	roq_t hdr;
 
 	hdr.ident = IDQMOVIEHEADER;
-	hdr.flags = 0xffff;
-	hdr.flags2 = 0xffff;
+	hdr.flags = (short)0xffff;
+	hdr.flags2 = (short)0xffff;
 	hdr.fps = frameRate;
 
 	FS_Write(file, &hdr, sizeof(roq_t));

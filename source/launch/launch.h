@@ -17,12 +17,12 @@
 
 #define LAUNCH_DLL		// skip alias names
 #include "basetypes.h"
-#include "stdapi.h"
-#include "stdref.h"
-#include "basefiles.h"
-#include "dllapi.h"
+#include "ref_dllapi.h"
 
 #define XASH_VERSION		0.51f // current version will be shared across gameinfo struct
+
+#define MAX_NUM_ARGVS		128
+#define MAX_STRING_TOKENS		80
 
 enum state_e
 {
@@ -286,8 +286,8 @@ search_t *FS_Search(const char *pattern, int caseinsensitive );
 search_t *FS_SearchDirs(const char *pattern, int caseinsensitive );
 
 // files managment (like fopen, fread etc)
-file_t *FS_Open (const char* filepath, const char* mode );
-file_t* _FS_Open (const char* filepath, const char* mode, bool quiet, bool nonblocking);
+file_t *FS_Open( const char* filepath, const char* mode );
+file_t* _FS_Open( const char* filepath, const char* mode, bool quiet );
 fs_offset_t FS_Write (file_t* file, const void* data, size_t datasize);
 fs_offset_t FS_Read (file_t* file, void* buffer, size_t buffersize);
 int FS_VPrintf(file_t* file, const char* format, va_list ap);

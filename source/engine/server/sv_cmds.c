@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "server.h"
+#include "byteorder.h"
 
 sv_client_t *sv_client; // current client
 
@@ -18,7 +19,7 @@ Sends text across to be displayed if the level passes
 void SV_ClientPrintf( sv_client_t *cl, int level, char *fmt, ... )
 {
 	va_list	argptr;
-	char	string[MAX_STRING_CHARS];
+	char	string[MAX_SYSPATH];
 	
 	if( level < cl->messagelevel )
 		return;
@@ -41,7 +42,7 @@ Sends text to all active clients
 */
 void SV_BroadcastPrintf( int level, char *fmt, ... )
 {
-	char		string[MAX_STRING_CHARS];
+	char		string[MAX_SYSPATH];
 	va_list		argptr;
 	sv_client_t	*cl;
 	int		i;
@@ -74,7 +75,7 @@ Sends text to all active clients
 void SV_BroadcastCommand( char *fmt, ... )
 {
 	va_list	argptr;
-	char	string[MAX_STRING_CHARS];
+	char	string[MAX_SYSPATH];
 	
 	if( !sv.state ) return;
 	va_start( argptr, fmt );
@@ -233,7 +234,7 @@ void SV_Movie_f( void )
 		return;
 	}
 
-	com.snprintf( filename, MAX_QPATH, "%s.roq", Cmd_Argv(1));
+	com.snprintf( filename, MAX_QPATH, "%s.dpv", Cmd_Argv(1));
 	if(!FS_FileExists(va("video/%s", filename )))
 	{
 		Msg("Can't loading %s\n", filename );

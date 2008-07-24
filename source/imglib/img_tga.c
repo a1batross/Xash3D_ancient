@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "imagelib.h"
+#include "byteorder.h"
 #include "img_formats.h"
 
 /*
@@ -11,7 +12,7 @@
 Image_LoadTGA
 =============
 */
-bool Image_LoadTGA( const char *name, byte *buffer, size_t filesize )
+bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 {
 	int	x, y, pix_inc, row_inc;
 	int	red, green, blue, alpha;

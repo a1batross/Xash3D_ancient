@@ -12,10 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "basetypes.h"
-#include "stdapi.h"
-#include "stdref.h"
-#include "basefiles.h"
-#include "dllapi.h"
+#include "ref_dllapi.h"
 
 #include "mxtk.h"
 #include "options.h"
@@ -31,7 +28,7 @@ void FreeViewer ( void );
 
 extern int com_argc;
 extern int dev_mode;
-extern char *com_argv[MAX_NUM_ARGVS];
+extern char **com_argv;
 
 /*
 ===========================================

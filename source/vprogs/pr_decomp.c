@@ -1171,7 +1171,7 @@ bool PR_Decompile( const char *name )
 	if( vm.prog->sources ) // source always are packed
 	{
 		int		i, numsources = LittleLong(*(int*)vm.prog->sources);
-		includeddatafile_t	*src = (includeddatafile_t *)(((int *)vm.prog->sources)+1);
+		dsource_t	*src = (dsource_t *)(((int *)vm.prog->sources)+1);
 		char		*in, *file;
 
 		for( i = 0; i < numsources; i++, src++ )

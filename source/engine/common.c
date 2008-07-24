@@ -4,9 +4,10 @@
 //=======================================================================
 
 #include "common.h"
-#include "basefiles.h"
+#include "byteorder.h"
 #include "mathlib.h"
 #include "client.h"
+#include "server.h"
 
 /*
 ===============================================================================
@@ -17,7 +18,7 @@ SYSTEM IO
 */
 void Sys_Error( const char *error, ... )
 {
-	char		errorstring[MAX_INPUTLINE];
+	char		errorstring[MAX_SYSPATH];
 	static bool	recursive = false;
 	va_list		argptr;
 
@@ -100,7 +101,7 @@ supports follow prefixes:
 */
 const char *VM_VarArgs( int start_arg )
 {
-	static char	vm_string[MAX_STRING_CHARS];
+	static char	vm_string[MAX_SYSPATH];
 	int		arg = start_arg + 1;// skip format string	
 	char		*out, *outend;
 	static string	vm_arg;
@@ -111,8 +112,8 @@ const char *VM_VarArgs( int start_arg )
 	// get the format string
 	s = PRVM_G_STRING((OFS_PARM0 + start_arg * 3));
 	out = vm_string;
-	outend = out + MAX_STRING_CHARS - 1;
-	memset( vm_string, 0, MAX_STRING_CHARS - 1 );
+	outend = out + MAX_SYSPATH - 1;
+	memset( vm_string, 0, MAX_SYSPATH - 1 );
 
 	while( out < outend && *s )
 	{
@@ -1063,7 +1064,7 @@ string fgets( float handle )
 */
 void VM_FS_Gets( void )
 {
-	static char	string[MAX_INPUTLINE];
+	static char	string[MAX_MSGLEN];
 	vfile_t		*handle;
 	int		c;
 
@@ -1071,7 +1072,7 @@ void VM_FS_Gets( void )
 	handle = VM_GetFileHandle((int)PRVM_G_FLOAT( OFS_PARM0 ));
 	if(!handle) return;
 
-	c = VFS_Gets( handle, string, MAX_INPUTLINE );
+	c = VFS_Gets( handle, string, MAX_MSGLEN );
 	if( c >= 0 ) PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( string );
 	else PRVM_G_INT(OFS_RETURN) = PRVM_SetEngineString( NULL );
 }
@@ -2143,7 +2144,7 @@ bool Cmd_GetMovieList( const char *s, char *completedname, int length )
 	string		matchbuf;
 	int		i, nummovies;
 
-	t = FS_Search(va("video/%s*.roq", s ), true);
+	t = FS_Search(va("video/%s*.dpv", s ), true);
 	if(!t) return false;
 
 	FS_FileBase(t->filenames[0], matchbuf ); 
@@ -2154,7 +2155,7 @@ bool Cmd_GetMovieList( const char *s, char *completedname, int length )
 	{
 		const char *ext = FS_FileExtension( t->filenames[i] ); 
 
-		if( com.stricmp(ext, "roq" )) continue;
+		if( com.stricmp( ext, "dpv" )) continue;
 		FS_FileBase(t->filenames[i], matchbuf );
 		Msg("%16s\n", matchbuf );
 		nummovies++;

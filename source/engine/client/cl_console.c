@@ -12,8 +12,17 @@ cvar_t	*con_speed;
 vec4_t console_color = {1.0, 1.0, 1.0, 1.0};
 int g_console_field_width = 78;
 
+#define COLOR_BLACK		'0'
+#define COLOR_RED		'1'
+#define COLOR_GREEN		'2'
+#define COLOR_YELLOW	'3'
+#define COLOR_BLUE		'4'
+#define COLOR_CYAN		'5'
+#define COLOR_MAGENTA	'6'
+#define COLOR_WHITE		'7'
+
 #define NUM_CON_TIMES	5		// need for 4 lines
-#define CON_TEXTSIZE	MAX_INPUTLINE * 8	// 128 kb buffer
+#define CON_TEXTSIZE	MAX_MSGLEN * 4	// 128 kb buffer
 #define DEFAULT_CONSOLE_WIDTH	78
 
 typedef struct

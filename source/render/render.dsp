@@ -114,6 +114,10 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\gl_backend.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\gl_draw.c
 # End Source File
 # Begin Source File
@@ -139,10 +143,6 @@ SOURCE=.\gl_rsurf.c
 # Begin Source File
 
 SOURCE=.\gl_warp.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\r_backend.c
 # End Source File
 # Begin Source File
 
@@ -182,19 +182,11 @@ SOURCE=.\r_utils.c
 # PROP Default_Filter "h;hpp;hxx;hm;inl;fi;fd"
 # Begin Source File
 
-SOURCE=..\public\const.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\gl_local.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\gl_model.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\qmenu.h
 # End Source File
 # Begin Source File
 

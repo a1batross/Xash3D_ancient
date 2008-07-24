@@ -7,10 +7,7 @@
 
 #include <windows.h>
 #include "basetypes.h"
-#include "stdapi.h"
-#include "stdref.h"
-#include "basefiles.h"
-#include "dllapi.h"
+#include "ref_dllapi.h"
 
 #define IMAGE_MAXWIDTH	4096
 #define IMAGE_MAXHEIGHT	4096
@@ -37,14 +34,14 @@ byte *Image_ResampleInternal( const void *indata, int inwidth, int inheight, int
 bool Image_Resample( const char *name, rgbdata_t **image, int width, int height, bool free_baseimage );
 void Image_FreeImage( rgbdata_t *pack );
 void Image_Save( const char *filename, rgbdata_t *pix );
-rgbdata_t *Image_Load(const char *filename, char *buffer, int buffsize );
+rgbdata_t *Image_Load(const char *filename, const byte *buffer, size_t buffsize );
 
 //
 // formats
 //
-bool Image_LoadTGA( const char *name, byte *buffer, size_t filesize );
+bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize );
 bool Image_SaveTGA( const char *name, rgbdata_t *pix, int saveformat);
-bool Image_LoadDDS( const char *name, byte *buffer, size_t filesize );
+bool Image_LoadDDS( const char *name, const byte *buffer, size_t filesize );
 bool Image_SaveDDS( const char *name, rgbdata_t *pix, int saveformat);
 
 //

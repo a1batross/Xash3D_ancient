@@ -149,10 +149,6 @@ SOURCE=.\pr_local.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\qcclib.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\vprogs.h
 # End Source File
 # End Group

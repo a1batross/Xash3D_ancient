@@ -8,12 +8,7 @@
 #include <stdio.h>
 #include <windows.h>
 #include "basetypes.h"
-#include "stdapi.h"
-#include "stdref.h"
-#include "basefiles.h"
-#include "dllapi.h"
-#include "mathlib.h"
-#include "cm_utils.h"
+#include "ref_dllapi.h"
 
 typedef struct physbody_s	NewtonBody;
 typedef struct physworld_s	NewtonWorld;

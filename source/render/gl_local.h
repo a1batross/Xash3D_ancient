@@ -21,10 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <windows.h>
 #include <stdio.h>
 #include "basetypes.h"
-#include "stdapi.h"
-#include "stdref.h"
-#include "basefiles.h"
-#include "dllapi.h"
+#include "ref_dllapi.h"
 #include "mathlib.h"
 
 #define RENDERPASS_SOLID	1
@@ -216,6 +213,7 @@ extern	cvar_t	*r_pause;
 extern	cvar_t	*r_width;
 extern	cvar_t	*r_height;
 extern	cvar_t	*r_mode;
+extern	cvar_t	*r_testmode;
 
 extern	cvar_t	*r_lightlevel;	// FIXME: This is a HACK to get the client's light level
 
@@ -379,8 +377,8 @@ image_t	*R_RegisterSkin (char *name);
 void R_ImageList_f (void);
 bool R_ImageHasMips( void );
 
-image_t *R_LoadImage(char *name, rgbdata_t *pic, imagetype_t type );
-image_t *R_FindImage (char *name, char *buffer, int size, imagetype_t type);
+image_t *R_LoadImage( char *name, rgbdata_t *pic, imagetype_t type );
+image_t *R_FindImage( char *name, const byte *buffer, size_t size, imagetype_t type );
 
 void	R_InitTextures( void );
 void	R_ShutdownTextures (void);
@@ -413,49 +411,7 @@ void GL_DrawParticles( int n, const particle_t particles[], const unsigned color
 #define GL_RENDERER_NVIDIA		0x00000004
 #define GL_RENDERER_DEFAULT		0x80000000
 
-typedef struct
-{
-	int         renderer;
-	const char *renderer_string;
-	const char *vendor_string;
-	const char *version_string;
-
-	word	original_ramp[3][256];
-	word	gamma_ramp[3][256];
-
-	// list of supported extensions
-	const char *extensions_string;
-	byte	extension[R_EXTCOUNT];
-} glconfig_t;
-
-typedef struct
-{
-	bool	fullscreen;
-
-	int	prev_mode;
-	int	lightmap_textures;
-	float	inverse_intensity;
-
-	int	currenttextures[2];
-	int	currenttmu;
-
-	bool	alpha_test;
-	bool	depth_test;
-	bool	blend;
-	bool	texgen;
-
-	int	tex_rectangle_type;
-	int	stencil_warp;
-	int	stencil_two_side;
-	int	ati_separate_stencil;
-	vec4_t	draw_color;	// using with Draw_* functions
-
-	// new stuff
-	int	textureunits;
-	int	max_3d_texture_size;
-	int	max_cubemap_texture_size;
-	int	max_anisotropy;
-} glstate_t;
+#include "r_local.h"		// temporary
 
 extern glconfig_t  gl_config;
 extern glstate_t   gl_state;
@@ -466,14 +422,15 @@ extern glstate_t   gl_state;
 void R_EndFrame( void );
 bool R_Init_OpenGL( void );
 void R_Free_OpenGL( void );
-void R_InitExtensions( void );
 void R_CheckForErrors( void );
 
 //
-// r_backend.c
+// gl_backend.c
 //
 void GL_InitBackend( void );
 bool GL_Support( int r_ext );
+void GL_InitExtensions( void );
+void GL_ShutdownBackend( void );
 void GL_SetExtension( int r_ext, int enable );
 void GL_CheckExtension( const char *name, const dllfunc_t *funcs, const char *cvarname, int r_ext );
 
@@ -485,7 +442,7 @@ VERTEX ARRAYS
 ====================================================================
 */
 
-#define MAX_ARRAY MAX_INPUTLINE	// sorry ...
+#define MAX_ARRAY MAX_MSGLEN	// sorry ...
 
 #define VA_SetElem2(v, a, b) ((v)[0]=(a),(v)[1]=(b))
 #define VA_SetElem3(v, a, b, c) ((v)[0]=(a),(v)[1]=(b),(v)[2]=(c))

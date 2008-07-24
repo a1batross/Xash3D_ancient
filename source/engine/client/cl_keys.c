@@ -34,7 +34,7 @@ bool chat_team;
 // auto-complete stuff
 static field_t *completionField;
 static const char *completionString;
-static char shortestMatch[MAX_TOKEN_CHARS];
+static string shortestMatch;
 static int matchCount;
 
 keyname_t keynames[] =
@@ -310,7 +310,7 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, b
 	int	drawLen;
 	int	prestep;
 	int	i, cursorChar;
-	char	str[MAX_STRING_CHARS];
+	char	str[MAX_SYSPATH];
 
 	drawLen = edit->widthInChars;
 	len = strlen( edit->buffer ) + 1;
@@ -330,7 +330,7 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, b
 	if ( prestep + drawLen > len ) drawLen = len - prestep;
 
 	// extract <drawLen> characters from the field at <prestep>
-	if ( drawLen >= MAX_STRING_CHARS ) Host_Error("drawLen >= MAX_STRING_CHARS" );
+	if ( drawLen >= MAX_SYSPATH ) Host_Error("drawLen >= MAX_SYSPATH" );
 
 	Mem_Copy( str, edit->buffer + prestep, drawLen );
 	str[ drawLen ] = 0;
@@ -553,7 +553,7 @@ void Key_Console(int key)
 		// if not in the game explicitly prepent a slash if needed
 		if ( cls.state != ca_active && g_consoleField.buffer[0] != '\\' && g_consoleField.buffer[0] != '/' )
 		{
-			char	temp[MAX_STRING_CHARS];
+			char	temp[MAX_SYSPATH];
 
 			com.strncpy( temp, g_consoleField.buffer, sizeof( temp ));
 			com.sprintf( g_consoleField.buffer, "\\%s", temp );
@@ -679,7 +679,7 @@ In game talk message
 */
 void Key_Message( int key )
 {
-	char	buffer[MAX_STRING_CHARS];
+	char	buffer[MAX_SYSPATH];
 
 	if(key == K_ESCAPE)
 	{

@@ -70,8 +70,8 @@ normal screenshot
 */  
 void CL_ScreenShot_f( void ) 
 {
-	int		i;
-	char		checkname[MAX_OSPATH];
+	int	i;
+	string	checkname;
 
 	// scan for a free filename
 	for (i = 0; i <= 9999; i++ )
@@ -93,7 +93,7 @@ splash logo while map is loading
 */ 
 void CL_LevelShot_f( void )
 {
-	char		checkname[MAX_OSPATH];	
+	string	checkname;	
 
 	// check for exist
 	com.sprintf( checkname, "gfx/background/%s.tga", cl.configstrings[CS_NAME] );

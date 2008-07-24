@@ -211,7 +211,7 @@ void TriEdge_r (triangulation_t *trian, triedge_t *e)
 	// find the point with the best angle
 	p0 = trian->points[e->p0]->origin;
 	p1 = trian->points[e->p1]->origin;
-	best = 1.1;
+	best = 1.1f;
 	for (i=0 ; i< trian->numpoints ; i++)
 	{
 		p = trian->points[i]->origin;

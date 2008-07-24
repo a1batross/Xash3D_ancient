@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "common.h"
 #include "client.h"
+#include "byteorder.h"
 
 cvar_t	*freelook;
 cvar_t	*rcon_client_password;
@@ -885,7 +886,7 @@ static const char *env_suf[6] = {"rt", "bk", "lf", "ft", "up", "dn"};
 void CL_RequestNextDownload (void)
 {
 	uint		map_checksum;	// for detecting cheater maps
-	char		fn[MAX_OSPATH];
+	string		fn;
 	studiohdr_t	*pheader;
 
 	if(cls.state != ca_connected)
@@ -1094,7 +1095,7 @@ void CL_RequestNextDownload (void)
 		{
 			while( precache_tex < pe->NumTextures())
 			{
-				char fn[MAX_OSPATH];
+				string	fn;
 
 				com.sprintf(fn, "textures/%s.tga", pe->GetTextureName( precache_tex++ ));
 				if(!CL_CheckOrDownloadFile(fn)) return; // started a download
@@ -1388,7 +1389,7 @@ void CL_Frame( dword time )
 	cls.realtime += time;
 	cls.frametime = time * 0.001;
 
-	if( cls.frametime > (1.0 / 5)) cls.frametime = (1.0 / 5);
+	if( cls.frametime > (1.0f / 5)) cls.frametime = (1.0f / 5);
 
 	// if in the debugger last frame, don't timeout
 	if( time > 5000 ) cls.netchan.last_received = Sys_Milliseconds();

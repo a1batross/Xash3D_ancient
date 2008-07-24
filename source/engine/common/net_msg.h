@@ -5,6 +5,39 @@
 #ifndef NET_MSG_H
 #define NET_MSG_H
 
+enum net_types_e
+{
+	NET_BAD = 0,
+	NET_CHAR,
+	NET_BYTE,
+	NET_SHORT,
+	NET_WORD,
+	NET_LONG,
+	NET_FLOAT,
+	NET_ANGLE,
+	NET_SCALE,
+	NET_COORD,
+	NET_COLOR,
+	NET_TYPES,
+};
+
+typedef struct net_desc_s
+{
+	int	type;	// pixelformat
+	char	name[8];	// used for debug
+	int	min_range;
+	int	max_range;
+} net_desc_t;
+
+// communication state description
+typedef struct net_field_s
+{
+	char	*name;
+	int	offset;
+	int	bits;
+	bool	force;			// will be send for newentity
+} net_field_t;
+
 // server to client
 enum svc_ops_e
 {
@@ -54,6 +87,21 @@ typedef enum
 	MSG_PVS_R,
 } msgtype_t;
 
+static const net_desc_t NWDesc[] =
+{
+{ NET_BAD,	"none",	0,		0	}, // full range
+{ NET_CHAR,	"Char",	-128,		127	},
+{ NET_BYTE,	"Byte",	0,		255	},
+{ NET_SHORT,	"Short",	-32767,		32767	},
+{ NET_WORD,	"Word",	0,		65535	},
+{ NET_LONG,	"Long",	0,		0	},
+{ NET_FLOAT,	"Float",	0,		0	},
+{ NET_ANGLE,	"Angle",	-360,		360	},
+{ NET_SCALE,	"Scale",	0,		0	},
+{ NET_COORD,	"Coord",	-262140,		262140	},
+{ NET_COLOR,	"Color",	0,		255	},
+};
+
 /*
 ==========================================================
 
@@ -71,6 +119,10 @@ typedef enum
 #define MAX_DECALS			256	// various decals
 #define MAX_ITEMS			128	// player items
 #define MAX_GENERAL			(MAX_CLIENTS * 2)	// general config strings
+
+#define ES_FIELD(x)			#x,(int)&((entity_state_t*)0)->x
+#define PS_FIELD(x)			#x,(int)&((player_state_t*)0)->x
+#define CM_FIELD(x)			#x,(int)&((usercmd_t*)0)->x
 
 // config strings are a general means of communication from
 // the server to all connected clients.
@@ -101,6 +153,104 @@ typedef enum
 #define SND_ATTN			(1<<1)	// a byte
 #define SND_POS			(1<<2)	// three coordinates
 #define SND_ENT			(1<<3)	// a short 0 - 2: channel, 3 - 12: entity
+
+static net_field_t ent_fields[] =
+{
+{ ES_FIELD(origin[0]),	NET_FLOAT, false	},
+{ ES_FIELD(origin[1]),	NET_FLOAT, false	},
+{ ES_FIELD(origin[2]),	NET_FLOAT, false	},
+{ ES_FIELD(angles[0]),	NET_FLOAT, false	},
+{ ES_FIELD(angles[1]),	NET_FLOAT, false	},
+{ ES_FIELD(angles[2]),	NET_FLOAT, false	},
+{ ES_FIELD(old_origin[0]),	NET_FLOAT, true	},
+{ ES_FIELD(old_origin[1]),	NET_FLOAT, true	},
+{ ES_FIELD(old_origin[2]),	NET_FLOAT, true	},
+{ ES_FIELD(modelindex),	NET_WORD,	 false	},	// 4096 models
+{ ES_FIELD(soundindex),	NET_WORD,	 false	},	// 512 sounds ( OpenAL software limit is 255 )
+{ ES_FIELD(weaponmodel),	NET_WORD,	 false	},	// 4096 models
+{ ES_FIELD(skin),		NET_BYTE,	 false	},	// 255 skins
+{ ES_FIELD(frame),		NET_FLOAT, false	},	// interpolate value
+{ ES_FIELD(body),		NET_BYTE,	 false	},	// 255 bodies
+{ ES_FIELD(sequence),	NET_WORD,	 false	},	// 1024 sequences
+{ ES_FIELD(effects),	NET_LONG,	 false	},	// effect flags
+{ ES_FIELD(renderfx),	NET_LONG,	 false	},	// renderfx flags
+{ ES_FIELD(solid),		NET_LONG,	 false	},	// encoded mins/maxs
+{ ES_FIELD(alpha),		NET_FLOAT, false	},	// alpha value (FIXME: send a byte ? )
+{ ES_FIELD(animtime),	NET_FLOAT, false	},	// auto-animating time
+{ NULL },						// terminator
+};
+
+static net_field_t ps_fields[] =
+{
+{ PS_FIELD(pm_type),	NET_BYTE,  false	},	// 16 player movetypes allowed
+{ PS_FIELD(pm_flags),	NET_WORD,  true	},	// 16 movetype flags allowed
+{ PS_FIELD(pm_time),	NET_BYTE,  true	},	// each unit 8 msec
+#ifdef USE_COORD_FRAC
+{ PS_FIELD(origin[0]),	NET_COORD, false	},
+{ PS_FIELD(origin[1]),	NET_COORD, false	},
+{ PS_FIELD(origin[2]),	NET_COORD, false	},
+{ PS_FIELD(velocity[0]),	NET_COORD, false	},
+{ PS_FIELD(velocity[1]),	NET_COORD, false	},
+{ PS_FIELD(velocity[2]),	NET_COORD, false	},
+#else
+{ PS_FIELD(origin[0]),	NET_FLOAT, false	},
+{ PS_FIELD(origin[1]),	NET_FLOAT, false	},
+{ PS_FIELD(origin[2]),	NET_FLOAT, false	},
+{ PS_FIELD(velocity[0]),	NET_FLOAT, false	},
+{ PS_FIELD(velocity[1]),	NET_FLOAT, false	},
+{ PS_FIELD(velocity[2]),	NET_FLOAT, false	},
+#endif
+{ PS_FIELD(delta_angles[0]),	NET_FLOAT, false	},
+{ PS_FIELD(delta_angles[1]),	NET_FLOAT, false	},
+{ PS_FIELD(delta_angles[2]),	NET_FLOAT, false	},
+{ PS_FIELD(gravity),	NET_SHORT, false	},	// may be 12 bits ?
+{ PS_FIELD(effects),	NET_LONG,  false	},	// copied to entity_state_t->effects
+{ PS_FIELD(viewangles[0]),	NET_FLOAT, false	},	// for fixed views
+{ PS_FIELD(viewangles[1]),	NET_FLOAT, false	},
+{ PS_FIELD(viewangles[2]),	NET_FLOAT, false	},
+{ PS_FIELD(viewoffset[0]),	NET_SCALE, false	},	// get rid of this
+{ PS_FIELD(viewoffset[1]),	NET_SCALE, false	},
+{ PS_FIELD(viewoffset[2]),	NET_SCALE, false	},
+{ PS_FIELD(kick_angles[0]),	NET_SCALE, false	},
+{ PS_FIELD(kick_angles[1]),	NET_SCALE, false	},
+{ PS_FIELD(kick_angles[2]),	NET_SCALE, false	},
+{ PS_FIELD(blend[0]),	NET_COLOR, false	},	// FIXME: calc on client, don't send over the net
+{ PS_FIELD(blend[1]),	NET_COLOR, false	},
+{ PS_FIELD(blend[2]),	NET_COLOR, false	},
+{ PS_FIELD(blend[3]),	NET_COLOR, false	},
+{ PS_FIELD(fov),		NET_FLOAT, false	},	// FIXME: send as byte * 4 ?
+{ PS_FIELD(vmodel.index),	NET_WORD,  false	},	// 4096 models 
+{ PS_FIELD(vmodel.angles[0]), NET_SCALE, false	},	// can be some different with viewangles
+{ PS_FIELD(vmodel.angles[1]), NET_SCALE, false	},
+{ PS_FIELD(vmodel.angles[2]), NET_SCALE, false	},
+{ PS_FIELD(vmodel.offset[0]), NET_SCALE, false	},	// center offset
+{ PS_FIELD(vmodel.offset[1]),	NET_SCALE, false	},
+{ PS_FIELD(vmodel.offset[2]),	NET_SCALE, false	},
+{ PS_FIELD(vmodel.sequence),	NET_WORD,  false	},	// 1024 sequences
+{ PS_FIELD(vmodel.frame),	NET_FLOAT, false	},	// interpolate value
+{ PS_FIELD(vmodel.body),	NET_BYTE,  false	},	// 255 bodies
+{ PS_FIELD(vmodel.skin),	NET_BYTE,  false	},	// 255 skins
+{ PS_FIELD(pmodel.index),	NET_WORD,  false	},	// 4096 models 
+{ PS_FIELD(pmodel.sequence),	NET_WORD,  false	},	// 1024 sequences
+{ PS_FIELD(vmodel.frame),	NET_FLOAT, false	},	// interpolate value
+{ NULL },						// terminator
+};
+
+// probably usercmd_t never reached 32 field integer limit (in theory of course)
+static net_field_t cmd_fields[] =
+{
+{ CM_FIELD(msec),		NET_BYTE,  true	},
+{ CM_FIELD(angles[0]),	NET_WORD,  false	},
+{ CM_FIELD(angles[1]),	NET_WORD,  false	},
+{ CM_FIELD(angles[2]),	NET_WORD,  false	},
+{ CM_FIELD(forwardmove),	NET_SHORT, false	},
+{ CM_FIELD(sidemove),	NET_SHORT, false	},
+{ CM_FIELD(upmove),		NET_SHORT, false	},
+{ CM_FIELD(buttons),	NET_BYTE,  false	},
+{ CM_FIELD(impulse),	NET_BYTE,  false	},
+{ CM_FIELD(lightlevel),	NET_BYTE,  false	},
+{ NULL },
+};
 
 /*
 ==============================================================================

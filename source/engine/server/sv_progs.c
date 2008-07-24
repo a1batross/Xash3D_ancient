@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "server.h"
+#include "byteorder.h"
 
 byte	*sav_base;
 
@@ -248,7 +249,7 @@ static void Cvar_AddToBuffer( const char *name, const char *string, const char *
 void SV_AddCvarLump( dsavehdr_t *hdr, file_t *f )
 {
 	int	bufsize = 1; // null terminator 
-	char	*cvbuffer = Z_Malloc( MAX_INPUTLINE );
+	char	*cvbuffer = Z_Malloc( MAX_MSGLEN );
 
 	Cvar_LookupVars( CVAR_LATCH, cvbuffer, &bufsize, Cvar_AddToBuffer );
 	SV_AddSaveLump( hdr, f, LUMP_GAMECVARS, cvbuffer, bufsize );

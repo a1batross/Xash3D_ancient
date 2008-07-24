@@ -360,7 +360,7 @@ Returns a string describing *data in a type specific manner
 */
 char *PRVM_ValueString( etype_t type, prvm_eval_t *val )
 {
-	static char line[MAX_INPUTLINE];
+	static char line[MAX_MSGLEN];
 	ddef_t *def;
 	mfunction_t *f;
 	int n;
@@ -426,7 +426,7 @@ Easier to parse than PR_ValueString
 */
 char *PRVM_UglyValueString (etype_t type, prvm_eval_t *val)
 {
-	static char line[MAX_INPUTLINE];
+	static char line[MAX_MSGLEN];
 	int i;
 	const char *s;
 	ddef_t *def;
@@ -558,7 +558,7 @@ void PRVM_ED_Print(edict_t *ed)
 	int		i, j;
 	const char	*name;
 	int		type;
-	char	tempstring[MAX_INPUTLINE], tempstring2[260]; // temporary string buffers
+	char	tempstring[MAX_MSGLEN], tempstring2[260]; // temporary string buffers
 
 	if (ed->priv.ed->free)
 	{
@@ -817,7 +817,7 @@ PRVM_ED_ParseGlobals
 */
 void PRVM_ED_ParseGlobals (const char *data)
 {
-	char keyname[MAX_INPUTLINE];
+	char keyname[MAX_MSGLEN];
 	ddef_t *key;
 
 	while (1)
@@ -910,7 +910,7 @@ bool PRVM_ED_ParseEpair(edict_t *ent, ddef_t *key, const char *s)
 			s++;
 		i = com.atoi(s);
 		if (i >= vm.prog->limit_edicts)
-			MsgDev(D_WARN, "PRVM_ED_ParseEpair: ev_entity reference too large (edict %u >= MAX_EDICTS %u) on %s\n", (uint)i, (uint)MAX_EDICTS, PRVM_NAME);
+			MsgDev(D_WARN, "PRVM_ED_ParseEpair: ev_entity reference too large (edict %u >= limit_edicts %u) on %s\n", (uint)i, (uint)vm.prog->limit_edicts, PRVM_NAME);
 		while (i >= vm.prog->max_edicts)
 			PRVM_MEM_IncreaseEdicts();
 		// if IncreaseEdicts was called the base pointer needs to be updated
@@ -1307,7 +1307,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 	{
 		// debug info
  		if( vm.prog->progs->ofsfiles )
- 			vm.prog->sources = (includeddatafile_t*)((byte *)vm.prog->progs + vm.prog->progs->ofsfiles);
+ 			vm.prog->sources = (dsource_t*)((byte *)vm.prog->progs + vm.prog->progs->ofsfiles);
  		if( vm.prog->progs->ofslinenums )
  			vm.prog->linenums = (int *)((byte *)vm.prog->progs + vm.prog->progs->ofslinenums);
 		if( vm.prog->progs->ofs_types )
@@ -1418,8 +1418,8 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 
 	if( vm.prog->sources ) // source always are packed
 	{
-		int		numsources = LittleLong(*(int*)vm.prog->sources);
-		includeddatafile_t	*src = (includeddatafile_t *)(((int *)vm.prog->sources)+1);
+		int			numsources = LittleLong(*(int*)vm.prog->sources);
+		dsource_t	*src = (dsource_t *)(((int *)vm.prog->sources)+1);
 	}
 
 	if( vm.prog->linenums && vm.prog->progs->blockscompressed & COMP_LINENUMS )
@@ -1698,7 +1698,7 @@ void PRVM_Fields_f (void)
 {
 	int i, j, ednum, used, usedamount;
 	int *counts;
-	char tempstring[MAX_INPUTLINE], tempstring2[260];
+	char tempstring[MAX_MSGLEN], tempstring2[260];
 	const char *name;
 	edict_t *ed;
 	ddef_t *d;
@@ -1899,7 +1899,7 @@ void PRVM_GlobalSet_f(void)
 void VM_Warning(const char *fmt, ...)
 {
 	va_list argptr;
-	char msg[MAX_INPUTLINE];
+	char msg[MAX_MSGLEN];
 
 	va_start(argptr, fmt);
 	com.sprintf(msg, fmt, argptr);

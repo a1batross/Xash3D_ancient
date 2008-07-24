@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "gl_local.h"
+#include "byteorder.h"
 
 /*
 =============================================================
@@ -57,14 +58,7 @@ dframetype_t *R_SpriteLoadFrame( model_t *mod, void *pin, mspriteframe_t **ppfra
 	FS_FileBase( mod->name, name );
 	com.strcat(name, va("_%s_%i%i", frame_prefix, framenum/10, framenum%10 ));
 	spr_frame->size = width * height * 4; // for bounds checking
-	spr_frame->buffer = (byte *)Mem_Alloc( mod->mempool, spr_frame->size );
-
-	if(!VFS_Unpack((byte *)(pinframe + 1), pinframe->compsize, &spr_frame->buffer, spr_frame->size ))
-	{
-		Image->FreeImage( spr_frame );
-		MsgDev(D_WARN, "R_SpriteLoadFrame: %s probably corrupted\n", name );
-		return (void *)((byte *)(pinframe + 1) + pinframe->compsize);
-	}
+	spr_frame->buffer = (byte *)(pinframe + 1);
 
 	image = R_LoadImage( name, spr_frame, it_sprite );
 	if( image )
@@ -76,7 +70,7 @@ dframetype_t *R_SpriteLoadFrame( model_t *mod, void *pin, mspriteframe_t **ppfra
           else MsgDev(D_WARN, "%s has null frame %d\n", image->name, framenum );
 
 	Image->FreeImage( spr_frame );          
-	return (dframetype_t *)((byte *)(pinframe + 1) + pinframe->compsize);
+	return (dframetype_t *)((byte *)(pinframe + 1) + spr_frame->size);
 }
 
 dframetype_t *R_SpriteLoadGroup (model_t *mod, void * pin, mspriteframe_t **ppframe, int framenum )

@@ -6,7 +6,8 @@
 #define CM_LOCAL_H
 
 #include "physic.h"
-#include "basefiles.h"
+#include "mathlib.h"
+#include "cm_utils.h"
 
 #define MAX_MATERIALS	64
 #define CAPSULE_MODEL_HANDLE	MAX_MODELS - 2

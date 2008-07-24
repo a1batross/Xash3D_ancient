@@ -280,7 +280,7 @@ if it needs
 */
 int PR_WriteSourceFiles(file_t *h, dprograms_t *progs, bool sourceaswell)
 {
-	includeddatafile_t	*idf;
+	dsource_t			*idf;
 	cachedsourcefile_t	*f;
 	int		num = 0;
 	int		ofs;
@@ -293,7 +293,7 @@ int PR_WriteSourceFiles(file_t *h, dprograms_t *progs, bool sourceaswell)
 	}
 	if (!num) return 0;
 
-	idf = Qalloc(sizeof(includeddatafile_t) * num);
+	idf = Qalloc(sizeof(dsource_t) * num);
 	for( f = sourcefile, num = 0; f; f = f->next )
 	{
 		if( f->type == FT_CODE && !sourceaswell )
@@ -307,7 +307,7 @@ int PR_WriteSourceFiles(file_t *h, dprograms_t *progs, bool sourceaswell)
 	}
 	ofs = FS_Tell(h);	
 	FS_Write( h, &num, sizeof(int));
-	FS_Write( h, idf, sizeof(includeddatafile_t) * num );
+	FS_Write( h, idf, sizeof(dsource_t) * num );
 	sourcefile = NULL;
 
 	return ofs;

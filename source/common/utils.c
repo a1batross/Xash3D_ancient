@@ -4,10 +4,11 @@
 //=======================================================================
 
 #include "platform.h"
+#include "byteorder.h"
 #include "utils.h"
 #include "bsplib.h"
 #include "mdllib.h"
-#include "blankframe.h"
+#include "builtin.h"
 
 
 int com_argc;
@@ -233,8 +234,8 @@ byte *ReadBMP (char *filename, byte **palette, int *width, int *height)
 	if(!buf_p)
 	{
 		//blank_frame
-		buf_p = (char *)blank_frame; 
-		filesize = sizeof(blank_frame);
+		buf_p = (char *)blank_bmp; 
+		filesize = sizeof(blank_bmp);
 		MsgDev( D_WARN, "ReadBMP: couldn't load %s, use blank image\n", filename );
 	}
 

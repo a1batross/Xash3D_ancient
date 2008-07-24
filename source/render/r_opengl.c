@@ -37,10 +37,10 @@ vidmode_t vidmode[] =
 {"Mode 15: 16x9",	1366,	768,	1	},
 {"Mode 16: 16x9",	1920,	1080,	1	},
 {"Mode 17: 16x9",	2560,	1440,	1	},
-{"Mode 18: NTSC",	360,	240,	1.125	},
-{"Mode 19: NTSC",	720,	480,	1.125	},
-{"Mode 20: PAL ",	360,	283,	0.9545	},
-{"Mode 21: PAL ",	720,	566,	0.9545	},
+{"Mode 18: NTSC",	360,	240,	1.125f	},
+{"Mode 19: NTSC",	720,	480,	1.125f	},
+{"Mode 20: PAL ",	360,	283,	0.9545f	},
+{"Mode 21: PAL ",	720,	566,	0.9545f	},
 {NULL,		0,	0,	0	},
 };
 
@@ -57,267 +57,6 @@ static dllfunc_t wgl_funcs[] =
 	{"wglMakeCurrent", (void **) &pwglMakeCurrent},
 	{"wglGetCurrentContext", (void **) &pwglGetCurrentContext},
 	{"wglGetCurrentDC", (void **) &pwglGetCurrentDC},
-	{NULL, NULL}
-};
-
-static dllfunc_t wglswapintervalfuncs[] =
-{
-	{"wglSwapIntervalEXT", (void **) &pwglSwapIntervalEXT},
-	{NULL, NULL}
-};
-
-static dllfunc_t opengl_110funcs[] =
-{
-	{"glClearColor", (void **) &pglClearColor},
-	{"glClear", (void **) &pglClear},
-	{"glAlphaFunc", (void **) &pglAlphaFunc},
-	{"glBlendFunc", (void **) &pglBlendFunc},
-	{"glCullFace", (void **) &pglCullFace},
-	{"glDrawBuffer", (void **) &pglDrawBuffer},
-	{"glReadBuffer", (void **) &pglReadBuffer},
-	{"glEnable", (void **) &pglEnable},
-	{"glDisable", (void **) &pglDisable},
-	{"glEnableClientState", (void **) &pglEnableClientState},
-	{"glDisableClientState", (void **) &pglDisableClientState},
-	{"glGetBooleanv", (void **) &pglGetBooleanv},
-	{"glGetDoublev", (void **) &pglGetDoublev},
-	{"glGetFloatv", (void **) &pglGetFloatv},
-	{"glGetIntegerv", (void **) &pglGetIntegerv},
-	{"glGetError", (void **) &pglGetError},
-	{"glGetString", (void **) &pglGetString},
-	{"glFinish", (void **) &pglFinish},
-	{"glFlush", (void **) &pglFlush},
-	{"glClearDepth", (void **) &pglClearDepth},
-	{"glDepthFunc", (void **) &pglDepthFunc},
-	{"glDepthMask", (void **) &pglDepthMask},
-	{"glDepthRange", (void **) &pglDepthRange},
-	{"glDrawElements", (void **) &pglDrawElements},
-	{"glColorMask", (void **) &pglColorMask},
-	{"glVertexPointer", (void **) &pglVertexPointer},
-	{"glNormalPointer", (void **) &pglNormalPointer},
-	{"glColorPointer", (void **) &pglColorPointer},
-	{"glTexCoordPointer", (void **) &pglTexCoordPointer},
-	{"glArrayElement", (void **) &pglArrayElement},
-	{"glColor3f", (void **) &pglColor3f},
-	{"glColor3fv", (void **) &pglColor3fv},
-	{"glColor4f", (void **) &pglColor4f},
-	{"glColor4fv", (void **) &pglColor4fv},
-	{"glColor4ubv", (void **) &pglColor4ubv},
-	{"glTexCoord1f", (void **) &pglTexCoord1f},
-	{"glTexCoord2f", (void **) &pglTexCoord2f},
-	{"glTexCoord3f", (void **) &pglTexCoord3f},
-	{"glTexCoord4f", (void **) &pglTexCoord4f},
-	{"glTexGenf", (void **) &pglTexGenf},
-	{"glTexGenfv", (void **) &pglTexGenfv},
-	{"glVertex2f", (void **) &pglVertex2f},
-	{"glVertex3f", (void **) &pglVertex3f},
-	{"glVertex3fv", (void **) &pglVertex3fv},
-	{"glBegin", (void **) &pglBegin},
-	{"glEnd", (void **) &pglEnd},
-	{"glLineWidth", (void**) &pglLineWidth},
-	{"glPointSize", (void**) &pglPointSize},
-	{"glMatrixMode", (void **) &pglMatrixMode},
-	{"glOrtho", (void **) &pglOrtho},
-	{"glFrustum", (void **) &pglFrustum},
-	{"glViewport", (void **) &pglViewport},
-	{"glPushMatrix", (void **) &pglPushMatrix},
-	{"glPopMatrix", (void **) &pglPopMatrix},
-	{"glLoadIdentity", (void **) &pglLoadIdentity},
-	{"glLoadMatrixd", (void **) &pglLoadMatrixd},
-	{"glLoadMatrixf", (void **) &pglLoadMatrixf},
-	{"glMultMatrixd", (void **) &pglMultMatrixd},
-	{"glMultMatrixf", (void **) &pglMultMatrixf},
-	{"glRotated", (void **) &pglRotated},
-	{"glRotatef", (void **) &pglRotatef},
-	{"glScaled", (void **) &pglScaled},
-	{"glScalef", (void **) &pglScalef},
-	{"glTranslated", (void **) &pglTranslated},
-	{"glTranslatef", (void **) &pglTranslatef},
-	{"glReadPixels", (void **) &pglReadPixels},
-	{"glStencilFunc", (void **) &pglStencilFunc},
-	{"glStencilMask", (void **) &pglStencilMask},
-	{"glStencilOp", (void **) &pglStencilOp},
-	{"glClearStencil", (void **) &pglClearStencil},
-	{"glTexEnvf", (void **) &pglTexEnvf},
-	{"glTexEnvfv", (void **) &pglTexEnvfv},
-	{"glTexEnvi", (void **) &pglTexEnvi},
-	{"glTexParameterf", (void **) &pglTexParameterf},
-	{"glTexParameterfv", (void **) &pglTexParameterfv},
-	{"glTexParameteri", (void **) &pglTexParameteri},
-	{"glHint", (void **) &pglHint},
-	{"glPixelStoref", (void **) &pglPixelStoref},
-	{"glPixelStorei", (void **) &pglPixelStorei},
-	{"glGenTextures", (void **) &pglGenTextures},
-	{"glDeleteTextures", (void **) &pglDeleteTextures},
-	{"glBindTexture", (void **) &pglBindTexture},
-	{"glTexImage1D", (void **) &pglTexImage1D},
-	{"glTexImage2D", (void **) &pglTexImage2D},
-	{"glTexSubImage1D", (void **) &pglTexSubImage1D},
-	{"glTexSubImage2D", (void **) &pglTexSubImage2D},
-	{"glCopyTexImage1D", (void **) &pglCopyTexImage1D},
-	{"glCopyTexImage2D", (void **) &pglCopyTexImage2D},
-	{"glCopyTexSubImage1D", (void **) &pglCopyTexSubImage1D},
-	{"glCopyTexSubImage2D", (void **) &pglCopyTexSubImage2D},
-	{"glScissor", (void **) &pglScissor},
-	{"glPolygonOffset", (void **) &pglPolygonOffset},
-	{"glPolygonMode", (void **) &pglPolygonMode},
-	{"glPolygonStipple", (void **) &pglPolygonStipple},
-	{"glClipPlane", (void **) &pglClipPlane},
-	{"glGetClipPlane", (void **) &pglGetClipPlane},
-	{"glShadeModel", (void **) &pglShadeModel},
-	{NULL, NULL}
-};
-
-static dllfunc_t pointparametersfunc[] =
-{
-	{"glPointParameterfEXT", (void **) &pglPointParameterfEXT},
-	{"glPointParameterfvEXT", (void **) &pglPointParameterfvEXT},
-	{NULL, NULL}
-};
-
-static dllfunc_t drawrangeelementsfuncs[] =
-{
-	{"glDrawRangeElements", (void **) &pglDrawRangeElements},
-	{NULL, NULL}
-};
-
-static dllfunc_t drawrangeelementsextfuncs[] =
-{
-	{"glDrawRangeElementsEXT", (void **) &pglDrawRangeElementsEXT},
-	{NULL, NULL}
-};
-
-static dllfunc_t multitexturefuncs[] =
-{
-	{"glMultiTexCoord1fARB", (void **) &pglMultiTexCoord1f},
-	{"glMultiTexCoord2fARB", (void **) &pglMultiTexCoord2f},
-	{"glMultiTexCoord3fARB", (void **) &pglMultiTexCoord3f},
-	{"glMultiTexCoord4fARB", (void **) &pglMultiTexCoord4f},
-	{"glActiveTextureARB", (void **) &pglActiveTextureARB},
-	{"glClientActiveTextureARB", (void **) &pglClientActiveTexture},
-	{"glClientActiveTextureARB", (void **) &pglClientActiveTextureARB},
-	{NULL, NULL}
-};
-
-static dllfunc_t compiledvertexarrayfuncs[] =
-{
-	{"glLockArraysEXT", (void **) &pglLockArraysEXT},
-	{"glUnlockArraysEXT", (void **) &pglUnlockArraysEXT},
-	{"glDrawArrays", (void **) &pglDrawArrays},
-	{NULL, NULL}
-};
-
-static dllfunc_t texture3dextfuncs[] =
-{
-	{"glTexImage3DEXT", (void **) &pglTexImage3D},
-	{"glTexSubImage3DEXT", (void **) &pglTexSubImage3D},
-	{"glCopyTexSubImage3DEXT", (void **) &pglCopyTexSubImage3D},
-	{NULL, NULL}
-};
-
-static dllfunc_t atiseparatestencilfuncs[] =
-{
-	{"glStencilOpSeparateATI", (void **) &pglStencilOpSeparate},
-	{"glStencilFuncSeparateATI", (void **) &pglStencilFuncSeparate},
-	{NULL, NULL}
-};
-
-static dllfunc_t gl2separatestencilfuncs[] =
-{
-	{"glStencilOpSeparate", (void **) &pglStencilOpSeparate},
-	{"glStencilFuncSeparate", (void **) &pglStencilFuncSeparate},
-	{NULL, NULL}
-};
-
-static dllfunc_t stenciltwosidefuncs[] =
-{
-	{"glActiveStencilFaceEXT", (void **) &pglActiveStencilFaceEXT},
-	{NULL, NULL}
-};
-
-static dllfunc_t blendequationfuncs[] =
-{
-	{"glBlendEquationEXT", (void **) &pglBlendEquationEXT},
-	{NULL, NULL}
-};
-
-static dllfunc_t shaderobjectsfuncs[] =
-{
-	{"glDeleteObjectARB", (void **) &pglDeleteObjectARB},
-	{"glGetHandleARB", (void **) &pglGetHandleARB},
-	{"glDetachObjectARB", (void **) &pglDetachObjectARB},
-	{"glCreateShaderObjectARB", (void **) &pglCreateShaderObjectARB},
-	{"glShaderSourceARB", (void **) &pglShaderSourceARB},
-	{"glCompileShaderARB", (void **) &pglCompileShaderARB},
-	{"glCreateProgramObjectARB", (void **) &pglCreateProgramObjectARB},
-	{"glAttachObjectARB", (void **) &pglAttachObjectARB},
-	{"glLinkProgramARB", (void **) &pglLinkProgramARB},
-	{"glUseProgramObjectARB", (void **) &pglUseProgramObjectARB},
-	{"glValidateProgramARB", (void **) &pglValidateProgramARB},
-	{"glUniform1fARB", (void **) &pglUniform1fARB},
-	{"glUniform2fARB", (void **) &pglUniform2fARB},
-	{"glUniform3fARB", (void **) &pglUniform3fARB},
-	{"glUniform4fARB", (void **) &pglUniform4fARB},
-	{"glUniform1iARB", (void **) &pglUniform1iARB},
-	{"glUniform2iARB", (void **) &pglUniform2iARB},
-	{"glUniform3iARB", (void **) &pglUniform3iARB},
-	{"glUniform4iARB", (void **) &pglUniform4iARB},
-	{"glUniform1fvARB", (void **) &pglUniform1fvARB},
-	{"glUniform2fvARB", (void **) &pglUniform2fvARB},
-	{"glUniform3fvARB", (void **) &pglUniform3fvARB},
-	{"glUniform4fvARB", (void **) &pglUniform4fvARB},
-	{"glUniform1ivARB", (void **) &pglUniform1ivARB},
-	{"glUniform2ivARB", (void **) &pglUniform2ivARB},
-	{"glUniform3ivARB", (void **) &pglUniform3ivARB},
-	{"glUniform4ivARB", (void **) &pglUniform4ivARB},
-	{"glUniformMatrix2fvARB", (void **) &pglUniformMatrix2fvARB},
-	{"glUniformMatrix3fvARB", (void **) &pglUniformMatrix3fvARB},
-	{"glUniformMatrix4fvARB", (void **) &pglUniformMatrix4fvARB},
-	{"glGetObjectParameterfvARB", (void **) &pglGetObjectParameterfvARB},
-	{"glGetObjectParameterivARB", (void **) &pglGetObjectParameterivARB},
-	{"glGetInfoLogARB", (void **) &pglGetInfoLogARB},
-	{"glGetAttachedObjectsARB", (void **) &pglGetAttachedObjectsARB},
-	{"glGetUniformLocationARB", (void **) &pglGetUniformLocationARB},
-	{"glGetActiveUniformARB", (void **) &pglGetActiveUniformARB},
-	{"glGetUniformfvARB", (void **) &pglGetUniformfvARB},
-	{"glGetUniformivARB", (void **) &pglGetUniformivARB},
-	{"glGetShaderSourceARB", (void **) &pglGetShaderSourceARB},
-	{NULL, NULL}
-};
-
-static dllfunc_t vertexshaderfuncs[] =
-{
-	{"glVertexAttribPointerARB", (void **) &pglVertexAttribPointerARB},
-	{"glEnableVertexAttribArrayARB", (void **) &pglEnableVertexAttribArrayARB},
-	{"glDisableVertexAttribArrayARB", (void **) &pglDisableVertexAttribArrayARB},
-	{"glBindAttribLocationARB", (void **) &pglBindAttribLocationARB},
-	{"glGetActiveAttribARB", (void **) &pglGetActiveAttribARB},
-	{"glGetAttribLocationARB", (void **) &pglGetAttribLocationARB},
-	{NULL, NULL}
-};
-
-static dllfunc_t vbofuncs[] =
-{
-	{"glBindBufferARB"    , (void **) &pglBindBufferARB},
-	{"glDeleteBuffersARB" , (void **) &pglDeleteBuffersARB},
-	{"glGenBuffersARB"    , (void **) &pglGenBuffersARB},
-	{"glIsBufferARB"      , (void **) &pglIsBufferARB},
-	{"glMapBufferARB"     , (void **) &pglMapBufferARB},
-	{"glUnmapBufferARB"   , (void **) &pglUnmapBufferARB},
-	{"glBufferDataARB"    , (void **) &pglBufferDataARB},
-	{"glBufferSubDataARB" , (void **) &pglBufferSubDataARB},
-	{NULL, NULL}
-};
-
-static dllfunc_t texturecompressionfuncs[] =
-{
-	{"glCompressedTexImage3DARB",    (void **) &pglCompressedTexImage3DARB},
-	{"glCompressedTexImage2DARB",    (void **) &pglCompressedTexImage2DARB},
-	{"glCompressedTexImage1DARB",    (void **) &pglCompressedTexImage1DARB},
-	{"glCompressedTexSubImage3DARB", (void **) &pglCompressedTexSubImage3DARB},
-	{"glCompressedTexSubImage2DARB", (void **) &pglCompressedTexSubImage2DARB},
-	{"glCompressedTexSubImage1DARB", (void **) &pglCompressedTexSubImage1DARB},
-	{"glGetCompressedTexImageARB",   (void **) &pglGetCompressedTexImage},
 	{NULL, NULL}
 };
 
@@ -395,8 +134,8 @@ bool R_SetPixelformat( void )
 	MsgDev(D_NOTE, "GL PFD: color(%d-bits) Z(%d-bit)\n", ( int )pfd.cColorBits, ( int )pfd.cDepthBits );
 
 	// init gamma ramp
-	ZeroMemory( gl_config.original_ramp, sizeof(gl_config.original_ramp));
-	GetDeviceGammaRamp( glw_state.hDC, gl_config.original_ramp );
+	ZeroMemory( gl_state.stateRamp, sizeof(gl_state.stateRamp));
+	GetDeviceGammaRamp( glw_state.hDC, gl_state.stateRamp );
 	vid_gamma->modified = true;
 
 	return true;
@@ -404,7 +143,7 @@ bool R_SetPixelformat( void )
 
 void R_Free_OpenGL( void )
 {
-	SetDeviceGammaRamp( glw_state.hDC, gl_config.original_ramp );
+	SetDeviceGammaRamp( glw_state.hDC, gl_state.stateRamp );
 
 	if( pwglMakeCurrent ) pwglMakeCurrent( NULL, NULL );
 	if( glw_state.hGLRC )
@@ -424,10 +163,10 @@ void R_Free_OpenGL( void )
 	}
 	UnregisterClass( "Xash Window", glw_state.hInst );
 
-	if( gl_state.fullscreen )
+	if( gl_config.fullscreen )
 	{
 		ChangeDisplaySettings( 0, 0 );
-		gl_state.fullscreen = false;
+		gl_config.fullscreen = false;
 	}
 	Sys_FreeLibrary( &opengl_dll );
 
@@ -546,7 +285,7 @@ rserr_t R_ChangeDisplaySettings( int vid_mode, bool fullscreen )
 		
 		if(ChangeDisplaySettings( &dm, CDS_FULLSCREEN ) == DISP_CHANGE_SUCCESSFUL)
 		{
-			gl_state.fullscreen = true;
+			gl_config.fullscreen = true;
 			if(!R_CreateWindow( width, height, true ))
 				return rserr_invalid_mode;
 			return rserr_ok;
@@ -566,7 +305,7 @@ rserr_t R_ChangeDisplaySettings( int vid_mode, bool fullscreen )
 			if( ChangeDisplaySettings( &dm, CDS_FULLSCREEN ) != DISP_CHANGE_SUCCESSFUL )
 			{
 				ChangeDisplaySettings( 0, 0 );
-				gl_state.fullscreen = false;
+				gl_config.fullscreen = false;
 				if(!R_CreateWindow( width, height, false ))
 					return rserr_invalid_mode;
 				return rserr_invalid_fullscreen;
@@ -575,7 +314,7 @@ rserr_t R_ChangeDisplaySettings( int vid_mode, bool fullscreen )
 			{
 				if(!R_CreateWindow( width, height, true ))
 					return rserr_invalid_mode;
-				gl_state.fullscreen = true;
+				gl_config.fullscreen = true;
 				return rserr_ok;
 			}
 		}
@@ -583,7 +322,7 @@ rserr_t R_ChangeDisplaySettings( int vid_mode, bool fullscreen )
 	else
 	{
 		ChangeDisplaySettings( 0, 0 );
-		gl_state.fullscreen = false;
+		gl_config.fullscreen = false;
 		if(!R_CreateWindow( width, height, false ))
 			return rserr_invalid_mode;
 	}
@@ -606,7 +345,7 @@ bool R_Init_OpenGL( void )
 
 	if(( err = R_ChangeDisplaySettings( r_mode->integer, fullscreen )) == rserr_ok )
 	{
-		gl_state.prev_mode = r_mode->integer;
+		gl_config.prev_mode = r_mode->integer;
 	}
 	else
 	{
@@ -620,12 +359,12 @@ bool R_Init_OpenGL( void )
 		}
 		else if( err == rserr_invalid_mode )
 		{
-			Cvar_SetValue( "r_mode", gl_state.prev_mode );
+			Cvar_SetValue( "r_mode", gl_config.prev_mode );
 			r_mode->modified = false;
 			MsgDev( D_ERROR, "R_SetMode: invalid mode\n" );
 		}
 		// try setting it back to something safe
-		if(( err = R_ChangeDisplaySettings( gl_state.prev_mode, false )) != rserr_ok )
+		if(( err = R_ChangeDisplaySettings( gl_config.prev_mode, false )) != rserr_ok )
 		{
 			MsgDev( D_ERROR, "R_SetMode: could not revert to safe mode\n" );
 			return false;
@@ -674,96 +413,4 @@ void R_CheckForErrors( void )
 		break;
 	}
 	Host_Error( "R_CheckForErrors: %s", str );
-}
-
-void R_EndFrame( void )
-{
-	if( stricmp( gl_drawbuffer->string, "GL_BACK" ) == 0 )
-	{
-		if( !pwglSwapBuffers( glw_state.hDC ) )
-			Host_Error("GLimp_EndFrame() - SwapBuffers() failed!\n" );
-	}
-}
-
-void R_InitExtensions( void )
-{
-	// initialize gl extensions
-	GL_CheckExtension( "OpenGL 1.1.0", opengl_110funcs, NULL, R_OPENGL_110 );
-
-	// get our various GL strings
-	gl_config.vendor_string = pglGetString( GL_VENDOR );
-	gl_config.renderer_string = pglGetString( GL_RENDERER );
-	gl_config.version_string = pglGetString( GL_VERSION );
-	gl_config.extensions_string = pglGetString( GL_EXTENSIONS );
-	MsgDev( D_INFO, "Video: %s\n", gl_config.renderer_string );
-
-	GL_CheckExtension( "WGL_EXT_swap_control", wglswapintervalfuncs, NULL, R_WGL_SWAPCONTROL );
-	GL_CheckExtension( "glDrawRangeElements", drawrangeelementsfuncs, "gl_drawrangeelments", R_DRAWRANGEELMENTS );
-	if(!GL_Support( R_DRAWRANGEELMENTS )) GL_CheckExtension("GL_EXT_draw_range_elements", drawrangeelementsextfuncs, "gl_drawrangeelments", R_DRAWRANGEELMENTS );
-
-	// multitexture
-	GL_CheckExtension("GL_ARB_multitexture", multitexturefuncs, "gl_arb_multitexture", R_ARB_MULTITEXTURE );
-	if(GL_Support( R_ARB_MULTITEXTURE ))
-	{
-		pglGetIntegerv( GL_MAX_TEXTURE_UNITS_ARB, &gl_state.textureunits );
-		GL_CheckExtension( "GL_ARB_texture_env_combine", NULL, "gl_texture_env_combine", R_COMBINE_EXT );
-		if(!GL_Support( R_COMBINE_EXT )) GL_CheckExtension("GL_EXT_texture_env_combine", NULL, "gl_texture_env_combine", R_COMBINE_EXT );
-		if(GL_Support( R_COMBINE_EXT )) GL_CheckExtension( "GL_ARB_texture_env_dot3", NULL, "gl_texture_env_dot3", R_DOT3_ARB_EXT );
-		GL_TEXTURE0 = GL_TEXTURE0_ARB;
-		GL_TEXTURE1 = GL_TEXTURE1_ARB;
-	}
-
-	// 3d texture support
-	GL_CheckExtension( "GL_EXT_texture3D", texture3dextfuncs, "gl_texture_3d", R_TEXTURE_3D_EXT );
-	if(GL_Support( R_TEXTURE_3D_EXT ))
-	{
-		pglGetIntegerv( GL_MAX_3D_TEXTURE_SIZE, &gl_state.max_3d_texture_size );
-		if( gl_state.max_3d_texture_size < 32 )
-		{
-			GL_SetExtension( R_TEXTURE_3D_EXT, false );
-			MsgDev( D_ERROR, "GL_EXT_texture3D reported bogus GL_MAX_3D_TEXTURE_SIZE, disabled\n" );
-		}
-	}
-
-	// hardware cubemaps
-	GL_CheckExtension( "GL_ARB_texture_cube_map", NULL, "gl_texture_cubemap", R_TEXTURECUBEMAP_EXT );
-	if(GL_Support( R_TEXTURECUBEMAP_EXT )) pglGetIntegerv( GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB, &gl_state.max_cubemap_texture_size );
-
-	// point particles extension
-	GL_CheckExtension( "GL_EXT_point_parameters", pointparametersfunc, NULL, R_EXT_POINTPARAMETERS );
-
-	GL_CheckExtension( "GL_ARB_texture_non_power_of_two", NULL, "gl_texture_npot", R_ARB_TEXTURE_NPOT_EXT );
-	GL_CheckExtension( "GL_ARB_texture_compression", texturecompressionfuncs, "gl_dds_hardware_support", R_TEXTURE_COMPRESSION_EXT );
-	GL_CheckExtension( "GL_EXT_compiled_vertex_array", compiledvertexarrayfuncs, "gl_cva_support", R_CUSTOM_VERTEX_ARRAY_EXT );
-	if(!GL_Support(R_CUSTOM_VERTEX_ARRAY_EXT)) GL_CheckExtension( "GL_SGI_compiled_vertex_array", compiledvertexarrayfuncs, "gl_cva_support", R_CUSTOM_VERTEX_ARRAY_EXT );		
-	GL_CheckExtension( "GL_EXT_texture_edge_clamp", NULL, "gl_clamp_to_edge", R_CLAMPTOEDGE_EXT );
-	if(!GL_Support( R_CLAMPTOEDGE_EXT )) GL_CheckExtension("GL_SGIS_texture_edge_clamp", NULL, "gl_clamp_to_edge", R_CLAMPTOEDGE_EXT );
-
-	GL_CheckExtension( "GL_EXT_texture_filter_anisotropic", NULL, "gl_texture_anisotropy", R_ANISOTROPY_EXT );
-	if(GL_Support( R_ANISOTROPY_EXT )) pglGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &gl_state.max_anisotropy );
-
-	GL_CheckExtension( "GL_EXT_blend_minmax", blendequationfuncs, "gl_ext_customblend", R_BLEND_MINMAX_EXT );
-	GL_CheckExtension( "GL_EXT_blend_subtract", blendequationfuncs, "gl_ext_customblend", R_BLEND_SUBTRACT_EXT );
-
-	GL_CheckExtension( "glStencilOpSeparate", gl2separatestencilfuncs, "gl_separate_stencil",R_SEPARATESTENCIL_EXT );
-	if(!GL_Support( R_SEPARATESTENCIL_EXT )) GL_CheckExtension("GL_ATI_separate_stencil", atiseparatestencilfuncs, "gl_separate_stencil", R_SEPARATESTENCIL_EXT );
-
-	GL_CheckExtension( "GL_EXT_stencil_two_side", stenciltwosidefuncs, "gl_stenciltwoside", R_STENCILTWOSIDE_EXT );
-	GL_CheckExtension( "GL_ARB_vertex_buffer_object", vbofuncs, "gl_vertex_buffer_object", R_ARB_VERTEX_BUFFER_OBJECT_EXT );
-
-	// we don't care if it's an extension or not, they are identical functions, so keep it simple in the rendering code
-	if( pglDrawRangeElements == NULL ) pglDrawRangeElements = pglDrawRangeElementsEXT;
-
-	// vp and fp shaders
-	GL_CheckExtension( "GL_ARB_shader_objects", shaderobjectsfuncs, "gl_shaderobjects", R_SHADER_OBJECTS_EXT );
-	GL_CheckExtension( "GL_ARB_shading_language_100", NULL, "gl_glslprogram", R_SHADER_GLSL100_EXT );
-	GL_CheckExtension( "GL_ARB_vertex_shader", vertexshaderfuncs, "gl_vertexshader", R_VERTEX_SHADER_EXT );
-	GL_CheckExtension( "GL_ARB_fragment_shader", NULL, "gl_pixelshader", R_FRAGMENT_SHADER_EXT );
-
-	// rectangle textures support
-	if( com.strstr( gl_config.extensions_string, "GL_NV_texture_rectangle" ))
-		gl_state.tex_rectangle_type = GL_TEXTURE_RECTANGLE_NV;
-	else if( com.strstr( gl_config.extensions_string, "GL_EXT_texture_rectangle" ))
-		gl_state.tex_rectangle_type = GL_TEXTURE_RECTANGLE_EXT;
-	else gl_state.tex_rectangle_type = 0; // no rectangle
 }

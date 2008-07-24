@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "common.h"
+#include "byteorder.h"
 #include "mathlib.h"
 #include "builtin.h"
 
@@ -272,12 +273,12 @@ void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int f
 	else
 	{
 		int	l, i;
-		char	string[MAX_STRING_CHARS];
+		char	string[MAX_SYSPATH];
                     
 		l = com.strlen( s ) + 1;		
-		if( l >= MAX_STRING_CHARS )
+		if( l >= MAX_SYSPATH )
 		{
-			MsgDev( D_ERROR, "MSG_WriteString: exceeds MAX_STRING_CHARS (called at %s:%i\n", filename, fileline );
+			MsgDev( D_ERROR, "MSG_WriteString: exceeds %i symbols (called at %s:%i\n", MAX_SYSPATH, filename, fileline );
 			_MSG_WriteData( sb, "", 1, filename, fileline );
 			return;
 		}
@@ -314,7 +315,7 @@ float MSG_ReadFloat( sizebuf_t *msg )
 
 char *MSG_ReadString( sizebuf_t *msg )
 {
-	static char	string[MAX_STRING_CHARS];
+	static char	string[MAX_SYSPATH];
 	int		l = 0, c;
 	
 	do
@@ -339,7 +340,7 @@ char *MSG_ReadString( sizebuf_t *msg )
 
 char *MSG_ReadStringLine( sizebuf_t *msg )
 {
-	static char	string[MAX_STRING_CHARS];
+	static char	string[MAX_SYSPATH];
 	int		l = 0, c;
 	
 	do

@@ -237,7 +237,7 @@ int mapcount = 0;
 
 void PF_getmapslist( void )
 {
-	char	mapstring[MAX_INPUTLINE];
+	char	mapstring[MAX_MSGLEN];
 
 	if(!VM_ValidateArgs( "GetMapsList", 0 ))
 		return;

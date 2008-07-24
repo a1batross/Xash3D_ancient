@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static vec3_t	modelorg;		// relative to viewpoint
 
 msurface_t	*r_alpha_surfaces;
-
+msurface_t	*r_luma_surfaces;
 #define LIGHTMAP_BYTES 4
 
 #define BLOCK_WIDTH		128
@@ -230,42 +230,23 @@ void DrawGLPolyChain( glpoly_t *p, float soffset, float toffset )
 
 void R_DrawLumaChains( void )
 {
-	image_t		*image;
 	msurface_t	*s;
-	int		j;
 
 	pglDepthMask( 0 );
 	GL_EnableBlend();
-	pglBlendFunc( GL_ONE, GL_ONE );
-	GL_TexEnv( GL_REPLACE );
+	//pglBlendFunc( GL_ONE, GL_ONE );
+	GL_TexEnv( GL_MODULATE );
 
-	for( j = 0, image = gltextures; j < numgltextures; j++, image++ ) 
+	for( s = r_luma_surfaces; s; s = s->texturechain )
 	{
-		// not registered
-		if(!image->registration_sequence) continue;
-		if(!image->lumatex[0]) continue;
-
-		// see have we got a texture chain, skip if not
-		s = image->texturechain;
-		if( !s )
-		{
-			Msg("lumatex not chain\n");
-			continue;
-                    }
-		if(!(s->texinfo->flags & SURF_LIGHT)) continue;
-                    
-		Msg("draw luma chain\n" );
-		// bind the texture (once per texture rather than any of that other messing)
-		GL_Bind( image->lumatex[0] );
-
-		for( ; s; s = s->texturechain ) 
-			DrawGLPoly( s->polys );
-		image->texturechain = NULL;
+		GL_Bind(s->texinfo->image->lumatex[0]);
+		DrawGLPoly (s->polys);
 	}
 
 	pglDepthMask( 1 );
 	pglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 	GL_DisableBlend();
+	r_luma_surfaces = NULL;
 }
 
 /*
@@ -912,7 +893,7 @@ void R_DrawBrushModel ( int passnum )
 		return;
 
 	//currententity = e;
-	gl_state.currenttextures[0] = gl_state.currenttextures[1] = -1;
+	gl_state.texNum[0] = gl_state.texNum[1] = -1;
 
 	if( !VectorIsNull( e->angles ))
 	{
@@ -1080,6 +1061,12 @@ void R_RecursiveWorldNode (mnode_t *node)
 		{
 			continue;
 		}
+		else if (r_testmode->integer && surf->texinfo->flags & SURF_LIGHT )
+		{
+			surf->texturechain = r_luma_surfaces;
+			r_luma_surfaces = surf;
+			continue;
+		}
 		else if (r_mirroralpha->value < 1.0f && !mirror_render && surf->texinfo->flags & SURF_MIRROR)
 		{
 			mirror = true;
@@ -1171,7 +1158,7 @@ void R_DrawWorld (void)
 	ent.frame = (int)(r_newrefdef.time * 6.0f);
 	currententity = &ent;
 
-	gl_state.currenttextures[0] = gl_state.currenttextures[1] = -1;
+	gl_state.texNum[0] = gl_state.texNum[1] = -1;
 
 	pglColor3f (1,1,1);
 	memset (gl_lms.lightmap_surfaces, 0, sizeof(gl_lms.lightmap_surfaces));

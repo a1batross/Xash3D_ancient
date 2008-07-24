@@ -35,9 +35,9 @@ int	junk;
 int	numbounce = 3;
 float	ambient = 0;
 float	maxlight = 196;
-float	lightscale = 1.0;
-float	direct_scale =	0.4;
-float	entity_scale =	1.0;
+float	lightscale = 1.0f;
+float	direct_scale =	0.4f;
+float	entity_scale =	1.0f;
 
 /*
 ===================================================================
@@ -476,7 +476,7 @@ void WradMain ( bool option )
 	{
 		Msg ("No vis information, direct lighting only.\n");
 		numbounce = 0;
-		ambient = 0.1;
+		ambient = 0.1f;
 	}
 
 	RadWorld ();

@@ -9,10 +9,7 @@
 #include <windows.h>
 #include <dsound.h>
 #include "basetypes.h"
-#include "stdapi.h"
-#include "stdref.h"
-#include "basefiles.h"
-#include "dllapi.h"
+#include "ref_dllapi.h"
 #include "s_openal.h"
 
 extern stdlib_api_t com;
@@ -20,6 +17,17 @@ extern vsound_imp_t	si;
 extern byte *sndpool;
 
 #include "mathlib.h"
+
+typedef enum
+{
+	S_OPENAL_110 = 0,		// base
+	S_EXT_EFX,
+	S_EXT_I3DL,
+	S_EXT_EAX,
+	S_EXT_EAX20,
+	S_EXT_EAX30,
+	S_EXTCOUNT
+} s_openal_extensions;
 
 enum
 {
@@ -115,6 +123,7 @@ typedef struct
 	const char	*version_string;
 	const char	*extensions_string;
 
+	byte		extension[S_EXTCOUNT];
 	string		deviceList[4];
 	const char	*defDevice;
 	uint		device_count;

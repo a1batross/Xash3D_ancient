@@ -192,7 +192,7 @@ xash -nosound +cmd amlev1
 void Cmd_StuffCmds_f( void )
 {
 	int	i, j, l = 0;
-	char	build[MAX_INPUTLINE]; // this is for all commandline options combined (and is bounds checked)
+	char	build[MAX_MSGLEN]; // this is for all commandline options combined (and is bounds checked)
 
 	if(Cmd_Argc() != 1)
 	{
@@ -340,7 +340,7 @@ typedef struct cmd_function_s
 
 static int cmd_argc;
 static char *cmd_argv[MAX_STRING_TOKENS];
-static char cmd_tokenized[MAX_INPUTLINE+MAX_STRING_TOKENS]; // will have 0 bytes inserted
+static char cmd_tokenized[MAX_MSGLEN+MAX_STRING_TOKENS]; // will have 0 bytes inserted
 static cmd_function_t *cmd_functions;			// possible commands to execute
 
 /*
@@ -374,7 +374,7 @@ Returns a single string containing argv(1) to argv(argc()-1)
 */
 char *Cmd_Args( void )
 {
-	static char	cmd_args[MAX_STRING_CHARS];
+	static char	cmd_args[MAX_SYSPATH];
 	int		i;
 
 	cmd_args[0] = 0;

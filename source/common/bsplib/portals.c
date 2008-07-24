@@ -368,7 +368,7 @@ void MakeNodePortal (node_t *node)
 		else
 			Sys_Error ("CutNodePortals_r: mislinked portal");
 
-		ChopWindingInPlace (&w, normal, dist, 0.1);
+		ChopWindingInPlace (&w, normal, dist, 0.1f);
 	}
 
 	if (!w)

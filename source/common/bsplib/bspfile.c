@@ -1,5 +1,6 @@
 
 #include "bsplib.h"
+#include "byteorder.h"
 
 void GetLeafNums (void);
 

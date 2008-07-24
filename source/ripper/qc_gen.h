@@ -5,6 +5,71 @@
 #ifndef QC_GEN_H
 #define QC_GEN_H
 
+#include "byteorder.h"
+
+/*
+========================================================================
+
+.FLAT image format	(Doom1/2 textures)
+
+========================================================================
+*/
+typedef struct flat_s
+{
+	short	width;
+	short	height;
+	short	desc[2];		// probably not used
+} flat_t;
+
+/*
+========================================================================
+
+.LMP image format	(Quake1 gfx lumps)
+
+========================================================================
+*/
+typedef struct lmp_s
+{
+	uint	width;
+	uint	height;
+} lmp_t;
+/*
+========================================================================
+
+.MIP image format	(Quake1 textures)
+
+========================================================================
+*/
+typedef struct mip_s
+{
+	char	name[16];
+	uint	width, height;
+	uint	offsets[4];	// four mip maps stored
+} mip_t;
+
+/*
+========================================================================
+
+.QFONT image format	(Half-Life fonts)
+
+========================================================================
+*/
+
+typedef struct
+{
+	short startoffset;
+	short charwidth;
+} charset;
+
+typedef struct
+{
+	int 		width, height;
+	int		rowcount;
+	int		rowheight;
+	charset		fontinfo[256];
+	byte 		data[4];		// variable sized
+} qfont_t;
+
 // sprite types
 #define SPR_VP_PARALLEL_UPRIGHT	0
 #define SPR_FACING_UPRIGHT		1

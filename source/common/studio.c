@@ -985,13 +985,13 @@ void SimplifyModel (void)
 
 			if (k < 3) 
 			{
-				minv = -128.0;
-				maxv = 128.0;
+				minv = -128.0f;
+				maxv = 128.0f;
 			}
 			else
 			{
-				minv = -M_PI / 8.0;
-				maxv = M_PI / 8.0;
+				minv = -M_PI / 8.0f;
+				maxv = M_PI / 8.0f;
 			}
 
 			for (i = 0; i < numseq; i++)
@@ -2454,7 +2454,7 @@ void ResetModelInfo( void )
 	defaultzrotation = M_PI / 2;
 
 	numrep = 0;
-	gamma = 1.8;
+	gamma = 1.8f;
 	flip_triangles = 1;
 	normal_blend = cos( 2.0 * (M_PI / 180.0));
 

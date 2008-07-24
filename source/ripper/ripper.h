@@ -7,10 +7,7 @@
 
 #include <windows.h>
 #include "basetypes.h"
-#include "stdapi.h"
-#include "stdref.h"
-#include "basefiles.h"
-#include "dllapi.h"
+#include "ref_dllapi.h"
 
 extern stdlib_api_t com;
 extern byte *zonepool;

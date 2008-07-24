@@ -32,7 +32,7 @@ typedef struct tag_dlghdr
 GUI_Form 			s_gui;
 wnd_options_t		w_opts;	//window options
 static bool viewer_init = false;
-static char textbuffer[MAX_INPUTLINE];
+static char textbuffer[MAX_MSGLEN];
 dll_info_t richedit_dll = { "riched32.dll", NULL, NULL, NULL, NULL, false, 0 };
 
 
@@ -528,7 +528,7 @@ stdout into viewer internal console
 void GUI_Print(const char *pMsg)
 {
 	CHARFORMAT cf;	
-	char buffer[MAX_INPUTLINE*2];
+	char buffer[MAX_MSGLEN*2];
 	char *b = buffer;
 	const char *msg;
 	int bufLen;
@@ -543,8 +543,8 @@ void GUI_Print(const char *pMsg)
 	}
 
 	// if the message is REALLY long, use just the last portion of it
-	if ( strlen( pMsg ) > MAX_INPUTLINE - 1 )
-		msg = pMsg + strlen( pMsg ) - MAX_INPUTLINE + 1;
+	if ( strlen( pMsg ) > MAX_MSGLEN - 1 )
+		msg = pMsg + strlen( pMsg ) - MAX_MSGLEN + 1;
 	else msg = pMsg;
 
 	// copy into an intermediate buffer
@@ -611,7 +611,7 @@ void GUI_Print(const char *pMsg)
 void GUI_Error( const char *pMsg, ... )
 {
 	va_list		argptr;
-	char text[MAX_INPUTLINE];
+	char text[MAX_MSGLEN];
 	
 	va_start (argptr, pMsg);
 	vsprintf (text, pMsg, argptr);

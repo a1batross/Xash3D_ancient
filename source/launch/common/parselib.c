@@ -21,7 +21,7 @@ script_t	scriptstack[ MAX_INCLUDES ];
 script_t	*script;
 int	scriptline;
 
-char token[ MAX_INPUTLINE ]; //contains token info
+char token[MAX_MSGLEN]; //contains token info
 
 bool endofscript;
 bool tokenready; // only true if UnGetToken was just called
@@ -852,7 +852,7 @@ SC_FilterToken
 */
 bool SC_FilterToken(char *filter, char *name, int casecmp)
 {
-	char	buf[MAX_INPUTLINE];
+	char	buf[MAX_MSGLEN];
 	char	*ptr;
 	int	i, found;
 

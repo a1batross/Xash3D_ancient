@@ -6,6 +6,7 @@
 #include <winsock.h>
 #include <wsipx.h>
 #include "launch.h"
+#include "byteorder.h"
 
 #define MAX_IPS		16
 #define PORT_ANY		-1
@@ -214,7 +215,7 @@ bool NET_StringToSockaddr( const char *s, struct sockaddr *sadr )
 {
 	struct hostent	*h;
 	int		val;
-	char		copy[MAX_STRING_CHARS];
+	char		copy[MAX_SYSPATH];
 	
 	memset( sadr, 0, sizeof( *sadr ) );
 	// check for an IPX address

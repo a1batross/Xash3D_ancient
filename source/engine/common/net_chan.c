@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "mathlib.h"
+#include "byteorder.h"
 
 /*
 packet header ( size in bits )
@@ -482,7 +483,7 @@ Traps "localhost" for loopback, passes everything else to system
 bool NET_StringToAdr( const char *s, netadr_t *a )
 {
 	bool	r;
-	char	*port, base[MAX_STRING_CHARS];
+	char	*port, base[MAX_SYSPATH];
 
 	if(!com.strcmp( s, "localhost" ))
 	{

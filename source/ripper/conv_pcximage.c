@@ -6,6 +6,29 @@
 #include "ripper.h"
 #include "pal_utils.h"
 
+/*
+========================================================================
+
+.PCX image format	(ZSoft Paintbrush)
+
+========================================================================
+*/
+typedef struct
+{
+	char	manufacturer;
+	char	version;
+	char	encoding;
+	char	bits_per_pixel;
+	word	xmin,ymin,xmax,ymax;
+	word	hres,vres;
+	byte	palette[48];
+	char	reserved;
+	char	color_planes;
+	word	bytes_per_line;
+	word	palette_type;
+	char	filler[58];
+} pcx_t;
+
 bool PCX_ConvertImage( const char *name, char *buffer, int filesize )
 {
 	pcx_t	pcx;

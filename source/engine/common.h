@@ -11,10 +11,7 @@
 #include <windows.h>
 
 #include "basetypes.h"
-#include "stdapi.h"
-#include "stdref.h"
-#include "basefiles.h"
-#include "dllapi.h"
+#include "ref_dllapi.h"
 #include "net_msg.h"
 
 // linked interfaces
@@ -391,6 +388,10 @@ MISC COMMON FUNCTIONS
 
 ==============================================================
 */
+#define MAX_INFO_KEY	64
+#define MAX_INFO_VALUE	64
+#define MAX_INFO_STRING	512
+
 // client printf level
 enum e_clprint
 {

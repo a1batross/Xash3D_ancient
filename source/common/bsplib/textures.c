@@ -1,5 +1,6 @@
 
 #include "bsplib.h"
+#include "byteorder.h"
 
 int		nummiptex;
 extern int	g_mapversion;

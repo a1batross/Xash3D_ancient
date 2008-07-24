@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SERVER_H
 
 #include "mathlib.h"
-#include "basefiles.h"
 #include "sv_edict.h"
 
 //=============================================================================
@@ -169,8 +168,8 @@ typedef struct
 	bool		initialized;		// sv_init has completed
 	dword		realtime;			// always increasing, no clamping, etc
 
-	char		mapcmd[MAX_TOKEN_CHARS];	// ie: *intro.cin+base 
-	char		comment[MAX_TOKEN_CHARS];	// map name, e.t.c. 
+	string		mapcmd;				// ie: *intro.cin+base 
+	string		comment;			// map name, e.t.c. 
 
 	int		spawncount;		// incremented each server start
 						// used to check late spawns

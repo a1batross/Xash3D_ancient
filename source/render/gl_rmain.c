@@ -92,6 +92,7 @@ cvar_t	*r_nocull;
 cvar_t	*r_lerpmodels;
 cvar_t	*r_lefthand;
 cvar_t	*r_loading;
+cvar_t	*r_testmode;
 
 cvar_t	*r_lightlevel;	// FIXME: This is a HACK to get the client's light level
 cvar_t	*r_mirroralpha;
@@ -538,7 +539,7 @@ void R_SetupFrame (void)
 	if ( r_newrefdef.rdflags & RDF_NOWORLDMODEL )
 	{
 		pglEnable( GL_SCISSOR_TEST );
-		pglClearColor( 0.3, 0.3, 0.3, 1 );
+		pglClearColor( 0.3f, 0.3f, 0.3f, 1 );
 		pglScissor( r_newrefdef.x, r_height->integer - r_newrefdef.height - r_newrefdef.y, r_newrefdef.width, r_newrefdef.height );
 		pglClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 		pglClearColor( 1, 0, 0.5, 0.5 );
@@ -626,13 +627,13 @@ void R_Clear (void)
 		if (trickframe & 1)
 		{
 			gldepthmin = 0;
-			gldepthmax = 0.49999;
+			gldepthmax = 0.49999f;
 			pglDepthFunc (GL_LEQUAL);
 		}
 		else
 		{
 			gldepthmin = 1;
-			gldepthmax = 0.5;
+			gldepthmax = 0.5f;
 			pglDepthFunc (GL_GEQUAL);
 		}
 	}
@@ -757,9 +758,9 @@ void R_DrawPauseScreen( void )
 		r_pause->modified = false;
 	}
 	if(!r_pause->value) return;          
-	if (r_pause_alpha < 1.0f) r_pause_alpha += 0.03;
+	if( r_pause_alpha < 1.0f ) r_pause_alpha += 0.03f;
 
-	if (r_pause_alpha <= 1.0f || r_lefthand->modified)
+	if( r_pause_alpha <= 1.0f || r_lefthand->modified )
 	{
 		int	k = r_pause_alpha * 255.0f;
 		int	i, s, r, g, b;
@@ -836,13 +837,13 @@ void R_SetGL2D( void )
 	}
 	else if (r_motionblur->value && (r_newrefdef.rdflags & RDF_PAIN))
 	{
-		if(!gl_state.tex_rectangle_type) return;
-		if (blurtex)
+		if( !gl_config.texRectangle ) return;
+		if( blurtex )
 		{
 	     		GL_TexEnv(GL_MODULATE);
 			pglDisable(GL_TEXTURE_2D);
 			
-			pglEnable(gl_state.tex_rectangle_type);
+			pglEnable( gl_config.texRectangle );
 			pglDisable (GL_ALPHA_TEST);
 			pglEnable (GL_BLEND);
 			pglBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
@@ -861,12 +862,12 @@ void R_SetGL2D( void )
 			pglVertex2f(0,r_height->integer);
 			pglEnd();
   
-			pglDisable( gl_state.tex_rectangle_type );
+			pglDisable( gl_config.texRectangle );
 			pglEnable( GL_TEXTURE_2D );
 		}
 		if(!blurtex) pglGenTextures(1,&blurtex);
-		pglBindTexture( gl_state.tex_rectangle_type, blurtex );
-		pglCopyTexImage2D( gl_state.tex_rectangle_type, 0, GL_RGB, 0, 0, r_width->integer, r_height->integer, 0 );
+		pglBindTexture( gl_config.texRectangle, blurtex );
+		pglCopyTexImage2D( gl_config.texRectangle, 0, GL_RGB, 0, 0, r_width->integer, r_height->integer, 0 );
 		pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	} 
@@ -962,7 +963,7 @@ int R_Init( void *hinstance )
 		return false;
 	}
 
-	R_InitExtensions();
+	GL_InitExtensions();
 
 	// vertex arrays (get rid of this)
 	pglEnableClientState( GL_VERTEX_ARRAY );
@@ -989,15 +990,10 @@ R_Shutdown
 */
 void R_Shutdown( void )
 {	
-	Cmd_RemoveCommand ("modellist");
-	Cmd_RemoveCommand ("imagelist");
-	Cmd_RemoveCommand ("gl_strings");
-
-	if( r_framebuffer ) Z_Free( r_framebuffer );
-
 	Mod_FreeAll ();
           R_StudioShutdown();
 	R_ShutdownTextures();
+	GL_ShutdownBackend();
 
 	// shut down OS specific OpenGL stuff like contexts, etc.
 	R_Free_OpenGL();
@@ -1070,6 +1066,15 @@ void R_BeginFrame( void )
 	// clear screen if desired
 	//
 	R_Clear ();
+}
+
+void R_EndFrame( void )
+{
+	if( stricmp( gl_drawbuffer->string, "GL_BACK" ) == 0 )
+	{
+		if( !pwglSwapBuffers( glw_state.hDC ) )
+			Host_Error("GLimp_EndFrame() - SwapBuffers() failed!\n" );
+	}
 }
 
 /*

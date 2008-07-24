@@ -21,8 +21,6 @@
 #define SPRITEHL_VERSION		2
 #define SPRITE32_VERSION		32
 
-typedef enum { ST_SYNC = 0, ST_RAND } synctype_t;
-
 typedef struct
 {
 	int		ident;

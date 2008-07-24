@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "gl_local.h"
+#include "byteorder.h"
 #include "r_mirror.h"
 
 /*
@@ -25,9 +26,11 @@ vec3_t m_pshadevector;	//shadow vector
 
 //lighting stuff
 vec3_t *m_pxformverts;
+vec3_t *m_pxformnorms;
 vec3_t *m_pvlightvalues;
 vec3_t m_blightvec [ MAXSTUDIOBONES ];
 vec3_t g_xformverts[ MAXSTUDIOVERTS ];
+vec3_t g_xformnorms[ MAXSTUDIOVERTS ];
 vec3_t g_lightvalues[MAXSTUDIOVERTS];
 
 //chrome stuff
@@ -638,7 +641,7 @@ void R_StudioCalcRotations ( float pos[][3], vec4_t *q, mstudioseqdesc_t *pseqde
 	float	dadt;
 
 	if (f > pseqdesc->numframes - 1) f = 0;	// bah, fix this bug with changing sequences too fast
-	else if ( f < -0.01 ) f = -0.01;
+	else if ( f < -0.01f ) f = -0.01f;
 	// BUG ( somewhere else ) but this code should validate this data.
 	// This could cause a crash if the frame # is negative, so we'll go ahead
 	//  and clamp it here
@@ -1294,12 +1297,16 @@ void R_StudioDrawPoints ( void )
 	pstudionorms = (vec3_t *)((byte *)m_pStudioHeader + m_pSubModel->normindex);
 
 	pskinref = (short *)((byte *)m_pTextureHeader + m_pTextureHeader->skinindex);
-	if (m_skinnum != 0 && m_skinnum < m_pTextureHeader->numskinfamilies)
+	if( m_skinnum != 0 && m_skinnum < m_pTextureHeader->numskinfamilies )
 		pskinref += (m_skinnum * m_pTextureHeader->numskinref);
 
-	for (i = 0; i < m_pSubModel->numverts; i++)
+	for( i = 0; i < m_pSubModel->numverts; i++ )
 	{
-		VectorTransform (pstudioverts[i], m_pbonestransform[pvertbone[i]], m_pxformverts[i]);
+		VectorTransform( pstudioverts[i], m_pbonestransform[pvertbone[i]], m_pxformverts[i]);
+	}
+	for( i = 0; i < m_pSubModel->numnorms; i++ )
+	{
+		VectorTransform( pstudionorms[i], m_pbonestransform[pnormbone[i]], m_pxformnorms[i]);
 	}
 
 	if (currententity->flags & RF_DEPTHHACK) // hack the depth range to prevent view model from poking into walls
@@ -1617,6 +1624,7 @@ void R_DrawStudioModel( int passnum )
 		
 	m_pStudioModelCount++; // render data cache cookie
 	m_pxformverts = &g_xformverts[0];
+	m_pxformnorms = &g_xformnorms[0];
 	m_pvlightvalues = &g_lightvalues[0];
 
 	if( m_pCurrentEntity->movetype == MOVETYPE_FOLLOW ) 

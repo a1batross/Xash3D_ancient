@@ -7,6 +7,24 @@
 #include "pal_utils.h"
 
 /*
+========================================================================
+
+.WAL image format	(Wally textures)
+
+========================================================================
+*/
+typedef struct wal_s
+{
+	char	name[32];
+	uint	width, height;
+	uint	offsets[4];	// four mip maps stored
+	char	animname[32];	// next frame in animation chain
+	int	flags;
+	int	contents;
+	int	value;
+} wal_t;
+
+/*
 ============
 ConvWAL
 ============

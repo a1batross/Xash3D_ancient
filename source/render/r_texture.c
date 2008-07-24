@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "gl_local.h"
+#include "byteorder.h"
 
 /*
 =============================================================
@@ -1111,7 +1112,7 @@ R_FindImage
 Finds or loads the given image
 ===============
 */
-image_t *R_FindImage (char *name, char *buffer, int size, imagetype_t type)
+image_t *R_FindImage( char *name, const byte *buffer, size_t size, imagetype_t type )
 {
 	image_t	*image;
 	rgbdata_t	*pic = NULL;

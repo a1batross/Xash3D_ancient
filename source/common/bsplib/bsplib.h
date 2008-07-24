@@ -6,7 +6,6 @@
 #define BSPLIB_H
 
 #include "platform.h"
-#include "basefiles.h"
 #include "utils.h"
 #include "mathlib.h"
 

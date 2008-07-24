@@ -9,10 +9,7 @@
 #include <setjmp.h>
 #include <windows.h>
 #include "basetypes.h"
-#include "stdapi.h"
-#include "stdref.h"
-#include "basefiles.h"
-#include "dllapi.h"
+#include "ref_dllapi.h"
 
 //=====================================
 //	platform export

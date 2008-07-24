@@ -4,10 +4,7 @@
 //=======================================================================
 
 #include "vprogs.h"
-
-#include "server.h"
-#include "client.h"
-#include "uimenu.h"
+#include "builtin.h"
 
 stdlib_api_t	com;
 byte		*qccpool;

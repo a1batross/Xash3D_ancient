@@ -4,8 +4,8 @@
 //=======================================================================
 
 #include "platform.h"
-#include "basefiles.h"
-#include "baseimages.h"
+#include "byteorder.h"
+#include "builtin.h"
 #include "utils.h"
 #include "mathlib.h"
 
@@ -38,28 +38,17 @@ WriteFrame
 */
 void WriteFrame( file_t *f, int framenum )
 {
-	dframe_t		*pframe, frametemp;
-	vfile_t		*h = VFS_Open( f, "wz" );
-	fs_offset_t	hdrstart, bufstart, bufend;	
+	dframe_t		*pframe;
 
 	pframe = (dframe_t *)frames[framenum].pdata;
-	frametemp.origin[0] = LittleLong (pframe->origin[0]);
-	frametemp.origin[1] = LittleLong (pframe->origin[1]);
-	frametemp.width = LittleLong (pframe->width);
-	frametemp.height = LittleLong (pframe->height);
-	frametemp.compsize = 0; // unknown at this moment
+	pframe->origin[0] = LittleLong( pframe->origin[0] );
+	pframe->origin[1] = LittleLong( pframe->origin[1] );
+	pframe->width = LittleLong (pframe->width);
+	pframe->height = LittleLong (pframe->height);
 
-	hdrstart = FS_Tell(f);
-	FS_Write(f, &frametemp, sizeof(frametemp));
-	bufstart = FS_Tell(f);
-	VFS_Write(h, (byte *)(pframe + 1), pframe->height * pframe->width * 4 );
-	f = VFS_Close(h); // compress frame buffer
-	bufend = FS_Tell(f);
-	frametemp.compsize = bufend - bufstart;		// size of compressed frame
-
-	FS_Seek(f, hdrstart, SEEK_SET );
-	FS_Write(f, &frametemp, sizeof(frametemp));	// merge header
-	FS_Seek(f, bufend, SEEK_SET );		// go to end of frame
+	// write frame as normal 32-bit image
+	FS_Write(f, pframe, sizeof(*pframe));
+	FS_Write(f, (byte *)(pframe + 1), pframe->height * pframe->width * 4 );
 }
 
 /*
@@ -175,6 +164,8 @@ void Cmd_Type( void )
 	else if (Com_MatchToken( "vp_parallel" )) sprite.type = SPR_FWD_PARALLEL;
 	else if (Com_MatchToken( "oriented" )) sprite.type = SPR_ORIENTED;
 	else if (Com_MatchToken( "vp_parallel_oriented")) sprite.type = SPR_FWD_PARALLEL_ORIENTED;
+	else if (Com_MatchToken( "label")) sprite.type = SPR_LABEL;
+		else if (Com_MatchToken( "label_scaled")) sprite.type = SPR_LABEL_SCALE;
 	else sprite.type = SPR_FWD_PARALLEL; // default
 }
 
@@ -198,20 +189,19 @@ void Cmd_RenderMode( void )
 
 /*
 ==============
-Cmd_MoveType
+Cmd_FaceType
 
-syntax: "$movetype"
+syntax: "$facetype"
 ==============
 */
-void Cmd_MoveType( void )
+void Cmd_FaceType( void )
 {
 	Com_GetToken( false );
 
-	if (Com_MatchToken( "static")) sprite.movetype = SPR_STATIC;
-	else if (Com_MatchToken( "bounce")) sprite.movetype = SPR_BOUNCE;
-	else if (Com_MatchToken( "gravity")) sprite.movetype = SPR_GRAVITY;
-	else if (Com_MatchToken( "fly")) sprite.movetype = SPR_FLYING;
-	else sprite.movetype = SPR_STATIC; // default
+	if (Com_MatchToken( "normal")) sprite.facetype = SPR_SINGLE_FACE;
+	else if (Com_MatchToken( "twoside")) sprite.facetype = SPR_DOUBLE_FACE;
+	else if (Com_MatchToken( "xcross")) sprite.facetype = SPR_XCROSS_FACE;
+	else sprite.facetype = SPR_SINGLE_FACE; // default
 }
 
 
@@ -466,14 +456,14 @@ static void Cmd_Origin( void )
 
 /*
 ===============
-Cmd_Scale
+Cmd_Rand
 
-syntax: $scale "value"
+syntax: $rand
 ===============
 */
-static void Cmd_Scale( void )
+static void Cmd_Rand( void )
 {
-	sprite.scale = com.atof(Com_GetToken( false ));
+	sprite.synctype = ST_RAND;
 }
 
 /*
@@ -506,8 +496,8 @@ void ResetSpriteInfo( void )
 	sprite.ident = IDSPRITEHEADER;
 	sprite.version = SPRITE_VERSION;
 	sprite.type = SPR_FWD_PARALLEL;
-	sprite.movetype = SPR_STATIC;
-	sprite.scale = 1.0f;
+	sprite.facetype = SPR_SINGLE_FACE;
+	sprite.synctype = ST_SYNC;
 }
 
 /*
@@ -524,9 +514,9 @@ bool ParseSpriteScript (void)
 		if(!Com_GetToken (true)) break;
 		if (Com_MatchToken( "$spritename" )) Cmd_Spritename();
 		else if (Com_MatchToken( "$render" )) Cmd_RenderMode();
-		else if (Com_MatchToken( "$movetype" )) Cmd_MoveType();
+		else if (Com_MatchToken( "$facetype" )) Cmd_FaceType();
 		else if (Com_MatchToken( "$origin" )) Cmd_Origin();
-		else if (Com_MatchToken( "$scale" )) Cmd_Scale();
+		else if (Com_MatchToken( "$rand" )) Cmd_Rand();
 		else if (Com_MatchToken( "$load" )) Cmd_Load();
 		else if (Com_MatchToken( "$type" )) Cmd_Type();
 		else if (Com_MatchToken( "$frame" ))

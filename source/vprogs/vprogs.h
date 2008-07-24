@@ -7,10 +7,7 @@
 
 #include <windows.h>
 #include "basetypes.h"
-#include "stdapi.h"
-#include "stdref.h"
-#include "basefiles.h"
-#include "dllapi.h"
+#include "ref_dllapi.h"
 #include "pr_local.h"
 
 extern stdlib_api_t	com;
@@ -22,6 +19,10 @@ extern cvar_t *prvm_statementprofiling;
 extern int prvm_developer;
 
 #define Host_Error com.error
+#define PRVM_MAX_STACK_DEPTH		1024
+#define PRVM_LOCALSTACK_SIZE		16384
+#define PRVM_MAX_OPENFILES		256
+#define PRVM_MAX_OPENSEARCHES		128
 
 enum op_state
 {

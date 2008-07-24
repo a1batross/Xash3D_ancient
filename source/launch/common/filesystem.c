@@ -4,7 +4,8 @@
 //=======================================================================
 
 #include "launch.h"
-#include "zip32.h"
+#include "filesystem.h"
+#include "byteorder.h"
 
 #define ZIP_END_CDIR_SIZE		22
 #define ZIP_CDIR_CHUNK_BASE_SIZE	46
@@ -936,10 +937,10 @@ then loads and adds pak1.pak pak2.pak ...
 */
 void FS_AddGameDirectory( const char *dir, int flags )
 {
-	int i;
-	stringlist_t list;
-	searchpath_t *search;
-	char pakfile[MAX_OSPATH];
+	stringlist_t	list;
+	searchpath_t	*search;
+	string		pakfile;
+	int		i;
 
 	com_strncpy (fs_gamedir, dir, sizeof (fs_gamedir));
 
@@ -1643,7 +1644,7 @@ FS_SysOpen
 Internal function used to create a file_t and open the relevant non-packed file on disk
 ====================
 */
-static file_t* FS_SysOpen (const char* filepath, const char* mode, bool nonblocking)
+static file_t* FS_SysOpen (const char* filepath, const char* mode )
 {
 	file_t* file;
 	int mod, opt;
@@ -1682,7 +1683,6 @@ static file_t* FS_SysOpen (const char* filepath, const char* mode, bool nonblock
 				Msg("FS_SysOpen(%s, %s): unknown character in mode (%c)\n", filepath, mode, mode[ind]);
 		}
 	}
-	if (nonblocking) opt |= O_NONBLOCK;
 
 	file = (file_t *)Mem_Alloc (fs_mempool, sizeof (*file));
 	memset (file, 0, sizeof (*file));
@@ -1870,7 +1870,7 @@ FS_OpenReadFile
 Look for a file in the search paths and open it in read-only mode
 ===========
 */
-file_t *FS_OpenReadFile (const char *filename, const char *mode, bool quiet, bool nonblocking)
+file_t *FS_OpenReadFile( const char *filename, const char *mode, bool quiet )
 {
 	searchpath_t *search;
 	int pack_ind;
@@ -1885,7 +1885,7 @@ file_t *FS_OpenReadFile (const char *filename, const char *mode, bool quiet, boo
 	{
 		char path [MAX_SYSPATH];
 		com_sprintf (path, "%s%s", search->filename, filename);
-		return FS_SysOpen (path, mode, nonblocking);
+		return FS_SysOpen( path, mode );
 	}
 
 	// So, we found it in a package...
@@ -2046,7 +2046,7 @@ FS_Open
 Open a file. The syntax is the same as fopen
 ====================
 */
-file_t* _FS_Open (const char* filepath, const char* mode, bool quiet, bool nonblocking)
+file_t* _FS_Open( const char* filepath, const char* mode, bool quiet )
 {
 	if (FS_CheckNastyPath(filepath, false))
 	{
@@ -2062,16 +2062,16 @@ file_t* _FS_Open (const char* filepath, const char* mode, bool quiet, bool nonbl
 		// Open the file on disk directly
 		com_sprintf (real_path, "%s/%s", fs_gamedir, filepath);
 		FS_CreatePath (real_path);// Create directories up to the file
-		return FS_SysOpen (real_path, mode, nonblocking);
+		return FS_SysOpen (real_path, mode );
 	}
 	
 	// Else, we look at the various search paths and open the file in read-only mode
-	return FS_OpenReadFile (filepath, mode, quiet, nonblocking);
+	return FS_OpenReadFile( filepath, mode, quiet );
 }
 
 file_t* FS_Open (const char* filepath, const char* mode )
 {
-	return _FS_Open (filepath, mode, true, false );
+	return _FS_Open (filepath, mode, true );
 }
 
 /*
@@ -2334,7 +2334,7 @@ Print a string into a file
 int FS_VPrintf (file_t* file, const char* format, va_list ap)
 {
 	int len;
-	fs_offset_t buff_size = MAX_INPUTLINE;
+	fs_offset_t buff_size = MAX_MSGLEN;
 	char *tempbuff;
 
 	while( true )
@@ -2553,7 +2553,7 @@ byte *FS_LoadFile (const char *path, fs_offset_t *filesizeptr )
 	fs_offset_t filesize = 0;
 	const char *ext = FS_FileExtension( path );
 
-	file = _FS_Open (path, "rb", true, false);
+	file = _FS_Open( path, "rb", true );
 	if (file)
 	{
 		filesize = file->real_length;
@@ -2580,7 +2580,7 @@ bool FS_WriteFile (const char *filename, const void *data, fs_offset_t len)
 {
 	file_t *file;
 
-	file = _FS_Open (filename, "wb", false, false);
+	file = _FS_Open( filename, "wb", false );
 	if (!file)
 	{
 		MsgDev( D_ERROR, "FS_WriteFile: failed on %s\n", filename);
@@ -2700,7 +2700,7 @@ fs_offset_t FS_FileSize (const char *filename)
 	file_t	*fp;
 	int	length = 0;
 	
-	fp = _FS_Open(filename, "rb", true, false );
+	fp = _FS_Open( filename, "rb", true );
 
 	if (fp)
 	{
@@ -2739,16 +2739,15 @@ Allocate and fill a search structure with information on matching filenames.
 */
 static search_t *_FS_Search( const char *pattern, int caseinsensitive, int quiet )
 {
-	search_t *search = NULL;
-	searchpath_t *searchpath;
-	pack_t *pak;
-	int i, k, basepathlength, numfiles, numchars, resultlistindex, dirlistindex;
-	stringlist_t resultlist;
-	stringlist_t dirlist;
-	const char *slash, *backslash, *colon, *separator;
-	char *basepath;
-	char netpath[MAX_OSPATH];
-	char temp[MAX_OSPATH];
+	search_t		*search = NULL;
+	searchpath_t	*searchpath;
+	pack_t		*pak;
+	int		i, k, basepathlength, numfiles, numchars, resultlistindex, dirlistindex;
+	stringlist_t	resultlist;
+	stringlist_t	dirlist;
+	const char	*slash, *backslash, *colon, *separator;
+	char		*basepath;
+	string		netpath, temp;
 
 	for( i = 0; pattern[i] == '.' || pattern[i] == ':' || pattern[i] == '/' || pattern[i] == '\\'; i++ );
 
@@ -3165,7 +3164,7 @@ Print a string into a buffer
 int VFS_VPrintf(vfile_t* file, const char* format, va_list ap)
 {
 	int		len;
-	fs_offset_t	buff_size = MAX_INPUTLINE;
+	fs_offset_t	buff_size = MAX_MSGLEN;
 	char		*tempbuff;
 
 	while( true )

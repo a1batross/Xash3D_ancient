@@ -8,6 +8,24 @@
 #include "platform.h"
 #include "utils.h"
 
+
+/*
+========================================================================
+ROQ FILES
+
+The .roq file are vector-compressed movies
+========================================================================
+*/
+#define IDQMOVIEHEADER	0x1084	// little-endian "„"
+
+typedef struct roq_s
+{
+	word	ident;
+	short	flags;
+	short	flags2;
+	word	fps;
+} roq_t;
+
 typedef struct { byte *rgb; } videoFrame_t;
 typedef struct { long x,y; } motionVector_t;
 typedef struct { byte yuv[6]; } yuvBlock2_t;

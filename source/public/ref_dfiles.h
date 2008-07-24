@@ -1,0 +1,884 @@
+//=======================================================================
+//			Copyright XashXT Group 2007 ©
+//		        ref_dfiles.h - xash supported formats
+//=======================================================================
+#ifndef REF_DFILES_H
+#define REF_DFILES_H
+
+/*
+==============================================================================
+
+SPRITE MODELS
+
+.spr32 extended version (Darkplaces non-paletted 32-bit sprites)
+==============================================================================
+*/
+
+#define IDSPRITEHEADER	(('P'<<24)+('S'<<16)+('D'<<8)+'I')	// little-endian "IDSP"
+#define SPRITE_VERSION	32				// DarkPlaces SPR32
+
+typedef enum
+{
+	ST_SYNC = 0,
+	ST_RAND
+} synctype_t;
+
+typedef enum
+{
+	SPR_SINGLE = 0,
+	SPR_GROUP,
+	SPR_ANGLED
+} frametype_t;
+
+typedef enum
+{
+	SPR_SOLID = 0,
+	SPR_ADDITIVE,
+	SPR_GLOW,
+	SPR_ALPHA
+} drawtype_t;
+
+typedef enum
+{
+	SPR_FWD_PARALLEL_UPRIGHT = 0,
+	SPR_FACING_UPRIGHT,
+	SPR_FWD_PARALLEL,
+	SPR_ORIENTED,
+	SPR_FWD_PARALLEL_ORIENTED,
+	SPR_LABEL,			// DP extension
+	SPR_LABEL_SCALE,
+} angletype_t; 
+
+typedef enum
+{
+	SPR_SINGLE_FACE = 0,		// oriented sprite will be draw with one face
+	SPR_DOUBLE_FACE,			// oriented sprite will be draw back face too
+	SPR_XCROSS_FACE,			// same like as flame in UT'99
+} facetype_t;
+
+typedef struct
+{
+	int		ident;		// LittleLong 'ISPR'
+	int		version;		// current version 3
+	angletype_t	type;		// camera align
+	drawtype_t	rendermode;	// rendering mode (Xash3D ext)
+	int		bounds[2];	// minsmaxs
+	int		numframes;	// including groups
+	facetype_t	facetype;		// cullface (Xash3D ext)
+	synctype_t	synctype;		// animation synctype
+} dsprite_t;
+
+typedef struct
+{
+	int		origin[2];
+	int		width;
+	int		height;
+} dframe_t;
+
+typedef struct
+{
+	int		numframes;
+} dspritegroup_t;
+
+typedef struct
+{
+	float		interval;
+} dspriteinterval_t;
+
+typedef struct
+{
+	frametype_t	type;
+} dframetype_t;
+
+/*
+==============================================================================
+BRUSH MODELS
+
+.bsp contain level static geometry with including PVS, PHS, PHYS and lightning info
+==============================================================================
+*/
+
+// header
+#define BSPMOD_VERSION	39
+#define IDBSPMODHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'I') // little-endian "IBSP"
+
+// 32 bit limits
+#define MAX_KEY			128
+#define MAX_VALUE			512
+#define MAX_MAP_AREAS		0x100	// don't increase this
+#define MAX_MAP_MODELS		0x2000	// mesh models and sprites too
+#define MAX_MAP_AREAPORTALS		0x400
+#define MAX_MAP_ENTITIES		0x2000
+#define MAX_MAP_TEXINFO		0x2000
+#define MAX_MAP_BRUSHES		0x8000
+#define MAX_MAP_PLANES		0x20000
+#define MAX_MAP_NODES		0x20000
+#define MAX_MAP_BRUSHSIDES		0x20000
+#define MAX_MAP_LEAFS		0x20000
+#define MAX_MAP_VERTS		0x80000
+#define MAX_MAP_FACES		0x20000
+#define MAX_MAP_LEAFFACES		0x20000
+#define MAX_MAP_LEAFBRUSHES		0x40000
+#define MAX_MAP_PORTALS		0x20000
+#define MAX_MAP_EDGES		0x80000
+#define MAX_MAP_SURFEDGES		0x80000
+#define MAX_MAP_ENTSTRING		0x80000
+#define MAX_MAP_LIGHTING		0x800000
+#define MAX_MAP_VISIBILITY		0x800000
+#define MAX_MAP_COLLISION		0x800000
+#define MAX_MAP_STRINGDATA		0x40000
+#define MAX_MAP_NUMSTRINGS		0x10000
+
+// game limits
+#define MAX_MODELS			MAX_MAP_MODELS>>1	// brushmodels and other models
+#define MAX_WORLD_COORD		( 128 * 1024 )
+#define MIN_WORLD_COORD		(-128 * 1024 )
+#define WORLD_SIZE			( MAX_WORLD_COORD - MIN_WORLD_COORD )
+
+// lump offset
+#define LUMP_ENTITIES		0
+#define LUMP_PLANES			1
+#define LUMP_LEAFS			2
+#define LUMP_LEAFFACES		3
+#define LUMP_LEAFBRUSHES		4
+#define LUMP_NODES			5
+#define LUMP_VERTEXES		6
+#define LUMP_EDGES			7
+#define LUMP_SURFEDGES		8
+#define LUMP_SURFDESC		9
+#define LUMP_FACES			10
+#define LUMP_MODELS			11
+#define LUMP_BRUSHES		12
+#define LUMP_BRUSHSIDES		13
+#define LUMP_VISIBILITY		14
+#define LUMP_LIGHTING		15
+#define LUMP_COLLISION		16	// newton collision tree (worldmodel coords already convert to meters)
+#define LUMP_BVHSTATIC		17	// bullet collision tree (currently not used)
+#define LUMP_SVPROGS		18	// private server.dat for current map
+#define LUMP_WAYPOINTS		19	// AI navigate tree (like .aas file for quake3)		
+#define LUMP_STRINGDATA		20	// string array
+#define LUMP_STRINGTABLE		21	// string table id's
+
+// get rid of this
+#define LUMP_AREAS			22
+#define LUMP_AREAPORTALS		23
+
+#define LUMP_TOTALCOUNT		32	// max lumps
+
+
+// the visibility lump consists of a header with a count, then
+// byte offsets for the PVS and PHS of each cluster, then the raw
+// compressed bit vectors
+#define DVIS_PVS			0
+#define DVIS_PHS			1
+
+//other limits
+#define MAXLIGHTMAPS		4
+typedef struct
+{
+	int fileofs;
+	int filelen;
+} lump_t;				// many formats use lumps to store blocks
+
+typedef struct
+{
+	int	ident;
+	int	version;	
+	lump_t	lumps[LUMP_TOTALCOUNT];
+} dheader_t;
+
+typedef struct
+{
+	float	mins[3];
+	float	maxs[3];
+	int	headnode;
+	int	firstface;	// submodels just draw faces 
+	int	numfaces;		// without walking the bsp tree
+	int	firstbrush;	// physics stuff
+	int	numbrushes;
+} dmodel_t;
+
+typedef struct
+{
+	float	point[3];
+} dvertex_t;
+
+typedef struct
+{
+	float	normal[3];
+	float	dist;
+} dplane_t;
+
+typedef struct
+{
+	int	planenum;
+	int	children[2];	// negative numbers are -(leafs+1), not nodes
+	int	mins[3];		// for frustom culling
+	int	maxs[3];
+	int	firstface;
+	int	numfaces;		// counting both sides
+} dnode_t;
+
+typedef struct dsurfdesc_s
+{
+	float	vecs[2][4];	// [s/t][xyz offset] texture s\t
+	int	size[2];		// valid size for current s\t coords (used for replace texture)
+	int	texid;		// string table texture id number
+	int	animid;		// string table animchain id number 
+	int	flags;		// surface flags
+	int	value;		// used by qrad, not engine
+} dsurfdesc_t;
+
+typedef struct
+{
+	int	v[2];		// vertex numbers
+} dedge_t;
+
+typedef struct
+{
+	int	planenum;
+	int	firstedge;
+	int	numedges;	
+	int	desc;
+
+	// lighting info
+	byte	styles[MAXLIGHTMAPS];
+	int	lightofs;		// start of [numstyles*surfsize] samples
+
+	// get rid of this
+	short	side;
+} dface_t;
+
+typedef struct
+{
+	int	contents;		// or of all brushes (not needed?)
+	int	cluster;
+	int	area;
+	int	mins[3];		// for frustum culling
+	int	maxs[3];
+	int	firstleafface;
+	int	numleaffaces;
+	int	firstleafbrush;
+	int	numleafbrushes;
+} dleaf_t;
+
+typedef struct
+{
+	int	planenum;		// facing out of the leaf
+	int	surfdesc;		// surface description (s/t coords, flags, etc)
+} dbrushside_t;
+
+typedef struct
+{
+	int	firstside;
+	int	numsides;
+	int	contents;
+} dbrush_t;
+
+typedef struct
+{
+	int	numclusters;
+	int	bitofs[8][2];	// bitofs[numclusters][2]
+} dvis_t;
+
+typedef struct
+{
+	int	portalnum;
+	int	otherarea;
+} dareaportal_t;
+
+typedef struct
+{
+	int	numareaportals;
+	int	firstareaportal;
+} darea_t;
+
+/*
+==============================================================================
+
+VIRTUAL MACHINE
+
+a internal virtual machine like as QuakeC, but it has more extensions
+==============================================================================
+*/
+// header
+#define QPROGS_VERSION	6	// Quake1 progs version
+#define FPROGS_VERSION	7	// Fte progs version
+#define VPROGS_VERSION	8	// xash progs version
+#define LNNUMS_VERSION	1	// line numbers version
+
+#define VPROGSHEADER16	(('6'<<24)+('1'<<16)+('D'<<8)+'I') // little-endian "ID16"
+#define VPROGSHEADER32	(('2'<<24)+('3'<<16)+('D'<<8)+'I') // little-endian "ID32"
+#define LINENUMSHEADER	(('F'<<24)+('O'<<16)+('N'<<8)+'L') // little-endian "LNOF"
+
+// global ofsets
+#define OFS_NULL		0
+#define OFS_RETURN		1
+#define OFS_PARM0		4
+#define OFS_PARM1		7
+#define OFS_PARM2		10
+#define OFS_PARM3		13
+#define OFS_PARM4		16
+#define OFS_PARM5		19
+#define OFS_PARM6		22
+#define OFS_PARM7		25
+#define RESERVED_OFS	28
+
+// misc flags
+#define DEF_SHARED		(1<<14)
+#define DEF_SAVEGLOBAL	(1<<15)
+
+// compression block flags
+#define COMP_STATEMENTS	1
+#define COMP_DEFS		2
+#define COMP_FIELDS		4
+#define COMP_FUNCTIONS	8
+#define COMP_STRINGS	16
+#define COMP_GLOBALS	32
+#define COMP_LINENUMS	64
+#define COMP_TYPES		128
+#define MAX_PARMS		8
+
+// 16-bit mode (get rid of this)
+#define dstatement_t	dstatement16_t
+#define ddef_t		ddef16_t		// these should be the same except the string type
+
+typedef struct statement16_s
+{
+	word		op;
+	short		a,b,c;
+
+} dstatement16_t;
+
+typedef struct statement32_s
+{
+	dword		op;
+	long		a,b,c;
+
+} dstatement32_t;
+
+typedef struct ddef16_s
+{
+	word		type;		// if DEF_SAVEGLOBAL bit is set
+					// the variable needs to be saved in savegames
+	word		ofs;
+	int		s_name;
+} ddef16_t;
+
+typedef struct ddef32_s
+{
+	dword		type;		// if DEF_SAVEGLOBAL bit is set
+					// the variable needs to be saved in savegames
+	dword		ofs;
+	int		s_name;
+} ddef32_t;
+
+typedef struct
+{
+	int		first_statement;	// negative numbers are builtins
+	int		parm_start;
+	int		locals;		// total ints of parms + locals
+	int		profile;		// runtime
+	int		s_name;
+	int		s_file;		// source file defined in
+	int		numparms;
+	byte		parm_size[MAX_PARMS];
+} dfunction_t;
+
+typedef struct
+{
+	char		filename[128];
+	int		size;
+	int		compsize;
+	int		compmethod;
+	int		ofs;
+} dsource_t;
+
+typedef struct
+{
+	int		version;		// version number
+	int		crc;		// check of header file
+	
+	uint		ofs_statements;	// comp 1
+	uint		numstatements;	// statement 0 is an error
+	uint		ofs_globaldefs;	// comp 2
+	uint		numglobaldefs;
+	uint		ofs_fielddefs;	// comp 4
+	uint		numfielddefs;
+	uint		ofs_functions;	// comp 8
+	uint		numfunctions;	// function 0 is an empty
+	uint		ofs_strings;	// comp 16
+	uint		numstrings;	// first string is a null string
+	uint		ofs_globals;	// comp 32
+	uint		numglobals;
+	uint		entityfields;
+
+	// version 7 extensions
+	uint		ofsfiles;		// fmt: (int)numsources, dsource_t[numsources]
+	uint		ofslinenums;	// numstatements big // comp 64
+	uint		ofsbodylessfuncs;	// no comp
+	uint		numbodylessfuncs;
+	uint		ofs_types;	// comp 128
+	uint		numtypes;
+	uint		blockscompressed;	// who blocks are compressed (COMP flags)
+
+	int		ident;		// version 7 id
+
+} dprograms_t;
+
+typedef struct dlno_s
+{
+	int	header;
+	int	version;
+
+	uint	numglobaldefs;
+	uint	numglobals;
+	uint	numfielddefs;
+	uint	numstatements;
+} dlno_t;
+
+/*
+========================================================================
+.WAD archive format	(WhereAllData - WAD)
+
+List of compressed files, that can be identify only by TYPE_*
+
+<format>
+header:	dwadinfo_t[dwadinfo_t]
+file_1:	byte[dwadinfo_t[num]->disksize]
+file_2:	byte[dwadinfo_t[num]->disksize]
+file_3:	byte[dwadinfo_t[num]->disksize]
+...
+file_n:	byte[dwadinfo_t[num]->disksize]
+infotable	dlumpinfo_t[dwadinfo_t->numlumps]
+========================================================================
+*/
+#define IDIWADHEADER	(('D'<<24)+('A'<<16)+('W'<<8)+'I')	// little-endian "IWAD" doom1 game wad
+#define IDPWADHEADER	(('D'<<24)+('A'<<16)+('W'<<8)+'P')	// little-endian "PWAD" doom1 game wad
+#define IDWAD2HEADER	(('2'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD2" quake1 gfx.wad
+#define IDWAD3HEADER	(('3'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD3" half-life wads
+#define IDWAD4HEADER	(('4'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD4" Xash3D wad type
+
+#define WAD3_NAMELEN	16
+#define MAX_FILES_IN_WAD	8192
+
+#define	CMP_NONE		0	// compression none
+#define	CMP_LZSS		1	// RLE compression ?
+#define	CMP_ZLIB		2	// zip-archive compression
+
+#define	TYPE_NONE		0	// blank lump
+#define	TYPE_FLMP		59	// doom1 hud picture (doom1 virtual lump)
+#define	TYPE_SND		60	// doom1 wav sound (doom1 virtual lump)
+#define	TYPE_MUS		61	// doom1 music file (doom1 virtual lump)
+#define	TYPE_SKIN		62	// doom1 sprite model (doom1 virtual lump)
+#define	TYPE_FLAT		63	// doom1 wall texture (doom1 virtual lump)
+#define	TYPE_QPAL		64	// quake palette
+#define	TYPE_QTEX		65	// probably was never used
+#define	TYPE_QPIC		66	// quake1 and hl pic (lmp_t)
+#define	TYPE_MIPTEX2	67	// half-life (mip_t) previous TYP_SOUND but never used in quake1
+#define	TYPE_MIPTEX	68	// quake1 (mip_t)
+#define	TYPE_RAW		69	// raw data
+#define	TYPE_QFONT	70	// half-life font	(qfont_t)
+#define	TYPE_VPROGS	71	// Xash3D QC compiled progs
+#define	TYPE_SCRIPT	72	// txt script file (e.g. shader)
+#define	TYPE_GFXPIC	73	// any known image format
+
+#define	QCHAR_WIDTH	16
+#define	QFONT_WIDTH	16	// valve fonts used contant sizes	
+#define	QFONT_HEIGHT        ((128 - 32) / 16)
+
+typedef struct
+{
+	int		ident;		// should be IWAD or WAD2 or WAD3
+	int		numlumps;		// num files
+	int		infotableofs;
+} dwadinfo_t;
+
+// doom1 and doom2 lump header
+typedef struct
+{
+    int			filepos;
+    int			size;
+    char			name[8];
+} dlumpfile_t;
+
+// quake1 and half-life lump header
+typedef struct
+{
+	int		filepos;
+	int		disksize;
+	int		size;		// uncompressed
+	char		type;
+	char		compression;	// probably not used
+	char		pad1;
+	char		pad2;
+	char		name[16];	// must be null terminated
+} dlumpinfo_t;
+
+/*
+==============================================================================
+
+STUDIO MODELS
+
+Studio models are position independent, so the cache manager can move them.
+==============================================================================
+*/
+
+// header
+#define STUDIO_VERSION	10
+#define IDSTUDIOHEADER	(('T'<<24)+('S'<<16)+('D'<<8)+'I') // little-endian "IDST"
+#define IDSEQGRPHEADER	(('Q'<<24)+('S'<<16)+('D'<<8)+'I') // little-endian "IDSQ"
+
+// studio limits
+#define MAXSTUDIOTRIANGLES		32768	// max triangles per model
+#define MAXSTUDIOVERTS		4096	// max vertices per submodel
+#define MAXSTUDIOSEQUENCES		256	// total animation sequences
+#define MAXSTUDIOSKINS		128	// total textures
+#define MAXSTUDIOSRCBONES		512	// bones allowed at source movement
+#define MAXSTUDIOBONES		128	// total bones actually used
+#define MAXSTUDIOMODELS		32	// sub-models per model
+#define MAXSTUDIOBODYPARTS		32	// body parts per submodel
+#define MAXSTUDIOGROUPS		16	// sequence groups (e.g. barney01.mdl, barney02.mdl, e.t.c)
+#define MAXSTUDIOANIMATIONS		512	// max frames per sequence
+#define MAXSTUDIOMESHES		256	// max textures per model
+#define MAXSTUDIOEVENTS		1024	// events per model
+#define MAXSTUDIOPIVOTS		256	// pivot points
+#define MAXSTUDIOBLENDS		8	// max anim blends
+#define MAXSTUDIOCONTROLLERS		32	// max controllers per model
+#define MAXSTUDIOATTACHMENTS		32	// max attachments per model
+
+// model global flags
+#define STUDIO_STATIC		0x0001	// model without anims
+#define STUDIO_RAGDOLL		0x0002	// ragdoll animation pose
+
+// lighting & rendermode options
+#define STUDIO_NF_FLATSHADE		0x0001
+#define STUDIO_NF_CHROME		0x0002
+#define STUDIO_NF_FULLBRIGHT		0x0004
+#define STUDIO_NF_RESERVED		0x0008	// reserved
+#define STUDIO_NF_BLENDED		0x0010	// rendering as semiblended
+#define STUDIO_NF_ADDITIVE		0x0020	// rendering with additive mode
+#define STUDIO_NF_TRANSPARENT		0x0040	// use texture with alpha channel
+
+// motion flags
+#define STUDIO_X			0x0001
+#define STUDIO_Y			0x0002	
+#define STUDIO_Z			0x0004
+#define STUDIO_XR			0x0008
+#define STUDIO_YR			0x0010
+#define STUDIO_ZR			0x0020
+#define STUDIO_LX			0x0040
+#define STUDIO_LY			0x0080
+#define STUDIO_LZ			0x0100
+#define STUDIO_AX			0x0200
+#define STUDIO_AY			0x0400
+#define STUDIO_AZ			0x0800
+#define STUDIO_AXR			0x1000
+#define STUDIO_AYR			0x2000
+#define STUDIO_AZR			0x4000
+#define STUDIO_TYPES		0x7FFF
+#define STUDIO_RLOOP		0x8000	// controller that wraps shortest distance
+
+// sequence flags
+#define STUDIO_LOOPING		0x0001
+
+// render flags
+#define STUDIO_RENDER		0x0001
+#define STUDIO_EVENTS		0x0002
+
+// bone flags
+#define STUDIO_HAS_NORMALS		0x0001
+#define STUDIO_HAS_VERTICES		0x0002
+#define STUDIO_HAS_BBOX		0x0004
+#define STUDIO_HAS_CHROME		0x0008	// if any of the textures have chrome on them
+
+typedef struct
+{
+	int		ident;
+	int		version;
+
+	char		name[64];
+	int		length;
+
+	vec3_t		eyeposition;	// ideal eye position
+	vec3_t		min;		// ideal movement hull size
+	vec3_t		max;			
+
+	vec3_t		bbmin;		// clipping bounding box
+	vec3_t		bbmax;		
+
+	int		flags;
+
+	int		numbones;		// bones
+	int		boneindex;
+
+	int		numbonecontrollers;	// bone controllers
+	int		bonecontrollerindex;
+
+	int		numhitboxes;	// complex bounding boxes
+	int		hitboxindex;			
+	
+	int		numseq;		// animation sequences
+	int		seqindex;
+
+	int		numseqgroups;	// demand loaded sequences
+	int		seqgroupindex;
+
+	int		numtextures;	// raw textures
+	int		textureindex;
+	int		texturedataindex;
+
+	int		numskinref;	// replaceable textures
+	int		numskinfamilies;
+	int		skinindex;
+
+	int		numbodyparts;		
+	int		bodypartindex;
+
+	int		numattachments;	// queryable attachable points
+	int		attachmentindex;
+
+	int		soundtable;
+	int		soundindex;
+	int		soundgroups;
+	int		soundgroupindex;
+
+	int		numtransitions;	// animation node to animation node transition graph
+	int		transitionindex;
+} studiohdr_t;
+
+// header for demand loaded sequence group data
+typedef struct 
+{
+	int		id;
+	int		version;
+
+	char		name[64];
+	int		length;
+} studioseqhdr_t;
+
+// bones
+typedef struct 
+{
+	char		name[32];		// bone name for symbolic links
+	int		parent;		// parent bone
+	int		flags;		// ??
+	int		bonecontroller[6];	// bone controller index, -1 == none
+	float		value[6];		// default DoF values
+	float		scale[6];		// scale for delta DoF values
+} mstudiobone_t;
+
+// bone controllers
+typedef struct 
+{
+	int		bone;		// -1 == 0
+	int		type;		// X, Y, Z, XR, YR, ZR, M
+	float		start;
+	float		end;
+	int		rest;		// byte index value at rest
+	int		index;		// 0-3 user set controller, 4 mouth
+} mstudiobonecontroller_t;
+
+// intersection boxes
+typedef struct
+{
+	int		bone;
+	int		group;		// intersection group
+	vec3_t		bbmin;		// bounding box
+	vec3_t		bbmax;		
+} mstudiobbox_t;
+
+typedef struct cache_user_s
+{
+	void *data;
+} cache_user_t;
+
+// demand loaded sequence groups
+typedef struct
+{
+	char		label[32];	// textual name
+	char		name[64];		// file name
+	void*		cache;		// cache index pointer
+	int		data;		// hack for group 0
+} mstudioseqgroup_t;
+
+// sequence descriptions
+typedef struct
+{
+	char		label[32];	// sequence label (name)
+
+	float		fps;		// frames per second	
+	int		flags;		// looping/non-looping flags
+
+	int		activity;
+	int		actweight;
+
+	int		numevents;
+	int		eventindex;
+
+	int		numframes;	// number of frames per sequence
+
+	int		numpivots;	// number of foot pivots
+	int		pivotindex;
+
+	int		motiontype;	
+	int		motionbone;
+	vec3_t		linearmovement;
+	int		automoveposindex;
+	int		automoveangleindex;
+
+	vec3_t		bbmin;		// per sequence bounding box
+	vec3_t		bbmax;		
+
+	int		numblends;
+	int		animindex;	// mstudioanim_t pointer relative to start of sequence group data
+					// [blend][bone][X, Y, Z, XR, YR, ZR]
+
+	int		blendtype[2];	// X, Y, Z, XR, YR, ZR
+	float		blendstart[2];	// starting value
+	float		blendend[2];	// ending value
+	int		blendparent;
+
+	int		seqgroup;		// sequence group for demand loading
+
+	int		entrynode;	// transition node at entry
+	int		exitnode;		// transition node at exit
+	int		nodeflags;	// transition rules
+	
+	int		nextseq;		// auto advancing sequences
+} mstudioseqdesc_t;
+
+// events
+typedef struct 
+{
+	int 		frame;
+	int		event;
+	int		type;
+	char		options[64];
+} mstudioevent_t;
+
+
+// pivots
+typedef struct 
+{
+	vec3_t		org;		// pivot point
+	int		start;
+	int		end;
+} mstudiopivot_t;
+
+// attachment
+typedef struct 
+{
+	char		name[32];
+	int		type;
+	int		bone;
+	vec3_t		org;		// attachment point
+	vec3_t		vectors[3];
+} mstudioattachment_t;
+
+typedef struct
+{
+	unsigned short	offset[6];
+} mstudioanim_t;
+
+// animation frames
+typedef union 
+{
+	struct
+	{
+		byte	valid;
+		byte	total;
+	} num;
+	short		value;
+} mstudioanimvalue_t;
+
+
+// body part index
+typedef struct
+{
+	char		name[64];
+	int		nummodels;
+	int		base;
+	int		modelindex;	// index into models array
+} mstudiobodyparts_t;
+
+
+// skin info
+typedef struct
+{
+	char		name[64];
+	int		flags;
+	int		width;
+	int		height;
+	int		index;
+} mstudiotexture_t;
+
+// skin families
+// short	index[skinfamilies][skinref]		// skingroup info
+
+// studio models
+typedef struct
+{
+	char		name[64];
+
+	int		type;
+	float		boundingradius;
+
+	int		nummesh;
+	int		meshindex;
+
+	int		numverts;		// number of unique vertices
+	int		vertinfoindex;	// vertex bone info
+	int		vertindex;	// vertex vec3_t
+	int		numnorms;		// number of unique surface normals
+	int		norminfoindex;	// normal bone info
+	int		normindex;	// normal vec3_t
+
+	int		numgroups;	// deformation groups
+	int		groupindex;
+} mstudiomodel_t;
+
+// meshes
+typedef struct 
+{
+	int		numtris;
+	int		triindex;
+	int		skinref;
+	int		numnorms;		// per mesh normals
+	int		normindex;	// normal vec3_t
+} mstudiomesh_t;
+
+/*
+==============================================================================
+SAVE FILE
+
+included global, and both (client & server) pent list
+==============================================================================
+*/
+#define SAVE_VERSION	3
+#define IDSAVEHEADER	(('E'<<24)+('V'<<16)+('A'<<8)+'S') // little-endian "SAVE"
+
+#define LUMP_COMMENTS	0 // map comments (name, savetime)
+#define LUMP_CFGSTRING	1 // client info strings
+#define LUMP_AREASTATE	2 // area portals state
+#define LUMP_GAMESTATE	3 // progs global state (compressed)
+#define LUMP_MAPNAME	4 // map name
+#define LUMP_GAMECVARS	5 // contain game comment and all cvar state
+#define LUMP_GAMEENTS	6 // ents state (compressed)
+#define LUMP_SNAPSHOT	7 // rgb32 image snapshot (128x128)
+#define SAVE_NUMLUMPS	8 // header size
+
+typedef struct
+{
+	int	ident;
+	int	version;	
+	lump_t	lumps[SAVE_NUMLUMPS];
+} dsavehdr_t;
+
+typedef struct
+{
+	char	name[MAX_QPATH];
+	char	value[MAX_QPATH];
+} dsavecvar_t;
+
+#endif//REF_DFILES_H

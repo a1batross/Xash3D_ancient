@@ -91,7 +91,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386
-# ADD LINK32 winmm.lib user32.lib msvcrt.lib /nologo /subsystem:windows /dll /debug /machine:I386 /nodefaultlib:"msvcrtd.lib" /pdbtype:sept
+# ADD LINK32 winmm.lib user32.lib msvcrtd.lib /nologo /subsystem:windows /dll /debug /machine:I386 /nodefaultlib:"msvcrt.lib" /pdbtype:sept
 # SUBTRACT LINK32 /incremental:no /map /nodefaultlib
 # Begin Custom Build
 TargetDir=\Xash3D\src_main\temp\engine\!debug
@@ -112,10 +112,6 @@ SOURCE="$(InputPath)"
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;hpj;bat;for;f90"
-# Begin Source File
-
-SOURCE=.\client\cl_cin.c
-# End Source File
 # Begin Source File
 
 SOURCE=.\client\cl_cmds.c
@@ -171,6 +167,10 @@ SOURCE=.\client\cl_scrn.c
 # Begin Source File
 
 SOURCE=.\client\cl_tent.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\client\cl_video.c
 # End Source File
 # Begin Source File
 

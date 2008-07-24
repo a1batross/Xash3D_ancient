@@ -4,10 +4,11 @@
 //=======================================================================
 
 #include "platform.h"
+#include "byteorder.h"
 #include "utils.h"
 
 char		wadoutname[MAX_SYSPATH];
-static dlumpinfo_t	wadlumps[MAX_FILES_IN_PACK];
+static dlumpinfo_t	wadlumps[MAX_FILES_IN_WAD];
 static char	lumpname[MAX_SYSPATH];
 dwadinfo_t	wadfile; // main header
 int		wadheader;
@@ -62,7 +63,11 @@ void Wad3_AddLump( const char *name, bool compress )
 	byte		*buffer;
 	int		ofs, type, length;
 
-	Msg("Add lump %s\n", name );
+	if( numlumps >= MAX_FILES_IN_WAD )
+	{
+		MsgDev( D_ERROR, "Wad3_AddLump: max files limit execeeds\n" ); 
+		return;
+	}
 
 	// we can load file from another wad
 	buffer = FS_LoadFile( name, &length );
@@ -114,7 +119,7 @@ void Wad3_AddLump( const char *name, bool compress )
 		FS_Write( handle, buffer, length ); // just write file
 	}
 	Mem_Free( buffer );
-	MsgDev(D_NOTE, "AddLump: %s, size %d\n", info->name, info->disksize );
+	MsgDev(D_INFO, "AddLump: %s, size %d\n", info->name, info->disksize );
 }
 
 void Cmd_WadName( void )
@@ -130,16 +135,23 @@ void Cmd_WadType( void )
 	if(Com_MatchToken( "Quake1") || Com_MatchToken( "Q1"))
 	{
 		wadheader = IDWAD2HEADER;
+		allow_compression = false;
 	}
 	else if(Com_MatchToken( "Half-Life") || Com_MatchToken( "Hl1"))
 	{
 		wadheader = IDWAD3HEADER;
+		allow_compression = false;
 	}
 	else if(Com_MatchToken( "Xash3D"))
 	{
 		wadheader = IDWAD4HEADER;
+		allow_compression = true;
 	}
-	else wadheader = IDWAD3HEADER; // default
+	else
+	{
+		wadheader = IDWAD3HEADER; // default
+		allow_compression = false;
+	}
 }
 
 void Cmd_AddLump( void )

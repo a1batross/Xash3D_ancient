@@ -650,8 +650,8 @@ Host_Error
 */
 void Host_Error( const char *error, ... )
 {
-	static char	hosterror1[MAX_INPUTLINE];
-	static char	hosterror2[MAX_INPUTLINE];
+	static char	hosterror1[MAX_MSGLEN];
+	static char	hosterror2[MAX_MSGLEN];
 	static bool	recursive = false;
 	va_list		argptr;
 

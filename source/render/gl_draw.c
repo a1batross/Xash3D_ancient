@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // draw.c
 
 #include "gl_local.h"
-#include "r_font.h"
+#include "builtin.h"
 
 image_t	*draw_chars;
 /*
@@ -31,15 +31,15 @@ Draw_FindPic
 */
 image_t *Draw_FindPic( const char *name )
 {
-	string	fullname;
-	byte	*buffer = NULL;
-	size_t	bufsize = 0;		
+	string		fullname;
+	const byte	*buffer = NULL;
+	size_t		bufsize = 0;		
 
 	//HACKHACK: use default font
 	if(stristr(name, "fonts" ))
 	{
-		buffer = def_font;
-		bufsize = sizeof(def_font);
+		buffer = deffont_dds;
+		bufsize = sizeof(deffont_dds);
 	}
 
 	com.snprintf( fullname, MAX_STRING, "gfx/%s", name );
@@ -262,7 +262,7 @@ void Draw_FadeScreen (void)
 {
 	pglEnable (GL_BLEND);
 	pglDisable (GL_TEXTURE_2D);
-	pglColor4f (0, 0, 0, 0.8);
+	pglColor4f (0, 0, 0, 0.8f);
 	pglBegin (GL_QUADS);
 
 	pglVertex2f (0,0);
