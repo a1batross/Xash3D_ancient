@@ -178,6 +178,20 @@ typedef enum {
 	dl_single
 } dltype_t;		// download type
 
+struct cl_edict_s
+{
+	// generic_edict_t (don't move these fields!)
+	bool		free;
+	float		freetime;	 	// cl.time when the object was freed
+	int		serverframe;	// if not current, this ent isn't in the frame
+	int		serialnumber;	// client serialnumber
+
+	// cl_private_edict_t
+	entity_state_t	baseline;		// delta from this if not from a previous frame
+	entity_state_t	current;
+	entity_state_t	prev;		// will always be valid, but might just be a copy of current
+};
+
 typedef struct serverinfo_s
 {
 	char		*mapname;

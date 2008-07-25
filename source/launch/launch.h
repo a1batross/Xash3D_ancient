@@ -126,6 +126,7 @@ void Sys_Exit( void );
 void Sys_Abort( void );
 bool Sys_LoadLibrary ( dll_info_t *dll );
 void* Sys_GetProcAddress ( dll_info_t *dll, const char* name );
+byte *Sys_LoadRes( const char *filename, size_t *size );
 bool Sys_FreeLibrary ( dll_info_t *dll );
 void Sys_WaitForQuit( void );
 void Sys_InitLog( void );

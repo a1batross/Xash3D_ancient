@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // draw.c
 
 #include "gl_local.h"
-#include "builtin.h"
 
 image_t	*draw_chars;
 /*
@@ -37,10 +36,7 @@ image_t *Draw_FindPic( const char *name )
 
 	//HACKHACK: use default font
 	if(stristr(name, "fonts" ))
-	{
-		buffer = deffont_dds;
-		bufsize = sizeof(deffont_dds);
-	}
+		buffer = FS_LoadInternal( "default.dds", &bufsize );
 
 	com.snprintf( fullname, MAX_STRING, "gfx/%s", name );
 	return R_FindImage( fullname, buffer, bufsize, it_pic );

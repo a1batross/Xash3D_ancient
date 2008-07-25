@@ -461,7 +461,9 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	VectorCopy(pm.maxs, ent->progs.sv->maxs);
 	VectorCopy(pm.ps.viewangles, ent->progs.sv->v_angle);
 	VectorCopy(pm.ps.viewangles, ent->progs.sv->angles);
-	ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG( pm.ps.groundentity );
+	if( pm.ps.groundentity )
+		ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG( pm.ps.groundentity );
+	else ent->progs.sv->groundentity = 0;
 
 	// copy viewmodel info
 	client->ps.vmodel.frame = ent->progs.sv->v_frame;

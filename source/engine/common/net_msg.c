@@ -6,7 +6,6 @@
 #include "common.h"
 #include "byteorder.h"
 #include "mathlib.h"
-#include "builtin.h"
 
 /*
 =============================================================================

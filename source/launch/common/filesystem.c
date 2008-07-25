@@ -2576,7 +2576,7 @@ FS_WriteFile
 The filename will be prefixed by the current game directory
 ============
 */
-bool FS_WriteFile (const char *filename, const void *data, fs_offset_t len)
+bool FS_WriteFile( const char *filename, const void *data, fs_offset_t len )
 {
 	file_t *file;
 

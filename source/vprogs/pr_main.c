@@ -4,7 +4,6 @@
 //=======================================================================
 
 #include "vprogs.h"
-#include "builtin.h"
 
 stdlib_api_t	com;
 byte		*qccpool;
@@ -38,7 +37,6 @@ int		numglobaldefs;
 ddef_t		*fields;
 int		numfielddefs;
 bool		pr_warning[WARN_MAX];
-int		target_version;
 bool		bodylessfuncs;
 type_t		*qcc_typeinfo;
 int		numtypeinfos;
@@ -76,7 +74,6 @@ void PR_SetDefaultProperties( void )
 	for( i = 0; pr_optimisations[i].enabled; i++ ) 
 		*pr_optimisations[i].enabled = false;
 
-	target_version = QPROGS_VERSION;
 	PR_DefineName("_QCLIB"); // compiler type
 
 	// play with default warnings.
@@ -106,14 +103,6 @@ void PR_SetDefaultProperties( void )
 				PR_Message("value %s\n", val );
 				cnst->value[sizeof(cnst->value)-1] = '\0';
 			}
-		}
-		else if ( !com.strnicmp(com_argv[i], "/V", 2))
-		{
-			// target version
-			if (com_argv[i][2] == '6') target_version = QPROGS_VERSION;
-			else if (com_argv[i][2] == '7') target_version = FPROGS_VERSION;
-			else if (com_argv[i][2] == '8') target_version = VPROGS_VERSION;
-			else PR_Warning(0, NULL, WARN_BADPARAMS,"Unrecognized version parametr (%s)",com_argv[i]);
 		}
 		else if( !com.strnicmp(com_argv[i], "/O", 2))
 		{
@@ -299,10 +288,25 @@ void PRVM_Init( uint funcname, int argc, char **argv )
 
 	if( host_instance == HOST_NORMAL || host_instance == HOST_DEDICATED )
 	{
+		size_t	size;
+		byte	*image;
+
 		// dump internal copies of progs into hdd if missing
-		if(!FS_FileExists("vprogs/server.dat")) FS_WriteFile( "vprogs/server.dat", server_dat, sizeof(server_dat)); 
-		if(!FS_FileExists("vprogs/client.dat")) FS_WriteFile( "vprogs/client.dat", client_dat, sizeof(client_dat));
-		if(!FS_FileExists("vprogs/uimenu.dat")) FS_WriteFile( "vprogs/uimenu.dat", uimenu_dat, sizeof(uimenu_dat));
+		if(!FS_FileExists(va("%s/server.dat", GI->vprogs_dir)))
+		{
+			image = FS_LoadInternal( "server.dat", &size );
+			if( size ) FS_WriteFile(va("%s/server.dat", GI->vprogs_dir), image, size ); 
+		}
+		if(!FS_FileExists(va("%s/client.dat", GI->vprogs_dir)))
+		{
+			image = FS_LoadInternal( "client.dat", &size );
+			if( size ) FS_WriteFile(va("%s/client.dat", GI->vprogs_dir), image, size ); 
+		}
+		if(!FS_FileExists(va("%s/uimenu.dat", GI->vprogs_dir)))
+		{
+			image = FS_LoadInternal( "uimenu.dat", &size );
+			if( size ) FS_WriteFile(va("%s/uimenu.dat", GI->vprogs_dir), image, size ); 
+		}
 	}
 }
 

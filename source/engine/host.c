@@ -595,9 +595,11 @@ long Host_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
 		if( wParam == SC_SCREENSAVE ) return 0;
 		break;
 	case WM_SYSKEYDOWN:
-		if( wParam == 13 && r_fullscreen )
+		if( wParam == VK_RETURN )
 		{
-			Cvar_SetValue( "fullscreen", !r_fullscreen->value );
+			// alt+enter fullscreen switch
+			Cvar_SetValue( "fullscreen", !Cvar_VariableValue( "fullscreen" ));
+			Cbuf_AddText( "vid_restart\n" );
 			return 0;
 		}
 		// intentional fallthrough

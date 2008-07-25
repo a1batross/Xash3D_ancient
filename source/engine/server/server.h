@@ -28,14 +28,29 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MAX_MASTERS			8 	// max recipients for heartbeat packets
 #define LATENCY_COUNTS		16
-#define RATE_MESSAGES		10
-#define DF_NO_FRIENDLY_FIRE		0x00000001
+#define MAX_ENT_CLUSTERS		16
+#define DF_NO_FRIENDLY_FIRE		0x00000001		//FIXME: move to server.dat
 
 // classic quake flags
 #define SPAWNFLAG_NOT_EASY		0x00000100
 #define SPAWNFLAG_NOT_MEDIUM		0x00000200
 #define SPAWNFLAG_NOT_HARD		0x00000400
 #define SPAWNFLAG_NOT_DEATHMATCH	0x00000800
+
+#define AI_FLY				(1<<0)		// monster is flying
+#define AI_SWIM				(1<<1)		// swimming monster
+#define AI_ONGROUND				(1<<2)		// monster is onground
+#define AI_PARTIALONGROUND			(1<<3)		// monster is partially onground
+#define AI_GODMODE				(1<<4)		// monster don't give damage at all
+#define AI_NOTARGET				(1<<5)		// monster will no searching enemy's
+#define AI_NOSTEP				(1<<6)		// Lazarus stuff
+#define AI_DUCKED				(1<<7)		// monster (or player) is ducked
+#define AI_JUMPING				(1<<8)		// monster (or player) is jumping
+#define AI_FROZEN				(1<<9)		// stop moving, but continue thinking
+#define AI_ACTOR                		(1<<10)		// disable ai for actor
+#define AI_DRIVER				(1<<11)		// npc or player driving vehcicle or train
+#define AI_SPECTATOR			(1<<12)		// spectator mode for clients
+#define AI_WATERJUMP			(1<<13)		// npc or player take out of water
 
 #define FL_CLIENT			(1<<0)	// this is client
 #define FL_MONSTER			(1<<1)	// this is npc
@@ -139,6 +154,42 @@ typedef struct sv_client_s
 
 	netchan_t		netchan;
 } sv_client_t;
+
+
+
+
+typedef struct worldsector_s
+{
+	int			axis;		// -1 = leaf node
+	float			dist;
+	struct worldsector_s	*children[2];
+	sv_edict_t		*entities;
+} worldsector_t;
+
+struct sv_edict_s
+{
+	// generic_edict_t (don't move these fields!)
+	bool			free;
+	float			freetime;	 	// sv.time when the object was freed
+
+	// sv_private_edict_t
+	worldsector_t		*worldsector;	// member of current wolrdsector
+	struct sv_edict_s 		*nextedict;	// next edict in world sector
+	struct sv_client_s		*client;		// filled for player ents
+	int			clipmask;		// trace info
+	int			lastcluster;	// unused if num_clusters != -1
+	int			linkcount;
+	int			num_clusters;	// if -1, use headnode instead
+	int			clusternums[MAX_ENT_CLUSTERS];
+	int			areanum, areanum2;
+
+	int			serialnumber;	// unical entity #id
+	int			solid;		// see entity_state_t for details
+	physbody_t		*physbody;	// ptr to phys body
+
+	// baselines
+	entity_state_t		s;
+};
 
 /*
 =============================================================================

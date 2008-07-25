@@ -8,6 +8,9 @@ set build_type=release
 set BUILD_ERROR=
 call vcvars32
 
+%MSDEV% baserc/baserc.dsp %CONFIG%"baserc - Win32 Release" %build_target%
+if errorlevel 1 set BUILD_ERROR=1
+
 %MSDEV% engine/engine.dsp %CONFIG%"engine - Win32 Release" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
@@ -57,6 +60,7 @@ goto done
 :build_ok
 
 rem //delete log files
+if exist baserc\baserc.plg del /f /q baserc\baserc.plg
 if exist engine\engine.plg del /f /q engine\engine.plg
 if exist launch\launch.plg del /f /q launch\launch.plg
 if exist common\common.plg del /f /q common\common.plg

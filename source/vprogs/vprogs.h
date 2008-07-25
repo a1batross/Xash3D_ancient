@@ -282,8 +282,8 @@ enum op_state
 	OP_NUMOPS,
 };
 
-#define PRVM_GETEDICTFIELDVALUE(ed, fieldoffset) (fieldoffset ? (prvm_eval_t *)((byte *)ed->progs.vp + fieldoffset) : NULL)
-#define PRVM_GETGLOBALFIELDVALUE(fieldoffset) (fieldoffset ? (prvm_eval_t *)((byte *)vm.prog->globals.gp + fieldoffset) : NULL)
+#define PRVM_EDICTFIELDVALUE(ed, fieldoffset) (fieldoffset ? (prvm_eval_t *)((byte *)ed->progs.vp + fieldoffset) : NULL)
+#define PRVM_GLOBALFIELDVALUE(fieldoffset) (fieldoffset ? (prvm_eval_t *)((byte *)vm.prog->globals.gp + fieldoffset) : NULL)
 
 extern prvm_prog_t prvm_prog_list[PRVM_MAXPROGS];
 
@@ -394,7 +394,7 @@ PRVM_ERROR("runaway loop counter hit limit of %d jumps\n", jumpcount, PRVM_NAME)
 // get arguments from progs
 #define	PRVM_G_FLOAT(o) (vm.prog->globals.gp[o])
 #define	PRVM_G_INT(o) (*(int *)&vm.prog->globals.gp[o])
-#define	PRVM_G_EDICT(o) (PRVM_PROG_TO_EDICT(*(int *)&vm.prog->globals.gp[o]))
+#define	PRVM_G_EDICT(o) (PRVM_PROG_TO_EDICT(*(uint *)&vm.prog->globals.gp[o]))
 #define	PRVM_G_EDICTNUM(o) PRVM_NUM_FOR_EDICT(PRVM_G_EDICT(o))
 #define	PRVM_G_VECTOR(o) (&vm.prog->globals.gp[o])
 #define	PRVM_G_STRING(o) (PRVM_GetString(*(string_t *)&vm.prog->globals.gp[o]))

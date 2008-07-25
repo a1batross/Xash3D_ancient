@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "EDITOR_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /Ob0 /I "../public" /I "../platform/formats" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /Ob1 /I "../public" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -54,10 +54,10 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386
-# ADD LINK32 msvcrt.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib /nologo /dll /machine:I386 /nodefaultlib:"libc.lib"
+# ADD LINK32 msvcrt.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib"
 # Begin Custom Build
-TargetDir=\XASH3D\src_main\!source\temp\viewer\!release
-InputPath=\XASH3D\src_main\!source\temp\viewer\!release\viewer.dll
+TargetDir=\Xash3D\src_main\temp\viewer\!release
+InputPath=\Xash3D\src_main\temp\viewer\!release\viewer.dll
 SOURCE="$(InputPath)"
 
 "D:\Xash3D\bin\viewer.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -79,7 +79,7 @@ SOURCE="$(InputPath)"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "EDITOR_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "../public" /I "../platform/formats" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "../public" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /GZ /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -92,8 +92,8 @@ LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
 # ADD LINK32 msvcrt.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"msvcrtd.lib" /pdbtype:sept
 # Begin Custom Build
-TargetDir=\XASH3D\src_main\!source\temp\viewer\!debug
-InputPath=\XASH3D\src_main\!source\temp\viewer\!debug\viewer.dll
+TargetDir=\Xash3D\src_main\temp\viewer\!debug
+InputPath=\Xash3D\src_main\temp\viewer\!debug\viewer.dll
 SOURCE="$(InputPath)"
 
 "D:\Xash3D\bin\viewer.dll" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -112,19 +112,19 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\viewer.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\viewer.rc
-# End Source File
-# Begin Source File
-
 SOURCE=.\guiforms.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\guiutils.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\viewer.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\viewer.rc
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -132,15 +132,15 @@ SOURCE=.\guiutils.c
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
-SOURCE=.\viewer.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\mxtk.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\options.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\viewer.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"

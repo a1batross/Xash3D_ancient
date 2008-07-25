@@ -8,7 +8,6 @@
 #include "utils.h"
 #include "bsplib.h"
 #include "mdllib.h"
-#include "builtin.h"
 
 
 int com_argc;
@@ -221,10 +220,12 @@ byte *ReadBMP (char *filename, byte **palette, int *width, int *height)
 {
 	byte	*buf_p, *pbBmpBits;
 	byte	*buf, *pb, *pbPal = NULL;
-	int	i, filesize, columns, rows;
+	int	i, image_size, filesize, columns, rows;
+	byte	*blank_bmp = FS_LoadInternal( "blank.bmp", &image_size );
 	dword	cbBmpBits;
 	dword	cbPalBytes;
 	dword	biTrueWidth;
+
 	bmp_t	bhdr;
 
 	RGBQUAD rgrgbPalette[256];
@@ -234,8 +235,8 @@ byte *ReadBMP (char *filename, byte **palette, int *width, int *height)
 	if(!buf_p)
 	{
 		//blank_frame
-		buf_p = (char *)blank_bmp; 
-		filesize = sizeof(blank_bmp);
+		buf_p = blank_bmp; 
+		filesize = image_size;
 		MsgDev( D_WARN, "ReadBMP: couldn't load %s, use blank image\n", filename );
 	}
 

@@ -11,6 +11,7 @@
 
 system_t		Sys;
 stdlib_api_t	com;
+baserc_exp_t	*rc;	// library of resources
 launch_exp_t	*Host;	// callback to mainframe 
 sys_event_t	event_que[MAX_QUED_EVENTS];
 int		event_head, event_tail;
@@ -20,6 +21,7 @@ dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, siz
 dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t viewer_dll = { "viewer.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t ripper_dll = { "ripper.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
+dll_info_t baserc_dll = { "baserc.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(baserc_exp_t)};
 
 static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t\
           All Rights Reserved\n\n\t           Visit www.xash.ru\n";
@@ -115,6 +117,7 @@ void Sys_GetStdAPI( void )
 	com.Com_Search = FS_Search;			// returned list of founded files
 	com.Com_Filter = SC_FilterToken;		// compare keyword by mask with filter
 	com.Com_HashKey = SC_HashKey;			// returns hash key for a string (generic fucntion)
+	com.Com_LoadRes = Sys_LoadRes;		// get internal resource by name
 	com.com_token = token;			// contains current token
 
 	// console variables
@@ -389,12 +392,13 @@ Find needed library, setup and run it
 void Sys_CreateInstance( void )
 {
 	// export
-	launch_t		CreateHost;
+	launch_t	CreateHost, CreateBaserc;
+
 
 	Sys_LoadLibrary( Sys.linked_dll ); // loading library if need
 
 	// pre initializations
-	switch(Sys.app_name)
+	switch( Sys.app_name )
 	{
 	case HOST_NORMAL:
 	case HOST_DEDICATED:
@@ -412,6 +416,7 @@ void Sys_CreateInstance( void )
 	case RIPP_SNDDEC:
 	case RIPP_BSPDEC:
 	case RIPP_QCCDEC:
+		Sys_LoadLibrary( &baserc_dll ); // load baserc
 		CreateHost = (void *)Sys.linked_dll->main;
 		Host = CreateHost( &com, NULL ); // second interface not allowed
 		Sys.Init = Host->Init;
@@ -419,6 +424,11 @@ void Sys_CreateInstance( void )
 		Sys.Free = Host->Free;
 		Sys.CPrint = Host->CPrint;
 		Sys.MSG_Init = Host->MSG_Init;
+		if( baserc_dll.link )
+		{
+			CreateBaserc = (void *)baserc_dll.main;
+			rc = CreateBaserc( &com, NULL ); 
+		}
 		break;
 	case HOST_CREDITS:
 		Sys_Break( show_credits );
@@ -814,8 +824,8 @@ void Sys_WaitForQuit( void )
 		// in-pipeline mode we don't want to wait for press any key
 		if(abs((int)GetStdHandle(STD_OUTPUT_HANDLE)) <= 100)
 		{
-			Sys_Print("press enter to quit\n");
-			getchar(); // wait for quit
+			Sys_Print("press any key to quit\n");
+			system("@pause\n"); // wait for quit
 		}
 	}
 	else
@@ -976,6 +986,7 @@ void Sys_Exit( void )
 	// prepare host to close
 	Sys.Free();
 	Sys_FreeLibrary( Sys.linked_dll );
+	Sys_FreeLibrary( &baserc_dll );
 
 	FS_Shutdown();
 	Memory_Shutdown();
@@ -1097,6 +1108,15 @@ bool Sys_FreeLibrary ( dll_info_t *dll )
 	dll->link = NULL;
 
 	return true;
+}
+
+byte *Sys_LoadRes( const char *filename, size_t *size )
+{
+	if( baserc_dll.link )
+		return rc->LoadFile( filename, size );
+
+	if( size ) *size = 0;
+	return NULL;
 }
 
 //=======================================================================

@@ -6,7 +6,6 @@
 #include "common.h"
 #include "client.h"
 #include "ui_edict.h"
-#include "builtin.h"
 
 // progs menu
 #define UI_MAXEDICTS	(1 << 10) // should be enough for a menu
@@ -20,6 +19,52 @@ static char *creditsIndex[2048];
 static char *creditsBuffer;
 static uint credit_numlines;
 static bool credits_active;
+
+// internal credits
+static const char *xash_credits[] =
+{
+	"^3Xash3D",
+	"",
+	"^3PROGRAMMING",
+	"Uncle Mike",
+	"",
+	"^3ART",
+	"Chorus",
+	"Small Link",
+	"",
+	"^3LEVEL DESIGN",
+	"Scrama",
+	"Mitoh",
+	"",
+	"",
+	"^3SPECIAL THANKS",
+	"Chain Studios at all",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"^3MUSIC",
+	"Dj Existence",
+	"",
+	"",
+	"^3THANKS TO",
+	"ID Software at all",
+	"Lord Havoc (Darkplaces Team)",
+	"Georg Destroy for icon graphics",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"Copyright XashXT Group 2008 ©",
+	0
+};
 
 void UI_VM_Begin( void )
 {
@@ -531,7 +576,7 @@ void PF_loadcredits( void )
 		else
 		{
 			// use built-in credits
-			credits = xash_credits;
+			credits =  xash_credits;
 			credit_numlines = (sizeof(xash_credits) / sizeof(xash_credits[0])) - 1; // skip term
 		}
 	}
@@ -730,7 +775,7 @@ void UI_Init( void )
 	prog->progs_mempool = Mem_AllocPool( "Uimenu Progs" );
 	prog->builtins = vm_ui_builtins;
 	prog->numbuiltins = vm_ui_numbuiltins;
-	prog->edictprivate_size = sizeof(ui_edict_t);
+	prog->edictprivate_size = sizeof(vm_edict_t);
 	prog->limit_edicts = UI_MAXEDICTS;
 	prog->name = "uimenu";
 	prog->num_edicts = 1;

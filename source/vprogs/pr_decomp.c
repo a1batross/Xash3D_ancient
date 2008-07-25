@@ -184,9 +184,9 @@ char *PR_TempType( word temp, dstatement_t *start, mfunction_t *mf )
 	// determine the type of a temp
 	while( stat > statements )
 	{
-		if( temp == stat->a ) return basictypenames[(*op->type_a)->type];
-		else if( temp == stat->b ) return basictypenames[(*op->type_b)->type];
-		else if( temp == stat->c ) return basictypenames[(*op->type_c)->type];
+		if( temp == stat->a ) return op->type_a ? basictypenames[(*op->type_a)->type] : NULL;
+		else if( temp == stat->b ) return op->type_b ? basictypenames[(*op->type_b)->type] : NULL;
+		else if( temp == stat->c ) return op->type_c ? basictypenames[(*op->type_c)->type] : NULL;
 		stat--;
 	}
 
@@ -1170,18 +1170,18 @@ bool PR_Decompile( const char *name )
 
 	if( vm.prog->sources ) // source always are packed
 	{
-		int		i, numsources = LittleLong(*(int*)vm.prog->sources);
-		dsource_t	*src = (dsource_t *)(((int *)vm.prog->sources)+1);
-		char		*in, *file;
+		int	i;
+		dsource_t	*src = vm.prog->sources;
+		char	*in, *file;
 
-		for( i = 0; i < numsources; i++, src++ )
+		for( i = 0; i < vm.prog->progs->numsources; i++, src++ )
 		{
-			Msg( "%s\n", src->filename );
+			Msg( "%s\n", src->name );
 			file = Mem_Alloc( qccpool, src->size ); // alloc memory for inflate block
-			in = (char *)(((byte *)vm.prog->progs) + src->ofs);			
-			if(PR_decode( src->compsize, src->size, src->compmethod, in, &file ))
-				FS_WriteFile( src->filename, file, src->size );
-			else Msg("Warning: can't decompile %s\n", src->filename );
+			in = (char *)(((byte *)vm.prog->progs) + src->filepos );			
+			if(PR_decode( src->disksize, src->size, src->compression, in, &file ))
+				FS_WriteFile( va( "%s/%s", sourcefilename, src->name ), file, src->size );
+			else Msg("Warning: can't decompile %s\n", src->name );
 			Mem_Free( file );
 		}
 		vm.prog->sources = NULL;

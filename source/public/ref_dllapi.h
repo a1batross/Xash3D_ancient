@@ -40,6 +40,7 @@ enum host_state
 #define bound(min, num, max)	((num) >= (min) ? ((num) < (max) ? (num) : (max)) : (min))
 #define DLLEXPORT		__declspec(dllexport)
 
+
 #define USE_COORD_FRAC		//FIXME: disable this
 
 // network precision coords factor
@@ -482,6 +483,7 @@ typedef struct stdilib_api_s
 	search_t *(*Com_Search)(const char *pattern, int casecmp );	// returned list of found files
 	bool (*Com_Filter)(char *filter, char *name, int casecmp ); // compare keyword by mask with filter
 	uint (*Com_HashKey)( const char *string, uint hashSize );	// returns hash key for a string
+	byte *(*Com_LoadRes)( const char *filename, size_t *size );	// find internal resource in baserc.dll 
 	char *com_token;					// contains current token
 
 	// console variables
@@ -681,6 +683,7 @@ filesystem manager
 #define FS_FileTime( file )		com.Com_FileTime( file )
 #define FS_Close( file )		com.fclose( file )
 #define FS_FileBase( x, y )		com.Com_FileBase( x, y )
+#define FS_LoadInternal( x, y )	com.Com_LoadRes( x, y )
 #define FS_Printf			com.fprintf
 #define FS_Print			com.fprint
 #define FS_Seek			com.fseek
@@ -1288,6 +1291,22 @@ typedef struct launch_exp_s
 	void (*MSG_Init)( sizebuf_t *buf, byte *data, size_t len );	// MSG init network buffer
 } launch_exp_t;
 
+
+/*
+==============================================================================
+
+BASERC.DLL INTERFACE
+
+just a resource package library
+==============================================================================
+*/
+typedef struct baserc_exp_s
+{
+	// interface validator
+	size_t	api_size;		// must matched with sizeof(imglib_api_t)
+
+	byte *(*LoadFile)( const char *filename, fs_offset_t *size );
+} baserc_exp_t;
 /*
 ==============================================================================
 
@@ -1454,6 +1473,7 @@ VPROGS.DLL INTERFACE
 #define PRVM_OP_STATE		1
 #define PRVM_FE_CHAIN		4
 #define PRVM_FE_CLASSNAME		8
+#define PRVM_OP_THINKTIME		16
 
 enum
 {
@@ -1481,7 +1501,7 @@ struct edict_s
 		vm_edict_t		*ed;	// vm edict state 
 		sv_edict_t		*sv;	// sv edict state
 		cl_edict_t		*cl;	// cl edict state
-		ui_edict_t		*ui;	// ui edict state
+		vm_edict_t		*ui;	// ui edict state
 	} priv;
 
 	// QuakeC prog fields (stored in dynamically resized array)

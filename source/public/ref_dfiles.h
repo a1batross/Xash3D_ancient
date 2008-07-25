@@ -302,14 +302,8 @@ a internal virtual machine like as QuakeC, but it has more extensions
 ==============================================================================
 */
 // header
-#define QPROGS_VERSION	6	// Quake1 progs version
-#define FPROGS_VERSION	7	// Fte progs version
 #define VPROGS_VERSION	8	// xash progs version
-#define LNNUMS_VERSION	1	// line numbers version
-
-#define VPROGSHEADER16	(('6'<<24)+('1'<<16)+('D'<<8)+'I') // little-endian "ID16"
-#define VPROGSHEADER32	(('2'<<24)+('3'<<16)+('D'<<8)+'I') // little-endian "ID32"
-#define LINENUMSHEADER	(('F'<<24)+('O'<<16)+('N'<<8)+'L') // little-endian "LNOF"
+#define VPROGSHEADER32	(('2'<<24)+('3'<<16)+('M'<<8)+'V') // little-endian "VM32"
 
 // global ofsets
 #define OFS_NULL		0
@@ -322,11 +316,13 @@ a internal virtual machine like as QuakeC, but it has more extensions
 #define OFS_PARM5		19
 #define OFS_PARM6		22
 #define OFS_PARM7		25
-#define RESERVED_OFS	28
+#define OFS_PARM8		28
+#define OFS_PARM9		31
+#define RESERVED_OFS	34
 
 // misc flags
-#define DEF_SHARED		(1<<14)
-#define DEF_SAVEGLOBAL	(1<<15)
+#define DEF_SHARED		(1<<29)
+#define DEF_SAVEGLOBAL	(1<<30)
 
 // compression block flags
 #define COMP_STATEMENTS	1
@@ -337,41 +333,21 @@ a internal virtual machine like as QuakeC, but it has more extensions
 #define COMP_GLOBALS	32
 #define COMP_LINENUMS	64
 #define COMP_TYPES		128
-#define MAX_PARMS		8
+#define MAX_PARMS		10
 
-// 16-bit mode (get rid of this)
-#define dstatement_t	dstatement16_t
-#define ddef_t		ddef16_t		// these should be the same except the string type
-
-typedef struct statement16_s
-{
-	word		op;
-	short		a,b,c;
-
-} dstatement16_t;
-
-typedef struct statement32_s
+typedef struct statement_s
 {
 	dword		op;
 	long		a,b,c;
+} dstatement_t;
 
-} dstatement32_t;
-
-typedef struct ddef16_s
-{
-	word		type;		// if DEF_SAVEGLOBAL bit is set
-					// the variable needs to be saved in savegames
-	word		ofs;
-	int		s_name;
-} ddef16_t;
-
-typedef struct ddef32_s
+typedef struct ddef_s
 {
 	dword		type;		// if DEF_SAVEGLOBAL bit is set
 					// the variable needs to be saved in savegames
 	dword		ofs;
 	int		s_name;
-} ddef32_t;
+} ddef_t;
 
 typedef struct
 {
@@ -387,55 +363,42 @@ typedef struct
 
 typedef struct
 {
-	char		filename[128];
+	int		filepos;
+	int		disksize;
 	int		size;
-	int		compsize;
-	int		compmethod;
-	int		ofs;
+	char		compression;
+	char		name[64];		// fixme: make string_t
 } dsource_t;
 
 typedef struct
 {
+	int		ident;		// must be VM32
 	int		version;		// version number
 	int		crc;		// check of header file
+	uint		flags;		// who blocks are compressed (COMP flags)
 	
-	uint		ofs_statements;	// comp 1
+	uint		ofs_statements;	// COMP_STATEMENTS (release)
 	uint		numstatements;	// statement 0 is an error
-	uint		ofs_globaldefs;	// comp 2
+	uint		ofs_globaldefs;	// COMP_DEFS (release)
 	uint		numglobaldefs;
-	uint		ofs_fielddefs;	// comp 4
+	uint		ofs_fielddefs;	// COMP_FIELDS (release)
 	uint		numfielddefs;
-	uint		ofs_functions;	// comp 8
+	uint		ofs_functions;	// COMP_FUNCTIONS (release)
 	uint		numfunctions;	// function 0 is an empty
-	uint		ofs_strings;	// comp 16
+	uint		ofs_strings;	// COMP_STRINGS (release)
 	uint		numstrings;	// first string is a null string
-	uint		ofs_globals;	// comp 32
+	uint		ofs_globals;	// COMP_GLOBALS (release)
 	uint		numglobals;
 	uint		entityfields;
-
-	// version 7 extensions
-	uint		ofsfiles;		// fmt: (int)numsources, dsource_t[numsources]
-	uint		ofslinenums;	// numstatements big // comp 64
+	// debug info
+	uint		ofssources;	// source are always compressed
+	uint		numsources;
+	uint		ofslinenums;	// COMP_LINENUMS (debug) numstatements big
 	uint		ofsbodylessfuncs;	// no comp
 	uint		numbodylessfuncs;
-	uint		ofs_types;	// comp 128
+	uint		ofs_types;	// COMP_TYPES (debug)
 	uint		numtypes;
-	uint		blockscompressed;	// who blocks are compressed (COMP flags)
-
-	int		ident;		// version 7 id
-
 } dprograms_t;
-
-typedef struct dlno_s
-{
-	int	header;
-	int	version;
-
-	uint	numglobaldefs;
-	uint	numglobals;
-	uint	numfielddefs;
-	uint	numstatements;
-} dlno_t;
 
 /*
 ========================================================================

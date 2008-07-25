@@ -13,6 +13,7 @@ launchers.bat
 todo.log
 
 public\
+baserc\
 viewer\
 physic\
 render\

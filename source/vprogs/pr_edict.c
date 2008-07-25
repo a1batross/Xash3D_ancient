@@ -365,9 +365,9 @@ char *PRVM_ValueString( etype_t type, prvm_eval_t *val )
 	mfunction_t *f;
 	int n;
 
-	type = (etype_t)((int) type & ~DEF_SAVEGLOBAL);
+	type = (etype_t)type & ~DEF_SAVEGLOBAL;
 
-	switch (type)
+	switch( type )
 	{
 	case ev_struct:
 		com.strncpy ( line, "struct", sizeof (line));
@@ -432,9 +432,9 @@ char *PRVM_UglyValueString (etype_t type, prvm_eval_t *val)
 	ddef_t *def;
 	mfunction_t *f;
 
-	type = (etype_t)((int)type & ~DEF_SAVEGLOBAL);
+	type = (etype_t)type & ~DEF_SAVEGLOBAL;
 
-	switch (type)
+	switch( type )
 	{
 	case ev_string:
 		// Parse the string a bit to turn special characters
@@ -507,18 +507,16 @@ padded to 20 field width
 char *PRVM_GlobalString (int ofs)
 {
 	char	*s;
-	//size_t	i;
 	ddef_t	*def;
 	void	*val;
 	static char	line[128];
 
 	val = (void *)&vm.prog->globals.gp[ofs];
 	def = PRVM_ED_GlobalAtOfs(ofs);
-	if (!def)
-		com.sprintf (line,"GLOBAL%i", ofs);
+	if( !def ) com.sprintf (line,"GLOBAL%i", ofs);
 	else
 	{
-		s = PRVM_ValueString ((etype_t)def->type, (prvm_eval_t *)val);
+		s = PRVM_ValueString((etype_t)def->type, (prvm_eval_t *)val);
 		com.sprintf (line,"%s (=%s)", PRVM_GetString(def->s_name), s);
 	}
 
@@ -796,7 +794,7 @@ void PRVM_ED_WriteGlobals( vfile_t *f )
 	{
 		def = &vm.prog->globaldefs[i];
 		type = def->type;
-		if(!(def->type & DEF_SAVEGLOBAL) )
+		if(!(def->type & DEF_SAVEGLOBAL))
 			continue;
 		type &= ~DEF_SAVEGLOBAL;
 
@@ -1180,67 +1178,6 @@ void PRVM_ResetProg( void )
 
 /*
 ===============
-PRVM_LoadLNO
-===============
-*/
-void PRVM_LoadLNO( const char *progname )
-{
-	fs_offset_t filesize;
-	byte	*buf;
-	dlno_t	*lno;
-	char	filename[512];
-
-	com.strcpy( filename, progname );
-	FS_StripExtension( filename ); 
-	FS_DefaultExtension( filename, ".lno" );
-	buf = FS_LoadFile( filename, &filesize );
-	if( !buf )return;
-
-	if((uint)filesize < sizeof(dlno_t))
-	{
-		Mem_Free(buf);
-		return;
-	}
-
-	lno = (dlno_t *)buf;
-
-	if(lno->header != LINENUMSHEADER)
-	{
-		MsgDev(D_WARN, "PRVM_LoadLNO: invalid header\n");
-		return;
-	}
-	if(lno->version != LNNUMS_VERSION)
-	{
-		MsgDev(D_WARN, "PRVM_LoadLNO: invalid version\n");
-		return;
-	}
-	if(lno->numglobaldefs != vm.prog->progs->numglobaldefs)
-	{
-		MsgDev(D_WARN, "PRVM_LoadLNO: invalid numglobaldefs count\n");
-		return;
-	}
-	if(lno->numglobals != vm.prog->progs->numglobals)
-	{
-		MsgDev(D_WARN, "PRVM_LoadLNO: invalid numglobals count\n");
-		return;
-	}
-	if(lno->numfielddefs != vm.prog->progs->numfielddefs)
-	{
-		MsgDev(D_WARN, "PRVM_LoadLNO: invalid numfielddefs count\n");
-		return;
-	}
-	if(lno->numstatements != vm.prog->progs->numstatements)
-	{
-		MsgDev(D_WARN, "PRVM_LoadLNO: invalid numstatements count\n");
-		return;
-	}
-	vm.prog->statement_linenums = Mem_Alloc(vm.prog->progs_mempool, vm.prog->progs->numstatements * sizeof(int));
-	Mem_Copy( vm.prog->statement_linenums, buf + sizeof(dlno_t), vm.prog->progs->numstatements * sizeof(int));
-	Mem_Free( buf );
-}
-
-/*
-===============
 PRVM_LoadProgs
 ===============
 */
@@ -1267,22 +1204,8 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 	MsgDev(D_NOTE, "%s programs occupy %iK.\n", PRVM_NAME, filesize/1024);
 	SwapBlock((int *)vm.prog->progs, sizeof(*vm.prog->progs)); 	// byte swap the header
 	
-	switch( vm.prog->progs->version )
-	{
-	case QPROGS_VERSION:
-		vm.prog->intsize = 16;
-		break;
-	case FPROGS_VERSION:
-		if( vm.prog->progs->ident == VPROGSHEADER16 )
-			vm.prog->intsize = 16;
-		if( vm.prog->progs->ident == VPROGSHEADER32 )
-			vm.prog->intsize = 32;
-		break;
-	case VPROGS_VERSION:
-	default:
-		PRVM_ERROR( "%s: %s has wrong version number (%i should be %i)", PRVM_NAME, filename, vm.prog->progs->version, VPROGS_VERSION);
-		break;
-	} 
+	if( vm.prog->progs->version != VPROGS_VERSION)
+		PRVM_ERROR( "%s: %s has wrong version number (%i should be %i)", PRVM_NAME, filename, vm.prog->progs->version, VPROGS_VERSION );
 
 	// try to recognize progs.dat by crc
 	if( PRVM_GetProgNr() == PRVM_DECOMPILED )
@@ -1303,82 +1226,49 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 	vm.prog->strings = (char *)vm.prog->progs + vm.prog->progs->ofs_strings;
 	vm.prog->globals.gp = (float *)((byte *)vm.prog->progs + vm.prog->progs->ofs_globals);
 
-	if( vm.prog->progs->version >= FPROGS_VERSION )
-	{
-		// debug info
- 		if( vm.prog->progs->ofsfiles )
- 			vm.prog->sources = (dsource_t*)((byte *)vm.prog->progs + vm.prog->progs->ofsfiles);
- 		if( vm.prog->progs->ofslinenums )
- 			vm.prog->linenums = (int *)((byte *)vm.prog->progs + vm.prog->progs->ofslinenums);
-		if( vm.prog->progs->ofs_types )
-			vm.prog->types = (type_t *)((byte *)vm.prog->progs + vm.prog->progs->ofs_types);
-	}
+	// debug info
+	if( vm.prog->progs->ofssources ) vm.prog->sources = (dsource_t*)((byte *)vm.prog->progs + vm.prog->progs->ofssources);
+	if( vm.prog->progs->ofslinenums ) vm.prog->linenums = (int *)((byte *)vm.prog->progs + vm.prog->progs->ofslinenums);
+	if( vm.prog->progs->ofs_types ) vm.prog->types = (type_t *)((byte *)vm.prog->progs + vm.prog->progs->ofs_types);
 
 	// decompress progs if needed
-	if( vm.prog->progs->version >= FPROGS_VERSION && vm.prog->progs->blockscompressed & COMP_STATEMENTS )
+	if( vm.prog->progs->flags & COMP_STATEMENTS )
 	{
-		switch(vm.prog->intsize)
-		{
-		case 32:
-			len = sizeof(dstatement32_t) * vm.prog->progs->numstatements;
-			break;
-		case 16:
-		default:
-			len = sizeof(dstatement16_t) * vm.prog->progs->numstatements;
-			break;
-		}
+		len = sizeof(dstatement_t) * vm.prog->progs->numstatements;
 		complen = LittleLong(*(int*)vm.prog->statements);
 
 		MsgDev(D_NOTE, "Unpacked statements: len %d, comp len %d\n", len, complen );                   
 		s = Mem_Alloc(vm.prog->progs_mempool, len ); // alloc memory for inflate block
 		VFS_Unpack((char *)(((int *)vm.prog->statements)+1), complen, &s, len ); 
-		vm.prog->statements = (dstatement16_t *)s;
+		vm.prog->statements = (dstatement_t *)s;
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
 
-	if( vm.prog->progs->version >= FPROGS_VERSION && vm.prog->progs->blockscompressed & COMP_DEFS )
+	if( vm.prog->progs->flags & COMP_DEFS )
 	{
-		switch(vm.prog->intsize)
-		{
-		case 32:
-			len = sizeof(ddef32_t) * vm.prog->progs->numglobaldefs;
-			break;
-		case 16:
-		default:
-			len = sizeof(ddef16_t) * vm.prog->progs->numglobaldefs;
-			break;
-		}
+		len = sizeof(ddef_t) * vm.prog->progs->numglobaldefs;
 		complen = LittleLong(*(int*)vm.prog->globaldefs);
 
 		MsgDev(D_NOTE, "Unpacked defs: len %d, comp len %d\n", len, complen);                   
 		s = Mem_Alloc(vm.prog->progs_mempool, len ); // alloc memory for inflate block
 		VFS_Unpack((char *)(((int *)vm.prog->globaldefs)+1), complen, &s, len ); 
-		vm.prog->globaldefs = (ddef16_t *)s;
+		vm.prog->globaldefs = (ddef_t *)s;
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
 
-	if( vm.prog->progs->version >= FPROGS_VERSION && vm.prog->progs->blockscompressed & COMP_FIELDS )
+	if( vm.prog->progs->flags & COMP_FIELDS )
 	{
-		switch(vm.prog->intsize)
-		{
-		case 32:
-			len = sizeof(ddef32_t) * vm.prog->progs->numfielddefs;
-			break;
-		case 16:
-		default:
-			len = sizeof(ddef16_t) * vm.prog->progs->numfielddefs;
-			break;
-		}
+		len = sizeof(ddef_t) * vm.prog->progs->numfielddefs;
 		complen = LittleLong(*(int*)infielddefs);
 
 		MsgDev(D_NOTE, "Unpacked fields: len %d, comp len %d\n", len, complen );                   
 		s = Mem_Alloc(vm.prog->progs_mempool, len ); // alloc memory for inflate block
 		VFS_Unpack((char *)(((int *)infielddefs)+1), complen, &s, len ); 
-		infielddefs = (ddef16_t *)s;
+		infielddefs = (ddef_t *)s;
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
 
-	if( vm.prog->progs->version >= FPROGS_VERSION && vm.prog->progs->blockscompressed & COMP_FUNCTIONS )
+	if( vm.prog->progs->flags & COMP_FUNCTIONS )
 	{
 		len = sizeof(dfunction_t) * vm.prog->progs->numfunctions;
 		complen = LittleLong(*(int*)dfunctions);
@@ -1390,7 +1280,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
 
-	if( vm.prog->progs->version >= FPROGS_VERSION && vm.prog->progs->blockscompressed & COMP_STRINGS )
+	if( vm.prog->progs->flags & COMP_STRINGS )
 	{
 		len = sizeof(char) * vm.prog->progs->numstrings;
 		complen = LittleLong(*(int*)vm.prog->strings);
@@ -1404,7 +1294,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
 
-	if( vm.prog->progs->version >= FPROGS_VERSION && vm.prog->progs->blockscompressed & COMP_GLOBALS )
+	if( vm.prog->progs->flags & COMP_GLOBALS )
 	{
 		len = sizeof(float) * vm.prog->progs->numglobals;
 		complen = LittleLong(*(int*)vm.prog->globals.gp);
@@ -1416,13 +1306,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
 
-	if( vm.prog->sources ) // source always are packed
-	{
-		int			numsources = LittleLong(*(int*)vm.prog->sources);
-		dsource_t	*src = (dsource_t *)(((int *)vm.prog->sources)+1);
-	}
-
-	if( vm.prog->linenums && vm.prog->progs->blockscompressed & COMP_LINENUMS )
+	if( vm.prog->linenums && vm.prog->progs->flags & COMP_LINENUMS )
 	{
 		len = sizeof(int) * vm.prog->progs->numstatements;
 		complen = LittleLong(*(int*)vm.prog->linenums);
@@ -1434,7 +1318,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 		filesize += len - complen - sizeof(int); //merge filesize
 	}
 
-	if( vm.prog->types && vm.prog->progs->blockscompressed & COMP_TYPES )
+	if( vm.prog->types && vm.prog->progs->flags & COMP_TYPES )
 	{
 		len = sizeof(type_t) * vm.prog->progs->numtypes;
 		complen = LittleLong(*(int*)vm.prog->types);
@@ -1468,10 +1352,10 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 	// byte swap the lumps
 	for (i = 0; i < vm.prog->progs->numstatements; i++)
 	{
-		vm.prog->statements[i].op = LittleShort(vm.prog->statements[i].op);
-		vm.prog->statements[i].a = LittleShort(vm.prog->statements[i].a);
-		vm.prog->statements[i].b = LittleShort(vm.prog->statements[i].b);
-		vm.prog->statements[i].c = LittleShort(vm.prog->statements[i].c);
+		vm.prog->statements[i].op = LittleLong(vm.prog->statements[i].op);
+		vm.prog->statements[i].a = LittleLong(vm.prog->statements[i].a);
+		vm.prog->statements[i].b = LittleLong(vm.prog->statements[i].b);
+		vm.prog->statements[i].c = LittleLong(vm.prog->statements[i].c);
 	}
 	vm.prog->functions = (mfunction_t *)Mem_Alloc(vm.prog->progs_mempool, sizeof(mfunction_t) * vm.prog->progs->numfunctions);
 	for (i = 0; i < vm.prog->progs->numfunctions; i++)
@@ -1487,18 +1371,18 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 
 	for (i = 0; i < vm.prog->progs->numglobaldefs; i++)
 	{
-		vm.prog->globaldefs[i].type = LittleShort (vm.prog->globaldefs[i].type);
-		vm.prog->globaldefs[i].ofs = LittleShort (vm.prog->globaldefs[i].ofs);
+		vm.prog->globaldefs[i].type = LittleLong (vm.prog->globaldefs[i].type);
+		vm.prog->globaldefs[i].ofs = LittleLong (vm.prog->globaldefs[i].ofs);
 		vm.prog->globaldefs[i].s_name = LittleLong (vm.prog->globaldefs[i].s_name);
 	}
 
 	// copy the progs fields to the new fields list
 	for (i = 0; i < vm.prog->progs->numfielddefs; i++)
 	{
-		vm.prog->fielddefs[i].type = LittleShort (infielddefs[i].type);
+		vm.prog->fielddefs[i].type = LittleLong (infielddefs[i].type);
 		if (vm.prog->fielddefs[i].type & DEF_SAVEGLOBAL)
 			PRVM_ERROR ("PRVM_LoadProgs: vm.prog->fielddefs[i].type & DEF_SAVEGLOBAL in %s", PRVM_NAME);
-		vm.prog->fielddefs[i].ofs = LittleShort (infielddefs[i].ofs);
+		vm.prog->fielddefs[i].ofs = LittleLong (infielddefs[i].ofs);
 		vm.prog->fielddefs[i].s_name = LittleLong (infielddefs[i].s_name);
 	}
 
@@ -1530,7 +1414,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 		{
 		case OP_IF:
 		case OP_IFNOT:
-			if((word)st->a >= vm.prog->progs->numglobals || st->b + i < 0 || st->b + i >= vm.prog->progs->numstatements)
+			if((dword)st->a >= vm.prog->progs->numglobals || st->b + i < 0 || st->b + i >= vm.prog->progs->numstatements)
 				PRVM_ERROR("PRVM_LoadProgs: out of bounds IF/IFNOT (statement %d) in %s", i, PRVM_NAME);
 			break;
 		case OP_IFNOTS:
@@ -1606,7 +1490,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 		case OP_CP_FTOI:
 		case OP_GLOBAL_ADD:
 		case OP_POINTER_ADD:
-			if((word) st->a >= vm.prog->progs->numglobals || (word) st->b >= vm.prog->progs->numglobals || (word)st->c >= vm.prog->progs->numglobals)
+			if((dword) st->a >= vm.prog->progs->numglobals || (dword) st->b >= vm.prog->progs->numglobals || (dword)st->c >= vm.prog->progs->numglobals)
 				PRVM_ERROR("PRVM_LoadProgs: out of bounds global index (statement %d)", i);
 			break;
 		// global none global
@@ -1615,7 +1499,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 		case OP_NOT_S:
 		case OP_NOT_FNC:
 		case OP_NOT_ENT:
-			if((word) st->a >= vm.prog->progs->numglobals || (word) st->c >= vm.prog->progs->numglobals)
+			if((dword) st->a >= vm.prog->progs->numglobals || (dword) st->c >= vm.prog->progs->numglobals)
 				PRVM_ERROR("PRVM_LoadProgs: out of bounds global index (statement %d) in %s", i, PRVM_NAME);
 			break;
 		// 2 globals
@@ -1646,7 +1530,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 		case OP_SUBSTORE_V:
 		case OP_SUBSTOREP_F:
 		case OP_SUBSTOREP_V:
-			if ((word) st->a >= vm.prog->progs->numglobals || (word) st->b >= vm.prog->progs->numglobals)
+			if ((dword) st->a >= vm.prog->progs->numglobals || (dword) st->b >= vm.prog->progs->numglobals)
 				Host_Error("PRVM_LoadProgs: out of bounds global index (statement %d) in %s", i, PRVM_NAME);
 			break;
 		// 1 global
@@ -1661,7 +1545,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 		case OP_CALL8:
 		case OP_DONE:
 		case OP_RETURN:
-			if ((word) st->a >= vm.prog->progs->numglobals)
+			if ((dword) st->a >= vm.prog->progs->numglobals)
 				Host_Error("PRVM_LoadProgs: out of bounds global index (statement %d) in %s", i, PRVM_NAME);
 			break;
 		default:
@@ -1669,8 +1553,6 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 			break;
 		}
 	}
-
-	if(!vm.prog->linenums) PRVM_LoadLNO(filename);
 
 	PRVM_Init_Exec();
 	vm.prog->loaded = true;
@@ -1682,11 +1564,12 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 	if( PRVM_ED_FindGlobal("time") && PRVM_ED_FindGlobal("time")->type & ev_float )
 		vm.prog->time = &PRVM_G_FLOAT(PRVM_ED_FindGlobal("time")->ofs);
 
-	if(PRVM_ED_FindField ("chain")) vm.prog->flag |= PRVM_FE_CHAIN;
-	if(PRVM_ED_FindField ("classname")) vm.prog->flag |= PRVM_FE_CLASSNAME;
-	if(PRVM_ED_FindField ("nextthink") && PRVM_ED_FindField ("frame") && PRVM_ED_FindField ("think") && vm.prog->flag && vm.prog->pev)
+	if(PRVM_ED_FindField("chain")) vm.prog->flag |= PRVM_FE_CHAIN;
+	if(PRVM_ED_FindField("classname")) vm.prog->flag |= PRVM_FE_CLASSNAME;
+	if(PRVM_ED_FindField("nextthink") && PRVM_ED_FindField ("frame") && PRVM_ED_FindField ("think") && vm.prog->flag && vm.prog->pev )
 		vm.prog->flag |= PRVM_OP_STATE;
-
+	if(PRVM_ED_FindField ("nextthink") && vm.prog->flag && vm.prog->pev )
+		vm.prog->flag |= PRVM_OP_THINKTIME;
 	PRVM_GCALL(init_cmd)();
 
 	// init mempools
@@ -1853,7 +1736,8 @@ PRVM_Global
 void PRVM_Global_f(void)
 {
 	ddef_t *global;
-	if( Cmd_Argc() != 3 ) {
+	if( Cmd_Argc() != 3 )
+	{
 		Msg( "prvm_global <program name> <global name>\n" );
 		return;
 	}

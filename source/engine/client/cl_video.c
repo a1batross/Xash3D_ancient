@@ -625,12 +625,14 @@ void CIN_StopCinematic( void )
 		dpv_close( stream );
 		stream = NULL;
 	}
-	if( cin_state == cin_playback )
-		cin_state = cin_firstframe;
 
-	// let game known about movie state	
-	cls.state = ca_disconnected;
-	Cbuf_ExecuteText(EXEC_APPEND, "killserver\n");
+	if( cin_state == cin_playback )
+	{
+		cin_state = cin_firstframe;
+		// let game known about movie state	
+		cls.state = ca_disconnected;
+		Cbuf_ExecuteText(EXEC_APPEND, "killserver\n");
+	}
 }
 
 /*

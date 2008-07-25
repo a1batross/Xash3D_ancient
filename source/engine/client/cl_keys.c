@@ -265,6 +265,10 @@ void Field_CompleteCommand( field_t *field )
 		{
 			result = Cmd_GetMusicList(Cmd_Argv(1), filename, MAX_STRING );
 		}
+		else if(!stricmp(Cmd_Argv(0), "compile" ) || !stricmp(Cmd_Argv(0), "\\compile" ))
+		{
+			result = Cmd_GetSourceList(Cmd_Argv(1), filename, MAX_STRING );
+		}
 		
 		if( result )
 		{         

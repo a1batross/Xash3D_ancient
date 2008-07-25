@@ -1398,8 +1398,32 @@ chooseexecprogram:
 			}
 			break;
 		case OP_CSTATE:
-		case OP_CWSTATE:
-			PRVM_ERROR("OP_CSTATE or OP_CWSTATE not supported by %s", PRVM_NAME);
+			if( vm.prog->flag & PRVM_OP_STATE )
+			{
+				ed = PRVM_PROG_TO_EDICT(PRVM_G_INT(vm.prog->pev->ofs));
+				PRVM_E_FLOAT(ed, PRVM_ED_FindField ("nextthink")->ofs) = *vm.prog->time + 0.1f;
+				PRVM_E_FLOAT(ed, PRVM_ED_FindField ("frame")->ofs) = OPA->_float;
+				*(func_t *)((float*)ed->progs.vp + PRVM_ED_FindField ("think")->ofs) = OPB->function;
+			}
+			else
+			{
+				vm.prog->xfunction->profile += (st - startst);
+				vm.prog->xstatement = st - vm.prog->statements;
+				PRVM_ERROR("OP_STATE not supported by %s", PRVM_NAME);
+			}
+			break;
+		case OP_THINKTIME:
+			if( vm.prog->flag & PRVM_OP_THINKTIME )
+			{
+				ed = PRVM_PROG_TO_EDICT(PRVM_G_INT(vm.prog->pev->ofs));
+				PRVM_E_FLOAT(ed, PRVM_ED_FindField ("nextthink")->ofs) = *vm.prog->time + OPB->_float;
+			}
+			else
+			{
+				vm.prog->xfunction->profile += (st - startst);
+				vm.prog->xstatement = st - vm.prog->statements;
+				PRVM_ERROR("OP_STATE not supported by %s", PRVM_NAME);
+			}
 			break;
 		default:
 			vm.prog->xfunction->profile += (st - startst);

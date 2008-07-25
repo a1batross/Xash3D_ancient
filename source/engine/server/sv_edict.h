@@ -1,78 +1,28 @@
 //=======================================================================
-//			Copyright XashXT Group 2007 ©
+//			Copyright XashXT Group 2008 ©
 //			sv_edict.h - server prvm edict
 //=======================================================================
 #ifndef SV_EDICT_H
 #define SV_EDICT_H
 
-#define MAX_ENT_CLUSTERS			16
-
-#define AI_FLY				(1<<0)		// monster is flying
-#define AI_SWIM				(1<<1)		// swimming monster
-#define AI_ONGROUND				(1<<2)		// monster is onground
-#define AI_PARTIALONGROUND			(1<<3)		// monster is partially onground
-#define AI_GODMODE				(1<<4)		// monster don't give damage at all
-#define AI_NOTARGET				(1<<5)		// monster will no searching enemy's
-#define AI_NOSTEP				(1<<6)		// Lazarus stuff
-#define AI_DUCKED				(1<<7)		// monster (or player) is ducked
-#define AI_JUMPING				(1<<8)		// monster (or player) is jumping
-#define AI_FROZEN				(1<<9)		// stop moving, but continue thinking
-#define AI_ACTOR                		(1<<10)		// disable ai for actor
-#define AI_DRIVER				(1<<11)		// npc or player driving vehcicle or train
-#define AI_SPECTATOR			(1<<12)		// spectator mode for clients
-#define AI_WATERJUMP			(1<<13)		// npc or player take out of water
-
-typedef struct worldsector_s
-{
-	int			axis;		// -1 = leaf node
-	float			dist;
-	struct worldsector_s	*children[2];
-	sv_edict_t		*entities;
-} worldsector_t;
-
-struct sv_edict_s
-{
-	// generic_edict_t (don't move these fields!)
-	bool			free;
-	float			freetime;	 	// sv.time when the object was freed
-
-	// sv_private_edict_t
-	worldsector_t		*worldsector;	// member of current wolrdsector
-	struct sv_edict_s 		*nextedict;	// next edict in world sector
-	struct sv_client_s		*client;		// filled for player ents
-	int			clipmask;		// trace info
-	int			lastcluster;	// unused if num_clusters != -1
-	int			linkcount;
-	int			num_clusters;	// if -1, use headnode instead
-	int			clusternums[MAX_ENT_CLUSTERS];
-	int			areanum, areanum2;
-
-	int			serialnumber;	// unical entity #id
-	int			solid;		// see entity_state_t for details
-	physbody_t		*physbody;	// ptr to phys body
-
-	// baselines
-	entity_state_t		s;
-};
-
 struct sv_globalvars_s
 {
-	int	pad[28];
+	int	pad[34];
 	int	pev;
 	int	other;
 	int	world;
 	float	time;
 	float	frametime;
+	float	serverflags;
 	string_t	mapname;
 	string_t	startspot;
 	vec3_t	spotoffset;
 	float	deathmatch;
-	float	coop;
 	float	teamplay;
-	float	serverflags;
+	float	coop;
 	float	total_secrets;
-	float	total_monsters;
 	float	found_secrets;
+	float	total_monsters;
 	float	killed_monsters;
 	vec3_t	v_forward;
 	vec3_t	v_right;
@@ -80,22 +30,21 @@ struct sv_globalvars_s
 	float	trace_allsolid;
 	float	trace_startsolid;
 	float	trace_fraction;
+	float	trace_plane_dist;
 	vec3_t	trace_endpos;
 	vec3_t	trace_plane_normal;
-	float	trace_plane_dist;
-	float	trace_hitgroup;
 	float	trace_contents;
-	int	trace_ent;
+	float	trace_hitgroup;
 	float	trace_flags;
-	func_t	main;
+	int	trace_ent;
+	func_t	CreateAPI;
 	func_t	StartFrame;
 	func_t	EndFrame;
 	func_t	PlayerPreThink;
 	func_t	PlayerPostThink;
-	func_t	ClientKill;
 	func_t	ClientConnect;
-	func_t	PutClientInServer;
 	func_t	ClientDisconnect;
+	func_t	PutClientInServer;
 	func_t	ClientCommand;
 	func_t	ClientUserInfoChanged;
 };
@@ -104,24 +53,25 @@ struct sv_entvars_s
 {
 	string_t	classname;
 	string_t	globalname;
-	float	modelindex;
+	int	chain;
 	func_t	precache;
 	func_t	activate;
-	func_t	use;
+	func_t	blocked;
 	func_t	touch;
 	func_t	think;
-	func_t	blocked;
+	func_t	use;
 	vec3_t	origin;
 	vec3_t	angles;
+	float	modelindex;
 	vec3_t	old_origin;
 	vec3_t	old_angles;
 	vec3_t	velocity;
 	vec3_t	avelocity;
-	vec3_t	m_pmatrix[4];
 	vec3_t	m_pcentre[3];
-	vec3_t	torque;
+	vec3_t	m_pmatrix[4];
 	vec3_t	movedir;
 	vec3_t	force;
+	vec3_t	torque;
 	vec3_t	post_origin;
 	vec3_t	post_angles;
 	vec3_t	origin_offset;
@@ -130,19 +80,18 @@ struct sv_entvars_s
 	vec3_t	mins;
 	vec3_t	maxs;
 	vec3_t	size;
+	float	mass;
 	float	solid;
 	float	movetype;
 	float	bouncetype;
 	float	waterlevel;
 	float	watertype;
 	float	ltime;
-	float	mass;
-	int	chain;
 	string_t	model;
-	float	frame;
 	float	body;
 	float	skin;
 	float	alpha;
+	float	frame;
 	float	speed;
 	float	sequence;
 	float	animtime;
@@ -182,6 +131,7 @@ struct sv_entvars_s
 	float	gravity;
 	float	team;
 };
+
 
 #define SV_NUM_REQFIELDS (sizeof(sv_reqfields) / sizeof(fields_t))
 
@@ -294,6 +244,6 @@ static fields_t sv_reqfields[] =
 	{264,	1,	"oldmodel"}
 };
 
-#define PROG_CRC_SERVER		1320
+#define PROG_CRC_SERVER		2740
 
 #endif//SV_EDICT_H

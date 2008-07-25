@@ -23,13 +23,8 @@ TODO:
 
 #define MEMBERFIELDNAME	"__m%s"		// mark
 #define MAX_NAME		64		// chars long
-#define MAX_PARMS		8
 #define MAX_PARMS_EXTRA	128
 #define PROGDEFS_MAX_SIZE	MAX_MSGLEN	// 32 kbytes
-
-#define CMPW_COPY		0
-#define CMPW_ENCRYPT	1
-#define CMPW_DEFLATE	2
 
 // optimization level flags
 #define FL_DBG		1
@@ -70,15 +65,6 @@ extern char **com_argv;
 #define BytesForBuckets(b)	(sizeof(bucket_t)*b)
 #define STRCMP(s1, s2)	(((*s1)!=(*s2)) || com.strcmp(s1+1,s2+1))
 #define STRNCMP(s1, s2, l)	(((*s1)!=(*s2)) || com.strncmp(s1+1,s2+1,l))
-
-#define statements16 ((dstatement16_t*) statements)
-#define statements32 statements
-
-#define qcc_globals16 ((ddef16_t*)qcc_globals)
-#define qcc_globals32 qcc_globals
-
-#define fields16 ((ddef16_t*)fields)
-#define fields32 fields
 
 typedef uint		gofs_t;	// offset in global data block
 typedef struct function_s	function_t;
@@ -257,10 +243,9 @@ typedef struct
 
 typedef struct keyword_s
 {
-	uint		version;		// target version
 	int		number;
-	char		*name;		// first name
-	char		*alias;		// alias for keyword
+	const char	*name;		// first name
+	const char	*alias;		// alias for keyword
 	uint		ignoretype;	// ignore matching for this type
 } keyword_t;
 
@@ -294,7 +279,6 @@ typedef struct freeoffset_s
 
 typedef struct
 {
-	uint		version;		// weather we need to mark the progs as a newer version
 	char		*name;
 	char		*opname;
 	int		priority;
@@ -521,7 +505,6 @@ extern int	MAX_CONSTANTS;
 extern char	*compilingfile;
 extern char	progsoutname[MAX_SYSPATH];
 extern char	sourcedir[MAX_SYSPATH];
-extern int	target_version;
 extern int	recursivefunctiontype;
 extern freeoffset_t	*freeofs;
 extern type_t	*type_void;
@@ -649,7 +632,7 @@ void *Hash_AddKey(hashtable_t *table, int key, void *data, bucket_t *buck);
 void PR_WriteBlock(file_t *f, fs_offset_t pos, const void *data, size_t blocksize, bool compress);
 bool PR_LoadingProject( const char *filename );
 void PR_SetDefaultProperties( void );
-word PR_WriteProgdefs (char *filename);
+word PR_WriteProgdefs( void );
 void PR_WriteLNOfile(char *filename);
 byte *PR_CreateProgsSRC( void );
 void PR_WriteDAT( void );

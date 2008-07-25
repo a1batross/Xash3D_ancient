@@ -5,7 +5,6 @@
 
 #include "platform.h"
 #include "byteorder.h"
-#include "builtin.h"
 #include "utils.h"
 #include "mathlib.h"
 
@@ -228,12 +227,14 @@ syntax "$load fire01.tga"
 */
 void Cmd_Load (void)
 {
-	char *framename;
+	char	*framename;
+	size_t	image_size;
+	byte	*error_tga = FS_LoadInternal( "error.tga", &image_size );
 
 	if( byteimage ) Image->FreeImage( byteimage ); // release old image
 	framename = Com_GetToken(false);
 	FS_DefaultExtension( framename, ".tga" );
-	byteimage = Image->LoadImage( framename, error_tga, sizeof(error_tga));
+	byteimage = Image->LoadImage( framename, error_tga, image_size );
 
 	if(Com_TryToken())
 	{

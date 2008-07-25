@@ -450,11 +450,11 @@ Just sent as a hint to the client that they should
 drop to full console
 =================
 */
-void CL_Changing_f (void)
+void CL_Changing_f( void )
 {
 	//ZOID
 	//if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
-	if (cls.download) return;
+	if( cls.download ) return;
 
 	S_StopAllSounds();
 	cls.state = ca_connected;	// not active anymore, but not disconnected
@@ -473,10 +473,10 @@ void CL_Reconnect_f (void)
 {
 	//ZOID
 	//if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
-	if (cls.download) return;
+	if( cls.download ) return;
 
 	S_StopAllSounds ();
-	if (cls.state == ca_connected)
+	if( cls.state == ca_connected )
 	{
 		Msg ("reconnecting...\n");
 		cls.state = ca_connected;
@@ -1237,6 +1237,7 @@ void CL_InitLocal (void)
 	Cmd_AddCommand ("drop", NULL, NULL );
 	Cmd_AddCommand ("say", NULL, NULL );
 	Cmd_AddCommand ("say_team", NULL, NULL );
+	Cmd_AddCommand ("enum_activity", NULL, NULL );
 	Cmd_AddCommand ("info", NULL, NULL );
 	Cmd_AddCommand ("prog", NULL, NULL );
 	Cmd_AddCommand ("give", NULL, NULL );

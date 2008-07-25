@@ -594,18 +594,6 @@ bool PR_Precompiler(void)
 			{
 				ForcedCRC = com.atoi(msg);
 			}
-			else if (!com.stricmp(com_token, "target"))
-			{
-				if (!com.stricmp(msg, "STANDARD")) target_version = QPROGS_VERSION;
-				else if (!com.stricmp(msg, "ID")) target_version = QPROGS_VERSION;
-				else if (!com.stricmp(msg, "FTE")) target_version = FPROGS_VERSION;
-				else if (!com.stricmp(msg, "VPROGS"))target_version = VPROGS_VERSION;
-				else PR_ParseWarning(WARN_BADTARGET, "Unknown target \'%s\'. Ignored.", msg);
-			}
-			else if (!com.stricmp(com_token, "version"))
-			{
-				target_version = bound(QPROGS_VERSION, com.atoi(msg), VPROGS_VERSION);
-			}
 			else if (!com.stricmp(com_token, "warning"))
 			{
 				int st;
@@ -2080,7 +2068,6 @@ bool PR_MatchKeyword( int keyword )
 		if(pr_keywords[i].number == keyword)
 		{
 			// not keyword for current version
-			if(pr_keywords[i].version > target_version) return false;
 			if(!STRCMP(pr_token, pr_keywords[i].name)) return true;
 			if(com.strlen(pr_keywords[i].alias) && !STRCMP(pr_token, pr_keywords[i].alias))
 				return true; // use alias
@@ -2101,11 +2088,7 @@ bool PR_KeywordEnabled( int keyword )
 	{
 		// found it
 		if(pr_keywords[i].number == keyword)
-		{
-			if(pr_keywords[i].version > target_version)
-				return false;
 			return true;
-		}
 	}
 
 	// not exist ?
