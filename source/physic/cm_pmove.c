@@ -501,7 +501,7 @@ void PM_WaterMove( void )
 	PM_AddCurrents (wishvel);
 
 	VectorCopy (wishvel, wishdir);
-	wishspeed = VectorNormalize(wishdir);
+	wishspeed = VectorNormalizeLength( wishdir );
 
 	if (wishspeed > pm_maxspeed)
 	{
@@ -540,7 +540,7 @@ void PM_AirMove (void)
 	PM_AddCurrents (wishvel);
 
 	VectorCopy (wishvel, wishdir);
-	wishspeed = VectorNormalize(wishdir);
+	wishspeed = VectorNormalizeLength( wishdir );
 
 	// clamp to server defined max speed
 	maxspeed = (pm->ps.pm_flags & PMF_DUCKED) ? pm_duckspeed : pm_maxspeed;
@@ -765,7 +765,7 @@ void PM_CheckSpecialMovement (void)
 	flatforward[0] = pml.forward[0];
 	flatforward[1] = pml.forward[1];
 	flatforward[2] = 0;
-	VectorNormalize (flatforward);
+	VectorNormalize( flatforward );
 
 	VectorMA (pml.origin, 1, flatforward, spot);
 	trace = pm->trace (pml.origin, pm->mins, pm->maxs, spot);
@@ -847,10 +847,10 @@ void PM_FlyMove (bool doclip)
 	wishvel[2] += pm->cmd.upmove;
 
 	VectorCopy (wishvel, wishdir);
-	wishspeed = VectorNormalize(wishdir);
+	wishspeed = VectorNormalizeLength( wishdir );
 
 	// clamp to server defined max speed
-	if (wishspeed > pm_maxspeed)
+	if( wishspeed > pm_maxspeed )
 	{
 		VectorScale (wishvel, pm_maxspeed/wishspeed, wishvel);
 		wishspeed = pm_maxspeed;

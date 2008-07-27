@@ -668,6 +668,24 @@ void GL_DisableAlphaTest ( void )
 	}
 }
 
+
+/*
+===============
+GL_PolygonOffset
+
+enable polygon offset for debug targets
+===============
+*/
+void GL_PolygonOffset( float planeoffset, float depthoffset )
+{
+	if( gl_state.polygonoffset[0] != planeoffset || gl_state.polygonoffset[1] != depthoffset )
+	{
+		gl_state.polygonoffset[0] = planeoffset;
+		gl_state.polygonoffset[1] = depthoffset;
+		pglPolygonOffset( planeoffset, depthoffset );
+	}
+}
+
 /*
 ===============
 GL_StateBlend

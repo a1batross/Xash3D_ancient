@@ -183,7 +183,7 @@ size_t com_strncat(char *dst, const char *src, size_t siz);
 size_t com_strcat(char *dst, const char *src );
 size_t com_strncpy(char *dst, const char *src, size_t siz);
 size_t com_strcpy(char *dst, const char *src );
-char *com_stralloc(const char *s, const char *filename, int fileline);
+char *com_stralloc(byte *mempool, const char *s, const char *filename, int fileline);
 int com_atoi(const char *str);
 float com_atof(const char *str);
 void com_atov( float *vec, const char *str, size_t siz );
@@ -203,7 +203,7 @@ int com_snprintf(char *buffer, size_t buffersize, const char *format, ...);
 int com_sprintf(char *buffer, const char *format, ...);
 char *com_pretifymem( float value, int digitsafterdecimal );
 char *va(const char *format, ...);
-#define copystring(str)	com_stralloc(str, __FILE__, __LINE__)
+#define copystring( str ) com_stralloc( NULL, str, __FILE__, __LINE__)
 
 //
 // random.c

@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PHYSIC_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /Ob1 /I "../public" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "../public" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -117,6 +117,10 @@ SOURCE=.\cm_callback.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\cm_collision.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\cm_debug.c
 # End Source File
 # Begin Source File
@@ -130,6 +134,10 @@ SOURCE=.\cm_model.c
 # Begin Source File
 
 SOURCE=.\cm_pmove.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\cm_polygon.c
 # End Source File
 # Begin Source File
 

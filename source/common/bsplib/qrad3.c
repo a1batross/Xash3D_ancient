@@ -202,8 +202,8 @@ void MakeTransfers (int i)
 
 		// calculate vector
 		VectorSubtract (patch2->origin, origin, delta);
-		dist = VectorNormalize (delta);
-		if (!dist) continue; // should never happen
+		dist = VectorNormalizeLength( delta );
+		if( !dist ) continue; // should never happen
 
 		// reletive angles
 		scale = DotProduct (delta, plane.normal);

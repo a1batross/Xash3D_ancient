@@ -456,7 +456,7 @@ void FixFaceEdges (node_t *node, face_t *f)
 		FindEdgeVerts (edge_start, e2);
 
 		VectorSubtract (e2, edge_start, edge_dir);
-		len = VectorNormalize (edge_dir);
+		len = VectorNormalizeLength( edge_dir );
 
 		start[i] = numsuperverts;
 		TestEdge (0, len, p1, p2, 0);
@@ -866,7 +866,7 @@ void SubdivideFace (node_t *node, face_t *f)
 		// split it
 			c_subdivide++;
 			
-			v = VectorNormalize (temp);	
+			v = VectorNormalizeLength( temp );	
 
 			dist = (mins + subdivide_size - 16)/v;
 

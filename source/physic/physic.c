@@ -16,13 +16,21 @@ cvar_t *cm_use_triangles;
 cvar_t *cm_solver_model;
 cvar_t *cm_friction_model;
 cvar_t *cm_physics_model;
+cvar_t *cm_debugdraw;
 
 bool InitPhysics( void )
 {
+	char	dev_level[4];
+
 	physpool = Mem_AllocPool("Physics Pool");
 	cmappool = Mem_AllocPool("CM Zone");
 	gWorld = NewtonCreate( Palloc, Pfree ); // alloc world
 
+	// check developer mode
+	if( FS_GetParmFromCmdLine("-dev", dev_level ))
+		ph.developer = com.atoi(dev_level);
+
+	CM_CollisionInit();
 	CM_InitMaterials();
 
 	cm_noareas = Cvar_Get( "cm_noareas", "0", 0, "ignore clipmap areas" );
@@ -30,6 +38,7 @@ bool InitPhysics( void )
 	cm_solver_model = Cvar_Get("cm_solver", "0", CVAR_SYSTEMINFO, "change solver model: 0 - precision, 1 - adaptive, 2 - fast. (changes need restart server to take effect)" );
 	cm_friction_model = Cvar_Get("cm_friction", "0", CVAR_SYSTEMINFO, "change solver model: 0 - precision, 1 - adaptive. (changes need restart server to take effect)" );
 	cm_physics_model = Cvar_Get("cm_physic", "1", CVAR_ARCHIVE, "change physic model: 0 - Classic Quake Physic, 1 - Physics Engine" );
+	cm_debugdraw = Cvar_Get( "cm_debugdraw", "0", CVAR_ARCHIVE, "draw physics hulls" );
 
 	return true;
 }

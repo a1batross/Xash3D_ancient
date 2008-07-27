@@ -38,15 +38,16 @@
 
 #define VectorToPhysic(v) { v[0] = INCH2METER(v[0]), v[1] = INCH2METER(v[1]), v[2] = INCH2METER(v[2]); }
 #define VectorToServer(v) { v[0] = METER2INCH(v[0]), v[1] = METER2INCH(v[1]), v[2] = METER2INCH(v[2]); }
-#define DotProduct(x,y) (x[0]*y[0]+x[1]*y[1]+x[2]*y[2])
+#define DotProduct(x,y) ((x)[0]*(y)[0]+(x)[1]*(y)[1]+(x)[2]*(y)[2])
 #define VectorSubtract(a,b,c){c[0]=a[0]-b[0];c[1]=a[1]-b[1];c[2]=a[2]-b[2];}
 #define Vector4Subtract(a,b,c){c[0]=a[0]-b[0];c[1]=a[1]-b[1];c[2]=a[2]-b[2];c[3]=a[3]-b[3];}
 #define VectorAdd(a,b,c) {c[0]=a[0]+b[0];c[1]=a[1]+b[1];c[2]=a[2]+b[2];}
-#define VectorCopy(a,b) {b[0]=a[0];b[1]=a[1];b[2]=a[2];}
+#define VectorCopy(a,b) ((b)[0]=(a)[0],(b)[1]=(a)[1],(b)[2]=(a)[2])
 #define Vector4Copy(a,b) {b[0]=a[0];b[1]=a[1];b[2]=a[2];b[3]=a[3];}
 #define VectorScale(in, scale, out) ((out)[0] = (in)[0] * (scale),(out)[1] = (in)[1] * (scale),(out)[2] = (in)[2] * (scale))
 #define Vector4Scale(in, scale, out) ((out)[0] = (in)[0] * (scale),(out)[1] = (in)[1] * (scale),(out)[2] = (in)[2] * (scale),(out)[3] = (in)[3] * (scale))
 #define VectorMultiply(a,b,c) ((c)[0]=(a)[0]*(b)[0],(c)[1]=(a)[1]*(b)[1],(c)[2]=(a)[2]*(b)[2])
+#define VectorLength(a) (sqrt(DotProduct(a, a)))
 #define VectorLength2(a) (DotProduct(a, a))
 #define VectorDistance(a, b) (sqrt(VectorDistance2(a,b)))
 #define VectorDistance2(a, b) (((a)[0] - (b)[0]) * ((a)[0] - (b)[0]) + ((a)[1] - (b)[1]) * ((a)[1] - (b)[1]) + ((a)[2] - (b)[2]) * ((a)[2] - (b)[2]))
@@ -55,13 +56,22 @@
 #define Vector4Set(v, x, y, z, w) {v[0] = x, v[1] = y, v[2] = z, v[3] = w;}
 #define VectorClear(x) {x[0] = x[1] = x[2] = 0;}
 #define Vector4Clear(x) {x[0] = x[1] = x[2] = x[3] = 0;}
+#define VectorLerp( v1, lerp, v2, c ) ((c)[0] = (v1)[0] + (lerp) * ((v2)[0] - (v1)[0]), (c)[1] = (v1)[1] + (lerp) * ((v2)[1] - (v1)[1]), (c)[2] = (v1)[2] + (lerp) * ((v2)[2] - (v1)[2]))
+#define VectorNormalize( v ) { float ilength = (float)sqrt(DotProduct(v, v));if (ilength) ilength = 1.0f / ilength;v[0] *= ilength;v[1] *= ilength;v[2] *= ilength; }
+#define VectorNormalize2( v, dest ) {float ilength = (float) sqrt(DotProduct(v,v));if (ilength) ilength = 1.0f / ilength;dest[0] = v[0] * ilength;dest[1] = v[1] * ilength;dest[2] = v[2] * ilength; }
+#define VectorNormalizeDouble( v ) {double ilength = sqrt(DotProduct(v,v));if (ilength) ilength = 1.0 / ilength;v[0] *= ilength;v[1] *= ilength;v[2] *= ilength; }
 #define VectorNegate(x, y) {y[0] =-x[0]; y[1]=-x[1]; y[2]=-x[2];}
 #define VectorM(scale1, b1, c) ((c)[0] = (scale1) * (b1)[0],(c)[1] = (scale1) * (b1)[1],(c)[2] = (scale1) * (b1)[2])
 #define VectorMA(a, scale, b, c) ((c)[0] = (a)[0] + (scale) * (b)[0],(c)[1] = (a)[1] + (scale) * (b)[1],(c)[2] = (a)[2] + (scale) * (b)[2])
 #define VectorMAM(scale1, b1, scale2, b2, c) ((c)[0] = (scale1) * (b1)[0] + (scale2) * (b2)[0],(c)[1] = (scale1) * (b1)[1] + (scale2) * (b2)[1],(c)[2] = (scale1) * (b1)[2] + (scale2) * (b2)[2])
 #define VectorMAMAM(scale1, b1, scale2, b2, scale3, b3, c) ((c)[0] = (scale1) * (b1)[0] + (scale2) * (b2)[0] + (scale3) * (b3)[0],(c)[1] = (scale1) * (b1)[1] + (scale2) * (b2)[1] + (scale3) * (b3)[1],(c)[2] = (scale1) * (b1)[2] + (scale2) * (b2)[2] + (scale3) * (b3)[2])
 #define VectorMAMAMAM(scale1, b1, scale2, b2, scale3, b3, scale4, b4, c) ((c)[0] = (scale1) * (b1)[0] + (scale2) * (b2)[0] + (scale3) * (b3)[0] + (scale4) * (b4)[0],(c)[1] = (scale1) * (b1)[1] + (scale2) * (b2)[1] + (scale3) * (b3)[1] + (scale4) * (b4)[1],(c)[2] = (scale1) * (b1)[2] + (scale2) * (b2)[2] + (scale3) * (b3)[2] + (scale4) * (b4)[2])
+#define VectorReflect( a, r, b, c ) do{ double d; d = DotProduct((a), (b)) * -(1.0 + (r)); VectorMA((a), (d), (b), (c)); } while( 0 )
 #define MatrixLoadIdentity(mat) {Vector4Set(mat[0], 1, 0, 0, 0); Vector4Set(mat[1], 0, 1, 0, 0); Vector4Set(mat[2], 0, 0, 1, 0); Vector4Set(mat[3], 0, 0, 0, 1); }
+#define BoxesOverlap(a,b,c,d) ((a)[0] <= (d)[0] && (b)[0] >= (c)[0] && (a)[1] <= (d)[1] && (b)[1] >= (c)[1] && (a)[2] <= (d)[2] && (b)[2] >= (c)[2])
+#define BoxInsideBox(a,b,c,d) ((a)[0] >= (c)[0] && (b)[0] <= (d)[0] && (a)[1] >= (c)[1] && (b)[1] <= (d)[1] && (a)[2] >= (c)[2] && (b)[2] <= (d)[2])
+#define TriangleOverlapsBox( a, b, c, d, e ) (min((a)[0], min((b)[0], (c)[0])) < (e)[0] && max((a)[0], max((b)[0], (c)[0])) > (d)[0] && min((a)[1], min((b)[1], (c)[1])) < (e)[1] && max((a)[1], max((b)[1], (c)[1])) > (d)[1] && min((a)[2], min((b)[2], (c)[2])) < (e)[2] && max((a)[2], max((b)[2], (c)[2])) > (d)[2])
+#define TriangleNormal( a, b, c, n) ((n)[0] = ((a)[1] - (b)[1]) * ((c)[2] - (b)[2]) - ((a)[2] - (b)[2]) * ((c)[1] - (b)[1]), (n)[1] = ((a)[2] - (b)[2]) * ((c)[0] - (b)[0]) - ((a)[0] - (b)[0]) * ((c)[2] - (b)[2]), (n)[2] = ((a)[0] - (b)[0]) * ((c)[1] - (b)[1]) - ((a)[1] - (b)[1]) * ((c)[0] - (b)[0]))
 _inline float anglemod(const float a){return(360.0/65536) * ((int)(a*(65536/360.0)) & 65535);}
 
 _inline int nearest_pow(int size)
@@ -156,15 +166,23 @@ _inline void VectorCeil( vec3_t v)
 	v[2] = ceil(v[2]);
 }
 
-_inline double VectorLength(vec3_t v)
+// FIXME: convert to #define
+_inline float VectorNormalizeLength( vec3_t v )
 {
-	int	i;
-	double	length;
-	
-	length = 0;
-	for (i=0 ; i< 3 ; i++) length += v[i]*v[i];
-	length = sqrt (length); // FIXME
+	float length, ilength;
+
+	length = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
+	length = sqrt (length);
+
+	if( length )
+	{
+		ilength = 1/length;
+		v[0] *= ilength;
+		v[1] *= ilength;
+		v[2] *= ilength;
+	}
 	return length;
+
 }
 
 _inline bool VectorIsNull( const vec3_t v )
@@ -196,44 +214,6 @@ _inline bool VectorICompare( const int* v1, const int* v2 )
 		if( abs(v1[i] - v2[i]) > 0)
 			return false;
 	return true;
-}
-
-_inline vec_t VectorNormalize (vec3_t v)
-{
-	float	length, ilength;
-
-	length = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
-	length = sqrt (length);// FIXME
-
-	if (length)
-	{
-		ilength = 1/length;
-		v[0] *= ilength;
-		v[1] *= ilength;
-		v[2] *= ilength;
-	}
-	return length;
-}
-
-_inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
-{
-	float	length, ilength;
-
-	length = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
-	length = sqrt( length );// FIXME
-
-	if (length)
-	{
-		ilength = 1/length;
-		out[0] *= ilength;
-		out[1] *= ilength;
-		out[2] *= ilength;
-	}
-	else
-	{
-		VectorClear( out );
-	}
-	return length;
 }
 
 _inline void VectorRotate (const vec3_t in1, vec3_t in2[3], vec3_t out)
@@ -902,6 +882,32 @@ _inline float *GetRGBA( float r, float g, float b, float a )
 	static vec4_t	color;
 
 	Vector4Set( color, r, g, b, a );
+	return color;
+}
+
+_inline long PackRGBA( float red, float green, float blue, float alpha )
+{
+	byte	rgba[4];
+	
+	rgba[3] = bound( 0, 255 * red, 255 );
+	rgba[2] = bound( 0, 255 * green, 255 );
+	rgba[1] = bound( 0, 255 * blue, 255 );
+
+	if( alpha > 0.0f ) rgba[0] = bound( 0, 255 * alpha, 255 );
+	else rgba[0] = 0xFF; // fullbright
+
+	return (rgba[0] << 24) | (rgba[1] << 16) | (rgba[2] << 8) | rgba[3];
+}
+
+_inline float *UnpackRGBA( int icolor )
+{
+	static vec4_t	color;
+
+	color[0] = ((icolor & 0x000000FF) >> 0 ) / 255.0f;
+	color[1] = ((icolor & 0x0000FF00) >> 8 ) / 255.0f;
+	color[2] = ((icolor & 0x00FF0000) >> 16) / 255.0f;
+	color[3] = ((icolor & 0xFF000000) >> 24) / 255.0f;
+
 	return color;
 }
 

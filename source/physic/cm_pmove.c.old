@@ -757,7 +757,7 @@ static void PM_WaterMove( void )
 
 	PM_AddCurrents( wishvel );
 	VectorCopy( wishvel, wishdir );
-	wishspeed = VectorNormalize( wishdir );
+	wishspeed = VectorNormalizeLength( wishdir );
 
 	if( wishspeed > PM_SPEED * pm_swimscale )
 	{
@@ -816,7 +816,7 @@ static void PM_FlyMove( void )
 	}
 
 	VectorCopy( wishvel, wishdir );
-	wishspeed = VectorNormalize(wishdir);
+	wishspeed = VectorNormalizeLength( wishdir );
 
 	PM_Accelerate( wishdir, wishspeed, pm_flyaccelerate );
 	PM_StepSlideMove( false );
@@ -859,7 +859,7 @@ static void PM_AirMove( void )
 
 	PM_AddCurrents( wishvel );
 	VectorCopy( wishvel, wishdir );
-	wishspeed = VectorNormalize( wishdir );
+	wishspeed = VectorNormalizeLength( wishdir );
 	wishspeed *= scale;
 
 	// not on ground, so little effect on velocity
@@ -884,7 +884,7 @@ static void PM_AirMove( void )
 				if( pm->ps.velocity[2] > 0 ) pm->ps.velocity[2] = 0;
 			}
 		}
-	} 
+	} 
 	else if( pml.groundplane )
 	{
 		PM_ClipVelocity (pm->ps.velocity, pml.groundtrace.plane.normal, pm->ps.velocity, OVERCLIP );
@@ -952,7 +952,7 @@ static void PM_WalkMove( void )
 	PM_AddCurrents( wishvel );
 
 	VectorCopy( wishvel, wishdir );
-	wishspeed = VectorNormalize( wishdir );
+	wishspeed = VectorNormalizeLength( wishdir );
 	wishspeed *= scale;
 
 	// clamp the speed lower if ducking
@@ -1089,7 +1089,7 @@ static void PM_NoclipMove( void )
 	wishvel[2] += pm->cmd.upmove;
 
 	VectorCopy( wishvel, wishdir );
-	wishspeed = VectorNormalize( wishdir );
+	wishspeed = VectorNormalizeLength( wishdir );
 	wishspeed *= scale;
 
 	PM_Accelerate( wishdir, wishspeed, pm_accelerate );

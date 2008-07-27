@@ -388,10 +388,9 @@ void AddBrushBevels (mapbrush_t *b)
 		{
 			k = (j+1)%w->numpoints;
 			VectorSubtract (w->p[j], w->p[k], vec);
-			if (VectorNormalize (vec) < 0.5)
-				continue;
-			SnapVector (vec);
-			for (k=0 ; k<3 ; k++)
+			if( VectorNormalizeLength( vec ) < 0.5f ) continue;
+			SnapVector( vec );
+			for( k = 0; k < 3; k++ )
 				if ( vec[k] == -1 || vec[k] == 1)
 					break;	// axial
 			if (k != 3)
@@ -406,8 +405,7 @@ void AddBrushBevels (mapbrush_t *b)
 					VectorClear (vec2);
 					vec2[axis] = dir;
 					CrossProduct (vec, vec2, normal);
-					if (VectorNormalize (normal) < 0.5)
-						continue;
+					if( VectorNormalizeLength( normal ) < 0.5f ) continue;
 					dist = DotProduct (w->p[j], normal);
 
 					// if all the points on all the sides are

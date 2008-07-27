@@ -79,7 +79,7 @@ typedef struct glstate_s
 	GLenum		blendDst;
 	GLenum		depthFunc;
 	GLboolean		depthMask;
-
+	GLfloat		polygonoffset[2];
 
 	// old stuff
 	vec4_t		draw_color;	// using with Draw_* functions

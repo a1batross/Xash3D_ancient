@@ -559,7 +559,7 @@ typedef struct stdilib_api_s
 	size_t (*strcat)(char *dst, const char *src);			// add new string at end of buffer
 	size_t (*strncpy)(char *dst, const char *src, size_t n);		// copy string to existing buffer
 	size_t (*strcpy)(char *dst, const char *src);			// copy string to existing buffer
-	char *(*stralloc)(const char *in,const char *file,int line);	// create buffer and copy string here
+	char *(*stralloc)(byte *mp,const char *in,const char *file,int line);	// create buffer and copy string here
 	int (*atoi)(const char *str);					// convert string to integer
 	float (*atof)(const char *str);				// convert string to float
 	void (*atov)( float *dst, const char *src, size_t n );		// convert string to vector
@@ -807,7 +807,7 @@ stdlib function names that not across with windows stdlib
 ===========================================
 */
 #define timestamp			com.timestamp
-#define copystring( str )		com.stralloc( str, __FILE__, __LINE__ )
+#define copystring( str )		com.stralloc( NULL, str, __FILE__, __LINE__ )
 #define strcasecmp			com.stricmp
 #define strncasecmp			com.strnicmp
 #define strlower			com.strlwr
@@ -1037,6 +1037,8 @@ typedef struct cmodel_s
 	int	numframes;	// sprite framecount
 	int	numbodies;	// physmesh numbody
 	cmesh_t	physmesh[MAXSTUDIOMODELS];	// max bodies
+
+	void (*TraceBox)(struct cmodel_s *model, float frame, struct trace_s *trace, const vec3_t start, const vec3_t boxmins, const vec3_t boxmaxs, const vec3_t end, int contentsmask );
 } cmodel_t;
 
 typedef struct csurface_s
@@ -1056,10 +1058,14 @@ typedef struct trace_s
 	bool		startsolid;	// if true, the initial point was in a solid area
 	bool		startstuck;	// trace started from solid entity
 	float		fraction;		// time completed, 1.0 = didn't hit anything
+	float		realfraction;	// like fraction but is not nudged away from the surface
 	vec3_t		endpos;		// final position
 	cplane_t		plane;		// surface normal at impact
 	csurface_t	*surface;		// surface hit
 	int		contents;		// contents on other side of surface hit
+	int		startcontents;
+	int		contentsmask;
+	int		surfaceflags;
 	int		hitgroup;		// hit a studiomodel hitgroup #
 	int		flags;		// misc trace flags
 	edict_t		*ent;		// not set by CM_*() functions

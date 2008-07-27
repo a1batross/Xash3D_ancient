@@ -260,7 +260,8 @@ void BSP_LoadBrushes( lump_t *l )
 {
 	dbrush_t	*in;
 	cbrush_t	*out;
-	int	i, count;
+	int	i, j, count, maxplanes = 0;
+	cplanef_t	*planes = NULL;
 	
 	in = (void *)(cm.mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in)) Host_Error("CMod_LoadBrushes: funny lump size\n");
@@ -274,8 +275,23 @@ void BSP_LoadBrushes( lump_t *l )
 		out->numsides = LittleLong(in->numsides);
 		out->contents = LittleLong(in->contents);
 		CM_BoundBrush( out );
-	}
 
+		// make a list of mplane_t structs to construct a colbrush from
+		if( maxplanes < out->numsides )
+		{
+			maxplanes = out->numsides;
+			planes = Mem_Realloc( cmappool, planes, sizeof(cplanef_t) * maxplanes );
+		}
+		for( j = 0; j < out->numsides; j++ )
+		{
+			VectorCopy( cm.brushsides[out->firstbrushside + j].plane->normal, planes[j].normal );
+			planes[j].dist = cm.brushsides[out->firstbrushside + j].plane->dist;
+			planes[j].surfaceflags = cm.brushsides[out->firstbrushside + j].surface->flags;
+			planes[j].surface = cm.brushsides[out->firstbrushside + j].surface;
+		}
+		// make the colbrush from the planes
+		out->colbrushf = CM_CollisionNewBrushFromPlanes( cmappool, out->numsides, planes, out->contents );
+	}
 }
 
 /*

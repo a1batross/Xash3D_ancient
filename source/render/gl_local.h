@@ -432,6 +432,7 @@ bool GL_Support( int r_ext );
 void GL_InitExtensions( void );
 void GL_ShutdownBackend( void );
 void GL_SetExtension( int r_ext, int enable );
+void GL_PolygonOffset( float planeoffset, float depthoffset );
 void GL_CheckExtension( const char *name, const dllfunc_t *funcs, const char *cvarname, int r_ext );
 
 /*

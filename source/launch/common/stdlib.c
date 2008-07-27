@@ -185,13 +185,14 @@ size_t com_strcpy(char *dst, const char *src )
 	return com_strncpy( dst, src, 99999 );
 }
 
-char *com_stralloc(const char *s, const char *filename, int fileline)
+char *com_stralloc( byte *mempool, const char *s, const char *filename, int fileline )
 {
 	char	*b;
 
-	if(!s) return NULL;
+	if( !s ) return NULL;
+	if( !mempool ) mempool = Sys.stringpool;
 
-	b = _mem_alloc( Sys.stringpool, com_strlen(s) + 1, filename, fileline );
+	b = _mem_alloc( mempool, com_strlen(s) + 1, filename, fileline );
 	com_strcpy( b, s );
 
 	return b;

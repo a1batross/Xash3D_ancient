@@ -220,19 +220,17 @@ void TriEdge_r (triangulation_t *trian, triedge_t *e)
 			continue;	// behind edge
 		VectorSubtract (p0, p, v1);
 		VectorSubtract (p1, p, v2);
-		if (!VectorNormalize (v1))
-			continue;
-		if (!VectorNormalize (v2))
-			continue;
-		ang = DotProduct (v1, v2);
-		if (ang < best)
+		if( !VectorNormalizeLength( v1 )) continue;
+		if( !VectorNormalizeLength( v2 )) continue;
+
+		ang = DotProduct( v1, v2 );
+		if( ang < best )
 		{
 			best = ang;
 			bestp = i;
 		}
 	}
-	if (best >= 1)
-		return;		// edge doesn't match anything
+	if( best >= 1 ) return; // edge doesn't match anything
 
 	// make a new triangle
 	nt = AllocTriangle (trian);
@@ -915,7 +913,7 @@ void GatherSampleLight (vec3_t pos, vec3_t normal,
 		for (l=directlights[i] ; l ; l=l->next)
 		{
 			VectorSubtract (l->origin, pos, delta);
-			dist = VectorNormalize (delta);
+			dist = VectorNormalizeLength( delta );
 			dot = DotProduct (delta, normal);
 			if (dot <= 0.001) continue;// behind sample surface
 

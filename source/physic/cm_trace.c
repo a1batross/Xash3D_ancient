@@ -632,8 +632,8 @@ void CM_TraceThroughSphere( tracework_t *tw, vec3_t origin, float radius, vec3_t
 		return;
 	}
 
-	VectorSubtract(end, start, dir);
-	length = VectorNormalize(dir);
+	VectorSubtract( end, start, dir );
+	length = VectorNormalizeLength( dir );
 
 	l1 = CM_DistanceFromLineSquared(origin, start, end, dir);
 	VectorSubtract(end, origin, v1);
@@ -721,7 +721,7 @@ void CM_TraceThroughVerticalCylinder( tracework_t *tw, vec3_t origin, float radi
 	}
 
 	VectorSubtract( end2d, start2d, dir );
-	length = VectorNormalize( dir );
+	length = VectorNormalizeLength( dir );
 
 	l1 = CM_DistanceFromLineSquared( org2d, start2d, end2d, dir );
 	VectorSubtract(end2d, org2d, v1);
