@@ -29,7 +29,7 @@ _inline void Matrix4x4_Transform( const matrix4x4 in, const float v[3], float ou
 #endif
 }
 
-void Matrix4x4_Transform3x3( const matrix4x4 in, const float v[3], float out[3] )
+_inline void Matrix4x4_Transform3x3( const matrix4x4 in, const float v[3], float out[3] )
 {
 #ifdef OPENGL_STYLE
 	out[0] = v[0] * in[0][0] + v[1] * in[1][0] + v[2] * in[2][0];

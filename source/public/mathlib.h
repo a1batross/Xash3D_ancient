@@ -968,7 +968,7 @@ BoxOnPlaneSide (engine fast version)
 Returns SIDE_FRONT, SIDE_BACK, or SIDE_ON
 ==============
 */
-_inline int BoxOnPlaneSide (vec3_t emins, vec3_t emaxs, cplane_t *p)
+_inline int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, cplane_t *p )
 {
 	if (p->type < 3) return ((emaxs[p->type] >= p->dist) | ((emins[p->type] < p->dist) << 1));
 	switch(p->signbits)

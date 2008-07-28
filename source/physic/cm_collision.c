@@ -1378,7 +1378,7 @@ void CM_CollisionClipToGenericEntity( trace_t *trace, cmodel_t *model, int frame
 	Matrix4x4_Transform( inversematrix, end, endtransformed );
 
 	if( model && model->TraceBox )
-		model->TraceBox( model, bound(0, frame, (model->numframes - 1)), trace, starttransformed, mins, maxs, endtransformed, hitsupercontentsmask );
+		model->TraceBox( starttransformed, endtransformed, mins, maxs, model, trace, hitsupercontentsmask );
 	else CM_CollisionClipTrace_Box( trace, bodymins, bodymaxs, starttransformed, mins, maxs, endtransformed, hitsupercontentsmask, bodysupercontents, 0, NULL );
 	trace->fraction = bound( 0, trace->fraction, 1 );
 	trace->realfraction = bound( 0, trace->realfraction, 1 );
@@ -1398,7 +1398,7 @@ void CM_CollisionClipToWorld( trace_t *trace, cmodel_t *model, const vec3_t star
 	trace->fraction = trace->realfraction = 1;
 
 	if( model && model->TraceBox )
-		model->TraceBox( model, 0, trace, start, mins, maxs, end, contents );
+		model->TraceBox( start, end, mins, maxs, model, trace, contents );
 	trace->fraction = bound( 0, trace->fraction, 1 );
 	trace->realfraction = bound( 0, trace->realfraction, 1 );
 	VectorLerp( start, trace->fraction, end, trace->endpos );

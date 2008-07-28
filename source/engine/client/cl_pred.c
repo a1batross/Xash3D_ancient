@@ -128,18 +128,14 @@ void CL_ClipMoveToEntities ( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end,
 CL_PMTrace
 ================
 */
-trace_t CL_PMTrace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end)
+void CL_PMTrace( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, trace_t *tr )
 {
-	trace_t	t;
-
 	// check against world
-	t = pe->BoxTrace( start, end, mins, maxs, NULL, MASK_PLAYERSOLID, true );
-	if (t.fraction < 1.0) t.ent = (edict_t *)1;
+	pe->BoxTrace( start, end, mins, maxs, NULL, tr, MASK_PLAYERSOLID );
+	if( tr->fraction < 1.0 ) tr->ent = (edict_t *)1; //FIXME: get client entity = world
 
 	// check all other solid models
-	CL_ClipMoveToEntities( start, mins, maxs, end, &t );
-
-	return t;
+	CL_ClipMoveToEntities( start, mins, maxs, end, tr );
 }
 
 int CL_PMpointcontents( vec3_t point )

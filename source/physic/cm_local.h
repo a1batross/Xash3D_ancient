@@ -56,11 +56,31 @@ typedef struct cbsp_s
 	cbspnode_t	*nodes;
 } cbsp_t;
 
-typedef struct
+typedef struct cnode_s
 {
-	cplane_t		*plane;
-	int		children[2];	// negative numbers are leafs
+	// this part shared between node and leaf
+	cplane_t		*plane;		// always != NULL
+	vec3_t		mins;
+	vec3_t		maxs;
+
+	// this part unique to node
+	struct cnode_s	*children[2];
 } cnode_t;
+
+typedef struct cleaf_s
+{
+	// this part shared between node and leaf
+	cplane_t		*plane;		// always == NULL 
+	vec3_t		mins;
+	vec3_t		maxs;
+
+	// this part unique to leaf
+	int		contents;
+	int		cluster;
+	int		area;
+	int		firstleafbrush;
+	int		numleafbrushes;
+} cleaf_t;
 
 typedef struct
 {
@@ -226,7 +246,7 @@ typedef struct leaflist_s
 	int		*list;
 	vec3_t		bounds[2];
 	int		lastleaf;		// for overflows where each leaf can't be stored individually
-	void		(*storeleafs)( struct leaflist_s *ll, int nodenum );
+	void		(*storeleafs)( struct leaflist_s *ll, cnode_t *node );
 } leaflist_t;
 
 typedef struct sphere_s
@@ -281,11 +301,11 @@ extern float	*m_upVector;
 //
 // cm_test.c
 //
-int CM_PointLeafnum_r( const vec3_t p, int num );
+int CM_PointLeafnum_r( const vec3_t p, cnode_t *node );
 int CM_PointLeafnum( const vec3_t p );
-void CM_StoreLeafs( leaflist_t *ll, int nodenum );
-void CM_StoreBrushes( leaflist_t *ll, int nodenum );
-void CM_BoxLeafnums_r( leaflist_t *ll, int nodenum );
+void CM_StoreLeafs( leaflist_t *ll, cnode_t *node );
+void CM_StoreBrushes( leaflist_t *ll, cnode_t *node );
+void CM_BoxLeafnums_r( leaflist_t *ll, cnode_t *node );
 int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsize, int *lastleaf );
 int CM_BoxBrushes( const vec3_t mins, const vec3_t maxs, cbrush_t **list, int listsize );
 cmodel_t *CM_TempBoxModel( const vec3_t mins, const vec3_t maxs, bool capsule );

@@ -4,11 +4,11 @@
 edict_t	*pm_passent;
 
 // pmove doesn't need to know about passent and contentmask
-trace_t PM_trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end)
+void PM_trace( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, trace_t *tr )
 {
 	if( pm_passent->progs.sv->health > 0 )
-		return SV_Trace (start, mins, maxs, end, pm_passent, MASK_PLAYERSOLID);
-	return SV_Trace (start, mins, maxs, end, pm_passent, MASK_DEADSOLID);
+		*tr = SV_Trace (start, mins, maxs, end, pm_passent, MASK_PLAYERSOLID );
+	*tr = SV_Trace (start, mins, maxs, end, pm_passent, MASK_DEADSOLID );
 }
 
 int PM_pointcontents( vec3_t point )

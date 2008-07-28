@@ -471,7 +471,7 @@ trace_t SV_Trace( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end
 	memset( &clip, 0, sizeof( moveclip_t ));
 
 	// clip to world
-	clip.trace = pe->BoxTrace( start, end, mins, maxs, NULL, contentmask, true );
+	pe->BoxTrace( start, end, mins, maxs, NULL, &clip.trace, contentmask );
 	clip.trace.ent = clip.trace.fraction != 1.0 ? prog->edicts : NULL;
 	if( clip.trace.fraction == 0 ) return clip.trace;	// blocked immediately by the world
 

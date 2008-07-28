@@ -154,12 +154,12 @@ void PM_StepSlideMove_ (void)
 	
 	time_left = pml.frametime;
 
-	for (bumpcount=0 ; bumpcount<numbumps ; bumpcount++)
+	for( bumpcount = 0; bumpcount < numbumps; bumpcount++ )
 	{
 		for (i=0 ; i<3 ; i++)
 			end[i] = pml.origin[i] + time_left * pml.velocity[i];
 
-		trace = pm->trace (pml.origin, pm->mins, pm->maxs, end);
+		pm->trace( pml.origin, pm->mins, pm->maxs, end, &trace );
 
 		if (trace.allsolid)
 		{	// entity is trapped in another solid
@@ -262,9 +262,8 @@ void PM_StepSlideMove (void)
 	VectorCopy (start_o, up);
 	up[2] += STEPSIZE;
 
-	trace = pm->trace (up, pm->mins, pm->maxs, up);
-	if (trace.allsolid)
-		return;		// can't step up
+	pm->trace( up, pm->mins, pm->maxs, up, &trace );
+	if( trace.allsolid ) return; // can't step up
 
 	// try sliding above
 	VectorCopy (up, pml.origin);
@@ -275,7 +274,7 @@ void PM_StepSlideMove (void)
 	// push down the final amount
 	VectorCopy (pml.origin, down);
 	down[2] -= STEPSIZE;
-	trace = pm->trace (pml.origin, pm->mins, pm->maxs, down);
+	pm->trace( pml.origin, pm->mins, pm->maxs, down, &trace );
 	if (!trace.allsolid)
 	{
 		VectorCopy (trace.endpos, pml.origin);
@@ -623,7 +622,7 @@ void PM_CatagorizePosition( void )
 	}
 	else
 	{
-		trace = pm->trace (pml.origin, pm->mins, pm->maxs, point);
+		pm->trace( pml.origin, pm->mins, pm->maxs, point, &trace );
 		pml.groundtrace = trace;
 		pml.groundplane = trace.plane;
 		pml.groundsurface = trace.surface;
@@ -768,7 +767,7 @@ void PM_CheckSpecialMovement (void)
 	VectorNormalize( flatforward );
 
 	VectorMA (pml.origin, 1, flatforward, spot);
-	trace = pm->trace (pml.origin, pm->mins, pm->maxs, spot);
+	pm->trace( pml.origin, pm->mins, pm->maxs, spot, &trace );
 	if ((trace.fraction < 1) && (trace.contents & CONTENTS_LADDER))
 		pml.onladder = true;
 
@@ -868,7 +867,7 @@ void PM_FlyMove (bool doclip)
 	if (doclip)
 	{
 		for (i=0 ; i<3 ; i++) end[i] = pml.origin[i] + pml.frametime * pml.velocity[i];
-		trace = pm->trace (pml.origin, pm->mins, pm->maxs, end);
+		pm->trace( pml.origin, pm->mins, pm->maxs, end, &trace );
 		VectorCopy (trace.endpos, pml.origin);
 	}
 	else
@@ -922,7 +921,7 @@ void PM_CheckDuck (void)
 		{
 			// try to stand up
 			pm->maxs[2] = 32;
-			trace = pm->trace( pml.origin, pm->mins, pm->maxs, pml.origin );
+			pm->trace( pml.origin, pm->mins, pm->maxs, pml.origin, &trace );
 			if(!trace.allsolid) pm->ps.pm_flags &= ~PMF_DUCKED;
 		}
 	}
@@ -975,7 +974,7 @@ bool PM_GoodPosition (void)
 	if (pm->ps.pm_type == PM_SPECTATOR) return true;
 
 	for (i = 0; i < 3; i++) origin[i] = end[i] = pm->ps.origin[i] * CL_COORD_FRAC;
-	trace = pm->trace (origin, pm->mins, pm->maxs, end);
+	pm->trace( origin, pm->mins, pm->maxs, end, &trace );
 	pml.groundtrace = trace;
 
 	return !trace.allsolid;

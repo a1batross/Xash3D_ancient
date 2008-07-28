@@ -1006,15 +1006,6 @@ typedef struct cplane_s
 	byte	pad[2];
 } cplane_t;
 
-typedef struct
-{
-	int	contents;
-	int	cluster;
-	int	area;
-	int	firstleafbrush;
-	int	numleafbrushes;
-} cleaf_t;
-
 typedef struct cmesh_s
 {
 	vec3_t	*verts;
@@ -1028,7 +1019,6 @@ typedef struct cmodel_s
 	int	registration_sequence;
 
 	vec3_t	mins, maxs;	// model boundbox
-	cleaf_t	leaf;
 	int	type;		// model type
 	int	firstface;	// used to create collision tree
 	int	numfaces;		
@@ -1038,7 +1028,9 @@ typedef struct cmodel_s
 	int	numbodies;	// physmesh numbody
 	cmesh_t	physmesh[MAXSTUDIOMODELS];	// max bodies
 
-	void (*TraceBox)(struct cmodel_s *model, float frame, struct trace_s *trace, const vec3_t start, const vec3_t boxmins, const vec3_t boxmaxs, const vec3_t end, int contentsmask );
+	// custom traces for various model types
+	void (*TraceBox)( const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs, struct cmodel_s *model, struct trace_s *trace, int brushsmask );
+	int (*PointContents)( const vec3_t point, struct cmodel_s *model );
 } cmodel_t;
 
 typedef struct csurface_s
@@ -1275,7 +1267,7 @@ typedef struct pmove_s
 	float		xyspeed;		// avoid to compute it twice
 
 	// callbacks to test the world
-	trace_t		(*trace)( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end );
+	void		(*trace)( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, trace_t *tr );
 	int		(*pointcontents)( vec3_t point );
 } pmove_t;
 
@@ -1423,7 +1415,7 @@ typedef struct physic_exp_s
 	const char *(*GetTextureName)( int index );
 	int (*PointContents)( const vec3_t p, cmodel_t *model );
 	int (*TransformedPointContents)( const vec3_t p, cmodel_t *model, const vec3_t origin, const vec3_t angles );
-	trace_t (*BoxTrace)( const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, cmodel_t *model, int brushmask, bool capsule );
+	void (*BoxTrace)( const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, cmodel_t *model, trace_t *tr, int brushmask );
 	trace_t (*TransformedBoxTrace)( const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, cmodel_t *model, int brushmask, vec3_t origin, vec3_t angles, bool capsule );
 	byte *(*ClusterPVS)( int cluster );
 	byte *(*ClusterPHS)( int cluster );

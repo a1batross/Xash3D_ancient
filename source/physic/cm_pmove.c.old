@@ -216,7 +216,7 @@ bool PM_SlideMove( bool gravity )
 		VectorMA( pm->ps.origin, time_left, pm->ps.velocity, end );
 
 		// see if we can make it there
-		trace = pm->trace( pm->ps.origin, pm->mins, pm->maxs, end );
+		pm->trace( pm->ps.origin, pm->mins, pm->maxs, end, &trace );
 
 		if( trace.allsolid )
 		{
@@ -374,7 +374,7 @@ void PM_StepSlideMove( bool gravity )
 
 	VectorCopy( start_o, down );
 	down[2] -= STEPSIZE;
-	trace = pm->trace( start_o, pm->mins, pm->maxs, down );
+	pm->trace( start_o, pm->mins, pm->maxs, down, &trace );
 	VectorSet( up, 0, 0, 1 );
 	// never step up when you still have up velocity
 	if( pm->ps.velocity[2] > 0 && (trace.fraction == 1.0 || DotProduct(trace.plane.normal, up) < 0.7))
@@ -389,7 +389,7 @@ void PM_StepSlideMove( bool gravity )
 	up[2] += STEPSIZE;
 
 	// test the player position if they were a stepheight higher
-	trace = pm->trace( start_o, pm->mins, pm->maxs, up );
+	pm->trace( start_o, pm->mins, pm->maxs, up, &trace );
 	if( trace.allsolid ) return; // can't step up
 
 	stepSize = trace.endpos[2] - start_o[2];
@@ -402,7 +402,7 @@ void PM_StepSlideMove( bool gravity )
 	// push down the final amount
 	VectorCopy (pm->ps.origin, down);
 	down[2] -= stepSize;
-	trace = pm->trace( pm->ps.origin, pm->mins, pm->maxs, down );
+	pm->trace( pm->ps.origin, pm->mins, pm->maxs, down, &trace );
 	if( !trace.allsolid )
 	{
 		VectorCopy (trace.endpos, pm->ps.origin);
@@ -648,7 +648,7 @@ static void PM_CheckOnLadder( void )
 	VectorNormalize (flatforward);
 
 	VectorMA (pm->ps.origin, 1, flatforward, spot);
-	trace = pm->trace (pm->ps.origin, pm->mins, pm->maxs, spot);
+	pm->trace( pm->ps.origin, pm->mins, pm->maxs, spot, &trace );
 	if((trace.fraction < 1) && (trace.contents & CONTENTS_LADDER))
 	{
 		pml.onladder = true;
@@ -1165,14 +1165,14 @@ static int PM_CorrectAllSolid( trace_t *trace )
 				point[0] += (float)i;
 				point[1] += (float)j;
 				point[2] += (float)k;
-				*trace = pm->trace( point, pm->mins, pm->maxs, point );
+				pm->trace( point, pm->mins, pm->maxs, point, trace );
 				if( !trace->allsolid )
 				{
 					point[0] = pm->ps.origin[0];
 					point[1] = pm->ps.origin[1];
 					point[2] = pm->ps.origin[2] - 0.25;
 
-					pml.groundtrace = pm->trace( pm->ps.origin, pm->mins, pm->maxs, point );
+					pm->trace( pm->ps.origin, pm->mins, pm->maxs, point, &pml.groundtrace );
 					trace = &pml.groundtrace;
 					return true;
 				}
@@ -1205,8 +1205,8 @@ static void PM_GroundTraceMissed( void )
 		VectorCopy( pm->ps.origin, point );
 		point[2] -= 64;
 
-		trace = pm->trace( pm->ps.origin, pm->mins, pm->maxs, point );
-		if ( trace.fraction == 1.0 )
+		pm->trace( pm->ps.origin, pm->mins, pm->maxs, point, &trace );
+		if( trace.fraction == 1.0 )
 		{
 			if( pm->cmd.forwardmove >= 0 )
 			{
@@ -1238,7 +1238,7 @@ static void PM_GroundTrace( void )
 	point[1] = pm->ps.origin[1];
 	point[2] = pm->ps.origin[2] - 0.25;
 
-	trace = pm->trace( pm->ps.origin, pm->mins, pm->maxs, point );
+	pm->trace( pm->ps.origin, pm->mins, pm->maxs, point, &trace );
 	pml.groundtrace = trace;
 
 	// do something corrective if the trace starts in a solid...
@@ -1393,7 +1393,7 @@ static void PM_CheckDuck( void )
 		{
 			// try to stand up
 			pm->maxs[2] = 32;
-			trace = pm->trace( pm->ps.origin, pm->mins, pm->maxs, pm->ps.origin );
+			pm->trace( pm->ps.origin, pm->mins, pm->maxs, pm->ps.origin, &trace );
 			if( !trace.allsolid ) pm->ps.pm_flags &= ~PMF_DUCKED;
 		}
 	}

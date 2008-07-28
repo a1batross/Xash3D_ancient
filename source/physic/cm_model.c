@@ -156,8 +156,7 @@ void BSP_LoadModels( lump_t *l )
 {
 	dmodel_t	*in;
 	cmodel_t	*out;
-	int	*indexes;
-	int	i, j, count;
+	int	i, j, n, c, count;
 
 	in = (void *)(cm.mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in)) Host_Error("CMod_LoadModels: funny lump size\n");
@@ -176,20 +175,16 @@ void BSP_LoadModels( lump_t *l )
 			out->mins[j] = LittleFloat(in->mins[j]) - 1;
 			out->maxs[j] = LittleFloat(in->maxs[j]) + 1;
 		}
-		out->firstface = LittleLong( in->firstface );
-		out->numfaces = LittleLong( in->numfaces );
-		out->firstbrush = LittleLong( in->firstbrush );
-		out->numbrushes = LittleLong( in->numbrushes );
-
+		out->firstface = n = LittleLong( in->firstface );
+		out->numfaces = c = LittleLong( in->numfaces );
+		if( n < 0 || n + c > cm.numfaces )
+			Host_Error("BSP_LoadModels: invalid face range %i : %i (%i faces)", n, n+c, cm.numfaces );
+		out->firstbrush = n = LittleLong( in->firstbrush );
+		out->numbrushes = c = LittleLong( in->numbrushes );
+		if( n < 0 || n + c > cm.numbrushes )
+			Host_Error("BSP_LoadModels: invalid brush range %i : %i (%i brushes)", n, n+c, cm.numfaces );
 		com.strncpy( out->name, va("*%i", i ), sizeof(out->name));
 		out->mempool = Mem_AllocPool( out->name );
-
-		// make a "leaf" just to hold the model's brushes and surfaces
-		out->leaf.numleafbrushes = LittleLong( in->numbrushes );
-		indexes = Mem_Alloc( out->mempool, out->leaf.numleafbrushes * sizeof(dword));
-		out->leaf.firstleafbrush = indexes - cm.leafbrushes;
-		for( j = 0; j < out->leaf.numleafbrushes; j++ )
-			indexes[j] = LittleLong( in->firstbrush ) + j;
 		BSP_CreateMeshBuffer( i ); // bsp physic
 	}
 }
@@ -229,23 +224,45 @@ void BSP_LoadNodes( lump_t *l )
 {
 	dnode_t	*in;
 	cnode_t	*out;
-	int	child, i, j, count;
+	int	i, j, n, count;
 	
 	in = (void *)(cm.mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in)) Host_Error("CMod_LoadNodes: funny lump size\n");
 	count = l->filelen / sizeof(*in);
 
 	if(count < 1) Host_Error("Map %s has no nodes\n", cm.name );
-	out = cm.nodes = (cnode_t *)Mem_Alloc( cmappool, (count + 6) * sizeof(*out));
+	out = cm.nodes = (cnode_t *)Mem_Alloc( cmappool, count * sizeof(*out));
 	cm.numnodes = count;
 
 	for (i = 0; i < count; i++, out++, in++)
 	{
-		out->plane = cm.planes + LittleLong(in->planenum);
-		for (j = 0; j < 2; j++)
+		n = LittleLong( in->planenum );
+		if( n < 0 || n >= cm.numplanes)
+			Host_Error("BSP_LoadNodes: invalid planenum %i (%i planes)\n", n, cm.numplanes );
+		out->plane = cm.planes + n;
+		for( j = 0; j < 2; j++)
 		{
-			child = LittleLong(in->children[j]);
-			out->children[j] = child;
+			n = LittleLong( in->children[j]);
+			if( n >= 0 )
+			{
+				if( n >= cm.numnodes )
+					Host_Error("BSP_LoadNodes: invalid child node index %i (%i nodes)", n, cm.numnodes );
+				out->children[j] = cm.nodes + n;
+			}
+			else
+			{
+				n = -1 - n;
+				if( n >= cm.numleafs )
+					Host_Error("BSP_LoadNodes: invalid child leaf index %i (%i leafs)", n, cm.numleafs );
+				out->children[j] = (cnode_t *)(cm.leafs + n);
+			}
+		}
+
+		for( j = 0; j < 3; j++ )
+		{
+			// yes the mins/maxs are ints
+			out->mins[j] = LittleLong( in->mins[j] ) - 1;
+			out->maxs[j] = LittleLong( in->maxs[j] ) + 1;
 		}
 	}
 
@@ -303,7 +320,7 @@ void BSP_LoadLeafs( lump_t *l )
 {
 	dleaf_t 	*in;
 	cleaf_t	*out;
-	int	i, count;
+	int	i, j, count;
 	
 	in = (void *)(cm.mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in)) Host_Error("CMod_LoadLeafs: funny lump size\n");
@@ -315,6 +332,7 @@ void BSP_LoadLeafs( lump_t *l )
 
 	for ( i = 0; i < count; i++, in++, out++)
 	{
+		out->plane = NULL;
 		out->firstleafbrush = LittleLong( in->firstleafbrush );
 		out->numleafbrushes = LittleLong( in->numleafbrushes );
 		out->contents = LittleLong( in->contents );
@@ -322,6 +340,12 @@ void BSP_LoadLeafs( lump_t *l )
 		out->area = LittleLong( in->area );
 		if( out->cluster >= cm.numclusters )
 			cm.numclusters = out->cluster + 1;
+		for( j = 0; j < 3; j++ )
+		{
+			// yes the mins/maxs are ints
+			out->mins[j] = LittleLong( in->mins[j] ) - 1;
+			out->maxs[j] = LittleLong( in->maxs[j] ) + 1;
+		}
 	}
 
 	// probably any wall it's liquid ?
@@ -897,7 +921,6 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	
 	CM_LoadWorld( buf );// load physics collision
 	Mem_Free( buf );	// release map buffer
-	CM_InitBoxHull();
 
 	com.strncpy( cm.name, name, MAX_STRING );
 	memset( cm.portalopen, 0, sizeof(cm.portalopen));
@@ -939,104 +962,6 @@ int CM_LeafArea( int leafnum )
 	if (leafnum < 0 || leafnum >= cm.numleafs)
 		Host_Error("CM_LeafArea: bad number %d\n", leafnum );
 	return cm.leafs[leafnum].area;
-}
-
-/*
-===============================================================================
-
-			CM_BOX HULL
-
-===============================================================================
-*/
-/*
-===================
-CM_InitBoxHull
-
-Set up the planes and nodes so that the six floats of a bounding box
-can just be stored out and get a proper clipping hull structure.
-===================
-*/
-void CM_InitBoxHull( void )
-{
-	cplane_t		*p;
-	cbrushside_t	*s;
-	int		i, side;
-	
-	box.planes = &cm.planes[cm.numplanes];
-	box.brush = &cm.brushes[cm.numbrushes];
-	box.brush->numsides = 6;
-	box.brush->firstbrushside = cm.numbrushsides;
-	box.brush->contents = CONTENTS_MONSTER;//FIXME
-	box.model = &cm.bmodels[BOX_MODEL_HANDLE];
-	com.strcpy( box.model->name, "*4095" );
-	box.model->leaf.numleafbrushes = 1;
-	box.model->leaf.firstleafbrush = cm.numleafbrushes;
-	cm.leafbrushes[cm.numleafbrushes] = cm.numbrushes;
-
-	for (i = 0; i < 6; i++)
-	{
-		side = i & 1;
-
-		// brush sides
-		s = &cm.brushsides[cm.numbrushsides+i];
-		s->plane = cm.planes+(cm.numplanes+i*2+side);
-		s->surface = &cm.nullsurface;
-
-		// planes
-		p = &box.planes[i*2];
-		p->type = i>>1;
-		p->signbits = 0;
-		VectorClear(p->normal);
-		p->normal[i>>1] = 1;
-
-		p = &box.planes[i*2+1];
-		p->type = 3 + (i>>1);
-		p->signbits = 0;
-		VectorClear (p->normal);
-		p->normal[i>>1] = -1;
-		PlaneClassify( p );
-	}	
-
-	// capsule name
-	com.strcpy( cm.bmodels[CAPSULE_MODEL_HANDLE].name, "*4094" );
-}
-
-/*
-===================
-CM_TempBoxModel
-
-To keep everything totally uniform, bounding boxes are turned into small
-BSP trees instead of being compared directly.
-Capsules are handled differently though.
-===================
-*/
-cmodel_t *CM_TempBoxModel( const vec3_t mins, const vec3_t maxs, bool capsule )
-{
-	VectorCopy( mins, box.model->mins );
-	VectorCopy( maxs, box.model->maxs );
-
-	if( capsule )
-	{
-		return &cm.bmodels[CAPSULE_MODEL_HANDLE];
-	}
-
-	box.planes[0].dist = maxs[0];
-	box.planes[1].dist = -maxs[0];
-	box.planes[2].dist = mins[0];
-	box.planes[3].dist = -mins[0];
-	box.planes[4].dist = maxs[1];
-	box.planes[5].dist = -maxs[1];
-	box.planes[6].dist = mins[1];
-	box.planes[7].dist = -mins[1];
-	box.planes[8].dist = maxs[2];
-	box.planes[9].dist = -maxs[2];
-	box.planes[10].dist = mins[2];
-	box.planes[11].dist = -mins[2];
-
-	VectorCopy( mins, box.brush->bounds[0] );
-	VectorCopy( maxs, box.brush->bounds[1] );
-
-	return &cm.bmodels[BOX_MODEL_HANDLE];
 }
 
 /*
