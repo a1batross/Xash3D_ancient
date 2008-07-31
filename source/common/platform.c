@@ -27,7 +27,7 @@ platform.dll needs for some setup operations
 so do it manually
 ==================
 */
-void InitPlatform ( uint funcname, int argc, char **argv )
+void InitPlatform ( int argc, char **argv )
 {
 	byte	bspflags = 0, qccflags = 0, roqflags = 0;
 	char	source[64], gamedir[64];
@@ -38,13 +38,13 @@ void InitPlatform ( uint funcname, int argc, char **argv )
 	// for custom cmdline parsing
 	com_argc = argc;
 	com_argv = argv;
-	app_name = funcname;
+	app_name = g_Instance;
 
 	Sys_LoadLibrary( &imglib_dll ); // load imagelib
 	CreateImglib = (void *)imglib_dll.main;
 	Image = CreateImglib( &com, NULL ); // second interface not allowed
 
-	switch( funcname )
+	switch( app_name )
 	{
 	case COMP_BSPLIB:
 		if(!FS_GetParmFromCmdLine("-game", gamedir ))
@@ -63,7 +63,7 @@ void InitPlatform ( uint funcname, int argc, char **argv )
 		CreateVprogs = (void *)vprogs_dll.main;
 		PRVM = CreateVprogs( &com, NULL ); // second interface not allowed
 
-		PRVM->Init( funcname, argc, argv );
+		PRVM->Init( argc, argv );
 
 		if(!FS_GetParmFromCmdLine("-dir", gamedir ))
 			com.strncpy(gamedir, ".", sizeof(gamedir));
@@ -84,7 +84,7 @@ void InitPlatform ( uint funcname, int argc, char **argv )
 		break;
 	}
 
-	Image->Init( funcname ); // initialize image support
+	Image->Init(); // initialize image support
 }
 
 void RunPlatform ( void )

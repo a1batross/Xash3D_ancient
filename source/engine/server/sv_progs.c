@@ -101,6 +101,43 @@ void SV_SetMinMaxSize (edict_t *e, float *min, float *max, bool rotate)
 	SV_LinkEdict (e);
 }
 
+static trace_t SV_TraceToss( edict_t *tossent, edict_t *ignore)
+{
+	int	i;
+	float	gravity;
+	vec3_t	move, end;
+	vec3_t	original_origin;
+	vec3_t	original_velocity;
+	vec3_t	original_angles;
+	vec3_t	original_avelocity;
+	trace_t	trace;
+
+	VectorCopy( tossent->progs.sv->origin, original_origin );
+	VectorCopy( tossent->progs.sv->velocity, original_velocity );
+	VectorCopy( tossent->progs.sv->angles, original_angles );
+	VectorCopy( tossent->progs.sv->avelocity, original_avelocity );
+	gravity = tossent->progs.sv->gravity * sv_gravity->value * 0.05;
+
+	for( i = 0; i < 200; i++ )
+	{
+		// LordHavoc: sanity check; never trace more than 10 seconds
+		SV_CheckVelocity( tossent );
+		tossent->progs.sv->velocity[2] -= gravity;
+		VectorMA( tossent->progs.sv->angles, 0.05, tossent->progs.sv->avelocity, tossent->progs.sv->angles );
+		VectorScale( tossent->progs.sv->velocity, 0.05, move );
+		VectorAdd( tossent->progs.sv->origin, move, end );
+		trace = SV_Trace( tossent->progs.sv->origin, tossent->progs.sv->mins, tossent->progs.sv->maxs, end, MOVE_NORMAL, tossent, SV_ContentsMask( tossent ));
+		VectorCopy( trace.endpos, tossent->progs.sv->origin );
+		if( trace.fraction < 1 ) break;
+	}
+	VectorCopy( original_origin, tossent->progs.sv->origin );
+	VectorCopy( original_velocity, tossent->progs.sv->velocity );
+	VectorCopy( original_angles, tossent->progs.sv->angles );
+	VectorCopy( original_avelocity, tossent->progs.sv->avelocity );
+
+	return trace;
+}
+
 void SV_CreatePhysBody( edict_t *ent )
 {
 	if( !ent || ent->progs.sv->movetype != MOVETYPE_PHYSIC ) return;
@@ -339,7 +376,7 @@ void SV_WriteSaveFile( char *name )
 		MsgDev(D_ERROR, "SV_WriteSaveFile: can't savegame in a deathmatch\n");
 		return;
 	}
-	if(maxclients->integer == 1 && svs.clients[0].edict->priv.sv->client->ps.stats[STAT_HEALTH] <= 0)
+	if( maxclients->integer == 1 && svs.clients[0].edict->progs.sv->health <= 0 )
 	{
 		MsgDev(D_ERROR, "SV_WriteSaveFile: can't savegame while dead!\n");
 		return;
@@ -1305,7 +1342,7 @@ void PF_droptofloor( void )
 
 	VectorCopy( ent->progs.sv->origin, end );
 	end[2] -= 256;
-	trace = SV_Trace(ent->progs.sv->origin, ent->progs.sv->mins, ent->progs.sv->maxs, end, ent, MASK_SOLID );
+	trace = SV_Trace(ent->progs.sv->origin, ent->progs.sv->mins, ent->progs.sv->maxs, end, MOVE_NORMAL, ent, MASK_SOLID );
 
 	if( trace.startsolid )
 	{
@@ -1368,7 +1405,7 @@ void PF_walkmove( void )
 	oldf = prog->xfunction;
 	oldpev = prog->globals.sv->pev;
 
-	PRVM_G_FLOAT(OFS_RETURN) = SV_MoveStep( ent, move, true );
+	PRVM_G_FLOAT(OFS_RETURN) = SV_movestep( ent, move, true, false, true );
 
 	// restore program state
 	prog->xfunction = oldf;
@@ -1538,7 +1575,7 @@ void PF_traceline( void )
 		PRVM_ERROR("%s: NAN errors detected in traceline('%f %f %f', '%f %f %f', %i, entity %i)\n",
 		PRVM_NAME, v1[0], v1[1], v1[2], v2[0], v2[1], v2[2], mask, PRVM_EDICT_TO_PROG(ent));
 
-	trace = SV_Trace( v1, vec3_origin, vec3_origin, v2, ent, mask );
+	trace = SV_Trace( v1, vec3_origin, vec3_origin, v2, MOVE_NORMAL, ent, mask );
 
 	prog->globals.sv->trace_allsolid = trace.allsolid;
 	prog->globals.sv->trace_startsolid = trace.startsolid;
@@ -1624,7 +1661,7 @@ void PF_tracebox( void )
 		PRVM_ERROR("%s: NAN errors detected in tracebox('%f %f %f', '%f %f %f', '%f %f %f', '%f %f %f', %i, entity %i)\n", 
 		PRVM_NAME, v1[0], v1[1], v1[2], m1[0], m1[1], m1[2], m2[0], m2[1], m2[2], v2[0], v2[1], v2[2], mask, PRVM_EDICT_TO_PROG(ent));
 
-	trace = SV_Trace (v1, m1, m2, v2, ent, mask );
+	trace = SV_Trace (v1, m1, m2, v2, MOVE_NORMAL, ent, mask );
 
 	prog->globals.sv->trace_allsolid = trace.allsolid;
 	prog->globals.sv->trace_startsolid = trace.startsolid;
@@ -1678,7 +1715,7 @@ void PF_aim( void )
 	// try sending a trace straight
 	VectorCopy(prog->globals.sv->v_forward, dir);
 	VectorMA(start, 2048, dir, end);
-	tr = SV_Trace( start, vec3_origin, vec3_origin, end, ent, MASK_ALL );
+	tr = SV_Trace( start, vec3_origin, vec3_origin, end, MOVE_NORMAL, ent, MASK_ALL );
 
 	if( tr.ent && ((edict_t *)tr.ent)->progs.sv->takedamage == 2 && (flags & DF_NO_FRIENDLY_FIRE
 	|| ent->progs.sv->team <=0 || ent->progs.sv->team != ((edict_t *)tr.ent)->progs.sv->team))
@@ -1707,7 +1744,7 @@ void PF_aim( void )
 		VectorNormalize (dir);
 		dist = DotProduct (dir, prog->globals.sv->v_forward);
 		if (dist < bestdist) continue; // to far to turn
-		tr = SV_Trace (start, vec3_origin, vec3_origin, end, ent, MASK_ALL );
+		tr = SV_Trace (start, vec3_origin, vec3_origin, end, MOVE_NORMAL, ent, MASK_ALL );
 		if (tr.ent == check)
 		{	
 			// can shoot at this one
@@ -1856,7 +1893,7 @@ float pointcontents( vector v )
 void PF_pointcontents( void )
 {
 	if(!VM_ValidateArgs( "pointcontents", 1 )) return;
-	PRVM_G_FLOAT(OFS_RETURN) = SV_PointContents(PRVM_G_VECTOR(OFS_PARM0), NULL );
+	PRVM_G_FLOAT(OFS_RETURN) = SV_PointContents(PRVM_G_VECTOR(OFS_PARM0));
 }
 
 /*
@@ -1998,70 +2035,6 @@ void PF_AreaPortalState( void )
 {
 	if(!VM_ValidateArgs( "areaportal", 2 )) return;
 	pe->SetAreaPortalState((int)PRVM_G_FLOAT(OFS_PARM0), (bool)PRVM_G_FLOAT(OFS_PARM1));
-}
-
-/*
-=================
-PF_setstats
-
-void setstats( entity client, float stat, string value )
-=================
-*/
-void PF_setstats( void )
-{
-	edict_t		*e;	
-	int		stat_num;
-	const char	*string;
-	short		value;
-
-	if(!VM_ValidateArgs( "setstats", 3 )) return;
-	e = PRVM_G_EDICT(OFS_PARM0);
-	if(!e->priv.sv->client)
-	{
-		VM_Warning("setstats: stats applied only for players\n");
-		return;
-	}
-
-	stat_num = (int)PRVM_G_FLOAT(OFS_PARM1);
-	if(stat_num < 0 || stat_num > MAX_STATS)
-	{
-		VM_Warning("setstats: invalid stats number\n");
-		return;
-	}
-	string = PRVM_G_STRING(OFS_PARM2);
-
-	switch(stat_num)
-	{
-	case STAT_ZOOM:
-	case STAT_SPEED:
-	case STAT_CHASE:
-	case STAT_HELPICON:
-	case STAT_AMMO_ICON:
-	case STAT_ARMOR_ICON:
-	case STAT_TIMER_ICON:
-	case STAT_HEALTH_ICON:
-	case STAT_PICKUP_ICON:
-	case STAT_SELECTED_ICON:
-	case STAT_SELECTED_ITEM:
-		value = SV_ImageIndex( string );
-		break;
-	case STAT_AMMO:
-	case STAT_FRAGS:
-	case STAT_TIMER:
-	case STAT_ARMOR:
-	case STAT_HEALTH:
-	case STAT_FLASHES:
-	case STAT_LAYOUTS:
-	case STAT_SPECTATOR:
-		value = (short)com.atoi( string );
-		break;
-	default:
-		MsgDev( D_WARN, "unknown stat type %d\n", stat_num );
-		return;
-	}
-
-	// refresh stats
-	e->priv.sv->client->ps.stats[stat_num] = value;
 }
 
 /*
@@ -2379,7 +2352,7 @@ NULL,				// #164 setView
 NULL,				// #165 crosshairangle
 PF_AreaPortalState,			// #166 void areaportal( float num, float state )
 NULL,				// #167 compareFileTime
-PF_setstats,			// #168 void setstats(entity e, float f, string stats)
+NULL,				// #168
 PF_InfoPrint,      			// #169 void Info_Print( entity client )
 PF_InfoValueForKey,			// #170 string Info_ValueForKey( entity client, string key )
 PF_InfoRemoveKey,			// #171 void Info_RemoveKey( entity client, string key )
@@ -2472,6 +2445,9 @@ void SV_InitServerProgs( void )
 		prog->error_cmd = VM_Error;
 		PRVM_LoadProgs( va("%s/server.dat", GI->vprogs_dir ), 0, NULL, SV_NUM_REQFIELDS, sv_reqfields );
 	}
+
+	// try to get custom movement function from qc code
+	svs.ClientMove = PRVM_ED_FindFunctionOffset( "ClientMove" );
 	PRVM_End;
 }
 

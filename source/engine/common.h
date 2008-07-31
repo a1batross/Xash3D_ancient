@@ -193,7 +193,7 @@ typedef struct host_parm_s
 
 extern host_parm_t host;
 long Host_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam );
-void Host_Init ( uint funcname, int argc, char **argv );
+void Host_Init ( int argc, char **argv );
 void Host_Main ( void );
 void Host_Free ( void );
 void Host_SetServerState( int state );
@@ -220,6 +220,16 @@ CLIENT / SERVER SYSTEMS
 
 ==============================================================
 */
+#define FL_CLIENT			(1<<0)	// this is client
+#define FL_MONSTER			(1<<1)	// this is npc
+#define FL_DEADMONSTER		(1<<2)	// dead npc or dead player
+#define FL_WORLDBRUSH		(1<<3)	// Not moveable/removeable brush entity
+#define FL_DORMANT			(1<<4)	// Entity is dormant, no updates to client
+#define FL_FRAMETHINK		(1<<5)	// entity will be thinking every frame
+#define FL_GRAPHED			(1<<6)	// worldgraph has this ent listed as something that blocks a conection
+#define FL_FLOAT			(1<<7)	// this entity can be floating. FIXME: remove this ?
+#define FL_TRACKTRAIN		(1<<8)	// old stuff...
+
 void CL_Init( void );
 void CL_Shutdown( void );
 void CL_Frame( dword time );
@@ -261,6 +271,8 @@ _inline edict_t *_PRVM_EDICT_NUM( int n, const char * file, const int line )
 #define PRVM_PUSH_GLOBALS prog->pev_save = prog->globals.sv->pev, prog->other_save = prog->globals.sv->other
 #define PRVM_POP_GLOBALS prog->globals.sv->pev = prog->pev_save, prog->globals.sv->other = prog->other_save
 
+#define PRVM_E_FLOAT(e,o) (((float*)e->progs.vp)[o])
+#define PRVM_E_INT(e,o) (((int*)e->progs.vp)[o])
 #define PRVM_G_FLOAT(o) (prog->globals.gp[o])
 #define PRVM_G_INT(o) (*(int *)&prog->globals.gp[o])
 #define PRVM_G_EDICT(o) (PRVM_PROG_TO_EDICT(*(int *)&prog->globals.gp[o]))
@@ -274,6 +286,7 @@ _inline edict_t *_PRVM_EDICT_NUM( int n, const char * file, const int line )
 // helper common functions
 const char *VM_VarArgs( int start_arg );
 bool VM_ValidateArgs( const char *builtin, int num_argc );
+void VM_SetTraceGlobals( const trace_t *trace );
 void VM_ValidateString( const char *s );
 void VM_Cmd_Init( void );
 void VM_Cmd_Reset( void );
@@ -391,6 +404,15 @@ MISC COMMON FUNCTIONS
 #define MAX_INFO_KEY	64
 #define MAX_INFO_VALUE	64
 #define MAX_INFO_STRING	512
+
+enum e_trace
+{
+	MOVE_NORMAL = 0,
+	MOVE_NOMONSTERS,
+	MOVE_MISSILE,
+	MOVE_WORLDONLY,
+	MOVE_HITMODEL,
+};
 
 // client printf level
 enum e_clprint

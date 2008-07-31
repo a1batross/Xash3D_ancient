@@ -260,7 +260,7 @@ void ProcessModels (void)
 	EndBSPFile ();
 }
 
-static void AddCollision(void* handle, const void* buffer, size_t size)
+static void AddCollision( void* handle, const void* buffer, size_t size )
 {
 	Mem_Copy( dcollision + dcollisiondatasize, (void *)buffer, size );
 	dcollisiondatasize += size;

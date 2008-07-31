@@ -25,7 +25,7 @@
 { return CreateMain32()( #prog, FALSE ); }
 
 // engine entry point format
-typedef int (*winmain_t)( char *funcname, int console );
+typedef int (*winmain_t)( char *hostname, int console );
 char szSearch[ 5 ][ 1024 ];
 char szFsPath[ 4096 ];
 HINSTANCE	hmain;

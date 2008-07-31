@@ -1364,7 +1364,7 @@ void CM_CollisionClipTrace_Box( trace_t *trace, const vec3_t cmins, const vec3_t
 
 //===========================================
 
-void CM_CollisionClipToGenericEntity( trace_t *trace, cmodel_t *model, int frame, const vec3_t bodymins, const vec3_t bodymaxs, int bodysupercontents, matrix4x4 matrix, matrix4x4 inversematrix, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int hitsupercontentsmask )
+void CM_CollisionClipToGenericEntity( trace_t *trace, cmodel_t *model, const vec3_t bodymins, const vec3_t bodymaxs, int bodysupercontents, matrix4x4 matrix, matrix4x4 inversematrix, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int hitsupercontentsmask )
 {
 	float	tempnormal[3];
 	float	starttransformed[3];

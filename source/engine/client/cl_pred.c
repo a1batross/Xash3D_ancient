@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "common.h"
 #include "client.h"
+#include "matrixlib.h"
 
 /*
 ===================
@@ -60,6 +61,127 @@ void CL_CheckPredictionError (void)
 	}
 }
 
+/*
+==================
+CL_Trace
+==================
+*/
+trace_t CL_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int type, edict_t *passedict, int contentsmask )
+{
+	vec3_t		hullmins, hullmaxs;
+	int		i, bodycontents;
+	int		passedictprog;
+	bool		pointtrace;
+	edict_t		*traceowner, *touch;
+	trace_t		trace;
+	vec3_t		clipboxmins, clipboxmaxs;	// bounding box of entire move area
+	vec3_t		clipmins, clipmaxs;		// size of the moving object
+	vec3_t		clipmins2, clipmaxs2;	// size when clipping against monsters
+	vec3_t		clipstart, clipend;		// start and end origin of move
+	trace_t		cliptrace;		// trace results
+	matrix4x4		matrix, imatrix;		// matrices to transform into/out of other entity's space
+	cmodel_t		*model;			// model of other entity
+	int		numtouchedicts = 0;		// list of entities to test for collisions
+	edict_t		*touchedicts[MAX_EDICTS];
+
+	VectorCopy( start, clipstart );
+	VectorCopy( end, clipend );
+	VectorCopy( mins, clipmins );
+	VectorCopy( maxs, clipmaxs );
+	VectorCopy( mins, clipmins2 );
+	VectorCopy( maxs, clipmaxs2 );
+
+	// clip to world
+	pe->ClipToWorld( &cliptrace, cl.worldmodel, clipstart, clipmins, clipmaxs, clipend, contentsmask );
+	cliptrace.startstuck = cliptrace.startsolid;
+	if( cliptrace.startsolid || cliptrace.fraction < 1 ) cliptrace.ent = prog ? prog->edicts : NULL;
+	if( type == MOVE_WORLDONLY ) return cliptrace;
+
+	if( type == MOVE_MISSILE )
+	{
+		for( i = 0; i < 3; i++ )
+		{
+			clipmins2[i] -= 15;
+			clipmaxs2[i] += 15;
+		}
+	}
+
+	// get adjusted box for bmodel collisions if the world is q1bsp or hlbsp
+	VectorCopy( clipmins, hullmins );
+	VectorCopy( clipmaxs, hullmaxs );
+
+	// create the bounding box of the entire move
+	for( i = 0; i < 3; i++ )
+	{
+		clipboxmins[i] = min(clipstart[i], cliptrace.endpos[i]) + min(hullmins[i], clipmins2[i]) - 1;
+		clipboxmaxs[i] = max(clipstart[i], cliptrace.endpos[i]) + max(hullmaxs[i], clipmaxs2[i]) + 1;
+	}
+
+	// if the passedict is world, make it NULL (to avoid two checks each time)
+	// this checks prog because this function is often called without a CSQC
+	// VM context
+	if( prog == NULL || passedict == prog->edicts ) passedict = NULL;
+	// precalculate prog value for passedict for comparisons
+	passedictprog = prog != NULL ? PRVM_EDICT_TO_PROG(passedict) : 0;
+	// figure out whether this is a point trace for comparisons
+	pointtrace = VectorCompare( clipmins, clipmaxs );
+	// precalculate passedict's owner edict pointer for comparisons
+	traceowner = passedict ? PRVM_PROG_TO_EDICT( passedict->progs.cl->owner ) : NULL;
+
+	// clip to entities
+	// because this uses World_EntitiestoBox, we know all entity boxes overlap
+	// the clip region, so we can skip culling checks in the loop below
+	// note: if prog is NULL then there won't be any linked entities
+	numtouchedicts = 0;//CL_AreaEdicts( clipboxmins, clipboxmaxs, touchedicts, host.max_edicts );
+	if( numtouchedicts > host.max_edicts )
+	{
+		// this never happens
+		MsgDev( D_WARN, "CL_AreaEdicts returned %i edicts, max was %i\n", numtouchedicts, host.max_edicts );
+		numtouchedicts = host.max_edicts;
+	}
+	for( i = 0; i < numtouchedicts; i++ )
+	{
+		touch = touchedicts[i];
+
+		if( touch->progs.cl->solid < SOLID_BBOX ) continue;
+		if( type == MOVE_NOMONSTERS && touch->progs.cl->solid != SOLID_BSP )
+			continue;
+
+		if( passedict )
+		{
+			// don't clip against self
+			if( passedict == touch ) continue;
+			// don't clip owned entities against owner
+			if( traceowner == touch ) continue;
+			// don't clip owner against owned entities
+			if( passedictprog == touch->progs.cl->owner ) continue;
+			// don't clip points against points (they can't collide)
+			if( pointtrace && VectorCompare( touch->progs.cl->mins, touch->progs.cl->maxs) && (type != MOVE_MISSILE || !((int)touch->progs.cl->flags & FL_MONSTER)))
+				continue;
+		}
+
+		bodycontents = CONTENTS_BODY;
+
+		// might interact, so do an exact clip
+		model = NULL;
+		if((int)touch->progs.cl->solid == SOLID_BSP || type == MOVE_HITMODEL )
+		{
+			uint modelindex = (uint)touch->progs.cl->modelindex;
+			// if the modelindex is 0, it shouldn't be SOLID_BSP!
+			if( modelindex > 0 && modelindex < MAX_MODELS )
+				model = cl.models[(int)touch->progs.cl->modelindex];
+		}
+		if( model ) Matrix4x4_CreateFromEntity( matrix, touch->progs.cl->origin[0], touch->progs.cl->origin[1], touch->progs.cl->origin[2], touch->progs.cl->angles[0], touch->progs.cl->angles[1], touch->progs.cl->angles[2], 1 );
+		else Matrix4x4_CreateTranslate( matrix, touch->progs.cl->origin[0], touch->progs.cl->origin[1], touch->progs.cl->origin[2] );
+		Matrix4x4_Invert_Simple( imatrix, matrix );
+		if((int)touch->progs.cl->flags & FL_MONSTER)
+			pe->ClipToGenericEntity(&trace, model, touch->progs.cl->mins, touch->progs.cl->maxs, bodycontents, matrix, imatrix, clipstart, clipmins2, clipmaxs2, clipend, contentsmask );
+		else pe->ClipToGenericEntity(&trace, model, touch->progs.cl->mins, touch->progs.cl->maxs, bodycontents, matrix, imatrix, clipstart, clipmins, clipmaxs, clipend, contentsmask );
+		pe->CombineTraces(&cliptrace, &trace, touch, touch->progs.cl->solid == SOLID_BSP );
+	}
+	return cliptrace;
+}
+
 
 /*
 ====================
@@ -69,57 +191,36 @@ CL_ClipMoveToEntities
 */
 void CL_ClipMoveToEntities ( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, trace_t *tr )
 {
-	int		i, x, zd, zu;
-	trace_t		trace;
-	float		*angles;
-	entity_state_t	*ent;
-	int		num;
-	cmodel_t		*cmodel;
-	vec3_t		bmins, bmaxs;
+/*
+for( i = 0; i < cl.frame.num_entities; i++ )
+{
+	num = (cl.frame.parse_entities + i)&(MAX_PARSE_ENTITIES-1);
+	ent = &cl_parse_entities[num];
 
-	for( i = 0; i < cl.frame.num_entities; i++ )
-	{
-		num = (cl.frame.parse_entities + i)&(MAX_PARSE_ENTITIES-1);
-		ent = &cl_parse_entities[num];
+	if(!ent->solid) continue;
+	if(ent->number == cl.playernum + 1) continue;
 
-		if(!ent->solid) continue;
-		if(ent->number == cl.playernum + 1) continue;
-
-		if( ent->solid == SOLID_BMODEL )
-		{	
-			// special value for bmodel
-			cmodel = cl.model_clip[ent->modelindex];
-			if(!cmodel) continue;
-			angles = ent->angles;
-		}
-		else
-		{	// encoded bbox
-			x =  (ent->solid & 255);
-			zd = ((ent->solid>>8) & 255);
-			zu = ((ent->solid>>16) & 255) - 32;
-
-			bmins[0] = bmins[1] = -x;
-			bmaxs[0] = bmaxs[1] = x;
-			bmins[2] = -zd;
-			bmaxs[2] = zu;
-			angles = ent->angles;
-		}
-		if( tr->allsolid ) return;
-
-		trace = pe->TransformedBoxTrace( start, end, mins, maxs, cmodel, MASK_PLAYERSOLID, ent->origin, angles, false );
-
-		if( trace.allsolid || trace.startsolid || trace.fraction < tr->fraction )
-		{
-			trace.ent = (edict_t *)ent;
-		 	if (tr->startsolid)
-			{
-				*tr = trace;
-				tr->startsolid = true;
-			}
-			else *tr = trace;
-		}
-		else if (trace.startsolid) tr->startsolid = true;
+	if( ent->solid == SOLID_BMODEL )
+	{	
+		// special value for bmodel
+		cmodel = cl.model_clip[ent->modelindex];
+		if(!cmodel) continue;
+		angles = ent->angles;
 	}
+	else
+	{	// encoded bbox
+		x =  (ent->solid & 255);
+		zd = ((ent->solid>>8) & 255);
+		zu = ((ent->solid>>16) & 255) - 32;
+
+		bmins[0] = bmins[1] = -x;
+		bmaxs[0] = bmaxs[1] = x;
+		bmins[2] = -zd;
+		bmaxs[2] = zu;
+		angles = ent->angles;
+	}
+}
+*/
 }
 
 
@@ -130,38 +231,15 @@ CL_PMTrace
 */
 void CL_PMTrace( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, trace_t *tr )
 {
-	// check against world
-	pe->BoxTrace( start, end, mins, maxs, NULL, tr, MASK_PLAYERSOLID );
-	if( tr->fraction < 1.0 ) tr->ent = (edict_t *)1; //FIXME: get client entity = world
-
-	// check all other solid models
-	CL_ClipMoveToEntities( start, mins, maxs, end, tr );
+	*tr = CL_Trace( start, mins, maxs, end, MOVE_NORMAL, NULL, MASK_PLAYERSOLID );
 }
 
 int CL_PMpointcontents( vec3_t point )
 {
-	int		i;
-	entity_state_t	*ent;
-	int		num;
-	cmodel_t		*cmodel;
-	int		contents;
-
-	contents = pe->PointContents( point, NULL );
-
-	for( i = 0; i < cl.frame.num_entities; i++ )
-	{
-		num = (cl.frame.parse_entities + i)&(MAX_PARSE_ENTITIES-1);
-		ent = &cl_parse_entities[num];
-
-		if (ent->solid != SOLID_BMODEL) // special value for bmodel
-			continue;
-
-		cmodel = cl.model_clip[ent->modelindex];
-		if (!cmodel) continue;
-
-		contents |= pe->TransformedPointContents( point, cmodel, ent->origin, ent->angles );
-	}
-	return contents;
+	// get world supercontents at this point
+	if( cl.worldmodel && cl.worldmodel->PointContents )
+		return cl.worldmodel->PointContents( point, cl.worldmodel );
+	return 0;
 }
 
 

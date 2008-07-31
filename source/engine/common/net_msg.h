@@ -121,7 +121,6 @@ static const net_desc_t NWDesc[] =
 #define MAX_GENERAL			(MAX_CLIENTS * 2)	// general config strings
 
 #define ES_FIELD(x)			#x,(int)&((entity_state_t*)0)->x
-#define PS_FIELD(x)			#x,(int)&((player_state_t*)0)->x
 #define CM_FIELD(x)			#x,(int)&((usercmd_t*)0)->x
 
 // config strings are a general means of communication from
@@ -156,84 +155,107 @@ static const net_desc_t NWDesc[] =
 
 static net_field_t ent_fields[] =
 {
-{ ES_FIELD(origin[0]),	NET_FLOAT, false	},
-{ ES_FIELD(origin[1]),	NET_FLOAT, false	},
-{ ES_FIELD(origin[2]),	NET_FLOAT, false	},
-{ ES_FIELD(angles[0]),	NET_FLOAT, false	},
-{ ES_FIELD(angles[1]),	NET_FLOAT, false	},
-{ ES_FIELD(angles[2]),	NET_FLOAT, false	},
-{ ES_FIELD(old_origin[0]),	NET_FLOAT, true	},
-{ ES_FIELD(old_origin[1]),	NET_FLOAT, true	},
-{ ES_FIELD(old_origin[2]),	NET_FLOAT, true	},
-{ ES_FIELD(modelindex),	NET_WORD,	 false	},	// 4096 models
-{ ES_FIELD(soundindex),	NET_WORD,	 false	},	// 512 sounds ( OpenAL software limit is 255 )
-{ ES_FIELD(weaponmodel),	NET_WORD,	 false	},	// 4096 models
-{ ES_FIELD(skin),		NET_BYTE,	 false	},	// 255 skins
-{ ES_FIELD(frame),		NET_FLOAT, false	},	// interpolate value
-{ ES_FIELD(body),		NET_BYTE,	 false	},	// 255 bodies
-{ ES_FIELD(sequence),	NET_WORD,	 false	},	// 1024 sequences
-{ ES_FIELD(effects),	NET_LONG,	 false	},	// effect flags
-{ ES_FIELD(renderfx),	NET_LONG,	 false	},	// renderfx flags
-{ ES_FIELD(solid),		NET_LONG,	 false	},	// encoded mins/maxs
-{ ES_FIELD(alpha),		NET_FLOAT, false	},	// alpha value (FIXME: send a byte ? )
-{ ES_FIELD(animtime),	NET_FLOAT, false	},	// auto-animating time
-{ NULL },						// terminator
-};
-
-static net_field_t ps_fields[] =
-{
-{ PS_FIELD(pm_type),	NET_BYTE,  false	},	// 16 player movetypes allowed
-{ PS_FIELD(pm_flags),	NET_WORD,  true	},	// 16 movetype flags allowed
-{ PS_FIELD(pm_time),	NET_BYTE,  true	},	// each unit 8 msec
-#ifdef USE_COORD_FRAC
-{ PS_FIELD(origin[0]),	NET_COORD, false	},
-{ PS_FIELD(origin[1]),	NET_COORD, false	},
-{ PS_FIELD(origin[2]),	NET_COORD, false	},
-{ PS_FIELD(velocity[0]),	NET_COORD, false	},
-{ PS_FIELD(velocity[1]),	NET_COORD, false	},
-{ PS_FIELD(velocity[2]),	NET_COORD, false	},
-#else
-{ PS_FIELD(origin[0]),	NET_FLOAT, false	},
-{ PS_FIELD(origin[1]),	NET_FLOAT, false	},
-{ PS_FIELD(origin[2]),	NET_FLOAT, false	},
-{ PS_FIELD(velocity[0]),	NET_FLOAT, false	},
-{ PS_FIELD(velocity[1]),	NET_FLOAT, false	},
-{ PS_FIELD(velocity[2]),	NET_FLOAT, false	},
-#endif
-{ PS_FIELD(delta_angles[0]),	NET_FLOAT, false	},
-{ PS_FIELD(delta_angles[1]),	NET_FLOAT, false	},
-{ PS_FIELD(delta_angles[2]),	NET_FLOAT, false	},
-{ PS_FIELD(gravity),	NET_SHORT, false	},	// may be 12 bits ?
-{ PS_FIELD(effects),	NET_LONG,  false	},	// copied to entity_state_t->effects
-{ PS_FIELD(viewangles[0]),	NET_FLOAT, false	},	// for fixed views
-{ PS_FIELD(viewangles[1]),	NET_FLOAT, false	},
-{ PS_FIELD(viewangles[2]),	NET_FLOAT, false	},
-{ PS_FIELD(viewoffset[0]),	NET_SCALE, false	},	// get rid of this
-{ PS_FIELD(viewoffset[1]),	NET_SCALE, false	},
-{ PS_FIELD(viewoffset[2]),	NET_SCALE, false	},
-{ PS_FIELD(kick_angles[0]),	NET_SCALE, false	},
-{ PS_FIELD(kick_angles[1]),	NET_SCALE, false	},
-{ PS_FIELD(kick_angles[2]),	NET_SCALE, false	},
-{ PS_FIELD(blend[0]),	NET_COLOR, false	},	// FIXME: calc on client, don't send over the net
-{ PS_FIELD(blend[1]),	NET_COLOR, false	},
-{ PS_FIELD(blend[2]),	NET_COLOR, false	},
-{ PS_FIELD(blend[3]),	NET_COLOR, false	},
-{ PS_FIELD(fov),		NET_FLOAT, false	},	// FIXME: send as byte * 4 ?
-{ PS_FIELD(vmodel.index),	NET_WORD,  false	},	// 4096 models 
-{ PS_FIELD(vmodel.angles[0]), NET_SCALE, false	},	// can be some different with viewangles
-{ PS_FIELD(vmodel.angles[1]), NET_SCALE, false	},
-{ PS_FIELD(vmodel.angles[2]), NET_SCALE, false	},
-{ PS_FIELD(vmodel.offset[0]), NET_SCALE, false	},	// center offset
-{ PS_FIELD(vmodel.offset[1]),	NET_SCALE, false	},
-{ PS_FIELD(vmodel.offset[2]),	NET_SCALE, false	},
-{ PS_FIELD(vmodel.sequence),	NET_WORD,  false	},	// 1024 sequences
-{ PS_FIELD(vmodel.frame),	NET_FLOAT, false	},	// interpolate value
-{ PS_FIELD(vmodel.body),	NET_BYTE,  false	},	// 255 bodies
-{ PS_FIELD(vmodel.skin),	NET_BYTE,  false	},	// 255 skins
-{ PS_FIELD(pmodel.index),	NET_WORD,  false	},	// 4096 models 
-{ PS_FIELD(pmodel.sequence),	NET_WORD,  false	},	// 1024 sequences
-{ PS_FIELD(vmodel.frame),	NET_FLOAT, false	},	// interpolate value
-{ NULL },						// terminator
+{ ES_FIELD(ed_type),		NET_BYTE,	 true	},
+{ ES_FIELD(soundindex),		NET_WORD,	 false	},	// 512 sounds ( OpenAL software limit is 255 )
+{ ES_FIELD(origin[0]),		NET_FLOAT, false	},
+{ ES_FIELD(origin[1]),		NET_FLOAT, false	},
+{ ES_FIELD(origin[2]),		NET_FLOAT, false	},
+{ ES_FIELD(angles[0]),		NET_FLOAT, false	},
+{ ES_FIELD(angles[1]),		NET_FLOAT, false	},
+{ ES_FIELD(angles[2]),		NET_FLOAT, false	},
+{ ES_FIELD(velocity[0]),		NET_FLOAT, false	},
+{ ES_FIELD(velocity[1]),		NET_FLOAT, false	},
+{ ES_FIELD(velocity[2]),		NET_FLOAT, false	},
+{ ES_FIELD(old_origin[0]),		NET_FLOAT, true	},	// send always
+{ ES_FIELD(old_origin[1]),		NET_FLOAT, true	},
+{ ES_FIELD(old_origin[2]),		NET_FLOAT, true	},
+{ ES_FIELD(old_velocity[0]),		NET_FLOAT, true	},	// client velocity
+{ ES_FIELD(old_velocity[1]),		NET_FLOAT, true	},
+{ ES_FIELD(old_velocity[2]),		NET_FLOAT, true	},
+{ ES_FIELD(model.index),		NET_WORD,	 false	},	// 4096 models
+{ ES_FIELD(model.colormap),		NET_WORD,	 false	},	// encoded as two shorts for top and bottom color
+{ ES_FIELD(model.scale),		NET_COLOR, false	},	// 0-255 values
+{ ES_FIELD(model.frame),		NET_FLOAT, false	},	// interpolate value
+{ ES_FIELD(model.animtime),		NET_FLOAT, false	},	// auto-animating time
+{ ES_FIELD(model.framerate),		NET_FLOAT, false	},	// custom framerate
+{ ES_FIELD(model.sequence),		NET_WORD,	 false	},	// 1024 sequences
+{ ES_FIELD(model.gaitsequence),	NET_WORD,	 false	},	// 1024 gaitsequences
+{ ES_FIELD(model.skin),		NET_BYTE,	 false	},	// 255 skins
+{ ES_FIELD(model.body),		NET_BYTE,	 false	},	// 255 bodies
+{ ES_FIELD(model.blending[0]),	NET_COLOR, false	},	// animation blending
+{ ES_FIELD(model.blending[1]),	NET_COLOR, false	},
+{ ES_FIELD(model.blending[2]),	NET_COLOR, false	},
+{ ES_FIELD(model.blending[3]),	NET_COLOR, false	},
+{ ES_FIELD(model.blending[4]),	NET_COLOR, false	},	// send flags (first 4 bytes)
+{ ES_FIELD(model.blending[5]),	NET_COLOR, false	},
+{ ES_FIELD(model.blending[6]),	NET_COLOR, false	},
+{ ES_FIELD(model.blending[7]),	NET_COLOR, false	},
+{ ES_FIELD(model.blending[8]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[0]),	NET_COLOR, false	},	// bone controllers #
+{ ES_FIELD(model.controller[1]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[2]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[3]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[4]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[5]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[6]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[7]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[8]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[9]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[10]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[11]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[12]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[13]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[14]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[15]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[16]),	NET_COLOR, false	},	// FIXME: sending as array
+{ ES_FIELD(solidtype),		NET_BYTE,	 false	},
+{ ES_FIELD(movetype),		NET_BYTE,	 false	},        // send flags (second 4 bytes)
+{ ES_FIELD(gravity),		NET_SHORT, false	},	// gravity multiplier
+{ ES_FIELD(aiment),			NET_WORD,	 false	},	// entity index
+{ ES_FIELD(solid),			NET_LONG,	 false	},	// encoded mins/maxs
+{ ES_FIELD(mins[0]),		NET_FLOAT, false	},
+{ ES_FIELD(mins[1]),		NET_FLOAT, false	},
+{ ES_FIELD(mins[2]),		NET_FLOAT, false	},
+{ ES_FIELD(maxs[0]),		NET_FLOAT, false	},
+{ ES_FIELD(maxs[1]),		NET_FLOAT, false	},
+{ ES_FIELD(maxs[2]),		NET_FLOAT, false	},	
+{ ES_FIELD(effects),		NET_LONG,	 false	},	// effect flags
+{ ES_FIELD(renderfx),		NET_LONG,	 false	},	// renderfx flags
+{ ES_FIELD(renderamt),		NET_COLOR, false	},	// alpha amount
+{ ES_FIELD(rendercolor[0]),		NET_COLOR, false	},	// animation blending
+{ ES_FIELD(rendercolor[1]),		NET_COLOR, false	},
+{ ES_FIELD(rendercolor[2]),		NET_COLOR, false	},
+{ ES_FIELD(rendermode),		NET_BYTE,  false	},	// render mode (legacy stuff)
+{ ES_FIELD(pm_type),		NET_BYTE,  false	},	// 16 player movetypes allowed
+{ ES_FIELD(pm_flags),		NET_WORD,  true	},	// 16 movetype flags allowed
+{ ES_FIELD(pm_time),		NET_BYTE,  true	},	// each unit 8 msec
+{ ES_FIELD(delta_angles[0]),		NET_FLOAT, false	},
+{ ES_FIELD(delta_angles[1]),		NET_FLOAT, false	},
+{ ES_FIELD(delta_angles[2]),		NET_FLOAT, false	},
+{ ES_FIELD(punch_angles[0]),		NET_SCALE, false	},
+{ ES_FIELD(punch_angles[1]),		NET_SCALE, false	},
+{ ES_FIELD(punch_angles[2]),		NET_SCALE, false	},
+{ ES_FIELD(viewangles[0]),		NET_FLOAT, false	},	// for fixed views
+{ ES_FIELD(viewangles[1]),		NET_FLOAT, false	},
+{ ES_FIELD(viewangles[2]),		NET_FLOAT, false	},
+	// FIXME: replace with viewoffset 
+	//{ ES_FIELD(viewheight),		NET_SHORT, false	},	// client viewheight
+{ ES_FIELD(viewoffset[0]),		NET_SCALE, false	},	// get rid of this
+{ ES_FIELD(viewoffset[1]),		NET_SCALE, false	},
+{ ES_FIELD(viewoffset[2]),		NET_SCALE, false	},
+{ ES_FIELD(maxspeed),		NET_WORD,  false	},	// send flags (third 4 bytes )
+{ ES_FIELD(fov),			NET_FLOAT, false	},	// client horizontal field of view
+{ ES_FIELD(vmodel.index),		NET_WORD,  false	},	// 4096 models 
+{ ES_FIELD(vmodel.colormap),		NET_LONG,  false	},	// 4096 models 
+{ ES_FIELD(vmodel.sequence),		NET_WORD,  false	},	// 1024 sequences
+{ ES_FIELD(vmodel.frame),		NET_FLOAT, false	},	// interpolate value
+{ ES_FIELD(vmodel.body),		NET_BYTE,  false	},	// 255 bodies
+{ ES_FIELD(vmodel.skin),		NET_BYTE,  false	},	// 255 skins
+{ ES_FIELD(pmodel.index),		NET_WORD,  false	},	// 4096 models 
+{ ES_FIELD(pmodel.colormap),		NET_LONG,  false	},	// 4096 models 
+{ ES_FIELD(pmodel.sequence),		NET_WORD,  false	},	// 1024 sequences
+{ ES_FIELD(vmodel.frame),		NET_FLOAT, false	},	// interpolate value
+{ NULL },							// terminator
 };
 
 // probably usercmd_t never reached 32 field integer limit (in theory of course)
@@ -307,8 +329,8 @@ void MSG_ReadPos( sizebuf_t *sb, vec3_t pos );
 void MSG_ReadData( sizebuf_t *sb, void *buffer, size_t size );
 void MSG_ReadDeltaUsercmd( sizebuf_t *sb, usercmd_t *from, usercmd_t *cmd );
 void MSG_ReadDeltaEntity( sizebuf_t *sb, entity_state_t *from, entity_state_t *to, int number );
-void MSG_WriteDeltaPlayerstate( player_state_t *from, player_state_t *to, sizebuf_t *msg );
-void MSG_ReadDeltaPlayerstate( sizebuf_t *msg, player_state_t *from, player_state_t *to );
+void MSG_WriteDeltaPlayerstate( entity_state_t *from, entity_state_t *to, sizebuf_t *msg );
+void MSG_ReadDeltaPlayerstate( sizebuf_t *msg, entity_state_t *from, entity_state_t *to );
 
 // huffman compression
 void Huff_Init( void );

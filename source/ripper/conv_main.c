@@ -113,7 +113,7 @@ idconv.dll needs for some setup operations
 so do it manually
 ==================
 */
-void InitConvertor ( uint funcname, int argc, char **argv )
+void InitConvertor ( int argc, char **argv )
 {
 	launch_t	CreateImglib, CreateVprogs;
 	string	gamedir;
@@ -121,20 +121,20 @@ void InitConvertor ( uint funcname, int argc, char **argv )
 	// init pools
 	basepool = Mem_AllocPool( "Temp" );
 	zonepool = Mem_AllocPool( "Zone" );
-          app_name = funcname;
+          app_name = g_Instance;
 
 	Sys_LoadLibrary( &imglib_dll ); // load imagelib
 	CreateImglib = (void *)imglib_dll.main;
 	Image = CreateImglib( &com, NULL ); // second interface not allowed
 
-	switch( funcname )
+	switch( app_name )
 	{
 	case RIPP_QCCDEC:
 		Sys_LoadLibrary( &vprogs_dll ); // load qcclib
 		CreateVprogs = (void *)vprogs_dll.main;
 		PRVM = CreateVprogs( &com, NULL ); // second interface not allowed
 
-		PRVM->Init( funcname, argc, argv );
+		PRVM->Init( argc, argv );
 
 		if(!FS_GetParmFromCmdLine("-dir", gamedir ))
 			com.strncpy( gamedir, ".", sizeof(gamedir));
@@ -143,7 +143,7 @@ void InitConvertor ( uint funcname, int argc, char **argv )
 		break;
 	default:
 		FS_InitRootDir(".");
-		Image->Init( funcname ); // initialize image support
+		Image->Init(); // initialize image support
 		break;	
 	}
 

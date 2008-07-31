@@ -22,7 +22,7 @@
 //=====================================
 //	main editor funcs
 //=====================================
-void InitViewer ( uint funcname, int argc, char **argv );
+void InitViewer ( int argc, char **argv );
 void ViewerMain ( void );
 void FreeViewer ( void );
 

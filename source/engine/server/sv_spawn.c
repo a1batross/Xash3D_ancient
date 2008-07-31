@@ -7,13 +7,13 @@ edict_t	*pm_passent;
 void PM_trace( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, trace_t *tr )
 {
 	if( pm_passent->progs.sv->health > 0 )
-		*tr = SV_Trace (start, mins, maxs, end, pm_passent, MASK_PLAYERSOLID );
-	*tr = SV_Trace (start, mins, maxs, end, pm_passent, MASK_DEADSOLID );
+		*tr = SV_Trace (start, mins, maxs, end, MOVE_NORMAL, pm_passent, MASK_PLAYERSOLID );
+	*tr = SV_Trace (start, mins, maxs, end, MOVE_NORMAL, pm_passent, MASK_DEADSOLID );
 }
 
 int PM_pointcontents( vec3_t point )
 {
-	return SV_PointContents( point, pm_passent );
+	return SV_PointContents( point );
 }
 
 /*
@@ -25,10 +25,7 @@ SV_TouchTriggers
 void SV_TouchTriggers (edict_t *ent)
 {
 	int		i, num;
-	edict_t		**touch, *hit;
-
-	// list of pointers, not data
-	touch = Z_Malloc( sizeof(*touch) * host.max_edicts );
+	edict_t		*touch[MAX_EDICTS], *hit;
 
 	// dead things don't activate triggers!
 	if ((ent->priv.sv->client || ((int)ent->progs.sv->flags & FL_MONSTER)) && (ent->progs.sv->health <= 0))
@@ -53,7 +50,6 @@ void SV_TouchTriggers (edict_t *ent)
 			PRVM_ExecuteProgram (hit->progs.sv->touch, "pev->touch");
 		}
 	}
-	Mem_Free( touch );
 
 	// restore state
 	PRVM_POP_GLOBALS;
@@ -72,7 +68,7 @@ SV_CalcRoll
 
 ===============
 */
-float SV_CalcRoll (vec3_t angles, vec3_t velocity)
+static float SV_CalcRoll (vec3_t angles, vec3_t velocity)
 {
 	float	sign;
 	float	side;
@@ -91,50 +87,6 @@ float SV_CalcRoll (vec3_t angles, vec3_t velocity)
 	
 }
 
-/*
-==============
-SV_CalcGunOffset
-==============
-*/
-void SV_CalcGunOffset( edict_t *ent )
-{
-	int		i;
-	float		delta;
-
-	// gun angles from bobbing
-	ent->priv.sv->client->ps.vmodel.angles[ROLL] = xyspeed * bobfracsin * 0.005;
-	ent->priv.sv->client->ps.vmodel.angles[YAW] = xyspeed * bobfracsin * 0.01;
-	if( bobcycle & 1 )
-	{
-		ent->priv.sv->client->ps.vmodel.angles[ROLL] = -ent->priv.sv->client->ps.vmodel.angles[ROLL];
-		ent->priv.sv->client->ps.vmodel.angles[YAW] = -ent->priv.sv->client->ps.vmodel.angles[YAW];
-	}
-	ent->priv.sv->client->ps.vmodel.angles[PITCH] = xyspeed * bobfracsin * 0.005;
-
-	// gun angles from delta movement
-	for (i = 0; i < 3; i++)
-	{
-		delta = ent->priv.sv->client->ps.oldviewangles[i] - ent->priv.sv->client->ps.viewangles[i];
-		if( delta > 180 ) delta -= 360;
-		if( delta < -180 ) delta += 360;
-		if( delta > 45 ) delta = 45;
-		if( delta < -45 ) delta = -45;
-		if( i == YAW ) ent->priv.sv->client->ps.vmodel.angles[ROLL] += 0.1f * delta;
-		ent->priv.sv->client->ps.vmodel.angles[i] += 0.2 * delta;
-	}
-
-	// gun height
-	VectorClear( ent->priv.sv->client->ps.vmodel.offset );
-
-	for( i = 0; i < 3; i++ )
-	{
-		ent->priv.sv->client->ps.vmodel.offset[i] += forward[i];
-		ent->priv.sv->client->ps.vmodel.offset[i] += right[i];
-		ent->priv.sv->client->ps.vmodel.offset[i] += up[i] * -1;
-	}
-}
-
-
 void SV_CalcViewOffset (edict_t *ent)
 {
 	float		*angles;
@@ -143,7 +95,7 @@ void SV_CalcViewOffset (edict_t *ent)
 	vec3_t		v;
 
 	// base angles
-	angles = ent->priv.sv->client->ps.kick_angles;
+	angles = ent->priv.sv->client->ps.punch_angles;
 
 	VectorCopy(ent->progs.sv->punchangle, angles);
 	// add angles based on velocity
@@ -180,14 +132,9 @@ void SV_CalcViewOffset (edict_t *ent)
 	VectorCopy( v, ent->priv.sv->client->ps.viewoffset );
 }
 
-void SV_SetStats (edict_t *ent)
-{
-	ent->priv.sv->client->ps.stats[STAT_HEALTH] = ent->progs.sv->health;
-}
-
 void ClientEndServerFrame (edict_t *ent)
 {
-	float		bobtime;
+	float	bobtime = 0;
 
 	current_player = ent;
 	current_client = ent->priv.sv->client;
@@ -222,11 +169,7 @@ void ClientEndServerFrame (edict_t *ent)
 	//
 	xyspeed = sqrt(ent->progs.sv->velocity[0] * ent->progs.sv->velocity[0] + ent->progs.sv->velocity[1] * ent->progs.sv->velocity[1]);
 
-	if (xyspeed < 5)
-	{
-		bobmove = 0;
-		current_client->ps.bobtime = 0;	// start at beginning of cycle again
-	}
+	if( xyspeed < 5 ) bobmove = 0;
 	else if (ent->progs.sv->groundentity)
 	{	
 		// so bobbing only cycles when on ground
@@ -235,7 +178,7 @@ void ClientEndServerFrame (edict_t *ent)
 		else bobmove = 0.0625;
 	}
 	
-	bobtime = (current_client->ps.bobtime += bobmove);
+	bobtime += bobmove;
 
 	if (current_client->ps.pm_flags & PMF_DUCKED)
 		bobtime *= 4;
@@ -245,16 +188,6 @@ void ClientEndServerFrame (edict_t *ent)
 
 	// determine the view offsets
 	SV_CalcViewOffset (ent);
-
-	// determine the gun offsets
-	SV_CalcGunOffset (ent);
-
-	SV_SetStats( ent );
-
-	// if the scoreboard is up, update it
-	if (!(sv.framenum & 31))
-	{
-	}
 }
 
 /*
@@ -284,110 +217,8 @@ Advances the world by 0.1 seconds
 */
 void SV_RunFrame( void )
 {
-	int		i;
-	edict_t		*ent;
-
-	// let the progs know that a new frame has started
-	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(prog->edicts);
-	prog->globals.sv->other = PRVM_EDICT_TO_PROG(prog->edicts);
-	prog->globals.sv->time = sv.time;
-	prog->globals.sv->frametime = sv.frametime;
-	PRVM_ExecuteProgram (prog->globals.sv->StartFrame, "StartFrame");
-
-	for (i = 1; i < prog->num_edicts; i++ )
-	{
-		ent = PRVM_EDICT_NUM(i);
-		if (ent->priv.sv->free) continue;
-
-		VectorCopy (ent->progs.sv->origin, ent->progs.sv->old_origin);
-
-		// don't apply phys on clients
-		if (i > 0 && i <= maxclients->value) continue;
-		SV_Physics( ent );
-	}
-
-	// build the playerstate_t structures for all players
-	ClientEndServerFrames ();
-
-	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(prog->edicts);
-	prog->globals.sv->other = PRVM_EDICT_TO_PROG(prog->edicts);
-	prog->globals.sv->time = sv.time;
-	PRVM_ExecuteProgram (prog->globals.sv->EndFrame, "EndFrame");
-
-	// decrement prog->num_edicts if the highest number entities died
-	for ( ;PRVM_EDICT_NUM(prog->num_edicts - 1)->priv.sv->free; prog->num_edicts-- );
-}
-
-bool SV_ClientConnect (edict_t *ent, char *userinfo)
-{
-	// they can connect
-	ent->progs.sv->flags = 0; // make sure we start with known default
-	ent->progs.sv->health = 100;
-
-	MsgDev(D_NOTE, "SV_ClientConnect()\n");
-	prog->globals.sv->time = sv.time;
-	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(ent);
-	PRVM_ExecuteProgram (prog->globals.sv->ClientConnect, "ClientConnect");
-
-	return true;
-}
-
-void SV_ClientUserinfoChanged (edict_t *ent, char *userinfo)
-{
-	char	*s;
-	int	playernum;
-          
-	// check for malformed or illegal info strings
-	if (!Info_Validate(userinfo))
-	{
-		strcpy (userinfo, "\\name\\badinfo\\skin\\male/grunt");
-	}
-
-	// set skin
-	s = Info_ValueForKey (userinfo, "skin");
-
-	playernum = PRVM_NUM_FOR_EDICT(ent);
-
-	// combine name and skin into a configstring
-	SV_ConfigString (CS_PLAYERSKINS + playernum, va("%s\\%s", Info_ValueForKey (userinfo, "name"), Info_ValueForKey (userinfo, "skin")));
-
-	ent->priv.sv->client->ps.fov = bound(1, atoi(Info_ValueForKey(userinfo, "fov")), 160);
-}
-
-/*
-===========
-SV_ClientBegin
-
-called when a client has finished connecting, and is ready
-to be placed into the game.  This will happen every level load.
-============
-*/
-void SV_ClientBegin (edict_t *ent)
-{
-	int		i;
-
-	// if there is already a body waiting for us (a loadgame), just
-	// take it, otherwise spawn one from scratch
-	if (ent->priv.sv->free)
-	{
-		// the client has cleared the client side viewangles upon
-		// connecting to the server, which is different than the
-		// state when the game is saved, so we need to compensate
-		// with deltaangles
-		for (i = 0; i < 3; i++)
-			ent->priv.sv->client->ps.delta_angles[i] = ANGLE2SHORT(ent->priv.sv->client->ps.viewangles[i]);
-	}
-	else
-	{
-		// a spawn point will completely reinitialize the entity
-		// except for the persistant data that was initialized at
-		// ClientConnect() time
-		SV_InitEdict (ent);
-		SV_PutClientInServer (ent);
-	}
-
-	// make sure all view stuff is valid
-	ClientEndServerFrame (ent);
+	;
+	//ClientEndServerFrames();
 }
 
 /*
@@ -461,8 +292,8 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	VectorCopy(pm.maxs, ent->progs.sv->maxs);
 	VectorCopy(pm.ps.viewangles, ent->progs.sv->v_angle);
 	VectorCopy(pm.ps.viewangles, ent->progs.sv->angles);
-	if( pm.ps.groundentity )
-		ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG( pm.ps.groundentity );
+	if( pm.groundentity )
+		ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG( pm.groundentity );
 	else ent->progs.sv->groundentity = 0;
 
 	// copy viewmodel info
@@ -470,8 +301,6 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	client->ps.vmodel.body = ent->progs.sv->v_body;
 	client->ps.vmodel.skin = ent->progs.sv->v_skin;
 	client->ps.vmodel.sequence = ent->progs.sv->v_sequence;
-	VectorCopy(ent->progs.sv->v_offset, client->ps.vmodel.offset );
-	VectorCopy(ent->progs.sv->v_angles, client->ps.vmodel.angles );
 
 	SV_LinkEdict(ent);
 
@@ -507,234 +336,13 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 }
 
 /*
-===========
-SV_ClientDisconnect
-
-Called when a player drops from the server.
-Will not be called between levels.
-============
-*/
-void SV_ClientDisconnect (edict_t *ent)
-{
-	int	playernum;
-
-	if (!ent->priv.sv->client) return;
-
-	SV_UnlinkEdict(ent);
-	ent->progs.sv->modelindex = 0;
-	ent->progs.sv->solid = SOLID_NOT;
-	ent->priv.sv->free = true;
-	ent->progs.sv->classname = PRVM_SetEngineString("disconnected");
-
-	playernum = PRVM_NUM_FOR_EDICT(ent) - 1;
-	SV_ConfigString (CS_PLAYERSKINS + playernum, "");
-
-}
-
-/*
 ==================
 SV_StartParticle
 
 Make sure the event gets sent to all clients
 ==================
 */
-void SV_StartParticle (vec3_t org, vec3_t dir, int color, int count)
+void SV_StartParticle( vec3_t org, vec3_t dir, int color, int count )
 {
 	MsgDev( D_ERROR, "SV_StartParticle: implement me\n");
 }
-
-/*
-===============
-PF_cprintf
-
-Print to a single client
-===============
-*/
-void PF_cprintf (edict_t *ent, int level, char *fmt, ...)
-{
-	char		msg[1024];
-	va_list		argptr;
-	int			n;
-
-	if (ent)
-	{
-		n = PRVM_NUM_FOR_EDICT(ent);
-		if (n < 1 || n > maxclients->value)
-			Host_Error("cprintf to a non-client\n");
-	}
-
-	va_start (argptr,fmt);
-	com.vsprintf (msg, fmt, argptr);
-	va_end (argptr);
-
-	if (ent) SV_ClientPrintf (svs.clients+(n-1), level, "%s", msg);
-	else Msg ("%s", msg);
-}
-
-
-/*
-==================
-Cmd_Say_f
-==================
-*/
-void Cmd_Say_f (edict_t *ent, bool team, bool arg0)
-{
-	int		j;
-	edict_t		*other;
-	char		*p;
-	char		text[2048];
-
-	if (Cmd_Argc () < 2 && !arg0) return;
-
-	com.sprintf (text, "%s: ", "all");
-
-	if (arg0)
-	{
-		strcat (text, Cmd_Argv(0));
-		strcat (text, " ");
-		strcat (text, Cmd_Args());
-	}
-	else
-	{
-		p = Cmd_Args();
-
-		if (*p == '"')
-		{
-			p++;
-			p[strlen(p)-1] = 0;
-		}
-		strcat(text, p);
-	}
-
-	// don't let text be too long for malicious reasons
-	if (strlen(text) > 150) text[150] = 0;
-
-	com.strcat(text, "\n");
-
-	if( host.type == HOST_DEDICATED )
-		PF_cprintf(NULL, PRINT_CHAT, "%s", text);
-
-	for (j = 1; j <= maxclients->value; j++)
-	{
-		other = PRVM_EDICT_NUM(j);
-		if (other->priv.sv->free) continue;
-		if (!other->priv.sv->client) continue;
-		PF_cprintf(other, PRINT_CHAT, "%s", text);
-	}
-}
-
-/*
-=================
-SV_ClientCommand
-=================
-*/
-void SV_ClientCommand (edict_t *ent)
-{
-	char	*cmd;
-	char	*parm;
-
-	if (!ent->priv.sv->client) return; // not fully in game yet
-
-	cmd = Cmd_Argv(0);
-
-	if(Cmd_Argc() < 2) parm = NULL;
-	else parm = Cmd_Argv(1);
-
-	if (strcasecmp (cmd, "say") == 0)
-	{
-		Cmd_Say_f (ent, false, false);
-		return;
-	}
-	if (strcasecmp (cmd, "say_team") == 0)
-	{
-		Cmd_Say_f (ent, true, false);
-		return;
-	}
-}
-
-void SV_Transform( sv_edict_t *ed, matrix4x3 transform )
-{
-	edict_t	*edict;
-	vec3_t	origin, angles;
-	matrix4x4	objmatrix;
-
-	if(!ed) return;
-	edict = PRVM_EDICT_NUM( ed->serialnumber );
-
-	// save matrix (fourth value will be reset on save\load)
-	VectorCopy( transform[0], edict->progs.sv->m_pmatrix[0] );
-	VectorCopy( transform[1], edict->progs.sv->m_pmatrix[1] );
-	VectorCopy( transform[2], edict->progs.sv->m_pmatrix[2] );
-	VectorCopy( transform[3], edict->progs.sv->m_pmatrix[3] );
-
-	MatrixLoadIdentity( objmatrix );
-	VectorCopy( transform[0], objmatrix[0] );
-	VectorCopy( transform[1], objmatrix[1] );
-	VectorCopy( transform[2], objmatrix[2] );
-	VectorCopy( transform[3], objmatrix[3] );
-	MatrixAngles( objmatrix, origin, angles );
-
-	VectorCopy( origin, edict->progs.sv->origin );
-	VectorCopy( angles, edict->progs.sv->angles );
-
-	// refresh force and torque
-	pe->GetForce( ed->physbody, edict->progs.sv->velocity, edict->progs.sv->avelocity, edict->progs.sv->force, edict->progs.sv->torque );
-	pe->GetMassCentre( ed->physbody, edict->progs.sv->m_pcentre );
-}
-
-/*
-==============
-CV_ClientMove
-
-grab user cmd from player_state_t
-send it to transform callback
-==============
-*/
-void SV_PlayerMove( sv_edict_t *ed )
-{
-	pmove_t		pm;
-	sv_client_t	*client;
-	edict_t		*player;
-
-	client = ed->client;
-	player = PRVM_PROG_TO_EDICT( ed->serialnumber );
-	memset( &pm, 0, sizeof(pm) );
-
-	if( player->progs.sv->movetype == MOVETYPE_NOCLIP )
-		client->ps.pm_type = PM_SPECTATOR;
-	else client->ps.pm_type = PM_NORMAL;
-	client->ps.gravity = sv_gravity->value;
-
-	if( player->progs.sv->teleport_time )
-		client->ps.pm_flags |= PMF_TIME_TELEPORT; 
-	else client->ps.pm_flags &= ~PMF_TIME_TELEPORT; 
-
-	pm.ps = client->ps;
-	pm.cmd = client->lastcmd;
-	pm.body = ed->physbody;	// member body ptr
-	
-	VectorCopy( player->progs.sv->origin, pm.ps.origin );
-	VectorCopy( player->progs.sv->velocity, pm.ps.velocity );
-
-	pe->ServerMove( &pm );
-
-	// save results of pmove
-	client->ps = pm.ps;
-
-	VectorCopy(pm.ps.origin, player->progs.sv->origin);
-	VectorCopy(pm.ps.velocity, player->progs.sv->velocity);
-	VectorCopy(pm.mins, player->progs.sv->mins);
-	VectorCopy(pm.maxs, player->progs.sv->maxs);
-	VectorCopy(pm.ps.viewangles, client->ps.viewangles);
-}
-
-void SV_PlaySound( sv_edict_t *ed, float volume, const char *sample )
-{
-	float	vol = bound( 0.0f, volume/255.0f, 255.0f );
-	int	sound_idx = SV_SoundIndex( sample );
-	edict_t	*ent;
-	if( !ed ) ed = prog->edicts->priv.sv;
-	ent = PRVM_PROG_TO_EDICT( ed->serialnumber );
-
-	//SV_StartSound( ent->progs.sv->origin, ent, CHAN_BODY, sound_idx, vol, 1.0f, 0 );
-}  

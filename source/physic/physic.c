@@ -11,6 +11,7 @@ physic_t		ph;	// physic globalstate
 byte		*physpool;
 byte		*cmappool;
 NewtonWorld	*gWorld;
+int		app_name;
 
 cvar_t *cm_use_triangles;
 cvar_t *cm_solver_model;
@@ -25,6 +26,7 @@ bool InitPhysics( void )
 	physpool = Mem_AllocPool("Physics Pool");
 	cmappool = Mem_AllocPool("CM Zone");
 	gWorld = NewtonCreate( Palloc, Pfree ); // alloc world
+	app_name = g_Instance;
 
 	// check developer mode
 	if( FS_GetParmFromCmdLine("-dev", dev_level ))
@@ -88,10 +90,9 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 	Phys.NumBmodels = CM_NumInlineModels;
 	Phys.GetEntityString = CM_EntityString;
 	Phys.GetTextureName = CM_TexName;
-	Phys.PointContents = CM_PointContents;
-	Phys.TransformedPointContents = CM_TransformedPointContents;
-	Phys.BoxTrace = CM_BoxTrace;
-	Phys.TransformedBoxTrace = CM_TransformedBoxTrace;
+	Phys.ClipToGenericEntity = CM_CollisionClipToGenericEntity;
+	Phys.ClipToWorld = CM_CollisionClipToWorld;
+	Phys.CombineTraces = CM_CollisionCombineTraces;
 	
 	Phys.ClusterPVS = CM_ClusterPVS;
 	Phys.ClusterPHS = CM_ClusterPHS;
@@ -108,8 +109,6 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 
 	Phys.SetParameters = Phys_SetParameters;
 	Phys.PlayerMove = CM_PlayerMove;
-	Phys.ServerMove = CM_ServerMove;
-	Phys.ClientMove = CM_ClientMove;
 
 	Phys.SetOrigin = CM_SetOrigin;
 	Phys.GetForce = Phys_GetForce;

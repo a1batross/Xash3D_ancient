@@ -59,9 +59,11 @@ typedef struct cbsp_s
 typedef struct cnode_s
 {
 	// this part shared between node and leaf
+	struct cnode_s	*parent;
 	cplane_t		*plane;		// always != NULL
 	vec3_t		mins;
 	vec3_t		maxs;
+	int		contents;		// combined contents for node
 
 	// this part unique to node
 	struct cnode_s	*children[2];
@@ -70,16 +72,20 @@ typedef struct cnode_s
 typedef struct cleaf_s
 {
 	// this part shared between node and leaf
+	struct cnode_s	*parent;
 	cplane_t		*plane;		// always == NULL 
 	vec3_t		mins;
 	vec3_t		maxs;
+	int		contents;		// combined contents for leaf
 
 	// this part unique to leaf
-	int		contents;
 	int		cluster;
 	int		area;
-	int		firstleafbrush;
+	bool		havepatches;	// leaf have collision patches (triangles)
+	int		*firstleafbrush;
 	int		numleafbrushes;
+	int 		numleafsurfaces;
+	int		*firstleafsurface;
 } cleaf_t;
 
 typedef struct
@@ -146,6 +152,7 @@ typedef struct clipmap_s
 	cplane_t		*planes;		// 12 extra planes for box hull
 	cleaf_t		*leafs;		// 1 extra leaf for box hull
 	dword		*leafbrushes;
+	dword		*leafsurfaces;
 	cnode_t		*nodes;		// 6 extra planes for box hull
 	dvertex_t		*vertices;
 	dedge_t		*edges;
@@ -162,23 +169,20 @@ typedef struct clipmap_s
 	carea_t		*areas;
 	dareaportal_t	*areaportals;
 
-	csurface_t	nullsurface;
 	int		numbrushsides;
 	int		numtexinfo;
 	int		numplanes;
 	int		numbmodels;
 	int		numnodes;
 	int		numleafs;		// allow leaf funcs to be called without a map
-	int		emptyleaf;
-	int		solidleaf;
 	int		numleafbrushes;
+	int		numleafsurfaces;
 	int		numbrushes;
 	int		numfaces;
 	int		numareas;
 	int		numareaportals;
 	int		numclusters;
 	int		floodvalid;
-	int		num_models;
 
 	// misc stuff
 	NewtonBody	*body;
@@ -189,7 +193,6 @@ typedef struct clipmap_s
 	collide_info_t	touch_info;	// global info about two touching objects
 	bool		loaded;		// map is loaded?
 	bool		tree_build;	// phys tree is created ?
-	bool		use_thread;	// bsplib use thread
 	vfile_t		*world_tree;	// pre-calcualated collision tree (worldmodel only)
 	trace_t		trace;		// contains result of last trace
 	int		checkcount;
@@ -211,32 +214,14 @@ typedef struct studio_s
 	matrix3x4		rotmatrix;
 	matrix3x4		bones[MAXSTUDIOBONES];
 	vec3_t		vertices[MAXSTUDIOVERTS];
-	vec3_t		transform[MAXSTUDIOVERTS];
+	vec3_t		indices[MAXSTUDIOVERTS];
+	vec3_t		vtransform[MAXSTUDIOVERTS];
+	vec3_t		ntransform[MAXSTUDIOVERTS];
+	vec3_t		*m_pVerts;		// pointer to studio.vertices array
+	uint		numtriangles;
 	uint		bodycount;
-} studio_t;
-
-typedef struct convex_hull_s
-{
-	vec3_t		*m_pVerts; // pointer to studio.vertices array
 	uint		numverts;
-} convex_hull_t;
-
-typedef struct box_s
-{
-	cplane_t		*planes;
-	cbrush_t		*brush;
-	cmodel_t		*model;
-} box_t;
-
-typedef struct mapleaf_s
-{
-	int		count;
-	int		topnode;
-	int		maxcount;
-	int		*list;
-	float		*mins;
-	float		*maxs;
-} mapleaf_t;
+} studio_t;
 
 typedef struct leaflist_s
 {
@@ -249,37 +234,8 @@ typedef struct leaflist_s
 	void		(*storeleafs)( struct leaflist_s *ll, cnode_t *node );
 } leaflist_t;
 
-typedef struct sphere_s
-{
-	bool		use;
-	float		radius;
-	float		halfheight;
-	vec3_t		offset;
-} sphere_t;
-
-typedef struct tracework_s
-{
-	vec3_t		start;
-	vec3_t		end;
-	vec3_t		mins;
-	vec3_t		maxs;
-	vec3_t		offsets[8];	// [signbits][x] = either size[0][x] or size[1][x]
-	float		maxOffset;	// longest corner length from origin
-	vec3_t		bounds[2];	// enclosing box of start and end surrounding by size
-	vec3_t		extents;		// greatest of abs(size[0]) and abs(size[1])
-	vec3_t		origin;		// origin of the model tracing through
-	int		contents;		// trace contents
-	bool		ispoint;		// optimized case
-	trace_t		result;		// returned from trace call
-	sphere_t		sphere;		// sphere for oriendted capsule collision
-} tracework_t;
-
 extern clipmap_t cm;
 extern studio_t studio;
-extern convex_hull_t hull;
-extern box_t box;
-extern mapleaf_t leaf;
-extern tracework_t maptrace;
 extern physic_t ph;
 
 extern cvar_t *cm_noareas;
@@ -354,13 +310,13 @@ void CM_CollisionTraceLineTriangleFloat( trace_t *trace, const vec3_t linestart,
 // entities, only colliding with SOLID_BSP entities (doors, lifts)
 //
 // passedict is excluded from clipping checks
-void CM_CollisionClipToGenericEntity( trace_t *trace, cmodel_t *model, int frame, const vec3_t bodymins, const vec3_t bodymaxs, int bodysupercontents, matrix4x4 matrix, matrix4x4 inversematrix, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int hitcontentsmask );
+void CM_CollisionClipToGenericEntity( trace_t *trace, cmodel_t *model, const vec3_t bodymins, const vec3_t bodymaxs, int bodysupercontents, matrix4x4 matrix, matrix4x4 inversematrix, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int hitcontentsmask );
 // like above but does not do a transform and does nothing if model is NULL
 void CM_CollisionClipToWorld( trace_t *trace, cmodel_t *model, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int hitsupercontents );
 // combines data from two traces:
 // merges contents flags, startsolid, allsolid, inwater
 // updates fraction, endpos, plane and surface info if new fraction is shorter
-void CM_CollisionCombineTraces( trace_t *cliptrace, const trace_t *trace, void *touch, bool is_bmodel );
+void CM_CollisionCombineTraces( trace_t *cliptrace, const trace_t *trace, edict_t *touch, bool is_bmodel );
 void CM_CollisionDrawForEachBrush( void );
 void CM_CollisionInit( void );
 

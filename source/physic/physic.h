@@ -24,6 +24,7 @@ extern stdlib_api_t com;
 extern byte *physpool;
 extern byte *cmappool;
 extern NewtonWorld	*gWorld;
+extern int app_name;
 
 // cvars
 extern cvar_t *cm_use_triangles;

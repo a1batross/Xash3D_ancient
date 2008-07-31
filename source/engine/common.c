@@ -83,6 +83,18 @@ void VM_ValidateString( const char *s )
 	if( s[0] <= ' ' ) PRVM_ERROR( "%s: bad string\n", PRVM_NAME );
 }
 
+void VM_SetTraceGlobals( const trace_t *trace )
+{
+	prog->globals.sv->trace_allsolid = trace->allsolid;
+	prog->globals.sv->trace_startsolid = trace->startsolid;
+	prog->globals.sv->trace_fraction = trace->fraction;
+	prog->globals.sv->trace_contents = trace->contents;
+	VectorCopy (trace->endpos, prog->globals.sv->trace_endpos);
+	VectorCopy (trace->plane.normal, prog->globals.sv->trace_plane_normal);
+	prog->globals.sv->trace_plane_dist =  trace->plane.dist;
+	if( trace->ent ) prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG( trace->ent );
+	else prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG( prog->edicts ); // world
+}
 
 /*
 =========

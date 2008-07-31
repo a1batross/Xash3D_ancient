@@ -52,16 +52,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define AI_SPECTATOR			(1<<12)		// spectator mode for clients
 #define AI_WATERJUMP			(1<<13)		// npc or player take out of water
 
-#define FL_CLIENT			(1<<0)	// this is client
-#define FL_MONSTER			(1<<1)	// this is npc
-#define FL_DEADMONSTER		(1<<2)	// dead npc or dead player
-#define FL_WORLDBRUSH		(1<<3)	// Not moveable/removeable brush entity
-#define FL_DORMANT			(1<<4)	// Entity is dormant, no updates to client
-#define FL_FRAMETHINK		(1<<5)	// entity will be thinking every frame
-#define FL_GRAPHED			(1<<6)	// worldgraph has this ent listed as something that blocks a conection
-#define FL_FLOAT			(1<<7)	// this entity can be floating. FIXME: remove this ?
-#define FL_TRACKTRAIN		(1<<8)	// old stuff...
-
 typedef enum
 {
 	ss_dead,		// no map loaded
@@ -91,6 +81,7 @@ typedef struct server_s
 
 	char		name[MAX_QPATH];	// map name, or cinematic name
 	cmodel_t		*models[MAX_MODELS];
+	cmodel_t		*worldmodel;
 
 	char		configstrings[MAX_CONFIGSTRINGS][MAX_QPATH];
 
@@ -107,7 +98,7 @@ typedef struct server_s
 
 typedef struct
 {
-	player_state_t	ps;
+	entity_state_t	ps;
 	int  		areabytes;
 	byte 		areabits[MAX_MAP_AREAS/8];	// portalarea visibility bits
 	int  		num_entities;
@@ -121,12 +112,15 @@ typedef struct sv_client_s
 {
 	cl_state_t	state;
 
-	player_state_t	ps;			// communicated by server to clients
+	entity_state_t	ps;			// communicated by server to clients
 	char		userinfo[MAX_INFO_STRING];	// name, etc
 
 	int		lastframe;		// for delta compression
 	usercmd_t		lastcmd;			// for filling in big drops
+	usercmd_t		cmd;			// current user commands
 
+	vec3_t		fix_angles;		// q1 legacy
+	bool		fixangle;
 						// commands exhaust it, assume time cheating
 	int		ping;
 	int		rate;
@@ -147,6 +141,7 @@ typedef struct sv_client_s
 	int		downloadsize;		// total bytes (can't use EOF because of paks)
 	int		downloadcount;		// bytes sent
 
+	int		skipframes;		// client synchronyze with phys frame
 	int		lastmessage;		// sv.framenum when packet was last received
 	int		lastconnect;
 
@@ -154,8 +149,6 @@ typedef struct sv_client_s
 
 	netchan_t		netchan;
 } sv_client_t;
-
-
 
 
 typedef struct worldsector_s
@@ -182,13 +175,19 @@ struct sv_edict_s
 	int			num_clusters;	// if -1, use headnode instead
 	int			clusternums[MAX_ENT_CLUSTERS];
 	int			areanum, areanum2;
+	bool			forceupdate;	// physic_push force update
+	bool			suspended;	// suspended in air toss object
+
+	vec3_t			water_origin;	// step old origin
+	vec3_t			moved_origin;	// push old origin
+	vec3_t			moved_angles;	// push old angles
 
 	int			serialnumber;	// unical entity #id
 	int			solid;		// see entity_state_t for details
 	physbody_t		*physbody;	// ptr to phys body
 
 	// baselines
-	entity_state_t		s;
+	entity_state_t		s;		// this is a player_state too
 };
 
 /*
@@ -229,6 +228,7 @@ typedef struct
 	int		next_client_entities;	// next client_entity to use
 	entity_state_t	*client_entities;		// [num_client_entities]
 	entity_state_t	*baselines;		// [host.max_edicts]
+	func_t		ClientMove;		// qc client physic
 
 	int		last_heartbeat;
 
@@ -246,6 +246,8 @@ extern	cvar_t		*sv_paused;
 extern	cvar_t		*maxclients;
 extern	cvar_t		*sv_noreload;		// don't reload level state when reentering
 extern	cvar_t		*sv_airaccelerate;		// don't reload level state when reentering
+extern	cvar_t		*sv_accelerate;
+extern	cvar_t		*sv_friction;
 extern	cvar_t		*sv_maxvelocity;
 extern	cvar_t		*sv_gravity;
 extern	cvar_t		*sv_fps;			// running server at
@@ -255,6 +257,11 @@ extern	cvar_t		*allow_download;
 extern	cvar_t		*rcon_password;
 extern	cvar_t		*sv_fatpvs;
 extern	cvar_t		*hostname;
+extern	cvar_t		*sv_stepheight;
+extern	cvar_t		*sv_playersonly;
+extern	cvar_t		*sv_rollangle;
+extern	cvar_t		*sv_rollspeed;
+extern	cvar_t		*sv_maxspeed;
 
 extern	sv_client_t	*sv_client;
 
@@ -292,14 +299,22 @@ void SV_VM_End(void);
 //
 // sv_phys.c
 //
+void SV_Physics( void );
 void SV_PlayerMove( sv_edict_t *ed );
-void SV_PrepWorldFrame (void);
-void SV_Physics (edict_t *ent);
 void SV_DropToFloor (edict_t *ent);
 void SV_CheckGround (edict_t *ent);
+int SV_ContentsMask( const edict_t *passedict );
 bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink);
+void SV_Physics_ClientMove(  sv_client_t *cl, usercmd_t *cmd );
 void SV_CheckVelocity (edict_t *ent);
 bool SV_CheckBottom (edict_t *ent);
+
+//
+// sv_move.c
+//
+void SV_Transform( sv_edict_t *ed, matrix4x3 transform );
+void SV_PlaySound( sv_edict_t *ed, float volume, const char *sample );
+bool SV_movestep( edict_t *ent, vec3_t move, bool relink, bool noenemy, bool settrace );
 
 //
 // sv_send.c
@@ -318,6 +333,7 @@ char *SV_StatusString( void );
 void SV_GetChallenge( netadr_t from );
 void SV_DirectConnect( netadr_t from );
 void SV_PutClientInServer( edict_t *ent );
+void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd );
 void SV_ExecuteClientMessage( sv_client_t *cl, sizebuf_t *msg );
 void SV_ConnectionlessPacket( netadr_t from, sizebuf_t *msg );
 
@@ -350,6 +366,7 @@ void SV_SetModel (edict_t *ent, const char *name);
 void SV_CreatePhysBody( edict_t *ent );
 void SV_SetPhysForce( edict_t *ent );
 void SV_SetMassCentre( edict_t *ent);
+float SV_AngleMod( float ideal, float current, float speed );
 
 //
 // sv_studio.c
@@ -364,18 +381,12 @@ bool SV_CreateMeshBuffer( edict_t *in, cmodel_t *out );
 //
 void SV_SpawnEntities( const char *mapname, const char *entities );
 void SV_StartParticle (vec3_t org, vec3_t dir, int color, int count);
-void SV_Transform( sv_edict_t *ed, matrix4x3 transform );
-void SV_PlaySound( sv_edict_t *ed, float volume, const char *sample );
 void SV_FreeEdict (edict_t *ed);
 void SV_InitEdict (edict_t *e);
 edict_t *SV_Spawn (void);
 void SV_RunFrame (void);
-void SV_ClientUserinfoChanged (edict_t *ent, char *userinfo);
 bool SV_ClientConnect (edict_t *ent, char *userinfo);
-void SV_ClientBegin (edict_t *ent);
 void ClientThink (edict_t *ent, usercmd_t *ucmd);
-void SV_ClientDisconnect (edict_t *ent);
-void SV_ClientCommand (edict_t *ent);
 void SV_TouchTriggers (edict_t *ent);
 
 //
@@ -416,14 +427,12 @@ int SV_AreaEdicts( const vec3_t mins, const vec3_t maxs, edict_t **list, int max
 //
 // functions that interact with everything apropriate
 //
-int SV_PointContents( const vec3_t p, edict_t *passedict );
+int SV_PointContents( const vec3_t p );
 // returns the CONTENTS_* value from the world at the given point.
 // Quake 2 extends this to also check entities, to allow moving liquids
 
-
-trace_t SV_ClipMoveToEntity(edict_t *ent, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int contentsmask );
-trace_t SV_Trace( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, edict_t *passedict, int contentmask );
-trace_t SV_TraceToss (edict_t *tossent, edict_t *ignore);
+trace_t SV_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int type, edict_t *passedict, int contentmask );
+trace_t SV_TraceToss( edict_t *tossent, edict_t *ignore );
 // mins and maxs are relative
 
 // if the entire move stays in a solid volume, trace.allsolid will be set,

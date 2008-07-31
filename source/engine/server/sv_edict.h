@@ -103,6 +103,10 @@ struct sv_entvars_s
 	vec3_t	punchangle;
 	vec3_t	view_ofs;
 	vec3_t	v_angle;
+	float	button0;
+	float	button1;
+	float	button2;
+	float	impulse;
 	string_t	v_model;
 	float	v_frame;
 	float	v_body;
@@ -121,6 +125,8 @@ struct sv_entvars_s
 	int	owner;
 	int	enemy;
 	int	aiment;
+	int	goalentity;
+	float	fixangle;
 	float	ideal_yaw;
 	float	yaw_speed;
 	float	teleport_time;
@@ -129,6 +135,7 @@ struct sv_entvars_s
 	float	nextthink;
 	float	health;
 	float	gravity;
+	float	frags;
 	float	team;
 };
 
@@ -137,23 +144,16 @@ struct sv_entvars_s
 
 static fields_t sv_reqfields[] = 
 {
-	{142,	6,	"walk"},
-	{143,	6,	"jump"},
-	{144,	6,	"duck"},
-	{145,	2,	"v_animtime"},
-	{146,	2,	"frags"},
-	{147,	2,	"weapon"},
-	{148,	2,	"items"},
-	{149,	1,	"target"},
-	{150,	1,	"parent"},
-	{151,	1,	"targetname"},
-	{152,	4,	"goalentity"},
-	{153,	2,	"deadflag"},
-	{154,	2,	"button0"},
-	{155,	2,	"button1"},
-	{156,	2,	"button2"},
-	{157,	2,	"impulse"},
-	{158,	2,	"fixangle"},
+	{149,	6,	"walk"},
+	{150,	6,	"jump"},
+	{151,	6,	"duck"},
+	{152,	2,	"v_animtime"},
+	{153,	2,	"weapon"},
+	{154,	2,	"items"},
+	{155,	1,	"target"},
+	{156,	1,	"parent"},
+	{157,	1,	"targetname"},
+	{158,	2,	"deadflag"},
 	{159,	2,	"idealpitch"},
 	{160,	1,	"netname"},
 	{161,	2,	"max_health"},
@@ -244,6 +244,6 @@ static fields_t sv_reqfields[] =
 	{264,	1,	"oldmodel"}
 };
 
-#define PROG_CRC_SERVER		2740
+#define PROG_CRC_SERVER		61861
 
 #endif//SV_EDICT_H

@@ -172,7 +172,7 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 			pframetype = R_SpriteLoadGroup(mod, pframetype + 1, &psprite->frames[i].frameptr, i );
 			break;
 		}
-		if(pframetype == NULL) break; // technically an error
+		if( pframetype == NULL ) break; // technically an error
 	}
 }
 

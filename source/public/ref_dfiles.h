@@ -518,7 +518,7 @@ Studio models are position independent, so the cache manager can move them.
 #define STUDIO_NF_FLATSHADE		0x0001
 #define STUDIO_NF_CHROME		0x0002
 #define STUDIO_NF_FULLBRIGHT		0x0004
-#define STUDIO_NF_RESERVED		0x0008	// reserved
+#define STUDIO_NF_COLORMAP		0x0008	// can changed by colormap command
 #define STUDIO_NF_BLENDED		0x0010	// rendering as semiblended
 #define STUDIO_NF_ADDITIVE		0x0020	// rendering with additive mode
 #define STUDIO_NF_TRANSPARENT		0x0040	// use texture with alpha channel
@@ -651,17 +651,12 @@ typedef struct
 	vec3_t		bbmax;		
 } mstudiobbox_t;
 
-typedef struct cache_user_s
-{
-	void *data;
-} cache_user_t;
-
 // demand loaded sequence groups
 typedef struct
 {
 	char		label[32];	// textual name
 	char		name[64];		// file name
-	void*		cache;		// cache index pointer
+	void		*cache;		// cache index pointer (only in memory)
 	int		data;		// hack for group 0
 } mstudioseqgroup_t;
 
@@ -719,7 +714,6 @@ typedef struct
 	int		type;
 	char		options[64];
 } mstudioevent_t;
-
 
 // pivots
 typedef struct 
@@ -785,7 +779,7 @@ typedef struct
 	char		name[64];
 
 	int		type;
-	float		boundingradius;
+	float		boundingradius;	// software stuff
 
 	int		nummesh;
 	int		meshindex;

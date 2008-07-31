@@ -448,7 +448,7 @@ void GUI_LoadWndOptions( wnd_options_t *settings )
 	s_gui.height = w_opts.height;
 }
 
-bool GUI_LoadPlatfrom( uint funcname, int argc, char **argv )
+bool GUI_LoadPlatfrom( int argc, char **argv )
 {
 	FS_ClearSearchPath();
 	FS_AddGameHierarchy( "bin" );
@@ -849,7 +849,7 @@ static LRESULT CALLBACK WndProc (HWND hwnd, UINT uMessage, WPARAM wParam, LPARAM
 	return DefWindowProc (hwnd, uMessage, wParam, lParam);
 }
 
-void InitViewer ( uint funcname, int argc, char **argv )
+void InitViewer ( int argc, char **argv )
 {
 	HDC hDC;
 	WNDCLASS wc;
@@ -895,7 +895,7 @@ void InitViewer ( uint funcname, int argc, char **argv )
 	GUI_ResetWndOptions(); // load default settings
 	InitCommonControls ();
           
-	if(GUI_LoadPlatfrom( funcname, argc, argv )) //load config
+	if(GUI_LoadPlatfrom( argc, argv )) //load config
 	{
 		wnd_options_t *config_dat;
 		int config_size;

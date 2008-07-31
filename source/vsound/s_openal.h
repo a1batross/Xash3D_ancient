@@ -179,7 +179,7 @@ const char *(_cdecl *palcGetString )( aldevice *device, int param );
 void (_cdecl *palcGetIntegerv)( aldevice *device, int param, int size, int *dest );
 int (_cdecl *palcGetError)( aldevice *device );
 char (_cdecl *palcIsExtensionPresent)( aldevice *device, const char *extname );
-void *(_cdecl *palcGetProcAddress)( aldevice *device, const char *funcname );
+void *(_cdecl *palcGetProcAddress)( aldevice *device, const char *function );
 int (_cdecl *palcGetEnumValue)( aldevice *device, const char *enumname );
 
 void (_cdecl *palBufferData)( uint bid, int format, const void* data, int size, int freq );

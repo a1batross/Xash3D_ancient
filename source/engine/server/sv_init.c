@@ -185,12 +185,12 @@ void SV_SpawnServer( char *server, char *savename, sv_state_t serverstate )
 
 	if (serverstate != ss_active)
 	{
-		sv.models[1] = pe->BeginRegistration( "", false, &checksum); // no real map
+		sv.worldmodel = sv.models[1] = pe->BeginRegistration( "", false, &checksum); // no real map
 	}
 	else
 	{
 		com.sprintf(sv.configstrings[CS_MODELS+1], "maps/%s", server);
-		sv.models[1] = pe->BeginRegistration(sv.configstrings[CS_MODELS+1], false, &checksum);
+		sv.worldmodel = sv.models[1] = pe->BeginRegistration(sv.configstrings[CS_MODELS+1], false, &checksum);
 	}
 	com.sprintf(sv.configstrings[CS_MAPCHECKSUM], "%i", checksum);
 

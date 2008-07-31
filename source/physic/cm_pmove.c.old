@@ -540,7 +540,7 @@ void PM_AddCurrents( vec3_t wishvel )
 			v[2] -= 1;
 
 		s = pm_waterspeed;
-		if ((pm->waterlevel == 1) && (pm->ps.groundentity))
+		if ((pm->waterlevel == 1) && (pm->groundentity))
 			s /= 2;
 
 		VectorMA (wishvel, s, v, wishvel);
@@ -550,7 +550,7 @@ void PM_AddCurrents( vec3_t wishvel )
 	// add conveyor belt velocities
 	//
 
-	if (pm->ps.groundentity)
+	if (pm->groundentity)
 	{
 		VectorClear (v);
 
@@ -567,7 +567,7 @@ void PM_AddCurrents( vec3_t wishvel )
 		if (pml.groundtrace.contents & CONTENTS_CURRENT_DOWN)
 			v[2] -= 1;
 
-		VectorMA (wishvel, 100 /* pm->ps.groundentity->speed */, v, wishvel);
+		VectorMA (wishvel, 100 /* pm->groundentity->speed */, v, wishvel);
 	}
 }
 
@@ -624,7 +624,7 @@ static bool PM_CheckJump( void )
 
 	pml.groundplane = false;		// jumping away
 	pml.walking = false;
-	pm->ps.groundentity = NULL;
+	pm->groundentity = NULL;
 	pm->ps.pm_flags |= PMF_JUMP_HELD;
 	pm->ps.velocity[2] = JUMP_VELOCITY;
 
@@ -1180,7 +1180,7 @@ static int PM_CorrectAllSolid( trace_t *trace )
 		}
 	}
 
-	pm->ps.groundentity = NULL;
+	pm->groundentity = NULL;
 	pml.groundplane = false;
 	pml.walking = false;
 	return false;
@@ -1198,7 +1198,7 @@ static void PM_GroundTraceMissed( void )
 	trace_t		trace;
 	vec3_t		point;
 
-	if( pm->ps.groundentity )
+	if( pm->groundentity )
 	{
 		// if they aren't in a jumping animation and the ground is a ways away, force into it
 		// if we didn't do the trace, the player would be backflipping down staircases
@@ -1219,7 +1219,7 @@ static void PM_GroundTraceMissed( void )
 		}
 	}
 
-	pm->ps.groundentity = NULL;
+	pm->groundentity = NULL;
 	pml.groundplane = false;
 	pml.walking = false;
 }
@@ -1270,7 +1270,7 @@ static void PM_GroundTrace( void )
 			// anim jump backward
 		}
 
-		pm->ps.groundentity = NULL;
+		pm->groundentity = NULL;
 		pml.groundplane = false;
 		pml.walking = false;
 		return;
@@ -1281,7 +1281,7 @@ static void PM_GroundTrace( void )
 	{
 		// FIXME: if they can't slide down the slope, let them
 		// walk (sharp crevices)
-		pm->ps.groundentity = NULL;
+		pm->groundentity = NULL;
 		pml.groundplane = true;
 		pml.walking = false;
 		return;
@@ -1297,7 +1297,7 @@ static void PM_GroundTrace( void )
 		pm->ps.pm_time = 0;
 	}
 
-	if( !pm->ps.groundentity )
+	if( !pm->groundentity )
 	{
 		PM_CrashLand();
 
@@ -1310,7 +1310,7 @@ static void PM_GroundTrace( void )
 		}
 	}
 
-	pm->ps.groundentity = trace.ent;
+	pm->groundentity = trace.ent;
 	PM_AddTouchEnt( trace.ent );
 }
 
@@ -1441,7 +1441,7 @@ This can be used as another entry point when only the viewangles
 are being updated isntead of a full move
 ================
 */
-void PM_UpdateViewAngles( player_state_t *ps, const usercmd_t *cmd )
+void PM_UpdateViewAngles( entity_state_t *ps, const usercmd_t *cmd )
 {
 	short		temp;
 	int		i;

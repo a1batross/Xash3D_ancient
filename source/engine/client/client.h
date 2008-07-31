@@ -40,7 +40,7 @@ typedef struct frame_s
 	byte		areabits[MAX_MAP_AREAS/8];	// portalarea visibility bits
 	int		num_entities;
 	int		parse_entities;		// non-masked index into cl_parse_entities array
-	player_state_t	ps;
+	entity_state_t	ps;
 } frame_t;
 
 // console stuff
@@ -140,7 +140,8 @@ typedef struct
 	// locally derived information from server state
 	//
 	model_t		*model_draw[MAX_MODELS];
-	cmodel_t		*model_clip[MAX_MODELS];
+	cmodel_t		*models[MAX_MODELS];
+	cmodel_t		*worldmodel;
 
 	sound_t		sound_precache[MAX_SOUNDS];
 	image_t		*image_precache[MAX_IMAGES];

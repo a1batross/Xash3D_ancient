@@ -494,7 +494,7 @@ void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t 
 		{
 			// NOTE: entity must have changes from one at first of 32 fields
 			// otherwise it will ignore updates
-			if( flags == 0 && force == 0 )
+			if( flags == 0 && force == 0 && i < 32 )
 			{
 				msg->cursize -= sizeof(word); // kill header
 				return;
@@ -559,7 +559,7 @@ void MSG_ReadDeltaEntity( sizebuf_t *msg, entity_state_t *from, entity_state_t *
 /*
 ============================================================================
 
-player_state_t communication
+player state communication
 
 ============================================================================
 */
@@ -569,10 +569,10 @@ MSG_WriteDeltaPlayerstate
 
 =============
 */
-void MSG_WriteDeltaPlayerstate( player_state_t *from, player_state_t *to, sizebuf_t *msg )
+void MSG_WriteDeltaPlayerstate( entity_state_t *from, entity_state_t *to, sizebuf_t *msg )
 {
-	player_state_t	dummy;
-	player_state_t	*ops, *ps = to;
+	entity_state_t	dummy;
+	entity_state_t	*ops, *ps = to;
 	net_field_t	*field, *field2;
 	int		*fromF, *toF;
 	int		i, j, k;
@@ -588,12 +588,12 @@ void MSG_WriteDeltaPlayerstate( player_state_t *from, player_state_t *to, sizebu
 	
 	MSG_WriteByte( msg, svc_playerinfo );
  
-	for( i = j = 0, field = field2 = ps_fields; field->name; i++, j++, field++ )
+	for( i = j = 0, field = field2 = ent_fields; field->name; i++, j++, field++ )
 	{
 		fromF = (int *)((byte *)ops + field->offset );
 		toF = (int *)((byte *)ps + field->offset );		
 		if(*fromF != *toF || field->force) flags |= 1<<j;
-		if( j > 31 || !ps_fields[i+1].name) // dump packet
+		if( j > 31 || !ent_fields[i+1].name) // dump packet
 		{
 			MSG_WriteLong( msg, flags );	// send flags who indicates changes
 			for( k = 0; field2->name; k++, field2++ )
@@ -605,15 +605,6 @@ void MSG_WriteDeltaPlayerstate( player_state_t *from, player_state_t *to, sizebu
 			j = flags = 0;
 		}
 	}
-
-	// send stats
-	for( i = 0, flags = 0; i < MAX_STATS; i++ )
-		if( ps->stats[i] != ops->stats[i] )
-			flags |= 1<<i;
-
-	MSG_WriteLong( msg, flags );
-	for( i = 0; i < MAX_STATS; i++ )
-		if(flags & (1<<i)) MSG_WriteShort( msg, ps->stats[i]);
 }
 
 
@@ -622,11 +613,11 @@ void MSG_WriteDeltaPlayerstate( player_state_t *from, player_state_t *to, sizebu
 MSG_ReadDeltaPlayerstate
 ===================
 */
-void MSG_ReadDeltaPlayerstate( sizebuf_t *msg, player_state_t *from, player_state_t *to )
+void MSG_ReadDeltaPlayerstate( sizebuf_t *msg, entity_state_t *from, entity_state_t *to )
 {
 	net_field_t	*field;
 	int		*fromF, *toF;
-	player_state_t	dummy;
+	entity_state_t	dummy;
 	uint		i, flags;
 
 	// clear to old value before delta parsing
@@ -637,7 +628,7 @@ void MSG_ReadDeltaPlayerstate( sizebuf_t *msg, player_state_t *from, player_stat
 	}
 	*to = *from;
 	
-	for( i = 0, field = ps_fields; field->name; i++, field++ )
+	for( i = 0, field = ent_fields; field->name; i++, field++ )
 	{
 		// get flags of next packet if LONG out of range
 		if((i & 31) == 0) flags = MSG_ReadLong( msg );
@@ -646,12 +637,5 @@ void MSG_ReadDeltaPlayerstate( sizebuf_t *msg, player_state_t *from, player_stat
 		
 		if(flags & (1<<i)) *toF = MSG_ReadBits( msg, field->bits );
 		else *toF = *fromF;	// no change
-	}
-
-	// parse stats
-	for( i = 0; i < MAX_STATS; i++ )
-	{
-		if((i & 31) == 0) flags = MSG_ReadLong( msg );
-		if(flags & (1<<i)) to->stats[i] = MSG_ReadShort( msg );
 	}
 }

@@ -10,10 +10,10 @@
 Base Entry Point
 =================
 */
-DLLEXPORT int CreateAPI( char *funcname, bool console )
+DLLEXPORT int CreateAPI( char *hostname, bool console )
 {
 	// memeber name
-	com_strncpy( Sys.progname, funcname, sizeof(Sys.progname));
+	com_strncpy( Sys.progname, hostname, sizeof(Sys.progname));
 	Sys.hooked_out = console; // set mode
 
 	Sys_Init();

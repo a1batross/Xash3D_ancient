@@ -156,7 +156,7 @@ void Host_InitVprogs( int argc, char **argv )
 	CreateVprogs = (void *)vprogs_dll.main;
 	vm = CreateVprogs( &newcom, NULL ); // second interface not allowed
 	
-	vm->Init( host.type, argc, argv );
+	vm->Init( argc, argv );
 }
 
 void Host_FreeVprogs( void )
@@ -700,7 +700,7 @@ static void Host_Crash_f (void)
 	*(int *)0 = 0xffffffff;
 }
 
-void Host_InitCommon( uint funcname, int argc, char **argv )
+void Host_InitCommon( int argc, char **argv )
 {
 	char	dev_level[4];
 
@@ -733,16 +733,16 @@ void Host_FreeCommon( void )
 Host_Init
 =================
 */
-void Host_Init (uint funcname, int argc, char **argv)
+void Host_Init( int argc, char **argv)
 {
 	char	*s;
 
 	host.state = HOST_INIT;	// initialzation started
-	host.type = funcname;
+	host.type = g_Instance;
 
 	srand(time(NULL));		// init random generator
 
-	Host_InitCommon( funcname, argc, argv ); // loading common.dll
+	Host_InitCommon( argc, argv ); // loading common.dll
 	Key_Init();
 
 	// get default configuration
@@ -779,7 +779,7 @@ void Host_Init (uint funcname, int argc, char **argv)
 	Host_InitVprogs( argc, argv );
 
 	// per level user limit
-	host.max_edicts = bound( 8, Cvar_VariableValue("prvm_maxedicts"), 65535 );
+	host.max_edicts = bound( 8, Cvar_VariableValue("prvm_maxedicts"), MAX_EDICTS - 1 );
 
 	SV_Init();
 	CL_Init();

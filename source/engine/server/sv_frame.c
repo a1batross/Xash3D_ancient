@@ -70,23 +70,24 @@ void SV_UpdateEntityState( edict_t *ent )
 	VectorCopy (ent->progs.sv->origin, ent->priv.sv->s.origin);
 	VectorCopy (ent->progs.sv->angles, ent->priv.sv->s.angles);
 	VectorCopy (ent->progs.sv->old_origin, ent->priv.sv->s.old_origin);
-	ent->priv.sv->s.modelindex = (int)ent->progs.sv->modelindex;
+	ent->priv.sv->s.model.index = (int)ent->progs.sv->modelindex;
+	ent->priv.sv->s.health = ent->progs.sv->health;
 
 	if( ent->priv.sv->client )
 	{
 		// attached weaponmodel
 		// FIXME: let any entity send weaponmodel
-		ent->priv.sv->s.weaponmodel = ent->priv.sv->client->ps.pmodel.index;
+		ent->priv.sv->s.pmodel.index = ent->priv.sv->client->ps.pmodel.index;
 	}
 
-	ent->priv.sv->s.skin = (short)ent->progs.sv->skin;	// studio model skin
-	ent->priv.sv->s.body = (byte)ent->progs.sv->body;		// studio model submodel 
-	ent->priv.sv->s.frame = ent->progs.sv->frame;		// any model current frame
-	ent->priv.sv->s.sequence = (byte)ent->progs.sv->sequence;	// studio model sequence
-	ent->priv.sv->s.effects = (uint)ent->progs.sv->effects;	// shared client and render flags
-	ent->priv.sv->s.renderfx = (int)ent->progs.sv->renderfx;	// renderer flags
-	ent->priv.sv->s.alpha = ent->progs.sv->alpha;		// alpha value
-	ent->priv.sv->s.animtime = ent->progs.sv->animtime;	// auto-animating time
+	ent->priv.sv->s.model.skin = (short)ent->progs.sv->skin;		// studio model skin
+	ent->priv.sv->s.model.body = (byte)ent->progs.sv->body;		// studio model submodel 
+	ent->priv.sv->s.model.frame = ent->progs.sv->frame;		// any model current frame
+	ent->priv.sv->s.model.sequence = (byte)ent->progs.sv->sequence;	// studio model sequence
+	ent->priv.sv->s.effects = (uint)ent->progs.sv->effects;		// shared client and render flags
+	ent->priv.sv->s.renderfx = (int)ent->progs.sv->renderfx;		// renderer flags
+	ent->priv.sv->s.renderamt = ent->progs.sv->alpha;			// alpha value
+	ent->priv.sv->s.model.animtime = ent->progs.sv->animtime;		// auto-animating time
 }
 
 /*
@@ -264,7 +265,7 @@ void SV_BuildClientFrame( sv_client_t *cl )
 	// calculate the visible areas
 	frame->areabytes = pe->WriteAreaBits( frame->areabits, clientarea );
 
-	// grab the current player_state_t
+	// grab the current player state
 	frame->ps = clent->priv.sv->client->ps;
 
 	clientpvs = pe->ClusterPVS( clientcluster );
@@ -389,7 +390,7 @@ bool SV_SendClientDatagram( sv_client_t *cl )
 	MSG_Init( &msg, msg_buf, sizeof(msg_buf));
 
 	// send over all the relevant entity_state_t
-	// and the player_state_t
+	// and the player state
 	SV_WriteFrameToClient( cl, &msg );
 
 	// copy the accumulated multicast datagram

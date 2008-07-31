@@ -15,7 +15,7 @@
 //	platform export
 //=====================================
 
-void InitPlatform ( uint funcname, int argc, char **argv ); // init host
+void InitPlatform ( int argc, char **argv ); // init host
 void RunPlatform ( void ); // host frame
 void ClosePlatform ( void ); // close host
 

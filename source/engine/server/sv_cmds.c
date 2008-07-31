@@ -457,7 +457,7 @@ void SV_Status_f( void )
 		if( !cl->state ) continue;
 
 		Msg("%3i ", i);
-		Msg("%5i ", cl->edict->priv.sv->client->ps.stats[STAT_FRAGS]);
+		Msg("%5i ", (int)cl->edict->progs.sv->frags );
 
 		if (cl->state == cs_connected) Msg("Connect");
 		else if (cl->state == cs_zombie) Msg ("Zombie ");

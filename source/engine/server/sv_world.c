@@ -217,8 +217,8 @@ void SV_LinkEdict( edict_t *ent )
 	}
 	else
 	{	// normal
-		VectorAdd (ent->progs.sv->origin, ent->progs.sv->mins, ent->progs.sv->absmin);	
-		VectorAdd (ent->progs.sv->origin, ent->progs.sv->maxs, ent->progs.sv->absmax);
+		VectorAdd( ent->progs.sv->origin, ent->progs.sv->mins, ent->progs.sv->absmin );	
+		VectorAdd( ent->progs.sv->origin, ent->progs.sv->maxs, ent->progs.sv->absmax );
 	}
 
 	// because movement is clipped an epsilon away from an actual edge,
@@ -266,7 +266,7 @@ void SV_LinkEdict( edict_t *ent )
 
 	// store as many explicit clusters as we can
 	sv_ent->num_clusters = 0;
-	for (i = 0; i < num_leafs; i++)
+	for( i = 0; i < num_leafs; i++ )
 	{
 		cluster = pe->LeafCluster( leafs[i] );
 		if( cluster )
@@ -281,24 +281,24 @@ void SV_LinkEdict( edict_t *ent )
 	if( i != num_leafs ) sv_ent->lastcluster = pe->LeafCluster( lastleaf );
 
 	// if first time, make sure old_origin is valid
-	if(!ent->priv.sv->linkcount)
+	if( !ent->priv.sv->linkcount )
 	{
-		VectorCopy (ent->progs.sv->origin, ent->progs.sv->old_origin);
+		VectorCopy( ent->progs.sv->origin, ent->progs.sv->old_origin );
 	}
 	ent->priv.sv->linkcount++;
 
 	// don't link not solid or rigid bodies
-	if (ent->progs.sv->solid == SOLID_NOT || ent->progs.sv->solid >= SOLID_BOX)
+	if( ent->progs.sv->solid == SOLID_NOT || ent->progs.sv->solid >= SOLID_BOX )
 		return;
 
 	// find the first world sector node that the ent's box crosses
 	node = sv_worldsectors;
 	while( 1 )
 	{
-		if (node->axis == -1) break;
-		if (ent->progs.sv->absmin[node->axis] > node->dist)
+		if( node->axis == -1 ) break;
+		if( ent->progs.sv->absmin[node->axis] > node->dist )
 			node = node->children[0];
-		else if (ent->progs.sv->absmax[node->axis] < node->dist)
+		else if( ent->progs.sv->absmax[node->axis] < node->dist )
 			node = node->children[1];
 		else break; // crosses the node
 	}
@@ -372,241 +372,4 @@ int SV_AreaEdicts( const vec3_t mins, const vec3_t maxs, edict_t **list, int max
 	SV_AreaEdicts_r( sv_worldsectors, &ap );
 
 	return ap.count;
-}
-
-//===========================================================================
-typedef struct
-{
-	vec3_t		boxmins, boxmaxs;// enclose the test object along entire move
-	const float	*mins, *maxs;
-	const float	*start;
-	vec3_t		end;
-	trace_t		trace;
-	edict_t		*passedict;
-	int		contentmask;
-} moveclip_t;
-
-/*
-====================
-SV_ClipMoveToEntities
-====================
-*/
-void SV_ClipMoveToEntities( moveclip_t *clip )
-{
-	int		i, num;
-	edict_t		**touchlist, *touch;
-	trace_t		trace;
-	cmodel_t		*cmodel;
-	float		*origin, *angles;
-
-	// list of pointers, not data
-	touchlist = Z_Malloc( sizeof(*touchlist) * host.max_edicts );
-	num = SV_AreaEdicts( clip->boxmins, clip->boxmaxs, touchlist, host.max_edicts );
-
-	for( i = 0; i < num; i++ )
-	{
-		if( clip->trace.allsolid ) return;
-
-		touch = touchlist[i];
-		if( touch == clip->passedict ) continue;
-		if( touch->progs.sv->solid == SOLID_NOT ) continue;
-		if( clip->passedict )
-		{
-		 	if (PRVM_PROG_TO_EDICT(touch->progs.sv->owner) == clip->passedict)
-		 		continue; // don't clip against own missiles
-			if (PRVM_PROG_TO_EDICT(clip->passedict->progs.sv->owner) == touch)
-				continue; // don't clip against owner
-		}
-
-		if(!(clip->contentmask & CONTENTS_DEADMONSTER) && ((int)touch->progs.sv->flags & FL_DEADMONSTER))
-			continue;
-
-		cmodel = SV_GetModelPtr( touch );
-
-		origin = touch->progs.sv->origin;
-		angles = touch->progs.sv->angles;
-
-		if( !touch->progs.sv->solid == SOLID_BSP ) angles = vec3_origin; // boxes don't rotate
-		trace = pe->TransformedBoxTrace((float *)clip->start, (float *)clip->end, (float *)clip->mins, (float *)clip->maxs, cmodel, clip->contentmask, origin, angles, false );
-
-		if( trace.allsolid )
-		{
-			clip->trace.allsolid = true;
-			trace.ent = touch;
-		} 
-		else if( trace.startsolid )
-		{
-			clip->trace.startsolid = true;
-			trace.ent = touch;
-		}
-		if( trace.fraction < clip->trace.fraction )
-		{
-			bool	oldStart;
-
-			// make sure we keep a startsolid from a previous trace
-			oldStart = clip->trace.startsolid;
-			trace.ent = touch;
-			clip->trace = trace;
-			clip->trace.startsolid |= oldStart;
-		}
-	}
-	Mem_Free( touchlist );
-}
-
-/*
-==================
-SV_Trace
-
-Moves the given mins/maxs volume through the world from start to end.
-passEntityNum and entities owned by passEntityNum are explicitly not checked.
-==================
-*/
-trace_t SV_Trace( const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, edict_t *passedict, int contentmask )
-{
-	moveclip_t	clip;
-	int		i;
-
-	if( !mins ) mins = vec3_origin;
-	if( !maxs ) maxs = vec3_origin;
-	memset( &clip, 0, sizeof( moveclip_t ));
-
-	// clip to world
-	pe->BoxTrace( start, end, mins, maxs, NULL, &clip.trace, contentmask );
-	clip.trace.ent = clip.trace.fraction != 1.0 ? prog->edicts : NULL;
-	if( clip.trace.fraction == 0 ) return clip.trace;	// blocked immediately by the world
-
-	clip.contentmask = contentmask;
-	clip.start = start;
-	VectorCopy( end, clip.end );
-	clip.mins = mins;
-	clip.maxs = maxs;
-	clip.passedict = passedict;
-
-	// create the bounding box of the entire move
-	// we can limit it to the part of the move not
-	// already clipped off by the world, which can be
-	// a significant savings for line of sight and shot traces
-	for( i = 0; i < 3; i++ )
-	{
-		if( end[i] > start[i] )
-		{
-			clip.boxmins[i] = clip.start[i] + clip.mins[i] - 1;
-			clip.boxmaxs[i] = clip.end[i] + clip.maxs[i] + 1;
-		}
-		else
-		{
-			clip.boxmins[i] = clip.end[i] + clip.mins[i] - 1;
-			clip.boxmaxs[i] = clip.start[i] + clip.maxs[i] + 1;
-		}
-	}
-
-	// clip to other solid entities
-	SV_ClipMoveToEntities( &clip );
-
-	return clip.trace;
-}
-
-trace_t SV_TraceToss (edict_t *tossent, edict_t *ignore)
-{
-	int	i;
-	float	gravity = 1.0;
-	vec3_t	move, end;
-	vec3_t	original_origin;
-	vec3_t	original_velocity;
-	vec3_t	original_angles;
-	vec3_t	original_avelocity;
-	trace_t	trace;
-
-	VectorCopy(tossent->progs.sv->origin, original_origin);
-	VectorCopy(tossent->progs.sv->velocity, original_velocity);
-	VectorCopy(tossent->progs.sv->angles, original_angles);
-	VectorCopy(tossent->progs.sv->avelocity, original_avelocity);
-
-	gravity *= sv_gravity->value * 0.05;
-
-	for (i = 0; i < 200; i++) // LordHavoc: sanity check; never trace more than 10 seconds
-	{
-		SV_CheckVelocity (tossent);
-		tossent->progs.sv->velocity[2] -= gravity;
-		VectorMA (tossent->progs.sv->angles, 0.05, tossent->progs.sv->avelocity, tossent->progs.sv->angles);
-		VectorScale (tossent->progs.sv->velocity, 0.05, move);
-		VectorAdd (tossent->progs.sv->origin, move, end);
-		trace = SV_Trace(tossent->progs.sv->origin, tossent->progs.sv->mins, tossent->progs.sv->maxs, end, tossent, MASK_SOLID );
-		VectorCopy (trace.endpos, tossent->progs.sv->origin);
-		if (trace.fraction < 1) break;
-	}
-
-	VectorCopy(original_origin, tossent->progs.sv->origin);
-	VectorCopy(original_velocity, tossent->progs.sv->velocity);
-	VectorCopy(original_angles, tossent->progs.sv->angles);
-	VectorCopy(original_avelocity, tossent->progs.sv->avelocity);
-
-	return trace;
-}
-
-trace_t SV_ClipMoveToEntity(edict_t *ent, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int contentsmask)
-{
-	edict_t		*touch;
-	cmodel_t		*cmodel;
-	float		*origin, *angles;
-	trace_t		trace;
-
-	touch = ent;
-
-	memset( &trace, 0, sizeof(trace_t));
-	// if it doesn't have any brushes of a type we
-	// are looking for, ignore it
-	if(!(contentsmask & CONTENTS_DEADMONSTER) && ((int)touch->progs.sv->flags & FL_DEADMONSTER))
-	{
-		trace.fraction = 1.0;
-		return trace;
-	}
-	// might intersect, so do an exact clip
-	cmodel = SV_GetModelPtr( touch );
-	origin = touch->progs.sv->origin;
-	angles = touch->progs.sv->angles;
-          if( !touch->progs.sv->solid == SOLID_BSP ) angles = vec3_origin; // boxes don't rotate
-
-	trace = pe->TransformedBoxTrace( start, end, mins, maxs, cmodel, contentsmask, origin, angles, true );
-	if( trace.fraction < 1.0f ) trace.ent = touch;
-
-	return trace;
-}
-
-/*
-=============
-SV_PointContents
-=============
-*/
-int SV_PointContents( const vec3_t p, edict_t *passedict )
-{
-	edict_t		**touch, *hit;
-	int		i, num;
-	int		contents, c2;
-	cmodel_t		*cmodel;
-	float		*angles;
-
-	touch = Z_Malloc( sizeof(*touch) * host.max_edicts );
-
-	// get base contents from world
-	contents = pe->PointContents( p, NULL );
-
-	// or in contents from all the other entities
-	num = SV_AreaEdicts( p, p, touch, host.max_edicts );
-
-	for( i = 0; i < num; i++ )
-	{
-		if ( touch[i] == passedict ) continue;
-		hit = touch[i];
-
-		// might intersect, so do an exact clip
-		cmodel = SV_GetModelPtr( hit );
-		angles = hit->progs.sv->angles;
-          	if( !hit->progs.sv->solid == SOLID_BSP ) angles = vec3_origin; // boxes don't rotate
-		c2 = pe->TransformedPointContents( p, cmodel, hit->progs.sv->origin, angles );
-		contents |= c2;
-	}
-	Mem_Free( touch );
-
-	return contents;
 }

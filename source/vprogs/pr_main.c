@@ -255,7 +255,7 @@ void PR_InitDecompile( const char *name )
 	PR_InitTypes();
 }
 
-void PRVM_Init( uint funcname, int argc, char **argv )
+void PRVM_Init( int argc, char **argv )
 {
 	char	dev_level[4];
 
@@ -263,7 +263,7 @@ void PRVM_Init( uint funcname, int argc, char **argv )
 	com_argv = argv;
 
 	qccpool = Mem_AllocPool( "VM progs" );
-	host_instance = funcname;
+	host_instance = g_Instance;
 
 	if(FS_GetParmFromCmdLine("-dev", dev_level ))
 		prvm_developer = com.atoi(dev_level);

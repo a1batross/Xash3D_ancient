@@ -10,11 +10,11 @@ byte *zonepool;
 int app_name = 0;
 cvar_t	*img_resample_lerp;
 
-void ImageLib_Init ( uint funcname )
+void ImageLib_Init ( void )
 {
 	// init pools
 	zonepool = Mem_AllocPool( "ImageLib Pool" );
-          app_name = funcname;
+          app_name = g_Instance;
 
 	img_resample_lerp = Cvar_Get( "img_lerping", "1", CVAR_SYSTEMINFO, "lerping images after resample" );
 }

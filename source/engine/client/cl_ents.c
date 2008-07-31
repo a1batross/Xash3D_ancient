@@ -78,8 +78,8 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 	frame->num_entities++;
 
 	// some data changes will force no lerping
-	if( state->modelindex != ent->priv.cl->current.modelindex || state->weaponmodel != ent->priv.cl->current.weaponmodel || state->body != ent->priv.cl->current.body
-		|| state->sequence != ent->priv.cl->current.sequence || abs(state->origin[0] - ent->priv.cl->current.origin[0]) > 512
+	if( state->model.index != ent->priv.cl->current.model.index || state->pmodel.index != ent->priv.cl->current.pmodel.index || state->model.body != ent->priv.cl->current.model.body
+		|| state->model.sequence != ent->priv.cl->current.model.sequence || abs(state->origin[0] - ent->priv.cl->current.origin[0]) > 512
 		|| abs(state->origin[1] - ent->priv.cl->current.origin[1]) > 512 || abs(state->origin[2] - ent->priv.cl->current.origin[2]) > 512 )
 	{
 		ent->priv.cl->serverframe = -99;
@@ -335,27 +335,27 @@ void CL_AddPacketEntities( frame_t *frame )
 
 		effects = s1->effects;
 		renderfx = s1->renderfx;
-		refent.frame = s1->frame;
+		refent.frame = s1->model.frame;
 
 		// copy state to progs
-		ent->progs.cl->modelindex = ent->priv.cl->current.modelindex;
+		ent->progs.cl->modelindex = ent->priv.cl->current.model.index;
 		ent->progs.cl->soundindex = ent->priv.cl->current.soundindex;
-//ent->progs.cl->model = PRVM_SetEngineString( cl.configstrings[CS_MODELS+ent->priv.cl->current.modelindex] ); 
+//ent->progs.cl->model = PRVM_SetEngineString( cl.configstrings[CS_MODELS+ent->priv.cl->current.model.index] ); 
 
 		// copy state to render
-		refent.prev.frame = ent->priv.cl->prev.frame;
+		refent.prev.frame = ent->priv.cl->prev.model.frame;
 		refent.backlerp = 1.0 - cl.lerpfrac;
-		refent.alpha = s1->alpha;
-		refent.body = s1->body;
-		refent.sequence = s1->sequence;		
-		refent.animtime = s1->animtime;
+		refent.alpha = s1->renderamt;
+		refent.body = s1->model.body;
+		refent.sequence = s1->model.sequence;		
+		refent.animtime = s1->model.animtime;
 
 		// setup latchedvars
-		refent.prev.animtime = ent->priv.cl->prev.animtime;
+		refent.prev.animtime = ent->priv.cl->prev.model.animtime;
 		VectorCopy( ent->priv.cl->prev.origin, refent.prev.origin );
 		VectorCopy( ent->priv.cl->prev.angles, refent.prev.angles );
-		refent.prev.sequence = ent->priv.cl->prev.sequence;
-		refent.prev.frame = ent->priv.cl->prev.frame;
+		refent.prev.sequence = ent->priv.cl->prev.model.sequence;
+		refent.prev.frame = ent->priv.cl->prev.model.frame;
 		//refent.prev.sequencetime;
 		
 		// interpolate origin
@@ -366,10 +366,10 @@ void CL_AddPacketEntities( frame_t *frame )
 		}
 
 		// set skin
-		refent.skin = s1->skin;
-		refent.model = cl.model_draw[s1->modelindex];
-		refent.weaponmodel = cl.model_draw[s1->weaponmodel];
-		refent.flags = renderfx;
+		refent.skin = s1->model.skin;
+		refent.model = cl.model_draw[s1->model.index];
+		refent.weaponmodel = cl.model_draw[s1->pmodel.index];
+		refent.flags = renderfx;//FIXME: it's wrong!!!
 
 		// calculate angles
 		if( effects & EF_ROTATE )
@@ -402,7 +402,7 @@ void CL_AddPacketEntities( frame_t *frame )
 		}
 
 		// if set to invisible, skip
-		if( !s1->modelindex ) continue;
+		if( !s1->model.index ) continue;
 
 		// add to refresh list
 		V_AddEntity( &refent );
@@ -416,10 +416,9 @@ void CL_AddPacketEntities( frame_t *frame )
 CL_AddViewWeapon
 ==============
 */
-void CL_AddViewWeapon( player_state_t *ps, player_state_t *ops )
+void CL_AddViewWeapon( entity_state_t *ps, entity_state_t *ops )
 {
 	entity_t	gun;	// view model
-	int	i;
 
 	// allow the gun to be completely removed
 	if( !cl_gun->value ) return;
@@ -434,11 +433,8 @@ void CL_AddViewWeapon( player_state_t *ps, player_state_t *ops )
 	if (!gun.model) return;
 
 	// set up gun position
-	for( i = 0; i < 3; i++ )
-	{
-		gun.origin[i] = gun.oldorigin[i] = cl.refdef.vieworg[i] + ops->vmodel.offset[i] + (ps->vmodel.offset[i] - ops->vmodel.offset[i]) * cl.lerpfrac;
-		gun.angles[i] = cl.refdef.viewangles[i] + LerpAngle (ops->vmodel.angles[i], ps->vmodel.angles[i], cl.lerpfrac);
-	}
+	VectorCopy( cl.refdef.vieworg, gun.origin );
+	VectorCopy( cl.refdef.viewangles, gun.angles );
 
 	gun.frame = ps->vmodel.frame;
 	if( gun.frame == 0 ) gun.prev.frame = 0; // just changed weapons, don't lerp from old
@@ -467,7 +463,7 @@ void CL_CalcViewValues( void )
 	int		i;
 	float		lerp, backlerp;
 	frame_t		*oldframe;
-	player_state_t	*ps, *ops;
+	entity_state_t	*ps, *ops;
 
 	// clamp time
 	if( cl.time > cl.frame.servertime )
@@ -540,7 +536,7 @@ void CL_CalcViewValues( void )
 	}
 
 	for( i = 0; i < 3; i++ )
-		cl.refdef.viewangles[i] += LerpAngle( ops->kick_angles[i], ps->kick_angles[i], lerp );
+		cl.refdef.viewangles[i] += LerpAngle( ops->punch_angles[i], ps->punch_angles[i], lerp );
 
 	AngleVectors( cl.refdef.viewangles, cl.v_forward, cl.v_right, cl.v_up );
 
@@ -548,8 +544,7 @@ void CL_CalcViewValues( void )
 	cl.refdef.fov_x = ops->fov + lerp * ( ps->fov - ops->fov );
 
 	// don't interpolate blend color
-	for( i = 0; i < 4; i++ )
-		cl.refdef.blend[i] = ps->blend[i];
+	Vector4Set( cl.refdef.blend, 0, 0, 0, 0 ); // FIXME: calculate blend on client-side
 
 	// add the weapon
 	CL_AddViewWeapon( ps, ops );
@@ -606,7 +601,7 @@ void CL_GetEntitySoundSpatialization( int entnum, vec3_t origin, vec3_t velocity
 	// if a brush model, offset the origin
 	if( VectorIsNull( origin ))
 	{
-		cmodel = cl.model_clip[ent->priv.cl->current.modelindex];
+		cmodel = cl.models[ent->priv.cl->current.model.index];
 		if(!cmodel) return;
 		VectorAverage( cmodel->mins, cmodel->maxs, midPoint );
 		VectorAdd( origin, midPoint, origin );

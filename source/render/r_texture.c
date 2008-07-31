@@ -316,7 +316,7 @@ void R_InitTextures( void )
 	CreateImglib = (void *)imglib_dll.main;
 	Image = CreateImglib( &com, NULL ); // second interface not allowed
 
-	Image->Init( HOST_NORMAL );
+	Image->Init();
 	r_imagepool = Mem_AllocPool("Texture Pool");
           gl_maxsize = Cvar_Get( "gl_maxsize", "4096", CVAR_ARCHIVE, "texture dimension max size" );
 	

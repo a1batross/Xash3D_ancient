@@ -90,7 +90,7 @@ void CL_WriteDemoHeader( const char *name )
 	{
 		ent = PRVM_EDICT_NUM( i );
 		state = &ent->priv.cl->baseline;
-		if(!state->modelindex) continue;
+		if(!state->model.index) continue;
 
 		if( buf.cursize + 64 > buf.maxsize )
 		{	

@@ -27,7 +27,7 @@ static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t\
           All Rights Reserved\n\n\t           Visit www.xash.ru\n";
 
 // stubs
-void NullInit( uint funcname, int argc, char **argv ) {}
+void NullInit( int argc, char **argv ) {}
 void NullFunc( void ) {}
 void Sys_NullPrint( const char *msg ) {}
 
@@ -382,6 +382,9 @@ void Sys_LookupInstance( void )
 		com_sprintf(Sys.log_path, "%s/source.log", sys_rootdir ); // default
 		com_strcpy(Sys.caption, va("QuakeC Decompiler ver.%g", XASH_VERSION ));
 	}
+
+	// share instance over all system
+	GI.instance = Sys.app_name;
 }
 
 /*
@@ -443,7 +446,7 @@ void Sys_CreateInstance( void )
 	}
 
 	// init our host now!
-	Sys.Init( Sys.app_name, fs_argc, fs_argv );
+	Sys.Init( fs_argc, fs_argv );
 
 	// post initializations
 	switch(Sys.app_name)

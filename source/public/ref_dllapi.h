@@ -13,7 +13,7 @@
 
 enum host_state
 {	// paltform states
-	HOST_OFFLINE = 0,	// host_init( funcname *arg ) same much as:
+	HOST_OFFLINE = 0,	// host_init( g_Instance ) same much as:
 	HOST_NORMAL,	// "normal"
 	HOST_DEDICATED,	// "dedicated"
 	HOST_VIEWER,	// "viewer"
@@ -41,7 +41,7 @@ enum host_state
 #define DLLEXPORT		__declspec(dllexport)
 
 
-#define USE_COORD_FRAC		//FIXME: disable this
+//#define USE_COORD_FRAC		//FIXME: disable this
 
 // network precision coords factor
 #ifdef USE_COORD_FRAC
@@ -64,7 +64,7 @@ typedef struct { byte r; byte g; byte b; byte a; } color32;
 typedef struct { const char *name; void **func; } dllfunc_t;	// Sys_LoadLibrary stuff
 typedef struct { int ofs; int type; const char *name; } fields_t;	// prvm custom fields
 typedef void (*cmread_t) (void* handle, void* buffer, size_t size);
-typedef enum { mod_bad, mod_brush, mod_studio, mod_sprite } modtype_t;
+typedef enum { mod_bad, mod_static, mod_brush, mod_studio, mod_sprite } modtype_t;
 typedef void (*cmsave_t) (void* handle, const void* buffer, size_t size);
 typedef void (*cmdraw_t)( int color, int numpoints, const float *points );
 typedef struct { int numfilenames; char **filenames; char *filenamesbuffer; } search_t;
@@ -110,87 +110,122 @@ typedef struct model_s		model_t;
 
 typedef void (*xcommand_t) (void);
 
+typedef enum
+{
+	ED_SPAWNED = 0,	// this entity requris to set own type with SV_ClassifyEdict
+	ED_STATIC,	// this is a logic without model or entity with static model
+	ED_AMBIENT,	// this is entity emitted ambient sounds only
+	ED_NORMAL,	// normal entity with model (and\or) sound
+	ED_CLIENT,	// this is a client entity
+	ED_MONSTER,	// monster or bot (generic npc with AI)
+	ED_TEMPENTITY,	// this edict will be removed on server when "lifetime" exceeds 
+	ED_BEAM,		// laser beam (needs to recalculate pvs and frustum)
+	ED_MOVER,		// func_train, func_door and another bsp or mdl movers
+	ED_VIEWMODEL,	// client or bot viewmodel (for spectating)
+	ED_ITEM,		// holdable items
+	ED_RAGDOLL,	// dead body with simulated ragdolls
+	ED_RIGIDBODY,	// simulated physic
+	ED_TRIGGER,	// just for sorting on a server
+	ED_PORTAL,	// realtime display, portal or mirror brush or model
+	ED_MISSILE,	// greande, rocket e.t.c
+	ED_DECAL,		// render will be merge real coords and normal
+	ED_VEHICLE,	// controllable vehicle
+	ED_MAXTYPES,
+} edtype_t;
+
+// phys movetype
+typedef enum
+{
+	MOVETYPE_NONE,	// never moves
+	MOVETYPE_NOCLIP,	// origin and angles change with no interaction
+	MOVETYPE_PUSH,	// no clip to world, push on box contact
+	MOVETYPE_WALK,	// gravity
+	MOVETYPE_STEP,	// gravity, special edge handling
+	MOVETYPE_FLY,
+	MOVETYPE_TOSS,	// gravity
+	MOVETYPE_BOUNCE,
+	MOVETYPE_FOLLOW,	// attached models
+	MOVETYPE_CONVEYOR,
+	MOVETYPE_PUSHABLE,
+	MOVETYPE_PHYSIC,	// phys simulation
+} movetype_t;
+
+// phys collision mode
+typedef enum
+{
+	SOLID_NOT = 0,    	// no interaction with other objects
+	SOLID_TRIGGER,	// only touch when inside, after moving
+	SOLID_BBOX,	// touch on edge
+	SOLID_BSP,    	// bsp clip, touch on edge
+	SOLID_BOX,	// physbox
+	SOLID_SPHERE,	// sphere
+	SOLID_CYLINDER,	// cylinder e.g. barrel
+	SOLID_MESH,	// custom convex hull
+} solid_t;
+
+// model_state_t communication
+typedef struct model_state_s
+{
+	int		index;		// server & client shared modelindex	
+	int		colormap;		// change base color for some textures or sprite frames
+	float		scale;		// model or sprite scale, affects to physics too
+	float		frame;		// % playback position in animation sequences (0..255)
+	float		animtime;		// auto-animating time
+	float		framerate;	// custom framerate, specified by QC
+	int		sequence;		// animation sequence (0 - 255)
+	int		gaitsequence;	// client\nps\bot gaitsequence
+	int		skin;		// skin for studiomodels
+	int		body;		// sub-model selection for studiomodels
+	float		blending[8];	// studio animation blending
+	float		controller[32];	// studio bone controllers
+	vec3_t		calcbonepos[128];	// too hard: ragdoll or like it, animated by physic engine
+} model_state_t;
 
 // entity_state_t communication
 typedef struct entity_state_s
 {
+	// engine specific
 	uint		number;		// edict index
+	edtype_t		ed_type;		// edict type
+	int		soundindex;	// looped ambient sound
 
+	// physics information
 	vec3_t		origin;
-	vec3_t		angles;
+	vec3_t		angles;		// entity angles, not viewangles
+	vec3_t		velocity;		// player velocity
 	vec3_t		old_origin;	// for lerping animation
-	int		modelindex;
-	int		soundindex;
-	int		weaponmodel;
+	vec3_t		old_velocity;	// for movement predicting
+	model_state_t	model;		// general entity model
+	solid_t		solidtype;	// entity solidtype
+	movetype_t	movetype;		// entity movetype
+	int		gravity;		// gravity multiplier
+	int		aiment;		// attahced entity (not a physic attach, only rendering)
+	int		solid;		// using for symmetric bboxes
+	vec3_t		mins;		// not symmetric entity bbox    
+	vec3_t		maxs;
 
-	int		skin;		// skin for studiomodels
-	float		frame;		// % playback position in animation sequences (0..512)
-	int		body;		// sub-model selection for studiomodels
-	int		sequence;		// animation sequence (0 - 255)
-	uint		effects;		// PGM - we're filling it, so it needs to be unsigned
-	int		renderfx;
-	int		solid;		// for client side prediction, 8*(bits 0-4) is x/y radius
-					// 8*(bits 5-9) is z down distance, 8(bits10-15) is z up
-					// gi.linkentity sets this properly
-	float		alpha;		// alpha value
-	float		animtime;		// auto-animating time
+	// render information
+	uint		effects;		// effect flags like q1 and hl1
+	int		renderfx;		// render effects same as hl1
+	float		renderamt;	// alpha value or like somewhat
+	vec3_t		rendercolor;	// hl1 legacy stuff, working, but not needed
+	int		rendermode;	// hl1 legacy stuff, working, but not needed
 
-} entity_state_t;
-
-// viewmodel state
-typedef struct vmodel_state_s
-{
-	int		index;	// client modelindex
-	vec3_t		angles;	// can be some different with viewangles
-	vec3_t		offset;	// center offset
-	int		sequence;	// studio animation sequence
-	float		frame;	// studio frame
-	int		body;	// weapon body
-	int		skin;	// weapon skin 
-} vmodel_state_t;
-
-// thirdperson model state
-typedef struct pmodel_state_s
-{
-	int		index;	// client modelindex
-	int		sequence;	// studio animation sequence
-	float		frame;	// studio frame
-} pmodel_state_t;
-
-// player_state_t communication
-typedef struct player_state_s
-{
-	int		bobcycle;		// for view bobbing and footstep generation
-	float		bobtime;
-	int		pm_type;		// player movetype
+	// client specific
+	int		pm_type;		// client movetype
 	int		pm_flags;		// ducked, jump_held, etc
 	int		pm_time;		// each unit = 8 ms
-#ifdef USE_COORD_FRAC	
-	int		origin[3];
-	int		velocity[3];
-#else
-	vec3_t		origin;
-	vec3_t		velocity;
-#endif
-	vec3_t		delta_angles;	// add to command angles to get view direction
-	int		gravity;		// gravity value
-	int		speed;		// maxspeed
-	edict_t		*groundentity;	// current ground entity
+	vec3_t		delta_angles;	// add to command angles to get view direction 
+	vec3_t		punch_angles;	// add to view direction to get render angles 
+	vec3_t		viewangles;	// already calculated view angles on server-side
+	vec3_t		viewoffset;	// FIXME: replace with viewheight
 	int		viewheight;	// height over ground
-	int		effects;		// copied to entity_state_t->effects
-	vec3_t		viewangles;	// for fixed views
-	vec3_t		viewoffset;	// add to pmovestate->origin
-	vec3_t		kick_angles;	// add to view direction to get render angles
-	vec3_t		oldviewangles;	// for lerping viewmodel position
-	vec4_t		blend;		// rgba full screen effect
-	int		stats[32];	// integer limit
+	int		maxspeed;		// sv_maxspeed will be duplicate on all clients
+	float		health;		// client health (other parms can be send by custom messages)
 	float		fov;		// horizontal field of view
-
-	// player model and viewmodel
-	vmodel_state_t	vmodel;
-	pmodel_state_t	pmodel;
-
-} player_state_t;
+	model_state_t	vmodel;		// viewmodel info
+	model_state_t	pmodel;		// weaponmodel info
+} entity_state_t;
 
 // usercmd_t communication
 typedef struct usercmd_s
@@ -265,7 +300,8 @@ typedef struct gameinfo_s
 	string	source_dir;	// default source directory
 	
 	char	key[16];		// cd-key info
-	char	TXcommand;	// quark command (get rid of this)
+	char	TXcommand;	// quark .map comment
+	char	instance;		// global engine instance
 } gameinfo_t;
 
 /*
@@ -658,7 +694,8 @@ typedef struct stdilib_api_s
 #define Com_SkipToken	com.Com_SkipToken
 #define Com_MatchToken	com.Com_MatchToken
 #define com_token		com.com_token
-#define g_TXcommand		com.GameInfo->TXcommand // get rid of this
+#define g_TXcommand		com.GameInfo->TXcommand
+#define g_Instance		com.GameInfo->instance
 
 /*
 ===========================================
@@ -824,36 +861,6 @@ internal physic data
 hold linear and angular velocity, current position stored too
 ========================================================================
 */
-// phys movetype
-typedef enum
-{
-	MOVETYPE_NONE,	// never moves
-	MOVETYPE_NOCLIP,	// origin and angles change with no interaction
-	MOVETYPE_PUSH,	// no clip to world, push on box contact
-	MOVETYPE_WALK,	// gravity
-	MOVETYPE_STEP,	// gravity, special edge handling
-	MOVETYPE_FLY,
-	MOVETYPE_TOSS,	// gravity
-	MOVETYPE_BOUNCE,
-	MOVETYPE_FOLLOW,	// attached models
-	MOVETYPE_CONVEYOR,
-	MOVETYPE_PUSHABLE,
-	MOVETYPE_PHYSIC,	// phys simulation
-} movetype_t;
-
-// phys collision mode
-typedef enum
-{
-	SOLID_NOT = 0,    	// no interaction with other objects
-	SOLID_TRIGGER,	// only touch when inside, after moving
-	SOLID_BBOX,	// touch on edge
-	SOLID_BSP,    	// bsp clip, touch on edge
-	SOLID_BOX,	// physbox
-	SOLID_SPHERE,	// sphere
-	SOLID_CYLINDER,	// cylinder e.g. barrel
-	SOLID_MESH,	// custom convex hull
-} solid_t;
-
 typedef struct physdata_s
 {
 	vec3_t		origin;
@@ -896,6 +903,7 @@ typedef struct cvar_s
 #define ROLL		2
 
 #define MAX_LIGHTSTYLES	256
+#define MAX_EDICTS		65535		// absolute limit that never be reached
 
 #define	EF_ROTATE		(1<<0)		// rotate (bonus items)
 
@@ -951,7 +959,7 @@ MAP CONTENTS & SURFACES DESCRIPTION
 #define CONTENTS_CURRENT_UP		0x400000
 #define CONTENTS_CURRENT_DOWN		0x800000
 #define CONTENTS_ORIGIN		0x1000000	// removed before bsping an entity
-#define CONTENTS_MONSTER		0x2000000	// should never be on a brush, only in game
+#define CONTENTS_BODY		0x2000000	// should never be on a brush, only in game
 #define CONTENTS_DEADMONSTER		0x4000000
 #define CONTENTS_DETAIL		0x8000000	// brushes to be added after vis leafs
 #define CONTENTS_TRANSLUCENT		0x10000000// auto set if any surface has trans
@@ -1009,7 +1017,9 @@ typedef struct cplane_s
 typedef struct cmesh_s
 {
 	vec3_t	*verts;
+	int	*indices;
 	uint	numverts;
+	uint	numtris;
 } cmesh_t;
 
 typedef struct cmodel_s
@@ -1026,7 +1036,15 @@ typedef struct cmodel_s
 	int	numbrushes;
 	int	numframes;	// sprite framecount
 	int	numbodies;	// physmesh numbody
-	cmesh_t	physmesh[MAXSTUDIOMODELS];	// max bodies
+	cmesh_t	*col[256];	// max bodies
+
+	// g-cont: stupid pushmodel stuff
+	vec3_t	normalmins;	// bounding box at angles '0 0 0'
+	vec3_t	normalmaxs;
+	vec3_t	yawmins;		// bounding box if yaw angle is not 0, but pitch and roll are
+	vec3_t	yawmaxs;
+	vec3_t	rotatedmins;	// bounding box if pitch or roll are used
+	vec3_t	rotatedmaxs;
 
 	// custom traces for various model types
 	void (*TraceBox)( const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs, struct cmodel_s *model, struct trace_s *trace, int brushsmask );
@@ -1036,12 +1054,19 @@ typedef struct cmodel_s
 typedef struct csurface_s
 {
 	string	name;
-	int	flags;
+	int	surfaceflags;
+	int	contentflags;
 	int	value;
 
-	// physics stuff
-	int	firstedge;	// look up in model->surfedges[], negative numbers
-	int	numedges;		// are backwards edges
+	vec3_t	mins;
+	vec3_t	maxs;
+
+	// patches support
+	int	numtriangles;
+	int	numvertices;
+	int	*indices;
+	float	*vertices;
+	int	markframe;
 } csurface_t;
 
 typedef struct trace_s
@@ -1066,12 +1091,12 @@ typedef struct trace_s
 // content masks
 #define MASK_ALL		(-1)
 #define MASK_SOLID		(CONTENTS_SOLID|CONTENTS_WINDOW)
-#define MASK_PLAYERSOLID	(CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_WINDOW|CONTENTS_MONSTER)
+#define MASK_PLAYERSOLID	(CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_WINDOW|CONTENTS_BODY)
 #define MASK_DEADSOLID	(CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_WINDOW)
-#define MASK_MONSTERSOLID	(CONTENTS_SOLID|CONTENTS_MONSTERCLIP|CONTENTS_WINDOW|CONTENTS_MONSTER)
+#define MASK_MONSTERSOLID	(CONTENTS_SOLID|CONTENTS_MONSTERCLIP|CONTENTS_WINDOW|CONTENTS_BODY)
 #define MASK_WATER		(CONTENTS_WATER|CONTENTS_LAVA|CONTENTS_SLIME)
 #define MASK_OPAQUE		(CONTENTS_SOLID|CONTENTS_SLIME|CONTENTS_LAVA)
-#define MASK_SHOT		(CONTENTS_SOLID|CONTENTS_MONSTER|CONTENTS_WINDOW|CONTENTS_DEADMONSTER)
+#define MASK_SHOT		(CONTENTS_SOLID|CONTENTS_BODY|CONTENTS_WINDOW|CONTENTS_DEADMONSTER)
 #define MASK_CURRENT	(CONTENTS_CURRENT_0|CONTENTS_CURRENT_90|CONTENTS_CURRENT_180|CONTENTS_CURRENT_270|CONTENTS_CURRENT_UP|CONTENTS_CURRENT_DOWN)
 
 // pmove_state_t is the information necessary for client side movement
@@ -1250,7 +1275,7 @@ typedef struct
 
 typedef struct pmove_s
 {
-	player_state_t	ps;		// state (in / out)
+	entity_state_t	ps;		// state (in / out)
 
 	// command (in)
 	usercmd_t		cmd;
@@ -1260,6 +1285,7 @@ typedef struct pmove_s
 	// results (out)
 	int		numtouch;
 	edict_t		*touchents[PM_MAXTOUCH];	// max touch
+	edict_t		*groundentity;
 
 	vec3_t		mins, maxs;	// bounding box size
 	int		watertype;
@@ -1282,7 +1308,7 @@ typedef struct launch_exp_s
 	// interface validator
 	size_t	api_size;		// must matched with sizeof(launch_api_t)
 
-	void ( *Init ) ( uint funcname, int argc, char **argv );	// init host
+	void ( *Init ) ( int argc, char **argv );	// init host
 	void ( *Main ) ( void );				// host frame
 	void ( *Free ) ( void );				// close host
 	void (*CPrint) ( const char *msg );			// host print
@@ -1316,8 +1342,8 @@ typedef struct imglib_exp_s
 	// interface validator
 	size_t	api_size;		// must matched with sizeof(imglib_api_t)
 
-	void ( *Init ) ( uint funcname );	// init host
-	void ( *Free ) ( void );		// close host
+	void ( *Init ) ( void );	// init host
+	void ( *Free ) ( void );	// close host
 
 	// global operations
 	rgbdata_t *(*LoadImage)(const char *path, const byte *data, size_t size );	// extract image into rgba buffer
@@ -1413,10 +1439,6 @@ typedef struct physic_exp_s
 	int (*NumBmodels )( void );
 	const char *(*GetEntityString)( void );
 	const char *(*GetTextureName)( int index );
-	int (*PointContents)( const vec3_t p, cmodel_t *model );
-	int (*TransformedPointContents)( const vec3_t p, cmodel_t *model, const vec3_t origin, const vec3_t angles );
-	void (*BoxTrace)( const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, cmodel_t *model, trace_t *tr, int brushmask );
-	trace_t (*TransformedBoxTrace)( const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, cmodel_t *model, int brushmask, vec3_t origin, vec3_t angles, bool capsule );
 	byte *(*ClusterPVS)( int cluster );
 	byte *(*ClusterPHS)( int cluster );
 	int (*PointLeafnum)( vec3_t p );
@@ -1426,11 +1448,12 @@ typedef struct physic_exp_s
 	bool (*AreasConnected)( int area1, int area2 );
 	int (*WriteAreaBits)( byte *buffer, int area );
 
+	void (*ClipToGenericEntity)( trace_t *trace, cmodel_t *model, const vec3_t bodymins, const vec3_t bodymaxs, int bodysupercontents, matrix4x4 matrix, matrix4x4 inversematrix, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int contentsmask );
+	void (*ClipToWorld)( trace_t *trace, cmodel_t *model, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int contentsmask );
+	void (*CombineTraces)( trace_t *cliptrace, const trace_t *trace, edict_t *touch, bool is_bmodel );
+
 	// player movement code
 	void (*PlayerMove)( pmove_t *pmove, bool clientmove );
-
-	void (*ServerMove)( pmove_t *pmove );
-	void (*ClientMove)( pmove_t *pmove );
 	
 	// simple objects
 	physbody_t *(*CreateBody)( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform, int solid );
@@ -1619,8 +1642,8 @@ typedef struct vprogs_exp_s
 	// interface validator
 	size_t	api_size;		// must matched with sizeof(vprogs_api_t)
 
-	void ( *Init ) ( uint funcname, int argc, char **argv );	// init host
-	void ( *Free ) ( void );				// close host
+	void ( *Init ) ( int argc, char **argv );	// init host
+	void ( *Free ) ( void );					// close host
 
 	// compiler functions
 	void ( *PrepareDAT )( const char *dir, const char *name );

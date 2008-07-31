@@ -853,8 +853,9 @@ void Mod_SetupSubmodels( model_t *mod )
 		
 		starmod->firstmodelsurface = bm->firstface;
 		starmod->nummodelsurfaces = bm->numfaces;
+		starmod->type = mod_brush;
 		starmod->firstnode = bm->headnode;
-		if (starmod->firstnode >= loadmodel->numnodes)
+		if( starmod->firstnode >= loadmodel->numnodes )
 			Host_Error ("Inline model %i has bad firstnode", i);
 
 		VectorCopy (bm->maxs, starmod->maxs);
@@ -877,7 +878,7 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer)
 	dheader_t	*header;
 
 	
-	loadmodel->type = mod_brush;
+	loadmodel->type = mod_static;
 	if (loadmodel != mod_known)
 	{
 		Msg("Warning: loaded a brush model after the world\n");

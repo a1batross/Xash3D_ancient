@@ -59,14 +59,19 @@ struct cl_entvars_s
 	float	modelindex;
 	float	soundindex;
 	int	chain;
+	int	owner;
 	string_t	model;
 	vec3_t	origin;
 	vec3_t	angles;
+	vec3_t	mins;
+	vec3_t	maxs;
+	float	solid;
 	float	sequence;
 	float	effects;
 	float	frame;
 	float	body;
 	float	skin;
+	float	flags;
 };
 
 
@@ -74,9 +79,9 @@ struct cl_entvars_s
 
 static fields_t cl_reqfields[] = 
 {
-	{17,	2,	"flags"}
+	{26,	2,	"aiflags"}
 };
 
-#define PROG_CRC_CLIENT		4546
+#define PROG_CRC_CLIENT		3720
 
 #endif//CL_EDICT_H

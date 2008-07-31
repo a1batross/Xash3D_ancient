@@ -68,7 +68,7 @@ typedef struct system_s
 	double			start, end;
 
 	void (*Con_Print)( const char *msg );
-	void ( *Init ) ( uint funcname, int argc, char **argv );
+	void ( *Init ) ( int argc, char **argv );
 	void ( *Main ) ( void ); // host frame
 	void ( *Free ) ( void ); // close host
 	void (*CPrint)( const char *msg ); // console print

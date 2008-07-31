@@ -483,20 +483,17 @@ StudioGetAnim
 mstudioanim_t *R_StudioGetAnim( model_t *m_pSubModel, mstudioseqdesc_t *pseqdesc )
 {
 	mstudioseqgroup_t	*pseqgroup;
-	cache_user_t *paSequences;
-          byte *buf;
-          int filesize;
+	byte		*paSequences;
+          size_t		filesize;
+          byte		*buf;
 	
 	//WARNING! Not tested!!!
 	
 	pseqgroup = (mstudioseqgroup_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqgroupindex) + pseqdesc->seqgroup;
 
-	if (pseqdesc->seqgroup == 0)
-	{
+	if( pseqdesc->seqgroup == 0 )
 		return (mstudioanim_t *)((byte *)m_pStudioHeader + pseqgroup->data + pseqdesc->animindex);
-	}
-
-	paSequences = (cache_user_t *)m_pSubModel->submodels;
+	paSequences = (void *)m_pSubModel->submodels;
 
 	if (paSequences == NULL)
 	{
@@ -508,18 +505,18 @@ mstudioanim_t *R_StudioGetAnim( model_t *m_pSubModel, mstudioseqdesc_t *pseqdesc
 			memset (pseqgroup->name, 0, sizeof(pseqgroup->name));
 			return NULL;
 		}
-                    if(IDSEQGRPHEADER == LittleLong(*(unsigned *)buf))  //it's sequence group
+                    if(IDSEQGRPHEADER == LittleLong(*(uint *)buf))  //it's sequence group
                     {
 			byte		*pin = (byte *)buf;
 			mstudioseqgroup_t	*pseqhdr = (mstudioseqgroup_t *)pin;
 			
-			paSequences = (cache_user_t *)Mem_Alloc(m_pSubModel->mempool, LittleLong(filesize));
+			paSequences = (byte *)Mem_Alloc(m_pSubModel->mempool, filesize );
           		m_pSubModel->submodels = (mmodel_t *)paSequences;
           		
-          		memcpy((struct cache_user_s *)&paSequences[pseqdesc->seqgroup], buf, LittleLong(filesize));
+          		Mem_Copy(&paSequences[pseqdesc->seqgroup], buf, filesize );
 		}		
 	}
-	return (mstudioanim_t *)((byte *)paSequences[pseqdesc->seqgroup].data + pseqdesc->animindex);
+	return (mstudioanim_t *)((byte *)paSequences[pseqdesc->seqgroup] + pseqdesc->animindex);
 }
 
 /*

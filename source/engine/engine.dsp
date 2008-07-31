@@ -226,6 +226,10 @@ SOURCE=.\server\sv_main.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\server\sv_move.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\server\sv_phys.c
 # End Source File
 # Begin Source File
@@ -235,10 +239,6 @@ SOURCE=.\server\sv_progs.c
 # Begin Source File
 
 SOURCE=.\server\sv_spawn.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\server\sv_studio.c
 # End Source File
 # Begin Source File
 

@@ -18,16 +18,18 @@ cvar_t	*zombietime;			// seconds to sink messages after disconnect
 cvar_t	*rcon_password;			// password for remote server commands
 
 cvar_t	*allow_download;
-cvar_t *allow_download_players;
-cvar_t *allow_download_models;
-cvar_t *allow_download_sounds;
-cvar_t *allow_download_maps;
-
 cvar_t	*sv_airaccelerate;
 cvar_t	*sv_maxvelocity;
 cvar_t	*sv_gravity;
-
+cvar_t	*sv_stepheight;
 cvar_t	*sv_noreload;			// don't reload level state when reentering
+cvar_t	*sv_playersonly;
+cvar_t	*sv_rollangle;
+cvar_t	*sv_rollspeed;
+cvar_t	*sv_maxspeed;
+cvar_t	*sv_accelerate;
+cvar_t	*sv_friction;
+
 
 cvar_t	*maxclients;			// FIXME: rename sv_maxclients
 cvar_t	*hostname;
@@ -192,8 +194,6 @@ SV_RunGameFrame
 */
 void SV_RunGameFrame (void)
 {
-	int	i;
-
 	if( sv_paused->integer && maxclients->integer == 1 )
 		return;
 
@@ -205,10 +205,7 @@ void SV_RunGameFrame (void)
 	sv.frametime = HOST_FRAMETIME * 0.001f;
 	sv.time = sv.framenum * sv.frametime;
 
-	if(!cm_paused->value) 
-		for( i = 0; i < 6; i++ )
-			pe->Frame( sv.frametime * i );//FIXME
-	SV_RunFrame ();
+	SV_Physics();
 
 	// never get more than one tic behind
 	if( sv.time * 1000 < svs.realtime )
@@ -369,6 +366,8 @@ void SV_Init (void)
 	Cvar_Get ("protocol", va("%i", PROTOCOL_VERSION), CVAR_SERVERINFO|CVAR_INIT, "displays server protocol version" );
 
 	sv_fps = Cvar_Get( "sv_fps", "60", CVAR_ARCHIVE|CVAR_LATCH, "running server at" );
+	sv_stepheight = Cvar_Get( "sv_stepheight", "18", CVAR_ARCHIVE|CVAR_LATCH, "how high you can step up" );
+	sv_playersonly = Cvar_Get( "playersonly", "0", 0, "freezes time, except for players" );
 	maxclients = Cvar_Get ("maxclients", "1", CVAR_SERVERINFO | CVAR_LATCH, "max count of clients for current game" );
 	hostname = Cvar_Get ("hostname", "unnamed", CVAR_SERVERINFO | CVAR_ARCHIVE, "host name" );
 	timeout = Cvar_Get ("timeout", "125", 0, "connection timeout" );
@@ -376,16 +375,15 @@ void SV_Init (void)
 	sv_paused = Cvar_Get ("paused", "0", 0, "server pause" );
 	sv_enforcetime = Cvar_Get ("sv_enforcetime", "0", 0, "client enforce time" );
 	allow_download = Cvar_Get ("allow_download", "1", CVAR_ARCHIVE, "allow download resources" );
-	allow_download_players  = Cvar_Get ("allow_download_players", "0", CVAR_ARCHIVE, "let downloading playermodels" );
-	allow_download_models = Cvar_Get ("allow_download_models", "1", CVAR_ARCHIVE, "let downloading models");
-	allow_download_sounds = Cvar_Get ("allow_download_sounds", "1", CVAR_ARCHIVE, "let downloading sounds" );
-	allow_download_maps	  = Cvar_Get ("allow_download_maps", "1", CVAR_ARCHIVE, "let downloading maps" );
-
-	sv_noreload = Cvar_Get ("sv_noreload", "0", 0, "ignore savepoints for singleplayer" );
-
+	sv_noreload = Cvar_Get("sv_noreload", "0", 0, "ignore savepoints for singleplayer" );
+	sv_rollangle = Cvar_Get("sv_rollangle", "2", 0, "how much to tilt the view when strafing" );
+	sv_rollspeed = Cvar_Get("sv_rollspeed", "200", 0, "how much strafing is necessary to tilt the view" );
 	sv_airaccelerate = Cvar_Get("sv_airaccelerate", "0", CVAR_LATCH, "player accellerate in air" );
 	sv_maxvelocity = Cvar_Get("sv_maxvelocity", "2000", 0, "max world velocity" );
           sv_gravity = Cvar_Get("sv_gravity", "800", 0, "world gravity" );
+	sv_maxspeed = Cvar_Get("sv_maxspeed", "320", 0, "maximum speed a player can accelerate to when on ground (can be exceeded by tricks)");
+	sv_accelerate = Cvar_Get( "sv_accelerate", "10", 0, "rate at which a player accelerates to sv_maxspeed" );
+	sv_friction = Cvar_Get( "sv_friction", "4", 0, "how fast you slow down" );
 	
 	public_server = Cvar_Get ("public", "0", 0, "change server type from private to public" );
 
