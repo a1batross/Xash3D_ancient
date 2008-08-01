@@ -731,6 +731,29 @@ void VM_LocalCmd( void )
 
 /*
 =========
+VM_AddCommand
+
+void Add_Command( string s )
+=========
+*/
+void VM_AddCommand( void )
+{
+	const char *name;
+
+	if(!VM_ValidateArgs( "Add_Command", 1 ))
+		return;
+
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+
+	name = PRVM_G_STRING(OFS_PARM0);
+
+	// register new command
+	// NOTE: cmd without callback will be forwarded to server 	
+	Cmd_AddCommand( name, NULL, NULL );
+}
+
+/*
+=========
 VM_ComVA
 
 string va( ... )
@@ -1633,8 +1656,8 @@ VM_ComVA,				// #29 string va( ... )
 VM_ComStrlen,			// #30 float strlen( string text )
 VM_TimeStamp,			// #31 string Com_TimeStamp( float format )
 VM_LocalCmd,			// #32 void LocalCmd( ... )
-NULL,				// #33 -- reserved --
-NULL,				// #34 -- reserved --
+VM_SubString,			// #33 string substring( string s, float start, float length )
+VM_AddCommand,			// #34 void Add_Command( string s )
 NULL,				// #35 -- reserved --
 NULL,				// #36 -- reserved --
 NULL,				// #37 -- reserved --
@@ -1795,7 +1818,7 @@ void Info_RemoveKey (char *s, char *key)
 	char	value[512];
 	char	*o;
 
-	if (strstr (key, "\\")) return;
+	if (com.strstr (key, "\\")) return;
 
 	while (1)
 	{
@@ -1818,9 +1841,9 @@ void Info_RemoveKey (char *s, char *key)
 		}
 		*o = 0;
 
-		if (!strcmp (key, pkey) )
+		if (!com.strcmp (key, pkey) )
 		{
-			strcpy (start, s);	// remove this part
+			com.strcpy (start, s);	// remove this part
 			return;
 		}
 		if (!*s) return;
@@ -1837,8 +1860,8 @@ can mess up the server's parsing
 */
 bool Info_Validate (char *s)
 {
-	if (strstr (s, "\"")) return false;
-	if (strstr (s, ";")) return false;
+	if (com.strstr (s, "\"")) return false;
+	if (com.strstr (s, ";")) return false;
 	return true;
 }
 
@@ -1847,23 +1870,23 @@ void Info_SetValueForKey (char *s, char *key, char *value)
 	char	newi[MAX_INFO_STRING], *v;
 	int	c, maxsize = MAX_INFO_STRING;
 
-	if (strstr (key, "\\") || strstr (value, "\\") )
+	if (com.strstr (key, "\\") || com.strstr (value, "\\") )
 	{
 		Msg ("Can't use keys or values with a \\\n");
 		return;
 	}
 
-	if (strstr (key, ";") )
+	if (com.strstr (key, ";") )
 	{
 		Msg ("Can't use keys or values with a semicolon\n");
 		return;
 	}
-	if (strstr (key, "\"") || strstr (value, "\"") )
+	if (com.strstr (key, "\"") || com.strstr (value, "\"") )
 	{
 		Msg ("Can't use keys or values with a \"\n");
 		return;
 	}
-	if (strlen(key) > MAX_INFO_KEY - 1 || strlen(value) > MAX_INFO_KEY-1)
+	if (com.strlen(key) > MAX_INFO_KEY - 1 || com.strlen(value) > MAX_INFO_KEY-1)
 	{
 		Msg ("Keys and values must be < 64 characters.\n");
 		return;
@@ -1936,7 +1959,7 @@ bool Cmd_GetMapList( const char *s, char *completedname, int length )
 	if( !t ) return false;
 
 	FS_FileBase(t->filenames[0], matchbuf ); 
-	strncpy( completedname, matchbuf, length );
+	com.strncpy( completedname, matchbuf, length );
 	if(t->numfilenames == 1) return true;
 
 	for(i = 0, nummaps = 0; i < t->numfilenames; i++)
@@ -1949,7 +1972,7 @@ bool Cmd_GetMapList( const char *s, char *completedname, int length )
 
 		if( com.stricmp(ext, "bsp" )) continue;
 
-		strncpy(message, "^1error^7", sizeof(message));
+		com.strncpy(message, "^1error^7", sizeof(message));
 		f = FS_Open(t->filenames[i], "rb" );
 	
 		if( f )
@@ -1975,7 +1998,7 @@ bool Cmd_GetMapList( const char *s, char *completedname, int length )
 			else
 			{
 				lump_t	ents; // quake1 entity lump
-				memcpy(&ents, buf + 4, sizeof(lump_t)); // skip first four bytes (version)
+				Mem_Copy(&ents, buf + 4, sizeof(lump_t)); // skip first four bytes (version)
 				ver = LittleLong(((int *)buf)[0]);
 
 				switch( ver )
@@ -2012,13 +2035,13 @@ bool Cmd_GetMapList( const char *s, char *completedname, int length )
 				data = entities;
 				while(Com_ParseToken(&data))
 				{
-					if(!strcmp(com_token, "{" )) continue;
-					else if(!strcmp(com_token, "}" )) break;
-					else if(!strcmp(com_token, "message" ))
+					if(!com.strcmp(com_token, "{" )) continue;
+					else if(!com.strcmp(com_token, "}" )) break;
+					else if(!com.strcmp(com_token, "message" ))
 					{
 						// get the message contents
 						Com_ParseToken(&data);
-						strncpy(message, com_token, sizeof(message));
+						com.strncpy(message, com_token, sizeof(message));
 					}
 				}
 			}
@@ -2029,14 +2052,14 @@ bool Cmd_GetMapList( const char *s, char *completedname, int length )
 
 		switch(ver)
 		{
-		case 28:  strncpy((char *)buf, "Quake1 beta", sizeof(buf)); break;
-		case 29:  strncpy((char *)buf, "Quake1", sizeof(buf)); break;
-		case 30:  strncpy((char *)buf, "Half-Life", sizeof(buf)); break;
-		case 38:  strncpy((char *)buf, "Quake 2", sizeof(buf)); break;
-		case 39:  strncpy((char *)buf, "Xash 3D", sizeof(buf)); break;
-		case 46:  strncpy((char *)buf, "Quake 3", sizeof(buf)); break;
-		case 47:  strncpy((char *)buf, "RTCW", sizeof(buf)); break;
-		default:	strncpy((char *)buf, "??", sizeof(buf)); break;
+		case 28:  com.strncpy((char *)buf, "Quake1 beta", sizeof(buf)); break;
+		case 29:  com.strncpy((char *)buf, "Quake1", sizeof(buf)); break;
+		case 30:  com.strncpy((char *)buf, "Half-Life", sizeof(buf)); break;
+		case 38:  com.strncpy((char *)buf, "Quake 2", sizeof(buf)); break;
+		case 39:  com.strncpy((char *)buf, "Xash 3D", sizeof(buf)); break;
+		case 46:  com.strncpy((char *)buf, "Quake 3", sizeof(buf)); break;
+		case 47:  com.strncpy((char *)buf, "RTCW", sizeof(buf)); break;
+		default:	com.strncpy((char *)buf, "??", sizeof(buf)); break;
 		}
 		Msg("%16s (%s) ^3%s^7\n", matchbuf, buf, message);
 		nummaps++;
@@ -2047,7 +2070,7 @@ bool Cmd_GetMapList( const char *s, char *completedname, int length )
 	// cut shortestMatch to the amount common with s
 	for( i = 0; matchbuf[i]; i++ )
 	{
-		if(tolower(completedname[i]) != tolower(matchbuf[i]))
+		if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
 			completedname[i] = 0;
 	}
 	return true;
@@ -2090,7 +2113,7 @@ bool Cmd_GetFontList( const char *s, char *completedname, int length )
 	{
 		for( i = 0; matchbuf[i]; i++ )
 		{
-			if(com.tolower(completedname[i]) != tolower(matchbuf[i]))
+			if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
 				completedname[i] = 0;
 		}
 	}
@@ -2135,7 +2158,7 @@ bool Cmd_GetDemoList( const char *s, char *completedname, int length )
 	{
 		for( i = 0; matchbuf[i]; i++ )
 		{
-			if(com.tolower(completedname[i]) != tolower(matchbuf[i]))
+			if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
 				completedname[i] = 0;
 		}
 	}
@@ -2182,7 +2205,7 @@ bool Cmd_GetSourceList( const char *s, char *completedname, int length )
 	{
 		for( i = 0; matchbuf[i]; i++ )
 		{
-			if(com.tolower(completedname[i]) != tolower(matchbuf[i]))
+			if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
 				completedname[i] = 0;
 		}
 	}
@@ -2206,7 +2229,7 @@ bool Cmd_GetMovieList( const char *s, char *completedname, int length )
 	if(!t) return false;
 
 	FS_FileBase(t->filenames[0], matchbuf ); 
-	if(completedname && length) strncpy( completedname, matchbuf, length );
+	if(completedname && length) com.strncpy( completedname, matchbuf, length );
 	if(t->numfilenames == 1) return true;
 
 	for(i = 0, nummovies = 0; i < t->numfilenames; i++)
@@ -2226,7 +2249,7 @@ bool Cmd_GetMovieList( const char *s, char *completedname, int length )
 	{
 		for( i = 0; matchbuf[i]; i++ )
 		{
-			if(com.tolower(completedname[i]) != tolower(matchbuf[i]))
+			if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
 				completedname[i] = 0;
 		}
 	}
@@ -2251,7 +2274,7 @@ bool Cmd_GetMusicList( const char *s, char *completedname, int length )
 	if(!t) return false;
 
 	FS_FileBase(t->filenames[0], matchbuf ); 
-	if(completedname && length) strncpy( completedname, matchbuf, length );
+	if(completedname && length) com.strncpy( completedname, matchbuf, length );
 	if(t->numfilenames == 1) return true;
 
 	for(i = 0, numtracks = 0; i < t->numfilenames; i++)
@@ -2271,7 +2294,7 @@ bool Cmd_GetMusicList( const char *s, char *completedname, int length )
 	{
 		for( i = 0; matchbuf[i]; i++ )
 		{
-			if(com.tolower(completedname[i]) != tolower(matchbuf[i]))
+			if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
 				completedname[i] = 0;
 		}
 	}
@@ -2377,7 +2400,7 @@ bool Cmd_CheckMapsList( void )
 			else
 			{
 				lump_t	ents; // quake1 entity lump
-				memcpy(&ents, buf + 4, sizeof(lump_t)); // skip first four bytes (version)
+				Mem_Copy(&ents, buf + 4, sizeof(lump_t)); // skip first four bytes (version)
 				ver = LittleLong(((int *)buf)[0]);
 
 				switch( ver )
@@ -2414,16 +2437,16 @@ bool Cmd_CheckMapsList( void )
 
 				while(Com_ParseToken(&data))
 				{
-					if(!strcmp(com_token, "{" )) continue;
-					else if(!strcmp(com_token, "}" )) break;
-					else if(!strcmp(com_token, "message" ))
+					if(!com.strcmp(com_token, "{" )) continue;
+					else if(!com.strcmp(com_token, "}" )) break;
+					else if(!com.strcmp(com_token, "message" ))
 					{
 						// get the message contents
 						Com_ParseToken(&data);
-						if(!strcmp(com_token, "" )) continue;
+						if(!com.strcmp(com_token, "" )) continue;
 						com.strncpy(message, com_token, sizeof(message));
 					}
-					else if(!strcmp(com_token, "classname" ))
+					else if(!com.strcmp(com_token, "classname" ))
 					{
 						Com_ParseToken(&data);
 						if(!com.strcmp(com_token, "info_player_deatchmatch"))
@@ -2446,7 +2469,7 @@ bool Cmd_CheckMapsList( void )
 	if( t ) Mem_Free(t); // free search result
 
 	// write generated maps.lst
-	if(FS_WriteFile("scripts/maps.lst", buffer, strlen(buffer)))
+	if(FS_WriteFile("scripts/maps.lst", buffer, com.strlen(buffer)))
 	{
           	if( buffer ) Mem_Free(buffer);
 		return true;

@@ -200,7 +200,7 @@ model_t *Mod_ForName(char *name, bool crash)
 	for (i = 0, mod = mod_known; i < mod_numknown; i++, mod++)
 	{
 		if (!mod->name[0]) continue;
-		if (!strcmp (mod->name, name))
+		if (!com.strcmp (mod->name, name))
 		{
 			// prolonge registration
 			mod->registration_sequence = registration_sequence;
@@ -233,7 +233,7 @@ model_t *Mod_ForName(char *name, bool crash)
 		return NULL;
 	}
 
-	mod->mempool = Mem_AllocPool(mod->name);
+	mod->mempool = Mem_AllocPool(va("^1%s", mod->name ));
 	
 	loadmodel = mod;
 	
@@ -242,7 +242,7 @@ model_t *Mod_ForName(char *name, bool crash)
 	//
 
 	// call the apropriate loader
-	switch (LittleLong(*(unsigned *)buf))
+	switch (LittleLong(*(uint *)buf))
 	{
 	case IDBSPMODHEADER:
 		Mod_LoadBrushModel (mod, buf);
@@ -878,7 +878,7 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer)
 	dheader_t	*header;
 
 	
-	loadmodel->type = mod_static;
+	loadmodel->type = mod_world;
 	if (loadmodel != mod_known)
 	{
 		Msg("Warning: loaded a brush model after the world\n");

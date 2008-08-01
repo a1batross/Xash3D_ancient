@@ -16,6 +16,7 @@ launch_exp_t	*Host;	// callback to mainframe
 sys_event_t	event_que[MAX_QUED_EVENTS];
 int		event_head, event_tail;
 FILE		*logfile;
+FILE		*memfile;
 
 dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
@@ -202,7 +203,7 @@ void Sys_GetStdAPI( void )
 	com.strncmp = com_strncmp;
 	com.strcmp = com_strcmp;
 	com.stristr = com_stristr;
-	com.strstr = com_stristr;		// FIXME
+	com.strstr = com_strstr;
 	com.strpack = com_strpack;
 	com.strunpack = com_strunpack;
 	com.vsprintf = com_vsprintf;
@@ -219,42 +220,56 @@ void Sys_GetStdAPI( void )
 ==================
 Parse program name to launch and determine work style
 
-NOTE: at this day we have eleven instances
+NOTE: at this day we have ten instances
 
-1. "host_shared" - normal game launch
-2. "host_dedicated" - dedicated server
-3. "host_editor" - resource editor
-4. "bsplib" - three BSP compilers in one
-5. "imglib" - convert old formats (mip, pcx, lmp) to 32-bit tga
-6. "qcclib" - quake c complier
-7. "roqlib" - roq video file maker
-8. "sprite" - sprite creator (requires qc. script)
-9. "studio" - Half-Life style models creator (requires qc. script) 
-10. "credits" - display credits of engine developers
-11. "host_setup" - write current path into registry (silently)
+1. "normal" - normal or dedicated game launch
+2. "viewer" - resource editor
+3. "bsplib" - three BSP compilers in one
+4. "imglib" - convert old formats (mip, pcx, lmp) to 32-bit tga
+5. "qcclib" - quake c complier
+6. "roqlib" - roq video file maker
+7. "sprite" - sprite creator (requires qc. script)
+8. "studio" - Half-Life style models creator (requires qc. script) 
+9. "credits" - display credits of engine developers
+10. "host_setup" - write current path into registry (silently)
 
 This list will be expnaded in future
 ==================
 */
 void Sys_LookupInstance( void )
 {
+	char	szTemp[4096];
+	bool	dedicated_mode = false;
+
 	Sys.app_name = HOST_OFFLINE;
+
+	if(GetModuleFileName( NULL, szTemp, MAX_SYSPATH ))
+		FS_FileBase( szTemp, Sys.ModuleName );
+
+	// determine host type
+	if( Sys.ModuleName[0] == '#' )
+	{
+		// cutoff '#'
+		com_strncpy( szTemp, Sys.ModuleName + 1, MAX_SYSPATH );
+		com_strncpy( Sys.ModuleName, szTemp, MAX_SYSPATH );			
+		dedicated_mode = true;
+	}
 
 	// lookup all instances
 	if(!com_strcmp(Sys.progname, "normal"))
 	{
-		Sys.app_name = HOST_NORMAL;
-		Sys.con_readonly = true;
-		// don't show console as default
-		if(!Sys.debug) Sys.con_showalways = false;
-		Sys.linked_dll = &engine_dll;	// pointer to engine.dll info
-		com_sprintf(Sys.log_path, "engine.log", com_timestamp(TIME_NO_SECONDS)); // logs folder
-		com_strcpy(Sys.caption, va("Xash3D ver.%g", XASH_VERSION ));
-	}
-	else if(!com_strcmp(Sys.progname, "dedicated"))
-	{
-		Sys.app_name = HOST_DEDICATED;
-		Sys.con_readonly = false;
+		if( dedicated_mode )
+		{
+			Sys.app_name = HOST_DEDICATED;
+			Sys.con_readonly = false;
+		}
+		else
+		{
+			Sys.app_name = HOST_NORMAL;
+			Sys.con_readonly = true;
+			// don't show console as default
+			if(!Sys.debug) Sys.con_showalways = false;
+		}
 		Sys.linked_dll = &engine_dll;	// pointer to engine.dll info
 		com_sprintf(Sys.log_path, "engine.log", com_timestamp(TIME_NO_SECONDS)); // logs folder
 		com_strcpy(Sys.caption, va("Xash3D ver.%g", XASH_VERSION ));
@@ -266,7 +281,7 @@ void Sys_LookupInstance( void )
 		//don't show console as default
 		if(!Sys.debug) Sys.con_showalways = false;
 		Sys.linked_dll = &viewer_dll;	// pointer to viewer.dll info
-		Sys.log_active = Sys.developer = Sys.debug = 0; // clear all dbg states
+		com_sprintf(Sys.log_path, "%s/editor.log", sys_rootdir ); // logs folder
 		com_strcpy(Sys.caption, va("Xash3D Resource Viewer ver.%g", XASH_VERSION ));
 	}
 	else if(!com_strcmp(Sys.progname, "splash"))
@@ -397,8 +412,8 @@ void Sys_CreateInstance( void )
 	// export
 	launch_t	CreateHost, CreateBaserc;
 
-
-	Sys_LoadLibrary( Sys.linked_dll ); // loading library if need
+	srand(time(NULL));			// init random generator
+	Sys_LoadLibrary( Sys.linked_dll );	// loading library if need
 
 	// pre initializations
 	switch( Sys.app_name )
@@ -542,21 +557,34 @@ void Sys_ParseCommandLine (LPSTR lpCmdLine)
 
 void Sys_InitLog( void )
 {
-	// create log if needed
-	if(!Sys.log_active || !com_strlen(Sys.log_path) || Sys.con_silentmode) return;
-	logfile = fopen( Sys.log_path, "w");
-	if(!logfile) Sys_Error("Sys_InitLog: can't create log file %s\n", Sys.log_path );
+	string path;
 
-	fprintf(logfile, "=======================================================================\n" );
-	fprintf(logfile, "\t%s started at %s\n", Sys.caption, com_timestamp(TIME_FULL));
-	fprintf(logfile, "=======================================================================\n");
+	if( Sys.developer == D_MEMORY )
+	{	
+		com_snprintf( path, MAX_STRING, "%s/memhistory.log", sys_rootdir );
+		memfile = fopen( path, "w" ); 
+		if(!memfile) Sys_Error("Sys_InitLog: can't create memhistory log file %s\n", path );
+
+		fprintf(memfile, "=======================================================================\n" );
+		fprintf(memfile, "\t%s started at %s\n", Sys.caption, com_timestamp(TIME_FULL));
+		fprintf(memfile, "=======================================================================\n");
+	}
+
+	// create log if needed
+	if( Sys.log_active && !Sys.con_silentmode )
+	{
+		logfile = fopen( Sys.log_path, "w");
+		if(!logfile) Sys_Error("Sys_InitLog: can't create log file %s\n", Sys.log_path );
+
+		fprintf(logfile, "=======================================================================\n" );
+		fprintf(logfile, "\t%s started at %s\n", Sys.caption, com_timestamp(TIME_FULL));
+		fprintf(logfile, "=======================================================================\n");
+	}
 }
 
 void Sys_CloseLog( void )
 {
 	string	event_name;
-
-	if(!logfile) return;
 
 	switch( Sys.app_state )
 	{
@@ -566,19 +594,38 @@ void Sys_CloseLog( void )
 	default: com_strncpy( event_name, "stopped", MAX_STRING ); break;
 	}
 
-	fprintf(logfile, "\n");
-	fprintf(logfile, "=======================================================================");
-	fprintf(logfile, "\n\t%s %s at %s\n", Sys.caption, event_name, com_timestamp(TIME_FULL));
-	fprintf(logfile, "=======================================================================");
+	if( logfile )
+	{
+		fprintf(logfile, "\n");
+		fprintf(logfile, "=======================================================================");
+		fprintf(logfile, "\n\t%s %s at %s\n", Sys.caption, event_name, com_timestamp(TIME_FULL));
+		fprintf(logfile, "=======================================================================");
 
-	fclose(logfile);
-	logfile = NULL;
+		fclose( logfile );
+		logfile = NULL;
+	}
+	if( memfile )
+	{
+		fprintf(memfile, "\n");
+		fprintf(memfile, "=======================================================================");
+		fprintf(memfile, "\n\t%s %s at %s\n", Sys.caption, event_name, com_timestamp(TIME_FULL));
+		fprintf(memfile, "=======================================================================");
+
+		fclose( memfile );
+		memfile = NULL;
+	}
 }
 
 void Sys_PrintLog( const char *pMsg )
 {
 	if(!logfile) return;
 	fprintf(logfile, "%s", pMsg );
+}
+
+void Sys_PrintMem( const char *pMsg )
+{
+	if(!memfile) return;
+	fprintf(memfile, "%s", pMsg );
 }
 
 /*
@@ -654,7 +701,7 @@ formatted message
 */
 void Sys_Msg( const char *pMsg, ... )
 {
-	va_list		argptr;
+	va_list	argptr;
 	char text[MAX_MSGLEN];
 	
 	va_start (argptr, pMsg);
@@ -671,8 +718,8 @@ void Sys_MsgDev( int level, const char *pMsg, ... )
 
 	if(Sys.developer < level) return;
 
-	va_start (argptr, pMsg);
-	com_vsprintf (text, pMsg, argptr);
+	va_start( argptr, pMsg );
+	com_vsprintf( text, pMsg, argptr );
 	va_end (argptr);
 
 	switch( level )
@@ -693,7 +740,10 @@ void Sys_MsgDev( int level, const char *pMsg, ... )
 		Sys_Print( text );
 		break;
 	case D_MEMORY:
-		Sys_Print( text );
+		Sys_PrintMem( text );
+		break;
+	case D_STRING:
+		Sys_Print(va("^6AllocString: ^7%s", text));
 		break;
 	}
 }
@@ -1374,6 +1424,15 @@ sys_event_t Sys_GetEvent( void )
 	ev.time = timeGetTime();
 
 	return ev;
+}
+
+bool Sys_GetModuleName( char *buffer, size_t length )
+{
+	if(Sys.ModuleName[0] == '\0' )
+		return false;
+
+	com_strncpy( buffer, Sys.ModuleName, length + 1 );
+	return true;
 }
 
 //=======================================================================

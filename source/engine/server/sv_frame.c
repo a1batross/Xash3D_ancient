@@ -72,14 +72,6 @@ void SV_UpdateEntityState( edict_t *ent )
 	VectorCopy (ent->progs.sv->old_origin, ent->priv.sv->s.old_origin);
 	ent->priv.sv->s.model.index = (int)ent->progs.sv->modelindex;
 	ent->priv.sv->s.health = ent->progs.sv->health;
-
-	if( ent->priv.sv->client )
-	{
-		// attached weaponmodel
-		// FIXME: let any entity send weaponmodel
-		ent->priv.sv->s.pmodel.index = ent->priv.sv->client->ps.pmodel.index;
-	}
-
 	ent->priv.sv->s.model.skin = (short)ent->progs.sv->skin;		// studio model skin
 	ent->priv.sv->s.model.body = (byte)ent->progs.sv->body;		// studio model submodel 
 	ent->priv.sv->s.model.frame = ent->progs.sv->frame;		// any model current frame
@@ -88,6 +80,12 @@ void SV_UpdateEntityState( edict_t *ent )
 	ent->priv.sv->s.renderfx = (int)ent->progs.sv->renderfx;		// renderer flags
 	ent->priv.sv->s.renderamt = ent->progs.sv->alpha;			// alpha value
 	ent->priv.sv->s.model.animtime = ent->progs.sv->animtime;		// auto-animating time
+
+	// copy viewmodel info
+	ent->priv.sv->s.vmodel.frame = ent->progs.sv->v_frame;
+	ent->priv.sv->s.vmodel.body = ent->progs.sv->v_body;
+	ent->priv.sv->s.vmodel.skin = ent->progs.sv->v_skin;
+	ent->priv.sv->s.vmodel.sequence = ent->progs.sv->v_sequence;
 }
 
 /*
@@ -141,7 +139,7 @@ void SV_EmitPacketEntities( client_frame_t *from, client_frame_t *to, sizebuf_t 
 			// in any bytes being emited if the entity has not changed at all
 			// note that players are always 'newentities', this updates their oldorigin always
 			// and prevents warping
-			MSG_WriteDeltaEntity( oldent, newent, msg, false, newent->number <= maxclients->value );
+			MSG_WriteDeltaEntity( oldent, newent, msg, false, newent->number <= Host_MaxClients());
 			oldindex++;
 			newindex++;
 			continue;
@@ -252,8 +250,8 @@ void SV_BuildClientFrame( sv_client_t *cl )
 	frame->msg_sent = svs.realtime; // save it for ping calc later
 
 	// find the client's PVS
-	VectorScale( clent->priv.sv->client->ps.origin, CL_COORD_FRAC, org ); 
-	VectorAdd( org, clent->priv.sv->client->ps.viewoffset, org );  
+	VectorCopy( clent->priv.sv->s.origin, org ); 
+	VectorAdd( org, clent->priv.sv->s.viewoffset, org );  
 
 	// calculate fat pvs
 	if( sv_fatpvs->integer ) SV_FatPVS( org );
@@ -266,7 +264,7 @@ void SV_BuildClientFrame( sv_client_t *cl )
 	frame->areabytes = pe->WriteAreaBits( frame->areabits, clientarea );
 
 	// grab the current player state
-	frame->ps = clent->priv.sv->client->ps;
+	frame->ps = clent->priv.sv->s;
 
 	clientpvs = pe->ClusterPVS( clientcluster );
 	clientphs = pe->ClusterPHS( clientcluster );
@@ -460,7 +458,7 @@ void SV_SendClientMessages( void )
 	int		i;
 
 	// send a message to each connected client
-	for( i = 0, cl = svs.clients; i < maxclients->value; i++, cl++ )
+	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
 	{
 		if( !cl->state ) continue;
 

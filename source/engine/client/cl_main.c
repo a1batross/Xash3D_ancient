@@ -128,12 +128,11 @@ void CL_Pause_f (void)
 		return; // but allow pause in demos
 
 	// never pause in multiplayer
-	if( Cvar_VariableValue ("maxclients") > 1 )
+	if(com.atoi(cl.configstrings[CS_MAXCLIENTS]) > 1 )
 	{
-		Cvar_SetValue ("paused", 0);
+		Cvar_SetValue( "paused", 0 );
 		return;
 	}
-
 	Cvar_SetValue( "paused", !cl_paused->value );
 }
 
@@ -258,7 +257,7 @@ void CL_Connect_f (void)
 	CL_Disconnect();
 
 	cls.state = ca_connecting;
-	strncpy (cls.servername, server, sizeof(cls.servername)-1);
+	com.strncpy (cls.servername, server, sizeof(cls.servername)-1);
 	cls.connect_time = MAX_HEARTBEAT; // CL_CheckForResend() will fire immediately
 }
 
@@ -290,22 +289,22 @@ void CL_Rcon_f (void)
 	message[3] = (char)255;
 	message[4] = 0;
 
-	strcat (message, "rcon ");
+	com.strcat (message, "rcon ");
 
-	strcat (message, rcon_client_password->string);
-	strcat (message, " ");
+	com.strcat (message, rcon_client_password->string);
+	com.strcat (message, " ");
 
 	for (i=1 ; i<Cmd_Argc() ; i++)
 	{
-		strcat (message, Cmd_Argv(i));
-		strcat (message, " ");
+		com.strcat (message, Cmd_Argv(i));
+		com.strcat (message, " ");
 	}
 
 	if (cls.state >= ca_connected)
 		to = cls.netchan.remote_address;
 	else
 	{
-		if (!strlen(rcon_address->string))
+		if (!com.strlen(rcon_address->string))
 		{
 			Msg ("You must either be connected,\n"
 						"or set the 'rcon_address' cvar\n"
@@ -318,7 +317,7 @@ void CL_Rcon_f (void)
 			to.port = BigShort (PORT_SERVER);
 	}
 	
-	NET_SendPacket (NS_CLIENT, strlen(message)+1, message, to);
+	NET_SendPacket (NS_CLIENT, com.strlen(message)+1, message, to);
 }
 
 
@@ -366,9 +365,9 @@ void CL_Disconnect( void )
 	// send a disconnect message to the server
 	final[0] = clc_stringcmd;
 	com.strcpy ((char *)final+1, "disconnect");
-	Netchan_Transmit(&cls.netchan, strlen(final), final);
-	Netchan_Transmit(&cls.netchan, strlen(final), final);
-	Netchan_Transmit(&cls.netchan, strlen(final), final);
+	Netchan_Transmit(&cls.netchan, com.strlen(final), final);
+	Netchan_Transmit(&cls.netchan, com.strlen(final), final);
+	Netchan_Transmit(&cls.netchan, com.strlen(final), final);
 
 	CL_ClearState ();
 
@@ -422,7 +421,7 @@ void CL_Packet_f (void)
 	out = send+4;
 	send[0] = send[1] = send[2] = send[3] = (char)0xff;
 
-	l = strlen (in);
+	l = com.strlen (in);
 	for (i=0 ; i<l ; i++)
 	{
 		if (in[i] == '\\' && in[i+1] == 'n')
@@ -720,7 +719,7 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 	}
 
 	// remote command from gui front end
-	if(!strcmp(c, "cmd"))
+	if(!com.strcmp(c, "cmd"))
 	{
 		if(!NET_IsLocalAddress(from))
 		{
@@ -735,7 +734,7 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 		return;
 	}
 	// print command from somewhere
-	if (!strcmp(c, "print"))
+	if (!com.strcmp(c, "print"))
 	{
 		// print command from somewhere
 		s = MSG_ReadString( msg );
@@ -745,14 +744,14 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 	}
 
 	// ping from somewhere
-	if (!strcmp(c, "ping"))
+	if (!com.strcmp(c, "ping"))
 	{
 		Netchan_OutOfBandPrint( NS_CLIENT, from, "ack" );
 		return;
 	}
 
 	// challenge from the server we are connecting to
-	if (!strcmp(c, "challenge"))
+	if (!com.strcmp(c, "challenge"))
 	{
 		cls.challenge = com.atoi(Cmd_Argv(1));
 		CL_SendConnectPacket();
@@ -760,7 +759,7 @@ void CL_ConnectionlessPacket( netadr_t from, sizebuf_t *msg )
 	}
 
 	// echo request from server
-	if (!strcmp(c, "echo"))
+	if (!com.strcmp(c, "echo"))
 	{
 		Netchan_OutOfBandPrint( NS_CLIENT, from, "%s", Cmd_Argv(1) );
 		return;
@@ -999,16 +998,16 @@ void CL_RequestNextDownload (void)
 				continue;
 			}
 
-			if ((p = strchr(cl.configstrings[CS_PLAYERSKINS+i], '\\')) != NULL)
+			if ((p = com.strchr(cl.configstrings[CS_PLAYERSKINS+i], '\\')) != NULL)
 				p++;
 			else p = cl.configstrings[CS_PLAYERSKINS+i];
-			strcpy(model, p);
-			p = strchr(model, '/');
-			if (!p) p = strchr(model, '\\');
+			com.strcpy(model, p);
+			p = com.strchr(model, '/');
+			if (!p) p = com.strchr(model, '\\');
 			if (p)
 			{
 				*p++ = 0;
-				strcpy(skin, p);
+				com.strcpy(skin, p);
 			}
 			else *skin = 0;
 
@@ -1210,33 +1209,6 @@ void CL_InitLocal (void)
 	Cmd_AddCommand ("precache", CL_Precache_f, "precache specified resource (by index)" );
 	Cmd_AddCommand ("download", CL_Download_f, "download specified resource (by name)" );
 
-	//
-	// forward to server commands
-	//
-	// the only thing this does is allow command completion
-	// to work -- all unknown commands are automatically
-	// forwarded to the server
-	Cmd_AddCommand ("wave", NULL, NULL );
-	Cmd_AddCommand ("inven", NULL, NULL );
-	Cmd_AddCommand ("kill", NULL, NULL );
-	Cmd_AddCommand ("use", NULL, NULL );
-	Cmd_AddCommand ("drop", NULL, NULL );
-	Cmd_AddCommand ("say", NULL, NULL );
-	Cmd_AddCommand ("say_team", NULL, NULL );
-	Cmd_AddCommand ("enum_activity", NULL, NULL );
-	Cmd_AddCommand ("info", NULL, NULL );
-	Cmd_AddCommand ("prog", NULL, NULL );
-	Cmd_AddCommand ("give", NULL, NULL );
-	Cmd_AddCommand ("god", NULL, NULL );
-	Cmd_AddCommand ("notarget", NULL, NULL );
-	Cmd_AddCommand ("noclip", NULL, NULL );
-	Cmd_AddCommand ("invuse", NULL, NULL );
-	Cmd_AddCommand ("invprev", NULL, NULL );
-	Cmd_AddCommand ("invnext", NULL, NULL );
-	Cmd_AddCommand ("invdrop", NULL, NULL );
-	Cmd_AddCommand ("weapnext", NULL, NULL );
-	Cmd_AddCommand ("weapprev", NULL, NULL );
-
 	UI_ShowMenu();
 }
 
@@ -1315,7 +1287,7 @@ void CL_FixCvarCheats (void)
 	int			i;
 	cheatvar_t	*var;
 
-	if ( !strcmp(cl.configstrings[CS_MAXCLIENTS], "1") 
+	if ( !com.strcmp(cl.configstrings[CS_MAXCLIENTS], "1") 
 		|| !cl.configstrings[CS_MAXCLIENTS][0] )
 		return;		// single player can cheat
 
@@ -1333,7 +1305,7 @@ void CL_FixCvarCheats (void)
 	// make sure they are all set to the proper values
 	for (i=0, var = cheatvars ; i<numcheatvars ; i++, var++)
 	{
-		if ( strcmp (var->var->string, var->value) )
+		if ( com.strcmp (var->var->string, var->value) )
 		{
 			Cvar_Set (var->name, var->value);
 		}

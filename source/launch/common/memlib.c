@@ -512,7 +512,7 @@ void *_mem_get_array_element( byte *arrayptr, size_t index )
 	return (void *)(l->arrays[i].data + j * l->recordsize);
 }
 
-void _mem_checkheadersentinels(void *data, const char *filename, int fileline)
+void _mem_checkheadersentinels( void *data, const char *filename, int fileline )
 {
 	memheader_t *mem;
 
@@ -524,7 +524,7 @@ void _mem_checkheadersentinels(void *data, const char *filename, int fileline)
 		Sys_Error("Mem_CheckSentinels: trashed header sentinel 2 (block allocated at %s:%i, sentinel check at %s:%i)\n", mem->filename, mem->fileline, filename, fileline);
 }
 
-static void _mem_checkclumpsentinels(memclump_t *clump, const char *filename, int fileline)
+static void _mem_checkclumpsentinels( memclump_t *clump, const char *filename, int fileline )
 {
 	// this isn't really very useful
 	if (clump->sentinel1 != MEMCLUMP_SENTINEL)
@@ -583,13 +583,13 @@ void _mem_printlist( size_t minallocationsize )
 	{
 		Msg("%5luk (%5luk actual) %s (%+3li byte change)\n", (dword) ((pool->totalsize + 1023) / 1024), (dword)((pool->realsize + 1023) / 1024), pool->name, (long)pool->totalsize - pool->lastchecksize );
 		pool->lastchecksize = pool->totalsize;
-		for (mem = pool->chain; mem; mem = mem->next)
-			if (mem->size >= minallocationsize)
-				Msg("%10lu bytes allocated at %s:%i\n", (dword)mem->size, mem->filename, mem->fileline);
+		for( mem = pool->chain; mem; mem = mem->next )
+			if( mem->size >= minallocationsize )
+				Msg("%10lu bytes allocated at %s:%i\n", (dword)mem->size, mem->filename, mem->fileline );
 	}
 }
 
-void MemList_f(void)
+void MemList_f( void )
 {
 	switch(Cmd_Argc())
 	{
@@ -598,7 +598,7 @@ void MemList_f(void)
 		_mem_printstats();
 		break;
 	case 2:
-		_mem_printlist(atoi(Cmd_Argv(1)) * 1024);
+		_mem_printlist(com.atoi(Cmd_Argv(1)) * 1024);
 		_mem_printstats();
 		break;
 	default:
@@ -627,5 +627,5 @@ void Memory_Shutdown( void )
 
 void Memory_Init_Commands( void )
 {
-	Cmd_AddCommand("memlist", MemList_f, "prints memory pool information (or if used as memlist 5 lists individual allocations of 5K or larger, 0 lists all allocations)");
+	Cmd_AddCommand( "memlist", MemList_f, "prints memory pool information (or if used as memlist 5 lists individual allocations of 5K or larger, 0 lists all allocations)");
 }

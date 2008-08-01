@@ -371,7 +371,7 @@ void *dpv_open( const char *filename, char **errorstring )
 
 				if( s->info_framerate > 0.0f )
 				{
-					s->videopixels = (uint *)Z_Malloc(s->info_imagewidth * s->info_imageheight * sizeof(*s->videopixels));
+					s->videopixels = (uint *)Mem_Alloc( cls.mempool, s->info_imagewidth * s->info_imageheight * sizeof(*s->videopixels));
 					s->videoframenum = MAX_HEARTBEAT;
 					return s;
 				}

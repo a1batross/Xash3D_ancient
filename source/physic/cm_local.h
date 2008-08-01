@@ -161,8 +161,8 @@ typedef struct clipmap_s
 	csurface_t	*surfdesc;
 	cbrush_t		*brushes;
 	cbrushside_t	*brushsides;
-	byte		*visibility;
-	dvis_t		*vis;		// vis offset
+	byte		*visbase;		// vis offset
+	dvis_t		*vis;
 	NewtonCollision	*collision;
 	char		*stringdata;
 	int		*stringtable;

@@ -90,7 +90,7 @@ void SV_DirectConnect( netadr_t from )
 	userinfo[sizeof(userinfo) - 1] = 0;
 
 	// quick reject
-	for( i = 0, cl = svs.clients; i < maxclients->integer; i++, cl++ )
+	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
 	{
 		if( cl->state == cs_free ) continue;
 		if( NET_CompareBaseAdr(from, cl->netchan.remote_address) && (cl->netchan.qport == qport || from.port == cl->netchan.remote_address.port))
@@ -136,7 +136,7 @@ void SV_DirectConnect( netadr_t from )
 	memset( newcl, 0, sizeof(sv_client_t));
 
 	// if there is already a slot for this ip, reuse it
-	for( i = 0, cl = svs.clients; i < maxclients->integer; i++, cl++ )
+	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
 	{
 		if( cl->state == cs_free ) continue;
 		if( NET_CompareBaseAdr(from, cl->netchan.remote_address) && (cl->netchan.qport == qport || from.port == cl->netchan.remote_address.port))
@@ -149,7 +149,7 @@ void SV_DirectConnect( netadr_t from )
 
 	// find a client slot
 	newcl = NULL;
-	for( i = 0, cl = svs.clients; i < maxclients->value; i++, cl++)
+	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++)
 	{
 		if( cl->state == cs_free )
 		{
@@ -203,9 +203,9 @@ gotnewcl:
 
 	// if this was the first client on the server, or the last client
 	// the server can hold, send a heartbeat to the master.
-	for( i = 0, cl = svs.clients; i < maxclients->integer; i++, cl++ )
+	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
 		if( cl->state >= cs_connected ) count++;
-	if( count == 1 || count == maxclients->integer )
+	if( count == 1 || count == Host_MaxClients())
 		svs.last_heartbeat = MAX_HEARTBEAT;
 }
 
@@ -223,7 +223,6 @@ bool SV_ClientConnect( edict_t *ent, char *userinfo )
 
 	// make sure we start with known default
 	ent->progs.sv->flags = 0;
-	ent->progs.sv->health = 100;
 
 	MsgDev(D_NOTE, "SV_ClientConnect()\n");
 	prog->globals.sv->time = sv.time;
@@ -266,12 +265,12 @@ void SV_DropClient( sv_client_t *drop )
 	// to the master so it is known the server is empty
 	// send a heartbeat now so the master will get up to date info
 	// if there is already a slot for this ip, reuse it
-	for( i = 0; i < maxclients->integer; i++ )
+	for( i = 0; i < Host_MaxClients(); i++ )
 	{
 		if( svs.clients[i].state >= cs_connected )
 			break;
 	}
-	if( i == maxclients->integer ) svs.last_heartbeat = MAX_HEARTBEAT;
+	if( i == Host_MaxClients()) svs.last_heartbeat = MAX_HEARTBEAT;
 }
 
 /*
@@ -341,9 +340,9 @@ char *SV_StatusString( void )
 
 	com.strcpy( status, Cvar_Serverinfo());
 	com.strcat( status, "\n" );
-	statusLength = strlen(status);
+	statusLength = com.strlen(status);
 
-	for( i = 0; i < maxclients->value; i++ )
+	for( i = 0; i < Host_MaxClients(); i++ )
 	{
 		cl = &svs.clients[i];
 		if( cl->state == cs_connected || cl->state == cs_spawned )
@@ -397,8 +396,7 @@ void SV_Info( netadr_t from )
 	int	version;
 
 	// ignore in single player
-	if( maxclients->value == 1 )
-		return;
+	if(Host_MaxClients() == 1 ) return;
 
 	version = com.atoi(Cmd_Argv( 1 ));
 
@@ -406,10 +404,10 @@ void SV_Info( netadr_t from )
 		com.sprintf( string, "%s: wrong version\n", hostname->string, sizeof(string));
 	else
 	{
-		for( i = 0; i < maxclients->value; i++ )
+		for( i = 0; i < Host_MaxClients(); i++ )
 			if( svs.clients[i].state >= cs_connected )
 				count++;
-		com.sprintf( string, "%16s %8s %2i/%2i\n", hostname->string, sv.name, count, (int)maxclients->value );
+		com.sprintf( string, "%16s %8s %2i/%2i\n", hostname->string, sv.name, count, Host_MaxClients());
 	}
 	Netchan_OutOfBandPrint( NS_SERVER, from, "info\n%s", string );
 }
@@ -490,6 +488,7 @@ void SV_PutClientInServer( edict_t *ent )
 
 	ent->priv.sv->free = false;
 	(int)ent->progs.sv->flags &= ~FL_DEADMONSTER;
+	ent->priv.sv->s.ed_type = ED_CLIENT; // init edict type
 
 	if( !sv.loadgame )
 	{	
@@ -499,17 +498,15 @@ void SV_PutClientInServer( edict_t *ent )
 		ent->progs.sv->origin[2] += 1;	// make sure off ground
 		VectorCopy( ent->progs.sv->origin, ent->progs.sv->old_origin );
 	}
- 
-	// setup playerstate
-	memset( &client->ps, 0, sizeof(client->ps));
 
-	client->ps.fov = 90;
-	client->ps.fov = bound(1, client->ps.fov, 160);
-	client->ps.vmodel.index = SV_ModelIndex(PRVM_GetString(ent->progs.sv->v_model));
-	client->ps.pmodel.index = SV_ModelIndex(PRVM_GetString(ent->progs.sv->p_model));
-	VectorScale( ent->progs.sv->origin, SV_COORD_FRAC, client->ps.origin );
-	VectorCopy( ent->progs.sv->v_angle, client->ps.viewangles );
-	for( i = 0; i < 3; i++ ) client->ps.delta_angles[i] = ANGLE2SHORT(ent->progs.sv->v_angle[i]);
+	ent->priv.sv->s.fov = 90;	// FIXME: get from qc
+	ent->priv.sv->s.fov = bound(1, ent->priv.sv->s.fov, 160);
+	ent->priv.sv->s.health = ent->progs.sv->health;
+	ent->priv.sv->s.vmodel.index = SV_ModelIndex(PRVM_GetString(ent->progs.sv->v_model));
+	ent->priv.sv->s.pmodel.index = SV_ModelIndex(PRVM_GetString(ent->progs.sv->p_model));
+	VectorCopy( ent->progs.sv->origin, ent->priv.sv->s.origin );
+	VectorCopy( ent->progs.sv->v_angle, ent->priv.sv->s.viewangles );
+	for( i = 0; i < 3; i++ ) ent->priv.sv->s.delta_angles[i] = ANGLE2SHORT(ent->progs.sv->v_angle[i]);
 
 	SV_LinkEdict( ent ); // m_pmatrix calculated here, so we need call this before pe->CreatePlayer
 	ent->priv.sv->physbody = pe->CreatePlayer( ent->priv.sv, SV_GetModelPtr( ent ), ent->progs.sv->m_pmatrix );
@@ -857,7 +854,7 @@ void SV_ExecuteClientCommand( sv_client_t *cl, char *s )
 	{
 		if(!com.strcmp(Cmd_Argv(0), u->name))
 		{
-			Msg("ucmd->%s\n", u->name );
+			MsgDev( D_NOTE, "ucmd->%s()\n", u->name );
 			u->func( cl );
 			break;
 		}
@@ -903,7 +900,7 @@ void _MSG_Send( msgtype_t msg_type, vec3_t origin, edict_t *ent, const char *fil
 	byte		*mask = NULL;
 	int		leafnum = 0, cluster = 0;
 	int		area1 = 0, area2 = 0;
-	int		j, numclients = maxclients->value;
+	int		j, numclients = Host_MaxClients();
 	sv_client_t	*cl, *current = svs.clients;
 	bool		reliable = false;
 
@@ -1012,29 +1009,31 @@ void SV_ApplyClientMove( sv_client_t *cl, usercmd_t *cmd )
 {
 	short		temp;
 	int		i;
+	edict_t		*ent = cl->edict;
 
 	// set the edict fields
-	cl->edict->progs.sv->button0 = cmd->buttons & 1;
-	cl->edict->progs.sv->button2 = (cmd->buttons & 2)>>1;
-	if( cmd->impulse ) cl->edict->progs.sv->impulse = cmd->impulse;
+	ent->progs.sv->button0 = cmd->buttons & 1;
+	ent->progs.sv->button2 = (cmd->buttons & 2)>>1;
+	if( cmd->impulse ) ent->progs.sv->impulse = cmd->impulse;
 	// only send the impulse to qc once
 	cmd->impulse = 0;
 
 	// circularly clamp the angles with deltas
 	for( i = 0; i < 3; i++ )
 	{
-		temp = cmd->angles[i] + cl->ps.delta_angles[i];
-		cl->ps.viewangles[i] = SHORT2ANGLE( temp );
+		temp = cmd->angles[i] + ent->priv.sv->s.delta_angles[i];
+		ent->priv.sv->s.viewangles[i] = SHORT2ANGLE( temp );
 	}
 
 	// don't let the player look up or down more than 90 degrees
-	if( cl->ps.viewangles[PITCH] > 89 && cl->ps.viewangles[PITCH] < 180 )
-		cl->ps.viewangles[PITCH] = 89;
-	else if( cl->ps.viewangles[PITCH] < 271 && cl->ps.viewangles[PITCH] >= 180 )
-		cl->ps.viewangles[PITCH] = 271;
+	if( ent->priv.sv->s.viewangles[PITCH] > 89 && ent->priv.sv->s.viewangles[PITCH] < 180 )
+		ent->priv.sv->s.viewangles[PITCH] = 89;
+	else if( ent->priv.sv->s.viewangles[PITCH] < 271 && ent->priv.sv->s.viewangles[PITCH] >= 180 )
+		ent->priv.sv->s.viewangles[PITCH] = 271;
 
-	VectorCopy( cl->ps.viewangles, cl->edict->progs.sv->v_angle );
-	VectorCopy( cl->ps.viewangles, cl->edict->progs.sv->angles );
+	VectorCopy( ent->priv.sv->s.viewangles, cl->edict->progs.sv->v_angle );
+	VectorCopy( ent->priv.sv->s.viewangles, cl->edict->progs.sv->angles );
+	VectorCopy( ent->progs.sv->view_ofs, cl->edict->priv.sv->s.viewoffset );
 }
 
 void SV_DropPunchAngle( sv_client_t *cl )
@@ -1281,8 +1280,8 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 	vec3_t	v_angle;
 	
 	cl->cmd = *cmd;
-	cl->skipframes = 0;
-#if 1
+	//cl->skipframes = 0;
+
 	// may have been kicked during the last usercmd
 	if( sv_paused->integer ) return;
 
@@ -1338,11 +1337,8 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 	SV_AirMove( cl, &cl->cmd );
 	SV_CheckVelocity( cl->edict );
 
-	VectorCopy( cl->edict->progs.sv->origin, cl->ps.origin );
-	VectorCopy( cl->edict->progs.sv->velocity, cl->ps.velocity );
-#else
-	ClientThink( cl->edict, cmd );
-#endif
+	VectorCopy( cl->edict->progs.sv->origin, cl->edict->priv.sv->s.origin );
+	VectorCopy( cl->edict->progs.sv->velocity, cl->edict->priv.sv->s.velocity );
 }
 
 /*
@@ -1364,6 +1360,7 @@ static void SV_UserMove( sv_client_t *cl, sizebuf_t *msg )
 	int	latency, net_drop;
 	int	checksumIndex, lastframe;
 	int	checksum, calculatedChecksum;
+	float	frametime[2];
 
 	checksumIndex = msg->readcount;
 	checksum = MSG_ReadByte( msg );
@@ -1399,6 +1396,10 @@ static void SV_UserMove( sv_client_t *cl, sizebuf_t *msg )
 
 	if( !sv_paused->value )
 	{
+		frametime[0] = sv.frametime;
+		frametime[1] = prog->globals.sv->frametime;
+		prog->globals.sv->frametime = sv.frametime = newcmd.msec * 0.001f;
+		
 		net_drop = cl->netchan.dropped;
 		if( net_drop < 20 )
 		{
@@ -1412,6 +1413,8 @@ static void SV_UserMove( sv_client_t *cl, sizebuf_t *msg )
 		}
 		SV_Physics_ClientMove( cl, &newcmd );
 	}
+	sv.frametime = frametime[0];
+	prog->globals.sv->frametime = frametime[1];
 	cl->lastcmd = newcmd;
 }
 

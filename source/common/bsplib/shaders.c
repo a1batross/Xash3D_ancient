@@ -66,7 +66,7 @@ shader_t *FindShader( const char *texture )
 	int i;
 
 	// convert to lower case
-	strlower(texture, texname );
+	com.strlwr(texture, texname );
           
 	// build full path
 	com.sprintf (shader, "textures/%s", texname );

@@ -22,7 +22,6 @@ extern vsound_exp_t		*se;
 
 #define MAX_ENTNUMBER	99999		// for server and client parsing
 #define MAX_HEARTBEAT	-99999		// connection time
-#define HOST_FRAMETIME	100		// host.frametime in msecs (change with caution)
 #define MAX_EVENTS		1024
 
 /*
@@ -129,9 +128,7 @@ void IN_MouseEvent( int mstate );
 
 // cvars
 extern cvar_t *host_serverstate;
-extern cvar_t *host_frametime;
 extern cvar_t *host_cheats;
-extern cvar_t *cm_paused;
 extern cvar_t *crosshair;
 extern cvar_t *scr_loading;
 extern cvar_t *scr_width;
@@ -198,7 +195,8 @@ void Host_Main ( void );
 void Host_Free ( void );
 void Host_SetServerState( int state );
 int Host_ServerState( void );
-float Host_FrameTime( void );
+int Host_FrameTime( void );
+int Host_MaxClients( void );
 void Host_AbortCurrentFrame( void );
 dword Host_EventLoop( void );
 
@@ -352,6 +350,7 @@ void VM_CvarSetValue( void );
 void VM_CvarGetValue( void );
 void VM_CvarSetString( void );
 void VM_CvarGetString( void );
+void VM_AddCommand( void );
 void VM_ComVA( void );
 void VM_ComStrlen( void );
 void VM_TimeStamp( void );

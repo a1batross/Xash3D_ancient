@@ -500,7 +500,7 @@ VM_ComStrlen,			// #30 float strlen( string text )
 VM_TimeStamp,			// #31 string Com_TimeStamp( float format )
 VM_LocalCmd,			// #32 void LocalCmd( ... )
 VM_SubString,			// #33 string substring( string s, float start, float length )
-NULL,				// #34 -- reserved --
+VM_AddCommand,			// #34 void Add_Command( string s )
 NULL,				// #35 -- reserved --
 NULL,				// #36 -- reserved --
 NULL,				// #37 -- reserved --
@@ -592,8 +592,8 @@ void CL_InitClientProgs( void )
 {
 	Msg("\n");
 	PRVM_Begin;
-	PRVM_InitProg( PRVM_CLIENTPROG );
 
+	PRVM_InitProg( PRVM_CLIENTPROG );
 	if( !prog->loaded )
 	{       
 		prog->progs_mempool = Mem_AllocPool( "Client Progs" );

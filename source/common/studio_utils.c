@@ -721,15 +721,15 @@ int lookup_texture( char *texturename )
 
 	for (i = 0; i < numtextures; i++)
 	{
-		if (stricmp( texture[i].name, texturename ) == 0)
+		if (com.stricmp( texture[i].name, texturename ) == 0)
 			return i;
 	}
 
-	strncpy( texture[i].name, texturename, sizeof(texture[i].name));
+	com.strncpy( texture[i].name, texturename, sizeof(texture[i].name));
 	
-	if(stristr( texturename, "chrome" ) != NULL)
+	if(com.stristr( texturename, "chrome" ) != NULL)
 		texture[i].flags = STUDIO_NF_FLATSHADE | STUDIO_NF_CHROME;
-	else if(stristr( texturename, "bright" ) != NULL)
+	else if(com.stristr( texturename, "bright" ) != NULL)
 		texture[i].flags = STUDIO_NF_FLATSHADE | STUDIO_NF_FULLBRIGHT;
 	else texture[i].flags = 0;
 

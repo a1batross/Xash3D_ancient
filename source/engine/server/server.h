@@ -77,6 +77,7 @@ typedef struct server_s
 
 	float		time;		// always sv.framenum * 50 msec
 	float		frametime;
+	dword		timeleft;
 	int		framenum;
 
 	char		name[MAX_QPATH];	// map name, or cinematic name
@@ -112,9 +113,7 @@ typedef struct sv_client_s
 {
 	cl_state_t	state;
 
-	entity_state_t	ps;			// communicated by server to clients
 	char		userinfo[MAX_INFO_STRING];	// name, etc
-
 	int		lastframe;		// for delta compression
 	usercmd_t		lastcmd;			// for filling in big drops
 	usercmd_t		cmd;			// current user commands
@@ -125,6 +124,7 @@ typedef struct sv_client_s
 	int		ping;
 	int		rate;
 	int		surpressCount;		// number of messages rate supressed
+	int		sendtime;			// time before send next packet
 
 	edict_t		*edict;			// EDICT_NUM(clientnum+1)
 	char		name[32];			// extracted from userinfo, high bits masked
@@ -223,8 +223,8 @@ typedef struct
 
 	int		spawncount;		// incremented each server start
 						// used to check late spawns
-	sv_client_t	*clients;			// [maxclients->value]
-	int		num_client_entities;	// maxclients->value*UPDATE_BACKUP*MAX_PACKET_ENTITIES
+	sv_client_t	*clients;			// [host_maxclients->integer]
+	int		num_client_entities;	// host_maxclients->integer*UPDATE_BACKUP
 	int		next_client_entities;	// next client_entity to use
 	entity_state_t	*client_entities;		// [num_client_entities]
 	entity_state_t	*baselines;		// [host.max_edicts]
@@ -243,7 +243,6 @@ extern	server_static_t	svs;			// persistant server info
 extern	server_t		sv;			// local server
 
 extern	cvar_t		*sv_paused;
-extern	cvar_t		*maxclients;
 extern	cvar_t		*sv_noreload;		// don't reload level state when reentering
 extern	cvar_t		*sv_airaccelerate;		// don't reload level state when reentering
 extern	cvar_t		*sv_accelerate;
@@ -262,6 +261,7 @@ extern	cvar_t		*sv_playersonly;
 extern	cvar_t		*sv_rollangle;
 extern	cvar_t		*sv_rollspeed;
 extern	cvar_t		*sv_maxspeed;
+extern	cvar_t		*host_frametime;
 
 extern	sv_client_t	*sv_client;
 
@@ -384,9 +384,7 @@ void SV_StartParticle (vec3_t org, vec3_t dir, int color, int count);
 void SV_FreeEdict (edict_t *ed);
 void SV_InitEdict (edict_t *e);
 edict_t *SV_Spawn (void);
-void SV_RunFrame (void);
 bool SV_ClientConnect (edict_t *ent, char *userinfo);
-void ClientThink (edict_t *ent, usercmd_t *ucmd);
 void SV_TouchTriggers (edict_t *ent);
 
 //

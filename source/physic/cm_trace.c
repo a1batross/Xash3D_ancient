@@ -279,7 +279,7 @@ void CM_TraceBmodel( const vec3_t start, const vec3_t end, const vec3_t mins, co
 				if( surface->numtriangles ) CM_CollisionTraceLineTriangleMeshFloat( trace, start, end, surface->numtriangles, surface->indices, surface->vertices, surface->contentflags, surface->surfaceflags, surface, segmentmins, segmentmaxs );
 			}
 		}
-		else CM_TraceBrush_r( trace, model, cm.nodes, thisbrush_start, thisbrush_end, ++markframe, segmentmins, segmentmaxs);
+		else CM_TraceBrush_r( trace, model, cm.nodes, thisbrush_start, thisbrush_end, ++markframe, segmentmins, segmentmaxs );
 	}
 }
 

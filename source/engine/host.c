@@ -29,12 +29,16 @@ cvar_t	*host_serverstate;
 cvar_t	*host_frametime;
 cvar_t	*host_cheats;
 cvar_t	*host_maxfps;
+cvar_t	*host_maxclients;
 cvar_t	*r_fullscreen;
 cvar_t	*r_xpos;		// X coordinate of window position
 cvar_t	*r_ypos;		// Y coordinate of window position
 cvar_t	*vid_gamma;
 
-cvar_t	*cm_paused;	// remove this	
+// these cvars will be duplicated on each client across network
+int Host_FrameTime( void ) { return (int)(bound( 1, Cvar_VariableValue( "host_frametime" ) * 1000, 100 )); }
+int Host_ServerState( void ) { return (int)Cvar_VariableValue( "host_serverstate" ); }
+int Host_MaxClients( void ) { return (int)bound( 1, Cvar_VariableValue( "host_maxclients" ), 255 ); }
 
 /*
 =======
@@ -212,32 +216,12 @@ void Host_AbortCurrentFrame( void )
 
 /*
 ==================
-Host_GetFrameTime
-==================
-*/
-float Host_FrameTime( void )
-{
-	return Cvar_VariableValue( "host_frametime" );
-}
-
-/*
-==================
-Host_GetServerState
-==================
-*/
-int Host_ServerState( void )
-{
-	return (int)Cvar_VariableValue( "host_serverstate" );
-}
-
-/*
-==================
 Host_SetServerState
 ==================
 */
 void Host_SetServerState( int state )
 {
-	Cvar_SetValue("host_serverstate", state );
+	Cvar_SetValue( "host_serverstate", state );
 }
 
 /*
@@ -740,8 +724,6 @@ void Host_Init( int argc, char **argv)
 	host.state = HOST_INIT;	// initialzation started
 	host.type = g_Instance;
 
-	srand(time(NULL));		// init random generator
-
 	Host_InitCommon( argc, argv ); // loading common.dll
 	Key_Init();
 
@@ -756,7 +738,7 @@ void Host_Init( int argc, char **argv)
 	Cbuf_Execute();
 
 	// init commands and vars
-	if(host.developer)
+	if( host.developer )
 	{
 		Cmd_AddCommand ("error", Host_Error_f, "just throw a fatal error to test shutdown procedures" );
 		Cmd_AddCommand ("crash", Host_Crash_f, "a way to force a bus error for development reasons");
@@ -764,9 +746,9 @@ void Host_Init( int argc, char **argv)
 
 	host_cheats = Cvar_Get("host_cheats", "1", CVAR_SYSTEMINFO, "allow cheat variables to enable" );          
 	host_maxfps = Cvar_Get( "host_maxfps", "100", CVAR_ARCHIVE, "host fps upper limit" );
-	cm_paused = Cvar_Get("cm_paused", "0", 0, "physics module pause" );
-	host_frametime = Cvar_Get ("host_frametime", "0.1", 0, "host frametime" );
-	host_serverstate = Cvar_Get ("host_serverstate", "0", 0, "displays current server state" );
+	host_frametime = Cvar_Get ("host_frametime", "0.1", CVAR_SERVERINFO, "host frametime" );
+	host_maxclients = Cvar_Get ("host_maxclients", "1", CVAR_SERVERINFO|CVAR_LATCH, "server maxplayers limit" );
+	host_serverstate = Cvar_Get ("host_serverstate", "0", CVAR_SERVERINFO, "displays current server state" );
 	timescale = Cvar_Get ("timescale", "1", 0, "physics world timescale" );
 
 	s = va("^1Xash %g ^3%s", GI->version, buildstring );

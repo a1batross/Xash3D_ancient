@@ -453,6 +453,17 @@ const char* com_timestamp( int format )
 	return timestamp;
 }
 
+/*
+============
+strstr
+
+search case - sensitive for string2 in string
+============
+*/
+char *com_strstr( const char *string, const char *string2 )
+{
+	return strstr( string, string2 ); //FIXME
+}
 
 /*
 ============

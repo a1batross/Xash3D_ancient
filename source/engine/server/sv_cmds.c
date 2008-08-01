@@ -52,10 +52,8 @@ void SV_BroadcastPrintf( int level, char *fmt, ... )
 	va_end( argptr );
 	
 	// echo to console
-	if( host.type == HOST_DEDICATED )
-		Msg( "%s", string );
-
-	for( i = 0, cl = svs.clients; i < maxclients->value; i++, cl++ )
+	if( host.type == HOST_DEDICATED ) Msg( "%s", string );
+	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
 	{
 		if( level < cl->messagelevel) continue;
 		if( cl->state != cs_spawned ) continue;
@@ -108,25 +106,25 @@ void SV_SetMaster_f( void )
 	// make sure the server is listed public
 	Cvar_Set ("public", "1");
 
-	for (i = 1; i < MAX_MASTERS; i++)
+	for( i = 1; i < MAX_MASTERS; i++ )
 	{ 
 		memset(&master_adr[i], 0, sizeof(master_adr[i]));
 	}
 
 	// slot 0 will always contain the id master
-	for (i = 1, slot = 1; i < Cmd_Argc(); i++)
+	for( i = 1, slot = 1; i < Cmd_Argc(); i++ )
 	{
-		if (slot == MAX_MASTERS) break;
-		if (!NET_StringToAdr (Cmd_Argv(i), &master_adr[i]))
+		if( slot == MAX_MASTERS ) break;
+		if(!NET_StringToAdr(Cmd_Argv(i), &master_adr[i]))
 		{
-			Msg ("Bad address: %s\n", Cmd_Argv(i));
+			Msg( "Bad address: %s\n", Cmd_Argv(i));
 			continue;
 		}
 
 		if(!master_adr[slot].port) master_adr[slot].port = BigShort (PORT_MASTER);
-		Msg ("Master server at %s\n", NET_AdrToString (master_adr[slot]));
-		Msg ("Sending a ping.\n");
-		Netchan_OutOfBandPrint (NS_SERVER, master_adr[slot], "ping");
+		Msg( "Master server at %s\n", NET_AdrToString (master_adr[slot]));
+		Msg( "Sending a ping.\n");
+		Netchan_OutOfBandPrint( NS_SERVER, master_adr[slot], "ping" );
 		slot++;
 	}
 	svs.last_heartbeat = MAX_HEARTBEAT;
@@ -150,16 +148,16 @@ bool SV_SetPlayer( void )
 	s = Cmd_Argv(1);
 
 	// numeric values are just slot numbers
-	if (s[0] >= '0' && s[0] <= '9')
+	if( s[0] >= '0' && s[0] <= '9' )
 	{
-		idnum = atoi(Cmd_Argv(1));
-		if (idnum < 0 || idnum >= maxclients->integer)
+		idnum = com.atoi(Cmd_Argv(1));
+		if( idnum < 0 || idnum >= Host_MaxClients())
 		{
 			Msg("Bad client slot: %i\n", idnum);
 			return false;
 		}
 		sv_client = &svs.clients[idnum];
-		if (!sv_client->state)
+		if( !sv_client->state )
 		{
 			Msg("Client %i is not active\n", idnum);
 			return false;
@@ -168,16 +166,16 @@ bool SV_SetPlayer( void )
 	}
 
 	// check for a name match
-	for (i = 0, cl = svs.clients; i < maxclients->integer; i++, cl++)
+	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
 	{
-		if (!cl->state) continue;
-		if (!strcmp(cl->name, s))
+		if( !cl->state ) continue;
+		if( !com.strcmp(cl->name, s))
 		{
 			sv_client = cl;
 			return true;
 		}
 	}
-	Msg ("Userid %s is not on the server\n", s);
+	Msg( "Userid %s is not on the server\n", s );
 	return false;
 }
 
@@ -193,7 +191,7 @@ void SV_Map_f( void )
 {
 	char	filename[MAX_QPATH];
 
-	if(Cmd_Argc() != 2)
+	if( Cmd_Argc() != 2 )
 	{
 		Msg("Usage: map <filename>\n");
 		return;
@@ -208,13 +206,13 @@ void SV_Map_f( void )
 
 	SV_InitGame(); // reset previous state
 
-	SV_BroadcastCommand("changing\n");
+	SV_BroadcastCommand( "changing\n" );
 	SV_SendClientMessages();
 	SV_SpawnServer( filename, NULL, ss_active );
-	SV_BroadcastCommand ("reconnect\n");
+	SV_BroadcastCommand( "reconnect\n" );
 
 	// archive server state
-	com.strncpy (svs.mapcmd, filename, sizeof(svs.mapcmd) - 1);
+	com.strncpy( svs.mapcmd, filename, sizeof(svs.mapcmd) - 1);
 }
 
 /*
@@ -337,15 +335,15 @@ void SV_ChangeLevel_f( void )
 		// clear all the client free flags before saving so that
 		// when the level is re-entered, the clients will spawn
 		// at spawn points instead of occupying body shells
-		savedFree = Z_Malloc(maxclients->integer * sizeof(bool));
-		for (i = 0, cl = svs.clients; i < maxclients->integer; i++, cl++)
+		savedFree = Z_Malloc(Host_MaxClients() * sizeof(bool));
+		for (i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++)
 		{
 			savedFree[i] = cl->edict->priv.sv->free;
 			cl->edict->priv.sv->free = true;
 		}
 		SV_WriteSaveFile( "save0.bin" ); // autosave
 		// we must restore these for clients to transfer over correctly
-		for (i = 0, cl = svs.clients; i < maxclients->integer; i++, cl++)
+		for (i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++)
 			cl->edict->priv.sv->free = savedFree[i];
 		Mem_Free(savedFree);
 	}
@@ -373,7 +371,7 @@ void SV_Restart_f( void )
 	
 	if(sv.state != ss_active) return;
 
-	strncpy( filename, svs.mapcmd, MAX_QPATH );
+	com.strncpy( filename, svs.mapcmd, MAX_QPATH );
 	FS_StripExtension( filename );
 
 	// just sending console command
@@ -402,31 +400,10 @@ void SV_Kick_f( void )
 	}
 	if(!SV_SetPlayer()) return;
 
-	SV_BroadcastPrintf (PRINT_CONSOLE, "%s was kicked\n", sv_client->name);
+	SV_BroadcastPrintf( PRINT_CONSOLE, "%s was kicked\n", sv_client->name );
 	SV_ClientPrintf(sv_client, PRINT_CONSOLE, "You were kicked from the game\n");
 	SV_DropClient(sv_client);
 	sv_client->lastmessage = svs.realtime; // min case there is a funny zombie
-}
-
-void SV_Noclip_f( void )
-{
-	sv_client_t	*cl;
-          
-	if( maxclients->integer != 1 ) return;
-
-	cl = svs.clients; // use first client
-	if( !cl->state ) return;
-
-	if( cl->edict->progs.sv->movetype == MOVETYPE_WALK )
-	{
-		Msg("noclip on\n" );
-		cl->edict->progs.sv->movetype = MOVETYPE_NOCLIP;
-	}
-	else
-	{
-		Msg("noclip off\n" );
-		cl->edict->progs.sv->movetype =  MOVETYPE_WALK;
-	}
 }
 
 /*
@@ -449,7 +426,7 @@ void SV_Status_f( void )
 	Msg("num score ping    name            lastmsg address               port \n");
 	Msg("--- ----- ------- --------------- ------- --------------------- ------\n");
 
-	for(i = 0, cl = svs.clients; i < maxclients->integer; i++, cl++)
+	for(i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++)
 	{
 		int	j, l, ping;
 		char	*s;
@@ -473,7 +450,7 @@ void SV_Status_f( void )
 		Msg ("%9i ", svs.realtime - cl->lastmessage );
 		s = NET_AdrToString ( cl->netchan.remote_address);
 		Msg ("%s", s);
-		l = 22 - strlen(s);
+		l = 22 - com.strlen(s);
 		for (j = 0; j < l; j++) Msg (" ");
 		Msg("%5i", cl->netchan.qport);
 		Msg("\n");
@@ -494,7 +471,7 @@ void SV_ConSay_f( void )
 
 	if(Cmd_Argc() < 2) return;
 
-	strncpy(text, "console: ", MAX_SYSPATH );
+	com.strncpy(text, "console: ", MAX_SYSPATH );
 	p = Cmd_Args();
 
 	if(*p == '"')
@@ -504,10 +481,10 @@ void SV_ConSay_f( void )
 	}
 	com.strncat(text, p, MAX_SYSPATH );
 
-	for (i = 0, client = svs.clients; i < maxclients->integer; i++, client++)
+	for (i = 0, client = svs.clients; i < Host_MaxClients(); i++, client++)
 	{
-		if (client->state != cs_spawned) continue;
-		SV_ClientPrintf(client, PRINT_CHAT, "%s\n", text );
+		if( client->state != cs_spawned ) continue;
+		SV_ClientPrintf( client, PRINT_CHAT, "%s\n", text );
 	}
 }
 
@@ -589,11 +566,6 @@ void SV_InitOperatorCommands( void )
 	Cmd_AddCommand("changelevel", SV_ChangeLevel_f, "changing level" );
 	Cmd_AddCommand("restart", SV_Restart_f, "restarting current level" );
 	Cmd_AddCommand("sectorlist", SV_SectorList_f, "display pvs sectors" );
-
-	if( host_cheats->integer )
-	{
-		Cmd_AddCommand("noclip", SV_Noclip_f, "enable player noclip" );
-	}
 
 	if( host.type == HOST_DEDICATED )
 	{

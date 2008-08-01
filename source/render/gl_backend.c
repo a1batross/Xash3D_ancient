@@ -446,7 +446,6 @@ void GL_InitBackend( void )
 	glw_state.wndproc = ri.WndProc;
 	glw_state.hInst = GetModuleHandle( NULL );
 	r_temppool = Mem_AllocPool( "Render Memory" );
-	if( !r_framebuffer ) r_framebuffer = Z_Malloc( r_width->integer * r_height->integer * 3 );
 
 	// init tables
 	for( i = 0; i < 256; i++ ) r_turbsin[i] *= 0.5f;
@@ -546,6 +545,7 @@ void GL_InitExtensions( void )
 
 	// initialize gl extensions
 	GL_CheckExtension( "OpenGL 1.1.0", opengl_110funcs, NULL, R_OPENGL_110 );
+	if( !r_framebuffer ) r_framebuffer = Z_Malloc( r_width->integer * r_height->integer * 3 );
 
 	// get our various GL strings
 	gl_config.vendor_string = pglGetString( GL_VENDOR );
@@ -765,7 +765,7 @@ void GL_TextureMode( char *string )
 
 	for (i=0 ; i< NUM_GL_MODES ; i++)
 	{
-		if ( !strcasecmp( modes[i].name, string ) )
+		if ( !com.stricmp( modes[i].name, string ) )
 			break;
 	}
 
@@ -801,7 +801,7 @@ void GL_TextureAlphaMode( char *string )
 
 	for (i=0 ; i< NUM_GL_ALPHA_MODES ; i++)
 	{
-		if ( !strcasecmp( gl_alpha_modes[i].name, string ) )
+		if ( !com.stricmp( gl_alpha_modes[i].name, string ) )
 			break;
 	}
 
@@ -825,7 +825,7 @@ void GL_TextureSolidMode( char *string )
 
 	for (i=0 ; i< NUM_GL_SOLID_MODES ; i++)
 	{
-		if ( !strcasecmp( gl_solid_modes[i].name, string ) )
+		if ( !com.stricmp( gl_solid_modes[i].name, string ) )
 			break;
 	}
 

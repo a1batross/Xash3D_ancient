@@ -13,78 +13,72 @@ byte	*sav_base;
 ============
 SV_CalcBBox
 
-Returns the actual bounding box of a bmodel. This is a big improvement over
-what q2 normally does with rotating bmodels - q2 sets absmin, absmax to a cube
-that will completely contain the bmodel at *any* rotation on *any* axis, whether
-the bmodel can actually rotate to that angle or not. This leads to a lot of
-false block tests in SV_Push if another bmodel is in the vicinity.
+FIXME: get to work
 ============
 */
-void SV_CalcBBox(edict_t *ent, vec3_t mins, vec3_t maxs)
+void SV_CalcBBox( edict_t *ent, vec3_t mins, vec3_t maxs )
 {
-	vec3_t		forward, left, up, f1, l1, u1;
-	vec3_t		p[8];
-	int		i, j, k, j2, k4;
+	vec3_t		rmin, rmax;
+	int		i, j, k, l;
+	float		a, *angles;
+	vec3_t		bounds[2];
+	float		xvector[2], yvector[2];
+	vec3_t		base, transformed;
 
-	for(k = 0; k < 2; k++)
+	// find min / max for rotations
+	angles = ent->progs.sv->angles;
+		
+	a = angles[1]/180 * M_PI;
+		
+	xvector[0] = cos(a);
+	xvector[1] = sin(a);
+	yvector[0] = -sin(a);
+	yvector[1] = cos(a);
+		
+	VectorCopy( mins, bounds[0] );
+	VectorCopy( maxs, bounds[1] );
+		
+	rmin[0] = rmin[1] = rmin[2] = 9999;
+	rmax[0] = rmax[1] = rmax[2] = -9999;
+		
+	for( i = 0; i <= 1; i++ )
 	{
-		k4 = k * 4;
-		if(k) p[k4][2] = maxs[2];
-		else p[k4][2] = mins[2];
-
-		p[k4 + 1][2] = p[k4][2];
-		p[k4 + 2][2] = p[k4][2];
-		p[k4 + 3][2] = p[k4][2];
-
-		for(j = 0; j < 2; j++)
+		base[0] = bounds[i][0];
+		for( j = 0; j <= 1; j++ )
 		{
-			j2 = j * 2;
-			if(j) p[j2+k4][1] = maxs[1];
-			else p[j2+k4][1] = mins[1];
-			p[j2 + k4 + 1][1] = p[j2 + k4][1];
-
-			for(i = 0; i < 2; i++)
+			base[1] = bounds[j][1];
+			for( k = 0; k <= 1; k++ )
 			{
-				if(i) p[i + j2 + k4][0] = maxs[0];
-				else p[i + j2 + k4][0] = mins[0];
+				base[2] = bounds[k][2];
+					
+				// transform the point
+				transformed[0] = xvector[0] * base[0] + yvector[0] * base[1];
+				transformed[1] = xvector[1] * base[0] + yvector[1] * base[1];
+				transformed[2] = base[2];
+					
+				for( l = 0; l < 3; l++ )
+				{
+					if( transformed[l] < rmin[l] ) rmin[l] = transformed[l];
+					if( transformed[l] > rmax[l] ) rmax[l] = transformed[l];
+				}
 			}
 		}
 	}
 
-	AngleVectors(ent->progs.sv->angles, forward, left, up);
-
-	for(i = 0; i < 8; i++)
-	{
-		VectorScale(forward, p[i][0], f1);
-		VectorScale(left, -p[i][1], l1);
-		VectorScale(up, p[i][2], u1);
-		VectorAdd(ent->progs.sv->origin, f1, p[i]);
-		VectorAdd(p[i], l1, p[i]);
-		VectorAdd(p[i], u1, p[i]);
-	}
-
-	VectorCopy(p[0], ent->progs.sv->mins);
-	VectorCopy(p[0], ent->progs.sv->maxs);
-
-	for(i = 1; i < 8; i++)
-	{
-		ent->progs.sv->mins[0] = min(ent->progs.sv->mins[0], p[i][0]);
-		ent->progs.sv->mins[1] = min(ent->progs.sv->mins[1], p[i][1]);
-		ent->progs.sv->mins[2] = min(ent->progs.sv->mins[2], p[i][2]);
-		ent->progs.sv->maxs[0] = max(ent->progs.sv->maxs[0], p[i][0]);
-		ent->progs.sv->maxs[1] = max(ent->progs.sv->maxs[1], p[i][1]);
-		ent->progs.sv->maxs[2] = max(ent->progs.sv->maxs[2], p[i][2]);
-	}
+	VectorCopy( rmin, ent->progs.sv->mins );
+	VectorCopy( rmax, ent->progs.sv->maxs );
 }
 
-void SV_SetMinMaxSize (edict_t *e, float *min, float *max, bool rotate)
+void SV_SetMinMaxSize( edict_t *e, float *min, float *max, bool rotate )
 {
 	int		i;
 
-	for (i = 0; i < 3; i++)
+	for( i = 0; i < 3; i++ )
 		if( min[i] > max[i] )
 			PRVM_ERROR("SV_SetMinMaxSize: backwards mins/maxs");
 
+	rotate = false; // FIXME
+			
 	// set derived values
 	if( rotate && e->progs.sv->solid == SOLID_BBOX )
 	{
@@ -95,7 +89,7 @@ void SV_SetMinMaxSize (edict_t *e, float *min, float *max, bool rotate)
 		VectorCopy( min, e->progs.sv->mins);
 		VectorCopy( max, e->progs.sv->maxs);
 	}
-	VectorSubtract (max, min, e->progs.sv->size );
+	VectorSubtract( max, min, e->progs.sv->size );
 
 	// TODO: fill also mass and density
 	SV_LinkEdict (e);
@@ -371,12 +365,12 @@ void SV_WriteSaveFile( char *name )
 	if( sv.state != ss_active )
 		return;
 
-	if(Cvar_VariableValue("deathmatch"))
+	if(Cvar_VariableValue("deathmatch") || Cvar_VariableValue("coop"))
 	{
-		MsgDev(D_ERROR, "SV_WriteSaveFile: can't savegame in a deathmatch\n");
+		MsgDev(D_ERROR, "SV_WriteSaveFile: can't savegame in a multiplayer\n");
 		return;
 	}
-	if( maxclients->integer == 1 && svs.clients[0].edict->progs.sv->health <= 0 )
+	if(Host_MaxClients() == 1 && svs.clients[0].edict->progs.sv->health <= 0 )
 	{
 		MsgDev(D_ERROR, "SV_WriteSaveFile: can't savegame while dead!\n");
 		return;
@@ -1809,7 +1803,7 @@ void PF_clientcmd( void )
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM1));
 
 	i = (int)PRVM_G_FLOAT(OFS_PARM0);
-	if( sv.state != ss_active  || i < 0 || i >= maxclients->integer || svs.clients[i].state != cs_spawned)
+	if( sv.state != ss_active  || i < 0 || i >= Host_MaxClients() || svs.clients[i].state != cs_spawned)
 	{
 		VM_Warning( "ClientCommand: client/server is not active!\n" );
 		return;
@@ -1977,7 +1971,7 @@ void PF_ClientPrint( void )
 
 	num = PRVM_G_EDICTNUM( OFS_PARM1 );
 	type = (int)PRVM_G_FLOAT( OFS_PARM0 );
-	if( num < 1 || num > maxclients->value || svs.clients[num - 1].state != cs_spawned )
+	if( num < 1 || num > Host_MaxClients() || svs.clients[num - 1].state != cs_spawned )
 	{
 		VM_Warning("ClientPrint: tired print to a non-client!\n");
 		return;
@@ -2051,7 +2045,7 @@ void PF_InfoPrint( void )
 
 	if(!VM_ValidateArgs( "Info_Print", 1 )) return;
 	num = PRVM_G_EDICTNUM(OFS_PARM0);
-	if( num < 1 || num > maxclients->integer )
+	if( num < 1 || num > Host_MaxClients())
 	{
 		VM_Warning( "Info_Print: not a client\n" );
 		return;
@@ -2077,7 +2071,7 @@ void PF_InfoValueForKey( void )
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM1));
 
 	num = PRVM_G_EDICTNUM(OFS_PARM0);
-	if( num < 1 || num > maxclients->integer )
+	if( num < 1 || num > Host_MaxClients())
 	{
 		VM_Warning("Info_ValueForKey: not a client\n" );
 		return;
@@ -2105,7 +2099,7 @@ void PF_InfoRemoveKey( void )
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM1));
 
 	num = PRVM_G_EDICTNUM(OFS_PARM0);
-	if( num < 1 || num > maxclients->integer )
+	if( num < 1 || num > Host_MaxClients())
 	{
 		VM_Warning("Info_RemoveKey: not a client\n" );
 		return;
@@ -2134,7 +2128,7 @@ void PF_InfoSetValueForKey( void )
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM2));
 
 	num = PRVM_G_EDICTNUM(OFS_PARM0);
-	if( num < 1 || num > maxclients->integer )
+	if( num < 1 || num > Host_MaxClients())
 	{
 		VM_Warning("InfoSetValueForKey: not a client\n" );
 		return;
@@ -2173,7 +2167,7 @@ void PF_dropclient( void )
 {
 	int clientnum = PRVM_G_EDICTNUM(OFS_PARM0) - 1;
 
-	if( clientnum < 0 || clientnum >= maxclients->integer )
+	if( clientnum < 0 || clientnum >= Host_MaxClients())
 	{
 		VM_Warning("dropclient: not a client\n");
 		return;
@@ -2229,7 +2223,7 @@ VM_ComStrlen,			// #30 float strlen( string text )
 VM_TimeStamp,			// #31 string Com_TimeStamp( float format )
 VM_LocalCmd,			// #32 void LocalCmd( ... )
 VM_SubString,			// #33 string substring( string s, float start, float length )
-NULL,				// #34 -- reserved --
+VM_AddCommand,			// #34 void Add_Command( string s )
 NULL,				// #35 -- reserved --
 NULL,				// #36 -- reserved --
 NULL,				// #37 -- reserved --
@@ -2388,14 +2382,14 @@ void SV_SpawnEntities( const char *mapname, const char *entities )
 	ent->progs.sv->solid = SOLID_BSP;
 	ent->progs.sv->movetype = MOVETYPE_PUSH;
 
-	SV_ConfigString (CS_MAXCLIENTS, va("%i", maxclients->integer ));
+	SV_ConfigString (CS_MAXCLIENTS, va("%i", Host_MaxClients()));
 	prog->globals.sv->mapname = PRVM_SetEngineString( sv.name );
 
 	// spawn the rest of the entities on the map
 	*prog->time = sv.time;
 
 	// set client fields on player ents
-	for( i = 0; i < maxclients->value; i++ )
+	for( i = 0; i < Host_MaxClients(); i++ )
 	{
 		// setup all clients
 		ent = PRVM_EDICT_NUM( i );
@@ -2419,7 +2413,7 @@ void SV_InitServerProgs( void )
 	PRVM_Begin;
 	PRVM_InitProg( PRVM_SERVERPROG );
 
-	prog->reserved_edicts = maxclients->integer;
+	prog->reserved_edicts = Host_MaxClients();
 	prog->loadintoworld = true;
 
 	if( !prog->loaded )

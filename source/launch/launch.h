@@ -47,6 +47,7 @@ typedef struct system_s
 	bool			stuffcmdsrun;
 	byte			packet_received[MAX_MSGLEN];	// network data
 	uint			msg_time;			// GetMessage time
+	char			ModuleName[4096];		// exe.filename
 
 	HINSTANCE			hInstance;
 	LPTOP_LEVEL_EXCEPTION_FILTER	oldFilter;		
@@ -120,6 +121,7 @@ double Sys_DoubleTime( void );
 dword Sys_Milliseconds( void );
 char *Sys_GetClipboardData( void );
 char *Sys_GetCurrentUser( void );
+bool Sys_GetModuleName( char *buffer, size_t length );
 void Sys_Sleep( int msec );
 void Sys_Init( void );
 void Sys_Exit( void );
@@ -134,6 +136,7 @@ void Sys_CloseLog( void );
 void Sys_Error(const char *error, ...);
 void Sys_Break(const char *error, ...);
 void Sys_PrintLog( const char *pMsg );
+void Sys_PrintMem( const char *pMsg );
 void Sys_Print(const char *pMsg);
 void Sys_Msg( const char *pMsg, ... );
 void Sys_MsgDev( int level, const char *pMsg, ... );
@@ -195,6 +198,7 @@ int com_strncmp (const char *s1, const char *s2, int n);
 int com_strcmp (const char *s1, const char *s2);
 const char* com_timestamp( int format );
 char *com_stristr( const char *string, const char *string2 );
+char *com_strstr( const char *string, const char *string2 );
 size_t com_strpack( byte *buffer, size_t pos, char *string, int n );
 size_t com_strunpack( byte *buffer, size_t pos, char *string );
 int com_vsnprintf(char *buffer, size_t buffersize, const char *format, va_list args);

@@ -2550,9 +2550,9 @@ void CreateModelScript( void )
 	{
 		// FIXME: make cases for "attack_%"
 		FS_Printf( f, "$sequence \"t->filenames[i]\" \"t->filenames[i]\"" );
-		if(stristr(t->filenames[i], "walk" )) FS_Printf( f, "LX fps 30 loop ACT_WALK 1\n" );
-		else if(stristr(t->filenames[i], "run" )) FS_Printf( f, "LX fps 30 loop ACT_RUN 1\n" );		
-		else if(stristr(t->filenames[i], "idle")) FS_Printf( f, "fps 16 loop ACT_IDLE 50\n" );
+		if(com.stristr(t->filenames[i], "walk" )) FS_Printf( f, "LX fps 30 loop ACT_WALK 1\n" );
+		else if(com.stristr(t->filenames[i], "run" )) FS_Printf( f, "LX fps 30 loop ACT_RUN 1\n" );		
+		else if(com.stristr(t->filenames[i], "idle")) FS_Printf( f, "fps 16 loop ACT_IDLE 50\n" );
 		else FS_Printf( f, "fps 16\n" );
 	}
 	FS_Printf(f, "\n" ); //finished

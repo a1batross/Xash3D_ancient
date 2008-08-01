@@ -115,7 +115,7 @@ trace_t SV_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, cons
 	traceowner = passedict ? PRVM_PROG_TO_EDICT(passedict->progs.sv->owner) : 0;
 
 	// clip to entities
-	// because this uses World_EntitiestoBox, we know all entity boxes overlap
+	// because this uses SV_AreaEdicts, we know all entity boxes overlap
 	// the clip region, so we can skip culling checks in the loop below
 	numtouchedicts = SV_AreaEdicts( clipboxmins, clipboxmaxs, touchedicts, host.max_edicts );
 	if( numtouchedicts > host.max_edicts )
@@ -380,24 +380,53 @@ void SV_Impact( edict_t *e1, trace_t *trace )
 
 /*
 ============
+SV_TouchTriggers
+
+called by player or monster
+============
+*/
+void SV_TouchTriggers( edict_t *ent )
+{
+	int	i, num;
+	edict_t	*touch[MAX_EDICTS];
+
+	// dead things don't activate triggers!
+	if(!((int)ent->progs.sv->flags & FL_CLIENT) && (ent->progs.sv->health <= 0))
+		return;
+
+	num = SV_AreaEdicts( ent->progs.sv->absmin, ent->progs.sv->absmax, touch, host.max_edicts );
+
+	PRVM_PUSH_GLOBALS;
+
+	// be careful, it is possible to have an entity in this
+	// list removed before we get to it (killtriggered)
+	for( i = 0; i < num; i++ )
+	{
+		if( touch[i]->priv.sv->free ) continue;
+		prog->globals.sv->pev = PRVM_EDICT_TO_PROG(touch[i]);
+		prog->globals.sv->other = PRVM_EDICT_TO_PROG(ent);
+		prog->globals.sv->time = sv.time;
+		if(touch[i]->progs.sv->touch)
+			PRVM_ExecuteProgram( touch[i]->progs.sv->touch, "pev->touch");
+	}
+
+	// restore state
+	PRVM_POP_GLOBALS;
+}
+
+/*
+============
 SV_ClampMove
 
 clamp the move to 1/8 units, so the position will
 be accurate for client side prediction
 ============
 */
-void SV_ClampCoord( vec3_t coord )
-{
-	coord[0] -= SV_COORD_FRAC * floor(coord[0] * CL_COORD_FRAC);
-	coord[1] -= SV_COORD_FRAC * floor(coord[1] * CL_COORD_FRAC);
-	coord[2] -= SV_COORD_FRAC * floor(coord[2] * CL_COORD_FRAC);
-}
-
 void SV_ClampAngle( vec3_t angle )
 {
-	angle[0] -= SV_ANGLE_FRAC * floor(angle[0] * CL_ANGLE_FRAC);
-	angle[1] -= SV_ANGLE_FRAC * floor(angle[1] * CL_ANGLE_FRAC);
-	angle[2] -= SV_ANGLE_FRAC * floor(angle[2] * CL_ANGLE_FRAC);
+	angle[0] -= 360.0 * floor(angle[0] * (1.0 / 360.0));
+	angle[1] -= 360.0 * floor(angle[1] * (1.0 / 360.0));
+	angle[2] -= 360.0 * floor(angle[2] * (1.0 / 360.0));
 }
 
 /*
@@ -478,7 +507,7 @@ int SV_FlyMove( edict_t *ent, float time, float *stepnormal, int contentsmask )
 			{
 				// floor
 				blocked |= 1;
-				ent->progs.sv->aiflags = (int)ent->progs.sv->flags | AI_ONGROUND;
+				ent->progs.sv->aiflags = (int)ent->progs.sv->aiflags | AI_ONGROUND;
 				ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG(trace.ent);
 			}
 		}
@@ -568,6 +597,7 @@ int SV_FlyMove( edict_t *ent, float time, float *stepnormal, int contentsmask )
 	// this came from QW and allows you to get out of water more easily
 	if(((int)ent->progs.sv->aiflags & AI_WATERJUMP))
 		VectorCopy( primal_velocity, ent->progs.sv->velocity );
+
 	return blocked;
 }
 
@@ -579,7 +609,9 @@ SV_AddGravity
 */
 void SV_AddGravity( edict_t *ent )
 {
-	ent->progs.sv->velocity[2] -= ent->progs.sv->gravity * sv_gravity->value * sv.frametime;
+	if( ent->progs.sv->gravity )
+		ent->progs.sv->velocity[2] -= ent->progs.sv->gravity * sv.frametime;
+	else ent->progs.sv->velocity[2] -= sv_gravity->value * sv.frametime;
 }
 
 /*
@@ -950,7 +982,7 @@ void SV_CheckStuck( edict_t *ent )
 	{
 		if(!SV_TestEntityPosition( ent, unstickoffsets + i))
 		{
-			MsgDev( D_INFO, "Unstuck player with offset %g %g %g.\n", unstickoffsets[i+0], unstickoffsets[i+1], unstickoffsets[i+2]);
+			MsgDev( D_NOTE, "Unstuck player with offset %g %g %g.\n", unstickoffsets[i+0], unstickoffsets[i+1], unstickoffsets[i+2]);
 			SV_LinkEdict( ent );
 			return;
 		}
@@ -959,11 +991,11 @@ void SV_CheckStuck( edict_t *ent )
 	VectorSubtract( ent->progs.sv->old_origin, ent->progs.sv->origin, offset );
 	if(!SV_TestEntityPosition( ent, offset ))
 	{
-		MsgDev( D_INFO, "Unstuck player by restoring oldorigin.\n" );
+		MsgDev( D_NOTE, "Unstuck player by restoring oldorigin.\n" );
 		SV_LinkEdict( ent );
 		return;
 	}
-	MsgDev( D_INFO, "Stuck player\n" );
+	MsgDev( D_NOTE, "Stuck player\n" );
 }
 
 bool SV_UnstickEntity( edict_t *ent )
@@ -1053,7 +1085,7 @@ Only used by players
 */
 void SV_WalkMove( edict_t *ent )
 {
-	int	clip, oldonground, originalmove_clip, originalmove_flags;
+	int	clip, oldonground, originalmove_clip, originalmove_aiflags;
 	int	originalmove_groundentity, contentsmask;
 	vec3_t	upmove, downmove, start_origin, start_velocity, stepnormal;
 	vec3_t	originalmove_origin, originalmove_velocity;
@@ -1063,15 +1095,13 @@ void SV_WalkMove( edict_t *ent )
 	if( sv.frametime <= 0 ) return;
 
 	contentsmask = SV_ContentsMask( ent );
-
-	SV_CheckVelocity( ent );
+ 	SV_CheckVelocity( ent );
 
 	// do a regular slide move unless it looks like you ran into a step
 	oldonground = (int)ent->progs.sv->aiflags & AI_ONGROUND;
 
 	VectorCopy( ent->progs.sv->origin, start_origin );
 	VectorCopy( ent->progs.sv->velocity, start_velocity );
-
 	clip = SV_FlyMove( ent, sv.frametime, NULL, contentsmask );
 
 	// if the move did not hit the ground at any point, we're not on ground
@@ -1082,7 +1112,7 @@ void SV_WalkMove( edict_t *ent )
 	VectorCopy( ent->progs.sv->origin, originalmove_origin );
 	VectorCopy( ent->progs.sv->velocity, originalmove_velocity );
 	originalmove_clip = clip;
-	originalmove_flags = (int)ent->progs.sv->flags;
+	originalmove_aiflags = (int)ent->progs.sv->aiflags;
 	originalmove_groundentity = ent->progs.sv->groundentity;
 
 	if((int)ent->progs.sv->aiflags & AI_WATERJUMP)
@@ -1131,7 +1161,7 @@ void SV_WalkMove( edict_t *ent )
 			// stepping up didn't make any progress, revert to original move
 			VectorCopy( originalmove_origin, ent->progs.sv->origin );
 			VectorCopy( originalmove_velocity, ent->progs.sv->velocity );
-			ent->progs.sv->flags = originalmove_flags;
+			ent->progs.sv->aiflags = originalmove_aiflags;
 			ent->progs.sv->groundentity = originalmove_groundentity;
 			return;
 		}
@@ -1157,7 +1187,7 @@ void SV_WalkMove( edict_t *ent )
 		//if (ent->progs.sv->solid == SOLID_BSP)
 		{
 			//Con_Printf("onground\n");
-			ent->progs.sv->flags =	(int)ent->progs.sv->flags | FL_ONGROUND;
+			ent->progs.sv->aiflags = (int)ent->progs.sv->aiflags | AI_ONGROUND;
 			ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG(downtrace.ent);
 		}
 #endif
@@ -1169,7 +1199,7 @@ void SV_WalkMove( edict_t *ent )
 		// cause the player to hop up higher on a slope too steep to climb
 		VectorCopy( originalmove_origin, ent->progs.sv->origin );
 		VectorCopy( originalmove_velocity, ent->progs.sv->velocity );
-		ent->progs.sv->flags = originalmove_flags;
+		ent->progs.sv->aiflags = originalmove_aiflags;
 		ent->progs.sv->groundentity = originalmove_groundentity;
 	}
 	SV_CheckVelocity( ent );
@@ -1337,7 +1367,7 @@ void SV_Physics_Toss( edict_t *ent )
 				VectorClear( ent->progs.sv->velocity );
 				VectorClear( ent->progs.sv->avelocity );
 			}
-			else ent->progs.sv->flags = (int)ent->progs.sv->aiflags & ~AI_ONGROUND;
+			else ent->progs.sv->aiflags = (int)ent->progs.sv->aiflags & ~AI_ONGROUND;
 		}
 		else
 		{
@@ -1449,7 +1479,7 @@ void SV_Physics_Conveyor( edict_t *ent )
 	VectorScale( ent->progs.sv->movedir, ent->progs.sv->speed, v );
 	VectorScale( v, 0.1f, move );
 
-	for( i = 0; i < maxclients->integer; i++ )
+	for( i = 0; i < Host_MaxClients(); i++ )
 	{
 		player = PRVM_EDICT_NUM(i) + 1;
 		if( player->priv.sv->free ) continue;
@@ -1498,7 +1528,7 @@ void SV_Physics_Noclip( edict_t *ent )
 		VectorMA( ent->progs.sv->angles, sv.frametime, ent->progs.sv->avelocity, ent->progs.sv->angles );
 		VectorMA( ent->progs.sv->origin, sv.frametime, ent->progs.sv->velocity, ent->progs.sv->origin );
 	}
-	SV_LinkEdict(ent);
+	SV_LinkEdict( ent );
 }
 
 
@@ -1644,6 +1674,9 @@ void SV_Physics_ClientEntity( edict_t *ent )
 	SV_LinkEdict( ent );
 	SV_CheckVelocity( ent );
 
+	if( ent->progs.sv->movetype != MOVETYPE_NOCLIP )
+		SV_TouchTriggers( ent );
+
 	// call standard player post-think
 	prog->globals.sv->time = sv.time;
 	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(ent);
@@ -1688,6 +1721,9 @@ void SV_Physics_ClientMove( sv_client_t *client, usercmd_t *cmd )
 	SV_LinkEdict( ent );
 	SV_CheckVelocity( ent );
 
+	if( ent->progs.sv->movetype != MOVETYPE_NOCLIP )
+		SV_TouchTriggers( ent );
+
 	// call standard player post-think, with frametime = 0
 	prog->globals.sv->time = sv.time;
 	prog->globals.sv->frametime = 0;
@@ -1730,16 +1766,8 @@ void SV_Physics( void )
 		if( ent->priv.sv->free ) continue;
 
 		VectorCopy( ent->progs.sv->origin, ent->progs.sv->old_origin );
-		if(i <= maxclients->value) SV_Physics_ClientEntity( ent );
+		if(i <= Host_MaxClients());// SV_Physics_ClientEntity( ent );
 		else if(!sv_playersonly->integer)SV_Physics_Entity( ent );
-	}
-
-	// FIXME: calc frametime
-	for( i = 0; i < 6; i++ )
-	{
-		if( sv_playersonly->integer )
-			continue;
-		pe->Frame( sv.frametime * i );
 	}
 
 	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(prog->edicts);

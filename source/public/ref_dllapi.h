@@ -15,7 +15,7 @@ enum host_state
 {	// paltform states
 	HOST_OFFLINE = 0,	// host_init( g_Instance ) same much as:
 	HOST_NORMAL,	// "normal"
-	HOST_DEDICATED,	// "dedicated"
+	HOST_DEDICATED,	// "#normal"
 	HOST_VIEWER,	// "viewer"
 	HOST_CREDITS,	// "splash" (easter egg)
 	HOST_INSTALL,	// "install"
@@ -40,21 +40,6 @@ enum host_state
 #define bound(min, num, max)	((num) >= (min) ? ((num) < (max) ? (num) : (max)) : (min))
 #define DLLEXPORT		__declspec(dllexport)
 
-
-//#define USE_COORD_FRAC		//FIXME: disable this
-
-// network precision coords factor
-#ifdef USE_COORD_FRAC
-	#define SV_COORD_FRAC	(8.0f / 1.0f)
-	#define CL_COORD_FRAC	(1.0f / 8.0f)
-#else
-	#define SV_COORD_FRAC	1.0f
-	#define CL_COORD_FRAC	1.0f
-#endif
-
-#define SV_ANGLE_FRAC		(360.0f / 1.0f )
-#define CL_ANGLE_FRAC		(1.0f / 360.0f )
-
 typedef long fs_offset_t;
 typedef enum { NA_BAD, NA_LOOPBACK, NA_BROADCAST, NA_IP, NA_IPX, NA_BROADCAST_IPX } netadrtype_t;
 typedef enum { NS_CLIENT, NS_SERVER } netsrc_t;
@@ -64,7 +49,7 @@ typedef struct { byte r; byte g; byte b; byte a; } color32;
 typedef struct { const char *name; void **func; } dllfunc_t;	// Sys_LoadLibrary stuff
 typedef struct { int ofs; int type; const char *name; } fields_t;	// prvm custom fields
 typedef void (*cmread_t) (void* handle, void* buffer, size_t size);
-typedef enum { mod_bad, mod_static, mod_brush, mod_studio, mod_sprite } modtype_t;
+typedef enum { mod_bad, mod_world, mod_brush, mod_studio, mod_sprite } modtype_t;
 typedef void (*cmsave_t) (void* handle, const void* buffer, size_t size);
 typedef void (*cmdraw_t)( int color, int numpoints, const float *points );
 typedef struct { int numfilenames; char **filenames; char *filenamesbuffer; } search_t;
@@ -178,7 +163,6 @@ typedef struct model_state_s
 	int		body;		// sub-model selection for studiomodels
 	float		blending[8];	// studio animation blending
 	float		controller[32];	// studio bone controllers
-	vec3_t		calcbonepos[128];	// too hard: ragdoll or like it, animated by physic engine
 } model_state_t;
 
 // entity_state_t communication
@@ -218,8 +202,7 @@ typedef struct entity_state_s
 	vec3_t		delta_angles;	// add to command angles to get view direction 
 	vec3_t		punch_angles;	// add to view direction to get render angles 
 	vec3_t		viewangles;	// already calculated view angles on server-side
-	vec3_t		viewoffset;	// FIXME: replace with viewheight
-	int		viewheight;	// height over ground
+	vec3_t		viewoffset;	// viewoffset over ground
 	int		maxspeed;		// sv_maxspeed will be duplicate on all clients
 	float		health;		// client health (other parms can be send by custom messages)
 	float		fov;		// horizontal field of view
@@ -320,12 +303,11 @@ typedef struct dll_info_s
 	const char	*entry;		// entrypoint name (internal libs only)
 	void		*link;		// hinstance of loading library
 
-	// xash dlls entrypoint
+	// xash interface
 	void		*(*main)( void*, void* );
 	bool		crash;		// crash if dll not found
 
-	// xash dlls validator
-	size_t		api_size;		// generic interface size
+	size_t		api_size;		// interface size
 
 } dll_info_t;
 
@@ -421,6 +403,7 @@ enum dev_level
 	D_LOAD,		// "-dev 4", show messages about loading resources
 	D_NOTE,		// "-dev 5", show system notifications for engine develeopers
 	D_MEMORY,		// "-dev 6", show memory allocation
+	D_STRING,		// "-dev 7", show tempstrings allocation
 };
 
 /*
@@ -845,10 +828,6 @@ stdlib function names that not across with windows stdlib
 */
 #define timestamp			com.timestamp
 #define copystring( str )		com.stralloc( NULL, str, __FILE__, __LINE__ )
-#define strcasecmp			com.stricmp
-#define strncasecmp			com.strnicmp
-#define strlower			com.strlwr
-#define stristr			com.stristr
 #define va			com.va
 
 #endif//LAUNCH_DLL

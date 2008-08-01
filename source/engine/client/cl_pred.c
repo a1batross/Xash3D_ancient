@@ -45,7 +45,7 @@ void CL_CheckPredictionError (void)
 
 	// save the prediction error for interpolation
 	len = abs(delta[0]) + abs(delta[1]) + abs(delta[2]);
-	if( len > 640 * SV_COORD_FRAC ) // 80 world units
+	if( len > 640 ) // 80 world units
 	{	// a teleport or something
 		VectorClear (cl.prediction_error);
 	}
@@ -57,7 +57,7 @@ void CL_CheckPredictionError (void)
 		VectorCopy (cl.frame.ps.origin, cl.predicted_origins[frame]);
 
 		// save for error itnerpolation
-		VectorScale( delta, CL_COORD_FRAC, cl.prediction_error );
+		VectorCopy( delta, cl.prediction_error );
 	}
 }
 
@@ -316,12 +316,12 @@ void CL_PredictMovement (void)
 		step = pm.ps.origin[2] - oldz;
 		if( step > 63 && step < 160 )
 		{
-			cl.predicted_step = step * CL_COORD_FRAC;
+			cl.predicted_step = step;
 			cl.predicted_step_time = cls.realtime - cls.frametime * 500;
 		}
 	}
 
 	// copy results out for rendering
-	VectorScale( pm.ps.origin, CL_COORD_FRAC, cl.predicted_origin );
+	VectorCopy( pm.ps.origin, cl.predicted_origin );
 	VectorCopy(pm.ps.viewangles, cl.predicted_angles);
 }

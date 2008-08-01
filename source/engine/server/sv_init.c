@@ -48,7 +48,7 @@ int SV_FindIndex (const char *name, int start, int end, bool create)
 	}
 
 	// register new resource
-	strncpy (sv.configstrings[start+i], name, sizeof(sv.configstrings[i]));
+	com.strncpy (sv.configstrings[start+i], name, sizeof(sv.configstrings[i]));
 
 	if (sv.state != ss_loading)
 	{	
@@ -157,9 +157,10 @@ void SV_SpawnServer( char *server, char *savename, sv_state_t serverstate )
 	// wipe the entire per-level structure
 	memset (&sv, 0, sizeof(sv));
 	svs.realtime = 0;
+	sv.timeleft = 0;
 
 	// save name for levels that don't set message
-	strcpy (sv.configstrings[CS_NAME], server);
+	com.strcpy (sv.configstrings[CS_NAME], server);
 	if( Cvar_VariableValue ("deathmatch") )
 		com.sprintf( sv.configstrings[CS_AIRACCEL], "%g", sv_airaccelerate->value );
 	else com.strcpy( sv.configstrings[CS_AIRACCEL], "0" );
@@ -170,7 +171,7 @@ void SV_SpawnServer( char *server, char *savename, sv_state_t serverstate )
 	SV_VM_Begin();
 
 	// leave slots at start for clients only
-	for (i = 0; i < maxclients->value; i++)
+	for (i = 0; i < Host_MaxClients(); i++)
 	{
 		// needs to reconnect
 		if (svs.clients[i].state > cs_connected)
@@ -180,7 +181,7 @@ void SV_SpawnServer( char *server, char *savename, sv_state_t serverstate )
 
 	sv.time = 1.0f;
 	
-	strcpy(sv.name, server);
+	com.strcpy(sv.name, server);
 	FS_FileBase(server, sv.configstrings[CS_NAME]);
 
 	if (serverstate != ss_active)
@@ -223,8 +224,11 @@ void SV_SpawnServer( char *server, char *savename, sv_state_t serverstate )
 	}        
 
 	// run two frames to allow everything to settle
-	SV_RunFrame();
-	SV_RunFrame();
+	for( i = 0; i < 2; i++ )
+	{
+		sv.frametime = 0.1f;
+		SV_Physics();
+	}
 
 	// all precaches are complete
 	sv.state = serverstate;
@@ -275,31 +279,32 @@ void SV_InitGame( void )
 	// so unless they explicity set coop, force it to deathmatch
 	if( host.type == HOST_DEDICATED )
 	{
-		if (!Cvar_VariableValue ("coop"))
-			Cvar_FullSet ("deathmatch", "1",  CVAR_SERVERINFO | CVAR_LATCH);
+		if(!Cvar_VariableValue( "coop" ))
+			Cvar_FullSet( "deathmatch", "1",  CVAR_SERVERINFO|CVAR_LATCH );
 	}
 
 	// init clients
-	if (Cvar_VariableValue ("deathmatch"))
+	if( Cvar_VariableValue( "deathmatch" ))
 	{
-		if (maxclients->value <= 1)
-			Cvar_FullSet ("maxclients", "8", CVAR_SERVERINFO | CVAR_LATCH);
-		else if (maxclients->value > MAX_CLIENTS)
-			Cvar_FullSet ("maxclients", va("%i", MAX_CLIENTS), CVAR_SERVERINFO | CVAR_LATCH);
+		if(Host_MaxClients() <= 1)
+			Cvar_FullSet( "host_maxclients", "8", CVAR_SERVERINFO|CVAR_LATCH );
+		else if(Host_MaxClients() > MAX_CLIENTS )
+			Cvar_FullSet( "host_maxclients", va("%i", MAX_CLIENTS), CVAR_SERVERINFO|CVAR_LATCH );
 	}
-	else if (Cvar_VariableValue ("coop"))
+	else if( Cvar_VariableValue( "coop" ))
 	{
-		if (maxclients->value <= 1 || maxclients->value > 4)
-			Cvar_FullSet ("maxclients", "4", CVAR_SERVERINFO | CVAR_LATCH);
+		if( Host_MaxClients() <= 1 || Host_MaxClients() > 4 )
+			Cvar_FullSet( "host_maxclients", "4", CVAR_SERVERINFO|CVAR_LATCH );
 	}
-	else	// non-deathmatch, non-coop is one player
+	else	
 	{
-		Cvar_FullSet ("maxclients", "1", CVAR_SERVERINFO | CVAR_LATCH);
+		// non-deathmatch, non-coop is one player
+		Cvar_FullSet( "host_maxclients", "1", CVAR_SERVERINFO|CVAR_LATCH );
 	}
 
 	svs.spawncount = RANDOM_LONG( 0, 65535 );
-	svs.clients = Z_Malloc (sizeof(sv_client_t)*maxclients->value);
-	svs.num_client_entities = maxclients->value * UPDATE_BACKUP * 64;
+	svs.clients = Z_Malloc( sizeof(sv_client_t) * Host_MaxClients());
+	svs.num_client_entities = Host_MaxClients() * UPDATE_BACKUP;// * 64; g-cont: what a mem waster ???????
 	svs.client_entities = Z_Malloc( sizeof(entity_state_t) * svs.num_client_entities );
 	svs.baselines = Z_Malloc( sizeof(entity_state_t) * host.max_edicts );
 
@@ -313,7 +318,7 @@ void SV_InitGame( void )
 
 	SV_VM_Begin();
 
-	for (i = 0; i < maxclients->value; i++)
+	for (i = 0; i < Host_MaxClients(); i++)
 	{
 		ent = PRVM_EDICT_NUM(i + 1);
 		ent->priv.sv->serialnumber = i + 1;

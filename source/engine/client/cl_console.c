@@ -73,8 +73,8 @@ void Con_ToggleConsole_f( void )
 		UI_HideMenu();
 		cls.key_dest = key_console;	
 
-		if(Cvar_VariableValue ("maxclients") == 1 && Host_ServerState())
-			Cvar_SetValue("paused", 1 );
+		if(com.atoi(cl.configstrings[CS_MAXCLIENTS]) == 1 && Host_ServerState())
+			Cvar_SetValue( "paused", 1 );
 	}
 }
 

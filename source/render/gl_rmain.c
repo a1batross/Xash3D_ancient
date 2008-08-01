@@ -981,7 +981,7 @@ int R_Init( void *hinstance )
           R_StudioInit();
 	R_CheckForErrors();
 
-	return 1;
+	return true;
 }
 
 /*

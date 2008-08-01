@@ -132,7 +132,7 @@ static void FindMatches( const char *s, const char *unused1, const char *unused2
 {
 	int		i;
 
-	if(com.strnicmp( s, completionString, strlen( completionString )))
+	if(com.strnicmp( s, completionString, com.strlen( completionString )))
 		return;
 
 	matchCount++;
@@ -145,7 +145,7 @@ static void FindMatches( const char *s, const char *unused1, const char *unused2
 	// cut shortestMatch to the amount common with s
 	for ( i = 0; s[i]; i++ )
 	{
-		if ( com.tolower(shortestMatch[i]) != tolower(s[i]))
+		if ( com.tolower(shortestMatch[i]) != com.tolower(s[i]))
 			shortestMatch[i] = 0;
 	}
 }
@@ -157,7 +157,7 @@ PrintMatches
 */
 static void PrintMatches( const char *s, const char *unused1, const char *m, void *unused2 )
 {
-	if(!com.strnicmp( s, shortestMatch, strlen( shortestMatch )))
+	if(!com.strnicmp( s, shortestMatch, com.strlen( shortestMatch )))
 	if(m && *m) Msg( "    %s ^3\"%s\"\n", s, m );
 	else Msg( "    %s\n", s ); // variable or command without description
 }
@@ -169,19 +169,19 @@ static void keyConcatArgs( void )
 
 	for ( i = 1; i < Cmd_Argc(); i++ )
 	{
-		strncat( completionField->buffer, " ", sizeof( completionField->buffer ));
+		com.strncat( completionField->buffer, " ", sizeof( completionField->buffer ));
 		arg = Cmd_Argv( i );
 		while (*arg)
 		{
 			if (*arg == ' ')
 			{
-				strncat( completionField->buffer, "\"", sizeof( completionField->buffer ));
+				com.strncat( completionField->buffer, "\"", sizeof( completionField->buffer ));
 				break;
 			}
 			arg++;
 		}
-		strncat( completionField->buffer, Cmd_Argv( i ), sizeof( completionField->buffer ));
-		if (*arg == ' ') strncat( completionField->buffer, "\"", sizeof( completionField->buffer ));
+		com.strncat( completionField->buffer, Cmd_Argv( i ), sizeof( completionField->buffer ));
+		if (*arg == ' ') com.strncat( completionField->buffer, "\"", sizeof( completionField->buffer ));
 	}
 }
 
@@ -189,15 +189,15 @@ static void ConcatRemaining( const char *src, const char *start )
 {
 	char *str;
 
-	str = strstr(src, start);
+	str = com.strstr(src, start);
 	if (!str)
 	{
 		keyConcatArgs();
 		return;
 	}
 
-	str += strlen(start);
-	strncat( completionField->buffer, str, sizeof( completionField->buffer ));
+	str += com.strlen(start);
+	com.strncat( completionField->buffer, str, sizeof( completionField->buffer ));
 }
 
 /*
@@ -224,7 +224,7 @@ void Field_CompleteCommand( field_t *field )
 	matchCount = 0;
 	shortestMatch[0] = 0;
 
-	if(!strlen( completionString)) return;
+	if(!com.strlen( completionString)) return;
 
 	Cmd_LookupCmds( NULL, NULL, FindMatches );
 	Cvar_LookupVars( 0, NULL, NULL, FindMatches );
@@ -237,35 +237,35 @@ void Field_CompleteCommand( field_t *field )
 		bool result = false;
 
 		// autocomplete second arg
-		if(!stricmp(Cmd_Argv(0), "map" ) || !stricmp(Cmd_Argv(0), "\\map" ))
+		if(!com.stricmp(Cmd_Argv(0), "map" ) || !com.stricmp(Cmd_Argv(0), "\\map" ))
 		{
 			result = Cmd_GetMapList(Cmd_Argv(1), filename, MAX_STRING );
 		}
-		else if(!stricmp(Cmd_Argv(0), "playsound" ) || !stricmp(Cmd_Argv(0), "\\playsound" ))
+		else if(!com.stricmp(Cmd_Argv(0), "playsound" ) || !com.stricmp(Cmd_Argv(0), "\\playsound" ))
 		{
 			result = Cmd_GetSoundList(Cmd_Argv(1), filename, MAX_STRING );
 		}
-		else if(!stricmp(Cmd_Argv(0), "playdemo" ) || !stricmp(Cmd_Argv(0), "\\playdemo" ))
+		else if(!com.stricmp(Cmd_Argv(0), "playdemo" ) || !com.stricmp(Cmd_Argv(0), "\\playdemo" ))
 		{
 			result = Cmd_GetDemoList(Cmd_Argv(1), filename, MAX_STRING );
 		}
-		else if(!stricmp(Cmd_Argv(0), "movie" ) || !stricmp(Cmd_Argv(0), "\\movie" ))
+		else if(!com.stricmp(Cmd_Argv(0), "movie" ) || !com.stricmp(Cmd_Argv(0), "\\movie" ))
 		{
 			result = Cmd_GetMovieList(Cmd_Argv(1), filename, MAX_STRING );
 		}
-		else if(!stricmp(Cmd_Argv(0), "changelevel" ) || !stricmp(Cmd_Argv(0), "\\changelevel" ))
+		else if(!com.stricmp(Cmd_Argv(0), "changelevel" ) || !com.stricmp(Cmd_Argv(0), "\\changelevel" ))
 		{
 			result = Cmd_GetMapList(Cmd_Argv(1), filename, MAX_STRING );
 		}
-		else if(!stricmp(Cmd_Argv(0), "setfont" ) || !stricmp(Cmd_Argv(0), "\\setfont" ))
+		else if(!com.stricmp(Cmd_Argv(0), "setfont" ) || !com.stricmp(Cmd_Argv(0), "\\setfont" ))
 		{
 			result = Cmd_GetFontList(Cmd_Argv(1), filename, MAX_STRING );
 		}
-		else if(!stricmp(Cmd_Argv(0), "music" ) || !stricmp(Cmd_Argv(0), "\\music" ))
+		else if(!com.stricmp(Cmd_Argv(0), "music" ) || !com.stricmp(Cmd_Argv(0), "\\music" ))
 		{
 			result = Cmd_GetMusicList(Cmd_Argv(1), filename, MAX_STRING );
 		}
-		else if(!stricmp(Cmd_Argv(0), "compile" ) || !stricmp(Cmd_Argv(0), "\\compile" ))
+		else if(!com.stricmp(Cmd_Argv(0), "compile" ) || !com.stricmp(Cmd_Argv(0), "\\compile" ))
 		{
 			result = Cmd_GetSourceList(Cmd_Argv(1), filename, MAX_STRING );
 		}
@@ -289,7 +289,7 @@ void Field_CompleteCommand( field_t *field )
 
 	// multiple matches, complete to shortest
 	com.sprintf( completionField->buffer, "\\%s", shortestMatch );
-	completionField->cursor = strlen( completionField->buffer );
+	completionField->cursor = com.strlen( completionField->buffer );
 	ConcatRemaining( temp.buffer, completionString );
 
 	Msg( "]%s\n", completionField->buffer );
@@ -317,7 +317,7 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, b
 	char	str[MAX_SYSPATH];
 
 	drawLen = edit->widthInChars;
-	len = strlen( edit->buffer ) + 1;
+	len = com.strlen( edit->buffer ) + 1;
 
 	// guarantee that cursor will be visible
 	if ( len <= drawLen ) prestep = 0;
@@ -451,12 +451,12 @@ void Field_KeyDownEvent( field_t *edit, int key )
 		if ( edit->cursor < edit->scroll ) edit->scroll--;
 		return;
 	}
-	if ( key == K_HOME || ( tolower(key) == 'a' && keys[K_CTRL].down ))
+	if ( key == K_HOME || ( com.tolower(key) == 'a' && keys[K_CTRL].down ))
 	{
 		edit->cursor = 0;
 		return;
 	}
-	if ( key == K_END || ( tolower(key) == 'e' && keys[K_CTRL].down ))
+	if ( key == K_END || ( com.tolower(key) == 'e' && keys[K_CTRL].down ))
 	{
 		edit->cursor = len;
 		return;
@@ -489,7 +489,7 @@ void Field_CharEvent( field_t *edit, int ch )
 		Field_Clear( edit );
 		return;
 	}
-	len = strlen( edit->buffer );
+	len = com.strlen( edit->buffer );
 
 	if ( ch == 'a' - 'a' + 1 )
 	{
@@ -595,7 +595,7 @@ void Key_Console(int key)
 	}
 
 	// command history (ctrl-p ctrl-n for unix style)
-	if ( (key == K_MWHEELUP && keys[K_SHIFT].down) || ( key == K_UPARROW ) || ( key == K_KP_UPARROW ) || (( tolower(key) == 'p' ) && keys[K_CTRL].down ))
+	if ( (key == K_MWHEELUP && keys[K_SHIFT].down) || ( key == K_UPARROW ) || ( key == K_KP_UPARROW ) || (( com.tolower(key) == 'p' ) && keys[K_CTRL].down ))
 	{
 		if ( nextHistoryLine - historyLine < COMMAND_HISTORY && historyLine > 0 )
 		{
@@ -604,7 +604,7 @@ void Key_Console(int key)
 		g_consoleField = historyEditLines[ historyLine % COMMAND_HISTORY ];
 		return;
 	}
-	if ( (key == K_MWHEELDOWN && keys[K_SHIFT].down) || ( key == K_DOWNARROW ) || ( key == K_KP_DOWNARROW ) || (( tolower(key) == 'n' ) && keys[K_CTRL].down ))
+	if ( (key == K_MWHEELDOWN && keys[K_SHIFT].down) || ( key == K_DOWNARROW ) || ( key == K_KP_DOWNARROW ) || (( com.tolower(key) == 'n' ) && keys[K_CTRL].down ))
 	{
 		if (historyLine == nextHistoryLine) return;
 		historyLine++;
@@ -753,7 +753,7 @@ int Key_StringToKeynum( char *str )
 	if ( !str[1] ) return str[0];
 
 	// check for hex code
-	if ( str[0] == '0' && str[1] == 'x' && strlen( str ) == 4)
+	if ( str[0] == '0' && str[1] == 'x' && com.strlen( str ) == 4)
 	{
 		int	n1, n2;
 		
@@ -785,7 +785,7 @@ int Key_StringToKeynum( char *str )
 	// scan for a text match
 	for ( kn = keynames; kn->name; kn++ )
 	{
-		if( !stricmp( str,kn->name ))
+		if( !com.stricmp( str,kn->name ))
 			return kn->keynum;
 	}
 	return -1;
@@ -882,7 +882,7 @@ int Key_GetKey(char *binding)
 
 	for (i = 0; i < 256; i++)
 	{
-		if (keys[i].binding && !stricmp(binding, keys[i].binding))
+		if (keys[i].binding && !com.stricmp(binding, keys[i].binding))
 			return i;
 	}
 
@@ -965,8 +965,8 @@ void Key_Bind_f (void)
 	cmd[0] = 0; // start out with a null string
 	for (i = 2; i < c; i++)
 	{
-		strcat (cmd, Cmd_Argv(i));
-		if (i != (c-1)) strcat (cmd, " ");
+		com.strcat (cmd, Cmd_Argv(i));
+		if (i != (c-1)) com.strcat (cmd, " ");
 	}
 	Key_SetBinding (b, cmd);
 }

@@ -119,11 +119,11 @@ void CL_SetSky_f( void )
 		return;
 	}
 
-	if(Cmd_Argc() > 2) rotate = atof(Cmd_Argv(2));
+	if(Cmd_Argc() > 2) rotate = com.atof(Cmd_Argv(2));
 	else rotate = 0;
 	if(Cmd_Argc() == 6)
 	{
-		VectorSet(axis, atof(Cmd_Argv(3)), atof(Cmd_Argv(4)), atof(Cmd_Argv(5)));
+		VectorSet(axis, com.atof(Cmd_Argv(3)), com.atof(Cmd_Argv(4)), com.atof(Cmd_Argv(5)));
 	}
 	else
 	{

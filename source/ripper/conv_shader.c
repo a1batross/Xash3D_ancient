@@ -107,7 +107,7 @@ Doom1
 bool Conv_ShaderGetFlags1( const char *imagename, const char *shadername, const char *ext, int *flags, int *contents )
 {
 	if(!com.strnicmp(imagename, "sky", 3 )) *flags |= SURF_SKY;
-	if(stristr(imagename, "lit" )) *flags |= SURF_LIGHT;
+	if(com.stristr(imagename, "lit" )) *flags |= SURF_LIGHT;
 
 	if(!com.strnicmp( "sw", imagename, 2 ))
 	{
@@ -178,17 +178,17 @@ bool Conv_ShaderGetFlags2( const char *imagename, const char *shadername, const 
 	// light definition
 	if(com.strchr(imagename, '~')) *flags |= SURF_LIGHT;
 
-	if(stristr( imagename, "water" )) 
+	if(com.stristr( imagename, "water" )) 
 	{
 		*contents |= CONTENTS_WATER;
 		*flags |= SURF_WARP; // liquids
 	}
-	else if(stristr( imagename, "slime" ))
+	else if(com.stristr( imagename, "slime" ))
 	{
 		*contents |= CONTENTS_SLIME;
 		*flags |= SURF_WARP; // liquids
 	}
-	else if(stristr( imagename, "lava" ))
+	else if(com.stristr( imagename, "lava" ))
 	{
 		*contents |= CONTENTS_LAVA;
 		*flags |= SURF_WARP; // liquids
@@ -220,7 +220,7 @@ bool Conv_CreateShader( const char *name, rgbdata_t *pic, const char *ext, const
 	FS_FileBase( shadername, shadername ); // remove "textures" from path
 	FS_FileBase( name, imagename );
 	com.snprintf( shaderpath, MAX_STRING, "%s/scripts/shaders/%s.txt", gs_gamedir, shadername );
-	if(stristr(name, "textures")) com.snprintf( imagepath, MAX_STRING, "%s", name ); // full path
+	if(com.stristr(name, "textures")) com.snprintf( imagepath, MAX_STRING, "%s", name ); // full path
 	else com.snprintf( imagepath, MAX_STRING, "textures/%s", name ); // build full path
 	nextanimchain[0] = 0; // clear chain
 
@@ -229,7 +229,7 @@ bool Conv_CreateShader( const char *name, rgbdata_t *pic, const char *ext, const
 	flags |= surf; // .wal can transmit flags here
 	contents |= cnt; 
 
-	if(!strnicmp(ext, "flt", 3 )) // doom definitions
+	if(!com.strnicmp(ext, "flt", 3 )) // doom definitions
 		Conv_ShaderGetFlags1( imagename, shadername, ext, &flags, &contents );
 	else Conv_ShaderGetFlags2( imagename, shadername, ext, &flags, &contents );
 

@@ -117,7 +117,7 @@ void BSP_CreateMeshBuffer( int modelnum )
 
 	loadmodel = &cm.bmodels[modelnum];
 	if( modelnum ) loadmodel->type = mod_brush;
-	loadmodel->type = mod_static; // level static geometry
+	else loadmodel->type = mod_world; // level static geometry
 	loadmodel->TraceBox = CM_TraceBmodel;
 	loadmodel->PointContents = CM_PointContents;
 
@@ -180,6 +180,12 @@ void BSP_LoadModels( lump_t *l )
 			out->maxs[j] = LittleFloat(in->maxs[j]) + 1;
 		}
 
+		out->firstface = n = LittleLong( in->firstface );
+		out->numfaces = c = LittleLong( in->numfaces );
+
+		// skip other stuff, not using for building collision tree
+		if( app_name == COMP_BSPLIB ) continue;
+
 		// FIXME: calc bounding box right
 		VectorCopy( out->mins, out->normalmins );
 		VectorCopy( out->maxs, out->normalmaxs );
@@ -188,8 +194,6 @@ void BSP_LoadModels( lump_t *l )
 		VectorCopy( out->mins, out->yawmins );
 		VectorCopy( out->maxs, out->yawmaxs );
 
-		out->firstface = n = LittleLong( in->firstface );
-		out->numfaces = c = LittleLong( in->numfaces );
 		if( n < 0 || n + c > cm.numfaces )
 			Host_Error("BSP_LoadModels: invalid face range %i : %i (%i faces)\n", n, n+c, cm.numfaces );
 		out->firstbrush = n = LittleLong( in->firstbrush );
@@ -197,7 +201,7 @@ void BSP_LoadModels( lump_t *l )
 		if( n < 0 || n + c > cm.numbrushes )
 			Host_Error("BSP_LoadModels: invalid brush range %i : %i (%i brushes)\n", n, n+c, cm.numfaces );
 		com.strncpy( out->name, va("*%i", i ), sizeof(out->name));
-		out->mempool = Mem_AllocPool( out->name );
+		out->mempool = Mem_AllocPool( va("^2%s", out->name )); // difference with render and cm pools
 		BSP_CreateMeshBuffer( i ); // bsp physic
 	}
 }
@@ -554,15 +558,16 @@ void BSP_LoadVisibility( lump_t *l )
 {
 	int	i;
 
-	if(!l->filelen)
+	if( !l->filelen )
 	{
-		cm.vis = NULL;
+		cm.vis = (dvis_t *)Mem_Alloc( cmappool, MAX_MAP_VISIBILITY );
+		cm.visbase = NULL; // invalidate
 		return;
 	}
 
-	cm.visibility = (byte *)Mem_Alloc( cmappool, l->filelen );
-	Mem_Copy( cm.visibility, cm.mod_base + l->fileofs, l->filelen );
-	cm.vis = (dvis_t *)cm.visibility; // conversion
+	cm.visbase = (byte *)Mem_Alloc( cmappool, l->filelen );
+	Mem_Copy( cm.visbase, cm.mod_base + l->fileofs, l->filelen );
+	cm.vis = (dvis_t *)cm.visbase; // conversion
 	cm.vis->numclusters = LittleLong( cm.vis->numclusters );
 	for (i = 0; i < cm.vis->numclusters; i++)
 	{
@@ -741,6 +746,8 @@ static void BSP_RecursiveFindNumLeafs( cnode_t *node )
 		node = node->children[1];
 	}
 	numleafs = ((cleaf_t *)node - cm.leafs) + 1;
+
+	// these never happens
 	if( cm.numleafs < numleafs ) cm.numleafs = numleafs;
 }
 
@@ -1031,12 +1038,8 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	BSP_LoadModels(&hdr->lumps[LUMP_MODELS]);
 	BSP_LoadCollision(&hdr->lumps[LUMP_COLLISION]);
 
-
-	// test, these probably unneeded
-	Msg("cm.numleafs %i\n", cm.numleafs );
 	BSP_RecursiveFindNumLeafs( cm.nodes );
 	BSP_RecursiveSetParent( cm.nodes, NULL );
-	Msg("cm.numleafs %i\n", cm.numleafs );	
 
 	CM_LoadWorld( buf );// load physics collision
 	Mem_Free( buf );	// release map buffer
@@ -1449,7 +1452,7 @@ cmodel_t *CM_RegisterModel( const char *name )
 	}
 
 	MsgDev(D_NOTE, "CM_LoadModel: load %s\n", name );
-	mod->mempool = Mem_AllocPool(mod->name);
+	mod->mempool = Mem_AllocPool( va("^2%s", mod->name ));
 	loadmodel = mod;
 
 	// call the apropriate loader

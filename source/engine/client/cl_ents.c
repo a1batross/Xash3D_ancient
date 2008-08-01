@@ -221,7 +221,7 @@ void CL_ParseFrame( sizebuf_t *msg )
 	memset( &cl.frame, 0, sizeof(cl.frame));
 	cl.frame.serverframe = MSG_ReadLong (msg);
 	cl.frame.deltaframe = MSG_ReadLong (msg);
-	cl.frame.servertime = cl.frame.serverframe * HOST_FRAMETIME;
+	cl.frame.servertime = cl.frame.serverframe * Host_FrameTime();
 	cl.surpressCount = MSG_ReadByte( msg );
 
 	// If the frame is delta compressed from data that we
@@ -257,8 +257,8 @@ void CL_ParseFrame( sizebuf_t *msg )
 
 	// clamp time 
 	if( cl.time > cl.frame.servertime ) cl.time = cl.frame.servertime;
-	else if( cl.time < cl.frame.servertime - HOST_FRAMETIME )
-		cl.time = cl.frame.servertime - HOST_FRAMETIME;
+	else if( cl.time < cl.frame.servertime - Host_FrameTime())
+		cl.time = cl.frame.servertime - Host_FrameTime();
 
 	// read areabits
 	len = MSG_ReadByte( msg );
@@ -289,7 +289,7 @@ void CL_ParseFrame( sizebuf_t *msg )
 			cls.state = ca_active;
 			cl.force_refdef = true;
 			// getting a valid frame message ends the connection process
-			VectorScale( cl.frame.ps.origin, CL_COORD_FRAC, cl.predicted_origin );
+			VectorCopy( cl.frame.ps.origin, cl.predicted_origin );
 			VectorCopy( cl.frame.ps.viewangles, cl.predicted_angles );
 		}
 		CL_CheckPredictionError();
@@ -473,11 +473,11 @@ void CL_CalcViewValues( void )
 		cl.time = cl.frame.servertime;
 		cl.lerpfrac = 1.0f;
 	}
-	else if (cl.time < cl.frame.servertime - HOST_FRAMETIME )
+	else if (cl.time < cl.frame.servertime - Host_FrameTime())
 	{
 		if (cl_showclamp->value)
-			Msg ("low clamp %i\n", cl.frame.servertime - host_frametime->value - cl.time);
-		cl.time = cl.frame.servertime - HOST_FRAMETIME;
+			Msg( "low clamp %i\n", cl.frame.servertime - Host_FrameTime() - cl.time);
+		cl.time = cl.frame.servertime - Host_FrameTime();
 		cl.lerpfrac = 0.0f;
 	}
 	else
@@ -514,13 +514,13 @@ void CL_CalcViewValues( void )
 
 		// smooth out stair climbing
 		delta = cls.realtime - cl.predicted_step_time;
-		if( delta < HOST_FRAMETIME ) cl.refdef.vieworg[2] -= cl.predicted_step * (HOST_FRAMETIME - delta) * 0.01f;
+		if( delta < Host_FrameTime()) cl.refdef.vieworg[2] -= cl.predicted_step * (Host_FrameTime() - delta) * 0.01f;
 	}
 	else
 	{
 		// just use interpolated values
 		for( i = 0; i < 3; i++ )
-			cl.refdef.vieworg[i] = LerpView( ops->origin[i] * CL_COORD_FRAC, ps->origin[i] * CL_COORD_FRAC, ops->viewoffset[i], ps->viewoffset[i], lerp );
+			cl.refdef.vieworg[i] = LerpView( ops->origin[i], ps->origin[i], ops->viewoffset[i], ps->viewoffset[i], lerp );
 	}
 
 	// if not running a demo or on a locked frame, add the local angle movement

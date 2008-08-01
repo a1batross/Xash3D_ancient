@@ -35,7 +35,7 @@ image_t *Draw_FindPic( const char *name )
 	size_t		bufsize = 0;		
 
 	//HACKHACK: use default font
-	if(stristr(name, "fonts" ))
+	if(com.stristr(name, "fonts" ))
 		buffer = FS_LoadInternal( "default.dds", &bufsize );
 
 	com.snprintf( fullname, MAX_STRING, "gfx/%s", name );

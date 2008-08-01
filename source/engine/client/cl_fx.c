@@ -62,7 +62,7 @@ void CL_RunLightStyles (void)
 	clightstyle_t	*ls;
 	int		i;
 	
-	ofs = cl.time / HOST_FRAMETIME;
+	ofs = cl.time / Host_FrameTime();
 	if( ofs == lastofs ) return;
 	lastofs = ofs;
 

@@ -18,6 +18,7 @@
 #define PACKFILE_FLAG_DEFLATED	(1<<1) // file compressed using the deflate algorithm
 #define FILE_BUFF_SIZE		2048
 
+// filesystem flags
 #define FS_READONLY_PATH		1
 
 typedef struct
@@ -644,8 +645,6 @@ void FS_FileBase( const char *in, char *out )
 	if ( start < 0 || ( in[start] != '/' && in[start] != '\\' ) )
 		start = 0;
 	else  start++;
-
-	if(in[start] == '#') start++;
 
 	// Length of new sting
 	len = end - start + 1;
@@ -1491,7 +1490,6 @@ FS_Init
 */
 void FS_Init( void )
 {
-	char		szTemp[4096];
 	stringlist_t	dirs;
 	int		i;
 	
@@ -1518,8 +1516,7 @@ void FS_Init( void )
 		{
 			if( Sys.app_name == COMP_BSPLIB )
 				com_strcpy( gs_basedir, fs_defaultdir->string );
-			else if(GetModuleFileName( NULL, szTemp, MAX_SYSPATH ))
-				FS_FileBase( szTemp, gs_basedir );
+			else if(Sys_GetModuleName( gs_basedir, MAX_SYSPATH ));
 			else com_strcpy( gs_basedir, fs_defaultdir->string ); // default dir
 		}
 		// checked nasty path: "bin" it's a reserved word

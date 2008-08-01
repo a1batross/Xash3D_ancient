@@ -1918,7 +1918,7 @@ int PRVM_SetEngineString( const char *s )
 		if (vm.prog->knownstrings[i] == s)
 			return -1 - i;
 	// new unknown engine string
-	MsgDev(D_MEMORY, "new engine string %p\n", s );
+	MsgDev(D_STRING, "new engine string %p\n", s );
 	for (i = vm.prog->firstfreeknownstring;i < vm.prog->numknownstrings;i++)
 		if (!vm.prog->knownstrings[i])
 			break;
@@ -1961,7 +1961,7 @@ int PRVM_SetTempString( const char *s )
 	if (!s) return 0;
 
 	size = (int)com.strlen(s) + 1;
-	MsgDev( D_MEMORY, "PRVM_SetTempString: cursize %i, size %i\n", vm_tempstringsbuf.cursize, size);
+	MsgDev( D_STRING, "PRVM_SetTempString: cursize %i, size %i\n", vm_tempstringsbuf.cursize, size);
 	if (vm_tempstringsbuf.maxsize < vm_tempstringsbuf.cursize + size)
 	{
 		size_t old_maxsize = vm_tempstringsbuf.maxsize;

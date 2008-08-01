@@ -61,14 +61,14 @@ void CM_DecompressVis( byte *in, byte *out )
 byte *CM_ClusterPVS( int cluster )
 {
 	if( cluster == -1 || !cm.vis ) memset( cm.pvsrow, 0, (cm.numclusters + 7)>>3 );
-	else CM_DecompressVis( cm.visibility + cm.vis->bitofs[cluster][DVIS_PVS], cm.pvsrow );
+	else CM_DecompressVis( cm.visbase + cm.vis->bitofs[cluster][DVIS_PVS], cm.pvsrow );
 	return cm.pvsrow;
 }
 
 byte *CM_ClusterPHS (int cluster)
 {
 	if( cluster == -1 || !cm.vis ) memset( cm.phsrow, 0, (cm.numclusters + 7)>>3 );
-	else CM_DecompressVis( cm.visibility + cm.vis->bitofs[cluster][DVIS_PHS], cm.phsrow );
+	else CM_DecompressVis( cm.visbase + cm.vis->bitofs[cluster][DVIS_PHS], cm.phsrow );
 	return cm.phsrow;
 }
 
@@ -118,7 +118,7 @@ void CM_FloodAreaConnections( void )
 	for( i = 1; i < cm.numareas; i++ )
 	{
 		area = &cm.areas[i];
-		if (area->floodvalid == cm.floodvalid)
+		if( area->floodvalid == cm.floodvalid )
 			continue;	// already flooded into
 		floodnum++;
 		FloodArea_r( area, floodnum );

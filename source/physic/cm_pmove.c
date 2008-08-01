@@ -229,7 +229,6 @@ void CM_ServerMove( pmove_t *pmove )
 	m_isAirBorne = true;
 	VectorSet( m_stepContact, 0.0f, -m_size[2], 0.0f );   
 
-	pm->ps.viewheight = 22;
 	NewtonUpVectorSetPin( cm.upVector, &vec3_up[0] );
 }
 

@@ -144,9 +144,9 @@ void GUI_AddMenuItem( HMENU menu, const char *name, uint itemId, uint hotkey )
 		int length = strlen(name) - 1;
 
 		//parse modifiers
-		if (stristr (name, "ctrl")) style |= FCONTROL;
-		if (stristr (name, "shift")) style |= FSHIFT;
-		if (stristr (name, "alt")) style |= FALT;
+		if (com.stristr (name, "ctrl")) style |= FCONTROL;
+		if (com.stristr (name, "shift")) style |= FSHIFT;
+		if (com.stristr (name, "alt")) style |= FALT;
 	
 		GUI_AddAccelerator(hotkey, style, itemId);
 	}

@@ -136,7 +136,7 @@ void IN_KeyDown( kbutton_t *b )
 	char	*c;
 	
 	c = Cmd_Argv(1);
-	if (c[0]) k = atoi(c);
+	if (c[0]) k = com.atoi(c);
 	else k = -1; // typed manually at the console for continuous down
 
 	if (k == b->down[0] || k == b->down[1])
@@ -156,7 +156,7 @@ void IN_KeyDown( kbutton_t *b )
 	c = Cmd_Argv(2);
 	b->downtime = com.atoi(c);
 
-	if (!b->downtime) b->downtime = host.frametime[0] - HOST_FRAMETIME;
+	if (!b->downtime) b->downtime = host.frametime[0] - Host_FrameTime();
 	b->state |= 1 + 2;	// down + impulse down
 }
 

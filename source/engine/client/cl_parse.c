@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void CL_DownloadFileName(char *dest, int destlen, char *fn)
 {
-	strncpy(dest, fn, destlen );
+	com.strncpy(dest, fn, destlen );
 }
 
 /*
@@ -42,7 +42,7 @@ bool	CL_CheckOrDownloadFile (char *filename)
 	file_t	*fp;
 	char	name[MAX_SYSPATH];
 
-	if (strstr (filename, ".."))
+	if (com.strstr (filename, ".."))
 	{
 		Msg ("Refusing to download a path with ..\n");
 		return true;
@@ -54,8 +54,8 @@ bool	CL_CheckOrDownloadFile (char *filename)
 		return true;
 	}
 
-	strcpy (cls.downloadname, filename);
-	strcpy (cls.downloadtempname, filename);
+	com.strcpy (cls.downloadname, filename);
+	com.strcpy (cls.downloadtempname, filename);
 
 	// download to a temp name, and only rename
 	// to the real name when done, so if interrupted
@@ -115,7 +115,7 @@ void	CL_Download_f (void)
 
 	com.sprintf(filename, "%s", Cmd_Argv(1));
 
-	if (strstr (filename, ".."))
+	if (com.strstr (filename, ".."))
 	{
 		Msg ("Refusing to download a path with ..\n");
 		return;
@@ -128,8 +128,8 @@ void	CL_Download_f (void)
 		return;
 	}
 
-	strcpy (cls.downloadname, filename);
-	strcpy (cls.downloadtempname, filename);
+	com.strcpy (cls.downloadname, filename);
+	com.strcpy (cls.downloadtempname, filename);
 
 	Msg ("Downloading %s\n", cls.downloadname);
 
@@ -344,13 +344,13 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 	char		model_filename[MAX_QPATH];
 	char		weapon_filename[MAX_QPATH];
 
-	strncpy(ci->cinfo, s, sizeof(ci->cinfo));
+	com.strncpy(ci->cinfo, s, sizeof(ci->cinfo));
 	ci->cinfo[sizeof(ci->cinfo)-1] = 0;
 
 	// isolate the player's name
-	strncpy(ci->name, s, sizeof(ci->name));
+	com.strncpy(ci->name, s, sizeof(ci->name));
 	ci->name[sizeof(ci->name)-1] = 0;
-	t = strstr (s, "\\");
+	t = com.strstr (s, "\\");
 	if (t)
 	{
 		ci->name[t-s] = 0;
@@ -369,13 +369,13 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 	{
 		// isolate the model name
 		com.strcpy (model_name, s);
-		t = strstr(model_name, "/");
-		if (!t) t = strstr(model_name, "\\");
+		t = com.strstr(model_name, "/");
+		if (!t) t = com.strstr(model_name, "\\");
 		if (!t) t = model_name;
 		*t = 0;
 
 		// isolate the skin name
-		strcpy (skin_name, s + strlen(model_name) + 1);
+		com.strcpy (skin_name, s + com.strlen(model_name) + 1);
 
 		// model file
 		com.sprintf (model_filename, "models/players/%s/player.mdl", model_name);
@@ -389,7 +389,7 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 
 		// if we don't have the skin and the model wasn't male,
 		// see if the male has it (this is for CTF's skins)
- 		if (!ci->skin && strcasecmp(model_name, "male"))
+ 		if (!ci->skin && com.stricmp(model_name, "male"))
 		{
 			// change model to male
 			com.strcpy(model_name, "male");
@@ -451,10 +451,10 @@ void CL_ParseConfigString( sizebuf_t *msg )
 	if (i < 0 || i >= MAX_CONFIGSTRINGS) Host_Error("configstring > MAX_CONFIGSTRINGS\n");
 	s = MSG_ReadString( msg );
 
-	strncpy (olds, cl.configstrings[i], sizeof(olds));
+	com.strncpy (olds, cl.configstrings[i], sizeof(olds));
 	olds[sizeof(olds) - 1] = 0;
 
-	strcpy (cl.configstrings[i], s);
+	com.strcpy (cl.configstrings[i], s);
 
 	// do something apropriate 
 
@@ -482,7 +482,7 @@ void CL_ParseConfigString( sizebuf_t *msg )
 	}
 	else if (i >= CS_PLAYERSKINS && i < CS_PLAYERSKINS+MAX_CLIENTS)
 	{
-		if (cl.refresh_prepped && strcmp(olds, s))
+		if (cl.refresh_prepped && com.strcmp(olds, s))
 			CL_ParseClientinfo (i-CS_PLAYERSKINS);
 	}
 }

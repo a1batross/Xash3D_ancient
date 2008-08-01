@@ -20,11 +20,11 @@ cvar_t *cm_leavenudge;
 cvar_t *cm_prefernudgedfraction;
 static uint brushforbox_index = 0;
 
-static cpointf_t polyf_points[256];
-static cplanef_t polyf_planes[256 + 2];
+static cpointf_t polyf_points[512];
+static cplanef_t polyf_planes[512 + 2];
 static cbrushf_t polyf_brush;
-static cpointf_t polyf_pointsstart[256], polyf_pointsend[256];
-static cplanef_t polyf_planesstart[256 + 2], polyf_planesend[256 + 2];
+static cpointf_t polyf_pointsstart[512], polyf_pointsend[512];
+static cplanef_t polyf_planesstart[512 + 2], polyf_planesend[512 + 2];
 static cbrushf_t polyf_brushstart, polyf_brushend;
 static cpointf_t brushforbox_point[MAX_BRUSHFORBOX*8];
 static cplanef_t brushforbox_plane[MAX_BRUSHFORBOX*6];
@@ -143,17 +143,17 @@ cbrushf_t *CM_CollisionNewBrushFromPlanes( byte *mempool, int numoriginalplanes,
 {
 	// TODO: planesbuf could be replaced by a remapping table
 	int	j, k, m, w, xyzflags;
-	int	numpointsbuf = 0, maxpointsbuf = 256, numplanesbuf = 0;
-	int	maxplanesbuf = 256, numelementsbuf = 0, maxelementsbuf = 256;
+	int	numpointsbuf = 0, maxpointsbuf = 512, numplanesbuf = 0;
+	int	maxplanesbuf = 512, numelementsbuf = 0, maxelementsbuf = 512;
 	double	maxdist;
 	cbrushf_t	*brush;
-	cpointf_t	pointsbuf[256];
-	cplanef_t	planesbuf[256];
-	int	elementsbuf[1024];
-	int	polypointbuf[256];
-	int	pmaxpoints = 64;
+	cpointf_t	pointsbuf[512];
+	cplanef_t	planesbuf[512];
+	int	elementsbuf[2048];
+	int	polypointbuf[512];
+	int	pmaxpoints = 128;
 	int	pnumpoints;
-	double	p[2][192];
+	double	p[2][384];
 
 #if 0
 	// enable these if debugging to avoid seeing garbage in unused data
@@ -555,10 +555,10 @@ void CM_CollisionTraceBrushBrushFloat( trace_t *trace, const cbrushf_t *thisbrus
 
 	VectorClear( newimpactnormal );
 
-	for (nplane = 0;nplane < thatbrush_start->numplanes + thisbrush_start->numplanes;nplane++)
+	for( nplane = 0; nplane < thatbrush_start->numplanes + thisbrush_start->numplanes; nplane++ )
 	{
 		nplane2 = nplane;
-		if (nplane2 >= thatbrush_start->numplanes)
+		if( nplane2 >= thatbrush_start->numplanes )
 		{
 			nplane2 -= thatbrush_start->numplanes;
 			startplane = thisbrush_start->planes + nplane2;
@@ -834,9 +834,9 @@ void CM_CollisionSnapCopyPoints( int numpoints, const cpointf_t *in, cpointf_t *
 
 void CM_CollisionTraceBrushPolygonFloat( trace_t *trace, const cbrushf_t *thisbrush_start, const cbrushf_t *thisbrush_end, int numpoints, const float *points, int supercontents )
 {
-	if( numpoints > 256 )
+	if( numpoints > 512 )
 	{
-		MsgDev( D_ERROR, "Polygon with more than 256 points not supported yet (fixme!)\n" );
+		MsgDev( D_ERROR, "Polygon with more than 512 points not supported\n" );
 		return;
 	}
 	polyf_brush.numpoints = numpoints;
@@ -881,9 +881,9 @@ void CM_CollisionTraceBrushTriangleMeshFloat( trace_t *trace, const cbrushf_t *t
 
 void CM_CollisionTraceLinePolygonFloat( trace_t *trace, const vec3_t linestart, const vec3_t lineend, int numpoints, const float *points, int supercontents )
 {
-	if( numpoints > 256 )
+	if( numpoints > 512 )
 	{
-		MsgDev( D_ERROR, "Polygon with more than 256 points not supported yet (fixme!)\n" );
+		MsgDev( D_ERROR, "Polygon with more than 512 points not supported\n" );
 		return;
 	}
 
@@ -937,9 +937,9 @@ void CM_CollisionTraceBrushPolygonTransformFloat( trace_t *trace, const cbrushf_
 {
 	int	i;
 
-	if( numpoints > 256 )
+	if( numpoints > 512 )
 	{
-		MsgDev( D_ERROR, "Polygon with more than 256 points not supported yet (fixme!)\n" );
+		MsgDev( D_ERROR, "Polygon with more than 512 points not supported\n" );
 		return;
 	}
 
