@@ -95,7 +95,7 @@ void SV_DirectConnect( netadr_t from )
 		if( cl->state == cs_free ) continue;
 		if( NET_CompareBaseAdr(from, cl->netchan.remote_address) && (cl->netchan.qport == qport || from.port == cl->netchan.remote_address.port))
 		{
-			if(( svs.realtime - cl->lastconnect ) < (sv_reconnect_limit->integer * 1000 ))
+			if(!NET_IsLocalAddress( from ) && (svs.realtime - cl->lastconnect) < (sv_reconnect_limit->integer * 1000))
 			{
 				MsgDev( D_INFO, "%s:reconnect rejected : too soon\n", NET_AdrToString( from ));
 				return;
@@ -247,6 +247,8 @@ void SV_DropClient( sv_client_t *drop )
 	int	i;
 	
 	if( drop->state == cs_zombie ) return;	// already dropped
+
+	SV_VM_Begin();
 
 	// add the disconnect
 	MSG_WriteByte( &drop->netchan.message, svc_disconnect );
@@ -1013,10 +1015,10 @@ void SV_ApplyClientMove( sv_client_t *cl, usercmd_t *cmd )
 
 	// set the edict fields
 	ent->progs.sv->button0 = cmd->buttons & 1;
-	ent->progs.sv->button2 = (cmd->buttons & 2)>>1;
+	ent->progs.sv->button1 = (cmd->upmove < 0) ? 1 : 0;
+	ent->progs.sv->button2 = (cmd->upmove > 0) ? 1 : 0;
 	if( cmd->impulse ) ent->progs.sv->impulse = cmd->impulse;
-	// only send the impulse to qc once
-	cmd->impulse = 0;
+	cmd->impulse = 0; // only send the impulse to qc once
 
 	// circularly clamp the angles with deltas
 	for( i = 0; i < 3; i++ )
@@ -1280,7 +1282,7 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 	vec3_t	v_angle;
 	
 	cl->cmd = *cmd;
-	//cl->skipframes = 0;
+	cl->skipframes = 0;
 
 	// may have been kicked during the last usercmd
 	if( sv_paused->integer ) return;

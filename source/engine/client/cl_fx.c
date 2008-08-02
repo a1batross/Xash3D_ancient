@@ -62,13 +62,13 @@ void CL_RunLightStyles (void)
 	clightstyle_t	*ls;
 	int		i;
 	
-	ofs = cl.time / Host_FrameTime();
+	ofs = cl.time / 100;
 	if( ofs == lastofs ) return;
 	lastofs = ofs;
 
 	for( i = 0, ls = cl_lightstyle; i < MAX_LIGHTSTYLES; i++, ls++)
 	{
-		if (!ls->length)
+		if( !ls->length )
 		{
 			ls->value[0] = ls->value[1] = ls->value[2] = 1.0;
 			continue;
@@ -81,8 +81,8 @@ void CL_RunLightStyles (void)
 
 void CL_SetLightstyle( int i )
 {
-	char		*s;
-	int		j, k;
+	char	*s;
+	int	j, k;
 
 	s = cl.configstrings[i+CS_LIGHTS];
 	j = com.strlen( s );

@@ -157,7 +157,7 @@ void SV_SpawnServer( char *server, char *savename, sv_state_t serverstate )
 	// wipe the entire per-level structure
 	memset (&sv, 0, sizeof(sv));
 	svs.realtime = 0;
-	sv.timeleft = 0;
+	svs.timeleft = 0;
 
 	// save name for levels that don't set message
 	com.strcpy (sv.configstrings[CS_NAME], server);
@@ -267,6 +267,7 @@ void SV_InitGame( void )
 		CL_Drop();
 	}
 
+	Cmd_ExecuteString( "latch\n" );
 	svs.initialized = true;
 
 	if (Cvar_VariableValue ("coop") && Cvar_VariableValue ("deathmatch"))

@@ -219,8 +219,8 @@ void CL_ParseFrame( sizebuf_t *msg )
 	frame_t 		*old;
           
 	memset( &cl.frame, 0, sizeof(cl.frame));
-	cl.frame.serverframe = MSG_ReadLong (msg);
-	cl.frame.deltaframe = MSG_ReadLong (msg);
+	cl.frame.serverframe = MSG_ReadLong( msg );
+	cl.frame.deltaframe = MSG_ReadLong( msg );
 	cl.frame.servertime = cl.frame.serverframe * Host_FrameTime();
 	cl.surpressCount = MSG_ReadByte( msg );
 
@@ -320,10 +320,10 @@ void CL_AddPacketEntities( frame_t *frame )
 	uint		effects, renderfx;
 
 	// bonus items rotate at a fixed rate
-	autorotate = anglemod(cl.time/10);
+	autorotate = anglemod( cl.time / 10 );
 
 	// brush models can auto animate their frames
-	autoanim = 2 * cl.time/1000;
+	autoanim = 2 * cl.time / 1000;
 
 	memset( &refent, 0, sizeof(refent));
 
@@ -344,7 +344,7 @@ void CL_AddPacketEntities( frame_t *frame )
 
 		// copy state to render
 		refent.prev.frame = ent->priv.cl->prev.model.frame;
-		refent.backlerp = 1.0 - cl.lerpfrac;
+		refent.backlerp = 1.0f - cl.lerpfrac;
 		refent.alpha = s1->renderamt;
 		refent.body = s1->model.body;
 		refent.sequence = s1->model.sequence;		
@@ -480,11 +480,7 @@ void CL_CalcViewValues( void )
 		cl.time = cl.frame.servertime - Host_FrameTime();
 		cl.lerpfrac = 0.0f;
 	}
-	else
-	{
-		cl.lerpfrac = 1.0 - (cl.frame.servertime - cl.time) * 0.01f;
-		//Msg("cl.lerpfrac %g\n", cl.lerpfrac );
-	}
+	else cl.lerpfrac = 1.0 - (cl.frame.servertime - cl.time) * 0.01f;
 
 	// find the previous frame to interpolate from
 	ps = &cl.frame.ps;

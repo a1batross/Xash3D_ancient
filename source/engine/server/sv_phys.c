@@ -1751,6 +1751,8 @@ void SV_Physics( void )
 {
 	int    	i;
 	edict_t	*ent;
+	int	frametime  = 1000 / sv_fps->integer;
+	int	num_physframes = 0;
 
 	// let the progs know that a new frame has started
 	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(prog->edicts);
@@ -1770,6 +1772,13 @@ void SV_Physics( void )
 		else if(!sv_playersonly->integer)SV_Physics_Entity( ent );
 	}
 
+	// let everything in the world think and move
+	while( svs.timeleft >= frametime )
+	{
+		svs.timeleft -= frametime;
+		pe->Frame( frametime * 0.001f );
+		num_physframes++;
+	}
 	prog->globals.sv->pev = PRVM_EDICT_TO_PROG(prog->edicts);
 	prog->globals.sv->other = PRVM_EDICT_TO_PROG(prog->edicts);
 	prog->globals.sv->time = sv.time;

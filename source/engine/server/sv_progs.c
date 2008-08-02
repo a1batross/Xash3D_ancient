@@ -1645,29 +1645,30 @@ void PF_tracebox( void )
 	mask = (int)PRVM_G_FLOAT(OFS_PARM4);
 	ent = PRVM_G_EDICT(OFS_PARM5);
 
-	if(mask == 1) mask = MASK_SOLID;
-	else if(mask == 2) mask = MASK_SHOT;
-	else if(mask == 3) mask = MASK_MONSTERSOLID;
-	else if(mask == 4) mask = MASK_WATER;
+	if( mask == 1 ) mask = MASK_SOLID;
+	else if( mask == 2 ) mask = MASK_SHOT;
+	else if( mask == 3 ) mask = MASK_MONSTERSOLID;
+	else if( mask == 4 ) mask = MASK_PLAYERSOLID;
+	else if( mask == 5 ) mask = MASK_WATER;
 	else mask = MASK_ALL;
 
 	if (IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2]))
 		PRVM_ERROR("%s: NAN errors detected in tracebox('%f %f %f', '%f %f %f', '%f %f %f', '%f %f %f', %i, entity %i)\n", 
 		PRVM_NAME, v1[0], v1[1], v1[2], m1[0], m1[1], m1[2], m2[0], m2[1], m2[2], v2[0], v2[1], v2[2], mask, PRVM_EDICT_TO_PROG(ent));
 
-	trace = SV_Trace (v1, m1, m2, v2, MOVE_NORMAL, ent, mask );
+	trace = SV_Trace( v1, m1, m2, v2, MOVE_NORMAL, ent, mask );
 
 	prog->globals.sv->trace_allsolid = trace.allsolid;
 	prog->globals.sv->trace_startsolid = trace.startsolid;
 	prog->globals.sv->trace_fraction = trace.fraction;
 	prog->globals.sv->trace_contents = trace.contents;
 
-	VectorCopy (trace.endpos, prog->globals.sv->trace_endpos);
-	VectorCopy (trace.plane.normal, prog->globals.sv->trace_plane_normal);
+	VectorCopy( trace.endpos, prog->globals.sv->trace_endpos );
+	VectorCopy( trace.plane.normal, prog->globals.sv->trace_plane_normal );
 	prog->globals.sv->trace_plane_dist =  trace.plane.dist;
 
-	if (trace.ent) prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG(trace.ent);
-	else prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG(prog->edicts);
+	if( trace.ent ) prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG( trace.ent );
+	else prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG( prog->edicts );
 }
 
 /*

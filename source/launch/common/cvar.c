@@ -122,7 +122,7 @@ void Cvar_LookupVars( int checkbit, char *buffer, void *ptr, cvarcmd_t callback 
 	for( cvar = cvar_vars; cvar; cvar = cvar->next )
 	{
 		if(checkbit && !(cvar->flags & checkbit)) continue;
-		if(buffer) callback( cvar->name, cvar->string, buffer, ptr );
+		if( buffer ) callback( cvar->name, cvar->string, buffer, ptr );
 		else callback( cvar->name, cvar->string, cvar->description, ptr );
 	}
 }
@@ -292,13 +292,13 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 			MsgDev(D_INFO, "%s is system variable.\n", var_name);
 			return var;
 		}
-		if (var->flags & CVAR_LATCH)
+		if( var->flags & CVAR_LATCH )
 		{
-			if (var->latched_string)
+			if( var->latched_string )
 			{
-				if (!com_strcmp(value, var->latched_string))
+				if(!com_strcmp(value, var->latched_string))
 					return var;
-				Mem_Free (var->latched_string);
+				Mem_Free( var->latched_string );
 			}
 			else
 			{
@@ -311,15 +311,15 @@ cvar_t *Cvar_Set2 (const char *var_name, const char *value, bool force)
 			var->modificationCount++;
 			return var;
 		}
-		if ( (var->flags & CVAR_CHEAT) && !Cvar_VariableInteger("host_cheats"))
+		if((var->flags & CVAR_CHEAT) && !Cvar_VariableInteger("host_cheats"))
 		{
-			MsgDev(D_INFO, "%s is cheat protected.\n", var_name);
+			MsgDev( D_INFO, "%s is cheat protected.\n", var_name );
 			return var;
 		}
 	}
 	else
 	{
-		if (var->latched_string)
+		if( var->latched_string )
 		{
 			Mem_Free(var->latched_string);
 			var->latched_string = NULL;
@@ -358,7 +358,7 @@ Cvar_SetLatched
 */
 void Cvar_SetLatched( const char *var_name, const char *value )
 {
-	Cvar_Set2 (var_name, value, false);
+	Cvar_Set2( var_name, value, false );
 }
 
 /*
@@ -379,7 +379,7 @@ void Cvar_FullSet( char *var_name, char *value, int flags )
 	}
 	var->modified = true;
 
-	if (var->flags & CVAR_USERINFO)
+	if( var->flags & CVAR_USERINFO )
 	{
 		// transmit at next oportunity
 		com.userinfo_modified = true;
@@ -729,6 +729,36 @@ void Cvar_Restart_f( void )
 
 /*
 ============
+Cvar_Latched_f
+
+Now all latched strings is valid
+============
+*/
+void Cvar_Latched_f( void )
+{
+	cvar_t	*var;
+	cvar_t	**prev;
+
+	prev = &cvar_vars;
+
+	while ( 1 )
+	{
+		var = *prev;
+		if( !var ) break;
+
+		if ( var->flags & CVAR_LATCH && var->latched_string )
+		{
+			Msg("set %s = %s\n", var->name, var->latched_string );
+			Cvar_FullSet( var->name, var->latched_string, var->flags );
+			Mem_Free( var->latched_string );
+			var->latched_string = NULL;
+		}
+		prev = &var->next;
+	}
+}
+
+/*
+============
 Cvar_Init
 
 Reads in all archived cvars
@@ -743,6 +773,7 @@ void Cvar_Init (void)
 	Cmd_AddCommand ("setc", Cvar_SetC_f, "create or change the value of a systeminfo variable");
 	Cmd_AddCommand ("seta", Cvar_SetA_f, "create or change the value of a console variable that will be saved to vars.rc");
 	Cmd_AddCommand ("reset", Cvar_Reset_f, "reset any type variable to initial value" );
+	Cmd_AddCommand ("latch", Cvar_Latched_f, "apply latched values" );
 	Cmd_AddCommand ("cvarlist", Cvar_List_f, "display all console variables beginning with the specified prefix" );
 	Cmd_AddCommand ("unsetall", Cvar_Restart_f, "reset all console variables to their default values" );
 

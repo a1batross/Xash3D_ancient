@@ -1919,6 +1919,11 @@ static void Cvar_LookupBitInfo(const char *name, const char *string, const char 
 	Info_SetValueForKey((char *)info, (char *)name, (char *)string);
 }
 
+static void Cvar_LookupLatched( const char *name, const char *string, const char *latched, void *unused )
+{
+Cvar_SetLatched( name, string );
+}
+
 char *Cvar_Userinfo (void)
 {
 	sv_info[0] = 0; // clear previous calls

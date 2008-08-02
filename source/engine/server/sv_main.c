@@ -45,7 +45,7 @@ SV_CalcPings
 Updates the cl->ping variables
 ===================
 */
-void SV_CalcPings (void)
+void SV_CalcPings( void )
 {
 	int		i, j;
 	sv_client_t	*cl;
@@ -126,10 +126,6 @@ void SV_PacketEvent( netadr_t from, sizebuf_t *msg )
 		break;
 	}
 	if( i != Host_MaxClients()) return;
-
-	// if we received a sequenced packet from an address we don't recognize,
-	// send an out of band disconnect packet to it
-	Netchan_OutOfBandPrint( NS_SERVER, from, "disconnect\n" );
 	SV_VM_End();
 }
 
@@ -157,14 +153,12 @@ void SV_CheckTimeouts( void )
 	zombiepoint = svs.realtime - 1000 * zombietime->value;
 
 	if( host_frametime->modified )
-		Cvar_SetValue( "host_frametime", bound( 0.001f, host_frametime->value, 0.1f ));
+		Cvar_SetValue( "host_frametime", bound( 0.01f, host_frametime->value, 0.1f ));
 
 	for( i = 0, cl = svs.clients; i < Host_MaxClients(); i++, cl++ )
 	{
 		// message times may be wrong across a changelevel
-		if( cl->lastmessage > svs.realtime )
-			cl->lastmessage = svs.realtime;
-
+		if( cl->lastmessage > svs.realtime ) cl->lastmessage = svs.realtime;
 		if( cl->state == cs_zombie && cl->lastmessage < zombiepoint )
 		{
 			cl->state = cs_free; // can now be reused
@@ -172,7 +166,7 @@ void SV_CheckTimeouts( void )
 		}
 		if(( cl->state == cs_connected || cl->state == cs_spawned) && cl->lastmessage < droppoint )
 		{
-			SV_BroadcastPrintf (PRINT_CONSOLE, "%s timed out\n", cl->name );
+			SV_BroadcastPrintf( PRINT_CONSOLE, "%s timed out\n", cl->name );
 			SV_DropClient( cl ); 
 			cl->state = cs_free; // don't bother with zombie state
 		}
@@ -189,6 +183,8 @@ void SV_RunGameFrame (void)
 {
 	if( sv_paused->integer && Host_MaxClients() == 1 )
 		return;
+
+	if( sv.state != ss_active ) return;
 
 	// we always need to bump framenum, even if we
 	// don't run the world, otherwise the delta
@@ -219,17 +215,13 @@ void SV_Frame( dword time )
 	// if server is not active, do nothing
 	if( !svs.initialized ) return;
 	svs.realtime += time;
+	svs.timeleft += sv_paused->integer ? 0 : time;
 
 	// keep the random time dependent
 	rand ();
 
-	// setup the VM frame
-	SV_VM_Begin();
-
 	// check timeouts
 	SV_CheckTimeouts ();
-
-	if( !sv_playersonly->integer ) pe->Frame( sv.frametime );
 
 	// move autonomous things around if enough time has passed
 	if( svs.realtime < (sv.time * 1000))
@@ -242,9 +234,11 @@ void SV_Frame( dword time )
 		}
 
 		NET_Sleep((sv.time*1000) - svs.realtime);
-		SV_VM_End(); //end frame
 		return;
 	}
+
+	// setup the VM frame
+	SV_VM_Begin();
 
 	// update ping based on the last known frame from all clients
 	SV_CalcPings ();
@@ -360,10 +354,10 @@ void SV_Init (void)
 	Cvar_Get ("timelimit", "0", CVAR_SERVERINFO, "multiplayer timelimit" );
 	Cvar_Get ("protocol", va("%i", PROTOCOL_VERSION), CVAR_SERVERINFO|CVAR_INIT, "displays server protocol version" );
 
-	sv_fps = Cvar_Get( "sv_fps", "60", CVAR_ARCHIVE, "running server at" );
+	sv_fps = Cvar_Get( "sv_fps", "60", CVAR_ARCHIVE, "running physics engine at" );
 	sv_stepheight = Cvar_Get( "sv_stepheight", "18", CVAR_ARCHIVE|CVAR_LATCH, "how high you can step up" );
 	sv_playersonly = Cvar_Get( "playersonly", "0", 0, "freezes time, except for players" );
-	hostname = Cvar_Get ("hostname", "unnamed", CVAR_SERVERINFO | CVAR_ARCHIVE, "host name" );
+	hostname = Cvar_Get ("sv_hostname", "unnamed", CVAR_SERVERINFO | CVAR_ARCHIVE, "host name" );
 	timeout = Cvar_Get ("timeout", "125", 0, "connection timeout" );
 	zombietime = Cvar_Get ("zombietime", "2", 0, "timeout for clients-zombie (who died but not respawned)" );
 	sv_paused = Cvar_Get ("paused", "0", 0, "server pause" );

@@ -413,17 +413,17 @@ void V_RenderView( void )
 
 		// never let it sit exactly on a node line, because a water plane can
 		// dissapear when viewed with the eye exactly on it.
-		// the server protocol only specifies to 1/8 pixel, so add 1/16 in each axis
-		cl.refdef.vieworg[0] += 1.0/16;
-		cl.refdef.vieworg[1] += 1.0/16;
-		cl.refdef.vieworg[2] += 1.0/16;
+		// the server protocol only specifies to 1/16 pixel, so add 1/32 in each axis
+		cl.refdef.vieworg[0] += 1.0 / 32;
+		cl.refdef.vieworg[1] += 1.0 / 32;
+		cl.refdef.vieworg[2] += 1.0 / 32;
 
 		cl.refdef.x = scr_vrect.x;
 		cl.refdef.y = scr_vrect.y;
 		cl.refdef.width = scr_vrect.width;
 		cl.refdef.height = scr_vrect.height;
 		cl.refdef.fov_y = V_CalcFov (cl.refdef.fov_x, cl.refdef.width, cl.refdef.height);
-		cl.refdef.time = cl.time * 0.001f; // render use realtime now
+		cl.refdef.time = cls.realtime * 0.001f; // render use realtime now
 
 		cl.refdef.areabits = cl.frame.areabits;
 

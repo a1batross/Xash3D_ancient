@@ -77,7 +77,6 @@ typedef struct server_s
 
 	float		time;		// always sv.framenum * 50 msec
 	float		frametime;
-	dword		timeleft;
 	int		framenum;
 
 	char		name[MAX_QPATH];	// map name, or cinematic name
@@ -217,6 +216,7 @@ typedef struct
 {
 	bool		initialized;		// sv_init has completed
 	dword		realtime;			// always increasing, no clamping, etc
+	dword		timeleft;
 
 	string		mapcmd;				// ie: *intro.cin+base 
 	string		comment;			// map name, e.t.c. 
