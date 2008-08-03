@@ -31,6 +31,7 @@ byte *r_temppool;
 int GL_TEXTURE0, GL_TEXTURE1;
 
 model_t *r_worldmodel;
+model_t *r_models[MAX_MODELS];
 
 float gldepthmin, gldepthmax;
 
@@ -47,8 +48,8 @@ image_t *r_particletexture;// little dot for particles
 image_t *r_radarmap; // wall texture for radar texgen
 image_t *r_around;
 
-entity_t	*currententity;
-model_t	*currentmodel;
+ref_entity_t	*currententity;
+model_t			*currentmodel;
 
 cplane_t	frustum[4];
 
@@ -77,9 +78,9 @@ float	r_base_world_matrix[16];
 //
 // screen size info
 //
-refdef_t	r_newrefdef;
+refdef_t	r_newrefdef;	// proceeed refdef
 
-int		r_viewcluster, r_viewcluster2, r_oldviewcluster, r_oldviewcluster2;
+int	r_viewcluster, r_viewcluster2, r_oldviewcluster, r_oldviewcluster2;
 
 cvar_t	*r_check_errors;
 cvar_t	*r_norefresh;
@@ -186,7 +187,7 @@ bool R_CullBox (vec3_t mins, vec3_t maxs)
 }
 
 
-void R_RotateForEntity (entity_t *e)
+void R_RotateForEntity( ref_entity_t *e )
 {
     pglTranslatef (e->origin[0],  e->origin[1],  e->origin[2]);
 
@@ -483,7 +484,7 @@ void R_SetFrustum (void)
 R_SetupFrame
 ===============
 */
-void R_SetupFrame (void)
+void R_SetupFrame( void )
 {
 	int i;
 	mleaf_t	*leaf;
@@ -540,7 +541,7 @@ void R_SetupFrame (void)
 	{
 		pglEnable( GL_SCISSOR_TEST );
 		pglClearColor( 0.3f, 0.3f, 0.3f, 1 );
-		pglScissor( r_newrefdef.x, r_height->integer - r_newrefdef.height - r_newrefdef.y, r_newrefdef.width, r_newrefdef.height );
+		pglScissor( r_newrefdef.rect.x, r_height->integer - r_newrefdef.rect.height - r_newrefdef.rect.y, r_newrefdef.rect.width, r_newrefdef.rect.height );
 		pglClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 		pglClearColor( 1, 0, 0.5, 0.5 );
 		pglDisable( GL_SCISSOR_TEST );
@@ -563,10 +564,10 @@ void R_SetupGL (void)
 	//
 	pglMatrixMode( GL_PROJECTION );
 	pglLoadIdentity();
-	x = floor(r_newrefdef.x * r_width->integer / r_width->integer);
-	x2 = ceil((r_newrefdef.x + r_newrefdef.width) * r_width->integer / r_width->integer);
-	y = floor(r_height->integer - r_newrefdef.y * r_height->integer / r_height->integer);
-	y2 = ceil(r_height->integer - (r_newrefdef.y + r_newrefdef.height) * r_height->integer / r_height->integer);
+	x = floor(r_newrefdef.rect.x * r_width->integer / r_width->integer);
+	x2 = ceil((r_newrefdef.rect.x + r_newrefdef.rect.width) * r_width->integer / r_width->integer);
+	y = floor(r_height->integer - r_newrefdef.rect.y * r_height->integer / r_height->integer);
+	y2 = ceil(r_height->integer - (r_newrefdef.rect.y + r_newrefdef.rect.height) * r_height->integer / r_height->integer);
 
 	w = x2 - x;
 	h = y - y2;
@@ -578,8 +579,8 @@ void R_SetupGL (void)
 	//
 	// set up projection matrix
 	//
-	screenaspect = (float)r_newrefdef.width/r_newrefdef.height;
-//	yfov = 2*atan((float)r_newrefdef.height/r_newrefdef.width)*180/M_PI;
+	screenaspect = (float)r_newrefdef.rect.width/r_newrefdef.rect.height;
+//	yfov = 2*atan((float)r_newrefdef.rect.height/r_newrefdef.rect.width)*180/M_PI;
 
 	pglPerspective (r_newrefdef.fov_y,  screenaspect,  4,  131072 );
 
@@ -886,7 +887,7 @@ void R_SetGL2D( void )
 		n = R_DrawRSpeeds(S);
 		pglColor4f(1, 0, 1, 1);
 		for (i = 0; i < n; i++)
-			Draw_Char(r_newrefdef.width - 60 + ((i - n) * 8), r_newrefdef.height - 60, 128 + S[i]);
+			Draw_Char(r_newrefdef.rect.width - 60 + ((i - n) * 8), r_newrefdef.rect.height - 60, 128 + S[i]);
 		pglColor4f (1, 1, 1, 1);
 	} 
 
@@ -928,13 +929,155 @@ void R_SetLightLevel (void)
 
 }
 
+static bool R_AddEntityToScene( refdef_t *fd, entity_state_t *s1, entity_state_t *s2, float lerpfrac )
+{
+	uint		i, effects;
+	ref_entity_t	*refent;
+	int		max_edicts = Cvar_VariableValue( "prvm_maxedicts" );
+
+	if( !fd || !fd->entities ) return false; // not init
+	if( !s1 || !s1->model.index ) return false; // if set to invisible, skip
+	
+	if( fd->num_entities >= max_edicts )
+		return false;
+
+	refent = &fd->entities[fd->num_entities];
+	if( !s2 ) s2 = s1; // no lerping state
+
+	effects = s1->effects;
+	refent->frame = s1->model.frame;
+
+	// copy state to render
+	refent->prev.frame = s2->model.frame;
+	refent->backlerp = 1.0f - lerpfrac;
+	refent->alpha = s1->renderamt;
+	refent->body = s1->model.body;
+	refent->sequence = s1->model.sequence;		
+	refent->animtime = s1->model.animtime;
+
+	// setup latchedvars
+	refent->prev.animtime = s2->model.animtime;
+	VectorCopy( s2->origin, refent->prev.origin );
+	VectorCopy( s2->angles, refent->prev.angles );
+	refent->prev.sequence = s2->model.sequence;
+	refent->prev.frame = s2->model.frame;
+	//refent->prev.sequencetime;
+		
+	// interpolate origin
+	for( i = 0; i < 3; i++ )
+		refent->origin[i] = refent->oldorigin[i] = LerpPoint( s2->origin[i], s1->origin[i], lerpfrac );
+
+	// set skin
+	refent->skin = s1->model.skin;
+	refent->model = r_models[s1->model.index];
+	refent->weaponmodel = r_models[s1->pmodel.index];
+	refent->flags = s1->renderfx;
+
+	// calculate angles
+	if( effects & EF_ROTATE )
+	{	
+		// some bonus items auto-rotate
+		VectorSet( refent->angles, 0, anglemod(fd->time / 10), 0 );
+	}
+	else
+	{	
+		// interpolate angles
+		for( i = 0; i < 3; i++ )
+			refent->angles[i] = LerpAngle( s2->angles[i], s1->angles[i], lerpfrac );
+	}
+
+	// copy controllers
+	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
+	{
+		refent->controller[i] = s1->model.controller[i];
+		refent->prev.controller[i] = s2->model.controller[i];
+	}
+
+	// copy blends
+	for( i = 0; i < MAXSTUDIOBLENDS; i++ )
+	{
+		refent->blending[i] = s1->model.blending[i];
+		refent->prev.blending[i] = s2->model.blending[i];
+	}
+
+	if( s1->ed_type == ED_CLIENT )
+	{
+		refent->flags |= RF_PLAYERMODEL;	// only draw from mirrors
+
+		// just only for test
+		refent->controller[0] = refent->controller[1] = 90.0;
+		refent->controller[2] = refent->controller[3] = 180.0;
+		refent->sequence = 0;
+		refent->frame = 0;
+	}
+
+	// add entity
+	fd->num_entities++;
+	r_newrefdef = *fd;
+
+	return true;
+}
+
+static bool R_AddParticleToChain( refdef_t *fd, vec3_t org, float alpha, int color )
+{
+	particle_t	*p;
+
+	if( !fd || !fd->particles ) return false;
+	if( fd->num_particles >= MAX_PARTICLES)
+		return false;
+
+	p = &fd->particles[fd->num_particles];
+	VectorCopy( org, p->origin );
+	p->color = color;
+	p->alpha = alpha;
+	fd->num_particles++;
+	r_newrefdef = *fd;
+
+	return true;
+}
+
+static bool R_AddLightStyle( refdef_t *fd, int style, vec3_t color )
+{
+	lightstyle_t	*ls;
+
+	if( !fd || !fd->lightstyles ) return false;
+	if( style < 0 || style > MAX_LIGHTSTYLES )
+		return false; // invalid lightstyle
+
+	ls = &fd->lightstyles[style];
+	ls->white = color[0] + color[1] + color[2];
+	VectorCopy( color, ls->rgb );
+	r_newrefdef = *fd;
+
+	return true;
+}
+
+static bool R_AddDynamicLight( refdef_t *fd, vec3_t org, vec3_t color, float intensity )
+{
+	dlight_t	*dl;
+
+	if( !fd || !fd->dlights ) return false;
+	if( fd->num_dlights >= MAX_DLIGHTS )
+		return false;
+
+	dl = &fd->dlights[fd->num_dlights];
+	VectorCopy( org, dl->origin );
+	VectorCopy( color, dl->color );
+	dl->intensity = intensity;
+	fd->num_dlights++;
+	r_newrefdef = *fd;
+
+	return true;
+}
+
+
 /*
 @@@@@@@@@@@@@@@@@@@@@
 R_RenderFrame
 
 @@@@@@@@@@@@@@@@@@@@@
 */
-void R_RenderFrame (refdef_t *fd)
+void R_RenderFrame( refdef_t *fd )
 {
 	r_mirroralpha->value = bound( 0.0f, r_mirroralpha->value, 1.0f );	
 	mirror = false;
@@ -943,9 +1086,8 @@ void R_RenderFrame (refdef_t *fd)
 	R_RenderView( fd );
 	if( mirror ) R_Mirror( fd );
 	GL_DrawRadar( fd );
-	R_SetLightLevel ();
-	//Sys_Break("Render Frame\n");
-	R_SetGL2D ();
+	R_SetLightLevel();
+	R_SetGL2D();
 }
 
 /*
@@ -1017,17 +1159,17 @@ void R_BeginFrame( void )
 
 	// go into 2D mode
 	pglDrawBuffer( GL_BACK );
-	pglViewport (0,0, r_width->integer, r_height->integer);
-	pglMatrixMode(GL_PROJECTION);
-	pglLoadIdentity ();
-	pglOrtho  (0, r_width->integer, r_height->integer, 0, -99999, 99999);
-	pglMatrixMode(GL_MODELVIEW);
-	pglLoadIdentity ();
-	pglDisable (GL_DEPTH_TEST);
-	pglDisable (GL_CULL_FACE);
+	pglViewport( 0, 0, r_width->integer, r_height->integer );
+	pglMatrixMode( GL_PROJECTION );
+	pglLoadIdentity();
+	pglOrtho ( 0, r_width->integer, r_height->integer, 0, -99999, 99999 );
+	pglMatrixMode( GL_MODELVIEW );
+	pglLoadIdentity();
+	pglDisable( GL_DEPTH_TEST );
+	pglDisable( GL_CULL_FACE );
 	GL_DisableBlend();
 	GL_EnableAlphaTest();
-	pglColor4f (1,1,1,1);
+	pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
 
 	/*
 	** draw buffer stuff
@@ -1078,6 +1220,38 @@ void R_EndFrame( void )
 	}
 }
 
+void R_ClearScene( refdef_t *fd )
+{
+	if( !fd ) return;
+
+	if( !fd->mempool )
+	{
+		// init arrays
+		if( fd->rdflags & RDF_NOWORLDMODEL )
+		{
+			// menu viewport not needs to many objects
+			fd->mempool = Mem_AllocPool( "Viewport Zone" );
+			fd->entities = (ref_entity_t *)Mem_Alloc( fd->mempool, sizeof(ref_entity_t) * 32 );
+			fd->particles = (particle_t *)Mem_Alloc( fd->mempool, sizeof(particle_t) * 512 );
+			fd->dlights = (dlight_t *)Mem_Alloc( fd->mempool, sizeof(dlight_t) * 4 );
+		}
+		else
+		{
+			fd->mempool = Mem_AllocPool("Refdef Zone");
+			fd->entities = (ref_entity_t *)Mem_Alloc( fd->mempool, sizeof(ref_entity_t) * Cvar_VariableValue("prvm_maxedicts"));
+			fd->particles = (particle_t *)Mem_Alloc( fd->mempool, sizeof(particle_t) * MAX_PARTICLES );
+			fd->lightstyles = (lightstyle_t *)Mem_Alloc( fd->mempool, sizeof(lightstyle_t) * MAX_LIGHTSTYLES );	
+			fd->dlights = (dlight_t *)Mem_Alloc( fd->mempool, sizeof(dlight_t) * MAX_DLIGHTS );
+		}
+	}	
+
+	// clear scene
+	fd->num_dlights = 0;
+	fd->num_entities = 0;
+	fd->num_particles = 0;
+	r_newrefdef = *fd;
+}
+
 /*
 =============
 R_SetPalette
@@ -1117,27 +1291,44 @@ void R_SetPalette ( const byte *palette)
 	pglClearColor (1, 0, 0.5, 0.5);
 }
 
-/*
-===============
-R_RegisterSkin
-===============
-*/
-image_t *R_RegisterSkin (char *name)
-{
-	return R_FindImage (name, NULL, 0, it_skin);
-}
-
 //===================================================================
 
 
-void R_BeginRegistration (char *map);
-model_t	*R_RegisterModel (char *name);
-void R_SetSky (char *name, float rotate, vec3_t axis);
-void	R_EndRegistration (void);
+bool R_UploadModel( const char *name, int index )
+{
+	model_t	*mod;
 
-void	R_RenderFrame (refdef_t *fd);
+	// this array used by AddEntityToScene
+	mod = R_RegisterModel( name );
+	r_models[index] = mod;
 
-image_t	*Draw_FindPic (char *name);
+	return (mod != NULL);	
+}
+
+bool R_UploadImage( const char *name, int index )
+{
+	string	filename;
+	image_t	*texture;
+
+	// nothing to load
+	if( !r_worldmodel ) return false;
+	loadmodel = r_worldmodel;
+
+	// all textures are loaded
+	if( !com.strcmp( loadmodel->name, name ) && loadmodel->num_textures == loadmodel->numtexinfo )
+		return false;
+
+	com.strncpy( filename, Mod_GetStringFromTable( loadmodel->texinfo[index].texid ), sizeof(filename));
+	texture = R_FindImage( filename, NULL, 0, it_wall );
+
+	if(!texture) Msg("returned null image!\n");
+	if(texture == r_notexture ) Msg("returned r_notexture!\n");
+	
+	if( texture ) loadmodel->texinfo[index].image = texture;
+	loadmodel->num_textures++;
+
+	return true;
+}
 
 /*
 @@@@@@@@@@@@@@@@@@@@@
@@ -1153,7 +1344,7 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	// Sys_LoadLibrary can create fake instance, to check
 	// api version and api size, but second argument will be 0
 	// and always make exception, run simply check for avoid it
-	if(engfuncs) ri = *engfuncs;
+	if( engfuncs ) ri = *engfuncs;
 
 	// generic functions
 	re.api_size = sizeof(render_exp_t);
@@ -1162,11 +1353,17 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.Shutdown = R_Shutdown;
 	
 	re.BeginRegistration = R_BeginRegistration;
-	re.RegisterModel = R_RegisterModel;
-	re.RegisterSkin = R_RegisterSkin;
+	re.RegisterModel = R_UploadModel;
+	re.RegisterImage = R_UploadImage;
 	re.RegisterPic = Draw_FindPic;
 	re.SetSky = R_SetSky;
 	re.EndRegistration = R_EndRegistration;
+
+	re.AddLightStyle = R_AddLightStyle;
+	re.AddRefEntity = R_AddEntityToScene;
+	re.AddDynLight = R_AddDynamicLight;
+	re.AddParticle = R_AddParticleToChain;
+	re.ClearScene = R_ClearScene;
 
 	re.BeginFrame = R_BeginFrame;
 	re.RenderFrame = R_RenderFrame;

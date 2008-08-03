@@ -19,6 +19,7 @@ typedef enum
 	DPVERROR_COLORMASKSOVERLAP,
 	DPVERROR_COLORMASKSEXCEEDBPP,
 	DPVERROR_UNSUPPORTEDBPP,
+	DPVERROR_UNKNOWN
 } e_dpv_errors;
 
 typedef enum
@@ -579,6 +580,8 @@ int dpv_video( void *stream, void *imagedata, uint Rmask, uint Gmask, uint Bmask
 	uint		framedatasize;
 	char		t[4];
 
+	if( !stream ) return DPVERROR_UNKNOWN;
+
 	s->error = DPVERROR_NONE;
 	if( dpv_setpixelformat( s, Rmask, Gmask, Bmask, bpp ))
 		return s->error;
@@ -629,9 +632,7 @@ void CIN_StopCinematic( void )
 	if( cin_state == cin_playback )
 	{
 		cin_state = cin_firstframe;
-		// let game known about movie state	
 		cls.state = ca_disconnected;
-		Cbuf_ExecuteText(EXEC_APPEND, "killserver\n");
 	}
 }
 
@@ -736,8 +737,9 @@ bool CIN_PlayCinematic( const char *filename )
 	frame_num = -1;
 	frame_rate = dpv_getframerate( stream );
 	start_time = cls.realtime;
+	com.strncpy( cls.servername, filename, sizeof(cls.servername));
 	cls.state = ca_cinematic;
-
+				
 	return true;
 }
 
@@ -786,14 +788,23 @@ void SCR_StopCinematic( void )
 
 /*
 ====================
-SCR_FinishCinematic
+CL_PlayVideo_f
 
-Called when either the cinematic completes, or it is aborted
+movie <moviename>
 ====================
 */
-void SCR_FinishCinematic( void )
+void CL_PlayVideo_f( void )
 {
-	// tell the server to advance to the next map / cinematic
-	MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
-	MSG_Print( &cls.netchan.message, va("nextserver %i\n", cl.servercount));
+	if( Cmd_Argc() != 2 )
+	{
+		Msg( "movie <moviename>\n" );
+		return;
+	}
+	if( cls.state == ca_active )
+	{
+		// killserver first
+		Cbuf_AddText(va("killserver\n; wait\n; movie %s\n;", Cmd_Argv(1)));
+		return;
+	}
+	SCR_PlayCinematic( Cmd_Argv(1), 0 );
 }

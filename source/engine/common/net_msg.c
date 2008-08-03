@@ -10,6 +10,7 @@
 static net_field_t ent_fields[] =
 {
 { ES_FIELD(ed_type),		NET_BYTE,	 true	},
+{ ES_FIELD(classname),		NET_WORD,  true	},
 { ES_FIELD(soundindex),		NET_WORD,	 false	},	// 512 sounds ( OpenAL software limit is 255 )
 { ES_FIELD(origin[0]),		NET_FLOAT, false	},
 { ES_FIELD(origin[1]),		NET_FLOAT, false	},
@@ -98,16 +99,12 @@ static net_field_t ent_fields[] =
 { ES_FIELD(maxspeed),		NET_WORD,  false	},	// send flags (third 4 bytes )
 { ES_FIELD(fov),			NET_FLOAT, false	},	// client horizontal field of view
 { ES_FIELD(health),			NET_FLOAT, false	},	// client health
-{ ES_FIELD(vmodel.index),		NET_WORD,  false	},	// 4096 models 
-{ ES_FIELD(vmodel.colormap),		NET_LONG,  false	},	// 4096 models 
-{ ES_FIELD(vmodel.sequence),		NET_WORD,  false	},	// 1024 sequences
-{ ES_FIELD(vmodel.frame),		NET_FLOAT, false	},	// interpolate value
-{ ES_FIELD(vmodel.body),		NET_BYTE,  false	},	// 255 bodies
-{ ES_FIELD(vmodel.skin),		NET_BYTE,  false	},	// 255 skins
 { ES_FIELD(pmodel.index),		NET_WORD,  false	},	// 4096 models 
 { ES_FIELD(pmodel.colormap),		NET_LONG,  false	},	// 4096 models 
 { ES_FIELD(pmodel.sequence),		NET_WORD,  false	},	// 1024 sequences
-{ ES_FIELD(vmodel.frame),		NET_FLOAT, false	},	// interpolate value
+{ ES_FIELD(pmodel.frame),		NET_FLOAT, false	},	// interpolate value
+{ ES_FIELD(pmodel.body),		NET_BYTE,  false	},	// 255 bodies
+{ ES_FIELD(pmodel.skin),		NET_BYTE,  false	},	// 255 skins
 { NULL },							// terminator
 };
 
@@ -671,61 +668,20 @@ player state communication
 ============================================================================
 */
 /*
-=============
-MSG_WriteDeltaPlayerstate
-
-=============
-*/
-void MSG_WriteDeltaPlayerstate( entity_state_t *from, entity_state_t *to, sizebuf_t *msg )
-{
-	entity_state_t	dummy;
-	entity_state_t	*ops, *ps = to;
-	net_field_t	*field, *field2;
-	int		*fromF, *toF;
-	int		i, j, k;
-	uint		flags = 0;
-	
-	if( !from )
-	{
-		memset (&dummy, 0, sizeof(dummy));
-		ops = &dummy;
-	}
-	else ops = from;
-	from = to;
-	
-	MSG_WriteByte( msg, svc_playerinfo );
- 
-	for( i = j = 0, field = field2 = ent_fields; field->name; i++, j++, field++ )
-	{
-		fromF = (int *)((byte *)ops + field->offset );
-		toF = (int *)((byte *)ps + field->offset );		
-		if(*fromF != *toF || field->force) flags |= 1<<j;
-		if( j > 31 || !ent_fields[i+1].name) // dump packet
-		{
-			MSG_WriteLong( msg, flags );	// send flags who indicates changes
-			for( k = 0; field2->name; k++, field2++ )
-			{
-				if( k > 31 ) break; // return to main cycle
-				toF = (int *)((byte *)ps + field2->offset );
-				if( flags & 1<<k ) MSG_WriteBits( msg, *toF, field2->bits );
-			}
-			j = flags = 0;
-		}
-	}
-}
-
-
-/*
 ===================
-MSG_ReadDeltaPlayerstate
+MSG_ParseDeltaPlayer
 ===================
 */
-void MSG_ReadDeltaPlayerstate( sizebuf_t *msg, entity_state_t *from, entity_state_t *to )
+entity_state_t MSG_ParseDeltaPlayer( entity_state_t *from, entity_state_t *to )
 {
 	net_field_t	*field;
-	int		*fromF, *toF;
-	entity_state_t	dummy;
-	uint		i, flags;
+	int		*fromF, *toF, *outF;
+	entity_state_t	dummy, result, *out;
+	uint		i;
+
+	// alloc space to copy state
+	memset( &result, 0, sizeof( result ));
+	out = &result;
 
 	// clear to old value before delta parsing
 	if( !from )
@@ -733,16 +689,15 @@ void MSG_ReadDeltaPlayerstate( sizebuf_t *msg, entity_state_t *from, entity_stat
 		from = &dummy;
 		memset( &dummy, 0, sizeof( dummy ));
 	}
-	*to = *from;
+	*out = *from;
 	
 	for( i = 0, field = ent_fields; field->name; i++, field++ )
 	{
-		// get flags of next packet if LONG out of range
-		if((i & 31) == 0) flags = MSG_ReadLong( msg );
 		fromF = (int *)((byte *)from + field->offset );
 		toF = (int *)((byte *)to + field->offset );
-		
-		if(flags & (1<<i)) *toF = MSG_ReadBits( msg, field->bits );
-		else *toF = *fromF;	// no change
+		outF = (int *)((byte *)out + field->offset );
+		if( *fromF != *toF ) *outF = *toF;
 	}
+
+	return result;
 }

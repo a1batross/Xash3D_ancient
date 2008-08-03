@@ -223,6 +223,7 @@ bool SV_ClientConnect( edict_t *ent, char *userinfo )
 
 	// make sure we start with known default
 	ent->progs.sv->flags = 0;
+	ent->progs.sv->aiflags = 0;
 
 	MsgDev(D_NOTE, "SV_ClientConnect()\n");
 	prog->globals.sv->time = sv.time;
@@ -480,6 +481,7 @@ void SV_PutClientInServer( edict_t *ent )
 {
 	int		index;
 	sv_client_t	*client;
+	edict_t		*viewmodel;
 	int		i;
           
 	index = PRVM_NUM_FOR_EDICT( ent ) - 1;
@@ -499,18 +501,42 @@ void SV_PutClientInServer( edict_t *ent )
 		ent->progs.sv->v_angle[ROLL] = 0;	// cut off any camera rolling
 		ent->progs.sv->origin[2] += 1;	// make sure off ground
 		VectorCopy( ent->progs.sv->origin, ent->progs.sv->old_origin );
+
+		// create viewmodel
+		viewmodel = PRVM_ED_Alloc();
+		viewmodel->progs.sv->classname = PRVM_SetEngineString( "viewmodel" );
+		VectorCopy( ent->progs.sv->view_ofs, viewmodel->progs.sv->view_ofs );
+		VectorCopy( ent->progs.sv->origin, viewmodel->progs.sv->origin );
+		VectorCopy( ent->progs.sv->angles, viewmodel->progs.sv->angles );
+		viewmodel->progs.sv->model = ent->progs.sv->v_model;
+
+		// make cross links for consistency
+		viewmodel->progs.sv->aiment = PRVM_NUM_FOR_EDICT( ent );
+		ent->progs.sv->aiment = PRVM_NUM_FOR_EDICT( viewmodel );
+
+		// setup viewflags
+		viewmodel->progs.sv->renderfx = RF_MINLIGHT | RF_DEPTHHACK | RF_VIEWMODEL;
+	}
+	else
+	{
+		// restore viewmodel
+		viewmodel = PRVM_EDICT_NUM( ent->progs.sv->aiment );
 	}
 
 	ent->priv.sv->s.fov = 90;	// FIXME: get from qc
 	ent->priv.sv->s.fov = bound(1, ent->priv.sv->s.fov, 160);
 	ent->priv.sv->s.health = ent->progs.sv->health;
-	ent->priv.sv->s.vmodel.index = SV_ModelIndex(PRVM_GetString(ent->progs.sv->v_model));
-	ent->priv.sv->s.pmodel.index = SV_ModelIndex(PRVM_GetString(ent->progs.sv->p_model));
+//ent->priv.sv->s.classname = SV_ClassIndex(PRVM_GetString( ent->progs.sv->classname ));
+	ent->priv.sv->s.pmodel.index = SV_ModelIndex(PRVM_GetString( ent->progs.sv->p_model));
 	VectorCopy( ent->progs.sv->origin, ent->priv.sv->s.origin );
 	VectorCopy( ent->progs.sv->v_angle, ent->priv.sv->s.viewangles );
 	for( i = 0; i < 3; i++ ) ent->priv.sv->s.delta_angles[i] = ANGLE2SHORT(ent->progs.sv->v_angle[i]);
+	viewmodel->priv.sv->s.ed_type = ED_VIEWMODEL; // set entity type
+	viewmodel->progs.sv->modelindex = SV_ModelIndex(PRVM_GetString(viewmodel->progs.sv->model));
+//viewmodel->priv.sv->s.classname = SV_ClassIndex(PRVM_GetString(viewmodel->progs.sv->classname));
 
 	SV_LinkEdict( ent ); // m_pmatrix calculated here, so we need call this before pe->CreatePlayer
+//SV_LinkEdict( viewmodel );
 	ent->priv.sv->physbody = pe->CreatePlayer( ent->priv.sv, SV_GetModelPtr( ent ), ent->progs.sv->m_pmatrix );
 }
 
@@ -546,9 +572,6 @@ void SV_New_f( sv_client_t *cl )
 	MSG_WriteByte( &cl->netchan.message, svc_serverdata );
 	MSG_WriteLong( &cl->netchan.message, PROTOCOL_VERSION);
 	MSG_WriteLong( &cl->netchan.message, svs.spawncount );
-
-	if( sv.state == ss_cinematic ) playernum = -1;
-	else playernum = sv_client - svs.clients;
 	MSG_WriteShort( &cl->netchan.message, playernum );
 	MSG_WriteString( &cl->netchan.message, sv.configstrings[CS_NAME] );
 
@@ -1033,6 +1056,14 @@ void SV_ApplyClientMove( sv_client_t *cl, usercmd_t *cmd )
 	else if( ent->priv.sv->s.viewangles[PITCH] < 271 && ent->priv.sv->s.viewangles[PITCH] >= 180 )
 		ent->priv.sv->s.viewangles[PITCH] = 271;
 
+	// test
+	if((int)ent->progs.sv->aiflags & AI_DUCKED )
+	{
+		cmd->forwardmove *= 0.333;
+		cmd->sidemove    *= 0.333;
+		cmd->upmove      *= 0.333;
+	}
+
 	VectorCopy( ent->priv.sv->s.viewangles, cl->edict->progs.sv->v_angle );
 	VectorCopy( ent->priv.sv->s.viewangles, cl->edict->progs.sv->angles );
 	VectorCopy( ent->progs.sv->view_ofs, cl->edict->priv.sv->s.viewoffset );
@@ -1287,7 +1318,7 @@ void SV_ClientThink( sv_client_t *cl, usercmd_t *cmd )
 	// may have been kicked during the last usercmd
 	if( sv_paused->integer ) return;
 
-	SV_ApplyClientMove( cl, cmd );
+	SV_ApplyClientMove( cl, &cl->cmd );
 	// make sure the velocity is sane (not a NaN)
 	SV_CheckVelocity( cl->edict );
 

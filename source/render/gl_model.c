@@ -42,7 +42,7 @@ int registration_sequence;
 
 const char *Mod_GetStringFromTable( int index )
 {
-	if(loadmodel->stringdata)
+	if( loadmodel->stringdata )
 		return &loadmodel->stringdata[loadmodel->stringtable[index]];
 	return NULL;
 }
@@ -174,19 +174,19 @@ Mod_ForName
 Loads in a model for the given name
 ==================
 */
-model_t *Mod_ForName(char *name, bool crash)
+model_t *Mod_ForName( const char *name, bool crash)
 {
 	model_t	*mod;
 	uint	*buf;
 	int	i;
 	
-	if (!name[0]) return NULL;
+	if( !name[0] ) return NULL;
 
 	// inline models are grabbed only from worldmodel
-	if (name[0] == '*')
+	if( name[0] == '*' )
 	{
-		i = atoi(name + 1);
-		if (i < 1 || !r_worldmodel || i >= r_worldmodel->numsubmodels)
+		i = com.atoi(name + 1);
+		if( i < 1 || !r_worldmodel || i >= r_worldmodel->numsubmodels)
 		{
 			Msg("Warning: bad inline model number %i\n", i );
 			return NULL;
@@ -197,7 +197,7 @@ model_t *Mod_ForName(char *name, bool crash)
 	}
 
 	// search the currently loaded models
-	for (i = 0, mod = mod_known; i < mod_numknown; i++, mod++)
+	for( i = 0, mod = mod_known; i < mod_numknown; i++, mod++ )
 	{
 		if (!mod->name[0]) continue;
 		if (!com.strcmp (mod->name, name))
@@ -457,38 +457,27 @@ void Mod_LoadSurfDesc( lump_t *l )
 
 	for ( i = 0; i < count; i++, in++, out++)
 	{
-		char texname[128];
-
-		for (j = 0; j < 8; j++)
+		for( j = 0; j < 8; j++ )
 			out->vecs[0][j] = LittleFloat(in->vecs[0][j]);
 
 		out->flags = LittleLong (in->flags);
 		next = LittleLong (in->animid);
-		if (next > 0) out->next = loadmodel->texinfo + next;
+		if( next > 0 ) out->next = loadmodel->texinfo + next;
 		else out->next = NULL;
 
 		// fixed texture size
-		out->size[0] = LittleLong (in->size[0]);
-		out->size[1] = LittleLong (in->size[1]);
-
-		com.strncpy( texname, Mod_GetStringFromTable( LittleLong( in->texid )), sizeof(texname));
-		out->image = R_FindImage( texname, NULL, 0, it_wall );
-		if(out->image)
-		{
-			Cvar_SetValue("scr_loading", r_loading->value + 45.0f/count );
-		}
-		else
-		{
-			Msg("Couldn't load %s\n", texname );
-			out->image = r_notexture;
-		}
+		out->size[0] = LittleLong( in->size[0] );
+		out->size[1] = LittleLong( in->size[1] );
+		out->texid = LittleLong( in->texid );		// will be loading later
+		out->image = r_notexture;			// make default
 	}
+
 	// count animation frames
-	for (i = 0; i < count; i++)
+	for( i = 0; i < count; i++ )
 	{
 		out = &loadmodel->texinfo[i];
 		out->numframes = 1;
-		for (step = out->next; step && step != out; step = step->next)
+		for( step = out->next; step && step != out; step = step->next )
 			out->numframes++;
 	}
 }
@@ -913,8 +902,9 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer)
 	Mod_LoadSubmodels (&header->lumps[LUMP_MODELS]);
 	Mod_SetupSubmodels( mod );// set up the submodels
 
-	mod->numframes = 2;	// regular and alternate animation
-	mod->registration_sequence = registration_sequence;//register model
+	mod->numframes = 2;					// regular and alternate animation
+	mod->registration_sequence = registration_sequence;	// register model
+	loadmodel->num_textures = 0;				// waiting for load
 }
 
 /*
@@ -959,16 +949,9 @@ void R_BeginRegistration (char *model)
 
 	// explicitly free the old map if different
 	// this guarantees that mod_known[0] is the world map
-	if(com.strcmp(mod_known[0].name, fullname))
-	{
-		Mod_Free (&mod_known[0]);
-	}
-	else 
-	{
-		// textures already loaded
-		Cvar_SetValue("scr_loading", r_loading->value + 45.0f );
-	}
-	r_worldmodel = Mod_ForName(fullname, true);
+	if( com.strcmp( mod_known[0].name, fullname ))
+		Mod_Free( &mod_known[0] );
+	r_worldmodel = Mod_ForName( fullname, true );
 
 	r_viewcluster = -1;
 }
@@ -980,7 +963,7 @@ R_RegisterModel
 
 @@@@@@@@@@@@@@@@@@@@@
 */
-model_t *R_RegisterModel (char *name)
+model_t *R_RegisterModel (const char *name)
 {
 	model_t		*mod;
 	int		i;
@@ -990,6 +973,7 @@ model_t *R_RegisterModel (char *name)
 	{
 		switch(mod->type)
 		{
+		case mod_world:
 		case mod_brush:
 			for (i = 0; i < mod->numtexinfo; i++)
 				mod->texinfo[i].image->registration_sequence = registration_sequence;

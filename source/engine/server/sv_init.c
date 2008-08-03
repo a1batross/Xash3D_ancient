@@ -34,14 +34,13 @@ int SV_FindIndex (const char *name, int start, int end, bool create)
 {
 	int		i = 0;
 	
-	if (!name || !name[0]) return 0;
+	if(!name || !name[0]) return 0;
 
-	for (i = 1; i < end && sv.configstrings[start+i][0]; i++)
+	for( i = 1; i < end && sv.configstrings[start+i][0]; i++ )
 		if(!com.strcmp(sv.configstrings[start+i], name))
 			return i;
-	if(!create) return 0;
-
-	if (i == end) 
+	if( !create ) return 0;
+	if( i == end ) 
 	{
 		MsgDev( D_WARN, "SV_FindIndex: %d out of range [%d - %d]\n", start, end );
 		return 0;
@@ -50,14 +49,14 @@ int SV_FindIndex (const char *name, int start, int end, bool create)
 	// register new resource
 	com.strncpy (sv.configstrings[start+i], name, sizeof(sv.configstrings[i]));
 
-	if (sv.state != ss_loading)
+	if( sv.state != ss_loading )
 	{	
 		// send the update to everyone
 		MSG_Clear( &sv.multicast );
-		MSG_Begin(svc_configstring);
-		MSG_WriteShort (&sv.multicast, start + i);
-		MSG_WriteString (&sv.multicast, (char *)name);
-		MSG_Send(MSG_ALL_R, vec3_origin, NULL );
+		MSG_Begin( svc_configstring );
+		MSG_WriteShort( &sv.multicast, start + i );
+		MSG_WriteString( &sv.multicast, name );
+		MSG_Send( MSG_ALL_R, vec3_origin, NULL );
 	}
 	return i;
 }
@@ -73,16 +72,10 @@ int SV_SoundIndex (const char *name)
 	return SV_FindIndex (name, CS_SOUNDS, MAX_SOUNDS, true);
 }
 
-int SV_ImageIndex (const char *name)
+int SV_ClassIndex( const char *name )
 {
-	return SV_FindIndex (name, CS_IMAGES, MAX_IMAGES, true);
+	return SV_FindIndex (name, CS_CLASSNAMES, MAX_CLASSNAMES, true);
 }
-
-int SV_DecalIndex (const char *name)
-{
-	return SV_FindIndex (name, CS_DECALS, MAX_DECALS, true);
-}
-
 /*
 ================
 SV_CreateBaseline
@@ -121,7 +114,7 @@ void SV_CreateBaseline (void)
 SV_CheckForSavegame
 =================
 */
-void SV_CheckForSavegame (char *savename )
+void SV_CheckForSavegame( const char *savename )
 {
 	sv.loadgame = true; // predicting state
 
@@ -142,63 +135,50 @@ clients along with it.
 
 ================
 */
-void SV_SpawnServer( char *server, char *savename, sv_state_t serverstate )
+void SV_SpawnServer( const char *server, const char *savename )
 {
 	uint	i, checksum;
-
-	if( serverstate == ss_cinematic ) Cvar_Set ("paused", "0");
 
 	Msg("SpawnServer [%s]\n", server );
 
 	svs.spawncount++; // any partially connected client will be restarted
 	sv.state = ss_dead;
-	Host_SetServerState(sv.state);
+	Host_SetServerState( sv.state );
 
 	// wipe the entire per-level structure
-	memset (&sv, 0, sizeof(sv));
+	memset( &sv, 0, sizeof( sv ));
 	svs.realtime = 0;
 	svs.timeleft = 0;
 
 	// save name for levels that don't set message
-	com.strcpy (sv.configstrings[CS_NAME], server);
-	if( Cvar_VariableValue ("deathmatch") )
-		com.sprintf( sv.configstrings[CS_AIRACCEL], "%g", sv_airaccelerate->value );
-	else com.strcpy( sv.configstrings[CS_AIRACCEL], "0" );
-
-	MSG_Init(&sv.multicast, sv.multicast_buf, sizeof(sv.multicast_buf));
+	com.strncpy( sv.configstrings[CS_NAME], server, MAX_QPATH );
+	MSG_Init( &sv.multicast, sv.multicast_buf, sizeof(sv.multicast_buf));
 	com.strcpy( sv.name, server );
 
 	SV_VM_Begin();
 
 	// leave slots at start for clients only
-	for (i = 0; i < Host_MaxClients(); i++)
+	for( i = 0; i < Host_MaxClients(); i++ )
 	{
 		// needs to reconnect
-		if (svs.clients[i].state > cs_connected)
+		if( svs.clients[i].state > cs_connected )
 			svs.clients[i].state = cs_connected;
 		svs.clients[i].lastframe = -1;
 	}
 
 	sv.time = 1.0f;
 	
-	com.strcpy(sv.name, server);
+	com.strncpy( sv.name, server, MAX_STRING );
 	FS_FileBase(server, sv.configstrings[CS_NAME]);
 
-	if (serverstate != ss_active)
-	{
-		sv.worldmodel = sv.models[1] = pe->BeginRegistration( "", false, &checksum); // no real map
-	}
-	else
-	{
-		com.sprintf(sv.configstrings[CS_MODELS+1], "maps/%s", server);
-		sv.worldmodel = sv.models[1] = pe->BeginRegistration(sv.configstrings[CS_MODELS+1], false, &checksum);
-	}
-	com.sprintf(sv.configstrings[CS_MAPCHECKSUM], "%i", checksum);
+	com.sprintf( sv.configstrings[CS_MODELS+1], "maps/%s", server );
+	sv.worldmodel = sv.models[1] = pe->BeginRegistration( sv.configstrings[CS_MODELS+1], false, &checksum );
+	com.sprintf( sv.configstrings[CS_MAPCHECKSUM], "%i", checksum );
 
 	// clear physics interaction links
 	SV_ClearWorld();
 
-	for (i = 1; i < pe->NumBmodels(); i++)
+	for( i = 1; i < pe->NumBmodels(); i++ )
 	{
 		com.sprintf( sv.configstrings[CS_MODELS+1+i], "*%i", i );
 		sv.models[i+1] = pe->RegisterModel(sv.configstrings[CS_MODELS+1+i] );
@@ -216,12 +196,8 @@ void SV_SpawnServer( char *server, char *savename, sv_state_t serverstate )
 	// check for a savegame
 	SV_CheckForSavegame( savename );
 
-	if( serverstate == ss_active )
-	{
-		// ignore ents for cinematic servers
-		if(sv.loadgame) SV_ReadLevelFile( savename );
-		else SV_SpawnEntities( sv.name, pe->GetEntityString());
-	}        
+	if( sv.loadgame ) SV_ReadLevelFile( savename );
+	else SV_SpawnEntities( sv.name, pe->GetEntityString());
 
 	// run two frames to allow everything to settle
 	for( i = 0; i < 2; i++ )
@@ -231,11 +207,11 @@ void SV_SpawnServer( char *server, char *savename, sv_state_t serverstate )
 	}
 
 	// all precaches are complete
-	sv.state = serverstate;
+	sv.state = ss_active;
 	Host_SetServerState( sv.state );
 
 	// create a baseline for more efficient communications
-	SV_CreateBaseline ();
+	SV_CreateBaseline();
 
 	// set serverinfo variable
 	Cvar_FullSet("mapname", sv.name, CVAR_SERVERINFO | CVAR_INIT);
@@ -287,10 +263,10 @@ void SV_InitGame( void )
 	// init clients
 	if( Cvar_VariableValue( "deathmatch" ))
 	{
-		if(Host_MaxClients() <= 1)
+		if( Host_MaxClients() <= 1 )
 			Cvar_FullSet( "host_maxclients", "8", CVAR_SERVERINFO|CVAR_LATCH );
-		else if(Host_MaxClients() > MAX_CLIENTS )
-			Cvar_FullSet( "host_maxclients", va("%i", MAX_CLIENTS), CVAR_SERVERINFO|CVAR_LATCH );
+		else if( Host_MaxClients() > 255 )
+			Cvar_FullSet( "host_maxclients", va("%i", 255 ), CVAR_SERVERINFO|CVAR_LATCH );
 	}
 	else if( Cvar_VariableValue( "coop" ))
 	{

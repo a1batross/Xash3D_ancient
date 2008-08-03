@@ -12,7 +12,7 @@ cplane_t	*mirror_plane;
 msurface_t *mirrorchain = NULL;
 bool	mirror_render;	// true when reflections are being rendered
 float	r_base_world_matrix[16];
-entity_t *mirror_entity = NULL;
+ref_entity_t *mirror_entity = NULL;
 
 void Mirror_Scale( void )
 {

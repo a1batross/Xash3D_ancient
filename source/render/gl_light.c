@@ -269,10 +269,9 @@ int RecursiveLightPoint (mnode_t *node, vec3_t start, vec3_t end)
 
 			lightmap += 3*(dt * ((surf->extents[0]>>4)+1) + ds);
 
-			for (maps = 0 ; maps < MAXLIGHTMAPS && surf->styles[maps] != 255 ;
-					maps++)
+			for( maps = 0 ; maps < MAXLIGHTMAPS && surf->styles[maps] != 255; maps++ )
 			{
-				for (i=0 ; i<3 ; i++)
+				for( i = 0; i < 3; i++ )
 					scale[i] = gl_modulate->value*r_newrefdef.lightstyles[surf->styles[maps]].rgb[i];
 
 				pointcolor[0] += lightmap[0] * scale[0] * (1.0/255);
@@ -303,10 +302,11 @@ void R_LightPoint (vec3_t p, vec3_t color)
 	float		light;
 	vec3_t		dist;
 	float		add;
-	
-	if (!r_worldmodel->lightdata)
+
+	// viewport can't have lightdata	
+	if( r_newrefdef.rdflags && RDF_NOWORLDMODEL || !r_worldmodel->lightdata )
 	{
-		color[0] = color[1] = color[2] = 1.0;
+		color[0] = color[1] = color[2] = 1.0f;
 		return;
 	}
 	

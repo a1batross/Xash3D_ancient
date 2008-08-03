@@ -291,8 +291,8 @@ void Draw_StretchRaw (int x, int y, int w, int h, int cols, int rows, byte *data
 		Host_Error( "Draw_StretchRaw: size not a power of 2: %i by %i\n", cols, rows );
 	GL_Bind( 0 );
 	if( dirty ) pglTexImage2D (GL_TEXTURE_2D, 0, gl_tex_solid_format, cols, rows, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
-	pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_max);
-	pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
+	pglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_max );
+	pglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max );
 	R_SetGL2D();
 
 	pglColor4fv(gl_state.draw_color);

@@ -208,41 +208,11 @@ void SV_Map_f( void )
 
 	SV_BroadcastCommand( "changing\n" );
 	SV_SendClientMessages();
-	SV_SpawnServer( filename, NULL, ss_active );
+	SV_SpawnServer( filename, NULL );
 	SV_BroadcastCommand( "reconnect\n" );
 
 	// archive server state
 	com.strncpy( svs.mapcmd, filename, sizeof(svs.mapcmd) - 1);
-}
-
-/*
-==================
-SV_Movie_f
-
-Playing a Darkplaces video with specified name
-==================
-*/
-void SV_Movie_f( void )
-{
-	char	filename[MAX_QPATH];
-
-	if(Cmd_Argc() != 2)
-	{
-		Msg("Usage: movie <filename>\n");
-		return;
-	}
-
-	com.snprintf( filename, MAX_QPATH, "%s.dpv", Cmd_Argv(1));
-	if(!FS_FileExists(va("video/%s", filename )))
-	{
-		Msg("Can't loading %s\n", filename );
-		return;
-	}
-
-	SV_InitGame();
-	SV_BroadcastCommand( "changing\n" );
-	SV_SpawnServer( filename, NULL, ss_cinematic );
-	SV_BroadcastCommand( "reconnect\n" );
 }
 
 void SV_Newgame_f( void )
@@ -277,7 +247,7 @@ void SV_Load_f( void )
 
 	SV_ReadSaveFile( filename );
 	SV_BroadcastCommand( "changing\n" );
-	SV_SpawnServer( svs.mapcmd, filename, ss_active );
+	SV_SpawnServer( svs.mapcmd, filename );
 	SV_BroadcastCommand( "reconnect\n" );
 }
 
@@ -351,7 +321,7 @@ void SV_ChangeLevel_f( void )
 	SV_InitGame(); // reset previous state
 	SV_BroadcastCommand("changing\n");
 	SV_SendClientMessages();
-	SV_SpawnServer( filename, NULL, ss_active );
+	SV_SpawnServer( filename, NULL );
 	SV_BroadcastCommand ("reconnect\n");
 
 	// archive server state
@@ -542,7 +512,7 @@ Kick everyone off, possibly in preparation for a new game
 */
 void SV_KillServer_f (void)
 {
-	if(!svs.initialized) return;
+	if( !svs.initialized ) return;
 	com.strncpy( host.finalmsg, "Server was killed\n", MAX_STRING );
 	SV_Shutdown( false );
 }
@@ -562,7 +532,6 @@ void SV_InitOperatorCommands( void )
 
 	Cmd_AddCommand("map", SV_Map_f, "start new level" );
 	Cmd_AddCommand("newgame", SV_Newgame_f, "begin new game" );
-	Cmd_AddCommand("movie", SV_Movie_f, "playing video file" );
 	Cmd_AddCommand("changelevel", SV_ChangeLevel_f, "changing level" );
 	Cmd_AddCommand("restart", SV_Restart_f, "restarting current level" );
 	Cmd_AddCommand("sectorlist", SV_SectorList_f, "display pvs sectors" );

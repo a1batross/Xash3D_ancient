@@ -56,8 +56,7 @@ typedef enum
 {
 	ss_dead,		// no map loaded
 	ss_loading,	// spawning level edicts
-	ss_active,	// actively running
-	ss_cinematic
+	ss_active		// actively running
 } sv_state_t;
 
 typedef enum
@@ -79,7 +78,7 @@ typedef struct server_s
 	float		frametime;
 	int		framenum;
 
-	char		name[MAX_QPATH];	// map name, or cinematic name
+	string		name;		// map name, or cinematic name
 	cmodel_t		*models[MAX_MODELS];
 	cmodel_t		*worldmodel;
 
@@ -98,14 +97,14 @@ typedef struct server_s
 
 typedef struct
 {
-	entity_state_t	ps;
-	int  		areabytes;
 	byte 		areabits[MAX_MAP_AREAS/8];	// portalarea visibility bits
+	int  		areabits_size;
 	int  		num_entities;
 	int  		first_entity;		// into the circular sv_packet_entities[]
 	int		msg_sent;			// time the message was transmitted
 	int		msg_size;			// used to rate drop packets
 	int		latency;			// message latency time
+	int		index;			// client edict index
 } client_frame_t;
 
 typedef struct sv_client_s
@@ -274,8 +273,7 @@ void SV_DropClient (sv_client_t *drop);
 
 int SV_ModelIndex (const char *name);
 int SV_SoundIndex (const char *name);
-int SV_ImageIndex (const char *name);
-int SV_DecalIndex (const char *name);
+int SV_ClassIndex (const char *name);
 
 void SV_WriteClientdataToMessage (sv_client_t *client, sizebuf_t *msg);
 void SV_ExecuteUserCommand (char *s);
@@ -290,8 +288,8 @@ void Master_Packet (void);
 // sv_init.c
 //
 void SV_InitGame (void);
-void SV_Map(char *levelstring, char *savename );
-void SV_SpawnServer (char *server, char *savename, sv_state_t serverstate );
+void SV_Map( char *levelstring, char *savename );
+void SV_SpawnServer( const char *server, const char *savename );
 int SV_FindIndex (const char *name, int start, int end, bool create);
 void SV_VM_Begin(void);
 void SV_VM_End(void);
@@ -303,6 +301,7 @@ void SV_Physics( void );
 void SV_PlayerMove( sv_edict_t *ed );
 void SV_DropToFloor (edict_t *ent);
 void SV_CheckGround (edict_t *ent);
+bool SV_UnstickEntity( edict_t *ent );
 int SV_ContentsMask( const edict_t *passedict );
 bool SV_MoveStep (edict_t *ent, vec3_t move, bool relink);
 void SV_Physics_ClientMove(  sv_client_t *cl, usercmd_t *cmd );
@@ -392,7 +391,7 @@ void SV_TouchTriggers (edict_t *ent);
 //
 void SV_WriteSaveFile( char *name );
 void SV_ReadSaveFile( char *name );
-void SV_ReadLevelFile( char *name );
+void SV_ReadLevelFile( const char *name );
 //============================================================
 
 //

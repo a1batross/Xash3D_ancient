@@ -1,23 +1,7 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-// cl_ents.c -- entity parsing and management
+//=======================================================================
+//			Copyright XashXT Group 2008 ©
+//		        cl_frame.c - client world snapshot
+//=======================================================================
 
 #include "common.h"
 #include "client.h"
@@ -29,22 +13,13 @@ FRAME PARSING
 
 =========================================================================
 */
-
-float LerpAngle (float a2, float a1, float frac)
+void CL_UpdateEntityFileds( edict_t *ent )
 {
-	if (a1 - a2 > 180) a1 -= 360;
-	if (a1 - a2 < -180) a1 += 360;
-	return a2 + frac * (a1 - a2);
-}
-
-float LerpView(float org1, float org2, float ofs1, float ofs2, float frac)
-{
-	return org1 + ofs1 + frac * (org2 + ofs2 - (org1 + ofs1));
-}
-
-float LerpPoint( float oldpoint, float curpoint, float frac )
-{
-	return oldpoint + frac * (curpoint - oldpoint);
+	// copy state to progs
+	ent->progs.cl->classname = cl.edict_classnames[ent->priv.cl->current.classname];
+	ent->progs.cl->modelindex = ent->priv.cl->current.model.index;
+	ent->progs.cl->soundindex = ent->priv.cl->current.soundindex;
+	ent->progs.cl->model = PRVM_SetEngineString( cl.configstrings[CS_MODELS+ent->priv.cl->current.model.index] ); 
 }
 
 /*
@@ -98,6 +73,9 @@ void CL_DeltaEntity( sizebuf_t *msg, frame_t *frame, int newnum, entity_state_t 
 
 	ent->priv.cl->serverframe = cl.frame.serverframe;
 	ent->priv.cl->current = *state;
+
+	// update prvm fields
+	CL_UpdateEntityFileds( ent );
 }
 
 /*
@@ -214,9 +192,9 @@ CL_ParseFrame
 */
 void CL_ParseFrame( sizebuf_t *msg )
 {
-	int     		cmd;
-	int     		len;
-	frame_t 		*old;
+	int     		cmd, len;
+	edict_t		*clent;
+	frame_t		*old;
           
 	memset( &cl.frame, 0, sizeof(cl.frame));
 	cl.frame.serverframe = MSG_ReadLong( msg );
@@ -264,20 +242,23 @@ void CL_ParseFrame( sizebuf_t *msg )
 	len = MSG_ReadByte( msg );
 	MSG_ReadData( msg, &cl.frame.areabits, len );
 
-	// read playerinfo
+	// read clientinfex
 	cmd = MSG_ReadByte( msg );
-	if( cmd != svc_playerinfo ) Host_Error( "CL_ParseFrame: not playerinfo\n" );
-	if( old ) MSG_ReadDeltaPlayerstate( msg, &old->ps, &cl.frame.ps );
-	else MSG_ReadDeltaPlayerstate( msg, NULL, &cl.frame.ps );
-
-	// HACKHACK
-	if( cls.state == ca_cinematic || cls.demoplayback )
-		cl.frame.ps.pm_type = PM_FREEZE; // demo or movie playback
+	if( cmd != svc_clientindex ) Host_Error( "CL_ParseFrame: not clientindex\n" );
+	clent = PRVM_EDICT_NUM( MSG_ReadByte( msg )); // get client
 
 	// read packet entities
 	cmd = MSG_ReadByte( msg );
 	if( cmd != svc_packetentities ) Host_Error("CL_ParseFrame: not packetentities[%d]\n", cmd );
 	CL_ParsePacketEntities( msg, old, &cl.frame );
+
+	// now we can reading delta player state
+	if( old ) cl.frame.ps = MSG_ParseDeltaPlayer( &old->ps, &clent->priv.cl->current );
+	else cl.frame.ps = MSG_ParseDeltaPlayer( NULL, &clent->priv.cl->current );
+
+	// HACKHACK
+	if( cls.state == ca_cinematic || cls.demoplayback )
+		cl.frame.ps.pm_type = PM_FREEZE; // demo or movie playback
 
 	// save the frame off in the backup array for later delta comparisons
 	cl.frames[cl.frame.serverframe & UPDATE_MASK] = cl.frame;
@@ -311,101 +292,15 @@ CL_AddPacketEntities
 */
 void CL_AddPacketEntities( frame_t *frame )
 {
-	entity_t		refent;
 	entity_state_t	*s1;
-	float		autorotate;
-	int		i, pnum;
 	edict_t		*ent;
-	int		autoanim;
-	uint		effects, renderfx;
-
-	// bonus items rotate at a fixed rate
-	autorotate = anglemod( cl.time / 10 );
-
-	// brush models can auto animate their frames
-	autoanim = 2 * cl.time / 1000;
-
-	memset( &refent, 0, sizeof(refent));
+	int		pnum;
 
 	for( pnum = 0; pnum < frame->num_entities; pnum++ )
 	{
-		s1 = &cl_parse_entities[(frame->parse_entities+pnum)&(MAX_PARSE_ENTITIES-1)];
-
+		s1 = &cl_parse_entities[(frame->parse_entities + pnum)&(MAX_PARSE_ENTITIES-1)];
 		ent = PRVM_EDICT_NUM( s1->number );
-
-		effects = s1->effects;
-		renderfx = s1->renderfx;
-		refent.frame = s1->model.frame;
-
-		// copy state to progs
-		ent->progs.cl->modelindex = ent->priv.cl->current.model.index;
-		ent->progs.cl->soundindex = ent->priv.cl->current.soundindex;
-//ent->progs.cl->model = PRVM_SetEngineString( cl.configstrings[CS_MODELS+ent->priv.cl->current.model.index] ); 
-
-		// copy state to render
-		refent.prev.frame = ent->priv.cl->prev.model.frame;
-		refent.backlerp = 1.0f - cl.lerpfrac;
-		refent.alpha = s1->renderamt;
-		refent.body = s1->model.body;
-		refent.sequence = s1->model.sequence;		
-		refent.animtime = s1->model.animtime;
-
-		// setup latchedvars
-		refent.prev.animtime = ent->priv.cl->prev.model.animtime;
-		VectorCopy( ent->priv.cl->prev.origin, refent.prev.origin );
-		VectorCopy( ent->priv.cl->prev.angles, refent.prev.angles );
-		refent.prev.sequence = ent->priv.cl->prev.model.sequence;
-		refent.prev.frame = ent->priv.cl->prev.model.frame;
-		//refent.prev.sequencetime;
-		
-		// interpolate origin
-		for( i = 0; i < 3; i++ )
-		{
-			refent.origin[i] = LerpPoint( ent->priv.cl->prev.origin[i], ent->priv.cl->current.origin[i], cl.lerpfrac );
-			refent.oldorigin[i] = refent.origin[i];
-		}
-
-		// set skin
-		refent.skin = s1->model.skin;
-		refent.model = cl.model_draw[s1->model.index];
-		refent.weaponmodel = cl.model_draw[s1->pmodel.index];
-		refent.flags = renderfx;//FIXME: it's wrong!!!
-
-		// calculate angles
-		if( effects & EF_ROTATE )
-		{	
-			// some bonus items auto-rotate
-			refent.angles[0] = 0;
-			refent.angles[1] = autorotate;
-			refent.angles[2] = 0;
-		}
-		else
-		{	
-			// interpolate angles
-			for( i = 0; i < 3; i++ )
-			{
-				refent.angles[i] = LerpAngle( ent->priv.cl->prev.angles[i], ent->priv.cl->current.angles[i], cl.lerpfrac );
-			}
-		}
-
-		if( s1->number == cl.playernum + 1 )
-		{
-			refent.flags |= RF_PLAYERMODEL;	// only draw from mirrors
-
-			// just only for test
-			refent.controller[0] = 90.0;
-			refent.controller[1] = 90.0;
-			refent.controller[2] = 180.0;
-			refent.controller[3] = 180.0;
-			refent.sequence = 0;
-			refent.frame = 0;
-		}
-
-		// if set to invisible, skip
-		if( !s1->model.index ) continue;
-
-		// add to refresh list
-		V_AddEntity( &refent );
+		re->AddRefEntity( &cl.refdef, &ent->priv.cl->current, &ent->priv.cl->prev, cl.lerpfrac );
 	}
 }
 
@@ -416,38 +311,22 @@ void CL_AddPacketEntities( frame_t *frame )
 CL_AddViewWeapon
 ==============
 */
-void CL_AddViewWeapon( entity_state_t *ps, entity_state_t *ops )
+void CL_AddViewWeapon( entity_state_t *ps )
 {
-	entity_t	gun;	// view model
+	edict_t		*view;	// view model
 
 	// allow the gun to be completely removed
 	if( !cl_gun->value ) return;
 
 	// don't draw gun if in wide angle view
-	if (ps->fov > 135) return;
+	if( ps->fov > 135 ) return;
 
-	memset (&gun, 0, sizeof(gun));
-
-	if (gun_model) gun.model = gun_model; // development tool
-	else gun.model = cl.model_draw[ps->vmodel.index];
-	if (!gun.model) return;
-
-	// set up gun position
-	VectorCopy( cl.refdef.vieworg, gun.origin );
-	VectorCopy( cl.refdef.viewangles, gun.angles );
-
-	gun.frame = ps->vmodel.frame;
-	if( gun.frame == 0 ) gun.prev.frame = 0; // just changed weapons, don't lerp from old
-	else gun.prev.frame = ops->vmodel.frame;
-
-	gun.body = ps->vmodel.body;
-	gun.skin = ps->vmodel.skin;
-	gun.sequence = ps->vmodel.sequence;
-          
-	gun.flags = RF_MINLIGHT | RF_DEPTHHACK | RF_VIEWMODEL;
-	gun.backlerp = 1.0 - cl.lerpfrac;
-	VectorCopy ( gun.origin, gun.oldorigin ); // don't lerp at all
-	V_AddEntity( &gun );
+	view = PRVM_EDICT_NUM( ps->aiment );
+	VectorCopy( cl.refdef.vieworg, view->priv.cl->current.origin );
+	VectorCopy( cl.refdef.viewangles, view->priv.cl->current.angles );
+	VectorCopy( cl.refdef.vieworg, view->priv.cl->prev.origin );
+	VectorCopy( cl.refdef.viewangles, view->priv.cl->prev.angles );
+	re->AddRefEntity( &cl.refdef, &view->priv.cl->current, &view->priv.cl->prev, cl.lerpfrac );
 }
 
 
@@ -539,11 +418,8 @@ void CL_CalcViewValues( void )
 	// interpolate field of view
 	cl.refdef.fov_x = ops->fov + lerp * ( ps->fov - ops->fov );
 
-	// don't interpolate blend color
-	Vector4Set( cl.refdef.blend, 0, 0, 0, 0 ); // FIXME: calculate blend on client-side
-
 	// add the weapon
-	CL_AddViewWeapon( ps, ops );
+	CL_AddViewWeapon( ps );
 }
 
 /*

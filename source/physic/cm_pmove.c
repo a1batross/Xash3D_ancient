@@ -245,7 +245,6 @@ physbody_t *Phys_CreatePlayer( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transfor
 	matrix4x4		trans;
 	vec3_t		radius, mins, maxs, upDirection;
 
-	Msg("Phys_CreatePlayer: %d\n", cm_physics_model->integer );
 	if( !cm_physics_model->integer )
 		return NULL;
 

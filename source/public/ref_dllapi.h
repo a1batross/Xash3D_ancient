@@ -26,7 +26,7 @@ enum host_state
 	COMP_STUDIO,	// "studio"
 	COMP_WADLIB,	// "wadlib"
 	RIPP_MIPDEC,	// "mipdec"
-	RIPP_SPRDEC,	// "sprdec"
+	RIPP_SPRDEC,	// "sprdec"                    
 	RIPP_MDLDEC,	// "mdldec"
 	RIPP_LMPDEC,	// "lmpdec"
 	RIPP_SNDDEC,	// "snddec"
@@ -92,7 +92,6 @@ typedef struct file_s		file_t;
 typedef struct vfile_s		vfile_t;
 typedef struct image_s		image_t;
 typedef struct model_s		model_t;
-
 typedef void (*xcommand_t) (void);
 
 typedef enum
@@ -162,7 +161,7 @@ typedef struct model_state_s
 	int		skin;		// skin for studiomodels
 	int		body;		// sub-model selection for studiomodels
 	float		blending[8];	// studio animation blending
-	float		controller[32];	// studio bone controllers
+	float		controller[16];	// studio bone controllers
 } model_state_t;
 
 // entity_state_t communication
@@ -171,6 +170,7 @@ typedef struct entity_state_s
 	// engine specific
 	uint		number;		// edict index
 	edtype_t		ed_type;		// edict type
+	string_t		classname;	// edict classname
 	int		soundindex;	// looped ambient sound
 
 	// physics information
@@ -206,7 +206,6 @@ typedef struct entity_state_s
 	int		maxspeed;		// sv_maxspeed will be duplicate on all clients
 	float		health;		// client health (other parms can be send by custom messages)
 	float		fov;		// horizontal field of view
-	model_state_t	vmodel;		// viewmodel info
 	model_state_t	pmodel;		// weaponmodel info
 } entity_state_t;
 
@@ -877,28 +876,37 @@ typedef struct cvar_s
 #endif
 
 // euler angle order
-#define PITCH		0
-#define YAW		1
-#define ROLL		2
+#define PITCH			0
+#define YAW			1
+#define ROLL			2
 
-#define MAX_LIGHTSTYLES	256
-#define MAX_EDICTS		65535		// absolute limit that never be reached
+//
+// engine constnat limits, touching networking protocol modify with cation
+//
+#define MAX_DLIGHTS			128	// dynamic lights (per one frame)
+#define MAX_LIGHTSTYLES		256	// can be blindly increased
+#define MAX_CLASSNAMES		512	// maxcount of various edicts classnames
+#define MAX_SOUNDS			512	// openal software limit
+#define MAX_MODELS			4096	// total count of brush & studio various models per one map
+#define MAX_PARTICLES		32768	// pre one frame
+#define MAX_EDICTS			65535	// absolute limit that never be reached, (do not edit!)
 
-#define	EF_ROTATE		(1<<0)		// rotate (bonus items)
+// entity_state_t->effects
+#define EF_ROTATE	         		(1<<0)		// rotate (bonus items)
 
-// shared client/renderer flags
-#define	RF_MINLIGHT	1		// allways have some light (viewmodel)
-#define	RF_PLAYERMODEL	2		// don't draw through eyes, only mirrors
-#define	RF_VIEWMODEL	4		// it's a viewmodel
-#define	RF_FULLBRIGHT	8		// allways draw full intensity
-#define	RF_DEPTHHACK	16		// for view weapon Z crunching
-#define	RF_TRANSLUCENT	32
-#define	RF_IR_VISIBLE	64		// skin is an index in image_precache
+// entity_state_t->renderfx
+#define RF_MINLIGHT			(1<<0)		// allways have some light (viewmodel)
+#define RF_PLAYERMODEL		(1<<1)		// don't draw through eyes, only mirrors
+#define RF_VIEWMODEL		(1<<2)		// it's a viewmodel
+#define RF_FULLBRIGHT		(1<<3)		// allways draw full intensity
+#define RF_DEPTHHACK		(1<<4)		// for view weapon Z crunching
+#define RF_TRANSLUCENT		(1<<5)
+#define RF_IR_VISIBLE		(1<<6)		// skin is an index in image_precache
 
-// render private flags
-#define	RDF_NOWORLDMODEL	1		// used for player configuration screen
-#define	RDF_IRGOGGLES	2
-#define	RDF_PAIN           	4
+// FIXME: player_state_t->renderfx
+#define RDF_NOWORLDMODEL		(1<<0)		// used for player configuration screen
+#define RDF_IRGOGGLES		(1<<1)
+#define RDF_PAIN			(1<<2)
 
 // encoded bmodel mask
 #define SOLID_BMODEL	0xffffff
@@ -1123,133 +1131,35 @@ typedef struct trace_s
 #define ATTN_IDLE		2
 #define ATTN_STATIC		3  // Diminish very rapidly with distance
 
-// player_state->stats[] indexes
-enum player_stats
+typedef struct vrect_s
 {
-	STAT_HEALTH_ICON = 0,
-	STAT_HEALTH,
-	STAT_AMMO_ICON,
-	STAT_AMMO,
-	STAT_ARMOR_ICON,
-	STAT_ARMOR,
-	STAT_SELECTED_ICON,
-	STAT_PICKUP_ICON,
-	STAT_PICKUP_STRING,
-	STAT_TIMER_ICON,
-	STAT_TIMER,
-	STAT_HELPICON,
-	STAT_SELECTED_ITEM,
-	STAT_LAYOUTS,
-	STAT_FRAGS,
-	STAT_FLASHES,		// cleared each frame, 1 = health, 2 = armor
-	STAT_CHASE,
-	STAT_SPECTATOR,
-	STAT_SPEED = 22,
-	STAT_ZOOM,
-	MAX_STATS = 32,
-};
-
-typedef struct dlight_s
-{
-	vec3_t	origin;
-	vec3_t	color;
-	float	intensity;
-
-} dlight_t;
-
-typedef struct particle_s
-{
-	vec3_t	origin;
-	int	color;
-	float	alpha;
-
-} particle_t;
-
-typedef struct lightstyle_s
-{
-	float	rgb[3];		// 0.0 - 2.0
-	float	white;		// highest of rgb
-
-} lightstyle_t;
-
-typedef struct latchedvars_s
-{
-	float		animtime;
-	float		sequencetime;
-	vec3_t		origin;
-	vec3_t		angles;		
-
-	int		sequence;
-	float		frame;
-
-	byte		blending[MAXSTUDIOBLENDS];
-	byte		seqblending[MAXSTUDIOBLENDS];
-	byte		controller[MAXSTUDIOCONTROLLERS];
-
-} latchedvars_t;
-
-// client entity
-typedef struct entity_s
-{
-	model_t		*model;		// opaque type outside refresh
-	model_t		*weaponmodel;	// opaque type outside refresh	
-
-	latchedvars_t	prev;		// previous frame values for lerping
-	
-	vec3_t		angles;
-	vec3_t		origin;		// also used as RF_BEAM's "from"
-	float		oldorigin[3];	// also used as RF_BEAM's "to"
-
-          float		animtime;	
-	float		frame;		// also used as RF_BEAM's diameter
-	float		framerate;
-
-	int		body;
-	int		skin;
-	
-	byte		blending[MAXSTUDIOBLENDS];
-	byte		controller[MAXSTUDIOCONTROLLERS];
-	byte		mouth;		//TODO: move to struct
-	
-          int		movetype;		//entity moving type
-	int		sequence;
-	float		scale;
-	
-	vec3_t		attachment[MAXSTUDIOATTACHMENTS];
-	
-	// misc
-	float		backlerp;		// 0.0 = current, 1.0 = old
-	int		skinnum;		// also used as RF_BEAM's palette index
-
-	int		lightstyle;	// for flashing entities
-	float		alpha;		// ignore if RF_TRANSLUCENT isn't set
-	int		flags;
-
-} entity_t;
+	int	x, y;
+	int	width;
+	int	height;
+} vrect_t;
 
 typedef struct
 {
-	int		x, y, width, height;// in virtual screen coordinates
-	float		fov_x, fov_y;
-	float		vieworg[3];
-	float		viewangles[3];
-	float		blend[4];		// rgba 0-1 full screen blend
+	vrect_t		rect;
+	float		fov_x;
+	float		fov_y;
+	vec3_t		vieworg;
+	vec3_t		viewangles;
+	vec4_t		blend;		// rgba 0-1 full screen blend
 	float		time;		// time is used to auto animate
-	int		rdflags;		// RDF_UNDERWATER, etc
+	uint		rdflags;		// RDF_UNDERWATER, etc
+	byte		*mempool;		// entities, dlights etc
 
+	// chains are stored in dynamically resized arrays
 	byte		*areabits;	// if not NULL, only areas with set bits will be drawn
+	struct lightstyle_s	*lightstyles;	// [MAX_LIGHTSTYLES]
+	struct particle_s	*particles;
+	struct ref_entity_s	*entities;	// [MAX_EDICTS]
+	struct dlight_s	*dlights;
 
-	lightstyle_t	*lightstyles;	// [MAX_LIGHTSTYLES]
-
+	int		num_particles;	
 	int		num_entities;
-	entity_t		*entities;	// [MAX_EDICTS]
-
 	int		num_dlights;
-	dlight_t		*dlights;
-
-	int		num_particles;
-	particle_t	*particles;
-
 } refdef_t;
 
 typedef struct pmove_s
@@ -1345,21 +1255,28 @@ RENDER.DLL INTERFACE
 typedef struct render_exp_s
 {
 	// interface validator
-	size_t	api_size;		// must matched with sizeof(render_exp_t)
+	size_t	api_size;			// must matched with sizeof(render_exp_t)
 
 	// initialize
-	bool (*Init)( void *hInst );	// init all render systems
-	void (*Shutdown)( void );	// shutdown all render systems
+	bool	(*Init)( void *hInst );	// init all render systems
+	void	(*Shutdown)( void );	// shutdown all render systems
 
 	void	(*BeginRegistration) (char *map);
-	model_t	*(*RegisterModel) (char *name);
-	image_t	*(*RegisterSkin) (char *name);
+	bool	(*RegisterModel)( const char *name, int sv_index );
+	bool	(*RegisterImage)( const char *name, int sv_index );
 	image_t	*(*RegisterPic) (char *name);
 	void	(*SetSky) (char *name, float rotate, vec3_t axis);
-	void	(*EndRegistration) (void);
+	void	(*EndRegistration)( void );
+
+	// prepare frame to rendering
+	bool	(*AddRefEntity)( refdef_t *fd, entity_state_t *s1, entity_state_t *s2, float lerp );
+	bool	(*AddDynLight)( refdef_t *fd, vec3_t org, vec3_t color, float intensity );
+	bool	(*AddParticle)( refdef_t *fd, vec3_t org, float alpha, int color );
+	bool	(*AddLightStyle)( refdef_t *fd, int stylenum, vec3_t color );
+	void	(*ClearScene)( refdef_t *fd );
 
 	void	(*BeginFrame)( void );
-	void	(*RenderFrame) (refdef_t *fd);
+	void	(*RenderFrame)( refdef_t *fd );
 	void	(*EndFrame)( void );
 
 	void	(*SetColor)( const float *rgba );
@@ -1378,7 +1295,7 @@ typedef struct render_imp_s
 	size_t	api_size;		// must matched with sizeof(render_imp_t)
 
 	// client fundamental callbacks
-	void	(*StudioEvent)( mstudioevent_t *event, entity_t *ent );
+	void	(*StudioEvent)( mstudioevent_t *event, entity_state_t *ent );
 	void	(*ShowCollision)( cmdraw_t callback );	// debug
 	long	(*WndProc)( void *hWnd, uint uMsg, uint wParam, long lParam );
 } render_imp_t;

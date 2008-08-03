@@ -53,20 +53,6 @@ typedef struct field_s
 	int	maxchars; // menu stuff
 } field_t;
 
-#define MAX_CLIENTWEAPONMODELS		20		// PGM -- upped from 16 to fit the chainfist vwep
-
-typedef struct
-{
-	char	name[MAX_QPATH];
-	char	cinfo[MAX_QPATH];
-	image_t	*skin;
-	model_t	*model;
-	model_t	*weaponmodel[MAX_CLIENTWEAPONMODELS];
-} clientinfo_t;
-
-extern char cl_weaponmodels[MAX_CLIENTWEAPONMODELS][MAX_QPATH];
-extern int num_cl_weaponmodels;
-
 #define	CMD_BACKUP		64	// allow a lot of command backups for very fast systems
 #define	CMD_MASK			(CMD_BACKUP - 1)
 
@@ -139,15 +125,11 @@ typedef struct
 	//
 	// locally derived information from server state
 	//
-	model_t		*model_draw[MAX_MODELS];
 	cmodel_t		*models[MAX_MODELS];
 	cmodel_t		*worldmodel;
 
+	string_t		edict_classnames[MAX_CLASSNAMES];
 	sound_t		sound_precache[MAX_SOUNDS];
-	image_t		*image_precache[MAX_IMAGES];
-
-	clientinfo_t	clientinfo[MAX_CLIENTS];
-	clientinfo_t	baseclientinfo;
 } client_t;
 
 extern client_t	cl;
@@ -219,12 +201,9 @@ typedef struct
 	keydest_t		key_dest;
 	byte		*mempool;
 
-	int		ref_numents;
-	entity_t		*ref_entities;
-
 	int		framecount;
 	dword		realtime;			// always increasing, no clamping, etc
-	float		frametime;			// seconds since last frame
+	float		frametime;		// seconds since last frame
 
 	// connection information
 	string		servername;		// name of server from original connect
@@ -243,11 +222,11 @@ typedef struct
 	dltype_t		downloadtype;
 	int		downloadpercent;
 
-	// demo recording info must be here, so it isn't cleared on level change
+	// demo recording info must be here, so it isn't clearing on level change
 	bool		demorecording;
 	bool		demoplayback;
-	bool		demowaiting;	// don't record until a non-delta message is received
-	string		demoname;		// for demo looping
+	bool		demowaiting;		// don't record until a non-delta message is received
+	string		demoname;			// for demo looping
 
 	file_t		*demofile;
 	serverinfo_t	serverlist[MAX_SERVERS];	// servers to join
@@ -281,13 +260,6 @@ SCREEN CONSTS
 #define BIGCHAR_HEIGHT	24
 #define GIANTCHAR_WIDTH	32
 #define GIANTCHAR_HEIGHT	48
-
-typedef struct vrect_s
-{
-	int	x, y;
-	int	width;
-	int	height;
-} vrect_t;
 
 extern vrect_t scr_vrect;	// position of render window
 
@@ -352,10 +324,13 @@ extern cvar_t *scr_showpause;
 
 typedef struct
 {
-	int		key;				// so entities can reuse same entry
-	vec3_t	color;
+	// these values shared with dlight_t so don't move them
 	vec3_t	origin;
+	vec3_t	color;
 	float	radius;
+
+	// cdlight_t private starts here
+	int	key;				// so entities can reuse same entry
 	float	die;				// stop lighting after this time
 	float	decay;				// drop this each second
 	float	minlight;			// don't add when contributing less
@@ -371,9 +346,7 @@ extern	entity_state_t	cl_parse_entities[MAX_PARSE_ENTITIES];
 
 //=============================================================================
 
-bool CL_CheckOrDownloadFile (char *filename);
-
-void CL_AddNetgraph (void);
+bool CL_CheckOrDownloadFile( const char *filename );
 
 void CL_TeleporterParticles (entity_state_t *ent);
 void CL_ParticleEffect (vec3_t org, vec3_t dir, int color, int count);
@@ -387,8 +360,6 @@ void CL_ParticleEffect3 (vec3_t org, vec3_t dir, int color, int count);
 
 // ========
 // PGM
-#define MAX_PARTICLES	32768
-
 typedef struct cparticle_s
 {
 	struct cparticle_s	*next;
@@ -547,10 +518,7 @@ _inline edict_t *CLVM_EDICT_NUM( int entnum )
 // cl_parse.c
 //
 void CL_ParseServerMessage( sizebuf_t *msg );
-void CL_LoadClientinfo (clientinfo_t *ci, char *s);
-void SHOWNET( sizebuf_t *msg, char *s );
-void CL_ParseClientinfo( int player );
-void CL_Download_f (void);
+void CL_Download_f( void );
 
 //
 // cl_scrn.c
@@ -584,10 +552,6 @@ void V_PostRender( void );
 void V_RenderView( void );
 void V_RenderLogo( void );
 void V_RenderSplash( void );
-void V_AddEntity (entity_t *ent);
-void V_AddParticle (vec3_t org, int color, float alpha);
-void V_AddLight (vec3_t org, float intensity, float r, float g, float b);
-void V_AddLightStyle (int style, float r, float g, float b);
 float V_CalcFov( float fov_x, float width, float height );
 
 //
@@ -609,7 +573,7 @@ void CL_AddLoopingSounds( void );
 cdlight_t *CL_AllocDlight (int key);
 void CL_AddParticles (void);
 void CL_ClearEffects( void );
-void CL_StudioEvent( mstudioevent_t *event, entity_t *ent );
+void CL_StudioEvent( mstudioevent_t *event, entity_state_t *ent );
 
 //
 // cl_pred.c
@@ -687,6 +651,6 @@ void SCR_RunCinematic( void );
 void SCR_StopCinematic( void );
 void SCR_ResetCinematic( void );
 int SCR_GetCinematicState( void );
-void SCR_FinishCinematic( void );
+void CL_PlayVideo_f( void );
 
 #endif//CLIENT_H

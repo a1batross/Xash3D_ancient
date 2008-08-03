@@ -1214,7 +1214,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 	}
 	else if( vm.prog->progs->crc != vm.prog->filecrc )
 	{ 
-		PRVM_ERROR("%s: %s system vars have been modified, progdefs.h is out of date %d\n", PRVM_NAME, vm.prog->filecrc );	
+		PRVM_ERROR("%s: %s system vars have been modified, progdefs.h is out of date %d\n", PRVM_NAME, filename, vm.prog->filecrc );	
 	}
 	else MsgDev(D_LOAD, "%s [^2CRC %d^7]\n", filename, vm.prog->progs->crc );
 

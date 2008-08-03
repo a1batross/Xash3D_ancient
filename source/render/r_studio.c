@@ -43,7 +43,7 @@ int m_fDoInterp;
 int m_pStudioModelCount;
 int m_PassNum;
 model_t *m_pRenderModel;
-entity_t *m_pCurrentEntity;
+ref_entity_t *m_pCurrentEntity;
 mstudiomodel_t *m_pSubModel;
 studiohdr_t *m_pStudioHeader;
 studiohdr_t *m_pTextureHeader;
@@ -531,8 +531,19 @@ void R_StudioSetUpTransform ( void )
 	vec3_t	angles, modelpos;
 
 	VectorCopy( m_pCurrentEntity->origin, modelpos );
-	VectorCopy( m_pCurrentEntity->angles, angles );
-	
+ 
+	// g-cont: iolki-palki!!!
+ 	if( m_pCurrentEntity->flags & RF_VIEWMODEL )
+ 	{
+ 		VectorCopy( m_pCurrentEntity->angles, angles );
+	}
+	else
+	{
+		angles[0] = -m_pCurrentEntity->angles[0];
+		angles[1] = m_pCurrentEntity->angles[1];
+		angles[2] = -m_pCurrentEntity->angles[2];	
+	}
+
 	// TODO: should really be stored with the entity instead of being reconstructed
 	// TODO: should use a look-up table
 	// TODO: could cache lazily, stored in the entity
@@ -681,7 +692,7 @@ Studio_FxTransform
 
 ====================
 */
-void R_StudioFxTransform( entity_t *ent, matrix3x4 transform )
+void R_StudioFxTransform( ref_entity_t *ent, matrix3x4 transform )
 {
 	//TODO: add here some effects :)
 }
@@ -986,7 +997,7 @@ void R_StudioCalcAttachments( void )
 static bool R_StudioComputeBBox( vec3_t bbox[8] )
 {
 	vec3_t vectors[3];
-	entity_t *e = m_pCurrentEntity;
+	ref_entity_t *e = m_pCurrentEntity;
 	vec3_t mins, maxs, tmp, angles;
 	int i, seq = m_pCurrentEntity->sequence;
 
@@ -1315,7 +1326,7 @@ void R_StudioDrawPoints ( void )
 		pglPushMatrix();
 		pglLoadIdentity();
 		pglScalef( -1, 1, 1 );
-	    	pglPerspective( r_newrefdef.fov_y, ( float ) r_newrefdef.width / r_newrefdef.height,  4, 131072 );
+	    	pglPerspective( r_newrefdef.fov_y, ( float ) r_newrefdef.rect.width / r_newrefdef.rect.height,  4, 131072 );
 		pglMatrixMode( GL_MODELVIEW );
 		pglCullFace( GL_BACK );
 	}          
@@ -1637,7 +1648,7 @@ void R_DrawStudioModel( int passnum )
 
 	if (m_pCurrentEntity->weaponmodel)
 	{
-		entity_t saveent = *m_pCurrentEntity;
+		ref_entity_t saveent = *m_pCurrentEntity;
 		model_t *pweaponmodel = m_pCurrentEntity->weaponmodel;
 		
 		m_pStudioHeader = pweaponmodel->phdr;

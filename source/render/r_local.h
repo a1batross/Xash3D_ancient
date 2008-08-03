@@ -42,6 +42,82 @@ typedef enum
 	R_EXTCOUNT
 } r_opengl_extensions;
 
+typedef struct latchedvars_s
+{
+	float		animtime;
+	float		sequencetime;
+	vec3_t		origin;
+	vec3_t		angles;		
+
+	int		sequence;
+	float		frame;
+
+	byte		blending[MAXSTUDIOBLENDS];
+	byte		seqblending[MAXSTUDIOBLENDS];
+	byte		controller[MAXSTUDIOCONTROLLERS];
+
+} latchedvars_t;
+
+// client entity
+typedef struct ref_entity_s
+{
+	model_t		*model;		// opaque type outside refresh
+	model_t		*weaponmodel;	// opaque type outside refresh	
+
+	latchedvars_t	prev;		// previous frame values for lerping
+	
+	vec3_t		angles;
+	vec3_t		origin;		// also used as RF_BEAM's "from"
+	float		oldorigin[3];	// also used as RF_BEAM's "to"
+
+          float		animtime;	
+	float		frame;		// also used as RF_BEAM's diameter
+	float		framerate;
+
+	int		body;
+	int		skin;
+	
+	byte		blending[MAXSTUDIOBLENDS];
+	byte		controller[MAXSTUDIOCONTROLLERS];
+	byte		mouth;		//TODO: move to struct
+	
+          int		movetype;		//entity moving type
+	int		sequence;
+	float		scale;
+	
+	vec3_t		attachment[MAXSTUDIOATTACHMENTS];
+	
+	// misc
+	float		backlerp;		// 0.0 = current, 1.0 = old
+	int		skinnum;		// also used as RF_BEAM's palette index
+
+	int		lightstyle;	// for flashing entities
+	float		alpha;		// ignore if RF_TRANSLUCENT isn't set
+	int		flags;
+
+} ref_entity_t;
+
+typedef struct lightstyle_s
+{
+	float		rgb[3];		// 0.0 - 2.0
+	float		white;		// highest of rgb
+} lightstyle_t;
+
+typedef struct particle_s
+{
+	vec3_t	origin;
+	int	color;
+	float	alpha;
+
+} particle_t;
+
+typedef struct dlight_s
+{
+	vec3_t	origin;
+	vec3_t	color;
+	float	intensity;
+} dlight_t;
+
 /*
  =======================================================================
 
@@ -91,21 +167,21 @@ typedef struct glstate_s
 // setting by R_Init and using as read-only
 typedef struct glconfig_s
 {
-	const char *renderer_string;
-	const char *vendor_string;
-	const char *version_string;
+	const char	*renderer_string;
+	const char	*vendor_string;
+	const char	*version_string;
 
 	// list of supported extensions
-	const char *extensions_string;
-	byte	extension[R_EXTCOUNT];
+	const char	*extensions_string;
+	byte		extension[R_EXTCOUNT];
 
-	int	textureunits;
-	int	max_3d_texture_size;
-	int	max_cubemap_texture_size;
-	int	max_anisotropy;
-	GLint	texRectangle;
-	bool	fullscreen;
-	int	prev_mode;
+	int		textureunits;
+	int		max_3d_texture_size;
+	int		max_cubemap_texture_size;
+	int		max_anisotropy;
+	GLint		texRectangle;
+	bool		fullscreen;
+	int		prev_mode;
 } glconfig_t;
 
 #endif//R_LOCAL_H

@@ -388,7 +388,7 @@ not just stuck on the outgoing message list, because the server is going
 to totally exit after returning from this function.
 ==================
 */
-void SV_FinalMessage (char *message, bool reconnect)
+void SV_FinalMessage( char *message, bool reconnect )
 {
 	sv_client_t	*cl;
 	byte		msg_buf[MAX_MSGLEN];
@@ -435,20 +435,20 @@ void SV_Shutdown( bool reconnect )
 	// already freed
 	if(host.state == HOST_ERROR) return;
 
-	MsgDev(D_NOTE, "SV_Shutdown: %s\n", host.finalmsg );
-	if (svs.clients) SV_FinalMessage( host.finalmsg, reconnect);
+	MsgDev( D_INFO, "SV_Shutdown: %s\n", host.finalmsg );
+	if( svs.clients ) SV_FinalMessage( host.finalmsg, reconnect);
 
 	Master_Shutdown();
 	SV_FreeServerProgs();
 
 	// free current level
-	memset (&sv, 0, sizeof(sv));
+	memset( &sv, 0, sizeof( sv ));
 	Host_SetServerState (sv.state);
 
 	// free server static data
 	if( svs.clients ) Mem_Free( svs.clients );
 	if( svs.baselines ) Mem_Free( svs.baselines );
 	if( svs.client_entities ) Mem_Free( svs.client_entities );
-	memset( &svs, 0, sizeof(svs));
+	memset( &svs, 0, sizeof( svs ));
 }
 

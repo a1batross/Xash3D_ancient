@@ -884,7 +884,7 @@ void R_DrawBrushModel ( int passnum )
 	vec3_t		mins, maxs;
 	int		i;
 	bool		rotated;
-	entity_t 		*e = currententity;
+	ref_entity_t 		*e = currententity;
 
 	if ( (e->flags & RF_TRANSLUCENT) && (passnum == RENDERPASS_SOLID)) return;// solid
 	if (!(e->flags & RF_TRANSLUCENT) && (passnum == RENDERPASS_ALPHA)) return;// solid
@@ -1141,7 +1141,7 @@ R_DrawWorld
 */
 void R_DrawWorld (void)
 {
-	entity_t	ent;
+	ref_entity_t	ent;
 
 	if (!r_drawworld->value)
 		return;
@@ -1396,20 +1396,20 @@ GL_BuildPolygonFromSurface
 */
 void GL_BuildPolygonFromSurface(msurface_t *fa)
 {
-	int			i, lindex, lnumverts;
+	int		i, lindex, lnumverts;
 	medge_t		*pedges, *r_pedge;
-	int			vertpage;
+	int		vertpage;
 	float		*vec;
 	float		s, t;
-	glpoly_t	*poly;
+	glpoly_t		*poly;
 	vec3_t		total;
 
-// reconstruct the polygon
+	// reconstruct the polygon
 	pedges = currentmodel->edges;
 	lnumverts = fa->numedges;
 	vertpage = 0;
 
-	VectorClear (total);
+	VectorClear( total );
 	//
 	// draw texture
 	//
@@ -1419,11 +1419,11 @@ void GL_BuildPolygonFromSurface(msurface_t *fa)
 	fa->polys = poly;
 	poly->numverts = lnumverts;
 
-	for (i=0 ; i<lnumverts ; i++)
+	for( i = 0; i < lnumverts; i++ )
 	{
 		lindex = currentmodel->surfedges[fa->firstedge + i];
 
-		if (lindex > 0)
+		if( lindex > 0 )
 		{
 			r_pedge = &pedges[lindex];
 			vec = currentmodel->vertexes[r_pedge->v[0]].position;
@@ -1433,8 +1433,8 @@ void GL_BuildPolygonFromSurface(msurface_t *fa)
 			r_pedge = &pedges[-lindex];
 			vec = currentmodel->vertexes[r_pedge->v[1]].position;
 		}
-		s = DotProduct (vec, fa->texinfo->vecs[0]) + fa->texinfo->vecs[0][3];
-		if(fa->texinfo->size[0] != -1) s /= fa->texinfo->size[0];
+		s = DotProduct( vec, fa->texinfo->vecs[0]) + fa->texinfo->vecs[0][3];
+		if( fa->texinfo->size[0] != -1 ) s /= fa->texinfo->size[0];
 		else s /= fa->texinfo->image->width;
 
 		t = DotProduct (vec, fa->texinfo->vecs[1]) + fa->texinfo->vecs[1][3];

@@ -429,21 +429,21 @@ void R_BloomBlend ( refdef_t *fd )
 	pglColor4f( 1, 1, 1, 1 );
 
 	//set up current sizes
-	curView_x = fd->x;
-	curView_y = fd->y;
-	curView_width = fd->width;
-	curView_height = fd->height;
-	screenText_tcw = ((float)fd->width / (float)screen_texture_width);
-	screenText_tch = ((float)fd->height / (float)screen_texture_height);
-	if( fd->height > fd->width )
+	curView_x = fd->rect.x;
+	curView_y = fd->rect.y;
+	curView_width = fd->rect.width;
+	curView_height = fd->rect.height;
+	screenText_tcw = ((float)fd->rect.width / (float)screen_texture_width);
+	screenText_tch = ((float)fd->rect.height / (float)screen_texture_height);
+	if( fd->rect.height > fd->rect.width )
 	{
-		sampleText_tcw = ((float)fd->width / (float)fd->height);
+		sampleText_tcw = ((float)fd->rect.width / (float)fd->rect.height);
 		sampleText_tch = 1.0f;
 	}
 	else
 	{
 		sampleText_tcw = 1.0f;
-		sampleText_tch = ((float)fd->height / (float)fd->width);
+		sampleText_tch = ((float)fd->rect.height / (float)fd->rect.width);
 	}
 	sample_width = BLOOM_SIZE * sampleText_tcw;
 	sample_height = BLOOM_SIZE * sampleText_tch;

@@ -181,7 +181,7 @@ void R_SpriteLoadModel( model_t *mod, void *buffer )
 R_GetSpriteFrame
 ================
 */
-mspriteframe_t *R_GetSpriteFrame (entity_t *currententity)
+mspriteframe_t *R_GetSpriteFrame( ref_entity_t *currententity )
 {
 	msprite_t		*psprite;
 	mspritegroup_t	*pspritegroup;
@@ -231,7 +231,7 @@ mspriteframe_t *R_GetSpriteFrame (entity_t *currententity)
 	return pspriteframe;
 }
 
-bool R_AcceptSpritePass( entity_t *e, int pass )
+bool R_AcceptSpritePass( ref_entity_t *e, int pass )
 {
 	msprite_t	*psprite = (msprite_t *)currentmodel->extradata;
 
@@ -280,7 +280,7 @@ void R_DrawSpriteModel( int passnum )
 {
 	mspriteframe_t	*frame;
 	vec3_t		point, forward, right, up;
-	entity_t 		*e = currententity;
+	ref_entity_t 		*e = currententity;
 	model_t		*mod = currentmodel;
 	float		alpha = 1.0f, angle, sr, cr;
 	vec3_t		distance;

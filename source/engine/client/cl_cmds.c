@@ -20,10 +20,27 @@ void CL_SetFont_f( void )
 {
 	if(Cmd_Argc() < 2)
 	{
-		Msg("Usage: setfont <fontname>\n");
+		Msg( "Usage: setfont <fontname>\n" );
 		return;
 	}
 	Cvar_Set("cl_font", Cmd_Argv(1));
+}
+
+/*
+===============
+CL_Download_f
+
+Request a download from the server
+===============
+*/
+void CL_Download_f( void )
+{
+	if( Cmd_Argc() != 2 )
+	{
+		Msg( "Usage: download <filename>\n" );
+		return;
+	}
+	CL_CheckOrDownloadFile(Cmd_Argv(1));
 }
 
 /* 

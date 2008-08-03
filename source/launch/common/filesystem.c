@@ -1666,9 +1666,9 @@ static file_t* FS_SysOpen (const char* filepath, const char* mode )
 			Msg("FS_SysOpen(%s, %s): invalid mode\n", filepath, mode);
 			return NULL;
 	}
-	for (ind = 1; mode[ind] != '\0'; ind++)
+	for( ind = 1; mode[ind] != '\0'; ind++ )
 	{
-		switch (mode[ind])
+		switch( mode[ind] )
 		{
 			case '+':
 				mod = O_RDWR;
@@ -1677,7 +1677,8 @@ static file_t* FS_SysOpen (const char* filepath, const char* mode )
 				opt |= O_BINARY;
 				break;
 			default:
-				Msg("FS_SysOpen(%s, %s): unknown character in mode (%c)\n", filepath, mode, mode[ind]);
+				MsgDev( D_ERROR, "FS_SysOpen: %s: unknown char in mode (%c)\n", filepath, mode, mode[ind] );
+				break;
 		}
 	}
 

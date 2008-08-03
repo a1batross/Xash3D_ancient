@@ -86,6 +86,7 @@ typedef struct mtexinfo_s
 	int		size[2];
 	int		flags;
 	int		numframes;
+	int		texid;		// save texture id
 	struct mtexinfo_s	*next;		// animation chain
 	image_t		*image;
 } mtexinfo_t;
@@ -186,6 +187,7 @@ typedef struct model_s
 	byte		*mempool;
 	
 	int		numframes;
+	int		num_textures;	// count of textures what a really loaded
 	
 	int		flags;
 
@@ -266,14 +268,16 @@ typedef struct model_s
 
 void	Mod_Init (void);
 void	Mod_ClearAll (void);
-model_t *Mod_ForName (char *name, bool crash);
+model_t *Mod_ForName ( const char *name, bool crash);
 mleaf_t *Mod_PointInLeaf (float *p, model_t *model);
 byte	*Mod_ClusterPVS (int cluster, model_t *model);
+const char *Mod_GetStringFromTable( int index );
 
 void	Mod_Modellist_f (void);
 void	Mod_FreeAll (void);
 void	Mod_Free (model_t *mod);
 
+extern model_t *loadmodel;
 
 int R_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *maxs );
 

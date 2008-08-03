@@ -7,6 +7,9 @@
 #include "server.h"
 
 static byte fatpvs[MAX_MAP_LEAFS/8];
+static byte *clientpvs;
+static byte *clientphs;
+static byte *bitvector;
 
 /*
 ============
@@ -63,6 +66,8 @@ Copy PRVM values into entity state
 */
 void SV_UpdateEntityState( edict_t *ent )
 {
+	edict_t	*client;
+
 	// copy progs values to state
 	ent->priv.sv->s.number = ent->priv.sv->serialnumber;
 	ent->priv.sv->s.solid = ent->priv.sv->solid;
@@ -80,12 +85,103 @@ void SV_UpdateEntityState( edict_t *ent )
 	ent->priv.sv->s.renderfx = (int)ent->progs.sv->renderfx;		// renderer flags
 	ent->priv.sv->s.renderamt = ent->progs.sv->alpha;			// alpha value
 	ent->priv.sv->s.model.animtime = ent->progs.sv->animtime;		// auto-animating time
+	ent->priv.sv->s.aiment = ent->progs.sv->aiment;			// viewmodel parent
 
-	// copy viewmodel info
-	ent->priv.sv->s.vmodel.frame = ent->progs.sv->v_frame;
-	ent->priv.sv->s.vmodel.body = ent->progs.sv->v_body;
-	ent->priv.sv->s.vmodel.skin = ent->progs.sv->v_skin;
-	ent->priv.sv->s.vmodel.sequence = ent->progs.sv->v_sequence;
+	if( ent->priv.sv->s.ed_type == ED_VIEWMODEL )
+	{
+		// copy v_model state from client to viemodel entity
+		client = PRVM_EDICT_NUM( ent->progs.sv->aiment );
+
+		// update both arrays, because viewmodel are hidden for qc-coders
+		ent->priv.sv->s.model.index = ent->progs.sv->modelindex = SV_ModelIndex(PRVM_GetString(client->progs.sv->v_model));
+		ent->priv.sv->s.model.frame = ent->progs.sv->frame = client->progs.sv->v_frame;
+		ent->priv.sv->s.model.body = ent->progs.sv->body = client->progs.sv->v_body;
+		ent->priv.sv->s.model.skin = ent->progs.sv->skin = client->progs.sv->v_skin;
+		ent->priv.sv->s.model.sequence = ent->progs.sv->sequence = client->progs.sv->v_sequence;
+		VectorCopy( ent->progs.sv->origin, ent->priv.sv->s.old_origin );
+		ent->priv.sv->s.model.colormap = ent->progs.sv->colormap = client->progs.sv->colormap;
+	}
+}
+
+bool SV_EdictNeedsUpdate( edict_t *ent, edict_t *clent, int clientarea )
+{
+	int	i, l;
+
+	// send viewmodel entity always
+	// NOTE: never apply LinkEdict to viewmodel entity, because
+	// we wan't see it in list of entities returned with SV_AreaEdicts
+	if( ent->priv.sv->s.ed_type == ED_VIEWMODEL )
+		return true;
+
+	// ignore if not touching a PV leaf
+	if( ent != clent )
+	{
+		// check area
+		if( !pe->AreasConnected( clientarea, ent->priv.sv->areanum ))
+		{	
+			// doors can legally straddle two areas, so
+			// we may need to check another one
+			int areanum2 = ent->priv.sv->areanum2; 
+			if( !areanum2 || !pe->AreasConnected( clientarea, areanum2 ))
+				return false; // blocked by a door
+		}
+
+		// FIXME: if an ent has a model and a sound, but isn't
+		// in the PVS, only the PHS, clear the model
+		if( ent->priv.sv->s.soundindex ) bitvector = clientphs;
+		else if( sv_fatpvs->integer ) bitvector = fatpvs;
+		else bitvector = clientpvs;
+
+		// check individual leafs
+		if( !ent->priv.sv->num_clusters ) return false;
+		for( i = 0, l = 0; i < ent->priv.sv->num_clusters; i++ )
+		{
+			l = ent->priv.sv->clusternums[i];
+			if( bitvector[l>>3] & (1<<(l&7)))
+				break;
+		}
+
+		// if we haven't found it to be visible,
+		// check overflow clusters that coudln't be stored
+		if( i == ent->priv.sv->num_clusters )
+		{
+			if( ent->priv.sv->lastcluster )
+			{
+				for( ; l <= ent->priv.sv->lastcluster; l++ )
+				{
+					if( bitvector[l>>3] & (1<<(l&7)))
+						break;
+				}
+				if( l == ent->priv.sv->lastcluster )
+					return false; // not visible
+			}
+			else return false;
+		}
+		
+		if( !ent->progs.sv->modelindex )
+		{	
+			// don't send sounds if they will be attenuated away
+			vec3_t	org, delta, entorigin;
+			float	len;
+
+			if(VectorIsNull( ent->progs.sv->origin ))
+			{
+				VectorAdd( ent->progs.sv->mins, ent->progs.sv->maxs, entorigin );
+				VectorScale( entorigin, 0.5, entorigin );
+			}
+			else
+			{
+				VectorCopy( ent->progs.sv->origin, entorigin );
+			}
+
+			VectorCopy( clent->priv.sv->s.origin, org ); 
+			VectorAdd( org, clent->priv.sv->s.viewoffset, org );  
+			VectorSubtract( org, entorigin, delta );	
+			len = VectorLength( delta );
+			if( len > 400 ) return false;
+		}
+	}
+	return true;
 }
 
 /*
@@ -199,11 +295,14 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 	cl->surpressCount = 0;
 
 	// send over the areabits
-	MSG_WriteByte( msg, frame->areabytes );
-	MSG_WriteData( msg, frame->areabits, frame->areabytes );
+	MSG_WriteByte( msg, frame->areabits_size );
+	MSG_WriteData( msg, frame->areabits, frame->areabits_size );
 
-	// delta encode the playerstate
-	MSG_WriteDeltaPlayerstate( &oldframe->ps, &frame->ps, msg );
+	// just send an client index
+	// it's safe, because PRVM_NUM_FOR_EDICT always equal ed->serialnumber,
+	// thats shared across network
+	MSG_WriteByte( msg, svc_clientindex );
+	MSG_WriteByte( msg, frame->index );
 
 	// delta encode the entities
 	SV_EmitPacketEntities( oldframe, frame, msg );
@@ -227,18 +326,14 @@ copies off the playerstat and areabits.
 */
 void SV_BuildClientFrame( sv_client_t *cl )
 {
-	int		i, e, l;
 	vec3_t		org;
 	edict_t		*ent;
 	edict_t		*clent;
 	client_frame_t	*frame;
 	entity_state_t	*state;
-	int		clientarea;
+	int		e, clientarea;
 	int		clientcluster;
 	int		leafnum;
-	byte		*clientpvs;
-	byte		*clientphs;
-	byte		*bitvector;
 
 	clent = cl->edict;
 	if( !clent->priv.sv->client )
@@ -261,10 +356,10 @@ void SV_BuildClientFrame( sv_client_t *cl )
 	clientcluster = pe->LeafCluster( leafnum );
 
 	// calculate the visible areas
-	frame->areabytes = pe->WriteAreaBits( frame->areabits, clientarea );
+	frame->areabits_size = pe->WriteAreaBits( frame->areabits, clientarea );
 
-	// grab the current player state
-	frame->ps = clent->priv.sv->s;
+	// grab the current player index
+	frame->index = PRVM_NUM_FOR_EDICT( clent );
 
 	clientpvs = pe->ClusterPVS( clientcluster );
 	clientphs = pe->ClusterPHS( clientcluster );
@@ -281,74 +376,12 @@ void SV_BuildClientFrame( sv_client_t *cl )
 		if( !ent->progs.sv->modelindex && !ent->progs.sv->effects && !ent->priv.sv->s.soundindex )
 			continue;
 
-		// ignore if not touching a PV leaf
-		if( ent != clent )
-		{
-			// check area
-			if( !pe->AreasConnected( clientarea, ent->priv.sv->areanum ))
-			{	
-				// doors can legally straddle two areas, so
-				// we may need to check another one
-				int areanum2 = ent->priv.sv->areanum2; 
-				if( !areanum2 || !pe->AreasConnected( clientarea, areanum2 ))
-					continue;	// blocked by a door
-			}
-
-			// FIXME: if an ent has a model and a sound, but isn't
-			// in the PVS, only the PHS, clear the model
-			if( ent->priv.sv->s.soundindex ) bitvector = clientphs;
-			else if( sv_fatpvs->integer ) bitvector = fatpvs;
-			else bitvector = clientpvs;
-
-			// check individual leafs
-			if( !ent->priv.sv->num_clusters ) continue;
-			for( i = 0, l = 0; i < ent->priv.sv->num_clusters; i++ )
-			{
-				l = ent->priv.sv->clusternums[i];
-				if( bitvector[l>>3] & (1<<(l&7)))
-					break;
-			}
-			// if we haven't found it to be visible,
-			// check overflow clusters that coudln't be stored
-			if( i == ent->priv.sv->num_clusters )
-			{
-				if( ent->priv.sv->lastcluster )
-				{
-					for( ; l <= ent->priv.sv->lastcluster; l++ )
-					{
-						if( bitvector[l>>3] & (1<<(l&7)))
-							break;
-					}
-					if( l == ent->priv.sv->lastcluster )
-						continue;	// not visible
-				}
-				else continue;
-			}
-			if( !ent->progs.sv->modelindex )
-			{	
-				// don't send sounds if they will be attenuated away
-				vec3_t	delta, entorigin;
-				float	len;
-
-				if(VectorIsNull( ent->progs.sv->origin ))
-				{
-					VectorAdd( ent->progs.sv->mins, ent->progs.sv->maxs, entorigin );
-					VectorScale( entorigin, 0.5, entorigin );
-				}
-				else
-				{
-					VectorCopy( ent->progs.sv->origin, entorigin );
-				}
-
-				VectorSubtract( org, entorigin, delta );	
-				len = VectorLength( delta );
-				if( len > 400 ) continue;
-			}
-		}
+		if(!SV_EdictNeedsUpdate( ent, clent, clientarea ))
+			continue;
 
 		// add it to the circular client_entities array
 		state = &svs.client_entities[svs.next_client_entities % svs.num_client_entities];
-		if (ent->priv.sv->serialnumber != e)
+		if( ent->priv.sv->serialnumber != e )
 		{
 			MsgDev( D_WARN, "SV_BuildClientFrame: invalid number %d\n", ent->priv.sv->serialnumber );
 			ent->priv.sv->serialnumber = e; // ptr to current entity such as entnumber
@@ -471,11 +504,7 @@ void SV_SendClientMessages( void )
 			SV_DropClient( cl );
 		}
 
-		if( sv.state == ss_cinematic )
-		{
-			Netchan_Transmit( &cl->netchan, 0, NULL );
-		}
-		else if( cl->state == cs_spawned )
+		if( cl->state == cs_spawned )
 		{
 			// don't overrun bandwidth
 			if( SV_RateDrop( cl )) continue;

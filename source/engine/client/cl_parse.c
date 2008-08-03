@@ -22,13 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "common.h"
 #include "client.h"
 
-//=============================================================================
-
-void CL_DownloadFileName(char *dest, int destlen, char *fn)
-{
-	com.strncpy(dest, fn, destlen );
-}
-
 /*
 ===============
 CL_CheckOrDownloadFile
@@ -37,137 +30,48 @@ Returns true if the file exists, otherwise it attempts
 to start a download from the server.
 ===============
 */
-bool	CL_CheckOrDownloadFile (char *filename)
+bool CL_CheckOrDownloadFile( const char *filename )
 {
-	file_t	*fp;
-	char	name[MAX_SYSPATH];
+	string	name;
+	file_t	*f;
 
-	if (com.strstr (filename, ".."))
-	{
-		Msg ("Refusing to download a path with ..\n");
-		return true;
-	}
-
-	if (FS_LoadFile (filename, NULL))
+	if( FS_FileExists( filename ))
 	{
 		// it exists, no need to download
 		return true;
 	}
 
-	com.strcpy (cls.downloadname, filename);
-	com.strcpy (cls.downloadtempname, filename);
+	com.strncpy( cls.downloadname, filename, MAX_STRING );
+	com.strncpy( cls.downloadtempname, filename, MAX_STRING );
 
-	// download to a temp name, and only rename
-	// to the real name when done, so if interrupted
-	// a runt file wont be left
-	FS_StripExtension (cls.downloadtempname);
-	FS_DefaultExtension(cls.downloadtempname, ".tmp");
+	// download to a temp name, and only rename to the real name when done,
+	// so if interrupted a runt file won't be left
+	FS_StripExtension( cls.downloadtempname );
+	FS_DefaultExtension( cls.downloadtempname, ".tmp" );
+	com.strncpy( name, cls.downloadtempname, MAX_STRING );
 
-//ZOID
-	// check to see if we already have a tmp for this file, if so, try to resume
-	// open the file if not opened yet
-	CL_DownloadFileName(name, sizeof(name), cls.downloadtempname);
-
-
-	fp = FS_Open(name, "r+b");
-	if (fp)
+	f = FS_Open( name, "a+b" );
+	if( f )
 	{
 		// it exists
-		int len;
-		FS_Seek(fp, 0, SEEK_END);
-		len = FS_Tell(fp);
+		int len = FS_Tell( f );
 
-		cls.download = fp;
-
+		cls.download = f;
 		// give the server an offset to start the download
-		Msg ("Resuming %s\n", cls.downloadname);
+		MsgDev( D_INFO, "Resume download %s at %i\n", cls.downloadname, len );
 		MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
-		MSG_Print( &cls.netchan.message, va("download %s %i", cls.downloadname, len));
+		MSG_Print( &cls.netchan.message, va("download %s %i", cls.downloadname, len ));
 	}
 	else
 	{
-		Msg ("Downloading %s\n", cls.downloadname);
+		MsgDev( D_INFO, "Start download %s\n", cls.downloadname );
 		MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
-		MSG_Print( &cls.netchan.message, va("download %s", cls.downloadname));
+		MSG_Print( &cls.netchan.message, va("download %s", cls.downloadname ));
 	}
 
 	cls.downloadnumber++;
-
 	return false;
 }
-
-/*
-===============
-CL_Download_f
-
-Request a download from the server
-===============
-*/
-void	CL_Download_f (void)
-{
-	string		filename;
-
-	if (Cmd_Argc() != 2)
-	{
-		Msg("Usage: download <filename>\n");
-		return;
-	}
-
-	com.sprintf(filename, "%s", Cmd_Argv(1));
-
-	if (com.strstr (filename, ".."))
-	{
-		Msg ("Refusing to download a path with ..\n");
-		return;
-	}
-
-	if (FS_LoadFile (filename, NULL))
-	{
-		// it exists, no need to download
-		Msg("File already exists.\n");
-		return;
-	}
-
-	com.strcpy (cls.downloadname, filename);
-	com.strcpy (cls.downloadtempname, filename);
-
-	Msg ("Downloading %s\n", cls.downloadname);
-
-	// download to a temp name, and only rename
-	// to the real name when done, so if interrupted
-	// a runt file wont be left
-
-
-	// download to a temp name, and only rename
-	// to the real name when done, so if interrupted
-	// a runt file wont be left
-	FS_StripExtension (cls.downloadtempname);
-	FS_DefaultExtension(cls.downloadtempname, ".tmp");
-
-	MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
-	MSG_Print( &cls.netchan.message, va("download %s", cls.downloadname));
-	cls.downloadnumber++;
-}
-
-/*
-======================
-CL_RegisterSounds
-======================
-*/
-void CL_RegisterSounds (void)
-{
-	int	i;
-
-	S_BeginRegistration();
-	for (i = 1; i < MAX_SOUNDS; i++)
-	{
-		if (!cl.configstrings[CS_SOUNDS+i][0]) break;
-		cl.sound_precache[i] = S_RegisterSound (cl.configstrings[CS_SOUNDS+i]);
-		Sys_SendKeyEvents (); // pump message loop
-	}
-	S_EndRegistration();
-}
-
 
 /*
 =====================
@@ -185,38 +89,39 @@ void CL_ParseDownload( sizebuf_t *msg )
 	// read the data
 	size = MSG_ReadShort( msg );
 	percent = MSG_ReadByte( msg );
-	if (size == -1)
+
+	if( size == -1 )
 	{
-		Msg("Server does not have this file.\n");
-		if (cls.download)
+		Msg( "Server does not have this file.\n" );
+		if( cls.download )
 		{
 			// if here, we tried to resume a file but the server said no
-			FS_Close(cls.download);
+			FS_Close( cls.download );
 			cls.download = NULL;
 		}
-		CL_RequestNextDownload ();
+		CL_RequestNextDownload();
 		return;
 	}
 
 	// open the file if not opened yet
-	if (!cls.download)
+	if( !cls.download )
 	{
-		CL_DownloadFileName(name, sizeof(name), cls.downloadtempname);
+		com.strncpy( name, cls.downloadtempname, MAX_STRING );
+		cls.download = FS_Open ( name, "wb" );
 
-		cls.download = FS_Open (name, "wb");
-		if (!cls.download)
+		if( !cls.download )
 		{
 			msg->readcount += size;
-			Msg ("Failed to open %s\n", cls.downloadtempname);
-			CL_RequestNextDownload ();
+			Msg( "Failed to open %s\n", cls.downloadtempname );
+			CL_RequestNextDownload();
 			return;
 		}
 	}
 
-	FS_Write (cls.download, msg->data + msg->readcount, size );
+	FS_Write( cls.download, msg->data + msg->readcount, size );
 	msg->readcount += size;
 
-	if (percent != 100)
+	if( percent != 100 )
 	{
 		// request next block
 		cls.downloadpercent = percent;
@@ -227,22 +132,39 @@ void CL_ParseDownload( sizebuf_t *msg )
 	{
 		string	oldn, newn;
 
-		FS_Close (cls.download);
+		FS_Close( cls.download );
 
 		// rename the temp file to it's final name
-		CL_DownloadFileName(oldn, sizeof(oldn), cls.downloadtempname);
-		CL_DownloadFileName(newn, sizeof(newn), cls.downloadname);
-		r = rename (oldn, newn);
-		if (r)
-			Msg ("failed to rename.\n");
+		com.strncpy( oldn, cls.downloadtempname, MAX_STRING );
+		com.strncpy( newn, cls.downloadname, MAX_STRING );
+		r = rename( oldn, newn );
+		if( r ) MsgDev( D_ERROR, "failed to rename.\n" );
 
 		cls.download = NULL;
 		cls.downloadpercent = 0;
 
 		// get another file if needed
-
-		CL_RequestNextDownload ();
+		CL_RequestNextDownload();
 	}
+}
+
+/*
+======================
+CL_RegisterSounds
+======================
+*/
+void CL_RegisterSounds( void )
+{
+	int	i;
+
+	S_BeginRegistration();
+	for( i = 1; i < MAX_SOUNDS; i++ )
+	{
+		if (!cl.configstrings[CS_SOUNDS+i][0]) break;
+		cl.sound_precache[i] = S_RegisterSound (cl.configstrings[CS_SOUNDS+i]);
+		Sys_SendKeyEvents(); // pump message loop
+	}
+	S_EndRegistration();
 }
 
 
@@ -274,36 +196,25 @@ void CL_ParseServerData( sizebuf_t *msg )
 	i = MSG_ReadLong( msg );
 	cls.serverProtocol = i;
 
-	if( i != PROTOCOL_VERSION ) Host_Error("Server returned version %i, not %i", i, PROTOCOL_VERSION );
+	if( i != PROTOCOL_VERSION )
+		Host_Error("Server use invalid protocol (%i should be %i)\n", i, PROTOCOL_VERSION );
 
 	cl.servercount = MSG_ReadLong( msg );
-
-	// parse player entity number
 	cl.playernum = MSG_ReadShort( msg );
-
-	// get the full level name
 	str = MSG_ReadString( msg );
 
-	if( cl.playernum == -1 )
-	{	
-		// playing a cinematic or showing a pic, not a level
-		SCR_PlayCinematic( str, 0 );
-	}
-	else
+	// get splash name
+	Cvar_Set( "cl_levelshot_name", va("background/%s.tga", str ));
+	Cvar_SetValue("scr_loading", 0.0f ); // reset progress bar
+	if(!FS_FileExists(va("gfx/%s", Cvar_VariableString("cl_levelshot_name")))) 
 	{
-		// get splash name
-		Cvar_Set( "cl_levelshot_name", va("background/%s.tga", str ));
-		Cvar_SetValue("scr_loading", 0.0f ); // reset progress bar
-		if(!FS_FileExists(va("gfx/%s", Cvar_VariableString("cl_levelshot_name")))) 
-		{
-			Cvar_Set("cl_levelshot_name", "common/black");
-			cl.make_levelshot = true; // make levelshot
-		}
-		// seperate the printfs so the server message can have a color
-		Msg("\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
-		// need to prep refresh at next oportunity
-		cl.refresh_prepped = false;
+		Cvar_Set("cl_levelshot_name", "common/black");
+		cl.make_levelshot = true; // make levelshot
 	}
+	// seperate the printfs so the server message can have a color
+	Msg("\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
+	// need to prep refresh at next oportunity
+	cl.refresh_prepped = false;
 }
 
 /*
@@ -321,120 +232,12 @@ void CL_ParseBaseline( sizebuf_t *msg )
 	memset( &nullstate, 0, sizeof(nullstate));
 	newnum = MSG_ReadBits( msg, NET_WORD );
 
-	// allocate edicts
+	// increase edicts
 	while( newnum >= prog->num_edicts ) PRVM_ED_Alloc();
 	ent = PRVM_EDICT_NUM( newnum );
 
 	MSG_ReadDeltaEntity( msg, &nullstate, &ent->priv.cl->baseline, newnum );
 }
-
-
-/*
-================
-CL_LoadClientinfo
-
-================
-*/
-void CL_LoadClientinfo (clientinfo_t *ci, char *s)
-{
-	int i;
-	char		*t;
-	char		model_name[MAX_QPATH];
-	char		skin_name[MAX_QPATH];
-	char		model_filename[MAX_QPATH];
-	char		weapon_filename[MAX_QPATH];
-
-	com.strncpy(ci->cinfo, s, sizeof(ci->cinfo));
-	ci->cinfo[sizeof(ci->cinfo)-1] = 0;
-
-	// isolate the player's name
-	com.strncpy(ci->name, s, sizeof(ci->name));
-	ci->name[sizeof(ci->name)-1] = 0;
-	t = com.strstr (s, "\\");
-	if (t)
-	{
-		ci->name[t-s] = 0;
-		s = t+1;
-	}
-
-	if( *s == 0)
-	{
-		com.sprintf (model_filename, "models/players/gordon/player.mdl");
-		com.sprintf (weapon_filename, "models/weapons/w_glock.mdl");
-		ci->model = re->RegisterModel (model_filename);
-		memset(ci->weaponmodel, 0, sizeof(ci->weaponmodel));
-		ci->weaponmodel[0] = re->RegisterModel (weapon_filename);
-	}
-	else
-	{
-		// isolate the model name
-		com.strcpy (model_name, s);
-		t = com.strstr(model_name, "/");
-		if (!t) t = com.strstr(model_name, "\\");
-		if (!t) t = model_name;
-		*t = 0;
-
-		// isolate the skin name
-		com.strcpy (skin_name, s + com.strlen(model_name) + 1);
-
-		// model file
-		com.sprintf (model_filename, "models/players/%s/player.mdl", model_name);
-		ci->model = re->RegisterModel (model_filename);
-		if (!ci->model)
-		{
-			com.strcpy(model_name, "gordon");
-			com.sprintf (model_filename, "models/players/gordon/player.mdl");
-			ci->model = re->RegisterModel (model_filename);
-		}
-
-		// if we don't have the skin and the model wasn't male,
-		// see if the male has it (this is for CTF's skins)
- 		if (!ci->skin && com.stricmp(model_name, "male"))
-		{
-			// change model to male
-			com.strcpy(model_name, "male");
-			com.sprintf (model_filename, "models/players/gordon/player.mdl");
-			ci->model = re->RegisterModel (model_filename);
-		}
-
-		// weapon file
-		for (i = 0; i < num_cl_weaponmodels; i++)
-		{
-			com.sprintf (weapon_filename, "models/weapons/%s", cl_weaponmodels[i]);
-			ci->weaponmodel[i] = re->RegisterModel(weapon_filename);
-			if (!cl_vwep->value) break; // only one when vwep is off
-		}
-	}
-
-	// must have loaded all data types to be valud
-	if (!ci->skin || !ci->model || !ci->weaponmodel[0])
-	{
-		ci->skin = NULL;
-		ci->model = NULL;
-		ci->weaponmodel[0] = NULL;
-		return;
-	}
-}
-
-/*
-================
-CL_ParseClientinfo
-
-Load the skin, icon, and model for a client
-================
-*/
-void CL_ParseClientinfo (int player)
-{
-	char			*s;
-	clientinfo_t	*ci;
-
-	s = cl.configstrings[player+CS_PLAYERSKINS];
-
-	ci = &cl.clientinfo[player];
-
-	CL_LoadClientinfo (ci, s);
-}
-
 
 /*
 ================
@@ -444,46 +247,34 @@ CL_ParseConfigString
 void CL_ParseConfigString( sizebuf_t *msg )
 {
 	int		i;
-	char		*s;
-	string		olds;
 
 	i = MSG_ReadShort( msg );
-	if (i < 0 || i >= MAX_CONFIGSTRINGS) Host_Error("configstring > MAX_CONFIGSTRINGS\n");
-	s = MSG_ReadString( msg );
-
-	com.strncpy (olds, cl.configstrings[i], sizeof(olds));
-	olds[sizeof(olds) - 1] = 0;
-
-	com.strcpy (cl.configstrings[i], s);
+	if( i < 0 || i >= MAX_CONFIGSTRINGS )
+		Host_Error("configstring > MAX_CONFIGSTRINGS\n");
+	com.strcpy( cl.configstrings[i], MSG_ReadString( msg ));
 
 	// do something apropriate 
-
-	if (i >= CS_LIGHTS && i < CS_LIGHTS+MAX_LIGHTSTYLES)
+	if( i >= CS_MODELS && i < CS_MODELS+MAX_MODELS )
 	{
-		CL_SetLightstyle (i - CS_LIGHTS);
-	}
-	else if (i >= CS_MODELS && i < CS_MODELS+MAX_MODELS)
-	{
-		if(cl.refresh_prepped)
+		if( cl.refresh_prepped )
 		{
-			cl.model_draw[i-CS_MODELS] = re->RegisterModel( cl.configstrings[i] );
+			re->RegisterModel( cl.configstrings[i], i-CS_MODELS );
 			cl.models[i-CS_MODELS] = pe->RegisterModel( cl.configstrings[i] );
 		}
 	}
-	else if (i >= CS_SOUNDS && i < CS_SOUNDS+MAX_MODELS)
+	else if( i >= CS_SOUNDS && i < CS_SOUNDS+MAX_MODELS )
 	{
-		if (cl.refresh_prepped)
-			cl.sound_precache[i-CS_SOUNDS] = S_RegisterSound (cl.configstrings[i]);
+		if( cl.refresh_prepped )
+			cl.sound_precache[i-CS_SOUNDS] = S_RegisterSound( cl.configstrings[i] );
 	}
-	else if (i >= CS_IMAGES && i < CS_IMAGES+MAX_MODELS)
+	else if( i >= CS_CLASSNAMES && i < CS_CLASSNAMES+MAX_CLASSNAMES )
 	{
-		if (cl.refresh_prepped)
-			cl.image_precache[i-CS_IMAGES] = re->RegisterPic (cl.configstrings[i]);
+		// prvm classnames for search by classname on client vm
+		cl.edict_classnames[i-CS_CLASSNAMES] = PRVM_SetEngineString( cl.configstrings[i] );
 	}
-	else if (i >= CS_PLAYERSKINS && i < CS_PLAYERSKINS+MAX_CLIENTS)
+	else if( i >= CS_LIGHTSTYLES && i < CS_LIGHTSTYLES+MAX_LIGHTSTYLES )
 	{
-		if (cl.refresh_prepped && com.strcmp(olds, s))
-			CL_ParseClientinfo (i-CS_PLAYERSKINS);
+		CL_SetLightstyle( i - CS_LIGHTSTYLES );
 	}
 }
 
@@ -537,11 +328,6 @@ void CL_ParseStartSoundPacket( sizebuf_t *msg )
 	S_StartSound( pos, ent, channel, cl.sound_precache[sound_num], volume, attenuation );
 }       
 
-void SHOWNET( sizebuf_t *msg, char *s )
-{
-	if (cl_shownet->value >= 2) Msg ("%3i:%s\n", msg->readcount-1, s);
-}
-
 /*
 =====================
 CL_ParseServerMessage
@@ -552,11 +338,8 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 	char	*s;
 	int	cmd;
 
-	// if recording demos, copy the message out
-	if (cl_shownet->value == 1) Msg ("%i ",msg->cursize);
-	else if (cl_shownet->value >= 2) Msg ("------------------\n");
-
-	cls.multicast = msg; // client progs can recivied messages too
+	// client progs can recivied messages too
+	cls.multicast = msg;
 
 	// parse the message
 	while( 1 )
@@ -595,7 +378,7 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 			Cbuf_AddText( s );
 			break;
 		case svc_serverdata:
-			Cbuf_Execute();		// make sure any stuffed commands are done
+			Cbuf_Execute(); // make sure any stuffed commands are done
 			CL_ParseServerData( msg );
 			break;
 		case svc_configstring:
@@ -616,13 +399,13 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 		case svc_frame:
 			CL_ParseFrame( msg );
 			break;
-		case svc_playerinfo:
+		case svc_clientindex:
 		case svc_packetentities:
 		case svc_deltapacketentities:
-			Host_Error("CL_ParseServerMessage: out of place frame data\n");
+			Host_Error( "CL_ParseServerMessage: out of place frame data\n" );
 			break;
 		case svc_bad:
-			Host_Error("CL_ParseServerMessage: svc_bad\n" );
+			Host_Error( "CL_ParseServerMessage: svc_bad\n" );
 			break;
 		default:
 			// parse user messages

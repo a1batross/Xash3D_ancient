@@ -1291,10 +1291,11 @@ void VM_drawmodel( void )
 {
 	float		*size, *pos, *origin, *angles;
 	const char	*modname;
-	refdef_t		refdef;
+	vrect_t		rect;
+	static refdef_t	refdef;
 	int		sequence;
+	entity_state_t	ent;
 	static float	frame;
-	entity_t		entity;
 
 	if(!VM_ValidateArgs( "drawmodel", 4 ))
 		return;
@@ -1307,41 +1308,32 @@ void VM_drawmodel( void )
 	sequence = (int)PRVM_G_FLOAT(OFS_PARM5);
 
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM2));
-	memset( &entity, 0, sizeof( entity ));
-	memset( &refdef, 0, sizeof( refdef ) );
+	memset( &ent, 0, sizeof( ent ));
 
 	SCR_AdjustSize( &pos[0], &pos[1], &size[0], &size[1] );
-	
-	refdef.x = pos[0];
-	refdef.y = pos[1];
-	refdef.width = size[0];
-	refdef.height = size[1];
+	rect.x = pos[0]; rect.y = pos[1]; rect.width = size[0]; rect.height = size[1];
+	Mem_Copy( &refdef.rect, &rect, sizeof(vrect_t));
+
 	refdef.fov_x = 50;
-	refdef.fov_y = V_CalcFov( refdef.fov_x, refdef.width, refdef.height );
+	refdef.fov_y = V_CalcFov( refdef.fov_x, refdef.rect.width, refdef.rect.height );
 	refdef.time = cls.realtime * 0.001f;
-
-	entity.model = re->RegisterModel( (char *)modname );
-	entity.flags = RF_FULLBRIGHT;
-	VectorCopy( origin, entity.origin );
-	VectorCopy( entity.origin, entity.oldorigin );
-	VectorCopy( angles, entity.angles );
-	entity.frame = frame += 0.7f;//FXIME
-	entity.sequence = sequence;
-	entity.prev.frame = 0;
-	entity.backlerp = 0.0;
-	entity.controller[0] = 90.0;
-	entity.controller[1] = 90.0;
-	entity.controller[2] = 180.0;
-	entity.controller[3] = 180.0;
-
-	refdef.areabits = 0;
-	refdef.num_entities = 1;
-	refdef.entities = &entity;
-	refdef.lightstyles = 0;
 	refdef.rdflags = RDF_NOWORLDMODEL;
 
+	re->ClearScene( &refdef );
+	re->RegisterModel( modname, MAX_MODELS - 1 );
+	ent.renderfx = RF_FULLBRIGHT;
+	ent.model.sequence = sequence;
+	ent.model.index = MAX_MODELS - 1;
+	VectorCopy( origin, ent.origin );
+	VectorCopy( origin, ent.old_origin );
+	VectorCopy( angles, ent.angles );
+	ent.model.controller[0] = ent.model.controller[1] = 90.0;
+	ent.model.controller[2] = ent.model.controller[3] = 180.0;
+
+	ent.model.frame = frame += 0.7f;//FXIME
+
+	re->AddRefEntity( &refdef, &ent, NULL, 1.0f );
 	re->RenderFrame( &refdef );
-	re->EndFrame();
 }
 
 /*

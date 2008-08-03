@@ -159,7 +159,7 @@ void SV_SetModel (edict_t *ent, const char *name)
 	vec3_t		angles;
 
 	i = SV_ModelIndex( name );
-	if(i == 0) return;
+	if( i == 0 ) return;
 	ent->progs.sv->model = PRVM_SetEngineString( sv.configstrings[CS_MODELS+i] );
 	ent->progs.sv->modelindex = i;
 
@@ -204,7 +204,7 @@ float SV_AngleMod( float ideal, float current, float speed )
 	return anglemod(current + move);
 }
 
-void SV_ConfigString (int index, const char *val)
+void SV_ConfigString( int index, const char *val )
 {
 	if(index < 0 || index >= MAX_CONFIGSTRINGS)
 		Host_Error ("configstring: bad index %i value %s\n", index, val);
@@ -591,7 +591,7 @@ void SV_ReadSaveFile( char *name )
 SV_ReadLevelFile
 =============
 */
-void SV_ReadLevelFile( char *name )
+void SV_ReadLevelFile( const char *name )
 {
 	char		path[MAX_SYSPATH];
 	dsavehdr_t	*header;
@@ -760,6 +760,9 @@ bool SV_LoadEdict( edict_t *ent )
 		return false;
 	else if(current_skill >= 2 && (int)ent->progs.sv->spawnflags & SPAWNFLAG_NOT_HARD  )
 		return false;
+
+	// apply edict classname
+	ent->priv.sv->s.classname = SV_ClassIndex(PRVM_GetString( ent->progs.sv->classname ));
 	return true;
 }
 
@@ -849,7 +852,7 @@ void PF_setmodel( void )
 
 /*
 =================
-PF_setmodel
+PF_model_index
 
 float model_index( string s )
 =================
@@ -1336,22 +1339,56 @@ void PF_droptofloor( void )
 
 	VectorCopy( ent->progs.sv->origin, end );
 	end[2] -= 256;
-	trace = SV_Trace(ent->progs.sv->origin, ent->progs.sv->mins, ent->progs.sv->maxs, end, MOVE_NORMAL, ent, MASK_SOLID );
+	SV_UnstickEntity( ent );
+
+	trace = SV_Trace(ent->progs.sv->origin, ent->progs.sv->mins, ent->progs.sv->maxs, end, MOVE_NORMAL, ent, SV_ContentsMask( ent ));
 
 	if( trace.startsolid )
 	{
-		VM_Warning("droptofloor: %s startsolid at %g %g %g\n", 
+		vec3_t offset, org;
+		VectorSet( offset, 0.5f * (ent->progs.sv->mins[0] + ent->progs.sv->maxs[0]), 0.5f * (ent->progs.sv->mins[1] + ent->progs.sv->maxs[1]), ent->progs.sv->mins[2]);
+		VectorAdd( ent->progs.sv->origin, offset, org );
+		trace = SV_Trace( org, vec3_origin, vec3_origin, end, MOVE_NORMAL, ent, SV_ContentsMask( ent ));
+		VectorSubtract( trace.endpos, offset, trace.endpos );
+		if( trace.startsolid )
+		{
+			VM_Warning( "droptofloor: startsolid at %g %g %g\n", ent->progs.sv->origin[0], ent->progs.sv->origin[1], ent->progs.sv->origin[2]);
+			SV_UnstickEntity( ent );
+			SV_LinkEdict( ent );
+			ent->progs.sv->aiflags = (int)ent->progs.sv->aiflags | AI_ONGROUND;
+			ent->progs.sv->groundentity = 0;
+			PRVM_G_FLOAT(OFS_RETURN) = 1;
+		}
+		else if( trace.fraction < 1 )
+		{
+			VM_Warning( "droptofloor moved to %g %g %g\n", ent->progs.sv->origin[0], ent->progs.sv->origin[1], ent->progs.sv->origin[2]);
+			VectorCopy( trace.endpos, ent->progs.sv->origin );
+			SV_UnstickEntity( ent );
+			SV_LinkEdict( ent );
+			ent->progs.sv->aiflags = (int)ent->progs.sv->aiflags | AI_ONGROUND;
+			ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG( trace.ent );
+			PRVM_G_FLOAT(OFS_RETURN) = 1;
+			// if support is destroyed, keep suspended (gross hack for floating items in various maps)
+			ent->priv.sv->suspended = true;
+		}
+
+		VM_Warning( "droptofloor: %s startsolid at %g %g %g\n", 
 		PRVM_G_STRING(ent->progs.sv->classname), ent->progs.sv->origin[0], ent->progs.sv->origin[1], ent->progs.sv->origin[2]);
-		SV_FreeEdict (ent);
+		SV_FreeEdict( ent );
 		return;
 	}
-	if( trace.fraction != 1 )
+	else
 	{
-		VectorCopy (trace.endpos, ent->progs.sv->origin);
-		SV_LinkEdict(ent);
-		ent->progs.sv->aiflags = (int)ent->progs.sv->aiflags | AI_ONGROUND;
-		ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG(trace.ent);
-		PRVM_G_FLOAT(OFS_RETURN) = 1;
+		if( trace.fraction != 1 )
+		{
+			if( trace.fraction < 1 ) VectorCopy( trace.endpos, ent->progs.sv->origin );
+			SV_LinkEdict( ent );
+			ent->progs.sv->aiflags = (int)ent->progs.sv->aiflags | AI_ONGROUND;
+			ent->progs.sv->groundentity = PRVM_EDICT_TO_PROG( trace.ent );
+			PRVM_G_FLOAT(OFS_RETURN) = 1;
+			// if support is destroyed, keep suspended (gross hack for floating items in various maps)
+			ent->priv.sv->suspended = true;
+		}
 	}
 }
 
@@ -1359,7 +1396,7 @@ void PF_droptofloor( void )
 ===============
 PF_walkmove
 
-float walkmove( float yaw, float dist )
+float walkmove( float yaw, float dist, float settrace )
 ===============
 */
 void PF_walkmove( void )
@@ -1369,8 +1406,9 @@ void PF_walkmove( void )
 	vec3_t		move;
 	mfunction_t	*oldf;
 	int 		oldpev;
+	bool		settrace;
 
-	if(!VM_ValidateArgs( "walkmove", 0 )) return;
+	if(!VM_ValidateArgs( "walkmove", 3 )) return;
 	PRVM_G_FLOAT(OFS_RETURN) = 0;	// assume failure if it returns early
 	ent = PRVM_PROG_TO_EDICT( prog->globals.sv->pev );
 
@@ -1387,19 +1425,19 @@ void PF_walkmove( void )
 
 	yaw = PRVM_G_FLOAT(OFS_PARM0);
 	dist = PRVM_G_FLOAT(OFS_PARM1);
+	settrace = (int)PRVM_G_FLOAT(OFS_PARM2);
 
 	if(!((int)ent->progs.sv->aiflags & (AI_ONGROUND|AI_FLY|AI_SWIM)))
 		return;
-
 	yaw = yaw * M_PI*2 / 360;
 
-	VectorSet( move, cos(yaw) * dist, sin(yaw) * dist, 0 );
+	VectorSet( move, (cos(yaw) * dist), (sin(yaw) * dist), 0.0f );
 
 	// save program state, because SV_MoveStep may call other progs
 	oldf = prog->xfunction;
 	oldpev = prog->globals.sv->pev;
 
-	PRVM_G_FLOAT(OFS_RETURN) = SV_movestep( ent, move, true, false, true );
+	PRVM_G_FLOAT(OFS_RETURN) = SV_movestep( ent, move, true, false, settrace );
 
 	// restore program state
 	prog->xfunction = oldf;
@@ -1541,14 +1579,14 @@ void PF_ambientsound( void )
 =================
 PF_traceline
 
-void traceline( vector v1, vector v2, float mask, entity ignore )
+void traceline( vector v1, vector v2, float move, entity ignore )
 =================
 */
 void PF_traceline( void )
 {
 	float		*v1, *v2;
 	trace_t		trace;
-	int		mask;
+	int		move;
 	edict_t		*ent;
 
 	if(!VM_ValidateArgs( "traceline", 4 )) return;
@@ -1556,31 +1594,16 @@ void PF_traceline( void )
 
 	v1 = PRVM_G_VECTOR(OFS_PARM0);
 	v2 = PRVM_G_VECTOR(OFS_PARM1);
-	mask = (int)PRVM_G_FLOAT(OFS_PARM2);
+	move = (int)PRVM_G_FLOAT(OFS_PARM2);
 	ent = PRVM_G_EDICT(OFS_PARM3);
-
-	if(mask == 1) mask = MASK_SOLID;
-	else if(mask == 2) mask = MASK_SHOT;
-	else if(mask == 3) mask = MASK_MONSTERSOLID;
-	else if(mask == 4) mask = MASK_WATER;
-	else mask = MASK_ALL;
 
 	if (IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2]))
 		PRVM_ERROR("%s: NAN errors detected in traceline('%f %f %f', '%f %f %f', %i, entity %i)\n",
-		PRVM_NAME, v1[0], v1[1], v1[2], v2[0], v2[1], v2[2], mask, PRVM_EDICT_TO_PROG(ent));
+		PRVM_NAME, v1[0], v1[1], v1[2], v2[0], v2[1], v2[2], move, PRVM_EDICT_TO_PROG(ent));
 
-	trace = SV_Trace( v1, vec3_origin, vec3_origin, v2, MOVE_NORMAL, ent, mask );
+	trace = SV_Trace( v1, vec3_origin, vec3_origin, v2, move, ent, SV_ContentsMask(ent));
 
-	prog->globals.sv->trace_allsolid = trace.allsolid;
-	prog->globals.sv->trace_startsolid = trace.startsolid;
-	prog->globals.sv->trace_fraction = trace.fraction;
-	prog->globals.sv->trace_contents = trace.contents;
-
-	VectorCopy (trace.endpos, prog->globals.sv->trace_endpos);
-	VectorCopy (trace.plane.normal, prog->globals.sv->trace_plane_normal);
-	prog->globals.sv->trace_plane_dist =  trace.plane.dist;
-	if (trace.ent) prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG(trace.ent);
-	else prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG(prog->edicts);
+	VM_SetTraceGlobals( &trace );
 }
 
 /*
@@ -1625,14 +1648,14 @@ void PF_tracetoss( void )
 =================
 PF_tracebox
 
-void tracebox( vector v1, vector mins, vector maxs, vector v2, float mask, entity ignore )
+void tracebox( vector v1, vector mins, vector maxs, vector v2, float move, entity ignore )
 =================
 */
 void PF_tracebox( void )
 {
 	float		*v1, *v2, *m1, *m2;
 	trace_t		trace;
-	int		mask;
+	int		move;
 	edict_t		*ent;
 
 	if(!VM_ValidateArgs( "tracebox", 6 )) return;
@@ -1642,33 +1665,16 @@ void PF_tracebox( void )
 	m1 = PRVM_G_VECTOR(OFS_PARM1);
 	m2 = PRVM_G_VECTOR(OFS_PARM2);
 	v2 = PRVM_G_VECTOR(OFS_PARM3);
-	mask = (int)PRVM_G_FLOAT(OFS_PARM4);
+	move = (int)PRVM_G_FLOAT(OFS_PARM4);
 	ent = PRVM_G_EDICT(OFS_PARM5);
-
-	if( mask == 1 ) mask = MASK_SOLID;
-	else if( mask == 2 ) mask = MASK_SHOT;
-	else if( mask == 3 ) mask = MASK_MONSTERSOLID;
-	else if( mask == 4 ) mask = MASK_PLAYERSOLID;
-	else if( mask == 5 ) mask = MASK_WATER;
-	else mask = MASK_ALL;
 
 	if (IS_NAN(v1[0]) || IS_NAN(v1[1]) || IS_NAN(v1[2]) || IS_NAN(v2[0]) || IS_NAN(v1[2]) || IS_NAN(v2[2]))
 		PRVM_ERROR("%s: NAN errors detected in tracebox('%f %f %f', '%f %f %f', '%f %f %f', '%f %f %f', %i, entity %i)\n", 
-		PRVM_NAME, v1[0], v1[1], v1[2], m1[0], m1[1], m1[2], m2[0], m2[1], m2[2], v2[0], v2[1], v2[2], mask, PRVM_EDICT_TO_PROG(ent));
+		PRVM_NAME, v1[0], v1[1], v1[2], m1[0], m1[1], m1[2], m2[0], m2[1], m2[2], v2[0], v2[1], v2[2], move, PRVM_EDICT_TO_PROG(ent));
 
-	trace = SV_Trace( v1, m1, m2, v2, MOVE_NORMAL, ent, mask );
+	trace = SV_Trace( v1, m1, m2, v2, move, ent, SV_ContentsMask( ent ));
 
-	prog->globals.sv->trace_allsolid = trace.allsolid;
-	prog->globals.sv->trace_startsolid = trace.startsolid;
-	prog->globals.sv->trace_fraction = trace.fraction;
-	prog->globals.sv->trace_contents = trace.contents;
-
-	VectorCopy( trace.endpos, prog->globals.sv->trace_endpos );
-	VectorCopy( trace.plane.normal, prog->globals.sv->trace_plane_normal );
-	prog->globals.sv->trace_plane_dist =  trace.plane.dist;
-
-	if( trace.ent ) prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG( trace.ent );
-	else prog->globals.sv->trace_ent = PRVM_EDICT_TO_PROG( prog->edicts );
+	VM_SetTraceGlobals( &trace );
 }
 
 /*
@@ -1836,7 +1842,7 @@ void PF_particle( void )
 	color = PRVM_G_FLOAT(OFS_PARM2);
 	count = PRVM_G_FLOAT(OFS_PARM3);
 	
-	SV_StartParticle (org, dir, (int)color, (int)count);
+	SV_StartParticle( org, dir, (int)color, (int)count);
 }
 
 /*
@@ -1859,23 +1865,7 @@ void PF_lightstyle( void )
 
 	if((uint)style >= MAX_LIGHTSTYLES )
 		PRVM_ERROR( "PF_lightstyle: style: %i >= %d", style, MAX_LIGHTSTYLES );
-	SV_ConfigString( CS_LIGHTS + style, val );
-}
-
-/*
-===============
-PF_decalindex
-
-float decal_index( string s ) 
-===============
-*/
-void PF_decalindex( void )
-{
-	if(!VM_ValidateArgs( "decal_index", 1 ))
-		return;
-
-	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
-	PRVM_G_FLOAT(OFS_RETURN) = SV_DecalIndex(PRVM_G_STRING(OFS_PARM0)); // it will precache new decals too
+	SV_ConfigString( CS_LIGHTSTYLES + style, val );
 }
 
 /*
@@ -2143,18 +2133,23 @@ void PF_InfoSetValueForKey( void )
 
 /*
 ===============
-PF_Configstring
+PF_setsky
 
-void configstring( float num, string s )
+void setsky( string name, vector angles, float speed )
 ===============
 */
-void PF_configstring( void )
+void PF_setsky( void )
 {
-	if(!VM_ValidateArgs( "configstring", 2 ))
+	float	*ang;
+
+	if(!VM_ValidateArgs( "setsky", 3 ))
 		return;
 
-	VM_ValidateString(PRVM_G_STRING(OFS_PARM1));
-	SV_ConfigString((int)PRVM_G_FLOAT(OFS_PARM0), PRVM_G_STRING(OFS_PARM1));
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+	ang = PRVM_G_VECTOR(OFS_PARM1);
+	SV_ConfigString( CS_SKYNAME, PRVM_G_STRING(OFS_PARM0));
+	SV_ConfigString( CS_SKYANGLES, va( "%g %g %g", ang[0], ang[1], ang[2] ));
+	SV_ConfigString( CS_SKYSPEED, va("%g", PRVM_G_FLOAT(OFS_PARM2)));
 }
 
 /*
@@ -2324,7 +2319,7 @@ PF_serverexec,			// #141 void server_execute( void )
 PF_clientcmd,			// #142 void client_command( entity e, string s)
 PF_particle,			// #143 void particle( vector origin, vector dir, float color, float count )
 PF_lightstyle,			// #144 void lightstyle(float style, string value)
-PF_decalindex,			// #145 float decal_index(string s)
+NULL,				// #145
 PF_pointcontents,			// #146 float pointcontents(vector v) 
 PF_BeginMessage,			// #147 void MsgBegin (float dest)
 PF_EndMessage,			// #148 void MsgEnd(float to, vector pos, entity e)
@@ -2352,7 +2347,7 @@ PF_InfoPrint,      			// #169 void Info_Print( entity client )
 PF_InfoValueForKey,			// #170 string Info_ValueForKey( entity client, string key )
 PF_InfoRemoveKey,			// #171 void Info_RemoveKey( entity client, string key )
 PF_InfoSetValueForKey,		// #172 void Info_SetValueForKey( entity client, string key, string value )
-PF_configstring,			// #173 void configstring(float num, string s)
+PF_setsky,			// #173 void setsky( string name, vector angles, float speed )
 NULL,				// #174 staticDecal
 };
 

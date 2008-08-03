@@ -57,7 +57,7 @@ enum svc_ops_e
 	svc_configstring,		// [short] [string]
 	svc_spawnbaseline,		// valid only at spawn		
 	svc_download,		// [short] size [size bytes]
-	svc_playerinfo,		// variable
+	svc_clientindex,		// [byte] edictnumber
 	svc_packetentities,		// [...]
 	svc_deltapacketentities,	// [...]
 	svc_frame,		// server frame
@@ -111,14 +111,7 @@ static const net_desc_t NWDesc[] =
 */
 
 // per-level limits
-#define MAX_DLIGHTS			128	// dynamic lights
-#define MAX_CLIENTS			256	// absolute limit
-#define MAX_LIGHTSTYLES		256	// compiler limit
-#define MAX_SOUNDS			512	// so they cannot be blindly increased
-#define MAX_IMAGES			256	// hud graphics
-#define MAX_DECALS			256	// various decals
-#define MAX_ITEMS			128	// player items
-#define MAX_GENERAL			(MAX_CLIENTS * 2)	// general config strings
+
 
 #define ES_FIELD(x)			#x,(int)&((entity_state_t*)0)->x
 #define CM_FIELD(x)			#x,(int)&((usercmd_t*)0)->x
@@ -126,26 +119,20 @@ static const net_desc_t NWDesc[] =
 // config strings are a general means of communication from
 // the server to all connected clients.
 // each config string can be at most MAX_QPATH characters.
-#define	CS_NAME			0
-#define	CS_SKY			1
-#define	CS_SKYAXIS		2	// %f %f %f format
-#define	CS_SKYROTATE		3
-#define	CS_STATUSBAR		4	// hud_program section name
-#define	CS_AIRACCEL		5	// air acceleration control
-#define	CS_MAXCLIENTS		6
-#define	CS_MAPCHECKSUM		7	// for catching cheater maps
+#define CS_NAME			0	// map name
+#define CS_MAPCHECKSUM		1	// level checksum (for catching cheater maps)
+#define CS_SKYNAME			2	// skybox name
+#define CS_SKYANGLES		3	// <angles> %f %f %f
+#define CS_SKYSPEED			4	// <speed> %f
+#define CS_MAXCLIENTS		5	// server maxclients value (0-255)
 
 // reserved config strings
 
-#define	CS_MODELS			16
-#define	CS_SOUNDS			(CS_MODELS+MAX_MODELS)
-#define	CS_IMAGES			(CS_SOUNDS+MAX_SOUNDS)
-#define	CS_LIGHTS			(CS_IMAGES+MAX_IMAGES)
-#define	CS_DECALS			(CS_LIGHTS+MAX_LIGHTSTYLES)
-#define	CS_ITEMS			(CS_DECALS+MAX_DECALS)
-#define	CS_PLAYERSKINS		(CS_ITEMS+MAX_ITEMS)
-#define	CS_GENERAL		(CS_PLAYERSKINS+MAX_CLIENTS)
-#define	MAX_CONFIGSTRINGS		(CS_GENERAL+MAX_GENERAL)
+#define CS_MODELS			16				// configstrings starts here
+#define CS_SOUNDS			(CS_MODELS+MAX_MODELS)		// sound names
+#define CS_CLASSNAMES		(CS_SOUNDS+MAX_SOUNDS)		// edicts classnames
+#define CS_LIGHTSTYLES		(CS_CLASSNAMES+MAX_CLASSNAMES)	// lightstyle patterns
+#define MAX_CONFIGSTRINGS		(CS_LIGHTSTYLES+MAX_LIGHTSTYLES)	// total count
 
 // sound flags (get rid of this)
 #define SND_VOL			(1<<0)	// a scaled byte
@@ -208,8 +195,7 @@ void MSG_ReadPos( sizebuf_t *sb, vec3_t pos );
 void MSG_ReadData( sizebuf_t *sb, void *buffer, size_t size );
 void MSG_ReadDeltaUsercmd( sizebuf_t *sb, usercmd_t *from, usercmd_t *cmd );
 void MSG_ReadDeltaEntity( sizebuf_t *sb, entity_state_t *from, entity_state_t *to, int number );
-void MSG_WriteDeltaPlayerstate( entity_state_t *from, entity_state_t *to, sizebuf_t *msg );
-void MSG_ReadDeltaPlayerstate( sizebuf_t *msg, entity_state_t *from, entity_state_t *to );
+entity_state_t MSG_ParseDeltaPlayer( entity_state_t *from, entity_state_t *to );
 
 // huffman compression
 void Huff_Init( void );

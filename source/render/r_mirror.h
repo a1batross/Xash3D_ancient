@@ -14,6 +14,6 @@ extern bool mirror;
 extern cplane_t *mirror_plane;
 extern msurface_t *mirrorchain;
 extern bool mirror_render;
-extern entity_t *mirror_entity;
+extern ref_entity_t *mirror_entity;
 
 #endif//R_MIRROR_H

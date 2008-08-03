@@ -1118,13 +1118,14 @@ image_t *R_FindImage( char *name, const byte *buffer, size_t size, imagetype_t t
 	rgbdata_t	*pic = NULL;
 	int	i;
           
-	if (!name ) return NULL;
+	if (!name ) return r_notexture;
           
 	// look for it
 	for (i = 0, image = gltextures; i < numgltextures; i++, image++)
 	{
-		if (!strcmp(name, image->name))
+		if (!com.strcmp( name, image->name ))
 		{
+			// prolonge registration
 			image->registration_sequence = registration_sequence;
 			return image;
 		}
@@ -1190,7 +1191,7 @@ image_t *R_LoadImage( char *name, rgbdata_t *pic, imagetype_t type )
 		if( numgltextures == MAX_GLTEXTURES )
 		{
 			MsgDev(D_ERROR, "R_LoadImage: gl_textures limit is out\n");
-			return NULL;
+			return r_notexture;
 		}
 		numgltextures++;
 	}

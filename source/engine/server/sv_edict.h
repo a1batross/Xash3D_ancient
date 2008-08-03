@@ -88,31 +88,30 @@ struct sv_entvars_s
 	float	watertype;
 	float	ltime;
 	string_t	model;
-	float	body;
 	float	skin;
+	float	body;
 	float	alpha;
 	float	frame;
 	float	speed;
-	float	sequence;
 	float	animtime;
+	float	sequence;
 	float	effects;
+	float	colormap;
 	float	renderfx;
 	float	flags;
 	float	aiflags;
 	float	spawnflags;
-	vec3_t	punchangle;
 	vec3_t	view_ofs;
 	vec3_t	v_angle;
 	float	button0;
 	float	button1;
 	float	button2;
 	float	impulse;
+	vec3_t	punchangle;
 	string_t	v_model;
 	float	v_frame;
 	float	v_body;
 	float	v_skin;
-	vec3_t	v_offset;
-	vec3_t	v_angles;
 	float	v_sequence;
 	string_t	p_model;
 	float	p_frame;
@@ -144,106 +143,108 @@ struct sv_entvars_s
 
 static fields_t sv_reqfields[] = 
 {
-	{149,	6,	"walk"},
-	{150,	6,	"jump"},
-	{151,	6,	"duck"},
-	{152,	2,	"v_animtime"},
-	{153,	2,	"weapon"},
-	{154,	2,	"items"},
-	{155,	1,	"target"},
-	{156,	1,	"parent"},
-	{157,	1,	"targetname"},
-	{158,	2,	"deadflag"},
-	{159,	2,	"idealpitch"},
-	{160,	1,	"netname"},
-	{161,	2,	"max_health"},
-	{162,	2,	"armortype"},
-	{163,	2,	"armorvalue"},
-	{164,	2,	"dmg_take"},
-	{165,	2,	"dmg_save"},
-	{166,	4,	"dmg_inflictor"},
-	{167,	1,	"message"},
-	{168,	2,	"sounds"},
-	{169,	1,	"noise"},
-	{170,	1,	"noise1"},
-	{171,	1,	"noise2"},
-	{172,	1,	"noise3"},
-	{173,	2,	"jumpup"},
-	{174,	2,	"jumpdn"},
-	{175,	4,	"movetarget"},
-	{176,	2,	"density"},
-	{177,	2,	"dmg"},
-	{178,	2,	"dmgtime"},
-	{179,	6,	"th_stand"},
-	{180,	6,	"th_walk"},
-	{181,	6,	"th_run"},
-	{182,	6,	"th_pain"},
-	{183,	6,	"th_die"},
-	{184,	6,	"th_missile"},
-	{185,	6,	"th_melee"},
-	{186,	2,	"walkframe"},
-	{187,	2,	"attack_finished"},
-	{188,	2,	"pain_finished"},
-	{189,	2,	"invincible_finished"},
-	{190,	2,	"invisible_finished"},
-	{191,	2,	"super_damage_finished"},
-	{192,	2,	"radsuit_finished"},
-	{193,	2,	"invincible_time"},
-	{194,	2,	"invincible_sound"},
-	{195,	2,	"invisible_time"},
-	{196,	2,	"invisible_sound"},
-	{197,	2,	"super_time"},
-	{198,	2,	"super_sound"},
-	{199,	2,	"rad_time"},
-	{200,	2,	"fly_sound"},
-	{201,	1,	"wad"},
-	{202,	1,	"map"},
-	{203,	1,	"landmark"},
-	{204,	2,	"worldtype"},
-	{205,	2,	"delay"},
-	{206,	2,	"wait"},
-	{207,	2,	"lip"},
-	{208,	2,	"light_lev"},
-	{209,	2,	"style"},
-	{210,	2,	"skill"},
-	{211,	1,	"killtarget"},
-	{212,	1,	"noise4"},
-	{213,	3,	"pos1"},
-	{216,	3,	"pos2"},
-	{219,	3,	"mangle"},
-	{222,	2,	"count"},
-	{223,	6,	"movedone"},
-	{224,	3,	"finaldest"},
-	{227,	3,	"finalangle"},
-	{230,	2,	"t_length"},
-	{231,	2,	"t_width"},
-	{232,	3,	"dest"},
-	{235,	3,	"dest1"},
-	{238,	3,	"dest2"},
-	{241,	2,	"state"},
-	{242,	2,	"height"},
-	{243,	2,	"cnt"},
-	{244,	2,	"air_finished"},
-	{245,	3,	"camview"},
-	{248,	2,	"aflag"},
-	{249,	4,	"trigger_field"},
-	{250,	2,	"m_fSequenceLoops"},
-	{251,	2,	"m_fSequenceFinished"},
-	{252,	2,	"framerate"},
-	{253,	2,	"anim_time"},
-	{254,	2,	"anim_end"},
-	{255,	2,	"anim_priority"},
-	{256,	2,	"anim_run"},
-	{257,	2,	"showhelp"},
-	{258,	2,	"showinventory"},
-	{259,	2,	"touched"},
-	{260,	1,	"name"},
-	{261,	4,	"triggerer"},
-	{262,	2,	"used"},
-	{263,	1,	"target_dest"},
-	{264,	1,	"oldmodel"}
+	{144,	6,	"walk"},
+	{145,	6,	"jump"},
+	{146,	6,	"duck"},
+	{147,	2,	"jump_flag"},
+	{148,	2,	"swim_flag"},
+	{149,	2,	"v_animtime"},
+	{150,	2,	"weapon"},
+	{151,	2,	"items"},
+	{152,	1,	"target"},
+	{153,	1,	"parent"},
+	{154,	1,	"targetname"},
+	{155,	2,	"deadflag"},
+	{156,	2,	"idealpitch"},
+	{157,	1,	"netname"},
+	{158,	2,	"max_health"},
+	{159,	2,	"armortype"},
+	{160,	2,	"armorvalue"},
+	{161,	2,	"dmg_take"},
+	{162,	2,	"dmg_save"},
+	{163,	4,	"dmg_inflictor"},
+	{164,	1,	"message"},
+	{165,	2,	"sounds"},
+	{166,	1,	"noise"},
+	{167,	1,	"noise1"},
+	{168,	1,	"noise2"},
+	{169,	1,	"noise3"},
+	{170,	2,	"jumpup"},
+	{171,	2,	"jumpdn"},
+	{172,	4,	"movetarget"},
+	{173,	2,	"density"},
+	{174,	2,	"dmg"},
+	{175,	2,	"dmgtime"},
+	{176,	6,	"th_stand"},
+	{177,	6,	"th_walk"},
+	{178,	6,	"th_run"},
+	{179,	6,	"th_pain"},
+	{180,	6,	"th_die"},
+	{181,	6,	"th_missile"},
+	{182,	6,	"th_melee"},
+	{183,	2,	"walkframe"},
+	{184,	2,	"attack_finished"},
+	{185,	2,	"pain_finished"},
+	{186,	2,	"invincible_finished"},
+	{187,	2,	"invisible_finished"},
+	{188,	2,	"super_damage_finished"},
+	{189,	2,	"radsuit_finished"},
+	{190,	2,	"invincible_time"},
+	{191,	2,	"invincible_sound"},
+	{192,	2,	"invisible_time"},
+	{193,	2,	"invisible_sound"},
+	{194,	2,	"super_time"},
+	{195,	2,	"super_sound"},
+	{196,	2,	"rad_time"},
+	{197,	2,	"fly_sound"},
+	{198,	1,	"wad"},
+	{199,	1,	"map"},
+	{200,	1,	"landmark"},
+	{201,	2,	"worldtype"},
+	{202,	2,	"delay"},
+	{203,	2,	"wait"},
+	{204,	2,	"lip"},
+	{205,	2,	"light_lev"},
+	{206,	2,	"style"},
+	{207,	2,	"skill"},
+	{208,	1,	"killtarget"},
+	{209,	1,	"noise4"},
+	{210,	3,	"pos1"},
+	{213,	3,	"pos2"},
+	{216,	3,	"mangle"},
+	{219,	2,	"count"},
+	{220,	6,	"movedone"},
+	{221,	3,	"finaldest"},
+	{224,	3,	"finalangle"},
+	{227,	2,	"t_length"},
+	{228,	2,	"t_width"},
+	{229,	3,	"dest"},
+	{232,	3,	"dest1"},
+	{235,	3,	"dest2"},
+	{238,	2,	"state"},
+	{239,	2,	"height"},
+	{240,	2,	"cnt"},
+	{241,	2,	"air_finished"},
+	{242,	3,	"camview"},
+	{245,	2,	"aflag"},
+	{246,	4,	"trigger_field"},
+	{247,	2,	"m_fSequenceLoops"},
+	{248,	2,	"m_fSequenceFinished"},
+	{249,	2,	"framerate"},
+	{250,	2,	"anim_time"},
+	{251,	2,	"anim_end"},
+	{252,	2,	"anim_priority"},
+	{253,	2,	"anim_run"},
+	{254,	2,	"showhelp"},
+	{255,	2,	"showinventory"},
+	{256,	2,	"touched"},
+	{257,	1,	"name"},
+	{258,	4,	"triggerer"},
+	{259,	2,	"used"},
+	{260,	1,	"target_dest"},
+	{261,	1,	"oldmodel"}
 };
 
-#define PROG_CRC_SERVER		61861
+#define PROG_CRC_SERVER		1476
 
 #endif//SV_EDICT_H

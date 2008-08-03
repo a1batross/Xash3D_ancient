@@ -84,7 +84,7 @@ void CL_SetLightstyle( int i )
 	char	*s;
 	int	j, k;
 
-	s = cl.configstrings[i+CS_LIGHTS];
+	s = cl.configstrings[i+CS_LIGHTSTYLES];
 	j = com.strlen( s );
 	if( j >= MAX_STRING ) Host_Error("CL_SetLightStyle: lightstyle %s is too long\n", s );
 
@@ -104,8 +104,8 @@ void CL_AddLightStyles (void)
 	int		i;
 	clightstyle_t	*ls;
 
-	for (i=0,ls=cl_lightstyle ; i<MAX_LIGHTSTYLES ; i++, ls++)
-		V_AddLightStyle (i, ls->value[0], ls->value[1], ls->value[2]);
+	for( i = 0, ls = cl_lightstyle; i < MAX_LIGHTSTYLES; i++, ls++ )
+		re->AddLightStyle( &cl.refdef, i, ls->value );
 }
 
 /*
@@ -226,15 +226,14 @@ CL_AddDLights
 */
 void CL_AddDLights (void)
 {
-	int			i;
+	int	i;
 	cdlight_t	*dl;
 
 	dl = cl_dlights;
-
-	for (i = 0; i < MAX_DLIGHTS; i++, dl++)
+	for( i = 0; i < MAX_DLIGHTS; i++, dl++ )
 	{
-		if (!dl->radius) continue;
-		V_AddLight (dl->origin, dl->radius, dl->color[0], dl->color[1], dl->color[2]);
+		if( dl->radius )
+			re->AddDynLight( &cl.refdef, dl->origin, dl->color, dl->radius );
 	}
 }
 
@@ -399,27 +398,25 @@ void CL_AddParticles (void)
 		}
 
 		p->next = NULL;
-		if (!tail)
-			active = tail = p;
+		if( !tail ) active = tail = p;
 		else
 		{
 			tail->next = p;
 			tail = p;
 		}
 
-		if (alpha > 1.0)
-			alpha = 1;
+		if( alpha > 1.0 ) alpha = 1;
 		color = p->color;
 
 		time2 = time*time;
 
-		org[0] = p->org[0] + p->vel[0]*time + p->accel[0]*time2;
-		org[1] = p->org[1] + p->vel[1]*time + p->accel[1]*time2;
-		org[2] = p->org[2] + p->vel[2]*time + p->accel[2]*time2;
+		org[0] = p->org[0] + p->vel[0] * time + p->accel[0] * time2;
+		org[1] = p->org[1] + p->vel[1] * time + p->accel[1] * time2;
+		org[2] = p->org[2] + p->vel[2] * time + p->accel[2] * time2;
 
-		V_AddParticle (org, color, alpha);
+		re->AddParticle( &cl.refdef, org, alpha, color );
 		// PMM
-		if (p->alphavel == INSTANT_PARTICLE)
+		if( p->alphavel == INSTANT_PARTICLE )
 		{
 			p->alphavel = 0.0;
 			p->alpha = 0.0;

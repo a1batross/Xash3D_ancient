@@ -454,7 +454,6 @@ void GL_InitBackend( void )
 void GL_ShutdownBackend( void )
 {
 	if( r_framebuffer ) Z_Free( r_framebuffer );
-
 	GL_RemoveCommands();
 }
 

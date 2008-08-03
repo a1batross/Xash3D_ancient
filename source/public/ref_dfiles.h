@@ -129,8 +129,7 @@ BRUSH MODELS
 #define MAX_MAP_STRINGDATA		0x40000
 #define MAX_MAP_NUMSTRINGS		0x10000
 
-// game limits
-#define MAX_MODELS			MAX_MAP_MODELS>>1	// brushmodels and other models
+// world limits
 #define MAX_WORLD_COORD		( 128 * 1024 )
 #define MIN_WORLD_COORD		(-128 * 1024 )
 #define WORLD_SIZE			( MAX_WORLD_COORD - MIN_WORLD_COORD )
@@ -507,8 +506,8 @@ Studio models are position independent, so the cache manager can move them.
 #define MAXSTUDIOEVENTS		1024	// events per model
 #define MAXSTUDIOPIVOTS		256	// pivot points
 #define MAXSTUDIOBLENDS		8	// max anim blends
-#define MAXSTUDIOCONTROLLERS		32	// max controllers per model
-#define MAXSTUDIOATTACHMENTS		32	// max attachments per model
+#define MAXSTUDIOCONTROLLERS		16	// max controllers per model
+#define MAXSTUDIOATTACHMENTS		16	// max attachments per model
 
 // model global flags
 #define STUDIO_STATIC		0x0001	// model without anims

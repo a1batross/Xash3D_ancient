@@ -982,7 +982,7 @@ void SV_CheckStuck( edict_t *ent )
 	{
 		if(!SV_TestEntityPosition( ent, unstickoffsets + i))
 		{
-			MsgDev( D_NOTE, "Unstuck player with offset %g %g %g.\n", unstickoffsets[i+0], unstickoffsets[i+1], unstickoffsets[i+2]);
+			MsgDev( D_INFO, "Unstuck player with offset %g %g %g.\n", unstickoffsets[i+0], unstickoffsets[i+1], unstickoffsets[i+2]);
 			SV_LinkEdict( ent );
 			return;
 		}
@@ -991,11 +991,11 @@ void SV_CheckStuck( edict_t *ent )
 	VectorSubtract( ent->progs.sv->old_origin, ent->progs.sv->origin, offset );
 	if(!SV_TestEntityPosition( ent, offset ))
 	{
-		MsgDev( D_NOTE, "Unstuck player by restoring oldorigin.\n" );
+		MsgDev( D_INFO, "Unstuck player by restoring oldorigin.\n" );
 		SV_LinkEdict( ent );
 		return;
 	}
-	MsgDev( D_NOTE, "Stuck player\n" );
+	MsgDev( D_INFO, "Stuck player\n" );
 }
 
 bool SV_UnstickEntity( edict_t *ent )

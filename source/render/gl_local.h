@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define WINDOW_STYLE (WS_OVERLAPPED|WS_BORDER|WS_CAPTION|WS_VISIBLE)
 
 #include "r_opengl.h"
+#include "r_local.h"		// temporary
 
 /*
 ===========================================
@@ -174,12 +175,12 @@ extern image_t	*r_notexture;
 extern image_t	*r_particletexture;
 extern image_t	*r_radarmap;
 extern image_t	*r_around;
-extern	entity_t	*currententity;
-extern	model_t		*currentmodel;
-extern	int			r_visframecount;
-extern	int			r_framecount;
-extern	cplane_t	frustum[4];
-extern	int			c_brush_polys;
+extern ref_entity_t	*currententity;
+extern model_t		*currentmodel;
+extern int			r_visframecount;
+extern int			r_framecount;
+extern cplane_t	frustum[4];
+extern int			c_brush_polys;
 
 
 extern	int			gl_filter_min, gl_filter_max;
@@ -293,6 +294,7 @@ extern	int		c_visible_textures;
 
 extern float r_world_matrix[16];
 extern float r_turbsin[256];
+extern model_t *r_models[MAX_MODELS];
 
 void R_TranslatePlayerSkin (int playernum);
 void GL_Bind (int texnum);
@@ -330,7 +332,7 @@ void R_StudioLoadModel (model_t *mod, void *buffer );
 void R_SpriteLoadModel( model_t *mod, void *buffer );
 void R_DrawPauseScreen( void );
 char *R_ExtName( model_t *mod );
-void R_DrawBeam( entity_t *e );
+void R_DrawBeam( ref_entity_t *e );
 void R_DrawWorld (void);
 void R_RenderDlights (void);
 void R_DrawAlphaSurfaces (void);
@@ -339,7 +341,7 @@ void R_InitParticleTexture (void);
 void Draw_InitLocal (void);
 void GL_SubdivideSurface (msurface_t *fa);
 bool R_CullBox (vec3_t mins, vec3_t maxs);
-void R_RotateForEntity (entity_t *e);
+void R_RotateForEntity( ref_entity_t *e );
 void R_MarkLeaves (void);
 
 void GL_DrawRadar( refdef_t *fd );
@@ -367,7 +369,6 @@ void	Draw_Fill(float x, float y, float w, float h );
 void	Draw_FadeScreen (void);
 void	Draw_StretchRaw (int x, int y, int w, int h, int cols, int rows, byte *data, bool dirty );
 
-void	R_BeginFrame( void );
 void	R_SwapBuffers( int );
 void	R_SetPalette ( const unsigned char *palette);
 void	R_GetPalette (void);
@@ -411,8 +412,6 @@ void GL_DrawParticles( int n, const particle_t particles[], const unsigned color
 #define GL_RENDERER_NVIDIA		0x00000004
 #define GL_RENDERER_DEFAULT		0x80000000
 
-#include "r_local.h"		// temporary
-
 extern glconfig_t  gl_config;
 extern glstate_t   gl_state;
 
@@ -434,6 +433,12 @@ void GL_ShutdownBackend( void );
 void GL_SetExtension( int r_ext, int enable );
 void GL_PolygonOffset( float planeoffset, float depthoffset );
 void GL_CheckExtension( const char *name, const dllfunc_t *funcs, const char *cvarname, int r_ext );
+
+void R_BeginRegistration( char *map );
+model_t *R_RegisterModel( const char *name );
+void R_SetSky (char *name, float rotate, vec3_t axis);
+void R_EndRegistration (void);
+image_t *Draw_FindPic( const char *name );
 
 /*
 ====================================================================

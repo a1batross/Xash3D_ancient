@@ -334,7 +334,8 @@ void CL_ClearState (void)
 	CL_FreeEdicts();
 
 	// wipe the entire cl structure
-	memset (&cl, 0, sizeof(cl));
+	Mem_FreePool( &cl.refdef.mempool );
+	memset( &cl, 0, sizeof(cl));
 	MSG_Clear( &cls.netchan.message );
 }
 
@@ -859,187 +860,64 @@ CL_Userinfo_f
 */
 void CL_Userinfo_f (void)
 {
-	Msg ("User info settings:\n");
-	Info_Print (Cvar_Userinfo());
+	Msg( "User info settings:" );
+	Info_Print( Cvar_Userinfo());
 }
 
 int precache_check; // for autodownload of precache items
 int precache_spawncount;
 int precache_tex;
-int precache_model_skin;
 
-byte *precache_model; // used for skin checking in alias models
-
-#define PLAYER_MULT 5
-
-// ENV_CNT is map load, ENV_CNT+1 is first env map
-#define ENV_CNT (CS_PLAYERSKINS + MAX_CLIENTS * PLAYER_MULT)
-#define TEXTURE_CNT (ENV_CNT+13)
+// ENV_CNT is map load, ENV_CNT+1 is first cubemap
+#define ENV_CNT		MAX_CONFIGSTRINGS
+#define TEXTURE_CNT		(ENV_CNT+13)
 
 static const char *env_suf[6] = {"rt", "bk", "lf", "ft", "up", "dn"};
 
-void CL_RequestNextDownload (void)
+void CL_RequestNextDownload( void )
 {
-	uint		map_checksum;	// for detecting cheater maps
 	string		fn;
-	studiohdr_t	*pheader;
+	uint		map_checksum;	// for detecting cheater maps
 
-	if(cls.state != ca_connected)
+	if( cls.state != ca_connected )
 		return;
 
-	if (!allow_download->value && precache_check < ENV_CNT)
+	if( !allow_download->value && precache_check < ENV_CNT )
 		precache_check = ENV_CNT;
 
-//ZOID
-	if (precache_check == CS_MODELS)
+	if( precache_check == CS_MODELS )
 	{
 		// confirm map
 		precache_check = CS_MODELS+2; // 0 isn't used
-		if (!CL_CheckOrDownloadFile(cl.configstrings[CS_MODELS+1]))
-			return; // started a download
+		if(!CL_CheckOrDownloadFile( cl.configstrings[CS_MODELS+1] ))
+			return; // started a download map
 	}
-	if (precache_check >= CS_MODELS && precache_check < CS_MODELS+MAX_MODELS)
+	if( precache_check >= CS_MODELS && precache_check < CS_MODELS+MAX_MODELS )
 	{
-		while (precache_check < CS_MODELS+MAX_MODELS && cl.configstrings[precache_check][0])
+		while( precache_check < CS_MODELS+MAX_MODELS && cl.configstrings[precache_check][0])
 		{
-			if (cl.configstrings[precache_check][0] == '*' || cl.configstrings[precache_check][0] == '#')
-			{
-				precache_check++;
-				continue;
-			}
-			if (precache_model_skin == 0)
-			{
-				if (!CL_CheckOrDownloadFile(cl.configstrings[precache_check])) {
-					precache_model_skin = 1;
-					return; // started a download
-				}
-				precache_model_skin = 1;
-			}
-
-			// checking for skins in the model
-			if (!precache_model)
-			{
-				precache_model = FS_LoadFile (cl.configstrings[precache_check], NULL);
-				if (!precache_model)
-				{
-					precache_model_skin = 0;
-					precache_check++;
-					continue; // couldn't load it
-				}
-				if (LittleLong(*(uint *)precache_model) != IDSTUDIOHEADER)
-				{
-					// not an studio model
-					precache_model = 0;
-					precache_model_skin = 0;
-					precache_check++;
-					continue;
-				}
-				pheader = (studiohdr_t *)precache_model;
-				if (LittleLong (pheader->version) != STUDIO_VERSION)
-				{
-					precache_check++;
-					precache_model_skin = 0;
-					continue; // couldn't load it
-				}
-			}
-
-			pheader = (studiohdr_t *)precache_model;
-
-			if (precache_model)
-			{ 
-				precache_model = 0;
-			}
-			precache_model_skin = 0;
-			precache_check++;
+			com.sprintf( fn, "%s", cl.configstrings[precache_check++]);
+			if(!CL_CheckOrDownloadFile( fn )) return; // started a download
 		}
 		precache_check = CS_SOUNDS;
 	}
-	if (precache_check >= CS_SOUNDS && precache_check < CS_SOUNDS+MAX_SOUNDS)
+	if( precache_check >= CS_SOUNDS && precache_check < CS_SOUNDS+MAX_SOUNDS )
 	{ 
-		if (precache_check == CS_SOUNDS) precache_check++; // zero is blank
-		while (precache_check < CS_SOUNDS+MAX_SOUNDS && cl.configstrings[precache_check][0])
+		if( precache_check == CS_SOUNDS ) precache_check++; // zero is blank
+		while( precache_check < CS_SOUNDS+MAX_SOUNDS && cl.configstrings[precache_check][0])
 		{
-			if (cl.configstrings[precache_check][0] == '*')
+			// sound pathes from model events
+			if( cl.configstrings[precache_check][0] == '*' )
 			{
 				precache_check++;
 				continue;
 			}
-			com.sprintf(fn, "sound/%s", cl.configstrings[precache_check++]);
-			if (!CL_CheckOrDownloadFile(fn)) return; // started a download
+			com.sprintf( fn, "sound/%s", cl.configstrings[precache_check++]);
+			if(!CL_CheckOrDownloadFile( fn )) return; // started a download
 		}
-		precache_check = CS_IMAGES;
-	}
-	if (precache_check >= CS_IMAGES && precache_check < CS_IMAGES+MAX_IMAGES)
-	{
-		if (precache_check == CS_IMAGES) precache_check++; // zero is blank
-		while (precache_check < CS_IMAGES+MAX_IMAGES && cl.configstrings[precache_check][0])
-		{
-			com.sprintf(fn, "pics/%s.pcx", cl.configstrings[precache_check++]);
-			if (!CL_CheckOrDownloadFile(fn)) return; // started a download
-		}
-		precache_check = CS_PLAYERSKINS;
-	}
-	// skins are special, since a player has three things to download:
-	// model, weapon model and skin
-	// so precache_check is now *3
-	if (precache_check >= CS_PLAYERSKINS && precache_check < CS_PLAYERSKINS + MAX_CLIENTS * PLAYER_MULT)
-	{
-		while (precache_check < CS_PLAYERSKINS + MAX_CLIENTS * PLAYER_MULT)
-		{
-			int i, n;
-			char model[MAX_QPATH], skin[MAX_QPATH], *p;
-
-			i = (precache_check - CS_PLAYERSKINS)/PLAYER_MULT;
-			n = (precache_check - CS_PLAYERSKINS)%PLAYER_MULT;
-
-			if (!cl.configstrings[CS_PLAYERSKINS+i][0])
-			{
-				precache_check = CS_PLAYERSKINS + (i + 1) * PLAYER_MULT;
-				continue;
-			}
-
-			if ((p = com.strchr(cl.configstrings[CS_PLAYERSKINS+i], '\\')) != NULL)
-				p++;
-			else p = cl.configstrings[CS_PLAYERSKINS+i];
-			com.strcpy(model, p);
-			p = com.strchr(model, '/');
-			if (!p) p = com.strchr(model, '\\');
-			if (p)
-			{
-				*p++ = 0;
-				com.strcpy(skin, p);
-			}
-			else *skin = 0;
-
-			switch (n)
-			{
-			case 0: // model
-				com.sprintf(fn, "models/players/%s/player.mdl", model);
-				if (!CL_CheckOrDownloadFile(fn))
-				{
-					precache_check = CS_PLAYERSKINS + i * PLAYER_MULT + 1;
-					return; // started a download
-				}
-				n++;
-				/*FALL THROUGH*/
-                              case 1: // weapon model
-				com.sprintf(fn, "weapons/%s.mdl", model);
-				if (!CL_CheckOrDownloadFile(fn))
-				{
-					precache_check = CS_PLAYERSKINS + i * PLAYER_MULT + 2;
-					return; // started a download
-				}
-				n++;
-				/*FALL THROUGH*/
-			default:
-				break;
-			}
-		}
-		// precache phase completed
 		precache_check = ENV_CNT;
 	}
-
-	if (precache_check == ENV_CNT)
+	if( precache_check == ENV_CNT )
 	{
 		precache_check = ENV_CNT + 1;
 
@@ -1050,52 +928,47 @@ void CL_RequestNextDownload (void)
 			return;
 		}
 	}
-
-	if (precache_check > ENV_CNT && precache_check < TEXTURE_CNT)
+	if( precache_check > ENV_CNT && precache_check < TEXTURE_CNT )
 	{
 		if( allow_download->value )
 		{
-			while (precache_check < TEXTURE_CNT)
+			while( precache_check < TEXTURE_CNT )
 			{
 				int n = precache_check++ - ENV_CNT - 1;
-
-				if (n & 1) com.sprintf(fn, "gfx/env/%s.dds", cl.configstrings[CS_SKY] ); // cubemap pack
-				else com.sprintf(fn, "gfx/env/%s%s.tga", cl.configstrings[CS_SKY], env_suf[n/2]);
-				if (!CL_CheckOrDownloadFile(fn)) return; // started a download
+				if( n & 1 ) com.sprintf( fn, "gfx/env/%s.dds", cl.configstrings[CS_SKYNAME] ); // cubemap pack
+				else com.sprintf( fn, "gfx/env/%s%s.tga", cl.configstrings[CS_SKYNAME], env_suf[n/2] );
+				if(!CL_CheckOrDownloadFile( fn )) return; // started a download
 			}
 		}
 		precache_check = TEXTURE_CNT;
 	}
 
-	if (precache_check == TEXTURE_CNT)
+	if( precache_check == TEXTURE_CNT )
 	{
 		precache_check = TEXTURE_CNT+1;
 		precache_tex = 0;
 	}
 
 	// confirm existance of textures, download any that don't exist
-	if (precache_check == TEXTURE_CNT+1)
+	if( precache_check == TEXTURE_CNT + 1 )
 	{
 		if( allow_download->value )
 		{
 			while( precache_tex < pe->NumTextures())
 			{
-				string	fn;
-
-				com.sprintf(fn, "textures/%s.tga", pe->GetTextureName( precache_tex++ ));
+				com.sprintf( fn, "textures/%s.tga", pe->GetTextureName( precache_tex++ ));
 				if(!CL_CheckOrDownloadFile(fn)) return; // started a download
 			}
 		}
-		precache_check = TEXTURE_CNT+999;
+		precache_check = TEXTURE_CNT + 999;
 	}
 
-//ZOID
 	CL_RegisterSounds();
 	CL_PrepRefresh();
 
 	if( cls.demoplayback ) return; // not really connected
 	MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
-	MSG_Print( &cls.netchan.message, va("begin %i\n", precache_spawncount));
+	MSG_Print( &cls.netchan.message, va("begin %i\n", precache_spawncount ));
 }
 
 /*
@@ -1106,13 +979,10 @@ The server will send this command right
 before allowing the client into the server
 =================
 */
-void CL_Precache_f (void)
+void CL_Precache_f( void )
 {
 	precache_check = CS_MODELS;
 	precache_spawncount = com.atoi(Cmd_Argv(1));
-	precache_model = 0;
-	precache_model_skin = 0;
-
 	CL_RequestNextDownload();
 }
 
@@ -1190,6 +1060,7 @@ void CL_InitLocal (void)
 	Cmd_AddCommand ("disconnect", CL_Disconnect_f, "disconnect from server" );
 	Cmd_AddCommand ("record", CL_Record_f, "record a demo" );
 	Cmd_AddCommand ("playdemo", CL_PlayDemo_f, "playing a demo" );
+	Cmd_AddCommand ("movie", CL_PlayVideo_f, "playing a movie" );
 	Cmd_AddCommand ("stop", CL_Stop_f, "stop playing or recording a demo" );
 
 	Cmd_AddCommand ("quit", CL_Quit_f, "quit from game" );
@@ -1221,7 +1092,7 @@ CL_WriteConfiguration
 Writes key bindings and archived cvars to config.cfg
 ===============
 */
-void CL_WriteConfiguration (void)
+void CL_WriteConfiguration( void )
 {
 	file_t	*f;
 
@@ -1252,66 +1123,6 @@ void CL_WriteConfiguration (void)
 	else MsgDev( D_ERROR, "Couldn't write vars.rc.\n");
 }
 
-
-/*
-==================
-CL_FixCvarCheats
-
-==================
-*/
-
-typedef struct
-{
-	char	*name;
-	char	*value;
-	cvar_t	*var;
-} cheatvar_t;
-
-cheatvar_t	cheatvars[] = {
-	{"timescale", "1"},
-	{"r_drawworld", "1"},
-	{"cl_testlights", "0"},
-	{"r_fullbright", "0"},
-	{"r_drawflat", "0"},
-	{"paused", "0"},
-	{"sw_draworder", "0"},
-	{"gl_lightmap", "0"},
-	{"gl_saturatelighting", "0"},
-	{NULL, NULL}
-};
-
-int		numcheatvars;
-
-void CL_FixCvarCheats (void)
-{
-	int			i;
-	cheatvar_t	*var;
-
-	if ( !com.strcmp(cl.configstrings[CS_MAXCLIENTS], "1") 
-		|| !cl.configstrings[CS_MAXCLIENTS][0] )
-		return;		// single player can cheat
-
-	// find all the cvars if we haven't done it yet
-	if (!numcheatvars)
-	{
-		while (cheatvars[numcheatvars].name)
-		{
-			cheatvars[numcheatvars].var = Cvar_Get (cheatvars[numcheatvars].name,
-					cheatvars[numcheatvars].value, 0, "no description" );
-			numcheatvars++;
-		}
-	}
-
-	// make sure they are all set to the proper values
-	for (i=0, var = cheatvars ; i<numcheatvars ; i++, var++)
-	{
-		if ( com.strcmp (var->var->string, var->value) )
-		{
-			Cvar_Set (var->name, var->value);
-		}
-	}
-}
-
 //============================================================================
 
 /*
@@ -1322,9 +1133,6 @@ CL_SendCommand
 */
 void CL_SendCommand (void)
 {
-	// fix any cheating cvars
-	CL_FixCvarCheats ();
-
 	// send intentions now
 	CL_SendCmd ();
 

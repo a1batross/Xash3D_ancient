@@ -1036,8 +1036,26 @@ _inline float RadiusFromBounds( vec3_t mins, vec3_t maxs )
 	return VectorLength( corner );
 }
 
+_inline float LerpAngle( float a2, float a1, float frac )
+{
+	if( a1 - a2 > 180 ) a1 -= 360;
+	if( a1 - a2 < -180 ) a1 += 360;
+	return a2 + frac * (a1 - a2);
+}
+
+_inline float LerpView( float org1, float org2, float ofs1, float ofs2, float frac )
+{
+	return org1 + ofs1 + frac * (org2 + ofs2 - (org1 + ofs1));
+}
+
+_inline float LerpPoint( float oldpoint, float curpoint, float frac )
+{
+	return oldpoint + frac * (curpoint - oldpoint);
+}
+
 static vec3_t vec3_origin = { 0, 0, 0 };
 static vec3_t vec3_angles = { 0, 0, 0 };
+static vec4_t vec4_origin = { 0, 0, 0, 0 };
 static vec3_t vec3_up = { 0.0f, 1.0f, 0.0f }; // unconverted up vector
 
 #endif//BASEMATH_H
