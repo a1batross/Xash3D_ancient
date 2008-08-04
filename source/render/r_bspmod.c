@@ -18,6 +18,6 @@
 Mod_LoadBrushModel
 =================
 */
-void R_BrushLoadModel (model_t *mod, void *buffer)
+void R_BrushLoadModel( rmodel_t *mod, void *buffer )
 {
 }

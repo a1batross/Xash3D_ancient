@@ -30,8 +30,8 @@ byte *r_temppool;
 
 int GL_TEXTURE0, GL_TEXTURE1;
 
-model_t *r_worldmodel;
-model_t *r_models[MAX_MODELS];
+rmodel_t *r_worldmodel;
+rmodel_t *r_models[MAX_MODELS];
 
 float gldepthmin, gldepthmax;
 
@@ -49,7 +49,7 @@ image_t *r_radarmap; // wall texture for radar texgen
 image_t *r_around;
 
 ref_entity_t	*currententity;
-model_t			*currentmodel;
+rmodel_t			*currentmodel;
 
 cplane_t	frustum[4];
 
@@ -92,7 +92,6 @@ cvar_t	*r_novis;
 cvar_t	*r_nocull;
 cvar_t	*r_lerpmodels;
 cvar_t	*r_lefthand;
-cvar_t	*r_loading;
 cvar_t	*r_testmode;
 
 cvar_t	*r_lightlevel;	// FIXME: This is a HACK to get the client's light level
@@ -1296,7 +1295,7 @@ void R_SetPalette ( const byte *palette)
 
 bool R_UploadModel( const char *name, int index )
 {
-	model_t	*mod;
+	rmodel_t	*mod;
 
 	// this array used by AddEntityToScene
 	mod = R_RegisterModel( name );
@@ -1330,6 +1329,15 @@ bool R_UploadImage( const char *name, int index )
 	return true;
 }
 
+bool R_PrecachePic( const char *name )
+{
+	image_t *pic = Draw_FindPic( name );
+
+	if( !pic || pic == r_notexture )
+		return false;
+	return true;	
+}
+
 /*
 @@@@@@@@@@@@@@@@@@@@@
 CreateAPI
@@ -1355,7 +1363,7 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.BeginRegistration = R_BeginRegistration;
 	re.RegisterModel = R_UploadModel;
 	re.RegisterImage = R_UploadImage;
-	re.RegisterPic = Draw_FindPic;
+	re.PrecacheImage = R_PrecachePic;
 	re.SetSky = R_SetSky;
 	re.EndRegistration = R_EndRegistration;
 

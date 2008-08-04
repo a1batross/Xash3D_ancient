@@ -211,6 +211,7 @@ void Field_CompleteCommand( field_t *field )
 {
 	field_t		temp;
 	char		filename[MAX_QPATH];
+	autocomplete_list_t	*list;
 
 	completionField = field;
 
@@ -237,39 +238,14 @@ void Field_CompleteCommand( field_t *field )
 		bool result = false;
 
 		// autocomplete second arg
-		if(!com.stricmp(Cmd_Argv(0), "map" ) || !com.stricmp(Cmd_Argv(0), "\\map" ))
+		for( list = cmd_list; list->name; list++ )
 		{
-			result = Cmd_GetMapList(Cmd_Argv(1), filename, MAX_STRING );
+			if(Cmd_CheckName( list->name ))
+			{
+				result = list->func( Cmd_Argv(1), filename, MAX_STRING ); 
+				break;
+			}
 		}
-		else if(!com.stricmp(Cmd_Argv(0), "playsound" ) || !com.stricmp(Cmd_Argv(0), "\\playsound" ))
-		{
-			result = Cmd_GetSoundList(Cmd_Argv(1), filename, MAX_STRING );
-		}
-		else if(!com.stricmp(Cmd_Argv(0), "playdemo" ) || !com.stricmp(Cmd_Argv(0), "\\playdemo" ))
-		{
-			result = Cmd_GetDemoList(Cmd_Argv(1), filename, MAX_STRING );
-		}
-		else if(!com.stricmp(Cmd_Argv(0), "movie" ) || !com.stricmp(Cmd_Argv(0), "\\movie" ))
-		{
-			result = Cmd_GetMovieList(Cmd_Argv(1), filename, MAX_STRING );
-		}
-		else if(!com.stricmp(Cmd_Argv(0), "changelevel" ) || !com.stricmp(Cmd_Argv(0), "\\changelevel" ))
-		{
-			result = Cmd_GetMapList(Cmd_Argv(1), filename, MAX_STRING );
-		}
-		else if(!com.stricmp(Cmd_Argv(0), "setfont" ) || !com.stricmp(Cmd_Argv(0), "\\setfont" ))
-		{
-			result = Cmd_GetFontList(Cmd_Argv(1), filename, MAX_STRING );
-		}
-		else if(!com.stricmp(Cmd_Argv(0), "music" ) || !com.stricmp(Cmd_Argv(0), "\\music" ))
-		{
-			result = Cmd_GetMusicList(Cmd_Argv(1), filename, MAX_STRING );
-		}
-		else if(!com.stricmp(Cmd_Argv(0), "compile" ) || !com.stricmp(Cmd_Argv(0), "\\compile" ))
-		{
-			result = Cmd_GetSourceList(Cmd_Argv(1), filename, MAX_STRING );
-		}
-		
 		if( result )
 		{         
 			com.sprintf( completionField->buffer, "%s %s", Cmd_Argv(0), filename ); 

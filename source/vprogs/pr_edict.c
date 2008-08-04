@@ -1181,7 +1181,7 @@ void PRVM_ResetProg( void )
 PRVM_LoadProgs
 ===============
 */
-void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int numedfields, fields_t *ed_field )
+void PRVM_LoadProgs( const char *filename )
 {
 	dstatement_t	*st;
 	ddef_t		*infielddefs;
@@ -1346,7 +1346,7 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 
 	// we need to expand the fielddefs list to include all the engine fields,
 	// so allocate a new place for it ( + DPFIELDS  )
-	vm.prog->fielddefs = (ddef_t *)Mem_Alloc(vm.prog->progs_mempool, (vm.prog->progs->numfielddefs + numedfields) * sizeof(ddef_t));
+	vm.prog->fielddefs = (ddef_t *)Mem_Alloc(vm.prog->progs_mempool, (vm.prog->progs->numfielddefs) * sizeof(ddef_t));
 	vm.prog->statement_profile = (double *)Mem_Alloc(vm.prog->progs_mempool, vm.prog->progs->numstatements * sizeof(*vm.prog->statement_profile));
 
 	// byte swap the lumps
@@ -1385,19 +1385,6 @@ void PRVM_LoadProgs( const char *filename, int numedfunc, char **ed_func, int nu
 		vm.prog->fielddefs[i].ofs = LittleLong (infielddefs[i].ofs);
 		vm.prog->fielddefs[i].s_name = LittleLong (infielddefs[i].s_name);
 	}
-
-	// append the ed fields
-	for( i = 0; i < (int)numedfields; i++ )
-	{
-		vm.prog->fielddefs[vm.prog->progs->numfielddefs].type = ed_field[i].type;
-		vm.prog->fielddefs[vm.prog->progs->numfielddefs].ofs = ed_field[i].ofs;
-		vm.prog->fielddefs[vm.prog->progs->numfielddefs].s_name = PRVM_SetEngineString( ed_field[i].name );
-	}
-
-	// check ed functions
-	for( i = 0; i < numedfunc; i++ )
-		if( PRVM_ED_FindFunction( ed_func[i] ) == 0 )
-			PRVM_ERROR("%s: %s not found in %s",PRVM_NAME, ed_func[i], filename);
 
 	for( i = 0; i < vm.prog->progs->numglobals; i++ )
 		((int *)vm.prog->globals.gp)[i] = LittleLong (((int *)vm.prog->globals.gp)[i]);

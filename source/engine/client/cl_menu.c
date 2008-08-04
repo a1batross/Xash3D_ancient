@@ -62,7 +62,7 @@ static const char *xash_credits[] =
 	"",
 	"",
 	"",
-	"Copyright XashXT Group 2008 ©",
+	"Copyright XashXT Group 2008 (C)",
 	0
 };
 
@@ -785,7 +785,7 @@ void UI_Init( void )
 	prog->error_cmd = VM_Error;
 	prog->filecrc = PROG_CRC_UIMENU;
 
-	PRVM_LoadProgs( va("%s/uimenu.dat", GI->vprogs_dir ), 0, NULL, UI_NUM_REQFIELDS, ui_reqfields );
+	PRVM_LoadProgs( va("%s/uimenu.dat", GI->vprogs_dir ));
 	*prog->time = cls.realtime * 0.001f;
 
 	PRVM_ExecuteProgram (prog->globals.ui->m_init, "m_init");

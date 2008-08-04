@@ -69,7 +69,6 @@ void R_ImageList_f (void)
 {
 	int	i;
 	image_t	*image;
-	const char *palstrings[2] = {"RGB","PAL"};
 
 	Msg( "------------------\n");
 	for (i = 0, image = gltextures; i < numgltextures; i++, image++)
@@ -85,7 +84,7 @@ void R_ImageList_f (void)
 		case it_cubemap: Msg( "Cubemap "); break;
 		default: Msg( "Sys "); break;
 		}
-		Msg( " %3i %3i %s: %s\n", image->width, image->height, palstrings[image->paletted], image->name);
+		Msg( " %3i %3i: %s\n", image->width, image->height, image->name );
 	}
 	Msg( "Total images count (without mipmaps): %i\n", numgltextures);
 }
@@ -1224,7 +1223,6 @@ image_t *R_LoadImage( char *name, rgbdata_t *pic, imagetype_t type )
 	image->width = width = pic->width;
 	image->height = height = pic->height;
 	image->type = type;
-          image->paletted = pic->palette ? true : false;
           buf = pic->buffer;
 
 	// fill image_desc

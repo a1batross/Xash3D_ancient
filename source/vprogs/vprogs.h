@@ -438,9 +438,10 @@ Set up the fields marked with [INIT] in the prog struct
 Load a program with LoadProgs
 */
 void PRVM_InitProg(int prognr);
+
 // LoadProgs expects to be called right after InitProg
-void PRVM_LoadProgs (const char *filename, int numrequiredfunc, char **required_func, int numrequiredfields, fields_t *required_field);
-void PRVM_ResetProg(void);
+void PRVM_LoadProgs( const char *filename );
+void PRVM_ResetProg( void );
 
 bool PRVM_ProgLoaded(int prognr);
 

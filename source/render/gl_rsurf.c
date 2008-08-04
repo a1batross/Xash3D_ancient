@@ -62,7 +62,7 @@ static bool LM_AllocBlock (int w, int h, int *x, int *y);
 
 extern void R_SetCacheState( msurface_t *surf );
 extern void R_BuildLightMap (msurface_t *surf, byte *dest, int stride);
-extern model_t *loadmodel;
+extern rmodel_t *loadmodel;
 
 /*
 =============================================================
@@ -1511,7 +1511,7 @@ GL_BeginBuildingLightmaps
 
 ==================
 */
-void GL_BeginBuildingLightmaps (model_t *m)
+void GL_BeginBuildingLightmaps (rmodel_t *m)
 {
 	static lightstyle_t	lightstyles[MAX_LIGHTSTYLES];
 	int				i;

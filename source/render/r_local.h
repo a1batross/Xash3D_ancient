@@ -61,8 +61,8 @@ typedef struct latchedvars_s
 // client entity
 typedef struct ref_entity_s
 {
-	model_t		*model;		// opaque type outside refresh
-	model_t		*weaponmodel;	// opaque type outside refresh	
+	rmodel_t		*model;		// opaque type outside refresh
+	rmodel_t		*weaponmodel;	// opaque type outside refresh	
 
 	latchedvars_t	prev;		// previous frame values for lerping
 	

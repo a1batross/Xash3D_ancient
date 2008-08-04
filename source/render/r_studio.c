@@ -42,7 +42,7 @@ vec3_t g_chromeright[MAXSTUDIOBONES];	// chrome vector "right" in bone reference
 int m_fDoInterp;			
 int m_pStudioModelCount;
 int m_PassNum;
-model_t *m_pRenderModel;
+rmodel_t *m_pRenderModel;
 ref_entity_t *m_pCurrentEntity;
 mstudiomodel_t *m_pSubModel;
 studiohdr_t *m_pStudioHeader;
@@ -77,7 +77,7 @@ void R_StudioShutdown( void )
 Studio model loader
 ====================
 */
-image_t *R_StudioLoadTexture( model_t *mod, mstudiotexture_t *ptexture, byte *pin )
+image_t *R_StudioLoadTexture( rmodel_t *mod, mstudiotexture_t *ptexture, byte *pin )
 {
 	image_t	*image;
 	rgbdata_t	r_skin;
@@ -103,7 +103,7 @@ image_t *R_StudioLoadTexture( model_t *mod, mstudiotexture_t *ptexture, byte *pi
 	return image;
 }
 
-studiohdr_t *R_StudioLoadHeader( model_t *mod, unsigned *buffer )
+studiohdr_t *R_StudioLoadHeader( rmodel_t *mod, unsigned *buffer )
 {
 	int		i;
 	byte		*pin;
@@ -130,7 +130,7 @@ studiohdr_t *R_StudioLoadHeader( model_t *mod, unsigned *buffer )
 	return (studiohdr_t *)buffer;
 }
 
-void R_StudioLoadModel (model_t *mod, void *buffer)
+void R_StudioLoadModel (rmodel_t *mod, void *buffer)
 {
 	studiohdr_t	*phdr = R_StudioLoadHeader( mod, buffer );
           studiohdr_t	*thdr;
@@ -163,7 +163,7 @@ MISC STUDIO UTILS
 */
 
 //extract texture filename from modelname
-char *R_ExtName( model_t *mod )
+char *R_ExtName( rmodel_t *mod )
 {
 	static char texname[MAX_QPATH];
 	strcpy( texname, mod->name );
@@ -480,7 +480,7 @@ StudioGetAnim
 
 ====================
 */
-mstudioanim_t *R_StudioGetAnim( model_t *m_pSubModel, mstudioseqdesc_t *pseqdesc )
+mstudioanim_t *R_StudioGetAnim( rmodel_t *m_pSubModel, mstudioseqdesc_t *pseqdesc )
 {
 	mstudioseqgroup_t	*pseqgroup;
 	byte		*paSequences;
@@ -511,7 +511,7 @@ mstudioanim_t *R_StudioGetAnim( model_t *m_pSubModel, mstudioseqdesc_t *pseqdesc
 			mstudioseqgroup_t	*pseqhdr = (mstudioseqgroup_t *)pin;
 			
 			paSequences = (byte *)Mem_Alloc(m_pSubModel->mempool, filesize );
-          		m_pSubModel->submodels = (mmodel_t *)paSequences;
+          		m_pSubModel->submodels = (msubmodel_t *)paSequences;
           		
           		Mem_Copy(&paSequences[pseqdesc->seqgroup], buf, filesize );
 		}		
@@ -905,7 +905,7 @@ StudioMergeBones
 
 ====================
 */
-void R_StudioMergeBones ( model_t *m_pSubModel )
+void R_StudioMergeBones ( rmodel_t *m_pSubModel )
 {
 	int	i, j;
 	double	f;
@@ -1649,7 +1649,7 @@ void R_DrawStudioModel( int passnum )
 	if (m_pCurrentEntity->weaponmodel)
 	{
 		ref_entity_t saveent = *m_pCurrentEntity;
-		model_t *pweaponmodel = m_pCurrentEntity->weaponmodel;
+		rmodel_t *pweaponmodel = m_pCurrentEntity->weaponmodel;
 		
 		m_pStudioHeader = pweaponmodel->phdr;
 		m_pTextureHeader = pweaponmodel->thdr;

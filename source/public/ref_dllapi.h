@@ -73,10 +73,11 @@ typedef struct sizebuf_s
 	int	readcount;
 } sizebuf_t;
 
-typedef int		func_t;
-typedef int		sound_t;
-typedef int		string_t;
-typedef struct edict_s	edict_t;
+typedef int			func_t;
+typedef int			sound_t;
+typedef int			model_t;
+typedef int			string_t;
+typedef struct edict_s		edict_t;
 typedef struct sv_edict_s		sv_edict_t;
 typedef struct cl_edict_s		cl_edict_t;
 typedef struct ui_edict_s		ui_edict_t;
@@ -90,8 +91,6 @@ typedef struct physbody_s		physbody_t;
 typedef struct cvar_s		cvar_t;
 typedef struct file_s		file_t;
 typedef struct vfile_s		vfile_t;
-typedef struct image_s		image_t;
-typedef struct model_s		model_t;
 typedef void (*xcommand_t) (void);
 
 typedef enum
@@ -1261,10 +1260,10 @@ typedef struct render_exp_s
 	bool	(*Init)( void *hInst );	// init all render systems
 	void	(*Shutdown)( void );	// shutdown all render systems
 
-	void	(*BeginRegistration) (char *map);
+	void	(*BeginRegistration)( const char *map );
 	bool	(*RegisterModel)( const char *name, int sv_index );
 	bool	(*RegisterImage)( const char *name, int sv_index );
-	image_t	*(*RegisterPic) (char *name);
+	bool	(*PrecacheImage)( const char *name );
 	void	(*SetSky) (char *name, float rotate, vec3_t axis);
 	void	(*EndRegistration)( void );
 
@@ -1280,7 +1279,7 @@ typedef struct render_exp_s
 	void	(*EndFrame)( void );
 
 	void	(*SetColor)( const float *rgba );
-	bool	(*ScrShot)( const char *filename, bool levelshot ); // write screenshot with same name 
+	bool	(*ScrShot)( const char *filename, int shot_type ); // write screenshot with same name 
 	void	(*DrawFill)(float x, float y, float w, float h );
 	void	(*DrawStretchRaw)( int x, int y, int w, int h, int cols, int rows, byte *data, bool redraw );
 	void	(*DrawStretchPic)( float x, float y, float w, float h, float s1, float t1, float s2, float t2, const char *name );
@@ -1570,7 +1569,7 @@ typedef struct vprogs_exp_s
 	void (*InitProg)( int prognr );
 	void (*SetProg)( int prognr );
 	bool (*ProgLoaded)( int prognr );
-	void (*LoadProgs)( const char *filename, int numrequiredfunc, char **required_func, int numrequiredfields, fields_t *required_field );
+	void (*LoadProgs)( const char *filename );
 	void (*ResetProg)( void );
 
 	// abstract layer for searching globals and locals

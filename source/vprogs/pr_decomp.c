@@ -1163,7 +1163,7 @@ bool PR_Decompile( const char *name )
 
 	// sanity check
 	if(!FS_FileExists( name )) return false;
-	PRVM_LoadProgs( name, 0, NULL, 0, NULL );	
+	PRVM_LoadProgs( name );	
 	FS_FileBase( name, sourcefilename );
 
 	Msg("\nDecompiling...\n");

@@ -298,14 +298,14 @@ void CL_ParticleEffect (vec3_t org, vec3_t dir, int color, int count)
 		for (j=0 ; j<3 ; j++)
 		{
 			p->org[j] = org[j] + ((rand()&7)-4) + d*dir[j];
-			p->vel[j] = crand()*20;
+			p->vel[j] = RANDOM_FLOAT( -1.0f, 1.0f ) * 20;
 		}
 
 		p->accel[0] = p->accel[1] = 0;
 		p->accel[2] = -PARTICLE_GRAVITY;
 		p->alpha = 1.0;
 
-		p->alphavel = -1.0 / (0.5 + frand()*0.3);
+		p->alphavel = -1.0 / (0.5 + RANDOM_FLOAT(0, 1) * 0.3);
 	}
 }
 

@@ -784,7 +784,7 @@ void S_Init( void *hInst )
 void S_Shutdown( void )
 {
 
-	Cmd_RemoveCommand( "play" );
+	Cmd_RemoveCommand( "playsound" );
 	Cmd_RemoveCommand( "music" );
 	Cmd_RemoveCommand( "s_stop" );
 	Cmd_RemoveCommand( "s_info" );

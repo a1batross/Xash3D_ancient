@@ -615,7 +615,7 @@ void CL_InitClientProgs( void )
 		prog->init_cmd = VM_Cmd_Init;
 		prog->reset_cmd = VM_Cmd_Reset;
 		prog->error_cmd = VM_Error;
-		PRVM_LoadProgs( va("%s/client.dat", GI->vprogs_dir ), 0, NULL, CL_NUM_REQFIELDS, cl_reqfields );
+		PRVM_LoadProgs( va("%s/client.dat", GI->vprogs_dir ));
 	}
 
 	// init some globals

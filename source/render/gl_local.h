@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define WINDOW_STYLE (WS_OVERLAPPED|WS_BORDER|WS_CAPTION|WS_VISIBLE)
 
 #include "r_opengl.h"
+#include "gl_model.h"		// temporary
 #include "r_local.h"		// temporary
 
 /*
@@ -70,60 +71,6 @@ typedef struct radar_ent_s
 
 int numRadarEnts;
 extern radar_ent_t RadarEnts[MAX_RADAR_ENTS];
-
-typedef struct rect_s
-{
-	int left;
-	int right;
-	int top;
-	int bottom;
-}wrect_t;
-
-/*
-
-  skins will be outline flood filled and mip mapped
-  pics and sprites with alpha will be outline flood filled
-  pic won't be mip mapped
-
-  model skin
-  sprite frame
-  wall texture
-  pic
-
-*/
-
-typedef enum 
-{
-	it_skin,
-	it_sprite,
-	it_wall,
-	it_pic,
-	it_sky,
-	it_cubemap,
-} imagetype_t;
-
-// texnum cubemap order
-// 0 = ft or normal image
-// 1 = bk
-// 2 = rt
-// 3 = lf
-// 4 = up
-// 5 = dn
-
-typedef struct image_s
-{
-	char		name[MAX_QPATH];		// game path, including extension
-	imagetype_t	type;			// image type
-	int		width, height;		// source image
-	int		registration_sequence;	// 0 = free
-	struct msurface_s	*texturechain;		// for sort-by-texture world drawing
-	int		texnum[6];		// gl texture binding
-	bool 		paletted;
-	int		texorder[6];		// drawing order pattern
-
-	int		lumatex[6];		// luminescence cubemaps ?
-	int		normtex[6];
-};
 
 #define	TEXNUM_LIGHTMAPS	1024
 #define	TEXNUM_IMAGES	1152
@@ -176,7 +123,7 @@ extern image_t	*r_particletexture;
 extern image_t	*r_radarmap;
 extern image_t	*r_around;
 extern ref_entity_t	*currententity;
-extern model_t		*currentmodel;
+extern rmodel_t		*currentmodel;
 extern int			r_visframecount;
 extern int			r_framecount;
 extern cplane_t	frustum[4];
@@ -294,7 +241,7 @@ extern	int		c_visible_textures;
 
 extern float r_world_matrix[16];
 extern float r_turbsin[256];
-extern model_t *r_models[MAX_MODELS];
+extern rmodel_t *r_models[MAX_MODELS];
 
 void R_TranslatePlayerSkin (int playernum);
 void GL_Bind (int texnum);
@@ -312,7 +259,7 @@ bool VID_ScreenShot( const char *filename, bool levelshot );
 
 //====================================================================
 
-extern	model_t	*r_worldmodel;
+extern	rmodel_t	*r_worldmodel;
 
 extern	unsigned	d_8to24table[256];
 
@@ -328,10 +275,10 @@ void R_RenderView (refdef_t *fd);
 void R_DrawStudioModel( int passnum );
 void R_DrawBrushModel( int passnum );
 void R_DrawSpriteModel( int passnum );
-void R_StudioLoadModel (model_t *mod, void *buffer );
-void R_SpriteLoadModel( model_t *mod, void *buffer );
+void R_StudioLoadModel (rmodel_t *mod, void *buffer );
+void R_SpriteLoadModel( rmodel_t *mod, void *buffer );
 void R_DrawPauseScreen( void );
-char *R_ExtName( model_t *mod );
+char *R_ExtName( rmodel_t *mod );
 void R_DrawBeam( ref_entity_t *e );
 void R_DrawWorld (void);
 void R_RenderDlights (void);
@@ -434,8 +381,8 @@ void GL_SetExtension( int r_ext, int enable );
 void GL_PolygonOffset( float planeoffset, float depthoffset );
 void GL_CheckExtension( const char *name, const dllfunc_t *funcs, const char *cvarname, int r_ext );
 
-void R_BeginRegistration( char *map );
-model_t *R_RegisterModel( const char *name );
+void R_BeginRegistration( const char *map );
+rmodel_t *R_RegisterModel( const char *name );
 void R_SetSky (char *name, float rotate, vec3_t axis);
 void R_EndRegistration (void);
 image_t *Draw_FindPic( const char *name );

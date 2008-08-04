@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /Ob1 /I "./" /I "common" /I "server" /I "client" /I "../public" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "./" /I "common" /I "server" /I "client" /I "../public" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -178,7 +178,11 @@ SOURCE=.\client\cl_view.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common.c
+SOURCE=.\common\con_utils.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\engfuncs.c
 # End Source File
 # Begin Source File
 
@@ -190,7 +194,11 @@ SOURCE=.\host.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\input.c
+SOURCE=.\common\infostring.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\input.c
 # End Source File
 # Begin Source File
 
@@ -243,6 +251,10 @@ SOURCE=.\server\sv_spawn.c
 # Begin Source File
 
 SOURCE=.\server\sv_world.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\system.c
 # End Source File
 # End Group
 # Begin Group "Header Files"

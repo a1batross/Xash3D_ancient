@@ -131,6 +131,7 @@ extern cvar_t *host_serverstate;
 extern cvar_t *host_cheats;
 extern cvar_t *crosshair;
 extern cvar_t *scr_loading;
+extern cvar_t *scr_download;
 extern cvar_t *scr_width;
 extern cvar_t *scr_height;
 
@@ -203,6 +204,7 @@ dword Host_EventLoop( void );
 // message functions
 void Host_Print(const char *txt);
 void Host_Error( const char *error, ... );
+void Sys_Error( const char *msg, ... );
 
 // host dlls managment
 void Host_FreeRender( void );
@@ -439,21 +441,15 @@ void Info_Print( char *s );
 char *Cvar_Userinfo( void );
 char *Cvar_Serverinfo( void );
 void Cmd_WriteVariables( file_t *f );
-bool Cmd_GetMapList(const char *s, char *completedname, int length );
-bool Cmd_GetFontList(const char *s, char *completedname, int length );
-bool Cmd_GetDemoList(const char *s, char *completedname, int length );
-bool Cmd_GetMovieList(const char *s, char *completedname, int length );
-bool Cmd_GetMusicList(const char *s, char *completedname, int length );
-bool Cmd_GetSoundList(const char *s, char *completedname, int length );
-bool Cmd_GetSourceList( const char *s, char *completedname, int length );
 bool Cmd_CheckMapsList( void );
-void Sys_Error( const char *msg, ... );
-void Sys_SendKeyEvents( void );
+bool Cmd_CheckName( const char *name );
 
-// get rid of this
-float frand(void);	// 0 to 1
-float crand(void);	// -1 to 1
+typedef struct autocomplete_list_s
+{
+	const char *name;
+	bool (*func)( const char *s, char *name, int length );
+} autocomplete_list_t;
 
-
+extern autocomplete_list_t cmd_list[];
 
 #endif//COMMON_H

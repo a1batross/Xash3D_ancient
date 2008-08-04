@@ -992,7 +992,7 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	{
 		// singleplayer mode: serever already loading map
 		*checksum = cm.checksum;
-		if(!clientload)
+		if( !clientload )
 		{
 			// rebuild portals for server
 			memset( cm.portalopen, 0, sizeof(cm.portalopen));
@@ -1007,13 +1007,13 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 
 	// load the newmap
 	buf = (uint *)FS_LoadFile( name, &length );
-	if(!buf) Host_Error("Couldn't load %s\n", name);
+	if(!buf) Host_Error("Couldn't load %s\n", name );
 
 	*checksum = cm.checksum = LittleLong(Com_BlockChecksum (buf, length));
 	hdr = (dheader_t *)buf;
 	SwapBlock( (int *)hdr, sizeof(dheader_t));	
 	if( hdr->version != BSPMOD_VERSION )
-		Host_Error("CM_LoadMap: %s has wrong version number (%i should be %i)\n", name, hdr->version, BSPMOD_VERSION);
+		Host_Error("CM_LoadMap: %s has wrong version number (%i should be %i)\n", name, hdr->version, BSPMOD_VERSION );
 	cm.mod_base = (byte *)buf;
 
 	// load into heap

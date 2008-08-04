@@ -2433,7 +2433,7 @@ void SV_InitServerProgs( void )
 		prog->init_cmd = VM_Cmd_Init;
 		prog->reset_cmd = VM_Cmd_Reset;
 		prog->error_cmd = VM_Error;
-		PRVM_LoadProgs( va("%s/server.dat", GI->vprogs_dir ), 0, NULL, SV_NUM_REQFIELDS, sv_reqfields );
+		PRVM_LoadProgs( va("%s/server.dat", GI->vprogs_dir ));
 	}
 
 	// try to get custom movement function from qc code

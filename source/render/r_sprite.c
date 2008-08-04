@@ -20,7 +20,7 @@ string	frame_prefix;
 Sprite model loader
 ====================
 */
-dframetype_t *R_SpriteLoadFrame( model_t *mod, void *pin, mspriteframe_t **ppframe, int framenum )
+dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppframe, int framenum )
 {
 	dframe_t		*pinframe;
 	mspriteframe_t	*pspriteframe;
@@ -73,7 +73,7 @@ dframetype_t *R_SpriteLoadFrame( model_t *mod, void *pin, mspriteframe_t **ppfra
 	return (dframetype_t *)((byte *)(pinframe + 1) + spr_frame->size);
 }
 
-dframetype_t *R_SpriteLoadGroup (model_t *mod, void * pin, mspriteframe_t **ppframe, int framenum )
+dframetype_t *R_SpriteLoadGroup (rmodel_t *mod, void * pin, mspriteframe_t **ppframe, int framenum )
 {
 	dspritegroup_t	*pingroup;
 	mspritegroup_t	*pspritegroup;
@@ -110,7 +110,7 @@ dframetype_t *R_SpriteLoadGroup (model_t *mod, void * pin, mspriteframe_t **ppfr
 	return (dframetype_t *)ptemp;
 }
 
-void R_SpriteLoadModel( model_t *mod, void *buffer )
+void R_SpriteLoadModel( rmodel_t *mod, void *buffer )
 {
 	dsprite_t		*pin;
 	msprite_t		*psprite;
@@ -255,7 +255,7 @@ bool R_AcceptSpritePass( ref_entity_t *e, int pass )
 	return true;
 }
 
-void R_SpriteSetupLighting( model_t *mod )
+void R_SpriteSetupLighting( rmodel_t *mod )
 {
 	int i;
 	vec3_t	vlight = {0.0f, 0.0f, -1.0f}; // get light from floor
@@ -281,7 +281,7 @@ void R_DrawSpriteModel( int passnum )
 	mspriteframe_t	*frame;
 	vec3_t		point, forward, right, up;
 	ref_entity_t 		*e = currententity;
-	model_t		*mod = currentmodel;
+	rmodel_t		*mod = currentmodel;
 	float		alpha = 1.0f, angle, sr, cr;
 	vec3_t		distance;
 	msprite_t		*psprite;

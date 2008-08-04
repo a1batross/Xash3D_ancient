@@ -236,7 +236,7 @@ void Host_VidRestart_f( void )
 {
 	cl.force_refdef = true;	// can't use a paused refdef
 	S_StopAllSounds();		// don't let them loop during the restart
-	cl.refresh_prepped = false;
+	cl.video_prepped = false;
 
 	Host_FreeRender();		// release render.dll
 	Host_InitRender();		// load it again
@@ -251,10 +251,12 @@ Restart the audio subsystem
 */
 void Host_SndRestart_f( void )
 {
+	cl.force_refdef = true;	// can't use a paused refdef
+	S_StopAllSounds();		// don't let them loop during the restart
+	cl.audio_prepped = false;
+	
 	Host_FreeSound();		// release vsound.dll
 	Host_InitSound();		// load it again
-
-	CL_RegisterSounds();
 }
 
 /*
@@ -671,8 +673,8 @@ void Host_Error( const char *error, ... )
 
 void Host_Error_f( void )
 {
-	if( Cmd_Argc() == 1 ) Sys_Error( "break\n" );
-	else Sys_Error( "%s\n", Cmd_Argv( 1 ));
+	if( Cmd_Argc() == 1 ) Sys_Break( "\n" );
+	else Host_Error( "%s\n", Cmd_Argv( 1 ));
 }
 
 /*
@@ -755,7 +757,6 @@ void Host_Init( int argc, char **argv)
 
 	s = va("^1Xash %g ^3%s", GI->version, buildstring );
 	Cvar_Get( "version", s, CVAR_SERVERINFO|CVAR_INIT, "engine current version" );
-	if( host.type == HOST_DEDICATED ) Cmd_AddCommand ("quit", Sys_Quit, "quit the game" );
 
 	NET_Init();
 	Netchan_Init();
@@ -768,6 +769,7 @@ void Host_Init( int argc, char **argv)
 	SV_Init();
 	CL_Init();
 
+	if( host.type == HOST_DEDICATED ) Cmd_AddCommand ("quit", Sys_Quit, "quit the game" );
 	host.frametime[0] = Host_Milliseconds();
 }
 

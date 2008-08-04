@@ -22,17 +22,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gl_local.h"
 #include "byteorder.h"
 
-model_t	*loadmodel;
+rmodel_t	*loadmodel;
 int		modfilelen;
 
-void Mod_LoadSpriteModel (model_t *mod, void *buffer);
-void Mod_LoadStudioModel (model_t *mod, void *buffer);
-void Mod_LoadBrushModel (model_t *mod, void *buffer);
-model_t *Mod_LoadModel (model_t *mod, bool crash);
+void Mod_LoadSpriteModel (rmodel_t *mod, void *buffer);
+void Mod_LoadStudioModel (rmodel_t *mod, void *buffer);
+void Mod_LoadBrushModel (rmodel_t *mod, void *buffer);
+rmodel_t *Mod_LoadModel (rmodel_t *mod, bool crash);
 
 byte	mod_novis[MAX_MAP_LEAFS/8];
-model_t	mod_known[MAX_MODELS];
-model_t	mod_inline[MAX_MODELS];
+rmodel_t	mod_known[MAX_MODELS];
+rmodel_t	mod_inline[MAX_MODELS];
 int	mod_numknown;
 
 // the inline * models from the current map are kept seperate
@@ -52,7 +52,7 @@ const char *Mod_GetStringFromTable( int index )
 Mod_PointInLeaf
 ===============
 */
-mleaf_t *Mod_PointInLeaf (vec3_t p, model_t *model)
+mleaf_t *Mod_PointInLeaf (vec3_t p, rmodel_t *model)
 {
 	mnode_t		*node;
 	float		d;
@@ -80,7 +80,7 @@ mleaf_t *Mod_PointInLeaf (vec3_t p, model_t *model)
 Mod_DecompressVis
 ===================
 */
-byte *Mod_DecompressVis (byte *in, model_t *model)
+byte *Mod_DecompressVis (byte *in, rmodel_t *model)
 {
 	static byte	decompressed[MAX_MAP_LEAFS/8];
 	int		c;
@@ -125,7 +125,7 @@ byte *Mod_DecompressVis (byte *in, model_t *model)
 Mod_ClusterPVS
 ==============
 */
-byte *Mod_ClusterPVS (int cluster, model_t *model)
+byte *Mod_ClusterPVS (int cluster, rmodel_t *model)
 {
 	if (cluster == -1 || !model->vis) return mod_novis;
 	return Mod_DecompressVis ( (byte *)model->vis + model->vis->bitofs[cluster][DVIS_PVS], model);
@@ -142,7 +142,7 @@ Mod_Modellist_f
 void Mod_Modellist_f (void)
 {
 	int		i;
-	model_t	*mod;
+	rmodel_t	*mod;
 	int		total;
 
 	total = 0;
@@ -174,9 +174,9 @@ Mod_ForName
 Loads in a model for the given name
 ==================
 */
-model_t *Mod_ForName( const char *name, bool crash)
+rmodel_t *Mod_ForName( const char *name, bool crash)
 {
-	model_t	*mod;
+	rmodel_t	*mod;
 	uint	*buf;
 	int	i;
 	
@@ -215,7 +215,7 @@ model_t *Mod_ForName( const char *name, bool crash)
 	}
 	if (i == mod_numknown)
 	{
-		if (mod_numknown == MAX_MODELS)
+		if( mod_numknown == MAX_MODELS )
 		{
 			MsgDev( D_ERROR, "Mod_ForName: MAX_MODELS limit exceeded\n" );
 			return NULL;
@@ -228,7 +228,7 @@ model_t *Mod_ForName( const char *name, bool crash)
 	buf = (uint *)FS_LoadFile (mod->name, &modfilelen);
 	if (!buf)
 	{
-		if (crash) Host_Error ("Mod_NumForName: %s not found", mod->name);
+		if (crash) Host_Error( "Mod_NumForName: %s not found\n", mod->name);
 		memset (mod->name, 0, sizeof(mod->name));
 		return NULL;
 	}
@@ -380,7 +380,7 @@ Mod_LoadSubmodels
 void Mod_LoadSubmodels (lump_t *l)
 {
 	dmodel_t		*in;
-	mmodel_t		*out;
+	msubmodel_t	*out;
 	int		i, j, count;
 
 	in = (void *)(mod_base + l->fileofs);
@@ -538,7 +538,7 @@ void CalcSurfaceExtents (msurface_t *s)
 void GL_BuildPolygonFromSurface(msurface_t *fa);
 void GL_CreateSurfaceLightmap (msurface_t *surf);
 void GL_EndBuildingLightmaps (void);
-void GL_BeginBuildingLightmaps (model_t *m);
+void GL_BeginBuildingLightmaps (rmodel_t *m);
 
 /*
 =================
@@ -827,14 +827,14 @@ void Mod_LoadPlanes (lump_t *l)
 Mod_SetupSubmodels
 =================
 */
-void Mod_SetupSubmodels( model_t *mod )
+void Mod_SetupSubmodels( rmodel_t *mod )
 {
-	int	i;
-	mmodel_t 	*bm;
+	int		i;
+	msubmodel_t 	*bm;
 	
 	for (i = 0; i < mod->numsubmodels; i++ )
 	{
-		model_t	*starmod;
+		rmodel_t	*starmod;
 
 		bm = &mod->submodels[i];
 		starmod = &mod_inline[i];
@@ -861,7 +861,7 @@ void Mod_SetupSubmodels( model_t *mod )
 Mod_LoadBrushModel
 =================
 */
-void Mod_LoadBrushModel (model_t *mod, void *buffer)
+void Mod_LoadBrushModel (rmodel_t *mod, void *buffer)
 {
 	int	i;
 	dheader_t	*header;
@@ -912,7 +912,7 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer)
 Mod_LoadStudioModel
 =================
 */
-void Mod_LoadStudioModel (model_t *mod, void *buffer)
+void Mod_LoadStudioModel (rmodel_t *mod, void *buffer)
 {
 	R_StudioLoadModel (mod, buffer);
 	mod->type = mod_studio;
@@ -923,7 +923,7 @@ void Mod_LoadStudioModel (model_t *mod, void *buffer)
 Mod_LoadSpriteModel
 =================
 */
-void Mod_LoadSpriteModel (model_t *mod, void *buffer)
+void Mod_LoadSpriteModel (rmodel_t *mod, void *buffer)
 {
 	R_SpriteLoadModel( mod, buffer );
 	mod->type = mod_sprite;
@@ -938,14 +938,14 @@ R_BeginRegistration
 Specifies the model that will be used as the world
 @@@@@@@@@@@@@@@@@@@@@
 */
-void R_BeginRegistration (char *model)
+void R_BeginRegistration( const char *mapname )
 {
 	char	fullname[MAX_QPATH];
 
 	registration_sequence++;
 	r_oldviewcluster = -1;		// force markleafs
 
-	com.sprintf (fullname, "maps/%s.bsp", model);
+	com.sprintf (fullname, "maps/%s.bsp", mapname );
 
 	// explicitly free the old map if different
 	// this guarantees that mod_known[0] is the world map
@@ -963,9 +963,9 @@ R_RegisterModel
 
 @@@@@@@@@@@@@@@@@@@@@
 */
-model_t *R_RegisterModel (const char *name)
+rmodel_t *R_RegisterModel (const char *name)
 {
-	model_t		*mod;
+	rmodel_t		*mod;
 	int		i;
 	
 	mod = Mod_ForName (name, false);
@@ -999,7 +999,7 @@ R_EndRegistration
 void R_EndRegistration (void)
 {
 	int	i;
-	model_t	*mod;
+	rmodel_t	*mod;
 
 	for (i = 0, mod = mod_known; i < mod_numknown; i++, mod++)
 	{
@@ -1019,7 +1019,7 @@ void R_EndRegistration (void)
 Mod_Free
 ================
 */
-void Mod_Free (model_t *mod)
+void Mod_Free (rmodel_t *mod)
 {
 	Mem_FreePool( &mod->mempool );
 	memset (mod, 0, sizeof(*mod));

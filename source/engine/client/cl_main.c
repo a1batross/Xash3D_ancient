@@ -337,6 +337,9 @@ void CL_ClearState (void)
 	Mem_FreePool( &cl.refdef.mempool );
 	memset( &cl, 0, sizeof(cl));
 	MSG_Clear( &cls.netchan.message );
+
+	Cvar_SetValue( "scr_download", 0.0f );
+	Cvar_SetValue( "scr_loading", 0.0f );
 }
 
 /*
@@ -963,8 +966,8 @@ void CL_RequestNextDownload( void )
 		precache_check = TEXTURE_CNT + 999;
 	}
 
-	CL_RegisterSounds();
-	CL_PrepRefresh();
+	CL_PrepSound();
+	CL_PrepVideo();
 
 	if( cls.demoplayback ) return; // not really connected
 	MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
@@ -1083,46 +1086,6 @@ void CL_InitLocal (void)
 	UI_ShowMenu();
 }
 
-
-
-/*
-===============
-CL_WriteConfiguration
-
-Writes key bindings and archived cvars to config.cfg
-===============
-*/
-void CL_WriteConfiguration( void )
-{
-	file_t	*f;
-
-	if (cls.state == ca_uninitialized) return;
-
-	f = FS_Open("scripts/config/keys.rc", "w");
-	if(f)
-	{
-		FS_Printf (f, "//=======================================================================\n");
-		FS_Printf (f, "//\t\t\tCopyright XashXT Group 2007 ©\n");
-		FS_Printf (f, "//\t\t\tkeys.rc - current key bindings\n");
-		FS_Printf (f, "//=======================================================================\n");
-		Key_WriteBindings(f);
-		FS_Close (f);
-	}
-	else MsgDev( D_ERROR, "Couldn't write keys.rc.\n");
-
-	f = FS_Open("scripts/config/vars.rc", "w");
-	if(f)
-	{
-		FS_Printf (f, "//=======================================================================\n");
-		FS_Printf (f, "//\t\t\tCopyright XashXT Group 2007 ©\n");
-		FS_Printf (f, "//\t\t\tvars.rc - archive of cvars\n");
-		FS_Printf (f, "//=======================================================================\n");
-		Cmd_WriteVariables(f);
-		FS_Close (f);	
-	}
-	else MsgDev( D_ERROR, "Couldn't write vars.rc.\n");
-}
-
 //============================================================================
 
 /*
@@ -1174,8 +1137,11 @@ void CL_Frame( dword time )
 	CL_PredictMovement ();
 
 	// allow rendering DLL change
-	if(!cl.refresh_prepped && cls.state == ca_active)
-		CL_PrepRefresh();
+	if( cls.state == ca_active )
+	{
+		if( !cl.video_prepped ) CL_PrepVideo();
+		if( !cl.audio_prepped ) CL_PrepSound();
+	}
 
 	// update the screen
 	SCR_UpdateScreen();
@@ -1210,7 +1176,6 @@ void CL_Init( void )
 		return; // nothing running on the client
 
 	// all archived variables will now be loaded
-	scr_loading = Cvar_Get("scr_loading", "0", 0, "loading bar progress" );
 	cl_paused = Cvar_Get( "paused", "0", 0, "game paused" );
 
 	Con_Init();	

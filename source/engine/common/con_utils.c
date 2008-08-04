@@ -1,0 +1,695 @@
+//=======================================================================
+//			Copyright XashXT Group 2008 ©
+//			con_utils.c - console helpers
+//=======================================================================
+
+#include "common.h"
+#include "client.h"
+#include "byteorder.h"
+
+/*
+=======================================================================
+
+			FILENAME AUTOCOMPLETION
+=======================================================================
+*/
+bool Cmd_CheckName( const char *name )
+{
+	if(!com.stricmp(Cmd_Argv( 0 ), name ))
+		return true;
+	if(!com.stricmp(Cmd_Argv(0), va("\\%s", name )))
+		return true;
+	return false;
+}
+
+/*
+=====================================
+Cmd_GetMapList
+
+Prints or complete map filename
+=====================================
+*/
+bool Cmd_GetMapList( const char *s, char *completedname, int length )
+{
+	search_t		*t;
+	file_t		*f;
+	string		message;
+	string		matchbuf;
+	byte		buf[MAX_SYSPATH]; // 1 kb
+	int		i, nummaps;
+
+	t = FS_Search(va("maps/%s*.bsp", s), true );
+	if( !t ) return false;
+
+	FS_FileBase(t->filenames[0], matchbuf ); 
+	com.strncpy( completedname, matchbuf, length );
+	if(t->numfilenames == 1) return true;
+
+	for(i = 0, nummaps = 0; i < t->numfilenames; i++)
+	{
+		const char	*data = NULL;
+		char		*entities = NULL;
+		char		entfilename[MAX_QPATH];
+		int		ver = -1, lumpofs = 0, lumplen = 0;
+		const char	*ext = FS_FileExtension( t->filenames[i] ); 
+
+		if( com.stricmp(ext, "bsp" )) continue;
+
+		com.strncpy(message, "^1error^7", sizeof(message));
+		f = FS_Open(t->filenames[i], "rb" );
+	
+		if( f )
+		{
+			memset(buf, 0, 1024);
+			FS_Read(f, buf, 1024);
+			if(!memcmp(buf, "IBSP", 4))
+			{
+				dheader_t *header = (dheader_t *)buf;
+				ver = LittleLong(((int *)buf)[1]);
+
+				switch(ver)
+				{
+				case 38:	// quake2
+				case 39:	// xash3d
+				case 46:	// quake3
+				case 47:	// return to castle wolfenstein
+					lumpofs = LittleLong(header->lumps[LUMP_ENTITIES].fileofs);
+					lumplen = LittleLong(header->lumps[LUMP_ENTITIES].filelen);
+					break;
+				}
+			}
+			else
+			{
+				lump_t	ents; // quake1 entity lump
+				Mem_Copy(&ents, buf + 4, sizeof(lump_t)); // skip first four bytes (version)
+				ver = LittleLong(((int *)buf)[0]);
+
+				switch( ver )
+				{
+				case 28:	// quake 1 beta
+				case 29:	// quake 1 regular
+				case 30:	// Half-Life regular
+					lumpofs = LittleLong(ents.fileofs);
+					lumplen = LittleLong(ents.filelen);
+					break;
+				default:
+					ver = 0;
+					break;
+				}
+			}
+
+			com.strncpy(entfilename, t->filenames[i], sizeof(entfilename));
+			FS_StripExtension( entfilename );
+			FS_DefaultExtension( entfilename, ".ent" );
+			entities = (char *)FS_LoadFile(entfilename, NULL);
+
+			if( !entities && lumplen >= 10 )
+			{
+				FS_Seek(f, lumpofs, SEEK_SET);
+				entities = (char *)Z_Malloc(lumplen + 1);
+				FS_Read(f, entities, lumplen);
+			}
+
+			if( entities )
+			{
+				// if there are entities to parse, a missing message key just
+				// means there is no title, so clear the message string now
+				message[0] = 0;
+				data = entities;
+				while(Com_ParseToken(&data))
+				{
+					if(!com.strcmp(com_token, "{" )) continue;
+					else if(!com.strcmp(com_token, "}" )) break;
+					else if(!com.strcmp(com_token, "message" ))
+					{
+						// get the message contents
+						Com_ParseToken(&data);
+						com.strncpy(message, com_token, sizeof(message));
+					}
+				}
+			}
+		}
+		if( entities )Mem_Free(entities);
+		if( f )FS_Close(f);
+		FS_FileBase(t->filenames[i], matchbuf );
+
+		switch(ver)
+		{
+		case 28:  com.strncpy((char *)buf, "Quake1 beta", sizeof(buf)); break;
+		case 29:  com.strncpy((char *)buf, "Quake1", sizeof(buf)); break;
+		case 30:  com.strncpy((char *)buf, "Half-Life", sizeof(buf)); break;
+		case 38:  com.strncpy((char *)buf, "Quake 2", sizeof(buf)); break;
+		case 39:  com.strncpy((char *)buf, "Xash 3D", sizeof(buf)); break;
+		case 46:  com.strncpy((char *)buf, "Quake 3", sizeof(buf)); break;
+		case 47:  com.strncpy((char *)buf, "RTCW", sizeof(buf)); break;
+		default:	com.strncpy((char *)buf, "??", sizeof(buf)); break;
+		}
+		Msg("%16s (%s) ^3%s^7\n", matchbuf, buf, message);
+		nummaps++;
+	}
+	Msg("\n^3 %i maps found.\n", nummaps );
+	Mem_Free( t );
+
+	// cut shortestMatch to the amount common with s
+	for( i = 0; matchbuf[i]; i++ )
+	{
+		if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
+			completedname[i] = 0;
+	}
+	return true;
+}
+
+/*
+=====================================
+Cmd_GetFontList
+
+Prints or complete font filename
+=====================================
+*/
+bool Cmd_GetFontList( const char *s, char *completedname, int length )
+{
+	search_t		*t;
+	string		matchbuf;
+	int		i, numfonts;
+
+	t = FS_Search(va("gfx/fonts/%s*.dds", s ), true);
+	if(!t) return false;
+
+	FS_FileBase(t->filenames[0], matchbuf ); 
+	if(completedname && length) com.strncpy( completedname, matchbuf, length );
+	if(t->numfilenames == 1) return true;
+
+	for(i = 0, numfonts = 0; i < t->numfilenames; i++)
+	{
+		const char *ext = FS_FileExtension( t->filenames[i] ); 
+
+		if( com.stricmp(ext, "dds" )) continue;
+		FS_FileBase(t->filenames[i], matchbuf );
+		Msg("%16s\n", matchbuf );
+		numfonts++;
+	}
+	Msg("\n^3 %i fonts found.\n", numfonts );
+	Mem_Free(t);
+
+	// cut shortestMatch to the amount common with s
+	if(completedname && length)
+	{
+		for( i = 0; matchbuf[i]; i++ )
+		{
+			if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
+				completedname[i] = 0;
+		}
+	}
+
+	return true;
+}
+
+/*
+=====================================
+Cmd_GetDemoList
+
+Prints or complete demo filename
+=====================================
+*/
+bool Cmd_GetDemoList( const char *s, char *completedname, int length )
+{
+	search_t		*t;
+	string		matchbuf;
+	int		i, numdems;
+
+	t = FS_Search(va("demos/%s*.dem", s ), true);
+	if(!t) return false;
+
+	FS_FileBase(t->filenames[0], matchbuf ); 
+	if(completedname && length) com.strncpy( completedname, matchbuf, length );
+	if(t->numfilenames == 1) return true;
+
+	for(i = 0, numdems = 0; i < t->numfilenames; i++)
+	{
+		const char *ext = FS_FileExtension( t->filenames[i] ); 
+
+		if( com.stricmp(ext, "dem" )) continue;
+		FS_FileBase(t->filenames[i], matchbuf );
+		Msg("%16s\n", matchbuf );
+		numdems++;
+	}
+	Msg("\n^3 %i demos found.\n", numdems );
+	Mem_Free(t);
+
+	// cut shortestMatch to the amount common with s
+	if(completedname && length)
+	{
+		for( i = 0; matchbuf[i]; i++ )
+		{
+			if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
+				completedname[i] = 0;
+		}
+	}
+
+	return true;
+}
+
+/*
+=====================================
+Cmd_GetSourceList
+
+Prints or complete vm source folder name
+=====================================
+*/
+bool Cmd_GetProgsList( const char *s, char *completedname, int length )
+{
+	search_t		*t;
+	string		matchbuf;
+	int		i, numprogs;
+
+	t = FS_Search(va("%s/%s*.dat", GI->vprogs_dir, s ), true);
+	if( !t ) return false;
+
+	FS_FileBase( t->filenames[0], matchbuf ); 
+	if(completedname && length) com.strncpy( completedname, matchbuf, length );
+	if( t->numfilenames == 1 ) return true;
+
+	for(i = 0, numprogs = 0; i < t->numfilenames; i++)
+	{
+		const char *ext = FS_FileExtension( t->filenames[i] ); 
+
+		if( com.stricmp(ext, "dat" )) continue;
+		FS_FileBase(t->filenames[i], matchbuf );
+		Msg("%16s\n", matchbuf );
+		numprogs++;
+	}
+	Msg("\n^3 %i progs found.\n", numprogs );
+	Mem_Free(t);
+
+	// cut shortestMatch to the amount common with s
+	if( completedname && length )
+	{
+		for( i = 0; matchbuf[i]; i++ )
+		{
+			if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
+				completedname[i] = 0;
+		}
+	}
+	return true;
+}
+
+/*
+=====================================
+Cmd_GetProgsList
+
+Prints or complete vm progs name
+=====================================
+*/
+bool Cmd_GetSourceList( const char *s, char *completedname, int length )
+{
+	search_t		*t;
+	string		matchbuf;
+	int		i, numworkspaces;
+
+	// NOTE: we want ignore folders without "progs.src" inside
+	t = FS_Search(va("%s/%s*", GI->source_dir, s ), true);
+	if( !t ) return false;
+	if( t->numfilenames == 1 && !FS_FileExists(va("%s/progs.src", t->filenames[0] )))
+		return false;
+
+	FS_FileBase( t->filenames[0], matchbuf ); 
+	if(completedname && length) com.strncpy( completedname, matchbuf, length );
+	if( t->numfilenames == 1 ) return true;
+
+	for(i = 0, numworkspaces = 0; i < t->numfilenames; i++)
+	{
+		if(!FS_FileExists(va("%s/progs.src", t->filenames[i] )))
+			continue; 
+		FS_FileBase(t->filenames[i], matchbuf );
+		Msg("%16s\n", matchbuf );
+		numworkspaces++;
+	}
+	Msg("\n^3 %i workspaces found.\n", numworkspaces );
+	Mem_Free(t);
+
+	// cut shortestMatch to the amount common with s
+	if( completedname && length )
+	{
+		for( i = 0; matchbuf[i]; i++ )
+		{
+			if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
+				completedname[i] = 0;
+		}
+	}
+	return true;
+}
+
+/*
+=====================================
+Cmd_GetMovieList
+
+Prints or complete movie filename
+=====================================
+*/
+bool Cmd_GetMovieList( const char *s, char *completedname, int length )
+{
+	search_t		*t;
+	string		matchbuf;
+	int		i, nummovies;
+
+	t = FS_Search(va("video/%s*.dpv", s ), true);
+	if(!t) return false;
+
+	FS_FileBase(t->filenames[0], matchbuf ); 
+	if(completedname && length) com.strncpy( completedname, matchbuf, length );
+	if(t->numfilenames == 1) return true;
+
+	for(i = 0, nummovies = 0; i < t->numfilenames; i++)
+	{
+		const char *ext = FS_FileExtension( t->filenames[i] ); 
+
+		if( com.stricmp( ext, "dpv" )) continue;
+		FS_FileBase(t->filenames[i], matchbuf );
+		Msg("%16s\n", matchbuf );
+		nummovies++;
+	}
+	Msg("\n^3 %i movies found.\n", nummovies );
+	Mem_Free(t);
+
+	// cut shortestMatch to the amount common with s
+	if(completedname && length)
+	{
+		for( i = 0; matchbuf[i]; i++ )
+		{
+			if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
+				completedname[i] = 0;
+		}
+	}
+
+	return true;
+}
+
+/*
+=====================================
+Cmd_GetMusicList
+
+Prints or complete background track filename
+=====================================
+*/
+bool Cmd_GetMusicList( const char *s, char *completedname, int length )
+{
+	search_t		*t;
+	string		matchbuf;
+	int		i, numtracks;
+
+	t = FS_Search(va("music/%s*.ogg", s ), true);
+	if(!t) return false;
+
+	FS_FileBase(t->filenames[0], matchbuf ); 
+	if(completedname && length) com.strncpy( completedname, matchbuf, length );
+	if(t->numfilenames == 1) return true;
+
+	for(i = 0, numtracks = 0; i < t->numfilenames; i++)
+	{
+		const char *ext = FS_FileExtension( t->filenames[i] ); 
+
+		if( com.stricmp(ext, "ogg" )) continue;
+		FS_FileBase(t->filenames[i], matchbuf );
+		Msg("%16s\n", matchbuf );
+		numtracks++;
+	}
+	Msg("\n^3 %i soundtracks found.\n", numtracks );
+	Mem_Free(t);
+
+	// cut shortestMatch to the amount common with s
+	if(completedname && length)
+	{
+		for( i = 0; matchbuf[i]; i++ )
+		{
+			if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
+				completedname[i] = 0;
+		}
+	}
+
+	return true;
+}
+
+/*
+=====================================
+Cmd_GetSoundList
+
+Prints or complete sound filename
+=====================================
+*/
+bool Cmd_GetSoundList( const char *s, char *completedname, int length )
+{
+	search_t		*t;
+	string		matchbuf;
+	int		i, numsounds;
+	const char	*snddir = "sound/"; // constant
+
+	t = FS_Search(va("%s%s*.*", snddir, s ), true);
+	if(!t) return false;
+
+	com.strncpy( matchbuf, t->filenames[0] + com.strlen(snddir), MAX_STRING ); 
+	FS_StripExtension( matchbuf ); 
+	if( completedname && length ) com.strncpy( completedname, matchbuf, length );
+	if(t->numfilenames == 1) return true;
+
+	for(i = 0, numsounds = 0; i < t->numfilenames; i++)
+	{
+		const char *ext = FS_FileExtension( t->filenames[i] ); 
+
+		if(com.stricmp(ext, "wav") && com.stricmp(ext, "ogg")) continue;
+		com.strncpy( matchbuf, t->filenames[i] + com.strlen(snddir), MAX_STRING ); 
+		FS_StripExtension( matchbuf );
+		Msg("%16s\n", matchbuf );
+		numsounds++;
+	}
+	Msg("\n^3 %i sounds found.\n", numsounds );
+	Mem_Free(t);
+
+	// cut shortestMatch to the amount common with s
+	if( completedname && length )
+	{
+		for( i = 0; matchbuf[i]; i++ )
+		{
+			if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
+				completedname[i] = 0;
+		}
+	}
+
+	return true;
+}
+
+bool Cmd_CheckMapsList( void )
+{
+	byte	buf[MAX_SYSPATH]; // 1 kb
+	char	*buffer, string[MAX_STRING];
+	search_t	*t;
+	file_t	*f;
+	int	i;
+
+	if(FS_FileExists("scripts/maps.lst"))
+		return true; // exist 
+
+	t = FS_Search( "maps/*.bsp", false );
+	if(!t) return false;
+
+	buffer = Z_Malloc( t->numfilenames * 2 * sizeof(string));
+	for( i = 0; i < t->numfilenames; i++ )
+	{
+		const char	*data = NULL;
+		char		*entities = NULL;
+		char		entfilename[MAX_QPATH];
+		int		ver = -1, lumpofs = 0, lumplen = 0;
+		char		mapname[MAX_QPATH], message[MAX_QPATH];
+
+		f = FS_Open(t->filenames[i], "rb");
+		FS_FileBase( t->filenames[i], mapname );
+
+		if( f )
+		{
+			int num_spawnpoints = 0;
+
+			memset(buf, 0, 1024);
+			FS_Read(f, buf, 1024);
+			if(!memcmp(buf, "IBSP", 4))
+			{
+				dheader_t *header = (dheader_t *)buf;
+				ver = LittleLong(((int *)buf)[1]);
+				switch(ver)
+				{
+				case 38:	// quake2
+				case 39:	// xash
+				case 46:	// quake3
+				case 47:	// return to castle wolfenstein
+					lumpofs = LittleLong(header->lumps[LUMP_ENTITIES].fileofs);
+					lumplen = LittleLong(header->lumps[LUMP_ENTITIES].filelen);
+					break;
+				}
+			}
+			else
+			{
+				lump_t	ents; // quake1 entity lump
+				Mem_Copy(&ents, buf + 4, sizeof(lump_t)); // skip first four bytes (version)
+				ver = LittleLong(((int *)buf)[0]);
+
+				switch( ver )
+				{
+				case 28:	// quake 1 beta
+				case 29:	// quake 1 regular
+				case 30:	// Half-Life regular
+					lumpofs = LittleLong(ents.fileofs);
+					lumplen = LittleLong(ents.filelen);
+					break;
+				default:
+					ver = 0;
+					break;
+				}
+			}
+			com.strncpy(entfilename, t->filenames[i], sizeof(entfilename));
+			FS_StripExtension( entfilename );
+			FS_DefaultExtension( entfilename, ".ent" );
+			entities = (char *)FS_LoadFile(entfilename, NULL);
+
+			if( !entities && lumplen >= 10 )
+			{
+				FS_Seek(f, lumpofs, SEEK_SET);
+				entities = (char *)Z_Malloc(lumplen + 1);
+				FS_Read(f, entities, lumplen);
+			}
+			if(entities)
+			{
+				// if there are entities to parse, a missing message key just
+				// means there is no title, so clear the message string now
+				message[0] = 0;
+				data = entities;
+				com.strncpy(message, "No Title", MAX_QPATH);
+
+				while(Com_ParseToken(&data))
+				{
+					if(!com.strcmp(com_token, "{" )) continue;
+					else if(!com.strcmp(com_token, "}" )) break;
+					else if(!com.strcmp(com_token, "message" ))
+					{
+						// get the message contents
+						Com_ParseToken(&data);
+						if(!com.strcmp(com_token, "" )) continue;
+						com.strncpy(message, com_token, sizeof(message));
+					}
+					else if(!com.strcmp(com_token, "classname" ))
+					{
+						Com_ParseToken(&data);
+						if(!com.strcmp(com_token, "info_player_deatchmatch"))
+							num_spawnpoints++;
+						else if(!com.strcmp(com_token, "info_player_start"))
+							num_spawnpoints++;
+					}
+					if(num_spawnpoints > 0) break; // valid map
+				}
+			}
+
+			if( entities) Mem_Free(entities);
+			if( f ) FS_Close(f);
+
+			// format: mapname "maptitle"\n
+			com.sprintf(string, "%s \"%s\"\n", mapname, message );
+			com.strcat(buffer, string); // add new string
+		}
+	}
+	if( t ) Mem_Free(t); // free search result
+
+	// write generated maps.lst
+	if(FS_WriteFile("scripts/maps.lst", buffer, com.strlen(buffer)))
+	{
+          	if( buffer ) Mem_Free(buffer);
+		return true;
+	}
+	return false;
+}
+
+bool Cmd_GetMapList(const char *s, char *completedname, int length );
+bool Cmd_GetFontList(const char *s, char *completedname, int length );
+bool Cmd_GetDemoList(const char *s, char *completedname, int length );
+bool Cmd_GetMovieList(const char *s, char *completedname, int length );
+bool Cmd_GetMusicList(const char *s, char *completedname, int length );
+bool Cmd_GetSoundList(const char *s, char *completedname, int length );
+bool Cmd_GetSourceList( const char *s, char *completedname, int length );
+
+autocomplete_list_t cmd_list[] =
+{
+{ "prvm_printfucntion", Cmd_GetProgsList },
+{ "prvm_edictcount", Cmd_GetProgsList },
+{ "prvm_globalset", Cmd_GetProgsList },
+{ "prvm_edictset", Cmd_GetProgsList },
+{ "prvm_profile", Cmd_GetProgsList },
+{ "prvm_globals", Cmd_GetProgsList },
+{ "prvm_edicts", Cmd_GetProgsList },
+{ "prvm_fields", Cmd_GetProgsList },
+{ "prvm_global", Cmd_GetProgsList },
+{ "prvm_edict", Cmd_GetProgsList },
+{ "playsound", Cmd_GetSoundList },
+{ "changelevel", Cmd_GetMapList },
+{ "playdemo", Cmd_GetDemoList, },
+{ "compile", Cmd_GetSourceList },
+{ "setfont", Cmd_GetFontList, },
+{ "music", Cmd_GetSoundList, },
+{ "movie", Cmd_GetMovieList },
+{ "map", Cmd_GetMapList },
+{ NULL }, // termiantor
+};
+
+/*
+============
+Cmd_WriteVariables
+
+Appends lines containing "set variable value" for all variables
+with the archive flag set to true.
+============
+*/
+
+static void Cmd_WriteCvar(const char *name, const char *string, const char *desc, void *f )
+{
+	//if(!desc) return; // ignore fantom cvars
+	FS_Printf(f, "seta %s \"%s\"\n", name, string );
+}
+
+void Cmd_WriteVariables( file_t *f )
+{
+	FS_Printf( f, "unsetall\n" );
+	Cvar_LookupVars( CVAR_ARCHIVE, NULL, f, Cmd_WriteCvar ); 
+}
+
+/*
+===============
+CL_WriteConfiguration
+
+Writes key bindings and archived cvars to config.cfg
+===============
+*/
+void CL_WriteConfiguration( void )
+{
+	file_t	*f;
+
+	if (cls.state == ca_uninitialized) return;
+
+	f = FS_Open("scripts/config/keys.rc", "w");
+	if(f)
+	{
+		FS_Printf (f, "//=======================================================================\n");
+		FS_Printf (f, "//\t\t\tCopyright XashXT Group 2007 ©\n");
+		FS_Printf (f, "//\t\t\tkeys.rc - current key bindings\n");
+		FS_Printf (f, "//=======================================================================\n");
+		Key_WriteBindings(f);
+		FS_Close (f);
+	}
+	else MsgDev( D_ERROR, "Couldn't write keys.rc.\n");
+
+	f = FS_Open("scripts/config/vars.rc", "w");
+	if(f)
+	{
+		FS_Printf (f, "//=======================================================================\n");
+		FS_Printf (f, "//\t\t\tCopyright XashXT Group 2007 ©\n");
+		FS_Printf (f, "//\t\t\tvars.rc - archive of cvars\n");
+		FS_Printf (f, "//=======================================================================\n");
+		Cmd_WriteVariables(f);
+		FS_Close (f);	
+	}
+	else MsgDev( D_ERROR, "Couldn't write vars.rc.\n");
+}

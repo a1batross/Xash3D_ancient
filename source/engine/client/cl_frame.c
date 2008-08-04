@@ -496,7 +496,7 @@ void CL_AddLoopingSounds( void )
 
 	if( cls.state != ca_active ) return;
 	if( cl_paused->integer ) return;
-	//if( !cl.sound_prepped ) return; //FIXME: enable
+	if( !cl.audio_prepped ) return;
 
 	for( i = 0; i < cl.frame.num_entities; i++ )
 	{

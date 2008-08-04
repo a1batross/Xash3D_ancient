@@ -356,7 +356,6 @@ void GL_InitCommands( void )
 	r_physbdebug = Cvar_Get( "cm_debugdraw", "0", CVAR_ARCHIVE, "draw physics hulls" );
 	r_testmode = Cvar_Get("r_test", "0", CVAR_ARCHIVE, "developer cvar, for testing new effects" );
 
-	r_loading = Cvar_Get("scr_loading", "0", 0, "loading bar progress" );
 	r_lightlevel = Cvar_Get ("r_lightlevel", "0", 0, "no description" );
 
  	r_motionblur_intens = Cvar_Get( "r_motionblur_intens", "0.65", CVAR_ARCHIVE, "no description" );

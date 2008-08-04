@@ -488,47 +488,6 @@ word PR_WriteProgdefs( void )
 		}
 	}
 	ADD1("};\n\n");
-
-	// begin custom fields
-	ADD2(va("\n#define %s_NUM_REQFIELDS (sizeof(%s_reqfields) / sizeof(fields_t))\n", upr_prefix, lwr_prefix ));
-	ADD2(va("\nstatic fields_t %s_reqfields[] = \n{\n", lwr_prefix ));
-	
-	// write fields
-	for( d = pr.def_head.next; d; d = d->next )
-	{
-		if(!com.strcmp (d->name, "end_sys_fields")) k = 0;
-		if(d->type->type != ev_field) continue;
-		if(k) continue; //write only user fields
-		if(f) ADD2(",\n");	
-		f = 1;
-
-		switch( d->type->aux_type->type )
-		{
-		case ev_float:
-			ADD2(va("\t{%i,\t%i,\t\"%s\"}",G_INT(d->ofs), d->type->aux_type->type, d->name));
-			break;
-		case ev_vector:
-			ADD2(va("\t{%i,\t%i,\t\"%s\"}",G_INT(d->ofs), d->type->aux_type->type, d->name));
-			d = d->next->next->next; // skip the elements
-			break;
-		case ev_string:
-			ADD2(va("\t{%i,\t%i,\t\"%s\"}",G_INT(d->ofs), d->type->aux_type->type, d->name));
-			break;
-		case ev_function:
-			ADD2(va("\t{%i,\t%i,\t\"%s\"}",G_INT(d->ofs), d->type->aux_type->type, d->name));
-			break;
-		case ev_entity:
-			ADD2(va("\t{%i,\t%i,\t\"%s\"}",G_INT(d->ofs), d->type->aux_type->type, d->name));
-			break;
-		case ev_integer:
-			ADD2(va("\t{%i,\t%i,\t\"%s\"}",G_INT(d->ofs), d->type->aux_type->type, d->name));
-			break;
-		default:
-			ADD2(va("\t{%i,\t%i,\t\"%s\"}",G_INT(d->ofs), d->type->aux_type->type, d->name));
-			break;
-		}
-	}
-	ADD2("\n};\n\n");
 	ADD2(va("#define PROG_CRC_%s\t\t%i\n", header_name, crc ));
 	ADD2(va("\n#endif//%s_EDICT_H", upr_prefix ));
 

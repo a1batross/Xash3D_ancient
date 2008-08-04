@@ -64,8 +64,8 @@ typedef struct
 {
 	int		timeoutcount;
 
-	bool		refresh_prepped;		// false if on new level or new ref dll
-	bool		sound_prepped;		// false if on new level or new snd dll
+	bool		video_prepped;		// false if on new level or new ref dll
+	bool		audio_prepped;		// false if on new level or new snd dll
 	bool		force_refdef;		// vid has changed, so we can't use a paused refdef
 
 	int		parse_entities;		// index (not anded off) into cl_parse_entities[]
@@ -153,12 +153,12 @@ typedef enum
 	ca_cinematic,	// playing a cinematic, not connected to a server
 } connstate_t;
 
-typedef enum {
+typedef enum
+{
 	dl_none,
 	dl_model,
 	dl_sound,
-	dl_skin,
-	dl_single
+	dl_generic,
 } dltype_t;		// download type
 
 struct cl_edict_s
@@ -216,11 +216,10 @@ typedef struct
 	int		challenge;		// from the server to use for connecting
 
 	file_t		*download;		// file transfer from server
-	string		downloadtempname;
 	string		downloadname;
+	string		downloadtempname;
 	int		downloadnumber;
 	dltype_t		downloadtype;
-	int		downloadpercent;
 
 	// demo recording info must be here, so it isn't clearing on level change
 	bool		demorecording;
@@ -400,7 +399,7 @@ void CL_ParseFrame( sizebuf_t *msg );
 
 void CL_ParseTempEnts( sizebuf_t *msg );
 void CL_ParseConfigString( sizebuf_t *msg );
-
+void CL_WriteConfiguration( void );
 void CL_SetLightstyle (int i);
 void CL_RunParticles (void);
 void CL_RunDLights (void);
@@ -412,7 +411,8 @@ void CL_AddLightStyles (void);
 
 //=================================================
 
-void CL_PrepRefresh (void);
+void CL_PrepVideo( void );
+void CL_PrepSound( void );
 void CL_RegisterSounds (void);
 
 void CL_Quit_f (void);
@@ -541,7 +541,6 @@ void SCR_DrawNet( void );
 //
 // cl_view.c
 //
-extern model_t *gun_model;
 
 void V_Init (void);
 void V_CalcRect( void );

@@ -526,14 +526,14 @@ void SV_PutClientInServer( edict_t *ent )
 	ent->priv.sv->s.fov = 90;	// FIXME: get from qc
 	ent->priv.sv->s.fov = bound(1, ent->priv.sv->s.fov, 160);
 	ent->priv.sv->s.health = ent->progs.sv->health;
-//ent->priv.sv->s.classname = SV_ClassIndex(PRVM_GetString( ent->progs.sv->classname ));
+	ent->priv.sv->s.classname = SV_ClassIndex(PRVM_GetString( ent->progs.sv->classname ));
 	ent->priv.sv->s.pmodel.index = SV_ModelIndex(PRVM_GetString( ent->progs.sv->p_model));
 	VectorCopy( ent->progs.sv->origin, ent->priv.sv->s.origin );
 	VectorCopy( ent->progs.sv->v_angle, ent->priv.sv->s.viewangles );
 	for( i = 0; i < 3; i++ ) ent->priv.sv->s.delta_angles[i] = ANGLE2SHORT(ent->progs.sv->v_angle[i]);
 	viewmodel->priv.sv->s.ed_type = ED_VIEWMODEL; // set entity type
 	viewmodel->progs.sv->modelindex = SV_ModelIndex(PRVM_GetString(viewmodel->progs.sv->model));
-//viewmodel->priv.sv->s.classname = SV_ClassIndex(PRVM_GetString(viewmodel->progs.sv->classname));
+	viewmodel->priv.sv->s.classname = SV_ClassIndex(PRVM_GetString(viewmodel->progs.sv->classname));
 
 	SV_LinkEdict( ent ); // m_pmatrix calculated here, so we need call this before pe->CreatePlayer
 //SV_LinkEdict( viewmodel );

@@ -121,19 +121,47 @@ void V_TestLights( void )
 //===================================================================
 
 /*
+======================
+CL_PrepSound
+
+Call before entering a new level, or after changing dlls
+======================
+*/
+void CL_PrepSound( void )
+{
+	int	i, sndcount;
+
+	for( i = 1, sndcount = 0; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+i][0]; i++ )
+		sndcount++; // total num sounds
+
+	S_BeginRegistration();
+	for( i = 1; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+i][0]; i++ )
+	{
+		cl.sound_precache[i] = S_RegisterSound( cl.configstrings[CS_SOUNDS+i]);
+		Cvar_SetValue( "scr_loading", scr_loading->value + 5.0f/sndcount );
+		SCR_UpdateScreen();
+	}
+	S_EndRegistration();
+
+	cl.audio_prepped = true;
+	cl.force_refdef = true;
+}
+
+/*
 =================
-CL_PrepRefresh
+CL_PrepVideo
 
 Call before entering a new level, or after changing dlls
 =================
 */
-void CL_PrepRefresh( void )
+void CL_PrepVideo( void )
 {
 	char		mapname[32];
+	int		mdlcount;
 	string		name;
 	float		rotate;
 	vec3_t		axis;
-	int		i, mdlcount = 0;
+	int		i;
 
 	if (!cl.configstrings[CS_MODELS+1][0])
 		return; // no map loaded
@@ -142,16 +170,11 @@ void CL_PrepRefresh( void )
 
 	// let the render dll load the map
 	FS_FileBase( cl.configstrings[CS_MODELS+1], mapname ); 
-	SCR_UpdateScreen();
 	re->BeginRegistration( mapname ); // load map
 	SCR_UpdateScreen();
 
-	for( i = 1; i < MAX_MODELS; i++ )
-	{
-		if(!cl.configstrings[CS_MODELS+i][0])
-			break;
+	for( i = 1, mdlcount = 0; i < MAX_MODELS && cl.configstrings[CS_MODELS+1+i][0]; i++ )
 		mdlcount++; // total num models
-	}
 
 	// create thread here ?
 	for( i = 0; i < pe->NumTextures(); i++ )
@@ -161,26 +184,19 @@ void CL_PrepRefresh( void )
 			Cvar_SetValue( "scr_loading", scr_loading->value + 70.0f );
 			break; // hey, textures already loaded!
 		}
-		SCR_UpdateScreen();
-		Sys_SendKeyEvents(); // pump message loop
-
 		Cvar_SetValue("scr_loading", scr_loading->value + 70.0f / pe->NumTextures());
+		SCR_UpdateScreen();
 	}
 
 	// create thread here ?
-	for( i = 1; i < MAX_MODELS && cl.configstrings[CS_MODELS+i][0]; i++ )
+	for( i = 1; i < MAX_MODELS && cl.configstrings[CS_MODELS+1+i][0]; i++ )
 	{
-		com.strncpy( name, cl.configstrings[CS_MODELS+i], MAX_STRING );
+		com.strncpy( name, cl.configstrings[CS_MODELS+1+i], MAX_STRING );
+		re->RegisterModel( name, i+1 );
+		cl.models[i+1] = pe->RegisterModel( name );
+		Cvar_SetValue("scr_loading", scr_loading->value + 25.0f/mdlcount );
 		SCR_UpdateScreen();
-		Sys_SendKeyEvents(); // pump message loop
-
-		re->RegisterModel( name, i );
-		cl.models[i] = pe->RegisterModel( name );
-		Cvar_SetValue("scr_loading", scr_loading->value + 30.0f/mdlcount );
 	}
-
-	for( i = 1; i < MAX_CLASSNAMES && cl.configstrings[CS_CLASSNAMES+i][0]; i++ )
-		cl.edict_classnames[i] = PRVM_SetEngineString( cl.configstrings[CS_CLASSNAMES+i]);
 
 	// set sky textures and speed
 	rotate = com.atof(cl.configstrings[CS_SKYSPEED]);
@@ -191,7 +207,7 @@ void CL_PrepRefresh( void )
 	re->EndRegistration (); // the render can now free unneeded stuff
 	Con_ClearNotify(); // clear any lines of console text
 	SCR_UpdateScreen();
-	cl.refresh_prepped = true;
+	cl.video_prepped = true;
 	cl.force_refdef = true;
 }
 
@@ -226,8 +242,8 @@ V_RenderView
 */
 void V_RenderView( void )
 {
-	if (cls.state != ca_active) return;
-	if (!cl.refresh_prepped) return; // still loading
+	if( cls.state != ca_active ) return;
+	if( !cl.video_prepped ) return; // still loading
 
 	// an invalid frame will just use the exact previous refdef
 	// we can't use the old frame if the video mode has changed, though...

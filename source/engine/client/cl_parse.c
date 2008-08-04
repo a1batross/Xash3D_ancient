@@ -124,7 +124,7 @@ void CL_ParseDownload( sizebuf_t *msg )
 	if( percent != 100 )
 	{
 		// request next block
-		cls.downloadpercent = percent;
+		Cvar_SetValue("scr_download", percent );
 		MSG_WriteByte( &cls.netchan.message, clc_stringcmd );
 		MSG_Print( &cls.netchan.message, "nextdl" );
 	}
@@ -141,32 +141,12 @@ void CL_ParseDownload( sizebuf_t *msg )
 		if( r ) MsgDev( D_ERROR, "failed to rename.\n" );
 
 		cls.download = NULL;
-		cls.downloadpercent = 0;
+		Cvar_SetValue("scr_download", 0.0f );
 
 		// get another file if needed
 		CL_RequestNextDownload();
 	}
 }
-
-/*
-======================
-CL_RegisterSounds
-======================
-*/
-void CL_RegisterSounds( void )
-{
-	int	i;
-
-	S_BeginRegistration();
-	for( i = 1; i < MAX_SOUNDS; i++ )
-	{
-		if (!cl.configstrings[CS_SOUNDS+i][0]) break;
-		cl.sound_precache[i] = S_RegisterSound (cl.configstrings[CS_SOUNDS+i]);
-		Sys_SendKeyEvents(); // pump message loop
-	}
-	S_EndRegistration();
-}
-
 
 /*
 =====================================================================
@@ -213,8 +193,10 @@ void CL_ParseServerData( sizebuf_t *msg )
 	}
 	// seperate the printfs so the server message can have a color
 	Msg("\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
+
 	// need to prep refresh at next oportunity
-	cl.refresh_prepped = false;
+	cl.video_prepped = false;
+	cl.audio_prepped = false;
 }
 
 /*
@@ -248,6 +230,7 @@ void CL_ParseConfigString( sizebuf_t *msg )
 {
 	int		i;
 
+	CL_VM_Begin();
 	i = MSG_ReadShort( msg );
 	if( i < 0 || i >= MAX_CONFIGSTRINGS )
 		Host_Error("configstring > MAX_CONFIGSTRINGS\n");
@@ -256,15 +239,15 @@ void CL_ParseConfigString( sizebuf_t *msg )
 	// do something apropriate 
 	if( i >= CS_MODELS && i < CS_MODELS+MAX_MODELS )
 	{
-		if( cl.refresh_prepped )
+		if( cl.video_prepped )
 		{
 			re->RegisterModel( cl.configstrings[i], i-CS_MODELS );
 			cl.models[i-CS_MODELS] = pe->RegisterModel( cl.configstrings[i] );
 		}
 	}
-	else if( i >= CS_SOUNDS && i < CS_SOUNDS+MAX_MODELS )
+	else if( i >= CS_SOUNDS && i < CS_SOUNDS+MAX_SOUNDS )
 	{
-		if( cl.refresh_prepped )
+		if( cl.audio_prepped )
 			cl.sound_precache[i-CS_SOUNDS] = S_RegisterSound( cl.configstrings[i] );
 	}
 	else if( i >= CS_CLASSNAMES && i < CS_CLASSNAMES+MAX_CLASSNAMES )

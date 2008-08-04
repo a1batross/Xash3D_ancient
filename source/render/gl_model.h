@@ -13,6 +13,51 @@ m*_t structures are in-memory
 */
 
 /*
+
+  skins will be outline flood filled and mip mapped
+  pics and sprites with alpha will be outline flood filled
+  pic won't be mip mapped
+
+  model skin
+  sprite frame
+  wall texture
+  pic
+
+*/
+
+typedef enum 
+{
+	it_skin,
+	it_sprite,
+	it_wall,
+	it_pic,
+	it_sky,
+	it_cubemap,
+} imagetype_t;
+
+// texnum cubemap order
+// 0 = ft or normal image
+// 1 = bk
+// 2 = rt
+// 3 = lf
+// 4 = up
+// 5 = dn
+
+typedef struct image_s
+{
+	string		name;			// game path, including extension
+	imagetype_t	type;			// image type
+	int		width, height;		// source image
+	int		registration_sequence;	// 0 = free
+	struct msurface_s	*texturechain;		// for sort-by-texture world drawing
+	int		texnum[6];		// gl texture binding
+	int		texorder[6];		// drawing order pattern
+
+	int		lumatex[6];		// luminescence cubemaps ?
+	int		normtex[6];
+} image_t;
+
+/*
 ==============================================================================
 
 SPRITE MODELS
@@ -72,7 +117,7 @@ typedef struct
 	int		headnode;
 	int		visleafs;		// not including the solid leaf 0
 	int		firstface, numfaces;
-} mmodel_t;
+} msubmodel_t;
 
 typedef struct
 {
@@ -177,7 +222,7 @@ typedef struct mleaf_s
 //
 // Whole model
 //
-typedef struct model_s
+typedef struct rmodel_s
 {
 	string		name;
 
@@ -213,7 +258,7 @@ typedef struct model_s
 	int		lightmap;		// only for submodels
 
 	int		numsubmodels;
-	mmodel_t		*submodels;
+	msubmodel_t	*submodels;
 
 	int		numplanes;
 	cplane_t		*planes;
@@ -262,22 +307,22 @@ typedef struct model_s
 	float	frame;
 	float	animtime;
 	float	prevanimtime;
-};
+} rmodel_t;
 
 //============================================================================
 
 void	Mod_Init (void);
 void	Mod_ClearAll (void);
-model_t *Mod_ForName ( const char *name, bool crash);
-mleaf_t *Mod_PointInLeaf (float *p, model_t *model);
-byte	*Mod_ClusterPVS (int cluster, model_t *model);
+rmodel_t *Mod_ForName ( const char *name, bool crash);
+mleaf_t *Mod_PointInLeaf (float *p, rmodel_t *model);
+byte	*Mod_ClusterPVS (int cluster, rmodel_t *model);
 const char *Mod_GetStringFromTable( int index );
 
 void	Mod_Modellist_f (void);
 void	Mod_FreeAll (void);
-void	Mod_Free (model_t *mod);
+void	Mod_Free (rmodel_t *mod);
 
-extern model_t *loadmodel;
+extern rmodel_t *loadmodel;
 
 int R_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *maxs );
 

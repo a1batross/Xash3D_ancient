@@ -13,6 +13,7 @@ cvar_t *scr_centertime;
 cvar_t *scr_showpause;
 cvar_t *scr_printspeed;
 cvar_t *scr_loading;
+cvar_t *scr_download;
 cvar_t *scr_width;
 cvar_t *scr_height;
 cvar_t *cl_levelshot_name;
@@ -295,6 +296,8 @@ void SCR_Init (void)
 	scr_printspeed = Cvar_Get("scr_printspeed", "8", 0, "centerprint speed of print" );
 	cl_levelshot_name = Cvar_Get("cl_levelshot_name", "common/black", 0, "contains path to current levelshot" );
 	cl_font = Cvar_Get("cl_font", "conchars", CVAR_ARCHIVE, "contains path to current charset" );
+	scr_loading = Cvar_Get("scr_loading", "0", 0, "loading bar progress" );
+	scr_download = Cvar_Get("scr_download", "0", 0, "downloading bar progress" );
 
 	// register our commands
 	Cmd_AddCommand( "timerefresh", SCR_TimeRefresh_f, "turn quickly and print rendering statistcs" );
