@@ -22,114 +22,9 @@ extern vsound_exp_t		*se;
 
 #define MAX_ENTNUMBER	99999		// for server and client parsing
 #define MAX_HEARTBEAT	-99999		// connection time
-#define MAX_EVENTS		1024
-
-/*
-==============================================================
-
-INPUT
-
-==============================================================
-*/
-#define WM_MOUSEWHEEL	( WM_MOUSELAST + 1 ) // message that will be supported by the OS 
-
-typedef enum e_keycodes
-{
-	// keyboard
-	K_TAB = 9,
-	K_ENTER = 13,
-	K_ESCAPE = 27,
-	K_SPACE = 32,
-	K_BACKSPACE = 127,
-	K_COMMAND = 128,
-	K_CAPSLOCK,
-	K_POWER,
-	K_PAUSE,
-	K_UPARROW,
-	K_DOWNARROW,
-	K_LEFTARROW,
-	K_RIGHTARROW,
-	K_ALT,
-	K_CTRL,
-	K_SHIFT,
-	K_INS,
-	K_DEL,
-	K_PGDN,
-	K_PGUP,
-	K_HOME,
-	K_END,
-	K_F1,
-	K_F2,
-	K_F3,
-	K_F4,
-	K_F5,
-	K_F6,
-	K_F7,
-	K_F8,
-	K_F9,
-	K_F10,
-	K_F11,
-	K_F12,
-	K_F13,
-	K_F14,
-	K_F15,
-	K_KP_HOME,
-	K_KP_UPARROW,
-	K_KP_PGUP,
-	K_KP_LEFTARROW,
-	K_KP_5,
-	K_KP_RIGHTARROW,
-	K_KP_END,
-	K_KP_DOWNARROW,
-	K_KP_PGDN,
-	K_KP_ENTER,
-	K_KP_INS,
-	K_KP_DEL,
-	K_KP_SLASH,
-	K_KP_MINUS,
-	K_KP_PLUS,
-	K_KP_NUMLOCK,
-	K_KP_STAR,
-	K_KP_EQUALS,
-
-	// mouse
-	K_MOUSE1,
-	K_MOUSE2,
-	K_MOUSE3,
-	K_MOUSE4,
-	K_MOUSE5,
-	K_MWHEELDOWN,
-	K_MWHEELUP,
-
-	K_LAST_KEY // this had better be < 256!
-} keyNum_t;
-
-static byte scan_to_key[128] = 
-{ 
-	0,27,'1','2','3','4','5','6','7','8','9','0','-','=',K_BACKSPACE,9,
-	'q','w','e','r','t','y','u','i','o','p','[',']', 13 , K_CTRL,
-	'a','s','d','f','g','h','j','k','l',';','\'','`',
-	K_SHIFT,'\\','z','x','c','v','b','n','m',',','.','/',K_SHIFT,
-	'*',K_ALT,' ',K_CAPSLOCK,
-	K_F1,K_F2,K_F3,K_F4,K_F5,K_F6,K_F7,K_F8,K_F9,K_F10,
-	K_PAUSE,0,K_HOME,K_UPARROW,K_PGUP,K_KP_MINUS,K_LEFTARROW,K_KP_5,
-	K_RIGHTARROW,K_KP_PLUS,K_END,K_DOWNARROW,K_PGDN,K_INS,K_DEL,
-	0,0,0,K_F11,K_F12,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-};
-
-//
-// input.c
-//
-void IN_Init( void );
-void IN_Frame( void );
-void IN_Shutdown( void );
-void IN_MouseEvent( int mstate );
+#define MAX_EVENTS		1024		// system events
 
 // cvars
-extern cvar_t *host_serverstate;
-extern cvar_t *host_cheats;
-extern cvar_t *crosshair;
 extern cvar_t *scr_loading;
 extern cvar_t *scr_download;
 extern cvar_t *scr_width;
@@ -159,15 +54,15 @@ typedef enum
 	RD_CLIENT,
 	RD_PACKET,
 
-} e_redirect_t;
+} rdtype_t;
 
 typedef struct host_redirect_s
 {
-	int	target;
+	rdtype_t	target;
 	char	*buffer;
 	int	buffersize;
 	netadr_t	address;
-	void	(*flush)( netadr_t adr, int target, char *buffer );
+	void	(*flush)( netadr_t adr, rdtype_t target, char *buffer );
 } host_redirect_t;
 
 typedef struct host_parm_s
@@ -190,7 +85,11 @@ typedef struct host_parm_s
 } host_parm_t;
 
 extern host_parm_t host;
-long Host_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam );
+
+//
+// host.c
+//
+
 void Host_Init ( int argc, char **argv );
 void Host_Main ( void );
 void Host_Free ( void );
@@ -200,18 +99,9 @@ int Host_FrameTime( void );
 int Host_MaxClients( void );
 void Host_AbortCurrentFrame( void );
 dword Host_EventLoop( void );
-
-// message functions
 void Host_Print(const char *txt);
 void Host_Error( const char *error, ... );
 void Sys_Error( const char *msg, ... );
-
-// host dlls managment
-void Host_FreeRender( void );
-void Host_SndRestart_f( void );
-
-// host cmds
-void Host_Error_f( void );
 
 /*
 ==============================================================

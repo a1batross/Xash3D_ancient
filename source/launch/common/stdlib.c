@@ -192,6 +192,7 @@ char *com_stralloc( byte *mempool, const char *s, const char *filename, int file
 	if( !s ) return NULL;
 	if( !mempool ) mempool = Sys.stringpool;
 
+	MsgDev( D_STRING, "new system string %p\n", s );
 	b = _mem_alloc( mempool, com_strlen(s) + 1, filename, fileline );
 	com_strcpy( b, s );
 

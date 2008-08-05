@@ -164,7 +164,7 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags, const 
 		return NULL;
 	}
 
-	var = Cvar_FindVar (var_name);
+	var = Cvar_FindVar( var_name );
 	if ( var )
 	{
 		// if the C code is now specifying a variable that the user already
@@ -181,13 +181,13 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags, const 
 		var->flags |= flags;
 
 		// only allow one non-empty reset string without a warning
-		if( !var->reset_string[0] )
+		if( !var->reset_string )
 		{
 			// we don't have a reset string yet
 			Mem_Free( var->reset_string );
 			var->reset_string = copystring( var_value );
 		}
-		else if ( var_value[0] && com_strcmp( var->reset_string, var_value ))
+		else if( var_value[0] && com_strcmp( var->reset_string, var_value ))
 		{
 			MsgDev(D_NOTE, "cvar \"%s\" given initial values: \"%s\" and \"%s\"\n", var_name, var->reset_string, var_value );
 		}
@@ -764,8 +764,13 @@ Cvar_Init
 Reads in all archived cvars
 ============
 */
-void Cvar_Init (void)
+void Cvar_Init( void )
 {
+	cvar_vars = NULL;
+	cvar_numIndexes = cvar_modifiedFlags = 0;
+	ZeroMemory( cvar_indexes, sizeof(cvar_t)*MAX_CVARS );
+	ZeroMemory( hashTable, sizeof(*hashTable) * FILE_HASH_SIZE );
+
 	Cmd_AddCommand ("toggle", Cvar_Toggle_f, "toggles a console variable's values (use for more info)" );
 	Cmd_AddCommand ("set", Cvar_Set_f, "create or change the value of a console variable" );
 	Cmd_AddCommand ("sets", Cvar_SetS_f, "create or change the value of a serverinfo variable");

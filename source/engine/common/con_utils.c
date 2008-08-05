@@ -477,6 +477,50 @@ bool Cmd_GetSoundList( const char *s, char *completedname, int length )
 	return true;
 }
 
+/*
+=====================================
+Cmd_GetGameList
+
+Prints or complete sound filename
+=====================================
+*/
+bool Cmd_GetGamesList( const char *s, char *completedname, int length )
+{
+	int	i, numgamedirs;
+	string	gamedirs[128];
+	string	matchbuf;
+
+	// compare gamelist with current keyword
+	for( i = 0, numgamedirs = 0; i < GI->numgamedirs; i++ )
+	{
+		if(!com.strnicmp(GI->gamedirs[i], s, com.strlen(s)))
+			com.strcpy( gamedirs[numgamedirs++], GI->gamedirs[i] ); 
+	}
+
+	if( !numgamedirs ) return false;
+	com.strncpy( matchbuf, gamedirs[0], MAX_STRING ); 
+	if( completedname && length ) com.strncpy( completedname, matchbuf, length );
+	if( numgamedirs == 1) return true;
+
+	for( i = 0; i < numgamedirs; i++ )
+	{
+		com.strncpy( matchbuf, gamedirs[i], MAX_STRING ); 
+		Msg("%16s\n", matchbuf );
+	}
+	Msg("\n^3 %i games found.\n", numgamedirs );
+
+	// cut shortestMatch to the amount common with s
+	if( completedname && length )
+	{
+		for( i = 0; matchbuf[i]; i++ )
+		{
+			if(com.tolower(completedname[i]) != com.tolower(matchbuf[i]))
+				completedname[i] = 0;
+		}
+	}
+	return true;
+}
+
 bool Cmd_CheckMapsList( void )
 {
 	byte	buf[MAX_SYSPATH]; // 1 kb
@@ -604,14 +648,6 @@ bool Cmd_CheckMapsList( void )
 	return false;
 }
 
-bool Cmd_GetMapList(const char *s, char *completedname, int length );
-bool Cmd_GetFontList(const char *s, char *completedname, int length );
-bool Cmd_GetDemoList(const char *s, char *completedname, int length );
-bool Cmd_GetMovieList(const char *s, char *completedname, int length );
-bool Cmd_GetMusicList(const char *s, char *completedname, int length );
-bool Cmd_GetSoundList(const char *s, char *completedname, int length );
-bool Cmd_GetSourceList( const char *s, char *completedname, int length );
-
 autocomplete_list_t cmd_list[] =
 {
 { "prvm_printfucntion", Cmd_GetProgsList },
@@ -631,6 +667,7 @@ autocomplete_list_t cmd_list[] =
 { "setfont", Cmd_GetFontList, },
 { "music", Cmd_GetSoundList, },
 { "movie", Cmd_GetMovieList },
+{ "game", Cmd_GetGamesList },
 { "map", Cmd_GetMapList },
 { NULL }, // termiantor
 };

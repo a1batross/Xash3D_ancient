@@ -23,11 +23,15 @@
 
 #define MAX_NUM_ARGVS		128
 #define MAX_STRING_TOKENS		80
+#define LOG_QUEUE_SIZE		MAX_MSGLEN * 4	// 128 kb intermediate buffer
+
+// just for last chanse to view message (debug only)
+#define MSGBOX(x)			MessageBox(NULL, x, "Xash Error", MB_OK|MB_SETFOREGROUND|MB_ICONSTOP );
 
 enum state_e
 {
 	SYS_SHUTDOWN = 0,
-	SYS_CRASH,
+	SYS_RESTART,
 	SYS_ABORT,
 	SYS_ERROR,
 	SYS_FRAME,
@@ -35,14 +39,20 @@ enum state_e
 
 typedef struct system_s
 {
-	char			progname[MAX_QPATH];
+	char			progname[64];		// instance keyword
+	char			fmessage[64];		// shutdown final message
 	int			app_name;
 	int			app_state;
 
 	bool			debug;
-	bool			developer;
+	int			developer;
+	int			printlevel;
+
+	// log stuff
 	bool			log_active;
 	char			log_path[MAX_SYSPATH];
+	FILE			*logfile;
+	
 	bool			hooked_out;
 	bool			stuffcmdsrun;
 	byte			packet_received[MAX_MSGLEN];	// network data
@@ -50,10 +60,9 @@ typedef struct system_s
 	char			ModuleName[4096];		// exe.filename
 
 	HINSTANCE			hInstance;
-	LPTOP_LEVEL_EXCEPTION_FILTER	oldFilter;		
 	dll_info_t		*linked_dll;
 
-	char			caption[MAX_QPATH];
+	char			caption[64];
 	bool			con_readonly;
 	bool			con_showalways;
 	bool			con_showcredits;
@@ -76,6 +85,14 @@ typedef struct system_s
 	void (*MSG_Init)( sizebuf_t *buf, byte *data, size_t length );
 } system_t;
 
+typedef struct timer_s
+{
+	bool	initialized;		// any timer can be setup it
+	double	oldtime;
+	double	curtime;
+	dword	timebase;
+} timer_t;
+
 typedef struct cvar_s
 {
 	char	*name;
@@ -95,6 +112,7 @@ typedef struct cvar_s
 };
 
 extern system_t Sys;
+extern timer_t Msec;
 extern gameinfo_t GI;
 extern stdlib_api_t	com;
 
@@ -117,6 +135,7 @@ gameinfo_t Sys_GameInfo( void );
 uint Sys_SendKeyEvents( void );
 void Sys_ParseCommandLine (LPSTR lpCmdLine);
 void Sys_LookupInstance( void );
+void Sys_NewInstance( const char *name, const char *fmsg );
 double Sys_DoubleTime( void );
 dword Sys_Milliseconds( void );
 char *Sys_GetClipboardData( void );
@@ -136,7 +155,6 @@ void Sys_CloseLog( void );
 void Sys_Error(const char *error, ...);
 void Sys_Break(const char *error, ...);
 void Sys_PrintLog( const char *pMsg );
-void Sys_PrintMem( const char *pMsg );
 void Sys_Print(const char *pMsg);
 void Sys_Msg( const char *pMsg, ... );
 void Sys_MsgDev( int level, const char *pMsg, ... );

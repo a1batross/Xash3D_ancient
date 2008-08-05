@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "common.h"
+#include "input.h"
 #include "server.h"
 #include "client.h"
 
@@ -20,7 +21,7 @@ byte	*zonepool;
 char	*buildstring = __TIME__ " " __DATE__;
 
 dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(physic_exp_t) };
-dll_info_t render_dll = { "render.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(render_exp_t) };
+dll_info_t render_dll = { "render.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(render_exp_t) };
 dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vprogs_exp_t) };
 dll_info_t vsound_dll = { "vsound.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vsound_exp_t) };
 
@@ -31,65 +32,11 @@ cvar_t	*host_cheats;
 cvar_t	*host_maxfps;
 cvar_t	*host_maxclients;
 cvar_t	*host_registered;
-cvar_t	*r_fullscreen;
-cvar_t	*r_xpos;		// X coordinate of window position
-cvar_t	*r_ypos;		// Y coordinate of window position
-cvar_t	*vid_gamma;
 
 // these cvars will be duplicated on each client across network
 int Host_FrameTime( void ) { return (int)(bound( 10, Cvar_VariableValue( "host_frametime" ) * 1000, 100 )); }
 int Host_ServerState( void ) { return (int)Cvar_VariableValue( "host_serverstate" ); }
 int Host_MaxClients( void ) { return (int)bound( 1, Cvar_VariableValue( "host_maxclients" ), 255 ); }
-
-/*
-=======
-Host_MapKey
-
-Map from windows to engine keynums
-=======
-*/
-static int Host_MapKey( int key )
-{
-	int	result, modified;
-	bool	is_extended = false;
-
-	modified = ( key >> 16 ) & 255;
-	if( modified > 127 ) return 0;
-
-	if ( key & ( 1 << 24 ))
-		is_extended = true;
-
-	result = scan_to_key[modified];
-
-	if( !is_extended )
-	{
-		switch ( result )
-		{
-		case K_HOME: return K_KP_HOME;
-		case K_UPARROW: return K_KP_UPARROW;
-		case K_PGUP: return K_KP_PGUP;
-		case K_LEFTARROW: return K_KP_LEFTARROW;
-		case K_RIGHTARROW: return K_KP_RIGHTARROW;
-		case K_END: return K_KP_END;
-		case K_DOWNARROW: return K_KP_DOWNARROW;
-		case K_PGDN: return K_KP_PGDN;
-		case K_INS: return K_KP_INS;
-		case K_DEL: return K_KP_DEL;
-		default: return result;
-		}
-	}
-	else
-	{
-		switch ( result )
-		{
-		case K_PAUSE: return K_KP_NUMLOCK;
-		case 0x0D: return K_KP_ENTER;
-		case 0x2F: return K_KP_SLASH;
-		case 0xAF: return K_KP_PLUS;
-		}
-		return result;
-	}
-}
 
 void Host_InitPhysic( void )
 {
@@ -125,21 +72,27 @@ void Host_InitRender( void )
 {
 	static render_imp_t		ri;
 	launch_t			CreateRender;
+	bool			result = false;
 	
 	ri.api_size = sizeof(render_imp_t);
 
           // studio callbacks
 	ri.StudioEvent = CL_StudioEvent;
 	ri.ShowCollision = pe->DrawCollision;
-	ri.WndProc = Host_WndProc;
+	ri.WndProc = IN_WndProc;
           
 	Sys_LoadLibrary( &render_dll );
-	
-	CreateRender = (void *)render_dll.main;
-	re = CreateRender( &newcom, &ri );
 
-	if(!re->Init(GetModuleHandle(NULL))) 
-		Sys_Error("VID_InitRender: can't init render.dll\nUpdate your opengl drivers\n");
+	if( render_dll.link )
+	{
+		CreateRender = (void *)render_dll.main;
+		re = CreateRender( &newcom, &ri );
+
+		if(re->Init()) result = true;
+	} 
+
+	// video system not started, run dedicated server
+	if( !result ) Sys_NewInstance( va("#%s", GI->title), "Host_InitRender: fallback to dedicated mode\n" ); 
 }
 
 void Host_FreeRender( void )
@@ -259,6 +212,29 @@ void Host_SndRestart_f( void )
 	Host_InitSound();		// load it again
 }
 
+void Host_ChangeGame_f( void )
+{
+	int	i;
+
+	if( Cmd_Argc() != 2 )
+	{
+		Msg("Usage: game <directory>\n");
+		return;
+	}
+
+	// validate gamedir
+	for( i = 0; i < GI->numgamedirs; i++ )
+	{
+		if(!com.stricmp(GI->gamedirs[i], Cmd_Argv(1)))
+			break;
+	}
+
+	if( i == GI->numgamedirs ) Msg( "%s not exist\n", Cmd_Argv(1));
+	else if(!com.stricmp(GI->gamedir, Cmd_Argv(1)))
+		Msg( "%s already active\n", Cmd_Argv(1));	
+	else Sys_NewInstance( Cmd_Argv(1), "Host_ChangeGame\n" );
+}
+
 /*
 ============
 VID_Init
@@ -268,10 +244,10 @@ void VID_Init( void )
 {
 	scr_width = Cvar_Get("width", "640", 0, "screen width" );
 	scr_height = Cvar_Get("height", "480", 0, "screen height" );
-	vid_gamma = Cvar_Get( "vid_gamma", "1", CVAR_ARCHIVE, "screen gamma" );
 
-	Cmd_AddCommand ("vid_restart", Host_VidRestart_f, "restarts video system" );
-	Cmd_AddCommand ("snd_restart", Host_SndRestart_f, "restarts audio system" );
+	Cmd_AddCommand( "vid_restart", Host_VidRestart_f, "restarts video system" );
+	Cmd_AddCommand( "snd_restart", Host_SndRestart_f, "restarts audio system" );
+	Cmd_AddCommand( "game", Host_ChangeGame_f, "change game" );
 
 	Host_InitRender();
 	Host_InitSound();
@@ -490,121 +466,6 @@ void Host_Frame( void )
 
 	host.framecount++;
 }
-
-/*
-====================
-Host_WndProc
-
-main window procedure
-====================
-*/
-long Host_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
-{
-	int	 temp = 0;
-
-	switch( uMsg )
-	{
-	case WM_MOUSEWHEEL:
-		if((short)HIWORD(wParam) > 0)
-		{
-			Sys_QueEvent( -1, SE_KEY, K_MWHEELUP, true, 0, NULL );
-			Sys_QueEvent( -1, SE_KEY, K_MWHEELUP, false, 0, NULL );
-		}
-		else
-		{
-			Sys_QueEvent( -1, SE_KEY, K_MWHEELDOWN, true, 0, NULL );
-			Sys_QueEvent( -1, SE_KEY, K_MWHEELDOWN, false, 0, NULL );
-		}
-		break;
-	case WM_CREATE:
-		host.hWnd = hWnd;
-		r_xpos = Cvar_Get("r_xpos", "3", CVAR_ARCHIVE, "window position by horizontal" );
-		r_ypos = Cvar_Get("r_ypos", "22", CVAR_ARCHIVE, "window position by vertical" );
-		r_fullscreen = Cvar_Get("fullscreen", "0", CVAR_ARCHIVE | CVAR_LATCH, "set in 1 to enable fullscreen mode" );
-		break;
-	case WM_DESTROY:
-		host.hWnd = NULL;
-		break;
-	case WM_CLOSE:
-		Cbuf_ExecuteText( EXEC_APPEND, "quit" );
-		break;
-	case WM_ACTIVATE:
-		if(LOWORD(wParam) != WA_INACTIVE && HIWORD(wParam)) host.state = HOST_SLEEP;
-		else if(LOWORD(wParam) == WA_INACTIVE) host.state = HOST_NOFOCUS;
-		else host.state = HOST_FRAME;
-
-		if( se ) se->Activate( (host.state == HOST_FRAME) ? true : false );
-		Key_ClearStates();	// FIXME!!!
-
-		if( host.state == HOST_FRAME )
-		{
-			SetForegroundWindow( hWnd );
-			ShowWindow( hWnd, SW_RESTORE );
-		}
-		else if( r_fullscreen->integer )
-		{
-			ShowWindow( hWnd, SW_MINIMIZE );
-		}
-		break;
-	case WM_MOVE:
-		if (!r_fullscreen->integer )
-		{
-			RECT 		r;
-			int		xPos, yPos, style;
-
-			xPos = (short) LOWORD(lParam);    // horizontal position 
-			yPos = (short) HIWORD(lParam);    // vertical position 
-
-			r.left = r.top = 0;
-			r.right = r.bottom = 1;
-			style = GetWindowLong( hWnd, GWL_STYLE );
-			AdjustWindowRect( &r, style, FALSE );
-
-			Cvar_SetValue( "r_xpos", xPos + r.left);
-			Cvar_SetValue( "r_ypos", yPos + r.top);
-			r_xpos->modified = false;
-			r_ypos->modified = false;
-		}
-		break;
-	case WM_LBUTTONDOWN:
-	case WM_LBUTTONUP:
-	case WM_RBUTTONDOWN:
-	case WM_RBUTTONUP:
-	case WM_MBUTTONDOWN:
-	case WM_MBUTTONUP:
-	case WM_MOUSEMOVE:
-		if(wParam & MK_LBUTTON) temp |= 1;
-		if(wParam & MK_RBUTTON) temp |= 2;
-		if(wParam & MK_MBUTTON) temp |= 4;
-		IN_MouseEvent( temp );
-		break;
-	case WM_SYSCOMMAND:
-		if( wParam == SC_SCREENSAVE ) return 0;
-		break;
-	case WM_SYSKEYDOWN:
-		if( wParam == VK_RETURN )
-		{
-			// alt+enter fullscreen switch
-			Cvar_SetValue( "fullscreen", !Cvar_VariableValue( "fullscreen" ));
-			Cbuf_AddText( "vid_restart\n" );
-			return 0;
-		}
-		// intentional fallthrough
-	case WM_KEYDOWN:
-		Sys_QueEvent( -1, SE_KEY, Host_MapKey( lParam ), true, 0, NULL );
-		break;
-	case WM_SYSKEYUP:
-	case WM_KEYUP:
-		Sys_QueEvent( -1, SE_KEY, Host_MapKey( lParam ), false, 0, NULL );
-		break;
-	case WM_CHAR:
-		Sys_QueEvent( -1, SE_CHAR, wParam, 0, 0, NULL );
-		break;
-	}
-	return DefWindowProc( hWnd, uMsg, wParam, lParam );
-}
-
-
 /*
 ================
 Host_Print
@@ -649,19 +510,18 @@ void Host_Error( const char *error, ... )
 	va_end( argptr );
 
 	if( host.framecount < 3 || host.state == HOST_SHUTDOWN )
-		Sys_Error ("%s", hosterror1 );
-	else Msg("Host_Error: %s", hosterror1);
+		com.error( hosterror1 );
+	else Msg( "Host_Error: %s", hosterror1 );
 
-	if(recursive)
+	if( recursive )
 	{ 
 		Msg("Host_RecursiveError: %s", hosterror2 );
-		Sys_Error ("%s", hosterror1 );
+		com.error( hosterror1 );
 		return; // don't multiple executes
 	}
 
 	recursive = true;
 	com.sprintf( host.finalmsg, "Server crashed: %s\n", hosterror1 );
-	com.strncpy( host.finalmsg, "Server shutdown\n", MAX_STRING );
 
 	SV_Shutdown( false );
 	CL_Drop(); // drop clients

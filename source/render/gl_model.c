@@ -233,7 +233,7 @@ rmodel_t *Mod_ForName( const char *name, bool crash)
 		return NULL;
 	}
 
-	mod->mempool = Mem_AllocPool(va("^1%s", mod->name ));
+	mod->mempool = Mem_AllocPool(va("^1%s^7", mod->name ));
 	
 	loadmodel = mod;
 	

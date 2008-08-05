@@ -1094,7 +1094,7 @@ void R_RenderFrame( refdef_t *fd )
 R_Init
 ===============
 */
-int R_Init( void *hinstance )
+int R_Init( void )
 {	
 	GL_InitBackend();
 

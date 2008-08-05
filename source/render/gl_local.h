@@ -266,11 +266,7 @@ extern	unsigned	d_8to24table[256];
 extern	int		registration_sequence;
 
 
-void V_AddBlend (float r, float g, float b, float a, float *v_blend);
-
-int  R_Init( void *hinstance );
-void R_Shutdown( void );
-
+void V_AddBlend( float r, float g, float b, float a, float *v_blend );
 void R_RenderView (refdef_t *fd);
 void R_DrawStudioModel( int passnum );
 void R_DrawBrushModel( int passnum );

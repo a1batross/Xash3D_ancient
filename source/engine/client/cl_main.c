@@ -61,12 +61,8 @@ cvar_t	*cl_lightlevel;
 cvar_t	*info_password;
 cvar_t	*info_spectator;
 cvar_t	*name;
-cvar_t	*skin;
 cvar_t	*rate;
 cvar_t	*fov;
-cvar_t	*hand;
-
-cvar_t	*cl_vwep;
 
 client_static_t	cls;
 client_t		cl;
@@ -678,6 +674,99 @@ void CL_ParseStatusMessage( netadr_t from, sizebuf_t *msg )
 	CL_ParseServerStatus( NET_AdrToString(from), s );
 }
 
+//===================================================================
+
+/*
+======================
+CL_PrepSound
+
+Call before entering a new level, or after changing dlls
+======================
+*/
+void CL_PrepSound( void )
+{
+	int	i, sndcount;
+
+	for( i = 1, sndcount = 0; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+i][0]; i++ )
+		sndcount++; // total num sounds
+
+	S_BeginRegistration();
+	for( i = 1; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+i][0]; i++ )
+	{
+		cl.sound_precache[i] = S_RegisterSound( cl.configstrings[CS_SOUNDS+i]);
+		Cvar_SetValue( "scr_loading", scr_loading->value + 5.0f/sndcount );
+		SCR_UpdateScreen();
+	}
+	S_EndRegistration();
+
+	cl.audio_prepped = true;
+	cl.force_refdef = true;
+}
+
+/*
+=================
+CL_PrepVideo
+
+Call before entering a new level, or after changing dlls
+=================
+*/
+void CL_PrepVideo( void )
+{
+	char		mapname[32];
+	int		mdlcount;
+	string		name;
+	float		rotate;
+	vec3_t		axis;
+	int		i;
+
+	if (!cl.configstrings[CS_MODELS+1][0])
+		return; // no map loaded
+
+	Msg( "CL_PrepRefresh: %s\n", cl.configstrings[CS_NAME] );
+
+	// let the render dll load the map
+	FS_FileBase( cl.configstrings[CS_MODELS+1], mapname ); 
+	re->BeginRegistration( mapname ); // load map
+	SCR_UpdateScreen();
+
+	for( i = 1, mdlcount = 0; i < MAX_MODELS && cl.configstrings[CS_MODELS+1+i][0]; i++ )
+		mdlcount++; // total num models
+
+	// create thread here ?
+	for( i = 0; i < pe->NumTextures(); i++ )
+	{
+		if(!re->RegisterImage( cl.configstrings[CS_MODELS+1], i ))
+		{
+			Cvar_SetValue( "scr_loading", scr_loading->value + 70.0f );
+			break; // hey, textures already loaded!
+		}
+		Cvar_SetValue("scr_loading", scr_loading->value + 70.0f / pe->NumTextures());
+		SCR_UpdateScreen();
+	}
+
+	// create thread here ?
+	for( i = 1; i < MAX_MODELS && cl.configstrings[CS_MODELS+1+i][0]; i++ )
+	{
+		com.strncpy( name, cl.configstrings[CS_MODELS+1+i], MAX_STRING );
+		re->RegisterModel( name, i+1 );
+		cl.models[i+1] = pe->RegisterModel( name );
+		Cvar_SetValue("scr_loading", scr_loading->value + 25.0f/mdlcount );
+		SCR_UpdateScreen();
+	}
+
+	// set sky textures and speed
+	rotate = com.atof(cl.configstrings[CS_SKYSPEED]);
+	com.atov( axis, cl.configstrings[CS_SKYANGLES], 3 );
+	re->SetSky( cl.configstrings[CS_SKYNAME], rotate, axis );
+          Cvar_SetValue("scr_loading", 100.0f ); // all done
+	
+	re->EndRegistration (); // the render can now free unneeded stuff
+	Con_ClearNotify(); // clear any lines of console text
+	SCR_UpdateScreen();
+	cl.video_prepped = true;
+	cl.force_refdef = true;
+}
+
 /*
 =================
 CL_ConnectionlessPacket
@@ -1045,11 +1134,8 @@ void CL_InitLocal (void)
 	info_password = Cvar_Get ("password", "", CVAR_USERINFO, "player password" );
 	info_spectator = Cvar_Get ("spectator", "0", CVAR_USERINFO, "spectator mode" );
 	name = Cvar_Get ("name", "unnamed", CVAR_USERINFO | CVAR_ARCHIVE, "player name" );
-	skin = Cvar_Get ("skin", "male/grunt", CVAR_USERINFO | CVAR_ARCHIVE, "playerskin" );
 	rate = Cvar_Get ("rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE, "player network rate" );	// FIXME
-	hand = Cvar_Get ("hand", "0", CVAR_USERINFO | CVAR_ARCHIVE, "viewmodel handedness" );
 	fov = Cvar_Get ("fov", "90", CVAR_USERINFO | CVAR_ARCHIVE, "client fov" );
-	cl_vwep = Cvar_Get ("cl_vwep", "1", CVAR_ARCHIVE, "no description" );
 	cl_showfps = Cvar_Get ("cl_showfps", "1", CVAR_ARCHIVE, "show client fps" );
 
 	// register our commands
@@ -1180,11 +1266,11 @@ void CL_Init( void )
 
 	Con_Init();	
 	VID_Init();
-	V_Init();
 	CL_InitClientProgs();
 	UI_Init();
 	SCR_Init();
 	CL_InitLocal();
+	cls.initialized = true;
 }
 
 
@@ -1199,17 +1285,15 @@ to run quit through here before the final handoff to the sys code.
 void CL_Shutdown( void )
 {
 	// already freed
-	if( host.state == HOST_ERROR )
-		return;
-	if( host.type == HOST_DEDICATED )
-		return;
+	if( host.state == HOST_ERROR ) return;
+	if( host.type == HOST_DEDICATED ) return;
+	if( !cls.initialized ) return;
 
 	CL_WriteConfiguration(); 
 	CL_FreeClientProgs();
 	UI_Shutdown();
 	S_Shutdown();
-	V_Shutdown();
+	SCR_Shutdown();
 	CL_ShutdownInput();
+	cls.initialized = false;
 }
-
-

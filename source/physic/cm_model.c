@@ -82,7 +82,6 @@ CM_FreeModel
 void CM_FreeModel( cmodel_t *mod )
 {
 	Mem_FreePool( &mod->mempool );
-	memset( mod->col, 0, MAXSTUDIOMODELS * sizeof(*mod->col[0]));
 	memset( mod, 0, sizeof(*mod));
 	mod = NULL;
 }
@@ -877,7 +876,14 @@ void CM_LoadBSP( const void *buffer )
 
 void CM_FreeBSP( void )
 {
+	int	i;
+	cmodel_t	*mod;
+
 	CM_FreeWorld();
+	for( i = 0, mod = &cm.cmodels[0]; i < cm.numcmodels; i++, mod++)
+	{
+		CM_FreeModel( mod );
+	}
 }
 
 void CM_MakeCollisionTree( void )
@@ -1452,7 +1458,7 @@ cmodel_t *CM_RegisterModel( const char *name )
 	}
 
 	MsgDev(D_NOTE, "CM_LoadModel: load %s\n", name );
-	mod->mempool = Mem_AllocPool( va("^2%s", mod->name ));
+	mod->mempool = Mem_AllocPool( va("^2%s^7", mod->name ));
 	loadmodel = mod;
 
 	// call the apropriate loader

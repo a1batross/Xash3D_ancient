@@ -114,11 +114,11 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;hpj;bat;for;f90"
 # Begin Source File
 
-SOURCE=.\client\cl_cmds.c
+SOURCE=.\common\cinematic.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\client\cl_console.c
+SOURCE=.\client\cl_cmds.c
 # End Source File
 # Begin Source File
 
@@ -138,15 +138,7 @@ SOURCE=.\client\cl_input.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\client\cl_keys.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\client\cl_main.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\client\cl_menu.c
 # End Source File
 # Begin Source File
 
@@ -170,11 +162,15 @@ SOURCE=.\client\cl_tent.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\client\cl_video.c
+SOURCE=.\client\cl_view.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\client\cl_view.c
+SOURCE=.\common\con_keys.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\con_main.c
 # End Source File
 # Begin Source File
 
@@ -199,6 +195,10 @@ SOURCE=.\common\infostring.c
 # Begin Source File
 
 SOURCE=.\common\input.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\menu.c
 # End Source File
 # Begin Source File
 
@@ -251,10 +251,6 @@ SOURCE=.\server\sv_spawn.c
 # Begin Source File
 
 SOURCE=.\server\sv_world.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\system.c
 # End Source File
 # End Group
 # Begin Group "Header Files"

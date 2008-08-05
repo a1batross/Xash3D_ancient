@@ -279,8 +279,10 @@ typedef struct gameinfo_s
 
 	string	vprogs_dir;	// default progs directory 
 	string	source_dir;	// default source directory
+
+	string	gamedirs[128];	// environment folders
+	int	numgamedirs;
 	
-	char	key[16];		// cd-key info
 	char	TXcommand;	// quark .map comment
 	char	instance;		// global engine instance
 } gameinfo_t;
@@ -416,6 +418,7 @@ typedef struct stdilib_api_s
 	size_t	api_size;					// must matched with sizeof(stdlib_api_t)
 	
 	// base events
+	void (*instance)( const char *name, const char *fmsg );	// restart engine with new instance
 	void (*print)( const char *msg );			// basic text message
 	void (*printf)( const char *msg, ... );			// formatted text message
 	void (*dprintf)( int level, const char *msg, ...);	// developer text message
@@ -803,6 +806,7 @@ misc utils
 #define Sys_LoadLibrary		com.Com_LoadLibrary
 #define Sys_FreeLibrary		com.Com_FreeLibrary
 #define Sys_GetProcAddress		com.Com_GetProcAddress
+#define Sys_NewInstance		com.instance
 #define Sys_Sleep			com.sleep
 #define Sys_Print			com.print
 #define Sys_GetEvent		com.getevent
@@ -1257,7 +1261,7 @@ typedef struct render_exp_s
 	size_t	api_size;			// must matched with sizeof(render_exp_t)
 
 	// initialize
-	bool	(*Init)( void *hInst );	// init all render systems
+	bool	(*Init)( void );		// init all render systems
 	void	(*Shutdown)( void );	// shutdown all render systems
 
 	void	(*BeginRegistration)( const char *map );

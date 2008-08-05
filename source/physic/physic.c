@@ -52,7 +52,9 @@ void PhysFrame( float time )
 
 void FreePhysics( void )
 {
+	CM_FreeBSP();
 	NewtonDestroy( gWorld );
+	Mem_FreePool( &cmappool );
 	Mem_FreePool( &physpool );
 }
 

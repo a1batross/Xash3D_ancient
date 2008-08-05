@@ -337,8 +337,8 @@ void GL_Strings_f( void )
 void GL_InitCommands( void )
 {
 	// system screen width and height (don't suppose for change from console at all)
-	r_width = Cvar_Get("width", "640", 0, "screen width" );
-	r_height = Cvar_Get("height", "480", 0, "screen height" );
+	r_width = Cvar_Get("width", "640", CVAR_READ_ONLY, "screen width" );
+	r_height = Cvar_Get("height", "480", CVAR_READ_ONLY, "screen height" );
 	r_mode = Cvar_Get( "r_mode", "0", CVAR_ARCHIVE, "display resolution mode" );
 
 	r_check_errors = Cvar_Get("r_check_errors", "1", CVAR_ARCHIVE, "ignore video engine errors" );

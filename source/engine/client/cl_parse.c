@@ -228,27 +228,31 @@ CL_ParseConfigString
 */
 void CL_ParseConfigString( sizebuf_t *msg )
 {
-	int		i;
+	int	i;
 
-	CL_VM_Begin();
 	i = MSG_ReadShort( msg );
 	if( i < 0 || i >= MAX_CONFIGSTRINGS )
 		Host_Error("configstring > MAX_CONFIGSTRINGS\n");
 	com.strcpy( cl.configstrings[i], MSG_ReadString( msg ));
+	CL_VM_Begin();
 
 	// do something apropriate 
-	if( i >= CS_MODELS && i < CS_MODELS+MAX_MODELS )
+	if( i >= CS_SKYNAME && i < CS_MAXCLIENTS && cl.video_prepped )
 	{
-		if( cl.video_prepped )
-		{
-			re->RegisterModel( cl.configstrings[i], i-CS_MODELS );
-			cl.models[i-CS_MODELS] = pe->RegisterModel( cl.configstrings[i] );
-		}
+		float 	rotate;
+		vec3_t	axis;
+		rotate = com.atof(cl.configstrings[CS_SKYSPEED]);
+		com.atov( axis, cl.configstrings[CS_SKYANGLES], 3 );
+		re->SetSky( cl.configstrings[CS_SKYNAME], rotate, axis );
 	}
-	else if( i >= CS_SOUNDS && i < CS_SOUNDS+MAX_SOUNDS )
+	else if( i >= CS_MODELS && i < CS_MODELS+MAX_MODELS && cl.video_prepped )
 	{
-		if( cl.audio_prepped )
-			cl.sound_precache[i-CS_SOUNDS] = S_RegisterSound( cl.configstrings[i] );
+		re->RegisterModel( cl.configstrings[i], i-CS_MODELS );
+		cl.models[i-CS_MODELS] = pe->RegisterModel( cl.configstrings[i] );
+	}
+	else if( i >= CS_SOUNDS && i < CS_SOUNDS+MAX_SOUNDS && cl.audio_prepped )
+	{
+		cl.sound_precache[i-CS_SOUNDS] = S_RegisterSound( cl.configstrings[i] );
 	}
 	else if( i >= CS_CLASSNAMES && i < CS_CLASSNAMES+MAX_CLASSNAMES )
 	{

@@ -74,14 +74,6 @@ struct cl_entvars_s
 	float	flags;
 };
 
-
-#define CL_NUM_REQFIELDS (sizeof(cl_reqfields) / sizeof(fields_t))
-
-static fields_t cl_reqfields[] = 
-{
-	{26,	2,	"aiflags"}
-};
-
 #define PROG_CRC_CLIENT		3720
 
 #endif//CL_EDICT_H

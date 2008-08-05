@@ -1,9 +1,10 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			cl_keys.c - client key events
+//			con_keys.c - console key events
 //=======================================================================
 
 #include "common.h"
+#include "input.h"
 #include "client.h"
 
 typedef struct key_s

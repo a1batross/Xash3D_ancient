@@ -6,8 +6,6 @@
 #include "launch.h"
 
 HINSTANCE	base_hInstance;
-char	log_path[256];
-LPTOP_LEVEL_EXCEPTION_FILTER	oldFilter = 0;
 
 /*
 ===============================================================================
@@ -229,13 +227,13 @@ void Con_CreateConsole( void )
 	int nHeight;
 	int swidth, sheight, fontsize;
 	int DEDSTYLE = WS_POPUPWINDOW | WS_CAPTION;
-	int CONSTYLE = WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_BORDER | WS_EX_CLIENTEDGE | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY;
+	int CONSTYLE = WS_CHILD|WS_VISIBLE|WS_VSCROLL|WS_BORDER|WS_EX_CLIENTEDGE|ES_LEFT|ES_MULTILINE|ES_AUTOVSCROLL|ES_READONLY;
 	char Title[MAX_QPATH], FontName[MAX_QPATH];
 
-	if(Sys.con_silentmode) return;
+	if( Sys.con_silentmode ) return;
 	Sys_InitLog();
 
-	if(Sys.hooked_out) 
+	if( Sys.hooked_out ) 
 	{
 		// just init log
 		Sys.Con_Print = Con_PrintA;
@@ -249,20 +247,20 @@ void Con_CreateConsole( void )
 	wc.cbClsExtra    = 0;
 	wc.cbWndExtra    = 0;
 	wc.hInstance     = Sys.hInstance;
-	wc.hIcon         = LoadIcon( Sys.hInstance, MAKEINTRESOURCE(IDI_ICON1));
-	wc.hCursor       = LoadCursor (NULL,IDC_ARROW);
+	wc.hIcon         = LoadIcon( Sys.hInstance, MAKEINTRESOURCE( IDI_ICON1 ));
+	wc.hCursor       = LoadCursor( NULL, IDC_ARROW );
 	wc.hbrBackground = (void *)COLOR_3DSHADOW;
 	wc.lpszMenuName  = 0;
 	wc.lpszClassName = SYSCONSOLE;
 
-	if (!RegisterClass (&wc))
+	if(!RegisterClass( &wc ))
 	{
 		// print into log
-		MsgDev(D_WARN, "Can't register window class '%s'\n", SYSCONSOLE );
+		MsgDev( D_WARN, "Can't register window class '%s'\n", SYSCONSOLE );
 		return;
 	} 
 
-	if(Sys.con_showcredits)
+	if( Sys.con_showcredits )
 	{
 		CONSTYLE &= ~WS_VSCROLL;
 		rect.left = 0;
@@ -272,7 +270,7 @@ void Con_CreateConsole( void )
 		com_strncpy(FontName, "Arial", MAX_QPATH );
 		fontsize = 16;
 	}
-	else if(Sys.con_readonly)
+	else if( Sys.con_readonly )
 	{
 		rect.left = 0;
 		rect.right = 536;
@@ -315,7 +313,7 @@ void Con_CreateConsole( void )
 	s_wcd.hfBufferFont = CreateFont( nHeight, 0, 0, 0, FW_LIGHT, 0, 0, 0, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, FF_MODERN | FIXED_PITCH, FontName );
 	ReleaseDC( s_wcd.hWnd, hDC );
 
-	if(!Sys.con_readonly)
+	if( !Sys.con_readonly )
 	{
 		// create the input line
 		s_wcd.hwndInputLine = CreateWindowEx( WS_EX_CLIENTEDGE, "edit", NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL, 0, 366, 450, 25, s_wcd.hWnd, ( HMENU ) INPUT_ID, base_hInstance, NULL );
@@ -325,9 +323,9 @@ void Con_CreateConsole( void )
           }
           
 	// create the scrollbuffer
-	GetClientRect(s_wcd.hWnd, &rect);
+	GetClientRect( s_wcd.hWnd, &rect );
 
-	s_wcd.hwndBuffer = CreateWindowEx(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE, "edit", NULL, CONSTYLE, 0, 0, rect.right - rect.left, min(365, rect.bottom), s_wcd.hWnd, ( HMENU )EDIT_ID, base_hInstance, NULL );
+	s_wcd.hwndBuffer = CreateWindowEx( WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE, "edit", NULL, CONSTYLE, 0, 0, rect.right - rect.left, min(365, rect.bottom), s_wcd.hWnd, ( HMENU )EDIT_ID, base_hInstance, NULL );
 	SendMessage( s_wcd.hwndBuffer, WM_SETFONT, ( WPARAM ) s_wcd.hfBufferFont, 0 );
 
 	if(!Sys.con_readonly)
@@ -335,8 +333,6 @@ void Con_CreateConsole( void )
 		s_wcd.SysInputLineWndProc = ( WNDPROC )SetWindowLong( s_wcd.hwndInputLine, GWL_WNDPROC, ( long ) Con_InputLineProc );
 		SendMessage( s_wcd.hwndInputLine, WM_SETFONT, ( WPARAM ) s_wcd.hfBufferFont, 0 );
           }
-
-	Sys_InitLog();
 
 	// show console if needed
 	if( Sys.con_showalways )
@@ -351,9 +347,6 @@ void Con_CreateConsole( void )
 		s_wcd.status = true;
           }
 	else s_wcd.status = false;
-
-	// first text message into console or log 
-	MsgDev(D_NOTE, "Sys_LoadLibrary: Loading launch.dll - ok\n" );
 }
 
 /*
@@ -366,12 +359,10 @@ destroy win32 console
 void Con_DestroyConsole( void )
 {
 	// last text message into console or log 
-	if( Sys.app_state == SYS_CRASH ) MsgDev(D_NOTE, "Sys_FreeLibrary: Hold launch.dll for debugging\n" );
-	else MsgDev(D_NOTE, "Sys_FreeLibrary: Unloading launch.dll\n");
+	MsgDev( D_NOTE, "Sys_FreeLibrary: Unloading launch.dll\n" );
 
 	Sys_CloseLog();
-
-	if(Sys.hooked_out) return;
+	if( Sys.hooked_out ) return;
 
 	if ( s_wcd.hWnd )
 	{
@@ -383,7 +374,7 @@ void Con_DestroyConsole( void )
 		DestroyWindow( s_wcd.hWnd );
 		s_wcd.hWnd = 0;
 	}
-	UnregisterClass (SYSCONSOLE, Sys.hInstance);
+	UnregisterClass( SYSCONSOLE, Sys.hInstance );
 }
 
 /*
@@ -418,4 +409,63 @@ void Con_RegisterHotkeys( void )
 
 	// user can hit escape for quit
 	RegisterHotKey(s_wcd.hWnd, QUIT_ON_ESCPE_ID, 0, VK_ESCAPE );
+}
+
+/*
+===============================================================================
+
+SYSTEM LOG
+
+===============================================================================
+*/
+void Sys_InitLog( void )
+{
+	const char	*mode;
+
+	if( Sys.app_state == SYS_RESTART )
+		mode = "a";
+	else mode = "w";
+
+	// create log if needed
+	if( Sys.log_active && !Sys.con_silentmode )
+	{
+		Sys.logfile = fopen( Sys.log_path, mode );
+		if(!Sys.logfile) MsgDev( D_ERROR, "Sys_InitLog: can't create log file %s\n", Sys.log_path );
+
+		fprintf( Sys.logfile, "=======================================================================\n" );
+		fprintf( Sys.logfile, "\t%s started at %s\n", Sys.caption, com_timestamp(TIME_FULL));
+		fprintf( Sys.logfile, "=======================================================================\n");
+	}
+}
+
+void Sys_CloseLog( void )
+{
+	string	event_name;
+
+	// continue logged
+	switch( Sys.app_state )
+	{
+	case SYS_ABORT: com_strncpy( event_name, "aborted by user", MAX_STRING ); break;
+	case SYS_ERROR: com_strncpy( event_name, "stopped with error", MAX_STRING ); break;
+	case SYS_RESTART: com_strncpy( event_name, "restarted", MAX_STRING ); break;
+	default: com_strncpy( event_name, "stopped", MAX_STRING ); break;
+	}
+
+	if( Sys.logfile )
+	{
+		fprintf( Sys.logfile, "\n");
+		fprintf( Sys.logfile, "=======================================================================");
+		fprintf( Sys.logfile, "\n\t%s %s at %s\n", Sys.caption, event_name, com_timestamp(TIME_FULL));
+		fprintf( Sys.logfile, "=======================================================================\n");
+		if( Sys.app_state == SYS_RESTART ) fprintf( Sys.logfile, "\n" ); // just for tabulate
+
+		fclose( Sys.logfile );
+		Sys.logfile = NULL;
+	}
+}
+
+void Sys_PrintLog( const char *pMsg )
+{
+	if( !Sys.logfile ) return;
+	fprintf( Sys.logfile, pMsg );
 }

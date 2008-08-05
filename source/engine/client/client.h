@@ -198,6 +198,8 @@ typedef enum {key_game, key_console, key_message, key_menu} keydest_t;
 typedef struct
 {
 	connstate_t	state;
+	bool		initialized;
+
 	keydest_t		key_dest;
 	byte		*mempool;
 
@@ -261,19 +263,7 @@ SCREEN CONSTS
 #define GIANTCHAR_HEIGHT	48
 
 extern vrect_t scr_vrect;	// position of render window
-
-// console color typeing
-static vec4_t g_color_table[8] =
-{
-{0.0, 0.0, 0.0, 1.0},
-{1.0, 0.0, 0.0, 1.0},
-{0.0, 1.0, 0.0, 1.0},
-{1.0, 1.0, 0.0, 1.0},
-{0.0, 0.0, 1.0, 1.0},
-{0.0, 1.0, 1.0, 1.0},
-{1.0, 0.0, 1.0, 1.0},
-{1.0, 1.0, 1.0, 1.0},
-};
+extern vec4_t g_color_table[8];
 
 //
 // cvars
@@ -310,13 +300,12 @@ extern	cvar_t	*m_yaw;
 extern	cvar_t	*m_forward;
 extern	cvar_t	*m_side;
 extern	cvar_t	*cl_mouselook;
-
+extern	cvar_t	*cl_testentities;
+extern	cvar_t	*cl_testlights;
+extern	cvar_t	*cl_testblend;
 extern	cvar_t	*cl_lightlevel;	// FIXME HACK
-
 extern	cvar_t	*cl_paused;
 extern	cvar_t	*cl_levelshot_name;
-
-extern	cvar_t	*cl_vwep;
 
 extern cvar_t *scr_centertime;
 extern cvar_t *scr_showpause;
@@ -374,24 +363,15 @@ typedef struct cparticle_s
 	float		alphavel;
 } cparticle_t;
 
-// cinematic states
-typedef enum
-{
-	FMV_IDLE,
-	FMV_PLAY,		// play
-	FMV_EOF,		// all other conditions, i.e. stop/EOF/abort
-	FMV_ID_BLT,
-	FMV_ID_IDLE,
-	FMV_LOOPED,
-	FMV_ID_WAIT
-} e_status;
+//
+// cinematic.c
+//
+bool CIN_PlayCinematic( const char *filename );		// play cinematic with specified name
+void CIN_DrawCinematic( void );			// draw current frame
+void CIN_RunCinematic( void );			// decompress next frame
+void CIN_StopCinematic( void );			// stop video playing
 
-// cinematic flags
-#define CIN_loop		1
-#define CIN_hold		2
-#define CIN_silent		4
-
-#define	PARTICLE_GRAVITY	40
+#define PARTICLE_GRAVITY	40
 #define INSTANT_PARTICLE	-10000.0
 void CL_TeleportSplash( vec3_t org );
 int CL_ParseEntityBits( sizebuf_t *msg, uint *bits );
@@ -413,13 +393,16 @@ void CL_AddLightStyles (void);
 
 void CL_PrepVideo( void );
 void CL_PrepSound( void );
-void CL_RegisterSounds (void);
 
+//
+// cl_cmds.c
+//
 void CL_Quit_f (void);
 void CL_ScreenShot_f( void );
 void CL_LevelShot_f( void );
 void CL_SetSky_f( void );
 void CL_SetFont_f( void );
+void SCR_Viewpos_f( void );
 
 //
 // cl_main
@@ -526,6 +509,7 @@ void CL_Download_f( void );
 void SCR_Init( void );
 void SCR_UpdateScreen( void );
 void VID_Init( void );
+void SCR_Shutdown( void );
 void SCR_AdjustSize( float *x, float *y, float *w, float *h );
 void SCR_DrawPic( float x, float y, float width, float height, const char *picname );
 void SCR_FillRect( float x, float y, float width, float height, const float *color );

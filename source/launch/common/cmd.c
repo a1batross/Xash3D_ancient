@@ -621,6 +621,7 @@ Cmd_Init
 void Cmd_Init( void )
 {
 	Cbuf_Init();
+	cmd_functions = NULL;
 
 	// register our commands
 	Cmd_AddCommand ("exec", Cmd_Exec_f, "execute a script file" );

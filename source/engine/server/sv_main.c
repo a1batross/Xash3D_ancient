@@ -339,7 +339,7 @@ SV_Init
 Only called at xash.exe startup, not for each game
 ===============
 */
-void SV_Init (void)
+void SV_Init( void )
 {
 	SV_InitOperatorCommands();
 
@@ -433,7 +433,8 @@ before Sys_Quit or Sys_Error
 void SV_Shutdown( bool reconnect )
 {
 	// already freed
-	if(host.state == HOST_ERROR) return;
+	if( host.state == HOST_ERROR ) return;
+	if( !svs.initialized ) return;
 
 	MsgDev( D_INFO, "SV_Shutdown: %s\n", host.finalmsg );
 	if( svs.clients ) SV_FinalMessage( host.finalmsg, reconnect);
@@ -443,7 +444,7 @@ void SV_Shutdown( bool reconnect )
 
 	// free current level
 	memset( &sv, 0, sizeof( sv ));
-	Host_SetServerState (sv.state);
+	Host_SetServerState( sv.state );
 
 	// free server static data
 	if( svs.clients ) Mem_Free( svs.clients );

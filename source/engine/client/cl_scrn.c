@@ -16,6 +16,9 @@ cvar_t *scr_loading;
 cvar_t *scr_download;
 cvar_t *scr_width;
 cvar_t *scr_height;
+cvar_t *cl_testentities;
+cvar_t *cl_testlights;
+cvar_t *cl_testblend;
 cvar_t *cl_levelshot_name;
 cvar_t *cl_font;
 
@@ -249,6 +252,49 @@ void SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, 
 }
 
 /*
+==============================================================================
+
+Cinematic user interface
+==============================================================================
+*/
+bool SCR_PlayCinematic( char *name, int bits )
+{
+	string		path;
+	
+	if( cls.state == ca_cinematic )
+		SCR_StopCinematic();
+
+	com.sprintf( path, "video/%s", name );
+	FS_DefaultExtension( path, ".dpv" );
+
+	S_StopAllSounds();
+	//S_StartStreaming();
+
+	if(CIN_PlayCinematic( path ))
+	{
+		SCR_RunCinematic(); // load first frame
+		return true;
+	}
+	return false;
+}
+
+void SCR_DrawCinematic( void )
+{
+	CIN_DrawCinematic();
+}
+
+void SCR_RunCinematic( void )
+{
+	CIN_RunCinematic();
+}
+
+void SCR_StopCinematic( void )
+{
+	CIN_StopCinematic();
+	S_StopAllSounds();
+}
+
+/*
 ==================
 SCR_UpdateScreen
 
@@ -291,6 +337,8 @@ SCR_Init
 */
 void SCR_Init (void)
 {
+	cls.mempool = Mem_AllocPool( "Client Static" );
+
 	scr_showpause = Cvar_Get("scr_showpause", "1", 0, "show pause picture" );
 	scr_centertime = Cvar_Get("scr_centertime", "2.5", 0, "centerprint hold time" );
 	scr_printspeed = Cvar_Get("scr_printspeed", "8", 0, "centerprint speed of print" );
@@ -298,10 +346,19 @@ void SCR_Init (void)
 	cl_font = Cvar_Get("cl_font", "conchars", CVAR_ARCHIVE, "contains path to current charset" );
 	scr_loading = Cvar_Get("scr_loading", "0", 0, "loading bar progress" );
 	scr_download = Cvar_Get("scr_download", "0", 0, "downloading bar progress" );
+	cl_testblend = Cvar_Get ("cl_testblend", "0", 0, "test blending" );
+	cl_testentities = Cvar_Get ("cl_testentities", "0", 0, "test client entities" );
+	cl_testlights = Cvar_Get ("cl_testlights", "0", 0, "test dynamic lights" );
 
 	// register our commands
 	Cmd_AddCommand( "timerefresh", SCR_TimeRefresh_f, "turn quickly and print rendering statistcs" );
 	Cmd_AddCommand( "loading", SCR_Loading_f, "prepare client to a loading new map" );
 	Cmd_AddCommand( "skyname", CL_SetSky_f, "set new skybox by basename" );
 	Cmd_AddCommand( "setfont", CL_SetFont_f, "set new system font" );
+	Cmd_AddCommand( "viewpos", SCR_Viewpos_f, "prints current player origin" );
+}
+
+void SCR_Shutdown( void )
+{
+	Mem_FreePool( &cls.mempool );
 }

@@ -9,13 +9,23 @@
 /*
 ================
 SCR_Loading_f
+
+loading
 ================
 */
-void SCR_Loading_f (void)
+void SCR_Loading_f( void )
 {
 	S_StopAllSounds();
 }
 
+
+/*
+====================
+CL_SetFont_f
+
+setfont <fontname>
+====================
+*/
 void CL_SetFont_f( void )
 {
 	if(Cmd_Argc() < 2)
@@ -24,6 +34,29 @@ void CL_SetFont_f( void )
 		return;
 	}
 	Cvar_Set("cl_font", Cmd_Argv(1));
+}
+
+/*
+====================
+CL_PlayVideo_f
+
+movie <moviename>
+====================
+*/
+void CL_PlayVideo_f( void )
+{
+	if( Cmd_Argc() != 2 )
+	{
+		Msg( "movie <moviename>\n" );
+		return;
+	}
+	if( cls.state == ca_active )
+	{
+		// FIXME: get rid of this stupid alias
+		Cbuf_AddText(va("killserver\n; wait\n; movie %s\n;", Cmd_Argv(1)));
+		return;
+	}
+	SCR_PlayCinematic( Cmd_Argv(1), 0 );
 }
 
 /*
@@ -127,7 +160,7 @@ Set a specific sky and rotation speed
 */
 void CL_SetSky_f( void )
 {
-	float	rotate;
+	float	rotate = 0;
 	vec3_t	axis;
 
 	if(Cmd_Argc() < 2)
@@ -136,9 +169,8 @@ void CL_SetSky_f( void )
 		return;
 	}
 
-	if(Cmd_Argc() > 2) rotate = com.atof(Cmd_Argv(2));
-	else rotate = 0;
-	if(Cmd_Argc() == 6)
+	if( Cmd_Argc() > 2 ) rotate = com.atof(Cmd_Argv(2));
+	if( Cmd_Argc() == 6 )
 	{
 		VectorSet(axis, com.atof(Cmd_Argv(3)), com.atof(Cmd_Argv(4)), com.atof(Cmd_Argv(5)));
 	}
@@ -146,12 +178,14 @@ void CL_SetSky_f( void )
 	{
 		VectorSet(axis, 0, 0, 1 );
 	}
-	re->SetSky(Cmd_Argv(1), rotate, axis);
+	re->SetSky( Cmd_Argv(1), rotate, axis );
 }
 
 /*
 ================
 SCR_TimeRefresh_f
+
+timerefres [noflip]
 ================
 */
 void SCR_TimeRefresh_f( void )
@@ -191,4 +225,16 @@ void SCR_TimeRefresh_f( void )
 	stop = Sys_Milliseconds();
 	time = (stop - start) / 1000.0f;
 	Msg( "%f seconds (%f fps)\n", time, 128 / time );
+}
+
+/*
+=============
+SCR_Viewpos_f
+
+viewpos
+=============
+*/
+void SCR_Viewpos_f( void )
+{
+	Msg("(%g %g %g)\n", cl.refdef.vieworg[0], cl.refdef.vieworg[1], cl.refdef.vieworg[2] );
 }

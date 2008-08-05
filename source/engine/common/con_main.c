@@ -1,6 +1,6 @@
 //=======================================================================
 //			Copyright XashXT Group 2007 ©
-//			cl_console.c - client console
+//			con_main.c - client console
 //=======================================================================
 
 #include "common.h"
@@ -23,7 +23,19 @@ int g_console_field_width = 78;
 
 #define NUM_CON_TIMES	5		// need for 4 lines
 #define CON_TEXTSIZE	MAX_MSGLEN * 4	// 128 kb buffer
-#define DEFAULT_CONSOLE_WIDTH	78
+
+// console color typeing
+vec4_t g_color_table[8] =
+{
+{0.0, 0.0, 0.0, 1.0},
+{1.0, 0.0, 0.0, 1.0},
+{0.0, 1.0, 0.0, 1.0},
+{1.0, 1.0, 0.0, 1.0},
+{0.0, 0.0, 1.0, 1.0},
+{0.0, 1.0, 1.0, 1.0},
+{1.0, 0.0, 1.0, 1.0},
+{1.0, 1.0, 1.0, 1.0},
+};
 
 typedef struct
 {
@@ -163,14 +175,14 @@ void Con_CheckResize (void)
 	int	i, j, width, oldwidth, oldtotallines, numlines, numchars;
 	short	tbuf[CON_TEXTSIZE];
 
-	width = (SCREEN_WIDTH / SMALLCHAR_WIDTH) - 2;
+	width = ((int)Cvar_VariableValue("width")/ SMALLCHAR_WIDTH) - 2;
 
-	if (width == con.linewidth)
+	if( width == con.linewidth )
 		return;
 
-	if (width < 1)			// video hasn't been initialized yet
+	if( width < 1 ) // video hasn't been initialized yet
 	{
-		width = DEFAULT_CONSOLE_WIDTH;
+		width = g_console_field_width;
 		con.linewidth = width;
 		con.totallines = CON_TEXTSIZE / con.linewidth;
 		for(i = 0; i < CON_TEXTSIZE; i++)
@@ -328,9 +340,9 @@ void Con_Print( const char *txt )
 			y = con.current % con.totallines;
 			con.text[y*con.linewidth+con.x] = (color << 8) | c;
 			con.x++;
-			if (con.x >= con.linewidth)
+			if( con.x >= con.linewidth )
 			{
-				Con_Linefeed(skipnotify);
+				Con_Linefeed( skipnotify );
 				con.x = 0;
 			}
 			break;

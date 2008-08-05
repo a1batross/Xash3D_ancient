@@ -4,9 +4,10 @@
 //=======================================================================
 
 #include "common.h"
+#include "input.h"
 #include "client.h"
 
-//FIXME: move to launch.dll
+// FIXME: move this stuff to launch.dll someday
 
 bool in_mouseactive;	// false when not focus app
 bool in_restore_spi;
@@ -19,6 +20,76 @@ int  in_mouse_oldbuttonstate;
 int  window_center_x, window_center_y;
 RECT window_rect;
 POINT cur_pos;
+
+cvar_t *scr_xpos;		// X coordinate of window position
+cvar_t *scr_ypos;		// Y coordinate of window position
+cvar_t *scr_fullscreen;
+
+#define WM_MOUSEWHEEL	( WM_MOUSELAST + 1 ) // message that will be supported by the OS
+
+static byte scan_to_key[128] = 
+{ 
+	0,27,'1','2','3','4','5','6','7','8','9','0','-','=',K_BACKSPACE,9,
+	'q','w','e','r','t','y','u','i','o','p','[',']', 13 , K_CTRL,
+	'a','s','d','f','g','h','j','k','l',';','\'','`',
+	K_SHIFT,'\\','z','x','c','v','b','n','m',',','.','/',K_SHIFT,
+	'*',K_ALT,' ',K_CAPSLOCK,
+	K_F1,K_F2,K_F3,K_F4,K_F5,K_F6,K_F7,K_F8,K_F9,K_F10,
+	K_PAUSE,0,K_HOME,K_UPARROW,K_PGUP,K_KP_MINUS,K_LEFTARROW,K_KP_5,
+	K_RIGHTARROW,K_KP_PLUS,K_END,K_DOWNARROW,K_PGDN,K_INS,K_DEL,
+	0,0,0,K_F11,K_F12,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+};
+
+/*
+=======
+Host_MapKey
+
+Map from windows to engine keynums
+=======
+*/
+static int Host_MapKey( int key )
+{
+	int	result, modified;
+	bool	is_extended = false;
+
+	modified = ( key >> 16 ) & 255;
+	if( modified > 127 ) return 0;
+
+	if ( key & ( 1 << 24 ))
+		is_extended = true;
+
+	result = scan_to_key[modified];
+
+	if( !is_extended )
+	{
+		switch ( result )
+		{
+		case K_HOME: return K_KP_HOME;
+		case K_UPARROW: return K_KP_UPARROW;
+		case K_PGUP: return K_KP_PGUP;
+		case K_LEFTARROW: return K_KP_LEFTARROW;
+		case K_RIGHTARROW: return K_KP_RIGHTARROW;
+		case K_END: return K_KP_END;
+		case K_DOWNARROW: return K_KP_DOWNARROW;
+		case K_PGDN: return K_KP_PGDN;
+		case K_INS: return K_KP_INS;
+		case K_DEL: return K_KP_DEL;
+		default: return result;
+		}
+	}
+	else
+	{
+		switch ( result )
+		{
+		case K_PAUSE: return K_KP_NUMLOCK;
+		case 0x0D: return K_KP_ENTER;
+		case 0x2F: return K_KP_SLASH;
+		case 0xAF: return K_KP_PLUS;
+		}
+		return result;
+	}
+}
 
 /*
 ===========
@@ -203,4 +274,117 @@ void IN_Frame( void )
 	IN_ActivateMouse();
 	IN_MouseMove();
 
+}
+
+/*
+====================
+IN_WndProc
+
+main window procedure
+====================
+*/
+long IN_WndProc( void *hWnd, uint uMsg, uint wParam, long lParam )
+{
+	int	 temp = 0;
+
+	switch( uMsg )
+	{
+	case WM_MOUSEWHEEL:
+		if((short)HIWORD(wParam) > 0)
+		{
+			Sys_QueEvent( -1, SE_KEY, K_MWHEELUP, true, 0, NULL );
+			Sys_QueEvent( -1, SE_KEY, K_MWHEELUP, false, 0, NULL );
+		}
+		else
+		{
+			Sys_QueEvent( -1, SE_KEY, K_MWHEELDOWN, true, 0, NULL );
+			Sys_QueEvent( -1, SE_KEY, K_MWHEELDOWN, false, 0, NULL );
+		}
+		break;
+	case WM_CREATE:
+		host.hWnd = hWnd;
+		scr_xpos = Cvar_Get("r_xpos", "3", CVAR_ARCHIVE, "window position by horizontal" );
+		scr_ypos = Cvar_Get("r_ypos", "22", CVAR_ARCHIVE, "window position by vertical" );
+		scr_fullscreen = Cvar_Get("fullscreen", "0", CVAR_ARCHIVE | CVAR_LATCH, "set in 1 to enable fullscreen mode" );
+		break;
+	case WM_DESTROY:
+		host.hWnd = NULL;
+		break;
+	case WM_CLOSE:
+		Cbuf_ExecuteText( EXEC_APPEND, "quit" );
+		break;
+	case WM_ACTIVATE:
+		if(LOWORD(wParam) != WA_INACTIVE && HIWORD(wParam)) host.state = HOST_SLEEP;
+		else if(LOWORD(wParam) == WA_INACTIVE) host.state = HOST_NOFOCUS;
+		else host.state = HOST_FRAME;
+
+		if( se ) se->Activate((host.state == HOST_FRAME) ? true : false );
+		Key_ClearStates();	// FIXME!!!
+
+		if( host.state == HOST_FRAME )
+		{
+			SetForegroundWindow( hWnd );
+			ShowWindow( hWnd, SW_RESTORE );
+		}
+		else if( scr_fullscreen->integer )
+		{
+			ShowWindow( hWnd, SW_MINIMIZE );
+		}
+		break;
+	case WM_MOVE:
+		if( !scr_fullscreen->integer )
+		{
+			RECT 		r;
+			int		xPos, yPos, style;
+
+			xPos = (short) LOWORD(lParam);    // horizontal position 
+			yPos = (short) HIWORD(lParam);    // vertical position 
+
+			r.left = r.top = 0;
+			r.right = r.bottom = 1;
+			style = GetWindowLong( hWnd, GWL_STYLE );
+			AdjustWindowRect( &r, style, FALSE );
+
+			Cvar_SetValue( "r_xpos", xPos + r.left);
+			Cvar_SetValue( "r_ypos", yPos + r.top);
+			scr_xpos->modified = false;
+			scr_ypos->modified = false;
+		}
+		break;
+	case WM_LBUTTONDOWN:
+	case WM_LBUTTONUP:
+	case WM_RBUTTONDOWN:
+	case WM_RBUTTONUP:
+	case WM_MBUTTONDOWN:
+	case WM_MBUTTONUP:
+	case WM_MOUSEMOVE:
+		if(wParam & MK_LBUTTON) temp |= 1;
+		if(wParam & MK_RBUTTON) temp |= 2;
+		if(wParam & MK_MBUTTON) temp |= 4;
+		IN_MouseEvent( temp );
+		break;
+	case WM_SYSCOMMAND:
+		if( wParam == SC_SCREENSAVE ) return 0;
+		break;
+	case WM_SYSKEYDOWN:
+		if( wParam == VK_RETURN )
+		{
+			// alt+enter fullscreen switch
+			Cvar_SetValue( "fullscreen", !Cvar_VariableValue( "fullscreen" ));
+			Cbuf_AddText( "vid_restart\n" );
+			return 0;
+		}
+		// intentional fallthrough
+	case WM_KEYDOWN:
+		Sys_QueEvent( -1, SE_KEY, Host_MapKey( lParam ), true, 0, NULL );
+		break;
+	case WM_SYSKEYUP:
+	case WM_KEYUP:
+		Sys_QueEvent( -1, SE_KEY, Host_MapKey( lParam ), false, 0, NULL );
+		break;
+	case WM_CHAR:
+		Sys_QueEvent( -1, SE_CHAR, wParam, 0, 0, NULL );
+		break;
+	}
+	return DefWindowProc( hWnd, uMsg, wParam, lParam );
 }

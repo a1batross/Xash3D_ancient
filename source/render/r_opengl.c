@@ -178,8 +178,8 @@ void R_SaveVideoMode( int vid_mode )
 {
 	int	i = bound(0, vid_mode, num_vidmodes); // check range
 
-	Cvar_SetValue("width", vidmode[i].width );
-	Cvar_SetValue("height", vidmode[i].height );
+	Cvar_FullSet("width", va("%i", vidmode[i].width ), CVAR_READ_ONLY );
+	Cvar_FullSet("height", va("%i", vidmode[i].height ), CVAR_READ_ONLY );
 	Cvar_SetValue("r_mode", i ); // merge if out of bounds
 	MsgDev(D_NOTE, "Set: %s [%dx%d]\n", vidmode[i].desc, vidmode[i].width, vidmode[i].height );
 }

@@ -8,15 +8,15 @@
 
 #define MAX_QUED_EVENTS		256
 #define MASK_QUED_EVENTS		(MAX_QUED_EVENTS - 1)
+#define LOG_BUFSIZE			MAX_MSGLEN * 4
 
 system_t		Sys;
 stdlib_api_t	com;
 baserc_exp_t	*rc;	// library of resources
+timer_t		Msec;
 launch_exp_t	*Host;	// callback to mainframe 
 sys_event_t	event_que[MAX_QUED_EVENTS];
 int		event_head, event_tail;
-FILE		*logfile;
-FILE		*memfile;
 
 dll_info_t common_dll = { "common.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
 dll_info_t engine_dll = { "engine.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(launch_exp_t) };
@@ -30,7 +30,7 @@ static const char *show_credits = "\n\n\n\n\tCopyright XashXT Group 2007 ©\n\t\
 // stubs
 void NullInit( int argc, char **argv ) {}
 void NullFunc( void ) {}
-void Sys_NullPrint( const char *msg ) {}
+void NullPrint( const char *msg ) {}
 
 void Sys_GetStdAPI( void )
 {
@@ -38,6 +38,7 @@ void Sys_GetStdAPI( void )
 	com.api_size = sizeof(stdlib_api_t);
 
 	// base events
+	com.instance = Sys_NewInstance;
 	com.printf = Sys_Msg;
 	com.dprintf = Sys_MsgDev;
 	com.error = Sys_Error;
@@ -239,37 +240,37 @@ This list will be expnaded in future
 void Sys_LookupInstance( void )
 {
 	char	szTemp[4096];
-	bool	dedicated_mode = false;
 
 	Sys.app_name = HOST_OFFLINE;
-
-	if(GetModuleFileName( NULL, szTemp, MAX_SYSPATH ))
+	// we can specified custom name, from Sys_NewInstance
+	if(GetModuleFileName( NULL, szTemp, MAX_SYSPATH ) && Sys.app_state != SYS_RESTART )
 		FS_FileBase( szTemp, Sys.ModuleName );
 
 	// determine host type
-	if( Sys.ModuleName[0] == '#' )
+	if( Sys.ModuleName[0] == '#' || Sys.ModuleName[0] == '©' )
 	{
-		// cutoff '#'
+		if( Sys.ModuleName[0] == '#' ) com_strcpy( Sys.progname, "dedicated" );
+		if( Sys.ModuleName[0] == '©' ) com_strcpy( Sys.progname, "splash" );
+		// cutoff hidden symbols
 		com_strncpy( szTemp, Sys.ModuleName + 1, MAX_SYSPATH );
 		com_strncpy( Sys.ModuleName, szTemp, MAX_SYSPATH );			
-		dedicated_mode = true;
 	}
 
 	// lookup all instances
 	if(!com_strcmp(Sys.progname, "normal"))
 	{
-		if( dedicated_mode )
-		{
-			Sys.app_name = HOST_DEDICATED;
-			Sys.con_readonly = false;
-		}
-		else
-		{
-			Sys.app_name = HOST_NORMAL;
-			Sys.con_readonly = true;
-			// don't show console as default
-			if(!Sys.debug) Sys.con_showalways = false;
-		}
+		Sys.app_name = HOST_NORMAL;
+		Sys.con_readonly = true;
+		// don't show console as default
+		if(!Sys.debug) Sys.con_showalways = false;
+		Sys.linked_dll = &engine_dll;	// pointer to engine.dll info
+		com_sprintf(Sys.log_path, "engine.log", com_timestamp(TIME_NO_SECONDS)); // logs folder
+		com_strcpy(Sys.caption, va("Xash3D ver.%g", XASH_VERSION ));
+	}
+	else if(!com_strcmp(Sys.progname, "dedicated"))
+	{
+		Sys.app_name = HOST_DEDICATED;
+		Sys.con_readonly = false;
 		Sys.linked_dll = &engine_dll;	// pointer to engine.dll info
 		com_sprintf(Sys.log_path, "engine.log", com_timestamp(TIME_NO_SECONDS)); // logs folder
 		com_strcpy(Sys.caption, va("Xash3D ver.%g", XASH_VERSION ));
@@ -520,14 +521,14 @@ Sys_ParseCommandLine
 
 ==================
 */
-void Sys_ParseCommandLine (LPSTR lpCmdLine)
+void Sys_ParseCommandLine( LPSTR lpCmdLine )
 {
 	fs_argc = 1;
 	fs_argv[0] = "exe";
 
-	while (*lpCmdLine && (fs_argc < MAX_NUM_ARGVS))
+	while( *lpCmdLine && (fs_argc < MAX_NUM_ARGVS))
 	{
-		while (*lpCmdLine && *lpCmdLine <= ' ') lpCmdLine++;
+		while( *lpCmdLine && *lpCmdLine <= ' ' ) lpCmdLine++;
 		if (!*lpCmdLine) break;
 
 		if (*lpCmdLine == '\"')
@@ -536,17 +537,16 @@ void Sys_ParseCommandLine (LPSTR lpCmdLine)
 			lpCmdLine++;
 			fs_argv[fs_argc] = lpCmdLine;
 			fs_argc++;
-			while (*lpCmdLine && (*lpCmdLine != '\"')) lpCmdLine++;
+			while( *lpCmdLine && (*lpCmdLine != '\"')) lpCmdLine++;
 		}
 		else
 		{
 			// unquoted word
 			fs_argv[fs_argc] = lpCmdLine;
 			fs_argc++;
-			while (*lpCmdLine && *lpCmdLine > ' ') lpCmdLine++;
+			while( *lpCmdLine && *lpCmdLine > ' ') lpCmdLine++;
 		}
-
-		if (*lpCmdLine)
+		if( *lpCmdLine )
 		{
 			*lpCmdLine = 0;
 			lpCmdLine++;
@@ -555,77 +555,24 @@ void Sys_ParseCommandLine (LPSTR lpCmdLine)
 
 }
 
-void Sys_InitLog( void )
+void Sys_MergeCommandLine( LPSTR lpCmdLine )
 {
-	string path;
-
-	if( Sys.developer == D_MEMORY )
-	{	
-		com_snprintf( path, MAX_STRING, "%s/memhistory.log", sys_rootdir );
-		memfile = fopen( path, "w" ); 
-		if(!memfile) Sys_Error("Sys_InitLog: can't create memhistory log file %s\n", path );
-
-		fprintf(memfile, "=======================================================================\n" );
-		fprintf(memfile, "\t%s started at %s\n", Sys.caption, com_timestamp(TIME_FULL));
-		fprintf(memfile, "=======================================================================\n");
-	}
-
-	// create log if needed
-	if( Sys.log_active && !Sys.con_silentmode )
+	const char *blank = "censored";
+	int	i;
+	
+	for( i = 0; i < fs_argc; i++ )
 	{
-		logfile = fopen( Sys.log_path, "w");
-		if(!logfile) Sys_Error("Sys_InitLog: can't create log file %s\n", Sys.log_path );
-
-		fprintf(logfile, "=======================================================================\n" );
-		fprintf(logfile, "\t%s started at %s\n", Sys.caption, com_timestamp(TIME_FULL));
-		fprintf(logfile, "=======================================================================\n");
+		// we wan't return to first game
+		if(!com_stricmp( "-game", fs_argv[i] )) fs_argv[i] = (char *)blank;
+		// probably it's timewaster, because engine rejected second change
+		if(!com_stricmp( "+game", fs_argv[i] )) fs_argv[i] = (char *)blank;
+		// you sure what is map exists in new game?
+		if(!com_stricmp( "+map", fs_argv[i] )) fs_argv[i] = (char *)blank;
+		// just stupid action
+		if(!com_stricmp( "+load", fs_argv[i] )) fs_argv[i] = (char *)blank;
+		// changelevel beetwen games? wow it's great idea!
+		if(!com_stricmp( "+changelevel", fs_argv[i] )) fs_argv[i] = (char *)blank;
 	}
-}
-
-void Sys_CloseLog( void )
-{
-	string	event_name;
-
-	switch( Sys.app_state )
-	{
-	case SYS_CRASH: com_strncpy( event_name, "crashed", MAX_STRING ); break;
-	case SYS_ABORT: com_strncpy( event_name, "aborted by user", MAX_STRING ); break;
-	case SYS_ERROR: com_strncpy( event_name, "stopped with error", MAX_STRING ); break;
-	default: com_strncpy( event_name, "stopped", MAX_STRING ); break;
-	}
-
-	if( logfile )
-	{
-		fprintf(logfile, "\n");
-		fprintf(logfile, "=======================================================================");
-		fprintf(logfile, "\n\t%s %s at %s\n", Sys.caption, event_name, com_timestamp(TIME_FULL));
-		fprintf(logfile, "=======================================================================");
-
-		fclose( logfile );
-		logfile = NULL;
-	}
-	if( memfile )
-	{
-		fprintf(memfile, "\n");
-		fprintf(memfile, "=======================================================================");
-		fprintf(memfile, "\n\t%s %s at %s\n", Sys.caption, event_name, com_timestamp(TIME_FULL));
-		fprintf(memfile, "=======================================================================");
-
-		fclose( memfile );
-		memfile = NULL;
-	}
-}
-
-void Sys_PrintLog( const char *pMsg )
-{
-	if(!logfile) return;
-	fprintf(logfile, "%s", pMsg );
-}
-
-void Sys_PrintMem( const char *pMsg )
-{
-	if(!memfile) return;
-	fprintf(memfile, "%s", pMsg );
 }
 
 /*
@@ -635,21 +582,21 @@ Sys_Print
 print into window console
 ================
 */
-void Sys_Print(const char *pMsg)
+void Sys_Print( const char *pMsg )
 {
 	const char	*msg;
-	char		buffer[MAX_MSGLEN * 4];
-	char		logbuf[MAX_MSGLEN * 4];
+	char		buffer[LOG_BUFSIZE];
+	char		logbuf[LOG_BUFSIZE];
 	char		*b = buffer;
 	char		*c = logbuf;	
 	int		i = 0;
 
-	if(Sys.con_silentmode) return;
-	if(Sys.CPrint) Sys.CPrint( pMsg );
+	if( Sys.con_silentmode ) return;
+	if( Sys.CPrint ) Sys.CPrint( pMsg );
 
 	// if the message is REALLY long, use just the last portion of it
-	if ( com_strlen( pMsg ) > MAX_MSGLEN - 1 )
-		msg = pMsg + com_strlen( pMsg ) - MAX_MSGLEN + 1;
+	if ( com_strlen( pMsg ) > LOG_BUFSIZE - 1 )
+		msg = pMsg + com_strlen( pMsg ) - LOG_BUFSIZE + 1;
 	else msg = pMsg;
 
 	// copy into an intermediate buffer
@@ -689,7 +636,11 @@ void Sys_Print(const char *pMsg)
 	*b = *c = 0; // cutoff garbage
 
 	Sys_PrintLog( logbuf );
-	if(Sys.Con_Print) Sys.Con_Print( buffer );
+
+	// don't flood system console with memory allocation messages or another
+	if( Sys.Con_Print && Sys.printlevel < D_LOAD )
+		Sys.Con_Print( buffer );
+	Sys.printlevel = 0; // reset before next message
 }
 
 /*
@@ -702,11 +653,12 @@ formatted message
 void Sys_Msg( const char *pMsg, ... )
 {
 	va_list	argptr;
-	char text[MAX_MSGLEN];
+	char text[LOG_BUFSIZE];
 	
-	va_start (argptr, pMsg);
-	com_vsprintf (text, pMsg, argptr);
-	va_end (argptr);
+	va_start( argptr, pMsg );
+	com_vsprintf( text, pMsg, argptr );
+	va_end( argptr );
+	Sys.printlevel = 0;
 
 	Sys_Print( text );
 }
@@ -714,13 +666,14 @@ void Sys_Msg( const char *pMsg, ... )
 void Sys_MsgDev( int level, const char *pMsg, ... )
 {
 	va_list	argptr;
-	char	text[MAX_MSGLEN];
+	char	text[LOG_BUFSIZE];
 
-	if(Sys.developer < level) return;
+	if( Sys.developer < level ) return;
+	Sys.printlevel = level;
 
 	va_start( argptr, pMsg );
 	com_vsprintf( text, pMsg, argptr );
-	va_end (argptr);
+	va_end( argptr );
 
 	switch( level )
 	{
@@ -740,7 +693,7 @@ void Sys_MsgDev( int level, const char *pMsg, ... )
 		Sys_Print( text );
 		break;
 	case D_MEMORY:
-		Sys_PrintMem( text );
+		Sys_Print( text );
 		break;
 	case D_STRING:
 		Sys_Print(va("^6AllocString: ^7%s", text));
@@ -755,34 +708,27 @@ Sys_DoubleTime
 */
 double Sys_DoubleTime( void )
 {
-	static bool first = true;
-	static double oldtime = 0.0, curtime = 0.0;
-	static bool firsttimegettime = true;
 	double newtime;
 
-	if( firsttimegettime )
+	if( !Msec.initialized )
 	{
-		timeBeginPeriod (1);
-		firsttimegettime = false;
+		timeBeginPeriod( 1 );
+		Msec.timebase = timeGetTime();
+		Msec.initialized = true;
+		Msec.oldtime = (double)timeGetTime() * 0.001;
 	}
 	newtime = ( double )timeGetTime() * 0.001;
 
-	if( first )
-	{
-		first = false;
-		oldtime = newtime;
-	}
-
-	if( newtime < oldtime )
+	if( newtime < Msec.oldtime )
 	{
 		// warn if it's significant
-		if( newtime - oldtime < -0.01 )
-			MsgDev( D_ERROR, "Sys_DoubleTime: time stepped backwards (went from %f to %f, difference %f)\n", oldtime, newtime, newtime - oldtime);
+		if( newtime - Msec.oldtime < -0.01 )
+			MsgDev( D_ERROR, "Sys_DoubleTime: time stepped backwards (went from %f to %f, difference %f)\n", Msec.oldtime, newtime, newtime - Msec.oldtime );
 	}
-	else curtime += newtime - oldtime;
-	oldtime = newtime;
+	else Msec.curtime += newtime - Msec.oldtime;
+	Msec.oldtime = newtime;
 
-	return curtime;
+	return Msec.curtime;
 }
 
 /*
@@ -792,16 +738,15 @@ Sys_Milliseconds
 */
 dword Sys_Milliseconds( void )
 {
-	static dword	timebase;
-	static bool	firsttimegettime = true;
-	dword		curtime;
+	dword	curtime;
 
-	if( firsttimegettime )
+	if( !Msec.initialized )
 	{
-		timebase = timeGetTime();
-		firsttimegettime = false;
+		timeBeginPeriod( 1 );
+		Msec.timebase = timeGetTime();
+		Msec.initialized = true;
 	}
-	curtime = timeGetTime() - timebase;
+	curtime = timeGetTime() - Msec.timebase;
 
 	return curtime;
 }
@@ -910,16 +855,21 @@ before call this
 void Sys_Error(const char *error, ...)
 {
 	va_list		argptr;
-	char		text[MAX_MSGLEN];
+	char		text[LOG_BUFSIZE];
          
 	if( Sys.app_state == SYS_ERROR )
 		return; // don't multiple executes
 
+	// make sure what console received last message
+	// stupid windows bug :( 
+	if( Sys.app_state == SYS_RESTART )
+		Sys_Sleep( 200 );
+
 	Sys.error = true;
 	Sys.app_state = SYS_ERROR;	
-	va_start (argptr, error);
-	com_vsprintf (text, error, argptr);
-	va_end (argptr);
+	va_start( argptr, error );
+	com_vsprintf( text, error, argptr );
+	va_end( argptr );
          
 	Con_ShowConsole( true );
 	if(Sys.debug) Sys_Print( text );		// print error message
@@ -932,11 +882,11 @@ void Sys_Error(const char *error, ...)
 void Sys_Break(const char *error, ...)
 {
 	va_list		argptr;
-	char		text[MAX_MSGLEN];
+	char		text[LOG_BUFSIZE];
          
-	va_start (argptr, error);
-	com_vsprintf (text, error, argptr);
-	va_end (argptr);
+	va_start( argptr, error );
+	com_vsprintf( text, error, argptr );
+	va_end(argptr);
 
 	Sys.error = true;	
 	Sys.app_state = SYS_ERROR;
@@ -953,42 +903,15 @@ void Sys_Abort( void )
 	Sys_Exit();
 }
 
-long _stdcall Sys_Crash( PEXCEPTION_POINTERS pInfo )
-{
-	// save config
-	if(Sys.app_state != SYS_CRASH )
-	{
-		// check to avoid recursive call
-		Sys.error = true;
-		Sys.app_state = SYS_CRASH;
-		Sys.Free(); // prepare host to close
-		Sys_FreeLibrary( Sys.linked_dll );
-
-		if(Sys.developer >= D_MEMORY)
-		{
-			// show execption in native console too
-			Con_ShowConsole( true );
-			Msg("Sys_Crash: call %p at address %p\n", pInfo->ExceptionRecord->ExceptionCode, pInfo->ExceptionRecord->ExceptionAddress );
-			Sys_WaitForQuit();
-		}
-		FS_Shutdown();
-		Memory_Shutdown();
-		Con_DestroyConsole();	
-          }
-
-	if( Sys.oldFilter )
-		return Sys.oldFilter( pInfo );
-	return EXCEPTION_CONTINUE_SEARCH;
-}
-
 void Sys_Init( void )
 {
 	MEMORYSTATUS	lpBuffer;
 	char		dev_level[4];
 
 	lpBuffer.dwLength = sizeof(MEMORYSTATUS);
-	Sys.oldFilter = SetUnhandledExceptionFilter( Sys_Crash );
-	GlobalMemoryStatus (&lpBuffer);
+	GlobalMemoryStatus( &lpBuffer );
+	ZeroMemory( &Msec, sizeof(Msec));
+	Sys.logfile = NULL;
 
 	Sys.hInstance = (HINSTANCE)GetModuleHandle( NULL ); // get current hInstance first
 
@@ -996,13 +919,21 @@ void Sys_Init( void )
 	Sys.Init = NullInit;
 	Sys.Main = NullFunc;
 	Sys.Free = NullFunc;
+	Sys.CPrint = NullPrint;
+	Sys.Con_Print = NullPrint;
+
+	// some commands can turn engine into infinity loop,
+	// e.g. xash.exe +game xash -game xash
+	// so we clearing all cmd_args, but leave dbg states as well
+	if( Sys.app_state != SYS_RESTART )
+		Sys_ParseCommandLine( GetCommandLine());
+	else Sys_MergeCommandLine( GetCommandLine());
 
 	// parse and copy args into local array
-	Sys_ParseCommandLine(GetCommandLine());
-
-	if(FS_CheckParm ("-debug")) Sys.debug = true;
-	if(FS_CheckParm ("-log")) Sys.log_active = true;
-	if(FS_GetParmFromCmdLine("-dev", dev_level )) Sys.developer = com_atoi(dev_level);
+	if(FS_CheckParm( "-debug" )) Sys.debug = true;
+	if(FS_CheckParm( "-log" )) Sys.log_active = true;
+	if(FS_GetParmFromCmdLine( "-dev", dev_level )) Sys.developer = com_atoi(dev_level);
+          
 	FS_UpdateEnvironmentVariables(); // set working directory
 	SetErrorMode( SEM_FAILCRITICALERRORS );	// no abort/retry/fail errors
 	if( Sys.hooked_out ) atexit( Sys_Abort );
@@ -1011,16 +942,39 @@ void Sys_Init( void )
 	Sys.con_readonly = true;
 	Sys.con_showcredits = false;
 	Sys.con_silentmode = false;
+	Sys.stuffcmdsrun = false;
 
 	Sys_LookupInstance(); // init launcher
 	Con_CreateConsole();
+
+	// first text message into console or log 
+	MsgDev( D_NOTE, "Sys_LoadLibrary: Loading launch.dll - ok\n" );
+
+	if(com_strlen( Sys.fmessage ) && !Sys.con_showcredits)
+	{
+		Sys_Print( Sys.fmessage );
+		Sys.fmessage[0] = '\0';
+	}
+
 	Sys_InitCPU();
 	Memory_Init();
 	Cmd_Init();
 	Cvar_Init();
-
 	FS_Init();
 	Sys_CreateInstance();
+}
+
+void Sys_Shutdown( void )
+{
+	// prepare host to close
+	Sys.Free();
+	Sys_FreeLibrary( Sys.linked_dll );
+	Sys.CPrint = NullPrint;
+	Sys_FreeLibrary( &baserc_dll );
+
+	FS_Shutdown();
+	Memory_Shutdown();
+	Con_DestroyConsole();
 }
 
 /*
@@ -1036,18 +990,7 @@ void Sys_Exit( void )
 	if( Sys.shutdown_issued ) return;
 	Sys.shutdown_issued = true;
 
-	// prepare host to close
-	Sys.Free();
-	Sys_FreeLibrary( Sys.linked_dll );
-	Sys_FreeLibrary( &baserc_dll );
-
-	FS_Shutdown();
-	Memory_Shutdown();
-	Con_DestroyConsole();
-
-	// restore filter	
-	if( Sys.oldFilter )
-		SetUnhandledExceptionFilter( Sys.oldFilter );
+	Sys_Shutdown();
 	exit( Sys.error );
 }
 
@@ -1145,19 +1088,14 @@ void* Sys_GetProcAddress ( dll_info_t *dll, const char* name )
 	return (void *)GetProcAddress (dll->link, name);
 }
 
-bool Sys_FreeLibrary ( dll_info_t *dll )
+bool Sys_FreeLibrary( dll_info_t *dll )
 {
-	if(!dll || !dll->link) // invalid desc or alredy freed
+	// invalid desc or alredy freed
+	if(!dll || !dll->link )
 		return false;
-	if( Sys.app_state == SYS_CRASH )
-	{
-		// we need to hold down all modules, while MSVC can find error
-		MsgDev(D_NOTE, "Sys_FreeLibrary: Hold %s for debugging\n", dll->name );
-		return false;
-	}
-	else MsgDev(D_NOTE, "Sys_FreeLibrary: Unloading %s\n", dll->name );
 
-	FreeLibrary (dll->link);
+	MsgDev(D_NOTE, "Sys_FreeLibrary: Unloading %s\n", dll->name );
+	FreeLibrary( dll->link );
 	dll->link = NULL;
 
 	return true;
@@ -1433,6 +1371,29 @@ bool Sys_GetModuleName( char *buffer, size_t length )
 
 	com_strncpy( buffer, Sys.ModuleName, length + 1 );
 	return true;
+}
+
+/*
+================
+Sys_NewInstance
+
+restarted engine with new instance
+e.g. for change game or fallback to dedicated mode
+================
+*/
+void Sys_NewInstance( const char *name, const char *fmsg )
+{
+	// save parms
+	com_strncpy( Sys.ModuleName, name, sizeof( Sys.ModuleName ));
+	com_strncpy( Sys.fmessage, fmsg, sizeof( Sys.fmessage ));
+	Sys.app_state = SYS_RESTART;	// set right state
+	Sys_Shutdown();		// shutdown current instance
+
+	// NOTE: we never return to old instance,
+	// because Sys_Exit call exit(0); and terminate program
+	Sys_Init();
+	Sys.Main();
+	Sys_Exit();
 }
 
 //=======================================================================

@@ -347,7 +347,7 @@ void CL_PlayDemo_f( void )
 ====================
 CL_Stop_f
 
-stop recording a demo
+stop any client activity
 ====================
 */
 void CL_Stop_f( void )
@@ -355,5 +355,5 @@ void CL_Stop_f( void )
 	// stop all
 	CL_StopRecord();
 	CL_StopPlayback();
+	SCR_StopCinematic();
 }
-

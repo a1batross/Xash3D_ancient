@@ -22,11 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "common.h"
 #include "client.h"
 
-cvar_t		*crosshair;
-cvar_t		*cl_testentities;
-cvar_t		*cl_testlights;
-cvar_t		*cl_testblend;
-
 /*
 ====================
 V_ClearScene
@@ -118,99 +113,6 @@ void V_TestLights( void )
 	}
 }
 
-//===================================================================
-
-/*
-======================
-CL_PrepSound
-
-Call before entering a new level, or after changing dlls
-======================
-*/
-void CL_PrepSound( void )
-{
-	int	i, sndcount;
-
-	for( i = 1, sndcount = 0; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+i][0]; i++ )
-		sndcount++; // total num sounds
-
-	S_BeginRegistration();
-	for( i = 1; i < MAX_SOUNDS && cl.configstrings[CS_SOUNDS+i][0]; i++ )
-	{
-		cl.sound_precache[i] = S_RegisterSound( cl.configstrings[CS_SOUNDS+i]);
-		Cvar_SetValue( "scr_loading", scr_loading->value + 5.0f/sndcount );
-		SCR_UpdateScreen();
-	}
-	S_EndRegistration();
-
-	cl.audio_prepped = true;
-	cl.force_refdef = true;
-}
-
-/*
-=================
-CL_PrepVideo
-
-Call before entering a new level, or after changing dlls
-=================
-*/
-void CL_PrepVideo( void )
-{
-	char		mapname[32];
-	int		mdlcount;
-	string		name;
-	float		rotate;
-	vec3_t		axis;
-	int		i;
-
-	if (!cl.configstrings[CS_MODELS+1][0])
-		return; // no map loaded
-
-	Msg( "CL_PrepRefresh: %s\n", cl.configstrings[CS_NAME] );
-
-	// let the render dll load the map
-	FS_FileBase( cl.configstrings[CS_MODELS+1], mapname ); 
-	re->BeginRegistration( mapname ); // load map
-	SCR_UpdateScreen();
-
-	for( i = 1, mdlcount = 0; i < MAX_MODELS && cl.configstrings[CS_MODELS+1+i][0]; i++ )
-		mdlcount++; // total num models
-
-	// create thread here ?
-	for( i = 0; i < pe->NumTextures(); i++ )
-	{
-		if(!re->RegisterImage( cl.configstrings[CS_MODELS+1], i ))
-		{
-			Cvar_SetValue( "scr_loading", scr_loading->value + 70.0f );
-			break; // hey, textures already loaded!
-		}
-		Cvar_SetValue("scr_loading", scr_loading->value + 70.0f / pe->NumTextures());
-		SCR_UpdateScreen();
-	}
-
-	// create thread here ?
-	for( i = 1; i < MAX_MODELS && cl.configstrings[CS_MODELS+1+i][0]; i++ )
-	{
-		com.strncpy( name, cl.configstrings[CS_MODELS+1+i], MAX_STRING );
-		re->RegisterModel( name, i+1 );
-		cl.models[i+1] = pe->RegisterModel( name );
-		Cvar_SetValue("scr_loading", scr_loading->value + 25.0f/mdlcount );
-		SCR_UpdateScreen();
-	}
-
-	// set sky textures and speed
-	rotate = com.atof(cl.configstrings[CS_SKYSPEED]);
-	com.atov( axis, cl.configstrings[CS_SKYANGLES], 3 );
-	re->SetSky( cl.configstrings[CS_SKYNAME], rotate, axis );
-          Cvar_SetValue("scr_loading", 100.0f ); // all done
-	
-	re->EndRegistration (); // the render can now free unneeded stuff
-	Con_ClearNotify(); // clear any lines of console text
-	SCR_UpdateScreen();
-	cl.video_prepped = true;
-	cl.force_refdef = true;
-}
-
 /*
 ====================
 V_CalcFov
@@ -242,7 +144,6 @@ V_RenderView
 */
 void V_RenderView( void )
 {
-	if( cls.state != ca_active ) return;
 	if( !cl.video_prepped ) return; // still loading
 
 	// an invalid frame will just use the exact previous refdef
@@ -313,35 +214,4 @@ void V_PostRender( void )
 	UI_Draw();
 	Con_DrawConsole();
 	re->EndFrame();
-}
-
-/*
-=============
-V_Viewpos_f
-=============
-*/
-void V_Viewpos_f( void )
-{
-	Msg("(%g %g %g) : %g\n", cl.refdef.vieworg[0], cl.refdef.vieworg[1], cl.refdef.vieworg[2], cl.refdef.viewangles[YAW]);
-}
-
-/*
-=============
-V_Init
-=============
-*/
-void V_Init (void)
-{
-	Cmd_AddCommand ("viewpos", V_Viewpos_f, "prints current player origin" );
-
-	crosshair = Cvar_Get ("crosshair", "0", CVAR_ARCHIVE, "crosshair style" );
-	cl_testblend = Cvar_Get ("cl_testblend", "0", 0, "test blending" );
-	cl_testentities = Cvar_Get ("cl_testentities", "0", 0, "test client entities" );
-	cl_testlights = Cvar_Get ("cl_testlights", "0", 0, "test dynamic lights" );
-	cls.mempool = Mem_AllocPool( "Client Static" );
-}
-
-void V_Shutdown( void )
-{
-	Mem_FreePool( &cls.mempool );
 }

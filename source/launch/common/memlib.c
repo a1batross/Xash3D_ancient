@@ -169,7 +169,6 @@ choseclump:
 	if (mem->next) mem->next->prev = mem;
 	memset((void *)((byte *) mem + sizeof(memheader_t)), 0, mem->size);
 
-	MsgDev(D_MEMORY, "Malloc: %s, by \"%s\" at (%s:%i)\n", Mem_Pretify( size ), pool->name, filename, fileline );
 	return (void *)((byte *) mem + sizeof(memheader_t));
 }
 
@@ -232,7 +231,6 @@ static void _mem_freeblock(memheader_t *mem, const char *filename, int fileline)
 	else
 	{
 		pool->realsize -= sizeof(memheader_t) + mem->size + sizeof(int);
-		MsgDev(D_MEMORY, "Free: %s, by \"%s\" at (%s:%i)\n", Mem_Pretify( mem->size ), pool->name, filename, fileline );
 		free( mem );
 	}
 }

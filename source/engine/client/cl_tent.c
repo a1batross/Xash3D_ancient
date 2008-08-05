@@ -51,7 +51,7 @@ void CL_ParseTempEnts( sizebuf_t *msg )
 	case TE_BLOOD:			// bullet hitting flesh
 		MSG_ReadPos(msg, pos);
 		MSG_ReadPos(msg, dir);
-		CL_ParticleEffect (pos, dir, 0xe8, 60);
+		CL_ParticleEffect( pos, dir, 0xe8, 60 );
 		break;
 
 	case TE_GUNSHOT:	// bullet hitting wall
