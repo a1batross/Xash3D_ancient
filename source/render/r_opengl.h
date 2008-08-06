@@ -926,10 +926,8 @@ typedef struct
 	HINSTANCE hinstOpenGL;	// HINSTANCE for the OpenGL library
 
 	bool	minidriver;
-	bool	allowdisplaydepthchange;
-	bool	mcd_accelerated;
+	int	developer;	// engine developer level;
 
-	FILE *log_fp;
 } glwstate_t;
 
 extern glwstate_t glw_state;

@@ -15,7 +15,10 @@
 
 dsprite_t	sprite;
 byte	*spritepool;
-rgbdata_t	*byteimage;
+byte	*sprite_pal;
+byte	*frame_buffer;
+int	frame_width;
+int	frame_height;
 char	spriteoutname[MAX_SYSPATH];
 float	frameinterval;
 int	framecount;
@@ -45,9 +48,9 @@ void WriteFrame( file_t *f, int framenum )
 	pframe->width = LittleLong (pframe->width);
 	pframe->height = LittleLong (pframe->height);
 
-	// write frame as normal 32-bit image
+	// write frame as 32-bit indexed image
 	FS_Write(f, pframe, sizeof(*pframe));
-	FS_Write(f, (byte *)(pframe + 1), pframe->height * pframe->width * 4 );
+	FS_Write(f, (byte *)(pframe + 1), pframe->height * pframe->width );
 }
 
 /*
@@ -57,11 +60,22 @@ WriteSprite
 */
 void WriteSprite( file_t *f )
 {
-	int	i, curframe = 0, groupframe = 0;
+	int	i;
+	short	cnt = 256;
+	int	curframe = 0;
+	int	groupframe = 0;
+
+	// calculate bounding radius
+	sprite.boundingradius = sqrt(((sprite.bounds[0]>>1) * (sprite.bounds[0]>>1))
+		+ ((sprite.bounds[1]>>1) * (sprite.bounds[1]>>1)));
 
 	// write out the sprite header
 	SwapBlock((int *)&sprite, sizeof(dsprite_t));
 	FS_Write( f, &sprite, sizeof(sprite));
+
+	// write out palette (768 bytes)
+	FS_Write( f, (void *)&cnt, sizeof(cnt));
+	FS_Write( f, sprite_pal, cnt * 3 );
 
 	for (i = 0; i < sprite.numframes; i++)
 	{
@@ -84,10 +98,10 @@ void WriteSprite( file_t *f )
 
 			// set and write the group header
 			dsgroup.numframes = LittleLong( numframes );
-			FS_Write(f, &dsgroup, sizeof(dsgroup));
+			FS_Write( f, &dsgroup, sizeof(dsgroup));
 			totinterval = 0.0f; // write the interval array
 
-			for(j = 0; j < numframes; j++)
+			for( j = 0; j < numframes; j++ )
 			{
 				dspriteinterval_t	temp;
 
@@ -95,7 +109,7 @@ void WriteSprite( file_t *f )
 				temp.interval = LittleFloat(totinterval);
 				FS_Write(f, &temp, sizeof(temp));
 			}
-			for(j = 0; j < numframes; j++)
+			for( j = 0; j < numframes; j++ )
 			{
 				WriteFrame(f, curframe);
 				curframe++;
@@ -114,7 +128,7 @@ bool WriteSPRFile( void )
 	file_t	*f;
 	uint	i, groups = 0, grpframes = 0, sngframes = framecount;
 
-	if(sprite.numframes == 0) 
+	if( sprite.numframes == 0 ) 
 	{
 		MsgDev(D_WARN, "WriteSPRFile: ignoring blank sprite %s\n", spriteoutname );
 		return false;
@@ -127,8 +141,8 @@ bool WriteSPRFile( void )
 	// release framebuffer
 	for( i = 0; i < framecount; i++)
 	{
-		if(frames[i].pdata) Mem_Free( frames[i].pdata );
-		if(frames[i].numgroupframes ) 
+		if( frames[i].pdata ) Mem_Free( frames[i].pdata );
+		if( frames[i].numgroupframes ) 
 		{
 			groups++;
 			sngframes -= frames[i].numgroupframes;
@@ -143,7 +157,7 @@ bool WriteSPRFile( void )
 		Msg(" contain %d frame%s\n", grpframes, grpframes > 1 ? "s":"" );
 	}
 	if( sngframes - groups )
-		Msg("%d ungrouped frame%s\n", sngframes - groups, (sngframes - groups) > 1 ? "s" : "");	
+		Msg("%d ungrouped frame%s\n", sngframes - groups, (sngframes - groups) > 1 ? "s" : "" );	
 	return true;
 }
 
@@ -163,8 +177,6 @@ void Cmd_Type( void )
 	else if (Com_MatchToken( "vp_parallel" )) sprite.type = SPR_FWD_PARALLEL;
 	else if (Com_MatchToken( "oriented" )) sprite.type = SPR_ORIENTED;
 	else if (Com_MatchToken( "vp_parallel_oriented")) sprite.type = SPR_FWD_PARALLEL_ORIENTED;
-	else if (Com_MatchToken( "label")) sprite.type = SPR_LABEL;
-		else if (Com_MatchToken( "label_scaled")) sprite.type = SPR_LABEL_SCALE;
 	else sprite.type = SPR_FWD_PARALLEL; // default
 }
 
@@ -179,11 +191,12 @@ void Cmd_RenderMode( void )
 {
 	Com_GetToken( false );
 
-	if (Com_MatchToken( "additive")) sprite.rendermode = SPR_ADDITIVE;
-	else if (Com_MatchToken( "solid")) sprite.rendermode = SPR_SOLID;
-	else if (Com_MatchToken( "alpha")) sprite.rendermode = SPR_ALPHA;
-	else if (Com_MatchToken( "glow")) sprite.rendermode = SPR_GLOW;
-	else sprite.rendermode = SPR_ADDITIVE; // default
+	if (Com_MatchToken( "additive")) sprite.texFormat = SPR_ADDITIVE;
+	else if (Com_MatchToken( "normal")) sprite.texFormat = SPR_NORMAL;
+	else if (Com_MatchToken( "indexalpha")) sprite.texFormat = SPR_INDEXALPHA;
+	else if (Com_MatchToken( "alphatest")) sprite.texFormat = SPR_ALPHTEST;
+	else if (Com_MatchToken( "glow")) sprite.texFormat = SPR_ADDGLOW;
+	else sprite.texFormat = SPR_ADDITIVE; // default
 }
 
 /*
@@ -225,42 +238,42 @@ Cmd_Load
 syntax "$load fire01.tga"
 ===============
 */
-void Cmd_Load (void)
+void Cmd_Load( void )
 {
-	char	*framename;
-	size_t	image_size;
-	byte	*error_tga = FS_LoadInternal( "error.tga", &image_size );
+	char		*framename;
+	static byte	base_pal[256*3];
 
-	if( byteimage ) Image->FreeImage( byteimage ); // release old image
-	framename = Com_GetToken(false);
-	FS_DefaultExtension( framename, ".tga" );
-	byteimage = Image->LoadImage( framename, error_tga, image_size );
+	framename = Com_GetToken( false );
+	FS_DefaultExtension( framename, ".bmp" );
+	frame_buffer = ReadBMP( framename, &sprite_pal, &frame_width, &frame_height );
+
+	if( sprite.numframes == 0 ) Mem_Copy( base_pal, sprite_pal, sizeof( base_pal ));
+	else if( memcmp( base_pal, sprite_pal, sizeof( base_pal )))
+		MsgDev( D_WARN, "Cmd_Load: %s doesn't share a pallette with the previous frame\n", framename );
 
 	if(Com_TryToken())
 	{
- 		uint	line = byteimage->width * 4;
+ 		uint	line = frame_width;
 		byte	*fout, *fin;
-		int	x, y, c;
+		int	x, y;
 
-		fin = byteimage->buffer;
-		fout = Mem_Alloc( zonepool, byteimage->size );
+		fin = frame_buffer;
+		fout = Mem_Alloc( zonepool, frame_width * frame_height );
 			
 		if(Com_MatchToken("flip_x"))
 		{
-			for (y = 0; y < byteimage->height; y++)
-				for (x = byteimage->width - 1; x >= 0; x--)
-					for(c = 0; c < 4; c++, fin++)
-						fout[y*line+x*4+c] = *fin;
+			for( y = 0; y < frame_height; y++ )
+				for( x = frame_width - 1; x >= 0; x--)
+					fout[y*line+x] = *fin;
 		}
 		else if(Com_MatchToken("flip_y"))
 		{
-			for (y = byteimage->height - 1; y >= 0; y--)
-				for (x = 0; x < byteimage->width; x++)
-					for(c = 0; c < 4; c++, fin++)
-						fout[y*line+x*4+c] = *fin;
+			for( y = frame_height - 1; y >= 0; y-- )
+				for( x = 0; x < frame_width; x++)
+					fout[y*line+x] = *fin;
 		}
-		Mem_Free( byteimage->buffer );
-		byteimage->buffer = fout;
+		Mem_Free( frame_buffer );
+		frame_buffer = fout;
 	}
 }
 
@@ -273,54 +286,45 @@ syntax "$frame xoffset yoffset width height <interval> <origin x> <origin y>"
 */
 void Cmd_Frame( void )
 {
-	int		i, x, y, xl, yl, xh, yh, w, h;
+	int		x, y, xl, yl, xh, yh, w, h;
 	int		pixels, linedelta;
 	dframe_t		*pframe;
 	byte		*fin, *plump;
 
-	if(!byteimage || !byteimage->buffer) Sys_Break("frame not loaded\n");
-	if (framecount >= MAX_FRAMES) Sys_Break("Too many frames in package\n");
-	pixels = byteimage->width * byteimage->height;
-	xl = atoi(Com_GetToken(false));
-	yl = atoi(Com_GetToken(false));
-	w  = atoi(Com_GetToken(false));
-	h  = atoi(Com_GetToken(false));
+	if( !frame_buffer ) Sys_Break( "frame not loaded\n" );
+	if( framecount >= MAX_FRAMES ) Sys_Break( "too many frames in package\n" );
+	pixels = frame_width * frame_height;
+	xl = com.atoi(Com_GetToken(false));
+	yl = com.atoi(Com_GetToken(false));
+	w  = com.atoi(Com_GetToken(false));
+	h  = com.atoi(Com_GetToken(false));
 
 	if((xl & 0x07)||(yl & 0x07)||(w & 0x07)||(h & 0x07))
 	{
 		// render will be resampled image, just throw warning
 		MsgDev( D_WARN, "frame dimensions not multiples of 8\n" );
-		//return;
 	}
-	if ((w > MAX_FRAME_DIM) || (h > MAX_FRAME_DIM))
-	{
-		w = min(w, MAX_FRAME_DIM);
-		h = min(h, MAX_FRAME_DIM);
-		Image->ResampleImage( "frame", &byteimage, w, h, true );
-	}
+	if((w > MAX_FRAME_DIM) || (h > MAX_FRAME_DIM))
+		Sys_Break( "sprite has a dimension longer than %d\n", MAX_FRAME_DIM );
 
-	if((w > byteimage->width) || (h > byteimage->height))
-	{
-		// probably default frame "error.tga" mismatch size
-		// but may be mistake in the script ?
-		Image->ResampleImage( "frame", &byteimage, w, h, true );
-	}
+	if((w > frame_width) || (h > frame_height))
+		Sys_Break("frame size [%ix%i] longer than image [%ix%i]\n", w, h, frame_width, frame_height );
 
 	xh = xl + w;
 	yh = yl + h;
 
-	plump = (byte *)Mem_Alloc( spritepool, sizeof(dframe_t) + (w * h * 4));
+	plump = (byte *)Mem_Alloc( spritepool, sizeof(dframe_t) + (w * h));
 	pframe = (dframe_t *)plump;
 	frames[framecount].pdata = plump;
 	frames[framecount].type = SPR_SINGLE;
 
 	// get interval
-	if(Com_TryToken()) 
+	if( Com_TryToken()) 
 	{
 		frames[framecount].interval = bound(MIN_INTERVAL, com.atof(com_token), MAX_INTERVAL );
 
 	}
-	else if(frameinterval != 0)
+	else if( frameinterval != 0 )
 	{
 		frames[framecount].interval = frameinterval;
 	}
@@ -356,15 +360,14 @@ void Cmd_Frame( void )
 	if(h > sprite.bounds[1]) sprite.bounds[1] = h;
 
 	plump = (byte *)(pframe + 1); // move pointer
-	fin = byteimage->buffer + yl * byteimage->width + xl;
-	linedelta = byteimage->width - w;
+	fin = frame_buffer + yl * frame_width + xl;
+	linedelta = frame_width - w;
 
-	for (y = yl; y < yh; y++)
+	for( y = yl; y < yh; y++ )
 	{
 		for( x = xl; x < xh; x++ )
-			for( i = 0; i < 4; i++)
-				*plump++ = *fin++;
-		fin += linedelta * 4;
+			*plump++ = *fin++;
+		fin += linedelta;
 	}
 	framecount++;
 }
@@ -431,7 +434,7 @@ void Cmd_Group( bool angled )
 	{
 		// don't create blank groups, rewind frames
 		framecount--, sprite.numframes--;
-		MsgDev(D_WARN, "Cmd_Group: remove blank group\n");
+		MsgDev( D_WARN, "Cmd_Group: remove blank group\n" );
 	}
 	else if( angled && frames[groupframe].numgroupframes != 8 ) 
 	{
@@ -514,7 +517,7 @@ bool ParseSpriteScript (void)
 	{
 		if(!Com_GetToken (true)) break;
 		if (Com_MatchToken( "$spritename" )) Cmd_Spritename();
-		else if (Com_MatchToken( "$render" )) Cmd_RenderMode();
+		else if (Com_MatchToken( "$texture" )) Cmd_RenderMode();
 		else if (Com_MatchToken( "$facetype" )) Cmd_FaceType();
 		else if (Com_MatchToken( "$origin" )) Cmd_Origin();
 		else if (Com_MatchToken( "$rand" )) Cmd_Rand();
@@ -549,7 +552,7 @@ bool CompileCurrentSprite( const char *name )
 	FS_DefaultExtension( gs_filename, ".qc" );
 	load = Com_LoadScript( gs_filename, NULL, 0 );
 	
-	if(load)
+	if( load )
 	{
 		if(!ParseSpriteScript())
 			return false;
@@ -562,10 +565,10 @@ bool CompileCurrentSprite( const char *name )
 
 bool CompileSpriteModel ( byte *mempool, const char *name, byte parms )
 {
-	if(mempool) spritepool = mempool;
+	if( mempool ) spritepool = mempool;
 	else
 	{
-		MsgDev(D_ERROR, "can't allocate memory pool.\nAbort compilation\n");
+		MsgDev( D_ERROR, "can't allocate memory pool.\nAbort compilation\n");
 		return false;
 	}
 	return CompileCurrentSprite( name );	

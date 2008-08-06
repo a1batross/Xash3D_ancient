@@ -52,6 +52,8 @@ mstudiomodel_t *m_pSubModel;
 studiohdr_t *m_pStudioHeader;
 studiohdr_t *m_pTextureHeader;
 mstudiobodyparts_t *m_pBodyPart;
+static ref_entity_t g_state;
+static ref_entity_t g_clientstate;
 
 int m_nCachedBones;			// number of bones in cache
 char m_nCachedBoneNames[MAXSTUDIOBONES][32];
@@ -132,9 +134,9 @@ studiohdr_t *R_StudioLoadHeader( rmodel_t *mod, uint *buffer )
 
 	ptexture = (mstudiotexture_t *)(pin + phdr->textureindex);
 
-	if( phdr->textureindex > 0 && phdr->numtextures <= MAXSTUDIOSKINS )
+	if (phdr->textureindex > 0 && phdr->numtextures <= MAXSTUDIOSKINS)
 	{
-		mod->numtexinfo = phdr->numtextures; // save info
+		mod->numtexinfo = phdr->numtextures; //save info
 		for (i = 0; i < phdr->numtextures; i++)
 			mod->skins[i] = R_StudioLoadTexture( mod, &ptexture[i], pin );
 	}
@@ -144,25 +146,24 @@ studiohdr_t *R_StudioLoadHeader( rmodel_t *mod, uint *buffer )
 void R_StudioLoadModel( rmodel_t *mod, void *buffer )
 {
 	studiohdr_t *phdr = R_StudioLoadHeader( mod, buffer );
-	studiohdr_t *thdr;
-	void *texbuf;
+          studiohdr_t *thdr;
 	
-	if( !phdr ) return; // there were problems
+	if(!phdr) return; //there were problems
 	mod->phdr = (studiohdr_t *)Mem_Alloc(mod->mempool, LittleLong(phdr->length));
-	Mem_Copy( mod->phdr, buffer, LittleLong( phdr->length ));
+          memcpy(mod->phdr, buffer, LittleLong(phdr->length));
 	
-	if( phdr->numtextures == 0 )
+	if (phdr->numtextures == 0)
 	{
-		texbuf = FS_LoadFile( R_ExtName( mod ), NULL ); // use buffer again
-		if( texbuf ) thdr = R_StudioLoadHeader( mod, texbuf );
-		else MsgDev( D_WARN, "textures for %s not found!\n", mod->name ); 
+		buffer = FS_LoadFile ( R_ExtName( mod ), NULL );//use buffer again
+		if(buffer) thdr = R_StudioLoadHeader( mod, buffer );
+		else Msg ("Warning: textures for %s not found!\n", mod->name ); 
+	          
 
-		if( !thdr ) return; // there were problems
-		mod->thdr = (studiohdr_t *)Mem_Alloc( mod->mempool, LittleLong( thdr->length ));
-          	Mem_Copy( mod->thdr, texbuf, LittleLong( thdr->length ));
-		Mem_Free( texbuf );
+		if(!thdr) return; //there were problems
+		mod->thdr = (studiohdr_t *)Mem_Alloc(mod->mempool, LittleLong(thdr->length));
+          	memcpy(mod->thdr, buffer, LittleLong(thdr->length));
 	}
-          else mod->thdr = mod->phdr; // just make link
+          else mod->thdr = mod->phdr; //just make link
 
 	R_StudioExtractBbox( phdr, 0, mod->mins, mod->maxs );
 	mod->registration_sequence = registration_sequence;
@@ -173,12 +174,13 @@ void R_StudioLoadModel( rmodel_t *mod, void *buffer )
 MISC STUDIO UTILS
 ====================
 */
+
 // extract texture filename from modelname
 char *R_ExtName( rmodel_t *mod )
 {
 	static char texname[MAX_QPATH];
-	com.strcpy( texname, mod->name );
-	com.strcpy( &texname[com.strlen(texname) - 4], "T.mdl" );
+	strcpy( texname, mod->name );
+	strcpy( &texname[com.strlen(texname) - 4], "T.mdl" );
 	return texname;
 }
 
@@ -324,6 +326,77 @@ float R_StudioFrameAdvance( ref_entity_t *ent, float framerate, float flInterval
 	}
 	return flInterval;
 }
+
+/*
+==============================
+SetupClientAnimation
+
+Called to set up local player's animation values
+==============================
+*/
+void R_SetupClientAnimation( entity_state_t *pplayer )
+{
+	static double	oldtime;
+	double		curtime, dt;
+	float		fr, gs;
+	ref_entity_t	*st;
+	entity_state_t	*ent = ri.GetClientEdict( m_pCurrentEntity->index );
+	studiohdr_t	*hdr;
+	int		oldseq;
+
+	if( !ent ) return;
+	curtime = r_newrefdef.time;
+	dt = curtime - oldtime;
+	dt = min( 1.0, max( 0.0, dt ) );
+
+	oldtime = curtime;
+	st = &g_clientstate;
+
+	st->framerate = 1.0;
+
+	oldseq = st->sequence;
+	st->sequence = ent->model.sequence;
+	st->gaitsequence = ent->model.gaitsequence;
+
+	VectorCopy( ent->angles, st->angles );
+	VectorCopy( ent->origin, st->origin );
+	VectorCopy( st->angles, st->realangles );
+
+	if( st->sequence != oldseq )
+	{
+		st->frame = 0.0;
+		st->prev.sequence = oldseq;
+		st->prev.sequencetime = st->animtime;
+
+		Mem_Copy( st->prev.seqblending, st->blending, MAXSTUDIOBLENDS );
+		Mem_Copy( st->prev.controller, st->controller, MAXSTUDIOCONTROLLERS );
+	}
+
+	// at this point we can see stupid code from ValveLLC
+	hdr = (studiohdr_t *)r_models[ent->model.index]->extradata;
+
+	R_StudioGetSequenceInfo( hdr, st, &fr, &gs );
+	st->m_fSequenceLoops = ((R_StudioGetSequenceFlags( hdr, st ) & STUDIO_LOOPING) != 0);
+	R_StudioFrameAdvance( st, fr, dt );
+	
+//	MsgDev( D_INFO, "gs %i frame %f\n", st->gaitsequence, st->frame );
+
+	VectorCopy( st->realangles, ent->angles );
+	VectorCopy( st->origin, ent->origin );
+	VectorCopy( st->angles, ent->angles );
+
+	ent->model.sequence	= st->sequence;
+	pplayer->model.gaitsequence = st->gaitsequence;
+	ent->model.animtime	= st->animtime;
+	ent->model.frame		= st->frame;
+	ent->model.framerate	= st->framerate;
+
+	Mem_Copy( ent->model.blending, st->blending, MAXSTUDIOBLENDS );
+	Mem_Copy( ent->model.controller, st->controller, MAXSTUDIOCONTROLLERS );
+
+	//OOPS! ent->latched = st->lv;
+}
+
 
 /*
 ====================
@@ -741,7 +814,7 @@ void R_StudioCalcRotations( float pos[][3], vec4_t *q, mstudioseqdesc_t *pseqdes
 	float	adj[MAXSTUDIOCONTROLLERS];
 	float	dadt;
 
-	if( f > pseqdesc->numframes - 1 ) f = 0; // bah, fix this bug with changing sequences too fast
+	if (f > pseqdesc->numframes - 1) f = 0;	// bah, fix this bug with changing sequences too fast
 	else if ( f < -0.01f )
 	{
 		// BUG ( somewhere else ) but this code should validate this data.
@@ -842,6 +915,7 @@ float R_StudioEstimateFrame( mstudioseqdesc_t *pseqdesc )
 		if( f >= pseqdesc->numframes - 1.001 ) f = pseqdesc->numframes - 1.001;
 		if( f < 0.0 )  f = 0.0;
 	}
+
 	return f;
 }
 
@@ -876,7 +950,7 @@ void R_StudioSetupBonesNormal( void )
 
 	f = R_StudioEstimateFrame( pseqdesc );
 
-	if( m_pCurrentEntity->prev.frame > f )
+	if (m_pCurrentEntity->prev.frame > f)
 	{
 		//Msg("%f %f\n", m_pCurrentEntity->prev.frame, f );
 	}
@@ -913,7 +987,7 @@ void R_StudioSetupBonesNormal( void )
 		}
 	}
 	
-	if( m_fDoInterp && m_pCurrentEntity->prev.sequencetime && ( m_pCurrentEntity->prev.sequencetime + 0.2 > r_newrefdef.time) && ( m_pCurrentEntity->prev.sequence < m_pStudioHeader->numseq ))
+	if (m_fDoInterp && m_pCurrentEntity->prev.sequencetime && ( m_pCurrentEntity->prev.sequencetime + 0.2 > r_newrefdef.time) && ( m_pCurrentEntity->prev.sequence < m_pStudioHeader->numseq ))
 	{
 		// blend from last sequence
 		static float  pos1b[MAXSTUDIOBONES][3];
@@ -954,7 +1028,7 @@ void R_StudioSetupBonesNormal( void )
 	}
 	else
 	{
-		// MsgDev( D_INFO, "prevframe = %4.2f\n", f );
+		//Msg("prevframe = %4.2f\n", f);
 		m_pCurrentEntity->prev.frame = f;
 	}
 
@@ -1175,6 +1249,83 @@ void R_StudioSaveBones( void )
 }
 
 /*
+==============================
+SavePlayerState
+
+For local player, in third person, we need to store real render data
+and then setup for with fake/client side animation data
+==============================
+*/
+void R_StudioSavePlayerState( entity_state_t *pplayer )
+{
+	ref_entity_t	*st;
+	ref_entity_t	*ent = m_pCurrentEntity;
+
+	st = &g_state;
+
+	VectorCopy( ent->angles, st->angles );
+	VectorCopy( ent->origin, st->origin );
+	VectorCopy( ent->angles, st->realangles );
+
+	st->sequence = ent->sequence;
+	st->gaitsequence = pplayer->model.gaitsequence;
+	st->animtime	= ent->animtime;
+	st->frame		= ent->frame;
+	st->framerate	= ent->framerate;
+
+	Mem_Copy( st->blending, ent->blending, MAXSTUDIOBLENDS );
+	Mem_Copy( st->controller, ent->controller, MAXSTUDIOCONTROLLERS );
+
+	Mem_Copy( &st->prev, &ent->prev, sizeof(latchedvars_t));
+}
+
+/*
+==============================
+RestorePlayerState
+
+Called to restore original player state information
+==============================
+*/
+void R_StudioRestorePlayerState( entity_state_t *pplayer )
+{
+	ref_entity_t	*st;
+	ref_entity_t	*ent = m_pCurrentEntity;
+
+	st = &g_clientstate;
+
+	VectorCopy( ent->angles, st->angles );
+	VectorCopy( ent->origin, st->origin );
+	VectorCopy( ent->angles, st->realangles );
+
+	st->sequence = ent->sequence;
+	st->gaitsequence = pplayer->model.gaitsequence;
+	st->animtime	= ent->animtime;
+	st->frame		= ent->frame;
+	st->framerate	= ent->framerate;
+
+	Mem_Copy( st->blending, ent->blending, MAXSTUDIOBLENDS );
+	Mem_Copy( st->controller, ent->controller, MAXSTUDIOCONTROLLERS );
+
+	Mem_Copy( &st->prev, &ent->prev, sizeof(latchedvars_t));
+
+	st = &g_state;
+
+	VectorCopy( ent->angles, st->angles );
+	VectorCopy( ent->origin, st->origin );
+	VectorCopy( ent->angles, st->realangles );
+
+	pplayer->model.gaitsequence = st->gaitsequence;
+	ent->sequence	= st->sequence;
+	ent->animtime	= st->animtime;
+	ent->frame	= st->frame;
+	ent->framerate = st->framerate;
+
+	Mem_Copy( ent->blending, st->blending, MAXSTUDIOBLENDS );
+	Mem_Copy(  ent->controller, st->controller,MAXSTUDIOCONTROLLERS );
+	Mem_Copy( &ent->prev, &st->prev, sizeof(latchedvars_t));
+}
+
+/*
 ====================
 StudioMergeBones
 
@@ -1333,7 +1484,7 @@ StudioSetupModel
 
 ====================
 */
-void R_StudioSetupModel( int bodypart )
+void R_StudioSetupModel ( int bodypart )
 {
 	int index;
 
@@ -1351,10 +1502,10 @@ void R_StudioSetupLighting( void )
 	int i;
           mstudiobone_t *pbone;
 	
-	// get light from floor or ceil
+	//get light from floor
 	m_plightvec[0] = 0.0f;
 	m_plightvec[1] = 0.0f;
-	m_plightvec[2] = (m_pCurrentEntity->effects & EF_INVLIGHT) ? 1.0f : -1.0f;
+	m_plightvec[2] = -1.0f;
 
 	if( m_pCurrentEntity->renderfx & RF_FULLBRIGHT )
 	{
@@ -1383,14 +1534,14 @@ void R_StudioSetupLighting( void )
 	}
 }
 
-void R_StudioLighting( float *lv, int bone, int flags, vec3_t normal )
+void R_StudioLighting (float *lv, int bone, int flags, vec3_t normal)
 {
 	float lightcos;
 
 	float shadelight = 192.0f;
 	float illum = 32.0f;//RF_MINLIGHT & RF_FULLBRIGHT
 
-	if( flags & STUDIO_NF_FLATSHADE )
+	if (flags & STUDIO_NF_FLATSHADE)
 	{
 		illum += shadelight * 0.8f;
 	}
@@ -1408,11 +1559,11 @@ void R_StudioLighting( float *lv, int bone, int flags, vec3_t normal )
 	*lv = illum / 255.0; // Light from 0 to 1.0
 }
 
-void R_StudioSetupChrome( float *pchrome, int bone, vec3_t normal )
+void R_StudioSetupChrome(float *pchrome, int bone, vec3_t normal)
 {
 	float n;
 
-	if( g_chromeage[bone] != m_pStudioModelCount )
+	if (g_chromeage[bone] != m_pStudioModelCount)
 	{
 		// calculate vectors from the viewer to the bone. This roughly adjusts for position
 		vec3_t	chromeupvec;	// g_chrome t vector in world reference frame
@@ -1465,13 +1616,13 @@ bool R_AcceptStudioPass( int flags, int pass )
 	return true;
 }
 
-void R_StudioDrawMeshes( mstudiotexture_t * ptexture, short *pskinref, int pass )
+void R_StudioDrawMeshes ( mstudiotexture_t * ptexture, short *pskinref, int pass )
 {
 	int i, j;
 	float *av, *lv;
 	float lv_tmp;
-	vec3_t fbright = { 0.95f, 0.95f, 0.95f };
-	vec3_t irgoggles = { 0.95f, 0.0f, 0.0f }; //predefined lightcolor
+	vec3_t fbright = {0.95f, 0.95f, 0.95f};
+	vec3_t irgoggles = {0.95f, 0.0f, 0.0f};//predefined lightcolor
 	int flags;
 
 	mstudiomesh_t *pmesh = (mstudiomesh_t *)((byte *)m_pStudioHeader + m_pSubModel->meshindex);
@@ -1495,7 +1646,7 @@ void R_StudioDrawMeshes( mstudiotexture_t * ptexture, short *pskinref, int pass 
 		}
 	}
 
-	for( j = 0; j < m_pSubModel->nummesh; j++ ) 
+	for (j = 0; j < m_pSubModel->nummesh; j++) 
 	{
 		float	s, t;
 		short	*ptricmds;
@@ -1822,14 +1973,16 @@ void R_StudioDrawHulls ( void )
 	pglEnable( GL_CULL_FACE );
 }
 
+extern	vec3_t lightspot;
+
 void R_StudioDrawShadow ( void )
 {
-	float an = m_pCurrentEntity->angles[1] / 180 * M_PI;
+	float		an = m_pCurrentEntity->angles[1] / 180 * M_PI;
 	
 	m_pshadevector[0] = cos(-an);
 	m_pshadevector[1] = sin(-an);
 	m_pshadevector[2] = 1;
-	VectorNormalize( m_pshadevector );
+	VectorNormalize (m_pshadevector);
 }
 
 void R_StudioSetRemapColors( int m_topColor, int m_bottomColor )
@@ -1847,7 +2000,7 @@ void R_StudioRenderModel( void )
 {
 	int i;
 
-	pglShadeModel( GL_SMOOTH );
+	pglShadeModel (GL_SMOOTH);
 	GL_TexEnv( GL_MODULATE );
 	
 	for (i = 0; i < m_pStudioHeader->numbodyparts ; i++)
@@ -1904,7 +2057,7 @@ bool R_StudioDrawModel( int pass, int flags )
 			return 0;
 	}
 
-	/*if( mirror_render && m_pCurrentEntity->renderfx & RF_PLAYERMODEL )
+	if( mirror_render && m_pCurrentEntity->renderfx & RF_PLAYERMODEL )
 	{
 		entity_state_t *plr = ri.GetLocalPlayer();
 		ref_entity_t *save_ent = m_pCurrentEntity;
@@ -1917,11 +2070,11 @@ bool R_StudioDrawModel( int pass, int flags )
 		// draw as though it were a player
 		m_pCurrentEntity = &r_newrefdef.entities[plr->number];
                     
-		R_StudioDrawPlayer( pass, newflags );
+		R_StudioDrawPlayerNormal( pass, newflags );
 
 		m_fDoInterp = save_interp;
 		m_pCurrentEntity = save_ent;
-	}*/
+	}
 
 	R_StudioSetupRender( pass );	
 	R_StudioSetUpTransform();
@@ -2155,12 +2308,12 @@ StudioDrawPlayer
 
 ====================
 */
-int R_StudioDrawPlayer( int pass, int flags )
+int R_StudioDrawPlayerNormal( int pass, int flags )
 {
 	entity_state_t	*pplayer;
 
-	if( !mirror_render && m_pCurrentEntity->renderfx & RF_PLAYERMODEL )
-		return 0;
+	//if( !mirror_render && m_pCurrentEntity->renderfx & RF_PLAYERMODEL )
+	//	return 0;
 
 	if(!(flags & STUDIO_MIRROR))
 	{
@@ -2275,6 +2428,46 @@ int R_StudioDrawPlayer( int pass, int flags )
 		}
 	}
 	return 1;
+}
+
+/*
+==============================
+StudioDrawPlayer
+
+==============================
+*/
+int R_StudioDrawPlayer( int pass, int flags )
+{
+	bool iret = false;
+	bool isLocalPlayer = false;
+	entity_state_t	*pplayer = ri.GetClientEdict( m_pCurrentEntity->index );
+		
+	// set up for client?
+	if( m_pCurrentEntity->index == ri.GetLocalPlayer()->number )
+	{
+		isLocalPlayer = true;
+	}
+
+	if( isLocalPlayer )
+	{
+		// Store original data
+		R_StudioSavePlayerState( pplayer );
+
+		// copy in client side animation data
+		R_SetupClientAnimation( pplayer );
+	}
+
+	// call real draw function
+	iret = R_StudioDrawPlayerNormal( pass, flags );
+
+	// restore for client?
+	if( isLocalPlayer )
+	{
+		// restore the original data for the player
+		R_StudioRestorePlayerState( pplayer );
+	}
+
+	return iret;
 }
 
 void R_DrawStudioModel( int passnum )

@@ -99,6 +99,7 @@ typedef struct
 	vec3_t		viewangles;
 
 	dword		time;		// this is the time value that the client
+	dword		oldtime;
 					// is rendering at.  always <= cls.realtime
 	float		lerpfrac;		// between oldframe and frame
 
@@ -456,6 +457,7 @@ void CL_Stop_f( void );
 //
 void CL_InitClientProgs( void );
 void CL_FreeClientProgs( void );
+int CL_GetMaxClients( void );
 void CL_DrawHUD( void );
 edict_t *CL_GetEdict( int entnum );
 float *CL_FadeColor( float starttime, float endtime );
@@ -557,6 +559,8 @@ cdlight_t *CL_AllocDlight (int key);
 void CL_AddParticles (void);
 void CL_ClearEffects( void );
 void CL_StudioEvent( mstudioevent_t *event, entity_state_t *ent );
+entity_state_t *CL_GetEdictByIndex( int index );
+entity_state_t *CL_GetLocalPlayer( void );
 
 //
 // cl_pred.c
@@ -591,7 +595,7 @@ extern field_t g_consoleField;
 extern field_t chatField;
 
 //
-// cl_keys.c
+// cl_menu.c
 //
 extern bool ui_active;
 extern const int vm_ui_numbuiltins;
@@ -624,6 +628,7 @@ void Key_ClearStates (void);
 char *Key_KeynumToString (int keynum);
 int Key_StringToKeynum (char *str);
 int Key_GetKey( char *binding );
+void Key_EnumCmds_f( void );
 
 //
 // cl_cin.c

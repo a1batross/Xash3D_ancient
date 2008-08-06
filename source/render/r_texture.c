@@ -823,13 +823,13 @@ bool qrsDecompressedTexImage2D( uint target, int level, int internalformat, uint
 	switch( PFDesc[internalformat].format )
 	{
 	case PF_INDEXED_24:
-		if (image_desc.flags & IMAGE_HAS_ALPHA)
+		if( image_desc.flags & IMAGE_HAS_ALPHA )
 		{
 			// studio model indexed texture probably with alphachannel
 			for (i = 0; i < width * height; i++)
 			{
 				p = fin[i];
-				if (p == 255) noalpha = false;
+				if( p == 255 ) noalpha = false;
 				fout[(i<<2)+0] = image_desc.pal[p*3+0];
 				fout[(i<<2)+1] = image_desc.pal[p*3+1];
 				fout[(i<<2)+2] = image_desc.pal[p*3+2];
@@ -839,7 +839,7 @@ bool qrsDecompressedTexImage2D( uint target, int level, int internalformat, uint
 		else
 		{
 			// studio model indexed texture without alphachannel
-			for (i = 0; i < width * height; i++)
+			for( i = 0; i < width * height; i++ )
 			{
 				p = fin[i];
 				fout[(i<<2)+0] = image_desc.pal[p*3+0];
@@ -852,7 +852,7 @@ bool qrsDecompressedTexImage2D( uint target, int level, int internalformat, uint
 		break;
 	case PF_INDEXED_32:
 		// sprite indexed frame with alphachannel
-		for (i = 0; i < width*height; i++ )
+		for( i = 0; i < width*height; i++ )
 		{
 			fout[(i<<2)+0] = image_desc.pal[fin[i]*4+0];
 			fout[(i<<2)+1] = image_desc.pal[fin[i]*4+1];
@@ -862,7 +862,7 @@ bool qrsDecompressedTexImage2D( uint target, int level, int internalformat, uint
 		break;
 	case PF_RGB_24:
 	case PF_RGB_24_FLIP:
-		// 24-bit image, that will not expanded to RGBA in imagelib.c for some reasons
+		// 24-bit image, that will not expanded to RGBA in imglib.dll for some reasons
 		for (i = 0; i < width * height; i++ )
 		{
 			fout[(i<<2)+0] = fin[i+0];

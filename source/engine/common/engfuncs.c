@@ -6,6 +6,7 @@
 #include "common.h"
 #include "byteorder.h"
 #include "mathlib.h"
+#include "const.h"
 #include "client.h"
 #include "server.h"
 
@@ -1274,14 +1275,12 @@ void VM_drawmodel( void )
 	re->ClearScene( &refdef );
 	re->RegisterModel( modname, MAX_MODELS - 1 );
 	ent.renderfx = RF_FULLBRIGHT;
+	ent.ed_type = ED_CLIENT;
 	ent.model.sequence = sequence;
 	ent.model.index = MAX_MODELS - 1;
 	VectorCopy( origin, ent.origin );
 	VectorCopy( origin, ent.old_origin );
 	VectorCopy( angles, ent.angles );
-	ent.model.controller[0] = ent.model.controller[1] = 90.0;
-	ent.model.controller[2] = ent.model.controller[3] = 180.0;
-
 	ent.model.frame = frame += 0.7f;//FXIME
 
 	re->AddRefEntity( &refdef, &ent, NULL, 1.0f );

@@ -510,7 +510,7 @@ word PR_WriteProgdefs( void )
 
 	switch( crc )
 	{
-	case 1476:
+	case 15812:
 		PR_Message("Xash3D unmodified server.dat\n");
 		if(!com.strcmp(progsoutname, "unknown.dat")) com.strcpy(progsoutname, "server.dat");
 		break;

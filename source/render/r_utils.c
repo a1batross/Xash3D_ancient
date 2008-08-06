@@ -8,127 +8,38 @@
 /*
 ====================
 RotatePointAroundVector
-
 ====================
 */
 void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees )
 {
-	float	m[3][3];
-	float	im[3][3];
-	float	zrot[3][3];
-	float	tmpmat[3][3];
-	float	rot[3][3];
-	int	i;
-	vec3_t vr, vup, vf;
+	float	t0, t1;
+	float	angle, c, s;
+	vec3_t	vr, vu, vf;
 
-	vf[0] = dir[0];
-	vf[1] = dir[1];
-	vf[2] = dir[2];
+	angle = DEG2RAD( degrees );
+	c = cos( angle );
+	s = sin( angle );
+	VectorCopy( dir, vf );
+	VectorVectors( vf, vr, vu );
 
-	PerpendicularVector( vr, dir );
-	CrossProduct( vr, vf, vup );
+	t0 = vr[0] *  c + vu[0] * -s;
+	t1 = vr[0] *  s + vu[0] *  c;
+	dst[0] = (t0 * vr[0] + t1 * vu[0] + vf[0] * vf[0]) * point[0]
+	       + (t0 * vr[1] + t1 * vu[1] + vf[0] * vf[1]) * point[1]
+	       + (t0 * vr[2] + t1 * vu[2] + vf[0] * vf[2]) * point[2];
 
-	m[0][0] = vr[0];
-	m[1][0] = vr[1];
-	m[2][0] = vr[2];
+	t0 = vr[1] *  c + vu[1] * -s;
+	t1 = vr[1] *  s + vu[1] *  c;
+	dst[1] = (t0 * vr[0] + t1 * vu[0] + vf[1] * vf[0]) * point[0]
+	       + (t0 * vr[1] + t1 * vu[1] + vf[1] * vf[1]) * point[1]
+	       + (t0 * vr[2] + t1 * vu[2] + vf[1] * vf[2]) * point[2];
 
-	m[0][1] = vup[0];
-	m[1][1] = vup[1];
-	m[2][1] = vup[2];
-
-	m[0][2] = vf[0];
-	m[1][2] = vf[1];
-	m[2][2] = vf[2];
-
-	memcpy( im, m, sizeof( im ) );
-
-	im[0][1] = m[1][0];
-	im[0][2] = m[2][0];
-	im[1][0] = m[0][1];
-	im[1][2] = m[2][1];
-	im[2][0] = m[0][2];
-	im[2][1] = m[1][2];
-
-	memset( zrot, 0, sizeof( zrot ) );
-	zrot[0][0] = zrot[1][1] = zrot[2][2] = 1.0F;
-
-	zrot[0][0] = cos( DEG2RAD( degrees ) );
-	zrot[0][1] = sin( DEG2RAD( degrees ) );
-	zrot[1][0] = -sin( DEG2RAD( degrees ) );
-	zrot[1][1] = cos( DEG2RAD( degrees ) );
-
-	R_ConcatRotations( m, zrot, tmpmat );
-	R_ConcatRotations( tmpmat, im, rot );
-
-	for ( i = 0; i < 3; i++ )
-	{
-		dst[i] = rot[i][0] * point[0] + rot[i][1] * point[1] + rot[i][2] * point[2];
-	}
+	t0 = vr[2] *  c + vu[2] * -s;
+	t1 = vr[2] *  s + vu[2] *  c;
+	dst[2] = (t0 * vr[0] + t1 * vu[0] + vf[2] * vf[0]) * point[0]
+	       + (t0 * vr[1] + t1 * vu[1] + vf[2] * vf[1]) * point[1]
+	       + (t0 * vr[2] + t1 * vu[2] + vf[2] * vf[2]) * point[2];
 }
-
-/*
-====================
-ProjectPointOnPlane
-
-====================
-*/
-void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal )
-{
-	float d;
-	vec3_t n;
-	float inv_denom;
-
-	inv_denom = 1.0F / DotProduct( normal, normal );
-
-	d = DotProduct( normal, p ) * inv_denom;
-
-	n[0] = normal[0] * inv_denom;
-	n[1] = normal[1] * inv_denom;
-	n[2] = normal[2] * inv_denom;
-
-	dst[0] = p[0] - d * n[0];
-	dst[1] = p[1] - d * n[1];
-	dst[2] = p[2] - d * n[2];
-}
-
-/*
-====================
-PerpendicularVector
-
-====================
-*/
-void PerpendicularVector( vec3_t dst, const vec3_t src )
-{
-	int	pos;
-	int i;
-	float minelem = 1.0F;
-	vec3_t tempvec;
-
-	/*
-	** find the smallest magnitude axially aligned vector
-	*/
-	for ( pos = 0, i = 0; i < 3; i++ )
-	{
-		if ( fabs( src[i] ) < minelem )
-		{
-			pos = i;
-			minelem = fabs( src[i] );
-		}
-	}
-	tempvec[0] = tempvec[1] = tempvec[2] = 0.0F;
-	tempvec[pos] = 1.0F;
-
-	/*
-	** project the point onto the plane defined by src
-	*/
-	ProjectPointOnPlane( dst, tempvec, src );
-
-	/*
-	** normalize the result
-	*/
-	VectorNormalize( dst );
-}
-
 
 /*
 ====================
@@ -143,8 +54,8 @@ uint ShortToFloat( word y )
 	int e = (y >> 10) & 0x0000001f;
 	int m =  y & 0x000003ff;
 
-	//float: 1 sign bit, 8 exponent bits, 23 mantissa bits
-	//half: 1 sign bit, 5 exponent bits, 10 mantissa bits
+	// float: 1 sign bit, 8 exponent bits, 23 mantissa bits
+	// half: 1 sign bit, 5 exponent bits, 10 mantissa bits
 
 	if (e == 0)
 	{

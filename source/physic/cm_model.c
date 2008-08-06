@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "cm_local.h"
+#include "matrixlib.h"
 
 clipmap_t		cm;
 studio_t		studio;
@@ -81,6 +82,7 @@ CM_FreeModel
 */
 void CM_FreeModel( cmodel_t *mod )
 {
+	Msg("free model %s\n", mod->name );
 	Mem_FreePool( &mod->mempool );
 	memset( mod, 0, sizeof(*mod));
 	mod = NULL;
@@ -882,7 +884,7 @@ void CM_FreeBSP( void )
 	CM_FreeWorld();
 	for( i = 0, mod = &cm.cmodels[0]; i < cm.numcmodels; i++, mod++)
 	{
-		CM_FreeModel( mod );
+		if( mod->name ) CM_FreeModel( mod );
 	}
 }
 
@@ -1063,10 +1065,10 @@ void CM_EndRegistration( void )
 	cmodel_t	*mod;
 	int	i;
 
-	for (i = 0, mod = &cm.cmodels[0]; i < cm.numcmodels; i++, mod++)
+	for( i = 0, mod = &cm.cmodels[0]; i < cm.numcmodels; i++, mod++)
 	{
 		if(!mod->name[0]) continue;
-		if(mod->registration_sequence != registration_sequence)
+		if( mod->registration_sequence != registration_sequence )
 			CM_FreeModel( mod );
 	}
 }
@@ -1214,20 +1216,16 @@ void CM_StudioSetupBones( void )
 	mstudiobone_t	*pbones;
 	static float	pos[MAXSTUDIOBONES][3];
 	static vec4_t	q[MAXSTUDIOBONES];
-	matrix3x4		bonematrix;
+	matrix4x4		bonematrix;
 
 	CM_StudioCalcRotations( pos, q );
 	pbones = (mstudiobone_t *)((byte *)studio.hdr + studio.hdr->boneindex);
 
 	for (i = 0; i < studio.hdr->numbones; i++) 
 	{
-		QuaternionMatrix( q[i], bonematrix );
-		bonematrix[0][3] = pos[i][0];
-		bonematrix[1][3] = pos[i][1];
-		bonematrix[2][3] = pos[i][2];
-
-		if (pbones[i].parent == -1) R_ConcatTransforms (studio.rotmatrix, bonematrix, studio.bones[i]);
-		else R_ConcatTransforms(studio.bones[pbones[i].parent], bonematrix, studio.bones[i]);
+		Matrix4x4_FromOriginQuat( bonematrix, pos[i][0], pos[i][1], pos[i][2], q[i][0], q[i][1], q[i][2], q[i][3] );
+		if( pbones[i].parent == -1 ) Matrix4x4_ConcatTransforms( studio.bones[i], studio.rotmatrix, bonematrix );
+		else Matrix4x4_ConcatTransforms( studio.bones[i], studio.bones[pbones[i].parent], bonematrix );
 	}
 }
 
@@ -1344,6 +1342,8 @@ bool CM_StudioModel( byte *buffer, uint filesize )
 
 	loadmodel->numbodies = 0;
 	loadmodel->type = mod_studio;
+	loadmodel->extradata = Mem_Alloc( loadmodel->mempool, filesize );
+	Mem_Copy( loadmodel->extradata, buffer, filesize );
 
 	// calcualte bounding box
 	pseqdesc = (mstudioseqdesc_t *)((byte *)phdr + phdr->seqindex);
@@ -1416,7 +1416,6 @@ cmodel_t *CM_RegisterModel( const char *name )
 			MsgDev(D_WARN, "CM_InlineModel: bad submodel number %d\n", i );
 			return NULL;
 		}
-
 		// prolonge registration
 		cm.bmodels[i].registration_sequence = registration_sequence;
 		return &cm.bmodels[i];

@@ -894,18 +894,6 @@ typedef struct cvar_s
 #define MAX_PARTICLES		32768	// pre one frame
 #define MAX_EDICTS			65535	// absolute limit that never be reached, (do not edit!)
 
-// entity_state_t->effects
-#define EF_ROTATE	         		(1<<0)		// rotate (bonus items)
-
-// entity_state_t->renderfx
-#define RF_MINLIGHT			(1<<0)		// allways have some light (viewmodel)
-#define RF_PLAYERMODEL		(1<<1)		// don't draw through eyes, only mirrors
-#define RF_VIEWMODEL		(1<<2)		// it's a viewmodel
-#define RF_FULLBRIGHT		(1<<3)		// allways draw full intensity
-#define RF_DEPTHHACK		(1<<4)		// for view weapon Z crunching
-#define RF_TRANSLUCENT		(1<<5)
-#define RF_IR_VISIBLE		(1<<6)		// skin is an index in image_precache
-
 // FIXME: player_state_t->renderfx
 #define RDF_NOWORLDMODEL		(1<<0)		// used for player configuration screen
 #define RDF_IRGOGGLES		(1<<1)
@@ -1027,6 +1015,7 @@ typedef struct cmodel_s
 	int	numframes;	// sprite framecount
 	int	numbodies;	// physmesh numbody
 	cmesh_t	*col[256];	// max bodies
+	byte	*extradata;	// server studio uses this
 
 	// g-cont: stupid pushmodel stuff
 	vec3_t	normalmins;	// bounding box at angles '0 0 0'
@@ -1150,6 +1139,7 @@ typedef struct
 	vec3_t		viewangles;
 	vec4_t		blend;		// rgba 0-1 full screen blend
 	float		time;		// time is used to auto animate
+	float		oldtime;		// oldtime using for lerping
 	uint		rdflags;		// RDF_UNDERWATER, etc
 	byte		*mempool;		// entities, dlights etc
 
@@ -1301,6 +1291,9 @@ typedef struct render_imp_s
 	void	(*StudioEvent)( mstudioevent_t *event, entity_state_t *ent );
 	void	(*ShowCollision)( cmdraw_t callback );	// debug
 	long	(*WndProc)( void *hWnd, uint uMsg, uint wParam, long lParam );
+	entity_state_t *(*GetClientEdict)( int index );
+	entity_state_t *(*GetLocalPlayer)( void );
+	int	(*GetMaxClients)( void );
 } render_imp_t;
 
 /*

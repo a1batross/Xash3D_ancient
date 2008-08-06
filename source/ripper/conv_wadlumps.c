@@ -130,7 +130,7 @@ bool ConvFLT( const char *name, char *buffer, int filesize )
 
 /*
 ============
-ConvFLT
+ConvFLP
 ============
 */
 bool ConvFLP( const char *name, char *buffer, int filesize )

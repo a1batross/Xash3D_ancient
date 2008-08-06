@@ -5,6 +5,7 @@
 
 #include "gl_local.h"
 #include "byteorder.h"
+#include "const.h"
 
 /*
 =============================================================
@@ -14,6 +15,7 @@
 =============================================================
 */
 string	frame_prefix;
+byte	*spr_palette;
 
 /*
 ====================
@@ -50,8 +52,10 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	pspriteframe->left = origin[0];
 	pspriteframe->right = width + origin[0];
           pspriteframe->texnum = 0;
-	spr_frame->type = PF_RGBA_32;
+	spr_frame->type = PF_INDEXED_32;
 	spr_frame->flags = IMAGE_HAS_ALPHA;
+	spr_frame->palette = spr_palette;
+	spr_frame->numLayers = 1;
 	spr_frame->numMips = 1;
 	
 	// extract sprite name from path
@@ -73,7 +77,7 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	return (dframetype_t *)((byte *)(pinframe + 1) + spr_frame->size);
 }
 
-dframetype_t *R_SpriteLoadGroup (rmodel_t *mod, void * pin, mspriteframe_t **ppframe, int framenum )
+dframetype_t *R_SpriteLoadGroup( rmodel_t *mod, void * pin, mspriteframe_t **ppframe, int framenum )
 {
 	dspritegroup_t	*pingroup;
 	mspritegroup_t	*pspritegroup;
@@ -113,14 +117,16 @@ dframetype_t *R_SpriteLoadGroup (rmodel_t *mod, void * pin, mspriteframe_t **ppf
 void R_SpriteLoadModel( rmodel_t *mod, void *buffer )
 {
 	dsprite_t		*pin;
+	short		*numi;
 	msprite_t		*psprite;
 	dframetype_t	*pframetype;
+	static byte	pal[256][4];
 	int		i, size, numframes;
 	
 	pin = (dsprite_t *)buffer;
 	i = LittleLong(pin->version);
 		
-	if( i != SPRITE_VERSION)
+	if( i != SPRITE_VERSION )
 	{
 		Msg("Warning: %s has wrong version number (%i should be %i)\n", mod->name, i, SPRITE_VERSION );
 		return;
@@ -134,27 +140,90 @@ void R_SpriteLoadModel( rmodel_t *mod, void *buffer )
 	mod->numtexinfo = 0; // reset frames
 	
 	psprite->type	= LittleLong(pin->type);
-	psprite->rendermode = LittleLong(pin->rendermode);
+	psprite->rendermode = LittleLong(pin->texFormat);
 	psprite->numframes	= numframes;
 	mod->mins[0] = mod->mins[1] = -LittleLong(pin->bounds[0]) / 2;
 	mod->maxs[0] = mod->maxs[1] = LittleLong(pin->bounds[0]) / 2;
 	mod->mins[2] = -LittleLong(pin->bounds[1]) / 2;
 	mod->maxs[2] = LittleLong(pin->bounds[1]) / 2;
-	pframetype = (dframetype_t *)(pin + 1);
+	numi = (short *)(pin + 1);
 
-	MsgDev(D_LOAD, "%s, rendermode %d\n", mod->name, psprite->rendermode );
-		
-	if(numframes < 1)
+	if( LittleShort(*numi) == 256 )
+	{	
+		byte *src = (byte *)(numi+1);
+
+		switch( psprite->rendermode )
+		{
+		case SPR_NORMAL:
+			for( i = 0; i < 256; i++ )
+			{
+				pal[i][0] = *src++;
+				pal[i][1] = *src++;
+				pal[i][2] = *src++;
+				pal[i][3] = 0;
+			}
+			break;
+		case SPR_ADDGLOW:
+		case SPR_ADDITIVE:
+			for( i = 0; i < 256; i++ )
+			{
+				pal[i][0] = *src++;
+				pal[i][1] = *src++;
+				pal[i][2] = *src++;
+				pal[i][3] = 255;
+			}
+			break;
+                    case SPR_INDEXALPHA:
+			for( i = 0; i < 256; i++ )
+			{
+				pal[i][0] = *src++;
+				pal[i][1] = *src++;
+				pal[i][2] = *src++;
+				pal[i][3] = i;
+			}
+			break;
+		case SPR_ALPHTEST:		
+			for( i = 0; i < 256; i++ )
+			{
+				pal[i][0] = *src++;
+				pal[i][1] = *src++;
+				pal[i][2] = *src++;
+				pal[i][3] = 255;
+			}
+			pal[255][0] = pal[255][1] = pal[255][2] = pal[255][3] = 0;
+                              break;
+		default:
+			for (i = 0; i < 256; i++)
+			{
+				pal[i][0] = *src++;
+				pal[i][1] = *src++;
+				pal[i][2] = *src++;
+				pal[i][3] = 0;
+			}
+			MsgDev( D_ERROR, "%s has unknown texFormat (%i, should be in range 0-4 )\n", mod->name, psprite->rendermode );
+			break;
+		}
+		pframetype = (dframetype_t *)(src);
+	}
+	else 
+	{
+		MsgDev( D_ERROR, "%s has wrong number of palette colors %i (should be 256)\n", mod->name, numi );
+		return;
+	}		
+	if( numframes < 1 )
 	{
 		MsgDev( D_ERROR, "%s has invalid # of frames: %d\n", mod->name, numframes );
 		return;
-	}	
+	}
+
+	MsgDev(D_LOAD, "%s, rendermode %d\n", mod->name, psprite->rendermode );
 
 	mod->registration_sequence = registration_sequence;
+	spr_palette = (byte *)(&pal[0][0]);
 
 	for (i = 0; i < numframes; i++ )
 	{
-		frametype_t frametype = LittleLong (pframetype->type);
+		frametype_t frametype = LittleLong( pframetype->type );
 		psprite->frames[i].type = frametype;
 
 		switch( frametype )
@@ -181,7 +250,7 @@ void R_SpriteLoadModel( rmodel_t *mod, void *buffer )
 R_GetSpriteFrame
 ================
 */
-mspriteframe_t *R_GetSpriteFrame( ref_entity_t *currententity )
+mspriteframe_t *R_GetSpriteFrame( ref_entity_t *m_pCurrentEntity )
 {
 	msprite_t		*psprite;
 	mspritegroup_t	*pspritegroup;
@@ -189,16 +258,16 @@ mspriteframe_t *R_GetSpriteFrame( ref_entity_t *currententity )
 	int		i, numframes, frame;
 	float		*pintervals, fullinterval, targettime, time;
 
-	psprite = currententity->model->extradata;
-	frame = currententity->frame;
+	psprite = m_pCurrentEntity->model->extradata;
+	frame = m_pCurrentEntity->frame;
 
-	if ((frame >= psprite->numframes) || (frame < 0))
+	if((frame >= psprite->numframes) || (frame < 0))
 	{
-		MsgDev(D_WARN, "R_GetSpriteFrame: no such frame %d (%s)\n", frame, currententity->model->name);
+		MsgDev( D_WARN, "R_GetSpriteFrame: no such frame %d (%s)\n", frame, m_pCurrentEntity->model->name );
 		frame = 0;
 	}
 
-	if (psprite->frames[frame].type == SPR_SINGLE)
+	if( psprite->frames[frame].type == SPR_SINGLE )
 	{
 		pspriteframe = psprite->frames[frame].frameptr;
 	}
@@ -214,17 +283,17 @@ mspriteframe_t *R_GetSpriteFrame( ref_entity_t *currententity )
 		// are positive, so we don't have to worry about division by zero
 		targettime = time - ((int)(time / fullinterval)) * fullinterval;
 
-		for (i = 0; i < (numframes - 1); i++)
+		for( i = 0; i < (numframes - 1); i++ )
 		{
 			if (pintervals[i] > targettime)
 				break;
 		}
 		pspriteframe = pspritegroup->frames[i];
 	}
-	else if (psprite->frames[frame].type == SPR_ANGLED)
+	else if( psprite->frames[frame].type == SPR_ANGLED )
 	{
 		// e.g. doom-style sprite monsters
-		int angleframe = (int)((r_newrefdef.viewangles[1] - currententity->angles[1])/360*8 + 0.5 - 4) & 7;
+		int angleframe = (int)((r_newrefdef.viewangles[1] - m_pCurrentEntity->angles[1])/360*8 + 0.5 - 4) & 7;
 		pspritegroup = (mspritegroup_t *)psprite->frames[frame].frameptr;
 		pspriteframe = pspritegroup->frames[angleframe];
 	}
@@ -233,24 +302,26 @@ mspriteframe_t *R_GetSpriteFrame( ref_entity_t *currententity )
 
 bool R_AcceptSpritePass( ref_entity_t *e, int pass )
 {
-	msprite_t	*psprite = (msprite_t *)currentmodel->extradata;
+	msprite_t	*psprite = (msprite_t *)m_pRenderModel->extradata;
 
-	if(pass == RENDERPASS_SOLID)
+	if( pass == RENDERPASS_SOLID )
 	{
 		// pass for solid ents
-		if(psprite->rendermode == SPR_SOLID) return true;	// solid sprite
-		if(psprite->rendermode == SPR_GLOW) return false;	// draw it at second pass
-		if(psprite->rendermode == SPR_ADDITIVE) return false;	// must be draw first always
-		if(psprite->rendermode == SPR_ALPHA) return false;	// already blended by alphatest
+		if( psprite->rendermode == SPR_NORMAL ) return true;	// solid sprite
+		if( psprite->rendermode == SPR_ADDGLOW ) return false;	// draw it at second pass
+		if( psprite->rendermode == SPR_ADDITIVE ) return false;	// must be draw first always
+		if( psprite->rendermode == SPR_ALPHTEST ) return true;	// already blended by alphatest
+		if( psprite->rendermode == SPR_INDEXALPHA ) return true;	// already blended by alphatest
 	}	
-	if(pass == RENDERPASS_ALPHA)
+	if( pass == RENDERPASS_ALPHA )
 	{
 		// pass for blended ents
-		if(e->flags & RF_TRANSLUCENT) return true;		// solid sprite with custom blend
-		if(psprite->rendermode == SPR_SOLID) return false;	// solid sprite
-		if(psprite->rendermode == SPR_GLOW) return true;		// can draw
-		if(psprite->rendermode == SPR_ADDITIVE) return true;	// can draw
-		if(psprite->rendermode == SPR_ALPHA) return true;		// already drawed
+		if( e->renderfx & RF_TRANSLUCENT ) return true;		// solid sprite with custom blend
+		if( psprite->rendermode == SPR_NORMAL ) return false;	// solid sprite
+		if( psprite->rendermode == SPR_ADDGLOW ) return true;	// can draw
+		if( psprite->rendermode == SPR_ADDITIVE ) return true;	// can draw
+		if( psprite->rendermode == SPR_ALPHTEST ) return false;	// already drawed
+		if( psprite->rendermode == SPR_INDEXALPHA ) return false;	// already drawed
 	}
 	return true;
 }
@@ -260,17 +331,17 @@ void R_SpriteSetupLighting( rmodel_t *mod )
 	int i;
 	vec3_t	vlight = {0.0f, 0.0f, -1.0f}; // get light from floor
 
-	if(currententity->flags & RF_FULLBRIGHT)
+	if(m_pCurrentEntity->renderfx & RF_FULLBRIGHT)
 	{
 		for (i = 0; i < 3; i++)
 			mod->lightcolor[i] = 1.0f;
 	}
 	else
 	{
-		R_LightPoint( currententity->origin, mod->lightcolor );
+		R_LightPoint( m_pCurrentEntity->origin, mod->lightcolor );
 
 		// doom sprite models	
-		if( currententity->flags & RF_VIEWMODEL )
+		if( m_pCurrentEntity->renderfx & RF_VIEWMODEL )
 			r_lightlevel->value = bound(0, VectorLength(mod->lightcolor) * 75.0f, 255); 
 
 	}
@@ -280,8 +351,8 @@ void R_DrawSpriteModel( int passnum )
 {
 	mspriteframe_t	*frame;
 	vec3_t		point, forward, right, up;
-	ref_entity_t 		*e = currententity;
-	rmodel_t		*mod = currentmodel;
+	ref_entity_t 		*e = m_pCurrentEntity;
+	rmodel_t		*mod = m_pRenderModel;
 	float		alpha = 1.0f, angle, sr, cr;
 	vec3_t		distance;
 	msprite_t		*psprite;
@@ -297,7 +368,7 @@ void R_DrawSpriteModel( int passnum )
 	frame = R_GetSpriteFrame(e);
 
 	// merge alpha value
-	if( e->flags & RF_TRANSLUCENT ) alpha = e->alpha;
+	if( e->renderfx & RF_TRANSLUCENT ) alpha = e->renderamt;
 	if( e->scale == 0 ) e->scale = 1.0f; // merge scale
 
 	R_SpriteSetupLighting( mod );
@@ -350,27 +421,29 @@ void R_DrawSpriteModel( int passnum )
 	// setup rendermode
 	switch( psprite->rendermode )
 	{
-	case SPR_SOLID:
+	case SPR_NORMAL:
 		// solid sprite ignore color and light values
 		break;
-	case SPR_GLOW:
+	case SPR_ADDGLOW:
+		//FIXME: get to work
 		VectorCopy( r_origin, distance );
 		alpha = VectorLength( distance ) * 0.001;
 		e->scale = 1/(alpha * 1.5);
 		// intentional falltrough
 	case SPR_ADDITIVE:
 		GL_EnableBlend();
-		pglBlendFunc(GL_SRC_ALPHA, GL_ONE);
+		pglBlendFunc( GL_SRC_ALPHA, GL_ONE );
 		pglColor4f( 1.0f, 1.0f, 1.0f, alpha );
 		break;
-	case SPR_ALPHA:
+	case SPR_ALPHTEST:
+	case SPR_INDEXALPHA:
 		GL_EnableBlend();
-		pglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		pglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 		pglColor4f( mod->lightcolor[0], mod->lightcolor[1], mod->lightcolor[2], 1.0f );
 		break;
 	}                    			
 
-	if (currententity->flags & RF_DEPTHHACK) // hack the depth range to prevent view model from poking into walls
+	if (m_pCurrentEntity->renderfx & RF_DEPTHHACK) // hack the depth range to prevent view model from poking into walls
 		pglDepthRange (gldepthmin, gldepthmin + 0.3 * (gldepthmax-gldepthmin));
 
 	pglDisable(GL_CULL_FACE);
@@ -401,7 +474,7 @@ void R_DrawSpriteModel( int passnum )
 	GL_EnableDepthTest();
 	GL_TexEnv(GL_REPLACE);
 	pglEnable(GL_CULL_FACE);
-	if(e->flags & RF_DEPTHHACK) pglDepthRange (gldepthmin, gldepthmax);
+	if(e->renderfx & RF_DEPTHHACK) pglDepthRange (gldepthmin, gldepthmax);
 	pglColor4f( 1, 1, 1, 1 );
 
 }

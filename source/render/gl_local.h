@@ -54,10 +54,6 @@ extern dll_info_t opengl_dll;
 
 // r_utils.c
 void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );
-void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal );
-void PerpendicularVector( vec3_t dst, const vec3_t src );
-void R_ConcatRotations (float in1[3][3], float in2[3][3], float out[3][3]);
-void R_ConcatTransforms (float in1[3][4], float in2[3][4], float out[3][4]);
 
 #define Host_Error com.error
 
@@ -122,13 +118,13 @@ extern image_t	*r_notexture;
 extern image_t	*r_particletexture;
 extern image_t	*r_radarmap;
 extern image_t	*r_around;
-extern ref_entity_t	*currententity;
-extern rmodel_t		*currentmodel;
-extern int			r_visframecount;
-extern int			r_framecount;
+extern rmodel_t *m_pRenderModel;
+extern ref_entity_t *m_pCurrentEntity;
+extern int	r_visframecount;
+extern int	r_framecount;
 extern cplane_t	frustum[4];
-extern int			c_brush_polys;
-
+extern int	c_brush_polys;
+extern int	m_pStudioModelCount;
 
 extern	int			gl_filter_min, gl_filter_max;
 
@@ -147,6 +143,7 @@ extern	refdef_t	r_newrefdef;
 extern	int	r_viewcluster, r_viewcluster2, r_oldviewcluster, r_oldviewcluster2;
 
 extern	cvar_t	*r_check_errors;
+extern	cvar_t	*r_hqmodels;
 extern	cvar_t	*r_norefresh;
 extern	cvar_t	*r_lefthand;
 extern	cvar_t	*r_drawentities;
@@ -448,12 +445,9 @@ BUILT-IN MATHLIB FUNCTIONS
 ====================================================================
 */
 
-void VectorTransform (const vec3_t in1, matrix3x4 in2, vec3_t out);
 void AngleQuaternion( float *angles, vec4_t quaternion );
-void QuaternionMatrix( vec4_t quaternion, float (*matrix)[4] );
 void QuaternionSlerp( vec4_t p, vec4_t q, float t, vec4_t qt );
 void AngleMatrix (const float *angles, float (*matrix)[4] );
-void MatrixCopy( matrix3x4 in, matrix3x4 out );
 
 uint ShortToFloat( word y );
 void R_DXTReadColor(word data, color32* out);

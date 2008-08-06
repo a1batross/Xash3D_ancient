@@ -206,35 +206,11 @@ _inline bool VectorCompare (const vec3_t v1, const vec3_t v2)
 	return true;
 }
 
-_inline bool VectorICompare( const int* v1, const int* v2 )
-{
-	int		i;
-	
-	for( i = 0; i < 3; i++ )
-		if( abs(v1[i] - v2[i]) > 0)
-			return false;
-	return true;
-}
-
-_inline void VectorRotate (const vec3_t in1, vec3_t in2[3], vec3_t out)
-{
-	out[0] = DotProduct(in1, in2[0]);
-	out[1] = DotProduct(in1, in2[1]);
-	out[2] = DotProduct(in1, in2[2]);
-}
-
-// rotate by the inverse of the matrix
-_inline void VectorIRotate (const vec3_t in1, const matrix3x4 in2, vec3_t out)
-{
-	out[0] = in1[0] * in2[0][0] + in1[1] * in2[1][0] + in1[2] * in2[2][0];
-	out[1] = in1[0] * in2[0][1] + in1[1] * in2[1][1] + in1[2] * in2[2][1];
-	out[2] = in1[0] * in2[0][2] + in1[1] * in2[1][2] + in1[2] * in2[2][2];
-}
-
 /*
 ====================
 VectorTransform
 
+FIXME: replace with Matrix4x4_Transform
 ====================
 */
 _inline void VectorTransform (const vec3_t in1, matrix3x4 in2, vec3_t out)
@@ -244,7 +220,7 @@ _inline void VectorTransform (const vec3_t in1, matrix3x4 in2, vec3_t out)
 	out[2] = DotProduct(in1, in2[2]) + in2[2][3];
 }
 
-_inline void CrossProduct (vec3_t v1, vec3_t v2, vec3_t cross)
+_inline void CrossProduct( vec3_t v1, vec3_t v2, vec3_t cross )
 {
 	cross[0] = v1[1]*v2[2] - v1[2]*v2[1];
 	cross[1] = v1[2]*v2[0] - v1[0]*v2[2];
@@ -282,26 +258,6 @@ _inline void VectorVectors(vec3_t forward, vec3_t right, vec3_t up)
 	VectorMA(right, -d, forward, right);
 	VectorNormalize(right);
 	CrossProduct(right, forward, up);
-}
-
-_inline void MatrixTranspose( matrix4x4 out, const matrix4x4 in1 )
-{
-	out[0][0] = in1[0][0];
-	out[0][1] = in1[1][0];
-	out[0][2] = in1[2][0];
-	out[0][3] = in1[3][0];
-	out[1][0] = in1[0][1];
-	out[1][1] = in1[1][1];
-	out[1][2] = in1[2][1];
-	out[1][3] = in1[3][1];
-	out[2][0] = in1[0][2];
-	out[2][1] = in1[1][2];
-	out[2][2] = in1[2][2];
-	out[2][3] = in1[3][2];
-	out[3][0] = in1[0][3];
-	out[3][1] = in1[1][3];
-	out[3][2] = in1[2][3];
-	out[3][3] = in1[3][3];
 }
 
 _inline void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
@@ -713,28 +669,6 @@ _inline void QuaternionAngles( vec4_t q, vec3_t angles )
 
 /*
 ====================
-QuaternionMatrix
-
-====================
-*/
-_inline void QuaternionMatrix( vec4_t quaternion, float (*matrix)[4] )
-{
-	matrix[0][0] = 1.0 - 2.0 * quaternion[1] * quaternion[1] - 2.0 * quaternion[2] * quaternion[2];
-	matrix[1][0] = 2.0 * quaternion[0] * quaternion[1] + 2.0 * quaternion[3] * quaternion[2];
-	matrix[2][0] = 2.0 * quaternion[0] * quaternion[2] - 2.0 * quaternion[3] * quaternion[1];
-
-	matrix[0][1] = 2.0 * quaternion[0] * quaternion[1] - 2.0 * quaternion[3] * quaternion[2];
-	matrix[1][1] = 1.0 - 2.0 * quaternion[0] * quaternion[0] - 2.0 * quaternion[2] * quaternion[2];
-	matrix[2][1] = 2.0 * quaternion[1] * quaternion[2] + 2.0 * quaternion[3] * quaternion[0];
-
-	matrix[0][2] = 2.0 * quaternion[0] * quaternion[2] + 2.0 * quaternion[3] * quaternion[1];
-	matrix[1][2] = 2.0 * quaternion[1] * quaternion[2] - 2.0 * quaternion[3] * quaternion[0];
-	matrix[2][2] = 1.0 - 2.0 * quaternion[0] * quaternion[0] - 2.0 * quaternion[1] * quaternion[1];
-}
-
-
-/*
-====================
 QuaternionSlerp
 
 ====================
@@ -834,26 +768,6 @@ _inline void R_ConcatTransforms( matrix3x4 in1, matrix3x4 in2, matrix3x4 out )
 	out[2][3] = in1[2][0] * in2[0][3] + in1[2][1] * in2[1][3] + in1[2][2] * in2[2][3] + in1[2][3];
 }
 
-_inline void MatrixConcat( matrix4x4 out, const matrix4x4 in1, const matrix4x4 in2 )
-{
-	out[0][0] = in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0] + in1[0][2] * in2[2][0] + in1[0][3] * in2[3][0];
-	out[0][1] = in1[0][0] * in2[0][1] + in1[0][1] * in2[1][1] + in1[0][2] * in2[2][1] + in1[0][3] * in2[3][1];
-	out[0][2] = in1[0][0] * in2[0][2] + in1[0][1] * in2[1][2] + in1[0][2] * in2[2][2] + in1[0][3] * in2[3][2];
-	out[0][3] = in1[0][0] * in2[0][3] + in1[0][1] * in2[1][3] + in1[0][2] * in2[2][3] + in1[0][3] * in2[3][3];
-	out[1][0] = in1[1][0] * in2[0][0] + in1[1][1] * in2[1][0] + in1[1][2] * in2[2][0] + in1[1][3] * in2[3][0];
-	out[1][1] = in1[1][0] * in2[0][1] + in1[1][1] * in2[1][1] + in1[1][2] * in2[2][1] + in1[1][3] * in2[3][1];
-	out[1][2] = in1[1][0] * in2[0][2] + in1[1][1] * in2[1][2] + in1[1][2] * in2[2][2] + in1[1][3] * in2[3][2];
-	out[1][3] = in1[1][0] * in2[0][3] + in1[1][1] * in2[1][3] + in1[1][2] * in2[2][3] + in1[1][3] * in2[3][3];
-	out[2][0] = in1[2][0] * in2[0][0] + in1[2][1] * in2[1][0] + in1[2][2] * in2[2][0] + in1[2][3] * in2[3][0];
-	out[2][1] = in1[2][0] * in2[0][1] + in1[2][1] * in2[1][1] + in1[2][2] * in2[2][1] + in1[2][3] * in2[3][1];
-	out[2][2] = in1[2][0] * in2[0][2] + in1[2][1] * in2[1][2] + in1[2][2] * in2[2][2] + in1[2][3] * in2[3][2];
-	out[2][3] = in1[2][0] * in2[0][3] + in1[2][1] * in2[1][3] + in1[2][2] * in2[2][3] + in1[2][3] * in2[3][3];
-	out[3][0] = in1[3][0] * in2[0][0] + in1[3][1] * in2[1][0] + in1[3][2] * in2[2][0] + in1[3][3] * in2[3][0];
-	out[3][1] = in1[3][0] * in2[0][1] + in1[3][1] * in2[1][1] + in1[3][2] * in2[2][1] + in1[3][3] * in2[3][1];
-	out[3][2] = in1[3][0] * in2[0][2] + in1[3][1] * in2[1][2] + in1[3][2] * in2[2][2] + in1[3][3] * in2[3][2];
-	out[3][3] = in1[3][0] * in2[0][3] + in1[3][1] * in2[1][3] + in1[3][2] * in2[2][3] + in1[3][3] * in2[3][3];
-}
-
 _inline void TransformRGB( vec3_t in, vec3_t out )
 {
 	out[0] = in[0]/255.0f;
@@ -922,28 +836,6 @@ _inline vec_t ColorNormalize (vec3_t in, vec3_t out)
 	scale = 1.0 / max;
 	VectorScale (in, scale, out);
 	return max;
-}
-
-_inline int ColorStrlen( const char *string )
-{
-	int		len;
-	const char	*p;
-
-	if( !string ) return 0;
-
-	len = 0;
-	p = string;
-	while( *p )
-	{
-		if(IsColorString( p ))
-		{
-			p += 2;
-			continue;
-		}
-		p++;
-		len++;
-	}
-	return len;
 }
 
 _inline void PlaneClassify( cplane_t *p )

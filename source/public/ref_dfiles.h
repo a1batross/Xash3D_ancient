@@ -10,12 +10,12 @@
 
 SPRITE MODELS
 
-.spr32 extended version (Darkplaces non-paletted 32-bit sprites)
+.spr extended version (Half-Life compatible sprites with some xash extensions)
 ==============================================================================
 */
 
 #define IDSPRITEHEADER	(('P'<<24)+('S'<<16)+('D'<<8)+'I')	// little-endian "IDSP"
-#define SPRITE_VERSION	32				// DarkPlaces SPR32
+#define SPRITE_VERSION	2				// Half-Life sprites
 
 typedef enum
 {
@@ -27,15 +27,16 @@ typedef enum
 {
 	SPR_SINGLE = 0,
 	SPR_GROUP,
-	SPR_ANGLED
+	SPR_ANGLED			// xash ext
 } frametype_t;
 
 typedef enum
 {
-	SPR_SOLID = 0,
+	SPR_NORMAL = 0,
 	SPR_ADDITIVE,
-	SPR_GLOW,
-	SPR_ALPHA
+	SPR_INDEXALPHA,
+	SPR_ALPHTEST,
+	SPR_ADDGLOW			// xash ext
 } drawtype_t;
 
 typedef enum
@@ -45,8 +46,6 @@ typedef enum
 	SPR_FWD_PARALLEL,
 	SPR_ORIENTED,
 	SPR_FWD_PARALLEL_ORIENTED,
-	SPR_LABEL,			// DP extension
-	SPR_LABEL_SCALE,
 } angletype_t; 
 
 typedef enum
@@ -61,7 +60,8 @@ typedef struct
 	int		ident;		// LittleLong 'ISPR'
 	int		version;		// current version 3
 	angletype_t	type;		// camera align
-	drawtype_t	rendermode;	// rendering mode (Xash3D ext)
+	drawtype_t	texFormat;	// rendering mode (Xash3D ext)
+	int		boundingradius;	// quick face culling
 	int		bounds[2];	// minsmaxs
 	int		numframes;	// including groups
 	facetype_t	facetype;		// cullface (Xash3D ext)
@@ -401,6 +401,27 @@ typedef struct
 
 /*
 ========================================================================
+.MIP image format	( Half-Life textures )
+
+<format>
+header:	dmip_t[dmip_t]
+mipmap1:	byte[dmip_t->width>>0*dmip_t->height>>0];
+mipmap2:	byte[dmip_t->width>>1*dmip_t->height>>1];
+mipmap3:	byte[dmip_t->width>>2*dmip_t->height>>2];
+mipmap4:	byte[dmip_t->width>>3*dmip_t->height>>3];
+byte:	palette[768]
+========================================================================
+*/
+typedef struct dmip_s
+{
+	char	name[16];
+	uint	width;
+	uint	height;
+	uint	offsets[4];	// four mip maps stored
+} dmip_t;
+
+/*
+========================================================================
 .WAD archive format	(WhereAllData - WAD)
 
 List of compressed files, that can be identify only by TYPE_*
@@ -437,10 +458,10 @@ infotable	dlumpinfo_t[dwadinfo_t->numlumps]
 #define	TYPE_QPAL		64	// quake palette
 #define	TYPE_QTEX		65	// probably was never used
 #define	TYPE_QPIC		66	// quake1 and hl pic (lmp_t)
-#define	TYPE_MIPTEX2	67	// half-life (mip_t) previous TYP_SOUND but never used in quake1
+#define	TYPE_MIPTEX2	67	// half-life (dmip_t) previous was TYP_SOUND but never used in quake1
 #define	TYPE_MIPTEX	68	// quake1 (mip_t)
 #define	TYPE_RAW		69	// raw data
-#define	TYPE_QFONT	70	// half-life font	(qfont_t)
+#define	TYPE_QFONT	70	// half-life font (qfont_t)
 #define	TYPE_VPROGS	71	// Xash3D QC compiled progs
 #define	TYPE_SCRIPT	72	// txt script file (e.g. shader)
 #define	TYPE_GFXPIC	73	// any known image format
@@ -459,9 +480,9 @@ typedef struct
 // doom1 and doom2 lump header
 typedef struct
 {
-    int			filepos;
-    int			size;
-    char			name[8];
+	int		filepos;
+	int		size;
+	char		name[8];		// null not included
 } dlumpfile_t;
 
 // quake1 and half-life lump header
@@ -474,7 +495,7 @@ typedef struct
 	char		compression;	// probably not used
 	char		pad1;
 	char		pad2;
-	char		name[16];	// must be null terminated
+	char		name[16];		// must be null terminated
 } dlumpinfo_t;
 
 /*
@@ -541,12 +562,16 @@ Studio models are position independent, so the cache manager can move them.
 #define STUDIO_TYPES		0x7FFF
 #define STUDIO_RLOOP		0x8000	// controller that wraps shortest distance
 
+// bonecontroller types
+#define STUDIO_MOUTH		4
+
 // sequence flags
 #define STUDIO_LOOPING		0x0001
 
 // render flags
 #define STUDIO_RENDER		0x0001
 #define STUDIO_EVENTS		0x0002
+#define STUDIO_MIRROR		0x0004	// a local player in mirror 
 
 // bone flags
 #define STUDIO_HAS_NORMALS		0x0001

@@ -42,6 +42,13 @@ typedef enum
 	R_EXTCOUNT
 } r_opengl_extensions;
 
+typedef struct
+{
+	byte		open;		// 0 = mouth closed, 255 = mouth agape
+	byte		sndcount;		// counter for running average
+	int		sndavg;		// running average
+} mouth_t;
+
 typedef struct latchedvars_s
 {
 	float		animtime;
@@ -49,6 +56,7 @@ typedef struct latchedvars_s
 	vec3_t		origin;
 	vec3_t		angles;		
 
+	vec3_t		gaitorigin;
 	int		sequence;
 	float		frame;
 
@@ -61,40 +69,48 @@ typedef struct latchedvars_s
 // client entity
 typedef struct ref_entity_s
 {
+	edtype_t		ent_type;		// entity type
+	int		index;		// entity index
 	rmodel_t		*model;		// opaque type outside refresh
 	rmodel_t		*weaponmodel;	// opaque type outside refresh	
 
 	latchedvars_t	prev;		// previous frame values for lerping
 	
 	vec3_t		angles;
-	vec3_t		origin;		// also used as RF_BEAM's "from"
-	float		oldorigin[3];	// also used as RF_BEAM's "to"
+	vec3_t		origin;		// position
 
-          float		animtime;	
+	float		framerate;	// custom framerate
+          float		animtime;		// lerping animtime	
 	float		frame;		// also used as RF_BEAM's diameter
-	float		framerate;
 
 	int		body;
 	int		skin;
 	
 	byte		blending[MAXSTUDIOBLENDS];
+	vec3_t		attachment[MAXSTUDIOATTACHMENTS];
 	byte		controller[MAXSTUDIOCONTROLLERS];
-	byte		mouth;		//TODO: move to struct
+	mouth_t		mouth;		// for synchronizing mouth movements.
 	
-          int		movetype;		//entity moving type
+          int		movetype;		// entity moving type
 	int		sequence;
 	float		scale;
 	
-	vec3_t		attachment[MAXSTUDIOATTACHMENTS];
-	
 	// misc
 	float		backlerp;		// 0.0 = current, 1.0 = old
-	int		skinnum;		// also used as RF_BEAM's palette index
+	vec3_t		rendercolor;	// hl1 rendercolor
+	float		renderamt;	// hl1 alphavalues
+	int		renderfx;		// server will be translate hl1 values into flags
+	int		colormap;		// q1 and hl1 model colormap (can applied for sprites)
+	int		effects;		// q1 effect flags, EF_ROTATE, EF_DIMLIGHT etc
 
-	int		lightstyle;	// for flashing entities
-	float		alpha;		// ignore if RF_TRANSLUCENT isn't set
-	int		flags;
-
+	// these values will be calculated locally, not from entity_state
+	vec3_t		realangles;
+	int		m_fSequenceLoops;
+	int		m_fSequenceFinished;
+	int		renderframe;	// using for gait cycle	
+	int		gaitsequence;	// client->sequence + yaw
+	float		gaitframe;	// client->frame + yaw
+	float		gaityaw;		// local value
 } ref_entity_t;
 
 typedef struct lightstyle_s

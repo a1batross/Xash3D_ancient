@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // GL_RSURF.C: surface-related refresh code
 #include "gl_local.h"
 #include "r_mirror.h"
+#include "const.h"
 
 static vec3_t	modelorg;		// relative to viewpoint
 
@@ -85,7 +86,7 @@ image_t *R_TextureAnimation (mtexinfo_t *tex)
 
 	if (!tex->next) return tex->image;
 
-	c = (int)currententity->frame % tex->numframes;
+	c = (int)m_pCurrentEntity->frame % tex->numframes;
 	while (c)
 	{
 		tex = tex->next;
@@ -287,7 +288,7 @@ void R_BlendLightmaps (void)
 		}
 	}
 
-	if ( currentmodel == r_worldmodel )
+	if ( m_pRenderModel == r_worldmodel )
 		c_visible_lightmaps = 0;
 
 	/*
@@ -297,7 +298,7 @@ void R_BlendLightmaps (void)
 	{
 		if ( gl_lms.lightmap_surfaces[i] )
 		{
-			if (currentmodel == r_worldmodel)
+			if (m_pRenderModel == r_worldmodel)
 				c_visible_lightmaps++;
 			GL_Bind( gl_state.lightmap_textures + i);
 
@@ -318,7 +319,7 @@ void R_BlendLightmaps (void)
 
 		GL_Bind( gl_state.lightmap_textures+0 );
 
-		if (currentmodel == r_worldmodel)
+		if (m_pRenderModel == r_worldmodel)
 			c_visible_lightmaps++;
 
 		newdrawsurf = gl_lms.lightmap_surfaces[0];
@@ -807,13 +808,13 @@ void R_DrawInlineBModel (void)
 		lt = r_newrefdef.dlights;
 		for (k=0 ; k<r_newrefdef.num_dlights ; k++, lt++)
 		{
-			R_MarkLights (lt, 1<<k, currentmodel->nodes + currentmodel->firstnode);
+			R_MarkLights (lt, 1<<k, m_pRenderModel->nodes + m_pRenderModel->firstnode);
 		}
 	}
 
-	psurf = &currentmodel->surfaces[currentmodel->firstmodelsurface];
+	psurf = &m_pRenderModel->surfaces[m_pRenderModel->firstmodelsurface];
 
-	if ( currententity->flags & RF_TRANSLUCENT )
+	if ( m_pCurrentEntity->renderfx & RF_TRANSLUCENT )
 	{
 		GL_EnableBlend();
 		pglBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -824,7 +825,7 @@ void R_DrawInlineBModel (void)
 	//
 	// draw texture
 	//
-	for (i=0 ; i<currentmodel->nummodelsurfaces ; i++, psurf++)
+	for (i=0 ; i<m_pRenderModel->nummodelsurfaces ; i++, psurf++)
 	{
 		// find which side of the node we are on
 		pplane = psurf->plane;
@@ -844,7 +845,7 @@ void R_DrawInlineBModel (void)
 			{
 				mirror = true;
 				psurf->texturechain = mirrorchain;
-				mirror_entity = currententity;
+				mirror_entity = m_pCurrentEntity;
 				mirrorchain = psurf;
 				continue;
 			}
@@ -861,7 +862,7 @@ void R_DrawInlineBModel (void)
 		}
 	}
 
-	if(!(currententity->flags & RF_TRANSLUCENT) )
+	if(!(m_pCurrentEntity->renderfx & RF_TRANSLUCENT) )
 	{
 		if( !pglMultiTexCoord2f )
 			R_BlendLightmaps();
@@ -884,15 +885,15 @@ void R_DrawBrushModel ( int passnum )
 	vec3_t		mins, maxs;
 	int		i;
 	bool		rotated;
-	ref_entity_t 		*e = currententity;
+	ref_entity_t 		*e = m_pCurrentEntity;
 
-	if ( (e->flags & RF_TRANSLUCENT) && (passnum == RENDERPASS_SOLID)) return;// solid
-	if (!(e->flags & RF_TRANSLUCENT) && (passnum == RENDERPASS_ALPHA)) return;// solid
+	if ( (e->renderfx & RF_TRANSLUCENT) && (passnum == RENDERPASS_SOLID)) return;// solid
+	if (!(e->renderfx & RF_TRANSLUCENT) && (passnum == RENDERPASS_ALPHA)) return;// solid
 
-	if (currentmodel->nummodelsurfaces == 0)
+	if (m_pRenderModel->nummodelsurfaces == 0)
 		return;
 
-	//currententity = e;
+	//m_pCurrentEntity = e;
 	gl_state.texNum[0] = gl_state.texNum[1] = -1;
 
 	if( !VectorIsNull( e->angles ))
@@ -900,15 +901,15 @@ void R_DrawBrushModel ( int passnum )
 		rotated = true;
 		for( i = 0; i < 3; i++ )
 		{
-			mins[i] = e->origin[i] - currentmodel->radius;
-			maxs[i] = e->origin[i] + currentmodel->radius;
+			mins[i] = e->origin[i] - m_pRenderModel->radius;
+			maxs[i] = e->origin[i] + m_pRenderModel->radius;
 		}
 	}
 	else
 	{
 		rotated = false;
-		VectorAdd (e->origin, currentmodel->mins, mins);
-		VectorAdd (e->origin, currentmodel->maxs, maxs);
+		VectorAdd (e->origin, m_pRenderModel->mins, mins);
+		VectorAdd (e->origin, m_pRenderModel->maxs, maxs);
 	}
 
 	if (R_CullBox (mins, maxs))
@@ -1149,14 +1150,14 @@ void R_DrawWorld (void)
 	if ( r_newrefdef.rdflags & RDF_NOWORLDMODEL )
 		return;
 
-	currentmodel = r_worldmodel;
+	m_pRenderModel = r_worldmodel;
 
 	VectorCopy (r_newrefdef.vieworg, modelorg);
 
 	// auto cycle the world frame for texture animation
 	memset (&ent, 0, sizeof(ent));
 	ent.frame = (int)(r_newrefdef.time * 6.0f);
-	currententity = &ent;
+	m_pCurrentEntity = &ent;
 
 	gl_state.texNum[0] = gl_state.texNum[1] = -1;
 
@@ -1405,7 +1406,7 @@ void GL_BuildPolygonFromSurface(msurface_t *fa)
 	vec3_t		total;
 
 	// reconstruct the polygon
-	pedges = currentmodel->edges;
+	pedges = m_pRenderModel->edges;
 	lnumverts = fa->numedges;
 	vertpage = 0;
 
@@ -1421,17 +1422,17 @@ void GL_BuildPolygonFromSurface(msurface_t *fa)
 
 	for( i = 0; i < lnumverts; i++ )
 	{
-		lindex = currentmodel->surfedges[fa->firstedge + i];
+		lindex = m_pRenderModel->surfedges[fa->firstedge + i];
 
 		if( lindex > 0 )
 		{
 			r_pedge = &pedges[lindex];
-			vec = currentmodel->vertexes[r_pedge->v[0]].position;
+			vec = m_pRenderModel->vertexes[r_pedge->v[0]].position;
 		}
 		else
 		{
 			r_pedge = &pedges[-lindex];
-			vec = currentmodel->vertexes[r_pedge->v[1]].position;
+			vec = m_pRenderModel->vertexes[r_pedge->v[1]].position;
 		}
 		s = DotProduct( vec, fa->texinfo->vecs[0]) + fa->texinfo->vecs[0][3];
 		if( fa->texinfo->size[0] != -1 ) s /= fa->texinfo->size[0];

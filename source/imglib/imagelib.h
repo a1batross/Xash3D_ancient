@@ -39,10 +39,12 @@ rgbdata_t *Image_Load(const char *filename, const byte *buffer, size_t buffsize 
 //
 // formats
 //
+bool Image_LoadMIP( const char *name, const byte *buffer, size_t filesize );
+bool Image_SaveMIP( const char *name, rgbdata_t *pix, int saveformat );
 bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize );
-bool Image_SaveTGA( const char *name, rgbdata_t *pix, int saveformat);
+bool Image_SaveTGA( const char *name, rgbdata_t *pix, int saveformat );
 bool Image_LoadDDS( const char *name, const byte *buffer, size_t filesize );
-bool Image_SaveDDS( const char *name, rgbdata_t *pix, int saveformat);
+bool Image_SaveDDS( const char *name, rgbdata_t *pix, int saveformat );
 
 //
 // img_utils.c

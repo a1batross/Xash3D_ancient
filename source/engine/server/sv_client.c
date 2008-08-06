@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "common.h"
+#include "const.h"
 #include "server.h"
 
 typedef struct ucmd_s

@@ -211,8 +211,8 @@ typedef struct studio_s
 	studiohdr_t	*hdr;
 	mstudiomodel_t	*submodel;
 	mstudiobodyparts_t	*bodypart;
-	matrix3x4		rotmatrix;
-	matrix3x4		bones[MAXSTUDIOBONES];
+	matrix4x4		rotmatrix;
+	matrix4x4		bones[MAXSTUDIOBONES];
 	vec3_t		vertices[MAXSTUDIOVERTS];
 	vec3_t		indices[MAXSTUDIOVERTS];
 	vec3_t		vtransform[MAXSTUDIOVERTS];

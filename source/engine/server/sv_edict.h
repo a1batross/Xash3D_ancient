@@ -93,21 +93,22 @@ struct sv_entvars_s
 	float	alpha;
 	float	frame;
 	float	speed;
-	float	animtime;
 	float	sequence;
+	float	animtime;
+	float	gaitsequence;
 	float	effects;
 	float	colormap;
 	float	renderfx;
 	float	flags;
 	float	aiflags;
 	float	spawnflags;
-	vec3_t	view_ofs;
 	vec3_t	v_angle;
+	vec3_t	view_ofs;
+	vec3_t	punchangle;
 	float	button0;
 	float	button1;
 	float	button2;
 	float	impulse;
-	vec3_t	punchangle;
 	string_t	v_model;
 	float	v_frame;
 	float	v_body;
@@ -138,6 +139,6 @@ struct sv_entvars_s
 	float	team;
 };
 
-#define PROG_CRC_SERVER		1476
+#define PROG_CRC_SERVER		15812
 
 #endif//SV_EDICT_H

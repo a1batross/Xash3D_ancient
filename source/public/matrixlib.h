@@ -6,7 +6,7 @@
 #define BASEMATRIX_H
 
 #include <math.h>
-//#define OPENGL_STYLE
+//#define OPENGL_STYLE		//TODO: enable OpenGL style someday
 
 static const matrix4x4 identitymatrix =
 {
@@ -15,6 +15,11 @@ static const matrix4x4 identitymatrix =
 { 0, 0, 1, 0 },	// ROLL
 { 0, 0, 0, 1 },	// ORIGIN
 };
+
+_inline void Matrix4x4_Copy( matrix4x4 out, const matrix4x4 in )
+{
+	memcpy( out, in, sizeof(matrix4x4));
+}
 
 _inline void Matrix4x4_Transform( const matrix4x4 in, const float v[3], float out[3] )
 {
@@ -26,6 +31,20 @@ _inline void Matrix4x4_Transform( const matrix4x4 in, const float v[3], float ou
 	out[0] = v[0] * in[0][0] + v[1] * in[0][1] + v[2] * in[0][2] + in[0][3];
 	out[1] = v[0] * in[1][0] + v[1] * in[1][1] + v[2] * in[1][2] + in[1][3];
 	out[2] = v[0] * in[2][0] + v[1] * in[2][1] + v[2] * in[2][2] + in[2][3];
+#endif
+}
+
+_inline void Matrix4x4_Rotate( const matrix4x4 in, const float v[3], float out[3] )
+{
+//FIXME: we need InvserseRotation of OpenGL style
+#ifndef OPENGL_STYLE
+	out[0] = v[0] * in[0][0] + v[1] * in[1][0] + v[2] * in[2][0];
+	out[1] = v[0] * in[0][1] + v[1] * in[1][1] + v[2] * in[2][1];
+	out[2] = v[0] * in[0][2] + v[1] * in[1][2] + v[2] * in[2][2];
+#else
+	out[0] = v[0] * in[0][0] + v[1] * in[0][1] + v[2] * in[0][2];
+	out[1] = v[0] * in[1][0] + v[1] * in[1][1] + v[2] * in[1][2];
+	out[2] = v[0] * in[2][0] + v[1] * in[2][1] + v[2] * in[2][2];
 #endif
 }
 
@@ -300,6 +319,169 @@ _inline void Matrix4x4_CreateFromEntity( matrix4x4 out, double x, double y, doub
 		out[3][3] = 1;
 #endif
 	}
+}
+
+_inline void Matrix4x4_FromOriginQuat( matrix4x4 out, double ox, double oy, double oz, double x, double y, double z, double w )
+{
+#ifdef OPENGL_STYLE
+	out[0][0] = 1-2*(y*y+z*z);
+	out[1][0] = 2*(x*y-z*w);
+	out[2][0] = 2*(x*z+y*w);
+	out[3][0] = ox;
+	out[0][1] = 2*(x*y+z*w);
+	out[1][1] = 1-2*(x*x+z*z);
+	out[2][1] = 2*(y*z-x*w);
+	out[3][1] = oy;
+	out[0][2] = 2*(x*z-y*w);
+	out[1][2] = 2*(y*z+x*w);
+	out[2][2] = 1-2*(x*x+y*y);
+	out[3][2] = oz;
+	out[0][3] = 0;
+	out[1][3] = 0;
+	out[2][3] = 0;
+	out[3][3] = 1;
+#else
+	out[0][0] = 1-2*(y*y+z*z);
+	out[0][1] = 2*(x*y-z*w);
+	out[0][2] = 2*(x*z+y*w);
+	out[0][3] = ox;
+	out[1][0] = 2*(x*y+z*w);
+	out[1][1] = 1-2*(x*x+z*z);
+	out[1][2] = 2*(y*z-x*w);
+	out[1][3] = oy;
+	out[2][0] = 2*(x*z-y*w);
+	out[2][1] = 2*(y*z+x*w);
+	out[2][2] = 1-2*(x*x+y*y);
+	out[2][3] = oz;
+	out[3][0] = 0;
+	out[3][1] = 0;
+	out[3][2] = 0;
+	out[3][3] = 1;
+#endif
+}
+
+/*
+================
+ConcatTransforms
+================
+*/
+_inline void Matrix4x4_ConcatTransforms( matrix4x4 out, matrix4x4 in1, matrix4x4 in2 )
+{
+#ifdef OPENGL_STYLE
+	out[0][0] = in1[0][0] * in2[0][0] + in1[1][0] * in2[0][1] + in1[2][0] * in2[0][2];
+	out[1][0] = in1[0][0] * in2[1][0] + in1[1][0] * in2[1][1] + in1[2][0] * in2[1][2];
+	out[2][0] = in1[0][0] * in2[2][0] + in1[1][0] * in2[2][1] + in1[2][0] * in2[2][2];
+	out[3][0] = in1[0][0] * in2[3][0] + in1[1][0] * in2[3][1] + in1[2][0] * in2[3][2] + in1[3][0];
+	out[0][1] = in1[0][1] * in2[0][0] + in1[1][1] * in2[0][1] + in1[2][1] * in2[0][2];
+	out[1][1] = in1[0][1] * in2[1][0] + in1[1][1] * in2[1][1] + in1[2][1] * in2[1][2];
+	out[2][1] = in1[0][1] * in2[2][0] + in1[1][1] * in2[2][1] + in1[2][1] * in2[2][2];
+	out[3][1] = in1[0][1] * in2[3][0] + in1[1][1] * in2[3][1] + in1[2][1] * in2[3][2] + in1[3][1];
+	out[0][2] = in1[0][2] * in2[0][0] + in1[1][2] * in2[0][1] + in1[2][2] * in2[0][2];
+	out[1][2] = in1[0][2] * in2[1][0] + in1[1][2] * in2[1][1] + in1[2][2] * in2[1][2];
+	out[2][2] = in1[0][2] * in2[2][0] + in1[1][2] * in2[2][1] + in1[2][2] * in2[2][2];
+	out[3][2] = in1[0][2] * in2[3][0] + in1[1][2] * in2[3][1] + in1[2][2] * in2[3][2] + in1[3][2];
+#else
+	out[0][0] = in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0] + in1[0][2] * in2[2][0];
+	out[0][1] = in1[0][0] * in2[0][1] + in1[0][1] * in2[1][1] + in1[0][2] * in2[2][1];
+	out[0][2] = in1[0][0] * in2[0][2] + in1[0][1] * in2[1][2] + in1[0][2] * in2[2][2];
+	out[0][3] = in1[0][0] * in2[0][3] + in1[0][1] * in2[1][3] + in1[0][2] * in2[2][3] + in1[0][3];
+	out[1][0] = in1[1][0] * in2[0][0] + in1[1][1] * in2[1][0] + in1[1][2] * in2[2][0];
+	out[1][1] = in1[1][0] * in2[0][1] + in1[1][1] * in2[1][1] + in1[1][2] * in2[2][1];
+	out[1][2] = in1[1][0] * in2[0][2] + in1[1][1] * in2[1][2] + in1[1][2] * in2[2][2];
+	out[1][3] = in1[1][0] * in2[0][3] + in1[1][1] * in2[1][3] + in1[1][2] * in2[2][3] + in1[1][3];
+	out[2][0] = in1[2][0] * in2[0][0] + in1[2][1] * in2[1][0] + in1[2][2] * in2[2][0];
+	out[2][1] = in1[2][0] * in2[0][1] + in1[2][1] * in2[1][1] + in1[2][2] * in2[2][1];
+	out[2][2] = in1[2][0] * in2[0][2] + in1[2][1] * in2[1][2] + in1[2][2] * in2[2][2];
+	out[2][3] = in1[2][0] * in2[0][3] + in1[2][1] * in2[1][3] + in1[2][2] * in2[2][3] + in1[2][3];
+#endif
+}
+
+_inline void Matrix4x4_Concat( matrix4x4 out, const matrix4x4 in1, const matrix4x4 in2 )
+{
+#ifdef OPENGL_STYLE
+	out[0][0] = in1[0][0] * in2[0][0] + in1[1][0] * in2[0][1] + in1[2][0] * in2[0][2] + in1[3][0] * in2[0][3];
+	out[1][0] = in1[0][0] * in2[1][0] + in1[1][0] * in2[1][1] + in1[2][0] * in2[1][2] + in1[3][0] * in2[1][3];
+	out[2][0] = in1[0][0] * in2[2][0] + in1[1][0] * in2[2][1] + in1[2][0] * in2[2][2] + in1[3][0] * in2[2][3];
+	out[3][0] = in1[0][0] * in2[3][0] + in1[1][0] * in2[3][1] + in1[2][0] * in2[3][2] + in1[3][0] * in2[3][3];
+	out[0][1] = in1[0][1] * in2[0][0] + in1[1][1] * in2[0][1] + in1[2][1] * in2[0][2] + in1[3][1] * in2[0][3];
+	out[1][1] = in1[0][1] * in2[1][0] + in1[1][1] * in2[1][1] + in1[2][1] * in2[1][2] + in1[3][1] * in2[1][3];
+	out[2][1] = in1[0][1] * in2[2][0] + in1[1][1] * in2[2][1] + in1[2][1] * in2[2][2] + in1[3][1] * in2[2][3];
+	out[3][1] = in1[0][1] * in2[3][0] + in1[1][1] * in2[3][1] + in1[2][1] * in2[3][2] + in1[3][1] * in2[3][3];
+	out[0][2] = in1[0][2] * in2[0][0] + in1[1][2] * in2[0][1] + in1[2][2] * in2[0][2] + in1[3][2] * in2[0][3];
+	out[1][2] = in1[0][2] * in2[1][0] + in1[1][2] * in2[1][1] + in1[2][2] * in2[1][2] + in1[3][2] * in2[1][3];
+	out[2][2] = in1[0][2] * in2[2][0] + in1[1][2] * in2[2][1] + in1[2][2] * in2[2][2] + in1[3][2] * in2[2][3];
+	out[3][2] = in1[0][2] * in2[3][0] + in1[1][2] * in2[3][1] + in1[2][2] * in2[3][2] + in1[3][2] * in2[3][3];
+	out[0][3] = in1[0][3] * in2[0][0] + in1[1][3] * in2[0][1] + in1[2][3] * in2[0][2] + in1[3][3] * in2[0][3];
+	out[1][3] = in1[0][3] * in2[1][0] + in1[1][3] * in2[1][1] + in1[2][3] * in2[1][2] + in1[3][3] * in2[1][3];
+	out[2][3] = in1[0][3] * in2[2][0] + in1[1][3] * in2[2][1] + in1[2][3] * in2[2][2] + in1[3][3] * in2[2][3];
+	out[3][3] = in1[0][3] * in2[3][0] + in1[1][3] * in2[3][1] + in1[2][3] * in2[3][2] + in1[3][3] * in2[3][3];
+#else
+	out[0][0] = in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0] + in1[0][2] * in2[2][0] + in1[0][3] * in2[3][0];
+	out[0][1] = in1[0][0] * in2[0][1] + in1[0][1] * in2[1][1] + in1[0][2] * in2[2][1] + in1[0][3] * in2[3][1];
+	out[0][2] = in1[0][0] * in2[0][2] + in1[0][1] * in2[1][2] + in1[0][2] * in2[2][2] + in1[0][3] * in2[3][2];
+	out[0][3] = in1[0][0] * in2[0][3] + in1[0][1] * in2[1][3] + in1[0][2] * in2[2][3] + in1[0][3] * in2[3][3];
+	out[1][0] = in1[1][0] * in2[0][0] + in1[1][1] * in2[1][0] + in1[1][2] * in2[2][0] + in1[1][3] * in2[3][0];
+	out[1][1] = in1[1][0] * in2[0][1] + in1[1][1] * in2[1][1] + in1[1][2] * in2[2][1] + in1[1][3] * in2[3][1];
+	out[1][2] = in1[1][0] * in2[0][2] + in1[1][1] * in2[1][2] + in1[1][2] * in2[2][2] + in1[1][3] * in2[3][2];
+	out[1][3] = in1[1][0] * in2[0][3] + in1[1][1] * in2[1][3] + in1[1][2] * in2[2][3] + in1[1][3] * in2[3][3];
+	out[2][0] = in1[2][0] * in2[0][0] + in1[2][1] * in2[1][0] + in1[2][2] * in2[2][0] + in1[2][3] * in2[3][0];
+	out[2][1] = in1[2][0] * in2[0][1] + in1[2][1] * in2[1][1] + in1[2][2] * in2[2][1] + in1[2][3] * in2[3][1];
+	out[2][2] = in1[2][0] * in2[0][2] + in1[2][1] * in2[1][2] + in1[2][2] * in2[2][2] + in1[2][3] * in2[3][2];
+	out[2][3] = in1[2][0] * in2[0][3] + in1[2][1] * in2[1][3] + in1[2][2] * in2[2][3] + in1[2][3] * in2[3][3];
+	out[3][0] = in1[3][0] * in2[0][0] + in1[3][1] * in2[1][0] + in1[3][2] * in2[2][0] + in1[3][3] * in2[3][0];
+	out[3][1] = in1[3][0] * in2[0][1] + in1[3][1] * in2[1][1] + in1[3][2] * in2[2][1] + in1[3][3] * in2[3][1];
+	out[3][2] = in1[3][0] * in2[0][2] + in1[3][1] * in2[1][2] + in1[3][2] * in2[2][2] + in1[3][3] * in2[3][2];
+	out[3][3] = in1[3][0] * in2[0][3] + in1[3][1] * in2[1][3] + in1[3][2] * in2[2][3] + in1[3][3] * in2[3][3];
+#endif
+}
+
+_inline void Matrix4x4_Transpose( matrix4x4 out, const matrix4x4 in1 )
+{
+	out[0][0] = in1[0][0];
+	out[0][1] = in1[1][0];
+	out[0][2] = in1[2][0];
+	out[0][3] = in1[3][0];
+	out[1][0] = in1[0][1];
+	out[1][1] = in1[1][1];
+	out[1][2] = in1[2][1];
+	out[1][3] = in1[3][1];
+	out[2][0] = in1[0][2];
+	out[2][1] = in1[1][2];
+	out[2][2] = in1[2][2];
+	out[2][3] = in1[3][2];
+	out[3][0] = in1[0][3];
+	out[3][1] = in1[1][3];
+	out[3][2] = in1[2][3];
+	out[3][3] = in1[3][3];
+}
+
+_inline void Matrix4x4_CreateScale( matrix4x4 out, double x )
+{
+	out[0][0] = x;
+	out[0][1] = 0.0f;
+	out[0][2] = 0.0f;
+	out[0][3] = 0.0f;
+	out[1][0] = 0.0f;
+	out[1][1] = x;
+	out[1][2] = 0.0f;
+	out[1][3] = 0.0f;
+	out[2][0] = 0.0f;
+	out[2][1] = 0.0f;
+	out[2][2] = x;
+	out[2][3] = 0.0f;
+	out[3][0] = 0.0f;
+	out[3][1] = 0.0f;
+	out[3][2] = 0.0f;
+	out[3][3] = 1.0f;
+}
+
+_inline void Matrix4x4_ConcatScale( matrix4x4 out, double x )
+{
+	matrix4x4	base, temp;
+
+	Matrix4x4_Copy( base, out );
+	Matrix4x4_CreateScale( temp, x );
+	Matrix4x4_Concat( out, base, temp );
 }
 
 #endif//BASEMATRIX_H

@@ -101,6 +101,28 @@ void CL_StudioEvent ( mstudioevent_t *event, entity_state_t *ent )
 }
 
 /*
+====================
+GetClientEntity
+
+Render callback for studio models
+====================
+*/
+entity_state_t *CL_GetEdictByIndex( int index )
+{
+	return &PRVM_EDICT_NUM( index )->priv.cl->current;
+}
+
+entity_state_t *CL_GetLocalPlayer( void )
+{
+	return &PRVM_EDICT_NUM( cl.playernum + 1 )->priv.cl->current;
+}
+
+int CL_GetMaxClients( void )
+{
+	return com.atoi(cl.configstrings[CS_MAXCLIENTS]);
+}
+
+/*
 ===============================================================================
 Client Builtin Functions
 

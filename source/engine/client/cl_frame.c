@@ -192,7 +192,7 @@ CL_ParseFrame
 */
 void CL_ParseFrame( sizebuf_t *msg )
 {
-	int     		cmd, len;
+	int     		cmd, len, idx;
 	edict_t		*clent;
 	frame_t		*old;
           
@@ -245,7 +245,9 @@ void CL_ParseFrame( sizebuf_t *msg )
 	// read clientinfex
 	cmd = MSG_ReadByte( msg );
 	if( cmd != svc_clientindex ) Host_Error( "CL_ParseFrame: not clientindex\n" );
-	clent = PRVM_EDICT_NUM( MSG_ReadByte( msg )); // get client
+	idx = MSG_ReadByte( msg );
+	clent = PRVM_EDICT_NUM( idx ); // get client
+	if((idx-1) != cl.playernum ) Host_Error("CL_ParseFrame: invalid playernum (%d should be %d)\n", idx-1, cl.playernum );
 
 	// read packet entities
 	cmd = MSG_ReadByte( msg );

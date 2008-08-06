@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "cm_local.h"
+#include "matrixlib.h"
 
 int		characterID; 
 uint		m_jumpTimer;
@@ -205,11 +206,11 @@ void CM_ServerMove( pmove_t *pmove )
 		collisionPadding[2][2] =  step[0];
 
 		// get the transpose of the matrix                    
-		MatrixTranspose( transpose, collisionPadding );
+		Matrix4x4_Transpose( transpose, collisionPadding );
 		VectorScale( transpose[0], dist / m_maxTranslation, transpose[0] ); // scale factor
 
 		// calculate and oblique scale matrix by using a similar transformation matrix of the for, R'* S * R
-		MatrixConcat( collisionPadding, collisionPadding, transpose );
+		Matrix4x4_Concat( collisionPadding, collisionPadding, transpose );
 	}
 
 	// set the collision modifierMatrix;

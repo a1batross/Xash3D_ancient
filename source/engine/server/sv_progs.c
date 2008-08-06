@@ -1679,6 +1679,104 @@ void PF_tracebox( void )
 
 /*
 =============
+PF_lookupactivity
+
+float LookupActivity( string model, float activity )
+=============
+*/
+void PF_lookupactivity( void )
+{
+	cmodel_t		*mod;
+	mstudioseqdesc_t	*pseqdesc;
+	studiohdr_t	*pstudiohdr;
+	int		i, seq = -1;
+	int		activity, weighttotal = 0;
+
+	if(!VM_ValidateArgs( "LookupActivity", 2 )) return;	
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+	PRVM_G_FLOAT(OFS_RETURN) = 0;
+
+	mod = pe->RegisterModel(PRVM_G_STRING(OFS_PARM0));
+	if( !mod ) return;
+	pstudiohdr = (studiohdr_t *)mod->extradata;
+	if( !pstudiohdr ) return;
+
+	pseqdesc = (mstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex);
+	activity = (int)PRVM_G_FLOAT(OFS_PARM1);
+
+	for( i = 0; i < pstudiohdr->numseq; i++)
+	{
+		if( pseqdesc[i].activity == activity )
+		{
+			weighttotal += pseqdesc[i].actweight;
+			if( !weighttotal || RANDOM_LONG( 0, weighttotal - 1 ) < pseqdesc[i].actweight )
+				seq = i;
+		}
+	}
+	PRVM_G_FLOAT(OFS_RETURN) = seq;
+}
+
+/*
+=============
+PF_geteyepos
+
+vector GetEyePosition( string model )
+=============
+*/
+void PF_geteyepos( void )
+{
+	cmodel_t	  *mod;
+	studiohdr_t *pstudiohdr;
+
+	if(!VM_ValidateArgs( "GetEyePosition", 1 )) return;	
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+	VectorCopy( vec3_origin, PRVM_G_VECTOR(OFS_RETURN));
+		
+	mod = pe->RegisterModel(PRVM_G_STRING(OFS_PARM0));
+	if( !mod ) return;
+	pstudiohdr = (studiohdr_t *)mod->extradata;
+	if( !pstudiohdr ) return;
+
+	VectorCopy( pstudiohdr->eyeposition, PRVM_G_VECTOR(OFS_RETURN));
+}
+
+/*
+=============
+PF_lookupsequence
+
+float LookupSequence( string model, string label )
+=============
+*/
+void PF_lookupsequence( void )
+{
+	cmodel_t		*mod;
+	studiohdr_t	*pstudiohdr;
+	mstudioseqdesc_t	*pseqdesc;
+	int		i;
+
+	if(!VM_ValidateArgs( "LookupSequence", 2 )) return;	
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM1));
+	PRVM_G_FLOAT(OFS_RETURN) = -1;
+	
+	mod = pe->RegisterModel(PRVM_G_STRING(OFS_PARM0));
+	if( !mod ) return;
+	pstudiohdr = (studiohdr_t *)mod->extradata;
+	if( !pstudiohdr ) return;
+
+	pseqdesc = (mstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex);
+	for( i = 0; i < pstudiohdr->numseq; i++ )
+	{
+		if(!com.stricmp( pseqdesc[i].label, PRVM_G_STRING(OFS_PARM1)))
+		{
+			PRVM_G_FLOAT(OFS_RETURN) = i;
+			break;
+		}
+	}
+}
+
+/*
+=============
 PF_aim
 
 vector aim( entity e, float speed )
@@ -2297,7 +2395,7 @@ PF_inphs,				// #119 entity EntitiesInPHS( entity ent, float player )
 PF_makevectors,			// #120 void makevectors( vector dir, float hand )
 VM_EdictError,			// #121 void objerror( string s )
 PF_dropclient,			// #122 void dropclient( entity client )
-NULL,				// #123 --reserved--
+PF_lookupactivity,			// #123 float LookupActivity( string model, float activity )
 PF_create,			// #124 void CreateNamedEntity( string classname, vector org, vector ang )
 PF_makestatic,			// #125 void makestatic(entity e)
 NULL,				// #126 isEntOnFloor
@@ -2342,13 +2440,14 @@ NULL,				// #164 setView
 NULL,				// #165 crosshairangle
 PF_AreaPortalState,			// #166 void areaportal( float num, float state )
 NULL,				// #167 compareFileTime
-NULL,				// #168
+PF_geteyepos,			// #168 vector GetEyePosition( string model )
 PF_InfoPrint,      			// #169 void Info_Print( entity client )
 PF_InfoValueForKey,			// #170 string Info_ValueForKey( entity client, string key )
 PF_InfoRemoveKey,			// #171 void Info_RemoveKey( entity client, string key )
 PF_InfoSetValueForKey,		// #172 void Info_SetValueForKey( entity client, string key, string value )
 PF_setsky,			// #173 void setsky( string name, vector angles, float speed )
 NULL,				// #174 staticDecal
+PF_lookupsequence			// #175 float LookupSequence( string model, string label )
 };
 
 const int vm_sv_numbuiltins = sizeof(vm_sv_builtins) / sizeof(prvm_builtin_t); //num of builtins

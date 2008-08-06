@@ -732,7 +732,6 @@ void CL_PrepVideo( void )
 	for( i = 1, mdlcount = 0; i < MAX_MODELS && cl.configstrings[CS_MODELS+1+i][0]; i++ )
 		mdlcount++; // total num models
 
-	// create thread here ?
 	for( i = 0; i < pe->NumTextures(); i++ )
 	{
 		if(!re->RegisterImage( cl.configstrings[CS_MODELS+1], i ))
@@ -740,11 +739,10 @@ void CL_PrepVideo( void )
 			Cvar_SetValue( "scr_loading", scr_loading->value + 70.0f );
 			break; // hey, textures already loaded!
 		}
-		Cvar_SetValue("scr_loading", scr_loading->value + 70.0f / pe->NumTextures());
+		Cvar_SetValue( "scr_loading", scr_loading->value + 70.0f / pe->NumTextures());
 		SCR_UpdateScreen();
 	}
 
-	// create thread here ?
 	for( i = 1; i < MAX_MODELS && cl.configstrings[CS_MODELS+1+i][0]; i++ )
 	{
 		com.strncpy( name, cl.configstrings[CS_MODELS+1+i], MAX_STRING );
@@ -1201,6 +1199,7 @@ void CL_Frame( dword time )
 		return;
 
 	// decide the simulation time
+	cl.oldtime = cl.time;	// used for lerping animations
 	cl.time += time;		// can be merged by cl.frame.servertime 
 	cls.realtime += time;
 	cls.frametime = time * 0.001;

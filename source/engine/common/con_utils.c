@@ -687,6 +687,14 @@ static void Cmd_WriteCvar(const char *name, const char *string, const char *desc
 	FS_Printf(f, "seta %s \"%s\"\n", name, string );
 }
 
+static void Cmd_WriteHelp(const char *name, const char *unused, const char *desc, void *f )
+{
+	if( !desc ) return;				// ignore fantom cmds
+	if( !com.strcmp( desc, "" )) return;		// blank description
+	if( name[0] == '+' || name[0] == '-' ) return;	// key bindings	
+	FS_Printf( f, "%s\t\t\t\"%s\"\n", name, desc );
+}
+
 void Cmd_WriteVariables( file_t *f )
 {
 	FS_Printf( f, "unsetall\n" );
@@ -704,7 +712,7 @@ void CL_WriteConfiguration( void )
 {
 	file_t	*f;
 
-	if (cls.state == ca_uninitialized) return;
+	if( !cls.initialized ) return;
 
 	f = FS_Open("scripts/config/keys.rc", "w");
 	if(f)
@@ -729,4 +737,25 @@ void CL_WriteConfiguration( void )
 		FS_Close (f);	
 	}
 	else MsgDev( D_ERROR, "Couldn't write vars.rc.\n");
+}
+
+void Key_EnumCmds_f( void )
+{
+	file_t *f = FS_Open( "docs/help.txt", "w" );
+	if( f )
+	{
+		FS_Printf( f, "//=======================================================================\n");
+		FS_Printf( f, "//\t\t\tCopyright XashXT Group 2007 ©\n");
+		FS_Printf( f, "//\t\thelp.txt - xash commands and console variables\n");
+		FS_Printf( f, "//=======================================================================\n");
+
+		FS_Printf( f, "\n\n\t\t\tconsole variables\n\n");
+		Cvar_LookupVars( 0, NULL, f, Cmd_WriteHelp ); 
+		FS_Printf( f, "\n\n\t\t\tconsole commands\n\n");
+		Cmd_LookupCmds( NULL, f, Cmd_WriteHelp ); 
+  		FS_Printf( f, "\n\n");
+		FS_Close( f );
+	}
+	else MsgDev( D_ERROR, "Couldn't write help.txt.\n");
+	Msg( "write docs/help.txt" );
 }

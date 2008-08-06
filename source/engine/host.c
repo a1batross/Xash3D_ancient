@@ -79,6 +79,9 @@ void Host_InitRender( void )
           // studio callbacks
 	ri.StudioEvent = CL_StudioEvent;
 	ri.ShowCollision = pe->DrawCollision;
+	ri.GetClientEdict = CL_GetEdictByIndex;
+	ri.GetLocalPlayer = CL_GetLocalPlayer;
+	ri.GetMaxClients = CL_GetMaxClients;
 	ri.WndProc = IN_WndProc;
           
 	Sys_LoadLibrary( &render_dll );

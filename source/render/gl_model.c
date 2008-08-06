@@ -561,7 +561,7 @@ void Mod_LoadFaces (lump_t *l)
 	loadmodel->surfaces = out;
 	loadmodel->numsurfaces = count;
 
-	currentmodel = loadmodel;
+	m_pRenderModel = loadmodel;
 
 	GL_BeginBuildingLightmaps (loadmodel);
 

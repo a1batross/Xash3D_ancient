@@ -80,6 +80,7 @@ void SV_UpdateEntityState( edict_t *ent )
 	ent->priv.sv->s.model.skin = (short)ent->progs.sv->skin;		// studio model skin
 	ent->priv.sv->s.model.body = (byte)ent->progs.sv->body;		// studio model submodel 
 	ent->priv.sv->s.model.frame = ent->progs.sv->frame;		// any model current frame
+	ent->priv.sv->s.model.gaitsequence = (int)ent->progs.sv->gaitsequence;// player sequence, that will be playing on client
 	ent->priv.sv->s.model.sequence = (byte)ent->progs.sv->sequence;	// studio model sequence
 	ent->priv.sv->s.effects = (uint)ent->progs.sv->effects;		// shared client and render flags
 	ent->priv.sv->s.renderfx = (int)ent->progs.sv->renderfx;		// renderer flags

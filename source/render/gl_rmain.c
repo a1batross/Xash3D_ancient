@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // r_main.c
 #include "gl_local.h"
 #include "r_mirror.h"
+#include "const.h"
 
 void R_Clear (void);
 
@@ -48,8 +49,8 @@ image_t *r_particletexture;// little dot for particles
 image_t *r_radarmap; // wall texture for radar texgen
 image_t *r_around;
 
-ref_entity_t	*currententity;
-rmodel_t			*currentmodel;
+rmodel_t *m_pRenderModel;
+ref_entity_t *m_pCurrentEntity;
 
 cplane_t	frustum[4];
 
@@ -93,6 +94,7 @@ cvar_t	*r_nocull;
 cvar_t	*r_lerpmodels;
 cvar_t	*r_lefthand;
 cvar_t	*r_testmode;
+cvar_t	*r_hqmodels;
 
 cvar_t	*r_lightlevel;	// FIXME: This is a HACK to get the client's light level
 cvar_t	*r_mirroralpha;
@@ -207,13 +209,12 @@ void R_DrawNullModel (void)
 	vec3_t	shadelight;
 	int		i;
 
-	if ( currententity->flags & RF_FULLBRIGHT )
+	if( m_pCurrentEntity->renderfx & RF_FULLBRIGHT )
 		shadelight[0] = shadelight[1] = shadelight[2] = 1.0F;
-	else
-		R_LightPoint (currententity->origin, shadelight);
+	else R_LightPoint( m_pCurrentEntity->origin, shadelight );
 
-    pglPushMatrix ();
-	R_RotateForEntity (currententity);
+	pglPushMatrix ();
+	R_RotateForEntity( m_pCurrentEntity );
 
 	pglDisable (GL_TEXTURE_2D);
 	pglColor3fv (shadelight);
@@ -249,15 +250,15 @@ void R_DrawEntitiesOnList (void)
 	// draw non-transparent first
 	for (i = 0; i < r_newrefdef.num_entities; i++)
 	{
-		currententity = &r_newrefdef.entities[i];
-		currentmodel = currententity->model;
+		m_pCurrentEntity = &r_newrefdef.entities[i];
+		m_pRenderModel = m_pCurrentEntity->model;
 
-		if (!currentmodel)
+		if (!m_pRenderModel)
 		{
 			R_DrawNullModel();
 			continue;
 		}
-		switch (currentmodel->type)
+		switch (m_pRenderModel->type)
 		{
 		case mod_brush:
 			R_DrawBrushModel( RENDERPASS_SOLID );
@@ -279,15 +280,15 @@ void R_DrawEntitiesOnList (void)
 	pglDepthMask (0); // no z writes
 	for (i = 0; i < r_newrefdef.num_entities; i++)
 	{
-		currententity = &r_newrefdef.entities[i];
-		currentmodel = currententity->model;
+		m_pCurrentEntity = &r_newrefdef.entities[i];
+		m_pRenderModel = m_pCurrentEntity->model;
 
-		if (!currentmodel)
+		if (!m_pRenderModel)
 		{
 			R_DrawNullModel ();
 			continue;
 		}
-		switch (currentmodel->type)
+		switch (m_pRenderModel->type)
 		{
 		case mod_brush:
 			R_DrawBrushModel( RENDERPASS_ALPHA );
@@ -930,9 +931,8 @@ void R_SetLightLevel (void)
 
 static bool R_AddEntityToScene( refdef_t *fd, entity_state_t *s1, entity_state_t *s2, float lerpfrac )
 {
-	uint		i, effects;
 	ref_entity_t	*refent;
-	int		max_edicts = Cvar_VariableValue( "prvm_maxedicts" );
+	int		i, max_edicts = Cvar_VariableValue( "prvm_maxedicts" );
 
 	if( !fd || !fd->entities ) return false; // not init
 	if( !s1 || !s1->model.index ) return false; // if set to invisible, skip
@@ -943,16 +943,21 @@ static bool R_AddEntityToScene( refdef_t *fd, entity_state_t *s1, entity_state_t
 	refent = &fd->entities[fd->num_entities];
 	if( !s2 ) s2 = s1; // no lerping state
 
-	effects = s1->effects;
 	refent->frame = s1->model.frame;
 
 	// copy state to render
+	refent->index = s1->number;
 	refent->prev.frame = s2->model.frame;
 	refent->backlerp = 1.0f - lerpfrac;
-	refent->alpha = s1->renderamt;
+	refent->renderamt = s1->renderamt;
 	refent->body = s1->model.body;
 	refent->sequence = s1->model.sequence;		
 	refent->animtime = s1->model.animtime;
+	refent->movetype = s1->movetype;
+	refent->scale = s1->model.scale ? s1->model.scale : 1.0f;
+	refent->colormap = s1->model.colormap;
+	refent->effects = s1->effects;
+	VectorCopy( s1->rendercolor, refent->rendercolor );
 
 	// setup latchedvars
 	refent->prev.animtime = s2->model.animtime;
@@ -964,16 +969,16 @@ static bool R_AddEntityToScene( refdef_t *fd, entity_state_t *s1, entity_state_t
 		
 	// interpolate origin
 	for( i = 0; i < 3; i++ )
-		refent->origin[i] = refent->oldorigin[i] = LerpPoint( s2->origin[i], s1->origin[i], lerpfrac );
+		refent->origin[i] = LerpPoint( s2->origin[i], s1->origin[i], lerpfrac );
 
 	// set skin
 	refent->skin = s1->model.skin;
 	refent->model = r_models[s1->model.index];
 	refent->weaponmodel = r_models[s1->pmodel.index];
-	refent->flags = s1->renderfx;
+	refent->renderfx = s1->renderfx;
 
 	// calculate angles
-	if( effects & EF_ROTATE )
+	if( refent->effects & EF_ROTATE )
 	{	
 		// some bonus items auto-rotate
 		VectorSet( refent->angles, 0, anglemod(fd->time / 10), 0 );
@@ -1001,13 +1006,10 @@ static bool R_AddEntityToScene( refdef_t *fd, entity_state_t *s1, entity_state_t
 
 	if( s1->ed_type == ED_CLIENT )
 	{
-		refent->flags |= RF_PLAYERMODEL;	// only draw from mirrors
-
-		// just only for test
-		refent->controller[0] = refent->controller[1] = 90.0;
-		refent->controller[2] = refent->controller[3] = 180.0;
-		refent->sequence = 0;
-		refent->frame = 0;
+		// only draw from mirrors
+		refent->renderfx |= RF_PLAYERMODEL;
+		refent->gaitsequence = s1->model.gaitsequence;
+		//refent->gaitframe = s1->model.frame;
 	}
 
 	// add entity

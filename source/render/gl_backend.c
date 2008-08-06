@@ -354,6 +354,7 @@ void GL_InitCommands( void )
 	r_pause = Cvar_Get("paused", "0", 0, "renderer pause" );
 	r_pause_bw = Cvar_Get("r_pause_effect", "0", CVAR_ARCHIVE, "allow pause effect" );
 	r_physbdebug = Cvar_Get( "cm_debugdraw", "0", CVAR_ARCHIVE, "draw physics hulls" );
+	r_hqmodels = Cvar_Get( "cl_himodels", "1", CVAR_ARCHIVE, "draw high-resolution models in multiplayer" );
 	r_testmode = Cvar_Get("r_test", "0", CVAR_ARCHIVE, "developer cvar, for testing new effects" );
 
 	r_lightlevel = Cvar_Get ("r_lightlevel", "0", 0, "no description" );
@@ -439,6 +440,7 @@ void GL_RemoveCommands( void )
 void GL_InitBackend( void )
 {
 	int	i;
+	char	dev_level[4];
 
 	GL_InitCommands();
 
@@ -448,6 +450,10 @@ void GL_InitBackend( void )
 
 	// init tables
 	for( i = 0; i < 256; i++ ) r_turbsin[i] *= 0.5f;
+
+	// check developer mode
+	if(FS_GetParmFromCmdLine("-dev", dev_level ))
+		glw_state.developer = com.atoi(dev_level);
 }
 
 void GL_ShutdownBackend( void )
