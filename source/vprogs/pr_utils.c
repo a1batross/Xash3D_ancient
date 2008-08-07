@@ -493,7 +493,7 @@ word PR_WriteProgdefs( void )
 
 	if( ForcedCRC ) crc = ForcedCRC;	// potentially backdoor
 
-	if(FS_CheckParm("-progdefs") && (host_instance == COMP_QCCLIB))
+	if(FS_CheckParm("-progdefs") && (host_instance == HOST_QCCLIB))
 	{
 		string	path;
 
@@ -664,7 +664,7 @@ void PR_WriteDAT( void )
 	strofs = (strofs + 3) & ~3;
 
 	PR_Message("Linking...\n");
-	if( host_instance == COMP_QCCLIB )
+	if( host_instance == HOST_QCCLIB )
 	{
 		// don't flood into engine console
 		MsgDev(D_INFO, "%6i strofs (of %i)\n", strofs, MAX_STRINGS);
@@ -790,7 +790,7 @@ void PR_WriteDAT( void )
 	FS_Write(f, &progs, sizeof(progs));
 	if( asmfile ) FS_Close(asmfile);
 
-	if( host_instance == COMP_QCCLIB )
+	if( host_instance == HOST_QCCLIB )
 		MsgDev(D_INFO, "Writing %s, total size %i bytes\n", progsoutname, progsize );
 	FS_Close( f );
 }

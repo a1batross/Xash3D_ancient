@@ -7,11 +7,8 @@
 #include "utils.h"
 #include "bsplib.h"
 #include "mdllib.h"
-#include "roqlib.h"
 
-dll_info_t imglib_dll = { "imglib.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(imglib_exp_t) };
 dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vprogs_exp_t) };
-imglib_exp_t *Image;
 vprogs_exp_t *PRVM;
 stdlib_api_t com;
 byte *basepool;
@@ -31,7 +28,7 @@ void InitPlatform ( int argc, char **argv )
 {
 	byte	bspflags = 0, qccflags = 0, roqflags = 0;
 	char	source[64], gamedir[64];
-	launch_t	CreateImglib, CreateVprogs;
+	launch_t	CreateVprogs;
 
 	basepool = Mem_AllocPool( "Temp" );
 
@@ -40,13 +37,9 @@ void InitPlatform ( int argc, char **argv )
 	com_argv = argv;
 	app_name = g_Instance;
 
-	Sys_LoadLibrary( &imglib_dll ); // load imagelib
-	CreateImglib = (void *)imglib_dll.main;
-	Image = CreateImglib( &com, NULL ); // second interface not allowed
-
 	switch( app_name )
 	{
-	case COMP_BSPLIB:
+	case HOST_BSPLIB:
 		if(!FS_GetParmFromCmdLine("-game", gamedir ))
 			com.strncpy(gamedir, Cvar_VariableString( "fs_defaultdir" ), sizeof(gamedir));
 		if(!FS_GetParmFromCmdLine("+map", source ))
@@ -58,7 +51,7 @@ void InitPlatform ( int argc, char **argv )
 
 		PrepareBSPModel( gamedir, source, bspflags );
 		break;
-	case COMP_QCCLIB:
+	case HOST_QCCLIB:
 		Sys_LoadLibrary( &vprogs_dll ); // load qcclib
 		CreateVprogs = (void *)vprogs_dll.main;
 		PRVM = CreateVprogs( &com, NULL ); // second interface not allowed
@@ -73,21 +66,18 @@ void InitPlatform ( int argc, char **argv )
 		start = Sys_DoubleTime();
 		PRVM->PrepareDAT( gamedir, source );	
 		break;
-	case COMP_ROQLIB:
-	case COMP_SPRITE:
-	case COMP_STUDIO:
-	case COMP_WADLIB:
+	case HOST_SPRITE:
+	case HOST_STUDIO:
+	case HOST_WADLIB:
 		FS_InitRootDir(".");
 		start = Sys_DoubleTime();
 		break;
 	case HOST_OFFLINE:
 		break;
 	}
-
-	Image->Init(); // initialize image support
 }
 
-void RunPlatform ( void )
+void RunPlatform( void )
 {
 	search_t	*search;
 	bool	(*CompileMod)( byte *mempool, const char *name, byte parms ) = NULL;
@@ -100,35 +90,30 @@ void RunPlatform ( void )
 
 	switch(app_name)
 	{
-	case COMP_SPRITE: 
+	case HOST_SPRITE: 
 		CompileMod = CompileSpriteModel;
 		com.strcpy(typemod, "sprites" );
 		com.strcpy(searchmask[0], "*.qc" );
 		break;
-	case COMP_STUDIO:
+	case HOST_STUDIO:
 		CompileMod = CompileStudioModel;
 		com.strcpy(typemod, "models" );
 		com.strcpy(searchmask[0], "*.qc" );
 		break;
-	case COMP_BSPLIB: 
+	case HOST_BSPLIB: 
 		com.strcpy(typemod, "maps" );
 		com.strcpy(searchmask[0], "*.map" );
 		CompileBSPModel(); 
 		break;
-	case COMP_WADLIB:
+	case HOST_WADLIB:
 		CompileMod = CompileWad3Archive;
 		com.strcpy(typemod, "wads" );
 		com.strcpy(searchmask[0], "*.qc" );
 		break;
-	case COMP_QCCLIB: 
+	case HOST_QCCLIB: 
 		com.strcpy(typemod, "progs" );
 		com.strcpy(searchmask[0], "*.src" );
 		PRVM->CompileDAT(); 
-		break;
-	case COMP_ROQLIB:
-		CompileMod = CompileROQVideo;
-		com.strcpy(typemod, "videos" );
-		com.strcpy(searchmask[0], "*.qc" );
 		break;
 	case HOST_OFFLINE:
 		com.strcpy(typemod, "things" );
@@ -137,8 +122,8 @@ void RunPlatform ( void )
 	}
 	if(!CompileMod) goto elapced_time; // jump to shutdown
 
-	zonepool = Mem_AllocPool("compiler");
-	if(!FS_GetParmFromCmdLine("-file", filename ))
+	zonepool = Mem_AllocPool( "compiler" );
+	if(!FS_GetParmFromCmdLine( "-file", filename ))
 	{
 		// search by mask		
 		for( i = 0; i < 8; i++)
@@ -174,14 +159,11 @@ elapced_time:
 
 void FreePlatform ( void )
 {
-	if( app_name == COMP_QCCLIB )
+	if( app_name == HOST_QCCLIB )
 	{
 		PRVM->Free();
 		Sys_FreeLibrary( &vprogs_dll ); // free qcclib
 	}
-
-	Image->Free();
-	Sys_FreeLibrary( &imglib_dll ); // free imagelib
 
 	Mem_Check(); // check for leaks
 	Mem_FreePool( &basepool );

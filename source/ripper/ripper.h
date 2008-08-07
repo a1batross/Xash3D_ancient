@@ -13,7 +13,6 @@ extern stdlib_api_t com;
 extern byte *zonepool;
 extern string gs_gamedir;
 #define Sys_Error com.error
-extern imglib_exp_t *Image;
 extern vprogs_exp_t *PRVM;
 extern uint app_name;
 

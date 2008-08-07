@@ -17,101 +17,50 @@ CalcTextureReflectivity
 */
 void CalcTextureReflectivity( void )
 {
-	int		j, i, texels;
-	vec3_t		color;
-	float		r, scale;
+	int		j, i;
+	rgbdata_t		*pic;
 	shader_t		*si;
-	rgbdata_t		*tex;
 	
 	// allways set index 0 even if no textures
 	texture_reflectivity[0][0] = 0.5;
 	texture_reflectivity[0][1] = 0.5;
 	texture_reflectivity[0][2] = 0.5;
 
-	for (i = 0; i < numtexinfo; i++)
+	for( i = 0; i < numtexinfo; i++ )
 	{
 		// see if an earlier texinfo allready got the value
 		for (j = 0; j < i; j++)
 		{
 			if( texinfo[i].texid == texinfo[j].texid )
 			{
-				VectorCopy (texture_reflectivity[j], texture_reflectivity[i]);
+				VectorCopy( texture_reflectivity[j], texture_reflectivity[i] );
 				break;
 			}
 		}
-		if(j != i) continue;
+		if( j != i ) continue;
 
-		color[0] = color[1] = color[2] = 0;
-
-		// loading tga, jpg or png texture
-		tex = Image->LoadImage(GetStringFromTable( texinfo[i].texid ), NULL, 0);
-		if( tex )		
-		{
-			texels = tex->width * tex->height;
-
-			switch(tex->type)
-			{
-			case PF_DXT1:
-			case PF_DXT3:
-			case PF_DXT5:
-				if(!Image->DecompressDXTC( &tex )) break;
-				// intentional falltrough
-			case PF_RGBA_32:
-			case PF_ABGR_64:
-				for (j = 0; j < texels; j++, tex->buffer += 4)
-				{
-					color[0] += tex->buffer[0];
-					color[1] += tex->buffer[1];
-					color[2] += tex->buffer[2];
-				}
-				break;
-			case PF_RGB_24:
-				for (j = 0; j < texels; j++, tex->buffer += 3)
-				{
-					color[0] += tex->buffer[0];
-					color[1] += tex->buffer[1];
-					color[2] += tex->buffer[2];
-				}
-				break;			
-			default:
-				MsgDev( D_WARN, "Can't calculate reflectivity for %s\n", GetStringFromTable( texinfo[i].texid ));
-				break;
-			}
-		}
-		else MsgDev( D_ERROR, "Couldn't load %s\n", GetStringFromTable( texinfo[i].texid ));
+		pic = FS_LoadImage(GetStringFromTable( texinfo[i].texid ), NULL, 0 );
+		Image_GetColor( pic ); 
 
 		// try also get direct values from shader
 		if(si = FindShader( GetStringFromTable(texinfo[i].texid)))
 		{						
-			if(!VectorIsNull(si->color))
+			if(!VectorIsNull( si->color ))
 			{
-				TransformRGB(si->color, texture_reflectivity[i]);
+				TransformRGB( si->color, texture_reflectivity[i] );
 				texinfo[i].value = si->intensity;
 				continue;
 			}
 		}
-		if(texels == 0 || VectorIsNull(color))
+		if( !pic || VectorIsNull( pic->color ))
 		{
-			//no texture, no shader...
+			// no texture, no shader...
 			VectorSet(texture_reflectivity[i], 0.5, 0.5, 0.5 ); 
 			continue;
 		}			
-
-		for (j = 0; j < 3; j++)
-		{
-			r = color[j]/texels/255.0;
-			texture_reflectivity[i][j] = r;
-		}
-
-		// scale the reflectivity up, because the textures are
-		// so dim
-		scale = ColorNormalize (texture_reflectivity[i], texture_reflectivity[i]);
-
-		if( scale < 0.5 )
-		{
-			scale *= 2;
-			VectorScale(texture_reflectivity[i], scale, texture_reflectivity[i]);
-		}
+		VectorCopy( pic->color, texture_reflectivity[i] );
+		texinfo[i].value = pic->bump_scale;
+          	FS_FreeImage( pic ); // don't forget free image
 	}
 }
 

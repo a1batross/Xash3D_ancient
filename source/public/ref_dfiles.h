@@ -91,6 +91,60 @@ typedef struct
 } dframetype_t;
 
 /*
+========================================================================
+.WAD archive format	(WhereAllData - WAD)
+
+List of compressed files, that can be identify only by TYPE_*
+
+<format>
+header:	dwadinfo_t[dwadinfo_t]
+file_1:	byte[dwadinfo_t[num]->disksize]
+file_2:	byte[dwadinfo_t[num]->disksize]
+file_3:	byte[dwadinfo_t[num]->disksize]
+...
+file_n:	byte[dwadinfo_t[num]->disksize]
+infotable	dlumpinfo_t[dwadinfo_t->numlumps]
+========================================================================
+*/
+#define IDWAD3HEADER	(('3'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD3" half-life wads
+
+#define WAD3_NAMELEN	16
+#define MAX_FILES_IN_WAD	8192
+
+#define CMP_NONE		0	// compression none
+#define CMP_LZSS		1	// RLE compression ?
+#define CMP_ZLIB		2	// zip-archive compression
+
+#define TYPE_NONE		0	// blank lump
+#define TYPE_QPAL		64	// quake palette
+#define TYPE_QTEX		65	// probably was never used
+#define TYPE_QPIC		66	// quake1 and hl pic (lmp_t)
+#define TYPE_MIPTEX2	67	// half-life (mip_t) previous was TYP_SOUND but never used in quake1
+#define TYPE_MIPTEX		68	// quake1 (mip_t)
+#define TYPE_RAW		69	// unrecognized raw data
+#define TYPE_SCRIPT		70	// .txt scrips (xash ext)
+#define TYPE_VPROGS		71	// .dat progs (xash ext)
+
+typedef struct
+{
+	int		ident;		// should be IWAD, WAD2 or WAD3
+	int		numlumps;		// num files
+	int		infotableofs;
+} dwadinfo_t;
+
+typedef struct
+{
+	int		filepos;
+	int		disksize;
+	int		size;		// uncompressed
+	char		type;
+	char		compression;	// probably not used
+	char		pad1;
+	char		pad2;
+	char		name[16];		// must be null terminated
+} dlumpinfo_t;
+
+/*
 ==============================================================================
 BRUSH MODELS
 
@@ -398,105 +452,6 @@ typedef struct
 	uint		ofs_types;	// COMP_TYPES (debug)
 	uint		numtypes;
 } dprograms_t;
-
-/*
-========================================================================
-.MIP image format	( Half-Life textures )
-
-<format>
-header:	dmip_t[dmip_t]
-mipmap1:	byte[dmip_t->width>>0*dmip_t->height>>0];
-mipmap2:	byte[dmip_t->width>>1*dmip_t->height>>1];
-mipmap3:	byte[dmip_t->width>>2*dmip_t->height>>2];
-mipmap4:	byte[dmip_t->width>>3*dmip_t->height>>3];
-byte:	palette[768]
-========================================================================
-*/
-typedef struct dmip_s
-{
-	char	name[16];
-	uint	width;
-	uint	height;
-	uint	offsets[4];	// four mip maps stored
-} dmip_t;
-
-/*
-========================================================================
-.WAD archive format	(WhereAllData - WAD)
-
-List of compressed files, that can be identify only by TYPE_*
-
-<format>
-header:	dwadinfo_t[dwadinfo_t]
-file_1:	byte[dwadinfo_t[num]->disksize]
-file_2:	byte[dwadinfo_t[num]->disksize]
-file_3:	byte[dwadinfo_t[num]->disksize]
-...
-file_n:	byte[dwadinfo_t[num]->disksize]
-infotable	dlumpinfo_t[dwadinfo_t->numlumps]
-========================================================================
-*/
-#define IDIWADHEADER	(('D'<<24)+('A'<<16)+('W'<<8)+'I')	// little-endian "IWAD" doom1 game wad
-#define IDPWADHEADER	(('D'<<24)+('A'<<16)+('W'<<8)+'P')	// little-endian "PWAD" doom1 game wad
-#define IDWAD2HEADER	(('2'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD2" quake1 gfx.wad
-#define IDWAD3HEADER	(('3'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD3" half-life wads
-#define IDWAD4HEADER	(('4'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD4" Xash3D wad type
-
-#define WAD3_NAMELEN	16
-#define MAX_FILES_IN_WAD	8192
-
-#define	CMP_NONE		0	// compression none
-#define	CMP_LZSS		1	// RLE compression ?
-#define	CMP_ZLIB		2	// zip-archive compression
-
-#define	TYPE_NONE		0	// blank lump
-#define	TYPE_FLMP		59	// doom1 hud picture (doom1 virtual lump)
-#define	TYPE_SND		60	// doom1 wav sound (doom1 virtual lump)
-#define	TYPE_MUS		61	// doom1 music file (doom1 virtual lump)
-#define	TYPE_SKIN		62	// doom1 sprite model (doom1 virtual lump)
-#define	TYPE_FLAT		63	// doom1 wall texture (doom1 virtual lump)
-#define	TYPE_QPAL		64	// quake palette
-#define	TYPE_QTEX		65	// probably was never used
-#define	TYPE_QPIC		66	// quake1 and hl pic (lmp_t)
-#define	TYPE_MIPTEX2	67	// half-life (dmip_t) previous was TYP_SOUND but never used in quake1
-#define	TYPE_MIPTEX	68	// quake1 (mip_t)
-#define	TYPE_RAW		69	// raw data
-#define	TYPE_QFONT	70	// half-life font (qfont_t)
-#define	TYPE_VPROGS	71	// Xash3D QC compiled progs
-#define	TYPE_SCRIPT	72	// txt script file (e.g. shader)
-#define	TYPE_GFXPIC	73	// any known image format
-
-#define	QCHAR_WIDTH	16
-#define	QFONT_WIDTH	16	// valve fonts used contant sizes	
-#define	QFONT_HEIGHT        ((128 - 32) / 16)
-
-typedef struct
-{
-	int		ident;		// should be IWAD or WAD2 or WAD3
-	int		numlumps;		// num files
-	int		infotableofs;
-} dwadinfo_t;
-
-// doom1 and doom2 lump header
-typedef struct
-{
-	int		filepos;
-	int		size;
-	char		name[8];		// null not included
-} dlumpfile_t;
-
-// quake1 and half-life lump header
-typedef struct
-{
-	int		filepos;
-	int		disksize;
-	int		size;		// uncompressed
-	char		type;
-	char		compression;	// probably not used
-	char		pad1;
-	char		pad2;
-	char		name[16];		// must be null terminated
-} dlumpinfo_t;
 
 /*
 ==============================================================================

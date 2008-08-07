@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PLATFORM_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "./" /I "../public" /I "./bsplib/" /I "./roqlib" /I "./common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "./" /I "../public" /I "./bsplib/" /I "./ripper" /I "./common" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -79,7 +79,7 @@ SOURCE="$(InputPath)"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PLATFORM_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /I "./" /I "../public" /I "./bsplib/" /I "./roqlib" /I "./common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /I "./" /I "../public" /I "./bsplib/" /I "./ripper" /I "./common" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /GZ /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -173,30 +173,6 @@ SOURCE=.\bsplib\qvis3.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\roqlib\roq_encoder.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\roqlib\roq_main.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\roqlib\roq_vq1.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\roqlib\roq_vq2.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\roqlib\roq_vq4.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\roqlib\roq_yuv.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\bsplib\shaders.c
 # End Source File
 # Begin Source File
@@ -258,10 +234,6 @@ SOURCE=.\mdllib.h
 # Begin Source File
 
 SOURCE=.\platform.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\roqlib\roqlib.h
 # End Source File
 # Begin Source File
 

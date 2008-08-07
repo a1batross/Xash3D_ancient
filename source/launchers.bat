@@ -5,43 +5,11 @@ cd bsplib
 makefile.nmake
 
 cd ..
-cd dedicated
+cd extragen
 makefile.nmake
 
 cd ..
-cd install
-makefile.nmake
-
-cd ..
-cd lmpdec
-makefile.nmake
-
-cd ..
-cd mdldec
-makefile.nmake
-
-cd ..
-cd mipdec
-makefile.nmake
-
-cd ..
-cd qccdec
-makefile.nmake
-
-cd ..
-cd qcclib
-makefile.nmake
-
-cd ..
-cd roqlib
-makefile.nmake
-
-cd ..
-cd snddec
-makefile.nmake
-
-cd ..
-cd sprdec
+cd qcc
 makefile.nmake
 
 cd ..
@@ -53,14 +21,18 @@ cd studio
 makefile.nmake
 
 cd ..
+cd uninstall
+makefile.nmake
+
+cd ..
 cd viewer
 makefile.nmake
 
 cd ..
-cd wadlib
+cd xash
 makefile.nmake
 
 cd ..
-cd xash
+cd xwad
 makefile.nmake
 pause

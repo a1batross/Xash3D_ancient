@@ -4,4 +4,4 @@
 
 #include "../rundll.h"
 
-Run( sprite );
+Run32( sprite );

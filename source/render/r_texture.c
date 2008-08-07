@@ -13,7 +13,6 @@
 
 =============================================================
 */
-dll_info_t imglib_dll = { "imglib.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(imglib_exp_t) };
 image_t gltextures[MAX_GLTEXTURES];
 int numgltextures;
 byte intensitytable[256];
@@ -23,7 +22,6 @@ byte *r_imagepool;
 bool use_gl_extension = false;
 cvar_t *intensity;
 uint d_8to24table[256];
-imglib_exp_t *Image;
 
 #define STAGE_NORMAL	0
 #define STAGE_LUMA		1
@@ -295,9 +293,6 @@ void R_ShutdownTextures (void)
 		else pglDeleteTextures (1, &image->texnum[0] );
 		memset (image, 0, sizeof(*image));
 	}
-
-	Image->Free();
-	Sys_FreeLibrary( &imglib_dll ); // free imagelib
 }
 
 /*
@@ -308,14 +303,8 @@ R_InitTextures
 void R_InitTextures( void )
 {
 	int	texsize, i, j;
-	launch_t	CreateImglib;
 	float	f;
 
-	Sys_LoadLibrary( &imglib_dll ); // load imagelib
-	CreateImglib = (void *)imglib_dll.main;
-	Image = CreateImglib( &com, NULL ); // second interface not allowed
-
-	Image->Init();
 	r_imagepool = Mem_AllocPool("Texture Pool");
           gl_maxsize = Cvar_Get( "gl_maxsize", "4096", CVAR_ARCHIVE, "texture dimension max size" );
 	
@@ -1130,9 +1119,9 @@ image_t *R_FindImage( char *name, const byte *buffer, size_t size, imagetype_t t
 		}
 	}
 
-	pic = Image->LoadImage(name, buffer, size ); //loading form disk or buffer
+	pic = FS_LoadImage(name, buffer, size ); //loading form disk or buffer
 	image = R_LoadImage(name, pic, type ); //upload into video buffer
-	Image->FreeImage( pic ); //free image
+	FS_FreeImage( pic ); //free image
 
 	return image;
 }

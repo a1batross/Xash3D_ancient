@@ -10,21 +10,6 @@
 string	nextanimchain;
 file_t	*f;
 
-vec_t Conv_NormalizeColor(vec3_t in, vec3_t out)
-{
-	float	max, scale;
-
-	max = in[0];
-	if(in[1] > max) max = in[1];
-	if(in[2] > max) max = in[2];
-
-	// ignore green color
-	if(max == 0) return 0;
-	scale = 255.0f / max;
-	VectorScale( in, scale, out );
-	return max;
-}
-
 bool Conv_WriteShader( const char *shaderpath, const char *imagepath, float *rad, float scale, int flags, int contents )
 {
 	file_t *f;
@@ -213,7 +198,7 @@ bool Conv_CreateShader( const char *name, rgbdata_t *pic, const char *ext, const
 	string	shaderpath, imagepath;
 	vec3_t	radiocity = {0,0,0};
 	float	intencity = 0;
-	int	i, flags = 0, contents = 0;
+	int	flags = 0, contents = 0;
 
 	// extract fodler name from path
 	FS_ExtractFilePath( name, shadername );
@@ -233,27 +218,11 @@ bool Conv_CreateShader( const char *name, rgbdata_t *pic, const char *ext, const
 		Conv_ShaderGetFlags1( imagename, shadername, ext, &flags, &contents );
 	else Conv_ShaderGetFlags2( imagename, shadername, ext, &flags, &contents );
 
-	if(flags & SURF_LIGHT)
+	if( flags & SURF_LIGHT )
 	{
-		float	r, scale;
-		vec3_t	color = {0,0,0};
-		int	texels = pic->width * pic->height;
-
-		// needs calculate reflectivity
-		for (i = 0; i < texels; i++ )
-		{
-			color[0] += pic->buffer[i*4+0];
-			color[1] += pic->buffer[i*4+1];
-			color[2] += pic->buffer[i+4+2];
-		}
-		for (i = 0; i < 3; i++)
-		{
-			r = color[i]/texels;
-			radiocity[i] = r;
-		}
-		// scale the reflectivity up, because the textures are so dim
-		scale = Conv_NormalizeColor( radiocity, radiocity );
-		intencity = texels * 255.0 / scale; // basic intensity value
+		Image_GetColor( pic );
+		VectorCopy( pic->color, radiocity );
+		intencity = pic->bump_scale;
 	}
 	return Conv_WriteShader( shaderpath, imagepath, radiocity, intencity, flags, contents );
 }
@@ -270,7 +239,7 @@ void Skin_WriteSequence( void )
 		FS_Printf(f, "\t// frame '%c'\n", flat.frame[0].name[4] );
 		for( i = 0; i < 8; i++)
 		{
-			FS_Printf(f,"\t$load\t\t%s.tga", flat.frame[i].name );
+			FS_Printf(f,"\t$load\t\t%s.bmp", flat.frame[i].name );
 			if( flat.frame[i].xmirrored )FS_Print(f," flip_x\n"); 
 			else FS_Print(f, "\n" );
 			FS_Printf(f,"\t$frame\t\t0 0 %d %d", flat.frame[i].width, flat.frame[i].height );
@@ -283,7 +252,7 @@ void Skin_WriteSequence( void )
 		// single frame stored
 		FS_Print(f, "\n" );
 		FS_Printf(f, "// frame '%c'\n", flat.frame[0].name[4] );
-		FS_Printf(f,"$load\t\t%s.tga\n", flat.frame[0].name );
+		FS_Printf(f,"$load\t\t%s.bmp\n", flat.frame[0].name );
 		FS_Printf(f,"$frame\t\t0 0 %d %d", flat.frame[0].width, flat.frame[0].height );
 		FS_Printf(f, " 0.1 %d %d\n", flat.frame[0].origin[0], flat.frame[0].origin[1]);
 	}
@@ -296,13 +265,13 @@ void Skin_WriteSequence( void )
 		FS_Printf(f, "\t// frame '%c' (mirrored form '%c')\n", flat.frame[0].name[6],flat.frame[0].name[4]);
 		for( i = 2; i > -1; i--)
 		{
-			FS_Printf(f,"\t$load\t\t%s.tga flip_x\n", flat.frame[i].name );
+			FS_Printf(f,"\t$load\t\t%s.bmp flip_x\n", flat.frame[i].name );
 			FS_Printf(f,"\t$frame\t\t0 0 %d %d", flat.frame[i].width, flat.frame[i].height );
 			FS_Printf(f, " 0.1 %d %d\n", flat.frame[i].origin[0], flat.frame[i].origin[1] );
 		}
 		for( i = 7; i > 2; i--)
 		{
-			FS_Printf(f,"\t$load\t\t%s.tga flip_x\n", flat.frame[i].name );
+			FS_Printf(f,"\t$load\t\t%s.bmp flip_x\n", flat.frame[i].name );
 			FS_Printf(f,"\t$frame\t\t0 0 %d %d", flat.frame[i].width, flat.frame[i].height );
 			FS_Printf(f, " 0.1 %d %d\n", flat.frame[i].origin[0], flat.frame[i].origin[1] );
 		}

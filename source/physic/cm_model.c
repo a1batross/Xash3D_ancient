@@ -113,7 +113,7 @@ void BSP_CreateMeshBuffer( int modelnum )
 	int	flags;
 
 	// ignore world or bsplib instance
-	if( app_name == COMP_BSPLIB || modelnum >= cm.numbmodels )
+	if( app_name == HOST_BSPLIB || modelnum >= cm.numbmodels )
 		return;
 
 	loadmodel = &cm.bmodels[modelnum];
@@ -185,7 +185,7 @@ void BSP_LoadModels( lump_t *l )
 		out->numfaces = c = LittleLong( in->numfaces );
 
 		// skip other stuff, not using for building collision tree
-		if( app_name == COMP_BSPLIB ) continue;
+		if( app_name == HOST_BSPLIB ) continue;
 
 		// FIXME: calc bounding box right
 		VectorCopy( out->mins, out->normalmins );
@@ -848,9 +848,9 @@ void BSP_AddCollisionFace( int facenum )
 
 void BSP_EndBuildTree( void )
 {
-	if( app_name == COMP_BSPLIB ) Msg("Optimize collision tree..." );
+	if( app_name == HOST_BSPLIB ) Msg("Optimize collision tree..." );
 	NewtonTreeCollisionEndBuild( cm.collision, true );
-	if( app_name == COMP_BSPLIB ) Msg(" done\n");
+	if( app_name == HOST_BSPLIB ) Msg(" done\n");
 }
 
 static void BSP_LoadTree( vfile_t* handle, void* buffer, size_t size )
@@ -894,12 +894,12 @@ void CM_MakeCollisionTree( void )
 
 	if(!cm.loaded) Host_Error("CM_MakeCollisionTree: map not loaded\n");
 	if( cm.collision ) return; // already generated
-	if( app_name == COMP_BSPLIB ) Msg("Building collision tree...\n" );
+	if( app_name == HOST_BSPLIB ) Msg("Building collision tree...\n" );
 
 	BSP_BeginBuildTree();
 
 	// world firstface index always equal 0
-	if( app_name == COMP_BSPLIB )
+	if( app_name == HOST_BSPLIB )
 		RunThreadsOnIndividual( cm.bmodels[world].numfaces, true, BSP_AddCollisionFace );
 	else for( i = 0; i < cm.bmodels[world].numfaces; i++ ) BSP_AddCollisionFace( i );
 

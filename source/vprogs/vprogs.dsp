@@ -117,10 +117,6 @@ SOURCE=.\pr_comp.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\pr_decomp.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\pr_edict.c
 # End Source File
 # Begin Source File

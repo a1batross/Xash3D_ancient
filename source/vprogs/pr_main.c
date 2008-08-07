@@ -233,28 +233,6 @@ void PR_InitCompile( const char *name )
 	}
 }
 
-void PR_InitDecompile( const char *name )
-{
-	string	progsname;
-
-	FS_FileBase( name, progsname );
-	PRVM_InitProg( PRVM_DECOMPILED );
-
-	vm.prog->reserved_edicts = 1;
-	vm.prog->loadintoworld = true;
-	vm.prog->name = copystring( progsname );
-	vm.prog->builtins = NULL;
-	vm.prog->numbuiltins = 0;
-	vm.prog->max_edicts = 4096;
-	vm.prog->limit_edicts = 4096;
-	vm.prog->edictprivate_size = sizeof(vm_edict_t);
-	vm.prog->error_cmd = VM_Error;
-	vm.prog->flag |= PRVM_OP_STATE; // enable op_state feature
-	vm.prog->progs_mempool = qccpool;
-
-	PR_InitTypes();
-}
-
 void PRVM_Init( int argc, char **argv )
 {
 	char	dev_level[4];
@@ -321,13 +299,9 @@ void PRVM_PrepareProgs( const char *dir, const char *name )
 
 	switch( host_instance )
 	{
-	case COMP_QCCLIB:
+	case HOST_QCCLIB:
 		FS_InitRootDir((char *)dir);
 		PR_InitCompile( name );
-		break;
-	case RIPP_QCCDEC:
-		FS_InitRootDir((char *)dir);
-		PR_InitDecompile( name );
 		break;
 	case HOST_NORMAL:
 	case HOST_DEDICATED:
@@ -378,11 +352,6 @@ void PRVM_Frame( dword time )
 	}	 
 }
 
-bool PRVM_DecompileProgs( const char *name )
-{
-	return PR_Decompile( name );
-}
-
 void PRVM_Compile_f( void )
 {
 	if( Cmd_Argc() < 2)
@@ -410,7 +379,6 @@ vprogs_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 	vm.Free = PRVM_Shutdown;
 	vm.PrepareDAT = PRVM_PrepareProgs;
 	vm.CompileDAT = PRVM_CompileProgs;
-	vm.DecompileDAT = PRVM_DecompileProgs;
 	vm.Update = PRVM_Frame;
 
 	vm.WriteGlobals = PRVM_ED_WriteGlobals;

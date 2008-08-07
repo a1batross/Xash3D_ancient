@@ -4,11 +4,9 @@
 //=======================================================================
 
 #include "ripper.h"
-#include "pal_utils.h"
+#include "qc_gen.h"
 
-dll_info_t imglib_dll = { "imglib.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(imglib_exp_t) };
 dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vprogs_exp_t) };
-imglib_exp_t *Image;
 vprogs_exp_t *PRVM;
 stdlib_api_t com;
 byte *basepool;
@@ -115,17 +113,13 @@ so do it manually
 */
 void InitConvertor ( int argc, char **argv )
 {
-	launch_t	CreateImglib, CreateVprogs;
+	launch_t	CreateVprogs;
 	string	gamedir;
 	
 	// init pools
 	basepool = Mem_AllocPool( "Temp" );
 	zonepool = Mem_AllocPool( "Zone" );
           app_name = g_Instance;
-
-	Sys_LoadLibrary( &imglib_dll ); // load imagelib
-	CreateImglib = (void *)imglib_dll.main;
-	Image = CreateImglib( &com, NULL ); // second interface not allowed
 
 	switch( app_name )
 	{
@@ -143,7 +137,6 @@ void InitConvertor ( int argc, char **argv )
 		break;
 	default:
 		FS_InitRootDir(".");
-		Image->Init(); // initialize image support
 		break;	
 	}
 
@@ -258,9 +251,6 @@ void CloseConvertor( void )
 {
 	// finalize qc-script
 	Skin_FinalizeScript();
-
-	Image->Free();
-	Sys_FreeLibrary( &imglib_dll ); // free imagelib
 
 	Mem_Check(); // check for leaks
 	Mem_FreePool( &basepool );

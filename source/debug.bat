@@ -20,9 +20,6 @@ if errorlevel 1 set BUILD_ERROR=1
 %MSDEV% common/common.dsp %CONFIG%"common - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
-%MSDEV% imglib/imglib.dsp %CONFIG%"imglib - Win32 Debug" %build_target%
-if errorlevel 1 set BUILD_ERROR=1
-
 %MSDEV% ripper/ripper.dsp %CONFIG%"ripper - Win32 Debug" %build_target%
 if errorlevel 1 set BUILD_ERROR=1
 
@@ -64,7 +61,6 @@ if exist baserc\baserc.plg del /f /q baserc\baserc.plg
 if exist engine\engine.plg del /f /q engine\engine.plg
 if exist launch\launch.plg del /f /q launch\launch.plg
 if exist common\common.plg del /f /q common\common.plg
-if exist imglib\imglib.plg del /f /q imglib\imglib.plg
 if exist ripper\ripper.plg del /f /q ripper\ripper.plg
 if exist physic\physic.plg del /f /q physic\physic.plg
 if exist render\render.plg del /f /q render\render.plg

@@ -49,7 +49,6 @@ memory manager
 
 extern byte *r_temppool;
 extern stdlib_api_t com;
-extern imglib_exp_t *Image;
 extern dll_info_t opengl_dll;
 
 // r_utils.c

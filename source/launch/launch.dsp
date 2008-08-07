@@ -140,6 +140,42 @@ SOURCE=.\common\filesystem.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\common\img_bmp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\img_dds.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\img_jpg.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\img_main.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\img_pcx.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\img_png.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\img_tga.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\img_utils.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\common\img_wad.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\common\memlib.c
 # End Source File
 # Begin Source File
@@ -166,6 +202,10 @@ SOURCE=.\common\system.c
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
+# Begin Source File
+
+SOURCE=.\common\filesystem.h
+# End Source File
 # Begin Source File
 
 SOURCE=.\launcher.h

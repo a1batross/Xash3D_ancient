@@ -5,7 +5,8 @@
 
 #include "ripper.h"
 #include "qc_gen.h"
-#include "pal_utils.h"
+
+bool PCX_ConvertImage( const char *name, char *buffer, int filesize );
 
 /*
 ========================================================================

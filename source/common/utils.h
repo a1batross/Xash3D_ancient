@@ -97,7 +97,6 @@ void Profile_Time( void );	// total profile time
 #define Profile_Results( name )  _Profile_Results( #name )
 
 extern stdlib_api_t com;
-extern imglib_exp_t *Image;
 extern vprogs_exp_t *PRVM;
 
 #define Sys_Error			com.error

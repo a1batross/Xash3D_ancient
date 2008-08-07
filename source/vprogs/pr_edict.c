@@ -117,7 +117,7 @@ func_t PRVM_ED_FindFunctionOffset(const char *function)
 	return (func_t)(f - vm.prog->functions);
 }
 
-bool PRVM_ProgLoaded(int prognr)
+bool PRVM_ProgLoaded( int prognr )
 {
 	if(prognr < 0 || prognr >= PRVM_MAXPROGS)
 		return false;

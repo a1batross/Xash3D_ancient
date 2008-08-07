@@ -14,8 +14,8 @@ RES       = $(MAINTARGET).rc
 default: $(MAINTARGET).exe
 
 $(MAINTARGET).exe: $(MAINTARGET).obj spritegen.res 
-	$(link) $(OBJS) spritegen.res /out:"spritegen.exe" /subsystem:console /opt:nowin98 /nodefaultlib:"libc.lib"
-	@del $(MAINTARGET).obj $(MAINTARGET).lib $(MAINTARGET).exp > nul
+	$(link) $(OBJS) spritegen.res /out:"spritegen.exe" /subsystem:windows /opt:nowin98 /nodefaultlib:"libc.lib"
+	@del $(MAINTARGET).obj $(MAINTARGET).lib $(MAINTARGET).exp $(MAINTARGET).res > nul
 	@copy $(MAINTARGET).exe D:\Xash3D\sdk_main\tools\$(MAINTARGET).exe
 	@del $(MAINTARGET).exe
 	@echo  Скопировано файлов:         1.

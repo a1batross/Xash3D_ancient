@@ -34,17 +34,16 @@ int Lump_GetFileType( const char *name, byte *buf )
 	if(!buf) return TYPE_NONE;
 
 	// otherwise get file type by extension
-	if(!com.stricmp( ext, "tga" )) return TYPE_GFXPIC;
-	else if(!com.stricmp( ext, "dds" )) return TYPE_GFXPIC;	// directdraw mip
-	else if(!com.stricmp( ext, "mip" )) 
-	{
-		if(wadheader == IDWAD3HEADER)
-			return TYPE_MIPTEX2; // half-life texture
-		return TYPE_MIPTEX;	// quake1 texture
-	}
+	if(!com.stricmp( ext, "mip" )) return TYPE_MIPTEX2;	// half-life texture
 	else if(!com.stricmp( ext, "lmp" )) return TYPE_QPIC;	// hud pics
 	else if(!com.stricmp( ext, "pal" )) return TYPE_QPAL;	// palette	
 	else if(!com.stricmp( ext, "txt" )) return TYPE_SCRIPT;	// text file
+	else if(!com.stricmp( ext, "aur" )) return TYPE_SCRIPT;	// text file
+	else if(!com.stricmp( ext, "lst" )) return TYPE_SCRIPT;	// text file
+	else if(!com.stricmp( ext, "qc"  )) return TYPE_SCRIPT;	// text file
+	else if(!com.stricmp( ext, "qh"  )) return TYPE_SCRIPT;	// text file
+	else if(!com.stricmp( ext, "c"   )) return TYPE_SCRIPT;	// text file
+	else if(!com.stricmp( ext, "h"   )) return TYPE_SCRIPT;	// text file
 	else if(!com.stricmp( ext, "dat" )) return TYPE_VPROGS;	// qc progs
 	else if(!com.stricmp( ext, "raw" )) return TYPE_RAW;	// raw data
 	
@@ -85,14 +84,14 @@ void Wad3_AddLump( const char *name, bool compress )
 	}
 
 	FS_FileBase( name, lumpname );
-	if(strlen(lumpname) > WAD3_NAMELEN)
+	if(com.strlen(lumpname) > WAD3_NAMELEN)
 	{
 		MsgDev( D_ERROR, "Wad3_AddLump: %s have too long name, max %d symbols\n", lumpname, WAD3_NAMELEN );
 		return;
 	}
 
 	// create wad file
-	if(!handle) Wad3_NewWad();
+	if( !handle ) Wad3_NewWad();
 	
 	info = &wadlumps[numlumps];
 	com.strncpy( info->name, lumpname, WAD3_NAMELEN );
@@ -126,32 +125,6 @@ void Cmd_WadName( void )
 {
 	com.strncpy( wadoutname, Com_GetToken(false), sizeof(wadoutname));
 	FS_DefaultExtension( wadoutname, ".wad" );
-}
-
-void Cmd_WadType( void )
-{
-	Com_GetToken( false );
-
-	if(Com_MatchToken( "Quake1") || Com_MatchToken( "Q1"))
-	{
-		wadheader = IDWAD2HEADER;
-		allow_compression = false;
-	}
-	else if(Com_MatchToken( "Half-Life") || Com_MatchToken( "Hl1"))
-	{
-		wadheader = IDWAD3HEADER;
-		allow_compression = false;
-	}
-	else if(Com_MatchToken( "Xash3D"))
-	{
-		wadheader = IDWAD4HEADER;
-		allow_compression = true;
-	}
-	else
-	{
-		wadheader = IDWAD3HEADER; // default
-		allow_compression = false;
-	}
 }
 
 void Cmd_AddLump( void )
@@ -225,8 +198,8 @@ void ResetWADInfo( void )
 	
 	memset (&wadheader, 0, sizeof(wadheader));
 	wadheader = IDWAD3HEADER;
+	allow_compression = true;
 	compress_lumps = false;
-	allow_compression = false;
 	numlumps = 0;
 	handle = NULL;
 }
@@ -245,7 +218,6 @@ bool ParseWADfileScript( void )
 		if(!Com_GetToken (true))break;
 
 		if (Com_MatchToken( "$wadname" )) Cmd_WadName();
-		else if (Com_MatchToken( "$wadtype" )) Cmd_WadType();
 		else if (Com_MatchToken( "$compression" )) Cmd_WadCompress();
 		else if (Com_MatchToken( "$addlump" )) Cmd_AddLump();
 		else if (Com_MatchToken( "$addlumps" )) Cmd_AddLumps();

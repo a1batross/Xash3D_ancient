@@ -7,69 +7,6 @@
 
 #include "byteorder.h"
 
-/*
-========================================================================
-
-.FLAT image format	(Doom1/2 textures)
-
-========================================================================
-*/
-typedef struct flat_s
-{
-	short	width;
-	short	height;
-	short	desc[2];		// probably not used
-} flat_t;
-
-/*
-========================================================================
-
-.LMP image format	(Quake1 gfx lumps)
-
-========================================================================
-*/
-typedef struct lmp_s
-{
-	uint	width;
-	uint	height;
-} lmp_t;
-/*
-========================================================================
-
-.MIP image format	(Quake1 textures)
-
-========================================================================
-*/
-typedef struct mip_s
-{
-	char	name[16];
-	uint	width, height;
-	uint	offsets[4];	// four mip maps stored
-} mip_t;
-
-/*
-========================================================================
-
-.QFONT image format	(Half-Life fonts)
-
-========================================================================
-*/
-
-typedef struct
-{
-	short startoffset;
-	short charwidth;
-} charset;
-
-typedef struct
-{
-	int 		width, height;
-	int		rowcount;
-	int		rowheight;
-	charset		fontinfo[256];
-	byte 		data[4];		// variable sized
-} qfont_t;
-
 // sprite types
 #define SPR_VP_PARALLEL_UPRIGHT	0
 #define SPR_FACING_UPRIGHT		1
@@ -146,8 +83,8 @@ _inline const char *SPR_RenderMode( void )
 	switch( spr.texFormat )
 	{
 	case SPR_ADDGLOW: return "glow";
-	case SPR_ALPHTEST: return "alpha";
-	case SPR_INDEXALPHA: return "alpha";
+	case SPR_ALPHTEST: return "alphatest";
+	case SPR_INDEXALPHA: return "indexalpha";
 	case SPR_ADDITIVE: return "additive";
 	case SPR_NORMAL: return "solid";
 	default: return "normal";
@@ -166,5 +103,12 @@ _inline const char *SPR_RenderType( void )
 	default: return "oriented";
 	}
 }
+
+void Skin_FinalizeScript( void );
+void Skin_CreateScript( const char *name, rgbdata_t *pic );
+bool Conv_CreateShader( const char *name, rgbdata_t *pic, const char *ext, const char *anim, int surf, int cnt );
+void Conv_GetPaletteQ2( void );
+void Conv_GetPaletteQ1( void );
+extern uint *d_currentpal;
 
 #endif//QC_GEN_H

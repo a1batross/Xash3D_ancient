@@ -18,6 +18,13 @@ typedef struct
 	int		dataofs[4]; // [nummiptex]
 } dmiptexlump_t;
 
+typedef struct mip_s
+{
+	char	name[16];
+	uint	width, height;
+	uint	offsets[4];	// four mip maps stored
+} mip_t;
+
 byte*	bsp_base;
 bool	bsp_halflife = false;
 

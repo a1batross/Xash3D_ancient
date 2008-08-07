@@ -14,25 +14,18 @@
 enum host_state
 {	// paltform states
 	HOST_OFFLINE = 0,	// host_init( g_Instance ) same much as:
-	HOST_NORMAL,	// "normal"
-	HOST_DEDICATED,	// "#normal"
-	HOST_VIEWER,	// "viewer"
-	HOST_CREDITS,	// "splash" (easter egg)
-	HOST_INSTALL,	// "install"
-	COMP_BSPLIB,	// "bsplib"
-	COMP_QCCLIB,	// "qcclib"
-	COMP_ROQLIB,	// "roqlib"
-	COMP_SPRITE,	// "sprite"
-	COMP_STUDIO,	// "studio"
-	COMP_WADLIB,	// "wadlib"
-	RIPP_MIPDEC,	// "mipdec"
-	RIPP_SPRDEC,	// "sprdec"                    
-	RIPP_MDLDEC,	// "mdldec"
-	RIPP_LMPDEC,	// "lmpdec"
-	RIPP_SNDDEC,	// "snddec"
-	RIPP_BSPDEC,	// "bspdec"
-	RIPP_QCCDEC,	// "qccdec"
-	HOST_NULL,	// terminator
+	HOST_CREDITS,	// "splash"	"©anyname"	(easter egg)
+	HOST_UNINSTALL,	// "uninstall"	"uninstall"
+	HOST_DEDICATED,	// "normal"	"#gamename"
+	HOST_NORMAL,	// "normal"	"gamename"
+	HOST_BSPLIB,	// "bsplib"	"bsplib"
+	HOST_QCCLIB,	// "qcclib"	"qcc"
+	HOST_SPRITE,	// "sprite"	"spritegen"
+	HOST_STUDIO,	// "studio"	"studiomdl"
+	HOST_WADLIB,	// "wadlib"	"xwad"
+	HOST_RIPPER,	// "ripper"	"extragen"
+	HOST_VIEWER,	// "viewer"	"viewer"
+	HOST_COUNTS,	// terminator
 };
 
 #define STRING_COLOR_TAG	'^'
@@ -377,6 +370,7 @@ static const bpc_desc_t PFDesc[] =
 #define IMAGE_PREMULT	0x00000004	// indices who need in additional premultiply
 #define IMAGE_GEN_MIPS	0x00000008	// must generate mips
 #define IMAGE_CUBEMAP_FLIP	0x00000010	// it's a cubemap with flipped sides( dds pack )
+#define IMAGE_ONLY_PALETTE	0x00000020	// image not valid, returns palette only
 
 typedef struct rgbdata_s
 {
@@ -540,7 +534,7 @@ typedef struct stdilib_api_s
 	long (*ftell)(file_t* file);					// like a ftell
 
 	// virtual filesystem
-	vfile_t *(*vfcreate)(byte *buffer, size_t buffsize);		// create virtual stream
+	vfile_t *(*vfcreate)( const byte *buffer, size_t buffsize );	// create virtual stream
 	vfile_t *(*vfopen)(file_t *handle, const char* mode);		// virtual fopen
 	file_t *(*vfclose)(vfile_t* file);				// free buffer or write dump
 	long (*vfwrite)(vfile_t* file, const void* buf, size_t datasize);	// write into buffer
@@ -561,6 +555,16 @@ typedef struct stdilib_api_s
 	void*(*Com_GetProcAddress)( dll_info_t *dll, const char* name );	// gpa
 	double (*Com_DoubleTime)( void );				// hi-res timer
 	dword (*Com_Milliseconds)( void );				// hi-res timer
+
+	// built-in imagelib functions
+	rgbdata_t *(*LoadImage)( const char *path, const byte *buf, size_t filesize );	// return 8, 24 or 32 bit buffer with image info
+	void (*GetImageColor)( rgbdata_t *pic );			// stored result in rgbdata_t->color
+	void (*SaveImage)( const char *filename, rgbdata_t *buffer );	// save image into specified format 
+	void (*FreeImage)( rgbdata_t *pack );				// free image buffer
+
+	// image manipulation
+	bool (*ResampleImage)( rgbdata_t **pix, int w, int h, bool free_org );// resample image
+	bool (*ProcessImage)( rgbdata_t **pix, int adj_type, bool free_org );	// flip, rotate e.t.c
 
 	// random generator
 	long (*Com_RandomLong)( long lMin, long lMax );			// returns random integer
@@ -794,6 +798,18 @@ crclib manager
 #define CRC_Sequence	com.crc_sequence
 #define Com_BlockChecksum	com.crc_blockchecksum
 #define Com_BlockChecksumKey	com.crc_blockchecksumkey
+
+/*
+===========================================
+imglib manager
+===========================================
+*/
+#define FS_LoadImage	com.LoadImage
+#define FS_SaveImage	com.SaveImage
+#define FS_FreeImage	com.FreeImage
+#define Image_GetColor	com.GetImageColor
+#define Image_Resample	com.ResampleImage
+#define Image_Process	com.ProcessImage
 
 /*
 ===========================================
@@ -1190,7 +1206,7 @@ typedef struct launch_exp_s
 	// interface validator
 	size_t	api_size;		// must matched with sizeof(launch_api_t)
 
-	void ( *Init ) ( int argc, char **argv );	// init host
+	void ( *Init ) ( int argc, char **argv );		// init host
 	void ( *Main ) ( void );				// host frame
 	void ( *Free ) ( void );				// close host
 	void (*CPrint) ( const char *msg );			// host print
@@ -1213,31 +1229,6 @@ typedef struct baserc_exp_s
 
 	byte *(*LoadFile)( const char *filename, fs_offset_t *size );
 } baserc_exp_t;
-/*
-==============================================================================
-
-IMGLIB.DLL INTERFACE
-==============================================================================
-*/
-typedef struct imglib_exp_s
-{
-	// interface validator
-	size_t	api_size;		// must matched with sizeof(imglib_api_t)
-
-	void ( *Init ) ( void );	// init host
-	void ( *Free ) ( void );	// close host
-
-	// global operations
-	rgbdata_t *(*LoadImage)(const char *path, const byte *data, size_t size );	// extract image into rgba buffer
-	void (*SaveImage)(const char *filename, rgbdata_t *buffer );		// save image into specified format
-
-	bool (*DecompressDXTC)( rgbdata_t **image );
-	bool (*DecompressARGB)( rgbdata_t **image );
-
-	bool (*ResampleImage)( const char *name, rgbdata_t **pix, int w, int h, bool free_baseimage ); // resample image
-	void (*FreeImage)( rgbdata_t *pack );					// free image buffer
-
-} imglib_exp_t;
 
 /*
 ==============================================================================
@@ -1535,13 +1526,12 @@ typedef struct vprogs_exp_s
 	size_t	api_size;		// must matched with sizeof(vprogs_api_t)
 
 	void ( *Init ) ( int argc, char **argv );	// init host
-	void ( *Free ) ( void );					// close host
+	void ( *Free ) ( void );			// close host
 
 	// compiler functions
 	void ( *PrepareDAT )( const char *dir, const char *name );
 	void ( *CompileDAT )( void );
-	bool ( *DecompileDAT )( const char *name );
-	void ( *Update )( dword time );			// refreshing compile, exec some programs e.t.c
+	void ( *Update )( dword time );		// refreshing compile, exec some programs e.t.c
 
 	// edict operations
 	void (*WriteGlobals)( vfile_t *f );

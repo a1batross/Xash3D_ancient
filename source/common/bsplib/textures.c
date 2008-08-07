@@ -23,13 +23,13 @@ int FindMiptex( char *name )
 	if( nummiptex == MAX_MAP_TEXTURES ) Sys_Break("MAX_MAP_TEXTURES limit exceeds\n");
 
 	// register texture
-	strcpy (textureref[i].texname, name );
-	tex = Image->LoadImage( textureref[i].texname, NULL, 0 );
+	com.strcpy (textureref[i].texname, name );
+	tex = FS_LoadImage( textureref[i].texname, NULL, 0 );
 	if( tex )
 	{
 		textureref[i].size[0] = tex->width;		
 		textureref[i].size[1] = tex->height;
-		Image->FreeImage( tex );
+		FS_FreeImage( tex );
 	}
 	else textureref[i].size[0] = textureref[i].size[1] = -1; // technically an error
 

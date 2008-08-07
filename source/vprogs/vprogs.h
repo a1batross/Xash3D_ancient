@@ -320,6 +320,7 @@ void PRVM_ED_PrintEdicts_f( void );
 void PRVM_ED_PrintEdict_f( void );
 void PRVM_ED_EdictSet_f( void );
 void PRVM_GlobalSet_f( void );
+void PRVM_Decompile_f( void );
 void PRVM_ED_Count_f( void );
 void PRVM_Globals_f( void );
 void PRVM_Compile_f( void );

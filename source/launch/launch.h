@@ -132,7 +132,6 @@ void Con_RegisterHotkeys( void );
 //
 void Sys_InitCPU( void );
 gameinfo_t Sys_GameInfo( void );
-uint Sys_SendKeyEvents( void );
 void Sys_ParseCommandLine (LPSTR lpCmdLine);
 void Sys_LookupInstance( void );
 void Sys_NewInstance( const char *name, const char *fmsg );
@@ -293,6 +292,7 @@ void FS_DefaultExtension (char *path, const char *extension );
 bool FS_GetParmFromCmdLine( char *parm, char *out );
 void FS_ExtractFilePath(const char* const path, char* dest);
 void FS_UpdateEnvironmentVariables( void );
+void FS_FreeEnvironmentVariables( void );
 const char *FS_FileWithoutPath (const char *in);
 extern char sys_rootdir[];
 extern char *fs_argv[];
@@ -301,10 +301,12 @@ extern int fs_argc;
 // simply files managment interface
 byte *FS_LoadFile (const char *path, fs_offset_t *filesizeptr );
 bool FS_WriteFile (const char *filename, const void *data, fs_offset_t len);
-rgbdata_t *FS_LoadImage(const char *filename, char *data, int size );
-void FS_SaveImage(const char *filename, rgbdata_t *buffer );
+rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t buffsize );
+void FS_SaveImage( const char *filename, rgbdata_t *pix );
 void FS_FreeImage( rgbdata_t *pack );
-bool Image_Processing( const char *name, rgbdata_t **pix, int width, int height );
+void FS_GetImageColor( rgbdata_t *pic );
+bool Image_Resample( rgbdata_t **image, int width, int height, bool free_baseimage );
+bool Image_Process( rgbdata_t **pix, int adjust_type, bool free_baseimage );
 search_t *FS_Search(const char *pattern, int caseinsensitive );
 search_t *FS_SearchDirs(const char *pattern, int caseinsensitive );
 
@@ -379,10 +381,10 @@ void Cmd_ExecuteString (const char *text);
 void Cmd_ForwardToServer (void);
 
 // virtual files managment
-vfile_t *VFS_Create(byte *buffer, size_t buffsize);
+vfile_t *VFS_Create( const byte *buffer, size_t buffsize );
 vfile_t *VFS_Open(file_t *handle, const char* mode);
 fs_offset_t VFS_Write( vfile_t *file, const void *buf, size_t size );
-fs_offset_t VFS_Read(vfile_t* file, void* buffer, size_t buffersize);
+fs_offset_t VFS_Read( vfile_t* file, void* buffer, size_t buffersize);
 int VFS_Print(vfile_t* file, const char *msg);
 int VFS_Printf(vfile_t* file, const char* format, ...);
 int VFS_Seek( vfile_t *file, fs_offset_t offset, int whence );

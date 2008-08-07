@@ -73,7 +73,7 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	}
           else MsgDev(D_WARN, "%s has null frame %d\n", image->name, framenum );
 
-	Image->FreeImage( spr_frame );          
+	FS_FreeImage( spr_frame );          
 	return (dframetype_t *)((byte *)(pinframe + 1) + spr_frame->size);
 }
 
