@@ -133,10 +133,6 @@ SOURCE=.\conv_pcximage.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\conv_progs.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\conv_raw.c
 # End Source File
 # Begin Source File

@@ -103,7 +103,7 @@ image_t *R_StudioLoadTexture( rmodel_t *mod, mstudiotexture_t *ptexture, byte *p
 	r_skin.size = ptexture->width * ptexture->height * 3; // for bounds cheking
 			
 	// load studio texture and bind it
-	image = R_LoadImage(ptexture->name, &r_skin, it_skin );
+	image = R_LoadImage( ptexture->name, &r_skin, it_skin );
 	if(!image) 
 	{
 		Msg("Warning: %s has null texture %s\n", mod->name, ptexture->name );

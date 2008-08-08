@@ -20,6 +20,7 @@ int		gflags;
 
 int		cdtextureset;
 int		clip_texcoords;
+int		split_textures;
 int		numseq;
 int		nummirrored;
 int		numani;
@@ -71,10 +72,10 @@ vec3_t		defaultadjust;
 
 char		filename[MAX_SYSPATH];
 char		line[MAX_SYSPATH];
-char		pivotname[32][256];	// names of the pivot points
-char		defaulttexture[16][256];
-char		sourcetexture[16][256];
-char		mirrored[MAXSTUDIOSRCBONES][64];
+string		pivotname[64];	// names of the pivot points
+string		defaulttexture[64];
+string		sourcetexture[64];
+string		mirrored[MAXSTUDIOSRCBONES];
 
 s_mesh_t		*pmesh;
 studiohdr_t	*phdr;
@@ -83,9 +84,9 @@ s_sequencegroup_t	sequencegroup;
 s_trianglevert_t	(*triangles)[3];
 s_model_t		*model[MAXSTUDIOMODELS];
 s_bbox_t		hitbox[MAXSTUDIOSRCBONES];
-s_texture_t	texture[MAXSTUDIOSKINS];
+s_texture_t	*texture[MAXSTUDIOSKINS];
 s_hitgroup_t	hitgroup[MAXSTUDIOSRCBONES];
-s_sequence_t	sequence[MAXSTUDIOSEQUENCES];
+s_sequence_t	*sequence[MAXSTUDIOSEQUENCES];
 s_bodypart_t	bodypart[MAXSTUDIOBODYPARTS];
 s_bonefixup_t	bonefixup[MAXSTUDIOSRCBONES];
 s_bonetable_t	bonetable[MAXSTUDIOSRCBONES];
@@ -114,7 +115,7 @@ void WriteBoneInfo( void )
 
 	for (i = 0; i < numbones; i++) 
 	{
-		strcpy( pbone[i].name, bonetable[i].name );
+		com.strncpy( pbone[i].name, bonetable[i].name, 32 );
 		pbone[i].parent = bonetable[i].parent;
 		pbone[i].flags = bonetable[i].flags;
 		pbone[i].value[0] = bonetable[i].pos[0];
@@ -244,64 +245,64 @@ void WriteSequenceInfo( void )
 
 	for (i = 0; i < numseq; i++, pseqdesc++) 
 	{
-		strcpy( pseqdesc->label, sequence[i].name );
-		pseqdesc->numframes	= sequence[i].numframes;
-		pseqdesc->fps = sequence[i].fps;
-		pseqdesc->flags = sequence[i].flags;
+		com.strncpy( pseqdesc->label, sequence[i]->name, 32 );
+		pseqdesc->numframes	= sequence[i]->numframes;
+		pseqdesc->fps = sequence[i]->fps;
+		pseqdesc->flags = sequence[i]->flags;
 
-		pseqdesc->numblends = sequence[i].numblends;
-		pseqdesc->blendtype[0] = sequence[i].blendtype[0];
-		pseqdesc->blendtype[1] = sequence[i].blendtype[1];
-		pseqdesc->blendstart[0] = sequence[i].blendstart[0];
-		pseqdesc->blendend[0] = sequence[i].blendend[0];
-		pseqdesc->blendstart[1] = sequence[i].blendstart[1];
-		pseqdesc->blendend[1] = sequence[i].blendend[1];
+		pseqdesc->numblends = sequence[i]->numblends;
+		pseqdesc->blendtype[0] = sequence[i]->blendtype[0];
+		pseqdesc->blendtype[1] = sequence[i]->blendtype[1];
+		pseqdesc->blendstart[0] = sequence[i]->blendstart[0];
+		pseqdesc->blendend[0] = sequence[i]->blendend[0];
+		pseqdesc->blendstart[1] = sequence[i]->blendstart[1];
+		pseqdesc->blendend[1] = sequence[i]->blendend[1];
 
-		pseqdesc->motiontype = sequence[i].motiontype;
+		pseqdesc->motiontype = sequence[i]->motiontype;
 		pseqdesc->motionbone = 0;
-		VectorCopy( sequence[i].linearmovement, pseqdesc->linearmovement );
+		VectorCopy( sequence[i]->linearmovement, pseqdesc->linearmovement );
 
-		pseqdesc->seqgroup = sequence[i].seqgroup;
-		pseqdesc->animindex	= sequence[i].animindex;
-		pseqdesc->activity = sequence[i].activity;
-		pseqdesc->actweight	= sequence[i].actweight;
+		pseqdesc->seqgroup = sequence[i]->seqgroup;
+		pseqdesc->animindex	= sequence[i]->animindex;
+		pseqdesc->activity = sequence[i]->activity;
+		pseqdesc->actweight	= sequence[i]->actweight;
 
-		VectorCopy( sequence[i].bmin, pseqdesc->bbmin );
-		VectorCopy( sequence[i].bmax, pseqdesc->bbmax );
+		VectorCopy( sequence[i]->bmin, pseqdesc->bbmin );
+		VectorCopy( sequence[i]->bmax, pseqdesc->bbmax );
 
-		pseqdesc->entrynode	= sequence[i].entrynode;
-		pseqdesc->exitnode = sequence[i].exitnode;
-		pseqdesc->nodeflags	= sequence[i].nodeflags;
+		pseqdesc->entrynode	= sequence[i]->entrynode;
+		pseqdesc->exitnode = sequence[i]->exitnode;
+		pseqdesc->nodeflags	= sequence[i]->nodeflags;
 
-		totalframes += sequence[i].numframes;
-		totalseconds += sequence[i].numframes / sequence[i].fps;
+		totalframes += sequence[i]->numframes;
+		totalseconds += sequence[i]->numframes / sequence[i]->fps;
 
 		// save events
 		pevent = (mstudioevent_t *)pData;
-		pseqdesc->numevents	= sequence[i].numevents;
+		pseqdesc->numevents	= sequence[i]->numevents;
 		pseqdesc->eventindex = (pData - pStart);
 		pData += pseqdesc->numevents * sizeof( mstudioevent_t );
 
-		for (j = 0; j < sequence[i].numevents; j++)
+		for (j = 0; j < sequence[i]->numevents; j++)
 		{
-			pevent[j].frame = sequence[i].event[j].frame - sequence[i].frameoffset;
-			pevent[j].event = sequence[i].event[j].event;
-			memcpy( pevent[j].options, sequence[i].event[j].options, sizeof( pevent[j].options ));
+			pevent[j].frame = sequence[i]->event[j].frame - sequence[i]->frameoffset;
+			pevent[j].event = sequence[i]->event[j].event;
+			memcpy( pevent[j].options, sequence[i]->event[j].options, sizeof( pevent[j].options ));
 		}
 
 		ALIGN( pData );
 
 		// save pivots
 		ppivot = (mstudiopivot_t *)pData;
-		pseqdesc->numpivots	= sequence[i].numpivots;
+		pseqdesc->numpivots	= sequence[i]->numpivots;
 		pseqdesc->pivotindex = (pData - pStart);
 		pData += pseqdesc->numpivots * sizeof( mstudiopivot_t );
 
-		for (j = 0; j < sequence[i].numpivots; j++)
+		for (j = 0; j < sequence[i]->numpivots; j++)
 		{
-			VectorCopy( sequence[i].pivot[j].org, ppivot[j].org );
-			ppivot[j].start = sequence[i].pivot[j].start - sequence[i].frameoffset;
-			ppivot[j].end = sequence[i].pivot[j].end - sequence[i].frameoffset;
+			VectorCopy( sequence[i]->pivot[j].org, ppivot[j].org );
+			ppivot[j].start = sequence[i]->pivot[j].start - sequence[i]->frameoffset;
+			ppivot[j].end = sequence[i]->pivot[j].end - sequence[i]->frameoffset;
 		}
 
 		ALIGN( pData );
@@ -315,8 +316,8 @@ void WriteSequenceInfo( void )
 
 	ALIGN( pData );
 
-	strcpy( pseqgroup->label, sequencegroup.label );
-	strcpy( pseqgroup->name, sequencegroup.name );
+	com.strncpy( pseqgroup->label, sequencegroup.label, 32 );
+	com.strncpy( pseqgroup->name, sequencegroup.name, 64 );
 
 	// save transition graph
 	ptransition = (byte *)pData;
@@ -344,38 +345,38 @@ byte *WriteAnimations( byte *pData, byte *pStart, int group )
 
 	for (i = 0; i < numseq; i++) 
 	{
-		if (sequence[i].seqgroup == group)
+		if (sequence[i]->seqgroup == group)
 		{
 			// save animations
 			panim = (mstudioanim_t *)pData;
-			sequence[i].animindex = (pData - pStart);
-			pData += sequence[i].numblends * numbones * sizeof( mstudioanim_t );
+			sequence[i]->animindex = (pData - pStart);
+			pData += sequence[i]->numblends * numbones * sizeof( mstudioanim_t );
 			ALIGN( pData );
 			
 			panimvalue = (mstudioanimvalue_t *)pData;
-			for (q = 0; q < sequence[i].numblends; q++)
+			for (q = 0; q < sequence[i]->numblends; q++)
 			{
 				// save animation value info
 				for (j = 0; j < numbones; j++)
 				{
 					for (k = 0; k < 6; k++)
 					{
-						if (sequence[i].panim[q]->numanim[j][k] == 0)
+						if (sequence[i]->panim[q]->numanim[j][k] == 0)
 						{
 							panim->offset[k] = 0;
 						}
 						else
 						{
 							panim->offset[k] = ((byte *)panimvalue - (byte *)panim);
-							for (n = 0; n < sequence[i].panim[q]->numanim[j][k]; n++)
+							for (n = 0; n < sequence[i]->panim[q]->numanim[j][k]; n++)
 							{
-								panimvalue->value = sequence[i].panim[q]->anim[j][k][n].value;
+								panimvalue->value = sequence[i]->panim[q]->anim[j][k][n].value;
 								panimvalue++;
 							}
 						}
 					}
 					if (((byte *)panimvalue - (byte *)panim) > 0xffff)
-						Sys_Break("sequence \"%s\" is greater than 64K\n", sequence[i].name );
+						Sys_Break("sequence \"%s\" is greater than 64K\n", sequence[i]->name );
 					panim++;
 				}
 			}
@@ -426,13 +427,13 @@ void WriteTextures( void )
 
 	for (i = 0; i < numtextures; i++)
 	{
-		strcpy( ptexture[i].name, texture[i].name );
-		ptexture[i].flags = texture[i].flags;
-		ptexture[i].width = texture[i].skinwidth;
-		ptexture[i].height = texture[i].skinheight;
+		com.strncpy( ptexture[i].name, texture[i]->name, 64 );
+		ptexture[i].flags = texture[i]->flags;
+		ptexture[i].width = texture[i]->skinwidth;
+		ptexture[i].height = texture[i]->skinheight;
 		ptexture[i].index = (pData - pStart);
-		memcpy( pData, texture[i].pdata, texture[i].size );
-		pData += texture[i].size;
+		Mem_Copy( pData, texture[i]->pdata, texture[i]->size );
+		pData += texture[i]->size;
 	}
 
 	ALIGN( pData );
@@ -466,7 +467,7 @@ void WriteModel( void )
 
 	for (i = 0, j = 0; i < numbodyparts; i++)
 	{
-		strcpy( pbodypart[i].name, bodypart[i].name );
+		com.strncpy( pbodypart[i].name, bodypart[i].name, 64 );
 		pbodypart[i].nummodels = bodypart[i].nummodels;
 		pbodypart[i].base = bodypart[i].base;
 		pbodypart[i].modelindex = ((byte *)&pmodel[j]) - pStart;
@@ -482,7 +483,7 @@ void WriteModel( void )
 		int normimap[MAXSTUDIOVERTS];
 		int n = 0;
 
-		strcpy( pmodel[i].name, model[i]->name );
+		com.strncpy( pmodel[i].name, model[i]->name, 64 );
 
 		// remap normals to be sorted by skin reference
 		for (j = 0; j < model[i]->nummesh; j++)
@@ -587,12 +588,37 @@ void WriteModel( void )
 WriteMDLFile
 ============
 */
-void WriteMDLFile (void)
+void WriteMDLFile( void )
 {
 	int	total = 0;
 
 	pStart = Kalloc( FILEBUFFER );
 	FS_StripExtension( modeloutname ); 
+
+	if( split_textures )
+	{
+		// write textures out to a separate file
+		string	texname;
+
+		com.snprintf( texname, MAX_STRING, "%sT.mdl", modeloutname );
+		Msg( "writing %s:\n", texname );
+
+		phdr = (studiohdr_t *)pStart;
+		phdr->ident = IDSTUDIOHEADER;
+		phdr->version = STUDIO_VERSION;
+
+		pData = (byte *)phdr + sizeof( studiohdr_t );
+
+		WriteTextures( );
+
+		phdr->length = pData - pStart;
+		Msg( "textures  %6d bytes\n", phdr->length );
+
+		FS_WriteFile( texname, pStart, phdr->length );
+
+		memset( pStart, 0, phdr->length );
+		pData = pStart;
+	}
 
 	// write the model output file
 	FS_DefaultExtension( modeloutname, ".mdl" );
@@ -603,7 +629,7 @@ void WriteMDLFile (void)
 	phdr = (studiohdr_t *)pStart;
 	phdr->ident = IDSTUDIOHEADER;
 	phdr->version = STUDIO_VERSION;
-	strcpy( phdr->name, modeloutname );
+	com.strncpy( phdr->name, modeloutname, 64 );
 
 	VectorCopy( eyeposition, phdr->eyeposition );
 	VectorCopy( bbox[0], phdr->min ); 
@@ -627,8 +653,11 @@ void WriteMDLFile (void)
 	Msg("models    %6d bytes\n", pData - pStart - total );
 	total  = pData - pStart;
 
-	WriteTextures();
-	Msg("textures  %6d bytes\n", pData - pStart - total );
+	if( !split_textures )
+	{
+		WriteTextures();
+		Msg("textures  %6d bytes\n", pData - pStart - total );
+	}
 
 	phdr->length = pData - pStart;
 	FS_WriteFile( modeloutname, pStart, phdr->length );
@@ -640,13 +669,13 @@ void WriteMDLFile (void)
 SimplifyModel
 ============
 */
-void SimplifyModel (void)
+void SimplifyModel( void )
 {
-	int i, j, k;
-	int n, m, q;
-	vec3_t *defaultpos[MAXSTUDIOSRCBONES];
-	vec3_t *defaultrot[MAXSTUDIOSRCBONES];
-	int iError = 0;
+	int	i, j, k;
+	int	n, m, q;
+	vec3_t	*defaultpos[MAXSTUDIOSRCBONES];
+	vec3_t	*defaultrot[MAXSTUDIOSRCBONES];
+	int	iError = 0;
 
 	OptimizeAnimations();
 	ExtractMotion();
@@ -673,15 +702,15 @@ void SimplifyModel (void)
 	}
 
 	// rename model bones if needed
-	for (i = 0; i < nummodels; i++)
+	for( i = 0; i < nummodels; i++ )
 	{
 		for (j = 0; j < model[i]->numbones; j++)
 		{
 			for (k = 0; k < numrenamedbones; k++)
 			{
-				if (!strcmp( model[i]->node[j].name, renamedbone[k].from))
+				if (!com.strcmp( model[i]->node[j].name, renamedbone[k].from))
 				{
-					strcpy( model[i]->node[j].name, renamedbone[k].to );
+					com.strncpy( model[i]->node[j].name, renamedbone[k].to, 64 );
 					break;
 				}
 			}
@@ -690,15 +719,15 @@ void SimplifyModel (void)
 
 	// union of all used bones
 	numbones = 0;
-	for (i = 0; i < nummodels; i++)
+	for( i = 0; i < nummodels; i++ )
 	{
-		for (k = 0; k < MAXSTUDIOSRCBONES; k++) model[i]->boneimap[k] = -1;
-		for (j = 0; j < model[i]->numbones; j++)
+		for( k = 0; k < MAXSTUDIOSRCBONES; k++ ) model[i]->boneimap[k] = -1;
+		for( j = 0; j < model[i]->numbones; j++ )
 		{
 			if (model[i]->boneref[j])
 			{
 				k = findNode( model[i]->node[j].name );
-				if (k == -1)
+				if( k == -1 )
 				{
 					// create new bone
 					k = numbones;
@@ -748,15 +777,15 @@ void SimplifyModel (void)
 	if( numbones >= MAXSTUDIOBONES ) Sys_Break( "Too many bones in model: used %d, max %d\n", numbones, MAXSTUDIOBONES );
 
 	// rename sequence bones if needed
-	for (i = 0; i < numseq; i++)
+	for( i = 0; i < numseq; i++ )
 	{
-		for (j = 0; j < sequence[i].panim[0]->numbones; j++)
+		for( j = 0; j < sequence[i]->panim[0]->numbones; j++ )
 		{
 			for (k = 0; k < numrenamedbones; k++)
 			{
-				if (!strcmp( sequence[i].panim[0]->node[j].name, renamedbone[k].from))
+				if (!com.strcmp( sequence[i]->panim[0]->node[j].name, renamedbone[k].from))
 				{
-					strcpy( sequence[i].panim[0]->node[j].name, renamedbone[k].to );
+					com.strncpy( sequence[i]->panim[0]->node[j].name, renamedbone[k].to, 64 );
 					break;
 				}
 			}
@@ -764,30 +793,30 @@ void SimplifyModel (void)
 	}
 
 	// map each sequences bone list to master list
-	for (i = 0; i < numseq; i++)
+	for( i = 0; i < numseq; i++ )
 	{
-		for (k = 0; k < MAXSTUDIOSRCBONES; k++) sequence[i].panim[0]->boneimap[k] = -1;
-		for (j = 0; j < sequence[i].panim[0]->numbones; j++)
+		for (k = 0; k < MAXSTUDIOSRCBONES; k++) sequence[i]->panim[0]->boneimap[k] = -1;
+		for (j = 0; j < sequence[i]->panim[0]->numbones; j++)
 		{
-			k = findNode( sequence[i].panim[0]->node[j].name );
+			k = findNode( sequence[i]->panim[0]->node[j].name );
 			
-			if (k == -1) sequence[i].panim[0]->bonemap[j] = -1;
+			if (k == -1) sequence[i]->panim[0]->bonemap[j] = -1;
 			else
 			{
 				char *szAnim = "ROOT";
 				char *szNode = "ROOT";
 
 				// whoa, check parent connections!
-				if (sequence[i].panim[0]->node[j].parent != -1) szAnim = sequence[i].panim[0]->node[sequence[i].panim[0]->node[j].parent].name;
+				if (sequence[i]->panim[0]->node[j].parent != -1) szAnim = sequence[i]->panim[0]->node[sequence[i]->panim[0]->node[j].parent].name;
 				if (bonetable[k].parent != -1) szNode = bonetable[bonetable[k].parent].name;
 
 				if (strcmp(szAnim, szNode))
 				{
-					MsgDev( D_ERROR, "SimplifyModel: illegal parent bone replacement in sequence \"%s\"\n\t\"%s\" has \"%s\", reference has \"%s\"\n", sequence[i].name, sequence[i].panim[0]->node[j].name, szAnim, szNode );
+					MsgDev( D_ERROR, "SimplifyModel: illegal parent bone replacement in sequence \"%s\"\n\t\"%s\" has \"%s\", reference has \"%s\"\n", sequence[i]->name, sequence[i]->panim[0]->node[j].name, szAnim, szNode );
 					iError++;
 				}
-				sequence[i].panim[0]->bonemap[j] = k;
-				sequence[i].panim[0]->boneimap[k] = j;
+				sequence[i]->panim[0]->bonemap[j] = k;
+				sequence[i]->panim[0]->boneimap[k] = j;
 			}
 		}
 	}
@@ -800,7 +829,7 @@ void SimplifyModel (void)
 	{
 		for (j = 0; j < numbones; j++)
 		{
-			if (stricmp( bonecontroller[i].name, bonetable[j].name) == 0)
+			if (com.stricmp( bonecontroller[i].name, bonetable[j].name) == 0)
 				break;
 		}
 		if (j >= numbones)
@@ -915,7 +944,7 @@ void SimplifyModel (void)
 				VectorCopy( bonetable[k].bmin, hitbox[numhitboxes].bmin );
 				VectorCopy( bonetable[k].bmax, hitbox[numhitboxes].bmax );
 
-				if (dump_hboxes)//remove this??
+				if( dump_hboxes )//remove this??
 				{
 					Msg("$hbox %d \"%s\" %.2f %.2f %.2f  %.2f %.2f %.2f\n", hitbox[numhitboxes].group, bonetable[hitbox[numhitboxes].bone].name, hitbox[numhitboxes].bmin[0], hitbox[numhitboxes].bmin[1], hitbox[numhitboxes].bmin[2], hitbox[numhitboxes].bmax[0], hitbox[numhitboxes].bmax[1], hitbox[numhitboxes].bmax[2] );
 				}
@@ -949,28 +978,28 @@ void SimplifyModel (void)
 		vec3_t *origpos[MAXSTUDIOSRCBONES];
 		vec3_t *origrot[MAXSTUDIOSRCBONES];
 
-		for (q = 0; q < sequence[i].numblends; q++)
+		for (q = 0; q < sequence[i]->numblends; q++)
 		{
 			// save pointers to original animations
-			for (j = 0; j < sequence[i].panim[q]->numbones; j++)
+			for (j = 0; j < sequence[i]->panim[q]->numbones; j++)
 			{
-				origpos[j] = sequence[i].panim[q]->pos[j];
-				origrot[j] = sequence[i].panim[q]->rot[j];
+				origpos[j] = sequence[i]->panim[q]->pos[j];
+				origrot[j] = sequence[i]->panim[q]->rot[j];
 			}
 
 			for (j = 0; j < numbones; j++)
 			{
-				if ((k = sequence[i].panim[0]->boneimap[j]) >= 0)
+				if ((k = sequence[i]->panim[0]->boneimap[j]) >= 0)
 				{
 					// link to original animations
-					sequence[i].panim[q]->pos[j] = origpos[k];
-					sequence[i].panim[q]->rot[j] = origrot[k];
+					sequence[i]->panim[q]->pos[j] = origpos[k];
+					sequence[i]->panim[q]->rot[j] = origrot[k];
 				}
 				else
 				{
 					// link to dummy animations
-					sequence[i].panim[q]->pos[j] = defaultpos[j];
-					sequence[i].panim[q]->rot[j] = defaultrot[j];
+					sequence[i]->panim[q]->pos[j] = defaultpos[j];
+					sequence[i]->panim[q]->rot[j] = defaultrot[j];
 				}
 			}
 		}
@@ -994,24 +1023,24 @@ void SimplifyModel (void)
 				maxv = M_PI / 8.0f;
 			}
 
-			for (i = 0; i < numseq; i++)
+			for( i = 0; i < numseq; i++ )
 			{
-				for (q = 0; q < sequence[i].numblends; q++)
+				for( q = 0; q < sequence[i]->numblends; q++ )
 				{
-					for (n = 0; n < sequence[i].numframes; n++)
+					for( n = 0; n < sequence[i]->numframes; n++ )
 					{
 						float v;
-						switch(k)
+						switch( k )
 						{
 						case 0: 
 						case 1: 
 						case 2: 
-							v = ( sequence[i].panim[q]->pos[j][n][k] - bonetable[j].pos[k] ); 
+							v = ( sequence[i]->panim[q]->pos[j][n][k] - bonetable[j].pos[k] ); 
 							break;
 						case 3:
 						case 4:
 						case 5:
-							v = ( sequence[i].panim[q]->rot[j][n][k-3] - bonetable[j].rot[k-3] ); 
+							v = ( sequence[i]->panim[q]->rot[j][n][k-3] - bonetable[j].rot[k-3] ); 
 							if (v >= M_PI) v -= M_PI * 2;
 							if (v < -M_PI) v += M_PI * 2;
 							break;
@@ -1057,9 +1086,9 @@ void SimplifyModel (void)
 			bmax[j] = -9999.0;
 		}
 
-		for (q = 0; q < sequence[i].numblends; q++)
+		for (q = 0; q < sequence[i]->numblends; q++)
 		{
-			for (n = 0; n < sequence[i].numframes; n++)
+			for (n = 0; n < sequence[i]->numframes; n++)
 			{
 				matrix3x4 bonetransform[MAXSTUDIOBONES];// bone transformation matrix
 				matrix3x4 bonematrix; // local transformation matrix
@@ -1070,15 +1099,15 @@ void SimplifyModel (void)
 					vec3_t angle;
 
 					// convert to degrees
-					angle[0]	= sequence[i].panim[q]->rot[j][n][0] * (180.0 / M_PI);
-					angle[1]	= sequence[i].panim[q]->rot[j][n][1] * (180.0 / M_PI);
-					angle[2]	= sequence[i].panim[q]->rot[j][n][2] * (180.0 / M_PI);
+					angle[0]	= sequence[i]->panim[q]->rot[j][n][0] * (180.0 / M_PI);
+					angle[1]	= sequence[i]->panim[q]->rot[j][n][1] * (180.0 / M_PI);
+					angle[2]	= sequence[i]->panim[q]->rot[j][n][2] * (180.0 / M_PI);
 
 					AngleMatrixFLU( angle, bonematrix );
 
-					bonematrix[0][3] = sequence[i].panim[q]->pos[j][n][0];
-					bonematrix[1][3] = sequence[i].panim[q]->pos[j][n][1];
-					bonematrix[2][3] = sequence[i].panim[q]->pos[j][n][2];
+					bonematrix[0][3] = sequence[i]->panim[q]->pos[j][n][0];
+					bonematrix[1][3] = sequence[i]->panim[q]->pos[j][n][1];
+					bonematrix[2][3] = sequence[i]->panim[q]->pos[j][n][2];
 
 					if (bonetable[j].parent == -1) MatrixCopy( bonematrix, bonetransform[j] );
 					else R_ConcatTransforms (bonetransform[bonetable[j].parent], bonematrix, bonetransform[j]);
@@ -1101,8 +1130,8 @@ void SimplifyModel (void)
 			}
 		}
 
-		VectorCopy( bmin, sequence[i].bmin );
-		VectorCopy( bmax, sequence[i].bmax );
+		VectorCopy( bmin, sequence[i]->bmin );
+		VectorCopy( bmax, sequence[i]->bmax );
 	}
 
 	// reduce animations
@@ -1113,7 +1142,7 @@ void SimplifyModel (void)
 		
 		for (i = 0; i < numseq; i++)
 		{
-			for (q = 0; q < sequence[i].numblends; q++)
+			for (q = 0; q < sequence[i]->numblends; q++)
 			{
 				for (j = 0; j < numbones; j++)
 				{
@@ -1124,28 +1153,28 @@ void SimplifyModel (void)
 						mstudioanimvalue_t data[MAXSTUDIOANIMATIONS];
 						float v;
 						
-						for (n = 0; n < sequence[i].numframes; n++)
+						for (n = 0; n < sequence[i]->numframes; n++)
 						{
 							switch(k)
 							{
 							case 0: 
 							case 1: 
 							case 2: 
-								value[n] = ( sequence[i].panim[q]->pos[j][n][k] - bonetable[j].pos[k] ) / bonetable[j].posscale[k]; 
+								value[n] = ( sequence[i]->panim[q]->pos[j][n][k] - bonetable[j].pos[k] ) / bonetable[j].posscale[k]; 
 								break;
 							case 3:
 							case 4:
 							case 5:
-								v = ( sequence[i].panim[q]->rot[j][n][k-3] - bonetable[j].rot[k-3] ); 
+								v = ( sequence[i]->panim[q]->rot[j][n][k-3] - bonetable[j].rot[k-3] ); 
 								if (v >= M_PI) v -= M_PI * 2;
 								if (v < -M_PI) v += M_PI * 2;
 								value[n] = v / bonetable[j].rotscale[k-3]; 
 								break;
 							}
 						}
-						if (n == 0) Sys_Break("no animation frames: \"%s\"\n", sequence[i].name );
+						if( n == 0 ) Sys_Break("no animation frames: \"%s\"\n", sequence[i]->name );
 
-						sequence[i].panim[q]->numanim[j][k] = 0;
+						sequence[i]->panim[q]->numanim[j][k] = 0;
 						memset( data, 0, sizeof( data ) ); 
 						pcount = data; 
 						pvalue = pcount + 1;
@@ -1165,9 +1194,9 @@ void SimplifyModel (void)
 						}
 
 						// this compression algorithm needs work
-						for (m = 1; m < n; m++)
+						for( m = 1; m < n; m++ )
 						{
-							if (pcount->num.total == 255)
+							if( pcount->num.total == 255 )
 							{
 								// too many, force a new entry
 								pcount = pvalue;
@@ -1194,15 +1223,15 @@ void SimplifyModel (void)
 							pcount->num.total++;
 						}
 
-						sequence[i].panim[q]->numanim[j][k] = pvalue - data;
-						if (sequence[i].panim[q]->numanim[j][k] == 2 && value[0] == 0)
+						sequence[i]->panim[q]->numanim[j][k] = pvalue - data;
+						if( sequence[i]->panim[q]->numanim[j][k] == 2 && value[0] == 0)
 						{
-							sequence[i].panim[q]->numanim[j][k] = 0;
+							sequence[i]->panim[q]->numanim[j][k] = 0;
 						}
 						else
 						{
-							sequence[i].panim[q]->anim[j][k] = Kalloc( (pvalue - data) * sizeof( mstudioanimvalue_t ));
-							memmove( sequence[i].panim[q]->anim[j][k], data, (pvalue - data) * sizeof( mstudioanimvalue_t ));
+							sequence[i]->panim[q]->anim[j][k] = Kalloc( (pvalue - data) * sizeof( mstudioanimvalue_t ));
+							memmove( sequence[i]->panim[q]->anim[j][k], data, (pvalue - data) * sizeof( mstudioanimvalue_t ));
 						}
 					}
 				}
@@ -1211,15 +1240,24 @@ void SimplifyModel (void)
 	}
 }
 
-void Grab_Skin ( s_texture_t *ptexture )
+void Grab_Skin( s_texture_t *ptexture )
 {
-	char	filename[MAX_SYSPATH];
+	string	filename;
+	rgbdata_t	*pic;
 
-	strcpy (filename, ptexture->name);
-	FS_DefaultExtension( filename, ".bmp" ); 
+	com.strncpy( filename, ptexture->name, MAX_STRING );
 
-	ptexture->ppicture = ReadBMP ( filename, (byte **)&ptexture->ppal, &ptexture->srcwidth, &ptexture->srcheight);
-	if (!ptexture->ppicture) Sys_Break("unable to load %s\n", filename );
+	pic = FS_LoadImage( filename, error_bmp, error_bmp_size );
+	if( !pic ) Sys_Break( "unable to load %s\n", filename ); // no error.bmp, missing texture...
+	Image_ConvertPalette( pic );
+
+	ptexture->ppal = Kalloc( 768 );
+	Mem_Copy( ptexture->ppal, pic->palette, sizeof(rgb_t) * 256 );
+	ptexture->ppicture = Kalloc( pic->size );
+	Mem_Copy( ptexture->ppicture, pic->buffer, pic->size );
+	ptexture->srcwidth = pic->width;
+	ptexture->srcheight	= pic->height;
+	FS_FreeImage( pic ); // free old image
 }
 
 void SetSkinValues( void )
@@ -1229,43 +1267,43 @@ void SetSkinValues( void )
 
 	for (i = 0; i < numtextures; i++)
 	{
-		Grab_Skin ( &texture[i] );
-		texture[i].max_s = -9999999;
-		texture[i].min_s = 9999999;
-		texture[i].max_t = -9999999;
-		texture[i].min_t = 9999999;
+		Grab_Skin ( texture[i] );
+		texture[i]->max_s = -9999999;
+		texture[i]->min_s = 9999999;
+		texture[i]->max_t = -9999999;
+		texture[i]->min_t = 9999999;
 	}
 
 	for (i = 0; i < nummodels; i++)
 		for (j = 0; j < model[i]->nummesh; j++) 
-			TextureCoordRanges( model[i]->pmesh[j], &texture[model[i]->pmesh[j]->skinref] );
+			TextureCoordRanges( model[i]->pmesh[j], texture[model[i]->pmesh[j]->skinref] );
 
 	for (i = 0; i < numtextures; i++)
 	{
-		if (texture[i].max_s < texture[i].min_s )
+		if (texture[i]->max_s < texture[i]->min_s )
 		{
 			// must be a replacement texture
-			if (texture[i].flags & STUDIO_NF_CHROME)
+			if (texture[i]->flags & STUDIO_NF_CHROME)
 			{
-				texture[i].max_s = 63;
-				texture[i].min_s = 0;
-				texture[i].max_t = 63;
-				texture[i].min_t = 0;
+				texture[i]->max_s = 63;
+				texture[i]->min_s = 0;
+				texture[i]->max_t = 63;
+				texture[i]->min_t = 0;
 			}
 			else
 			{
-				texture[i].max_s = texture[texture[i].parent].max_s;
-				texture[i].min_s = texture[texture[i].parent].min_s;
-				texture[i].max_t = texture[texture[i].parent].max_t;
-				texture[i].min_t = texture[texture[i].parent].min_t;
+				texture[i]->max_s = texture[texture[i]->parent]->max_s;
+				texture[i]->min_s = texture[texture[i]->parent]->min_s;
+				texture[i]->max_t = texture[texture[i]->parent]->max_t;
+				texture[i]->min_t = texture[texture[i]->parent]->min_t;
 			}
 		}
-		ResizeTexture( &texture[i] );
+		ResizeTexture( texture[i] );
 	}
 
 	for (i = 0; i < nummodels; i++)
 		for (j = 0; j < model[i]->nummesh; j++) 
-			ResetTextureCoordRanges( model[i]->pmesh[j], &texture[model[i]->pmesh[j]->skinref] );
+			ResetTextureCoordRanges( model[i]->pmesh[j], texture[model[i]->pmesh[j]->skinref] );
 
 	// build texture groups
 	for (i = 0; i < MAXSTUDIOSKINS; i++) for (j = 0; j < MAXSTUDIOSKINS; j++) skinref[i][j] = j;
@@ -1341,10 +1379,10 @@ void Grab_Triangles( s_model_t *pmodel )
 	// load the base triangles
 	while ( 1 ) 
 	{
-		s_mesh_t *pmesh;
-		char texturename[64];
+		s_mesh_t		*pmesh;
+		char		texturename[64];
 		s_trianglevert_t	*ptriv;
-		int bone;
+		int		bone;
 
 		vec3_t vert[3];
 		vec3_t norm[3];
@@ -1355,24 +1393,24 @@ void Grab_Triangles( s_model_t *pmodel )
 		if(Com_MatchToken( "end" )) break;//triangles end
 		else if(!stricmp( ".bmp", &com_token[strlen(com_token)-4]))
 		{
-			//probably is texture name
-			strcpy( texturename, com_token);
-		
+			// probably is texture name
+			com.strncpy( texturename, com_token, 64 );
+
 			// funky texture overrides
-			for (i = 0; i < numrep; i++)  
+			for( i = 0; i < numrep; i++ )  
 			{
-				if (sourcetexture[i][0] == '\0') 
+				if( sourcetexture[i][0] == '\0') 
 				{
-					strcpy( texturename, defaulttexture[i] );
+					com.strncpy( texturename, defaulttexture[i], 64 );
 					break;
 				}
-				if (stricmp( texturename, sourcetexture[i]) == 0) 
+				if(!com.stricmp( texturename, sourcetexture[i])) 
 				{
-					strcpy( texturename, defaulttexture[i] );
+					com.strncpy( texturename, defaulttexture[i], 64 );
 					break;
 				}
 			}
-			if(com.strlen(texturename) < 5)//invalid name
+			if( com.strlen( texturename ) < 5 )//invalid name
 			{
 				// weird model problem, skip them
 				MsgDev( D_ERROR, "Grab_Triangles: triangle with invalid texname\n" );
@@ -1399,11 +1437,11 @@ void Grab_Triangles( s_model_t *pmodel )
 				if (flip_triangles) ptriv = lookup_triangle( pmesh, pmesh->numtris ) + 2 - j;
 				else ptriv = lookup_triangle( pmesh, pmesh->numtris ) + j;
 
-				//grab triangle info
-				bone = atoi(com_token);
-				p.org[0] = atof(Com_GetToken( false ));
-				p.org[1] = atof(Com_GetToken( false ));
-				p.org[2] = atof(Com_GetToken( false ));
+				// grab triangle info
+				bone = com.atoi(com_token);
+				p.org[0] = com.atof(Com_GetToken( false ));
+				p.org[1] = com.atof(Com_GetToken( false ));
+				p.org[2] = com.atof(Com_GetToken( false ));
 				normal.org[0] = atof(Com_GetToken( false ));
 				normal.org[1] = atof(Com_GetToken( false ));
 				normal.org[2] = atof(Com_GetToken( false ));
@@ -1414,7 +1452,7 @@ void Grab_Triangles( s_model_t *pmodel )
 				while(Com_TryToken()); 
 		                                        
 				//translate triangles
-				if (bone < 0 || bone >= pmodel->numbones) 
+				if( bone < 0 || bone >= pmodel->numbones ) 
 					Sys_Break("bogus bone index %d \n%s line %d", bone, filename, linecount );
 				VectorCopy( p.org, vert[j] );
 				VectorCopy( normal.org, norm[j] );
@@ -1443,7 +1481,7 @@ void Grab_Triangles( s_model_t *pmodel )
 				// tag bone as being used
 				// pmodel->bone[bone].ref = 1;
 
-				if(j < 2)
+				if( j < 2 )
 				{
 					Com_GetToken( true );
 					linecount++;
@@ -1455,7 +1493,7 @@ void Grab_Triangles( s_model_t *pmodel )
 			tcount++;
 		}
 	}
-	if (vmin[2] != 0.0) MsgDev( D_NOTE, "Grab_Triangles: lowest vector at %f\n", vmin[2] );
+	if( vmin[2] != 0.0 ) MsgDev( D_NOTE, "Grab_Triangles: lowest vector at %f\n", vmin[2] );
 }
 
 void Grab_Skeleton( s_node_t *pnodes, s_bone_t *pbones )
@@ -1531,13 +1569,13 @@ int Grab_Nodes( s_node_t *pnodes )
 	return 0;
 }
 
-void Grab_Studio ( s_model_t *pmodel )
+void Grab_Studio( s_model_t *pmodel )
 {
           bool	load;
 
-	strncpy (filename, pmodel->name, sizeof(filename));
+	com.strncpy( filename, pmodel->name, sizeof(filename));
 
-	FS_DefaultExtension(filename, ".smd" );
+	FS_DefaultExtension( filename, ".smd" );
 	load = Com_IncludeScript( filename, NULL, 0 );
 	if(!load) Sys_Break("unable to open %s\n", filename );
 	Msg("grabbing %s\n", filename);
@@ -1580,9 +1618,9 @@ syntax: $eyeposition <x> <y> <z>
 void Cmd_Eyeposition (void)
 {
 	// rotate points into frame of reference so model points down the positive x axis
-	eyeposition[1] = atof (Com_GetToken (false));
-	eyeposition[0] = -atof (Com_GetToken (false));
-	eyeposition[2] = atof (Com_GetToken (false));
+	eyeposition[1] = com.atof (Com_GetToken (false));
+	eyeposition[0] = -com.atof (Com_GetToken (false));
+	eyeposition[2] = com.atof (Com_GetToken (false));
 }
 
 /*
@@ -1594,7 +1632,7 @@ syntax: $modelname "outname"
 */
 void Cmd_Modelname (void)
 {
-	strcpy (modeloutname, Com_GetToken (false));
+	com.strcpy( modeloutname, Com_GetToken( false ));
 }
 
 void Option_Studio( void )
@@ -1657,7 +1695,6 @@ void Cmd_Bodygroup( void )
 {
 	int is_started = 0;
 
-	Msg("cmd_bodygroup\n");
 	if(!Com_TryToken()) return;
 
 	if (numbodyparts == 0) bodypart[numbodyparts].base = 1;
@@ -1699,7 +1736,7 @@ void Cmd_Body( void )
 	numbodyparts++;
 }
 
-void Grab_Animation( s_animation_t *panim)
+void Grab_Animation( s_animation_t *panim )
 {
 	vec3_t pos;
 	vec3_t rot;
@@ -1774,14 +1811,14 @@ void Grab_Animation( s_animation_t *panim)
 	Sys_Break( "unexpected EOF: %s\n", panim->name );
 }
 
-void Shift_Animation( s_animation_t *panim)
+void Shift_Animation( s_animation_t *panim )
 {
 	int j, size;
 
 	size = (panim->endframe - panim->startframe + 1) * sizeof( vec3_t );
 
 	// shift
-	for (j = 0; j < panim->numbones; j++)
+	for( j = 0; j < panim->numbones; j++ )
 	{
 		vec3_t *ppos;
 		vec3_t *prot;
@@ -1795,18 +1832,16 @@ void Shift_Animation( s_animation_t *panim)
 	}
 }
 
-void Option_Animation ( char *name, s_animation_t *panim )
+void Option_Animation( char *name, s_animation_t *panim )
 {
 	bool	load;
 	
-	strncpy( panim->name, name, sizeof(panim->name));
-	strncpy( filename, panim->name, sizeof(filename));
+	com.strncpy( panim->name, name, sizeof(panim->name));
+	com.strncpy( filename, panim->name, sizeof(filename));
 
 	FS_DefaultExtension(filename, ".smd" );
 	load = Com_IncludeScript( filename, NULL, 0 );
 	if(!load) Sys_Break("unable to open %s\n", filename );
-	Msg("grabbing %s\n", filename);	
-
 	linecount = 0;
 
 	while ( 1 )
@@ -1865,7 +1900,7 @@ int Option_Event( s_sequence_t *psequence )
 }
 
 
-int Option_Fps ( s_sequence_t *psequence )
+int Option_Fps( s_sequence_t *psequence )
 {
 	psequence->fps = atof(Com_GetToken (false));
 	return 0;
@@ -1873,7 +1908,7 @@ int Option_Fps ( s_sequence_t *psequence )
 
 int Option_AddPivot ( s_sequence_t *psequence )
 {
-	if (psequence->numpivots + 1 >= MAXSTUDIOPIVOTS)
+	if( psequence->numpivots + 1 >= MAXSTUDIOPIVOTS )
 	{
 		Msg("Warning: MAXSTUDIOPIVOTS limit excedeed.\n");
 		return 0;
@@ -1972,72 +2007,76 @@ syntax: $sequence "seqname"
 */
 static int Cmd_Sequence( void )
 {
-	int i, depth = 0;
-	char smdfilename[4][1024];
-	int numblends = 0;
-	int start = 0;
-	int end = MAXSTUDIOANIMATIONS - 1;
+	int	i, depth = 0;
+	string	smdfilename[MAXSTUDIOBLENDS];
+	int	numblends = 0;
+	int	start = 0;
+	int	end = MAXSTUDIOANIMATIONS - 1;
 
-	if(!Com_GetToken(false)) return 0;
+	if(!Com_GetToken( false )) return 0;
 
-	strncpy( sequence[numseq].name, com_token, sizeof(sequence[numseq].name));
+	// allocate new sequence
+	if( numseq >= MAXSTUDIOSEQUENCES ) Sys_Break("Too many sequences in model\n" );
+	sequence[numseq] = Mem_Alloc( studiopool, sizeof(s_sequence_t));
+	com.strncpy( sequence[numseq]->name, com_token, sizeof(sequence[numseq]->name));
 	
 	VectorCopy( defaultadjust, adjust );
 	scale_up = default_scale;
 
-	//set default values
+	// set default values
 	zrotation = defaultzrotation;
-	sequence[numseq].fps = 30.0;
-	sequence[numseq].seqgroup = 0;
-	sequence[numseq].blendstart[0] = 0.0;
-	sequence[numseq].blendend[0] = 1.0;
+	sequence[numseq]->fps = 30.0;
+	sequence[numseq]->seqgroup = 0;
+	sequence[numseq]->blendstart[0] = 0.0;
+	sequence[numseq]->blendend[0] = 1.0f;
 
 	while( 1 )
 	{
-		if (depth > 0)
+		if( depth > 0 )
 		{
-			if(!Com_GetToken(true)) break;
+			if(!Com_GetToken( true ))
+				break;
 		}
 		else if(!Com_TryToken()) break;
 		
 		if (Com_MatchToken( "{" )) depth++;
 		else if (Com_MatchToken( "}" )) depth--;
-		else if (Com_MatchToken( "event" )) depth -= Option_Event( &sequence[numseq] );
-		else if (Com_MatchToken( "pivot" )) Option_AddPivot( &sequence[numseq] );
-		else if (Com_MatchToken( "fps" )) Option_Fps( &sequence[numseq] );
+		else if (Com_MatchToken( "event" )) depth -= Option_Event( sequence[numseq] );
+		else if (Com_MatchToken( "pivot" )) Option_AddPivot( sequence[numseq] );
+		else if (Com_MatchToken( "fps" )) Option_Fps( sequence[numseq] );
 		else if (Com_MatchToken( "origin" )) Option_Origin();
 		else if (Com_MatchToken( "rotate" )) Option_Rotate();
 		else if (Com_MatchToken( "scale" )) Option_ScaleUp();
-		else if (Com_MatchToken( "loop" )) sequence[numseq].flags |= STUDIO_LOOPING;
+		else if (Com_MatchToken( "loop" )) sequence[numseq]->flags |= STUDIO_LOOPING;
 		else if (Com_MatchToken( "frame" ))
 		{
-			start = atoi(Com_GetToken( false ));
-			end = atoi(Com_GetToken( false ));
+			start = com.atoi(Com_GetToken( false ));
+			end = com.atoi(Com_GetToken( false ));
 		}
 		else if (Com_MatchToken( "blend" ))
 		{
-			sequence[numseq].blendtype[0] = lookupControl(Com_GetToken( false ));
-			sequence[numseq].blendstart[0] = atof(Com_GetToken( false ));
-			sequence[numseq].blendend[0] = atof(Com_GetToken( false ));
+			sequence[numseq]->blendtype[0] = lookupControl(Com_GetToken( false ));
+			sequence[numseq]->blendstart[0] = com.atof(Com_GetToken( false ));
+			sequence[numseq]->blendend[0] = com.atof(Com_GetToken( false ));
 		}
 		else if (Com_MatchToken( "node" ))
 		{
-			sequence[numseq].entrynode = sequence[numseq].exitnode = atoi(Com_GetToken( false ));
+			sequence[numseq]->entrynode = sequence[numseq]->exitnode = com.atoi(Com_GetToken( false ));
 		}
 		else if (Com_MatchToken( "transition" ))
 		{
-			sequence[numseq].entrynode = atoi(Com_GetToken( false ));
-			sequence[numseq].exitnode = atoi(Com_GetToken( false ));
+			sequence[numseq]->entrynode = com.atoi(Com_GetToken( false ));
+			sequence[numseq]->exitnode = com.atoi(Com_GetToken( false ));
 		}
 		else if (Com_MatchToken( "rtransition" ))
 		{
-			sequence[numseq].entrynode = atoi(Com_GetToken( false ));
-			sequence[numseq].exitnode = atoi(Com_GetToken( false ));
-			sequence[numseq].nodeflags |= 1;
+			sequence[numseq]->entrynode = com.atoi(Com_GetToken( false ));
+			sequence[numseq]->exitnode = com.atoi(Com_GetToken( false ));
+			sequence[numseq]->nodeflags |= 1;
 		}
 		else if (lookupControl( com_token) != -1)
 		{
-			sequence[numseq].motiontype |= lookupControl( com_token);
+			sequence[numseq]->motiontype |= lookupControl( com_token);
 		}
 		else if (Com_MatchToken( "animation" ))
 		{
@@ -2046,39 +2085,42 @@ static int Cmd_Sequence( void )
 		}
 		else if (i = lookupActivity( com_token))
 		{
-			sequence[numseq].activity = i;
-			sequence[numseq].actweight = 1;//default weight
+			sequence[numseq]->activity = i;
+			sequence[numseq]->actweight = 1;//default weight
 			if(Com_TryToken())
 			{
 				// make sure what is really actweight
 				if(!Com_MatchToken("{") && !Com_MatchToken("}") && strlen(com_token) < 3 && atoi(com_token) <= 100)
-					sequence[numseq].actweight = atoi(com_token);
+					sequence[numseq]->actweight = com.atoi(com_token);
 				else Com_FreeToken(); // release token
 			}
 		}
 		else
 		{
-			strncpy( smdfilename[numblends], com_token, sizeof(smdfilename[numblends]));
+			com.strncpy( smdfilename[numblends], com_token, sizeof(smdfilename[numblends]));
 			numblends++;
 		}
 	}
 
-	if (numblends == 0) 
+	if( numblends == 0 ) 
 	{
-		MsgDev( D_INFO, "Cmd_Sequence: \"%s\" has no animations. skipped...\n", sequence[numseq].name);
+		Mem_Free( sequence[numseq] ); // no needs more
+		MsgDev( D_INFO, "Cmd_Sequence: \"%s\" has no animations. skipped...\n", sequence[numseq]->name );
 		return 0;
 	}
-	for (i = 0; i < numblends; i++)
+	for( i = 0; i < numblends; i++ )
 	{
 		panimation[numani] = Kalloc( sizeof( s_animation_t ));
-		sequence[numseq].panim[i] = panimation[numani];
-		sequence[numseq].panim[i]->startframe = start;
-		sequence[numseq].panim[i]->endframe = end;
-		sequence[numseq].panim[i]->flags = 0;
+		sequence[numseq]->panim[i] = panimation[numani];
+		sequence[numseq]->panim[i]->startframe = start;
+		sequence[numseq]->panim[i]->endframe = end;
+		sequence[numseq]->panim[i]->flags = 0;
+		if( i == 0 ) Msg( "grabbing %s\n", filename );
+		else MsgDev( D_INFO, "adding %s[%i]\n", filename, numani );
 		Option_Animation( smdfilename[i], panimation[numani] );
 		numani++;
 	}
-	sequence[numseq].numblends = numblends;
+	sequence[numseq]->numblends = numblends;
 	numseq++;
 
 	return 1;
@@ -2269,7 +2311,7 @@ int Cmd_TextureGroup( void )
 		{
 			i = lookup_texture( com_token);
 			texturegroup[numtexturegroups][group][index] = i;
-			if (group != 0) texture[i].parent = texturegroup[numtexturegroups][0][index];
+			if (group != 0) texture[i]->parent = texturegroup[numtexturegroups][0][index];
 			index++;
 			numtexturereps[numtexturegroups] = index;
 			numtexturelayers[numtexturegroups] = group + 1;
@@ -2330,13 +2372,13 @@ int Cmd_Attachment( void )
 	// index
 	attachment[numattachments].index = atoi(Com_GetToken(false));
 	// bone name
-	strncpy( attachment[numattachments].bonename, Com_GetToken(false), sizeof(attachment[numattachments].bonename));
+	com.strncpy( attachment[numattachments].bonename, Com_GetToken(false), sizeof(attachment[numattachments].bonename));
 	// position
 	attachment[numattachments].org[0] = atof(Com_GetToken(false));
 	attachment[numattachments].org[1] = atof(Com_GetToken(false));
 	attachment[numattachments].org[2] = atof(Com_GetToken(false));
 
-	//skip old stuff
+	// skip old stuff
 	while(Com_TryToken());
 
 	numattachments++;
@@ -2352,8 +2394,8 @@ syntax: $renamebone <oldname> <newname>
 */
 void Cmd_Renamebone( void )
 {
-	strcpy( renamedbone[numrenamedbones].from, Com_GetToken(false));
-	strcpy( renamedbone[numrenamedbones].to, Com_GetToken(false));
+	com.strncpy( renamedbone[numrenamedbones].from, Com_GetToken(false), 32 );
+	com.strncpy( renamedbone[numrenamedbones].to, Com_GetToken(false), 32 );
 	numrenamedbones++;
 }
 
@@ -2374,15 +2416,15 @@ void Cmd_TexRenderMode( void )
 
 	if(Com_MatchToken( "additive" ))
 	{
-		texture[lookup_texture(tex_name)].flags |= STUDIO_NF_ADDITIVE;
+		texture[lookup_texture(tex_name)]->flags |= STUDIO_NF_ADDITIVE;
 	}
 	else if(Com_MatchToken( "masked" ))
 	{
-		texture[lookup_texture(tex_name)].flags |= STUDIO_NF_TRANSPARENT;
+		texture[lookup_texture(tex_name)]->flags |= STUDIO_NF_TRANSPARENT;
 	}
 	else if(Com_MatchToken( "blended" ))
 	{
-		texture[lookup_texture(tex_name)].flags |= STUDIO_NF_BLENDED;
+		texture[lookup_texture(tex_name)]->flags |= STUDIO_NF_BLENDED;
 	}
 	else MsgDev( D_WARN, "Cmd_TexRenderMode: texture '%s' have unknown render mode '%s'!\n", tex_name, com_token);
 
@@ -2397,8 +2439,8 @@ syntax: $replacetexture "oldname.bmp" "newname.bmp"
 */
 void Cmd_Replace( void )
 {
-	strcpy ( sourcetexture[numrep], Com_GetToken(false));
-	strcpy ( defaulttexture[numrep], Com_GetToken(false));
+	com.strcpy ( sourcetexture[numrep], Com_GetToken(false));
+	com.strcpy ( defaulttexture[numrep], Com_GetToken(false));
 	numrep++;
 }
 
@@ -2463,10 +2505,10 @@ void ResetModelInfo( void )
 
 	strcpy( gs_filename, "model" );
 	strcpy( sequencegroup.label, "default" );
-	FS_ClearSearchPath(); //clear all $cd and $cdtexture
+	FS_ClearSearchPath( ); //clear all $cd and $cdtexture
 
 	//set default model parms
-	FS_FileBase(gs_filename, modeloutname );//kill path and ext
+	FS_FileBase( gs_filename, modeloutname );//kill path and ext
 	FS_DefaultExtension( modeloutname, ".mdl" );//set new ext
 }
 
@@ -2483,11 +2525,11 @@ void Cmd_StudioUnknown( void )
 	while(Com_TryToken());
 }
 
-bool ParseModelScript (void)
+bool ParseModelScript( void )
 {
 	ResetModelInfo();
 
-	while (1)
+	while( 1 )
 	{
 		if(!Com_GetToken (true)) break;
 
@@ -2513,6 +2555,7 @@ bool ParseModelScript (void)
 		else if (Com_MatchToken("$hgroup")) Cmd_Hitgroup ();
 		else if (Com_MatchToken("$hbox")) Cmd_Hitbox ();
 		else if (Com_MatchToken("$attachment")) Cmd_Attachment ();
+		else if (Com_MatchToken("$externaltextures")) split_textures = 1;
 		else if (Com_MatchToken("$cliptotextures")) clip_texcoords = 1;
 		else if (Com_MatchToken("$renamebone")) Cmd_Renamebone ();
 		else if (Com_MatchToken("$texrendermode")) Cmd_TexRenderMode();
@@ -2521,7 +2564,7 @@ bool ParseModelScript (void)
 		else Cmd_StudioUnknown();
 	}
 
-	//process model
+	// process model
 	SetSkinValues();
 	SimplifyModel();
 
@@ -2570,7 +2613,7 @@ void ClearModel( void )
 	numhitgroups = numattachments = numtextures = numskinref = numskinfamilies = 0;
 	numbonecontrollers = numtexturegroups = numcommandnodes = numbodyparts = 0;
 	stripcount = numcommands = linecount = allverts = alltris = totalseconds = 0;
-	nummodels = numani = 0;
+	nummodels = numani = split_textures = 0;
 
 	memset(numtexturelayers, 0, sizeof(int) * 32);
 	memset(numtexturereps, 0, sizeof(int) * 32);

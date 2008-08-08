@@ -9,8 +9,7 @@
 #include "utils.h"
 #include "mathlib.h"
 
-#define FILEBUFFER		(2 * 1024 * 1024)
-#define MAXTRIANGLES	2048		//TODO: tune this
+#define FILEBUFFER		(1024 * 1024 * 16)	// 16 megs filebuffer
 #define FLOAT_START		99999.0
 #define FLOAT_END		-99999.0
 #define MAGIC		123322
@@ -316,10 +315,10 @@ extern int clip_texcoords;
 extern int xnode[100][100];
 
 extern s_bbox_t hitbox[MAXSTUDIOSRCBONES];
-extern s_texture_t texture[MAXSTUDIOSKINS];
-extern char mirrored[MAXSTUDIOSRCBONES][64];
+extern s_texture_t *texture[MAXSTUDIOSKINS];
+extern string mirrored[MAXSTUDIOSRCBONES];
 extern s_hitgroup_t hitgroup[MAXSTUDIOSRCBONES];
-extern s_sequence_t sequence[MAXSTUDIOSEQUENCES];
+extern s_sequence_t *sequence[MAXSTUDIOSEQUENCES];
 extern s_bonefixup_t bonefixup[MAXSTUDIOSRCBONES];
 extern s_bonetable_t bonetable[MAXSTUDIOSRCBONES];
 extern s_attachment_t attachment[MAXSTUDIOSRCBONES];

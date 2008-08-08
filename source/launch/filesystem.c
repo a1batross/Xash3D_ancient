@@ -1088,7 +1088,7 @@ static bool FS_AddWad3File( const char *filename )
 			return false;
 		}
 		// convert doom1 format into quake lump 
-		for (i = 0; i < numlumps; i++)
+		for( i = 0; i < numlumps; i++ )
 		{
 			// will swap later
 			w->lumps[i].filepos = doomlumps[i].filepos;
@@ -1096,7 +1096,7 @@ static bool FS_AddWad3File( const char *filename )
 			com_strncpy(w->lumps[i].name, doomlumps[i].name, 9 );
 			w->lumps[i].type = TYPE_NONE;
 			w->lumps[i].compression = CMP_NONE;
-	
+
 			// textures begin
 			if(!com_stricmp("P_START", w->lumps[i].name ))
 			{
@@ -1606,6 +1606,26 @@ void FS_WriteVariables( file_t *f )
 	Cvar_LookupVars( CVAR_SYSTEMINFO, NULL, f, FS_WriteCvar ); 
 }
 
+void FS_UpdateConfig( void )
+{
+	file_t	*f;
+
+	// only normal instance can change config.dll
+	if( Sys.app_name != HOST_NORMAL || Sys.app_state == SYS_ERROR ) return;
+	com_strncpy( fs_gamedir, "bin", sizeof(fs_gamedir));	// set write directory for system config
+	f = FS_Open( "config.dll", "w" );
+	if( f )
+	{
+		FS_Printf (f, "//=======================================================================\n");
+		FS_Printf (f, "//\t\t\tCopyright XashXT Group 2008 ©\n");
+		FS_Printf (f, "//\t\t      system.rc - archive of system cvars\n");
+		FS_Printf (f, "//=======================================================================\n");
+		FS_WriteVariables( f );
+		FS_Close (f);	
+	}                                                
+	else MsgDev( D_NOTE, "can't update config.dll.\n" );
+}
+
 /*
 ================
 FS_Shutdown
@@ -1613,24 +1633,9 @@ FS_Shutdown
 */
 void FS_Shutdown( void )
 {
-	file_t	*f;
-
-	FS_ClearSearchPath();				// release all wad files too
-	FS_UpdateEnvironmentVariables(); 			// merge working directory
-	com_strncpy( fs_gamedir, "bin", sizeof(fs_gamedir));	// set write directory for system config
-
-	f = FS_Open( "config.dll", "w" );
-	if( f )
-	{
-		FS_Printf (f, "//=======================================================================\n");
-		FS_Printf (f, "//\t\t\tCopyright XashXT Group 2008 ©\n");
-		FS_Printf (f, "//\t\tsystem.rc - archive of system cvars\n");
-		FS_Printf (f, "//=======================================================================\n");
-		FS_WriteVariables( f );
-		FS_Close (f);	
-	}                                                
-	else MsgDev( D_NOTE, "can't update config.dll.\n" );
-
+	FS_ClearSearchPath();		// release all wad files too
+	FS_UpdateEnvironmentVariables(); 	// merge working directory
+	FS_UpdateConfig();
 	Mem_FreePool( &fs_mempool );
 }
 

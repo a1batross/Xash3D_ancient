@@ -13,9 +13,8 @@ fopen завешивает приложение, даже если перепутать местами + и a, при установке р
 
 Отложенные задачи:
 1. Поддержка loop для ogg vorbis
-2. dpvencoder в common.dll
-3. перенести ripper.dll в common.dll
-4. doom snd extractor (write PCM header 8bit 11kHz, dump data)
+2. перенести ripper.dll в common.dll
+3. doom snd extractor (write PCM header 8bit 11kHz, dump data)
 
 GLOBAL: Достигнуть уровня xash 0.45 к очередному релизу
 
@@ -33,8 +32,7 @@ TODO LIST
 избавится от идиотскова RF_TRANSLUCENT
 Кстати приделать thirdperson чтобы удобнее было настраивать StudioDrawPlayer
 Упорядочить EF_, RF_ ed_type проверки
-
-
+uninstall.exe кстати нихрена не работает :(
 Переместить ripper.dll обратно в common.dll
 Поддержка Png
 убить все декомпиляционные утилиты, оставить одну универсальную
@@ -42,7 +40,25 @@ TODO LIST
 Написать Image_process
 код создания скриптов для дуумовских спрайтов где-то глючит
 декомпилятор спрайтов переделать обратно в bmp (вместо tga)
-починить pcx 8-bit
+Image_Processing FLIP_X, FLIP_Y (PF_INDEXED_24, PF_INDEXED_32, PF_RGB_24, PF_RGBA_32)
+Image_Resample (PF_INDEXED_24, PF_INDEXED_32) - перенести ResizeTexture
+исправить баг в studiomdl.exe (не компилирует модели, в которых более 86 анимаций)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -481,7 +481,7 @@ Studio models are position independent, so the cache manager can move them.
 #define MAXSTUDIOMESHES		256	// max textures per model
 #define MAXSTUDIOEVENTS		1024	// events per model
 #define MAXSTUDIOPIVOTS		256	// pivot points
-#define MAXSTUDIOBLENDS		8	// max anim blends
+#define MAXSTUDIOBLENDS		16	// max anim blends
 #define MAXSTUDIOCONTROLLERS		16	// max controllers per model
 #define MAXSTUDIOATTACHMENTS		16	// max attachments per model
 

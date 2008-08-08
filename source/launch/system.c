@@ -184,6 +184,7 @@ void Sys_GetStdAPI( void )
 	com.FreeImage = FS_FreeImage;			// free image buffer
 
 	// image manipulation
+	com.ImagePal32to24 = Image_ConvertPalTo24bit;	// convert palette from 32 to 24 bit
 	com.ResampleImage = Image_Resample;		// resample image
 	com.ProcessImage = Image_Process;		// flip, rotate e.t.c
 

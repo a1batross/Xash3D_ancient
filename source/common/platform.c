@@ -13,6 +13,8 @@ vprogs_exp_t *PRVM;
 stdlib_api_t com;
 byte *basepool;
 byte *zonepool;
+byte *error_bmp;
+size_t error_bmp_size;
 static double start, end;
 uint app_name = 0;
 
@@ -31,6 +33,8 @@ void InitPlatform ( int argc, char **argv )
 	launch_t	CreateVprogs;
 
 	basepool = Mem_AllocPool( "Temp" );
+	// blamk image for missed resources
+	error_bmp = FS_LoadInternal( "blank.bmp", &error_bmp_size );
 
 	// for custom cmdline parsing
 	com_argc = argc;

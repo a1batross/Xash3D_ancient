@@ -63,8 +63,8 @@ void *SPR_ConvertFrame( const char *name, void *pin, int framenum, int groupfram
 	rgbdata_t		pix;
 	dspriteframe_t	*pinframe;
 	char		framename[256];
-	byte		*fin, *fout, *fpal;
-	int		i, p, pixels, width, height;
+	byte		*fin, *fout;
+	int		i, pixels, width, height;
 
 	pinframe = (dspriteframe_t *)pin;
 	width = LittleLong (pinframe->width);
@@ -86,21 +86,15 @@ void *SPR_ConvertFrame( const char *name, void *pin, int framenum, int groupfram
 	{
 		pixels = width * height * 4;
 		Mem_Copy( fout, fin, pixels );
+		pix.type = PF_RGBA_32;
 	}
 	else
 	{
 		pixels = width * height;
-		fpal = (byte *)(&spr.palette[0][0]);
-
-		// expand image to 32-bit rgba buffer
-		for (i = 0; i < pixels; i++ )
-		{
-			p = fin[i];
-			fout[(i<<2)+0] = fpal[(p<<2)+0];
-			fout[(i<<2)+1] = fpal[(p<<2)+1];
-			fout[(i<<2)+2] = fpal[(p<<2)+2];
-			fout[(i<<2)+3] = fpal[(p<<2)+3];
-		}
+		pix.palette = (byte *)(&spr.palette[0][0]);
+		pix.type = PF_INDEXED_32;
+		Image_ConvertPalette( &pix );
+		Mem_Copy( fout, fin, pixels );
 	}
 
 
@@ -125,15 +119,16 @@ void *SPR_ConvertFrame( const char *name, void *pin, int framenum, int groupfram
 	// preparing for write
 	pix.width = width;
 	pix.height = height;
+	pix.size = pixels; 
 	pix.numLayers = 1;
 	pix.numMips = 1;
-	pix.type = PF_RGBA_32;
 	pix.buffer = fout;
-	pix.size = width * height * 4; 
 	if( spr.texFormat >= SPR_INDEXALPHA )
 		pix.flags |= IMAGE_HAS_ALPHA;
 
-	FS_SaveImage( va("%s/sprites/%s.tga", gs_gamedir, framename ), &pix );
+	if( spr.truecolor )
+		FS_SaveImage( va("%s/sprites/%s.tga", gs_gamedir, framename ), &pix );
+	else FS_SaveImage( va("%s/sprites/%s.bmp", gs_gamedir, framename ), &pix );
 	Mem_Free( fout ); // release buffer
 
 	// jump to next frame
@@ -189,7 +184,7 @@ bool SPR_WriteScript( const char *name )
 	// sprite header
 	FS_Printf(f, "\n$spritename\t%s.spr\n", name );
 	FS_Printf(f, "$type\t\t%s\n",SPR_RenderType());
-	FS_Printf(f, "$render\t\t%s\n\n",SPR_RenderMode());
+	FS_Printf(f, "$texture\t\t%s\n\n",SPR_RenderMode());
 
 	// frames description
 	for( i = 0; i < spr.totalframes - spr.numgroup; i++)

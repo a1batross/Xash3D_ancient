@@ -106,6 +106,8 @@ extern vprogs_exp_t *PRVM;
 
 extern string gs_filename;
 extern char gs_basedir[ MAX_SYSPATH ];
+extern byte *error_bmp;
+extern size_t error_bmp_size;
 
 extern byte *studiopool;
 
@@ -122,9 +124,6 @@ void Com_CheckToken( const char *match );
 void Com_Parse1DMatrix( int x, vec_t *m );
 void Com_Parse2DMatrix( int y, int x, vec_t *m );
 void Com_Parse3DMatrix( int z, int y, int x, vec_t *m );
-
-// get rid of this
-byte *ReadBMP (char *filename, byte **palette, int *width, int *height);
 
 // misc
 bool CompileStudioModel ( byte *mempool, const char *name, byte parms );

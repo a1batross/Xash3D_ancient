@@ -275,25 +275,30 @@ void Image_GetPaletteLMP( const byte *pal, int rendermode )
 	else Image_GetPaletteQ1(); // default quake palette          
 }
 
-void Image_CopyPalette24bit( void )
+void Image_ConvertPalTo24bit( rgbdata_t *pic )
 {
 	byte	*pal32, *pal24;
+	byte	*converted;
 	int	i;
 
-	if( !d_currentpal )
+	if( !pic || !pic->buffer )
 	{
-		MsgDev(D_ERROR,"Image_Palette24bit: no palette set\n");
+		MsgDev(D_ERROR,"Image_ConvertPalTo24bit: image not loaded\n");
 		return;
 	}
-	if( image_palette )
+	if( !pic->palette )
 	{
-		MsgDev(D_ERROR,"Image_Palette24bit: palette already set\n");
+		MsgDev(D_ERROR,"Image_ConvertPalTo24bit: no palette found\n");
+		return;
+	}
+	if( pic->type == PF_INDEXED_24 )
+	{
+		MsgDev(D_ERROR,"Image_ConvertPalTo24bit: palette already converted\n");
 		return;
 	}
 
-	image_palette = Mem_Alloc( Sys.imagepool, 768 );
-	pal32 = (byte *)((uint *)d_currentpal);
-	pal24 = image_palette;
+	pal24 = converted = Mem_Alloc( Sys.imagepool, 768 );
+	pal32 = pic->palette;
 
 	for( i = 0; i < 256; i++, pal24 += 3, pal32 += 4 )
 	{
@@ -301,10 +306,14 @@ void Image_CopyPalette24bit( void )
 		pal24[1] = pal32[1];
 		pal24[2] = pal32[2];
 	}
+	Mem_Free( pic->palette );
+	pic->palette = converted;
+	pic->type = PF_INDEXED_24;
 }
 
 void Image_CopyPalette32bit( void )
 {
+	if( image_palette ) return; // already created ?
 	image_palette = Mem_Alloc( Sys.imagepool, 1024 );
 	Mem_Copy( image_palette, d_currentpal, 1024 );
 }

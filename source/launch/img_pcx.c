@@ -15,6 +15,7 @@ Image_LoadPCX
 bool Image_LoadPCX( const char *name, const byte *buffer, size_t filesize )
 {
 	pcx_t	pcx;
+	bool	result = false;
 	int	s, i, x, y, x2, dataByte;
 	byte	*pix, *pbuf, *palette, *fin, *enddata;
 
@@ -89,9 +90,9 @@ bool Image_LoadPCX( const char *name, const byte *buffer, size_t filesize )
 			break;
 		}
 	}
-	image_type = (image_flags & IMAGE_HAS_ALPHA) ? PF_INDEXED_32 : PF_INDEXED_24;
-          FS_AddMipmapToPack( pbuf, image_width, image_height, false );
+	image_type = PF_INDEXED_32; // scaled up to 32 bit
+          result = FS_AddMipmapToPack( pbuf, image_width, image_height, false );
 	Mem_Free( pbuf ); // free compressed image
 
-	return true;
+	return result;
 }

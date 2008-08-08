@@ -152,7 +152,7 @@ typedef struct model_state_s
 	int		gaitsequence;	// client\nps\bot gaitsequence
 	int		skin;		// skin for studiomodels
 	int		body;		// sub-model selection for studiomodels
-	float		blending[8];	// studio animation blending
+	float		blending[16];	// studio animation blending
 	float		controller[16];	// studio bone controllers
 } model_state_t;
 
@@ -563,6 +563,7 @@ typedef struct stdilib_api_s
 	void (*FreeImage)( rgbdata_t *pack );				// free image buffer
 
 	// image manipulation
+	void (*ImagePal32to24)( rgbdata_t *pic );
 	bool (*ResampleImage)( rgbdata_t **pix, int w, int h, bool free_org );// resample image
 	bool (*ProcessImage)( rgbdata_t **pix, int adj_type, bool free_org );	// flip, rotate e.t.c
 
@@ -808,6 +809,7 @@ imglib manager
 #define FS_SaveImage	com.SaveImage
 #define FS_FreeImage	com.FreeImage
 #define Image_GetColor	com.GetImageColor
+#define Image_ConvertPalette	com.ImagePal32to24
 #define Image_Resample	com.ResampleImage
 #define Image_Process	com.ProcessImage
 

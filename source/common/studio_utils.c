@@ -6,7 +6,7 @@
 #include "mdllib.h"
 typedef struct { int type; char *name; } activity_map_t;	// studio activity map conversion
 int		used[MAXSTUDIOTRIANGLES];		// the command list holds counts and s/t values
-short		commands[MAXSTUDIOTRIANGLES * 13];	//that are valid for every frame
+short		commands[MAXSTUDIOTRIANGLES * 13];	// that are valid for every frame
 int		stripverts[MAXSTUDIOTRIANGLES+2];
 int		striptris[MAXSTUDIOTRIANGLES+2];
 int		neighbortri[MAXSTUDIOTRIANGLES][3];
@@ -238,22 +238,22 @@ void OptimizeAnimations( void )
 	// optimize animations
 	for (i = 0; i < numseq; i++)
 	{
-		sequence[i].numframes = sequence[i].panim[0]->endframe - sequence[i].panim[0]->startframe + 1;
+		sequence[i]->numframes = sequence[i]->panim[0]->endframe - sequence[i]->panim[0]->startframe + 1;
 
 		// force looping animations to be looping
-		if (sequence[i].flags & STUDIO_LOOPING)
+		if( sequence[i]->flags & STUDIO_LOOPING )
 		{
-			for (j = 0; j < sequence[i].panim[0]->numbones; j++)
+			for( j = 0; j < sequence[i]->panim[0]->numbones; j++ )
 			{
-				for (q = 0; q < sequence[i].numblends; q++)
+				for( q = 0; q < sequence[i]->numblends; q++ )
 				{
-					vec3_t *ppos = sequence[i].panim[q]->pos[j];
-					vec3_t *prot = sequence[i].panim[q]->rot[j];
+					vec3_t *ppos = sequence[i]->panim[q]->pos[j];
+					vec3_t *prot = sequence[i]->panim[q]->rot[j];
 
-					n = 0; // sequence[i].panim[q]->startframe;
-					m = sequence[i].numframes - 1;
+					n = 0; // sequence[i]->panim[q]->startframe;
+					m = sequence[i]->numframes - 1;
 					
-					type = sequence[i].motiontype;
+					type = sequence[i]->motiontype;
 					if (!(type & STUDIO_LX)) ppos[m][0] = ppos[n][0];
 					if (!(type & STUDIO_LY)) ppos[m][1] = ppos[n][1];
 					if (!(type & STUDIO_LZ)) ppos[m][2] = ppos[n][2];
@@ -265,27 +265,27 @@ void OptimizeAnimations( void )
 			}
 		}
 
-		for (j = 0; j < sequence[i].numevents; j++)
+		for( j = 0; j < sequence[i]->numevents; j++ )
 		{
-			if (sequence[i].event[j].frame < sequence[i].panim[0]->startframe)
+			if( sequence[i]->event[j].frame < sequence[i]->panim[0]->startframe )
 			{
-				Msg( "sequence %s has event (%d) before first frame (%d)\n", sequence[i].name, sequence[i].event[j].frame, sequence[i].panim[0]->startframe );
-				sequence[i].event[j].frame = sequence[i].panim[0]->startframe;
+				Msg( "sequence %s has event (%d) before first frame (%d)\n", sequence[i]->name, sequence[i]->event[j].frame, sequence[i]->panim[0]->startframe );
+				sequence[i]->event[j].frame = sequence[i]->panim[0]->startframe;
 				iError++;
 			}
-			if (sequence[i].event[j].frame > sequence[i].panim[0]->endframe)
+			if( sequence[i]->event[j].frame > sequence[i]->panim[0]->endframe )
 			{
-				Msg( "sequence %s has event (%d) after last frame (%d)\n", sequence[i].name, sequence[i].event[j].frame, sequence[i].panim[0]->endframe );
-				sequence[i].event[j].frame = sequence[i].panim[0]->endframe;
+				Msg( "sequence %s has event (%d) after last frame (%d)\n", sequence[i]->name, sequence[i]->event[j].frame, sequence[i]->panim[0]->endframe );
+				sequence[i]->event[j].frame = sequence[i]->panim[0]->endframe;
 				iError++;
 			}
 		}
 
-		sequence[i].frameoffset = sequence[i].panim[0]->startframe;
+		sequence[i]->frameoffset = sequence[i]->panim[0]->startframe;
 	}
 }
 
-void FindNeighbor (int starttri, int startv)
+void FindNeighbor( int starttri, int startv )
 {
 	s_trianglevert_t	m1, m2;
 	s_trianglevert_t	*last, *check;
@@ -319,7 +319,7 @@ void FindNeighbor (int starttri, int startv)
 	}
 }
 
-int StripLength (int starttri, int startv)
+int StripLength( int starttri, int startv )
 {
 	int	j, k;
 
@@ -536,73 +536,73 @@ void ExtractMotion( void )
 	// extract linear motion
 	for (i = 0; i < numseq; i++)
 	{
-		if (sequence[i].numframes > 1)
+		if (sequence[i]->numframes > 1)
 		{
 			// assume 0 for now.
 			int	type;
 			vec3_t	*ppos;
 			vec3_t	motion = {0,0,0};
 
-			type = sequence[i].motiontype;
-			ppos = sequence[i].panim[0]->pos[0];
-			k = sequence[i].numframes - 1;
+			type = sequence[i]->motiontype;
+			ppos = sequence[i]->panim[0]->pos[0];
+			k = sequence[i]->numframes - 1;
 
 			if (type & STUDIO_LX) motion[0] = ppos[k][0] - ppos[0][0];
 			if (type & STUDIO_LY) motion[1] = ppos[k][1] - ppos[0][1];
 			if (type & STUDIO_LZ) motion[2] = ppos[k][2] - ppos[0][2];
 
-			for (j = 0; j < sequence[i].numframes; j++)
+			for (j = 0; j < sequence[i]->numframes; j++)
 			{	
 				vec3_t adj;
-				for (k = 0; k < sequence[i].panim[0]->numbones; k++)
+				for (k = 0; k < sequence[i]->panim[0]->numbones; k++)
 				{
-					if (sequence[i].panim[0]->node[k].parent == -1)
+					if (sequence[i]->panim[0]->node[k].parent == -1)
 					{
-						ppos = sequence[i].panim[0]->pos[k];
+						ppos = sequence[i]->panim[0]->pos[k];
 
-						VectorScale( motion, j * 1.0 / (sequence[i].numframes - 1), adj );
-						for (q = 0; q < sequence[i].numblends; q++)
+						VectorScale( motion, j * 1.0 / (sequence[i]->numframes - 1), adj );
+						for (q = 0; q < sequence[i]->numblends; q++)
 						{
-							VectorSubtract( sequence[i].panim[q]->pos[k][j], adj, sequence[i].panim[q]->pos[k][j] );
+							VectorSubtract( sequence[i]->panim[q]->pos[k][j], adj, sequence[i]->panim[q]->pos[k][j] );
 						}
 					}
 				}
 			}
-			VectorCopy( motion, sequence[i].linearmovement );
+			VectorCopy( motion, sequence[i]->linearmovement );
 		}
 		else
 		{
-			VectorSubtract( sequence[i].linearmovement, sequence[i].linearmovement, sequence[i].linearmovement );
+			VectorSubtract( sequence[i]->linearmovement, sequence[i]->linearmovement, sequence[i]->linearmovement );
 		}
 	}
 
 	// extract unused motion
 	for (i = 0; i < numseq; i++)
 	{
-		int type = sequence[i].motiontype;
+		int type = sequence[i]->motiontype;
 
-		for (k = 0; k < sequence[i].panim[0]->numbones; k++)
+		for (k = 0; k < sequence[i]->panim[0]->numbones; k++)
 		{
-			if (sequence[i].panim[0]->node[k].parent == -1)
+			if (sequence[i]->panim[0]->node[k].parent == -1)
 			{
-				for (q = 0; q < sequence[i].numblends; q++)
+				for (q = 0; q < sequence[i]->numblends; q++)
 				{
 					float motion[6];
-					motion[0] = sequence[i].panim[q]->pos[k][0][0];
-					motion[1] = sequence[i].panim[q]->pos[k][0][1];
-					motion[2] = sequence[i].panim[q]->pos[k][0][2];
-					motion[3] = sequence[i].panim[q]->rot[k][0][0];
-					motion[4] = sequence[i].panim[q]->rot[k][0][1];
-					motion[5] = sequence[i].panim[q]->rot[k][0][2];
+					motion[0] = sequence[i]->panim[q]->pos[k][0][0];
+					motion[1] = sequence[i]->panim[q]->pos[k][0][1];
+					motion[2] = sequence[i]->panim[q]->pos[k][0][2];
+					motion[3] = sequence[i]->panim[q]->rot[k][0][0];
+					motion[4] = sequence[i]->panim[q]->rot[k][0][1];
+					motion[5] = sequence[i]->panim[q]->rot[k][0][2];
 
-					for (j = 0; j < sequence[i].numframes; j++)
+					for (j = 0; j < sequence[i]->numframes; j++)
 					{	
-						//if (type & STUDIO_X) sequence[i].panim[q]->pos[k][j][0] = motion[0];
-						//if (type & STUDIO_Y) sequence[i].panim[q]->pos[k][j][1] = motion[1];
-						//if (type & STUDIO_Z) sequence[i].panim[q]->pos[k][j][2] = motion[2];
-						if (type & STUDIO_XR) sequence[i].panim[q]->rot[k][j][0] = motion[3];
-						if (type & STUDIO_YR) sequence[i].panim[q]->rot[k][j][1] = motion[4];
-						if (type & STUDIO_ZR) sequence[i].panim[q]->rot[k][j][2] = motion[5];
+						//if (type & STUDIO_X) sequence[i]->panim[q]->pos[k][j][0] = motion[0];
+						//if (type & STUDIO_Y) sequence[i]->panim[q]->pos[k][j][1] = motion[1];
+						//if (type & STUDIO_Z) sequence[i]->panim[q]->pos[k][j][2] = motion[2];
+						if (type & STUDIO_XR) sequence[i]->panim[q]->rot[k][j][0] = motion[3];
+						if (type & STUDIO_YR) sequence[i]->panim[q]->rot[k][j][1] = motion[4];
+						if (type & STUDIO_ZR) sequence[i]->panim[q]->rot[k][j][2] = motion[5];
 					}
 				}
 			}
@@ -619,12 +619,12 @@ void ExtractMotion( void )
 		vec3_t	motion = {0,0,0};
 		vec3_t	angles = {0,0,0};
 
-		type = sequence[i].motiontype;
+		type = sequence[i]->motiontype;
 
-		for (j = 0; j < sequence[i].numframes; j++)
+		for (j = 0; j < sequence[i]->numframes; j++)
 		{	
-			ppos = sequence[i].panim[0]->pos[0];
-			prot = sequence[i].panim[0]->rot[0];
+			ppos = sequence[i]->panim[0]->pos[0];
+			prot = sequence[i]->panim[0]->rot[0];
 
 			if (type & STUDIO_AX) motion[0] = ppos[j][0] - ppos[0][0];
 			if (type & STUDIO_AY) motion[1] = ppos[j][1] - ppos[0][1];
@@ -633,17 +633,17 @@ void ExtractMotion( void )
 			if (type & STUDIO_AYR) angles[1] = prot[j][1] - prot[0][1];
 			if (type & STUDIO_AZR) angles[2] = prot[j][2] - prot[0][2];
 
-			VectorCopy( motion, sequence[i].automovepos[j] );
-			VectorCopy( angles, sequence[i].automoveangle[j] );
+			VectorCopy( motion, sequence[i]->automovepos[j] );
+			VectorCopy( angles, sequence[i]->automoveangle[j] );
 
-			for (k = 0; k < sequence[i].panim[0]->numbones; k++)
+			for (k = 0; k < sequence[i]->panim[0]->numbones; k++)
 			{
-				if (sequence[i].panim[0]->node[k].parent == -1)
+				if (sequence[i]->panim[0]->node[k].parent == -1)
 				{
-					for (q = 0; q < sequence[i].numblends; q++)
+					for (q = 0; q < sequence[i]->numblends; q++)
 					{
-						// VectorSubtract( sequence[i].panim[q]->pos[k][j], motion, sequence[i].panim[q]->pos[k][j] );
-						// VectorSubtract( sequence[i].panim[q]->rot[k][j], angles, sequence[i].panim[q]->pos[k][j] );
+						// VectorSubtract( sequence[i]->panim[q]->pos[k][j], motion, sequence[i]->panim[q]->pos[k][j] );
+						// VectorSubtract( sequence[i]->panim[q]->rot[k][j], angles, sequence[i]->panim[q]->pos[k][j] );
 					}
 				}
 			}
@@ -658,7 +658,7 @@ int findNode( char *name )
 
 	for (k = 0; k < numbones; k++)
 	{
-		if (strcmp( bonetable[k].name, name ) == 0)
+		if(!com.strcmp( bonetable[k].name, name ))
 			return k;
 	}
 	return -1;
@@ -673,13 +673,13 @@ void MakeTransitions( void )
 	// add in direct node transitions
 	for (i = 0; i < numseq; i++)
 	{
-		if (sequence[i].entrynode != sequence[i].exitnode)
+		if (sequence[i]->entrynode != sequence[i]->exitnode)
 		{
-			xnode[sequence[i].entrynode-1][sequence[i].exitnode-1] = sequence[i].exitnode;
-			if (sequence[i].nodeflags)
-				xnode[sequence[i].exitnode-1][sequence[i].entrynode-1] = sequence[i].entrynode;
+			xnode[sequence[i]->entrynode-1][sequence[i]->exitnode-1] = sequence[i]->exitnode;
+			if (sequence[i]->nodeflags)
+				xnode[sequence[i]->exitnode-1][sequence[i]->entrynode-1] = sequence[i]->entrynode;
 		}
-		if (sequence[i].entrynode > numxnodes) numxnodes = sequence[i].entrynode;
+		if (sequence[i]->entrynode > numxnodes) numxnodes = sequence[i]->entrynode;
 	}
 
 	// add multi-stage transitions 
@@ -719,19 +719,23 @@ int lookup_texture( char *texturename )
 {
 	int i;
 
-	for (i = 0; i < numtextures; i++)
+	for( i = 0; i < numtextures; i++ )
 	{
-		if (com.stricmp( texture[i].name, texturename ) == 0)
+		if(!com.stricmp( texture[i]->name, texturename ))
 			return i;
 	}
 
-	com.strncpy( texture[i].name, texturename, sizeof(texture[i].name));
+	if( i >= MAXSTUDIOSKINS ) Sys_Break( "too many textures in model\n" );
+
+	// allocate a new one
+	texture[i] = Mem_Alloc( studiopool, sizeof(s_texture_t));
+	com.strncpy( texture[i]->name, texturename, sizeof(texture[i]->name));
 	
 	if(com.stristr( texturename, "chrome" ) != NULL)
-		texture[i].flags = STUDIO_NF_FLATSHADE | STUDIO_NF_CHROME;
+		texture[i]->flags = STUDIO_NF_FLATSHADE | STUDIO_NF_CHROME;
 	else if(com.stristr( texturename, "bright" ) != NULL)
-		texture[i].flags = STUDIO_NF_FLATSHADE | STUDIO_NF_FULLBRIGHT;
-	else texture[i].flags = 0;
+		texture[i]->flags = STUDIO_NF_FLATSHADE | STUDIO_NF_FULLBRIGHT;
+	else texture[i]->flags = 0;
 
 	numtextures++;
 	return i;
@@ -743,7 +747,7 @@ s_mesh_t *lookup_mesh( s_model_t *pmodel, char *texturename )
 
 	j = lookup_texture( texturename );
 
-	for (i = 0; i < pmodel->nummesh; i++)
+	for( i = 0; i < pmodel->nummesh; i++ )
 	{
 		if (pmodel->pmesh[i]->skinref == j)
 			return pmodel->pmesh[i];
@@ -760,7 +764,7 @@ s_mesh_t *lookup_mesh( s_model_t *pmodel, char *texturename )
 
 s_trianglevert_t *lookup_triangle( s_mesh_t *pmesh, int index )
 {
-	if (index >= pmesh->alloctris)
+	if( index >= pmesh->alloctris )
 	{
 		int start = pmesh->alloctris;
 		pmesh->alloctris = index + 256;
@@ -863,13 +867,13 @@ int lookupActivity( char *szActivity )
 
 	for (i = 0; activity_map[i].name; i++)
 	{
-		if (!stricmp( szActivity, activity_map[i].name ))
+		if (!com.stricmp( szActivity, activity_map[i].name ))
 			return activity_map[i].type;
 	}
 
 	// match ACT_#
-	if (!strnicmp( szActivity, "ACT_", 4 ))
-		return atoi( &szActivity[4] );
+	if (!com.strnicmp( szActivity, "ACT_", 4 ))
+		return com.atoi( &szActivity[4] );
 	return 0;
 }
 
@@ -1042,7 +1046,6 @@ void ResizeTexture( s_texture_t *ptexture )
 
 	// make the width a multiple of 4; some hardware requires this, and it ensures
 	// dword alignment for each scan
-
 	ptexture->skintop = ptexture->min_t;
 	ptexture->skinleft = ptexture->min_s;
 	ptexture->skinwidth = (int)((ptexture->max_s - ptexture->min_s) + 1 + 3) & ~3;
@@ -1079,7 +1082,7 @@ void ResizeTexture( s_texture_t *ptexture )
 	// TODO: process the texture and flag it if fullbright or transparent are used.
 	// TODO: only save as many palette entries as are actually used.
 
-	if (gamma != 1.8)
+	if( gamma != 1.8 )
 	{
 		// gamma correct the monster textures to a gamma of 1.8
 		float g;
@@ -1088,7 +1091,7 @@ void ResizeTexture( s_texture_t *ptexture )
 		
 		for (i = 0; i < 768; i++) pdest[i] = pow( psrc[i] / 255.0, g ) * 255;
 	}
-	else memcpy( pdest, ptexture->ppal, 256 * sizeof( rgb_t ) );
+	else Mem_Copy( pdest, ptexture->ppal, 256 * sizeof( rgb_t ));
 
 	Mem_Free( ptexture->ppicture );
 	Mem_Free( ptexture->ppal );

@@ -20,8 +20,9 @@ bool Image_LoadPAL( const char *name, const byte *buffer, size_t filesize )
 		return false;
 	}
 
-	image_palette = Mem_Alloc( Sys.imagepool, 768 );
-	Mem_Copy( image_palette, buffer, 768 );
+	Image_GetPaletteLMP( buffer, LUMP_NORMAL );
+	Image_CopyPalette32bit();
+
 	image_rgba = NULL; // only palette, not real image
 	image_size = image_width = image_height = 0;
 	image_num_mips = image_num_layers = 0;
@@ -66,7 +67,7 @@ bool Image_LoadWAL( const char *name, const byte *buffer, size_t filesize )
 	}
 
 	image_num_layers = 1;
-	image_type = PF_INDEXED_24;	// wal's never haven't transparency
+	image_type = PF_INDEXED_32;	// scaled up to 32-bit
 
 	Image_GetPaletteQ2(); // hardcoded
 	return FS_AddMipmapToPack( buffer + ofs[0], image_width, image_height, false );
@@ -81,6 +82,7 @@ bool Image_LoadFLT( const char *name, const byte *buffer, size_t filesize )
 {
 	flat_t	flat;
 	vfile_t	*f;
+	bool	result = false;
 	word	column_loop, row_loop;
 	int	i, column_offset, pointer_position, first_pos;
 	byte	*Data, post, topdelta, length;
@@ -140,13 +142,13 @@ bool Image_LoadFLT( const char *name, const byte *buffer, size_t filesize )
 		}
 	}
 
-	image_type = (image_flags & IMAGE_HAS_ALPHA) ? PF_INDEXED_32 : PF_INDEXED_24;
+	image_type = PF_INDEXED_32; // scaled up to 32-bit
 	Image_GetPaletteD1();
 
-	FS_AddMipmapToPack( Data, image_width, image_height, false );
+	result = FS_AddMipmapToPack( Data, image_width, image_height, false );
 	Mem_Free( Data );
 
-	return true;
+	return result;
 }
 
 /*
@@ -197,7 +199,7 @@ bool Image_LoadLMP( const char *name, const byte *buffer, size_t filesize )
 	if(fin[0] == 255) image_flags |= IMAGE_HAS_ALPHA;
 
 	Image_GetPaletteLMP( pal, LUMP_NORMAL );
-	image_type = (image_flags & IMAGE_HAS_ALPHA) ? PF_INDEXED_32 : PF_INDEXED_24;
+	image_type = PF_INDEXED_32; // scaled up to 32 bit
 	return FS_AddMipmapToPack( fin, image_width, image_height, false );
 }
 
@@ -269,6 +271,6 @@ bool Image_LoadMIP( const char *name, const byte *buffer, size_t filesize )
 
 	if(!Image_ValidSize( name )) return false;
 	Image_GetPaletteLMP( pal, rendermode );
-	image_type = (image_flags & IMAGE_HAS_ALPHA) ? PF_INDEXED_32 : PF_INDEXED_24;
+	image_type = PF_INDEXED_32; // scaled up to 32 bit
 	return FS_AddMipmapToPack( fin, image_width, image_height, false );
 }

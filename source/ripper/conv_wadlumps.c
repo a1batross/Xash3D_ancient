@@ -20,7 +20,7 @@ bool ConvSKN( const char *name, char *buffer, int filesize )
 	{
 		string	skinpath;
 		FS_FileBase( name, skinpath );
-		FS_SaveImage(va("%s/models/%s.bmp", gs_gamedir, skinpath ), pic );
+		FS_SaveImage(va("%s/sprites/%s.bmp", gs_gamedir, skinpath ), pic );
 		Skin_CreateScript( skinpath, pic );
 		FS_FreeImage( pic ); // release buffer
 		Msg("%s.skin\n", skinpath ); // echo to console about current skin
@@ -114,30 +114,9 @@ bool ConvLMP( const char *name, char *buffer, int filesize )
 	if( pic )
 	{
 		FS_FileBase( name, savedname );
-		FS_SaveImage(va("%s/%s.bmp", gs_gamedir, savedname ), pic );
+		FS_SaveImage(va("%s/gfx/%s.bmp", gs_gamedir, savedname ), pic );
 		FS_FreeImage( pic ); // release buffer
 		Msg("%s.lmp\n", savedname ); // echo to console about current pic
-		return true;
-	}
-	return false;
-}
-
-/*
-============
-ConvFNT
-============
-*/
-bool ConvFNT( const char *name, char *buffer, int filesize )
-{
-	rgbdata_t *pic = FS_LoadImage( "#internal.fnt", buffer, filesize );
-	string	savedname;
-
-	if( pic )
-	{
-		FS_FileBase( name, savedname );
-		FS_SaveImage(va("%s/gfx/%s.tga", gs_gamedir, savedname ), pic );
-		FS_FreeImage( pic ); // release buffer
-		Msg("%s.font\n", savedname ); // echo to console about current pic
 		return true;
 	}
 	return false;

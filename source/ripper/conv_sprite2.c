@@ -71,12 +71,12 @@ bool SP2_WriteScript( const char *name )
 	// sprite header
 	FS_Printf(f, "\n$spritename\t%s.spr\n", name );
 	FS_Printf(f, "$type\t\t%s\n",SPR_RenderType());
-	FS_Printf(f, "$render\t\t%s\n\n",SPR_RenderMode());
+	FS_Printf(f, "$texture\t\t%s\n\n",SPR_RenderMode());
 
 	// frames description
 	for( i = 0; i < spr.totalframes - spr.numgroup; i++)
 	{
-		FS_Printf(f,"$load\t\t%s.tga\n", spr.frame[i].name );
+		FS_Printf(f,"$load\t\t%s.bmp\n", spr.frame[i].name );
 		FS_Printf(f,"$frame\t\t0 0 %d %d", spr.frame[i].width, spr.frame[i].height );
 		if(!spr.frame[i].origin[0] && !spr.frame[i].origin[1]) FS_Print(f, "\n" ); 
 		else FS_Printf(f, " %.1f %d %d\n", 0.1f, spr.frame[i].origin[0],spr.frame[i].origin[1]);

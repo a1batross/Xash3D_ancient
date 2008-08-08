@@ -6,19 +6,17 @@
 #include "ripper.h"
 #include "qc_gen.h"
 
-dll_info_t vprogs_dll = { "vprogs.dll", NULL, "CreateAPI", NULL, NULL, true, sizeof(vprogs_exp_t) };
-vprogs_exp_t *PRVM;
 stdlib_api_t com;
 byte *basepool;
 byte *zonepool;
 static double start, end;
-uint app_name = 0;
 string gs_gamedir;
 string gs_searchmask;
 
 #define	MAX_SEARCHMASK	128
 string	searchmask[MAX_SEARCHMASK];
 int	num_searchmask = 0;
+int	game_family;
 
 typedef struct convformat_s
 {
@@ -39,13 +37,11 @@ convformat_t convert_formats[] =
 	{"%s.%s", "flp", ConvFLP},	// doom1 menu pics
 	{"%s.%s", "mip", ConvMIP},	// Quake1/Half-Life textures
 	{"%s.%s", "lmp", ConvLMP},	// Quake1/Half-Life gfx
-	{"%s.%s", "fnt", ConvFNT},	// Half-Life fonts
 	{"%s.%s", "wal", ConvWAL},	// Quake2 textures
 	{"%s.%s", "skn", ConvSKN},	// doom1 sprite models
 	{"%s.%s", "bsp", ConvBSP},	// Quake1\Half-Life map textures
 	{"%s.%s", "mus", ConvMID},	// Quake1\Half-Life map textures
 	{"%s.%s", "snd", ConvSND},	// Quake1\Half-Life map textures
-	{"%s.%s", "dat", ConvDAT},	// Decompile Quake1 qc-progs
 	{"%s.%s", "txt", ConvRAW},	// (hidden) Xash-extract scripts
 	{"%s.%s", "dat", ConvRAW},	// (hidden) Xash-extract progs
 	{NULL, NULL }		// list terminator
@@ -61,7 +57,7 @@ bool ConvertResource( const char *filename )
 	byte		*buffer = NULL;
 
 	com.strncpy( convname, filename, sizeof(convname)-1);
-	FS_StripExtension( convname ); //remove extension if needed
+	FS_StripExtension( convname ); // remove extension if needed
 
 	// now try all the formats in the selected list
 	for (format = convert_formats; format->formatstring; format++)
@@ -103,6 +99,41 @@ void AddMask( const char *mask )
 	num_searchmask++;
 }
 
+void Conv_DetectGameType( void )
+{
+	int	i;
+	search_t	*search;
+
+	game_family = GAME_GENERIC;
+
+	// first, searching for map format
+	AddMask( "maps/*.bsp" );
+
+	// search by mask		
+	search = FS_Search( searchmask[0], true );
+	for( i = 0; search && i < search->numfilenames; i++ )
+	{
+		if(Conv_CheckMap( search->filenames[i] ))
+			break;
+	}
+	if( search ) Mem_Free( search );
+	ClrMask();
+
+	// game family sucessfully determined
+	if( game_family != GAME_GENERIC ) return;
+
+	AddMask( "*.wad" );
+
+	// search by mask		
+	search = FS_Search( searchmask[0], true );
+	for( i = 0; search && i < search->numfilenames; i++ )
+	{
+		if(Conv_CheckWad( search->filenames[i] ))
+			break;
+	}
+	if( search ) Mem_Free( search );
+}
+
 /*
 ==================
 CommonInit
@@ -113,35 +144,14 @@ so do it manually
 */
 void InitConvertor ( int argc, char **argv )
 {
-	launch_t	CreateVprogs;
-	string	gamedir;
 	
 	// init pools
 	basepool = Mem_AllocPool( "Temp" );
 	zonepool = Mem_AllocPool( "Zone" );
-          app_name = g_Instance;
-
-	switch( app_name )
-	{
-	case RIPP_QCCDEC:
-		Sys_LoadLibrary( &vprogs_dll ); // load qcclib
-		CreateVprogs = (void *)vprogs_dll.main;
-		PRVM = CreateVprogs( &com, NULL ); // second interface not allowed
-
-		PRVM->Init( argc, argv );
-
-		if(!FS_GetParmFromCmdLine("-dir", gamedir ))
-			com.strncpy( gamedir, ".", sizeof(gamedir));
-		start = Sys_DoubleTime();
-		PRVM->PrepareDAT( gamedir, "progs.dat" ); // generic name
-		break;
-	default:
-		FS_InitRootDir(".");
-		break;	
-	}
+	FS_InitRootDir(".");
 
 	start = Sys_DoubleTime();
-	Msg("Converting ...\n\n");
+	Msg("\n\n");
 }
 
 void RunConvertor( void )
@@ -149,63 +159,75 @@ void RunConvertor( void )
 	search_t	*search;
 	string	errorstring;
 	int	i, j, numConvertedRes = 0;
+	cvar_t	*fs_defaultdir = Cvar_Get( "fs_defaultdir", "tmpQuArK", CVAR_SYSTEMINFO, NULL );
 
 	memset( errorstring, 0, MAX_STRING ); 
 	ClrMask();
+	Conv_DetectGameType();
+          
+	if( game_family ) Msg("Game: %s family\n", game_names[game_family] );
 
-	switch(app_name)
+	switch( game_family )
 	{
-	case RIPP_MIPDEC:
+	case GAME_DOOM1:
+		AddMask( "*.skn" );		// Doom1 sprite models	
+		AddMask( "*.flp" );		// Doom1 pics
+		AddMask( "*.flt" );		// Doom1 textures
+		AddMask( "*.snd" );		// Doom1 sounds
+		AddMask( "*.mus" );		// Doom1 music
+		break;
+	case GAME_HEXEN2:
+	case GAME_QUAKE1:
+		AddMask( "maps/*.bsp" );	// Quake1 textures from bsp
+		AddMask( "sprites/*.spr" );	// Quake1 sprites
+		AddMask( "sprites/*.spr32" );	// QW 32bit sprites
+		AddMask( "progs/*.spr32" );	// FTE, Darkplaces new sprites
+		AddMask( "progs/*.spr32" );
+		AddMask( "progs/*.spr" );
+		AddMask( "env/it/*.lmp" );	// Nehahra issues
+		AddMask( "gfx/*.mip" );	// Quake1 gfx/conchars
+		AddMask( "gfx/*.lmp" );	// Quake1 pics
+		AddMask( "*.sp32");
+		AddMask( "*.spr" );
+		AddMask( "*.mip" );
+		break;
+	case GAME_QUAKE2:
 		search = FS_Search("textures/*", true );
 		if( search )
 		{
 			// find subdirectories
-			for(i = 0; i < search->numfilenames; i++)
-			{
+			for( i = 0; i < search->numfilenames; i++ )
 				AddMask(va("%s/*.wal", search->filenames[i]));
-				AddMask(va("%s/*.jpg", search->filenames[i]));
-			}
 			Mem_Free( search );
 		}
-		AddMask( "maps/*.bsp" );	// textures from bsp
-		AddMask( "*.flt" );		// Doom1 textures
-		AddMask( "*.mip" );		// Quake1\Hl1 textures
-		AddMask( "*.jpg" );		// Quake3 textures
 		AddMask( "*.wal" );		// Quake2 textures
-		break;
-	case RIPP_SPRDEC:
-		AddMask( "sprites/*.spr32");	// QW 32bit sprites
+		AddMask( "*.sp2" );		// Quake2 sprites
+		AddMask( "*.pcx" );		// Quake2 sprites
 		AddMask( "sprites/*.sp2" );	// Quake2 sprites
-		AddMask( "sprites/*.spr" );	// Quake1 and Half-Life sprites
-		AddMask( "progs/*.spr32" );
-		AddMask( "progs/*.spr" );
-		AddMask( "*.spr" );
-		AddMask( "*.sp2" );
-		AddMask( "*.sp32");
-		break;
-	case RIPP_MDLDEC:
-		AddMask( "*.skn" );		// Doom1 sprite models
-		break;
-	case RIPP_LMPDEC:
 		AddMask( "pics/*.pcx");	// Quake2 pics
-		AddMask( "gfx/*.lmp" );	// Quake1 pics
-		AddMask( "*.fnt" );		// Half-Life fonts 
-		AddMask( "*.flp" );		// Doom1 pics
-		AddMask( "*.pcx" );
+		AddMask( "env/*.pcx" );	// Quake2 skyboxes
+		break;
+	case GAME_RTCW:
+	case GAME_QUAKE3:
+	case GAME_QUAKE4:
+	case GAME_HALFLIFE2:
+	case GAME_HALFLIFE2_BETA:
+		Sys_Break("Sorry, nothing to decompile (not implemeneted yet)\n" );
+		break;
+	case GAME_HALFLIFE:
+		AddMask( "maps/*.bsp" );	// textures from bsp
+		AddMask( "sprites/*.spr" );	// Half-Life sprites
+		AddMask( "gfx/*.lmp" );	// some images
+		AddMask( "*.mip" );		// all textures from wads
+		AddMask( "*.spr" );
 		AddMask( "*.lmp" );
 		break;
-	case RIPP_SNDDEC:
-		AddMask( "*.snd" );
-		AddMask( "*.mus" );
-		break;
-	case RIPP_QCCDEC:
-		AddMask( "*.dat" );
-		break;
-	case RIPP_BSPDEC:
-		Sys_Break(" not implemented\n");
+	case GAME_XASH3D:
+		Sys_Break("Sorry, but a can't decompile himself\n" );
 		break;
 	case HOST_OFFLINE:
-	default: return;
+	default:	Sys_Break("Sorry, game family not recognized\n" );
+		break;
 	}
 
 	if(FS_GetParmFromCmdLine("-file", gs_searchmask ))
@@ -215,7 +237,8 @@ void RunConvertor( void )
 	}
 
 	// directory to extract
-	com.strncpy( gs_gamedir, "tmpQuArK", sizeof(gs_gamedir));
+	com.strncpy( gs_gamedir, fs_defaultdir->string, sizeof(gs_gamedir));
+	Msg( "Converting ...\n\n" );
 
 	// search by mask		
 	for( i = 0; i < num_searchmask; i++)

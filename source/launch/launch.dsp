@@ -54,7 +54,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386 /opt:nowin98
-# ADD LINK32 common\zlib.lib user32.lib gdi32.lib advapi32.lib winmm.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /opt:nowin98
+# ADD LINK32 zlib.lib user32.lib gdi32.lib advapi32.lib winmm.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /opt:nowin98
 # Begin Custom Build
 TargetDir=\Xash3D\src_main\temp\launch\!release
 InputPath=\Xash3D\src_main\temp\launch\!release\launch.dll
@@ -90,7 +90,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 common\zlib.lib user32.lib gdi32.lib advapi32.lib winmm.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"libc.lib" /pdbtype:sept
+# ADD LINK32 zlib.lib user32.lib gdi32.lib advapi32.lib winmm.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"libc.lib" /pdbtype:sept
 # Begin Custom Build
 TargetDir=\Xash3D\src_main\temp\launch\!debug
 InputPath=\Xash3D\src_main\temp\launch\!debug\launch.dll
@@ -112,91 +112,91 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\common\cmd.c
+SOURCE=.\cmd.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\console.c
+SOURCE=.\console.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\cpuinfo.c
+SOURCE=.\cpuinfo.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\crclib.c
+SOURCE=.\crclib.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\cvar.c
+SOURCE=.\cvar.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\export.c
+SOURCE=.\export.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\filesystem.c
+SOURCE=.\filesystem.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\img_bmp.c
+SOURCE=.\img_bmp.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\img_dds.c
+SOURCE=.\img_dds.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\img_jpg.c
+SOURCE=.\img_jpg.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\img_main.c
+SOURCE=.\img_main.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\img_pcx.c
+SOURCE=.\img_pcx.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\img_png.c
+SOURCE=.\img_png.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\img_tga.c
+SOURCE=.\img_tga.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\img_utils.c
+SOURCE=.\img_utils.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\img_wad.c
+SOURCE=.\img_wad.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\memlib.c
+SOURCE=.\memlib.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\network.c
+SOURCE=.\network.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\parselib.c
+SOURCE=.\parselib.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\random.c
+SOURCE=.\random.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\stdlib.c
+SOURCE=.\stdlib.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\common\system.c
+SOURCE=.\system.c
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -204,11 +204,11 @@ SOURCE=.\common\system.c
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
-SOURCE=.\common\filesystem.h
+SOURCE=.\filesystem.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\launcher.h
+SOURCE=.\launch.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"

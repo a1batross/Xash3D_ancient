@@ -20,6 +20,7 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 	dword	cbBmpBits;
 	dword	cbPalBytes;
 	dword	biTrueWidth;
+	bool	result = false;
 	bmp_t	bhdr;
 
 	buf_p = (byte *)buffer;
@@ -39,7 +40,7 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 	bhdr.vRes = LittleLong(*(long *)buf_p);			buf_p += 4;
 	bhdr.colors = LittleLong(*(long *)buf_p);		buf_p += 4;
 	bhdr.importantColors = LittleLong(*(long *)buf_p);	buf_p += 4;
-	memcpy( bhdr.palette, buf_p, sizeof( bhdr.palette ));
+	Mem_Copy( bhdr.palette, buf_p, sizeof( bhdr.palette ));
 	
 	// bogus file header check
 	if( bhdr.reserved0 != 0 ) return false;
@@ -85,9 +86,8 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 	else cbPalBytes = bhdr.colors * sizeof( RGBQUAD );
 	Mem_Copy( rgrgbPalette, &bhdr.palette, cbPalBytes ); // read palette (bmih.biClrUsed entries)
 
-	// convert to a packed 768 byte palette
-	image_palette = Mem_Alloc( Sys.imagepool, 768 );
-	pb = image_palette;
+	// convert to a unpacked 1024 byte palette
+	pb = image_palette = Mem_Alloc( Sys.imagepool, 1024 );
 
 	// copy over used entries
 	for( i = 0; i < (int)bhdr.colors; i++ )
@@ -95,11 +95,14 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 		*pb++ = rgrgbPalette[i].rgbRed;
 		*pb++ = rgrgbPalette[i].rgbGreen;
 		*pb++ = rgrgbPalette[i].rgbBlue;
+		*pb++ = rgrgbPalette[i].rgbReserved;
 	}
 
 	// fill in unused entires will 0, 0, 0
+	// FIXME: change to 0 0 255 ?
 	for( i = bhdr.colors; i < 256; i++ ) 
 	{
+		*pb++ = 0;
 		*pb++ = 0;
 		*pb++ = 0;
 		*pb++ = 0;
@@ -112,7 +115,7 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
           buf_p += 1024; // move pointer
           
 	pb = buf_p;
-	pbBmpBits = image_rgba = Mem_Alloc( Sys.imagepool, cbBmpBits );
+	pbBmpBits = Mem_Alloc( Sys.imagepool, cbBmpBits );
 
 	// data is actually stored with the width being rounded up to a multiple of 4
 	biTrueWidth = (bhdr.width + 3) & ~3;
@@ -121,14 +124,13 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 	pb += (bhdr.height - 1) * biTrueWidth;
 	for( i = 0; i < bhdr.height; i++ )
 	{
-		// FIXME: replace with Mem_Move
-		memmove(&pbBmpBits[biTrueWidth * i], pb, biTrueWidth);
+		Mem_Copy( &pbBmpBits[biTrueWidth * i], pb, biTrueWidth );
 		pb -= biTrueWidth;
 	}
 
 	pb += biTrueWidth;
 	image_num_layers = image_num_mips = 1;
-	image_size = image_width * image_height;
+	image_type = PF_INDEXED_32; // scaled up to 32 bit
 
 	// scan for transparency
 	for( i = 0; i < image_size; i++ )
@@ -140,8 +142,9 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 		}
 	}
 
-	image_type = (image_flags & IMAGE_HAS_ALPHA) ? PF_INDEXED_32 : PF_INDEXED_24;
-	return true;
+	result = FS_AddMipmapToPack( pbBmpBits, image_width, image_height, false );
+	Mem_Free( pbBmpBits );
+	return result;
 }
 
 bool Image_SaveBMP( const char *name, rgbdata_t *pix, int saveformat )
@@ -213,7 +216,9 @@ bool Image_SaveBMP( const char *name, rgbdata_t *pix, int saveformat )
 		rgrgbPalette[i].rgbRed = *pb++;
 		rgrgbPalette[i].rgbGreen = *pb++;
 		rgrgbPalette[i].rgbBlue = *pb++;
-		rgrgbPalette[i].rgbReserved = *pb++;
+		if( pix->type == PF_INDEXED_32 )
+			rgrgbPalette[i].rgbReserved = *pb++;
+		else rgrgbPalette[i].rgbReserved = 0;
 	}
 
 	// write palette( bmih.biClrUsed entries )

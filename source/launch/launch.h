@@ -307,6 +307,7 @@ void FS_FreeImage( rgbdata_t *pack );
 void FS_GetImageColor( rgbdata_t *pic );
 bool Image_Resample( rgbdata_t **image, int width, int height, bool free_baseimage );
 bool Image_Process( rgbdata_t **pix, int adjust_type, bool free_baseimage );
+void Image_ConvertPalTo24bit( rgbdata_t *pic );
 search_t *FS_Search(const char *pattern, int caseinsensitive );
 search_t *FS_SearchDirs(const char *pattern, int caseinsensitive );
 

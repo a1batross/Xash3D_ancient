@@ -15,6 +15,41 @@ extern string gs_gamedir;
 #define Sys_Error com.error
 extern vprogs_exp_t *PRVM;
 extern uint app_name;
+extern int game_family;
+
+typedef enum
+{
+	GAME_GENERIC = 0,
+	GAME_DOOM1,
+	GAME_DOOM3,
+	GAME_QUAKE1,
+	GAME_QUAKE2,
+	GAME_QUAKE3,
+	GAME_QUAKE4,
+	GAME_HALFLIFE,
+	GAME_HALFLIFE2,
+	GAME_HALFLIFE2_BETA,
+	GAME_HEXEN2,
+	GAME_XASH3D,
+	GAME_RTCW,	
+} game_family_t;
+
+static const char *game_names[] =
+{
+	"Unknown",
+	"Doom1\\Doom2",
+	"Doom3\\Quake4",
+	"Quake1",
+	"Quake2",
+	"Quake3",
+	"Quake4",
+	"Half-Life",
+	"Half-Life 2",
+	"Half-Life 2 Beta",
+	"Nexen 2",
+	"Xash 3D",
+	"Return To Castle Wolfenstein"
+};
 
 //=====================================
 //	convertor modules

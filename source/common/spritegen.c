@@ -235,17 +235,30 @@ void Cmd_Framerate( void )
 ===============
 Cmd_Load
 
-syntax "$load fire01.tga"
+syntax "$load fire01.bmp"
 ===============
 */
 void Cmd_Load( void )
 {
 	char		*framename;
 	static byte	base_pal[256*3];
+	rgbdata_t		*pic;
 
 	framename = Com_GetToken( false );
-	FS_DefaultExtension( framename, ".bmp" );
-	frame_buffer = ReadBMP( framename, &sprite_pal, &frame_width, &frame_height );
+
+	pic = FS_LoadImage( framename, error_bmp, error_bmp_size );
+	if( !pic ) Sys_Break( "unable to load %s\n", framename ); // no error.bmp, missing frame...
+	Image_ConvertPalette( pic );
+
+	// copy frame info
+	if( frame_buffer ) Mem_Free( frame_buffer );		// clear previous frame
+	frame_buffer = Mem_Alloc( spritepool, pic->size );
+	if( !sprite_pal ) sprite_pal = Mem_Alloc( spritepool, 768 );// this does nothing :)
+	Mem_Copy( frame_buffer, pic->buffer, pic->size );
+	Mem_Copy( sprite_pal, pic->palette, 768 );
+	frame_width = pic->width;
+	frame_height = pic->height;
+	if( pic ) FS_FreeImage( pic );
 
 	if( sprite.numframes == 0 ) Mem_Copy( base_pal, sprite_pal, sizeof( base_pal ));
 	else if( memcmp( base_pal, sprite_pal, sizeof( base_pal )))
@@ -258,7 +271,7 @@ void Cmd_Load( void )
 		int	x, y;
 
 		fin = frame_buffer;
-		fout = Mem_Alloc( zonepool, frame_width * frame_height );
+		fout = Mem_Alloc( spritepool, frame_width * frame_height );
 			
 		if(Com_MatchToken("flip_x"))
 		{
@@ -308,8 +321,11 @@ void Cmd_Frame( void )
 		Sys_Break( "sprite has a dimension longer than %d\n", MAX_FRAME_DIM );
 
 	if((w > frame_width) || (h > frame_height))
-		Sys_Break("frame size [%ix%i] longer than image [%ix%i]\n", w, h, frame_width, frame_height );
-
+	{
+		w = frame_width;
+		h = frame_height;
+		MsgDev( D_WARN, "frame size [%ix%i] longer than image [%ix%i]\n", w, h, frame_width, frame_height );
+	}
 	xh = xl + w;
 	yh = yl + h;
 

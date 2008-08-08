@@ -109,6 +109,8 @@ void Skin_CreateScript( const char *name, rgbdata_t *pic );
 bool Conv_CreateShader( const char *name, rgbdata_t *pic, const char *ext, const char *anim, int surf, int cnt );
 void Conv_GetPaletteQ2( void );
 void Conv_GetPaletteQ1( void );
+bool Conv_CheckMap( const char *mapname );
+bool Conv_CheckWad( const char *wadname );
 extern uint *d_currentpal;
 
 #endif//QC_GEN_H
