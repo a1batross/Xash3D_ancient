@@ -1420,7 +1420,6 @@ word *Image_Compress565( rgbdata_t *pix )
 	switch ( pix->type )
 	{
 	case PF_RGB_24:
-	case PF_RGB_24_FLIP:
 		for (i = 0, j = 0; i < SizeOfData; i += 3, j++)
 		{
 			Data[j]  = (pix->buffer[i+0] >> 3) << 11;
@@ -1479,13 +1478,6 @@ byte *Image_Compress88( rgbdata_t *pix )
 			Data[j+1] = pix->buffer[i+0];
 		}
 		break;
-	case PF_RGB_24_FLIP:
-		for (i = 0, j = 0; i < pix->size; i += 3, j += 2)
-		{
-			Data[j+0] = pix->buffer[i+1];
-			Data[j+1] = pix->buffer[i+2];
-		}
-		break;
 	case PF_LUMINANCE:
 	case PF_LUMINANCE_ALPHA:
 		for (i = 0, j = 0; i < pix->size; i++, j += 2)
@@ -1514,21 +1506,6 @@ size_t Image_CompressDXT( vfile_t *f, int saveformat, rgbdata_t *pix )
 	height = pix->height;
 	dst_size = Image_DXTGetLinearSize( saveformat, width, height, 1, 0 );
 	srccomps = PFDesc[pix->type].bpp;
-
-	if( pix->type == PF_RGB_24_FLIP )
-	{
-		int	x, y, c;
-		byte	*in = pix->buffer;
- 		uint	line = pix->width * srccomps;
-
-		flip = Mem_Alloc( Sys.imagepool, pix->size ); // alloc src image size
-		for( y = pix->height - 1; y >= 0; y-- )
-			for( x = 0; x < pix->width; x++ )
-				for( c = 0; c < srccomps; c++, in++)
-					flip[y*line+x*srccomps+c] = *in;
-		pix->buffer = flip;
-	}
-
 	blkaddr = dest = Mem_Alloc( Sys.imagepool, dst_size ); // alloc dst image size
 
 	switch( saveformat )
@@ -1836,8 +1813,19 @@ bool Image_LoadDDS( const char *name, const byte *buffer, size_t filesize )
 
 bool Image_SaveDDS( const char *name, rgbdata_t *pix, int saveformat )
 {
-	file_t	*file = FS_Open( name, "wb" );	// create real file
-	vfile_t	*vhandle = VFS_Open( file, "w" );	// create virtual file
+	file_t	*file;	// real file
+	vfile_t	*vhandle;	// virtual file
+
+	if(FS_FileExists( name )) return false;	// already existed
+
+	file = FS_Open( name, "wb" );
+	if( !file ) return false;
+	vhandle = VFS_Open( file, "w" );
+	if( !vhandle )
+	{
+		FS_Close( file );
+		return false;
+	}	
 
 	Image_DXTWriteHeader( vhandle, pix, 0, saveformat );
 	if(!Image_CompressDXT( vhandle, saveformat, pix ))

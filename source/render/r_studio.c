@@ -100,7 +100,7 @@ image_t *R_StudioLoadTexture( rmodel_t *mod, mstudiotexture_t *ptexture, byte *p
 	r_skin.numMips = 1;
 	r_skin.palette = pin + ptexture->width * ptexture->height + ptexture->index;
 	r_skin.buffer = pin + ptexture->index; // texdata
-	r_skin.size = ptexture->width * ptexture->height * 3; // for bounds cheking
+	r_skin.size = ptexture->width * ptexture->height; // for bounds cheking
 			
 	// load studio texture and bind it
 	image = R_LoadImage( ptexture->name, &r_skin, it_skin );
@@ -627,8 +627,7 @@ StudioPlayerBlend
 void R_StudioPlayerBlend( mstudioseqdesc_t *pseqdesc, int *pBlend, float *pPitch )
 {
 	// calc up/down pointing
-	if( mirror_render ) *pBlend = (*pPitch * -3);
-	else  *pBlend = (*pPitch * 3);
+	*pBlend = (*pPitch * 3);
 
 	if( *pBlend < pseqdesc->blendstart[0] )
 	{
@@ -697,6 +696,11 @@ void R_StudioSetUpTransform( void )
 			else if( d < -180 ) d += 360;
 			angles[i] += d * f;
 		}
+	}
+	else if( m_pCurrentEntity->ent_type == ED_CLIENT )
+	{
+		// don't rotate player model, only aim
+		angles[PITCH] = 0;
 	}
 	else if( m_pCurrentEntity->movetype != MOVETYPE_NONE ) 
 	{
@@ -1904,25 +1908,6 @@ bool R_StudioDrawModel( int pass, int flags )
 			return 0;
 	}
 
-	/*if( mirror_render && m_pCurrentEntity->renderfx & RF_PLAYERMODEL )
-	{
-		entity_state_t *plr = ri.GetLocalPlayer();
-		ref_entity_t *save_ent = m_pCurrentEntity;
-		int newflags = (STUDIO_EVENTS|STUDIO_RENDER|STUDIO_MIRROR);		
-		int save_interp;
-
-		save_interp = m_fDoInterp;
-		m_fDoInterp = 0;
-			
-		// draw as though it were a player
-		m_pCurrentEntity = &r_newrefdef.entities[plr->number];
-                    
-		R_StudioDrawPlayer( pass, newflags );
-
-		m_fDoInterp = save_interp;
-		m_pCurrentEntity = save_ent;
-	}*/
-
 	R_StudioSetupRender( pass );	
 	R_StudioSetUpTransform();
 	if( flags & STUDIO_RENDER )
@@ -2174,7 +2159,7 @@ int R_StudioDrawPlayer( int pass, int flags )
 	// MsgDev( D_INFO, "DrawPlayer %d %d (%d)\n", r_framecount, pplayer->player_index, m_pCurrentEntity->sequence );
 	// MsgDev( D_INFO, "Player %.2f %.2f %.2f\n", pplayer->velocity[0], pplayer->velocity[1], pplayer->velocity[2] );
 
-	if( pplayer->number < 0 || pplayer->number >= ri.GetMaxClients())
+	if( pplayer->number < 0 || pplayer->number > ri.GetMaxClients())
 		return 0;
 
 	if( pplayer->model.gaitsequence )

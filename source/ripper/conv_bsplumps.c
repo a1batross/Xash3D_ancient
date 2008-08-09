@@ -28,13 +28,6 @@ typedef struct
 	int		dataofs[4]; // [nummiptex]
 } dmiptexlump_t;
 
-typedef struct mip_s
-{
-	char	name[16];
-	uint	width, height;
-	uint	offsets[4];	// four mip maps stored
-} mip_t;
-
 byte*	bsp_base;
 bool	bsp_halflife = false;
 
@@ -198,7 +191,7 @@ bool Conv_CheckWad( const char *wadname )
 	// and check wadnames in case
 	if(!com.stricmp( wadname, "tnt.wad" ) && game_family == GAME_DOOM1 )
 	{
-		Msg("Wow! Doom2 на TNT!\n" );
+		Msg("Wow! Doom2 na TNT!\n" );
 	}
 	return (game_family != GAME_GENERIC);
 }

@@ -184,7 +184,7 @@ void CL_ParseServerData( sizebuf_t *msg )
 	str = MSG_ReadString( msg );
 
 	// get splash name
-	Cvar_Set( "cl_levelshot_name", va("background/%s.tga", str ));
+	Cvar_Set( "cl_levelshot_name", va("background/%s.png", str ));
 	Cvar_SetValue("scr_loading", 0.0f ); // reset progress bar
 	if(!FS_FileExists(va("gfx/%s", Cvar_VariableString("cl_levelshot_name")))) 
 	{

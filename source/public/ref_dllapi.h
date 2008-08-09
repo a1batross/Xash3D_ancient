@@ -1,4 +1,4 @@
-//=======================================================================
+ //=======================================================================
 //			Copyright XashXT Group 2007 ©
 //		  ref_dllapi.h - shared ifaces between engine parts
 //=======================================================================
@@ -15,7 +15,6 @@ enum host_state
 {	// paltform states
 	HOST_OFFLINE = 0,	// host_init( g_Instance ) same much as:
 	HOST_CREDITS,	// "splash"	"©anyname"	(easter egg)
-	HOST_UNINSTALL,	// "uninstall"	"uninstall"
 	HOST_DEDICATED,	// "normal"	"#gamename"
 	HOST_NORMAL,	// "normal"	"gamename"
 	HOST_BSPLIB,	// "bsplib"	"bsplib"
@@ -320,7 +319,6 @@ enum comp_format
 	PF_RGBA_32,	// already prepared ".bmp", ".tga" or ".jpg" image 
 	PF_ARGB_32,	// uncompressed dds image
 	PF_RGB_24,	// uncompressed dds or another 24-bit image 
-	PF_RGB_24_FLIP,	// flip image for screenshots
 	PF_DXT1,		// nvidia DXT1 format
 	PF_DXT3,		// nvidia DXT3 format
 	PF_DXT5,		// nvidia DXT5 format
@@ -347,12 +345,11 @@ typedef struct bpc_desc_s
 static const bpc_desc_t PFDesc[] =
 {
 {PF_UNKNOWN,	"raw",	0x1908,	0x1401, 0,  0,  0 },
-{PF_INDEXED_24,	"pal 24",	0x1908,	0x1401, 3,  1,  0 },// expand data to RGBA buffer
-{PF_INDEXED_32,	"pal 32",	0x1908,	0x1401, 4,  1,  0 },
+{PF_INDEXED_24,	"pal 24",	0x1908,	0x1401, 1,  1,  0 },// expand data to RGBA buffer
+{PF_INDEXED_32,	"pal 32",	0x1908,	0x1401, 1,  1,  0 },
 {PF_RGBA_32,	"RGBA 32",0x1908,	0x1401, 4,  1, -4 },
 {PF_ARGB_32,	"ARGB 32",0x1908,	0x1401, 4,  1, -4 },
 {PF_RGB_24,	"RGB 24",	0x1908,	0x1401, 3,  1, -3 },
-{PF_RGB_24_FLIP,	"RGB 24",	0x1908,	0x1401, 3,  1, -3 },
 {PF_DXT1,		"DXT1",	0x1908,	0x1401, 4,  1,  8 },
 {PF_DXT3,		"DXT3",	0x1908,	0x1401, 4,  1, 16 },
 {PF_DXT5,		"DXT5",	0x1908,	0x1401, 4,  1, 16 },
@@ -371,6 +368,12 @@ static const bpc_desc_t PFDesc[] =
 #define IMAGE_GEN_MIPS	0x00000008	// must generate mips
 #define IMAGE_CUBEMAP_FLIP	0x00000010	// it's a cubemap with flipped sides( dds pack )
 #define IMAGE_ONLY_PALETTE	0x00000020	// image not valid, returns palette only
+
+enum img_process
+{
+	IMAGE_FLIP_X = 0,
+	IMAGE_FLIP_Y,
+};
 
 typedef struct rgbdata_s
 {

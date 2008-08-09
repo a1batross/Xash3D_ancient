@@ -16,7 +16,8 @@
 */
 string	frame_prefix;
 byte	*spr_palette;
-
+static byte pal[256][4];
+	
 /*
 ====================
 Sprite model loader
@@ -35,11 +36,19 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 
 	width = LittleLong (pinframe->width);
 	height = LittleLong (pinframe->height);
-	size = width * height * 4;
+	size = width * height;
           
 	pspriteframe = Mem_Alloc(mod->mempool, sizeof (mspriteframe_t));
-	memset (pspriteframe, 0, sizeof (mspriteframe_t));
 	spr_frame = (rgbdata_t *)Mem_Alloc( mod->mempool, sizeof(rgbdata_t));
+	spr_frame->buffer = (byte *)Mem_Alloc( mod->mempool, size );
+	spr_frame->palette = (byte *)Mem_Alloc( mod->mempool, 1024 );
+	Mem_Copy( spr_frame->buffer, (byte *)(pinframe + 1), size );
+	Mem_Copy( spr_frame->palette, spr_palette, 1024 );
+	spr_frame->flags = IMAGE_HAS_ALPHA;
+	spr_frame->type = PF_INDEXED_32;
+	spr_frame->size = size; // for bounds checking
+	spr_frame->numLayers = 1;
+	spr_frame->numMips = 1;
 	*ppframe = pspriteframe;
 
 	pspriteframe->width = spr_frame->width = width;
@@ -52,17 +61,10 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	pspriteframe->left = origin[0];
 	pspriteframe->right = width + origin[0];
           pspriteframe->texnum = 0;
-	spr_frame->type = PF_INDEXED_32;
-	spr_frame->flags = IMAGE_HAS_ALPHA;
-	spr_frame->palette = spr_palette;
-	spr_frame->numLayers = 1;
-	spr_frame->numMips = 1;
 	
 	// extract sprite name from path
 	FS_FileBase( mod->name, name );
 	com.strcat(name, va("_%s_%i%i", frame_prefix, framenum/10, framenum%10 ));
-	spr_frame->size = width * height * 4; // for bounds checking
-	spr_frame->buffer = (byte *)(pinframe + 1);
 
 	image = R_LoadImage( name, spr_frame, it_sprite );
 	if( image )
@@ -74,7 +76,7 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
           else MsgDev(D_WARN, "%s has null frame %d\n", image->name, framenum );
 
 	FS_FreeImage( spr_frame );          
-	return (dframetype_t *)((byte *)(pinframe + 1) + spr_frame->size);
+	return (dframetype_t *)((byte *)(pinframe + 1) + size );
 }
 
 dframetype_t *R_SpriteLoadGroup( rmodel_t *mod, void * pin, mspriteframe_t **ppframe, int framenum )
@@ -120,7 +122,6 @@ void R_SpriteLoadModel( rmodel_t *mod, void *buffer )
 	short		*numi;
 	msprite_t		*psprite;
 	dframetype_t	*pframetype;
-	static byte	pal[256][4];
 	int		i, size, numframes;
 	
 	pin = (dsprite_t *)buffer;

@@ -36,9 +36,11 @@ typedef struct loadformat_s
 
 static loadformat_t load_formats0[] =
 {
-	{"textures/%s%s.%s", "dds", Image_LoadDDS},
-	{"textures/%s%s.%s", "tga", Image_LoadTGA},
+	{"textures/%s%s.%s", "dds", Image_LoadDDS},	// cubemaps, textures
+	{"textures/%s%s.%s", "png", Image_LoadPNG},	// levelshot save as .png
+	{"textures/%s%s.%s", "tga", Image_LoadTGA},	// all other
 	{"%s%s.%s", "dds", Image_LoadDDS},
+	{"%s%s.%s", "png", Image_LoadPNG},
 	{"%s%s.%s", "tga", Image_LoadTGA},
 	{NULL, NULL, NULL}
 };
@@ -253,7 +255,6 @@ void FS_GetImageColor( rgbdata_t *pic )
 		}
 		break;
 	case PF_RGB_24:
-	case PF_RGB_24_FLIP:
 		for( j = 0; j < texels; j++, buffer += 3 )
 		{
 			color[0] += buffer[0];
@@ -315,6 +316,7 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t buffsi
 		case 1: desired_formats = load_formats1; break;	// tga, dds, jpg, png, mip
 		case 2: desired_formats = load_formats2; break;	// tga, dds, jpg, png, mip, bmp, pcx, wal, lmp
 		case 3: desired_formats = load_formats3; break;	// tga, dds, jpg, png, mip, bmp, pcx, wal, lmp, flat, pal
+		default: desired_formats = load_formats0; break;	// tga, dds
 		}
 		break;
 	case HOST_SPRITE:
@@ -343,7 +345,7 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t buffsi
 	if(!anyformat) MsgDev(D_NOTE, "Note: %s will be loading only with ext .%s\n", loadname, ext );
 	
 	// now try all the formats in the selected list
-	for( format = desired_formats; format->formatstring; format++)
+	for( format = desired_formats; format && format->formatstring; format++)
 	{
 		if( anyformat || !com_stricmp(ext, format->ext ))
 		{
@@ -365,7 +367,7 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t buffsi
 	// maybe it skybox or cubemap ?
 	for( i = 0; i < 6; i++ )
 	{
-		for( format = desired_formats; format->formatstring; format++ )
+		for( format = desired_formats; format && format->formatstring; format++ )
 		{
 			if( anyformat || !com_stricmp(ext, format->ext ))
 			{
@@ -404,7 +406,7 @@ load_internal:
 	// try to load image from const buffer (e.g. const byte blank_frame )
 	com_strncpy( texname, filename, sizeof(texname) - 1);
 
-	for( format = desired_formats; format->formatstring; format++ )
+	for( format = desired_formats; format && format->formatstring; format++ )
 	{
 		if( anyformat || !com_stricmp( ext, format->ext ))
 		{

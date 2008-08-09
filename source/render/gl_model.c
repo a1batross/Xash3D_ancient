@@ -904,7 +904,6 @@ void Mod_LoadBrushModel (rmodel_t *mod, void *buffer)
 
 	mod->numframes = 2;					// regular and alternate animation
 	mod->registration_sequence = registration_sequence;	// register model
-	loadmodel->num_textures = 0;				// waiting for load
 }
 
 /*

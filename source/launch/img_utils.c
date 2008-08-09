@@ -137,6 +137,17 @@ bool Image_ValidSize( const char *name )
 	return true;
 }
 
+bool Image_LumpValidSize( const char *name )
+{
+	if( image_width > 640 || image_height > 640 || image_width <= 0 || image_height <= 0 )
+	{
+		if(!com_stristr( name, "#internal" )) // internal errors are silent
+			MsgDev(D_WARN, "Image_LumpValidSize: (%s) dims out of range[%dx%d]\n", name, image_width,image_height );
+		return false;
+	}
+	return true;
+}
+
 vec_t Image_NormalizeColor( vec3_t in, vec3_t out )
 {
 	float	max, scale;
@@ -210,7 +221,7 @@ void Image_GetPaletteD1( void )
 	if(!d1palette_init)
 	{
 		Image_SetPalette( palette_d1, d_8toD1table );
-		d_8toD1table[247] = 0; // 247 is transparent
+		d_8toD1table[247] = 0; // Image_LoadFLT will be convert transparency from 247 into 255 color
 		d1palette_init = true;
 	}
 	d_currentpal = d_8toD1table;
@@ -265,7 +276,7 @@ void Image_GetPaletteLMP( const byte *pal, int rendermode )
 		d_8to24table[255] &= LittleLong(0xffffff);
 		d_currentpal = d_8to24table;
 	}
-	else if(rendermode == LUMP_QFONT)
+	else if( rendermode == LUMP_QFONT )
 	{
 		// quake1 base palette and font palette have some diferences
 		Image_SetPalette( palette_q1, d_8to24table );
@@ -281,12 +292,7 @@ void Image_ConvertPalTo24bit( rgbdata_t *pic )
 	byte	*converted;
 	int	i;
 
-	if( !pic || !pic->buffer )
-	{
-		MsgDev(D_ERROR,"Image_ConvertPalTo24bit: image not loaded\n");
-		return;
-	}
-	if( !pic->palette )
+	if( !pic || !pic->palette )
 	{
 		MsgDev(D_ERROR,"Image_ConvertPalTo24bit: no palette found\n");
 		return;
@@ -742,6 +748,27 @@ void Image_Resample24Nolerp( const void *indata, int inwidth, int inheight, void
 	}
 }
 
+void Image_Resample8Nolerp( const void *indata, int inwidth, int inheight, void *outdata, int outwidth, int outheight )
+{
+	int	i, j;
+	byte	*in, *inrow;
+	uint	frac, fracstep;
+	byte	*out = (byte *)outdata;
+
+	in = (byte *)indata;
+	fracstep = inwidth * 0x10000 / outwidth;
+	for( i = 0; i < outheight; i++, out += outwidth )
+	{
+		inrow = in + inwidth*(i*inheight/outheight);
+		frac = fracstep>>1;
+		for( j = 0; j < outwidth; j++ )
+		{
+			out[j] = inrow[frac>>16];
+			frac += fracstep;
+		}
+	}
+}
+
 /*
 ================
 Image_Resample
@@ -753,14 +780,18 @@ byte *Image_ResampleInternal( const void *indata, int inwidth, int inheight, int
 	byte	*outdata;
 
 	// nothing to resample ?
-	if (inwidth == outwidth && inheight == outheight)
+	if( inwidth == outwidth && inheight == outheight )
 		return (byte *)indata;
 
 	// alloc new buffer
 	switch( type )
 	{
+	case PF_INDEXED_24:
+	case PF_INDEXED_32:
+		outdata = (byte *)Mem_Alloc( Sys.imagepool, outwidth * outheight );
+		Image_Resample8Nolerp( indata, inwidth, inheight, outdata, outwidth, outheight );
+		break;		
 	case PF_RGB_24:
-	case PF_RGB_24_FLIP:
 		outdata = (byte *)Mem_Alloc( Sys.imagepool, outwidth * outheight * 3 );
 		if( quality ) Image_Resample24Lerp( indata, inwidth, inheight, outdata, outwidth, outheight );
 		else Image_Resample24Nolerp( indata, inwidth, inheight, outdata, outwidth, outheight );
@@ -800,21 +831,10 @@ bool Image_Resample( rgbdata_t **image, int width, int height, bool free_baseima
 	out = Image_ResampleInternal((uint *)pix->buffer, pix->width, pix->height, w, h, pix->type );
 	if( out != pix->buffer )
 	{
-		switch( pix->type )
-		{
-		case PF_RGBA_32:
-			pixel = 4;
-			break;
-		case PF_RGB_24:
-		case PF_RGB_24_FLIP:
-			pixel = 3;
-			break;
-		default:
-			pixel = 4;
-		}
-		
+		pixel = PFDesc[pix->type].bpp;
+
 		// if image was resampled
-		MsgDev(D_NOTE, "Resample image from[%d x %d] to [%d x %d]\n", pix->width, pix->height, w, h );
+		MsgDev( D_NOTE, "Resample image from[%d x %d] to [%d x %d]\n", pix->width, pix->height, w, h );
 		if( free_baseimage ) Mem_Free( pix->buffer ); // free original image buffer
 
 		// change image params
@@ -830,15 +850,56 @@ bool Image_Resample( rgbdata_t **image, int width, int height, bool free_baseima
 
 bool Image_Process( rgbdata_t **pix, int adjust_type, bool free_baseimage )
 {
-	int	w, h;
+	int	w, h, x, y, c, bpp;
 	rgbdata_t	*pic = *pix;
-
+	byte	*fout, *fin;
+	uint	line;
+				
 	// check for buffers
 	if(!pic || !pic->buffer) return false;
 
+	// check for support formats
+	switch( pic->type )
+	{
+	case PF_INDEXED_24:
+	case PF_INDEXED_32:
+	case PF_RGB_24:
+	case PF_RGBA_32:
+		break;
+	default:
+		MsgDev(D_ERROR, "Image_Process: can't processing format %s\n", PFDesc[pic->type].name );
+		return false;		
+	}
+
+	bpp = PFDesc[pic->type].bpp;
 	w = pic->width;
 	h = pic->height;
+	line = pic->width * bpp;
+	fin = pic->buffer;
+	fout = Mem_Alloc( Sys.imagepool, w * h * bpp );
 
-	//TODO: implement
-	return false;
+	switch( adjust_type )
+	{
+	case IMAGE_FLIP_X:
+		for( y = 0; y < h; y++ )
+			for( x = w - 1; x >= 0; x-- )
+				for( c = 0; c < bpp; c++, fin++ )
+					fout[y*line+x*bpp+c] = *fin;
+		break;
+	case IMAGE_FLIP_Y:
+		for( y = h - 1; y >= 0; y-- )
+			for( x = 0; x < w; x++ )
+				for( c = 0; c < bpp; c++, fin++ )
+					fout[y*line+x*bpp+c] = *fin;
+		break;
+	default:
+		MsgDev(D_ERROR, "Image_Process: unknown transformation %d\n", adjust_type );		
+		break;
+	}
+
+	if( free_baseimage ) Mem_Free( pic->buffer );
+	pic->buffer = fout;
+	*pix = pic;
+
+	return true;
 }

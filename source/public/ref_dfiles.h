@@ -145,6 +145,34 @@ typedef struct
 } dlumpinfo_t;
 
 /*
+========================================================================
+
+.LMP image format	(Half-Life gfx.wad lumps)
+
+========================================================================
+*/
+typedef struct lmp_s
+{
+	uint	width;
+	uint	height;
+} lmp_t;
+
+/*
+========================================================================
+
+.MIP image format	(half-Life textures)
+
+========================================================================
+*/
+typedef struct mip_s
+{
+	char	name[16];
+	uint	width;
+	uint	height;
+	uint	offsets[4];	// four mip maps stored
+} mip_t;
+
+/*
 ==============================================================================
 BRUSH MODELS
 

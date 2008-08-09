@@ -236,7 +236,7 @@ bool R_GetPixelFormat( rgbdata_t *pic, imagetype_t type )
 	if(image_desc.flags & IMAGE_CUBEMAP)
 		totalsize *= 6;
 
-	if(totalsize != pic->size) // sanity check
+	if( totalsize != pic->size ) // sanity check
 	{
 		MsgDev(D_WARN, "R_GetPixelFormat: invalid image size (%i should be %i)\n", pic->size, totalsize );
 		return false;
@@ -850,7 +850,6 @@ bool qrsDecompressedTexImage2D( uint target, int level, int internalformat, uint
 		}
 		break;
 	case PF_RGB_24:
-	case PF_RGB_24_FLIP:
 		// 24-bit image, that will not expanded to RGBA in imglib.dll for some reasons
 		for (i = 0; i < width * height; i++ )
 		{
@@ -1106,12 +1105,12 @@ image_t *R_FindImage( char *name, const byte *buffer, size_t size, imagetype_t t
 	rgbdata_t	*pic = NULL;
 	int	i;
           
-	if (!name ) return r_notexture;
+	if( !name ) return r_notexture;
           
 	// look for it
-	for (i = 0, image = gltextures; i < numgltextures; i++, image++)
+	for( i = 0, image = gltextures; i < numgltextures; i++, image++ )
 	{
-		if (!com.strcmp( name, image->name ))
+		if( !com.stricmp( name, image->name ))
 		{
 			// prolonge registration
 			image->registration_sequence = registration_sequence;
@@ -1119,9 +1118,13 @@ image_t *R_FindImage( char *name, const byte *buffer, size_t size, imagetype_t t
 		}
 	}
 
-	pic = FS_LoadImage(name, buffer, size ); //loading form disk or buffer
-	image = R_LoadImage(name, pic, type ); //upload into video buffer
-	FS_FreeImage( pic ); //free image
+	pic = FS_LoadImage( name, buffer, size ); //loading form disk or buffer
+	if( pic )
+	{
+		image = R_LoadImage( name, pic, type ); //upload into video buffer
+		FS_FreeImage( pic ); //free image
+	}
+	else image = r_notexture;
 
 	return image;
 }
@@ -1260,15 +1263,15 @@ void R_ImageFreeUnused(void)
 	r_notexture->registration_sequence = registration_sequence;
 	r_particletexture->registration_sequence = registration_sequence;
 
-	for (i = 0, image = gltextures; i < numgltextures; i++, image++)
+	for( i = 0, image = gltextures; i < numgltextures; i++, image++ )
 	{
 		// used this sequence
-		if (image->registration_sequence == registration_sequence) continue;
-		if (!image->registration_sequence) continue; // free image_t slot
-		if (image->type == it_pic) continue; // don't free pics
-		if (image->type == it_sky || image->type == it_cubemap)
-			for(k = 0; k < 6; k++) pglDeleteTextures (1, &image->texnum[k] );
-		else pglDeleteTextures (1, &image->texnum[0] );
+		if( image->registration_sequence == registration_sequence ) continue;
+		if( !image->name[0] ) continue; // free image_t slot
+		if( image->type == it_pic ) continue; // don't free pics
+		if( image->type == it_sky || image->type == it_cubemap )
+			for( k = 0; k < 6; k++ ) pglDeleteTextures (1, &image->texnum[k] );
+		else pglDeleteTextures( 1, &image->texnum[0] );
 		memset(image, 0, sizeof(*image));
 	}
 }

@@ -113,8 +113,9 @@ bool ConvPAL( const char *name, char *buffer, int filesize )
 
 	if( pic && pic->palette )
 	{
+		Image_ConvertPalette( pic );
 		FS_StripExtension((char *)name );
-		FS_WriteFile( va("%s.pal", name ), pic->palette, 1024 );// expands to 32bit
+		FS_WriteFile( va("%s/%s.pal", gs_gamedir, name ), pic->palette, 768 );
 		FS_FreeImage( pic ); // release buffer
 		Msg("%s.pal\n", name ); // echo to console about current pic
 		return true;

@@ -10,9 +10,51 @@
 string	nextanimchain;
 file_t	*f;
 
-bool Conv_WriteShader( const char *shaderpath, const char *imagepath, float *rad, float scale, int flags, int contents )
+void Conv_RoundDimensions( int *scaled_width, int *scaled_height )
 {
-	file_t *f;
+	int width, height;
+
+	for( width = 1; width < *scaled_width; width <<= 1 );
+	for( height = 1; height < *scaled_height; height <<= 1 );
+
+	*scaled_width = bound( 1, width, 512 );
+	*scaled_height = bound( 1, height, 512 );
+}
+
+bool Conv_WriteShader( const char *shaderpath, const char *imagepath, rgbdata_t *p, float *rad, float scale, int flags, int contents )
+{
+	file_t	*f;
+	string	qcname, qcpath, temp, lumpname;
+
+	// write also wadlist.qc for xwad compiler
+	FS_ExtractFilePath( imagepath, temp );
+	FS_FileBase( imagepath, lumpname );
+	FS_FileBase( temp, qcname );
+	FS_DefaultExtension( qcname, ".qc" );
+	com.snprintf( qcpath, MAX_STRING, "%s/%s/%s", gs_gamedir, temp, qcname );
+
+	if(FS_FileExists( qcpath ))
+	{
+		// already exist, search for current name
+		f = FS_Open( qcpath, "a" );	// append
+	}
+	else
+	{
+		FS_StripExtension( qcname ); // no need anymore
+		f = FS_Open( qcpath, "w" );	// new file
+		// write description
+		FS_Print(f,"//=======================================================================\n");
+		FS_Print(f,"//\t\t\tCopyright XashXT Group 2007 ©\n");
+		FS_Print(f,"//\t\t\twritten by Xash Miptex Decompiler\n");
+		FS_Print(f,"//=======================================================================\n");
+		FS_Printf(f,"$wadname\t%s.wad\n\n", qcname );
+	}
+
+	if( f && p )
+	{
+		FS_Printf(f,"$mipmap\t%s\t0 0 %d %d\n", lumpname, p->width, p->height );
+		FS_Close( f ); // all done		
+	}
 
 	// nothing to write
 	if(!flags && !contents && !com.strlen(nextanimchain))
@@ -224,12 +266,14 @@ bool Conv_CreateShader( const char *name, rgbdata_t *pic, const char *ext, const
 		VectorCopy( pic->color, radiocity );
 		intencity = pic->bump_scale;
 	}
-	return Conv_WriteShader( shaderpath, imagepath, radiocity, intencity, flags, contents );
+	return Conv_WriteShader( shaderpath, imagepath, pic, radiocity, intencity, flags, contents );
 }
 
 void Skin_WriteSequence( void )
 {
 	int	i;
+
+	Conv_RoundDimensions( &flat.bounds[0], &flat.bounds[1] );
 
 	// time to dump frames :)
 	if( flat.angledframes == 8 )
@@ -237,6 +281,7 @@ void Skin_WriteSequence( void )
 		// angled group is full, dump it!
 		FS_Print(f, "\n$angled\n{\n" );
 		FS_Printf(f, "\t// frame '%c'\n", flat.frame[0].name[4] );
+		FS_Printf(f, "\t$resample\t\t%d %d\n", flat.bounds[0], flat.bounds[1] );
 		for( i = 0; i < 8; i++)
 		{
 			FS_Printf(f,"\t$load\t\t%s.bmp", flat.frame[i].name );
@@ -252,6 +297,7 @@ void Skin_WriteSequence( void )
 		// single frame stored
 		FS_Print(f, "\n" );
 		FS_Printf(f, "// frame '%c'\n", flat.frame[0].name[4] );
+		FS_Printf(f,"$resample\t\t%d %d\n", flat.bounds[0], flat.bounds[1] );
 		FS_Printf(f,"$load\t\t%s.bmp\n", flat.frame[0].name );
 		FS_Printf(f,"$frame\t\t0 0 %d %d", flat.frame[0].width, flat.frame[0].height );
 		FS_Printf(f, " 0.1 %d %d\n", flat.frame[0].origin[0], flat.frame[0].origin[1]);
@@ -263,6 +309,7 @@ void Skin_WriteSequence( void )
 		// mirrored group is always flipped
 		FS_Print(f, "\n$angled\n{\n" );
 		FS_Printf(f, "\t// frame '%c' (mirrored form '%c')\n", flat.frame[0].name[6],flat.frame[0].name[4]);
+		FS_Printf(f, "\t$resample\t\t%d %d\n", flat.bounds[0], flat.bounds[1] );
 		for( i = 2; i > -1; i--)
 		{
 			FS_Printf(f,"\t$load\t\t%s.bmp flip_x\n", flat.frame[i].name );
@@ -278,6 +325,7 @@ void Skin_WriteSequence( void )
 		FS_Print(f, "}\n" );
 	}
 
+	flat.bounds[0] = flat.bounds[1] = 0;
 	memset( &flat.frame, 0, sizeof(flat.frame)); 
 	flat.angledframes = flat.normalframes = flat.mirrorframes = 0; // clear all
 }
@@ -300,6 +348,10 @@ void Skin_FindSequence( const char *name, rgbdata_t *pic )
 
 	if( flat.animation == header[4] )
 	{
+		// update bounds
+		if( flat.bounds[0] < pic->width ) flat.bounds[0] = pic->width;
+		if( flat.bounds[1] < pic->height) flat.bounds[1] = pic->height;
+
 		// continue collect frames
 		if( headlen == 6 )
 		{
@@ -349,7 +401,7 @@ void Skin_FindSequence( const char *name, rgbdata_t *pic )
 	}
 }
 
-void Skin_ProcessScript( const char *name )
+void Skin_ProcessScript( const char *wad, const char *name )
 {
 	if(flat.in_progress )
 	{
@@ -362,8 +414,9 @@ void Skin_ProcessScript( const char *name )
 	{
 		// start from scratch
 		com.strncpy( flat.membername, name, 5 );		
-		f = FS_Open( va("%s/models/%s.qc", gs_gamedir, flat.membername ), "w" );
+		f = FS_Open( va("%s/sprites/%s/%s.qc", gs_gamedir, wad, flat.membername ), "w" );
 		flat.in_progress = true;
+		flat.bounds[0] = flat.bounds[1] = 0;
 
 		// write description
 		FS_Print(f,"//=======================================================================\n");
@@ -374,7 +427,8 @@ void Skin_ProcessScript( const char *name )
 		// write sprite header
 		FS_Printf(f, "\n$spritename\t%s.spr\n", flat.membername );
 		FS_Print(f,  "$type\t\tfacing_upright\n"  ); // constant
-		FS_Print(f,  "$texture\t\tindexalpha\n");
+		FS_Print(f,  "$texture\t\talphatest\n");
+		FS_Print(f,  "$noresample\n");
 	}
 }
 
@@ -388,10 +442,10 @@ void Skin_FinalizeScript( void )
 	flat.in_progress = false;
 }
 
-void Skin_CreateScript( const char *name, rgbdata_t *pic )
+void Skin_CreateScript( const char *wad, const char *name, rgbdata_t *pic )
 {
 	if(com.strnicmp( name, flat.membername, 4 ))
-          	Skin_ProcessScript( name );
+          	Skin_ProcessScript( wad, name );
 
 	if( flat.in_progress )
 		Skin_FindSequence( name, pic );

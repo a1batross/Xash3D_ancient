@@ -947,6 +947,7 @@ static bool R_AddEntityToScene( refdef_t *fd, entity_state_t *s1, entity_state_t
 
 	// copy state to render
 	refent->index = s1->number;
+	refent->ent_type = s1->ed_type;
 	refent->prev.frame = s2->model.frame;
 	refent->backlerp = 1.0f - lerpfrac;
 	refent->renderamt = s1->renderamt;
@@ -1315,18 +1316,9 @@ bool R_UploadImage( const char *name, int index )
 	if( !r_worldmodel ) return false;
 	loadmodel = r_worldmodel;
 
-	// all textures are loaded
-	if( !com.strcmp( loadmodel->name, name ) && loadmodel->num_textures == loadmodel->numtexinfo )
-		return false;
-
 	com.strncpy( filename, Mod_GetStringFromTable( loadmodel->texinfo[index].texid ), sizeof(filename));
 	texture = R_FindImage( filename, NULL, 0, it_wall );
-
-	if(!texture) Msg("returned null image!\n");
-	if(texture == r_notexture ) Msg("returned r_notexture!\n");
-	
-	if( texture ) loadmodel->texinfo[index].image = texture;
-	loadmodel->num_textures++;
+	loadmodel->texinfo[index].image = texture;
 
 	return true;
 }

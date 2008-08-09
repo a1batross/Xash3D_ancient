@@ -21,10 +21,6 @@ cd studio
 makefile.nmake
 
 cd ..
-cd uninstall
-makefile.nmake
-
-cd ..
 cd viewer
 makefile.nmake
 

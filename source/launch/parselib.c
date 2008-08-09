@@ -789,16 +789,20 @@ get token on current or newline
 */
 char *SC_GetToken( bool newline )
 {
-	if( Sys.app_name == HOST_BSPLIB )
+	switch( Sys.app_name )
 	{
+	case HOST_BSPLIB:
+	case HOST_SPRITE:
+	case HOST_STUDIO:
+	case HOST_WADLIB:
 		// don't handle single characters
 		if(SC_ReadTokenSimple( newline ))
 			return token;
-	}
-	else
-	{
+		break;
+	default:
 		if(SC_ReadToken( newline ))
 			return token;
+		break;
 	}
 	return NULL;
 }

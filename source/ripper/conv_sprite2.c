@@ -107,7 +107,7 @@ bool ConvSP2( const char *name, char *buffer, int filesize )
 		return false;
 	}
 	spr.totalframes = LittleLong (pin->numframes);
-	spr.texFormat = SPR_INDEXALPHA; // constant
+	spr.texFormat = SPR_ALPHTEST; // constant
 	spr.type = SPR_VP_PARALLEL;
 
 	// byte swap everything

@@ -328,7 +328,7 @@ strchr
 find one charcster in string
 ============
 */
-char *com_strchr(const char *s, char c)
+char *com_strchr( const char *s, char c )
 {
 	int	len = com_strlen(s);
 
@@ -343,7 +343,7 @@ strrchr
 find one charcster in string
 ============
 */
-char *com_strrchr(const char *s, char c)
+char *com_strrchr( const char *s, char c )
 {
 	int	len = com_strlen(s);
 	s += len;

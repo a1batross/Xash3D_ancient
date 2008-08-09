@@ -82,7 +82,6 @@ CM_FreeModel
 */
 void CM_FreeModel( cmodel_t *mod )
 {
-	Msg("free model %s\n", mod->name );
 	Mem_FreePool( &mod->mempool );
 	memset( mod, 0, sizeof(*mod));
 	mod = NULL;

@@ -76,6 +76,7 @@ bool ConvertResource( const char *filename )
 					return true;	// converted ok
 				}
 			}
+			if( buffer ) Mem_Free( buffer );	// release buffer
 		}
 	}
 	MsgDev(D_WARN, "ConvertResource: couldn't load \"%s\"\n", basename );
@@ -132,6 +133,7 @@ void Conv_DetectGameType( void )
 			break;
 	}
 	if( search ) Mem_Free( search );
+	ClrMask();
 }
 
 /*
@@ -146,8 +148,8 @@ void InitConvertor ( int argc, char **argv )
 {
 	
 	// init pools
-	basepool = Mem_AllocPool( "Temp" );
-	zonepool = Mem_AllocPool( "Zone" );
+	basepool = Mem_AllocPool( "Ripper Temp" );
+	zonepool = Mem_AllocPool( "Ripper Zone" );
 	FS_InitRootDir(".");
 
 	start = Sys_DoubleTime();
@@ -170,11 +172,29 @@ void RunConvertor( void )
 	switch( game_family )
 	{
 	case GAME_DOOM1:
-		AddMask( "*.skn" );		// Doom1 sprite models	
-		AddMask( "*.flp" );		// Doom1 pics
-		AddMask( "*.flt" );		// Doom1 textures
-		AddMask( "*.snd" );		// Doom1 sounds
-		AddMask( "*.mus" );		// Doom1 music
+		search = FS_Search("*.wad", true );
+		if( search )
+		{
+			// make sure, that we stored all files from all wads
+			for( i = 0; i < search->numfilenames; i++ )
+			{
+				AddMask(va("%s/*.flt", search->filenames[i]));
+				AddMask(va("%s/*.flp", search->filenames[i]));
+				AddMask(va("%s/*.skn", search->filenames[i]));
+				AddMask(va("%s/*.snd", search->filenames[i]));
+				AddMask(va("%s/*.mus", search->filenames[i]));
+			}
+			Mem_Free( search );
+		}
+		else
+		{
+			// just use global mask
+			AddMask( "*.skn" );		// Doom1 sprite models	
+			AddMask( "*.flp" );		// Doom1 pics
+			AddMask( "*.flt" );		// Doom1 textures
+			AddMask( "*.snd" );		// Doom1 sounds
+			AddMask( "*.mus" );		// Doom1 music
+		}
 		break;
 	case GAME_HEXEN2:
 	case GAME_QUAKE1:
@@ -200,7 +220,7 @@ void RunConvertor( void )
 				AddMask(va("%s/*.wal", search->filenames[i]));
 			Mem_Free( search );
 		}
-		AddMask( "*.wal" );		// Quake2 textures
+		else AddMask( "*.wal" );	// Quake2 textures
 		AddMask( "*.sp2" );		// Quake2 sprites
 		AddMask( "*.pcx" );		// Quake2 sprites
 		AddMask( "sprites/*.sp2" );	// Quake2 sprites
@@ -215,26 +235,39 @@ void RunConvertor( void )
 		Sys_Break("Sorry, nothing to decompile (not implemeneted yet)\n" );
 		break;
 	case GAME_HALFLIFE:
+		search = FS_Search("*.wad", true );
+		if( search )
+		{
+			// find subdirectories
+			for( i = 0; i < search->numfilenames; i++ )
+			{
+				AddMask(va("%s/*.mip", search->filenames[i]));
+				AddMask(va("%s/*.lmp", search->filenames[i]));
+			}
+			Mem_Free( search );
+		}
+		else
+		{
+			// try to use generic mask
+			AddMask( "*.mip" );
+			AddMask( "*.lmp" );
+		}
 		AddMask( "maps/*.bsp" );	// textures from bsp
 		AddMask( "sprites/*.spr" );	// Half-Life sprites
-		AddMask( "gfx/*.lmp" );	// some images
-		AddMask( "*.mip" );		// all textures from wads
-		AddMask( "*.spr" );
-		AddMask( "*.lmp" );
 		break;
 	case GAME_XASH3D:
 		Sys_Break("Sorry, but a can't decompile himself\n" );
 		break;
-	case HOST_OFFLINE:
-	default:	Sys_Break("Sorry, game family not recognized\n" );
-		break;
+	default: break;
 	}
 
+	// using custom mask
 	if(FS_GetParmFromCmdLine("-file", gs_searchmask ))
 	{
 		ClrMask(); // clear all previous masks
 		AddMask( gs_searchmask ); // custom mask
 	}
+	else if(!game_family ) Sys_Break( "Sorry, game family not recognized\n" );
 
 	// directory to extract
 	com.strncpy( gs_gamedir, fs_defaultdir->string, sizeof(gs_gamedir));
@@ -257,7 +290,7 @@ void RunConvertor( void )
 	}
 	if( numConvertedRes == 0 ) 
 	{
-		for(j = 0; j < 16; j++) 
+		for(j = 0; j < MAX_SEARCHMASK; j++) 
 		{
 			if(!com.strlen(searchmask[j])) continue;
 			com.strncat(errorstring, va("%s ", searchmask[j]), MAX_STRING );

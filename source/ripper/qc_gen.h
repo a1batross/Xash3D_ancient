@@ -69,6 +69,7 @@ typedef struct angled_s
 struct angledframe_s
 {
 	angled_t	frame[8];		// angled group or single frame
+	int	bounds[2];	// group or frame maxsizes
 	byte	angledframes;	// count of angled frames max == 8
 	byte	normalframes;	// count of anim frames max == 1
 	byte	mirrorframes;	// animation mirror stored
@@ -105,7 +106,7 @@ _inline const char *SPR_RenderType( void )
 }
 
 void Skin_FinalizeScript( void );
-void Skin_CreateScript( const char *name, rgbdata_t *pic );
+void Skin_CreateScript( const char *wad, const char *name, rgbdata_t *pic );
 bool Conv_CreateShader( const char *name, rgbdata_t *pic, const char *ext, const char *anim, int surf, int cnt );
 void Conv_GetPaletteQ2( void );
 void Conv_GetPaletteQ1( void );

@@ -232,7 +232,6 @@ typedef struct rmodel_s
 	byte		*mempool;
 	
 	int		numframes;
-	int		num_textures;	// count of textures what a really loaded
 	
 	int		flags;
 

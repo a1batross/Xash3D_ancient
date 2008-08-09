@@ -64,33 +64,6 @@ typedef struct flat_s
 /*
 ========================================================================
 
-.LMP image format	(Quake1 gfx lumps)
-
-========================================================================
-*/
-typedef struct lmp_s
-{
-	uint	width;
-	uint	height;
-} lmp_t;
-
-/*
-========================================================================
-
-.MIP image format	(Quake1 textures)
-
-========================================================================
-*/
-typedef struct mip_s
-{
-	char	name[16];
-	uint	width, height;
-	uint	offsets[4];	// four mip maps stored
-} mip_t;
-
-/*
-========================================================================
-
 .BMP image format
 
 ========================================================================
@@ -412,6 +385,7 @@ extern byte *image_rgba;	// image pointer (see image_type for details)
 extern byte *image_palette;	// palette pointer
 extern uint *d_currentpal;	// installed version of internal palette
 extern cvar_t *img_oldformats;
+extern cvar_t *fs_wadsupport;
 
 bool Image_AddMipmapToPack( const byte *in, int width, int height, bool expand );
 void Image_RoundDimensions( int *scaled_width, int *scaled_height );
@@ -460,6 +434,7 @@ bool Image_SavePNG( const char *name, rgbdata_t *pix, int saveformat );
 // img_utils.c
 //
 bool Image_ValidSize( const char *name );
+bool Image_LumpValidSize( const char *name );
 bool Image_DecompressDXTC( rgbdata_t **image );	// compilers version of decompressor
 bool Image_DecompressARGB( rgbdata_t **image );
 

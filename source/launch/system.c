@@ -277,13 +277,6 @@ void Sys_LookupInstance( void )
 		com_strcpy(Sys.caption, "About");
 		Sys.con_showcredits = true;
 	}
-	else if(!com_strcmp(Sys.progname, "uninstall")) // write path into registry
-	{
-		Sys.app_name =  HOST_UNINSTALL;
-		Sys.linked_dll = NULL;	// no need to loading library
-		Sys.log_active = Sys.developer = Sys.debug = 0; // clear all dbg states
-		Sys.con_silentmode = true;
-	}
 	else if(!com_strcmp(Sys.progname, "normal"))
 	{
 		if( dedicated )
@@ -402,10 +395,6 @@ void Sys_CreateInstance( void )
 	case HOST_CREDITS:
 		Sys_Break( show_credits );
 		break;
-	case HOST_UNINSTALL:
-		FS_FreeEnvironmentVariables();
-		Sys_Exit();
-		break;
 	case HOST_OFFLINE:
 		Sys_Break( "Host offline\n" );		
 		break;
@@ -415,7 +404,7 @@ void Sys_CreateInstance( void )
 	Sys.Init( fs_argc, fs_argv );
 
 	// post initializations
-	switch(Sys.app_name)
+	switch( Sys.app_name )
 	{
 	case HOST_NORMAL:
 		Con_ShowConsole( false );		// hide console

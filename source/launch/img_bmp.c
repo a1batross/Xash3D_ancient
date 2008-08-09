@@ -99,7 +99,6 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 	}
 
 	// fill in unused entires will 0, 0, 0
-	// FIXME: change to 0 0 255 ?
 	for( i = bhdr.colors; i < 256; i++ ) 
 	{
 		*pb++ = 0;
@@ -133,7 +132,7 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 	image_type = PF_INDEXED_32; // scaled up to 32 bit
 
 	// scan for transparency
-	for( i = 0; i < image_size; i++ )
+	for( i = 0; i < image_width * image_height; i++ )
 	{
 		if( pbBmpBits[i] == 255 )
 		{
@@ -159,6 +158,9 @@ bool Image_SaveBMP( const char *name, rgbdata_t *pix, int saveformat )
 	dword		cbPalBytes;
 	dword		biTrueWidth;
 	int		i, rc = 0;
+
+	if(FS_FileExists( name ))
+		return false; // already existed
 
 	// bogus parameter check
 	if( !pix->palette || !pix->buffer )
@@ -221,18 +223,27 @@ bool Image_SaveBMP( const char *name, rgbdata_t *pix, int saveformat )
 		else rgrgbPalette[i].rgbReserved = 0;
 	}
 
+	// make last color is 0 0 255, xwad expect this
+	if( pix->flags & IMAGE_HAS_ALPHA )
+	{
+		rgrgbPalette[255].rgbRed = 0x00;
+		rgrgbPalette[255].rgbGreen = 0x00;
+		rgrgbPalette[255].rgbBlue = 0xFF;
+		rgrgbPalette[255].rgbReserved = 0x00;
+	}
+
 	// write palette( bmih.biClrUsed entries )
 	cbPalBytes = bmih.biClrUsed * sizeof( RGBQUAD );
 	FS_Write( pfile, rgrgbPalette, cbPalBytes );
 	pbBmpBits = Mem_Alloc( Sys.imagepool, cbBmpBits );
+	memset( pbBmpBits, 0xFF, cbBmpBits );	// fill buffer with black color
 
 	pb = pix->buffer;
 	pb += (pix->height - 1) * pix->width;
 
 	for( i = 0; i < bmih.biHeight; i++ )
 	{
-		// FIXME: replace with Mem_Move
-		memmove( &pbBmpBits[biTrueWidth * i], pb, pix->width );
+		Mem_Copy( &pbBmpBits[biTrueWidth * i], pb, pix->width );
 		pb -= pix->width;
 	}
 

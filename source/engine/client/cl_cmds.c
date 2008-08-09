@@ -146,7 +146,7 @@ void CL_LevelShot_f( void )
 	string	checkname;	
 
 	// check for exist
-	com.sprintf( checkname, "gfx/background/%s.tga", cl.configstrings[CS_NAME] );
+	com.sprintf( checkname, "gfx/background/%s.png", cl.configstrings[CS_NAME] );
 	if(!FS_FileExists( checkname )) re->ScrShot( checkname, true );
 	else Msg("levelshot for this map already created\nFirst remove old image if you wants do it again\n" );
 }

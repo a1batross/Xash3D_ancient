@@ -376,9 +376,6 @@ bool Conv_Mus2Mid( const char *musicname, byte *buffer, int bufsize )
 	}
 	if( ouch ) MsgDev(D_WARN, "Conv_Mus2Mid: %s.mus - end of file probably corrupted\n", musicname );
 
-	// write normal .mid file
-	if(FS_FileExists(va("%s/music/%s.mid", gs_gamedir, musicname )))
-		return false; // already existed
 	f = FS_Open(va("%s/music/%s.mid", gs_gamedir, musicname ), "wb" );
 	file_mid = VFS_Open( f, "w" ); 
 
@@ -402,6 +399,9 @@ ConvMID
 bool ConvMID( const char *name, char *buffer, int filesize )
 {
 	string	musicname;
+
+	if(FS_FileExists(va("%s/music/%s.mid", gs_gamedir, musicname )))
+		return true; // already existed
 
 	FS_FileBase( name, musicname );
 	if(Conv_Mus2Mid( musicname, buffer, filesize ))

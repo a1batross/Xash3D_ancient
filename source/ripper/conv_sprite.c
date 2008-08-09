@@ -57,6 +57,12 @@ typedef struct
 //
 // sprite_decompiler.c
 //
+const char *SPR_Ext( void )
+{
+	if( spr.truecolor )
+		return "tga";
+	return "bmp";
+}
 
 void *SPR_ConvertFrame( const char *name, void *pin, int framenum, int groupframenum )
 {
@@ -91,9 +97,9 @@ void *SPR_ConvertFrame( const char *name, void *pin, int framenum, int groupfram
 	else
 	{
 		pixels = width * height;
-		pix.palette = (byte *)(&spr.palette[0][0]);
+		pix.palette = (byte *)Mem_Alloc( zonepool, 1024 );
+		Mem_Copy( pix.palette, &spr.palette, 1024 );
 		pix.type = PF_INDEXED_32;
-		Image_ConvertPalette( &pix );
 		Mem_Copy( fout, fin, pixels );
 	}
 
@@ -125,10 +131,10 @@ void *SPR_ConvertFrame( const char *name, void *pin, int framenum, int groupfram
 	pix.buffer = fout;
 	if( spr.texFormat >= SPR_INDEXALPHA )
 		pix.flags |= IMAGE_HAS_ALPHA;
-
-	if( spr.truecolor )
-		FS_SaveImage( va("%s/sprites/%s.tga", gs_gamedir, framename ), &pix );
-	else FS_SaveImage( va("%s/sprites/%s.bmp", gs_gamedir, framename ), &pix );
+	if( !spr.truecolor ) Image_ConvertPalette( &pix );
+		
+	FS_SaveImage( va("%s/sprites/%s.%s", gs_gamedir, framename, SPR_Ext()), &pix );
+	if( pix.palette ) Mem_Free( pix.palette ); // free palette
 	Mem_Free( fout ); // release buffer
 
 	// jump to next frame
@@ -189,7 +195,7 @@ bool SPR_WriteScript( const char *name )
 	// frames description
 	for( i = 0; i < spr.totalframes - spr.numgroup; i++)
 	{
-		FS_Printf(f,"$load\t\t%s.bmp\n", spr.frame[i].name );
+		FS_Printf(f,"$load\t\t%s.%s\n", spr.frame[i].name, SPR_Ext());
 		FS_Printf(f,"$frame\t\t0 0 %d %d", spr.frame[i].width, spr.frame[i].height );
 		if(!spr.frame[i].origin[0] && !spr.frame[i].origin[1]) FS_Print(f, "\n" ); 
 		else FS_Printf(f, " %.1f %d %d\n", 0.1f, spr.frame[i].origin[0],spr.frame[i].origin[1]);
@@ -200,7 +206,7 @@ bool SPR_WriteScript( const char *name )
 		FS_Print(f, "$group\n{\n" );
 		for( j = 0; j < spr.group[i].numframes; j++)
 		{
-			FS_Printf(f,"\t$load\t\t%s.bmp\n", spr.group[i].frame[j].name );
+			FS_Printf(f,"\t$load\t\t%s.%s\n", spr.group[i].frame[j].name, SPR_Ext());
 			FS_Printf(f,"\t$frame\t\t0 0 %d %d", spr.group[i].frame[j].width, spr.group[i].frame[j].height );
 			if( spr.group[i].interval[j] ) FS_Printf(f, " %g", spr.group[i].interval[j] );
 			if(!spr.group[i].frame[j].origin[0] && !spr.group[i].frame[j].origin[1]) FS_Print(f, "\n" ); 
@@ -242,7 +248,7 @@ bool ConvSPR( const char *name, char *buffer, int filesize )
 	{
 	case SPRITEQ1_VERSION:
 		spr.totalframes = LittleLong( pin->numframes );
-		spr.texFormat = SPR_INDEXALPHA; // constant
+		spr.texFormat = SPR_ALPHTEST; // constant
 		spr.type = LittleLong( pin->type );
 
 		// palette setup

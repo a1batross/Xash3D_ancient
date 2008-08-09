@@ -519,7 +519,7 @@ void Host_Error( const char *error, ... )
 	if( recursive )
 	{ 
 		Msg("Host_RecursiveError: %s", hosterror2 );
-		com.error( hosterror1 );
+		com.error( va( "%s", hosterror1 ));
 		return; // don't multiple executes
 	}
 

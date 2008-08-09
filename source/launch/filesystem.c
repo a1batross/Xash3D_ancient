@@ -622,7 +622,7 @@ FS_FileBase
 Extracts the base name of a file (no path, no extension, assumes '/' as path separator)
 ============
 */
-void FS_FileBase( const char *in, char *out )
+void _FS_FileBase( const char *in, char *out, bool kill_backwardslash )
 {
 	int len, start, end;
 
@@ -639,12 +639,27 @@ void FS_FileBase( const char *in, char *out )
 
 	// Scan backward for '/'
 	start = len - 1;
-	while ( start >= 0 && in[start] != '/' && in[start] != '\\' )
-		start--;
 
-	if ( start < 0 || ( in[start] != '/' && in[start] != '\\' ) )
-		start = 0;
-	else  start++;
+	if( kill_backwardslash )
+	{
+		while ( start >= 0 && in[start] != '/' && in[start] != '\\' )
+			start--;
+
+		if ( start < 0 || ( in[start] != '/' && in[start] != '\\' ) )
+			start = 0;
+		else start++;
+	}
+	else
+	{
+		// NOTE: some doomwads using backward slash as part of animation name
+		// e.g. vile\1, so ignore backward slash for wads
+		while ( start >= 0 && in[start] != '/' )
+			start--;
+
+		if ( start < 0 || in[start] != '/' )
+			start = 0;
+		else start++;
+	}
 
 	// Length of new sting
 	len = end - start + 1;
@@ -652,6 +667,11 @@ void FS_FileBase( const char *in, char *out )
 	// Copy partial string
 	com_strncpy( out, &in[start], len + 1 );
 	out[len] = 0;
+}
+
+void FS_FileBase( const char *in, char *out )
+{
+	_FS_FileBase( in, out, true );
 }
 
 /*
@@ -838,7 +858,7 @@ static bool FS_AddPack_Fullpath(const char *pakfile, bool *already_loaded, bool 
 	if(already_loaded) *already_loaded = false;
 
 	if(!com_stricmp(ext, "pak")) pak = FS_LoadPackPAK (pakfile);
-	else if(!com_stricmp(ext, "pk2")) pak = FS_LoadPackPK2(pakfile);
+	else if(!com_stricmp(ext, "pk2")) pak = FS_LoadPackPK3(pakfile);
 	else if(!com_stricmp(ext, "pk3")) pak = FS_LoadPackPK3(pakfile);
 	else Msg("\"%s\" does not have a pack extension\n", pakfile);
 
@@ -1096,7 +1116,7 @@ static bool FS_AddWad3File( const char *filename )
 			com_strncpy(w->lumps[i].name, doomlumps[i].name, 9 );
 			w->lumps[i].type = TYPE_NONE;
 			w->lumps[i].compression = CMP_NONE;
-
+	
 			// textures begin
 			if(!com_stricmp("P_START", w->lumps[i].name ))
 			{
@@ -1109,6 +1129,11 @@ static bool FS_AddWad3File( const char *filename )
 				continue; // skip identifier
 			}
 			else if (!com_stricmp("P2_START", w->lumps[i].name ))
+			{
+				flat_images = true;
+				continue; // skip identifier
+			}
+			else if (!com_stricmp("P3_START", w->lumps[i].name ))
 			{
 				flat_images = true;
 				continue; // skip identifier
@@ -1130,6 +1155,7 @@ static bool FS_AddWad3File( const char *filename )
 			else if(!com_stricmp("P_END", w->lumps[i].name )) flat_images = false;
 			else if(!com_stricmp("P1_END", w->lumps[i].name )) flat_images = false;
 			else if(!com_stricmp("P2_END", w->lumps[i].name )) flat_images = false;
+			else if(!com_stricmp("P3_END", w->lumps[i].name )) flat_images = false;
 			else if(!com_stricmp("S_END", w->lumps[i].name )) skin_images = false;
 			else flmp_images = false;
 
@@ -1165,7 +1191,7 @@ static bool FS_AddWad3File( const char *filename )
 		com_strnlwr(w->lumps[i].name, w->lumps[i].name, sizeof(w->lumps[i].name));
 	}
 	// and leaves the file open
-	MsgDev(D_INFO, "Adding %s wadfile: %s (%i lumps)\n", type, filename, numlumps );
+	MsgDev( D_INFO, "Adding %s wadfile: %s (%i lumps)\n", type, filename, numlumps );
 	return true;
 }
 
@@ -1242,7 +1268,7 @@ const char *FS_FileWithoutPath (const char *in)
 FS_ExtractFilePath
 ============
 */
-void FS_ExtractFilePath(const char* const path, char* dest)
+void FS_ExtractFilePath( const char* const path, char* dest )
 {
 	const char* src;
 	src = path + com_strlen(path) - 1;
@@ -1251,8 +1277,12 @@ void FS_ExtractFilePath(const char* const path, char* dest)
 	while (src != path && !(*(src - 1) == '\\' || *(src - 1) == '/'))
 		src--;
 
-	Mem_Copy(dest, path, src - path);
-	dest[src - path - 1] = 0; // cutoff backslash
+	if( src != path )
+	{
+		Mem_Copy(dest, path, src - path);
+		dest[src - path - 1] = 0; // cutoff backslash
+	}
+	else com_strcpy( dest, "" ); // file without path
 }
 
 /*
@@ -1950,15 +1980,17 @@ static byte *FS_OpenWadFile( const char *name, fs_offset_t *filesizeptr, int mat
 
 	// no wads loaded
 	if(!fs_searchwads) return NULL;
-
+	
 	// note: wad images can't have real pathes
 	// so, extarct base name from path
-	FS_FileBase( name, basename );
-	if(filesizeptr) *filesizeptr = 0;
+	_FS_FileBase( name, basename, false );
+	if( filesizeptr ) *filesizeptr = 0;
+
+          MsgDev( D_NOTE, "FS_OpenWadFile: %s\n", basename );
 		
 	if(com_strlen(basename) > WAD3_NAMELEN )
 	{
-		Msg("FS_OpenWad3File: %s too long name\n", basename );		
+		MsgDev( D_NOTE, "FS_OpenWadFile: %s too long name\n", basename );		
 		return NULL;
 	}
 	com_strnlwr( basename, texname, WAD3_NAMELEN );
@@ -2022,13 +2054,13 @@ byte *FS_LoadFileFromWAD( const char *path, fs_offset_t *filesizeptr )
 {
 	wadtype_t		*type;
           const char	*ext = FS_FileExtension( path );
-	bool		anyformat = !com_stricmp(ext, "") ? true : false;
+	bool		anyformat = !com_stricmp( ext, "" ) ? true : false;
 	byte		*f;
 
 	// now try all the formats in the selected list
 	for( type = wad_types; type->ext; type++ )
 	{
-		if(anyformat || !com_stricmp( ext, type->ext ))
+		if( anyformat || !com_stricmp( ext, type->ext ))
 		{
 			f = FS_OpenWadFile( path, filesizeptr, type->type );
 			if( f ) return f; // found
@@ -2056,7 +2088,7 @@ file_t* _FS_Open( const char* filepath, const char* mode, bool quiet )
 {
 	if (FS_CheckNastyPath(filepath, false))
 	{
-		MsgDev( D_ERROR, "FS_Open: (\"%s\", \"%s\"): nasty filename rejected\n", filepath, mode );
+		MsgDev( D_NOTE, "FS_Open: (\"%s\", \"%s\"): nasty filename rejected\n", filepath, mode );
 		return NULL;
 	}
 
@@ -2570,7 +2602,7 @@ byte *FS_LoadFile (const char *path, fs_offset_t *filesizeptr )
 	}
 	else buf = FS_LoadFileFromWAD( path, &filesize );
 
-	if(filesizeptr) *filesizeptr = filesize;
+	if( filesizeptr ) *filesizeptr = filesize;
 	return buf;
 }
 
@@ -2847,15 +2879,26 @@ static search_t *_FS_Search( const char *pattern, int caseinsensitive, int quiet
 		wadfile_t		*w; // names will be associated with lump types
 		const char	*ext = FS_FileExtension( pattern );
          		bool		anyformat = !com_stricmp(ext, "*") ? true : false;
-		char		lumpname[MAX_SYSPATH];
+		bool		anywadname = true;
+		string		lumpname, wadname;
 
+		// using wadname as part of path to file
+		// this pretty solution for "dead" lumps (duplicated files in different wads) 
 		FS_FileBase( pattern, lumpname );
+		FS_ExtractFilePath( pattern, wadname );
+		if(com_strlen(wadname))
+		{
+			FS_FileBase( wadname, wadname );
+			anywadname = false;
+		}
 
-		// lookup all wads in list
 		for( k = 0; k < Mem_ArraySize( fs_searchwads ); k++ )
 		{
 			w = (wadfile_t *)Mem_GetElement( fs_searchwads, k );
 			if( !w ) continue;
+
+			if(com_stricmp( wadname, w->name ) && !anywadname )
+				continue;
 
 			for(i = 0; i < (uint)w->numlumps; i++)
 			{
@@ -2983,13 +3026,6 @@ void FS_SaveEnvironmentVariables( char *pPath )
 {
 	// save new path
 	REG_SetValue(HKEY_LOCAL_MACHINE, "System\\CurrentControlSet\\Control\\Session Manager\\Environment", "Xash3D", pPath );
-	SendMessageTimeout( HWND_BROADCAST, WM_SETTINGCHANGE, 0, 0, SMTO_NORMAL, 10, NULL); // system update message
-}
-
-void FS_FreeEnvironmentVariables( void )
-{
-	// save new path
-	REG_SetValue(HKEY_LOCAL_MACHINE, "System\\CurrentControlSet\\Control\\Session Manager\\Environment", "Xash3D", "" );
 	SendMessageTimeout( HWND_BROADCAST, WM_SETTINGCHANGE, 0, 0, SMTO_NORMAL, 10, NULL); // system update message
 }
 
