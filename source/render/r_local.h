@@ -60,9 +60,9 @@ typedef struct latchedvars_s
 	int		sequence;
 	float		frame;
 
-	byte		blending[MAXSTUDIOBLENDS];
+	float		blending[MAXSTUDIOBLENDS];
 	byte		seqblending[MAXSTUDIOBLENDS];
-	byte		controller[MAXSTUDIOCONTROLLERS];
+	float		controller[MAXSTUDIOCONTROLLERS];
 
 } latchedvars_t;
 
@@ -86,9 +86,9 @@ typedef struct ref_entity_s
 	int		body;
 	int		skin;
 	
-	byte		blending[MAXSTUDIOBLENDS];
+	float		blending[MAXSTUDIOBLENDS];
 	vec3_t		attachment[MAXSTUDIOATTACHMENTS];
-	byte		controller[MAXSTUDIOCONTROLLERS];
+	float		controller[MAXSTUDIOCONTROLLERS];
 	mouth_t		mouth;		// for synchronizing mouth movements.
 	
           int		movetype;		// entity moving type

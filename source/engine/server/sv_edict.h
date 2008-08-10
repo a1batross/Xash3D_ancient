@@ -83,7 +83,6 @@ struct sv_entvars_s
 	float	mass;
 	float	solid;
 	float	movetype;
-	float	bouncetype;
 	float	waterlevel;
 	float	watertype;
 	float	ltime;
@@ -97,11 +96,12 @@ struct sv_entvars_s
 	float	animtime;
 	float	gaitsequence;
 	float	effects;
-	float	colormap;
 	float	renderfx;
+	float	colormap;
 	float	flags;
 	float	aiflags;
 	float	spawnflags;
+	float	fixangle;
 	vec3_t	v_angle;
 	vec3_t	view_ofs;
 	vec3_t	punchangle;
@@ -115,10 +115,10 @@ struct sv_entvars_s
 	float	v_skin;
 	float	v_sequence;
 	string_t	p_model;
+	float	p_sequence;
 	float	p_frame;
 	float	p_body;
 	float	p_skin;
-	float	p_sequence;
 	string_t	loopsound;
 	float	loopsndvol;
 	float	loopsndattn;
@@ -126,19 +126,20 @@ struct sv_entvars_s
 	int	enemy;
 	int	aiment;
 	int	goalentity;
-	float	fixangle;
+	float	teleport_time;
 	float	ideal_yaw;
 	float	yaw_speed;
-	float	teleport_time;
+	float	m_flGroundSpeed;
+	float	m_flFrameRate;
 	int	groundentity;
 	float	takedamage;
 	float	nextthink;
-	float	health;
 	float	gravity;
+	float	health;
 	float	frags;
 	float	team;
 };
 
-#define PROG_CRC_SERVER		15812
+#define PROG_CRC_SERVER		4411
 
 #endif//SV_EDICT_H

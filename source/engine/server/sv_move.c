@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "common.h"
+#include "matrixlib.h"
 #include "server.h"
 
 /*

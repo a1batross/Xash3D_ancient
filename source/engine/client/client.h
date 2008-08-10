@@ -99,7 +99,6 @@ typedef struct
 	vec3_t		viewangles;
 
 	dword		time;		// this is the time value that the client
-	dword		oldtime;
 					// is rendering at.  always <= cls.realtime
 	float		lerpfrac;		// between oldframe and frame
 

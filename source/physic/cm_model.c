@@ -1282,11 +1282,11 @@ void CM_StudioGetVertices( void )
 
 	for( i = 0; i < studio.submodel->numverts; i++ )
 	{
-		VectorTransform( pstudioverts[i], studio.bones[pvertbone[i]], studio.vtransform[i]);
+		Matrix4x4_Transform(  studio.bones[pvertbone[i]], pstudioverts[i], studio.vtransform[i]);
 	}
 	for( i = 0; i < studio.submodel->numnorms; i++ )
 	{
-		VectorTransform( pstudionorms[i], studio.bones[pnormbone[i]], studio.ntransform[i]);
+		Matrix4x4_Transform( studio.bones[pnormbone[i]], pstudionorms[i], studio.ntransform[i]);
 	}
 	CM_StudioLookMeshes();
 }

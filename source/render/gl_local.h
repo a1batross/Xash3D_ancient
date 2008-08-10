@@ -444,10 +444,6 @@ BUILT-IN MATHLIB FUNCTIONS
 ====================================================================
 */
 
-void AngleQuaternion( float *angles, vec4_t quaternion );
-void QuaternionSlerp( vec4_t p, vec4_t q, float t, vec4_t qt );
-void AngleMatrix (const float *angles, float (*matrix)[4] );
-
 uint ShortToFloat( word y );
 void R_DXTReadColor(word data, color32* out);
 void R_DXTReadColors(const byte* data, color32* out);

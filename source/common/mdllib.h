@@ -40,8 +40,8 @@ typedef struct
 typedef struct 
 {
 	vec3_t		worldorg;
-	matrix3x4		m;
-	matrix3x4		im;
+	matrix4x4		m;
+	matrix4x4		im;
 	float		length;
 } s_bonefixup_t;
 

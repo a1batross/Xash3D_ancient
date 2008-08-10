@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "mdllib.h"
+#include "matrixlib.h"
 
 bool		cdset;
 bool		ignore_errors;
@@ -1090,34 +1091,33 @@ void SimplifyModel( void )
 		{
 			for (n = 0; n < sequence[i]->numframes; n++)
 			{
-				matrix3x4 bonetransform[MAXSTUDIOBONES];// bone transformation matrix
-				matrix3x4 bonematrix; // local transformation matrix
-				vec3_t pos;
+				matrix4x4	bonetransform[MAXSTUDIOBONES];// bone transformation matrix
+				matrix4x4	bonematrix; // local transformation matrix
+				vec3_t	pos;
 
 				for (j = 0; j < numbones; j++)
 				{
-					vec3_t angle;
+					vec3_t origin, angle;
 
 					// convert to degrees
 					angle[0]	= sequence[i]->panim[q]->rot[j][n][0] * (180.0 / M_PI);
 					angle[1]	= sequence[i]->panim[q]->rot[j][n][1] * (180.0 / M_PI);
 					angle[2]	= sequence[i]->panim[q]->rot[j][n][2] * (180.0 / M_PI);
+					origin[0] = sequence[i]->panim[q]->pos[j][n][0];
+					origin[1] = sequence[i]->panim[q]->pos[j][n][1];
+					origin[2] = sequence[i]->panim[q]->pos[j][n][2];
 
-					AngleMatrixFLU( angle, bonematrix );
+					Matrix4x4_CreateFromEntity( bonematrix, origin[0], origin[1], origin[2], angle[YAW], angle[ROLL], angle[PITCH], 1.0 );
 
-					bonematrix[0][3] = sequence[i]->panim[q]->pos[j][n][0];
-					bonematrix[1][3] = sequence[i]->panim[q]->pos[j][n][1];
-					bonematrix[2][3] = sequence[i]->panim[q]->pos[j][n][2];
-
-					if (bonetable[j].parent == -1) MatrixCopy( bonematrix, bonetransform[j] );
-					else R_ConcatTransforms (bonetransform[bonetable[j].parent], bonematrix, bonetransform[j]);
+					if( bonetable[j].parent == -1 ) Matrix4x4_Copy( bonetransform[j], bonematrix );
+					else Matrix4x4_ConcatTransforms( bonetransform[j], bonetransform[bonetable[j].parent], bonematrix );
 				}
 
-				for (k = 0; k < nummodels; k++)
+				for( k = 0; k < nummodels; k++ )
 				{
-					for (j = 0; j < model[k]->numverts; j++)
+					for( j = 0; j < model[k]->numverts; j++ )
 					{
-						VectorTransform( model[k]->vert[j].org, bonetransform[model[k]->vert[j].bone], pos );
+						Matrix4x4_Transform( bonetransform[model[k]->vert[j].bone], model[k]->vert[j].org, pos );
 
 						if (pos[0] < bmin[0]) bmin[0] = pos[0];
 						if (pos[1] < bmin[1]) bmin[1] = pos[1];
@@ -1332,8 +1332,8 @@ void Build_Reference( s_model_t *pmodel)
 
 	for (i = 0; i < pmodel->numbones; i++)
 	{
-		float m[3][4];
-		vec3_t p;
+		matrix4x4	m;
+		vec3_t	p;
 
 		// convert to degrees
 		angle[0] = pmodel->skeleton[i].rot[0] * (180.0 / M_PI);
@@ -1341,25 +1341,23 @@ void Build_Reference( s_model_t *pmodel)
 		angle[2] = pmodel->skeleton[i].rot[2] * (180.0 / M_PI);
 
 		parent = pmodel->node[i].parent;
-		if (parent == -1)
+		if( parent == -1 )
 		{
 			// scale the done pos.
 			// calc rotational matrices
-			AngleMatrixFLU( angle, bonefixup[i].m );
-			AngleIMatrixFLU( angle, bonefixup[i].im );
+			Matrix4x4_CreateFromEntity( bonefixup[i].m, 0, 0, 0, angle[YAW], angle[ROLL], angle[PITCH], 1.0 );
+			Matrix4x4_Transpose( bonefixup[i].im, bonefixup[i].m ); 
 			VectorCopy( pmodel->skeleton[i].pos, bonefixup[i].worldorg );
 		}
 		else
 		{
 			// calc compound rotational matrices
-			// FIXME : Hey, it's orthogical so inv(A) == transpose(A)
-			AngleMatrixFLU( angle, m );
-			R_ConcatTransforms( bonefixup[parent].m, m, bonefixup[i].m );
-			AngleIMatrixFLU( angle, m );
-			R_ConcatTransforms( m, bonefixup[parent].im, bonefixup[i].im );
+			Matrix4x4_CreateFromEntity( m, 0, 0, 0, angle[YAW], angle[ROLL], angle[PITCH], 1.0 );
+			Matrix4x4_ConcatTransforms( bonefixup[i].m, bonefixup[parent].m, m );
+			Matrix4x4_Transpose( bonefixup[i].im, bonefixup[i].m ); 
 
 			// calc true world coord.
-			VectorTransform(pmodel->skeleton[i].pos, bonefixup[parent].m, p );
+			Matrix4x4_Transform( bonefixup[parent].m, pmodel->skeleton[i].pos, p );
 			VectorAdd( p, bonefixup[parent].worldorg, bonefixup[i].worldorg );
 		}
 	}
@@ -1468,11 +1466,11 @@ void Grab_Triangles( s_model_t *pmodel )
 
 				// move vertex position to object space.
 				VectorSubtract( p.org, bonefixup[p.bone].worldorg, tmp );
-				VectorTransform(tmp, bonefixup[p.bone].im, p.org );
+				Matrix4x4_Transform( bonefixup[p.bone].im, tmp, p.org );
 
 				// move normal to object space.
 				VectorCopy( normal.org, tmp );
-				VectorTransform(tmp, bonefixup[p.bone].im, normal.org );
+				Matrix4x4_Transform( bonefixup[p.bone].im, tmp, normal.org );
 				VectorNormalize( normal.org );
 
 				ptriv->normindex = lookup_normal( pmodel, &normal );

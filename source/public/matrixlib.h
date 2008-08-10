@@ -8,6 +8,12 @@
 #include <math.h>
 //#define OPENGL_STYLE		//TODO: enable OpenGL style someday
 
+#ifndef M_PI
+#define M_PI			(float)3.14159265358979323846
+#endif
+
+#define MatrixLoadIdentity( mat )	Matrix4x4_Copy( mat, identitymatrix )
+
 static const matrix4x4 identitymatrix =
 {
 { 1, 0, 0, 0 },	// PITCH
@@ -144,6 +150,58 @@ _inline void Matrix4x4_CreateTranslate( matrix4x4 out, double x, double y, doubl
 	out[3][3] = 1.0f;
 #endif
 }
+
+_inline void Matrix4x4_CreateRotate( matrix4x4 out, double angle, double x, double y, double z )
+{
+	double len, c, s;
+
+	len = x * x + y * y + z * z;
+	if( len != 0.0f ) len = 1.0f / sqrt(len);
+	x *= len;
+	y *= len;
+	z *= len;
+
+	angle *= (-M_PI / 180.0);
+	c = cos( angle );
+	s = sin( angle );
+
+#ifdef OPENGL_STYLE
+	out[0][0]=x * x + c * (1 - x * x);
+	out[1][0]=x * y * (1 - c) + z * s;
+	out[2][0]=z * x * (1 - c) - y * s;
+	out[3][0]=0.0f;
+	out[0][1]=x * y * (1 - c) - z * s;
+	out[1][1]=y * y + c * (1 - y * y);
+	out[2][1]=y * z * (1 - c) + x * s;
+	out[3][1]=0.0f;
+	out[0][2]=z * x * (1 - c) + y * s;
+	out[1][2]=y * z * (1 - c) - x * s;
+	out[2][2]=z * z + c * (1 - z * z);
+	out[3][2]=0.0f;
+	out[0][3]=0.0f;
+	out[1][3]=0.0f;
+	out[2][3]=0.0f;
+	out[3][3]=1.0f;
+#else
+	out[0][0]=x * x + c * (1 - x * x);
+	out[0][1]=x * y * (1 - c) + z * s;
+	out[0][2]=z * x * (1 - c) - y * s;
+	out[0][3]=0.0f;
+	out[1][0]=x * y * (1 - c) - z * s;
+	out[1][1]=y * y + c * (1 - y * y);
+	out[1][2]=y * z * (1 - c) + x * s;
+	out[1][3]=0.0f;
+	out[2][0]=z * x * (1 - c) + y * s;
+	out[2][1]=y * z * (1 - c) - x * s;
+	out[2][2]=z * z + c * (1 - z * z);
+	out[2][3]=0.0f;
+	out[3][0]=0.0f;
+	out[3][1]=0.0f;
+	out[3][2]=0.0f;
+	out[3][3]=1.0f;
+#endif
+}
+
 
 _inline void Matrix4x4_CreateFromEntity( matrix4x4 out, double x, double y, double z, double pitch, double yaw, double roll, double scale )
 {

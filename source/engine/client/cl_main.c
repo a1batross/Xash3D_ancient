@@ -1199,7 +1199,6 @@ void CL_Frame( dword time )
 		return;
 
 	// decide the simulation time
-	cl.oldtime = cl.time;	// used for lerping animations
 	cl.time += time;		// can be merged by cl.frame.servertime 
 	cls.realtime += time;
 	cls.frametime = time * 0.001;

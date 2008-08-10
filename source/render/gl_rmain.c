@@ -1005,7 +1005,7 @@ static bool R_AddEntityToScene( refdef_t *fd, entity_state_t *s1, entity_state_t
 		refent->prev.blending[i] = s2->model.blending[i];
 	}
 
-	if( s1->ed_type == ED_CLIENT )
+	if( refent->ent_type == ED_CLIENT )
 	{
 		// only draw from mirrors
 		refent->renderfx |= RF_PLAYERMODEL;
@@ -1013,6 +1013,9 @@ static bool R_AddEntityToScene( refdef_t *fd, entity_state_t *s1, entity_state_t
 		//refent->gaitframe = s1->model.frame;
 	}
 
+	// todo:
+	refent->prev.sequencetime = s2->model.animtime - (r_newrefdef.time - 0.1);
+          
 	// add entity
 	fd->num_entities++;
 	r_newrefdef = *fd;

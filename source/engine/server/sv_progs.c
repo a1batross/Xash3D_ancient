@@ -1777,6 +1777,85 @@ void PF_lookupsequence( void )
 
 /*
 =============
+PF_getsequenceinfo
+
+float GetSequenceInfo( string model, float sequence )
+=============
+*/
+void PF_getsequenceinfo( void )
+{
+	cmodel_t		*mod;
+	edict_t		*ent;
+	studiohdr_t	*pstudiohdr;
+	mstudioseqdesc_t	*pseqdesc;
+	int		sequence;
+
+	if(!VM_ValidateArgs( "GetSequenceInfo", 2 )) return;	
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+	PRVM_G_FLOAT(OFS_RETURN) = 0;
+
+	sequence = (int)PRVM_G_FLOAT(OFS_PARM1);
+	ent = PRVM_PROG_TO_EDICT( prog->globals.sv->pev );
+	mod = pe->RegisterModel(PRVM_G_STRING(OFS_PARM0));
+	if( !mod ) return;
+	pstudiohdr = (studiohdr_t *)mod->extradata;
+	if( !pstudiohdr ) return;
+
+	if( sequence >= pstudiohdr->numseq )
+	{
+		ent->progs.sv->m_flFrameRate = 0.0;
+		ent->progs.sv->m_flGroundSpeed = 0.0;
+		return;
+	}
+
+	pseqdesc = (mstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex) + sequence;
+	if( pseqdesc->numframes > 1 )
+	{
+		ent->progs.sv->m_flFrameRate = 256 * pseqdesc->fps / (pseqdesc->numframes - 1);
+		ent->progs.sv->m_flGroundSpeed = VectorLength( pseqdesc->linearmovement ); 
+		ent->progs.sv->m_flGroundSpeed = ent->progs.sv->m_flGroundSpeed * pseqdesc->fps / (pseqdesc->numframes - 1);
+	}
+	else
+	{
+		ent->progs.sv->m_flFrameRate = 256.0;
+		ent->progs.sv->m_flGroundSpeed = 0.0;
+	}
+	PRVM_G_FLOAT(OFS_RETURN) = 1;	// all done
+}
+
+/*
+=============
+PF_getsequenceflags
+
+float GetSequenceFlags( string model, float sequence )
+=============
+*/
+void PF_getsequenceflags( void )
+{
+	cmodel_t		*mod;
+	edict_t		*ent;
+	studiohdr_t	*pstudiohdr;
+	mstudioseqdesc_t	*pseqdesc;
+	int		sequence;
+
+	if(!VM_ValidateArgs( "GetSequenceFlags", 2 )) return;	
+	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
+	PRVM_G_FLOAT(OFS_RETURN) = -1;
+
+	sequence = (int)PRVM_G_FLOAT(OFS_PARM1);
+	ent = PRVM_PROG_TO_EDICT( prog->globals.sv->pev );
+	mod = pe->RegisterModel(PRVM_G_STRING(OFS_PARM0));
+	if( !mod ) return;
+	pstudiohdr = (studiohdr_t *)mod->extradata;
+	if( !pstudiohdr ) return;
+	if( sequence >= pstudiohdr->numseq ) return;
+
+	pseqdesc = (mstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex) + sequence;
+	PRVM_G_FLOAT(OFS_RETURN) = (float )pseqdesc->flags;
+}
+
+/*
+=============
 PF_aim
 
 vector aim( entity e, float speed )
@@ -2417,7 +2496,7 @@ PF_serverexec,			// #141 void server_execute( void )
 PF_clientcmd,			// #142 void client_command( entity e, string s)
 PF_particle,			// #143 void particle( vector origin, vector dir, float color, float count )
 PF_lightstyle,			// #144 void lightstyle(float style, string value)
-NULL,				// #145
+PF_getsequenceinfo,			// #145 float GetSequenceInfo( string model, float sequence )
 PF_pointcontents,			// #146 float pointcontents(vector v) 
 PF_BeginMessage,			// #147 void MsgBegin (float dest)
 PF_EndMessage,			// #148 void MsgEnd(float to, vector pos, entity e)
@@ -2429,7 +2508,7 @@ PF_WriteAngle,			// #153 void WriteAngle (float f)
 PF_WriteCoord,			// #154 void WriteCoord (float f)
 PF_WriteString,			// #155 void WriteString (string s)
 PF_WriteEntity,			// #156 void WriteEntity (entity s)
-NULL,				// #157 getModelPtr
+PF_getsequenceflags,		// #157 float GetSequenceFlags( string model, float sequence )
 NULL,				// #158 regUserMsg
 PF_checkbottom,			// #159 float checkbottom(entity e) 
 NULL,				// #160 getBonePosition

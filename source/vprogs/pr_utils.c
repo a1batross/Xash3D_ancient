@@ -384,6 +384,7 @@ word PR_WriteProgdefs( void )
 	char		lwr_prefix[8], upr_prefix[8];
 	char		array_size[8]; // g-cont: mega name!
 	int		f = 0, k = 1;
+	string		path;
 	def_t		*d;
 	word		crc;
 
@@ -493,15 +494,6 @@ word PR_WriteProgdefs( void )
 
 	if( ForcedCRC ) crc = ForcedCRC;	// potentially backdoor
 
-	if(FS_CheckParm("-progdefs") && (host_instance == HOST_QCCLIB))
-	{
-		string	path;
-
-		com.snprintf( path, MAX_STRING, "../%s_edict.h", lwr_prefix );
-		PR_Message( "writing %s\n", path );
-		FS_WriteFile( path, file, com.strlen(file));
-	}
-
 	if( host_instance == HOST_NORMAL || host_instance == HOST_DEDICATED )
 	{
 		// make sure what progs file will be placed into right directory
@@ -510,7 +502,7 @@ word PR_WriteProgdefs( void )
 
 	switch( crc )
 	{
-	case 15812:
+	case 4411:
 		PR_Message("Xash3D unmodified server.dat\n");
 		if(!com.strcmp(progsoutname, "unknown.dat")) com.strcpy(progsoutname, "server.dat");
 		break;
@@ -525,6 +517,10 @@ word PR_WriteProgdefs( void )
 	default:
 		PR_Message("Custom progs crc %d\n", crc );
 		if(!com.strcmp(progsoutname, "unknown.dat")) com.strcpy(progsoutname, "progs.dat");
+		if( host_instance != HOST_QCCLIB ) break;
+		com.snprintf( path, MAX_STRING, "../%s_edict.h", lwr_prefix );
+		PR_Message( "writing %s\n", path ); // auto-determine
+		FS_WriteFile( path, file, com.strlen(file));
 		break;
 	}
 	return crc;

@@ -77,6 +77,7 @@ void R_StudioInit( void )
 	m_pRenderModel  = NULL;
 	m_pStudioHeader = NULL;
           m_pCurrentEntity = NULL;
+	m_flGaitMovement = 1;
 }
 
 void R_StudioShutdown( void )
@@ -331,7 +332,7 @@ StudioCalcBoneAdj
 
 ====================
 */
-void R_StudioCalcBoneAdj( float dadt, float *adj, const byte *pcontroller1, const byte *pcontroller2, byte mouthopen )
+void R_StudioCalcBoneAdj( float dadt, float *adj, const float *pcontroller1, const float *pcontroller2, byte mouthopen )
 {
 	int	i, j;
 	float	value;
@@ -345,6 +346,7 @@ void R_StudioCalcBoneAdj( float dadt, float *adj, const byte *pcontroller1, cons
 
 		if( i == STUDIO_MOUTH )
 		{
+			// FIXME: convert to float
 			// mouth hardcoded at controller 4
 			value = mouthopen / 64.0;
 			if (value > 1.0) value = 1.0;				
@@ -358,9 +360,9 @@ void R_StudioCalcBoneAdj( float dadt, float *adj, const byte *pcontroller1, cons
 			{
 				if(abs(pcontroller1[i] - pcontroller2[i]) > 128)
 				{
-					int a, b;
-					a = (pcontroller1[j] + 128) % 256;
-					b = (pcontroller2[j] + 128) % 256;
+					float	a, b;
+					a = fmod((pcontroller1[j] + 128), 256 );
+					b = fmod((pcontroller2[j] + 128), 256 );
 					value = ((a * dadt) + (b * (1 - dadt)) - 128) * (360.0/256.0) + pbonecontroller[j].start;
 				}
 				else 
@@ -624,7 +626,7 @@ StudioPlayerBlend
 
 ====================
 */
-void R_StudioPlayerBlend( mstudioseqdesc_t *pseqdesc, int *pBlend, float *pPitch )
+void R_StudioPlayerBlend( mstudioseqdesc_t *pseqdesc, float *pBlend, float *pPitch )
 {
 	// calc up/down pointing
 	*pBlend = (*pPitch * 3);
@@ -855,7 +857,7 @@ StudioSetupBones
 
 ====================
 */
-void R_StudioSetupBonesNormal( void )
+void R_StudioSetupBones( void )
 {
 	int		i;
 	double		f;
@@ -888,7 +890,7 @@ void R_StudioSetupBonesNormal( void )
 	panim = R_StudioGetAnim( m_pRenderModel, pseqdesc );
 	R_StudioCalcRotations( pos, q, pseqdesc, panim, f );
 
-	if (pseqdesc->numblends > 1)
+	if( pseqdesc->numblends > 1 )
 	{
 		float	s;
 		float	dadt;
@@ -916,14 +918,15 @@ void R_StudioSetupBonesNormal( void )
 			R_StudioSlerpBones( q, pos, q3, pos3, s );
 		}
 	}
-	
+
 	if( m_fDoInterp && m_pCurrentEntity->prev.sequencetime && ( m_pCurrentEntity->prev.sequencetime + 0.2 > r_newrefdef.time) && ( m_pCurrentEntity->prev.sequence < m_pStudioHeader->numseq ))
 	{
 		// blend from last sequence
 		static float  pos1b[MAXSTUDIOBONES][3];
 		static vec4_t q1b[MAXSTUDIOBONES];
 		float s;
-
+                    
+		Msg("blending from last sequence %g\n", m_pCurrentEntity->prev.sequencetime );
 		pseqdesc = (mstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->prev.sequence;
 		panim = R_StudioGetAnim( m_pRenderModel, pseqdesc );
 		// clip prevframe
@@ -964,182 +967,28 @@ void R_StudioSetupBonesNormal( void )
 
 	pbones = (mstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
 
-	for (i = 0; i < m_pStudioHeader->numbones; i++) 
-	{
-		Matrix4x4_FromOriginQuat( bonematrix, pos[i][0], pos[i][1], pos[i][2], q[i][0], q[i][1], q[i][2], q[i][3] );
-		if( pbones[i].parent == -1 ) 
-		{
-			Matrix4x4_ConcatTransforms( m_pbonestransform[i], m_protationmatrix, bonematrix );
-			Matrix4x4_Copy( m_plighttransform[i], m_pbonestransform[i] );
-
-			// apply client-side effects to the transformation matrix
-			R_StudioFxTransform( m_pCurrentEntity, m_pbonestransform[i] );
-		} 
-		else 
-		{
-			Matrix4x4_ConcatTransforms( m_pbonestransform[i], m_pbonestransform[pbones[i].parent], bonematrix );
-			Matrix4x4_ConcatTransforms( m_plighttransform[i], m_plighttransform[pbones[i].parent], bonematrix );
-		}
-	}
-}
-
-void R_StudioSetupBones ( void )
-{
-	int		i;
-	double		f;
-
-	mstudiobone_t	*pbones;
-	mstudioseqdesc_t	*pseqdesc;
-	mstudioanim_t	*panim;
-
-	static float	pos[MAXSTUDIOBONES][3];
-	static vec4_t	q[MAXSTUDIOBONES];
-	matrix4x4		bonematrix;
-
-	static float	pos2[MAXSTUDIOBONES][3];
-	static vec4_t	q2[MAXSTUDIOBONES];
-	static float	pos3[MAXSTUDIOBONES][3];
-	static vec4_t	q3[MAXSTUDIOBONES];
-	static float	pos4[MAXSTUDIOBONES][3];
-	static vec4_t	q4[MAXSTUDIOBONES];
-
-	// Use default bone setup for nonplayers
-	if( !m_pCurrentEntity->ent_type != ED_CLIENT )
-	{
-		R_StudioSetupBonesNormal();
-		return;
-	}
-
-	// Bound sequence number.
-	if( m_pCurrentEntity->sequence >= m_pStudioHeader->numseq ) 
-		m_pCurrentEntity->sequence = 0;
-
-	pseqdesc = (mstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->sequence;
-
+	// calc gait animation
 	if( m_pCurrentEntity->gaitsequence != 0 )
 	{
-		f = m_pCurrentEntity->gaitframe;
-	}
-	else 
-	{
-		f = R_StudioEstimateFrame( pseqdesc );
-	}
+		if( m_pCurrentEntity->gaitsequence >= m_pStudioHeader->numseq ) 
+			m_pCurrentEntity->gaitsequence = 0;
 
-	// this game knows how to do three way blending
-	if( pseqdesc->numblends == 3 )
-	{
-		float	s;
+		pseqdesc = (mstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->gaitsequence;
 
-		// get left anim
 		panim = R_StudioGetAnim( m_pRenderModel, pseqdesc );
+		R_StudioCalcRotations( pos2, q2, pseqdesc, panim, m_pCurrentEntity->gaitframe );
 
-		// blending is 0-127 == left to middle, 128 to 255 == middle to right
-		if( m_pCurrentEntity->blending[0] <= 127 )
+		for( i = 0; i < m_pStudioHeader->numbones; i++ )
 		{
-			R_StudioCalcRotations( pos, q, pseqdesc, panim, f );
-			
-			// scale 0-127 blending up to 0-255
-			s = m_pCurrentEntity->blending[0];
-			s = ( s * 2.0 );
+			// g-cont. hey, what a hell ?
+			if(!com.strcmp( pbones[i].name, "Bip01 Spine"))
+				break;
+			Mem_Copy( pos[i], pos2[i], sizeof( pos[i] ));
+			Mem_Copy( q[i], q2[i], sizeof( q[i] ));
 		}
-		else
-		{
-			// skip ahead to middle
-			panim += m_pStudioHeader->numbones;
-			R_StudioCalcRotations( pos, q, pseqdesc, panim, f );
-
-			// scale 127-255 blending up to 0 - 255
-			s = m_pCurrentEntity->blending[0];
-			s = 2.0 * ( s - 127.0 );
-		}
-
-		// normalize interpolant
-		s /= 255.0;
-
-		// Go to middle or right
-		panim += m_pStudioHeader->numbones;
-
-		R_StudioCalcRotations( pos2, q2, pseqdesc, panim, f );
-
-		// spherically interpolate the bones
-		R_StudioSlerpBones( q, pos, q2, pos2, s );
-	}
-	else
-	{
-		panim = R_StudioGetAnim( m_pRenderModel, pseqdesc );
-		R_StudioCalcRotations( pos, q, pseqdesc, panim, f );
 	}
 
-	// are we in the process of transitioning from one sequence to another.
-	if( m_fDoInterp && m_pCurrentEntity->prev.sequencetime && ( m_pCurrentEntity->prev.sequencetime + 0.2 > r_newrefdef.time ) && ( m_pCurrentEntity->prev.sequence < m_pStudioHeader->numseq ))
-	{
-		// blend from last sequence
-		static float	pos1b[MAXSTUDIOBONES][3];
-		static vec4_t	q1b[MAXSTUDIOBONES];
-		float		s;
-
-		// Blending value into last sequence
-		byte prevseqblending = m_pCurrentEntity->prev.seqblending[0];
-
-		// point at previous sequence
-		pseqdesc = (mstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->prev.sequence;
-		
-		// know how to do three way blends
-		if( pseqdesc->numblends == 3 )
-		{
-			float	s;
-
-			// Get left animation
-			panim = R_StudioGetAnim( m_pRenderModel, pseqdesc );
-
-			if( prevseqblending <= 127 )
-			{
-				// Set up bones based on final frame of previous sequence
-				R_StudioCalcRotations( pos1b, q1b, pseqdesc, panim, m_pCurrentEntity->prev.frame );
-				
-				s = prevseqblending;
-				s = ( s * 2.0 );
-			}
-			else
-			{
-				// Skip to middle blend
-				panim += m_pStudioHeader->numbones;
-
-				R_StudioCalcRotations( pos1b, q1b, pseqdesc, panim, m_pCurrentEntity->prev.frame );
-
-				s = prevseqblending;
-				s = 2.0 * ( s - 127.0 );
-			}
-
-			// normalize
-			s /= 255.0;
-
-			panim += m_pStudioHeader->numbones;
-			R_StudioCalcRotations( pos2, q2, pseqdesc, panim, m_pCurrentEntity->prev.frame );
-
-			// interpolate bones
-			R_StudioSlerpBones( q1b, pos1b, q2, pos2, s );
-		}
-		else
-		{
-			panim = R_StudioGetAnim( m_pRenderModel, pseqdesc );
-			// clip prevframe
-			R_StudioCalcRotations( pos1b, q1b, pseqdesc, panim, m_pCurrentEntity->prev.frame );
-		}
-
-		// Now blend last frame of previous sequence with current sequence.
-		s = 1.0 - (r_newrefdef.time - m_pCurrentEntity->prev.sequencetime) / 0.2;
-		R_StudioSlerpBones( q, pos, q1b, pos1b, s );
-	}
-	else
-	{
-		m_pCurrentEntity->prev.frame = f;
-	}
-
-	// now convert quaternions and bone positions into matrices
-	pbones = (mstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
-
-	for( i = 0; i < m_pStudioHeader->numbones; i++ ) 
+	for (i = 0; i < m_pStudioHeader->numbones; i++) 
 	{
 		Matrix4x4_FromOriginQuat( bonematrix, pos[i][0], pos[i][1], pos[i][2], q[i][0], q[i][1], q[i][2], q[i][3] );
 		if( pbones[i].parent == -1 ) 
@@ -2058,16 +1907,16 @@ void R_StudioProcessGait( entity_state_t *pplayer )
 {
 	mstudioseqdesc_t	*pseqdesc;
 	float		dt, flYaw;	// view direction relative to movement
-	int		iBlend;
+	float		fBlend;
 
 	if( m_pCurrentEntity->sequence >= m_pStudioHeader->numseq ) 
 		m_pCurrentEntity->sequence = 0;
 
 	pseqdesc = (mstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->sequence;
-	R_StudioPlayerBlend( pseqdesc, &iBlend, &m_pCurrentEntity->angles[PITCH] );
+	R_StudioPlayerBlend( pseqdesc, &fBlend, &m_pCurrentEntity->angles[PITCH] );
 
 	m_pCurrentEntity->prev.angles[PITCH] = m_pCurrentEntity->angles[PITCH];
-	m_pCurrentEntity->blending[0] = iBlend;
+	m_pCurrentEntity->blending[0] = fBlend;
 	m_pCurrentEntity->prev.blending[0] = m_pCurrentEntity->blending[0];
 	m_pCurrentEntity->prev.seqblending[0] = m_pCurrentEntity->blending[0];
 
@@ -2156,7 +2005,7 @@ int R_StudioDrawPlayer( int pass, int flags )
 	R_StudioSetupRender( pass );
 
 	// MsgDev( D_INFO, "DrawPlayer %d\n", m_pCurrentEntity->blending[0] );
-	// MsgDev( D_INFO, "DrawPlayer %d %d (%d)\n", r_framecount, pplayer->player_index, m_pCurrentEntity->sequence );
+	// MsgDev( D_INFO, "DrawPlayer %d %d (%d)\n", r_framecount, pplayer->number, m_pCurrentEntity->sequence );
 	// MsgDev( D_INFO, "Player %.2f %.2f %.2f\n", pplayer->velocity[0], pplayer->velocity[1], pplayer->velocity[2] );
 
 	if( pplayer->number < 0 || pplayer->number > ri.GetMaxClients())
@@ -2226,7 +2075,7 @@ int R_StudioDrawPlayer( int pass, int flags )
 			m_pCurrentEntity->body = 255;
 
 		if(!(glw_state.developer == 0 && ri.GetMaxClients() == 1 ) && ( m_pRenderModel == m_pCurrentEntity->model ))
-			m_pCurrentEntity->body = 1; // force helmet
+			m_pCurrentEntity->body = 0; // force helmet
 
 		R_StudioSetupLighting( );
 

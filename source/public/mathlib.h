@@ -67,24 +67,24 @@
 #define VectorMAMAM(scale1, b1, scale2, b2, scale3, b3, c) ((c)[0] = (scale1) * (b1)[0] + (scale2) * (b2)[0] + (scale3) * (b3)[0],(c)[1] = (scale1) * (b1)[1] + (scale2) * (b2)[1] + (scale3) * (b3)[1],(c)[2] = (scale1) * (b1)[2] + (scale2) * (b2)[2] + (scale3) * (b3)[2])
 #define VectorMAMAMAM(scale1, b1, scale2, b2, scale3, b3, scale4, b4, c) ((c)[0] = (scale1) * (b1)[0] + (scale2) * (b2)[0] + (scale3) * (b3)[0] + (scale4) * (b4)[0],(c)[1] = (scale1) * (b1)[1] + (scale2) * (b2)[1] + (scale3) * (b3)[1] + (scale4) * (b4)[1],(c)[2] = (scale1) * (b1)[2] + (scale2) * (b2)[2] + (scale3) * (b3)[2] + (scale4) * (b4)[2])
 #define VectorReflect( a, r, b, c ) do{ double d; d = DotProduct((a), (b)) * -(1.0 + (r)); VectorMA((a), (d), (b), (c)); } while( 0 )
-#define MatrixLoadIdentity(mat) {Vector4Set(mat[0], 1, 0, 0, 0); Vector4Set(mat[1], 0, 1, 0, 0); Vector4Set(mat[2], 0, 0, 1, 0); Vector4Set(mat[3], 0, 0, 0, 1); }
 #define BoxesOverlap(a,b,c,d) ((a)[0] <= (d)[0] && (b)[0] >= (c)[0] && (a)[1] <= (d)[1] && (b)[1] >= (c)[1] && (a)[2] <= (d)[2] && (b)[2] >= (c)[2])
 #define BoxInsideBox(a,b,c,d) ((a)[0] >= (c)[0] && (b)[0] <= (d)[0] && (a)[1] >= (c)[1] && (b)[1] <= (d)[1] && (a)[2] >= (c)[2] && (b)[2] <= (d)[2])
 #define TriangleOverlapsBox( a, b, c, d, e ) (min((a)[0], min((b)[0], (c)[0])) < (e)[0] && max((a)[0], max((b)[0], (c)[0])) > (d)[0] && min((a)[1], min((b)[1], (c)[1])) < (e)[1] && max((a)[1], max((b)[1], (c)[1])) > (d)[1] && min((a)[2], min((b)[2], (c)[2])) < (e)[2] && max((a)[2], max((b)[2], (c)[2])) > (d)[2])
 #define TriangleNormal( a, b, c, n) ((n)[0] = ((a)[1] - (b)[1]) * ((c)[2] - (b)[2]) - ((a)[2] - (b)[2]) * ((c)[1] - (b)[1]), (n)[1] = ((a)[2] - (b)[2]) * ((c)[0] - (b)[0]) - ((a)[0] - (b)[0]) * ((c)[2] - (b)[2]), (n)[2] = ((a)[0] - (b)[0]) * ((c)[1] - (b)[1]) - ((a)[1] - (b)[1]) * ((c)[0] - (b)[0]))
-_inline float anglemod(const float a){return(360.0/65536) * ((int)(a*(65536/360.0)) & 65535);}
+_inline float anglemod(const float a){ return(360.0/65536) * ((int)(a*(65536/360.0)) & 65535); }
 
-_inline int nearest_pow(int size)
+// NOTE: this code contain bug, what may invoked infinity loop
+_inline int nearest_pow( int size )
 {
 	int i = 2;
 
 	while( 1 ) 
 	{
 		i <<= 1;
-		if (size == i) return i;
-		if (size > i && size < (i <<1)) 
+		if( size == i ) return i;
+		if( size > i && size < (i <<1)) 
 		{
-			if (size >= ((i+(i<<1))/2))
+			if( size >= ((i+(i<<1))/2))
 				return i<<1;
 			else return i;
 		}
@@ -159,13 +159,6 @@ _inline void VectorBound(const float min, vec3_t v, const float max)
 	v[2] = bound(min, v[2], max);
 }
 
-_inline void VectorCeil( vec3_t v)
-{
-	v[0] = ceil(v[0]);
-	v[1] = ceil(v[1]);
-	v[2] = ceil(v[2]);
-}
-
 // FIXME: convert to #define
 _inline float VectorNormalizeLength( vec3_t v )
 {
@@ -204,20 +197,6 @@ _inline bool VectorCompare (const vec3_t v1, const vec3_t v2)
 		if (fabs(v1[i] - v2[i]) > EQUAL_EPSILON)
 			return false;
 	return true;
-}
-
-/*
-====================
-VectorTransform
-
-FIXME: replace with Matrix4x4_Transform
-====================
-*/
-_inline void VectorTransform (const vec3_t in1, matrix3x4 in2, vec3_t out)
-{
-	out[0] = DotProduct(in1, in2[0]) + in2[0][3];
-	out[1] = DotProduct(in1, in2[1]) + in2[1][3];
-	out[2] = DotProduct(in1, in2[2]) + in2[2][3];
 }
 
 _inline void CrossProduct( vec3_t v1, vec3_t v2, vec3_t cross )
@@ -262,9 +241,7 @@ _inline void VectorVectors(vec3_t forward, vec3_t right, vec3_t up)
 
 _inline void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 {
-	float		angle;
-	static float	sr, sp, sy, cr, cp, cy;
-	// static to help MS compiler fp bugs
+	double angle, sr, sp, sy, cr, cp, cy;
 
 	angle = angles[YAW] * (M_PI*2 / 360);
 	sy = sin(angle);
@@ -318,9 +295,7 @@ _inline void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, ve
 
 _inline void AngleVectorsFLU(const vec3_t angles, vec3_t forward, vec3_t left, vec3_t up)
 {
-	float		angle;
-	static float	sr, sp, sy, cr, cp, cy;
-	// static to help MS compiler fp bugs
+	double	angle, sr, sp, sy, cr, cp, cy;
 
 	angle = angles[YAW] * (M_PI*2 / 360);
 	sy = sin(angle);
@@ -373,134 +348,8 @@ _inline void AngleVectorsFLU(const vec3_t angles, vec3_t forward, vec3_t left, v
 	}
 }
 
-/*
-====================
-AngleMatrix
-
-====================
-*/
-
-_inline void AngleMatrix(const vec3_t angles, matrix3x4 matrix )
-{
-	float		angle;
-	float		sr, sp, sy, cr, cp, cy;
-	
-	angle = angles[YAW] * (M_PI*2 / 360);
-	sy = sin(angle);
-	cy = cos(angle);
-	angle = angles[PITCH] * (M_PI*2 / 360);
-	sp = sin(angle);
-	cp = cos(angle);
-	angle = angles[ROLL] * (M_PI*2 / 360);
-	sr = sin(angle);
-	cr = cos(angle);
-
-	// matrix = (YAW * PITCH) * ROLL
-	matrix[0][0] = cp*cy;
-	matrix[1][0] = cp*sy;
-	matrix[2][0] = -sp;
-	matrix[0][1] = sr*sp*cy+cr*-sy;
-	matrix[1][1] = sr*sp*sy+cr*cy;
-	matrix[2][1] = sr*cp;
-	matrix[0][2] = (cr*sp*cy+-sr*-sy);
-	matrix[1][2] = (cr*sp*sy+-sr*cy);
-	matrix[2][2] = cr*cp;
-	matrix[0][3] = 0.0;
-	matrix[1][3] = 0.0;
-	matrix[2][3] = 0.0;
-}
-
-_inline void AngleMatrixFLU( const vec3_t angles, matrix3x4 matrix )
-{
-	float		angle;
-	float		sr, sp, sy, cr, cp, cy;
-	
-	angle = angles[ROLL] * (M_PI*2 / 360);
-	sy = sin(angle);
-	cy = cos(angle);
-	angle = angles[YAW] * (M_PI*2 / 360);
-	sp = sin(angle);
-	cp = cos(angle);
-	angle = angles[PITCH] * (M_PI*2 / 360);
-	sr = sin(angle);
-	cr = cos(angle);
-
-	// matrix = (YAW * PITCH) * ROLL
-	matrix[0][0] = cp*cy;
-	matrix[1][0] = cp*sy;
-	matrix[2][0] = -sp;
-	matrix[0][1] = sr*sp*cy+cr*-sy;
-	matrix[1][1] = sr*sp*sy+cr*cy;
-	matrix[2][1] = sr*cp;
-	matrix[0][2] = (cr*sp*cy+-sr*-sy);
-	matrix[1][2] = (cr*sp*sy+-sr*cy);
-	matrix[2][2] = cr*cp;
-	matrix[0][3] = 0.0;
-	matrix[1][3] = 0.0;
-	matrix[2][3] = 0.0;
-}
-
-_inline void AngleIMatrix(const vec3_t angles, matrix3x4 matrix )
-{
-	float		angle;
-	float		sr, sp, sy, cr, cp, cy;
-	
-	angle = angles[YAW] * (M_PI*2 / 360);
-	sy = sin(angle);
-	cy = cos(angle);
-	angle = angles[PITCH] * (M_PI*2 / 360);
-	sp = sin(angle);
-	cp = cos(angle);
-	angle = angles[ROLL] * (M_PI*2 / 360);
-	sr = sin(angle);
-	cr = cos(angle);
-
-	// matrix = (YAW * PITCH) * ROLL
-	matrix[0][0] = cp*cy;
-	matrix[0][1] = cp*sy;
-	matrix[0][2] = -sp;
-	matrix[1][0] = sr*sp*cy+cr*-sy;
-	matrix[1][1] = sr*sp*sy+cr*cy;
-	matrix[1][2] = sr*cp;
-	matrix[2][0] = (cr*sp*cy+-sr*-sy);
-	matrix[2][1] = (cr*sp*sy+-sr*cy);
-	matrix[2][2] = cr*cp;
-	matrix[0][3] = 0.0;
-	matrix[1][3] = 0.0;
-	matrix[2][3] = 0.0;
-}
-
-_inline void AngleIMatrixFLU(const vec3_t angles, matrix3x4 matrix )
-{
-	float		angle;
-	float		sr, sp, sy, cr, cp, cy;
-	
-	angle = angles[ROLL] * (M_PI*2 / 360);
-	sy = sin(angle);
-	cy = cos(angle);
-	angle = angles[YAW] * (M_PI*2 / 360);
-	sp = sin(angle);
-	cp = cos(angle);
-	angle = angles[PITCH] * (M_PI*2 / 360);
-	sr = sin(angle);
-	cr = cos(angle);
-
-	// matrix = (Z * Y) * X
-	matrix[0][0] = cp*cy;
-	matrix[0][1] = cp*sy;
-	matrix[0][2] = -sp;
-	matrix[1][0] = sr*sp*cy+cr*-sy;
-	matrix[1][1] = sr*sp*sy+cr*cy;
-	matrix[1][2] = sr*cp;
-	matrix[2][0] = (cr*sp*cy+-sr*-sy);
-	matrix[2][1] = (cr*sp*sy+-sr*cy);
-	matrix[2][2] = cr*cp;
-	matrix[0][3] = 0.0;
-	matrix[1][3] = 0.0;
-	matrix[2][3] = 0.0;
-}
-
-_inline void MatrixAngles(matrix4x4 matrix, vec3_t origin, vec3_t angles )
+// FIXME: get rid of this
+_inline void MatrixAngles( matrix4x4 matrix, vec3_t origin, vec3_t angles )
 { 
 	vec3_t		forward, right, up;
 	float		xyDist;
@@ -531,98 +380,6 @@ _inline void MatrixAngles(matrix4x4 matrix, vec3_t origin, vec3_t angles )
 	ConvertPositionToGame( origin );
 }
 
-_inline void AnglesMatrix(vec3_t origin, vec3_t angles, matrix4x4 matrix )
-{
-	float		angle;
-	float		sr, sp, sy, cr, cp, cy;
-
-	angle = DEG2RAD(angles[YAW]);
-	sy = sin(angle);
-	cy = cos(angle);
-	angle = DEG2RAD(angles[PITCH]);
-	sp = sin(angle);
-	cp = cos(angle);
-
-	MatrixLoadIdentity( matrix );
-
-	// forward
-	matrix[0][0] = cp*cy;
-	matrix[0][2] = cp*sy;
-	matrix[0][1] = -sp;
-
-	if (angles[ROLL] == 180)
-	{
-		angle = DEG2RAD(angles[ROLL]);
-		sr = sin(angle);
-		cr = cos(angle);
-
-		// right
-		matrix[1][0] = -1*(sr*sp*cy+cr*-sy);
-		matrix[1][2] = -1*(sr*sp*sy+cr*cy);
-		matrix[1][1] = -1*(sr*cp);
-
-		// up
-		matrix[2][0] = (cr*sp*cy+-sr*-sy);
-		matrix[2][2] = (cr*sp*sy+-sr*cy);
-		matrix[2][1] = cr*cp;
-	}
-	else
-	{
-		// right
-		matrix[1][0] = sy;
-		matrix[1][2] = -cy;
-		matrix[1][1] = 0;
-
-		// up
-		matrix[2][0] = (sp*cy);
-		matrix[2][2] = (sp*sy);
-		matrix[2][1] = cp;
-	}
-	VectorCopy(origin, matrix[3] ); // pack origin
-	ConvertPositionToPhysic( matrix[3] );
-}
-
-/*
-====================
-MatrixCopy
-
-====================
-*/
-_inline void MatrixCopy( matrix3x4 in, matrix3x4 out )
-{
-	memcpy( out, in, sizeof( matrix3x4 ));
-}
-
-_inline void MatrixAnglesFLU( const matrix4x4 matrix, vec3_t origin, vec3_t angles )
-{ 
-	vec3_t	forward, left, up;
-	float	xyDist;
-
-	forward[0] = matrix[0][0];
-	forward[1] = matrix[0][2];
-	forward[2] = matrix[0][1];
-	left[0] = matrix[1][0];
-	left[1] = matrix[1][2];
-	left[2] = matrix[1][1];
-	up[2] = matrix[2][1];
-
-	xyDist = sqrt( forward[0] * forward[0] + forward[1] * forward[1] );
-
-	if ( xyDist > EQUAL_EPSILON ) // enough here to get angles?
-	{
-		angles[1] = RAD2DEG( atan2( forward[1], forward[0] ) );
-		angles[0] = RAD2DEG( atan2( -forward[2], xyDist ) );
-		angles[2] = RAD2DEG( atan2( left[2], up[2] ) );
-	}
-	else
-	{
-		angles[1] = RAD2DEG( atan2( -left[0], left[1] ) );
-		angles[0] = RAD2DEG( atan2( -forward[2], xyDist ) );
-		angles[2] = 0;
-	}
-	VectorCopy(matrix[3], origin );// extract origin
-}
-
 /*
 ====================
 AngleQuaternion
@@ -649,22 +406,6 @@ _inline void AngleQuaternion( float *angles, vec4_t q )
 	q[1] = cr*sp*cy+sr*cp*sy; // Y
 	q[2] = cr*cp*sy-sr*sp*cy; // Z
 	q[3] = cr*cp*cy+sr*sp*sy; // W
-}
-
-_inline void QuaternionAngles( vec4_t q, vec3_t angles )
-{
-	float m11, m12, m13, m23, m33;
-
-	m11 = ( 2.0f * q[3] * q[3] ) + ( 2.0f * q[0] * q[0] ) - 1.0f;
-	m12 = ( 2.0f * q[0] * q[1] ) + ( 2.0f * q[3] * q[2] );
-	m13 = ( 2.0f * q[0] * q[2] ) - ( 2.0f * q[3] * q[1] );
-	m23 = ( 2.0f * q[1] * q[2] ) + ( 2.0f * q[3] * q[0] );
-	m33 = ( 2.0f * q[3] * q[3] ) + ( 2.0f * q[2] * q[2] ) - 1.0f;
-
-	// FIXME: this code has a singularity near PITCH +-90
-	angles[YAW] = RAD2DEG( atan2(m12, m11));
-	angles[PITCH] = RAD2DEG( asin(-m13));
-	angles[ROLL] = RAD2DEG( atan2(m23, m33));
 }
 
 /*
@@ -726,69 +467,6 @@ _inline void QuaternionSlerp( vec4_t p, vec4_t q, float t, vec4_t qt )
 			qt[i] = sclp * p[i] + sclq * qt[i];
 		}
 	}
-}
-
-/*
-================
-ConcatRotations
-================
-*/
-_inline void R_ConcatRotations (float in1[3][3], float in2[3][3], float out[3][3])
-{
-	out[0][0] = in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0] + in1[0][2] * in2[2][0];
-	out[0][1] = in1[0][0] * in2[0][1] + in1[0][1] * in2[1][1] + in1[0][2] * in2[2][1];
-	out[0][2] = in1[0][0] * in2[0][2] + in1[0][1] * in2[1][2] + in1[0][2] * in2[2][2];
-	out[1][0] = in1[1][0] * in2[0][0] + in1[1][1] * in2[1][0] + in1[1][2] * in2[2][0];
-	out[1][1] = in1[1][0] * in2[0][1] + in1[1][1] * in2[1][1] + in1[1][2] * in2[2][1];
-	out[1][2] = in1[1][0] * in2[0][2] + in1[1][1] * in2[1][2] + in1[1][2] * in2[2][2];
-	out[2][0] = in1[2][0] * in2[0][0] + in1[2][1] * in2[1][0] + in1[2][2] * in2[2][0];
-	out[2][1] = in1[2][0] * in2[0][1] + in1[2][1] * in2[1][1] + in1[2][2] * in2[2][1];
-	out[2][2] = in1[2][0] * in2[0][2] + in1[2][1] * in2[1][2] + in1[2][2] * in2[2][2];
-}
-
-
-/*
-================
-ConcatTransforms
-================
-*/
-_inline void R_ConcatTransforms( matrix3x4 in1, matrix3x4 in2, matrix3x4 out )
-{
-	out[0][0] = in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0] + in1[0][2] * in2[2][0];
-	out[0][1] = in1[0][0] * in2[0][1] + in1[0][1] * in2[1][1] + in1[0][2] * in2[2][1];
-	out[0][2] = in1[0][0] * in2[0][2] + in1[0][1] * in2[1][2] + in1[0][2] * in2[2][2];
-	out[0][3] = in1[0][0] * in2[0][3] + in1[0][1] * in2[1][3] + in1[0][2] * in2[2][3] + in1[0][3];
-	out[1][0] = in1[1][0] * in2[0][0] + in1[1][1] * in2[1][0] + in1[1][2] * in2[2][0];
-	out[1][1] = in1[1][0] * in2[0][1] + in1[1][1] * in2[1][1] + in1[1][2] * in2[2][1];
-	out[1][2] = in1[1][0] * in2[0][2] + in1[1][1] * in2[1][2] + in1[1][2] * in2[2][2];
-	out[1][3] = in1[1][0] * in2[0][3] + in1[1][1] * in2[1][3] + in1[1][2] * in2[2][3] + in1[1][3];
-	out[2][0] = in1[2][0] * in2[0][0] + in1[2][1] * in2[1][0] + in1[2][2] * in2[2][0];
-	out[2][1] = in1[2][0] * in2[0][1] + in1[2][1] * in2[1][1] + in1[2][2] * in2[2][1];
-	out[2][2] = in1[2][0] * in2[0][2] + in1[2][1] * in2[1][2] + in1[2][2] * in2[2][2];
-	out[2][3] = in1[2][0] * in2[0][3] + in1[2][1] * in2[1][3] + in1[2][2] * in2[2][3] + in1[2][3];
-}
-
-_inline void TransformRGB( vec3_t in, vec3_t out )
-{
-	out[0] = in[0]/255.0f;
-	out[1] = in[1]/255.0f;
-	out[2] = in[2]/255.0f;
-}
-
-_inline void TransformRGBA( vec4_t in, vec4_t out )
-{
-	out[0] = in[0]/255.0f;
-	out[1] = in[1]/255.0f;
-	out[2] = in[2]/255.0f;
-	out[3] = in[3]/255.0f;
-}
-
-_inline void ResetRGBA( vec4_t in )
-{
-	in[0] = 1.0f;
-	in[1] = 1.0f;
-	in[2] = 1.0f;
-	in[3] = 1.0f;
 }
 
 _inline float *GetRGBA( float r, float g, float b, float a )

@@ -47,7 +47,9 @@ void CalcTextureReflectivity( void )
 		{						
 			if(!VectorIsNull( si->color ))
 			{
-				TransformRGB( si->color, texture_reflectivity[i] );
+				texture_reflectivity[i][0] = si->color[0] / 255.0f;
+				texture_reflectivity[i][1] = si->color[1] / 255.0f;
+				texture_reflectivity[i][2] = si->color[2] / 255.0f;
 				texinfo[i].value = si->intensity;
 				continue;
 			}

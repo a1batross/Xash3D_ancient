@@ -37,15 +37,22 @@ static net_field_t ent_fields[] =
 { ES_FIELD(model.gaitsequence),	NET_WORD,	 false	},	// 1024 gaitsequences
 { ES_FIELD(model.skin),		NET_BYTE,	 false	},	// 255 skins
 { ES_FIELD(model.body),		NET_BYTE,	 false	},	// 255 bodies
+{ ES_FIELD(pmodel.index),		NET_WORD,  false	},	// 4096 models 
+{ ES_FIELD(pmodel.colormap),		NET_LONG,  false	},	// 4096 models 
+{ ES_FIELD(pmodel.sequence),		NET_WORD,  false	},	// 1024 sequences
+{ ES_FIELD(pmodel.frame),		NET_FLOAT, false	},	// interpolate value
+{ ES_FIELD(pmodel.body),		NET_BYTE,  false	},	// 255 bodies
+{ ES_FIELD(pmodel.skin),		NET_BYTE,  false	},	// 255 skins
 { ES_FIELD(model.blending[0]),	NET_COLOR, false	},	// animation blending
 { ES_FIELD(model.blending[1]),	NET_COLOR, false	},
 { ES_FIELD(model.blending[2]),	NET_COLOR, false	},
 { ES_FIELD(model.blending[3]),	NET_COLOR, false	},
-{ ES_FIELD(model.blending[4]),	NET_COLOR, false	},	// send flags (first 4 bytes)
+{ ES_FIELD(model.blending[4]),	NET_COLOR, false	},
 { ES_FIELD(model.blending[5]),	NET_COLOR, false	},
 { ES_FIELD(model.blending[6]),	NET_COLOR, false	},
 { ES_FIELD(model.blending[7]),	NET_COLOR, false	},
 { ES_FIELD(model.blending[8]),	NET_COLOR, false	},
+{ ES_FIELD(model.blending[9]),	NET_COLOR, false	},
 { ES_FIELD(model.controller[0]),	NET_COLOR, false	},	// bone controllers #
 { ES_FIELD(model.controller[1]),	NET_COLOR, false	},
 { ES_FIELD(model.controller[2]),	NET_COLOR, false	},
@@ -55,19 +62,17 @@ static net_field_t ent_fields[] =
 { ES_FIELD(model.controller[6]),	NET_COLOR, false	},
 { ES_FIELD(model.controller[7]),	NET_COLOR, false	},
 { ES_FIELD(model.controller[8]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[9]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[10]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[11]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[12]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[13]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[14]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[15]),	NET_COLOR, false	},
-{ ES_FIELD(model.controller[16]),	NET_COLOR, false	},	// FIXME: sending as array
 { ES_FIELD(solidtype),		NET_BYTE,	 false	},
 { ES_FIELD(movetype),		NET_BYTE,	 false	},        // send flags (second 4 bytes)
 { ES_FIELD(gravity),		NET_SHORT, false	},	// gravity multiplier
 { ES_FIELD(aiment),			NET_WORD,	 false	},	// entity index
 { ES_FIELD(solid),			NET_LONG,	 false	},	// encoded mins/maxs
+{ ES_FIELD(model.blending[10]),	NET_COLOR, false	},
+{ ES_FIELD(model.blending[11]),	NET_COLOR, false	},
+{ ES_FIELD(model.blending[12]),	NET_COLOR, false	},
+{ ES_FIELD(model.blending[13]),	NET_COLOR, false	},
+{ ES_FIELD(model.blending[14]),	NET_COLOR, false	},
+{ ES_FIELD(model.blending[15]),	NET_COLOR, false	},
 { ES_FIELD(mins[0]),		NET_FLOAT, false	},
 { ES_FIELD(mins[1]),		NET_FLOAT, false	},
 { ES_FIELD(mins[2]),		NET_FLOAT, false	},
@@ -81,6 +86,13 @@ static net_field_t ent_fields[] =
 { ES_FIELD(rendercolor[1]),		NET_COLOR, false	},
 { ES_FIELD(rendercolor[2]),		NET_COLOR, false	},
 { ES_FIELD(rendermode),		NET_BYTE,  false	},	// render mode (legacy stuff)
+{ ES_FIELD(model.controller[9]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[10]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[11]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[12]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[13]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[14]),	NET_COLOR, false	},
+{ ES_FIELD(model.controller[15]),	NET_COLOR, false	},
 { ES_FIELD(pm_type),		NET_BYTE,  false	},	// 16 player movetypes allowed
 { ES_FIELD(pm_flags),		NET_WORD,  false	},	// 16 movetype flags allowed
 { ES_FIELD(pm_time),		NET_BYTE,  false	},	// each unit 8 msec
@@ -99,12 +111,6 @@ static net_field_t ent_fields[] =
 { ES_FIELD(maxspeed),		NET_WORD,  false	},	// send flags (third 4 bytes )
 { ES_FIELD(fov),			NET_FLOAT, false	},	// client horizontal field of view
 { ES_FIELD(health),			NET_FLOAT, false	},	// client health
-{ ES_FIELD(pmodel.index),		NET_WORD,  false	},	// 4096 models 
-{ ES_FIELD(pmodel.colormap),		NET_LONG,  false	},	// 4096 models 
-{ ES_FIELD(pmodel.sequence),		NET_WORD,  false	},	// 1024 sequences
-{ ES_FIELD(pmodel.frame),		NET_FLOAT, false	},	// interpolate value
-{ ES_FIELD(pmodel.body),		NET_BYTE,  false	},	// 255 bodies
-{ ES_FIELD(pmodel.skin),		NET_BYTE,  false	},	// 255 skins
 { NULL },							// terminator
 };
 
