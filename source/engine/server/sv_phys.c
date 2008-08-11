@@ -972,7 +972,14 @@ void SV_CheckStuck( edict_t *ent )
 	int	i;
 	vec3_t	offset;
 
-	if(!SV_TestEntityPosition( ent, vec3_origin ))
+	VectorClear( offset );
+	if((int)ent->progs.sv->aiflags & AI_DUCKED )
+	{
+		offset[0] += 1;
+		offset[1] += 1;
+		offset[2] += 1;
+	}
+	if(!SV_TestEntityPosition( ent, offset ))
 	{
 		VectorCopy( ent->progs.sv->origin, ent->progs.sv->old_origin );
 		return;
@@ -1768,7 +1775,7 @@ void SV_Physics( void )
 		if( ent->priv.sv->free ) continue;
 
 		VectorCopy( ent->progs.sv->origin, ent->progs.sv->old_origin );
-		if(i <= Host_MaxClients());// SV_Physics_ClientEntity( ent );
+		if(i <= Host_MaxClients()) SV_Physics_ClientEntity( ent );
 		else if(!sv_playersonly->integer)SV_Physics_Entity( ent );
 	}
 

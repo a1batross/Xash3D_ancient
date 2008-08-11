@@ -2002,7 +2002,7 @@ static byte *FS_OpenWadFile( const char *name, fs_offset_t *filesizeptr, int mat
 
 		for(i = 0; i < (uint)w->numlumps; i++)
 		{
-			if(!com_strcmp(texname, w->lumps[i].name))
+			if(!com_stricmp(texname, w->lumps[i].name))
 			{
 				byte		*buf, *cbuf;
 				size_t		size;

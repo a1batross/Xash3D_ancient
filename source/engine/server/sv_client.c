@@ -618,7 +618,7 @@ void SV_Configstrings_f( sv_client_t *cl )
 	start = com.atoi(Cmd_Argv(2));
 
 	// write a packet full of data
-	while( start < MAX_CONFIGSTRINGS )
+	while( cl->netchan.message.cursize < MAX_MSGLEN/2 && start < MAX_CONFIGSTRINGS )
 	{
 		if( sv.configstrings[start][0])
 		{
@@ -666,7 +666,7 @@ void SV_Baselines_f( sv_client_t *cl )
 	memset( &nullstate, 0, sizeof(nullstate));
 
 	// write a packet full of data
-	while( start < host.max_edicts )
+	while( cl->netchan.message.cursize < MAX_MSGLEN/2 && start < host.max_edicts )
 	{
 		base = &svs.baselines[start];
 		if( base->model.index || base->soundindex || base->effects )

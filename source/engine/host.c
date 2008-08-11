@@ -238,6 +238,11 @@ void Host_ChangeGame_f( void )
 	else Sys_NewInstance( Cmd_Argv(1), "Host_ChangeGame\n" );
 }
 
+void Host_Minimize_f( void )
+{
+	if( host.hWnd ) ShowWindow( host.hWnd, SW_MINIMIZE );
+}
+
 /*
 ============
 VID_Init
@@ -248,6 +253,7 @@ void VID_Init( void )
 	scr_width = Cvar_Get("width", "640", 0, "screen width" );
 	scr_height = Cvar_Get("height", "480", 0, "screen height" );
 
+	Cmd_AddCommand( "minimize", Host_Minimize_f, "minimize main window to tray" );
 	Cmd_AddCommand( "vid_restart", Host_VidRestart_f, "restarts video system" );
 	Cmd_AddCommand( "snd_restart", Host_SndRestart_f, "restarts audio system" );
 	Cmd_AddCommand( "game", Host_ChangeGame_f, "change game" );

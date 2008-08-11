@@ -1275,13 +1275,16 @@ void VM_drawmodel( void )
 	re->ClearScene( &refdef );
 	re->RegisterModel( modname, MAX_MODELS - 1 );
 	ent.renderfx = RF_FULLBRIGHT;
-	ent.ed_type = ED_CLIENT;
 	ent.model.sequence = sequence;
 	ent.model.index = MAX_MODELS - 1;
+	ent.model.controller[0] = 127;
+	ent.model.controller[1] = 127;
+	ent.model.controller[2] = 127;
+	ent.model.controller[3] = 127;
 	VectorCopy( origin, ent.origin );
 	VectorCopy( origin, ent.old_origin );
 	VectorCopy( angles, ent.angles );
-	ent.model.frame = frame += 0.7f;//FXIME
+	ent.model.frame = frame += 0.7f;	// FXIME: needs flag EF_AUTOANIMATE or somewhat
 
 	re->AddRefEntity( &refdef, &ent, NULL, 1.0f );
 	re->RenderFrame( &refdef );

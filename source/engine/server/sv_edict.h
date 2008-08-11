@@ -89,14 +89,15 @@ struct sv_entvars_s
 	string_t	model;
 	float	skin;
 	float	body;
-	float	alpha;
 	float	frame;
 	float	speed;
 	float	sequence;
 	float	animtime;
+	float	framerate;
 	float	gaitsequence;
 	float	effects;
 	float	renderfx;
+	float	renderamt;
 	float	colormap;
 	float	flags;
 	float	aiflags;
@@ -140,6 +141,6 @@ struct sv_entvars_s
 	float	team;
 };
 
-#define PROG_CRC_SERVER		4411
+#define PROG_CRC_SERVER		25006
 
 #endif//SV_EDICT_H

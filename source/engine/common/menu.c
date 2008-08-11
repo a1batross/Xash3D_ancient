@@ -616,6 +616,9 @@ void PF_stopcredits( void )
 
 	// stop credits
 	credits_active = false;
+
+	// let menu progs known about credits state
+	PRVM_ExecuteProgram( prog->globals.ui->m_endofcredits, "m_endofcredits");
 }
 
 /*

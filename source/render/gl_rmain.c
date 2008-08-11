@@ -943,30 +943,28 @@ static bool R_AddEntityToScene( refdef_t *fd, entity_state_t *s1, entity_state_t
 	refent = &fd->entities[fd->num_entities];
 	if( !s2 ) s2 = s1; // no lerping state
 
-	refent->frame = s1->model.frame;
-
 	// copy state to render
+	refent->frame = s1->model.frame;
 	refent->index = s1->number;
 	refent->ent_type = s1->ed_type;
-	refent->prev.frame = s2->model.frame;
 	refent->backlerp = 1.0f - lerpfrac;
 	refent->renderamt = s1->renderamt;
 	refent->body = s1->model.body;
 	refent->sequence = s1->model.sequence;		
-	refent->animtime = s1->model.animtime;
 	refent->movetype = s1->movetype;
 	refent->scale = s1->model.scale ? s1->model.scale : 1.0f;
 	refent->colormap = s1->model.colormap;
+	refent->framerate = s1->model.framerate;
 	refent->effects = s1->effects;
+	refent->animtime = s1->model.animtime;
 	VectorCopy( s1->rendercolor, refent->rendercolor );
 
 	// setup latchedvars
+	refent->prev.frame = s2->model.frame;
 	refent->prev.animtime = s2->model.animtime;
 	VectorCopy( s2->origin, refent->prev.origin );
 	VectorCopy( s2->angles, refent->prev.angles );
 	refent->prev.sequence = s2->model.sequence;
-	refent->prev.frame = s2->model.frame;
-	//refent->prev.sequencetime;
 		
 	// interpolate origin
 	for( i = 0; i < 3; i++ )
@@ -977,6 +975,7 @@ static bool R_AddEntityToScene( refdef_t *fd, entity_state_t *s1, entity_state_t
 	refent->model = r_models[s1->model.index];
 	refent->weaponmodel = r_models[s1->pmodel.index];
 	refent->renderfx = s1->renderfx;
+	refent->prev.sequencetime = s1->model.animtime - s2->model.animtime;
 
 	// calculate angles
 	if( refent->effects & EF_ROTATE )
@@ -1010,12 +1009,8 @@ static bool R_AddEntityToScene( refdef_t *fd, entity_state_t *s1, entity_state_t
 		// only draw from mirrors
 		refent->renderfx |= RF_PLAYERMODEL;
 		refent->gaitsequence = s1->model.gaitsequence;
-		//refent->gaitframe = s1->model.frame;
 	}
 
-	// todo:
-	refent->prev.sequencetime = s2->model.animtime - (r_newrefdef.time - 0.1);
-          
 	// add entity
 	fd->num_entities++;
 	r_newrefdef = *fd;
@@ -1316,7 +1311,8 @@ bool R_UploadImage( const char *name, int index )
 	image_t	*texture;
 
 	// nothing to load
-	if( !r_worldmodel ) return false;
+	if( !r_worldmodel ) 
+		return false;
 	loadmodel = r_worldmodel;
 
 	com.strncpy( filename, Mod_GetStringFromTable( loadmodel->texinfo[index].texid ), sizeof(filename));

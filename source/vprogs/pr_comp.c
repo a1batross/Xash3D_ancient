@@ -1422,8 +1422,8 @@ def_t *PR_ParseFunctionCall (def_t *func)
 	func->timescalled++;
 	t = func->type;
 
-	if (t->type == ev_variant) t->aux_type = type_variant;
-	if (t->type != ev_function && t->type != ev_variant)
+	if(t && t->type == ev_variant) t->aux_type = type_variant;
+	if(t && t->type != ev_function && t->type != ev_variant)
 	{
 		PR_ParseErrorPrintDef (ERR_NOTAFUNCTION, func, "not a function");
 	}

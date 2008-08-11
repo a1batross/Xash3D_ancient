@@ -352,7 +352,7 @@ bool Cmd_GetMovieList( const char *s, char *completedname, int length )
 	string		matchbuf;
 	int		i, nummovies;
 
-	t = FS_Search(va("video/%s*.dpv", s ), true);
+	t = FS_Search(va("media/%s*.dpv", s ), true);
 	if(!t) return false;
 
 	FS_FileBase(t->filenames[0], matchbuf ); 
@@ -397,7 +397,7 @@ bool Cmd_GetMusicList( const char *s, char *completedname, int length )
 	string		matchbuf;
 	int		i, numtracks;
 
-	t = FS_Search(va("music/%s*.ogg", s ), true);
+	t = FS_Search(va("media/%s*.ogg", s ), true);
 	if(!t) return false;
 
 	FS_FileBase(t->filenames[0], matchbuf ); 

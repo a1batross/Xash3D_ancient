@@ -29,8 +29,8 @@ void SV_FatPVS( vec3_t org )
 
 	for( i = 0; i < 3; i++ )
 	{
-		mins[i] = org[i] - 8;
-		maxs[i] = org[i] + 8;
+		mins[i] = org[i] - 1;
+		maxs[i] = org[i] + 1;
 	}
 
 	count = pe->BoxLeafnums( mins, maxs, leafs, 64, NULL );
@@ -84,8 +84,9 @@ void SV_UpdateEntityState( edict_t *ent )
 	ent->priv.sv->s.model.sequence = (byte)ent->progs.sv->sequence;	// studio model sequence
 	ent->priv.sv->s.effects = (uint)ent->progs.sv->effects;		// shared client and render flags
 	ent->priv.sv->s.renderfx = (int)ent->progs.sv->renderfx;		// renderer flags
-	ent->priv.sv->s.renderamt = ent->progs.sv->alpha;			// alpha value
-	ent->priv.sv->s.model.animtime = ent->progs.sv->animtime;		// auto-animating time
+	ent->priv.sv->s.renderamt = ent->progs.sv->renderamt;		// alpha value
+	ent->priv.sv->s.model.framerate = ent->progs.sv->framerate;
+	ent->priv.sv->s.model.animtime = (int)(1000.0 * ent->progs.sv->animtime) * 0.001; // sequence time
 	ent->priv.sv->s.aiment = ent->progs.sv->aiment;			// viewmodel parent
 
 	if( ent->priv.sv->s.ed_type == ED_VIEWMODEL )
@@ -107,6 +108,10 @@ void SV_UpdateEntityState( edict_t *ent )
 bool SV_EdictNeedsUpdate( edict_t *ent, edict_t *clent, int clientarea )
 {
 	int	i, l;
+
+	//NOTE: client index on client expected that entity will be valid
+	if( ent->priv.sv->s.ed_type == ED_CLIENT )
+		return true;
 
 	// send viewmodel entity always
 	// NOTE: never apply LinkEdict to viewmodel entity, because
@@ -501,7 +506,7 @@ void SV_SendClientMessages( void )
 		{
 			MSG_Clear( &cl->netchan.message );
 			MSG_Clear( &cl->datagram );
-			SV_BroadcastPrintf (PRINT_CONSOLE, "%s overflowed\n", cl->name );
+			SV_BroadcastPrintf( PRINT_CONSOLE, "%s overflowed\n", cl->name );
 			SV_DropClient( cl );
 		}
 

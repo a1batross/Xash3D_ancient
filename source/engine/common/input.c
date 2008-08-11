@@ -177,7 +177,7 @@ void IN_MouseMove( void )
 	POINT	current_pos;
 	int	mx, my;
 	
-	if( !in_mouseinitialized )
+	if( !in_mouseinitialized || !in_mouseactive )
 		return;
 
 	// find mouse movement
@@ -201,7 +201,7 @@ void IN_MouseEvent( int mstate )
 {
 	int	i;
 
-	if( !in_mouseinitialized )
+	if( !in_mouseinitialized || !in_mouseactive )
 		return;
 
 	// perform button actions

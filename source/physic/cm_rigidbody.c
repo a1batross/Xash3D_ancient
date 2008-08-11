@@ -102,7 +102,7 @@ void Phys_SetParameters( physbody_t *body, cmodel_t *mod, int material, float ma
 {
 	vec3_t	size;
 
-	if( !body ) return;
+	if( !body || !mod) return;
 
 	VectorSubtract( mod->maxs, mod->mins, size );
 	ConvertDimensionToPhysic( size );

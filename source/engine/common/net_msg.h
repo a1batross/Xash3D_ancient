@@ -99,7 +99,7 @@ static const net_desc_t NWDesc[] =
 { NET_ANGLE,	"Angle",	-360,		360	},
 { NET_SCALE,	"Scale",	0,		0	},
 { NET_COORD,	"Coord",	-262140,		262140	},
-{ NET_COLOR,	"Color",	0,		255	},
+{ NET_COLOR,	"Color",	0,		0	},
 };
 
 /*

@@ -833,7 +833,7 @@ float R_StudioEstimateFrame( mstudioseqdesc_t *pseqdesc )
 	}
 	else dfdt = 0;
 
-	if (pseqdesc->numframes <= 1) f = 0;
+	if( pseqdesc->numframes <= 1 ) f = 0;
 	else f = (m_pCurrentEntity->frame * (pseqdesc->numframes - 1)) / 256.0;
  
 	f += dfdt;
@@ -926,7 +926,6 @@ void R_StudioSetupBones( void )
 		static vec4_t q1b[MAXSTUDIOBONES];
 		float s;
                     
-		Msg("blending from last sequence %g\n", m_pCurrentEntity->prev.sequencetime );
 		pseqdesc = (mstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->prev.sequence;
 		panim = R_StudioGetAnim( m_pRenderModel, pseqdesc );
 		// clip prevframe
@@ -2075,7 +2074,7 @@ int R_StudioDrawPlayer( int pass, int flags )
 			m_pCurrentEntity->body = 255;
 
 		if(!(glw_state.developer == 0 && ri.GetMaxClients() == 1 ) && ( m_pRenderModel == m_pCurrentEntity->model ))
-			m_pCurrentEntity->body = 0; // force helmet
+			m_pCurrentEntity->body = 1; // force helmet
 
 		R_StudioSetupLighting( );
 

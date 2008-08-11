@@ -242,7 +242,7 @@ void _MSG_WriteBits( sizebuf_t *msg, int value, int net_type, const char *filena
 	{
 		// check range first
 		if( value < NWDesc[net_type].min_range || value > NWDesc[net_type].max_range )
-			MsgDev( D_WARN, "MSG_Write%s: range error (called at %s:%i)\n", NWDesc[net_type].name, filename, fileline );
+			MsgDev( D_WARN, "MSG_Write%s: range error %i should be in range(%i %i)(called at %s:%i)\n", NWDesc[net_type].name, value, NWDesc[net_type].min_range, NWDesc[net_type].max_range, filename, fileline );
           }
 	// this isn't an exact overflow check, but close enough
 	if( msg->maxsize - msg->cursize < 4 )
@@ -581,6 +581,9 @@ void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t 
 	net_field_t	*field, *field2;
 	int		i, j, k, flags;
 	int		*fromF, *toF;
+	int		num_fields;
+	size_t		null_msg_size;
+	size_t		buff_size;
 
 	if( to == NULL )
 	{
@@ -590,6 +593,10 @@ void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t 
 		MSG_WriteBits( msg, -99, NET_LONG );
 		return;
 	}
+
+	num_fields = sizeof(ent_fields) / sizeof(net_field_t);
+	null_msg_size = (( num_fields / 32 ) + (( num_fields % 32 ) ? 1 : 0 )) * 4 + sizeof(short);
+	buff_size = msg->cursize;
 
 	if( to->number < 0 || to->number >= host.max_edicts )
 		Host_Error( "MSG_WriteDeltaEntity: Bad entity number: %i (called at %s:%i)\n", to->number, filename, fileline );
@@ -602,13 +609,6 @@ void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t 
 		if(*fromF != *toF || (newentity && field->force)) flags |= 1<<j;
 		if( j > 31 || !ent_fields[i+1].name) // dump packet
 		{
-			// NOTE: entity must have changes from one at first of 32 fields
-			// otherwise it will ignore updates
-			if( flags == 0 && force == 0 && i < 32 )
-			{
-				msg->cursize -= sizeof(word); // kill header
-				return;
-			}
 			MSG_WriteLong( msg, flags );	// send flags who indicates changes
 			for( k = 0; field2->name; k++, field2++ )
 			{
@@ -619,6 +619,13 @@ void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t 
 			j = flags = 0;
 		}
 	}
+
+	// NOTE: null_msg_size is number of (ent_fields / 32) + (1), 
+	// who indicates flags count multiplied by sizeof(long)
+	// plus sizeof(short) (head number). If message equal null_message_size
+	// we will be ignore it 
+	if(!force && (( msg->cursize - buff_size ) == null_msg_size ))
+		msg->cursize = buff_size; // kill message
 }
 
 /*

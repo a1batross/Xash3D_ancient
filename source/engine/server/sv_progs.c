@@ -1811,7 +1811,7 @@ void PF_getsequenceinfo( void )
 	pseqdesc = (mstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex) + sequence;
 	if( pseqdesc->numframes > 1 )
 	{
-		ent->progs.sv->m_flFrameRate = 256 * pseqdesc->fps / (pseqdesc->numframes - 1);
+		ent->progs.sv->m_flFrameRate = 256.0 * (pseqdesc->fps / (pseqdesc->numframes - 1));
 		ent->progs.sv->m_flGroundSpeed = VectorLength( pseqdesc->linearmovement ); 
 		ent->progs.sv->m_flGroundSpeed = ent->progs.sv->m_flGroundSpeed * pseqdesc->fps / (pseqdesc->numframes - 1);
 	}

@@ -264,7 +264,7 @@ bool SCR_PlayCinematic( char *name, int bits )
 	if( cls.state == ca_cinematic )
 		SCR_StopCinematic();
 
-	com.sprintf( path, "video/%s", name );
+	com.sprintf( path, "media/%s", name );
 	FS_DefaultExtension( path, ".dpv" );
 
 	S_StopAllSounds();

@@ -182,7 +182,7 @@ void V_RenderView( void )
                     cl.refdef.rdflags = cl.frame.ps.renderfx;
 		cl.refdef.fov_y = V_CalcFov( cl.refdef.fov_x, cl.refdef.rect.width, cl.refdef.rect.height );
 		cl.refdef.time = cl.time * 0.001f; // cl.time for right lerping		
-		cl.refdef.oldtime = (cl.time * 0.001f) - 0.003;
+		cl.refdef.oldtime = (cl.time * 0.001f) - 0.005; // frametime
 	}
 	re->RenderFrame( &cl.refdef );
 }

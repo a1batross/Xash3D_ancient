@@ -216,8 +216,8 @@ void S_StartBackgroundTrack( const char *introTrack, const char *loopTrack )
 	S_StopBackgroundTrack();
 
 	// Start it up
-	com.snprintf( s_bgTrack.introName, sizeof(s_bgTrack.introName), "music/%s.ogg", introTrack);
-	com.snprintf( s_bgTrack.loopName, sizeof(s_bgTrack.loopName), "music/%s.ogg", loopTrack );
+	com.snprintf( s_bgTrack.introName, sizeof(s_bgTrack.introName), "media/%s.ogg", introTrack);
+	com.snprintf( s_bgTrack.loopName, sizeof(s_bgTrack.loopName), "media/%s.ogg", loopTrack );
 
 	S_StartStreaming();
 

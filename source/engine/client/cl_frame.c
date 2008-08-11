@@ -20,6 +20,8 @@ void CL_UpdateEntityFileds( edict_t *ent )
 	ent->progs.cl->modelindex = ent->priv.cl->current.model.index;
 	ent->progs.cl->soundindex = ent->priv.cl->current.soundindex;
 	ent->progs.cl->model = PRVM_SetEngineString( cl.configstrings[CS_MODELS+ent->priv.cl->current.model.index] ); 
+	VectorCopy( ent->priv.cl->current.origin, ent->progs.cl->origin );
+	VectorCopy( ent->priv.cl->current.angles, ent->progs.cl->angles );
 }
 
 /*

@@ -732,6 +732,7 @@ void CL_PrepVideo( void )
 	for( i = 1, mdlcount = 0; i < MAX_MODELS && cl.configstrings[CS_MODELS+1+i][0]; i++ )
 		mdlcount++; // total num models
 
+	Msg("Num textures %d\n", pe->NumTextures());
 	for( i = 0; i < pe->NumTextures(); i++ )
 	{
 		if(!re->RegisterImage( cl.configstrings[CS_MODELS+1], i ))
