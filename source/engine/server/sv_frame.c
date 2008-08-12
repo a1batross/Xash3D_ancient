@@ -18,7 +18,7 @@ SV_FatPVS
 The client will interpolate the view position,
 so we can't use a single PVS point
 ===========
-*/
+*/                             
 void SV_FatPVS( vec3_t org )
 {
 	int	leafs[64];
@@ -241,7 +241,7 @@ void SV_EmitPacketEntities( client_frame_t *from, client_frame_t *to, sizebuf_t 
 			// in any bytes being emited if the entity has not changed at all
 			// note that players are always 'newentities', this updates their oldorigin always
 			// and prevents warping
-			MSG_WriteDeltaEntity( oldent, newent, msg, false, newent->number <= Host_MaxClients());
+			MSG_WriteDeltaEntity( oldent, newent, msg, false, (newent->ed_type == ED_CLIENT));
 			oldindex++;
 			newindex++;
 			continue;
@@ -307,9 +307,13 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 	// just send an client index
 	// it's safe, because PRVM_NUM_FOR_EDICT always equal ed->serialnumber,
 	// thats shared across network
-	MSG_WriteByte( msg, svc_clientindex );
+#if 0
+	MSG_WriteByte( msg, svc_playerinfo );
 	MSG_WriteByte( msg, frame->index );
-
+#else
+	// delta encode the playerstate
+	MSG_WriteDeltaPlayerstate( &oldframe->ps, &frame->ps, msg );
+#endif
 	// delta encode the entities
 	SV_EmitPacketEntities( oldframe, frame, msg );
 }
@@ -363,10 +367,13 @@ void SV_BuildClientFrame( sv_client_t *cl )
 
 	// calculate the visible areas
 	frame->areabits_size = pe->WriteAreaBits( frame->areabits, clientarea );
-
+#if 0
 	// grab the current player index
 	frame->index = PRVM_NUM_FOR_EDICT( clent );
-
+#else
+	// grab the current player state
+	frame->ps = clent->priv.sv->s;
+#endif
 	clientpvs = pe->ClusterPVS( clientcluster );
 	clientphs = pe->ClusterPHS( clientcluster );
 

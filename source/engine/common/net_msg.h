@@ -57,7 +57,7 @@ enum svc_ops_e
 	svc_configstring,		// [short] [string]
 	svc_spawnbaseline,		// valid only at spawn		
 	svc_download,		// [short] size [size bytes]
-	svc_clientindex,		// [byte] edictnumber
+	svc_playerinfo,		// [...]
 	svc_packetentities,		// [...]
 	svc_deltapacketentities,	// [...]
 	svc_frame,		// server frame
@@ -196,6 +196,9 @@ void MSG_ReadData( sizebuf_t *sb, void *buffer, size_t size );
 void MSG_ReadDeltaUsercmd( sizebuf_t *sb, usercmd_t *from, usercmd_t *cmd );
 void MSG_ReadDeltaEntity( sizebuf_t *sb, entity_state_t *from, entity_state_t *to, int number );
 entity_state_t MSG_ParseDeltaPlayer( entity_state_t *from, entity_state_t *to );
+void MSG_WriteDeltaPlayerstate( entity_state_t *from, entity_state_t *to, sizebuf_t *msg );
+void MSG_ReadDeltaPlayerstate( sizebuf_t *msg, entity_state_t *from, entity_state_t *to );
+
 
 // huffman compression
 void Huff_Init( void );

@@ -118,7 +118,7 @@ void CL_ParsePacketEntities( sizebuf_t *msg, frame_t *oldframe, frame_t *newfram
 	{
 		// read the entity index number
 		newnum = MSG_ReadShort( msg );
-		if(!newnum) break; // end of packet entities
+		if( !newnum ) break; // end of packet entities
 
 		if( msg->readcount > msg->cursize )
 			Host_Error("CL_ParsePacketEntities: end of message[%d > %d]\n", msg->readcount, msg->cursize );
@@ -194,8 +194,7 @@ CL_ParseFrame
 */
 void CL_ParseFrame( sizebuf_t *msg )
 {
-	int     		cmd, len, idx;
-	edict_t		*clent;
+	int     		cmd, len;
 	frame_t		*old;
           
 	memset( &cl.frame, 0, sizeof(cl.frame));
@@ -244,22 +243,29 @@ void CL_ParseFrame( sizebuf_t *msg )
 	len = MSG_ReadByte( msg );
 	MSG_ReadData( msg, &cl.frame.areabits, len );
 
-	// read clientinfex
+#if 0
+	// read clientindex
 	cmd = MSG_ReadByte( msg );
-	if( cmd != svc_clientindex ) Host_Error( "CL_ParseFrame: not clientindex\n" );
+	if( cmd != svc_playerinfo ) Host_Error( "CL_ParseFrame: not clientindex\n" );
 	idx = MSG_ReadByte( msg );
 	clent = PRVM_EDICT_NUM( idx ); // get client
 	if((idx-1) != cl.playernum ) Host_Error("CL_ParseFrame: invalid playernum (%d should be %d)\n", idx-1, cl.playernum );
-
+#else
+	// read playerinfo
+	cmd = MSG_ReadByte( msg );
+	if( cmd != svc_playerinfo ) Host_Error( "CL_ParseFrame: not playerinfo\n" );
+	if( old ) MSG_ReadDeltaPlayerstate( msg, &old->ps, &cl.frame.ps );
+	else MSG_ReadDeltaPlayerstate( msg, NULL, &cl.frame.ps );
+#endif
 	// read packet entities
 	cmd = MSG_ReadByte( msg );
 	if( cmd != svc_packetentities ) Host_Error("CL_ParseFrame: not packetentities[%d]\n", cmd );
 	CL_ParsePacketEntities( msg, old, &cl.frame );
-
+#if 0
 	// now we can reading delta player state
 	if( old ) cl.frame.ps = MSG_ParseDeltaPlayer( &old->ps, &clent->priv.cl->current );
 	else cl.frame.ps = MSG_ParseDeltaPlayer( NULL, &clent->priv.cl->current );
-
+#endif
 	// HACKHACK
 	if( cls.state == ca_cinematic || cls.demoplayback )
 		cl.frame.ps.pm_type = PM_FREEZE; // demo or movie playback

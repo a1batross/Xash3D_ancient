@@ -1775,7 +1775,7 @@ void SV_Physics( void )
 		if( ent->priv.sv->free ) continue;
 
 		VectorCopy( ent->progs.sv->origin, ent->progs.sv->old_origin );
-		if(i <= Host_MaxClients()) SV_Physics_ClientEntity( ent );
+		if(i <= Host_MaxClients());// SV_Physics_ClientEntity( ent );
 		else if(!sv_playersonly->integer)SV_Physics_Entity( ent );
 	}
 

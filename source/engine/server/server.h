@@ -97,6 +97,7 @@ typedef struct server_s
 
 typedef struct
 {
+	entity_state_t	ps;
 	byte 		areabits[MAX_MAP_AREAS/8];	// portalarea visibility bits
 	int  		areabits_size;
 	int  		num_entities;

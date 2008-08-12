@@ -510,6 +510,7 @@ void SV_PutClientInServer( edict_t *ent )
 		VectorCopy( ent->progs.sv->origin, viewmodel->progs.sv->origin );
 		VectorCopy( ent->progs.sv->angles, viewmodel->progs.sv->angles );
 		viewmodel->progs.sv->model = ent->progs.sv->v_model;
+		viewmodel->progs.sv->movetype = MOVETYPE_FOLLOW;
 
 		// make cross links for consistency
 		viewmodel->progs.sv->aiment = PRVM_NUM_FOR_EDICT( ent );
@@ -537,7 +538,6 @@ void SV_PutClientInServer( edict_t *ent )
 	viewmodel->priv.sv->s.classname = SV_ClassIndex(PRVM_GetString(viewmodel->progs.sv->classname));
 
 	SV_LinkEdict( ent ); // m_pmatrix calculated here, so we need call this before pe->CreatePlayer
-//SV_LinkEdict( viewmodel );
 	ent->priv.sv->physbody = pe->CreatePlayer( ent->priv.sv, SV_GetModelPtr( ent ), ent->progs.sv->m_pmatrix );
 }
 

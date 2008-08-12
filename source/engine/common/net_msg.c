@@ -714,3 +714,87 @@ entity_state_t MSG_ParseDeltaPlayer( entity_state_t *from, entity_state_t *to )
 
 	return result;
 }
+
+/*
+============================================================================
+
+player state communication
+
+============================================================================
+*/
+/*
+=============
+MSG_WriteDeltaPlayerstate
+
+=============
+*/
+void MSG_WriteDeltaPlayerstate( entity_state_t *from, entity_state_t *to, sizebuf_t *msg )
+{
+	entity_state_t	dummy;
+	entity_state_t	*ops, *ps = to;
+	net_field_t	*field, *field2;
+	int		*fromF, *toF;
+	int		i, j, k;
+	uint		flags = 0;
+	
+	if( !from )
+	{
+		memset (&dummy, 0, sizeof(dummy));
+		ops = &dummy;
+	}
+	else ops = from;
+	from = to;
+	
+	MSG_WriteByte( msg, svc_playerinfo );
+ 
+	for( i = j = 0, field = field2 = ent_fields; field->name; i++, j++, field++ )
+	{
+		fromF = (int *)((byte *)ops + field->offset );
+		toF = (int *)((byte *)ps + field->offset );		
+		if(*fromF != *toF || field->force) flags |= 1<<j;
+		if( j > 31 || !ent_fields[i+1].name) // dump packet
+		{
+			MSG_WriteLong( msg, flags );	// send flags who indicates changes
+			for( k = 0; field2->name; k++, field2++ )
+			{
+				if( k > 31 ) break; // return to main cycle
+				toF = (int *)((byte *)ps + field2->offset );
+				if( flags & 1<<k ) MSG_WriteBits( msg, *toF, field2->bits );
+			}
+			j = flags = 0;
+		}
+	}
+}
+
+
+/*
+===================
+MSG_ReadDeltaPlayerstate
+===================
+*/
+void MSG_ReadDeltaPlayerstate( sizebuf_t *msg, entity_state_t *from, entity_state_t *to )
+{
+	net_field_t	*field;
+	int		*fromF, *toF;
+	entity_state_t	dummy;
+	uint		i, flags;
+
+	// clear to old value before delta parsing
+	if( !from )
+	{
+		from = &dummy;
+		memset( &dummy, 0, sizeof( dummy ));
+	}
+	*to = *from;
+	
+	for( i = 0, field = ent_fields; field->name; i++, field++ )
+	{
+		// get flags of next packet if LONG out of range
+		if((i & 31) == 0) flags = MSG_ReadLong( msg );
+		fromF = (int *)((byte *)from + field->offset );
+		toF = (int *)((byte *)to + field->offset );
+		
+		if(flags & (1<<i)) *toF = MSG_ReadBits( msg, field->bits );
+		else *toF = *fromF;	// no change
+	}
+}

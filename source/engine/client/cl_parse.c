@@ -386,7 +386,7 @@ void CL_ParseServerMessage( sizebuf_t *msg )
 		case svc_frame:
 			CL_ParseFrame( msg );
 			break;
-		case svc_clientindex:
+		case svc_playerinfo:
 		case svc_packetentities:
 		case svc_deltapacketentities:
 			Host_Error( "CL_ParseServerMessage: out of place frame data\n" );
