@@ -262,33 +262,28 @@ int PlaneFromPoints (vec_t *p0, vec_t *p1, vec_t *p2)
 BrushContents
 ===========
 */
-int BrushContents (mapbrush_t *b)
+int BrushContents( mapbrush_t *b )
 {
-	int			contents;
-	side_t		*s;
-	int			i;
-	int			trans;
+	int	contents;
+	int	i, trans;
+	side_t	*s;
 
 	s = &b->original_sides[0];
 	contents = s->contents;
 	trans = texinfo[s->texinfo].flags;
-	for (i = 1; i < b->numsides; i++, s++)
+	for( i = 1; i < b->numsides; i++, s++ )
 	{
 		s = &b->original_sides[i];
 		trans |= texinfo[s->texinfo].flags;
-		if (s->contents != contents)
-		{
-			Msg ("Entity %i, Brush %i: mixed face contents\n", b->entitynum, b->brushnum);
-			break;
-		}
+		s->contents |= contents; // multi-contents support
 	}
 
 	// if any side is translucent, mark the contents
 	// and change solid to window
-	if ( trans & (SURF_TRANS|SURF_BLEND) )
+	if( trans & ( SURF_TRANS|SURF_BLEND ))
 	{
 		contents |= CONTENTS_TRANSLUCENT;
-		if (contents & CONTENTS_SOLID)
+		if( contents & CONTENTS_SOLID )
 		{
 			contents &= ~CONTENTS_SOLID;
 			contents |= CONTENTS_WINDOW;
@@ -309,26 +304,26 @@ Adds any additional planes necessary to allow the brush to be expanded
 against axial bounding boxes
 =================
 */
-void AddBrushBevels (mapbrush_t *b)
+void AddBrushBevels( mapbrush_t *b )
 {
 	int		axis, dir;
 	int		i, j, k, l, order;
-	side_t	sidetemp;
+	side_t		sidetemp;
 	brush_texture_t	tdtemp;
-	side_t	*s, *s2;
-	vec3_t	normal;
-	float	dist;
-	winding_t	*w, *w2;
-	vec3_t	vec, vec2;
-	float	d;
+	side_t		*s, *s2;
+	vec3_t		normal;
+	float		dist;
+	winding_t		*w, *w2;
+	vec3_t		vec, vec2;
+	float		d;
 
 	//
 	// add the axial planes
 	//
 	order = 0;
-	for (axis=0 ; axis <3 ; axis++)
+	for( axis = 0; axis < 3; axis++ )
 	{
-		for (dir=-1 ; dir <= 1 ; dir+=2, order++)
+		for( dir = -1; dir <= 1; dir += 2, order++ )
 		{
 			// see if the plane is allready present
 			for (i=0, s=b->original_sides ; i<b->numsides ; i++,s++)
@@ -514,130 +509,130 @@ void ParseBrush( bsp_entity_t *mapent )
 	int		mt;
 	side_t		*side, *s2;
 	int		planenum;
+	vec_t		planepts[3][3];	// quark used float coords
+	shader_t		*si;
 	brush_texture_t	td;
-	vec_t		planepts[3][3]; //quark used float coords
 
-	if (nummapbrushes == MAX_MAP_BRUSHES)
-		Sys_Error ("nummapbrushes == MAX_MAP_BRUSHES");
+
+	if( nummapbrushes == MAX_MAP_BRUSHES ) Sys_Break( "MAX_MAP_BRUSHES limit exceeded\n");
 
 	b = &mapbrushes[nummapbrushes];
 	b->original_sides = &brushsides[nummapbrushsides];
 	b->entitynum = num_entities-1;
 	b->brushnum = nummapbrushes - mapent->firstbrush;
 
-	do
+	while( 1 )
 	{
 		g_TXcommand = 0;
-		if (!Com_GetToken (true)) break;
-		if (Com_MatchToken("}")) break;
+		if( !Com_GetToken( true )) break;
+		if( Com_MatchToken( "}" )) break;
 
-		if (nummapbrushsides == MAX_MAP_BRUSHSIDES)
-			Sys_Error ("MAX_MAP_BRUSHSIDES");
+		if( nummapbrushsides == MAX_MAP_BRUSHSIDES ) Sys_Break( "MAX_MAP_BRUSHSIDES limit exceeded\n" );
 		side = &brushsides[nummapbrushsides];
 
 		// read the three point plane definition
-		for (i = 0; i < 3; i++)
+		for( i = 0; i < 3; i++ )
 		{
 			if (i != 0) Com_GetToken (true);
-			if(!Com_MatchToken("(")) Sys_Error ("ParseBrush: error parsing %d", b->brushnum );
+			if(!Com_MatchToken( "(" )) Sys_Break( "ParseBrush: error parsing %d\n", b->brushnum );
 			
-			for (j=0 ; j<3 ; j++)
+			for( j = 0; j < 3; j++ )
 			{
 				Com_GetToken (false);
 				planepts[i][j] = atof(com_token);
 			}
 			
-			Com_GetToken (false);
-			if(!Com_MatchToken(")"))Sys_Error ("parsing brush");
+			Com_GetToken( false );
+			if(!Com_MatchToken( ")" )) Sys_Break( "ParseBrush: missing \")\" in brush definition\n" );
 		}
 
 		// read the texturedef
 		Com_GetToken( false );
-		strcpy( td.name, com_token );
+		com.strcpy( td.name, com_token );
 
-		if(g_mapversion == VALVE_FORMAT) // Worldcraft 2.2+
+		if( g_mapversion == VALVE_FORMAT ) // Worldcraft 2.2+
                     {
 			// texture U axis
 			Com_GetToken( false );
-			if(!Com_MatchToken("[")) Sys_Error("missing '[' in texturedef (U)");
+			if(!Com_MatchToken("[")) Sys_Break( "missing '[' in texturedef (U)\n" );
 			Com_GetToken(false);
-			td.vects.valve.UAxis[0] = atof(com_token);
+			td.vects.valve.UAxis[0] = com.atof(com_token);
 			Com_GetToken(false);
-			td.vects.valve.UAxis[1] = atof(com_token);
+			td.vects.valve.UAxis[1] = com.atof(com_token);
 			Com_GetToken(false);
-			td.vects.valve.UAxis[2] = atof(com_token);
+			td.vects.valve.UAxis[2] = com.atof(com_token);
 			Com_GetToken(false);
-			td.vects.valve.shift[0] = atof(com_token);
+			td.vects.valve.shift[0] = com.atof(com_token);
 			Com_GetToken(false);
-			if (strcmp(com_token, "]")) Sys_Error("missing ']' in texturedef (U)");
+			if (strcmp(com_token, "]")) Sys_Break( "missing ']' in texturedef (U)\n" );
 
 			// texture V axis
-			Com_GetToken(false);
-			if (strcmp(com_token, "[")) Sys_Error("missing '[' in texturedef (V)");
-			Com_GetToken(false);
-			td.vects.valve.VAxis[0] = atof(com_token);
-			Com_GetToken(false);
-			td.vects.valve.VAxis[1] = atof(com_token);
-			Com_GetToken(false);
-			td.vects.valve.VAxis[2] = atof(com_token);
-			Com_GetToken(false);
-			td.vects.valve.shift[1] = atof(com_token);
-			Com_GetToken(false);
-			if (strcmp(com_token, "]")) Sys_Error("missing ']' in texturedef (V)");
+			Com_GetToken( false );
+			if (strcmp(com_token, "[")) Sys_Break( "missing '[' in texturedef (V)\n" );
+			Com_GetToken( false );
+			td.vects.valve.VAxis[0] = com.atof( com_token );
+			Com_GetToken( false );
+			td.vects.valve.VAxis[1] = com.atof( com_token );
+			Com_GetToken( false );
+			td.vects.valve.VAxis[2] = com.atof( com_token );
+			Com_GetToken( false );
+			td.vects.valve.shift[1] = com.atof( com_token );
+			Com_GetToken( false );
+			if(com.strcmp( com_token, "]")) Sys_Break( "missing ']' in texturedef (V)\n");
 
-			// Texture rotation is implicit in U/V axes.
+			// texture rotation is implicit in U/V axes.
 			Com_GetToken(false);
 			td.vects.valve.rotate = 0;
 
 			// texure scale
+			Com_GetToken( false );
+			td.vects.valve.scale[0] = com.atof( com_token );
 			Com_GetToken(false);
-			td.vects.valve.scale[0] = atof(com_token);
-			Com_GetToken(false);
-			td.vects.valve.scale[1] = atof(com_token);
+			td.vects.valve.scale[1] = com.atof( com_token );
                     }
 		else
 		{
-			// Worldcraft 2.1-, Radiant
-			Com_GetToken (false);
-			td.vects.valve.shift[0] = atof(com_token);
-			Com_GetToken (false);
-			td.vects.valve.shift[1] = atof(com_token);
-			Com_GetToken (false);
-			td.vects.valve.rotate = atof(com_token);	
-			Com_GetToken (false);
-			td.vects.valve.scale[0] = atof(com_token);
-			Com_GetToken (false);
-			td.vects.valve.scale[1] = atof(com_token);
+			// worldcraft 2.1-, Radiant
+			Com_GetToken( false );
+			td.vects.valve.shift[0] = com.atof(com_token);
+			Com_GetToken( false );
+			td.vects.valve.shift[1] = com.atof(com_token);
+			Com_GetToken( false );
+			td.vects.valve.rotate = com.atof(com_token);	
+			Com_GetToken( false );
+			td.vects.valve.scale[0] = com.atof(com_token);
+			Com_GetToken( false );
+			td.vects.valve.scale[1] = com.atof(com_token);
                     }
 
-		if ((g_TXcommand == '1' || g_TXcommand == '2'))
+		if(( g_TXcommand == '1' || g_TXcommand == '2' ))
 		{
 			// We are QuArK mode and need to translate some numbers to align textures its way
 			// from QuArK, the texture vectors are given directly from the three points
 			vec3_t          TexPt[2];
-			int             k;
 			float           dot22, dot23, dot33, mdet, aa, bb, dd;
+			int             k;
 
 			k = g_TXcommand - '0';
-			for (j = 0; j < 3; j++)
+			for( j = 0; j < 3; j++ )
 			{
 				TexPt[1][j] = (planepts[k][j] - planepts[0][j]) * ScaleCorrection;
             		}
 
 			k = 3 - k;
-			for (j = 0; j < 3; j++)
+			for( j = 0; j < 3; j++ )
 			{
 				TexPt[0][j] = (planepts[k][j] - planepts[0][j]) * ScaleCorrection;
 			}
 
-			dot22 = DotProduct(TexPt[0], TexPt[0]);
-			dot23 = DotProduct(TexPt[0], TexPt[1]);
-			dot33 = DotProduct(TexPt[1], TexPt[1]);
+			dot22 = DotProduct( TexPt[0], TexPt[0] );
+			dot23 = DotProduct( TexPt[0], TexPt[1] );
+			dot33 = DotProduct( TexPt[1], TexPt[1] );
 			mdet = dot22 * dot33 - dot23 * dot23;
-			if (mdet < 1E-6 && mdet > -1E-6)
+			if( mdet < 1E-6 && mdet > -1E-6 )
 			{
 				aa = bb = dd = 0;
-				Msg("Degenerate QuArK-style brush texture : Entity %i, Brush %i\n", b->entitynum, b->brushnum);
+				Msg( "Degenerate QuArK-style brush texture : Entity %i, Brush %i\n", b->entitynum, b->brushnum );
 			}
 			else
 			{
@@ -646,7 +641,7 @@ void ParseBrush( bsp_entity_t *mapent )
 				bb = -dot23 * mdet;
 				dd = dot22 * mdet;
 			}
-			for (j = 0; j < 3; j++)
+			for( j = 0; j < 3; j++ )
 			{
 				td.vects.quark.vects[0][j] = aa * TexPt[0][j] + bb * TexPt[1][j];
 				td.vects.quark.vects[1][j] = -(bb * TexPt[0][j] + dd * TexPt[1][j]);
@@ -654,140 +649,162 @@ void ParseBrush( bsp_entity_t *mapent )
 			td.vects.quark.vects[0][3] = -DotProduct(td.vects.quark.vects[0], planepts[0]);
 			td.vects.quark.vects[1][3] = -DotProduct(td.vects.quark.vects[1], planepts[0]);
 		}
-		td.txcommand = g_TXcommand;// Quark stuff, but needs setting always
+		td.txcommand = g_TXcommand;		// Quark stuff, but needs setting always
+		td.flags = td.contents = td.value = 0;	// reset all values before setting
+		side->contents = side->surf = 0;
 
-		// find default flags and values
-		mt = FindMiptex (td.name);
-		td.size[0] = textureref[mt].size[0];
-		td.size[1] = textureref[mt].size[1];
-		td.flags = textureref[mt].flags;
-		td.value = textureref[mt].value;
-		side->contents = textureref[mt].contents;
-		side->surf = td.flags = textureref[mt].flags;
-                    
-		//Msg("flags %d, value %d, contents %d\n", td.flags, td.value, side->contents );
-		
-		if (Com_TryToken()) //first com_token will be get automatically
+		// get size from miptex info
+		mt = FindMiptex( td.name );
+		td.size[0] = dmiptex[mt].size[0];
+		td.size[1] = dmiptex[mt].size[1];
+
+		// get flags and contents from shader
+		si = FindShader( td.name );
+		if( si )
 		{
-			side->contents = atoi(com_token);
-			Com_GetToken (false);
-			side->surf = td.flags = atoi(com_token);
-			Com_GetToken (false);
-			td.value = atoi(com_token);
+			int t_next, t_name;
+
+			side->contents = td.contents = si->contents;
+			side->surf = td.flags = si->surfaceFlags;
+			dmiptex[mt].s_next = t_next = FindMiptex( si->nextframe );
+			t_name = dmiptex[t_next].s_name;
+
+			// FIXME: register all animchains here
+			// NOTE: all textures in animchain must be stored into
+			// dmiptex array so engine can precache them correctly
+			while( t_next && dmiptex[mt].s_name != t_name ) 
+			{
+				si = FindShader(GetStringFromTable( t_name ));					
+				if( !si ) break; // end of animchain
+				t_next = dmiptex[t_next].s_next = FindMiptex( si->nextframe );
+				t_name = dmiptex[t_next].s_name;
+			}
+		}
+
+		//Msg( "flags %d, value %d, contents %d\n", td.flags, td.value, side->contents );
+		
+		if( Com_TryToken())
+		{
+			// first com_token will be get automatically
+			side->contents = td.contents = com.atoi( com_token );
+			Com_GetToken( false );
+			side->surf = td.flags = com.atoi( com_token );
+			Com_GetToken( false );
+			td.value = com.atoi(com_token);
 		}
 
 		// translucent objects are automatically classified as detail
-		if (side->surf & (SURF_TRANS|SURF_BLEND) )
-			side->contents |= CONTENTS_DETAIL;
-		if (side->contents & (CONTENTS_PLAYERCLIP|CONTENTS_MONSTERCLIP) )
-			side->contents |= CONTENTS_DETAIL;
-		if (!(side->contents & ((LAST_VISIBLE_CONTENTS-1) 
-			| CONTENTS_PLAYERCLIP|CONTENTS_MONSTERCLIP|CONTENTS_MIST)  ) )
-			side->contents |= CONTENTS_SOLID;
-
-		// hints and skips are never detail, and have no content
-		if (side->surf & (SURF_HINT|SURF_SKIP) )
+		if( side->surf & ( SURF_TRANS|SURF_BLEND ))
 		{
-			side->contents = 0;
+			side->contents |= CONTENTS_DETAIL;
+			td.contents |= CONTENTS_DETAIL;
+		}
+		if( side->contents & ( CONTENTS_PLAYERCLIP|CONTENTS_MONSTERCLIP ))
+		{
+			side->contents |= CONTENTS_DETAIL;
+			td.contents |= CONTENTS_DETAIL;
+		}
+		if(!(side->contents & ((LAST_VISIBLE_CONTENTS - 1)|CONTENTS_PLAYERCLIP|CONTENTS_MONSTERCLIP|CONTENTS_MIST)))
+		{
+			side->contents |= CONTENTS_SOLID;
+			td.contents |= CONTENTS_SOLID;
+		}
+		// hints and skips are never detail, and have no content
+		if( side->surf & ( SURF_HINT|SURF_SKIP ))
+		{
+			side->contents = td.contents = 0;
 			side->surf &= ~CONTENTS_DETAIL;
+			td.flags &= ~CONTENTS_DETAIL;
 		}
 
 		// find the plane number
-		planenum = PlaneFromPoints (planepts[0], planepts[1], planepts[2]);
-		if (planenum == -1)
+		planenum = PlaneFromPoints( planepts[0], planepts[1], planepts[2] );
+		if( planenum == -1 )
 		{
-			Msg ("Entity %i, Brush %i: plane with no normal\n", b->entitynum, b->brushnum);
+			Msg( "Entity %i, Brush %i: plane with no normal\n", b->entitynum, b->brushnum );
 			continue;
 		}
 
-		//
 		// see if the plane has been used already
-		//
-		for (k=0 ; k<b->numsides ; k++)
+		for( k = 0; k < b->numsides; k++ )
 		{
 			s2 = b->original_sides + k;
-			if (s2->planenum == planenum)
+			if( s2->planenum == planenum )
 			{
-				Msg("Entity %i, Brush %i: duplicate plane\n", b->entitynum, b->brushnum);
+				Msg( "Entity %i, Brush %i: duplicate plane\n", b->entitynum, b->brushnum );
 				break;
 			}
-			if ( s2->planenum == (planenum^1) )
+			if( s2->planenum == ( planenum^1 ))
 			{
-				Msg("Entity %i, Brush %i: mirrored plane\n", b->entitynum, b->brushnum);
+				Msg( "Entity %i, Brush %i: mirrored plane\n", b->entitynum, b->brushnum );
 				break;
 			}
 		}
-		if (k != b->numsides)
-			continue;		// duplicated
+		if( k != b->numsides ) continue; // duplicated
 
-		//
 		// keep this side
-		//
-
 		side = b->original_sides + b->numsides;
 		side->planenum = planenum;
-		side->texinfo = TexinfoForBrushTexture (&mapplanes[planenum], &td, vec3_origin);
+		side->texinfo = TexinfoForBrushTexture( &mapplanes[planenum], &td, vec3_origin );
 		// save the td off in case there is an origin brush and we
 		// have to recalculate the texinfo
 		side_brushtextures[nummapbrushsides] = td;
 
 		nummapbrushsides++;
 		b->numsides++;
-	} while (1);
+	}
 
 	// get the content for the entire brush
-	b->contents = BrushContents (b);
+	b->contents = BrushContents( b );
 
 	// create windings for sides and bounds for brush
-	MakeBrushWindings (b);
+	MakeBrushWindings( b );
 
 	// brushes that will not be visible at all will never be
 	// used as bsp splitters
-	if (b->contents & (CONTENTS_PLAYERCLIP|CONTENTS_MONSTERCLIP) )
+	if( b->contents & ( CONTENTS_PLAYERCLIP|CONTENTS_MONSTERCLIP ))
 	{
 		c_clipbrushes++;
-		for (i=0 ; i<b->numsides ; i++)
+		for( i = 0; i < b->numsides; i++ )
 			b->original_sides[i].texinfo = TEXINFO_NODE;
 	}
 
-	//
 	// origin brushes are removed, but they set
 	// the rotation origin for the rest of the brushes
 	// in the entity.  After the entire entity is parsed,
 	// the planenums and texinfos will be adjusted for
 	// the origin brush
-	//
-	if (b->contents & CONTENTS_ORIGIN)
+	if( b->contents & CONTENTS_ORIGIN )
 	{
 		char	string[32];
 		vec3_t	size, movedir, origin;
 
-		if (num_entities == 1)
+		if( num_entities == 1 )
 		{
-			Sys_Error ("Entity %i, Brush %i: origin brushes not allowed in world", b->entitynum, b->brushnum);
+			// g-cont. rotating world it's a interesting idea, hmm.....
+			Sys_Break( "Entity %i, Brush %i: origin brushes not allowed in world", b->entitynum, b->brushnum );
 			return;
 		}
 
-		VectorAdd (b->mins, b->maxs, origin);
-		VectorScale (origin, 0.5, origin);
+		VectorAverage( b->mins, b->maxs, origin );
 
-		//calcualte movedir (Xash 0.4 style)
-		VectorSubtract(b->maxs, b->mins, size );
-		if (size[2] > size[0] && size[2] > size[1])
+		// calcualte movedir (Xash 0.4 style)
+		VectorSubtract( b->maxs, b->mins, size );
+		if( size[2] > size[0] && size[2] > size[1] )
 		{
-            		movedir[0] = 0;//x-rotate
+            		movedir[0] = 0;	// x-rotate
             		movedir[1] = 1;
             		movedir[2] = 0;
 		}
 		else if (size[1] > size[2] && size[1] > size[0])
 		{
-            		movedir[0] = 1;//y-rotate
+            		movedir[0] = 1;	// y-rotate
             		movedir[1] = 0;
             		movedir[2] = 0;
 		}
 		else if (size[0] > size[2] && size[0] > size[1])
 		{
-            		movedir[0] = 0;//z-rotate
+            		movedir[0] = 0;	// z-rotate
             		movedir[1] = 0;
             		movedir[2] = 1;
 		}
@@ -796,23 +813,23 @@ void ParseBrush( bsp_entity_t *mapent )
             		movedir[0] = 0;//deafult x-rotate
             		movedir[1] = 1;
             		movedir[2] = 0;
-            		Msg("Entity %d has origin with invalid form! Make axis form for it\n", b->entitynum );  
+			// not warning, just notify
+            		MsgDev( D_INFO, "Entity %d has origin with invalid form! Make axis form for it\n", b->entitynum );  
 		}
 
-		sprintf (string, "%i %i %i", (int)origin[0], (int)origin[1], (int)origin[2]);
+		com.sprintf (string, "%i %i %i", (int)origin[0], (int)origin[1], (int)origin[2]);
 		SetKeyValue (&entities[b->entitynum], "origin", string);
-		sprintf (string, "%i %i %i", (int)movedir[0], (int)movedir[1], (int)movedir[2]);
+		com.sprintf (string, "%i %i %i", (int)movedir[0], (int)movedir[1], (int)movedir[2]);
 		SetKeyValue (&entities[b->entitynum], "movedir", string);
 
 		VectorCopy (origin, entities[b->entitynum].origin);
 
 		// don't keep this brush
 		b->numsides = 0;
-
 		return;
 	}
 
-	AddBrushBevels (b);
+	AddBrushBevels( b );
 
 	nummapbrushes++;
 	mapent->numbrushes++;		

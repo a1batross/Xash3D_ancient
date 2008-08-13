@@ -1305,19 +1305,17 @@ bool R_UploadModel( const char *name, int index )
 	return (mod != NULL);	
 }
 
-bool R_UploadImage( const char *name, int index )
+bool R_UploadImage( const char *unused, int index )
 {
-	string	filename;
 	image_t	*texture;
 
 	// nothing to load
-	if( !r_worldmodel ) 
-		return false;
+	if( !r_worldmodel ) return false;
 	loadmodel = r_worldmodel;
 
-	com.strncpy( filename, Mod_GetStringFromTable( loadmodel->texinfo[index].texid ), sizeof(filename));
-	texture = R_FindImage( filename, NULL, 0, it_wall );
-	loadmodel->texinfo[index].image = texture;
+	Msg("load texture %s\n", loadmodel->textures[index].name );
+	texture = R_FindImage( loadmodel->textures[index].name, NULL, 0, it_wall );
+	loadmodel->textures[index].image = texture; // now all pointers are valid
 
 	return true;
 }

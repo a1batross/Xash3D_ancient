@@ -49,7 +49,7 @@ void CM_GetAreaPortals ( byte **portals, size_t *size );
 void CM_SetAreaPortalState ( int portalnum, bool open );
 
 int CM_NumClusters( void );
-int CM_NumTexinfo( void );
+int CM_NumTextures( void );
 int CM_NumInlineModels( void );
 const char *CM_EntityString( void );
 const char *CM_TexName( int index );

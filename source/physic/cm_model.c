@@ -87,11 +87,11 @@ void CM_FreeModel( cmodel_t *mod )
 	mod = NULL;
 }
 
-int CM_NumTexinfo( void ) { return cm.numtexinfo; }
+int CM_NumTextures( void ) { return cm.numtextures; }
 int CM_NumClusters( void ) { return cm.numclusters; }
 int CM_NumInlineModels( void ) { return cm.numbmodels; }
 const char *CM_EntityString( void ) { return cm.entitystring; }
-const char *CM_TexName( int index ) { return cm.surfdesc[index].name; }
+const char *CM_TexName( int index ) { return CM_GetStringFromTable( cm.textures[index].s_name ); }
 
 /*
 ===============================================================================
@@ -131,7 +131,7 @@ void BSP_CreateMeshBuffer( int modelnum )
 		vec3_t *face;
 
 		m_face = cm.surfaces + i;
-		flags = cm.surfdesc[m_face->desc].surfaceflags;
+		flags = cm.texinfo[m_face->texinfo].surfaceflags;
 		k = m_face->firstedge;
 
 		// sky is noclip for all physobjects
@@ -208,28 +208,56 @@ void BSP_LoadModels( lump_t *l )
 
 /*
 =================
-BSP_LoadSurfDesc
+BSP_LoadTextures
 =================
 */
-void BSP_LoadSurfDesc( lump_t *l )
+void BSP_LoadTextures( lump_t *l )
 {
-	dsurfdesc_t	*in;
+	dmiptex_t		*in;
+	dmiptex_t		*out;
+	int 		i, count;
+
+	in = (void *)(cm.mod_base + l->fileofs);
+	if (l->filelen % sizeof(*in)) Host_Error("BSP_LoadTextures: funny lump size\n" );
+	count = l->filelen / sizeof(*in);
+
+	out = cm.textures = (dmiptex_t *)Mem_Alloc( cmappool, count * sizeof(*out));
+	cm.numtextures = count;
+
+	for ( i = 0; i < count; i++, in++, out++)
+	{
+		out->s_name = LittleLong( in->s_name );
+		out->s_name = LittleLong( in->s_next );
+		out->size[0] = LittleLong( in->size[0] );
+		out->size[1] = LittleLong( in->size[1] );
+	}
+}
+
+/*
+=================
+BSP_LoadTexinfo
+=================
+*/
+void BSP_LoadTexinfo( lump_t *l )
+{
+	dtexinfo_t	*in;
 	csurface_t	*out;
 	int 		i, count;
 
 	in = (void *)(cm.mod_base + l->fileofs);
-	if (l->filelen % sizeof(*in)) Host_Error("BSP_LoadSurfDesc: funny lump size\n" );
+	if (l->filelen % sizeof(*in)) Host_Error("BSP_LoadTexinfo: funny lump size\n" );
 	count = l->filelen / sizeof(*in);
 
-	out = cm.surfdesc = (csurface_t *)Mem_Alloc( cmappool, count * sizeof(*out));
+	out = cm.texinfo = (csurface_t *)Mem_Alloc( cmappool, count * sizeof(*out));
 	cm.numtexinfo = count;
 
 	for ( i = 0; i < count; i++, in++, out++)
 	{
-		com.strncpy( out->name, CM_GetStringFromTable(LittleLong( in->texid )), MAX_STRING );
+		com.strncpy( out->name, CM_TexName( LittleLong( in->texnum )), MAX_STRING );
+		out->contentflags = LittleLong( in->contents );
 		out->surfaceflags = LittleLong( in->flags );
-		out->contentflags = 0;//FIXME: upgrade BSP version, that include contents for all sides
 		out->value = LittleLong( in->value );
+
 		// currently not used
 		VectorClear( out->mins );
 		VectorClear( out->maxs );
@@ -494,9 +522,9 @@ void BSP_LoadBrushSides( lump_t *l )
 	{
 		num = LittleLong(in->planenum);
 		out->plane = cm.planes + num;
-		j = LittleLong(in->surfdesc);
-		j = bound(0, j, cm.numtexinfo - 1);
-		out->surface = cm.surfdesc + j;
+		j = LittleLong( in->texinfo );
+		j = bound( 0, j, cm.numtexinfo - 1 );
+		out->surface = cm.texinfo + j;
 	}
 }
 
@@ -667,9 +695,9 @@ void BSP_LoadFaces( lump_t *l )
 
 	for( i = 0; i < cm.numfaces; i++, in++, out++)
 	{
-		out->firstedge = LittleLong(in->firstedge);
+		out->firstedge = LittleLong( in->firstedge );
 		out->numedges = LittleLong(in->numedges);		
-		out->desc = LittleLong(in->desc);
+		out->texinfo = LittleLong( in->texinfo );
 	}
 }
 
@@ -781,7 +809,7 @@ static void BSP_RecursiveSetParent( cnode_t *node, cnode_t *parent )
 		for( i = 0; i < leaf->numleafsurfaces; i++ )
 		{
 			dface_t *m_face = cm.surfaces + leaf->firstleafsurface[i];
-			csurface_t *surface = cm.surfdesc + m_face->desc;
+			csurface_t *surface = cm.texinfo + m_face->texinfo;
 			if( surface->numtriangles )
 			{
 				leaf->havepatches = true;
@@ -818,7 +846,7 @@ void BSP_AddCollisionFace( int facenum )
 	}
 
 	m_face = cm.surfaces + facenum;
-	flags = cm.surfdesc[m_face->desc].surfaceflags;
+	flags = cm.texinfo[m_face->texinfo].surfaceflags;
 	k = m_face->firstedge;
 
 	// sky is noclip for all physobjects
@@ -827,7 +855,7 @@ void BSP_AddCollisionFace( int facenum )
 	if( cm_use_triangles->integer )
 	{
 		// convert polygon to triangles
-		for(j = 0; j < m_face->numedges - 2; j++)
+		for( j = 0; j < m_face->numedges - 2; j++ )
 		{
 			vec3_t	face[3]; // triangle
 			CM_GetPoint( k,	face[0] );
@@ -868,7 +896,8 @@ void CM_LoadBSP( const void *buffer )
 	BSP_LoadVerts(&header.lumps[LUMP_VERTEXES]);
 	BSP_LoadEdges(&header.lumps[LUMP_EDGES]);
 	BSP_LoadSurfedges(&header.lumps[LUMP_SURFEDGES]);
-	BSP_LoadSurfDesc(&header.lumps[LUMP_SURFDESC]);
+	BSP_LoadTextures(&header.lumps[LUMP_TEXTURES]);
+	BSP_LoadTexinfo(&header.lumps[LUMP_TEXINFO]);
 	BSP_LoadFaces(&header.lumps[LUMP_FACES]);
 	BSP_LoadModels(&header.lumps[LUMP_MODELS]);
 	BSP_LoadCollision(&header.lumps[LUMP_COLLISION]);
@@ -950,7 +979,7 @@ void CM_FreeWorld( void )
 	cm.numleafbrushes = cm.numfaces = cm.numbmodels = 0;
 	cm.floodvalid = cm.numbrushsides = cm.numtexinfo = 0;
 	cm.numbrushes = cm.numleafsurfaces = cm.numareas = 0;
-	cm.numareaportals = cm.numclusters = 0;
+	cm.numareaportals = cm.numclusters = cm.numtextures = 0;
 	
 	cm.name[0] = 0;
 	memset( cm.matrix, 0, sizeof(matrix4x4));
@@ -1027,7 +1056,8 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	BSP_LoadStringData(&hdr->lumps[LUMP_STRINGDATA]);
 	BSP_LoadStringTable(&hdr->lumps[LUMP_STRINGTABLE]);
 	BSP_LoadEntityString(&hdr->lumps[LUMP_ENTITIES]);
-	BSP_LoadSurfDesc(&hdr->lumps[LUMP_SURFDESC]);
+	BSP_LoadTextures(&hdr->lumps[LUMP_TEXTURES]);
+	BSP_LoadTexinfo(&hdr->lumps[LUMP_TEXINFO]);
 	BSP_LoadPlanes(&hdr->lumps[LUMP_PLANES]);
 	BSP_LoadBrushSides(&hdr->lumps[LUMP_BRUSHSIDES]);
 	BSP_LoadBrushes(&hdr->lumps[LUMP_BRUSHES]);

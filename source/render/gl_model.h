@@ -121,100 +121,108 @@ typedef struct
 
 typedef struct
 {
-	unsigned short	v[2];
-	unsigned int	cachededgeoffset;
+	uint		v[2];
+	uint		cachededgeoffset;
 } medge_t;
+
+typedef struct mtexture_s
+{
+	string		name;
+	image_t		*image;
+	struct mtexture_s	*next;		// animation chain
+
+	uint		width;
+	uint		height;
+	int		numframes;
+} mtexture_t;
 
 typedef struct mtexinfo_s
 {
 	float		vecs[2][4];
-	int		size[2];
 	int		flags;
-	int		numframes;
-	int		texid;		// save texture id
-	struct mtexinfo_s	*next;		// animation chain
-	image_t		*image;
+	int		contents;
+	mtexture_t	*texture;
 } mtexinfo_t;
 
 #define	VERTEXSIZE	7
 
 typedef struct glpoly_s
 {
-	struct	glpoly_s	*next;
-	struct	glpoly_s	*chain;
+	struct glpoly_s	*next;
+	struct glpoly_s	*chain;
 	int		numverts;
 	int		flags;			// for SURF_UNDERWATER (not needed anymore?)
-	float	verts[4][VERTEXSIZE];	// variable sized (xyz s1t1 s2t2)
+	float		verts[4][VERTEXSIZE];	// variable sized (xyz s1t1 s2t2)
 } glpoly_t;
 
 typedef struct msurface_s
 {
-	int			visframe;		// should be drawn when node is crossed
+	int		visframe;			// should be drawn when node is crossed
 
-	cplane_t	*plane;
-	int			flags;
+	cplane_t		*plane;
+	int		flags;
 
-	int			firstedge;	// look up in model->surfedges[], negative numbers
-	int			numedges;	// are backwards edges
+	int		firstedge;		// look up in model->surfedges[], negative numbers
+	int		numedges;			// are backwards edges
 	
 	short		texturemins[2];
 	short		extents[2];
 
-	int			light_s, light_t;	// gl lightmap coordinates
-	int			dlight_s, dlight_t; // gl lightmap coordinates for dynamic lightmaps
+	int		light_s, light_t;		// gl lightmap coordinates
+	int		dlight_s, dlight_t;		// gl lightmap coordinates for dynamic lightmaps
 
-	glpoly_t	*polys;				// multiple if warped
-	struct	msurface_s	*texturechain;
-	struct  msurface_s	*lightmapchain;
+	glpoly_t		*polys;			// multiple if warped
+	struct msurface_s	*texturechain;
+	struct msurface_s	*lightmapchain;
 
 	mtexinfo_t	*texinfo;
 	
-// lighting info
-	int			dlightframe;
-	int			dlightbits;
+	// lighting info
+	int		dlightframe;
+	int		dlightbits;
 
-	int			lightmaptexturenum;
+	int		lightmaptexturenum;
 	byte		styles[MAXLIGHTMAPS];
 	float		cached_light[MAXLIGHTMAPS];	// values currently used in lightmap
-	byte		*samples;		// [numstyles*surfsize]
+	byte		*samples;			// [numstyles*surfsize]
 } msurface_t;
 
 typedef struct mnode_s
 {
 // common with leaf
-	int			contents;		// -1, to differentiate from leafs
-	int			visframe;		// node needs to be traversed if current
+	int		contents;		// -1, to differentiate from leafs
+	int		visframe;		// node needs to be traversed if current
 	
 	float		minmaxs[6];		// for bounding box culling
 
 	struct mnode_s	*parent;
 
 	// node specific
-	cplane_t	*plane;
+	cplane_t		*plane;
 	struct mnode_s	*children[2];	
 
-	unsigned short		firstsurface;
-	unsigned short		numsurfaces;
+	uint		firstsurface;
+	uint		numsurfaces;
 } mnode_t;
 
 
 
 typedef struct mleaf_s
 {
-// common with node
-	int			contents;		// wil be a negative contents number
-	int			visframe;		// node needs to be traversed if current
+	// common with node
+	int		contents;		// wil be a negative contents number
+	int		visframe;		// node needs to be traversed if current
 
-	float		minmaxs[6];		// for bounding box culling
+	float		minmaxs[6];	// for bounding box culling
 
 	struct mnode_s	*parent;
 
-// leaf specific
-	int			cluster;
-	int			area;
+	// leaf specific
+	int		cluster;
+	int		area;
 
 	msurface_t	**firstmarksurface;
-	int			nummarksurfaces;
+	int		nummarksurfaces;
 } mleaf_t;
 
 //===================================================================
@@ -235,24 +243,19 @@ typedef struct rmodel_s
 	
 	int		flags;
 
-//
-// volume occupied by the model graphics
-//		
+	// volume occupied by the model graphics
 	vec3_t		mins, maxs;
 	float		radius;
 
-//
-// solid volume for clipping 
-//
+	// solid volume for clipping 
 	bool		clipbox;
 	vec3_t		clipmins, clipmaxs;
 
 	// simple lighting for sprites and models
 	vec3_t		lightcolor;
 
-//
-// brush model	//move this to brush_t struct
-//
+	// brush model	
+	// TODO: move this to union extradata_t
 	int		firstmodelsurface, nummodelsurfaces;
 	int		lightmap;		// only for submodels
 
@@ -278,6 +281,9 @@ typedef struct rmodel_s
 	int		numtexinfo;
 	mtexinfo_t	*texinfo;
 
+	int		numtextures;
+	mtexture_t	*textures;
+
 	int		numsurfaces;
 	msurface_t	*surfaces;
 
@@ -300,12 +306,7 @@ typedef struct rmodel_s
           studiohdr_t	*phdr;
           studiohdr_t	*thdr;
 	
-	void	*extradata;
-
-	//sprite auto animating
-	float	frame;
-	float	animtime;
-	float	prevanimtime;
+	void		*extradata;
 } rmodel_t;
 
 //============================================================================

@@ -104,10 +104,11 @@ typedef struct
 
 typedef struct
 {
-	char		txcommand;
 	vects_u		vects;
+	char		txcommand;
 	char		name[128];
 	int		size[2];
+	int		contents;
 	int		flags;
 	int		value;
 } brush_texture_t;
@@ -304,7 +305,7 @@ epair_t *ParseEpair (void);
 
 
 extern	int entity_num;
-
+extern	int g_mapversion;
 extern	plane_t mapplanes[MAX_MAP_PLANES];
 extern	int nummapplanes;
 extern	int nummapbrushes;
@@ -330,7 +331,7 @@ extern	dvertex_t	dvertexes[MAX_MAP_VERTS];
 extern	int numnodes;
 extern	dnode_t dnodes[MAX_MAP_NODES];
 extern	int numtexinfo;
-extern	dsurfdesc_t texinfo[MAX_MAP_TEXINFO];
+extern	dtexinfo_t texinfo[MAX_MAP_TEXINFO];
 extern	int numfaces;
 extern	dface_t dfaces[MAX_MAP_FACES];
 extern	int numedges;
@@ -351,37 +352,25 @@ extern	int numbrushsides;
 extern	dbrushside_t dbrushsides[MAX_MAP_BRUSHSIDES];
 extern	int dcollisiondatasize;
 extern	byte dcollision[MAX_MAP_COLLISION];
+extern	dmiptex_t	dmiptex[MAX_MAP_TEXTURES];
+extern	int nummiptex;
 extern	char outbase[32];
 
 void	LoadMapFile ( void );
 int	FindFloatPlane (vec3_t normal, vec_t dist);
 bool	LoadBSPFile ( void );
-void	LoadBSPFileTexinfo (char *filename);	// just for qdata
 void	WriteBSPFile ( void );
 void	DecompressVis (byte *in, byte *decompressed);
 int	CompressVis (byte *vis, byte *dest);
-void AddLump (int lumpnum, const void *data, int len);
+void	AddLump( int lumpnum, const void *data, size_t length );
 const char *GetStringFromTable( int index );
 int GetIndexFromTable( const char *string );
 
 //=============================================================================
 // textures.c
 
-typedef struct
-{
-	char	texname[128];
-	char	animname[128];
-	int	size[2];
-	int	flags;
-	int	value;
-	int	contents;
-	int	numframes;
-} textureref_t;
-
-extern	textureref_t	textureref[MAX_MAP_TEXTURES];
-
-int FindMiptex (char *name);
-int TexinfoForBrushTexture (plane_t *plane, brush_texture_t *bt, vec3_t origin);
+int FindMiptex( const char *name );
+int TexinfoForBrushTexture( plane_t *plane, brush_texture_t *bt, vec3_t origin );
 
 //=============================================================================
 

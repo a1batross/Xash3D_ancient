@@ -88,7 +88,7 @@ void R_Mirror( refdef_t *fd )
 
 		pglBlendFunc( GL_SRC_ALPHA, GL_ONE );
 		pglColor4f( 1.0f, 1.0f, 1.0f, mirror_alpha );
-		GL_Bind( s->texinfo->image->texnum[0] );
+		GL_Bind( s->texinfo->texture->image->texnum[0] );
 
 		if( mirror_entity )
 		{

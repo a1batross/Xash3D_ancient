@@ -813,28 +813,27 @@ SubdivideFace
 Chop up faces that are larger than we want in the surface cache
 ===============
 */
-void SubdivideFace (node_t *node, face_t *f)
+void SubdivideFace( node_t *node, face_t *f )
 {
 	float		mins, maxs;
 	vec_t		v;
-	int			axis, i;
-	dsurfdesc_t	*tex;
+	int		axis, i;
+	dtexinfo_t	*tex;
 	vec3_t		temp;
 	vec_t		dist;
-	winding_t	*w, *frontw, *backw;
+	winding_t		*w, *frontw, *backw;
 
-	if (f->merged)
-		return;
+	if( f->merged ) return;
 
-// special (non-surface cached) faces don't need subdivision
+	// special (non-surface cached) faces don't need subdivision
 	tex = &texinfo[f->texinfo];
 
-	if ( tex->flags & (SURF_WARP|SURF_SKY) )
+	if( tex->flags & (SURF_WARP|SURF_SKY) )
 	{
 		return;
 	}
 
-	for (axis = 0 ; axis < 2 ; axis++)
+	for( axis = 0; axis < 2; axis++ )
 	{
 		while (1)
 		{

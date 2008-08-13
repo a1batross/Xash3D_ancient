@@ -190,7 +190,7 @@ void EmitFace (face_t *f)
 
 	df->firstedge = numsurfedges;
 	df->numedges = f->numpoints;
-	df->desc = f->texinfo;
+	df->texinfo = f->texinfo;
 	for (i=0 ; i<f->numpoints ; i++)
 	{
 //		e = GetEdge (f->pts[i], f->pts[(i+1)%f->numpoints], f);
@@ -396,7 +396,7 @@ void EmitBrushes (void)
 			cp = &dbrushsides[numbrushsides];
 			numbrushsides++;
 			cp->planenum = b->original_sides[j].planenum;
-			cp->surfdesc = b->original_sides[j].texinfo;
+			cp->texinfo = b->original_sides[j].texinfo;
 		}
 
 		// add any axis planes not contained in the brush to bevel off corners
@@ -420,8 +420,7 @@ void EmitBrushes (void)
 						Sys_Error ("MAX_MAP_BRUSHSIDES");
 
 					dbrushsides[numbrushsides].planenum = planenum;
-					dbrushsides[numbrushsides].surfdesc =
-						dbrushsides[numbrushsides-1].surfdesc;
+					dbrushsides[numbrushsides].texinfo = dbrushsides[numbrushsides-1].texinfo;
 					numbrushsides++;
 					db->numsides++;
 				}

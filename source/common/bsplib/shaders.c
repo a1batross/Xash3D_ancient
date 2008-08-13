@@ -91,11 +91,12 @@ static shader_t *AllocShaderInfo( void )
 
 	if ( numShaderInfo == MAX_SURFACE_INFO ) Sys_Error( "MAX_SURFACE_INFO" );
 
-	si = &shaderInfo[ numShaderInfo ];
+	si = &shaderInfo[numShaderInfo];
 	numShaderInfo++;
 
 	// set defaults
 	si->contents = CONTENTS_SOLID;
+	si->nextframe[0] = '\0';
           si->color[0] = 0;
           si->color[1] = 0;
           si->color[2] = 0;

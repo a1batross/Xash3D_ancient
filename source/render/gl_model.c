@@ -436,19 +436,64 @@ void Mod_LoadEdges (lump_t *l)
 
 /*
 =================
-Mod_LoadSurfDesc
+BSP_LoadTextures
 =================
 */
-void Mod_LoadSurfDesc( lump_t *l )
+void Mod_LoadTextures( lump_t *l )
 {
-	dsurfdesc_t	*in;
-	mtexinfo_t	*out, *step;
+	dmiptex_t		*in, *in2;
+	mtexture_t	*out, *step;
+	int 		i, next, count;
+
+	in = in2 = (void *)(mod_base + l->fileofs);
+	if (l->filelen % sizeof(*in)) Host_Error("Mod_LoadTextures: funny lump size\n" );
+	count = l->filelen / sizeof(*in);
+
+	out = (mtexture_t *)Mem_Alloc( loadmodel->mempool, count * sizeof(*out));
+ 
+	loadmodel->textures = out;
+	loadmodel->numtextures = count;
+
+	for ( i = 0; i < count; i++, in++, out++)
+	{
+		com.strncpy( out->name, Mod_GetStringFromTable( LittleLong( in->s_name )), MAX_STRING );
+		out->width = LittleLong( in->size[0] );
+		out->height = LittleLong( in->size[1] );
+		out->image = r_notexture; // make stub
+
+		next = LittleLong( in->s_next );
+		if( next ) out->next = loadmodel->textures + next;
+		else out->next = NULL;
+	}
+
+	// count animation frames
+	for( i = 0; i < count; i++ )
+	{
+		out = &loadmodel->textures[i];
+		out->numframes = 1;
+		for( step = out->next; step && step != out; step = step->next )
+		{
+			Msg("animchain %s\n", out->name );
+			out->numframes++;
+		}
+	}
+}
+
+/*
+=================
+Mod_LoadTexinfo
+=================
+*/
+void Mod_LoadTexinfo( lump_t *l )
+{
+	dtexinfo_t	*in;
+	mtexinfo_t	*out;
+	int		texnum;
 	int		i, j, count;
-	int		next;
 
 	in = (void *)(mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
-		Host_Error("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
+		Host_Error("MOD_LoadTexinfo: funny lump size in %s",loadmodel->name);
 	count = l->filelen / sizeof(*in);
           out = Mem_Alloc( loadmodel->mempool, count * sizeof(*out));
 	
@@ -458,27 +503,15 @@ void Mod_LoadSurfDesc( lump_t *l )
 	for ( i = 0; i < count; i++, in++, out++)
 	{
 		for( j = 0; j < 8; j++ )
-			out->vecs[0][j] = LittleFloat(in->vecs[0][j]);
+			out->vecs[0][j] = LittleFloat( in->vecs[0][j] );
 
-		out->flags = LittleLong (in->flags);
-		next = LittleLong (in->animid);
-		if( next > 0 ) out->next = loadmodel->texinfo + next;
-		else out->next = NULL;
+		out->flags = LittleLong( in->flags );
+		out->contents = LittleLong( in->contents );
+		texnum = LittleLong( in->texnum );
 
-		// fixed texture size
-		out->size[0] = LittleLong( in->size[0] );
-		out->size[1] = LittleLong( in->size[1] );
-		out->texid = LittleLong( in->texid );		// will be loading later
-		out->image = r_notexture;			// make default
-	}
-
-	// count animation frames
-	for( i = 0; i < count; i++ )
-	{
-		out = &loadmodel->texinfo[i];
-		out->numframes = 1;
-		for( step = out->next; step && step != out; step = step->next )
-			out->numframes++;
+		if( texnum < 0 || texnum > loadmodel->numtextures )
+			Host_Error("MOD_LoadBmodel: bad texture number\n");
+		out->texture = loadmodel->textures + texnum;
 	}
 }
 
@@ -563,9 +596,9 @@ void Mod_LoadFaces (lump_t *l)
 
 	m_pRenderModel = loadmodel;
 
-	GL_BeginBuildingLightmaps (loadmodel);
+	GL_BeginBuildingLightmaps( loadmodel );
 
-	for ( surfnum=0 ; surfnum<count ; surfnum++, in++, out++)
+	for( surfnum = 0; surfnum < count; surfnum++, in++, out++ )
 	{
 		out->firstedge = LittleLong(in->firstedge);
 		out->numedges = LittleLong(in->numedges);		
@@ -573,31 +606,28 @@ void Mod_LoadFaces (lump_t *l)
 		out->polys = NULL;
 
 		planenum = LittleLong( in->planenum );
-		side = LittleShort(in->side);
+		side = LittleShort( in->side );
 		if( side ) out->flags |= SURF_PLANEBACK;			
 
 		out->plane = loadmodel->planes + planenum;
 
-		ti = LittleLong (in->desc);
-		if (ti < 0 || ti >= loadmodel->numtexinfo)
-			Host_Error("MOD_LoadBmodel: bad texinfo number");
+		ti = LittleLong( in->texinfo );
+		if( ti < 0 || ti >= loadmodel->numtexinfo )
+			Host_Error("MOD_LoadBmodel: bad texinfo number\n");
 		out->texinfo = loadmodel->texinfo + ti;
 
-		CalcSurfaceExtents (out);
+		CalcSurfaceExtents( out );
 				
 		// lighting info
 
-		for( i = 0; i < MAXLIGHTMAPS; i++)
+		for( i = 0; i < MAXLIGHTMAPS; i++ )
 			out->styles[i] = in->styles[i];
-		i = LittleLong(in->lightofs);
-		if (i == -1)
-			out->samples = NULL;
-		else
-			out->samples = loadmodel->lightdata + i;
+		i = LittleLong( in->lightofs );
+		if( i == -1 ) out->samples = NULL;
+		else out->samples = loadmodel->lightdata + i;
 		
-	// set the drawing flags
-		
-		if (out->texinfo->flags & SURF_WARP)
+		// set the drawing flags
+		if( out->texinfo->flags & SURF_WARP )
 		{
 			out->flags |= SURF_DRAWTURB;
 			for (i=0 ; i<2 ; i++)
@@ -893,7 +923,8 @@ void Mod_LoadBrushModel (rmodel_t *mod, void *buffer)
 	Mod_LoadSurfedges (&header->lumps[LUMP_SURFEDGES]);
 	Mod_LoadLighting (&header->lumps[LUMP_LIGHTING]);
 	Mod_LoadPlanes (&header->lumps[LUMP_PLANES]);
-	Mod_LoadSurfDesc (&header->lumps[LUMP_SURFDESC]);
+	Mod_LoadTextures (&header->lumps[LUMP_TEXTURES]);
+	Mod_LoadTexinfo (&header->lumps[LUMP_TEXINFO]);
 	Mod_LoadFaces (&header->lumps[LUMP_FACES]);
 	Mod_LoadMarksurfaces (&header->lumps[LUMP_LEAFFACES]);
 	Mod_LoadVisibility (&header->lumps[LUMP_VISIBILITY]);
@@ -975,7 +1006,7 @@ rmodel_t *R_RegisterModel (const char *name)
 		case mod_world:
 		case mod_brush:
 			for (i = 0; i < mod->numtexinfo; i++)
-				mod->texinfo[i].image->registration_sequence = registration_sequence;
+				mod->texinfo[i].texture->image->registration_sequence = registration_sequence;
 			break;
 		case mod_studio:
 		case mod_sprite:

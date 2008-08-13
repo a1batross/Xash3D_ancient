@@ -65,10 +65,6 @@ typedef struct sizebuf_s
 	int	readcount;
 } sizebuf_t;
 
-typedef int			func_t;
-typedef int			sound_t;
-typedef int			model_t;
-typedef int			string_t;
 typedef struct edict_s		edict_t;
 typedef struct sv_edict_s		sv_edict_t;
 typedef struct cl_edict_s		cl_edict_t;

@@ -32,8 +32,19 @@ TODO LIST
 выбросить лишние ресурсы
 забэкапить результат
 
+#define DENTITY_KEY		0
+#define DENTITY_VALUE	1
 
+typedef struct
+{
+	string_t	epair[2];	[variable sized][2]
+} dentity_t;
 
+// only once bsp file can be opened
+bool FS_OpenBSP( const char *name, const char *mode );
+bool FS_ReadLump( const char *name, char type, int version, size_t *lmpsize, byte *data );
+bool FS_SaveLump( const char *name, char type, int version, size_t lumpsize, byte *data );
+bool FS_CloseBSP( void );
 
 Список доступных рендереров:  	Что в них интересного
 0. Q3Fusion			(Mirrors, Portals)

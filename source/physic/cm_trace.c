@@ -114,7 +114,7 @@ static void CM_TraceLine_r( trace_t *trace, cmodel_t *model, cnode_t *node, cons
 		// line trace the curves
 		for( i = 0; i < leaf->numleafsurfaces; i++ )
 		{
-			surface = cm.surfdesc + cm.surfaces[leaf->firstleafsurface[i]].desc;
+			surface = cm.texinfo + cm.surfaces[leaf->firstleafsurface[i]].texinfo;
 			if( surface->numtriangles && surface->markframe != markframe && BoxesOverlap(nodesegmentmins, nodesegmentmaxs, surface->mins, surface->maxs))
 			{
 				surface->markframe = markframe;
@@ -191,7 +191,7 @@ static void CM_TraceBrush_r( trace_t *trace, cmodel_t *model, cnode_t *node, con
 	{
 		for( i = 0; i < leaf->numleafsurfaces; i++ )
 		{
-			surface = cm.surfdesc + cm.surfaces[leaf->firstleafsurface[i]].desc;
+			surface = cm.texinfo + cm.surfaces[leaf->firstleafsurface[i]].texinfo;
 			if( surface->numtriangles && surface->markframe != markframe && BoxesOverlap( nodesegmentmins, nodesegmentmaxs, surface->mins, surface->maxs ))
 			{
 				surface->markframe = markframe;
@@ -241,7 +241,7 @@ void CM_TraceBmodel( const vec3_t start, const vec3_t end, const vec3_t mins, co
 					if( brush->colbrushf ) CM_CollisionTraceLineBrushFloat( trace, start, end, brush->colbrushf, brush->colbrushf );
 				for( i = 0, j = model->firstface; i < model->numfaces; i++, j++ )
 				{
-					surface = cm.surfdesc + cm.surfaces[j].desc;
+					surface = cm.texinfo + cm.surfaces[j].texinfo;
 					if( surface->numtriangles ) CM_CollisionTraceLineTriangleMeshFloat( trace, start, end, surface->numtriangles, surface->indices, surface->vertices, surface->contentflags, surface->surfaceflags, surface, segmentmins, segmentmaxs );
 				}
 			}
@@ -275,7 +275,7 @@ void CM_TraceBmodel( const vec3_t start, const vec3_t end, const vec3_t mins, co
 				if( brush->colbrushf ) CM_CollisionTraceBrushBrushFloat( trace, thisbrush_start, thisbrush_end, brush->colbrushf, brush->colbrushf );
 			for( i = 0, j = model->firstface; i < model->numfaces; i++, j++ )
 			{
-				surface = cm.surfdesc + cm.surfaces[j].desc;
+				surface = cm.texinfo + cm.surfaces[j].texinfo;
 				if( surface->numtriangles ) CM_CollisionTraceLineTriangleMeshFloat( trace, start, end, surface->numtriangles, surface->indices, surface->vertices, surface->contentflags, surface->surfaceflags, surface, segmentmins, segmentmaxs );
 			}
 		}

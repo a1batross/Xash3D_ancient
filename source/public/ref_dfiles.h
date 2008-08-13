@@ -226,7 +226,7 @@ BRUSH MODELS
 #define LUMP_VERTEXES		6
 #define LUMP_EDGES			7
 #define LUMP_SURFEDGES		8
-#define LUMP_SURFDESC		9
+#define LUMP_TEXINFO		9
 #define LUMP_FACES			10
 #define LUMP_MODELS			11
 #define LUMP_BRUSHES		12
@@ -234,7 +234,7 @@ BRUSH MODELS
 #define LUMP_VISIBILITY		14
 #define LUMP_LIGHTING		15
 #define LUMP_COLLISION		16	// newton collision tree (worldmodel coords already convert to meters)
-#define LUMP_BVHSTATIC		17	// bullet collision tree (currently not used)
+#define LUMP_TEXTURES		17	// contains texture name and dims
 #define LUMP_SVPROGS		18	// private server.dat for current map
 #define LUMP_WAYPOINTS		19	// AI navigate tree (like .aas file for quake3)		
 #define LUMP_STRINGDATA		20	// string array
@@ -252,6 +252,9 @@ BRUSH MODELS
 // compressed bit vectors
 #define DVIS_PVS			0
 #define DVIS_PHS			1
+
+#define DENT_KEY			0
+#define DENT_VALUE			1
 
 //other limits
 #define MAXLIGHTMAPS		4
@@ -281,6 +284,11 @@ typedef struct
 
 typedef struct
 {
+	string_t	epair[2];		// 0 - key, 1 - value (indexes from stringtable)
+} dentity_t;
+
+typedef struct
+{
 	float	point[3];
 } dvertex_t;
 
@@ -300,15 +308,14 @@ typedef struct
 	int	numfaces;		// counting both sides
 } dnode_t;
 
-typedef struct dsurfdesc_s
+typedef struct
 {
 	float	vecs[2][4];	// [s/t][xyz offset] texture s\t
-	int	size[2];		// valid size for current s\t coords (used for replace texture)
-	int	texid;		// string table texture id number
-	int	animid;		// string table animchain id number 
-	int	flags;		// surface flags
-	int	value;		// used by qrad, not engine
-} dsurfdesc_t;
+	int	texnum;		// texture number in LUMP_TEXTURES array
+	int	contents;		// texture contents (can be replaced by shader)
+	int	flags;		// surface flags (can be replaced by shader)
+	int	value;		// get rid of this ? used by qrad, not engine
+} dtexinfo_t;
 
 typedef struct
 {
@@ -320,7 +327,7 @@ typedef struct
 	int	planenum;
 	int	firstedge;
 	int	numedges;	
-	int	desc;
+	int	texinfo;		// number in LUMP_TEXINFO array
 
 	// lighting info
 	byte	styles[MAXLIGHTMAPS];
@@ -346,7 +353,7 @@ typedef struct
 typedef struct
 {
 	int	planenum;		// facing out of the leaf
-	int	surfdesc;		// surface description (s/t coords, flags, etc)
+	int	texinfo;		// surface description (s/t coords, flags, etc)
 } dbrushside_t;
 
 typedef struct
@@ -361,6 +368,13 @@ typedef struct
 	int	numclusters;
 	int	bitofs[8][2];	// bitofs[numclusters][2]
 } dvis_t;
+
+typedef struct
+{
+	string_t	s_name;		// string system index
+	string_t	s_next;		// anim chain texture
+	int	size[2];		// valid size for current s\t coords (used for replace texture)
+} dmiptex_t;
 
 typedef struct
 {

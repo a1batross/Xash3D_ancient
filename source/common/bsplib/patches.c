@@ -1,6 +1,6 @@
 #include "bsplib.h"
 
-vec3_t	texture_reflectivity[MAX_MAP_TEXINFO];
+vec3_t	texture_reflectivity[MAX_MAP_TEXTURES];
 
 /*
 ===================================================================
@@ -31,7 +31,7 @@ void CalcTextureReflectivity( void )
 		// see if an earlier texinfo allready got the value
 		for (j = 0; j < i; j++)
 		{
-			if( texinfo[i].texid == texinfo[j].texid )
+			if( texinfo[i].texnum == texinfo[j].texnum )
 			{
 				VectorCopy( texture_reflectivity[j], texture_reflectivity[i] );
 				break;
@@ -39,11 +39,11 @@ void CalcTextureReflectivity( void )
 		}
 		if( j != i ) continue;
 
-		pic = FS_LoadImage(GetStringFromTable( texinfo[i].texid ), NULL, 0 );
+		pic = FS_LoadImage(GetStringFromTable(dmiptex[texinfo[i].texnum].s_name ), NULL, 0 );
 		Image_GetColor( pic ); 
 
 		// try also get direct values from shader
-		if(si = FindShader( GetStringFromTable(texinfo[i].texid)))
+		if(si = FindShader( GetStringFromTable(dmiptex[texinfo[i].texnum].s_name)))
 		{						
 			if(!VectorIsNull( si->color ))
 			{
@@ -114,26 +114,26 @@ BaseLightForFace
 */
 void BaseLightForFace (dface_t *f, vec3_t color)
 {
-	dsurfdesc_t	*tx;
+	dtexinfo_t	*tx;
 
 	//
 	// check for light emited by texture
 	//
-	tx = &texinfo[f->desc];
+	tx = &texinfo[f->texinfo];
 	if (!(tx->flags & SURF_LIGHT) || tx->value == 0)
 	{
 		VectorClear (color);
 		return;
 	}
 
-	VectorScale (texture_reflectivity[f->desc], tx->value, color);
+	VectorScale (texture_reflectivity[f->texinfo], tx->value, color);
 }
 
 bool IsSky (dface_t *f)
 {
-	dsurfdesc_t	*tx;
+	dtexinfo_t	*tx;
 
-	tx = &texinfo[f->desc];
+	tx = &texinfo[f->texinfo];
 	if (tx->flags & SURF_SKY)
 		return true;
 	return false;
@@ -194,7 +194,7 @@ void MakePatchForFace (int fn, winding_t *w)
 		patch->area = 1;
 	patch->sky = IsSky (f);
 
-	VectorCopy (texture_reflectivity[f->desc], patch->reflectivity);
+	VectorCopy (texture_reflectivity[f->texinfo], patch->reflectivity);
 
 	// non-bmodel patches can emit light
 	if (fn < dmodels[0].numfaces)

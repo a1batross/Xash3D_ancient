@@ -158,12 +158,13 @@ typedef struct clipmap_s
 	dedge_t		*edges;
 	dface_t		*surfaces;
 	int		*surfedges;
-	csurface_t	*surfdesc;
+	csurface_t	*texinfo;
 	cbrush_t		*brushes;
 	cbrushside_t	*brushsides;
 	byte		*visbase;		// vis offset
 	dvis_t		*vis;
 	NewtonCollision	*collision;
+	dmiptex_t		*textures;
 	char		*stringdata;
 	int		*stringtable;
 	carea_t		*areas;
@@ -177,6 +178,7 @@ typedef struct clipmap_s
 	int		numleafs;		// allow leaf funcs to be called without a map
 	int		numleafbrushes;
 	int		numleafsurfaces;
+	int		numtextures;
 	int		numbrushes;
 	int		numfaces;
 	int		numareas;

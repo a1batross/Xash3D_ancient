@@ -80,14 +80,15 @@ R_TextureAnimation
 Returns the proper texture for a given time and base texture
 ===============
 */
-image_t *R_TextureAnimation (mtexinfo_t *tex)
+image_t *R_TextureAnimation( mtexinfo_t *tinfo )
 {
-	int		c;
+	mtexture_t *tex = tinfo->texture;
+	int	c;
 
-	if (!tex->next) return tex->image;
+	if( !tex->next ) return tex->image;
 
 	c = (int)m_pCurrentEntity->frame % tex->numframes;
-	while (c)
+	while( c )
 	{
 		tex = tex->next;
 		c--;
@@ -101,7 +102,7 @@ image_t *R_TextureAnimation (mtexinfo_t *tex)
 DrawGLPoly
 ================
 */
-void DrawGLPoly (glpoly_t *p)
+void DrawGLPoly( glpoly_t *p )
 {
 	int		i;
 	float	*v;
@@ -240,7 +241,7 @@ void R_DrawLumaChains( void )
 
 	for( s = r_luma_surfaces; s; s = s->texturechain )
 	{
-		GL_Bind(s->texinfo->image->lumatex[0]);
+		GL_Bind( s->texinfo->texture->image->lumatex[0] );
 		DrawGLPoly (s->polys);
 	}
 
@@ -525,7 +526,7 @@ void R_DrawAlphaSurfaces (void)
 
 	for (s=r_alpha_surfaces ; s ; s=s->texturechain)
 	{
-		GL_Bind(s->texinfo->image->texnum[0]);
+		GL_Bind( s->texinfo->texture->image->texnum[0] );
 		c_brush_polys++;
 		if (s->texinfo->flags & SURF_BLEND)
 			pglColor4f(intens,intens, intens, 0.5);
@@ -1435,12 +1436,12 @@ void GL_BuildPolygonFromSurface(msurface_t *fa)
 			vec = m_pRenderModel->vertexes[r_pedge->v[1]].position;
 		}
 		s = DotProduct( vec, fa->texinfo->vecs[0]) + fa->texinfo->vecs[0][3];
-		if( fa->texinfo->size[0] != -1 ) s /= fa->texinfo->size[0];
-		else s /= fa->texinfo->image->width;
+		if( fa->texinfo->texture->width != -1 ) s /= fa->texinfo->texture->width;
+		else s /= fa->texinfo->texture->image->width;
 
-		t = DotProduct (vec, fa->texinfo->vecs[1]) + fa->texinfo->vecs[1][3];
-		if(fa->texinfo->size[1] != -1) t /= fa->texinfo->size[1];
-		else t /= fa->texinfo->image->height;
+		t = DotProduct( vec, fa->texinfo->vecs[1]) + fa->texinfo->vecs[1][3];
+		if( fa->texinfo->texture->height != -1) t /= fa->texinfo->texture->height;
+		else t /= fa->texinfo->texture->image->height;
 		
 
 		VectorAdd (total, vec, total);
