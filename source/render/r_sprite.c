@@ -308,11 +308,12 @@ bool R_AcceptSpritePass( ref_entity_t *e, int pass )
 	if( pass == RENDERPASS_SOLID )
 	{
 		// pass for solid ents
+		if( e->renderfx & RF_TRANSLUCENT ) return false;		// solid sprite with custom blend
 		if( psprite->rendermode == SPR_NORMAL ) return true;	// solid sprite
 		if( psprite->rendermode == SPR_ADDGLOW ) return false;	// draw it at second pass
 		if( psprite->rendermode == SPR_ADDITIVE ) return false;	// must be draw first always
-		if( psprite->rendermode == SPR_ALPHTEST ) return true;	// already blended by alphatest
-		if( psprite->rendermode == SPR_INDEXALPHA ) return true;	// already blended by alphatest
+		if( psprite->rendermode == SPR_ALPHTEST ) return false;	// already blended by alphatest
+		if( psprite->rendermode == SPR_INDEXALPHA ) return false;	// already blended by alphatest
 	}	
 	if( pass == RENDERPASS_ALPHA )
 	{
@@ -321,8 +322,8 @@ bool R_AcceptSpritePass( ref_entity_t *e, int pass )
 		if( psprite->rendermode == SPR_NORMAL ) return false;	// solid sprite
 		if( psprite->rendermode == SPR_ADDGLOW ) return true;	// can draw
 		if( psprite->rendermode == SPR_ADDITIVE ) return true;	// can draw
-		if( psprite->rendermode == SPR_ALPHTEST ) return false;	// already drawed
-		if( psprite->rendermode == SPR_INDEXALPHA ) return false;	// already drawed
+		if( psprite->rendermode == SPR_ALPHTEST ) return true;	// already drawed
+		if( psprite->rendermode == SPR_INDEXALPHA ) return true;	// already drawed
 	}
 	return true;
 }
@@ -352,7 +353,7 @@ void R_DrawSpriteModel( int passnum )
 {
 	mspriteframe_t	*frame;
 	vec3_t		point, forward, right, up;
-	ref_entity_t 		*e = m_pCurrentEntity;
+	ref_entity_t 	*e = m_pCurrentEntity;
 	rmodel_t		*mod = m_pRenderModel;
 	float		alpha = 1.0f, angle, sr, cr;
 	vec3_t		distance;

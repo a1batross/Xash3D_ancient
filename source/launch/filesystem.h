@@ -386,6 +386,32 @@ extern byte *image_palette;	// palette pointer
 extern uint *d_currentpal;	// installed version of internal palette
 extern cvar_t *img_oldformats;
 extern cvar_t *fs_wadsupport;
+extern byte *fs_mempool;
+
+typedef struct stringlist_s
+{
+	// maxstrings changes as needed, causing reallocation of strings[] array
+	int	maxstrings;
+	int	numstrings;
+	char	**strings;
+} stringlist_t;
+
+void _FS_FileBase( const char *in, char *out, bool kill_backwardslash );
+
+// stringlist.c
+void stringlistinit( stringlist_t *list );
+void stringlistfreecontents( stringlist_t *list );
+void stringlistappend( stringlist_t *list, char *text );
+void stringlistsort( stringlist_t *list );
+
+// wadsystem.c
+void FS_AddGameWads( const char *dir );
+void W_InitGameDirectory( const char *dir );
+byte *W_LoadFile( const char *path, fs_offset_t *filesizeptr );
+void W_Search( const char *pattern, int caseinsensitive, stringlist_t *resultlist );
+bool W_FileExists( const char *filename );
+void W_ClearPaths( void );
+void W_Init( void );
 
 bool Image_AddMipmapToPack( const byte *in, int width, int height, bool expand );
 void Image_RoundDimensions( int *scaled_width, int *scaled_height );

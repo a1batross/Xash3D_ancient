@@ -278,7 +278,7 @@ include sources into progs.dat for fake decompile
 if it needs
 ================
 */
-bool PR_WriteSourceFiles(file_t *h, dprograms_t *progs, bool sourceaswell )
+bool PR_WriteSourceFiles( file_t *h, dprograms_t *progs, bool sourceaswell )
 {
 	dsource_t		*idf;
 	cachedsourcefile_t	*f;
@@ -607,16 +607,16 @@ void PR_WriteDAT( void )
 		}
 		if (def->type->type == ev_function)
 		{
-			if (opt_function_names && functions[G_FUNCTION(def->ofs)].first_statement<0)
+			if( opt_function_names && functions[G_FUNCTION(def->ofs)].first_statement < 0 )
 			{
 				def->name = "";
 			}
-			if (!def->timescalled)
+			if( !def->timescalled )
 			{
-				if (def->references <= 1)
+				if( def->references <= 1 )
 					PR_Warning(WARN_DEADCODE, strings + def->s_file, def->s_line, "%s is never directly called or referenced (spawn function or dead code)", def->name);
 			}
-			if (opt_stripfunctions && def->timescalled >= def->references-1)	
+			if( opt_stripfunctions && def->timescalled >= def->references - 1 )	
 			{
 				// make sure it's not copied into a different var.
 				// if it ever does self.think then it could be needed for saves.
@@ -624,11 +624,11 @@ void PR_WriteDAT( void )
 				continue;
 			}
 		}
-		else if (def->type->type == ev_field)
+		else if( def->type->type == ev_field )
 		{
 			dd = &fields[numfielddefs];
 			dd->type = def->type->aux_type->type;
-			dd->s_name = PR_CopyString (def->name, opt_noduplicatestrings );
+			dd->s_name = PR_CopyString( def->name, opt_noduplicatestrings );
 			dd->ofs = G_INT(def->ofs);
 			numfielddefs++;
 		}

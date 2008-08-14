@@ -462,7 +462,7 @@ typedef struct
 	int		disksize;
 	int		size;
 	char		compression;
-	char		name[64];		// fixme: make string_t
+	char		name[64];		// FIXME: make string_t
 } dsource_t;
 
 typedef struct

@@ -1677,7 +1677,7 @@ void R_RecursiveRadarNode(mnode_t *node)
 			if (surf->texinfo->flags & SURF_SKY) continue;
 			if (surf->texinfo->flags & (SURF_WARP|SURF_FLOWING|SURF_BLEND))
 			{
-				sColor=0.5;
+				sColor = 0.5;
 			}
 			else sColor=0;
 		      

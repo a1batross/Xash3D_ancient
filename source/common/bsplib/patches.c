@@ -39,10 +39,7 @@ void CalcTextureReflectivity( void )
 		}
 		if( j != i ) continue;
 
-		pic = FS_LoadImage(GetStringFromTable(dmiptex[texinfo[i].texnum].s_name ), NULL, 0 );
-		Image_GetColor( pic ); 
-
-		// try also get direct values from shader
+		// try get direct values from shader
 		if(si = FindShader( GetStringFromTable(dmiptex[texinfo[i].texnum].s_name)))
 		{						
 			if(!VectorIsNull( si->color ))
@@ -54,15 +51,20 @@ void CalcTextureReflectivity( void )
 				continue;
 			}
 		}
-		if( !pic || VectorIsNull( pic->color ))
+
+		pic = FS_LoadImage(GetStringFromTable(dmiptex[texinfo[i].texnum].s_name ), NULL, 0 );
+		Image_GetColor( pic ); 
+
+		if( pic )
 		{
-			// no texture, no shader...
-			VectorSet(texture_reflectivity[i], 0.5, 0.5, 0.5 ); 
+			VectorCopy( pic->color, texture_reflectivity[i] );
+			texinfo[i].value = pic->bump_scale;
+          		FS_FreeImage( pic ); // don't forget free image
 			continue;
 		}			
-		VectorCopy( pic->color, texture_reflectivity[i] );
-		texinfo[i].value = pic->bump_scale;
-          	FS_FreeImage( pic ); // don't forget free image
+
+		// no texture, no shader...
+		VectorSet(texture_reflectivity[i], 0.5, 0.5, 0.5 ); 
 	}
 }
 

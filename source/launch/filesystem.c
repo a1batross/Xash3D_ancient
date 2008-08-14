@@ -74,15 +74,6 @@ typedef struct pack_s
 	packfile_t	*files;
 } pack_t;
 
-typedef struct wadfile_s
-{
-	char		name[64];
-	int		numlumps;
-	int		type;		// contains ident
-	file_t		*file;
-	dlumpinfo_t	*lumps;
-} wadfile_t;
-
 typedef struct searchpath_s
 {
 	char		filename[MAX_SYSPATH];
@@ -91,16 +82,7 @@ typedef struct searchpath_s
 	struct searchpath_s *next;
 } searchpath_t;
 
-typedef struct stringlist_s
-{
-	// maxstrings changes as needed, causing reallocation of strings[] array
-	int maxstrings;
-	int numstrings;
-	char **strings;
-} stringlist_t;
-
 byte *fs_mempool;
-byte *fs_searchwads = NULL;
 searchpath_t *fs_searchpaths = NULL;
 
 static void FS_InitMemory( void );
@@ -120,10 +102,8 @@ char gs_mapname[ 64 ]; // used for compilers only
 int fs_argc;
 char *fs_argv[MAX_NUM_ARGVS];
 bool fs_ext_path = false; // attempt to read\write from ./ or ../ pathes 
-bool fs_use_wads = false; // some utilities needs this
-cvar_t *fs_wadsupport;
 cvar_t *fs_defaultdir;
-
+cvar_t *fs_wadsupport;
 gameinfo_t GI;
 
 /*
@@ -421,7 +401,7 @@ int matchpattern(const char *in, const char *pattern, bool caseinsensitive)
 	return 1; // success
 }
 
-void stringlistinit(stringlist_t *list)
+void stringlistinit( stringlist_t *list )
 {
 	memset(list, 0, sizeof(*list));
 }
@@ -1009,194 +989,6 @@ void FS_AddGameDirectory( const char *dir, int flags )
 }
 
 /*
-====================
-FS_AddWad3File
-====================
-*/
-static bool FS_AddWad3File( const char *filename )
-{
-	dwadinfo_t	header;
-	wadfile_t		*w;
-	dlumpfile_t	*doomlumps;	// will be converted to dlumpinfo_t struct
-	int		infotableofs;
-	bool		flat_images = false;// doom1 wall texture marker
-	bool		skin_images = false;// doom1 skin image ( sprite model ) marker
-	bool		flmp_images = false;// doom1 menu image marker
-	int		i, numlumps;
-	file_t		*file;
-	char		type[16];
-
-	if(!fs_searchwads) // start from scratch 
-		fs_searchwads = Mem_CreateArray( fs_mempool, sizeof(wadfile_t), 16 );
-
-	for (i = 0; i < Mem_ArraySize( fs_searchwads ); i++ )
-	{
-		w = Mem_GetElement( fs_searchwads, i );
-		if(w && !com_stricmp( filename, w->name ))
-			return false; // already loaded
-	}
-
-	file = FS_Open( filename, "rb" );
-	if(!file)
-	{
-		MsgDev(D_ERROR, "FS_AddWad3File: couldn't find %s\n", filename);
-		return false;
-	}
-
-	if( FS_Read(file, &header, sizeof(dwadinfo_t)) != sizeof(dwadinfo_t))
-	{
-		MsgDev(D_ERROR, "FS_AddWad3File: %s have corrupted header\n");
-		FS_Close( file );
-		return false;
-	}
-
-	switch( header.ident )
-	{
-	case IDIWADHEADER:
-	case IDPWADHEADER:
-		com_strncpy( type, "Doom1", 16 );
-		break; 		
-	case IDWAD2HEADER:
-		com_strncpy( type, "Quake1", 16 );
-		break; 
-	case IDWAD3HEADER: 
-		com_strncpy( type, "Half-Life", 16 );
-		break; 
-	default:
-		MsgDev(D_ERROR, "FS_AddWad3File: %s have invalid ident\n", filename );
-		FS_Close( file );
-		return false;
-	}	
-
-	numlumps = LittleLong( header.numlumps );
-	if( numlumps > MAX_FILES_IN_PACK )
-	{
-		MsgDev(D_ERROR, "FS_AddWad3File: %s have too many lumps (%i)\n", numlumps);
-		FS_Close( file );
-		return false;
-	}
-
-	infotableofs = LittleLong( header.infotableofs );
-	if(FS_Seek (file, infotableofs, SEEK_SET))
-	{
-		MsgDev(D_ERROR, "FS_AddWad3File: unable to seek to lump table\n");
-		FS_Close( file );
-		return false;
-	}
-
-	w = Mem_AllocElement( fs_searchwads );
-	FS_FileBase( filename, w->name ); // wad name
-	w->file = file;
-	w->type = header.ident;
-	w->numlumps = numlumps;
-	w->lumps = Mem_Alloc( fs_mempool, w->numlumps * sizeof(dlumpinfo_t));
-
-	switch( header.ident )
-	{
-	case IDIWADHEADER:
-	case IDPWADHEADER:
-          	doomlumps = Mem_Alloc( fs_mempool, numlumps * sizeof(dlumpfile_t));
-		if(FS_Read( file, doomlumps, sizeof(dlumpfile_t)*w->numlumps) != (long)sizeof(dlumpfile_t)*numlumps)
-		{
-			MsgDev(D_ERROR, "FS_AddWad3File: unable to read lump table\n");
-			FS_Close( w->file );
-			w->numlumps = 0;
-			Mem_Free( w->lumps );
-			Mem_Free( doomlumps );
-			w->lumps = NULL;
-			w->name[0] = 0;
-			return false;
-		}
-		// convert doom1 format into quake lump 
-		for( i = 0; i < numlumps; i++ )
-		{
-			// will swap later
-			w->lumps[i].filepos = doomlumps[i].filepos;
-			w->lumps[i].size = w->lumps[i].disksize = doomlumps[i].size;
-			com_strncpy(w->lumps[i].name, doomlumps[i].name, 9 );
-			w->lumps[i].type = TYPE_NONE;
-			w->lumps[i].compression = CMP_NONE;
-	
-			// textures begin
-			if(!com_stricmp("P_START", w->lumps[i].name ))
-			{
-				flat_images = true;
-				continue; // skip identifier
-			}
-			else if(!com_stricmp("P1_START", w->lumps[i].name ))
-			{
-				flat_images = true;
-				continue; // skip identifier
-			}
-			else if (!com_stricmp("P2_START", w->lumps[i].name ))
-			{
-				flat_images = true;
-				continue; // skip identifier
-			}
-			else if (!com_stricmp("P3_START", w->lumps[i].name ))
-			{
-				flat_images = true;
-				continue; // skip identifier
-			}
-			else if(!com_stricmp("S_START", w->lumps[i].name ))
-			{
-				skin_images = true;
-				continue; // skip identifier
-			}
-			else if(!com_strnicmp("WI", w->lumps[i].name, 2 )) flmp_images = true;
-			else if(!com_strnicmp("ST", w->lumps[i].name, 2 )) flmp_images = true;
-			else if(!com_strnicmp("M_", w->lumps[i].name, 2 )) flmp_images = true;
-			else if(!com_strnicmp("END", w->lumps[i].name, 3 )) flmp_images = true;
-			else if(!com_strnicmp("HELP", w->lumps[i].name, 4 )) flmp_images = true;
-			else if(!com_strnicmp("CREDIT", w->lumps[i].name, 6 )) flmp_images = true;
-			else if(!com_strnicmp("TITLEPIC", w->lumps[i].name, 8 )) flmp_images = true;
-			else if(!com_strnicmp("VICTORY", w->lumps[i].name, 7 )) flmp_images = true;
-			else if(!com_strnicmp("PFUB", w->lumps[i].name, 4 )) flmp_images = true;
-			else if(!com_stricmp("P_END", w->lumps[i].name )) flat_images = false;
-			else if(!com_stricmp("P1_END", w->lumps[i].name )) flat_images = false;
-			else if(!com_stricmp("P2_END", w->lumps[i].name )) flat_images = false;
-			else if(!com_stricmp("P3_END", w->lumps[i].name )) flat_images = false;
-			else if(!com_stricmp("S_END", w->lumps[i].name )) skin_images = false;
-			else flmp_images = false;
-
-			if( flmp_images ) w->lumps[i].type = TYPE_FLMP; // mark as menu pic
-			if( flat_images ) w->lumps[i].type = TYPE_FLAT; // mark as texture
-			if( skin_images ) w->lumps[i].type = TYPE_SKIN; // mark as skin (sprite model)
-			if(!com_strnicmp( w->lumps[i].name, "D_", 2 )) w->lumps[i].type = TYPE_MUS;
-			if(!com_strnicmp( w->lumps[i].name, "DS", 2 )) w->lumps[i].type = TYPE_SND;
-		}
-		Mem_Free( doomlumps ); // no need anymore
-		break;		
-	case IDWAD2HEADER:
-	case IDWAD3HEADER: 
-		if(FS_Read( file, w->lumps, sizeof(dlumpinfo_t)*w->numlumps) != (long)sizeof(dlumpinfo_t)*numlumps)
-		{
-			MsgDev(D_ERROR, "FS_AddWad3File: unable to read lump table\n");
-			FS_Close( w->file );
-			w->numlumps = 0;
-			Mem_Free( w->lumps );
-			w->lumps = NULL;
-			w->name[0] = 0;
-			return false;
-		}
-		break;
-	}
-
-	// swap everthing 
-	for( i = 0; i < numlumps; i++ )
-	{
-		w->lumps[i].filepos = LittleLong(w->lumps[i].filepos);
-		w->lumps[i].disksize = LittleLong(w->lumps[i].disksize);
-		w->lumps[i].size = LittleLong(w->lumps[i].size);
-		com_strnlwr(w->lumps[i].name, w->lumps[i].name, sizeof(w->lumps[i].name));
-	}
-	// and leaves the file open
-	MsgDev( D_INFO, "Adding %s wadfile: %s (%i lumps)\n", type, filename, numlumps );
-	return true;
-}
-
-
-/*
 ================
 FS_AddGameHierarchy
 ================
@@ -1204,21 +996,10 @@ FS_AddGameHierarchy
 void FS_AddGameHierarchy (const char *dir)
 {
 	// Add the common game directory
-	if(dir || *dir) 
+	if( dir || *dir ) 
 	{
 		FS_AddGameDirectory( va("%s%s/", fs_basedir, dir), 0 );
-
-		if( fs_wadsupport->integer || fs_use_wads )
-		{
-			search_t	*search;
-			int	i, numWads = 0;
-		          
-			search = FS_Search( "*.wad", true );
-			if(!search) return;
-			for( i = 0; i < search->numfilenames; i++ )
-				FS_AddWad3File( search->filenames[i] );
-			Mem_Free( search );
-		}
+		W_InitGameDirectory( "*.wad" );
 	}
 }
 
@@ -1292,9 +1073,6 @@ FS_ClearSearchPath
 */
 void FS_ClearSearchPath( void )
 {
-	uint	i;
-	wadfile_t	*w;
-
 	while( fs_searchpaths )
 	{
 		searchpath_t *search = fs_searchpaths;
@@ -1315,20 +1093,7 @@ void FS_ClearSearchPath( void )
 		}
 		Mem_Free( search );
 	}
-
-	// close all wad files and free their lumps data
-	for (i = 0; i < Mem_ArraySize( fs_searchwads ); i++ )
-	{
-		w = Mem_GetElement( fs_searchwads, i );
-		if(!w) continue;
-		if(w->lumps) Mem_Free(w->lumps);
-		w->lumps = NULL;
-		if(w->file) FS_Close(w->file);
-		w->file = NULL;
-		w->name[0] = 0;
-	}
-	if( fs_searchwads ) Mem_RemoveArray( fs_searchwads );
-	fs_searchwads = NULL;
+	W_ClearPaths();
 }
 
 /*
@@ -1572,18 +1337,7 @@ void FS_Init( void )
 		stringlistfreecontents(&dirs);
 	}	
 
-	// enable temporary wad support for some tools
-	switch( Sys.app_name )
-	{
-	case HOST_WADLIB:
-	case HOST_RIPPER:
-		fs_use_wads = true;
-		break;
-	default:
-		fs_use_wads = false;
-		break;
-	}
-
+	W_Init();	// init wad system
 	FS_ResetGameInfo();
 	MsgDev(D_INFO, "FS_Init: done\n");
 }
@@ -1676,7 +1430,7 @@ FS_SysOpen
 Internal function used to create a file_t and open the relevant non-packed file on disk
 ====================
 */
-static file_t* FS_SysOpen (const char* filepath, const char* mode )
+static file_t* FS_SysOpen( const char* filepath, const char* mode )
 {
 	file_t* file;
 	int mod, opt;
@@ -1928,155 +1682,10 @@ file_t *FS_OpenReadFile( const char *filename, const char *mode, bool quiet )
 /*
 =============================================================================
 
-WAD LOADING
-
-=============================================================================
-*/
-
-
-typedef struct wadtype_s
-{
-	char	*ext;
-	int	type;
-} wadtype_t;
-
-wadtype_t wad_types[] =
-{
-	// associate extension with wad type
-	{"flp", TYPE_FLMP	}, // doom1 menu picture
-	{"snd", TYPE_SND	}, // doom1 sound
-	{"mus", TYPE_MUS	}, // doom1 .mus format
-	{"skn", TYPE_SKIN	}, // doom1 sprite model
-	{"flt", TYPE_FLAT	}, // doom1 wall texture
-	{"pal", TYPE_QPAL	}, // palette
-	{"lmp", TYPE_QPIC	}, // quake1, hl pic
-	{"mip", TYPE_MIPTEX2}, // hl texture
-	{"mip", TYPE_MIPTEX }, // quake1 mip
-	{"raw", TYPE_RAW	}, // signed raw data
-	{"txt", TYPE_SCRIPT	}, // xash script file
-	{"lst", TYPE_SCRIPT	}, // xash script file
-	{"aur", TYPE_SCRIPT	}, // xash aurora file
-	{"qc",  TYPE_SCRIPT	}, // xash qc-script file
-	{"qh",  TYPE_SCRIPT	}, // xash qc-header file
-	{"c",   TYPE_SCRIPT	}, // xash c-source file
-	{"h",   TYPE_SCRIPT	}, // xash c-header file
-	{"dat", TYPE_VPROGS	}, // xash progs
-	{ NULL, TYPE_NONE	}
-};
-
-/*
-===========
-FS_OpenWad3File
-
-Look for a file in the loaded wadfiles and returns buffer with image lump
-===========
-*/
-static byte *FS_OpenWadFile( const char *name, fs_offset_t *filesizeptr, int matchtype )
-{
-	uint	i, k;
-	wadfile_t	*w;
-	string	basename;
-	char	texname[17];
-
-	// no wads loaded
-	if(!fs_searchwads) return NULL;
-	
-	// note: wad images can't have real pathes
-	// so, extarct base name from path
-	_FS_FileBase( name, basename, false );
-	if( filesizeptr ) *filesizeptr = 0;
-
-          MsgDev( D_NOTE, "FS_OpenWadFile: %s\n", basename );
-		
-	if(com_strlen(basename) > WAD3_NAMELEN )
-	{
-		MsgDev( D_NOTE, "FS_OpenWadFile: %s too long name\n", basename );		
-		return NULL;
-	}
-	com_strnlwr( basename, texname, WAD3_NAMELEN );
-		
-	for( k = 0; k < Mem_ArraySize( fs_searchwads ); k++ )
-	{
-		w = (wadfile_t *)Mem_GetElement( fs_searchwads, k );
-		if( !w ) continue;
-
-		for(i = 0; i < (uint)w->numlumps; i++)
-		{
-			if(!com_stricmp(texname, w->lumps[i].name))
-			{
-				byte		*buf, *cbuf;
-				size_t		size;
-
-				if(matchtype != (int)w->lumps[i].type) return NULL; // try next type
-				if(FS_Seek(w->file, w->lumps[i].filepos, SEEK_SET))
-				{
-					MsgDev(D_ERROR, "FS_OpenWadFile: %s probably corrupted\n", texname );
-					return NULL;
-				}
-				switch((int)w->lumps[i].compression)
-				{
-				case CMP_NONE:
-					buf = (byte *)Mem_Alloc( fs_mempool, w->lumps[i].disksize );
-					size = FS_Read(w->file, buf, w->lumps[i].disksize );
-					if( size < w->lumps[i].disksize )
-					{
-						Mem_Free( buf );
-						MsgDev(D_WARN, "FS_OpenWadFile: %s probably corrupted\n", texname );
-						return NULL;
-					}
-					break;
-				case CMP_LZSS:
-					// never used by Id Software or Valve ?
-					MsgDev(D_WARN, "FS_OpenWadFile: lump %s have unsupported compression type\n", texname );
-					return NULL;
-				case CMP_ZLIB:
-					cbuf = (byte *)Mem_Alloc( fs_mempool, w->lumps[i].disksize );
-					size = FS_Read(w->file, cbuf, w->lumps[i].disksize );
-					buf = (byte *)Mem_Alloc( fs_mempool, w->lumps[i].size );
-					if(!VFS_Unpack( cbuf, size, &buf, w->lumps[i].size ))
-					{
-						Mem_Free( buf ), Mem_Free( cbuf );
-						MsgDev(D_WARN, "FS_OpenWadFile: %s probably corrupted\n", texname );
-						return NULL;
-					}
-					Mem_Free( cbuf ); // no reason to keep this data
-					break;
-				}					
-				if(filesizeptr) *filesizeptr = w->lumps[i].disksize;
-				return buf;
-			}
-		}
-	}
-	return NULL;
-}
-
-byte *FS_LoadFileFromWAD( const char *path, fs_offset_t *filesizeptr )
-{
-	wadtype_t		*type;
-          const char	*ext = FS_FileExtension( path );
-	bool		anyformat = !com_stricmp( ext, "" ) ? true : false;
-	byte		*f;
-
-	// now try all the formats in the selected list
-	for( type = wad_types; type->ext; type++ )
-	{
-		if( anyformat || !com_stricmp( ext, type->ext ))
-		{
-			f = FS_OpenWadFile( path, filesizeptr, type->type );
-			if( f ) return f; // found
-		}
-	}
-	return NULL;
-}
-
-/*
-=============================================================================
-
 MAIN PUBLIC FUNCTIONS
 
 =============================================================================
 */
-
 /*
 ====================
 FS_Open
@@ -2600,7 +2209,7 @@ byte *FS_LoadFile (const char *path, fs_offset_t *filesizeptr )
 		FS_Read (file, buf, filesize);
 		FS_Close (file);
 	}
-	else buf = FS_LoadFileFromWAD( path, &filesize );
+	else buf = W_LoadFile( path, &filesize );
 
 	if( filesizeptr ) *filesizeptr = filesize;
 	return buf;
@@ -2692,36 +2301,8 @@ bool FS_FileExists (const char *filename)
 	if(FS_FindFile( filename, NULL, true))
 		return true;
 
-	if( fs_searchwads )
-	{
-		wadtype_t		*type;
-		wadfile_t		*w; // names will be associated with lump types
-		const char	*ext = FS_FileExtension( filename );
-		string		lumpname;
-		int		k, i;
-
-		FS_FileBase( filename, lumpname );
-
-		// lookup all wads in list
-		for( k = 0; k < Mem_ArraySize( fs_searchwads ); k++ )
-		{
-			w = (wadfile_t *)Mem_GetElement( fs_searchwads, k );
-			if( !w ) continue;
-
-			for(i = 0; i < (uint)w->numlumps; i++)
-			{
-				for (type = wad_types; type->ext; type++)
-				{
-					// associate extension with lump->type
-					if((!com_stricmp( ext, type->ext ) && type->type == (int)w->lumps[i].type))
-					{
-						if(!com_stricmp( lumpname, w->lumps[i].name ))
-							return true;
-					}
-				}
-			}
-		}
-	}
+	if(W_FileExists( filename ))
+		return true;
 	return false;
 }
 
@@ -2780,12 +2361,13 @@ static search_t *_FS_Search( const char *pattern, int caseinsensitive, int quiet
 	search_t		*search = NULL;
 	searchpath_t	*searchpath;
 	pack_t		*pak;
-	int		i, k, basepathlength, numfiles, numchars, resultlistindex, dirlistindex;
+	int		i, basepathlength, numfiles, numchars;
+	int		resultlistindex, dirlistindex;
+	const char	*slash, *backslash, *colon, *separator;
+	string		netpath, temp;
 	stringlist_t	resultlist;
 	stringlist_t	dirlist;
-	const char	*slash, *backslash, *colon, *separator;
 	char		*basepath;
-	string		netpath, temp;
 
 	for( i = 0; pattern[i] == '.' || pattern[i] == ':' || pattern[i] == '/' || pattern[i] == '\\'; i++ );
 
@@ -2872,56 +2454,9 @@ static search_t *_FS_Search( const char *pattern, int caseinsensitive, int quiet
 		}
 	}
 
-	// also lookup all wad-files
-	if( fs_searchwads )
-	{
-		wadtype_t		*type;
-		wadfile_t		*w; // names will be associated with lump types
-		const char	*ext = FS_FileExtension( pattern );
-         		bool		anyformat = !com_stricmp(ext, "*") ? true : false;
-		bool		anywadname = true;
-		string		lumpname, wadname;
+	W_Search( pattern, caseinsensitive, &resultlist );
 
-		// using wadname as part of path to file
-		// this pretty solution for "dead" lumps (duplicated files in different wads) 
-		FS_FileBase( pattern, lumpname );
-		FS_ExtractFilePath( pattern, wadname );
-		if(com_strlen(wadname))
-		{
-			FS_FileBase( wadname, wadname );
-			anywadname = false;
-		}
-
-		for( k = 0; k < Mem_ArraySize( fs_searchwads ); k++ )
-		{
-			w = (wadfile_t *)Mem_GetElement( fs_searchwads, k );
-			if( !w ) continue;
-
-			if(com_stricmp( wadname, w->name ) && !anywadname )
-				continue;
-
-			for(i = 0; i < (uint)w->numlumps; i++)
-			{
-				for (type = wad_types; type->ext; type++)
-				{
-					// associate extension with lump->type
-					if(anyformat || (!com_stricmp( ext, type->ext ) && type->type == (int)w->lumps[i].type))
-					{
-						if(SC_FilterToken(lumpname, w->lumps[i].name, !caseinsensitive ))
-						{
-							// build path: wadname/lumpname.ext
-							com_snprintf(temp, sizeof(temp), "%s/%s", w->name, w->lumps[i].name );
-							FS_DefaultExtension( temp, va(".%s", type->ext )); // make ext
-							stringlistappend(&resultlist, temp );
-							break; // found, compare to next lump
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if (resultlist.numstrings)
+	if( resultlist.numstrings )
 	{
 		stringlistsort(&resultlist);
 		numfiles = resultlist.numstrings;
@@ -2968,7 +2503,6 @@ void FS_InitMemory( void )
 	if( fs_basedir[0] && fs_basedir[com_strlen(fs_basedir) - 1] != '/' && fs_basedir[com_strlen(fs_basedir) - 1] != '\\')
 		com_strncat(fs_basedir, "/", sizeof(fs_basedir));
 
-	fs_searchwads = NULL;
 	fs_searchpaths = NULL;
 }
 

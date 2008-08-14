@@ -77,8 +77,9 @@ typedef struct cl_globalvars_s	cl_globalvars_t;
 typedef struct ui_globalvars_s	ui_globalvars_t;
 typedef struct physbody_s		physbody_t;
 typedef struct cvar_s		cvar_t;
-typedef struct file_s		file_t;
-typedef struct vfile_s		vfile_t;
+typedef struct file_s		file_t;		// normal file
+typedef struct vfile_s		vfile_t;		// virtual file
+typedef struct wfile_s		wfile_t;		// wad file
 typedef void (*xcommand_t) (void);
 
 typedef enum

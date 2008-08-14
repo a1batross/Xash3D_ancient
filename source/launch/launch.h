@@ -297,6 +297,12 @@ extern char sys_rootdir[];
 extern char *fs_argv[];
 extern int fs_argc;
 
+// wadsystem.c
+wfile_t *W_Open( const char *filename, const char *mode );
+byte *W_LoadLump( wfile_t *wad, const char *lump, size_t *size, const char type );
+fs_offset_t W_SaveLump( wfile_t *wad, const char *lump, const void* data, size_t size, char type, char cmp );
+void W_Close( wfile_t *wad );
+
 // simply files managment interface
 byte *FS_LoadFile (const char *path, fs_offset_t *filesizeptr );
 bool FS_WriteFile (const char *filename, const void *data, fs_offset_t len);
