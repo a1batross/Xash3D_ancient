@@ -225,8 +225,8 @@ rmodel_t *Mod_ForName( const char *name, bool crash)
 	com.strncpy( mod->name, name, MAX_STRING );
 	
 	// load the file
-	buf = (uint *)FS_LoadFile (mod->name, &modfilelen);
-	if (!buf)
+	buf = (uint *)FS_LoadFile( mod->name, &modfilelen );
+	if( !buf )
 	{
 		if (crash) Host_Error( "Mod_NumForName: %s not found\n", mod->name);
 		memset (mod->name, 0, sizeof(mod->name));
@@ -245,13 +245,13 @@ rmodel_t *Mod_ForName( const char *name, bool crash)
 	switch (LittleLong(*(uint *)buf))
 	{
 	case IDBSPMODHEADER:
-		Mod_LoadBrushModel (mod, buf);
+		Mod_LoadBrushModel( mod, buf );
 		break;
 	case IDSTUDIOHEADER:
-		Mod_LoadStudioModel ( mod, buf );
+		Mod_LoadStudioModel( mod, buf );
 		break;
 	case IDSPRITEHEADER:
-		Mod_LoadSpriteModel ( mod, buf );
+		Mod_LoadSpriteModel( mod, buf );
 		break;
 	default:
 		//will be freed at end of registration

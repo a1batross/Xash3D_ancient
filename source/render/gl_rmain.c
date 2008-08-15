@@ -1313,7 +1313,6 @@ bool R_UploadImage( const char *unused, int index )
 	if( !r_worldmodel ) return false;
 	loadmodel = r_worldmodel;
 
-	Msg("load texture %s\n", loadmodel->textures[index].name );
 	texture = R_FindImage( loadmodel->textures[index].name, NULL, 0, it_wall );
 	loadmodel->textures[index].image = texture; // now all pointers are valid
 

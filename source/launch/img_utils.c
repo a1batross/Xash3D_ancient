@@ -129,11 +129,7 @@ void Image_RoundDimensions( int *scaled_width, int *scaled_height )
 bool Image_ValidSize( const char *name )
 {
 	if( image_width > IMAGE_MAXWIDTH || image_height > IMAGE_MAXHEIGHT || image_width <= 0 || image_height <= 0 )
-	{
-		if(!com_stristr( name, "#internal" )) // internal errors are silent
-			MsgDev(D_WARN, "Image_ValidSize: (%s) dims out of range[%dx%d]\n", name, image_width,image_height );
 		return false;
-	}
 	return true;
 }
 

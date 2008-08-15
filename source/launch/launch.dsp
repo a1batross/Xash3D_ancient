@@ -198,10 +198,6 @@ SOURCE=.\stdlib.c
 
 SOURCE=.\system.c
 # End Source File
-# Begin Source File
-
-SOURCE=.\wadsystem.c
-# End Source File
 # End Group
 # Begin Group "Header Files"
 

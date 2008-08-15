@@ -16,14 +16,10 @@ bool ConvSKN( const char *name, char *buffer, int filesize )
 {
 	rgbdata_t *pic = FS_LoadImage( "#internal.flt", buffer, filesize );
 	string	savedname, skinname, wad;
-	int	k, l;
 
 	if( pic )
 	{
 		com.strncpy( savedname, name, MAX_STRING );
-		k = com.strlen( com.strchr( savedname, '\\' ));
-		l = com.strlen( savedname );
-		if( k ) savedname[l-k] = '#';	// stupid doom2 name "vile1\"
 		FS_ExtractFilePath( name, wad );
 		FS_StripExtension( savedname );
 		FS_FileBase( savedname, skinname );
@@ -96,7 +92,6 @@ bool ConvMIP( const char *name, char *buffer, int filesize )
 {
 	rgbdata_t *pic;
 	string	savedname, path;
-	int	k, l;
 
 	if(com.stristr( name, "gfx/conchars" )) // AGRHHHHHHH!!!!!!!!!!!!!!!!111
 		pic = FS_LoadImage( "conchars", buffer, filesize );
@@ -109,9 +104,6 @@ bool ConvMIP( const char *name, char *buffer, int filesize )
 	if( pic )
 	{
 		com.strncpy( savedname, name, MAX_STRING );
-		k = com.strlen( com.strchr( savedname, '*' ));
-		l = com.strlen( savedname );
-		if( k ) savedname[l-k] = '!'; // quake1 issues
 		FS_StripExtension( savedname );
 
 		if(com.stristr( name, "gfx/conchars" ))

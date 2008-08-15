@@ -40,6 +40,7 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 	targa_header.width = image_width = BuffLittleShort( fin ); fin += 2;
 	targa_header.height = image_height = BuffLittleShort( fin );fin += 2;
 
+	// check for tga file
 	if(!Image_ValidSize( name )) return false;
 
 	image_num_layers = 1;

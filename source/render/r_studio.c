@@ -1303,14 +1303,14 @@ bool R_AcceptStudioPass( int flags, int pass )
 		if(!flags) return true;			// draw all
 		if(flags & STUDIO_NF_ADDITIVE) return false;	// draw it at second pass (and chrome too)
 		if(flags & STUDIO_NF_CHROME) return true;	// chrome drawing once (without additive)
-		if(flags & STUDIO_NF_TRANSPARENT) return false;	// must be draw first always
+		if(flags & STUDIO_NF_TRANSPARENT) return true;	// must be draw first always
 	}	
 	if( pass == RENDERPASS_ALPHA )
 	{
 		//pass for blended ents
 		if(m_pCurrentEntity->renderfx & RF_TRANSLUCENT) 	return true;
 		if(!flags) return false;			// skip all
-		if(flags & STUDIO_NF_TRANSPARENT) return true;	// must be draw first always
+		if(flags & STUDIO_NF_TRANSPARENT) return false;	// must be draw first always
 		if(flags & STUDIO_NF_ADDITIVE) return true;	// draw it at second pass
 		if(flags & STUDIO_NF_CHROME) return false;	// skip chrome without additive
 	}

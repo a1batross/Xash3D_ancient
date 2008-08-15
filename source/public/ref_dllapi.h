@@ -547,6 +547,12 @@ typedef struct stdilib_api_s
 	long (*vftell)(vfile_t* file);				// like a ftell
 	bool (*vfeof)( vfile_t* file);				// like a feof
 
+	// wadstorage filesystem
+	wfile_t *(*wfopen)( const char *filename, const char *mode );	// open wad file or create new
+	void (*wfclose)( wfile_t *wad );				// close wadfile
+	long (*wfwrite)( wfile_t *wad, const char *lump, const void* data, size_t datasize, char type, char cmp );
+	byte *(*wfread)( wfile_t *wad, const char *lump, size_t *lumpsizeptr, const char type );
+
 	// filesystem simply user interface
 	byte *(*Com_LoadFile)(const char *path, long *filesize );		// load file into heap
 	bool (*Com_WriteFile)(const char *path, const void *data, long len );	// write file into disk
@@ -787,6 +793,16 @@ virtual filesystem manager
 #define VFS_Eof		com.vfeof
 #define VFS_Close		com.vfclose
 #define VFS_Unpack		com.vfunpack
+
+/*
+===========================================
+wadstorage filesystem manager
+===========================================
+*/
+#define WAD_Open		com.wfopen
+#define WAD_Close		com.wfclose
+#define WAD_Write		com.wfwrite
+#define WAD_Read		com.wfread
 
 /*
 ===========================================

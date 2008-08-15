@@ -36,7 +36,8 @@ void Conv_BspTextures( const char *name, lump_t *l )
 	dmiptexlump_t	*m;
 	string		genericname;
 	mip_t		*mip;
-	int		i, *dofs, size;
+	int		i, k;
+	int		*dofs, size;
 	byte		*buffer;
 
 	if(!l->filelen) return; // no textures stored
@@ -51,16 +52,19 @@ void Conv_BspTextures( const char *name, lump_t *l )
 		dofs[i] = LittleLong(dofs[i]);
 		if (dofs[i] == -1) continue;
 
-		// needs to emulate directly loading
+		// needs to simulate directly loading
 		mip = (mip_t *)((byte *)m + dofs[i]);
-		if(!LittleLong(mip->offsets[0])) continue;
+		if(!LittleLong( mip->offsets[0] )) continue;		// not in bsp
 		com.strnlwr(mip->name, mip->name, sizeof(mip->name));	// name
 		buffer = ((byte *)m + dofs[i]);			// buffer
 		size = (int)sizeof(mip_t) + (((mip->width * mip->height) * 85)>>6);
 		if( bsp_halflife ) size += sizeof(short) + 768; // palette
 
+		// check for '*' symbol issues
+		k = com.strlen( com.strrchr( mip->name, '*' ));
+		if( k ) mip->name[com.strlen(mip->name)-k] = '!'; // quake1 issues
 		// some Q1 mods contains blank names (e.g. "after the fall")
-		if(!com.strlen(mip->name)) com.snprintf( mip->name, 16, "%s_%d", genericname, i );
+		if(!com.strlen( mip->name )) com.snprintf( mip->name, 16, "%s_%d", genericname, i );
 		ConvMIP(va("miptex/%s", mip->name ), buffer, size ); // convert it
 	}
 }

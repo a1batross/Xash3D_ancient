@@ -168,6 +168,12 @@ void Sys_GetStdAPI( void )
 	com.vftell = VFS_Tell;		// like a ftell
 	com.vfeof = VFS_Eof;		// like a feof
 
+	// wadstorag filesystem
+	com.wfopen = W_Open;		// open wad file or create new
+	com.wfclose = W_Close;		// close wadfile
+	com.wfwrite = W_SaveLump;		// dump lump into disk
+	com.wfread = W_LoadLump;		// load lump into memory
+
 	// filesystem simply user interface
 	com.Com_LoadFile = FS_LoadFile;		// load file into heap
 	com.Com_WriteFile = FS_WriteFile;		// write file into disk

@@ -115,6 +115,7 @@ infotable	dlumpinfo_t[dwadinfo_t->numlumps]
 #define CMP_LZSS		1	// RLE compression ?
 #define CMP_ZLIB		2	// zip-archive compression
 
+#define TYPE_ANY		-1	// any type can be accepted
 #define TYPE_NONE		0	// blank lump
 #define TYPE_QPAL		64	// quake palette
 #define TYPE_QTEX		65	// probably was never used

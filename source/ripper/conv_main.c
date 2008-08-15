@@ -295,7 +295,7 @@ void RunConvertor( void )
 			if(!com.strlen(searchmask[j])) continue;
 			com.strncat(errorstring, va("%s ", searchmask[j]), MAX_STRING );
 		}
-		Sys_Break("no %sfound in this folder!\n", errorstring );
+		Sys_Break("no %s found in this folder!\n", errorstring );
 	}
 
 	end = Sys_DoubleTime();
