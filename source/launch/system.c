@@ -165,10 +165,12 @@ void Sys_GetStdAPI( void )
 	com.vfprintf = VFS_Printf;		// write formatted message
 	com.vfseek = VFS_Seek;		// fseek, can seek in packfiles too
 	com.vfunpack = VFS_Unpack;		// inflate zipped buffer
+	com.vfbuffer = VFS_GetBuffer;		// get pointer at start vfile buffer
 	com.vftell = VFS_Tell;		// like a ftell
 	com.vfeof = VFS_Eof;		// like a feof
 
 	// wadstorag filesystem
+	com.wfcheck = W_Check;		// validate container
 	com.wfopen = W_Open;		// open wad file or create new
 	com.wfclose = W_Close;		// close wadfile
 	com.wfwrite = W_SaveLump;		// dump lump into disk
@@ -230,6 +232,14 @@ void Sys_GetStdAPI( void )
 	com.vsnprintf = com_vsnprintf;
 	com.snprintf = com_snprintf;
 	com.timestamp = com_timestamp;
+
+	// stringtable.c system
+	com.st_create = StringTable_CreateNewSystem;
+	com.st_getstring = StringTable_GetString;
+	com.st_setstring = StringTable_SetString;
+	com.st_load = StringTable_LoadSystem;
+	com.st_save = StringTable_SaveSystem;
+	com.st_remove = StringTable_DeleteSystem;
 
 	com.GameInfo = &GI;
 }

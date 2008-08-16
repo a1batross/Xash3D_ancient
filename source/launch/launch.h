@@ -301,6 +301,7 @@ extern int fs_argc;
 wfile_t *W_Open( const char *filename, const char *mode );
 byte *W_LoadLump( wfile_t *wad, const char *lumpname, size_t *lumpsizeptr, const char type );
 fs_offset_t W_SaveLump( wfile_t *wad, const char *lump, const void* data, size_t datasize, char type, char cmp );
+int W_Check( const char *filename );
 void W_Close( wfile_t *wad );
 
 // simply files managment interface
@@ -344,7 +345,7 @@ cvar_t *Cvar_FindVar (const char *var_name);
 cvar_t *Cvar_Get (const char *var_name, const char *value, int flags, const char *description);
 void Cvar_Set( const char *var_name, const char *value);
 cvar_t *Cvar_Set2( const char *var_name, const char *value, bool force );
-void Cvar_LookupVars( int checkbit, char *buffer, void *ptr, cvarcmd_t callback );
+void Cvar_LookupVars( int checkbit, void *buffer, void *ptr, setpair_t callback );
 void Cvar_FullSet (char *var_name, char *value, int flags);
 void Cvar_SetLatched( const char *var_name, const char *value);
 void Cvar_SetValue( const char *var_name, float value);
@@ -378,7 +379,7 @@ void Cmd_Init( void );
 void Cmd_AddCommand(const char *cmd_name, xcommand_t function, const char *cmd_desc);
 void Cmd_RemoveCommand(const char *cmd_name);
 bool Cmd_Exists (const char *cmd_name);
-void Cmd_LookupCmds( char *buffer, void *ptr, cvarcmd_t callback );
+void Cmd_LookupCmds( char *buffer, void *ptr, setpair_t callback );
 bool Cmd_GetMapList( const char *s, char *completedname, int length );
 bool Cmd_GetDemoList( const char *s, char *completedname, int length );
 bool Cmd_GetMovieList (const char *s, char *completedname, int length );
@@ -396,6 +397,7 @@ int VFS_Printf(vfile_t* file, const char* format, ...);
 int VFS_Seek( vfile_t *file, fs_offset_t offset, int whence );
 int VFS_Gets(vfile_t* file, byte *string, size_t bufsize );
 bool VFS_Unpack( void* compbuf, size_t compsize, void **buf, size_t size );
+byte *VFS_GetBuffer( vfile_t *file );
 fs_offset_t VFS_Tell (vfile_t* file);
 file_t *VFS_Close( vfile_t *file );
 bool VFS_Eof( vfile_t* file);
@@ -435,5 +437,15 @@ extern char token[];
 //
 void Image_Init( void );
 void Image_Shutdown( void );
+
+//
+// stringtable.c
+//
+int StringTable_CreateNewSystem( const char *name, size_t max_strings );
+string_t StringTable_SetString( int handle, const char *string );
+const char *StringTable_GetString( int handle, string_t index );
+int StringTable_LoadSystem( wfile_t *wad, const char *name );
+bool StringTable_SaveSystem( int h, wfile_t *wad );
+void StringTable_DeleteSystem( int handle );
 
 #endif//LAUNCHER_H

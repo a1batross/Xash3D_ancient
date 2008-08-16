@@ -465,18 +465,6 @@ void CL_FreeEdicts( void );
 void CL_VM_Begin( void );
 void CL_VM_End( void );
 
-_inline edict_t *CLVM_EDICT_NUM( int entnum )
-{
-	edict_t	*ent;
-
-	while( entnum >= prog->max_edicts ) PRVM_MEM_IncreaseEdicts();
-	ent = PRVM_EDICT_NUM( entnum );
-	memset(ent->progs.cl, 0, prog->progs->entityfields * 4);
-	ent->priv.cl->free = false;
-
-	return ent;
-}
-
 //
 // cl_sound.c
 //

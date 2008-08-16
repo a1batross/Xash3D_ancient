@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "vprogs.h"
+#include "const.h"
 
 void Hash_InitTable(hashtable_t *table, int numbucks)
 {

@@ -246,14 +246,17 @@ void *_mem_realloc(byte *poolptr, void *memptr, size_t size, const char *filenam
 	char		*nb;
 	memheader_t	*memhdr;
 
-	if (size <= 0) return memptr; // no need to reallocate
+	if( size <= 0 ) return memptr; // no need to reallocate
 	nb = _mem_alloc(poolptr, size, filename, fileline);
 
 	if( memptr ) // first allocate?
 	{ 
+		size_t	newsize;
+
 		// get size of old block
 		memhdr = (memheader_t *)((byte *)memptr - sizeof(memheader_t));
-		_mem_copy( nb, memptr, memhdr->size, filename, fileline );
+		newsize = memhdr->size < size ? memhdr->size : size; // upper data can be trucnated!
+		_mem_copy( nb, memptr, newsize, filename, fileline );
 		_mem_free( memptr, filename, fileline); // free unused old block
           }
 

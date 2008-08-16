@@ -10,14 +10,7 @@ byte		*qccpool;
 int		com_argc = 0;
 char		**com_argv;
 char		v_copyright[1024];
-uint		MAX_REGS;
 int		MAX_ERRORS;
-int		MAX_STRINGS;
-int		MAX_GLOBALS;
-int		MAX_FIELDS;
-int		MAX_STATEMENTS;
-int		MAX_FUNCTIONS;
-int		MAX_CONSTANTS;
 int		numtemps;
 bool		compileactive = false;
 char		progsoutname[MAX_SYSPATH];
@@ -155,17 +148,8 @@ void PR_InitCompile( const char *name )
 	com.strncat(v_copyright,"This file was created with Xash3D QuakeC compiler,\n", sizeof(v_copyright));
 	com.strncat(v_copyright,"who based on original code of ForeThought's QuakeC compiler.\n",sizeof(v_copyright));
 	com.strncat(v_copyright,"Thanks to ID Software at all.", sizeof(v_copyright));
-
-	// tune limits
-	MAX_REGS		= 65536;
-	MAX_ERRORS	= 10; // per one file
-	MAX_STRINGS	= 1000000;
-	MAX_GLOBALS	= 32768;
-	MAX_FIELDS	= 2048;
-	MAX_STATEMENTS	= 0x80000;
-	MAX_FUNCTIONS	= 16384;
-	maxtypeinfos	= 16384;
-	MAX_CONSTANTS	= 2048;
+	MAX_ERRORS = 10; // per one file
+	maxtypeinfos = 16384;
 
 	PR_SetDefaultProperties();
 	
@@ -382,20 +366,17 @@ vprogs_exp_t DLLEXPORT *CreateAPI( stdlib_api_t *input, void *unused )
 	vm.Update = PRVM_Frame;
 
 	vm.WriteGlobals = PRVM_ED_WriteGlobals;
-	vm.ParseGlobals = PRVM_ED_ParseGlobals;
+	vm.ReadGlobals = PRVM_ED_ReadGlobals;
 	vm.PrintEdict = PRVM_ED_Print;
 	vm.WriteEdict = PRVM_ED_Write;
-	vm.ParseEdict = PRVM_ED_ParseEdict;
+	vm.ReadEdict = PRVM_ED_Read;
 	vm.AllocEdict = PRVM_ED_Alloc;
 	vm.FreeEdict = PRVM_ED_Free;
-	vm.IncreaseEdicts = PRVM_MEM_IncreaseEdicts;
 
 	vm.LoadFromFile = PRVM_ED_LoadFromFile;
 	vm.GetString = PRVM_GetString;
 	vm.SetEngineString = PRVM_SetEngineString;
 	vm.SetTempString = PRVM_SetTempString;
-	vm.AllocString = PRVM_AllocString;
-	vm.FreeString = PRVM_FreeString;
 
 	vm.InitProg = PRVM_InitProg;
 	vm.SetProg = PRVM_SetProg;

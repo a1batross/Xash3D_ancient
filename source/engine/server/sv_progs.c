@@ -6,8 +6,7 @@
 #include "common.h"
 #include "server.h"
 #include "byteorder.h"
-
-byte	*sav_base;
+#include "const.h"
 
 /*
 ============
@@ -234,8 +233,8 @@ bool SV_EntitiesIn( bool mode, vec3_t v1, vec3_t v2 )
 	leafnum = pe->PointLeafnum (v1);
 	cluster = pe->LeafCluster (leafnum);
 	area1 = pe->LeafArea (leafnum);
-	if( mode == DVIS_PHS ) mask = pe->ClusterPHS (cluster);
-	else if( mode == DVIS_PVS ) mask = pe->ClusterPVS (cluster); 
+	if( mode == DVIS_PHS ) mask = pe->ClusterPHS( cluster );
+	else if( mode == DVIS_PVS ) mask = pe->ClusterPVS( cluster ); 
 	else Host_Error( "SV_EntitiesIn: unsupported mode\n" );
 
 	leafnum = pe->PointLeafnum (v2);
@@ -256,95 +255,72 @@ Save\Load gamestate
 savefile operations
 ============
 */
-void SV_AddSaveLump( dsavehdr_t *hdr, file_t *f, int lumpnum, void *data, int len )
-{
-	lump_t	*lump;
+static int s_table;
 
-	lump = &hdr->lumps[lumpnum];
-	lump->fileofs = LittleLong( FS_Tell(f));
-	lump->filelen = LittleLong(len);
-	FS_Write(f, data, (len + 3) & ~3 ); // align
+void SV_AddSaveLump( wfile_t *f, const char *lumpname, void *data, size_t len, bool compress )
+{
+	WAD_Write( f, lumpname, data, len, TYPE_BINDATA, ( compress ? CMP_ZLIB : CMP_NONE ));
 }
 
-static void Cvar_AddToBuffer( const char *name, const char *string, const char *buffer, int *bufsize )
+static void SV_SetPair( const char *name, const char *value, dkeyvalue_t *cvars, int *numpairs )
 {
-	if( com.strlen(name) >= 64 || com.strlen(string) >= 64 )
-	{
-		MsgDev(D_NOTE, "cvar too long: %s = %s\n", name, string);
-		return;
-	}
-	*bufsize = com.strpack((char *)buffer, *bufsize, (char *)name, com.strlen(name)); 
-	*bufsize = com.strpack((char *)buffer, *bufsize, (char *)string, com.strlen(string));
+	if( !name || !value ) return; // SetString can't register null strings
+	cvars[*numpairs].epair[DENT_KEY] = StringTable_SetString( s_table, name );
+	cvars[*numpairs].epair[DENT_VAL] = StringTable_SetString( s_table, value);
+	(*numpairs)++; // increase epairs
 }
 
-void SV_AddCvarLump( dsavehdr_t *hdr, file_t *f )
+void SV_AddCvarLump( wfile_t *f )
 {
-	int	bufsize = 1; // null terminator 
-	char	*cvbuffer = Z_Malloc( MAX_MSGLEN );
-
-	Cvar_LookupVars( CVAR_LATCH, cvbuffer, &bufsize, Cvar_AddToBuffer );
-	SV_AddSaveLump( hdr, f, LUMP_GAMECVARS, cvbuffer, bufsize );
-
-	Mem_Free( cvbuffer ); // free buffer
+	dkeyvalue_t	cvbuffer[MAX_FIELDS];
+	int		numpairs = 0;
+	
+	Cvar_LookupVars( CVAR_LATCH, cvbuffer, &numpairs, SV_SetPair );
+	SV_AddSaveLump( f, "latched_cvars", cvbuffer, numpairs * sizeof(dkeyvalue_t), true );
 }
 
-void SV_AddCStrLump( dsavehdr_t *hdr, file_t *f )
+void SV_AddCStrLump( wfile_t *f )
 {
-	int	i, stringsize, bufsize = 1; // null terminator
-	char	*csbuffer = Z_Malloc( MAX_CONFIGSTRINGS * MAX_QPATH );
+	string_t		csbuffer[MAX_CONFIGSTRINGS];
+	int		i;
 
 	// pack the cfg string data
 	for(i = 0; i < MAX_CONFIGSTRINGS; i++)
-	{
-		stringsize = bound(0, com.strlen(sv.configstrings[i]), MAX_QPATH);
-		bufsize = com.strpack(csbuffer, bufsize, sv.configstrings[i], stringsize ); 
-	}	
-	SV_AddSaveLump( hdr, f, LUMP_CFGSTRING, csbuffer, bufsize );
-	Mem_Free( csbuffer ); // free memory
+		csbuffer[i] = StringTable_SetString( s_table, sv.configstrings[i] );
+	SV_AddSaveLump( f, "config_strings", &csbuffer, sizeof(csbuffer), true );
 }
 
-void SV_WriteGlobal( dsavehdr_t *hdr, file_t *f )
+void SV_WriteGlobal( wfile_t *f )
 {
-	vfile_t	*h = VFS_Open( f, "wz" ); // zip-compression
-	lump_t	*lump;
-	int	len, pos;
-
-	lump = &hdr->lumps[LUMP_GAMESTATE];
-	lump->fileofs = LittleLong( FS_Tell(f));
+	dkeyvalue_t	globals[MAX_FIELDS];
+	int		numpairs = 0;
 
 	SV_VM_Begin();
-	PRVM_ED_WriteGlobals( h );
+	PRVM_ED_WriteGlobals( &globals, &numpairs, SV_SetPair );
 	SV_VM_End();
-	pos = VFS_Tell( h );
 
-	FS_Write(f, &pos, sizeof(int)); // first four bytes is real filelength
-	f = VFS_Close( h );
-
-	len = LittleLong(FS_Tell(f));
-	lump->filelen = LittleLong( len - lump->fileofs ); // store compressed file length
+	SV_AddSaveLump( f, "globals", &globals, numpairs * sizeof(dkeyvalue_t), true );
 }
 
-void SV_WriteLocals( dsavehdr_t *hdr, file_t *f )
+void SV_WriteLocals( wfile_t *f )
 {
-	vfile_t	*h = VFS_Open( f, "wz" ); // zip-compression
-	lump_t	*lump;
-	int	i, len, pos;
-
-	lump = &hdr->lumps[LUMP_GAMEENTS];
-	lump->fileofs = LittleLong( FS_Tell(f));
+	dkeyvalue_t	fields[MAX_FIELDS];
+	vfile_t		*h = VFS_Open( NULL, "wb" );
+	int		i, numpairs = 0;
 
 	SV_VM_Begin();
-	for(i = 0; i < prog->num_edicts; i++)
+	for( i = 0; i < prog->num_edicts; i++ )
 	{
-		PRVM_ED_Write(h, PRVM_EDICT_NUM(i));
+		numpairs = 0; // reset fields info
+		PRVM_ED_Write( PRVM_EDICT_NUM( i ), &fields, &numpairs, SV_SetPair );
+		VFS_Write( h, &numpairs, sizeof( int ));		// numfields
+		VFS_Write( h, &fields, numpairs * sizeof( dkeyvalue_t ));	// fields
 	}
 	SV_VM_End();
-	pos = VFS_Tell( h );
-	
-	FS_Write(f, &pos, sizeof(int)); // first four bytes is real filelength
-	f = VFS_Close(h);
-	len = LittleLong(FS_Tell(f));
-	lump->filelen = LittleLong( len - lump->fileofs ); // store compressed file length
+
+	// all allocated memory will be freed at end of SV_WriteSaveFile
+	SV_AddSaveLump( f, "entities", VFS_GetBuffer( h ), VFS_Tell( h ), true );
+	VFS_Close( h ); // release virtual file
 }
 
 /*
@@ -352,13 +328,12 @@ void SV_WriteLocals( dsavehdr_t *hdr, file_t *f )
 SV_WriteSaveFile
 =============
 */
-void SV_WriteSaveFile( char *name )
+void SV_WriteSaveFile( const char *name )
 {
-	char		path[MAX_SYSPATH];
 	string		comment;
-	dsavehdr_t	*header;
-	file_t		*savfile;
+	wfile_t		*savfile;
 	bool		autosave = false;
+	char		path[MAX_SYSPATH];
 	byte		*portalopen = Z_Malloc( MAX_MAP_AREAPORTALS );
 	int		portalsize;
 
@@ -377,174 +352,124 @@ void SV_WriteSaveFile( char *name )
 	}
 
 	if(!com.strcmp(name, "save0.bin")) autosave = true;
-	com.sprintf (path, "save/%s", name );
-	savfile = FS_Open( path, "wb");
+	com.sprintf( path, "save/%s", name );
+	savfile = WAD_Open( path, "wb" );
 
-	if(!savfile)
+	if( !savfile )
 	{
 		MsgDev(D_ERROR, "SV_WriteSaveFile: failed to open %s\n", path );
 		return;
 	}
 
 	MsgDev (D_INFO, "Saving game..." );
-	com.sprintf (comment, "%s - %s", sv.configstrings[CS_NAME], timestamp(TIME_FULL));
-
-	header = (dsavehdr_t *)Z_Malloc( sizeof(dsavehdr_t));
-	header->ident = LittleLong (IDSAVEHEADER);
-	header->version = LittleLong (SAVE_VERSION);
-	FS_Write( savfile, header, sizeof(dsavehdr_t));
+	com.sprintf (comment, "%s - %s", sv.configstrings[CS_NAME], timestamp( TIME_FULL ));
+	s_table = StringTable_Create( name, MAX_MAP_NUMSTRINGS );
           
 	// write lumps
 	pe->GetAreaPortals( &portalopen, &portalsize );
-	SV_AddSaveLump( header, savfile, LUMP_COMMENTS, comment, sizeof(comment));
-	SV_AddCStrLump( header, savfile );
-	SV_AddSaveLump( header, savfile, LUMP_AREASTATE, portalopen, portalsize );
-	SV_WriteGlobal( header, savfile );
-	SV_AddSaveLump( header, savfile, LUMP_MAPNAME, svs.mapcmd, sizeof(svs.mapcmd));
-	SV_AddCvarLump( header, savfile );
-	SV_WriteLocals( header, savfile );
-	
-	// merge header
-	FS_Seek( savfile, 0, SEEK_SET );
-	FS_Write( savfile, header, sizeof(dsavehdr_t));
-	FS_Close( savfile );
-	Mem_Free( portalopen);
-	Mem_Free( header );
-	MsgDev(D_INFO, "done.\n");
+	SV_AddSaveLump( savfile, "map_comment", comment, sizeof(comment), false );
+	SV_AddCStrLump( savfile );
+	SV_AddSaveLump( savfile, "areaportals", portalopen, portalsize, true );
+	SV_WriteGlobal( savfile );
+	SV_AddSaveLump( savfile, "map_name", svs.mapcmd, sizeof(svs.mapcmd), false );
+	SV_AddCvarLump( savfile );
+	SV_WriteLocals( savfile );
+	StringTable_Save( s_table, savfile );	// now system released
+	Mem_Free( portalopen );		// release portalinfo
+	WAD_Close( savfile );
+
+	MsgDev( D_INFO, "done.\n" );
 }
 
-void Sav_LoadComment( lump_t *l )
+void Sav_LoadComment( wfile_t *l )
 {
 	byte	*in;
 	int	size;
 
-	in = (void *)(sav_base + l->fileofs);
-	if (l->filelen % sizeof(*in)) Host_Error("Sav_LoadComment: funny lump size\n" );
-
-	size = l->filelen / sizeof(*in);
+	in = WAD_Read( l, "map_comment", &size, TYPE_BINDATA );
 	com.strncpy( svs.comment, in, size );
 }
 
-void Sav_LoadCvars( lump_t *l )
+void Sav_LoadCvars( wfile_t *l )
 {
-	char	name[64], string[64];
-	int	size, pos = 0;
-	byte	*in;
+	dkeyvalue_t	*in;
+	int		i, numpairs;
+	const char	*name, *value;
 
-	in = (void *)(sav_base + l->fileofs);
-	if (l->filelen % sizeof(*in)) Host_Error("Sav_LoadCvars: funny lump size\n" );
-	size = l->filelen / sizeof(*in);
+	in = (dkeyvalue_t *)WAD_Read( l, "latched_cvars", &numpairs, TYPE_BINDATA );
+	if( numpairs % sizeof(*in)) Host_Error( "Sav_LoadCvars: funny lump size\n" );
+	numpairs /= sizeof( dkeyvalue_t );
 
-	while(pos < size)
+	for( i = 0; i < numpairs; i++ )
 	{
-		pos = com.strunpack( in, pos, name );  
-		pos = com.strunpack( in, pos, string );  
-		Cvar_SetLatched( name, string );
+		name = StringTable_GetString( s_table, in[i].epair[DENT_KEY] );
+		value = StringTable_GetString( s_table, in[i].epair[DENT_VAL] );
+		Cvar_SetLatched( name, value );
 	}
 }
 
-void Sav_LoadMapCmds( lump_t *l )
+void Sav_LoadMapCmds( wfile_t *l )
 {
 	byte	*in;
 	int	size;
 
-	in = (void *)(sav_base + l->fileofs);
-	if (l->filelen % sizeof(*in)) Host_Error("Sav_LoadMapCmds: funny lump size\n" );
-
-	size = l->filelen / sizeof(*in);
-	com.strncpy(svs.mapcmd, in, size );
+	in = WAD_Read( l, "map_name", &size, TYPE_BINDATA );
+	com.strncpy( svs.mapcmd, in, size );
 }
 
-void Sav_LoadCfgString( lump_t *l )
+void Sav_LoadCfgString( wfile_t *l )
 {
-	char	*in;
-	int	i, pos = 0;
+	string_t	*in;
+	int	i, numstrings;
 
-	in = (void *)(sav_base + l->fileofs);
-	if (l->filelen % sizeof(*in)) Host_Error("Sav_LoadCfgString: funny lump size\n" );
+	in = (string_t *)WAD_Read( l, "config_strings", &numstrings, TYPE_BINDATA );
+	if( numstrings % sizeof(*in)) Host_Error( "Sav_LoadCfgString: funny lump size\n" );
+	numstrings /= sizeof( string_t ); // because old saves can contain last values of MAX_CONFIGSTRINGS
 
 	// unpack the cfg string data
-	for(i = 0; i < MAX_CONFIGSTRINGS; i++)
-	{
-		pos = com.strunpack( in, pos, sv.configstrings[i] );  
-	}
+	for( i = 0; i < numstrings; i++ )
+		com.strncpy( sv.configstrings[i], StringTable_GetString( s_table, in[i] ), MAX_QPATH );  
 }
 
-void Sav_LoadAreaPortals( lump_t *l )
+void Sav_LoadAreaPortals( wfile_t *l )
 {
 	byte	*in;
 	int	size;
 
-	in = (void *)(sav_base + l->fileofs);
-	if (l->filelen % sizeof(*in)) Host_Error("Sav_LoadAreaPortals: funny lump size\n" );
-
-	size = l->filelen / sizeof(*in);
+	in = WAD_Read( l, "areaportals", &size, TYPE_BINDATA );
 	pe->SetAreaPortals( in, size ); // CM_ReadPortalState
 }
 
-void Sav_LoadGlobal( lump_t *l )
+void Sav_LoadGlobal( wfile_t *l )
 {
-	byte	*in, *globals, *ptr;
-	int	size, realsize;
+	dkeyvalue_t	*globals;
+	int		numpairs;
 
-	in = (void *)(sav_base + l->fileofs);
-	if (l->filelen % sizeof(*in)) Host_Error("Sav_LoadGlobal: funny lump size\n" );
-	size = l->filelen / sizeof(*in);
-	realsize = LittleLong(((int *)in)[0]);
-
-	ptr = globals = Z_Malloc( realsize );
-	VFS_Unpack( in+4, size, &globals, realsize );
-	PRVM_ED_ParseGlobals( globals );
-	Mem_Free( ptr ); // free globals
+	globals = (dkeyvalue_t *)WAD_Read( l, "globals", &numpairs, TYPE_BINDATA );
+	if( numpairs % sizeof(*globals)) Host_Error( "Sav_LoadGlobal: funny lump size\n" );
+	numpairs /= sizeof( dkeyvalue_t );
+	PRVM_ED_ReadGlobals( s_table, globals, numpairs );
 }
 
-void Sav_LoadLocals( lump_t *l )
+void Sav_LoadLocals( wfile_t *l )
 {
-	byte	*in, *ents, *ptr;
-	int	size, realsize, entnum = 0;
+	dkeyvalue_t	fields[MAX_FIELDS];
+	int		numpairs, entnum = 0;
+	byte		*buff;
+	size_t		size;
+	vfile_t		*h;
 
-	in = (void *)(sav_base + l->fileofs);
-	if (l->filelen % sizeof(*in)) Host_Error("Sav_LoadLocals: funny lump size\n" );
-	size = l->filelen / sizeof(*in);
-	realsize = LittleLong(((int *)in)[0]);
+	buff = WAD_Read( l, "entities", &size, TYPE_BINDATA );
+	h = VFS_Create( buff, size );
 
-	ptr = ents = Z_Malloc( realsize );
-	VFS_Unpack( in + sizeof(int), size, &ents, realsize );
-
-	while(Com_SimpleGetToken(&ents))
+	while(!VFS_Eof( h ))
 	{
-		edict_t	*ent;
-
-		if( com_token[0] == '{' )
-		{
-			if( entnum >= host.max_edicts )
-				Host_Error("Sav_LoadLocals: too many edicts in save file\n" );
-			while(entnum >= prog->max_edicts) PRVM_MEM_IncreaseEdicts();
-			ent = PRVM_EDICT_NUM( entnum );
-			memset(ent->progs.sv, 0, prog->progs->entityfields * 4);
-			ent->priv.sv->free = false;
-
-			// parse an edict
-			PRVM_ED_ParseEdict( ents, ent );
-			ent->priv.sv->serialnumber = entnum++; // increase serialnumber
-
-			// link it into the bsp tree
-			if(!ent->priv.sv->free) 
-			{
-				SV_LinkEdict( ent );
-				SV_CreatePhysBody( ent );
-				SV_SetPhysForce( ent ); // restore forces ...
-				SV_SetMassCentre( ent ); // and mass force
-			}
-			if( ent->progs.sv->loopsound )
-			{
-				ent->priv.sv->s.soundindex = SV_SoundIndex(PRVM_GetString(ent->progs.sv->loopsound));
-			}
-		}
+		VFS_Read( h, &numpairs, sizeof( int ));
+		VFS_Read( h, &fields, numpairs * sizeof( dkeyvalue_t ));
+		PRVM_ED_Read( s_table, entnum, fields, numpairs );
+		entnum++;
 	}
-
 	prog->num_edicts = entnum;
-	Mem_Free( ptr ); // free ents
 }
 
 /*
@@ -552,37 +477,29 @@ void Sav_LoadLocals( lump_t *l )
 SV_ReadSaveFile
 =============
 */
-void SV_ReadSaveFile( char *name )
+void SV_ReadSaveFile( const char *name )
 {
 	char		path[MAX_SYSPATH];
-	dsavehdr_t	*header;
-	byte		*savfile;
-	int		i, id, size;
+	wfile_t		*savfile;
+	int		s_table;
 
 	com.sprintf(path, "save/%s", name );
-	savfile = FS_LoadFile(path, &size );
+	savfile = WAD_Open( path, "rb" );
 
-	if(!savfile)
+	if( !savfile )
 	{
 		MsgDev(D_ERROR, "SV_ReadSaveFile: can't open %s\n", path );
 		return;
 	}
 
-	header = (dsavehdr_t *)savfile;
-	i = LittleLong (header->version);
-	id = LittleLong (header->ident);
-
-	if(id != IDSAVEHEADER) Host_Error("SV_ReadSaveFile: file %s is corrupted\n", path );
-	if(i != SAVE_VERSION ) Host_Error("file %s from an older save version\n", path );
-
-	sav_base = (byte *)header;
-
-	Sav_LoadComment(&header->lumps[LUMP_COMMENTS]);
-	Sav_LoadCvars(&header->lumps[LUMP_GAMECVARS]);
+	s_table = StringTable_Load( savfile, name );
+	Sav_LoadComment( savfile );
+	Sav_LoadCvars( savfile );
+	StringTable_Delete( s_table );
 	
 	SV_InitGame(); // start a new game fresh with new cvars
-	Sav_LoadMapCmds(&header->lumps[LUMP_MAPNAME]);
-	Mem_Free( savfile );
+	Sav_LoadMapCmds( savfile );
+	WAD_Close( savfile );
 	CL_Drop();
 }
 
@@ -594,68 +511,55 @@ SV_ReadLevelFile
 void SV_ReadLevelFile( const char *name )
 {
 	char		path[MAX_SYSPATH];
-	dsavehdr_t	*header;
-	byte		*savfile;
-	int		i, id, size;
+	wfile_t		*savfile;
+	int		s_table;
 
 	com.sprintf (path, "save/%s", name );
-	savfile = FS_LoadFile(path, &size );
+	savfile = WAD_Open( path, "rb" );
 
-	if(!savfile)
+	if( !savfile )
 	{
-		MsgDev(D_ERROR, "SV_ReadLevelFile: can't open %s\n", path );
+		MsgDev( D_ERROR, "SV_ReadLevelFile: can't open %s\n", path );
 		return;
 	}
 
-	header = (dsavehdr_t *)savfile;
-	i = LittleLong (header->version);
-	id = LittleLong (header->ident);
-
-	if(id != IDSAVEHEADER) Host_Error("SV_ReadSaveFile: file %s is corrupted\n", path );
-	if (i != SAVE_VERSION) Host_Error("file %s from an older save version\n", path );
-
-	sav_base = (byte *)header;
-	Sav_LoadCfgString(&header->lumps[LUMP_CFGSTRING]);
-	Sav_LoadAreaPortals(&header->lumps[LUMP_AREASTATE]);
-	Sav_LoadGlobal(&header->lumps[LUMP_GAMESTATE]);
-	Sav_LoadLocals(&header->lumps[LUMP_GAMEENTS]);
-	Mem_Free( savfile );
+	s_table = StringTable_Load( savfile, name );
+	Sav_LoadCfgString( savfile );
+	Sav_LoadAreaPortals( savfile );
+	Sav_LoadGlobal( savfile );
+	Sav_LoadLocals( savfile );
+	StringTable_Delete( s_table );
+	WAD_Close( savfile );
 }
 
 bool SV_ReadComment( char *comment, int savenum )
 {
-	dsavehdr_t	*header;
-	byte		*savfile;
-	int		i, id, size;
+	wfile_t		*savfile;
+	int		result;
 
-	if(!comment) return false;
-	savfile = FS_LoadFile(va("save/save%i.bin", savenum), &size );
+	if( !comment ) return false;
+	result = WAD_Check( va( "save/save%i.bin", savenum )); 
 
-	if(!savfile) 
+	switch( result )
 	{
+	case 0:
 		com.strncpy( comment, "<empty>", MAX_STRING );
 		return false;
-	}
-
-	header = (dsavehdr_t *)savfile;
-	i = LittleLong (header->version);
-	id = LittleLong (header->ident);
-
-	if(id != IDSAVEHEADER || i != SAVE_VERSION)
-	{
+	case 1:	break;
+	default:
 		com.strncpy( comment, "<corrupted>", MAX_STRING );
 		return false;
 	}
 
-	sav_base = (byte *)header;
-	Sav_LoadComment(&header->lumps[LUMP_COMMENTS]);
+	savfile = WAD_Open( va("save/save%i.bin", savenum), "rb" );
+	Sav_LoadComment( savfile );
 	com.strncpy( comment, svs.comment, MAX_STRING );
-	Mem_Free( savfile );
+	WAD_Close( savfile );
 
 	return true;
 }
 
-void SV_BeginIncreaseEdicts(void)
+void SV_BeginIncreaseEdicts( void )
 {
 	int		i;
 	edict_t		*ent;
@@ -764,6 +668,18 @@ bool SV_LoadEdict( edict_t *ent )
 	// apply edict classname
 	ent->priv.sv->s.classname = SV_ClassIndex(PRVM_GetString( ent->progs.sv->classname ));
 	return true;
+}
+
+void SV_RestoreEdict( edict_t *ent )
+{
+	// link it into the bsp tree
+	SV_LinkEdict( ent );
+	SV_CreatePhysBody( ent );
+	SV_SetPhysForce( ent ); // restore forces ...
+	SV_SetMassCentre( ent ); // and mass force
+
+	if( ent->progs.sv->loopsound ) // restore loopsound
+		ent->priv.sv->s.soundindex = SV_SoundIndex(PRVM_GetString(ent->progs.sv->loopsound));
 }
 
 void SV_VM_Begin( void )
@@ -2605,6 +2521,7 @@ void SV_InitServerProgs( void )
 		prog->free_edict = SV_FreeEdict;
 		prog->count_edicts = SV_CountEdicts;
 		prog->load_edict = SV_LoadEdict;
+                    prog->restore_edict = SV_RestoreEdict;
                     prog->filecrc = PROG_CRC_SERVER;
 		
 		// using default builtins

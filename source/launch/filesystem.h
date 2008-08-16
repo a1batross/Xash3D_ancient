@@ -303,15 +303,48 @@ typedef struct
 	word		comment_size;
 } dpak3file_t;
 
+/*
+========================================================================
+.WAD archive format	(WhereAllData - WAD)
+
+List of compressed files, that can be identify only by TYPE_*
+
+<format>
+header:	dwadinfo_t[dwadinfo_t]
+file_1:	byte[dwadinfo_t[num]->disksize]
+file_2:	byte[dwadinfo_t[num]->disksize]
+file_3:	byte[dwadinfo_t[num]->disksize]
+...
+file_n:	byte[dwadinfo_t[num]->disksize]
+infotable	dlumpinfo_t[dwadinfo_t->numlumps]
+========================================================================
+*/
 #define IDIWADHEADER	(('D'<<24)+('A'<<16)+('W'<<8)+'I')	// little-endian "IWAD" doom1 game wad
 #define IDPWADHEADER	(('D'<<24)+('A'<<16)+('W'<<8)+'P')	// little-endian "PWAD" doom1 game wad
 #define IDWAD2HEADER	(('2'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD2" quake1 gfx.wad
+#define IDWAD3HEADER	(('3'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD3" half-life wads
 
-#define TYPE_FLMP		59 // doom1 hud picture (doom1 mapped lump)
-#define TYPE_SND		60 // doom1 wav sound (doom1 mapped lump)
-#define TYPE_MUS		61 // doom1 music file (doom1 mapped lump)
-#define TYPE_SKIN		62 // doom1 sprite model (doom1 mapped lump)
-#define TYPE_FLAT		63 // doom1 wall texture (doom1 mapped lump)
+#define WAD3_NAMELEN	16
+#define MAX_FILES_IN_WAD	8192
+
+// hidden virtual lump types
+#define TYPE_ANY		-1	// any type can be accepted
+#define TYPE_NONE		0	// unknown lump type
+#define TYPE_FLMP		1	// doom1 hud picture (doom1 mapped lump)
+#define TYPE_SND		2	// doom1 wav sound (doom1 mapped lump)
+#define TYPE_MUS		3	// doom1 music file (doom1 mapped lump)
+#define TYPE_SKIN		4	// doom1 sprite model (doom1 mapped lump)
+#define TYPE_FLAT		5	// doom1 wall texture (doom1 mapped lump)
+#define TYPE_MAXHIDDEN	63	// after this number started typeing letters ( 'a', 'b' etc )
+
+#include "const.h"
+
+typedef struct
+{
+	int		ident;		// should be IWAD, WAD2 or WAD3
+	int		numlumps;		// num files
+	int		infotableofs;
+} dwadinfo_t;
 
 // doom1 and doom2 lump header
 typedef struct
@@ -320,6 +353,18 @@ typedef struct
 	int		size;
 	char		name[8];		// null not included
 } dlumpfile_t;
+
+typedef struct
+{
+	int		filepos;
+	int		disksize;
+	int		size;		// uncompressed
+	char		type;
+	char		compression;	// probably not used
+	char		pad1;
+	char		pad2;
+	char		name[16];		// must be null terminated
+} dlumpinfo_t;
 
 #define ZLIB_VERSION	"1.2.3"
 #define MAX_WBITS		15

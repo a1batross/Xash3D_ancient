@@ -92,61 +92,6 @@ typedef struct
 
 /*
 ========================================================================
-.WAD archive format	(WhereAllData - WAD)
-
-List of compressed files, that can be identify only by TYPE_*
-
-<format>
-header:	dwadinfo_t[dwadinfo_t]
-file_1:	byte[dwadinfo_t[num]->disksize]
-file_2:	byte[dwadinfo_t[num]->disksize]
-file_3:	byte[dwadinfo_t[num]->disksize]
-...
-file_n:	byte[dwadinfo_t[num]->disksize]
-infotable	dlumpinfo_t[dwadinfo_t->numlumps]
-========================================================================
-*/
-#define IDWAD3HEADER	(('3'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD3" half-life wads
-
-#define WAD3_NAMELEN	16
-#define MAX_FILES_IN_WAD	8192
-
-#define CMP_NONE		0	// compression none
-#define CMP_LZSS		1	// RLE compression ?
-#define CMP_ZLIB		2	// zip-archive compression
-
-#define TYPE_ANY		-1	// any type can be accepted
-#define TYPE_NONE		0	// blank lump
-#define TYPE_QPAL		64	// quake palette
-#define TYPE_QTEX		65	// probably was never used
-#define TYPE_QPIC		66	// quake1 and hl pic (lmp_t)
-#define TYPE_MIPTEX2	67	// half-life (mip_t) previous was TYP_SOUND but never used in quake1
-#define TYPE_MIPTEX		68	// quake1 (mip_t)
-#define TYPE_RAW		69	// unrecognized raw data
-#define TYPE_SCRIPT		70	// .txt scrips (xash ext)
-#define TYPE_VPROGS		71	// .dat progs (xash ext)
-
-typedef struct
-{
-	int		ident;		// should be IWAD, WAD2 or WAD3
-	int		numlumps;		// num files
-	int		infotableofs;
-} dwadinfo_t;
-
-typedef struct
-{
-	int		filepos;
-	int		disksize;
-	int		size;		// uncompressed
-	char		type;
-	char		compression;	// probably not used
-	char		pad1;
-	char		pad2;
-	char		name[16];		// must be null terminated
-} dlumpinfo_t;
-
-/*
-========================================================================
 
 .LMP image format	(Half-Life gfx.wad lumps)
 
@@ -255,7 +200,7 @@ BRUSH MODELS
 #define DVIS_PHS			1
 
 #define DENT_KEY			0
-#define DENT_VALUE			1
+#define DENT_VAL			1
 
 //other limits
 #define MAXLIGHTMAPS		4
@@ -286,7 +231,7 @@ typedef struct
 typedef struct
 {
 	string_t	epair[2];		// 0 - key, 1 - value (indexes from stringtable)
-} dentity_t;
+} dkeyvalue_t;
 
 typedef struct
 {
@@ -373,7 +318,7 @@ typedef struct
 typedef struct
 {
 	string_t	s_name;		// string system index
-	string_t	s_next;		// anim chain texture
+	int	s_next;		// number of next texture in animchain
 	int	size[2];		// valid size for current s\t coords (used for replace texture)
 } dmiptex_t;
 
@@ -400,6 +345,15 @@ a internal virtual machine like as QuakeC, but it has more extensions
 // header
 #define VPROGS_VERSION	8	// xash progs version
 #define VPROGSHEADER32	(('2'<<24)+('3'<<16)+('M'<<8)+'V') // little-endian "VM32"
+
+// prvm limits
+#define MAX_REGS		65536
+#define MAX_STRINGS		1000000
+#define MAX_STATEMENTS	0x80000
+#define MAX_GLOBALS		32768
+#define MAX_FUNCTIONS	16384
+#define MAX_FIELDS		2048
+#define MAX_CONSTANTS	2048
 
 // global ofsets
 #define OFS_NULL		0
@@ -826,38 +780,5 @@ typedef struct
 	int		numnorms;		// per mesh normals
 	int		normindex;	// normal vec3_t
 } mstudiomesh_t;
-
-/*
-==============================================================================
-SAVE FILE
-
-included global, and both (client & server) pent list
-==============================================================================
-*/
-#define SAVE_VERSION	3
-#define IDSAVEHEADER	(('E'<<24)+('V'<<16)+('A'<<8)+'S') // little-endian "SAVE"
-
-#define LUMP_COMMENTS	0 // map comments (name, savetime)
-#define LUMP_CFGSTRING	1 // client info strings
-#define LUMP_AREASTATE	2 // area portals state
-#define LUMP_GAMESTATE	3 // progs global state (compressed)
-#define LUMP_MAPNAME	4 // map name
-#define LUMP_GAMECVARS	5 // contain game comment and all cvar state
-#define LUMP_GAMEENTS	6 // ents state (compressed)
-#define LUMP_SNAPSHOT	7 // rgb32 image snapshot (128x128)
-#define SAVE_NUMLUMPS	8 // header size
-
-typedef struct
-{
-	int	ident;
-	int	version;	
-	lump_t	lumps[SAVE_NUMLUMPS];
-} dsavehdr_t;
-
-typedef struct
-{
-	char	name[MAX_QPATH];
-	char	value[MAX_QPATH];
-} dsavecvar_t;
 
 #endif//REF_DFILES_H

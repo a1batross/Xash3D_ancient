@@ -359,13 +359,14 @@ void PRVM_ED_ClearEdict (edict_t *e);
 ddef_t *PRVM_ED_GlobalAtOfs( int ofs );
 void PRVM_PrintFunctionStatements (const char *name);
 void PRVM_ED_Print(edict_t *ed);
-void PRVM_ED_Write (vfile_t *f, edict_t *ed);
+void PRVM_ED_Write( edict_t *ed, void *buffer, void *ptr, setpair_t callback );
+void PRVM_ED_Read( int s_table, int ednum, dkeyvalue_t *fields, int numpairs );
 const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent);
 char *PRVM_ValueString( etype_t type, prvm_eval_t *val );
-void PRVM_ED_WriteGlobals (vfile_t *f);
-void PRVM_ED_ParseGlobals (const char *data);
+void PRVM_ED_WriteGlobals( void *buffer, void *ptr, setpair_t callback );
+void PRVM_ED_ReadGlobals( int s_table, dkeyvalue_t *globals, int numpairs );
 
-void PRVM_ED_LoadFromFile (const char *data);
+void PRVM_ED_LoadFromFile( const char *data );
 
 edict_t *PRVM_EDICT_NUM_ERROR(int n, char *filename, int fileline);
 #define PRVM_EDICT_NUM(n) (((n) >= 0 && (n) < vm.prog->max_edicts) ? vm.prog->edicts + (n) : PRVM_EDICT_NUM_ERROR(n, __FILE__, __LINE__))

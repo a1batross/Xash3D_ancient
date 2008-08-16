@@ -114,9 +114,12 @@ char *Cvar_VariableString (const char *var_name)
 Cvar_LookupVars
 ============
 */
-void Cvar_LookupVars( int checkbit, char *buffer, void *ptr, cvarcmd_t callback )
+void Cvar_LookupVars( int checkbit, void *buffer, void *ptr, setpair_t callback )
 {
 	cvar_t	*cvar;
+
+	// nothing to process ?
+	if( !callback ) return;
 
 	// force checkbit to 0 for lookup all cvars
 	for( cvar = cvar_vars; cvar; cvar = cvar->next )

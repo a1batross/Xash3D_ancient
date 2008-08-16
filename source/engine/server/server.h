@@ -390,8 +390,8 @@ void SV_TouchTriggers (edict_t *ent);
 //
 // sv_save.c
 //
-void SV_WriteSaveFile( char *name );
-void SV_ReadSaveFile( char *name );
+void SV_WriteSaveFile( const char *name );
+void SV_ReadSaveFile( const char *name );
 void SV_ReadLevelFile( const char *name );
 //============================================================
 

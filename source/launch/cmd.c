@@ -522,7 +522,7 @@ void Cmd_RemoveCommand (const char *cmd_name)
 Cmd_LookupCmds
 ============
 */
-void Cmd_LookupCmds( char *buffer, void *ptr, cvarcmd_t callback )
+void Cmd_LookupCmds( char *buffer, void *ptr, setpair_t callback )
 {
 	cmd_function_t	*cmd;
 	

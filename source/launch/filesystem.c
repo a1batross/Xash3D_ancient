@@ -74,6 +74,7 @@ typedef struct wfile_s
 {
 	char		filename [MAX_SYSPATH];
 	int		infotableofs;
+	byte		*mempool;	// W_ReadLump temp buffers
 	int		numlumps;
 	int		mode;
 	file_t		*file;
@@ -2942,6 +2943,12 @@ fs_offset_t VFS_Write( vfile_t *file, const void *buf, size_t size )
 	return file->length;
 }
 
+byte *VFS_GetBuffer( vfile_t *file )
+{
+	if( !file ) return NULL;
+	return file->buff;
+}
+
 /*
 ====================
 VFS_Print
@@ -3116,7 +3123,8 @@ file_t *VFS_Close( vfile_t *file )
 			FS_Write( file->handle, out, sizeof(out) - strm.avail_out );
 			deflateEnd( &strm );
 		}
-		else FS_Write(file->handle, file->buff, (file->length + 3) & ~3); // align
+		else if( file->handle )
+			FS_Write(file->handle, file->buff, (file->length + 3) & ~3); // align
 	}
 	handle = file->handle; // keep real handle
 
@@ -3146,6 +3154,8 @@ wadtype_t wad_types[] =
 	{"lmp", TYPE_QPIC	}, // quake1, hl pic
 	{"mip", TYPE_MIPTEX2}, // hl texture
 	{"mip", TYPE_MIPTEX }, // quake1 mip
+	{"bin", TYPE_BINDATA}, // xash binary data
+	{"str", TYPE_STRDATA}, // xash string data
 	{"raw", TYPE_RAW	}, // signed raw data
 	{"txt", TYPE_SCRIPT	}, // xash script file
 	{"lst", TYPE_SCRIPT	}, // xash script file
@@ -3225,9 +3235,8 @@ static void W_CleanupName( const char *dirtyname, char *cleanname )
 		tempname[14] = '~';
 		tempname[15] = '1';
 	}
-
-	com_strcat( cleanname, tempname );
 	tempname[16] = '\0'; // cutoff all other ...
+	com_strncpy( cleanname, tempname, 16 );
 
 	// .. and turn big letters
 	com.strupr( cleanname, cleanname );
@@ -3246,7 +3255,7 @@ static bool W_ConvertIWADLumps( wfile_t *wad )
 	if( !wad ) return false;
 
 	lat_size = wad->numlumps * sizeof( dlumpfile_t );
-	doomlumps = (dlumpfile_t *)Mem_Alloc( fs_mempool, lat_size );
+	doomlumps = (dlumpfile_t *)Mem_Alloc( wad->mempool, lat_size );
 
 	if( FS_Read( wad->file, doomlumps, lat_size ) != lat_size )
 	{
@@ -3375,7 +3384,7 @@ byte *W_ReadLump( wfile_t *wad, dlumpinfo_t *lump, size_t *lumpsizeptr )
 	switch( lump->compression )
 	{
 	case CMP_NONE:
-		buf = (byte *)Mem_Alloc( fs_mempool, lump->disksize );
+		buf = (byte *)Mem_Alloc( wad->mempool, lump->disksize );
 		size = FS_Read( wad->file, buf, lump->disksize );
 		if( size < lump->disksize )
 		{
@@ -3389,9 +3398,9 @@ byte *W_ReadLump( wfile_t *wad, dlumpinfo_t *lump, size_t *lumpsizeptr )
 		MsgDev(D_WARN, "W_ReadLump: lump %s have unsupported compression type\n", lump->name );
 		return NULL;
 	case CMP_ZLIB:
-		cbuf = (byte *)Mem_Alloc( fs_mempool, lump->disksize );
+		cbuf = (byte *)Mem_Alloc( wad->mempool, lump->disksize );
 		size = FS_Read( wad->file, cbuf, lump->disksize );
-		buf = (byte *)Mem_Alloc( fs_mempool, lump->size );
+		buf = (byte *)Mem_Alloc( wad->mempool, lump->size );
 		if(!VFS_Unpack( cbuf, size, &buf, lump->size ))
 		{
 			MsgDev( D_WARN, "W_ReadLump: %s is probably corrupted\n", lump->name );
@@ -3412,9 +3421,12 @@ bool W_WriteLump( wfile_t *wad, dlumpinfo_t *lump, const void* data, size_t data
 	size_t	ofs;
 	vfile_t	*h;
 
-	if( !wad || !lump || !data || !datasize )
+	if( !wad || !lump ) return false;
+	if( !data || !datasize )
+	{
+		MsgDev( D_WARN, "W_WriteLump: ignore blank lump %s - nothing to save\n", lump->name );
 		return false;
-
+	}
 	switch(( int )cmp)
 	{
 	case CMP_LZSS:
@@ -3443,13 +3455,59 @@ WADSYSTEM PUBLIC BASE FUNCTIONS
 
 =============================================================================
 */
+int W_Check( const char *filename )
+{
+	file_t		*testwad;
+	dwadinfo_t	header;
+	int		numlumps;
+	int		infotableofs;
+	
+	testwad = FS_Open( filename, "rb" );
+	if( !testwad ) return 0; // just not exist
+
+	if( FS_Read( testwad, &header, sizeof(dwadinfo_t)) != sizeof(dwadinfo_t))
+	{
+		// corrupted or not wad
+		FS_Close( testwad );
+		return -1; // too small file
+	}	
+
+	switch( header.ident )
+	{
+	case IDIWADHEADER:
+	case IDPWADHEADER:
+	case IDWAD2HEADER:
+	case IDWAD3HEADER: break;
+	default:
+		FS_Close( testwad );
+		return -2; // invalid id
+	}
+
+	numlumps = LittleLong( header.numlumps );
+	if( numlumps < 0 || numlumps > MAX_FILES_IN_WAD )
+	{
+		// invalid lump number
+		FS_Close( testwad );
+		return -3; // invalid lumpcount
+	}
+	infotableofs = LittleLong( header.infotableofs );
+	if( FS_Seek( testwad, infotableofs, SEEK_SET ))
+	{
+		// corrupted or not wad
+		FS_Close( testwad );
+		return -4; // invalid lumptable
+	}
+
+	// all check is done
+	FS_Close( testwad );
+	return 1; // valid
+}
+
 wfile_t *W_Open( const char *filename, const char *mode )
 {
 	dwadinfo_t	header;
 	wfile_t		*wad = (wfile_t *)Mem_Alloc( fs_mempool, sizeof( wfile_t ));
 
-	// copy wad name
-	com_strncpy( wad->filename, filename, sizeof( wad->filename ));
 	wad->file = FS_Open( filename, mode );
 	if( !wad->file )
 	{
@@ -3457,6 +3515,10 @@ wfile_t *W_Open( const char *filename, const char *mode )
 		MsgDev(D_ERROR, "W_Open: couldn't open %s\n", filename );
 		return NULL;
 	}
+
+	// copy wad name
+	com_strncpy( wad->filename, filename, sizeof( wad->filename ));
+	wad->mempool = Mem_AllocPool( filename );
 
 	// if the file is opened in "write", "append", or "read/write" mode
 	if( mode[0] == 'w' )
@@ -3521,7 +3583,7 @@ wfile_t *W_Open( const char *filename, const char *mode )
 			return NULL;
 		}
 		// NOTE: lumps table can be reallocated for O_APPEND mode
-		wad->lumps = Mem_Alloc( fs_mempool, wad->numlumps * sizeof( dlumpinfo_t ));
+		wad->lumps = Mem_Alloc( wad->mempool, wad->numlumps * sizeof( dlumpinfo_t ));
 
 		// setup lump allocation table
 		switch( header.ident )
@@ -3568,7 +3630,7 @@ void W_Close( wfile_t *wad )
 		FS_Write( wad->file, &hdr, sizeof( hdr ));
 	}
 
-	if( wad->lumps ) Mem_Free( wad->lumps );
+	Mem_FreePool( &wad->mempool );
 	if( wad->file ) FS_Close( wad->file );	
 	Mem_Free( wad ); // free himself
 }
@@ -3578,7 +3640,12 @@ fs_offset_t W_SaveLump( wfile_t *wad, const char *lump, const void* data, size_t
 	size_t		lat_size;
 	dlumpinfo_t	*info;
 
-	if( !wad || !lump || !data || !datasize ) return -1;
+	if( !wad || !lump ) return -1;
+	if( !data || !datasize )
+	{
+		MsgDev( D_WARN, "W_SaveLump: ignore blank lump %s - nothing to save\n", lump );
+		return -1;
+	}
 	if( wad->mode == O_RDONLY )
 	{
 		MsgDev( D_ERROR, "W_SaveLump: %s opened in readonly mode\n", wad->filename ); 
@@ -3591,11 +3658,10 @@ fs_offset_t W_SaveLump( wfile_t *wad, const char *lump, const void* data, size_t
 		return -1;
 	}
 
-	wad->numlumps++;
-	lat_size = wad->numlumps * sizeof( dlumpinfo_t );
+	lat_size = sizeof( dlumpinfo_t ) * (wad->numlumps + 1);
 
 	// reallocate lumptable
-	wad->lumps = Mem_Realloc( fs_mempool, wad->lumps, lat_size );
+	wad->lumps = Mem_Realloc( wad->mempool, wad->lumps, lat_size );
 	info = wad->lumps + wad->numlumps;
 
 	// if we are in append mode - we need started from infotableofs poisition
@@ -3609,13 +3675,10 @@ fs_offset_t W_SaveLump( wfile_t *wad, const char *lump, const void* data, size_t
 	info->type = type;
 
 	if(!W_WriteLump( wad, info, data, datasize, cmp ))
-	{
-		wad->numlumps--;
 		return -1;		
-	}
 
 	MsgDev( D_NOTE, "W_SaveLump: %s, size %d\n", info->name, info->disksize );
-	return wad->numlumps;
+	return wad->numlumps++;
 }
 
 byte *W_LoadLump( wfile_t *wad, const char *lumpname, size_t *lumpsizeptr, const char type )

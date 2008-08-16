@@ -6,21 +6,19 @@
 #include "platform.h"
 #include "byteorder.h"
 #include "mathlib.h"
+#include "const.h"
 #include "utils.h"
 
 char		wadoutname[MAX_SYSPATH];
-static dlumpinfo_t	wadlumps[MAX_FILES_IN_WAD];
-static char	lumpname[MAX_SYSPATH];
-dwadinfo_t	wadfile; // main header
+wfile_t		*handle = NULL;
+string		lumpname;
 byte		*wadpool;
-int		wadheader;
-int		numlumps = 0;
+
 float		linearpalette[256][3];
 int		color_used[256];
 float		maxdistortion;
 int		colors_used;
 byte		pixdata[256];
-file_t		*handle = NULL;
 rgbdata_t		*image = NULL;
 vec3_t		d_color;
 
@@ -102,13 +100,11 @@ byte Mip_AveragePixels( int count )
 					VectorClear( d_color );	// no distortion yet
 					return pix;		// perfect match
 				}
-
 				bestdistortion = distortion;
 				bestcolor = pix;
 			}
 		}
 	}
-
 
 	if( bestdistortion > 0.001 && colors_used < 255 )
 	{
@@ -133,12 +129,8 @@ byte Mip_AveragePixels( int count )
 
 void Wad3_NewWad( void )
 {
-	handle = FS_Open( wadoutname, "wb" );
-
-	if(!handle) Sys_Break("Wad3_NewWad: can't create %s\n", wadoutname );
-	FS_Write( handle, &wadfile, sizeof(wadfile));
-	memset( wadlumps, 0, sizeof(wadlumps));
-	numlumps = 0;
+	handle = WAD_Open( wadoutname, "wb" );
+	if( !handle ) Sys_Break("Wad3_NewWad: can't create %s\n", wadoutname );
 }
 
 /*
@@ -148,74 +140,12 @@ AddLump
 */
 void Wad3_AddLump( const byte *buffer, size_t lumpsize, int lump_type, bool compress )
 {
-	dlumpinfo_t	*info;
-	int		ofs;
+	int result;
+	if( !handle ) Wad3_NewWad(); 	// create wad file
+	result = WAD_Write( handle, lumpname, buffer, lumpsize, lump_type, ( compress ? CMP_ZLIB : CMP_NONE ));
 
-	if( numlumps >= MAX_FILES_IN_WAD )
-	{
-		MsgDev( D_ERROR, "Wad3_AddLump: max files limit execeeds\n" ); 
-		return;
-	}
-
-	// we can load file from another wad
-	if( !buffer || !lumpsize )
-	{
-		MsgDev( D_ERROR, "Wad3_AddLump: file %s not found\n", lumpname ); 
-		return;
-	}
-
-	// create wad file
-	if( !handle ) Wad3_NewWad();
-	
-	info = &wadlumps[numlumps];
-
-	// lumpname must be prepared with Wad3_CleanupName first!
-	com.strncpy( info->name, lumpname, WAD3_NAMELEN );
-	ofs = FS_Tell( handle );
-	info->filepos = LittleLong( ofs );
-	info->type = (char)lump_type;
-	numlumps++; // increase lump number
-
-	if( compress )
-	{
-		vfile_t *h = VFS_Open( handle, "wz" );
-		info->compression = CMP_ZLIB;		
-		info->size = lumpsize; // realsize
-		VFS_Write( h, buffer, lumpsize );
-		handle = VFS_Close( h ); // go back to real filesystem
-		ofs = FS_Tell( handle ); // ofs - info->filepos returns compressed size
-		info->disksize = LittleLong( ofs - info->filepos );
-	}
-	else
-	{
-		info->compression = CMP_NONE;	
-		info->size = info->disksize = LittleLong( lumpsize );
-		FS_Write( handle, buffer, lumpsize ); // just write file
-	}
-	Msg( "AddLump: %s, size %d\n", info->name, info->disksize );
-}
-
-void Wad3_CleanupName( string name, bool havealpha )
-{
-	string	tempname;
-
-	lumpname[0] = '\0';
-	FS_FileBase( name, tempname );
-	if(com.strlen( tempname ) > WAD3_NAMELEN )
-	{
-		// windows style cutoff long names
-		tempname[14] = '~';
-		tempname[15] = '1';
-	}
-
-	// half-life designers probably forget to clear alpha in some "non-alpha" textures :)
-	// rendermode == SOLID it's a greatest hack to avoid transparency for +0BUTTONSUIT, +0C3A1_NRC1 etc
-
-	com.strcat( lumpname, tempname );
-	tempname[16] = '\0'; // cutoff all other
-
-	// and turn big letters
-	com.strupr( lumpname, lumpname );
+	if( result == -1 ) MsgDev( D_ERROR, "Wad3_AddLump: can't write lump %s\n", lumpname );
+	else Msg("Add %s\t#%i\n", lumpname, result ); //FIXME: align message
 }
 
 /*
@@ -234,23 +164,20 @@ void Cmd_GrabMip( void )
 	int	xx, yy, count;
 	int	linedelta;
 	size_t	plump_size;
-	string	mipname;
 	byte	*lump;
 	mip_t	*mip;
 
 	Com_GetToken( false );
-	com.strncpy( mipname, com_token, MAX_STRING );
+	com.strncpy( lumpname, com_token, MAX_STRING );
 
 	// load mip image or replaced with error.bmp
-	image = FS_LoadImage( mipname, error_bmp, error_bmp_size );	
+	image = FS_LoadImage( lumpname, error_bmp, error_bmp_size );	
 	if( !image )
 	{
 		// no fatal error, just ignore this image for adding into wad-archive
-		MsgDev( D_ERROR, "Cmd_LoadMip: unable to loading %s\n", mipname );
+		MsgDev( D_ERROR, "Cmd_LoadMip: unable to loading %s\n", lumpname );
 		return;
 	}
-
-	Wad3_CleanupName( mipname, (image->flags & IMAGE_HAS_ALPHA ));
 
 	Image_ConvertPalette( image );	// turn into 24-bit mode
 	if(Com_TryToken())
@@ -288,7 +215,7 @@ void Cmd_GrabMip( void )
 	mip = (mip_t *)plump;
 	mip->width = LittleLong( w );
 	mip->height = LittleLong( h );
-	com.strncpy( mip->name, lumpname, WAD3_NAMELEN ); 
+	com.strncpy( mip->name, lumpname, sizeof(mip->name)); 
 	plump = (byte *)&mip->offsets[4];
 	
 	screen_p = image->buffer + yl * image->width + xl;
@@ -404,18 +331,17 @@ void Cmd_GrabPic( void )
 	int	x, y, xl, yl, xh, yh;
 	byte	*plump, *lump;
 	size_t	plump_size;
-	string	picname;
 	lmp_t 	*pic;
 
 	Com_GetToken( false );
-	com.strncpy( picname, com_token, MAX_STRING );
+	com.strncpy( lumpname, com_token, MAX_STRING );
 
 	// load mip image or replaced with error.bmp
-	image = FS_LoadImage( picname, error_bmp, error_bmp_size );	
+	image = FS_LoadImage( lumpname, error_bmp, error_bmp_size );	
 	if( !image )
 	{
 		// no fatal error, just ignore this image for adding into wad-archive
-		MsgDev( D_ERROR, "Cmd_LoadPic: unable to loading %s\n", picname );
+		MsgDev( D_ERROR, "Cmd_LoadPic: unable to loading %s\n", lumpname );
 		return;
 	}
 
@@ -434,8 +360,6 @@ void Cmd_GrabPic( void )
 		xh = image->width;
 		yh = image->height;
 	}
-
-	Wad3_CleanupName( picname, false );	// don't add { symbol to the final name
 
 	if( xh < xl || yh < yl || xl < 0 || yl < 0 )
 	{
@@ -479,21 +403,19 @@ void Cmd_GrabScript( void )
 {
 	byte	*lump;
 	size_t	plump_size;
-	string	textname;
 
 	Com_GetToken( false );
-	com.strncpy( textname, com_token, MAX_STRING );
+	com.strncpy( lumpname, com_token, MAX_STRING );
 
 	// load mip image or replaced with error.bmp
-	lump = FS_LoadFile( textname, &plump_size );
+	lump = FS_LoadFile( lumpname, &plump_size );
 	
 	if( !lump || !plump_size )
 	{
 		// no fatal error, just ignore this image for adding into wad-archive
-		MsgDev( D_ERROR, "Cmd_LoadScript: unable to loading %s\n", textname );
+		MsgDev( D_ERROR, "Cmd_LoadScript: unable to loading %s\n", lumpname );
 		return;
 	}
-	Wad3_CleanupName( textname, false );	// don't add { symbol to the final name
 
 	// write out and release intermediate buffers
 	Wad3_AddLump( lump, plump_size, TYPE_SCRIPT, true ); // always compress text files
@@ -511,19 +433,18 @@ void Cmd_GrabProgs( void )
 {
 	byte		*lump;
 	size_t		plump_size;
-	string		datname;
 	dprograms_t	*hdr;
 
 	Com_GetToken( false );
-	com.strncpy( datname, com_token, MAX_STRING );
+	com.strncpy( lumpname, com_token, MAX_STRING );
 
 	// load mip image or replaced with error.bmp
-	lump = FS_LoadFile( datname, &plump_size );
+	lump = FS_LoadFile( lumpname, &plump_size );
 	
 	if( !lump || !plump_size || plump_size < sizeof(dprograms_t))
 	{
 		// no fatal error, just ignore this image for adding into wad-archive
-		MsgDev( D_ERROR, "Cmd_LoadProgs: unable to loading %s\n", datname );
+		MsgDev( D_ERROR, "Cmd_LoadProgs: unable to loading %s\n", lumpname );
 		return;
 	}
 	// validate progs
@@ -532,11 +453,10 @@ void Cmd_GrabProgs( void )
 	if( hdr->ident != VPROGSHEADER32 || hdr->version != VPROGS_VERSION )
 	{
 		// no fatal error, just ignore this image for adding into wad-archive
-		MsgDev( D_ERROR, "Cmd_LoadProgs: %s invalid progs version, ignore\n", datname );
+		MsgDev( D_ERROR, "Cmd_LoadProgs: %s invalid progs version, ignore\n", lumpname );
 		Mem_Free( lump );
 		return;
 	}
-	Wad3_CleanupName( datname, false );	// don't add { symbol to the final name
 
 	// write out and release intermediate buffers
 	Wad3_AddLump( lump, plump_size, TYPE_VPROGS, !hdr->flags ); // release progs may be already packed
@@ -567,10 +487,6 @@ void ResetWADInfo( void )
 {
 	FS_FileBase( gs_filename, wadoutname );		// kill path and ext
 	FS_DefaultExtension( wadoutname, ".wad" );	// set new ext
-	
-	memset( &wadheader, 0, sizeof(wadheader));
-	wadheader = IDWAD3HEADER;
-	numlumps = 0;
 	handle = NULL;
 }
 
@@ -600,23 +516,8 @@ bool ParseWADfileScript( void )
 
 bool WriteWADFile( void )
 {
-	int		ofs;
-
-	if(!handle) return false;
-	
-	// write the lumpingo
-	ofs = FS_Tell( handle );
-	FS_Write( handle, wadlumps, numlumps * sizeof(dlumpinfo_t));
-		
-	// write the header
-	wadfile.ident = wadheader;
-	wadfile.numlumps = LittleLong( numlumps );
-	wadfile.infotableofs = LittleLong( ofs );
-		
-	FS_Seek( handle, 0, SEEK_SET );
-	FS_Write( handle, &wadfile, sizeof(wadfile));
-	FS_Close( handle );
-
+	if( !handle ) return false;
+	WAD_Close( handle );
 	return true;
 }
 
@@ -628,7 +529,7 @@ bool BuildCurrentWAD( const char *name )
 	FS_DefaultExtension( gs_filename, ".qc" );
 	load = Com_LoadScript( gs_filename, NULL, 0 );
 	
-	if(load)
+	if( load )
 	{
 		if(!ParseWADfileScript())
 			return false;

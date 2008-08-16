@@ -184,8 +184,6 @@ void VM_Cmd_Reset( void );
 #define PRVM_GetString	vm->GetString
 #define PRVM_SetEngineString	vm->SetEngineString
 #define PRVM_SetTempString	vm->SetTempString
-#define PRVM_AllocString	vm->AllocString
-#define PRVM_FreeString	vm->FreeString
 
 #define VM_Frame		vm->Update
 #define PRVM_SetProg	vm->SetProg
@@ -194,14 +192,13 @@ void VM_Cmd_Reset( void );
 #define PRVM_LoadProgs	vm->LoadProgs
 #define PRVM_ProgLoaded	vm->ProgLoaded
 #define PRVM_ED_LoadFromFile	vm->LoadFromFile
-#define PRVM_ED_ParseGlobals	vm->ParseGlobals
+#define PRVM_ED_ReadGlobals	vm->ReadGlobals
 #define PRVM_ED_WriteGlobals	vm->WriteGlobals
 #define PRVM_ED_Print	vm->PrintEdict
 #define PRVM_ED_Write	vm->WriteEdict
-#define PRVM_ED_ParseEdict	vm->ParseEdict
+#define PRVM_ED_Read	vm->ReadEdict
 #define PRVM_ED_Alloc	vm->AllocEdict
 #define PRVM_ED_Free	vm->FreeEdict
-#define PRVM_MEM_IncreaseEdicts vm->IncreaseEdicts
 #define PRVM_ExecuteProgram( func, name )	vm->ExecuteProgram( func, name, __FILE__, __LINE__ )
 
 #define PRVM_StackTrace	vm->StackTrace

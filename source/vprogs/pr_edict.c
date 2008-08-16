@@ -440,27 +440,26 @@ char *PRVM_UglyValueString (etype_t type, prvm_eval_t *val)
 		// Parse the string a bit to turn special characters
 		// (like newline, specifically) into escape codes,
 		// this fixes saving games from various mods
-		s = PRVM_GetString (val->string);
-		for (i = 0;i < (int)sizeof(line) - 2 && *s;)
+		s = PRVM_GetString ( val->string );
+		for( i = 0;i < (int)sizeof(line) - 2 && *s; )
 		{
-			if (*s == '\n')
+			if( *s == '\n' )
 			{
 				line[i++] = '\\';
 				line[i++] = 'n';
 			}
-			else if (*s == '\r')
+			else if( *s == '\r' )
 			{
 				line[i++] = '\\';
 				line[i++] = 'r';
 			}
-			else
-				line[i++] = *s;
+			else line[i++] = *s;
 			s++;
 		}
 		line[i] = '\0';
 		break;
 	case ev_entity:
-		com.sprintf (line, "%i", PRVM_NUM_FOR_EDICT(PRVM_PROG_TO_EDICT(val->edict)));
+		com.sprintf( line, "%i", PRVM_NUM_FOR_EDICT(PRVM_PROG_TO_EDICT(val->edict)));
 		break;
 	case ev_function:
 		f = vm.prog->functions + val->function;
@@ -622,42 +621,85 @@ PRVM_ED_Write
 For savegames
 =============
 */
-void PRVM_ED_Write(vfile_t *f, edict_t *ed)
+void PRVM_ED_Write( edict_t *ed, void *buffer, void *numpairs, setpair_t callback )
 {
 	ddef_t		*d;
 	int		*v;
 	int		i, j;
-	const char	*name;
+	const char	*name, *value;
 	int		type;
 
-	VFS_Print(f, "{\n");
-
-	if (ed->priv.ed->free)
+	if( !callback ) return;
+	if( ed->priv.ed->free )
 	{
-		VFS_Print(f, "}\n");
+		// freed entity too has serialnumber!
+		callback( NULL, NULL, buffer, numpairs );
 		return;
 	}
 
-	for (i = 1; i < vm.prog->progs->numfielddefs; i++)
+	for( i = 1; i < vm.prog->progs->numfielddefs; i++ )
 	{
 		d = &vm.prog->fielddefs[i];
-		name = PRVM_GetString(d->s_name);
-		if (name[com.strlen(name)-2] == '_')
+		name = PRVM_GetString( d->s_name );
+		if(name[com.strlen(name) - 2] == '_')
 			continue;	// skip _x, _y, _z vars
 
-		v = (int *)((char *)ed->progs.vp + d->ofs*4);
-
+		v = (int *)((char *)ed->progs.vp + d->ofs * 4);
 		// if the value is still all 0, skip the field
 		type = d->type & ~DEF_SAVEGLOBAL;
-		for (j = 0; j < prvm_type_size[type]; j++)
-			if(v[j]) break;
-		if (j == prvm_type_size[type])
-			continue;
+		for( j = 0; j < prvm_type_size[type]; j++ )
+			if( v[j] ) break;
+		if( j == prvm_type_size[type] ) continue;
 
-		VFS_Printf(f,"\"%s\" ",name);
-		VFS_Printf(f,"\"%s\"\n", PRVM_UglyValueString((etype_t)d->type, (prvm_eval_t *)v));
+		value = PRVM_UglyValueString((etype_t)d->type, (prvm_eval_t *)v);
+		callback( name, value, buffer, numpairs );
 	}
-	VFS_Print(f, "}\n");
+}
+
+/*
+=============
+PRVM_ED_Read
+
+For savegames
+=============
+*/
+void PRVM_ED_Read( int s_table, int entnum, dkeyvalue_t *fields, int numpairs )
+{
+	const char *keyname, *value;
+	ddef_t	*key;
+	edict_t	*ent;
+	int	i;
+
+	if( entnum >= vm.prog->limit_edicts ) Host_Error( "PRVM_ED_Read: too many edicts in save file\n" );
+	while( entnum >= vm.prog->max_edicts) PRVM_MEM_IncreaseEdicts(); // increase edict numbers
+	ent = PRVM_EDICT_NUM( entnum );
+	PRVM_ED_ClearEdict( ent );
+
+	if( !numpairs )
+	{
+		// freed edict
+		ent->priv.ed->free = true;
+		return;
+	}
+
+	// go through all the dictionary pairs
+	for( i = 0; i < numpairs; i++ )
+	{
+		keyname = StringTable_GetString( s_table, fields[i].epair[DENT_KEY] );
+		value = StringTable_GetString( s_table, fields[i].epair[DENT_VAL] );
+
+		key = PRVM_ED_FindField( keyname );
+		if( !key )
+		{
+			MsgDev( D_WARN, "%s: unknown field '%s'\n", PRVM_NAME, keyname);
+			continue;
+		}
+		// simple huh ?
+		if(!PRVM_ED_ParseEpair( ent, key, value )) PRVM_ERROR( "PRVM_ED_ParseEdict: parse error" );
+	}
+
+	// all done, restore physics interaction links or somelike
+	PRVM_GCALL(restore_edict)(ent);
 }
 
 void PRVM_ED_PrintNum (int ent)
@@ -700,28 +742,27 @@ PRVM_ED_PrintEdict_f
 For debugging, prints a single edict
 =============
 */
-void PRVM_ED_PrintEdict_f (void)
+void PRVM_ED_PrintEdict_f( void )
 {
 	int		i;
 
-	if(Cmd_Argc() != 3)
+	if( Cmd_Argc() != 3 )
 	{
 		Msg("prvm_edict <program name> <edict number>\n");
 		return;
 	}
 
-
-	if(!PRVM_SetProgFromString(Cmd_Argv(1))) return;
+	if(!PRVM_SetProgFromString(Cmd_Argv( 1 ))) return;
 
 	i = com.atoi (Cmd_Argv(2));
-	if (i >= vm.prog->num_edicts)
+	if( i >= vm.prog->num_edicts )
 	{
-		Msg("Bad edict number\n");
+		Msg( "bad edict number\n" );
 		vm.prog = NULL;
 		return;
 	}
-	PRVM_ED_PrintNum (i);
 
+	PRVM_ED_PrintNum( i );
 	vm.prog = NULL;
 }
 
@@ -732,9 +773,7 @@ PRVM_ED_Count
 For debugging
 =============
 */
-// 2 possibilities : 1. just displaying the active edict count
-//		 2. making a function pointer [x]
-void PRVM_ED_Count_f (void)
+void PRVM_ED_Count_f( void )
 {
 	int		i;
 	edict_t	*ent;
@@ -742,40 +781,35 @@ void PRVM_ED_Count_f (void)
 
 	if(Cmd_Argc() != 2)
 	{
-		Msg("prvm_count <program name>\n");
+		Msg( "prvm_count <program name>\n" );
 		return;
 	}
 
 
-	if(!PRVM_SetProgFromString(Cmd_Argv(1)))
+	if(!PRVM_SetProgFromString(Cmd_Argv( 1 )))
 		return;
 
-	if(vm.prog->count_edicts)
-		vm.prog->count_edicts();
+	if( vm.prog->count_edicts ) vm.prog->count_edicts();
 	else
 	{
 		active = 0;
-		for (i=0 ; i<vm.prog->num_edicts ; i++)
+		for( i = 0; i < vm.prog->num_edicts; i++ )
 		{
-			ent = PRVM_EDICT_NUM(i);
-			if (ent->priv.ed->free)
+			ent = PRVM_EDICT_NUM( i );
+			if( ent->priv.ed->free )
 				continue;
 			active++;
 		}
 
-		Msg("num_edicts:%3i\n", vm.prog->num_edicts);
-		Msg("active    :%3i\n", active);
+		Msg( "num_edicts:%3i\n", vm.prog->num_edicts );
+		Msg( "active    :%3i\n", active );
 	}
-
 	vm.prog = NULL;
 }
 
 /*
 ==============================================================================
-
-					ARCHIVING GLOBALS
-
-FIXME: need to tag constants, doesn't really work
+			ARCHIVING GLOBALS
 ==============================================================================
 */
 /*
@@ -783,14 +817,17 @@ FIXME: need to tag constants, doesn't really work
 PRVM_ED_WriteGlobals
 =============
 */
-void PRVM_ED_WriteGlobals( vfile_t *f )
+void PRVM_ED_WriteGlobals( void *buffer, void *numpairs, setpair_t callback )
 {
 	ddef_t		*def;
 	const char	*name;
+	const char	*value;
 	int		i, type;
 
-	VFS_Print(f,"{\n");
-	for (i = 0; i < vm.prog->progs->numglobaldefs; i++)
+	// nothing to process ?
+	if( !callback ) return;
+
+	for( i = 0; i < vm.prog->progs->numglobaldefs; i++ )
 	{
 		def = &vm.prog->globaldefs[i];
 		type = def->type;
@@ -798,51 +835,39 @@ void PRVM_ED_WriteGlobals( vfile_t *f )
 			continue;
 		type &= ~DEF_SAVEGLOBAL;
 
-		if (type != ev_string && type != ev_float && type != ev_entity)
+		if( type != ev_string && type != ev_float && type != ev_entity )
 			continue;
 
 		name = PRVM_GetString(def->s_name);
-		VFS_Printf(f,"\"%s\" ", name);
-		VFS_Printf(f,"\"%s\"\n", PRVM_UglyValueString((etype_t)type, (prvm_eval_t *)&vm.prog->globals.gp[def->ofs]));
+		value = PRVM_UglyValueString((etype_t)type, (prvm_eval_t *)&vm.prog->globals.gp[def->ofs]);
+		callback( name, value, buffer, numpairs );
 	}
-	VFS_Print(f,"}\n");
 }
 
 /*
 =============
-PRVM_ED_ParseGlobals
+PRVM_ED_ReadGlobals
 =============
 */
-void PRVM_ED_ParseGlobals (const char *data)
+void PRVM_ED_ReadGlobals( int s_table, dkeyvalue_t *globals, int numpairs )
 {
-	char keyname[MAX_MSGLEN];
-	ddef_t *key;
+	const char	*keyname;
+	const char	*value;
+	ddef_t		*key;
+	int		i;
 
-	while (1)
+	for( i = 0; i < numpairs; i++ )
 	{
-		// parse key
-		if (!Com_SimpleGetToken(&data))
-			PRVM_ERROR ("PRVM_ED_ParseGlobals: EOF without closing brace\n");
-		if (com_token[0] == '}') break;
-		if (com_token[0] == '{') continue;
-		com.strncpy (keyname, com_token, sizeof(keyname));
+		keyname = StringTable_GetString( s_table, globals[i].epair[DENT_KEY] );
+		value = StringTable_GetString( s_table, globals[i].epair[DENT_VAL]);
 
-		// parse value
-		if (!Com_SimpleGetToken(&data))
-			PRVM_ERROR ("PRVM_ED_ParseGlobals: EOF without closing brace\n");
-
-		if (com_token[0] == '}')
-			PRVM_ERROR ("PRVM_ED_ParseGlobals: closing brace without data\n");
-
-		key = PRVM_ED_FindGlobal (keyname);
-		if (!key)
+		key = PRVM_ED_FindGlobal( keyname );
+		if( !key )
 		{
-			MsgDev(D_INFO, "'%s' is not a global on %s\n", keyname, PRVM_NAME);
+			MsgDev( D_INFO, "'%s' is not a global on %s\n", keyname, PRVM_NAME );
 			continue;
 		}
-
-		if (!PRVM_ED_ParseEpair(NULL, key, com_token))
-			PRVM_ERROR ("PRVM_ED_ParseGlobals: parse error\n");
+		if( !PRVM_ED_ParseEpair( NULL, key, value )) PRVM_ERROR( "PRVM_ED_ReadGlobals: parse error\n" );
 	}
 }
 
@@ -857,13 +882,13 @@ Can parse either fields or globals
 returns false if error
 =============
 */
-bool PRVM_ED_ParseEpair(edict_t *ent, ddef_t *key, const char *s)
+bool PRVM_ED_ParseEpair( edict_t *ent, ddef_t *key, const char *s )
 {
-	int i, l;
-	char *new_p;
-	ddef_t *def;
-	prvm_eval_t *val;
-	mfunction_t *func;
+	int		i, l;
+	char		*new_p;
+	ddef_t		*def;
+	prvm_eval_t	*val;
+	mfunction_t	*func;
 
 	if( ent ) val = (prvm_eval_t *)((int *)ent->progs.vp + key->ofs);
 	else val = (prvm_eval_t *)((int *)vm.prog->globals.gp + key->ofs);
@@ -891,36 +916,34 @@ bool PRVM_ED_ParseEpair(edict_t *ent, ddef_t *key, const char *s)
 		break;
 	case ev_float:
 		while(*s && *s <= ' ') s++;
-		val->_float = com.atof(s);
+		val->_float = com.atof( s );
 		break;
 	case ev_vector:
-		for (i = 0; i < 3; i++)
+		for( i = 0; i < 3; i++ )
 		{
-			while (*s && *s <= ' ') s++;
-			if (!*s) break;
-			val->vector[i] = com.atof(s);
-			while (*s > ' ') s++;
+			while(*s && *s <= ' ') s++;
+			if( !*s ) break;
+			val->vector[i] = com.atof( s );
+			while( *s > ' ' ) s++;
 			if (!*s) break;
 		}
 		break;
 	case ev_entity:
-		while (*s && *s <= ' ')
-			s++;
-		i = com.atoi(s);
+		while( *s && *s <= ' ' ) s++;
+		i = com.atoi( s );
 		if (i >= vm.prog->limit_edicts)
-			MsgDev(D_WARN, "PRVM_ED_ParseEpair: ev_entity reference too large (edict %u >= limit_edicts %u) on %s\n", (uint)i, (uint)vm.prog->limit_edicts, PRVM_NAME);
-		while (i >= vm.prog->max_edicts)
-			PRVM_MEM_IncreaseEdicts();
+			MsgDev( D_WARN, "PRVM_ED_ParseEpair: ev_entity reference too large (edict %u >= limit_edicts %u) on %s\n", (uint)i, (uint)vm.prog->limit_edicts, PRVM_NAME);
+		while( i >= vm.prog->max_edicts ) PRVM_MEM_IncreaseEdicts();
 		// if IncreaseEdicts was called the base pointer needs to be updated
-		if (ent) val = (prvm_eval_t *)((int *)ent->progs.vp + key->ofs);
+		if( ent ) val = (prvm_eval_t *)((int *)ent->progs.vp + key->ofs);
 		val->edict = PRVM_EDICT_TO_PROG(PRVM_EDICT_NUM((int)i));
 		break;
 
 	case ev_field:
 		def = PRVM_ED_FindField(s);
-		if (!def)
+		if( !def )
 		{
-			MsgDev(D_WARN, "PRVM_ED_ParseEpair: Can't find field %s in %s\n", s, PRVM_NAME);
+			MsgDev( D_WARN, "PRVM_ED_ParseEpair: Can't find field %s in %s\n", s, PRVM_NAME );
 			return false;
 		}
 		val->_int = def->ofs;
@@ -928,16 +951,16 @@ bool PRVM_ED_ParseEpair(edict_t *ent, ddef_t *key, const char *s)
 
 	case ev_function:
 		func = PRVM_ED_FindFunction(s);
-		if (!func)
+		if( !func )
 		{
-			MsgDev(D_WARN, "PRVM_ED_ParseEpair: Can't find function %s in %s\n", s, PRVM_NAME);
+			MsgDev( D_WARN, "PRVM_ED_ParseEpair: Can't find function %s in %s\n", s, PRVM_NAME );
 			return false;
 		}
 		val->function = func - vm.prog->functions;
 		break;
 
 	default:
-		MsgDev(D_WARN, "PRVM_ED_ParseEpair: Unknown key->type %i for key \"%s\" on %s\n", key->type, PRVM_GetString(key->s_name), PRVM_NAME);
+		MsgDev( D_WARN, "PRVM_ED_ParseEpair: Unknown key->type %i for key \"%s\" on %s\n", key->type, PRVM_GetString(key->s_name), PRVM_NAME );
 		return false;
 	}
 	return true;

@@ -9,6 +9,14 @@
 #define IDIWADHEADER	(('D'<<24)+('A'<<16)+('W'<<8)+'I')	// little-endian "IWAD" doom1 game wad
 #define IDPWADHEADER	(('D'<<24)+('A'<<16)+('W'<<8)+'P')	// little-endian "PWAD" doom1 game wad
 #define IDWAD2HEADER	(('2'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD2" quake1 gfx.wad
+#define IDWAD3HEADER	(('3'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD3" half-life wads
+
+typedef struct
+{
+	int		ident;		// should be IWAD, WAD2 or WAD3
+	int		numlumps;		// num files
+	int		infotableofs;
+} dwadheader_t;
 
 typedef struct
 {
@@ -161,11 +169,11 @@ bool Conv_CheckMap( const char *mapname )
 bool Conv_CheckWad( const char *wadname )
 {
 	file_t	*f = FS_Open( wadname, "rb" );
-	dwadinfo_t hdr; // generic header
+	dwadheader_t hdr; // generic header
 
 	if( !f ) return false;
 
-	if(FS_Read( f, &hdr, sizeof(dwadinfo_t)) != sizeof(dwadinfo_t))
+	if(FS_Read( f, &hdr, sizeof(dwadheader_t)) != sizeof(dwadheader_t))
 	{
 		FS_Close( f );	// very strange file with size smaller than 12 bytes and ext .wad
 		return false;

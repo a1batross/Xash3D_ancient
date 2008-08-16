@@ -45,7 +45,7 @@ typedef enum { mod_bad, mod_world, mod_brush, mod_studio, mod_sprite } modtype_t
 typedef void (*cmsave_t) (void* handle, const void* buffer, size_t size);
 typedef void (*cmdraw_t)( int color, int numpoints, const float *points );
 typedef struct { int numfilenames; char **filenames; char *filenamesbuffer; } search_t;
-typedef void (*cvarcmd_t)(const char *s, const char *m, const char *d, void *ptr );
+typedef void (*setpair_t)(const char *key, const char *value, void *buffer, void *numpairs );
 
 typedef struct
 {
@@ -502,7 +502,7 @@ typedef struct stdilib_api_s
 
 	// console variables
 	cvar_t *(*Cvar_Get)(const char *name, const char *value, int flags, const char *desc);
-	void (*Cvar_LookupVars)( int checkbit, char *buffer, void *ptr, cvarcmd_t callback );
+	void (*Cvar_LookupVars)( int checkbit, void *buffer, void *ptr, setpair_t callback );
 	void (*Cvar_SetString)( const char *name, const char *value );
 	void (*Cvar_SetLatched)( const char *name, const char *value);
 	void (*Cvar_FullSet)( char *name, char *value, int flags );
@@ -517,7 +517,7 @@ typedef struct stdilib_api_s
 	uint  (*Cmd_Argc)( void );
 	char *(*Cmd_Args)( void );
 	char *(*Cmd_Argv)( uint arg ); 
-	void (*Cmd_LookupCmds)( char *buffer, void *ptr, cvarcmd_t callback );
+	void (*Cmd_LookupCmds)( char *buffer, void *ptr, setpair_t callback );
 	void (*Cmd_AddCommand)(const char *name, xcommand_t function, const char *desc);
 	void (*Cmd_TokenizeString)(const char *text_in);
 	void (*Cmd_DelCommand)(const char *name);
@@ -544,10 +544,12 @@ typedef struct stdilib_api_s
 	int  (*vfprintf)(vfile_t* file, const char* format, ...);		// write formatted message
 	int (*vfseek)(vfile_t* file, fs_offset_t offset, int whence);	// fseek, can seek in packfiles too
 	bool (*vfunpack)( void* comp, size_t size1, void **buf, size_t size2);// deflate zipped buffer
+	byte *(*vfbuffer)( vfile_t *file );				// get pointer to virtual filebuff
 	long (*vftell)(vfile_t* file);				// like a ftell
 	bool (*vfeof)( vfile_t* file);				// like a feof
 
 	// wadstorage filesystem
+	int (*wfcheck)( const char *filename );				// validate container
 	wfile_t *(*wfopen)( const char *filename, const char *mode );	// open wad file or create new
 	void (*wfclose)( wfile_t *wad );				// close wadfile
 	long (*wfwrite)( wfile_t *wad, const char *lump, const void* data, size_t datasize, char type, char cmp );
@@ -610,6 +612,14 @@ typedef struct stdilib_api_s
 	int (*vsnprintf)(char *buf, size_t size, const char *fmt, va_list args);	// format message
 	int (*snprintf)(char *buffer, size_t buffersize, const char *format, ...);	// print into buffer
 	const char* (*timestamp)( int format );				// returns current time stamp
+
+	// stringtable system
+	int (*st_create)( const char *name, size_t max_strings );
+	const char *(*st_getstring)( int handle, string_t index );
+	string_t (*st_setstring)( int handle, const char *string );
+	int (*st_load)( wfile_t *wad, const char *name );
+	bool (*st_save)( int h, wfile_t *wad );
+	void (*st_remove)( int handle );
 	
 	// misc utils	
 	gameinfo_t *GameInfo;					// user game info (filled by engine)
@@ -782,6 +792,7 @@ virtual filesystem manager
 ===========================================
 */
 #define VFS_Create		com.vfcreate
+#define VFS_GetBuffer	com.vfbuffer
 #define VFS_Open		com.vfopen
 #define VFS_Write		com.vfwrite
 #define VFS_Read		com.vfread
@@ -800,6 +811,7 @@ wadstorage filesystem manager
 ===========================================
 */
 #define WAD_Open		com.wfopen
+#define WAD_Check		com.wfcheck
 #define WAD_Close		com.wfclose
 #define WAD_Write		com.wfwrite
 #define WAD_Read		com.wfread
@@ -856,6 +868,12 @@ misc utils
 #define RunThreadsOnIndividual	com.Com_CreateThread
 #define Com_RandomLong		com.Com_RandomLong
 #define Com_RandomFloat		com.Com_RandomFloat
+#define StringTable_Create		com.st_create
+#define StringTable_Delete		com.st_remove
+#define StringTable_GetString		com.st_getstring
+#define StringTable_SetString		com.st_setstring
+#define StringTable_Load		com.st_load
+#define StringTable_Save		com.st_save
 
 /*
 ===========================================
@@ -1531,7 +1549,8 @@ typedef struct prvm_prog_s
 	void		(*init_edict)(edict_t *edict);
 	void		(*free_edict)(edict_t *ed);
 	void		(*count_edicts)(void);
-	bool		(*load_edict)(edict_t *ent);
+	bool		(*load_edict)(edict_t *ent);		// initialize edict for first loading
+	void		(*restore_edict)(edict_t *ent);	// restore edict from savegame or changelevel
 	void		(*init_cmd)(void);
 	void		(*reset_cmd)(void);
 	void		(*error_cmd)(const char *format, ...);
@@ -1552,14 +1571,15 @@ typedef struct vprogs_exp_s
 	void ( *Update )( dword time );		// refreshing compile, exec some programs e.t.c
 
 	// edict operations
-	void (*WriteGlobals)( vfile_t *f );
-	void (*ParseGlobals)( const char *data );
-	void (*PrintEdict)( edict_t *ed );
-	void (*WriteEdict)( vfile_t *f, edict_t *ed );
-	const char *(*ParseEdict)( const char *data, edict_t *ed );
 	edict_t *(*AllocEdict)( void );
 	void (*FreeEdict)( edict_t *ed );
-	void (*IncreaseEdicts)( void );
+	void (*PrintEdict)( edict_t *ed );
+
+	// savegame stuff
+	void (*WriteGlobals)( void *buffer, void *ptr, setpair_t callback );
+	void (*ReadGlobals)( int s_table, dkeyvalue_t *globals, int count );
+	void (*WriteEdict)( edict_t *ed, void *buffer, void *ptr, setpair_t callback );
+	void (*ReadEdict)( int s_table, int ednum, dkeyvalue_t *fields, int numpairs );
 
 	// load ents description
 	void (*LoadFromFile)( const char *data );
@@ -1568,8 +1588,6 @@ typedef struct vprogs_exp_s
 	const char *(*GetString)( int num );
 	int (*SetEngineString)( const char *s );
 	int (*SetTempString)( const char *s );
-	int (*AllocString)( size_t bufferlength, char **pointer );
-	void (*FreeString)( int num );
 
 	void (*InitProg)( int prognr );
 	void (*SetProg)( int prognr );

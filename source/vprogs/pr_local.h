@@ -494,14 +494,7 @@ typedef enum {
 extern pr_info_t	pr;
 extern byte	*qccpool;
 extern file_t	*asmfile;
-extern uint	MAX_REGS;
 extern int	MAX_ERRORS;
-extern int	MAX_STRINGS;
-extern int	MAX_GLOBALS;
-extern int	MAX_FIELDS;
-extern int	MAX_STATEMENTS;
-extern int	MAX_FUNCTIONS;
-extern int	MAX_CONSTANTS;
 extern char	*compilingfile;
 extern char	progsoutname[MAX_SYSPATH];
 extern char	sourcedir[MAX_SYSPATH];
