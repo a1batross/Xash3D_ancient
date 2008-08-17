@@ -252,14 +252,14 @@ bool SV_EntitiesIn( bool mode, vec3_t v1, vec3_t v2 )
 ============
 Save\Load gamestate
 
-savefile operations
+savegame operations
 ============
 */
 static int s_table;
 
 void SV_AddSaveLump( wfile_t *f, const char *lumpname, void *data, size_t len, bool compress )
 {
-	WAD_Write( f, lumpname, data, len, TYPE_BINDATA, ( compress ? CMP_ZLIB : CMP_NONE ));
+	if( f ) WAD_Write( f, lumpname, data, len, TYPE_BINDATA, ( compress ? CMP_ZLIB : CMP_NONE ));
 }
 
 static void SV_SetPair( const char *name, const char *value, dkeyvalue_t *cvars, int *numpairs )
@@ -276,7 +276,7 @@ void SV_AddCvarLump( wfile_t *f )
 	int		numpairs = 0;
 	
 	Cvar_LookupVars( CVAR_LATCH, cvbuffer, &numpairs, SV_SetPair );
-	SV_AddSaveLump( f, "latched_cvars", cvbuffer, numpairs * sizeof(dkeyvalue_t), true );
+	SV_AddSaveLump( f, LUMP_GAMECVARS, cvbuffer, numpairs * sizeof(dkeyvalue_t), true );
 }
 
 void SV_AddCStrLump( wfile_t *f )
@@ -287,7 +287,7 @@ void SV_AddCStrLump( wfile_t *f )
 	// pack the cfg string data
 	for(i = 0; i < MAX_CONFIGSTRINGS; i++)
 		csbuffer[i] = StringTable_SetString( s_table, sv.configstrings[i] );
-	SV_AddSaveLump( f, "config_strings", &csbuffer, sizeof(csbuffer), true );
+	SV_AddSaveLump( f, LUMP_CFGSTRING, &csbuffer, sizeof(csbuffer), true );
 }
 
 void SV_WriteGlobal( wfile_t *f )
@@ -299,7 +299,7 @@ void SV_WriteGlobal( wfile_t *f )
 	PRVM_ED_WriteGlobals( &globals, &numpairs, SV_SetPair );
 	SV_VM_End();
 
-	SV_AddSaveLump( f, "globals", &globals, numpairs * sizeof(dkeyvalue_t), true );
+	SV_AddSaveLump( f, LUMP_GAMESTATE, &globals, numpairs * sizeof(dkeyvalue_t), true );
 }
 
 void SV_WriteLocals( wfile_t *f )
@@ -319,7 +319,7 @@ void SV_WriteLocals( wfile_t *f )
 	SV_VM_End();
 
 	// all allocated memory will be freed at end of SV_WriteSaveFile
-	SV_AddSaveLump( f, "entities", VFS_GetBuffer( h ), VFS_Tell( h ), true );
+	SV_AddSaveLump( f, LUMP_GAMEENTS, VFS_GetBuffer( h ), VFS_Tell( h ), true );
 	VFS_Close( h ); // release virtual file
 }
 
@@ -361,18 +361,18 @@ void SV_WriteSaveFile( const char *name )
 		return;
 	}
 
-	MsgDev (D_INFO, "Saving game..." );
+	MsgDev( D_INFO, "Saving game..." );
 	com.sprintf (comment, "%s - %s", sv.configstrings[CS_NAME], timestamp( TIME_FULL ));
 	s_table = StringTable_Create( name, MAX_MAP_NUMSTRINGS );
           
 	// write lumps
 	pe->GetAreaPortals( &portalopen, &portalsize );
-	SV_AddSaveLump( savfile, "map_comment", comment, sizeof(comment), false );
+	SV_AddSaveLump( savfile, LUMP_AREASTATE, portalopen, portalsize, true );
+	SV_AddSaveLump( savfile, LUMP_COMMENTS, comment, sizeof(comment), false );
+	SV_AddSaveLump( savfile, LUMP_MAPCMDS, svs.mapcmd, sizeof(svs.mapcmd), false );
 	SV_AddCStrLump( savfile );
-	SV_AddSaveLump( savfile, "areaportals", portalopen, portalsize, true );
-	SV_WriteGlobal( savfile );
-	SV_AddSaveLump( savfile, "map_name", svs.mapcmd, sizeof(svs.mapcmd), false );
 	SV_AddCvarLump( savfile );
+	SV_WriteGlobal( savfile );
 	SV_WriteLocals( savfile );
 	StringTable_Save( s_table, savfile );	// now system released
 	Mem_Free( portalopen );		// release portalinfo
@@ -386,7 +386,7 @@ void Sav_LoadComment( wfile_t *l )
 	byte	*in;
 	int	size;
 
-	in = WAD_Read( l, "map_comment", &size, TYPE_BINDATA );
+	in = WAD_Read( l, LUMP_COMMENTS, &size, TYPE_BINDATA );
 	com.strncpy( svs.comment, in, size );
 }
 
@@ -396,7 +396,7 @@ void Sav_LoadCvars( wfile_t *l )
 	int		i, numpairs;
 	const char	*name, *value;
 
-	in = (dkeyvalue_t *)WAD_Read( l, "latched_cvars", &numpairs, TYPE_BINDATA );
+	in = (dkeyvalue_t *)WAD_Read( l, LUMP_GAMECVARS, &numpairs, TYPE_BINDATA );
 	if( numpairs % sizeof(*in)) Host_Error( "Sav_LoadCvars: funny lump size\n" );
 	numpairs /= sizeof( dkeyvalue_t );
 
@@ -413,7 +413,7 @@ void Sav_LoadMapCmds( wfile_t *l )
 	byte	*in;
 	int	size;
 
-	in = WAD_Read( l, "map_name", &size, TYPE_BINDATA );
+	in = WAD_Read( l, LUMP_MAPCMDS, &size, TYPE_BINDATA );
 	com.strncpy( svs.mapcmd, in, size );
 }
 
@@ -422,7 +422,7 @@ void Sav_LoadCfgString( wfile_t *l )
 	string_t	*in;
 	int	i, numstrings;
 
-	in = (string_t *)WAD_Read( l, "config_strings", &numstrings, TYPE_BINDATA );
+	in = (string_t *)WAD_Read( l, LUMP_CFGSTRING, &numstrings, TYPE_BINDATA );
 	if( numstrings % sizeof(*in)) Host_Error( "Sav_LoadCfgString: funny lump size\n" );
 	numstrings /= sizeof( string_t ); // because old saves can contain last values of MAX_CONFIGSTRINGS
 
@@ -436,7 +436,7 @@ void Sav_LoadAreaPortals( wfile_t *l )
 	byte	*in;
 	int	size;
 
-	in = WAD_Read( l, "areaportals", &size, TYPE_BINDATA );
+	in = WAD_Read( l, LUMP_AREASTATE, &size, TYPE_BINDATA );
 	pe->SetAreaPortals( in, size ); // CM_ReadPortalState
 }
 
@@ -445,7 +445,7 @@ void Sav_LoadGlobal( wfile_t *l )
 	dkeyvalue_t	*globals;
 	int		numpairs;
 
-	globals = (dkeyvalue_t *)WAD_Read( l, "globals", &numpairs, TYPE_BINDATA );
+	globals = (dkeyvalue_t *)WAD_Read( l, LUMP_GAMESTATE, &numpairs, TYPE_BINDATA );
 	if( numpairs % sizeof(*globals)) Host_Error( "Sav_LoadGlobal: funny lump size\n" );
 	numpairs /= sizeof( dkeyvalue_t );
 	PRVM_ED_ReadGlobals( s_table, globals, numpairs );
@@ -459,7 +459,7 @@ void Sav_LoadLocals( wfile_t *l )
 	size_t		size;
 	vfile_t		*h;
 
-	buff = WAD_Read( l, "entities", &size, TYPE_BINDATA );
+	buff = WAD_Read( l, LUMP_GAMEENTS, &size, TYPE_BINDATA );
 	h = VFS_Create( buff, size );
 
 	while(!VFS_Eof( h ))

@@ -1,73 +1,54 @@
 
 #include "bsplib.h"
 #include "byteorder.h"
-
-void GetLeafNums (void);
+#include "const.h"
 
 //=============================================================================
-
+wfile_t		*handle;
+int		s_table;
 int		nummodels;
 dmodel_t		dmodels[MAX_MAP_MODELS];
-
 int		visdatasize;
 byte		dvisdata[MAX_MAP_VISIBILITY];
 dvis_t		*dvis = (dvis_t *)dvisdata;
-
 int		lightdatasize;
 byte		dlightdata[MAX_MAP_LIGHTING];
-
 int		entdatasize;
 char		dentdata[MAX_MAP_ENTSTRING];
-
 int		numleafs;
 dleaf_t		dleafs[MAX_MAP_LEAFS];
-
 int		numplanes;
 dplane_t		dplanes[MAX_MAP_PLANES];
-
 int		numvertexes;
 dvertex_t		dvertexes[MAX_MAP_VERTS];
-
 int		numnodes;
 dnode_t		dnodes[MAX_MAP_NODES];
-
 int		numtexinfo;
 dtexinfo_t	texinfo[MAX_MAP_TEXINFO];
-
 int		numfaces;
 dface_t		dfaces[MAX_MAP_FACES];
-
 int		numedges;
 dedge_t		dedges[MAX_MAP_EDGES];
-
 int		numleaffaces;
 dword		dleaffaces[MAX_MAP_LEAFFACES];
-
 int		numleafbrushes;
 dword		dleafbrushes[MAX_MAP_LEAFBRUSHES];
-
 int		numsurfedges;
 int		dsurfedges[MAX_MAP_SURFEDGES];
-
 int		numbrushes;
 dbrush_t		dbrushes[MAX_MAP_BRUSHES];
-
 int		numbrushsides;
 dbrushside_t	dbrushsides[MAX_MAP_BRUSHSIDES];
-
 int		nummiptex;
 dmiptex_t		dmiptex[MAX_MAP_TEXTURES];
-
 int		numareas;
 darea_t		dareas[MAX_MAP_AREAS];
-
 int		numareaportals;
 dareaportal_t	dareaportals[MAX_MAP_AREAPORTALS];
-
 byte		dcollision[MAX_MAP_COLLISION];
 int		dcollisiondatasize = 256; // variable sized
 
-// string table system
+// get rid of this 
 char		dstringdata[MAX_MAP_STRINGDATA];
 int		stringdatasize;
 int		dstringtable[MAX_MAP_NUMSTRINGS];
@@ -258,6 +239,26 @@ void SwapBSPFile (bool todisk)
 		dvis->bitofs[i][0] = LittleLong( dvis->bitofs[i][0] );
 		dvis->bitofs[i][1] = LittleLong( dvis->bitofs[i][1] );
 	}
+}
+
+size_t BSP_LoadLump( const char *lumpname, void *dest, size_t block_size )
+{
+	size_t	length;
+	byte	*in;
+
+	if( !handle ) return 0;
+
+	in = WAD_Read( handle, lumpname, &length, TYPE_BINDATA );
+	if( length % block_size ) Sys_Break( "BSP_CopyLump: %s funny lump size\n", lumpname );
+	Mem_Copy( dest, in, length );
+	Mem_Free( in ); // no need more
+	return length / block_size;
+}
+
+void BSP_SaveLump( const char *lumpname, const void *data, size_t length, bool compress )
+{
+	if( !handle ) return;
+	WAD_Write( handle, lumpname, data, length, TYPE_BINDATA, ( compress ? CMP_ZLIB : CMP_NONE ));
 }
 
 dheader_t	*header;

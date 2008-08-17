@@ -781,4 +781,20 @@ typedef struct
 	int		normindex;	// normal vec3_t
 } mstudiomesh_t;
 
+/*
+==============================================================================
+SAVE FILE
+
+included global, and both (client & server) pent list
+==============================================================================
+*/
+#define LUMP_COMMENTS	"map_comment"
+#define LUMP_CFGSTRING	"configstrings"
+#define LUMP_AREASTATE	"areaportals"
+#define LUMP_GAMESTATE	"globals"
+#define LUMP_MAPCMDS	"map_cmds"
+#define LUMP_GAMECVARS	"latched_cvars"
+#define LUMP_GAMEENTS	"entities"
+#define LUMP_SNAPSHOT	"levelshot"	// currently not implemented
+
 #endif//REF_DFILES_H
