@@ -33,7 +33,7 @@ int	c_badstartverts;
 int	superverts[MAX_SUPERVERTS];
 int	numsuperverts;
 
-face_t	*edgefaces[MAX_MAP_EDGES][2];
+bspface_t	*edgefaces[MAX_MAP_EDGES][2];
 int	firstmodeledge = 1;
 int	firstmodelface;
 int	c_tryedges;
@@ -47,7 +47,7 @@ int	edge_verts[MAX_MAP_VERTS];
 
 float	subdivide_size = 512;
 
-face_t *NewFaceFromFace (face_t *f);
+bspface_t *NewFaceFromFace (bspface_t *f);
 
 //===========================================================================
 
@@ -64,7 +64,7 @@ typedef struct hashvert_s
 int	vertexchain[MAX_MAP_VERTS];		// the next vertex in a hash chain
 int	hashverts[HASH_SIZE*HASH_SIZE];	// a vertex number, or 0 for no verts
 
-face_t	*edgefaces[MAX_MAP_EDGES][2];
+bspface_t	*edgefaces[MAX_MAP_EDGES][2];
 
 //============================================================================
 
@@ -201,9 +201,9 @@ superverts[base] will become face->vertexnums[0], and the others
 will be circularly filled in.
 ==================
 */
-void FaceFromSuperverts (node_t *node, face_t *f, int base)
+void FaceFromSuperverts (node_t *node, bspface_t *f, int base)
 {
-	face_t	*newf;
+	bspface_t	*newf;
 	int		remaining;
 	int		i;
 
@@ -242,7 +242,7 @@ void FaceFromSuperverts (node_t *node, face_t *f, int base)
 EmitFaceVertexes
 ==================
 */
-void EmitFaceVertexes (node_t *node, face_t *f)
+void EmitFaceVertexes (node_t *node, bspface_t *f)
 {
 	winding_t	*w;
 	int			i;
@@ -269,7 +269,7 @@ EmitVertexes_r
 void EmitVertexes_r (node_t *node)
 {
 	int		i;
-	face_t	*f;
+	bspface_t	*f;
 
 	if (node->planenum == PLANENUM_LEAF)
 		return;
@@ -431,7 +431,7 @@ FixFaceEdges
 
 ==================
 */
-void FixFaceEdges (node_t *node, face_t *f)
+void FixFaceEdges (node_t *node, bspface_t *f)
 {
 	int		p1, p2;
 	int		i;
@@ -502,7 +502,7 @@ FixEdges_r
 void FixEdges_r (node_t *node)
 {
 	int		i;
-	face_t	*f;
+	bspface_t	*f;
 
 	if (node->planenum == PLANENUM_LEAF)
 		return;
@@ -542,9 +542,9 @@ void FixTjuncs (node_t *headnode)
 
 int		c_faces;
 
-face_t	*AllocFace (void)
+bspface_t	*AllocFace (void)
 {
-	face_t	*f;
+	bspface_t	*f;
 
 	f = Malloc(sizeof(*f));
 	c_faces++;
@@ -552,9 +552,9 @@ face_t	*AllocFace (void)
 	return f;
 }
 
-face_t *NewFaceFromFace (face_t *f)
+bspface_t *NewFaceFromFace (bspface_t *f)
 {
-	face_t	*newf;
+	bspface_t	*newf;
 
 	newf = AllocFace ();
 	*newf = *f;
@@ -564,7 +564,7 @@ face_t *NewFaceFromFace (face_t *f)
 	return newf;
 }
 
-void FreeFace (face_t *f)
+void FreeFace (bspface_t *f)
 {
 	if (f->w)
 		FreeWinding (f->w);
@@ -582,7 +582,7 @@ Called by writebsp.
 Don't allow four way edges
 ==================
 */
-int GetEdge2 (int v1, int v2,  face_t *f)
+int GetEdge( int v1, int v2,  bspface_t *f )
 {
 	dedge_t	*edge;
 	int		i;
@@ -738,9 +738,9 @@ Returns NULL if the faces couldn't be merged, or the new face.
 The originals will NOT be freed.
 =============
 */
-face_t *TryMerge (face_t *f1, face_t *f2, vec3_t planenormal)
+bspface_t *TryMerge (bspface_t *f1, bspface_t *f2, vec3_t planenormal)
 {
-	face_t		*newf;
+	bspface_t		*newf;
 	winding_t	*nw;
 
 	if (!f1->w || !f2->w)
@@ -774,8 +774,8 @@ MergeNodeFaces
 */
 void MergeNodeFaces (node_t *node)
 {
-	face_t	*f1, *f2, *end;
-	face_t	*merged;
+	bspface_t	*f1, *f2, *end;
+	bspface_t	*merged;
 	plane_t	*plane;
 
 	plane = &mapplanes[node->planenum];
@@ -813,7 +813,7 @@ SubdivideFace
 Chop up faces that are larger than we want in the surface cache
 ===============
 */
-void SubdivideFace( node_t *node, face_t *f )
+void SubdivideFace( node_t *node, bspface_t *f )
 {
 	float		mins, maxs;
 	vec_t		v;
@@ -892,7 +892,7 @@ void SubdivideFace( node_t *node, face_t *f )
 
 void SubdivideNodeFaces (node_t *node)
 {
-	face_t	*f;
+	bspface_t	*f;
 
 	for (f = node->faces ; f ; f=f->next)
 	{
@@ -911,9 +911,9 @@ FaceFromPortal
 
 ============
 */
-face_t *FaceFromPortal (portal_t *p, int pside)
+bspface_t *FaceFromPortal (portal_t *p, int pside)
 {
-	face_t	*f;
+	bspface_t	*f;
 	side_t	*side;
 
 	side = p->side;

@@ -47,8 +47,8 @@ int		numareaportals;
 dareaportal_t	dareaportals[MAX_MAP_AREAPORTALS];
 byte		dcollision[MAX_MAP_COLLISION];
 int		dcollisiondatasize = 256; // variable sized
-
-// get rid of this 
+int		dindexes[MAX_MAP_INDEXES];
+int		numindexes;
 char		dstringdata[MAX_MAP_STRINGDATA];
 int		stringdatasize;
 int		dstringtable[MAX_MAP_NUMSTRINGS];
@@ -215,6 +215,9 @@ void SwapBSPFile (bool todisk)
 	// brushsides
 	SwapBlock( (int *)dbrushsides, numbrushsides * sizeof(dbrushsides[0]));
 
+	// indices
+	SwapBlock( (int *)dindexes, numindexes * sizeof(dindexes[0]));
+
 	// miptexes
 	SwapBlock( (int *)dmiptex, nummiptex * sizeof(dmiptex[0]));
 
@@ -320,6 +323,7 @@ bool LoadBSPFile( void )
 	numbrushes = CopyLump (LUMP_BRUSHES, dbrushes, sizeof(dbrush_t));
 	numbrushsides = CopyLump (LUMP_BRUSHSIDES, dbrushsides, sizeof(dbrushside_t));
 	dcollisiondatasize = CopyLump(LUMP_COLLISION, dcollision, 1);
+	numindexes = CopyLump (LUMP_INDEXES, dindexes, sizeof(dindexes[0]));
 	nummiptex = CopyLump(LUMP_TEXTURES, dmiptex, sizeof(dmiptex_t));
 	stringdatasize = CopyLump( LUMP_STRINGDATA, dstringdata, sizeof(dstringdata[0]));
 	numstrings = CopyLump( LUMP_STRINGTABLE, dstringtable, sizeof(dstringtable[0]));
@@ -393,6 +397,7 @@ void WriteBSPFile( void )
 	AddLump (LUMP_BRUSHSIDES, dbrushsides, numbrushsides*sizeof(dbrushside_t));
 	AddLump (LUMP_COLLISION, dcollision, dcollisiondatasize );
 	AddLump (LUMP_TEXTURES, dmiptex, nummiptex*sizeof(dmiptex[0]));
+	AddLump (LUMP_INDEXES, dindexes, numindexes*sizeof(dindexes[0]));
 	AddLump (LUMP_STRINGDATA, dstringdata, stringdatasize * sizeof(dstringdata[0]));
 	AddLump (LUMP_STRINGTABLE, dstringtable, numstrings * sizeof(dstringtable[0]));
 	AddLump (LUMP_AREAS, dareas, numareas*sizeof(darea_t));

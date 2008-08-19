@@ -102,6 +102,7 @@ extern vprogs_exp_t *PRVM;
 #define Sys_Error			com.error
 #define Malloc(size)		Mem_Alloc(basepool, size)  
 #define BSP_Realloc(ptr, size)	Mem_Realloc(basepool, ptr, size)
+#define BSP_Malloc(size)		Mem_Alloc(basepool, size)
 #define Z_Malloc(size)		Mem_Alloc(zonepool, size)  
 
 extern string gs_filename;

@@ -60,7 +60,7 @@ FreeTree_r
 */
 void FreeTree_r (node_t *node)
 {
-	face_t		*f, *nextf;
+	bspface_t		*f, *nextf;
 
 	// free children
 	if (node->planenum != PLANENUM_LEAF)

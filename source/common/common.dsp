@@ -113,6 +113,10 @@ SOURCE="$(InputPath)"
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\bsplib\brush.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\bsplib\brushbsp.c
 # End Source File
 # Begin Source File
@@ -121,11 +125,15 @@ SOURCE=.\bsplib\bspfile.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\bsplib\bsplib.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\bsplib\csg.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\faces.c
+SOURCE=.\bsplib\facebsp.c
 # End Source File
 # Begin Source File
 
@@ -210,10 +218,6 @@ SOURCE=.\wadlib.c
 # Begin Source File
 
 SOURCE=.\bsplib\winding.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\writebsp.c
 # End Source File
 # End Group
 # Begin Group "Header Files"

@@ -229,22 +229,19 @@ bspbrush_t	*ClipBrushToBox (bspbrush_t *brush, vec3_t clipmins, vec3_t clipmaxs)
 MakeBspBrushList 
 ===============
 */
-bspbrush_t *MakeBspBrushList (int startbrush, int endbrush,
-		vec3_t clipmins, vec3_t clipmaxs)
+bspbrush_t *MakeBspBrushList( bspbrush_t *brush, vec3_t clipmins, vec3_t clipmaxs, bool onylvis )
 {
-	mapbrush_t	*mb;
 	bspbrush_t	*brushlist, *newbrush;
-	int			i, j;
-	int			c_faces;
-	int			c_brushes;
-	int			numsides;
-	int			vis;
+	int		c_faces;
+	int		c_brushes;
+	int		numsides;
+	int		i, j, vis;
 	vec3_t		normal;
 	float		dist;
 
-	for (i=0 ; i<2 ; i++)
+	for( i = 0; i < 2; i++ )
 	{
-		VectorClear (normal);
+		VectorClear( normal );
 		normal[i] = 1;
 		dist = clipmaxs[i];
 		maxplanenums[i] = FindFloatPlane (normal, dist);
@@ -256,53 +253,41 @@ bspbrush_t *MakeBspBrushList (int startbrush, int endbrush,
 	c_faces = 0;
 	c_brushes = 0;
 
-	for (i=startbrush ; i<endbrush ; i++)
+	for( ; brush; brush = brush->next )
 	{
-		mb = &mapbrushes[i];
-
-		numsides = mb->numsides;
-		if (!numsides)
-			continue;
+		numsides = brush->numsides;
+		if( !numsides ) continue;
 		// make sure the brush has at least one face showing
 		vis = 0;
-		for (j=0 ; j<numsides ; j++)
-			if (mb->original_sides[j].visible && mb->original_sides[j].winding)
+		for( j = 0; j < numsides; j++ )
+			if( brush->sides[j].visible && brush->sides[j].winding )
 				vis++;
-#if 0
-		if (!vis)
-			continue;	// no faces at all
-#endif
+		if( onlyvis && !vis ) continue; // no faces at all
+
 		// if the brush is outside the clip area, skip it
-		for (j=0 ; j<3 ; j++)
-			if (mb->mins[j] >= clipmaxs[j]
-			|| mb->maxs[j] <= clipmins[j])
-			break;
-		if (j != 3)
-			continue;
+		for( j = 0; j < 3; j++ )
+			if( brush->mins[j] >= clipmaxs[j] || brush->maxs[j] <= clipmins[j] )
+				break;
+		if( j != 3 ) continue;
 
-		//
 		// make a copy of the brush
-		//
-		newbrush = AllocBrush (mb->numsides);
-		newbrush->original = mb;
-		newbrush->numsides = mb->numsides;
-		memcpy (newbrush->sides, mb->original_sides, numsides*sizeof(side_t));
-		for (j=0 ; j<numsides ; j++)
+		newbrush = AllocBrush( brush->numsides );
+		newbrush->original = brush;
+		newbrush->numsides = brush->numsides;
+		Mem_Copy( newbrush->sides, brush->sides, numsides * sizeof( side_t ));
+		for( j = 0; j < numsides; j++ )
 		{
-			if (newbrush->sides[j].winding)
+			if( newbrush->sides[j].winding )
 				newbrush->sides[j].winding = CopyWinding (newbrush->sides[j].winding);
-			if (newbrush->sides[j].surf & SURF_HINT)
-				newbrush->sides[j].visible = true;	// hints are always visible
+			if( newbrush->sides[j].surf & SURF_HINT )
+				newbrush->sides[j].visible = true; // hints are always visible
 		}
-		VectorCopy (mb->mins, newbrush->mins);
-		VectorCopy (mb->maxs, newbrush->maxs);
+		VectorCopy( brush->mins, newbrush->mins );
+		VectorCopy( brush->maxs, newbrush->maxs );
 
-		//
 		// carve off anything outside the clip box
-		//
-		newbrush = ClipBrushToBox (newbrush, clipmins, clipmaxs);
-		if (!newbrush)
-			continue;
+		newbrush = ClipBrushToBox( newbrush, clipmins, clipmaxs );
+		if( !newbrush ) continue;
 
 		c_faces += vis;
 		c_brushes++;
@@ -310,7 +295,6 @@ bspbrush_t *MakeBspBrushList (int startbrush, int endbrush,
 		newbrush->next = brushlist;
 		brushlist = newbrush;
 	}
-
 	return brushlist;
 }
 

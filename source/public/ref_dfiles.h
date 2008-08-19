@@ -154,8 +154,10 @@ BRUSH MODELS
 #define MAX_MAP_LIGHTING		0x800000
 #define MAX_MAP_VISIBILITY		0x800000
 #define MAX_MAP_COLLISION		0x800000
+#define MAX_MAP_INDEXES		0x80000
 #define MAX_MAP_STRINGDATA		0x40000
 #define MAX_MAP_NUMSTRINGS		0x10000
+#define MAX_BUILD_SIDES		512	// per one brush.
 
 // world limits
 #define MAX_WORLD_COORD		( 128 * 1024 )
@@ -182,7 +184,7 @@ BRUSH MODELS
 #define LUMP_COLLISION		16	// newton collision tree (worldmodel coords already convert to meters)
 #define LUMP_TEXTURES		17	// contains texture name and dims
 #define LUMP_SVPROGS		18	// private server.dat for current map
-#define LUMP_WAYPOINTS		19	// AI navigate tree (like .aas file for quake3)		
+#define LUMP_INDEXES		19	// vertices indextable 		
 #define LUMP_STRINGDATA		20	// string array
 #define LUMP_STRINGTABLE		21	// string table id's
 
@@ -221,7 +223,7 @@ typedef struct
 {
 	float	mins[3];
 	float	maxs[3];
-	int	headnode;
+	int	headnode;		// FIXME: eliminate this
 	int	firstface;	// submodels just draw faces 
 	int	numfaces;		// without walking the bsp tree
 	int	firstbrush;	// physics stuff
@@ -250,6 +252,8 @@ typedef struct
 	int	children[2];	// negative numbers are -(leafs+1), not nodes
 	int	mins[3];		// for frustom culling
 	int	maxs[3];
+
+	// FIXME: eliminate this
 	int	firstface;
 	int	numfaces;		// counting both sides
 } dnode_t;
@@ -274,6 +278,8 @@ typedef struct
 	int	firstedge;
 	int	numedges;	
 	int	texinfo;		// number in LUMP_TEXINFO array
+	int	firstindex;	// number is LUMP_INDICES array
+	int	numindices;
 
 	// lighting info
 	byte	styles[MAXLIGHTMAPS];

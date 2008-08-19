@@ -208,8 +208,8 @@ winding_t *BaseWindingForPlane (vec3_t normal, vec_t dist)
 	
 	CrossProduct (vup, normal, vright);
 	
-	VectorScale (vup, BOGUS_RANGE, vup);
-	VectorScale (vright, BOGUS_RANGE, vright);
+	VectorScale (vup, MAX_WORLD_COORD, vup);
+	VectorScale (vright, MAX_WORLD_COORD, vright);
 
 // project a really big	axis aligned box onto the plane
 	w = AllocWinding (4);

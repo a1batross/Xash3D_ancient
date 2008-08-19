@@ -936,12 +936,11 @@ Finds a brush side to use for texturing the given portal
 */
 void FindPortalSide (portal_t *p)
 {
-	int			viscontents;
-	bspbrush_t	*bb;
-	mapbrush_t	*brush;
+	int		viscontents;
+	bspbrush_t	*bb, *brush;
 	node_t		*n;
-	int			i,j;
-	int			planenum;
+	int		i,j;
+	int		planenum;
 	side_t		*side, *bestside;
 	float		dot, bestdot;
 	plane_t		*p1, *p2;
@@ -967,14 +966,14 @@ void FindPortalSide (portal_t *p)
 				continue;
 			for (i=0 ; i<brush->numsides ; i++)
 			{
-				side = &brush->original_sides[i];
+				side = &brush->sides[i];
 				if (side->bevel)
 					continue;
 				if (side->texinfo == TEXINFO_NODE)
 					continue;		// non-visible
 				if ((side->planenum&~1) == planenum)
 				{	// exact match
-					bestside = &brush->original_sides[i];
+					bestside = &brush->sides[i];
 					goto gotit;
 				}
 				// see how close the match is
@@ -1016,8 +1015,7 @@ void MarkVisibleSides_r (node_t *node)
 	}
 
 	// empty leafs are never boundary leafs
-	if (!node->contents)
-		return;
+	if( !node->contents ) return;
 
 	// see if there is a visible face
 	for (p=node->portals ; p ; p = p->next[!s])
@@ -1039,23 +1037,19 @@ MarkVisibleSides
 
 =============
 */
-void MarkVisibleSides (tree_t *tree, int startbrush, int endbrush)
+void MarkVisibleSides( tree_t *tree, bspbrush_t *brush )
 {
-	int		i, j;
-	mapbrush_t	*mb;
-	int		numsides;
+	int	j, numsides;
 
 	// clear all the visible flags
-	for (i=startbrush ; i<endbrush ; i++)
+	for( ; brush; brush = brush->next )
 	{
-		mb = &mapbrushes[i];
-
-		numsides = mb->numsides;
-		for (j=0 ; j<numsides ; j++)
-			mb->original_sides[j].visible = false;
+		numsides = brush->numsides;
+		for( j = 0; j < numsides; j++ )
+			brush->sides[j].visible = false;
 	}
 
 	// set visible flags on the sides that are used by portals
-	MarkVisibleSides_r (tree->headnode);
+	MarkVisibleSides_r( tree->headnode );
 }
 

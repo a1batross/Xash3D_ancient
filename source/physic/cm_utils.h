@@ -59,6 +59,7 @@ void CM_TraceBmodel( const vec3_t start, const vec3_t end, const vec3_t mins, co
 void CM_TraceStudio( const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs, cmodel_t *model, trace_t *trace, int contentsmask );
 void CM_BoxTrace( const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs, cmodel_t *model, trace_t *trace, int brushsmask );
 trace_t CM_TransformedBoxTrace( const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs, cmodel_t *model, int brushmask, vec3_t origin, vec3_t angles, bool capsule );
+int CM_FatPVS( const vec3_t org, vec_t radius, byte *fatpvs, size_t fatpvs_size, bool merge );
 byte *CM_ClusterPVS( int cluster );
 byte *CM_ClusterPHS( int cluster );
 int CM_PointLeafnum( const vec3_t p );

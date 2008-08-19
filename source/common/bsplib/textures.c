@@ -104,11 +104,11 @@ int TexinfoForBrushTexture( plane_t *plane, brush_texture_t *bt, vec3_t origin )
 	}
 	else
 	{
-		if( g_mapversion < VALVE_FORMAT ) TextureAxisFromPlane( plane, vecs[0], vecs[1] );
+		if( g_brushtype == BRUSH_WORLDCRAFT_21 ) TextureAxisFromPlane( plane, vecs[0], vecs[1] );
 		if( !bt->vects.valve.scale[0] ) bt->vects.valve.scale[0] = 1;
 		if( !bt->vects.valve.scale[1] ) bt->vects.valve.scale[1] = 1;
 
-		if( g_mapversion < VALVE_FORMAT )
+		if( g_brushtype == BRUSH_WORLDCRAFT_21 )
 		{
 			// rotate axis
 			if( bt->vects.valve.rotate == 0 )
@@ -195,4 +195,22 @@ skip:;
 	// register new texinfo
 	*tc = tx;
 	return numtexinfo++;
+}
+
+brush_texture_t *CopyTexture( brush_texture_t *bt )
+{
+	brush_texture_t *newbt = BSP_Malloc(sizeof( brush_texture_t ));
+	Mem_Copy( newbt, bt, sizeof( brush_texture_t ));
+	return newbt;
+}
+
+void FreeTexture( brush_texture_t *bt )
+{
+	return; //FIXME
+
+	if(*(uint *)bt == 0xdeaddead )
+		Sys_Error( "FreeTexture: freed a freed texture\n" );
+	*(uint *)bt = 0xdeaddead;
+
+	Mem_Free( bt );
 }

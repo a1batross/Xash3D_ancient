@@ -1036,17 +1036,18 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 
 		// anglehack is to allow QuakeEd to write single scalar angles
 		// and allow them to be turned into vectors. (FIXME...)
-		if (!com.strcmp(com_token, "angle"))
+		if( !com.strcmp( com_token, "angle" ))
 		{
-			com.strncpy (com_token, "angles", MAX_QPATH);
+			com.strncpy( keyname, "angles", sizeof(keyname));
 			anglehack = true;
 		}
-		else anglehack = false;
-		
-		com.strncpy (keyname, com_token, sizeof(keyname));
-
+		else 
+		{
+			anglehack = false;
+			com.strncpy( keyname, com_token, sizeof(keyname));
+		}
 		// another hack to fix keynames with trailing spaces
-		n = com.strlen(keyname);
+		n = com.strlen( keyname );
 		while(n && keyname[n-1] == ' ')
 		{
 			keyname[n-1] = 0;
@@ -1056,7 +1057,7 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 		// parse value
 		if (!Com_SimpleGetToken(&data)) PRVM_ERROR ("PRVM_ED_ParseEdict: EOF without closing brace");
 		MsgDev(D_NOTE, " \"%s\"\n", com_token);
-		if(com_token[0] == '}') PRVM_ERROR ("PRVM_ED_ParseEdict: closing brace without data");
+		if( com_token[0] == '}' ) PRVM_ERROR( "PRVM_ED_ParseEdict: closing brace without data" );
 		init = true;
 
 		// ignore attempts to set key "" (this problem occurs in nehahra neh1m8.bsp)
@@ -1074,14 +1075,14 @@ const char *PRVM_ED_ParseEdict (const char *data, edict_t *ent)
 			continue;
 		}
 
-		if (anglehack)
+		if( anglehack )
 		{
 			char	temp[32];
 			
 			com.strncpy( temp, com_token, sizeof(temp));
 			com.sprintf( com_token, "0 %s 0", temp );
 		}
-		if(!PRVM_ED_ParseEpair(ent, key, com_token)) PRVM_ERROR ("PRVM_ED_ParseEdict: parse error");
+		if(!PRVM_ED_ParseEpair( ent, key, com_token )) PRVM_ERROR ("PRVM_ED_ParseEdict: parse error");
 	}
 	if(!init) ent->priv.ed->free = true;
 

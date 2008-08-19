@@ -72,6 +72,57 @@ byte *CM_ClusterPHS (int cluster)
 	return cm.phsrow;
 }
 
+static byte *CM_GetPVS( const vec3_t p )
+{
+	cnode_t *node = cm.nodes;
+
+	while( node->plane )
+		node = node->children[(node->plane->type < 3 ? p[node->plane->type] : DotProduct(p, node->plane->normal)) < node->plane->dist];
+	if(((cleaf_t *)node)->cluster >= 0 )
+		return CM_ClusterPVS( ((cleaf_t *)node)->cluster );
+	return NULL;
+}
+
+
+static void CM_FatPVS_RecursiveBSPNode( const vec3_t org, float radius, byte *fatpvs, size_t fatpvs_size, cnode_t *node )
+{
+	while( node->plane )
+	{
+		float d = PlaneDiff( org, node->plane );
+		if( d > radius ) node = node->children[0];
+		else if( d < -radius ) node = node->children[1];
+		else
+		{
+			// go down both sides
+			CM_FatPVS_RecursiveBSPNode( org, radius, fatpvs, fatpvs_size, node->children[0] );
+			node = node->children[1];
+		}
+	}
+	// if this leaf is in a cluster, accumulate the pvs bits
+	if(((cleaf_t *)node)->cluster >= 0)
+	{
+		int i;
+		byte *pvs = CM_ClusterPVS(((cleaf_t *)node)->cluster ); 
+		for (i = 0;i < fatpvs_size;i++)
+			fatpvs[i] |= pvs[i];
+	}
+}
+
+int CM_FatPVS( const vec3_t org, vec_t radius, byte *fatpvs, size_t fatpvs_size, bool merge )
+{
+	int bytes = cm.vis->numclusters;
+
+	bytes = min( bytes, fatpvs_size );
+	if( cm_novis->integer || !cm.vis->numclusters || !CM_GetPVS( org ))
+	{
+		memset( fatpvs, 0xFF, bytes );
+		return bytes;
+	}
+	if( !merge ) memset( fatpvs, 0, bytes );
+	CM_FatPVS_RecursiveBSPNode( org, radius, fatpvs, bytes, cm.nodes );
+	return bytes;
+}
+
 /*
 ===============================================================================
 

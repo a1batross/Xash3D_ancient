@@ -518,8 +518,8 @@ print into window console
 void Sys_Print( const char *pMsg )
 {
 	const char	*msg;
-	char		buffer[LOG_BUFSIZE];
-	char		logbuf[LOG_BUFSIZE];
+	char		buffer[MAX_MSGLEN];
+	char		logbuf[MAX_MSGLEN];
 	char		*b = buffer;
 	char		*c = logbuf;	
 	int		i = 0;
@@ -528,8 +528,8 @@ void Sys_Print( const char *pMsg )
 	if( Sys.CPrint ) Sys.CPrint( pMsg );
 
 	// if the message is REALLY long, use just the last portion of it
-	if ( com_strlen( pMsg ) > LOG_BUFSIZE - 1 )
-		msg = pMsg + com_strlen( pMsg ) - LOG_BUFSIZE + 1;
+	if ( com_strlen( pMsg ) > MAX_MSGLEN - 1 )
+		msg = pMsg + com_strlen( pMsg ) - MAX_MSGLEN + 1;
 	else msg = pMsg;
 
 	// copy into an intermediate buffer
@@ -586,7 +586,7 @@ formatted message
 void Sys_Msg( const char *pMsg, ... )
 {
 	va_list	argptr;
-	char text[LOG_BUFSIZE];
+	char text[MAX_MSGLEN];
 	
 	va_start( argptr, pMsg );
 	com_vsprintf( text, pMsg, argptr );
@@ -599,7 +599,7 @@ void Sys_Msg( const char *pMsg, ... )
 void Sys_MsgDev( int level, const char *pMsg, ... )
 {
 	va_list	argptr;
-	char	text[LOG_BUFSIZE];
+	char	text[MAX_MSGLEN];
 
 	if( Sys.developer < level ) return;
 	Sys.printlevel = level;
@@ -788,7 +788,7 @@ before call this
 void Sys_Error(const char *error, ...)
 {
 	va_list		argptr;
-	char		text[LOG_BUFSIZE];
+	char		text[MAX_MSGLEN];
          
 	if( Sys.app_state == SYS_ERROR )
 		return; // don't multiple executes
@@ -815,7 +815,7 @@ void Sys_Error(const char *error, ...)
 void Sys_Break(const char *error, ...)
 {
 	va_list		argptr;
-	char		text[LOG_BUFSIZE];
+	char		text[MAX_MSGLEN];
          
 	va_start( argptr, error );
 	com_vsprintf( text, error, argptr );

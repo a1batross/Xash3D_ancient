@@ -20,11 +20,11 @@ cvar_t *cm_leavenudge;
 cvar_t *cm_prefernudgedfraction;
 static uint brushforbox_index = 0;
 
-static cpointf_t polyf_points[512];
-static cplanef_t polyf_planes[512 + 2];
+static cpointf_t polyf_points[MAX_BUILD_SIDES];
+static cplanef_t polyf_planes[MAX_BUILD_SIDES + 2];
 static cbrushf_t polyf_brush;
-static cpointf_t polyf_pointsstart[512], polyf_pointsend[512];
-static cplanef_t polyf_planesstart[512 + 2], polyf_planesend[512 + 2];
+static cpointf_t polyf_pointsstart[MAX_BUILD_SIDES], polyf_pointsend[MAX_BUILD_SIDES];
+static cplanef_t polyf_planesstart[MAX_BUILD_SIDES + 2], polyf_planesend[MAX_BUILD_SIDES + 2];
 static cbrushf_t polyf_brushstart, polyf_brushend;
 static cpointf_t brushforbox_point[MAX_BRUSHFORBOX*8];
 static cplanef_t brushforbox_plane[MAX_BRUSHFORBOX*6];
@@ -143,14 +143,14 @@ cbrushf_t *CM_CollisionNewBrushFromPlanes( byte *mempool, int numoriginalplanes,
 {
 	// TODO: planesbuf could be replaced by a remapping table
 	int	j, k, m, w, xyzflags;
-	int	numpointsbuf = 0, maxpointsbuf = 512, numplanesbuf = 0;
-	int	maxplanesbuf = 512, numelementsbuf = 0, maxelementsbuf = 512;
+	int	numpointsbuf = 0, maxpointsbuf = MAX_BUILD_SIDES, numplanesbuf = 0;
+	int	maxplanesbuf = MAX_BUILD_SIDES, numelementsbuf = 0, maxelementsbuf = MAX_BUILD_SIDES;
 	double	maxdist;
 	cbrushf_t	*brush;
-	cpointf_t	pointsbuf[512];
-	cplanef_t	planesbuf[512];
+	cpointf_t	pointsbuf[MAX_BUILD_SIDES];
+	cplanef_t	planesbuf[MAX_BUILD_SIDES];
 	int	elementsbuf[2048];
-	int	polypointbuf[512];
+	int	polypointbuf[MAX_BUILD_SIDES];
 	int	pmaxpoints = 128;
 	int	pnumpoints;
 	double	p[2][384];
@@ -834,9 +834,9 @@ void CM_CollisionSnapCopyPoints( int numpoints, const cpointf_t *in, cpointf_t *
 
 void CM_CollisionTraceBrushPolygonFloat( trace_t *trace, const cbrushf_t *thisbrush_start, const cbrushf_t *thisbrush_end, int numpoints, const float *points, int supercontents )
 {
-	if( numpoints > 512 )
+	if( numpoints > MAX_BUILD_SIDES )
 	{
-		MsgDev( D_ERROR, "Polygon with more than 512 points not supported\n" );
+		MsgDev( D_ERROR, "Polygon with more than %d points not supported\n", MAX_BUILD_SIDES );
 		return;
 	}
 	polyf_brush.numpoints = numpoints;
@@ -881,9 +881,9 @@ void CM_CollisionTraceBrushTriangleMeshFloat( trace_t *trace, const cbrushf_t *t
 
 void CM_CollisionTraceLinePolygonFloat( trace_t *trace, const vec3_t linestart, const vec3_t lineend, int numpoints, const float *points, int supercontents )
 {
-	if( numpoints > 512 )
+	if( numpoints > MAX_BUILD_SIDES )
 	{
-		MsgDev( D_ERROR, "Polygon with more than 512 points not supported\n" );
+		MsgDev( D_ERROR, "Polygon with more than %d points not supported\n", MAX_BUILD_SIDES );
 		return;
 	}
 
@@ -937,9 +937,9 @@ void CM_CollisionTraceBrushPolygonTransformFloat( trace_t *trace, const cbrushf_
 {
 	int	i;
 
-	if( numpoints > 512 )
+	if( numpoints > MAX_BUILD_SIDES )
 	{
-		MsgDev( D_ERROR, "Polygon with more than 512 points not supported\n" );
+		MsgDev( D_ERROR, "Polygon with more than %d points not supported\n", MAX_BUILD_SIDES );
 		return;
 	}
 

@@ -23,6 +23,9 @@
 #define TYPE_SCRIPT			72	// .txt scrips (xash ext)
 #define TYPE_VPROGS			73	// .dat progs (xash ext)
 
+// edict_t->spawnflags
+#define SF_START_ON			0x1
+
 // entity_state_t->renderfx
 #define RF_MINLIGHT			(1<<0)	// allways have some light (viewmodel)
 #define RF_PLAYERMODEL		(1<<1)	// don't draw through eyes, only mirrors

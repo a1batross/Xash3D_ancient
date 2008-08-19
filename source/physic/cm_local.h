@@ -242,6 +242,7 @@ extern physic_t ph;
 
 extern cvar_t *cm_noareas;
 extern cvar_t *cm_debugdraw;
+extern cvar_t *cm_novis;
 
 // test variables
 extern int	characterID; 

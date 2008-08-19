@@ -359,7 +359,8 @@ void SV_BuildClientFrame( sv_client_t *cl )
 	VectorAdd( org, clent->priv.sv->s.viewoffset, org );  
 
 	// calculate fat pvs
-	if( sv_fatpvs->integer ) SV_FatPVS( org );
+	if( sv_fatpvs->integer == 1 ) SV_FatPVS( org );
+	if( sv_fatpvs->integer == 2 ) pe->FatPVS( org, 64, fatpvs, sizeof(fatpvs), false );
 
 	leafnum = pe->PointLeafnum( org );
 	clientarea = pe->LeafArea( leafnum );

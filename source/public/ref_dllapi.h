@@ -1358,6 +1358,7 @@ typedef struct physic_exp_s
 	int (*NumBmodels )( void );
 	const char *(*GetEntityString)( void );
 	const char *(*GetTextureName)( int index );
+	int (*FatPVS)( const vec3_t org, vec_t radius, byte *fatpvs, size_t fatpvs_size, bool merge );
 	byte *(*ClusterPVS)( int cluster );
 	byte *(*ClusterPHS)( int cluster );
 	int (*PointLeafnum)( vec3_t p );

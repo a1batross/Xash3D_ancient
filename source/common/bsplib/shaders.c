@@ -39,9 +39,9 @@ infoParm_t infoParms[] =
 	{"trans",		SURF_BLEND,	CONTENTS_TRANSLUCENT,	0}, // don't eat contained surfaces
 	{"detail",	SURF_NONE,	CONTENTS_DETAIL,		0}, // don't include in structural bsp
 	{"sky",		SURF_SKY,		CONTENTS_NONE,		0}, // emit light from environment map
-	{"hint",		SURF_HINT,	CONTENTS_NONE,		0}, // use as a primary splitter
-	{"skip",		SURF_SKIP,	CONTENTS_NONE,		0}, // use as a secondary splitter
-	{"null",		SURF_NODRAW,	CONTENTS_SOLID,		0},
+	{"hint",		SURF_HINT|SURF_NODRAW,	CONTENTS_NONE,	0}, // use as a primary splitter
+	{"skip",		SURF_SKIP|SURF_NODRAW,	CONTENTS_NONE,	0}, // use as a secondary splitter
+	{"null",		SURF_NODRAW,	CONTENTS_CLIP,		0},
 	{"mirror",	SURF_MIRROR,	CONTENTS_SOLID,		0},
 
 	// server attributes

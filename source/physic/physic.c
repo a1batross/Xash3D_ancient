@@ -18,6 +18,7 @@ cvar_t *cm_solver_model;
 cvar_t *cm_friction_model;
 cvar_t *cm_physics_model;
 cvar_t *cm_debugdraw;
+cvar_t *cm_novis;
 
 bool InitPhysics( void )
 {
@@ -41,6 +42,7 @@ bool InitPhysics( void )
 	cm_friction_model = Cvar_Get("cm_friction", "0", CVAR_ARCHIVE|CVAR_LATCH, "change solver model: 0 - precision, 1 - adaptive. (changes need restart server to take effect)" );
 	cm_physics_model = Cvar_Get("cm_physic", "1", CVAR_ARCHIVE|CVAR_LATCH, "change physic model: 0 - Classic Quake Physic, 1 - Physics Engine" );
 	cm_debugdraw = Cvar_Get( "cm_debugdraw", "0", CVAR_ARCHIVE, "draw physics hulls" );
+	cm_novis = Cvar_Get( "r_novis", "0", 0, "ignore vis information (perfomance test)" );
 
 	return true;
 }
@@ -104,6 +106,7 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 	Phys.LeafArea = CM_LeafArea;
 	Phys.AreasConnected = CM_AreasConnected;
 	Phys.WriteAreaBits = CM_WriteAreaBits;
+	Phys.FatPVS = CM_FatPVS;
 
 	Phys.Frame = PhysFrame;
 	Phys.CreateBody = Phys_CreateBody;
