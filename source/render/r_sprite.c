@@ -3,7 +3,8 @@
 //		        r_sprite.c - render sprite models
 //=======================================================================
 
-#include "gl_local.h"
+#include "r_local.h"
+#include "mathlib.h"
 #include "byteorder.h"
 #include "const.h"
 
@@ -30,7 +31,7 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	int		width, height, size, origin[2];
 	char		name[64];
 	rgbdata_t		*spr_frame;
-	image_t		*image;
+	texture_t		*image;
 	
 	pinframe = (dframe_t *)pin;
 
@@ -60,20 +61,19 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	pspriteframe->down = origin[1] - height;
 	pspriteframe->left = origin[0];
 	pspriteframe->right = width + origin[0];
-          pspriteframe->texnum = 0;
+	pspriteframe->radius = sqrt(((width>>1) * (width>>1)) + ((height>>1) * (height>>1)));
 	
 	// extract sprite name from path
 	FS_FileBase( mod->name, name );
 	com.strcat(name, va("_%s_%i%i", frame_prefix, framenum/10, framenum%10 ));
 
-	image = R_LoadImage( name, spr_frame, it_sprite );
+	image = R_LoadTexture( name, spr_frame, 0, 0 );
 	if( image )
 	{
-		pspriteframe->texnum = image->texnum[0];
-		mod->skins[mod->numtexinfo] = image;
-		mod->numtexinfo++;
+		pspriteframe->texture = image;
+		mod->numTexInfo++;
 	}
-          else MsgDev(D_WARN, "%s has null frame %d\n", image->name, framenum );
+          else MsgDev( D_WARN, "%s has null frame %d\n", image->name, framenum );
 
 	FS_FreeImage( spr_frame );          
 	return (dframetype_t *)((byte *)(pinframe + 1) + size );
@@ -116,11 +116,11 @@ dframetype_t *R_SpriteLoadGroup( rmodel_t *mod, void * pin, mspriteframe_t **ppf
 	return (dframetype_t *)ptemp;
 }
 
-void R_SpriteLoadModel( rmodel_t *mod, void *buffer )
+void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 {
 	dsprite_t		*pin;
 	short		*numi;
-	msprite_t		*psprite;
+	sprite_t		*psprite;
 	dframetype_t	*pframetype;
 	int		i, size, numframes;
 	
@@ -134,11 +134,11 @@ void R_SpriteLoadModel( rmodel_t *mod, void *buffer )
 	}
 
 	numframes = LittleLong (pin->numframes);
-	size = sizeof (msprite_t) + (numframes - 1) * sizeof (psprite->frames);
+	size = sizeof (sprite_t) + (numframes - 1) * sizeof( psprite->frames );
 
 	psprite = Mem_Alloc(mod->mempool, size );
 	mod->extradata = psprite; //make link to extradata
-	mod->numtexinfo = 0; // reset frames
+	mod->numTexInfo = 0; // reset frames
 	
 	psprite->type	= LittleLong(pin->type);
 	psprite->rendermode = LittleLong(pin->texFormat);
@@ -149,7 +149,7 @@ void R_SpriteLoadModel( rmodel_t *mod, void *buffer )
 	mod->maxs[2] = LittleLong(pin->bounds[1]) / 2;
 	numi = (short *)(pin + 1);
 
-	if( LittleShort(*numi) == 256 )
+	if( LittleShort( *numi ) == 256 )
 	{	
 		byte *src = (byte *)(numi+1);
 
@@ -251,20 +251,20 @@ void R_SpriteLoadModel( rmodel_t *mod, void *buffer )
 R_GetSpriteFrame
 ================
 */
-mspriteframe_t *R_GetSpriteFrame( ref_entity_t *m_pCurrentEntity )
+mspriteframe_t *R_GetSpriteFrame( ref_entity_t *ent )
 {
-	msprite_t		*psprite;
+	sprite_t		*psprite;
 	mspritegroup_t	*pspritegroup;
 	mspriteframe_t	*pspriteframe;
 	int		i, numframes, frame;
 	float		*pintervals, fullinterval, targettime, time;
 
-	psprite = m_pCurrentEntity->model->extradata;
-	frame = m_pCurrentEntity->frame;
+	psprite = ent->model->extradata;
+	frame = ent->frame;
 
 	if((frame >= psprite->numframes) || (frame < 0))
 	{
-		MsgDev( D_WARN, "R_GetSpriteFrame: no such frame %d (%s)\n", frame, m_pCurrentEntity->model->name );
+		MsgDev( D_WARN, "R_GetSpriteFrame: no such frame %d (%s)\n", frame, ent->model->name );
 		frame = 0;
 	}
 
@@ -278,7 +278,7 @@ mspriteframe_t *R_GetSpriteFrame( ref_entity_t *m_pCurrentEntity )
 		pintervals = pspritegroup->intervals;
 		numframes = pspritegroup->numframes;
 		fullinterval = pintervals[numframes-1];
-		time = r_newrefdef.time;
+		time = r_refdef.time;
 
 		// when loading in Mod_LoadSpriteGroup, we guaranteed all interval values
 		// are positive, so we don't have to worry about division by zero
@@ -294,7 +294,7 @@ mspriteframe_t *R_GetSpriteFrame( ref_entity_t *m_pCurrentEntity )
 	else if( psprite->frames[frame].type == SPR_ANGLED )
 	{
 		// e.g. doom-style sprite monsters
-		int angleframe = (int)((r_newrefdef.viewangles[1] - m_pCurrentEntity->angles[1])/360*8 + 0.5 - 4) & 7;
+		int angleframe = (int)((r_refdef.viewangles[1] - ent->angles[1])/360*8 + 0.5 - 4) & 7;
 		pspritegroup = (mspritegroup_t *)psprite->frames[frame].frameptr;
 		pspriteframe = pspritegroup->frames[angleframe];
 	}
@@ -303,7 +303,7 @@ mspriteframe_t *R_GetSpriteFrame( ref_entity_t *m_pCurrentEntity )
 
 bool R_AcceptSpritePass( ref_entity_t *e, int pass )
 {
-	msprite_t	*psprite = (msprite_t *)m_pRenderModel->extradata;
+	sprite_t	*psprite = (sprite_t *)m_pRenderModel->extradata;
 
 	if( pass == RENDERPASS_SOLID )
 	{
@@ -340,9 +340,9 @@ void R_SpriteSetupLighting( rmodel_t *mod )
 	}
 	else
 	{
-		R_LightPoint( m_pCurrentEntity->origin, mod->lightcolor );
+		R_LightForPoint( m_pCurrentEntity->origin, mod->lightcolor );
 
-		// doom sprite models	
+		// doom sprite viewmodels	
 		if( m_pCurrentEntity->renderfx & RF_VIEWMODEL )
 			r_lightlevel->value = bound(0, VectorLength(mod->lightcolor) * 75.0f, 255); 
 
@@ -357,7 +357,7 @@ void R_DrawSpriteModel( int passnum )
 	rmodel_t		*mod = m_pRenderModel;
 	float		alpha = 1.0f, angle, sr, cr;
 	vec3_t		distance;
-	msprite_t		*psprite;
+	sprite_t		*psprite;
 	int		i;
 
 	if(!R_AcceptSpritePass( e, passnum )) return;
@@ -365,9 +365,9 @@ void R_DrawSpriteModel( int passnum )
 	// don't even bother culling, because it's just a single
 	// polygon without a surface cache
 
-	psprite = (msprite_t *)mod->extradata;
-	e->frame = fmod(e->frame, psprite->numframes);
-	frame = R_GetSpriteFrame(e);
+	psprite = (sprite_t *)mod->extradata;
+	e->frame = fmod( e->frame, psprite->numframes );
+	frame = R_GetSpriteFrame( e );
 
 	// merge alpha value
 	if( e->renderfx & RF_TRANSLUCENT ) alpha = e->renderamt;
@@ -379,9 +379,9 @@ void R_DrawSpriteModel( int passnum )
 	switch( psprite->type )
 	{
 	case SPR_ORIENTED:
-		AngleVectors(e->angles, forward, right, up);
-		VectorScale(forward, 0.01, forward );// offset for decals
-		VectorSubtract(e->origin, forward, e->origin );
+		AngleVectors( e->angles, forward, right, up );
+		VectorScale( forward, 0.01, forward );// offset for decals
+		VectorSubtract( e->origin, forward, e->origin );
 		break;
 	case SPR_FACING_UPRIGHT:
 		up[0] = up[1] = 0;
@@ -389,35 +389,35 @@ void R_DrawSpriteModel( int passnum )
 		right[0] = e->origin[1] - r_origin[1];
 		right[1] = -(e->origin[0] - r_origin[0]);
 		right[2] = 0;
-		VectorNormalize (right);
-		VectorCopy (vforward, forward);
+		VectorNormalize( right );
+		VectorCopy( r_forward, forward );
 		break;
 	case SPR_FWD_PARALLEL_UPRIGHT:
 		up[0] = up[1] = 0;
 		up[2] = 1;
-		VectorCopy (vup, right);
-		VectorCopy (vforward, forward);
+		VectorCopy( r_up, right );
+		VectorCopy( r_forward, forward );
 		break;
 	case SPR_FWD_PARALLEL_ORIENTED:
 		angle = e->angles[ROLL] * (M_PI*2/360);
 		sr = sin(angle);
 		cr = cos(angle);
-		for (i = 0; i < 3; i++)
+		for( i = 0; i < 3; i++ )
 		{
-			forward[i] = vforward[i];
-			right[i] = vright[i] * cr + vup[i] * sr;
-			up[i] = vright[i] * -sr + vup[i] * cr;
+			forward[i] = r_forward[i];
+			right[i] = r_right[i] * cr + r_up[i] * sr;
+			up[i] = r_right[i] * -sr + r_up[i] * cr;
 		}
 		break;
 	case SPR_FWD_PARALLEL:
 	default: // normal sprite
-		VectorCopy (vup, up);
-		VectorCopy (vright, right);
-		VectorCopy (vforward, forward);
+		VectorCopy( r_up, up );
+		VectorCopy( r_right, right );
+		VectorCopy( r_forward, forward );
 		break;
 	}
 
-	GL_Bind( frame->texnum );
+	GL_BindTexture( frame->texture );
 	GL_TexEnv( GL_MODULATE );
 
 	// setup rendermode
@@ -433,51 +433,50 @@ void R_DrawSpriteModel( int passnum )
 		e->scale = 1/(alpha * 1.5);
 		// intentional falltrough
 	case SPR_ADDITIVE:
-		GL_EnableBlend();
-		pglBlendFunc( GL_SRC_ALPHA, GL_ONE );
+		GL_Enable( GL_BLEND );
+		GL_BlendFunc( GL_SRC_ALPHA, GL_ONE );
 		pglColor4f( 1.0f, 1.0f, 1.0f, alpha );
 		break;
 	case SPR_ALPHTEST:
 	case SPR_INDEXALPHA:
-		GL_EnableBlend();
-		pglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+		GL_Enable( GL_BLEND );
+		GL_BlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 		pglColor4f( mod->lightcolor[0], mod->lightcolor[1], mod->lightcolor[2], 1.0f );
 		break;
 	}                    			
 
-	if (m_pCurrentEntity->renderfx & RF_DEPTHHACK) // hack the depth range to prevent view model from poking into walls
-		pglDepthRange (gldepthmin, gldepthmin + 0.3 * (gldepthmax-gldepthmin));
+	// hack the depth range to prevent view model from poking into walls
+	if( m_pCurrentEntity->renderfx & RF_DEPTHHACK ) pglDepthRange( 0.0, 0.3 );
 
-	pglDisable(GL_CULL_FACE);
-	pglBegin (GL_QUADS);
+	GL_Disable( GL_CULL_FACE );
+	pglBegin( GL_QUADS );
 		pglTexCoord2f (0, 0);
-		VectorMA (e->origin, frame->up * e->scale, up, point);
-		VectorMA (point, frame->left * e->scale, right, point);
-		pglVertex3fv (point);
+		VectorMA( e->origin, frame->up * e->scale, up, point  );
+		VectorMA( point, frame->left * e->scale, right, point );
+		pglVertex3fv( point );
 
-		pglTexCoord2f (1, 0);
-		VectorMA (e->origin, frame->up * e->scale, up, point);
-		VectorMA (point, frame->right * e->scale, right, point);
-		pglVertex3fv (point);
+		pglTexCoord2f( 1, 0 );
+		VectorMA( e->origin, frame->up * e->scale, up, point  );
+		VectorMA( point, frame->right * e->scale, right, point);
+		pglVertex3fv( point );
 
-		pglTexCoord2f (1, 1);
-		VectorMA (e->origin, frame->down * e->scale, up, point);
-		VectorMA (point, frame->right * e->scale, right, point);
-		pglVertex3fv (point);
+		pglTexCoord2f( 1, 1 );
+		VectorMA( e->origin, frame->down * e->scale, up, point);
+		VectorMA( point, frame->right * e->scale, right, point);
+		pglVertex3fv( point );
 
-          	pglTexCoord2f (0, 1);
-		VectorMA (e->origin, frame->down * e->scale, up, point);
-		VectorMA (point, frame->left * e->scale, right, point);
-		pglVertex3fv (point);
+          	pglTexCoord2f( 0, 1 );
+		VectorMA( e->origin, frame->down * e->scale, up, point);
+		VectorMA( point, frame->left * e->scale, right, point );
+		pglVertex3fv( point );
 	pglEnd();
 
 	// restore states
-	GL_DisableBlend();
-	GL_EnableDepthTest();
-	GL_TexEnv(GL_REPLACE);
-	pglEnable(GL_CULL_FACE);
-	if(e->renderfx & RF_DEPTHHACK) pglDepthRange (gldepthmin, gldepthmax);
+	GL_Disable( GL_BLEND );
+	GL_Enable( GL_DEPTH_TEST );
+	GL_TexEnv( GL_REPLACE );
+	GL_Enable( GL_CULL_FACE );
+	if(e->renderfx & RF_DEPTHHACK) pglDepthRange( 0, 1 );
 	pglColor4f( 1, 1, 1, 1 );
 
 }
-

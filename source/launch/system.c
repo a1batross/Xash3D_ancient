@@ -108,6 +108,9 @@ void Sys_GetStdAPI( void )
 	com.Com_LoadScript = SC_LoadScript;		// load script into stack from file or bufer
 	com.Com_AddScript = SC_AddScript;		// include script from file or buffer
 	com.Com_ResetScript = SC_ResetScript;		// reset current script state
+	com.Com_PushScript = SC_PushScript;		// save script into stack
+	com.Com_PopScript = SC_PopScript;		// restore script from stack
+	com.Com_SkipBracedSection = SC_SkipBracedSection;	// skip braced section in script
 	com.Com_ReadToken = SC_GetToken;		// get next token on a line or newline
 	com.Com_TryToken = SC_TryToken;		// return 1 if have token on a line 
 	com.Com_FreeToken = SC_FreeToken;		// free current token to may get it again

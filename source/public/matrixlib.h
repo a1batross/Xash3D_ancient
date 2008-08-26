@@ -42,8 +42,7 @@ _inline void Matrix4x4_Transform( const matrix4x4 in, const float v[3], float ou
 
 _inline void Matrix4x4_Rotate( const matrix4x4 in, const float v[3], float out[3] )
 {
-//FIXME: we need InvserseRotation of OpenGL style
-#ifndef OPENGL_STYLE
+#ifdef OPENGL_STYLE
 	out[0] = v[0] * in[0][0] + v[1] * in[1][0] + v[2] * in[2][0];
 	out[1] = v[0] * in[0][1] + v[1] * in[1][1] + v[2] * in[2][1];
 	out[2] = v[0] * in[0][2] + v[1] * in[1][2] + v[2] * in[2][2];
@@ -51,6 +50,19 @@ _inline void Matrix4x4_Rotate( const matrix4x4 in, const float v[3], float out[3
 	out[0] = v[0] * in[0][0] + v[1] * in[0][1] + v[2] * in[0][2];
 	out[1] = v[0] * in[1][0] + v[1] * in[1][1] + v[2] * in[1][2];
 	out[2] = v[0] * in[2][0] + v[1] * in[2][1] + v[2] * in[2][2];
+#endif
+}
+
+_inline void Matrix4x4_TransposeRotate( const matrix4x4 in, const float v[3], float out[3] )
+{
+#ifdef OPENGL_STYLE
+	out[0] = v[0] * in[0][0] + v[1] * in[0][1] + v[2] * in[0][2];
+	out[1] = v[0] * in[1][0] + v[1] * in[1][1] + v[2] * in[1][2];
+	out[2] = v[0] * in[2][0] + v[1] * in[2][1] + v[2] * in[2][2];
+#else
+	out[0] = v[0] * in[0][0] + v[1] * in[1][0] + v[2] * in[2][0];
+	out[1] = v[0] * in[0][1] + v[1] * in[1][1] + v[2] * in[2][1];
+	out[2] = v[0] * in[0][2] + v[1] * in[1][2] + v[2] * in[2][2];
 #endif
 }
 
@@ -490,6 +502,104 @@ _inline void Matrix4x4_Concat( matrix4x4 out, const matrix4x4 in1, const matrix4
 	out[3][1] = in1[3][0] * in2[0][1] + in1[3][1] * in2[1][1] + in1[3][2] * in2[2][1] + in1[3][3] * in2[3][1];
 	out[3][2] = in1[3][0] * in2[0][2] + in1[3][1] * in2[1][2] + in1[3][2] * in2[2][2] + in1[3][3] * in2[3][2];
 	out[3][3] = in1[3][0] * in2[0][3] + in1[3][1] * in2[1][3] + in1[3][2] * in2[2][3] + in1[3][3] * in2[3][3];
+#endif
+}
+
+_inline bool Matrix4x4_CompareRotateOnly( const matrix4x4 mat1, const matrix4x4 mat2 )
+{
+#ifdef OPENGL_STYLE
+	if( mat1[0][0] != mat2[0][0] || mat1[0][1] != mat2[0][1] || mat1[0][2] != mat2[0][2] )
+		return false;
+	if( mat1[1][0] != mat2[1][0] || mat1[1][1] != mat2[1][1] || mat1[1][2] != mat2[1][2] )
+		return false;
+	if( mat1[2][0] != mat2[2][0] || mat1[2][1] != mat2[2][1] || mat1[2][2] != mat2[2][2] )
+		return false;
+#else
+	if( mat1[0][0] != mat2[0][0] || mat1[1][0] != mat2[1][0] || mat1[2][0] != mat2[2][0] )
+		return false;
+	if( mat1[0][1] != mat2[0][1] || mat1[1][1] != mat2[1][1] || mat1[2][1] != mat2[2][1] )
+		return false;
+	if( mat1[0][2] != mat2[0][2] || mat1[1][2] != mat2[1][2] || mat1[2][2] != mat2[2][2] )
+		return false;
+#endif
+	return true;
+}
+
+_inline void Matrix4x4_ToArrayFloatGL( const matrix4x4 in, float out[16] )
+{
+#ifdef OPENGL_STYLE
+	out[ 0] = in[0][0];
+	out[ 1] = in[0][1];
+	out[ 2] = in[0][2];
+	out[ 3] = in[0][3];
+	out[ 4] = in[1][0];
+	out[ 5] = in[1][1];
+	out[ 6] = in[1][2];
+	out[ 7] = in[1][3];
+	out[ 8] = in[2][0];
+	out[ 9] = in[2][1];
+	out[10] = in[2][2];
+	out[11] = in[2][3];
+	out[12] = in[3][0];
+	out[13] = in[3][1];
+	out[14] = in[3][2];
+	out[15] = in[3][3];
+#else
+	out[ 0] = in[0][0];
+	out[ 1] = in[1][0];
+	out[ 2] = in[2][0];
+	out[ 3] = in[3][0];
+	out[ 4] = in[0][1];
+	out[ 5] = in[1][1];
+	out[ 6] = in[2][1];
+	out[ 7] = in[3][1];
+	out[ 8] = in[0][2];
+	out[ 9] = in[1][2];
+	out[10] = in[2][2];
+	out[11] = in[3][2];
+	out[12] = in[0][3];
+	out[13] = in[1][3];
+	out[14] = in[2][3];
+	out[15] = in[3][3];
+#endif
+}
+
+_inline void Matrix4x4_FromArrayFloatGL( matrix4x4 out, const float in[16] )
+{
+#ifdef OPENGL_STYLE
+	out[0][0] = in[0];
+	out[0][1] = in[1];
+	out[0][2] = in[2];
+	out[0][3] = in[3];
+	out[1][0] = in[4];
+	out[1][1] = in[5];
+	out[1][2] = in[6];
+	out[1][3] = in[7];
+	out[2][0] = in[8];
+	out[2][1] = in[9];
+	out[2][2] = in[10];
+	out[2][3] = in[11];
+	out[3][0] = in[12];
+	out[3][1] = in[13];
+	out[3][2] = in[14];
+	out[3][3] = in[15];
+#else
+	out[0][0] = in[0];
+	out[1][0] = in[1];
+	out[2][0] = in[2];
+	out[3][0] = in[3];
+	out[0][1] = in[4];
+	out[1][1] = in[5];
+	out[2][1] = in[6];
+	out[3][1] = in[7];
+	out[0][2] = in[8];
+	out[1][2] = in[9];
+	out[2][2] = in[10];
+	out[3][2] = in[11];
+	out[0][3] = in[12];
+	out[1][3] = in[13];
+	out[2][3] = in[14];
+	out[3][3] = in[15];
 #endif
 }
 

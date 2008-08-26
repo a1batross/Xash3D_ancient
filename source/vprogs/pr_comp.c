@@ -6109,7 +6109,7 @@ bool PR_ContinueCompile( void )
 
 	if(!progs_src) return false;
 	currentchunk = NULL;
-	Com_ParseToken(&progs_src);
+	Com_ParseToken( &progs_src, true );
 
 	if(!progs_src)
 	{
@@ -6178,7 +6178,7 @@ void PR_BeginCompilation ( void )
 
 	while(*progs_src && *progs_src < ' ') progs_src++;
 
-	pr_file_p = Com_ParseToken(&progs_src);
+	pr_file_p = Com_ParseToken( &progs_src, true );
 	com.strcpy( progsoutname, com_token );
 
 	// this progs.src was written by qcclib without sorting

@@ -191,6 +191,7 @@ BRUSH MODELS
 // get rid of this
 #define LUMP_AREAS			22
 #define LUMP_AREAPORTALS		23
+#define LUMP_LIGHTGRID		24
 
 #define LUMP_TOTALCOUNT		32	// max lumps
 
@@ -204,8 +205,11 @@ BRUSH MODELS
 #define DENT_KEY			0
 #define DENT_VAL			1
 
-//other limits
+// other limits
 #define MAXLIGHTMAPS		4
+#define LIGHTMAP_WIDTH		128
+#define LIGHTMAP_HEIGHT		128
+
 typedef struct
 {
 	int fileofs;
@@ -320,6 +324,14 @@ typedef struct
 	int	numclusters;
 	int	bitofs[8][2];	// bitofs[numclusters][2]
 } dvis_t;
+
+typedef struct
+{
+	vec3_t	mins;
+	vec3_t	size;
+	int	bounds[4];
+	int	points;		// lightgrid[points]
+} dlightgrid_t;
 
 typedef struct
 {

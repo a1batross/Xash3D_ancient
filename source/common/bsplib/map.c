@@ -265,7 +265,7 @@ void SetBrushContents( bspbrush_t *b )
 
 		// merge contents for every side and store it for brushtexture too
 		// translucent objects are automatically classified as detail
-		if( s->surf & ( SURF_TRANS|SURF_BLEND ))
+		if( s->surf & ( SURF_TRANS33|SURF_TRANS66 ))
 		{
 			s->contents |= CONTENTS_DETAIL;
 			s->texture->contents |= CONTENTS_DETAIL;
@@ -296,7 +296,7 @@ void SetBrushContents( bspbrush_t *b )
 	else b->detail = false;
 
 	// if any side is translucent, mark the contents and change solid to window
-	if( brush_surface & (SURF_TRANS|SURF_BLEND))
+	if( brush_surface & (SURF_TRANS33|SURF_TRANS66))
 	{
 		brush_contents |= CONTENTS_TRANSLUCENT;
 		if( brush_contents & CONTENTS_SOLID )

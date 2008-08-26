@@ -3,10 +3,10 @@
 //			r_studio.c - render studio models
 //=======================================================================
 
-#include "gl_local.h"
+#include "r_local.h"
 #include "byteorder.h"
+#include "mathlib.h"
 #include "matrixlib.h"
-#include "r_mirror.h"
 #include "const.h"
 
 /*
@@ -86,41 +86,72 @@ void R_StudioShutdown( void )
 
 /*
 ====================
+MISC STUDIO UTILS
+====================
+*/
+// extract texture filename from modelname
+char *R_ExtName( rmodel_t *mod )
+{
+	static char texname[MAX_QPATH];
+	com.strcpy( texname, mod->name );
+	com.strcpy( &texname[com.strlen(texname) - 4], "T.mdl" );
+	return texname;
+}
+
+int R_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *maxs )
+{
+	mstudioseqdesc_t	*pseqdesc;
+	pseqdesc = (mstudioseqdesc_t *)((byte *)phdr + phdr->seqindex);
+
+	if( sequence == -1 ) return 0;
+	
+	VectorCopy( pseqdesc[sequence].bbmin, mins );
+	VectorCopy( pseqdesc[sequence].bbmax, maxs );
+
+	return 1;
+}
+
+/*
+====================
 Studio model loader
 ====================
 */
-image_t *R_StudioLoadTexture( rmodel_t *mod, mstudiotexture_t *ptexture, byte *pin )
+mipTex_t *R_StudioLoadTexture( rmodel_t *mod, mstudiotexture_t *ptexture, byte *pin )
 {
-	image_t	*image;
 	rgbdata_t	r_skin;
+	mipTex_t	*skin;
 
-          r_skin.width = ptexture->width;
-          r_skin.height = ptexture->height;
+	skin = Mem_Alloc( mod->mempool, sizeof(mipTex_t));
+	r_skin.width = skin->width = ptexture->width;
+          r_skin.height = skin->height = ptexture->height;
 	r_skin.flags = (ptexture->flags & STUDIO_NF_TRANSPARENT) ? IMAGE_HAS_ALPHA : 0;
 	r_skin.type = PF_INDEXED_24;
 	r_skin.numMips = 1;
 	r_skin.palette = pin + ptexture->width * ptexture->height + ptexture->index;
 	r_skin.buffer = pin + ptexture->index; // texdata
 	r_skin.size = ptexture->width * ptexture->height; // for bounds cheking
+	com.strncpy( skin->name, ptexture->name, 64 );
+	skin->numframes = 1;
 			
 	// load studio texture and bind it
-	image = R_LoadImage( ptexture->name, &r_skin, it_skin );
-	if(!image) 
+	skin->image = R_LoadTexture( ptexture->name, &r_skin, 0, 0 );
+	if( !skin->image ) 
 	{
-		Msg("Warning: %s has null texture %s\n", mod->name, ptexture->name );
-		image = r_notexture;
+		MsgDev( D_WARN, "%s has null texture %s\n", mod->name, ptexture->name );
+		skin->image = r_defaultTexture;
 	}
-	ptexture->index = image->texnum[0];
+	ptexture->index = mod->numTexInfo++; // save info
 
-	return image;
+	return skin;
 }
 
-studiohdr_t *R_StudioLoadHeader( rmodel_t *mod, uint *buffer )
+studiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
 {
 	int		i;
 	byte		*pin;
 	studiohdr_t	*phdr;
 	mstudiotexture_t	*ptexture;
+	mipTex_t		**skins;
 	
 	pin = (byte *)buffer;
 	phdr = (studiohdr_t *)pin;
@@ -135,14 +166,15 @@ studiohdr_t *R_StudioLoadHeader( rmodel_t *mod, uint *buffer )
 
 	if( phdr->textureindex > 0 && phdr->numtextures <= MAXSTUDIOSKINS )
 	{
-		mod->numtexinfo = phdr->numtextures; // save info
+		skins = (mipTex_t **)Mem_Alloc( mod->mempool, sizeof(mod->textures) * phdr->numtextures);
 		for (i = 0; i < phdr->numtextures; i++)
-			mod->skins[i] = R_StudioLoadTexture( mod, &ptexture[i], pin );
+			skins[i] = R_StudioLoadTexture( mod, &ptexture[i], pin );
+		mod->textures = skins[0]; // make links
 	}
 	return (studiohdr_t *)buffer;
 }
 
-void R_StudioLoadModel( rmodel_t *mod, void *buffer )
+void R_StudioLoadModel( rmodel_t *mod, const void *buffer )
 {
 	studiohdr_t *phdr = R_StudioLoadHeader( mod, buffer );
 	studiohdr_t *thdr;
@@ -169,37 +201,10 @@ void R_StudioLoadModel( rmodel_t *mod, void *buffer )
 	mod->registration_sequence = registration_sequence;
 }
 
-/*
-====================
-MISC STUDIO UTILS
-====================
-*/
-// extract texture filename from modelname
-char *R_ExtName( rmodel_t *mod )
-{
-	static char texname[MAX_QPATH];
-	com.strcpy( texname, mod->name );
-	com.strcpy( &texname[com.strlen(texname) - 4], "T.mdl" );
-	return texname;
-}
-
 // extract bbox from animation
 int R_ExtractBbox( int sequence, float *mins, float *maxs )
 {
 	return R_StudioExtractBbox( m_pStudioHeader, sequence, mins, maxs );
-}
-
-int R_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *maxs )
-{
-	mstudioseqdesc_t	*pseqdesc;
-	pseqdesc = (mstudioseqdesc_t *)((byte *)phdr + phdr->seqindex);
-
-	if( sequence == -1 ) return 0;
-	
-	VectorCopy( pseqdesc[sequence].bbmin, mins );
-	VectorCopy( pseqdesc[sequence].bbmax, maxs );
-
-	return 1;
 }
 
 void SetBodygroup( int iGroup, int iValue )
@@ -249,8 +254,8 @@ void R_StudioAddEntityToRadar( void )
 	{
 		Vector4Set(RadarEnts[numRadarEnts].color, 0.0f, 1.0f, 1.0f, 0.5f ); 
 	}
-	VectorCopy(m_pCurrentEntity->origin, RadarEnts[numRadarEnts].org);
-	VectorCopy(m_pCurrentEntity->angles, RadarEnts[numRadarEnts].ang);
+	VectorCopy( m_pCurrentEntity->origin, RadarEnts[numRadarEnts].origin );
+	VectorCopy( m_pCurrentEntity->angles, RadarEnts[numRadarEnts].angles );
 	numRadarEnts++;
 }
 
@@ -304,17 +309,17 @@ float R_StudioFrameAdvance( ref_entity_t *ent, float framerate, float flInterval
 {
 	if( flInterval == 0.0 )
 	{
-		flInterval = (r_newrefdef.time - ent->animtime );
+		flInterval = (r_refdef.time - ent->animtime );
 		if( flInterval <= 0.001 )
 		{
-			ent->animtime = r_newrefdef.time;
+			ent->animtime = r_refdef.time;
 			return 0.0;
 		}
 	}
 	if( !ent->animtime ) flInterval = 0.0;
 	
 	ent->frame += flInterval * framerate * ent->framerate;
-	ent->animtime = r_newrefdef.time;
+	ent->animtime = r_refdef.time;
 
 	if( ent->frame < 0.0 || ent->frame >= 256.0 ) 
 	{
@@ -612,7 +617,7 @@ mstudioanim_t *R_StudioGetAnim( rmodel_t *m_pSubModel, mstudioseqdesc_t *pseqdes
 			mstudioseqgroup_t	*pseqhdr = (mstudioseqgroup_t *)pin;
 			
 			paSequences = (byte *)Mem_Alloc( m_pSubModel->mempool, filesize );
-          		m_pSubModel->submodels = (msubmodel_t *)paSequences;
+          		m_pSubModel->submodels = (submodel_t *)paSequences; // just a container
           		Mem_Copy( &paSequences[pseqdesc->seqgroup], buf, filesize );
 			Mem_Free( buf );
 		}		
@@ -673,10 +678,10 @@ void R_StudioSetUpTransform( void )
 
 		// NOTE:  Because we need to interpolate multiplayer characters, the interpolation time limit
 		//  was increased to 1.0 s., which is 2x the max lag we are accounting for.
-		if(( r_newrefdef.time < m_pCurrentEntity->animtime + 1.0f ) && ( m_pCurrentEntity->animtime != m_pCurrentEntity->prev.animtime ) )
+		if(( r_refdef.time < m_pCurrentEntity->animtime + 1.0f ) && ( m_pCurrentEntity->animtime != m_pCurrentEntity->prev.animtime ) )
 		{
-			f = (r_newrefdef.time - m_pCurrentEntity->animtime) / (m_pCurrentEntity->animtime - m_pCurrentEntity->prev.animtime);
-			Msg( "%4.2f %.2f %.2f\n", f, m_pCurrentEntity->animtime, r_newrefdef.time );
+			f = (r_refdef.time - m_pCurrentEntity->animtime) / (m_pCurrentEntity->animtime - m_pCurrentEntity->prev.animtime);
+			Msg( "%4.2f %.2f %.2f\n", f, m_pCurrentEntity->animtime, r_refdef.time );
 		}
 
 		// calculate frontlerp value
@@ -724,7 +729,7 @@ float R_StudioEstimateInterpolant( void )
 
 	if ( m_fDoInterp && ( m_pCurrentEntity->animtime >= m_pCurrentEntity->prev.animtime + 0.01 ) )
 	{
-		dadt = (r_newrefdef.time - m_pCurrentEntity->animtime) / 0.1;
+		dadt = (r_refdef.time - m_pCurrentEntity->animtime) / 0.1;
 		if( dadt > 2.0 ) dadt = 2.0;
 	}
 	return dadt;
@@ -828,8 +833,8 @@ float R_StudioEstimateFrame( mstudioseqdesc_t *pseqdesc )
 	
 	if ( m_fDoInterp )
 	{
-		if ( r_newrefdef.time < m_pCurrentEntity->animtime ) dfdt = 0;
-		else dfdt = (r_newrefdef.time - m_pCurrentEntity->animtime) * m_pCurrentEntity->framerate * pseqdesc->fps;
+		if ( r_refdef.time < m_pCurrentEntity->animtime ) dfdt = 0;
+		else dfdt = (r_refdef.time - m_pCurrentEntity->animtime) * m_pCurrentEntity->framerate * pseqdesc->fps;
 	}
 	else dfdt = 0;
 
@@ -919,7 +924,7 @@ void R_StudioSetupBones( void )
 		}
 	}
 
-	if( m_fDoInterp && m_pCurrentEntity->prev.sequencetime && ( m_pCurrentEntity->prev.sequencetime + 0.2 > r_newrefdef.time) && ( m_pCurrentEntity->prev.sequence < m_pStudioHeader->numseq ))
+	if( m_fDoInterp && m_pCurrentEntity->prev.sequencetime && ( m_pCurrentEntity->prev.sequencetime + 0.2 > r_refdef.time) && ( m_pCurrentEntity->prev.sequence < m_pStudioHeader->numseq ))
 	{
 		// blend from last sequence
 		static float  pos1b[MAXSTUDIOBONES][3];
@@ -955,7 +960,7 @@ void R_StudioSetupBones( void )
 			}
 		}
 
-		s = 1.0 - (r_newrefdef.time - m_pCurrentEntity->prev.sequencetime) / 0.2;
+		s = 1.0 - (r_refdef.time - m_pCurrentEntity->prev.sequencetime) / 0.2;
 		R_StudioSlerpBones( q, pos, q1b, pos1b, s );
 	}
 	else
@@ -1114,7 +1119,7 @@ void R_StudioCalcAttachments( void )
 	}
 }
 
-static bool R_StudioComputeBBox( vec3_t bbox[8] )
+bool R_StudioComputeBBox( vec3_t bbox[8] )
 {
 	vec3_t vectors[3];
 	ref_entity_t *e = m_pCurrentEntity;
@@ -1168,8 +1173,8 @@ static bool R_StudioCheckBBox( void )
 		int mask = 0;
 		for ( j = 0; j < 4; j++ )
 		{
-			float dp = DotProduct( frustum[j].normal, bbox[i] );
-			if ( ( dp - frustum[j].dist ) < 0 ) mask |= ( 1 << j );
+			float dp = DotProduct( r_frustum[j].normal, bbox[i] );
+			if ( ( dp - r_frustum[j].dist ) < 0 ) mask |= ( 1 << j );
 		}
 		aggregatemask &= mask;
 	}
@@ -1218,7 +1223,7 @@ void R_StudioSetupLighting( void )
 		vec3_t light_org;
 		VectorCopy( m_pCurrentEntity->origin, light_org );
 		light_org[2] += 3; // make sure what lightpoint is off the ground
-		R_LightPoint( light_org, m_plightcolor );
+		R_LightForPoint( light_org, m_plightcolor );
 		if ( m_pCurrentEntity->renderfx & RF_VIEWMODEL )
 			r_lightlevel->value = bound(0, VectorLength(m_plightcolor) * 75.0f, 255); 
 
@@ -1230,7 +1235,7 @@ void R_StudioSetupLighting( void )
 		pbone = (mstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex + i);
 		//if(pbone->flags & STUDIO_HAS_CHROME)
 		{
-			Matrix4x4_Rotate( m_pbonestransform[i], m_plightvec, m_blightvec[i] );
+			Matrix4x4_TransposeRotate( m_pbonestransform[i], m_plightvec, m_blightvec[i] );
 		}
 	}
 }
@@ -1277,13 +1282,13 @@ void R_StudioSetupChrome( float *pchrome, int bone, vec3_t normal )
 		tmp[2] += m_pbonestransform[bone][2][3];
 
 		VectorNormalize( tmp );
-		CrossProduct( tmp, vright, chromeupvec );
+		CrossProduct( tmp, r_right, chromeupvec );
 		VectorNormalize( chromeupvec );
 		CrossProduct( tmp, chromeupvec, chromerightvec );
 		VectorNormalize( chromerightvec );
 
-		Matrix4x4_Rotate( m_pbonestransform[bone], chromeupvec, g_chromeup[bone] );
-		Matrix4x4_Rotate( m_pbonestransform[bone], chromerightvec, g_chromeright[bone] );
+		Matrix4x4_TransposeRotate( m_pbonestransform[bone], chromeupvec, g_chromeup[bone] );
+		Matrix4x4_TransposeRotate( m_pbonestransform[bone], chromerightvec, g_chromeright[bone] );
 		g_chromeage[bone] = m_pStudioModelCount;
 	}
 
@@ -1334,7 +1339,7 @@ void R_StudioDrawMeshes( mstudiotexture_t * ptexture, short *pskinref, int pass 
 	for (j = 0; j < m_pSubModel->nummesh; j++) 
 	{
 		flags = ptexture[pskinref[pmesh[j].skinref]].flags;
-		if(!R_AcceptStudioPass(flags, pass )) continue;
+		if(!R_AcceptStudioPass( flags, pass )) continue;
 		
 		for (i = 0; i < pmesh[j].numnorms; i++, lv += 3, pstudionorms++, pnormbone++)
 		{
@@ -1361,7 +1366,7 @@ void R_StudioDrawMeshes( mstudiotexture_t * ptexture, short *pskinref, int pass 
 		s = 1.0/(float)ptexture[pskinref[pmesh->skinref]].width;
 		t = 1.0/(float)ptexture[pskinref[pmesh->skinref]].height;
 
-		GL_Bind( ptexture[pskinref[pmesh->skinref]].index );
+		GL_BindTexture( m_pRenderModel->textures[ptexture[pskinref[pmesh->skinref]].index].image );
 
 		while (i = *(ptricmds++))
 		{
@@ -1387,7 +1392,7 @@ void R_StudioDrawMeshes( mstudiotexture_t * ptexture, short *pskinref, int pass 
                                         if ( m_pCurrentEntity->renderfx & RF_MINLIGHT ) // used for viewmodel only
 					VectorBound(0.01f, lv, 1.0f );
 
-				if ( r_newrefdef.rdflags & RDF_IRGOGGLES && m_pCurrentEntity->renderfx & RF_IR_VISIBLE)
+				if ( r_refdef.rdflags & RDF_IRGOGGLES && m_pCurrentEntity->renderfx & RF_IR_VISIBLE)
 					lv = &irgoggles[0];
 
 				if (flags & STUDIO_NF_ADDITIVE) // additive is self-lighting texture
@@ -1435,43 +1440,45 @@ void R_StudioDrawPoints ( void )
 		Matrix4x4_Transform( m_pbonestransform[pnormbone[i]], pstudionorms[i], m_pxformnorms[i]);
 	}
 
-	if (m_pCurrentEntity->renderfx & RF_DEPTHHACK) // hack the depth range to prevent view model from poking into walls
-		pglDepthRange (gldepthmin, gldepthmin + 0.3 * (gldepthmax-gldepthmin));
-	if (( m_pCurrentEntity->renderfx & RF_VIEWMODEL ) && ( r_lefthand->value == 1.0F ))
+	// hack the depth range to prevent view model from poking into walls
+	if( m_pCurrentEntity->renderfx & RF_DEPTHHACK) pglDepthRange( 0.0, 0.3 );
+	if(( m_pCurrentEntity->renderfx & RF_VIEWMODEL ) && ( r_lefthand->value == 1.0F ))
 	{
-		pglMatrixMode( GL_PROJECTION );
+		/*pglMatrixMode( GL_PROJECTION );
 		pglPushMatrix();
 		pglLoadIdentity();
 		pglScalef( -1, 1, 1 );
-	    	pglPerspective( r_newrefdef.fov_y, ( float ) r_newrefdef.rect.width / r_newrefdef.rect.height,  4, 131072 );
+	    	pglPerspective( r_refdef.fov_y, ( float ) r_refdef.rect.width / r_refdef.rect.height,  4, 131072 );
 		pglMatrixMode( GL_MODELVIEW );
 		pglCullFace( GL_BACK );
+		*/
 	}          
 	if(m_PassNum == RENDERPASS_SOLID && !(m_pCurrentEntity->renderfx & RF_TRANSLUCENT)) //setup for solid format
 	{
-		pglEnable (GL_ALPHA_TEST);
-		pglBlendFunc(GL_ZERO, GL_ZERO);
+		GL_Enable( GL_ALPHA_TEST );
+		GL_BlendFunc( GL_ZERO, GL_ZERO );
                     R_StudioDrawMeshes( ptexture, pskinref, m_PassNum );
 		pglColor4f( 1, 1, 1, 1 ); //reset color
-		pglDisable(GL_ALPHA_TEST);
+		GL_Disable( GL_ALPHA_TEST );
 	}
 	if(m_PassNum == RENDERPASS_ALPHA) //setup for alpha format
 	{
-		pglEnable(GL_BLEND);
-		pglBlendFunc(GL_SRC_ALPHA, GL_ONE);
+		GL_Enable( GL_BLEND );
+		GL_BlendFunc( GL_SRC_ALPHA, GL_ONE );
 		R_StudioDrawMeshes( ptexture, pskinref, m_PassNum );
 		pglColor4f( 1, 1, 1, 1 ); //reset color
-		pglDisable(GL_BLEND);
+		GL_Disable( GL_BLEND );
 	}	
 	if (( m_pCurrentEntity->renderfx & RF_VIEWMODEL ) && ( r_lefthand->value == 1.0F ))
 	{
 		pglMatrixMode( GL_PROJECTION );
 		pglPopMatrix();
 		pglMatrixMode( GL_MODELVIEW );
-		pglCullFace( GL_FRONT );
+		GL_CullFace( GL_FRONT );
 	}
-	if( m_pCurrentEntity->renderfx & RF_DEPTHHACK ) // hack the depth range to prevent view model from poking into walls
-		pglDepthRange( gldepthmin, gldepthmax );
+
+	// hack the depth range to prevent view model from poking into walls
+	if( m_pCurrentEntity->renderfx & RF_DEPTHHACK ) pglDepthRange( 0.0, 1.0 );
 }
 
 void R_StudioDrawBones( void )
@@ -1485,51 +1492,51 @@ void R_StudioDrawBones( void )
 	{
 		if (pbones[i].parent >= 0)
 		{
-			pglPointSize (3.0f);
-			pglColor3f (1, 0.7f, 0);
-			pglBegin (GL_LINES);
-			pglVertex3f (m_pbonestransform[pbones[i].parent][0][3], m_pbonestransform[pbones[i].parent][1][3], m_pbonestransform[pbones[i].parent][2][3]);
-			pglVertex3f (m_pbonestransform[i][0][3], m_pbonestransform[i][1][3], m_pbonestransform[i][2][3]);
-			pglEnd ();
+			pglPointSize( 3.0f );
+			pglColor3f( 1, 0.7f, 0 );
+			pglBegin( GL_LINES );
+			pglVertex3f( m_pbonestransform[pbones[i].parent][0][3], m_pbonestransform[pbones[i].parent][1][3], m_pbonestransform[pbones[i].parent][2][3]);
+			pglVertex3f( m_pbonestransform[i][0][3], m_pbonestransform[i][1][3], m_pbonestransform[i][2][3]);
+			pglEnd();
 
-			pglColor3f (0, 0, 0.8f);
-			pglBegin (GL_POINTS);
+			pglColor3f( 0, 0, 0.8f );
+			pglBegin( GL_POINTS );
 			if (pbones[pbones[i].parent].parent != -1)
 				pglVertex3f (m_pbonestransform[pbones[i].parent][0][3], m_pbonestransform[pbones[i].parent][1][3], m_pbonestransform[pbones[i].parent][2][3]);
-			pglVertex3f (m_pbonestransform[i][0][3], m_pbonestransform[i][1][3], m_pbonestransform[i][2][3]);
-			pglEnd ();
+			pglVertex3f( m_pbonestransform[i][0][3], m_pbonestransform[i][1][3], m_pbonestransform[i][2][3]);
+			pglEnd();
 		}
 		else
 		{
 			// draw parent bone node
-			pglPointSize (5.0f);
-			pglColor3f (0.8f, 0, 0);
-			pglBegin (GL_POINTS);
-			pglVertex3f (m_pbonestransform[i][0][3], m_pbonestransform[i][1][3], m_pbonestransform[i][2][3]);
-			pglEnd ();
+			pglPointSize( 5.0f );
+			pglColor3f( 0.8f, 0, 0 );
+			pglBegin( GL_POINTS );
+			pglVertex3f( m_pbonestransform[i][0][3], m_pbonestransform[i][1][3], m_pbonestransform[i][2][3]);
+			pglEnd();
 		}
 	}
 
 	pglPointSize (1.0f);
-	pglEnable (GL_DEPTH_TEST);
-	pglEnable (GL_TEXTURE_2D);
+	GL_Enable( GL_DEPTH_TEST );
+	pglEnable( GL_TEXTURE_2D );
 }
 
 void R_StudioDrawHitboxes( void )
 {
 	int i, j;
 
-	pglDisable (GL_TEXTURE_2D);
-	pglDisable (GL_CULL_FACE);
+	pglDisable( GL_TEXTURE_2D);
+	GL_Disable( GL_CULL_FACE );
 
 	if( m_pCurrentEntity->renderamt < 1.0f ) pglDisable( GL_DEPTH_TEST );
-	else pglEnable( GL_DEPTH_TEST );
+	else GL_Enable( GL_DEPTH_TEST );
 
 	pglColor4f (1, 0, 0, 0.5f);
 
 	pglPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
-	pglEnable (GL_BLEND);
-	pglBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	GL_Enable( GL_BLEND );
+	GL_BlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
 	for (i = 0; i < m_pStudioHeader->numhitboxes; i++)
 	{
@@ -1601,8 +1608,8 @@ void R_StudioDrawHitboxes( void )
 
 	pglPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
 	pglEnable(GL_TEXTURE_2D);
-	pglEnable(GL_CULL_FACE);
-	pglEnable (GL_DEPTH_TEST);
+	GL_Enable( GL_CULL_FACE );
+	GL_Enable( GL_DEPTH_TEST);
 }
 
 void R_StudioDrawAttachments( void )
@@ -1610,8 +1617,8 @@ void R_StudioDrawAttachments( void )
 	int i;
 	
 	pglDisable (GL_TEXTURE_2D);
-	pglDisable (GL_CULL_FACE);
-	pglDisable (GL_DEPTH_TEST);
+	GL_Disable( GL_CULL_FACE );
+	GL_Disable( GL_DEPTH_TEST);
 	
 	for (i = 0; i < m_pStudioHeader->numattachments; i++)
 	{
@@ -1646,8 +1653,8 @@ void R_StudioDrawAttachments( void )
 		pglPointSize (1.0f);
 	}
 	pglEnable(GL_TEXTURE_2D);
-	pglEnable(GL_CULL_FACE);
-	pglEnable (GL_DEPTH_TEST);
+	GL_Enable( GL_CULL_FACE );
+	GL_Enable( GL_DEPTH_TEST);
 }
 
 void R_StudioDrawHulls ( void )
@@ -1658,7 +1665,7 @@ void R_StudioDrawHulls ( void )
 	if(m_pCurrentEntity->renderfx & RF_VIEWMODEL) return;
 	if(!R_StudioComputeBBox( bbox )) return;
 
-	pglDisable( GL_CULL_FACE );
+	GL_Disable( GL_CULL_FACE );
 	pglPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 	pglDisable( GL_TEXTURE_2D );
 	pglBegin (GL_QUAD_STRIP);
@@ -1671,7 +1678,7 @@ void R_StudioDrawHulls ( void )
 	pglEnd();
 	pglEnable( GL_TEXTURE_2D );
 	pglPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-	pglEnable( GL_CULL_FACE );
+	GL_Enable( GL_CULL_FACE );
 }
 
 void R_StudioDrawShadow ( void )
@@ -1708,7 +1715,7 @@ void R_StudioRenderModel( void )
 		R_StudioDrawPoints();
 	}
 
-	if(!( r_newrefdef.rdflags & RDF_NOWORLDMODEL ))
+	if(!( r_refdef.rdflags & RDF_NOWORLDMODEL ))
 	{
 		switch((int)r_drawentities->value)
 		{
@@ -1747,12 +1754,12 @@ StudioDrawModel
 */
 bool R_StudioDrawModel( int pass, int flags )
 {
-	if( !mirror_render && m_pCurrentEntity->renderfx & RF_PLAYERMODEL )
-		return 0;
+	//if( !mirror_render && m_pCurrentEntity->renderfx & RF_PLAYERMODEL )
+	//	return 0;
 
 	if( m_pCurrentEntity->renderfx & RF_VIEWMODEL )
 	{
-		if( mirror_render || r_lefthand->value == 2 )
+		if( /*mirror_render ||*/ r_lefthand->value == 2 )
 			return 0;
 	}
 
@@ -1842,11 +1849,11 @@ void R_StudioEstimateGait( entity_state_t *pplayer )
 	float	dt;
 	vec3_t	est_velocity;
 
-	dt = ( r_newrefdef.time - r_newrefdef.oldtime );
+	dt = ( r_refdef.time - r_refdef.oldtime );
 	if( dt < 0 ) dt = 0.0f;
 	else if ( dt > 1.0 ) dt = 1.0f;
 
-	if( dt == 0 || m_pCurrentEntity->renderframe == r_framecount )
+	if( dt == 0 || m_pCurrentEntity->renderframe == r_frameCount )
 	{
 		m_flGaitMovement = 0;
 		return;
@@ -1921,7 +1928,7 @@ void R_StudioProcessGait( entity_state_t *pplayer )
 
 	// MsgDev( D_INFO, "%f %d\n", m_pCurrentEntity->angles[PITCH], m_pCurrentEntity->blending[0] );
 
-	dt = (r_newrefdef.time - r_newrefdef.oldtime);
+	dt = (r_refdef.time - r_refdef.oldtime);
 	if( dt < 0 ) dt = 0.0f;
 	else if( dt > 1.0 ) dt = 1.0f;
 
@@ -1992,8 +1999,8 @@ int R_StudioDrawPlayer( int pass, int flags )
 {
 	entity_state_t	*pplayer;
 
-	if( !mirror_render && m_pCurrentEntity->renderfx & RF_PLAYERMODEL )
-		return 0;
+	//if( !mirror_render && m_pCurrentEntity->renderfx & RF_PLAYERMODEL )
+	//	return 0;
 
 	if(!(flags & STUDIO_MIRROR))
 	{
@@ -2050,7 +2057,7 @@ int R_StudioDrawPlayer( int pass, int flags )
 
 	R_StudioSetupBones( );
 	R_StudioSaveBones( );
-	m_pCurrentEntity->renderframe = r_framecount;
+	m_pCurrentEntity->renderframe = r_frameCount;
 
 	if( flags & STUDIO_EVENTS )
 	{
@@ -2070,7 +2077,7 @@ int R_StudioDrawPlayer( int pass, int flags )
 	if( flags & STUDIO_RENDER )
 	{
 		// show highest resolution multiplayer model
-		if( r_hqmodels->integer && m_pRenderModel != m_pCurrentEntity->model  )
+		if( r_himodels->integer && m_pRenderModel != m_pCurrentEntity->model  )
 			m_pCurrentEntity->body = 255;
 
 		if(!(glw_state.developer == 0 && ri.GetMaxClients() == 1 ) && ( m_pRenderModel == m_pCurrentEntity->model ))

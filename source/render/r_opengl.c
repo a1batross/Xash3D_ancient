@@ -3,11 +3,20 @@
 //		        r_opengl.c - openg32.dll handler
 //=======================================================================
 
-#include "gl_local.h"
+#include "r_local.h"
 
 glwstate_t	glw_state;
 
 #define num_vidmodes	((int)(sizeof(vidmode) / sizeof(vidmode[0])) - 1)
+#define WINDOW_STYLE	(WS_OVERLAPPED|WS_BORDER|WS_CAPTION|WS_VISIBLE)
+
+typedef enum
+{
+	rserr_ok,
+	rserr_invalid_fullscreen,
+	rserr_invalid_mode,
+	rserr_unknown
+} rserr_t;
 
 typedef struct vidmode_s
 {
@@ -135,7 +144,7 @@ bool R_SetPixelformat( void )
 
 	// init gamma ramp
 	ZeroMemory( gl_state.stateRamp, sizeof(gl_state.stateRamp));
-	GetDeviceGammaRamp( glw_state.hDC, gl_state.stateRamp );
+	gl_config.deviceSupportsGamma = GetDeviceGammaRamp( glw_state.hDC, gl_state.stateRamp );
 	vid_gamma->modified = true;
 
 	return true;
@@ -295,9 +304,9 @@ rserr_t R_ChangeDisplaySettings( int vid_mode, bool fullscreen )
 			dm.dmPelsWidth = width * 2;
 			dm.dmPelsHeight = height;
 			dm.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
-			if( gl_bitdepth->value != 0 )
+			if( r_bitdepth->integer != 0 )
 			{
-				dm.dmBitsPerPel = gl_bitdepth->value;
+				dm.dmBitsPerPel = r_bitdepth->integer;
 				dm.dmFields |= DM_BITSPERPEL;
 			}
 
@@ -370,6 +379,9 @@ bool R_Init_OpenGL( void )
 			return false;
 		}
 	}
+
+	// setup limits
+	gl_config.max_entities = (int)Cvar_VariableValue( "prvm_maxedicts" );
 	return true;
 }
 

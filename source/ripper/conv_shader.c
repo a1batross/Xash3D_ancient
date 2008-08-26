@@ -105,7 +105,7 @@ bool Conv_WriteShader( const char *shaderpath, const char *imagepath, rgbdata_t 
 	if(flags & SURF_NULL) FS_Print( f, "\tsurfaceparm\tnull\n" );
 	if(flags & SURF_MIRROR) FS_Print( f, "\tsurfaceparm\tmirror\n" );
 	if(flags & SURF_NODRAW) FS_Print( f, "\tsurfaceparm\tnodraw\n" );
-	if(flags & SURF_BLEND) FS_Print( f, "\tsurfaceparm\tblend\n" );
+	if(flags & SURF_TRANS66) FS_Print( f, "\tsurfaceparm\tblend\n" );
 
 	if(contents & CONTENTS_MONSTERCLIP && contents && CONTENTS_PLAYERCLIP)
 		FS_Print( f, "\tsurfaceparm\tclip\n" );

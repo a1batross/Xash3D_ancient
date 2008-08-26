@@ -15,6 +15,11 @@
 #define M_PI		(float)3.14159265358979323846
 #endif
 
+#ifndef M_PI2
+#define M_PI2		(float)6.28318530717958647692
+#endif
+
+
 #define METERS_PER_INCH	0.0254f
 #define EQUAL_EPSILON	0.001f
 #define STOP_EPSILON	0.1f
@@ -60,6 +65,7 @@
 #define VectorNormalize( v ) { float ilength = (float)sqrt(DotProduct(v, v));if (ilength) ilength = 1.0f / ilength;v[0] *= ilength;v[1] *= ilength;v[2] *= ilength; }
 #define VectorNormalize2( v, dest ) {float ilength = (float) sqrt(DotProduct(v,v));if (ilength) ilength = 1.0f / ilength;dest[0] = v[0] * ilength;dest[1] = v[1] * ilength;dest[2] = v[2] * ilength; }
 #define VectorNormalizeDouble( v ) {double ilength = sqrt(DotProduct(v,v));if (ilength) ilength = 1.0 / ilength;v[0] *= ilength;v[1] *= ilength;v[2] *= ilength; }
+#define VectorNormalizeFast( v ) {float	ilength = (float)rsqrt(DotProduct(v,v)); v[0] *= ilength; v[1] *= ilength; v[2] *= ilength; }
 #define VectorNegate(x, y) {y[0] =-x[0]; y[1]=-x[1]; y[2]=-x[2];}
 #define VectorM(scale1, b1, c) ((c)[0] = (scale1) * (b1)[0],(c)[1] = (scale1) * (b1)[1],(c)[2] = (scale1) * (b1)[2])
 #define VectorMA(a, scale, b, c) ((c)[0] = (a)[0] + (scale) * (b)[0],(c)[1] = (a)[1] + (scale) * (b)[1],(c)[2] = (a)[2] + (scale) * (b)[2])
@@ -90,6 +96,26 @@ _inline int nearest_pow( int size )
 		}
 	}
 }
+
+/*
+=================
+rsqrt
+=================
+*/
+_inline float rsqrt( float number )
+{
+	int	i;
+	float	x, y;
+
+	x = number * 0.5f;
+	i = *(int *)&number;	// evil floating point bit level hacking
+	i = 0x5f3759df - (i >> 1);	// what the fuck?
+	y = *(float *)&i;
+	y = y * (1.5f - (x * y * y));	// first iteration
+
+	return y;
+}
+
 
 _inline void ConvertDimensionToPhysic( vec3_t v )
 {
@@ -477,18 +503,30 @@ _inline float *GetRGBA( float r, float g, float b, float a )
 	return color;
 }
 
+_inline color32 MakeRGBA( byte red, byte green, byte blue, byte alpha )
+{
+	color32	rgba;
+
+	rgba.r = red;
+	rgba.g = green;
+	rgba.b = blue;
+	rgba.a = alpha;
+
+	return rgba;
+}
+
 _inline long PackRGBA( float red, float green, float blue, float alpha )
 {
-	byte	rgba[4];
+	color32	rgba;
 	
-	rgba[3] = bound( 0, 255 * red, 255 );
-	rgba[2] = bound( 0, 255 * green, 255 );
-	rgba[1] = bound( 0, 255 * blue, 255 );
+	rgba.r = bound( 0, 255 * red, 255 );
+	rgba.g = bound( 0, 255 * green, 255 );
+	rgba.b = bound( 0, 255 * blue, 255 );
 
-	if( alpha > 0.0f ) rgba[0] = bound( 0, 255 * alpha, 255 );
-	else rgba[0] = 0xFF; // fullbright
+	if( alpha > 0.0f ) rgba.a = bound( 0, 255 * alpha, 255 );
+	else rgba.a = 0xFF; // fullbright
 
-	return (rgba[0] << 24) | (rgba[1] << 16) | (rgba[2] << 8) | rgba[3];
+	return (rgba.a << 24) | (rgba.b << 16) | (rgba.g << 8) | rgba.r;
 }
 
 _inline float *UnpackRGBA( int icolor )
@@ -503,16 +541,16 @@ _inline float *UnpackRGBA( int icolor )
 	return color;
 }
 
-_inline vec_t ColorNormalize (vec3_t in, vec3_t out)
+_inline vec_t ColorNormalize( vec3_t in, vec3_t out )
 {
 	float	max, scale;
 
 	max = in[0];
-	if (in[1] > max) max = in[1];
-	if (in[2] > max) max = in[2];
-	if (max == 0) return 0;
+	if( in[1] > max ) max = in[1];
+	if( in[2] > max ) max = in[2];
+	if( max == 0 ) return 0;
 	scale = 1.0 / max;
-	VectorScale (in, scale, out);
+	VectorScale( in, scale, out );
 	return max;
 }
 
@@ -530,6 +568,35 @@ _inline void PlaneClassify( cplane_t *p )
 	if (p->normal[1] < 0) p->signbits |= 2;
 	if (p->normal[2] < 0) p->signbits |= 4;
 }
+
+/*
+=================
+BoundsIntersect
+=================
+*/
+_inline bool BoundsIntersect( const vec3_t mins1, const vec3_t maxs1, const vec3_t mins2, const vec3_t maxs2 )
+{
+	if( mins1[0] > maxs2[0] || mins1[1] > maxs2[1] || mins1[2] > maxs2[2] )
+		return false;
+	if( maxs1[0] < mins2[0] || maxs1[1] < mins2[1] || maxs1[2] < mins2[2] )
+		return false;
+	return true;
+}
+
+/*
+=================
+BoundsAndSphereIntersect
+=================
+*/
+_inline bool BoundsAndSphereIntersect( const vec3_t mins, const vec3_t maxs, const vec3_t origin, float radius )
+{
+	if( mins[0] > origin[0] + radius || mins[1] > origin[1] + radius || mins[2] > origin[2] + radius )
+		return false;
+	if( maxs[0] < origin[0] - radius || maxs[1] < origin[1] - radius || maxs[2] < origin[2] - radius )
+		return false;
+	return true;
+}
+
 
 /*
 ==============

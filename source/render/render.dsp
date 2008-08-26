@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir "."
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /Ob1 /I "../public" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "../public" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -118,31 +118,7 @@ SOURCE=.\gl_backend.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\gl_draw.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\gl_light.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\gl_model.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\gl_rmain.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\gl_rmisc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\gl_rsurf.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\gl_warp.c
+SOURCE=.\r_backend.c
 # End Source File
 # Begin Source File
 
@@ -150,15 +126,35 @@ SOURCE=.\r_bloom.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\r_bspmod.c
+SOURCE=.\r_draw.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\r_mirror.c
+SOURCE=.\r_light.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_main.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_model.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\r_opengl.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_program.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_shader.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_sky.c
 # End Source File
 # Begin Source File
 
@@ -167,6 +163,10 @@ SOURCE=.\r_sprite.c
 # Begin Source File
 
 SOURCE=.\r_studio.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\r_surface.c
 # End Source File
 # Begin Source File
 
@@ -182,19 +182,15 @@ SOURCE=.\r_utils.c
 # PROP Default_Filter "h;hpp;hxx;hm;inl;fi;fd"
 # Begin Source File
 
-SOURCE=.\gl_local.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\gl_model.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\r_mirror.h
+SOURCE=.\r_local.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\r_opengl.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\public\ref_dfiles.h
 # End Source File
 # Begin Source File
 

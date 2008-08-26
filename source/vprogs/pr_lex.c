@@ -598,7 +598,7 @@ bool PR_Precompiler(void)
 			{
 				int st;
 
-				Com_ParseToken(&msg);
+				Com_ParseToken( &msg, true );
 				if (!com.stricmp(com_token, "enable") || !com.stricmp(com_token, "on")) st = 0;
 				else if (!com.stricmp(com_token, "disable") || !com.stricmp(com_token, "off")) st = 1;
 				else if (!com.stricmp(com_token, "toggle")) st = 2;
@@ -610,11 +610,11 @@ bool PR_Precompiler(void)
 				if (st >= 0)
 				{
 					int wn;
-					Com_ParseToken(&msg); // just a number of warning
-					wn = com.atoi(com_token);
-					if (wn < 0 || wn > WARN_CONSTANTCOMPARISON)
+					Com_ParseToken( &msg, true ); // just a number of warning
+					wn = com.atoi( com_token );
+					if( wn < 0 || wn > WARN_CONSTANTCOMPARISON )
 					{
-						PR_ParseWarning(WARN_BADPRAGMA, "warning id not recognised");
+						PR_ParseWarning(WARN_BADPRAGMA, "warning id not recognized");
 					}
 					else
 					{
@@ -1664,7 +1664,7 @@ int PR_CheakCompConst( void )
 						else
 						{	// stringify
 							pr_file_p++;
-							Com_ParseWord(&pr_file_p);
+							Com_ParseWord( &pr_file_p, true );
 							if (!pr_file_p) break;
 
 							for (p = 0; p < param; p++)
@@ -1686,7 +1686,7 @@ int PR_CheakCompConst( void )
 							continue;// already did this one
 						}
 					}
-					Com_ParseWord(&pr_file_p);
+					Com_ParseWord( &pr_file_p, true );
 					if (!pr_file_p) break;
 
 					for (p = 0; p < param; p++)

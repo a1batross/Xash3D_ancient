@@ -3,7 +3,8 @@
 //			r_utils.c - render utils
 //=======================================================================
 
-#include "gl_local.h"
+#include "r_local.h"
+#include "mathlib.h"
 
 /*
 ====================
@@ -81,84 +82,4 @@ uint ShortToFloat( word y )
 	e = e + (127 - 15);
 	m = m << 13;
 	return (s << 31) | (e << 23) | m; // Assemble s, e and m.
-}
-
-/*
-====================
-Image Decompress
-
-read colors from dxt image
-====================
-*/
-void R_DXTReadColors(const byte* data, color32* out)
-{
-	byte r0, g0, b0, r1, g1, b1;
-
-	b0 = data[0] & 0x1F;
-	g0 = ((data[0] & 0xE0) >> 5) | ((data[1] & 0x7) << 3);
-	r0 = (data[1] & 0xF8) >> 3;
-
-	b1 = data[2] & 0x1F;
-	g1 = ((data[2] & 0xE0) >> 5) | ((data[3] & 0x7) << 3);
-	r1 = (data[3] & 0xF8) >> 3;
-
-	out[0].r = r0 << 3;
-	out[0].g = g0 << 2;
-	out[0].b = b0 << 3;
-
-	out[1].r = r1 << 3;
-	out[1].g = g1 << 2;
-	out[1].b = b1 << 3;
-}
-
-/*
-====================
-Image Decompress
-
-read one color from dxt image
-====================
-*/
-void R_DXTReadColor(word data, color32* out)
-{
-	byte r, g, b;
-
-	b = data & 0x1f;
-	g = (data & 0x7E0) >>5;
-	r = (data & 0xF800)>>11;
-
-	out->r = r << 3;
-	out->g = g << 2;
-	out->b = b << 3;
-}
-
-/*
-====================
-R_GetBitsFromMask
-
-====================
-*/
-void R_GetBitsFromMask(uint Mask, uint *ShiftLeft, uint *ShiftRight)
-{
-	uint Temp, i;
-
-	if (Mask == 0)
-	{
-		*ShiftLeft = *ShiftRight = 0;
-		return;
-	}
-
-	Temp = Mask;
-	for (i = 0; i < 32; i++, Temp >>= 1)
-	{
-		if (Temp & 1) break;
-	}
-	*ShiftRight = i;
-
-	// Temp is preserved, so use it again:
-	for (i = 0; i < 8; i++, Temp >>= 1)
-	{
-		if (!(Temp & 1)) break;
-	}
-	*ShiftLeft = 8 - i;
-	return;
 }

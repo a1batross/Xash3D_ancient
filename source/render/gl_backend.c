@@ -3,62 +3,12 @@
 //		     gl_backend.c - open gl backend utilites
 //=======================================================================
 
-#include "gl_local.h" 
+#include "r_local.h" 
+#include "mathlib.h" 
+#include "matrixlib.h" 
 
-#define NUM_GL_MODES (sizeof(modes) / sizeof (glmode_t))
-#define NUM_GL_ALPHA_MODES (sizeof(gl_alpha_modes) / sizeof (gltmode_t))
-#define NUM_GL_SOLID_MODES (sizeof(gl_solid_modes) / sizeof (gltmode_t))
-
-//set initial values
-int gl_tex_solid_format = 3;
-int gl_tex_alpha_format = 4;
-int gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
-int gl_filter_max = GL_LINEAR;
-byte gammatable[256];
-
-typedef struct
-{
-	char *name;
-	int minimize;
-	int maximize;
-} glmode_t;
-
-glmode_t modes[] =
-{
-	{"GL_NEAREST", GL_NEAREST, GL_NEAREST},
-	{"GL_LINEAR", GL_LINEAR, GL_LINEAR},
-	{"GL_NEAREST_MIPMAP_NEAREST", GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST},
-	{"GL_LINEAR_MIPMAP_NEAREST", GL_LINEAR_MIPMAP_NEAREST, GL_LINEAR},
-	{"GL_NEAREST_MIPMAP_LINEAR", GL_NEAREST_MIPMAP_LINEAR, GL_NEAREST},
-	{"GL_LINEAR_MIPMAP_LINEAR", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR}
-};
-
-typedef struct
-{
-	char *name;
-	int mode;
-}gltmode_t;
-
-gltmode_t gl_alpha_modes[] =
-{
-	{"default", 4},
-	{"GL_RGBA", GL_RGBA},
-	{"GL_RGBA8", GL_RGBA8},
-	{"GL_RGB5_A1", GL_RGB5_A1},
-	{"GL_RGBA4", GL_RGBA4},
-	{"GL_RGBA2", GL_RGBA2},
-};
-
-gltmode_t gl_solid_modes[] =
-{
-	{"default", 3},
-	{"GL_RGB", GL_RGB},
-	{"GL_RGB8", GL_RGB8},
-	{"GL_RGB5", GL_RGB5},
-	{"GL_RGB4", GL_RGB4},
-	{"GL_R3_G3_B2", GL_R3_G3_B2},
-};
-
+// set initial values
+extern dll_info_t opengl_dll;
 
 static dllfunc_t wglswapintervalfuncs[] =
 {
@@ -296,6 +246,17 @@ static dllfunc_t vertexshaderfuncs[] =
 	{NULL, NULL}
 };
 
+static dllfunc_t cgprogramfuncs[] =
+{
+	{"glBindProgramARB", (void **) &pglBindProgramARB},
+	{"glDeleteProgramsARB", (void **) &pglDeleteProgramsARB},
+	{"glGenProgramsARB", (void **) &pglGenProgramsARB},
+	{"glProgramStringARB", (void **) &pglProgramStringARB},
+	{"glProgramEnvParameter4fARB", (void **) &pglProgramEnvParameter4fARB},
+	{"glProgramLocalParameter4fARB", (void **) &pglProgramLocalParameter4fARB},
+	{NULL, NULL}
+};
+
 static dllfunc_t vbofuncs[] =
 {
 	{"glBindBufferARB"    , (void **) &pglBindBufferARB},
@@ -322,17 +283,41 @@ static dllfunc_t texturecompressionfuncs[] =
 };
 
 /*
-===============
-GL_Strings_f
-===============
+=================
+R_RenderInfo_f
+=================
 */
-void GL_Strings_f( void )
+void R_RenderInfo_f( void )
 {
-	Msg("GL_VENDOR: %s\n", gl_config.vendor_string );
-	Msg("GL_RENDERER: %s\n", gl_config.renderer_string );
-	Msg("GL_VERSION: %s\n", gl_config.version_string );
-	Msg("GL_EXTENSIONS: %s\n", gl_config.extensions_string );
+
+	Msg("\n");
+	Msg("GL_VENDOR: %s\n", gl_config.vendor_string);
+	Msg("GL_RENDERER: %s\n", gl_config.renderer_string);
+	Msg("GL_VERSION: %s\n", gl_config.version_string);
+	Msg("GL_EXTENSIONS: %s\n", gl_config.extensions_string);
+
+	Msg("GL_MAX_TEXTURE_SIZE: %i\n", gl_config.max_2d_texture_size );
+	
+	if( GL_Support( R_ARB_MULTITEXTURE ))
+		Msg("GL_MAX_TEXTURE_UNITS_ARB: %i\n", gl_config.textureunits );
+	if( GL_Support( R_TEXTURECUBEMAP_EXT ))
+		Msg("GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB: %i\n", gl_config.max_cubemap_texture_size );
+	if( GL_Support( R_FRAGMENT_PROGRAM_EXT ))
+	{
+		Msg("GL_MAX_TEXTURE_COORDS_ARB: %i\n", gl_config.texturecoords );
+		Msg("GL_MAX_TEXTURE_IMAGE_UNITS_ARB: %i\n", gl_config.imageunits );
+	}
+	if( GL_Support( R_ANISOTROPY_EXT ))
+		Msg("GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT: %.1f\n", gl_config.max_anisotropy );
+	if( gl_config.texRectangle )
+		Msg("GL_MAX_RECTANGLE_TEXTURE_SIZE_NV: %i\n", gl_config.max_2d_rectangle_size );
+
+	Msg("\n");
+	Msg("MODE: %i, %i x %i %s\n", r_mode->integer, r_width->integer, r_height->integer, (gl_config.fullscreen) ? "fullscreen" : "windowed" );
+	Msg("GAMMA: %s w/ %i overbright bits\n", (gl_config.deviceSupportsGamma) ? "hardware" : "software", (gl_config.deviceSupportsGamma) ? r_overbrightbits->integer : 0 );
+	Msg("\n");
 }
+
 
 void GL_InitCommands( void )
 {
@@ -344,31 +329,22 @@ void GL_InitCommands( void )
 	r_check_errors = Cvar_Get("r_check_errors", "1", CVAR_ARCHIVE, "ignore video engine errors" );
 	r_lefthand = Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE, "viewmodel handedness" );
 	r_norefresh = Cvar_Get ("r_norefresh", "0", 0, "no description" );
-	r_fullbright = Cvar_Get ("r_fullbright", "0", 0, "disable lightmaps" );
+	r_fullbright = Cvar_Get ("r_fullbright", "0", CVAR_LATCH, "disable lightmaps" );
 	r_drawentities = Cvar_Get ("r_drawentities", "1", CVAR_ARCHIVE, "render entities" );
 	r_drawworld = Cvar_Get ("r_drawworld", "1", 0, "render world" );
 	r_novis = Cvar_Get ("r_novis", "0", 0, "ignore vis information (perfomance test)");
 	r_nocull = Cvar_Get ("r_nocull", "0", 0, "ignore frustrum culling (perfomance test)");
-	r_lerpmodels = Cvar_Get ("r_lerpmodels", "1", 0, "lerping model animations" );
 	r_speeds = Cvar_Get ("r_speeds", "0", 0, "shows r_speeds" );
 	r_pause = Cvar_Get("paused", "0", 0, "renderer pause" );
 	r_pause_bw = Cvar_Get("r_pause_effect", "0", CVAR_ARCHIVE, "allow pause effect" );
 	r_physbdebug = Cvar_Get( "cm_debugdraw", "0", CVAR_ARCHIVE, "draw physics hulls" );
-	r_hqmodels = Cvar_Get( "cl_himodels", "1", CVAR_ARCHIVE, "draw high-resolution models in multiplayer" );
+	r_himodels = Cvar_Get( "cl_himodels", "1", CVAR_ARCHIVE, "draw high-resolution models in multiplayer" );
 	r_testmode = Cvar_Get("r_test", "0", CVAR_ARCHIVE, "developer cvar, for testing new effects" );
 
 	r_lightlevel = Cvar_Get ("r_lightlevel", "0", 0, "no description" );
 
  	r_motionblur_intens = Cvar_Get( "r_motionblur_intens", "0.65", CVAR_ARCHIVE, "no description" );
 	r_motionblur = Cvar_Get( "r_motionblur", "0", CVAR_ARCHIVE, "no description" );
-
-	gl_nosubimage = Cvar_Get( "gl_nosubimage", "0", 0, "no description" );
-	gl_particle_min_size = Cvar_Get( "gl_particle_min_size", "2", CVAR_ARCHIVE, "no description" );
-	gl_particle_max_size = Cvar_Get( "gl_particle_max_size", "40", CVAR_ARCHIVE, "no description" );
-	gl_particle_size = Cvar_Get( "gl_particle_size", "40", CVAR_ARCHIVE, "no description" );
-	gl_particle_att_a = Cvar_Get( "gl_particle_att_a", "0.01", CVAR_ARCHIVE, "no description" );
-	gl_particle_att_b = Cvar_Get( "gl_particle_att_b", "0.0", CVAR_ARCHIVE, "no description" );
-	gl_particle_att_c = Cvar_Get( "gl_particle_att_c", "0.01", CVAR_ARCHIVE, "no description" );
 
 	r_bloom = Cvar_Get( "r_bloom", "0", CVAR_ARCHIVE, "no description" );
 	r_bloom_alpha = Cvar_Get( "r_bloom_alpha", "0.5", CVAR_ARCHIVE, "no description" );
@@ -386,60 +362,73 @@ void GL_InitCommands( void )
 	r_mirroralpha = Cvar_Get( "r_mirroralpha", "0.5", CVAR_ARCHIVE, "no description" );
 	r_interpolate = Cvar_Get( "r_interpolate", "0", CVAR_ARCHIVE, "no description" );
 
-	gl_modulate = Cvar_Get ("gl_modulate", "1", CVAR_ARCHIVE, "no description" );
-	gl_log = Cvar_Get( "gl_log", "0", 0, "no description" );
-	gl_bitdepth = Cvar_Get( "gl_bitdepth", "0", 0, "no description" );
+	r_lightmap = Cvar_Get ("r_lightmap", "0", 0, "no description" );
+	r_shadows = Cvar_Get ("r_shadows", "0", CVAR_ARCHIVE, "no description" );
+	r_dynamiclights = Cvar_Get( "r_dynamic", "1", 0, "allow dynamic lights on level" );
+	r_shadows = Cvar_Get( "r_shadows", "0", CVAR_ARCHIVE, "draw entity shadows" );
+	r_caustics = Cvar_Get( "r_caustics", "0", CVAR_ARCHIVE, "draw underwater caustics" );
+	r_showtris = Cvar_Get( "r_showtris", "0", 0, "show mesh triangles" );
+	r_lockpvs = Cvar_Get( "r_lockpvs", "0", 0, "lockpvs area at current point (pvs test)" );
+	r_fullscreen = Cvar_Get( "fullscreen", "0", CVAR_ARCHIVE, "set in 1 to enable fullscreen mode" );
 
-	gl_lightmap = Cvar_Get ("gl_lightmap", "0", 0, "no description" );
-	gl_shadows = Cvar_Get ("gl_shadows", "0", CVAR_ARCHIVE, "no description" );
-	gl_dynamic = Cvar_Get ("gl_dynamic", "1", 0, "no description" );
-	gl_nobind = Cvar_Get ("gl_nobind", "0", 0, "no description" );
-	gl_round_down = Cvar_Get ("gl_round_down", "1", 0, "no description" );
-	gl_skymip = Cvar_Get ("gl_skymip", "0", 0, "no description" );
-	gl_showtris = Cvar_Get ("gl_showtris", "0", 0, "no description" );
-	gl_ztrick = Cvar_Get ("gl_ztrick", "0", 0, "no description" );
+	r_nobind = Cvar_Get( "r_nobind", "0", CVAR_CHEAT, "disable all textures (perfomance test)" );
+	r_drawparticles = Cvar_Get( "r_drawparticles", "1", CVAR_CHEAT, "disable particles (perfomance test)" );
+	r_frontbuffer = Cvar_Get("r_frontBuffer", "0", CVAR_CHEAT, "directly draw into front buffer (perfomance test)" );
+	r_showcluster = Cvar_Get("r_showcluster", "0", CVAR_CHEAT, "print info about current viewcluster" );
+	r_shownormals = Cvar_Get("r_showNormals", "0", CVAR_CHEAT, "draw model normals" );
+	r_showtangentspace = Cvar_Get("r_showTangentSpace", "0", CVAR_CHEAT, "draw model tangent space" );
+	r_showmodelbounds = Cvar_Get("r_showmodelbounds", "0", CVAR_CHEAT, "draw entity bboxes" );
+	r_showshadowvolumes = Cvar_Get("r_showshadowvolumes", "0", CVAR_CHEAT, "draw shadow volumes" );
+	r_offsetfactor = Cvar_Get("r_offsetfactor", "-1", CVAR_CHEAT, "z_trick offset factor" );
+	r_offsetunits = Cvar_Get("r_offsetunits", "-2", CVAR_CHEAT, "z_trick offset uints" );
+	r_debugsort = Cvar_Get( "r_debugsort", "0", CVAR_CHEAT, "enable custom z-sorting" );
+	r_singleshader = Cvar_Get("r_singleshader", "0", CVAR_CHEAT|CVAR_LATCH, "apply default shader everywhere" );
+	r_skipbackend = Cvar_Get("r_skipbackend", "0", CVAR_CHEAT, "skip 2d drawing (hud, console, etc)" );
+	r_skipfrontend = Cvar_Get("r_skipfronend", "0", CVAR_CHEAT, "skip 3d drawing (scene)" );
+	r_overbrightbits = Cvar_Get("r_overbrightbits", "0", CVAR_ARCHIVE|CVAR_LATCH, "hardware gamma overbright" );
+
+	r_modulate = Cvar_Get( "r_modulate", "1.0", CVAR_ARCHIVE|CVAR_LATCH, "modulate light" );
+	r_ambientscale = Cvar_Get("r_ambientScale", "0.6", CVAR_ARCHIVE, "default ambient light level" );
+	r_directedscale = Cvar_Get("r_directedScale", "1.0", CVAR_ARCHIVE, "direct light level" );
+	r_intensity = Cvar_Get( "r_intensity", "1.0", CVAR_ARCHIVE|CVAR_LATCH, "textures upload intentsity" );
+	r_texturefilter = Cvar_Get( "gl_texturefilter", "GL_LINEAR_MIPMAP_LINEAR", CVAR_ARCHIVE, "texture filter" );
+	r_texturefilteranisotropy = Cvar_Get( "r_anisotropy", "2.0", CVAR_ARCHIVE, "textures anisotropic filter" );
+	r_detailtextures = Cvar_Get( "r_detailtextures", "0", CVAR_ARCHIVE|CVAR_LATCH, "allow detail textures" );
+
 	gl_finish = Cvar_Get ("gl_finish", "0", CVAR_ARCHIVE, "no description" );
 	gl_clear = Cvar_Get ("gl_clear", "0", 0, "no description" );
-	gl_cull = Cvar_Get ("gl_cull", "1", 0, "no description" );
-	gl_polyblend = Cvar_Get ("gl_polyblend", "1", 0, "no description" );
-	gl_flashblend = Cvar_Get ("gl_flashblend", "0", 0, "no description" );
-	gl_playermip = Cvar_Get ("gl_playermip", "0", 0, "no description" );
-	gl_texturemode = Cvar_Get( "gl_texturemode", "GL_LINEAR_MIPMAP_NEAREST", CVAR_ARCHIVE, "no description" );
-	gl_texturealphamode = Cvar_Get( "gl_texturealphamode", "default", CVAR_ARCHIVE, "no description" );
-	gl_texturesolidmode = Cvar_Get( "gl_texturesolidmode", "default", CVAR_ARCHIVE, "no description" );
-	gl_lockpvs = Cvar_Get( "gl_lockpvs", "0", 0, "no description" );
-
-	gl_vertex_arrays = Cvar_Get( "gl_vertex_arrays", "0", CVAR_ARCHIVE, "no description" );
-
-	gl_ext_swapinterval = Cvar_Get( "gl_ext_swapinterval", "1", CVAR_ARCHIVE, "no description" );
-	gl_ext_multitexture = Cvar_Get( "gl_ext_multitexture", "1", CVAR_ARCHIVE, "no description" );
-	gl_ext_compiled_vertex_array = Cvar_Get( "gl_ext_compiled_vertex_array", "1", CVAR_ARCHIVE, "no description" );
-
-	gl_drawbuffer = Cvar_Get( "gl_drawbuffer", "GL_BACK", 0, "no description" );
-	gl_swapinterval = Cvar_Get( "gl_swapinterval", "1", CVAR_ARCHIVE, "no description" );
-
-	gl_saturatelighting = Cvar_Get( "gl_saturatelighting", "0", 0, "no description" );
-
-	gl_3dlabs_broken = Cvar_Get( "gl_3dlabs_broken", "1", CVAR_ARCHIVE, "no description" );
-
-	r_fullscreen = Cvar_Get( "fullscreen", "0", CVAR_ARCHIVE, "set in 1 to enable fullscreen mode" );
 	vid_gamma = Cvar_Get( "vid_gamma", "1", CVAR_ARCHIVE, "screen gamma" );
 
-	Cmd_AddCommand( "imagelist", R_ImageList_f, "display loaded images list" );
-	Cmd_AddCommand( "modellist", Mod_Modellist_f, "display loaded models list" );
-	Cmd_AddCommand( "gl_strings", GL_Strings_f, "display openGL supported extensions" );
+	Cmd_AddCommand( "modellist", R_ModelList_f, "display loaded models list" );
+	Cmd_AddCommand( "shaderlist", R_ShaderList_f, "display loaded shaders list" );
+	Cmd_AddCommand( "programlist", R_ProgramList_f, "display loaded glsl programs list" );
+	Cmd_AddCommand( "texturelist", R_TextureList_f, "display loaded textures list" );
+	Cmd_AddCommand( "r_vboinfo", RB_VBOInfo_f, "display information about VBO state" );
+	Cmd_AddCommand( "r_info", R_RenderInfo_f, "display openGL supported extensions" );
+
+	// range check some cvars
+	if( vid_gamma->value > 3.0 ) Cvar_Set( "vid_gamma", "3.0" );
+	else if( vid_gamma->value < 0.5 ) Cvar_Set( "vid_gamma", "0.5" );
+
+	if( r_overbrightbits->integer > 2 ) Cvar_Set( "r_overbrightbits", "2" );
+	else if( r_overbrightbits->integer < 0 ) Cvar_Set( "r_overbrightbits", "0" );
+
+	if( r_modulate->value < 1.0 ) Cvar_Set( "r_modulate", "1.0" );
+	if( r_intensity->value < 1.0) Cvar_Set( "r_intensity", "1.0" );
 }
 
 void GL_RemoveCommands( void )
 {
-	Cmd_RemoveCommand( "imagelist" );
 	Cmd_RemoveCommand( "modellist" );
-	Cmd_RemoveCommand( "gl_strings");
+	Cmd_RemoveCommand( "shaderlist" );
+	Cmd_RemoveCommand( "programlist" );
+	Cmd_RemoveCommand( "texturelist" );
+	Cmd_RemoveCommand( "r_vboinfo" );
+	Cmd_RemoveCommand( "r_info");
 }
 
 void GL_InitBackend( void )
 {
-	int	i;
 	char	dev_level[4];
 
 	GL_InitCommands();
@@ -448,17 +437,14 @@ void GL_InitBackend( void )
 	glw_state.hInst = GetModuleHandle( NULL );
 	r_temppool = Mem_AllocPool( "Render Memory" );
 
-	// init tables
-	for( i = 0; i < 256; i++ ) r_turbsin[i] *= 0.5f;
-
 	// check developer mode
 	if(FS_GetParmFromCmdLine("-dev", dev_level ))
-		glw_state.developer = com.atoi(dev_level);
+		glw_state.developer = com.atoi( dev_level );
 }
 
 void GL_ShutdownBackend( void )
 {
-	if( r_framebuffer ) Z_Free( r_framebuffer );
+	if( r_framebuffer ) Mem_Free( r_framebuffer );
 	GL_RemoveCommands();
 }
 
@@ -545,11 +531,9 @@ void GL_UpdateGammaRamp( void )
 
 void GL_InitExtensions( void )
 {
-	gl_config.textureunits = 2;	//FIXME
-
 	// initialize gl extensions
 	GL_CheckExtension( "OpenGL 1.1.0", opengl_110funcs, NULL, R_OPENGL_110 );
-	if( !r_framebuffer ) r_framebuffer = Z_Malloc( r_width->integer * r_height->integer * 3 );
+	if( !r_framebuffer ) r_framebuffer = Mem_Alloc( r_temppool, r_width->integer * r_height->integer * 4 );
 
 	// get our various GL strings
 	gl_config.vendor_string = pglGetString( GL_VENDOR );
@@ -570,9 +554,8 @@ void GL_InitExtensions( void )
 		GL_CheckExtension( "GL_ARB_texture_env_combine", NULL, "gl_texture_env_combine", R_COMBINE_EXT );
 		if(!GL_Support( R_COMBINE_EXT )) GL_CheckExtension("GL_EXT_texture_env_combine", NULL, "gl_texture_env_combine", R_COMBINE_EXT );
 		if(GL_Support( R_COMBINE_EXT )) GL_CheckExtension( "GL_ARB_texture_env_dot3", NULL, "gl_texture_env_dot3", R_DOT3_ARB_EXT );
-		GL_TEXTURE0 = 0;
-		GL_TEXTURE1 = 1;
 	}
+	else gl_config.textureunits = 1;
 
 	gl_state.texNum = Mem_Alloc( r_temppool, sizeof(int) * gl_config.textureunits );
 	gl_state.texEnv = Mem_Alloc( r_temppool, sizeof(int) * gl_config.textureunits );
@@ -588,6 +571,8 @@ void GL_InitExtensions( void )
 			MsgDev( D_ERROR, "GL_EXT_texture3D reported bogus GL_MAX_3D_TEXTURE_SIZE, disabled\n" );
 		}
 	}
+
+	GL_CheckExtension( "GL_SGIS_generate_mipmap", NULL, "gl_sgis_generate_mipmaps", R_SGIS_MIPMAPS_EXT );
 
 	// hardware cubemaps
 	GL_CheckExtension( "GL_ARB_texture_cube_map", NULL, "gl_texture_cubemap", R_TEXTURECUBEMAP_EXT );
@@ -618,6 +603,16 @@ void GL_InitExtensions( void )
 	// we don't care if it's an extension or not, they are identical functions, so keep it simple in the rendering code
 	if( pglDrawRangeElements == NULL ) pglDrawRangeElements = pglDrawRangeElementsEXT;
 
+	GL_CheckExtension( "GL_ARB_vertex_program", cgprogramfuncs, "gl_vertexprogram", R_VERTEX_PROGRAM_EXT );
+	GL_CheckExtension( "GL_ARB_fragment_program", cgprogramfuncs, "gl_fragmentprogram", R_FRAGMENT_PROGRAM_EXT );
+	GL_CheckExtension( "GL_ARB_texture_env_add", NULL, "gl_texture_env_add", R_TEXTURE_ENV_ADD_EXT );
+
+	if(GL_Support( R_FRAGMENT_PROGRAM_EXT ))
+	{
+		pglGetIntegerv( GL_MAX_TEXTURE_COORDS_ARB, &gl_config.texturecoords );
+		pglGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS_ARB, &gl_config.imageunits );
+	}
+
 	// vp and fp shaders
 	GL_CheckExtension( "GL_ARB_shader_objects", shaderobjectsfuncs, "gl_shaderobjects", R_SHADER_OBJECTS_EXT );
 	GL_CheckExtension( "GL_ARB_shading_language_100", NULL, "gl_glslprogram", R_SHADER_GLSL100_EXT );
@@ -626,247 +621,16 @@ void GL_InitExtensions( void )
 
 	// rectangle textures support
 	if( com.strstr( gl_config.extensions_string, "GL_NV_texture_rectangle" ))
+	{
 		gl_config.texRectangle = GL_TEXTURE_RECTANGLE_NV;
+		pglGetIntegerv( GL_MAX_RECTANGLE_TEXTURE_SIZE_NV, &gl_config.max_2d_rectangle_size );
+	}
 	else if( com.strstr( gl_config.extensions_string, "GL_EXT_texture_rectangle" ))
+	{
 		gl_config.texRectangle = GL_TEXTURE_RECTANGLE_EXT;
-	else gl_config.texRectangle = 0; // no rectangle
-}
-
-/*
-===============
-GL_ArraysState
-===============
-*/
-void GL_LockArrays( int count )
-{
-	if (pglLockArraysEXT != 0)
-		pglLockArraysEXT(0, count);
-}
-
-void GL_UnlockArrays( void )
-{
-	if (pglUnlockArraysEXT != 0)
-		pglUnlockArraysEXT();
-}
-
-/*
-===============
-GL_StateAlphaTest
-===============
-*/
-void GL_EnableAlphaTest ( void )
-{
-	if (!gl_state.alpha_test)
-	{
-		pglEnable(GL_ALPHA_TEST);
-		gl_state.alpha_test = true;
+		pglGetIntegerv( GL_MAX_RECTANGLE_TEXTURE_SIZE_EXT, &gl_config.max_2d_rectangle_size );
 	}
-}
-
-void GL_DisableAlphaTest ( void )
-{
-	if (gl_state.alpha_test)
-	{
-		pglDisable(GL_ALPHA_TEST);
-		gl_state.alpha_test = false;
-	}
-}
-
-
-/*
-===============
-GL_PolygonOffset
-
-enable polygon offset for debug targets
-===============
-*/
-void GL_PolygonOffset( float planeoffset, float depthoffset )
-{
-	if( gl_state.polygonoffset[0] != planeoffset || gl_state.polygonoffset[1] != depthoffset )
-	{
-		gl_state.polygonoffset[0] = planeoffset;
-		gl_state.polygonoffset[1] = depthoffset;
-		pglPolygonOffset( planeoffset, depthoffset );
-	}
-}
-
-/*
-===============
-GL_StateBlend
-===============
-*/
-void GL_EnableBlend( void )
-{
-	if (!gl_state.blend)
-	{
-		pglEnable(GL_BLEND);
-		gl_state.blend = true;
-	}
-}
-
-void GL_DisableBlend( void )
-{
-	if (gl_state.blend)
-	{
-		pglDisable(GL_BLEND);
-		gl_state.blend = false;
-	}
-}
-
-/*
-===============
-GL_StateDepthTest
-===============
-*/
-void GL_EnableDepthTest( void )
-{
-	if (!gl_state.depth_test)
-	{
-		pglEnable( GL_DEPTH_TEST );
-		gl_state.depth_test = true;
-	}
-}
-
-void GL_DisableDepthTest( void )
-{
-	if (gl_state.depth_test)
-	{
-		pglDisable( GL_DEPTH_TEST );
-		gl_state.depth_test = false;
-	}
-}
-
-/*
-===============
-GL_StateTexGen
-===============
-*/
-void GL_EnableTexGen( void )
-{
-	pglEnable(GL_TEXTURE_GEN_S);
-	pglEnable(GL_TEXTURE_GEN_T);
-	pglEnable(GL_TEXTURE_GEN_R);
-	pglEnable(GL_TEXTURE_GEN_Q);
-}
-
-void GL_DisableTexGen( void )
-{
-	pglDisable(GL_TEXTURE_GEN_S);
-	pglDisable(GL_TEXTURE_GEN_T);
-	pglDisable(GL_TEXTURE_GEN_R);
-	pglDisable(GL_TEXTURE_GEN_Q);
-}
-
-/*
-===============
-GL_TextureMode
-===============
-*/
-void GL_TextureMode( char *string )
-{
-	int		i;
-	image_t	*glt;
-
-	for (i=0 ; i< NUM_GL_MODES ; i++)
-	{
-		if ( !com.stricmp( modes[i].name, string ) )
-			break;
-	}
-
-	if (i == NUM_GL_MODES)
-	{
-		Msg("bad filter name\n");
-		return;
-	}
-
-	gl_filter_min = modes[i].minimize;
-	gl_filter_max = modes[i].maximize;
-
-	// change all the existing mipmap texture objects
-	for (i=0, glt=gltextures ; i<numgltextures ; i++, glt++)
-	{
-		if (glt->type != it_pic && glt->type != it_sky )
-		{
-			GL_Bind (glt->texnum[0]);
-			pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
-			pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
-		}
-	}
-}
-
-/*
-===============
-GL_TextureAlphaMode
-===============
-*/
-void GL_TextureAlphaMode( char *string )
-{
-	int		i;
-
-	for (i=0 ; i< NUM_GL_ALPHA_MODES ; i++)
-	{
-		if ( !com.stricmp( gl_alpha_modes[i].name, string ) )
-			break;
-	}
-
-	if (i == NUM_GL_ALPHA_MODES)
-	{
-		Msg("bad alpha texture mode name\n");
-		return;
-	}
-
-	gl_tex_alpha_format = gl_alpha_modes[i].mode;
-}
-
-/*
-===============
-GL_TextureSolidMode
-===============
-*/
-void GL_TextureSolidMode( char *string )
-{
-	int		i;
-
-	for (i=0 ; i< NUM_GL_SOLID_MODES ; i++)
-	{
-		if ( !com.stricmp( gl_solid_modes[i].name, string ) )
-			break;
-	}
-
-	if (i == NUM_GL_SOLID_MODES)
-	{
-		Msg("bad solid texture mode name\n");
-		return;
-	}
-
-	gl_tex_solid_format = gl_solid_modes[i].mode;
-}
-
-/*
-===============
-GL_EnableMultitexture
-===============
-*/
-void GL_EnableMultitexture( bool enable )
-{
-	if(!GL_Support( R_ARB_MULTITEXTURE ))
-		return;
-
-	if( enable )
-	{
-		GL_SelectTexture( GL_TEXTURE1 );
-		pglEnable( GL_TEXTURE_2D );
-		GL_TexEnv( GL_REPLACE );
-	}
-	else
-	{
-		GL_SelectTexture( GL_TEXTURE1 );
-		pglDisable( GL_TEXTURE_2D );
-		GL_TexEnv( GL_REPLACE );
-	}
-
-	GL_SelectTexture( GL_TEXTURE0 );
-	GL_TexEnv( GL_REPLACE );
+	else gl_config.texRectangle = gl_config.max_2d_rectangle_size = 0; // no rectangle
 }
 
 /*
@@ -890,80 +654,207 @@ void GL_SelectTexture( GLenum texture )
 }
 
 /*
+ =================
+ GL_BindTexture
+ =================
+*/
+void GL_BindTexture( texture_t *texture )
+{
+	// Performance evaluation option
+	if( r_nobind->integer )
+		texture = r_defaultTexture;
+
+	if( gl_state.texNum[gl_state.activeTMU] == texture->texnum )
+		return;
+	gl_state.texNum[gl_state.activeTMU] = texture->texnum;
+	pglBindTexture( texture->target, texture->texnum );
+}
+
+/*
 ===============
 GL_TexEnv
 ===============
 */
-void GL_TexEnv( GLenum mode )
+void GL_TexEnv( GLint texenv )
 {
-	static int lastmodes[2] = { -1, -1 };
-
-	if( mode != lastmodes[gl_state.activeTMU] )
-	{
-		pglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, mode );
-		lastmodes[gl_state.activeTMU] = mode;
-	}
-}
-
-/*
-===============
-GL_TexFilter
-===============
-*/
-void GL_TexFilter( void )
-{
-	if(R_ImageHasMips())
-	{
-		pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
-		pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
-	}
-	else
-	{
-		pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_max);
-		pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
-	}
-}
-
-/*
-===============
-GL_Bind
-===============
-*/
-void GL_Bind( int texnum )
-{
-	extern	image_t	*draw_chars;
-
-	if( !gl_state.texNum ) return;
-
-	if( gl_nobind->value && draw_chars ) // performance evaluation option
-		texnum = draw_chars->texnum[0];
-	if( gl_state.texNum[gl_state.activeTMU] == texnum)
+	if( gl_state.texEnv[gl_state.activeTMU] == texenv )
 		return;
-	gl_state.texNum[gl_state.activeTMU] = texnum;
-	pglBindTexture( GL_TEXTURE_2D, texnum );
+	gl_state.texEnv[gl_state.activeTMU] = texenv;
+	pglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, texenv );
 }
 
 /*
-===============
-GL_Bind
-===============
+ =================
+ GL_Enable
+ =================
 */
-void GL_MBind( GLenum target, int texnum )
+void GL_Enable( GLenum cap )
 {
-	if( !gl_state.texNum ) return;
-	
-	GL_SelectTexture( target );
-	if ( target == GL_TEXTURE0 )
+
+	switch( cap )
 	{
-		if ( gl_state.texNum[0] == texnum )
+	case GL_CULL_FACE:
+		if( gl_state.cullFace ) return;
+		gl_state.cullFace = true;
+		break;
+	case GL_POLYGON_OFFSET_FILL:
+		if( gl_state.polygonOffsetFill ) return;
+		gl_state.polygonOffsetFill = true;
+		break;
+	case GL_VERTEX_PROGRAM_ARB:
+		if(!GL_Support( R_VERTEX_PROGRAM_EXT ) || gl_state.vertexProgram )
 			return;
+		gl_state.vertexProgram = true;
+		break;
+	case GL_FRAGMENT_PROGRAM_ARB:
+		if(!GL_Support( R_FRAGMENT_PROGRAM_EXT ) || gl_state.fragmentProgram )
+			return;
+		gl_state.fragmentProgram = true;
+		break;
+	case GL_ALPHA_TEST:
+		if( gl_state.alpha_test ) return;
+		gl_state.alpha_test = true;
+		break;
+	case GL_BLEND:
+		if( gl_state.blend ) return;
+		gl_state.blend = true;
+		break;
+	case GL_DEPTH_TEST:
+		if( gl_state.depth_test ) return;
+		gl_state.depth_test = true;
+		break;
 	}
-	else
+	pglEnable( cap );
+}
+
+/*
+ =================
+ GL_Disable
+ =================
+*/
+void GL_Disable( GLenum cap )
+{
+	switch( cap )
 	{
-		if ( gl_state.texNum[1] == texnum )
+	case GL_CULL_FACE:
+		if(!gl_state.cullFace ) return;
+		gl_state.cullFace = false;
+		break;
+	case GL_POLYGON_OFFSET_FILL:
+		if( !gl_state.polygonOffsetFill ) return;
+		gl_state.polygonOffsetFill = false;
+		break;
+	case GL_VERTEX_PROGRAM_ARB:
+		if(!GL_Support( R_VERTEX_PROGRAM_EXT ) || !gl_state.vertexProgram )
 			return;
+		gl_state.vertexProgram = false;
+		break;
+	case GL_FRAGMENT_PROGRAM_ARB:
+		if(!GL_Support( R_FRAGMENT_PROGRAM_EXT ) || !gl_state.fragmentProgram )
+			return;
+		gl_state.fragmentProgram = false;
+		break;
+	case GL_ALPHA_TEST:
+		if(!gl_state.alpha_test ) return;
+		gl_state.alpha_test = false;
+		break;
+	case GL_BLEND:
+		if( !gl_state.blend ) return;
+		gl_state.blend = false;
+		break;
+	case GL_DEPTH_TEST:
+		if( !gl_state.depth_test ) return;
+		gl_state.depth_test = false;
+		break;
 	}
-	GL_Bind( texnum );
+	pglDisable( cap );
+}
+
+/*
+ =================
+ GL_CullFace
+ =================
+*/
+void GL_CullFace( GLenum mode )
+{
+	if( gl_state.cullMode == mode )
+		return;
+
+	gl_state.cullMode = mode;
+	pglCullFace( mode );
+}
+
+/*
+ =================
+ GL_PolygonOffset
+ =================
+*/
+void GL_PolygonOffset( GLfloat factor, GLfloat units )
+{
+	if( gl_state.offsetFactor == factor && gl_state.offsetUnits == units )
+		return;
+
+	gl_state.offsetFactor = factor;
+	gl_state.offsetUnits = units;
+	pglPolygonOffset( factor, units );
+}
+
+/*
+ =================
+ GL_AlphaFunc
+ =================
+*/
+void GL_AlphaFunc( GLenum func, GLclampf ref )
+{
+	if( gl_state.alphaFunc == func && gl_state.alphaRef == ref )
+		return;
+
+	gl_state.alphaFunc = func;
+	gl_state.alphaRef = ref;
+	pglAlphaFunc( func, ref );
+}
+
+/*
+ =================
+ GL_BlendFunc
+ =================
+*/
+void GL_BlendFunc( GLenum src, GLenum dst )
+{
+	if( gl_state.blendSrc == src && gl_state.blendDst == dst )
+		return;
+
+	gl_state.blendSrc = src;
+	gl_state.blendDst = dst;
+	pglBlendFunc( src, dst );
+}
+
+/*
+ =================
+ GL_DepthFunc
+ =================
+*/
+void GL_DepthFunc( GLenum func )
+{
+	if( gl_state.depthFunc == func )
+		return;
+
+	gl_state.depthFunc = func;
+	pglDepthFunc( func );
+}
+
+/*
+=================
+ GL_DepthMask
+=================
+*/
+void GL_DepthMask( GLboolean mask )
+{
+	if( gl_state.depthMask == mask )
+		return;
+
+	gl_state.depthMask = mask;
+	pglDepthMask( mask );
 }
 
 /*
@@ -974,157 +865,203 @@ GL_SetColor
 */
 void GL_SetColor( const void *data )
 {
-	float	*color = (float *)data;
+	float *color = (float *)data;
 
-	if(color) 
+	if( color ) 
 	{
-		Vector4Set(gl_state.draw_color, color[0], color[1], color[2], color[3] );
+		Vector4Set( gl_state.draw_color, color[0], color[1], color[2], color[3] );
 	}
 	else
 	{
-		Vector4Set(gl_state.draw_color, 1.0f, 1.0f, 1.0f, 1.0f );
+		Vector4Set( gl_state.draw_color, 1.0f, 1.0f, 1.0f, 1.0f );
 	}
 }
 
+void GL_LoadMatrix( matrix4x4 source )
+{
+	gl_matrix	dest;
+
+	Matrix4x4_ToArrayFloatGL( source, dest );
+	pglLoadMatrixf( dest );
+}
+
 /*
-===============
-GL_SetDefaultState
-===============
+=================
+ GL_SetDefaultState
+=================
 */
 void GL_SetDefaultState( void )
 {
-	pglClearColor (1,0, 0.5 , 0.5);
-	pglCullFace(GL_FRONT);
-	pglEnable(GL_TEXTURE_2D);
+	int		i;
 
-	pglEnable(GL_ALPHA_TEST);
-	pglAlphaFunc(GL_GREATER, 0.666f);
+	// Reset the state manager
+	gl_state.orthogonal = false;
+	gl_state.activeTMU = 0;
 
-	pglDisable (GL_DEPTH_TEST);
-	pglDisable (GL_CULL_FACE);
-	pglDisable (GL_BLEND);
+	for( i = 0; i < MAX_TEXTURE_UNITS; i++ )
+	{
+		gl_state.texNum[i] = 0;
+		gl_state.texEnv[i] = GL_MODULATE;
+	}
+
+	gl_state.cullFace = true;
+	gl_state.polygonOffsetFill = false;
+	gl_state.vertexProgram = false;
+	gl_state.fragmentProgram = false;
+	gl_state.alpha_test = false;
 	gl_state.blend = false;
-	pglColor4f (1,1,1,1);
+	gl_state.depth_test = true;
 
-	Vector4Set(gl_state.draw_color, 1.0f, 1.0f, 1.0f, 1.0f );
+	gl_state.cullMode = GL_FRONT;
+	gl_state.offsetFactor = -1;
+	gl_state.offsetUnits = -2;
+	gl_state.alphaFunc = GL_GREATER;
+	gl_state.alphaRef = 0.0;
+	gl_state.blendSrc = GL_SRC_ALPHA;
+	gl_state.blendDst = GL_ONE_MINUS_SRC_ALPHA;
+	gl_state.depthFunc = GL_LEQUAL;
+	gl_state.depthMask = GL_TRUE;
 
-	pglHint (GL_FOG_HINT, GL_FASTEST);
-	pglPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
-	pglShadeModel (GL_FLAT);
-	
-	GL_TextureMode( gl_texturemode->string );
-	GL_TextureAlphaMode( gl_texturealphamode->string );
-	GL_TextureSolidMode( gl_texturesolidmode->string );
+	// Set default state
+	pglEnable( GL_CULL_FACE );
+	pglDisable( GL_POLYGON_OFFSET_FILL );
+	pglDisable( GL_ALPHA_TEST );
+	pglDisable( GL_BLEND );
+	pglEnable( GL_DEPTH_TEST );
 
-	pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
-	pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
+	if(GL_Support( R_VERTEX_PROGRAM_EXT )) pglDisable( GL_VERTEX_PROGRAM_ARB );
+	if(GL_Support( R_FRAGMENT_PROGRAM_EXT )) pglDisable( GL_FRAGMENT_PROGRAM_ARB );
 
-	pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	pglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	pglCullFace( GL_FRONT );
+	pglPolygonOffset( -1, -2 );
+	pglAlphaFunc( GL_GREATER, 0.0 );
+	pglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+	pglDepthFunc( GL_LEQUAL );
+	pglDepthMask( GL_TRUE );
 
-	pglBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	GL_TexEnv( GL_REPLACE );
+	pglClearColor( 1.0, 0.0, 0.5, 0.5 );
+	pglClearDepth( 1.0 );
+	pglClearStencil( 128 );
 
-	pglDisable(GL_TEXTURE_GEN_S);
-	pglDisable(GL_TEXTURE_GEN_T);
+	pglPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+	pglShadeModel( GL_SMOOTH );
 
-	if ( pglPointParameterfEXT )
+	pglEnable( GL_SCISSOR_TEST );
+	pglDisable( GL_STENCIL_TEST );
+
+	if(GL_Support( R_ARB_MULTITEXTURE ))
 	{
-		float attenuations[3];
+		for( i = MAX_TEXTURE_UNITS - 1; i > 0; i-- )
+		{
+			if( i >= gl_config.textureunits )
+				continue;
 
-		attenuations[0] = gl_particle_att_a->value;
-		attenuations[1] = gl_particle_att_b->value;
-		attenuations[2] = gl_particle_att_c->value;
+			pglActiveTextureARB( GL_TEXTURE0_ARB + i );
+			pglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
 
-		pglEnable( GL_POINT_SMOOTH );
-		pglPointParameterfEXT( GL_POINT_SIZE_MIN_EXT, gl_particle_min_size->value );
-		pglPointParameterfEXT( GL_POINT_SIZE_MAX_EXT, gl_particle_max_size->value );
-		pglPointParameterfvEXT( GL_DISTANCE_ATTENUATION_EXT, attenuations );
+			if(GL_Support( R_TEXTURECUBEMAP_EXT ))
+				pglDisable( GL_TEXTURE_CUBE_MAP_ARB );
+			pglDisable( GL_TEXTURE_2D );
+		}
+		pglActiveTextureARB( GL_TEXTURE0_ARB );
 	}
 
-	GL_UpdateSwapInterval();
+	pglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
+
+	if(GL_Support( R_TEXTURECUBEMAP_EXT ))
+		pglDisable( GL_TEXTURE_CUBE_MAP_ARB );
+
+	pglDisable( GL_TEXTURE_2D );
+	Vector4Set( gl_state.draw_color, 1.0f, 1.0f, 1.0f, 1.0f );
 }
 
 /*
-===============
-GL_UpdateSwapInterval
-===============
+ =================
+ GL_Setup3D
+ =================
 */
-void GL_UpdateSwapInterval( void )
+void GL_Setup3D( void )
 {
-	if ( gl_swapinterval->modified )
+	int	x, y, w, h;
+	int	bits;
+
+	if( gl_finish->integer )  pglFinish();
+	x = r_refdef.rect.x;
+	y = r_height->integer - r_refdef.rect.height - r_refdef.rect.y;
+	w = r_refdef.rect.width;
+	h = r_height->integer;
+
+	// Set up viewport
+	pglViewport( x, y, w, h );
+	pglScissor( x, y, w, h );
+
+	// Set up projection
+	pglMatrixMode( GL_PROJECTION );
+	GL_LoadMatrix( r_projectionMatrix );
+	pglMatrixMode( GL_MODELVIEW );
+
+	// Set state
+	gl_state.orthogonal = false;
+
+	GL_TexEnv( GL_MODULATE );
+	GL_Enable( GL_CULL_FACE );
+	GL_Disable( GL_POLYGON_OFFSET_FILL );
+	GL_Disable( GL_VERTEX_PROGRAM_ARB );
+	GL_Disable( GL_FRAGMENT_PROGRAM_ARB );
+	GL_Disable( GL_ALPHA_TEST );
+	GL_Disable( GL_BLEND );
+	GL_Enable( GL_DEPTH_TEST );
+
+	GL_CullFace( GL_FRONT );
+	GL_DepthFunc( GL_LEQUAL );
+	GL_DepthMask( GL_TRUE );
+
+	// Clear depth buffer, and optionally stencil buffer
+	bits = GL_DEPTH_BUFFER_BIT;
+
+	if( r_shadows->integer )
 	{
-		gl_swapinterval->modified = false;
-
-		if ( pwglSwapIntervalEXT )
-			pwglSwapIntervalEXT( gl_swapinterval->value );
+		pglClearStencil( 128 );
+		bits |= GL_STENCIL_BUFFER_BIT;
 	}
-}
-
-void pglPerspective( GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar )
-{
-	GLdouble xmin, xmax, ymin, ymax;
-
-	ymax = zNear * tan( fovy * M_PI / 360.0 );
-	ymin = -ymax;
-	xmin = ymin * aspect;
-	xmax = ymax * aspect;
-
-	pglFrustum( xmin, xmax, ymin, ymax, zNear, zFar );
+	pglClear( bits );
 }
 
 /*
-================
-VID_ImageAdjustGamma
-================
+ =================
+ GL_Setup2D
+ =================
 */
-void VID_ImageAdjustGamma( byte *in, uint width, uint height )
+void GL_Setup2D( void )
 {
-	int	i, c = width * height;
-	float	g = vid_gamma->value;
-	byte	*p = in;
+	if( gl_finish->integer ) pglFinish();
 
-	// screenshots gamma	
-	for ( i = 0; i < 256; i++ )
-	{
-		if ( g == 1 ) gammatable[i] = i;
-		else gammatable[i] = bound(0, 255 * pow((i + 0.5)/255.5 , g ) + 0.5, 255);
-	}
-	for (i = 0; i < c; i++, p += 3 )
-	{
-		p[0] = gammatable[p[0]];
-		p[1] = gammatable[p[1]];
-		p[2] = gammatable[p[2]];
-	}
-}
+	// set 2D virtual screen size
+	pglViewport( 0, 0, r_width->integer, r_height->integer );
+	pglScissor( 0, 0, r_width->integer, r_height->integer );
 
-bool VID_ScreenShot( const char *filename, bool levelshot )
-{
-	rgbdata_t 	*r_shot;
+	// set up projection
+	pglMatrixMode( GL_PROJECTION );
+	pglLoadIdentity();
+	pglOrtho( 0, r_width->integer, r_height->integer, 0, -1, 1 );
 
-	// shared framebuffer not init
-	if(!r_framebuffer) return false;
+	// Set up modelview
+	pglMatrixMode( GL_MODELVIEW );
+	pglLoadIdentity();
 
-	// get screen frame
-	pglReadPixels( 0, 0, r_width->integer, r_height->integer, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer );
+	// Set state
+	gl_state.orthogonal = true;
 
-	r_shot = Z_Malloc( sizeof(rgbdata_t));
-	r_shot->width = r_width->integer;
-	r_shot->height = r_height->integer;
-	r_shot->type = PF_RGB_24;
-	r_shot->hint = PF_DXT5; // save format
-	r_shot->size = r_shot->width * r_shot->height * 3;
-	r_shot->palette = NULL;
-	r_shot->numLayers = 1;
-	r_shot->numMips = 1;
-	r_shot->buffer = r_framebuffer;
+	GL_TexEnv( GL_MODULATE );
 
-	if( levelshot ) Image_Resample( &r_shot, 512, 384, false ); // resample to 512x384
-	else VID_ImageAdjustGamma( r_shot->buffer, r_shot->width, r_shot->height ); // adjust brightness
-	Image_Process( &r_shot, IMAGE_FLIP_Y, false );
+	GL_Disable( GL_CULL_FACE );
+	GL_Disable( GL_POLYGON_OFFSET_FILL );
+	GL_Disable( GL_VERTEX_PROGRAM_ARB );
+	GL_Disable( GL_FRAGMENT_PROGRAM_ARB );
+	GL_Disable( GL_ALPHA_TEST );
+	GL_Enable( GL_BLEND );
+	GL_Disable( GL_DEPTH_TEST );
 
-	// write image
-	FS_SaveImage( filename, r_shot );
-	Mem_Free( r_shot );
-	return true;
+	GL_BlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+	GL_DepthMask( GL_FALSE );
 }

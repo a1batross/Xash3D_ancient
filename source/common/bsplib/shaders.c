@@ -17,7 +17,7 @@ typedef struct
 infoParm_t infoParms[] =
 {
 	// server relevant contents
-	{"window",	SURF_BLEND,	CONTENTS_WINDOW,		0},
+	{"window",	SURF_TRANS66,	CONTENTS_WINDOW,		0},
 	{"aux",		SURF_NONE,	CONTENTS_AUX,		0},		
 	{"lava",		SURF_WARP,	CONTENTS_LAVA,		1}, // very damaging
 	{"slime",		SURF_WARP,	CONTENTS_SLIME,		1}, // mildly damaging
@@ -36,7 +36,7 @@ infoParm_t infoParms[] =
 	{"currentup",	SURF_NONE,	CONTENTS_CURRENT_UP,	0},	
 	{"currentdown",	SURF_NONE,	CONTENTS_CURRENT_DOWN,	0},
 	{"origin",	SURF_NONE,	CONTENTS_ORIGIN,		1}, // center of rotating brushes
-	{"trans",		SURF_BLEND,	CONTENTS_TRANSLUCENT,	0}, // don't eat contained surfaces
+	{"trans",		SURF_TRANS33,	CONTENTS_TRANSLUCENT,	0}, // don't eat contained surfaces
 	{"detail",	SURF_NONE,	CONTENTS_DETAIL,		0}, // don't include in structural bsp
 	{"sky",		SURF_SKY,		CONTENTS_NONE,		0}, // emit light from environment map
 	{"hint",		SURF_HINT|SURF_NODRAW,	CONTENTS_NONE,	0}, // use as a primary splitter

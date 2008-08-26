@@ -21,7 +21,9 @@ script_t	scriptstack[ MAX_INCLUDES ];
 script_t	*script;
 int	scriptline;
 
-char token[MAX_MSGLEN]; //contains token info
+char token[MAX_MSGLEN]; // contains token info
+static const char *saved_token;
+static int saved_scriptline;
 
 bool endofscript;
 bool tokenready; // only true if UnGetToken was just called
@@ -32,7 +34,7 @@ bool SC_EndOfScript (bool newline);
 SC_AddScriptToStack
 ==============
 */
-bool SC_AddScriptToStack(const char *name, byte *buffer, int size)
+bool SC_AddScriptToStack( const char *name, byte *buffer, int size )
 {
 	if (script == &scriptstack[MAX_INCLUDES - 1])
 	{
@@ -87,8 +89,35 @@ bool SC_AddScript( const char *filename, char *buf, int size )
 void SC_ResetScript( void )
 {
 	// can parsing again
-	script->line = scriptline = 1;
+	script->line = scriptline = saved_scriptline = 1;
 	script->script_p = script->buffer;
+	saved_token = NULL;
+}
+
+/*
+=================
+SC_PushScript
+
+FIXME: use scriptstack
+=================
+*/
+void SC_PushScript( const char **data_p )
+{
+	saved_token = *data_p;
+	saved_scriptline = scriptline;
+}
+
+/*
+=================
+SC_PopScript
+
+FIXME: use scriptstack
+=================
+*/
+void SC_PopScript( const char **data_p )
+{
+	*data_p = saved_token;
+	scriptline = saved_scriptline;
 }
 
 /*
@@ -101,7 +130,7 @@ bool SC_ReadToken( bool newline )
 	char	*token_p;
 	int	c;
 
-	if (tokenready)
+	if( tokenready )
 	{
 		// is a token allready waiting?
 		tokenready = false;
@@ -361,7 +390,7 @@ line_incomplete:
 SC_EndOfScript
 ==============
 */
-bool SC_EndOfScript (bool newline)
+bool SC_EndOfScript( bool newline )
 {
 	if(!newline) 
 	{
@@ -421,13 +450,56 @@ bool SC_TokenAvailable (void)
 }
 
 /*
+=================
+SC_SkipWhiteSpace
+=================
+*/
+const char *SC_SkipWhiteSpace( const char *data_p, bool *newline )
+{
+	int	c;
+
+	while((c = *data_p) <= ' ')
+	{
+		if( !c ) return NULL;
+		if( c == '\n' )
+		{
+			scriptline++;
+			*newline = true;
+		}
+		data_p++;
+	}
+	return data_p;
+}
+
+/*
+=================
+SC_SkipBracedSection
+
+Skips until a matching close brace is found.
+Internal brace depths are properly skipped.
+=================
+*/
+void SC_SkipBracedSection( char **data_p, int depth )
+{
+	do
+	{
+		SC_ParseToken( data_p, true );
+		if( !token[1] )
+		{
+			if( token[0] == '{' ) depth++;
+			else if( token[0] == '}' ) depth--;
+		}
+	} while( depth && *data_p );
+}
+
+/*
 ==============
 SC_ParseToken_Simple
 
 Parse a token out of a string, behaving like the qwcl console
 ==============
 */
-bool SC_ParseToken_Simple(const char **data_p)
+bool SC_ParseToken_Simple( const char **data_p )
 {
 	int len = 0;
 	const char *data;
@@ -496,73 +568,78 @@ SC_ParseToken
 Parse a token out of a string
 ==============
 */
-char *SC_ParseToken(const char **data_p)
+char *SC_ParseToken( const char **data_p, bool allow_newline )
 {
 	int		c;
 	int		len = 0;
 	const char	*data;
-	
+	bool		newline = false;
+		
 	token[0] = 0;
 	data = *data_p;
 	
-	if (!data) 
+	if( !data ) 
 	{
 		endofscript = true;
 		*data_p = NULL;
 		return NULL;
 	}		
 
-	// skip whitespace
-skipwhite:
-	while((c = *data) <= ' ')
+	while( 1 )
 	{
-		if (c == 0)
+		data = SC_SkipWhiteSpace( data, &newline );
+		if( !data )
 		{
-			endofscript = true;
 			*data_p = NULL;
-			return NULL; // end of file;
+			return NULL;
 		}
-		data++;
-	}
+		if( newline && !allow_newline )
+		{
+			*data_p = data;
+			return token;
+		}
+		
+		c = *data;
 	
-	// skip // comments
-	if (c=='/' && data[1] == '/')
-	{
-		while (*data && *data != '\n')
-			data++;
-		goto skipwhite;
-	}
-
-	// skip /* comments
-	if (c=='/' && data[1] == '*')
-	{
-		while (data[1] && (data[0] != '*' || data[1] != '/'))
-			data++;
-		data += 2;
-		goto skipwhite;
-	}
-	
+		if( c=='/' && data[1] == '/' )
+		{
+			// skip // comments
+			while( *data && *data != '\n' )
+				data++;
+		}
+		else if( c=='/' && data[1] == '*' )
+		{
+			// skip /* comments
+			while( data[1] && (data[0] != '*' || data[1] != '/'))
+			{
+				if( *data == '\n' ) scriptline++;
+				data++;
+			}
+			if( *data ) data += 2;
+		}
+		else break; // an actual token
+	}	
 
 	// handle quoted strings specially
 	if (*data == '\"' || *data == '\'')
 	{
 		data++;
-		while(1)
+		while( 1 )
 		{
 			c = *data++;
-			if (c=='\"'||c=='\0')
+			if( c == '\n' ) scriptline++;
+			if( c=='\"' || c=='\0' )
 			{
 				token[len] = 0;
 				*data_p = data;
 				return token;
 			}
-			token[len] = c;
-			len++;
+			token[len++] = c;
 		}
 	}
 
 	// parse single characters
-	if (c == '{' || c == '}'|| c == ')' || c == '(' || c == '\'' || c == ':' || c == ',')
+	if( c == '{' || c == '}'|| c == ')' || c == '(' || c == '\'' || c == ':' || c == ',' )
 	{
 		token[len] = c;
 		data++;
@@ -579,9 +656,9 @@ skipwhite:
 		data++;
 		len++;
 		c = *data;
-		if (c == '{' || c == '}'|| c == ')'|| c == '(' || c == '\'' || c == ':' || c == ',')
+		if( c == '{' || c == '}'|| c == ')'|| c == '(' || c == '\'' || c == ':' || c == ',' )
 			break;
-	} while(c > 32);
+	} while( c > 32 );
 	
 	token[len] = 0;
 	*data_p = data;
@@ -595,45 +672,59 @@ SC_ParseWord
 Parse a word out of a string
 ==============
 */
-char *SC_ParseWord( const char **data_p )
+char *SC_ParseWord( const char **data_p, bool allow_newline )
 {
 	int		c;
-	int		len = 0;
 	const char	*data;
+	int		len = 0;
+	bool		newline = false;
 	
 	token[0] = 0;
 	data = *data_p;
 	
-	if (!data)
+	if( !data )
 	{
 		*data_p = NULL;
 		return NULL;
 	}
 		
-	// skip whitespace
-skipwhite:
-	while ( (c = *data) <= ' ')
+	while( 1 )
 	{
-		if (c == 0)
+		data = SC_SkipWhiteSpace( data, &newline );
+		if( !data )
 		{
 			*data_p = NULL;
-			endofscript = true;
-			return NULL; // end of file;
+			return NULL;
 		}
-		data++;
-	}
+		if( newline && !allow_newline )
+		{
+			*data_p = data;
+			return token;
+		}
+		
+		c = *data;
 	
-	// skip // comments
-	if (c=='/' && data[1] == '/')
-	{
-		while (*data && *data != '\n')
-			data++;
-		goto skipwhite;
-	}
-	
+		if( c=='/' && data[1] == '/' )
+		{
+			// skip // comments
+			while( *data && *data != '\n' )
+				data++;
+		}
+		else if( c=='/' && data[1] == '*' )
+		{
+			// skip /* comments
+			while( data[1] && (data[0] != '*' || data[1] != '/'))
+			{
+				if( *data == '\n' ) scriptline++;
+				data++;
+			}
+			if( *data ) data += 2;
+		}
+		else break; // an actual token
+	}	
 
 	// handle quoted strings specially
-	if (c == '\"')
+	if( c == '\"' )
 	{
 		data++;
 		do
@@ -647,22 +738,22 @@ skipwhite:
 			}
 			token[len] = c;
 			len++;
-		} while (1);
+		} while( 1 );
 	}
 
 	// parse numbers
-	if (c >= '0' && c <= '9')
+	if( c >= '0' && c <= '9' )
 	{
-		if (c == '0' && data[1] == 'x')
+		if( c == '0' && data[1] == 'x' )
 		{
-			//parse hex
+			// parse hex
 			token[0] = '0';
 			c='x';
 			len=1;
 			data++;
 			while( 1 )
 			{
-				//parse regular number
+				// parse regular number
 				token[len] = c;
 				data++;
 				len++;
@@ -676,7 +767,7 @@ skipwhite:
 		{
 			while( 1 )
 			{
-				//parse regular number
+				// parse regular number
 				token[len] = c;
 				data++;
 				len++;
@@ -692,7 +783,7 @@ skipwhite:
 	}
 
 	// parse words
-	else if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_')
+	else if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_')
 	{
 		do
 		{

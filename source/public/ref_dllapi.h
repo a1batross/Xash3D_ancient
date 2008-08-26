@@ -486,14 +486,17 @@ typedef struct stdilib_api_s
 	bool (*Com_LoadScript)(const char *name,char *buf,int size);// load script into stack from file or bufer
 	bool (*Com_AddScript)(const char *name,char *buf, int size);// include script from file or buffer
 	void (*Com_ResetScript)( void );			// reset current script state
+	void (*Com_PushScript)( const char **data_p );		// save script to stack
+	void (*Com_PopScript)( const char **data_p );		// restore script from stack
+	void (*Com_SkipBracedSection)( char **data_p, int depth );	// skip braced section
 	char *(*Com_ReadToken)( bool newline );			// get next token on a line or newline
 	bool (*Com_TryToken)( void );				// return 1 if have token on a line 
 	void (*Com_FreeToken)( void );			// free current token to may get it again
 	void (*Com_SkipToken)( void );			// skip current token and jump into newline
 	bool (*Com_MatchToken)( const char *match );		// compare current token with user keyword
 	bool (*Com_ParseToken_Simple)(const char **data_p);	// basic parse (can't handle single characters)
-	char *(*Com_ParseToken)(const char **data );		// parse token from char buffer
-	char *(*Com_ParseWord)( const char **data );		// parse word from char buffer
+	char *(*Com_ParseToken)(const char **data, bool newline );	// parse token from char buffer
+	char *(*Com_ParseWord)( const char **data, bool newline );	// parse word from char buffer
 	search_t *(*Com_Search)(const char *pattern, int casecmp );	// returned list of found files
 	bool (*Com_Filter)(char *filter, char *name, int casecmp ); // compare keyword by mask with filter
 	uint (*Com_HashKey)( const char *string, uint hashSize );	// returns hash key for a string
@@ -688,6 +691,7 @@ typedef struct stdilib_api_s
 #define Com_ParseToken	com.Com_ParseToken
 #define Com_ParseWord	com.Com_ParseWord
 #define Com_SimpleGetToken	com.Com_ParseToken_Simple
+#define Com_SkipBracedSection	com.Com_SkipBracedSection
 #define Com_Filter		com.Com_Filter
 #define Com_HashKey		com.Com_HashKey
 #define Com_LoadScript	com.Com_LoadScript
@@ -698,6 +702,8 @@ typedef struct stdilib_api_s
 #define Com_FreeToken	com.Com_FreeToken
 #define Com_SkipToken	com.Com_SkipToken
 #define Com_MatchToken	com.Com_MatchToken
+#define Com_PushScript	com.Com_PushScript
+#define Com_PopScript	com.Com_PopScript
 #define com_token		com.com_token
 #define g_TXcommand		com.GameInfo->TXcommand
 #define g_Instance		com.GameInfo->instance
@@ -1001,8 +1007,8 @@ MAP CONTENTS & SURFACES DESCRIPTION
 #define SURF_SLICK			0x2	// effects game physics
 #define SURF_SKY			0x4	// don't draw, but add to skybox
 #define SURF_WARP			0x8	// turbulent water warp
-#define SURF_TRANS			0x10	// grates
-#define SURF_BLEND			0x20	// windows
+#define SURF_TRANS33		0x10	// grates
+#define SURF_TRANS66		0x20	// windows
 #define SURF_FLOWING		0x40	// scroll towards angle
 #define SURF_NODRAW			0x80	// don't bother referencing the texture
 #define SURF_HINT			0x100	// make a primary bsp splitter
@@ -1029,12 +1035,6 @@ MAP CONTENTS & SURFACES DESCRIPTION
 ENGINE TRACE FORMAT
 ==============================================================================
 */
-#define SURF_PLANEBACK		2
-#define SURF_DRAWSKY		4
-#define SURF_DRAWTURB		0x10
-#define SURF_DRAWBACKGROUND		0x40
-#define SURF_UNDERWATER		0x80
-
 typedef struct cplane_s
 {
 	vec3_t	normal;
@@ -1189,6 +1189,7 @@ typedef struct
 	float		fov_y;
 	vec3_t		vieworg;
 	vec3_t		viewangles;
+	matrix4x4		viewmatrix;	// store viewnagles and vieworg
 	vec4_t		blend;		// rgba 0-1 full screen blend
 	float		time;		// time is used to auto animate
 	float		oldtime;		// oldtime using for lerping

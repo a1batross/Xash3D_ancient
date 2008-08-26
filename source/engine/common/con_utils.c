@@ -116,14 +116,14 @@ bool Cmd_GetMapList( const char *s, char *completedname, int length )
 				// means there is no title, so clear the message string now
 				message[0] = 0;
 				data = entities;
-				while(Com_ParseToken(&data))
+				while(Com_ParseToken( &data, true ))
 				{
 					if(!com.strcmp(com_token, "{" )) continue;
 					else if(!com.strcmp(com_token, "}" )) break;
 					else if(!com.strcmp(com_token, "message" ))
 					{
 						// get the message contents
-						Com_ParseToken(&data);
+						Com_ParseToken( &data, true );
 						com.strncpy(message, com_token, sizeof(message));
 					}
 				}
@@ -606,20 +606,20 @@ bool Cmd_CheckMapsList( void )
 				data = entities;
 				com.strncpy(message, "No Title", MAX_QPATH);
 
-				while(Com_ParseToken(&data))
+				while(Com_ParseToken( &data, true ))
 				{
 					if(!com.strcmp(com_token, "{" )) continue;
 					else if(!com.strcmp(com_token, "}" )) break;
 					else if(!com.strcmp(com_token, "message" ))
 					{
 						// get the message contents
-						Com_ParseToken(&data);
+						Com_ParseToken( &data, true );
 						if(!com.strcmp(com_token, "" )) continue;
 						com.strncpy(message, com_token, sizeof(message));
 					}
 					else if(!com.strcmp(com_token, "classname" ))
 					{
-						Com_ParseToken(&data);
+						Com_ParseToken( &data, true );
 						if(!com.strcmp(com_token, "info_player_deatchmatch"))
 							num_spawnpoints++;
 						else if(!com.strcmp(com_token, "info_player_start"))

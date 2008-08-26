@@ -23,6 +23,7 @@ typedef signed __int64	int64;
 typedef int		func_t;
 typedef int		sound_t;
 typedef int		model_t;
+typedef int		video_t;
 typedef int		string_t;
 typedef float		vec_t;
 typedef vec_t		vec2_t[2];
@@ -32,6 +33,7 @@ typedef vec_t		matrix3x3[3][3];
 typedef vec_t		matrix3x4[3][4];
 typedef vec_t		matrix4x3[4][3];
 typedef vec_t		matrix4x4[4][4];
+typedef vec_t		gl_matrix[16];	// linear array 
 typedef char		string[MAX_STRING];
 
 
