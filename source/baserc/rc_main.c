@@ -43,6 +43,7 @@ byte *RC_FindFile( const char *filename, fs_offset_t *size )
 	{
 		if(!com.stricmp( filename, res->intname ))
 		{
+			MsgDev( D_LOAD, "RC_FindFile: %s\n", res->intname );	
 			if( size ) *size = res->filesize;
 			return ( byte *)res->buffer;
 		}

@@ -192,7 +192,7 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags, const 
 		}
 		else if( var_value[0] && com_strcmp( var->reset_string, var_value ))
 		{
-			MsgDev(D_NOTE, "cvar \"%s\" given initial values: \"%s\" and \"%s\"\n", var_name, var->reset_string, var_value );
+			MsgDev( D_STRING, "cvar \"%s\" given initial values: \"%s\" and \"%s\"\n", var_name, var->reset_string, var_value );
 		}
 
 		// if we have a latched string, take that value now

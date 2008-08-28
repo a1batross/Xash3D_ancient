@@ -327,8 +327,8 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 		break;
 	case ALPHAGEN_DOT:
 		if(!Matrix4x4_CompareRotateOnly( m_pCurrentEntity->matrix, identitymatrix ))
-			Matrix4x4_Rotate( m_pCurrentEntity->matrix, r_refdef.viewmatrix[0], vec );
-		else VectorCopy( r_refdef.viewmatrix[0], vec );
+			Matrix4x4_Rotate( m_pCurrentEntity->matrix, r_forward, vec );
+		else VectorCopy( r_forward, vec );
 
 		for( i = 0; i < numVertex; i++ )
 		{
@@ -339,8 +339,8 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 		break;
 	case ALPHAGEN_ONEMINUSDOT:
 		if(!Matrix4x4_CompareRotateOnly( m_pCurrentEntity->matrix, identitymatrix ))
-			Matrix4x4_Rotate( m_pCurrentEntity->matrix, r_refdef.viewmatrix[0], vec );
-		else VectorCopy( r_refdef.viewmatrix[0], vec );
+			Matrix4x4_Rotate( m_pCurrentEntity->matrix, r_forward, vec );
+		else VectorCopy( r_forward, vec );
 
 		for( i = 0; i < numVertex; i++ )
 		{
@@ -644,24 +644,23 @@ static void RB_SetupVertexProgram( shaderStage_t *stage )
 	program_t	*program = stage->vertexProgram;
 
 	pglBindProgramARB( GL_VERTEX_PROGRAM_ARB, program->progNum );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 0, r_refdef.vieworg[0], r_refdef.vieworg[1], r_refdef.vieworg[2], 0);
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 4, m_pCurrentEntity->origin[0], m_pCurrentEntity->origin[1], m_pCurrentEntity->origin[2], 0);
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 8, m_fShaderTime, 0, 0, 0 );
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 0, r_origin[0], r_origin[1], r_origin[2], 0);
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 1, r_forward[0], r_forward[1], r_forward[2], 0 );
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 2, r_right[0], r_right[1], r_right[2], 0 );
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 3, r_up[0], r_up[1], r_up[2], 0 );
+
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 4, m_pCurrentEntity->origin[0], m_pCurrentEntity->origin[1], m_pCurrentEntity->origin[2], 0 );
 #ifdef OPENGL_STYLE
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 1, r_refdef.viewmatrix[0][0], r_refdef.viewmatrix[1][0], r_refdef.viewmatrix[2][0], 0 );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 2, r_refdef.viewmatrix[0][1], r_refdef.viewmatrix[1][1], r_refdef.viewmatrix[2][1], 0 );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 3, r_refdef.viewmatrix[0][2], r_refdef.viewmatrix[1][2], r_refdef.viewmatrix[2][2], 0 );
 	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 5, m_pCurrentEntity->matrix[0][0], m_pCurrentEntity->matrix[1][0], m_pCurrentEntity->matrix[2][0], 0 );
 	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 6, m_pCurrentEntity->matrix[0][1], m_pCurrentEntity->matrix[1][1], m_pCurrentEntity->matrix[2][1], 0 );
 	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 7, m_pCurrentEntity->matrix[0][2], m_pCurrentEntity->matrix[1][2], m_pCurrentEntity->matrix[2][2], 0 );
 #else
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 1, r_refdef.viewmatrix[0][0], r_refdef.viewmatrix[0][1], r_refdef.viewmatrix[0][2], 0 );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 2, r_refdef.viewmatrix[1][0], r_refdef.viewmatrix[1][1], r_refdef.viewmatrix[1][2], 0 );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 3, r_refdef.viewmatrix[2][0], r_refdef.viewmatrix[2][1], r_refdef.viewmatrix[2][2], 0 );
+
 	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 5, m_pCurrentEntity->matrix[0][0], m_pCurrentEntity->matrix[0][1], m_pCurrentEntity->matrix[0][2], 0 );
 	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 6, m_pCurrentEntity->matrix[1][0], m_pCurrentEntity->matrix[1][1], m_pCurrentEntity->matrix[1][2], 0 );
 	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 7, m_pCurrentEntity->matrix[2][0], m_pCurrentEntity->matrix[2][1], m_pCurrentEntity->matrix[2][2], 0 );
 #endif
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 8, m_fShaderTime, 0, 0, 0 );
 }
 
 /*
@@ -669,29 +668,27 @@ static void RB_SetupVertexProgram( shaderStage_t *stage )
  RB_SetupFragmentProgram
  =================
 */
-static void RB_SetupFragmentProgram (shaderStage_t *stage){
-
+static void RB_SetupFragmentProgram( shaderStage_t *stage )
+{
 	program_t	*program = stage->fragmentProgram;
 
 	pglBindProgramARB( GL_FRAGMENT_PROGRAM_ARB, program->progNum );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 0, r_refdef.vieworg[0], r_refdef.vieworg[1], r_refdef.vieworg[2], 0);
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 0, r_origin[0], r_origin[1], r_origin[2], 0);
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 1, r_forward[0], r_forward[1], r_forward[2], 0 );
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 2, r_right[0], r_right[1], r_right[2], 0 );
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 3, r_up[0], r_up[1], r_up[2], 0 );
 	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 4, m_pCurrentEntity->origin[0], m_pCurrentEntity->origin[1], m_pCurrentEntity->origin[2], 0);
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 8, m_fShaderTime, 0, 0, 0 );
+
 #ifdef OPENGL_STYLE
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 1, r_refdef.viewmatrix[0][0], r_refdef.viewmatrix[1][0], r_refdef.viewmatrix[2][0], 0 );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 2, r_refdef.viewmatrix[0][1], r_refdef.viewmatrix[1][1], r_refdef.viewmatrix[2][1], 0 );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 3, r_refdef.viewmatrix[0][2], r_refdef.viewmatrix[1][2], r_refdef.viewmatrix[2][2], 0 );
 	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 5, m_pCurrentEntity->matrix[0][0], m_pCurrentEntity->matrix[1][0], m_pCurrentEntity->matrix[2][0], 0 );
 	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 6, m_pCurrentEntity->matrix[0][1], m_pCurrentEntity->matrix[1][1], m_pCurrentEntity->matrix[2][1], 0 );
 	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 7, m_pCurrentEntity->matrix[0][2], m_pCurrentEntity->matrix[1][2], m_pCurrentEntity->matrix[2][2], 0 );
 #else
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 1, r_refdef.viewmatrix[0][0], r_refdef.viewmatrix[0][1], r_refdef.viewmatrix[0][2], 0 );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 2, r_refdef.viewmatrix[1][0], r_refdef.viewmatrix[1][1], r_refdef.viewmatrix[1][2], 0 );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 3, r_refdef.viewmatrix[2][0], r_refdef.viewmatrix[2][1], r_refdef.viewmatrix[2][2], 0 );
 	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 5, m_pCurrentEntity->matrix[0][0], m_pCurrentEntity->matrix[0][1], m_pCurrentEntity->matrix[0][2], 0 );
 	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 6, m_pCurrentEntity->matrix[1][0], m_pCurrentEntity->matrix[1][1], m_pCurrentEntity->matrix[1][2], 0 );
 	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 7, m_pCurrentEntity->matrix[2][0], m_pCurrentEntity->matrix[2][1], m_pCurrentEntity->matrix[2][2], 0 );
 #endif
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 8, m_fShaderTime, 0, 0, 0 );
 }
 
 /*
@@ -699,8 +696,8 @@ static void RB_SetupFragmentProgram (shaderStage_t *stage){
 RB_SetupTextureCombiners
 =================
 */
-static void RB_SetupTextureCombiners (stageBundle_t *bundle){
-
+static void RB_SetupTextureCombiners (stageBundle_t *bundle)
+{
 	texEnvCombine_t	*texEnvCombine = &bundle->texEnvCombine;
 
 	pglTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB_ARB, texEnvCombine->rgbCombine);
@@ -821,7 +818,7 @@ static void RB_SetupTextureUnit( stageBundle_t *bundle, uint unit )
 		// not implemented
 		//CIN_RunCinematic( bundle->cinematicHandle );
 		//CIN_DrawCinematic( bundle->cinematicHandle );
-		//break;
+		break;
 	default: Host_Error( "RB_SetupTextureUnit: unknown texture type %i in shader '%s'\n", bundle->texType, m_pCurrentShader->name );
 	}
 
@@ -840,7 +837,7 @@ static void RB_SetupTextureUnit( stageBundle_t *bundle, uint unit )
 	if( bundle->tcGen.type == TCGEN_REFLECTION || bundle->tcGen.type == TCGEN_NORMAL )
 	{
 		pglMatrixMode( GL_TEXTURE );
-		GL_LoadMatrix( r_textureMatrix );
+		pglLoadMatrixf( r_textureMatrix );
 		pglMatrixMode( GL_MODELVIEW );
 
 		pglEnable( GL_TEXTURE_GEN_S );
@@ -914,7 +911,7 @@ static void RB_RenderShaderARB( void )
 		pglBindBufferARB( GL_ARRAY_BUFFER_ARB, rb_vbo.colorBuffer );
 		pglBufferDataARB( GL_ARRAY_BUFFER_ARB, numVertex * sizeof(vec4_t), colorArray, GL_STREAM_DRAW_ARB );
 		pglEnableClientState( GL_COLOR_ARRAY );
-		pglColorPointer( 4, GL_UNSIGNED_BYTE, 0, VBO_OFFSET(0));
+		pglColorPointer( 4, GL_FLOAT, 0, VBO_OFFSET(0));
 
 		for( j = 0; j < stage->numBundles; j++ )
 		{
@@ -929,7 +926,7 @@ static void RB_RenderShaderARB( void )
 			pglTexCoordPointer( 3, GL_FLOAT, 0, VBO_OFFSET(0));
 		}
 
-		if( GL_Support( R_DRAWRANGEELMENTS ))
+		if( GL_Support( R_DRAW_RANGEELEMENTS_EXT ))
 			pglDrawRangeElementsEXT( GL_TRIANGLES, 0, numVertex, numIndex, GL_UNSIGNED_INT, VBO_OFFSET(0));
 		else pglDrawElements( GL_TRIANGLES, numIndex, GL_UNSIGNED_INT, VBO_OFFSET(0));
 
@@ -981,7 +978,7 @@ static void RB_RenderShader( void )
 		RB_CalcVertexColors( stage );
 
 		pglEnableClientState( GL_COLOR_ARRAY );
-		pglColorPointer( 4, GL_UNSIGNED_BYTE, 0, colorArray );
+		pglColorPointer( 4, GL_FLOAT, 0, colorArray );
 
 		for( j = 0; j < stage->numBundles; j++ )
 		{
@@ -1000,7 +997,7 @@ static void RB_RenderShader( void )
 				pglLockArraysEXT( 0, numVertex );
 		}
 
-		if(GL_Support( R_DRAWRANGEELMENTS ))
+		if(GL_Support( R_DRAW_RANGEELEMENTS_EXT ))
 			pglDrawRangeElementsEXT( GL_TRIANGLES, 0, numVertex, numIndex, GL_UNSIGNED_INT, indexArray );
 		else pglDrawElements( GL_TRIANGLES, numIndex, GL_UNSIGNED_INT, indexArray );
 
@@ -1033,7 +1030,7 @@ static void RB_DrawTris( void )
 
 	if(GL_Support( R_ARB_VERTEX_BUFFER_OBJECT_EXT ))
 	{
-		if( GL_Support( R_DRAWRANGEELMENTS ))
+		if( GL_Support( R_DRAW_RANGEELEMENTS_EXT ))
 			pglDrawRangeElementsEXT( GL_TRIANGLES, 0, numVertex, numIndex, GL_UNSIGNED_INT, VBO_OFFSET(0));
 		else pglDrawElements( GL_TRIANGLES, numIndex, GL_UNSIGNED_INT, VBO_OFFSET(0));
 	}
@@ -1041,7 +1038,7 @@ static void RB_DrawTris( void )
 		if( GL_Support( R_CUSTOM_VERTEX_ARRAY_EXT ))
 			pglLockArraysEXT(0, numVertex);
 
-		if( GL_Support( R_DRAWRANGEELMENTS ))
+		if( GL_Support( R_DRAW_RANGEELEMENTS_EXT ))
 			pglDrawRangeElementsEXT( GL_TRIANGLES, 0, numVertex, numIndex, GL_UNSIGNED_INT, indexArray );
 		else pglDrawElements( GL_TRIANGLES, numIndex, GL_UNSIGNED_INT, indexArray );
 
@@ -1273,9 +1270,10 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 
 	// Clear the state
 	m_pRenderMesh = NULL;
+	m_pRenderModel = NULL;
 	m_pCurrentShader = NULL;
-	m_fShaderTime = 0;
 	m_pCurrentEntity = NULL;
+	m_fShaderTime = 0;
 	m_iInfoKey = -1;
 
 	// draw everything
@@ -1287,7 +1285,7 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 			sortKey = mesh->sortKey;
 
 			// unpack sort key
-			shader = r_shaders[(sortKey >> 18) & gl_config.max_entities-1];
+			shader = r_shaders[(sortKey>>18) & (MAX_SHADERS - 1)];
 			entity = &r_refdef.entities[(sortKey >> 8) & gl_config.max_entities-1];
 			infoKey = sortKey & 255;
 
@@ -1297,7 +1295,7 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 				if( r_debugsort->integer != shader->sort )
 					continue;
 			}
-
+                             
 			// check if the rendering state changed
 			if((m_pCurrentShader != shader) || (m_pCurrentEntity != entity && !(shader->flags & SHADER_ENTITYMERGABLE)) || (m_iInfoKey != infoKey || infoKey == 255))
 			{
@@ -1311,11 +1309,12 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 			if( m_pCurrentEntity != entity )
 			{
 				if( entity == r_worldEntity || entity->ent_type != ED_NORMAL )
-					GL_LoadMatrix( r_worldMatrix );
+					pglLoadMatrixf( r_worldMatrix );
 				else R_RotateForEntity( entity );
 
 				m_pCurrentEntity = entity;
 				m_fShaderTime = r_refdef.time - entity->shaderTime;
+				m_pRenderModel = m_pCurrentEntity->model;
 			}
 		}
 
@@ -1499,6 +1498,7 @@ void RB_InitBackend( void )
 	// clear the state
 	m_pRenderMesh = NULL;
 	m_pCurrentShader = NULL;
+	m_pRenderModel = NULL;
 	m_fShaderTime = 0;
 	m_pCurrentEntity = NULL;
 	m_iInfoKey = -1;

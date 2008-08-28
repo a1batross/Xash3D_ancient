@@ -559,8 +559,8 @@ typedef struct
 	int		lmNum;
 	byte		*lmSamples;
 	int		numStyles;
-	byte		styles[MAXLIGHTMAPS];
-	float		cachedLight[MAXLIGHTMAPS];	// values currently used in lightmap
+	byte		styles[MAX_LIGHTSTYLES];
+	float		cachedLight[MAX_LIGHTSTYLES];	// values currently used in lightmap
 } surface_t;
 
 typedef struct node_s
@@ -766,7 +766,6 @@ typedef struct rmodel_s
           studiohdr_t	*phdr;
           studiohdr_t	*thdr;
 
-	texture_t		*skins[512];	// max spriteframes
 	void		*extradata;	// model buffer
 
 } rmodel_t;
@@ -899,7 +898,7 @@ typedef enum
 	R_SGIS_MIPMAPS_EXT,
 	R_WGL_SWAPCONTROL,
 	R_COMBINE_EXT,
-	R_DRAWRANGEELMENTS,
+	R_DRAW_RANGEELEMENTS_EXT,
 	R_ARB_MULTITEXTURE,
 	R_LOCKARRAYS_EXT,
 	R_TEXTURE_3D_EXT,
@@ -1068,7 +1067,6 @@ extern mesh_t	*m_pRenderMesh;
 extern rmodel_t	*m_pRenderModel;
 extern shader_t	*m_pCurrentShader;
 extern ref_entity_t *m_pCurrentEntity;
-extern rmodel_t	*r_models[MAX_MODELS];
 extern int	m_iStudioModelCount;
 extern int	registration_sequence;
 
@@ -1125,10 +1123,10 @@ extern vec3_t	r_forward;
 extern vec3_t	r_right;
 extern vec3_t	r_up;
 
-extern matrix4x4   	r_projectionMatrix;
-extern matrix4x4   	r_worldMatrix;
+extern gl_matrix   	r_projectionMatrix;
+extern gl_matrix   	r_worldMatrix;
 extern matrix4x4   	r_entityMatrix;
-extern matrix4x4	r_textureMatrix;
+extern gl_matrix	r_textureMatrix;
 
 extern cplane_t	r_frustum[4];
 
@@ -1191,7 +1189,6 @@ void		R_BeginRegistration( const char *map );
 rmodel_t		*R_RegisterModel( const char *name );
 void		R_SetupSky( const char *name, float rotate, const vec3_t axis );
 void		R_EndRegistration( void );
-texture_t		*Draw_FindPic( const char *name );
 shader_t		*R_RegisterShader( const char *name );
 shader_t		*R_RegisterShaderSkin( const char *name );
 shader_t		*R_RegisterShaderNoMip( const char *name );
@@ -1199,7 +1196,7 @@ bool		VID_ScreenShot( const char *filename, bool levelshot );
 void		R_DrawFill( float x, float y, float w, float h );
 void		R_DrawStretchRaw( int x, int y, int w, int h, int width, int height, const byte *raw, bool dirty );
 void		R_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, float sh, float th, const char *name );
-void		Draw_GetPicSize( int *w, int *h, const char *pic );
+void		R_GetPicSize( int *w, int *h, const char *pic );
 
 // cvars
 extern cvar_t	*r_check_errors;

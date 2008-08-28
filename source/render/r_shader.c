@@ -2997,8 +2997,10 @@ R_CreateDefaultShader
 */
 static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderType, uint surfaceParm )
 {
-	shader_t	*shader;
-	int	i;
+	shader_t		*shader;
+	const byte	*buffer = NULL; // default image buffer
+	size_t		bufsize = 0;
+	int		i;
 
 	// clear static shader
 	shader = R_NewShader();
@@ -3016,7 +3018,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 
 		for( i = 0; i < 6; i++ )
 		{
-			shader->skyParms.farBox[i] = R_FindTexture(va("env/%s%s", shader->name, r_skyBoxSuffix[i]), NULL, 0, TF_CLAMP|TF_SKYSIDE, 0 );
+			shader->skyParms.farBox[i] = R_FindTexture(va("gfx/env/%s%s", shader->name, r_skyBoxSuffix[i]), NULL, 0, TF_CLAMP|TF_SKYSIDE, 0 );
 			if( !shader->skyParms.farBox[i] )
 			{
 				MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
@@ -3027,7 +3029,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 		break;
 	case SHADER_BSP:
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, NULL, 0, TF_MIPMAPS|TF_COMPRESS, 0 );
+		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_MIPMAPS|TF_COMPRESS, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
@@ -3089,7 +3091,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 		break;
 	case SHADER_SKIN:
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, NULL, 0, TF_MIPMAPS|TF_COMPRESS, 0 );
+		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_MIPMAPS|TF_COMPRESS, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
@@ -3100,8 +3102,11 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 		shader->numStages++;
 		break;
 	case SHADER_NOMIP:
+		// don't let user set invalid font
+		// FIXME: make case SHADER_FONT and func RegisterShaderFont
+		if(com.stristr( shader->name, "fonts/" )) buffer = FS_LoadInternal( "default.dds", &bufsize );
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, NULL, 0, TF_COMPRESS, 0 );
+		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_COMPRESS, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
@@ -3116,7 +3121,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 		break;
 	case SHADER_GENERIC:
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, NULL, 0, TF_MIPMAPS|TF_COMPRESS, 0 );
+		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_MIPMAPS|TF_COMPRESS, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );

@@ -369,7 +369,7 @@ static void R_DrawSkyBox( texture_t *textures[6], bool blended )
 			pglEnableClientState( GL_TEXTURE_COORD_ARRAY );
 			pglTexCoordPointer( 2, GL_FLOAT, 20, VBO_OFFSET(12));
 
-			if( GL_Support( R_DRAWRANGEELMENTS ))
+			if( GL_Support( R_DRAW_RANGEELEMENTS_EXT ))
 				pglDrawRangeElementsEXT( GL_TRIANGLES, 0, skySide->numVertices, skySide->numIndices, GL_UNSIGNED_INT, VBO_OFFSET(0));
 			else pglDrawElements( GL_TRIANGLES, skySide->numIndices, GL_UNSIGNED_INT, VBO_OFFSET(0));
 		}
@@ -383,7 +383,7 @@ static void R_DrawSkyBox( texture_t *textures[6], bool blended )
 
 			if( GL_Support( R_CUSTOM_VERTEX_ARRAY_EXT )) pglLockArraysEXT( 0, skySide->numVertices );
 
-			if( GL_Support( R_DRAWRANGEELMENTS ))
+			if( GL_Support( R_DRAW_RANGEELEMENTS_EXT ))
 				pglDrawRangeElementsEXT( GL_TRIANGLES, 0, skySide->numVertices, skySide->numIndices, GL_UNSIGNED_INT, skySide->indices );
 			else pglDrawElements( GL_TRIANGLES, skySide->numIndices, GL_UNSIGNED_INT, skySide->indices);
 
@@ -405,12 +405,17 @@ void R_DrawSky( void )
 	skySideVert_t	*v;
 	matrix4x4		matrix;
 	uint		*index;
+	vec3_t		r_backward, r_left;
 	int		s, t, sMin, sMax, tMin, tMax;
 	int		i, j;
 
 	// compute and load matrix
-	Matrix4x4_CreateFromEntity( matrix, 0.0, 0.0, 0.0, r_refdef.viewangles[PITCH], r_refdef.viewangles[YAW], r_refdef.viewangles[ROLL], 1.0 );
-	if( sky->rotate ) Matrix4x4_CreateRotate( matrix, r_refdef.time * sky->rotate, sky->axis[0], sky->axis[1], sky->axis[2]);
+	VectorNegate( r_forward, r_backward );
+	VectorNegate( r_right, r_left );
+	Matrix4x4_FromVectors( matrix, r_left, r_up, r_backward, vec3_origin );
+
+	// FIXME:
+	//if( sky->rotate ) Matrix4x4_CreateRotate( matrix, r_refdef.time * sky->rotate, sky->axis[0], sky->axis[1], sky->axis[2]);
 	
 	GL_LoadMatrix( matrix );
 
@@ -495,7 +500,7 @@ void R_DrawSky( void )
 		R_DrawSkyBox( sky->shader->skyParms.nearBox, true );
 
 	pglDepthRange( 0, 1 );
-	GL_LoadMatrix( r_worldMatrix );
+	pglLoadMatrixf( r_worldMatrix );
 }
 
 /*

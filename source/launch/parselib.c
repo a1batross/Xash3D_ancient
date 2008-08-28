@@ -582,7 +582,7 @@ char *SC_ParseToken( const char **data_p, bool allow_newline )
 	{
 		endofscript = true;
 		*data_p = NULL;
-		return NULL;
+		return token;
 	}		
 
 	while( 1 )
@@ -591,7 +591,7 @@ char *SC_ParseToken( const char **data_p, bool allow_newline )
 		if( !data )
 		{
 			*data_p = NULL;
-			return NULL;
+			return token;
 		}
 		if( newline && !allow_newline )
 		{

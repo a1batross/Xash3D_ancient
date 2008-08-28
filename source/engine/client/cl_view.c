@@ -200,7 +200,6 @@ bool V_PreRender( void )
 		
 	re->BeginFrame();
 	SCR_FillRect( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, g_color_table[0] );
-
 	return true;
 }
 

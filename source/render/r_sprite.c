@@ -18,6 +18,7 @@
 string	frame_prefix;
 byte	*spr_palette;
 static byte pal[256][4];
+mipTex_t *frames;
 	
 /*
 ====================
@@ -29,9 +30,11 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	dframe_t		*pinframe;
 	mspriteframe_t	*pspriteframe;
 	int		width, height, size, origin[2];
-	char		name[64];
+	dframetype_t	*spr_frametype;
 	rgbdata_t		*spr_frame;
 	texture_t		*image;
+	string		name;
+	mipTex_t		*out;
 	
 	pinframe = (dframe_t *)pin;
 
@@ -62,6 +65,7 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	pspriteframe->left = origin[0];
 	pspriteframe->right = width + origin[0];
 	pspriteframe->radius = sqrt(((width>>1) * (width>>1)) + ((height>>1) * (height>>1)));
+	pspriteframe->shader = r_defaultShader;
 	
 	// extract sprite name from path
 	FS_FileBase( mod->name, name );
@@ -71,12 +75,36 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	if( image )
 	{
 		pspriteframe->texture = image;
-		mod->numTexInfo++;
 	}
-          else MsgDev( D_WARN, "%s has null frame %d\n", image->name, framenum );
+          else
+          {
+		MsgDev( D_WARN, "%s has null frame %d\n", image->name, framenum );
+		pspriteframe->texture = r_defaultTexture;
+	}
 
+	frames = Mem_Realloc( mod->mempool, frames, sizeof(*frames) * (mod->numTextures + 1));
+	out = frames + mod->numTextures++;
+	spr_frametype = (dframetype_t *)((byte *)(pinframe + 1) + size );
+
+	com.strncpy( out->name, name, 64 );
+	out->width = width;
+	out->height = height;
+	out->image = image;
+
+	if( LittleLong( spr_frametype->type ) == SPR_GROUP )
+	{
+		// FIXME: validate this pointer, probably it's wrong
+		// but this link currently unused, just in case
+		out->next = frames + mod->numTextures; 
+		out->numframes = framenum;
+	} 
+	else
+	{
+		out->numframes = 1;
+		out->next = NULL;
+	}
 	FS_FreeImage( spr_frame );          
-	return (dframetype_t *)((byte *)(pinframe + 1) + size );
+	return spr_frametype;
 }
 
 dframetype_t *R_SpriteLoadGroup( rmodel_t *mod, void * pin, mspriteframe_t **ppframe, int framenum )
@@ -136,7 +164,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 	numframes = LittleLong (pin->numframes);
 	size = sizeof (sprite_t) + (numframes - 1) * sizeof( psprite->frames );
 
-	psprite = Mem_Alloc(mod->mempool, size );
+	psprite = Mem_Alloc( mod->mempool, size );
 	mod->extradata = psprite; //make link to extradata
 	mod->numTexInfo = 0; // reset frames
 	
@@ -222,7 +250,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 	mod->registration_sequence = registration_sequence;
 	spr_palette = (byte *)(&pal[0][0]);
 
-	for (i = 0; i < numframes; i++ )
+	for( i = 0; i < numframes; i++ )
 	{
 		frametype_t frametype = LittleLong( pframetype->type );
 		psprite->frames[i].type = frametype;
@@ -244,6 +272,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 		}
 		if( pframetype == NULL ) break; // technically an error
 	}
+	mod->textures = frames; // setup texture links
 }
 
 /*

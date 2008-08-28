@@ -12,10 +12,10 @@ render_imp_t	ri;
 stdlib_api_t	com;
 
 byte		*r_temppool;
-matrix4x4		r_projectionMatrix;
-matrix4x4		r_worldMatrix;
+gl_matrix		r_projectionMatrix;
+gl_matrix		r_worldMatrix;
 matrix4x4		r_entityMatrix;
-matrix4x4		r_textureMatrix;
+gl_matrix		r_textureMatrix;
 cplane_t		r_frustum[4];
 float		r_frameTime;
 mesh_t		r_solidMeshes[MAX_MESHES];
@@ -23,6 +23,7 @@ int		r_numSolidMeshes;
 mesh_t		r_transMeshes[MAX_MESHES];
 int		r_numTransMeshes;
 ref_entity_t	*r_nullModels[MAX_MAP_MODELS];
+rmodel_t		*cl_models[MAX_MODELS];		// models with client modelindexes
 int		r_numNullModels;
 refdef_t		r_refdef;
 refstats_t	r_stats;
@@ -166,8 +167,9 @@ R_RotateForEntity
 */
 void R_RotateForEntity( ref_entity_t *entity )
 {
-	Matrix4x4_Concat( r_entityMatrix, r_worldMatrix, entity->matrix );
-	GL_LoadMatrix( r_entityMatrix );
+	//FIXME
+	//Matrix4x4_Concat( r_entityMatrix, r_worldMatrix, entity->matrix );
+	//GL_LoadMatrix( r_entityMatrix );
 }
 
 
@@ -427,6 +429,8 @@ static void R_AddEntitiesToList( void )
 		switch( entity->ent_type )
 		{
 		case ED_NORMAL:
+		case ED_CLIENT:
+		case ED_VIEWMODEL:
 			model = entity->model;
 			if( !model || model->type == mod_bad )
 			{
@@ -447,14 +451,14 @@ static void R_AddEntitiesToList( void )
 				R_AddSpriteModelToList( entity );
 				break;
 			default:
-				Host_Error( "R_AddEntitiesToList: bad model type (%i)", model->type );
+				Host_Error( "R_AddEntitiesToList: bad model type (%i)\n", model->type );
 			}
 			break;
 		case ED_BEAM:
 			R_AddBeamToList( entity );
 			break;
 		default:
-			Host_Error( "R_AddEntitiesToList: bad entity type (%i)", entity->ent_type );
+			Host_Error( "R_AddEntitiesToList: bad entity type (%i)\n", entity->ent_type );
 		}
 	}
 }
@@ -473,7 +477,7 @@ static void R_DrawNullModels( void )
 	if (!r_numNullModels)
 		return;
 
-	GL_LoadMatrix( r_worldMatrix );
+	pglLoadMatrixf( r_worldMatrix );
 
 	// Set the state
 	GL_Enable(GL_CULL_FACE);
@@ -799,6 +803,36 @@ void R_AddMeshToList( meshType_t meshType, void *mesh, shader_t *shader, ref_ent
 
 // =====================================================================
 
+/*
+=================
+AnglesToAxis
+=================
+*/
+void AnglesToAxis ( const vec3_t angles )
+{
+	static float	sp, sy, sr, cp, cy, cr;
+	float		angle;
+
+	angle = DEG2RAD(angles[PITCH]);
+	sp = sin(angle);
+	cp = cos(angle);
+	angle = DEG2RAD(angles[YAW]);
+	sy = sin(angle);
+	cy = cos(angle);
+	angle = DEG2RAD(angles[ROLL]);
+	sr = sin(angle);
+	cr = cos(angle);
+
+	r_forward[0] = cp*cy;
+	r_forward[1] = cp*sy;
+	r_forward[2] = -sp;
+	r_right[0] = sr*sp*cy+cr*-sy;
+	r_right[1] = sr*sp*sy+cr*cy;
+	r_right[2] = sr*cp;
+	r_up[0] = cr*sp*cy+-sr*-sy;
+	r_up[1] = cr*sp*sy+-sr*cy;
+	r_up[2] = cr*cp;
+}
 
 /*
 =================
@@ -808,6 +842,11 @@ R_SetFrustum
 static void R_SetFrustum( void )
 {
 	int	i;
+
+	// build the transformation matrix for the given view angles
+	VectorCopy( r_refdef.vieworg, r_origin );
+	//AngleVectors( r_refdef.viewangles, r_forward, r_right, r_up );
+	AnglesToAxis( r_refdef.viewangles );
 
 	RotatePointAroundVector( r_frustum[0].normal, r_up, r_forward, -(90 - r_refdef.fov_x / 2));
 	RotatePointAroundVector( r_frustum[1].normal, r_up, r_forward, 90 - r_refdef.fov_x / 2);
@@ -874,56 +913,56 @@ static void R_SetMatrices( void )
 
 	// FIXME: make support for OPENGL_STYLE matrices
 
-	r_projectionMatrix[0][0] = (2.0 * zNear) * xDiv;
-	r_projectionMatrix[0][1] = 0.0;
-	r_projectionMatrix[0][2] = 0.0;
-	r_projectionMatrix[0][3] = 0.0;
-	r_projectionMatrix[1][0] = 0.0;
-	r_projectionMatrix[1][1] = (2.0 * zNear) * yDiv;
-	r_projectionMatrix[1][2] = 0.0;
-	r_projectionMatrix[1][3] = 0.0;
-	r_projectionMatrix[2][0] = (xMax + xMin) * xDiv;
-	r_projectionMatrix[2][1] = (yMax + yMin) * yDiv;
-	r_projectionMatrix[2][2] = -(zNear + zFar) * zDiv;
-	r_projectionMatrix[2][3] = -1.0;
-	r_projectionMatrix[3][0] = 0.0;
-	r_projectionMatrix[3][1] = 0.0;
-	r_projectionMatrix[3][2] = -(2.0 * zNear * zFar) * zDiv;
-	r_projectionMatrix[3][0] = 0.0;
+	r_projectionMatrix[ 0] = (2.0 * zNear) * xDiv;
+	r_projectionMatrix[ 1] = 0.0;
+	r_projectionMatrix[ 2] = 0.0;
+	r_projectionMatrix[ 3] = 0.0;
+	r_projectionMatrix[ 4] = 0.0;
+	r_projectionMatrix[ 5] = (2.0 * zNear) * yDiv;
+	r_projectionMatrix[ 6] = 0.0;
+	r_projectionMatrix[ 7] = 0.0;
+	r_projectionMatrix[ 8] = (xMax + xMin) * xDiv;
+	r_projectionMatrix[ 9] = (yMax + yMin) * yDiv;
+	r_projectionMatrix[10] = -(zNear + zFar) * zDiv;
+	r_projectionMatrix[11] = -1.0;
+	r_projectionMatrix[12] = 0.0;
+	r_projectionMatrix[13] = 0.0;
+	r_projectionMatrix[14] = -(2.0 * zNear * zFar) * zDiv;
+	r_projectionMatrix[15] = 0.0;
 
-	r_worldMatrix[0][0] = -r_right[0];
-	r_worldMatrix[0][1] = r_up[0];
-	r_worldMatrix[0][2] = -r_forward[0];
-	r_worldMatrix[0][3] = 0.0;
-	r_worldMatrix[1][0] = -r_right[1];
-	r_worldMatrix[1][1] = r_up[1];
-	r_worldMatrix[1][2] = -r_forward[1];
-	r_worldMatrix[1][3] = 0.0;
-	r_worldMatrix[2][0] = -r_right[2];
-	r_worldMatrix[2][1] = r_up[2];
-	r_worldMatrix[2][2] = -r_forward[2];
-	r_worldMatrix[2][3] = 0.0;
-	r_worldMatrix[3][0] = DotProduct( r_refdef.vieworg, r_right );
-	r_worldMatrix[3][1] = -DotProduct( r_refdef.vieworg, r_up );
-	r_worldMatrix[3][2] = DotProduct( r_refdef.vieworg, r_forward );
-	r_worldMatrix[3][3] = 1.0;
+	r_worldMatrix[ 0] = -r_right[0];
+	r_worldMatrix[ 1] = r_up[0];
+	r_worldMatrix[ 2] = -r_forward[0];
+	r_worldMatrix[ 3] = 0.0;
+	r_worldMatrix[ 4] = -r_right[1];
+	r_worldMatrix[ 5] = r_up[1];
+	r_worldMatrix[ 6] = -r_forward[1];
+	r_worldMatrix[ 7] = 0.0;
+	r_worldMatrix[ 8] = -r_right[2];
+	r_worldMatrix[ 9] = r_up[2];
+	r_worldMatrix[10] = -r_forward[2];
+	r_worldMatrix[11] = 0.0;
+	r_worldMatrix[12] = DotProduct( r_origin, r_right );
+	r_worldMatrix[13] = -DotProduct( r_origin, r_up );
+	r_worldMatrix[14] = DotProduct( r_origin, r_forward );
+	r_worldMatrix[15] = 1.0;
 
-	r_textureMatrix[0][0] = r_right[0];
-	r_textureMatrix[0][1] = -r_right[1];
-	r_textureMatrix[0][2] = -r_right[2];
-	r_textureMatrix[0][3] = 0.0;
-	r_textureMatrix[1][0] = -r_up[0];
-	r_textureMatrix[1][1] = r_up[1];
-	r_textureMatrix[1][2] = r_up[2];
-	r_textureMatrix[1][3] = 0.0;
-	r_textureMatrix[2][0] = r_forward[0];
-	r_textureMatrix[2][1] = -r_forward[1];
-	r_textureMatrix[2][2] = -r_forward[2];
-	r_textureMatrix[2][3] = 0.0;
-	r_textureMatrix[3][0] = 0.0;
-	r_textureMatrix[3][1] = 0.0;
-	r_textureMatrix[3][2] = 0.0;
-	r_textureMatrix[3][3] = 1.0;
+	r_textureMatrix[ 0] = r_right[0];
+	r_textureMatrix[ 1] = -r_right[1];
+	r_textureMatrix[ 2] = -r_right[2];
+	r_textureMatrix[ 3] = 0.0;
+	r_textureMatrix[ 4] = -r_up[0];
+	r_textureMatrix[ 5] = r_up[1];
+	r_textureMatrix[ 6] = r_up[2];
+	r_textureMatrix[ 7] = 0.0;
+	r_textureMatrix[ 8] = r_forward[0];
+	r_textureMatrix[ 9] = -r_forward[1];
+	r_textureMatrix[10] = -r_forward[2];
+	r_textureMatrix[11] = 0.0;
+	r_textureMatrix[12] = 0.0;
+	r_textureMatrix[13] = 0.0;
+	r_textureMatrix[14] = 0.0;
+	r_textureMatrix[15] = 1.0;
 }
 
 static void R_DrawLine( int color, int numpoints, const float *points )
@@ -1154,6 +1193,17 @@ static bool R_AddEntityToScene( refdef_t *fd, entity_state_t *s1, entity_state_t
 	refent = &fd->entities[fd->num_entities];
 	if( !s2 ) s2 = s1; // no lerping state
 
+	if( fd->num_entities == 0 )
+	{
+		// add the world
+		r_worldEntity = &fd->entities[fd->num_entities++];
+		r_worldEntity->model = r_worldModel;
+		r_worldEntity->ent_type = ED_NORMAL;
+		MatrixLoadIdentity( r_worldEntity->matrix );
+		r_worldEntity->shaderRGBA = MakeRGBA( 255, 255, 255, 255 );
+		refent = &fd->entities[fd->num_entities];
+	}
+
 	// copy state to render
 	refent->frame = s1->model.frame;
 	refent->index = s1->number;
@@ -1183,8 +1233,8 @@ static bool R_AddEntityToScene( refdef_t *fd, entity_state_t *s1, entity_state_t
 
 	// set skin
 	refent->skin = s1->model.skin;
-	refent->model = r_models[s1->model.index];
-	refent->weaponmodel = r_models[s1->pmodel.index];
+	refent->model = cl_models[s1->model.index];
+	refent->weaponmodel = cl_models[s1->pmodel.index];
 	refent->renderfx = s1->renderfx;
 	refent->prev.sequencetime = s1->model.animtime - s2->model.animtime;
 
@@ -1385,7 +1435,7 @@ void R_EndFrame( void )
 	if( !r_frontbuffer->integer )
 	{
 		if( !pwglSwapBuffers( glw_state.hDC ) )
-			Host_Error("R_EndFrame() - SwapBuffers() failed!\n" );
+			Sys_Break("R_EndFrame() - SwapBuffers() failed!\n" );
 	}
 
 	// print r_speeds statistics
@@ -1412,7 +1462,7 @@ bool R_UploadModel( const char *name, int index )
 
 	// this array used by AddEntityToScene
 	mod = R_RegisterModel( name );
-	r_models[index] = mod;
+	cl_models[index] = mod;
 
 	return (mod != NULL);	
 }
@@ -1430,9 +1480,16 @@ bool R_UploadImage( const char *unused, int index )
 	return true;
 }
 
+/*
+=================
+R_PrecachePic
+
+prefetching 2d graphics
+=================
+*/
 bool R_PrecachePic( const char *name )
 {
-	texture_t *pic = Draw_FindPic( name );
+	texture_t *pic = R_FindTexture(va( "gfx/%s", name ), NULL, 0, TF_IMAGE2D, 0 );
 
 	if( !pic || pic == r_defaultTexture )
 		return false;
@@ -1532,7 +1589,7 @@ render_exp_t DLLEXPORT *CreateAPI(stdlib_api_t *input, render_imp_t *engfuncs )
 	re.DrawStretchPic = R_DrawStretchPic;
 
 	// get rid of this
-	re.DrawGetPicSize = Draw_GetPicSize;
+	re.DrawGetPicSize = R_GetPicSize;
 
 	return &re;
 }

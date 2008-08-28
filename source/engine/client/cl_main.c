@@ -723,6 +723,7 @@ void CL_PrepVideo( void )
 		return; // no map loaded
 
 	Msg( "CL_PrepRefresh: %s\n", cl.configstrings[CS_NAME] );
+	V_ClearScene();
 
 	// let the render dll load the map
 	FS_FileBase( cl.configstrings[CS_MODELS+1], mapname ); 

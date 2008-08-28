@@ -647,7 +647,7 @@ void CL_InitClientProgs( void )
 	prog->globals.cl->playernum = cl.playernum;
 
 	// call the prog init
-	PRVM_ExecuteProgram( prog->globals.cl->HUD_Init, "HUD_Init");
+	PRVM_ExecuteProgram( prog->globals.cl->HUD_Init, "HUD_Init" );
 	PRVM_End;
 }
 

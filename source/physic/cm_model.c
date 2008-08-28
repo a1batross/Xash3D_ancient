@@ -227,7 +227,6 @@ void BSP_LoadTextures( lump_t *l )
 	for ( i = 0; i < count; i++, in++, out++)
 	{
 		out->s_name = LittleLong( in->s_name );
-		out->s_name = LittleLong( in->s_next );
 		out->size[0] = LittleLong( in->size[0] );
 		out->size[1] = LittleLong( in->size[1] );
 	}
@@ -242,7 +241,8 @@ void BSP_LoadTexinfo( lump_t *l )
 {
 	dtexinfo_t	*in;
 	csurface_t	*out;
-	int 		i, count;
+	dmiptex_t		*mtex;
+	int 		i, count, texnum;
 
 	in = (void *)(cm.mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in)) Host_Error("BSP_LoadTexinfo: funny lump size\n" );
@@ -253,7 +253,13 @@ void BSP_LoadTexinfo( lump_t *l )
 
 	for ( i = 0; i < count; i++, in++, out++)
 	{
-		com.strncpy( out->name, CM_TexName( LittleLong( in->texnum )), MAX_STRING );
+		texnum = LittleLong( in->texnum );
+
+		if( texnum < 0 || texnum > cm.numtextures )
+			Host_Error( "BSP_LoadTexinfo: bad texture number %i\n", texnum );
+
+		mtex = cm.textures + texnum;
+		com.strncpy( out->name, CM_TexName( mtex->s_name ), MAX_STRING );
 		out->contentflags = LittleLong( in->contents );
 		out->surfaceflags = LittleLong( in->flags );
 		out->value = LittleLong( in->value );

@@ -116,33 +116,30 @@ int R_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *ma
 Studio model loader
 ====================
 */
-mipTex_t *R_StudioLoadTexture( rmodel_t *mod, mstudiotexture_t *ptexture, byte *pin )
+texture_t *R_StudioLoadTexture( rmodel_t *mod, mstudiotexture_t *ptexture, byte *pin )
 {
 	rgbdata_t	r_skin;
-	mipTex_t	*skin;
+	texture_t	*image;
 
-	skin = Mem_Alloc( mod->mempool, sizeof(mipTex_t));
-	r_skin.width = skin->width = ptexture->width;
-          r_skin.height = skin->height = ptexture->height;
+	r_skin.width = ptexture->width;
+          r_skin.height = ptexture->height;
 	r_skin.flags = (ptexture->flags & STUDIO_NF_TRANSPARENT) ? IMAGE_HAS_ALPHA : 0;
 	r_skin.type = PF_INDEXED_24;
 	r_skin.numMips = 1;
 	r_skin.palette = pin + ptexture->width * ptexture->height + ptexture->index;
 	r_skin.buffer = pin + ptexture->index; // texdata
 	r_skin.size = ptexture->width * ptexture->height; // for bounds cheking
-	com.strncpy( skin->name, ptexture->name, 64 );
-	skin->numframes = 1;
-			
+		
 	// load studio texture and bind it
-	skin->image = R_LoadTexture( ptexture->name, &r_skin, 0, 0 );
-	if( !skin->image ) 
+	image = R_LoadTexture( ptexture->name, &r_skin, 0, 0 );
+	if( !image ) 
 	{
 		MsgDev( D_WARN, "%s has null texture %s\n", mod->name, ptexture->name );
-		skin->image = r_defaultTexture;
+		image = r_defaultTexture;
 	}
-	ptexture->index = mod->numTexInfo++; // save info
+	ptexture->index = mod->numTextures++; // internal texture index, not gl_texturenum
 
-	return skin;
+	return image;
 }
 
 studiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
@@ -151,7 +148,8 @@ studiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
 	byte		*pin;
 	studiohdr_t	*phdr;
 	mstudiotexture_t	*ptexture;
-	mipTex_t		**skins;
+	texture_t		*in;
+	mipTex_t		*out;
 	
 	pin = (byte *)buffer;
 	phdr = (studiohdr_t *)pin;
@@ -163,13 +161,19 @@ studiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
 	}	
 
 	ptexture = (mstudiotexture_t *)(pin + phdr->textureindex);
-
 	if( phdr->textureindex > 0 && phdr->numtextures <= MAXSTUDIOSKINS )
 	{
-		skins = (mipTex_t **)Mem_Alloc( mod->mempool, sizeof(mod->textures) * phdr->numtextures);
-		for (i = 0; i < phdr->numtextures; i++)
-			skins[i] = R_StudioLoadTexture( mod, &ptexture[i], pin );
-		mod->textures = skins[0]; // make links
+		out = mod->textures = (mipTex_t *)Mem_Alloc( mod->mempool, phdr->numtextures * sizeof(*out));
+		for( i = 0; i < phdr->numtextures; i++, out++ )
+		{
+			in = R_StudioLoadTexture( mod, &ptexture[i], pin );
+			com.strncpy( out->name, ptexture->name, 64 );
+			out->width = in->width;
+			out->height = in->height;
+			out->next = NULL; // animchains not using in studio models
+			out->numframes = 1;
+			out->image = in;
+		}
 	}
 	return (studiohdr_t *)buffer;
 }

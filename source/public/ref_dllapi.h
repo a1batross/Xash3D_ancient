@@ -1189,7 +1189,6 @@ typedef struct
 	float		fov_y;
 	vec3_t		vieworg;
 	vec3_t		viewangles;
-	matrix4x4		viewmatrix;	// store viewnagles and vieworg
 	vec4_t		blend;		// rgba 0-1 full screen blend
 	float		time;		// time is used to auto animate
 	float		oldtime;		// oldtime using for lerping

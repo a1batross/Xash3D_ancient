@@ -16,7 +16,7 @@ typedef struct
 	int		mag;
 } textureFilter_t;
 
-static texture_t *r_textures[MAX_TEXTURES];
+static texture_t r_textures[MAX_TEXTURES];
 static int r_numTextures;
 
 static textureFilter_t r_textureFilters[] =
@@ -139,8 +139,7 @@ void R_TextureFilter( void )
 	// change all the existing texture objects
 	for( i = 0; i < r_numTextures; i++ )
 	{
-		texture = r_textures[i];
-
+		texture = &r_textures[i];
 		GL_BindTexture( texture );
 
 		if( texture->flags & TF_MIPMAPS )
@@ -222,7 +221,7 @@ void R_TextureList_f( void )
 
 	for( i = 0; i < r_numTextures; i++ )
 	{
-		texture = r_textures[i];
+		texture = &r_textures[i];
 
 		if( texture->target == GL_TEXTURE_2D )
 			texels += (texture->width * texture->height);
@@ -610,7 +609,7 @@ void R_ShutdownTextures( void )
 
 	for( i = 0; i < r_numTextures; i++ )
 	{
-		texture = r_textures[i];
+		texture = &r_textures[i];
 		pglDeleteTextures( 1, &texture->texnum );
 	}
 	memset( r_textures, 0, sizeof( r_textures ));
@@ -682,7 +681,7 @@ static void R_CreateBuiltInTextures( void )
 
 	if( GL_Support( R_TEXTURECUBEMAP_EXT ))
 	{
-		data3D = dataCM = Mem_Alloc( r_imagepool, (128*128*4) * 6 );
+		data3D = dataCM = Mem_Alloc( r_imagepool, 128*128*4 * 6 );
 
 		// normalize texture
 		for( i = 0; i < 6; i++ )
@@ -728,11 +727,12 @@ static void R_CreateBuiltInTextures( void )
 
 		r_generic.width = 128;
 		r_generic.height = 128;
-		r_generic.size = (r_generic.width * r_generic.height * 4) * 6;
+		r_generic.size = r_generic.width * r_generic.height * 4;
 		r_generic.flags = IMAGE_CUBEMAP; // yes it's cubemap
 		r_generic.buffer = (byte *)data3D;
-
-		r_normalizeTexture = R_LoadTexture( "*normalize", &r_generic, TF_CLAMP|TF_CUBEMAP, 0 );
+                    
+		//FIXME
+		//r_normalizeTexture = R_LoadTexture( "*normalize", &r_generic, TF_CLAMP|TF_CUBEMAP, 0 );
 		Mem_Free( data3D );
 	}
 
@@ -753,7 +753,9 @@ void R_InitTextures( void )
 	r_imagepool = Mem_AllocPool( "Texture Pool" );	// for scaling and resampling
 	pglGetIntegerv( GL_MAX_TEXTURE_SIZE, &gl_config.max_2d_texture_size );
 
+	r_numTextures = 0;
 	registration_sequence = 1;
+	memset( &r_textures, 0, sizeof( r_textures ));
 
 	// init intensity conversions
 	r_intensity = Cvar_Get( "r_intensity", "2", 0, "gamma intensity value" );
@@ -891,7 +893,7 @@ void GL_GenerateMipmaps( int width, int height )
 	if( GL_Support( R_SGIS_MIPMAPS_EXT ))
 	{
 		pglHint( GL_GENERATE_MIPMAP_HINT_SGIS, GL_NICEST );
-		pglTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP_SGIS, GL_TRUE );
+		pglTexParameteri( image_desc.glTarget, GL_GENERATE_MIPMAP_SGIS, GL_TRUE );
 		if(pglGetError()) MsgDev(D_WARN, "GL_GenerateMipmaps: can't create mip levels\n");
 		else return; // falltrough to software mipmap generating
 	}
@@ -1341,8 +1343,8 @@ bool qrsDecompressedTexImage2D( uint target, int level, int internalformat, uint
 
 	R_RoundImageDimensions( &scaled_width, &scaled_height );
 	if( image_desc.tflags & TF_COMPRESS )
-		image_desc.glSamples = (!noalpha) ? GL_COMPRESSED_RGBA_ARB : GL_COMPRESSED_RGB_ARB;
-	else image_desc.glSamples = (!noalpha) ? GL_RGBA : GL_RGB;
+		image_desc.glSamples = (noalpha) ? GL_COMPRESSED_RGB_ARB : GL_COMPRESSED_RGBA_ARB;
+	else image_desc.glSamples = (noalpha) ? GL_RGB : GL_RGBA;
 	R_ResampleTexture((uint *)fout, width, height, scaled, scaled_width, scaled_height);
 	if( !level ) GL_GenerateMipmaps( scaled_width, scaled_height ); // generate mips if needed
 	pglTexImage2D( target, level, image_desc.glSamples, scaled_width, scaled_height, border, image_desc.glMask, image_desc.glType, (byte *)scaled );
@@ -1585,7 +1587,7 @@ texture_t	*R_FindTexture( const char *name, const byte *buffer, size_t size, uin
 	// look for it
 	for( i = 0; i < r_numTextures; i++ )
 	{
-		image = r_textures[i];
+		image = &r_textures[i];
 		if( !com.stricmp( name, image->name ))
 		{
 			// prolonge registration
@@ -1654,8 +1656,7 @@ texture_t	*R_LoadTexture( const char *name, rgbdata_t *pic, uint flags, float bu
 	// find a free texture_t
 	for( i = 0; i < r_numTextures; i++ )
 	{
-		image = r_textures[i];
-		if( !image->texnum ) break;
+		image = &r_textures[i];
 	}
 	if( i == r_numTextures )
 	{
@@ -1664,10 +1665,10 @@ texture_t	*R_LoadTexture( const char *name, rgbdata_t *pic, uint flags, float bu
 			MsgDev(D_ERROR, "R_LoadTexture: r_textures limit is out\n");
 			return r_defaultTexture;
 		}
-		r_numTextures++;
 	}
 
-	image = r_textures[i] = Mem_Alloc( r_imagepool, sizeof( texture_t ));
+	image = &r_textures[r_numTextures++];
+	Mem_Alloc( r_imagepool, sizeof( texture_t ));
 	if( com.strlen( name ) >= sizeof(image->name)) MsgDev( D_WARN, "R_LoadImage: \"%s\" is too long", name);
 
 	// nothing to load
@@ -1732,6 +1733,10 @@ texture_t	*R_LoadTexture( const char *name, rgbdata_t *pic, uint flags, float bu
 	// fill image_desc
 	R_GetPixelFormat( pic, flags, bumpScale );
 	pglGenTextures( 1, &image->texnum );
+	image->target = image_desc.glTarget;
+	image->type = image_desc.format;
+
+	Msg("Register %s image->texnum %d\n", name, image->texnum );
 
 	for(i = 0; i < numsides; i++, buf += offset )
 	{
@@ -1764,16 +1769,18 @@ void R_ImageFreeUnused( void )
 {
 	texture_t		*image;
 	int		i;
+
+	// FIXME check pics for type and never free it
+	return;
 	
-	for( i = 0; i < r_numTextures; i++ )
+	for( i = 0, image = r_textures; i < r_numTextures; i++, image++ )
 	{
-		image = r_textures[i];
 		// used this sequence
 		if( image->registration_sequence == registration_sequence ) continue;
-		if( !image->name[0] || image->name[0] == '*' ) continue; // free texture slot or system texture
+		if( image->type == PF_RGBA_GN ) continue; // never free system textures
+		if( !image->name[0] ) continue; // free texture slot
 		pglDeleteTextures( 1, &image->texnum );
-		Mem_Free( image );
-		image = NULL;
+		memset( image, 0, sizeof( *image ));
 	}
 }
 

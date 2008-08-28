@@ -690,7 +690,7 @@ void CIN_DrawCinematic( void )
 	h = SCREEN_HEIGHT;
 	SCR_AdjustSize( &x, &y, &w, &h );
 
-	re->DrawStretchRaw( x, y, w, h, frame_width, frame_height, frame_data, true );
+	re->DrawStretchRaw( x, y, w, h, frame_width, frame_height, frame_data, false );
 }
 
 /*

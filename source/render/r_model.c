@@ -11,15 +11,15 @@
 // the inline models from the current map are kept separate
 static rmodel_t	r_inlinemodels[MAX_MODELS];
 static byte	r_fullvis[MAX_MAP_LEAFS/8];
-rmodel_t		*r_models[MAX_MODELS];
+static rmodel_t	r_models[MAX_MODELS];
 int		registration_sequence;
 rmodel_t		*m_pLoadModel;
 static int	r_nummodels;
 
 const char *R_GetStringFromTable( int index )
 {
-	if( r_worldModel->stringdata )
-		return &r_worldModel->stringdata[r_worldModel->stringtable[index]];
+	if( m_pLoadModel->stringdata )
+		return &m_pLoadModel->stringdata[m_pLoadModel->stringtable[index]];
 	return NULL;
 }
 
@@ -34,8 +34,8 @@ leaf_t *R_PointInLeaf( const vec3_t p )
 	cplane_t		*plane;
 	float		d;	
 
-	if( !r_worldModel || !r_worldModel->nodes)
-		Host_Error("Mod_PointInLeaf: bad model\n" );
+	if( !r_worldModel || !r_worldModel->nodes )
+		Host_Error( "Mod_PointInLeaf: bad model\n" );
 
 	node = r_worldModel->nodes;
 	while( 1 )
@@ -971,15 +971,16 @@ static void R_SetupSubmodels( void )
 		bm = &m_pLoadModel->submodels[i];
 		model = &r_inlinemodels[i];
 
-		*model = *r_worldModel;
+		*model = *m_pLoadModel;
 		model->numModelSurfaces = bm->numFaces;
 		model->firstModelSurface = bm->firstFace;
+		model->type = mod_brush;
 		model->firstNode = bm->headNode;
 		VectorCopy( bm->maxs, model->maxs );
 		VectorCopy( bm->mins, model->mins );
 		model->radius = bm->radius;
 
-		if( i == 0 ) *r_worldModel = *model;
+		if( i == 0 ) *m_pLoadModel = *model;
 		model->numLeafs = bm->visLeafs;
 	}
 }
@@ -1074,7 +1075,12 @@ void Mod_LoadBrushModel( rmodel_t *mod, const void *buffer )
 	dheader_t		*header;
 	byte		*mod_base;
 
-	if( r_worldModel ) Host_Error( "Mod_LoadBrushModel: attempted to redundantly load world map\n" );
+	m_pLoadModel->type = mod_world;
+	if( m_pLoadModel != r_models )
+	{
+		MsgDev( D_ERROR, "loaded a brush model after the world\n");
+		return;
+	}
 
 	header = (dheader_t *)buffer;
 
@@ -1103,8 +1109,7 @@ void Mod_LoadBrushModel( rmodel_t *mod, const void *buffer )
 	R_LoadNodes( mod_base, &header->lumps[LUMP_NODES]);
 	R_LoadSubmodels( mod_base, &header->lumps[LUMP_MODELS]);
 
-	// world type will be overrided later
-	m_pLoadModel->type = mod_brush;
+	mod->registration_sequence = registration_sequence;	// register model
 }
 
 /*
@@ -1157,9 +1162,9 @@ rmodel_t *Mod_ForName( const char *name, bool crash )
 	}
 
 	// search the currently loaded models
-	for( i = 0, mod = r_models[0]; i < r_nummodels; i++, mod++ )
+	for( i = 0, mod = r_models; i < r_nummodels; i++, mod++ )
 	{
-		if( !mod ) continue;
+		if( !mod->name[0] ) continue;
 		if( !com.strcmp( mod->name, name ))
 		{
 			// prolonge registration
@@ -1169,8 +1174,8 @@ rmodel_t *Mod_ForName( const char *name, bool crash )
 	}
 	
 	// find a free model slot spot
-	for( i = 0, mod = r_models[0]; i < r_nummodels; i++, mod++)
-		if( !mod ) break; // free spot
+	for( i = 0, mod = r_models; i < r_nummodels; i++, mod++ )
+		if( !mod->name[0] ) break; // free spot
 
 	if( i == r_nummodels )
 	{
@@ -1181,7 +1186,7 @@ rmodel_t *Mod_ForName( const char *name, bool crash )
 		}
 		r_nummodels++;
 	}
-	mod = Mem_Alloc( r_temppool, sizeof( rmodel_t ));
+
 	com.strncpy( mod->name, name, MAX_STRING );
 	
 	// load the file
@@ -1189,7 +1194,7 @@ rmodel_t *Mod_ForName( const char *name, bool crash )
 	if( !buf )
 	{
 		if( crash ) Host_Error( "Mod_NumForName: %s not found\n", mod->name );
-		Mod_Free( mod );
+		memset( mod->name, 0, sizeof( mod->name ));
 		return NULL;
 	}
 
@@ -1240,16 +1245,10 @@ void R_BeginRegistration( const char *mapname )
 	com.sprintf( fullname, "maps/%s.bsp", mapname );
 
 	// explicitly free the old map if different
-	if( com.strcmp( r_worldModel->name, fullname ))
-		Mod_Free( r_worldModel );
+	if( com.strcmp( r_models[0].name, fullname ))
+		Mod_Free( &r_models[0] );
 	r_worldModel = Mod_ForName( fullname, true );
 	r_viewCluster = -1;
-
-	// set up some needed things
-	r_worldModel->type = mod_world;
-	r_worldEntity->model = r_worldModel;
-	MatrixLoadIdentity( r_worldEntity->matrix );
-	r_worldEntity->shaderRGBA = MakeRGBA( 255, 255, 255, 255 );
 
 	// load some needed shaders
 	r_waterCausticsShader = R_FindShader( "waterCaustics", SHADER_BSP, 0 );
@@ -1276,15 +1275,12 @@ rmodel_t *R_RegisterModel( const char *name )
 		{
 		case mod_world:
 		case mod_brush:
-			for( i = 0; i < mod->numTexInfo; i++ )
-				mod->texInfo[i].texture->image->registration_sequence = registration_sequence;
-			break;
 		case mod_studio:
 		case mod_sprite:
-			for( i = 0; i < mod->numTexInfo; i++ )
-				mod->skins[i]->registration_sequence = registration_sequence;
+			for( i = 0; i < mod->numTextures; i++ )
+				mod->textures->image->registration_sequence = registration_sequence;
 			break;
-		default: return NULL;
+		default: return NULL; // mod_bad, etc
 		}
 	}
 	return mod;
@@ -1302,9 +1298,9 @@ void R_EndRegistration( void )
 	int	i;
 	rmodel_t	*mod;
 
-	for( i = 0, mod = r_models[0]; i < r_nummodels; i++, mod++ )
+	for( i = 0, mod = r_models; i < r_nummodels; i++, mod++ )
 	{
-		if( !mod ) continue;
+		if( !mod->name[0] ) continue;
 		if( mod->registration_sequence != registration_sequence )
 			Mod_Free( mod );
 	}
@@ -1318,17 +1314,16 @@ R_ModelList_f
 */
 void R_ModelList_f( void )
 {
-	rmodel_t	*model;
+	rmodel_t	*mod;
 	int	i;
 
 	Msg( "\n" );
 	Msg( "-----------------------------------\n" );
 
-	for( i = 0; i < r_nummodels; i++ )
+	for( i = 0; i < r_nummodels, mod = r_models; i++, mod++ )
 	{
-		model = r_models[i];
-		if( !model ) continue;
-		Msg( "%s%s\n", model->name, (model->type == mod_bad) ? " (DEFAULTED)" : "" );
+		if( !mod->name[0] ) continue; // free slot
+		Msg( "%s%s\n", mod->name, (mod->type == mod_bad) ? " (DEFAULTED)" : "" );
 	}
 
 	Msg( "-----------------------------------\n" );
@@ -1343,9 +1338,8 @@ Mod_Free
 */
 void Mod_Free( rmodel_t *mod )
 {
-	if( !mod ) return;
 	Mem_FreePool( &mod->mempool );
-	Mem_Free( mod );
+	memset( mod, 0, sizeof( *mod ));
 	mod = NULL;
 }
 
@@ -1359,7 +1353,10 @@ void Mod_FreeAll( void )
 	int	i;
 
 	for( i = 0; i < r_nummodels; i++ )
-		Mod_Free( r_models[i] );
+	{
+		if( r_models[i].mempool )
+			Mod_Free( &r_models[i] );
+	}
 }
 
 /*
@@ -1373,6 +1370,7 @@ void R_InitModels( void )
 
 	r_worldModel = NULL;
 	r_frameCount = 1;					// no dlight cache
+	r_nummodels = 0;
 	r_viewCluster = r_oldViewCluster = -1;			// force markleafs
 
 	R_StudioInit();

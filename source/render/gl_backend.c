@@ -52,6 +52,7 @@ static dllfunc_t opengl_110funcs[] =
 	{"glColor3fv", (void **) &pglColor3fv},
 	{"glColor4f", (void **) &pglColor4f},
 	{"glColor4fv", (void **) &pglColor4fv},
+	{"glColor4ub", (void **) &pglColor4ub},
 	{"glColor4ubv", (void **) &pglColor4ubv},
 	{"glTexCoord1f", (void **) &pglTexCoord1f},
 	{"glTexCoord2f", (void **) &pglTexCoord2f},
@@ -543,8 +544,8 @@ void GL_InitExtensions( void )
 	MsgDev( D_INFO, "Video: %s\n", gl_config.renderer_string );
 
 	GL_CheckExtension( "WGL_EXT_swap_control", wglswapintervalfuncs, NULL, R_WGL_SWAPCONTROL );
-	GL_CheckExtension( "glDrawRangeElements", drawrangeelementsfuncs, "gl_drawrangeelments", R_DRAWRANGEELMENTS );
-	if(!GL_Support( R_DRAWRANGEELMENTS )) GL_CheckExtension("GL_EXT_draw_range_elements", drawrangeelementsextfuncs, "gl_drawrangeelments", R_DRAWRANGEELMENTS );
+	GL_CheckExtension( "glDrawRangeElements", drawrangeelementsfuncs, "gl_drawrangeelments", R_DRAW_RANGEELEMENTS_EXT );
+	if(!GL_Support( R_DRAW_RANGEELEMENTS_EXT )) GL_CheckExtension("GL_EXT_draw_range_elements", drawrangeelementsextfuncs, "gl_drawrangeelments", R_DRAW_RANGEELEMENTS_EXT );
 
 	// multitexture
 	GL_CheckExtension("GL_ARB_multitexture", multitexturefuncs, "gl_arb_multitexture", R_ARB_MULTITEXTURE );
@@ -601,7 +602,7 @@ void GL_InitExtensions( void )
 	GL_CheckExtension( "GL_ARB_vertex_buffer_object", vbofuncs, "gl_vertex_buffer_object", R_ARB_VERTEX_BUFFER_OBJECT_EXT );
 
 	// we don't care if it's an extension or not, they are identical functions, so keep it simple in the rendering code
-	if( pglDrawRangeElements == NULL ) pglDrawRangeElements = pglDrawRangeElementsEXT;
+	if( pglDrawRangeElementsEXT == NULL ) pglDrawRangeElementsEXT = pglDrawRangeElements;
 
 	GL_CheckExtension( "GL_ARB_vertex_program", cgprogramfuncs, "gl_vertexprogram", R_VERTEX_PROGRAM_EXT );
 	GL_CheckExtension( "GL_ARB_fragment_program", cgprogramfuncs, "gl_fragmentprogram", R_FRAGMENT_PROGRAM_EXT );
@@ -976,9 +977,9 @@ void GL_SetDefaultState( void )
 }
 
 /*
- =================
- GL_Setup3D
- =================
+=================
+GL_Setup3D
+=================
 */
 void GL_Setup3D( void )
 {
@@ -997,7 +998,7 @@ void GL_Setup3D( void )
 
 	// Set up projection
 	pglMatrixMode( GL_PROJECTION );
-	GL_LoadMatrix( r_projectionMatrix );
+	pglLoadMatrixf( r_projectionMatrix );
 	pglMatrixMode( GL_MODELVIEW );
 
 	// Set state

@@ -525,6 +525,45 @@ _inline bool Matrix4x4_CompareRotateOnly( const matrix4x4 mat1, const matrix4x4 
 	return true;
 }
 
+_inline void Matrix4x4_FromVectors( matrix4x4 out, const float vx[3], const float vy[3], const float vz[3], const float t[3])
+{
+#ifdef OPENGL_STYLE
+	out[0][0] = vx[0];
+	out[1][0] = vy[0];
+	out[2][0] = vz[0];
+	out[3][0] = t[0];
+	out[0][1] = vx[1];
+	out[1][1] = vy[1];
+	out[2][1] = vz[1];
+	out[3][1] = t[1];
+	out[0][2] = vx[2];
+	out[1][2] = vy[2];
+	out[2][2] = vz[2];
+	out[3][2] = t[2];
+	out[0][3] = 0.0f;
+	out[1][3] = 0.0f;
+	out[2][3] = 0.0f;
+	out[3][3] = 1.0f;
+#else
+	out[0][0] = vx[0];
+	out[0][1] = vy[0];
+	out[0][2] = vz[0];
+	out[0][3] = t[0];
+	out[1][0] = vx[1];
+	out[1][1] = vy[1];
+	out[1][2] = vz[1];
+	out[1][3] = t[1];
+	out[2][0] = vx[2];
+	out[2][1] = vy[2];
+	out[2][2] = vz[2];
+	out[2][3] = t[2];
+	out[3][0] = 0.0f;
+	out[3][1] = 0.0f;
+	out[3][2] = 0.0f;
+	out[3][3] = 1.0f;
+#endif
+}
+
 _inline void Matrix4x4_ToArrayFloatGL( const matrix4x4 in, float out[16] )
 {
 #ifdef OPENGL_STYLE

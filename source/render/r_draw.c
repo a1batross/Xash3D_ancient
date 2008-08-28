@@ -6,49 +6,6 @@
 #include "r_local.h"
 
 /*
-=============
-Draw_FindPic
-
-oldstuff
-=============
-*/
-texture_t *Draw_FindPic( const char *name )
-{
-	string		fullname;
-	const byte	*buffer = NULL;
-	size_t		bufsize = 0;		
-
-	// don't let user set invalid font
-	if(com.stristr( name, "fonts/" ))
-		buffer = FS_LoadInternal( "default.dds", &bufsize );
-
-	com.snprintf( fullname, MAX_STRING, "gfx/%s", name );
-	return R_FindTexture( fullname, buffer, bufsize, TF_IMAGE2D, 0 );
-}
-
-/*
-=============
-Draw_GetPicSize
-
-oldstuff
-=============
-*/
-void Draw_GetPicSize( int *w, int *h, const char *pic )
-{
-	texture_t *tex;
-
-	tex = Draw_FindPic( pic );
-	if( !tex )
-	{
-		*w = *h = -1;
-		return;
-	}
-	*w = tex->width;
-	*h = tex->height;
-}
-
-
-/*
 =================
 R_GetPicSize
 
@@ -57,10 +14,7 @@ this is needed by some client drawing functions
 */
 void R_GetPicSize( int *w, int *h, const char *pic )
 {
-	shader_t	*shader;
-
-	shader = R_RegisterShaderNoMip( pic );
-
+	shader_t	*shader = R_RegisterShaderNoMip( pic );
 	*w = (int)shader->stages[0]->bundles[0]->textures[0]->width;
 	*h = (int)shader->stages[0]->bundles[0]->textures[0]->height;
 }
@@ -76,7 +30,7 @@ Call RB_RenderMesh to flush.
 */
 void R_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, float sh, float th, const char *name )
 {
-	shader_t *shader = R_RegisterShaderNoMip( name );
+	shader_t *shader = R_RegisterShaderNoMip(va( "gfx/%s", name ));
 	RB_DrawStretchPic( x, y, w, h, sl, tl, sh, th, shader );
 }
 
