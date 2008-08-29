@@ -161,7 +161,7 @@ Set a specific sky and rotation speed
 void CL_SetSky_f( void )
 {
 	float	rotate = 0;
-	vec3_t	axis;
+	vec3_t	axis = { 0, 0, 0 };
 
 	if(Cmd_Argc() < 2)
 	{
@@ -172,11 +172,7 @@ void CL_SetSky_f( void )
 	if( Cmd_Argc() > 2 ) rotate = com.atof(Cmd_Argv(2));
 	if( Cmd_Argc() == 6 )
 	{
-		VectorSet(axis, com.atof(Cmd_Argv(3)), com.atof(Cmd_Argv(4)), com.atof(Cmd_Argv(5)));
-	}
-	else
-	{
-		VectorSet(axis, 0, 0, 1 );
+		VectorSet( axis, com.atof(Cmd_Argv(3)), com.atof(Cmd_Argv(4)), com.atof(Cmd_Argv(5)));
 	}
 	re->SetSky( Cmd_Argv(1), rotate, axis );
 }

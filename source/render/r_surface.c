@@ -60,10 +60,7 @@ void R_DrawSurface( void )
 			inTexCoordArray[numVertex][1] = v->st[1];
 			inTexCoordArray[numVertex][2] = v->lightmap[0];
 			inTexCoordArray[numVertex][3] = v->lightmap[1];
-			inColorArray[numVertex][0] = v->color.r;
-			inColorArray[numVertex][1] = v->color.g;
-			inColorArray[numVertex][2] = v->color.b;
-			inColorArray[numVertex][3] = v->color.a;
+			Vector4Copy(v->color, inColorArray[numVertex]);
 			numVertex++;
 		}
 	}
@@ -140,8 +137,7 @@ static void R_AddSurfaceToList( surface_t *surf, ref_entity_t *entity )
 	// check for lightmap modification
 	if( r_dynamiclights->integer && (shader->flags & SHADER_HASLIGHTMAP))
 	{
-		if( surf->dlightFrame == r_frameCount )
-			lmNum = 255;
+		if( surf->dlightFrame == r_frameCount ) lmNum = 255;
 		else
 		{
 			for( map = 0; map < surf->numStyles; map++ )
@@ -196,7 +192,7 @@ void R_AddBrushModelToList( ref_entity_t *entity )
 		return;
 
 	// cull
-	if( !Matrix4x4_CompareRotateOnly( entity->matrix, identitymatrix ))
+	if( !AxisCompare( entity->axis, axisDefault ))
 	{
 		for( i = 0; i < 3; i++ )
 		{
@@ -207,8 +203,8 @@ void R_AddBrushModelToList( ref_entity_t *entity )
 		if( R_CullSphere( entity->origin, model->radius, 15 ))
 			return;
 
-		VectorSubtract( r_refdef.vieworg, entity->origin, tmp );
-		Matrix4x4_Rotate( entity->matrix, tmp, origin );
+		VectorSubtract( r_origin, entity->origin, tmp );
+		VectorRotate( tmp, entity->axis, origin );
 	}
 	else
 	{

@@ -3084,7 +3084,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 			shader->stages[1]->bundles[0]->texType = TEX_LIGHTMAP;
 			shader->stages[1]->flags |= SHADERSTAGE_BLENDFUNC;
 			shader->stages[1]->blendFunc.src = GL_DST_COLOR;
-			shader->stages[1]->blendFunc.dst = GL_ZERO;
+			shader->stages[1]->blendFunc.dst = GL_ONE; //FIXME: was GL_ZERO
 			shader->stages[1]->numBundles++;
 			shader->numStages++;
 		}
@@ -3106,7 +3106,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 		// FIXME: make case SHADER_FONT and func RegisterShaderFont
 		if(com.stristr( shader->name, "fonts/" )) buffer = FS_LoadInternal( "default.dds", &bufsize );
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_COMPRESS, 0 );
+		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_COMPRESS|TF_IMAGE2D, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );

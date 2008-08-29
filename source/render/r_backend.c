@@ -176,15 +176,15 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 	case RGBGEN_IDENTITY:
 		for( i = 0; i < numVertex; i++ )
 		{
-			colorArray[i][0] = 255;
-			colorArray[i][1] = 255;
-			colorArray[i][2] = 255;
+			colorArray[i][0] = 1.0f;
+			colorArray[i][1] = 1.0f;
+			colorArray[i][2] = 1.0f;
 		}
 		break;
 	case RGBGEN_IDENTITYLIGHTING:
 		if( gl_config.deviceSupportsGamma )
-			r = g = b = 255>>r_overbrightbits->integer;
-		else r = g = b = 255;
+			r = g = b = 1>>r_overbrightbits->integer;
+		else r = g = b = 1.0f;
 
 		for( i = 0; i < numVertex; i++ )
 		{
@@ -200,9 +200,9 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 
 		f = bound( 0.0, f, 1.0 );
 
-		r = 255 * f;
-		g = 255 * f;
-		b = 255 * f;
+		r = 1.0f * f;
+		g = 1.0f * f;
+		b = 1.0f * f;
 
 		for( i = 0; i < numVertex; i++ )
 		{
@@ -218,9 +218,9 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 
 		f = bound(0.0, f, 1.0);
 			
-		r = 255 * (rgbGen->params[0] * f);
-		g = 255 * (rgbGen->params[1] * f);
-		b = 255 * (rgbGen->params[2] * f);
+		r = 1.0f * (rgbGen->params[0] * f);
+		g = 1.0f * (rgbGen->params[1] * f);
+		b = 1.0f * (rgbGen->params[2] * f);
 
 		for( i = 0; i < numVertex; i++ )
 		{
@@ -240,25 +240,25 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 	case RGBGEN_ONEMINUSVERTEX:
 		for( i = 0; i < numVertex; i++ )
 		{
-			colorArray[i][0] = 255 - inColorArray[i][0];
-			colorArray[i][1] = 255 - inColorArray[i][1];
-			colorArray[i][2] = 255 - inColorArray[i][2];
+			colorArray[i][0] = 1.0f - inColorArray[i][0];
+			colorArray[i][1] = 1.0f - inColorArray[i][1];
+			colorArray[i][2] = 1.0f - inColorArray[i][2];
 		}
 		break;
 	case RGBGEN_ENTITY:
 		for( i = 0; i < numVertex; i++ )
 		{
-			colorArray[i][0] = m_pCurrentEntity->shaderRGBA.r;
-			colorArray[i][1] = m_pCurrentEntity->shaderRGBA.g;
-			colorArray[i][2] = m_pCurrentEntity->shaderRGBA.b;
+			colorArray[i][0] = m_pCurrentEntity->shaderRGBA[0];
+			colorArray[i][1] = m_pCurrentEntity->shaderRGBA[1];
+			colorArray[i][2] = m_pCurrentEntity->shaderRGBA[2];
 		}
 		break;
 	case RGBGEN_ONEMINUSENTITY:
 		for( i = 0; i < numVertex; i++ )
 		{
-			colorArray[i][0] = 255 - m_pCurrentEntity->shaderRGBA.r;
-			colorArray[i][1] = 255 - m_pCurrentEntity->shaderRGBA.g;
-			colorArray[i][2] = 255 - m_pCurrentEntity->shaderRGBA.b;
+			colorArray[i][0] = 1.0f - m_pCurrentEntity->shaderRGBA[0];
+			colorArray[i][1] = 1.0f - m_pCurrentEntity->shaderRGBA[1];
+			colorArray[i][2] = 1.0f - m_pCurrentEntity->shaderRGBA[2];
 		}
 		break;
 	case RGBGEN_LIGHTINGAMBIENT:
@@ -268,9 +268,9 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 		R_LightingDiffuse();
 		break;
 	case RGBGEN_CONST:
-		r = 255 * rgbGen->params[0];
-		g = 255 * rgbGen->params[1];
-		b = 255 * rgbGen->params[2];
+		r = 1.0f * rgbGen->params[0];
+		g = 1.0f * rgbGen->params[1];
+		b = 1.0f * rgbGen->params[2];
 
 		for( i = 0; i < numVertex; i++ )
 		{
@@ -287,14 +287,14 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 	{
 	case ALPHAGEN_IDENTITY:
 		for( i = 0; i < numVertex; i++ )
-			colorArray[i][3] = 255;
+			colorArray[i][3] = 1.0f;
 		break;
 	case ALPHAGEN_WAVE:
 		table = RB_TableForFunc(&alphaGen->func);
 		now = alphaGen->func.params[2] + alphaGen->func.params[3] * m_fShaderTime;
 		f = table[((int)(now * TABLE_SIZE)) & TABLE_MASK] * alphaGen->func.params[1] + alphaGen->func.params[0];
 		f = bound( 0.0, f, 1.0 );
-		a = 255 * f;
+		a = 1.0f * f;
 
 		for( i = 0; i < numVertex; i++ )
 			colorArray[i][3] = a;
@@ -304,7 +304,7 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 		now = alphaGen->func.params[2] + alphaGen->func.params[3] * m_fShaderTime;
 		f = table[((int)(now * TABLE_SIZE)) & TABLE_MASK] * alphaGen->func.params[1] + alphaGen->func.params[0];
 		f = bound( 0.0, f, 1.0 );
-		a = 255 * (alphaGen->params[0] * f);
+		a = 1.0f * (alphaGen->params[0] * f);
 
 		for( i = 0; i < numVertex; i++ )
 			colorArray[i][3] = a;
@@ -315,38 +315,38 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 		break;
 	case ALPHAGEN_ONEMINUSVERTEX:
 		for( i = 0; i < numVertex; i++ )
-			colorArray[i][3] = 255 - inColorArray[i][3];
+			colorArray[i][3] = 1.0f - inColorArray[i][3];
 		break;
 	case ALPHAGEN_ENTITY:
 		for( i = 0; i < numVertex; i++ )
-			colorArray[i][3] = m_pCurrentEntity->shaderRGBA.a;
+			colorArray[i][3] = m_pCurrentEntity->shaderRGBA[3];
 		break;
 	case ALPHAGEN_ONEMINUSENTITY:
 		for( i = 0; i < numVertex; i++ )
-			colorArray[i][3] = 255 - m_pCurrentEntity->shaderRGBA.a;
+			colorArray[i][3] = 1.0f - m_pCurrentEntity->shaderRGBA[3];
 		break;
 	case ALPHAGEN_DOT:
-		if(!Matrix4x4_CompareRotateOnly( m_pCurrentEntity->matrix, identitymatrix ))
-			Matrix4x4_Rotate( m_pCurrentEntity->matrix, r_forward, vec );
+		if( !AxisCompare( m_pCurrentEntity->axis, axisDefault ))
+			VectorRotate( r_forward, m_pCurrentEntity->axis, vec );
 		else VectorCopy( r_forward, vec );
 
 		for( i = 0; i < numVertex; i++ )
 		{
 			f = DotProduct(vec, normalArray[i]);
 			if( f < 0 ) f = -f;
-			colorArray[i][3] = 255 * bound( alphaGen->params[0], f, alphaGen->params[1] );
+			colorArray[i][3] = 1.0f * bound( alphaGen->params[0], f, alphaGen->params[1] );
 		}
 		break;
 	case ALPHAGEN_ONEMINUSDOT:
-		if(!Matrix4x4_CompareRotateOnly( m_pCurrentEntity->matrix, identitymatrix ))
-			Matrix4x4_Rotate( m_pCurrentEntity->matrix, r_forward, vec );
+		if( !AxisCompare( m_pCurrentEntity->axis, axisDefault ))
+			VectorRotate( r_forward, m_pCurrentEntity->axis, vec );
 		else VectorCopy( r_forward, vec );
 
 		for( i = 0; i < numVertex; i++ )
 		{
 			f = DotProduct(vec, normalArray[i]);
 			if( f < 0 ) f = -f;
-			colorArray[i][3] = 255 * bound( alphaGen->params[0], 1.0 - f, alphaGen->params[1]);
+			colorArray[i][3] = 1.0f * bound( alphaGen->params[0], 1.0 - f, alphaGen->params[1]);
 		}
 		break;
 	case ALPHAGEN_FADE:
@@ -357,7 +357,7 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 
 			f = bound( alphaGen->params[0], f, alphaGen->params[1] ) - alphaGen->params[0];
 			f = f * alphaGen->params[2];
-			colorArray[i][3] = 255 * bound( 0.0, f, 1.0 );
+			colorArray[i][3] = 1.0f * bound( 0.0, f, 1.0 );
 		}
 		break;
 	case ALPHAGEN_ONEMINUSFADE:
@@ -368,16 +368,16 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 
 			f = bound( alphaGen->params[0], f, alphaGen->params[1] ) - alphaGen->params[0];
 			f = f * alphaGen->params[2];
-			colorArray[i][3] = 255 * bound( 0.0, 1.0 - f, 1.0 );
+			colorArray[i][3] = 1.0f * bound( 0.0, 1.0 - f, 1.0 );
 		}
 		break;
 	case ALPHAGEN_LIGHTINGSPECULAR:
-		if(!Matrix4x4_CompareRotateOnly( m_pCurrentEntity->matrix, identitymatrix ))
+		if( !AxisCompare( m_pCurrentEntity->axis, axisDefault ))
 		{
-			VectorSubtract( r_refdef.vieworg, m_pCurrentEntity->origin, dir );
-			Matrix4x4_Rotate( m_pCurrentEntity->matrix, dir, vec );
+			VectorSubtract( r_origin, m_pCurrentEntity->origin, dir );
+			VectorRotate( dir, m_pCurrentEntity->axis, vec );
 		}
-		else VectorSubtract( r_refdef.vieworg, m_pCurrentEntity->origin, vec );
+		else VectorSubtract( r_origin, m_pCurrentEntity->origin, vec );
 
 		for( i = 0; i < numVertex; i++ )
 		{
@@ -386,11 +386,11 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 
 			f = DotProduct( dir, normalArray[i] );
 			f = pow( f, alphaGen->params[0] );
-			colorArray[i][3] = 255 * bound( 0.0, f, 1.0 );
+			colorArray[i][3] = 1.0f * bound( 0.0, f, 1.0 );
 		}
 		break;
 	case ALPHAGEN_CONST:
-		a = 255 * alphaGen->params[0];
+		a = 1.0f * alphaGen->params[0];
 
 		for( i = 0; i < numVertex; i++ )
 			colorArray[i][3] = a;
@@ -434,12 +434,12 @@ static void RB_CalcTextureCoords( stageBundle_t *bundle, uint unit )
 		}
 		break;
 	case TCGEN_ENVIRONMENT:
-		if(!Matrix4x4_CompareRotateOnly( m_pCurrentEntity->matrix, identitymatrix ))
+		if (!AxisCompare( m_pCurrentEntity->axis, axisDefault ))
 		{
-			VectorSubtract( r_refdef.vieworg, m_pCurrentEntity->origin, dir);
-			Matrix4x4_Rotate( m_pCurrentEntity->matrix, dir, vec );
+			VectorSubtract( r_origin, m_pCurrentEntity->origin, dir );
+			VectorRotate( dir, m_pCurrentEntity->axis, vec );
 		}
-		else VectorSubtract( r_refdef.vieworg, m_pCurrentEntity->origin, vec );
+		else VectorSubtract( r_origin, m_pCurrentEntity->origin, vec );
 
 		for( i = 0; i < numVertex; i++ )
 		{
@@ -480,8 +480,8 @@ static void RB_CalcTextureCoords( stageBundle_t *bundle, uint unit )
 		else
 		{
 			R_LightDir( m_pCurrentEntity->origin, dir );
-			if(!Matrix4x4_CompareRotateOnly( m_pCurrentEntity->matrix, identitymatrix ))
-				Matrix4x4_Rotate( m_pCurrentEntity->matrix, dir, lightVector );
+			if( !AxisCompare( m_pCurrentEntity->axis, axisDefault ))
+				VectorRotate( dir, m_pCurrentEntity->axis, lightVector );
 			else VectorCopy( dir, lightVector );
 
 			for( i = 0; i < numVertex; i++ )
@@ -513,11 +513,12 @@ static void RB_CalcTextureCoords( stageBundle_t *bundle, uint unit )
 		{
 			R_LightDir( m_pCurrentEntity->origin, dir );
 
-			if(!Matrix4x4_CompareRotateOnly( m_pCurrentEntity->matrix, identitymatrix ))
+			if( !AxisCompare( m_pCurrentEntity->axis, axisDefault ))
 			{
-				Matrix4x4_Rotate( m_pCurrentEntity->matrix, dir, lightVector );
-				VectorSubtract(r_refdef.vieworg, m_pCurrentEntity->origin, dir);
-				Matrix4x4_Rotate( m_pCurrentEntity->matrix, dir, eyeVector );
+				VectorRotate( dir, m_pCurrentEntity->axis, lightVector );
+
+				VectorSubtract( r_origin, m_pCurrentEntity->origin, dir );
+				VectorRotate( dir, m_pCurrentEntity->axis, eyeVector );
 			}
 			else
 			{
@@ -648,18 +649,10 @@ static void RB_SetupVertexProgram( shaderStage_t *stage )
 	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 1, r_forward[0], r_forward[1], r_forward[2], 0 );
 	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 2, r_right[0], r_right[1], r_right[2], 0 );
 	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 3, r_up[0], r_up[1], r_up[2], 0 );
-
 	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 4, m_pCurrentEntity->origin[0], m_pCurrentEntity->origin[1], m_pCurrentEntity->origin[2], 0 );
-#ifdef OPENGL_STYLE
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 5, m_pCurrentEntity->matrix[0][0], m_pCurrentEntity->matrix[1][0], m_pCurrentEntity->matrix[2][0], 0 );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 6, m_pCurrentEntity->matrix[0][1], m_pCurrentEntity->matrix[1][1], m_pCurrentEntity->matrix[2][1], 0 );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 7, m_pCurrentEntity->matrix[0][2], m_pCurrentEntity->matrix[1][2], m_pCurrentEntity->matrix[2][2], 0 );
-#else
-
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 5, m_pCurrentEntity->matrix[0][0], m_pCurrentEntity->matrix[0][1], m_pCurrentEntity->matrix[0][2], 0 );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 6, m_pCurrentEntity->matrix[1][0], m_pCurrentEntity->matrix[1][1], m_pCurrentEntity->matrix[1][2], 0 );
-	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 7, m_pCurrentEntity->matrix[2][0], m_pCurrentEntity->matrix[2][1], m_pCurrentEntity->matrix[2][2], 0 );
-#endif
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 5, m_pCurrentEntity->axis[0][0], m_pCurrentEntity->axis[0][1], m_pCurrentEntity->axis[0][2], 0 );
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 6, m_pCurrentEntity->axis[1][0], m_pCurrentEntity->axis[1][1], m_pCurrentEntity->axis[1][2], 0 );
+	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 7, m_pCurrentEntity->axis[2][0], m_pCurrentEntity->axis[2][1], m_pCurrentEntity->axis[2][2], 0 );
 	pglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 8, m_fShaderTime, 0, 0, 0 );
 }
 
@@ -677,17 +670,10 @@ static void RB_SetupFragmentProgram( shaderStage_t *stage )
 	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 1, r_forward[0], r_forward[1], r_forward[2], 0 );
 	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 2, r_right[0], r_right[1], r_right[2], 0 );
 	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 3, r_up[0], r_up[1], r_up[2], 0 );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 4, m_pCurrentEntity->origin[0], m_pCurrentEntity->origin[1], m_pCurrentEntity->origin[2], 0);
-
-#ifdef OPENGL_STYLE
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 5, m_pCurrentEntity->matrix[0][0], m_pCurrentEntity->matrix[1][0], m_pCurrentEntity->matrix[2][0], 0 );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 6, m_pCurrentEntity->matrix[0][1], m_pCurrentEntity->matrix[1][1], m_pCurrentEntity->matrix[2][1], 0 );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 7, m_pCurrentEntity->matrix[0][2], m_pCurrentEntity->matrix[1][2], m_pCurrentEntity->matrix[2][2], 0 );
-#else
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 5, m_pCurrentEntity->matrix[0][0], m_pCurrentEntity->matrix[0][1], m_pCurrentEntity->matrix[0][2], 0 );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 6, m_pCurrentEntity->matrix[1][0], m_pCurrentEntity->matrix[1][1], m_pCurrentEntity->matrix[1][2], 0 );
-	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 7, m_pCurrentEntity->matrix[2][0], m_pCurrentEntity->matrix[2][1], m_pCurrentEntity->matrix[2][2], 0 );
-#endif
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 4, m_pCurrentEntity->origin[0], m_pCurrentEntity->origin[1], m_pCurrentEntity->origin[2], 0 );
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 5, m_pCurrentEntity->axis[0][0], m_pCurrentEntity->axis[0][1], m_pCurrentEntity->axis[0][2], 0 );
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 6, m_pCurrentEntity->axis[1][0], m_pCurrentEntity->axis[1][1], m_pCurrentEntity->axis[1][2], 0 );
+	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 7, m_pCurrentEntity->axis[2][0], m_pCurrentEntity->axis[2][1], m_pCurrentEntity->axis[2][2], 0 );
 	pglProgramLocalParameter4fARB( GL_FRAGMENT_PROGRAM_ARB, 8, m_fShaderTime, 0, 0, 0 );
 }
 
@@ -1022,7 +1008,7 @@ static void RB_DrawTris( void )
 {
 	pglPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
-	pglColor4ub( 255, 255, 255, 255 );
+	pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
 
 	pglDisableClientState( GL_NORMAL_ARRAY );
 	pglDisableClientState( GL_COLOR_ARRAY );
@@ -1062,7 +1048,7 @@ static void RB_DrawNormals( void )
 	if( m_pRenderMesh->meshType == MESH_POLY )
 		return;
 
-	pglColor4ub( 255, 255, 255, 255 );
+	pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
 
 	pglBegin( GL_LINES );
 	for( i = 0; i < numVertex; i++ )
@@ -1087,7 +1073,7 @@ static void RB_DrawTangentSpace( void )
 	if( m_pRenderMesh->meshType != MESH_SURFACE && m_pRenderMesh->meshType != MESH_STUDIO )
 		return;
 
-	pglColor4ub( 255, 0, 0, 255 );
+	pglColor4f( 1.0f, 0.0f, 0.0f, 1.0f );
 
 	pglBegin( GL_LINES );
 	for( i = 0; i < numVertex; i++ )
@@ -1098,7 +1084,7 @@ static void RB_DrawTangentSpace( void )
 	}
 	pglEnd();
 
-	pglColor4ub( 0, 255, 0, 255 );
+	pglColor4f( 0.0f, 1.0f, 0.0f, 1.0f );
 
 	pglBegin( GL_LINES );
 	for( i = 0; i < numVertex; i++ )
@@ -1109,7 +1095,7 @@ static void RB_DrawTangentSpace( void )
 	}
 	pglEnd();
 
-	pglColor4ub( 0, 0, 255, 255 );
+	pglColor4f( 0.0f, 0.0f, 1.0f, 1.0f );
 
 	pglBegin( GL_LINES );
 	for( i = 0; i < numVertex; i++ )
@@ -1154,7 +1140,7 @@ static void RB_DrawModelBounds( void )
 	else return;
 
 	// draw it
-	pglColor4ub( 255, 255, 255, 255 );
+	pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
 
 	pglBegin( GL_LINES );
 	for( i = 0; i < 2; i += 1 )

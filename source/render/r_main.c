@@ -14,7 +14,7 @@ stdlib_api_t	com;
 byte		*r_temppool;
 gl_matrix		r_projectionMatrix;
 gl_matrix		r_worldMatrix;
-matrix4x4		r_entityMatrix;
+gl_matrix		r_entityMatrix;
 gl_matrix		r_textureMatrix;
 cplane_t		r_frustum[4];
 float		r_frameTime;
@@ -167,9 +167,28 @@ R_RotateForEntity
 */
 void R_RotateForEntity( ref_entity_t *entity )
 {
-	//FIXME
-	//Matrix4x4_Concat( r_entityMatrix, r_worldMatrix, entity->matrix );
-	//GL_LoadMatrix( r_entityMatrix );
+	gl_matrix		rotateMatrix;
+
+	rotateMatrix[ 0] = entity->axis[0][0];
+	rotateMatrix[ 1] = entity->axis[0][1];
+	rotateMatrix[ 2] = entity->axis[0][2];
+	rotateMatrix[ 3] = 0.0;
+	rotateMatrix[ 4] = entity->axis[1][0];
+	rotateMatrix[ 5] = entity->axis[1][1];
+	rotateMatrix[ 6] = entity->axis[1][2];
+	rotateMatrix[ 7] = 0.0;
+	rotateMatrix[ 8] = entity->axis[2][0];
+	rotateMatrix[ 9] = entity->axis[2][1];
+	rotateMatrix[10] = entity->axis[2][2];
+	rotateMatrix[11] = 0.0;
+	rotateMatrix[12] = entity->origin[0];
+	rotateMatrix[13] = entity->origin[1];
+	rotateMatrix[14] = entity->origin[2];
+	rotateMatrix[15] = 1.0;
+
+	MatrixGL_MultiplyFast(r_worldMatrix, rotateMatrix, r_entityMatrix);
+
+	pglLoadMatrixf(r_entityMatrix);
 }
 
 
@@ -294,10 +313,7 @@ void R_DrawSprite( void )
 		normalArray[numVertex][0] = axis[0][0];
 		normalArray[numVertex][1] = axis[0][1];
 		normalArray[numVertex][2] = axis[0][2];
-		inColorArray[numVertex][0] = m_pCurrentEntity->shaderRGBA.r;
-		inColorArray[numVertex][1] = m_pCurrentEntity->shaderRGBA.g;
-		inColorArray[numVertex][2] = m_pCurrentEntity->shaderRGBA.b;
-		inColorArray[numVertex][3] = m_pCurrentEntity->shaderRGBA.a;
+		Vector4Copy(m_pCurrentEntity->shaderRGBA, inColorArray[numVertex] ); 
 		numVertex++;
 	}
 }
@@ -390,10 +406,7 @@ void R_DrawBeam( void )
 		normalArray[numVertex][0] = axis[0][0];
 		normalArray[numVertex][1] = axis[0][1];
 		normalArray[numVertex][2] = axis[0][2];
-		inColorArray[numVertex][0] = m_pCurrentEntity->shaderRGBA.r;
-		inColorArray[numVertex][1] = m_pCurrentEntity->shaderRGBA.g;
-		inColorArray[numVertex][2] = m_pCurrentEntity->shaderRGBA.b;
-		inColorArray[numVertex][3] = m_pCurrentEntity->shaderRGBA.a;
+		Vector4Copy(m_pCurrentEntity->shaderRGBA, inColorArray[numVertex] ); 
 		numVertex++;
 	}
 }
@@ -498,21 +511,21 @@ static void R_DrawNullModels( void )
 	{
 		entity = r_nullModels[i];
 
-		VectorMA( entity->origin, 15, entity->matrix[0], points[0] );
-		VectorMA( entity->origin, -15, entity->matrix[1], points[1] );
-		VectorMA( entity->origin, 15, entity->matrix[2], points[2] );
+		VectorMA( entity->origin, 15, entity->axis[0], points[0] );
+		VectorMA( entity->origin, -15, entity->axis[1], points[1] );
+		VectorMA( entity->origin, 15, entity->axis[2], points[2] );
 
 		pglBegin( GL_LINES );
 
-		pglColor4ub( 255, 0, 0, 127 );
+		pglColor4f( 1.0f, 0.0f, 0.0f, 0.5f );
 		pglVertex3fv( entity->origin );
 		pglVertex3fv( points[0] );
 
-		pglColor4ub( 0, 255, 0, 127 );
+		pglColor4f( 0, 1.0f, 0, 0.5f );
 		pglVertex3fv( entity->origin );
 		pglVertex3fv( points[1] );
 
-		pglColor4ub( 0, 0, 255, 127 );
+		pglColor4f( 0, 0, 1.0f, 0.5f );
 		pglVertex3fv( entity->origin );
 		pglVertex3fv( points[2] );
 
@@ -625,10 +638,7 @@ void R_DrawParticle( void )
 		normalArray[numVertex][0] = axis[0][0];
 		normalArray[numVertex][1] = axis[0][1];
 		normalArray[numVertex][2] = axis[0][2];
-		inColorArray[numVertex][0] = particle->modulate.r;
-		inColorArray[numVertex][1] = particle->modulate.g;
-		inColorArray[numVertex][2] = particle->modulate.b;
-		inColorArray[numVertex][3] = particle->modulate.a;
+		Vector4Copy(particle->modulate, inColorArray[numVertex] ); 
 		numVertex++;
 	}
 }
@@ -803,36 +813,6 @@ void R_AddMeshToList( meshType_t meshType, void *mesh, shader_t *shader, ref_ent
 
 // =====================================================================
 
-/*
-=================
-AnglesToAxis
-=================
-*/
-void AnglesToAxis ( const vec3_t angles )
-{
-	static float	sp, sy, sr, cp, cy, cr;
-	float		angle;
-
-	angle = DEG2RAD(angles[PITCH]);
-	sp = sin(angle);
-	cp = cos(angle);
-	angle = DEG2RAD(angles[YAW]);
-	sy = sin(angle);
-	cy = cos(angle);
-	angle = DEG2RAD(angles[ROLL]);
-	sr = sin(angle);
-	cr = cos(angle);
-
-	r_forward[0] = cp*cy;
-	r_forward[1] = cp*sy;
-	r_forward[2] = -sp;
-	r_right[0] = sr*sp*cy+cr*-sy;
-	r_right[1] = sr*sp*sy+cr*cy;
-	r_right[2] = sr*cp;
-	r_up[0] = cr*sp*cy+-sr*-sy;
-	r_up[1] = cr*sp*sy+-sr*cy;
-	r_up[2] = cr*cp;
-}
 
 /*
 =================
@@ -845,7 +825,6 @@ static void R_SetFrustum( void )
 
 	// build the transformation matrix for the given view angles
 	VectorCopy( r_refdef.vieworg, r_origin );
-	//AngleVectors( r_refdef.viewangles, r_forward, r_right, r_up );
 	AnglesToAxis( r_refdef.viewangles );
 
 	RotatePointAroundVector( r_frustum[0].normal, r_up, r_forward, -(90 - r_refdef.fov_x / 2));
@@ -910,8 +889,6 @@ static void R_SetMatrices( void )
 	xDiv = 1.0 / (xMax - xMin);
 	yDiv = 1.0 / (yMax - yMin);
 	zDiv = 1.0 / (zFar - zNear);
-
-	// FIXME: make support for OPENGL_STYLE matrices
 
 	r_projectionMatrix[ 0] = (2.0 * zNear) * xDiv;
 	r_projectionMatrix[ 1] = 0.0;
@@ -1199,8 +1176,8 @@ static bool R_AddEntityToScene( refdef_t *fd, entity_state_t *s1, entity_state_t
 		r_worldEntity = &fd->entities[fd->num_entities++];
 		r_worldEntity->model = r_worldModel;
 		r_worldEntity->ent_type = ED_NORMAL;
-		MatrixLoadIdentity( r_worldEntity->matrix );
-		r_worldEntity->shaderRGBA = MakeRGBA( 255, 255, 255, 255 );
+		AxisClear( r_worldEntity->axis );
+		Vector4Set( r_worldEntity->shaderRGBA, 1.0f, 1.0f, 1.0f, 1.0f );
 		refent = &fd->entities[fd->num_entities];
 	}
 
@@ -1250,6 +1227,8 @@ static bool R_AddEntityToScene( refdef_t *fd, entity_state_t *s1, entity_state_t
 		for( i = 0; i < 3; i++ )
 			refent->angles[i] = LerpAngle( s2->angles[i], s1->angles[i], lerpfrac );
 	}
+
+	AnglesToAxisPrivate( refent->angles, refent->axis );
 
 	// copy controllers
 	for( i = 0; i < MAXSTUDIOCONTROLLERS; i++ )
@@ -1326,7 +1305,7 @@ bool R_AddParticleToScene( refdef_t *fd, const vec3_t origin, float alpha, int c
 	p->radius = 5;
 	p->length = alpha;
 	p->rotation = 0;
-	p->modulate = MakeRGBA( 255, 255, 255, 255 );
+	Vector4Set( p->modulate, 1.0f, 1.0f, 1.0f, 1.0f );
 	fd->num_particles++;
 	r_refdef = *fd;
 

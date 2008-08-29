@@ -496,6 +496,10 @@ bool R_GetPixelFormat( rgbdata_t *pic, uint tex_flags, float bumpScale )
 		
 		if( image_desc.MipCount < 1 ) image_desc.MipCount = 1;
 		image_desc.pal = pic->palette;
+
+		// check for permanent images
+		if( image_desc.format == PF_RGBA_GN ) image_desc.tflags |= TF_STATIC;
+		if( tex_flags & TF_IMAGE2D ) image_desc.tflags |= TF_STATIC;
 	}	
 
 	// restore temp dimensions
@@ -624,7 +628,6 @@ void R_ShutdownTextures( void )
 static void R_CreateBuiltInTextures( void )
 {
 	byte	data2D[256*256*4];
-	byte	*data3D, *dataCM;
 	rgbdata_t r_generic;
 	vec3_t	normal;
 	int	i, x, y;
@@ -681,7 +684,8 @@ static void R_CreateBuiltInTextures( void )
 
 	if( GL_Support( R_TEXTURECUBEMAP_EXT ))
 	{
-		data3D = dataCM = Mem_Alloc( r_imagepool, 128*128*4 * 6 );
+		byte	data3D[128*128*4*6]; // full cubemap size
+		byte	*dataCM = (byte *)data3D;
 
 		// normalize texture
 		for( i = 0; i < 6; i++ )
@@ -727,13 +731,10 @@ static void R_CreateBuiltInTextures( void )
 
 		r_generic.width = 128;
 		r_generic.height = 128;
-		r_generic.size = r_generic.width * r_generic.height * 4;
+		r_generic.size = (r_generic.width * r_generic.height * 4) * 6;
 		r_generic.flags = IMAGE_CUBEMAP; // yes it's cubemap
 		r_generic.buffer = (byte *)data3D;
-                    
-		//FIXME
-		//r_normalizeTexture = R_LoadTexture( "*normalize", &r_generic, TF_CLAMP|TF_CUBEMAP, 0 );
-		Mem_Free( data3D );
+		r_normalizeTexture = R_LoadTexture( "*normalize", &r_generic, TF_CLAMP|TF_CUBEMAP, 0 );
 	}
 
 	// screen rect texture (just reserve a slot)
@@ -1274,7 +1275,7 @@ bool qrsDecompressedTexImage2D( uint target, int level, int internalformat, uint
 	int	scaled_width, scaled_height;
 	uint	*scaled = (uint *)image_desc.scaled;
 	byte	*fout = image_desc.source;
-	bool	noalpha = true;
+	bool	has_alpha = false;
 
 	if (!data) return false;
 	fin = (byte *)data;
@@ -1290,7 +1291,7 @@ bool qrsDecompressedTexImage2D( uint target, int level, int internalformat, uint
 			for (i = 0; i < width * height; i++)
 			{
 				p = fin[i];
-				if( p == 255 ) noalpha = false;
+				if( p == 255 ) has_alpha = true;
 				fout[(i<<2)+0] = image_desc.pal[p*3+0];
 				fout[(i<<2)+1] = image_desc.pal[p*3+1];
 				fout[(i<<2)+2] = image_desc.pal[p*3+2];
@@ -1309,7 +1310,7 @@ bool qrsDecompressedTexImage2D( uint target, int level, int internalformat, uint
 				fout[(i<<2)+3] = 255;
 			}
 		}
-		if( noalpha ) image_desc.flags &= ~IMAGE_HAS_ALPHA;
+		if( !has_alpha ) image_desc.flags &= ~IMAGE_HAS_ALPHA;
 		break;
 	case PF_INDEXED_32:
 		// sprite indexed frame with alphachannel
@@ -1343,8 +1344,8 @@ bool qrsDecompressedTexImage2D( uint target, int level, int internalformat, uint
 
 	R_RoundImageDimensions( &scaled_width, &scaled_height );
 	if( image_desc.tflags & TF_COMPRESS )
-		image_desc.glSamples = (noalpha) ? GL_COMPRESSED_RGB_ARB : GL_COMPRESSED_RGBA_ARB;
-	else image_desc.glSamples = (noalpha) ? GL_RGB : GL_RGBA;
+		image_desc.glSamples = (image_desc.flags & IMAGE_HAS_ALPHA) ? GL_COMPRESSED_RGBA_ARB : GL_COMPRESSED_RGB_ARB;
+	else image_desc.glSamples = (image_desc.flags & IMAGE_HAS_ALPHA) ? GL_RGBA : GL_RGB;
 	R_ResampleTexture((uint *)fout, width, height, scaled, scaled_width, scaled_height);
 	if( !level ) GL_GenerateMipmaps( scaled_width, scaled_height ); // generate mips if needed
 	pglTexImage2D( target, level, image_desc.glSamples, scaled_width, scaled_height, border, image_desc.glMask, image_desc.glType, (byte *)scaled );
@@ -1364,13 +1365,13 @@ bool R_LoadImageRGBA( byte *data, GLuint target )
 	int w = image_desc.width;
 	int h = image_desc.height;
 	int d = image_desc.numLayers; // ABGR_64 may using some layers
-
-	for( i = 0; i < image_desc.MipCount; i++, data += size )
+ 
+ 	for( i = 0; i < image_desc.MipCount; i++, data += size )
 	{
 		R_SetPixelFormat( w, h, d );
 		size = image_desc.SizeOfFile;
-
-		if(!qrsDecompressedTexImage2D( target, i, image_desc.format, w, h, 0, size, data ))
+ 
+ 		if(!qrsDecompressedTexImage2D( target, i, image_desc.format, w, h, 0, size, data ))
 			break; // there were errors
 		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; // calc size of next mip
 	}
@@ -1668,7 +1669,6 @@ texture_t	*R_LoadTexture( const char *name, rgbdata_t *pic, uint flags, float bu
 	}
 
 	image = &r_textures[r_numTextures++];
-	Mem_Alloc( r_imagepool, sizeof( texture_t ));
 	if( com.strlen( name ) >= sizeof(image->name)) MsgDev( D_WARN, "R_LoadImage: \"%s\" is too long", name);
 
 	// nothing to load
@@ -1727,25 +1727,26 @@ texture_t	*R_LoadTexture( const char *name, rgbdata_t *pic, uint flags, float bu
 	image->width = width = pic->width;
 	image->height = height = pic->height;
 	image->bumpScale = bumpScale;
-	image->flags = flags;
-          buf = pic->buffer;
+	buf = pic->buffer;
 
 	// fill image_desc
 	R_GetPixelFormat( pic, flags, bumpScale );
+
 	pglGenTextures( 1, &image->texnum );
 	image->target = image_desc.glTarget;
+	image->flags = image_desc.tflags;	// merged by R_GetPixelFormat
 	image->type = image_desc.format;
 
-	Msg("Register %s image->texnum %d\n", name, image->texnum );
-
-	for(i = 0; i < numsides; i++, buf += offset )
+	for( i = 0; i < numsides; i++, buf += offset )
 	{
 		GL_BindTexture( image );
-		
+
 		R_SetPixelFormat( image_desc.width, image_desc.height, image_desc.numLayers );
 		offset = image_desc.SizeOfFile; // move pointer
 
-		MsgDev(D_LOAD, "%s [%s] \n", name, PFDesc[image_desc.format].name );
+		if( numsides == 6 )
+			MsgDev( D_LOAD, "%s[%i] [%s] \n", name, i, PFDesc[image_desc.format].name );
+		else MsgDev( D_LOAD, "%s [%s] \n", name, PFDesc[image_desc.format].name );
 		R_UploadTexture( buf, pic->type, target + i );
 	}          
 	// check for errors
@@ -1770,15 +1771,12 @@ void R_ImageFreeUnused( void )
 	texture_t		*image;
 	int		i;
 
-	// FIXME check pics for type and never free it
-	return;
-	
 	for( i = 0, image = r_textures; i < r_numTextures; i++, image++ )
 	{
 		// used this sequence
 		if( image->registration_sequence == registration_sequence ) continue;
-		if( image->type == PF_RGBA_GN ) continue; // never free system textures
-		if( !image->name[0] ) continue; // free texture slot
+		if( image->flags & TF_STATIC || !image->name[0] ) // static or already freed
+			continue;
 		pglDeleteTextures( 1, &image->texnum );
 		memset( image, 0, sizeof( *image ));
 	}

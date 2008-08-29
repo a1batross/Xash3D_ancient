@@ -172,18 +172,19 @@ bool Cmd_GetFontList( const char *s, char *completedname, int length )
 	string		matchbuf;
 	int		i, numfonts;
 
-	t = FS_Search(va("gfx/fonts/%s*.dds", s ), true);
+	t = FS_Search(va("gfx/fonts/%s*.*", s ), true);
 	if(!t) return false;
 
 	FS_FileBase(t->filenames[0], matchbuf ); 
 	if(completedname && length) com.strncpy( completedname, matchbuf, length );
-	if(t->numfilenames == 1) return true;
+	if( t->numfilenames == 1 ) return true;
 
 	for(i = 0, numfonts = 0; i < t->numfilenames; i++)
 	{
 		const char *ext = FS_FileExtension( t->filenames[i] ); 
 
-		if( com.stricmp(ext, "dds" )) continue;
+		if( com.stricmp(ext, "png" ) && com.stricmp(ext, "dds" ) && com.stricmp(ext, "tga" ))
+			continue;
 		FS_FileBase(t->filenames[i], matchbuf );
 		Msg("%16s\n", matchbuf );
 		numfonts++;

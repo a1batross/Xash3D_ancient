@@ -23,12 +23,12 @@ GLOBAL: ƒостигнуть уровн€ xash 0.45 к очередному релизу
 1. r_backend.c:1335
 2. r_backend.c:1338
 3. r_backend.c:1347
-
+4. r_shader.c:3087
 5. r_main.c:339
-6. r_main.c:875
+
 7. r_shader.c:2866
-8. r_texture.c:738
-9. r_texture.c:1711
+
+9. r_texture.c:1724
 
 
 TODO LIST

@@ -343,7 +343,7 @@ static void R_DrawSkyBox( texture_t *textures[6], bool blended )
 	pglDepthRange( 1, 1 );
 	pglEnable( GL_TEXTURE_2D );
 
-	pglColor4ub( 255, 255, 255, 255 );
+	pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
 	pglDisableClientState( GL_NORMAL_ARRAY );
 	pglDisableClientState( GL_COLOR_ARRAY );
 
@@ -412,11 +412,8 @@ void R_DrawSky( void )
 	// compute and load matrix
 	VectorNegate( r_forward, r_backward );
 	VectorNegate( r_right, r_left );
-	Matrix4x4_FromVectors( matrix, r_left, r_up, r_backward, vec3_origin );
-
-	// FIXME:
-	//if( sky->rotate ) Matrix4x4_CreateRotate( matrix, r_refdef.time * sky->rotate, sky->axis[0], sky->axis[1], sky->axis[2]);
-	
+	Matrix4x4_FromVectors( matrix, r_left, r_up, r_backward, r_origin );
+	if( sky->rotate ) Matrix4x4_ConcatRotate( matrix, r_refdef.time * sky->rotate, sky->axis[0], sky->axis[1], sky->axis[2] );
 	GL_LoadMatrix( matrix );
 
 	// build indices in tri-strip order
@@ -484,10 +481,10 @@ void R_DrawSky( void )
 				normalArray[numVertex][2] = v->normal[2];
 				inTexCoordArray[numVertex][0] = v->sphere[0];
 				inTexCoordArray[numVertex][1] = v->sphere[1];
-				inColorArray[numVertex][0] = 255;
-				inColorArray[numVertex][1] = 255;
-				inColorArray[numVertex][2] = 255;
-				inColorArray[numVertex][3] = 255;
+				inColorArray[numVertex][0] = 1.0f;
+				inColorArray[numVertex][1] = 1.0f;
+				inColorArray[numVertex][2] = 1.0f;
+				inColorArray[numVertex][3] = 1.0f;
 				numVertex++;
 			}
 		}
@@ -594,7 +591,9 @@ void R_SetupSky( const char *name, float rotate, const vec3_t axis )
 	sky->shader = R_FindShader( name, SHADER_SKY, 0 );
 
 	sky->rotate = rotate;
-	VectorCopy( axis, sky->axis );
+	if(!VectorIsNull( axis ))
+		VectorCopy( axis, sky->axis );
+	else VectorSet( sky->axis, 0, 0, 1 );
 
 	// fill sky sides
 	for( i = 0, skySide = sky->skySides; i < 6; i++, skySide++ )

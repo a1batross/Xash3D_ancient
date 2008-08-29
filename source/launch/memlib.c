@@ -14,6 +14,13 @@
 #define MEMHEADER_SENTINEL1	0xDEADF00D
 #define MEMHEADER_SENTINEL2	0xDF
 
+typedef enum
+{
+	PREFETCH_READ,		// prefetch assuming that buffer is used for reading only
+	PREFETCH_WRITE,		// prefetch assuming that buffer is used for writing only
+	PREFETCH_READWRITE		// prefetch assuming that buffer is used for both reading and writing
+} e_prefetch;
+
 typedef struct memheader_s
 {
 	struct memheader_s	*next;		// next and previous memheaders in chain belonging to pool
@@ -74,16 +81,147 @@ typedef struct memarray_s
 
 mempool_t *poolchain = NULL; // critical stuff
 
-void _mem_copy(void *dest, const void *src, size_t size, const char *filename, int fileline)
+void _mem_prefetch( const void *s, const uint bytes, e_prefetch type )
 {
-	if (src == NULL || size <= 0) return; // nothing to copy
-	if (dest == NULL) Sys_Error("Mem_Copy: dest == NULL (called at %s:%i)\n", filename, fileline);
+	// write buffer prefetching is performed only if
+	// the processor benefits from it. read and read/write
+	// prefetching is always performed.
 
-	// copy block
-	memcpy( dest, src, size );
+	switch( type )
+	{
+		case PREFETCH_WRITE : break;
+		case PREFETCH_READ:
+		case PREFETCH_READWRITE:
+
+		__asm
+		{
+			mov	ebx, s
+			mov	ecx, bytes
+			cmp	ecx, 4096	// clamp to 4kB
+			jle	skipClump
+			mov	ecx, 4096
+skipClump:
+			add	ecx, 0x1f
+			shr	ecx, 5	// number of cache lines
+			jz	skip
+			jmp	loopie
+
+			align 16
+	loopie:	test	byte ptr [ebx], al
+			add	ebx, 32
+			dec	ecx
+			jnz	loopie
+		skip:
+		}
+		break;
+	}
 }
 
-void *_mem_alloc(byte *poolptr, size_t size, const char *filename, int fileline)
+void _mem_copy( void *dest, const void *src, size_t count, const char *filename, int fileline )
+{
+	if( src == NULL || count <= 0 ) return; // nothing to copy
+	if( dest == NULL) Sys_Error("Mem_Copy: dest == NULL (called at %s:%i)\n", filename, fileline );
+
+	// copy block
+	_mem_prefetch( src, count, PREFETCH_READ );
+	__asm
+	{
+		push	edi
+		push	esi
+		mov	ecx,count
+		cmp	ecx,0			// count = 0 check (just to be on the safe side)
+		je	outta
+		mov	edx,dest
+		mov	ebx,src
+		cmp	ecx,32			// padding only?
+		jl	padding
+
+		mov	edi,ecx					
+		and	edi,~31			// edi = count&~31
+		sub	edi,32
+
+		align 16
+loopMisAligned:
+		mov	eax,[ebx + edi + 0 + 0*8]
+		mov	esi,[ebx + edi + 4 + 0*8]
+		mov	[edx+edi+0 + 0*8],eax
+		mov	[edx+edi+4 + 0*8],esi
+		mov	eax,[ebx + edi + 0 + 1*8]
+		mov	esi,[ebx + edi + 4 + 1*8]
+		mov	[edx+edi+0 + 1*8],eax
+		mov	[edx+edi+4 + 1*8],esi
+		mov	eax,[ebx + edi + 0 + 2*8]
+		mov	esi,[ebx + edi + 4 + 2*8]
+		mov	[edx+edi+0 + 2*8],eax
+		mov	[edx+edi+4 + 2*8],esi
+		mov	eax,[ebx + edi + 0 + 3*8]
+		mov	esi,[ebx + edi + 4 + 3*8]
+		mov	[edx+edi+0 + 3*8],eax
+		mov	[edx+edi+4 + 3*8],esi
+		sub	edi,32
+		jge	loopMisAligned
+		
+		mov	edi,ecx
+		and	edi,~31
+		add	ebx,edi			// increase src pointer
+		add	edx,edi			// increase dst pointer
+		and	ecx,31			// new count
+		jz	outta			// if count = 0, get outta here
+
+padding:
+		cmp	ecx,16
+		jl	skip16
+		mov	eax,dword ptr [ebx]
+		mov	dword ptr [edx],eax
+		mov	eax,dword ptr [ebx+4]
+		mov	dword ptr [edx+4],eax
+		mov	eax,dword ptr [ebx+8]
+		mov	dword ptr [edx+8],eax
+		mov	eax,dword ptr [ebx+12]
+		mov	dword ptr [edx+12],eax
+		sub	ecx,16
+		add	ebx,16
+		add	edx,16
+skip16:
+		cmp	ecx,8
+		jl	skip8
+		mov	eax,dword ptr [ebx]
+		mov	dword ptr [edx],eax
+		mov	eax,dword ptr [ebx+4]
+		sub	ecx,8
+		mov	dword ptr [edx+4],eax
+		add	ebx,8
+		add	edx,8
+skip8:
+		cmp	ecx,4
+		jl	skip4
+		mov	eax,dword ptr [ebx]		// here 4-7 bytes
+		add	ebx,4
+		sub	ecx,4
+		mov	dword ptr [edx],eax
+		add	edx,4
+skip4:						// 0-3 remaining bytes
+		cmp	ecx,2
+		jl	skip2
+		mov	ax,word ptr [ebx]		// two bytes
+		cmp	ecx,3			// less than 3?
+		mov	word ptr [edx],ax
+		jl	outta
+		mov	al,byte ptr [ebx+2]		// last byte
+		mov	byte ptr [edx+2],al
+		jmp	outta
+skip2:
+		cmp	ecx,1
+		jl	outta
+		mov	al,byte ptr [ebx]
+		mov	byte ptr [edx],al
+outta:
+		pop	esi
+		pop	edi
+	}
+}
+
+void *_mem_alloc( byte *poolptr, size_t size, const char *filename, int fileline )
 {
 	int i, j, k, needed, endbit, largest;
 	memclump_t *clump, **clumpchainpointer;

@@ -196,9 +196,14 @@ static void ParseShaderFile( char *filename )
 				si->intensity = atoi( com_token );
 				continue;
 			}
-
+			// light intensity <value>
+			if ( !stricmp( com_token, "sort" ))
+			{
+				Com_GetToken( false );
+				continue;
+			}
 			// ignore all other com_tokens on the line
-			while (Com_TryToken());
+			while( Com_TryToken());
 		}			
 	}
 }

@@ -522,8 +522,8 @@ void GL_UpdateGammaRamp( void )
 	for( i = 0; i < 256; i++ )
 	{
 		v = 255 * pow((float)(i + 0.5) / 255, vid_gamma->value ) + 0.5;
-		v = bound( v, 0, 255 );
-		gl_state.gammaRamp[i] =    ((word)v)<<8;
+		v = bound( 0, v, 255 );
+		gl_state.gammaRamp[i+0] =   ((word)v)<<8;
 		gl_state.gammaRamp[i+256] = ((word)v)<<8;
 		gl_state.gammaRamp[i+512] = ((word)v)<<8;
 	}
@@ -557,9 +557,6 @@ void GL_InitExtensions( void )
 		if(GL_Support( R_COMBINE_EXT )) GL_CheckExtension( "GL_ARB_texture_env_dot3", NULL, "gl_texture_env_dot3", R_DOT3_ARB_EXT );
 	}
 	else gl_config.textureunits = 1;
-
-	gl_state.texNum = Mem_Alloc( r_temppool, sizeof(int) * gl_config.textureunits );
-	gl_state.texEnv = Mem_Alloc( r_temppool, sizeof(int) * gl_config.textureunits );
 
 	// 3d texture support
 	GL_CheckExtension( "GL_EXT_texture3D", texture3dextfuncs, "gl_texture_3d", R_TEXTURE_3D_EXT );

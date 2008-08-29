@@ -590,15 +590,15 @@ static void R_SubdividePolygon( surface_t *surf, int numVerts, float *verts )
 		totalLM[1] += t;
 
 		// vertex color
-		p->vertices[i+1].color.r = 255;
-		p->vertices[i+1].color.g = 255;
-		p->vertices[i+1].color.b = 255;
-		p->vertices[i+1].color.a = 255;
+		p->vertices[i+1].color[0] = 1.0f;
+		p->vertices[i+1].color[1] = 1.0f;
+		p->vertices[i+1].color[2] = 1.0f;
+		p->vertices[i+1].color[3] = 1.0f;
 
 		if( texInfo->flags & SURF_TRANS33 )
-			p->vertices[i+1].color.a *= 0.33;
+			p->vertices[i+1].color[3] *= 0.33;
 		else if( texInfo->flags & SURF_TRANS66 )
-			p->vertices[i+1].color.a *= 0.66;
+			p->vertices[i+1].color[3] *= 0.66;
 	}
 
 	// vertex
@@ -613,15 +613,15 @@ static void R_SubdividePolygon( surface_t *surf, int numVerts, float *verts )
 	p->vertices[0].lightmap[1] = totalLM[1] / numVerts;
 
 	// vertex color
-	p->vertices[0].color.r = 255;
-	p->vertices[0].color.g = 255;
-	p->vertices[0].color.b = 255;
-	p->vertices[0].color.a = 255;
+	p->vertices[0].color[0] = 1.0f;
+	p->vertices[0].color[1] = 1.0f;
+	p->vertices[0].color[2] = 1.0f;
+	p->vertices[0].color[3] = 1.0f;
 
 	if( texInfo->flags & SURF_TRANS33 )
-		p->vertices[0].color.a *= 0.33;
+		p->vertices[0].color[3] *= 0.33;
 	else if( texInfo->flags & SURF_TRANS66 )
-		p->vertices[0].color.b *= 0.66;
+		p->vertices[0].color[3] *= 0.66;
 
 	// copy first vertex to last
 	Mem_Copy( &p->vertices[i+1], &p->vertices[1], sizeof(surfPolyVert_t));
@@ -691,15 +691,15 @@ static void R_BuildPolygon( surface_t *surf, int numVerts, float *verts )
 		p->vertices[i].lightmap[1] = t;
 
 		// vertex color
-		p->vertices[i+1].color.r = 255;
-		p->vertices[i+1].color.g = 255;
-		p->vertices[i+1].color.b = 255;
-		p->vertices[i+1].color.a = 255;
+		p->vertices[i+1].color[0] = 1.0f;
+		p->vertices[i+1].color[1] = 1.0f;
+		p->vertices[i+1].color[2] = 1.0f;
+		p->vertices[i+1].color[3] = 1.0f;
 
 		if( texInfo->flags & SURF_TRANS33 )
-			p->vertices[i+1].color.a *= 0.33;
+			p->vertices[i+1].color[3] *= 0.33;
 		else if( texInfo->flags & SURF_TRANS66 )
-			p->vertices[i+1].color.a *= 0.66;
+			p->vertices[i+1].color[3] *= 0.66;
 	}
 }
 

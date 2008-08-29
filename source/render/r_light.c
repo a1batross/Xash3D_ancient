@@ -181,7 +181,7 @@ static bool R_RecursiveLightPoint( node_t *node, const vec3_t start, const vec3_
 
 		for( map = 0; map < surf->numStyles; map++ )
 		{
-			VectorScale(r_refdef.lightstyles[surf->styles[map]].rgb, r_modulate->value * (1.0/255), scale);
+			VectorScale( r_refdef.lightstyles[surf->styles[map]].rgb, r_modulate->value, scale );
 
 			r_pointColor[0] += lm[0] * scale[0];
 			r_pointColor[1] += lm[1] * scale[1];
@@ -233,7 +233,7 @@ void R_LightForPoint( const vec3_t point, vec3_t ambientLight )
 			if( !dist || dist > dl->intensity )
 				continue;
 
-			add = (dl->intensity - dist) * (1.0/255);
+			add = (dl->intensity - dist);
 			VectorMA( ambientLight, add, dl->color, ambientLight );
 		}
 	}
@@ -345,10 +345,10 @@ void R_LightingAmbient( void )
 	{
 		for( i = 0; i < numVertex; i++ )
 		{
-			colorArray[i][0] = 255;
-			colorArray[i][1] = 255;
-			colorArray[i][2] = 255;
-			colorArray[i][3] = 255;
+			colorArray[i][0] = 1.0f;
+			colorArray[i][1] = 1.0f;
+			colorArray[i][2] = 1.0f;
+			colorArray[i][3] = 1.0f;
 		}
 		return;
 	}
@@ -386,7 +386,7 @@ void R_LightingAmbient( void )
 			if( !dist || dist > dl->intensity + radius )
 				continue;
 
-			add = (dl->intensity - dist) * (1.0/255);
+			add = (dl->intensity - dist);
 			VectorMA( ambientLight, add, dl->color, ambientLight );
 		}
 	}
@@ -399,7 +399,7 @@ void R_LightingAmbient( void )
 		colorArray[i][0] = ambientLight[0];
 		colorArray[i][1] = ambientLight[1];
 		colorArray[i][2] = ambientLight[2];
-		colorArray[i][3] = 255;
+		colorArray[i][3] = 1.0f;
 	}
 }
 
@@ -421,10 +421,10 @@ void R_LightingDiffuse( void )
 	{
 		for( i = 0; i < numVertex; i++ )
 		{
-			colorArray[i][0] = 255;
-			colorArray[i][1] = 255;
-			colorArray[i][2] = 255;
-			colorArray[i][3] = 255;
+			colorArray[i][0] = 1.0f;
+			colorArray[i][1] = 1.0f;
+			colorArray[i][2] = 1.0f;
+			colorArray[i][3] = 1.0f;
 		}
 		return;
 	}
@@ -453,7 +453,7 @@ void R_LightingDiffuse( void )
 	}
 
 	// Compute lighting at each vertex
-	Matrix4x4_Rotate( m_pCurrentEntity->matrix, lightDir, dir );
+	VectorRotate( lightDir, m_pCurrentEntity->axis, dir );
 	VectorNormalizeFast( dir );
 
 	for( i = 0; i < numVertex; i++ )
@@ -481,7 +481,7 @@ void R_LightingDiffuse( void )
 			if( !dist || dist > dl->intensity + radius )
 				continue;
 
-			Matrix4x4_Rotate( m_pCurrentEntity->matrix, dir, lightDir );
+			VectorRotate( dir, m_pCurrentEntity->axis, lightDir );
 			intensity = dl->intensity * 8;
 
 			// compute lighting at each vertex
@@ -506,7 +506,7 @@ void R_LightingDiffuse( void )
 		colorArray[i][0] = r_lightColors[i][0];
 		colorArray[i][1] = r_lightColors[i][1];
 		colorArray[i][2] = r_lightColors[i][2];
-		colorArray[i][3] = 255;
+		colorArray[i][3] = 1.0f;
 	}
 }
 
@@ -519,7 +519,7 @@ LIGHT SAMPLING
 =======================================================================
 */
 
-static float	r_blockLights[128*128*3];
+static vec3_t	r_blockLights[128*128];
 
 
 /*
@@ -557,10 +557,10 @@ static void R_AddDynamicLights( surface_t *surf )
 		if(!(surf->dlightBits & (1<<l)))
 			continue;	// not lit by this light
 
-		if(!Matrix4x4_CompareRotateOnly( m_pCurrentEntity->matrix, identitymatrix ))
+		if( !AxisCompare( m_pCurrentEntity->axis, axisDefault ))
 		{
 			VectorSubtract( dl->origin, m_pCurrentEntity->origin, tmp );
-			Matrix4x4_Rotate( m_pCurrentEntity->matrix, tmp, origin );
+			VectorRotate( tmp, m_pCurrentEntity->axis, origin );
 		}
 		else VectorSubtract( dl->origin, m_pCurrentEntity->origin, origin );
 
@@ -582,7 +582,7 @@ static void R_AddDynamicLights( surface_t *surf )
 		sl = DotProduct(impact, tex->vecs[0]) + tex->vecs[0][3] - surf->textureMins[0];
 		tl = DotProduct(impact, tex->vecs[1]) + tex->vecs[1][3] - surf->textureMins[1];
 
-		bl = r_blockLights;
+		bl = (float *)r_blockLights;
 
 		for( t = 0, tacc = 0; t < surf->lmHeight; t++, tacc += 16 )
 		{
@@ -630,7 +630,7 @@ static void R_BuildLightmap( surface_t *surf, byte *dest, int stride )
 	if( !lm )
 	{
 		// set to full bright if no light data
-		for( i = 0, bl = r_blockLights; i < size; i++, bl += 3 )
+		for( i = 0, bl = (float *)r_blockLights; i < size; i++, bl += 3 )
 		{
 			bl[0] = 255;
 			bl[1] = 255;
@@ -642,7 +642,7 @@ static void R_BuildLightmap( surface_t *surf, byte *dest, int stride )
 		// add all the lightmaps
 		VectorScale( r_refdef.lightstyles[surf->styles[0]].rgb, r_modulate->value, scale );
 
-		for( i = 0, bl = r_blockLights; i < size; i++, bl += 3, lm += 3 )
+		for( i = 0, bl = (float *)r_blockLights; i < size; i++, bl += 3, lm += 3 )
 		{
 			bl[0] = lm[0] * scale[0];
 			bl[1] = lm[1] * scale[1];
@@ -654,7 +654,7 @@ static void R_BuildLightmap( surface_t *surf, byte *dest, int stride )
 			for( map = 1; map < surf->numStyles; map++ )
 			{
 				VectorScale( r_refdef.lightstyles[surf->styles[map]].rgb, r_modulate->value, scale );
-				for( i = 0, bl = r_blockLights; i < size; i++, bl += 3, lm += 3 )
+				for( i = 0, bl = (float *)r_blockLights; i < size; i++, bl += 3, lm += 3 )
 				{
 					bl[0] += lm[0] * scale[0];
 					bl[1] += lm[1] * scale[1];
@@ -670,7 +670,7 @@ static void R_BuildLightmap( surface_t *surf, byte *dest, int stride )
 
 	// put into texture format
 	stride -= (surf->lmWidth<<2);
-	bl = r_blockLights;
+	bl = (float *)r_blockLights;
 
 	for( t = 0; t < surf->lmHeight; t++ )
 	{
@@ -723,7 +723,7 @@ static void R_UploadLightmap( void )
 	r_generic.type = PF_RGBA_GN; // generated
 	r_generic.size = r_generic.width * r_generic.height * 4;
 	r_generic.numMips = 1;
-	r_generic.buffer = r_lmState.buffer;
+	r_generic.buffer = (byte *)r_lmState.buffer;
 	r_lightmapTextures[r_lmState.currentNum++] = R_LoadTexture( name, &r_generic, TF_CLAMP, 0 );
 
 	// reset
@@ -778,18 +778,20 @@ R_BeginBuildingLightmaps
 */
 void R_BeginBuildingLightmaps( void )
 {
+	static lightstyle_t	lightstyles[MAX_LIGHTSTYLES];
 	int	i;
-
+		
 	// setup the base lightstyles so the lightmaps 
 	// won't have to be regenerated the first time they're seen
 	for( i = 0; i < MAX_LIGHTSTYLES; i++ )
 	{
-		r_refdef.lightstyles[i].white = 3;
-		r_refdef.lightstyles[i].rgb[0] = 1;
-		r_refdef.lightstyles[i].rgb[1] = 1;
-		r_refdef.lightstyles[i].rgb[2] = 1;
+		lightstyles[i].white = 3;
+		lightstyles[i].rgb[0] = 1;
+		lightstyles[i].rgb[1] = 1;
+		lightstyles[i].rgb[2] = 1;
 	}
-
+	r_refdef.lightstyles = lightstyles;
+	
 	r_lmState.currentNum = -1;
 	memset( r_lmState.allocated, 0, sizeof( r_lmState.allocated ));
 	memset( r_lmState.buffer, 255, sizeof( r_lmState.buffer ));
