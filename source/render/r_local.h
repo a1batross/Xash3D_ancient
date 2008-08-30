@@ -17,12 +17,15 @@ extern byte *r_temppool;
 #define Host_Error			com.error
 
 // limits
-#define MAX_TEXTURES		4096
+#define MAX_TEXTURE_UNITS		8
+#define MAX_LIGHTMAPS		128
 #define MAX_PROGRAMS		512
 #define MAX_SHADERS			1024
-#define MAX_LIGHTMAPS		128
+#define MAX_ENTITIES		1024
 #define MAX_VERTEX_BUFFERS		2048
-#define MAX_TEXTURE_UNITS		8
+#define MAX_TEXTURES		4096
+#define MAX_POLYS			4096
+#define MAX_POLY_VERTS		16384
 
 /*
 =======================================================================
@@ -131,11 +134,12 @@ void		R_ShutdownPrograms( void );
 // Shader types used for shader loading
 typedef enum
 {
-	SHADER_SKY,
-	SHADER_BSP,
-	SHADER_SKIN,
-	SHADER_NOMIP,
-	SHADER_GENERIC
+	SHADER_SKY,			// sky box shader
+	SHADER_BSP,			// bsp polygon
+	SHADER_STUDIO,			// studio skins
+	SHADER_SPRITE,			// sprite frames
+	SHADER_NOMIP,			// 2d images
+	SHADER_GENERIC			// generic shader
 } shaderType_t;
 
 // surfaceParm flags used for shader loading
@@ -160,10 +164,9 @@ typedef enum
 #define SHADER_POLYGONOFFSET			0x00000400
 #define SHADER_CULL				0x00000800
 #define SHADER_SORT				0x00001000
-#define SHADER_AMMODISPLAY			0x00002000
-#define SHADER_TESSSIZE			0x00004000
-#define SHADER_SKYPARMS			0x00008000
-#define SHADER_DEFORMVERTEXES			0x00010000
+#define SHADER_TESSSIZE			0x00002000
+#define SHADER_SKYPARMS			0x00004000
+#define SHADER_DEFORMVERTEXES			0x00008000
 
 // shader stage flags
 #define SHADERSTAGE_NEXTBUNDLE		0x00000001
@@ -440,6 +443,7 @@ extern shader_t	*r_slimeCausticsShader;
 extern shader_t	*r_lavaCausticsShader;
 
 shader_t	*R_FindShader( const char *name, shaderType_t shaderType, uint surfaceParm );
+void	R_SetInternalMap( texture_t *mipTex ); // internal textures (skins, spriteframes, etc)
 void	R_ShaderList_f( void );
 void	R_InitShaders( void );
 void	R_ShutdownShaders (void);
@@ -502,6 +506,20 @@ typedef struct surfPoly_s
 	uint		*indices;
 	surfPolyVert_t	*vertices;
 } surfPoly_t;
+
+typedef struct
+{
+	vec3_t		xyz;
+	vec2_t		st;
+	vec4_t		modulate;
+} polyVert_t;
+
+typedef struct
+{
+	shader_t		*shader;
+	int		numVerts;
+	polyVert_t	*verts;
+} poly_t;
 
 typedef struct mipTex_s
 {
@@ -1010,6 +1028,7 @@ void		GL_DepthMask( GLboolean mask );
 void		GL_SetColor( const void *data );
 void		GL_LoadMatrix( matrix4x4 source );
 void		GL_SetDefaultState( void );
+void		GL_BuildGammaTable( void );
 void		GL_UpdateGammaRamp( void );
 void		GL_Setup3D( void );
 void		GL_Setup2D( void );
@@ -1137,7 +1156,20 @@ extern mesh_t	r_solidMeshes[MAX_MESHES];
 extern int	r_numSolidMeshes;
 extern mesh_t	r_transMeshes[MAX_MESHES];
 extern int	r_numTransMeshes;
+extern ref_entity_t	r_entities[MAX_ENTITIES];
+extern int	r_numEntities;
+extern dlight_t	r_dlights[MAX_DLIGHTS];
+extern int	r_numDLights;
+extern particle_t	r_particles[MAX_PARTICLES];
+extern int	r_numParticles;
+extern poly_t	r_polys[MAX_POLYS];
+extern int	r_numPolys;
+extern polyVert_t	r_polyVerts[MAX_POLY_VERTS];
+extern int	r_numPolyVerts;
+extern ref_entity_t	*r_nullModels[MAX_ENTITIES];
+extern int	r_numNullModels;
 
+extern lightstyle_t	r_lightStyles[MAX_LIGHTSTYLES];
 extern refdef_t	r_refdef;
 extern refstats_t	r_stats;
 
@@ -1145,7 +1177,7 @@ void		R_DrawStudioModel( int passnum );
 void		R_AddStudioModelToList( ref_entity_t *entity );
 void		R_StudioLoadModel( rmodel_t *mod, const void *buffer );
 
-void		R_DrawSpriteModel( int passnum );
+void		R_DrawSpriteModel( void );
 void		R_AddSpriteModelToList( ref_entity_t *entity );
 void		R_SpriteLoadModel( rmodel_t *mod, const void *buffer );
 mspriteframe_t	*R_GetSpriteFrame( ref_entity_t *ent );

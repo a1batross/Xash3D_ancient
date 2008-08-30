@@ -81,12 +81,12 @@ void R_MarkLights( void )
 	dlight_t	*dl;
 	int	l;
 
-	if( !r_dynamiclights->integer || !r_refdef.num_dlights )
+	if( !r_dynamiclights->integer || !r_numDLights )
 		return;
 
-	r_stats.numDLights += r_refdef.num_dlights;
+	r_stats.numDLights += r_numDLights;
 
-	for( l = 0, dl = r_refdef.dlights; l < r_refdef.num_dlights; l++, dl++ )
+	for( l = 0, dl = r_dlights; l < r_numDLights; l++, dl++ )
 	{
 		if( R_CullSphere( dl->origin, dl->intensity, 15 ))
 			continue;
@@ -181,7 +181,7 @@ static bool R_RecursiveLightPoint( node_t *node, const vec3_t start, const vec3_
 
 		for( map = 0; map < surf->numStyles; map++ )
 		{
-			VectorScale( r_refdef.lightstyles[surf->styles[map]].rgb, r_modulate->value, scale );
+			VectorScale( r_lightStyles[surf->styles[map]].rgb, r_modulate->value, scale );
 
 			r_pointColor[0] += lm[0] * scale[0];
 			r_pointColor[1] += lm[1] * scale[1];
@@ -226,7 +226,7 @@ void R_LightForPoint( const vec3_t point, vec3_t ambientLight )
 	// add dynamic lights
 	if( r_dynamiclights->integer )
 	{
-		for( l = 0, dl = r_refdef.dlights; l < r_refdef.num_dlights; l++, dl++ )
+		for( l = 0, dl = r_dlights; l < r_numDLights; l++, dl++ )
 		{
 			VectorSubtract(dl->origin, point, dir);
 			dist = VectorLength(dir);
@@ -315,7 +315,7 @@ void R_LightDir( const vec3_t origin, vec3_t lightDir )
 	// Add dynamic lights
 	if( r_dynamiclights->integer )
 	{
-		for( l = 0, dl = r_refdef.dlights; l < r_refdef.num_dlights; l++, dl++ )
+		for( l = 0, dl = r_dlights; l < r_numDLights; l++, dl++ )
 		{
 			VectorSubtract( dl->origin, origin, dir );
 			dist = VectorLength( dir );
@@ -379,7 +379,7 @@ void R_LightingAmbient( void )
 			radius = m_pCurrentEntity->model->radius;
 		else radius = m_pCurrentEntity->radius;
 
-		for( l = 0, dl = r_refdef.dlights; l < r_refdef.num_dlights; l++, dl++ )
+		for( l = 0, dl = r_dlights; l < r_numDLights; l++, dl++ )
 		{
 			VectorSubtract( dl->origin, m_pCurrentEntity->origin, dir );
 			dist = VectorLength( dir );
@@ -474,7 +474,7 @@ void R_LightingDiffuse( void )
 			radius = m_pCurrentEntity->model->radius;
 		else radius = m_pCurrentEntity->radius;
 
-		for( l = 0, dl = r_refdef.dlights; l < r_refdef.num_dlights; l++, dl++ )
+		for( l = 0, dl = r_dlights; l < r_numDLights; l++, dl++ )
 		{
 			VectorSubtract( dl->origin, m_pCurrentEntity->origin, dir );
 			dist = VectorLength( dir );
@@ -532,7 +532,7 @@ static void R_SetCacheState( surface_t *surf )
 	int	map;
 
 	for( map = 0; map < surf->numStyles; map++ )
-		surf->cachedLight[map] = r_refdef.lightstyles[surf->styles[map]].white;
+		surf->cachedLight[map] = r_lightStyles[surf->styles[map]].white;
 }
 
 /*
@@ -552,7 +552,7 @@ static void R_AddDynamicLights( surface_t *surf )
 	dlight_t		*dl;
 	float		*bl;
 
-	for( l = 0, dl = r_refdef.dlights; l < r_refdef.num_dlights; l++, dl++ )
+	for( l = 0, dl = r_dlights; l < r_numDLights; l++, dl++ )
 	{
 		if(!(surf->dlightBits & (1<<l)))
 			continue;	// not lit by this light
@@ -640,7 +640,7 @@ static void R_BuildLightmap( surface_t *surf, byte *dest, int stride )
 	else
 	{
 		// add all the lightmaps
-		VectorScale( r_refdef.lightstyles[surf->styles[0]].rgb, r_modulate->value, scale );
+		VectorScale( r_lightStyles[surf->styles[0]].rgb, r_modulate->value, scale );
 
 		for( i = 0, bl = (float *)r_blockLights; i < size; i++, bl += 3, lm += 3 )
 		{
@@ -653,7 +653,7 @@ static void R_BuildLightmap( surface_t *surf, byte *dest, int stride )
 		{
 			for( map = 1; map < surf->numStyles; map++ )
 			{
-				VectorScale( r_refdef.lightstyles[surf->styles[map]].rgb, r_modulate->value, scale );
+				VectorScale( r_lightStyles[surf->styles[map]].rgb, r_modulate->value, scale );
 				for( i = 0, bl = (float *)r_blockLights; i < size; i++, bl += 3, lm += 3 )
 				{
 					bl[0] += lm[0] * scale[0];
@@ -778,19 +778,17 @@ R_BeginBuildingLightmaps
 */
 void R_BeginBuildingLightmaps( void )
 {
-	static lightstyle_t	lightstyles[MAX_LIGHTSTYLES];
 	int	i;
 		
 	// setup the base lightstyles so the lightmaps 
 	// won't have to be regenerated the first time they're seen
 	for( i = 0; i < MAX_LIGHTSTYLES; i++ )
 	{
-		lightstyles[i].white = 3;
-		lightstyles[i].rgb[0] = 1;
-		lightstyles[i].rgb[1] = 1;
-		lightstyles[i].rgb[2] = 1;
+		r_lightStyles[i].white = 3;
+		r_lightStyles[i].rgb[0] = 1;
+		r_lightStyles[i].rgb[1] = 1;
+		r_lightStyles[i].rgb[2] = 1;
 	}
-	r_refdef.lightstyles = lightstyles;
 	
 	r_lmState.currentNum = -1;
 	memset( r_lmState.allocated, 0, sizeof( r_lmState.allocated ));

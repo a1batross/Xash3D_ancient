@@ -105,7 +105,7 @@ void CL_AddLightStyles (void)
 	clightstyle_t	*ls;
 
 	for( i = 0, ls = cl_lightstyle; i < MAX_LIGHTSTYLES; i++, ls++ )
-		re->AddLightStyle( &cl.refdef, i, ls->value );
+		re->AddLightStyle( i, ls->value );
 }
 
 /*
@@ -232,8 +232,7 @@ void CL_AddDLights (void)
 	dl = cl_dlights;
 	for( i = 0; i < MAX_DLIGHTS; i++, dl++ )
 	{
-		if( dl->radius )
-			re->AddDynLight( &cl.refdef, dl->origin, dl->color, dl->radius );
+		if( dl->radius ) re->AddDynLight( dl->origin, dl->color, dl->radius );
 	}
 }
 
@@ -414,7 +413,7 @@ void CL_AddParticles (void)
 		org[1] = p->org[1] + p->vel[1] * time + p->accel[1] * time2;
 		org[2] = p->org[2] + p->vel[2] * time + p->accel[2] * time2;
 
-		re->AddParticle( &cl.refdef, org, alpha, color );
+		re->AddParticle( org, alpha, color );
 		// PMM
 		if( p->alphavel == INSTANT_PARTICLE )
 		{

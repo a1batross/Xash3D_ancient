@@ -22,8 +22,19 @@ mesh_t		r_solidMeshes[MAX_MESHES];
 int		r_numSolidMeshes;
 mesh_t		r_transMeshes[MAX_MESHES];
 int		r_numTransMeshes;
-ref_entity_t	*r_nullModels[MAX_MAP_MODELS];
-rmodel_t		*cl_models[MAX_MODELS];		// models with client modelindexes
+ref_entity_t	*r_nullModels[MAX_ENTITIES];
+rmodel_t		*cl_models[MAX_MODELS];		// client replacement modeltable
+lightstyle_t	r_lightStyles[MAX_LIGHTSTYLES];
+ref_entity_t	r_entities[MAX_ENTITIES];
+int		r_numEntities;
+dlight_t		r_dlights[MAX_DLIGHTS];
+int		r_numDLights;
+particle_t	r_particles[MAX_PARTICLES];
+int		r_numParticles;
+poly_t		r_polys[MAX_POLYS];
+int		r_numPolys;
+polyVert_t	r_polyVerts[MAX_POLY_VERTS];
+int		r_numPolyVerts;
 int		r_numNullModels;
 refdef_t		r_refdef;
 refstats_t	r_stats;
@@ -33,9 +44,9 @@ glconfig_t	gl_config;
 glstate_t		gl_state;
 
 // view matrix
-vec3_t		r_up;
-vec3_t		r_right;
 vec3_t		r_forward;
+vec3_t		r_right;
+vec3_t		r_up;
 vec3_t		r_origin;
 
 cvar_t	*r_check_errors;
@@ -194,151 +205,8 @@ void R_RotateForEntity( ref_entity_t *entity )
 
 // =====================================================================
 
-
-/*
-=================
-R_AddSpriteModelToList
-
-I am only keeping this for backwards compatibility
-=================
-*/
-static void R_AddSpriteModelToList( ref_entity_t *entity )
-{
-	mspriteframe_t	*frame;
-	vec3_t		vec;
-
-	frame = R_GetSpriteFrame( entity );
-
-	// cull
-	if( !r_nocull->integer )
-	{
-		VectorSubtract( entity->origin, r_refdef.vieworg, vec );
-		VectorNormalizeFast( vec );
-
-		if( DotProduct( vec, r_forward ) < 0 )
-			return;
-	}
-
-	// HACK: make it a sprite entity
-	entity->ent_type = ED_NORMAL;
-	entity->radius = frame->radius;
-	entity->rotation = 0;
-	entity->shader = frame->shader;
-
-	// HACK: make it translucent
-	if(!(entity->shader->flags & SHADER_EXTERNAL))
-	{
-		entity->shader->sort = SORT_BLEND;
-		entity->shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-		entity->shader->stages[0]->flags &= ~SHADERSTAGE_DEPTHWRITE;
-		entity->shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
-		entity->shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
-	}
-
-	// add it
-	R_AddMeshToList( MESH_SPRITE, NULL, entity->shader, entity, 0);
-}
-
 static void R_AddStudioModelToList( ref_entity_t *entity )
 {
-}
-
-/*
- =================
- R_DrawSprite
- =================
-*/
-void R_DrawSprite( void )
-{
-	vec3_t	axis[3];
-	int	i;
-
-	if( m_pCurrentEntity->rotation )
-	{
-		// rotate it around its normal
-		RotatePointAroundVector( axis[1], r_forward, r_right, m_pCurrentEntity->rotation );
-		CrossProduct( r_forward, axis[1], axis[2] );
-
-		// the normal should point at the viewer
-		VectorNegate( r_forward, axis[0] );
-
-		// Scale the axes by radius
-		VectorScale( axis[1], m_pCurrentEntity->radius, axis[1] );
-		VectorScale( axis[2], m_pCurrentEntity->radius, axis[2] );
-	}
-	else
-	{
-		// the normal should point at the viewer
-		VectorNegate( r_forward, axis[0] );
-
-		// scale the axes by radius
-		VectorScale( r_right, m_pCurrentEntity->radius, axis[1] );
-		VectorScale( r_up, m_pCurrentEntity->radius, axis[2] );
-	}
-
-	// draw it
-	RB_CheckMeshOverflow( 6, 4 );
-	
-	for( i = 2; i < 4; i++ )
-	{
-		indexArray[numIndex++] = numVertex + 0;
-		indexArray[numIndex++] = numVertex + i-1;
-		indexArray[numIndex++] = numVertex + i;
-	}
-
-	vertexArray[numVertex+0][0] = m_pCurrentEntity->origin[0] + axis[1][0] + axis[2][0];
-	vertexArray[numVertex+0][1] = m_pCurrentEntity->origin[1] + axis[1][1] + axis[2][1];
-	vertexArray[numVertex+0][2] = m_pCurrentEntity->origin[2] + axis[1][2] + axis[2][2];
-	vertexArray[numVertex+1][0] = m_pCurrentEntity->origin[0] - axis[1][0] + axis[2][0];
-	vertexArray[numVertex+1][1] = m_pCurrentEntity->origin[1] - axis[1][1] + axis[2][1];
-	vertexArray[numVertex+1][2] = m_pCurrentEntity->origin[2] - axis[1][2] + axis[2][2];
-	vertexArray[numVertex+2][0] = m_pCurrentEntity->origin[0] - axis[1][0] - axis[2][0];
-	vertexArray[numVertex+2][1] = m_pCurrentEntity->origin[1] - axis[1][1] - axis[2][1];
-	vertexArray[numVertex+2][2] = m_pCurrentEntity->origin[2] - axis[1][2] - axis[2][2];
-	vertexArray[numVertex+3][0] = m_pCurrentEntity->origin[0] + axis[1][0] - axis[2][0];
-	vertexArray[numVertex+3][1] = m_pCurrentEntity->origin[1] + axis[1][1] - axis[2][1];
-	vertexArray[numVertex+3][2] = m_pCurrentEntity->origin[2] + axis[1][2] - axis[2][2];
-
-	inTexCoordArray[numVertex+0][0] = 0;
-	inTexCoordArray[numVertex+0][1] = 0;
-	inTexCoordArray[numVertex+1][0] = 1;
-	inTexCoordArray[numVertex+1][1] = 0;
-	inTexCoordArray[numVertex+2][0] = 1;
-	inTexCoordArray[numVertex+2][1] = 1;
-	inTexCoordArray[numVertex+3][0] = 0;
-	inTexCoordArray[numVertex+3][1] = 1;
-
-	for( i = 0; i < 4; i++ )
-	{
-		normalArray[numVertex][0] = axis[0][0];
-		normalArray[numVertex][1] = axis[0][1];
-		normalArray[numVertex][2] = axis[0][2];
-		Vector4Copy(m_pCurrentEntity->shaderRGBA, inColorArray[numVertex] ); 
-		numVertex++;
-	}
-}
-
-/*
-=================
-R_AddSpriteToList
-=================
-*/
-static void R_AddSpriteToList( ref_entity_t *entity )
-{
-	vec3_t	vec;
-
-	// cull
-	if( !r_nocull->integer )
-	{
-		VectorSubtract(entity->origin, r_refdef.vieworg, vec);
-		VectorNormalizeFast(vec);
-
-		if( DotProduct(vec, r_forward ) < 0 )
-			return;
-	}
-
-	// add it
-	R_AddMeshToList( MESH_SPRITE, NULL, entity->shader, entity, 0 );
 }
 
 /*
@@ -432,19 +300,19 @@ static void R_AddEntitiesToList( void )
 	rmodel_t		*model;
 	int		i;
 
-	if( !r_drawentities->integer || r_refdef.num_entities == 1 )
+	if( !r_drawentities->integer || r_numEntities == 1 )
 		return;
 
-	r_stats.numEntities += (r_refdef.num_entities - 1);
+	r_stats.numEntities += (r_numEntities - 1);
 
-	for( i = 1, entity = &r_refdef.entities[1]; i < r_refdef.num_entities; i++, entity++ )
+	for( i = 1, entity = &r_entities[1]; i < r_numEntities; i++, entity++ )
 	{
 		switch( entity->ent_type )
 		{
 		case ED_NORMAL:
 		case ED_CLIENT:
 		case ED_VIEWMODEL:
-			model = entity->model;
+			model = m_pRenderModel = entity->model;
 			if( !model || model->type == mod_bad )
 			{
 				r_nullModels[r_numNullModels++] = entity;
@@ -654,12 +522,12 @@ static void R_AddParticlesToList( void )
 	vec3_t		vec;
 	int			i;
 
-	if( !r_drawparticles->integer || !r_refdef.num_particles )
+	if( !r_drawparticles->integer || !r_numParticles )
 		return;
 
-	r_stats.numParticles += r_refdef.num_particles;
+	r_stats.numParticles += r_numParticles;
 
-	for (i = 0, particle = r_refdef.particles; i < r_refdef.num_particles; i++, particle++ )
+	for (i = 0, particle = r_particles; i < r_numParticles; i++, particle++ )
 	{
 		// cull
 		if( !r_nocull->integer )
@@ -805,7 +673,7 @@ void R_AddMeshToList( meshType_t meshType, void *mesh, shader_t *shader, ref_ent
 		m = &r_transMeshes[r_numTransMeshes++];
 	}
 
-	m->sortKey = (shader->sort<<28) | (shader->shaderNum<<18) | ((entity - r_refdef.entities)<<8) | (infoKey);
+	m->sortKey = (shader->sort<<28) | (shader->shaderNum<<18) | ((entity - r_entities)<<8) | (infoKey);
 	m->meshType = meshType;
 	m->mesh = mesh;
 }
@@ -1081,39 +949,17 @@ void R_DrawPauseScreen( void )
 }
 
 /*
- =================
- R_ClearScene
- =================
+=================
+R_ClearScene
+=================
 */
-void R_ClearScene( refdef_t *fd )
+void R_ClearScene( void )
 {
-	if( !fd ) return;
-	if( !fd->mempool )
-	{
-		// init arrays
-		if( fd->rdflags & RDF_NOWORLDMODEL )
-		{
-			// menu viewport not needs to many objects
-			fd->mempool = Mem_AllocPool( "Viewport Zone" );
-			fd->entities = (ref_entity_t *)Mem_Alloc( fd->mempool, sizeof(ref_entity_t) * 32 );
-			fd->particles = (particle_t *)Mem_Alloc( fd->mempool, sizeof(particle_t) * 512 );
-			fd->dlights = (dlight_t *)Mem_Alloc( fd->mempool, sizeof(dlight_t) * 4 );
-		}
-		else
-		{
-			fd->mempool = Mem_AllocPool("Refdef Zone");
-			fd->entities = (ref_entity_t *)Mem_Alloc( fd->mempool, sizeof(ref_entity_t) * gl_config.max_entities );
-			fd->particles = (particle_t *)Mem_Alloc( fd->mempool, sizeof(particle_t) * MAX_PARTICLES );
-			fd->lightstyles = (lightstyle_t *)Mem_Alloc( fd->mempool, sizeof(lightstyle_t) * MAX_LIGHTSTYLES );	
-			fd->dlights = (dlight_t *)Mem_Alloc( fd->mempool, sizeof(dlight_t) * MAX_DLIGHTS );
-		}
-	}	
-
-	// clear scene
-	fd->num_dlights = 0;
-	fd->num_entities = 0;
-	fd->num_particles = 0;
-	r_refdef = *fd;
+	r_numEntities = 1;
+	r_numDLights = 0;
+	r_numParticles = 0;
+	r_numPolys = 0;
+	r_numPolyVerts = 0;
 }
 
 /*
@@ -1156,30 +1002,16 @@ void R_SetLightLevel( void )
 R_AddEntityToScene
 =================
 */
-static bool R_AddEntityToScene( refdef_t *fd, entity_state_t *s1, entity_state_t *s2, float lerpfrac )
+static bool R_AddEntityToScene( entity_state_t *s1, entity_state_t *s2, float lerpfrac )
 {
 	ref_entity_t	*refent;
-	int		i, max_edicts = gl_config.max_entities;
+	int		i;
 
-	if( !fd || !fd->entities ) return false; // not init
 	if( !s1 || !s1->model.index ) return false; // if set to invisible, skip
-	
-	if( fd->num_entities >= max_edicts )
-		return false;
+	if( r_numEntities >= MAX_ENTITIES ) return false;
 
-	refent = &fd->entities[fd->num_entities];
+	refent = &r_entities[r_numEntities];
 	if( !s2 ) s2 = s1; // no lerping state
-
-	if( fd->num_entities == 0 )
-	{
-		// add the world
-		r_worldEntity = &fd->entities[fd->num_entities++];
-		r_worldEntity->model = r_worldModel;
-		r_worldEntity->ent_type = ED_NORMAL;
-		AxisClear( r_worldEntity->axis );
-		Vector4Set( r_worldEntity->shaderRGBA, 1.0f, 1.0f, 1.0f, 1.0f );
-		refent = &fd->entities[fd->num_entities];
-	}
 
 	// copy state to render
 	refent->frame = s1->model.frame;
@@ -1219,7 +1051,7 @@ static bool R_AddEntityToScene( refdef_t *fd, entity_state_t *s1, entity_state_t
 	if( refent->effects & EF_ROTATE )
 	{	
 		// some bonus items auto-rotate
-		VectorSet( refent->angles, 0, anglemod(fd->time / 10), 0 );
+		VectorSet( refent->angles, 0, anglemod( r_refdef.time / 10), 0 );
 	}
 	else
 	{	
@@ -1255,8 +1087,7 @@ static bool R_AddEntityToScene( refdef_t *fd, entity_state_t *s1, entity_state_t
 	if( !refent->ent_type ) refent->ent_type = ED_NORMAL;
 
 	// add entity
-	fd->num_entities++;
-	r_refdef = *fd;
+	r_numEntities++;
 
 	return true;
 }
@@ -1266,20 +1097,18 @@ static bool R_AddEntityToScene( refdef_t *fd, entity_state_t *s1, entity_state_t
 R_AddLightToScene
 =================
 */
-static bool R_AddDynamicLight( refdef_t *fd, vec3_t org, vec3_t color, float intensity )
+static bool R_AddDynamicLight( vec3_t org, vec3_t color, float intensity )
 {
 	dlight_t	*dl;
 
-	if( !fd || !fd->dlights ) return false;
-	if( fd->num_dlights >= MAX_DLIGHTS )
+	if( r_numDLights >= MAX_DLIGHTS )
 		return false;
 
-	dl = &fd->dlights[fd->num_dlights];
+	dl = &r_dlights[r_numDLights];
 	VectorCopy( org, dl->origin );
 	VectorCopy( color, dl->color );
 	dl->intensity = intensity;
-	fd->num_dlights++;
-	r_refdef = *fd;
+	r_numDLights++;
 
 	return true;
 }
@@ -1289,15 +1118,14 @@ static bool R_AddDynamicLight( refdef_t *fd, vec3_t org, vec3_t color, float int
 R_AddParticleToScene
 =================
 */
-bool R_AddParticleToScene( refdef_t *fd, const vec3_t origin, float alpha, int color )
+bool R_AddParticleToScene( const vec3_t origin, float alpha, int color )
 {
 	particle_t	*p;
 
-	if( !fd || !fd->particles ) return false;
-	if( fd->num_particles >= MAX_PARTICLES)
+	if( r_numParticles >= MAX_PARTICLES )
 		return false;
 
-	p = &fd->particles[fd->num_particles];
+	p = &r_particles[r_numParticles];
 
 	p->shader = r_defaultShader;
 	VectorCopy( origin, p->origin );
@@ -1306,24 +1134,21 @@ bool R_AddParticleToScene( refdef_t *fd, const vec3_t origin, float alpha, int c
 	p->length = alpha;
 	p->rotation = 0;
 	Vector4Set( p->modulate, 1.0f, 1.0f, 1.0f, 1.0f );
-	fd->num_particles++;
-	r_refdef = *fd;
+	r_numParticles++;
 
 	return true;
 }
 
-static bool R_AddLightStyle( refdef_t *fd, int style, vec3_t color )
+static bool R_AddLightStyle( int style, vec3_t color )
 {
 	lightstyle_t	*ls;
 
-	if( !fd || !fd->lightstyles ) return false;
 	if( style < 0 || style > MAX_LIGHTSTYLES )
 		return false; // invalid lightstyle
 
-	ls = &fd->lightstyles[style];
+	ls = &r_lightStyles[style];
 	ls->white = color[0] + color[1] + color[2];
 	VectorCopy( color, ls->rgb );
-	r_refdef = *fd;
 
 	return true;
 }

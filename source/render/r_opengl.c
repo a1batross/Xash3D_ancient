@@ -90,6 +90,8 @@ bool R_SetPixelformat( void )
 {
 	long	flags = PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_GENERIC_ACCELERATED|PFD_DOUBLEBUFFER;
 	int	pixelformat;	
+	size_t	gamma_size;
+	byte	*savedGamma;
 
 	PIXELFORMATDESCRIPTOR pfd =
 	{
@@ -145,6 +147,64 @@ bool R_SetPixelformat( void )
 	// init gamma ramp
 	ZeroMemory( gl_state.stateRamp, sizeof(gl_state.stateRamp));
 	gl_config.deviceSupportsGamma = GetDeviceGammaRamp( glw_state.hDC, gl_state.stateRamp );
+	savedGamma = FS_LoadFile( "config/gamma.rc", &gamma_size );
+	if( !savedGamma || gamma_size != sizeof( gl_state.stateRamp ))
+	{
+		// saved gamma not found or correupted file
+		FS_WriteFile( "config/gamma.rc", gl_state.stateRamp, sizeof(gl_state.stateRamp));
+		Msg( "gamma.rc initialized\n" );
+	}
+	else
+	{
+		GL_BuildGammaTable();
+
+		// validate base gamma
+		if(!memcmp( savedGamma, gl_state.stateRamp, sizeof(gl_state.stateRamp)))
+		{
+			// all ok, previous gamma is valid
+			MsgDev( D_NOTE, "R_SetPixelformat: validate screen gamma - ok\n" );
+		}
+		else if(!memcmp( gl_state.gammaRamp, gl_state.stateRamp, sizeof(gl_state.stateRamp)))
+		{
+			// screen gamma is equal to render gamma (probably previous instance crashed)
+			// run additional check to make sure it
+			if(memcmp( savedGamma, gl_state.stateRamp, sizeof(gl_state.stateRamp)))
+			{
+				// yes, current gamma it's totally wrong, restore it from gamma.rc
+				MsgDev( D_NOTE, "R_SetPixelformat: restore original gamma after crash\n" );
+				Mem_Copy( gl_state.stateRamp, savedGamma, sizeof( gl_state.gammaRamp ));
+			}
+			else
+			{
+				// oops, savedGamma == gl_state.stateRamp == gl_state.gammaRamp
+				// probably vid_gamma set as default
+				MsgDev( D_NOTE, "R_SetPixelformat: validate screen gamma - disabled\n" ); 
+			}
+		}
+		else if(!memcmp( gl_state.gammaRamp, savedGamma, sizeof(gl_state.stateRamp)))
+		{
+			// saved gamma is equal render gamma, probably gamma.rc writed after crash
+			// run additional check to make sure it
+			if(memcmp( savedGamma, gl_state.stateRamp, sizeof(gl_state.stateRamp)))
+			{
+				// yes, saved gamma it's totally wrong, get origianl gamma from screen
+				MsgDev( D_NOTE, "R_SetPixelformat: merge gamma.rc after crash\n" );
+				FS_WriteFile( "config/gamma.rc", gl_state.stateRamp, sizeof(gl_state.stateRamp));
+			}
+			else
+			{
+				// oops, savedGamma == gl_state.stateRamp == gl_state.gammaRamp
+				// probably vid_gamma set as default
+				MsgDev( D_NOTE, "R_SetPixelformat: validate screen gamma - disabled\n" ); 
+			}
+		}
+		else
+		{
+			// gamma.rc corrupted by stupid user, restore from screen
+			// probably never reached, but just in case
+			FS_WriteFile( "config/gamma.rc", gl_state.stateRamp, sizeof(gl_state.stateRamp));			
+		}
+	}
 	vid_gamma->modified = true;
 
 	return true;
@@ -424,5 +484,5 @@ void R_CheckForErrors( void )
 		str = "UNKNOWN ERROR";
 		break;
 	}
-	Host_Error( "R_CheckForErrors: %s", str );
+	Host_Error( "R_CheckForErrors: %s\n", str );
 }

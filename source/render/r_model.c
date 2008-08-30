@@ -981,6 +981,7 @@ static void R_SetupSubmodels( void )
 		model->radius = bm->radius;
 
 		if( i == 0 ) *m_pLoadModel = *model;
+		else com.snprintf( model->name, sizeof(model->name), "*%i", i );
 		model->numLeafs = bm->visLeafs;
 	}
 }
@@ -1373,6 +1374,13 @@ void R_InitModels( void )
 	r_nummodels = 0;
 	r_viewCluster = r_oldViewCluster = -1;			// force markleafs
 
+	r_worldEntity = &r_entities[0];			// First entity is the world
+	memset( r_worldEntity, 0, sizeof( ref_entity_t ));
+	r_worldEntity->ent_type = ED_NORMAL;
+	r_worldEntity->model = r_worldModel;
+	AxisClear( r_worldEntity->axis );
+	Vector4Set( r_worldEntity->shaderRGBA, 1.0f, 1.0f, 1.0f, 1.0f );
+	
 	R_StudioInit();
 }
 

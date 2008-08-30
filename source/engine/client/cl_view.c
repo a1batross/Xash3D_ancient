@@ -31,7 +31,7 @@ Specifies the model that will be used as the world
 */
 void V_ClearScene( void )
 {
-	re->ClearScene( &cl.refdef );
+	re->ClearScene();
 }
 
 /*
@@ -64,7 +64,7 @@ void V_TestEntities( void )
 	entity_state_t	ent;
 
 	memset( &ent, 0, sizeof(entity_state_t));
-	cl.refdef.num_entities = 0;
+	V_ClearScene();
 
 	for( i = 0; i < 32; i++ )
 	{
@@ -77,7 +77,7 @@ void V_TestEntities( void )
 		ent.model.controller[0] = ent.model.controller[1] = 90.0f;
 		ent.model.controller[2] = ent.model.controller[3] = 180.0f;
 		ent.model.index = cl.frame.ps.model.index;
-		re->AddRefEntity( &cl.refdef, &ent, NULL, 1.0f );
+		re->AddRefEntity( &ent, NULL, 1.0f );
 	}
 }
 
@@ -94,9 +94,9 @@ void V_TestLights( void )
 	float		f, r;
 	cdlight_t		dl;
 
-	cl.refdef.num_dlights = 0;
 	memset( &dl, 0, sizeof(cdlight_t));
-
+	V_ClearScene();
+	
 	for( i = 0; i < 32; i++ )
 	{
 		r = 64 * ( (i%4) - 1.5 );
@@ -109,7 +109,7 @@ void V_TestLights( void )
 		dl.color[1] = (((i%6)+1) & 2)>>1;
 		dl.color[2] = (((i%6)+1) & 4)>>2;
 		dl.radius = 200;
-		re->AddDynLight( &cl.refdef, dl.origin, dl.color, dl.radius ); 
+		re->AddDynLight( dl.origin, dl.color, dl.radius ); 
 	}
 }
 
@@ -161,13 +161,6 @@ void V_RenderView( void )
 
 		if( cl_testentities->value ) V_TestEntities();
 		if( cl_testlights->value ) V_TestLights();
-		if( cl_testblend->value)
-		{
-			cl.refdef.blend[0] = 1;
-			cl.refdef.blend[1] = 0.5;
-			cl.refdef.blend[2] = 0.25;
-			cl.refdef.blend[3] = 0.8;
-		}
 
 		// never let it sit exactly on a node line, because a water plane can
 		// dissapear when viewed with the eye exactly on it.

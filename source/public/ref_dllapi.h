@@ -1184,27 +1184,15 @@ typedef struct vrect_s
 
 typedef struct
 {
-	vrect_t		rect;
-	float		fov_x;
-	float		fov_y;
-	vec3_t		vieworg;
-	vec3_t		viewangles;
-	vec4_t		blend;		// rgba 0-1 full screen blend
-	float		time;		// time is used to auto animate
-	float		oldtime;		// oldtime using for lerping
-	uint		rdflags;		// RDF_UNDERWATER, etc
-	byte		*mempool;		// entities, dlights etc
-
-	// chains are stored in dynamically resized arrays
+	vrect_t		rect;		// screen rectangle
+	float		fov_x;		// field of view by vertical
+	float		fov_y;		// field of view by horizontal
+	vec3_t		vieworg;		// client origin + viewoffset
+	vec3_t		viewangles;	// client angles
+	float		time;		// time is used to shaders auto animate
+	float		oldtime;		// oldtime using for lerping studio models
+	uint		rdflags;		// client view effects: RDF_UNDERWATER, RDF_MOTIONBLUR, etc
 	byte		*areabits;	// if not NULL, only areas with set bits will be drawn
-	struct lightstyle_s	*lightstyles;	// [MAX_LIGHTSTYLES]
-	struct particle_s	*particles;
-	struct ref_entity_s	*entities;	// [MAX_EDICTS]
-	struct dlight_s	*dlights;
-
-	int		num_particles;	
-	int		num_entities;
-	int		num_dlights;
 } refdef_t;
 
 typedef struct pmove_s
@@ -1289,11 +1277,11 @@ typedef struct render_exp_s
 	void	(*EndRegistration)( void );
 
 	// prepare frame to rendering
-	bool	(*AddRefEntity)( refdef_t *fd, entity_state_t *s1, entity_state_t *s2, float lerp );
-	bool	(*AddDynLight)( refdef_t *fd, vec3_t org, vec3_t color, float intensity );
-	bool	(*AddParticle)( refdef_t *fd, vec3_t org, float alpha, int color );
-	bool	(*AddLightStyle)( refdef_t *fd, int stylenum, vec3_t color );
-	void	(*ClearScene)( refdef_t *fd );
+	bool	(*AddRefEntity)( entity_state_t *s1, entity_state_t *s2, float lerp );
+	bool	(*AddDynLight)( vec3_t org, vec3_t color, float intensity );
+	bool	(*AddParticle)( vec3_t org, float alpha, int color );
+	bool	(*AddLightStyle)( int stylenum, vec3_t color );
+	void	(*ClearScene)( void );
 
 	void	(*BeginFrame)( void );
 	void	(*RenderFrame)( refdef_t *fd );

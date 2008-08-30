@@ -37,7 +37,6 @@ cvar_t	*cl_gun;
 cvar_t	*cl_add_particles;
 cvar_t	*cl_add_lights;
 cvar_t	*cl_add_entities;
-cvar_t	*cl_add_blend;
 
 cvar_t	*cl_shownet;
 cvar_t	*cl_showmiss;
@@ -330,7 +329,6 @@ void CL_ClearState (void)
 	CL_FreeEdicts();
 
 	// wipe the entire cl structure
-	Mem_FreePool( &cl.refdef.mempool );
 	memset( &cl, 0, sizeof(cl));
 	MSG_Clear( &cls.netchan.message );
 
@@ -351,13 +349,10 @@ void CL_Disconnect( void )
 {
 	byte	final[32];
 
-	if (cls.state == ca_disconnected)
+	if( cls.state == ca_disconnected )
 		return;
 
-	VectorClear( cl.refdef.blend );
-
 	cls.connect_time = 0;
-
 	SCR_StopCinematic();
 
 	CL_Stop_f();
@@ -1090,7 +1085,6 @@ void CL_InitLocal (void)
 	CL_InitInput();
 
 	// register our variables
-	cl_add_blend = Cvar_Get ("cl_blend", "1", 0, "disables client blends" );
 	cl_add_lights = Cvar_Get ("cl_lights", "1", 0, "disables dynamic lights" );
 	cl_add_particles = Cvar_Get ("cl_particles", "1", 0, "disables particles engine" );
 	cl_add_entities = Cvar_Get ("cl_entities", "1", 0, "disables client entities" );

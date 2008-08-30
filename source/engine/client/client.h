@@ -269,7 +269,6 @@ extern vec4_t g_color_table[8];
 // cvars
 //
 extern	cvar_t	*cl_gun;
-extern	cvar_t	*cl_add_blend;
 extern	cvar_t	*cl_add_lights;
 extern	cvar_t	*cl_add_particles;
 extern	cvar_t	*cl_add_entities;
@@ -302,7 +301,6 @@ extern	cvar_t	*m_side;
 extern	cvar_t	*cl_mouselook;
 extern	cvar_t	*cl_testentities;
 extern	cvar_t	*cl_testlights;
-extern	cvar_t	*cl_testblend;
 extern	cvar_t	*cl_lightlevel;	// FIXME HACK
 extern	cvar_t	*cl_paused;
 extern	cvar_t	*cl_levelshot_name;

@@ -18,7 +18,6 @@ cvar_t *scr_width;
 cvar_t *scr_height;
 cvar_t *cl_testentities;
 cvar_t *cl_testlights;
-cvar_t *cl_testblend;
 cvar_t *cl_levelshot_name;
 cvar_t *cl_font;
 
@@ -346,7 +345,6 @@ void SCR_Init (void)
 	cl_font = Cvar_Get("cl_font", "conchars", CVAR_ARCHIVE, "contains path to current charset" );
 	scr_loading = Cvar_Get("scr_loading", "0", 0, "loading bar progress" );
 	scr_download = Cvar_Get("scr_download", "0", 0, "downloading bar progress" );
-	cl_testblend = Cvar_Get ("cl_testblend", "0", 0, "test blending" );
 	cl_testentities = Cvar_Get ("cl_testentities", "0", 0, "test client entities" );
 	cl_testlights = Cvar_Get ("cl_testlights", "0", 0, "test dynamic lights" );
 

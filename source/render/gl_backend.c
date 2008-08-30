@@ -514,7 +514,7 @@ void GL_CheckExtension( const char *name, const dllfunc_t *funcs, const char *cv
 	if(GL_Support( r_ext )) MsgDev( D_NOTE, "- enabled\n");
 }
 
-void GL_UpdateGammaRamp( void )
+void GL_BuildGammaTable( void )
 {
 	int          i, v;
 
@@ -527,6 +527,11 @@ void GL_UpdateGammaRamp( void )
 		gl_state.gammaRamp[i+256] = ((word)v)<<8;
 		gl_state.gammaRamp[i+512] = ((word)v)<<8;
 	}
+}
+
+void GL_UpdateGammaRamp( void )
+{
+	GL_BuildGammaTable();
 	SetDeviceGammaRamp( glw_state.hDC, gl_state.gammaRamp );
 }
 

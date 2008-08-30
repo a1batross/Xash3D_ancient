@@ -310,7 +310,7 @@ void CL_AddPacketEntities( frame_t *frame )
 	{
 		s1 = &cl_parse_entities[(frame->parse_entities + pnum)&(MAX_PARSE_ENTITIES-1)];
 		ent = PRVM_EDICT_NUM( s1->number );
-		re->AddRefEntity( &cl.refdef, &ent->priv.cl->current, &ent->priv.cl->prev, cl.lerpfrac );
+		re->AddRefEntity( &ent->priv.cl->current, &ent->priv.cl->prev, cl.lerpfrac );
 	}
 }
 
@@ -336,7 +336,7 @@ void CL_AddViewWeapon( entity_state_t *ps )
 	VectorCopy( cl.refdef.viewangles, view->priv.cl->current.angles );
 	VectorCopy( cl.refdef.vieworg, view->priv.cl->prev.origin );
 	VectorCopy( cl.refdef.viewangles, view->priv.cl->prev.angles );
-	re->AddRefEntity( &cl.refdef, &view->priv.cl->current, &view->priv.cl->prev, cl.lerpfrac );
+	re->AddRefEntity( &view->priv.cl->current, &view->priv.cl->prev, cl.lerpfrac );
 }
 
 

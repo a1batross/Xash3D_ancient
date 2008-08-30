@@ -142,7 +142,7 @@ static void R_AddSurfaceToList( surface_t *surf, ref_entity_t *entity )
 		{
 			for( map = 0; map < surf->numStyles; map++ )
 			{
-				if( surf->cachedLight[map] != r_refdef.lightstyles[surf->styles[map]].white )
+				if( surf->cachedLight[map] != r_lightStyles[surf->styles[map]].white )
 				{
 					lmNum = 255;
 					break;
@@ -220,7 +220,7 @@ void R_AddBrushModelToList( ref_entity_t *entity )
 	// Calculate dynamic lighting
 	if( r_dynamiclights->integer )
 	{
-		for( l = 0, dl = r_refdef.dlights; l < r_refdef.num_dlights; l++, dl++ )
+		for( l = 0, dl = r_dlights; l < r_numDLights; l++, dl++ )
 		{
 			if( !BoundsAndSphereIntersect( mins, maxs, dl->origin, dl->intensity ))
 				continue;

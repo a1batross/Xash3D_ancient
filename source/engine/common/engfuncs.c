@@ -1270,9 +1270,10 @@ void VM_drawmodel( void )
 	refdef.fov_x = 50;
 	refdef.fov_y = V_CalcFov( refdef.fov_x, refdef.rect.width, refdef.rect.height );
 	refdef.time = cls.realtime * 0.001f;
+	refdef.oldtime = refdef.time - 0.005;
 	refdef.rdflags = RDF_NOWORLDMODEL;
 
-	re->ClearScene( &refdef );
+	re->ClearScene();
 	re->RegisterModel( modname, MAX_MODELS - 1 );
 	ent.renderfx = RF_FULLBRIGHT;
 	ent.model.sequence = sequence;
@@ -1286,7 +1287,7 @@ void VM_drawmodel( void )
 	VectorCopy( angles, ent.angles );
 	ent.model.frame = frame += 0.7f;	// FXIME: needs flag EF_AUTOANIMATE or somewhat
 
-	re->AddRefEntity( &refdef, &ent, NULL, 1.0f );
+	re->AddRefEntity( &ent, NULL, 1.0f );
 	re->RenderFrame( &refdef );
 }
 

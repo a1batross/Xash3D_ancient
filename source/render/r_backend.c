@@ -1124,6 +1124,7 @@ static void RB_DrawModelBounds( void )
 	if( m_pRenderMesh->meshType == MESH_SURFACE )
 	{
 		model = m_pCurrentEntity->model;
+		if( !model ) return;
 
 		// compute a full bounding box
 		for( i = 0; i < 8; i++ )
@@ -1272,7 +1273,7 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 
 			// unpack sort key
 			shader = r_shaders[(sortKey>>18) & (MAX_SHADERS - 1)];
-			entity = &r_refdef.entities[(sortKey >> 8) & gl_config.max_entities-1];
+			entity = &r_entities[(sortKey >> 8) & MAX_ENTITIES-1];
 			infoKey = sortKey & 255;
 
 			// development tool
@@ -1320,7 +1321,7 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 			R_DrawStudioModel( RENDERPASS_SOLID ); //FIXME: test
 			break;
 		case MESH_SPRITE:
-			R_DrawSpriteModel( RENDERPASS_ALPHA ); //FIXME: test
+			R_DrawSpriteModel();
 			break;
 		case MESH_BEAM:
 			R_DrawBeam();

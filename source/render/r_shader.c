@@ -22,6 +22,7 @@ static stageBundle_t	r_parseStageTMU[SHADER_MAX_STAGES][MAX_TEXTURE_UNITS];
 
 static shaderScript_t	*r_shaderScriptsHash[SHADERS_HASHSIZE];
 static shader_t		*r_shadersHash[SHADERS_HASHSIZE];
+static texture_t		*r_internalMiptex;
 
 shader_t			*r_shaders[MAX_SHADERS];
 int			r_numShaders = 0;
@@ -3089,7 +3090,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 			shader->numStages++;
 		}
 		break;
-	case SHADER_SKIN:
+	case SHADER_STUDIO:
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
 		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_MIPMAPS|TF_COMPRESS, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
@@ -3097,6 +3098,25 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
 			shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
 		}
+		shader->stages[0]->bundles[0]->numTextures++;
+		shader->stages[0]->numBundles++;
+		shader->numStages++;
+		break;
+	case SHADER_SPRITE:
+		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
+		shader->stages[0]->bundles[0]->textures[0] = r_internalMiptex; // internal spriteframe
+		shader->stages[0]->bundles[0]->texType = TEX_GENERIC;
+		if( !shader->stages[0]->bundles[0]->textures[0] )
+		{
+			MsgDev( D_WARN, "couldn't find spriteframe for shader '%s', using default...\n", shader->name );
+			shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
+		}
+		// FIXME: make cases for ALPHA, GLOW etc
+		shader->sort = SORT_BLEND;
+		shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+		shader->stages[0]->flags &= ~SHADERSTAGE_DEPTHWRITE;
+		shader->stages[0]->blendFunc.src = GL_DST_COLOR;
+		shader->stages[0]->blendFunc.dst = GL_ONE;
 		shader->stages[0]->bundles[0]->numTextures++;
 		shader->stages[0]->numBundles++;
 		shader->numStages++;
@@ -3305,8 +3325,11 @@ static void R_FinishShader( shader_t *shader )
 					stage->rgbGen.type = RGBGEN_IDENTITYLIGHTING;
 				else stage->rgbGen.type = RGBGEN_IDENTITY;
 				break;
-			case SHADER_SKIN:
+			case SHADER_STUDIO:
 				stage->rgbGen.type = RGBGEN_LIGHTINGDIFFUSE;
+				break;
+			case SHADER_SPRITE:
+				stage->rgbGen.type = RGBGEN_ENTITY; // sprite colormod
 				break;
 			case SHADER_NOMIP:
 			case SHADER_GENERIC:
@@ -3333,7 +3356,10 @@ static void R_FinishShader( shader_t *shader )
 				}
 				else stage->alphaGen.type = ALPHAGEN_IDENTITY;
 				break;
-			case SHADER_SKIN:
+			case SHADER_STUDIO:
+				stage->alphaGen.type = ALPHAGEN_IDENTITY;
+				break;
+			case SHADER_SPRITE:
 				stage->alphaGen.type = ALPHAGEN_IDENTITY;
 				break;
 			case SHADER_NOMIP:
@@ -3643,6 +3669,12 @@ shader_t *R_FindShader( const char *name, shaderType_t shaderType, uint surfaceP
 	return R_LoadShader( shader );
 }
 
+void R_SetInternalMap( texture_t *mipTex )
+{
+	// never replace with NULL
+	if( mipTex ) r_internalMiptex = mipTex;
+}
+
 /*
 =================
 R_RegisterShader
@@ -3660,7 +3692,7 @@ R_RegisterShaderSkin
 */
 shader_t *R_RegisterShaderSkin( const char *name )
 {
-	return R_FindShader( name, SHADER_SKIN, 0 );
+	return R_FindShader( name, SHADER_STUDIO, 0 );
 }
 
 /*
@@ -3745,8 +3777,11 @@ void R_ShaderList_f( void )
 		case SHADER_BSP:
 			Msg( "bsp " );
 			break;
-		case SHADER_SKIN:
-			Msg( "skn " );
+		case SHADER_STUDIO:
+			Msg( "mdl " );
+			break;
+		case SHADER_SPRITE:
+			Msg( "spr " );
 			break;
 		case SHADER_NOMIP:
 			Msg( "pic " );
@@ -3805,6 +3840,7 @@ void R_InitShaders( void )
 
 	// create built-in shaders
 	R_CreateBuiltInShaders();
+	r_internalMiptex = r_defaultTexture;
 }
 
 /*
