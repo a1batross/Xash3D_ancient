@@ -1809,7 +1809,7 @@ void PF_aim( void )
 	// try sending a trace straight
 	VectorCopy(prog->globals.sv->v_forward, dir);
 	VectorMA(start, 2048, dir, end);
-	tr = SV_Trace( start, vec3_origin, vec3_origin, end, MOVE_NORMAL, ent, MASK_ALL );
+	tr = SV_Trace( start, vec3_origin, vec3_origin, end, MOVE_NORMAL, ent, -1 );
 
 	if( tr.ent && ((edict_t *)tr.ent)->progs.sv->takedamage == 2 && (flags & DF_NO_FRIENDLY_FIRE
 	|| ent->progs.sv->team <=0 || ent->progs.sv->team != ((edict_t *)tr.ent)->progs.sv->team))
@@ -1838,7 +1838,7 @@ void PF_aim( void )
 		VectorNormalize (dir);
 		dist = DotProduct (dir, prog->globals.sv->v_forward);
 		if (dist < bestdist) continue; // to far to turn
-		tr = SV_Trace (start, vec3_origin, vec3_origin, end, MOVE_NORMAL, ent, MASK_ALL );
+		tr = SV_Trace (start, vec3_origin, vec3_origin, end, MOVE_NORMAL, ent, -1 );
 		if (tr.ent == check)
 		{	
 			// can shoot at this one

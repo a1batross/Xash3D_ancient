@@ -159,7 +159,7 @@ static bool R_RecursiveLightPoint( node_t *node, const vec3_t start, const vec3_
 	{
 		tex = surf->texInfo;
 
-		if( tex->flags & (SURF_SKY|SURF_WARP|SURF_NODRAW))
+		if( tex->flags & (SURF_SKY|SURF_WARP|SURF_NODRAW|SURF_NOLIGHTMAP))
 			continue;	// no lightmaps
 
 		s = DotProduct(mid, tex->vecs[0]) + tex->vecs[0][3] - surf->textureMins[0];

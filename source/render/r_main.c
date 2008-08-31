@@ -12,10 +12,13 @@ render_imp_t	ri;
 stdlib_api_t	com;
 
 byte		*r_temppool;
-gl_matrix		r_projectionMatrix;
-gl_matrix		r_worldMatrix;
-gl_matrix		r_entityMatrix;
-gl_matrix		r_textureMatrix;
+matrix4x4		r_worldMatrix;
+matrix4x4		r_entityMatrix;
+
+gl_matrix		gl_projectionMatrix;
+gl_matrix		gl_worldMatrix;
+gl_matrix		gl_entityMatrix;
+gl_matrix		gl_textureMatrix;
 cplane_t		r_frustum[4];
 float		r_frameTime;
 mesh_t		r_solidMeshes[MAX_MESHES];
@@ -178,8 +181,24 @@ R_RotateForEntity
 */
 void R_RotateForEntity( ref_entity_t *entity )
 {
+	matrix4x4		entMatrix;
 	gl_matrix		rotateMatrix;
-
+#if 0
+	Matrix4x4_LoadIdentity( entMatrix );
+	Matrix4x4_ConcatTranslate( entMatrix, entity->origin[0],  entity->origin[1],  entity->origin[2] );
+	Matrix4x4_ConcatRotate( entMatrix,  entity->angles[1],  0, 0, 1 );
+	Matrix4x4_ConcatRotate( entMatrix, -entity->angles[0],  0, 1, 0 );
+	Matrix4x4_ConcatRotate( entMatrix, -entity->angles[2],  1, 0, 0 );
+#if 1
+	Matrix4x4_ToArrayFloatGL( entMatrix, rotateMatrix );
+	MatrixGL_MultiplyFast( gl_worldMatrix, rotateMatrix, gl_entityMatrix );
+	pglLoadMatrixf( gl_entityMatrix );
+#else
+	Matrix4x4_Concat( r_entityMatrix, r_worldMatrix, entMatrix );
+	GL_LoadMatrix( r_entityMatrix );
+#endif
+	return;
+#endif
 	rotateMatrix[ 0] = entity->axis[0][0];
 	rotateMatrix[ 1] = entity->axis[0][1];
 	rotateMatrix[ 2] = entity->axis[0][2];
@@ -197,9 +216,9 @@ void R_RotateForEntity( ref_entity_t *entity )
 	rotateMatrix[14] = entity->origin[2];
 	rotateMatrix[15] = 1.0;
 
-	MatrixGL_MultiplyFast(r_worldMatrix, rotateMatrix, r_entityMatrix);
+	MatrixGL_MultiplyFast(gl_worldMatrix, rotateMatrix, gl_entityMatrix);
 
-	pglLoadMatrixf(r_entityMatrix);
+	pglLoadMatrixf(gl_entityMatrix);
 }
 
 
@@ -274,7 +293,10 @@ void R_DrawBeam( void )
 		normalArray[numVertex][0] = axis[0][0];
 		normalArray[numVertex][1] = axis[0][1];
 		normalArray[numVertex][2] = axis[0][2];
-		Vector4Copy(m_pCurrentEntity->shaderRGBA, inColorArray[numVertex] ); 
+		inColorArray[numVertex][0] = m_pCurrentEntity->rendercolor[0];
+		inColorArray[numVertex][1] = m_pCurrentEntity->rendercolor[1];
+		inColorArray[numVertex][2] = m_pCurrentEntity->rendercolor[2];
+		inColorArray[numVertex][3] = m_pCurrentEntity->renderamt;
 		numVertex++;
 	}
 }
@@ -358,7 +380,7 @@ static void R_DrawNullModels( void )
 	if (!r_numNullModels)
 		return;
 
-	pglLoadMatrixf( r_worldMatrix );
+	pglLoadMatrixf( gl_worldMatrix );
 
 	// Set the state
 	GL_Enable(GL_CULL_FACE);
@@ -758,97 +780,74 @@ static void R_SetMatrices( void )
 	yDiv = 1.0 / (yMax - yMin);
 	zDiv = 1.0 / (zFar - zNear);
 
-	r_projectionMatrix[ 0] = (2.0 * zNear) * xDiv;
-	r_projectionMatrix[ 1] = 0.0;
-	r_projectionMatrix[ 2] = 0.0;
-	r_projectionMatrix[ 3] = 0.0;
-	r_projectionMatrix[ 4] = 0.0;
-	r_projectionMatrix[ 5] = (2.0 * zNear) * yDiv;
-	r_projectionMatrix[ 6] = 0.0;
-	r_projectionMatrix[ 7] = 0.0;
-	r_projectionMatrix[ 8] = (xMax + xMin) * xDiv;
-	r_projectionMatrix[ 9] = (yMax + yMin) * yDiv;
-	r_projectionMatrix[10] = -(zNear + zFar) * zDiv;
-	r_projectionMatrix[11] = -1.0;
-	r_projectionMatrix[12] = 0.0;
-	r_projectionMatrix[13] = 0.0;
-	r_projectionMatrix[14] = -(2.0 * zNear * zFar) * zDiv;
-	r_projectionMatrix[15] = 0.0;
+	gl_projectionMatrix[ 0] = (2.0 * zNear) * xDiv;
+	gl_projectionMatrix[ 1] = 0.0;
+	gl_projectionMatrix[ 2] = 0.0;
+	gl_projectionMatrix[ 3] = 0.0;
+	gl_projectionMatrix[ 4] = 0.0;
+	gl_projectionMatrix[ 5] = (2.0 * zNear) * yDiv;
+	gl_projectionMatrix[ 6] = 0.0;
+	gl_projectionMatrix[ 7] = 0.0;
+	gl_projectionMatrix[ 8] = (xMax + xMin) * xDiv;
+	gl_projectionMatrix[ 9] = (yMax + yMin) * yDiv;
+	gl_projectionMatrix[10] = -(zNear + zFar) * zDiv;
+	gl_projectionMatrix[11] = -1.0;
+	gl_projectionMatrix[12] = 0.0;
+	gl_projectionMatrix[13] = 0.0;
+	gl_projectionMatrix[14] = -(2.0 * zNear * zFar) * zDiv;
+	gl_projectionMatrix[15] = 0.0;
+#if 1
+	Matrix4x4_LoadIdentity( r_worldMatrix );
+	Matrix4x4_ConcatRotate( r_worldMatrix, -90,  1, 0, 0 );	    // put Z going up
+	Matrix4x4_ConcatRotate( r_worldMatrix,	90,  0, 0, 1 );	    // put Z going up
+	Matrix4x4_ConcatRotate( r_worldMatrix, -r_refdef.viewangles[2],  1, 0, 0 );
+	Matrix4x4_ConcatRotate( r_worldMatrix, -r_refdef.viewangles[0],  0, 1, 0 );
+	Matrix4x4_ConcatRotate( r_worldMatrix, -r_refdef.viewangles[1],  0, 0, 1 );
+	Matrix4x4_ConcatTranslate( r_worldMatrix, -r_refdef.vieworg[0],  -r_refdef.vieworg[1],  -r_refdef.vieworg[2] );
+#else
+	pglMatrixMode( GL_MODELVIEW );
+	pglLoadIdentity ();
+	pglRotatef( -90,  1, 0, 0 );	    // put Z going up
+	pglRotatef( 90,  0, 0, 1 );	    // put Z going up
+	pglRotatef( -r_refdef.viewangles[2],  1, 0, 0 );
+	pglRotatef( -r_refdef.viewangles[0],  0, 1, 0 );
+	pglRotatef( -r_refdef.viewangles[1],  0, 0, 1 );
+	pglTranslatef( -r_refdef.vieworg[0],  -r_refdef.vieworg[1],  -r_refdef.vieworg[2] );
+	GL_SaveMatrix( GL_MODELVIEW_MATRIX, r_worldMatrix );
+#endif
+	gl_worldMatrix[ 0] = -r_right[0];
+	gl_worldMatrix[ 1] = r_up[0];
+	gl_worldMatrix[ 2] = -r_forward[0];
+	gl_worldMatrix[ 3] = 0.0;
+	gl_worldMatrix[ 4] = -r_right[1];
+	gl_worldMatrix[ 5] = r_up[1];
+	gl_worldMatrix[ 6] = -r_forward[1];
+	gl_worldMatrix[ 7] = 0.0;
+	gl_worldMatrix[ 8] = -r_right[2];
+	gl_worldMatrix[ 9] = r_up[2];
+	gl_worldMatrix[10] = -r_forward[2];
+	gl_worldMatrix[11] = 0.0;
+	gl_worldMatrix[12] = DotProduct( r_origin, r_right );
+	gl_worldMatrix[13] = -DotProduct( r_origin, r_up );
+	gl_worldMatrix[14] = DotProduct( r_origin, r_forward );
+	gl_worldMatrix[15] = 1.0;
 
-	r_worldMatrix[ 0] = -r_right[0];
-	r_worldMatrix[ 1] = r_up[0];
-	r_worldMatrix[ 2] = -r_forward[0];
-	r_worldMatrix[ 3] = 0.0;
-	r_worldMatrix[ 4] = -r_right[1];
-	r_worldMatrix[ 5] = r_up[1];
-	r_worldMatrix[ 6] = -r_forward[1];
-	r_worldMatrix[ 7] = 0.0;
-	r_worldMatrix[ 8] = -r_right[2];
-	r_worldMatrix[ 9] = r_up[2];
-	r_worldMatrix[10] = -r_forward[2];
-	r_worldMatrix[11] = 0.0;
-	r_worldMatrix[12] = DotProduct( r_origin, r_right );
-	r_worldMatrix[13] = -DotProduct( r_origin, r_up );
-	r_worldMatrix[14] = DotProduct( r_origin, r_forward );
-	r_worldMatrix[15] = 1.0;
-
-	r_textureMatrix[ 0] = r_right[0];
-	r_textureMatrix[ 1] = -r_right[1];
-	r_textureMatrix[ 2] = -r_right[2];
-	r_textureMatrix[ 3] = 0.0;
-	r_textureMatrix[ 4] = -r_up[0];
-	r_textureMatrix[ 5] = r_up[1];
-	r_textureMatrix[ 6] = r_up[2];
-	r_textureMatrix[ 7] = 0.0;
-	r_textureMatrix[ 8] = r_forward[0];
-	r_textureMatrix[ 9] = -r_forward[1];
-	r_textureMatrix[10] = -r_forward[2];
-	r_textureMatrix[11] = 0.0;
-	r_textureMatrix[12] = 0.0;
-	r_textureMatrix[13] = 0.0;
-	r_textureMatrix[14] = 0.0;
-	r_textureMatrix[15] = 1.0;
-}
-
-static void R_DrawLine( int color, int numpoints, const float *points )
-{
-	int	i = numpoints - 1;
-	vec3_t	p0, p1;
-
-	VectorSet( p0, points[i*3+0], points[i*3+1], points[i*3+2] );
-	if( r_physbdebug->integer == 1 ) ConvertPositionToGame( p0 );
-
-	for (i = 0; i < numpoints; i ++)
-	{
-		VectorSet( p1, points[i*3+0], points[i*3+1], points[i*3+2] );
-		if( r_physbdebug->integer == 1 ) ConvertPositionToGame( p1 );
- 
-		pglColor4fv(UnpackRGBA( color ));
-		pglVertex3fv( p0 );
-		pglVertex3fv( p1 );
- 
- 		VectorCopy( p1, p0 );
- 	}
-}
-
-void R_DebugGraphics( void )
-{
-	if(r_refdef.rdflags & RDF_NOWORLDMODEL)
-		return;
-
-	if(!r_physbdebug->integer)
-		return;
-
-	// physic debug
-	pglDisable(GL_TEXTURE_2D); 
-	GL_PolygonOffset( -1, 1 );
-	pglBegin( GL_LINES );
-
-	ri.ShowCollision( R_DrawLine );
-
-	pglEnd();
-	GL_PolygonOffset( 0, 0 );
-	pglEnable(GL_TEXTURE_2D);
+	gl_textureMatrix[ 0] = r_right[0];
+	gl_textureMatrix[ 1] = -r_right[1];
+	gl_textureMatrix[ 2] = -r_right[2];
+	gl_textureMatrix[ 3] = 0.0;
+	gl_textureMatrix[ 4] = -r_up[0];
+	gl_textureMatrix[ 5] = r_up[1];
+	gl_textureMatrix[ 6] = r_up[2];
+	gl_textureMatrix[ 7] = 0.0;
+	gl_textureMatrix[ 8] = r_forward[0];
+	gl_textureMatrix[ 9] = -r_forward[1];
+	gl_textureMatrix[10] = -r_forward[2];
+	gl_textureMatrix[11] = 0.0;
+	gl_textureMatrix[12] = 0.0;
+	gl_textureMatrix[13] = 0.0;
+	gl_textureMatrix[14] = 0.0;
+	gl_textureMatrix[15] = 1.0;
 }
 
 /*
@@ -892,7 +891,8 @@ void R_RenderView( const refdef_t *fd )
 
 	// finish up
 	R_DrawNullModels();
-	R_DebugGraphics();
+
+	RB_DebugGraphics();
 	R_BloomBlend( fd );
 }
 

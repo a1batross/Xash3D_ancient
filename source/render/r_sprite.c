@@ -15,10 +15,11 @@
 
 =============================================================
 */
-string	frame_prefix;
-byte	*spr_palette;
-static byte pal[256][4];
-mipTex_t *frames;
+string		frame_prefix;
+byte		*spr_palette;
+static byte	pal[256][4];
+uint		surfaceParm;
+mipTex_t		*frames;
 	
 /*
 ====================
@@ -66,7 +67,7 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	pspriteframe->down = origin[1] - height;
 	pspriteframe->left = origin[0];
 	pspriteframe->right = width + origin[0];
-	pspriteframe->radius = sqrt(width * width + height * height);
+	pspriteframe->radius = sqrt((width>>1) * (width>>1) + (height>>1) * (height>>1));
 	
 	image = R_LoadTexture( name, spr_frame, 0, 0 );
 	if( image )
@@ -80,7 +81,7 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	}
 
 	R_SetInternalMap( image );
-	pspriteframe->shader = R_FindShader( name, SHADER_SPRITE, 0 );
+	pspriteframe->shader = R_FindShader( name, SHADER_SPRITE, surfaceParm );
 
 	frames = Mem_Realloc( mod->mempool, frames, sizeof(*frames) * (mod->numTextures + 1));
 	out = frames + mod->numTextures++;
@@ -90,19 +91,9 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	out->width = width;
 	out->height = height;
 	out->image = image;
+	out->numframes = 1;
+	out->next = NULL;
 
-	if( LittleLong( spr_frametype->type ) == SPR_GROUP )
-	{
-		// FIXME: validate this pointer, probably it's wrong
-		// but this link currently unused, just in case
-		out->next = frames + mod->numTextures; 
-		out->numframes = framenum;
-	} 
-	else
-	{
-		out->numframes = 1;
-		out->next = NULL;
-	}
 	FS_FreeImage( spr_frame );
 	return spr_frametype;
 }
@@ -137,7 +128,7 @@ dframetype_t *R_SpriteLoadGroup( rmodel_t *mod, void * pin, mspriteframe_t **ppf
 	}
 
 	ptemp = (void *)pin_intervals;
-	for (i = 0; i < numframes; i++ )
+	for( i = 0; i < numframes; i++ )
 	{
 		ptemp = R_SpriteLoadFrame(mod, ptemp, &pspritegroup->frames[i], framenum * 10 + i );
 	}
@@ -165,8 +156,8 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 	size = sizeof (sprite_t) + (numframes - 1) * sizeof( psprite->frames );
 
 	psprite = Mem_Alloc( mod->mempool, size );
-	mod->extradata = psprite; //make link to extradata
-	mod->numTexInfo = 0; // reset frames
+	mod->extradata = psprite; // make link to extradata
+	mod->numTexInfo = surfaceParm = 0; // reset frames
 	
 	psprite->type	= LittleLong(pin->type);
 	psprite->rendermode = LittleLong(pin->texFormat);
@@ -201,6 +192,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 				pal[i][2] = *src++;
 				pal[i][3] = 255;
 			}
+			surfaceParm |= SURFACEPARM_ADDITIVE;
 			break;
                     case SPR_INDEXALPHA:
 			for( i = 0; i < 256; i++ )
@@ -210,6 +202,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 				pal[i][2] = *src++;
 				pal[i][3] = i;
 			}
+			surfaceParm |= SURFACEPARM_ALPHA;
 			break;
 		case SPR_ALPHTEST:		
 			for( i = 0; i < 256; i++ )
@@ -220,6 +213,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 				pal[i][3] = 255;
 			}
 			pal[255][0] = pal[255][1] = pal[255][2] = pal[255][3] = 0;
+			surfaceParm |= SURFACEPARM_ALPHA;
                               break;
 		default:
 			for (i = 0; i < 256; i++)
@@ -245,7 +239,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 		return;
 	}
 
-	MsgDev(D_LOAD, "%s, rendermode %d\n", mod->name, psprite->rendermode );
+	MsgDev( D_LOAD, "%s, rendermode %d\n", mod->name, psprite->rendermode );
 
 	mod->registration_sequence = registration_sequence;
 	spr_palette = (byte *)(&pal[0][0]);
@@ -330,59 +324,11 @@ mspriteframe_t *R_GetSpriteFrame( ref_entity_t *ent )
 	return pspriteframe;
 }
 
-bool R_AcceptSpritePass( ref_entity_t *e, int pass )
-{
-	sprite_t	*psprite = (sprite_t *)m_pRenderModel->extradata;
-
-	if( pass == RENDERPASS_SOLID )
-	{
-		// pass for solid ents
-		if( e->renderfx & RF_TRANSLUCENT ) return false;		// solid sprite with custom blend
-		if( psprite->rendermode == SPR_NORMAL ) return true;	// solid sprite
-		if( psprite->rendermode == SPR_ADDGLOW ) return false;	// draw it at second pass
-		if( psprite->rendermode == SPR_ADDITIVE ) return false;	// must be draw first always
-		if( psprite->rendermode == SPR_ALPHTEST ) return false;	// already blended by alphatest
-		if( psprite->rendermode == SPR_INDEXALPHA ) return false;	// already blended by alphatest
-	}	
-	if( pass == RENDERPASS_ALPHA )
-	{
-		// pass for blended ents
-		if( e->renderfx & RF_TRANSLUCENT ) return true;		// solid sprite with custom blend
-		if( psprite->rendermode == SPR_NORMAL ) return false;	// solid sprite
-		if( psprite->rendermode == SPR_ADDGLOW ) return true;	// can draw
-		if( psprite->rendermode == SPR_ADDITIVE ) return true;	// can draw
-		if( psprite->rendermode == SPR_ALPHTEST ) return true;	// already drawed
-		if( psprite->rendermode == SPR_INDEXALPHA ) return true;	// already drawed
-	}
-	return true;
-}
-
-void R_SpriteSetupLighting( rmodel_t *mod )
-{
-	int i;
-	vec3_t	vlight = {0.0f, 0.0f, -1.0f}; // get light from floor
-
-	if(m_pCurrentEntity->renderfx & RF_FULLBRIGHT)
-	{
-		for (i = 0; i < 3; i++)
-			mod->lightcolor[i] = 1.0f;
-	}
-	else
-	{
-		R_LightForPoint( m_pCurrentEntity->origin, mod->lightcolor );
-
-		// doom sprite viewmodels	
-		if( m_pCurrentEntity->renderfx & RF_VIEWMODEL )
-			r_lightlevel->value = bound(0, VectorLength(mod->lightcolor) * 75.0f, 255); 
-
-	}
-}
-
 /*
 =================
 R_AddSpriteModelToList
 
-I am only keeping this for backwards compatibility
+add spriteframe to list
 =================
 */
 void R_AddSpriteModelToList( ref_entity_t *entity )
@@ -408,26 +354,27 @@ void R_AddSpriteModelToList( ref_entity_t *entity )
 	entity->shader = frame->shader;
 
 	// add it
-	R_AddMeshToList( MESH_SPRITE, NULL, entity->shader, entity, 0);
+	R_AddMeshToList( MESH_SPRITE, NULL, entity->shader, entity, 0 );
 }
 
 /*
- =================
- R_DrawSprite
- =================
+=================
+R_DrawSpriteModel
+=================
 */
 void R_DrawSpriteModel( void )
 {
 	sprite_t		*psprite;
 	mspriteframe_t	*frame;
 	float		angle, sr, cr;
-	vec3_t		axis[3], point;
+	vec3_t		axis[3], origin;
+	float		scale;
 	int		i;
 
-	// FIXME!!!!!!!!
-	if( !m_pRenderModel || !m_pCurrentEntity ) return;
 	psprite = (sprite_t *)m_pRenderModel->extradata;
 	frame = R_GetSpriteFrame( m_pCurrentEntity );
+	scale = m_pCurrentEntity->scale;
+	VectorSubtract( m_pCurrentEntity->origin, r_forward, origin );
 
 	// setup orientation
 	switch( psprite->type )
@@ -438,16 +385,17 @@ void R_DrawSpriteModel( void )
 		VectorSubtract( m_pCurrentEntity->origin, axis[0], m_pCurrentEntity->origin );
 		break;
 	case SPR_FACING_UPRIGHT:
-		VectorSet( axis[2], 0, 0, 1 );
-		axis[1][0] = m_pCurrentEntity->origin[1] - r_origin[1];
-		axis[1][1] = -(m_pCurrentEntity->origin[0] - r_origin[0]);
-		axis[1][2] = 0;
+		// flames and such vertical beam sprite, faces viewer's origin (not the view plane)
+		//scale /= sqrt((origin[0] - r_origin[0])*(origin[0] - r_origin[0])+(origin[1] - r_origin[1])*(origin[1] - r_origin[1]));
+		VectorSet( axis[1], (origin[1] - r_origin[1]) * scale, -(origin[0] - r_origin[0]) * scale, 0 );
+		VectorSet( axis[2], 0, 0, scale );
 		VectorNormalize( axis[1] );
 		VectorNegate( r_forward, axis[0] );
 		break;
 	case SPR_FWD_PARALLEL_UPRIGHT:
-		VectorSet( axis[2], 0, 0, 1 );
-		VectorCopy( r_up, axis[1] );
+		scale = m_pCurrentEntity->scale / sqrt(r_forward[0]*r_forward[0]+r_forward[1]*r_forward[1]);
+		VectorSet( axis[2], 0, 0, scale );
+		VectorSet( axis[1], -r_origin[1] * scale, r_origin[0] * scale, 0 );
 		VectorNegate( r_forward, axis[0] );
 		break;
 	case SPR_FWD_PARALLEL_ORIENTED:
@@ -479,17 +427,18 @@ void R_DrawSpriteModel( void )
 		indexArray[numIndex++] = numVertex + i;
 	}
 
-	VectorMA( m_pCurrentEntity->origin, frame->up * m_pCurrentEntity->scale, axis[2], point  );
-	VectorMA( point, frame->left * m_pCurrentEntity->scale, axis[1], vertexArray[numVertex+0] );
-
-	VectorMA( m_pCurrentEntity->origin, frame->up * m_pCurrentEntity->scale, axis[2], point  );
-	VectorMA( point, frame->right * m_pCurrentEntity->scale, axis[1], vertexArray[numVertex+1] );
-
-	VectorMA( m_pCurrentEntity->origin, frame->down * m_pCurrentEntity->scale, axis[2], point );
-	VectorMA( point, frame->right * m_pCurrentEntity->scale, axis[1], vertexArray[numVertex+2] );
-	
-	VectorMA( m_pCurrentEntity->origin, frame->down * m_pCurrentEntity->scale, axis[2], point );
-	VectorMA( point, frame->left * m_pCurrentEntity->scale, axis[1], vertexArray[numVertex+3] );
+	vertexArray[numVertex+0][0] = origin[0] + axis[1][0] * frame->right + axis[2][0] * frame->up;
+	vertexArray[numVertex+0][1] = origin[1] + axis[1][1] * frame->right + axis[2][1] * frame->up;
+	vertexArray[numVertex+0][2] = origin[2] + axis[1][2] * frame->right + axis[2][2] * frame->up;
+	vertexArray[numVertex+1][0] = origin[0] + axis[1][0] * frame->left + axis[2][0] * frame->up;
+	vertexArray[numVertex+1][1] = origin[1] + axis[1][1] * frame->left + axis[2][1] * frame->up;
+	vertexArray[numVertex+1][2] = origin[2] + axis[1][2] * frame->left + axis[2][2] * frame->up;
+	vertexArray[numVertex+2][0] = origin[0] + axis[1][0] * frame->left + axis[2][0] * frame->down;
+	vertexArray[numVertex+2][1] = origin[1] + axis[1][1] * frame->left + axis[2][1] * frame->down;
+	vertexArray[numVertex+2][2] = origin[2] + axis[1][2] * frame->left + axis[2][2] * frame->down;
+	vertexArray[numVertex+3][0] = origin[0] + axis[1][0] * frame->right + axis[2][0] * frame->down;
+	vertexArray[numVertex+3][1] = origin[1] + axis[1][1] * frame->right + axis[2][1] * frame->down;
+	vertexArray[numVertex+3][2] = origin[2] + axis[1][2] * frame->right + axis[2][2] * frame->down;
 
 	inTexCoordArray[numVertex+0][0] = 0;
 	inTexCoordArray[numVertex+0][1] = 0;
@@ -503,140 +452,11 @@ void R_DrawSpriteModel( void )
 	for( i = 0; i < 4; i++ )
 	{
 		VectorCopy( axis[0], normalArray[numVertex] );
-		Vector4Copy(m_pCurrentEntity->shaderRGBA, inColorArray[numVertex] ); 
+		inColorArray[numVertex][0] = m_pCurrentEntity->rendercolor[0];
+		inColorArray[numVertex][1] = m_pCurrentEntity->rendercolor[1];
+		inColorArray[numVertex][2] = m_pCurrentEntity->rendercolor[2];
+		inColorArray[numVertex][3] = m_pCurrentEntity->renderamt;
 		numVertex++;
 	}
-
-}
-
-void R_DrawSpriteModel_old( int passnum )
-{
-	mspriteframe_t	*frame;
-	vec3_t		point, forward, right, up;
-	ref_entity_t 	*e = m_pCurrentEntity;
-	rmodel_t		*mod = m_pRenderModel;
-	float		alpha = 1.0f, angle, sr, cr;
-	vec3_t		distance;
-	sprite_t		*psprite;
-	int		i;
-
-	if(!R_AcceptSpritePass( e, passnum )) return;
-
-	// don't even bother culling, because it's just a single
-	// polygon without a surface cache
-
-	psprite = (sprite_t *)mod->extradata;
-	e->frame = fmod( e->frame, psprite->numframes );
-	frame = R_GetSpriteFrame( e );
-
-	// merge alpha value
-	if( e->renderfx & RF_TRANSLUCENT ) alpha = e->renderamt;
-	if( e->scale == 0 ) e->scale = 1.0f; // merge scale
-
-	R_SpriteSetupLighting( mod );
-	
-	// setup oriented
-	switch( psprite->type )
-	{
-	case SPR_ORIENTED:
-		AngleVectors( e->angles, forward, right, up );
-		VectorScale( forward, 0.01, forward );// offset for decals
-		VectorSubtract( e->origin, forward, e->origin );
-		break;
-	case SPR_FACING_UPRIGHT:
-		up[0] = up[1] = 0;
-		up[2] = 1;
-		right[0] = e->origin[1] - r_origin[1];
-		right[1] = -(e->origin[0] - r_origin[0]);
-		right[2] = 0;
-		VectorNormalize( right );
-		VectorCopy( r_forward, forward );
-		break;
-	case SPR_FWD_PARALLEL_UPRIGHT:
-		up[0] = up[1] = 0;
-		up[2] = 1;
-		VectorCopy( r_up, right );
-		VectorCopy( r_forward, forward );
-		break;
-	case SPR_FWD_PARALLEL_ORIENTED:
-		angle = e->angles[ROLL] * (M_PI*2/360);
-		sr = sin(angle);
-		cr = cos(angle);
-		for( i = 0; i < 3; i++ )
-		{
-			forward[i] = r_forward[i];
-			right[i] = r_right[i] * cr + r_up[i] * sr;
-			up[i] = r_right[i] * -sr + r_up[i] * cr;
-		}
-		break;
-	case SPR_FWD_PARALLEL:
-	default: // normal sprite
-		VectorCopy( r_up, up );
-		VectorCopy( r_right, right );
-		VectorCopy( r_forward, forward );
-		break;
-	}
-
-	GL_BindTexture( frame->texture );
-	GL_TexEnv( GL_MODULATE );
-
-	// setup rendermode
-	switch( psprite->rendermode )
-	{
-	case SPR_NORMAL:
-		// solid sprite ignore color and light values
-		break;
-	case SPR_ADDGLOW:
-		//FIXME: get to work
-		VectorCopy( r_origin, distance );
-		alpha = VectorLength( distance ) * 0.001;
-		e->scale = 1/(alpha * 1.5);
-		// intentional falltrough
-	case SPR_ADDITIVE:
-		GL_Enable( GL_BLEND );
-		GL_BlendFunc( GL_SRC_ALPHA, GL_ONE );
-		pglColor4f( 1.0f, 1.0f, 1.0f, alpha );
-		break;
-	case SPR_ALPHTEST:
-	case SPR_INDEXALPHA:
-		GL_Enable( GL_BLEND );
-		GL_BlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-		pglColor4f( mod->lightcolor[0], mod->lightcolor[1], mod->lightcolor[2], 1.0f );
-		break;
-	}                    			
-
-	// hack the depth range to prevent view model from poking into walls
-	if( m_pCurrentEntity->renderfx & RF_DEPTHHACK ) pglDepthRange( 0.0, 0.3 );
-
-	GL_Disable( GL_CULL_FACE );
-	pglBegin( GL_QUADS );
-		pglTexCoord2f (0, 0);
-		VectorMA( e->origin, frame->up * e->scale, up, point  );
-		VectorMA( point, frame->left * e->scale, right, point );
-		pglVertex3fv( point );
-
-		pglTexCoord2f( 1, 0 );
-		VectorMA( e->origin, frame->up * e->scale, up, point  );
-		VectorMA( point, frame->right * e->scale, right, point);
-		pglVertex3fv( point );
-
-		pglTexCoord2f( 1, 1 );
-		VectorMA( e->origin, frame->down * e->scale, up, point);
-		VectorMA( point, frame->right * e->scale, right, point);
-		pglVertex3fv( point );
-
-          	pglTexCoord2f( 0, 1 );
-		VectorMA( e->origin, frame->down * e->scale, up, point);
-		VectorMA( point, frame->left * e->scale, right, point );
-		pglVertex3fv( point );
-	pglEnd();
-
-	// restore states
-	GL_Disable( GL_BLEND );
-	GL_Enable( GL_DEPTH_TEST );
-	GL_TexEnv( GL_REPLACE );
-	GL_Enable( GL_CULL_FACE );
-	if(e->renderfx & RF_DEPTHHACK) pglDepthRange( 0, 1 );
-	pglColor4f( 1, 1, 1, 1 );
 
 }

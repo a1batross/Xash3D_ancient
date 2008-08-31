@@ -5,6 +5,7 @@
 
 #include "cm_local.h"
 #include "matrixlib.h"
+#include "const.h"
 
 clipmap_t		cm;
 studio_t		studio;

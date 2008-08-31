@@ -12,7 +12,7 @@
 #define M_PI			(float)3.14159265358979323846
 #endif
 
-#define MatrixLoadIdentity( mat )	Matrix4x4_Copy( mat, identitymatrix )
+#define Matrix4x4_LoadIdentity( mat )	Matrix4x4_Copy( mat, identitymatrix )
 
 static const matrix4x4 identitymatrix =
 {

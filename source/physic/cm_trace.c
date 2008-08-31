@@ -6,6 +6,7 @@
 #include "cm_local.h"
 #include "cm_utils.h"
 #include "matrixlib.h"
+#include "const.h"
 
 /*
 ===============================================================================

@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "bsplib.h"
+#include "const.h"
 
 int	c_active_brushes;
 

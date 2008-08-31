@@ -200,9 +200,9 @@ bool R_SetPixelformat( void )
 		}
 		else
 		{
-			// gamma.rc corrupted by stupid user, restore from screen
-			// probably never reached, but just in case
-			FS_WriteFile( "config/gamma.rc", gl_state.stateRamp, sizeof(gl_state.stateRamp));			
+			// current gamma unset by other application, we can restore it here
+			MsgDev( D_NOTE, "R_SetPixelformat: restore original gamma after crash\n" );
+			Mem_Copy( gl_state.stateRamp, savedGamma, sizeof( gl_state.gammaRamp ));			
 		}
 	}
 	vid_gamma->modified = true;

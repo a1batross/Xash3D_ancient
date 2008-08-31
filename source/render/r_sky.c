@@ -497,7 +497,7 @@ void R_DrawSky( void )
 		R_DrawSkyBox( sky->shader->skyParms.nearBox, true );
 
 	pglDepthRange( 0, 1 );
-	pglLoadMatrixf( r_worldMatrix );
+	pglLoadMatrixf( gl_worldMatrix );
 }
 
 /*

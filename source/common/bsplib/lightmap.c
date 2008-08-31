@@ -1,4 +1,5 @@
 #include "bsplib.h"
+#include "const.h"
 
 #define	MAX_LSTYLES	256
 

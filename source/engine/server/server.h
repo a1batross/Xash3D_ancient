@@ -31,6 +31,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_ENT_CLUSTERS		16
 #define DF_NO_FRIENDLY_FIRE		0x00000001		//FIXME: move to server.dat
 
+// content masks
+#define MASK_SOLID			(CONTENTS_SOLID)
+#define MASK_PLAYERSOLID		(CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_BODY)
+#define MASK_MONSTERSOLID		(CONTENTS_SOLID|CONTENTS_MONSTERCLIP|CONTENTS_BODY)
+#define MASK_DEADSOLID		(CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_WINDOW)
+#define MASK_WATER			(CONTENTS_WATER|CONTENTS_LAVA|CONTENTS_SLIME)
+#define MASK_OPAQUE			(CONTENTS_SOLID|CONTENTS_SLIME|CONTENTS_LAVA)
+#define MASK_SHOT			(CONTENTS_SOLID|CONTENTS_BODY|CONTENTS_CORPSE)
+
 // classic quake flags
 #define SPAWNFLAG_NOT_EASY		0x00000100
 #define SPAWNFLAG_NOT_MEDIUM		0x00000200
@@ -429,7 +438,7 @@ int SV_PointContents( const vec3_t p );
 // returns the CONTENTS_* value from the world at the given point.
 // Quake 2 extends this to also check entities, to allow moving liquids
 
-trace_t SV_Trace( const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int type, edict_t *passedict, int contentmask );
+trace_t SV_Trace(const vec3_t start, const vec3_t min, const vec3_t max, const vec3_t end, int t, edict_t *e, int mask);
 trace_t SV_TraceToss( edict_t *tossent, edict_t *ignore );
 // mins and maxs are relative
 

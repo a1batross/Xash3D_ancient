@@ -1,4 +1,5 @@
 #include "bsplib.h"
+#include "const.h"
 
 #define MAX_SHADER_FILES		64
 #define MAX_SURFACE_INFO		4096
@@ -17,40 +18,38 @@ typedef struct
 infoParm_t infoParms[] =
 {
 	// server relevant contents
-	{"window",	SURF_TRANS66,	CONTENTS_WINDOW,		0},
-	{"aux",		SURF_NONE,	CONTENTS_AUX,		0},		
+	{"window",	SURF_BLEND,	CONTENTS_WINDOW,		0}, // normal window
 	{"lava",		SURF_WARP,	CONTENTS_LAVA,		1}, // very damaging
 	{"slime",		SURF_WARP,	CONTENTS_SLIME,		1}, // mildly damaging
 	{"water",		SURF_WARP,	CONTENTS_WATER,		1},
           
 	// utility relevant attributes
-	{"fog",		SURF_NONE,	CONTENTS_FOG,		0}, // carves surfaces entering
-	{"areaportal",	SURF_NONE,	CONTENTS_AREAPORTAL,	1},
-	{"playerclip",	SURF_NONE,	CONTENTS_PLAYERCLIP,	1},
-	{"monsterclip",	SURF_NONE,	CONTENTS_MONSTERCLIP,	1},
+	{"fog",		0,		CONTENTS_FOG,		0}, // carves surfaces entering
+	{"areaportal",	0,		CONTENTS_AREAPORTAL,	1},
+	{"playerclip",	0,		CONTENTS_PLAYERCLIP,	1},
+	{"monsterclip",	0,		CONTENTS_MONSTERCLIP,	1},
 	{"clip",		SURF_NODRAW,	CONTENTS_CLIP,		1},
-	{"current0",	SURF_NONE,	CONTENTS_CURRENT_0,		0},
-	{"current90",	SURF_NONE,	CONTENTS_CURRENT_90,	0},
-	{"current180",	SURF_NONE,	CONTENTS_CURRENT_180,	0},
-	{"current270",	SURF_NONE,	CONTENTS_CURRENT_270,	0},
-	{"currentup",	SURF_NONE,	CONTENTS_CURRENT_UP,	0},	
-	{"currentdown",	SURF_NONE,	CONTENTS_CURRENT_DOWN,	0},
-	{"origin",	SURF_NONE,	CONTENTS_ORIGIN,		1}, // center of rotating brushes
-	{"trans",		SURF_TRANS33,	CONTENTS_TRANSLUCENT,	0}, // don't eat contained surfaces
-	{"detail",	SURF_NONE,	CONTENTS_DETAIL,		0}, // don't include in structural bsp
-	{"sky",		SURF_SKY,		CONTENTS_NONE,		0}, // emit light from environment map
-	{"hint",		SURF_HINT|SURF_NODRAW,	CONTENTS_NONE,	0}, // use as a primary splitter
-	{"skip",		SURF_SKIP|SURF_NODRAW,	CONTENTS_NONE,	0}, // use as a secondary splitter
-	{"null",		SURF_NODRAW,	CONTENTS_CLIP,		0},
+	{"origin",	0,		CONTENTS_ORIGIN,		1}, // center of rotating brushes
+	{"alpha",		SURF_ALPHA,	CONTENTS_TRANSLUCENT,	0}, // don't eat contained surfaces
+	{"additive",	SURF_ADDITIVE,	CONTENTS_TRANSLUCENT,	0}, // don't eat contained surfaces
+	{"additive",	SURF_ADDITIVE,	CONTENTS_TRANSLUCENT,	0}, // don't eat contained surfaces
+	{"chrome",	SURF_CHROME,	0,			0}, // don't eat contained surfaces
+	{"sky",		SURF_SKY,		0,			0}, // emit light from environment map
+	{"hint",		SURF_HINT,	0,			0}, // use as a primary splitter
+	{"skip",		SURF_SKIP,	0,			0}, // use as a secondary splitter
 	{"mirror",	SURF_MIRROR,	CONTENTS_SOLID,		0},
-
-	// server attributes
-	{"slick",		SURF_SLICK,	CONTENTS_NONE,		0},
-	{"light",		SURF_LIGHT,	CONTENTS_NONE,		0},
-	{"ladder",	SURF_NONE,	CONTENTS_LADDER,		0},
+	{"portal",	SURF_PORTAL,	CONTENTS_TRIGGER,		0},
+	{"blend",		SURF_BLEND,	CONTENTS_WINDOW,		0}, // normal window
 
 	// drawsurf attributes
-	{"nodraw",	SURF_NODRAW,	CONTENTS_NONE,		0,}, // don't generate a drawsurface
+	{"null",		SURF_NODRAW,	CONTENTS_CLIP,		0}, // don't generate a drawsurface
+	{"nolightmap",	SURF_NOLIGHTMAP,	0,			0}, // don't generate a lightmap
+	{"nodlight",	SURF_NODLIGHT,	0,			0}, // don't ever add dynamic lights
+
+	// server attributes
+	{"light",		SURF_LIGHT,	0,			0},
+	{"lightmap",	SURF_LIGHT,	0,			0},
+	{"ladder",	0,		CONTENTS_LADDER,		0},
 };
 
 /*

@@ -6,6 +6,7 @@
 #include "r_local.h"
 #include "mathlib.h"
 #include "matrixlib.h"
+#include "const.h"
 
 #define BACKFACE_EPSILON	0.01
 

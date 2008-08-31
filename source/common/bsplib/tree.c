@@ -1,4 +1,5 @@
 #include "bsplib.h"
+#include "const.h"
 
 extern	int	c_nodes;
 

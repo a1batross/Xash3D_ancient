@@ -6,6 +6,7 @@
 #include "common.h"
 #include "server.h"
 #include "matrixlib.h"
+#include "const.h"
 
 /*
 pushmove objects do not obey gravity, and do not interact with each other or trigger fields, but block normal movement and push normal objects when they move.
@@ -1042,7 +1043,7 @@ bool SV_CheckWater( edict_t *ent )
 	point[2] = ent->progs.sv->origin[2] + ent->progs.sv->mins[2] + 1;
 
 	ent->progs.sv->waterlevel = 0;
-	ent->progs.sv->watertype = CONTENTS_NONE;
+	ent->progs.sv->watertype = 0;
 	cont = SV_PointContents( point );
 	if( cont & (MASK_WATER))
 	{
@@ -1296,7 +1297,7 @@ void SV_CheckWaterTransition( edict_t *ent )
 	}
 	else
 	{
-		ent->progs.sv->watertype = CONTENTS_NONE;
+		ent->progs.sv->watertype = 0;
 		ent->progs.sv->waterlevel = 0;
 	}
 }

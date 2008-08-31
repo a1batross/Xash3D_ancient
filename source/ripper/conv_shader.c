@@ -24,15 +24,19 @@ void Conv_RoundDimensions( int *scaled_width, int *scaled_height )
 bool Conv_WriteShader( const char *shaderpath, const char *imagepath, rgbdata_t *p, float *rad, float scale, int flags, int contents )
 {
 	file_t	*f;
-	string	qcname, qcpath, temp, lumpname;
+	string	wadname;
+	string	qcname, qcpath;
+	string	temp, lumpname;
 
 	// write also wadlist.qc for xwad compiler
 	FS_ExtractFilePath( imagepath, temp );
 	FS_FileBase( imagepath, lumpname );
 	FS_FileBase( temp, qcname );
+	FS_FileBase( temp, wadname );
 	FS_DefaultExtension( qcname, ".qc" );
+	FS_DefaultExtension( wadname, ".wad" ); // check for wad later
 	com.snprintf( qcpath, MAX_STRING, "%s/%s/%s", gs_gamedir, temp, qcname );
-
+	
 	if(FS_FileExists( qcpath ))
 	{
 		// already exist, search for current name
@@ -81,7 +85,10 @@ bool Conv_WriteShader( const char *shaderpath, const char *imagepath, rgbdata_t 
 		FS_Print(f,"//=======================================================================\n");
 	}
 	FS_StripExtension( (char *)imagepath );
-	FS_Printf(f, "\n%s\n{\n", imagepath ); // writepath
+
+	if(FS_FileExists( wadname ))
+		FS_Printf(f, "\ntextures/%s\n{\n", lumpname ); // it's wad texture, kill path
+	else FS_Printf(f, "\n%s\n{\n", imagepath ); // writepath
 	if(flags & SURF_LIGHT)
 	{
 		FS_Print( f, "\tsurfaceparm\tlight\n" );
@@ -102,9 +109,9 @@ bool Conv_WriteShader( const char *shaderpath, const char *imagepath, rgbdata_t 
 	if(flags & SURF_SKY) FS_Print( f, "\tsurfaceparm\tsky\n" );
 	if(flags & SURF_HINT) FS_Print( f, "\tsurfaceparm\thint\n" );
 	if(flags & SURF_SKIP) FS_Print( f, "\tsurfaceparm\tskip\n" );
-	if(flags & SURF_NULL) FS_Print( f, "\tsurfaceparm\tnull\n" );
 	if(flags & SURF_MIRROR) FS_Print( f, "\tsurfaceparm\tmirror\n" );
-	if(flags & SURF_NODRAW) FS_Print( f, "\tsurfaceparm\tnodraw\n" );
+	if(flags & SURF_NODRAW) FS_Print( f, "\tsurfaceparm\tnull\n" );
+	if(flags & SURF_TRANS33) FS_Print( f, "\tsurfaceparm\tblend\n" );
 	if(flags & SURF_TRANS66) FS_Print( f, "\tsurfaceparm\tblend\n" );
 
 	if(contents & CONTENTS_MONSTERCLIP && contents && CONTENTS_PLAYERCLIP)
@@ -224,12 +231,14 @@ bool Conv_ShaderGetFlags2( const char *imagename, const char *shadername, const 
 	// search for keywords
 	if(!com.strnicmp(imagename, "sky", 3 )) *flags |= SURF_SKY;
 	else if(!com.strnicmp(imagename, "origin",6)) *contents |= CONTENTS_ORIGIN;
-	else if(!com.strnicmp(imagename, "clip", 4 )) *contents |= CONTENTS_CLIP;
+	else if(!com.strnicmp(imagename, "clip", 4 )) *contents |= CONTENTS_MONSTERCLIP|CONTENTS_PLAYERCLIP;
 	else if(!com.strnicmp(imagename, "hint", 4 )) *flags |= SURF_HINT;
 	else if(!com.strnicmp(imagename, "skip", 4 )) *flags |= SURF_SKIP;
-	else if(!com.strnicmp(imagename, "null", 4 )) *flags |= SURF_NULL;
+	else if(!com.strnicmp(imagename, "null", 4 )) *flags |= SURF_NODRAW;
 	else if(!com.strnicmp(imagename, "translucent", 11 )) *flags |= CONTENTS_TRANSLUCENT;
+	else if(!com.strnicmp(imagename, "glass", 5 )) *flags |= SURF_TRANS66;
 	else if(!com.strnicmp(imagename, "mirror", 6 )) *flags |= SURF_MIRROR;
+	else if(!com.strnicmp(imagename, "portal", 6 )) *flags |= SURF_PORTAL;
 
 	return true;
 }

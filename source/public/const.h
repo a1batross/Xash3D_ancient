@@ -48,4 +48,53 @@
 #define EF_TELEPORT			(1<<8)	// create teleport splash
 #define EF_ROTATE			(1<<9)	// rotate bonus item
 
+// user contents
+#define CONTENTS_SOLID		(1<<0)	// an eye is never valid in a solid
+#define CONTENTS_LAVA		(1<<1)	// liquid type (apply damage and some visual sfx)
+#define CONTENTS_SLIME		(1<<2)	// liquid type (apply damaga and some visual sfx)
+#define CONTENTS_WATER		(1<<3)	// normal translucent water		
+#define CONTENTS_FOG		(1<<4)	// fog area or underwater volume
+#define CONTENTS_WINDOW		(1<<5)	// get rid of this
+
+// system contents
+#define CONTENTS_AREAPORTAL		(1<<15)
+#define CONTENTS_PLAYERCLIP		(1<<16)
+#define CONTENTS_MONSTERCLIP		(1<<17)
+#define CONTENTS_CLIP		CONTENTS_PLAYERCLIP|CONTENTS_MONSTERCLIP
+#define CONTENTS_ORIGIN		(1<<18)	// removed before bsping an entity
+#define CONTENTS_BODY		(1<<19)	// should never be on a brush, only in game
+#define CONTENTS_CORPSE		(1<<20)	// dead bodies
+#define CONTENTS_DETAIL		(1<<21)	// brushes not used for the bsp
+#define CONTENTS_STRUCTURAL		(1<<22)	// brushes used for the bsp
+#define CONTENTS_TRANSLUCENT		(1<<23)	// don't consume surface fragments inside
+#define CONTENTS_TRIGGER		(1<<24)	// trigger volume
+#define CONTENTS_NODROP		(1<<25)	// don't leave bodies or items (death fog, lava)
+#define CONTENTS_LADDER		(1<<26)	// ladder in games
+
+// user surfaces
+#define SURF_LIGHT			(1<<0)	// value will hold the light strength
+#define SURF_SKY			(1<<1)	// don't draw, but add to skybox
+#define SURF_WARP			(1<<2)	// turbulent water warp (using for teleporters too)
+#define SURF_MIRROR			(1<<3)	// mirror surface
+#define SURF_PORTAL			(1<<4)	// portal surface
+#define SURF_CHROME			(1<<5)	// chrome surfaces (bspfaces and studio skins)
+#define SURF_ALPHA			(1<<6)	// alpha surface (e.g. grates, trees)
+#define SURF_BLEND			(1<<7)	// blended surface (e.g. windows)
+#define SURF_ADDITIVE		(1<<8)	// additive surface (studio skins)
+
+// system surfaces
+#define SURF_NODRAW			(1<<15)	// don't bother referencing the texture
+#define SURF_HINT			(1<<16)	// make a primary bsp splitter
+#define SURF_SKIP			(1<<17)	// completely ignore, allowing non-closed brushes
+#define SURF_NULL			(1<<18)	// remove visible face after compile, but leave clip side
+#define SURF_NOLIGHTMAP		(1<<19)	// surface doesn't need a lightmap
+#define SURF_NODLIGHT		(1<<20)	// don't dlight even if solid (solid lava, skies)
+#define SURF_ALPHASHADOW		(1<<21)	// do per-pixel light shadow casting (project color shadow)
+
+// engine physics constants
+#define COLLISION_SNAPSCALE		(32.0f)
+#define COLLISION_SNAP		(1.0f / COLLISION_SNAPSCALE)
+#define COLLISION_SNAP2		(2.0f / COLLISION_SNAPSCALE)
+#define COLLISION_PLANE_DIST_EPSILON	(2.0f / COLLISION_SNAPSCALE)
+
 #endif//CONST_H

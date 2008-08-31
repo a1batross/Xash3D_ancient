@@ -1,6 +1,7 @@
 // trace.c
 
 #include "bsplib.h"
+#include "const.h"
 
 typedef struct tnode_s
 {

@@ -186,7 +186,7 @@ void CM_ServerMove( pmove_t *pmove )
 	}
 
 	VectorSet(step, DotProduct(step,cm.matrix[0]),DotProduct(step,cm.matrix[1]),DotProduct(step,cm.matrix[2])); 	
-	MatrixLoadIdentity( collisionPadding );
+	Matrix4x4_LoadIdentity( collisionPadding );
 
 	step[1] = 0.0f;
 
@@ -250,7 +250,7 @@ physbody_t *Phys_CreatePlayer( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transfor
 		return NULL;
 
 	// setup matrixes
-	MatrixLoadIdentity( trans );
+	Matrix4x4_LoadIdentity( trans );
 
 	if( mod )
 	{

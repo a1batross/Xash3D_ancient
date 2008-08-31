@@ -18,8 +18,8 @@ physbody_t *Phys_CreateBody( sv_edict_t *ed, cmodel_t *mod, matrix4x3 transform,
 	vec3_t		size, center, mins, maxs;
 
 	// setup matrixes
-	MatrixLoadIdentity( trans );
-	MatrixLoadIdentity( offset );
+	Matrix4x4_LoadIdentity( trans );
+	Matrix4x4_LoadIdentity( offset );
 
 	if( mod )
 	{

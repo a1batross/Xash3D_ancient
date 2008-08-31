@@ -1,6 +1,6 @@
 
 #include "bsplib.h"
-
+#include "const.h"
 
 int		c_active_portals;
 int		c_peak_portals;
@@ -45,14 +45,12 @@ Returns the single content bit of the
 strongest visible content present
 ==============
 */
-int VisibleContents (int contents)
+int VisibleContents( int contents )
 {
-	int		i;
+	int	i;
 
-	for (i=1 ; i<=LAST_VISIBLE_CONTENTS ; i<<=1)
-		if (contents & i )
-			return i;
-
+	for( i = 1; i <= CONTENTS_AREAPORTAL; i <<= 1 )
+		if( contents & i ) return i;
 	return 0;
 }
 

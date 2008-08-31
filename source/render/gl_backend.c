@@ -888,6 +888,14 @@ void GL_LoadMatrix( matrix4x4 source )
 	pglLoadMatrixf( dest );
 }
 
+void GL_SaveMatrix( GLenum target, matrix4x4 dest )
+{
+	gl_matrix	source;
+
+	pglGetFloatv( target, source );
+	Matrix4x4_FromArrayFloatGL( dest, source );
+}
+
 /*
 =================
  GL_SetDefaultState
@@ -1000,7 +1008,7 @@ void GL_Setup3D( void )
 
 	// Set up projection
 	pglMatrixMode( GL_PROJECTION );
-	pglLoadMatrixf( r_projectionMatrix );
+	pglLoadMatrixf( gl_projectionMatrix );
 	pglMatrixMode( GL_MODELVIEW );
 
 	// Set state

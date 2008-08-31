@@ -20,6 +20,51 @@
 #define SPR_ALPHTEST		3
 #define SPR_ADDGLOW			4	// same as additive, but without depthtest
 
+// q2 wal contents
+#define CONTENTS_SOLID	0x00000001	// an eye is never valid in a solid
+#define CONTENTS_WINDOW	0x00000002	// translucent, but not watery
+#define CONTENTS_AUX	0x00000004
+#define CONTENTS_LAVA	0x00000008
+#define CONTENTS_SLIME	0x00000010
+#define CONTENTS_WATER	0x00000020
+#define CONTENTS_MIST	0x00000040
+
+// remaining contents are non-visible, and don't eat brushes
+#define CONTENTS_AREAPORTAL	0x00008000
+#define CONTENTS_PLAYERCLIP	0x00010000
+#define CONTENTS_MONSTERCLIP	0x00020000
+
+// currents can be added to any other contents, and may be mixed
+#define CONTENTS_CURRENT_0	0x00040000
+#define CONTENTS_CURRENT_90	0x00080000
+#define CONTENTS_CURRENT_180	0x00100000
+#define CONTENTS_CURRENT_270	0x00200000
+#define CONTENTS_CURRENT_UP	0x00400000
+#define CONTENTS_CURRENT_DOWN	0x00800000
+
+#define CONTENTS_ORIGIN	0x01000000	// removed before BSP'ing an entity
+
+#define CONTENTS_MONSTER	0x02000000	// should never be on a brush, only in game
+#define CONTENTS_DEADMONSTER	0x04000000
+#define CONTENTS_DETAIL	0x08000000	// brushes to be added after vis leafs
+#define CONTENTS_TRANSLUCENT	0x10000000	// auto set if any surface has trans
+#define CONTENTS_LADDER	0x20000000
+
+#define SURF_LIGHT		0x00000001	// value will hold the light strength
+#define SURF_SLICK		0x00000002	// effects game physics
+#define SURF_SKY		0x00000004	// don't draw, but add to skybox
+#define SURF_WARP		0x00000008	// turbulent water warp
+#define SURF_TRANS33	0x00000010	// 33% opacity
+#define SURF_TRANS66	0x00000020	// 66% opacity
+#define SURF_FLOWING	0x00000040	// scroll towards angle
+#define SURF_NODRAW		0x00000080	// don't bother referencing the texture
+#define SURF_HINT		0x00000100	// make a primary bsp splitter
+#define SURF_SKIP		0x00000200	// completely ignore, allowing non-closed brushes
+
+// xash 0.45 surfaces replacement table
+#define SURF_MIRROR		0x00010000	// mirror surface
+#define SURF_PORTAL		0x00020000	// portal surface
+
 //
 // sprite_qc
 //

@@ -4,9 +4,10 @@
 //=======================================================================
 
 #include "r_local.h"
+#include "byteorder.h"
 #include "mathlib.h"
 #include "matrixlib.h"
-#include "byteorder.h"
+#include "const.h"
 
 // the inline models from the current map are kept separate
 static rmodel_t	r_inlinemodels[MAX_MODELS];
@@ -327,7 +328,7 @@ static void R_LoadTexInfo( const byte *base, const lump_t *l )
 	m_pLoadModel->texInfo = out;
 	m_pLoadModel->numTexInfo = count;
 
-	for ( i = 0; i < count; i++, in++, out++)
+	for( i = 0; i < count; i++, in++, out++ )
 	{
 		for( j = 0; j < 8; j++ )
 			out->vecs[0][j] = LittleFloat( in->vecs[0][j] );
@@ -348,24 +349,26 @@ static void R_LoadTexInfo( const byte *base, const lump_t *l )
 		}
 
 		// get surfaceParm
-		if( out->flags & (SURF_WARP|SURF_TRANS33|SURF_TRANS66))
+		if( out->flags & (SURF_WARP|SURF_ALPHA|SURF_BLEND|SURF_ADDITIVE|SURF_CHROME))
 		{
 			surfaceParm = 0;
 
 			if( out->flags & SURF_WARP )
 				surfaceParm |= SURFACEPARM_WARP;
-			if( out->flags & SURF_TRANS33 )
-				surfaceParm |= SURFACEPARM_TRANS33;
-			if( out->flags & SURF_TRANS66 )
-				surfaceParm |= SURFACEPARM_TRANS66;
-			if( out->flags & SURF_FLOWING )
-				surfaceParm |= SURFACEPARM_FLOWING;
+			if( out->flags & SURF_ALPHA )
+				surfaceParm |= SURFACEPARM_ALPHA;
+			if( out->flags & SURF_BLEND )
+				surfaceParm |= SURFACEPARM_BLEND;
+			if( out->flags & SURF_ADDITIVE )
+				surfaceParm |= SURFACEPARM_ADDITIVE;
+			if( out->flags & SURF_ADDITIVE )
+				surfaceParm |= SURFACEPARM_CHROME;
 		}
-		else
+		else surfaceParm = SURFACEPARM_LIGHTMAP;
+
+		if( out->flags & SURF_MIRROR|SURF_PORTAL )
 		{
-			surfaceParm = SURFACEPARM_LIGHTMAP;
-			if( out->flags & SURF_FLOWING )
-				surfaceParm |= SURFACEPARM_FLOWING;
+			surfaceParm &= ~SURFACEPARM_LIGHTMAP;
 		}
 
 		// performance evaluation option
@@ -383,7 +386,7 @@ static void R_LoadTexInfo( const byte *base, const lump_t *l )
 		}
 
 		// load the shader
-		out->shader = R_FindShader(va( "textures/%s", out->texture->name ), SHADER_BSP, surfaceParm );
+		out->shader = R_FindShader( out->texture->name, SHADER_TEXTURE, surfaceParm );
 
 	}
 }
@@ -594,11 +597,6 @@ static void R_SubdividePolygon( surface_t *surf, int numVerts, float *verts )
 		p->vertices[i+1].color[1] = 1.0f;
 		p->vertices[i+1].color[2] = 1.0f;
 		p->vertices[i+1].color[3] = 1.0f;
-
-		if( texInfo->flags & SURF_TRANS33 )
-			p->vertices[i+1].color[3] *= 0.33;
-		else if( texInfo->flags & SURF_TRANS66 )
-			p->vertices[i+1].color[3] *= 0.66;
 	}
 
 	// vertex
@@ -617,11 +615,6 @@ static void R_SubdividePolygon( surface_t *surf, int numVerts, float *verts )
 	p->vertices[0].color[1] = 1.0f;
 	p->vertices[0].color[2] = 1.0f;
 	p->vertices[0].color[3] = 1.0f;
-
-	if( texInfo->flags & SURF_TRANS33 )
-		p->vertices[0].color[3] *= 0.33;
-	else if( texInfo->flags & SURF_TRANS66 )
-		p->vertices[0].color[3] *= 0.66;
 
 	// copy first vertex to last
 	Mem_Copy( &p->vertices[i+1], &p->vertices[1], sizeof(surfPolyVert_t));
@@ -695,11 +688,6 @@ static void R_BuildPolygon( surface_t *surf, int numVerts, float *verts )
 		p->vertices[i+1].color[1] = 1.0f;
 		p->vertices[i+1].color[2] = 1.0f;
 		p->vertices[i+1].color[3] = 1.0f;
-
-		if( texInfo->flags & SURF_TRANS33 )
-			p->vertices[i+1].color[3] *= 0.33;
-		else if( texInfo->flags & SURF_TRANS66 )
-			p->vertices[i+1].color[3] *= 0.66;
 	}
 }
 
@@ -1252,9 +1240,9 @@ void R_BeginRegistration( const char *mapname )
 	r_viewCluster = -1;
 
 	// load some needed shaders
-	r_waterCausticsShader = R_FindShader( "waterCaustics", SHADER_BSP, 0 );
-	r_slimeCausticsShader = R_FindShader( "slimeCaustics", SHADER_BSP, 0 );
-	r_lavaCausticsShader = R_FindShader( "lavaCaustics", SHADER_BSP, 0 );
+	r_waterCausticsShader = R_FindShader( "waterCaustics", SHADER_TEXTURE, 0 );
+	r_slimeCausticsShader = R_FindShader( "slimeCaustics", SHADER_TEXTURE, 0 );
+	r_lavaCausticsShader = R_FindShader( "lavaCaustics", SHADER_TEXTURE, 0 );
 }
 
 
@@ -1279,7 +1267,7 @@ rmodel_t *R_RegisterModel( const char *name )
 		case mod_studio:
 		case mod_sprite:
 			for( i = 0; i < mod->numTextures; i++ )
-				mod->textures->image->registration_sequence = registration_sequence;
+				mod->textures[i].image->registration_sequence = registration_sequence;
 			break;
 		default: return NULL; // mod_bad, etc
 		}
@@ -1370,16 +1358,17 @@ void R_InitModels( void )
 	memset( r_fullvis, 255, sizeof( r_fullvis ));
 
 	r_worldModel = NULL;
-	r_frameCount = 1;					// no dlight cache
+	r_frameCount = 1;				// no dlight cache
 	r_nummodels = 0;
-	r_viewCluster = r_oldViewCluster = -1;			// force markleafs
+	r_viewCluster = r_oldViewCluster = -1;		// force markleafs
 
-	r_worldEntity = &r_entities[0];			// First entity is the world
+	r_worldEntity = &r_entities[0];		// First entity is the world
 	memset( r_worldEntity, 0, sizeof( ref_entity_t ));
 	r_worldEntity->ent_type = ED_NORMAL;
 	r_worldEntity->model = r_worldModel;
 	AxisClear( r_worldEntity->axis );
-	Vector4Set( r_worldEntity->shaderRGBA, 1.0f, 1.0f, 1.0f, 1.0f );
+	VectorSet( r_worldEntity->rendercolor, 1.0f, 1.0f, 1.0f );
+	r_worldEntity->renderamt = 1.0f;		// i'm hope we don't want to see semisolid world :) 
 	
 	R_StudioInit();
 }

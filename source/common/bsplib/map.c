@@ -1,10 +1,10 @@
 // map.c
 
 #include "bsplib.h"
+#include "const.h"
 
 extern bool onlyents;
 
-#define ScaleCorrection	(1.0/128.0)
 #define VALVE_FORMAT	220
 #define PLANE_HASHES	1024
 
@@ -56,12 +56,11 @@ PlaneEqual
 ================
 */
 #define	NORMAL_EPSILON	0.00001
-#define	DIST_EPSILON	0.01
 
 bool PlaneEqual( plane_t *p, vec3_t normal, vec_t dist )
 {
 	if( fabs(p->normal[0] - normal[0]) < NORMAL_EPSILON && fabs(p->normal[1] - normal[1]) < NORMAL_EPSILON
-	&& fabs(p->normal[2] - normal[2]) < NORMAL_EPSILON && fabs(p->dist - dist) < DIST_EPSILON )
+	&& fabs(p->normal[2] - normal[2]) < NORMAL_EPSILON && fabs(p->dist - dist) < COLLISION_PLANE_DIST_EPSILON )
 		return true;
 	return false;
 }
@@ -75,7 +74,7 @@ void AddPlaneToHash( plane_t *p )
 {
 	int	hash;
 
-	hash = (int)fabs(p->dist) / 8;
+	hash = (int)fabs(p->dist) / (int)COLLISION_SNAPSCALE;
 	hash &= (PLANE_HASHES-1);
 
 	p->hash_chain = planehash[hash];
@@ -166,7 +165,7 @@ void SnapPlane( vec3_t normal, vec_t *dist )
 {
 	SnapVector( normal );
 
-	if(fabs( *dist - floor( *dist + 0.5 )) < DIST_EPSILON )
+	if(fabs( *dist - floor( *dist + 0.5 )) < COLLISION_SNAP )
 		*dist = floor( *dist + 0.5 );
 }
 
@@ -177,43 +176,43 @@ FindFloatPlane
 =============
 */
 #ifndef USE_HASHING
-int		FindFloatPlane (vec3_t normal, vec_t dist)
+int FindFloatPlane( vec3_t normal, vec_t dist )
 {
-	int		i;
+	int	i;
 	plane_t	*p;
 
-	SnapPlane (normal, &dist);
-	for (i=0, p=mapplanes ; i<nummapplanes ; i++, p++)
+	SnapPlane( normal, &dist );
+	for( i = 0, p = mapplanes; i < nummapplanes; i++, p++ )
 	{
-		if (PlaneEqual (p, normal, dist))
+		if( PlaneEqual( p, normal, dist ))
 			return i;
 	}
 
-	return CreateNewFloatPlane (normal, dist);
+	return CreateNewFloatPlane( normal, dist );
 }
 #else
-int		FindFloatPlane (vec3_t normal, vec_t dist)
+int FindFloatPlane( vec3_t normal, vec_t dist )
 {
 	int		i;
 	plane_t	*p;
 	int		hash, h;
 
 	SnapPlane (normal, &dist);
-	hash = (int)fabs(dist) / 8;
+	hash = (int)fabs(dist) / (int)COLLISION_SNAPSCALE;
 	hash &= (PLANE_HASHES-1);
 
 	// search the border bins as well
-	for (i=-1 ; i<=1 ; i++)
+	for( i = -1; i <= 1; i++ )
 	{
 		h = (hash+i)&(PLANE_HASHES-1);
-		for (p = planehash[h] ; p ; p=p->hash_chain)
+		for( p = planehash[h]; p; p = p->hash_chain )
 		{
-			if (PlaneEqual (p, normal, dist))
-				return p-mapplanes;
+			if( PlaneEqual( p, normal, dist ))
+				return p - mapplanes;
 		}
 	}
 
-	return CreateNewFloatPlane (normal, dist);
+	return CreateNewFloatPlane( normal, dist );
 }
 #endif
 
@@ -227,14 +226,14 @@ int PlaneFromPoints (vec_t *p0, vec_t *p1, vec_t *p2)
 	vec3_t	t1, t2, normal;
 	vec_t	dist;
 
-	VectorSubtract (p0, p1, t1);
-	VectorSubtract (p2, p1, t2);
-	CrossProduct (t1, t2, normal);
-	VectorNormalize (normal);
+	VectorSubtract( p0, p1, t1 );
+	VectorSubtract( p2, p1, t2 );
+	CrossProduct( t1, t2, normal );
+	VectorNormalize( normal );
 
-	dist = DotProduct (p0, normal);
+	dist = DotProduct( p0, normal );
 
-	return FindFloatPlane (normal, dist);
+	return FindFloatPlane( normal, dist );
 }
 
 
@@ -265,7 +264,7 @@ void SetBrushContents( bspbrush_t *b )
 
 		// merge contents for every side and store it for brushtexture too
 		// translucent objects are automatically classified as detail
-		if( s->surf & ( SURF_TRANS33|SURF_TRANS66 ))
+		if( s->surf & ( SURF_ALPHA|SURF_BLEND|SURF_ADDITIVE ))
 		{
 			s->contents |= CONTENTS_DETAIL;
 			s->texture->contents |= CONTENTS_DETAIL;
@@ -277,7 +276,7 @@ void SetBrushContents( bspbrush_t *b )
 			s->texture->contents |= CONTENTS_DETAIL;
 			brush_contents |= CONTENTS_DETAIL;
 		}
-		if(!(s->contents & ((LAST_VISIBLE_CONTENTS-1)|CONTENTS_CLIP|CONTENTS_MIST)))
+		if(!(s->contents & ((CONTENTS_AREAPORTAL-1)|CONTENTS_CLIP|CONTENTS_FOG)))
 		{
 			s->contents |= CONTENTS_SOLID;
 			s->texture->contents |= CONTENTS_SOLID;
@@ -296,7 +295,7 @@ void SetBrushContents( bspbrush_t *b )
 	else b->detail = false;
 
 	// if any side is translucent, mark the contents and change solid to window
-	if( brush_surface & (SURF_TRANS33|SURF_TRANS66))
+	if( brush_surface & (SURF_ALPHA|SURF_BLEND|SURF_ADDITIVE))
 	{
 		brush_contents |= CONTENTS_TRANSLUCENT;
 		if( brush_contents & CONTENTS_SOLID )
@@ -356,7 +355,7 @@ void AddBrushBevels( void )
 				normal[axis] = dir;
 				if( dir == 1 ) dist = buildBrush->maxs[axis];
 				else dist = -buildBrush->mins[axis];
-				s->planenum = FindFloatPlane (normal, dist);
+				s->planenum = FindFloatPlane( normal, dist );
 				s->contents = buildBrush->sides[0].contents;
 				s->texinfo = buildBrush->sides[0].texinfo;
 				s->texture = buildBrush->sides[0].texture;
@@ -408,7 +407,7 @@ void AddBrushBevels( void )
 					CrossProduct( vec, vec2, normal );
 					if( VectorNormalizeLength( normal ) < 0.5f )
 						continue;
-					dist = DotProduct (w->p[j], normal);
+					dist = DotProduct( w->p[j], normal );
 
 					// if all the points on all the sides are
 					// behind this plane, it is a proper edge bevel
@@ -439,7 +438,7 @@ void AddBrushBevels( void )
 					buildBrush->numsides++;
 					memset( s2, 0, sizeof( *s2 ));
 
-					s2->planenum = FindFloatPlane (normal, dist);
+					s2->planenum = FindFloatPlane( normal, dist );
 					s2->contents = buildBrush->sides[0].contents;
 					s2->texinfo = buildBrush->sides[0].texinfo;
 					s2->texture = buildBrush->sides[0].texture;
@@ -558,13 +557,13 @@ void ParseRawBrush( void )
 			k = g_TXcommand - '0';
 			for( j = 0; j < 3; j++ )
 			{
-				TexPt[1][j] = (planepts[k][j] - planepts[0][j]) * ScaleCorrection;
+				TexPt[1][j] = (planepts[k][j] - planepts[0][j]) * COLLISION_SNAP;
             		}
 
 			k = 3 - k;
 			for( j = 0; j < 3; j++ )
 			{
-				TexPt[0][j] = (planepts[k][j] - planepts[0][j]) * ScaleCorrection;
+				TexPt[0][j] = (planepts[k][j] - planepts[0][j]) * COLLISION_SNAP;
 			}
 
 			dot22 = DotProduct( TexPt[0], TexPt[0] );

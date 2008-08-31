@@ -248,17 +248,17 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 	case RGBGEN_ENTITY:
 		for( i = 0; i < numVertex; i++ )
 		{
-			colorArray[i][0] = m_pCurrentEntity->shaderRGBA[0];
-			colorArray[i][1] = m_pCurrentEntity->shaderRGBA[1];
-			colorArray[i][2] = m_pCurrentEntity->shaderRGBA[2];
+			colorArray[i][0] = m_pCurrentEntity->rendercolor[0];
+			colorArray[i][1] = m_pCurrentEntity->rendercolor[1];
+			colorArray[i][2] = m_pCurrentEntity->rendercolor[2];
 		}
 		break;
 	case RGBGEN_ONEMINUSENTITY:
 		for( i = 0; i < numVertex; i++ )
 		{
-			colorArray[i][0] = 1.0f - m_pCurrentEntity->shaderRGBA[0];
-			colorArray[i][1] = 1.0f - m_pCurrentEntity->shaderRGBA[1];
-			colorArray[i][2] = 1.0f - m_pCurrentEntity->shaderRGBA[2];
+			colorArray[i][0] = 1.0f - m_pCurrentEntity->rendercolor[0];
+			colorArray[i][1] = 1.0f - m_pCurrentEntity->rendercolor[1];
+			colorArray[i][2] = 1.0f - m_pCurrentEntity->rendercolor[2];
 		}
 		break;
 	case RGBGEN_LIGHTINGAMBIENT:
@@ -319,11 +319,11 @@ static void RB_CalcVertexColors( shaderStage_t *stage )
 		break;
 	case ALPHAGEN_ENTITY:
 		for( i = 0; i < numVertex; i++ )
-			colorArray[i][3] = m_pCurrentEntity->shaderRGBA[3];
+			colorArray[i][3] = m_pCurrentEntity->renderamt;
 		break;
 	case ALPHAGEN_ONEMINUSENTITY:
 		for( i = 0; i < numVertex; i++ )
-			colorArray[i][3] = 1.0f - m_pCurrentEntity->shaderRGBA[3];
+			colorArray[i][3] = 1.0f - m_pCurrentEntity->renderamt;
 		break;
 	case ALPHAGEN_DOT:
 		if( !AxisCompare( m_pCurrentEntity->axis, axisDefault ))
@@ -823,7 +823,7 @@ static void RB_SetupTextureUnit( stageBundle_t *bundle, uint unit )
 	if( bundle->tcGen.type == TCGEN_REFLECTION || bundle->tcGen.type == TCGEN_NORMAL )
 	{
 		pglMatrixMode( GL_TEXTURE );
-		pglLoadMatrixf( r_textureMatrix );
+		pglLoadMatrixf( gl_textureMatrix );
 		pglMatrixMode( GL_MODELVIEW );
 
 		pglEnable( GL_TEXTURE_GEN_S );
@@ -1124,7 +1124,6 @@ static void RB_DrawModelBounds( void )
 	if( m_pRenderMesh->meshType == MESH_SURFACE )
 	{
 		model = m_pCurrentEntity->model;
-		if( !model ) return;
 
 		// compute a full bounding box
 		for( i = 0; i < 8; i++ )
@@ -1162,6 +1161,40 @@ static void RB_DrawModelBounds( void )
 	pglEnd();
 }
 
+static void RB_DrawLine( int color, int numpoints, const float *points )
+{
+	int	i = numpoints - 1;
+	vec3_t	p0, p1;
+
+	VectorSet( p0, points[i*3+0], points[i*3+1], points[i*3+2] );
+	if( r_physbdebug->integer == 1 ) ConvertPositionToGame( p0 );
+
+	for (i = 0; i < numpoints; i ++)
+	{
+		VectorSet( p1, points[i*3+0], points[i*3+1], points[i*3+2] );
+		if( r_physbdebug->integer == 1 ) ConvertPositionToGame( p1 );
+ 
+		pglColor4fv(UnpackRGBA( color ));
+		pglVertex3fv( p0 );
+		pglVertex3fv( p1 );
+ 
+ 		VectorCopy( p1, p0 );
+ 	}
+}
+
+void RB_DebugGraphics( void )
+{
+	if( !r_physbdebug->integer ) return;
+	if( r_refdef.rdflags & RDF_NOWORLDMODEL )
+		return;
+
+	// physic debug
+	pglLoadMatrixf( gl_worldMatrix );
+	pglBegin( GL_LINES );
+	ri.ShowCollision( RB_DrawLine );
+	pglEnd();
+}
+
 /*
 =================
 RB_DrawDebugTools
@@ -1169,7 +1202,8 @@ RB_DrawDebugTools
 */
 static void RB_DrawDebugTools( void )
 {
-	if( gl_state.orthogonal ) return;
+	if( gl_state.orthogonal || r_refdef.rdflags & RDF_NOWORLDMODEL )
+		return;
 
 	GL_Disable( GL_VERTEX_PROGRAM_ARB );
 	GL_Disable( GL_FRAGMENT_PROGRAM_ARB );
@@ -1226,7 +1260,7 @@ void RB_RenderMesh( void )
 	else RB_RenderShader();
 
 	// draw debug tools
-	if( r_showtris->integer || r_shownormals->integer || r_showtangentspace->integer || r_showmodelbounds->integer )
+	if( r_showtris->integer || r_physbdebug->integer || r_shownormals->integer || r_showtangentspace->integer || r_showmodelbounds->integer )
 		RB_DrawDebugTools();
 
 	// check for errors
@@ -1296,7 +1330,7 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 			if( m_pCurrentEntity != entity )
 			{
 				if( entity == r_worldEntity || entity->ent_type != ED_NORMAL )
-					pglLoadMatrixf( r_worldMatrix );
+					pglLoadMatrixf( gl_worldMatrix );
 				else R_RotateForEntity( entity );
 
 				m_pCurrentEntity = entity;

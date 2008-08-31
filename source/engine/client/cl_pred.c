@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "common.h"
 #include "client.h"
 #include "matrixlib.h"
+#include "const.h"
 
 /*
 ===================
@@ -231,7 +232,7 @@ CL_PMTrace
 */
 void CL_PMTrace( vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, trace_t *tr )
 {
-	*tr = CL_Trace( start, mins, maxs, end, MOVE_NORMAL, NULL, MASK_PLAYERSOLID );
+	*tr = CL_Trace( start, mins, maxs, end, MOVE_NORMAL, NULL, CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_BODY );
 }
 
 int CL_PMpointcontents( vec3_t point )

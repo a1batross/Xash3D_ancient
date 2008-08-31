@@ -1,6 +1,7 @@
 // faces.c
 
 #include "bsplib.h"
+#include "const.h"
 
 /*
 

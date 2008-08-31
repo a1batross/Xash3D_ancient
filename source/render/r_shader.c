@@ -4,8 +4,16 @@
 //=======================================================================
 
 #include "r_local.h"
+#include "const.h"
 
-#define SHADERS_HASHSIZE	256
+#define SHADERS_HASHSIZE		256
+
+typedef struct
+{
+	const char		*name;
+	int			surfaceFlags;
+	int			contents;
+} shaderParm_t;
 
 typedef struct shaderScript_s
 {
@@ -13,6 +21,7 @@ typedef struct shaderScript_s
 	string			name;
 	shaderType_t		shaderType;
 	uint			surfaceParm;
+	int			contents;
 	char			script[1];	// variable sized
 } shaderScript_t;
 
@@ -35,6 +44,24 @@ shader_t *r_waterCausticsShader;
 shader_t *r_slimeCausticsShader;
 shader_t *r_lavaCausticsShader;
 
+shaderParm_t infoParms[] =
+{
+	{"window",	SURFACEPARM_BLEND,		CONTENTS_WINDOW	}, // normal window
+	{"lava",		SURFACEPARM_WARP,		CONTENTS_LAVA	}, // very damaging
+	{"slime",		SURFACEPARM_WARP,		CONTENTS_SLIME	}, // mildly damaging
+	{"water",		SURFACEPARM_WARP,		CONTENTS_WATER	},
+	{"alpha",		SURFACEPARM_ALPHA,		CONTENTS_TRANSLUCENT}, // don't eat contained surfaces
+	{"additive",	SURFACEPARM_ADDITIVE,	CONTENTS_TRANSLUCENT}, // don't eat contained surfaces
+	{"blend",		SURFACEPARM_BLEND,		CONTENTS_WINDOW	}, // normal window
+	{"chrome",	SURF_CHROME,		0		}, // don't eat contained surfaces
+// enbale after implementation mirrors
+// {"mirror",	SURFACEPARM_MIRROR,		CONTENTS_SOLID	},
+// {"portal",	SURFACEPARM_PORTAL,		CONTENTS_TRIGGER	},
+	{"light",		SURFACEPARM_LIGHTMAP,	0		},
+	{"lightmap",	SURFACEPARM_LIGHTMAP,	0		},
+	{"sky",		0,			0		}, // don't draw
+	{"origin",	0,			0		}, // don't draw
+};
 
 /*
 =======================================================================
@@ -134,9 +161,15 @@ R_ParseGeneralSurfaceParm
 static bool R_ParseGeneralSurfaceParm( shader_t *shader, char **script )
 {
 	char	*tok;
-
-	if( shader->shaderType != SHADER_BSP )
+	int	i, numInfoParms = sizeof(infoParms) / sizeof(infoParms[0]);
+	
+	switch( shader->shaderType )
 	{
+	case SHADER_TEXTURE:
+	case SHADER_STUDIO:
+	case SHADER_SPRITE:
+		break;
+	default:
 		MsgDev( D_WARN, "'surfaceParm' not allowed in shader '%s'\n", shader->name );
 		return false;
 	}
@@ -148,12 +181,17 @@ static bool R_ParseGeneralSurfaceParm( shader_t *shader, char **script )
 		return false;
 	}
 
-	if(Com_MatchToken( "lightmap" )) shader->surfaceParm |= SURFACEPARM_LIGHTMAP;
-	else if(Com_MatchToken( "warp" )) shader->surfaceParm |= SURFACEPARM_WARP;
-	else if(Com_MatchToken( "trans" )) shader->surfaceParm |= SURFACEPARM_TRANS33;
-	else if(Com_MatchToken( "blend" )) shader->surfaceParm |= SURFACEPARM_TRANS66;
-	else if(Com_MatchToken( "flowing")) shader->surfaceParm |= SURFACEPARM_FLOWING;
-	else
+	for( i = 0; i < numInfoParms; i++ )
+	{
+		if(Com_MatchToken( infoParms[i].name ))
+		{
+			shader->surfaceParm |= infoParms[i].surfaceFlags;
+			shader->contentFlags |= infoParms[i].contents;
+			break;
+		}
+	}
+
+	if( i == numInfoParms )
 	{
 		MsgDev( D_WARN, "unknown 'surfaceParm' parameter '%s' in shader '%s'\n", tok, shader->name );
 		return false;
@@ -323,7 +361,7 @@ static bool R_ParseGeneralTessSize( shader_t *shader, char **script )
 	char	*tok;
 	int	i = 8;
 
-	if( shader->shaderType != SHADER_BSP )
+	if( shader->shaderType != SHADER_TEXTURE )
 	{
 		MsgDev( D_WARN, "'tessSize' not allowed in shader '%s'\n", shader->name );
 		return false;
@@ -381,8 +419,10 @@ static bool R_ParseGeneralSkyParms( shader_t *shader, char **script )
 	{
 		for( i = 0; i < 6; i++ )
 		{
+			if( shader->skyParms.farBox[i] )
+				shader->skyParms.farBox[i]->flags &= ~TF_STATIC; // old skybox will be removed on next loading
 			com.snprintf( name, sizeof(name), "%s%s", tok, r_skyBoxSuffix[i] );
-			shader->skyParms.farBox[i] = R_FindTexture( name, NULL, 0, TF_CLAMP|TF_SKYSIDE, 0 );
+			shader->skyParms.farBox[i] = R_FindTexture( name, NULL, 0, TF_CLAMP|TF_SKYSIDE|TF_STATIC, 0 );
 			if( !shader->skyParms.farBox[i] )
 			{
 				MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", name, shader->name );
@@ -400,7 +440,7 @@ static bool R_ParseGeneralSkyParms( shader_t *shader, char **script )
 
 	if(!Com_MatchToken( "-"))
 	{
-		shader->skyParms.cloudHeight = atof(tok);
+		shader->skyParms.cloudHeight = com.atof(tok);
 		if( shader->skyParms.cloudHeight < 8.0 || shader->skyParms.cloudHeight > 1024.0 )
 		{
 			MsgDev( D_WARN, "out of range cloudHeight value of %f for 'skyParms' in shader '%s', defaulting to 128\n", shader->skyParms.cloudHeight, shader->name );
@@ -420,8 +460,10 @@ static bool R_ParseGeneralSkyParms( shader_t *shader, char **script )
 	{
 		for( i = 0; i < 6; i++ )
 		{
+			if( shader->skyParms.nearBox[i] )
+				shader->skyParms.nearBox[i]->flags &= ~TF_STATIC; // old skybox will be removed on next loading
 			com.snprintf( name, sizeof(name), "%s%s", tok, r_skyBoxSuffix[i] );
-			shader->skyParms.nearBox[i] = R_FindTexture( name, NULL, 0, TF_CLAMP|TF_SKYSIDE, 0 );
+			shader->skyParms.nearBox[i] = R_FindTexture( name, NULL, 0, TF_CLAMP|TF_SKYSIDE|TF_STATIC, 0 );
 			if( !shader->skyParms.nearBox[i] )
 			{
 				MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", name, shader->name );
@@ -655,7 +697,7 @@ static bool R_ParseStageMap( shader_t *shader, shaderStage_t *stage, char **scri
 
 	if(Com_MatchToken( "$lightmap"))
 	{
-		if( shader->shaderType != SHADER_BSP )
+		if( shader->shaderType != SHADER_TEXTURE )
 		{
 			MsgDev( D_WARN, "'map $lightmap' not allowed in shader '%s'\n", shader->name );
 			return false;
@@ -2827,12 +2869,14 @@ R_ParseShaderFile
 static void R_ParseShaderFile( char *buffer, int size )
 {
 	shaderScript_t	*shaderScript;
+	int		numInfoParms = sizeof(infoParms) / sizeof(infoParms[0]);
 	char		*buf, *tok;
 	char		*ptr1, *ptr2;
 	char		*script;
 	shaderType_t	shaderType;
 	uint		surfaceParm;
-	uint		hashKey;
+	uint		contentFlags;
+	uint		i, hashKey;
 	string		name;
 
 	buf = buffer;
@@ -2856,7 +2900,7 @@ static void R_ParseShaderFile( char *buffer, int size )
 		// needs this for correct shader loading.
 		// proper syntax checking is done when the shader is loaded.
 		shaderType = -1;
-		surfaceParm = 0;
+		surfaceParm = contentFlags = 0;
 
 		script = ptr1;
 		while( script < ptr2 )
@@ -2864,24 +2908,20 @@ static void R_ParseShaderFile( char *buffer, int size )
 			tok = Com_ParseToken( &script, true );
 			if( !tok[0] ) break; // end of data
 
-			// FIXME: use infoParms from common.dll/bsplib/shader.c
 			if( Com_MatchToken( "surfaceparm" ))
 			{
 				tok = Com_ParseToken( &script, false );
 				if( !tok[0] ) continue;
 
-				if (Com_MatchToken( "lightmap" ) || Com_MatchToken( "light" ))
-					surfaceParm |= SURFACEPARM_LIGHTMAP;
-				else if (Com_MatchToken( "warp") || Com_MatchToken( "water"))
-					surfaceParm |= SURFACEPARM_WARP;
-				else if (Com_MatchToken( "trans33"))
-					surfaceParm |= SURFACEPARM_TRANS33;
-				else if (Com_MatchToken( "trans66"))
-					surfaceParm |= SURFACEPARM_TRANS66;
-				else if (Com_MatchToken( "flowing"))
-					surfaceParm |= SURFACEPARM_FLOWING;
-				else continue;
-				shaderType = SHADER_BSP;
+				for( i = 0; i < numInfoParms; i++ )
+				{
+					if(Com_MatchToken( infoParms[i].name ))
+					{
+						surfaceParm |= infoParms[i].surfaceFlags;
+						contentFlags |= infoParms[i].contents;
+						break;
+					}
+				}
 			}
 		}
 
@@ -2890,6 +2930,7 @@ static void R_ParseShaderFile( char *buffer, int size )
 		com.strncpy( shaderScript->name, name, sizeof( shaderScript->name ));
 		shaderScript->shaderType = shaderType;
 		shaderScript->surfaceParm = surfaceParm;
+		shaderScript->contents = contentFlags;
 		Mem_Copy( shaderScript->script, ptr1, (ptr2 - ptr1));
 
 		// add to hash table
@@ -3019,7 +3060,9 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 
 		for( i = 0; i < 6; i++ )
 		{
-			shader->skyParms.farBox[i] = R_FindTexture(va("gfx/env/%s%s", shader->name, r_skyBoxSuffix[i]), NULL, 0, TF_CLAMP|TF_SKYSIDE, 0 );
+			if( shader->skyParms.farBox[i] )
+				shader->skyParms.farBox[i]->flags &= ~TF_STATIC; // old skybox will be removed on next loading
+			shader->skyParms.farBox[i] = R_FindTexture(va("gfx/env/%s%s", shader->name, r_skyBoxSuffix[i]), NULL, 0, TF_CLAMP|TF_SKYSIDE|TF_STATIC, 0 );
 			if( !shader->skyParms.farBox[i] )
 			{
 				MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
@@ -3028,7 +3071,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 		}
 		shader->skyParms.cloudHeight = 128.0;
 		break;
-	case SHADER_BSP:
+	case SHADER_TEXTURE:
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
 		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_MIPMAPS|TF_COMPRESS, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
@@ -3038,13 +3081,27 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 		}
 		shader->stages[0]->bundles[0]->numTextures++;
 
-		if( shader->surfaceParm & (SURFACEPARM_TRANS33 | SURFACEPARM_TRANS66))
+		if( shader->surfaceParm & SURFACEPARM_BLEND)
 		{
 			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
 			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
+		}
+		else if( shader->surfaceParm & SURFACEPARM_ALPHA)
+		{
+			shader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
+			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
+			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+			shader->stages[0]->alphaFunc.func = GL_GREATER;
+			shader->stages[0]->alphaFunc.ref = 0.666;
+			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
 		}
 
+		if( shader->surfaceParm & SURFACEPARM_CHROME )
+		{
+			Msg( "chrome not implemented\n" );
+		}
 		if( shader->surfaceParm & SURFACEPARM_WARP )
 		{
 			shader->flags |= SHADER_NOFRAGMENTS;
@@ -3053,26 +3110,6 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 
 			shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_TCGEN;
 			shader->stages[0]->bundles[0]->tcGen.type = TCGEN_WARP;
-
-			if( shader->surfaceParm & SURFACEPARM_FLOWING )
-			{
-				shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_TCMOD;
-				shader->stages[0]->bundles[0]->tcMod[1].params[0] = -0.5;
-				shader->stages[0]->bundles[0]->tcMod[1].params[1] = 0.0;
-				shader->stages[0]->bundles[0]->tcMod[1].type = TCMOD_SCROLL;
-				shader->stages[0]->bundles[0]->tcModNum++;
-			}
-		}
-		else
-		{
-			if( shader->surfaceParm & SURFACEPARM_FLOWING )
-			{
-				shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_TCMOD;
-				shader->stages[0]->bundles[0]->tcMod[0].params[0] = -0.25;
-				shader->stages[0]->bundles[0]->tcMod[0].params[1] = 0.0;
-				shader->stages[0]->bundles[0]->tcMod[0].type = TCMOD_SCROLL;
-				shader->stages[0]->bundles[0]->tcModNum++;
-			}
 		}
 
 		shader->stages[0]->numBundles++;
@@ -3111,12 +3148,24 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 			MsgDev( D_WARN, "couldn't find spriteframe for shader '%s', using default...\n", shader->name );
 			shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
 		}
-		// FIXME: make cases for ALPHA, GLOW etc
-		shader->sort = SORT_BLEND;
-		shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
-		shader->stages[0]->flags &= ~SHADERSTAGE_DEPTHWRITE;
-		shader->stages[0]->blendFunc.src = GL_DST_COLOR;
-		shader->stages[0]->blendFunc.dst = GL_ONE;
+		if( shader->surfaceParm & SURFACEPARM_BLEND)
+		{
+			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
+			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
+	         		shader->sort = SORT_BLEND;
+		}
+		if( shader->surfaceParm & SURFACEPARM_ALPHA)
+		{
+			shader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
+			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
+			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+			shader->stages[0]->alphaFunc.func = GL_GREATER;
+			shader->stages[0]->alphaFunc.ref = 0.666;
+			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
+			shader->sort = SORT_SEETHROUGH;
+		}
 		shader->stages[0]->bundles[0]->numTextures++;
 		shader->stages[0]->numBundles++;
 		shader->numStages++;
@@ -3217,7 +3266,7 @@ static void R_FinishShader( shader_t *shader )
 	}
 
 	// lightmap but no lightmap stage?
-	if( shader->shaderType == SHADER_BSP && (shader->surfaceParm & SURFACEPARM_LIGHTMAP ))
+	if( shader->shaderType == SHADER_TEXTURE && (shader->surfaceParm & SURFACEPARM_LIGHTMAP ))
 	{
 		if(!(shader->flags & SHADER_DEFAULTED) && !(shader->flags & SHADER_HASLIGHTMAP))
 			MsgDev( D_WARN, "shader '%s' has lightmap but no lightmap stage!\n", shader->name );
@@ -3254,7 +3303,7 @@ static void R_FinishShader( shader_t *shader )
 				// only allow tcGen lightmap on world surfaces
 				if( bundle->tcGen.type == TCGEN_LIGHTMAP )
 				{
-					if( shader->shaderType != SHADER_BSP )
+					if( shader->shaderType != SHADER_TEXTURE )
 						bundle->tcGen.type = TCGEN_BASE;
 				}
 			}
@@ -3320,7 +3369,7 @@ static void R_FinishShader( shader_t *shader )
 			case SHADER_SKY:
 				stage->rgbGen.type = RGBGEN_IDENTITY;
 				break;
-			case SHADER_BSP:
+			case SHADER_TEXTURE:
 				if((stage->flags & SHADERSTAGE_BLENDFUNC) && (stage->bundles[0]->texType != TEX_LIGHTMAP))
 					stage->rgbGen.type = RGBGEN_IDENTITYLIGHTING;
 				else stage->rgbGen.type = RGBGEN_IDENTITY;
@@ -3329,7 +3378,10 @@ static void R_FinishShader( shader_t *shader )
 				stage->rgbGen.type = RGBGEN_LIGHTINGDIFFUSE;
 				break;
 			case SHADER_SPRITE:
-				stage->rgbGen.type = RGBGEN_ENTITY; // sprite colormod
+				if( shader->surfaceParm & SURFACEPARM_ALPHA )
+					stage->rgbGen.type = RGBGEN_IDENTITYLIGHTING; // sprite colormod
+				else if( shader->surfaceParm & SURFACEPARM_BLEND|SURFACEPARM_ADDITIVE )
+					stage->rgbGen.type = RGBGEN_IDENTITY;
 				break;
 			case SHADER_NOMIP:
 			case SHADER_GENERIC:
@@ -3347,10 +3399,10 @@ static void R_FinishShader( shader_t *shader )
 			case SHADER_SKY:
 				stage->alphaGen.type = ALPHAGEN_IDENTITY;
 				break;
-			case SHADER_BSP:
+			case SHADER_TEXTURE:
 				if((stage->flags & SHADERSTAGE_BLENDFUNC) && (stage->bundles[0]->texType != TEX_LIGHTMAP))
 				{
-					if( shader->surfaceParm & (SURFACEPARM_TRANS33|SURFACEPARM_TRANS66))
+					if( shader->surfaceParm & (SURFACEPARM_BLEND|SURFACEPARM_ADDITIVE))
 						stage->alphaGen.type = ALPHAGEN_VERTEX;
 					else stage->alphaGen.type = ALPHAGEN_IDENTITY;
 				}
@@ -3641,7 +3693,7 @@ shader_t *R_FindShader( const char *name, shaderType_t shaderType, uint surfaceP
 
 	for( shader = r_shadersHash[hashKey]; shader; shader = shader->nextHash )
 	{
-		if(!com.stricmp( shader->name, name ))
+		if(!com.stricmp( shader->name, name ) || !com.stricmp( shader->name, va( "textures/%s", name )))
 		{
 			if((shader->shaderType == shaderType) && (shader->surfaceParm == surfaceParm))
 				return shader;
@@ -3651,7 +3703,7 @@ shader_t *R_FindShader( const char *name, shaderType_t shaderType, uint surfaceP
 	// see if there's a script for this shader
 	for( shaderScript = r_shaderScriptsHash[hashKey]; shaderScript; shaderScript = shaderScript->nextHash )
 	{
-		if(!com.stricmp( shaderScript->name, name ))
+		if(!com.stricmp( shaderScript->name, name ) || !com.stricmp( shaderScript->name, va( "textures/%s", name )))
 		{
 			if((shaderScript->shaderType == shaderType && shaderScript->surfaceParm == surfaceParm) || (shaderScript->shaderType == -1))
 			{
@@ -3719,7 +3771,7 @@ static void R_CreateBuiltInShaders( void )
 
 	com.strncpy( shader->name, "<default>", sizeof( shader->name ));
 	shader->shaderNum = r_numShaders;
-	shader->shaderType = SHADER_BSP;
+	shader->shaderType = SHADER_TEXTURE;
 	shader->surfaceParm = 0;
 	shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
 	shader->stages[0]->bundles[0]->numTextures++;
@@ -3733,7 +3785,7 @@ static void R_CreateBuiltInShaders( void )
 
 	com.strncpy( shader->name, "<lightmap>", sizeof( shader->name ));
 	shader->shaderNum = r_numShaders;
-	shader->shaderType = SHADER_BSP;
+	shader->shaderType = SHADER_TEXTURE;
 	shader->surfaceParm = SURFACEPARM_LIGHTMAP;
 	shader->flags = SHADER_HASLIGHTMAP;
 	shader->stages[0]->bundles[0]->texType = TEX_LIGHTMAP;
@@ -3774,7 +3826,7 @@ void R_ShaderList_f( void )
 		case SHADER_SKY:
 			Msg( "sky " );
 			break;
-		case SHADER_BSP:
+		case SHADER_TEXTURE:
 			Msg( "bsp " );
 			break;
 		case SHADER_STUDIO:

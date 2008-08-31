@@ -26,11 +26,13 @@ GLOBAL: Достигнуть уровня xash 0.45 к очередному релизу
 4. r_shader.c:3087
 5. r_main.c:339
 6. r_backend.c:1310
-7. r_shader.c:2866
+
 
 9. r_texture.c:1724
 
-убить кастомные arrays, в r_refdef
+убить кастомные arrays, в r_refdef		OK
+навести порядок в SURF_ и CONTENTS_		OK
+довести до ума отрисовку спрайтов
 
 TODO LIST
 поправить поле movedir в bsplib/map.c

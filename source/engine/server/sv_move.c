@@ -6,6 +6,7 @@
 #include "common.h"
 #include "matrixlib.h"
 #include "server.h"
+#include "const.h"
 
 /*
 =============
@@ -413,7 +414,7 @@ void SV_Transform( sv_edict_t *ed, matrix4x3 transform )
 	VectorCopy( transform[2], edict->progs.sv->m_pmatrix[2] );
 	VectorCopy( transform[3], edict->progs.sv->m_pmatrix[3] );
 
-	MatrixLoadIdentity( objmatrix );
+	Matrix4x4_LoadIdentity( objmatrix );
 	VectorCopy( transform[0], objmatrix[0] );
 	VectorCopy( transform[1], objmatrix[1] );
 	VectorCopy( transform[2], objmatrix[2] );

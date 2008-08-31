@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "sound.h"
+#include "const.h"
 
 #define MAX_PLAYSOUNDS		256
 #define MAX_CHANNELS		64
@@ -543,9 +544,9 @@ void S_AddEnvironmentEffects( const vec3_t position )
 	uint	eaxEnv;
 
 	if( !al_config.allow_3DMode ) return;
-
+          
 	// if eax is enabled, apply listener environmental effects
-	if( si.PointContents((float *)position ) & MASK_WATER )
+	if( si.PointContents((float *)position ) & (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER))
 		eaxEnv = EAX_ENVIRONMENT_UNDERWATER;
 	else eaxEnv = EAX_ENVIRONMENT_GENERIC;
 	al_config.Set3DMode(&DSPROPSETID_EAX20_ListenerProperties, DSPROPERTY_EAXLISTENER_ENVIRONMENT|DSPROPERTY_EAXLISTENER_DEFERRED, 0, &eaxEnv, sizeof(eaxEnv));

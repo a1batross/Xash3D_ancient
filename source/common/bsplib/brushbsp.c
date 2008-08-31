@@ -1,10 +1,10 @@
 
 #include "bsplib.h"
-
+#include "const.h"
 
 int	c_nodes;
 int	c_nonvis;
-vec_t	microvolume = 1.0;
+vec_t	microvolume = 0.3;
 
 void FindBrushInTree (node_t *node, int brushnum)
 {

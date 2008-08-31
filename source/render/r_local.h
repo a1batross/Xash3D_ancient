@@ -135,20 +135,23 @@ void		R_ShutdownPrograms( void );
 typedef enum
 {
 	SHADER_SKY,			// sky box shader
-	SHADER_BSP,			// bsp polygon
+	SHADER_FONT,			// speical case for displayed fonts
+	SHADER_NOMIP,			// 2d images
+	SHADER_TEXTURE,			// bsp polygon
 	SHADER_STUDIO,			// studio skins
 	SHADER_SPRITE,			// sprite frames
-	SHADER_NOMIP,			// 2d images
 	SHADER_GENERIC			// generic shader
 } shaderType_t;
 
 // surfaceParm flags used for shader loading
-// TODO: replace with Xash3D flags
 #define SURFACEPARM_LIGHTMAP			1
 #define SURFACEPARM_WARP			2
-#define SURFACEPARM_TRANS33			4
-#define SURFACEPARM_TRANS66			8
-#define SURFACEPARM_FLOWING			16
+#define SURFACEPARM_BLEND			4
+#define SURFACEPARM_ALPHA			8
+#define SURFACEPARM_ADDITIVE			16
+#define SURFACEPARM_CHROME			32
+#define SURFACEPARM_MIRROR			64
+#define SURFACEPARM_PORTAL			128
 
 // shader flags
 #define SHADER_EXTERNAL			0x00000001
@@ -421,6 +424,7 @@ typedef struct shader_s
 	int		shaderNum;
 	shaderType_t	shaderType;
 	uint		surfaceParm;
+	uint		contentFlags;
 	uint		flags;
 
 	cull_t		cull;
@@ -861,7 +865,6 @@ typedef struct ref_entity_s
 
 	// shader information
 	shader_t		*shader;
-	vec4_t		shaderRGBA;	// used by rgbGen/alphaGen entity shaders
 	float		shaderTime;	// subtracted from refdef time to control effect start times
 	float		radius;		// bbox approximate radius
 	vec3_t		axis[3];		// Rotation vectors
@@ -1027,6 +1030,7 @@ void		GL_DepthFunc( GLenum func );
 void		GL_DepthMask( GLboolean mask );
 void		GL_SetColor( const void *data );
 void		GL_LoadMatrix( matrix4x4 source );
+void		GL_SaveMatrix( GLenum target, matrix4x4 dest );
 void		GL_SetDefaultState( void );
 void		GL_BuildGammaTable( void );
 void		GL_UpdateGammaRamp( void );
@@ -1102,6 +1106,7 @@ extern vec4_t	inTexCoordArray[MAX_VERTICES];
 extern int	numIndex;
 extern int	numVertex;
 
+void		RB_DebugGraphics( void );
 void		RB_CheckMeshOverflow( int numIndices, int numVertices );
 void		RB_RenderMesh( void );
 void		RB_RenderMeshes( mesh_t *meshes, int numMeshes );
@@ -1143,10 +1148,13 @@ extern vec3_t	r_forward;
 extern vec3_t	r_right;
 extern vec3_t	r_up;
 
-extern gl_matrix   	r_projectionMatrix;
-extern gl_matrix   	r_worldMatrix;
-extern gl_matrix   	r_entityMatrix;
-extern gl_matrix	r_textureMatrix;
+extern matrix4x4	r_worldMatrix;
+extern matrix4x4	r_entityMatrix;
+
+extern gl_matrix   	gl_projectionMatrix;
+extern gl_matrix   	gl_worldMatrix;
+extern gl_matrix   	gl_entityMatrix;
+extern gl_matrix	gl_textureMatrix;
 
 extern cplane_t	r_frustum[4];
 extern vec3_t	axisDefault[3];
