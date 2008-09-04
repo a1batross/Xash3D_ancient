@@ -227,7 +227,6 @@ typedef struct
 {
 	float	mins[3];
 	float	maxs[3];
-	int	headnode;		// FIXME: eliminate this
 	int	firstface;	// submodels just draw faces 
 	int	numfaces;		// without walking the bsp tree
 	int	firstbrush;	// physics stuff

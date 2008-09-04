@@ -451,7 +451,7 @@ void EndModel( node_t *headnode )
 	dmodel_t	*mod;
 
 	mod = &dmodels[nummodels];
-	dmodels[nummodels].headnode = EmitDrawNode_r( headnode );
+	EmitDrawNode_r( headnode );
 	mod->numfaces = numfaces - mod->firstface;
 	mod->numbrushes = numbrushes - mod->firstbrush;
 	EmitAreaPortals( headnode );

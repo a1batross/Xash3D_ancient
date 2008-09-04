@@ -88,7 +88,7 @@ void R_MarkLights( void )
 
 	for( l = 0, dl = r_dlights; l < r_numDLights; l++, dl++ )
 	{
-		if( R_CullSphere( dl->origin, dl->intensity, 15 ))
+		if( R_CullSphere( dl->origin, dl->intensity, MAX_CLIPFLAGS ))
 			continue;
 		R_RecursiveLightNode( r_worldModel->nodes, dl, 1<<l );
 	}

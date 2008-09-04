@@ -718,6 +718,7 @@ static bool R_ParseStageMap( shader_t *shader, shaderStage_t *stage, char **scri
 
 	if( Com_MatchToken( "$whiteImage" )) bundle->textures[bundle->numTextures++] = r_whiteTexture;
 	else if( Com_MatchToken( "$blackImage")) bundle->textures[bundle->numTextures++] = r_blackTexture;
+	else if( Com_MatchToken( "$internal")) bundle->textures[bundle->numTextures++] = r_internalMiptex;
 	else
 	{
 		if(!(shader->flags & SHADER_NOMIPMAPS) && !(bundle->flags & STAGEBUNDLE_NOMIPMAPS))
@@ -3129,11 +3130,37 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 		break;
 	case SHADER_STUDIO:
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_MIPMAPS|TF_COMPRESS, 0 );
+		shader->stages[0]->bundles[0]->textures[0] = r_internalMiptex; // internal spriteframe
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
 			shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
+		}
+		if( shader->surfaceParm & SURFACEPARM_BLEND )
+		{
+			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
+			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
+	         		shader->sort = SORT_BLEND;
+		}
+		if( shader->surfaceParm & SURFACEPARM_ADDITIVE)
+		{
+			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
+			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
+			shader->stages[0]->blendFunc.dst = GL_ONE;
+			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
+	         		shader->sort = SORT_BLEND;
+		}
+		if( shader->surfaceParm & SURFACEPARM_ALPHA)
+		{
+			shader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
+			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
+			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+			shader->stages[0]->alphaFunc.func = GL_GREATER;
+			shader->stages[0]->alphaFunc.ref = 0.666;
+			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
+			shader->sort = SORT_SEETHROUGH;
 		}
 		shader->stages[0]->bundles[0]->numTextures++;
 		shader->stages[0]->numBundles++;
@@ -3148,7 +3175,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 			MsgDev( D_WARN, "couldn't find spriteframe for shader '%s', using default...\n", shader->name );
 			shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
 		}
-		if( shader->surfaceParm & SURFACEPARM_BLEND)
+		if( shader->surfaceParm & SURFACEPARM_BLEND )
 		{
 			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
@@ -3156,7 +3183,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
 	         		shader->sort = SORT_BLEND;
 		}
-		if( shader->surfaceParm & SURFACEPARM_ALPHA)
+		if( shader->surfaceParm & SURFACEPARM_ALPHA )
 		{
 			shader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
@@ -3375,7 +3402,11 @@ static void R_FinishShader( shader_t *shader )
 				else stage->rgbGen.type = RGBGEN_IDENTITY;
 				break;
 			case SHADER_STUDIO:
-				stage->rgbGen.type = RGBGEN_LIGHTINGDIFFUSE;
+				if( shader->surfaceParm & SURFACEPARM_CHROME )
+					stage->rgbGen.type = RGBGEN_IDENTITY;
+				else if( shader->surfaceParm & SURFACEPARM_BLEND|SURFACEPARM_ADDITIVE )
+					stage->rgbGen.type = RGBGEN_IDENTITY;
+				else stage->rgbGen.type = RGBGEN_IDENTITYLIGHTING;
 				break;
 			case SHADER_SPRITE:
 				if( shader->surfaceParm & SURFACEPARM_ALPHA )
@@ -3712,8 +3743,8 @@ shader_t *R_FindShader( const char *name, shaderType_t shaderType, uint surfaceP
 			}
 		}
 	}
-
-	// create the shader
+ 
+ 	// create the shader
 	if( script ) shader = R_CreateShader( name, shaderType, surfaceParm, script );
 	else shader = R_CreateDefaultShader( name, shaderType, surfaceParm );
 

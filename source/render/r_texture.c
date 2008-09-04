@@ -1777,6 +1777,7 @@ void R_ImageFreeUnused( void )
 		if( image->registration_sequence == registration_sequence ) continue;
 		if( image->flags & TF_STATIC || !image->name[0] ) // static or already freed
 			continue;
+		Msg("release texture %s\n", image->name );
 		pglDeleteTextures( 1, &image->texnum );
 		memset( image, 0, sizeof( *image ));
 	}

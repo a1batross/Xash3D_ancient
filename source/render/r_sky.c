@@ -403,18 +403,19 @@ void R_DrawSky( void )
 	sky_t		*sky = r_worldModel->sky;
 	skySide_t		*skySide;
 	skySideVert_t	*v;
-	matrix4x4		matrix;
 	uint		*index;
 	vec3_t		r_backward, r_left;
+	matrix4x4		r_skybox, r_skyMatrix;
 	int		s, t, sMin, sMax, tMin, tMax;
 	int		i, j;
 
-	// compute and load matrix
+	// build sky matrix
 	VectorNegate( r_forward, r_backward );
 	VectorNegate( r_right, r_left );
-	Matrix4x4_FromVectors( matrix, r_left, r_up, r_backward, r_origin );
-	if( sky->rotate ) Matrix4x4_ConcatRotate( matrix, r_refdef.time * sky->rotate, sky->axis[0], sky->axis[1], sky->axis[2] );
-	GL_LoadMatrix( matrix );
+	Matrix4x4_FromVectors( r_skybox, r_left, r_up, r_backward, r_origin );
+	if( sky->rotate ) Matrix4x4_ConcatRotate( r_skybox, r_refdef.time * sky->rotate, sky->axis[0], sky->axis[1], sky->axis[2] );
+	Matrix4x4_Transpose( r_skyMatrix, r_skybox ); // finally we need to transpose matrix
+	GL_LoadMatrix( r_skyMatrix );
 
 	// build indices in tri-strip order
 	for( i = 0, skySide = sky->skySides; i < 6; i++, skySide++ )
@@ -497,7 +498,7 @@ void R_DrawSky( void )
 		R_DrawSkyBox( sky->shader->skyParms.nearBox, true );
 
 	pglDepthRange( 0, 1 );
-	pglLoadMatrixf( gl_worldMatrix );
+	GL_LoadMatrix( r_worldMatrix );
 }
 
 /*

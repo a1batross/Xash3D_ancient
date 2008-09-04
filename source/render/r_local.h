@@ -26,6 +26,7 @@ extern byte *r_temppool;
 #define MAX_TEXTURES		4096
 #define MAX_POLYS			4096
 #define MAX_POLY_VERTS		16384
+#define MAX_CLIPFLAGS		15	// all sides of bbox are valid
 
 /*
 =======================================================================
@@ -714,7 +715,50 @@ typedef struct
 	int		rendermode;
 	int		numframes;
 	mspriteframedesc_t	frames[1];
-} sprite_t;
+} msprite_t;
+
+/*
+==============================================================================
+
+STUDIO MODELS
+
+==============================================================================
+*/
+typedef struct
+{
+	uint		index[3];
+} mstudiotriangle_t;
+
+typedef struct
+{
+	int		index[3];
+} mstudioneighbor_t;
+
+typedef struct
+{
+	short		point[3];
+	byte		tangent[2];
+	byte		binormal[2];
+	byte		normal[2];
+} mstudiopoint_t;
+
+typedef struct
+{
+	vec2_t		st;
+} mstudiost_t;
+
+typedef struct
+{
+	mstudiotriangle_t	*triangles;
+	mstudioneighbor_t	*neighbors;
+	mstudiopoint_t	*points;
+	mstudiost_t	*st;
+	shader_t		*shaders;
+
+	int		numTriangles;
+	int		numVertices;
+	int		numShaders;
+} mstudiosurface_t;
 
 typedef struct rmodel_s
 {
@@ -765,7 +809,6 @@ typedef struct rmodel_s
 	cplane_t		*planes;
 
 	int		numNodes;
-	int		firstNode;
 	node_t		*nodes;
 
 	int		numLeafs;
@@ -788,6 +831,7 @@ typedef struct rmodel_s
 	// studio model
           studiohdr_t	*phdr;
           studiohdr_t	*thdr;
+	mstudiosurface_t	*studiofaces;
 
 	void		*extradata;	// model buffer
 
@@ -879,6 +923,7 @@ void	R_ModelList_f( void );
 void	R_StudioInit( void );
 void	R_StudioShutdown( void );
 bool	R_StudioComputeBBox( vec3_t bbox[8] );	// for drawing bounds
+void	R_StudioSetupModel( int body, int bodypart );
 void	R_InitModels( void );
 void	R_ShutdownModels( void );
 rmodel_t	*Mod_ForName( const char *name, bool crash );
@@ -1037,6 +1082,24 @@ void		GL_UpdateGammaRamp( void );
 void		GL_Setup3D( void );
 void		GL_Setup2D( void );
 
+// simple gl interface
+void		GL_Begin( GLuint drawMode );
+void		GL_End( void );
+void		GL_Vertex2f( GLfloat x, GLfloat y );
+void		GL_Vertex3f( GLfloat x, GLfloat y, GLfloat z );
+void		GL_Vertex3fv( const GLfloat *v );
+void		GL_Normal3f( GLfloat x, GLfloat y, GLfloat z );
+void		GL_Normal3fv( const GLfloat *v );
+void		GL_TexCoord2f( GLfloat s, GLfloat t );
+void		GL_TexCoord4f( GLfloat s, GLfloat t, GLfloat ls, GLfloat lt );
+void		GL_TexCoord4fv( const GLfloat *v );
+void		GL_Color3f( GLfloat r, GLfloat g, GLfloat b );
+void		GL_Color3fv( const GLfloat *v );
+void		GL_Color4f( GLfloat r, GLfloat g, GLfloat b, GLfloat a );
+void		GL_Color4fv( const GLfloat *v );
+void		GL_Color4ub( GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha );
+void		GL_Color4ubv( const GLubyte *v );
+
 void		R_CheckForErrors( void );
 void		R_EndFrame( void );
 bool		R_Init_OpenGL( void );
@@ -1052,8 +1115,8 @@ void		R_CheckForErrors( void );
 */
 
 #define VBO_OFFSET(i)		((char *)NULL + (i))
-#define MAX_INDICES			8192 * 3
-#define MAX_VERTICES		4096
+#define MAX_INDICES			16384 * 3
+#define MAX_VERTICES		8192
 #define MAX_MESHES			32768
 
 typedef struct
@@ -1152,7 +1215,6 @@ extern matrix4x4	r_worldMatrix;
 extern matrix4x4	r_entityMatrix;
 
 extern gl_matrix   	gl_projectionMatrix;
-extern gl_matrix   	gl_worldMatrix;
 extern gl_matrix   	gl_entityMatrix;
 extern gl_matrix	gl_textureMatrix;
 
@@ -1181,7 +1243,7 @@ extern lightstyle_t	r_lightStyles[MAX_LIGHTSTYLES];
 extern refdef_t	r_refdef;
 extern refstats_t	r_stats;
 
-void		R_DrawStudioModel( int passnum );
+void		R_DrawStudioModel( void );
 void		R_AddStudioModelToList( ref_entity_t *entity );
 void		R_StudioLoadModel( rmodel_t *mod, const void *buffer );
 

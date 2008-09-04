@@ -88,6 +88,7 @@ typedef enum
 	ED_STATIC,	// this is a logic without model or entity with static model
 	ED_AMBIENT,	// this is entity emitted ambient sounds only
 	ED_NORMAL,	// normal entity with model (and\or) sound
+	ED_BSPBRUSH,	// brush entity (a part of level)
 	ED_CLIENT,	// this is a client entity
 	ED_MONSTER,	// monster or bot (generic npc with AI)
 	ED_TEMPENTITY,	// this edict will be removed on server when "lifetime" exceeds 

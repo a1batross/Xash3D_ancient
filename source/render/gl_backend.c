@@ -396,6 +396,7 @@ void GL_InitCommands( void )
 	r_texturefilteranisotropy = Cvar_Get( "r_anisotropy", "2.0", CVAR_ARCHIVE, "textures anisotropic filter" );
 	r_detailtextures = Cvar_Get( "r_detailtextures", "0", CVAR_ARCHIVE|CVAR_LATCH, "allow detail textures" );
 
+	r_swapInterval = Cvar_Get ("gl_swapinterval", "0", CVAR_ARCHIVE, "time beetween frames (in msec)" );
 	gl_finish = Cvar_Get ("gl_finish", "0", CVAR_ARCHIVE, "no description" );
 	gl_clear = Cvar_Get ("gl_clear", "0", 0, "no description" );
 	vid_gamma = Cvar_Get( "vid_gamma", "1", CVAR_ARCHIVE, "screen gamma" );
@@ -535,6 +536,22 @@ void GL_UpdateGammaRamp( void )
 	SetDeviceGammaRamp( glw_state.hDC, gl_state.gammaRamp );
 }
 
+/*
+===============
+GL_UpdateSwapInterval
+===============
+*/
+void GL_UpdateSwapInterval( void )
+{
+	if ( r_swapInterval->modified )
+	{
+		r_swapInterval->modified = false;
+
+		if( pwglSwapIntervalEXT )
+			pwglSwapIntervalEXT( r_swapInterval->integer );
+	}
+}
+
 void GL_InitExtensions( void )
 {
 	// initialize gl extensions
@@ -657,9 +674,9 @@ void GL_SelectTexture( GLenum texture )
 }
 
 /*
- =================
- GL_BindTexture
- =================
+=================
+GL_BindTexture
+=================
 */
 void GL_BindTexture( texture_t *texture )
 {
@@ -774,9 +791,9 @@ void GL_Disable( GLenum cap )
 }
 
 /*
- =================
- GL_CullFace
- =================
+=================
+GL_CullFace
+=================
 */
 void GL_CullFace( GLenum mode )
 {
@@ -984,6 +1001,8 @@ void GL_SetDefaultState( void )
 
 	pglDisable( GL_TEXTURE_2D );
 	Vector4Set( gl_state.draw_color, 1.0f, 1.0f, 1.0f, 1.0f );
+
+	GL_UpdateSwapInterval();
 }
 
 /*

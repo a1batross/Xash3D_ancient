@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "cm_local.h"
+#include "matrixlib.h"
 
 int Callback_ContactBegin( const NewtonMaterial* material, const NewtonBody* body0, const NewtonBody* body1 )
 {
@@ -99,7 +100,8 @@ void Callback_ApplyTransform( const NewtonBody* body, const float* matrix )
 	matrix4x3		translate;// obj matrix
 
 	// convert matrix4x4 into 4x3
-	Mem_Copy( objcoords, (float *)matrix, sizeof(matrix4x4));
+	// Matrix4x4_FromArrayFloatGL( objcoords, matrix ); 
+	Mem_Copy( objcoords, matrix, sizeof(objcoords));
 	VectorCopy( objcoords[0], translate[0] );
 	VectorCopy( objcoords[1], translate[1] );
 	VectorCopy( objcoords[2], translate[2] );

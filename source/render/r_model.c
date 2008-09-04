@@ -630,8 +630,8 @@ static void R_BuildPolygon( surface_t *surf, int numVerts, float *verts )
 	int		i;
 	uint		index;
 	float		s, t;
-	surfPoly_t	*p;
 	texInfo_t		*texInfo = surf->texInfo;
+	surfPoly_t	*p;
 	
 	p = Mem_Alloc( m_pLoadModel->mempool, sizeof(surfPoly_t));
 	p->next = surf->poly;
@@ -963,7 +963,6 @@ static void R_SetupSubmodels( void )
 		model->numModelSurfaces = bm->numFaces;
 		model->firstModelSurface = bm->firstFace;
 		model->type = mod_brush;
-		model->firstNode = bm->headNode;
 		VectorCopy( bm->maxs, model->maxs );
 		VectorCopy( bm->mins, model->mins );
 		model->radius = bm->radius;
@@ -1002,7 +1001,6 @@ static void R_LoadSubmodels( const byte *base, const lump_t *l )
 		}
 
 		out->radius = RadiusFromBounds( out->mins, out->maxs );
-		out->headNode = LittleLong( in->headnode );
 		out->firstFace = LittleLong( in->firstface );
 		out->numFaces = LittleLong( in->numfaces );
 	}

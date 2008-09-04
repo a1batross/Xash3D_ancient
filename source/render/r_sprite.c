@@ -67,7 +67,7 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	pspriteframe->down = origin[1] - height;
 	pspriteframe->left = origin[0];
 	pspriteframe->right = width + origin[0];
-	pspriteframe->radius = sqrt((width>>1) * (width>>1) + (height>>1) * (height>>1));
+	pspriteframe->radius = sqrt( (width * width) + (height * height) );
 	
 	image = R_LoadTexture( name, spr_frame, 0, 0 );
 	if( image )
@@ -139,7 +139,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 {
 	dsprite_t		*pin;
 	short		*numi;
-	sprite_t		*psprite;
+	msprite_t		*psprite;
 	dframetype_t	*pframetype;
 	int		i, size, numframes;
 	
@@ -153,7 +153,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 	}
 
 	numframes = LittleLong (pin->numframes);
-	size = sizeof (sprite_t) + (numframes - 1) * sizeof( psprite->frames );
+	size = sizeof (msprite_t) + (numframes - 1) * sizeof( psprite->frames );
 
 	psprite = Mem_Alloc( mod->mempool, size );
 	mod->extradata = psprite; // make link to extradata
@@ -276,7 +276,7 @@ R_GetSpriteFrame
 */
 mspriteframe_t *R_GetSpriteFrame( ref_entity_t *ent )
 {
-	sprite_t		*psprite;
+	msprite_t		*psprite;
 	mspritegroup_t	*pspritegroup;
 	mspriteframe_t	*pspriteframe;
 	int		i, numframes, frame;
@@ -334,19 +334,11 @@ add spriteframe to list
 void R_AddSpriteModelToList( ref_entity_t *entity )
 {
 	mspriteframe_t	*frame;
-	vec3_t		vec;
 
 	frame = R_GetSpriteFrame( entity );
 
-	// cull
-	if( !r_nocull->integer )
-	{
-		VectorSubtract( entity->origin, r_refdef.vieworg, vec );
-		VectorNormalizeFast( vec );
-
-		if( DotProduct( vec, r_forward ) < 0 )
-			return;
-	}
+	if( R_CullSphere( entity->origin, frame->radius, MAX_CLIPFLAGS ))
+		return;
 
 	// copy frame params
 	entity->radius = frame->radius;
@@ -364,56 +356,51 @@ R_DrawSpriteModel
 */
 void R_DrawSpriteModel( void )
 {
-	sprite_t		*psprite;
 	mspriteframe_t	*frame;
-	float		angle, sr, cr;
-	vec3_t		axis[3], origin;
-	float		scale;
+	msprite_t		*psprite;
+	vec3_t		forward, right, up;
+	vec3_t		point;
+	ref_entity_t	*e;
 	int		i;
 
-	psprite = (sprite_t *)m_pRenderModel->extradata;
-	frame = R_GetSpriteFrame( m_pCurrentEntity );
-	scale = m_pCurrentEntity->scale;
-	VectorSubtract( m_pCurrentEntity->origin, r_forward, origin );
+	e = m_pCurrentEntity;
+	frame = R_GetSpriteFrame( e );
+	psprite = (msprite_t *)m_pRenderModel->extradata;
 
 	// setup orientation
 	switch( psprite->type )
 	{
 	case SPR_ORIENTED:
-		AxisCopy( m_pCurrentEntity->axis, axis );
-		VectorScale( axis[0], -0.01, axis[0] ); // to avoid z-fighting
-		VectorSubtract( m_pCurrentEntity->origin, axis[0], m_pCurrentEntity->origin );
+		VectorCopy( e->axis[0], forward );
+		VectorCopy( e->axis[1], right );
+		VectorCopy( e->axis[2], up );
+		VectorScale( forward, 0.01, forward ); // to avoid z-fighting
+		VectorSubtract( e->origin, forward, e->origin );
 		break;
 	case SPR_FACING_UPRIGHT:
-		// flames and such vertical beam sprite, faces viewer's origin (not the view plane)
-		//scale /= sqrt((origin[0] - r_origin[0])*(origin[0] - r_origin[0])+(origin[1] - r_origin[1])*(origin[1] - r_origin[1]));
-		VectorSet( axis[1], (origin[1] - r_origin[1]) * scale, -(origin[0] - r_origin[0]) * scale, 0 );
-		VectorSet( axis[2], 0, 0, scale );
-		VectorNormalize( axis[1] );
-		VectorNegate( r_forward, axis[0] );
+		VectorSet( right, e->origin[1] - r_origin[1], -(e->origin[0] - r_origin[0]), 0 );
+		VectorNegate( r_forward, forward );
+		VectorSet( up, 0, 0, 1 );
+		VectorNormalize( right );
 		break;
 	case SPR_FWD_PARALLEL_UPRIGHT:
-		scale = m_pCurrentEntity->scale / sqrt(r_forward[0]*r_forward[0]+r_forward[1]*r_forward[1]);
-		VectorSet( axis[2], 0, 0, scale );
-		VectorSet( axis[1], -r_origin[1] * scale, r_origin[0] * scale, 0 );
-		VectorNegate( r_forward, axis[0] );
+		VectorSet( right, r_forward[1], -r_forward[0], 0 );
+		VectorNegate( r_forward, forward );
+		VectorSet( up, 0, 0, 1 );
 		break;
 	case SPR_FWD_PARALLEL_ORIENTED:
-		angle = m_pCurrentEntity->angles[ROLL] * (M_PI*2/360);
-		sr = sin( angle );
-		cr = cos( angle );
-		for( i = 0; i < 3; i++ )
-		{
-			axis[0][i] = -r_forward[i];
-			axis[1][i] = r_right[i] * cr + r_up[i] * sr;
-			axis[2][i] = r_right[i] * -sr + r_up[i] * cr;
-		}
+		right[0] = e->axis[1][0] * r_forward[0] + e->axis[1][1] * r_right[0] + e->axis[1][2] * r_up[0];
+		right[1] = e->axis[1][0] * r_forward[1] + e->axis[1][1] * r_right[1] + e->axis[1][2] * r_up[1];
+		right[2] = e->axis[1][0] * r_forward[2] + e->axis[1][1] * r_right[2] + e->axis[1][2] * r_up[2];
+		up[0] = e->axis[2][0] * r_forward[0] + e->axis[2][1] * r_right[0] + e->axis[2][2] * r_up[0];
+		up[1] = e->axis[2][0] * r_forward[1] + e->axis[2][1] * r_right[1] + e->axis[2][2] * r_up[1];
+		up[2] = e->axis[2][0] * r_forward[2] + e->axis[2][1] * r_right[2] + e->axis[2][2] * r_up[2];
 		break;
 	case SPR_FWD_PARALLEL:
 	default: // normal sprite
-		VectorNegate( r_forward, axis[0] );
-		VectorCopy( r_right, axis[1] );
-		VectorCopy( r_up, axis[2] );
+		VectorNegate( r_forward, forward );
+		VectorNegate( r_right, right );
+		VectorCopy( r_up, up );
 		break;
 	}
 
@@ -427,36 +414,33 @@ void R_DrawSpriteModel( void )
 		indexArray[numIndex++] = numVertex + i;
 	}
 
-	vertexArray[numVertex+0][0] = origin[0] + axis[1][0] * frame->right + axis[2][0] * frame->up;
-	vertexArray[numVertex+0][1] = origin[1] + axis[1][1] * frame->right + axis[2][1] * frame->up;
-	vertexArray[numVertex+0][2] = origin[2] + axis[1][2] * frame->right + axis[2][2] * frame->up;
-	vertexArray[numVertex+1][0] = origin[0] + axis[1][0] * frame->left + axis[2][0] * frame->up;
-	vertexArray[numVertex+1][1] = origin[1] + axis[1][1] * frame->left + axis[2][1] * frame->up;
-	vertexArray[numVertex+1][2] = origin[2] + axis[1][2] * frame->left + axis[2][2] * frame->up;
-	vertexArray[numVertex+2][0] = origin[0] + axis[1][0] * frame->left + axis[2][0] * frame->down;
-	vertexArray[numVertex+2][1] = origin[1] + axis[1][1] * frame->left + axis[2][1] * frame->down;
-	vertexArray[numVertex+2][2] = origin[2] + axis[1][2] * frame->left + axis[2][2] * frame->down;
-	vertexArray[numVertex+3][0] = origin[0] + axis[1][0] * frame->right + axis[2][0] * frame->down;
-	vertexArray[numVertex+3][1] = origin[1] + axis[1][1] * frame->right + axis[2][1] * frame->down;
-	vertexArray[numVertex+3][2] = origin[2] + axis[1][2] * frame->right + axis[2][2] * frame->down;
+	GL_Begin( GL_QUADS );
+		GL_TexCoord2f( 0, 0 );
+		GL_Color4f( e->rendercolor[0], e->rendercolor[1], e->rendercolor[2], e->renderamt );
+		VectorMA( e->origin, frame->up * e->scale, up, point );
+		VectorMA( point, frame->left * e->scale, right, point );
+		GL_Normal3fv( forward );
+		GL_Vertex3fv( point );
 
-	inTexCoordArray[numVertex+0][0] = 0;
-	inTexCoordArray[numVertex+0][1] = 0;
-	inTexCoordArray[numVertex+1][0] = 1;
-	inTexCoordArray[numVertex+1][1] = 0;
-	inTexCoordArray[numVertex+2][0] = 1;
-	inTexCoordArray[numVertex+2][1] = 1;
-	inTexCoordArray[numVertex+3][0] = 0;
-	inTexCoordArray[numVertex+3][1] = 1;
+		GL_TexCoord2f( 1, 0 );		
+		GL_Color4f( e->rendercolor[0], e->rendercolor[1], e->rendercolor[2], e->renderamt );
+		VectorMA( e->origin, frame->up * e->scale, up, point );
+		VectorMA( point, frame->right * e->scale, right, point );
+		GL_Normal3fv( forward );
+		GL_Vertex3fv( point );
 
-	for( i = 0; i < 4; i++ )
-	{
-		VectorCopy( axis[0], normalArray[numVertex] );
-		inColorArray[numVertex][0] = m_pCurrentEntity->rendercolor[0];
-		inColorArray[numVertex][1] = m_pCurrentEntity->rendercolor[1];
-		inColorArray[numVertex][2] = m_pCurrentEntity->rendercolor[2];
-		inColorArray[numVertex][3] = m_pCurrentEntity->renderamt;
-		numVertex++;
-	}
+		GL_TexCoord2f( 1, 1 );
+		GL_Color4f( e->rendercolor[0], e->rendercolor[1], e->rendercolor[2], e->renderamt );
+		VectorMA( e->origin, frame->down * e->scale, up, point );
+		VectorMA( point, frame->right * e->scale, right, point );
+		GL_Normal3fv( forward );
+		GL_Vertex3fv( point );
 
+          	GL_TexCoord2f( 0, 1 );
+		GL_Color4f( e->rendercolor[0], e->rendercolor[1], e->rendercolor[2], e->renderamt );
+		VectorMA( e->origin, frame->down * e->scale, up, point );
+		VectorMA( point, frame->left * e->scale, right, point );
+		GL_Normal3fv( forward );
+		GL_Vertex3fv( point );
+	GL_End();
 }

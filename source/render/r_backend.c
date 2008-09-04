@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "r_local.h"
+#include "byteorder.h"
 #include "mathlib.h"
 #include "matrixlib.h" 
 
@@ -35,24 +36,246 @@ mesh_t		*m_pRenderMesh;
 shader_t		*m_pCurrentShader;
 ref_entity_t	*m_pCurrentEntity;
 
+vec4_t		colorArray[MAX_VERTICES];
+vec3_t		texCoordArray[MAX_TEXTURE_UNITS][MAX_VERTICES];
+
+// input arrays
 uint		indexArray[MAX_INDICES * 4];
 vec3_t		vertexArray[MAX_VERTICES * 2];
 vec3_t		tangentArray[MAX_VERTICES];
 vec3_t		binormalArray[MAX_VERTICES];
 vec3_t		normalArray[MAX_VERTICES];
-vec4_t		colorArray[MAX_VERTICES];
-vec3_t		texCoordArray[MAX_TEXTURE_UNITS][MAX_VERTICES];
 vec4_t		inColorArray[MAX_VERTICES];
 vec4_t		inTexCoordArray[MAX_VERTICES];
 
 int		numIndex;
 int		numVertex;
+static GLenum	rb_drawMode;
+static GLboolean	rb_CheckFlush;
+static GLint	rb_vertexState;
 
+static void RB_SetVertex( float x, float y, float z )
+{
+	GLuint	oldIndex = numIndex;
+
+	switch( rb_drawMode )
+	{
+	case GL_LINES:
+		indexArray[numIndex++] = numVertex;
+		if( rb_vertexState++ == 1 )
+		{
+			RB_SetVertex( x + 1, y + 1, z + 1 );
+			rb_vertexState = 0;
+			rb_CheckFlush = true; // Flush for long sequences of quads.
+		}
+		break;
+	case GL_TRIANGLES:
+		indexArray[numIndex++] = numVertex;
+		if( rb_vertexState++ == 2 )
+		{
+			rb_vertexState = 0;
+			rb_CheckFlush = true; // Flush for long sequences of triangles.
+		}
+		break;
+	case GL_QUADS:
+		if( rb_vertexState++ < 3 )
+		{
+			indexArray[numIndex++] = numVertex;
+		}
+		else
+		{
+			// we've already done triangle (0, 1, 2), now draw (2, 3, 0)
+			indexArray[numIndex++] = numVertex - 1;
+			indexArray[numIndex++] = numVertex;
+			indexArray[numIndex++] = numVertex - 3;
+			rb_vertexState = 0;
+			rb_CheckFlush = true; // flush for long sequences of quads.
+		}
+		break;
+	case GL_TRIANGLE_STRIP:
+		if( numVertex + rb_vertexState > MAX_VERTICES )
+		{
+			// This is a strip that's too big for us to buffer.
+			// (We can't just flush the buffer because we have to keep
+			// track of the last two vertices.
+			Host_Error( "RB_SetVertex: overflow: %i > MAX_VERTICES\n", numVertex + rb_vertexState );
+		}
+		if( rb_vertexState++ < 3 )
+		{
+			indexArray[numIndex++] = numVertex;
+		}
+		else
+		{
+			// flip triangles between clockwise and counter clockwise
+			if( rb_vertexState & 1 )
+			{
+				// draw triangle [n-2 n-1 n]
+				indexArray[numIndex++] = numVertex - 2;
+				indexArray[numIndex++] = numVertex - 1;
+				indexArray[numIndex++] = numVertex;
+			}
+			else
+			{
+				// draw triangle [n-1 n-2 n]
+				indexArray[numIndex++] = numVertex - 1;
+				indexArray[numIndex++] = numVertex - 2;
+				indexArray[numIndex++] = numVertex;
+			}
+		}
+		break;
+	case GL_POLYGON:
+	case GL_TRIANGLE_FAN:	// same as polygon
+		if( numVertex + rb_vertexState > MAX_VERTICES )
+		{
+			// This is a polygon or fan that's too big for us to buffer.
+			// (We can't just flush the buffer because we have to keep
+			// track of the starting vertex.
+			Host_Error( "RB_SetVertex: overflow: %i > MAX_VERTICES\n", numVertex + rb_vertexState );
+		}
+		if( rb_vertexState++ < 3 )
+		{
+			indexArray[numIndex++] = numVertex;
+		}
+		else
+		{
+			// draw triangle [0 n-1 n]
+			indexArray[numIndex++] = numVertex - ( rb_vertexState - 1 );
+			indexArray[numIndex++] = numVertex - 1;
+			indexArray[numIndex++] = numVertex;
+		}
+		break;
+	default:
+		Host_Error( "RB_SetVertex: unsupported mode: %i\n", rb_drawMode );
+		break;
+	}
+
+	// copy current vertex
+	vertexArray[numVertex][0] = x;
+	vertexArray[numVertex][1] = y;
+	vertexArray[numVertex][2] = z;
+	numVertex++;
+
+	// flush buffer if needed
+	if( rb_CheckFlush ) RB_CheckMeshOverflow( numIndex - oldIndex, rb_vertexState );
+}
+
+static void RB_SetTexCoord( GLfloat s, GLfloat t, GLfloat ls, GLfloat lt )
+{
+	inTexCoordArray[numVertex][0] = s;
+	inTexCoordArray[numVertex][1] = t;
+	inTexCoordArray[numVertex][2] = ls;
+	inTexCoordArray[numVertex][3] = lt;
+}
+
+static void RB_SetColor( GLfloat r, GLfloat g, GLfloat b, GLfloat a )
+{
+	inColorArray[numVertex][0] = r;
+	inColorArray[numVertex][1] = g;
+	inColorArray[numVertex][2] = b;
+	inColorArray[numVertex][3] = b;
+}
+
+static void RB_SetNormal( GLfloat x, GLfloat y, GLfloat z )
+{
+	normalArray[numVertex][0] = x;
+	normalArray[numVertex][1] = y;
+	normalArray[numVertex][2] = z;
+}
 
 /*
- =================
- RB_BuildTables
- =================
+=================
+GL subsystem
+
+arrays backend that emulate basic opengl funcs
+=================
+*/
+void GL_Begin( GLuint drawMode )
+{
+	rb_drawMode = drawMode;
+	rb_vertexState = 0;
+	rb_CheckFlush = false;
+}
+
+void GL_End( void )
+{
+	if( numIndex == 0 ) return;
+	RB_CheckMeshOverflow( 0, 0 );
+}
+
+void GL_Vertex2f( GLfloat x, GLfloat y )
+{
+	RB_SetVertex( x, y, 0 );
+}
+
+void GL_Vertex3f( GLfloat x, GLfloat y, GLfloat z )
+{
+	RB_SetVertex( x, y, z );
+}
+
+void GL_Vertex3fv( const GLfloat *v )
+{
+	RB_SetVertex( v[0], v[1], v[2] );
+}
+
+void GL_Normal3f( GLfloat x, GLfloat y, GLfloat z )
+{
+	RB_SetNormal( x, y, z );
+}
+
+void GL_Normal3fv( const GLfloat *v )
+{
+	RB_SetNormal( v[0], v[1], v[2] );
+}
+
+void GL_TexCoord2f( GLfloat s, GLfloat t )
+{
+	RB_SetTexCoord( s, t, 0.0f, 0.0f );
+}
+
+void GL_TexCoord4f( GLfloat s, GLfloat t, GLfloat ls, GLfloat lt )
+{
+	RB_SetTexCoord( s, t, ls, lt );
+}
+
+void GL_TexCoord4fv( const GLfloat *v )
+{
+	RB_SetTexCoord( v[0], v[1], v[2], v[3] );
+}
+
+void GL_Color3f( GLfloat r, GLfloat g, GLfloat b )
+{
+	RB_SetColor( r, g, b, 1.0f );
+}
+
+void GL_Color3fv( const GLfloat *v )
+{
+	RB_SetColor( v[0], v[1], v[2], 1.0f );
+}
+
+void GL_Color4f( GLfloat r, GLfloat g, GLfloat b, GLfloat a )
+{
+	RB_SetColor( r, g, b, a );
+}
+
+void GL_Color4fv( const GLfloat *v )
+{
+	RB_SetColor( v[0], v[1], v[2], v[3] );
+}
+
+void GL_Color4ub( GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha )
+{
+	GL_Color4fv(UnpackRGBA(MakeRGBA( red, green, blue, alpha )));
+}
+
+void GL_Color4ubv( const GLubyte *v )
+{
+	GL_Color4fv(UnpackRGBA(BuffLittleLong( v )));
+}
+
+/*
+=================
+RB_BuildTables
+=================
 */
 static void RB_BuildTables( void )
 {
@@ -1189,7 +1412,7 @@ void RB_DebugGraphics( void )
 		return;
 
 	// physic debug
-	pglLoadMatrixf( gl_worldMatrix );
+	GL_LoadMatrix( r_worldMatrix );
 	pglBegin( GL_LINES );
 	ri.ShowCollision( RB_DrawLine );
 	pglEnd();
@@ -1329,9 +1552,11 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 			// check if the entity changed
 			if( m_pCurrentEntity != entity )
 			{
-				if( entity == r_worldEntity || entity->ent_type != ED_NORMAL )
-					pglLoadMatrixf( gl_worldMatrix );
-				else R_RotateForEntity( entity );
+				if( entity == r_worldEntity )
+					GL_LoadMatrix( r_worldMatrix );
+				else if( entity->ent_type == ED_BSPBRUSH )
+					R_RotateForEntity( entity );
+				// sprites and studio models make transformation locally
 
 				m_pCurrentEntity = entity;
 				m_fShaderTime = r_refdef.time - entity->shaderTime;
@@ -1352,7 +1577,7 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 			R_DrawSurface();
 			break;
 		case MESH_STUDIO:
-			R_DrawStudioModel( RENDERPASS_SOLID ); //FIXME: test
+			R_DrawStudioModel();
 			break;
 		case MESH_SPRITE:
 			R_DrawSpriteModel();

@@ -58,7 +58,7 @@
 #define VectorDistance2(a, b) (((a)[0] - (b)[0]) * ((a)[0] - (b)[0]) + ((a)[1] - (b)[1]) * ((a)[1] - (b)[1]) + ((a)[2] - (b)[2]) * ((a)[2] - (b)[2]))
 #define VectorAverage(a,b,o)	((o)[0]=((a)[0]+(b)[0])*0.5,(o)[1]=((a)[1]+(b)[1])*0.5,(o)[2]=((a)[2]+(b)[2])*0.5)
 #define VectorSet(v, x, y, z) {v[0] = x; v[1] = y; v[2] = z;}
-#define Vector4Set(v, x, y, z, w) {v[0] = x, v[1] = y, v[2] = z, v[3] = w;}
+#define Vector4Set(v, x, y, z, w) {v[0] = x; v[1] = y; v[2] = z; v[3] = w;}
 #define VectorClear(x) {x[0] = x[1] = x[2] = 0;}
 #define Vector4Clear(x) {x[0] = x[1] = x[2] = x[3] = 0;}
 #define VectorLerp( v1, lerp, v2, c ) ((c)[0] = (v1)[0] + (lerp) * ((v2)[0] - (v1)[0]), (c)[1] = (v1)[1] + (lerp) * ((v2)[1] - (v1)[1]), (c)[2] = (v1)[2] + (lerp) * ((v2)[2] - (v1)[2]))
@@ -503,7 +503,7 @@ _inline float *GetRGBA( float r, float g, float b, float a )
 	return color;
 }
 
-_inline color32 MakeRGBA( byte red, byte green, byte blue, byte alpha )
+_inline dword MakeRGBA( byte red, byte green, byte blue, byte alpha )
 {
 	color32	rgba;
 
@@ -512,10 +512,10 @@ _inline color32 MakeRGBA( byte red, byte green, byte blue, byte alpha )
 	rgba.b = blue;
 	rgba.a = alpha;
 
-	return rgba;
+	return (rgba.a << 24) | (rgba.b << 16) | (rgba.g << 8) | rgba.r;
 }
 
-_inline long PackRGBA( float red, float green, float blue, float alpha )
+_inline dword PackRGBA( float red, float green, float blue, float alpha )
 {
 	color32	rgba;
 	
@@ -529,7 +529,7 @@ _inline long PackRGBA( float red, float green, float blue, float alpha )
 	return (rgba.a << 24) | (rgba.b << 16) | (rgba.g << 8) | rgba.r;
 }
 
-_inline float *UnpackRGBA( int icolor )
+_inline float *UnpackRGBA( dword icolor )
 {
 	static vec4_t	color;
 

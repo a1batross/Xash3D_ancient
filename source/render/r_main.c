@@ -16,7 +16,6 @@ matrix4x4		r_worldMatrix;
 matrix4x4		r_entityMatrix;
 
 gl_matrix		gl_projectionMatrix;
-gl_matrix		gl_worldMatrix;
 gl_matrix		gl_entityMatrix;
 gl_matrix		gl_textureMatrix;
 cplane_t		r_frustum[4];
@@ -179,54 +178,27 @@ bool R_CullSphere( const vec3_t origin, float radius, int clipFlags )
 R_RotateForEntity
 =================
 */
-void R_RotateForEntity( ref_entity_t *entity )
+void R_RotateForEntity( ref_entity_t *e )
 {
-	matrix4x4		entMatrix;
-	gl_matrix		rotateMatrix;
+	matrix4x4		rotMatrix;
 #if 0
-	Matrix4x4_LoadIdentity( entMatrix );
-	Matrix4x4_ConcatTranslate( entMatrix, entity->origin[0],  entity->origin[1],  entity->origin[2] );
-	Matrix4x4_ConcatRotate( entMatrix,  entity->angles[1],  0, 0, 1 );
-	Matrix4x4_ConcatRotate( entMatrix, -entity->angles[0],  0, 1, 0 );
-	Matrix4x4_ConcatRotate( entMatrix, -entity->angles[2],  1, 0, 0 );
-#if 1
-	Matrix4x4_ToArrayFloatGL( entMatrix, rotateMatrix );
-	MatrixGL_MultiplyFast( gl_worldMatrix, rotateMatrix, gl_entityMatrix );
-	pglLoadMatrixf( gl_entityMatrix );
+	// classic slow version (used for debug)
+	Matrix4x4_LoadIdentity( rotMatrix );
+	Matrix4x4_ConcatTranslate( rotMatrix, e->origin[0],  e->origin[1],  e->origin[2] );
+	Matrix4x4_ConcatRotate( rotMatrix,  e->angles[1],  0, 0, 1 );
+	Matrix4x4_ConcatRotate( rotMatrix, -e->angles[0],  0, 1, 0 );
+	Matrix4x4_ConcatRotate( rotMatrix, -e->angles[2],  1, 0, 0 );
+	Matrix4x4_Concat( r_entityMatrix, r_worldMatrix, rotMatrix );
 #else
-	Matrix4x4_Concat( r_entityMatrix, r_worldMatrix, entMatrix );
+	Matrix4x4_FromVectors( rotMatrix, e->axis[0], e->axis[1], e->axis[2], vec3_origin );
+	Matrix4x4_SetOrigin( rotMatrix, e->origin[0], e->origin[1], e->origin[2] );
+	Matrix4x4_Concat( r_entityMatrix, r_worldMatrix, rotMatrix );
+#endif
 	GL_LoadMatrix( r_entityMatrix );
-#endif
-	return;
-#endif
-	rotateMatrix[ 0] = entity->axis[0][0];
-	rotateMatrix[ 1] = entity->axis[0][1];
-	rotateMatrix[ 2] = entity->axis[0][2];
-	rotateMatrix[ 3] = 0.0;
-	rotateMatrix[ 4] = entity->axis[1][0];
-	rotateMatrix[ 5] = entity->axis[1][1];
-	rotateMatrix[ 6] = entity->axis[1][2];
-	rotateMatrix[ 7] = 0.0;
-	rotateMatrix[ 8] = entity->axis[2][0];
-	rotateMatrix[ 9] = entity->axis[2][1];
-	rotateMatrix[10] = entity->axis[2][2];
-	rotateMatrix[11] = 0.0;
-	rotateMatrix[12] = entity->origin[0];
-	rotateMatrix[13] = entity->origin[1];
-	rotateMatrix[14] = entity->origin[2];
-	rotateMatrix[15] = 1.0;
-
-	MatrixGL_MultiplyFast(gl_worldMatrix, rotateMatrix, gl_entityMatrix);
-
-	pglLoadMatrixf(gl_entityMatrix);
 }
 
 
 // =====================================================================
-
-static void R_AddStudioModelToList( ref_entity_t *entity )
-{
-}
 
 /*
 =================
@@ -333,6 +305,7 @@ static void R_AddEntitiesToList( void )
 		{
 		case ED_NORMAL:
 		case ED_CLIENT:
+		case ED_BSPBRUSH:
 		case ED_VIEWMODEL:
 			model = m_pRenderModel = entity->model;
 			if( !model || model->type == mod_bad )
@@ -380,7 +353,7 @@ static void R_DrawNullModels( void )
 	if (!r_numNullModels)
 		return;
 
-	pglLoadMatrixf( gl_worldMatrix );
+	GL_LoadMatrix( r_worldMatrix );
 
 	// Set the state
 	GL_Enable(GL_CULL_FACE);
@@ -766,7 +739,7 @@ static void R_SetMatrices( void )
 	float	xMax, xMin, yMax, yMin;
 	float	xDiv, yDiv, zDiv;
 	float	zNear, zFar;
-
+	
 	zNear = 4.0;
 	zFar = R_SetFarClip();
 
@@ -796,42 +769,19 @@ static void R_SetMatrices( void )
 	gl_projectionMatrix[13] = 0.0;
 	gl_projectionMatrix[14] = -(2.0 * zNear * zFar) * zDiv;
 	gl_projectionMatrix[15] = 0.0;
-#if 1
+
+#if 0
+	// classic slow version (used for debug)
 	Matrix4x4_LoadIdentity( r_worldMatrix );
-	Matrix4x4_ConcatRotate( r_worldMatrix, -90,  1, 0, 0 );	    // put Z going up
-	Matrix4x4_ConcatRotate( r_worldMatrix,	90,  0, 0, 1 );	    // put Z going up
+	Matrix4x4_ConcatRotate( r_worldMatrix, -90, 1, 0, 0 );	    // put Z going up
+	Matrix4x4_ConcatRotate( r_worldMatrix,	90, 0, 0, 1 );	    // put Z going up
 	Matrix4x4_ConcatRotate( r_worldMatrix, -r_refdef.viewangles[2],  1, 0, 0 );
 	Matrix4x4_ConcatRotate( r_worldMatrix, -r_refdef.viewangles[0],  0, 1, 0 );
 	Matrix4x4_ConcatRotate( r_worldMatrix, -r_refdef.viewangles[1],  0, 0, 1 );
 	Matrix4x4_ConcatTranslate( r_worldMatrix, -r_refdef.vieworg[0],  -r_refdef.vieworg[1],  -r_refdef.vieworg[2] );
 #else
-	pglMatrixMode( GL_MODELVIEW );
-	pglLoadIdentity ();
-	pglRotatef( -90,  1, 0, 0 );	    // put Z going up
-	pglRotatef( 90,  0, 0, 1 );	    // put Z going up
-	pglRotatef( -r_refdef.viewangles[2],  1, 0, 0 );
-	pglRotatef( -r_refdef.viewangles[0],  0, 1, 0 );
-	pglRotatef( -r_refdef.viewangles[1],  0, 0, 1 );
-	pglTranslatef( -r_refdef.vieworg[0],  -r_refdef.vieworg[1],  -r_refdef.vieworg[2] );
-	GL_SaveMatrix( GL_MODELVIEW_MATRIX, r_worldMatrix );
+	Matrix4x4_CreateModelview_FromAxis( r_worldMatrix, r_forward, r_right, r_up, r_origin );
 #endif
-	gl_worldMatrix[ 0] = -r_right[0];
-	gl_worldMatrix[ 1] = r_up[0];
-	gl_worldMatrix[ 2] = -r_forward[0];
-	gl_worldMatrix[ 3] = 0.0;
-	gl_worldMatrix[ 4] = -r_right[1];
-	gl_worldMatrix[ 5] = r_up[1];
-	gl_worldMatrix[ 6] = -r_forward[1];
-	gl_worldMatrix[ 7] = 0.0;
-	gl_worldMatrix[ 8] = -r_right[2];
-	gl_worldMatrix[ 9] = r_up[2];
-	gl_worldMatrix[10] = -r_forward[2];
-	gl_worldMatrix[11] = 0.0;
-	gl_worldMatrix[12] = DotProduct( r_origin, r_right );
-	gl_worldMatrix[13] = -DotProduct( r_origin, r_up );
-	gl_worldMatrix[14] = DotProduct( r_origin, r_forward );
-	gl_worldMatrix[15] = 1.0;
-
 	gl_textureMatrix[ 0] = r_right[0];
 	gl_textureMatrix[ 1] = -r_right[1];
 	gl_textureMatrix[ 2] = -r_right[2];
@@ -1084,7 +1034,22 @@ static bool R_AddEntityToScene( entity_state_t *s1, entity_state_t *s2, float le
 	}
 
 	// because entity without models never added to scene
-	if( !refent->ent_type ) refent->ent_type = ED_NORMAL;
+	if( !refent->ent_type )
+	{
+		switch( refent->model->type )
+		{
+		case mod_brush:
+			refent->ent_type = ED_BSPBRUSH;
+			break;
+		case mod_studio:
+		case mod_sprite:		
+			refent->ent_type = ED_NORMAL;
+          		break;
+		// and ignore all other unset ents
+		}
+	}
+
+	if( !refent->shader ) refent->shader = r_defaultShader;
 
 	// add entity
 	r_numEntities++;

@@ -201,7 +201,7 @@ void R_AddBrushModelToList( ref_entity_t *entity )
 			maxs[i] = entity->origin[i] + model->radius;
 		}
 
-		if( R_CullSphere( entity->origin, model->radius, 15 ))
+		if( R_CullSphere( entity->origin, model->radius, MAX_CLIPFLAGS ))
 			return;
 
 		VectorSubtract( r_origin, entity->origin, tmp );
@@ -212,7 +212,7 @@ void R_AddBrushModelToList( ref_entity_t *entity )
 		VectorAdd( entity->origin, model->mins, mins );
 		VectorAdd( entity->origin, model->maxs, maxs );
 
-		if( R_CullBox( mins, maxs, 15 ))
+		if( R_CullBox( mins, maxs, MAX_CLIPFLAGS ))
 			return;
 
 		VectorSubtract( r_refdef.vieworg, entity->origin, origin );

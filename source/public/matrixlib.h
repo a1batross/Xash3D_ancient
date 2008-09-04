@@ -22,6 +22,15 @@ static const matrix4x4 identitymatrix =
 { 0, 0, 0, 1 },	// ORIGIN
 };
 
+// quake engine tranformation matrix
+static const matrix4x4 r_base_matrix =
+{		// Quake		OpenGL	other changes
+{ 0, 0,-1, 0, },	// ROLL		[PITCH]	also put Z going up
+{-1, 0, 0, 0, },	// PITCH		[YAW]	also put Z going up
+{ 0, 1, 0, 0, },	// YAW		[ROLL]
+{ 0, 0, 0, 1, },
+};
+
 _inline void Matrix4x4_Copy( matrix4x4 out, const matrix4x4 in )
 {
 	memcpy( out, in, sizeof(matrix4x4));
@@ -214,6 +223,45 @@ _inline void Matrix4x4_CreateRotate( matrix4x4 out, double angle, double x, doub
 #endif
 }
 
+_inline void Matrix4x4_CreateScale( matrix4x4 out, double x )
+{
+	out[0][0] = x;
+	out[0][1] = 0.0f;
+	out[0][2] = 0.0f;
+	out[0][3] = 0.0f;
+	out[1][0] = 0.0f;
+	out[1][1] = x;
+	out[1][2] = 0.0f;
+	out[1][3] = 0.0f;
+	out[2][0] = 0.0f;
+	out[2][1] = 0.0f;
+	out[2][2] = x;
+	out[2][3] = 0.0f;
+	out[3][0] = 0.0f;
+	out[3][1] = 0.0f;
+	out[3][2] = 0.0f;
+	out[3][3] = 1.0f;
+}
+
+_inline void Matrix4x4_CreateScale3( matrix4x4 out, double x, double y, double z )
+{
+	out[0][0] = x;
+	out[0][1] = 0.0f;
+	out[0][2] = 0.0f;
+	out[0][3] = 0.0f;
+	out[1][0] = 0.0f;
+	out[1][1] = y;
+	out[1][2] = 0.0f;
+	out[1][3] = 0.0f;
+	out[2][0] = 0.0f;
+	out[2][1] = 0.0f;
+	out[2][2] = z;
+	out[2][3] = 0.0f;
+	out[3][0] = 0.0f;
+	out[3][1] = 0.0f;
+	out[3][2] = 0.0f;
+	out[3][3] = 1.0f;
+}
 
 _inline void Matrix4x4_CreateFromEntity( matrix4x4 out, double x, double y, double z, double pitch, double yaw, double roll, double scale )
 {
@@ -435,7 +483,7 @@ _inline void Matrix4x4_FromOriginQuat( matrix4x4 out, double ox, double oy, doub
 ConcatTransforms
 ================
 */
-_inline void Matrix4x4_ConcatTransforms( matrix4x4 out, matrix4x4 in1, matrix4x4 in2 )
+_inline void Matrix4x4_ConcatTransforms( matrix4x4 out, const matrix4x4 in1, const matrix4x4 in2 )
 {
 #ifdef OPENGL_STYLE
 	out[0][0] = in1[0][0] * in2[0][0] + in1[1][0] * in2[0][1] + in1[2][0] * in2[0][2];
@@ -564,26 +612,61 @@ _inline void Matrix4x4_FromVectors( matrix4x4 out, const float vx[3], const floa
 #endif
 }
 
+/*
+================
+Matrix4x4_CreateModelview_FromAxis
+
+NOTE: produce quake style world orientation
+================
+*/
+_inline void Matrix4x4_CreateModelview_FromAxis( matrix4x4 out, float vx[3], float vy[3], float vz[3], float t[3] )
+{
+#ifdef OPENGL_STYLE
+	out[0][0] = -vy[0];
+	out[1][0] = -vy[1];
+	out[2][0] = -vy[2];
+	out[3][0] = t[0] * vy[0] + t[1] * vy[1]+ t[2] * vy[2];
+
+	out[0][1] = vz[0];
+	out[1][1] = vz[1];	
+	out[2][1] = vz[2];	
+	out[3][1] = -(t[0] * vz[0] + t[1] * vz[1]+ t[2] * vz[2]);
+
+	out[0][2] = -vx[0];
+	out[1][2] = -vx[1];
+	out[2][2] = -vx[2];
+	out[3][2] = t[0] * vx[0] + t[1] * vx[1]+ t[2] * vx[2];
+
+	out[0][3] = 0.0f;
+	out[1][3] = 0.0f;
+	out[2][3] = 0.0f;
+	out[3][3] = 1.0f;
+#else
+	out[0][0] = -vy[0];
+	out[0][1] = -vy[1];
+	out[0][2] = -vy[2];
+	out[0][3] = t[0] * vy[0] + t[1] * vy[1]+ t[2] * vy[2];
+
+	out[1][0] = vz[0];
+	out[1][1] = vz[1];	
+	out[1][2] = vz[2];	
+	out[1][3] = -(t[0] * vz[0] + t[1] * vz[1]+ t[2] * vz[2]);
+
+	out[2][0] = -vx[0];
+	out[2][1] = -vx[1];
+	out[2][2] = -vx[2];
+	out[2][3] = t[0] * vx[0] + t[1] * vx[1]+ t[2] * vx[2];
+
+	out[3][0] = 0.0f;
+	out[3][1] = 0.0f;
+	out[3][2] = 0.0f;
+	out[3][3] = 1.0f;
+#endif
+}
+
 _inline void Matrix4x4_ToArrayFloatGL( const matrix4x4 in, float out[16] )
 {
 #ifdef OPENGL_STYLE
-	out[ 0] = in[0][0];
-	out[ 1] = in[1][0];
-	out[ 2] = in[2][0];
-	out[ 3] = in[3][0];
-	out[ 4] = in[0][1];
-	out[ 5] = in[1][1];
-	out[ 6] = in[2][1];
-	out[ 7] = in[3][1];
-	out[ 8] = in[0][2];
-	out[ 9] = in[1][2];
-	out[10] = in[2][2];
-	out[11] = in[3][2];
-	out[12] = in[0][3];
-	out[13] = in[1][3];
-	out[14] = in[2][3];
-	out[15] = in[3][3];
-#else
 	out[ 0] = in[0][0];
 	out[ 1] = in[0][1];
 	out[ 2] = in[0][2];
@@ -600,30 +683,29 @@ _inline void Matrix4x4_ToArrayFloatGL( const matrix4x4 in, float out[16] )
 	out[13] = in[3][1];
 	out[14] = in[3][2];
 	out[15] = in[3][3];
-
+#else
+	out[ 0] = in[0][0];
+	out[ 1] = in[1][0];
+	out[ 2] = in[2][0];
+	out[ 3] = in[3][0];
+	out[ 4] = in[0][1];
+	out[ 5] = in[1][1];
+	out[ 6] = in[2][1];
+	out[ 7] = in[3][1];
+	out[ 8] = in[0][2];
+	out[ 9] = in[1][2];
+	out[10] = in[2][2];
+	out[11] = in[3][2];
+	out[12] = in[0][3];
+	out[13] = in[1][3];
+	out[14] = in[2][3];
+	out[15] = in[3][3];
 #endif
 }
 
 _inline void Matrix4x4_FromArrayFloatGL( matrix4x4 out, const float in[16] )
 {
 #ifdef OPENGL_STYLE
-	out[0][0] = in[0];
-	out[1][0] = in[1];
-	out[2][0] = in[2];
-	out[3][0] = in[3];
-	out[0][1] = in[4];
-	out[1][1] = in[5];
-	out[2][1] = in[6];
-	out[3][1] = in[7];
-	out[0][2] = in[8];
-	out[1][2] = in[9];
-	out[2][2] = in[10];
-	out[3][2] = in[11];
-	out[0][3] = in[12];
-	out[1][3] = in[13];
-	out[2][3] = in[14];
-	out[3][3] = in[15];
-#else
 	out[0][0] = in[0];
 	out[0][1] = in[1];
 	out[0][2] = in[2];
@@ -640,8 +722,338 @@ _inline void Matrix4x4_FromArrayFloatGL( matrix4x4 out, const float in[16] )
 	out[3][1] = in[13];
 	out[3][2] = in[14];
 	out[3][3] = in[15];
-
+#else
+	out[0][0] = in[0];
+	out[1][0] = in[1];
+	out[2][0] = in[2];
+	out[3][0] = in[3];
+	out[0][1] = in[4];
+	out[1][1] = in[5];
+	out[2][1] = in[6];
+	out[3][1] = in[7];
+	out[0][2] = in[8];
+	out[1][2] = in[9];
+	out[2][2] = in[10];
+	out[3][2] = in[11];
+	out[0][3] = in[12];
+	out[1][3] = in[13];
+	out[2][3] = in[14];
+	out[3][3] = in[15];
 #endif
+}
+
+_inline bool Matrix4x4_Invert_Full( matrix4x4 out, const matrix4x4 in1 )
+{
+	float	*temp;
+	float	*r[4];
+	float	rtemp[4][8];
+	float	m[4];
+	float	s;
+
+	r[0] = rtemp[0];
+	r[1] = rtemp[1];
+	r[2] = rtemp[2];
+	r[3] = rtemp[3];
+
+#ifdef OPENGL_STYLE
+	r[0][0] = in1[0][0];
+	r[0][1] = in1[1][0];
+	r[0][2] = in1[2][0];
+	r[0][3] = in1[3][0];
+	r[0][4] = 1.0;
+	r[0][5] = 0.0;
+	r[0][6] = 0.0;
+	r[0][7] = 0.0;
+
+	r[1][0] = in1[0][1];
+	r[1][1] = in1[1][1];
+	r[1][2] = in1[2][1];
+	r[1][3] = in1[3][1];
+	r[1][5] = 1.0;
+	r[1][4] =	0.0;
+	r[1][6] =	0.0;
+	r[1][7] = 0.0;
+
+	r[2][0] = in1[0][2];
+	r[2][1] = in1[1][2];
+	r[2][2] = in1[2][2];
+	r[2][3] = in1[3][2];
+	r[2][6] = 1.0;
+	r[2][4] =	0.0;
+	r[2][5] =	0.0;
+	r[2][7] = 0.0;
+
+	r[3][0] = in1[0][3];
+	r[3][1] = in1[1][3];
+	r[3][2] = in1[2][3];
+	r[3][3] = in1[3][3];
+	r[3][4] =	0.0;
+	r[3][5] =	0.0;
+	r[3][6] = 0.0;
+	r[3][7] = 1.0;	
+#else
+	r[0][0] = in1[0][0];
+	r[0][1] = in1[0][1];
+	r[0][2] = in1[0][2];
+	r[0][3] = in1[0][3];
+	r[0][4] = 1.0;
+	r[0][5] =	0.0;
+	r[0][6] =	0.0;
+	r[0][7] = 0.0;
+
+	r[1][0] = in1[1][0];
+	r[1][1] = in1[1][1];
+	r[1][2] = in1[1][2];
+	r[1][3] = in1[1][3];
+	r[1][5] = 1.0;
+	r[1][4] =	0.0;
+	r[1][6] =	0.0;
+	r[1][7] = 0.0;
+
+	r[2][0] = in1[2][0];
+	r[2][1] = in1[2][1];
+	r[2][2] = in1[2][2];
+	r[2][3] = in1[2][3];
+	r[2][6] = 1.0;
+	r[2][4] =	0.0;
+	r[2][5] =	0.0;
+	r[2][7] = 0.0;
+
+	r[3][0] = in1[3][0];
+	r[3][1] = in1[3][1];
+	r[3][2] = in1[3][2];
+	r[3][3] = in1[3][3];
+	r[3][4] =	0.0;
+	r[3][5] = 0.0;
+	r[3][6] = 0.0;
+	r[3][7] = 1.0;	
+#endif
+
+	if( fabs( r[3][0] ) > fabs( r[2][0] ))
+	{
+		temp = r[3];
+		r[3] = r[2];
+		r[2] = temp;
+	}
+	if( fabs( r[2][0] ) > fabs( r[1][0] ))
+	{
+		temp = r[2];
+		r[2] = r[1];
+		r[1] = temp;
+	}
+	if( fabs( r[1][0] ) > fabs( r[0][0] ))
+	{
+		temp = r[1];
+		r[1] = r[0];
+		r[0] = temp;
+	}
+
+	if( r[0][0] )
+	{
+		m[1] = r[1][0] / r[0][0];
+		m[2] = r[2][0] / r[0][0];
+		m[3] = r[3][0] / r[0][0];
+
+		s = r[0][1];
+		r[1][1] -= m[1] * s;
+		r[2][1] -= m[2] * s;
+		r[3][1] -= m[3] * s;
+
+		s = r[0][2];
+		r[1][2] -= m[1] * s;
+		r[2][2] -= m[2] * s;
+		r[3][2] -= m[3] * s;
+
+		s = r[0][3];
+		r[1][3] -= m[1] * s;
+		r[2][3] -= m[2] * s;
+		r[3][3] -= m[3] * s;
+
+		s = r[0][4];
+		if( s )
+		{
+			r[1][4] -= m[1] * s;
+			r[2][4] -= m[2] * s;
+			r[3][4] -= m[3] * s;
+		}
+
+		s = r[0][5];
+		if( s )
+		{
+			r[1][5] -= m[1] * s;
+			r[2][5] -= m[2] * s;
+			r[3][5] -= m[3] * s;
+		}
+
+		s = r[0][6];
+		if( s )
+		{
+			r[1][6] -= m[1] * s;
+			r[2][6] -= m[2] * s;
+			r[3][6] -= m[3] * s;
+		}
+
+		s = r[0][7];
+		if( s )
+		{
+			r[1][7] -= m[1] * s;
+			r[2][7] -= m[2] * s;
+			r[3][7] -= m[3] * s;
+		}
+
+		if( fabs( r[3][1] ) > fabs( r[2][1] ))
+		{
+			temp = r[3];
+			r[3] = r[2];
+			r[2] = temp;
+		}
+		if( fabs( r[2][1] ) > fabs( r[1][1] ))
+		{
+			temp = r[2];
+			r[2] = r[1];
+			r[1] = temp;
+		}
+
+		if( r[1][1] )
+		{
+			m[2] = r[2][1] / r[1][1];
+			m[3] = r[3][1] / r[1][1];
+			r[2][2] -= m[2] * r[1][2];
+			r[3][2] -= m[3] * r[1][2];
+			r[2][3] -= m[2] * r[1][3];
+			r[3][3] -= m[3] * r[1][3];
+
+			s = r[1][4];
+			if( s )
+			{
+				r[2][4] -= m[2] * s;
+				r[3][4] -= m[3] * s;
+			}
+
+			s = r[1][5];
+			if( s )
+			{
+				r[2][5] -= m[2] * s;
+				r[3][5] -= m[3] * s;
+			}
+
+			s = r[1][6];
+			if( s )
+			{
+				r[2][6] -= m[2] * s;
+				r[3][6] -= m[3] * s;
+			}
+
+			s = r[1][7];
+			if( s )
+			{
+				r[2][7] -= m[2] * s;
+				r[3][7] -= m[3] * s;
+			}
+
+			if( fabs( r[3][2] ) > fabs( r[2][2] ))
+			{
+				temp = r[3];
+				r[3] = r[2];
+				r[2] = temp;
+			}
+
+			if( r[2][2] )
+			{
+				m[3] = r[3][2] / r[2][2];
+				r[3][3] -= m[3] * r[2][3];
+				r[3][4] -= m[3] * r[2][4];
+				r[3][5] -= m[3] * r[2][5];
+				r[3][6] -= m[3] * r[2][6];
+				r[3][7] -= m[3] * r[2][7];
+
+				if( r[3][3] )
+				{
+					s = 1.0 / r[3][3];
+					r[3][4] *= s;
+					r[3][5] *= s;
+					r[3][6] *= s;
+					r[3][7] *= s;
+
+					m[2] = r[2][3];
+					s = 1.0 / r[2][2];
+					r[2][4] = s * (r[2][4] - r[3][4] * m[2]);
+					r[2][5] = s * (r[2][5] - r[3][5] * m[2]);
+					r[2][6] = s * (r[2][6] - r[3][6] * m[2]);
+					r[2][7] = s * (r[2][7] - r[3][7] * m[2]);
+
+					m[1] = r[1][3];
+					r[1][4] -= r[3][4] * m[1];
+					r[1][5] -= r[3][5] * m[1];
+					r[1][6] -= r[3][6] * m[1];
+					r[1][7] -= r[3][7] * m[1];
+
+					m[0] = r[0][3];
+					r[0][4] -= r[3][4] * m[0];
+					r[0][5] -= r[3][5] * m[0];
+					r[0][6] -= r[3][6] * m[0];
+					r[0][7] -= r[3][7] * m[0];
+
+					m[1] = r[1][2];
+					s = 1.0 / r[1][1];
+					r[1][4] = s * (r[1][4] - r[2][4] * m[1]);
+					r[1][5] = s * (r[1][5] - r[2][5] * m[1]);
+					r[1][6] = s * (r[1][6] - r[2][6] * m[1]);
+					r[1][7] = s * (r[1][7] - r[2][7] * m[1]);
+
+					m[0] = r[0][2];
+					r[0][4] -= r[2][4] * m[0];
+					r[0][5] -= r[2][5] * m[0];
+					r[0][6] -= r[2][6] * m[0];
+					r[0][7] -= r[2][7] * m[0];
+
+					m[0] = r[0][1];
+					s = 1.0 / r[0][0];
+					r[0][4] = s * (r[0][4] - r[1][4] * m[0]);
+					r[0][5] = s * (r[0][5] - r[1][5] * m[0]);
+					r[0][6] = s * (r[0][6] - r[1][6] * m[0]);
+					r[0][7] = s * (r[0][7] - r[1][7] * m[0]);
+#ifdef OPENGL_STYLE
+					out[0][0]	= r[0][4];
+					out[0][1]	= r[1][4];
+					out[0][2]	= r[2][4];
+					out[0][3]	= r[3][4];
+					out[1][0]	= r[0][5];
+					out[1][1]	= r[1][5];
+					out[1][2]	= r[2][5];
+					out[1][3]	= r[3][5];
+					out[2][0]	= r[0][6];
+					out[2][1]	= r[1][6];
+					out[2][2]	= r[2][6];
+					out[2][3]	= r[3][6];
+					out[3][0]	= r[0][7];
+					out[3][1]	= r[1][7];
+					out[3][2]	= r[2][7];
+					out[3][3]	= r[3][7];
+#else
+					out[0][0]	= r[0][4];
+					out[0][1]	= r[0][5];
+					out[0][2]	= r[0][6];
+					out[0][3]	= r[0][7];
+					out[1][0]	= r[1][4];
+					out[1][1]	= r[1][5];
+					out[1][2]	= r[1][6];
+					out[1][3]	= r[1][7];
+					out[2][0]	= r[2][4];
+					out[2][1]	= r[2][5];
+					out[2][2]	= r[2][6];
+					out[2][3]	= r[2][7];
+					out[3][0]	= r[3][4];
+					out[3][1]	= r[3][5];
+					out[3][2]	= r[3][6];
+					out[3][3]	= r[3][7];
+#endif
+					return true;
+				}
+			}
+		}
+	}
+	return false;
 }
 
 _inline void Matrix4x4_Transpose( matrix4x4 out, const matrix4x4 in1 )
@@ -664,24 +1076,30 @@ _inline void Matrix4x4_Transpose( matrix4x4 out, const matrix4x4 in1 )
 	out[3][3] = in1[3][3];
 }
 
-_inline void Matrix4x4_CreateScale( matrix4x4 out, double x )
+_inline void Matrix4x4_SetOrigin( matrix4x4 out, double x, double y, double z )
 {
-	out[0][0] = x;
-	out[0][1] = 0.0f;
-	out[0][2] = 0.0f;
-	out[0][3] = 0.0f;
-	out[1][0] = 0.0f;
-	out[1][1] = x;
-	out[1][2] = 0.0f;
-	out[1][3] = 0.0f;
-	out[2][0] = 0.0f;
-	out[2][1] = 0.0f;
-	out[2][2] = x;
-	out[2][3] = 0.0f;
-	out[3][0] = 0.0f;
-	out[3][1] = 0.0f;
-	out[3][2] = 0.0f;
-	out[3][3] = 1.0f;
+#ifdef OPENGL_STYLE
+	out[3][0] = x;
+	out[3][1] = y;
+	out[3][2] = z;
+#else
+	out[0][3] = x;
+	out[1][3] = y;
+	out[2][3] = z;
+#endif
+}
+
+_inline void Matrix4x4_OriginFromMatrix( const matrix4x4 in, float *out )
+{
+#ifdef OPENGL_STYLE
+	out[0] = in[3][0];
+	out[1] = in[3][1];
+	out[2] = in[3][2];
+#else
+	out[0] = in[0][3];
+	out[1] = in[1][3];
+	out[2] = in[2][3];
+#endif
 }
 
 _inline void Matrix4x4_ConcatScale( matrix4x4 out, double x )
@@ -710,6 +1128,16 @@ _inline void Matrix4x4_ConcatRotate( matrix4x4 out, double angle, double x, doub
 
 	Matrix4x4_Copy( base, out );
 	Matrix4x4_CreateRotate( temp, angle, x, y, z );
+	Matrix4x4_Concat( out, base, temp );
+}
+
+// FIXME: optimize
+_inline void Matrix4x4_ConcatScale3( matrix4x4 out, double x, double y, double z )
+{
+	matrix4x4  base, temp;
+
+	Matrix4x4_Copy( base, out );
+	Matrix4x4_CreateScale3( temp, x, y, z );
 	Matrix4x4_Concat( out, base, temp );
 }
 
