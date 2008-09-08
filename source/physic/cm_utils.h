@@ -46,7 +46,7 @@ void CM_EndRegistration ( void );
 
 void CM_SetAreaPortals ( byte *portals, size_t size );
 void CM_GetAreaPortals ( byte **portals, size_t *size );
-void CM_SetAreaPortalState ( int portalnum, bool open );
+void CM_SetAreaPortalState ( int portalnum, int area, int otherarea, bool open );
 
 int CM_NumClusters( void );
 int CM_NumTextures( void );
@@ -66,7 +66,7 @@ int CM_PointLeafnum( const vec3_t p );
 int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsize, int *topnode );
 int CM_LeafCluster( int leafnum );
 int CM_LeafArea( int leafnum );
-bool CM_AreasConnected( int area1, int area2 );
+bool CM_AreasConnected( int area, int otherarea );
 int CM_WriteAreaBits( byte *buffer, int area );
 void CM_ModelBounds( cmodel_t *model, vec3_t mins, vec3_t maxs );
 float CM_FindFloor( vec3_t p0, float maxDist );

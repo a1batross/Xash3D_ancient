@@ -87,6 +87,7 @@ _inline double DoubleSwap( double swap )
 
 #if BYTE_ORDER == LITTLE_ENDIAN
 // little endian
+#define big_endian	false
 #define BigShort(l) ShortSwap(l)
 #define LittleShort(l) (l)
 #define BigLong(l) LongSwap(l)
@@ -95,9 +96,9 @@ _inline double DoubleSwap( double swap )
 #define LittleFloat(l) (l)
 #define BigDouble(l) DoubleSwap(l)
 #define LittleDouble(l) (l)
-static bool big_endian = false;
 #else
 // big endian
+#define big_endian	true
 #define BigShort(l) (l)
 #define LittleShort(l) ShortSwap(l)
 #define BigLong(l) (l)
@@ -106,7 +107,6 @@ static bool big_endian = false;
 #define LittleFloat(l) FloatSwap(l)
 #define BigDouble(l) (l)
 #define LittleDouble(l) DoubleSwap(l)
-static bool big_endian = true;
 #endif
 
 //extract from buffer

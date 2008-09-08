@@ -196,7 +196,7 @@ texture_t *R_StudioLoadTexture( rmodel_t *mod, mstudiotexture_t *ptexture, byte 
 		MsgDev( D_WARN, "%s has null texture %s\n", mod->name, ptexture->name );
 		image = r_defaultTexture;
 	}
-	ptexture->index = mod->numTextures++; // internal texture index, not gl_texturenum
+	ptexture->index = mod->numShaders++; // internal texture index, not gl_texturenum
 
 	return image;
 }
@@ -209,7 +209,6 @@ studiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
 	mstudiotexture_t	*ptexture;
 	texture_t		*in;
 	mipTex_t		*out;
-	texInfo_t		*out2;
 	
 	pin = (byte *)buffer;
 	phdr = (studiohdr_t *)pin;
@@ -223,22 +222,14 @@ studiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
 	ptexture = (mstudiotexture_t *)(pin + phdr->textureindex);
 	if( phdr->textureindex > 0 && phdr->numtextures <= MAXSTUDIOSKINS )
 	{
-		out = mod->textures = (mipTex_t *)Mem_Alloc( mod->mempool, phdr->numtextures * sizeof(*out));
-		out2 = mod->texInfo = (texInfo_t *)Mem_Alloc( mod->mempool, phdr->numtextures * sizeof(*out2));
-		for( i = 0; i < phdr->numtextures; i++, out++, out2++ )
+		out = mod->shaders = (mipTex_t *)Mem_Alloc( mod->mempool, phdr->numtextures * sizeof(*out));
+		for( i = 0; i < phdr->numtextures; i++, out++ )
 		{
 			in = R_StudioLoadTexture( mod, &ptexture[i], pin );
-			com.strncpy( out->name, ptexture->name, 64 );
-			out->width = in->width;
-			out->height = in->height;
-			out->next = NULL; // animchains not using in studio models
-			out->numframes = 1;
-			out->image = in;
-
 			R_SetInternalMap( in );
-			out2->shader = R_FindShader( ptexture->name, SHADER_STUDIO, surfaceParm );
-			out2->flags = ptexture->flags;
-                    	out2->texture = out;
+			com.strncpy( out->name, ptexture->name, 64 );
+			out->shader = R_FindShader( ptexture->name, SHADER_STUDIO, surfaceParm );
+			out->flags = surfaceParm;
 		}
 	}
 	return (studiohdr_t *)buffer;
@@ -1437,7 +1428,7 @@ void R_StudioDrawMeshes( mstudiotexture_t * ptexture, short *pskinref, int pass 
 
 		//GL_BindTexture( m_pRenderModel->textures[ptexture[pskinref[pmesh->skinref]].index].image );
 		// FIXME: test
-		m_pCurrentShader = m_pRenderModel->texInfo[ptexture[pskinref[pmesh->skinref]].index].shader;
+		m_pCurrentShader = m_pRenderModel->shaders[ptexture[pskinref[pmesh->skinref]].index].shader;
 
 		while( i = *(ptricmds++))
 		{

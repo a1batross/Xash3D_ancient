@@ -83,16 +83,13 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	R_SetInternalMap( image );
 	pspriteframe->shader = R_FindShader( name, SHADER_SPRITE, surfaceParm );
 
-	frames = Mem_Realloc( mod->mempool, frames, sizeof(*frames) * (mod->numTextures + 1));
-	out = frames + mod->numTextures++;
+	frames = Mem_Realloc( mod->mempool, frames, sizeof(*frames) * (mod->numShaders + 1));
+	out = frames + mod->numShaders++;
 	spr_frametype = (dframetype_t *)((byte *)(pinframe + 1) + size );
 
 	com.strncpy( out->name, name, 64 );
-	out->width = width;
-	out->height = height;
-	out->image = image;
-	out->numframes = 1;
-	out->next = NULL;
+	out->shader = pspriteframe->shader;
+	out->flags = surfaceParm;
 
 	FS_FreeImage( spr_frame );
 	return spr_frametype;
@@ -157,7 +154,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 
 	psprite = Mem_Alloc( mod->mempool, size );
 	mod->extradata = psprite; // make link to extradata
-	mod->numTexInfo = surfaceParm = 0; // reset frames
+	mod->numShaders = surfaceParm = 0; // reset frames
 	
 	psprite->type	= LittleLong(pin->type);
 	psprite->rendermode = LittleLong(pin->texFormat);
@@ -266,7 +263,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 		}
 		if( pframetype == NULL ) break; // technically an error
 	}
-	mod->textures = frames; // setup texture links
+	mod->shaders = frames; // setup texture links
 }
 
 /*

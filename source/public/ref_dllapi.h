@@ -1270,7 +1270,7 @@ typedef struct physic_exp_s
 
 	void (*SetAreaPortals)( byte *portals, size_t size );
 	void (*GetAreaPortals)( byte **portals, size_t *size );
-	void (*SetAreaPortalState)( int portalnum, bool open );
+	void (*SetAreaPortalState)( int portalnum, int area, int otherarea, bool open );
 
 	int (*NumClusters)( void );
 	int (*NumTextures)( void );

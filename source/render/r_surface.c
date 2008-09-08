@@ -83,17 +83,7 @@ static bool R_CullSurface( surface_t *surf, const vec3_t origin, int clipFlags )
 	plane = surf->plane;
 	if( plane->type < 3 ) dist = origin[plane->type] - plane->dist;
 	else dist = DotProduct( origin, plane->normal ) - plane->dist;
-
-	if(!(surf->flags & SURF_PLANEBACK))
-	{
-		if( dist <= BACKFACE_EPSILON )
-			return true; // wrong side
-	}
-	else
-	{
-		if( dist >= -BACKFACE_EPSILON )
-			return true; // wrong side
-	}
+	if( dist <= BACKFACE_EPSILON ) return true; // wrong side
 
 	// cull
 	if( clipFlags )
@@ -111,26 +101,12 @@ R_AddSurfaceToList
 */
 static void R_AddSurfaceToList( surface_t *surf, ref_entity_t *entity )
 {
-	texInfo_t		*tinfo = surf->texInfo;
-	mipTex_t		*tex = tinfo->texture;
-	int		c, map, lmNum;
-	shader_t		*shader;
+	mipTex_t		*tex = surf->texInfo;
+	shader_t		*shader = tex->shader;
+	int		map, lmNum;
 
-	if( tinfo->flags & SURF_NODRAW )
+	if( tex->flags & SURF_NODRAW )
 		return;
-
-	// select shader
-	if( tex->next )
-	{
-		c = (int)entity->frame % tex->numframes;
-		while( c )
-		{
-			tex = tex->next;
-			c--;
-		}
-	}
-
-	shader = tinfo->shader;
 
 	// select lightmap
 	lmNum = surf->lmNum;

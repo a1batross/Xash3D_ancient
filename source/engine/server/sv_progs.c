@@ -334,7 +334,7 @@ void SV_WriteSaveFile( const char *name )
 	wfile_t		*savfile;
 	bool		autosave = false;
 	char		path[MAX_SYSPATH];
-	byte		*portalopen = Z_Malloc( MAX_MAP_AREAPORTALS );
+	byte		*portalstate = Z_Malloc( MAX_MAP_AREAPORTALS );
 	int		portalsize;
 
 	if( sv.state != ss_active )
@@ -363,11 +363,11 @@ void SV_WriteSaveFile( const char *name )
 
 	MsgDev( D_INFO, "Saving game..." );
 	com.sprintf (comment, "%s - %s", sv.configstrings[CS_NAME], timestamp( TIME_FULL ));
-	s_table = StringTable_Create( name, MAX_MAP_NUMSTRINGS );
+	s_table = StringTable_Create( name, 0x10000 ); // 65535 unique strings
           
 	// write lumps
-	pe->GetAreaPortals( &portalopen, &portalsize );
-	SV_AddSaveLump( savfile, LUMP_AREASTATE, portalopen, portalsize, true );
+	pe->GetAreaPortals( &portalstate, &portalsize );
+	SV_AddSaveLump( savfile, LUMP_AREASTATE, portalstate, portalsize, true );
 	SV_AddSaveLump( savfile, LUMP_COMMENTS, comment, sizeof(comment), false );
 	SV_AddSaveLump( savfile, LUMP_MAPCMDS, svs.mapcmd, sizeof(svs.mapcmd), false );
 	SV_AddCStrLump( savfile );
@@ -375,7 +375,7 @@ void SV_WriteSaveFile( const char *name )
 	SV_WriteGlobal( savfile );
 	SV_WriteLocals( savfile );
 	StringTable_Save( s_table, savfile );	// now system released
-	Mem_Free( portalopen );		// release portalinfo
+	Mem_Free( portalstate );		// release portalinfo
 	WAD_Close( savfile );
 
 	MsgDev( D_INFO, "done.\n" );
@@ -2106,13 +2106,19 @@ void PF_ServerPrint( void )
 =================
 PF_AreaPortalState
 
-void areaportal( float num, float state )
+void areaportal( entity ent, float state )
 =================
 */
 void PF_AreaPortalState( void )
 {
+	edict_t	*ent;
+	bool	open;
+
 	if(!VM_ValidateArgs( "areaportal", 2 )) return;
-	pe->SetAreaPortalState((int)PRVM_G_FLOAT(OFS_PARM0), (bool)PRVM_G_FLOAT(OFS_PARM1));
+	ent = PRVM_G_EDICT( OFS_PARM0 );
+	if( ent->priv.sv->areanum2 == -1 ) return;
+	open = (bool)PRVM_G_FLOAT( OFS_PARM1 );
+	pe->SetAreaPortalState( ent->priv.sv->s.number, ent->priv.sv->areanum, ent->priv.sv->areanum2, open );
 }
 
 /*

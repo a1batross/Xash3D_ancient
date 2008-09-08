@@ -7,15 +7,7 @@
 #define	ANGLE_UP		-1
 #define	ANGLE_DOWN	-2
 
-typedef struct
-{
-	dface_t		*faces[2];
-	bool	coplanar;
-} edgeshare_t;
-
-edgeshare_t	edgeshare[MAX_MAP_EDGES];
-
-int			facelinks[MAX_MAP_FACES];
+int			facelinks[MAX_MAP_SURFACES];
 int			planelinks[2][MAX_MAP_PLANES];
 
 /*
@@ -26,51 +18,13 @@ LinkPlaneFaces
 void LinkPlaneFaces (void)
 {
 	int		i;
-	dface_t	*f;
+	dsurface_t	*f;
 
-	f = dfaces;
-	for (i=0 ; i<numfaces ; i++, f++)
+	f = dsurfaces;
+	for( i = 0; i < numsurfaces; i++, f++ )
 	{
-		facelinks[i] = planelinks[f->side][f->planenum];
-		planelinks[f->side][f->planenum] = i;
-	}
-}
-
-/*
-============
-PairEdges
-============
-*/
-void PairEdges (void)
-{
-	int		i, j, k;
-	dface_t	*f;
-	edgeshare_t	*e;
-
-	f = dfaces;
-	for (i=0 ; i<numfaces ; i++, f++)
-	{
-		for (j=0 ; j<f->numedges ; j++)
-		{
-			k = dsurfedges[f->firstedge + j];
-			if (k < 0)
-			{
-				e = &edgeshare[-k];
-				e->faces[1] = f;
-			}
-			else
-			{
-				e = &edgeshare[k];
-				e->faces[0] = f;
-			}
-
-			if (e->faces[0] && e->faces[1])
-			{
-				// determine if coplanar
-				if (e->faces[0]->planenum == e->faces[1]->planenum)
-					e->coplanar = true;
-			}
-		}
+		facelinks[i] = planelinks[f->lm_side][f->planenum];
+		planelinks[f->lm_side][f->planenum] = i;
 	}
 }
 
@@ -468,7 +422,7 @@ typedef struct
 	
 	int		texmins[2], texsize[2];
 	int		surfnum;
-	dface_t	*face;
+	dsurface_t	*face;
 } lightinfo_t;
 
 
@@ -482,11 +436,11 @@ also sets exactmins[] and exactmaxs[]
 */
 void CalcFaceExtents (lightinfo_t *l)
 {
-	dface_t *s;
-	vec_t	mins[2], maxs[2], val;
+	dsurface_t	*s;
+	vec_t		mins[2], maxs[2], val;
 	int		i,j, e;
-	dvertex_t	*v;
-	dtexinfo_t	*tex;
+	dvertex_t		*v;
+	dshader_t		*tex;
 	vec3_t		vt;
 
 	s = l->face;
@@ -494,26 +448,20 @@ void CalcFaceExtents (lightinfo_t *l)
 	mins[0] = mins[1] = 999999;
 	maxs[0] = maxs[1] = -99999;
 
-	tex = &texinfo[s->texinfo];
+	tex = &dshaders[s->shadernum];
 	
-	for (i=0 ; i<s->numedges ; i++)
+	for( i = 0; i < s->numvertices; i++ )
 	{
-		e = dsurfedges[s->firstedge+i];
-		if (e >= 0)
-			v = dvertexes + dedges[e].v[0];
-		else
-			v = dvertexes + dedges[-e].v[1];
+		e = s->firstvertex + i;
+		v = &dvertexes[e];
 		
-//		VectorAdd (v->point, l->modelorg, vt);
-		VectorCopy (v->point, vt);
+		VectorCopy( v->point, vt );
 
-		for (j=0 ; j<2 ; j++)
+		for( j = 0; j < 2; j++ )
 		{
-			val = DotProduct (vt, tex->vecs[j]) + tex->vecs[j][3];
-			if (val < mins[j])
-				mins[j] = val;
-			if (val > maxs[j])
-				maxs[j] = val;
+			val = DotProduct( vt, s->vecs[j] ) + s->vecs[j][3];
+			if( val < mins[j] ) mins[j] = val;
+			if( val > maxs[j] ) maxs[j] = val;
 		}
 	}
 
@@ -527,7 +475,7 @@ void CalcFaceExtents (lightinfo_t *l)
 
 		l->texmins[i] = mins[i];
 		l->texsize[i] = maxs[i] - mins[i];
-		if (l->texsize[0] * l->texsize[1] > SINGLEMAP/4)	// div 4 for extrasamples
+		if( l->texsize[0] * l->texsize[1] > SINGLEMAP/4)	// div 4 for extrasamples
 			Sys_Error ("Surface to large to map");
 	}
 }
@@ -541,25 +489,22 @@ Fills in texorg, worldtotex. and textoworld
 */
 void CalcFaceVectors (lightinfo_t *l)
 {
-	dtexinfo_t	*tex;
 	int	i, j;
 	vec3_t	texnormal;
 	vec_t	distscale;
 	vec_t	dist, len;
 	int	w, h;
 
-	tex = &texinfo[l->face->texinfo];
-	
 	// convert from float to double
 	for (i=0 ; i<2 ; i++)
 		for (j=0 ; j<3 ; j++)
-			l->worldtotex[i][j] = tex->vecs[i][j];
+			l->worldtotex[i][j] = l->face->vecs[i][j];
 
 	// calculate a normal to the texture axis.  points can be moved along this
 	// without changing their S/T
-	texnormal[0] = tex->vecs[1][1]*tex->vecs[0][2] - tex->vecs[1][2]*tex->vecs[0][1];
-	texnormal[1] = tex->vecs[1][2]*tex->vecs[0][0] - tex->vecs[1][0]*tex->vecs[0][2];
-	texnormal[2] = tex->vecs[1][0]*tex->vecs[0][1] - tex->vecs[1][1]*tex->vecs[0][0];
+	texnormal[0] = l->face->vecs[1][1]*l->face->vecs[0][2] - l->face->vecs[1][2]*l->face->vecs[0][1];
+	texnormal[1] = l->face->vecs[1][2]*l->face->vecs[0][0] - l->face->vecs[1][0]*l->face->vecs[0][2];
+	texnormal[2] = l->face->vecs[1][0]*l->face->vecs[0][1] - l->face->vecs[1][1]*l->face->vecs[0][0];
 	VectorNormalize (texnormal);
 
 	// flip it towards plane normal
@@ -591,7 +536,7 @@ void CalcFaceVectors (lightinfo_t *l)
 
 // calculate texorg on the texture plane
 	for (i=0 ; i<3 ; i++)
-		l->texorg[i] = -tex->vecs[0][3]* l->textoworld[0][i] - tex->vecs[1][3] * l->textoworld[1][i];
+		l->texorg[i] = -l->face->vecs[0][3]* l->textoworld[0][i] - l->face->vecs[1][3] * l->textoworld[1][i];
 
 // project back to the face plane
 	dist = DotProduct (l->texorg, l->facenormal) - l->facedist - 1;
@@ -718,7 +663,7 @@ typedef struct
 } facelight_t;
 
 directlight_t	*directlights[MAX_MAP_LEAFS];
-facelight_t		facelight[MAX_MAP_FACES];
+facelight_t		facelight[MAX_MAP_SURFACES];
 int				numdlights;
 
 /*
@@ -891,9 +836,9 @@ Lightscale is the normalizer for multisampling
 void GatherSampleLight (vec3_t pos, vec3_t normal,
 			float **styletable, int offset, int mapsize, float lightscale)
 {
-	int				i;
-	directlight_t	*l;
-	byte			pvs[(MAX_MAP_LEAFS+7)/8];
+	int			i;
+	directlight_t		*l;
+	const byte		*pvs;
 	vec3_t			delta;
 	float			dot, dot2;
 	float			dist;
@@ -901,22 +846,21 @@ void GatherSampleLight (vec3_t pos, vec3_t normal,
 	float			*dest;
 
 	// get the PVS for the pos to limit the number of checks
-	if (!PvsForOrigin (pos, pvs))
-	{
-		return;
-	}
+	pvs = PvsForOrigin( pos );
 
-	for (i = 0 ; i<dvis->numclusters ; i++)
+	if( !pvs ) return;
+
+	for( i = 0; i < dpvs->numclusters; i++ )
 	{
-		if ( ! (pvs[ i>>3] & (1<<(i&7))) )
+		if( ! (pvs[i>>3] & (1<<(i&7))))
 			continue;
 
-		for (l=directlights[i] ; l ; l=l->next)
+		for( l = directlights[i]; l; l = l->next )
 		{
 			VectorSubtract (l->origin, pos, delta);
 			dist = VectorNormalizeLength( delta );
 			dot = DotProduct (delta, normal);
-			if (dot <= 0.001) continue;// behind sample surface
+			if( dot <= 0.001 ) continue; // behind sample surface
 
 			switch (l->type)
 			{
@@ -1021,7 +965,7 @@ float	sampleofs[5][2] =
 
 void BuildFacelights (int facenum)
 {
-	dface_t	*f;
+	dsurface_t	*f;
 	lightinfo_t	l[5];
 	float		*styletable[MAX_LSTYLES];
 	int			i, j;
@@ -1031,9 +975,9 @@ void BuildFacelights (int facenum)
 	int			tablesize;
 	facelight_t		*fl;
 	
-	f = &dfaces[facenum];
+	f = &dsurfaces[facenum];
 
-	if ( texinfo[f->texinfo].flags & (SURF_WARP|SURF_SKY) )
+	if ( dshaders[f->shadernum].flags & (SURF_WARP|SURF_SKY) )
 		return;		// non-lit texture
 
 	memset (styletable,0, sizeof(styletable));
@@ -1049,7 +993,7 @@ void BuildFacelights (int facenum)
 		l[i].face = f;
 		VectorCopy (dplanes[f->planenum].normal, l[i].facenormal);
 		l[i].facedist = dplanes[f->planenum].dist;
-		if (f->side)
+		if (f->lm_side)
 		{
 			VectorSubtract (vec3_origin, l[i].facenormal, l[i].facenormal);
 			l[i].facedist = -l[i].facedist;
@@ -1130,7 +1074,7 @@ lighting and save into final map format
 */
 void FinalLightFace (int facenum)
 {
-	dface_t		*f;
+	dsurface_t		*f;
 	int			i, j, k, st;
 	vec3_t		lb;
 	patch_t		*patch;
@@ -1139,17 +1083,17 @@ void FinalLightFace (int facenum)
 	float		minlight;
 	float		max, newmax;
 	byte		*dest;
-	int			pfacenum;
+	int		pfacenum;
 	vec3_t		facemins, facemaxs;
 
-	f = &dfaces[facenum];
+	f = &dsurfaces[facenum];
 	fl = &facelight[facenum];
 
-	if ( texinfo[f->texinfo].flags & (SURF_WARP|SURF_SKY) )
+	if ( dshaders[f->shadernum].flags & (SURF_WARP|SURF_SKY) )
 		return;		// non-lit texture
 
 	ThreadLock ();
-	f->lightofs = lightdatasize;
+	f->lm_base[0] = lightdatasize;	// TESTONLY, fixme
 	lightdatasize += fl->numstyles*(fl->numsamples*3);
 
 // add green sentinals between lightmaps
@@ -1159,8 +1103,8 @@ for (i=0 ; i<64 ; i++)
 dlightdata[lightdatasize-(i+1)*3 + 1] = 255;
 #endif
 
-	if (lightdatasize > MAX_MAP_LIGHTING)
-		Sys_Error ("MAX_MAP_LIGHTING");
+	if (lightdatasize > MAX_MAP_LIGHTDATA)
+		Sys_Error ("MAX_MAP_LIGHTDATA");
 	ThreadUnlock ();
 
 	f->styles[0] = 0;
@@ -1172,24 +1116,16 @@ dlightdata[lightdatasize-(i+1)*3 + 1] = 255;
 	if (numbounce > 0)
 	{
 		ClearBounds (facemins, facemaxs);
-		for (i=0 ; i<f->numedges ; i++)
+		for (i = 0; i < f->numvertices; i++ )
 		{
-			int		ednum;
-
-			ednum = dsurfedges[f->firstedge+i];
-			if (ednum >= 0)
-				AddPointToBounds (dvertexes[dedges[ednum].v[0]].point,
-				facemins, facemaxs);
-			else
-				AddPointToBounds (dvertexes[dedges[-ednum].v[1]].point,
-				facemins, facemaxs);
+			AddPointToBounds (dvertexes[f->firstvertex + i].point, facemins, facemaxs);
 		}
 
 		trian = AllocTriangulation (&dplanes[f->planenum]);
 
 		// for all faces on the plane, add the nearby patches
 		// to the triangulation
-		for (pfacenum = planelinks[f->side][f->planenum]
+		for (pfacenum = planelinks[f->lm_side][f->planenum]
 			; pfacenum ; pfacenum = facelinks[pfacenum])
 		{
 			for (patch = face_patches[pfacenum] ; patch ; patch=patch->next)
@@ -1220,11 +1156,11 @@ dlightdata[lightdatasize-(i+1)*3 + 1] = 255;
 	// black
 	minlight = FloatForKey (face_entity[facenum], "_minlight") * 128;
 
-	dest = &dlightdata[f->lightofs];
+	dest = &dlightdata[f->lm_base[0]]; // TESTONLY, fixme
 
-	if (fl->numstyles > MAXLIGHTMAPS)
+	if (fl->numstyles > LM_STYLES)
 	{
-		fl->numstyles = MAXLIGHTMAPS;
+		fl->numstyles = LM_STYLES;
 		Msg ("face with too many lightstyles: (%f %f %f)\n", face_patches[facenum]->origin[0], face_patches[facenum]->origin[1], face_patches[facenum]->origin[2] );
 	}
 

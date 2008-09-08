@@ -12,64 +12,16 @@ PVS / PHS
 
 ===============================================================================
 */
-/*
-===================
-CM_DecompressVis
-===================
-*/
-void CM_DecompressVis( byte *in, byte *out )
-{
-	byte	*out_p;
-	int	c, row;
-
-	row = (cm.numclusters + 7)>>3;	
-	out_p = out;
-
-	if( !in )
-	{	
-		// no vis info, so make all visible
-		while (row)
-		{
-			*out_p++ = 0xff;
-			row--;
-		}
-		return;		
-	}
-	do
-	{
-		if(*in)
-		{
-			*out_p++ = *in++;
-			continue;
-		}
-	
-		c = in[1];
-		in += 2;
-		if((out_p - out) + c > row)
-		{
-			c = row - (out_p - out);
-			MsgDev(D_WARN, "CM_DecompressVis: decompression overrun\n");
-		}
-		while( c )
-		{
-			*out_p++ = 0;
-			c--;
-		}
-	} while( out_p - out < row );
-}
-
 byte *CM_ClusterPVS( int cluster )
 {
-	if( cluster == -1 || !cm.vis ) memset( cm.pvsrow, 0, (cm.numclusters + 7)>>3 );
-	else CM_DecompressVis( cm.visbase + cm.vis->bitofs[cluster][DVIS_PVS], cm.pvsrow );
-	return cm.pvsrow;
+	if( cluster == -1 || !cm.pvs ) return cm.nullvis;
+	return (byte *)cm.pvs->data + cluster * cm.pvs->rowsize;
 }
 
-byte *CM_ClusterPHS (int cluster)
+byte *CM_ClusterPHS( int cluster )
 {
-	if( cluster == -1 || !cm.vis ) memset( cm.phsrow, 0, (cm.numclusters + 7)>>3 );
-	else CM_DecompressVis( cm.visbase + cm.vis->bitofs[cluster][DVIS_PHS], cm.phsrow );
-	return cm.phsrow;
+	if( cluster == -1 || !cm.phs ) return cm.nullvis;
+	return (byte *)cm.phs->data + cluster * cm.phs->rowsize;
 }
 
 static byte *CM_GetPVS( const vec3_t p )
@@ -110,10 +62,10 @@ static void CM_FatPVS_RecursiveBSPNode( const vec3_t org, float radius, byte *fa
 
 int CM_FatPVS( const vec3_t org, vec_t radius, byte *fatpvs, size_t fatpvs_size, bool merge )
 {
-	int bytes = cm.vis->numclusters;
+	int bytes = cm.pvs->numclusters;
 
 	bytes = min( bytes, fatpvs_size );
-	if( cm_novis->integer || !cm.vis->numclusters || !CM_GetPVS( org ))
+	if( cm_novis->integer || !cm.pvs->numclusters || !CM_GetPVS( org ))
 	{
 		memset( fatpvs, 0xFF, bytes );
 		return bytes;
@@ -130,25 +82,56 @@ AREAPORTALS
 
 ===============================================================================
 */
-void FloodArea_r( carea_t *area, int floodnum )
+/*
+====================
+CM_RegisterAreaPortal
+====================
+*/
+static void CM_RegisterAreaPortal( int portalnum, int areanum, int otherarea )
 {
-	int		i;
-	dareaportal_t	*p;
+	carea_t		*area;
+	careaportal_t	*portal;
+
+	portal = &cm.areaportals[portalnum];	
+	cm.portalstate[portalnum] = AP_CLOSED;
+	portal->area = areanum;
+	portal->otherarea = otherarea;
+
+	area = &cm.areas[areanum];
+	area->areaportals[area->numareaportals++] = portal;
+
+	area = &cm.areas[otherarea];
+	area->areaportals[area->numareaportals++] = portal;
+
+}
+
+void CM_FloodArea_r( int areanum, int floodnum )
+{
+	careaportal_t	*portal;
+	carea_t		*area;
+	int		i;	
+
+	area = &cm.areas[areanum];
 
 	if( area->floodvalid == cm.floodvalid )
 	{
-		if (area->floodnum == floodnum) return;
+		if( area->floodnum == floodnum ) return;
 		Host_Error("FloodArea_r: reflooded\n");
 	}
 
 	area->floodnum = floodnum;
 	area->floodvalid = cm.floodvalid;
-	p = &cm.areaportals[area->firstareaportal];
 
-	for (i = 0; i < area->numareaportals; i++, p++)
+	for( i = 0; i < area->numareaportals; i++ )
 	{
-		if (cm.portalopen[p->portalnum])
-			FloodArea_r(&cm.areas[p->otherarea], floodnum);
+		if( cm.portalstate[i] != AP_OPENED );
+			continue;
+
+		portal = area->areaportals[i];
+		if( portal->area == areanum )
+			CM_FloodArea_r( portal->otherarea, floodnum );
+		else if( portal->otherarea == areanum )
+			CM_FloodArea_r( portal->area, floodnum );
 	}
 }
 
@@ -166,51 +149,56 @@ void CM_FloodAreaConnections( void )
 	cm.floodvalid++;
 
 	// area 0 is not used
-	for( i = 1; i < cm.numareas; i++ )
+	for( i = 0, area = cm.areas; i < cm.numareas; i++, area++ )
 	{
-		area = &cm.areas[i];
 		if( area->floodvalid == cm.floodvalid )
 			continue;	// already flooded into
-		floodnum++;
-		FloodArea_r( area, floodnum );
+		CM_FloodArea_r( i, floodnum++ );
 	}
 }
 
 void CM_SetAreaPortals ( byte *portals, size_t size )
 {
-	if(size == sizeof( cm.portalopen ))
+	if( size == sizeof( cm.portalstate ))
 	{ 
-		Mem_Copy( cm.portalopen, portals, size );
+		Mem_Copy( cm.portalstate, portals, size );
 		CM_FloodAreaConnections();
 		return;
 	}
-	MsgDev( D_ERROR, "CM_SetAreaPortals: portals mismatch size (%i should be %i)\n", size, sizeof(cm.portalopen));
+	MsgDev( D_ERROR, "CM_SetAreaPortals: portals mismatch size (%i should be %i)\n", size, sizeof( cm.portalstate ));
 }
 
 void CM_GetAreaPortals ( byte **portals, size_t *size )
 {
 	byte *prt = *portals;
 
-	if( prt ) Mem_Copy( prt, cm.portalopen, sizeof(cm.portalopen ));
-	if( size) *size = sizeof( cm.portalopen ); 
+	if( prt ) Mem_Copy( prt, cm.portalstate, sizeof( cm.portalstate ));
+	if( size) *size = sizeof( cm.portalstate ); 
 }
 
-void CM_SetAreaPortalState( int portalnum, bool open )
+void CM_SetAreaPortalState( int portalnum, int area, int otherarea, bool open )
 {
-	if( portalnum > cm.numareaportals )
-		Host_Error("CM_SetAreaPortalState: areaportal > numareaportals\n");
+	if( area < 0 || otherarea < 0 ) return;
+	if( portalnum < 0 || portalnum >= MAX_MAP_AREAPORTALS || area > cm.numareas || otherarea > cm.numareas )
+		Host_Error( "CM_SetAreaPortalState: for portal %i bad parms\n", portalnum, area, otherarea, open );
 
-	cm.portalopen[portalnum] = open;
+	if( cm.portalstate[portalnum] == AP_UNREGISTERED )
+		CM_RegisterAreaPortal( portalnum, area, otherarea );
+
+	cm.portalstate[portalnum] = open ? AP_OPENED : AP_CLOSED;
 	CM_FloodAreaConnections();
 }
 
-bool CM_AreasConnected( int area1, int area2 )
+bool CM_AreasConnected( int area, int otherarea )
 {
 	if( cm_noareas->integer ) return true;
-	if(area1 > cm.numareas || area2 > cm.numareas)
+	if( area > cm.numareas || otherarea > cm.numareas )
 		Host_Error("CM_AreasConnected: area > numareas\n");
 
-	if(cm.areas[area1].floodnum == cm.areas[area2].floodnum)
+	if( area < 0 || otherarea < 0 ) return false;
+	if( area == otherarea ) return true; // quick test
+
+	if( cm.areas[area].floodnum == cm.areas[otherarea].floodnum )
 		return true;
 	return false;
 }
@@ -226,25 +214,18 @@ This is used by the client refreshes to cull visibility
 */
 int CM_WriteAreaBits( byte *buffer, int area )
 {
-	int	floodnum;
-	int	i, bytes;
+	int	i, size;
 
-	bytes = (cm.numareas + 7)>>3;
-
-	if( cm_noareas->integer )
+	size = (cm.numareas + 7)>>3;
+	memset( buffer, 0, size );
+		
+	if( !cm_noareas->integer )
 	{
-		// for debugging, send everything
-		memset( buffer, 255, bytes );
-	}
-	else
-	{
-		memset( buffer, 0, bytes );
-		floodnum = cm.areas[area].floodnum;
 		for( i = 0; i < cm.numareas; i++ )
 		{
-			if( cm.areas[i].floodnum == floodnum || !area )
-				buffer[i>>3] |= 1<<(i&7);
+			if(!CM_AreasConnected( i, area ))
+				buffer[i>>3] |= 1 << (i & 7);
 		}
 	}
-	return bytes;
+	return size;
 }

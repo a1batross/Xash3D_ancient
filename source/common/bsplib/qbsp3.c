@@ -6,13 +6,7 @@
 #include "bsplib.h"
 #include "const.h"
 
-int	block_xl = -8, block_xh = 7, block_yl = -8, block_yh = 7;
 int	entity_num;
-node_t	*block_nodes[10][10];
-int	c_nofaces;
-int	c_facenodes;
-int	firstmodleaf;
-
 /*
 =========================================================
 
@@ -20,6 +14,36 @@ ONLY SAVE OUT PLANES THAT ARE ACTUALLY USED AS NODES
 
 =========================================================
 */
+/*
+============
+EmitShader
+============
+*/
+int EmitShader( const char *shader )
+{
+	shader_t	*si;
+	int	i;
+
+	// force to create default shader
+	if( !shader ) shader = "default";
+
+	for( i = 0; i < numshaders; i++ )
+	{
+		if( !com.stricmp( shader, dshaders[i].name ))
+			return i;
+	}
+
+	if( i == MAX_MAP_SHADERS ) Sys_Break( "MAX_MAP_SHADERS limit exceeded\n" );
+	numshaders++;
+	com.strncpy( dshaders[i].name, shader, MAX_QPATH );
+
+	si = FindShader( shader );
+	dshaders[i].flags = si->surfaceFlags;
+	dshaders[i].contents = si->contents;
+
+	return i;
+}
+
 /*
 ============
 EmitPlanes
@@ -44,41 +68,6 @@ void EmitPlanes( void )
 	}
 }
 
-
-//========================================================
-
-void EmitMarkFace( dleaf_t *leaf_p, bspface_t *f )
-{
-	int	i;
-	int	facenum;
-
-	while( f->merged ) f = f->merged;
-
-	if( f->split[0] )
-	{
-		EmitMarkFace( leaf_p, f->split[0] );
-		EmitMarkFace( leaf_p, f->split[1] );
-		return;
-	}
-
-	facenum = f->outputnumber;
-	if( facenum == -1 ) return; // degenerate face
-
-	if( facenum < 0 || facenum >= numfaces )
-		Sys_Break( "bad leafface\n" );
-	for( i = leaf_p->firstleafface; i < numleaffaces; i++ )
-		if( dleaffaces[i] == facenum ) break; // merged out face
-
-	if( i == numleaffaces )
-	{
-		if( numleaffaces >= MAX_MAP_LEAFFACES )
-			Sys_Break( "MAX_MAP_LEAFFACES limit exceeded\n" );
-		dleaffaces[numleaffaces] =  facenum;
-		numleaffaces++;
-	}
-}
-
-
 /*
 ==================
 EmitLeaf
@@ -86,14 +75,12 @@ EmitLeaf
 */
 void EmitLeaf( node_t *node )
 {
-	portal_t		*p;
-	bspface_t		*f;
-	bspbrush_t	*b;
 	dleaf_t		*leaf_p;
-	int		s;
+	bspbrush_t	*b;
+	surfaceref_t	*dsr;
 
 	// emit a leaf
-	if( numleafs >= MAX_MAP_LEAFS ) Sys_Break( "MAX_MAP_LEAFS linit exceeded\n" );
+	if( numleafs >= MAX_MAP_LEAFS ) Sys_Break( "MAX_MAP_LEAFS limit exceeded\n" );
 
 	leaf_p = &dleafs[numleafs];
 	numleafs++;
@@ -111,80 +98,36 @@ void EmitLeaf( node_t *node )
 	for( b = node->brushlist; b; b = b->next )
 	{
 		if( numleafbrushes >= MAX_MAP_LEAFBRUSHES )
-			Sys_Break( "MAX_MAP_LEAFBRUSHES\n" );
+			Sys_Break( "MAX_MAP_LEAFBRUSHES limit exceeded\n" );
 		dleafbrushes[numleafbrushes] = b->original->outputnum;
 		numleafbrushes++;
 	}
 	leaf_p->numleafbrushes = numleafbrushes - leaf_p->firstleafbrush;
 
-	// write the leaffaces
-	if( leaf_p->contents & CONTENTS_SOLID ) return; // no leaffaces in solids
-
+	// write the surfaces visible in this leaf
+	if( node->opaque ) return; // no leaffaces in solids
+	
+	// add the drawSurfRef_t drawsurfs
 	leaf_p->firstleafface = numleaffaces;
-	for( p = node->portals; p; p = p->next[s] )	
+	for( dsr = node->surfaces; dsr; dsr = dsr->next )
 	{
-		s = (p->nodes[1] == node);
-		f = p->face[s];
-		if( !f ) continue;	// not a visible portal
-		EmitMarkFace( leaf_p, f );
+		if( numleaffaces >= MAX_MAP_LEAFFACES )
+			Sys_Break( "MAX_MAP_LEAFFACES limit exceeded\n" );
+		dleaffaces[numleaffaces] = dsr->outputnum;
+		numleaffaces++;			
 	}
 	leaf_p->numleaffaces = numleaffaces - leaf_p->firstleafface;
 }
 
-
-/*
-==================
-EmitFace
-==================
-*/
-void EmitFace( bspface_t *f )
-{
-	dface_t	*df;
-	int	i, e;
-
-	f->outputnumber = -1;
-
-	if( f->numpoints < 3 ) return; // degenerated
-	if( f->merged || f->split[0] || f->split[1] )
-		return; // not a final face
-
-	// save output number so leaffaces can use
-	f->outputnumber = numfaces;
-
-	if( numfaces >= MAX_MAP_FACES )
-		Sys_Break( "MAX_MAP_FACES limit exceeded\n" );
-	df = &dfaces[numfaces];
-	numfaces++;
-
-	// planenum is used by qlight, but not quake
-	df->planenum = f->planenum & (~1);
-	df->side = f->planenum & 1;
-
-	df->firstedge = numsurfedges;
-	df->numedges = f->numpoints;
-	df->texinfo = f->texinfo;
-
-	// FIXME: emit indices here, not edges
-	for( i = 0; i < f->numpoints; i++ )
-	{
-		e = GetEdge( f->vertexnums[i], f->vertexnums[(i+1)%f->numpoints], f );
-		if( numsurfedges >= MAX_MAP_SURFEDGES )
-			Sys_Break( "MAX_MAP_SURFEDGES limit exceeded\n" );
-		dsurfedges[numsurfedges] = e;
-		numsurfedges++;
-	}
-}
-
 /*
 ============
-EmitDrawingNode_r
+EmitDrawNode_r
 ============
 */
 int EmitDrawNode_r( node_t *node )
 {
-	dnode_t	*n;
-	bspface_t	*f;
-	int	i;
+	dnode_t		*n;
+	int		i;
 
 	if( node->planenum == PLANENUM_LEAF )
 	{
@@ -204,14 +147,6 @@ int EmitDrawNode_r( node_t *node )
 	if( node->planenum & 1 )
 		Sys_Break( "WriteDrawNodes_r: odd planenum\n" );
 	n->planenum = node->planenum;
-	n->firstface = numfaces;
-
-	if( !node->faces ) c_nofaces++;
-	else c_facenodes++;
-
-	for( f = node->faces; f; f = f->next )
-		EmitFace( f );
-	n->numfaces = numfaces - n->firstface;
 
 	// recursively output the other nodes
 	for( i = 0; i < 2; i++ )
@@ -256,7 +191,6 @@ void SetModelNumbers( void )
 SetLightStyles
 ============
 */
-
 void SetLightStyles( void )
 {
 	char		*t;
@@ -356,7 +290,7 @@ void EmitBrushes( bspbrush_t *brushes )
 			db->numsides++;
 			numbrushsides++;
 			cp->planenum = b->sides[j].planenum;
-			cp->texinfo = b->sides[j].texinfo;
+			cp->shadernum = EmitShader( b->sides[j].shader->name );
 		}
 	}
 }
@@ -374,17 +308,12 @@ void BeginBSPFile( void )
 	// if the file existed when loaded, so clear them explicitly
 
 	nummodels = 0;
-	numfaces = 0;
 	numnodes = 0;
 	numbrushsides = 0;
-	numvertexes = 0;
 	numleaffaces = 0;
 	numleafbrushes = 0;
-	numsurfedges = 0;
-	numedges = 1;			// edge 0 is not used, because 0 can't be negated.
-	numvertexes = 1;			// leave vertex 0 as an error
+
 	numleafs = 1;			// leave leaf 0 as an error
-	numindexes = 1;			// store number of initial vertex					
 	dleafs[0].contents = CONTENTS_SOLID;	// assume error
 }
 
@@ -434,7 +363,7 @@ void BeginModel( void )
 	VectorCopy( mins, mod->mins );
 	VectorCopy( maxs, mod->maxs );
 
-	mod->firstface = numfaces;
+	mod->firstface = numsurfaces;
 	mod->firstbrush = numbrushes;
 
 	EmitBrushes( e->brushes );
@@ -452,109 +381,11 @@ void EndModel( node_t *headnode )
 
 	mod = &dmodels[nummodels];
 	EmitDrawNode_r( headnode );
-	mod->numfaces = numfaces - mod->firstface;
+	mod->numfaces = numsurfaces - mod->firstface;
 	mod->numbrushes = numbrushes - mod->firstbrush;
-	EmitAreaPortals( headnode );
 	nummodels++;
 }
 
-/*
-============
-BlockTree
-
-============
-*/
-node_t *BlockTree (int xl, int yl, int xh, int yh)
-{
-	node_t	*node;
-	vec3_t	normal;
-	float	dist;
-	int		mid;
-
-	if (xl == xh && yl == yh)
-	{
-		node = block_nodes[xl+5][yl+5];
-		if (!node)
-		{	// return an empty leaf
-			node = AllocNode ();
-			node->planenum = PLANENUM_LEAF;
-			node->contents = 0; //CONTENTS_SOLID;
-			return node;
-		}
-		return node;
-	}
-
-	// create a seperator along the largest axis
-	node = AllocNode ();
-
-	if (xh - xl > yh - yl)
-	{	// split x axis
-		mid = xl + (xh-xl)/2 + 1;
-		normal[0] = 1;
-		normal[1] = 0;
-		normal[2] = 0;
-		dist = mid*32768;
-		node->planenum = FindFloatPlane (normal, dist);
-		node->children[0] = BlockTree ( mid, yl, xh, yh);
-		node->children[1] = BlockTree ( xl, yl, mid-1, yh);
-	}
-	else
-	{
-		mid = yl + (yh-yl)/2 + 1;
-		normal[0] = 0;
-		normal[1] = 1;
-		normal[2] = 0;
-		dist = mid*32768;
-		node->planenum = FindFloatPlane (normal, dist);
-		node->children[0] = BlockTree ( xl, mid, xh, yh);
-		node->children[1] = BlockTree ( xl, yl, xh, mid-1);
-	}
-
-	return node;
-}
-
-/*
-============
-ProcessBlock_Thread
-
-============
-*/
-void ProcessBlock_Thread( int blocknum )
-{
-	int		xblock, yblock;
-	vec3_t		mins, maxs;
-	bspbrush_t	*brushes, *start;
-	tree_t		*tree;
-	node_t		*node;
-
-	yblock = block_yl + blocknum / (block_xh-block_xl+1);
-	xblock = block_xl + blocknum % (block_xh-block_xl+1);
-
-	mins[0] = xblock*32768;
-	mins[1] = yblock*32768;
-	mins[2] = -131072;
-	maxs[0] = (xblock+1)*32768;
-	maxs[1] = (yblock+1)*32768;
-	maxs[2] = 131072;
-
-	start = entities[entity_num].brushes;
-
-	// the makelist and chopbrushes could be cached between the passes...
-	brushes = MakeBspBrushList( start, mins, maxs, false );
-	if( !brushes )
-	{
-		node = AllocNode ();
-		node->planenum = PLANENUM_LEAF;
-		node->contents = CONTENTS_SOLID;
-		block_nodes[xblock+5][yblock+5] = node;
-		return;
-	}
-
-	brushes = ChopBrushes( brushes );
-	tree = BrushBSP( brushes, mins, maxs );
-
-	block_nodes[xblock+5][yblock+5] = tree->headnode;
-}
 
 /*
 ============
@@ -564,76 +395,78 @@ ProcessWorldModel
 */
 void ProcessWorldModel( void )
 {
+	bsp_entity_t	*e;
 	tree_t		*tree;
-	bool		optimize;
-	bool		leaked = false;
+	bspface_t		*faces;
+	bool		leaked;
 
+	MsgDev( D_INFO, "\n==================\n" );
+	MsgDev( D_INFO, "Process world model" );
+	MsgDev( D_INFO, "\n==================\n" );
 	BeginModel();
 
-	// perform per-block operations
-	if (block_xh * 32768 > map_maxs[0])
-		block_xh = floor(map_maxs[0]/32768.0);
-	if ( (block_xl+1) * 32768 < map_mins[0])
-		block_xl = floor(map_mins[0]/32768.0);
-	if (block_yh * 32768 > map_maxs[1])
-		block_yh = floor(map_maxs[1]/32768.0);
-	if ( (block_yl+1) * 32768 < map_mins[1])
-		block_yl = floor(map_mins[1]/32768.0);
+	e = &entities[0];
+	e->firstsurf = 0;
 
-	if (block_xl <-4) block_xl = -4;
-	if (block_yl <-4) block_yl = -4;
-	if (block_xh > 3) block_xh = 3;
-	if (block_yh > 3) block_yh = 3;
+	// build an initial bsp tree using all of the sides
+	// of all of the structural brushes
+	faces = MakeStructuralBspFaceList ( entities[0].brushes );
+	tree = FaceBSP( faces );
+	MakeTreePortals( tree );
+	FilterStructuralBrushesIntoTree( e, tree );
 
-	for (optimize = false; optimize <= true; optimize++)
+	// see if the bsp is completely enclosed
+	if( FloodEntities( tree ))
 	{
-		RunThreadsOnIndividual ((block_xh-block_xl+1)*(block_yh-block_yl+1), true, ProcessBlock_Thread);
+		// rebuild a better bsp tree using only the
+		// sides that are visible from the inside
+		FillOutside (tree->headnode);
 
-		// build the division tree
-		// oversizing the blocks guarantees that all the boundaries
-		// will also get nodes.
+		// chop the sides to the convex hull of
+		// their visible fragments, giving us the smallest
+		// polygons 
+		ClipSidesIntoTree( e, tree );
 
-		tree = AllocTree ();
-		tree->headnode = BlockTree (block_xl-1, block_yl-1, block_xh+1, block_yh+1);
+		faces = MakeVisibleBspFaceList( entities[0].brushes );
+		FreeTree (tree);
+		tree = FaceBSP( faces );
+		MakeTreePortals( tree );
+		FilterStructuralBrushesIntoTree( e, tree );
+		leaked = false;
+	}
+	else
+	{
+		Msg( "******* leaked *******\n" );
+		LeakFile( tree );
+		leaked = true;
 
-		tree->mins[0] = (block_xl)*32768;
-		tree->mins[1] = (block_yl)*32768;
-		tree->mins[2] = map_mins[2] - 8;
-
-		tree->maxs[0] = (block_xh+1)*32768;
-		tree->maxs[1] = (block_yh+1)*32768;
-		tree->maxs[2] = map_maxs[2] + 8;
-
-		//
-		// perform the global operations
-		//
-		MakeTreePortals (tree);
-
-		if (FloodEntities (tree))
-		{
-			FillOutside (tree->headnode);
-		}
-		else
-		{
-			Msg("**** leaked ****\n");
-			leaked = true;
-			LeakFile (tree);
-		}
-
-		MarkVisibleSides( tree, entities[entity_num].brushes );
-		if( leaked ) break;
-		if( !optimize ) FreeTree( tree );
+		// chop the sides to the convex hull of
+		// their visible fragments, giving us the smallest
+		// polygons 
+		ClipSidesIntoTree( e, tree );
 	}
 
-	FloodAreas(tree);
-	MakeFaces(tree->headnode);
-	FixTjuncs(tree->headnode);
-	PruneNodes(tree->headnode);
+	// save out information for visibility processing
+	NumberClusters( tree );
+	if( !leaked ) WritePortalFile( tree );
+	FloodAreas( tree );
+
+	// add references to the detail brushes
+	FilterDetailBrushesIntoTree( e, tree );
+
+	// subdivide each drawsurf as required by shader tesselation
+	if( !nosubdivide ) SubdivideDrawSurfs( e, tree );
+
+	// add in any vertexes required to fix tjunctions
+	if( !notjunc ) FixTJunctions( e );
+
+	// allocate lightmaps for faces and patches
+	AllocateLightmaps( e );
+
+	// add references to the final drawsurfs in the apropriate clusters
+	FilterDrawsurfsIntoTree( e, tree );
 
 	EndModel( tree->headnode );
-
-	if(!leaked) WritePortalFile( tree );
-
 	FreeTree( tree );
 }
 
@@ -647,23 +480,45 @@ void ProcessSubModel( void )
 {
 	bsp_entity_t	*e;
 	tree_t		*tree;
-	bspbrush_t	*list;
-	vec3_t		mins, maxs;
+	bspbrush_t	*b, *bc;
+	node_t		*node;
 
+	MsgDev( D_INFO, "\n==================\n" );
+	MsgDev( D_INFO, "Process submodel #%i", entity_num );
+	MsgDev( D_INFO, "\n==================\n" );
 	BeginModel();
 
 	e = &entities[entity_num];
+	e->firstsurf = numdrawsurfs;
 
-	mins[0] = mins[1] = mins[2] = -131072;
-	maxs[0] = maxs[1] = maxs[2] = 131072;
-	list = MakeBspBrushList( e->brushes, mins, maxs, false );
-	list = ChopBrushes( list );
-	tree = BrushBSP( list, mins, maxs );
-	MakeTreePortals( tree );
-	MarkVisibleSides( tree, e->brushes );
-	MakeFaces (tree->headnode);
-	FixTjuncs (tree->headnode);
-	EndModel( tree->headnode );
+	// just put all the brushes in an empty leaf
+	node = AllocNode();
+	node->planenum = PLANENUM_LEAF;
+	for( b = e->brushes; b; b = b->next )
+	{
+		bc = CopyBrush( b );
+		bc->next = node->brushlist;
+		node->brushlist = bc;
+	}
+
+	tree = AllocTree();
+	tree->headnode = node;
+
+	ClipSidesIntoTree( e, tree );
+
+	// subdivide each drawsurf as required by shader tesselation or fog
+	if( !nosubdivide ) SubdivideDrawSurfs( e, tree );
+
+	// add in any vertexes required to fix tjunctions
+	if( !notjunc ) FixTJunctions( e );
+
+	// allocate lightmaps for faces and patches
+	AllocateLightmaps( e );
+
+	// add references to the final drawsurfs in the apropriate clusters
+	FilterDrawsurfsIntoTree( e, tree );
+
+	EndModel ( node );
 	FreeTree( tree );
 }
 
@@ -672,16 +527,15 @@ void ProcessSubModel( void )
 ProcessModels
 ============
 */
-void ProcessModels (void)
+void ProcessModels( void )
 {
-	BeginBSPFile ();
+	BeginBSPFile();
           
 	for( entity_num = 0; entity_num < num_entities; entity_num++ )
 	{
 		if( !entities[entity_num].brushes )
 			continue;
-		if( !entity_num )
-			ProcessWorldModel();
+		if( !entity_num ) ProcessWorldModel();
 		else ProcessSubModel();
 	}
 
@@ -695,7 +549,7 @@ WbspMain
 */
 void WbspMain ( bool option )
 {
-	Msg("---- CSG ---- [%s]\n", onlyents ? "onlyents" : "normal" );
+	Msg("---- BSP ---- [%s]\n", onlyents ? "onlyents" : "normal" );
 
 	// if onlyents, just grab the entites and resave
 	if( option )

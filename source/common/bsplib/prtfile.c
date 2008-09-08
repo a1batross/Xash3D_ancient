@@ -1,3 +1,7 @@
+//=======================================================================
+//			Copyright XashXT Group 2007 ©
+//		    	prtfile.c - writes portal file
+//=======================================================================
 
 #include "bsplib.h"
 #include "const.h"
@@ -12,13 +16,14 @@ Save out name.prt for qvis to read
 */
 
 
-#define	PORTALFILE	"PRT1"
+#define PORTALFILE		"PRT1"
 
 file_t	*pf;
 int	num_visclusters;				// clusters the player can be in
 int	num_visportals;
+int	num_solidfaces;
 
-void WriteFloat (file_t *f, vec_t v)
+void WriteFloat( file_t *f, vec_t v )
 {
 	if ( fabs(v - floor(v + 0.5)) < 0.001 )
 		FS_Printf(f,"%i ",(int)floor(v + 0.5));
@@ -30,79 +35,118 @@ void WriteFloat (file_t *f, vec_t v)
 WritePortalFile_r
 =================
 */
-void WritePortalFile_r (node_t *node)
+void WritePortalFile_r( node_t *node )
 {
-	int			i, s;	
-	portal_t	*p;
-	winding_t	*w;
+	int		i, s;	
+	portal_t		*p;
+	winding_t		*w;
 	vec3_t		normal;
 	vec_t		dist;
 
 	// decision node
-	if (node->planenum != PLANENUM_LEAF && !node->detail_seperator)
+	if( node->planenum != PLANENUM_LEAF )
 	{
 		WritePortalFile_r (node->children[0]);
 		WritePortalFile_r (node->children[1]);
 		return;
 	}
 	
-	if (node->contents & CONTENTS_SOLID)
-		return;
+	if( node->opaque ) return;
 
-	for (p = node->portals ; p ; p=p->next[s])
+	for( p = node->portals; p; p = p->next[s] )
 	{
 		w = p->winding;
 		s = (p->nodes[1] == node);
-		if (w && p->nodes[0] == node)
+		if( w && p->nodes[0] == node )
 		{
-			if (!Portal_VisFlood (p)) continue;
-		// write out to the file
+			if( !Portal_Passable( p )) continue;
+
+			// write out to the file
 		
-		// sometimes planes get turned around when they are very near
-		// the changeover point between different axis.  interpret the
-		// plane the same way vis will, and flip the side orders if needed
+			// sometimes planes get turned around when they are very near
+			// the changeover point between different axis.  interpret the
+			// plane the same way vis will, and flip the side orders if needed
 			// FIXME: is this still relevent?
-			WindingPlane (w, normal, &dist);
-			if ( DotProduct (p->plane.normal, normal) < 0.99 )
-			{	// backwards...
-				FS_Printf(pf,"%i %i %i ",w->numpoints, p->nodes[1]->cluster, p->nodes[0]->cluster);
-			}
-			else
-				FS_Printf(pf,"%i %i %i ",w->numpoints, p->nodes[0]->cluster, p->nodes[1]->cluster);
-			for (i=0 ; i<w->numpoints ; i++)
+			WindingPlane( w, normal, &dist );
+			if( DotProduct( p->plane.normal, normal ) < 0.99 ) // backwards...
+				FS_Printf( pf,"%i %i %i ",w->numpoints, p->nodes[1]->cluster, p->nodes[0]->cluster );
+			else FS_Printf( pf,"%i %i %i ",w->numpoints, p->nodes[0]->cluster, p->nodes[1]->cluster );
+
+			if( p->hint ) FS_Printf( pf, "1 " );
+			else FS_Printf( pf, "0 " );
+
+			for( i = 0; i < w->numpoints; i++ )
 			{
-				FS_Printf (pf,"( ");
-				WriteFloat (pf, w->p[i][0]);
-				WriteFloat (pf, w->p[i][1]);
-				WriteFloat (pf, w->p[i][2]);
-				FS_Printf (pf,") ");
+				FS_Printf( pf,"( " );
+				WriteFloat( pf, w->p[i][0] );
+				WriteFloat( pf, w->p[i][1] );
+				WriteFloat( pf, w->p[i][2] );
+				FS_Printf( pf,") ");
 			}
-			FS_Printf(pf,"\n");
+			FS_Printf( pf,"\n" );
 		}
 	}
 
 }
 
 /*
-================
-FillLeafNumbers_r
-
-All of the leafs under node will have the same cluster
-================
+=================
+WriteFaceFile_r
+=================
 */
-void FillLeafNumbers_r (node_t *node, int num)
+void WriteFaceFile_r( node_t *node )
 {
-	if (node->planenum == PLANENUM_LEAF)
+	int		i, s;	
+	portal_t		*p;
+	winding_t		*w;
+
+	// decision node
+	if( node->planenum != PLANENUM_LEAF )
 	{
-		if (node->contents & CONTENTS_SOLID)
-			node->cluster = -1;
-		else
-			node->cluster = num;
+		WriteFaceFile_r( node->children[0] );
+		WriteFaceFile_r( node->children[1] );
 		return;
 	}
-	node->cluster = num;
-	FillLeafNumbers_r (node->children[0], num);
-	FillLeafNumbers_r (node->children[1], num);
+	
+	if( node->opaque ) return;
+
+	for( p = node->portals; p; p = p->next[s] )
+	{
+		w = p->winding;
+		s = (p->nodes[1] == node);
+		if( w )
+		{
+			if( Portal_Passable( p )) continue;
+
+			// write out to the file
+			if( p->nodes[0] == node )
+			{
+				FS_Printf( pf, "%i %i ", w->numpoints, p->nodes[0]->cluster );
+				for( i = 0; i < w->numpoints; i++ )
+				{
+					FS_Printf( pf, "( " );
+					WriteFloat( pf, w->p[i][0] );
+					WriteFloat( pf, w->p[i][1] );
+					WriteFloat( pf, w->p[i][2] );
+					FS_Printf( pf,") " );
+				}
+				FS_Printf( pf,"\n" );
+			}
+			else
+			{
+				FS_Printf( pf, "%i %i ", w->numpoints, p->nodes[1]->cluster );
+				for( i = w->numpoints - 1; i >= 0; i-- )
+				{
+					FS_Printf( pf, "( " );
+					WriteFloat( pf, w->p[i][0] );
+					WriteFloat( pf, w->p[i][1] );
+					WriteFloat( pf, w->p[i][2] );
+					FS_Printf( pf,") " );
+				}
+				FS_Printf( pf,"\n" );
+			}
+		}
+	}
 }
 
 /*
@@ -110,107 +154,71 @@ void FillLeafNumbers_r (node_t *node, int num)
 NumberLeafs_r
 ================
 */
-void NumberLeafs_r (node_t *node)
+void NumberLeafs_r( node_t *node )
 {
 	portal_t	*p;
 
-	if (node->planenum != PLANENUM_LEAF && !node->detail_seperator)
-	{	// decision node
+	if( node->planenum != PLANENUM_LEAF )
+	{
+		// decision node
 		node->cluster = -99;
-		NumberLeafs_r (node->children[0]);
-		NumberLeafs_r (node->children[1]);
+		NumberLeafs_r( node->children[0] );
+		NumberLeafs_r( node->children[1] );
 		return;
 	}
 	
-	// either a leaf or a detail cluster
+	node->area = -1;
 
-	if ( node->contents & CONTENTS_SOLID )
-	{	// solid block, viewpoint never inside
+	if( node->opaque )
+	{
+		// solid block, viewpoint never inside
 		node->cluster = -1;
 		return;
 	}
 
-	FillLeafNumbers_r (node, num_visclusters);
+	node->cluster = num_visclusters;
 	num_visclusters++;
 
 	// count the portals
-	for (p = node->portals ; p ; )
+	for( p = node->portals; p; )
 	{
-		if (p->nodes[0] == node)		// only write out from first leaf
+		// only write out from first leaf
+		if( p->nodes[0] == node )
 		{
-			if (Portal_VisFlood (p))
+			if( Portal_Passable( p ))
 				num_visportals++;
+			else num_solidfaces++;
 			p = p->next[0];
 		}
 		else
+		{
+			if( !Portal_Passable( p ))
+				num_solidfaces++;
 			p = p->next[1];		
+		}
 	}
-
 }
 
 
 /*
 ================
-CreateVisPortals_r
+NumberClusters
 ================
 */
-void CreateVisPortals_r (node_t *node)
+void NumberClusters( tree_t *tree )
 {
-	// stop as soon as we get to a detail_seperator, which
-	// means that everything below is in a single cluster
-	if (node->planenum == PLANENUM_LEAF || node->detail_seperator )
-		return;
+	num_visclusters = 0;
+	num_visportals = 0;
+	num_solidfaces = 0;
 
-	MakeNodePortal (node);
-	SplitNodePortals (node);
+	MsgDev( D_INFO, "--- NumberClusters ---\n" );
+	
+	// set the cluster field in every leaf and count the total number of portals
+	NumberLeafs_r( tree->headnode );
 
-	CreateVisPortals_r (node->children[0]);
-	CreateVisPortals_r (node->children[1]);
-}
-
-/*
-================
-FinishVisPortals_r
-================
-*/
-void FinishVisPortals2_r (node_t *node)
-{
-	if (node->planenum == PLANENUM_LEAF)
-		return;
-
-	MakeNodePortal (node);
-	SplitNodePortals (node);
-
-	FinishVisPortals2_r (node->children[0]);
-	FinishVisPortals2_r (node->children[1]);
-}
-
-void FinishVisPortals_r (node_t *node)
-{
-	if (node->planenum == PLANENUM_LEAF)
-		return;
-
-	if (node->detail_seperator)
-	{
-		FinishVisPortals2_r (node);
-		return;
-	}
-
-	FinishVisPortals_r (node->children[0]);
-	FinishVisPortals_r (node->children[1]);
-}
-
-
-int		clusterleaf;
-void SaveClusters_r (node_t *node)
-{
-	if (node->planenum == PLANENUM_LEAF)
-	{
-		dleafs[clusterleaf++].cluster = node->cluster;
-		return;
-	}
-	SaveClusters_r (node->children[0]);
-	SaveClusters_r (node->children[1]);
+	MsgDev( D_INFO, "%5i visclusters\n", num_visclusters );
+	MsgDev( D_INFO, "%5i visportals\n", num_visportals );
+	MsgDev( D_INFO, "%5i solidfaces\n", num_solidfaces );
 }
 
 /*
@@ -218,43 +226,21 @@ void SaveClusters_r (node_t *node)
 WritePortalFile
 ================
 */
-void WritePortalFile (tree_t *tree)
+void WritePortalFile( tree_t *tree )
 {
-	char	path[MAX_SYSPATH];
-	node_t	*headnode;
-
 	Msg("--- WritePortalFile ---\n");
 
-	headnode = tree->headnode;
-	num_visclusters = 0;
-	num_visportals = 0;
-
-	FreeTreePortals_r (headnode);
-	MakeHeadnodePortals (tree);
-	CreateVisPortals_r (headnode);
-
-	// set the cluster field in every leaf and count the total number of portals
-	NumberLeafs_r (headnode);
-	
 	// write the file
-	sprintf (path, "maps/%s.prt", gs_filename );
-	pf = FS_Open(path, "w" );
-	if (!pf) Sys_Error ("Error opening %s", path);
-		
-	FS_Printf (pf, "%s\n", PORTALFILE);
-	FS_Printf (pf, "%i\n", num_visclusters);
-	FS_Printf (pf, "%i\n", num_visportals);
+	pf = FS_Open(va( "maps/%s.prt", gs_filename ), "w" );
+	if( !pf ) Sys_Break( "can't write %s.prt\n", gs_filename );
 
-	Msg("%5i visclusters\n", num_visclusters);
-	Msg("%5i visportals\n", num_visportals);
+	// write header		
+	FS_Printf( pf, "%s\n", PORTALFILE );
+	FS_Printf( pf, "%i\n", num_visclusters );
+	FS_Printf( pf, "%i\n", num_visportals );
+	FS_Printf( pf, "%i\n", num_solidfaces );
 
-	WritePortalFile_r (headnode);
-
-	FS_Close (pf);
-
-	// we need to store the clusters out now because ordering
-	// issues made us do this after writebsp...
-	clusterleaf = 1;
-	SaveClusters_r (headnode);
+	WritePortalFile_r( tree->headnode );
+	WriteFaceFile_r( tree->headnode );
+	FS_Close( pf );
 }
-

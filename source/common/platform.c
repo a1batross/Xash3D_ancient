@@ -52,6 +52,7 @@ void InitPlatform ( int argc, char **argv )
 		if(FS_CheckParm("-rad")) bspflags |= BSP_ONLYRAD;
 		if(FS_CheckParm("-full")) bspflags |= BSP_FULLCOMPILE;
 		if(FS_CheckParm("-onlyents")) bspflags |= BSP_ONLYENTS;
+		if(FS_CheckParm("-notjunc")) notjunc = true;
 
 		PrepareBSPModel( gamedir, source, bspflags );
 		break;

@@ -13,6 +13,13 @@
 #define CAPSULE_MODEL_HANDLE	MAX_MODELS - 2
 #define BOX_MODEL_HANDLE	MAX_MODELS - 1
 
+typedef enum
+{
+	AP_UNREGISTERED = 0,
+	AP_CLOSED,
+	AP_OPENED
+} portalstate_t;
+
 typedef struct cpointf_s
 {
 	float v[3];
@@ -91,7 +98,7 @@ typedef struct cleaf_s
 typedef struct
 {
 	cplane_t		*plane;
-	csurface_t	*surface;
+	csurface_t	*shader;
 } cbrushside_t;
 
 typedef struct
@@ -106,8 +113,14 @@ typedef struct
 
 typedef struct
 {
+	int		area;
+	int		otherarea;
+} careaportal_t;
+
+typedef struct
+{
 	int		numareaportals;
-	int		firstareaportal;
+	careaportal_t	*areaportals[MAX_MAP_AREAPORTALS];
 	int		floodnum;		// if two areas have equal floodnums, they are connected
 	int		floodvalid;
 } carea_t;
@@ -136,9 +149,8 @@ typedef struct clipmap_s
 	string		name;
 
 	uint		checksum;		// map checksum
-	byte		pvsrow[MAX_MAP_LEAFS/8];
-	byte		phsrow[MAX_MAP_LEAFS/8];
-	byte		portalopen[MAX_MAP_AREAPORTALS];
+	byte		nullvis[MAX_MAP_LEAFS/8];
+	byte		portalstate[MAX_MAP_AREAPORTALS];
 
 	// brush, studio and sprite models
 	cmodel_t		cmodels[MAX_MODELS];
@@ -155,34 +167,28 @@ typedef struct clipmap_s
 	dword		*leafsurfaces;
 	cnode_t		*nodes;		// 6 extra planes for box hull
 	dvertex_t		*vertices;
-	dedge_t		*edges;
-	dface_t		*surfaces;
-	int		*surfedges;
-	csurface_t	*texinfo;
+	dsurface_t	*surfaces;	// source collision data
+	csurface_t	*shaders;
+	int		*indices;
 	cbrush_t		*brushes;
 	cbrushside_t	*brushsides;
-	byte		*visbase;		// vis offset
-	dvis_t		*vis;
+	dvis_t		*pvs;
+	dvis_t		*phs;
 	NewtonCollision	*collision;
-	dmiptex_t		*textures;
-	char		*stringdata;
-	int		*stringtable;
 	carea_t		*areas;
-	dareaportal_t	*areaportals;
+	careaportal_t	*areaportals;
 
 	int		numbrushsides;
-	int		numtexinfo;
 	int		numplanes;
 	int		numbmodels;
 	int		numnodes;
 	int		numleafs;		// allow leaf funcs to be called without a map
 	int		numleafbrushes;
 	int		numleafsurfaces;
-	int		numtextures;
+	int		numshaders;
+	int		numsurfaces;
 	int		numbrushes;
-	int		numfaces;
 	int		numareas;
-	int		numareaportals;
 	int		numclusters;
 	int		floodvalid;
 

@@ -23,6 +23,7 @@ R_RecursiveLightNode
 */
 static void R_RecursiveLightNode( node_t *node, dlight_t *dl, int bit )
 {
+#if 0
 	surface_t	*surf;
 	cplane_t	*plane;
 	float	dist;
@@ -69,6 +70,7 @@ static void R_RecursiveLightNode( node_t *node, dlight_t *dl, int bit )
 	// recurse down the children
 	R_RecursiveLightNode( node->children[0], dl, bit );
 	R_RecursiveLightNode( node->children[1], dl, bit );
+#endif
 }
 
 /*
@@ -113,13 +115,14 @@ R_RecursiveLightPoint
 */
 static bool R_RecursiveLightPoint( node_t *node, const vec3_t start, const vec3_t end )
 {
+#if 0
 	float		front, back, frac;
 	int		i, map, size, s, t;
 	vec3_t		mid;
 	int		side;
 	cplane_t		*plane;
 	surface_t		*surf;
-	texInfo_t		*tex;
+	mipTex_t		*tex;
 	byte		*lm;
 	vec3_t		scale;
 
@@ -194,6 +197,8 @@ static bool R_RecursiveLightPoint( node_t *node, const vec3_t start, const vec3_
 
 	// go down back side
 	return R_RecursiveLightPoint( node->children[!side], mid, end );
+#endif
+	return true;
 }
 
 /*
@@ -209,7 +214,7 @@ void R_LightForPoint( const vec3_t point, vec3_t ambientLight )
 	int		l;
 
 	// Set to full bright if no light data
-	if( !r_worldModel || !r_worldModel->lightData )
+	if( !r_worldModel || !r_worldModel->lightMaps )
 	{
 		VectorSet( ambientLight, 1, 1, 1 );
 		return;
@@ -341,7 +346,7 @@ void R_LightingAmbient( void )
 	vec3_t		ambientLight;
 
 	// Set to full bright if no light data
-	if(( r_refdef.rdflags & RDF_NOWORLDMODEL) || !r_worldModel->lightData )
+	if(( r_refdef.rdflags & RDF_NOWORLDMODEL) || !r_worldModel->lightMaps )
 	{
 		for( i = 0; i < numVertex; i++ )
 		{
@@ -417,7 +422,7 @@ void R_LightingDiffuse( void )
 	vec3_t		ambientLight, directedLight, lightDir;
 
 	// Set to full bright if no light data
-	if((r_refdef.rdflags & RDF_NOWORLDMODEL) || !r_worldModel->lightData )
+	if((r_refdef.rdflags & RDF_NOWORLDMODEL) || !r_worldModel->lightMaps )
 	{
 		for( i = 0; i < numVertex; i++ )
 		{
@@ -542,13 +547,14 @@ R_AddDynamicLights
 */
 static void R_AddDynamicLights( surface_t *surf )
 {
+#if 0
 	int		l;
 	int		s, t, sd, td;
 	float		sl, tl, sacc, tacc;
 	float		dist, rad, scale;
 	cplane_t		*plane;
 	vec3_t		origin, tmp, impact;
-	texInfo_t		*tex = surf->texInfo;
+	mipTex_t		*tex = surf->texInfo;
 	dlight_t		*dl;
 	float		*bl;
 
@@ -608,6 +614,7 @@ static void R_AddDynamicLights( surface_t *surf )
 			}
 		}
 	}
+#endif
 }
 
 /*

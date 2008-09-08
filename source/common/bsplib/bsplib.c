@@ -7,9 +7,13 @@
 
 char path[MAX_SYSPATH];
 bool full_compile = false;
-bool onlyents = false;
 bool onlyvis = false;
 bool onlyrad = false;
+
+// qbps settings
+bool notjunc = false;
+bool onlyents = false;
+bool nosubdivide = false;
 
 dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(physic_exp_t) };
 physic_exp_t *pe;

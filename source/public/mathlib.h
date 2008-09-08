@@ -10,6 +10,7 @@
 #define SIDE_FRONT		0
 #define SIDE_BACK		1
 #define SIDE_ON		2
+#define SIDE_CROSS		-2
 
 #ifndef M_PI
 #define M_PI		(float)3.14159265358979323846

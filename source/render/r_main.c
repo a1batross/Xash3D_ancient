@@ -1238,14 +1238,39 @@ bool R_UploadModel( const char *name, int index )
 
 bool R_UploadImage( const char *unused, int index )
 {
-	texture_t	*texture;
-
+	mipTex_t	*texture;
+	uint	surfaceParm = 0;
+	
 	// nothing to load
 	if( !r_worldModel ) return false;
 	m_pLoadModel = r_worldModel;
+	texture = m_pLoadModel->shaders + index;
 
-	texture = R_FindTexture( m_pLoadModel->textures[index].name, NULL, 0, 0, 0 );
-	m_pLoadModel->textures[index].image = texture; // now all pointers are valid
+	// this is not actually needed	
+	if( texture->flags & (SURF_SKY|SURF_NODRAW))
+		return true;
+
+	// get surfaceParm
+	if( texture->flags & (SURF_WARP|SURF_ALPHA|SURF_BLEND|SURF_ADDITIVE|SURF_CHROME))
+	{
+		if( texture->flags & SURF_WARP )
+			surfaceParm |= SURFACEPARM_WARP;
+		if( texture->flags & SURF_ALPHA )
+			surfaceParm |= SURFACEPARM_ALPHA;
+		if( texture->flags & SURF_BLEND )
+			surfaceParm |= SURFACEPARM_BLEND;
+		if( texture->flags & SURF_ADDITIVE )
+			surfaceParm |= SURFACEPARM_ADDITIVE;
+		if( texture->flags & SURF_ADDITIVE )
+			surfaceParm |= SURFACEPARM_CHROME;
+	}
+	else surfaceParm |= SURFACEPARM_LIGHTMAP;
+
+	if( texture->flags & SURF_MIRROR|SURF_PORTAL )
+		surfaceParm &= ~SURFACEPARM_LIGHTMAP;
+
+	// now all pointers are valid
+	texture->shader = R_FindShader( texture->name, SHADER_TEXTURE, surfaceParm );
 	return true;
 }
 

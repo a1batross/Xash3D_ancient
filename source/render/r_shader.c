@@ -3790,6 +3790,45 @@ shader_t *R_RegisterShaderNoMip( const char *name )
 
 /*
 =================
+R_ShaderRegisterImages
+
+many many included cycles ...
+=================
+*/
+void R_ShaderRegisterImages( rmodel_t *mod )
+{
+	int		i, j, k, l;
+	int		c_total = 0;
+	shader_t		*shader;
+	shaderStage_t	*stage;
+	stageBundle_t	*bundle;
+	texture_t		*texture;
+
+	if( !mod ) return;
+	for( i = 0; i < mod->numShaders; i++ )
+	{
+		shader = mod->shaders[i].shader;
+		for( j = 0; j < shader->numStages; j++ )
+		{
+			stage = shader->stages[j];
+			for( k = 0; k < stage->numBundles; k++ )
+			{
+				bundle = stage->bundles[k];
+				for( l = 0; l < bundle->numTextures; l++ )
+				{
+					// prolonge registration for all shader textures
+					texture = bundle->textures[l];
+					texture->registration_sequence = registration_sequence;
+					c_total++; // just for debug
+				}
+			}
+		}
+	}
+	Msg("R_ShaderRegisterImages: %s (%i textures updated)\n", mod->name, c_total );
+}
+
+/*
+=================
 R_CreateBuiltInShaders
 =================
 */

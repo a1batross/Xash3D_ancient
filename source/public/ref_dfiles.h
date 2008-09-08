@@ -131,90 +131,68 @@ BRUSH MODELS
 #define IDBSPMODHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'I') // little-endian "IBSP"
 
 // 32 bit limits
-#define MAX_KEY			128
-#define MAX_VALUE			512
-#define MAX_MAP_AREAS		0x100	// don't increase this
 #define MAX_MAP_MODELS		0x2000	// mesh models and sprites too
-#define MAX_MAP_AREAPORTALS		0x400
-#define MAX_MAP_ENTITIES		0x2000
-#define MAX_MAP_TEXINFO		0x2000
 #define MAX_MAP_BRUSHES		0x8000
+#define MAX_MAP_ENTITIES		0x2000	// same as models
+#define MAX_MAP_ENTSTRING		0x40000
+#define MAX_MAP_SHADERS		0x800
+#define MAX_MAP_AREAS		0x100	// don't increase this
 #define MAX_MAP_PLANES		0x20000
 #define MAX_MAP_NODES		0x20000
 #define MAX_MAP_BRUSHSIDES		0x20000
 #define MAX_MAP_LEAFS		0x20000
-#define MAX_MAP_VERTS		0x80000
-#define MAX_MAP_FACES		0x20000
 #define MAX_MAP_LEAFFACES		0x20000
 #define MAX_MAP_LEAFBRUSHES		0x40000
 #define MAX_MAP_PORTALS		0x20000
-#define MAX_MAP_EDGES		0x80000
-#define MAX_MAP_SURFEDGES		0x80000
-#define MAX_MAP_ENTSTRING		0x80000
-#define MAX_MAP_LIGHTING		0x800000
-#define MAX_MAP_VISIBILITY		0x800000
-#define MAX_MAP_COLLISION		0x800000
+#define MAX_MAP_LIGHTDATA		0x800000	// 8 megabytes for lightmaps
+#define MAX_MAP_LIGHTGRID		0x800000
+#define MAX_MAP_VISIBILITY		0x200000	// and hearability too
+#define MAX_MAP_COLLISION		0x400000	// collision data size
+#define MAX_MAP_SURFACES		0x20000
+#define MAX_MAP_VERTEXES		0x80000
 #define MAX_MAP_INDEXES		0x80000
-#define MAX_MAP_STRINGDATA		0x40000
-#define MAX_MAP_NUMSTRINGS		0x10000
-#define MAX_BUILD_SIDES		512	// per one brush.
+#define MAX_MAP_AREAPORTALS		MAX_EDICTS<<1
 
-// world limits
+// other limits
+#define MAX_KEY			128
+#define MAX_VALUE			512
 #define MAX_WORLD_COORD		( 128 * 1024 )
 #define MIN_WORLD_COORD		(-128 * 1024 )
 #define WORLD_SIZE			( MAX_WORLD_COORD - MIN_WORLD_COORD )
+#define MAX_BUILD_SIDES		512	// per one brush. (don't change)
+#define LIGHTMAP_WIDTH		128
+#define LIGHTMAP_HEIGHT		128
+#define LIGHTMAP_BITS		3	// RGB
+#define LM_SIZE			LIGHTMAP_WIDTH * LIGHTMAP_HEIGHT * LIGHTMAP_BITS
+#define LM_SAMPLE_SIZE		16	// q1, q2, q3 default value (lightmap resoultion)
+#define LM_STYLES			4
 
 // lump offset
 #define LUMP_ENTITIES		0
-#define LUMP_PLANES			1
-#define LUMP_LEAFS			2
-#define LUMP_LEAFFACES		3
-#define LUMP_LEAFBRUSHES		4
-#define LUMP_NODES			5
-#define LUMP_VERTEXES		6
-#define LUMP_EDGES			7
-#define LUMP_SURFEDGES		8
-#define LUMP_TEXINFO		9
-#define LUMP_FACES			10
-#define LUMP_MODELS			11
-#define LUMP_BRUSHES		12
-#define LUMP_BRUSHSIDES		13
-#define LUMP_VISIBILITY		14
-#define LUMP_LIGHTING		15
-#define LUMP_COLLISION		16	// newton collision tree (worldmodel coords already convert to meters)
-#define LUMP_TEXTURES		17	// contains texture name and dims
-#define LUMP_SVPROGS		18	// private server.dat for current map
-#define LUMP_INDEXES		19	// vertices indextable 		
-#define LUMP_STRINGDATA		20	// string array
-#define LUMP_STRINGTABLE		21	// string table id's
-
-// get rid of this
-#define LUMP_AREAS			22
-#define LUMP_AREAPORTALS		23
-#define LUMP_LIGHTGRID		24
-
-#define LUMP_TOTALCOUNT		32	// max lumps
-
-
-// the visibility lump consists of a header with a count, then
-// byte offsets for the PVS and PHS of each cluster, then the raw
-// compressed bit vectors
-#define DVIS_PVS			0
-#define DVIS_PHS			1
-
-#define DENT_KEY			0
-#define DENT_VAL			1
-
-// other limits
-#define MAXLIGHTMAPS		4
-#define LIGHTMAP_WIDTH		128
-#define LIGHTMAP_HEIGHT		128
+#define LUMP_SHADERS		1
+#define LUMP_PLANES			2
+#define LUMP_NODES			3
+#define LUMP_LEAFS			4
+#define LUMP_LEAFFACES		5
+#define LUMP_LEAFBRUSHES		6
+#define LUMP_MODELS			7
+#define LUMP_BRUSHES		8
+#define LUMP_BRUSHSIDES		9
+#define LUMP_VERTICES		10
+#define LUMP_INDICES		11
+#define LUMP_COLLISION		12	// precomputed physic engine collision tree
+#define LUMP_SURFACES		13
+#define LUMP_LIGHTMAPS		14
+#define LUMP_LIGHTGRID		15
+#define LUMP_VISIBILITY		16	// unpacked pvs data
+#define LUMP_HEARABILITY		17	// version 39. rev. 3 currently unused
+#define LUMP_TOTALCOUNT		18	// max lumps
 
 typedef struct
 {
 	int fileofs;
 	int filelen;
-} lump_t;				// many formats use lumps to store blocks
+} lump_t;
 
 typedef struct
 {
@@ -229,18 +207,24 @@ typedef struct
 	float	maxs[3];
 	int	firstface;	// submodels just draw faces 
 	int	numfaces;		// without walking the bsp tree
-	int	firstbrush;	// physics stuff
+	int	firstbrush;
 	int	numbrushes;
 } dmodel_t;
 
 typedef struct
 {
-	string_t	epair[2];		// 0 - key, 1 - value (indexes from stringtable)
-} dkeyvalue_t;
+	char	name[64];		// shader name
+	int	contents;		// texture contents (can be replaced by shader)
+	int	flags;		// surface flags (can be replaced by shader)
+} dshader_t;
 
 typedef struct
 {
-	float	point[3];
+	float	point[3];		// Vertex3f
+	float	normal[3];	// Normal3f
+	float	st[2];		// texCoord2f
+	float	lm[2];		// lightmap texCoord2f
+	dword	color;		// packed rgba color
 } dvertex_t;
 
 typedef struct
@@ -255,50 +239,15 @@ typedef struct
 	int	children[2];	// negative numbers are -(leafs+1), not nodes
 	int	mins[3];		// for frustom culling
 	int	maxs[3];
-
-	// FIXME: eliminate this
-	int	firstface;
-	int	numfaces;		// counting both sides
 } dnode_t;
 
 typedef struct
 {
-	float	vecs[2][4];	// [s/t][xyz offset] texture s\t
-	int	texnum;		// texture number in LUMP_TEXTURES array
-	int	contents;		// texture contents (can be replaced by shader)
-	int	flags;		// surface flags (can be replaced by shader)
-	int	value;		// get rid of this ? used by qrad, not engine
-} dtexinfo_t;
-
-typedef struct
-{
-	int	v[2];		// vertex numbers
-} dedge_t;
-
-typedef struct
-{
-	int	planenum;
-	int	firstedge;
-	int	numedges;	
-	int	texinfo;		// number in LUMP_TEXINFO array
-	int	firstindex;	// number is LUMP_INDICES array
-	int	numindices;
-
-	// lighting info
-	byte	styles[MAXLIGHTMAPS];
-	int	lightofs;		// start of [numstyles*surfsize] samples
-
-	// get rid of this
-	short	side;
-} dface_t;
-
-typedef struct
-{
-	int	contents;		// or of all brushes (not needed?)
-	int	cluster;
 	int	area;
+	int	cluster;
 	int	mins[3];		// for frustum culling
 	int	maxs[3];
+	int	contents;
 	int	firstleafface;
 	int	numleaffaces;
 	int	firstleafbrush;
@@ -308,48 +257,56 @@ typedef struct
 typedef struct
 {
 	int	planenum;		// facing out of the leaf
-	int	texinfo;		// surface description (s/t coords, flags, etc)
+	int	shadernum;	// surface description
 } dbrushside_t;
 
 typedef struct
 {
 	int	firstside;
 	int	numsides;
-	int	contents;
+	int	contents;		// brush contents
 } dbrush_t;
 
 typedef struct
 {
+	int	planenum;		// plane->normal
+	int	shadernum;	// dshader_t[num]
+	int	lightmapnum;	// dlightmap[num]
+	int	firstvertex;	// dvertex[start]
+	int	numvertices;	// may contain odd number for tristrips
+	int	firstindex;	// dvertex[dindex[firstindex]] == dvertex[firstvertex]
+	int	numindices;	// may contain odd number for tristrips
+
+	// version 39. rev.3
+	int	styles[LM_STYLES];	// lightstyles on a face
+	int	lm_base[2];	// xypos
+	int	lm_size[2];	// block size
+	int	lm_side;		// planenum & 1 (remove this)
+
+	float	origin[3];	// lightmap origin
+	float	vecs[2][3];	// lightmap vecs
+	float	normal[3];	// plane->normal, probably not needed
+} dsurface_t;
+
+typedef struct
+{
 	int	numclusters;
-	int	bitofs[8][2];	// bitofs[numclusters][2]
+	int	rowsize;
+	byte	data[1];		// variable sized
 } dvis_t;
 
+typedef struct dlightmap_s
+{
+	byte	image[LM_SIZE];	// PF_RGB_24
+} dlightmap_t;
+
 typedef struct
 {
-	vec3_t	mins;
-	vec3_t	size;
-	int	bounds[4];
-	int	points;		// lightgrid[points]
+	byte	ambient[3];
+	byte	diffuse[3];
+	byte	diffusepitch;
+	byte 	diffuseyaw;
 } dlightgrid_t;
-
-typedef struct
-{
-	string_t	s_name;		// string system index
-	int	s_next;		// number of next texture in animchain
-	int	size[2];		// valid size for current s\t coords (used for replace texture)
-} dmiptex_t;
-
-typedef struct
-{
-	int	portalnum;
-	int	otherarea;
-} dareaportal_t;
-
-typedef struct
-{
-	int	numareaportals;
-	int	firstareaportal;
-} darea_t;
 
 /*
 ==============================================================================
@@ -813,5 +770,13 @@ included global, and both (client & server) pent list
 #define LUMP_GAMECVARS	"latched_cvars"
 #define LUMP_GAMEENTS	"entities"
 #define LUMP_SNAPSHOT	"levelshot"	// currently not implemented
+
+#define DENT_KEY		0
+#define DENT_VAL		1
+
+typedef struct
+{
+	string_t		epair[2];		// 0 - key, 1 - value (indexes from stringtable)
+} dkeyvalue_t;
 
 #endif//REF_DFILES_H

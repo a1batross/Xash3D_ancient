@@ -28,13 +28,13 @@ void LeakFile (tree_t *tree)
 	node_t	*node;
 	int	count;
 
-	if (!tree->outside_node.occupied)
+	if( !tree->outside_node.occupied )
 		return;
 
 	// write the points to the file
-	sprintf (path, "%s.lin", gs_filename);
-	linefile = FS_Open (path, "w" );
-	if (!linefile) Sys_Error ("Couldn't open %s\n", path);
+	com.sprintf( path, "maps/%s.lin", gs_filename );
+	linefile = FS_Open( path, "w" );
+	if( !linefile ) Sys_Error( "Couldn't open %s\n", path );
 
 	count = 0;
 	node = &tree->outside_node;

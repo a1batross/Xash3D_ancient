@@ -1,7 +1,8 @@
 #include "bsplib.h"
 #include "const.h"
 
-vec3_t	texture_reflectivity[MAX_MAP_TEXTURES];
+vec3_t	texture_reflectivity[MAX_MAP_SHADERS];
+float	texture_intensity[MAX_MAP_SHADERS];
 
 /*
 ===================================================================
@@ -18,54 +19,21 @@ CalcTextureReflectivity
 */
 void CalcTextureReflectivity( void )
 {
-	int		j, i;
-	rgbdata_t		*pic;
 	shader_t		*si;
+	int		i;
 	
 	// allways set index 0 even if no textures
 	texture_reflectivity[0][0] = 0.5;
 	texture_reflectivity[0][1] = 0.5;
 	texture_reflectivity[0][2] = 0.5;
 
-	for( i = 0; i < numtexinfo; i++ )
+	for( i = 0; i < numshaders; i++ )
 	{
-		// see if an earlier texinfo allready got the value
-		for (j = 0; j < i; j++)
-		{
-			if( texinfo[i].texnum == texinfo[j].texnum )
-			{
-				VectorCopy( texture_reflectivity[j], texture_reflectivity[i] );
-				break;
-			}
-		}
-		if( j != i ) continue;
-
-		// try get direct values from shader
-		if(si = FindShader( GetStringFromTable(dmiptex[texinfo[i].texnum].s_name)))
-		{						
-			if(!VectorIsNull( si->color ))
-			{
-				texture_reflectivity[i][0] = si->color[0] / 255.0f;
-				texture_reflectivity[i][1] = si->color[1] / 255.0f;
-				texture_reflectivity[i][2] = si->color[2] / 255.0f;
-				texinfo[i].value = si->intensity;
-				continue;
-			}
-		}
-
-		pic = FS_LoadImage(GetStringFromTable(dmiptex[texinfo[i].texnum].s_name ), NULL, 0 );
-		Image_GetColor( pic ); 
-
-		if( pic )
-		{
-			VectorCopy( pic->color, texture_reflectivity[i] );
-			texinfo[i].value = pic->bump_scale;
-          		FS_FreeImage( pic ); // don't forget free image
-			continue;
-		}			
-
-		// no texture, no shader...
-		VectorSet(texture_reflectivity[i], 0.5, 0.5, 0.5 ); 
+		si = FindShader( dshaders[i].name );
+		texture_reflectivity[i][0] = si->color[0] / 255.0f;
+		texture_reflectivity[i][1] = si->color[1] / 255.0f;
+		texture_reflectivity[i][2] = si->color[2] / 255.0f;
+		texture_intensity[i] = si->value;
 	}
 }
 
@@ -82,30 +50,22 @@ MAKE FACES
 WindingFromFace
 =============
 */
-winding_t	*WindingFromFace (dface_t *f)
+winding_t	*WindingFromFace( dsurface_t *f )
 {
-	int			i;
-	int			se;
-	dvertex_t	*dv;
-	int			v;
-	winding_t	*w;
 
-	w = AllocWinding (f->numedges);
-	w->numpoints = f->numedges;
+	dvertex_t		*dv;
+	winding_t		*w;
+	int		i;
 
-	for (i=0 ; i<f->numedges ; i++)
+	w = AllocWinding (f->numvertices);
+	w->numpoints = f->numvertices;
+
+	for( i = 0; i < f->numvertices; i++ )
 	{
-		se = dsurfedges[f->firstedge + i];
-		if (se < 0)
-			v = dedges[-se].v[1];
-		else
-			v = dedges[se].v[0];
-
-		dv = &dvertexes[v];
-		VectorCopy (dv->point, w->p[i]);
+		dv = &dvertexes[f->firstvertex];
+		VectorCopy( dv->point, w->p[i] );
 	}
-
-	RemoveColinearPoints (w);
+	RemoveColinearPoints( w );
 
 	return w;
 }
@@ -115,29 +75,31 @@ winding_t	*WindingFromFace (dface_t *f)
 BaseLightForFace
 =============
 */
-void BaseLightForFace (dface_t *f, vec3_t color)
+void BaseLightForFace (dsurface_t *f, vec3_t color)
 {
-	dtexinfo_t	*tx;
+	dshader_t	*tx;
+	int	i;
 
 	//
 	// check for light emited by texture
 	//
-	tx = &texinfo[f->texinfo];
-	if (!(tx->flags & SURF_LIGHT) || tx->value == 0)
+	i = f->shadernum;
+	tx = &dshaders[i];
+	if(!(tx->flags & SURF_LIGHT) || texture_intensity[i] == 0 )
 	{
-		VectorClear (color);
+		VectorClear( color );
 		return;
 	}
 
-	VectorScale (texture_reflectivity[f->texinfo], tx->value, color);
+	VectorScale( texture_reflectivity[i], texture_intensity[i], color );
 }
 
-bool IsSky (dface_t *f)
+bool IsSky( dsurface_t *f )
 {
-	dtexinfo_t	*tx;
+	dshader_t	*tx;
 
-	tx = &texinfo[f->texinfo];
-	if (tx->flags & SURF_SKY)
+	tx = &dshaders[f->shadernum];
+	if( tx->flags & SURF_SKY )
 		return true;
 	return false;
 }
@@ -150,7 +112,7 @@ MakePatchForFace
 float	totalarea;
 void MakePatchForFace (int fn, winding_t *w)
 {
-	dface_t *f;
+	dsurface_t *f;
 	float	area;
 	patch_t		*patch;
 	dplane_t	*pl;
@@ -158,7 +120,7 @@ void MakePatchForFace (int fn, winding_t *w)
 	vec3_t		color;
 	dleaf_t		*leaf;
 
-	f = &dfaces[fn];
+	f = &dsurfaces[fn];
 
 	area = WindingArea (w);
 	totalarea += area;
@@ -171,7 +133,7 @@ void MakePatchForFace (int fn, winding_t *w)
 
 	patch->winding = w;
 
-	if (f->side)
+	if (f->lm_side)
 		patch->plane = &backplanes[f->planenum];
 	else
 		patch->plane = &dplanes[f->planenum];
@@ -197,7 +159,7 @@ void MakePatchForFace (int fn, winding_t *w)
 		patch->area = 1;
 	patch->sky = IsSky (f);
 
-	VectorCopy (texture_reflectivity[f->texinfo], patch->reflectivity);
+	VectorCopy( texture_reflectivity[f->shadernum], patch->reflectivity );
 
 	// non-bmodel patches can emit light
 	if (fn < dmodels[0].numfaces)
@@ -241,14 +203,14 @@ MakePatches
 void MakePatches (void)
 {
 	int		i, j, k;
-	dface_t	*f;
+	dsurface_t	*f;
 	int		fn;
 	winding_t	*w;
 	dmodel_t	*mod;
 	vec3_t		origin;
 	bsp_entity_t	*ent;
 
-	Msg("%i faces\n", numfaces);
+	Msg("%i faces\n", numsurfaces);
 
 	for (i=0 ; i<nummodels ; i++)
 	{
@@ -264,7 +226,7 @@ void MakePatches (void)
 			fn = mod->firstface + j;
 			face_entity[fn] = ent;
 			VectorCopy (origin, face_offset[fn]);
-			f = &dfaces[fn];
+			f = &dsurfaces[fn];
 			w = WindingFromFace (f);
 			for (k=0 ; k<w->numpoints ; k++)
 			{

@@ -242,7 +242,7 @@ bool StringTable_SaveSystem( int h, wfile_t *wad )
 
 int StringTable_LoadSystem( wfile_t *wad, const char *name )
 {
-	int h = StringTable_CreateNewSystem( name, MAX_MAP_NUMSTRINGS );
+	int h = StringTable_CreateNewSystem( name, 0x10000 ); // 65535 unique strings
 	int datasize, numstrings;
 
 	dstring[h]->data = W_LoadLump( wad, "stringdata", &datasize, TYPE_STRDATA );

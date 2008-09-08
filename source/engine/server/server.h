@@ -30,6 +30,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define LATENCY_COUNTS		16
 #define MAX_ENT_CLUSTERS		16
 #define DF_NO_FRIENDLY_FIRE		0x00000001		//FIXME: move to server.dat
+#define DVIS_PVS			0
+#define DVIS_PHS			1
 
 // content masks
 #define MASK_SOLID			(CONTENTS_SOLID)

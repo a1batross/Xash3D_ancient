@@ -448,7 +448,7 @@ extern shader_t	*r_slimeCausticsShader;
 extern shader_t	*r_lavaCausticsShader;
 
 shader_t	*R_FindShader( const char *name, shaderType_t shaderType, uint surfaceParm );
-void	R_SetInternalMap( texture_t *mipTex ); // internal textures (skins, spriteframes, etc)
+void	R_SetInternalMap( texture_t *mipTex );		// internal textures (skins, spriteframes, etc)
 void	R_ShaderList_f( void );
 void	R_InitShaders( void );
 void	R_ShutdownShaders (void);
@@ -464,7 +464,6 @@ BRUSH MODELS
 #define SKY_INDICES			(SKY_SIZE * SKY_SIZE * 6)
 #define SKY_VERTICES		((SKY_SIZE+1) * (SKY_SIZE+1))
 
-#define SURF_PLANEBACK		1
 #define SURF_WATERCAUSTICS		2
 #define SURF_SLIMECAUSTICS		4
 #define SURF_LAVACAUSTICS		8
@@ -528,38 +527,26 @@ typedef struct
 
 typedef struct mipTex_s
 {
-	string		name;
-	texture_t		*image;
-	struct mipTex_s	*next;		// animation chain
-
-	uint		width;
-	uint		height;
-	int		numframes;
-} mipTex_t;
-
-typedef struct texInfo_s
-{
-	float		vecs[2][4];
+	string		name;		// original miptex name
+	shader_t		*shader;		// texture shader
 	int		contents;
 	int		flags;
-	mipTex_t		*texture;
-	shader_t		*shader;		// texture shader
-} texInfo_t;
+} mipTex_t;
 
 typedef struct
 {
 	int		flags;
 
-	int		firstEdge;	// Look up in model->edges[]. Negative
-	int		numEdges;		// numbers are backwards edges
+	int		firstIndex;	// Look up in model->edges[]. Negative
+	int		numIndexes;		// numbers are backwards edges
+
+	int		firstVertex;
+	int		numVertexes;
 
 	cplane_t		*plane;
 
 	vec3_t		mins;
 	vec3_t		maxs;
-
-	short		textureMins[2];
-	short		extents[2];
 
 	surfPoly_t	*poly;			// multiple if subdivided
 
@@ -567,7 +554,7 @@ typedef struct
 	vec3_t		binormal;
 	vec3_t		normal;
 
-	texInfo_t		*texInfo;
+	mipTex_t		*texInfo;
 
 	int		visFrame;
 	int		fragmentFrame;
@@ -599,14 +586,12 @@ typedef struct node_s
 	// node specific
 	cplane_t		*plane;
 	struct node_s	*children[2];	
-	uint		firstSurface;
-	uint		numSurfaces;
 } node_t;
 
 typedef struct leaf_s
 {
 	// common with node
-	int		contents;	// will be a negative contents number
+	int		contents;
 	int		visFrame;	// node needs to be traversed if current
 	vec3_t		mins;	// for bounding box culling
 	vec3_t		maxs;	// for bounding box culling
@@ -621,19 +606,13 @@ typedef struct leaf_s
 
 typedef struct
 {
-	int		numClusters;
-	int		bitOfs[8][2];
-} vis_t;
 
-typedef struct
-{
 	vec3_t		point;
+	vec3_t		normal;
+	float		st[2];
+	float		lm[2];
+	vec4_t		color;	
 } vertex_t;
-
-typedef struct
-{
-	uint		v[2];
-} edge_t;
 
 typedef struct
 {
@@ -787,17 +766,11 @@ typedef struct rmodel_s
 	int		numVertexes;
 	vertex_t		*vertexes;
 
-	int		numSurfEdges;
-	int		*surfEdges;
+	int		numIndexes;
+	int		*indexes;
 
-	int		numEdges;
-	edge_t		*edges;
-
-	int		numTexInfo;
-	texInfo_t		*texInfo;
-
-	int		numTextures;
-	mipTex_t		*textures;
+	int		numShaders;
+	mipTex_t		*shaders;
 
 	int		numSurfaces;
 	surface_t		*surfaces;
@@ -811,22 +784,20 @@ typedef struct rmodel_s
 	int		numNodes;
 	node_t		*nodes;
 
+	int		numClusters;
 	int		numLeafs;
 	leaf_t		*leafs;
 
 	sky_t		*sky;
-	vis_t		*vis;
-	byte		*lightData;
+	dvis_t		*vis;
+	byte		*lightMaps;
+	int		numLightmaps;
 
 	vec3_t		gridMins;
 	vec3_t		gridSize;
 	int		gridBounds[4];
 	int		gridPoints;
 	lightGrid_t	*lightGrid;
-
-	// stringtable system
-	char		*stringdata;
-	int		*stringtable;
 
 	// studio model
           studiohdr_t	*phdr;
@@ -1292,6 +1263,7 @@ void		R_BeginRegistration( const char *map );
 rmodel_t		*R_RegisterModel( const char *name );
 void		R_SetupSky( const char *name, float rotate, const vec3_t axis );
 void		R_EndRegistration( void );
+void		R_ShaderRegisterImages( rmodel_t *mod );	// prolonge registration
 shader_t		*R_RegisterShader( const char *name );
 shader_t		*R_RegisterShaderSkin( const char *name );
 shader_t		*R_RegisterShaderNoMip( const char *name );

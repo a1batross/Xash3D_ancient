@@ -49,8 +49,6 @@ void FreeBrush( bspbrush_t *brush )
 	{
 		if( brush->sides[i].winding )
 			FreeWinding( brush->sides[i].winding );
-		if( brush->sides[i].texture )
-			FreeTexture( brush->sides[i].texture );
 	}
 
 	Mem_Free( brush );
@@ -80,7 +78,7 @@ CopyBrush
 Duplicates the brush, the sides, and the windings
 ==================
 */
-bspbrush_t *CopyBrush (bspbrush_t *brush)
+bspbrush_t *CopyBrush( bspbrush_t *brush )
 {
 	bspbrush_t	*newbrush;
 	size_t		size;
@@ -95,8 +93,6 @@ bspbrush_t *CopyBrush (bspbrush_t *brush)
 	{
 		if( brush->sides[i].winding )
 			newbrush->sides[i].winding = CopyWinding( brush->sides[i].winding );
-		if( brush->sides[i].texture )
-			newbrush->sides[i].texture = CopyTexture( brush->sides[i].texture );
 	}
 
 	return newbrush;
@@ -357,7 +353,7 @@ void SplitBrush( bspbrush_t *brush, int planenum, bspbrush_t **front, bspbrush_t
 		b[i]->numsides++;
 
 		cs->planenum = planenum^i^1;
-		cs->texinfo = TEXINFO_NODE;
+		cs->shader = NULL;
 		cs->visible = false;
 		if( i == 0 ) cs->winding = CopyWinding( midwinding );
 		else cs->winding = midwinding;

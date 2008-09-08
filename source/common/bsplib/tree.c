@@ -1,7 +1,7 @@
 #include "bsplib.h"
 #include "const.h"
 
-extern	int	c_nodes;
+int	c_nodes;
 
 void RemovePortalFromNode (portal_t *portal, node_t *l);
 
@@ -61,8 +61,6 @@ FreeTree_r
 */
 void FreeTree_r (node_t *node)
 {
-	bspface_t		*f, *nextf;
-
 	// free children
 	if (node->planenum != PLANENUM_LEAF)
 	{
@@ -72,13 +70,6 @@ void FreeTree_r (node_t *node)
 
 	// free bspbrushes
 	FreeBrushList (node->brushlist);
-
-	// free faces
-	for (f=node->faces ; f ; f=nextf)
-	{
-		nextf = f->next;
-		FreeFace (f);
-	}
 
 	// free the node
 	if (node->volume)
@@ -129,65 +120,4 @@ void PrintTree_r (node_t *node, int depth)
 		plane->dist);
 	PrintTree_r (node->children[0], depth+1);
 	PrintTree_r (node->children[1], depth+1);
-}
-
-/*
-=========================================================
-
-NODES THAT DON'T SEPERATE DIFFERENT CONTENTS CAN BE PRUNED
-
-=========================================================
-*/
-
-int	c_pruned;
-
-/*
-============
-PruneNodes_r
-============
-*/
-void PruneNodes_r (node_t *node)
-{
-	bspbrush_t		*b, *next;
-
-	if (node->planenum == PLANENUM_LEAF)
-		return;
-	PruneNodes_r (node->children[0]);
-	PruneNodes_r (node->children[1]);
-
-	if ( (node->children[0]->contents & CONTENTS_SOLID)
-	&& (node->children[1]->contents & CONTENTS_SOLID) )
-	{
-		if (node->faces)
-			Sys_Error ("node->faces seperating CONTENTS_SOLID");
-		if (node->children[0]->faces || node->children[1]->faces)
-			Sys_Error ("!node->faces with children");
-
-		// FIXME: free stuff
-		node->planenum = PLANENUM_LEAF;
-		node->contents = CONTENTS_SOLID;
-		node->detail_seperator = false;
-
-		if (node->brushlist)
-			Sys_Error ("PruneNodes: node->brushlist");
-
-		// combine brush lists
-		node->brushlist = node->children[1]->brushlist;
-
-		for (b=node->children[0]->brushlist ; b ; b=next)
-		{
-			next = b->next;
-			b->next = node->brushlist;
-			node->brushlist = b;
-		}
-
-		c_pruned++;
-	}
-}
-
-
-void PruneNodes (node_t *node)
-{
-	c_pruned = 0;
-	PruneNodes_r (node);
 }

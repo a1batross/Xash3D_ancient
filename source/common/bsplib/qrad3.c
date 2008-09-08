@@ -12,16 +12,17 @@ every surface must be divided into at least two patches each axis
 
 */
 
-patch_t	*face_patches[MAX_MAP_FACES];
-bsp_entity_t	*face_entity[MAX_MAP_FACES];
+patch_t	*face_patches[MAX_MAP_SURFACES];
+bsp_entity_t	*face_entity[MAX_MAP_SURFACES];
 patch_t	patches[MAX_PATCHES];
 unsigned	num_patches;
 
 vec3_t	radiosity[MAX_PATCHES];		// light leaving a patch
 vec3_t	illumination[MAX_PATCHES];		// light arriving at a patch
 
-vec3_t	face_offset[MAX_MAP_FACES];		// for rotating bmodels
+vec3_t	face_offset[MAX_MAP_SURFACES];	// for rotating bmodels
 dplane_t	backplanes[MAX_MAP_PLANES];
+byte	novis[(MAX_MAP_LEAFS+7)/8];
 
 int	fakeplanes;			// created planes for origin offset 
 bool	extrasamples;
@@ -97,54 +98,48 @@ TRANSFER SCALES
 ===================================================================
 */
 
-int	PointInLeafnum (vec3_t point)
+int PointInLeafnum( vec3_t point )
 {
 	int		nodenum;
-	vec_t	dist;
-	dnode_t	*node;
-	dplane_t	*plane;
+	vec_t		dist;
+	dnode_t		*node;
+	dplane_t		*plane;
 
 	nodenum = 0;
-	while (nodenum >= 0)
+	while( nodenum >= 0 )
 	{
 		node = &dnodes[nodenum];
 		plane = &dplanes[node->planenum];
-		dist = DotProduct (point, plane->normal) - plane->dist;
-		if (dist > 0)
-			nodenum = node->children[0];
-		else
-			nodenum = node->children[1];
+		dist = DotProduct( point, plane->normal ) - plane->dist;
+		if( dist > 0 ) nodenum = node->children[0];
+		else nodenum = node->children[1];
 	}
-
 	return -nodenum - 1;
 }
 
 
-dleaf_t		*RadPointInLeaf (vec3_t point)
+dleaf_t *RadPointInLeaf( vec3_t point )
 {
-	int		num;
+	int	num;
 
-	num = PointInLeafnum (point);
+	num = PointInLeafnum( point );
 	return &dleafs[num];
 }
 
 
-bool PvsForOrigin (vec3_t org, byte *pvs)
+const byte *PvsForOrigin( vec3_t org )
 {
 	dleaf_t	*leaf;
 
-	if (!visdatasize)
+	if( !pvsdatasize )
 	{
-		memset (pvs, 255, (numleafs+7)/8 );
-		return true;
+		memset( novis, 255, (numleafs + 7) / 8 );
+		return novis;
 	}
 
-	leaf = RadPointInLeaf (org);
-	if (leaf->cluster == -1)
-		return false;		// in solid leaf
-
-	DecompressVis (dvisdata + dvis->bitofs[leaf->cluster][DVIS_PVS], pvs);
-	return true;
+	leaf = RadPointInLeaf( org );
+	if( leaf->cluster == -1 ) return NULL;	// in solid leaf
+	return dpvs->data + leaf->cluster * dpvs->rowsize;
 }
 
 
@@ -170,8 +165,8 @@ void MakeTransfers (int i)
 	float		transfers[MAX_PATCHES], *all_transfers;
 	int			s;
 	int			itotal;
-	byte		pvs[(MAX_MAP_LEAFS+7)/8];
-	int			cluster;
+	const byte	*pvs;
+	int		cluster;
 
 	patch = patches + i;
 	total = 0;
@@ -179,8 +174,8 @@ void MakeTransfers (int i)
 	VectorCopy (patch->origin, origin);
 	plane = *patch->plane;
 
-	if (!PvsForOrigin (patch->origin, pvs))
-		return;
+	pvs = PvsForOrigin( patch->origin );
+	if( !pvs ) return;
 
 	// find out which patch2s will collect light
 	// from patch
@@ -407,7 +402,7 @@ RadWorld
 */
 void RadWorld (void)
 {
-	if (numnodes == 0 || numfaces == 0)
+	if (numnodes == 0 || numsurfaces == 0)
 		Sys_Error ("Empty map");
 	MakeBackplanes ();
 	MakeParents (0, -1);
@@ -423,7 +418,7 @@ void RadWorld (void)
 	CreateDirectLights ();
 
 	// build initial facelights
-	RunThreadsOnIndividual (numfaces, true, BuildFacelights);
+	RunThreadsOnIndividual (numsurfaces, true, BuildFacelights);
 
 	if (numbounce > 0)
 	{
@@ -438,11 +433,10 @@ void RadWorld (void)
 	}
 
 	// blend bounced light into direct light and save
-	PairEdges ();
 	LinkPlaneFaces ();
 
 	lightdatasize = 0;
-	RunThreadsOnIndividual (numfaces, true, FinalLightFace);
+	RunThreadsOnIndividual (numsurfaces, true, FinalLightFace);
 }
 
 void WradMain ( bool option )
@@ -472,7 +466,7 @@ void WradMain ( bool option )
 	ParseEntities();
 	CalcTextureReflectivity();
 
-	if (!visdatasize)
+	if( !pvsdatasize )
 	{
 		Msg ("No vis information, direct lighting only.\n");
 		numbounce = 0;

@@ -6,159 +6,44 @@
 //=============================================================================
 wfile_t		*handle;
 int		s_table;
-int		nummodels;
-dmodel_t		dmodels[MAX_MAP_MODELS];
-int		visdatasize;
-byte		dvisdata[MAX_MAP_VISIBILITY];
-dvis_t		*dvis = (dvis_t *)dvisdata;
-int		lightdatasize;
-byte		dlightdata[MAX_MAP_LIGHTING];
-int		entdatasize;
 char		dentdata[MAX_MAP_ENTSTRING];
-int		numleafs;
-dleaf_t		dleafs[MAX_MAP_LEAFS];
-int		numplanes;
+int		entdatasize;
+dshader_t		dshaders[MAX_MAP_SHADERS];
+int		numshaders;
 dplane_t		dplanes[MAX_MAP_PLANES];
-int		numvertexes;
-dvertex_t		dvertexes[MAX_MAP_VERTS];
-int		numnodes;
+int		numplanes;
 dnode_t		dnodes[MAX_MAP_NODES];
-int		numtexinfo;
-dtexinfo_t	texinfo[MAX_MAP_TEXINFO];
-int		numfaces;
-dface_t		dfaces[MAX_MAP_FACES];
-int		numedges;
-dedge_t		dedges[MAX_MAP_EDGES];
-int		numleaffaces;
+int		numnodes;
+dleaf_t		dleafs[MAX_MAP_LEAFS];
+int		numleafs;
 dword		dleaffaces[MAX_MAP_LEAFFACES];
-int		numleafbrushes;
+int		numleaffaces;
 dword		dleafbrushes[MAX_MAP_LEAFBRUSHES];
-int		numsurfedges;
-int		dsurfedges[MAX_MAP_SURFEDGES];
-int		numbrushes;
+int		numleafbrushes;
+dmodel_t		dmodels[MAX_MAP_MODELS];
+int		nummodels;
 dbrush_t		dbrushes[MAX_MAP_BRUSHES];
-int		numbrushsides;
+int		numbrushes;
 dbrushside_t	dbrushsides[MAX_MAP_BRUSHSIDES];
-int		nummiptex;
-dmiptex_t		dmiptex[MAX_MAP_TEXTURES];
-int		numareas;
-darea_t		dareas[MAX_MAP_AREAS];
-int		numareaportals;
-dareaportal_t	dareaportals[MAX_MAP_AREAPORTALS];
-byte		dcollision[MAX_MAP_COLLISION];
-int		dcollisiondatasize = 256; // variable sized
+int		numbrushsides;
+dvertex_t		dvertexes[MAX_MAP_VERTEXES];
+int		numvertexes;
 int		dindexes[MAX_MAP_INDEXES];
 int		numindexes;
-char		dstringdata[MAX_MAP_STRINGDATA];
-int		stringdatasize;
-int		dstringtable[MAX_MAP_NUMSTRINGS];
-int		numstrings;
-
-/*
-===============
-String table system
-
-===============
-*/
-const char *GetStringFromTable( int index )
-{
-	return &dstringdata[dstringtable[index]];
-}
-
-int GetIndexFromTable( const char *string )
-{
-	int i, len;
-
-	for( i = 0; i < numstrings; i++ )
-	{
-		if(!com.stricmp( string, &dstringdata[dstringtable[i]]))
-			return i; // found index
-	}
-
-	// register new string
-	len = com.strlen( string );
-	if( len + stringdatasize + 1 > MAX_MAP_STRINGDATA )
-		Sys_Error( "GetIndexFromTable: string data lump limit exeeded\n" );
-
-	if( numstrings + 1 > MAX_MAP_NUMSTRINGS )
-		Sys_Error( "GetIndexFromTable: string table lump limit exeeded\n" );
-
-	com.strcpy( &dstringdata[stringdatasize], string );
-	dstringtable[numstrings] = stringdatasize;
-	stringdatasize += len + 1; // null terminator
-	numstrings++;
-
-	return numstrings - 1; // current index
-}
-
-/*
-===============
-CompressVis
-
-===============
-*/
-int CompressVis( byte *vis, byte *dest )
-{
-	int		j;
-	int		rep;
-	int		visrow;
-	byte	*dest_p;
-	
-	dest_p = dest;
-	visrow = (dvis->numclusters + 7)>>3;
-	
-	for (j=0 ; j<visrow ; j++)
-	{
-		*dest_p++ = vis[j];
-		if (vis[j])
-			continue;
-
-		rep = 1;
-		for ( j++; j<visrow ; j++)
-			if (vis[j] || rep == 255)
-				break;
-			else rep++;
-		*dest_p++ = rep;
-		j--;
-	}
-	
-	return dest_p - dest;
-}
-
-
-/*
-===================
-DecompressVis
-===================
-*/
-void DecompressVis( byte *in, byte *decompressed )
-{
-	int		c;
-	byte	*out;
-	int		row;
-
-//	row = (r_numvisleafs+7)>>3;	
-	row = (dvis->numclusters+7)>>3;	
-	out = decompressed;
-
-	do
-	{
-		if (*in)
-		{
-			*out++ = *in++;
-			continue;
-		}
-	
-		c = in[1];
-		if (!c) Sys_Error("DecompressVis: 0 repeat");
-		in += 2;
-		while (c)
-		{
-			*out++ = 0;
-			c--;
-		}
-	} while (out - decompressed < row);
-}
+byte		dcollision[MAX_MAP_COLLISION];
+int		dcollisiondatasize = 256; // variable sized
+dsurface_t	dsurfaces[MAX_MAP_SURFACES];
+int		numsurfaces;
+byte		dlightdata[MAX_MAP_LIGHTDATA];
+int		lightdatasize;
+dlightgrid_t	dlightgrid[MAX_MAP_LIGHTGRID];
+int		numlightgrids;
+byte		dpvsdata[MAX_MAP_VISIBILITY];
+dvis_t		*dpvs = (dvis_t *)dpvsdata;
+int		pvsdatasize;
+byte		dphsdata[MAX_MAP_VISIBILITY];
+dvis_t		*dphs = (dvis_t *)dphsdata;
+int		phsdatasize;
 
 //=============================================================================
 
@@ -169,24 +54,22 @@ SwapBSPFile
 Byte swaps all data in a bsp file.
 =============
 */
-void SwapBSPFile (bool todisk)
+void SwapBSPFile( void )
 {
-	int	i, j;
-	
-	// models	
-	SwapBlock( (int *)dmodels, nummodels * sizeof(dmodels[0]));
+	int	i;
 
-	// vertexes
-	SwapBlock( (int *)dvertexes, numvertexes * sizeof(dvertexes[0]));
+	// shaders
+	for( i = 0; i < numshaders; i++ )
+	{
+		dshaders[i].contents = LittleLong( dshaders[i].contents ); 
+		dshaders[i].flags = LittleLong( dshaders[i].flags );
+	}
 
 	// planes
 	SwapBlock( (int *)dplanes, numplanes * sizeof(dplanes[0]));
-	
-	// texinfos
-	SwapBlock( (int *)texinfo, numtexinfo * sizeof(texinfo[0]));
 
 	// nodes
-	SwapBlock( (int *)dnodes, numnodes * sizeof(dnodes[0]));
+	SwapBlock( (int *)dnodes, numnodes * sizeof(dnodes[0]));	
 
 	// leafs
 	SwapBlock( (int *)dleafs, numleafs * sizeof(dleafs[0]));
@@ -197,51 +80,32 @@ void SwapBSPFile (bool todisk)
 	// leafbrushes
 	SwapBlock( (int *)dleafbrushes, numleafbrushes * sizeof(dleafbrushes[0]));
 
-	// surfedges
-	SwapBlock( (int *)texinfo, numsurfedges * sizeof(dsurfedges[0]));
-
-	// edges
-	SwapBlock( (int *)dedges, numedges * sizeof(dedges[0]));
+	// models	
+	SwapBlock( (int *)dmodels, nummodels * sizeof(dmodels[0]));
 
 	// brushes
 	SwapBlock( (int *)dbrushes, numbrushes * sizeof(dbrushes[0]));
 
-	// areas
-	SwapBlock( (int *)dareas, numareas * sizeof(dareas[0]));
-
-	// areasportals
-	SwapBlock( (int *)dareaportals, numareaportals * sizeof(dareaportals[0]));
-
 	// brushsides
 	SwapBlock( (int *)dbrushsides, numbrushsides * sizeof(dbrushsides[0]));
+
+	// vertices
+	// FIXME: these code swapped colors
+	SwapBlock( (int *)dvertexes, numvertexes * sizeof(dvertexes[0]));
 
 	// indices
 	SwapBlock( (int *)dindexes, numindexes * sizeof(dindexes[0]));
 
-	// miptexes
-	SwapBlock( (int *)dmiptex, nummiptex * sizeof(dmiptex[0]));
-
-	// faces
-	// FIXME: i want using SwapBlock too
-	for( i = 0; i < numfaces; i++ )
-	{
-		dfaces[i].planenum = LittleLong( dfaces[i].planenum );
-		dfaces[i].firstedge = LittleLong( dfaces[i].firstedge );
-		dfaces[i].numedges = LittleLong( dfaces[i].numedges );
-		dfaces[i].texinfo = LittleLong( dfaces[i].texinfo );	
-		dfaces[i].lightofs = LittleLong( dfaces[i].lightofs );
-		dfaces[i].side = LittleShort (dfaces[i].side);
-	}
+	// surfaces
+	SwapBlock( (int *)dsurfaces, numsurfaces * sizeof(dsurfaces[0]));
 
 	// visibility
-	if( todisk ) j = dvis->numclusters;
-	else j = LittleLong( dvis->numclusters );
-	dvis->numclusters = LittleLong( dvis->numclusters );
-	for( i = 0; i < j; i++ )
-	{
-		dvis->bitofs[i][0] = LittleLong( dvis->bitofs[i][0] );
-		dvis->bitofs[i][1] = LittleLong( dvis->bitofs[i][1] );
-	}
+	dpvs->numclusters = LittleLong( dpvs->numclusters );
+	dpvs->rowsize = LittleLong( dpvs->rowsize );
+
+	// hearability
+	dphs->numclusters = LittleLong( dphs->numclusters );
+	dphs->rowsize = LittleLong( dphs->rowsize );
 }
 
 size_t BSP_LoadLump( const char *lumpname, void *dest, size_t block_size )
@@ -307,31 +171,25 @@ bool LoadBSPFile( void )
 	if(header->version != BSPMOD_VERSION) Sys_Error("%s is version %i, not %i", gs_filename, header->version, BSPMOD_VERSION);
 
 	entdatasize = CopyLump (LUMP_ENTITIES, dentdata, 1);
+	numshaders = CopyLump(LUMP_SHADERS, dshaders, sizeof(dshader_t));
 	numplanes = CopyLump (LUMP_PLANES, dplanes, sizeof(dplane_t));
-	numvertexes = CopyLump (LUMP_VERTEXES, dvertexes, sizeof(dvertex_t));
-	visdatasize = CopyLump (LUMP_VISIBILITY, dvisdata, 1);
 	numnodes = CopyLump (LUMP_NODES, dnodes, sizeof(dnode_t));
-	numtexinfo = CopyLump (LUMP_TEXINFO, texinfo, sizeof(dtexinfo_t));
-	numfaces = CopyLump (LUMP_FACES, dfaces, sizeof(dface_t));
-	lightdatasize = CopyLump (LUMP_LIGHTING, dlightdata, 1);
 	numleafs = CopyLump (LUMP_LEAFS, dleafs, sizeof(dleaf_t));
 	numleaffaces = CopyLump (LUMP_LEAFFACES, dleaffaces, sizeof(dleaffaces[0]));
 	numleafbrushes = CopyLump (LUMP_LEAFBRUSHES, dleafbrushes, sizeof(dleafbrushes[0]));
-	numedges = CopyLump (LUMP_EDGES, dedges, sizeof(dedge_t));
-	numsurfedges = CopyLump (LUMP_SURFEDGES, dsurfedges, sizeof(dsurfedges[0]));
 	nummodels = CopyLump (LUMP_MODELS, dmodels, sizeof(dmodel_t));
 	numbrushes = CopyLump (LUMP_BRUSHES, dbrushes, sizeof(dbrush_t));
 	numbrushsides = CopyLump (LUMP_BRUSHSIDES, dbrushsides, sizeof(dbrushside_t));
+	numvertexes = CopyLump (LUMP_VERTICES, dvertexes, sizeof(dvertex_t));
+	numindexes = CopyLump (LUMP_INDICES, dindexes, sizeof(dindexes[0]));
 	dcollisiondatasize = CopyLump(LUMP_COLLISION, dcollision, 1);
-	numindexes = CopyLump (LUMP_INDEXES, dindexes, sizeof(dindexes[0]));
-	nummiptex = CopyLump(LUMP_TEXTURES, dmiptex, sizeof(dmiptex_t));
-	stringdatasize = CopyLump( LUMP_STRINGDATA, dstringdata, sizeof(dstringdata[0]));
-	numstrings = CopyLump( LUMP_STRINGTABLE, dstringtable, sizeof(dstringtable[0]));
-	numareas = CopyLump (LUMP_AREAS, dareas, sizeof(darea_t));
-	numareaportals = CopyLump (LUMP_AREAPORTALS, dareaportals, sizeof(dareaportal_t));
+	numsurfaces = CopyLump (LUMP_SURFACES, dsurfaces, sizeof(dsurface_t));
+	lightdatasize = CopyLump (LUMP_LIGHTMAPS, dlightdata, 1);
+	pvsdatasize = CopyLump (LUMP_VISIBILITY, dpvsdata, 1);
+	phsdatasize = CopyLump (LUMP_HEARABILITY, dphsdata, 1);
 
 	// swap everything
-	SwapBSPFile (false);
+	SwapBSPFile();
 
 	return true;
 }
@@ -364,12 +222,12 @@ void WriteBSPFile( void )
 	char path[MAX_SYSPATH];
 	
 	header = &outheader;
-	memset (header, 0, sizeof(dheader_t));
+	memset( header, 0, sizeof( dheader_t ));
 	
-	SwapBSPFile (true);
+	SwapBSPFile();
 
-	header->ident = LittleLong (IDBSPMODHEADER);
-	header->version = LittleLong (BSPMOD_VERSION);
+	header->ident = LittleLong( IDBSPMODHEADER );
+	header->version = LittleLong( BSPMOD_VERSION );
 	
 	// build path
 	sprintf( path, "maps/%s.bsp", gs_filename );
@@ -377,31 +235,25 @@ void WriteBSPFile( void )
 	if( pe ) pe->FreeBSP();
 	
 	wadfile = FS_Open( path, "wb" );
-	FS_Write( wadfile, header, sizeof(dheader_t));	// overwritten later
+	FS_Write( wadfile, header, sizeof( dheader_t ));	// overwritten later
 
 	AddLump (LUMP_ENTITIES, dentdata, entdatasize);
-	AddLump (LUMP_PLANES, dplanes, numplanes*sizeof(dplane_t));
-	AddLump (LUMP_VERTEXES, dvertexes, numvertexes*sizeof(dvertex_t));
-	AddLump (LUMP_VISIBILITY, dvisdata, visdatasize);
-	AddLump (LUMP_NODES, dnodes, numnodes*sizeof(dnode_t));
-	AddLump (LUMP_TEXINFO, texinfo, numtexinfo*sizeof(dtexinfo_t));
-	AddLump (LUMP_FACES, dfaces, numfaces*sizeof(dface_t));
-	AddLump (LUMP_LIGHTING, dlightdata, lightdatasize);
-	AddLump (LUMP_LEAFS, dleafs, numleafs*sizeof(dleaf_t));
+	AddLump (LUMP_SHADERS, dshaders, numshaders*sizeof(dshaders[0]));
+	AddLump (LUMP_PLANES, dplanes, numplanes*sizeof(dplanes[0]));
+	AddLump (LUMP_NODES, dnodes, numnodes*sizeof(dnodes[0]));
+	AddLump (LUMP_LEAFS, dleafs, numleafs*sizeof(dleafs[0]));
 	AddLump (LUMP_LEAFFACES, dleaffaces, numleaffaces*sizeof(dleaffaces[0]));
 	AddLump (LUMP_LEAFBRUSHES, dleafbrushes, numleafbrushes*sizeof(dleafbrushes[0]));
-	AddLump (LUMP_EDGES, dedges, numedges*sizeof(dedge_t));
-	AddLump (LUMP_SURFEDGES, dsurfedges, numsurfedges*sizeof(dsurfedges[0]));
-	AddLump (LUMP_MODELS, dmodels, nummodels*sizeof(dmodel_t));
-	AddLump (LUMP_BRUSHES, dbrushes, numbrushes*sizeof(dbrush_t));
-	AddLump (LUMP_BRUSHSIDES, dbrushsides, numbrushsides*sizeof(dbrushside_t));
+	AddLump (LUMP_MODELS, dmodels, nummodels*sizeof(dmodels[0]));
+	AddLump (LUMP_BRUSHES, dbrushes, numbrushes*sizeof(dbrushes[0]));
+	AddLump (LUMP_BRUSHSIDES, dbrushsides, numbrushsides*sizeof(dbrushsides[0]));
+	AddLump (LUMP_VERTICES, dvertexes, numvertexes*sizeof(dvertexes[0]));
+	AddLump (LUMP_INDICES, dindexes, numindexes*sizeof(dindexes[0]));
 	AddLump (LUMP_COLLISION, dcollision, dcollisiondatasize );
-	AddLump (LUMP_TEXTURES, dmiptex, nummiptex*sizeof(dmiptex[0]));
-	AddLump (LUMP_INDEXES, dindexes, numindexes*sizeof(dindexes[0]));
-	AddLump (LUMP_STRINGDATA, dstringdata, stringdatasize * sizeof(dstringdata[0]));
-	AddLump (LUMP_STRINGTABLE, dstringtable, numstrings * sizeof(dstringtable[0]));
-	AddLump (LUMP_AREAS, dareas, numareas*sizeof(darea_t));
-	AddLump (LUMP_AREAPORTALS, dareaportals, numareaportals*sizeof(dareaportal_t));
+	AddLump (LUMP_SURFACES, dsurfaces, numsurfaces*sizeof(dsurface_t));	
+	AddLump (LUMP_LIGHTMAPS, dlightdata, lightdatasize);
+	AddLump (LUMP_VISIBILITY, dpvsdata, pvsdatasize);
+	AddLump (LUMP_HEARABILITY, dphsdata, phsdatasize);
 
 	FS_Seek( wadfile, 0, SEEK_SET );
 	FS_Write( wadfile, header, sizeof(dheader_t));

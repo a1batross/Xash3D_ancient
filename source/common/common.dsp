@@ -117,10 +117,6 @@ SOURCE=.\bsplib\brush.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\brushbsp.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\bsplib\bspfile.c
 # End Source File
 # Begin Source File
@@ -129,15 +125,7 @@ SOURCE=.\bsplib\bsplib.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\csg.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\bsplib\facebsp.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\flow.c
 # End Source File
 # Begin Source File
 
@@ -146,6 +134,10 @@ SOURCE=.\bsplib\leakfile.c
 # Begin Source File
 
 SOURCE=.\bsplib\lightmap.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\lightmaps.c
 # End Source File
 # Begin Source File
 
@@ -197,7 +189,15 @@ SOURCE=.\studio_utils.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\textures.c
+SOURCE=.\bsplib\surface.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\terrain.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\tjunc.c
 # End Source File
 # Begin Source File
 
@@ -210,6 +210,10 @@ SOURCE=.\bsplib\tree.c
 # Begin Source File
 
 SOURCE=.\utils.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bsplib\visflow.c
 # End Source File
 # Begin Source File
 

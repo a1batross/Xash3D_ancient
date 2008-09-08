@@ -17,13 +17,6 @@ int		registration_sequence;
 rmodel_t		*m_pLoadModel;
 static int	r_nummodels;
 
-const char *R_GetStringFromTable( int index )
-{
-	if( m_pLoadModel->stringdata )
-		return &m_pLoadModel->stringdata[m_pLoadModel->stringtable[index]];
-	return NULL;
-}
-
 /*
 ===============
 R_PointInLeaf
@@ -53,51 +46,6 @@ leaf_t *R_PointInLeaf( const vec3_t p )
 
 /*
 =================
-R_DecompressVis
-=================
-*/
-static byte *R_DecompressVis( const byte *in )
-{
-	static byte	decompressed[MAX_MAP_LEAFS/8];
-	byte		*out;
-	int		c, row;
-
-	row = (r_worldModel->vis->numClusters+7)>>3;	
-	out = decompressed;
-
-	if( !in )
-	{
-		// no vis info, so make all visible
-		while( row )
-		{
-			*out++ = 0xff;
-			row--;
-		}
-		return decompressed;		
-	}
-
-	do
-	{
-		if( *in )
-		{
-			*out++ = *in++;
-			continue;
-		}
-	
-		c = in[1];
-		in += 2;
-		while( c )
-		{
-			*out++ = 0;
-			c--;
-		}
-	} while( out - decompressed < row );
-	
-	return decompressed;
-}
-
-/*
-=================
 R_ClusterPVS
 =================
 */
@@ -105,7 +53,7 @@ byte *R_ClusterPVS( int cluster )
 {
 	if( cluster == -1 || !r_worldModel || !r_worldModel->vis )
 		return r_fullvis;
-	return R_DecompressVis((byte *)r_worldModel->vis + r_worldModel->vis->bitOfs[cluster][DVIS_PVS]);
+	return (byte *)r_worldModel->vis->data + cluster * r_worldModel->vis->rowsize;
 }
 
 /*
@@ -117,39 +65,6 @@ BRUSH MODELS
 */
 /*
 =================
-R_LoadStringData
-=================
-*/
-void R_LoadStringData( const byte *base, const lump_t *l )
-{
-	if( !l->filelen )
-	{
-		m_pLoadModel->stringdata = NULL;
-		return;
-	}
-	m_pLoadModel->stringdata = (char *)Mem_Alloc( m_pLoadModel->mempool, l->filelen );
-	Mem_Copy( m_pLoadModel->stringdata, base + l->fileofs, l->filelen );
-}
-
-/*
-=================
-R_LoadStringTable
-=================
-*/
-void R_LoadStringTable( const byte *base, const lump_t *l )
-{	
-	int	*in, *out;
-	int	i, count;
-	
-	in = (void *)(base + l->fileofs);
-	if (l->filelen % sizeof(*in)) Host_Error("R_LoadStringTable: funny lump size in %s\n", m_pLoadModel->name );
-	count = l->filelen / sizeof(*in);
-	m_pLoadModel->stringtable = out = (int *)Mem_Alloc( m_pLoadModel->mempool, l->filelen );
-	for ( i = 0; i < count; i++) out[i] = LittleLong( in[i] );
-}
-
-/*
-=================
 R_LoadVertexes
 =================
 */
@@ -157,6 +72,7 @@ static void R_LoadVertexes( const byte *base, const lump_t *l )
 {
 	dvertex_t		*in;
 	vertex_t		*out;
+	const float	*rgba;
 	int		i;
 
 	in = (dvertex_t *)(base + l->fileofs);
@@ -171,53 +87,38 @@ static void R_LoadVertexes( const byte *base, const lump_t *l )
 		out->point[0] = LittleFloat(in->point[0]);
 		out->point[1] = LittleFloat(in->point[1]);
 		out->point[2] = LittleFloat(in->point[2]);
+
+		out->normal[0] = LittleFloat(in->normal[0]);
+		out->normal[1] = LittleFloat(in->normal[1]);
+		out->normal[2] = LittleFloat(in->normal[2]);
+
+		out->st[0] = LittleFloat(in->st[0]);
+		out->st[1] = LittleFloat(in->st[1]);
+		out->lm[0] = LittleFloat(in->lm[0]);
+		out->lm[1] = LittleFloat(in->lm[1]);
+		rgba = UnpackRGBA( in->color );
+		Vector4Set( out->color, rgba[0], rgba[1], rgba[2], rgba[3] );
+		
 	}
 }
 
 /*
 =================
-R_LoadEdges
+R_LoadIndexes
 =================
 */
-static void R_LoadEdges( const byte *base, const lump_t *l )
+static void R_LoadIndexes( const byte *base, const lump_t *l )
 {
-	dedge_t	*in;
-	edge_t	*out;
-	int 	i;
+	int	*in;
 
-	in = (dedge_t *)(base + l->fileofs);
-	if (l->filelen % sizeof(dedge_t))
-		Host_Error( "R_LoadEdges: funny lump size in '%s'\n", m_pLoadModel->name);
-
-	m_pLoadModel->numEdges = l->filelen / sizeof(dedge_t);
-	m_pLoadModel->edges = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numEdges * sizeof(edge_t));
-
-	for( i = 0; i < m_pLoadModel->numEdges; i++, in++, out++ )
-	{
-		out->v[0] = (uint)LittleLong(in->v[0]);
-		out->v[1] = (uint)LittleLong(in->v[1]);
-	}
-}
-
-/*
-=================
-R_LoadSurfEdges
-=================
-*/
-static void R_LoadSurfEdges( const byte *base, const lump_t *l )
-{
-	int	*in, *out;
-	int	i;
-	
 	in = (int *)(base + l->fileofs);
-	if (l->filelen % sizeof(int))
-		Host_Error( "R_LoadSurfEdges: funny lump size in '%s'\n", m_pLoadModel->name );
+	if( l->filelen % sizeof( *in ))
+		Host_Error( "R_LoadIndices: funny lump size in '%s'\n", m_pLoadModel->name);
 
-	m_pLoadModel->numSurfEdges = l->filelen / sizeof(int);
-	m_pLoadModel->surfEdges = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numSurfEdges * sizeof(int));
-
-	for( i = 0; i < m_pLoadModel->numSurfEdges; i++ )
-		out[i] = LittleLong(in[i]);
+	m_pLoadModel->numIndexes = l->filelen / sizeof( *in );
+	m_pLoadModel->indexes = Mem_Alloc( m_pLoadModel->mempool, l->filelen );
+	Mem_Copy( m_pLoadModel->indexes, in, l->filelen );
+	SwapBlock( (int *)m_pLoadModel->indexes, m_pLoadModel->numIndexes * sizeof( *in ));
 }
 
 /*
@@ -230,8 +131,12 @@ static void R_LoadLighting( const byte *base, const lump_t *l )
 	if( r_fullbright->integer || !l->filelen )
 		return;
 
-	m_pLoadModel->lightData = Mem_Alloc( m_pLoadModel->mempool, l->filelen );
-	Mem_Copy( m_pLoadModel->lightData, base + l->fileofs, l->filelen );
+	m_pLoadModel->lightMaps = NULL;
+	return; //FIXME: test
+
+	m_pLoadModel->numLightmaps = l->filelen / LM_SIZE;
+	m_pLoadModel->lightMaps = Mem_Alloc( m_pLoadModel->mempool, l->filelen );
+	Mem_Copy( m_pLoadModel->lightMaps, base + l->fileofs, l->filelen );
 }
 
 /*
@@ -264,130 +169,30 @@ static void R_LoadPlanes( const byte *base, const lump_t *l )
 
 /*
 =================
-R_LoadTextures
+R_LoadShaders
 =================
 */
-void R_LoadTextures( const byte *base, const lump_t *l )
+void R_LoadShaders( const byte *base, const lump_t *l )
 {
-	dmiptex_t		*in, *in2;
-	mipTex_t		*out, *step;
-	int 		i, next, count;
+	dshader_t		*in;
+	mipTex_t		*out;
+	int 		i, count;
 
-	in = in2 = (void *)(base + l->fileofs);
-	if (l->filelen % sizeof(*in)) Host_Error("R_LoadTextures: funny lump size in '%s'\n", m_pLoadModel->name );
+	in = (void *)(base + l->fileofs);
+	if (l->filelen % sizeof(*in)) Host_Error("R_LoadShaders: funny lump size in '%s'\n", m_pLoadModel->name );
 	count = l->filelen / sizeof(*in);
 
 	out = (mipTex_t *)Mem_Alloc( m_pLoadModel->mempool, count * sizeof(*out));
  
-	m_pLoadModel->textures = out;
-	m_pLoadModel->numTextures = count;
+	m_pLoadModel->shaders = out;
+	m_pLoadModel->numShaders = count;
 
-	for ( i = 0; i < count; i++, in++, out++)
+	for ( i = 0; i < count; i++, in++, out++ )
 	{
-		com.strncpy( out->name, R_GetStringFromTable( LittleLong( in->s_name )), MAX_STRING );
-		out->width = LittleLong( in->size[0] );
-		out->height = LittleLong( in->size[1] );
-
-		// make stubs
-		out->image = r_defaultTexture;
-
-		next = LittleLong( in->s_next );
-		if( next ) out->next = m_pLoadModel->textures + next;
-		else out->next = NULL;
-	}
-
-	// count animation frames
-	for( i = 0; i < count; i++ )
-	{
-		out = &m_pLoadModel->textures[i];
-		out->numframes = 1;
-		for( step = out->next; step && step != out; step = step->next )
-			out->numframes++;
-	}
-}
-
-/*
-=================
-R_LoadTexInfo
-=================
-*/
-static void R_LoadTexInfo( const byte *base, const lump_t *l )
-{
-	dtexinfo_t	*in;
-	texInfo_t		*out;
-	int		texnum;
-	int		i, j, count;
-	uint		surfaceParm = 0;
-
-	in = (void *)(base + l->fileofs);
-	if (l->filelen % sizeof(*in))
-		Host_Error( "R_LoadTexinfo: funny lump size in '%s'\n", m_pLoadModel->name );
-	count = l->filelen / sizeof(*in);
-          out = Mem_Alloc( m_pLoadModel->mempool, count * sizeof(*out));
-	
-	m_pLoadModel->texInfo = out;
-	m_pLoadModel->numTexInfo = count;
-
-	for( i = 0; i < count; i++, in++, out++ )
-	{
-		for( j = 0; j < 8; j++ )
-			out->vecs[0][j] = LittleFloat( in->vecs[0][j] );
-
-		out->flags = LittleLong( in->flags );
+		com.strncpy( out->name, in->name, MAX_QPATH );
+		out->shader = r_defaultShader; // real shaders will load later
 		out->contents = LittleLong( in->contents );
-		texnum = LittleLong( in->texnum );
-
-		if( texnum < 0 || texnum > m_pLoadModel->numTextures )
-			Host_Error( "R_LoadTexInfo: bad texture number in '%s'\n", m_pLoadModel->name );
-		out->texture = m_pLoadModel->textures + texnum;
-
-		if( out->flags & (SURF_SKY|SURF_NODRAW))
-		{
-			// this is not actually needed
-			out->shader = r_defaultShader;
-			continue;
-		}
-
-		// get surfaceParm
-		if( out->flags & (SURF_WARP|SURF_ALPHA|SURF_BLEND|SURF_ADDITIVE|SURF_CHROME))
-		{
-			surfaceParm = 0;
-
-			if( out->flags & SURF_WARP )
-				surfaceParm |= SURFACEPARM_WARP;
-			if( out->flags & SURF_ALPHA )
-				surfaceParm |= SURFACEPARM_ALPHA;
-			if( out->flags & SURF_BLEND )
-				surfaceParm |= SURFACEPARM_BLEND;
-			if( out->flags & SURF_ADDITIVE )
-				surfaceParm |= SURFACEPARM_ADDITIVE;
-			if( out->flags & SURF_ADDITIVE )
-				surfaceParm |= SURFACEPARM_CHROME;
-		}
-		else surfaceParm = SURFACEPARM_LIGHTMAP;
-
-		if( out->flags & SURF_MIRROR|SURF_PORTAL )
-		{
-			surfaceParm &= ~SURFACEPARM_LIGHTMAP;
-		}
-
-		// performance evaluation option
-		if( r_singleshader->integer )
-		{
-			out->shader = r_defaultShader;
-			continue;
-		}
-
-		// lightmap visualization tool
-		if( r_lightmap->integer && (surfaceParm & SURFACEPARM_LIGHTMAP))
-		{
-			out->shader = r_lightmapShader;
-			continue;
-		}
-
-		// load the shader
-		out->shader = R_FindShader( out->texture->name, SHADER_TEXTURE, surfaceParm );
-
+		out->flags = LittleLong( in->flags );
 	}
 }
 
@@ -400,224 +205,16 @@ Fills in surf->mins and surf->maxs
 */
 static void R_CalcSurfaceBounds( surface_t *surf )
 {
-	int		i, e;
+	int		i;
 	vertex_t		*v;
 
 	ClearBounds( surf->mins, surf->maxs );
 
-	for( i = 0; i < surf->numEdges; i++ )
+	for( i = 0; i < surf->numVertexes; i++ )
 	{
-		e = m_pLoadModel->surfEdges[surf->firstEdge + i];
-		if( e >= 0 ) v = &m_pLoadModel->vertexes[m_pLoadModel->edges[e].v[0]];
-		else v = &m_pLoadModel->vertexes[m_pLoadModel->edges[-e].v[1]];
+		v = &m_pLoadModel->vertexes[surf->firstVertex + i];
 		AddPointToBounds( v->point, surf->mins, surf->maxs );
 	}
-}
-
-/*
-=================
-R_CalcSurfaceExtents
-
-Fills in surf->textureMins and surf->extents
-=================
-*/
-static void R_CalcSurfaceExtents( surface_t *surf )
-{
-	float		mins[2], maxs[2], val;
-	int  		bmins[2], bmaxs[2];
-	int 		i, j, e;
-	vertex_t		*v;
-
-	mins[0] = mins[1] = 999999;
-	maxs[0] = maxs[1] = -999999;
-
-	for( i = 0; i < surf->numEdges; i++ )
-	{
-		e = m_pLoadModel->surfEdges[surf->firstEdge + i];
-		if( e >= 0 ) v = &m_pLoadModel->vertexes[m_pLoadModel->edges[e].v[0]];
-		else v = &m_pLoadModel->vertexes[m_pLoadModel->edges[-e].v[1]];
-
-		for( j = 0; j < 2; j++ )
-		{
-			val = DotProduct(v->point, surf->texInfo->vecs[j]) + surf->texInfo->vecs[j][3];
-			if( val < mins[j] ) mins[j] = val;
-			if( val > maxs[j] ) maxs[j] = val;
-		}
-	}
-
-	for( i = 0; i < 2; i++ )
-	{
-		bmins[i] = floor(mins[i] / 16);
-		bmaxs[i] = ceil(maxs[i] / 16);
-
-		surf->textureMins[i] = bmins[i] * 16;
-		surf->extents[i] = (bmaxs[i] - bmins[i]) * 16;
-	}
-}
-
-/*
-=================
-R_SubdividePolygon
-=================
-*/
-static void R_SubdividePolygon( surface_t *surf, int numVerts, float *verts )
-{
-	int		i, j;
-	vec3_t		mins, maxs;
-	float		*v;
-	vec3_t		front[64], back[64];
-	int		f, b;
-	float		m, dist, dists[64];
-	int		subdivideSize;
-	uint		index;
-	float		s, t;
-	vec3_t		total;
-	vec2_t		totalST, totalLM;
-	surfPoly_t	*p;
-	texInfo_t		*texInfo = surf->texInfo;
-
-	subdivideSize = texInfo->shader->tessSize;
-
-	ClearBounds( mins, maxs );
-	for( i = 0, v = verts; i < numVerts; i++, v += 3 )
-		AddPointToBounds( v, mins, maxs );
-
-	for( i = 0; i < 3; i++ )
-	{
-		m = subdivideSize * floor(((mins[i] + maxs[i]) * 0.5) / subdivideSize + 0.5);
-		if( maxs[i] - m < 8 ) continue;
-		if( m - mins[i] < 8 ) continue;
-
-		// cut it
-		v = verts + i;
-		for( j = 0; j < numVerts; j++, v += 3 )
-			dists[j] = *v - m;
-
-		// wrap cases
-		dists[j] = dists[0];
-		v -= i;
-		VectorCopy( verts, v );
-
-		for( f = j = b = 0, v = verts; j < numVerts; j++, v += 3 )
-		{
-			if( dists[j] >= 0 )
-			{
-				VectorCopy(v, front[f]);
-				f++;
-			}
-			if( dists[j] <= 0 )
-			{
-				VectorCopy(v, back[b]);
-				b++;
-			}
-			
-			if( dists[j] == 0 || dists[j+1] == 0 )
-				continue;
-			
-			if((dists[j] > 0) != (dists[j+1] > 0))
-			{
-				// clip point
-				dist = dists[j] / (dists[j] - dists[j+1]);
-				front[f][0] = back[b][0] = v[0] + (v[3] - v[0]) * dist;
-				front[f][1] = back[b][1] = v[1] + (v[4] - v[1]) * dist;
-				front[f][2] = back[b][2] = v[2] + (v[5] - v[2]) * dist;
-				f++;
-				b++;
-			}
-		}
-
-		R_SubdividePolygon( surf, f, front[0] );
-		R_SubdividePolygon( surf, b, back[0] );
-		return;
-	}
-
-	p = Mem_Alloc( m_pLoadModel->mempool, sizeof(surfPoly_t));
-	p->next = surf->poly;
-	surf->poly = p;
-
-	// create indices
-	p->numIndices = (numVerts * 3);
-	p->indices = Mem_Alloc( m_pLoadModel->mempool, p->numIndices * sizeof(unsigned));
-
-	for( i = 0, index = 2; i < p->numIndices; i += 3, index++ )
-	{
-		p->indices[i+0] = 0;
-		p->indices[i+1] = index - 1;
-		p->indices[i+2] = index;
-	}
-
-	// create vertices
-	p->numVertices = (numVerts + 2);
-	p->vertices = Mem_Alloc( m_pLoadModel->mempool, p->numVertices * sizeof(surfPolyVert_t));
-
-	VectorClear( total );
-	totalST[0] = totalST[1] = 0;
-	totalLM[0] = totalLM[1] = 0;
-
-	for( i = 0; i < numVerts; i++, verts += 3 )
-	{
-		// vertex
-		VectorCopy( verts, p->vertices[i+1].xyz );
-		VectorAdd( total, verts, total );
-
-		// texture coordinates
-		s = DotProduct( verts, texInfo->vecs[0] ) + texInfo->vecs[0][3];
-		if( texInfo->texture->width != -1 ) s /= texInfo->texture->width;
-		else s /= texInfo->texture->image->width;
-
-		t = DotProduct( verts, texInfo->vecs[1] ) + texInfo->vecs[1][3];
-		if( texInfo->texture->height != -1) t /= texInfo->texture->height;
-		else t /= texInfo->texture->image->height;
-
-		p->vertices[i+1].st[0] = s;
-		p->vertices[i+1].st[1] = t;
-
-		totalST[0] += s;
-		totalST[1] += t;
-
-		// lightmap texture coordinates
-		s = DotProduct(verts, texInfo->vecs[0]) + texInfo->vecs[0][3] - surf->textureMins[0];
-		s += surf->lmS * 16;
-		s += 8;
-		s /= LIGHTMAP_WIDTH * 16;
-
-		t = DotProduct(verts, texInfo->vecs[1]) + texInfo->vecs[1][3] - surf->textureMins[1];
-		t += surf->lmT * 16;
-		t += 8;
-		t /= LIGHTMAP_HEIGHT * 16;
-
-		p->vertices[i+1].lightmap[0] = s;
-		p->vertices[i+1].lightmap[1] = t;
-
-		totalLM[0] += s;
-		totalLM[1] += t;
-
-		// vertex color
-		p->vertices[i+1].color[0] = 1.0f;
-		p->vertices[i+1].color[1] = 1.0f;
-		p->vertices[i+1].color[2] = 1.0f;
-		p->vertices[i+1].color[3] = 1.0f;
-	}
-
-	// vertex
-	VectorScale( total, 1.0 / numVerts, p->vertices[0].xyz );
-
-	// texture coordinates
-	p->vertices[0].st[0] = totalST[0] / numVerts;
-	p->vertices[0].st[1] = totalST[1] / numVerts;
-
-	// lightmap texture coordinates
-	p->vertices[0].lightmap[0] = totalLM[0] / numVerts;
-	p->vertices[0].lightmap[1] = totalLM[1] / numVerts;
-
-	// vertex color
-	p->vertices[0].color[0] = 1.0f;
-	p->vertices[0].color[1] = 1.0f;
-	p->vertices[0].color[2] = 1.0f;
-	p->vertices[0].color[3] = 1.0f;
-
-	// copy first vertex to last
-	Mem_Copy( &p->vertices[i+1], &p->vertices[1], sizeof(surfPolyVert_t));
 }
 
 /*
@@ -625,95 +222,38 @@ static void R_SubdividePolygon( surface_t *surf, int numVerts, float *verts )
 R_BuildPolygon
 =================
 */
-static void R_BuildPolygon( surface_t *surf, int numVerts, float *verts )
+static void R_BuildSurfacePolygon( surface_t *surf )
 {
-	int		i;
-	uint		index;
-	float		s, t;
-	texInfo_t		*texInfo = surf->texInfo;
+	const vertex_t	*verts;
 	surfPoly_t	*p;
-	
+	int		i;
+
 	p = Mem_Alloc( m_pLoadModel->mempool, sizeof(surfPoly_t));
 	p->next = surf->poly;
 	surf->poly = p;
 
 	// create indices
-	p->numIndices = (numVerts - 2) * 3;
+	p->numIndices = surf->numIndexes;
 	p->indices = Mem_Alloc( m_pLoadModel->mempool, p->numIndices * sizeof(uint));
-
-	for( i = 0, index = 2; i < p->numIndices; i += 3, index++ )
-	{
-		p->indices[i+0] = 0;
-		p->indices[i+1] = index-1;
-		p->indices[i+2] = index;
-	}
+	Mem_Copy( p->indices, &m_pLoadModel->indexes[surf->firstIndex], p->numIndices * sizeof(uint));
 
 	// create vertices
-	p->numVertices = numVerts;
+	p->numVertices = surf->numVertexes;
 	p->vertices = Mem_Alloc( m_pLoadModel->mempool, p->numVertices * sizeof(surfPolyVert_t));
+	verts = &m_pLoadModel->vertexes[surf->firstVertex];
 	
-	for( i = 0; i < numVerts; i++, verts += 3 )
+	for( i = 0; i < surf->numVertexes; i++, verts++ )
 	{
 		// vertex
-		VectorCopy( verts, p->vertices[i].xyz );
-
-		// texture coordinates
-		s = DotProduct( verts, texInfo->vecs[0] ) + texInfo->vecs[0][3];
-		if( texInfo->texture->width != -1 ) s /= texInfo->texture->width;
-		else s /= texInfo->texture->image->width;
-
-		t = DotProduct( verts, texInfo->vecs[1] ) + texInfo->vecs[1][3];
-		if( texInfo->texture->height != -1) t /= texInfo->texture->height;
-		else t /= texInfo->texture->image->height;
-
-		p->vertices[i].st[0] = s;
-		p->vertices[i].st[1] = t;
-
-		// lightmap texture coordinates
-		s = DotProduct(verts, texInfo->vecs[0]) + texInfo->vecs[0][3] - surf->textureMins[0];
-		s += surf->lmS * 16;
-		s += 8;
-		s /= LIGHTMAP_WIDTH * 16;
-
-		t = DotProduct(verts, texInfo->vecs[1]) + texInfo->vecs[1][3] - surf->textureMins[1];
-		t += surf->lmT * 16;
-		t += 8;
-		t /= LIGHTMAP_HEIGHT * 16;
-
-		p->vertices[i].lightmap[0] = s;
-		p->vertices[i].lightmap[1] = t;
+		VectorCopy( verts->point, p->vertices[i].xyz );
+		p->vertices[i].st[0] = verts->st[0];
+		p->vertices[i].st[1] = verts->st[1];
+		p->vertices[i].lightmap[0] = verts->lm[0];
+		p->vertices[i].lightmap[1] = verts->lm[1];
 
 		// vertex color
-		p->vertices[i+1].color[0] = 1.0f;
-		p->vertices[i+1].color[1] = 1.0f;
-		p->vertices[i+1].color[2] = 1.0f;
-		p->vertices[i+1].color[3] = 1.0f;
+		Vector4Copy( verts->color, p->vertices[i].color );
 	}
-}
-
-/*
-=================
-R_BuildSurfacePolygons
-=================
-*/
-static void R_BuildSurfacePolygons( surface_t *surf )
-{
-	int		i, e;
-	vec3_t		verts[MAX_BUILD_SIDES];
-	vertex_t		*v;
-
-	// convert edges back to a normal polygon
-	for( i = 0; i < surf->numEdges; i++ )
-	{
-		e = m_pLoadModel->surfEdges[surf->firstEdge + i];
-		if( e >= 0 ) v = &m_pLoadModel->vertexes[m_pLoadModel->edges[e].v[0]];
-		else v = &m_pLoadModel->vertexes[m_pLoadModel->edges[-e].v[1]];
-		VectorCopy( v->point, verts[i] );
-	}
-
-	if( surf->texInfo->shader->flags & SHADER_TESSSIZE )
-		R_SubdividePolygon( surf, surf->numEdges, verts[0] );
-	else R_BuildPolygon( surf, surf->numEdges, verts[0] );
 }
 
 /*
@@ -723,53 +263,50 @@ R_LoadFaces
 */
 static void R_LoadFaces( const byte *base, const lump_t *l )
 {
-	dface_t		*in;
+	dsurface_t	*in;
 	surface_t 	*out;
 	int		i, lightofs;
 
-	in = (dface_t *)(base + l->fileofs);
-	if (l->filelen % sizeof(dface_t))
+	in = (dsurface_t *)(base + l->fileofs);
+	if (l->filelen % sizeof(dsurface_t))
 		Host_Error( "R_LoadFaces: funny lump size in '%s'\n", m_pLoadModel->name );
 
-	m_pLoadModel->numSurfaces = l->filelen / sizeof(dface_t);
+	m_pLoadModel->numSurfaces = l->filelen / sizeof(dsurface_t);
 	m_pLoadModel->surfaces = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numSurfaces * sizeof(surface_t));
 
 	R_BeginBuildingLightmaps();
 
 	for( i = 0; i < m_pLoadModel->numSurfaces; i++, in++, out++ )
 	{
-		out->firstEdge = LittleLong( in->firstedge );
-		out->numEdges = LittleLong( in->numedges );
-
-		if( LittleShort( in->side )) out->flags |= SURF_PLANEBACK;
+		out->firstIndex = LittleLong( in->firstindex );
+		out->numIndexes = LittleLong( in->numindices );
+		out->firstVertex = LittleLong( in->firstvertex );
+		out->numVertexes = LittleLong( in->numvertices );
 		out->plane = m_pLoadModel->planes + LittleLong( in->planenum );
-		out->texInfo = m_pLoadModel->texInfo + LittleLong( in->texinfo );
+		out->texInfo = m_pLoadModel->shaders + LittleLong( in->shadernum );
 
 		R_CalcSurfaceBounds( out );
-		R_CalcSurfaceExtents( out );
 
-		// tangent vectors
-		VectorCopy( out->texInfo->vecs[0], out->tangent );
-		VectorNegate( out->texInfo->vecs[1], out->binormal );
+		// FIXME: tangent vectors
+		// VectorCopy( out->texInfo->vecs[0], out->tangent );
+		// VectorNegate( out->texInfo->vecs[1], out->binormal );
+		VectorCopy( out->plane->normal, out->normal );
 
-		if(!(out->flags & SURF_PLANEBACK))
-			VectorCopy( out->plane->normal, out->normal );
-		else VectorNegate( out->plane->normal, out->normal );
-
-		VectorNormalize( out->tangent );
-		VectorNormalize( out->binormal );
+		// FIXME: tangent vectors
+		// VectorNormalize( out->tangent );
+		// VectorNormalize( out->binormal );
 		VectorNormalize( out->normal );
 
 		// lighting info
-		out->lmWidth = (out->extents[0] >> 4) + 1;
-		out->lmHeight = (out->extents[1] >> 4) + 1;
+		out->lmWidth = in->lm_size[0];
+		out->lmHeight = in->lm_size[1];
 
 		if( out->texInfo->flags & (SURF_SKY|SURF_WARP|SURF_NODRAW))
 			lightofs = -1;
-		else lightofs = LittleLong( in->lightofs );
+		else lightofs = LittleLong( in->lm_base[0] ); // FIXME: hack
 
-		if( m_pLoadModel->lightData && lightofs != -1 )
-			out->lmSamples = m_pLoadModel->lightData + lightofs;
+		if( m_pLoadModel->lightMaps && lightofs != -1 )
+			out->lmSamples = m_pLoadModel->lightMaps + lightofs;
 
 		while( out->numStyles < MAX_LIGHTSTYLES && in->styles[out->numStyles] != 255 )
 		{
@@ -781,7 +318,7 @@ static void R_LoadFaces( const byte *base, const lump_t *l )
 		R_BuildSurfaceLightmap( out );
 
 		// create polygons
-		R_BuildSurfacePolygons( out );
+		R_BuildSurfacePolygon( out );
 	}
 	R_EndBuildingLightmaps();
 }
@@ -820,19 +357,25 @@ R_LoadVisibility
 */
 static void R_LoadVisibility( const byte *base, const lump_t *l )
 {
-	int	i;
+	if( !l->filelen )
+	{
+		size_t	pvs_size, row_size;
+	
+		// create novis lump
+		row_size = (m_pLoadModel->numClusters + 7) / 8;
+		pvs_size = row_size * m_pLoadModel->numClusters;
+		m_pLoadModel->vis = (dvis_t *)Mem_Alloc( m_pLoadModel->mempool, pvs_size + sizeof(dvis_t) - 1 );
+		m_pLoadModel->vis->numclusters = m_pLoadModel->numClusters;
+		m_pLoadModel->vis->rowsize = row_size;
+		memset( m_pLoadModel->vis->data, 0xFF, pvs_size );
+		return;
+	}
 
-	if( !l->filelen ) return;
-
-	m_pLoadModel->vis = Mem_Alloc( m_pLoadModel->mempool, l->filelen );
+	m_pLoadModel->vis = Mem_Alloc( m_pLoadModel->mempool, l->filelen + sizeof(dvis_t) - 1 );
 	Mem_Copy( m_pLoadModel->vis, base + l->fileofs, l->filelen );
 
-	m_pLoadModel->vis->numClusters = LittleLong( m_pLoadModel->vis->numClusters );
-	for( i = 0; i < m_pLoadModel->vis->numClusters; i++ )
-	{
-		m_pLoadModel->vis->bitOfs[i][0] = LittleLong(m_pLoadModel->vis->bitOfs[i][0]);
-		m_pLoadModel->vis->bitOfs[i][1] = LittleLong(m_pLoadModel->vis->bitOfs[i][1]);
-	}
+	m_pLoadModel->vis->numclusters = LittleLong ( m_pLoadModel->vis->numclusters );
+	m_pLoadModel->vis->rowsize = LittleLong ( m_pLoadModel->vis->rowsize );
 }
 
 /*
@@ -863,6 +406,8 @@ static void R_LoadLeafs( const byte *base, const lump_t *l )
 
 		out->contents = LittleLong( in->contents );
 		out->cluster = LittleLong( in->cluster );
+		if( out->cluster >= m_pLoadModel->numClusters )
+			m_pLoadModel->numClusters = out->cluster + 1;
 		out->area = LittleLong( in->area );
 		out->firstMarkSurface = m_pLoadModel->markSurfaces + LittleLong( in->firstleafface );
 		out->numMarkSurfaces = LittleLong( in->numleaffaces );
@@ -928,8 +473,6 @@ static void R_LoadNodes( const byte *base, const lump_t *l )
 	
 		out->plane = m_pLoadModel->planes + LittleLong( in->planenum );
 		out->contents = -1;
-		out->firstSurface = LittleLong( in->firstface );
-		out->numSurfaces = LittleLong( in->numfaces );
 
 		for( j = 0; j < 2; j++ )
 		{
@@ -1016,40 +559,8 @@ R_LoadLightgrid
 
 static void R_LoadLightgrid( const byte *base, const lump_t *l )
 {
-	byte		*data;
-	dlightgrid_t	*header;
-	lightGrid_t	*in, *out;
-	int		i;
-
 	if( !l->filelen ) return;
-	data = (byte *)(base + l->fileofs);
-	header = (dlightgrid_t *)data;
-	if(( l->filelen - sizeof(dlightgrid_t)) % sizeof(lightGrid_t))
-		Host_Error( "R_LoadLightgrid: funny lump size in '%s'\n", m_pLoadModel->name );
-
-	m_pLoadModel->gridMins[0] = LittleFloat( header->mins[0] );
-	m_pLoadModel->gridMins[1] = LittleFloat( header->mins[1] );
-	m_pLoadModel->gridMins[2] = LittleFloat( header->mins[2] );
-
-	m_pLoadModel->gridSize[0] = LittleFloat( header->size[0] );
-	m_pLoadModel->gridSize[1] = LittleFloat( header->size[1] );
-	m_pLoadModel->gridSize[2] = LittleFloat( header->size[2] );
-
-	m_pLoadModel->gridBounds[0] = LittleLong( header->bounds[0] );
-	m_pLoadModel->gridBounds[1] = LittleLong( header->bounds[1] );
-	m_pLoadModel->gridBounds[2] = LittleLong( header->bounds[2] );
-	m_pLoadModel->gridBounds[3] = LittleLong( header->bounds[3] );
-	m_pLoadModel->gridPoints = LittleLong( header->points );
-	in = (lightGrid_t *)(data + sizeof(dlightgrid_t));
-
-	m_pLoadModel->lightGrid = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->gridPoints * sizeof(lightGrid_t));
-
-	for( i = 0; i < m_pLoadModel->gridPoints; i++, in++, out++ )
-	{
-		out->lightDir[0] = LittleFloat( in->lightDir[0] );
-		out->lightDir[1] = LittleFloat( in->lightDir[1] );
-		out->lightDir[2] = LittleFloat( in->lightDir[2] );
-	}
+	// FIXME: implement
 }
 
 /*
@@ -1079,17 +590,13 @@ void Mod_LoadBrushModel( rmodel_t *mod, const void *buffer )
 	mod_base = (byte *)header;
 
 	// load into heap
-	R_LoadStringData( mod_base, &header->lumps[LUMP_STRINGDATA]);
-	R_LoadStringTable( mod_base, &header->lumps[LUMP_STRINGTABLE]);
-	R_LoadVertexes( mod_base, &header->lumps[LUMP_VERTEXES]);
-	R_LoadEdges( mod_base, &header->lumps[LUMP_EDGES]);
-	R_LoadSurfEdges( mod_base, &header->lumps[LUMP_SURFEDGES]);
-	R_LoadLighting( mod_base, &header->lumps[LUMP_LIGHTING]);
+	R_LoadVertexes( mod_base, &header->lumps[LUMP_VERTICES]);
+	R_LoadIndexes( mod_base, &header->lumps[LUMP_INDICES]);
+	R_LoadLighting( mod_base, &header->lumps[LUMP_LIGHTMAPS]);
 	R_LoadLightgrid( mod_base, &header->lumps[LUMP_LIGHTGRID]);
 	R_LoadPlanes( mod_base, &header->lumps[LUMP_PLANES]);
-	R_LoadTextures( mod_base, &header->lumps[LUMP_TEXTURES]);
-	R_LoadTexInfo( mod_base, &header->lumps[LUMP_TEXINFO]);
-	R_LoadFaces( mod_base, &header->lumps[LUMP_FACES]);
+	R_LoadShaders( mod_base, &header->lumps[LUMP_SHADERS]);
+	R_LoadFaces( mod_base, &header->lumps[LUMP_SURFACES]);
 	R_LoadMarkSurfaces( mod_base, &header->lumps[LUMP_LEAFFACES]);
 	R_LoadVisibility( mod_base, &header->lumps[LUMP_VISIBILITY]);
 	R_LoadLeafs( mod_base, &header->lumps[LUMP_LEAFS]);
@@ -1253,23 +760,9 @@ R_RegisterModel
 rmodel_t *R_RegisterModel( const char *name )
 {
 	rmodel_t	*mod;
-	int	i;
 	
 	mod = Mod_ForName( name, false );
-	if( mod )
-	{
-		switch( mod->type )
-		{
-		case mod_world:
-		case mod_brush:
-		case mod_studio:
-		case mod_sprite:
-			for( i = 0; i < mod->numTextures; i++ )
-				mod->textures[i].image->registration_sequence = registration_sequence;
-			break;
-		default: return NULL; // mod_bad, etc
-		}
-	}
+	R_ShaderRegisterImages( mod );
 	return mod;
 }
 

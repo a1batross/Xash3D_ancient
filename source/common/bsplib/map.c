@@ -24,7 +24,8 @@ bsp_entity_t	*mapent;
 int		c_boxbevels;
 int		c_edgebevels;
 int		c_areaportals;
-int		c_clipbrushes;
+int		c_structural;
+int		c_detail;
 
 /*
 =============================================================================
@@ -33,8 +34,6 @@ PLANE FINDING
 
 =============================================================================
 */
-#define USE_HASHING		// comment this to make plane finding use linear sort
-
 /*
 =================
 PlaneTypeForNormal
@@ -175,22 +174,6 @@ FindFloatPlane
 
 =============
 */
-#ifndef USE_HASHING
-int FindFloatPlane( vec3_t normal, vec_t dist )
-{
-	int	i;
-	plane_t	*p;
-
-	SnapPlane( normal, &dist );
-	for( i = 0, p = mapplanes; i < nummapplanes; i++, p++ )
-	{
-		if( PlaneEqual( p, normal, dist ))
-			return i;
-	}
-
-	return CreateNewFloatPlane( normal, dist );
-}
-#else
 int FindFloatPlane( vec3_t normal, vec_t dist )
 {
 	int		i;
@@ -214,7 +197,6 @@ int FindFloatPlane( vec3_t normal, vec_t dist )
 
 	return CreateNewFloatPlane( normal, dist );
 }
-#endif
 
 /*
 ================
@@ -236,6 +218,40 @@ int PlaneFromPoints (vec_t *p0, vec_t *p1, vec_t *p2)
 	return FindFloatPlane( normal, dist );
 }
 
+/*
+==================
+textureAxisFromPlane
+==================
+*/
+vec3_t baseaxis[18] =
+{
+{0,0,1 },	{1,0,0},	{0,-1,0},	// floor
+{0,0,-1}, {1,0,0},	{0,-1,0},	// ceiling
+{1,0,0 },	{0,1,0},	{0,0,-1},	// west wall
+{-1,0,0},	{0,1,0},	{0,0,-1},	// east wall
+{0,1,0 },	{1,0,0},	{0,0,-1},	// south wall
+{0,-1,0},	{1,0,0},	{0,0,-1},	// north wall
+};
+
+void TextureAxisFromPlane( plane_t *plane, vec3_t xv, vec3_t yv )
+{
+	int	bestaxis = 0;
+	vec_t	dot, best = 0;
+	int	i;
+	
+	for( i = 0; i < 6; i++ )
+	{
+		dot = DotProduct( plane->normal, baseaxis[i*3] );
+		if( dot > best )
+		{
+			best = dot;
+			bestaxis = i;
+		}
+	}
+	
+	VectorCopy( baseaxis[bestaxis*3+1], xv );
+	VectorCopy( baseaxis[bestaxis*3+2], yv );
+}
 
 //====================================================================
 
@@ -247,69 +263,61 @@ SetBrushContents
 */
 void SetBrushContents( bspbrush_t *b )
 {
-	int	brush_contents;
-	int	brush_surface;
+	int	contents, c2;
+	bool	mixed = false;
+	int	allFlags = 0;
 	side_t	*s;
 	int	i;
 
 	s = &b->sides[0];
-	brush_contents = s->contents;
-	brush_surface = texinfo[s->texinfo].flags;
+	contents = c2 = s->contents;
 
 	for( i = 1; i < b->numsides; i++, s++ )
 	{
 		s = &b->sides[i];
-		brush_surface |= texinfo[s->texinfo].flags; 
-		brush_contents |= s->contents; // multi-contents support
 
-		// merge contents for every side and store it for brushtexture too
-		// translucent objects are automatically classified as detail
-		if( s->surf & ( SURF_ALPHA|SURF_BLEND|SURF_ADDITIVE ))
-		{
-			s->contents |= CONTENTS_DETAIL;
-			s->texture->contents |= CONTENTS_DETAIL;
-			brush_contents |= CONTENTS_DETAIL;
-		}
-		if( s->contents & ( CONTENTS_CLIP ))
-		{
-			s->contents |= CONTENTS_DETAIL;
-			s->texture->contents |= CONTENTS_DETAIL;
-			brush_contents |= CONTENTS_DETAIL;
-		}
-		if(!(s->contents & ((CONTENTS_AREAPORTAL-1)|CONTENTS_CLIP|CONTENTS_FOG)))
-		{
-			s->contents |= CONTENTS_SOLID;
-			s->texture->contents |= CONTENTS_SOLID;
-			brush_contents |= CONTENTS_SOLID;
-		}
-		if( s->surf & ( SURF_HINT|SURF_SKIP ))
-		{
-			// hints and skips are never detail, and have no content
-			brush_contents = s->contents = s->texture->contents = 0;
-		}
+		if( !s->shader ) continue;
+		c2 = s->contents;
+		if( c2 != contents ) mixed = true;
+		allFlags |= s->surfaceFlags;
 
+		// multi-contents support
+		// FIXME: test it
+		// brush_contents |= c2;
 	}
 
-	if( brush_contents & CONTENTS_DETAIL )
-		b->detail = true;
-	else b->detail = false;
+	// just throw warning
+	if( mixed ) MsgDev( D_WARN, "Entity %i, Brush %i: mixed face contents\n", b->entitynum, b->brushnum );
 
-	// if any side is translucent, mark the contents and change solid to window
-	if( brush_surface & (SURF_ALPHA|SURF_BLEND|SURF_ADDITIVE))
+	if(( contents & CONTENTS_DETAIL ) && ( contents & CONTENTS_STRUCTURAL ))
 	{
-		brush_contents |= CONTENTS_TRANSLUCENT;
-		if( brush_contents & CONTENTS_SOLID )
-		{
-			brush_contents &= ~CONTENTS_SOLID;
-			brush_contents |= CONTENTS_WINDOW;
-		}
+		MsgDev( D_WARN, "Entity %i, Brush %i: mixed DETAIL and STRUCTURAL contents\n", num_entities - 1, entity_numbrushes );
+		contents &= ~CONTENTS_DETAIL;
 	}
-	if( brush_contents & CONTENTS_TRANSLUCENT )
+
+	// all translucent brushes that aren't specirically made structural will
+	// be detail
+	if(( contents & CONTENTS_TRANSLUCENT ) && !( contents & CONTENTS_STRUCTURAL ))
+		contents |= CONTENTS_DETAIL;
+
+	if( contents & CONTENTS_DETAIL )
+	{
+		c_detail++;
+		b->detail = true;
+	}
+	else
+	{
+		c_structural++;
+		b->detail = false;
+	}
+
+	if( contents & CONTENTS_TRANSLUCENT )
 		b->opaque = false;
 	else b->opaque = true;
 
-	// total contents from all sides
-	b->contents = brush_contents;
+	if( contents & CONTENTS_AREAPORTAL )
+		c_areaportals++;
+	b->contents = contents;
 }
 
 
@@ -356,9 +364,8 @@ void AddBrushBevels( void )
 				if( dir == 1 ) dist = buildBrush->maxs[axis];
 				else dist = -buildBrush->mins[axis];
 				s->planenum = FindFloatPlane( normal, dist );
+				
 				s->contents = buildBrush->sides[0].contents;
-				s->texinfo = buildBrush->sides[0].texinfo;
-				s->texture = buildBrush->sides[0].texture;
 				s->bevel = true;
 				c_boxbevels++;
 			}
@@ -440,8 +447,6 @@ void AddBrushBevels( void )
 
 					s2->planenum = FindFloatPlane( normal, dist );
 					s2->contents = buildBrush->sides[0].contents;
-					s2->texinfo = buildBrush->sides[0].texinfo;
-					s2->texture = buildBrush->sides[0].texture;
 					s2->bevel = true;
 					c_edgebevels++;
 				}
@@ -452,98 +457,114 @@ void AddBrushBevels( void )
 
 void ParseRawBrush( void )
 {
-	int		mt, i, j;
+	int		i, j;
 	int		planenum;
+	vec_t		ang, sinv, cosv;
 	vec_t		planepts[3][3];	// quark used float coords
+	vec3_t		vecs[2];
+	int		sv, tv;
+	vec_t		ns, nt;
+	vects_t		vects;
 	side_t		*side;
 	shader_t		*si;
-	brush_texture_t	td;
 
 	buildBrush->numsides = 0;
 	buildBrush->detail = false;
-	
+
+	if( g_brushtype == BRUSH_RADIANT ) Com_CheckToken( "{" );
+
 	while( 1 )
 	{
 		g_TXcommand = 0;
 		if( !Com_GetToken( true )) break;
 		if( Com_MatchToken( "}" )) break;
+		if( g_brushtype == BRUSH_RADIANT )
+		{
+			while( 1 )
+			{
+				if( Com_MatchToken( "(" ))
+					Com_GetToken( false );
+				else break;
+				Com_GetToken( true );
+			}
+		}
+
+		if( buildBrush->numsides == MAX_BUILD_SIDES )
+			Sys_Break( "MAX_BUILD_SIDES brush limit exceeded\n" );
+		Com_FreeToken();
 
 		side = &buildBrush->sides[buildBrush->numsides];
-		memset( side, 0, sizeof( *side ));
+		memset( side, 0, sizeof( *side ) );
+		buildBrush->numsides++;
 
 		// read the three point plane definition
-		for( i = 0; i < 3; i++ )
-		{
-			if( i != 0 ) Com_GetToken( true );
-			if(!Com_MatchToken( "(" )) Sys_Break( "ParseBrush: error parsing %d\n", buildBrush->brushnum );
-			
-			for( j = 0; j < 3; j++ )
-			{
-				Com_GetToken( false );
-				planepts[i][j] = com.atof( com_token );
-			}
-			
-			Com_GetToken( false );
-			if(!Com_MatchToken( ")" )) Sys_Break( "ParseBrush: missing \")\" in brush definition\n" );
-		}
+		Com_Parse1DMatrix( 3, planepts[0] );
+		Com_Parse1DMatrix( 3, planepts[1] );
+		Com_Parse1DMatrix( 3, planepts[2] );
+
+		if( g_brushtype == BRUSH_RADIANT ) Com_Parse2DMatrix( 2, 3, (float *)side->matrix );
 
 		// read the texturedef
 		Com_GetToken( false );
-		com.strcpy( td.name, com_token );
+		si = FindShader( com_token );	// register shader
+		side->shader = si;
+		side->contents = si->contents;
+		side->surfaceFlags = si->surfaceFlags;
+		side->value = si->value;
 
 		if( g_brushtype == BRUSH_WORLDCRAFT_22 ) // Worldcraft 2.2+
                     {
 			// texture U axis
 			Com_GetToken( false );
 			if(!Com_MatchToken("[")) Sys_Break( "missing '[' in texturedef (U)\n" );
-			Com_GetToken(false);
-			td.vects.valve.UAxis[0] = com.atof(com_token);
-			Com_GetToken(false);
-			td.vects.valve.UAxis[1] = com.atof(com_token);
-			Com_GetToken(false);
-			td.vects.valve.UAxis[2] = com.atof(com_token);
-			Com_GetToken(false);
-			td.vects.valve.shift[0] = com.atof(com_token);
-			Com_GetToken(false);
-			if (strcmp(com_token, "]")) Sys_Break( "missing ']' in texturedef (U)\n" );
+			Com_GetToken( false );
+			vects.valve.UAxis[0] = com.atof(com_token);
+			Com_GetToken( false );
+			vects.valve.UAxis[1] = com.atof(com_token);
+			Com_GetToken( false );
+			vects.valve.UAxis[2] = com.atof(com_token);
+			Com_GetToken( false );
+			vects.valve.shift[0] = com.atof(com_token);
+			Com_GetToken( false );
+			if(!Com_MatchToken("]")) Sys_Break( "missing ']' in texturedef (U)\n" );
 
 			// texture V axis
 			Com_GetToken( false );
-			if (strcmp(com_token, "[")) Sys_Break( "missing '[' in texturedef (V)\n" );
+			if(!Com_MatchToken("[")) Sys_Break( "missing '[' in texturedef (V)\n" );
 			Com_GetToken( false );
-			td.vects.valve.VAxis[0] = com.atof( com_token );
+			vects.valve.VAxis[0] = com.atof( com_token );
 			Com_GetToken( false );
-			td.vects.valve.VAxis[1] = com.atof( com_token );
+			vects.valve.VAxis[1] = com.atof( com_token );
 			Com_GetToken( false );
-			td.vects.valve.VAxis[2] = com.atof( com_token );
+			vects.valve.VAxis[2] = com.atof( com_token );
 			Com_GetToken( false );
-			td.vects.valve.shift[1] = com.atof( com_token );
+			vects.valve.shift[1] = com.atof( com_token );
 			Com_GetToken( false );
-			if(com.strcmp( com_token, "]")) Sys_Break( "missing ']' in texturedef (V)\n");
+			if(!Com_MatchToken("]")) Sys_Break( "missing ']' in texturedef (V)\n");
 
 			// texture rotation is implicit in U/V axes.
-			Com_GetToken(false);
-			td.vects.valve.rotate = 0;
+			Com_GetToken( false );
+			vects.valve.rotate = 0;
 
 			// texure scale
 			Com_GetToken( false );
-			td.vects.valve.scale[0] = com.atof( com_token );
-			Com_GetToken(false);
-			td.vects.valve.scale[1] = com.atof( com_token );
+			vects.valve.scale[0] = com.atof( com_token );
+			Com_GetToken( false );
+			vects.valve.scale[1] = com.atof( com_token );
                     }
 		else if( g_brushtype == BRUSH_WORLDCRAFT_21 )
 		{
-			// worldcraft 2.1-, Radiant
+			// worldcraft 2.1-, old Radiant
 			Com_GetToken( false );
-			td.vects.valve.shift[0] = com.atof(com_token);
+			vects.valve.shift[0] = com.atof( com_token );
 			Com_GetToken( false );
-			td.vects.valve.shift[1] = com.atof(com_token);
+			vects.valve.shift[1] = com.atof( com_token );
 			Com_GetToken( false );
-			td.vects.valve.rotate = com.atof(com_token);	
+			vects.valve.rotate = com.atof( com_token );	
 			Com_GetToken( false );
-			td.vects.valve.scale[0] = com.atof(com_token);
+			vects.valve.scale[0] = com.atof( com_token );
 			Com_GetToken( false );
-			td.vects.valve.scale[1] = com.atof(com_token);
+			vects.valve.scale[1] = com.atof( com_token );
                     }
 
 		if(( g_TXcommand == '1' || g_TXcommand == '2' ))
@@ -554,6 +575,7 @@ void ParseRawBrush( void )
 			float           dot22, dot23, dot33, mdet, aa, bb, dd;
 			int             k;
 
+			g_brushtype = BRUSH_QUARK;
 			k = g_TXcommand - '0';
 			for( j = 0; j < 3; j++ )
 			{
@@ -584,68 +606,112 @@ void ParseRawBrush( void )
 			}
 			for( j = 0; j < 3; j++ )
 			{
-				td.vects.quark.vects[0][j] = aa * TexPt[0][j] + bb * TexPt[1][j];
-				td.vects.quark.vects[1][j] = -(bb * TexPt[0][j] + dd * TexPt[1][j]);
+				vects.quark.vects[0][j] = aa * TexPt[0][j] + bb * TexPt[1][j];
+				vects.quark.vects[1][j] = -(bb * TexPt[0][j] + dd * TexPt[1][j]);
 			}
-			td.vects.quark.vects[0][3] = -DotProduct(td.vects.quark.vects[0], planepts[0]);
-			td.vects.quark.vects[1][3] = -DotProduct(td.vects.quark.vects[1], planepts[0]);
+			vects.quark.vects[0][3] = -DotProduct( vects.quark.vects[0], planepts[0]);
+			vects.quark.vects[1][3] = -DotProduct( vects.quark.vects[1], planepts[0]);
 		}
-		td.txcommand = g_TXcommand;		// Quark stuff, but needs setting always
-		td.flags = td.contents = td.value = 0;	// reset all values before setting
-		side->contents = side->surf = 0;
-
-		// get size from miptex info
-		mt = FindMiptex( td.name );
-		td.size[0] = dmiptex[mt].size[0];
-		td.size[1] = dmiptex[mt].size[1];
-
-		// get flags and contents from shader
-		si = FindShader( td.name );
-		if( si )
-		{
-			int t_next, t_name;
-
-			side->contents = td.contents = si->contents;
-			side->surf = td.flags = si->surfaceFlags;
-			dmiptex[mt].s_next = t_next = FindMiptex( si->nextframe );
-			t_name = dmiptex[t_next].s_name;
-
-			// NOTE: all textures in animchain must be stored into
-			// dmiptex array so engine can precache them correctly
-			while( t_next && dmiptex[mt].s_name != t_name ) 
-			{
-				si = FindShader(GetStringFromTable( t_name ));					
-				if( !si ) break; // end of animchain
-				t_next = dmiptex[t_next].s_next = FindMiptex( si->nextframe );
-				t_name = dmiptex[t_next].s_name;
-			}
-		}
-		
-		if( Com_TryToken()) // hidden quake2 legacy, but can be used
+		if( Com_TryToken()) // hidden q2/q3 legacy, but can be used
 		{
 			// overwrite shader values directly from .map file
-			side->contents = td.contents = com.atoi( com_token );
+			side->contents = com.atoi( com_token );
 			Com_GetToken( false );
-			side->surf = td.flags = com.atoi( com_token );
+			side->surfaceFlags = com.atoi( com_token );
 			Com_GetToken( false );
-			td.value = com.atoi(com_token);
+			side->value = com.atoi( com_token );
 		}
 
 		// find the plane number
 		planenum = PlaneFromPoints( planepts[0], planepts[1], planepts[2] );
-		side = &buildBrush->sides[buildBrush->numsides];
 		side->planenum = planenum;
-		side->texinfo = TexinfoForBrushTexture( &mapplanes[planenum], &td, vec3_origin );
-		// save the td off in case there is an origin brush and we
-		// have to recalculate the texinfo
-		side->texture = CopyTexture( &td );
-		buildBrush->numsides++;
+
+		if( g_brushtype == BRUSH_QUARK ) 
+		{
+			// QuArK format completely matched with internal
+			Mem_Copy( side->vecs, vects.quark.vects, sizeof( side->vecs ));
+		}
+		else if( g_brushtype != BRUSH_RADIANT )
+		{
+			if( g_brushtype == BRUSH_WORLDCRAFT_21 )
+				TextureAxisFromPlane( &mapplanes[planenum], vecs[0], vecs[1] );
+			if( !vects.valve.scale[0] ) vects.valve.scale[0] = 1.0f;
+			if( !vects.valve.scale[1] ) vects.valve.scale[1] = 1.0f;
+
+			if( g_brushtype == BRUSH_WORLDCRAFT_21 )
+			{
+				// rotate axis
+				if( vects.valve.rotate == 0 )
+				{
+					sinv = 0;
+					cosv = 1;
+				}
+				else if( vects.valve.rotate == 90 )
+				{
+					sinv = 1;
+					cosv = 0;
+				}
+				else if( vects.valve.rotate == 180 )
+				{
+					sinv = 0;
+					cosv = -1;
+				}
+				else if( vects.valve.rotate == 270 )
+				{
+					sinv = -1;
+					cosv = 0;
+				}
+				else
+				{
+					ang = vects.valve.rotate / 180 * M_PI;
+					sinv = sin( ang );
+					cosv = cos( ang );
+				}
+				if( vecs[0][0] ) sv = 0;
+				else if( vecs[0][1] ) sv = 1;
+				else sv = 2;
+
+				if( vecs[1][0] ) tv = 0;
+				else if( vecs[1][1] ) tv = 1;
+				else tv = 2;
+			
+				for( i = 0; i < 2; i++ )
+				{
+					ns = cosv * vecs[i][sv] - sinv * vecs[i][tv];
+					nt = sinv * vecs[i][sv] + cosv * vecs[i][tv];
+					vecs[i][sv] = ns;
+					vecs[i][tv] = nt;
+				}
+
+				for( i = 0; i < 2; i++ )
+					for( j = 0; j < 3; j++ )
+						side->vecs[i][j] = vecs[i][j] / vects.valve.scale[i];
+			}
+			else if( g_brushtype == BRUSH_WORLDCRAFT_22 )
+			{
+				vec_t scale;
+
+				scale = 1 / vects.valve.scale[0];
+				VectorScale(vects.valve.UAxis, scale, side->vecs[0]);
+				scale = 1 / vects.valve.scale[1];
+				VectorScale(vects.valve.VAxis, scale, side->vecs[1]);
+			}
+
+			side->vecs[0][3] = vects.valve.shift[0];
+			side->vecs[1][3] = vects.valve.shift[1];
+		}
 
 		if( buildBrush->numsides == MAX_BUILD_SIDES )
 		{
 			Msg( "Entity %i, Brush %i: brush sides limit exceeded\n", buildBrush->entitynum, buildBrush->brushnum );
 			break; // we will produce degenerated brush, but it's better than corrupted memory!
 		}
+	}
+	if( g_brushtype == BRUSH_RADIANT )
+	{
+		Com_FreeToken();
+		Com_CheckToken( "}" );
+		Com_CheckToken( "}" );
 	}
 }
 
@@ -715,7 +781,6 @@ and links it to the current entity
 bspbrush_t *FinishBrush( void )
 {
 	bspbrush_t	*b;
-	int		i;
 
 	// create windings for sides and bounds for brush
 	if( !CreateBrushWindings( buildBrush ))
@@ -727,10 +792,8 @@ bspbrush_t *FinishBrush( void )
 	// brushes that will not be visible at all will never be used as bsp splitters
 	if( buildBrush->contents & ( CONTENTS_CLIP ))
 	{
-		c_clipbrushes++;
-		for( i = 0; i < buildBrush->numsides; i++ )
-			buildBrush->sides[i].texinfo = TEXINFO_NODE;
 		buildBrush->detail = true;
+		c_detail++;
 	}
 
 	// origin brushes are removed, but they set
@@ -782,11 +845,19 @@ bspbrush_t *FinishBrush( void )
 		return NULL;
 	}
 
+	if( buildBrush->contents & CONTENTS_AREAPORTAL )
+	{
+		if( num_entities != 1 )
+		{
+			MsgDev( D_ERROR, "Entity %i, Brush %i: areaportals only allowed in world\n", num_entities - 1, entity_numbrushes );
+			return NULL;
+		}
+	}
 	AddBrushBevels();
 
 	// keep it
 	b = CopyBrush( buildBrush );
-	b->entitynum = num_entities-1;
+	b->entitynum = num_entities - 1;
 	b->brushnum = entity_numbrushes;
 	b->original = b;
 	b->next = mapent->brushes;
@@ -806,6 +877,8 @@ bool ParseBrush( bsp_entity_t *mapent )
 
 	ParseRawBrush();
 
+	buildBrush->portalareas[0] = -1;
+	buildBrush->portalareas[1] = -1;
 	buildBrush->entitynum = num_entities - 1;
 	buildBrush->brushnum = entity_numbrushes;
 
@@ -863,7 +936,6 @@ void AdjustBrushesForOrigin( bsp_entity_t *ent )
 			s = &b->sides[i];
 			newdist = mapplanes[s->planenum].dist - DotProduct( mapplanes[s->planenum].normal, ent->origin );
 			s->planenum = FindFloatPlane( mapplanes[s->planenum].normal, newdist );
-			s->texinfo = TexinfoForBrushTexture( &mapplanes[s->planenum], s->texture, ent->origin );
 		}
 		CreateBrushWindings( b );
 	}
@@ -893,7 +965,29 @@ bool ParseMapEntity( void )
 		if( Com_MatchToken( "}" )) break;
 		if( Com_MatchToken( "{" ))
 		{
-			ParseBrush( mapent );
+			// parse a brush or patch
+			if( !Com_GetToken( true )) break;
+			if( Com_MatchToken( "patchDef2" ))
+			{
+				g_brushtype = BRUSH_RADIANT;
+				while( Com_TryToken()); // Xash3D not supported patches
+			}
+			else if( Com_MatchToken( "terrainDef" ))
+			{
+				g_brushtype = BRUSH_RADIANT;
+				ParseTerrain();
+			}
+			else if( Com_MatchToken( "brushDef" ))
+			{
+				g_brushtype = BRUSH_RADIANT;
+				ParseBrush( mapent ); // parse brush primitive
+			}
+			else
+			{
+				// QuArK or Worldcraft map
+				Com_FreeToken();
+				ParseBrush( mapent );
+			}
 			entity_numbrushes++;
 		}
 		else
@@ -920,29 +1014,11 @@ bool ParseMapEntity( void )
 	// toss all brushes into the world entity
 	if( !com.strcmp( "func_group", ValueForKey( mapent, "classname" )))
 	{
+		if(!com.strcmp( "1", ValueForKey( mapent, "terrain" )))
+			SetTerrainTextures();
 		MoveBrushesToWorld( mapent );
 		num_entities--;
 		return true;
-	}
-
-	// areaportal entities move their brushes, but don't eliminate the entity
-	if( !com.strcmp( "func_areaportal", ValueForKey( mapent, "classname" )))
-	{
-		if( entity_numbrushes != 1 )
-		{
-			Msg( "func_areaportal #%i can only be a single brush, removed\n", num_entities - 1 );
-			num_entities--;
-		}
-		else
-		{
-			bspbrush_t *b = mapent->brushes;
-			b->contents = CONTENTS_AREAPORTAL;
-			c_areaportals++;
-			mapent->areaportalnum = c_areaportals;
-			// set the portal number as "areaportal"
-			SetKeyValue( mapent, "areaportal", va( "%i", c_areaportals ));
-			MoveBrushesToWorld( mapent );
-		}
 	}
 	return true;
 }
@@ -959,6 +1035,8 @@ void LoadMapFile( void )
 	bspbrush_t	*b;
 		
 	num_entities = 0;
+	numdrawsurfs = 0;
+	c_detail = 0;
 	g_brushtype = BRUSH_UNKNOWN;
 	
 	if(!Com_LoadScript( va( "maps/%s.map", gs_filename ), NULL, 0 ))
@@ -979,7 +1057,9 @@ void LoadMapFile( void )
 
 	VectorSubtract( map_maxs, map_mins, map_size );
 	MsgDev(D_INFO, "%5i total world brushes\n", CountBrushList( entities[0].brushes ));
-	MsgDev(D_INFO, "%5i clipbrushes\n", c_clipbrushes );
+	MsgDev(D_INFO, "%5i detail brushes\n", c_detail );
+	MsgDev(D_INFO, "%5i boxbevels\n", c_boxbevels );
+	MsgDev(D_INFO, "%5i edgebevels\n", c_edgebevels );
 	MsgDev(D_INFO, "%5i entities\n", num_entities );
 	MsgDev(D_INFO, "%5i planes\n", nummapplanes );
 	MsgDev(D_INFO, "%5i areaportals\n", c_areaportals );
