@@ -844,9 +844,11 @@ void GatherSampleLight (vec3_t pos, vec3_t normal,
 	float			dist;
 	float			scale;
 	float			*dest;
+	dvis_t			*dpvs;
 
 	// get the PVS for the pos to limit the number of checks
 	pvs = PvsForOrigin( pos );
+	dpvs = (dvis_t *)dpvsdata;
 
 	if( !pvs ) return;
 

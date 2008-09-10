@@ -24,9 +24,9 @@ static net_field_t ent_fields[] =
 { ES_FIELD(old_origin[0]),		NET_FLOAT, true	},	// send always
 { ES_FIELD(old_origin[1]),		NET_FLOAT, true	},
 { ES_FIELD(old_origin[2]),		NET_FLOAT, true	},
-{ ES_FIELD(old_velocity[0]),		NET_FLOAT, false	},	// client velocity
-{ ES_FIELD(old_velocity[1]),		NET_FLOAT, false	},
-{ ES_FIELD(old_velocity[2]),		NET_FLOAT, false	},
+{ ES_FIELD(infotarget[0]),		NET_FLOAT, false	},	// beam endpoint, portal camera pos, etc
+{ ES_FIELD(infotarget[1]),		NET_FLOAT, false	},
+{ ES_FIELD(infotarget[2]),		NET_FLOAT, false	},
 { ES_FIELD(model.index),		NET_WORD,	 false	},	// 4096 models
 { ES_FIELD(model.colormap),		NET_WORD,	 false	},	// encoded as two shorts for top and bottom color
 { ES_FIELD(model.scale),		NET_COLOR, false	},	// 0-255 values

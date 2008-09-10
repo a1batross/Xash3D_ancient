@@ -29,6 +29,7 @@ extern cvar_t *scr_loading;
 extern cvar_t *scr_download;
 extern cvar_t *scr_width;
 extern cvar_t *scr_height;
+extern cvar_t *sv_newprotocol;
 
 /*
 ==============================================================

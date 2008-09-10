@@ -13,13 +13,6 @@
 #define CAPSULE_MODEL_HANDLE	MAX_MODELS - 2
 #define BOX_MODEL_HANDLE	MAX_MODELS - 1
 
-typedef enum
-{
-	AP_UNREGISTERED = 0,
-	AP_CLOSED,
-	AP_OPENED
-} portalstate_t;
-
 typedef struct cpointf_s
 {
 	float v[3];
@@ -113,17 +106,16 @@ typedef struct
 
 typedef struct
 {
-	int		area;
-	int		otherarea;
-} careaportal_t;
-
-typedef struct
-{
-	int		numareaportals;
-	careaportal_t	*areaportals[MAX_MAP_AREAPORTALS];
 	int		floodnum;		// if two areas have equal floodnums, they are connected
 	int		floodvalid;
 } carea_t;
+
+typedef struct
+{
+	int		numClusters;
+	int		clusterBytes;
+	byte		*data;		// vis data
+} cvis_t;
 
 typedef struct material_info_s
 {
@@ -147,10 +139,7 @@ typedef struct collide_info_s
 typedef struct clipmap_s
 {
 	string		name;
-
 	uint		checksum;		// map checksum
-	byte		nullvis[MAX_MAP_LEAFS/8];
-	byte		portalstate[MAX_MAP_AREAPORTALS];
 
 	// brush, studio and sprite models
 	cmodel_t		cmodels[MAX_MODELS];
@@ -172,11 +161,12 @@ typedef struct clipmap_s
 	int		*indices;
 	cbrush_t		*brushes;
 	cbrushside_t	*brushsides;
-	dvis_t		*pvs;
-	dvis_t		*phs;
+	cvis_t		pvs;
+	cvis_t		phs;
 	NewtonCollision	*collision;
 	carea_t		*areas;
-	careaportal_t	*areaportals;
+	int		*areaportals;	// [ cm.numareas * cm.numareas ] reference counts
+	size_t		areaportals_size;
 
 	int		numbrushsides;
 	int		numplanes;
@@ -189,7 +179,6 @@ typedef struct clipmap_s
 	int		numsurfaces;
 	int		numbrushes;
 	int		numareas;
-	int		numclusters;
 	int		floodvalid;
 
 	// misc stuff
@@ -204,6 +193,7 @@ typedef struct clipmap_s
 	vfile_t		*world_tree;	// pre-calcualated collision tree (worldmodel only)
 	trace_t		trace;		// contains result of last trace
 	int		checkcount;
+	bool		vised;		// additional vis info
 } clipmap_t;
 
 typedef struct physic_s
@@ -268,9 +258,7 @@ extern float	*m_upVector;
 //
 int CM_PointLeafnum_r( const vec3_t p, cnode_t *node );
 int CM_PointLeafnum( const vec3_t p );
-void CM_StoreLeafs( leaflist_t *ll, cnode_t *node );
 void CM_StoreBrushes( leaflist_t *ll, cnode_t *node );
-void CM_BoxLeafnums_r( leaflist_t *ll, cnode_t *node );
 int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsize, int *lastleaf );
 int CM_BoxBrushes( const vec3_t mins, const vec3_t maxs, cbrush_t **list, int listsize );
 cmodel_t *CM_TempBoxModel( const vec3_t mins, const vec3_t maxs, bool capsule );

@@ -770,6 +770,11 @@ void R_StudioSetUpTransform( void )
 		// don't rotate player model, only aim
 		angles[PITCH] = 0;
 	}
+	else if( m_pCurrentEntity->ent_type == ED_VIEWMODEL )
+	{
+		// stupid quake bug
+		angles[PITCH] = -angles[PITCH];
+	}
 	else if( m_pCurrentEntity->movetype != MOVETYPE_NONE ) 
 	{
 		VectorCopy( m_pCurrentEntity->angles, angles );

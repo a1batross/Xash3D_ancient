@@ -22,26 +22,26 @@ static int	r_nummodels;
 R_PointInLeaf
 ===============
 */
-leaf_t *R_PointInLeaf( const vec3_t p )
+node_t *R_PointInLeaf( const vec3_t p )
 {
 	node_t		*node;
 	cplane_t		*plane;
 	float		d;	
 
 	if( !r_worldModel || !r_worldModel->nodes )
-		Host_Error( "Mod_PointInLeaf: bad model\n" );
+		Host_Error( "R_PointInLeaf: bad model\n" );
 
 	node = r_worldModel->nodes;
 	while( 1 )
 	{
-		if( node->contents != -1 )
-			return (leaf_t *)node;
+		if( node->contents != CONTENTS_NODE )
+			break;
 		plane = node->plane;
 		d = DotProduct( p, plane->normal ) - plane->dist;
 		if( d > 0 ) node = node->children[0];
 		else node = node->children[1];
 	}
-	return NULL; // never reached
+	return node;
 }
 
 /*
@@ -51,9 +51,9 @@ R_ClusterPVS
 */
 byte *R_ClusterPVS( int cluster )
 {
-	if( cluster == -1 || !r_worldModel || !r_worldModel->vis )
-		return r_fullvis;
-	return (byte *)r_worldModel->vis->data + cluster * r_worldModel->vis->rowsize;
+	if (!r_worldModel || !r_worldModel->vis || cluster < 0 || cluster >= r_worldModel->numClusters )
+		return r_worldModel->novis;
+	return (byte *)r_worldModel->vis + cluster * r_worldModel->clusterBytes;
 }
 
 /*
@@ -278,6 +278,7 @@ static void R_LoadFaces( const byte *base, const lump_t *l )
 
 	for( i = 0; i < m_pLoadModel->numSurfaces; i++, in++, out++ )
 	{
+		if( LittleLong( in->lm_side )) out->flags |= SURF_PLANEBACK;
 		out->firstIndex = LittleLong( in->firstindex );
 		out->numIndexes = LittleLong( in->numindices );
 		out->firstVertex = LittleLong( in->firstvertex );
@@ -290,7 +291,9 @@ static void R_LoadFaces( const byte *base, const lump_t *l )
 		// FIXME: tangent vectors
 		// VectorCopy( out->texInfo->vecs[0], out->tangent );
 		// VectorNegate( out->texInfo->vecs[1], out->binormal );
-		VectorCopy( out->plane->normal, out->normal );
+		if(!(out->flags & SURF_PLANEBACK))
+			VectorCopy( out->plane->normal, out->normal );
+		else VectorNegate( out->plane->normal, out->normal );
 
 		// FIXME: tangent vectors
 		// VectorNormalize( out->tangent );
@@ -357,60 +360,101 @@ R_LoadVisibility
 */
 static void R_LoadVisibility( const byte *base, const lump_t *l )
 {
-	if( !l->filelen )
-	{
-		size_t	pvs_size, row_size;
-	
-		// create novis lump
-		row_size = (m_pLoadModel->numClusters + 7) / 8;
-		pvs_size = row_size * m_pLoadModel->numClusters;
-		m_pLoadModel->vis = (dvis_t *)Mem_Alloc( m_pLoadModel->mempool, pvs_size + sizeof(dvis_t) - 1 );
-		m_pLoadModel->vis->numclusters = m_pLoadModel->numClusters;
-		m_pLoadModel->vis->rowsize = row_size;
-		memset( m_pLoadModel->vis->data, 0xFF, pvs_size );
-		return;
-	}
+	size_t	vis_length;
+	const byte *buffer;
 
-	m_pLoadModel->vis = Mem_Alloc( m_pLoadModel->mempool, l->filelen + sizeof(dvis_t) - 1 );
-	Mem_Copy( m_pLoadModel->vis, base + l->fileofs, l->filelen );
+	vis_length = ( m_pLoadModel->numClusters + 63 ) & ~63;
+	m_pLoadModel->novis = Mem_Alloc( m_pLoadModel->mempool, vis_length );
+	memset( m_pLoadModel->novis, 0xff, vis_length );
 
-	m_pLoadModel->vis->numclusters = LittleLong ( m_pLoadModel->vis->numclusters );
-	m_pLoadModel->vis->rowsize = LittleLong ( m_pLoadModel->vis->rowsize );
+	if( !l->filelen ) return;
+	buffer = base + l->fileofs;
+	m_pLoadModel->numClusters = LittleLong(((int *)buffer)[0] );
+	m_pLoadModel->clusterBytes = LittleLong(((int *)buffer)[1] );
+	m_pLoadModel->vis = Mem_Alloc( m_pLoadModel->mempool, l->filelen - VIS_HEADER_SIZE );
+	Mem_Copy(m_pLoadModel->vis, buffer + VIS_HEADER_SIZE, l->filelen - VIS_HEADER_SIZE );
 }
 
 /*
 =================
-R_LoadLeafs
+R_SetParent
 =================
 */
-static void R_LoadLeafs( const byte *base, const lump_t *l )
+static void R_NodeSetParent( node_t *node, node_t *parent )
 {
-	dleaf_t	*in;
-	leaf_t	*out;
-	int	i, j;
+	node->parent = parent;
+	if( node->contents != CONTENTS_NODE ) return;
 
-	in = (dleaf_t *)(base + l->fileofs);
-	if (l->filelen % sizeof(dleaf_t))
-		Host_Error( "R_LoadLeafs: funny lump size in '%s'\n", m_pLoadModel->name );
+	R_NodeSetParent( node->children[0], node );
+	R_NodeSetParent( node->children[1], node );
+}
 
-	m_pLoadModel->numLeafs = l->filelen / sizeof(dleaf_t);
-	m_pLoadModel->leafs = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numLeafs * sizeof(leaf_t));
+/*
+=================
+R_LoadLeafNodes
+=================
+*/
+static void R_LoadLeafNodes( const byte *base, const lump_t *nodes, const lump_t *leafs )
+{
+	int		i, j, p;
+	node_t 		*out;
+	dnode_t		*inNode;
+	dleaf_t		*inLeaf;
+	int		numNodes, numLeafs;
 
-	for( i = 0; i < m_pLoadModel->numLeafs; i++, in++, out++ )
+	inNode = (void *)(base + nodes->fileofs);
+	if( nodes->filelen % sizeof(dnode_t) || leafs->filelen % sizeof(dleaf_t))
+		Host_Error( "R_LoadLeafNodes: funny lump size in '%s'\n", m_pLoadModel->name );
+	numNodes = nodes->filelen / sizeof(dnode_t);
+	numLeafs = leafs->filelen / sizeof(dleaf_t);
+
+	out = Mem_Alloc( m_pLoadModel->mempool, (numNodes + numLeafs) * sizeof( *out ));	
+
+	m_pLoadModel->nodes = out;
+	m_pLoadModel->numNodes = numNodes + numLeafs;
+
+	// load nodes
+	for( i = 0; i < numNodes; i++, inNode++, out++ )
 	{
 		for( j = 0; j < 3; j++ )
 		{
-			out->mins[j] = LittleLong( in->mins[j] );
-			out->maxs[j] = LittleLong( in->maxs[j] );
+			out->mins[j] = LittleLong( inNode->mins[j] );
+			out->maxs[j] = LittleLong( inNode->maxs[j] );
+		}
+	
+		p = LittleLong( inNode->planenum );
+		if( p < 0 || p >= m_pLoadModel->numPlanes )
+			Host_Error( "R_LoadLeafNodes: bad planenum %i\n", p );
+		out->plane = m_pLoadModel->planes + p;
+		out->contents = CONTENTS_NODE;	// differentiate from leafs
+
+		for( j = 0; j < 2; j++ )
+		{
+			p = LittleLong( inNode->children[j] );
+			if( p >= 0 ) out->children[j] = m_pLoadModel->nodes + p;
+			else out->children[j] = m_pLoadModel->nodes + numNodes + (-1 - p);
+		}
+	}
+	
+	// load leafs
+	inLeaf = (void *)(base + leafs->fileofs);
+	for( i = 0; i < numLeafs; i++, inLeaf++, out++ )
+	{
+		for( j = 0; j < 3; j++ )
+		{
+			out->mins[j] = LittleLong( inLeaf->mins[j] );
+			out->maxs[j] = LittleLong( inLeaf->maxs[j] );
 		}
 
-		out->contents = LittleLong( in->contents );
-		out->cluster = LittleLong( in->cluster );
+		out->contents = LittleLong( inLeaf->contents );	// FIXME
+		out->cluster = LittleLong( inLeaf->cluster );
+		out->area = LittleLong( inLeaf->area );
+
 		if( out->cluster >= m_pLoadModel->numClusters )
 			m_pLoadModel->numClusters = out->cluster + 1;
-		out->area = LittleLong( in->area );
-		out->firstMarkSurface = m_pLoadModel->markSurfaces + LittleLong( in->firstleafface );
-		out->numMarkSurfaces = LittleLong( in->numleaffaces );
+
+		out->firstMarkSurface = m_pLoadModel->markSurfaces + LittleLong( inLeaf->firstleafface );
+		out->numMarkSurfaces = LittleLong( inLeaf->numleaffaces );
 
 		// mark the surfaces for caustics
 		if( out->contents & (CONTENTS_WATER|CONTENTS_SLIME|CONTENTS_LAVA))
@@ -428,61 +472,9 @@ static void R_LoadLeafs( const byte *base, const lump_t *l )
 					out->firstMarkSurface[j]->flags |= SURF_LAVACAUSTICS;
 			}
 		}
-	}
-}
+	}	
 
-/*
-=================
-R_SetParent
-=================
-*/
-static void R_NodeSetParent( node_t *node, node_t *parent )
-{
-	node->parent = parent;
-	if( node->contents != -1 ) return;
-
-	R_NodeSetParent( node->children[0], node );
-	R_NodeSetParent( node->children[1], node );
-}
-
-/*
-=================
-R_LoadNodes
-=================
-*/
-static void R_LoadNodes( const byte *base, const lump_t *l )
-{
-	dnode_t		*in;
-	node_t		*out;
-	int		i, j, p;
-
-	in = (dnode_t *)(base + l->fileofs);
-	if (l->filelen % sizeof(dnode_t))
-		Host_Error( "R_LoadNodes: funny lump size in '%s'\n", m_pLoadModel->name );
-
-	m_pLoadModel->numNodes = l->filelen / sizeof(dnode_t);
-	m_pLoadModel->nodes = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numNodes * sizeof(node_t));
-
-	for( i = 0; i < m_pLoadModel->numNodes; i++, in++, out++ )
-	{
-		for( j = 0; j < 3; j++ )
-		{
-			out->mins[j] = LittleLong(in->mins[j]);
-			out->maxs[j] = LittleLong(in->maxs[j]);
-		}
-	
-		out->plane = m_pLoadModel->planes + LittleLong( in->planenum );
-		out->contents = -1;
-
-		for( j = 0; j < 2; j++ )
-		{
-			p = LittleLong( in->children[j] );
-			if( p >= 0 ) out->children[j] = m_pLoadModel->nodes + p;
-			else out->children[j] = (node_t *)(m_pLoadModel->leafs + (-1 - p));
-		}
-	}
-
-	// set nodes and leafs
+	// chain decendants
 	R_NodeSetParent( m_pLoadModel->nodes, NULL );
 }
 
@@ -512,7 +504,6 @@ static void R_SetupSubmodels( void )
 
 		if( i == 0 ) *m_pLoadModel = *model;
 		else com.snprintf( model->name, sizeof(model->name), "*%i", i );
-		model->numLeafs = bm->visLeafs;
 	}
 }
 
@@ -574,6 +565,8 @@ void Mod_LoadBrushModel( rmodel_t *mod, const void *buffer )
 	byte		*mod_base;
 
 	m_pLoadModel->type = mod_world;
+	m_pLoadModel->numClusters = 0;
+
 	if( m_pLoadModel != r_models )
 	{
 		MsgDev( D_ERROR, "loaded a brush model after the world\n");
@@ -598,9 +591,8 @@ void Mod_LoadBrushModel( rmodel_t *mod, const void *buffer )
 	R_LoadShaders( mod_base, &header->lumps[LUMP_SHADERS]);
 	R_LoadFaces( mod_base, &header->lumps[LUMP_SURFACES]);
 	R_LoadMarkSurfaces( mod_base, &header->lumps[LUMP_LEAFFACES]);
+	R_LoadLeafNodes( mod_base, &header->lumps[LUMP_NODES], &header->lumps[LUMP_LEAFS] );
 	R_LoadVisibility( mod_base, &header->lumps[LUMP_VISIBILITY]);
-	R_LoadLeafs( mod_base, &header->lumps[LUMP_LEAFS]);
-	R_LoadNodes( mod_base, &header->lumps[LUMP_NODES]);
 	R_LoadSubmodels( mod_base, &header->lumps[LUMP_MODELS]);
 
 	mod->registration_sequence = registration_sequence;	// register model
@@ -734,8 +726,6 @@ void R_BeginRegistration( const char *mapname )
 	string	fullname;
 
 	registration_sequence++;
-	r_oldViewCluster = -1;	// force markleafs
-
 	com.sprintf( fullname, "maps/%s.bsp", mapname );
 
 	// explicitly free the old map if different
@@ -851,7 +841,7 @@ void R_InitModels( void )
 	r_worldModel = NULL;
 	r_frameCount = 1;				// no dlight cache
 	r_nummodels = 0;
-	r_viewCluster = r_oldViewCluster = -1;		// force markleafs
+	r_viewCluster = -1;				// force markleafs
 
 	r_worldEntity = &r_entities[0];		// First entity is the world
 	memset( r_worldEntity, 0, sizeof( ref_entity_t ));

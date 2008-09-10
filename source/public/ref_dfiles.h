@@ -131,6 +131,7 @@ BRUSH MODELS
 #define IDBSPMODHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'I') // little-endian "IBSP"
 
 // 32 bit limits
+#define MAX_MAP_AREA_BYTES		32	// bit vector of area visibility
 #define MAX_MAP_MODELS		0x2000	// mesh models and sprites too
 #define MAX_MAP_BRUSHES		0x8000
 #define MAX_MAP_ENTITIES		0x2000	// same as models
@@ -160,6 +161,7 @@ BRUSH MODELS
 #define MIN_WORLD_COORD		(-128 * 1024 )
 #define WORLD_SIZE			( MAX_WORLD_COORD - MIN_WORLD_COORD )
 #define MAX_BUILD_SIDES		512	// per one brush. (don't change)
+#define VIS_HEADER_SIZE		8	// sizeof(int) + sizeof(int)
 #define LIGHTMAP_WIDTH		128
 #define LIGHTMAP_HEIGHT		128
 #define LIGHTMAP_BITS		3	// RGB
@@ -292,7 +294,7 @@ typedef struct
 {
 	int	numclusters;
 	int	rowsize;
-	byte	data[1];		// variable sized
+	byte	data[1];		// unbounded, variable sized
 } dvis_t;
 
 typedef struct dlightmap_s

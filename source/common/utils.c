@@ -126,7 +126,7 @@ void Com_CheckToken( const char *match )
 
 	if(!Com_MatchToken( match ))
 	{
-		Sys_Break( "\"%s\" not found\n" );
+		Sys_Break( "Com_CheckToken: \"%s\" not found\n", match );
 	}
 }
 

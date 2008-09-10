@@ -54,8 +54,9 @@ shaderParm_t infoParms[] =
 	{"additive",	SURFACEPARM_ADDITIVE,	CONTENTS_TRANSLUCENT}, // don't eat contained surfaces
 	{"blend",		SURFACEPARM_BLEND,		CONTENTS_WINDOW	}, // normal window
 	{"chrome",	SURF_CHROME,		0		}, // don't eat contained surfaces
-// enbale after implementation mirrors
-// {"mirror",	SURFACEPARM_MIRROR,		CONTENTS_SOLID	},
+	{"nodraw",	0,			0,		}, // stub
+	{"null",		0,			0,		}, // stub
+	{"mirror",	SURFACEPARM_MIRROR,		0		},
 // {"portal",	SURFACEPARM_PORTAL,		CONTENTS_TRIGGER	},
 	{"light",		SURFACEPARM_LIGHTMAP,	0		},
 	{"lightmap",	SURFACEPARM_LIGHTMAP,	0		},
@@ -3824,7 +3825,6 @@ void R_ShaderRegisterImages( rmodel_t *mod )
 			}
 		}
 	}
-	Msg("R_ShaderRegisterImages: %s (%i textures updated)\n", mod->name, c_total );
 }
 
 /*

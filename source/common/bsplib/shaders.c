@@ -9,10 +9,10 @@ shader_t shaderInfo[MAX_SURFACE_INFO];
 
 typedef struct
 {
-	char	*name;
-	int	surfaceFlags;
-	int	contents;
-	bool	clearSolid;
+	const char	*name;
+	int		surfaceFlags;
+	int		contents;
+	bool		clearSolid;
 } infoParm_t;
 
 infoParm_t infoParms[] =
@@ -83,6 +83,8 @@ static void LoadShaderImage( shader_t *si )
 	rgbdata_t		*pic;
 
 	if( !si ) return;
+	if( !com.stricmp( si->name, "default" )) 
+		return;
 	pic = FS_LoadImage( si->name, NULL, 0 );
 	if( !pic ) return;
 
@@ -255,21 +257,24 @@ static void ParseShaderFile( char *filename )
 FindShader
 ===============
 */
-shader_t *FindShader( const char *texture )
+shader_t *FindShader( const char *textureName )
 {
 	string		shader;
 	shader_t		*si;
 	int		i;
-          
-	com.sprintf( shader, "textures/%s", texture );
+
+	// strip off extension
+	com.strncpy( shader, textureName, MAX_STRING );
+	FS_StripExtension( shader );	// cut off extension
 	com.strlwr( shader, shader );	// convert to lower case
 
 	// look for it
 	for( i = 0, si = shaderInfo; i < numShaderInfo; i++, si++ )
 	{
-		if( !com.stricmp( shader, si->name ))
+		if( !com.stricmp( va("textures/%s", shader ), si->name ) || !com.stricmp( shader, si->name ))
 		{
-			LoadShaderImage( si );
+			if( !si->width || !si->height )
+				LoadShaderImage( si );
 			return si;			
 		}
 	}

@@ -460,6 +460,8 @@ BRUSH MODELS
 
 =======================================================================
 */
+#define SURF_PLANEBACK		1 // fast surface culling
+#define CONTENTS_NODE		-1
 #define SKY_SIZE			8
 #define SKY_INDICES			(SKY_SIZE * SKY_SIZE * 6)
 #define SKY_VERTICES		((SKY_SIZE+1) * (SKY_SIZE+1))
@@ -568,6 +570,7 @@ typedef struct
 	int		lmS;
 	int		lmT;
 	int		lmNum;
+	float		lmVecs[2][3];	// lightmap vecs
 	byte		*lmSamples;
 	int		numStyles;
 	byte		styles[MAX_LIGHTSTYLES];
@@ -576,33 +579,23 @@ typedef struct
 
 typedef struct node_s
 {
-	// common with leaf
-	int		contents;	// -1, to differentiate from leafs
-	int		visFrame;	// Node needs to be traversed if current
-	vec3_t		mins;		// For bounding box culling
-	vec3_t		maxs;		// For bounding box culling
+	// common with leaf and node
+	int		contents;		// -1, to differentiate from leafs
+	int		visFrame;		// Node needs to be traversed if current
+	vec3_t		mins, maxs;	// for bounding box culling
 	struct node_s	*parent;
 
 	// node specific
 	cplane_t		*plane;
-	struct node_s	*children[2];	
-} node_t;
-
-typedef struct leaf_s
-{
-	// common with node
-	int		contents;
-	int		visFrame;	// node needs to be traversed if current
-	vec3_t		mins;	// for bounding box culling
-	vec3_t		maxs;	// for bounding box culling
-	struct node_s	*parent;
-
+	struct node_s	*children[2];
+	
+	// common with leaf
 	// leaf specific
 	int		cluster;
 	int		area;
 	surface_t		**firstMarkSurface;
 	int		numMarkSurfaces;
-} leaf_t;
+} node_t;
 
 typedef struct
 {
@@ -620,8 +613,6 @@ typedef struct
 	vec3_t		maxs;
 	vec3_t		origin;		// for sounds or lights
 	float		radius;
-	int		headNode;
-	int		visLeafs;		// not including the solid leaf 0
 	int		firstFace;
 	int		numFaces;
 } submodel_t;
@@ -782,14 +773,14 @@ typedef struct rmodel_s
 	cplane_t		*planes;
 
 	int		numNodes;
-	node_t		*nodes;
+	node_t		*nodes;			// also included leafs
 
 	int		numClusters;
-	int		numLeafs;
-	leaf_t		*leafs;
+	int		clusterBytes;
+	byte		*vis;			// may be passed in by CM_LoadMap to save space
+	byte		*novis;			// clusterBytes of 0xff
 
 	sky_t		*sky;
-	dvis_t		*vis;
 	byte		*lightMaps;
 	int		numLightmaps;
 
@@ -887,7 +878,7 @@ typedef struct ref_entity_s
 } ref_entity_t;
 
 const char *R_GetStringFromTable( int index );
-leaf_t	*R_PointInLeaf( const vec3_t p );
+node_t	*R_PointInLeaf( const vec3_t p );
 byte	*R_ClusterPVS( int cluster );
 
 void	R_ModelList_f( void );
@@ -1175,8 +1166,8 @@ extern vec3_t      	r_worldMins, r_worldMaxs;
 
 extern int         	r_frameCount;
 extern int         	r_visFrameCount;
-extern int         	r_viewCluster, r_viewCluster2;
-extern int         	r_oldViewCluster, r_oldViewCluster2;
+extern int         	r_viewCluster;
+extern int	r_areabitsChanged;
 extern vec3_t	r_origin;				// same as r_refdef.vieworg
 extern vec3_t	r_forward;
 extern vec3_t	r_right;
@@ -1223,7 +1214,6 @@ void		R_AddSpriteModelToList( ref_entity_t *entity );
 void		R_SpriteLoadModel( rmodel_t *mod, const void *buffer );
 mspriteframe_t	*R_GetSpriteFrame( ref_entity_t *ent );
 
-void		R_MarkLights( void );
 void		R_LightDir( const vec3_t origin, vec3_t lightDir );
 void		R_LightForPoint( const vec3_t point, vec3_t ambientLight );
 void		R_LightingAmbient( void );

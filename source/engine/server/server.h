@@ -72,7 +72,7 @@ typedef enum
 
 typedef enum
 {
-	cs_free,		// can be reused for a new connection
+	cs_free = 0,	// can be reused for a new connection
 	cs_zombie,	// client has been disconnected, but don't reuse connection for a couple seconds
 	cs_connected,	// has been assigned to a sv_client_t, but not in game yet
 	cs_spawned	// client is fully in game
@@ -88,6 +88,7 @@ typedef struct server_s
 	float		time;		// always sv.framenum * 50 msec
 	float		frametime;
 	int		framenum;
+	int		net_framenum;
 
 	string		name;		// map name, or cinematic name
 	cmodel_t		*models[MAX_MODELS];
@@ -109,7 +110,7 @@ typedef struct server_s
 typedef struct
 {
 	entity_state_t	ps;
-	byte 		areabits[MAX_MAP_AREAS/8];	// portalarea visibility bits
+	byte 		areabits[MAX_MAP_AREA_BYTES];	// portalarea visibility bits
 	int  		areabits_size;
 	int  		num_entities;
 	int  		first_entity;		// into the circular sv_packet_entities[]
@@ -184,9 +185,11 @@ struct sv_edict_s
 	int			linkcount;
 	int			num_clusters;	// if -1, use headnode instead
 	int			clusternums[MAX_ENT_CLUSTERS];
+	int			framenum;		// update framenumber
 	int			areanum, areanum2;
 	bool			forceupdate;	// physic_push force update
 	bool			suspended;	// suspended in air toss object
+	bool			linked;		// passed through SV_LinkEdict
 
 	vec3_t			water_origin;	// step old origin
 	vec3_t			moved_origin;	// push old origin

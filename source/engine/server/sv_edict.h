@@ -82,6 +82,7 @@ struct sv_entvars_s
 	vec3_t	size;
 	float	mass;
 	float	solid;
+	float	contents;
 	float	movetype;
 	float	waterlevel;
 	float	watertype;
@@ -99,7 +100,6 @@ struct sv_entvars_s
 	float	renderfx;
 	float	renderamt;
 	float	colormap;
-	float	areaportal;
 	float	flags;
 	float	aiflags;
 	float	spawnflags;
@@ -142,6 +142,6 @@ struct sv_entvars_s
 	float	team;
 };
 
-#define PROG_CRC_SERVER		12094
+#define PROG_CRC_SERVER		9289
 
 #endif//SV_EDICT_H

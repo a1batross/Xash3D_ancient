@@ -2118,7 +2118,7 @@ void PF_AreaPortalState( void )
 	ent = PRVM_G_EDICT( OFS_PARM0 );
 	if( ent->priv.sv->areanum2 == -1 ) return;
 	open = (bool)PRVM_G_FLOAT( OFS_PARM1 );
-	pe->SetAreaPortalState( ent->priv.sv->s.number, ent->priv.sv->areanum, ent->priv.sv->areanum2, open );
+	pe->SetAreaPortalState( ent->priv.sv->areanum, ent->priv.sv->areanum2, open );
 }
 
 /*

@@ -39,10 +39,8 @@ int		lightdatasize;
 dlightgrid_t	dlightgrid[MAX_MAP_LIGHTGRID];
 int		numlightgrids;
 byte		dpvsdata[MAX_MAP_VISIBILITY];
-dvis_t		*dpvs = (dvis_t *)dpvsdata;
 int		pvsdatasize;
 byte		dphsdata[MAX_MAP_VISIBILITY];
-dvis_t		*dphs = (dvis_t *)dphsdata;
 int		phsdatasize;
 
 //=============================================================================
@@ -100,12 +98,12 @@ void SwapBSPFile( void )
 	SwapBlock( (int *)dsurfaces, numsurfaces * sizeof(dsurfaces[0]));
 
 	// visibility
-	dpvs->numclusters = LittleLong( dpvs->numclusters );
-	dpvs->rowsize = LittleLong( dpvs->rowsize );
+	((int *)&dpvsdata)[0] = LittleLong( ((int *)&dpvsdata)[0] );
+	((int *)&dpvsdata)[1] = LittleLong( ((int *)&dpvsdata)[1] );
 
 	// hearability
-	dphs->numclusters = LittleLong( dphs->numclusters );
-	dphs->rowsize = LittleLong( dphs->rowsize );
+	((int *)&dphsdata)[0] = LittleLong( ((int *)&dphsdata)[0] );
+	((int *)&dphsdata)[1] = LittleLong( ((int *)&dphsdata)[1] );
 }
 
 size_t BSP_LoadLump( const char *lumpname, void *dest, size_t block_size )
@@ -183,7 +181,7 @@ bool LoadBSPFile( void )
 	numvertexes = CopyLump (LUMP_VERTICES, dvertexes, sizeof(dvertex_t));
 	numindexes = CopyLump (LUMP_INDICES, dindexes, sizeof(dindexes[0]));
 	dcollisiondatasize = CopyLump(LUMP_COLLISION, dcollision, 1);
-	numsurfaces = CopyLump (LUMP_SURFACES, dsurfaces, sizeof(dsurface_t));
+	numsurfaces = CopyLump (LUMP_SURFACES, dsurfaces, sizeof(dsurfaces[0]));
 	lightdatasize = CopyLump (LUMP_LIGHTMAPS, dlightdata, 1);
 	pvsdatasize = CopyLump (LUMP_VISIBILITY, dpvsdata, 1);
 	phsdatasize = CopyLump (LUMP_HEARABILITY, dphsdata, 1);
@@ -250,7 +248,7 @@ void WriteBSPFile( void )
 	AddLump (LUMP_VERTICES, dvertexes, numvertexes*sizeof(dvertexes[0]));
 	AddLump (LUMP_INDICES, dindexes, numindexes*sizeof(dindexes[0]));
 	AddLump (LUMP_COLLISION, dcollision, dcollisiondatasize );
-	AddLump (LUMP_SURFACES, dsurfaces, numsurfaces*sizeof(dsurface_t));	
+	AddLump (LUMP_SURFACES, dsurfaces, numsurfaces*sizeof(dsurfaces[0]));	
 	AddLump (LUMP_LIGHTMAPS, dlightdata, lightdatasize);
 	AddLump (LUMP_VISIBILITY, dpvsdata, pvsdatasize);
 	AddLump (LUMP_HEARABILITY, dphsdata, phsdatasize);
@@ -314,8 +312,8 @@ bool ParseEntity (void)
 
 	if (!Com_GetToken (true)) return false;
 
-	if (!Com_MatchToken( "{")) Sys_Error ("ParseEntity: { not found");
-	if (num_entities == MAX_MAP_ENTITIES) Sys_Error ("num_entities == MAX_MAP_ENTITIES");
+	if( !Com_MatchToken( "{" )) Sys_Break( "ParseEntity: '{' not found\n" );
+	if( num_entities == MAX_MAP_ENTITIES ) Sys_Break( "MAX_MAP_ENTITIES limit excceded\n" );
 
 	mapent = &entities[num_entities];
 	num_entities++;

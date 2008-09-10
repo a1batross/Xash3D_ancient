@@ -17,6 +17,7 @@ enum
 	BRUSH_WORLDCRAFT_22,	// half-life worldcraft >= 2.2
 	BRUSH_RADIANT,
 	BRUSH_QUARK,
+	BRUSH_COUNT
 };
 
 #define MAX_BRUSH_SIDES		128
@@ -383,10 +384,8 @@ extern	byte dcollision[MAX_MAP_COLLISION];
 extern	int dcollisiondatasize;
 extern	int pvsdatasize;
 extern	byte dpvsdata[MAX_MAP_VISIBILITY];
-extern	dvis_t *dpvs;
 extern	int phsdatasize;
 extern	byte dphsdata[MAX_MAP_VISIBILITY];
-extern	dvis_t *dphs;
 extern	int lightdatasize;
 extern	byte dlightdata[MAX_MAP_LIGHTDATA];
 

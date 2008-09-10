@@ -15,8 +15,8 @@ ref_entity_t	*r_worldEntity;
 vec3_t		r_worldMins, r_worldMaxs;
 int		r_frameCount;
 int		r_visFrameCount;
-int		r_viewCluster, r_viewCluster2;
-int		r_oldViewCluster, r_oldViewCluster2;
+int		r_areabitsChanged;
+int		r_viewCluster;
 int		numRadarEnts = 0;
 radar_ent_t	RadarEnts[MAX_RADAR_ENTS];
 
@@ -83,7 +83,17 @@ static bool R_CullSurface( surface_t *surf, const vec3_t origin, int clipFlags )
 	plane = surf->plane;
 	if( plane->type < 3 ) dist = origin[plane->type] - plane->dist;
 	else dist = DotProduct( origin, plane->normal ) - plane->dist;
-	if( dist <= BACKFACE_EPSILON ) return true; // wrong side
+
+	if(!(surf->flags & SURF_PLANEBACK))
+	{
+		if( dist <= BACKFACE_EPSILON )
+			return true; // wrong side
+	}
+	else
+	{
+		if( dist >= -BACKFACE_EPSILON )
+			return true; // wrong side
+	}
 
 	// cull
 	if( clipFlags )
@@ -247,91 +257,68 @@ Mark the leaves and nodes that are in the PVS for the current cluster
 */
 static void R_MarkLeaves( void )
 {
-	byte		*vis, fatVis[MAX_MAP_LEAFS/8];
-	node_t		*node;
-	leaf_t		*leaf;
-	vec3_t		tmp;
-	int		i, c;
+	byte		*vis;
+	int		i, cluster;
+	node_t		*leaf, *parent;
+
+	// lockpvs lets designers walk around to determine the
+	// extent of the current pvs
+	if( r_lockpvs->integer ) return;
 
 	// Current view cluster
-	r_oldViewCluster = r_viewCluster;
-	r_oldViewCluster2 = r_viewCluster2;
-
 	leaf = R_PointInLeaf( r_refdef.vieworg );
+	cluster = leaf->cluster;
 
-	if( r_showcluster->integer )
-		Msg( "Cluster: %i, Area: %i\n", leaf->cluster, leaf->area );
+	// if the cluster is the same and the area visibility matrix
+	// hasn't changed, we don't need to mark everything again
 
-	r_viewCluster = r_viewCluster2 = leaf->cluster;
-
-	// check above and below so crossing solid water doesn't draw wrong
-	if( !leaf->contents )
-	{
-		// look down a bit
-		VectorCopy( r_refdef.vieworg, tmp );
-		tmp[2] -= 16;
-		leaf = R_PointInLeaf( tmp );
-		if(!(leaf->contents & CONTENTS_SOLID) && (leaf->cluster != r_viewCluster2))
-			r_viewCluster2 = leaf->cluster;
-	}
-	else
-	{
-		// Look up a bit
-		VectorCopy( r_refdef.vieworg, tmp );
-		tmp[2] += 16;
-		leaf = R_PointInLeaf( tmp );
-		if(!(leaf->contents & CONTENTS_SOLID) && (leaf->cluster != r_viewCluster2))
-			r_viewCluster2 = leaf->cluster;
-	}
-
-	if( r_viewCluster == r_oldViewCluster && r_viewCluster2 == r_oldViewCluster2 && !r_novis->integer && r_viewCluster != -1 )
+	// if r_showcluster was just turned on, remark everything 
+	if( r_viewCluster == cluster && !r_areabitsChanged && !r_showcluster->modified )
 		return;
 
-	// development aid to let you run around and see exactly where the PVS ends
-	if( r_lockpvs->integer )
-		return;
+	if( r_showcluster->modified || r_showcluster->integer )
+	{
+		r_showcluster->modified = false;
+		if( r_showcluster->integer )
+			Msg( "cluster:%i  area:%i\n", cluster, leaf->area );
+	}
 
 	r_visFrameCount++;
-	r_oldViewCluster = r_viewCluster;
-	r_oldViewCluster2 = r_viewCluster2;
-
-	if( r_novis->integer || r_viewCluster == -1 || !r_worldModel->vis )
+	r_viewCluster = cluster;
+	
+	if( r_novis->integer || r_viewCluster == -1 )
 	{
-		// mark everything
-		for( i = 0, leaf = r_worldModel->leafs; i < r_worldModel->numLeafs; i++, leaf++ )
-			leaf->visFrame = r_visFrameCount;
-		for( i = 0, node = r_worldModel->nodes; i < r_worldModel->numNodes; i++, node++ )
-			node->visFrame = r_visFrameCount;
+		for( i = 0; i < r_worldModel->numNodes; i++ )
+		{
+			if( r_worldModel->nodes[i].contents != CONTENTS_SOLID )
+				r_worldModel->nodes[i].visFrame = r_visFrameCount;
+		}
 		return;
 	}
 
-	// may have to combine two clusters because of solid water boundaries
-	vis = R_ClusterPVS(r_viewCluster);
-	if( r_viewCluster != r_viewCluster2 )
+	vis = R_ClusterPVS( r_viewCluster );
+
+	for( i = 0, leaf = r_worldModel->nodes; i < r_worldModel->numNodes; i++, leaf++ )
 	{
-		Mem_Copy( fatVis, vis, (r_worldModel->numLeafs+7)/8);
-		vis = R_ClusterPVS( r_viewCluster2 );
-		c = (r_worldModel->numLeafs+31)/32;
-		for( i = 0; i < c; i++ )
-			((int *)fatVis)[i] |= ((int *)vis)[i];
-		vis = fatVis;
-	}
-	
-	for( i = 0, leaf = r_worldModel->leafs; i < r_worldModel->numLeafs; i++, leaf++ )
-	{
-		if( leaf->cluster == -1 )
-			continue;
-		if(!(vis[leaf->cluster>>3] & (1<<(leaf->cluster&7))))
+		cluster = leaf->cluster;
+		if( cluster < 0 || cluster >= r_worldModel->numClusters )
 			continue;
 
-		node = (node_t *)leaf;
-		do
-		{
-			if( node->visFrame == r_visFrameCount )
+		// check general pvs
+		if(!(vis[cluster>>3] & (1<<(cluster&7))))
+			continue;
+
+		// check for door connection
+		if((r_refdef.areabits[leaf->area>>3] & (1<<(leaf->area & 7 ))))
+			continue;	// not visible
+
+		parent = (node_t *)leaf;
+		do {
+			if( parent->visFrame == r_visFrameCount )
 				break;
-			node->visFrame = r_visFrameCount;
-			node = node->parent;
-		} while( node );
+			parent->visFrame = r_visFrameCount;
+			parent = parent->parent;
+		} while( parent );
 	}
 }
 
@@ -340,70 +327,94 @@ static void R_MarkLeaves( void )
 R_RecursiveWorldNode
 =================
 */
-static void R_RecursiveWorldNode( node_t *node, int clipFlags )
+static void R_RecursiveWorldNode( node_t *node, int planeBits, int dlightBits )
 {
-	leaf_t		*leaf;
-	surface_t		*surf, **mark;
 	cplane_t		*plane;
+	surface_t		*surf, **mark;
 	int		i, clipped;
 
-	if( node->contents == CONTENTS_SOLID )
-		return;	// solid
-
-	if( node->visFrame != r_visFrameCount )
-		return;
-
-	// cull
-	if( clipFlags )
+	while( 1 )
 	{
-		for( i = 0, plane = r_frustum; i < 4; i++, plane++ )
+		int	newDlights[2];
+
+		if( node->contents == CONTENTS_SOLID )
+			return;	// solid
+
+		if( node->visFrame != r_visFrameCount )
+			return;
+
+		// if the bounding volume is outside the frustum, nothing
+		// inside can be visible OPTIMIZE: don't do this all the way to leafs?
+		// g-cont. because we throw node->firstface and node->numfaces !!!!
+		if( planeBits )
 		{
-			if(!(clipFlags & (1<<i)))
-				continue;
+			for( i = 0, plane = r_frustum; i < 4; i++, plane++ )
+			{
+				if(!(planeBits & (1<<i))) continue;
 
-			clipped = BoxOnPlaneSide( node->mins, node->maxs, plane );
-			if( clipped == 2 ) return;
-			if( clipped == 1 ) clipFlags &= ~(1<<i);
+				clipped = BoxOnPlaneSide( node->mins, node->maxs, plane );
+				if( clipped == 2 ) return;
+				if( clipped == 1 ) planeBits &= ~(1<<i);
+			}
 		}
-	}
 
-	// recurse down the children
-	if( node->contents == -1 )
-	{
-		R_RecursiveWorldNode( node->children[0], clipFlags );
-		R_RecursiveWorldNode( node->children[1], clipFlags );
-		return;
-	}
+		if( node->contents != CONTENTS_NODE ) break;
 
-	// if a leaf node, draw stuff
-	leaf = (leaf_t *)node;
+		// node is just a decision point, so go down both sides
+		// since we don't care about sort orders, just go positive to negative
 
-	if( !leaf->numMarkSurfaces ) return;
+		// determine which dlights are needed
+		newDlights[0] = 0;
+		newDlights[1] = 0;
+		if( dlightBits )
+		{
+			for( i = 0; i < r_numDLights; i++ )
+			{
+				dlight_t	*dl;
+				float	dist;
 
-	// check for door connected areas
-	if( r_refdef.areabits )
-	{
-		if(!(r_refdef.areabits[leaf->area>>3] & (1<<(leaf->area&7))))
-			return; // not visible
+				if( dlightBits & (1<<i ))
+				{
+					dl = &r_dlights[i];
+					dist = DotProduct( dl->origin, node->plane->normal ) - node->plane->dist;
+					
+					if( dist > -dl->intensity ) newDlights[0] |= (1<<i);
+					if( dist < dl->intensity ) newDlights[1] |= (1<<i);
+				}
+			}
+		}
+
+		// recurse down the children, front side first
+		R_RecursiveWorldNode( node->children[0], planeBits, newDlights[0] );
+
+		// tail recurse
+		node = node->children[1];
+		dlightBits = newDlights[1];
 	}
 
 	// add to world mins/maxs
-	AddPointToBounds( leaf->mins, r_worldMins, r_worldMaxs );
-	AddPointToBounds( leaf->maxs, r_worldMins, r_worldMaxs );
+	AddPointToBounds( node->mins, r_worldMins, r_worldMaxs );
+	AddPointToBounds( node->maxs, r_worldMins, r_worldMaxs );
 
 	r_stats.numLeafs++;
 
-	// add all the surfaces
-	for( i = 0, mark = leaf->firstMarkSurface; i < leaf->numMarkSurfaces; i++, mark++ )
+	// add the individual surfaces
+	for( i = 0, mark = node->firstMarkSurface; i < node->numMarkSurfaces; i++, mark++ )
 	{
 		surf = *mark;
 
 		if( surf->visFrame == r_frameCount )
 			continue;	// already added this surface from another leaf
 		surf->visFrame = r_frameCount;
+		if( surf->dlightFrame != r_frameCount )
+		{
+			surf->dlightFrame = r_frameCount;
+			surf->dlightBits = dlightBits;
+		}
+		else surf->dlightBits |= dlightBits;
 
 		// cull
-		if( R_CullSurface( surf, r_refdef.vieworg, clipFlags ))
+		if( R_CullSurface( surf, r_refdef.vieworg, planeBits ))
 			continue;
 
 		// clip sky surfaces
@@ -425,27 +436,34 @@ R_AddWorldToList
 */
 void R_AddWorldToList( void )
 {
+	int	planeBits;
+	int	dlightBits;
+
 	if( r_refdef.rdflags & RDF_NOWORLDMODEL )
 		return;
 
 	if( !r_drawworld->integer )
 		return;
 
+	if( r_nocull->integer ) planeBits = 0;
+	else planeBits = MAX_CLIPFLAGS;
+
+	if( !r_dynamiclights->integer ) dlightBits = 0;
+	else dlightBits = (1<<r_numDLights ) - 1;
+
 	// bump frame count
 	r_frameCount++;
 
 	// auto cycle the world frame for texture animation
 	r_worldEntity->frame = (int)(r_refdef.time * 2);
+	r_stats.numDLights += r_numDLights;
 
 	// clear world mins/maxs
 	ClearBounds( r_worldMins, r_worldMaxs );
 
 	R_MarkLeaves();
-	R_MarkLights();
+	R_ClearSky();	// S.T.A.L.K.E.R ClearSky
 
-	R_ClearSky();
-
-	if( r_nocull->integer ) R_RecursiveWorldNode( r_worldModel->nodes, 0 );
-	else R_RecursiveWorldNode( r_worldModel->nodes, 15 );
+	R_RecursiveWorldNode( r_worldModel->nodes, planeBits, dlightBits );
 	R_AddSkyToList();
 }

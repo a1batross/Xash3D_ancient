@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "common.h"
 #include "server.h"
+#include "const.h"
 
 /*
 ===============================================================================
@@ -115,7 +116,7 @@ SV_ClearWorld
 
 ===============
 */
-void SV_ClearWorld (void)
+void SV_ClearWorld( void )
 {
 	cmodel_t	*world = sv.models[1];
 	memset( sv_worldsectors, 0, sizeof(sv_worldsectors));
@@ -134,6 +135,7 @@ void SV_UnlinkEdict( edict_t *ent )
 	worldsector_t	*ws;
 
 	sv_ent = ent->priv.sv;
+	sv_ent->linked = false;
 	ws = sv_ent->worldsector;
 	if( !ws ) return;		// not linked in anywhere
 	sv_ent->worldsector = NULL;
@@ -181,18 +183,18 @@ void SV_LinkEdict( edict_t *ent )
 	VectorSubtract( ent->progs.sv->maxs, ent->progs.sv->mins, ent->progs.sv->size );
 
 	// encode the size into the entity_state for client prediction
-	if (ent->progs.sv->solid == SOLID_BBOX && !((int)ent->progs.sv->flags & FL_DEADMONSTER))
+	if((int)ent->progs.sv->contents & ( CONTENTS_SOLID | CONTENTS_BODY ))
 	{
 		// assume that x/y are equal and symetric
-		i = ent->progs.sv->maxs[0]/8;
+		i = ent->progs.sv->maxs[0];
 		i = bound( 1, i, 255 );
 
 		// z is not symetric
-		j = (-ent->progs.sv->mins[2])/8;
+		j = (-ent->progs.sv->mins[2]);
 		j = bound( 1, j, 255 );
 
 		// and z maxs can be negative...
-		k = (ent->progs.sv->maxs[2] + 32)/8;
+		k = (ent->progs.sv->maxs[2] + 32);
 		k = bound( 1, k, 255 );
 		sv_ent->solid = (k<<16)|(j<<8)|i;
 	}
@@ -233,8 +235,8 @@ void SV_LinkEdict( edict_t *ent )
 	// link to PVS leafs
 	sv_ent->num_clusters = 0;
 	sv_ent->lastcluster = 0;
-	sv_ent->areanum = 0;
-	sv_ent->areanum2 = 0;
+	sv_ent->areanum = -1;
+	sv_ent->areanum2 = -1;
 
 	// get all leafs, including solids
 	num_leafs = pe->BoxLeafnums( ent->progs.sv->absmin, ent->progs.sv->absmax, leafs, MAX_TOTAL_ENT_LEAFS, &lastleaf );
@@ -247,13 +249,13 @@ void SV_LinkEdict( edict_t *ent )
 	for( i = 0; i < num_leafs; i++ )
 	{
 		area = pe->LeafArea( leafs[i] );
-		if( area )
+		if( area != -1 )
 		{	
 			// doors may legally straggle two areas,
 			// but nothing should evern need more than that
 			if (ent->priv.sv->areanum && ent->priv.sv->areanum != area)
 			{
-				if (ent->priv.sv->areanum2 && ent->priv.sv->areanum2 != area && sv.state == ss_loading )
+				if( ent->priv.sv->areanum != -1 && ent->priv.sv->areanum != area && sv.state == ss_loading )
 				{
 					float *v = ent->progs.sv->absmin;
 					MsgDev( D_WARN, "SV_LinkEdict: object touching 3 areas at %f %f %f\n", v[0], v[1], v[2]);
@@ -264,12 +266,11 @@ void SV_LinkEdict( edict_t *ent )
 		}
 	}
 
-	// store as many explicit clusters as we can
 	sv_ent->num_clusters = 0;
 	for( i = 0; i < num_leafs; i++ )
 	{
 		cluster = pe->LeafCluster( leafs[i] );
-		if( cluster )
+		if( cluster != -1 )
 		{
 			sv_ent->clusternums[sv_ent->num_clusters++] = cluster;
 			if( sv_ent->num_clusters == MAX_ENT_CLUSTERS )
@@ -289,7 +290,10 @@ void SV_LinkEdict( edict_t *ent )
 
 	// don't link not solid or rigid bodies
 	if( ent->progs.sv->solid == SOLID_NOT || ent->progs.sv->solid >= SOLID_BOX )
+	{
+		sv_ent->linked = true;
 		return;
+	}
 
 	// find the first world sector node that the ent's box crosses
 	node = sv_worldsectors;
@@ -307,6 +311,7 @@ void SV_LinkEdict( edict_t *ent )
 	sv_ent->worldsector = node;
 	sv_ent->nextedict = node->entities;
 	node->entities = sv_ent;
+	sv_ent->linked = true;
 }
 
 /*

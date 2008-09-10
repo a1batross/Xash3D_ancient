@@ -400,8 +400,11 @@ void FixTJunctions( bsp_entity_t *ent )
 
 	MsgDev( D_INFO, "----- FixTJuncs -----\n" );
 
+	c_addedVerts = 0;
 	numEdgeLines = 0;
 	numOriginalEdges = 0;
+	c_degenerateEdges = 0;
+	c_natural = c_rotate = c_cant = 0;
 
 	// add all the edges
 	// this actually creates axial edges, but it

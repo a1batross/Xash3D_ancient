@@ -23,14 +23,12 @@ int registration_sequence = 0;
 */
 void CM_GetPoint( int index, vec3_t out )
 {
-	int vert_index = cm.indices[index];
-	CM_ConvertPositionToMeters( out, cm.vertices[vert_index].point );
+	CM_ConvertPositionToMeters( out, cm.vertices[index].point );
 }
 
 void CM_GetPoint2( int index, vec3_t out )
 {
-	int vert_index = cm.indices[index];
-	CM_ConvertDimensionToMeters( out, cm.vertices[vert_index].point );
+	CM_ConvertDimensionToMeters( out, cm.vertices[index].point );
 }
 
 /*
@@ -66,7 +64,7 @@ void CM_FreeModel( cmodel_t *mod )
 }
 
 int CM_NumTextures( void ) { return cm.numshaders; }
-int CM_NumClusters( void ) { return cm.numclusters; }
+int CM_NumClusters( void ) { return cm.pvs.numClusters; }
 int CM_NumInlineModels( void ) { return cm.numbmodels; }
 const char *CM_EntityString( void ) { return cm.entitystring; }
 const char *CM_TexName( int index ) { return cm.shaders[index].name; }
@@ -145,8 +143,7 @@ void BSP_LoadModels( lump_t *l )
 	cm.numbmodels = count;
 	out = &cm.bmodels[0];
 
-	Msg("BSP_LoadModels: %i\n", cm.numbmodels );
-	for ( i = 0; i < count; i++, in++, out++ )
+	for( i = 0; i < count; i++, in++, out++ )
 	{
 		for( j = 0; j < 3; j++ )
 		{
@@ -197,8 +194,7 @@ void BSP_LoadShaders( lump_t *l )
 	cm.numshaders = l->filelen / sizeof(*in);
 	cm.shaders = out = (csurface_t *)Mem_Alloc( cmappool, cm.numshaders * sizeof(*out));
 
-	Msg("BSP_LoadShaders: %i\n", cm.numshaders );
-	for ( i = 0; i < cm.numshaders; i++, in++, out++)
+	for( i = 0; i < cm.numshaders; i++, in++, out++)
 	{
 		com.strncpy( out->name, in->name, MAX_QPATH );
 		out->contentflags = LittleLong( in->contents );
@@ -225,8 +221,7 @@ void BSP_LoadNodes( lump_t *l )
 	out = cm.nodes = (cnode_t *)Mem_Alloc( cmappool, count * sizeof(*out));
 	cm.numnodes = count;
 
-	Msg("BSP_LoadNodes: %i\n", cm.numnodes );
-	for (i = 0; i < count; i++, out++, in++)
+	for( i = 0; i < count; i++, out++, in++ )
 	{
 		out->parent = NULL;
 		n = LittleLong( in->planenum );
@@ -279,8 +274,7 @@ void BSP_LoadBrushes( lump_t *l )
 	out = cm.brushes = (cbrush_t *)Mem_Alloc( cmappool, (count + 1) * sizeof(*out));
 	cm.numbrushes = count;
 
-	Msg("BSP_LoadBrushes: %i\n", cm.numbrushes );
-	for (i = 0; i < count; i++, out++, in++)
+	for( i = 0; i < count; i++, out++, in++ )
 	{
 		out->firstbrushside = LittleLong(in->firstside);
 		out->numsides = LittleLong(in->numsides);
@@ -322,7 +316,6 @@ void BSP_LoadLeafFaces( lump_t *l )
 	out = cm.leafsurfaces = (dword *)Mem_Alloc( cmappool, count * sizeof(*out));
 	cm.numleafsurfaces = count;
 
-	Msg("BSP_LoadLeafFaces: %i\n", cm.numleafsurfaces );
 	for( i = 0; i < count; i++, in++, out++ )
 	{
 		n = LittleLong( *in );
@@ -349,8 +342,7 @@ void BSP_LoadLeafBrushes( lump_t *l )
 	if( count < 1 ) Host_Error("Map %s with no leaf brushes\n", cm.name );
 	out = cm.leafbrushes = (dword *)Mem_Alloc( cmappool, count * sizeof(*out));
 	cm.numleafbrushes = count;
-	Msg("BSP_LoadLeafBrushes: %i\n", cm.numleafbrushes );
-	for ( i = 0; i < count; i++, in++, out++) *out = LittleShort(*in);
+	for( i = 0; i < count; i++, in++, out++) *out = LittleLong( *in );
 }
 
 
@@ -371,19 +363,19 @@ void BSP_LoadLeafs( lump_t *l )
 	count = l->filelen / sizeof(*in);
 	if( count < 1 ) Host_Error("Map %s with no leafs\n", cm.name );
 	out = cm.leafs = (cleaf_t *)Mem_Alloc( cmappool, count * sizeof(*out));
+	cm.pvs.numClusters = cm.pvs.clusterBytes = cm.numareas = 0;
 	cm.numleafs = count;
-	cm.numclusters = 0;
 
-	Msg("BSP_LoadLeafs: %i\n", cm.numleafs );
-	for ( i = 0; i < count; i++, in++, out++)
+	for( i = 0; i < count; i++, in++, out++)
 	{
 		out->parent = NULL;
 		out->plane = NULL;
 		out->contents = LittleLong( in->contents );
 		out->cluster = LittleLong( in->cluster );
 		out->area = LittleLong( in->area );
-		if( out->cluster >= cm.numclusters )
-			cm.numclusters = out->cluster + 1;
+
+		if( out->cluster >= cm.pvs.numClusters )
+			cm.pvs.numClusters = out->cluster + 1;
 		if( out->area >= cm.numareas )
 			cm.numareas = out->area + 1;
 		for( j = 0; j < 3; j++ )
@@ -406,9 +398,9 @@ void BSP_LoadLeafs( lump_t *l )
 		out->numleafbrushes = c;
 	}
 
-	Msg("BSP_LoadLeafs: areas %i\n", cm.numareas );
+	cm.areaportals_size = cm.numareas * cm.numareas * sizeof( *cm.areaportals );
 	cm.areas = Mem_Alloc( cmappool, cm.numareas * sizeof( *cm.areas ));
-	cm.areaportals = Mem_Alloc( cmappool, cm.numareas * cm.numareas * sizeof( *cm.areaportals ));
+	cm.areaportals = Mem_Alloc( cmappool, cm.areaportals_size );
 
 	// probably any wall it's liquid ?
 	if( cm.leafs[0].contents != CONTENTS_SOLID )
@@ -445,8 +437,7 @@ void BSP_LoadPlanes( lump_t *l )
 	out = cm.planes = (cplane_t *)Mem_Alloc( cmappool, count * sizeof(*out));
 	cm.numplanes = count;
 
-	Msg("BSP_LoadPlanes: %i\n", cm.numplanes );
-	for ( i = 0; i < count; i++, in++, out++)
+	for( i = 0; i < count; i++, in++, out++ )
 	{
 		for( j = 0; j < 3; j++ ) 
 			out->normal[j] = LittleFloat(in->normal[j]);
@@ -472,8 +463,7 @@ void BSP_LoadBrushSides( lump_t *l )
 	out = cm.brushsides = (cbrushside_t *)Mem_Alloc( cmappool, count * sizeof(*out));
 	cm.numbrushsides = count;
 
-	Msg("BSP_LoadBrushsides: %i\n", cm.numbrushsides );
-	for ( i = 0; i < count; i++, in++, out++)
+	for( i = 0; i < count; i++, in++, out++)
 	{
 		num = LittleLong(in->planenum);
 		out->plane = cm.planes + num;
@@ -491,25 +481,26 @@ BSP_LoadVisibility
 */
 void BSP_LoadVisibility( lump_t *l )
 {
+	dvis_t	*pvs;
+	byte	*buffer;
+
 	if( !l->filelen )
 	{
-		size_t	pvs_size, row_size;
-	
 		// create novis lump
-		row_size = (cm.numclusters + 7) / 8;
-		pvs_size = row_size * cm.numclusters;
-		cm.pvs = (dvis_t *)Mem_Alloc( cmappool, pvs_size + sizeof(dvis_t) - 1 );
-		cm.pvs->numclusters = cm.numclusters;
-		cm.pvs->rowsize = row_size;
-		memset( cm.pvs->data, 0xFF, pvs_size );
+		cm.pvs.clusterBytes = ( cm.pvs.numClusters + 31 ) & ~31;
+		cm.pvs.data = (byte *)Mem_Alloc( cmappool, cm.pvs.clusterBytes );
+		memset( cm.pvs.data, 0xFF, cm.pvs.clusterBytes );
+		cm.vised = false;
 		return;
 	}
 
-	cm.pvs = (dvis_t *)Mem_Alloc( cmappool, l->filelen );
-	Mem_Copy( cm.pvs, cm.mod_base + l->fileofs, l->filelen );
-
-	cm.pvs->numclusters = LittleLong ( cm.pvs->numclusters );
-	cm.pvs->rowsize = LittleLong ( cm.pvs->rowsize );
+	buffer = (byte *)cm.mod_base + l->fileofs;
+	pvs = (dvis_t *)buffer;
+	cm.pvs.numClusters = LittleLong ( pvs->numclusters );
+	cm.pvs.clusterBytes = LittleLong ( pvs->rowsize );
+	cm.pvs.data = (byte *)Mem_Alloc( cmappool, l->filelen - VIS_HEADER_SIZE );
+	Mem_Copy( cm.pvs.data, pvs->data, l->filelen - VIS_HEADER_SIZE );
+	cm.vised = true;
 }
 
 /*
@@ -519,25 +510,28 @@ BSP_LoadHearability
 */
 void BSP_LoadHearability( lump_t *l )
 {
-	if( !l->filelen )
-	{
-		size_t	phs_size, row_size;
+	dvis_t	*phs;
+	byte	*buffer;
+
+	// FIXME: calculate PHS on fly from PVS, probably it's very fast
+	// FIXME: kill lump phs
 	
-		// create novis lump
-		row_size = (cm.numclusters + 7) / 8;
-		phs_size = row_size * cm.numclusters;
-		cm.phs = (dvis_t *)Mem_Alloc( cmappool, phs_size + sizeof(dvis_t) - 1 );
-		cm.phs->numclusters = cm.numclusters;
-		cm.phs->rowsize = row_size;
-		memset( cm.phs->data, 0xFF, phs_size );
+	if( !cm.vised || !l->filelen )
+	{
+		// create totalphs lump
+		cm.phs.numClusters = cm.pvs.numClusters;
+		cm.phs.clusterBytes = ( cm.phs.numClusters + 31 ) & ~31;
+		cm.phs.data = (byte *)Mem_Alloc( cmappool, cm.phs.clusterBytes );
+		memset( cm.phs.data, 0xFF, cm.phs.clusterBytes );
 		return;
 	}
 
-	cm.phs = (dvis_t *)Mem_Alloc( cmappool, l->filelen );
-	Mem_Copy( cm.phs, cm.mod_base + l->fileofs, l->filelen );
-
-	cm.phs->numclusters = LittleLong ( cm.phs->numclusters );
-	cm.phs->rowsize = LittleLong ( cm.phs->rowsize );
+	buffer = (byte *)cm.mod_base + l->fileofs;
+	phs = (dvis_t *)buffer;
+	cm.phs.numClusters = LittleLong ( phs->numclusters );
+	cm.phs.clusterBytes = LittleLong ( phs->rowsize );
+	cm.phs.data = (byte *)Mem_Alloc( cmappool, l->filelen - VIS_HEADER_SIZE );
+	Mem_Copy( cm.phs.data, phs->data, l->filelen - VIS_HEADER_SIZE );
 }
 
 /*
@@ -602,8 +596,7 @@ void BSP_LoadSurfaces( lump_t *l )
 	cm.numsurfaces = l->filelen / sizeof(*in);
 	cm.surfaces = Mem_Alloc( cmappool, cm.numsurfaces * sizeof(*in));	
 
-	Msg("BSP_LoadSurfaces: %i\n", cm.numsurfaces );
-	Mem_Copy( cm.surfaces, in, cm.numsurfaces * sizeof(*in));
+	Mem_Copy( cm.surfaces, in, cm.numsurfaces * sizeof( *in ));
 	SwapBlock((int *)cm.surfaces, cm.numsurfaces * sizeof(*in));
 }
 
@@ -703,7 +696,7 @@ void BSP_BeginBuildTree( void )
 void BSP_AddCollisionFace( int facenum )
 {
 	dsurface_t	*m_surface;
-	int		i, j, k;
+	int		j, k;
 	int		flags;
 
 	if( facenum < 0 || facenum >= cm.numsurfaces )
@@ -715,7 +708,6 @@ void BSP_AddCollisionFace( int facenum )
 	m_surface = cm.surfaces + facenum;
 	flags = cm.shaders[m_surface->shadernum].surfaceflags;
 	k = m_surface->firstvertex;
-	Msg("add collision face %i [%i verts, inds %i]\n", facenum, m_surface->numvertices, m_surface->numindices );
 	
 	// sky is noclip for all physobjects
 	if( flags & SURF_SKY ) return;
@@ -726,13 +718,9 @@ void BSP_AddCollisionFace( int facenum )
 		for( j = 0; j < m_surface->numvertices - 2; j++ )
 		{
 			vec3_t	face[3]; // triangle
-			Msg("triangle: %i ", j );
 			CM_GetPoint( k,	face[0] );
-			CM_GetPoint( k+j+2, face[1] );
-			CM_GetPoint( k+j+1, face[2] );
-			for( i = 0; i < 3; i++ )
-				Msg("( %.f %.f %.f ) ", face[i][0], face[i][1], face[i][2] );
-			Msg("\n" );
+			CM_GetPoint( k+j+1, face[1] );
+			CM_GetPoint( k+j+2, face[2] );
 			NewtonTreeCollisionAddFace( cm.collision, 3, (float *)face[0], sizeof(vec3_t), 1 );
 		}
 	}
@@ -845,15 +833,14 @@ void CM_FreeWorld( void )
 
 	// free old stuff
 	if( cm.loaded ) Mem_EmptyPool( cmappool );
-	cm.numclusters = cm.floodvalid = 0;
 	cm.numplanes = cm.numnodes = cm.numleafs = 0;
 	cm.floodvalid = cm.numbrushsides = cm.numshaders = 0;
 	cm.numbrushes = cm.numleafsurfaces = cm.numareas = 0;
 	cm.numleafbrushes = cm.numsurfaces = cm.numbmodels = 0;
-	
+	cm.vised = cm.floodvalid = cm.areaportals_size = 0;	
+
 	cm.name[0] = 0;
 	memset( cm.matrix, 0, sizeof(matrix4x4));
-	memset( cm.nullvis, 0xFF, MAX_MAP_LEAFS / 8 );
 	
 	// free bmodels too
 	for (i = 0, mod = &cm.bmodels[0]; i < cm.numbmodels; i++, mod++)
@@ -887,11 +874,11 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	dheader_t		*hdr;
 	size_t		length;
 
-	if(!com.strlen(name))
+	if(!com.strlen( name ))
 	{
 		CM_FreeWorld(); // release old map
 		// cinematic servers won't have anything at all
-		cm.numleafs = cm.numclusters = cm.numareas = 1;
+		cm.numleafs = cm.pvs.numClusters = cm.numareas = 1;
 		*checksum = 0;
 		return &cm.bmodels[0];
 	}
@@ -902,7 +889,7 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 		if( !clientload )
 		{
 			// rebuild portals for server
-			memset( cm.portalstate, 0, sizeof(cm.portalstate));
+			memset( cm.areaportals, 0, cm.areaportals_size );
 			CM_FloodAreaConnections();
 		}
 		// still have the right version
@@ -948,7 +935,6 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	Mem_Free( buf );	// release map buffer
 
 	com.strncpy( cm.name, name, MAX_STRING );
-	memset( cm.portalstate, 0, sizeof(cm.portalstate));
 	CM_FloodAreaConnections();
 	cm.loaded = true;
 
@@ -984,8 +970,8 @@ int CM_LeafCluster( int leafnum )
 
 int CM_LeafArea( int leafnum )
 {
-	if (leafnum < 0 || leafnum >= cm.numleafs)
-		Host_Error("CM_LeafArea: bad number %d\n", leafnum );
+	if( leafnum < 0 || leafnum >= cm.numleafs )
+		Host_Error("CM_LeafArea: bad number %i >= %i\n", leafnum, cm.numleafs );
 	return cm.leafs[leafnum].area;
 }
 

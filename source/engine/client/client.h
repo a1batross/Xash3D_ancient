@@ -37,7 +37,7 @@ typedef struct frame_s
 	int		serverframe;
 	int		servertime;		// server time the message is valid for (in msec)
 	int		deltaframe;
-	byte		areabits[MAX_MAP_AREAS/8];	// portalarea visibility bits
+	byte		areabits[MAX_MAP_AREA_BYTES];	// portalarea visibility bits
 	int		num_entities;
 	int		parse_entities;		// non-masked index into cl_parse_entities array
 	entity_state_t	ps;

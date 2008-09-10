@@ -227,8 +227,9 @@ void EmitPlanarSurf( drawsurf_t *ds )
 	out = &dsurfaces[numsurfaces];
 	numsurfaces++;
 
+	out->planenum = ds->planenum & (~1);
+	out->lm_side = ds->planenum & 1;
 	out->shadernum = EmitShader( ds->shader->name );
-	out->planenum = ds->planenum;
 	out->lightmapnum = ds->lightmapNum;
 	out->firstvertex = numvertexes;
 	out->numvertices = ds->numverts;
@@ -237,7 +238,7 @@ void EmitPlanarSurf( drawsurf_t *ds )
 	out->lm_base[1] = ds->lightmapY;
 	out->lm_size[0] = ds->lightmapWidth;
 	out->lm_size[1] = ds->lightmapHeight;
-	out->lm_side = ds->planenum & 1;
+	out->styles[0] = 255; // no lightstyles
 
 	VectorCopy( ds->lightmapOrigin, out->origin );
 	VectorCopy( ds->lightmapVecs[0], out->vecs[0] );
@@ -614,7 +615,6 @@ int FilterSideIntoTree_r( winding_t *w, side_t *side, drawsurf_t *ds, node_t *no
 		plane = &mapplanes[node->planenum];
 		ClipWindingEpsilon( w, plane->normal, plane->dist, ON_EPSILON, &front, &back );
 
-		// g-cont. it's expression valid ?
 		total = FilterSideIntoTree_r( front, side, ds, node->children[0] );
 		total += FilterSideIntoTree_r( back, side, ds, node->children[1] );
 
@@ -668,6 +668,7 @@ void FilterDrawsurfsIntoTree( bsp_entity_t *e, tree_t *tree )
 	int		c_surfs = 0, c_refs = 0;
 
 	MsgDev( D_INFO, "----- FilterDrawsurfsIntoTree -----\n" );
+	c_stripSurfaces = c_fanSurfaces = 0;
           
 	for( i = e->firstsurf; i < numdrawsurfs; i++ )
 	{

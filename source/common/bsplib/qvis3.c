@@ -19,6 +19,7 @@ int		leafbytes; // (portalclusters+63)>>3
 int		leaflongs;
 int		portalbytes;
 int		portallongs;
+int		numvisfaces;
 
 bool		fastvis;		// fast calc visibility
 bool		noPassageVis;	// ignore passages
@@ -181,7 +182,6 @@ void ClusterMerge( int leafnum )
 	}
 
 	memset( uncompressed, 0, leafbytes );
-
 	uncompressed[mergedleafnum>>3] |= (1<<( mergedleafnum & 7 ));
 
 	// convert portal bits to leaf bits
@@ -189,8 +189,8 @@ void ClusterMerge( int leafnum )
 	numvis++;	 // count the leaf itself
 	totalpvs += numvis;
 
-	Msg( "cluster %4i : %4i visible\n", leafnum, numvis );
-	Mem_Copy( dpvs->data + leafnum * leafbytes, uncompressed, leafbytes );	
+	MsgDev( D_NOTE, "cluster %4i : %4i visible\n", leafnum, numvis );
+	Mem_Copy( dpvsdata + VIS_HEADER_SIZE + leafnum * leafbytes, uncompressed, leafbytes );	
 }
 
 
@@ -664,14 +664,14 @@ void LoadPortals( void )
 	com.strcpy( magic, Com_GetToken( true ));
           portalclusters = com.atoi(Com_GetToken( true ));
           numportals = com.atoi(Com_GetToken( true ));
-          numsurfaces = com.atoi(Com_GetToken( true ));
+          numvisfaces = com.atoi(Com_GetToken( true ));
           
           if( !portalclusters && !numportals ) Sys_Break( "LoadPortals: failed to read header\n" );
 	if( com.strcmp( magic, PORTALFILE )) Sys_Break( "LoadPortals: not a portal file\n" );
 	
 	Msg( "%4i portalclusters\n", portalclusters );
 	Msg( "%4i numportals\n", numportals );
-	Msg( "%6i numfaces\n", numsurfaces );
+	Msg( "%6i numfaces\n", numvisfaces );
 	
 	// these counts should take advantage of 64 bit systems automatically
 	leafbytes = ((portalclusters+63)&~63)>>3;
@@ -688,11 +688,13 @@ void LoadPortals( void )
 	for( i = 0; i < portalclusters; i++ )
 		leafs[i].merged = -1;
 
-	pvsdatasize = (sizeof(dvis_t) - 1) + portalclusters * leafbytes;
+	pvsdatasize = VIS_HEADER_SIZE + portalclusters * leafbytes;
 
 	// vis header
-	dpvs->numclusters = portalclusters;
-	dpvs->rowsize = leafbytes;
+	((int *)dpvsdata)[0] = portalclusters;
+	((int *)dpvsdata)[1] = leafbytes;
+	((int *)dphsdata)[0] = portalclusters;
+	((int *)dphsdata)[1] = leafbytes;
 			
 	for( i = 0, p = portals; i < numportals; i++ )
 	{
@@ -767,10 +769,10 @@ void LoadPortals( void )
 		p++;
 	}
 
-	faces = BSP_Malloc( 2 * numsurfaces * sizeof( vportal_t ));
+	faces = BSP_Malloc( 2 * numvisfaces * sizeof( vportal_t ));
 	faceleafs = BSP_Malloc( portalclusters * sizeof( leaf_t ));
 
-	for( i = 0, p = faces; i < numsurfaces; i++ )
+	for( i = 0, p = faces; i < numvisfaces; i++ )
 	{
 		numpoints = com.atoi(Com_GetToken( true )); // newline
 		leafnums[0] = com.atoi(Com_GetToken( false ));
@@ -830,7 +832,7 @@ void ClusterPHS( int clusternum )
 	byte	*scan;
 	byte	uncompressed[MAX_MAP_LEAFS/8];
 	
-	scan = dpvs->data + clusternum * leafbytes;
+	scan = dpvsdata + VIS_HEADER_SIZE + clusternum * leafbytes;
 	Mem_Copy( uncompressed, scan, leafbytes );
 	for( j = 0; j < leafbytes; j++ )
 	{
@@ -843,7 +845,7 @@ void ClusterPHS( int clusternum )
 			index = ((j<<3)+k);
 			if( index >= portalclusters )
 				Sys_Error( "Bad bit in PVS\n" ); // pad bits should be 0
-			src = (long *)(dpvs->data + index * leafbytes);
+			src = (long *)(dpvsdata + VIS_HEADER_SIZE + index * leafbytes);
 			dest = (long *)uncompressed;
 			for (l = 0; l < leaflongs; l++) ((long *)uncompressed)[l] |= src[l];
 		}
@@ -853,7 +855,7 @@ void ClusterPHS( int clusternum )
 			totalphs++;
 
 	// FIXME: copy it off
-	Mem_Copy( dphs->data + clusternum * leafbytes, uncompressed, leafbytes );
+	Mem_Copy( dphsdata + VIS_HEADER_SIZE + clusternum * leafbytes, uncompressed, leafbytes );
 } 
 
 /*
@@ -864,7 +866,7 @@ Calculate the PHS (Potentially Hearable Set)
 by ORing together all the PVS visible from a leaf
 ================
 */
-void CalcPHS (void)
+void CalcPHS( void )
 {
 	Msg ("Building PHS...\n");
 	RunThreadsOnIndividual (portalclusters, true, ClusterPHS);
@@ -894,8 +896,8 @@ void WvisMain ( bool option )
 	CountActivePortals ();
 
 	CalcPVS ();
-//	CalcPHS ();
-
+	CalcPHS ();
+          
 	WriteBSPFile();	
 }
 

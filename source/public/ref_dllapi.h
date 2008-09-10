@@ -167,7 +167,7 @@ typedef struct entity_state_s
 	vec3_t		angles;		// entity angles, not viewangles
 	vec3_t		velocity;		// player velocity
 	vec3_t		old_origin;	// for lerping animation
-	vec3_t		old_velocity;	// for movement predicting
+	vec3_t		infotarget;	// portal camera, etc
 	model_state_t	model;		// general entity model
 	solid_t		solidtype;	// entity solidtype
 	movetype_t	movetype;		// entity movetype
@@ -1270,7 +1270,7 @@ typedef struct physic_exp_s
 
 	void (*SetAreaPortals)( byte *portals, size_t size );
 	void (*GetAreaPortals)( byte **portals, size_t *size );
-	void (*SetAreaPortalState)( int portalnum, int area, int otherarea, bool open );
+	void (*SetAreaPortalState)( int area, int otherarea, bool open );
 
 	int (*NumClusters)( void );
 	int (*NumTextures)( void );

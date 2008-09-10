@@ -6,56 +6,32 @@
 #include "common.h"
 #include "server.h"
 
-static byte fatpvs[MAX_MAP_LEAFS/8];
-static byte *clientpvs;
-static byte *clientphs;
-static byte *bitvector;
+#define MAX_VISIBLE_PACKET		1024
+typedef struct
+{
+	int	num_entities;
+	int	entities[MAX_VISIBLE_PACKET];	
+} sv_ents_t;
+
+int	c_fullsend;
 
 /*
-============
-SV_FatPVS
-
-The client will interpolate the view position,
-so we can't use a single PVS point
-===========
-*/                             
-void SV_FatPVS( vec3_t org )
+=======================
+SV_EntityNumbers
+=======================
+*/
+static int SV_EntityNumbers( const void *a, const void *b )
 {
-	int	leafs[64];
-	int	i, j, count;
-	int	longs;
-	byte	*src;
-	vec3_t	mins, maxs;
+	int	*ea, *eb;
 
-	for( i = 0; i < 3; i++ )
-	{
-		mins[i] = org[i] - 1;
-		maxs[i] = org[i] + 1;
-	}
+	ea = (int *)a;
+	eb = (int *)b;
 
-	count = pe->BoxLeafnums( mins, maxs, leafs, 64, NULL );
-	if( count < 1 ) Host_Error( "SV_FatPVS: invalid leafcount\n" );
-	longs = (pe->NumClusters() + 31)>>5;
-
-	// convert leafs to clusters
-	for( i = 0; i < count; i++) leafs[i] = pe->LeafCluster( leafs[i] );
-
-	Mem_Copy( fatpvs, pe->ClusterPVS( leafs[0] ), longs<<2 );
-
-	// or in all the other leaf bits
-	for( i = 1; i < count; i++ )
-	{
-		for( j = 0; j < i; j++ )
-		{
-			if( leafs[i] == leafs[j] )
-				break;
-		}
-		if( j != i ) continue; // already have the cluster we want
-		src = pe->ClusterPVS( leafs[i] );
-		for( j = 0; j < longs; j++ ) ((long *)fatpvs)[j] |= ((long *)src)[j];
-	}
+	if( *ea == *eb )
+		Host_Error( "SV_EntityNumbers: duplicated entity\n" );
+	if( *ea < *eb ) return -1;
+	return 1;
 }
-
 
 /*
 =============================================================================
@@ -105,89 +81,24 @@ void SV_UpdateEntityState( edict_t *ent )
 	}
 }
 
-bool SV_EdictNeedsUpdate( edict_t *ent, edict_t *clent, int clientarea )
+/*
+===============
+SV_AddEntToSnapshot
+===============
+*/
+static void SV_AddEntToSnapshot( sv_edict_t *svent, edict_t *ent, sv_ents_t *ents )
 {
-	int	i, l;
+	// if we have already added this entity to this snapshot, don't add again
+	if( svent->framenum == sv.net_framenum ) return;
+	svent->framenum = sv.net_framenum;
 
-	//NOTE: client index on client expected that entity will be valid
-	if( ent->priv.sv->s.ed_type == ED_CLIENT )
-		return true;
+	// if we are full, silently discard entities
+	if( ents->num_entities == MAX_VISIBLE_PACKET ) return;
 
-	// send viewmodel entity always
-	// NOTE: never apply LinkEdict to viewmodel entity, because
-	// we wan't see it in list of entities returned with SV_AreaEdicts
-	if( ent->priv.sv->s.ed_type == ED_VIEWMODEL )
-		return true;
-
-	// ignore if not touching a PV leaf
-	if( ent != clent )
-	{
-		// check area
-		if( !pe->AreasConnected( clientarea, ent->priv.sv->areanum ))
-		{	
-			// doors can legally straddle two areas, so
-			// we may need to check another one
-			int areanum2 = ent->priv.sv->areanum2; 
-			if( !areanum2 || !pe->AreasConnected( clientarea, areanum2 ))
-				return false; // blocked by a door
-		}
-
-		// FIXME: if an ent has a model and a sound, but isn't
-		// in the PVS, only the PHS, clear the model
-		if( ent->priv.sv->s.soundindex ) bitvector = clientphs;
-		else if( sv_fatpvs->integer ) bitvector = fatpvs;
-		else bitvector = clientpvs;
-
-		// check individual leafs
-		if( !ent->priv.sv->num_clusters ) return false;
-		for( i = 0, l = 0; i < ent->priv.sv->num_clusters; i++ )
-		{
-			l = ent->priv.sv->clusternums[i];
-			if( bitvector[l>>3] & (1<<(l&7)))
-				break;
-		}
-
-		// if we haven't found it to be visible,
-		// check overflow clusters that coudln't be stored
-		if( i == ent->priv.sv->num_clusters )
-		{
-			if( ent->priv.sv->lastcluster )
-			{
-				for( ; l <= ent->priv.sv->lastcluster; l++ )
-				{
-					if( bitvector[l>>3] & (1<<(l&7)))
-						break;
-				}
-				if( l == ent->priv.sv->lastcluster )
-					return false; // not visible
-			}
-			else return false;
-		}
-		
-		if( !ent->progs.sv->modelindex )
-		{	
-			// don't send sounds if they will be attenuated away
-			vec3_t	org, delta, entorigin;
-			float	len;
-
-			if(VectorIsNull( ent->progs.sv->origin ))
-			{
-				VectorAdd( ent->progs.sv->mins, ent->progs.sv->maxs, entorigin );
-				VectorScale( entorigin, 0.5, entorigin );
-			}
-			else
-			{
-				VectorCopy( ent->progs.sv->origin, entorigin );
-			}
-
-			VectorCopy( clent->priv.sv->s.origin, org ); 
-			VectorAdd( org, clent->priv.sv->s.viewoffset, org );  
-			VectorSubtract( org, entorigin, delta );	
-			len = VectorLength( delta );
-			if( len > 400 ) return false;
-		}
-	}
-	return true;
+	SV_UpdateEntityState( ent ); // copy entity state from progs
+	ents->entities[ents->num_entities] = svent->serialnumber;
+	ents->num_entities++;
+	c_fullsend++;		// debug counter
 }
 
 /*
@@ -216,6 +127,8 @@ void SV_EmitPacketEntities( client_frame_t *from, client_frame_t *to, sizebuf_t 
 	if( !from ) from_num_entities = 0;
 	else from_num_entities = from->num_entities;
 
+	newent = NULL;
+	oldent = NULL;
 	newindex = 0;
 	oldindex = 0;
 	while( newindex < to->num_entities || oldindex < from_num_entities )
@@ -263,6 +176,124 @@ void SV_EmitPacketEntities( client_frame_t *from, client_frame_t *to, sizebuf_t 
 	MSG_WriteBits( msg, 0, NET_WORD ); // end of packetentities
 }
 
+static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ents_t *ents, bool portal )
+{
+	int		l, e, i;
+	edict_t		*ent;
+	sv_edict_t	*svent;
+	int		leafnum;
+	byte		*clientpvs;
+	byte		*bitvector;
+	int		clientarea, clientcluster;
+	bool		force = false;
+
+	// during an error shutdown message we may need to transmit
+	// the shutdown message after the server has shutdown, so
+	// specfically check for it
+	if( !sv.state ) return;
+
+	leafnum = pe->PointLeafnum( origin );
+	clientarea = pe->LeafArea( leafnum );
+	clientcluster = pe->LeafCluster( leafnum );
+
+	// calculate the visible areas
+	frame->areabits_size = pe->WriteAreaBits( frame->areabits, clientarea );
+	clientpvs = pe->ClusterPVS( clientcluster );
+
+	for( e = 0; e < prog->num_edicts; e++ )
+	{
+		ent = PRVM_EDICT_NUM( e );
+		force = false; // clear forceflag
+
+		// send viewmodel entity always
+		// NOTE: never apply LinkEdict to viewmodel entity, because
+		// we wan't see it in list of entities returned with SV_AreaEdicts
+		if( ent->priv.sv->s.ed_type == ED_VIEWMODEL )
+			force = true;
+
+		// NOTE: client index on client expected that entity will be valid
+		if( sv_newprotocol->integer && ent->priv.sv->s.ed_type == ED_CLIENT )
+			force = true;
+		
+		// never send entities that aren't linked in
+		if( !ent->priv.sv->linked && !force ) continue;
+
+		if( ent->priv.sv->serialnumber != e )
+		{
+			MsgDev( D_WARN, "fixing ent->priv.sv->serialnumber\n");
+			ent->priv.sv->serialnumber = e;
+		}
+
+		svent = ent->priv.sv;
+
+		// don't double add an entity through portals
+		if( svent->framenum == sv.net_framenum ) continue;
+
+		// ignore if not touching a PV leaf check area
+		if( !pe->AreasConnected( clientarea, ent->priv.sv->areanum ))
+		{
+			// doors can legally straddle two areas, so
+			// we may need to check another one
+			if( !pe->AreasConnected( clientarea, ent->priv.sv->areanum2 ))
+				continue;	// blocked by a door
+		}
+		bitvector = clientpvs;
+
+		// check individual leafs
+		if( !svent->num_clusters && !force ) continue;
+		for( i = l = 0; i < svent->num_clusters && !force; i++ )
+		{
+			l = svent->clusternums[i];
+			if( bitvector[l>>3] & (1<<(l & 7)))
+				break;
+		}
+
+		// if we haven't found it to be visible,
+		// check overflow clusters that coudln't be stored
+		if( !force && i == svent->num_clusters )
+		{
+			if( svent->lastcluster )
+			{
+				for( ; l <= svent->lastcluster; l++ )
+				{
+					if( bitvector[l>>3] & (1<<(l & 7)))
+						break;
+				}
+				if( l == svent->lastcluster )
+					continue;	// not visible
+			}
+			else continue;
+		}
+
+		if( ent->priv.sv->s.ed_type == ED_AMBIENT )
+		{	
+			// don't send sounds if they will be attenuated away
+			vec3_t	delta, entorigin;
+			float	len;
+
+			if(VectorIsNull( ent->progs.sv->origin ))
+			{
+				VectorAverage( ent->progs.sv->mins, ent->progs.sv->maxs, entorigin );
+			}
+			else
+			{
+				VectorCopy( ent->progs.sv->origin, entorigin );
+			}
+
+			VectorSubtract( origin, entorigin, delta );	
+			len = VectorLength( delta );
+			if( len > 400 ) continue;
+		}
+
+		// add it
+		SV_AddEntToSnapshot( svent, ent, ents );
+
+		// if its a portal entity, add everything visible from its camera position
+		if( svent->s.ed_type == ED_PORTAL )
+			SV_AddEntitiesToPacket( svent->s.infotarget, frame, ents, true );
+	}
+}
+
 /*
 ==================
 SV_WriteFrameToClient
@@ -292,6 +323,14 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 	{	// we have a valid message to delta from
 		oldframe = &cl->frames[cl->lastframe & UPDATE_MASK];
 		lastframe = cl->lastframe;
+
+		// the snapshot's entities may still have rolled off the buffer, though
+		if( oldframe->first_entity <= svs.next_client_entities - svs.num_client_entities )
+		{
+			MsgDev( D_WARN, "%s: delta request from out of date entities.\n", cl->name );
+			oldframe = NULL;
+			lastframe = 0;
+		}
 	}
 
 	MSG_WriteByte( msg, svc_frame );
@@ -307,13 +346,17 @@ void SV_WriteFrameToClient( sv_client_t *cl, sizebuf_t *msg )
 	// just send an client index
 	// it's safe, because PRVM_NUM_FOR_EDICT always equal ed->serialnumber,
 	// thats shared across network
-#if 0
-	MSG_WriteByte( msg, svc_playerinfo );
-	MSG_WriteByte( msg, frame->index );
-#else
-	// delta encode the playerstate
-	MSG_WriteDeltaPlayerstate( &oldframe->ps, &frame->ps, msg );
-#endif
+	if( sv_newprotocol->integer )
+	{
+		MSG_WriteByte( msg, svc_playerinfo );
+		MSG_WriteByte( msg, frame->index );
+	}
+	else
+	{
+		// delta encode the playerstate
+		MSG_WriteDeltaPlayerstate( &oldframe->ps, &frame->ps, msg );
+	}
+
 	// delta encode the entities
 	SV_EmitPacketEntities( oldframe, frame, msg );
 }
@@ -341,74 +384,68 @@ void SV_BuildClientFrame( sv_client_t *cl )
 	edict_t		*clent;
 	client_frame_t	*frame;
 	entity_state_t	*state;
-	int		e, clientarea;
-	int		clientcluster;
-	int		leafnum;
+	sv_ents_t		frame_ents;
+	int		i;
 
 	clent = cl->edict;
-	if( !clent->priv.sv->client )
-		return; // not in game yet
+	sv.net_framenum++;
 
 	// this is the frame we are creating
 	frame = &cl->frames[sv.framenum & UPDATE_MASK];
-
 	frame->msg_sent = svs.realtime; // save it for ping calc later
+
+	// clear everything in this snapshot
+	frame_ents.num_entities = c_fullsend = 0;
+	memset( frame->areabits, 0, sizeof( frame->areabits ));
+	if( !clent->priv.sv->client ) return; // not in game yet
 
 	// find the client's PVS
 	VectorCopy( clent->priv.sv->s.origin, org ); 
 	VectorAdd( org, clent->priv.sv->s.viewoffset, org );  
 
-	// calculate fat pvs
-	if( sv_fatpvs->integer == 1 ) SV_FatPVS( org );
-	if( sv_fatpvs->integer == 2 ) pe->FatPVS( org, 64, fatpvs, sizeof(fatpvs), false );
+	if( sv_newprotocol->integer )
+	{
+		// grab the current player index
+		frame->index = PRVM_NUM_FOR_EDICT( clent );
+	}
+	else
+	{
+		// grab the current player state
+		cl->edict->priv.sv->framenum = sv.net_framenum;
+		frame->ps = clent->priv.sv->s;
+	}
 
-	leafnum = pe->PointLeafnum( org );
-	clientarea = pe->LeafArea( leafnum );
-	clientcluster = pe->LeafCluster( leafnum );
+	// add all the entities directly visible to the eye, which
+	// may include portal entities that merge other viewpoints
+	SV_AddEntitiesToPacket( org, frame, &frame_ents, false );
 
-	// calculate the visible areas
-	frame->areabits_size = pe->WriteAreaBits( frame->areabits, clientarea );
-#if 0
-	// grab the current player index
-	frame->index = PRVM_NUM_FOR_EDICT( clent );
-#else
-	// grab the current player state
-	frame->ps = clent->priv.sv->s;
-#endif
-	clientpvs = pe->ClusterPVS( clientcluster );
-	clientphs = pe->ClusterPHS( clientcluster );
+	// if there were portals visible, there may be out of order entities
+	// in the list which will need to be resorted for the delta compression
+	// to work correctly.  This also catches the error condition
+	// of an entity being included twice.
+	qsort( frame_ents.entities, frame_ents.num_entities, sizeof( frame_ents.entities[0] ), SV_EntityNumbers );
 
-	// build up the list of visible entities
+	// now that all viewpoint's areabits have been OR'd together, invert
+	// all of them to make it a mask vector, which is what the renderer wants
+	for( i = 0; i < MAX_MAP_AREA_BYTES / 4; i++ )
+		((int *)frame->areabits)[i] = ((int *)frame->areabits)[i] ^ -1;
+
+	// copy the entity states out
 	frame->num_entities = 0;
 	frame->first_entity = svs.next_client_entities;
 
-	for( e = 1; e < prog->num_edicts; e++ )
+	for( i = 0; i < frame_ents.num_entities; i++ )
 	{
-		ent = PRVM_EDICT_NUM(e);
-
-		// ignore ents without visible models unless they have an effect
-		if( !ent->progs.sv->modelindex && !ent->progs.sv->effects && !ent->priv.sv->s.soundindex )
-			continue;
-
-		if(!SV_EdictNeedsUpdate( ent, clent, clientarea ))
-			continue;
+		ent = PRVM_EDICT_NUM( frame_ents.entities[i] );
 
 		// add it to the circular client_entities array
 		state = &svs.client_entities[svs.next_client_entities % svs.num_client_entities];
-		if( ent->priv.sv->serialnumber != e )
-		{
-			MsgDev( D_WARN, "SV_BuildClientFrame: invalid number %d\n", ent->priv.sv->serialnumber );
-			ent->priv.sv->serialnumber = e; // ptr to current entity such as entnumber
-		}
-
-                    SV_UpdateEntityState( ent );
 		*state = ent->priv.sv->s;
-
-		// don't mark players missiles as solid
-		if( PRVM_PROG_TO_EDICT( ent->progs.sv->owner) == cl->edict )
-			state->solid = 0;
-
 		svs.next_client_entities++;
+
+		// this should never hit, map should always be restarted first in SV_Frame
+		if( svs.next_client_entities >= 0x7FFFFFFE )
+			Host_Error( "svs.next_client_entities wrapped (sv.time integer limit is out)\n" );
 		frame->num_entities++;
 	}
 }
@@ -432,7 +469,7 @@ bool SV_SendClientDatagram( sv_client_t *cl )
 
 	SV_BuildClientFrame( cl );
 
-	MSG_Init( &msg, msg_buf, sizeof(msg_buf));
+	MSG_Init( &msg, msg_buf, sizeof( msg_buf ));
 
 	// send over all the relevant entity_state_t
 	// and the player state

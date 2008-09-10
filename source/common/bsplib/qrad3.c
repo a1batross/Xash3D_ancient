@@ -130,6 +130,7 @@ dleaf_t *RadPointInLeaf( vec3_t point )
 const byte *PvsForOrigin( vec3_t org )
 {
 	dleaf_t	*leaf;
+	dvis_t	*dpvs;
 
 	if( !pvsdatasize )
 	{
@@ -137,6 +138,7 @@ const byte *PvsForOrigin( vec3_t org )
 		return novis;
 	}
 
+	dpvs = (dvis_t *)dpvsdata;
 	leaf = RadPointInLeaf( org );
 	if( leaf->cluster == -1 ) return NULL;	// in solid leaf
 	return dpvs->data + leaf->cluster * dpvs->rowsize;

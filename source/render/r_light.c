@@ -15,88 +15,6 @@
 
 =======================================================================
 */
-
-/*
-=================
-R_RecursiveLightNode
-=================
-*/
-static void R_RecursiveLightNode( node_t *node, dlight_t *dl, int bit )
-{
-#if 0
-	surface_t	*surf;
-	cplane_t	*plane;
-	float	dist;
-	int	i;
-
-	if( node->contents != -1 )
-		return;
-
-	if( node->visFrame != r_visFrameCount )
-		return;
-
-	// Find which side of the node we are on
-	plane = node->plane;
-	if( plane->type < 3 )dist = dl->origin[plane->type] - plane->dist;
-	else dist = DotProduct( dl->origin, plane->normal ) - plane->dist;
-
-	// Go down the appropriate sides
-	if( dist > dl->intensity )
-	{
-		R_RecursiveLightNode( node->children[0], dl, bit );
-		return;
-	}
-	if( dist < -dl->intensity )
-	{
-		R_RecursiveLightNode( node->children[1], dl, bit );
-		return;
-	}
-
-	// Mark the surfaces
-	surf = r_worldModel->surfaces + node->firstSurface;
-	for( i = 0; i < node->numSurfaces; i++, surf++ )
-	{
-		if( !BoundsAndSphereIntersect( surf->mins, surf->maxs, dl->origin, dl->intensity ))
-			continue;	 // No intersection
-
-		if( surf->dlightFrame != r_frameCount )
-		{
-			surf->dlightFrame = r_frameCount;
-			surf->dlightBits = bit;
-		}
-		else surf->dlightBits |= bit;
-	}
-
-	// recurse down the children
-	R_RecursiveLightNode( node->children[0], dl, bit );
-	R_RecursiveLightNode( node->children[1], dl, bit );
-#endif
-}
-
-/*
- =================
- R_MarkLights
- =================
-*/
-void R_MarkLights( void )
-{
-	dlight_t	*dl;
-	int	l;
-
-	if( !r_dynamiclights->integer || !r_numDLights )
-		return;
-
-	r_stats.numDLights += r_numDLights;
-
-	for( l = 0, dl = r_dlights; l < r_numDLights; l++, dl++ )
-	{
-		if( R_CullSphere( dl->origin, dl->intensity, MAX_CLIPFLAGS ))
-			continue;
-		R_RecursiveLightNode( r_worldModel->nodes, dl, 1<<l );
-	}
-}
-
-
 /*
 =======================================================================
 
@@ -165,8 +83,8 @@ static bool R_RecursiveLightPoint( node_t *node, const vec3_t start, const vec3_
 		if( tex->flags & (SURF_SKY|SURF_WARP|SURF_NODRAW|SURF_NOLIGHTMAP))
 			continue;	// no lightmaps
 
-		s = DotProduct(mid, tex->vecs[0]) + tex->vecs[0][3] - surf->textureMins[0];
-		t = DotProduct(mid, tex->vecs[1]) + tex->vecs[1][3] - surf->textureMins[1];
+		s = DotProduct(mid, surf->lmVecs[0]) + surf->lmVecs[0][3] - surf->textureMins[0];
+		t = DotProduct(mid, surf->lmVecs[1]) + surf->lmVecs[1][3] - surf->textureMins[1];
 
 		if((s < 0 || s > surf->extents[0]) || (t < 0 || t > surf->extents[1]))
 			continue;

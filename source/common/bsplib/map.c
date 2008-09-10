@@ -27,6 +27,15 @@ int		c_areaportals;
 int		c_structural;
 int		c_detail;
 
+const char *g_sMapType[BRUSH_COUNT] =
+{
+"unknown",
+"Worldcraft 2.1",
+"Valve Hammer 3.4",
+"Radiant",
+"QuArK"
+};
+
 /*
 =============================================================================
 
@@ -828,17 +837,18 @@ bspbrush_t *FinishBrush( void )
 		{
 			VectorSet( movedir, 0, 0, 1 );	// z-rotate
 		}
+		else VectorClear( movedir ); // custom movedir
 
 		if(!VectorIsNull( movedir ))
 		{
 			com.sprintf( string, "%i %i %i", (int)movedir[0], (int)movedir[1], (int)movedir[2]);
-			SetKeyValue( &entities[buildBrush->entitynum], "movedir", string );
+			SetKeyValue( &entities[num_entities - 1], "movedir", string );
 		}
 		if(!VectorIsNull( origin ))
 		{
 			com.sprintf( string, "%i %i %i", (int)origin[0], (int)origin[1], (int)origin[2]);
-			SetKeyValue( &entities[buildBrush->entitynum], "origin", string );
-			VectorCopy( origin, entities[buildBrush->entitynum].origin );
+			SetKeyValue( &entities[num_entities - 1], "origin", string );
+			VectorCopy( origin, entities[num_entities - 1].origin );
 		}
 
 		// don't keep this brush
@@ -980,15 +990,16 @@ bool ParseMapEntity( void )
 			else if( Com_MatchToken( "brushDef" ))
 			{
 				g_brushtype = BRUSH_RADIANT;
-				ParseBrush( mapent ); // parse brush primitive
+				if(ParseBrush( mapent )) // parse brush primitive
+					entity_numbrushes++;
 			}
 			else
 			{
 				// QuArK or Worldcraft map
 				Com_FreeToken();
-				ParseBrush( mapent );
+				if(ParseBrush( mapent ))
+					entity_numbrushes++;
 			}
-			entity_numbrushes++;
 		}
 		else
 		{
@@ -1000,6 +1011,7 @@ bool ParseMapEntity( void )
 					g_brushtype = BRUSH_WORLDCRAFT_22;
 				else g_brushtype = BRUSH_WORLDCRAFT_21;
 			}
+			else g_brushtype = BRUSH_WORLDCRAFT_21;
 			e->next = mapent->epairs;
 			mapent->epairs = e;
 		}
