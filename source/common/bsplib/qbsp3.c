@@ -21,8 +21,8 @@ EmitShader
 */
 int EmitShader( const char *shader )
 {
-	shader_t	*si;
-	int	i;
+	bsp_shader_t	*si;
+	int		i;
 
 	// force to create default shader
 	if( !shader ) shader = "default";

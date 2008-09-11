@@ -46,6 +46,51 @@ node_t *R_PointInLeaf( const vec3_t p )
 
 /*
 =================
+R_DecompressVis
+=================
+*/
+static byte *R_DecompressVis( const byte *in )
+{
+	static byte	decompressed[MAX_MAP_LEAFS/8];
+	byte		*out;
+	int		c, row;
+
+	row = (r_worldModel->vis->numClusters+7)>>3;	
+	out = decompressed;
+
+	if( !in )
+	{
+		// no vis info, so make all visible
+		while( row )
+		{
+			*out++ = 0xff;
+			row--;
+		}
+		return decompressed;		
+	}
+
+	do
+	{
+		if( *in )
+		{
+			*out++ = *in++;
+			continue;
+		}
+	
+		c = in[1];
+		in += 2;
+		while( c )
+		{
+			*out++ = 0;
+			c--;
+		}
+	} while( out - decompressed < row );
+	
+	return decompressed;
+}
+
+/*
+=================
 R_ClusterPVS
 =================
 */
@@ -53,7 +98,7 @@ byte *R_ClusterPVS( int cluster )
 {
 	if (!r_worldModel || !r_worldModel->vis || cluster < 0 || cluster >= r_worldModel->numClusters )
 		return r_worldModel->novis;
-	return (byte *)r_worldModel->vis + cluster * r_worldModel->clusterBytes;
+	return R_DecompressVis((byte *)r_worldModel->vis + r_worldModel->vis->bitOfs[cluster][DVIS_PVS]);
 }
 
 /*
@@ -304,7 +349,7 @@ static void R_LoadFaces( const byte *base, const lump_t *l )
 		out->lmWidth = in->lm_size[0];
 		out->lmHeight = in->lm_size[1];
 
-		if( out->texInfo->flags & (SURF_SKY|SURF_WARP|SURF_NODRAW))
+		if( out->texInfo->flags & SURF_NOLIGHTMAP )
 			lightofs = -1;
 		else lightofs = LittleLong( in->lm_base[0] ); // FIXME: hack
 
@@ -361,18 +406,22 @@ R_LoadVisibility
 static void R_LoadVisibility( const byte *base, const lump_t *l )
 {
 	size_t	vis_length;
-	const byte *buffer;
+	int	i;
 
 	vis_length = ( m_pLoadModel->numClusters + 63 ) & ~63;
 	m_pLoadModel->novis = Mem_Alloc( m_pLoadModel->mempool, vis_length );
-	memset( m_pLoadModel->novis, 0xff, vis_length );
+	memset( m_pLoadModel->novis, 0xFF, vis_length );
 
 	if( !l->filelen ) return;
-	buffer = base + l->fileofs;
-	m_pLoadModel->numClusters = LittleLong(((int *)buffer)[0] );
-	m_pLoadModel->clusterBytes = LittleLong(((int *)buffer)[1] );
-	m_pLoadModel->vis = Mem_Alloc( m_pLoadModel->mempool, l->filelen - VIS_HEADER_SIZE );
-	Mem_Copy(m_pLoadModel->vis, buffer + VIS_HEADER_SIZE, l->filelen - VIS_HEADER_SIZE );
+	m_pLoadModel->vis = Mem_Alloc( m_pLoadModel->mempool, l->filelen );
+	Mem_Copy( m_pLoadModel->vis, base + l->fileofs, l->filelen );
+
+	m_pLoadModel->vis->numClusters = LittleLong( m_pLoadModel->vis->numClusters );
+	for( i = 0; i < m_pLoadModel->vis->numClusters; i++ )
+	{
+		m_pLoadModel->vis->bitOfs[i][0] = LittleLong(m_pLoadModel->vis->bitOfs[i][0]);
+		m_pLoadModel->vis->bitOfs[i][1] = LittleLong(m_pLoadModel->vis->bitOfs[i][1]);
+	}
 }
 
 /*
@@ -446,7 +495,6 @@ static void R_LoadLeafNodes( const byte *base, const lump_t *nodes, const lump_t
 			out->maxs[j] = LittleLong( inLeaf->maxs[j] );
 		}
 
-		out->contents = LittleLong( inLeaf->contents );	// FIXME
 		out->cluster = LittleLong( inLeaf->cluster );
 		out->area = LittleLong( inLeaf->area );
 
@@ -455,23 +503,6 @@ static void R_LoadLeafNodes( const byte *base, const lump_t *nodes, const lump_t
 
 		out->firstMarkSurface = m_pLoadModel->markSurfaces + LittleLong( inLeaf->firstleafface );
 		out->numMarkSurfaces = LittleLong( inLeaf->numleaffaces );
-
-		// mark the surfaces for caustics
-		if( out->contents & (CONTENTS_WATER|CONTENTS_SLIME|CONTENTS_LAVA))
-		{
-			for( j = 0; j < out->numMarkSurfaces; j++ )
-			{
-				if( out->firstMarkSurface[j]->texInfo->flags & SURF_WARP )
-					continue;	// HACK: ignore warped surfaces
-
-				if( out->contents & CONTENTS_WATER )
-					out->firstMarkSurface[j]->flags |= SURF_WATERCAUSTICS;
-				if( out->contents & CONTENTS_SLIME )
-					out->firstMarkSurface[j]->flags |= SURF_SLIMECAUSTICS;
-				if( out->contents & CONTENTS_LAVA )
-					out->firstMarkSurface[j]->flags |= SURF_LAVACAUSTICS;
-			}
-		}
 	}	
 
 	// chain decendants

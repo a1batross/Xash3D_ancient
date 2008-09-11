@@ -30,8 +30,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define LATENCY_COUNTS		16
 #define MAX_ENT_CLUSTERS		16
 #define DF_NO_FRIENDLY_FIRE		0x00000001		//FIXME: move to server.dat
-#define DVIS_PVS			0
-#define DVIS_PHS			1
 
 // content masks
 #define MASK_SOLID			(CONTENTS_SOLID)
@@ -238,7 +236,7 @@ typedef struct
 	int		spawncount;		// incremented each server start
 						// used to check late spawns
 	sv_client_t	*clients;			// [host_maxclients->integer]
-	int		num_client_entities;	// host_maxclients->integer*UPDATE_BACKUP
+	int		num_client_entities;	// host_maxclients->integer*UPDATE_BACKUP*MAX_PACKET_ENTITIES
 	int		next_client_entities;	// next client_entity to use
 	entity_state_t	*client_entities;		// [num_client_entities]
 	entity_state_t	*baselines;		// [host.max_edicts]
@@ -268,7 +266,6 @@ extern	cvar_t		*sv_enforcetime;
 extern	cvar_t		*sv_reconnect_limit;
 extern	cvar_t		*allow_download;
 extern	cvar_t		*rcon_password;
-extern	cvar_t		*sv_fatpvs;
 extern	cvar_t		*hostname;
 extern	cvar_t		*sv_stepheight;
 extern	cvar_t		*sv_playersonly;
@@ -364,8 +361,6 @@ void SV_SectorList_f( void );
 void SV_WriteFrameToClient (sv_client_t *client, sizebuf_t *msg);
 void SV_BuildClientFrame (sv_client_t *client);
 void SV_UpdateEntityState( edict_t *ent);
-void SV_FatPVS ( vec3_t org );
-
 void SV_Error (char *error, ...);
 
 //

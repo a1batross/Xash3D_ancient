@@ -220,7 +220,6 @@ void FS_GetImageColor( rgbdata_t *pic )
 	int	j, texels;
 	byte	*pal, *buffer;
 	vec3_t	color = {0,0,0};
-	float	r, scale;
 
 	if( !pic )
 	{
@@ -276,14 +275,8 @@ void FS_GetImageColor( rgbdata_t *pic )
 		break;
 	}
 
-	for( j = 0; j < 3; j++ )
-	{
-		r = color[j]/texels;
-		pic->color[j] = r;
-	}
-	// scale the reflectivity up, because the textures are so dim
-	scale = Image_NormalizeColor( pic->color, pic->color );
-	pic->bump_scale = texels * 255.0 / scale; // basic intensity value
+	// not normalized src color
+	VectorCopy( color, pic->color );
 }
 
 /*

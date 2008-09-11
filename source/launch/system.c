@@ -60,6 +60,7 @@ void Sys_GetStdAPI( void )
 
 	// memlib.c
 	com.memcpy = _mem_copy;
+	com.memset = _mem_set;
 	com.realloc = _mem_realloc;
 	com.move = _mem_move;
 	com.malloc = _mem_alloc;
@@ -155,6 +156,7 @@ void Sys_GetStdAPI( void )
 	com.fprintf = FS_Printf;		// same as fprintf
 	com.fgets = FS_Gets;		// like a fgets, but can return EOF
 	com.fseek = FS_Seek;		// fseek, can seek in packfiles too
+	com.fremove = FS_Remove;		// like remove
 	com.ftell = FS_Tell;		// like a ftell
 
 	// virtual filesystem

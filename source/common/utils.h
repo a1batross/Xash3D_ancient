@@ -121,10 +121,6 @@ enum
 };
 
 bool Com_ValidScript( int scripttype );
-void Com_CheckToken( const char *match );
-void Com_Parse1DMatrix( int x, vec_t *m );
-void Com_Parse2DMatrix( int y, int x, vec_t *m );
-void Com_Parse3DMatrix( int z, int y, int x, vec_t *m );
 
 // misc
 bool CompileStudioModel ( byte *mempool, const char *name, byte parms );

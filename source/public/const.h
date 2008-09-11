@@ -71,25 +71,25 @@
 #define CONTENTS_NODROP		(1<<25)	// don't leave bodies or items (death fog, lava)
 #define CONTENTS_LADDER		(1<<26)	// ladder in games
 
-// user surfaces
-#define SURF_LIGHT			(1<<0)	// value will hold the light strength
-#define SURF_SKY			(1<<1)	// don't draw, but add to skybox
-#define SURF_WARP			(1<<2)	// turbulent water warp (using for teleporters too)
-#define SURF_MIRROR			(1<<3)	// mirror surface
-#define SURF_PORTAL			(1<<4)	// portal surface
-#define SURF_CHROME			(1<<5)	// chrome surfaces (bspfaces and studio skins)
-#define SURF_ALPHA			(1<<6)	// alpha surface (e.g. grates, trees)
-#define SURF_BLEND			(1<<7)	// blended surface (e.g. windows)
-#define SURF_ADDITIVE		(1<<8)	// additive surface (studio skins)
-
-// system surfaces
-#define SURF_NODRAW			(1<<15)	// don't bother referencing the texture
-#define SURF_HINT			(1<<16)	// make a primary bsp splitter
-#define SURF_SKIP			(1<<17)	// completely ignore, allowing non-closed brushes
-#define SURF_NULL			(1<<18)	// remove visible face after compile, but leave clip side
-#define SURF_NOLIGHTMAP		(1<<19)	// surface doesn't need a lightmap
-#define SURF_NODLIGHT		(1<<20)	// don't dlight even if solid (solid lava, skies)
-#define SURF_ALPHASHADOW		(1<<21)	// do per-pixel light shadow casting (project color shadow)
+// surface flags
+#define SURF_NODAMAGE		(1<<0)	// never give falling damage
+#define SURF_SLICK			(1<<1)	// effects game physics
+#define SURF_SKY			(1<<2)	// lighting from environment map
+#define SURF_SKYROOM		(1<<3)	// sky portal drawing surface
+#define SURF_NOIMPACT		(1<<4)	// don't make missile explosions
+#define SURF_NOMARKS		(1<<5)	// don't leave missile marks
+#define SURF_PORTAL			(1<<6)	// portal surface
+#define SURF_NODRAW			(1<<7)	// don't generate a drawsurface at all
+#define SURF_HINT			(1<<8)	// make a primary bsp splitter
+#define SURF_SKIP			(1<<9)	// make a secondary bsp splitter
+#define SURF_NOLIGHTMAP		(1<<10)	// surface doesn't need a lightmap
+#define SURF_NOSTEPS		(1<<11)	// no footstep sounds
+#define SURF_LIGHTFILTER		(1<<12)	// act as a light filter during q3map -light
+#define SURF_ALPHASHADOW		(1<<13)	// do per-pixel light shadow casting in q3map
+#define SURF_NODLIGHT		(1<<14)	// never add dynamic lights
+#define SURF_ALPHA			(1<<15)	// alpha surface (e.g. grates, trees)
+#define SURF_BLEND			(1<<16)	// blended surface (e.g. windows)
+#define SURF_ADDITIVE		(1<<17)	// additive surface (studio skins)
 
 // engine physics constants
 #define COLLISION_SNAPSCALE		(32.0f)

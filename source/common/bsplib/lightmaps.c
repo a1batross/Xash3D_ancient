@@ -81,8 +81,8 @@ void AllocateLightmapForSurface( drawsurf_t *ds )
 	vec3_t		mins, maxs, size, exactSize, delta;
 
 	ssize = LM_SAMPLE_SIZE;
-	if( ds->shader->lightmap_size )
-		ssize = ds->shader->lightmap_size;
+	if( ds->shader->lightmapSampleSize )
+		ssize = ds->shader->lightmapSampleSize;
 
 	plane = &mapplanes[ds->side->planenum];
 
@@ -215,7 +215,7 @@ void AllocateLightmaps( bsp_entity_t *e )
 {
 	int		i, j;
 	drawsurf_t	*ds;
-	shader_t		*si;
+	bsp_shader_t	*si;
 
 	MsgDev( D_INFO, "--- AllocateLightmaps ---\n" );
 

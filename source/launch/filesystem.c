@@ -2500,6 +2500,13 @@ fs_offset_t FS_FileTime (const char *filename)
 	return buf.st_mtime;
 }
 
+bool FS_Remove( const char *path )
+{
+	// FIXME: implement
+	Msg("FS_Remove: can't remove %s - not implemented\n", path );
+	return false;
+}
+
 /*
 ===========
 FS_Search

@@ -46,22 +46,47 @@ shader_t *r_lavaCausticsShader;
 
 shaderParm_t infoParms[] =
 {
-	{"window",	SURFACEPARM_BLEND,		CONTENTS_WINDOW	}, // normal window
-	{"lava",		SURFACEPARM_WARP,		CONTENTS_LAVA	}, // very damaging
-	{"slime",		SURFACEPARM_WARP,		CONTENTS_SLIME	}, // mildly damaging
-	{"water",		SURFACEPARM_WARP,		CONTENTS_WATER	},
-	{"alpha",		SURFACEPARM_ALPHA,		CONTENTS_TRANSLUCENT}, // don't eat contained surfaces
-	{"additive",	SURFACEPARM_ADDITIVE,	CONTENTS_TRANSLUCENT}, // don't eat contained surfaces
-	{"blend",		SURFACEPARM_BLEND,		CONTENTS_WINDOW	}, // normal window
-	{"chrome",	SURF_CHROME,		0		}, // don't eat contained surfaces
-	{"nodraw",	0,			0,		}, // stub
-	{"null",		0,			0,		}, // stub
-	{"mirror",	SURFACEPARM_MIRROR,		0		},
-// {"portal",	SURFACEPARM_PORTAL,		CONTENTS_TRIGGER	},
-	{"light",		SURFACEPARM_LIGHTMAP,	0		},
-	{"lightmap",	SURFACEPARM_LIGHTMAP,	0		},
-	{"sky",		0,			0		}, // don't draw
-	{"origin",	0,			0		}, // don't draw
+	// server relevant contents
+	{"water",		0,		CONTENTS_WATER		},
+	{"slime",		0,		CONTENTS_SLIME,		}, // mildly damaging
+	{"lava",		0,		CONTENTS_LAVA,		}, // very damaging
+	{"playerclip",	0,		CONTENTS_PLAYERCLIP,	},
+	{"monsterclip",	0,		CONTENTS_MONSTERCLIP,	},
+	{"clip",		0,		CONTENTS_CLIP,		},
+	{"nonsolid",	0,		0,			}, // just clears the solid flag
+
+	// utility relevant attributes
+	{"origin",	0,		CONTENTS_ORIGIN,		}, // center of rotating brushes
+	{"trans",		0,		CONTENTS_TRANSLUCENT,	}, // don't eat contained surfaces
+	{"detail",	0,		CONTENTS_DETAIL,		}, // carves surfaces entering
+	{"world",		0,		CONTENTS_STRUCTURAL,	}, // force into world even if trans
+	{"areaportal",	0,		CONTENTS_AREAPORTAL,	},
+	{"fog",		0,		CONTENTS_FOG,		}, // carves surfaces entering
+	{"sky",		SURF_SKY,		0,			}, // emit light from environment map
+	{"skyroom",	SURF_SKYROOM,	0,			}, // env_sky surface
+	{"lightfilter",	SURF_LIGHTFILTER,	0,			}, // filter light going through it
+	{"alphashadow",	SURF_ALPHASHADOW,	0,			}, // test light on a per-pixel basis
+	{"hint",		SURF_HINT,	0,			}, // use as a primary splitter
+	{"skip",		SURF_NODRAW,	0,			}, // use as a secondary splitter
+	{"null",		SURF_NODRAW,	0,			}, // don't generate a drawsurface
+	{"nodraw",	SURF_NODRAW,	0,			}, // don't generate a drawsurface
+
+	// server attributes
+	{"slick",		0,		SURF_SLICK,		},
+	{"noimpact",	0,		SURF_NOIMPACT,		}, // no impact explosions or marks
+	{"nomarks",	0,		SURF_NOMARKS,		}, // no impact marks, but explodes
+	{"ladder",	0,		CONTENTS_LADDER,		},
+	{"nodamage",	SURF_NODAMAGE,	0,			},
+	{"nosteps",	SURF_NOSTEPS,	0,			},
+
+	// drawsurf attributes
+	{"nolightmap",	SURF_NOLIGHTMAP,	0,			}, // don't generate a lightmap
+	{"nodlight",	SURF_NODLIGHT,	0,			}, // don't ever add dynamic lights
+	{"alpha",		SURF_ALPHA,	CONTENTS_TRANSLUCENT,	}, // alpha surface preset
+	{"additive",	SURF_ADDITIVE,	CONTENTS_TRANSLUCENT,	}, // additive surface preset
+	{"blend",		SURF_BLEND,	CONTENTS_TRANSLUCENT,	}, // blend surface preset
+	{"mirror",	SURF_PORTAL,	0,			}, // mirror surface
+	{"portal",	SURF_PORTAL,	0,			}, // portal surface
 };
 
 /*
@@ -2555,6 +2580,9 @@ static bool R_ParseShaderCommand( shader_t *shader, char **script, char *command
 		if( !com.stricmp( cmd->name, command ))
 			return cmd->parseFunc( shader, script );
 	}
+
+	// compiler commands ignored silently
+	if( !com.strnicmp( "q3map_", command, 6 )) return true;
 	MsgDev( D_WARN, "unknown general command '%s' in shader '%s'\n", command, shader->name );
 	return false;
 }
@@ -3083,14 +3111,15 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 		}
 		shader->stages[0]->bundles[0]->numTextures++;
 
-		if( shader->surfaceParm & SURFACEPARM_BLEND)
+		// fast presets
+		if( shader->surfaceParm & SURF_BLEND )
 		{
 			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
 			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
 		}
-		else if( shader->surfaceParm & SURFACEPARM_ALPHA)
+		else if( shader->surfaceParm & SURF_ALPHA )
 		{
 			shader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
@@ -3099,25 +3128,10 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 			shader->stages[0]->alphaFunc.ref = 0.666;
 			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
 		}
-
-		if( shader->surfaceParm & SURFACEPARM_CHROME )
-		{
-			Msg( "chrome not implemented\n" );
-		}
-		if( shader->surfaceParm & SURFACEPARM_WARP )
-		{
-			shader->flags |= SHADER_NOFRAGMENTS;
-			shader->flags |= SHADER_TESSSIZE;
-			shader->tessSize = 64;
-
-			shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_TCGEN;
-			shader->stages[0]->bundles[0]->tcGen.type = TCGEN_WARP;
-		}
-
 		shader->stages[0]->numBundles++;
 		shader->numStages++;
 
-		if( shader->surfaceParm & SURFACEPARM_LIGHTMAP )
+		if(!( shader->surfaceParm & SURF_NOLIGHTMAP ))
 		{
 			shader->flags |= SHADER_HASLIGHTMAP;
 			shader->stages[1]->bundles[0]->flags |= STAGEBUNDLE_MAP;
@@ -3137,7 +3151,8 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
 			shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
 		}
-		if( shader->surfaceParm & SURFACEPARM_BLEND )
+		// fast presets
+		if( shader->surfaceParm & SURF_BLEND )
 		{
 			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
@@ -3145,7 +3160,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
 	         		shader->sort = SORT_BLEND;
 		}
-		if( shader->surfaceParm & SURFACEPARM_ADDITIVE)
+		if( shader->surfaceParm & SURF_ADDITIVE )
 		{
 			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
@@ -3153,7 +3168,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
 	         		shader->sort = SORT_BLEND;
 		}
-		if( shader->surfaceParm & SURFACEPARM_ALPHA)
+		if( shader->surfaceParm & SURF_ALPHA )
 		{
 			shader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
@@ -3176,7 +3191,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 			MsgDev( D_WARN, "couldn't find spriteframe for shader '%s', using default...\n", shader->name );
 			shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
 		}
-		if( shader->surfaceParm & SURFACEPARM_BLEND )
+		if( shader->surfaceParm & SURF_BLEND )
 		{
 			shader->stages[0]->flags |= SHADERSTAGE_BLENDFUNC;
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
@@ -3184,7 +3199,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
 	         		shader->sort = SORT_BLEND;
 		}
-		if( shader->surfaceParm & SURFACEPARM_ALPHA )
+		if( shader->surfaceParm & SURF_ALPHA )
 		{
 			shader->stages[0]->flags |= SHADERSTAGE_ALPHAFUNC;
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
@@ -3294,7 +3309,7 @@ static void R_FinishShader( shader_t *shader )
 	}
 
 	// lightmap but no lightmap stage?
-	if( shader->shaderType == SHADER_TEXTURE && (shader->surfaceParm & SURFACEPARM_LIGHTMAP ))
+	if( shader->shaderType == SHADER_TEXTURE && !(shader->surfaceParm & SURF_NOLIGHTMAP ))
 	{
 		if(!(shader->flags & SHADER_DEFAULTED) && !(shader->flags & SHADER_HASLIGHTMAP))
 			MsgDev( D_WARN, "shader '%s' has lightmap but no lightmap stage!\n", shader->name );
@@ -3403,16 +3418,14 @@ static void R_FinishShader( shader_t *shader )
 				else stage->rgbGen.type = RGBGEN_IDENTITY;
 				break;
 			case SHADER_STUDIO:
-				if( shader->surfaceParm & SURFACEPARM_CHROME )
-					stage->rgbGen.type = RGBGEN_IDENTITY;
-				else if( shader->surfaceParm & SURFACEPARM_BLEND|SURFACEPARM_ADDITIVE )
+				if( shader->surfaceParm & SURF_ADDITIVE )
 					stage->rgbGen.type = RGBGEN_IDENTITY;
 				else stage->rgbGen.type = RGBGEN_IDENTITYLIGHTING;
 				break;
 			case SHADER_SPRITE:
-				if( shader->surfaceParm & SURFACEPARM_ALPHA )
+				if( shader->surfaceParm & SURF_ALPHA|SURF_BLEND )
 					stage->rgbGen.type = RGBGEN_IDENTITYLIGHTING; // sprite colormod
-				else if( shader->surfaceParm & SURFACEPARM_BLEND|SURFACEPARM_ADDITIVE )
+				else if( shader->surfaceParm & SURF_ADDITIVE )
 					stage->rgbGen.type = RGBGEN_IDENTITY;
 				break;
 			case SHADER_NOMIP:
@@ -3434,7 +3447,7 @@ static void R_FinishShader( shader_t *shader )
 			case SHADER_TEXTURE:
 				if((stage->flags & SHADERSTAGE_BLENDFUNC) && (stage->bundles[0]->texType != TEX_LIGHTMAP))
 				{
-					if( shader->surfaceParm & (SURFACEPARM_BLEND|SURFACEPARM_ADDITIVE))
+					if( shader->surfaceParm & SURF_ADDITIVE )
 						stage->alphaGen.type = ALPHAGEN_VERTEX;
 					else stage->alphaGen.type = ALPHAGEN_IDENTITY;
 				}
@@ -3856,7 +3869,6 @@ static void R_CreateBuiltInShaders( void )
 	com.strncpy( shader->name, "<lightmap>", sizeof( shader->name ));
 	shader->shaderNum = r_numShaders;
 	shader->shaderType = SHADER_TEXTURE;
-	shader->surfaceParm = SURFACEPARM_LIGHTMAP;
 	shader->flags = SHADER_HASLIGHTMAP;
 	shader->stages[0]->bundles[0]->texType = TEX_LIGHTMAP;
 	shader->stages[0]->numBundles++;

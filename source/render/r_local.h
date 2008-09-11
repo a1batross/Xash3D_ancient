@@ -144,16 +144,6 @@ typedef enum
 	SHADER_GENERIC			// generic shader
 } shaderType_t;
 
-// surfaceParm flags used for shader loading
-#define SURFACEPARM_LIGHTMAP			1
-#define SURFACEPARM_WARP			2
-#define SURFACEPARM_BLEND			4
-#define SURFACEPARM_ALPHA			8
-#define SURFACEPARM_ADDITIVE			16
-#define SURFACEPARM_CHROME			32
-#define SURFACEPARM_MIRROR			64
-#define SURFACEPARM_PORTAL			128
-
 // shader flags
 #define SHADER_EXTERNAL			0x00000001
 #define SHADER_DEFAULTED			0x00000002
@@ -599,6 +589,12 @@ typedef struct node_s
 
 typedef struct
 {
+	int		numClusters;
+	int		bitOfs[8][2];
+} vis_t;
+
+typedef struct
+{
 
 	vec3_t		point;
 	vec3_t		normal;
@@ -775,9 +771,8 @@ typedef struct rmodel_s
 	int		numNodes;
 	node_t		*nodes;			// also included leafs
 
-	int		numClusters;
-	int		clusterBytes;
-	byte		*vis;			// may be passed in by CM_LoadMap to save space
+	int		numClusters;		// used for create novis lump
+	vis_t		*vis;			// may be passed in by CM_LoadMap to save space
 	byte		*novis;			// clusterBytes of 0xff
 
 	sky_t		*sky;

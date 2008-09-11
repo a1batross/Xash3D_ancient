@@ -133,19 +133,11 @@ SOURCE=.\bsplib\leakfile.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\lightmap.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\bsplib\lightmaps.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\bsplib\map.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\patches.c
 # End Source File
 # Begin Source File
 
@@ -198,10 +190,6 @@ SOURCE=.\bsplib\terrain.c
 # Begin Source File
 
 SOURCE=.\bsplib\tjunc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\trace.c
 # End Source File
 # Begin Source File
 

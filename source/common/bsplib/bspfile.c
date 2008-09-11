@@ -1,11 +1,21 @@
+//=======================================================================
+//			Copyright XashXT Group 2007 ©
+//		    	bspfile.c - read\save bsp file
+//=======================================================================
 
 #include "bsplib.h"
 #include "byteorder.h"
 #include "const.h"
 
-//=============================================================================
 wfile_t		*handle;
+file_t		*wadfile;
 int		s_table;
+dheader_t		*header;
+dheader_t		outheader;
+
+int		num_entities;
+bsp_entity_t	entities[MAX_MAP_ENTITIES];
+
 char		dentdata[MAX_MAP_ENTSTRING];
 int		entdatasize;
 dshader_t		dshaders[MAX_MAP_SHADERS];
@@ -31,19 +41,82 @@ int		numvertexes;
 int		dindexes[MAX_MAP_INDEXES];
 int		numindexes;
 byte		dcollision[MAX_MAP_COLLISION];
-int		dcollisiondatasize = 256; // variable sized
+int		dcollisiondatasize;
 dsurface_t	dsurfaces[MAX_MAP_SURFACES];
 int		numsurfaces;
 byte		dlightdata[MAX_MAP_LIGHTDATA];
 int		lightdatasize;
-dlightgrid_t	dlightgrid[MAX_MAP_LIGHTGRID];
-int		numlightgrids;
-byte		dpvsdata[MAX_MAP_VISIBILITY];
-int		pvsdatasize;
-byte		dphsdata[MAX_MAP_VISIBILITY];
-int		phsdatasize;
+byte		dlightgrid[MAX_MAP_LIGHTGRID];
+int		numgridpoints;
+int		visdatasize;
+byte		dvisdata[MAX_MAP_VISIBILITY];
+dvis_t		*dvis = (dvis_t *)dvisdata;
 
 //=============================================================================
+/*
+===============
+CompressVis
+===============
+*/
+int CompressVis( byte *vis, byte *dest )
+{
+	int	j;
+	int	rep;
+	int	visrow;
+	byte	*dest_p;
+	
+	dest_p = dest;
+	visrow = (dvis->numclusters + 7)>>3;
+	
+	for( j = 0; j < visrow; j++ )
+	{
+		*dest_p++ = vis[j];
+		if( vis[j] ) continue;
+
+		rep = 1;
+		for( j++; j < visrow; j++ )
+			if( vis[j] || rep == 255 )
+				break;
+			else rep++;
+		*dest_p++ = rep;
+		j--;
+	}
+	return dest_p - dest;
+}
+
+/*
+===================
+DecompressVis
+===================
+*/
+void DecompressVis( byte *in, byte *decompressed )
+{
+	int		c;
+	byte	*out;
+	int		row;
+
+	row = (dvis->numclusters+7)>>3;	
+	out = decompressed;
+
+	do
+	{
+		if( *in )
+		{
+			*out++ = *in++;
+			continue;
+		}
+	
+		c = in[1];
+		if( !c ) Sys_Error( "DecompressVis: 0 repeat\n" );
+		in += 2;
+		while( c )
+		{
+			*out++ = 0;
+			c--;
+		}
+	} while( out - decompressed < row );
+}
+
 
 /*
 =============
@@ -52,9 +125,9 @@ SwapBSPFile
 Byte swaps all data in a bsp file.
 =============
 */
-void SwapBSPFile( void )
+void SwapBSPFile( bool todisk )
 {
-	int	i;
+	int	i, j;
 
 	// shaders
 	for( i = 0; i < numshaders; i++ )
@@ -88,7 +161,6 @@ void SwapBSPFile( void )
 	SwapBlock( (int *)dbrushsides, numbrushsides * sizeof(dbrushsides[0]));
 
 	// vertices
-	// FIXME: these code swapped colors
 	SwapBlock( (int *)dvertexes, numvertexes * sizeof(dvertexes[0]));
 
 	// indices
@@ -98,15 +170,18 @@ void SwapBSPFile( void )
 	SwapBlock( (int *)dsurfaces, numsurfaces * sizeof(dsurfaces[0]));
 
 	// visibility
-	((int *)&dpvsdata)[0] = LittleLong( ((int *)&dpvsdata)[0] );
-	((int *)&dpvsdata)[1] = LittleLong( ((int *)&dpvsdata)[1] );
-
-	// hearability
-	((int *)&dphsdata)[0] = LittleLong( ((int *)&dphsdata)[0] );
-	((int *)&dphsdata)[1] = LittleLong( ((int *)&dphsdata)[1] );
+	if( todisk ) j = dvis->numclusters;
+	else j = LittleLong( dvis->numclusters );
+	dvis->numclusters = LittleLong( dvis->numclusters );
+	for( i = 0; i < j; i++ )
+	{
+		dvis->bitofs[i][0] = LittleLong( dvis->bitofs[i][0] );
+		dvis->bitofs[i][1] = LittleLong( dvis->bitofs[i][1] );
+	}
 }
 
-size_t BSP_LoadLump( const char *lumpname, void *dest, size_t block_size )
+#ifdef BSP_WADFILE
+size_t CopyLump( const char *lumpname, void *dest, size_t block_size )
 {
 	size_t	length;
 	byte	*in;
@@ -114,32 +189,47 @@ size_t BSP_LoadLump( const char *lumpname, void *dest, size_t block_size )
 	if( !handle ) return 0;
 
 	in = WAD_Read( handle, lumpname, &length, TYPE_BINDATA );
-	if( length % block_size ) Sys_Break( "BSP_CopyLump: %s funny lump size\n", lumpname );
+	if( length % block_size ) Sys_Break( "LoadBSPFile: %s funny lump size\n", lumpname );
 	Mem_Copy( dest, in, length );
 	Mem_Free( in ); // no need more
 	return length / block_size;
 }
 
-void BSP_SaveLump( const char *lumpname, const void *data, size_t length, bool compress )
+void AddLump( const char *lumpname, const void *data, size_t length )
 {
+	int	compress = CMP_NONE;
+
 	if( !handle ) return;
-	WAD_Write( handle, lumpname, data, length, TYPE_BINDATA, ( compress ? CMP_ZLIB : CMP_NONE ));
+	if( length > 0xffff ) compress = CMP_ZLIB;
+	WAD_Write( handle, lumpname, data, length, TYPE_BINDATA, compress );
 }
 
-dheader_t	*header;
+#else
 
-int CopyLump( int lump, void *dest, int size )
+size_t CopyLump( const int lumpname, void *dest, size_t block_size )
 {
-	int		length, ofs;
+	size_t	length, ofs;
 
-	length = header->lumps[lump].filelen;
-	ofs = header->lumps[lump].fileofs;
+	length = header->lumps[lumpname].filelen;
+	ofs = header->lumps[lumpname].fileofs;
 	
-	if (length % size) Sys_Error("LoadBSPFile: odd lump size");
+	if( length % block_size) Sys_Break( "LoadBSPFile: %i funny lump size", lumpname );
 	Mem_Copy(dest, (byte *)header + ofs, length);
 
-	return length / size;
+	return length / block_size;
 }
+
+void AddLump( const int lumpname, const void *data, size_t length )
+{
+	lump_t *lump;
+
+	lump = &header->lumps[lumpname];
+	lump->fileofs = LittleLong( FS_Tell( wadfile ));
+	lump->filelen = LittleLong( length );
+
+	FS_Write( wadfile, data, (length + 3) & ~3 );
+}
+#endif
 
 /*
 =============
@@ -148,65 +238,49 @@ LoadBSPFile
 */
 bool LoadBSPFile( void )
 {
-	int	i, size;
-	char	path[MAX_SYSPATH];
 	byte	*buffer;
 	
-	sprintf(path, "maps/%s.bsp", gs_filename );
-	buffer = (byte *)FS_LoadFile(path, &size);
-	if(!size) return false;
+	buffer = (byte *)FS_LoadFile( va("maps/%.bsp", gs_filename ), NULL );
+	if( !buffer ) return false;
 
 	header = (dheader_t *)buffer; // load the file header
-	if(pe) pe->LoadBSP( buffer );
+	if( pe ) pe->LoadBSP( buffer );
 
-	MsgDev(D_NOTE, "reading %s\n", path);
+	MsgDev( D_NOTE, "reading %s.bsp\n", gs_filename );
 	
 	// swap the header
-	for(i = 0; i < sizeof(dheader_t)/4; i++)
-		((int *)header)[i] = LittleLong (((int *)header)[i]);
+	SwapBlock( (int *)header, sizeof( header ));
 
-	if(header->ident != IDBSPMODHEADER) Sys_Error("%s is not a IBSP file", gs_filename);
-	if(header->version != BSPMOD_VERSION) Sys_Error("%s is version %i, not %i", gs_filename, header->version, BSPMOD_VERSION);
+	if( header->ident != IDBSPMODHEADER )
+		Sys_Break( "%s.bsp is not a IBSP file\n", gs_filename );
+	if( header->version != BSPMOD_VERSION )
+		Sys_Break( "%s.bsp is version %i, not %i\n", gs_filename, header->version, BSPMOD_VERSION );
 
-	entdatasize = CopyLump (LUMP_ENTITIES, dentdata, 1);
-	numshaders = CopyLump(LUMP_SHADERS, dshaders, sizeof(dshader_t));
-	numplanes = CopyLump (LUMP_PLANES, dplanes, sizeof(dplane_t));
-	numnodes = CopyLump (LUMP_NODES, dnodes, sizeof(dnode_t));
-	numleafs = CopyLump (LUMP_LEAFS, dleafs, sizeof(dleaf_t));
-	numleaffaces = CopyLump (LUMP_LEAFFACES, dleaffaces, sizeof(dleaffaces[0]));
-	numleafbrushes = CopyLump (LUMP_LEAFBRUSHES, dleafbrushes, sizeof(dleafbrushes[0]));
-	nummodels = CopyLump (LUMP_MODELS, dmodels, sizeof(dmodel_t));
-	numbrushes = CopyLump (LUMP_BRUSHES, dbrushes, sizeof(dbrush_t));
-	numbrushsides = CopyLump (LUMP_BRUSHSIDES, dbrushsides, sizeof(dbrushside_t));
-	numvertexes = CopyLump (LUMP_VERTICES, dvertexes, sizeof(dvertex_t));
-	numindexes = CopyLump (LUMP_INDICES, dindexes, sizeof(dindexes[0]));
-	dcollisiondatasize = CopyLump(LUMP_COLLISION, dcollision, 1);
-	numsurfaces = CopyLump (LUMP_SURFACES, dsurfaces, sizeof(dsurfaces[0]));
-	lightdatasize = CopyLump (LUMP_LIGHTMAPS, dlightdata, 1);
-	pvsdatasize = CopyLump (LUMP_VISIBILITY, dpvsdata, 1);
-	phsdatasize = CopyLump (LUMP_HEARABILITY, dphsdata, 1);
+	entdatasize = CopyLump( LUMP_ENTITIES, dentdata, 1);
+	numshaders = CopyLump( LUMP_SHADERS, dshaders, sizeof(dshader_t));
+	numplanes = CopyLump( LUMP_PLANES, dplanes, sizeof(dplane_t));
+	numnodes = CopyLump( LUMP_NODES, dnodes, sizeof(dnode_t));
+	numleafs = CopyLump( LUMP_LEAFS, dleafs, sizeof(dleaf_t));
+	numleaffaces = CopyLump( LUMP_LEAFFACES, dleaffaces, sizeof(dleaffaces[0]));
+	numleafbrushes = CopyLump( LUMP_LEAFBRUSHES, dleafbrushes, sizeof(dleafbrushes[0]));
+	nummodels = CopyLump( LUMP_MODELS, dmodels, sizeof(dmodel_t));
+	numbrushes = CopyLump( LUMP_BRUSHES, dbrushes, sizeof(dbrush_t));
+	numbrushsides = CopyLump( LUMP_BRUSHSIDES, dbrushsides, sizeof(dbrushside_t));
+	numvertexes = CopyLump( LUMP_VERTICES, dvertexes, sizeof(dvertex_t));
+	numindexes = CopyLump( LUMP_INDICES, dindexes, sizeof(dindexes[0]));
+	dcollisiondatasize = CopyLump( LUMP_COLLISION, dcollision, 1);
+	numsurfaces = CopyLump( LUMP_SURFACES, dsurfaces, sizeof(dsurfaces[0]));
+	lightdatasize = CopyLump( LUMP_LIGHTMAPS, dlightdata, 1);
+	numgridpoints = CopyLump( LUMP_LIGHTGRID, dlightgrid, sizeof(dlightgrid_t));
+	visdatasize = CopyLump( LUMP_VISIBILITY, dvisdata, 1);
 
 	// swap everything
-	SwapBSPFile();
+	SwapBSPFile( false );
 
 	return true;
 }
 
 //============================================================================
-
-file_t	*wadfile;	// because bsp it's really wadfile with fixed lump counter
-dheader_t	outheader;
-
-void AddLump( int lumpnum, const void *data, size_t length )
-{
-	lump_t *lump;
-
-	lump = &header->lumps[lumpnum];
-	lump->fileofs = LittleLong( FS_Tell( wadfile ));
-	lump->filelen = LittleLong( length );
-
-	FS_Write( wadfile, data, (length + 3) & ~3 );
-}
 
 /*
 =============
@@ -217,22 +291,19 @@ Swaps the bsp file in place, so it should not be referenced again
 */
 void WriteBSPFile( void )
 {		
-	char path[MAX_SYSPATH];
-	
 	header = &outheader;
 	memset( header, 0, sizeof( dheader_t ));
 	
-	SwapBSPFile();
+	SwapBSPFile( true );
 
 	header->ident = LittleLong( IDBSPMODHEADER );
 	header->version = LittleLong( BSPMOD_VERSION );
 	
 	// build path
-	sprintf( path, "maps/%s.bsp", gs_filename );
-	MsgDev( D_NOTE, "writing %s\n", path );
+	MsgDev( D_NOTE, "writing %s.bsp\n", gs_filename );
 	if( pe ) pe->FreeBSP();
 	
-	wadfile = FS_Open( path, "wb" );
+	wadfile = FS_Open( va( "maps/%s.bsp", gs_filename ), "wb" );
 	FS_Write( wadfile, header, sizeof( dheader_t ));	// overwritten later
 
 	AddLump (LUMP_ENTITIES, dentdata, entdatasize);
@@ -250,8 +321,8 @@ void WriteBSPFile( void )
 	AddLump (LUMP_COLLISION, dcollision, dcollisiondatasize );
 	AddLump (LUMP_SURFACES, dsurfaces, numsurfaces*sizeof(dsurfaces[0]));	
 	AddLump (LUMP_LIGHTMAPS, dlightdata, lightdatasize);
-	AddLump (LUMP_VISIBILITY, dpvsdata, pvsdatasize);
-	AddLump (LUMP_HEARABILITY, dphsdata, phsdatasize);
+	AddLump (LUMP_LIGHTGRID, dlightgrid, numgridpoints*sizeof(dlightgrid_t));
+	AddLump (LUMP_VISIBILITY, dvisdata, visdatasize);
 
 	FS_Seek( wadfile, 0, SEEK_SET );
 	FS_Write( wadfile, header, sizeof(dheader_t));
@@ -259,16 +330,15 @@ void WriteBSPFile( void )
 }
 
 //============================================
+//	misc parse functions
+//============================================
 
-int num_entities;
-bsp_entity_t entities[MAX_MAP_ENTITIES];
-
-void StripTrailing (char *e)
+void StripTrailing( char *e )
 {
 	char	*s;
 
-	s = e + strlen(e)-1;
-	while (s >= e && *s <= 32)
+	s = e + com.strlen( e ) - 1;
+	while( s >= e && *s <= 32 )
 	{
 		*s = 0;
 		s--;
@@ -280,53 +350,57 @@ void StripTrailing (char *e)
 ParseEpair
 =================
 */
-epair_t *ParseEpair (void)
+epair_t *ParseEpair( void )
 {
 	epair_t	*e;
 
-	e = Malloc (sizeof(epair_t));
+	e = BSP_Malloc( sizeof( epair_t ));
 	
-	if (strlen(com_token) >= MAX_KEY - 1)Sys_Error ("ParseEpar: token too long");
-	e->key = copystring(com_token);
-	Com_GetToken (false);
-	if (strlen(com_token) >= MAX_VALUE - 1)Sys_Error ("ParseEpar: token too long");
-	e->value = copystring(com_token);
+	if( com.strlen( com_token ) >= MAX_KEY - 1 )
+		Sys_Break( "ParseEpair: token too long\n" );
+	e->key = copystring( com_token );
+	Com_GetToken( false );
+	if( com.strlen( com_token ) >= MAX_VALUE - 1 )
+		Sys_Break( "ParseEpair: token too long\n" );
+	e->value = copystring( com_token );
 
 	// strip trailing spaces
-	StripTrailing (e->key);
-	StripTrailing (e->value);
+	StripTrailing( e->key );
+	StripTrailing( e->value );
 
 	return e;
 }
-
 
 /*
 ================
 ParseEntity
 ================
 */
-bool ParseEntity (void)
+bool ParseEntity( void )
 {
-	epair_t	*e;
+	epair_t		*e;
 	bsp_entity_t	*mapent;
 
-	if (!Com_GetToken (true)) return false;
+	if( !Com_GetToken( true ))
+		return false;
 
-	if( !Com_MatchToken( "{" )) Sys_Break( "ParseEntity: '{' not found\n" );
-	if( num_entities == MAX_MAP_ENTITIES ) Sys_Break( "MAX_MAP_ENTITIES limit excceded\n" );
+	if( !Com_MatchToken( "{" ))
+		Sys_Break( "ParseEntity: '{' not found\n" );
+	if( num_entities == MAX_MAP_ENTITIES )
+		Sys_Break( "MAX_MAP_ENTITIES limit excceded\n" );
 
 	mapent = &entities[num_entities];
 	num_entities++;
 
-	do
+	while( 1 )
 	{
-		if (!Com_GetToken (true)) Sys_Error("ParseEntity: EOF without closing brace");
-		if (Com_MatchToken("}")) break;
+		if( !Com_GetToken( true ))
+			Sys_Break( "ParseEntity: EOF without closing brace\n" );
+		if( Com_MatchToken( "}" )) break;
 		e = ParseEpair();
 		e->next = mapent->epairs;
 		mapent->epairs = e;
-	} while (1);
-	
+	}
 	return true;
 }
 
@@ -337,11 +411,11 @@ ParseEntities
 Parses the dentdata string into entities
 ================
 */
-void ParseEntities (void)
+void ParseEntities( void )
 {
 	num_entities = 0;
-	if(Com_LoadScript("entities", dentdata, entdatasize))
-		while(ParseEntity());
+	if( Com_LoadScript( "entities", dentdata, entdatasize ))
+		while( ParseEntity( ));
 }
 
 
@@ -352,93 +426,145 @@ UnparseEntities
 Generates the dentdata string from all the entities
 ================
 */
-void UnparseEntities (void)
+void UnparseEntities( void )
 {
-	char	*buf, *end;
 	epair_t	*ep;
+	char	*buf, *end;
 	char	line[2048];
+	char	key[MAX_KEY], value[MAX_VALUE];
 	int	i;
-	char	key[1024], value[1024];
 
 	buf = dentdata;
 	end = buf;
 	*end = 0;
 	
-	for (i = 0; i < num_entities; i++)
+	for( i = 0; i < num_entities; i++ )
 	{
 		ep = entities[i].epairs;
-		if (!ep) continue;	// ent got removed
+		if( !ep ) continue;	// ent got removed
 		
-		strcat (end,"{\n");
+		com.strcat( end, "{\n" );
 		end += 2;
 				
-		for (ep = entities[i].epairs ; ep ; ep=ep->next)
+		for( ep = entities[i].epairs; ep; ep = ep->next )
 		{
-			strcpy (key, ep->key);
-			StripTrailing (key);
-			strcpy (value, ep->value);
-			StripTrailing (value);
+			com.strncpy( key, ep->key, MAX_KEY );
+			StripTrailing( key );
+			com.strncpy( value, ep->value, MAX_VALUE );
+			StripTrailing( value );
 				
-			sprintf (line, "\"%s\" \"%s\"\n", key, value);
-			strcat (end, line);
-			end += strlen(line);
+			com.snprintf( line, 2048, "\"%s\" \"%s\"\n", key, value );
+			com.strcat( end, line );
+			end += com.strlen( line );
 		}
-		strcat (end,"}\n");
+		com.strcat( end, "}\n" );
 		end += 2;
 
-		if (end > buf + MAX_MAP_ENTSTRING) Sys_Error("Entity text too long");
+		if( end > buf + MAX_MAP_ENTSTRING )
+			Sys_Break( "Entity text too long\n" );
 	}
 	entdatasize = end - buf + 1;
 }
 
-void SetKeyValue (bsp_entity_t *ent, char *key, char *value)
+void SetKeyValue( bsp_entity_t *ent, const char *key, const char *value )
 {
 	epair_t	*ep;
 	
-	for (ep=ent->epairs ; ep ; ep=ep->next)
-		if (!strcmp (ep->key, key) )
+	for( ep = ent->epairs; ep; ep = ep->next )
+	{
+		if(!com.strcmp( ep->key, key ))
 		{
-			Mem_Free (ep->value);
-			ep->value = copystring(value);
+			Mem_Free( ep->value );
+			ep->value = copystring( value );
 			return;
 		}
-	ep = Malloc (sizeof(*ep));
+	}
+	ep = BSP_Malloc( sizeof( *ep ));
 	ep->next = ent->epairs;
 	ent->epairs = ep;
-	ep->key = copystring(key);
-	ep->value = copystring(value);
+	ep->key = copystring( key );
+	ep->value = copystring( value );
 }
 
-char *ValueForKey (bsp_entity_t *ent, char *key)
+char *ValueForKey( bsp_entity_t *ent, const char *key )
 {
 	epair_t	*ep;
 	
-	for (ep=ent->epairs ; ep ; ep=ep->next)
-		if (!strcmp (ep->key, key) )
+	for( ep = ent->epairs; ep; ep = ep->next )
+	{
+		if(!com.strcmp( ep->key, key ))
 			return ep->value;
+	}
 	return "";
 }
 
-vec_t FloatForKey (bsp_entity_t *ent, char *key)
+vec_t FloatForKey( bsp_entity_t *ent, const char *key )
 {
 	char	*k;
 	
-	k = ValueForKey (ent, key);
-	return atof(k);
+	k = ValueForKey( ent, key );
+	return com.atof( k );
 }
 
-void GetVectorForKey (bsp_entity_t *ent, char *key, vec3_t vec)
+void GetVectorForKey( bsp_entity_t *ent, const char *key, vec3_t vec )
 {
 	char	*k;
 	double	v1, v2, v3;
 
 	k = ValueForKey (ent, key);
+
 	// scanf into doubles, then assign, so it is vec_t size independent
 	v1 = v2 = v3 = 0;
-	sscanf (k, "%lf %lf %lf", &v1, &v2, &v3);
-	vec[0] = v1;
-	vec[1] = v2;
-	vec[2] = v3;
+	sscanf( k, "%lf %lf %lf", &v1, &v2, &v3 );
+	VectorSet( vec, v1, v2, v3 );
 }
 
+void Com_CheckToken( const char *match )
+{
+	Com_GetToken( true );
 
+	if(!Com_MatchToken( match ))
+	{
+		Sys_Break( "Com_CheckToken: \"%s\" not found\n", match );
+	}
+}
+
+void Com_Parse1DMatrix( int x, vec_t *m )
+{
+	int	i;
+
+	Com_CheckToken( "(" );
+
+	for( i = 0; i < x; i++ )
+	{
+		Com_GetToken( false );
+		m[i] = com.atof( com_token );
+	}
+	Com_CheckToken( ")" );
+}
+
+void Com_Parse2DMatrix( int y, int x, vec_t *m )
+{
+	int	i;
+
+	Com_CheckToken( "(" );
+
+	for( i = 0; i < y; i++ )
+	{
+		Com_Parse1DMatrix( x, m+i*x );
+	}
+	Com_CheckToken( ")" );
+}
+
+void Com_Parse3DMatrix( int z, int y, int x, vec_t *m )
+{
+	int	i;
+
+	Com_CheckToken( "(" );
+
+	for( i = 0; i < z; i++ )
+	{
+		Com_Parse2DMatrix( y, x, m+i*x*y );
+	}
+	Com_CheckToken( ")" );
+}

@@ -20,6 +20,7 @@ enum
 	BRUSH_COUNT
 };
 
+#define VALVE_FORMAT		220
 #define MAX_BRUSH_SIDES		128
 #define BOGUS_RANGE			WORLD_SIZE
 #define TEXINFO_NODE		-1		// side is allready on a node
@@ -40,6 +41,8 @@ enum
 #define PSIDE_BOTH			(PSIDE_FRONT|PSIDE_BACK)
 #define PSIDE_FACING		4
 
+// bsp cvars setting
+extern cvar_t	*bsp_lightmap_size;
 
 extern bool full_compile;
 
@@ -110,29 +113,49 @@ typedef union
 	qrk_vects		quark;
 } vects_t;
 
-// shader_t work-in-progress
-
 typedef struct
 {
 	string	name;
-	string	lightmap;			// lightmap name
 	int	surfaceFlags;
 	int	contents;
 	int	value;			// intensity value
-	int	width;			// image width
-	int	height;			// image height
-	
+
+	string	backShader;		// for surfaces that generate different front and back passes
+	string	flareShader;		// for light flares
+
 	float	subdivisions;		// from a "tesssize xxx"
-	bool	hasPasses;
+	float	backsplashFraction;		// floating point value, usually 0.05
+	float	backsplashDistance;		// default 16
+	float	lightSubdivide;		// default 120
+	int	lightmapSampleSize;		// default 16
+
+	bool	hasStages;		// false if the shader doesn't define any rendering stages
 	bool	globalTexture;		// don't normalize texture repeats
+
 	bool	twoSided;			// cull none
-	bool	notjunc;			// don't use this surface for tjunction fixing	
+	bool	autosprite;		// autosprite shaders will become point lights
+
+	bool	lightFilter;		// light rays that cross surfaces of this type
+					// should test against the filter image
+	bool	forceTraceLight;		// always use -light for this surface
+	bool	forceVLight;		// always use -vlight for this surface
+	bool	forceSunLight;		// force sun light at this surface
+	bool	notjunc;			// don't use this surface for tjunction fixing
+	float	vertexScale;		// vertex light scale
+	
+	string	editorimage;		// use this image to generate texture coordinates
+	string	lightimage;		// use this image to generate color / averageColor
 	vec3_t	color;			// colorNormalized
 	vec3_t	averageColor;
 
-	float	lightmap_subdivide;
-	int	lightmap_size;		// lightmap sample size
-} shader_t;
+	byte	*pixels;			// pointer to lightimage
+
+	int	width;			// image width
+	int	height;			// image height
+	
+	vec3_t	sunLight;
+	vec3_t	sunDirection;
+} bsp_shader_t;
 
 typedef struct side_s
 {
@@ -141,7 +164,7 @@ typedef struct side_s
 	float		vecs[2][4];	// classic texture coordinate mapping
 	winding_t		*winding;
 	winding_t		*visibleHull;	// convex hull of all visible fragments
-	shader_t		*shader;		// other information about texture
+	bsp_shader_t	*shader;		// other information about texture
 
 	int		contents;		// from shaderInfo
 	int		surfaceFlags;	// from shaderInfo
@@ -184,7 +207,7 @@ typedef struct bspbrush_s
 
 typedef struct drawsurf_s
 {
-	shader_t		*shader;
+	bsp_shader_t	*shader;
 
 	bspbrush_t	*mapbrush;	// not valid for patches
 	side_t		*side;		// not valid for patches
@@ -301,7 +324,6 @@ typedef struct leaf_s
 	int		merged;
 	vportal_t		*portals[MAX_PORTALS_ON_LEAF];
 } leaf_t;
-
 	
 typedef struct pstack_s
 {
@@ -331,16 +353,17 @@ typedef struct
 extern	int		num_entities;
 extern	bsp_entity_t	entities[MAX_MAP_ENTITIES];
 
-void ParseEntities (void);
-void UnparseEntities (void);
-
-void SetKeyValue (bsp_entity_t *ent, char *key, char *value);
-char *ValueForKey (bsp_entity_t *ent, char *key);
-// will return "" if not present
-
-vec_t FloatForKey (bsp_entity_t *ent, char *key);
-void  GetVectorForKey (bsp_entity_t *ent, char *key, vec3_t vec);
-epair_t *ParseEpair (void);
+void	ParseEntities( void );
+void	UnparseEntities( void );
+void	Com_CheckToken( const char *match );
+void	Com_Parse1DMatrix( int x, vec_t *m );
+void	Com_Parse2DMatrix( int y, int x, vec_t *m );
+void	Com_Parse3DMatrix( int z, int y, int x, vec_t *m );
+void	SetKeyValue( bsp_entity_t *ent, const char *key, const char *value );
+char	*ValueForKey( bsp_entity_t *ent, const char *key ); // will return "" if not present
+vec_t	FloatForKey( bsp_entity_t *ent, const char *key );
+void	GetVectorForKey( bsp_entity_t *ent, const char *key, vec3_t vec );
+epair_t	*ParseEpair( void );
 
 
 extern	int entity_num;
@@ -382,10 +405,11 @@ extern	dsurface_t dsurfaces[MAX_MAP_SURFACES];
 extern	int numsurfaces;
 extern	byte dcollision[MAX_MAP_COLLISION];
 extern	int dcollisiondatasize;
-extern	int pvsdatasize;
-extern	byte dpvsdata[MAX_MAP_VISIBILITY];
-extern	int phsdatasize;
-extern	byte dphsdata[MAX_MAP_VISIBILITY];
+extern	int visdatasize;
+extern	byte dvisdata[MAX_MAP_VISIBILITY];
+extern	dvis_t *dvis;
+extern	byte dlightgrid[MAX_MAP_LIGHTGRID];
+extern	int numgridpoints;
 extern	int lightdatasize;
 extern	byte dlightdata[MAX_MAP_LIGHTDATA];
 
@@ -393,7 +417,6 @@ void	LoadMapFile ( void );
 int	FindFloatPlane (vec3_t normal, vec_t dist);
 bool	LoadBSPFile ( void );
 void	WriteBSPFile ( void );
-void	AddLump( int lumpnum, const void *data, size_t length );
 
 //=============================================================================
 
@@ -407,8 +430,8 @@ bspbrush_t *Brush_LoadEntity (bsp_entity_t *ent);
 int	PlaneTypeForNormal (vec3_t normal);
 bool	MakeBrushPlanes (bspbrush_t *b);
 int	FindIntPlane (int *inormal, int *iorigin);
-void CreateBrush( int brushnum );
-bool CreateBrushWindings( bspbrush_t *brush );
+void	CreateBrush( int brushnum );
+bool	CreateBrushWindings( bspbrush_t *brush );
 bspbrush_t *BrushFromBounds( vec3_t mins, vec3_t maxs );
 
 //=============================================================================
@@ -424,8 +447,11 @@ tree_t	*FaceBSP( bspface_t *list );
 // brush.c
 //
 
+bspbrush_t *AllocBrush( int numsides );
+bspbrush_t *CopyBrush( bspbrush_t *brush );
 void	FilterDetailBrushesIntoTree( bsp_entity_t *e, tree_t *tree );
 void	FilterStructuralBrushesIntoTree( bsp_entity_t *e, tree_t *tree );
+void	SplitBrush( bspbrush_t *brush, int planenum, bspbrush_t **front, bspbrush_t **back );
 
 //
 // surface.c
@@ -437,15 +463,8 @@ int	FilterFaceIntoTree( drawsurf_t *ds, tree_t *tree );
 void	SubdivideDrawSurfs( bsp_entity_t *e, tree_t *tree );
 void	FixTJunctions( bsp_entity_t *ent );
 
-// brushbsp
-
-void WriteBrushList (char *name, bspbrush_t *brush, bool onlyvis);
-bspbrush_t *CopyBrush (bspbrush_t *brush);
-void SplitBrush (bspbrush_t *brush, int planenum, bspbrush_t **front, bspbrush_t **back);
-
 tree_t *AllocTree (void);
 node_t *AllocNode (void);
-bspbrush_t *AllocBrush (int numsides);
 int CountBrushList (bspbrush_t *brushes);
 void FreeBrush (bspbrush_t *brushes);
 vec_t BrushVolume (bspbrush_t *brush);
@@ -463,11 +482,9 @@ winding_t	*WindingFromDrawSurf( drawsurf_t *ds );
 int	WindingOnPlaneSide( winding_t *w, vec3_t normal, vec_t dist );
 void	AddWindingToConvexHull( winding_t *w, winding_t **hull, vec3_t normal );
 bool	WindingIsTiny( winding_t *w );
-
 vec_t	WindingArea (winding_t *w);
 void	WindingCenter (winding_t *w, vec3_t center);
-void	ClipWindingEpsilon (winding_t *in, vec3_t normal, vec_t dist, 
-				vec_t epsilon, winding_t **front, winding_t **back);
+void	ClipWindingEpsilon( winding_t *in, vec3_t norm, vec_t dist, vec_t eps, winding_t **front, winding_t **back );
 winding_t	*CopyWinding (winding_t *w);
 winding_t	*ReverseWinding (winding_t *w);
 winding_t	*BaseWindingForPlane (vec3_t normal, vec_t dist);
@@ -487,7 +504,6 @@ void AllocateLightmaps( bsp_entity_t *e );
 //
 // portals.c
 //
-
 void	MakeHeadnodePortals( tree_t *tree );
 void	MakeNodePortal( node_t *node );
 void	SplitNodePortals( node_t *node );
@@ -495,6 +511,7 @@ bool	Portal_Passable( portal_t *p );
 bool	FloodEntities( tree_t *tree );
 void	FillOutside( node_t *headnode );
 void	FloodAreas( tree_t *tree );
+void	RemovePortalFromNode( portal_t *portal, node_t *l );
 bspface_t	*VisibleFaces( bsp_entity_t *e, tree_t *tree );
 void	MakeTreePortals( tree_t *tree );
 void	FreePortal( portal_t *p );
@@ -503,7 +520,7 @@ void	FreePortal( portal_t *p );
 // shaders.c
 
 int LoadShaderInfo( void );
-shader_t *FindShader( const char *texture );
+bsp_shader_t *FindShader( const char *texture );
 
 //=============================================================================
 // leakfile.c
@@ -522,35 +539,22 @@ void WritePortalFile( tree_t *tree );
 
 // writebsp.c
 int EmitShader( const char *shader );
-void SetModelNumbers (void);
-void SetLightStyles (void);
-
-void BeginBSPFile (void);
-void EndBSPFile (void);
+void SetModelNumbers( void );
+void SetLightStyles( void );
+void BeginBSPFile( void );
+void EndBSPFile( void );
 void BeginModel( void );
 void EndModel( node_t *headnode );
 
 //=============================================================================
 
-// faces.c
-
-void MakeFaces (node_t *headnode);
-void FixTjuncs (node_t *headnode);
-int GetEdge( int v1, int v2,  bspface_t *f );
-
-bspface_t	*AllocFace( void );
-void FreeFace( bspface_t *f );
-
-void MergeNodeFaces (node_t *node);
-
-//=============================================================================
-
+//
 // tree.c
+//
 
-void FreeTree (tree_t *tree);
-void FreeTree_r (node_t *node);
-void PrintTree_r (node_t *node, int depth);
-void FreeTreePortals_r (node_t *node);
+void FreeTree( tree_t *tree );
+void FreeTree_r( node_t *node );
+void FreeTreePortals_r( node_t *node );
 
 //=============================================================================
 
@@ -559,12 +563,14 @@ void FreeTreePortals_r (node_t *node);
 winding_t	*NewVisWinding( int points );
 void	FreeVisWinding( winding_t *w );
 winding_t	*CopyVisWinding( winding_t *w );
+int CompressVis( byte *vis, byte *dest );
+void DecompressVis( byte *in, byte *decompressed );
 
 extern	int	numportals;
 extern	int	portalclusters;
 
 extern	vportal_t	*portals;
-extern	leaf_t		*leafs;
+extern	leaf_t	*leafs;
 
 extern	int	c_portaltest, c_portalpass, c_portalcheck;
 extern	int	c_portalskip, c_leafskip;
@@ -597,131 +603,111 @@ extern	vportal_t	*sorted_portals[MAX_MAP_PORTALS*2];
 
 //=============================================================================
 
-// rad.c
+// qrad3.c
 
 typedef enum
 {
-	emit_surface,
 	emit_point,
-	emit_spotlight
+	emit_area,
+	emit_spotlight,
+	emit_sun
 } emittype_t;
 
-
-
-typedef struct directlight_s
+typedef struct light_s
 {
-	struct directlight_s *next;
+	struct light_s	*next;
 	emittype_t	type;
+	bsp_shader_t	*si;
 
-	float		intensity;
-	int			style;
 	vec3_t		origin;
+	vec3_t		normal;		// for surfaces, spotlights, and suns
+	float		dist;		// plane location along normal
+
+	bool		linearLight;
+	int		photons;
+	int		style;
 	vec3_t		color;
-	vec3_t		normal;		// for surfaces and spotlights
-	float		stopdot;		// for spotlights
-} directlight_t;
+	float		radiusByDist;	// for spotlights
 
+	bool		twosided;		// fog lights both sides
 
-// the sum of all tranfer->transfer values for a given patch
-// should equal exactly 0x10000, showing that all radiance
-// reaches other patches
-typedef struct
-{
-	unsigned short	patch;
-	unsigned short	transfer;
-} transfer_t;
-
-
-
-
-typedef struct patch_s
-{
-	winding_t	*winding;
-	struct patch_s		*next;		// next in face
-	int			numtransfers;
-	transfer_t	*transfers;
-
-	int			cluster;			// for pvs checking
-	vec3_t		origin;
-	dplane_t	*plane;
-
-	bool	sky;
-
-	vec3_t		totallight;			// accumulated by radiosity
-									// does NOT include light
-									// accounted for by direct lighting
-	float		area;
-
-	// illuminance * reflectivity = radiosity
-	vec3_t		reflectivity;
-	vec3_t		baselight;			// emissivity only
-
-	// each style 0 lightmap sample in the patch will be
-	// added up to get the average illuminance of the entire patch
-	vec3_t		samplelight;
-	int			samples;		// for averaging direct light
-} patch_t;
-
-extern	patch_t		*face_patches[MAX_MAP_SURFACES];
-extern	bsp_entity_t	*face_entity[MAX_MAP_SURFACES];
-extern	vec3_t		face_offset[MAX_MAP_SURFACES];		// for rotating bmodels
-extern	patch_t		patches[MAX_PATCHES];
-extern	uint		num_patches;
-
-extern	int		leafparents[MAX_MAP_LEAFS];
-extern	int		nodeparents[MAX_MAP_NODES];
+	winding_t		*w;
+	vec3_t		emitColor;	// full out-of-gamut value
+} light_t;
 
 extern	float	lightscale;
 extern	float	ambient;
-
-void MakeShadowSplits (void);
-
-//==============================================
-
-
-void BuildVisMatrix (void);
-bool CheckVisBit (unsigned p1, unsigned p2);
-
-//==============================================
-
-extern	float ambient, maxlight;
-
-void LinkPlaneFaces (void);
-
-extern	bool	extrasamples;
-extern int numbounce;
-
-extern	directlight_t	*directlights[MAX_MAP_LEAFS];
-
-extern	byte	nodehit[MAX_MAP_NODES];
-
-void BuildLightmaps (void);
-
-void BuildFacelights (int facenum);
-
-void FinalLightFace (int facenum);
-
-const byte *PvsForOrigin( vec3_t org );
-
-int TestLine_r (int node, vec3_t start, vec3_t stop);
-
-void CreateDirectLights (void);
-
-dleaf_t	*RadPointInLeaf (vec3_t point);
-
-
-extern	dplane_t	backplanes[MAX_MAP_PLANES];
-extern	int			fakeplanes;// created planes for origin offset 
-
-extern	float	subdiv;
-
+extern	float	maxlight;
 extern	float	direct_scale;
 extern	float	entity_scale;
+extern	bool	noSurfaces;
 
-int	PointInLeafnum (vec3_t point);
-void MakeTnodes (dmodel_t *bm);
-void MakePatches (void);
-void SubdividePatches (void);
-void CalcTextureReflectivity (void);
+//===============================================================
+
+//
+// light_trace.c
+//
+
+// a facet is a subdivided element of a patch aproximation or model
+typedef struct cFacet_s
+{
+	float		surface[4];
+	int		numBoundaries;	// either 3 or 4, anything less is degenerate
+	float		boundaries[4][4];	// positive is outside the bounds
+
+	vec3_t		points[4];	// needed for area light subdivision
+	float		textureMatrix[2][4];// compute texture coordinates at point of impact for translucency
+} cFacet_t;
+
+typedef struct
+{
+	vec3_t		mins, maxs;
+	vec3_t		origin;
+	float		radius;
+
+	bool		patch;
+
+	int		numFacets;
+	cFacet_t		*facets;
+	bsp_shader_t	*shader;		// for translucency
+} surfaceTest_t;
+
+typedef struct
+{
+	vec3_t		filter;		// starts out 1.0, 1.0, 1.0, may be reduced if
+					// transparent surfaces are crossed
+	vec3_t		hit;		// the impact point of a completely opaque surface
+	float		hitFraction;	// 0 = at start, 1.0 = at end
+	bool		passSolid;
+} lighttrace_t;
+
+extern	surfaceTest_t	*surfaceTest[MAX_MAP_SURFACES];
+
+void	InitTrace( void );
+
+// traceWork_t is only a parameter to crutch up poor large local allocations on
+// winNT and macOS.  It should be allocated in the worker function, but never
+// looked at.
+typedef struct
+{
+	vec3_t		start, end;
+	int		numOpenLeafs;
+	int		openLeafNumbers[MAX_MAP_LEAFS];
+	lighttrace_t	*trace;
+} traceWork_t;
+
+void TraceLine( const vec3_t start, const vec3_t stop, lighttrace_t *trace, bool testAll, traceWork_t *tw );
+bool PointInSolid( vec3_t start );
+
+typedef struct
+{
+	int		textureNum;
+	int		x, y, width, height;
+
+	// for faces
+	vec3_t		origin;
+	vec3_t		vecs[3];
+} lightmap_t;
+
 
 #endif//BSPLIB_H

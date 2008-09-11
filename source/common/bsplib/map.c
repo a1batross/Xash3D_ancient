@@ -1,11 +1,11 @@
-// map.c
+//=======================================================================
+//			Copyright XashXT Group 2007 ©
+//		    	   map.c - parse map script
+//=======================================================================
 
 #include "bsplib.h"
 #include "const.h"
 
-extern bool onlyents;
-
-#define VALVE_FORMAT	220
 #define PLANE_HASHES	1024
 
 // brushes are parsed into a temporary array of sides,
@@ -48,7 +48,7 @@ PLANE FINDING
 PlaneTypeForNormal
 =================
 */
-int PlaneTypeForNormal (vec3_t normal)
+int PlaneTypeForNormal( vec3_t normal )
 {
 	// NOTE: should these have an epsilon around 1.0?		
 	if(fabs(normal[0]) == 1.0) return PLANE_X;
@@ -475,7 +475,7 @@ void ParseRawBrush( void )
 	vec_t		ns, nt;
 	vects_t		vects;
 	side_t		*side;
-	shader_t		*si;
+	bsp_shader_t	*si;
 
 	buildBrush->numsides = 0;
 	buildBrush->detail = false;
@@ -995,6 +995,8 @@ bool ParseMapEntity( void )
 			}
 			else
 			{
+				if( g_brushtype == BRUSH_UNKNOWN )
+					g_brushtype = BRUSH_WORLDCRAFT_21;
 				// QuArK or Worldcraft map
 				Com_FreeToken();
 				if(ParseBrush( mapent ))
@@ -1011,7 +1013,6 @@ bool ParseMapEntity( void )
 					g_brushtype = BRUSH_WORLDCRAFT_22;
 				else g_brushtype = BRUSH_WORLDCRAFT_21;
 			}
-			else g_brushtype = BRUSH_WORLDCRAFT_21;
 			e->next = mapent->epairs;
 			mapent->epairs = e;
 		}

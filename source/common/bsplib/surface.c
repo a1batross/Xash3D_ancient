@@ -294,7 +294,7 @@ drawsurf_t *DrawSurfaceForSide( bspbrush_t *b, side_t *s, winding_t *w )
 {
 	drawsurf_t	*ds;
 	int		i, j;
-	shader_t		*si;
+	bsp_shader_t	*si;
 	dvertex_t		*dv;
 	float		mins[2], maxs[2];
 	vec3_t		texX,texY;
@@ -356,13 +356,16 @@ drawsurf_t *DrawSurfaceForSide( bspbrush_t *b, side_t *s, winding_t *w )
 	}
 
 	// adjust the texture coordinates to be as close to 0 as possible
-	mins[0] = floor( mins[0] );
-	mins[1] = floor( mins[1] );
-	for( i = 0; i < w->numpoints; i++ )
+	if( !si->globalTexture )
 	{
-		dv = ds->verts + i;
-		dv->st[0] -= mins[0];
-		dv->st[1] -= mins[1];
+		mins[0] = floor( mins[0] );
+		mins[1] = floor( mins[1] );
+		for( i = 0; i < w->numpoints; i++ )
+		{
+			dv = ds->verts + i;
+			dv->st[0] -= mins[0];
+			dv->st[1] -= mins[1];
+		}
 	}
 
 	return ds;
@@ -442,10 +445,8 @@ void SubdivideDrawSurfs( bsp_entity_t *e, tree_t *tree )
 	winding_t		*w;
 	float		subdivision;
 	int		numbasedrawsurfs;
-	shader_t		*si;
+	bsp_shader_t	*si;
 
-	// g-cont. Xash3d can subdivide polygons on-fly
-	// probably this func unneeded
 	MsgDev( D_INFO, "----- Subdivide Surfaces -----\n" );
 	numbasedrawsurfs = numdrawsurfs;
 
@@ -537,7 +538,7 @@ void ClipSidesIntoTree( bsp_entity_t *e, tree_t *tree )
 	bspbrush_t	*b;
 	int		i;
 	winding_t		*w;
-	shader_t		*si;
+	bsp_shader_t	*si;
 	side_t		*side, *newSide;
 
 	MsgDev( D_INFO, "----- ClipSidesIntoTree -----\n" );

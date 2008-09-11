@@ -144,21 +144,6 @@ bool Image_LumpValidSize( const char *name )
 	return true;
 }
 
-vec_t Image_NormalizeColor( vec3_t in, vec3_t out )
-{
-	float	max, scale;
-
-	max = in[0];
-	if(in[1] > max) max = in[1];
-	if(in[2] > max) max = in[2];
-
-	// ignore green color
-	if( max == 0 ) return 0;
-	scale = 255.0f / max;
-	VectorScale( in, scale, out );
-	return max;
-}
-
 void Image_SetPalette( const byte *pal, uint *d_table )
 {
 	int	i;

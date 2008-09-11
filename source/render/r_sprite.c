@@ -189,7 +189,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 				pal[i][2] = *src++;
 				pal[i][3] = 255;
 			}
-			surfaceParm |= SURFACEPARM_ADDITIVE;
+			surfaceParm |= SURF_ADDITIVE;
 			break;
                     case SPR_INDEXALPHA:
 			for( i = 0; i < 256; i++ )
@@ -199,7 +199,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 				pal[i][2] = *src++;
 				pal[i][3] = i;
 			}
-			surfaceParm |= SURFACEPARM_ALPHA;
+			surfaceParm |= SURF_ALPHA;
 			break;
 		case SPR_ALPHTEST:		
 			for( i = 0; i < 256; i++ )
@@ -210,7 +210,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 				pal[i][3] = 255;
 			}
 			pal[255][0] = pal[255][1] = pal[255][2] = pal[255][3] = 0;
-			surfaceParm |= SURFACEPARM_ALPHA;
+			surfaceParm |= SURF_ALPHA;
                               break;
 		default:
 			for (i = 0; i < 256; i++)
@@ -224,6 +224,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 			break;
 		}
 		pframetype = (dframetype_t *)(src);
+		surfaceParm |= SURF_NOLIGHTMAP;
 	}
 	else 
 	{

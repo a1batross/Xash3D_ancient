@@ -12,68 +12,66 @@ PVS / PHS
 
 ===============================================================================
 */
+/*
+===================
+CM_DecompressVis
+===================
+*/
+void CM_DecompressVis( byte *in, byte *out )
+{
+	byte	*out_p;
+	int	c, row;
+
+	row = (cm.numclusters + 7)>>3;	
+	out_p = out;
+
+	if( !in )
+	{	
+		// no vis info, so make all visible
+		while( row )
+		{
+			*out_p++ = 0xff;
+			row--;
+		}
+		return;		
+	}
+	do
+	{
+		if(*in)
+		{
+			*out_p++ = *in++;
+			continue;
+		}
+	
+		c = in[1];
+		in += 2;
+		if((out_p - out) + c > row)
+		{
+			c = row - (out_p - out);
+			MsgDev(D_WARN, "CM_DecompressVis: decompression overrun\n");
+		}
+		while( c )
+		{
+			*out_p++ = 0;
+			c--;
+		}
+	} while( out_p - out < row );
+}
+
 byte *CM_ClusterPVS( int cluster )
 {
-	if( cluster < 0 || cluster >= cm.pvs.numClusters || !cm.vised )
-		return cm.pvs.data;
-	return (byte *)cm.pvs.data + cluster * cm.pvs.clusterBytes;
+	if( cluster < 0 || cluster >= cm.numclusters || !cm.vis )
+		memset( cm.pvsrow, 0xFF, (cm.numclusters + 31) & ~31 );
+	else CM_DecompressVis( cm.visbase + cm.vis->bitofs[cluster][DVIS_PVS], cm.pvsrow );
+	return cm.pvsrow;
 }
 
 byte *CM_ClusterPHS( int cluster )
 {
-	if( cluster < 0 || cluster >= cm.phs.numClusters || !cm.vised )
-		return cm.phs.data;
-	return (byte *)cm.phs.data + cluster * cm.phs.clusterBytes;
-}
-
-static byte *CM_GetPVS( const vec3_t p )
-{
-	cnode_t *node = cm.nodes;
-
-	while( node->plane )
-		node = node->children[(node->plane->type < 3 ? p[node->plane->type] : DotProduct(p, node->plane->normal)) < node->plane->dist];
-	if(((cleaf_t *)node)->cluster >= 0 )
-		return CM_ClusterPVS( ((cleaf_t *)node)->cluster );
-	return NULL;
-}
-
-
-static void CM_FatPVS_RecursiveBSPNode( const vec3_t org, float radius, byte *fatpvs, size_t fatpvs_size, cnode_t *node )
-{
-	while( node->plane )
-	{
-		float d = PlaneDiff( org, node->plane );
-		if( d > radius ) node = node->children[0];
-		else if( d < -radius ) node = node->children[1];
-		else
-		{
-			// go down both sides
-			CM_FatPVS_RecursiveBSPNode( org, radius, fatpvs, fatpvs_size, node->children[0] );
-			node = node->children[1];
-		}
-	}
-	// if this leaf is in a cluster, accumulate the pvs bits
-	if(((cleaf_t *)node)->cluster >= 0)
-	{
-		int i;
-		byte *pvs = CM_ClusterPVS(((cleaf_t *)node)->cluster ); 
-		for( i = 0; i < fatpvs_size; i++ ) fatpvs[i] |= pvs[i];
-	}
-}
-
-int CM_FatPVS( const vec3_t org, vec_t radius, byte *fatpvs, size_t fatpvs_size, bool merge )
-{
-	int bytes = cm.pvs.numClusters;
-
-	bytes = min( bytes, fatpvs_size );
-	if( cm_novis->integer || !cm.vised || !CM_GetPVS( org ))
-	{
-		memset( fatpvs, 0xFF, bytes );
-		return bytes;
-	}
-	if( !merge ) memset( fatpvs, 0, bytes );
-	CM_FatPVS_RecursiveBSPNode( org, radius, fatpvs, bytes, cm.nodes );
-	return bytes;
+	if( cluster < 0 || cluster >= cm.numclusters || !cm.vis )
+		memset( cm.phsrow, 0xFF, (cm.numclusters + 31) & ~31 );
+	else CM_DecompressVis( cm.visbase + cm.vis->bitofs[cluster][DVIS_PHS], cm.phsrow );
+	return cm.phsrow;
 }
 
 /*

@@ -435,6 +435,7 @@ typedef struct stdilib_api_s
 
 	// memlib.c funcs
 	void (*memcpy)(void *dest, const void *src, size_t size, const char *file, int line);
+	void (*memset)(void *dest, int set, size_t size, const char *filename, int fileline);
 	void *(*realloc)(byte *pool, void *mem, size_t size, const char *file, int line);
 	void (*move)(byte *pool, void **dest, void *src, size_t size, const char *file, int line); // not a memmove
 	void *(*malloc)(byte *pool, size_t size, const char *file, int line);
@@ -535,6 +536,7 @@ typedef struct stdilib_api_s
 	int (*fprintf)(file_t* file, const char* format, ...);		// same as fprintf
 	int (*fgets)(file_t* file, byte *string, size_t bufsize );		// like a fgets, but can return EOF
 	int (*fseek)(file_t* file, fs_offset_t offset, int whence);		// fseek, can seek in packfiles too
+	bool (*fremove)( const char *path );				// remove sepcified file
 	long (*ftell)(file_t* file);					// like a ftell
 
 	// virtual filesystem
@@ -676,6 +678,7 @@ typedef struct stdilib_api_s
 #define Mem_FreePool(pool)		com.freepool(pool, __FILE__, __LINE__)
 #define Mem_EmptyPool(pool)		com.clearpool(pool, __FILE__, __LINE__)
 #define Mem_Copy(dest, src, size )	com.memcpy(dest, src, size, __FILE__, __LINE__)
+#define Mem_Set(dest, val, size )	com.memcpy(dest, val, size, __FILE__, __LINE__)
 #define Mem_Check()			com.memcheck(__FILE__, __LINE__)
 #define Mem_CreateArray( p, s, n )	com.newarray( p, s, n, __FILE__, __LINE__)
 #define Mem_RemoveArray( array )	com.delarray( array, __FILE__, __LINE__)
@@ -1277,7 +1280,6 @@ typedef struct physic_exp_s
 	int (*NumBmodels )( void );
 	const char *(*GetEntityString)( void );
 	const char *(*GetTextureName)( int index );
-	int (*FatPVS)( const vec3_t org, vec_t radius, byte *fatpvs, size_t fatpvs_size, bool merge );
 	byte *(*ClusterPVS)( int cluster );
 	byte *(*ClusterPHS)( int cluster );
 	int (*PointLeafnum)( vec3_t p );

@@ -106,7 +106,6 @@ physic_exp_t DLLEXPORT *CreateAPI ( stdlib_api_t *input, physic_imp_t *engfuncs 
 	Phys.LeafArea = CM_LeafArea;
 	Phys.AreasConnected = CM_AreasConnected;
 	Phys.WriteAreaBits = CM_WriteAreaBits;
-	Phys.FatPVS = CM_FatPVS;
 
 	Phys.Frame = PhysFrame;
 	Phys.CreateBody = Phys_CreateBody;

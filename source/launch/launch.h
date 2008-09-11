@@ -241,6 +241,7 @@ void Memory_Init_Commands( void );
 void _mem_move(byte *poolptr, void **dest, void *src, size_t size, const char *filename, int fileline);
 void *_mem_realloc(byte *poolptr, void *memptr, size_t size, const char *filename, int fileline);
 void _mem_copy(void *dest, const void *src, size_t size, const char *filename, int fileline);
+void _mem_set(void *dest, int set, size_t size, const char *filename, int fileline);
 void *_mem_alloc(byte *poolptr, size_t size, const char *filename, int fileline);
 byte *_mem_allocpool(const char *name, const char *filename, int fileline);
 void _mem_freepool(byte **poolptr, const char *filename, int fileline);
@@ -263,6 +264,7 @@ bool _is_allocated( byte *poolptr, void *data );
 #define Mem_EmptyPool(pool) _mem_emptypool(pool, __FILE__, __LINE__)
 #define Mem_Move(pool, dest, src, size ) _mem_move(pool, dest, src, size, __FILE__, __LINE__)
 #define Mem_Copy(dest, src, size ) _mem_copy(dest, src, size, __FILE__, __LINE__)
+#define Mem_Set(dest, val, size ) _mem_set(dest, val, size, __FILE__, __LINE__)
 #define Mem_CreateArray( p, s, n ) _mem_alloc_array( p, s, n, __FILE__, __LINE__)
 #define Mem_RemoveArray( array ) _mem_free_array( array, __FILE__, __LINE__)
 #define Mem_AllocElement( array ) _mem_alloc_array_element( array, __FILE__, __LINE__)
@@ -330,6 +332,7 @@ fs_offset_t FS_FileSize (const char *filename);
 fs_offset_t FS_FileTime (const char *filename);
 int FS_Print(file_t* file, const char *msg);
 bool FS_FileExists (const char *filename);
+bool FS_Remove( const char *path );
 int FS_UnGetc (file_t* file, byte c);
 void FS_StripExtension (char *path);
 fs_offset_t FS_Tell (file_t* file);

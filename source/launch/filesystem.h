@@ -441,7 +441,6 @@ void Image_Save( const char *filename, rgbdata_t *pix );
 rgbdata_t *Image_Load(const char *filename, const byte *buffer, size_t buffsize );
 bool Image_Copy8bitRGBA( const byte *in, byte *out, int pixels );
 bool FS_AddMipmapToPack( const byte *in, int width, int height, bool expand );
-vec_t Image_NormalizeColor( vec3_t in, vec3_t out );
 bool Image_DecompressDXTC( rgbdata_t **image );
 bool Image_DecompressARGB( rgbdata_t **image );
 void Image_GetPaletteLMP( const byte *pal, int rendermode );

@@ -5,7 +5,7 @@
 #define MAX_SURFACE_INFO		4096
 int numShaderInfo = 0;
 
-shader_t shaderInfo[MAX_SURFACE_INFO];
+bsp_shader_t shaderInfo[MAX_SURFACE_INFO];
 
 typedef struct
 {
@@ -18,39 +18,46 @@ typedef struct
 infoParm_t infoParms[] =
 {
 	// server relevant contents
-	{"window",	SURF_BLEND,	0,			0}, // normal window
-	{"lava",		SURF_WARP,	CONTENTS_LAVA,		1}, // very damaging
-	{"slime",		SURF_WARP,	CONTENTS_SLIME,		1}, // mildly damaging
-	{"water",		SURF_WARP,	CONTENTS_WATER,		1},
-          
+	{"water",		0,		CONTENTS_WATER,		1},
+	{"slime",		0,		CONTENTS_SLIME,		1}, // mildly damaging
+	{"lava",		0,		CONTENTS_LAVA,		1}, // very damaging
+	{"playerclip",	0,		CONTENTS_PLAYERCLIP,	1},
+	{"monsterclip",	0,		CONTENTS_MONSTERCLIP,	1},
+	{"clip",		0,		CONTENTS_CLIP,		1},
+	{"nonsolid",	0,		0,			1}, // just clears the solid flag
+
 	// utility relevant attributes
-	{"fog",		0,		CONTENTS_FOG,		1}, // carves surfaces entering
+	{"origin",	0,		CONTENTS_ORIGIN,		1}, // center of rotating brushes
+	{"trans",		0,		CONTENTS_TRANSLUCENT,	0}, // don't eat contained surfaces
 	{"detail",	0,		CONTENTS_DETAIL,		0}, // carves surfaces entering
 	{"world",		0,		CONTENTS_STRUCTURAL,	0}, // force into world even if trans
 	{"areaportal",	0,		CONTENTS_AREAPORTAL,	1},
-	{"playerclip",	0,		CONTENTS_PLAYERCLIP,	1},
-	{"monsterclip",	0,		CONTENTS_MONSTERCLIP,	1},
-	{"clip",		SURF_NODRAW,	CONTENTS_CLIP,		1},
-	{"origin",	0,		CONTENTS_ORIGIN,		1}, // center of rotating brushes
-	{"alpha",		SURF_ALPHA,	CONTENTS_TRANSLUCENT,	0}, // don't eat contained surfaces
-	{"additive",	SURF_ADDITIVE,	CONTENTS_TRANSLUCENT,	0}, // don't eat contained surfaces
-	{"chrome",	SURF_CHROME,	0,			0},
+	{"fog",		0,		CONTENTS_FOG,		1}, // carves surfaces entering
 	{"sky",		SURF_SKY,		0,			0}, // emit light from environment map
+	{"skyroom",	SURF_SKYROOM,	0,			0}, // env_sky surface
+	{"lightfilter",	SURF_LIGHTFILTER,	0,			0}, // filter light going through it
+	{"alphashadow",	SURF_ALPHASHADOW,	0,			0}, // test light on a per-pixel basis
 	{"hint",		SURF_HINT,	0,			0}, // use as a primary splitter
 	{"skip",		SURF_NODRAW,	0,			0}, // use as a secondary splitter
-	{"mirror",	SURF_MIRROR,	CONTENTS_SOLID,		0},
-	{"portal",	SURF_PORTAL,	CONTENTS_TRIGGER,		0},
-	{"blend",		SURF_BLEND,	0,			0}, // normal window
-
-	// drawsurf attributes
 	{"null",		SURF_NODRAW,	0,			0}, // don't generate a drawsurface
-	{"nolightmap",	SURF_NOLIGHTMAP,	0,			0}, // don't generate a lightmap
-	{"nodlight",	SURF_NODLIGHT,	0,			0}, // don't ever add dynamic lights
+	{"nodraw",	SURF_NODRAW,	0,			0}, // don't generate a drawsurface
 
 	// server attributes
-	{"light",		SURF_LIGHT,	0,			0},
-	{"lightmap",	SURF_LIGHT,	0,			0},
+	{"slick",		0,		SURF_SLICK,		0},
+	{"noimpact",	0,		SURF_NOIMPACT,		0}, // no impact explosions or marks
+	{"nomarks",	0,		SURF_NOMARKS,		0}, // no impact marks, but explodes
 	{"ladder",	0,		CONTENTS_LADDER,		0},
+	{"nodamage",	SURF_NODAMAGE,	0,			0},
+	{"nosteps",	SURF_NOSTEPS,	0,			0},
+
+	// drawsurf attributes
+	{"nolightmap",	SURF_NOLIGHTMAP,	0,			0}, // don't generate a lightmap
+	{"nodlight",	SURF_NODLIGHT,	0,			0}, // don't ever add dynamic lights
+	{"alpha",		SURF_ALPHA,	CONTENTS_TRANSLUCENT,	0}, // alpha surface preset
+	{"additive",	SURF_ADDITIVE,	CONTENTS_TRANSLUCENT,	0}, // additive surface preset
+	{"blend",		SURF_BLEND,	CONTENTS_TRANSLUCENT,	0}, // blend surface preset
+	{"mirror",	SURF_PORTAL,	0,			0}, // mirror surface
+	{"portal",	SURF_PORTAL,	0,			0}, // portal surface
 };
 
 /*
@@ -58,9 +65,9 @@ infoParm_t infoParms[] =
 AllocShaderInfo
 ===============
 */
-static shader_t *AllocShaderInfo( void )
+static bsp_shader_t *AllocShaderInfo( void )
 {
-	shader_t		*si;
+	bsp_shader_t	*si;
 
 	if ( numShaderInfo == MAX_SURFACE_INFO ) Sys_Error( "MAX_SURFACE_INFO" );
 
@@ -78,37 +85,40 @@ static shader_t *AllocShaderInfo( void )
 LoadShaderImage
 ===============
 */
-static void LoadShaderImage( shader_t *si )
+static void LoadShaderImage( bsp_shader_t *si )
 {
-	rgbdata_t		*pic;
-
 	if( !si ) return;
 	if( !com.stricmp( si->name, "default" )) 
 		return;
-	pic = FS_LoadImage( si->name, NULL, 0 );
-	if( !pic ) return;
 
-	si->width = pic->width;
-	si->height = pic->height;
-
-	// get radiosity color too
-	if(VectorIsNull( si->color ))
+	if( !si->pixels )
 	{
-		// if lightmap specified as different image
-		if( com.stricmp( si->name, si->lightmap ))
+		int	count;
+		rgbdata_t	*pic;
+	
+		if( si->lightimage[0] )
+			pic = FS_LoadImage( si->lightimage, NULL, 0 );
+		else if( si->editorimage[0] ) 
+			pic = FS_LoadImage( si->editorimage, NULL, 0 );
+		else pic = FS_LoadImage( si->name, NULL, 0 ); // last chance
+		if( !pic )
 		{
-			FS_FreeImage( pic );
-			pic = FS_LoadImage( si->name, NULL, 0 );
+			si->width = 64;
+			si->height = 64;
+			return; // not found 
 		}
+		
+		count = pic->width * pic->height;
+		si->width = pic->width;
+		si->height = pic->height;
+	
 		Image_GetColor( pic );
-		if( pic ) VectorCopy( pic->color, si->color );
-		if( !si->value && pic ) si->value = pic->bump_scale;
+		ColorNormalize( pic->color, si->color );
+		VectorScale( pic->color, 1.0 / count, si->averageColor );
+		si->pixels = BSP_Malloc( pic->size );
+		Mem_Copy( si->pixels, pic->buffer, pic->size );
+		FS_FreeImage( pic ); // release pic
 	}
-	if( pic ) FS_FreeImage( pic ); // release image
-
-	// to avoid multiple loading
-	if(VectorIsNull( si->color )) VectorSet( si->color, 0.5f, 0.5f, 0.5f );
-	if( !si->value ) si->value = 100;
 }
 
 /*
@@ -119,8 +129,8 @@ ParseShaderFile
 static void ParseShaderFile( char *filename )
 {
 	int		i, numInfoParms = sizeof(infoParms) / sizeof(infoParms[0]);
-	char		name[128];
-	shader_t		*si;
+	string		name;
+	bsp_shader_t	*si;
 
 	bool load = Com_LoadScript( filename, NULL, 0 );
 
@@ -136,7 +146,6 @@ static void ParseShaderFile( char *filename )
 
 		si = AllocShaderInfo();
 		com.strcpy( si->name, com_token );
-		com.strcpy( si->lightmap, com_token );	// can be overrided later
 		Com_GetToken( true );
 		
 		if(!Com_MatchToken( "{" ))
@@ -153,7 +162,7 @@ static void ParseShaderFile( char *filename )
 			// skip internal braced sections
 			if ( !strcmp( com_token, "{" ) )
 			{
-				si->hasPasses = true;
+				si->hasStages = true;
 				while ( 1 )
 				{
 					if ( !Com_GetToken( true )) break;
@@ -179,57 +188,156 @@ static void ParseShaderFile( char *filename )
 				continue;
 			}
 
-			// cull none will set twoSided
-			if( Com_MatchToken( "cull" ))
+			// qer_editorimage <image>
+			if( Com_MatchToken( "qer_editorimage" ))
 			{
 				Com_GetToken( false );
-				if( Com_MatchToken( "none" ))
-					si->twoSided = true;
+				com.strncpy( si->editorimage, com_token, MAX_STRING );
+				continue;
+			}
+
+			// q3map_lightimage <image>
+			if( Com_MatchToken( "q3map_lightimage" ))
+			{
+				Com_GetToken( false );
+				com.strncpy( si->lightimage, com_token, MAX_STRING );
 				continue;
 			}
 
 			// q3map_surfacelight <value>
-			if( Com_MatchToken( "surfacelight" ))
+			if( Com_MatchToken( "q3map_surfacelight" ))
 			{
 				Com_GetToken( false );
 				si->value = com.atoi( com_token );
-				si->surfaceFlags |= SURF_LIGHT;
 				continue;
 			}
 
-			// light color <value> <value> <value>
-			// FIXME
-			if( Com_MatchToken( "radiocity" )  )
+			// q3map_lightsubdivide <value>
+			if( Com_MatchToken( "q3map_lightsubdivide" ))
 			{
 				Com_GetToken( false );
-				si->color[0] = atof( com_token );
-				Com_GetToken( false );
-				si->color[1] = atof( com_token );
-				Com_GetToken( false );
-				si->color[2] = atof( com_token );
+				si->lightSubdivide = com.atoi( com_token );
 				continue;
 			}
 
-			// custom lightmap
-			if( Com_MatchToken( "lmap" ))
+			// q3map_lightmapsamplesize <value>
+			if( Com_MatchToken( "q3map_lightmapsamplesize" ))
 			{
 				Com_GetToken( false );
-				com.strcpy( si->lightmap, com_token );
-				si->notjunc = true;
+				si->lightmapSampleSize = com.atoi( com_token );
+				continue;
+			}
+
+			// q3map_tracelight
+			if( Com_MatchToken( "q3map_tracelight" ))
+			{
+				si->forceTraceLight = true;
+				continue;
+			}
+
+			// q3map_vlight
+			if ( Com_MatchToken( "q3map_vlight" ))
+			{
+				si->forceVLight = true;
+				continue;
+			}
+
+			// q3map_forcesunlight
+			if( Com_MatchToken( "q3map_forcesunlight" ))
+			{
+				si->forceSunLight = true;
+				continue;
+			}
+
+			// q3map_vertexscale
+			if( Com_MatchToken( "q3map_vertexscale" ))
+			{
+				Com_GetToken( false );
+				si->vertexScale = com.atof( com_token );
 				continue;
 			}
 
 			// q3map_notjunc
-			if( Com_MatchToken( "notjunc" ))
+			if( Com_MatchToken( "q3map_notjunc" ))
 			{
 				si->notjunc = true;
 				continue;
 			}
 
 			// q3map_globaltexture
-			if( Com_MatchToken( "globaltexture" ))
+			if( Com_MatchToken( "q3map_globaltexture" ))
 			{
 				si->globalTexture = true;
+				continue;
+			}
+
+			// q3map_backsplash <percent> <distance>
+			if( Com_MatchToken( "q3map_backsplash" ))
+			{
+				Com_GetToken( false );
+				si->backsplashFraction = com.atof( com_token ) * 0.01f;
+				Com_GetToken( false );
+				si->backsplashDistance = com.atof( com_token );
+				continue;
+			}
+
+			// q3map_backshader <shader>
+			if( Com_MatchToken( "q3map_backshader" ))
+			{
+				Com_GetToken( false );
+				com.strncpy( si->backShader, com_token, MAX_STRING );
+				continue;
+			}
+
+			// q3map_flare <shader>
+			if( Com_MatchToken( "q3map_flare" ))
+			{
+				Com_GetToken( false );
+				com.strncpy( si->flareShader, com_token, MAX_STRING );
+				continue;
+			}
+
+			// light <value> 
+			// old style flare specification
+			if( Com_MatchToken( "light" ))
+			{
+				Com_GetToken( false );
+				com.strncpy( si->flareShader, "flareshader", MAX_STRING );
+				continue;
+			}
+
+			// q3map_sun <red> <green> <blue> <intensity> <degrees> <elivation>
+			// color will be normalized, so it doesn't matter what range you use
+			// intensity falls off with angle but not distance 100 is a fairly bright sun
+			// degree of 0 = from the east, 90 = north, etc.  altitude of 0 = sunrise/set, 90 = noon
+			if( Com_MatchToken( "q3map_sun" ))
+			{
+				float	a, b;
+
+				Com_GetToken( false );
+				si->sunLight[0] = com.atof( com_token );
+				Com_GetToken( false );
+				si->sunLight[1] = com.atof( com_token );
+				Com_GetToken( false );
+				si->sunLight[2] = com.atof( com_token );
+				VectorNormalize( si->sunLight );
+
+				Com_GetToken( false );
+				a = com.atof( com_token );
+				VectorScale( si->sunLight, a, si->sunLight );
+
+				Com_GetToken( false );
+				a = com.atof( com_token );
+				a = a / 180 * M_PI;
+
+				Com_GetToken( false );
+				b = com.atof( com_token );
+				b = b / 180 * M_PI;
+
+				si->sunDirection[0] = cos( a ) * cos( b );
+				si->sunDirection[1] = sin( a ) * cos( b );
+				si->sunDirection[2] = sin( b );
+				si->surfaceFlags |= SURF_SKY;
 				continue;
 			}
 
@@ -241,11 +349,37 @@ static void ParseShaderFile( char *filename )
 				continue;
 			}
 
-			if( !stricmp( com_token, "sort" ))
+			// cull none will set twoSided
+			if( Com_MatchToken( "cull" ))
+			{
+				Com_GetToken( false );
+				if(Com_MatchToken( "twoSided" )) si->twoSided = true;
+				if(Com_MatchToken( "disable" )) si->twoSided = true;
+				if(Com_MatchToken( "none" )) si->twoSided = true;
+				continue;
+			}
+
+
+			// deformVertexes autosprite[2]
+			// we catch this so autosprited surfaces become point
+			// lights instead of area lights
+			if( Com_MatchToken( "deformVertexes" ))
+			{
+				Com_GetToken( false );
+				if( !strnicmp( com_token, "autosprite", 10 ))
+				{
+					si->autosprite = true;
+					si->contents = CONTENTS_DETAIL;
+				}
+				continue;
+			}
+
+			if( Com_MatchToken( "sort" ))
 			{
 				Com_GetToken( false );
 				continue;
 			}
+
 			// ignore all other com_tokens on the line
 			while( Com_TryToken());
 		}			
@@ -257,10 +391,10 @@ static void ParseShaderFile( char *filename )
 FindShader
 ===============
 */
-shader_t *FindShader( const char *textureName )
+bsp_shader_t *FindShader( const char *textureName )
 {
 	string		shader;
-	shader_t		*si;
+	bsp_shader_t	*si;
 	int		i;
 
 	// strip off extension

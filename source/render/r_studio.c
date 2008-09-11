@@ -180,14 +180,14 @@ texture_t *R_StudioLoadTexture( rmodel_t *mod, mstudiotexture_t *ptexture, byte 
 	r_skin.buffer = pin + ptexture->index; // texdata
 	r_skin.size = ptexture->width * ptexture->height; // for bounds cheking
 
+	// convert studio flags into surfaceFlags
 	if( ptexture->flags & STUDIO_NF_TRANSPARENT )
-		surfaceParm |= SURFACEPARM_ALPHA;
+		surfaceParm |= SURF_ALPHA;
 	if( ptexture->flags & STUDIO_NF_ADDITIVE )
-		surfaceParm |= SURFACEPARM_ADDITIVE;			
-	if( ptexture->flags & STUDIO_NF_CHROME )
-		surfaceParm |= SURFACEPARM_CHROME;
+		surfaceParm |= SURF_ADDITIVE;			
 	if( ptexture->flags & STUDIO_NF_BLENDED )
-		surfaceParm |= SURFACEPARM_BLEND;
+		surfaceParm |= SURF_BLEND;
+	surfaceParm |= SURF_NOLIGHTMAP;
 
 	// load studio texture and bind it
 	image = R_LoadTexture( ptexture->name, &r_skin, 0, 0 );
@@ -769,11 +769,6 @@ void R_StudioSetUpTransform( void )
 	{
 		// don't rotate player model, only aim
 		angles[PITCH] = 0;
-	}
-	else if( m_pCurrentEntity->ent_type == ED_VIEWMODEL )
-	{
-		// stupid quake bug
-		angles[PITCH] = -angles[PITCH];
 	}
 	else if( m_pCurrentEntity->movetype != MOVETYPE_NONE ) 
 	{

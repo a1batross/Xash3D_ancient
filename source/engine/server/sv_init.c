@@ -281,7 +281,7 @@ void SV_InitGame( void )
 
 	svs.spawncount = RANDOM_LONG( 0, 65535 );
 	svs.clients = Z_Malloc( sizeof(sv_client_t) * Host_MaxClients());
-	svs.num_client_entities = Host_MaxClients() * UPDATE_BACKUP;// * 64; g-cont: what a mem waster ???????
+	svs.num_client_entities = Host_MaxClients() * UPDATE_BACKUP * 64; // g-cont: what a mem waster ???????
 	svs.client_entities = Z_Malloc( sizeof(entity_state_t) * svs.num_client_entities );
 	svs.baselines = Z_Malloc( sizeof(entity_state_t) * host.max_edicts );
 

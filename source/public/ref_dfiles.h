@@ -147,7 +147,7 @@ BRUSH MODELS
 #define MAX_MAP_PORTALS		0x20000
 #define MAX_MAP_LIGHTDATA		0x800000	// 8 megabytes for lightmaps
 #define MAX_MAP_LIGHTGRID		0x800000
-#define MAX_MAP_VISIBILITY		0x200000	// and hearability too
+#define MAX_MAP_VISIBILITY		0x200000
 #define MAX_MAP_COLLISION		0x400000	// collision data size
 #define MAX_MAP_SURFACES		0x20000
 #define MAX_MAP_VERTEXES		0x80000
@@ -155,13 +155,14 @@ BRUSH MODELS
 #define MAX_MAP_AREAPORTALS		MAX_EDICTS<<1
 
 // other limits
+#define DVIS_PVS			0
+#define DVIS_PHS			1
 #define MAX_KEY			128
 #define MAX_VALUE			512
 #define MAX_WORLD_COORD		( 128 * 1024 )
 #define MIN_WORLD_COORD		(-128 * 1024 )
 #define WORLD_SIZE			( MAX_WORLD_COORD - MIN_WORLD_COORD )
 #define MAX_BUILD_SIDES		512	// per one brush. (don't change)
-#define VIS_HEADER_SIZE		8	// sizeof(int) + sizeof(int)
 #define LIGHTMAP_WIDTH		128
 #define LIGHTMAP_HEIGHT		128
 #define LIGHTMAP_BITS		3	// RGB
@@ -187,8 +188,7 @@ BRUSH MODELS
 #define LUMP_LIGHTMAPS		14
 #define LUMP_LIGHTGRID		15
 #define LUMP_VISIBILITY		16	// unpacked pvs data
-#define LUMP_HEARABILITY		17	// version 39. rev. 3 currently unused
-#define LUMP_TOTALCOUNT		18	// max lumps
+#define LUMP_TOTALCOUNT		17	// max lumps
 
 typedef struct
 {
@@ -271,6 +271,12 @@ typedef struct
 
 typedef struct
 {
+	int	numclusters;
+	int	bitofs[8][2];	// bitofs[numclusters][2]
+} dvis_t;
+
+typedef struct
+{
 	int	planenum;		// plane->normal
 	int	shadernum;	// dshader_t[num]
 	int	lightmapnum;	// dlightmap[num]
@@ -289,13 +295,6 @@ typedef struct
 	float	vecs[2][3];	// lightmap vecs
 	float	normal[3];	// plane->normal, probably not needed
 } dsurface_t;
-
-typedef struct
-{
-	int	numclusters;
-	int	rowsize;
-	byte	data[1];		// unbounded, variable sized
-} dvis_t;
 
 typedef struct dlightmap_s
 {

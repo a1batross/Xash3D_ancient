@@ -140,6 +140,8 @@ typedef struct clipmap_s
 {
 	string		name;
 	uint		checksum;		// map checksum
+	byte		pvsrow[MAX_MAP_LEAFS/8];
+	byte		phsrow[MAX_MAP_LEAFS/8];
 
 	// brush, studio and sprite models
 	cmodel_t		cmodels[MAX_MODELS];
@@ -161,8 +163,8 @@ typedef struct clipmap_s
 	int		*indices;
 	cbrush_t		*brushes;
 	cbrushside_t	*brushsides;
-	cvis_t		pvs;
-	cvis_t		phs;
+	byte		*visbase;		// vis offset
+	dvis_t		*vis;
 	NewtonCollision	*collision;
 	carea_t		*areas;
 	int		*areaportals;	// [ cm.numareas * cm.numareas ] reference counts
@@ -179,6 +181,7 @@ typedef struct clipmap_s
 	int		numsurfaces;
 	int		numbrushes;
 	int		numareas;
+	int		numclusters;
 	int		floodvalid;
 
 	// misc stuff
@@ -193,7 +196,6 @@ typedef struct clipmap_s
 	vfile_t		*world_tree;	// pre-calcualated collision tree (worldmodel only)
 	trace_t		trace;		// contains result of last trace
 	int		checkcount;
-	bool		vised;		// additional vis info
 } clipmap_t;
 
 typedef struct physic_s

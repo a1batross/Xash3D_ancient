@@ -15,6 +15,8 @@ bool notjunc = false;
 bool onlyents = false;
 bool nosubdivide = false;
 
+cvar_t	*bsp_lightmap_size;
+
 dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(physic_exp_t) };
 physic_exp_t *pe;
 
@@ -71,6 +73,9 @@ bool PrepareBSPModel ( const char *dir, const char *name, byte params )
 	onlyvis = (params & BSP_ONLYVIS) ? true : false ;
 	onlyrad = (params & BSP_ONLYRAD) ? true : false;
 	full_compile = (params & BSP_FULLCOMPILE) ? true : false;
+
+	// register our cvars
+	bsp_lightmap_size = Cvar_Get( "bsplib_lightmapsize", "16", CVAR_SYSTEMINFO, "bsplib lightmap sample size" );
 
 	FS_LoadGameInfo( "gameinfo.txt" ); // same as normal gamemode
 

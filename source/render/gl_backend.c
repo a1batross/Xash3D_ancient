@@ -681,7 +681,7 @@ GL_BindTexture
 void GL_BindTexture( texture_t *texture )
 {
 	// Performance evaluation option
-	if( r_nobind->integer )
+	if( r_nobind->integer && !(texture->flags & TF_STATIC))
 		texture = r_defaultTexture;
 
 	if( gl_state.texNum[gl_state.activeTMU] == texture->texnum )

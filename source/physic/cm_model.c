@@ -64,7 +64,7 @@ void CM_FreeModel( cmodel_t *mod )
 }
 
 int CM_NumTextures( void ) { return cm.numshaders; }
-int CM_NumClusters( void ) { return cm.pvs.numClusters; }
+int CM_NumClusters( void ) { return cm.numclusters; }
 int CM_NumInlineModels( void ) { return cm.numbmodels; }
 const char *CM_EntityString( void ) { return cm.entitystring; }
 const char *CM_TexName( int index ) { return cm.shaders[index].name; }
@@ -363,7 +363,7 @@ void BSP_LoadLeafs( lump_t *l )
 	count = l->filelen / sizeof(*in);
 	if( count < 1 ) Host_Error("Map %s with no leafs\n", cm.name );
 	out = cm.leafs = (cleaf_t *)Mem_Alloc( cmappool, count * sizeof(*out));
-	cm.pvs.numClusters = cm.pvs.clusterBytes = cm.numareas = 0;
+	cm.numclusters = cm.numareas = 0;
 	cm.numleafs = count;
 
 	for( i = 0; i < count; i++, in++, out++)
@@ -374,8 +374,8 @@ void BSP_LoadLeafs( lump_t *l )
 		out->cluster = LittleLong( in->cluster );
 		out->area = LittleLong( in->area );
 
-		if( out->cluster >= cm.pvs.numClusters )
-			cm.pvs.numClusters = out->cluster + 1;
+		if( out->cluster >= cm.numclusters )
+			cm.numclusters = out->cluster + 1;
 		if( out->area >= cm.numareas )
 			cm.numareas = out->area + 1;
 		for( j = 0; j < 3; j++ )
@@ -481,57 +481,21 @@ BSP_LoadVisibility
 */
 void BSP_LoadVisibility( lump_t *l )
 {
-	dvis_t	*pvs;
-	byte	*buffer;
+	int	i;
 
-	if( !l->filelen )
+	if( !l->filelen ) return;
+	cm.visbase = (byte *)Mem_Alloc( cmappool, l->filelen );
+	Mem_Copy( cm.visbase, cm.mod_base + l->fileofs, l->filelen );
+	cm.vis = (dvis_t *)cm.visbase; // conversion
+	cm.vis->numclusters = LittleLong( cm.vis->numclusters );
+	for( i = 0; i < cm.vis->numclusters; i++ )
 	{
-		// create novis lump
-		cm.pvs.clusterBytes = ( cm.pvs.numClusters + 31 ) & ~31;
-		cm.pvs.data = (byte *)Mem_Alloc( cmappool, cm.pvs.clusterBytes );
-		memset( cm.pvs.data, 0xFF, cm.pvs.clusterBytes );
-		cm.vised = false;
-		return;
+		cm.vis->bitofs[i][0] = LittleLong(cm.vis->bitofs[i][0]);
+		cm.vis->bitofs[i][1] = LittleLong(cm.vis->bitofs[i][1]);
 	}
 
-	buffer = (byte *)cm.mod_base + l->fileofs;
-	pvs = (dvis_t *)buffer;
-	cm.pvs.numClusters = LittleLong ( pvs->numclusters );
-	cm.pvs.clusterBytes = LittleLong ( pvs->rowsize );
-	cm.pvs.data = (byte *)Mem_Alloc( cmappool, l->filelen - VIS_HEADER_SIZE );
-	Mem_Copy( cm.pvs.data, pvs->data, l->filelen - VIS_HEADER_SIZE );
-	cm.vised = true;
-}
-
-/*
-=================
-BSP_LoadHearability
-=================
-*/
-void BSP_LoadHearability( lump_t *l )
-{
-	dvis_t	*phs;
-	byte	*buffer;
-
-	// FIXME: calculate PHS on fly from PVS, probably it's very fast
-	// FIXME: kill lump phs
-	
-	if( !cm.vised || !l->filelen )
-	{
-		// create totalphs lump
-		cm.phs.numClusters = cm.pvs.numClusters;
-		cm.phs.clusterBytes = ( cm.phs.numClusters + 31 ) & ~31;
-		cm.phs.data = (byte *)Mem_Alloc( cmappool, cm.phs.clusterBytes );
-		memset( cm.phs.data, 0xFF, cm.phs.clusterBytes );
-		return;
-	}
-
-	buffer = (byte *)cm.mod_base + l->fileofs;
-	phs = (dvis_t *)buffer;
-	cm.phs.numClusters = LittleLong ( phs->numclusters );
-	cm.phs.clusterBytes = LittleLong ( phs->rowsize );
-	cm.phs.data = (byte *)Mem_Alloc( cmappool, l->filelen - VIS_HEADER_SIZE );
-	Mem_Copy( cm.phs.data, phs->data, l->filelen - VIS_HEADER_SIZE );
+	if( cm.numclusters != cm.vis->numclusters )
+		Sys_Break("iinvalid vis->numclusters (%i, should be %i)\n", cm.vis->numclusters, cm.numclusters );
 }
 
 /*
@@ -837,7 +801,8 @@ void CM_FreeWorld( void )
 	cm.floodvalid = cm.numbrushsides = cm.numshaders = 0;
 	cm.numbrushes = cm.numleafsurfaces = cm.numareas = 0;
 	cm.numleafbrushes = cm.numsurfaces = cm.numbmodels = 0;
-	cm.vised = cm.floodvalid = cm.areaportals_size = 0;	
+	cm.numclusters = cm.floodvalid = cm.areaportals_size = 0;	
+	cm.vis = NULL;
 
 	cm.name[0] = 0;
 	memset( cm.matrix, 0, sizeof(matrix4x4));
@@ -878,7 +843,7 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	{
 		CM_FreeWorld(); // release old map
 		// cinematic servers won't have anything at all
-		cm.numleafs = cm.pvs.numClusters = cm.numareas = 1;
+		cm.numleafs = cm.numclusters = cm.numareas = 1;
 		*checksum = 0;
 		return &cm.bmodels[0];
 	}
@@ -924,7 +889,6 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	BSP_LoadLeafs(&hdr->lumps[LUMP_LEAFS]);
 	BSP_LoadNodes(&hdr->lumps[LUMP_NODES]);
 	BSP_LoadVisibility(&hdr->lumps[LUMP_VISIBILITY]);
-	BSP_LoadHearability(&hdr->lumps[LUMP_HEARABILITY]);
 	BSP_LoadModels(&hdr->lumps[LUMP_MODELS]);
 	BSP_LoadCollision(&hdr->lumps[LUMP_COLLISION]);
 

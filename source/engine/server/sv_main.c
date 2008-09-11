@@ -11,7 +11,6 @@ netadr_t	master_adr[MAX_MASTERS];	// address of group servers
 cvar_t	*sv_paused;
 cvar_t	*sv_fps;
 cvar_t	*sv_enforcetime;
-cvar_t	*sv_fatpvs;
 cvar_t	*timeout;				// seconds without any message
 cvar_t	*zombietime;			// seconds to sink messages after disconnect
 
@@ -343,8 +342,6 @@ Only called at xash.exe startup, not for each game
 void SV_Init( void )
 {
 	SV_InitOperatorCommands();
-
-	sv_fatpvs = Cvar_Get( "sv_fatpvs", "1",  CVAR_ARCHIVE, "using fat pvs intstead of normal client pvs" );
 
 	rcon_password = Cvar_Get( "rcon_password", "", 0, "remote connect password" );
 	Cvar_Get ("skill", "1", 0, "game skill level" );

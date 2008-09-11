@@ -21,8 +21,10 @@ GLOBAL: Достигнуть уровня xash 0.45 к очередному релизу
 операция "Напильник: bsp 40
 1. collision triangles		OK
 2. cm.novis			Ok
-3. имплементация PHS
-4. убрать contents из dleaf_t
+3. имплементация PHS		OK
+4. включить novis lump		OK
+5. имплементация light
+5. убрать contents из dleaf_t
 
 1. r_backend.c:1335
 2. r_backend.c:1338
@@ -33,9 +35,6 @@ GLOBAL: Достигнуть уровня xash 0.45 к очередному релизу
 
 
 9. r_texture.c:1724
-
-1. отладить vis
-2. отладить r_culling
 
 
 TODO LIST

@@ -28,6 +28,10 @@ bool		mergevis;		// merge visibility
 bool		nosort;		// no sorting portals
 bool		saveprt;		// don't remove prt file
 
+byte		*vismap, *vismap_p, *vismap_end;	// past visfile
+int		originalvismapsize;
+byte		*uncompressedvis;
+
 int		totalpvs;
 int		totalphs;
 
@@ -146,18 +150,20 @@ int LeafVectorFromPortalVector( byte *portalbits, byte *leafbits )
 
 /*
 ===============
-ClusterMerge
+ClusterPVS
 
 Merges the portal visibility for a leaf
 ===============
 */
-void ClusterMerge( int leafnum )
+void ClusterPVS( int leafnum )
 {
 	leaf_t		*leaf;
 	byte		portalvector[MAX_PORTALS/8];
 	byte		uncompressed[MAX_MAP_LEAFS/8];
+	byte		compressed[MAX_MAP_LEAFS/8];
 	int		i, j;
 	int		numvis, mergedleafnum;
+	byte		*dest;
 	vportal_t		*p;
 	int		pnum;
 
@@ -187,10 +193,21 @@ void ClusterMerge( int leafnum )
 	// convert portal bits to leaf bits
 	numvis = LeafVectorFromPortalVector( portalvector, uncompressed );
 	numvis++;	 // count the leaf itself
-	totalpvs += numvis;
 
-	MsgDev( D_NOTE, "cluster %4i : %4i visible\n", leafnum, numvis );
-	Mem_Copy( dpvsdata + VIS_HEADER_SIZE + leafnum * leafbytes, uncompressed, leafbytes );	
+	// save uncompressed for PHS calculation
+	Mem_Copy( uncompressedvis + leafnum * leafbytes, uncompressed, leafbytes );
+
+	totalpvs += numvis;
+	i = CompressVis( uncompressed, compressed );
+
+	dest = vismap_p;
+	vismap_p += i;
+	
+	if( vismap_p > vismap_end )
+		Sys_Error( "ClusterPVS: vismap expansion overflow at cluster %i\n", leafnum );
+
+	dvis->bitofs[leafnum][DVIS_PVS] = dest - vismap;
+	Mem_Copy( dest, compressed, i );	
 }
 
 
@@ -271,7 +288,7 @@ void CalcPVS( void )
 
 	// assemble the leaf vis lists by oring and compressing the portal lists
 	for( i = 0; i < portalclusters; i++ )
-		ClusterMerge( i );
+		ClusterPVS( i );
 
 	Msg( "Total visible clusters: %i\n", totalpvs );		
 	Msg( "Average clusters visible: %i\n", totalpvs / portalclusters );
@@ -682,19 +699,17 @@ void LoadPortals( void )
 
 	// each file portal is split into two memory portals
 	portals = BSP_Malloc( 2 * numportals * sizeof( vportal_t ));
-	
 	leafs = BSP_Malloc( portalclusters * sizeof(leaf_t));
 
+	originalvismapsize = portalclusters * leafbytes;
+	uncompressedvis = BSP_Malloc( originalvismapsize );
+	vismap = vismap_p = dvisdata;
+	dvis->numclusters = portalclusters;
+	vismap_p = (byte *)&dvis->bitofs[portalclusters];
+	vismap_end = vismap + MAX_MAP_VISIBILITY;
+	
 	for( i = 0; i < portalclusters; i++ )
 		leafs[i].merged = -1;
-
-	pvsdatasize = VIS_HEADER_SIZE + portalclusters * leafbytes;
-
-	// vis header
-	((int *)dpvsdata)[0] = portalclusters;
-	((int *)dpvsdata)[1] = leafbytes;
-	((int *)dphsdata)[0] = portalclusters;
-	((int *)dphsdata)[1] = leafbytes;
 			
 	for( i = 0, p = portals; i < numportals; i++ )
 	{
@@ -831,8 +846,9 @@ void ClusterPHS( int clusternum )
 	long	*dest, *src;
 	byte	*scan;
 	byte	uncompressed[MAX_MAP_LEAFS/8];
+	byte	compressed[MAX_MAP_LEAFS/8];
 	
-	scan = dpvsdata + VIS_HEADER_SIZE + clusternum * leafbytes;
+	scan = uncompressedvis + clusternum * leafbytes;
 	Mem_Copy( uncompressed, scan, leafbytes );
 	for( j = 0; j < leafbytes; j++ )
 	{
@@ -845,7 +861,7 @@ void ClusterPHS( int clusternum )
 			index = ((j<<3)+k);
 			if( index >= portalclusters )
 				Sys_Error( "Bad bit in PVS\n" ); // pad bits should be 0
-			src = (long *)(dpvsdata + VIS_HEADER_SIZE + index * leafbytes);
+			src = (long *)(uncompressedvis + index * leafbytes);
 			dest = (long *)uncompressed;
 			for (l = 0; l < leaflongs; l++) ((long *)uncompressed)[l] |= src[l];
 		}
@@ -854,8 +870,17 @@ void ClusterPHS( int clusternum )
 		if( uncompressed[j>>3] & (1<<( j & 7 )))
 			totalphs++;
 
-	// FIXME: copy it off
-	Mem_Copy( dphsdata + VIS_HEADER_SIZE + clusternum * leafbytes, uncompressed, leafbytes );
+	// compress the bit string
+	j = CompressVis( uncompressed, compressed );
+
+	dest = (long *)vismap_p;
+	vismap_p += j;
+		
+	if( vismap_p > vismap_end )
+		Sys_Error( "ClusterPHS: vismap expansion overflow at cluster %i", clusternum );
+
+	dvis->bitofs[clusternum][DVIS_PHS] = (byte *)dest - vismap;
+	Mem_Copy( dest, compressed, j );
 } 
 
 /*
@@ -869,7 +894,9 @@ by ORing together all the PVS visible from a leaf
 void CalcPHS( void )
 {
 	Msg ("Building PHS...\n");
-	RunThreadsOnIndividual (portalclusters, true, ClusterPHS);
+	RunThreadsOnIndividual( portalclusters, true, ClusterPHS );
+
+	Msg( "Total hearable clusters: %i\n", totalphs );
 	Msg( "Average clusters hearable: %i\n", totalphs / portalclusters );
 }
 
@@ -897,6 +924,9 @@ void WvisMain ( bool option )
 
 	CalcPVS ();
 	CalcPHS ();
+
+	visdatasize = vismap_p - dvisdata;	
+	Msg( "visdatasize: %i  compressed from %i\n", visdatasize, originalvismapsize * 2 );
           
 	WriteBSPFile();	
 }

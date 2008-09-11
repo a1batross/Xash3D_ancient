@@ -945,7 +945,7 @@ void _MSG_Send( msgtype_t msg_type, vec3_t origin, edict_t *ent, const char *fil
 		if( origin == NULL ) return;
 		leafnum = pe->PointLeafnum( origin );
 		cluster = pe->LeafCluster( leafnum );
-		mask = pe->ClusterPVS( cluster );	//FIXME: use PHS
+		mask = pe->ClusterPHS( cluster );
 		area1 = pe->LeafArea( leafnum );
 		break;
 	case MSG_PVS_R:
