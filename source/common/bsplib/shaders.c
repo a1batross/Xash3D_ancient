@@ -140,7 +140,7 @@ static void ParseShaderFile( char *filename )
 		MsgDev(D_INFO, "Adding shader: %s.txt\n", name );
           }
           
-	while ( load )
+	while( load )
 	{
 		if ( !Com_GetToken( true )) break;
 

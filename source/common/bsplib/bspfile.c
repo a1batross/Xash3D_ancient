@@ -240,7 +240,7 @@ bool LoadBSPFile( void )
 {
 	byte	*buffer;
 	
-	buffer = (byte *)FS_LoadFile( va("maps/%.bsp", gs_filename ), NULL );
+	buffer = (byte *)FS_LoadFile( va("maps/%s.bsp", gs_filename ), NULL );
 	if( !buffer ) return false;
 
 	header = (dheader_t *)buffer; // load the file header

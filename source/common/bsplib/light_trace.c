@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "bsplib.h"
+#include "const.h"
 
 #define CURVE_FACET_ERROR		8
 
@@ -12,6 +13,31 @@ int	c_cullTrace, c_testTrace;
 int	c_testFacets;
 
 surfaceTest_t *surfaceTest[MAX_MAP_SURFACES];
+
+
+/*
+=====================
+PlaneFromPoints
+
+Returns false if the triangle is degenrate.
+The normal will point out of the clock for clockwise ordered points
+=====================
+*/
+bool PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c )
+{
+	vec3_t	d1, d2;
+
+	VectorSubtract( b, a, d1 );
+	VectorSubtract( c, a, d2 );
+	CrossProduct( d2, d1, plane );
+	if( VectorNormalizeLength( plane ) == 0 )
+	{
+		return false;
+	}
+
+	plane[3] = DotProduct( a, plane );
+	return true;
+}
 
 /*
 =====================
@@ -59,14 +85,19 @@ void TextureMatrixFromPoints( cFacet_t *f, dvertex_t *a, dvertex_t *b, dvertex_t
 		m[2][2] = c->point[2];
 		m[2][3] = c->st[i];
 
-		if ( fabs(m[1][0]) > fabs(m[0][0]) && fabs(m[1][0]) > fabs(m[2][0]) ) {
-			for ( j = 0 ; j < 4 ; j ++ ) {
+		if( fabs(m[1][0]) > fabs(m[0][0]) && fabs(m[1][0]) > fabs(m[2][0]))
+		{
+			for( j = 0; j < 4; j++ )
+			{
 				t = m[0][j];
 				m[0][j] = m[1][j];
 				m[1][j] = t;
 			}
-		} else if ( fabs(m[2][0]) > fabs(m[0][0]) && fabs(m[2][0]) > fabs(m[1][0]) ) {
-			for ( j = 0 ; j < 4 ; j ++ ) {
+		}
+		else if( fabs(m[2][0]) > fabs(m[0][0]) && fabs(m[2][0]) > fabs(m[1][0]))
+		{
+			for( j = 0; j < 4; j++ )
+			{
 				t = m[0][j];
 				m[0][j] = m[2][j];
 				m[2][j] = t;
@@ -91,8 +122,10 @@ void TextureMatrixFromPoints( cFacet_t *f, dvertex_t *a, dvertex_t *b, dvertex_t
 		m[2][2] -= m[0][2] * s;
 		m[2][3] -= m[0][3] * s;
 
-		if ( fabs(m[2][1]) > fabs(m[1][1]) ) {
-			for ( j = 0 ; j < 4 ; j ++ ) {
+		if( fabs(m[2][1]) > fabs(m[1][1]))
+		{
+			for( j = 0; j < 4; j++ )
+			{
 				t = m[1][j];
 				m[1][j] = m[2][j];
 				m[2][j] = t;
@@ -124,16 +157,19 @@ void TextureMatrixFromPoints( cFacet_t *f, dvertex_t *a, dvertex_t *b, dvertex_t
 		f->textureMatrix[i][3] = 0;
 /*
 		s = fabs( DotProduct( a->point, f->textureMatrix[i] ) - a->st[i] );
-		if ( s > 0.01 ) {
-			Error( "Bad textureMatrix" );
+		if( s > 0.01 )
+		{
+			Sys_Error( "Bad textureMatrix\n" );
 		}
 		s = fabs( DotProduct( b->point, f->textureMatrix[i] ) - b->st[i] );
-		if ( s > 0.01 ) {
-			Error( "Bad textureMatrix" );
+		if( s > 0.01 )
+		{
+			Sys_Error( "Bad textureMatrix\n" );
 		}
 		s = fabs( DotProduct( c->point, f->textureMatrix[i] ) - c->st[i] );
-		if ( s > 0.01 ) {
-			Error( "Bad textureMatrix" );
+		if ( s > 0.01 )
+		{
+			Sys_Error( "Bad textureMatrix\n" );
 		}
 */
 	}
@@ -144,11 +180,13 @@ void TextureMatrixFromPoints( cFacet_t *f, dvertex_t *a, dvertex_t *b, dvertex_t
 CM_GenerateFacetFor3Points
 =====================
 */
-bool CM_GenerateFacetFor3Points( cFacet_t *f, drawVert_t *a, drawVert_t *b, drawVert_t *c ) {
+bool CM_GenerateFacetFor3Points( cFacet_t *f, dvertex_t *a, dvertex_t *b, dvertex_t *c )
+{
 	// if we can't generate a valid plane for the points, ignore the facet
-	if ( !PlaneFromPoints( f->surface, a->point, b->point, c->point ) ) {
+	if( !PlaneFromPoints( f->surface, a->point, b->point, c->point ))
+	{
 		f->numBoundaries = 0;
-		return qfalse;
+		return false;
 	}
 
 	// make boundaries
@@ -164,7 +202,7 @@ bool CM_GenerateFacetFor3Points( cFacet_t *f, drawVert_t *a, drawVert_t *b, draw
 
 	TextureMatrixFromPoints( f, a, b, c );
 
-	return qtrue;
+	return true;
 }
 
 /*
@@ -174,23 +212,25 @@ CM_GenerateFacetFor4Points
 Attempts to use four points as a planar quad
 =====================
 */
-#define	PLANAR_EPSILON	0.1
-qboolean CM_GenerateFacetFor4Points( cFacet_t *f, drawVert_t *a, drawVert_t *b, drawVert_t *c, drawVert_t *d ) {
+bool CM_GenerateFacetFor4Points( cFacet_t *f, dvertex_t *a, dvertex_t *b, dvertex_t *c, dvertex_t *d )
+{
 	float	dist;
-	int		i;
+	int	i;
 	vec4_t	plane;
 
 	// if we can't generate a valid plane for the points, ignore the facet
-	if ( !PlaneFromPoints( f->surface, a->point, b->point, c->point ) ) {
+	if( !PlaneFromPoints( f->surface, a->point, b->point, c->point ))
+	{
 		f->numBoundaries = 0;
-		return qfalse;
+		return false;
 	}
 
 	// if the fourth point is also on the plane, we can make a quad facet
 	dist = DotProduct( d->point, f->surface ) - f->surface[3];
-	if ( fabs( dist ) > PLANAR_EPSILON ) {
+	if( fabs( dist ) > ON_EPSILON )
+	{
 		f->numBoundaries = 0;
-		return qfalse;
+		return false;
 	}
 
 	// make boundaries
@@ -206,22 +246,24 @@ qboolean CM_GenerateFacetFor4Points( cFacet_t *f, drawVert_t *a, drawVert_t *b, 
 	VectorCopy( c->point, f->points[2] );
 	VectorCopy( d->point, f->points[3] );
 
-	for (i = 1; i < 4; i++)
+	for( i = 1; i < 4; i++ )
 	{
-		if ( !PlaneFromPoints( plane, f->points[i], f->points[(i+1) % 4], f->points[(i+2) % 4]) ) {
+		if( !PlaneFromPoints( plane, f->points[i], f->points[(i+1) % 4], f->points[(i+2) % 4]))
+		{
 			f->numBoundaries = 0;
-			return qfalse;
+			return false;
 		}
 
-		if (DotProduct(f->surface, plane) < 0.9) {
+		if( DotProduct( f->surface, plane ) < 0.9 )
+		{
 			f->numBoundaries = 0;
-			return qfalse;
+			return false;
 		}
 	}
 
 	TextureMatrixFromPoints( f, a, b, c );
 
-	return qtrue;
+	return true;
 }
 
 
@@ -232,7 +274,8 @@ qboolean CM_GenerateFacetFor4Points( cFacet_t *f, drawVert_t *a, drawVert_t *b, 
 SphereFromBounds
 ===============
 */
-void SphereFromBounds( vec3_t mins, vec3_t maxs, vec3_t origin, float *radius ) {
+void SphereFromBounds( vec3_t mins, vec3_t maxs, vec3_t origin, float *radius )
+{
 	vec3_t		temp;
 
 	VectorAdd( mins, maxs, origin );
@@ -247,35 +290,39 @@ void SphereFromBounds( vec3_t mins, vec3_t maxs, vec3_t origin, float *radius ) 
 FacetsForTriangleSurface
 ====================
 */
-void FacetsForTriangleSurface( dsurface_t *dsurf, shaderInfo_t *si, surfaceTest_t *test ) {
-	int			i;
-	drawVert_t	*v1, *v2, *v3, *v4;
-	int			count;
-	int			i1, i2, i3, i4, i5, i6;
+void FacetsForTriangleSurface( dsurface_t *dsurf, bsp_shader_t *si, surfaceTest_t *test )
+{
+	int		i;
+	dvertex_t		*v1, *v2, *v3, *v4;
+	int		count;
+	int		i1, i2, i3, i4, i5, i6;
 
-	test->patch = qfalse;
-	test->numFacets = dsurf->numIndexes / 3;
-	test->facets = malloc( sizeof( test->facets[0] ) * test->numFacets );
+	test->numFacets = dsurf->numindices / 3;
+	test->facets = BSP_Malloc( sizeof( test->facets[0] ) * test->numFacets );
 	test->shader = si;
 
 	count = 0;
-	for ( i = 0 ; i < test->numFacets ; i++ ) {
-		i1 = drawIndexes[ dsurf->firstIndex + i*3 ];
-		i2 = drawIndexes[ dsurf->firstIndex + i*3 + 1 ];
-		i3 = drawIndexes[ dsurf->firstIndex + i*3 + 2 ];
+	for( i = 0; i < test->numFacets; i++ )
+	{
+		i1 = dindexes[dsurf->firstindex+i*3+0];
+		i2 = dindexes[dsurf->firstindex+i*3+1];
+		i3 = dindexes[dsurf->firstindex+i*3+2];
 
-		v1 = &drawVerts[ dsurf->firstVert + i1 ];
-		v2 = &drawVerts[ dsurf->firstVert + i2 ];
-		v3 = &drawVerts[ dsurf->firstVert + i3 ];
+		v1 = &dvertexes[dsurf->firstvertex+i1];
+		v2 = &dvertexes[dsurf->firstvertex+i2];
+		v3 = &dvertexes[dsurf->firstvertex+i3];
 
 		// try and make a quad out of two triangles
-		if ( i != test->numFacets - 1 ) {
-			i4 = drawIndexes[ dsurf->firstIndex + i*3 + 3 ];
-			i5 = drawIndexes[ dsurf->firstIndex + i*3 + 4 ];
-			i6 = drawIndexes[ dsurf->firstIndex + i*3 + 5 ];
-			if ( i4 == i3 && i5 == i2 ) {
-				v4 = &drawVerts[ dsurf->firstVert + i6 ];
-				if ( CM_GenerateFacetFor4Points( &test->facets[count], v1, v2, v4, v3 ) ) {
+		if( i != test->numFacets - 1 )
+		{
+			i4 = dindexes[dsurf->firstindex+i*3+3];
+			i5 = dindexes[dsurf->firstindex+i*3+4];
+			i6 = dindexes[dsurf->firstindex+i*3+5];
+			if( i4 == i3 && i5 == i2 )
+			{
+				v4 = &dvertexes[ dsurf->firstvertex + i6 ];
+				if( CM_GenerateFacetFor4Points( &test->facets[count], v1, v2, v4, v3 ))
+				{
 					count++;
 					i++;		// skip next tri
 					continue;
@@ -283,7 +330,7 @@ void FacetsForTriangleSurface( dsurface_t *dsurf, shaderInfo_t *si, surfaceTest_
 			}
 		}
 
-		if (CM_GenerateFacetFor3Points( &test->facets[count], v1, v2, v3 ))
+		if( CM_GenerateFacetFor3Points( &test->facets[count], v1, v2, v3 ))
 			count++;
 	}		
 
@@ -292,101 +339,49 @@ void FacetsForTriangleSurface( dsurface_t *dsurf, shaderInfo_t *si, surfaceTest_
 }
 
 /*
-====================
-FacetsForPatch
-====================
-*/
-void FacetsForPatch( dsurface_t *dsurf, shaderInfo_t *si, surfaceTest_t *test ) {
-	int			i, j;
-	drawVert_t	*v1, *v2, *v3, *v4;
-	int			count;
-	mesh_t		srcMesh, *subdivided, *mesh;
-
-	srcMesh.width = dsurf->patchWidth;
-	srcMesh.height = dsurf->patchHeight;
-	srcMesh.verts = &drawVerts[ dsurf->firstVert ];
-
-	//subdivided = SubdivideMesh( mesh, CURVE_FACET_ERROR, 9999 );
-	mesh = SubdivideMesh( srcMesh, 8, 999 );
-	PutMeshOnCurve( *mesh );
-	MakeMeshNormals( *mesh );
-
-	subdivided = RemoveLinearMeshColumnsRows( mesh );
-	FreeMesh(mesh);
-
-	test->patch = qtrue;
-	test->numFacets = ( subdivided->width - 1 ) * ( subdivided->height - 1 ) * 2;
-	test->facets = malloc( sizeof( test->facets[0] ) * test->numFacets );
-	test->shader = si;
-
-	count = 0;
-	for ( i = 0 ; i < subdivided->width - 1 ; i++ ) {
-		for ( j = 0 ; j < subdivided->height - 1 ; j++ ) {
-
-			v1 = subdivided->verts + j * subdivided->width + i;
-			v2 = v1 + 1;
-			v3 = v1 + subdivided->width + 1;
-			v4 = v1 + subdivided->width;
-
-			if ( CM_GenerateFacetFor4Points( &test->facets[count], v1, v4, v3, v2 ) ) {
-				count++;
-			} else {
-				if (CM_GenerateFacetFor3Points( &test->facets[count], v1, v4, v3 ))
-					count++;
-				if (CM_GenerateFacetFor3Points( &test->facets[count], v1, v3, v2 ))
-					count++;
-			}
-		}
-	}
-	test->numFacets = count;
-	FreeMesh(subdivided);
-}
-
-
-/*
 =====================
 InitSurfacesForTesting
 
 Builds structures to speed the ray tracing against surfaces
 =====================
 */
-void InitSurfacesForTesting( void ) {
-
-	int				i, j;
-	dsurface_t		*dsurf;
+void InitSurfacesForTesting( void )
+{
+	int		i, j;
+	dsurface_t	*dsurf;
 	surfaceTest_t	*test;
-	drawVert_t		*dvert;
-	shaderInfo_t	*si;
+	dvertex_t		*dvert;
+	bsp_shader_t	*si;
 
-	for ( i = 0 ; i < numDrawSurfaces ; i++ ) {
-		dsurf = &drawSurfaces[ i ];
-		if ( !dsurf->numIndexes && !dsurf->patchWidth ) {
+	for( i = 0; i < numsurfaces; i++ )
+	{
+		dsurf = &dsurfaces[i];
+		if( !dsurf->numindices )
+		{
 			continue;
 		}
 
 		// don't make surfaces for transparent objects
 		// because we want light to pass through them
-		si = ShaderInfoForShader( dshaders[ dsurf->shaderNum].shader );
-		if ( (si->contents & CONTENTS_TRANSLUCENT) && !(si->surfaceFlags & SURF_ALPHASHADOW) ) {
+		si = FindShader( dshaders[dsurf->shadernum].name );
+		if(( si->contents & CONTENTS_TRANSLUCENT) && !(si->surfaceFlags & SURF_ALPHASHADOW))
+		{
 			continue;
 		}
 
-		test = malloc( sizeof( *test ) );
+		test = BSP_Malloc( sizeof( *test ));
 		surfaceTest[i] = test;
 		ClearBounds( test->mins, test->maxs );
 
-		dvert = &drawVerts[ dsurf->firstVert ];
-		for ( j = 0 ; j < dsurf->numVerts ; j++, dvert++ ) {
+		dvert = &dvertexes[ dsurf->firstvertex ];
+		for( j = 0; j < dsurf->numvertices; j++, dvert++ )
+		{
 			AddPointToBounds( dvert->point, test->mins, test->maxs );
 		}
 
 		SphereFromBounds( test->mins, test->maxs, test->origin, &test->radius );
 
-		if ( dsurf->surfaceType == MST_TRIANGLE_SOUP || dsurf->surfaceType == MST_PLANAR ) {
-			FacetsForTriangleSurface( dsurf, si, test );
-		} else if ( dsurf->surfaceType == MST_PATCH ) {
-			FacetsForPatch( dsurf, si, test );
-		}
+		FacetsForTriangleSurface( dsurf, si, test );
 	}
 }
 
@@ -396,13 +391,14 @@ void InitSurfacesForTesting( void ) {
 GenerateBoundaryForPoints
 =====================
 */
-void GenerateBoundaryForPoints( float boundary[4], float plane[4], vec3_t a, vec3_t b ) {
+void GenerateBoundaryForPoints( float boundary[4], float plane[4], vec3_t a, vec3_t b )
+{
 	vec3_t	d1;
 
 	// amke a perpendicular vector to the edge and the surface
 	VectorSubtract( b, a, d1 );
 	CrossProduct( plane, d1, boundary );
-	VectorNormalize( boundary, boundary );
+	VectorNormalize( boundary );
 	boundary[3] = DotProduct( a, boundary );
 }
 
@@ -415,14 +411,16 @@ Given a point on a facet, determine the color filter
 for light passing through
 =================
 */
-void SetFacetFilter( traceWork_t *tr, shaderInfo_t *shader, cFacet_t *facet, vec3_t point ) {
+void SetFacetFilter( traceWork_t *tr, bsp_shader_t *shader, cFacet_t *facet, vec3_t point )
+{
 	float	s, t;
-	int		is, it;
+	int	is, it;
 	byte	*image;
-	int		b;
+	int	b;
 
 	// most surfaces are completely opaque
-	if ( !(shader->surfaceFlags & SURF_ALPHASHADOW) ) {
+	if( !(shader->surfaceFlags & SURF_ALPHASHADOW ))
+	{
 		VectorClear( tr->trace->filter );
 		return;
 	}
@@ -430,7 +428,8 @@ void SetFacetFilter( traceWork_t *tr, shaderInfo_t *shader, cFacet_t *facet, vec
 	s = DotProduct( point, facet->textureMatrix[0] ) + facet->textureMatrix[0][3];
 	t = DotProduct( point, facet->textureMatrix[1] ) + facet->textureMatrix[1][3];
 
-	if ( !shader->pixels ) {
+	if( !shader->pixels )
+	{
 		// assume completely solid
 		VectorClear( point );
 		return;
@@ -463,14 +462,16 @@ TraceAgainstFacet
 Shader is needed for translucent surfaces
 ====================
 */
-void TraceAgainstFacet( traceWork_t *tr, shaderInfo_t *shader, cFacet_t *facet ) {
-	int			j;
+void TraceAgainstFacet( traceWork_t *tr, bsp_shader_t *shader, cFacet_t *facet )
+{
+	int		j;
 	float		d1, d2, d, f;
 	vec3_t		point;
 	float		dist;
 
 	// ignore degenerate facets
-	if ( facet->numBoundaries < 3 ) {
+	if( facet->numBoundaries < 3 )
+	{
 		return;
 	}
 
@@ -478,49 +479,60 @@ void TraceAgainstFacet( traceWork_t *tr, shaderInfo_t *shader, cFacet_t *facet )
 
 	// compare the trace endpoints against the facet plane
 	d1 = DotProduct( tr->start, facet->surface ) - dist;
-	if ( d1 > -1 && d1 < 1 ) {
+	if( d1 > -1 && d1 < 1 )
+	{
 		return;		// don't self intersect
 	}
 	d2 = DotProduct( tr->end, facet->surface ) - dist;
-	if ( d2 > -1 && d2 < 1 ) {
+	if( d2 > -1 && d2 < 1 )
+	{
 		return;		// don't self intersect
 	}
 
 	// calculate the intersection fraction
 	f = ( d1 - ON_EPSILON ) / ( d1 - d2 );
-	if ( f <= 0 ) {
+	if( f <= 0 )
+	{
 		return;
 	}
-	if ( f >= tr->trace->hitFraction ) {
-		return;			// we have hit something earlier
+	if( f >= tr->trace->hitFraction )
+	{
+		return;		// we have hit something earlier
 	}
 
 	// calculate the intersection point
-	for ( j = 0 ; j < 3 ; j++ ) {
+	for( j = 0; j < 3; j++ )
+	{
 		point[j] = tr->start[j] + f * ( tr->end[j] - tr->start[j] );
 	}
 
 	// check the point against the facet boundaries
-	for ( j = 0 ; j < facet->numBoundaries ; j++ ) {
+	for( j = 0; j < facet->numBoundaries; j++ )
+	{
 		// adjust the plane distance apropriately for mins/maxs
 		dist = facet->boundaries[j][3];
 
 		d = DotProduct( point, facet->boundaries[j] );
-		if ( d > dist + ON_EPSILON ) {
+		if( d > dist + ON_EPSILON )
+		{
 			break;		// outside the bounds
 		}
 	}
 
-	if ( j != facet->numBoundaries ) {
+	if( j != facet->numBoundaries )
+	{
 		return;			// we are outside the bounds of the facet
 	}
 
 	// we hit this facet
 
 	// if this is a transparent surface, calculate filter value
-	if ( shader->surfaceFlags & SURF_ALPHASHADOW ) {
+	if( shader->surfaceFlags & SURF_ALPHASHADOW )
+	{
 		SetFacetFilter( tr, shader, facet, point );
-	} else {
+	}
+	else
+	{
 		// completely opaque
 		VectorClear( tr->trace->filter );
 		tr->trace->hitFraction = f;
@@ -538,21 +550,17 @@ void TraceAgainstFacet( traceWork_t *tr, shaderInfo_t *shader, cFacet_t *facet )
 
 ===============================================================
 */
-
-
-#define	TRACE_ON_EPSILON	0.1
-
 typedef struct tnode_s
 {
 	int		type;
-	vec3_t	normal;
-	float	dist;
+	vec3_t		normal;
+	float		dist;
 	int		children[2];
 	int		planeNum;
 } tnode_t;
 
-#define	MAX_TNODES	(MAX_MAP_NODES*4)
-tnode_t		*tnodes, *tnode_p;
+#define MAX_TNODES		(MAX_MAP_NODES*4)
+tnode_t *tnodes, *tnode_p;
 
 /*
 ==============
@@ -561,35 +569,41 @@ MakeTnode
 Converts the disk node structure into the efficient tracing structure
 ==============
 */
-void MakeTnode (int nodenum)
+void MakeTnode( int nodenum )
 {
-	tnode_t			*t;
+	tnode_t		*t;
 	dplane_t		*plane;
-	int				i;
+	int		i;
 	dnode_t 		*node;
-	int				leafNum;
+	int		leafNum;
 
 	t = tnode_p++;
 
 	node = dnodes + nodenum;
-	plane = dplanes + node->planeNum;
+	plane = dplanes + node->planenum;
 
-	t->planeNum = node->planeNum;
+	t->planeNum = node->planenum;
 	t->type = PlaneTypeForNormal( plane->normal );
 	VectorCopy (plane->normal, t->normal);
 	t->dist = plane->dist;
 	
-	for (i=0 ; i<2 ; i++)
+	for( i = 0; i < 2; i++ )
 	{
-		if (node->children[i] < 0) {
+		if( node->children[i] < 0 )
+		{
 			leafNum = -node->children[i] - 1;
-			if ( dleafs[leafNum].cluster == -1  ) {
+			if( dleafs[leafNum].cluster == -1  )
+			{
 				// solid
 				t->children[i] = leafNum | ( 1 << 31 ) | ( 1 << 30 );
-			} else {
+			}
+			else
+			{
 				t->children[i] = leafNum | ( 1 << 31 );
 			}
-		} else {
+		}
+		else
+		{
 			t->children[i] = tnode_p - tnodes;
 			MakeTnode (node->children[i]);
 		}
@@ -604,13 +618,14 @@ InitTrace
 Loads the node structure out of a .bsp file to be used for light occlusion
 =============
 */
-void InitTrace( void ) {
+void InitTrace( void )
+{
 	// 32 byte align the structs
-	tnodes = malloc( (MAX_TNODES+1) * sizeof(tnode_t));
+	tnodes = BSP_Malloc((MAX_TNODES+1) * sizeof(tnode_t));
 	tnodes = (tnode_t *)(((int)tnodes + 31)&~31);
 	tnode_p = tnodes;
 
-	MakeTnode (0);
+	MakeTnode( 0 );
 
 	InitSurfacesForTesting();
 }
@@ -621,13 +636,16 @@ void InitTrace( void ) {
 PointInSolid
 ===================
 */
-qboolean PointInSolid_r( vec3_t start, int node ) {
+bool PointInSolid_r( vec3_t start, int node )
+{
 	tnode_t	*tnode;
 	float	front;
 
-	while ( !(node & (1<<31) ) ) {
+	while(!(node & ( 1<<31 )))
+	{
 		tnode = &tnodes[node];
-		switch (tnode->type) {
+		switch( tnode->type )
+		{
 		case PLANE_X:
 			front = start[0] - tnode->dist;
 			break;
@@ -638,27 +656,31 @@ qboolean PointInSolid_r( vec3_t start, int node ) {
 			front = start[2] - tnode->dist;
 			break;
 		default:
-			front = (start[0]*tnode->normal[0] + start[1]*tnode->normal[1] + start[2]*tnode->normal[2]) - tnode->dist;
+			front = (start[0]*tnode->normal[0]+start[1]*tnode->normal[1]+start[2]*tnode->normal[2]) - tnode->dist;
 			break;
 		}
 
-		if ( front == 0 ) {
+		if( front == 0 )
+		{
 			// exactly on node, must check both sides
-			return (qboolean) ( PointInSolid_r( start, tnode->children[0] ) 
-				| PointInSolid_r( start, tnode->children[1] ) );
+			return (bool)(PointInSolid_r( start, tnode->children[0] )|PointInSolid_r( start, tnode->children[1]));
 		}
 
-		if ( front > 0 ) {
+		if( front > 0 )
+		{
 			node = tnode->children[0];
-		} else {
+		}
+		else
+		{
 			node = tnode->children[1];
 		}
 	}
 
-	if ( node & ( 1 << 30 ) ) {
-		return qtrue;
+	if( node & ( 1 << 30 ))
+	{
+		return true;
 	}
-	return qfalse;
+	return false;
 }
 
 /*
@@ -667,7 +689,8 @@ PointInSolid
 
 =============
 */
-qboolean PointInSolid( vec3_t start ) {
+bool PointInSolid( vec3_t start )
+{
 	return PointInSolid_r( start, 0 );
 }
 
@@ -679,32 +702,39 @@ TraceLine_r
 Returns qtrue if something is hit and tracing can stop
 =============
 */
-int TraceLine_r( int node, const vec3_t start, const vec3_t stop, traceWork_t *tw ) {
+int TraceLine_r( int node, const vec3_t start, const vec3_t stop, traceWork_t *tw )
+{
 	tnode_t	*tnode;
 	float	front, back;
 	vec3_t	mid;
 	float	frac;
-	int		side;
-	int		r;
+	int	side;
+	int	r;
 
-	if (node & (1<<31)) {
-		if (node & ( 1 << 30 ) ) {
+	if( node & (1<<31))
+	{
+		if( node & ( 1 << 30 ))
+		{
 			VectorCopy (start, tw->trace->hit);
-			tw->trace->passSolid = qtrue;
-			return qtrue;
-		} else {
+			tw->trace->passSolid = true;
+			return true;
+		}
+		else
+		{
 			// save the node off for more exact testing
-			if ( tw->numOpenLeafs == MAX_MAP_LEAFS ) {
-				return qfalse;
+			if( tw->numOpenLeafs == MAX_MAP_LEAFS )
+			{
+				return false;
 			}
 			tw->openLeafNumbers[ tw->numOpenLeafs ] = node & ~(3 << 30);
 			tw->numOpenLeafs++;
-			return qfalse;
+			return false;
 		}
 	}
 
 	tnode = &tnodes[node];
-	switch (tnode->type) {
+	switch( tnode->type )
+	{
 	case PLANE_X:
 		front = start[0] - tnode->dist;
 		back = stop[0] - tnode->dist;
@@ -723,12 +753,14 @@ int TraceLine_r( int node, const vec3_t start, const vec3_t stop, traceWork_t *t
 		break;
 	}
 
-	if (front >= -TRACE_ON_EPSILON && back >= -TRACE_ON_EPSILON) {
-		return TraceLine_r (tnode->children[0], start, stop, tw);
+	if( front >= -ON_EPSILON && back >= -ON_EPSILON )
+	{
+		return TraceLine_r( tnode->children[0], start, stop, tw );
 	}
 	
-	if (front < TRACE_ON_EPSILON && back < TRACE_ON_EPSILON) {
-		return TraceLine_r (tnode->children[1], start, stop, tw);
+	if( front < ON_EPSILON && back < ON_EPSILON )
+	{
+		return TraceLine_r( tnode->children[1], start, stop, tw );
 	}
 
 	side = front < 0;
@@ -739,14 +771,15 @@ int TraceLine_r( int node, const vec3_t start, const vec3_t stop, traceWork_t *t
 	mid[1] = start[1] + (stop[1] - start[1])*frac;
 	mid[2] = start[2] + (stop[2] - start[2])*frac;
 
-	r = TraceLine_r (tnode->children[side], start, mid, tw);
+	r = TraceLine_r( tnode->children[side], start, mid, tw );
 
-	if (r) {
+	if( r )
+	{
 		return r;
 	}
 
 //	trace->planeNum = tnode->planeNum;
-	return TraceLine_r (tnode->children[!side], mid, stop, tw);
+	return TraceLine_r( tnode->children[!side], mid, stop, tw );
 }
 
 //==========================================================================================
@@ -757,7 +790,8 @@ int TraceLine_r( int node, const vec3_t start, const vec3_t stop, traceWork_t *t
 SphereCull
 ================
 */
-qboolean	SphereCull( vec3_t start, vec3_t stop, vec3_t origin, float radius ) {
+bool SphereCull( vec3_t start, vec3_t stop, vec3_t origin, float radius )
+{
 	vec3_t		v;
 	float		d;
 	vec3_t		dir;
@@ -765,15 +799,17 @@ qboolean	SphereCull( vec3_t start, vec3_t stop, vec3_t origin, float radius ) {
 	vec3_t		on;
 
 	VectorSubtract( stop, start, dir );
-	len = VectorNormalize( dir, dir );
+	len = VectorNormalizeLength( dir );
 
 	VectorSubtract( origin, start, v );
 	d = DotProduct( v, dir );
-	if ( d > len + radius ) {
-		return qtrue;		// too far ahead
+	if( d > len + radius )
+	{
+		return true;		// too far ahead
 	}
-	if ( d < -radius ) {
-		return qtrue;		// too far behind
+	if( d < -radius )
+	{
+		return true;		// too far behind
 	}
 	VectorMA( start, d, dir, on );
 	
@@ -781,11 +817,11 @@ qboolean	SphereCull( vec3_t start, vec3_t stop, vec3_t origin, float radius ) {
 
 	len = VectorLength( v );
 
-	if ( len > radius ) {
-		return qtrue;		// too far to the side
+	if( len > radius )
+	{
+		return true;		// too far to the side
 	}
-
-	return qfalse;		// must be traced against
+	return false;		// must be traced against
 }
 
 /*
@@ -793,30 +829,36 @@ qboolean	SphereCull( vec3_t start, vec3_t stop, vec3_t origin, float radius ) {
 TraceAgainstSurface
 ================
 */
-void	TraceAgainstSurface( traceWork_t *tw, surfaceTest_t *surf ) {
+void TraceAgainstSurface( traceWork_t *tw, surfaceTest_t *surf )
+{
 	int		i;
 
 	// if surfaces are trans
-	if ( SphereCull( tw->start, tw->end, surf->origin, surf->radius ) ) {
-		if ( numthreads == 1 ) {
+	if( SphereCull( tw->start, tw->end, surf->origin, surf->radius ))
+	{
+		if( GetNumThreads() == 1 )
+		{
 			c_cullTrace++;
 		}
 		return;
 	}
 
-	if ( numthreads == 1 ) {
+	if( GetNumThreads() == 1 )
+	{
 		c_testTrace++;
 		c_testFacets += surf->numFacets;
 	}
 
 	/*
 	// MrE: backface culling
-	if (!surf->patch && surf->numFacets) {
+	if( surf->numFacets )
+	{
 		// if the surface does not cast an alpha shadow
-		if ( !(surf->shader->surfaceFlags & SURF_ALPHASHADOW) ) {
+		if(!(surf->shader->surfaceFlags & SURF_ALPHASHADOW ))
+		{
 			vec3_t vec;
-			VectorSubtract(tw->end, tw->start, vec);
-			if (DotProduct(vec, surf->facets->surface) > 0)
+			VectorSubtract( tw->end, tw->start, vec );
+			if( DotProduct(vec, surf->facets->surface) > 0 )
 				return;
 		}
 	}
@@ -845,19 +887,18 @@ if you need to know the exact first point of impact (for a sun trace), set
 testAll to true
 =============
 */
-extern qboolean	patchshadows;
-
-void TraceLine( const vec3_t start, const vec3_t stop, trace_t *trace, qboolean testAll, traceWork_t *tw ) {
-	int				r;
-	int				i, j;
-	dleaf_t			*leaf;
-	float			oldHitFrac;
+void TraceLine( const vec3_t start, const vec3_t stop, lighttrace_t *trace, bool testAll, traceWork_t *tw )
+{
+	int		r;
+	int		i, j;
+	dleaf_t		*leaf;
+	float		oldHitFrac;
 	surfaceTest_t	*test;
-	int				surfaceNum;
-	byte			surfaceTested[MAX_MAP_DRAW_SURFS/8];
-	;
+	int		surfaceNum;
+	byte		surfaceTested[MAX_MAP_SURFACES/8];
 
-	if ( numthreads == 1 ) {
+	if( GetNumThreads() == 1 )
+	{
 		c_totalTrace++;
 	}
 
@@ -873,7 +914,7 @@ void TraceLine( const vec3_t start, const vec3_t stop, trace_t *trace, qboolean 
 
 	tw->numOpenLeafs = 0;
 
-	trace->passSolid = qfalse;
+	trace->passSolid = false;
 	trace->hitFraction = 1.0;
 
 	r = TraceLine_r( 0, start, stop, tw );
@@ -881,47 +922,51 @@ void TraceLine( const vec3_t start, const vec3_t stop, trace_t *trace, qboolean 
 	// if we hit a solid leaf, stop without testing the leaf
 	// surfaces.  Note that the plane and endpoint might not
 	// be the first solid intersection along the ray.
-	if ( r && !testAll ) {
+	if( r && !testAll )
+	{
 		return;
 	}
 
-	if ( noSurfaces ) {
+	if( noSurfaces )
+	{
 		return;
 	}
 
-	memset( surfaceTested, 0, (numDrawSurfaces+7)/8 );
+	memset( surfaceTested, 0, (numsurfaces + 7)/8 );
 	oldHitFrac = trace->hitFraction;
 
-	for ( i = 0 ; i < tw->numOpenLeafs ; i++ ) {
-		leaf = &dleafs[ tw->openLeafNumbers[ i ] ];
-		for ( j = 0 ; j < leaf->numLeafSurfaces ; j++ ) {
-			surfaceNum = dleafsurfaces[ leaf->firstLeafSurface + j ];
+	for( i = 0; i < tw->numOpenLeafs; i++ )
+	{
+		leaf = &dleafs[tw->openLeafNumbers[i]];
+		for( j = 0 ; j < leaf->numleaffaces; j++ )
+		{
+			surfaceNum = dleaffaces[leaf->firstleafface+j];
 
 			// make sure we don't test the same ray against a surface more than once
-			if ( surfaceTested[ surfaceNum>>3 ] & ( 1 << ( surfaceNum & 7) ) ) {
+			if( surfaceTested[surfaceNum>>3] & ( 1 << ( surfaceNum & 7) ))
+			{
 				continue;
 			}
-			surfaceTested[ surfaceNum>>3 ] |= ( 1 << ( surfaceNum & 7 ) );
+			surfaceTested[surfaceNum>>3] |= ( 1 << ( surfaceNum & 7 ));
 
-			test = surfaceTest[ surfaceNum ];
-			if ( !test ) {
-				continue;
-			}
-			//
-			if ( !tw->patchshadows && test->patch ) {
+			test = surfaceTest[surfaceNum];
+			if( !test )
+			{
 				continue;
 			}
 			TraceAgainstSurface( tw, test );
 		}
 
 		// if the trace is now solid, we can't possibly hit anything closer
-		if ( trace->hitFraction < oldHitFrac ) {
-			trace->passSolid = qtrue;
+		if( trace->hitFraction < oldHitFrac )
+		{
+			trace->passSolid = true;
 			break;
 		}
 	}
 	
-	for ( i = 0 ; i < 3 ; i++ ) {
+	for( i = 0; i < 3; i++ )
+	{
 		trace->hit[i] = start[i] + ( stop[i] - start[i] ) * trace->hitFraction;
 	}
 }

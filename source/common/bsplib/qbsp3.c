@@ -85,7 +85,6 @@ void EmitLeaf( node_t *node )
 	leaf_p = &dleafs[numleafs];
 	numleafs++;
 
-	leaf_p->contents = node->contents;
 	leaf_p->cluster = node->cluster;
 	leaf_p->area = node->area;
 
@@ -314,7 +313,6 @@ void BeginBSPFile( void )
 	numleafbrushes = 0;
 
 	numleafs = 1;			// leave leaf 0 as an error
-	dleafs[0].contents = CONTENTS_SOLID;	// assume error
 }
 
 

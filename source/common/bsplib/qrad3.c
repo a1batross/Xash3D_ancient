@@ -60,6 +60,10 @@ int	entitySurface[MAX_MAP_SURFACES];
 vec3_t	sunDirection = { 0.45, 0.3, 0.9 };
 vec3_t	sunLight = { 100, 100, 50 };
 
+// g-cont. moved it here to avoid stack overflow problems
+byte	occluded[LIGHTMAP_WIDTH*EXTRASCALE][LIGHTMAP_HEIGHT*EXTRASCALE];
+vec3_t	color[LIGHTMAP_WIDTH*EXTRASCALE][LIGHTMAP_HEIGHT*EXTRASCALE];
+
 typedef struct
 {
 	dbrush_t	*b;
@@ -1107,8 +1111,6 @@ void TraceLtm( int num )
 	int		x, y;
 	int		position, numPositions;
 	vec3_t		base, origin, normal;
-	byte		occluded[LIGHTMAP_WIDTH*EXTRASCALE][LIGHTMAP_HEIGHT*EXTRASCALE];
-	vec3_t		color[LIGHTMAP_WIDTH*EXTRASCALE][LIGHTMAP_HEIGHT*EXTRASCALE];
 	traceWork_t	tw;
 	vec3_t		average;
 	int		count;
@@ -1120,6 +1122,9 @@ void TraceLtm( int num )
 	};
 	int		sampleWidth, sampleHeight, ssize;
 	vec3_t		lightmapOrigin, lightmapVecs[2];
+
+	memset( occluded, 0, LIGHTMAP_WIDTH*EXTRASCALE*LIGHTMAP_HEIGHT*EXTRASCALE );
+	memset( color, 0, LIGHTMAP_WIDTH*EXTRASCALE*LIGHTMAP_HEIGHT*EXTRASCALE );
 
 	ds = &dsurfaces[num];
 	si = FindShader( dshaders[ds->shadernum].name );
@@ -1742,7 +1747,6 @@ void WradMain ( bool option )
 		pointScale *= com.atof( cmdparm );
 	if( FS_CheckParm( "-notrace" )) notrace = true;
 	if( FS_CheckParm( "-patchshadows" )) patchshadows = true;
-	if( FS_CheckParm( "-notrace" )) notrace = true;
 	if( FS_CheckParm( "-extrawide" )) extra = extraWide = true;
 	
 	samplesize = bsp_lightmap_size->integer;

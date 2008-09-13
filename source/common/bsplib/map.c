@@ -209,10 +209,10 @@ int FindFloatPlane( vec3_t normal, vec_t dist )
 
 /*
 ================
-PlaneFromPoints
+MapPlaneFromPoints
 ================
 */
-int PlaneFromPoints (vec_t *p0, vec_t *p1, vec_t *p2)
+int MapPlaneFromPoints (vec_t *p0, vec_t *p1, vec_t *p2)
 {
 	vec3_t	t1, t2, normal;
 	vec_t	dist;
@@ -632,7 +632,7 @@ void ParseRawBrush( void )
 		}
 
 		// find the plane number
-		planenum = PlaneFromPoints( planepts[0], planepts[1], planepts[2] );
+		planenum = MapPlaneFromPoints( planepts[0], planepts[1], planepts[2] );
 		side->planenum = planenum;
 
 		if( g_brushtype == BRUSH_QUARK ) 

@@ -249,7 +249,6 @@ typedef struct
 	int	cluster;
 	int	mins[3];		// for frustum culling
 	int	maxs[3];
-	int	contents;
 	int	firstleafface;
 	int	numleaffaces;
 	int	firstleafbrush;

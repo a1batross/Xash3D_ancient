@@ -356,7 +356,6 @@ void BSP_LoadLeafs( lump_t *l )
 	dleaf_t 	*in;
 	cleaf_t	*out;
 	int	i, j, n, c, count;
-	int	emptyleaf = -1;
 	
 	in = (void *)(cm.mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in)) Host_Error("BSP_LoadLeafs: funny lump size\n");
@@ -370,7 +369,6 @@ void BSP_LoadLeafs( lump_t *l )
 	{
 		out->parent = NULL;
 		out->plane = NULL;
-		out->contents = LittleLong( in->contents );
 		out->cluster = LittleLong( in->cluster );
 		out->area = LittleLong( in->area );
 
@@ -401,22 +399,6 @@ void BSP_LoadLeafs( lump_t *l )
 	cm.areaportals_size = cm.numareas * cm.numareas * sizeof( *cm.areaportals );
 	cm.areas = Mem_Alloc( cmappool, cm.numareas * sizeof( *cm.areas ));
 	cm.areaportals = Mem_Alloc( cmappool, cm.areaportals_size );
-
-	// probably any wall it's liquid ?
-	if( cm.leafs[0].contents != CONTENTS_SOLID )
-		Host_Error("Map %s with leaf 0 is not CONTENTS_SOLID\n", cm.name );
-
-	for( i = 1; i < count; i++ )
-	{
-		if(!cm.leafs[i].contents)
-		{
-			emptyleaf = i;
-			break;
-		}
-	}
-
-	// stuck into brushes
-	if( emptyleaf == -1 ) Host_Error("Map %s does not have an empty leaf\n", cm.name );
 }
 
 /*

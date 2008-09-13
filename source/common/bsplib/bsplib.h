@@ -419,7 +419,6 @@ bool	LoadBSPFile ( void );
 void	WriteBSPFile ( void );
 
 //=============================================================================
-
 //
 // terrain.c
 //
@@ -665,8 +664,6 @@ typedef struct
 	vec3_t		origin;
 	float		radius;
 
-	bool		patch;
-
 	int		numFacets;
 	cFacet_t		*facets;
 	bsp_shader_t	*shader;		// for translucency
@@ -709,5 +706,7 @@ typedef struct
 	vec3_t		vecs[3];
 } lightmap_t;
 
+
+bool PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c );
 
 #endif//BSPLIB_H

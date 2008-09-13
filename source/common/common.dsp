@@ -133,6 +133,10 @@ SOURCE=.\bsplib\leakfile.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\bsplib\light_trace.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\bsplib\lightmaps.c
 # End Source File
 # Begin Source File
