@@ -192,11 +192,11 @@ void Sys_GetStdAPI( void )
 
 	// built-in imagelib functions
 	com.LoadImage = FS_LoadImage;			// return 8, 24 or 32 bit buffer with image info
-	com.GetImageColor = FS_GetImageColor;		// returns color of image (bsplib uses)
 	com.SaveImage = FS_SaveImage;			// save image into specified format 
 	com.FreeImage = FS_FreeImage;			// free image buffer
 
 	// image manipulation
+	com.ImageToRGBA = Image_ConvertToRGBA;		// expand any image to PF_RGBA_32
 	com.ImagePal32to24 = Image_ConvertPalTo24bit;	// convert palette from 32 to 24 bit
 	com.ResampleImage = Image_Resample;		// resample image
 	com.ProcessImage = Image_Process;		// flip, rotate e.t.c

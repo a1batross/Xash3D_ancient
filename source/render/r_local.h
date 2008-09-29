@@ -78,7 +78,6 @@ extern texture_t	*r_whiteTexture;
 extern texture_t	*r_blackTexture;
 extern texture_t	*r_rawTexture;
 extern texture_t	*r_dlightTexture;
-extern texture_t	*r_lightmapTextures[MAX_LIGHTMAPS];
 extern texture_t	*r_normalizeTexture;
 extern texture_t	*r_radarMap;
 extern texture_t	*r_aroundMap;
@@ -88,6 +87,7 @@ void		R_TextureFilter( void );
 void		R_TextureList_f( void );
 texture_t		*R_LoadTexture( const char *name, rgbdata_t *pic, uint flags, float bumpScale );
 texture_t		*R_FindTexture( const char *name, const byte *buffer, size_t size, uint flags, float bumpScale );
+texture_t		*R_CreateTexture( const char *name, byte *buf, int width, int height, uint flags, uint tflags );
 texture_t		*R_FindCubeMapTexture( const char *name, uint flags, float bumpScale );
 void		R_InitTextures( void );
 void		R_ShutdownTextures( void );
@@ -561,7 +561,6 @@ typedef struct
 	int		lmT;
 	int		lmNum;
 	float		lmVecs[2][3];	// lightmap vecs
-	byte		*lmSamples;
 	int		numStyles;
 	byte		styles[MAX_LIGHTSTYLES];
 	float		cachedLight[MAX_LIGHTSTYLES];	// values currently used in lightmap
@@ -776,7 +775,7 @@ typedef struct rmodel_s
 	byte		*novis;			// clusterBytes of 0xff
 
 	sky_t		*sky;
-	byte		*lightMaps;
+	texture_t		*lightMaps[MAX_LIGHTMAPS];
 	int		numLightmaps;
 
 	vec3_t		gridMins;
@@ -1126,6 +1125,7 @@ extern vec4_t	inTexCoordArray[MAX_VERTICES];
 extern int	numIndex;
 extern int	numVertex;
 
+void		RB_ShowTextures( void );
 void		RB_DebugGraphics( void );
 void		RB_CheckMeshOverflow( int numIndices, int numVertices );
 void		RB_RenderMesh( void );
@@ -1288,6 +1288,8 @@ extern cvar_t	*r_shownormals;
 extern cvar_t	*r_showtangentspace;
 extern cvar_t	*r_showmodelbounds;
 extern cvar_t	*r_showshadowvolumes;
+extern cvar_t	*r_showlightmaps;
+extern cvar_t	*r_showtextures;
 extern cvar_t	*r_offsetfactor;
 extern cvar_t	*r_offsetunits;
 extern cvar_t	*r_debugsort;

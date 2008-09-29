@@ -1018,7 +1018,7 @@ static void RB_SetupTextureUnit( stageBundle_t *bundle, uint unit )
 	case TEX_LIGHTMAP:
 		if( m_iInfoKey != 255 )
 		{
-			GL_BindTexture( r_lightmapTextures[m_iInfoKey] );
+			GL_BindTexture( r_worldModel->lightMaps[m_iInfoKey] );
 			break;
 		}
 		R_UpdateSurfaceLightmap( m_pRenderMesh->mesh );
@@ -1407,15 +1407,21 @@ static void RB_DrawLine( int color, int numpoints, const float *points )
 
 void RB_DebugGraphics( void )
 {
-	if( !r_physbdebug->integer ) return;
 	if( r_refdef.rdflags & RDF_NOWORLDMODEL )
 		return;
 
-	// physic debug
-	GL_LoadMatrix( r_worldMatrix );
-	pglBegin( GL_LINES );
-	ri.ShowCollision( RB_DrawLine );
-	pglEnd();
+	if( r_physbdebug->integer )
+	{
+		// physic debug
+		GL_LoadMatrix( r_worldMatrix );
+		pglBegin( GL_LINES );
+		ri.ShowCollision( RB_DrawLine );
+		pglEnd();
+	}
+	if( r_showtextures->integer )
+	{
+		RB_ShowTextures();
+	}
 }
 
 /*
@@ -1539,7 +1545,7 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 				if( r_debugsort->integer != shader->sort )
 					continue;
 			}
-                             
+
 			// check if the rendering state changed
 			if((m_pCurrentShader != shader) || (m_pCurrentEntity != entity && !(shader->flags & SHADER_ENTITYMERGABLE)) || (m_iInfoKey != infoKey || infoKey == 255))
 			{

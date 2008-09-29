@@ -380,6 +380,8 @@ void GL_InitCommands( void )
 	r_showtangentspace = Cvar_Get("r_showTangentSpace", "0", CVAR_CHEAT, "draw model tangent space" );
 	r_showmodelbounds = Cvar_Get("r_showmodelbounds", "0", CVAR_CHEAT, "draw entity bboxes" );
 	r_showshadowvolumes = Cvar_Get("r_showshadowvolumes", "0", CVAR_CHEAT, "draw shadow volumes" );
+	r_showlightmaps = Cvar_Get("r_showlightmaps", "0", CVAR_CHEAT, "lightmap debugging visualization tool" );
+	r_showtextures = Cvar_Get("r_showtextures", "0", CVAR_CHEAT, "show all uploaded textures" );
 	r_offsetfactor = Cvar_Get("r_offsetfactor", "-1", CVAR_CHEAT, "z_trick offset factor" );
 	r_offsetunits = Cvar_Get("r_offsetunits", "-2", CVAR_CHEAT, "z_trick offset uints" );
 	r_debugsort = Cvar_Get( "r_debugsort", "0", CVAR_CHEAT, "enable custom z-sorting" );
@@ -489,7 +491,7 @@ void GL_CheckExtension( const char *name, const dllfunc_t *funcs, const char *cv
 	if( cvarname )
 	{
 		// system config disable extensions
-		parm = Cvar_Get( cvarname, "1", CVAR_SYSTEMINFO, "enable or disable gl_extension" );
+		parm = Cvar_Get( cvarname, "1", CVAR_SYSTEMINFO, va( "enable or disable %s", name ));
 		GL_SetExtension( r_ext, parm->integer );	// update render info
 		if( parm->integer == 0 )
 		{
@@ -684,6 +686,7 @@ void GL_BindTexture( texture_t *texture )
 	if( r_nobind->integer && !(texture->flags & TF_STATIC))
 		texture = r_defaultTexture;
 
+	if( !texture ) Host_Error( "GL_BindTexture: null texture\n" );
 	if( gl_state.texNum[gl_state.activeTMU] == texture->texnum )
 		return;
 	gl_state.texNum[gl_state.activeTMU] = texture->texnum;

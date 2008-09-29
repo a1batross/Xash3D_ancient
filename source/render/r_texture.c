@@ -93,7 +93,6 @@ texture_t	*r_whiteTexture;
 texture_t	*r_blackTexture;
 texture_t	*r_rawTexture;
 texture_t	*r_dlightTexture;
-texture_t	*r_lightmapTextures[MAX_LIGHTMAPS];
 texture_t	*r_normalizeTexture;
 texture_t *r_radarMap;
 texture_t *r_aroundMap;
@@ -217,7 +216,7 @@ void R_TextureList_f( void )
 	int	i, texels = 0;
 
 	Msg( "\n" );
-	Msg("      -w-- -h-- -fmt- -t-- -mm- wrap -name--------\n" );
+	Msg("      -w-- -h-- --fmt-- -t-- -mm- wrap -name--------\n" );
 
 	for( i = 0; i < r_numTextures; i++ )
 	{
@@ -230,7 +229,7 @@ void R_TextureList_f( void )
 		Msg( "%4i: ", i );
 
 		Msg( "%4i %4i ", texture->width, texture->height );
-		Msg("%3s", PFDesc[texture->type].name );
+		Msg("%8s", PFDesc[texture->type].name );
 
 		switch( texture->target )
 		{
@@ -264,6 +263,69 @@ void R_TextureList_f( void )
 	Msg( "\n" );
 }
 
+/*
+===============
+RB_ShowImages
+
+Draw all the images to the screen, on top of whatever
+was there.  This is used to test for texture thrashing.
+===============
+*/
+void RB_ShowTextures( void )
+{
+	texture_t		*texture;
+	float		x, y, w, h;
+	int		i, j;
+
+	if( !gl_state.orthogonal )
+	{
+		GL_Setup2D();
+	}
+
+	pglClear( GL_COLOR_BUFFER_BIT );
+	pglFinish();
+	pglEnable( GL_TEXTURE_2D );
+		
+	for( i = j = 0; i < r_numTextures; i++ )
+	{
+		texture = &r_textures[i];
+
+		// FIXME: make cases for system, 2d, bsp, sprite and model textures
+
+		if( r_showtextures->integer == 1 && texture->flags & TF_STATIC )
+			continue;
+		if( r_showtextures->integer == 2 && !(texture->flags & TF_STATIC ))
+			continue;
+
+		w = r_width->integer / 10;
+		h = r_height->integer / 8;
+		x = j % 10 * w;
+		y = j / 10 * h;
+
+		// show in proportional size in mode 2
+		/*if( r_showtextures->integer == 2 )
+		{
+			w *= texture->width / 512.0f;
+			h *= texture->height / 512.0f;
+		}*/
+
+		pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
+		GL_BindTexture( texture );
+		pglBegin( GL_QUADS );
+		pglTexCoord2f( 0, 0 );
+		pglVertex2f( x, y );
+		pglTexCoord2f( 1, 0 );
+		pglVertex2f( x + w, y );
+		pglTexCoord2f( 1, 1 );
+		pglVertex2f( x + w, y + h );
+		pglTexCoord2f( 0, 1 );
+		pglVertex2f( x, y + h );
+		pglEnd();
+		j++;
+	}
+	pglDisable( GL_TEXTURE_2D );
+	pglFinish();
+}
 
 /*
 =============================================================
@@ -1639,6 +1701,22 @@ bool R_UploadTexture( byte *buffer, int type, GLuint target )
 	return iResult;
 }
 
+texture_t *R_CreateTexture( const char *name, byte *buf, int width, int height, uint flags, uint tflags )
+{
+	rgbdata_t		r_generic;
+
+	memset( &r_generic, 0, sizeof( r_generic ));	
+	r_generic.width = width;
+	r_generic.height = height;
+	r_generic.type = PF_RGBA_GN; // special case for generated textures
+	r_generic.size = r_generic.width * r_generic.height * 4; // always same as RGBA
+	r_generic.numMips = 1;
+	r_generic.buffer = buf;
+	r_generic.flags = flags;
+
+	return R_LoadTexture( name, &r_generic, tflags, 0 );
+}  
+
 /*
 ================
 R_LoadTexture
@@ -1770,7 +1848,7 @@ void R_ImageFreeUnused( void )
 {
 	texture_t		*image;
 	int		i;
-
+return; //FIXME
 	for( i = 0, image = r_textures; i < r_numTextures; i++, image++ )
 	{
 		// used this sequence

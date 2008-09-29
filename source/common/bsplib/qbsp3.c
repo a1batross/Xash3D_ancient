@@ -7,6 +7,9 @@
 #include "const.h"
 
 int	entity_num;
+bool	emitFlares;
+bool	debugPortals;
+
 /*
 =========================================================
 
@@ -19,27 +22,37 @@ ONLY SAVE OUT PLANES THAT ARE ACTUALLY USED AS NODES
 EmitShader
 ============
 */
-int EmitShader( const char *shader )
+int EmitShader( const char *shader, int *contents, int *surfaceFlags )
 {
 	bsp_shader_t	*si;
 	int		i;
 
 	// force to create default shader
-	if( !shader ) shader = "default";
+	if( !shader ) shader = "noshader";
 
 	for( i = 0; i < numshaders; i++ )
 	{
+		// handle custom surface/content flags
+		if( surfaceFlags != NULL && dshaders[i].surfaceFlags != *surfaceFlags )
+			continue;
+		if( contents != NULL && dshaders[i].contents != *contents )
+			continue;
 		if( !com.stricmp( shader, dshaders[i].name ))
 			return i;
 	}
 
+	si = FindShader( shader );
 	if( i == MAX_MAP_SHADERS ) Sys_Break( "MAX_MAP_SHADERS limit exceeded\n" );
 	numshaders++;
-	com.strncpy( dshaders[i].name, shader, MAX_QPATH );
 
-	si = FindShader( shader );
-	dshaders[i].flags = si->surfaceFlags;
+	// FXIME: check name and cutoff "textures/" if necessary, engine have spport for it
+	com.strncpy( dshaders[i].name, shader, MAX_QPATH );
+	dshaders[i].surfaceFlags = si->surfaceFlags;
 	dshaders[i].contents = si->contents;
+
+	// handle custom content/surface flags
+	if( surfaceFlags != NULL ) dshaders[i].surfaceFlags = *surfaceFlags;
+	if( contents != NULL ) dshaders[i].contents = *contents;
 
 	return i;
 }
@@ -107,7 +120,7 @@ void EmitLeaf( node_t *node )
 	if( node->opaque ) return; // no leaffaces in solids
 	
 	// add the drawSurfRef_t drawsurfs
-	leaf_p->firstleafface = numleaffaces;
+	leaf_p->firstleafsurface = numleaffaces;
 	for( dsr = node->surfaces; dsr; dsr = dsr->next )
 	{
 		if( numleaffaces >= MAX_MAP_LEAFFACES )
@@ -115,7 +128,7 @@ void EmitLeaf( node_t *node )
 		dleaffaces[numleaffaces] = dsr->outputnum;
 		numleaffaces++;			
 	}
-	leaf_p->numleaffaces = numleaffaces - leaf_p->firstleafface;
+	leaf_p->numleafsurfaces = numleaffaces - leaf_p->firstleafsurface;
 }
 
 /*
@@ -175,9 +188,9 @@ void SetModelNumbers( void )
 {
 	int	i, models = 1;
 
-	for( i = 1; i<num_entities; i++ )
+	for( i = 1; i < num_entities; i++ )
 	{
-		if( entities[i].brushes )
+		if( entities[i].brushes || entities[i].patches )
 		{
 			SetKeyValue( &entities[i], "model", va( "*%i", models ));
 			models++;
@@ -194,9 +207,9 @@ void SetLightStyles( void )
 {
 	char		*t;
 	bsp_entity_t	*e;
-	int		i, j, k, stylenum = 0;
-	char		lighttargets[64][MAX_QPATH];
-
+	int		i, j, k, style, stylenum = 0;
+	char		lightTargets[MAX_SWITCHED_LIGHTS][64];
+	int		lightStyles[MAX_SWITCHED_LIGHTS];
 
 	// any light that is controlled (has a targetname)
 	// must have a unique style number generated for it
@@ -233,21 +246,27 @@ void SetLightStyles( void )
                     }
 		t = ValueForKey( e, "targetname" );
 		if( !t[0] ) continue;
+
+		// get existing style
+		style = IntForKey( e, "style" );
+		if( style < LS_NORMAL || style > LS_NONE )
+			Sys_Break( "Invalid lightstyle (%d) on entity %d\n", style, i );
 		
 		// find this targetname
 		for( j = 0; j < stylenum; j++ )
 		{
-			if( !com.strcmp( lighttargets[j], t ))
-				break; // already exist
+			if( lightStyles[j] == style && !com.strcmp( lightTargets[j], t ))
+				break;
 		}
 		if( j == stylenum )
 		{
-			if( stylenum == 64 )
+			if( stylenum == MAX_SWITCHED_LIGHTS )
 			{
-				Msg( "switchable lightstyles limit (%i) exceeded at entity #%i\n", 64, i );
+				MsgDev( D_WARN, "switchable lightstyles limit (%i) exceeded at entity #%i\n", 64, i );
 				break; // nothing to process
 			}
-			com.strncpy( lighttargets[j], t, MAX_QPATH );
+			com.strncpy( lightTargets[j], t, MAX_QPATH );
+			lightStyles[j] = style;
 			stylenum++;
 		}
 		SetKeyValue( e, "style", va( "%i", 32 + j ));
@@ -262,12 +281,15 @@ void SetLightStyles( void )
 EmitBrushes
 ============
 */
-void EmitBrushes( bspbrush_t *brushes )
+void EmitBrushes( bspbrush_t *brushes, int *firstBrush, int *numBrushes )
 {
 	int		j;
 	dbrush_t		*db;
 	bspbrush_t	*b;
 	dbrushside_t	*cp;
+
+	if( firstBrush ) *firstBrush = numbrushes;
+	if( numBrushes ) *numBrushes = 0;
 
 	for( b = brushes; b; b = b->next )
 	{
@@ -276,20 +298,76 @@ void EmitBrushes( bspbrush_t *brushes )
 
 		db = &dbrushes[numbrushes];
 		numbrushes++;
+		if( numBrushes ) (*numBrushes)++;
 
-		db->contents = b->contents;
+		db->shadernum = EmitShader( b->shader->name, &b->shader->contents, &b->shader->surfaceFlags );
 		db->firstside = numbrushsides;
 		db->numsides = 0;
 
 		for( j = 0; j < b->numsides; j++ )
 		{
+			// set output number to bogus initially
+			b->sides[j].outputnum = -1;
+			
 			if( numbrushsides == MAX_MAP_BRUSHSIDES )
 				Sys_Break( "MAX_MAP_BRUSHSIDES limit exceeded\n" );
+			b->sides[j].outputnum = numbrushsides;
 			cp = &dbrushsides[numbrushsides];
 			db->numsides++;
 			numbrushsides++;
 			cp->planenum = b->sides[j].planenum;
-			cp->shadernum = EmitShader( b->sides[j].shader->name );
+			if( b->sides[j].shader )			
+				cp->shadernum = EmitShader( b->sides[j].shader->name, &b->sides[j].shader->contents, &b->sides[j].shader->surfaceFlags );
+			else cp->shadernum = EmitShader( NULL, NULL, NULL );
+		}
+	}
+}
+
+/*
+============
+EmitFogs
+
+turns map fogs into bsp fogs
+============
+*/
+void EmitFogs( void )
+{
+	int	i, j;
+	
+	numfogs = numMapFogs;
+	
+	// walk list
+	for( i = 0; i < numMapFogs; i++ )
+	{
+		com.strcpy( dfogs[i].shader, mapFogs[i].si->name );
+		
+		// global fog doesn't have an associated brush
+		if( mapFogs[i].brush == NULL )
+		{
+			dfogs[i].brushnum = -1;
+			dfogs[i].visibleSide = -1;
+		}
+		else
+		{
+			dfogs[i].brushnum = mapFogs[i].brush->outputnum;
+			
+			// try to use forced visible side
+			if( mapFogs[i].visibleSide >= 0 )
+			{
+				dfogs[i].visibleSide = mapFogs[i].visibleSide;
+				continue;
+			}
+			
+			// find visible side
+			for( j = 0; j < 6; j++ )
+			{
+				if( mapFogs[i].brush->sides[j].visibleHull != NULL )
+				{
+					MsgDev( D_INFO, "Fog %d has visible side %d\n", i, j );
+					dfogs[i].visibleSide = j;
+					break;
+				}
+			}
 		}
 	}
 }
@@ -313,6 +391,15 @@ void BeginBSPFile( void )
 	numleafbrushes = 0;
 
 	numleafs = 1;			// leave leaf 0 as an error
+
+	// set the first 6 drawindexes to 0 1 2 2 1 3 for triangles and quads
+	numindexes = 6;
+	dindexes[0] = 0;
+	dindexes[1] = 1;
+	dindexes[2] = 2;
+	dindexes[3] = 0;
+	dindexes[4] = 2;
+	dindexes[5] = 3;
 }
 
 
@@ -325,6 +412,9 @@ void EndBSPFile( void )
 {
 	EmitPlanes();
 	UnparseEntities();
+
+	// write the surface extra file
+	WriteSurfaceExtraFile();
 
 	// write the map
 	WriteBSPFile();
@@ -342,6 +432,9 @@ void BeginModel( void )
 	bsp_entity_t	*e;
 	dmodel_t		*mod;
 	vec3_t		mins, maxs;
+	vec3_t		lgMins, lgMaxs;	// lightgrid mins/maxs
+	parseMesh_t	*p;
+	int		i;
 
 	if( nummodels == MAX_MAP_MODELS )
 		Sys_Break( "MAX_MAP_MODELS limit exceeded\n" );
@@ -351,20 +444,43 @@ void BeginModel( void )
 	e = &entities[entity_num];
 
 	ClearBounds( mins, maxs );
+	ClearBounds( lgMins, lgMaxs );
+
 	for( b = e->brushes; b; b = b->next )
 	{
 		if( !b->numsides ) continue;	// not a real brush (origin brush, etc)
 		AddPointToBounds (b->mins, mins, maxs);
 		AddPointToBounds (b->maxs, mins, maxs);
+
+		// lightgrid bounds
+		if( b->contents & CONTENTS_LIGHTGRID )
+		{
+			AddPointToBounds( b->mins, lgMins, lgMaxs );
+			AddPointToBounds( b->maxs, lgMins, lgMaxs );
+		}
 	}
 
-	VectorCopy( mins, mod->mins );
-	VectorCopy( maxs, mod->maxs );
+	for( p = e->patches; p; p = p->next )
+	{
+		for( i = 0; i < (p->mesh.width * p->mesh.height); i++ )
+			AddPointToBounds( p->mesh.verts[i].point, mins, maxs );
+	}
+
+	if( lgMins[0] < 99999 )
+	{
+		// use lightgrid bounds
+		VectorCopy( lgMins, mod->mins );
+		VectorCopy( lgMaxs, mod->maxs );
+	}
+	else
+	{
+		// use brush/patch bounds
+		VectorCopy( mins, mod->mins );
+		VectorCopy( maxs, mod->maxs );
+	}
 
 	mod->firstface = numsurfaces;
 	mod->firstbrush = numbrushes;
-
-	EmitBrushes( e->brushes );
 }
 
 
@@ -373,17 +489,129 @@ void BeginModel( void )
 EndModel
 ==================
 */
-void EndModel( node_t *headnode )
+void EndModel( bsp_entity_t *e, node_t *headnode )
 {
 	dmodel_t	*mod;
 
 	mod = &dmodels[nummodels];
 	EmitDrawNode_r( headnode );
+
 	mod->numfaces = numsurfaces - mod->firstface;
-	mod->numbrushes = numbrushes - mod->firstbrush;
+	mod->firstbrush = e->firstBrush;
+	mod->numbrushes = e->numBrushes;
 	nummodels++;
 }
 
+/*
+==================
+SetCloneModelNumbers
+
+sets the model numbers for brush entities
+==================
+*/
+static void SetCloneModelNumbers( void )
+{
+	int		i, j;
+	int		models;
+	const char	*value, *value2, *value3;
+	
+	
+	// start with 1 (worldspawn is model 0)
+	models = 1;
+	for( i = 1; i < num_entities; i++ )
+	{
+		// only entities with brushes or patches get a model number
+		if( entities[i].brushes == NULL && entities[i].patches == NULL )
+			continue;
+		
+		// is this a clone? 
+		value = ValueForKey( &entities[i], "_clone" );
+		if( value[0] != '\0' ) continue;
+		
+		// add the model key
+		SetKeyValue( &entities[i], "model", va("*%d", models ));
+		models++;
+	}
+	
+	// fix up clones
+	for( i = 1; i < num_entities; i++ )
+	{
+		// only entities with brushes or patches get a model number
+		if( entities[i].brushes == NULL && entities[i].patches == NULL )
+			continue;
+		
+		// is this a clone?
+		value = ValueForKey( &entities[ i ], "_ins" );
+		if( value[0] == '\0' ) value = ValueForKey( &entities[ i ], "_instance" );
+		if( value[0] == '\0' ) value = ValueForKey( &entities[ i ], "_clone" );
+		if( value[0] == '\0' ) continue;
+		
+		// find an entity with matching clone name
+		for( j = 0; j < num_entities; j++ )
+		{
+			// is this a clone parent?
+			value2 = ValueForKey( &entities[j], "_clonename" );
+			if( value2[0] == '\0' ) continue;
+			
+			// do they match?
+			if( !com.strcmp( value, value2 ))
+			{
+				value3 = ValueForKey( &entities[j], "model" );
+				if( value3[0] == '\0' )
+				{
+					MsgDev( D_WARN, "Cloned entity %s referenced entity without model\n", value2 );
+					continue;
+				}
+				models = com.atoi( &value2[1] );
+				
+				SetKeyValue( &entities[ i ], "model", va( "*%d", models ));
+				
+				// nuke the brushes/patches for this entity
+				// not a leak, Zone Memory will be freed at end of compile 
+				entities[i].brushes = NULL;
+				entities[i].patches = NULL;
+			}
+		}
+	}
+}
+
+
+
+/*
+==================
+FixBrushSides
+
+matches brushsides back to their appropriate drawsurface and shader
+==================
+*/
+static void FixBrushSides( bsp_entity_t *e )
+{
+	int		i;
+	drawsurf_t	*ds;
+	sideRef_t		*sideRef;
+	dbrushside_t	*side;
+	
+	MsgDev( D_NOTE, "--- FixBrushSides ---\n" );
+	
+	// walk list of drawsurfaces
+	for( i = e->firstsurf; i < numdrawsurfs; i++ )
+	{
+		ds = &drawsurfs[i];
+		if( ds->outputnum < 0 ) continue;
+		
+		for( sideRef = ds->sideRef; sideRef != NULL; sideRef = sideRef->next )
+		{
+			/* get bsp brush side */
+			if( sideRef->side == NULL || sideRef->side->outputnum < 0 )
+				continue;
+			side = &dbrushsides[sideRef->side->outputnum];
+			side->surfacenum = ds->outputnum;
+			
+			if( com.strcmp( dshaders[side->shadernum].name, ds->shader->name ))
+				side->shadernum = EmitShader( ds->shader->name, &ds->shader->contents, &ds->shader->surfaceFlags );
+		}
+	}
+}
 
 /*
 ============
@@ -393,11 +621,14 @@ ProcessWorldModel
 */
 void ProcessWorldModel( void )
 {
+	int		i;
 	bsp_entity_t	*e;
 	tree_t		*tree;
 	bspface_t		*faces;
 	bool		leaked;
-
+	string		shader;
+	const char	*value;
+	
 	MsgDev( D_INFO, "\n==================\n" );
 	MsgDev( D_INFO, "Process world model" );
 	MsgDev( D_INFO, "\n==================\n" );
@@ -405,6 +636,11 @@ void ProcessWorldModel( void )
 
 	e = &entities[0];
 	e->firstsurf = 0;
+
+	ClearMetaTriangles();
+
+	// check for patches with adjacent edges that need to lod together
+	PatchMapDrawSurfs( e );
 
 	// build an initial bsp tree using all of the sides
 	// of all of the structural brushes
@@ -449,22 +685,94 @@ void ProcessWorldModel( void )
 	if( !leaked ) WritePortalFile( tree );
 	FloodAreas( tree );
 
+	// create drawsurfs for triangle models
+	AddTriangleModels( e );
+
+	// create drawsurfs for surface models
+	AddEntitySurfaceModels( e );
+
+	// generate bsp brushes from map brushes
+	EmitBrushes( e->brushes, &e->firstBrush, &e->numBrushes );
+
 	// add references to the detail brushes
 	FilterDetailBrushesIntoTree( e, tree );
 
+	// drawsurfs that cross fog boundaries will need to be split along the fog boundary
+	FogDrawSurfaces( e );
+
 	// subdivide each drawsurf as required by shader tesselation
-	if( !nosubdivide ) SubdivideDrawSurfs( e, tree );
+	if( !nosubdivide ) SubdivideFaceSurfaces( e, tree );
 
 	// add in any vertexes required to fix tjunctions
 	if( !notjunc ) FixTJunctions( e );
 
-	// allocate lightmaps for faces and patches
-	AllocateLightmaps( e );
+	// ydnar: classify the surfaces
+	ClassifyEntitySurfaces( e );
+
+	// project decals
+	MakeEntityDecals( e );
+
+	MakeEntityMetaTriangles( e );
+	SmoothMetaTriangles();
+	FixMetaTJunctions();
+	MergeMetaTriangles();
+
+	// debug portals
+	if( debugPortals ) MakeDebugPortalSurfs( tree );
+
+	// global fog hull
+	value = ValueForKey( &entities[0], "_foghull" );
+	if( value[0] != '\0' )
+	{
+		com.sprintf( shader, "textures/%s", value );
+		MakeFogHullSurfs( e, tree, shader );
+	}
+	
+	// do flares for lights
+	for( i = 0; i < num_entities && emitFlares; i++ )
+	{
+		bsp_entity_t	*light, *target;
+		const char	*value, *flareShader;
+		vec3_t		origin, targetOrigin, normal, color;
+		int		lightStyle;
+		
+		light = &entities[ i ];
+		value = ValueForKey( light, "classname" );
+		if( !com.strcmp( value, "light" ) )
+		{
+			flareShader = ValueForKey( light, "_flareshader" );
+			value = ValueForKey( light, "_flare" );
+			if( flareShader[0] != '\0' || value[0] != '\0' )
+			{
+				GetVectorForKey( light, "origin", origin );
+				GetVectorForKey( light, "_color", color );
+				lightStyle = IntForKey( light, "_style" );
+				if( lightStyle == 0 ) lightStyle = IntForKey( light, "style" );
+				
+				// handle directional spotlights
+				value = ValueForKey( light, "target" );
+				if( value[0] != '\0' )
+				{
+					target = FindTargetEntity( value );
+					if( target != NULL )
+					{
+						GetVectorForKey( target, "origin", targetOrigin );
+						VectorSubtract( targetOrigin, origin, normal );
+						VectorNormalize( normal );
+					}
+				}
+				else VectorSet( normal, 0, 0, -1 );
+				
+				// create the flare surface (note shader defaults automatically)
+				DrawSurfaceForFlare( entity_num, origin, normal, color, (char*)flareShader, lightStyle );
+			}
+		}
+	}
 
 	// add references to the final drawsurfs in the apropriate clusters
 	FilterDrawsurfsIntoTree( e, tree );
 
-	EndModel( tree->headnode );
+	EndModel( e, tree->headnode );
 	FreeTree( tree );
 }
 
@@ -489,9 +797,29 @@ void ProcessSubModel( void )
 	e = &entities[entity_num];
 	e->firstsurf = numdrawsurfs;
 
+	ClearMetaTriangles();
+	
+	// check for patches with adjacent edges that need to lod together
+	PatchMapDrawSurfs( e );
+
 	// just put all the brushes in an empty leaf
 	node = AllocNode();
 	node->planenum = PLANENUM_LEAF;
+	tree = AllocTree();
+	tree->headnode = node;
+
+	ClipSidesIntoTree( e, tree );
+
+	// create drawsurfs for triangle models
+	AddTriangleModels( e );
+	
+	// create drawsurfs for surface models
+	AddEntitySurfaceModels( e );
+
+	// generate bsp brushes from map brushes
+	EmitBrushes( e->brushes, &e->firstBrush, &e->numBrushes );
+
+	// just put all the brushes in headnode
 	for( b = e->brushes; b; b = b->next )
 	{
 		bc = CopyBrush( b );
@@ -499,24 +827,31 @@ void ProcessSubModel( void )
 		node->brushlist = bc;
 	}
 
-	tree = AllocTree();
-	tree->headnode = node;
-
-	ClipSidesIntoTree( e, tree );
-
 	// subdivide each drawsurf as required by shader tesselation or fog
-	if( !nosubdivide ) SubdivideDrawSurfs( e, tree );
+	if( !nosubdivide ) SubdivideFaceSurfaces( e, tree );
 
 	// add in any vertexes required to fix tjunctions
 	if( !notjunc ) FixTJunctions( e );
 
-	// allocate lightmaps for faces and patches
-	AllocateLightmaps( e );
+	// classify the surfaces and project lightmaps
+	ClassifyEntitySurfaces( e );
+
+	// project decals
+	MakeEntityDecals( e );
+
+	// ydnar: meta surfaces
+	MakeEntityMetaTriangles( e );
+	SmoothMetaTriangles();
+	FixMetaTJunctions();
+	MergeMetaTriangles();
 
 	// add references to the final drawsurfs in the apropriate clusters
 	FilterDrawsurfsIntoTree( e, tree );
 
-	EndModel ( node );
+	// match drawsurfaces back to original brushsides
+	FixBrushSides( e );
+
+	EndModel( e, node );
 	FreeTree( tree );
 }
 
@@ -528,15 +863,18 @@ ProcessModels
 void ProcessModels( void )
 {
 	BeginBSPFile();
+	CreateMapFogs();
           
 	for( entity_num = 0; entity_num < num_entities; entity_num++ )
 	{
-		if( !entities[entity_num].brushes )
+		if( !entities[entity_num].brushes && !entities[entity_num].patches )
 			continue;
 		if( !entity_num ) ProcessWorldModel();
 		else ProcessSubModel();
 	}
 
+	EmitFogs();
+	SetLightStyles();
 	EndBSPFile();
 }
 
@@ -563,11 +901,13 @@ void WbspMain ( bool option )
 	}
 	else
 	{
-		// start from scratch
+		// create bsp and some subinfo
 		LoadMapFile();
-		SetModelNumbers();
-		SetLightStyles();
+		ProcessDecals();
+		SetCloneModelNumbers();
 		ProcessModels();
+
+		// create collision tree
 		LoadBSPFile();
 		ProcessCollisionTree();
 		WriteBSPFile();

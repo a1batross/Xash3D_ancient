@@ -63,7 +63,6 @@ shaderParm_t infoParms[] =
 	{"areaportal",	0,		CONTENTS_AREAPORTAL,	},
 	{"fog",		0,		CONTENTS_FOG,		}, // carves surfaces entering
 	{"sky",		SURF_SKY,		0,			}, // emit light from environment map
-	{"skyroom",	SURF_SKYROOM,	0,			}, // env_sky surface
 	{"lightfilter",	SURF_LIGHTFILTER,	0,			}, // filter light going through it
 	{"alphashadow",	SURF_ALPHASHADOW,	0,			}, // test light on a per-pixel basis
 	{"hint",		SURF_HINT,	0,			}, // use as a primary splitter
@@ -3058,6 +3057,19 @@ static shader_t *R_CreateShader( const char *name, shaderType_t shaderType, uint
 		shader->stages[0]->bundles[0]->numTextures++;
 		shader->stages[0]->numBundles++;
 		shader->numStages++;
+
+		if(!( shader->surfaceParm & SURF_NOLIGHTMAP ))
+		{
+			shader->flags |= SHADER_HASLIGHTMAP;
+			shader->stages[1]->bundles[0]->flags |= STAGEBUNDLE_MAP;
+			shader->stages[1]->bundles[0]->texType = TEX_LIGHTMAP;
+			shader->stages[1]->flags |= SHADERSTAGE_BLENDFUNC;
+			shader->stages[1]->blendFunc.src = GL_DST_COLOR;
+			shader->stages[1]->blendFunc.dst = GL_ZERO;
+			shader->stages[1]->numBundles++;
+			shader->numStages++;
+		}
+
 	}
 	return shader;
 }
@@ -3138,7 +3150,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 			shader->stages[1]->bundles[0]->texType = TEX_LIGHTMAP;
 			shader->stages[1]->flags |= SHADERSTAGE_BLENDFUNC;
 			shader->stages[1]->blendFunc.src = GL_DST_COLOR;
-			shader->stages[1]->blendFunc.dst = GL_ONE; //FIXME: was GL_ZERO
+			shader->stages[1]->blendFunc.dst = GL_ZERO;
 			shader->stages[1]->numBundles++;
 			shader->numStages++;
 		}
@@ -3855,7 +3867,7 @@ static void R_CreateBuiltInShaders( void )
 	com.strncpy( shader->name, "<default>", sizeof( shader->name ));
 	shader->shaderNum = r_numShaders;
 	shader->shaderType = SHADER_TEXTURE;
-	shader->surfaceParm = 0;
+	shader->surfaceParm = SURF_NOLIGHTMAP;
 	shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
 	shader->stages[0]->bundles[0]->numTextures++;
 	shader->stages[0]->numBundles++;

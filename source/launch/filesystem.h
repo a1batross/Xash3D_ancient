@@ -474,6 +474,7 @@ bool Image_SaveTGA( const char *name, rgbdata_t *pix, int saveformat );
 bool Image_SaveDDS( const char *name, rgbdata_t *pix, int saveformat );
 bool Image_SaveBMP( const char *name, rgbdata_t *pix, int saveformat );
 bool Image_SavePNG( const char *name, rgbdata_t *pix, int saveformat );
+bool Image_SavePCX( const char *name, rgbdata_t *pix, int saveformat );
 
 //
 // img_utils.c

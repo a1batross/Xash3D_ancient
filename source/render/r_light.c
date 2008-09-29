@@ -544,6 +544,7 @@ Combine and scale multiple lightmaps into the floating format in r_blockLights
 */
 static void R_BuildLightmap( surface_t *surf, byte *dest, int stride )
 {
+#if 0
 	int	i, map, size, s, t;
 	vec3_t	scale;
 	float	*bl;
@@ -608,6 +609,7 @@ static void R_BuildLightmap( surface_t *surf, byte *dest, int stride )
 		}
 		dest += stride;
 	}
+#endif
 }
 
 
@@ -627,74 +629,6 @@ typedef struct
 } lmState_t;
 
 static lmState_t	r_lmState;
-
-/*
-=================
-R_UploadLightmap
-=================
-*/
-static void R_UploadLightmap( void )
-{
-	string	name;
-	rgbdata_t r_generic;
-
-	if( r_lmState.currentNum == MAX_LIGHTMAPS )
-		Host_Error( "R_UploadLightmap: MAX_LIGHTMAPS limit exceeded\n" );
-
-	com.snprintf( name, sizeof(name), "*lightmap%i", r_lmState.currentNum );
-	memset( &r_generic, 0, sizeof( r_generic ));
-	r_generic.width = LIGHTMAP_WIDTH;
-	r_generic.height = LIGHTMAP_HEIGHT;
-	r_generic.type = PF_RGBA_GN; // generated
-	r_generic.size = r_generic.width * r_generic.height * 4;
-	r_generic.numMips = 1;
-	r_generic.buffer = (byte *)r_lmState.buffer;
-	r_lightmapTextures[r_lmState.currentNum++] = R_LoadTexture( name, &r_generic, TF_CLAMP, 0 );
-
-	// reset
-	memset( r_lmState.allocated, 0, sizeof( r_lmState.allocated ));
-	memset( r_lmState.buffer, 255, sizeof( r_lmState.buffer ));
-}
-
-/*
-=================
-R_AllocLightmapBlock
-=================
-*/
-static byte *R_AllocLightmapBlock( int width, int height, int *s, int *t )
-{
-	int	i, j;
-	int	best1, best2;
-
-	best1 = LIGHTMAP_HEIGHT;
-
-	for( i = 0; i < LIGHTMAP_WIDTH - width; i++ )
-	{
-		best2 = 0;
-
-		for( j = 0; j < width; j++ )
-		{
-			if( r_lmState.allocated[i+j] >= best1 )
-				break;
-			if( r_lmState.allocated[i+j] > best2 )
-				best2 = r_lmState.allocated[i+j];
-		}
-		if( j == width )
-		{
-			// this is a valid spot
-			*s = i;
-			*t = best1 = best2;
-		}
-	}
-
-	if( best1 + height > LIGHTMAP_HEIGHT )
-		return NULL;
-
-	for( i = 0; i < width; i++ )
-		r_lmState.allocated[*s + i] = best1 + height;
-
-	return r_lmState.buffer + ((*t * LIGHTMAP_WIDTH + *s) * 4);
-}
 
 /*
 =================
@@ -727,9 +661,6 @@ R_EndBuildingLightmaps
 */
 void R_EndBuildingLightmaps( void )
 {
-	if( r_lmState.currentNum == -1 )
-		return;
-	R_UploadLightmap();
 }
 
 /*
@@ -739,23 +670,12 @@ void R_EndBuildingLightmaps( void )
 */
 void R_BuildSurfaceLightmap( surface_t *surf )
 {
-	byte	*base;
+	byte	*base = NULL;
 
 	if(!(surf->texInfo->shader->flags & SHADER_HASLIGHTMAP))
 		return;	// no lightmaps
 
-	base = R_AllocLightmapBlock( surf->lmWidth, surf->lmHeight, &surf->lmS, &surf->lmT );
-	if( !base )
-	{
-		if( r_lmState.currentNum != -1 )
-			R_UploadLightmap();
-
-		base = R_AllocLightmapBlock( surf->lmWidth, surf->lmHeight, &surf->lmS, &surf->lmT );
-		if( !base ) Host_Error( "R_BuildSurfaceLightmap: couldn't allocate lightmap block (%i x %i)\n", surf->lmWidth, surf->lmHeight );
-	}
-
-	if( r_lmState.currentNum == -1 ) r_lmState.currentNum = 0;
-	surf->lmNum = r_lmState.currentNum;
+	r_lmState.currentNum = surf->lmNum;
 
 	R_SetCacheState( surf );
 	R_BuildLightmap( surf, base, LIGHTMAP_WIDTH * 4 );
@@ -772,7 +692,7 @@ void R_UpdateSurfaceLightmap( surface_t *surf )
 		GL_BindTexture( r_dlightTexture );
 	else
 	{
-		GL_BindTexture( r_lightmapTextures[surf->lmNum] );
+		GL_BindTexture( r_worldModel->lightMaps[surf->lmNum] );
 		R_SetCacheState( surf );
 	}
 

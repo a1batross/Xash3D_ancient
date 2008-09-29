@@ -503,6 +503,7 @@ typedef struct stdilib_api_s
 	bool (*Com_Filter)(char *filter, char *name, int casecmp ); // compare keyword by mask with filter
 	uint (*Com_HashKey)( const char *string, uint hashSize );	// returns hash key for a string
 	byte *(*Com_LoadRes)( const char *filename, size_t *size );	// find internal resource in baserc.dll 
+	long com_scriptline;				// contains current scriptline
 	char *com_token;					// contains current token
 
 	// console variables
@@ -572,7 +573,7 @@ typedef struct stdilib_api_s
 
 	// built-in imagelib functions
 	rgbdata_t *(*LoadImage)( const char *path, const byte *buf, size_t filesize );	// return 8, 24 or 32 bit buffer with image info
-	void (*GetImageColor)( rgbdata_t *pic );			// stored result in rgbdata_t->color
+	void (*ImageToRGBA)( rgbdata_t *pic );				// expand any image to PF_RGBA_32
 	void (*SaveImage)( const char *filename, rgbdata_t *buffer );	// save image into specified format 
 	void (*FreeImage)( rgbdata_t *pack );				// free image buffer
 
@@ -709,6 +710,7 @@ typedef struct stdilib_api_s
 #define Com_PushScript	com.Com_PushScript
 #define Com_PopScript	com.Com_PopScript
 #define com_token		com.com_token
+#define scriptline		com.com_scriptline
 #define g_TXcommand		com.GameInfo->TXcommand
 #define g_Instance		com.GameInfo->instance
 
@@ -734,6 +736,7 @@ filesystem manager
 #define FS_FileSize( file )		com.Com_FileSize( file )
 #define FS_FileTime( file )		com.Com_FileTime( file )
 #define FS_Close( file )		com.fclose( file )
+#define FS_Remove( name )		com.fremove( name )
 #define FS_FileBase( x, y )		com.Com_FileBase( x, y )
 #define FS_LoadInternal( x, y )	com.Com_LoadRes( x, y )
 #define FS_Printf			com.fprintf
@@ -846,7 +849,7 @@ imglib manager
 #define FS_LoadImage	com.LoadImage
 #define FS_SaveImage	com.SaveImage
 #define FS_FreeImage	com.FreeImage
-#define Image_GetColor	com.GetImageColor
+#define Image_ExpandRGBA	com.ImageToRGBA
 #define Image_ConvertPalette	com.ImagePal32to24
 #define Image_Resample	com.ResampleImage
 #define Image_Process	com.ProcessImage

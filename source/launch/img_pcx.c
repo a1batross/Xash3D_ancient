@@ -96,3 +96,90 @@ bool Image_LoadPCX( const char *name, const byte *buffer, size_t filesize )
 
 	return result;
 }
+
+/* 
+============== 
+Image_SavePCX
+============== 
+*/ 
+bool Image_SavePCX( const char *name, rgbdata_t *pix, int saveformat )
+{
+	byte	*data, *out, *pack;
+	byte	*palette;
+	file_t	*file;
+	int	i, j;
+	pcx_t	pcx;
+
+	if(FS_FileExists( name )) return false;	// already existed
+
+	// bogus parameter check
+	if( !pix->palette || !pix->buffer )
+		return false;
+
+	switch( pix->type )
+	{
+	case PF_INDEXED_24:
+	case PF_INDEXED_32:
+		break;
+	default:
+		MsgDev( D_WARN, "Image_SavePCX: unsupported image type %s\n", PFDesc[pix->type].name );
+		return false;
+	}
+	  
+	out = Mem_Alloc( Sys.imagepool, ( pix->size * 2 ) + 768 ); 
+	memset( &pcx, 0, sizeof( pcx ));
+	
+	pcx.manufacturer = 0x0a;		// PCX id
+	pcx.version = 5;			// 256 color
+ 	pcx.encoding = 1;			// uncompressed
+	pcx.bits_per_pixel = 8;		// 256 color
+	pcx.xmin = 0;
+	pcx.ymin = 0;
+	pcx.xmax = LittleShort((short)(pix->width - 1));
+	pcx.ymax = LittleShort((short)(pix->height - 1));
+	pcx.hres = LittleShort((short)pix->width);
+	pcx.vres = LittleShort((short)pix->height);
+	pcx.color_planes = 1;		// chunky image
+	pcx.bytes_per_line = LittleShort((short)pix->width);
+	pcx.palette_type = LittleShort( 1 );	// not a grey scale
+
+	// pack the image
+	palette = pix->palette;
+	data = pix->buffer;
+	pack = out;
+
+	// simple runlength encoding	
+	for( i = 0; i < pix->height; i++ )
+	{
+		for( j = 0; j < pix->width; j++ )
+		{
+			if((*data & 0xc0) != 0xc0 )
+			{
+				*pack++ = *data++;
+			}
+			else
+			{
+				*pack++ = 0xc1;
+				*pack++ = *data++;
+			}
+		}
+	}
+			
+	// write the palette
+	*pack++ = 0x0c;	// palette ID byte
+	for( i = 0; i < 768; i++ )
+		*pack++ = *palette++;
+
+	file = FS_Open( name, "wb" );
+	if( !file ) return false;
+
+	// write header
+	FS_Write( file, &pcx, sizeof( pcx_t ));
+
+	// write image and palette
+	FS_Write( file, out, pack - out ); 
+	Mem_Free( out );
+
+	FS_Close( file );
+	return true;
+}

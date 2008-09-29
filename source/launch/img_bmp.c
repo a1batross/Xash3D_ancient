@@ -166,9 +166,6 @@ bool Image_SaveBMP( const char *name, rgbdata_t *pix, int saveformat )
 	if( !pix->palette || !pix->buffer )
 		return false;
 
-	pfile = FS_Open( name, "wb");
-	if(!pfile) return false;
-
 	switch( pix->type )
 	{
 	case PF_INDEXED_24:
@@ -178,6 +175,9 @@ bool Image_SaveBMP( const char *name, rgbdata_t *pix, int saveformat )
 		MsgDev( D_WARN, "Image_SaveBMP: unsupported image type %s\n", PFDesc[pix->type].name );
 		return false;
 	}
+
+	pfile = FS_Open( name, "wb");
+	if(!pfile) return false;
 
 	// NOTE: alig transparency column will sucessfully removed
 	// after create sprite or lump image, it's just standard requiriments 

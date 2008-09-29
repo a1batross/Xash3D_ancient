@@ -101,6 +101,93 @@ byte *R_ClusterPVS( int cluster )
 	return R_DecompressVis((byte *)r_worldModel->vis + r_worldModel->vis->bitOfs[cluster][DVIS_PVS]);
 }
 
+static void HSVtoRGB( float h, float s, float v, float rgb[3] )
+{
+	int	i;
+	float	f, p, q, t;
+
+	h *= 5;
+
+	i = floor( h );
+	f = h - i;
+
+	p = v * ( 1 - s );
+	q = v * ( 1 - s * f );
+	t = v * ( 1 - s * ( 1 - f ) );
+
+	switch( i )
+	{
+	case 0:
+		rgb[0] = v;
+		rgb[1] = t;
+		rgb[2] = p;
+		break;
+	case 1:
+		rgb[0] = q;
+		rgb[1] = v;
+		rgb[2] = p;
+		break;
+	case 2:
+		rgb[0] = p;
+		rgb[1] = v;
+		rgb[2] = t;
+		break;
+	case 3:
+		rgb[0] = p;
+		rgb[1] = q;
+		rgb[2] = v;
+		break;
+	case 4:
+		rgb[0] = t;
+		rgb[1] = p;
+		rgb[2] = v;
+		break;
+	case 5:
+		rgb[0] = v;
+		rgb[1] = p;
+		rgb[2] = q;
+		break;
+	}
+}
+
+/*
+===============
+R_ColorShiftLightingBytes
+
+===============
+*/
+static void R_ColorShiftLightingBytes( byte in[4], byte out[4] )
+{
+	int	shift, r, g, b;
+
+	// shift the color data based on overbright range
+	shift = r_overbrightbits->integer;
+
+	// shift the data based on overbright range
+	r = in[0]<<shift;
+	g = in[1]<<shift;
+	b = in[2]<<shift;
+	
+	// normalize by color instead of saturating to white
+	if(( r|g|b ) > 255 )
+	{
+		int	max;
+
+		max = r > g ? r : g;
+		max = max > b ? max : b;
+		r = r * 255 / max;
+		g = g * 255 / max;
+		b = b * 255 / max;
+	}
+
+	out[0] = r;
+	out[1] = g;
+	out[2] = b;
+	out[3] = in[3];
+}
+
+/*
+
 /*
 =======================================================================
 
@@ -139,9 +226,12 @@ static void R_LoadVertexes( const byte *base, const lump_t *l )
 
 		out->st[0] = LittleFloat(in->st[0]);
 		out->st[1] = LittleFloat(in->st[1]);
-		out->lm[0] = LittleFloat(in->lm[0]);
-		out->lm[1] = LittleFloat(in->lm[1]);
-		rgba = UnpackRGBA( in->color );
+
+		// FIXME: implement LIGHTSTYLES
+		out->lm[0] = LittleFloat(in->lm[0][0]);
+		out->lm[1] = LittleFloat(in->lm[1][0]);
+
+		rgba = UnpackRGBA( in->rgba[0] );
 		Vector4Set( out->color, rgba[0], rgba[1], rgba[2], rgba[3] );
 		
 	}
@@ -168,20 +258,79 @@ static void R_LoadIndexes( const byte *base, const lump_t *l )
 
 /*
 =================
-R_LoadLighting
+R_LoadLightmaps
 =================
 */
-static void R_LoadLighting( const byte *base, const lump_t *l )
+static void R_LoadLightmaps( void )
 {
-	if( r_fullbright->integer || !l->filelen )
+	float	maxIntensity = 0;
+	double	sumIntensity = 0;
+	string	lmap_name;
+	byte	*buf_p, *pixels;
+	rgbdata_t	*lmap;
+	int	i, j;	
+
+	if( r_fullbright->integer || m_pLoadModel->numLightmaps <= 0 )
 		return;
 
-	m_pLoadModel->lightMaps = NULL;
-	return; //FIXME: test
+	Msg("m_pLoadModel->numLightmaps %d\n", m_pLoadModel->numLightmaps );
 
-	m_pLoadModel->numLightmaps = l->filelen / LM_SIZE;
-	m_pLoadModel->lightMaps = Mem_Alloc( m_pLoadModel->mempool, l->filelen );
-	Mem_Copy( m_pLoadModel->lightMaps, base + l->fileofs, l->filelen );
+	for( i = 0; i < m_pLoadModel->numLightmaps; i++ )
+	{
+		com.sprintf( lmap_name, "gfx/lightmaps/%s_%04d.tga", m_pLoadModel->name, i );
+		lmap = FS_LoadImage( lmap_name, NULL, 0 );
+		if( !lmap ) continue;
+
+		Image_ExpandRGBA( lmap );
+		pixels = Mem_Realloc( r_temppool, pixels, lmap->width * lmap->height * 4 );
+		buf_p = lmap->buffer;
+
+		if ( r_showlightmaps->integer == 2 )
+		{	
+			// color code by intensity as development tool	(FIXME: check range)
+			for( j = 0; j < lmap->width * lmap->height; j++ )
+			{
+				float r = buf_p[j*4+0];
+				float g = buf_p[j*4+1];
+				float b = buf_p[j*4+2];
+				float intensity;
+				float out[3];
+
+				intensity = 0.33f * r + 0.685f * g + 0.063f * b;
+
+				if( intensity > 255 ) intensity = 1.0f;
+				else intensity /= 255.0f;
+
+				if( intensity > maxIntensity )
+					maxIntensity = intensity;
+
+				HSVtoRGB( intensity, 1.00, 0.50, out );
+
+				pixels[j*4+0] = out[0] * 255;
+				pixels[j*4+1] = out[1] * 255;
+				pixels[j*4+2] = out[2] * 255;
+				pixels[j*4+3] = 255;
+				sumIntensity += intensity;
+			}
+		}
+		else
+		{
+			for( j = 0; j < lmap->width * lmap->height; j++ )
+			{
+				R_ColorShiftLightingBytes( &buf_p[j*4], &pixels[j*4] );
+				pixels[j*4+3] = 255;
+			}
+		}
+		m_pLoadModel->lightMaps[i] = R_CreateTexture( va("*lightmap%d", i ), pixels, lmap->width, lmap->height, 0, TF_CLAMP );
+		FS_FreeImage( lmap ); // no reason to keep image
+	}
+
+	Mem_Free( pixels );
+
+	if( r_showlightmaps->integer == 2 )
+	{
+		MsgDev( D_INFO, "Brightest lightmap value: %d\n", ( int )( maxIntensity * 255 ));
+	}
 }
 
 /*
@@ -237,7 +386,7 @@ void R_LoadShaders( const byte *base, const lump_t *l )
 		com.strncpy( out->name, in->name, MAX_QPATH );
 		out->shader = r_defaultShader; // real shaders will load later
 		out->contents = LittleLong( in->contents );
-		out->flags = LittleLong( in->flags );
+		out->flags = LittleLong( in->surfaceFlags );
 	}
 }
 
@@ -303,18 +452,18 @@ static void R_BuildSurfacePolygon( surface_t *surf )
 
 /*
 =================
-R_LoadFaces
+R_LoadSurfaces
 =================
 */
-static void R_LoadFaces( const byte *base, const lump_t *l )
+static void R_LoadSurfaces( const byte *base, const lump_t *l )
 {
 	dsurface_t	*in;
 	surface_t 	*out;
-	int		i, lightofs;
+	int		i;
 
 	in = (dsurface_t *)(base + l->fileofs);
 	if (l->filelen % sizeof(dsurface_t))
-		Host_Error( "R_LoadFaces: funny lump size in '%s'\n", m_pLoadModel->name );
+		Host_Error( "R_LoadSurfaces: funny lump size in '%s'\n", m_pLoadModel->name );
 
 	m_pLoadModel->numSurfaces = l->filelen / sizeof(dsurface_t);
 	m_pLoadModel->surfaces = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numSurfaces * sizeof(surface_t));
@@ -323,12 +472,12 @@ static void R_LoadFaces( const byte *base, const lump_t *l )
 
 	for( i = 0; i < m_pLoadModel->numSurfaces; i++, in++, out++ )
 	{
-		if( LittleLong( in->lm_side )) out->flags |= SURF_PLANEBACK;
+		if( LittleLong( in->flat.planeside )) out->flags |= SURF_PLANEBACK;
 		out->firstIndex = LittleLong( in->firstindex );
 		out->numIndexes = LittleLong( in->numindices );
 		out->firstVertex = LittleLong( in->firstvertex );
 		out->numVertexes = LittleLong( in->numvertices );
-		out->plane = m_pLoadModel->planes + LittleLong( in->planenum );
+		out->plane = m_pLoadModel->planes + LittleLong( in->flat.planenum );
 		out->texInfo = m_pLoadModel->shaders + LittleLong( in->shadernum );
 
 		R_CalcSurfaceBounds( out );
@@ -346,19 +495,17 @@ static void R_LoadFaces( const byte *base, const lump_t *l )
 		VectorNormalize( out->normal );
 
 		// lighting info
-		out->lmWidth = in->lm_size[0];
-		out->lmHeight = in->lm_size[1];
+		out->lmS = LittleLong( in->lmapX[0] );
+		out->lmT = LittleLong( in->lmapY[0] );
+		out->lmWidth = LittleLong( in->lmapWidth );
+		out->lmHeight = LittleLong( in->lmapHeight );
 
-		if( out->texInfo->flags & SURF_NOLIGHTMAP )
-			lightofs = -1;
-		else lightofs = LittleLong( in->lm_base[0] ); // FIXME: hack
+		out->lmNum = LittleLong( in->lmapNum[0] );
+		if( out->lmNum == -1 ) out->lmNum = 255; // turn up fullbright
 
-		if( m_pLoadModel->lightMaps && lightofs != -1 )
-			out->lmSamples = m_pLoadModel->lightMaps + lightofs;
-
-		while( out->numStyles < MAX_LIGHTSTYLES && in->styles[out->numStyles] != 255 )
+		while( out->numStyles < MAX_LIGHTSTYLES && in->lStyles[out->numStyles] != 255 )
 		{
-			out->styles[out->numStyles] = in->styles[out->numStyles];
+			out->styles[out->numStyles] = in->lStyles[out->numStyles];
 			out->numStyles++;
 		}
 
@@ -501,8 +648,8 @@ static void R_LoadLeafNodes( const byte *base, const lump_t *nodes, const lump_t
 		if( out->cluster >= m_pLoadModel->numClusters )
 			m_pLoadModel->numClusters = out->cluster + 1;
 
-		out->firstMarkSurface = m_pLoadModel->markSurfaces + LittleLong( inLeaf->firstleafface );
-		out->numMarkSurfaces = LittleLong( inLeaf->numleaffaces );
+		out->firstMarkSurface = m_pLoadModel->markSurfaces + LittleLong( inLeaf->firstleafsurface );
+		out->numMarkSurfaces = LittleLong( inLeaf->numleafsurfaces );
 	}	
 
 	// chain decendants
@@ -614,17 +761,18 @@ void Mod_LoadBrushModel( rmodel_t *mod, const void *buffer )
 	mod_base = (byte *)header;
 
 	// load into heap
+	R_LoadShaders( mod_base, &header->lumps[LUMP_SHADERS]);
+	R_LoadPlanes( mod_base, &header->lumps[LUMP_PLANES]);
 	R_LoadVertexes( mod_base, &header->lumps[LUMP_VERTICES]);
 	R_LoadIndexes( mod_base, &header->lumps[LUMP_INDICES]);
-	R_LoadLighting( mod_base, &header->lumps[LUMP_LIGHTMAPS]);
-	R_LoadLightgrid( mod_base, &header->lumps[LUMP_LIGHTGRID]);
-	R_LoadPlanes( mod_base, &header->lumps[LUMP_PLANES]);
-	R_LoadShaders( mod_base, &header->lumps[LUMP_SHADERS]);
-	R_LoadFaces( mod_base, &header->lumps[LUMP_SURFACES]);
-	R_LoadMarkSurfaces( mod_base, &header->lumps[LUMP_LEAFFACES]);
+	R_LoadSurfaces( mod_base, &header->lumps[LUMP_SURFACES]);
+	R_LoadMarkSurfaces( mod_base, &header->lumps[LUMP_LEAFSURFACES]);
 	R_LoadLeafNodes( mod_base, &header->lumps[LUMP_NODES], &header->lumps[LUMP_LEAFS] );
 	R_LoadVisibility( mod_base, &header->lumps[LUMP_VISIBILITY]);
 	R_LoadSubmodels( mod_base, &header->lumps[LUMP_MODELS]);
+	R_LoadLightgrid( mod_base, &header->lumps[LUMP_LIGHTGRID]);
+
+	R_LoadLightmaps();					// load external lightmaps
 
 	mod->registration_sequence = registration_sequence;	// register model
 }

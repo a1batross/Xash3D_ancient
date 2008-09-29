@@ -71,6 +71,8 @@ cvar_t	*r_shownormals;
 cvar_t	*r_showtangentspace;
 cvar_t	*r_showmodelbounds;
 cvar_t	*r_showshadowvolumes;
+cvar_t	*r_showlightmaps;
+cvar_t	*r_showtextures;
 cvar_t	*r_offsetfactor;
 cvar_t	*r_offsetunits;
 cvar_t	*r_debugsort;
@@ -1264,7 +1266,7 @@ bool R_UploadImage( const char *unused, int index )
 	texture = m_pLoadModel->shaders + index;
 
 	// this is not actually needed	
-	if( texture->flags & (SURF_SKY||SURF_SKYROOM|SURF_NODRAW))
+	if( texture->flags & (SURF_SKY|SURF_NODRAW))
 		return true;
 
 	if( !m_pLoadModel->lightMaps )

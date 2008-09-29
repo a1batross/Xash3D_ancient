@@ -1233,7 +1233,8 @@ void BasePortalVis (int portalnum)
 	int		j, k;
 	vportal_t		*tp, *p;
 	float		d;
-	winding_t	*w;
+	winding_t		*w;
+	vec3_t		dir;
 
 	p = portals + portalnum;
 
@@ -1246,6 +1247,14 @@ void BasePortalVis (int portalnum)
 	{
 		if( j == portalnum ) continue;
 		if( tp->removed ) continue;
+
+		// this is known-to-be-working farplane code
+		if( farPlaneDist > 0.0f )
+		{
+			VectorSubtract( p->origin, tp->origin, dir );
+			if( VectorLength( dir ) - p->radius - tp->radius > farPlaneDist )
+				continue;
+		}
 
 		w = tp->winding;
 		for( k = 0; k < w->numpoints; k++ )

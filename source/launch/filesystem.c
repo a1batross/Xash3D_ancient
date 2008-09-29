@@ -1528,8 +1528,8 @@ void FS_UpdateConfig( void )
 {
 	file_t	*f;
 
-	// only normal instance can change config.dll
-	if( Sys.app_name != HOST_NORMAL || Sys.app_state == SYS_ERROR ) return;
+	// make sure what instance not a crashed before saving
+	if( Sys.app_state == SYS_ERROR ) return;
 	com_strncpy( fs_gamedir, "bin", sizeof(fs_gamedir));	// set write directory for system config
 	f = FS_Open( "config.dll", "w" );
 	if( f )

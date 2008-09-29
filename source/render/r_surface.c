@@ -124,7 +124,10 @@ static void R_AddSurfaceToList( surface_t *surf, ref_entity_t *entity )
 	// check for lightmap modification
 	if( r_dynamiclights->integer && (shader->flags & SHADER_HASLIGHTMAP))
 	{
-		if( surf->dlightFrame == r_frameCount ) lmNum = 255;
+		if( surf->dlightFrame == r_frameCount )
+		{
+			lmNum = 255;
+		}
 		else
 		{
 			for( map = 0; map < surf->numStyles; map++ )
@@ -406,12 +409,16 @@ static void R_RecursiveWorldNode( node_t *node, int planeBits, int dlightBits )
 		if( surf->visFrame == r_frameCount )
 			continue;	// already added this surface from another leaf
 		surf->visFrame = r_frameCount;
+
+		// FIXME: apply dynamic
+		/*
 		if( surf->dlightFrame != r_frameCount )
 		{
 			surf->dlightFrame = r_frameCount;
 			surf->dlightBits = dlightBits;
 		}
 		else surf->dlightBits |= dlightBits;
+		*/
 
 		// cull
 		if( R_CullSurface( surf, r_refdef.vieworg, planeBits ))

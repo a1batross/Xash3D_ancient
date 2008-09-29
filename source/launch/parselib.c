@@ -16,10 +16,9 @@ typedef struct
 
 // max included scripts
 #define	MAX_INCLUDES	32
-
+#define	SC_EndOfScript( x )		SC_EndOfScript_( x, __LINE__ )
 script_t	scriptstack[ MAX_INCLUDES ];
 script_t	*script;
-int	scriptline;
 
 char token[MAX_MSGLEN]; // contains token info
 static const char *saved_token;
@@ -27,7 +26,7 @@ static int saved_scriptline;
 
 bool endofscript;
 bool tokenready; // only true if UnGetToken was just called
-bool SC_EndOfScript (bool newline);
+bool SC_EndOfScript_ (bool newline, const int line );
 
 /*
 ==============
@@ -46,7 +45,7 @@ bool SC_AddScriptToStack( const char *name, byte *buffer, int size )
 	script++;
 	com_strncpy(script->filename, name, sizeof(script->filename));
 	script->buffer = buffer;
-	script->line = scriptline = 1;
+	script->line = com.com_scriptline = 1;
 	script->script_p = script->buffer;
 	script->end_p = script->buffer + size;
 
@@ -89,7 +88,7 @@ bool SC_AddScript( const char *filename, char *buf, int size )
 void SC_ResetScript( void )
 {
 	// can parsing again
-	script->line = scriptline = saved_scriptline = 1;
+	script->line = com.com_scriptline = saved_scriptline = 1;
 	script->script_p = script->buffer;
 	saved_token = NULL;
 }
@@ -104,7 +103,7 @@ FIXME: use scriptstack
 void SC_PushScript( const char **data_p )
 {
 	saved_token = *data_p;
-	saved_scriptline = scriptline;
+	saved_scriptline = com.com_scriptline;
 }
 
 /*
@@ -117,7 +116,7 @@ FIXME: use scriptstack
 void SC_PopScript( const char **data_p )
 {
 	*data_p = saved_token;
-	scriptline = saved_scriptline;
+	com.com_scriptline = saved_scriptline;
 }
 
 /*
@@ -150,7 +149,7 @@ skip_whitespace:	// skip whitespace
 		if (*script->script_p++ == '\n')
 		{
 			if (!newline) goto line_incomplete;
-			scriptline = script->line++;
+			com.com_scriptline = script->line++;
 		}
 	}
 
@@ -169,7 +168,7 @@ skip_whitespace:	// skip whitespace
 			if (script->script_p >= script->end_p)
 				return SC_EndOfScript (newline);
 		}
-		scriptline = script->line++;
+		com.com_scriptline = script->line++;
 		goto skip_whitespace;
 	}
 
@@ -186,7 +185,7 @@ skip_whitespace:	// skip whitespace
 			if (*script->script_p++ == '\n')
 			{
 				if (!newline) goto line_incomplete;
-				scriptline = script->line++;
+				com.com_scriptline = script->line++;
 			}
 		}
 		script->script_p += 2;
@@ -206,7 +205,7 @@ skip_whitespace:	// skip whitespace
 		{
 			if (token_p == &token[MAX_SYSPATH - 1])
 			{
-				MsgDev(D_WARN, "GetToken: Token too large on line %i\n", scriptline);
+				MsgDev(D_WARN, "GetToken: Token too large on line %i\n", com.com_scriptline);
 				break;
 			}
 			
@@ -228,7 +227,7 @@ skip_whitespace:	// skip whitespace
 		{
 			if (token_p == &token[MAX_SYSPATH - 1])
 			{
-				MsgDev( D_WARN, "GetToken: Token too large on line %i\n",scriptline);
+				MsgDev( D_WARN, "GetToken: Token too large on line %i\n",com.com_scriptline);
 				break;
 			}
 			*token_p = c;
@@ -266,13 +265,13 @@ bool SC_ReadTokenSimple( bool newline )
 {
 	char	*token_p;
 
-	if (tokenready) // is a token allready waiting?
+	if( tokenready ) // is a token allready waiting?
 	{
 		tokenready = false;
 		return true;
 	}
 
-	if (script->script_p >= script->end_p)
+	if( script->script_p >= script->end_p )
 		return SC_EndOfScript( newline );
 
 	
@@ -284,8 +283,8 @@ skip_whitespace:	// skip whitespace
 
 		if (*script->script_p++ == '\n')
 		{
-			if (!newline) goto line_incomplete;
-			scriptline = script->line++;
+			if( !newline ) return SC_EndOfScript( newline );
+			com.com_scriptline = script->line++;
 		}
 	}
 
@@ -293,29 +292,29 @@ skip_whitespace:	// skip whitespace
 		return SC_EndOfScript (newline);
 
 	// ; # // comments
-	if (*script->script_p == ';' || *script->script_p == '#' || ( script->script_p[0] == '/' && script->script_p[1] == '/') )
+	if( *script->script_p == ';' || *script->script_p == '#' || ( script->script_p[0] == '/' && script->script_p[1] == '/'))
 	{
-		if (!newline) goto line_incomplete;
+		if( !newline ) return SC_EndOfScript( newline );
 
 		// ets+++
 		if(*script->script_p == '/') script->script_p++;
-		if(script->script_p[1] == 'T' && script->script_p[2] == 'X')
+		if( script->script_p[1] == 'T' && script->script_p[2] == 'X' )
 		{
 			GI.TXcommand = script->script_p[3];//TX#"-style comment
-			Msg("Quark TX command %s\n", GI.TXcommand );
 		}
 		while (*script->script_p++ != '\n')
 		{
 			if (script->script_p >= script->end_p)
 				return SC_EndOfScript (newline);
 		}
+		com.com_scriptline = script->line++;
 		goto skip_whitespace;
 	}
 
 	// /* */ comments
 	if (script->script_p[0] == '/' && script->script_p[1] == '*')
 	{
-		if (!newline) goto line_incomplete;
+		if (!newline) return SC_EndOfScript( newline );
 
 		script->script_p += 2;
 		while (script->script_p[0] != '*' && script->script_p[1] != '/')
@@ -324,8 +323,8 @@ skip_whitespace:	// skip whitespace
 				return SC_EndOfScript (newline);
 			if (*script->script_p++ == '\n')
 			{
-				if (!newline) goto line_incomplete;
-				scriptline = script->line++;
+				if( !newline ) return SC_EndOfScript( newline );
+				com.com_scriptline = script->line++;
 			}
 		}
 		script->script_p += 2;
@@ -343,7 +342,7 @@ skip_whitespace:	// skip whitespace
 		{
 			if (token_p == &token[MAX_SYSPATH - 1])
 			{
-				MsgDev(D_WARN, "GetToken: Token too large on line %i\n", scriptline);
+				MsgDev(D_WARN, "SC_ReadToken: Token too large on line %i\n", com.com_scriptline);
 				break;
 			}
 			
@@ -359,7 +358,7 @@ skip_whitespace:	// skip whitespace
 		{
 			if (token_p == &token[MAX_SYSPATH - 1])
 			{
-				MsgDev( D_WARN, "GetToken: Token too large on line %i\n",scriptline);
+				MsgDev( D_WARN, "GetToken: Token too large on line %i\n",com.com_scriptline);
 				break;
 			}
 		
@@ -371,18 +370,14 @@ skip_whitespace:	// skip whitespace
           
 	*token_p = 0;
 
-	//quake style include & default MSVC style
-	if (!strcmp(token, "$include"))
+	// quake style include & default MSVC style
+	if (!com_strcmp(token, "$include"))
 	{
 		SC_ReadTokenSimple(false);
 		SC_AddScript(token, NULL, 0 );
 		return SC_ReadTokenSimple(newline);
 	}
 	return true;
-
-line_incomplete:
-	//invoke error
-	return SC_EndOfScript( newline );
 }
  
 /*
@@ -390,12 +385,12 @@ line_incomplete:
 SC_EndOfScript
 ==============
 */
-bool SC_EndOfScript( bool newline )
+bool SC_EndOfScript_( bool newline, const int line )
 {
-	if(!newline) 
+	if( !newline ) 
 	{
-		scriptline = script->line;
-		Sys_Break("%s: line %i is incomplete\n", script->filename, scriptline);
+		com.com_scriptline = script->line;
+		Sys_Break( "%s: line %i is incomplete (called at line %i)\n", script->filename, com.com_scriptline, line );
 	}
 
 	if(!com_strcmp(script->filename, "*sc_buffer"))
@@ -405,9 +400,13 @@ bool SC_EndOfScript( bool newline )
 	}
 
 	// FIXME: stupid xash bug
-	if(Mem_IsAllocated( script->buffer ))
-		Mem_Free( script->buffer );
-	if(script == scriptstack + 1)
+	if(Mem_IsAllocated( script->buffer )) Mem_Free( script->buffer );
+	else MsgDev( D_WARN, "attempt to free already freed script buffer '%s'\n", script->filename );
+
+	// FIXME
+	// script->buffer = NULL;
+
+	if( script == scriptstack + 1 )
 	{
 		endofscript = true;
 		return false;
@@ -415,7 +414,7 @@ bool SC_EndOfScript( bool newline )
 
 	script--;
 	token[0] = 0; // clear last token
-	scriptline = script->line;
+	com.com_scriptline = script->line;
 	endofscript = true;
 
 	return false;
@@ -463,7 +462,7 @@ const char *SC_SkipWhiteSpace( const char *data_p, bool *newline )
 		if( !c ) return NULL;
 		if( c == '\n' )
 		{
-			scriptline++;
+			com.com_scriptline++;
 			*newline = true;
 		}
 		data_p++;
@@ -612,7 +611,7 @@ char *SC_ParseToken( const char **data_p, bool allow_newline )
 			// skip /* comments
 			while( data[1] && (data[0] != '*' || data[1] != '/'))
 			{
-				if( *data == '\n' ) scriptline++;
+				if( *data == '\n' ) com.com_scriptline++;
 				data++;
 			}
 			if( *data ) data += 2;
@@ -627,7 +626,7 @@ char *SC_ParseToken( const char **data_p, bool allow_newline )
 		while( 1 )
 		{
 			c = *data++;
-			if( c == '\n' ) scriptline++;
+			if( c == '\n' ) com.com_scriptline++;
 			if( c=='\"' || c=='\0' )
 			{
 				token[len] = 0;
@@ -715,7 +714,7 @@ char *SC_ParseWord( const char **data_p, bool allow_newline )
 			// skip /* comments
 			while( data[1] && (data[0] != '*' || data[1] != '/'))
 			{
-				if( *data == '\n' ) scriptline++;
+				if( *data == '\n' ) com.com_scriptline++;
 				data++;
 			}
 			if( *data ) data += 2;
@@ -837,7 +836,19 @@ skip current token and jump into newline
 */
 void SC_SkipToken( void )
 {
-	SC_ReadToken( true );
+	switch( Sys.app_name )
+	{
+	case HOST_BSPLIB:
+	case HOST_SPRITE:
+	case HOST_STUDIO:
+	case HOST_WADLIB:
+		// don't handle single characters
+		SC_ReadTokenSimple( false );
+		break;
+	default:
+		SC_ReadToken( false );
+		break;
+	}
 	tokenready = true;
 }
 
@@ -866,7 +877,19 @@ bool SC_TryToken( void )
 	if(!SC_TokenAvailable())
 		return false;
 
-	SC_ReadToken( false );
+	switch( Sys.app_name )
+	{
+	case HOST_BSPLIB:
+	case HOST_SPRITE:
+	case HOST_STUDIO:
+	case HOST_WADLIB:
+		// don't handle single characters
+		SC_ReadTokenSimple( false );
+		break;
+	default:
+		SC_ReadToken( false );
+		break;
+	}
 	return true;
 }
 

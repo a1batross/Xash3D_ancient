@@ -127,7 +127,7 @@ BRUSH MODELS
 */
 
 // header
-#define BSPMOD_VERSION	39
+#define BSPMOD_VERSION	48
 #define IDBSPMODHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'I') // little-endian "IBSP"
 
 // 32 bit limits
@@ -138,6 +138,7 @@ BRUSH MODELS
 #define MAX_MAP_ENTSTRING		0x40000
 #define MAX_MAP_SHADERS		0x800
 #define MAX_MAP_AREAS		0x100	// don't increase this
+#define MAX_MAP_FOGS		0x100
 #define MAX_MAP_PLANES		0x20000
 #define MAX_MAP_NODES		0x20000
 #define MAX_MAP_BRUSHSIDES		0x20000
@@ -145,13 +146,13 @@ BRUSH MODELS
 #define MAX_MAP_LEAFFACES		0x20000
 #define MAX_MAP_LEAFBRUSHES		0x40000
 #define MAX_MAP_PORTALS		0x20000
-#define MAX_MAP_LIGHTDATA		0x800000	// 8 megabytes for lightmaps
-#define MAX_MAP_LIGHTGRID		0x800000
+#define MAX_MAP_LIGHTGRID		0x100000
 #define MAX_MAP_VISIBILITY		0x200000
 #define MAX_MAP_COLLISION		0x400000	// collision data size
 #define MAX_MAP_SURFACES		0x20000
 #define MAX_MAP_VERTEXES		0x80000
 #define MAX_MAP_INDEXES		0x80000
+#define MAX_MAP_GRIDARRAY		0x100000
 #define MAX_MAP_AREAPORTALS		MAX_EDICTS<<1
 
 // other limits
@@ -166,9 +167,16 @@ BRUSH MODELS
 #define LIGHTMAP_WIDTH		128
 #define LIGHTMAP_HEIGHT		128
 #define LIGHTMAP_BITS		3	// RGB
-#define LM_SIZE			LIGHTMAP_WIDTH * LIGHTMAP_HEIGHT * LIGHTMAP_BITS
+#define LIGHTMAP_NAME		"lm_%04d.png"
+#define LM_SIZE			( LIGHTMAP_WIDTH * LIGHTMAP_HEIGHT * LIGHTMAP_BITS )
 #define LM_SAMPLE_SIZE		16	// q1, q2, q3 default value (lightmap resoultion)
-#define LM_STYLES			4
+#define LM_STYLES			4	// MAXLIGHTMAPS
+#define LS_NORMAL			0x00
+#define LS_UNUSED			0xFE
+#define LS_NONE			0xFF
+#define MAX_LIGHT_STYLES		64
+#define MAX_SWITCHED_LIGHTS		32
+#define MAX_LIGHTMAP_SHADERS		256
 
 // lump offset
 #define LUMP_ENTITIES		0
@@ -176,19 +184,20 @@ BRUSH MODELS
 #define LUMP_PLANES			2
 #define LUMP_NODES			3
 #define LUMP_LEAFS			4
-#define LUMP_LEAFFACES		5
+#define LUMP_LEAFSURFACES		5
 #define LUMP_LEAFBRUSHES		6
 #define LUMP_MODELS			7
 #define LUMP_BRUSHES		8
 #define LUMP_BRUSHSIDES		9
 #define LUMP_VERTICES		10
 #define LUMP_INDICES		11
-#define LUMP_COLLISION		12	// precomputed physic engine collision tree
+#define LUMP_FOGS			12
 #define LUMP_SURFACES		13
-#define LUMP_LIGHTMAPS		14
+#define LUMP_COLLISION		14	// precomputed physic engine collision tree
 #define LUMP_LIGHTGRID		15
-#define LUMP_VISIBILITY		16	// unpacked pvs data
-#define LUMP_TOTALCOUNT		17	// max lumps
+#define LUMP_VISIBILITY		16	// pvs+phs lumps
+#define LUMP_LIGHTARRAY		17
+#define LUMP_TOTALCOUNT		18	// max lumps
 
 typedef struct
 {
@@ -216,17 +225,22 @@ typedef struct
 typedef struct
 {
 	char	name[64];		// shader name
+	int	surfaceFlags;	// surface flags (can be replaced by shader)
 	int	contents;		// texture contents (can be replaced by shader)
-	int	flags;		// surface flags (can be replaced by shader)
 } dshader_t;
 
 typedef struct
 {
 	float	point[3];		// Vertex3f
-	float	normal[3];	// Normal3f
 	float	st[2];		// texCoord2f
-	float	lm[2];		// lightmap texCoord2f
-	dword	color;		// packed rgba color
+	float	lm[LM_STYLES][2];	// lightmap texCoord2f
+	float	normal[3];	// Normal3f
+
+	union
+	{
+		byte	color[LM_STYLES][4];	// color array
+		long	rgba[LM_STYLES];		// packed rgba color
+	};
 } dvertex_t;
 
 typedef struct
@@ -245,12 +259,12 @@ typedef struct
 
 typedef struct
 {
-	int	area;
 	int	cluster;
+	int	area;
 	int	mins[3];		// for frustum culling
 	int	maxs[3];
-	int	firstleafface;
-	int	numleaffaces;
+	int	firstleafsurface;
+	int	numleafsurfaces;
 	int	firstleafbrush;
 	int	numleafbrushes;
 } dleaf_t;
@@ -258,15 +272,23 @@ typedef struct
 typedef struct
 {
 	int	planenum;		// facing out of the leaf
-	int	shadernum;	// surface description
+	int	shadernum;	// shader description
+	int	surfacenum;	// surface description
 } dbrushside_t;
 
 typedef struct
 {
 	int	firstside;
 	int	numsides;
-	int	contents;		// brush contents
+	int	shadernum;	// brush global shader (e.g. contents)
 } dbrush_t;
+
+typedef struct
+{
+	char	shader[64];
+	int	brushnum;
+	int	visibleSide;	// the brush side that ray tests need to clip against (-1 == none)
+} dfog_t;
 
 typedef struct
 {
@@ -274,25 +296,80 @@ typedef struct
 	int	bitofs[8][2];	// bitofs[numclusters][2]
 } dvis_t;
 
+typedef enum
+{
+	MST_BAD,
+	MST_PLANAR,
+	MST_PATCH,
+	MST_TRIANGLE_SOUP,
+	MST_FLARE,
+	MST_FOLIAGE
+} dmst_t;
+
 typedef struct
 {
-	int	planenum;		// plane->normal
 	int	shadernum;	// dshader_t[num]
-	int	lightmapnum;	// dlightmap[num]
+	int	fognum;		// dfog_t[num]
+	dmst_t	surfaceType;	// surface type
 	int	firstvertex;	// dvertex[start]
 	int	numvertices;	// may contain odd number for tristrips
 	int	firstindex;	// dvertex[dindex[firstindex]] == dvertex[firstvertex]
 	int	numindices;	// may contain odd number for tristrips
 
-	// version 39. rev.3
-	int	styles[LM_STYLES];	// lightstyles on a face
-	int	lm_base[2];	// xypos
-	int	lm_size[2];	// block size
-	int	lm_side;		// planenum & 1 (remove this)
+	byte	lStyles[LM_STYLES];	// lightmapStyles
+	byte	vStyles[LM_STYLES];	// vertexLightstyles
+	int	lmapNum[LM_STYLES];	// "lm_%04d.png", num 
+	int	lmapX[LM_STYLES];	// lm block x-offset[style]
+	int	lmapY[LM_STYLES];	// lm block y-offset[style]
+	int	lmapWidth;	// lm block width
+	int	lmapHeight;	// lm block height
 
-	float	origin[3];	// lightmap origin
-	float	vecs[2][3];	// lightmap vecs
-	float	normal[3];	// plane->normal, probably not needed
+	union
+	{
+		struct
+		{
+			// MST_BAD
+			int	unused1[14];
+		} bad;
+		struct
+		{
+			// MST_PLANAR
+			float	lmapOrigin[3];
+			float	vecs[2][3];
+			float	normal[3];
+			int	planenum;		// Xash3D: for fast surface culling
+			int	planeside;
+		} flat;
+		struct
+		{
+			// MST_PATCH
+			float	origin[3];
+			float	mins[3];		// LOD bbox
+			float	maxs[3];		// LOD bbox
+			float	normal[3];
+			int	width; 
+			int	height;
+		} patch;
+		struct
+		{
+			// MST_TRIANGLE_SOUP
+			int	unused1[3];
+			float	mins[3];
+			float	maxs[3];
+			int	unused2[5];
+		} mesh;
+		struct
+		{
+			// MST_FLARE
+			float	origin[3];
+			float	color[3];
+			int	unused1[3];
+			float	normal[3];
+			int	unused2[2];
+		} flare;
+
+		// FIXME: put MST_FOLIAGE description here
+	};
 } dsurface_t;
 
 typedef struct dlightmap_s
@@ -302,10 +379,10 @@ typedef struct dlightmap_s
 
 typedef struct
 {
-	byte	ambient[3];
-	byte	diffuse[3];
-	byte	diffusepitch;
-	byte 	diffuseyaw;
+	byte	ambient[LM_STYLES][3];
+	byte	direct[LM_STYLES][3];
+	byte	styles[LM_STYLES];
+	byte	latLong[2];
 } dlightgrid_t;
 
 /*

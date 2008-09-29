@@ -49,6 +49,41 @@ _inline void Matrix4x4_Transform( const matrix4x4 in, const float v[3], float ou
 #endif
 }
 
+_inline void Matrix4x4_TransformPoint( const matrix4x4 in, vec3_t point )
+{
+	float	out1, out2, out3;
+#ifdef OPENGL_STYLE
+	out1 =  in[0][0] * point[0];
+	out2 =  in[0][1] * point[0];
+	out3 =  in[0][2] * point[0];
+	out1 += in[1][0] * point[1];
+	out2 += in[1][1] * point[1];
+	out3 += in[1][2] * point[1];
+	out1 += in[2][0] * point[2];
+	out2 += in[2][1] * point[2];
+	out3 += in[2][2] * point[2];
+	out1 += in[3][0];
+	out2 += in[3][1];
+	out3 += in[3][2];
+#else
+	out1 =  in[0][0] * point[0];
+	out2 =  in[1][0] * point[0];
+	out3 =  in[2][0] * point[0];
+	out1 += in[0][1] * point[1];
+	out2 += in[1][1] * point[1];
+	out3 += in[2][1] * point[1];
+	out1 += in[0][2] * point[2];
+	out2 += in[1][2] * point[2];
+	out3 += in[2][2] * point[2];
+	out1 += in[0][3];
+	out2 += in[1][3];
+	out3 += in[2][3];
+#endif
+	point[0] = out1;
+	point[1] = out2;
+	point[2] = out3;
+}
+
 _inline void Matrix4x4_Rotate( const matrix4x4 in, const float v[3], float out[3] )
 {
 #ifdef OPENGL_STYLE
@@ -1140,5 +1175,22 @@ _inline void Matrix4x4_ConcatScale3( matrix4x4 out, double x, double y, double z
 	Matrix4x4_CreateScale3( temp, x, y, z );
 	Matrix4x4_Concat( out, base, temp );
 }
+
+// FIXME: optimize
+_inline void Matrix4x4_Pivot( matrix4x4 m, const vec3_t org, const vec3_t ang, const vec3_t scale, const vec3_t pivot )
+{
+	vec3_t	temp;
+
+	VectorAdd( pivot, org, temp );
+	Matrix4x4_LoadIdentity( m );
+	Matrix4x4_ConcatTranslate( m, temp[0], temp[1], temp[2] );
+	Matrix4x4_ConcatRotate( m, ang[0], 1, 0, 0 );
+	Matrix4x4_ConcatRotate( m, ang[1], 0, 1, 0 );
+	Matrix4x4_ConcatRotate( m, ang[2], 0, 0, 1 );
+	Matrix4x4_ConcatScale3( m, scale[0], scale[1], scale[2] );
+	VectorNegate( pivot, temp );
+	Matrix4x4_ConcatTranslate( m, temp[0], temp[1], temp[2] );
+}
+
 
 #endif//BASEMATRIX_H

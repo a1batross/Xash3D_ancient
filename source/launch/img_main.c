@@ -121,6 +121,27 @@ static loadformat_t load_formats4[] =
 	{NULL, NULL, NULL}
 };
 
+void Image_Reset( void )
+{
+	// reset global variables
+	image_width = image_height = 0;
+	cubemap_width = cubemap_height = 0;
+	image_bits_count = image_flags = 0;
+	cubemap_num_sides = 0;
+	image_num_layers = 1;
+	base_image_type = 0;
+	image_num_mips = 0;
+	image_type = PF_UNKNOWN;
+
+	// pointers will be saved with prevoius picture struct
+	// don't care about it
+	image_palette = NULL;
+	image_rgba = NULL;
+	image_cubemap = NULL;
+	image_ptr = 0;
+	image_size = 0;
+}
+
 rgbdata_t *ImagePack( void )
 {
 	rgbdata_t *pack = Mem_Alloc( Sys.imagepool, sizeof(rgbdata_t));
@@ -215,68 +236,73 @@ bool FS_AddMipmapToPack( const byte *in, int width, int height, bool expand )
 	return true;
 }
 
-void FS_GetImageColor( rgbdata_t *pic )
+void Image_ConvertToRGBA( rgbdata_t *pic )
 {
 	int	j, texels;
-	byte	*pal, *buffer;
-	vec3_t	color = {0,0,0};
+	byte	*in, *out, *buffer;
+	bool	result = false;
 
 	if( !pic )
 	{
-		MsgDev( D_ERROR, "FS_GetImageColor: image not loaded\n" );
+		MsgDev( D_ERROR, "Image_ConvertToRGBA: image not loaded\n" );
 		return;
 	}
 	if(!pic->palette && (pic->type == PF_INDEXED_24 || pic->type == PF_INDEXED_32))
 	{
-		MsgDev( D_ERROR, "FS_GetImageColor: indexed image doesn't have palette\n" );
-		VectorClear( pic->color ); // clear previous color, if present
+		MsgDev( D_ERROR, "Image_ConvertToRGBA: indexed image doesn't have palette\n" );
 		return;
 	}
+	if( pic->type == PF_RGBA_32 || pic->type == PF_ABGR_64 )
+		return; // nothing to process
 
 	texels = pic->width * pic->height;
-	buffer = pic->buffer;
-	pal = pic->palette;
+	buffer = Mem_Alloc( Sys.imagepool, texels * 4 );
+	in = pic->buffer;
+	out = buffer;
 
 	switch( pic->type )
 	{
 	case PF_DXT1:
 	case PF_DXT3:
 	case PF_DXT5:
-		if(!Image_DecompressDXTC( &pic )) break;
-		// intentional falltrough
-	case PF_RGBA_32:
-	case PF_ABGR_64:
-		for( j = 0; j < texels; j++, buffer += 4 )
-		{
-			color[0] += buffer[0];
-			color[1] += buffer[1];
-			color[2] += buffer[2];
-		}
+		result = Image_DecompressDXTC( &pic );
 		break;
 	case PF_RGB_24:
-		for( j = 0; j < texels; j++, buffer += 3 )
+		//
+		for( j = 0; j < texels; j++, in += 3, out += 4 )
 		{
-			color[0] += buffer[0];
-			color[1] += buffer[1];
-			color[2] += buffer[2];
+			out[0] = in[0];
+			out[1] = in[1];
+			out[2] = in[2];
+			out[3] = 255;
 		}
+		result = true;
 		break;			
 	case PF_INDEXED_24:
+		// FIXME: make flag IMAGE_HAS_INDEXALPHA for decals ?
+		if( pic->flags & IMAGE_HAS_ALPHA )
+			Image_GetPaletteLMP( pic->palette, LUMP_TRANSPARENT ); 
+		else Image_GetPaletteLMP( pic->palette, LUMP_NORMAL );
+		// intentional falltrough
 	case PF_INDEXED_32:
-		for( j = 0; j < texels; j++ )
-		{
-			color[0] += pal[buffer[j]+0];
-			color[1] += pal[buffer[j]+1];
-			color[2] += pal[buffer[j]+2];
-		}		
+		d_currentpal = ( uint *)pic->palette;
+		result = Image_Copy8bitRGBA( pic->buffer, buffer, texels );
 		break;
-	default:
-		MsgDev( D_WARN, "FS_GetImageColor: Can't calculate reflectivity\n" );
-		break;
+	default: break; // unsupported format
 	}
 
-	// not normalized src color
-	VectorCopy( color, pic->color );
+	if( result )
+	{
+		MsgDev( D_NOTE, "Image_ConvertToRGBA: from %s to RGBA 32\n", PFDesc[pic->type].name ); 
+		pic->type = PF_RGBA_32; // sucessfully converted
+		Mem_Free( pic->buffer );
+		pic->buffer = buffer;
+	}
+	else
+	{
+		MsgDev( D_WARN, "Image_ConvertToRGBA: can't convert from %s to RGBA 32\n", PFDesc[pic->type].name );
+		Mem_Free( buffer );
+	}
 }
 
 /*
@@ -326,6 +352,8 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t buffsi
 		desired_formats = NULL;
 		break;	
 	}
+
+	Image_Reset(); // clear old image
 
 	// skip any checks, load file from buffer
 	if(com_stristr( filename, "#internal" ) && buffer && buffsize )
@@ -433,6 +461,7 @@ saveformat_t save_formats[] =
 	{"%s%s.%s", "png", Image_SavePNG},
 	{"%s%s.%s", "dds", Image_SaveDDS},
 	{"%s%s.%s", "bmp", Image_SaveBMP},
+	{"%s%s.%s", "pcx", Image_SavePCX},
 	{NULL, NULL}
 };
 
@@ -490,19 +519,4 @@ void FS_FreeImage( rgbdata_t *pack )
 		if( pack->palette ) Mem_Free( pack->palette );
 		Mem_Free( pack );
 	}
-
-	// reset global variables
-	image_width = image_height = 0;
-	cubemap_width = cubemap_height = 0;
-	image_bits_count = image_flags = 0;
-	cubemap_num_sides = 0;
-	image_num_layers = 1;
-	base_image_type = 0;
-	image_num_mips = 0;
-	image_type = PF_UNKNOWN;
-	image_palette = NULL;
-	image_rgba = NULL;
-	image_cubemap = NULL;
-	image_ptr = 0;
-	image_size = 0;
 }

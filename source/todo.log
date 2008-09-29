@@ -18,13 +18,9 @@ fopen завешивает приложение, даже если перепутать местами + и a, при установке р
 
 GLOBAL: ƒостигнуть уровн€ xash 0.45 к очередному релизу
 
-операци€ "Ќапильник: bsp 40
-1. collision triangles		OK
-2. cm.novis			Ok
-3. имплементаци€ PHS		OK
-4. включить novis lump		OK
-5. имплементаци€ light
-5. убрать contents из dleaf_t
+операци€ "ќтладка: bsp 48
+0. отладка qbsp3
+1. починить подсчет строк дл€ Com_GetToken
 
 1. r_backend.c:1335
 2. r_backend.c:1338
