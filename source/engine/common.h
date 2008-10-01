@@ -72,6 +72,7 @@ typedef struct host_parm_s
 	uint		type;		// running at
 	host_redirect_t	rd;		// remote console
 	jmp_buf		abortframe;	// abort current frame
+	dword		errorframe;	// to avoid each-frame host error
 	string		finalmsg;		// server shutdown final message
 
 	dword		framecount;	// global framecount

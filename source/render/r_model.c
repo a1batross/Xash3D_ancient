@@ -467,6 +467,7 @@ static void R_LoadSurfaces( const byte *base, const lump_t *l )
 
 	m_pLoadModel->numSurfaces = l->filelen / sizeof(dsurface_t);
 	m_pLoadModel->surfaces = out = Mem_Alloc( m_pLoadModel->mempool, m_pLoadModel->numSurfaces * sizeof(surface_t));
+	m_pLoadModel->numLightmaps = 0;
 
 	R_BeginBuildingLightmaps();
 
@@ -501,6 +502,8 @@ static void R_LoadSurfaces( const byte *base, const lump_t *l )
 		out->lmHeight = LittleLong( in->lmapHeight );
 
 		out->lmNum = LittleLong( in->lmapNum[0] );
+		if( out->lmNum >= m_pLoadModel->numLightmaps )
+			m_pLoadModel->numLightmaps = out->lmNum + 1;
 		if( out->lmNum == -1 ) out->lmNum = 255; // turn up fullbright
 
 		while( out->numStyles < MAX_LIGHTSTYLES && in->lStyles[out->numStyles] != 255 )
