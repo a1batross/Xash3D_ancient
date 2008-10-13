@@ -9,453 +9,71 @@
 #include "const.h"
 
 /*
-=======================================================================
+=============================================================================
 
- DYNAMIC LIGHTS
+DYNAMIC LIGHTS BLEND RENDERING
 
-=======================================================================
+=============================================================================
 */
-/*
-=======================================================================
-
-AMBIENT & DIFFUSE LIGHTING
-
-=======================================================================
-*/
-
-static vec3_t	r_pointColor;
-static vec3_t	r_lightColors[MAX_VERTICES];
 
 /*
-=================
-R_RecursiveLightPoint
-=================
+=============
+R_SurfPotentiallyLit
+=============
 */
-static bool R_RecursiveLightPoint( node_t *node, const vec3_t start, const vec3_t end )
+bool R_SurfPotentiallyLit( msurface_t *surf )
 {
-#if 0
-	float		front, back, frac;
-	int		i, map, size, s, t;
-	vec3_t		mid;
-	int		side;
-	cplane_t		*plane;
-	surface_t		*surf;
-	mipTex_t		*tex;
-	byte		*lm;
-	vec3_t		scale;
+	shader_t *shader;
 
-	if( node->contents != -1 ) return false; // didn't hit anything
+	if( surf->flags & ( SURF_SKY|SURF_NODLIGHT|SURF_NODRAW ))
+		return false;
 
-	// Calculate mid point
-	plane = node->plane;
-	if( plane->type < 3 )
-	{
-		front = start[plane->type] - plane->dist;
-		back = end[plane->type] - plane->dist;
-	}
-	else
-	{
-		front = DotProduct( start, plane->normal ) - plane->dist;
-		back = DotProduct( end, plane->normal ) - plane->dist;
-	}
-
-	side = front < 0;
-	if((back < 0) == side ) return R_RecursiveLightPoint( node->children[side], start, end );
-
-	frac = front / (front - back);
-
-	mid[0] = start[0] + (end[0] - start[0]) * frac;
-	mid[1] = start[1] + (end[1] - start[1]) * frac;
-	mid[2] = start[2] + (end[2] - start[2]) * frac;
-
-	// Go down front side	
-	if( R_RecursiveLightPoint( node->children[side], start, mid ))
-		return true; // hit something
-
-	if((back < 0) == side ) return false; // didn't hit anything
-
-	// check for impact on this node
-	surf = r_worldModel->surfaces + node->firstSurface;
-	for( i = 0; i < node->numSurfaces; i++, surf++ )
-	{
-		tex = surf->texInfo;
-
-		if( tex->flags & (SURF_SKY|SURF_WARP|SURF_NODRAW|SURF_NOLIGHTMAP))
-			continue;	// no lightmaps
-
-		s = DotProduct(mid, surf->lmVecs[0]) + surf->lmVecs[0][3] - surf->textureMins[0];
-		t = DotProduct(mid, surf->lmVecs[1]) + surf->lmVecs[1][3] - surf->textureMins[1];
-
-		if((s < 0 || s > surf->extents[0]) || (t < 0 || t > surf->extents[1]))
-			continue;
-
-		s >>= 4;
-		t >>= 4;
-
-		if( !surf->lmSamples )
-			return true;
-
-		VectorClear( r_pointColor );
-
-		lm = surf->lmSamples + 3 * (t * surf->lmWidth + s);
-		size = surf->lmWidth * surf->lmHeight * 3;
-
-		for( map = 0; map < surf->numStyles; map++ )
-		{
-			VectorScale( r_lightStyles[surf->styles[map]].rgb, r_modulate->value, scale );
-
-			r_pointColor[0] += lm[0] * scale[0];
-			r_pointColor[1] += lm[1] * scale[1];
-			r_pointColor[2] += lm[2] * scale[2];
-
-			lm += size; // skip to next lightmap
-		}
-		return true;
-	}
-
-	// go down back side
-	return R_RecursiveLightPoint( node->children[!side], mid, end );
-#endif
-	return true;
+	shader = surf->shader;
+	if(( shader->flags & ( SHADER_SKY|SHADER_FLARE )) || !shader->numStages )
+		return false;
+	return ( surf->mesh && ( surf->faceType != MST_FLARE ));
 }
 
 /*
-=================
-R_LightForPoint
-=================
+=============
+R_LightBounds
+=============
 */
-void R_LightForPoint( const vec3_t point, vec3_t ambientLight )
+void R_LightBounds( const vec3_t origin, float intensity, vec3_t mins, vec3_t maxs )
 {
-	dlight_t		*dl;
-	vec3_t		end, dir;
-	float		dist, add;
-	int		l;
-
-	// Set to full bright if no light data
-	if( !r_worldModel || !r_worldModel->lightMaps )
-	{
-		VectorSet( ambientLight, 1, 1, 1 );
-		return;
-	}
-
-	// Get lighting at this point
-	VectorSet( end, point[0], point[1], point[2] - MAX_WORLD_COORD );
-	VectorSet( r_pointColor, 1, 1, 1 );
-
-	R_RecursiveLightPoint( r_worldModel->nodes, point, end );
-
-	VectorCopy( r_pointColor, ambientLight );
-
-	// add dynamic lights
-	if( r_dynamiclights->integer )
-	{
-		for( l = 0, dl = r_dlights; l < r_numDLights; l++, dl++ )
-		{
-			VectorSubtract(dl->origin, point, dir);
-			dist = VectorLength(dir);
-			if( !dist || dist > dl->intensity )
-				continue;
-
-			add = (dl->intensity - dist);
-			VectorMA( ambientLight, add, dl->color, ambientLight );
-		}
-	}
+	VectorSet( mins, origin[0] - intensity, origin[1] - intensity, origin[2] - intensity );
+	VectorSet( maxs, origin[0] + intensity, origin[1] + intensity, origin[2] + intensity );
 }
 
 /*
-=================
-R_ReadLightGrid
-=================
+=============
+R_AddSurfDlighbits
+=============
 */
-static void R_ReadLightGrid( const vec3_t origin, vec3_t lightDir )
+uint R_AddSurfDlighbits( msurface_t *surf, uint dlightbits )
 {
-	vec3_t		vf1, vf2;
-	float		scale[8];
-	int		vi[3], index[4];
-	int		i;
+	uint	k, bit;
+	dlight_t	*lt;
+	float	dist;
 
-	if( !r_worldModel->lightGrid )
+	for( k = 0, bit = 1, lt = r_dlights; k < r_numDLights; k++, bit <<= 1, lt++ )
 	{
-		VectorSet( lightDir, 1, 0, -1 );
-		return;
-	}
-
-	for( i = 0; i < 3; i++ )
-	{
-		vf1[i] = (origin[i] - r_worldModel->gridMins[i]) / r_worldModel->gridSize[i];
-		vi[i] = (int)vf1[i];
-		vf1[i] = vf1[i] - floor(vf1[i]);
-		vf2[i] = 1.0 - vf1[i];
-	}
-
-	index[0] = vi[2] * r_worldModel->gridBounds[3] + vi[1] * r_worldModel->gridBounds[0] + vi[0];
-	index[1] = index[0] + r_worldModel->gridBounds[0];
-	index[2] = index[0] + r_worldModel->gridBounds[3];
-	index[3] = index[2] + r_worldModel->gridBounds[0];
-
-	for( i = 0; i < 4; i++ )
-	{
-		if( index[i] < 0 || index[i] >= r_worldModel->gridPoints -1 )
+		if( dlightbits & bit )
 		{
-			VectorSet( lightDir, 1, 0, -1 );
-			return;
-		}
-	}
-
-	scale[0] = vf2[0] * vf2[1] * vf2[2];
-	scale[1] = vf1[0] * vf2[1] * vf2[2];
-	scale[2] = vf2[0] * vf1[1] * vf2[2];
-	scale[3] = vf1[0] * vf1[1] * vf2[2];
-	scale[4] = vf2[0] * vf2[1] * vf1[2];
-	scale[5] = vf1[0] * vf2[1] * vf1[2];
-	scale[6] = vf2[0] * vf1[1] * vf1[2];
-	scale[7] = vf1[0] * vf1[1] * vf1[2];
-
-	VectorClear(lightDir);
-
-	for( i = 0; i < 4; i++ )
-	{
-		VectorMA( lightDir, scale[i*2+0], r_worldModel->lightGrid[index[i]+0].lightDir, lightDir );
-		VectorMA( lightDir, scale[i*2+1], r_worldModel->lightGrid[index[i]+1].lightDir, lightDir );
-	}
-}
-
-/*
-=================
-R_LightDir
-=================
-*/
-void R_LightDir( const vec3_t origin, vec3_t lightDir )
-{
-	dlight_t		*dl;
-	vec3_t		dir;
-	float		dist;
-	int		l;
-
-	// Get light direction from light grid
-	R_ReadLightGrid( origin, lightDir );
-
-	// Add dynamic lights
-	if( r_dynamiclights->integer )
-	{
-		for( l = 0, dl = r_dlights; l < r_numDLights; l++, dl++ )
-		{
-			VectorSubtract( dl->origin, origin, dir );
-			dist = VectorLength( dir );
-			if( !dist || dist > dl->intensity )
-				continue;
-
-			VectorAdd( lightDir, dir, lightDir );
-		}
-	}
-}
-
-/*
-=================
-R_LightingAmbient
-=================
-*/
-void R_LightingAmbient( void )
-{
-	dlight_t		*dl;
-	vec3_t		end, dir;
-	float		add, dist, radius;
-	int		i, l;
-	vec3_t		ambientLight;
-
-	// Set to full bright if no light data
-	if(( r_refdef.rdflags & RDF_NOWORLDMODEL) || !r_worldModel->lightMaps )
-	{
-		for( i = 0; i < numVertex; i++ )
-		{
-			colorArray[i][0] = 1.0f;
-			colorArray[i][1] = 1.0f;
-			colorArray[i][2] = 1.0f;
-			colorArray[i][3] = 1.0f;
-		}
-		return;
-	}
-
-	// Get lighting at this point
-	VectorSet( end, m_pCurrentEntity->origin[0], m_pCurrentEntity->origin[1], m_pCurrentEntity->origin[2] - MAX_WORLD_COORD );
-	VectorSet( r_pointColor, 1, 1, 1 );
-
-	R_RecursiveLightPoint( r_worldModel->nodes, m_pCurrentEntity->origin, end );
-	VectorScale( r_pointColor, r_ambientscale->value, ambientLight );
-
-	// Always have some light
-	if( m_pCurrentEntity->renderfx & RF_MINLIGHT )
-	{
-		for( i = 0; i < 3; i++ )
-		{
-			if( ambientLight[i] > 0.1 )
-				break;
-		}
-
-		if( i == 3 ) VectorSet( ambientLight, 0.1, 0.1, 0.1 );
-	}
-
-	// add dynamic lights
-	if( r_dynamiclights->integer )
-	{
-		if( m_pCurrentEntity->ent_type == ED_NORMAL )
-			radius = m_pCurrentEntity->model->radius;
-		else radius = m_pCurrentEntity->radius;
-
-		for( l = 0, dl = r_dlights; l < r_numDLights; l++, dl++ )
-		{
-			VectorSubtract( dl->origin, m_pCurrentEntity->origin, dir );
-			dist = VectorLength( dir );
-			if( !dist || dist > dl->intensity + radius )
-				continue;
-
-			add = (dl->intensity - dist);
-			VectorMA( ambientLight, add, dl->color, ambientLight );
-		}
-	}
-
-	// normalize and convert to byte
-	ColorNormalize( ambientLight, ambientLight );
-
-	for( i = 0; i < numVertex; i++ )
-	{
-		colorArray[i][0] = ambientLight[0];
-		colorArray[i][1] = ambientLight[1];
-		colorArray[i][2] = ambientLight[2];
-		colorArray[i][3] = 1.0f;
-	}
-}
-
-/*
-=================
-R_LightingDiffuse
-=================
-*/
-void R_LightingDiffuse( void )
-{
-	dlight_t		*dl;
-	int		i, l;
-	vec3_t		end, dir;
-	float		add, dot, dist, intensity, radius;
-	vec3_t		ambientLight, directedLight, lightDir;
-
-	// Set to full bright if no light data
-	if((r_refdef.rdflags & RDF_NOWORLDMODEL) || !r_worldModel->lightMaps )
-	{
-		for( i = 0; i < numVertex; i++ )
-		{
-			colorArray[i][0] = 1.0f;
-			colorArray[i][1] = 1.0f;
-			colorArray[i][2] = 1.0f;
-			colorArray[i][3] = 1.0f;
-		}
-		return;
-	}
-
-	// Get lighting at this point
-	VectorSet( end, m_pCurrentEntity->origin[0], m_pCurrentEntity->origin[1], m_pCurrentEntity->origin[2] - MAX_WORLD_COORD );
-	VectorSet( r_pointColor, 1, 1, 1 );
-
-	R_RecursiveLightPoint( r_worldModel->nodes, m_pCurrentEntity->origin, end );
-
-	VectorScale( r_pointColor, r_ambientscale->value, ambientLight );
-	VectorScale( r_pointColor, r_directedscale->value, directedLight );
-
-	R_ReadLightGrid( m_pCurrentEntity->origin, lightDir );
-
-	// Always have some light
-	if( m_pCurrentEntity->renderfx & RF_MINLIGHT )
-	{
-		for( i = 0; i < 3; i++ )
-		{
-			if( ambientLight[i] > 0.1 )
-				break;
-		}
-
-		if( i == 3 ) VectorSet( ambientLight, 0.1, 0.1, 0.1 );
-	}
-
-	// Compute lighting at each vertex
-	VectorRotate( lightDir, m_pCurrentEntity->axis, dir );
-	VectorNormalizeFast( dir );
-
-	for( i = 0; i < numVertex; i++ )
-	{
-		dot = DotProduct( normalArray[i], dir );
-		if( dot <= 0 )
-		{
-			VectorCopy( ambientLight, r_lightColors[i] );
-			continue;
-		}
-		VectorMA( ambientLight, dot, directedLight, r_lightColors[i] );
-	}
-
-	// add dynamic lights
-	if( r_dynamiclights->integer )
-	{
-		if( m_pCurrentEntity->ent_type == ED_NORMAL )
-			radius = m_pCurrentEntity->model->radius;
-		else radius = m_pCurrentEntity->radius;
-
-		for( l = 0, dl = r_dlights; l < r_numDLights; l++, dl++ )
-		{
-			VectorSubtract( dl->origin, m_pCurrentEntity->origin, dir );
-			dist = VectorLength( dir );
-			if( !dist || dist > dl->intensity + radius )
-				continue;
-
-			VectorRotate( dir, m_pCurrentEntity->axis, lightDir );
-			intensity = dl->intensity * 8;
-
-			// compute lighting at each vertex
-			for( i = 0; i < numVertex; i++ )
+			if( surf->faceType == MST_PLANAR )
 			{
-				VectorSubtract( lightDir, vertexArray[i], dir );
-				add = DotProduct( normalArray[i], dir );
-				if( add <= 0 ) continue;
-
-				dot = DotProduct( dir, dir );
-				add *= (intensity / dot) * rsqrt( dot );
-				VectorMA( r_lightColors[i], add, dl->color, r_lightColors[i] );
+				dist = PlaneDiff( lt->origin, surf->plane );
+				if( dist <= -lt->intensity || dist >= lt->intensity )
+					dlightbits &= ~bit; // how lucky...
+			}
+			else if( surf->faceType == MST_PATCH || surf->faceType == MST_TRIANGLE_SOUP )
+			{
+				if( !BoundsIntersect( surf->mins, surf->maxs, lt->mins, lt->maxs ))
+					dlightbits &= ~bit;
 			}
 		}
 	}
-
-	// Normalize and convert to byte
-	for (i = 0; i < numVertex; i++)
-	{
-
-		ColorNormalize( r_lightColors[i], r_lightColors[i] );
-		colorArray[i][0] = r_lightColors[i][0];
-		colorArray[i][1] = r_lightColors[i][1];
-		colorArray[i][2] = r_lightColors[i][2];
-		colorArray[i][3] = 1.0f;
-	}
-}
-
-
-/*
-=======================================================================
-
-LIGHT SAMPLING
-
-=======================================================================
-*/
-
-static vec3_t	r_blockLights[128*128];
-
-
-/*
-=================
-R_SetCacheState
-=================
-*/
-static void R_SetCacheState( surface_t *surf )
-{
-	int	map;
-
-	for( map = 0; map < surf->numStyles; map++ )
-		surf->cachedLight[map] = r_lightStyles[surf->styles[map]].white;
+	return dlightbits;
 }
 
 /*
@@ -463,239 +81,860 @@ static void R_SetCacheState( surface_t *surf )
 R_AddDynamicLights
 =================
 */
-static void R_AddDynamicLights( surface_t *surf )
+void R_AddDynamicLights( uint dlightbits, int state )
 {
-#if 0
-	int		l;
-	int		s, t, sd, td;
-	float		sl, tl, sacc, tacc;
-	float		dist, rad, scale;
-	cplane_t		*plane;
-	vec3_t		origin, tmp, impact;
-	mipTex_t		*tex = surf->texInfo;
-	dlight_t		*dl;
-	float		*bl;
+	uint		i, j, numTempIndices;
+	bool		cullAway;
+	const dlight_t	*light;
+	const shader_t	*shader;
+	vec3_t		tvec, dlorigin, normal;
+	uint		tempIndexArray[MAX_ARRAY_ELEMENTS];
+	float		inverseIntensity, *v1, *v2, *v3, dist;
+	GLfloat		xyzFallof[4][4] = {{ 1, 0, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 0 }};
 
-	for( l = 0, dl = r_dlights; l < r_numDLights; l++, dl++ )
+	r_stats.numColors = 0;
+
+	// we multitexture or texture3D support for dynamic lights
+	if( !GL_Support( R_TEXTURE_3D_EXT ) && !GL_Support( R_ARB_MULTITEXTURE ))
+		return;
+
+	for( i = 0; i < (uint)(GL_Support( R_TEXTURE_3D_EXT ) ? 1 : 2 ); i++ )
 	{
-		if(!(surf->dlightBits & (1<<l)))
-			continue;	// not lit by this light
+		GL_SelectTexture( i );
+		GL_TexEnv( GL_MODULATE );
+		GL_SetState( state|( i ? 0 : GLSTATE_BLEND_MTEX ));
+		GL_TexCoordMode( GL_NONE );
+		GL_EnableTexGen( GL_S, GL_OBJECT_LINEAR );
+		GL_EnableTexGen( GL_T, GL_OBJECT_LINEAR );
+		GL_EnableTexGen( GL_R, 0 );
+		GL_EnableTexGen( GL_Q, 0 );
+	}
 
-		if( !AxisCompare( m_pCurrentEntity->axis, axisDefault ))
+	if( GL_Support( R_TEXTURE_3D_EXT ))
+	{
+		GL_EnableTexGen( GL_R, GL_OBJECT_LINEAR );
+		pglDisable( GL_TEXTURE_2D );
+		pglEnable( GL_TEXTURE_3D );
+	}
+	else pglEnable( GL_TEXTURE_2D );
+
+	for( i = 0, light = r_dlights; i < r_numDLights; i++, light++ )
+	{
+		if(!( dlightbits & ( 1<<i ))) continue; // not lit by this light
+
+		VectorSubtract( light->origin, Ref.m_pCurrentEntity->origin, dlorigin );
+		if( !Matrix3x3_Compare( Ref.m_pCurrentEntity->matrix, matrix3x3_identity ))
 		{
-			VectorSubtract( dl->origin, m_pCurrentEntity->origin, tmp );
-			VectorRotate( tmp, m_pCurrentEntity->axis, origin );
+			VectorCopy( dlorigin, tvec );
+			Matrix3x3_Transform( Ref.m_pCurrentEntity->matrix, tvec, dlorigin );
 		}
-		else VectorSubtract( dl->origin, m_pCurrentEntity->origin, origin );
 
-		plane = surf->plane;
-		if( plane->type < 3 ) dist = origin[plane->type] - plane->dist;
-		else dist = DotProduct( origin, plane->normal ) - plane->dist;
+		shader = light->shader;
+		if( shader && ( shader->flags & SHADER_CULL ) && shader->cull.mode == GL_BACK )
+			cullAway = true;
+		else cullAway = false;
 
-		// rad is now the highest intensity on the plane
-		rad = dl->intensity - fabs(dist);
-		if( rad < 0 ) continue;
-
-		if( plane->type < 3 )
+		numTempIndices = 0;
+		if( cullAway )
 		{
-			VectorCopy( origin, impact );
-			impact[plane->type] -= dist;
-		}
-		else VectorMA( origin, -dist, plane->normal, impact );
-
-		sl = DotProduct(impact, tex->vecs[0]) + tex->vecs[0][3] - surf->textureMins[0];
-		tl = DotProduct(impact, tex->vecs[1]) + tex->vecs[1][3] - surf->textureMins[1];
-
-		bl = (float *)r_blockLights;
-
-		for( t = 0, tacc = 0; t < surf->lmHeight; t++, tacc += 16 )
-		{
-			td = tl - tacc;
-			if( td < 0 ) td = -td;
-
-			for( s = 0, sacc = 0; s < surf->lmWidth; s++, sacc += 16 )
+			for( j = 0; j < r_stats.numIndices; j += 3 )
 			{
-				sd = sl - sacc;
-				if( sd < 0 ) sd = -sd;
+				v1 = ( float * )( vertexArray + indexArray[j+0] );
+				v2 = ( float * )( vertexArray + indexArray[j+1] );
+				v3 = ( float * )( vertexArray + indexArray[j+2] );
 
-				if( sd > td ) dist = sd + (td >> 1);
-				else dist = td + (sd >> 1);
+				normal[0] = (v1[1] - v2[1]) * (v3[2] - v2[2]) - (v1[2] - v2[2]) * (v3[1] - v2[1]);
+				normal[1] = (v1[2] - v2[2]) * (v3[0] - v2[0]) - (v1[0] - v2[0]) * (v3[2] - v2[2]);
+				normal[2] = (v1[0] - v2[0]) * (v3[1] - v2[1]) - (v1[1] - v2[1]) * (v3[0] - v2[0]);
+				dist = (dlorigin[0] - v1[0]) * normal[0] + (dlorigin[1] - v1[1]) * normal[1] + (dlorigin[2] - v1[2]) * normal[2];
 
-				if( dist < rad )
-				{
-					scale = rad - dist;
-					bl[0] += dl->color[0] * scale;
-					bl[1] += dl->color[1] * scale;
-					bl[2] += dl->color[2] * scale;
-				}
-				bl += 3;
+				if( dist <= 0 || dist * rsqrt( DotProduct( normal, normal )) >= light->intensity )
+					continue;
+
+				tempIndexArray[numTempIndices++] = indexArray[j+0];
+				tempIndexArray[numTempIndices++] = indexArray[j+1];
+				tempIndexArray[numTempIndices++] = indexArray[j+2];
 			}
+			if( !numTempIndices ) continue;
+		}
+
+		inverseIntensity = 1 / light->intensity;
+
+		GL_SelectTexture( GL_TEXTURE0 );
+		GL_BindTexture( r_dlightTexture );
+		GL_LoadTexMatrix( matrix4x4_halfidentity );
+		pglColor4f( light->color[0], light->color[1], light->color[2], 255 );
+
+		xyzFallof[0][0] = inverseIntensity;
+		xyzFallof[0][3] = -dlorigin[0] * inverseIntensity;
+		pglTexGenfv( GL_S, GL_OBJECT_PLANE, xyzFallof[0] );
+
+		xyzFallof[1][1] = inverseIntensity;
+		xyzFallof[1][3] = -dlorigin[1] * inverseIntensity;
+		pglTexGenfv( GL_T, GL_OBJECT_PLANE, xyzFallof[1] );
+
+		xyzFallof[2][2] = inverseIntensity;
+		xyzFallof[2][3] = -dlorigin[2] * inverseIntensity;
+
+		if( GL_Support( R_TEXTURE_3D_EXT ))
+		{
+			pglTexGenfv( GL_R, GL_OBJECT_PLANE, xyzFallof[2] );
+		}
+		else
+		{
+			GL_SelectTexture( GL_TEXTURE1 );
+			GL_BindTexture( r_dlightTexture );
+			GL_LoadTexMatrix( matrix4x4_halfidentity );
+
+			pglTexGenfv( GL_S, GL_OBJECT_PLANE, xyzFallof[2] );
+			pglTexGenfv( GL_T, GL_OBJECT_PLANE, xyzFallof[3] );
+		}
+
+		if( numTempIndices )
+		{
+			if( GL_Support( R_DRAW_RANGEELEMENTS_EXT ))
+				pglDrawRangeElementsEXT( GL_TRIANGLES, 0, r_stats.numVertices, numTempIndices, GL_UNSIGNED_INT, tempIndexArray );
+			else pglDrawElements( GL_TRIANGLES, numTempIndices, GL_UNSIGNED_INT, tempIndexArray );
+		}
+		else
+		{
+			if( GL_Support( R_DRAW_RANGEELEMENTS_EXT ))
+				pglDrawRangeElementsEXT( GL_TRIANGLES, 0, r_stats.numVertices, r_stats.numIndices, GL_UNSIGNED_INT, indexArray );
+			else pglDrawElements( GL_TRIANGLES, r_stats.numIndices, GL_UNSIGNED_INT, indexArray );
 		}
 	}
-#endif
+
+	if( GL_Support( R_TEXTURE_3D_EXT ))
+	{
+		GL_EnableTexGen( GL_R, 0 );
+		pglDisable( GL_TEXTURE_3D );
+		pglEnable( GL_TEXTURE_2D );
+	}
+	else
+	{
+		pglDisable( GL_TEXTURE_2D );
+		GL_SelectTexture( 0 );
+	}
+}
+
+//===================================================================
+
+static shader_t *r_coronaShader;
+
+/*
+=================
+R_InitCoronas
+=================
+*/
+void R_InitCoronas( void )
+{
+	r_coronaShader = R_FindShader( "***r_coronatexture***", SHADER_FLARE, 0 );
 }
 
 /*
 =================
-R_BuildLightmap
-
-Combine and scale multiple lightmaps into the floating format in r_blockLights
+R_DrawCoronas
 =================
 */
-static void R_BuildLightmap( surface_t *surf, byte *dest, int stride )
+void R_DrawCoronas( void )
 {
-#if 0
-	int	i, map, size, s, t;
-	vec3_t	scale;
-	float	*bl;
-	byte	*lm;
+	uint		i;
+	float		dist;
+	dlight_t		*light;
+	meshbuffer_t	*mb;
+	trace_t		tr;
 
-	lm = surf->lmSamples;
-	size = surf->lmWidth * surf->lmHeight;
+	if( r_dynamiclights->integer != 2 ) return;
 
-	if( !lm )
+	for( i = 0, light = r_dlights; i < r_numDLights; i++, light++ )
 	{
-		// set to full bright if no light data
-		for( i = 0, bl = (float *)r_blockLights; i < size; i++, bl += 3 )
+		dist = Ref.forward[0] * ( light->origin[0] - Ref.vieworg[0] ) + Ref.forward[1] * ( light->origin[1] - Ref.vieworg[1] ) +
+			Ref.forward[2] * ( light->origin[2] - Ref.vieworg[2] );
+
+		if( dist < 24.0f ) continue;
+		dist -= light->intensity;
+
+		tr.fraction = 0.0f;
+		R_TraceLine( &tr, light->origin, Ref.vieworg, SURF_NONSOLID );
+		if( tr.fraction != 1.0f )
+			continue;
+
+		mb = R_AddMeshToList( MESH_CORONA, NULL, r_coronaShader, -((signed int)i + 1 ));
+		if( mb ) mb->shaderKey |= ( bound( 1, 0x4000 - (uint)dist, 0x4000 - 1 )<<12 );
+	}
+}
+
+//===================================================================
+
+/*
+===============
+R_LightForPoint
+===============
+*/
+void R_LightForPoint( const vec3_t origin, vec3_t dir, vec4_t ambient, vec4_t diffuse, float radius )
+{
+	int		i, j;
+	int		k, s;
+	int		vi[3], elem[4];
+	float		dot, t[8];
+	vec3_t		vf, vf2, tdir;
+	vec3_t		ambientLocal, diffuseLocal;
+	vec_t		*gridSize, *gridMins;
+	int		*gridBounds;
+	mlightgrid_t	**lightarray;
+
+	VectorSet( ambientLocal, 0, 0, 0 );
+	VectorSet( diffuseLocal, 0, 0, 0 );
+
+	if( !r_worldModel || !r_worldBrushModel->lightgrid || !r_worldBrushModel->numLightArrayPoints )
+	{
+		VectorSet( dir, 0.5f, 0.2f, -1.0f );
+		goto dynamic;
+	}
+
+	lightarray = r_worldBrushModel->lightarray;
+	gridSize = r_worldBrushModel->gridSize;
+	gridMins = r_worldBrushModel->gridMins;
+	gridBounds = r_worldBrushModel->gridBounds;
+
+	for( i = 0; i < 3; i++ )
+	{
+		vf[i] = ( origin[i] - gridMins[i] ) / gridSize[i];
+		vi[i] = (int)vf[i];
+		vf[i] = vf[i] - floor( vf[i] );
+		vf2[i] = 1.0f - vf[i];
+	}
+
+	elem[0] = vi[2] * gridBounds[3] + vi[1] * gridBounds[0] + vi[0];
+	elem[1] = elem[0] + gridBounds[0];
+	elem[2] = elem[0] + gridBounds[3];
+	elem[3] = elem[2] + gridBounds[0];
+
+	for( i = 0; i < 4; i++ )
+	{
+		if( elem[i] < 0 || elem[i] >= ( r_worldBrushModel->numLightArrayPoints - 1 ))
 		{
-			bl[0] = 255;
-			bl[1] = 255;
-			bl[2] = 255;
+			VectorSet( dir, 0.5f, 0.2f, -1.0f );
+			goto dynamic;
+		}
+	}
+
+	t[0] = vf2[0] * vf2[1] * vf2[2];
+	t[1] = vf[0] * vf2[1] * vf2[2];
+	t[2] = vf2[0] * vf[1] * vf2[2];
+	t[3] = vf[0] * vf[1] * vf2[2];
+	t[4] = vf2[0] * vf2[1] * vf[2];
+	t[5] = vf[0] * vf2[1] * vf[2];
+	t[6] = vf2[0] * vf[1] * vf[2];
+	t[7] = vf[0] * vf[1] * vf[2];
+
+	VectorClear( dir );
+
+	for( i = 0; i < 4; i++ )
+	{
+		R_LatLongToNorm( lightarray[elem[i]]->direction, tdir );
+		VectorScale( tdir, t[i *2], tdir );
+		for( k = 0; k < LM_STYLES && ( s = lightarray[elem[i]]->styles[k] ) != 255; k++ )
+		{
+			dir[0] += r_lightStyles[s].rgb[0] * tdir[0];
+			dir[1] += r_lightStyles[s].rgb[1] * tdir[1];
+			dir[2] += r_lightStyles[s].rgb[2] * tdir[2];
+		}
+
+		R_LatLongToNorm( lightarray[elem[i] + 1]->direction, tdir );
+		VectorScale( tdir, t[i *2+1], tdir );
+		for( k = 0; k < LM_STYLES && ( s = lightarray[elem[i] + 1]->styles[k] ) != 255; k++ )
+		{
+			dir[0] += r_lightStyles[s].rgb[0] * tdir[0];
+			dir[1] += r_lightStyles[s].rgb[1] * tdir[1];
+			dir[2] += r_lightStyles[s].rgb[2] * tdir[2];
+		}
+	}
+
+	for( j = 0; j < 3; j++ )
+	{
+		if( ambient )
+		{
+			for( i = 0; i < 4; i++ )
+			{
+				for( k = 0; k < LM_STYLES; k++ )
+				{
+					if(( s = lightarray[elem[i]]->styles[k] ) != 255 )
+						ambientLocal[j] += t[i*2] * lightarray[elem[i]]->ambient[k][j] * r_lightStyles[s].rgb[j];
+					if(( s = lightarray[elem[i] + 1]->styles[k] ) != 255 )
+						ambientLocal[j] += t[i*2+1] * lightarray[elem[i] + 1]->ambient[k][j] * r_lightStyles[s].rgb[j];
+				}
+			}
+		}
+		if( diffuse || radius )
+		{
+			for( i = 0; i < 4; i++ )
+			{
+				for( k = 0; k < LM_STYLES; k++ )
+				{
+					if( ( s = lightarray[elem[i]]->styles[k] ) != 255 )
+						diffuseLocal[j] += t[i*2] * lightarray[elem[i]]->diffuse[k][j] * r_lightStyles[s].rgb[j];
+					if( ( s = lightarray[elem[i] + 1]->styles[k] ) != 255 )
+						diffuseLocal[j] += t[i*2+1] * lightarray[elem[i] + 1]->diffuse[k][j] * r_lightStyles[s].rgb[j];
+				}
+			}
+		}
+	}
+
+dynamic:
+	// add dynamic lights
+	if( radius && r_dynamiclights->integer && r_numDLights )
+	{
+		uint	lnum;
+		dlight_t	*dl;
+		float	dist, dist2, add;
+		vec3_t	direction;
+		bool	anyDlights = false;
+
+		for( lnum = 0, dl = r_dlights; lnum < r_numDLights; lnum++, dl++ )
+		{
+			if( !BoundsAndSphereIntersect( dl->mins, dl->maxs, origin, radius ) )
+				continue;
+
+			VectorSubtract( dl->origin, origin, direction );
+			dist = VectorLength( direction );
+
+			if( !dist || dist > dl->intensity + radius )
+				continue;
+
+			if( !anyDlights )
+			{
+				VectorNormalizeFast( dir );
+				anyDlights = true;
+			}
+
+			add = 1.0 - (dist / (dl->intensity + radius));
+			dist2 = add * 0.5 / dist;
+			for( i = 0; i < 3; i++ )
+			{
+				dot = dl->color[i] * add;
+				diffuseLocal[i] += dot;
+				ambientLocal[i] += dot * 0.05;
+				dir[i] += direction[i] * dist2;
+			}
+		}
+	}
+
+	VectorNormalizeFast( dir );
+
+	if( ambient )
+	{
+		dot = bound( 0.0f, r_ambientscale->value, 1.0f ) * ( 1<<mapConfig.pow2MapOvrbr ) * ( 1.0/255.0 );
+		for( i = 0; i < 3; i++ )
+		{
+			ambient[i] = ambientLocal[i] * dot;
+			ambient[i] = bound( 0, ambient[i], 1 );
+		}
+		ambient[3] = 1.0f;
+	}
+
+	if( diffuse )
+	{
+		dot = bound( 0.0f, r_directedscale->value, 1.0f ) * ( 1<<mapConfig.pow2MapOvrbr ) * ( 1.0/255.0 );
+		for( i = 0; i < 3; i++ )
+		{
+			diffuse[i] = diffuseLocal[i] * dot;
+			diffuse[i] = bound( 0, diffuse[i], 1 );
+		}
+		diffuse[3] = 1.0f;
+	}
+}
+
+/*
+===============
+R_LightForEntity
+===============
+*/
+void R_LightForEntity( ref_entity_t *e, float *fArray )
+{
+	uint		i, lnum;
+	dlight_t		*dl;
+	uint		dlightbits;
+	float		dot, dist;
+	vec3_t		lightDirs[MAX_DLIGHTS], direction, temp;
+	vec4_t		ambient, diffuse;
+
+	if(( e->renderfx & RF_FULLBRIGHT ) || r_fullbright->value )
+		return;
+
+	// probably weird shader, see mpteam4 for example
+	if( !e->model || ( e->model->type == mod_brush ))
+		return;
+
+	R_LightForPoint( e->lightOrg, temp, ambient, diffuse, 0 );
+
+	if( e->renderfx & RF_MINLIGHT )
+	{
+		for( i = 0; i < 3; i++ )
+			if( ambient[i] > 0.1f ) break;
+		if( i == 3 ) VectorSet( ambient, 0.1f, 0.1f, 0.1f );
+	}
+
+	// rotate direction
+	Matrix3x3_Transform( e->matrix, temp, direction );
+
+	// see if we are affected by dynamic lights
+	dlightbits = 0;
+	if( r_dynamiclights->integer == 1 && r_numDLights )
+	{
+		for( lnum = 0, dl = r_dlights; lnum < r_numDLights; lnum++, dl++ )
+		{
+			// translate
+			VectorSubtract( dl->origin, e->origin, lightDirs[lnum] );
+			dist = VectorLength( lightDirs[lnum] );
+
+			if( !dist || dist > dl->intensity + e->model->radius * e->scale )
+				continue;
+			dlightbits |= ( 1<<lnum );
+		}
+	}
+
+	if( !dlightbits )
+	{
+		vec3_t color;
+
+		for( i = 0; i < r_stats.numColors; i++, fArray += 4 )
+		{
+			dot = DotProduct( normalArray[i], direction );
+			if( dot <= 0 ) VectorCopy( ambient, color );
+			else VectorMA( ambient, dot, diffuse, color );
+			VectorCopy( color, fArray );
 		}
 	}
 	else
 	{
-		// add all the lightmaps
-		VectorScale( r_lightStyles[surf->styles[0]].rgb, r_modulate->value, scale );
+		float	add, intensity8, dot, *cArray, *dir;
+		vec3_t	dlorigin, tempColorsArray[MAX_ARRAY_VERTS];
 
-		for( i = 0, bl = (float *)r_blockLights; i < size; i++, bl += 3, lm += 3 )
+		cArray = tempColorsArray[0];
+		for( i = 0; i < r_stats.numColors; i++, cArray += 3 )
 		{
-			bl[0] = lm[0] * scale[0];
-			bl[1] = lm[1] * scale[1];
-			bl[2] = lm[2] * scale[2];
+			dot = DotProduct( normalArray[i], direction );
+			if( dot <= 0 ) VectorCopy( ambient, cArray );
+			else VectorMA( ambient, dot, diffuse, cArray );
 		}
 
-		if( surf->numStyles > 1 )
+		for( lnum = 0, dl = r_dlights; lnum < r_numDLights; lnum++, dl++ )
 		{
-			for( map = 1; map < surf->numStyles; map++ )
+			if(!( dlightbits & ( 1<<lnum )))
+				continue;
+
+			// translate
+			dir = lightDirs[lnum];
+
+			// rotate
+			Matrix3x3_Transform( e->matrix, dir, dlorigin );
+			intensity8 = dl->intensity * 8 * e->scale;
+
+			cArray = tempColorsArray[0];
+			for( i = 0; i < r_stats.numColors; i++, cArray += 3 )
 			{
-				VectorScale( r_lightStyles[surf->styles[map]].rgb, r_modulate->value, scale );
-				for( i = 0, bl = (float *)r_blockLights; i < size; i++, bl += 3, lm += 3 )
+				VectorSubtract( dlorigin, vertexArray[i], dir );
+				add = DotProduct( normalArray[i], dir );
+
+				if( add > 0 )
 				{
-					bl[0] += lm[0] * scale[0];
-					bl[1] += lm[1] * scale[1];
-					bl[2] += lm[2] * scale[2];
+					dot = DotProduct( dir, dir );
+					add *= ( intensity8 / dot ) *rsqrt( dot );
+					VectorMA( cArray, add, dl->color, cArray );
 				}
 			}
 		}
 
-		// add all the dynamic lights
-		if( surf->dlightFrame == r_frameCount )
-			R_AddDynamicLights( surf );
+		cArray = tempColorsArray[0];
+		for( i = 0; i < r_stats.numColors; i++, fArray += 4, cArray += 3 )
+			VectorCopy( cArray, fArray );
 	}
-
-	// put into texture format
-	stride -= (surf->lmWidth<<2);
-	bl = (float *)r_blockLights;
-
-	for( t = 0; t < surf->lmHeight; t++ )
-	{
-		for( s = 0; s < surf->lmWidth; s++ )
-		{
-			ColorNormalize( bl, bl );
-			Vector4Set( dest, bl[0], bl[1], bl[2], 255 );			
-			bl += 3;
-			dest += 4;
-		}
-		dest += stride;
-	}
-#endif
 }
 
-
 /*
-=======================================================================
+=============================================================================
 
 LIGHTMAP ALLOCATION
 
-=======================================================================
+=============================================================================
 */
 
-typedef struct
-{
-	int	currentNum;
-	int	allocated[LIGHTMAP_WIDTH];
-	byte	buffer[LIGHTMAP_WIDTH*LIGHTMAP_HEIGHT*4];
-} lmState_t;
-
-static lmState_t	r_lmState;
+static byte	*r_lightmapBuffer;
+static int	r_lightmapBufferSize;
+static int	r_numUploadedLightmaps;
+static int	r_maxLightmapBlockSize;
 
 /*
-=================
-R_BeginBuildingLightmaps
-=================
+=======================
+R_BuildLightmap
+=======================
 */
-void R_BeginBuildingLightmaps( void )
+static void R_BuildLightmap( int w, int h, bool deluxe, const byte *data, byte *dest, int blockWidth )
+{
+	int	x, y, bits;
+	byte	*rgba;
+	float	scaled[3], maxScaled;
+	bool 	normalize;
+
+	if( !data || r_fullbright->integer )
+	{
+		if( deluxe )
+		{
+			for( y = 0; y < h; y++, dest )
+				memset( dest + y * blockWidth, 128, w * 4 );
+		}
+		else
+		{
+			for( y = 0; y < h; y++, dest )
+				memset( dest + y * blockWidth, 255, w * 4 );
+		}
+		return;
+	}
+
+	if( deluxe )
+	{
+		bits = 0;
+		normalize = false;
+	}
+	else
+	{
+		bits = mapConfig.pow2MapOvrbr;
+		normalize = true;
+	}
+
+	if( normalize )
+	{
+		for( y = 0; y < h; y++ )
+		{
+			for( x = 0, rgba = dest + y * blockWidth; x < w; x++, data += LIGHTMAP_BITS, rgba += 4 )
+			{
+				scaled[0] = (float)( (int)data[0]<<bits );
+				scaled[1] = (float)( (int)data[1]<<bits );
+				scaled[2] = (float)( (int)data[2]<<bits );
+
+				maxScaled = max( max( scaled[0], scaled[1] ), scaled[2] );
+				if( maxScaled > 255 )
+				{
+					maxScaled = 255.0f / maxScaled;
+					VectorScale( scaled, maxScaled, scaled );
+				}
+
+				rgba[0] = (byte)(( bound( 0, scaled[0], 255 )));
+				rgba[1] = (byte)(( bound( 0, scaled[1], 255 )));
+				rgba[2] = (byte)(( bound( 0, scaled[2], 255 )));
+			}
+		}
+	}
+	else
+	{
+		for( y = 0; y < h; y++ )
+		{
+			for( x = 0, rgba = dest + y * blockWidth; x < w; x++, data += LIGHTMAP_BITS, rgba += 4 )
+			{
+				rgba[0] = bound( 0, ( (int)data[0]<<bits ), 255 );
+				rgba[1] = bound( 0, ( (int)data[1]<<bits ), 255 );
+				rgba[2] = bound( 0, ( (int)data[2]<<bits ), 255 );
+			}
+		}
+	}
+}
+
+/*
+=======================
+R_PackLightmaps
+=======================
+*/
+static int R_PackLightmaps( int num, int w, int h, int size, int stride, bool deluxe, const char *name, const byte *data, lmrect_t *rects )
+{
+	int		i, x, y, root;
+	byte		*block;
+	texture_t		*image;
+	int		rectX, rectY, rectSize;
+	int		maxX, maxY, max, xStride;
+	double		tw, th, tx, ty;
+	lmrect_t		*rect;
+	string		uploadName;
+
+	maxX = r_maxLightmapBlockSize / w;
+	maxY = r_maxLightmapBlockSize / h;
+	max = min( maxX, maxY );
+
+	MsgDev( D_INFO, "Packing %i lightmap(s) -> ", num );
+	com.snprintf( uploadName, MAX_STRING, "%s%i", name, r_numUploadedLightmaps );
+
+	if( !max || num == 1 || !mapConfig.lightmapsPacking )
+	{
+		// process as it is
+		R_BuildLightmap( w, h, deluxe, data, r_lightmapBuffer, w * 4 );
+
+		image = R_CreateTexture( uploadName, r_lightmapBuffer, w, h, 0, TF_CLAMP|TF_NOPICMIP|TF_NOMIPMAP );
+
+		r_lightmapTextures[r_numUploadedLightmaps] = image;
+		if( rects )
+		{
+			rects[0].texNum = r_numUploadedLightmaps;
+
+			// this is not a real texture matrix, but who cares?
+			rects[0].texMatrix[0][0] = 1; rects[0].texMatrix[0][1] = 0;
+			rects[0].texMatrix[1][0] = 1; rects[0].texMatrix[1][1] = 0;
+		}
+
+		MsgDev( D_INFO, "\n" );
+		r_numUploadedLightmaps++;
+		return 1;
+	}
+
+	// find the nearest square block size
+	root = (int)sqrt( num );
+	if( root > max ) root = max;
+
+	// keep row size a power of two
+	for( i = 1; i < root; i<<=1 ) ;
+	if( i > root ) i>>=1;
+	root = i;
+
+	num -= root * root;
+	rectX = rectY = root;
+
+	if( maxY > maxX )
+	{
+		for(; ( num >= root ) && ( rectY < maxY ); rectY++, num -= root );
+
+		// sample down if not a power of two
+		for( y = 1; y < rectY; y <<= 1 );
+		if( y > rectY ) y>>=1;
+		rectY = y;
+	}
+	else
+	{
+		for(; ( num >= root ) && ( rectX < maxX ); rectX++, num -= root );
+
+		// sample down if not a power of two
+		for( x = 1; x < rectX; x <<= 1 );
+		if( x > rectX ) x>>=1;
+		rectX = x;
+	}
+
+	tw = 1.0 / (double)rectX;
+	th = 1.0 / (double)rectY;
+
+	xStride = w * 4;
+	rectSize = ( rectX * w ) * ( rectY * h ) * 4;
+	if( rectSize > r_lightmapBufferSize )
+	{
+		if( r_lightmapBuffer ) Mem_Free( r_lightmapBuffer );
+		r_lightmapBuffer = Mem_Alloc( r_temppool, rectSize );
+		Mem_Set( r_lightmapBuffer, 255, rectSize );
+		r_lightmapBufferSize = rectSize;
+	}
+
+	MsgDev( D_INFO, "%ix%i : %ix%i\n", rectX, rectY, rectX * w, rectY * h );
+
+	block = r_lightmapBuffer;
+	for( y = 0, ty = 0.0, num = 0, rect = rects; y < rectY; y++, ty += th, block += rectX * xStride * h )
+	{
+		for( x = 0, tx = 0.0; x < rectX; x++, tx += tw, num++, data += size * stride )
+		{
+			R_BuildLightmap( w, h, mapConfig.deluxeMappingEnabled && ( num & 1 ) ? true : false, data, block + x * xStride, rectX * xStride );
+
+			// this is not a real texture matrix, but who cares?
+			if( rects )
+			{
+				rect->texMatrix[0][0] = tw; rect->texMatrix[0][1] = tx;
+				rect->texMatrix[1][0] = th; rect->texMatrix[1][1] = ty;
+				rect += stride;
+			}
+		}
+	}
+
+	image = R_CreateTexture( uploadName, r_lightmapBuffer, rectX * w, rectY * h, 0, TF_CLAMP|TF_NOPICMIP|TF_NOMIPMAP );
+
+	r_lightmapTextures[r_numUploadedLightmaps] = image;
+	if( rects )
+	{
+		for( i = 0, rect = rects; i < num; i++, rect += stride )
+			rect->texNum = r_numUploadedLightmaps;
+	}
+
+	r_numUploadedLightmaps++;
+	return num;
+}
+
+/*
+=======================
+R_BuildLightmaps
+=======================
+*/
+void R_BuildLightmaps( int numLightmaps, int w, int h, const byte *data, lmrect_t *rects )
+{
+	int		i, j, p, m;
+	int		numBlocks, size, stride;
+	const byte	*lmData;
+
+	if( !mapConfig.lightmapsPacking )
+		size = max( w, h );
+	else for( size = 1; ( size < r_lmblocksize->integer ) && ( size < gl_config.max_2d_texture_size ); size<<=1 );
+
+	if( mapConfig.deluxeMappingEnabled && ( ( size == w ) || ( size == h ) ) )
+	{
+		MsgDev( D_WARN, "Lightmap blocks larger than %ix%i aren't supported, deluxemaps will be disabled\n", size, size );
+		mapConfig.deluxeMappingEnabled = false;
+	}
+
+	r_maxLightmapBlockSize = size;
+	size = w * h * LIGHTMAP_BITS;
+	r_lightmapBufferSize = w * h * 4;
+	r_lightmapBuffer = Mem_Alloc( r_temppool, r_lightmapBufferSize );
+	r_numUploadedLightmaps = 0;
+
+	m = 1;
+	lmData = data;
+	stride = 1;
+	numBlocks = numLightmaps;
+
+	if( mapConfig.deluxeMaps && !mapConfig.deluxeMappingEnabled )
+	{
+		m = 2;
+		stride = 2;
+		numLightmaps /= 2;
+	}
+
+	for( i = 0, j = 0; i < numBlocks; i += p * m, j += p )
+		p = R_PackLightmaps( numLightmaps - j, w, h, size, stride, false, "*lm", lmData + j * size * stride, &rects[i] );
+
+	if( r_lightmapBuffer ) Mem_Free( r_lightmapBuffer );
+	MsgDev( D_INFO, "Packed %i lightmap blocks into %i texture(s)\n", numBlocks, r_numUploadedLightmaps );
+}
+
+/*
+=============================================================================
+
+LIGHT STYLE MANAGEMENT
+
+=============================================================================
+*/
+
+int r_numSuperLightStyles;
+superLightStyle_t r_superLightStyles[MAX_SUPER_STYLES];
+
+/*
+=======================
+R_InitLightStyles
+=======================
+*/
+void R_InitLightStyles( void )
 {
 	int	i;
-		
-	// setup the base lightstyles so the lightmaps 
-	// won't have to be regenerated the first time they're seen
+
 	for( i = 0; i < MAX_LIGHTSTYLES; i++ )
 	{
-		r_lightStyles[i].white = 3;
 		r_lightStyles[i].rgb[0] = 1;
 		r_lightStyles[i].rgb[1] = 1;
 		r_lightStyles[i].rgb[2] = 1;
 	}
-	
-	r_lmState.currentNum = -1;
-	memset( r_lmState.allocated, 0, sizeof( r_lmState.allocated ));
-	memset( r_lmState.buffer, 255, sizeof( r_lmState.buffer ));
+	r_numSuperLightStyles = 0;
 }
 
 /*
-=================
-R_EndBuildingLightmaps
-=================
+=======================
+R_AddSuperLightStyle
+=======================
 */
-void R_EndBuildingLightmaps( void )
+int R_AddSuperLightStyle( const int *lightmaps, const byte *lStyles, const byte *vStyles, lmrect_t **lmRects )
 {
-}
+	int		i, j;
+	superLightStyle_t	*sls;
 
-/*
- =================
- R_BuildSurfaceLightmap
- =================
-*/
-void R_BuildSurfaceLightmap( surface_t *surf )
-{
-	byte	*base = NULL;
-
-	if(!(surf->texInfo->shader->flags & SHADER_HASLIGHTMAP))
-		return;	// no lightmaps
-
-	r_lmState.currentNum = surf->lmNum;
-
-	R_SetCacheState( surf );
-	R_BuildLightmap( surf, base, LIGHTMAP_WIDTH * 4 );
-}
-
-/*
-=================
-R_UpdateSurfaceLightmap
-=================
-*/
-void R_UpdateSurfaceLightmap( surface_t *surf )
-{
-	if( surf->dlightFrame == r_frameCount )
-		GL_BindTexture( r_dlightTexture );
-	else
+	for( i = 0, sls = r_superLightStyles; i < r_numSuperLightStyles; i++, sls++ )
 	{
-		GL_BindTexture( r_worldModel->lightMaps[surf->lmNum] );
-		R_SetCacheState( surf );
+		for( j = 0; j < LM_STYLES; j++ )
+			if( sls->lmapNum[j] != lightmaps[j] || sls->lStyles[j] != lStyles[j] || sls->vStyles[j] != vStyles[j] )
+				break;
+		if( j == LM_STYLES ) return i;
 	}
 
-	R_BuildLightmap( surf, r_lmState.buffer, surf->lmWidth * 4 );
-	pglTexSubImage2D( GL_TEXTURE_2D, 0, surf->lmS, surf->lmT, surf->lmWidth, surf->lmHeight, GL_RGBA, GL_UNSIGNED_BYTE, r_lmState.buffer );
+	if( r_numSuperLightStyles == MAX_SUPER_STYLES )
+		Host_Error( "R_AddSuperLightStyle: r_numSuperLightStyles == MAX_SUPER_STYLES" );
+
+	sls->features = 0;
+	for( j = 0; j < LM_STYLES; j++ )
+	{
+		sls->lmapNum[j] = lightmaps[j];
+		sls->lStyles[j] = lStyles[j];
+		sls->vStyles[j] = vStyles[j];
+
+		if( lmRects && lmRects[j] && ( lightmaps[j] != -1 ) )
+		{
+			sls->stOffset[j][0] = lmRects[j]->texMatrix[0][0];
+			sls->stOffset[j][1] = lmRects[j]->texMatrix[1][0];
+		}
+		else
+		{
+			sls->stOffset[j][0] = 0;
+			sls->stOffset[j][0] = 0;
+		}
+
+		if( j )
+		{
+			if( lStyles[j] != 255 ) sls->features |= ( MF_LMCOORDS<<j );
+			if( vStyles[j] != 255 ) sls->features |= ( MF_COLORS<<j );
+		}
+	}
+
+	return r_numSuperLightStyles++;
+}
+
+/*
+=======================
+R_SuperLightStylesCmp
+
+Compare function for qsort
+=======================
+*/
+static int R_SuperLightStylesCmp( const void *a, const void *b )
+{
+	superLightStyle_t	*sls1, *sls2;
+	int		i;
+
+	sls1 = (superLightStyle_t *)a;
+	sls2 = (superLightStyle_t *)b;
+
+	for( i = 0; i < LM_STYLES; i++ )
+	{	
+		// compare lightmaps
+		if( sls2->lmapNum[i] > sls1->lmapNum[i] )
+			return 1;
+		else if( sls1->lmapNum[i] > sls2->lmapNum[i] )
+			return -1;
+	}
+
+	for( i = 0; i < LM_STYLES; i++ )
+	{	
+		// compare lightmap styles
+		if( sls2->lStyles[i] > sls1->lStyles[i] )
+			return 1;
+		else if( sls1->lStyles[i] > sls2->lStyles[i] )
+			return -1;
+	}
+
+	for( i = 0; i < LM_STYLES; i++ )
+	{	
+		// compare vertex styles
+		if( sls2->vStyles[i] > sls1->vStyles[i] )
+			return 1;
+		else if( sls1->vStyles[i] > sls2->vStyles[i] )
+			return -1;
+	}
+	return 0; // equal
+}
+
+/*
+=======================
+R_SortSuperLightStyles
+=======================
+*/
+void R_SortSuperLightStyles( void )
+{
+	qsort( r_superLightStyles, r_numSuperLightStyles, sizeof( superLightStyle_t ), R_SuperLightStylesCmp );
 }

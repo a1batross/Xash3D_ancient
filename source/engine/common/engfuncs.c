@@ -237,7 +237,7 @@ void VM_EdictError( void )
 		PRVM_ED_Print( ed );
 		PRVM_ED_Free( ed );
 	}
-	else PRVM_ERROR ("VM_objecterror: pev not defined !");
+	else PRVM_ERROR( "VM_objecterror: pev not defined !\n" );
 	Msg("%s OBJECT ERROR in %s:\n%s\n", PRVM_NAME, PRVM_GetString(prog->xfunction->s_name), s );
 }
 
@@ -784,7 +784,7 @@ void localsound( string sample )
 */
 void VM_localsound( void )
 {
-	const char *s;
+	string	s;
 
 	if(!VM_ValidateArgs( "localsound", 1 ))
 		return;
@@ -792,15 +792,15 @@ void VM_localsound( void )
 	// OpenAL without update cause errors
 	if( cls.state == ca_connecting || cls.state == ca_connected )
 		return;
-	s = PRVM_G_STRING( OFS_PARM0 );
+	com.strncpy( s, PRVM_G_STRING( OFS_PARM0 ), MAX_STRING );
 
-	if(!S_StartLocalSound(s))
+	if(!S_StartLocalSound( s ))
 	{
 		VM_Warning("localsound: can't play %s!\n", s );
-		PRVM_G_FLOAT(OFS_RETURN) = 0;
+		PRVM_G_FLOAT(OFS_RETURN) = false;
 		return;
 	}
-	PRVM_G_FLOAT(OFS_RETURN) = 1;
+	PRVM_G_FLOAT(OFS_RETURN) = true;
 }
 
 /*
@@ -886,14 +886,14 @@ void VM_NextEdict( void )
 =================
 VM_copyentity
 
-void copyentity( entity src, entity dst )
+void entcpy( entity src, entity dst )
 =================
 */
 void VM_CopyEdict( void )
 {
 	edict_t *in, *out;
 
-	if(!VM_ValidateArgs( "copyentity", 1 ))
+	if(!VM_ValidateArgs( "entcpy", 1 ))
 		return;
 
 	in = PRVM_G_EDICT(OFS_PARM0);
@@ -1038,7 +1038,7 @@ void VM_FS_Close( void )
 
 	if(!VM_ValidateArgs( "fclose", 2 )) return;
 	handle = VM_GetFileHandle((int)PRVM_G_FLOAT( OFS_PARM0 ));
-	if(!handle) return;
+	if( !handle ) return;
 
 	FS_Close(VFS_Close( handle ));
 }
@@ -1069,7 +1069,7 @@ void VM_FS_Gets( void )
 =========
 VM_FS_Puts
 
-string fputs( float handle )
+void fputs( float handle, ... )
 =========
 */
 void VM_FS_Puts( void )
@@ -1077,9 +1077,8 @@ void VM_FS_Puts( void )
 	vfile_t		*handle;
 	const char	*s;
 
-	if(!VM_ValidateArgs( "fputs", 1 )) return;
 	handle = VM_GetFileHandle((int)PRVM_G_FLOAT( OFS_PARM0 ));
-	if(!handle) return;
+	if( !handle ) return;
 
 	s = VM_VarArgs( 1 );
 	VFS_Print( handle, s );
@@ -1104,7 +1103,7 @@ void VM_precache_pic( void )
 		return;
 
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
-	if(re->PrecacheImage((char *)PRVM_G_STRING(OFS_PARM0)))
+	if(re->PrecacheImage(PRVM_G_STRING( OFS_PARM0 )))
 		PRVM_G_FLOAT(OFS_RETURN) = true;
 	else PRVM_G_FLOAT(OFS_RETURN) = false;
 }
@@ -1261,7 +1260,7 @@ void VM_drawmodel( void )
 	sequence = (int)PRVM_G_FLOAT(OFS_PARM5);
 
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM2));
-	memset( &ent, 0, sizeof( ent ));
+	Mem_Set( &ent, 0, sizeof( ent ));
 
 	SCR_AdjustSize( &pos[0], &pos[1], &size[0], &size[1] );
 	rect.x = pos[0]; rect.y = pos[1]; rect.width = size[0]; rect.height = size[1];
@@ -1616,7 +1615,7 @@ NULL,				// #40 -- reserved --
 VM_SpawnEdict,			// #41 entity spawn( void )
 VM_RemoveEdict,			// #42 void remove( entity ent )
 VM_NextEdict,			// #43 entity nextent( entity ent )
-VM_CopyEdict,			// #44 void copyentity( entity src, entity dst )
+VM_CopyEdict,			// #44 void entcpy( entity src, entity dst )
 NULL,				// #45 -- reserved --
 NULL,				// #46 -- reserved --
 NULL,				// #47 -- reserved --

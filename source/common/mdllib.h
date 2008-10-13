@@ -126,7 +126,7 @@ typedef struct
 	vec3_t		*pos[MAXSTUDIOSRCBONES];
 	vec3_t		*rot[MAXSTUDIOSRCBONES];
 	int		numanim[MAXSTUDIOSRCBONES][6];
-	mstudioanimvalue_t	*anim[MAXSTUDIOSRCBONES][6];
+	dstudioanimvalue_t	*anim[MAXSTUDIOSRCBONES][6];
 } s_animation_t;
 
 typedef struct 

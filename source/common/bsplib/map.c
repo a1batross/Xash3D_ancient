@@ -248,13 +248,13 @@ int MapPlaneFromPoints( vec3_t *p )
 
 /*
 =====================
-PlaneFromPoints
+BspPlaneFromPoints
 
 Returns false if the triangle is degenrate.
 The normal will point out of the clock for clockwise ordered points
 =====================
 */
-bool PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c )
+bool BspPlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c )
 {
 	vec3_t	d1, d2;
 

@@ -436,6 +436,7 @@ extern byte *fs_mempool;
 bool Image_AddMipmapToPack( const byte *in, int width, int height, bool expand );
 void Image_RoundDimensions( int *scaled_width, int *scaled_height );
 byte *Image_ResampleInternal( const void *indata, int inwidth, int inheight, int outwidth, int outheight, int intype );
+byte *Image_FlipInternal( const byte *in, int inwidth, int inheight, int intype, int adjust_flags );
 void Image_FreeImage( rgbdata_t *pack );
 void Image_Save( const char *filename, rgbdata_t *pix );
 rgbdata_t *Image_Load(const char *filename, const byte *buffer, size_t buffsize );

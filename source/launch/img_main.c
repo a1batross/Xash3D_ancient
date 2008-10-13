@@ -25,7 +25,45 @@ int cubemap_width, cubemap_height;
 int cubemap_num_sides;	// how mach sides is loaded 
 byte *image_cubemap;	// cubemap pack
 uint base_image_type;	// shared image type for all mipmaps or cubemap sides
-const char *suf[6] = { "ft", "bk", "rt", "lf", "up", "dn" };
+
+typedef struct suffix_s
+{
+	const char	*suf;
+	uint		flags;
+} suffix_t;
+
+typedef struct cubepack_s
+{
+	const char	*name;	// package name
+	const suffix_t	*type;
+} cubepack_t;
+
+static suffix_t skybox_3ds[6] =
+{
+{ "ft", IMAGE_FLIP_X },
+{ "bk", IMAGE_FLIP_Y },
+{ "rt", IMAGE_FLIP_I },
+{ "lf", IMAGE_FLIP_X|IMAGE_FLIP_Y|IMAGE_FLIP_I },	// rotate at 270°
+{ "up", IMAGE_FLIP_I },
+{ "dn", IMAGE_FLIP_I },
+};
+
+static suffix_t cubemap_px[6] =
+{
+{ "px", 0 },
+{ "nx", 0 },
+{ "py", 0 },
+{ "ny", 0 },
+{ "pz", 0 },
+{ "nz", 0 },
+};
+
+static cubepack_t load_cubemap[] =
+{
+{ "3D Studio", skybox_3ds },
+{ "Cubemap 1", cubemap_px },
+{ NULL, NULL },
+};
 
 typedef struct loadformat_s
 {
@@ -180,12 +218,12 @@ rgbdata_t *ImagePack( void )
 	return pack;
 }
 
-bool FS_AddImageToPack( const char *name )
+bool FS_AddSideToPack( const char *name, int adjust_flags )
 {
-	byte	*resampled;
+	byte	*resampled, *flipped;
 	
-	// first image have suffix "ft" and set average size for all cubemap sides!
-	if(!image_cubemap)
+	// first cubemap\skybox side set base dimenisons for all follow sides!
+	if( !image_cubemap )
 	{
 		cubemap_width = image_width;
 		cubemap_height = image_height;
@@ -194,11 +232,16 @@ bool FS_AddImageToPack( const char *name )
 	image_size = cubemap_width * cubemap_height * 4; // keep constant size, render.dll expecting it
           
 	// mixing dds format with any existing ?
-	if(image_type != base_image_type) return false;
+	if( image_type != base_image_type ) return false;
+
+	// flip image if needed
+	flipped = Image_FlipInternal( image_rgba, image_width, image_height, base_image_type, adjust_flags );
+	if( !flipped ) return false; // try to reasmple dxt?
+	if( flipped != image_rgba ) Mem_Move( Sys.imagepool, &image_rgba, flipped, image_size ); // update buffer
 
 	// resampling image if needed
 	resampled = Image_ResampleInternal((uint *)image_rgba, image_width, image_height, cubemap_width, cubemap_height, base_image_type );
-	if(!resampled) return false; // try to reasmple dxt?
+	if( !resampled ) return false; // try to reasmple dxt?
 	if( resampled != image_rgba ) Mem_Move( Sys.imagepool, &image_rgba, resampled, image_size ); // update buffer
 
 	image_cubemap = Mem_Realloc( Sys.imagepool, image_cubemap, image_ptr + image_size );
@@ -236,7 +279,7 @@ bool FS_AddMipmapToPack( const byte *in, int width, int height, bool expand )
 	return true;
 }
 
-void Image_ConvertToRGBA( rgbdata_t *pic )
+static void Image_ConvertTo( int outformat, rgbdata_t *pic )
 {
 	int	j, texels;
 	byte	*in, *out, *buffer;
@@ -252,11 +295,28 @@ void Image_ConvertToRGBA( rgbdata_t *pic )
 		MsgDev( D_ERROR, "Image_ConvertToRGBA: indexed image doesn't have palette\n" );
 		return;
 	}
-	if( pic->type == PF_RGBA_32 || pic->type == PF_ABGR_64 )
-		return; // nothing to process
-
+	switch( outformat )
+	{
+	case PF_RGBA_32:
+		switch( pic->type )
+		{
+		case PF_RGBA_32:
+		case PF_ABGR_64:
+			return;	// nothing to process
+		default:	break;
+		}
+	case PF_RGB_24:
+		switch( pic->type )
+		{
+		case PF_RGB_24:
+			return;	// nothing to porcess
+		default: break;
+		}
+	default:	return;		// unsupported mode
+	}
+          
 	texels = pic->width * pic->height;
-	buffer = Mem_Alloc( Sys.imagepool, texels * 4 );
+	buffer = Mem_Alloc( Sys.imagepool, texels * PFDesc[outformat].bpp );
 	in = pic->buffer;
 	out = buffer;
 
@@ -266,9 +326,21 @@ void Image_ConvertToRGBA( rgbdata_t *pic )
 	case PF_DXT3:
 	case PF_DXT5:
 		result = Image_DecompressDXTC( &pic );
+		in = pic->buffer;
+		switch( outformat )
+		{
+		case PF_RGB_24:	// RGBA_32 to RGB_24
+			for( j = 0; j < texels; j++, in += 4, out += 3 )
+			{
+				out[0] = in[0];
+				out[1] = in[1];
+				out[2] = in[2];
+			}
+			break;
+		case PF_RGBA_32: break;
+		}
 		break;
-	case PF_RGB_24:
-		//
+	case PF_RGB_24:		// RGB_24 to RGBA_32
 		for( j = 0; j < texels; j++, in += 3, out += 4 )
 		{
 			out[0] = in[0];
@@ -278,31 +350,67 @@ void Image_ConvertToRGBA( rgbdata_t *pic )
 		}
 		result = true;
 		break;			
+	case PF_RGBA_32:		// RGBA_32 to RGB_24
+		for( j = 0; j < texels; j++, in += 4, out += 3 )
+		{
+			out[0] = in[0];
+			out[1] = in[1];
+			out[2] = in[2];
+		}
+		result = true;
+		break;
 	case PF_INDEXED_24:
-		// FIXME: make flag IMAGE_HAS_INDEXALPHA for decals ?
 		if( pic->flags & IMAGE_HAS_ALPHA )
-			Image_GetPaletteLMP( pic->palette, LUMP_TRANSPARENT ); 
+		{
+			if( pic->flags & IMAGE_COLORINDEX )
+				Image_GetPaletteLMP( pic->palette, LUMP_DECAL ); 
+			else Image_GetPaletteLMP( pic->palette, LUMP_TRANSPARENT ); 
+		}
 		else Image_GetPaletteLMP( pic->palette, LUMP_NORMAL );
 		// intentional falltrough
 	case PF_INDEXED_32:
 		d_currentpal = ( uint *)pic->palette;
 		result = Image_Copy8bitRGBA( pic->buffer, buffer, texels );
+		in = pic->buffer;
+		switch( outformat )
+		{
+		case PF_RGB_24:	// RGBA_32 to RGB_24
+			for( j = 0; j < texels; j++, in += 4, out += 3 )
+			{
+				out[0] = in[0];
+				out[1] = in[1];
+				out[2] = in[2];
+			}
+			break;
+		case PF_RGBA_32: break;
+		}
 		break;
 	default: break; // unsupported format
 	}
 
 	if( result )
 	{
-		MsgDev( D_NOTE, "Image_ConvertToRGBA: from %s to RGBA 32\n", PFDesc[pic->type].name ); 
-		pic->type = PF_RGBA_32; // sucessfully converted
+		MsgDev( D_NOTE, "Image_ConvertTo%s: from %s\n", PFDesc[outformat].name, PFDesc[pic->type].name ); 
+		pic->type = outformat; // sucessfully converted
+		pic->size = texels * PFDesc[outformat].bpp;	// merge size
 		Mem_Free( pic->buffer );
 		pic->buffer = buffer;
 	}
 	else
 	{
-		MsgDev( D_WARN, "Image_ConvertToRGBA: can't convert from %s to RGBA 32\n", PFDesc[pic->type].name );
+		MsgDev( D_WARN, "Image_ConvertTo%s: can't convert from %s\n", PFDesc[outformat].name, PFDesc[pic->type].name );
 		Mem_Free( buffer );
 	}
+} 
+
+void Image_ConvertToRGB( rgbdata_t *pic )
+{
+	Image_ConvertTo( PF_RGB_24, pic );
+}
+
+void Image_ConvertToRGBA( rgbdata_t *pic )
+{
+	Image_ConvertTo( PF_RGBA_32, pic );
 }
 
 /*
@@ -315,10 +423,11 @@ loading and unpack to rgba any known image
 rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t buffsize )
 {
           const char	*ext = FS_FileExtension( filename );
-	char		path[128], loadname[128], texname[128];
+	string		path, loadname, texname, sidename;
 	loadformat_t	*format, *desired_formats = load_formats0;
 	bool		anyformat = !com_stricmp(ext, "") ? true : false;
 	int		i, filesize = 0;
+	cubepack_t	*cubemap;
 	byte		*f;
 
 #if 0     // don't try to be very clever
@@ -331,11 +440,11 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t buffsi
 	case HOST_VIEWER:
 		switch( img_oldformats->integer )
 		{
-		case 0: desired_formats = load_formats0; break;	// tga, dds
+		case 0: desired_formats = load_formats0; break;	// tga, dds, png
 		case 1: desired_formats = load_formats1; break;	// tga, dds, jpg, png, mip
 		case 2: desired_formats = load_formats2; break;	// tga, dds, jpg, png, mip, bmp, pcx, wal, lmp
 		case 3: desired_formats = load_formats3; break;	// tga, dds, jpg, png, mip, bmp, pcx, wal, lmp, flat, pal
-		default: desired_formats = load_formats0; break;	// tga, dds
+		default: desired_formats = load_formats0; break;	// tga, dds, png
 		}
 		break;
 	case HOST_SPRITE:
@@ -366,7 +475,7 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t buffsi
 	if(!anyformat) MsgDev(D_NOTE, "Note: %s will be loading only with ext .%s\n", loadname, ext );
 	
 	// now try all the formats in the selected list
-	for( format = desired_formats; format && format->formatstring; format++)
+	for( format = desired_formats; format && format->formatstring; format++ )
 	{
 		if( anyformat || !com_stricmp(ext, format->ext ))
 		{
@@ -376,49 +485,66 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t buffsi
 			{
 				// this name will be used only for tell user about problems 
 				FS_FileBase( path, texname );
-				if( format->loadfunc(texname, f, filesize ))
+				if( format->loadfunc( texname, f, filesize ))
 				{
-					Mem_Free(f); // release buffer
+					Mem_Free( f ); // release buffer
 					return ImagePack(); // loaded
 				}
 			}
 		}
 	}
 
-	// maybe it skybox or cubemap ?
-	for( i = 0; i < 6; i++ )
+	// check all cubemap sides with package suffix
+	for( cubemap = load_cubemap; cubemap && cubemap->type; cubemap++ )
 	{
-		for( format = desired_formats; format && format->formatstring; format++ )
+		for( i = 0; i < 6; i++ )
 		{
-			if( anyformat || !com_stricmp(ext, format->ext ))
+			// for support mixed cubemaps e.g. sky_ft.jpg, sky_rt.tga, sky_bk.png
+			// NOTE: all loaders must keep sides in one format for all sides
+			for( format = desired_formats; format && format->formatstring; format++ )
 			{
-				com_sprintf( path, format->formatstring, loadname, suf[i], format->ext );
-				f = FS_LoadFile( path, &filesize );
-				if(f && filesize > 0)
+				if( anyformat || !com_stricmp(ext, format->ext ))
 				{
-					// this name will be used only for tell user about problems 
-					FS_FileBase( path, texname );
-					if( format->loadfunc(texname, f, filesize ))
+					com_sprintf( path, format->formatstring, loadname, cubemap->type[i].suf, format->ext );
+					f = FS_LoadFile( path, &filesize );
+					if( f && filesize > 0 )
 					{
-						if(FS_AddImageToPack(va("%s%s.%s", loadname, suf[i], format->ext)))
-							break; // loaded
+						// this name will be used only for tell user about problems 
+						FS_FileBase( path, texname );
+						if( format->loadfunc( texname, f, filesize ))
+						{         
+							com_snprintf( sidename, MAX_STRING, "%s%s.%s", loadname, cubemap->type[i].suf, format->ext );
+							if( FS_AddSideToPack( sidename, cubemap->type[i].flags )) // process flags to flip some sides
+								break; // loaded
+						}
+						Mem_Free( f );
 					}
-					Mem_Free(f);
 				}
 			}
-		}
-		if( cubemap_num_sides != i + 1 ) // check side
-		{
-			// first side not found, probably it's not cubemap
-			// it contain info about image_type and dimensions, don't generate black cubemaps 
-			if(!image_cubemap) break;
-			MsgDev(D_ERROR, "FS_LoadImage: couldn't load (%s%s.%s), create black image\n",loadname,suf[i],ext );
 
-			// Mem_Alloc already filled memblock with 0x00, no need to do it again
-			image_cubemap = Mem_Realloc( Sys.imagepool, image_cubemap, image_ptr + image_size );
-			image_ptr += image_size; // move to next
-			cubemap_num_sides++; // merge counter
+			if( cubemap_num_sides != i + 1 ) // check side
+			{
+				// first side not found, probably it's not cubemap
+				// it contain info about image_type and dimensions, don't generate black cubemaps 
+				if( !image_cubemap ) break;
+				MsgDev(D_ERROR, "FS_LoadImage: couldn't load (%s%s.%s), create black image\n", loadname, cubemap->type[i].suf );
+
+				// Mem_Alloc already filled memblock with 0x00, no need to do it again
+				image_cubemap = Mem_Realloc( Sys.imagepool, image_cubemap, image_ptr + image_size );
+				image_ptr += image_size; // move to next
+				cubemap_num_sides++; // merge counter
+			}
 		}
+
+		// make sure what all sides is loaded
+		if( cubemap_num_sides != 6 )
+		{
+			// unexpected errors ?
+			if( image_cubemap ) 
+				Mem_Free( image_cubemap );
+			Image_Reset();
+		}
+		else break; // all done
 	}
 
 	if( image_cubemap ) return ImagePack(); // now it's cubemap pack 

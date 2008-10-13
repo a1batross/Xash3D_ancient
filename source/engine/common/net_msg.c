@@ -625,7 +625,7 @@ void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t 
 	// plus sizeof(short) (head number). If message equal null_message_size
 	// we will be ignore it 
 	if(!force && (( msg->cursize - buff_size ) == null_msg_size ))
-		msg->cursize = buff_size; // kill message
+		msg->cursize = buff_size; // kill empty message
 }
 
 /*

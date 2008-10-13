@@ -19,7 +19,7 @@ string		frame_prefix;
 byte		*spr_palette;
 static byte	pal[256][4];
 uint		surfaceParm;
-mipTex_t		*frames;
+shader_t		*frames;
 	
 /*
 ====================
@@ -35,7 +35,7 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	rgbdata_t		*spr_frame;
 	texture_t		*image;
 	string		name;
-	mipTex_t		*out;
+	shader_t		*out;
 	
 	pinframe = (dframe_t *)pin;
 
@@ -88,8 +88,8 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	spr_frametype = (dframetype_t *)((byte *)(pinframe + 1) + size );
 
 	com.strncpy( out->name, name, 64 );
-	out->shader = pspriteframe->shader;
-	out->flags = surfaceParm;
+	out = pspriteframe->shader;
+	out->surfaceParm = surfaceParm;
 
 	FS_FreeImage( spr_frame );
 	return spr_frametype;
@@ -239,7 +239,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 
 	MsgDev( D_LOAD, "%s, rendermode %d\n", mod->name, psprite->rendermode );
 
-	mod->registration_sequence = registration_sequence;
+	mod->sequence = registration_sequence;
 	spr_palette = (byte *)(&pal[0][0]);
 
 	for( i = 0; i < numframes; i++ )
@@ -264,7 +264,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 		}
 		if( pframetype == NULL ) break; // technically an error
 	}
-	mod->shaders = frames; // setup texture links
+	*mod->shaders = frames; // setup texture links
 }
 
 /*
@@ -329,23 +329,7 @@ R_AddSpriteModelToList
 add spriteframe to list
 =================
 */
-void R_AddSpriteModelToList( ref_entity_t *entity )
-{
-	mspriteframe_t	*frame;
 
-	frame = R_GetSpriteFrame( entity );
-
-	if( R_CullSphere( entity->origin, frame->radius, MAX_CLIPFLAGS ))
-		return;
-
-	// copy frame params
-	entity->radius = frame->radius;
-	entity->rotation = 0;
-	entity->shader = frame->shader;
-
-	// add it
-	R_AddMeshToList( MESH_SPRITE, NULL, entity->shader, entity, 0 );
-}
 
 /*
 =================
@@ -361,55 +345,55 @@ void R_DrawSpriteModel( void )
 	ref_entity_t	*e;
 	int		i;
 
-	e = m_pCurrentEntity;
+	e = Ref.m_pCurrentEntity;
 	frame = R_GetSpriteFrame( e );
-	psprite = (msprite_t *)m_pRenderModel->extradata;
+	psprite = (msprite_t *)Ref.m_pCurrentModel->extradata;
 
 	// setup orientation
 	switch( psprite->type )
 	{
 	case SPR_ORIENTED:
-		VectorCopy( e->axis[0], forward );
-		VectorCopy( e->axis[1], right );
-		VectorCopy( e->axis[2], up );
+		VectorCopy( e->matrix[0], forward );
+		VectorCopy( e->matrix[1], right );
+		VectorCopy( e->matrix[2], up );
 		VectorScale( forward, 0.01, forward ); // to avoid z-fighting
 		VectorSubtract( e->origin, forward, e->origin );
 		break;
 	case SPR_FACING_UPRIGHT:
-		VectorSet( right, e->origin[1] - r_origin[1], -(e->origin[0] - r_origin[0]), 0 );
-		VectorNegate( r_forward, forward );
+		VectorSet( right, e->origin[1] - Ref.vieworg[1], -(e->origin[0] - Ref.vieworg[0]), 0 );
+		VectorNegate( Ref.forward, forward );
 		VectorSet( up, 0, 0, 1 );
 		VectorNormalize( right );
 		break;
 	case SPR_FWD_PARALLEL_UPRIGHT:
-		VectorSet( right, r_forward[1], -r_forward[0], 0 );
-		VectorNegate( r_forward, forward );
+		VectorSet( right, Ref.forward[1], -Ref.forward[0], 0 );
+		VectorNegate( Ref.forward, forward );
 		VectorSet( up, 0, 0, 1 );
 		break;
 	case SPR_FWD_PARALLEL_ORIENTED:
-		right[0] = e->axis[1][0] * r_forward[0] + e->axis[1][1] * r_right[0] + e->axis[1][2] * r_up[0];
-		right[1] = e->axis[1][0] * r_forward[1] + e->axis[1][1] * r_right[1] + e->axis[1][2] * r_up[1];
-		right[2] = e->axis[1][0] * r_forward[2] + e->axis[1][1] * r_right[2] + e->axis[1][2] * r_up[2];
-		up[0] = e->axis[2][0] * r_forward[0] + e->axis[2][1] * r_right[0] + e->axis[2][2] * r_up[0];
-		up[1] = e->axis[2][0] * r_forward[1] + e->axis[2][1] * r_right[1] + e->axis[2][2] * r_up[1];
-		up[2] = e->axis[2][0] * r_forward[2] + e->axis[2][1] * r_right[2] + e->axis[2][2] * r_up[2];
+		right[0] = e->matrix[1][0] * Ref.forward[0] + e->matrix[1][1] * Ref.right[0] + e->matrix[1][2] * Ref.up[0];
+		right[1] = e->matrix[1][0] * Ref.forward[1] + e->matrix[1][1] * Ref.right[1] + e->matrix[1][2] * Ref.up[1];
+		right[2] = e->matrix[1][0] * Ref.forward[2] + e->matrix[1][1] * Ref.right[2] + e->matrix[1][2] * Ref.up[2];
+		up[0] = e->matrix[2][0] * Ref.forward[0] + e->matrix[2][1] * Ref.right[0] + e->matrix[2][2] * Ref.up[0];
+		up[1] = e->matrix[2][0] * Ref.forward[1] + e->matrix[2][1] * Ref.right[1] + e->matrix[2][2] * Ref.up[1];
+		up[2] = e->matrix[2][0] * Ref.forward[2] + e->matrix[2][1] * Ref.right[2] + e->matrix[2][2] * Ref.up[2];
 		break;
 	case SPR_FWD_PARALLEL:
 	default: // normal sprite
-		VectorNegate( r_forward, forward );
-		VectorNegate( r_right, right );
-		VectorCopy( r_up, up );
+		VectorNegate( Ref.forward, forward );
+		VectorNegate( Ref.right, right );
+		VectorCopy( Ref.up, up );
 		break;
 	}
 
 	// draw it
-	RB_CheckMeshOverflow( 6, 4 );
+	// RB_CheckMeshOverflow( 6, 4 );
 	
 	for( i = 2; i < 4; i++ )
 	{
-		indexArray[numIndex++] = numVertex + 0;
-		indexArray[numIndex++] = numVertex + i-1;
-		indexArray[numIndex++] = numVertex + i;
+		indexArray[r_stats.numIndices++] = r_stats.numVertices + 0;
+		indexArray[r_stats.numIndices++] = r_stats.numVertices + i-1;
+		indexArray[r_stats.numIndices++] = r_stats.numVertices + i;
 	}
 
 	GL_Begin( GL_QUADS );

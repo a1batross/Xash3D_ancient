@@ -191,7 +191,7 @@ bool V_PreRender( void )
 	// too early
 	if( !re ) return false;
 		
-	re->BeginFrame();
+	re->BeginFrame( false );
 	SCR_FillRect( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, g_color_table[0] );
 	return true;
 }

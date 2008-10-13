@@ -5,134 +5,51 @@
 
 #include "r_local.h"
 #include "mathlib.h"
-
-vec3_t	axisDefault[3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+#include "matrixlib.h"
 
 /*
- =================
- AxisCopy
- =================
+=============
+R_TransformWorldToScreen
+=============
 */
-void AxisCopy( const vec3_t in[3], vec3_t out[3] )
+void R_TransformWorldToScreen( vec3_t in, vec3_t out )
 {
-	out[0][0] = in[0][0];
-	out[0][1] = in[0][1];
-	out[0][2] = in[0][2];
-	out[1][0] = in[1][0];
-	out[1][1] = in[1][1];
-	out[1][2] = in[1][2];
-	out[2][0] = in[2][0];
-	out[2][1] = in[2][1];
-	out[2][2] = in[2][2];
+	vec4_t	temp, temp2;
+
+	Vector4Set( temp, in[0], in[1], in[2], 1.0f );
+	Matrix4x4_Transform( Ref.worldProjectionMatrix, temp, temp2 );
+
+	if( !temp2[3] ) return;
+
+	out[0] = (temp2[0] / temp2[3] + 1.0f) * 0.5f * Ref.refdef.rect.width;
+	out[1] = (temp2[1] / temp2[3] + 1.0f) * 0.5f * Ref.refdef.rect.height;
+	out[2] = (temp2[2] / temp2[3] + 1.0f) * 0.5f;
 }
 
 /*
- =================
- AxisClear
- =================
+=============
+R_TransformVectorToScreen
+=============
 */
-void AxisClear( vec3_t axis[3] )
+void R_TransformVectorToScreen( const refdef_t *rd, const vec3_t in, vec2_t out )
 {
-	axis[0][0] = 1;
-	axis[0][1] = 0;
-	axis[0][2] = 0;
-	axis[1][0] = 0;
-	axis[1][1] = 1;
-	axis[1][2] = 0;
-	axis[2][0] = 0;
-	axis[2][1] = 0;
-	axis[2][2] = 1;
-}
+	matrix4x4	p, m;
+	vec4_t	temp, temp2;
 
-/*
-=================
-AnglesToAxis
-=================
-*/
-void AnglesToAxis ( const vec3_t angles )
-{
-	static float	sp, sy, sr, cp, cy, cr;
-	float		angle;
+	if( !rd || !in || !out ) return;
 
-	angle = DEG2RAD(angles[PITCH]);
-	sp = sin(angle);
-	cp = cos(angle);
-	angle = DEG2RAD(angles[YAW]);
-	sy = sin(angle);
-	cy = cos(angle);
-	angle = DEG2RAD(angles[ROLL]);
-	sr = sin(angle);
-	cr = cos(angle);
+	Vector4Set( temp, in[0], in[1], in[2], 1.0f );
 
-	r_forward[0] = cp*cy;
-	r_forward[1] = cp*sy;
-	r_forward[2] = -sp;
-	r_right[0] = sr*sp*cy+cr*-sy;
-	r_right[1] = sr*sp*sy+cr*cy;
-	r_right[2] = sr*cp;
-	r_up[0] = cr*sp*cy+-sr*-sy;
-	r_up[1] = cr*sp*sy+-sr*cy;
-	r_up[2] = cr*cp;
-}
+	R_SetupProjectionMatrix( rd, p );
+	R_SetupModelViewMatrix( rd, m );
 
-/*
- =================
- AnglesToAxis
- =================
-*/
-void AnglesToAxisPrivate (const vec3_t angles, vec3_t axis[3])
-{
+	Matrix4x4_Transform( m, temp, temp2 );
+	Matrix4x4_Transform( p, temp2, temp );
 
-	static float	sp, sy, sr, cp, cy, cr;
-	float			angle;
+	if( !temp[3] ) return;
 
-	angle = DEG2RAD(angles[PITCH]);
-	sp = sin(angle);
-	cp = cos(angle);
-	angle = DEG2RAD(angles[YAW]);
-	sy = sin(angle);
-	cy = cos(angle);
-	angle = DEG2RAD(angles[ROLL]);
-	sr = sin(angle);
-	cr = cos(angle);
-
-	axis[0][0] = cp*cy;
-	axis[0][1] = cp*sy;
-	axis[0][2] = -sp;
-	axis[1][0] = sr*sp*cy+cr*-sy;
-	axis[1][1] = sr*sp*sy+cr*cy;
-	axis[1][2] = sr*cp;
-	axis[2][0] = cr*sp*cy+-sr*-sy;
-	axis[2][1] = cr*sp*sy+-sr*cy;
-	axis[2][2] = cr*cp;
-}
-
-/*
- =================
- AxisCompare
- =================
-*/
-bool AxisCompare( const vec3_t axis1[3], const vec3_t axis2[3] )
-{
-	if (axis1[0][0] != axis2[0][0] || axis1[0][1] != axis2[0][1] || axis1[0][2] != axis2[0][2])
-		return false;
-	if (axis1[1][0] != axis2[1][0] || axis1[1][1] != axis2[1][1] || axis1[1][2] != axis2[1][2])
-		return false;
-	if (axis1[2][0] != axis2[2][0] || axis1[2][1] != axis2[2][1] || axis1[2][2] != axis2[2][2])
-		return false;
-	return true;
-}
-
-/*
- =================
- VectorRotate
- =================
-*/
-void VectorRotate ( const vec3_t v, const vec3_t matrix[3], vec3_t out )
-{
-	out[0] = v[0]*matrix[0][0] + v[1]*matrix[0][1] + v[2]*matrix[0][2];
-	out[1] = v[0]*matrix[1][0] + v[1]*matrix[1][1] + v[2]*matrix[1][2];
-	out[2] = v[0]*matrix[2][0] + v[1]*matrix[2][1] + v[2]*matrix[2][2];
+	out[0] = rd->rect.x + (temp[0] / temp[3] + 1.0f) * rd->rect.width * 0.5f;
+	out[1] = rd->rect.y + (temp[1] / temp[3] + 1.0f) * rd->rect.height * 0.5f;
 }
 
 /*
@@ -237,4 +154,154 @@ uint ShortToFloat( word y )
 	e = e + (127 - 15);
 	m = m << 13;
 	return (s << 31) | (e << 23) | m; // Assemble s, e and m.
+}
+
+/*
+===============
+Patch_FlatnessTest
+
+===============
+*/
+static int Patch_FlatnessTest( float maxflat2, const float *point0, const float *point1, const float *point2 )
+{
+	float	d;
+	int	ft0, ft1;
+	vec3_t	t, n;
+	vec3_t	v1, v2, v3;
+
+	VectorSubtract( point2, point0, n );
+	if( !VectorNormalizeLength( n ))
+		return 0;
+
+	VectorSubtract( point1, point0, t );
+	d = -DotProduct( t, n );
+	VectorMA( t, d, n, t );
+	if( DotProduct( t, t ) < maxflat2 )
+		return 0;
+
+	VectorAverage( point1, point0, v1 );
+	VectorAverage( point2, point1, v2 );
+	VectorAverage( v1, v2, v3 );
+
+	ft0 = Patch_FlatnessTest( maxflat2, point0, v1, v3 );
+	ft1 = Patch_FlatnessTest( maxflat2, v3, v2, point2 );
+
+	return 1 + (int)( floor( max( ft0, ft1 )) + 0.5f );
+}
+
+/*
+===============
+Patch_GetFlatness
+
+===============
+ */
+void Patch_GetFlatness( float maxflat, const float *points, int comp, const int *patch_cp, int *flat )
+{
+	int	i, p, u, v;
+	float	maxflat2 = maxflat * maxflat;
+
+	flat[0] = flat[1] = 0;
+
+	for( v = 0; v < patch_cp[1] - 1; v += 2 )
+	{
+		for( u = 0; u < patch_cp[0] - 1; u += 2 )
+		{
+			p = v * patch_cp[0] + u;
+
+			i = Patch_FlatnessTest( maxflat2, &points[p*comp], &points[( p+1 )*comp], &points[( p+2 )*comp] );
+			flat[0] = max( flat[0], i );
+			i = Patch_FlatnessTest( maxflat2, &points[( p+patch_cp[0] )*comp], &points[( p+patch_cp[0]+1 )*comp], &points[( p+patch_cp[0]+2 )*comp] );
+			flat[0] = max( flat[0], i );
+			i = Patch_FlatnessTest( maxflat2, &points[( p+2*patch_cp[0] )*comp], &points[( p+2*patch_cp[0]+1 )*comp], &points[( p+2*patch_cp[0]+2 )*comp] );
+			flat[0] = max( flat[0], i );
+
+			i = Patch_FlatnessTest( maxflat2, &points[p*comp], &points[( p+patch_cp[0] )*comp], &points[( p+2*patch_cp[0] )*comp] );
+			flat[1] = max( flat[1], i );
+			i = Patch_FlatnessTest( maxflat2, &points[( p+1 )*comp], &points[( p+patch_cp[0]+1 )*comp], &points[( p+2*patch_cp[0]+1 )*comp] );
+			flat[1] = max( flat[1], i );
+			i = Patch_FlatnessTest( maxflat2, &points[( p+2 )*comp], &points[( p+patch_cp[0]+2 )*comp], &points[( p+2*patch_cp[0]+2 )*comp] );
+			flat[1] = max( flat[1], i );
+		}
+	}
+}
+
+/*
+===============
+Patch_Evaluate_QuadricBezier
+
+===============
+ */
+static void Patch_Evaluate_QuadricBezier( float t, const vec_t *point0, const vec_t *point1, const vec_t *point2, vec_t *out, int comp )
+{
+	int	i;
+	vec_t	qt = t * t;
+	vec_t	dt = 2.0f * t, tt, tt2;
+
+	tt = 1.0f - dt + qt;
+	tt2 = dt - 2.0f * qt;
+
+	for( i = 0; i < comp; i++ )
+		out[i] = point0[i] * tt + point1[i] * tt2 + point2[i] * qt;
+}
+
+/*
+===============
+Patch_Evaluate
+
+===============
+ */
+void Patch_Evaluate( const vec_t *p, int *numcp, const int *tess, vec_t *dest, int comp )
+{
+	int	num_patches[2], num_tess[2];
+	int	index[3], dstpitch, i, u, v, x, y;
+	float	s, t, step[2];
+	vec_t	*tvec, *tvec2;
+	const vec_t *pv[3][3];
+	vec4_t	v1, v2, v3;
+
+	num_patches[0] = numcp[0] / 2;
+	num_patches[1] = numcp[1] / 2;
+	dstpitch = ( num_patches[0] * tess[0] + 1 ) * comp;
+
+	step[0] = 1.0f / (float)tess[0];
+	step[1] = 1.0f / (float)tess[1];
+
+	for( v = 0; v < num_patches[1]; v++ )
+	{
+		// last patch has one more row
+		if( v < num_patches[1] - 1 )
+			num_tess[1] = tess[1];
+		else num_tess[1] = tess[1] + 1;
+
+		for( u = 0; u < num_patches[0]; u++ )
+		{
+			// last patch has one more column
+			if( u < num_patches[0] - 1 )
+				num_tess[0] = tess[0];
+			else num_tess[0] = tess[0] + 1;
+
+			index[0] = ( v * numcp[0] + u ) * 2;
+			index[1] = index[0] + numcp[0];
+			index[2] = index[1] + numcp[0];
+
+			// current 3x3 patch control points
+			for( i = 0; i < 3; i++ )
+			{
+				pv[i][0] = &p[( index[0]+i ) * comp];
+				pv[i][1] = &p[( index[1]+i ) * comp];
+				pv[i][2] = &p[( index[2]+i ) * comp];
+			}
+
+			tvec = dest + v * tess[1] * dstpitch + u * tess[0] * comp;
+			for( y = 0, t = 0.0f; y < num_tess[1]; y++, t += step[1], tvec += dstpitch )
+			{
+				Patch_Evaluate_QuadricBezier( t, pv[0][0], pv[0][1], pv[0][2], v1, comp );
+				Patch_Evaluate_QuadricBezier( t, pv[1][0], pv[1][1], pv[1][2], v2, comp );
+				Patch_Evaluate_QuadricBezier( t, pv[2][0], pv[2][1], pv[2][2], v3, comp );
+
+				for( x = 0, tvec2 = tvec, s = 0.0f; x < num_tess[0]; x++, s += step[0], tvec2 += comp )
+					Patch_Evaluate_QuadricBezier( s, v1, v2, v3, tvec2, comp );
+			}
+		}
+	}
 }

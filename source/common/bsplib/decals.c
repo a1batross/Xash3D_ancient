@@ -291,7 +291,7 @@ static int MakeDecalProjector( bsp_shader_t *si, vec4_t projection, float distan
 	dp->radius2 = dp->radius * dp->radius;
 	
 	// make the front plane
-	if( !PlaneFromPoints( dp->planes[0], dv[0]->point, dv[1]->point, dv[2]->point ))
+	if( !BspPlaneFromPoints( dp->planes[0], dv[0]->point, dv[1]->point, dv[2]->point ))
 		return -1;
 	
 	// make the back plane
@@ -304,7 +304,7 @@ static int MakeDecalProjector( bsp_shader_t *si, vec4_t projection, float distan
 	{
 		j = (i + 1) % numVerts;
 		VectorMA( dv[i]->point, distance, projection, xyz );
-		if( !PlaneFromPoints( dp->planes[i+2], dv[j]->point, dv[i]->point, xyz ) )
+		if( !BspPlaneFromPoints( dp->planes[i+2], dv[j]->point, dv[i]->point, xyz ) )
 			return -1;
 	}
 	
@@ -407,7 +407,7 @@ void ProcessDecals( void )
 						
 						// planar? (nuking this optimization as it doesn't work on non-rectangular quads)
 						plane[0] = 0.0f;	// stupid msvc
-						if( 0 && PlaneFromPoints( plane, dv[0]->point, dv[1]->point, dv[2]->point ) &&
+						if( 0 && BspPlaneFromPoints( plane, dv[0]->point, dv[1]->point, dv[2]->point ) &&
 							fabs( DotProduct( dv[1]->point, plane ) - plane[3] ) <= PLANAR_EPSILON )
 						{
 							// make a quad projector
@@ -464,7 +464,7 @@ static void ProjectDecalOntoWinding( decalProjector_t *dp, drawsurf_t *ds, windi
 		VectorAdd( w->p[i], entityOrigin, w->p[i] );
 	
 	// make a plane from the winding
-	if( !PlaneFromPoints( plane, w->p[0], w->p[1], w->p[2] ))
+	if( !BspPlaneFromPoints( plane, w->p[0], w->p[1], w->p[2] ))
 	{
 		FreeWinding( w );
 		return;

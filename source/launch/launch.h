@@ -312,6 +312,7 @@ bool FS_WriteFile (const char *filename, const void *data, fs_offset_t len);
 rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t buffsize );
 void FS_SaveImage( const char *filename, rgbdata_t *pix );
 void FS_FreeImage( rgbdata_t *pack );
+void Image_ConvertToRGB( rgbdata_t *pic );
 void Image_ConvertToRGBA( rgbdata_t *pic );
 bool Image_Resample( rgbdata_t **image, int width, int height, bool free_baseimage );
 bool Image_Process( rgbdata_t **pix, int adjust_type, bool free_baseimage );

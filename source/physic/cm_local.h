@@ -208,9 +208,9 @@ typedef struct physic_s
 
 typedef struct studio_s
 {
-	studiohdr_t	*hdr;
-	mstudiomodel_t	*submodel;
-	mstudiobodyparts_t	*bodypart;
+	dstudiohdr_t	*hdr;
+	dstudiomodel_t	*submodel;
+	dstudiobodyparts_t	*bodypart;
 	matrix4x4		rotmatrix;
 	matrix4x4		bones[MAXSTUDIOBONES];
 	vec3_t		vertices[MAXSTUDIOVERTS];

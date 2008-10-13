@@ -170,7 +170,7 @@ BRUSH MODELS
 #define LIGHTMAP_NAME		"lm_%04d.png"
 #define LM_SIZE			( LIGHTMAP_WIDTH * LIGHTMAP_HEIGHT * LIGHTMAP_BITS )
 #define LM_SAMPLE_SIZE		16	// q1, q2, q3 default value (lightmap resoultion)
-#define LM_STYLES			4	// MAXLIGHTMAPS
+#define LM_STYLES			4	// MAXLIGHTMAPS, don't touch!
 #define LS_NORMAL			0x00
 #define LS_UNUSED			0xFE
 #define LS_NONE			0xFF
@@ -439,7 +439,7 @@ a internal virtual machine like as QuakeC, but it has more extensions
 typedef struct statement_s
 {
 	dword		op;
-	long		a,b,c;
+	long		a, b, c;
 } dstatement_t;
 
 typedef struct ddef_s
@@ -447,7 +447,7 @@ typedef struct ddef_s
 	dword		type;		// if DEF_SAVEGLOBAL bit is set
 					// the variable needs to be saved in savegames
 	dword		ofs;
-	int		s_name;
+	string_t		s_name;
 } ddef_t;
 
 typedef struct
@@ -456,8 +456,8 @@ typedef struct
 	int		parm_start;
 	int		locals;		// total ints of parms + locals
 	int		profile;		// runtime
-	int		s_name;
-	int		s_file;		// source file defined in
+	string_t		s_name;
+	string_t		s_file;		// source file defined in
 	int		numparms;
 	byte		parm_size[MAX_PARMS];
 } dfunction_t;
@@ -635,7 +635,7 @@ typedef struct
 
 	int		numtransitions;	// animation node to animation node transition graph
 	int		transitionindex;
-} studiohdr_t;
+} dstudiohdr_t;
 
 // header for demand loaded sequence group data
 typedef struct 
@@ -645,7 +645,7 @@ typedef struct
 
 	char		name[64];
 	int		length;
-} studioseqhdr_t;
+} dstudioseqhdr_t;
 
 // bones
 typedef struct 
@@ -656,7 +656,7 @@ typedef struct
 	int		bonecontroller[6];	// bone controller index, -1 == none
 	float		value[6];		// default DoF values
 	float		scale[6];		// scale for delta DoF values
-} mstudiobone_t;
+} dstudiobone_t;
 
 // bone controllers
 typedef struct 
@@ -667,7 +667,7 @@ typedef struct
 	float		end;
 	int		rest;		// byte index value at rest
 	int		index;		// 0-3 user set controller, 4 mouth
-} mstudiobonecontroller_t;
+} dstudiobonecontroller_t;
 
 // intersection boxes
 typedef struct
@@ -676,7 +676,7 @@ typedef struct
 	int		group;		// intersection group
 	vec3_t		bbmin;		// bounding box
 	vec3_t		bbmax;		
-} mstudiobbox_t;
+} dstudiobbox_t;
 
 // demand loaded sequence groups
 typedef struct
@@ -685,7 +685,7 @@ typedef struct
 	char		name[64];		// file name
 	void		*cache;		// cache index pointer (only in memory)
 	int		data;		// hack for group 0
-} mstudioseqgroup_t;
+} dstudioseqgroup_t;
 
 // sequence descriptions
 typedef struct
@@ -731,7 +731,7 @@ typedef struct
 	int		nodeflags;	// transition rules
 	
 	int		nextseq;		// auto advancing sequences
-} mstudioseqdesc_t;
+} dstudioseqdesc_t;
 
 // events
 typedef struct 
@@ -740,7 +740,7 @@ typedef struct
 	int		event;
 	int		type;
 	char		options[64];
-} mstudioevent_t;
+} dstudioevent_t;
 
 // pivots
 typedef struct 
@@ -748,7 +748,7 @@ typedef struct
 	vec3_t		org;		// pivot point
 	int		start;
 	int		end;
-} mstudiopivot_t;
+} dstudiopivot_t;
 
 // attachment
 typedef struct 
@@ -758,12 +758,12 @@ typedef struct
 	int		bone;
 	vec3_t		org;		// attachment point
 	vec3_t		vectors[3];
-} mstudioattachment_t;
+} dstudioattachment_t;
 
 typedef struct
 {
 	unsigned short	offset[6];
-} mstudioanim_t;
+} dstudioanim_t;
 
 // animation frames
 typedef union 
@@ -774,8 +774,7 @@ typedef union
 		byte	total;
 	} num;
 	short		value;
-} mstudioanimvalue_t;
-
+} dstudioanimvalue_t;
 
 // body part index
 typedef struct
@@ -784,8 +783,7 @@ typedef struct
 	int		nummodels;
 	int		base;
 	int		modelindex;	// index into models array
-} mstudiobodyparts_t;
-
+} dstudiobodyparts_t;
 
 // skin info
 typedef struct
@@ -795,7 +793,7 @@ typedef struct
 	int		width;
 	int		height;
 	int		index;
-} mstudiotexture_t;
+} dstudiotexture_t;
 
 // skin families
 // short	index[skinfamilies][skinref]		// skingroup info
@@ -820,7 +818,7 @@ typedef struct
 
 	int		numgroups;	// deformation groups
 	int		groupindex;
-} mstudiomodel_t;
+} dstudiomodel_t;
 
 // meshes
 typedef struct 
@@ -830,7 +828,7 @@ typedef struct
 	int		skinref;
 	int		numnorms;		// per mesh normals
 	int		normindex;	// normal vec3_t
-} mstudiomesh_t;
+} dstudiomesh_t;
 
 /*
 ==============================================================================

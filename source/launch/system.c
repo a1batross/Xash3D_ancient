@@ -196,6 +196,7 @@ void Sys_GetStdAPI( void )
 	com.FreeImage = FS_FreeImage;			// free image buffer
 
 	// image manipulation
+	com.ImageToRGB = Image_ConvertToRGB;		// expand any image to PF_RGB_24
 	com.ImageToRGBA = Image_ConvertToRGBA;		// expand any image to PF_RGBA_32
 	com.ImagePal32to24 = Image_ConvertPalTo24bit;	// convert palette from 32 to 24 bit
 	com.ResampleImage = Image_Resample;		// resample image

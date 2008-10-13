@@ -90,7 +90,7 @@ StudioEvent
 Event callback for studio models
 ====================
 */
-void CL_StudioEvent ( mstudioevent_t *event, entity_state_t *ent )
+void CL_StudioEvent ( dstudioevent_t *event, entity_state_t *ent )
 {
 	// setup args
 	PRVM_G_FLOAT(OFS_PARM0) = (float)event->event;

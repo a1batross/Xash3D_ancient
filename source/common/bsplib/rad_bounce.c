@@ -623,7 +623,7 @@ void RadLightForPatch( int num, int lightmapNum, rawLightmap_t *lm, bsp_shader_t
 			dv[2] = &mesh->verts[pw[r+2]];
 			dv[3] = &mesh->verts[pw[r+3]];
 			
-			planar = PlaneFromPoints( plane, dv[0]->point, dv[1]->point, dv[2]->point );
+			planar = BspPlaneFromPoints( plane, dv[0]->point, dv[1]->point, dv[2]->point );
 			if( planar )
 			{
 				dist = DotProduct( dv[1]->point, plane ) - plane[3];

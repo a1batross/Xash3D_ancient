@@ -592,7 +592,7 @@ static bool MapTriangle( rawLightmap_t *lm, surfaceInfo_t *info, dvertex_t *dv[3
 		VectorCopy( lm->plane, plane );
 		plane[3] = lm->plane[3];
 	}
-	else if( !PlaneFromPoints( plane, dv[0]->point, dv[1]->point, dv[2]->point ))
+	else if( !BspPlaneFromPoints( plane, dv[0]->point, dv[1]->point, dv[2]->point ))
 		return false;
 	
 	// check to see if we need to calculate texture->world tangent vectors
@@ -738,7 +738,7 @@ static bool MapQuad( rawLightmap_t *lm, surfaceInfo_t *info, dvertex_t *dv[4] )
 		VectorCopy( lm->plane, plane );
 		plane[3] = lm->plane[3];
 	}
-	else if( !PlaneFromPoints( plane, dv[0]->point, dv[1]->point, dv[2]->point ))
+	else if( !BspPlaneFromPoints( plane, dv[0]->point, dv[1]->point, dv[2]->point ))
 		return false;
 	
 	// 4th point must fall on the plane

@@ -71,5 +71,5 @@ if exist vsound\vsound.plg del /f /q vsound\vsound.plg
 echo 	     Build succeeded!
 echo Please wait. Xash is now loading
 cd D:\Xash3D\
-quake.exe -game tmpQuArK -log -debug -dev 3 +map dm7
+quake.exe -game tmpQuArK -log -debug -dev 5 +map skytest
 :done

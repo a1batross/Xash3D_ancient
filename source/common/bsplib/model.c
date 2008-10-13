@@ -91,8 +91,8 @@ void InsertModel( const char *name, int body, int seq, float frame, matrix4x4 tr
 			normal = pe->StudioGetNormal( surface, i );
 			VectorCopy( normal, dv->normal );
 
-			// FIXME: may be need Matrix4x4_TransposeRotate ???
-			Matrix4x4_Rotate( nTransform, dv->normal, dv->normal );
+			// FIXME: need to transpose ???
+			Matrix4x4_Transform3x3( nTransform, dv->normal, dv->normal );
 			VectorNormalize( dv->normal );
 
 			// added support for explicit shader texcoord generation
@@ -167,7 +167,7 @@ void InsertModel( const char *name, int body, int seq, float frame, matrix4x4 tr
 				}
 				
 				// make plane for triangle
-				if( PlaneFromPoints( plane, points[0], points[1], points[2] ))
+				if( BspPlaneFromPoints( plane, points[0], points[1], points[2] ))
 				{
 					// regenerate back points
 					for( j = 0; j < 3; j++ )
@@ -199,10 +199,10 @@ void InsertModel( const char *name, int body, int seq, float frame, matrix4x4 tr
 					VectorScale( nadir, 0.3333333333333f, nadir );
 					VectorMA( nadir, -2.0f, plane, nadir );
 					
-					/* make 3 more planes */
-					if( PlaneFromPoints( pa, points[2], points[1], backs[1] ) &&
-					PlaneFromPoints( pb, points[1], points[0], backs[0] ) &&
-					PlaneFromPoints( pc, points[0], points[2], backs[2] ))
+					// make 3 more planes
+					if( BspPlaneFromPoints( pa, points[2], points[1], backs[1] ) &&
+					BspPlaneFromPoints( pb, points[1], points[0], backs[0] ) &&
+					BspPlaneFromPoints( pc, points[0], points[2], backs[2] ))
 					{
 						// build a brush
 						buildBrush = AllocBrush( 48 );

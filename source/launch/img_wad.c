@@ -7,6 +7,8 @@
 #include "byteorder.h"
 #include "filesystem.h"
 
+#define TRANS_THRESHOLD		10
+
 /*
 ============
 Image_LoadPAL
@@ -56,7 +58,7 @@ bool Image_LoadWAL( const char *name, const byte *buffer, size_t filesize )
 	image_width = LittleLong(wal.width);
 	image_height = LittleLong(wal.height);
 	for(i = 0; i < 4; i++) ofs[i] = LittleLong(wal.offsets[i]);
-	if(!Image_ValidSize( name )) return false;
+	if(!Image_LumpValidSize( name )) return false;
 
 	pixels = image_width * image_height;
 	mipsize = (int)sizeof(wal) + ofs[0] + pixels;
@@ -152,7 +154,7 @@ bool Image_LoadFLT( const char *name, const byte *buffer, size_t filesize )
 
 	// yes it's really transparent texture
 	// otherwise transparency it's product of lazy designers (or painters ?)
-	if( trans_threshold > 10 ) image_flags |= IMAGE_HAS_ALPHA;
+	if( trans_threshold > TRANS_THRESHOLD ) image_flags |= IMAGE_HAS_ALPHA;
 
 	image_type = PF_INDEXED_32; // scaled up to 32-bit
 	Image_GetPaletteD1();
@@ -208,7 +210,7 @@ bool Image_LoadLMP( const char *name, const byte *buffer, size_t filesize )
 		return false;
 	}
 
-	if(!Image_ValidSize( name )) return false;         
+	if(!Image_LumpValidSize( name )) return false;         
 	image_num_mips = 1;
 	image_num_layers = 1;
 
@@ -281,7 +283,11 @@ bool Image_LoadMIP( const char *name, const byte *buffer, size_t filesize )
 			// qlumpy used this color for transparent textures, otherwise it's decals
  			if(pal[255*3+0] == 0 && pal[255*3+1] == 0 && pal[255*3+2] == 255)
 				rendermode = LUMP_TRANSPARENT;
-			else rendermode = LUMP_DECAL;
+			else
+			{
+				rendermode = LUMP_DECAL;
+				image_flags |= IMAGE_COLORINDEX;
+			}
 			image_flags |= IMAGE_HAS_ALPHA;
 		}
 		else rendermode = LUMP_NORMAL;
@@ -299,7 +305,7 @@ bool Image_LoadMIP( const char *name, const byte *buffer, size_t filesize )
 		return false;
 	} 
 
-	if(!Image_ValidSize( name )) return false;
+	if(!Image_LumpValidSize( name )) return false;
 	Image_GetPaletteLMP( pal, rendermode );
 	image_type = PF_INDEXED_32; // scaled up to 32 bit
 	return FS_AddMipmapToPack( fin, image_width, image_height, false );

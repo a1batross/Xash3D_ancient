@@ -1454,7 +1454,7 @@ extern int	numVertsIlluminated;
 extern int	numRawLightmaps;
 extern rawLightmap_t *rawLightmaps;
 
-bool PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c );
+bool BspPlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c );
 bool RadSampleImage( byte *pixels, int width, int height, float st[2], float color[4] );
 
 #endif//BSPLIB_H

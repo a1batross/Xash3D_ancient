@@ -135,10 +135,11 @@ bool Image_ValidSize( const char *name )
 
 bool Image_LumpValidSize( const char *name )
 {
-	if( image_width > 640 || image_height > 640 || image_width <= 0 || image_height <= 0 )
+	// WorldCraft limitation
+	if( image_width > 1024 || image_height > 1024 || image_width <= 0 || image_height <= 0 )
 	{
 		if(!com_stristr( name, "#internal" )) // internal errors are silent
-			MsgDev(D_WARN, "Image_LumpValidSize: (%s) dims out of range[%dx%d]\n", name, image_width,image_height );
+			MsgDev( D_WARN, "Image_LumpValidSize: (%s) dims out of range[%dx%d]\n", name, image_width, image_height );
 		return false;
 	}
 	return true;
@@ -816,7 +817,8 @@ bool Image_Resample( rgbdata_t **image, int width, int height, bool free_baseima
 
 		// if image was resampled
 		MsgDev( D_NOTE, "Resample image from[%d x %d] to [%d x %d]\n", pix->width, pix->height, w, h );
-		if( free_baseimage ) Mem_Free( pix->buffer ); // free original image buffer
+		// render dump screenshots into static buffer, so we never release it here
+		if( free_baseimage ) Mem_Free( pix->buffer );
 
 		// change image params
 		pix->buffer = out;
@@ -829,55 +831,70 @@ bool Image_Resample( rgbdata_t **image, int width, int height, bool free_baseima
 	return false;
 }
 
-bool Image_Process( rgbdata_t **pix, int adjust_type, bool free_baseimage )
+/*
+================
+R_FlipTexture
+================
+*/
+byte *Image_FlipInternal( const byte *in, int width, int height, int type, int adjust_flags )
 {
-	int	w, h, x, y, c, bpp;
-	rgbdata_t	*pic = *pix;
-	byte	*fout, *fin;
-	uint	line;
-				
-	// check for buffers
-	if(!pic || !pic->buffer) return false;
+	int	i, x, y;
+	int	samples = PFDesc[type].bpp;
+	bool	flip_x = ( adjust_flags & IMAGE_FLIP_X ) ? true : false;
+	bool	flip_y = ( adjust_flags & IMAGE_FLIP_Y ) ? true : false;
+	bool	flip_i = ( adjust_flags & IMAGE_FLIP_I ) ? true : false;
+	int	row_inc = ( flip_y ? -samples : samples ) * width;
+	int	col_inc = ( flip_x ? -samples : samples );
+	int	row_ofs = ( flip_y ? ( height - 1 ) * width * samples : 0 );
+	int	col_ofs = ( flip_x ? ( width - 1 ) * samples : 0 );
+	const byte *p, *line;
+	byte	*out;
 
-	// check for support formats
-	switch( pic->type )
+	// nothing to process
+	if( !adjust_flags ) return (byte *)in;
+
+	switch( type )
 	{
 	case PF_INDEXED_24:
 	case PF_INDEXED_32:
 	case PF_RGB_24:
 	case PF_RGBA_32:
+		out = Mem_Alloc( Sys.imagepool, width * height * samples );
 		break;
 	default:
-		MsgDev(D_ERROR, "Image_Process: can't processing format %s\n", PFDesc[pic->type].name );
-		return false;		
+		MsgDev( D_WARN, "Image_Flip: unsupported format %s\n", PFDesc[type].name );
+		return (byte *)in;	
 	}
 
-	bpp = PFDesc[pic->type].bpp;
-	w = pic->width;
-	h = pic->height;
-	line = pic->width * bpp;
-	fin = pic->buffer;
-	fout = Mem_Alloc( Sys.imagepool, w * h * bpp );
-
-	switch( adjust_type )
+	if( flip_i )
 	{
-	case IMAGE_FLIP_X:
-		for( y = 0; y < h; y++ )
-			for( x = w - 1; x >= 0; x-- )
-				for( c = 0; c < bpp; c++, fin++ )
-					fout[y*line+x*bpp+c] = *fin;
-		break;
-	case IMAGE_FLIP_Y:
-		for( y = h - 1; y >= 0; y-- )
-			for( x = 0; x < w; x++ )
-				for( c = 0; c < bpp; c++, fin++ )
-					fout[y*line+x*bpp+c] = *fin;
-		break;
-	default:
-		MsgDev(D_ERROR, "Image_Process: unknown transformation %d\n", adjust_type );		
-		break;
+		for( x = 0, line = in + col_ofs; x < width; x++, line += col_inc )
+			for( y = 0, p = line + row_ofs; y < height; y++, p += row_inc, out += samples )
+				for( i = 0; i < samples; i++ )
+					out[i] = p[i];
 	}
+	else
+	{
+		for( y = 0, line = in + row_ofs; y < height; y++, line += row_inc )
+			for( x = 0, p = line + col_ofs; x < width; x++, p += col_inc, out += samples )
+				for( i = 0; i < samples; i++ )
+					out[i] = p[i];
+	}
+	return out;
+}
 
+bool Image_Process( rgbdata_t **pix, int flags, bool free_baseimage )
+{
+	rgbdata_t	*pic = *pix;
+	byte	*fout;
+				
+	// check for buffers
+	if( !pic || !pic->buffer ) return false;
+
+	// can flip DXT without expanding to RGBA ? hmmm...
+	fout = Image_FlipInternal( pic->buffer, pic->width, pic->height, pic->type, flags );
+
+	// render dump screenshots into static buffer, so we never release it here
 	if( free_baseimage ) Mem_Free( pic->buffer );
 	pic->buffer = fout;
 	*pix = pic;

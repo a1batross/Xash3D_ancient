@@ -164,7 +164,7 @@ int FindMetaTriangle( metaTriangle_t *src, dvertex_t *a, dvertex_t *b, dvertex_t
 	{
 		// calculate a plane from the triangle's points (and bail if a plane can't be constructed)
 		src->planeNum = -1;
-		if( PlaneFromPoints( src->plane, a->point, b->point, c->point ) == false )
+		if( BspPlaneFromPoints( src->plane, a->point, b->point, c->point ) == false )
 			return -1;
 	}
 	
@@ -1177,7 +1177,7 @@ static void SubdivideFoliageTriangle_r( drawsurf_t *ds, foliage_t *foliage, dver
 	if( numFoliageInstances >= MAX_FOLIAGE_INSTANCES )
 		return;
 	
-	if( !PlaneFromPoints( plane, tri[0]->point, tri[1]->point, tri[2]->point ))
+	if( !BspPlaneFromPoints( plane, tri[0]->point, tri[1]->point, tri[2]->point ))
 		return;
 	if( plane[2] < 0.5f ) return;
 	

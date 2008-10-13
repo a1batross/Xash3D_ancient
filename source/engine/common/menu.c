@@ -625,7 +625,7 @@ void PF_stopcredits( void )
 =========
 PF_creditsactive
 
-void creditsactive( void )
+float creditsactive( void )
 =========
 */
 void PF_creditsactive( void )

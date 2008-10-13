@@ -48,8 +48,6 @@ typedef struct wavefile_s
 #define BSP_ONLYRAD		0x04
 #define BSP_FULLCOMPILE	0x08
 
-#define ALIGN( a ) a = (byte *)((int)((byte *)a + 3) & ~ 3)
-
 extern unsigned __int64 __g_ProfilerStart;
 extern unsigned __int64 __g_ProfilerEnd;
 extern unsigned __int64 __g_ProfilerEnd2;

@@ -4,9 +4,13 @@
 //=======================================================================
 
 #include "r_local.h"
+#include "mathlib.h"
 #include "const.h"
 
 #define SHADERS_HASHSIZE		256
+#define Shader_Malloc( size )		Mem_Alloc( r_shaderpool, size )
+#define Shader_Free( data )		Mem_Free( data )
+#define Shader_Sortkey( shader, sort )	((( sort )<<26 )|((shader)->shaderNum))
 
 typedef struct
 {
@@ -34,8 +38,13 @@ static shader_t		*r_shadersHash[SHADERS_HASHSIZE];
 static texture_t		*r_internalMiptex;
 
 shader_t			*r_shaders[MAX_SHADERS];
+skydome_t			*r_skydomes[MAX_SHADERS];
 int			r_numShaders = 0;
 byte			*r_shaderpool;
+static bool		r_shaderNoMipMaps;
+static bool		r_shaderNoPicMip;
+static bool		r_shaderNoCompress;
+static bool		r_shaderHasDlightPass;
 
 // builtin shaders
 shader_t *r_defaultShader;
@@ -190,7 +199,7 @@ static bool R_ParseGeneralSurfaceParm( shader_t *shader, char **script )
 	
 	switch( shader->shaderType )
 	{
-	case SHADER_TEXTURE:
+	case SHADER_SURFACE:
 	case SHADER_STUDIO:
 	case SHADER_SPRITE:
 		break;
@@ -221,8 +230,6 @@ static bool R_ParseGeneralSurfaceParm( shader_t *shader, char **script )
 		MsgDev( D_WARN, "unknown 'surfaceParm' parameter '%s' in shader '%s'\n", tok, shader->name );
 		return false;
 	}
-
-	shader->flags |= SHADER_SURFACEPARM;
 	return true;
 }
 
@@ -233,7 +240,7 @@ R_ParseGeneralNoMipmaps
 */
 static bool R_ParseGeneralNoMipmaps( shader_t *shader, char **script )
 {
-	shader->flags |= (SHADER_NOMIPMAPS|SHADER_NOPICMIP);
+	r_shaderNoMipMaps = r_shaderNoPicMip = true;
 	return true;
 }
 
@@ -244,7 +251,7 @@ R_ParseGeneralNoPicmip
 */
 static bool R_ParseGeneralNoPicmip( shader_t *shader, char **script )
 {
-	shader->flags |= SHADER_NOPICMIP;
+	r_shaderNoPicMip = true;
 	return true;
 }
 
@@ -255,29 +262,7 @@ R_ParseGeneralNoCompress
 */
 static bool R_ParseGeneralNoCompress( shader_t *shader, char **script )
 {
-	shader->flags |= SHADER_NOCOMPRESS;
-	return true;
-}
-
-/*
-=================
-R_ParseGeneralNoShadows
-=================
-*/
-static bool R_ParseGeneralNoShadows( shader_t *shader, char **script )
-{
-	shader->flags |= SHADER_NOSHADOWS;
-	return true;
-}
-
-/*
-=================
-R_ParseGeneralNoFragments
-=================
-*/
-static bool R_ParseGeneralNoFragments( shader_t *shader, char **script )
-{
-	shader->flags |= SHADER_NOFRAGMENTS;
+	r_shaderNoCompress = true;
 	return true;
 }
 
@@ -350,16 +335,10 @@ static bool R_ParseGeneralSort( shader_t *shader, char **script )
 	if(Com_MatchToken( "sky" )) shader->sort = SORT_SKY;
 	else if(Com_MatchToken( "opaque")) shader->sort = SORT_OPAQUE;
 	else if(Com_MatchToken( "decal")) shader->sort = SORT_DECAL;
-	else if(Com_MatchToken( "seeThrough")) shader->sort = SORT_SEETHROUGH;
+	else if(Com_MatchToken( "portal")) shader->sort = SORT_PORTAL;
 	else if(Com_MatchToken( "banner")) shader->sort = SORT_BANNER;
 	else if(Com_MatchToken( "underwater")) shader->sort = SORT_UNDERWATER;
-	else if(Com_MatchToken( "water")) shader->sort = SORT_WATER;
-	else if(Com_MatchToken( "innerBlend")) shader->sort = SORT_INNERBLEND;
-	else if(Com_MatchToken( "blend")) shader->sort = SORT_BLEND;
-	else if(Com_MatchToken( "blend2")) shader->sort = SORT_BLEND2;
-	else if(Com_MatchToken( "blend3")) shader->sort = SORT_BLEND3;
-	else if(Com_MatchToken( "blend4")) shader->sort = SORT_BLEND4;
-	else if(Com_MatchToken( "outerBlend")) shader->sort = SORT_OUTERBLEND;
+	else if(Com_MatchToken( "alphatest")) shader->sort = SORT_ALPHATEST;
 	else if(Com_MatchToken( "additive")) shader->sort = SORT_ADDITIVE;
 	else if(Com_MatchToken( "nearest")) shader->sort = SORT_NEAREST;
 	else
@@ -373,46 +352,6 @@ static bool R_ParseGeneralSort( shader_t *shader, char **script )
 		}
 	}
 	shader->flags |= SHADER_SORT;
-	return true;
-}
-
-/*
-=================
-R_ParseGeneralTessSize
-=================
-*/
-static bool R_ParseGeneralTessSize( shader_t *shader, char **script )
-{
-	char	*tok;
-	int	i = 8;
-
-	if( shader->shaderType != SHADER_TEXTURE )
-	{
-		MsgDev( D_WARN, "'tessSize' not allowed in shader '%s'\n", shader->name );
-		return false;
-	}
-
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
-	{
-		MsgDev( D_WARN, "missing parameters for 'tessSize' in shader '%s'\n", shader->name );
-		return false;
-	}
-
-	shader->tessSize = com.atoi( tok );
-
-	if( shader->tessSize < 8 || shader->tessSize > 256 )
-	{
-		MsgDev( D_WARN, "out of range size value of %i for 'tessSize' in shader '%s', defaulting to 64\n", shader->tessSize, shader->name );
-		shader->tessSize = 64;
-	}
-	else
-	{
-		while( i <= shader->tessSize ) i<<=1;
-		shader->tessSize = i>>1;
-	}
-
-	shader->flags |= SHADER_TESSSIZE;
 	return true;
 }
 
@@ -447,7 +386,7 @@ static bool R_ParseGeneralSkyParms( shader_t *shader, char **script )
 			if( shader->skyParms.farBox[i] )
 				shader->skyParms.farBox[i]->flags &= ~TF_STATIC; // old skybox will be removed on next loading
 			com.snprintf( name, sizeof(name), "%s%s", tok, r_skyBoxSuffix[i] );
-			shader->skyParms.farBox[i] = R_FindTexture( name, NULL, 0, TF_CLAMP|TF_SKYSIDE|TF_STATIC, 0 );
+			shader->skyParms.farBox[i] = R_FindTexture( name, NULL, 0, TF_CLAMP|TF_SKYBOX|TF_STATIC, 0 );
 			if( !shader->skyParms.farBox[i] )
 			{
 				MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", name, shader->name );
@@ -488,7 +427,7 @@ static bool R_ParseGeneralSkyParms( shader_t *shader, char **script )
 			if( shader->skyParms.nearBox[i] )
 				shader->skyParms.nearBox[i]->flags &= ~TF_STATIC; // old skybox will be removed on next loading
 			com.snprintf( name, sizeof(name), "%s%s", tok, r_skyBoxSuffix[i] );
-			shader->skyParms.nearBox[i] = R_FindTexture( name, NULL, 0, TF_CLAMP|TF_SKYSIDE|TF_STATIC, 0 );
+			shader->skyParms.nearBox[i] = R_FindTexture( name, NULL, 0, TF_CLAMP|TF_SKYBOX|TF_STATIC, 0 );
 			if( !shader->skyParms.nearBox[i] )
 			{
 				MsgDev( D_WARN, "couldn't find texture '%s' in shader '%s'\n", name, shader->name );
@@ -693,13 +632,11 @@ static bool R_ParseStageMap( shader_t *shader, shaderStage_t *stage, char **scri
 			MsgDev( D_WARN, "SHADER_MAX_TEXTURES hit in shader '%s'\n", shader->name );
 			return false;
 		}
-
 		if(!(bundle->flags & STAGEBUNDLE_MAP))
 		{
 			MsgDev( D_WARN, "animation with mixed texture types in shader '%s'\n", shader->name );
 			return false;
 		}
-
 		if(!(bundle->flags & STAGEBUNDLE_ANIMFREQUENCY))
 		{
 			MsgDev( D_WARN, "multiple 'map' specifications without preceding 'animFrequency' in shader '%s'\n", shader->name );
@@ -722,7 +659,7 @@ static bool R_ParseStageMap( shader_t *shader, shaderStage_t *stage, char **scri
 
 	if(Com_MatchToken( "$lightmap"))
 	{
-		if( shader->shaderType != SHADER_TEXTURE )
+		if( shader->shaderType != SHADER_SURFACE )
 		{
 			MsgDev( D_WARN, "'map $lightmap' not allowed in shader '%s'\n", shader->name );
 			return false;
@@ -736,24 +673,53 @@ static bool R_ParseStageMap( shader_t *shader, shaderStage_t *stage, char **scri
 
 		bundle->texType = TEX_LIGHTMAP;
 		bundle->flags |= STAGEBUNDLE_MAP;
-		shader->flags |= SHADER_HASLIGHTMAP;
+		shader->flags |= SHADER_LIGHTMAP;
 
 		return true;
 	}
+	else if(Com_MatchToken( "$dlight" ))
+	{
+		if( bundle->flags & STAGEBUNDLE_ANIMFREQUENCY )
+		{
+			MsgDev( D_WARN, "'map $dlight' not allowed with 'animFrequency' in shader '%s'\n", shader->name );
+			return false;
+		}
 
-	if( Com_MatchToken( "$whiteImage" )) bundle->textures[bundle->numTextures++] = r_whiteTexture;
-	else if( Com_MatchToken( "$blackImage")) bundle->textures[bundle->numTextures++] = r_blackTexture;
+		bundle->texType = TEX_DLIGHT;
+		bundle->tcGen.type = TCGEN_BASE;
+		bundle->flags |= STAGEBUNDLE_MAP;
+		r_shaderHasDlightPass = true;
+		return true;
+	}
+	else if(Com_MatchToken( "$portal" ) || Com_MatchToken( "$mirror" ))
+	{
+		if( bundle->flags & STAGEBUNDLE_ANIMFREQUENCY )
+		{
+			MsgDev( D_WARN, "'map $portal' or $mirror not allowed with 'animFrequency' in shader '%s'\n", shader->name );
+			return false;
+		}
+
+		bundle->texType = TEX_PORTAL;
+		bundle->tcGen.type = TCGEN_PROJECTION;
+		bundle->flags |= STAGEBUNDLE_MAP;
+		if(( shader->flags & SHADER_PORTAL ) && ( shader->sort == SORT_PORTAL ))
+			shader->sort = 0; // reset sorting so we can figure it out later. FIXME?
+		shader->flags |= SHADER_PORTAL|( r_portalmaps->integer ? SHADER_PORTAL_CAPTURE : 0 );
+		return true;
+	}
+	if( Com_MatchToken( "$white" )) bundle->textures[bundle->numTextures++] = r_whiteTexture;
+	else if( Com_MatchToken( "$black")) bundle->textures[bundle->numTextures++] = r_blackTexture;
 	else if( Com_MatchToken( "$internal")) bundle->textures[bundle->numTextures++] = r_internalMiptex;
 	else
 	{
-		if(!(shader->flags & SHADER_NOMIPMAPS) && !(bundle->flags & STAGEBUNDLE_NOMIPMAPS))
-			flags |= TF_MIPMAPS;
-		if(!(shader->flags & SHADER_NOPICMIP) && !(bundle->flags & STAGEBUNDLE_NOPICMIP))
-			flags |= TF_IMAGE2D;
-		if(!(shader->flags & SHADER_NOCOMPRESS) && !(bundle->flags & STAGEBUNDLE_NOCOMPRESS))
+		if( r_shaderNoMipMaps || bundle->flags & STAGEBUNDLE_NOMIPMAPS )
+			flags |= TF_NOMIPMAP;
+		if( r_shaderNoPicMip || bundle->flags & STAGEBUNDLE_NOPICMIP )
+			flags |= TF_NOPICMIP;
+		if( !r_shaderNoCompress && !(bundle->flags & STAGEBUNDLE_NOCOMPRESS))
 			flags |= TF_COMPRESS;
 
-		if( bundle->flags & STAGEBUNDLE_CLAMPTEXCOORDS)
+		if( bundle->flags & STAGEBUNDLE_CLAMPTEXCOORDS )
 			flags |= TF_CLAMP;
 
 		bundle->textures[bundle->numTextures] = R_FindTexture( tok, NULL, 0, flags, 0 );
@@ -815,11 +781,11 @@ static bool R_ParseStageBumpMap( shader_t *shader, shaderStage_t *stage, char **
 		return false;
 	}
 
-	if(!(shader->flags & SHADER_NOMIPMAPS) && !(bundle->flags & STAGEBUNDLE_NOMIPMAPS))
-		flags |= TF_MIPMAPS;
-	if(!(shader->flags & SHADER_NOPICMIP) && !(bundle->flags & STAGEBUNDLE_NOPICMIP))
-		flags |= TF_IMAGE2D;
-	if(!(shader->flags & SHADER_NOCOMPRESS) && !(bundle->flags & STAGEBUNDLE_NOCOMPRESS))
+	if( r_shaderNoMipMaps || bundle->flags & STAGEBUNDLE_NOMIPMAPS )
+		flags |= TF_NOMIPMAP;
+	if( r_shaderNoPicMip || bundle->flags & STAGEBUNDLE_NOPICMIP )
+		flags |= TF_NOPICMIP;
+	if( !r_shaderNoCompress && !( bundle->flags & STAGEBUNDLE_NOCOMPRESS ))
 		flags |= TF_COMPRESS;
 
 	if(bundle->flags & STAGEBUNDLE_CLAMPTEXCOORDS)
@@ -915,11 +881,11 @@ static bool R_ParseStageCubeMap( shader_t *shader, shaderStage_t *stage, char **
 	}
 	else
 	{
-		if(!(shader->flags & SHADER_NOMIPMAPS) && !(bundle->flags & STAGEBUNDLE_NOMIPMAPS))
-			flags |= TF_MIPMAPS;
-		if(!(shader->flags & SHADER_NOPICMIP) && !(bundle->flags & STAGEBUNDLE_NOPICMIP))
-			flags |= TF_IMAGE2D;
-		if(!(shader->flags & SHADER_NOCOMPRESS) && !(bundle->flags & STAGEBUNDLE_NOCOMPRESS))
+		if( r_shaderNoMipMaps || bundle->flags & STAGEBUNDLE_NOMIPMAPS )
+			flags |= TF_NOMIPMAP;
+		if( r_shaderNoPicMip || bundle->flags & STAGEBUNDLE_NOPICMIP )
+			flags |= TF_NOPICMIP;
+		if( !r_shaderNoCompress && !(bundle->flags & STAGEBUNDLE_NOCOMPRESS))
 			flags |= TF_COMPRESS;
 
 		if(bundle->flags & STAGEBUNDLE_CLAMPTEXCOORDS)
@@ -1746,27 +1712,10 @@ static bool R_ParseStageNextBundle( shader_t *shader, shaderStage_t *stage, char
 		return false;
 	}
 
-	if( stage->flags & SHADERSTAGE_FRAGMENTPROGRAM )
+	if( stage->numBundles == gl_config.textureunits )
 	{
-		if( stage->numBundles == gl_config.texturecoords )
-		{
-			MsgDev( D_WARN, "shader '%s' has %i or more bundles without suitable 'requires GL_MAX_TEXTURE_COORDS_ARB'\n", shader->name, stage->numBundles + 1);
-			return false;
-		}
-
-		if( stage->numBundles == gl_config.imageunits )
-		{
-			MsgDev( D_WARN, "shader '%s' has %i or more bundles without suitable 'requires GL_MAX_TEXTURE_IMAGE_UNITS_ARB'\n", shader->name, stage->numBundles + 1);
-			return false;
-		}
-	}
-	else
-	{
-		if( stage->numBundles == gl_config.textureunits )
-		{
-			MsgDev( D_WARN, "shader '%s' has %i or more bundles without suitable 'requires GL_MAX_TEXTURE_UNITS_ARB'\n", shader->name, stage->numBundles + 1);
-			return false;
-		}
+		MsgDev( D_WARN, "shader '%s' has %i or more bundles without suitable 'requires GL_MAX_TEXTURE_UNITS_ARB'\n", shader->name, stage->numBundles + 1);
+		return false;
 	}
 
 	if( stage->numBundles == MAX_TEXTURE_UNITS )
@@ -1889,96 +1838,6 @@ static bool R_ParseStageNextBundle( shader_t *shader, shaderStage_t *stage, char
 		}
 	}
 	stage->flags |= SHADERSTAGE_NEXTBUNDLE;
-	return true;
-}
-
-/*
-=================
-R_ParseStageVertexProgram
-=================
-*/
-static bool R_ParseStageVertexProgram( shader_t *shader, shaderStage_t *stage, char **script )
-{
-	char	*tok;
-
-	if( !GL_Support( R_VERTEX_PROGRAM_EXT ))
-	{
-		MsgDev( D_WARN, "shader '%s' uses 'vertexProgram' without 'requires GL_ARB_vertex_program'\n", shader->name );
-		return false;
-	}
-
-	if( shader->shaderType == SHADER_NOMIP )
-	{
-		MsgDev( D_WARN, "'vertexProgram' not allowed in shader '%s'\n", shader->name );
-		return false;
-	}
-
-	if( stage->flags & SHADERSTAGE_NEXTBUNDLE )
-	{
-		MsgDev( D_WARN, "'vertexProgram' not allowed in 'nextBundle' in shader '%s'\n", shader->name );
-		return false;
-	}
-
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
-	{
-		MsgDev( D_WARN, "missing parameters for 'vertexProgram' in shader '%s'\n", shader->name );
-		return false;
-	}
-
-	stage->vertexProgram = R_FindProgram( tok, GL_VERTEX_PROGRAM_ARB );
-	if( !stage->vertexProgram )
-	{
-		MsgDev( D_WARN, "couldn't find vertex program '%s' in shader '%s'\n", tok, shader->name );
-		return false;
-	}
-	stage->flags |= SHADERSTAGE_VERTEXPROGRAM;
-
-	return true;
-}
-
-/*
-=================
-R_ParseStageFragmentProgram
-=================
-*/
-static bool R_ParseStageFragmentProgram( shader_t *shader, shaderStage_t *stage, char **script )
-{
-	char	*tok;
-
-	if (!GL_Support( R_FRAGMENT_PROGRAM_EXT ))
-	{
-		MsgDev( D_WARN, "shader '%s' uses 'fragmentProgram' without 'requires GL_ARB_fragment_program'\n", shader->name );
-		return false;
-	}
-
-	if( shader->shaderType == SHADER_NOMIP )
-	{
-		MsgDev( D_WARN, "'fragmentProgram' not allowed in shader '%s'\n", shader->name );
-		return false;
-	}
-
-	if( stage->flags & SHADERSTAGE_NEXTBUNDLE )
-	{
-		MsgDev( D_WARN, "'fragmentProgram' not allowed in 'nextBundle' in shader '%s'\n", shader->name );
-		return false;
-	}
-
-	tok = Com_ParseToken( script, false );
-	if( !tok[0] )
-	{
-		MsgDev( D_WARN, "missing parameters for 'fragmentProgram' in shader '%s'\n", shader->name );
-		return false;
-	}
-
-	stage->fragmentProgram = R_FindProgram( tok, GL_FRAGMENT_PROGRAM_ARB );
-	if( !stage->fragmentProgram )
-	{
-		MsgDev( D_WARN, "couldn't find fragment program '%s' in shader '%s'\n", tok, shader->name );
-		return false;
-	}
-	stage->flags |= SHADERSTAGE_FRAGMENTPROGRAM;
-
 	return true;
 }
 
@@ -2258,26 +2117,6 @@ static bool R_ParseStageRgbGen( shader_t *shader, shaderStage_t *stage, char **s
 		}
 		stage->rgbGen.type = RGBGEN_WAVE;
 	}
-	else if (Com_MatchToken( "colorWave"))
-	{
-		for( i = 0; i < 3; i++ )
-		{
-			tok = Com_ParseToken( script, false );
-			if( !tok[0] )
-			{
-				MsgDev( D_WARN, "missing parameters for 'rgbGen colorWave' in shader '%s'\n", shader->name );
-				return false;
-			}
-			stage->rgbGen.params[i] = bound( 0.0, com.atof( tok ), 1.0 );
-		}
-
-		if( !R_ParseWaveFunc(shader, &stage->rgbGen.func, script ))
-		{
-			MsgDev( D_WARN, "missing waveform parameters for 'rgbGen colorWave' in shader '%s'\n", shader->name );
-			return false;
-		}
-		stage->rgbGen.type = RGBGEN_COLORWAVE;
-	}
 	else if (Com_MatchToken( "vertex"))
 		stage->rgbGen.type = RGBGEN_VERTEX;
 	else if (Com_MatchToken( "oneMinusVertex"))
@@ -2346,24 +2185,6 @@ static bool R_ParseStageAlphaGen( shader_t *shader, shaderStage_t *stage, char *
 			return false;
 		}
 		stage->alphaGen.type = ALPHAGEN_WAVE;
-	}
-	else if (Com_MatchToken( "alphaWave"))
-	{
-		tok = Com_ParseToken( script, false );
-		if( !tok[0] )
-		{
-			MsgDev( D_WARN, "missing parameters for 'alphaGen alphaWave' in shader '%s'\n", shader->name );
-			return false;
-		}
-
-		stage->alphaGen.params[0] = bound( 0.0, com.atof( tok ), 1.0 );
-
-		if(!R_ParseWaveFunc( shader, &stage->alphaGen.func, script ))
-		{
-			MsgDev( D_WARN, "missing waveform parameters for 'alphaGen alphaWave' in shader '%s'\n", shader->name );
-			return false;
-		}
-		stage->alphaGen.type = ALPHAGEN_ALPHAWAVE;
 	}
 	else if (Com_MatchToken( "vertex"))
 		stage->alphaGen.type = ALPHAGEN_VERTEX;
@@ -2468,7 +2289,7 @@ static bool R_ParseStageAlphaGen( shader_t *shader, shaderStage_t *stage, char *
 		}
 		stage->alphaGen.type = ALPHAGEN_ONEMINUSFADE;
 	}
-	else if (Com_MatchToken( "lightingSpecular" ))
+	else if (Com_MatchToken( "specular" ))
 	{
 		tok = Com_ParseToken( script, false );
 		if( !tok[0] ) stage->alphaGen.params[0] = 5.0;
@@ -2481,7 +2302,7 @@ static bool R_ParseStageAlphaGen( shader_t *shader, shaderStage_t *stage, char *
 				stage->alphaGen.params[0] = 5.0;
 			}
 		}
-		stage->alphaGen.type = ALPHAGEN_LIGHTINGSPECULAR;
+		stage->alphaGen.type = ALPHAGEN_SPECULAR;
 	}
 	else if (Com_MatchToken( "const" ) || Com_MatchToken( "constant" ))
 	{
@@ -2525,13 +2346,10 @@ static shaderGeneralCmd_t r_shaderGeneralCmds[] =
 {"noMipmaps",	R_ParseGeneralNoMipmaps	},
 {"noPicmip",	R_ParseGeneralNoPicmip	},
 {"noCompress",	R_ParseGeneralNoCompress	},
-{"noShadows",	R_ParseGeneralNoShadows	},
-{"noFragments",	R_ParseGeneralNoFragments	},
 {"entityMergable",	R_ParseGeneralEntityMergable	},
 {"polygonOffset",	R_ParseGeneralPolygonOffset	},
 {"cull",		R_ParseGeneralCull		},
 {"sort",		R_ParseGeneralSort		},
-{"tessSize",	R_ParseGeneralTessSize	},
 {"skyParms",	R_ParseGeneralSkyParms	},
 {"deformVertexes",	R_ParseGeneralDeformVertexes	},
 {NULL, NULL }	// terminator
@@ -2553,8 +2371,6 @@ static shaderStageCmd_t r_shaderStageCmds[] =
 {"tcGen",		R_ParseStageTcGen		},
 {"tcMod",		R_ParseStageTcMod		},
 {"nextBundle",	R_ParseStageNextBundle	},
-{"vertexProgram",	R_ParseStageVertexProgram	},
-{"fragmentProgram",	R_ParseStageFragmentProgram	},
 {"alphaFunc",	R_ParseStageAlphaFunc	},
 {"blendFunc",	R_ParseStageBlendFunc	},
 {"depthFunc",	R_ParseStageDepthFunc	},
@@ -2663,14 +2479,10 @@ static bool R_EvaluateRequires( shader_t *shader, char **script )
 			return false;
 		}
 
-		if( Com_MatchToken( "GL_MAX_TEXTURE_UNITS_ARB") || Com_MatchToken( "GL_MAX_TEXTURE_COORDS_ARB") || Com_MatchToken( "GL_MAX_TEXTURE_IMAGE_UNITS_ARB"))
+		if( Com_MatchToken( "GL_MAX_TEXTURE_UNITS_ARB"))
 		{
 			if( Com_MatchToken( "GL_MAX_TEXTURE_UNITS_ARB" ))
 				cmpOperand1 = gl_config.textureunits;
-			else if( Com_MatchToken( "GL_MAX_TEXTURE_COORDS_ARB"))
-				cmpOperand1 = gl_config.texturecoords;
-			else if (Com_MatchToken( "GL_MAX_TEXTURE_IMAGE_UNITS_ARB" ))
-				cmpOperand1 = gl_config.imageunits;
 
 			tok = Com_ParseToken( script, false );
 			if( !tok[0] )
@@ -2738,10 +2550,6 @@ static bool R_EvaluateRequires( shader_t *shader, char **script )
 				results[count] = GL_Support( R_DOT3_ARB_EXT );
 			else if (Com_MatchToken( "GL_ARB_texture_cube_map"))
 				results[count] = GL_Support( R_TEXTURECUBEMAP_EXT );
-			else if (Com_MatchToken( "GL_ARB_vertex_program"))
-				results[count] = GL_Support( R_VERTEX_PROGRAM_EXT );
-			else if (Com_MatchToken( "GL_ARB_fragment_program"))
-				results[count] = GL_Support( R_FRAGMENT_PROGRAM_EXT );
 			else
 			{
 				MsgDev( D_WARN, "unknown 'requires' expression '%s' in shader '%s', discarded stage\n", tok, shader->name );
@@ -3024,9 +2832,8 @@ static shader_t *R_CreateShader( const char *name, shaderType_t shaderType, uint
 	shader->shaderNum = r_numShaders;
 	shader->shaderType = shaderType;
 	shader->surfaceParm = surfaceParm;
-	shader->flags = SHADER_EXTERNAL;
 
-	if( shaderType == SHADER_NOMIP ) shader->flags |= (SHADER_NOMIPMAPS | SHADER_NOPICMIP);
+	if( shaderType == SHADER_NOMIP ) r_shaderNoMipMaps = r_shaderNoPicMip = true;
 
 	if( !R_ParseShader( shader, script ))
 	{
@@ -3052,7 +2859,6 @@ static shader_t *R_CreateShader( const char *name, shaderType_t shaderType, uint
 		shader->shaderNum = r_numShaders;
 		shader->shaderType = shaderType;
 		shader->surfaceParm = surfaceParm;
-		shader->flags = SHADER_EXTERNAL|SHADER_DEFAULTED;
 		shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
 		shader->stages[0]->bundles[0]->numTextures++;
 		shader->stages[0]->numBundles++;
@@ -3060,7 +2866,7 @@ static shader_t *R_CreateShader( const char *name, shaderType_t shaderType, uint
 
 		if(!( shader->surfaceParm & SURF_NOLIGHTMAP ))
 		{
-			shader->flags |= SHADER_HASLIGHTMAP;
+			shader->flags |= SHADER_LIGHTMAP;
 			shader->stages[1]->bundles[0]->flags |= STAGEBUNDLE_MAP;
 			shader->stages[1]->bundles[0]->texType = TEX_LIGHTMAP;
 			shader->stages[1]->flags |= SHADERSTAGE_BLENDFUNC;
@@ -3104,7 +2910,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 		{
 			if( shader->skyParms.farBox[i] )
 				shader->skyParms.farBox[i]->flags &= ~TF_STATIC; // old skybox will be removed on next loading
-			shader->skyParms.farBox[i] = R_FindTexture(va("gfx/env/%s%s", shader->name, r_skyBoxSuffix[i]), NULL, 0, TF_CLAMP|TF_SKYSIDE|TF_STATIC, 0 );
+			shader->skyParms.farBox[i] = R_FindTexture(va("gfx/env/%s%s", shader->name, r_skyBoxSuffix[i]), NULL, 0, TF_CLAMP|TF_SKYBOX|TF_STATIC, 0 );
 			if( !shader->skyParms.farBox[i] )
 			{
 				MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
@@ -3113,9 +2919,9 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 		}
 		shader->skyParms.cloudHeight = 128.0;
 		break;
-	case SHADER_TEXTURE:
+	case SHADER_SURFACE:
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_MIPMAPS|TF_COMPRESS, 0 );
+		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_COMPRESS, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
@@ -3145,7 +2951,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 
 		if(!( shader->surfaceParm & SURF_NOLIGHTMAP ))
 		{
-			shader->flags |= SHADER_HASLIGHTMAP;
+			shader->flags |= SHADER_LIGHTMAP;
 			shader->stages[1]->bundles[0]->flags |= STAGEBUNDLE_MAP;
 			shader->stages[1]->bundles[0]->texType = TEX_LIGHTMAP;
 			shader->stages[1]->flags |= SHADERSTAGE_BLENDFUNC;
@@ -3170,7 +2976,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
 			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
-	         		shader->sort = SORT_BLEND;
+	         		shader->sort = SORT_ADDITIVE;
 		}
 		if( shader->surfaceParm & SURF_ADDITIVE )
 		{
@@ -3178,7 +2984,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
 			shader->stages[0]->blendFunc.dst = GL_ONE;
 			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
-	         		shader->sort = SORT_BLEND;
+	         		shader->sort = SORT_ADDITIVE;
 		}
 		if( shader->surfaceParm & SURF_ALPHA )
 		{
@@ -3188,7 +2994,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 			shader->stages[0]->alphaFunc.func = GL_GREATER;
 			shader->stages[0]->alphaFunc.ref = 0.666;
 			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
-			shader->sort = SORT_SEETHROUGH;
+			shader->sort = SORT_ALPHATEST;
 		}
 		shader->stages[0]->bundles[0]->numTextures++;
 		shader->stages[0]->numBundles++;
@@ -3209,7 +3015,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 			shader->stages[0]->blendFunc.src = GL_SRC_ALPHA;
 			shader->stages[0]->blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
-	         		shader->sort = SORT_BLEND;
+	         		shader->sort = SORT_ADDITIVE;
 		}
 		if( shader->surfaceParm & SURF_ALPHA )
 		{
@@ -3219,7 +3025,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 			shader->stages[0]->alphaFunc.func = GL_GREATER;
 			shader->stages[0]->alphaFunc.ref = 0.666;
 			shader->flags |= SHADER_ENTITYMERGABLE; // using renderamt
-			shader->sort = SORT_SEETHROUGH;
+			shader->sort = SORT_ALPHATEST;
 		}
 		shader->stages[0]->bundles[0]->numTextures++;
 		shader->stages[0]->numBundles++;
@@ -3229,8 +3035,9 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 		// don't let user set invalid font
 		// FIXME: make case SHADER_FONT and func RegisterShaderFont
 		if(com.stristr( shader->name, "fonts/" )) buffer = FS_LoadInternal( "default.dds", &bufsize );
+		shader->features = MF_STCOORDS|MF_COLORS;
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_COMPRESS|TF_IMAGE2D, 0 );
+		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_COMPRESS|TF_NOMIPMAP, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
@@ -3245,7 +3052,7 @@ static shader_t *R_CreateDefaultShader( const char *name, shaderType_t shaderTyp
 		break;
 	case SHADER_GENERIC:
 		shader->stages[0]->bundles[0]->flags |= STAGEBUNDLE_MAP;
-		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_MIPMAPS|TF_COMPRESS, 0 );
+		shader->stages[0]->bundles[0]->textures[0] = R_FindTexture( shader->name, buffer, bufsize, TF_COMPRESS, 0 );
 		if( !shader->stages[0]->bundles[0]->textures[0] )
 		{
 			MsgDev( D_WARN, "couldn't find texture for shader '%s', using default...\n", shader->name );
@@ -3321,9 +3128,9 @@ static void R_FinishShader( shader_t *shader )
 	}
 
 	// lightmap but no lightmap stage?
-	if( shader->shaderType == SHADER_TEXTURE && !(shader->surfaceParm & SURF_NOLIGHTMAP ))
+	if( shader->shaderType == SHADER_SURFACE && !(shader->surfaceParm & SURF_NOLIGHTMAP ))
 	{
-		if(!(shader->flags & SHADER_DEFAULTED) && !(shader->flags & SHADER_HASLIGHTMAP))
+		if(!(shader->flags & SHADER_LIGHTMAP))
 			MsgDev( D_WARN, "shader '%s' has lightmap but no lightmap stage!\n", shader->name );
 	}
 
@@ -3358,7 +3165,7 @@ static void R_FinishShader( shader_t *shader )
 				// only allow tcGen lightmap on world surfaces
 				if( bundle->tcGen.type == TCGEN_LIGHTMAP )
 				{
-					if( shader->shaderType != SHADER_TEXTURE )
+					if( shader->shaderType != SHADER_SURFACE )
 						bundle->tcGen.type = TCGEN_BASE;
 				}
 			}
@@ -3424,7 +3231,7 @@ static void R_FinishShader( shader_t *shader )
 			case SHADER_SKY:
 				stage->rgbGen.type = RGBGEN_IDENTITY;
 				break;
-			case SHADER_TEXTURE:
+			case SHADER_SURFACE:
 				if((stage->flags & SHADERSTAGE_BLENDFUNC) && (stage->bundles[0]->texType != TEX_LIGHTMAP))
 					stage->rgbGen.type = RGBGEN_IDENTITYLIGHTING;
 				else stage->rgbGen.type = RGBGEN_IDENTITY;
@@ -3456,7 +3263,7 @@ static void R_FinishShader( shader_t *shader )
 			case SHADER_SKY:
 				stage->alphaGen.type = ALPHAGEN_IDENTITY;
 				break;
-			case SHADER_TEXTURE:
+			case SHADER_SURFACE:
 				if((stage->flags & SHADERSTAGE_BLENDFUNC) && (stage->bundles[0]->texType != TEX_LIGHTMAP))
 				{
 					if( shader->surfaceParm & SURF_ADDITIVE )
@@ -3504,7 +3311,7 @@ static void R_FinishShader( shader_t *shader )
 			case ALPHAGEN_ONEMINUSDOT:
 			case ALPHAGEN_FADE:
 			case ALPHAGEN_ONEMINUSFADE:
-			case ALPHAGEN_LIGHTINGSPECULAR:
+			case ALPHAGEN_SPECULAR:
 				if( shader->shaderType == SHADER_NOMIP )
 					stage->alphaGen.type = ALPHAGEN_VERTEX;
 				shader->flags &= ~SHADER_ENTITYMERGABLE;
@@ -3559,13 +3366,8 @@ static void R_FinishShader( shader_t *shader )
 				if( shader->flags & SHADER_POLYGONOFFSET )
 					shader->sort = SORT_DECAL;
 				else if( stage->flags & SHADERSTAGE_ALPHAFUNC )
-					shader->sort = SORT_SEETHROUGH;
-				else
-				{
-					if((stage->blendFunc.src == GL_SRC_ALPHA && stage->blendFunc.dst == GL_ONE) || (stage->blendFunc.src == GL_ONE && stage->blendFunc.dst == GL_ONE))
-						shader->sort = SORT_ADDITIVE;
-					else shader->sort = SORT_BLEND;
-				}
+					shader->sort = SORT_ALPHATEST;
+				else shader->sort = SORT_ADDITIVE;
 			}
 		}
 	}
@@ -3585,9 +3387,6 @@ static bool R_MergeShaderStages( shaderStage_t *stage1, shaderStage_t *stage2 )
 		return false;
 
 	if( stage1->flags & SHADERSTAGE_NEXTBUNDLE || stage2->flags & SHADERSTAGE_NEXTBUNDLE )
-		return false;
-
-	if( stage1->flags & (SHADERSTAGE_VERTEXPROGRAM | SHADERSTAGE_FRAGMENTPROGRAM) || stage2->flags & (SHADERSTAGE_VERTEXPROGRAM | SHADERSTAGE_FRAGMENTPROGRAM))
 		return false;
 
 	if( stage2->flags & SHADERSTAGE_ALPHAFUNC )
@@ -3679,6 +3478,28 @@ static void R_OptimizeShader( shader_t *shader )
 	}
 }
 
+void R_DeformVertexesBBoxForShader( const shader_t *shader, vec3_t ebbox )
+{
+	int	dv;
+	float	dvmax;
+
+	if( !shader ) return;
+	for( dv = 0; dv < shader->deformVertexesNum; dv++ )
+	{
+		switch( shader->deformVertexes[dv].type )
+		{
+		case DEFORMVERTEXES_WAVE:
+			dvmax = fabs( shader->deformVertexes[dv].func.params[1] ) + shader->deformVertexes[dv].func.params[0];
+			ebbox[0] = max( ebbox[0], dvmax );
+			ebbox[1] = ebbox[0];
+			ebbox[2] = ebbox[0];
+			break;
+		// FIXME: need to implementation for another funcs ?
+		default:	break;
+		}
+	}
+}
+
 /*
 =================
 R_LoadShader
@@ -3693,7 +3514,7 @@ shader_t *R_LoadShader( shader_t *newShader )
 	if( r_numShaders == MAX_SHADERS )
 		Host_Error( "R_LoadShader: MAX_SHADERS limit exceeded\n" );
 
-	r_shaders[r_numShaders++] = shader = Mem_Alloc( r_shaderpool, sizeof( shader_t ));
+	r_shaders[r_numShaders++] = shader = Shader_Malloc( sizeof( shader_t ));
 
 	// make sure the shader is valid and set all the unset parameters
 	R_FinishShader( newShader );
@@ -3722,6 +3543,9 @@ shader_t *R_LoadShader( shader_t *newShader )
 		}
 		shader->numStages++;
 	}
+
+	// calculate sortkey
+	shader->sortKey = Shader_Sortkey( shader, shader->sort );
 
 	// add to hash table
 	hashKey = Com_HashKey( shader->name, SHADERS_HASHSIZE );
@@ -3769,6 +3593,11 @@ shader_t *R_FindShader( const char *name, shaderType_t shaderType, uint surfaceP
 			}
 		}
 	}
+
+	r_shaderNoMipMaps =	false;
+	r_shaderNoPicMip = false;
+	r_shaderNoCompress = false;
+	r_shaderHasDlightPass = false;
  
  	// create the shader
 	if( script ) shader = R_CreateShader( name, shaderType, surfaceParm, script );
@@ -3821,35 +3650,31 @@ R_ShaderRegisterImages
 many many included cycles ...
 =================
 */
-void R_ShaderRegisterImages( rmodel_t *mod )
+void R_ShaderRegisterImages( shader_t *shader )
 {
-	int		i, j, k, l;
-	int		c_total = 0;
-	shader_t		*shader;
+	int		i, j, k;
 	shaderStage_t	*stage;
 	stageBundle_t	*bundle;
 	texture_t		*texture;
+	int		c_total = 0;
 
-	if( !mod ) return;
-	for( i = 0; i < mod->numShaders; i++ )
+	if( !shader ) return;
+	for( i = 0; i < shader->numStages; i++ )
 	{
-		shader = mod->shaders[i].shader;
-		for( j = 0; j < shader->numStages; j++ )
+		stage = shader->stages[i];
+		for( j = 0; j < stage->numBundles; j++ )
 		{
-			stage = shader->stages[j];
-			for( k = 0; k < stage->numBundles; k++ )
+			bundle = stage->bundles[j];
+			for( k = 0; k < bundle->numTextures; k++ )
 			{
-				bundle = stage->bundles[k];
-				for( l = 0; l < bundle->numTextures; l++ )
-				{
-					// prolonge registration for all shader textures
-					texture = bundle->textures[l];
-					texture->registration_sequence = registration_sequence;
-					c_total++; // just for debug
-				}
+				// prolonge registration for all shader textures
+				texture = bundle->textures[k];
+				texture->sequence = registration_sequence;
+				c_total++; // just for debug
 			}
 		}
 	}
+	MsgDev( D_INFO, "%i textures updated by shader %s\n", c_total, shader->name );
 }
 
 /*
@@ -3866,7 +3691,7 @@ static void R_CreateBuiltInShaders( void )
 
 	com.strncpy( shader->name, "<default>", sizeof( shader->name ));
 	shader->shaderNum = r_numShaders;
-	shader->shaderType = SHADER_TEXTURE;
+	shader->shaderType = SHADER_SURFACE;
 	shader->surfaceParm = SURF_NOLIGHTMAP;
 	shader->stages[0]->bundles[0]->textures[0] = r_defaultTexture;
 	shader->stages[0]->bundles[0]->numTextures++;
@@ -3880,8 +3705,8 @@ static void R_CreateBuiltInShaders( void )
 
 	com.strncpy( shader->name, "<lightmap>", sizeof( shader->name ));
 	shader->shaderNum = r_numShaders;
-	shader->shaderType = SHADER_TEXTURE;
-	shader->flags = SHADER_HASLIGHTMAP;
+	shader->shaderType = SHADER_SURFACE;
+	shader->flags = SHADER_LIGHTMAP;
 	shader->stages[0]->bundles[0]->texType = TEX_LIGHTMAP;
 	shader->stages[0]->numBundles++;
 	shader->numStages++;
@@ -3911,16 +3736,12 @@ void R_ShaderList_f( void )
 
 		Msg( "%i/%i ", passes, shader->numStages );
 
-		if( shader->flags & SHADER_EXTERNAL )
-			Msg("E ");
-		else Msg("  ");
-
 		switch( shader->shaderType )
 		{
 		case SHADER_SKY:
 			Msg( "sky " );
 			break;
-		case SHADER_TEXTURE:
+		case SHADER_SURFACE:
 			Msg( "bsp " );
 			break;
 		case SHADER_STUDIO:
@@ -3942,7 +3763,6 @@ void R_ShaderList_f( void )
 		else Msg("   ");
 
 		Msg( "%2i ", shader->sort );
-		Msg( ": %s%s\n", shader->name, (shader->flags & SHADER_DEFAULTED) ? " (DEFAULTED)" : "" );
 	}
 
 	Msg( "-----------------------------------\n" );

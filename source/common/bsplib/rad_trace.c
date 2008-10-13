@@ -481,7 +481,7 @@ static void FilterTraceWindingIntoNodes_r( traceWinding_t *tw, int nodeNum )
 		// create winding plane if necessary, filtering out bogus windings as well
 		if( nodeNum == headNodeNum )
 		{
-			if( !PlaneFromPoints( tw->plane, tw->v[0].point, tw->v[1].point, tw->v[2].point ) )
+			if( !BspPlaneFromPoints( tw->plane, tw->v[0].point, tw->v[1].point, tw->v[2].point ))
 				return;
 		}
 	

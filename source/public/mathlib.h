@@ -22,9 +22,9 @@
 
 
 #define METERS_PER_INCH	0.0254f
-#define EQUAL_EPSILON	0.001f
 #define STOP_EPSILON	0.1f
 #define ON_EPSILON		0.1f
+#define Z_NEAR		4.0f
 
 #define ANGLE2CHAR(x)	((int)((x)*256/360) & 255)
 #define CHAR2ANGLE(x)	((x)*(360.0/256))
@@ -39,6 +39,7 @@
 #define nanmask		(255<<23)
 
 #define IS_NAN(x)		(((*(int *)&x)&nanmask)==nanmask)
+#define rint(x)		(( x ) < 0 ? ((int)(( x ) - 0.5f )) : ((int)(( x ) + 0.5f )))
 #define RANDOM_LONG(MIN, MAX)	((rand() & 32767) * (((MAX)-(MIN)) * (1.0f / 32767.0f)) + (MIN))
 #define RANDOM_FLOAT(MIN,MAX)	(((float)rand() / RAND_MAX) * ((MAX)-(MIN)) + (MIN))
 
@@ -59,6 +60,7 @@
 #define VectorDistance(a, b) (sqrt(VectorDistance2(a,b)))
 #define VectorDistance2(a, b) (((a)[0] - (b)[0]) * ((a)[0] - (b)[0]) + ((a)[1] - (b)[1]) * ((a)[1] - (b)[1]) + ((a)[2] - (b)[2]) * ((a)[2] - (b)[2]))
 #define VectorAverage(a,b,o)	((o)[0]=((a)[0]+(b)[0])*0.5,(o)[1]=((a)[1]+(b)[1])*0.5,(o)[2]=((a)[2]+(b)[2])*0.5)
+#define Vector2Set(v, x, y) ((v)[0]=(x),(v)[1]=(y))
 #define VectorSet(v, x, y, z) ((v)[0]=(x),(v)[1]=(y),(v)[2]=(z))
 #define Vector4Set(v, x, y, z, w) {v[0] = x; v[1] = y; v[2] = z; v[3] = w;}
 #define VectorClear(x) ((x)[0]=(x)[1]=(x)[2]=0)
@@ -240,7 +242,7 @@ _inline void ClearBounds (vec3_t mins, vec3_t maxs)
 	maxs[0] = maxs[1] = maxs[2] = -99999;
 }
 
-_inline void AddPointToBounds (vec3_t v, vec3_t mins, vec3_t maxs)
+_inline void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs )
 {
 	int	i;
 	vec_t	val;
@@ -588,6 +590,25 @@ _inline void PlaneClassify( cplane_t *p )
 
 /*
 =================
+PlaneFromPoints
+=================
+*/
+_inline void PlaneFromPoints( vec3_t verts[3], cplane_t *plane )
+{
+	vec3_t	v1, v2;
+
+	VectorSubtract( verts[1], verts[0], v1 );
+	VectorSubtract( verts[2], verts[0], v2 );
+	CrossProduct( v2, v1, plane->normal );
+	VectorNormalize( plane->normal );
+	plane->dist = DotProduct( verts[0], plane->normal );
+
+	// FIXME: need to classify ?
+	// PlaneClassify( plane );
+}
+
+/*
+=================
 BoundsIntersect
 =================
 */
@@ -622,7 +643,7 @@ BoxOnPlaneSide (engine fast version)
 Returns SIDE_FRONT, SIDE_BACK, or SIDE_ON
 ==============
 */
-_inline int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, cplane_t *p )
+_inline int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
 {
 	if (p->type < 3) return ((emaxs[p->type] >= p->dist) | ((emins[p->type] < p->dist) << 1));
 	switch(p->signbits)

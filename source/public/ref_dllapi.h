@@ -84,6 +84,7 @@ typedef void (*xcommand_t) (void);
 
 typedef enum
 {
+	ED_INVALID = -1,
 	ED_SPAWNED = 0,	// this entity requris to set own type with SV_ClassifyEdict
 	ED_STATIC,	// this is a logic without model or entity with static model
 	ED_AMBIENT,	// this is entity emitted ambient sounds only
@@ -146,7 +147,7 @@ typedef struct model_state_s
 	float		animtime;		// auto-animating time
 	float		framerate;	// custom framerate, specified by QC
 	int		sequence;		// animation sequence (0 - 255)
-	int		gaitsequence;	// client\nps\bot gaitsequence
+	int		gaitsequence;	// client\npc\bot gaitsequence
 	int		skin;		// skin for studiomodels
 	int		body;		// sub-model selection for studiomodels
 	float		blending[16];	// studio animation blending
@@ -366,11 +367,13 @@ static const bpc_desc_t PFDesc[] =
 #define IMAGE_GEN_MIPS	0x00000008	// must generate mips
 #define IMAGE_CUBEMAP_FLIP	0x00000010	// it's a cubemap with flipped sides( dds pack )
 #define IMAGE_ONLY_PALETTE	0x00000020	// image not valid, returns palette only
+#define IMAGE_COLORINDEX	0x00000040	// all colors in palette is gradients of last color (decals)
 
 enum img_process
 {
-	IMAGE_FLIP_X = 0,
-	IMAGE_FLIP_Y,
+	IMAGE_FLIP_X = 1,
+	IMAGE_FLIP_Y = 2,
+	IMAGE_FLIP_I = 4,			// flip diagonal
 };
 
 typedef struct rgbdata_s
@@ -573,6 +576,7 @@ typedef struct stdilib_api_s
 
 	// built-in imagelib functions
 	rgbdata_t *(*LoadImage)( const char *path, const byte *buf, size_t filesize );	// return 8, 24 or 32 bit buffer with image info
+	void (*ImageToRGB)( rgbdata_t *pic );				// expand any image to PF_RGB_24
 	void (*ImageToRGBA)( rgbdata_t *pic );				// expand any image to PF_RGBA_32
 	void (*SaveImage)( const char *filename, rgbdata_t *buffer );	// save image into specified format 
 	void (*FreeImage)( rgbdata_t *pack );				// free image buffer
@@ -679,7 +683,7 @@ typedef struct stdilib_api_s
 #define Mem_FreePool(pool)		com.freepool(pool, __FILE__, __LINE__)
 #define Mem_EmptyPool(pool)		com.clearpool(pool, __FILE__, __LINE__)
 #define Mem_Copy(dest, src, size )	com.memcpy(dest, src, size, __FILE__, __LINE__)
-#define Mem_Set(dest, val, size )	com.memcpy(dest, val, size, __FILE__, __LINE__)
+#define Mem_Set(dest, val, size )	com.memset(dest, val, size, __FILE__, __LINE__)
 #define Mem_Check()			com.memcheck(__FILE__, __LINE__)
 #define Mem_CreateArray( p, s, n )	com.newarray( p, s, n, __FILE__, __LINE__)
 #define Mem_RemoveArray( array )	com.delarray( array, __FILE__, __LINE__)
@@ -849,6 +853,7 @@ imglib manager
 #define FS_LoadImage	com.LoadImage
 #define FS_SaveImage	com.SaveImage
 #define FS_FreeImage	com.FreeImage
+#define Image_ExpandRGB	com.ImageToRGB
 #define Image_ExpandRGBA	com.ImageToRGBA
 #define Image_ConvertPalette	com.ImagePal32to24
 #define Image_Resample	com.ResampleImage
@@ -958,11 +963,6 @@ typedef struct cvar_s
 #define MAX_MODELS			4096	// total count of brush & studio various models per one map
 #define MAX_PARTICLES		32768	// pre one frame
 #define MAX_EDICTS			65535	// absolute limit that never be reached, (do not edit!)
-
-// FIXME: player_state_t->renderfx
-#define RDF_NOWORLDMODEL		(1<<0)		// used for player configuration screen
-#define RDF_IRGOGGLES		(1<<1)
-#define RDF_PAIN			(1<<2)
 
 // encoded bmodel mask
 #define SOLID_BMODEL	0xffffff
@@ -1121,6 +1121,14 @@ typedef struct vrect_s
 
 typedef struct
 {
+	float	fov;
+	float	scale;
+	vec3_t	vieworg;
+	vec3_t	viewofs;			// (map->size - player->vieworg) + viewofs
+} skyportal_t;
+
+typedef struct
+{
 	vrect_t		rect;		// screen rectangle
 	float		fov_x;		// field of view by vertical
 	float		fov_y;		// field of view by horizontal
@@ -1128,6 +1136,9 @@ typedef struct
 	vec3_t		viewangles;	// client angles
 	float		time;		// time is used to shaders auto animate
 	float		oldtime;		// oldtime using for lerping studio models
+	skyportal_t	skyportal;	// env_sky settings
+	float		blend[4];		// q1\q2 legacy
+
 	uint		rdflags;		// client view effects: RDF_UNDERWATER, RDF_MOTIONBLUR, etc
 	byte		*areabits;	// if not NULL, only areas with set bits will be drawn
 } refdef_t;
@@ -1220,7 +1231,7 @@ typedef struct render_exp_s
 	bool	(*AddLightStyle)( int stylenum, vec3_t color );
 	void	(*ClearScene)( void );
 
-	void	(*BeginFrame)( void );
+	void	(*BeginFrame)( bool forceClear );
 	void	(*RenderFrame)( refdef_t *fd );
 	void	(*EndFrame)( void );
 
@@ -1240,7 +1251,8 @@ typedef struct render_imp_s
 	size_t	api_size;		// must matched with sizeof(render_imp_t)
 
 	// client fundamental callbacks
-	void	(*StudioEvent)( mstudioevent_t *event, entity_state_t *ent );
+	float	(*CalcFov)( float fov_x, float width, float height );
+	void	(*StudioEvent)( dstudioevent_t *event, entity_state_t *ent );
 	void	(*ShowCollision)( cmdraw_t callback );	// debug
 	long	(*WndProc)( void *hWnd, uint uMsg, uint wParam, long lParam );
 	entity_state_t *(*GetClientEdict)( int index );

@@ -198,7 +198,7 @@ void SCR_TimeRefresh_f( void )
 	if( Cmd_Argc() == 2 )
 	{	
 		// run without page flipping
-		re->BeginFrame();
+		re->BeginFrame( false );
 		for( i = 0; i < 128; i++ )
 		{
 			cl.refdef.viewangles[1] = i/128.0 * 360.0f;
@@ -212,7 +212,7 @@ void SCR_TimeRefresh_f( void )
 		{
 			cl.refdef.viewangles[1] = i/128.0 * 360.0f;
 
-			re->BeginFrame();
+			re->BeginFrame( false );
 			re->RenderFrame(&cl.refdef);
 			re->EndFrame();
 		}

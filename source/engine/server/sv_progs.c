@@ -151,7 +151,7 @@ void SV_SetMassCentre( edict_t *ent )
 	pe->SetMassCentre( ent->priv.sv->physbody, ent->progs.sv->m_pcentre );
 }
 
-void SV_SetModel (edict_t *ent, const char *name)
+void SV_SetModel( edict_t *ent, const char *name )
 {
 	int		i;
 	cmodel_t		*mod;
@@ -170,6 +170,7 @@ void SV_SetModel (edict_t *ent, const char *name)
 	angles[1] = ent->progs.sv->angles[1];
 	angles[2] = ent->progs.sv->angles[2] + 90.0f;
 
+	// FIXME: replace with Matrix3x3_FromAngles
 	AngleVectors( angles, ent->progs.sv->m_pmatrix[0], ent->progs.sv->m_pmatrix[1], ent->progs.sv->m_pmatrix[2] );
 	VectorCopy( ent->progs.sv->origin, ent->progs.sv->m_pmatrix[3] );
 	ConvertPositionToPhysic( ent->progs.sv->m_pmatrix[3] );
@@ -469,6 +470,7 @@ void Sav_LoadLocals( wfile_t *l )
 		PRVM_ED_Read( s_table, entnum, fields, numpairs );
 		entnum++;
 	}
+	VFS_Close( h );
 	prog->num_edicts = entnum;
 }
 
@@ -1603,8 +1605,8 @@ float LookupActivity( string model, float activity )
 void PF_lookupactivity( void )
 {
 	cmodel_t		*mod;
-	mstudioseqdesc_t	*pseqdesc;
-	studiohdr_t	*pstudiohdr;
+	dstudioseqdesc_t	*pseqdesc;
+	dstudiohdr_t	*pstudiohdr;
 	int		i, seq = -1;
 	int		activity, weighttotal = 0;
 
@@ -1614,10 +1616,10 @@ void PF_lookupactivity( void )
 
 	mod = pe->RegisterModel(PRVM_G_STRING(OFS_PARM0));
 	if( !mod ) return;
-	pstudiohdr = (studiohdr_t *)mod->extradata;
+	pstudiohdr = (dstudiohdr_t *)mod->extradata;
 	if( !pstudiohdr ) return;
 
-	pseqdesc = (mstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex);
+	pseqdesc = (dstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex);
 	activity = (int)PRVM_G_FLOAT(OFS_PARM1);
 
 	for( i = 0; i < pstudiohdr->numseq; i++)
@@ -1642,7 +1644,7 @@ vector GetEyePosition( string model )
 void PF_geteyepos( void )
 {
 	cmodel_t	  *mod;
-	studiohdr_t *pstudiohdr;
+	dstudiohdr_t *pstudiohdr;
 
 	if(!VM_ValidateArgs( "GetEyePosition", 1 )) return;	
 	VM_ValidateString(PRVM_G_STRING(OFS_PARM0));
@@ -1650,7 +1652,7 @@ void PF_geteyepos( void )
 		
 	mod = pe->RegisterModel(PRVM_G_STRING(OFS_PARM0));
 	if( !mod ) return;
-	pstudiohdr = (studiohdr_t *)mod->extradata;
+	pstudiohdr = (dstudiohdr_t *)mod->extradata;
 	if( !pstudiohdr ) return;
 
 	VectorCopy( pstudiohdr->eyeposition, PRVM_G_VECTOR(OFS_RETURN));
@@ -1666,8 +1668,8 @@ float LookupSequence( string model, string label )
 void PF_lookupsequence( void )
 {
 	cmodel_t		*mod;
-	studiohdr_t	*pstudiohdr;
-	mstudioseqdesc_t	*pseqdesc;
+	dstudiohdr_t	*pstudiohdr;
+	dstudioseqdesc_t	*pseqdesc;
 	int		i;
 
 	if(!VM_ValidateArgs( "LookupSequence", 2 )) return;	
@@ -1677,10 +1679,10 @@ void PF_lookupsequence( void )
 	
 	mod = pe->RegisterModel(PRVM_G_STRING(OFS_PARM0));
 	if( !mod ) return;
-	pstudiohdr = (studiohdr_t *)mod->extradata;
+	pstudiohdr = (dstudiohdr_t *)mod->extradata;
 	if( !pstudiohdr ) return;
 
-	pseqdesc = (mstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex);
+	pseqdesc = (dstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex);
 	for( i = 0; i < pstudiohdr->numseq; i++ )
 	{
 		if(!com.stricmp( pseqdesc[i].label, PRVM_G_STRING(OFS_PARM1)))
@@ -1702,8 +1704,8 @@ void PF_getsequenceinfo( void )
 {
 	cmodel_t		*mod;
 	edict_t		*ent;
-	studiohdr_t	*pstudiohdr;
-	mstudioseqdesc_t	*pseqdesc;
+	dstudiohdr_t	*pstudiohdr;
+	dstudioseqdesc_t	*pseqdesc;
 	int		sequence;
 
 	if(!VM_ValidateArgs( "GetSequenceInfo", 2 )) return;	
@@ -1714,7 +1716,7 @@ void PF_getsequenceinfo( void )
 	ent = PRVM_PROG_TO_EDICT( prog->globals.sv->pev );
 	mod = pe->RegisterModel(PRVM_G_STRING(OFS_PARM0));
 	if( !mod ) return;
-	pstudiohdr = (studiohdr_t *)mod->extradata;
+	pstudiohdr = (dstudiohdr_t *)mod->extradata;
 	if( !pstudiohdr ) return;
 
 	if( sequence >= pstudiohdr->numseq )
@@ -1724,7 +1726,7 @@ void PF_getsequenceinfo( void )
 		return;
 	}
 
-	pseqdesc = (mstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex) + sequence;
+	pseqdesc = (dstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex) + sequence;
 	if( pseqdesc->numframes > 1 )
 	{
 		ent->progs.sv->m_flFrameRate = 256.0 * (pseqdesc->fps / (pseqdesc->numframes - 1));
@@ -1750,8 +1752,8 @@ void PF_getsequenceflags( void )
 {
 	cmodel_t		*mod;
 	edict_t		*ent;
-	studiohdr_t	*pstudiohdr;
-	mstudioseqdesc_t	*pseqdesc;
+	dstudiohdr_t	*pstudiohdr;
+	dstudioseqdesc_t	*pseqdesc;
 	int		sequence;
 
 	if(!VM_ValidateArgs( "GetSequenceFlags", 2 )) return;	
@@ -1762,11 +1764,11 @@ void PF_getsequenceflags( void )
 	ent = PRVM_PROG_TO_EDICT( prog->globals.sv->pev );
 	mod = pe->RegisterModel(PRVM_G_STRING(OFS_PARM0));
 	if( !mod ) return;
-	pstudiohdr = (studiohdr_t *)mod->extradata;
+	pstudiohdr = (dstudiohdr_t *)mod->extradata;
 	if( !pstudiohdr ) return;
 	if( sequence >= pstudiohdr->numseq ) return;
 
-	pseqdesc = (mstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex) + sequence;
+	pseqdesc = (dstudioseqdesc_t *)((byte *)pstudiohdr + pstudiohdr->seqindex) + sequence;
 	PRVM_G_FLOAT(OFS_RETURN) = (float )pseqdesc->flags;
 }
 
