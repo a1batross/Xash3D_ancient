@@ -792,7 +792,12 @@ typedef struct
 	int		flags;
 	int		width;
 	int		height;
-	int		index;
+
+	union
+	{
+		int	index;		// disk: buffer index
+		shader_t	shader;		// mem: shader number
+	};
 } dstudiotexture_t;
 
 // skin families

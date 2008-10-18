@@ -23,13 +23,13 @@ R_SurfPotentiallyLit
 */
 bool R_SurfPotentiallyLit( msurface_t *surf )
 {
-	shader_t *shader;
+	ref_shader_t *shader;
 
 	if( surf->flags & ( SURF_SKY|SURF_NODLIGHT|SURF_NODRAW ))
 		return false;
 
 	shader = surf->shader;
-	if(( shader->flags & ( SHADER_SKY|SHADER_FLARE )) || !shader->numStages )
+	if(( shader->flags & ( SHADER_SKYPARMS|SHADER_FLARE )) || !shader->numStages )
 		return false;
 	return ( surf->mesh && ( surf->faceType != MST_FLARE ));
 }
@@ -86,7 +86,7 @@ void R_AddDynamicLights( uint dlightbits, int state )
 	uint		i, j, numTempIndices;
 	bool		cullAway;
 	const dlight_t	*light;
-	const shader_t	*shader;
+	const ref_shader_t	*shader;
 	vec3_t		tvec, dlorigin, normal;
 	uint		tempIndexArray[MAX_ARRAY_ELEMENTS];
 	float		inverseIntensity, *v1, *v2, *v3, dist;
@@ -219,7 +219,7 @@ void R_AddDynamicLights( uint dlightbits, int state )
 
 //===================================================================
 
-static shader_t *r_coronaShader;
+static ref_shader_t *r_coronaShader;
 
 /*
 =================

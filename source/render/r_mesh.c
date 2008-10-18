@@ -191,7 +191,7 @@ Calculate sortkey and store info used for batching and sorting.
 All 3D-geometry passes this function.
 =================
 */
-meshbuffer_t *R_AddMeshToList( int type, mfog_t *fog, shader_t *shader, int infokey )
+meshbuffer_t *R_AddMeshToList( int type, mfog_t *fog, ref_shader_t *shader, int infokey )
 {
 	meshlist_t	*list;
 	meshbuffer_t	*meshbuf;
@@ -244,7 +244,7 @@ meshbuffer_t *R_AddMeshToList( int type, mfog_t *fog, shader_t *shader, int info
 R_AddMeshToList
 =================
 */
-void R_AddModelMeshToList( mfog_t *fog, shader_t *shader, int meshnum )
+void R_AddModelMeshToList( mfog_t *fog, ref_shader_t *shader, int meshnum )
 {
 	meshbuffer_t *mb;
 	
@@ -263,7 +263,7 @@ static void R_BatchMeshBuffer( const meshbuffer_t *mb, const meshbuffer_t *nextm
 	int		type, features;
 	bool		nonMergable;
 	ref_entity_t	*ent;
-	shader_t		*shader;
+	ref_shader_t		*shader;
 	msurface_t	*surf, *nextSurf;
 
 	R_EDICT_FOR_KEY( mb->sortKey, ent );
@@ -284,11 +284,12 @@ static void R_BatchMeshBuffer( const meshbuffer_t *mb, const meshbuffer_t *nextm
 		{
 		case mod_world:
 		case mod_brush:
-			R_SHADER_FOR_KEY( mb->shaderKey, shader );
+			Shader_ForKey( mb->shaderKey, shader );
 
-			if( shader->flags & SHADER_SKY )
-			{	// draw sky
-				if( !( Ref.params & RP_NOSKY ) )
+			if( shader->flags & SHADER_SKYPARMS )
+			{	
+				// draw sky
+				if( !( Ref.params & RP_NOSKY ))
 					R_DrawSky( shader );
 				return;
 			}
@@ -400,7 +401,7 @@ void R_DrawPortals( void )
 {
 	int		i, trynum, num_meshes, total_meshes;
 	meshbuffer_t	*mb;
-	shader_t		*shader;
+	ref_shader_t		*shader;
 
 	if( r_viewCluster == -1 )
 		return;
@@ -434,13 +435,13 @@ void R_DrawPortals( void )
 
 				for( i = 0; i < total_meshes && num_meshes; i++, mb++ )
 				{
-					R_SHADER_FOR_KEY( mb->shaderKey, shader );
+					Shader_ForKey( mb->shaderKey, shader );
 
 					if( shader->flags & SHADER_PORTAL )
 					{
 						num_meshes--;
 
-						if( r_fastsky->integer && !( shader->flags & (SHADER_PORTAL_CAPTURE|SHADER_PORTAL_CAPTURE2)))
+						if( r_fastsky->integer && !( shader->flags & (SHADER_REFLECTION|SHADER_REFRACTION)))
 							continue;
 
 						if( !R_AddPortalSurface( mb ))
@@ -463,9 +464,9 @@ void R_DrawPortals( void )
 	{
 		for( i = 0, mb = Ref.meshlist->meshbuffer_opaque; i < Ref.meshlist->num_opaque_meshes; i++, mb++ )
 		{
-			R_SHADER_FOR_KEY( mb->shaderKey, shader );
+			Shader_ForKey( mb->shaderKey, shader );
 
-			if( shader->flags & SHADER_SKY )
+			if( shader->flags & SHADER_SKYPARMS )
 			{
 				R_DrawSky( shader );
 				Ref.params |= RP_NOSKY;
@@ -639,7 +640,7 @@ R_AddPortalSurface
 */
 static ref_entity_t *r_portal_ent;
 static cplane_t r_portal_plane, r_original_portal_plane;
-static shader_t *r_portal_shader;
+static ref_shader_t *r_portal_shader;
 static vec3_t r_portal_mins, r_portal_maxs, r_portal_centre;
 
 static bool R_AddPortalSurface( const meshbuffer_t *mb )
@@ -647,7 +648,7 @@ static bool R_AddPortalSurface( const meshbuffer_t *mb )
 	int		i;
 	float		dist;
 	ref_entity_t	*ent;
-	shader_t		*shader;
+	ref_shader_t		*shader;
 	msurface_t	*surf;
 	cplane_t		plane, oplane;
 	rb_mesh_t		*mesh;
@@ -670,7 +671,7 @@ static bool R_AddPortalSurface( const meshbuffer_t *mb )
 	if( !surf || !( mesh = surf->mesh ) || !mesh->points )
 		return false;
 
-	R_SHADER_FOR_KEY( mb->shaderKey, shader );
+	Shader_ForKey( mb->shaderKey, shader );
 
 	VectorCopy( mesh->points[mesh->indexes[0]], v[0] );
 	VectorCopy( mesh->points[mesh->indexes[1]], v[1] );
@@ -696,7 +697,7 @@ static bool R_AddPortalSurface( const meshbuffer_t *mb )
 
 	if(( dist = PlaneDiff( Ref.vieworg, &plane )) <= BACKFACE_EPSILON )
 	{
-		if(!( shader->flags & SHADER_PORTAL_CAPTURE2 ))
+		if(!( shader->flags & SHADER_REFRACTION ))
 			return true;
 	}
 
@@ -704,9 +705,9 @@ static bool R_AddPortalSurface( const meshbuffer_t *mb )
 	// by an alphagen portal stage
 	for( i = 0; i < shader->numStages; i++ )
 	{
-		if( shader->stages[i]->alphaGen.type == ALPHAGEN_PORTAL )
+		if( shader->stages[i]->alphaGen.type == ALPHAGEN_ONEMINUSFADE )
 		{
-			if( dist > ( 1.0 / shader->stages[i]->alphaGen.params[0] ))
+			if( dist > ( 1.0f / shader->stages[i]->alphaGen.params[0] ))
 				return true; // completely alpha'ed out
 		}
 	}
@@ -781,7 +782,7 @@ static bool R_DrawPortalSurface( void )
 	vec3_t		origin, angles;
 	ref_entity_t	*ent;
 	cplane_t		*portal_plane = &r_portal_plane, *original_plane = &r_original_portal_plane;
-	shader_t		*shader = r_portal_shader;
+	ref_shader_t		*shader = r_portal_shader;
 	bool		mirror, refraction = false;
 	texture_t		**captureTexture;
 	int		captureTextureID;
@@ -790,7 +791,7 @@ static bool R_DrawPortalSurface( void )
 	if( !r_portal_shader ) return false;
 
 	doReflection = doRefraction = true;
-	if( shader->flags & SHADER_PORTAL_CAPTURE )
+	if( shader->flags & SHADER_REFLECTION )
 	{
 		shaderStage_t *stage;
 
@@ -821,7 +822,7 @@ static bool R_DrawPortalSurface( void )
 
 	if(( dist = PlaneDiff( Ref.vieworg, portal_plane )) <= BACKFACE_EPSILON || !doReflection )
 	{
-		if(!( shader->flags & SHADER_PORTAL_CAPTURE2 ) || !doRefraction )
+		if(!( shader->flags & SHADER_REFRACTION ) || !doRefraction )
 			return false;
 
 		// even if we're behind the portal, we still need to capture
@@ -1002,10 +1003,10 @@ setup_and_render:
 		GL_SelectTexture( GL_TEXTURE0 );
 		GL_BindTexture( *captureTexture );
 		pglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, Ref.refdef.rect.x, Ref.refdef.rect.y, (*captureTexture)->width, (*captureTexture)->height );
-		Ref.params |= ( refraction ? RP_PORTALCAPTURED2 : RP_PORTALCAPTURED );
+		Ref.params |= ( refraction ? RP_REFRACTED : RP_REFLECTED );
 	}
 
-	if( doRefraction && !refraction && ( shader->flags & SHADER_PORTAL_CAPTURE2 ))
+	if( doRefraction && !refraction && ( shader->flags & RP_REFRACTED ))
 	{
 		refraction = true;
 		captureTexture = &r_portaltexture2;
@@ -1035,7 +1036,7 @@ void R_DrawSkyPortal( skyportal_t *skyportal, vec3_t mins, vec3_t maxs )
 	Mem_Copy( &saveRef, &oldRef, sizeof( ref_state_t ));
 	Mem_Copy( &oldRef, &Ref, sizeof( ref_state_t ));
 
-	Ref.params = ( Ref.params | RP_SKYPORTALVIEW ) & ~(RP_OLDVIEWCLUSTER|RP_PORTALCAPTURED|RP_PORTALCAPTURED2);
+	Ref.params = ( Ref.params | RP_SKYPORTALVIEW ) & ~(RP_OLDVIEWCLUSTER|RP_REFLECTED|RP_REFRACTED);
 	VectorCopy( skyportal->vieworg, Ref.pvsOrigin );
 
 	Ref.clipFlags = 15;

@@ -301,7 +301,7 @@ bool R_CompletelyFogged( mfog_t *fog, vec3_t origin, float radius )
 	if( fog && fog->shader && Ref.fog_dist_to_eye[fog - r_worldBrushModel->fogs] < 0 )
 	{
 		float vpnDist = (( Ref.vieworg[0] - origin[0] ) * Ref.forward[0] + ( Ref.vieworg[1] - origin[1] ) * Ref.forward[1] + ( Ref.vieworg[2] - origin[2] ) * Ref.forward[2] );
-		return (( vpnDist + radius ) / fog->shader->fog_dist ) < -1;
+		return (( vpnDist + radius ) / fog->shader->fogDist ) < -1;
 	}
 	return false;
 }
@@ -346,7 +346,7 @@ static bool R_PushSprite( const meshbuffer_t *mb, float rotation, float right, f
 	vec3_t		point;
 	vec3_t		v_right, v_up;
 	ref_entity_t	*e = Ref.m_pCurrentEntity;
-	shader_t		*shader;
+	ref_shader_t		*shader;
 
 	if( rotation )
 	{
@@ -373,7 +373,7 @@ static bool R_PushSprite( const meshbuffer_t *mb, float rotation, float right, f
 			VectorScale( spr_points[i], e->scale, spr_points[i] );
 	}
 
-	R_SHADER_FOR_KEY( mb->shaderKey, shader );
+	Shader_ForKey( mb->shaderKey, shader );
 
 	// the code below is disgusting, but some q3a shaders use 'rgbgen vertex'
 	// and 'alphagen vertex' for effects instead of 'rgbgen entity' and 'alphagen entity'
@@ -412,7 +412,7 @@ static void R_PushFlareSurf( const meshbuffer_t *mb )
 	float		up = radius, down = -radius, left = -radius, right = radius;
 	mbrushmodel_t	*bmodel = ( mbrushmodel_t * )Ref.m_pCurrentModel->extradata;
 	msurface_t	*surf = &bmodel->surfaces[mb->infoKey - 1];
-	shader_t		*shader;
+	ref_shader_t		*shader;
 
 	if( Ref.m_pCurrentModel != r_worldModel )
 	{
@@ -450,7 +450,7 @@ static void R_PushFlareSurf( const meshbuffer_t *mb )
 	for( i = 0; i < 4; i++ )
 		Vector4Copy( color, spr_color[i] );
 
-	R_SHADER_FOR_KEY( mb->shaderKey, shader );
+	Shader_ForKey( mb->shaderKey, shader );
 
 	R_PushMesh( &spr_mesh, MF_NOCULL|MF_TRIFAN|shader->features );
 }
@@ -471,7 +471,7 @@ static void R_PushCorona( const meshbuffer_t *mb )
 	float	down = -radius;
 	float	left = -radius;
 	float	right = radius;
-	shader_t	*shader;
+	ref_shader_t	*shader;
 
 	VectorCopy( light->origin, origin );
 
@@ -491,7 +491,7 @@ static void R_PushCorona( const meshbuffer_t *mb )
 	for( i = 0; i < 4; i++ )
 		Vector4Copy( color, spr_color[i] );
 
-	R_SHADER_FOR_KEY( mb->shaderKey, shader );
+	Shader_ForKey( mb->shaderKey, shader );
 	R_PushMesh( &spr_mesh, MF_NOCULL|MF_TRIFAN|shader->features );
 }
 
@@ -821,7 +821,7 @@ static float R_SetFarClip( void )
 
 		if( r_worldBrushModel->globalfog )
 		{
-			float	fogdist = r_worldBrushModel->globalfog->shader->fog_dist;
+			float	fogdist = r_worldBrushModel->globalfog->shader->fogDist;
 			if( farDist > fogdist ) farDist = fogdist;
 			else Ref.clipFlags &= ~16;
 		}
@@ -1798,7 +1798,7 @@ void R_RenderScene( refdef_t *fd )
 
 	if( r_worldModel && !( Ref.refdef.rdflags & RDF_NOWORLDMODEL ) && r_worldBrushModel->globalfog )
 	{
-		Ref.farClip = r_worldBrushModel->globalfog->shader->fog_dist;
+		Ref.farClip = r_worldBrushModel->globalfog->shader->fogDist;
 		Ref.farClip = max( r_farclip_min, Ref.farClip ) + r_farclip_bias;
 		Ref.clipFlags |= 16;
 	}

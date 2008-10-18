@@ -19,7 +19,7 @@ string		frame_prefix;
 byte		*spr_palette;
 static byte	pal[256][4];
 uint		surfaceParm;
-shader_t		*frames;
+ref_shader_t		*frames;
 	
 /*
 ====================
@@ -35,7 +35,7 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 	rgbdata_t		*spr_frame;
 	texture_t		*image;
 	string		name;
-	shader_t		*out;
+	ref_shader_t		*out;
 	
 	pinframe = (dframe_t *)pin;
 

@@ -20,10 +20,10 @@ void R_PushPoly( const meshbuffer_t *mb )
 {
 	int	i, j;
 	poly_t	*p;
-	shader_t	*shader;
+	ref_shader_t	*shader;
 	int	features;
 
-	R_SHADER_FOR_KEY( mb->shaderKey, shader );
+	Shader_ForKey( mb->shaderKey, shader );
 
 	features = shader->features|MF_TRIFAN;
 
@@ -55,7 +55,7 @@ void R_AddPolysToList( void )
 	poly_t		*p;
 	mfog_t		*fog, *lastFog = NULL;
 	meshbuffer_t	*mb = NULL;
-	shader_t		*shader;
+	ref_shader_t		*shader;
 	vec3_t		lastNormal = { 0, 0, 0 };
 
 	Ref.m_pCurrentEntity = r_worldEntity;
@@ -74,8 +74,7 @@ void R_AddPolysToList( void )
 		else fog = r_worldBrushModel->fogs + fognum - 1;
 
 		// we ignore SHADER_ENTITY_MERGABLE here because polys are just regular trifans
-		if( !mb || mb->shaderKey != (int)shader->sortKey || lastFog != fog || nverts + p->numverts > MAX_ARRAY_VERTS
-			|| (( shader->flags & SHADER_MATERIAL ) && !VectorCompare( p->normal, lastNormal )))
+		if( !mb || mb->shaderKey != (int)shader->sortKey || lastFog != fog || nverts + p->numverts > MAX_ARRAY_VERTS )
 		{
 			nverts = 0;
 			lastFog = fog;

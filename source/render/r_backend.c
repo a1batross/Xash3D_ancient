@@ -405,7 +405,7 @@ static float *RB_TableForFunc( const waveFunc_t *func )
 {
 	switch( func->type )
 	{
-	case WAVEFORM_SIN:
+	case WAVEFORM_SINE:
 		return rb_sinTable;
 	case WAVEFORM_TRIANGLE:
 		return rb_triangleTable;
@@ -870,8 +870,8 @@ RB_DeformVertexes
 */
 static void RB_DeformVertexes( void )
 {
-	deformVerts_t	*deformVertexes = Ref.m_pCurrentShader->deformVertexes;
-	uint		deformVertexesNum = Ref.m_pCurrentShader->deformVertexesNum;
+	deformVerts_t	*deformVertexes = Ref.m_pCurrentShader->deformVerts;
+	uint		deformVertexesNum = Ref.m_pCurrentShader->deformVertsNum;
 	float		deflect, *quad[4];
 	double		temp, params[4];
 	vec3_t		tv, rot_centre;
@@ -1395,7 +1395,6 @@ static void RB_CalcVertexColors( const shaderStage_t *stage )
 			fArray[3] = a;
 		break;
 	case ALPHAGEN_FADE:
-	case ALPHAGEN_PORTAL:
 		VectorAdd( vertexArray[0], Ref.m_pCurrentEntity->origin, v );
 		VectorSubtract( Ref.vieworg, v, t );
 		a = VectorLength( t ) * alphaGen->func.params[0];
@@ -1403,6 +1402,8 @@ static void RB_CalcVertexColors( const shaderStage_t *stage )
 
 		for( i = 0; i < r_stats.numColors; i++, fArray += 4 )
 			fArray[3] = a;
+		break;
+	case ALPHAGEN_ONEMINUSFADE:
 		break;
 	case ALPHAGEN_VERTEX:
 		for( i = 0; i < r_stats.numColors; i++, fArray += 4, inArray += 4 )
@@ -1483,10 +1484,10 @@ static void RB_CalcVertexColors( const shaderStage_t *stage )
 		else alphaFog = true;
 
 		fogPlane = r_colorFog->visible;
-		fogShaderDistScale = 1.0 / (r_colorFog->shader->fog_dist - r_colorFog->shader->fogClearDist);
+		fogShaderDistScale = 1.0 / (r_colorFog->shader->fogDist - r_colorFog->shader->fogClearDist);
 		dist = Ref.fog_dist_to_eye[r_colorFog - r_worldBrushModel->fogs];
 
-		if( Ref.m_pCurrentShader->flags & SHADER_SKY )
+		if( Ref.m_pCurrentShader->flags & SHADER_SKYPARMS )
 		{
 			if( dist > 0 ) VectorScale( fogPlane->normal, -dist, viewtofog );
 			else VectorClear( viewtofog );
@@ -1574,6 +1575,7 @@ static bool RB_CalcTextureCoords( const stageBundle_t *bundle, uint unit, matrix
 
 	switch( tcGen->type )
 	{
+	default:
 	case TCGEN_BASE:
 		RB_DisableTexGen();
 
@@ -1704,17 +1706,17 @@ static bool RB_CalcTextureCoords( const stageBundle_t *bundle, uint unit, matrix
 		return true;
 	case TCGEN_FOG:
 	{
-		int	fogPtype;
-		cplane_t	*fogPlane;
-		shader_t	*fogShader;
-		vec3_t	viewtofog;
-		float	fogNormal[3], vpnNormal[3];
-		float	dist, vdist, fogDist, vpnDist;
+		int		fogPtype;
+		cplane_t		*fogPlane;
+		ref_shader_t	*fogShader;
+		vec3_t		viewtofog;
+		float		fogNormal[3], vpnNormal[3];
+		float		dist, vdist, fogDist, vpnDist;
 
 		fogPlane = r_texFog->visible;
 		fogShader = r_texFog->shader;
 
-		matrix[0][0] = matrix[1][1] = 1.0f / ( fogShader->fog_dist - fogShader->fogClearDist );
+		matrix[0][0] = matrix[1][1] = 1.0f / ( fogShader->fogDist - fogShader->fogClearDist );
 // FIXME: HACK
 #ifdef OPENGL_STYLE
 		matrix[3][1] = 1.5f / (float)FOG_TEXTURE_HEIGHT;
@@ -1724,7 +1726,7 @@ static bool RB_CalcTextureCoords( const stageBundle_t *bundle, uint unit, matrix
 		// distance to fog
 		dist = Ref.fog_dist_to_eye[r_texFog - r_worldBrushModel->fogs];
 
-		if( Ref.m_pCurrentShader->flags & SHADER_SKY )
+		if( Ref.m_pCurrentShader->flags & SHADER_SKYPARMS )
 		{
 			if( dist > 0 ) VectorMA( Ref.vieworg, -dist, fogPlane->normal, viewtofog );
 			else VectorCopy( Ref.vieworg, viewtofog );
@@ -1793,7 +1795,6 @@ static bool RB_CalcTextureCoords( const stageBundle_t *bundle, uint unit, matrix
 		RB_DisableTexGen();
 		Matrix4x4_Concat( matrix, r_currentCastGroup->worldProjectionMatrix, Ref.entityMatrix );
 		break;
-	default:	break;
 	}
 
 	return identityMatrix;
@@ -2005,7 +2006,7 @@ static void RB_SetupTextureUnit( const shaderStage_t *stage, const stageBundle_t
 		//CIN_RunCinematic( bundle->cinematicHandle );
 		//CIN_DrawCinematic( bundle->cinematicHandle );
 		break;
-	case TEX_PORTAL:
+	case TEX_RENDERVIEW:
 		image = r_portaltexture;
 		break;
 	case TEX_DLIGHT:
@@ -2113,7 +2114,7 @@ static void RB_RenderMeshGeneric( void )
 	GL_TexEnv( GL_MODULATE );
 	GL_SetState( r_currentShaderState|( stage->flags & r_currentShaderPassMask ));
 
-	/*for( i = 0; i < rb_numAccumStages; i++ )
+	for( i = 0; i < rb_numAccumStages; i++ )
 	{
 		stage = Ref.m_pCurrentShader->stages[i];
 
@@ -2130,7 +2131,7 @@ static void RB_RenderMeshGeneric( void )
 			bundle = stage->bundles[j];
 			RB_CleanupTextureUnit( bundle, j );
 		}
-	}*/
+	}
 	R_FlushArrays();
 }
 
@@ -2275,7 +2276,7 @@ void R_RenderMeshBuffer( const meshbuffer_t *mb )
 	else r_superLightStyle = NULL;
 	m_pRenderMeshBuffer = mb;
 
-	R_SHADER_FOR_KEY( mb->shaderKey, Ref.m_pCurrentShader );
+	Shader_ForKey( mb->shaderKey, Ref.m_pCurrentShader );
 
 	if( gl_state.orthogonal )
 	{
@@ -2293,7 +2294,7 @@ void R_RenderMeshBuffer( const meshbuffer_t *mb )
 
 	if( !r_triangleOutlines ) RB_SetShaderState();
 
-	if( Ref.m_pCurrentShader->deformVertexesNum )
+	if( Ref.m_pCurrentShader->deformVertsNum )
 		RB_DeformVertexes();
 
 	if( r_features & MF_KEEPLOCK )
@@ -2320,7 +2321,7 @@ void R_RenderMeshBuffer( const meshbuffer_t *mb )
 	if( fog && !fog->shader ) fog = NULL;
 
 	// can we fog the geometry with alpha texture?
-	r_texFog = ( fog && (( Ref.m_pCurrentShader->sort <= SORT_ALPHATEST && ( Ref.m_pCurrentShader->flags & ( SHADER_DEPTHWRITE|SHADER_SKY ))) || Ref.m_pCurrentShader->fog_dist )) ? fog : NULL;
+	r_texFog = ( fog && (( Ref.m_pCurrentShader->sort <= SORT_ALPHATEST && ( Ref.m_pCurrentShader->flags & ( SHADER_SKYPARMS ))) || Ref.m_pCurrentShader->fogDist )) ? fog : NULL;
 
 	// check if the fog volume is present but we can't use alpha texture
 	r_colorFog = ( fog && !r_texFog ) ? fog : NULL;
@@ -2404,7 +2405,7 @@ meshbuffer_t pic_mbuffer;
 RB_DrawStretchPic
 ===============
 */
-void RB_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, shader_t *shader )
+void RB_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, ref_shader_t *shader )
 {
 	if( !shader ) return;
 

@@ -55,9 +55,9 @@ R_CullSurface
 */
 bool R_CullSurface( msurface_t *surf, uint clipflags )
 {
-	shader_t *shader = surf->shader;
+	ref_shader_t *shader = surf->shader;
 
-	if(( shader->flags & SHADER_SKY ) && r_fastsky->integer )
+	if(( shader->flags & SHADER_SKYPARMS ) && r_fastsky->integer )
 		return true;
 	if( r_nocull->integer )
 		return false;
@@ -124,14 +124,14 @@ R_AddSurfaceToList
 */
 static meshbuffer_t *R_AddSurfaceToList( msurface_t *surf, uint clipflags )
 {
-	shader_t		*shader;
+	ref_shader_t		*shader;
 	meshbuffer_t	*mb;
 
 	if( R_CullSurface( surf, clipflags ))
 		return NULL;
 
 	shader = ((r_drawworld->integer == 2) ? R_OcclusionShader() : surf->shader);
-	if( shader->flags & SHADER_SKY )
+	if( shader->flags & SHADER_SKYPARMS )
 	{
 		bool vis = R_AddSkySurface( surf );
 		if( ( Ref.params & RP_NOSKY ) && vis )

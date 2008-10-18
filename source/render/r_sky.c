@@ -81,7 +81,7 @@ static void Gen_Box( skydome_t *skydome, float skyheight );
 R_CreateSkydome
 ==============
 */
-skydome_t *R_CreateSkydome( float skyheight, shader_t **farboxShaders, shader_t	**nearboxShaders )
+skydome_t *R_CreateSkydome( float skyheight, ref_shader_t **farboxShaders, ref_shader_t	**nearboxShaders )
 {
 	int		i, size;
 	rb_mesh_t		*mesh;
@@ -93,8 +93,8 @@ skydome_t *R_CreateSkydome( float skyheight, shader_t **farboxShaders, shader_t	
 	buffer = Mem_Alloc( r_shaderpool, size );
 
 	skydome = ( skydome_t * )buffer;
-	Mem_Copy( skydome->farboxShaders, farboxShaders, sizeof(shader_t *) * 6 );
-	Mem_Copy( skydome->nearboxShaders, nearboxShaders, sizeof(shader_t *) * 6 );
+	Mem_Copy( skydome->farboxShaders, farboxShaders, sizeof(ref_shader_t *) * 6 );
+	Mem_Copy( skydome->nearboxShaders, nearboxShaders, sizeof(ref_shader_t *) * 6 );
 	buffer += sizeof( skydome_t );
 
 	skydome->meshes = ( rb_mesh_t * )buffer;
@@ -255,7 +255,7 @@ static void Gen_BoxSide( skydome_t *skydome, int side, vec3_t orig, vec3_t drow,
 R_DrawSkySide
 ==============
 */
-static void R_DrawSkySide( skydome_t *skydome, int side, shader_t *shader, int features )
+static void R_DrawSkySide( skydome_t *skydome, int side, ref_shader_t *shader, int features )
 {
 	meshbuffer_t	*mbuffer = &r_skydome_mbuffer;
 
@@ -276,7 +276,7 @@ static void R_DrawSkySide( skydome_t *skydome, int side, shader_t *shader, int f
 R_DrawSkyBox
 ==============
 */
-static void R_DrawSkyBox( skydome_t *skydome, shader_t **shaders )
+static void R_DrawSkyBox( skydome_t *skydome, ref_shader_t **shaders )
 {
 	int	i, features;
 
@@ -298,7 +298,7 @@ Draw dummy skybox side to prevent the HOM effect
 static void R_DrawBlackBottom( skydome_t *skydome )
 {
 	int	features;
-	shader_t	*shader;
+	ref_shader_t	*shader;
 
 	// FIXME: register another shader instead maybe?
 	shader = R_OcclusionShader();
@@ -306,13 +306,8 @@ static void R_DrawBlackBottom( skydome_t *skydome )
 	features = shader->features;
 	if( r_shownormals->integer ) features |= MF_NORMALS;
 
-	// HACK HACK HACK
 	// skies ought not to write to depth buffer
-	shader->flags &= ~SHADER_DEPTHWRITE;
-	shader->stages[0]->flags &= ~SHADERSTAGE_DEPTHWRITE;
 	R_DrawSkySide( skydome, 5, shader, features );
-	shader->stages[0]->flags |= SHADERSTAGE_DEPTHWRITE;
-	shader->flags |= SHADER_DEPTHWRITE;
 }
 
 /*
@@ -320,7 +315,7 @@ static void R_DrawBlackBottom( skydome_t *skydome )
 R_DrawSky
 ==============
 */
-void R_DrawSky( shader_t *shader )
+void R_DrawSky( ref_shader_t *shader )
 {
 	vec3_t		mins, maxs;
 	matrix4x4		m, oldm;

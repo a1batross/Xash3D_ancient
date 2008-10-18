@@ -12,10 +12,10 @@
 
 typedef struct
 {
-	string	name;
-	int	flags;
-	int	shaderType;
-	shader_t	*shader;
+	string		name;
+	int		flags;
+	int		shaderType;
+	ref_shader_t	*shader;
 } mipRef_t;
 
 typedef struct loadmodel_s
@@ -608,7 +608,7 @@ static rb_mesh_t *Mod_CreateMeshForSurface( const dsurface_t *in, msurface_t *ou
 	byte	*buffer;
 	size_t	bufSize;
 
-	if(( mapConfig.deluxeMappingEnabled && !(LittleLong( in->lmapNum[0] ) < 0 || in->lStyles[0] == 255) ) || ( out->shader->flags & SHADER_PORTAL_CAPTURE2 ))
+	if(( mapConfig.deluxeMappingEnabled && !(LittleLong( in->lmapNum[0] ) < 0 || in->lStyles[0] == 255) ) || ( out->shader->flags & SHADER_REFRACTION ))
 		createSTverts = true;
 	else createSTverts = false;
 
@@ -904,7 +904,7 @@ static void Mod_LoadSurfaceCommon( const dsurface_t *in, msurface_t *out )
 	if( fognum != -1 && ( fognum < m_pLoadBmodel->numFogs ))
 	{
 		fog = m_pLoadBmodel->fogs + fognum;
-		if( fog->shader && fog->shader->fog_dist )
+		if( fog->shader && fog->shader->fogDist )
 			out->fog = fog;
 	}
 
@@ -1368,7 +1368,7 @@ static void Mod_Finish( const lump_t *faces, vec3_t gridSize, vec3_t ambient )
 	{
 		if( globalFog && surf->mesh && surf->fog != testFog )
 		{
-			if(!( surf->shader->flags & SHADER_SKY ) && !surf->shader->fog_dist )
+			if(!( surf->shader->flags & SHADER_SKYPARMS ) && !surf->shader->fogDist )
 				globalFog = false;
 		}
 
@@ -1452,7 +1452,7 @@ needs only for more smooth moving of "loading" progress bar
 bool Mod_RegisterShader( const char *unused, int index )
 {
 	mipRef_t	*in;
-	shader_t	*out;
+	ref_shader_t	*out;
 	
 	// nothing to load
 	//if( !r_worldBrushModel ) 

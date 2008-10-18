@@ -218,7 +218,8 @@ dstudiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
 		{
 			R_SetInternalMap( R_StudioLoadTexture( mod, &ptexture[i], pin ));
 			mod->shaders[i] = R_FindShader( ptexture[i].name, SHADER_STUDIO, surfaceParm );
-			ptexture[i].index = mod->numShaders++; // internal shader index, not gl_texturenum
+			ptexture[i].shader = mod->shaders[i]->shaderNum;
+			mod->numShaders++;
 		}
 	}
 	return (dstudiohdr_t *)buffer;
@@ -1419,7 +1420,7 @@ void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref, int pass 
 
 		//GL_BindTexture( Ref.m_pCurrentModel->textures[ptexture[pskinref[pmesh->skinref]].index].image );
 		// FIXME: test
-		Ref.m_pCurrentShader = Ref.m_pCurrentModel->shaders[ptexture[pskinref[pmesh->skinref]].index];
+		Ref.m_pCurrentShader = r_shaders[ptexture[pskinref[pmesh->skinref]].shader];
 
 		while( i = *(ptricmds++))
 		{

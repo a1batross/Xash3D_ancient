@@ -224,7 +224,7 @@ static byte	r_queriesBits[MAX_OQ_TOTAL/8];
 static GLuint	r_occlusionQueries[MAX_OQ_TOTAL];
 
 static meshbuffer_t r_occluderMB;
-static shader_t	*r_occlusionShader;
+static ref_shader_t	*r_occlusionShader;
 static bool	r_occludersQueued;
 static ref_entity_t	*r_occlusionEntity;
 
@@ -240,7 +240,7 @@ void R_InitOcclusionQueries( void )
 	meshbuffer_t *meshbuf = &r_occluderMB;
 
 	if( !r_occlusionShader )
-		r_occlusionShader = R_FindShader( "***r_occlusion***", SHADER_OPAQUE_OCCLUDER, 0 );
+		r_occlusionShader = R_FindShader( "***r_occlusion***", SHADER_GENERIC, 0 );
 
 	if( !GL_Support( R_OCCLUSION_QUERY ))
 		return;
@@ -317,7 +317,7 @@ static void R_RenderOccludingSurfaces( void )
 R_OcclusionShader
 ===============
 */
-shader_t *R_OcclusionShader( void )
+ref_shader_t *R_OcclusionShader( void )
 {
 	return r_occlusionShader;
 }
@@ -327,7 +327,7 @@ shader_t *R_OcclusionShader( void )
 R_AddOccludingSurface
 ===============
 */
-void R_AddOccludingSurface( msurface_t *surf, shader_t *shader )
+void R_AddOccludingSurface( msurface_t *surf, ref_shader_t *shader )
 {
 	int diff = shader->flags ^ r_occlusionShader->flags;
 

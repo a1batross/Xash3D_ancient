@@ -1060,7 +1060,7 @@ BOOL  ( WINAPI * pwglSwapIntervalEXT)( int interval );
 BOOL  ( WINAPI * pwglGetDeviceGammaRampEXT ) ( unsigned char *pRed, unsigned char *pGreen, unsigned char *pBlue );
 BOOL  ( WINAPI * pwglSetDeviceGammaRampEXT ) ( const unsigned char *pRed, const unsigned char *pGreen, const unsigned char *pBlue );
 
-
+// XashGL defines
 #define GL_TEXTURE0		0
 #define GL_TEXTURE1		1
 #define GL_TEXTURE2		2
