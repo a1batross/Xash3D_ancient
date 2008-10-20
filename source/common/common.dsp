@@ -125,19 +125,15 @@ SOURCE=.\bsplib\bsplib.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\decals.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\bsplib\facebsp.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\fog.c
+SOURCE=.\bsplib\leakfile.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\leakfile.c
+SOURCE=.\bsplib\light_trace.c
 # End Source File
 # Begin Source File
 
@@ -146,18 +142,6 @@ SOURCE=.\bsplib\lightmaps.c
 # Begin Source File
 
 SOURCE=.\bsplib\map.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\mesh.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\model.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\patch.c
 # End Source File
 # Begin Source File
 
@@ -185,22 +169,6 @@ SOURCE=.\bsplib\qvis3.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\rad_bounce.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\rad_sample.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\rad_trace.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\bsplib\radfile.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\bsplib\shaders.c
 # End Source File
 # Begin Source File
@@ -221,7 +189,7 @@ SOURCE=.\bsplib\surface.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\bsplib\surface_meta.c
+SOURCE=.\bsplib\terrain.c
 # End Source File
 # Begin Source File
 

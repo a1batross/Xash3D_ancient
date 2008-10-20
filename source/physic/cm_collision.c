@@ -297,7 +297,7 @@ cbrushf_t *CM_CollisionNewBrushFromPlanes( byte *mempool, int numoriginalplanes,
 	{
 		float d = furthestplanedist_float( planesbuf[j].normal, pointsbuf, numpointsbuf );
 		if( fabs(planesbuf[j].dist - d) > COLLISION_PLANE_DIST_EPSILON)
-			MsgDev( D_WARN, "plane %f %f %f %f mismatches dist %f\n", planesbuf[j].normal[0], planesbuf[j].normal[1], planesbuf[j].normal[2], planesbuf[j].dist, d );
+			MsgDev( D_NOTE, "plane %f %f %f %f mismatches dist %f\n", planesbuf[j].normal[0], planesbuf[j].normal[1], planesbuf[j].normal[2], planesbuf[j].dist, d );
 	}
 
 	// allocate the brush and copy to it

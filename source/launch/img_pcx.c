@@ -40,8 +40,8 @@ bool Image_LoadPCX( const char *name, const byte *buffer, size_t filesize )
 	pcx.bytes_per_line = LittleShort (pcx.bytes_per_line);
 	pcx.palette_type = LittleShort (pcx.palette_type);
 
-	image_width = pcx.xmax + 1 - pcx.xmin;
-	image_height = pcx.ymax + 1 - pcx.ymin;
+	image.width = pcx.xmax + 1 - pcx.xmin;
+	image.height = pcx.ymax + 1 - pcx.ymin;
 
 	if( pcx.bits_per_pixel != 8 || pcx.manufacturer != 0x0a || pcx.version != 5 || pcx.encoding != 1)
 	{
@@ -51,17 +51,17 @@ bool Image_LoadPCX( const char *name, const byte *buffer, size_t filesize )
 	if(!Image_ValidSize( name )) return false;
 	palette = (byte *)buffer + filesize - 768;
 
-	image_num_layers = 1;
-	image_num_mips = 1;
+	image.num_layers = 1;
+	image.num_mips = 1;
 
-	s = image_width * image_height;
+	s = image.width * image.height;
 	pbuf = (byte *)Mem_Alloc( Sys.imagepool, s );
 	enddata = palette;
 
-	for( y = 0; y < image_height && fin < enddata; y++ )
+	for( y = 0; y < image.height && fin < enddata; y++ )
 	{
-		pix = pbuf + y * image_width;
-		for (x = 0; x < image_width && fin < enddata;)
+		pix = pbuf + y * image.width;
+		for (x = 0; x < image.width && fin < enddata;)
 		{
 			dataByte = *fin++;
 			if(dataByte >= 0xC0)
@@ -69,29 +69,31 @@ bool Image_LoadPCX( const char *name, const byte *buffer, size_t filesize )
 				if (fin >= enddata) break;
 				x2 = x + (dataByte & 0x3F);
 				dataByte = *fin++;
-				if (x2 > image_width) x2 = image_width; // technically an error
+				if (x2 > image.width) x2 = image.width; // technically an error
 				while(x < x2) pix[x++] = dataByte;
 			}
 			else pix[x++] = dataByte;
 		}
 		// the number of bytes per line is always forced to an even number
-		fin += pcx.bytes_per_line - image_width;
-		while(x < image_width) pix[x++] = 0;
+		fin += pcx.bytes_per_line - image.width;
+		while(x < image.width) pix[x++] = 0;
 	}
 
-	Image_GetPalettePCX( palette );
+	if( image.hint == IL_HINT_Q2 )
+		Image_GetPaletteQ2();
+	else Image_GetPalettePCX( palette );
 
 	// check for transparency
 	for (i = 0; i < s; i++)
 	{
 		if( pbuf[i] == 255 )
 		{
-			image_flags |= IMAGE_HAS_ALPHA; // found alpha channel
+			image.flags |= IMAGE_HAVE_ALPHA; // found alpha channel
 			break;
 		}
 	}
-	image_type = PF_INDEXED_32; // scaled up to 32 bit
-          result = FS_AddMipmapToPack( pbuf, image_width, image_height, false );
+	image.type = PF_INDEXED_32; // 32 bit palette
+          result = FS_AddMipmapToPack( pbuf, image.width, image.height );
 	Mem_Free( pbuf ); // free compressed image
 
 	return result;
@@ -110,7 +112,8 @@ bool Image_SavePCX( const char *name, rgbdata_t *pix, int saveformat )
 	int	i, j;
 	pcx_t	pcx;
 
-	if(FS_FileExists( name )) return false;	// already existed
+	if(FS_FileExists( name ) && !(image.cmd_flags & IL_ALLOW_OVERWRITE ))
+		return false; // already existed
 
 	// bogus parameter check
 	if( !pix->palette || !pix->buffer )
@@ -119,7 +122,9 @@ bool Image_SavePCX( const char *name, rgbdata_t *pix, int saveformat )
 	switch( pix->type )
 	{
 	case PF_INDEXED_24:
+		break;
 	case PF_INDEXED_32:
+		Image_ConvertPalTo24bit( pix );
 		break;
 	default:
 		MsgDev( D_WARN, "Image_SavePCX: unsupported image type %s\n", PFDesc[pix->type].name );

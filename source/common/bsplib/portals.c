@@ -4,7 +4,6 @@
 //=======================================================================
 
 #include "bsplib.h"
-#include "matrixlib.h"
 #include "const.h"
 
 int		c_active_portals;
@@ -57,10 +56,6 @@ bool Portal_Passable( portal_t *p )
 	if( !p->onnode ) return false; // to global outsideleaf
 	if( p->nodes[0]->planenum != PLANENUM_LEAF || p->nodes[1]->planenum != PLANENUM_LEAF )
 		Sys_Error( "Portal_EntityFlood: not a leaf\n" );
-
-	// added antiportal to supress portal generation for visibility blocking
-	if( p->contents & CONTENTS_ANTIPORTAL )
-		return false;
 
 	if( !p->nodes[0]->opaque && !p->nodes[1]->opaque )
 		return true;
@@ -287,7 +282,6 @@ void MakeNodePortal( node_t *node )
 	new_portal->onnode = node;
 	new_portal->winding = w;
 	new_portal->hint = node->hint;
-	new_portal->contents = node->contents;
 	AddPortalToNodes( new_portal, node->children[0], node->children[1] );
 }
 
@@ -458,7 +452,7 @@ MakeTreePortals
 */
 void MakeTreePortals( tree_t *tree )
 {
-	MsgDev( D_NOTE, "----- MakeTreePortals -----\n" );
+	Msg( "----- MakeTreePortals -----\n" );
 	MakeHeadnodePortals( tree );
 	MakeTreePortals_r( tree->headnode );
 	Msg( "%6d tiny portals\n", c_tinyportals);
@@ -479,12 +473,11 @@ int		c_floodedleafs;
 FloodPortals_r
 =============
 */
-void FloodPortals_r( node_t *node, int dist, bool skybox )
+void FloodPortals_r( node_t *node, int dist )
 {
 	portal_t	*p;
 	int	s;
 
-	if( skybox ) node->skybox = skybox;
 	if( node->occupied ) return;
 	if( node->opaque ) return;
 
@@ -494,7 +487,7 @@ void FloodPortals_r( node_t *node, int dist, bool skybox )
 	for( p = node->portals; p; p = p->next[s] )
 	{
 		s = (p->nodes[1] == node);
-		FloodPortals_r( p->nodes[!s], dist + 1, skybox );
+		FloodPortals_r( p->nodes[!s], dist + 1 );
 	}
 }
 
@@ -503,7 +496,7 @@ void FloodPortals_r( node_t *node, int dist, bool skybox )
 PlaceOccupant
 =============
 */
-bool PlaceOccupant( node_t *headnode, vec3_t origin, bsp_entity_t *occupant, bool skybox )
+bool PlaceOccupant( node_t *headnode, vec3_t origin, bsp_entity_t *occupant )
 {
 	node_t	*node;
 	plane_t	*plane;
@@ -522,7 +515,7 @@ bool PlaceOccupant( node_t *headnode, vec3_t origin, bsp_entity_t *occupant, boo
 	if( node->opaque ) return false;
 	node->occupant = occupant;
 
-	FloodPortals_r( node, 1, skybox );
+	FloodPortals_r( node, 1 );
 
 	return true;
 }
@@ -536,68 +529,28 @@ Marks all nodes that can be reached by entites
 */
 bool FloodEntities( tree_t *tree )
 {
-	int		i, s;
-	vec3_t		origin, offset, scale, angles;
-	bool		r, inside, tripped, skybox;
-	const char	*cl, *value;
-	bsp_entity_t	*e;
+	int		i;
+	vec3_t		origin;
+	const char	*cl;
+	bool		inside;
 	node_t		*headnode;
 
 	headnode = tree->headnode;
-	MsgDev( D_NOTE, "--- FloodEntities ---\n" );
+	Msg( "--- FloodEntities ---\n" );
 	inside = false;
 	tree->outside_node.occupied = 0;
 
-	tripped = false;
 	c_floodedleafs = 0;
 	for( i = 1; i < num_entities; i++ )
 	{
-		e = &entities[i];
-
-		GetVectorForKey( e, "origin", origin );
+		GetVectorForKey( &entities[i], "origin", origin );
 		if( VectorIsNull( origin )) continue;
 
 		cl = ValueForKey( &entities[i], "classname" );
-
-		if(!com.stricmp( cl, "env_skyroom" ) )
-		{
-			skybox = true;
-			skyboxPresent = true;
-			
-			VectorScale( origin, -1.0f, offset );
-			VectorSet( scale, 64.0f, 64.0f, 64.0f );
-			value = ValueForKey( e, "scale" );
-			if( value[0] != '\0' )
-			{
-				s = sscanf( value, "%f %f %f", &scale[0], &scale[1], &scale[2] );
-				if( s == 1 )
-				{
-					scale[1] = scale[0];
-					scale[2] = scale[0];
-				}
-			}
-			
-			// get "angle" (yaw) or "angles" (pitch yaw roll)
-			VectorClear( angles );
-			angles[2] = FloatForKey( e, "angle" );
-			value = ValueForKey( e, "angles" );
-			if( value[0] != '\0' ) sscanf( value, "%f %f %f", &angles[1], &angles[2], &angles[0] );
-			
-			Matrix4x4_LoadIdentity( skyboxTransform );
-			Matrix4x4_Pivot( skyboxTransform, offset, angles, scale, origin );
-		}
-		else skybox = false;
-
 		origin[2] += 1; // so objects on floor are ok
 
-		r = PlaceOccupant( headnode, origin, e, skybox );
-		if( r ) inside = true;
-
-		if(( !r || tree->outside_node.occupied) && !tripped )
-		{
-			MsgDev( D_WARN, "Entity leaked %i\n", e->entitynum );
-			tripped = true;
-		}
+		if( PlaceOccupant( headnode, origin, &entities[i] ))
+			inside = true;
 	}
 
 	Msg( "%5i flooded leafs\n", c_floodedleafs );
@@ -659,16 +612,9 @@ void FloodAreas_r( node_t *node )
 	if( node->cluster == -1 ) return;
 	node->area = c_areas;
 
-	// skybox nodes set the skybox area
-	if( node->skybox ) skyboxArea = c_areas;
-
 	for( p = node->portals; p; p = p->next[s] )
 	{
 		s = (p->nodes[1] == node);
-
-		// allow areaportal portals to block area flow
-		if( p->contents & CONTENTS_AREAPORTAL )
-			continue;
 
 		if( !Portal_Passable( p ))
 			continue;
@@ -736,29 +682,6 @@ void CheckAreas_r( node_t *node )
 
 /*
 =============
-FloodSkyboxArea_r
-
-sets all nodes with the skybox area to skybox
-=============
-*/
-void FloodSkyboxArea_r( node_t *node )
-{
-	if( skyboxArea < 0 ) return;
-	
-	if( node->planenum != PLANENUM_LEAF )
-	{
-		FloodSkyboxArea_r( node->children[0] );
-		FloodSkyboxArea_r( node->children[1] );
-		return;
-	}
-	
-	if( node->opaque || node->area != skyboxArea )
-		return;
-	node->skybox = true;
-}
-
-/*
-=============
 FloodAreas
 
 Mark each leaf with an area, bounded by CONTENTS_AREAPORTAL
@@ -766,11 +689,8 @@ Mark each leaf with an area, bounded by CONTENTS_AREAPORTAL
 */
 void FloodAreas( tree_t *tree )
 {
-	MsgDev( D_NOTE, "--- FloodAreas ---\n" );
+	MsgDev( D_INFO, "--- FloodAreas ---\n" );
 	FindAreas_r( tree->headnode );
-
-	// flood all skybox nodes
-	FloodSkyboxArea_r( tree->headnode );
 
 	// check for areaportal brushes that don't touch two areas
 	CheckAreas_r( tree->headnode );
@@ -819,7 +739,7 @@ void FillOutside( node_t *headnode )
 	c_outside = 0;
 	c_inside = 0;
 	c_solid = 0;
-	MsgDev( D_NOTE, "--- FillOutside ---\n" );
+	MsgDev( D_INFO, "--- FillOutside ---\n" );
 	FillOutside_r( headnode );
 	MsgDev( D_INFO, "%5i solid leafs\n", c_solid );
 	MsgDev( D_INFO, "%5i leafs filled\n", c_outside );

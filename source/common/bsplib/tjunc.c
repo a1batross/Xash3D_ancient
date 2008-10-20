@@ -4,7 +4,6 @@
 //=======================================================================
 
 #include "bsplib.h"
-#include "const.h"
 
 // these should be whatever epsilon we actually expect, plus SNAP_INT_TO_FLOAT 
 #define LINE_POSITION_EPSILON		0.125
@@ -45,7 +44,6 @@ int		numOriginalEdges;
 edgeLine_t	edgeLines[MAX_EDGE_LINES];
 int		numEdgeLines;
 
-int		c_broken = 0;
 int		c_degenerateEdges;
 int		c_addedVerts;
 int		c_totalVerts;
@@ -193,11 +191,11 @@ void AddSurfaceEdges( drawsurf_t *ds )
 {
 	int		i;
 
-	for( i = 0; i < ds->numVerts; i++ )
+	for( i = 0; i < ds->numverts; i++ )
 	{
 		// save the edge number in the lightmap field
 		// so we don't need to look it up again
-		ds->verts[i].lm[0][0] = AddEdge( ds->verts[i].point, ds->verts[(i+1) % ds->numVerts].point, false );
+		ds->verts[i].lm[0] = AddEdge( ds->verts[i].point, ds->verts[(i+1) % ds->numverts].point, false );
 	}
 }
 
@@ -240,14 +238,14 @@ void FixSurfaceJunctions( drawsurf_t *ds )
 	int		originals[MAX_SURFACE_VERTS];
 	int		firstVert[MAX_SURFACE_VERTS];
 	dvertex_t		verts[MAX_SURFACE_VERTS], *v1, *v2;
-	float		start, end, frac, c;
+	float		start, end, frac;
 	int		numVerts = 0;
 	int		i, j, k;
 	vec3_t		delta;
 
-	originalVerts = ds->numVerts;
+	originalVerts = ds->numverts;
 
-	for( i = 0; i < ds->numVerts; i++ )
+	for( i = 0; i < ds->numverts; i++ )
 	{
 		counts[i] = 0;
 		firstVert[i] = numVerts;
@@ -260,12 +258,12 @@ void FixSurfaceJunctions( drawsurf_t *ds )
 
 		// check to see if there are any t junctions before the next vert
 		v1 = &ds->verts[i];
-		v2 = &ds->verts[(i+1) % ds->numVerts];
+		v2 = &ds->verts[(i+1) % ds->numverts];
 
-		j = (int)ds->verts[i].lm[0][0];
+		j = (int)ds->verts[i].lm[0];
 		if( j == -1 ) continue; // degenerate edge
 		e = &edgeLines[j];
-	
+		
 		VectorSubtract( v1->point, e->origin, delta );
 		start = DotProduct( delta, e->dir );
 
@@ -297,26 +295,15 @@ void FixSurfaceJunctions( drawsurf_t *ds )
 				// take the exact intercept point
 				VectorCopy( p->point, verts[numVerts].point );
 
+				// copy the normal
+				VectorCopy( v1->normal, verts[numVerts].normal );
+
 				// interpolate the texture coordinates
 				frac = ( p->intercept - start ) / ( end - start );
 				for( j = 0; j < 2; j++ )
 				{
 					verts[numVerts].st[j] = v1->st[j] + frac * ( v2->st[j] - v1->st[j] );
 				}
-
-				// copy the normal
-				VectorCopy( v1->normal, verts[numVerts].normal );
-
-				// interpolate the color
-				for( k = 0; k < LM_STYLES; k++ )
-				{
-					for( j = 0; j < 4; j++ )
-					{
-						c = (float) v1->color[k][j] + frac * ((float) v2->color[k][j] - (float) v1->color[ k ][ j ]);
-						verts[numVerts].color[k][j] = (byte) (c < 255.0f ? c : 255);
-					}
-				}
-				
 				originals[numVerts] = i;
 				numVerts++;
 				counts[i]++;
@@ -327,7 +314,7 @@ void FixSurfaceJunctions( drawsurf_t *ds )
 		}
 	}
 
-	c_addedVerts += numVerts - ds->numVerts;
+	c_addedVerts += numVerts - ds->numverts;
 	c_totalVerts += numVerts;
 
 
@@ -350,7 +337,7 @@ void FixSurfaceJunctions( drawsurf_t *ds )
 	{
 		// fine the way it is
 		c_natural++;
-		ds->numVerts = numVerts;
+		ds->numverts = numVerts;
 		ds->verts = BSP_Malloc( numVerts * sizeof( *ds->verts ));
 		Mem_Copy( ds->verts, verts, numVerts * sizeof( *ds->verts ));
 		return;
@@ -373,87 +360,12 @@ void FixSurfaceJunctions( drawsurf_t *ds )
 	}
 	else c_rotate++; // just rotate the vertexes
 
-	ds->numVerts = numVerts;
+	ds->numverts = numVerts;
 	ds->verts = BSP_Malloc( numVerts * sizeof( *ds->verts ));
 
-	for( j = 0; j < ds->numVerts; j++ )
-		ds->verts[j] = verts[( j + i ) % ds->numVerts];
+	for( j = 0; j < ds->numverts; j++ )
+		ds->verts[j] = verts[( j + i ) % ds->numverts];
 }
-
-/*
-================
-FixBrokenSurface
-
-removes nearly coincident verts from a planar winding surface
-returns false if the surface is broken
-================
-*/
-bool FixBrokenSurface( drawsurf_t *ds )
-{
-	bool		valid = true;
-	dvertex_t		*dv1, *dv2, avg;
-	int		i, j, k;
-	float		dist;
-	
-	if( ds == NULL ) return false;
-
-	// check all verts
-	for( i = 0; i < ds->numVerts; i++ )
-	{
-		// don't remove points if winding is a triangle
-		if( ds->numVerts == 3 )
-			return valid;
-		
-		// get verts
-		dv1 = &ds->verts[i];
-		dv2 = &ds->verts[(i + 1) % ds->numVerts];
-		
-		// degenerate edge?
-		VectorSubtract( dv1->point, dv2->point, avg.point );
-		dist = VectorLength( avg.point );
-
-		if( dist < DEGENERATE_EPSILON )
-		{
-			valid = false;
-			MsgDev( D_WARN, "Degenerate T-junction edge found, fixing...\n" );
-
-			// create an average drawvert
-			// ydnar 2002-01-26: added nearest-integer welding preference
-			SnapWeldVector( dv1->point, dv2->point, avg.point );
-			VectorAdd( dv1->normal, dv2->normal, avg.normal );
-			VectorNormalize( avg.normal );
-			avg.st[0] = (dv1->st[0] + dv2->st[0]) * 0.5f;
-			avg.st[1] = (dv1->st[1] + dv2->st[1]) * 0.5f;
-			
-			// lightmap st/colors
-			for( k = 0; k < LM_STYLES; k++ )
-			{
-				avg.lm[k][0] = (dv1->lm[k][0] + dv2->lm[k][0]) * 0.5f;
-				avg.lm[k][1] = (dv1->lm[k][1] + dv2->lm[k][1]) * 0.5f;
-				for( j = 0; j < 4; j++ )
-					avg.color[k][j] = (int) (dv1->color[k][j] + dv2->color[k][j]) >> 1;
-			}
-			
-			// der...
-			Mem_Copy( dv1, &avg, sizeof( avg ) );
-			
-			// move the remaining verts
-			for( k = i + 2; k < ds->numVerts; k++ )
-			{
-				dv1 = &ds->verts[k];
-				dv2 = &ds->verts[k - 1];
-				Mem_Copy( dv2, dv1, sizeof( dvertex_t ));
-			}
-			ds->numVerts--;
-		}
-	}
-	
-	// one last check and return
-	if( ds->numVerts < 3 )
-		valid = false;
-	return valid;
-}
-
 
 /*
 ================
@@ -484,10 +396,9 @@ void FixTJunctions( bsp_entity_t *ent )
 {
 	int		i, axialEdgeLines;
 	drawsurf_t	*ds;
-	bsp_shader_t	*si;
 	originalEdge_t	*e;
 
-	MsgDev( D_NOTE, "----- FixTJuncs -----\n" );
+	MsgDev( D_INFO, "----- FixTJuncs -----\n" );
 
 	c_addedVerts = 0;
 	numEdgeLines = 0;
@@ -502,9 +413,6 @@ void FixTJunctions( bsp_entity_t *ent )
 	for( i = ent->firstsurf; i < numdrawsurfs; i++ )
 	{
 		ds = &drawsurfs[i];
-		si = ds->shader;
-		if((si->surfaceFlags & SURF_NODRAW) || si->autosprite || si->notjunc || ds->numVerts == 0 )
-			continue;
 		AddSurfaceEdges( ds );
 	}
 
@@ -518,7 +426,7 @@ void FixTJunctions( bsp_entity_t *ent )
 	for( i = 0; i < numOriginalEdges; i++ )
 	{
 		e = &originalEdges[i];
-		e->dv[0]->lm[0][0] = AddEdge( e->dv[0]->point, e->dv[1]->point, true );
+		e->dv[0]->lm[0] = AddEdge( e->dv[0]->point, e->dv[1]->point, true );
 	}
 
 	MsgDev( D_INFO, "%6i axial edge lines\n", axialEdgeLines );
@@ -529,16 +437,7 @@ void FixTJunctions( bsp_entity_t *ent )
 	for( i = ent->firstsurf; i < numdrawsurfs; i++ )
 	{
 		ds = &drawsurfs[i];
-		si = ds->shader;
-		if((si->surfaceFlags & SURF_NODRAW) || si->autosprite || si->notjunc || ds->numVerts == 0 )
-			continue;
-
 		FixSurfaceJunctions( ds );
-		if(!FixBrokenSurface( ds ))
-		{
-			c_broken++;
-			ClearSurface( ds );
-		}
 	}
 
 	MsgDev( D_INFO, "%6i verts added for tjunctions\n", c_addedVerts );
@@ -546,5 +445,4 @@ void FixTJunctions( bsp_entity_t *ent )
 	MsgDev( D_INFO, "%6i naturally ordered\n", c_natural );
 	MsgDev( D_INFO, "%6i rotated orders\n", c_rotate );
 	MsgDev( D_INFO, "%6i can't order\n", c_cant );
-	MsgDev( D_INFO, "%6i broken (degenerate) surfaces removed\n", c_broken );
 }

@@ -60,7 +60,7 @@ bool CM_ParseMaterial( void )
 
 	cm.num_materials++;
 
-	// done
+	// material will be parsed sucessfully
 	return true;
 }
 

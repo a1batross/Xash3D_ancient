@@ -1528,8 +1528,8 @@ void FS_UpdateConfig( void )
 {
 	file_t	*f;
 
-	// make sure what instance not a crashed before saving
-	if( Sys.app_state == SYS_ERROR ) return;
+	// only normal instance can change config.dll
+	if( Sys.app_name != HOST_NORMAL || Sys.app_state == SYS_ERROR ) return;
 	com_strncpy( fs_gamedir, "bin", sizeof(fs_gamedir));	// set write directory for system config
 	f = FS_Open( "config.dll", "w" );
 	if( f )
@@ -3114,9 +3114,9 @@ file_t *VFS_Close( vfile_t *file )
 	char	out[8192]; // chunk size
 	z_stream	strm = {file->buff, file->length, 0, out, sizeof(out), 0, NULL, NULL, NULL, NULL, NULL, 0, 0, 0 };
 	
-	if( !file ) return NULL;
+	if(!file) return NULL;
 
-	if( file->mode == O_WRONLY && file->handle )
+	if(file->mode == O_WRONLY)
 	{
 		if( file->compress ) // deflate before writing
 		{
@@ -3130,7 +3130,8 @@ file_t *VFS_Close( vfile_t *file )
 			FS_Write( file->handle, out, sizeof(out) - strm.avail_out );
 			deflateEnd( &strm );
 		}
-		else FS_Write(file->handle, file->buff, (file->length + 3) & ~3); // align
+		else if( file->handle )
+			FS_Write(file->handle, file->buff, (file->length + 3) & ~3); // align
 	}
 	handle = file->handle; // keep real handle
 
@@ -3179,7 +3180,7 @@ static char W_TypeFromExt( const char *lumpname )
 	const char	*ext = FS_FileExtension( lumpname );
 	wadtype_t		*type;
 
-	// we not known about filetype, so match only by filename
+	// we not known aboyt filetype, so match only by filename
 	if(!com_strcmp( ext, "*" ) || !com_strcmp( ext, "" ))
 		return TYPE_ANY;
 	
@@ -3195,7 +3196,7 @@ static const char *W_ExtFromType( char lumptype )
 {
 	wadtype_t		*type;
 
-	// we not known about filetype, so match only by filename
+	// we not known aboyt filetype, so match only by filename
 	if( lumptype == TYPE_NONE || lumptype == TYPE_ANY )
 		return "";
 

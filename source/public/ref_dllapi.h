@@ -9,6 +9,10 @@
 #define NULL		((void *)0)
 #endif
 
+#ifndef BIT
+#define BIT( n )		(1<<( n ))
+#endif
+
 #include "ref_dfiles.h"
 
 enum host_state
@@ -84,7 +88,6 @@ typedef void (*xcommand_t) (void);
 
 typedef enum
 {
-	ED_INVALID = -1,
 	ED_SPAWNED = 0,	// this entity requris to set own type with SV_ClassifyEdict
 	ED_STATIC,	// this is a logic without model or entity with static model
 	ED_AMBIENT,	// this is entity emitted ambient sounds only
@@ -147,7 +150,7 @@ typedef struct model_state_s
 	float		animtime;		// auto-animating time
 	float		framerate;	// custom framerate, specified by QC
 	int		sequence;		// animation sequence (0 - 255)
-	int		gaitsequence;	// client\npc\bot gaitsequence
+	int		gaitsequence;	// client\nps\bot gaitsequence
 	int		skin;		// skin for studiomodels
 	int		body;		// sub-model selection for studiomodels
 	float		blending[16];	// studio animation blending
@@ -360,21 +363,35 @@ static const bpc_desc_t PFDesc[] =
 {PF_RGBA_GN,	"system",	0x1908,	0x1401, 4,  1, -4 },
 };
 
-// description flags
-#define IMAGE_CUBEMAP	0x00000001
-#define IMAGE_HAS_ALPHA	0x00000002
-#define IMAGE_PREMULT	0x00000004	// indices who need in additional premultiply
-#define IMAGE_GEN_MIPS	0x00000008	// must generate mips
-#define IMAGE_CUBEMAP_FLIP	0x00000010	// it's a cubemap with flipped sides( dds pack )
-#define IMAGE_ONLY_PALETTE	0x00000020	// image not valid, returns palette only
-#define IMAGE_COLORINDEX	0x00000040	// all colors in palette is gradients of last color (decals)
-
-enum img_process
+typedef enum
 {
-	IMAGE_FLIP_X = 1,
-	IMAGE_FLIP_Y = 2,
-	IMAGE_FLIP_I = 4,			// flip diagonal
-};
+	IL_EXPLICIT_PATH	= BIT(0),		// don't add 'textures/' at begin of search path
+	IL_DDS_HARDWARE	= BIT(1),		// instance have dds hardware support (disable software unpacker)
+	IL_USE_LERPING	= BIT(2),		// lerping images during resample
+	IL_PALETTED_ONLY	= BIT(3),		// ignore all non-paletted images (studio, sprgen requires)
+	IL_ALLOW_OVERWRITE	= BIT(4),		// allow to overwrite stored images
+} ilFlags_t;
+
+// rgbdata output flags
+typedef enum
+{
+	// rgbdata->flags
+	IMAGE_CUBEMAP	= BIT(0),		// it's 6-sides cubemap buffer
+	IMAGE_HAVE_ALPHA	= BIT(1),		// image contain alpha-channel
+	IMAGE_COLORINDEX	= BIT(2),		// all colors in palette is gradients of last color (decals)
+	IMAGE_PREMULT	= BIT(3),		// need to premultiply alpha (DXT2, DXT4)
+	IMAGE_HAVE_FRAMES	= BIT(4),		// sprite pack: rgbdata->numMips == sprite_numframes
+	IMAGE_S3		= BIT(5),		// s&3 image
+
+	// manipulation flags
+	IMAGE_FLIP_X	= BIT(16),	// flip the image by width
+	IMAGE_FLIP_Y	= BIT(17),	// flip the image by height
+	IMAGE_FLIP_I	= BIT(18),	// flip from upper left corner to down right corner
+	IMAGE_ROUND	= BIT(19),	// round image to nearest Pow2
+	IMAGE_RESAMPLE	= BIT(20),	// resample image to specified dims
+	IMAGE_PALTO24	= BIT(21),	// turn 32-bit palette into 24-bit mode (only for indexed images)
+	IMAGE_SAVEINPUT	= BIT(22),	// don't release input image buffer
+} imgFlags_t;
 
 typedef struct rgbdata_s
 {
@@ -384,12 +401,9 @@ typedef struct rgbdata_s
 	byte	numMips;		// mipmap count
 	byte	bitsCount;	// RGB bits count
 	uint	type;		// compression type
-	uint	hint;		// save to specified format
 	uint	flags;		// misc image flags
 	byte	*palette;		// palette if present
 	byte	*buffer;		// image buffer
-	vec3_t	color;		// radiocity reflectivity
-	float	bump_scale;	// internal bumpscale
 	uint	size;		// for bounds checking
 } rgbdata_t;
 
@@ -575,16 +589,11 @@ typedef struct stdilib_api_s
 	dword (*Com_Milliseconds)( void );				// hi-res timer
 
 	// built-in imagelib functions
-	rgbdata_t *(*LoadImage)( const char *path, const byte *buf, size_t filesize );	// return 8, 24 or 32 bit buffer with image info
-	void (*ImageToRGB)( rgbdata_t *pic );				// expand any image to PF_RGB_24
-	void (*ImageToRGBA)( rgbdata_t *pic );				// expand any image to PF_RGBA_32
-	void (*SaveImage)( const char *filename, rgbdata_t *buffer );	// save image into specified format 
-	void (*FreeImage)( rgbdata_t *pack );				// free image buffer
-
-	// image manipulation
-	void (*ImagePal32to24)( rgbdata_t *pic );
-	bool (*ResampleImage)( rgbdata_t **pix, int w, int h, bool free_org );// resample image
-	bool (*ProcessImage)( rgbdata_t **pix, int adj_type, bool free_org );	// flip, rotate e.t.c
+	void (*ImglibSetup)( const char *formats, const uint flags );	// set main attributes
+	rgbdata_t *(*ImageLoad)( const char *, const byte *, size_t );	// load image from disk or buffer
+	void (*ImageSave)( const char *name, int format, rgbdata_t *image );	// save image into specified format
+	void (*ImageConvert)( rgbdata_t **pix, int w, int h, uint flags );	// image manipulations
+ 	void (*ImageFree)( rgbdata_t *pack );				// release image buffer
 
 	// random generator
 	long (*Com_RandomLong)( long lMin, long lMax );			// returns random integer
@@ -683,7 +692,7 @@ typedef struct stdilib_api_s
 #define Mem_FreePool(pool)		com.freepool(pool, __FILE__, __LINE__)
 #define Mem_EmptyPool(pool)		com.clearpool(pool, __FILE__, __LINE__)
 #define Mem_Copy(dest, src, size )	com.memcpy(dest, src, size, __FILE__, __LINE__)
-#define Mem_Set(dest, val, size )	com.memset(dest, val, size, __FILE__, __LINE__)
+#define Mem_Set(dest, val, size )	com.memcpy(dest, val, size, __FILE__, __LINE__)
 #define Mem_Check()			com.memcheck(__FILE__, __LINE__)
 #define Mem_CreateArray( p, s, n )	com.newarray( p, s, n, __FILE__, __LINE__)
 #define Mem_RemoveArray( array )	com.delarray( array, __FILE__, __LINE__)
@@ -740,7 +749,6 @@ filesystem manager
 #define FS_FileSize( file )		com.Com_FileSize( file )
 #define FS_FileTime( file )		com.Com_FileTime( file )
 #define FS_Close( file )		com.fclose( file )
-#define FS_Remove( name )		com.fremove( name )
 #define FS_FileBase( x, y )		com.Com_FileBase( x, y )
 #define FS_LoadInternal( x, y )	com.Com_LoadRes( x, y )
 #define FS_Printf			com.fprintf
@@ -850,14 +858,11 @@ crclib manager
 imglib manager
 ===========================================
 */
-#define FS_LoadImage	com.LoadImage
-#define FS_SaveImage	com.SaveImage
-#define FS_FreeImage	com.FreeImage
-#define Image_ExpandRGB	com.ImageToRGB
-#define Image_ExpandRGBA	com.ImageToRGBA
-#define Image_ConvertPalette	com.ImagePal32to24
-#define Image_Resample	com.ResampleImage
-#define Image_Process	com.ProcessImage
+#define FS_LoadImage	com.ImageLoad
+#define FS_SaveImage	com.ImageSave
+#define FS_FreeImage	com.ImageFree
+#define Image_Init		com.ImglibSetup
+#define Image_Process	com.ImageConvert
 
 /*
 ===========================================
@@ -963,6 +968,11 @@ typedef struct cvar_s
 #define MAX_MODELS			4096	// total count of brush & studio various models per one map
 #define MAX_PARTICLES		32768	// pre one frame
 #define MAX_EDICTS			65535	// absolute limit that never be reached, (do not edit!)
+
+// FIXME: player_state_t->renderfx
+#define RDF_NOWORLDMODEL		(1<<0)		// used for player configuration screen
+#define RDF_IRGOGGLES		(1<<1)
+#define RDF_PAIN			(1<<2)
 
 // encoded bmodel mask
 #define SOLID_BMODEL	0xffffff
@@ -1121,14 +1131,6 @@ typedef struct vrect_s
 
 typedef struct
 {
-	float	fov;
-	float	scale;
-	vec3_t	vieworg;
-	vec3_t	viewofs;			// (map->size - player->vieworg) + viewofs
-} skyportal_t;
-
-typedef struct
-{
 	vrect_t		rect;		// screen rectangle
 	float		fov_x;		// field of view by vertical
 	float		fov_y;		// field of view by horizontal
@@ -1136,9 +1138,6 @@ typedef struct
 	vec3_t		viewangles;	// client angles
 	float		time;		// time is used to shaders auto animate
 	float		oldtime;		// oldtime using for lerping studio models
-	skyportal_t	skyportal;	// env_sky settings
-	float		blend[4];		// q1\q2 legacy
-
 	uint		rdflags;		// client view effects: RDF_UNDERWATER, RDF_MOTIONBLUR, etc
 	byte		*areabits;	// if not NULL, only areas with set bits will be drawn
 } refdef_t;
@@ -1231,7 +1230,7 @@ typedef struct render_exp_s
 	bool	(*AddLightStyle)( int stylenum, vec3_t color );
 	void	(*ClearScene)( void );
 
-	void	(*BeginFrame)( bool forceClear );
+	void	(*BeginFrame)( void );
 	void	(*RenderFrame)( refdef_t *fd );
 	void	(*EndFrame)( void );
 
@@ -1251,8 +1250,7 @@ typedef struct render_imp_s
 	size_t	api_size;		// must matched with sizeof(render_imp_t)
 
 	// client fundamental callbacks
-	float	(*CalcFov)( float fov_x, float width, float height );
-	void	(*StudioEvent)( dstudioevent_t *event, entity_state_t *ent );
+	void	(*StudioEvent)( mstudioevent_t *event, entity_state_t *ent );
 	void	(*ShowCollision)( cmdraw_t callback );	// debug
 	long	(*WndProc)( void *hWnd, uint uMsg, uint wParam, long lParam );
 	entity_state_t *(*GetClientEdict)( int index );

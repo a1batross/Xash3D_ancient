@@ -9,408 +9,185 @@
 #include "mathlib.h"
 
 // global image variables
-int image_width, image_height;
-byte image_num_layers = 1;	// num layers in
-byte image_num_mips = 0;	// build mipmaps
-uint image_type;		// main type switcher
-uint image_flags;		// additional image flags
-byte image_bits_count;	// bits per RGBA
-size_t image_size;		// image rgba size
-uint image_ptr;
-byte *image_palette;	// palette pointer
-byte *image_rgba;		// image pointer (see image_type for details)
-
-// cubemap variables
-int cubemap_width, cubemap_height;
-int cubemap_num_sides;	// how mach sides is loaded 
-byte *image_cubemap;	// cubemap pack
-uint base_image_type;	// shared image type for all mipmaps or cubemap sides
+imglib_t	image;
 
 typedef struct suffix_s
 {
 	const char	*suf;
 	uint		flags;
+	image_hint_t	hint;
 } suffix_t;
+
+static const suffix_t skybox_3ds[6] =
+{
+{ "ft", IMAGE_FLIP_X, IL_HINT_POSX },
+{ "bk", IMAGE_FLIP_Y, IL_HINT_NEGX },
+{ "rt", IMAGE_FLIP_I, IL_HINT_POSY },
+{ "lf", IMAGE_FLIP_X|IMAGE_FLIP_Y|IMAGE_FLIP_I, IL_HINT_NEGY },	// rotate at 270°
+{ "up", IMAGE_FLIP_I, IL_HINT_POSZ },
+{ "dn", IMAGE_FLIP_I, IL_HINT_NEGZ },
+};
+
+static const suffix_t cubemap_v1[6] =
+{
+{ "posx", 0, IL_HINT_POSX },
+{ "negx", 0, IL_HINT_NEGX },
+{ "posy", 0, IL_HINT_POSY },
+{ "negy", 0, IL_HINT_NEGY },
+{ "posz", 0, IL_HINT_POSZ },
+{ "negz", 0, IL_HINT_NEGZ },
+};
+
+static const suffix_t cubemap_v2[6] =
+{
+{ "px", 0, IL_HINT_POSX },
+{ "nx", 0, IL_HINT_NEGX },
+{ "py", 0, IL_HINT_POSY },
+{ "ny", 0, IL_HINT_NEGY },
+{ "pz", 0, IL_HINT_POSZ },
+{ "nz", 0, IL_HINT_NEGZ },
+};
 
 typedef struct cubepack_s
 {
-	const char	*name;	// package name
+	const char	*name;	// just for debug
 	const suffix_t	*type;
 } cubepack_t;
 
-static suffix_t skybox_3ds[6] =
+static const cubepack_t load_cubemap[] =
 {
-{ "ft", IMAGE_FLIP_X },
-{ "bk", IMAGE_FLIP_Y },
-{ "rt", IMAGE_FLIP_I },
-{ "lf", IMAGE_FLIP_X|IMAGE_FLIP_Y|IMAGE_FLIP_I },	// rotate at 270°
-{ "up", IMAGE_FLIP_I },
-{ "dn", IMAGE_FLIP_I },
-};
-
-static suffix_t cubemap_px[6] =
-{
-{ "px", 0 },
-{ "nx", 0 },
-{ "py", 0 },
-{ "ny", 0 },
-{ "pz", 0 },
-{ "nz", 0 },
-};
-
-static cubepack_t load_cubemap[] =
-{
-{ "3D Studio", skybox_3ds },
-{ "Cubemap 1", cubemap_px },
+{ "3Ds Sky ", skybox_3ds },
+{ "3Ds Cube", cubemap_v2 },
+{ "Tenebrae", cubemap_v1 },		// FIXME: remove this ?
 { NULL, NULL },
-};
-
-typedef struct loadformat_s
-{
-	char *formatstring;
-	char *ext;
-	bool (*loadfunc)( const char *name, const byte *buffer, size_t filesize );
-} loadformat_t;
-
-static loadformat_t load_formats0[] =
-{
-	{"textures/%s%s.%s", "dds", Image_LoadDDS},	// cubemaps, textures
-	{"textures/%s%s.%s", "png", Image_LoadPNG},	// levelshot save as .png
-	{"textures/%s%s.%s", "tga", Image_LoadTGA},	// all other
-	{"%s%s.%s", "dds", Image_LoadDDS},
-	{"%s%s.%s", "png", Image_LoadPNG},
-	{"%s%s.%s", "tga", Image_LoadTGA},
-	{NULL, NULL, NULL}
-};
-
-static loadformat_t load_formats1[] =
-{
-	{"textures/%s%s.%s", "dds", Image_LoadDDS},
-	{"textures/%s%s.%s", "tga", Image_LoadTGA},
-	{"textures/%s%s.%s", "jpg", Image_LoadJPG},
-	{"textures/%s%s.%s", "png", Image_LoadPNG},
-	{"textures/%s%s.%s", "mip", Image_LoadMIP},
-	{"%s%s.%s", "dds", Image_LoadDDS},
-	{"%s%s.%s", "tga", Image_LoadTGA},
-	{"%s%s.%s", "jpg", Image_LoadJPG},
-	{"%s%s.%s", "png", Image_LoadPNG},
-	{"%s%s.%s", "mip", Image_LoadMIP},
-	{NULL, NULL, NULL}
-};
-
-static loadformat_t load_formats2[] =
-{
-	{"textures/%s%s.%s", "dds", Image_LoadDDS},
-	{"textures/%s%s.%s", "tga", Image_LoadTGA},
-	{"textures/%s%s.%s", "jpg", Image_LoadJPG},
-	{"textures/%s%s.%s", "png", Image_LoadPNG},
-	{"textures/%s%s.%s", "mip", Image_LoadMIP},
-	{"textures/%s%s.%s", "bmp", Image_LoadBMP},
-	{"textures/%s%s.%s", "wal", Image_LoadWAL},
-	{"textures/%s%s.%s", "pcx", Image_LoadPCX},
-	{"textures/%s%s.%s", "lmp", Image_LoadLMP},
-	{"%s%s.%s", "dds", Image_LoadDDS},
-	{"%s%s.%s", "tga", Image_LoadTGA},
-	{"%s%s.%s", "jpg", Image_LoadJPG},
-	{"%s%s.%s", "png", Image_LoadPNG},
-	{"%s%s.%s", "mip", Image_LoadMIP},
-	{"%s%s.%s", "bmp", Image_LoadBMP},
-	{"%s%s.%s", "wal", Image_LoadWAL},
-	{"%s%s.%s", "pcx", Image_LoadPCX},
-	{"%s%s.%s", "lmp", Image_LoadLMP},
-	{NULL, NULL, NULL}
-};
-
-static loadformat_t load_formats3[] =
-{
-	{"textures/%s%s.%s", "dds", Image_LoadDDS},
-	{"textures/%s%s.%s", "tga", Image_LoadTGA},
-	{"textures/%s%s.%s", "jpg", Image_LoadJPG},
-	{"textures/%s%s.%s", "png", Image_LoadPNG},
-	{"textures/%s%s.%s", "mip", Image_LoadMIP},
-	{"textures/%s%s.%s", "bmp", Image_LoadBMP},
-	{"textures/%s%s.%s", "wal", Image_LoadWAL},
-	{"textures/%s%s.%s", "pcx", Image_LoadPCX},
-	{"textures/%s%s.%s", "lmp", Image_LoadLMP},
-	{"textures/%s%s.%s", "flt", Image_LoadFLT},
-	{"textures/%s%s.%s", "pal", Image_LoadPAL},
-	{"%s%s.%s", "dds", Image_LoadDDS},
-	{"%s%s.%s", "tga", Image_LoadTGA},
-	{"%s%s.%s", "jpg", Image_LoadJPG},
-	{"%s%s.%s", "png", Image_LoadPNG},
-	{"%s%s.%s", "mip", Image_LoadMIP},
-	{"%s%s.%s", "bmp", Image_LoadBMP},
-	{"%s%s.%s", "wal", Image_LoadWAL},
-	{"%s%s.%s", "pcx", Image_LoadPCX},
-	{"%s%s.%s", "lmp", Image_LoadLMP},
-	{"%s%s.%s", "flt", Image_LoadFLT},
-	{"%s%s.%s", "pal", Image_LoadPAL},
-	{NULL, NULL, NULL}
-};
-
-static loadformat_t load_formats4[] =
-{
-	{"%s%s.%s", "bmp", Image_LoadBMP},
-	{"%s%s.%s", "pcx", Image_LoadPCX},
-	{"%s%s.%s", "mip", Image_LoadMIP},
-	{"%s%s.%s", "wal", Image_LoadWAL},
-	{"%s%s.%s", "lmp", Image_LoadLMP},
-	{"%s%s.%s", "flt", Image_LoadFLT},
-	{NULL, NULL, NULL}
 };
 
 void Image_Reset( void )
 {
 	// reset global variables
-	image_width = image_height = 0;
-	cubemap_width = cubemap_height = 0;
-	image_bits_count = image_flags = 0;
-	cubemap_num_sides = 0;
-	image_num_layers = 1;
-	base_image_type = 0;
-	image_num_mips = 0;
-	image_type = PF_UNKNOWN;
+	image.width = image.height = 0;
+	image.source_width = image.source_height = 0;
+	image.bits_count = image.flags = 0;
+	image.num_sides = 0;
+	image.num_layers = 1;
+	image.source_type = 0;
+	image.num_mips = 0;
+	image.type = PF_UNKNOWN;
 
 	// pointers will be saved with prevoius picture struct
 	// don't care about it
-	image_palette = NULL;
-	image_rgba = NULL;
-	image_cubemap = NULL;
-	image_ptr = 0;
-	image_size = 0;
+	image.palette = NULL;
+	image.cubemap = NULL;
+	image.rgba = NULL;
+	image.ptr = 0;
+	image.size = 0;
 }
 
 rgbdata_t *ImagePack( void )
 {
 	rgbdata_t *pack = Mem_Alloc( Sys.imagepool, sizeof(rgbdata_t));
 
-	if( image_cubemap && cubemap_num_sides != 6 )
+	if( image.cubemap && image.num_sides != 6 )
 	{
 		// this neved be happens, just in case
-		MsgDev( D_NOTE, "ImagePack: inconsistent cubemap pack %d\n", cubemap_num_sides );
+		MsgDev( D_NOTE, "ImagePack: inconsistent cubemap pack %d\n", image.num_sides );
 		FS_FreeImage( pack );
 		return NULL;
 	}
 
-	if( image_cubemap ) 
+	if( image.cubemap ) 
 	{
-		image_flags |= IMAGE_CUBEMAP;
-		pack->buffer = image_cubemap;
-		pack->width = cubemap_width;
-		pack->height = cubemap_height;
-		pack->type = base_image_type;
-		pack->size = image_size * cubemap_num_sides;
+		image.flags |= IMAGE_CUBEMAP;
+		pack->buffer = image.cubemap;
+		pack->width = image.source_width;
+		pack->height = image.source_height;
+		pack->type = image.source_type;
+		pack->size = image.size * image.num_sides;
 	}
 	else 
 	{
-		pack->buffer = image_rgba;
-		pack->width = image_width;
-		pack->height = image_height;
-		pack->type = image_type;
-		pack->size = image_size;
+		pack->buffer = image.rgba;
+		pack->width = image.width;
+		pack->height = image.height;
+		pack->type = image.type;
+		pack->size = image.size;
 	}
 
-	pack->numLayers = image_num_layers;
-	pack->numMips = image_num_mips;
-	pack->bitsCount = image_bits_count;
-	pack->flags = image_flags;
-	pack->palette = image_palette;
+	pack->numLayers = image.num_layers;
+	pack->numMips = image.num_mips;
+	pack->bitsCount = image.bits_count;
+	pack->flags = image.flags;
+	pack->palette = image.palette;
 	return pack;
 }
 
+/*
+================
+FS_AddSideToPack
+
+FIXME: rewrite with VirtualFS using ?
+================
+*/
 bool FS_AddSideToPack( const char *name, int adjust_flags )
 {
 	byte	*resampled, *flipped;
 	
-	// first cubemap\skybox side set base dimenisons for all follow sides!
-	if( !image_cubemap )
+	// first side set average size for all cubemap sides!
+	if( !image.cubemap )
 	{
-		cubemap_width = image_width;
-		cubemap_height = image_height;
-		base_image_type = image_type;
+		image.source_width = image.width;
+		image.source_height = image.height;
+		image.source_type = image.type;
 	}
-	image_size = cubemap_width * cubemap_height * 4; // keep constant size, render.dll expecting it
+	image.size = image.source_width * image.source_height * 4; // keep constant size, render.dll expecting it
           
 	// mixing dds format with any existing ?
-	if( image_type != base_image_type ) return false;
+	if( image.type != image.source_type )
+		return false;
 
 	// flip image if needed
-	flipped = Image_FlipInternal( image_rgba, image_width, image_height, base_image_type, adjust_flags );
+	flipped = Image_FlipInternal( image.rgba, image.width, image.height, image.source_type, adjust_flags );
 	if( !flipped ) return false; // try to reasmple dxt?
-	if( flipped != image_rgba ) Mem_Move( Sys.imagepool, &image_rgba, flipped, image_size ); // update buffer
+	if( flipped != image.rgba ) image.rgba = Image_Copy( image.size );
 
 	// resampling image if needed
-	resampled = Image_ResampleInternal((uint *)image_rgba, image_width, image_height, cubemap_width, cubemap_height, base_image_type );
+	resampled = Image_ResampleInternal((uint *)image.rgba, image.width, image.height, image.source_width, image.source_height, image.source_type );
 	if( !resampled ) return false; // try to reasmple dxt?
-	if( resampled != image_rgba ) Mem_Move( Sys.imagepool, &image_rgba, resampled, image_size ); // update buffer
+	if( resampled != image.rgba ) image.rgba = Image_Copy( image.size );
 
-	image_cubemap = Mem_Realloc( Sys.imagepool, image_cubemap, image_ptr + image_size );
-	Mem_Copy(image_cubemap + image_ptr, image_rgba, image_size );
+	image.cubemap = Mem_Realloc( Sys.imagepool, image.cubemap, image.ptr + image.size );
+	Mem_Copy( image.cubemap + image.ptr, image.rgba, image.size ); // add new side
 
-	Mem_Free( image_rgba );	// memmove aren't help us
-	image_ptr += image_size; 	// move to next
-	cubemap_num_sides++;	// sides counter
+	Mem_Free( image.rgba );	// release source buffer
+	image.ptr += image.size; 	// move to next
+	image.num_sides++;		// bump sides count
 
 	return true;
 }
 
-bool FS_AddMipmapToPack( const byte *in, int width, int height, bool expand )
+bool FS_AddMipmapToPack( const byte *in, int width, int height )
 {
 	int mipsize = width * height;
 	int outsize = width * height;
 
 	// check for inconsistency
-	if( !base_image_type ) base_image_type = image_type;
+	if( !image.source_type ) image.source_type = image.type;
 	// trying to add 8 bit mimpap into 32-bit mippack or somewhat...
-	if( base_image_type != image_type ) return false;
-	if( expand ) outsize *= 4;
+	if( image.source_type != image.type ) return false;
+	if(!( image.cmd_flags & IL_PALETTED_ONLY )) outsize *= 4;
 	else Image_CopyPalette32bit(); 
 
 	// reallocate image buffer
-	image_rgba = Mem_Realloc( Sys.imagepool, image_rgba, image_size + outsize );	
-	if( !expand ) Mem_Copy( image_rgba + image_ptr, in, outsize );
-	else if( !Image_Copy8bitRGBA( in, image_rgba + image_ptr, mipsize ))
+	image.rgba = Mem_Realloc( Sys.imagepool, image.rgba, image.size + outsize );	
+	if( image.cmd_flags & IL_PALETTED_ONLY ) Mem_Copy( image.rgba + image.ptr, in, outsize );
+	else if( !Image_Copy8bitRGBA( in, image.rgba + image.ptr, mipsize ))
 		return false; // probably pallette not installed
 
-	image_size += outsize;
-	image_ptr += outsize;
-	image_num_mips++;
+	image.size += outsize;
+	image.ptr += outsize;
+	image.num_mips++;
 
 	return true;
-}
-
-static void Image_ConvertTo( int outformat, rgbdata_t *pic )
-{
-	int	j, texels;
-	byte	*in, *out, *buffer;
-	bool	result = false;
-
-	if( !pic )
-	{
-		MsgDev( D_ERROR, "Image_ConvertToRGBA: image not loaded\n" );
-		return;
-	}
-	if(!pic->palette && (pic->type == PF_INDEXED_24 || pic->type == PF_INDEXED_32))
-	{
-		MsgDev( D_ERROR, "Image_ConvertToRGBA: indexed image doesn't have palette\n" );
-		return;
-	}
-	switch( outformat )
-	{
-	case PF_RGBA_32:
-		switch( pic->type )
-		{
-		case PF_RGBA_32:
-		case PF_ABGR_64:
-			return;	// nothing to process
-		default:	break;
-		}
-	case PF_RGB_24:
-		switch( pic->type )
-		{
-		case PF_RGB_24:
-			return;	// nothing to porcess
-		default: break;
-		}
-	default:	return;		// unsupported mode
-	}
-          
-	texels = pic->width * pic->height;
-	buffer = Mem_Alloc( Sys.imagepool, texels * PFDesc[outformat].bpp );
-	in = pic->buffer;
-	out = buffer;
-
-	switch( pic->type )
-	{
-	case PF_DXT1:
-	case PF_DXT3:
-	case PF_DXT5:
-		result = Image_DecompressDXTC( &pic );
-		in = pic->buffer;
-		switch( outformat )
-		{
-		case PF_RGB_24:	// RGBA_32 to RGB_24
-			for( j = 0; j < texels; j++, in += 4, out += 3 )
-			{
-				out[0] = in[0];
-				out[1] = in[1];
-				out[2] = in[2];
-			}
-			break;
-		case PF_RGBA_32: break;
-		}
-		break;
-	case PF_RGB_24:		// RGB_24 to RGBA_32
-		for( j = 0; j < texels; j++, in += 3, out += 4 )
-		{
-			out[0] = in[0];
-			out[1] = in[1];
-			out[2] = in[2];
-			out[3] = 255;
-		}
-		result = true;
-		break;			
-	case PF_RGBA_32:		// RGBA_32 to RGB_24
-		for( j = 0; j < texels; j++, in += 4, out += 3 )
-		{
-			out[0] = in[0];
-			out[1] = in[1];
-			out[2] = in[2];
-		}
-		result = true;
-		break;
-	case PF_INDEXED_24:
-		if( pic->flags & IMAGE_HAS_ALPHA )
-		{
-			if( pic->flags & IMAGE_COLORINDEX )
-				Image_GetPaletteLMP( pic->palette, LUMP_DECAL ); 
-			else Image_GetPaletteLMP( pic->palette, LUMP_TRANSPARENT ); 
-		}
-		else Image_GetPaletteLMP( pic->palette, LUMP_NORMAL );
-		// intentional falltrough
-	case PF_INDEXED_32:
-		d_currentpal = ( uint *)pic->palette;
-		result = Image_Copy8bitRGBA( pic->buffer, buffer, texels );
-		in = pic->buffer;
-		switch( outformat )
-		{
-		case PF_RGB_24:	// RGBA_32 to RGB_24
-			for( j = 0; j < texels; j++, in += 4, out += 3 )
-			{
-				out[0] = in[0];
-				out[1] = in[1];
-				out[2] = in[2];
-			}
-			break;
-		case PF_RGBA_32: break;
-		}
-		break;
-	default: break; // unsupported format
-	}
-
-	if( result )
-	{
-		MsgDev( D_NOTE, "Image_ConvertTo%s: from %s\n", PFDesc[outformat].name, PFDesc[pic->type].name ); 
-		pic->type = outformat; // sucessfully converted
-		pic->size = texels * PFDesc[outformat].bpp;	// merge size
-		Mem_Free( pic->buffer );
-		pic->buffer = buffer;
-	}
-	else
-	{
-		MsgDev( D_WARN, "Image_ConvertTo%s: can't convert from %s\n", PFDesc[outformat].name, PFDesc[pic->type].name );
-		Mem_Free( buffer );
-	}
-} 
-
-void Image_ConvertToRGB( rgbdata_t *pic )
-{
-	Image_ConvertTo( PF_RGB_24, pic );
-}
-
-void Image_ConvertToRGBA( rgbdata_t *pic )
-{
-	Image_ConvertTo( PF_RGBA_32, pic );
 }
 
 /*
@@ -420,66 +197,42 @@ FS_LoadImage
 loading and unpack to rgba any known image
 ================
 */
-rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t buffsize )
+rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 {
           const char	*ext = FS_FileExtension( filename );
 	string		path, loadname, texname, sidename;
-	loadformat_t	*format, *desired_formats = load_formats0;
-	bool		anyformat = !com_stricmp(ext, "") ? true : false;
+	bool		anyformat = !com_stricmp( ext, "" ) ? true : false;
+	bool		dds_installed = false; // current loadformats list supported dds
 	int		i, filesize = 0;
-	cubepack_t	*cubemap;
+	const loadformat_t	*format;
+	const cubepack_t	*cmap;
 	byte		*f;
 
 #if 0     // don't try to be very clever
 	if( !buffer || !buffsize ) buffer = (char *)florr1_2_jpg, buffsize = sizeof(florr1_2_jpg);
 #endif
-	switch( Sys.app_name )
-	{
-	case HOST_NORMAL:
-	case HOST_BSPLIB:
-	case HOST_VIEWER:
-		switch( img_oldformats->integer )
-		{
-		case 0: desired_formats = load_formats0; break;	// tga, dds, png
-		case 1: desired_formats = load_formats1; break;	// tga, dds, jpg, png, mip
-		case 2: desired_formats = load_formats2; break;	// tga, dds, jpg, png, mip, bmp, pcx, wal, lmp
-		case 3: desired_formats = load_formats3; break;	// tga, dds, jpg, png, mip, bmp, pcx, wal, lmp, flat, pal
-		default: desired_formats = load_formats0; break;	// tga, dds, png
-		}
-		break;
-	case HOST_SPRITE:
-	case HOST_STUDIO:
-	case HOST_WADLIB:
-		desired_formats = load_formats4;		// bmp, pcx, mip, wal, lmp, flat
-		break;
-	case HOST_RIPPER:
-		// everything else
-		desired_formats = load_formats3;		// tga, dds, jpg, png, mip, bmp, pcx, wal, lmp, flat, pal
-		break;
-	default:
-		// other instances not needs image support
-		desired_formats = NULL;
-		break;	
-	}
-
 	Image_Reset(); // clear old image
 
-	// skip any checks, load file from buffer
-	if(com_stristr( filename, "#internal" ) && buffer && buffsize )
-		goto load_internal;
+	// HACKHACK: skip any checks, load file from buffer
+	if( filename[0] == '#' && buffer && size ) goto load_internal;
 
-	com_strncpy( loadname, filename, sizeof(loadname)-1);
-	FS_StripExtension( loadname ); //remove extension if needed
+	loadname[0] = '\0';
+	if(!( image.cmd_flags & IL_EXPLICIT_PATH ))
+		com.strncat( loadname, "textures/", sizeof( loadname ));
+	com_strncat( loadname, filename, sizeof( loadname ));
+	FS_StripExtension( loadname ); // remove extension if needed
 
 	// developer warning
-	if(!anyformat) MsgDev(D_NOTE, "Note: %s will be loading only with ext .%s\n", loadname, ext );
+	if( !anyformat ) MsgDev( D_NOTE, "Note: %s will be loading only with ext .%s\n", loadname, ext );
 	
 	// now try all the formats in the selected list
-	for( format = desired_formats; format && format->formatstring; format++ )
+	for( format = image.loadformats; format && format->formatstring; format++)
 	{
-		if( anyformat || !com_stricmp(ext, format->ext ))
+		if( !com_stricmp( format->ext, "dds" )) dds_installed = true;
+		if( anyformat || !com_stricmp( ext, format->ext ))
 		{
 			com_sprintf( path, format->formatstring, loadname, "", format->ext );
+			image.hint = format->hint;
 			f = FS_LoadFile( path, &filesize );
 			if(f && filesize > 0)
 			{
@@ -487,25 +240,59 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t buffsi
 				FS_FileBase( path, texname );
 				if( format->loadfunc( texname, f, filesize ))
 				{
-					Mem_Free( f ); // release buffer
+					Mem_Free(f); // release buffer
 					return ImagePack(); // loaded
 				}
 			}
 		}
 	}
 
+	// special case for extract cubemap side from dds image
+	if( dds_installed && (anyformat || !com_stricmp( ext, "dds" )))
+	{
+		// first, check for cubemap suffixes
+		for( cmap = load_cubemap; cmap && cmap->type; cmap++ )
+		{
+			for( i = 0; i < 6; i++ )
+			{
+				int	suflen = com.strlen( cmap->type[i].suf );
+				char	*suffix = &loadname[com.strlen(loadname)-suflen];
+
+				// suffixes may have difference length, need fine check
+				if( !com.strnicmp( suffix, cmap->type[i].suf, suflen ))
+				{
+					com.strncpy( path, loadname, com.strlen( loadname ) - suflen );
+					FS_DefaultExtension( path, ".dds" );
+					image.hint = cmap->type[i].hint; // install side hint
+					f = FS_LoadFile( path, &filesize );
+					if( f && filesize > 0 )
+					{
+						// this name will be used only for tell user about problems 
+						FS_FileBase( path, texname );
+						if( Image_LoadDDS( texname, f, filesize ))
+						{         
+							Mem_Free(f); // release buffer
+							return ImagePack(); // loaded
+						}
+					}
+				}
+			}
+		}
+	} 
+
 	// check all cubemap sides with package suffix
-	for( cubemap = load_cubemap; cubemap && cubemap->type; cubemap++ )
+	for( cmap = load_cubemap; cmap && cmap->type; cmap++ )
 	{
 		for( i = 0; i < 6; i++ )
 		{
 			// for support mixed cubemaps e.g. sky_ft.jpg, sky_rt.tga, sky_bk.png
-			// NOTE: all loaders must keep sides in one format for all sides
-			for( format = desired_formats; format && format->formatstring; format++ )
+			// NOTE: all loaders must keep sides in one format for all
+			for( format = image.loadformats; format && format->formatstring; format++ )
 			{
-				if( anyformat || !com_stricmp(ext, format->ext ))
+				if( anyformat || !com_stricmp( ext, format->ext ))
 				{
-					com_sprintf( path, format->formatstring, loadname, cubemap->type[i].suf, format->ext );
+					com_sprintf( path, format->formatstring, loadname, cmap->type[i].suf, format->ext );
+					image.hint = cmap->type[i].hint; // side hint
 					f = FS_LoadFile( path, &filesize );
 					if( f && filesize > 0 )
 					{
@@ -513,8 +300,8 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t buffsi
 						FS_FileBase( path, texname );
 						if( format->loadfunc( texname, f, filesize ))
 						{         
-							com_snprintf( sidename, MAX_STRING, "%s%s.%s", loadname, cubemap->type[i].suf, format->ext );
-							if( FS_AddSideToPack( sidename, cubemap->type[i].flags )) // process flags to flip some sides
+							com_snprintf( sidename, MAX_STRING, "%s%s.%s", loadname, cmap->type[i].suf, format->ext );
+							if( FS_AddSideToPack( sidename, cmap->type[i].flags )) // process flags to flip some sides
 								break; // loaded
 						}
 						Mem_Free( f );
@@ -522,74 +309,56 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t buffsi
 				}
 			}
 
-			if( cubemap_num_sides != i + 1 ) // check side
+			if( image.num_sides != i + 1 ) // check side
 			{
 				// first side not found, probably it's not cubemap
 				// it contain info about image_type and dimensions, don't generate black cubemaps 
-				if( !image_cubemap ) break;
-				MsgDev(D_ERROR, "FS_LoadImage: couldn't load (%s%s.%s), create black image\n", loadname, cubemap->type[i].suf );
+				if( !image.cubemap ) break;
+				MsgDev( D_ERROR, "FS_LoadImage: couldn't load (%s%s.%s), create black image\n", loadname, cmap->type[i].suf );
 
 				// Mem_Alloc already filled memblock with 0x00, no need to do it again
-				image_cubemap = Mem_Realloc( Sys.imagepool, image_cubemap, image_ptr + image_size );
-				image_ptr += image_size; // move to next
-				cubemap_num_sides++; // merge counter
+				image.cubemap = Mem_Realloc( Sys.imagepool, image.cubemap, image.ptr + image.size );
+				image.ptr += image.size; // move to next
+				image.num_sides++; // merge counter
 			}
 		}
 
 		// make sure what all sides is loaded
-		if( cubemap_num_sides != 6 )
+		if( image.num_sides != 6 )
 		{
 			// unexpected errors ?
-			if( image_cubemap ) 
-				Mem_Free( image_cubemap );
+			if( image.cubemap ) Mem_Free( image.cubemap );
 			Image_Reset();
 		}
 		else break; // all done
 	}
 
-	if( image_cubemap ) return ImagePack(); // now it's cubemap pack 
-
 load_internal:
-	// try to load image from const buffer (e.g. const byte blank_frame )
-	com_strncpy( texname, filename, sizeof(texname) - 1);
+	// last chanse: try to load image from internal buffer
+	com.strncpy( texname, filename, sizeof( texname ));
 
-	for( format = desired_formats; format && format->formatstring; format++ )
+	for( format = image.loadformats; format && format->formatstring; format++ )
 	{
 		if( anyformat || !com_stricmp( ext, format->ext ))
 		{
-			if( buffer && buffsize > 0  )
+			image.hint = format->hint;
+			if( buffer && size > 0  )
 			{
 				// this name will be used only for tell user about problems 
 				FS_FileBase( texname, texname );
-				if( format->loadfunc( texname, buffer, buffsize ))
+				if( format->loadfunc( texname, buffer, size ))
 					return ImagePack(); // loaded
 			}
 		}
 	}
 
-	if( !desired_formats ) MsgDev( D_NOTE, "FS_LoadImage: imagelib offline\n" );
+	if( !image.loadformats || image.loadformats->ext == NULL )
+		MsgDev( D_NOTE, "FS_LoadImage: imagelib offline\n" );
 	else if(!com_stristr( filename, "#internal" ))
-		MsgDev(D_WARN, "FS_LoadImage: couldn't load \"%s\"\n", texname );
+		MsgDev( D_WARN, "FS_LoadImage: couldn't load \"%s\"\n", texname );
 
 	return NULL;
 }
-
-typedef struct saveformat_s
-{
-	const char *formatstring;
-	const char *ext;
-	bool (*savefunc)( const char *name, rgbdata_t *pix, int saveformat );
-} saveformat_t;
-
-saveformat_t save_formats[] =
-{
-	{"%s%s.%s", "tga", Image_SaveTGA},
-	{"%s%s.%s", "png", Image_SavePNG},
-	{"%s%s.%s", "dds", Image_SaveDDS},
-	{"%s%s.%s", "bmp", Image_SaveBMP},
-	{"%s%s.%s", "pcx", Image_SavePCX},
-	{NULL, NULL}
-};
 
 /*
 ================
@@ -598,34 +367,32 @@ Image_Save
 writes image as any known format
 ================
 */
-void FS_SaveImage( const char *filename, rgbdata_t *pix )
+void FS_SaveImage( const char *filename, int type, rgbdata_t *pix )
 {
-	saveformat_t	*format;
           const char	*ext = FS_FileExtension( filename );
-	char		path[128], savename[128];
 	bool		anyformat = !com_stricmp(ext, "") ? true : false;
-	int		filesize = 0;
+	string		path, savename;
+	size_t		filesize = 0;
+	const saveformat_t	*format;
 	byte		*data;
-	bool		has_alpha = false;
 
-	if(!pix || !pix->buffer) return;
-	if(pix->flags & IMAGE_HAS_ALPHA) has_alpha = true;
+	if( !pix || !pix->buffer ) return;
+
 	data = pix->buffer;
 
-	com_strncpy( savename, filename, sizeof(savename) - 1);
+	com.strncpy( savename, filename, sizeof( savename ));
 	FS_StripExtension( savename ); // remove extension if needed
 
 	// developer warning
-	if(!anyformat) MsgDev(D_NOTE, "Note: %s will be saving only with ext .%s\n", savename, ext );
+	if( !anyformat ) MsgDev( D_NOTE, "Note: %s will be saving only with ext .%s\n", savename, ext );
 
 	// now try all the formats in the selected list
-	for (format = save_formats; format->formatstring; format++)
+	for( format = image.saveformats; format->formatstring; format++ )
 	{
-		if( anyformat || !com_stricmp( ext, format->ext ))
+		if( anyformat || !com.stricmp( ext, format->ext ))
 		{
-			com_sprintf( path, format->formatstring, savename, "", format->ext );
-			if( format->savefunc( path, pix, pix->hint ))
-				break; // saved
+			com.sprintf( path, format->formatstring, savename, "", format->ext );
+			if( format->savefunc( path, pix, type )) break; // saved
 		}
 	}
 }

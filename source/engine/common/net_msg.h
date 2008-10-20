@@ -151,7 +151,7 @@ void MSG_Init( sizebuf_t *buf, byte *data, size_t length );
 void MSG_Clear( sizebuf_t *buf );
 void MSG_Print( sizebuf_t *msg, const char *data );
 void MSG_Bitstream( sizebuf_t *buf, bool state );
-void _MSG_WriteBits( sizebuf_t *msg, int value, int bits, const char *filename, const int fileline );
+void _MSG_WriteBits( sizebuf_t *msg, int value, const char *name, int bits, const char *filename, const int fileline );
 long _MSG_ReadBits( sizebuf_t *msg, int bits, const char *filename, const int fileline );
 void _MSG_Begin( int dest, const char *filename, int fileline );
 void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int fileline );
@@ -163,22 +163,22 @@ void _MSG_WriteDeltaEntity( struct entity_state_s *from, struct entity_state_s *
 void _MSG_Send( msgtype_t to, vec3_t origin, edict_t *ent, const char *filename, int fileline );
 
 #define MSG_Begin( x ) _MSG_Begin( x, __FILE__, __LINE__)
-#define MSG_WriteChar(x,y) _MSG_WriteBits (x, y, NET_CHAR, __FILE__, __LINE__)
-#define MSG_WriteByte(x,y) _MSG_WriteBits (x, y, NET_BYTE, __FILE__, __LINE__)
-#define MSG_WriteShort(x,y) _MSG_WriteBits(x, y, NET_SHORT,__FILE__, __LINE__)
-#define MSG_WriteWord(x,y) _MSG_WriteBits (x, y, NET_WORD, __FILE__, __LINE__)
-#define MSG_WriteLong(x,y) _MSG_WriteBits (x, y, NET_LONG, __FILE__, __LINE__)
+#define MSG_WriteChar(x,y) _MSG_WriteBits (x, y, NULL, NET_CHAR, __FILE__, __LINE__)
+#define MSG_WriteByte(x,y) _MSG_WriteBits (x, y, NULL, NET_BYTE, __FILE__, __LINE__)
+#define MSG_WriteShort(x,y) _MSG_WriteBits(x, y, NULL, NET_SHORT,__FILE__, __LINE__)
+#define MSG_WriteWord(x,y) _MSG_WriteBits (x, y, NULL, NET_WORD, __FILE__, __LINE__)
+#define MSG_WriteLong(x,y) _MSG_WriteBits (x, y, NULL, NET_LONG, __FILE__, __LINE__)
 #define MSG_WriteFloat(x,y) _MSG_WriteFloat(x, y, __FILE__, __LINE__)
 #define MSG_WriteString(x,y) _MSG_WriteString (x, y, __FILE__, __LINE__)
-#define MSG_WriteCoord16(x, y) _MSG_WriteBits(x, y, NET_COORD, __FILE__, __LINE__)
-#define MSG_WriteCoord32(x, y) _MSG_WriteBits(x, y, NET_FLOAT, __FILE__, __LINE__)
-#define MSG_WriteAngle16(x, y) _MSG_WriteBits(x, y, NET_ANGLE, __FILE__, __LINE__)
-#define MSG_WriteAngle32(x, y) _MSG_WriteBits(x, y, NET_FLOAT, __FILE__, __LINE__)
+#define MSG_WriteCoord16(x, y) _MSG_WriteBits(x, y, NULL, NET_COORD, __FILE__, __LINE__)
+#define MSG_WriteCoord32(x, y) _MSG_WriteBits(x, y, NULL, NET_FLOAT, __FILE__, __LINE__)
+#define MSG_WriteAngle16(x, y) _MSG_WriteBits(x, y, NULL, NET_ANGLE, __FILE__, __LINE__)
+#define MSG_WriteAngle32(x, y) _MSG_WriteBits(x, y, NULL, NET_FLOAT, __FILE__, __LINE__)
 #define MSG_WritePos(x, y) _MSG_WritePos( x, y, __FILE__, __LINE__ )
 #define MSG_WriteData(x,y,z) _MSG_WriteData (x, y, z, __FILE__, __LINE__)
 #define MSG_WriteDeltaUsercmd(x, y, z) _MSG_WriteDeltaUsercmd (x, y, z, __FILE__, __LINE__)
 #define MSG_WriteDeltaEntity(from, to, msg, force, new ) _MSG_WriteDeltaEntity (from, to, msg, force, new, __FILE__, __LINE__)
-#define MSG_WriteBits( buf, value, bits ) _MSG_WriteBits( buf, value, bits, __FILE__, __LINE__ )
+#define MSG_WriteBits( buf, value, name, bits ) _MSG_WriteBits( buf, value, name, bits, __FILE__, __LINE__ )
 #define MSG_ReadBits( buf, bits ) _MSG_ReadBits( buf, bits, __FILE__, __LINE__ )
 #define MSG_Send(x, y, z) _MSG_Send(x, y, z, __FILE__, __LINE__)
 

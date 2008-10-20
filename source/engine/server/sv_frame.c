@@ -173,7 +173,7 @@ void SV_EmitPacketEntities( client_frame_t *from, client_frame_t *to, sizebuf_t 
 			continue;
 		}
 	}
-	MSG_WriteBits( msg, 0, NET_WORD ); // end of packetentities
+	MSG_WriteBits( msg, 0, "svc_packetentities", NET_WORD ); // end of packetentities
 }
 
 static void SV_AddEntitiesToPacket( vec3_t origin, client_frame_t *frame, sv_ents_t *ents, bool portal )

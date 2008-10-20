@@ -543,7 +543,7 @@ void CL_AddLoopingSounds( void );
 cdlight_t *CL_AllocDlight (int key);
 void CL_AddParticles (void);
 void CL_ClearEffects( void );
-void CL_StudioEvent( dstudioevent_t *event, entity_state_t *ent );
+void CL_StudioEvent( mstudioevent_t *event, entity_state_t *ent );
 entity_state_t *CL_GetEdictByIndex( int index );
 entity_state_t *CL_GetLocalPlayer( void );
 

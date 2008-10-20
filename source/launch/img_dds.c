@@ -417,7 +417,7 @@ static void Image_EncodeColorBlock( byte *blkaddr, byte srccolors[4][4][4], int 
 	if( type != PF_DXT1 )
 	{	
 		// manually set alpha for DXT3 or DXT5
-		if( flags & IMAGE_HAS_ALPHA ) haveAlpha = true;
+		if( flags & IMAGE_HAVE_ALPHA ) haveAlpha = true;
 		else haveAlpha = false;
 	}
 
@@ -925,14 +925,14 @@ word Image_Color888ToShort( color24 *Colour )
 	return ((Colour->r >> 3) << 11) | ((Colour->g >> 2) << 5) | (Colour->b >> 3);
 }
 
-size_t Image_DXTGetLinearSize( int image_type, int width, int height, int depth, int rgbcount )
+size_t Image_DXTGetLinearSize( int type, int width, int height, int depth, int rgbcount )
 {
 	size_t BlockSize = 0;
 	int block, bpp;
 
 	// right calcualte blocksize
-	block = PFDesc[image_type].block;
-	bpp = PFDesc[image_type].bpp;
+	block = PFDesc[type].block;
+	bpp = PFDesc[type].bpp;
 
 	if( block == 0 ) BlockSize = width * height * bpp;
 	else if(block > 0) BlockSize = ((width + 3)/4) * ((height + 3)/4) * depth * block;
@@ -995,9 +995,7 @@ bool Image_DXTWriteHeader( vfile_t *f, rgbdata_t *pix, uint cubemap_flags, uint 
 
 	VFS_Write(f, &dwMipCount, sizeof(uint));
 	VFS_Write(f, 0, sizeof(uint));
-	VFS_Write(f, pix->color, sizeof(vec3_t));
-	VFS_Write(f, &pix->bump_scale, sizeof(float));
-	VFS_Write(f, 0, sizeof(uint) * 6 ); // reserved fields
+	VFS_Write(f, 0, sizeof(uint) * 10 ); // reserved fields
 
 	VFS_Write(f, &dwSize2, sizeof(uint));
 	VFS_Write(f, &dwFlags2, sizeof(uint));
@@ -1034,7 +1032,7 @@ bool Image_DecompressDXTC( rgbdata_t **image )
 	word	sAlpha, sColor0, sColor1;
 	byte	alphas[8], *alpha, *alphamask; 
 	int	w, h, x, y, z, i, j, k, Select; 
-	bool	has_alpha = false;
+	bool	have_alpha = false;
 	byte	*fin, *fout;
 	int	SizeOfPlane, Bpp, Bps; 
 	rgbdata_t	*pix = *image;
@@ -1118,7 +1116,7 @@ bool Image_DecompressDXTC( rgbdata_t **image )
 								fout[ofs + 1] = col->g;
 								fout[ofs + 2] = col->b;
 								fout[ofs + 3] = col->a;
-								if(col->a == 0) has_alpha = true;
+								if(col->a == 0) have_alpha = true;
 							}
 						}
 					}
@@ -1177,7 +1175,7 @@ bool Image_DecompressDXTC( rgbdata_t **image )
 								Offset = z * SizeOfPlane + (y + j) * Bps + (x + i) * Bpp + 3;
 								fout[Offset] = sAlpha & 0x0F;
 								fout[Offset] = fout[Offset] | (fout[Offset]<<4);
-								if(sAlpha == 0) has_alpha = true;
+								if(sAlpha == 0) have_alpha = true;
 							}
 							sAlpha >>= 4;
 						}
@@ -1284,7 +1282,7 @@ bool Image_DecompressDXTC( rgbdata_t **image )
 							{
 								Offset = z * SizeOfPlane + (y + j) * Bps + (x + i) * Bpp + 3;
 								fout[Offset] = alphas[bits & 0x07];
-								if(bits & 0x07) has_alpha = true; 
+								if(bits & 0x07) have_alpha = true; 
 							}
 							bits >>= 3;
 						}
@@ -1321,7 +1319,7 @@ bool Image_DecompressARGB( rgbdata_t **image )
 	uint	ReadI = 0, TempBpp;
 	uint	RedL, RedR, GreenL, GreenR, BlueL, BlueR, AlphaL, AlphaR;
 	uint	r_bitmask, g_bitmask, b_bitmask, a_bitmask;
-	bool	has_alpha = false;
+	bool	have_alpha = false;
 	byte	*fin, *fout;
 	int	SizeOfPlane, Bpp, Bps; 
 	rgbdata_t	*pix = *image;
@@ -1595,18 +1593,18 @@ void Image_DXTGetPixelFormat( dds_t *hdr )
 	if (!(hdr->dsCaps.dwCaps2 & DDS_VOLUME)) hdr->dwDepth = 1;
 
 	if(hdr->dsPixelFormat.dwFlags & DDS_ALPHA)
-		image_flags |= IMAGE_HAS_ALPHA;
+		image.flags |= IMAGE_HAVE_ALPHA;
 
 	if (hdr->dsPixelFormat.dwFlags & DDS_FOURCC)
 	{
 		switch (hdr->dsPixelFormat.dwFourCC)
 		{
-		case TYPE_DXT1: image_type = PF_DXT1; break;
-		case TYPE_DXT3: image_type = PF_DXT3; break;
-		case TYPE_DXT5: image_type = PF_DXT5; break;
-		case TYPE_$: image_type = PF_ABGR_64; break;
-		case TYPE_t: image_type = PF_ABGR_128F; break;
-		default: image_type = PF_UNKNOWN; break;
+		case TYPE_DXT1: image.type = PF_DXT1; break;
+		case TYPE_DXT3: image.type = PF_DXT3; break;
+		case TYPE_DXT5: image.type = PF_DXT5; break;
+		case TYPE_$: image.type = PF_ABGR_64; break;
+		case TYPE_t: image.type = PF_ABGR_128F; break;
+		default: image.type = PF_UNKNOWN; break;
 		}
 	}
 	else
@@ -1615,37 +1613,37 @@ void Image_DXTGetPixelFormat( dds_t *hdr )
 		if (hdr->dsPixelFormat.dwFlags & DDS_LUMINANCE)
 		{
 			if (hdr->dsPixelFormat.dwFlags & DDS_ALPHAPIXELS)
-				image_type = PF_LUMINANCE_ALPHA;
+				image.type = PF_LUMINANCE_ALPHA;
 			else if(hdr->dsPixelFormat.dwRGBBitCount == 16 && hdr->dsPixelFormat.dwRBitMask == 0xFFFF) 
-				image_type = PF_LUMINANCE_16;
-			else image_type = PF_LUMINANCE;
+				image.type = PF_LUMINANCE_16;
+			else image.type = PF_LUMINANCE;
 		}
 		else 
 		{
-			if( bits == 32) image_type = PF_ABGR_64;
-			else image_type = PF_ARGB_32;
+			if( bits == 32) image.type = PF_ABGR_64;
+			else image.type = PF_ARGB_32;
 		}
 	}
 
 	// setup additional flags
 	if( hdr->dsCaps.dwCaps1 & DDS_COMPLEX && hdr->dsCaps.dwCaps2 & DDS_CUBEMAP)
 	{
-		image_flags |= IMAGE_CUBEMAP | IMAGE_CUBEMAP_FLIP;
+		image.flags |= IMAGE_CUBEMAP;
 	}
 
 	if(hdr->dsPixelFormat.dwFlags & DDS_ALPHAPIXELS)
 	{
-		image_flags |= IMAGE_HAS_ALPHA;
+		image.flags |= IMAGE_HAVE_ALPHA;
 	}
 
 	if(hdr->dwFlags & DDS_MIPMAPCOUNT)
-		image_num_mips = hdr->dwMipMapCount;
-	else image_num_mips = 1;
+		image.num_mips = hdr->dwMipMapCount;
+	else image.num_mips = 1;
 
-	if(image_type == PF_ARGB_32 || image_type == PF_LUMINANCE || image_type == PF_LUMINANCE_16 || image_type == PF_LUMINANCE_ALPHA)
+	if(image.type == PF_ARGB_32 || image.type == PF_LUMINANCE || image.type == PF_LUMINANCE_16 || image.type == PF_LUMINANCE_ALPHA)
 	{
 		//store RGBA mask into one block, and get palette pointer
-		byte *tmp = image_palette = Mem_Alloc( Sys.imagepool, sizeof(uint) * 4 );
+		byte *tmp = image.palette = Mem_Alloc( Sys.imagepool, sizeof(uint) * 4 );
 		Mem_Copy( tmp, &hdr->dsPixelFormat.dwRBitMask, sizeof(uint)); tmp += 4;
 		Mem_Copy( tmp, &hdr->dsPixelFormat.dwGBitMask, sizeof(uint)); tmp += 4;
 		Mem_Copy( tmp, &hdr->dsPixelFormat.dwBBitMask, sizeof(uint)); tmp += 4;
@@ -1660,7 +1658,7 @@ void Image_DXTAdjustVolume( dds_t *hdr )
 	if (hdr->dwDepth <= 1) return;
 	bits = hdr->dsPixelFormat.dwRGBBitCount / 8;
 	hdr->dwFlags |= DDS_LINEARSIZE;
-	hdr->dwLinearSize = Image_DXTGetLinearSize( image_type, hdr->dwWidth, hdr->dwHeight, hdr->dwDepth, bits );
+	hdr->dwLinearSize = Image_DXTGetLinearSize( image.type, hdr->dwWidth, hdr->dwHeight, hdr->dwDepth, bits );
 }
 
 uint Image_DXTCalcMipmapSize( dds_t *hdr ) 
@@ -1673,9 +1671,9 @@ uint Image_DXTCalcMipmapSize( dds_t *hdr )
 	int bits = hdr->dsPixelFormat.dwRGBBitCount / 8;
 		
 	// now correct buffer size
-	for( i = 0; i < image_num_mips; i++, buffsize += mipsize )
+	for( i = 0; i < image.num_mips; i++, buffsize += mipsize )
 	{
-		mipsize = Image_DXTGetLinearSize( image_type, w, h, d, bits );
+		mipsize = Image_DXTGetLinearSize( image.type, w, h, d, bits );
 		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1;
 	}
 	return buffsize;
@@ -1684,9 +1682,9 @@ uint Image_DXTCalcMipmapSize( dds_t *hdr )
 uint Image_DXTCalcSize( const char *name, dds_t *hdr, size_t filesize ) 
 {
 	size_t buffsize = 0;
-	int w = image_width;
-	int h = image_height;
-	int d = image_num_layers;
+	int w = image.width;
+	int h = image.height;
+	int d = image.num_layers;
 	int bits = hdr->dsPixelFormat.dwRGBBitCount / 8;
 
 	if(hdr->dsCaps.dwCaps2 & DDS_CUBEMAP) 
@@ -1742,15 +1740,7 @@ bool Image_LoadDDS( const char *name, const byte *buffer, size_t filesize )
 	header.dwMipMapCount = BuffLittleLong(fin); fin += 4;
 	header.dwAlphaBitDepth = BuffLittleLong(fin); fin += 4;
 
-	for(i = 0; i < 3; i++)
-	{
-		header.fReflectivity[i] = BuffLittleFloat(fin);
-		fin += 4;
-	}
-
-	header.fBumpScale = BuffLittleFloat(fin); fin += 4;
-
-	for (i = 0; i < 6; i++) 
+	for (i = 0; i < 10; i++) 
 	{
 		// skip unused stuff
 		header.dwReserved1[i] = BuffLittleLong(fin);
@@ -1786,27 +1776,27 @@ bool Image_LoadDDS( const char *name, const byte *buffer, size_t filesize )
 		return false;
 	}
 
-	image_width = header.dwWidth;
-	image_height = header.dwHeight;
-	image_bits_count = header.dsPixelFormat.dwRGBBitCount;
-	if(header.dwFlags & DDS_DEPTH) image_num_layers = header.dwDepth;
+	image.width = header.dwWidth;
+	image.height = header.dwHeight;
+	image.bits_count = header.dsPixelFormat.dwRGBBitCount;
+	if(header.dwFlags & DDS_DEPTH) image.num_layers = header.dwDepth;
 	if(!Image_ValidSize( name )) return false;
 
 	Image_DXTGetPixelFormat( &header );// and image type too :)
 	Image_DXTAdjustVolume( &header );
 
-	if (image_type == PF_UNKNOWN) 
+	if (image.type == PF_UNKNOWN) 
 	{
 		MsgDev( D_WARN, "LoadDDS: (%s) have unsupported compression type\n", name );
 		return false; //unknown type
 	}
 
-	image_size = Image_DXTCalcSize( name, &header, filesize - 128 ); 
-	if(image_size == 0) return false; // just in case
+	image.size = Image_DXTCalcSize( name, &header, filesize - 128 ); 
+	if(image.size == 0) return false; // just in case
 
 	// dds files will be uncompressed on a render. requires minimal of info for set this
-	image_rgba = Mem_Alloc( Sys.imagepool, image_size ); 
-	Mem_Copy( image_rgba, fin, image_size );
+	image.rgba = Mem_Alloc( Sys.imagepool, image.size ); 
+	Mem_Copy( image.rgba, fin, image.size );
 
 	return true;
 }
@@ -1816,7 +1806,8 @@ bool Image_SaveDDS( const char *name, rgbdata_t *pix, int saveformat )
 	file_t	*file;	// real file
 	vfile_t	*vhandle;	// virtual file
 
-	if(FS_FileExists( name )) return false;	// already existed
+	if(FS_FileExists( name ) && !(image.cmd_flags & IL_ALLOW_OVERWRITE ))
+		return false; // already existed
 
 	file = FS_Open( name, "wb" );
 	if( !file ) return false;

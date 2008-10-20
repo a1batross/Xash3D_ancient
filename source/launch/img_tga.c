@@ -37,15 +37,15 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 	targa_header.colormap_size = *fin++;
 	targa_header.x_origin = BuffLittleShort( fin ); fin += 2;
 	targa_header.y_origin = BuffLittleShort( fin ); fin += 2;
-	targa_header.width = image_width = BuffLittleShort( fin ); fin += 2;
-	targa_header.height = image_height = BuffLittleShort( fin );fin += 2;
+	targa_header.width = image.width = BuffLittleShort( fin ); fin += 2;
+	targa_header.height = image.height = BuffLittleShort( fin );fin += 2;
 
 	// check for tga file
 	if(!Image_ValidSize( name )) return false;
 
-	image_num_layers = 1;
-	image_num_mips = 1;
-	image_type = PF_RGBA_32; // always exctracted to 32-bit buffer
+	image.num_layers = 1;
+	image.num_mips = 1;
+	image.type = PF_RGBA_32; // always exctracted to 32-bit buffer
 
 	targa_header.pixel_size = *fin++;
 	targa_header.attributes = *fin++;
@@ -142,19 +142,19 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 		return false;
 	}
 
-	image_flags |= alphabits ? IMAGE_HAS_ALPHA : 0;
-	image_size = image_width * image_height * 4;
-	image_rgba = Mem_Alloc( Sys.imagepool, image_size );
+	image.flags |= alphabits ? IMAGE_HAVE_ALPHA : 0;
+	image.size = image.width * image.height * 4;
+	image.rgba = Mem_Alloc( Sys.imagepool, image.size );
 
 	// If bit 5 of attributes isn't set, the image has been stored from bottom to top
 	if(!(targa_header.attributes & 0x20))
 	{
-		pixbuf = image_rgba + (image_height - 1) * image_width * 4;
-		row_inc = -image_width * 4 * 2;
+		pixbuf = image.rgba + (image.height - 1) * image.width * 4;
+		row_inc = -image.width * 4 * 2;
 	}
 	else
 	{
-		pixbuf = image_rgba;
+		pixbuf = image.rgba;
 		row_inc = 0;
 	}
 
@@ -167,11 +167,11 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 	{
 	case 1: // colormapped, uncompressed
 	case 3: // greyscale, uncompressed
-		if( fin + image_width * image_height * pix_inc > enddata )
+		if( fin + image.width * image.height * pix_inc > enddata )
 			break;
-		for( y = 0; y < image_height; y++, pixbuf += row_inc )
+		for( y = 0; y < image.height; y++, pixbuf += row_inc )
 		{
-			for( x = 0; x < image_width; x++ )
+			for( x = 0; x < image.width; x++ )
 			{
 				p = palette + *fin++ * 4;
 				*pixbuf++ = p[0];
@@ -183,13 +183,13 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 		break;
 	case 2:
 		// BGR or BGRA, uncompressed
-		if(fin + image_width * image_height * pix_inc > enddata)
+		if(fin + image.width * image.height * pix_inc > enddata)
 			break;
 		if(targa_header.pixel_size == 32 && alphabits)
 		{
-			for (y = 0;y < image_height;y++, pixbuf += row_inc)
+			for (y = 0;y < image.height;y++, pixbuf += row_inc)
 			{
-				for (x = 0;x < image_width;x++, fin += pix_inc)
+				for (x = 0;x < image.width;x++, fin += pix_inc)
 				{
 					*pixbuf++ = fin[2];
 					*pixbuf++ = fin[1];
@@ -200,9 +200,9 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 		}
 		else // 24 bits
 		{
-			for (y = 0;y < image_height; y++, pixbuf += row_inc)
+			for (y = 0;y < image.height; y++, pixbuf += row_inc)
 			{
-				for (x = 0;x < image_width; x++, fin += pix_inc)
+				for (x = 0;x < image.width; x++, fin += pix_inc)
 				{
 					*pixbuf++ = fin[2];
 					*pixbuf++ = fin[1];
@@ -214,9 +214,9 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 		break;
 	case 9: // colormapped, RLE
 	case 11: // greyscale, RLE
-		for( y = 0; y < image_height; y++, pixbuf += row_inc )
+		for( y = 0; y < image.height; y++, pixbuf += row_inc )
 		{
-			for( x = 0; x < image_width; )
+			for( x = 0; x < image.width; )
 			{
 				if( fin >= enddata ) break; // error - truncated file
 				runlen = *fin++;
@@ -226,7 +226,7 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 					runlen += 1 - 0x80;
 					if( fin + pix_inc > enddata )
 						break; // error - truncated file
-					if( x + runlen > image_width )
+					if( x + runlen > image.width )
 						break; // error - line exceeds width
 					p = palette + *fin++ * 4;
 					red = p[0];
@@ -247,7 +247,7 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 					runlen++;
 					if( fin + pix_inc * runlen > enddata )
 						break; // error - truncated file
-					if( x + runlen > image_width )
+					if( x + runlen > image.width )
 						break; // error - line exceeds width
 					for( ;runlen--; x++ )
 					{
@@ -265,9 +265,9 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 		// BGR or BGRA, RLE
 		if( targa_header.pixel_size == 32 && alphabits )
 		{
-			for( y = 0; y < image_height; y++, pixbuf += row_inc )
+			for( y = 0; y < image.height; y++, pixbuf += row_inc )
 			{
-				for (x = 0; x < image_width; )
+				for (x = 0; x < image.width; )
 				{                           
 					if( fin >= enddata ) break; // error - truncated file
 					runlen = *fin++;
@@ -276,7 +276,7 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 						// RLE - all pixels the same color
 						runlen += 1 - 0x80;
 						if( fin + pix_inc > enddata ) break; // error - truncated file
-						if( x + runlen > image_width) break; // error - line exceeds width
+						if( x + runlen > image.width) break; // error - line exceeds width
 						red = fin[2];
 						green = fin[1];
 						blue = fin[0];
@@ -295,7 +295,7 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 						// uncompressed - all pixels different color
 						runlen++;
 						if( fin + pix_inc * runlen > enddata ) break; // error - truncated file
-						if( x + runlen > image_width ) break; // error - line exceeds width
+						if( x + runlen > image.width ) break; // error - line exceeds width
 						for( ;runlen--; x++, fin += pix_inc )
 						{
 							*pixbuf++ = fin[2];
@@ -309,9 +309,9 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 		}
 		else
 		{
-			for( y = 0; y < image_height; y++, pixbuf += row_inc )
+			for( y = 0; y < image.height; y++, pixbuf += row_inc )
 			{
-				for (x = 0; x < image_width; )
+				for (x = 0; x < image.width; )
 				{
 					if( fin >= enddata ) break; // error - truncated file
 					runlen = *fin++;
@@ -320,7 +320,7 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 						// RLE - all pixels the same color
 						runlen += 1 - 0x80;
 						if( fin + pix_inc > enddata ) break; // error - truncated file
-						if( x + runlen > image_width )break; // error - line exceeds width
+						if( x + runlen > image.width )break; // error - line exceeds width
 						red = fin[2];
 						green = fin[1];
 						blue = fin[0];
@@ -339,7 +339,7 @@ bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize )
 						// uncompressed - all pixels different color
 						runlen++;
 						if( fin + pix_inc * runlen > enddata ) break; // error - truncated file
-						if( x + runlen > image_width ) break; // error - line exceeds width
+						if( x + runlen > image.width ) break; // error - line exceeds width
 						for ( ; runlen--; x++, fin += pix_inc)
 						{
 							*pixbuf++ = fin[2];
@@ -371,8 +371,11 @@ bool Image_SaveTGA( const char *name, rgbdata_t *pix, int saveformat )
 	byte		*buffer, *out;
 	const char	*comment = "Generated by Xash ImageLib\0";
 
-	if(FS_FileExists( name )) return false; // already existed
-	if( pix->flags & IMAGE_HAS_ALPHA ) outsize = pix->width * pix->height * 4 + 18 + com_strlen( comment );
+	if(FS_FileExists( name ) && !(image.cmd_flags & IL_ALLOW_OVERWRITE ))
+		return false; // already existed
+
+	if( pix->flags & IMAGE_HAVE_ALPHA )
+		outsize = pix->width * pix->height * 4 + 18 + com_strlen( comment );
 	else outsize = pix->width * pix->height * 3 + 18 + com_strlen( comment );
 
 	buffer = (byte *)Mem_Alloc( Sys.imagepool, outsize );
@@ -385,8 +388,8 @@ bool Image_SaveTGA( const char *name, rgbdata_t *pix, int saveformat )
 	buffer[13] = (pix->width >> 8) & 0xFF;
 	buffer[14] = (pix->height >> 0) & 0xFF;
 	buffer[15] = (pix->height >> 8) & 0xFF;
-	buffer[16] = ( pix->flags & IMAGE_HAS_ALPHA ) ? 32 : 24;
-	buffer[17] = ( pix->flags & IMAGE_HAS_ALPHA ) ? 8 : 0; // 8 bits of alpha
+	buffer[16] = ( pix->flags & IMAGE_HAVE_ALPHA ) ? 32 : 24;
+	buffer[17] = ( pix->flags & IMAGE_HAVE_ALPHA ) ? 8 : 0; // 8 bits of alpha
 	com_strncpy( buffer + 18, comment, com_strlen( comment )); 
 	out = buffer + 18 + com_strlen( comment );
 
@@ -415,13 +418,13 @@ bool Image_SaveTGA( const char *name, rgbdata_t *pix, int saveformat )
 				*out++ = in[2];
 				*out++ = in[1];
 				*out++ = in[0];
-				if( pix->flags & IMAGE_HAS_ALPHA )
+				if( pix->flags & IMAGE_HAVE_ALPHA )
 					*out++ = in[3];
 			}
 		}
 	}	
 
-	MsgDev(D_NOTE, "Writing %s[%d]\n", name, (pix->flags & IMAGE_HAS_ALPHA) ? 32 : 24 );
+	MsgDev(D_NOTE, "Writing %s[%d]\n", name, (pix->flags & IMAGE_HAVE_ALPHA) ? 32 : 24 );
 	FS_WriteFile( name, buffer, outsize );
 
 	Mem_Free( buffer );

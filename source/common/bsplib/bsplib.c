@@ -15,7 +15,6 @@ bool notjunc = false;
 bool onlyents = false;
 bool nosubdivide = false;
 
-cvar_t	*bsp_lmsample_size;
 cvar_t	*bsp_lightmap_size;
 
 dll_info_t physic_dll = { "physic.dll", NULL, "CreateAPI", NULL, NULL, false, sizeof(physic_exp_t) };
@@ -76,15 +75,11 @@ bool PrepareBSPModel ( const char *dir, const char *name, byte params )
 	full_compile = (params & BSP_FULLCOMPILE) ? true : false;
 
 	// register our cvars
-	bsp_lmsample_size = Cvar_Get( "bsplib_lmsample_size", "16", CVAR_SYSTEMINFO, "bsplib lightmap sample size" );
-	bsp_lightmap_size = Cvar_Get( "bsplib_lightmap_size", "128", CVAR_SYSTEMINFO, "bsplib lightmap size" );
+	bsp_lightmap_size = Cvar_Get( "bsplib_lightmapsize", "16", CVAR_SYSTEMINFO, "bsplib lightmap sample size" );
 
 	FS_LoadGameInfo( "gameinfo.txt" ); // same as normal gamemode
 
 	Init_PhysicsLibrary();
-	BeginMapShaderFile();
-	SetDefaultSampleSize( bsp_lmsample_size->integer );
-
 	numshaders = LoadShaderInfo();
 	Msg( "%5i shaderInfo\n", numshaders );
 

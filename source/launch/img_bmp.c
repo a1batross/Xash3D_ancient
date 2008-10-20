@@ -72,8 +72,8 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 		return false;
 	}
 
-	image_width = bhdr.width;
-	image_height = bhdr.height;
+	image.width = bhdr.width;
+	image.height = bhdr.height;
 	if(!Image_ValidSize( name ))
 		return false;          
 
@@ -87,7 +87,7 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 	Mem_Copy( rgrgbPalette, &bhdr.palette, cbPalBytes ); // read palette (bmih.biClrUsed entries)
 
 	// convert to a unpacked 1024 byte palette
-	pb = image_palette = Mem_Alloc( Sys.imagepool, 1024 );
+	pb = image.palette = Mem_Alloc( Sys.imagepool, 1024 );
 
 	// copy over used entries
 	for( i = 0; i < (int)bhdr.colors; i++ )
@@ -128,20 +128,20 @@ bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize )
 	}
 
 	pb += biTrueWidth;
-	image_num_layers = image_num_mips = 1;
-	image_type = PF_INDEXED_32; // scaled up to 32 bit
+	image.num_layers = image.num_mips = 1;
+	image.type = PF_INDEXED_32; // 32 bit palette
 
 	// scan for transparency
-	for( i = 0; i < image_width * image_height; i++ )
+	for( i = 0; i < image.width * image.height; i++ )
 	{
 		if( pbBmpBits[i] == 255 )
 		{
-			image_flags |= IMAGE_HAS_ALPHA;
+			image.flags |= IMAGE_HAVE_ALPHA;
 			break;
 		}
 	}
 
-	result = FS_AddMipmapToPack( pbBmpBits, image_width, image_height, false );
+	result = FS_AddMipmapToPack( pbBmpBits, image.width, image.height );
 	Mem_Free( pbBmpBits );
 	return result;
 }
@@ -159,12 +159,15 @@ bool Image_SaveBMP( const char *name, rgbdata_t *pix, int saveformat )
 	dword		biTrueWidth;
 	int		i, rc = 0;
 
-	if(FS_FileExists( name ))
+	if(FS_FileExists( name ) && !(image.cmd_flags & IL_ALLOW_OVERWRITE ))
 		return false; // already existed
 
 	// bogus parameter check
 	if( !pix->palette || !pix->buffer )
 		return false;
+
+	pfile = FS_Open( name, "wb");
+	if(!pfile) return false;
 
 	switch( pix->type )
 	{
@@ -175,9 +178,6 @@ bool Image_SaveBMP( const char *name, rgbdata_t *pix, int saveformat )
 		MsgDev( D_WARN, "Image_SaveBMP: unsupported image type %s\n", PFDesc[pix->type].name );
 		return false;
 	}
-
-	pfile = FS_Open( name, "wb");
-	if(!pfile) return false;
 
 	// NOTE: alig transparency column will sucessfully removed
 	// after create sprite or lump image, it's just standard requiriments 
@@ -218,13 +218,16 @@ bool Image_SaveBMP( const char *name, rgbdata_t *pix, int saveformat )
 		rgrgbPalette[i].rgbRed = *pb++;
 		rgrgbPalette[i].rgbGreen = *pb++;
 		rgrgbPalette[i].rgbBlue = *pb++;
+
+		// bmp feature - can store 32-bit palette if present
+		// some viewers e.g. fimg.exe can show alpha-chanell for it
 		if( pix->type == PF_INDEXED_32 )
 			rgrgbPalette[i].rgbReserved = *pb++;
 		else rgrgbPalette[i].rgbReserved = 0;
 	}
 
 	// make last color is 0 0 255, xwad expect this
-	if( pix->flags & IMAGE_HAS_ALPHA )
+	if( pix->flags & IMAGE_HAVE_ALPHA )
 	{
 		rgrgbPalette[255].rgbRed = 0x00;
 		rgrgbPalette[255].rgbGreen = 0x00;

@@ -16,7 +16,7 @@
 #define TYPE_QPIC			66	// quake1 and hl pic (lmp_t)
 #define TYPE_MIPTEX2		67	// half-life (mip_t) previous was TYP_SOUND but never used in quake1
 #define TYPE_MIPTEX			68	// quake1 (mip_t)
-#define TYPE_BINDATA		69	// engine internal data (map lumps, save lumps etc)
+#define TYPE_BINDATA		69	// engine internal data
 #define TYPE_STRDATA		70	// big unterminated string (stringtable marked as TYPE_BINARYDATA)
 
 #define TYPE_RAW			71	// unrecognized raw data
@@ -34,21 +34,7 @@
 #define RF_DEPTHHACK		(1<<4)	// for view weapon Z crunching
 #define RF_TRANSLUCENT		(1<<5)
 #define RF_IR_VISIBLE		(1<<6)	// skin is an index in image_precache
-#define RF_HOLOGRAMM		(1<<7)	// studio hologramm effect (like hl1)
-#define RF_OCCLUSIONTEST		(1<<8)	// do occlusion test for this entity
-#define RF_PLANARSHADOW	 	(1<<9)	// force shadow to planar
-#define RF_NOSHADOW			(1<<10)	// disable shadow at all
-
-// player_state_t->renderfx
-#define RDF_UNDERWATER		(1<<0)	// warp the screen as apropriate
-#define RDF_NOWORLDMODEL		(1<<1)	// used for player configuration screen
-#define RDF_BLOOM			(1<<2)	// light blooms
-#define RDF_OLDAREABITS		(1<<3)	// forces R_MarkLeaves() if not set
-#define RDF_PAIN			(1<<4)	// motion blur effects
-#define RDF_IRGOGGLES		(1<<5)	// infra red goggles effect
-#define RDF_PORTALINVIEW		(1<<6)	// cull entities using vis too because areabits are merged serverside
-#define RDF_SKYPORTALINVIEW		(1<<7)	// draw skyportal instead of regular sky
-#define RDF_NOFOVADJUSTMENT		(1<<8)	// do not adjust fov for widescreen
+#define RF_HOLOGRAMM		(1<<7)
 
 // entity_state_t->effects
 #define EF_BRIGHTFIELD		(1<<0)	// swirling cloud of particles
@@ -72,35 +58,24 @@
 
 // system contents
 #define CONTENTS_AREAPORTAL		(1<<15)
-#define CONTENTS_ANTIPORTAL		(1<<16)
-#define CONTENTS_PLAYERCLIP		(1<<17)
-#define CONTENTS_MONSTERCLIP		(1<<18)
+#define CONTENTS_PLAYERCLIP		(1<<16)
+#define CONTENTS_MONSTERCLIP		(1<<17)
 #define CONTENTS_CLIP		CONTENTS_PLAYERCLIP|CONTENTS_MONSTERCLIP
-#define CONTENTS_ORIGIN		(1<<19)	// removed before bsping an entity
-#define CONTENTS_BODY		(1<<20)	// should never be on a brush, only in game
-#define CONTENTS_CORPSE		(1<<21)	// dead bodies
-#define CONTENTS_DETAIL		(1<<22)	// brushes not used for the bsp
-#define CONTENTS_STRUCTURAL		(1<<23)	// brushes used for the bsp
-#define CONTENTS_TRANSLUCENT		(1<<24)	// don't consume surface fragments inside
-#define CONTENTS_TRIGGER		(1<<25)	// trigger volume
-#define CONTENTS_NODROP		(1<<26)	// don't leave bodies or items (death fog, lava)
-#define CONTENTS_LADDER		(1<<27)	// ladder in games
-#define CONTENTS_LIGHTGRID		(1<<28)	// lightgrid contents
-
-// content masks
-#define MASK_SOLID			(CONTENTS_SOLID)
-#define MASK_PLAYERSOLID		(CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_BODY)
-#define MASK_MONSTERSOLID		(CONTENTS_SOLID|CONTENTS_MONSTERCLIP|CONTENTS_BODY)
-#define MASK_DEADSOLID		(CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_WINDOW)
-#define MASK_WATER			(CONTENTS_WATER|CONTENTS_LAVA|CONTENTS_SLIME)
-#define MASK_OPAQUE			(CONTENTS_SOLID|CONTENTS_SLIME|CONTENTS_LAVA)
-#define MASK_SHOT			(CONTENTS_SOLID|CONTENTS_BODY|CONTENTS_CORPSE)
+#define CONTENTS_ORIGIN		(1<<18)	// removed before bsping an entity
+#define CONTENTS_BODY		(1<<19)	// should never be on a brush, only in game
+#define CONTENTS_CORPSE		(1<<20)	// dead bodies
+#define CONTENTS_DETAIL		(1<<21)	// brushes not used for the bsp
+#define CONTENTS_STRUCTURAL		(1<<22)	// brushes used for the bsp
+#define CONTENTS_TRANSLUCENT		(1<<23)	// don't consume surface fragments inside
+#define CONTENTS_TRIGGER		(1<<24)	// trigger volume
+#define CONTENTS_NODROP		(1<<25)	// don't leave bodies or items (death fog, lava)
+#define CONTENTS_LADDER		(1<<26)	// ladder in games
 
 // surface flags
 #define SURF_NODAMAGE		(1<<0)	// never give falling damage
 #define SURF_SLICK			(1<<1)	// effects game physics
 #define SURF_SKY			(1<<2)	// lighting from environment map
-#define SURF_POINTLIGHT		(1<<3)	// generate lighting info at vertexes
+#define SURF_SKYROOM		(1<<3)	// sky portal drawing surface
 #define SURF_NOIMPACT		(1<<4)	// don't make missile explosions
 #define SURF_NOMARKS		(1<<5)	// don't leave missile marks
 #define SURF_PORTAL			(1<<6)	// portal surface
@@ -115,9 +90,6 @@
 #define SURF_ALPHA			(1<<15)	// alpha surface (e.g. grates, trees)
 #define SURF_BLEND			(1<<16)	// blended surface (e.g. windows)
 #define SURF_ADDITIVE		(1<<17)	// additive surface (studio skins)
-#define SURF_NONSOLID		(1<<18)	// not solid surface
-
-#define SURF_VERTEXLIT		(SURF_POINTLIGHT|SURF_NOLIGHTMAP)
 
 // engine physics constants
 #define COLLISION_SNAPSCALE		(32.0f)

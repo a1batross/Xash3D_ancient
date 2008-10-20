@@ -166,20 +166,6 @@ static dllfunc_t texture3dextfuncs[] =
 	{NULL, NULL}
 };
 
-/* GL_ARB_occlusion_query */
-static dllfunc_t occlusionqueryfuncs[] =
-{
-	{"glGenQueriesARB", (void **) &pglGenQueriesARB},
-	{"glDeleteQueriesARB", (void **) &pglDeleteQueriesARB},
-	{"glIsQueryARB", (void **) &pglIsQueryARB},
-	{"glBeginQueryARB", (void **) &pglBeginQueryARB},
-	{"glEndQueryARB", (void **) &pglEndQueryARB},
-	{"glGetQueryivARB", (void **) &pglGetQueryivARB},
-	{"glGetQueryObjectivARB", (void **) &pglGetQueryObjectivARB},
-	{"glGetQueryObjectuivARB", (void **) &pglGetQueryObjectuivARB},
-	{NULL, NULL}
-};
-
 static dllfunc_t atiseparatestencilfuncs[] =
 {
 	{"glStencilOpSeparateATI", (void **) &pglStencilOpSeparate},
@@ -261,6 +247,17 @@ static dllfunc_t vertexshaderfuncs[] =
 	{NULL, NULL}
 };
 
+static dllfunc_t cgprogramfuncs[] =
+{
+	{"glBindProgramARB", (void **) &pglBindProgramARB},
+	{"glDeleteProgramsARB", (void **) &pglDeleteProgramsARB},
+	{"glGenProgramsARB", (void **) &pglGenProgramsARB},
+	{"glProgramStringARB", (void **) &pglProgramStringARB},
+	{"glProgramEnvParameter4fARB", (void **) &pglProgramEnvParameter4fARB},
+	{"glProgramLocalParameter4fARB", (void **) &pglProgramLocalParameter4fARB},
+	{NULL, NULL}
+};
+
 static dllfunc_t vbofuncs[] =
 {
 	{"glBindBufferARB"    , (void **) &pglBindBufferARB},
@@ -306,6 +303,11 @@ void R_RenderInfo_f( void )
 		Msg("GL_MAX_TEXTURE_UNITS_ARB: %i\n", gl_config.textureunits );
 	if( GL_Support( R_TEXTURECUBEMAP_EXT ))
 		Msg("GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB: %i\n", gl_config.max_cubemap_texture_size );
+	if( GL_Support( R_FRAGMENT_PROGRAM_EXT ))
+	{
+		Msg("GL_MAX_TEXTURE_COORDS_ARB: %i\n", gl_config.texturecoords );
+		Msg("GL_MAX_TEXTURE_IMAGE_UNITS_ARB: %i\n", gl_config.imageunits );
+	}
 	if( GL_Support( R_ANISOTROPY_EXT ))
 		Msg("GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT: %.1f\n", gl_config.max_anisotropy );
 	if( gl_config.texRectangle )
@@ -326,7 +328,6 @@ void GL_InitCommands( void )
 	r_mode = Cvar_Get( "r_mode", "0", CVAR_ARCHIVE, "display resolution mode" );
 
 	r_check_errors = Cvar_Get("r_check_errors", "1", CVAR_ARCHIVE, "ignore video engine errors" );
-	r_hwgamma = Cvar_Get( "r_hwgamma", "1", CVAR_ARCHIVE|CVAR_LATCH, "using hardware gamma adjustment" );
 	r_lefthand = Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE, "viewmodel handedness" );
 	r_norefresh = Cvar_Get ("r_norefresh", "0", 0, "no description" );
 	r_fullbright = Cvar_Get ("r_fullbright", "0", CVAR_LATCH, "disable lightmaps" );
@@ -361,7 +362,6 @@ void GL_InitCommands( void )
 
 	r_mirroralpha = Cvar_Get( "r_mirroralpha", "0.5", CVAR_ARCHIVE, "no description" );
 	r_interpolate = Cvar_Get( "r_interpolate", "0", CVAR_ARCHIVE, "no description" );
-	r_lmblocksize = Cvar_Get( "r_lmblocksize", "0", CVAR_ARCHIVE, "lightmap packed block size [dxd]" );
 
 	r_lightmap = Cvar_Get ("r_lightmap", "0", 0, "no description" );
 	r_shadows = Cvar_Get ("r_shadows", "0", CVAR_ARCHIVE, "no description" );
@@ -380,16 +380,13 @@ void GL_InitCommands( void )
 	r_showtangentspace = Cvar_Get("r_showTangentSpace", "0", CVAR_CHEAT, "draw model tangent space" );
 	r_showmodelbounds = Cvar_Get("r_showmodelbounds", "0", CVAR_CHEAT, "draw entity bboxes" );
 	r_showshadowvolumes = Cvar_Get("r_showshadowvolumes", "0", CVAR_CHEAT, "draw shadow volumes" );
-	r_showlightmaps = Cvar_Get("r_showlightmaps", "0", CVAR_CHEAT, "lightmap debugging visualization tool" );
-	r_showtextures = Cvar_Get("r_showtextures", "0", CVAR_CHEAT, "show all uploaded textures" );
 	r_offsetfactor = Cvar_Get("r_offsetfactor", "-1", CVAR_CHEAT, "z_trick offset factor" );
 	r_offsetunits = Cvar_Get("r_offsetunits", "-2", CVAR_CHEAT, "z_trick offset uints" );
-	r_debugsort = Cvar_Get("r_debugsort", "0", CVAR_CHEAT, "enable custom z-sorting" );
+	r_debugsort = Cvar_Get( "r_debugsort", "0", CVAR_CHEAT, "enable custom z-sorting" );
 	r_singleshader = Cvar_Get("r_singleshader", "0", CVAR_CHEAT|CVAR_LATCH, "apply default shader everywhere" );
 	r_skipbackend = Cvar_Get("r_skipbackend", "0", CVAR_CHEAT, "skip 2d drawing (hud, console, etc)" );
 	r_skipfrontend = Cvar_Get("r_skipfronend", "0", CVAR_CHEAT, "skip 3d drawing (scene)" );
 	r_overbrightbits = Cvar_Get("r_overbrightbits", "0", CVAR_ARCHIVE|CVAR_LATCH, "hardware gamma overbright" );
-	r_mapoverbrightbits = Cvar_Get("r_mapoverbrightbits", "0", CVAR_ARCHIVE|CVAR_LATCH, "hardware gamma map overbright bits" );
 
 	r_modulate = Cvar_Get( "r_modulate", "1.0", CVAR_ARCHIVE|CVAR_LATCH, "modulate light" );
 	r_ambientscale = Cvar_Get("r_ambientScale", "0.6", CVAR_ARCHIVE, "default ambient light level" );
@@ -398,12 +395,6 @@ void GL_InitCommands( void )
 	r_texturefilter = Cvar_Get( "gl_texturefilter", "GL_LINEAR_MIPMAP_LINEAR", CVAR_ARCHIVE, "texture filter" );
 	r_texturefilteranisotropy = Cvar_Get( "r_anisotropy", "2.0", CVAR_ARCHIVE, "textures anisotropic filter" );
 	r_detailtextures = Cvar_Get( "r_detailtextures", "0", CVAR_ARCHIVE|CVAR_LATCH, "allow detail textures" );
-	r_portalmaps = Cvar_Get( "r_portalmaps", "0", CVAR_ARCHIVE|CVAR_LATCH, "allow portal maps" );
-	r_fastsky = Cvar_Get( "r_fastsky", "0", CVAR_ARCHIVE, "disable sky portal (given some speedup)" );
-	r_flares = Cvar_Get( "r_flares", "1", CVAR_ARCHIVE, "draw light flares" );
-	r_flarefade = Cvar_Get( "r_flarefade", "0", CVAR_ARCHIVE, "enable linear fade for light flares" );
-	r_occlusion_queries = Cvar_Get( "r_occlusion_queries", "0", CVAR_ARCHIVE, "enable render occlusion queries" );
-	r_occlusion_queries_finish = Cvar_Get( "r_oq_finish", "0", CVAR_ARCHIVE, "call glFinish instead of glFlush at end of occlusion pass" ); 
 
 	r_swapInterval = Cvar_Get ("gl_swapinterval", "0", CVAR_ARCHIVE, "time beetween frames (in msec)" );
 	gl_finish = Cvar_Get ("gl_finish", "0", CVAR_ARCHIVE, "no description" );
@@ -498,7 +489,7 @@ void GL_CheckExtension( const char *name, const dllfunc_t *funcs, const char *cv
 	if( cvarname )
 	{
 		// system config disable extensions
-		parm = Cvar_Get( cvarname, "1", CVAR_SYSTEMINFO, va( "enable or disable %s", name ));
+		parm = Cvar_Get( cvarname, "1", CVAR_SYSTEMINFO, "enable or disable gl_extension" );
 		GL_SetExtension( r_ext, parm->integer );	// update render info
 		if( parm->integer == 0 )
 		{
@@ -563,6 +554,8 @@ void GL_UpdateSwapInterval( void )
 
 void GL_InitExtensions( void )
 {
+	int	flags = 0;
+
 	// initialize gl extensions
 	GL_CheckExtension( "OpenGL 1.1.0", opengl_110funcs, NULL, R_OPENGL_110 );
 	if( !r_framebuffer ) r_framebuffer = Mem_Alloc( r_temppool, r_width->integer * r_height->integer * 4 );
@@ -602,7 +595,6 @@ void GL_InitExtensions( void )
 	}
 
 	GL_CheckExtension( "GL_SGIS_generate_mipmap", NULL, "gl_sgis_generate_mipmaps", R_SGIS_MIPMAPS_EXT );
-	GL_CheckExtension( "GL_ARB_occlusion_query", occlusionqueryfuncs, "gl_occlusion_query", R_OCCLUSION_QUERY );
 
 	// hardware cubemaps
 	GL_CheckExtension( "GL_ARB_texture_cube_map", NULL, "gl_texture_cubemap", R_TEXTURECUBEMAP_EXT );
@@ -633,7 +625,15 @@ void GL_InitExtensions( void )
 	// we don't care if it's an extension or not, they are identical functions, so keep it simple in the rendering code
 	if( pglDrawRangeElementsEXT == NULL ) pglDrawRangeElementsEXT = pglDrawRangeElements;
 
+	GL_CheckExtension( "GL_ARB_vertex_program", cgprogramfuncs, "gl_vertexprogram", R_VERTEX_PROGRAM_EXT );
+	GL_CheckExtension( "GL_ARB_fragment_program", cgprogramfuncs, "gl_fragmentprogram", R_FRAGMENT_PROGRAM_EXT );
 	GL_CheckExtension( "GL_ARB_texture_env_add", NULL, "gl_texture_env_add", R_TEXTURE_ENV_ADD_EXT );
+
+	if(GL_Support( R_FRAGMENT_PROGRAM_EXT ))
+	{
+		pglGetIntegerv( GL_MAX_TEXTURE_COORDS_ARB, &gl_config.texturecoords );
+		pglGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS_ARB, &gl_config.imageunits );
+	}
 
 	// vp and fp shaders
 	GL_CheckExtension( "GL_ARB_shader_objects", shaderobjectsfuncs, "gl_shaderobjects", R_SHADER_OBJECTS_EXT );
@@ -653,75 +653,11 @@ void GL_InitExtensions( void )
 		pglGetIntegerv( GL_MAX_RECTANGLE_TEXTURE_SIZE_EXT, &gl_config.max_2d_rectangle_size );
 	}
 	else gl_config.texRectangle = gl_config.max_2d_rectangle_size = 0; // no rectangle
-}
 
-void GL_EnableTexGen( GLint coord, GLint mode )
-{
-	int	tmu = gl_state.activeTMU;
-	int	bit, gen;
+	if( GL_Support( R_TEXTURE_COMPRESSION_EXT )) flags |= IL_DDS_HARDWARE;
+	flags |= (IL_USE_LERPING|IL_EXPLICIT_PATH); // test
 
-	switch( coord )
-	{
-	case GL_S:
-		bit = 1;
-		gen = GL_TEXTURE_GEN_S;
-		break;
-	case GL_T:
-		bit = 2;
-		gen = GL_TEXTURE_GEN_T;
-		break;
-	case GL_R:
-		bit = 4;
-		gen = GL_TEXTURE_GEN_R;
-		break;
-	case GL_Q:
-		bit = 8;
-		gen = GL_TEXTURE_GEN_Q;
-		break;
-	default:
-		return;
-	}
-
-	if( mode )
-	{
-		if(!(gl_state.texGen[tmu] & bit ))
-		{
-			pglEnable( gen );
-			gl_state.texGen[tmu] |= bit;
-		}
-		pglTexGeni( coord, GL_TEXTURE_GEN_MODE, mode );
-	}
-	else
-	{
-		if( gl_state.texGen[tmu] & bit )
-		{
-			pglDisable( gen );
-			gl_state.texGen[tmu] &= ~bit;
-		}
-	}
-}
-
-void GL_TexCoordMode( GLenum mode )
-{
-	int	tmu = gl_state.activeTMU;
-	int	bit, cmode = gl_state.texMod[tmu];
-
-	if( mode == GL_TEXTURE_COORD_ARRAY )
-		bit = 1;
-	else if( mode == GL_TEXTURE_CUBE_MAP_ARB )
-		bit = 2;
-	else bit = 0;
-
-	if( cmode != bit )
-	{
-		if( cmode == 1 ) pglDisableClientState( GL_TEXTURE_COORD_ARRAY );
-		else if( cmode == 2 ) pglDisable( GL_TEXTURE_CUBE_MAP_ARB );
-
-		if( bit == 1 ) pglEnableClientState( GL_TEXTURE_COORD_ARRAY );
-		else if( bit == 2 ) pglEnable( GL_TEXTURE_CUBE_MAP_ARB );
-
-		gl_state.texMod[tmu] = bit;
-	}
+	Image_Init( NULL, flags );
 }
 
 /*
@@ -755,7 +691,6 @@ void GL_BindTexture( texture_t *texture )
 	if( r_nobind->integer && !(texture->flags & TF_STATIC))
 		texture = r_defaultTexture;
 
-	if( !texture ) Host_Error( "GL_BindTexture: null texture\n" );
 	if( gl_state.texNum[gl_state.activeTMU] == texture->texnum )
 		return;
 	gl_state.texNum[gl_state.activeTMU] = texture->texnum;
@@ -793,6 +728,16 @@ void GL_Enable( GLenum cap )
 		if( gl_state.polygonOffsetFill ) return;
 		gl_state.polygonOffsetFill = true;
 		break;
+	case GL_VERTEX_PROGRAM_ARB:
+		if(!GL_Support( R_VERTEX_PROGRAM_EXT ) || gl_state.vertexProgram )
+			return;
+		gl_state.vertexProgram = true;
+		break;
+	case GL_FRAGMENT_PROGRAM_ARB:
+		if(!GL_Support( R_FRAGMENT_PROGRAM_EXT ) || gl_state.fragmentProgram )
+			return;
+		gl_state.fragmentProgram = true;
+		break;
 	case GL_ALPHA_TEST:
 		if( gl_state.alpha_test ) return;
 		gl_state.alpha_test = true;
@@ -826,6 +771,16 @@ void GL_Disable( GLenum cap )
 		if( !gl_state.polygonOffsetFill ) return;
 		gl_state.polygonOffsetFill = false;
 		break;
+	case GL_VERTEX_PROGRAM_ARB:
+		if(!GL_Support( R_VERTEX_PROGRAM_EXT ) || !gl_state.vertexProgram )
+			return;
+		gl_state.vertexProgram = false;
+		break;
+	case GL_FRAGMENT_PROGRAM_ARB:
+		if(!GL_Support( R_FRAGMENT_PROGRAM_EXT ) || !gl_state.fragmentProgram )
+			return;
+		gl_state.fragmentProgram = false;
+		break;
 	case GL_ALPHA_TEST:
 		if(!gl_state.alpha_test ) return;
 		gl_state.alpha_test = false;
@@ -851,16 +806,6 @@ void GL_CullFace( GLenum mode )
 {
 	if( gl_state.cullMode == mode )
 		return;
-
-	if( !mode )
-	{
-		pglDisable( GL_CULL_FACE );
-		gl_state.cullMode = 0;
-		return;
-	}
-
-	if( !gl_state.cullMode )
-		pglEnable( GL_CULL_FACE );
 
 	gl_state.cullMode = mode;
 	pglCullFace( mode );
@@ -940,17 +885,6 @@ void GL_DepthMask( GLboolean mask )
 }
 
 /*
-=================
-GL_FrontFace
-=================
-*/
-void GL_FrontFace( GLboolean front )
-{
-	pglFrontFace( front ? GL_CW : GL_CCW );
-	gl_state.frontFace = front;
-}
-
-/*
 =============
 GL_SetColor
 
@@ -970,24 +904,7 @@ void GL_SetColor( const void *data )
 	}
 }
 
-void GL_LoadTexMatrix( const matrix4x4 source )
-{
-	pglMatrixMode( GL_TEXTURE );
-	GL_LoadMatrix( source );
-	gl_state.texMat[gl_state.activeTMU] = true;
-}
-
-void GL_LoadIdentityTexMatrix( void )
-{
-	if( gl_state.texMat[gl_state.activeTMU] )
-	{
-		pglMatrixMode( GL_TEXTURE );
-		pglLoadIdentity();
-		gl_state.texMat[gl_state.activeTMU] = false;
-	}
-}
-
-void GL_LoadMatrix( const matrix4x4 source )
+void GL_LoadMatrix( matrix4x4 source )
 {
 	gl_matrix	dest;
 
@@ -1001,144 +918,6 @@ void GL_SaveMatrix( GLenum target, matrix4x4 dest )
 
 	pglGetFloatv( target, source );
 	Matrix4x4_FromArrayFloatGL( dest, source );
-}
-
-/*
-=================
-GL_SetState
-=================
-*/
-void GL_SetState( GLint state )
-{
-	GLint	diff;
-
-	if( gl_state.orthogonal ) state |= GLSTATE_NO_DEPTH_TEST;
-	if( state & GLSTATE_NO_DEPTH_TEST ) 
-		state &= ~( GLSTATE_DEPTHWRITE|GLSTATE_DEPTHFUNC_EQ );
-
-	diff = gl_state.flags ^ state;
-	if( !diff ) return;
-
-	if( diff & ( GLSTATE_BLEND_MTEX|GLSTATE_SRCBLEND_MASK|GLSTATE_DSTBLEND_MASK ))
-	{
-		if( state & ( GLSTATE_SRCBLEND_MASK|GLSTATE_DSTBLEND_MASK ))
-		{
-			GLint	blendsrc, blenddst;
-
-			switch( state & GLSTATE_SRCBLEND_MASK )
-			{
-			case GLSTATE_SRCBLEND_ZERO:
-				blendsrc = GL_ZERO;
-				break;
-			case GLSTATE_SRCBLEND_DST_COLOR:
-				blendsrc = GL_DST_COLOR;
-				break;
-			case GLSTATE_SRCBLEND_ONE_MINUS_DST_COLOR:
-				blendsrc = GL_ONE_MINUS_DST_COLOR;
-				break;
-			case GLSTATE_SRCBLEND_SRC_ALPHA:
-				blendsrc = GL_SRC_ALPHA;
-				break;
-			case GLSTATE_SRCBLEND_ONE_MINUS_SRC_ALPHA:
-				blendsrc = GL_ONE_MINUS_SRC_ALPHA;
-				break;
-			case GLSTATE_SRCBLEND_DST_ALPHA:
-				blendsrc = GL_DST_ALPHA;
-				break;
-			case GLSTATE_SRCBLEND_ONE_MINUS_DST_ALPHA:
-				blendsrc = GL_ONE_MINUS_DST_ALPHA;
-				break;
-			case GLSTATE_SRCBLEND_ONE:
-			default:
-				blendsrc = GL_ONE;
-				break;
-			}
-
-			switch( state & GLSTATE_DSTBLEND_MASK )
-			{
-			case GLSTATE_DSTBLEND_ONE:
-				blenddst = GL_ONE;
-				break;
-			case GLSTATE_DSTBLEND_SRC_COLOR:
-				blenddst = GL_SRC_COLOR;
-				break;
-			case GLSTATE_DSTBLEND_ONE_MINUS_SRC_COLOR:
-				blenddst = GL_ONE_MINUS_SRC_COLOR;
-				break;
-			case GLSTATE_DSTBLEND_SRC_ALPHA:
-				blenddst = GL_SRC_ALPHA;
-				break;
-			case GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA:
-				blenddst = GL_ONE_MINUS_SRC_ALPHA;
-				break;
-			case GLSTATE_DSTBLEND_DST_ALPHA:
-				blenddst = GL_DST_ALPHA;
-				break;
-			case GLSTATE_DSTBLEND_ONE_MINUS_DST_ALPHA:
-				blenddst = GL_ONE_MINUS_DST_ALPHA;
-				break;
-			case GLSTATE_DSTBLEND_ZERO:
-			default:
-				blenddst = GL_ZERO;
-				break;
-			}
-
-			if( state & GLSTATE_BLEND_MTEX )
-			{
-				if( gl_state.texEnv[gl_state.activeTMU] != GL_REPLACE )
-					GL_Enable( GL_BLEND );
-				else GL_Disable( GL_BLEND );
-			}
-			else GL_Enable( GL_BLEND );
-			GL_BlendFunc( blendsrc, blenddst );
-		}
-		else GL_Disable( GL_BLEND );
-	}
-
-	if( diff & GLSTATE_ALPHAFUNC )
-	{
-		if( state & GLSTATE_ALPHAFUNC )
-		{
-			if(!( gl_state.flags & GLSTATE_ALPHAFUNC ))
-				GL_Enable( GL_ALPHA_TEST );
-
-			if( state & GLSTATE_AFUNC_GT0 )
-				GL_AlphaFunc( GL_GREATER, 0 );
-			else if( state & GLSTATE_AFUNC_LT128 )
-				GL_AlphaFunc( GL_LESS, 0.5f );
-			else GL_AlphaFunc( GL_GEQUAL, 0.5f );
-		}
-		else GL_Disable( GL_ALPHA_TEST );
-	}
-
-	if( diff & GLSTATE_DEPTHFUNC_EQ )
-	{
-		if( state & GLSTATE_DEPTHFUNC_EQ )
-			GL_DepthFunc( GL_EQUAL );
-		else GL_DepthFunc( GL_LEQUAL );
-	}
-
-	if( diff & GLSTATE_DEPTHWRITE )
-	{
-		if( state & GLSTATE_DEPTHWRITE )
-			GL_DepthMask( GL_TRUE );
-		else GL_DepthMask( GL_FALSE );
-	}
-
-	if( diff & GLSTATE_NO_DEPTH_TEST )
-	{
-		if( state & GLSTATE_NO_DEPTH_TEST )
-			GL_Disable( GL_DEPTH_TEST );
-		else GL_Enable( GL_DEPTH_TEST );
-	}
-
-	if( diff & GLSTATE_OFFSET_FILL )
-	{
-		if( state & GLSTATE_OFFSET_FILL )
-			GL_Enable( GL_POLYGON_OFFSET_FILL );
-		else GL_Disable( GL_POLYGON_OFFSET_FILL );
-	}
-	gl_state.flags = state;
 }
 
 /*
@@ -1162,6 +941,8 @@ void GL_SetDefaultState( void )
 
 	gl_state.cullFace = true;
 	gl_state.polygonOffsetFill = false;
+	gl_state.vertexProgram = false;
+	gl_state.fragmentProgram = false;
 	gl_state.alpha_test = false;
 	gl_state.blend = false;
 	gl_state.depth_test = true;
@@ -1182,6 +963,9 @@ void GL_SetDefaultState( void )
 	pglDisable( GL_ALPHA_TEST );
 	pglDisable( GL_BLEND );
 	pglEnable( GL_DEPTH_TEST );
+
+	if(GL_Support( R_VERTEX_PROGRAM_EXT )) pglDisable( GL_VERTEX_PROGRAM_ARB );
+	if(GL_Support( R_FRAGMENT_PROGRAM_EXT )) pglDisable( GL_FRAGMENT_PROGRAM_ARB );
 
 	pglCullFace( GL_FRONT );
 	pglPolygonOffset( -1, -2 );
@@ -1250,7 +1034,7 @@ void GL_Setup3D( void )
 
 	// Set up projection
 	pglMatrixMode( GL_PROJECTION );
-	GL_LoadMatrix( Ref.projectionMatrix );
+	pglLoadMatrixf( gl_projectionMatrix );
 	pglMatrixMode( GL_MODELVIEW );
 
 	// Set state
@@ -1259,6 +1043,8 @@ void GL_Setup3D( void )
 	GL_TexEnv( GL_MODULATE );
 	GL_Enable( GL_CULL_FACE );
 	GL_Disable( GL_POLYGON_OFFSET_FILL );
+	GL_Disable( GL_VERTEX_PROGRAM_ARB );
+	GL_Disable( GL_FRAGMENT_PROGRAM_ARB );
 	GL_Disable( GL_ALPHA_TEST );
 	GL_Disable( GL_BLEND );
 	GL_Enable( GL_DEPTH_TEST );
@@ -1285,7 +1071,6 @@ void GL_Setup3D( void )
 */
 void GL_Setup2D( void )
 {
-extern meshbuffer_t pic_mbuffer;
 	if( gl_finish->integer ) pglFinish();
 
 	// set 2D virtual screen size
@@ -1304,24 +1089,16 @@ extern meshbuffer_t pic_mbuffer;
 	// Set state
 	gl_state.orthogonal = true;
 
-	GL_SetState( GLSTATE_NO_DEPTH_TEST );
-	/*
 	GL_TexEnv( GL_MODULATE );
 
 	GL_Disable( GL_CULL_FACE );
 	GL_Disable( GL_POLYGON_OFFSET_FILL );
+	GL_Disable( GL_VERTEX_PROGRAM_ARB );
+	GL_Disable( GL_FRAGMENT_PROGRAM_ARB );
 	GL_Disable( GL_ALPHA_TEST );
 	GL_Enable( GL_BLEND );
 	GL_Disable( GL_DEPTH_TEST );
 
 	GL_BlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 	GL_DepthMask( GL_FALSE );
-	*/
-
-	pglColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
-
-	pic_mbuffer.infoKey = -1;
-	pic_mbuffer.shaderKey = 0;
-	Ref.m_pCurrentEntity = Ref.m_pPrevEntity = NULL;
-	Ref.m_pCurrentModel = NULL;
 }

@@ -905,7 +905,7 @@ Misc helper function
 
 void _MSG_Begin( int dest, const char *filename, int fileline )
 {
-	_MSG_WriteBits( &sv.multicast, dest, NET_BYTE, filename, fileline );
+	_MSG_WriteBits( &sv.multicast, dest, "MSG_Begin", NET_BYTE, filename, fileline );
 }
 
 /*

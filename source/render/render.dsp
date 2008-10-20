@@ -126,10 +126,6 @@ SOURCE=.\r_bloom.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\r_cull.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\r_draw.c
 # End Source File
 # Begin Source File
@@ -142,19 +138,11 @@ SOURCE=.\r_main.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\r_mesh.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\r_model.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\r_opengl.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\r_poly.c
 # End Source File
 # Begin Source File
 

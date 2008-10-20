@@ -17,7 +17,7 @@ bool Cmd_CheckName( const char *name )
 {
 	if(!com.stricmp(Cmd_Argv( 0 ), name ))
 		return true;
-	if(!com.stricmp(Cmd_Argv( 0 ), va("\\%s", name )))
+	if(!com.stricmp(Cmd_Argv(0), va("\\%s", name )))
 		return true;
 	return false;
 }
@@ -252,9 +252,9 @@ bool Cmd_GetDemoList( const char *s, char *completedname, int length )
 
 /*
 =====================================
-Cmd_GetProgsList
+Cmd_GetSourceList
 
-Prints or complete vm progs name
+Prints or complete vm source folder name
 =====================================
 */
 bool Cmd_GetProgsList( const char *s, char *completedname, int length )
@@ -296,9 +296,9 @@ bool Cmd_GetProgsList( const char *s, char *completedname, int length )
 
 /*
 =====================================
-Cmd_GetSourceList
+Cmd_GetProgsList
 
-Prints or complete vm source folder name
+Prints or complete vm progs name
 =====================================
 */
 bool Cmd_GetSourceList( const char *s, char *completedname, int length )
@@ -621,7 +621,7 @@ bool Cmd_CheckMapsList( void )
 					else if(!com.strcmp(com_token, "classname" ))
 					{
 						Com_ParseToken( &data, true );
-						if(!com.strcmp(com_token, "info_player_deathmatch"))
+						if(!com.strcmp(com_token, "info_player_deatchmatch"))
 							num_spawnpoints++;
 						else if(!com.strcmp(com_token, "info_player_start"))
 							num_spawnpoints++;

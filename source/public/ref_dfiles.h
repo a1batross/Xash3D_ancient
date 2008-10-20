@@ -127,7 +127,7 @@ BRUSH MODELS
 */
 
 // header
-#define BSPMOD_VERSION	48
+#define BSPMOD_VERSION	39
 #define IDBSPMODHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'I') // little-endian "IBSP"
 
 // 32 bit limits
@@ -138,7 +138,6 @@ BRUSH MODELS
 #define MAX_MAP_ENTSTRING		0x40000
 #define MAX_MAP_SHADERS		0x800
 #define MAX_MAP_AREAS		0x100	// don't increase this
-#define MAX_MAP_FOGS		0x100
 #define MAX_MAP_PLANES		0x20000
 #define MAX_MAP_NODES		0x20000
 #define MAX_MAP_BRUSHSIDES		0x20000
@@ -146,13 +145,13 @@ BRUSH MODELS
 #define MAX_MAP_LEAFFACES		0x20000
 #define MAX_MAP_LEAFBRUSHES		0x40000
 #define MAX_MAP_PORTALS		0x20000
-#define MAX_MAP_LIGHTGRID		0x100000
+#define MAX_MAP_LIGHTDATA		0x800000	// 8 megabytes for lightmaps
+#define MAX_MAP_LIGHTGRID		0x800000
 #define MAX_MAP_VISIBILITY		0x200000
 #define MAX_MAP_COLLISION		0x400000	// collision data size
 #define MAX_MAP_SURFACES		0x20000
 #define MAX_MAP_VERTEXES		0x80000
 #define MAX_MAP_INDEXES		0x80000
-#define MAX_MAP_GRIDARRAY		0x100000
 #define MAX_MAP_AREAPORTALS		MAX_EDICTS<<1
 
 // other limits
@@ -167,16 +166,9 @@ BRUSH MODELS
 #define LIGHTMAP_WIDTH		128
 #define LIGHTMAP_HEIGHT		128
 #define LIGHTMAP_BITS		3	// RGB
-#define LIGHTMAP_NAME		"lm_%04d.png"
-#define LM_SIZE			( LIGHTMAP_WIDTH * LIGHTMAP_HEIGHT * LIGHTMAP_BITS )
+#define LM_SIZE			LIGHTMAP_WIDTH * LIGHTMAP_HEIGHT * LIGHTMAP_BITS
 #define LM_SAMPLE_SIZE		16	// q1, q2, q3 default value (lightmap resoultion)
-#define LM_STYLES			4	// MAXLIGHTMAPS, don't touch!
-#define LS_NORMAL			0x00
-#define LS_UNUSED			0xFE
-#define LS_NONE			0xFF
-#define MAX_LIGHT_STYLES		64
-#define MAX_SWITCHED_LIGHTS		32
-#define MAX_LIGHTMAP_SHADERS		256
+#define LM_STYLES			4
 
 // lump offset
 #define LUMP_ENTITIES		0
@@ -184,20 +176,19 @@ BRUSH MODELS
 #define LUMP_PLANES			2
 #define LUMP_NODES			3
 #define LUMP_LEAFS			4
-#define LUMP_LEAFSURFACES		5
+#define LUMP_LEAFFACES		5
 #define LUMP_LEAFBRUSHES		6
 #define LUMP_MODELS			7
 #define LUMP_BRUSHES		8
 #define LUMP_BRUSHSIDES		9
 #define LUMP_VERTICES		10
 #define LUMP_INDICES		11
-#define LUMP_FOGS			12
+#define LUMP_COLLISION		12	// precomputed physic engine collision tree
 #define LUMP_SURFACES		13
-#define LUMP_COLLISION		14	// precomputed physic engine collision tree
+#define LUMP_LIGHTMAPS		14
 #define LUMP_LIGHTGRID		15
-#define LUMP_VISIBILITY		16	// pvs+phs lumps
-#define LUMP_LIGHTARRAY		17
-#define LUMP_TOTALCOUNT		18	// max lumps
+#define LUMP_VISIBILITY		16	// unpacked pvs data
+#define LUMP_TOTALCOUNT		17	// max lumps
 
 typedef struct
 {
@@ -225,22 +216,17 @@ typedef struct
 typedef struct
 {
 	char	name[64];		// shader name
-	int	surfaceFlags;	// surface flags (can be replaced by shader)
 	int	contents;		// texture contents (can be replaced by shader)
+	int	flags;		// surface flags (can be replaced by shader)
 } dshader_t;
 
 typedef struct
 {
 	float	point[3];		// Vertex3f
-	float	st[2];		// texCoord2f
-	float	lm[LM_STYLES][2];	// lightmap texCoord2f
 	float	normal[3];	// Normal3f
-
-	union
-	{
-		byte	color[LM_STYLES][4];	// color array
-		long	rgba[LM_STYLES];		// packed rgba color
-	};
+	float	st[2];		// texCoord2f
+	float	lm[2];		// lightmap texCoord2f
+	dword	color;		// packed rgba color
 } dvertex_t;
 
 typedef struct
@@ -259,12 +245,12 @@ typedef struct
 
 typedef struct
 {
-	int	cluster;
 	int	area;
+	int	cluster;
 	int	mins[3];		// for frustum culling
 	int	maxs[3];
-	int	firstleafsurface;
-	int	numleafsurfaces;
+	int	firstleafface;
+	int	numleaffaces;
 	int	firstleafbrush;
 	int	numleafbrushes;
 } dleaf_t;
@@ -272,23 +258,15 @@ typedef struct
 typedef struct
 {
 	int	planenum;		// facing out of the leaf
-	int	shadernum;	// shader description
-	int	surfacenum;	// surface description
+	int	shadernum;	// surface description
 } dbrushside_t;
 
 typedef struct
 {
 	int	firstside;
 	int	numsides;
-	int	shadernum;	// brush global shader (e.g. contents)
+	int	contents;		// brush contents
 } dbrush_t;
-
-typedef struct
-{
-	char	shader[64];
-	int	brushnum;
-	int	visibleSide;	// the brush side that ray tests need to clip against (-1 == none)
-} dfog_t;
 
 typedef struct
 {
@@ -296,80 +274,25 @@ typedef struct
 	int	bitofs[8][2];	// bitofs[numclusters][2]
 } dvis_t;
 
-typedef enum
-{
-	MST_BAD,
-	MST_PLANAR,
-	MST_PATCH,
-	MST_TRIANGLE_SOUP,
-	MST_FLARE,
-	MST_FOLIAGE
-} dmst_t;
-
 typedef struct
 {
+	int	planenum;		// plane->normal
 	int	shadernum;	// dshader_t[num]
-	int	fognum;		// dfog_t[num]
-	dmst_t	surfaceType;	// surface type
+	int	lightmapnum;	// dlightmap[num]
 	int	firstvertex;	// dvertex[start]
 	int	numvertices;	// may contain odd number for tristrips
 	int	firstindex;	// dvertex[dindex[firstindex]] == dvertex[firstvertex]
 	int	numindices;	// may contain odd number for tristrips
 
-	byte	lStyles[LM_STYLES];	// lightmapStyles
-	byte	vStyles[LM_STYLES];	// vertexLightstyles
-	int	lmapNum[LM_STYLES];	// "lm_%04d.png", num 
-	int	lmapX[LM_STYLES];	// lm block x-offset[style]
-	int	lmapY[LM_STYLES];	// lm block y-offset[style]
-	int	lmapWidth;	// lm block width
-	int	lmapHeight;	// lm block height
+	// version 39. rev.3
+	int	styles[LM_STYLES];	// lightstyles on a face
+	int	lm_base[2];	// xypos
+	int	lm_size[2];	// block size
+	int	lm_side;		// planenum & 1 (remove this)
 
-	union
-	{
-		struct
-		{
-			// MST_BAD
-			int	unused1[14];
-		} bad;
-		struct
-		{
-			// MST_PLANAR
-			float	lmapOrigin[3];
-			float	vecs[2][3];
-			float	normal[3];
-			int	planenum;		// Xash3D: for fast surface culling
-			int	planeside;
-		} flat;
-		struct
-		{
-			// MST_PATCH
-			float	origin[3];
-			float	mins[3];		// LOD bbox
-			float	maxs[3];		// LOD bbox
-			float	normal[3];
-			int	width; 
-			int	height;
-		} patch;
-		struct
-		{
-			// MST_TRIANGLE_SOUP
-			int	unused1[3];
-			float	mins[3];
-			float	maxs[3];
-			int	unused2[5];
-		} mesh;
-		struct
-		{
-			// MST_FLARE
-			float	origin[3];
-			float	color[3];
-			int	unused1[3];
-			float	normal[3];
-			int	unused2[2];
-		} flare;
-
-		// FIXME: put MST_FOLIAGE description here
-	};
+	float	origin[3];	// lightmap origin
+	float	vecs[2][3];	// lightmap vecs
+	float	normal[3];	// plane->normal, probably not needed
 } dsurface_t;
 
 typedef struct dlightmap_s
@@ -379,10 +302,10 @@ typedef struct dlightmap_s
 
 typedef struct
 {
-	byte	ambient[LM_STYLES][3];
-	byte	direct[LM_STYLES][3];
-	byte	styles[LM_STYLES];
-	byte	latLong[2];
+	byte	ambient[3];
+	byte	diffuse[3];
+	byte	diffusepitch;
+	byte 	diffuseyaw;
 } dlightgrid_t;
 
 /*
@@ -439,7 +362,7 @@ a internal virtual machine like as QuakeC, but it has more extensions
 typedef struct statement_s
 {
 	dword		op;
-	long		a, b, c;
+	long		a,b,c;
 } dstatement_t;
 
 typedef struct ddef_s
@@ -447,7 +370,7 @@ typedef struct ddef_s
 	dword		type;		// if DEF_SAVEGLOBAL bit is set
 					// the variable needs to be saved in savegames
 	dword		ofs;
-	string_t		s_name;
+	int		s_name;
 } ddef_t;
 
 typedef struct
@@ -456,8 +379,8 @@ typedef struct
 	int		parm_start;
 	int		locals;		// total ints of parms + locals
 	int		profile;		// runtime
-	string_t		s_name;
-	string_t		s_file;		// source file defined in
+	int		s_name;
+	int		s_file;		// source file defined in
 	int		numparms;
 	byte		parm_size[MAX_PARMS];
 } dfunction_t;
@@ -635,7 +558,7 @@ typedef struct
 
 	int		numtransitions;	// animation node to animation node transition graph
 	int		transitionindex;
-} dstudiohdr_t;
+} studiohdr_t;
 
 // header for demand loaded sequence group data
 typedef struct 
@@ -645,7 +568,7 @@ typedef struct
 
 	char		name[64];
 	int		length;
-} dstudioseqhdr_t;
+} studioseqhdr_t;
 
 // bones
 typedef struct 
@@ -656,7 +579,7 @@ typedef struct
 	int		bonecontroller[6];	// bone controller index, -1 == none
 	float		value[6];		// default DoF values
 	float		scale[6];		// scale for delta DoF values
-} dstudiobone_t;
+} mstudiobone_t;
 
 // bone controllers
 typedef struct 
@@ -667,7 +590,7 @@ typedef struct
 	float		end;
 	int		rest;		// byte index value at rest
 	int		index;		// 0-3 user set controller, 4 mouth
-} dstudiobonecontroller_t;
+} mstudiobonecontroller_t;
 
 // intersection boxes
 typedef struct
@@ -676,7 +599,7 @@ typedef struct
 	int		group;		// intersection group
 	vec3_t		bbmin;		// bounding box
 	vec3_t		bbmax;		
-} dstudiobbox_t;
+} mstudiobbox_t;
 
 // demand loaded sequence groups
 typedef struct
@@ -685,7 +608,7 @@ typedef struct
 	char		name[64];		// file name
 	void		*cache;		// cache index pointer (only in memory)
 	int		data;		// hack for group 0
-} dstudioseqgroup_t;
+} mstudioseqgroup_t;
 
 // sequence descriptions
 typedef struct
@@ -731,7 +654,7 @@ typedef struct
 	int		nodeflags;	// transition rules
 	
 	int		nextseq;		// auto advancing sequences
-} dstudioseqdesc_t;
+} mstudioseqdesc_t;
 
 // events
 typedef struct 
@@ -740,7 +663,7 @@ typedef struct
 	int		event;
 	int		type;
 	char		options[64];
-} dstudioevent_t;
+} mstudioevent_t;
 
 // pivots
 typedef struct 
@@ -748,7 +671,7 @@ typedef struct
 	vec3_t		org;		// pivot point
 	int		start;
 	int		end;
-} dstudiopivot_t;
+} mstudiopivot_t;
 
 // attachment
 typedef struct 
@@ -758,12 +681,12 @@ typedef struct
 	int		bone;
 	vec3_t		org;		// attachment point
 	vec3_t		vectors[3];
-} dstudioattachment_t;
+} mstudioattachment_t;
 
 typedef struct
 {
 	unsigned short	offset[6];
-} dstudioanim_t;
+} mstudioanim_t;
 
 // animation frames
 typedef union 
@@ -774,7 +697,8 @@ typedef union
 		byte	total;
 	} num;
 	short		value;
-} dstudioanimvalue_t;
+} mstudioanimvalue_t;
+
 
 // body part index
 typedef struct
@@ -783,7 +707,7 @@ typedef struct
 	int		nummodels;
 	int		base;
 	int		modelindex;	// index into models array
-} dstudiobodyparts_t;
+} mstudiobodyparts_t;
 
 // skin info
 typedef struct
@@ -795,10 +719,10 @@ typedef struct
 
 	union
 	{
-		int	index;		// disk: buffer index
-		shader_t	shader;		// mem: shader number
+		int	index;		// disk: offset at start of buffer
+		byte	*ptrs;		// imglib: image buffer
 	};
-} dstudiotexture_t;
+} mstudiotexture_t;
 
 // skin families
 // short	index[skinfamilies][skinref]		// skingroup info
@@ -823,7 +747,7 @@ typedef struct
 
 	int		numgroups;	// deformation groups
 	int		groupindex;
-} dstudiomodel_t;
+} mstudiomodel_t;
 
 // meshes
 typedef struct 
@@ -833,7 +757,7 @@ typedef struct
 	int		skinref;
 	int		numnorms;		// per mesh normals
 	int		normindex;	// normal vec3_t
-} dstudiomesh_t;
+} mstudiomesh_t;
 
 /*
 ==============================================================================

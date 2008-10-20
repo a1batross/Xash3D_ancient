@@ -45,8 +45,6 @@ typedef uint GLhandleARB;
 #define GL_DEPTH_TEST			0x0B71
 
 #define GL_CULL_FACE			0x0B44
-#define GL_CW				0x0900
-#define GL_CCW				0x0901
 
 #define GL_BLEND				0x0BE2
 #define GL_ALPHA_TEST			0x0BC0
@@ -171,9 +169,6 @@ extern int gl_max_anisotropy;
 #define GL_OUT_OF_MEMORY			0x0505
 
 #define GL_DITHER				0x0BD0
-#define GL_COLOR_INDEX			0x1900
-#define GL_STENCIL_INDEX			0x1901
-#define GL_DEPTH_COMPONENT			0x1902
 #define GL_RGB				0x1907
 #define GL_RGBA				0x1908
 #define GL_ALPHA4                         	0x803B
@@ -391,12 +386,6 @@ extern int gl_max_anisotropy;
 #define GL_MAX_EXT				0x8008
 #define GL_BLEND_EQUATION_EXT			0x8009
 
-#define GL_QUERY_COUNTER_BITS_ARB		0x8864
-#define GL_CURRENT_QUERY_ARB			0x8865
-#define GL_QUERY_RESULT_ARB			0x8866
-#define GL_QUERY_RESULT_AVAILABLE_ARB		0x8867
-#define GL_SAMPLES_PASSED_ARB			0x8914
-
 #define GL_VERTEX_SHADER_ARB			0x8B31
 #define GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB	0x8B4A
 #define GL_MAX_VARYING_FLOATS_ARB		0x8B4B
@@ -589,11 +578,7 @@ extern int gl_max_anisotropy;
 #define GL_MAX_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB	0x8810
 #define GL_MAX_TEXTURE_COORDS_ARB		0x8871
 #define GL_MAX_TEXTURE_IMAGE_UNITS_ARB		0x8872
-#define GL_FRAGMENT_SHADER_ARB		0x8B30
-#define GL_MAX_FRAGMENT_UNIFORM_COMPONENTS_ARB	0x8B49
-#define GL_MAX_TEXTURE_COORDS_ARB		0x8871
-#define GL_MAX_TEXTURE_IMAGE_UNITS_ARB		0x8872
-#define GL_FRAGMENT_SHADER_DERIVATIVE_HINT_ARB	0x8B8B
+
 
 // helper opengl functions
 GLenum ( APIENTRY *pglGetError )(void);
@@ -1000,17 +985,9 @@ void ( APIENTRY *pglGetUniformfvARB)(GLhandleARB programObj, GLint location, GLf
 void ( APIENTRY *pglGetUniformivARB)(GLhandleARB programObj, GLint location, GLint *params);
 void ( APIENTRY *pglGetShaderSourceARB)(GLhandleARB obj, GLsizei maxLength, GLsizei *length, GLcharARB *source);
 void ( APIENTRY *pglPolygonStipple)(const GLubyte *mask);
-void ( APIENTRY *pglTexImage3D)(GLenum target, GLint level, GLenum internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const GLvoid *pixels );
-void ( APIENTRY *pglTexSubImage3D)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const GLvoid *pixels );
-void ( APIENTRY *pglCopyTexSubImage3D)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLint x, GLint y, GLsizei width, GLsizei height );
-void ( APIENTRY *pglGenQueriesARB)(GLsizei n, GLuint *ids);
-void ( APIENTRY *pglDeleteQueriesARB)(GLsizei n, const GLuint *ids);
-void ( APIENTRY *pglIsQueryARB)(GLuint id);
-void ( APIENTRY *pglBeginQueryARB)(GLenum target, GLuint id);
-void ( APIENTRY *pglEndQueryARB)(GLenum target);
-void ( APIENTRY *pglGetQueryivARB)(GLenum target, GLenum pname, GLint *params);
-void ( APIENTRY *pglGetQueryObjectivARB)(GLuint id, GLenum pname, GLint *params);
-void ( APIENTRY *pglGetQueryObjectuivARB)(GLuint id, GLenum pname, GLuint *params);
+void ( APIENTRY *pglTexImage3D)( GLenum target, GLint level, GLenum internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const GLvoid *pixels );
+void ( APIENTRY *pglTexSubImage3D)( GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const GLvoid *pixels );
+void ( APIENTRY *pglCopyTexSubImage3D)( GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLint x, GLint y, GLsizei width, GLsizei height );
 void ( APIENTRY *pglBlendEquationEXT)(GLenum);
 void ( APIENTRY *pglStencilOpSeparate)(GLenum, GLenum, GLenum, GLenum);
 void ( APIENTRY *pglStencilFuncSeparate)(GLenum, GLenum, GLint, GLuint);
@@ -1060,13 +1037,8 @@ BOOL  ( WINAPI * pwglSwapIntervalEXT)( int interval );
 BOOL  ( WINAPI * pwglGetDeviceGammaRampEXT ) ( unsigned char *pRed, unsigned char *pGreen, unsigned char *pBlue );
 BOOL  ( WINAPI * pwglSetDeviceGammaRampEXT ) ( const unsigned char *pRed, const unsigned char *pGreen, const unsigned char *pBlue );
 
-// XashGL defines
-#define GL_TEXTURE0		0
-#define GL_TEXTURE1		1
-#define GL_TEXTURE2		2
-#define GL_TEXTURE3		3
-#define GL_TEXTURE4		4
-#define GL_TEXTURE5		5
+
+extern int GL_TEXTURE0, GL_TEXTURE1;
 
 typedef struct
 {

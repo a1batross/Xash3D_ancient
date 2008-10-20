@@ -6,6 +6,74 @@
 #ifndef COM_ZLIB_H
 #define COM_ZLIB_H
 
+typedef enum
+{
+	IL_HINT_NO	= 0,
+
+	// cubemap hints
+	IL_HINT_POSX,
+	IL_HINT_NEGX,
+	IL_HINT_POSY,
+	IL_HINT_NEGY,
+	IL_HINT_POSZ,
+	IL_HINT_NEGZ,
+
+	// palette choosing
+	IL_HINT_Q1,
+	IL_HINT_Q2,
+	IL_HINT_HL,
+} image_hint_t;
+
+typedef struct loadformat_s
+{
+	const char *formatstring;
+	const char *ext;
+	bool (*loadfunc)( const char *name, const byte *buffer, size_t filesize );
+	image_hint_t hint;
+} loadformat_t;
+
+typedef struct saveformat_s
+{
+	const char *formatstring;
+	const char *ext;
+	bool (*savefunc)( const char *name, rgbdata_t *pix, int saveformat );
+} saveformat_t;
+
+typedef struct imglib_s
+{
+	const loadformat_t	*loadformats;
+	const saveformat_t	*saveformats;
+
+	// current 2d image state
+	int		width;
+	int		height;
+	byte		num_layers;	// num layers in
+	byte		num_mips;		// build mipmaps
+	uint		type;		// main type switcher
+	uint		flags;		// additional image flags
+	byte		bits_count;	// bits per RGBA
+	size_t		size;		// image rgba size (for bounds checking)
+	uint		ptr;		// safe image pointer
+	byte		*rgba;		// image pointer (see image_type for details)
+
+	// current cubemap state
+	int		source_width;	// locked cubemap dims (all wrong sides will be automatically resampled)
+	int		source_height;
+	uint		source_type;	// shared image type for all mipmaps or cubemap sides
+	int		num_sides;	// how much sides is loaded 
+	byte		*cubemap;		// cubemap pack
+
+	// indexed images state
+	uint		*d_currentpal;	// installed version of internal palette
+	int		d_rendermode;	// palette rendermode
+	byte		*palette;		// palette pointer
+
+	// global parms
+	image_hint_t	hint;		// hint for some loaders
+	byte		*tempbuffer;	// for convert operations
+	int		cmd_flags;
+} imglib_t;
+
 /*
 ========================================================================
 
@@ -125,7 +193,6 @@ typedef struct huffman_table_s
 	byte	hval[256];
 	byte	size[256];
 	word	code[256];
-
 } huffman_table_t;
 
 typedef struct jpg_s
@@ -245,9 +312,7 @@ typedef struct dds_s
 	uint		dwDepth;		// depth if a volume texture
 	uint		dwMipMapCount;	// number of mip-map levels requested
 	uint		dwAlphaBitDepth;	// depth of alpha buffer requested
-	float		fReflectivity[3];	// average reflectivity value
-	float		fBumpScale;	// bumpmapping scale factor
-	uint		dwReserved1[6];	// reserved for future expansions
+	uint		dwReserved1[10];	// reserved for future expansions
 	dds_pixf_t	dsPixelFormat;
 	dds_caps_t	dsCaps;
 	uint		dwTextureStage;
@@ -413,35 +478,32 @@ extern int deflateReset (z_stream *strm);
 // imagelib definitions
 #define IMAGE_MAXWIDTH	4096
 #define IMAGE_MAXHEIGHT	4096
-#define LERPBYTE(i)		r = resamplerow1[i];out[i] = (byte)((((resamplerow2[i] - r) * lerp)>>16) + r)
-#define LUMP_NORMAL		0
-#define LUMP_TRANSPARENT	1
-#define LUMP_DECAL		2
-#define LUMP_QFONT		3
+#define LUMP_MAXWIDTH	1024	// WorldCraft limits
+#define LUMP_MAXHEIGHT	1024
 
-extern int image_width, image_height;
-extern byte image_num_layers;	// num layers in
-extern byte image_num_mips;	// build mipmaps
-extern uint image_type;	// main type switcher
-extern uint image_flags;	// additional image flags
-extern byte image_bits_count;	// bits per RGBA
-extern size_t image_size;	// image rgba size
-extern byte *image_rgba;	// image pointer (see image_type for details)
-extern byte *image_palette;	// palette pointer
-extern uint *d_currentpal;	// installed version of internal palette
+#define TRANS_THRESHOLD	10	// in pixels
+enum
+{
+	LUMP_NORMAL = 0,
+	LUMP_TRANSPARENT,
+	LUMP_DECAL,
+	LUMP_QFONT
+};
+
+extern imglib_t image;
 extern cvar_t *img_oldformats;
 extern cvar_t *fs_wadsupport;
 extern byte *fs_mempool;
 
-bool Image_AddMipmapToPack( const byte *in, int width, int height, bool expand );
 void Image_RoundDimensions( int *scaled_width, int *scaled_height );
 byte *Image_ResampleInternal( const void *indata, int inwidth, int inheight, int outwidth, int outheight, int intype );
-byte *Image_FlipInternal( const byte *in, int inwidth, int inheight, int intype, int adjust_flags );
+byte *Image_FlipInternal( const byte *in, int width, int height, int type, int flags );
 void Image_FreeImage( rgbdata_t *pack );
 void Image_Save( const char *filename, rgbdata_t *pix );
 rgbdata_t *Image_Load(const char *filename, const byte *buffer, size_t buffsize );
 bool Image_Copy8bitRGBA( const byte *in, byte *out, int pixels );
-bool FS_AddMipmapToPack( const byte *in, int width, int height, bool expand );
+bool FS_AddMipmapToPack( const byte *in, int width, int height );
+void Image_ConvertPalTo24bit( rgbdata_t *pic );
 bool Image_DecompressDXTC( rgbdata_t **image );
 bool Image_DecompressARGB( rgbdata_t **image );
 void Image_GetPaletteLMP( const byte *pal, int rendermode );
@@ -457,6 +519,8 @@ void Image_GetPaletteD1( void );	// doom 2 on TNT :)
 // formats load
 //
 bool Image_LoadMIP( const char *name, const byte *buffer, size_t filesize );
+bool Image_LoadMDL( const char *name, const byte *buffer, size_t filesize );
+bool Image_LoadSPR( const char *name, const byte *buffer, size_t filesize );
 bool Image_LoadTGA( const char *name, const byte *buffer, size_t filesize );
 bool Image_LoadDDS( const char *name, const byte *buffer, size_t filesize );
 bool Image_LoadBMP( const char *name, const byte *buffer, size_t filesize );
@@ -480,6 +544,7 @@ bool Image_SavePCX( const char *name, rgbdata_t *pix, int saveformat );
 //
 // img_utils.c
 //
+byte *Image_Copy( size_t size );
 bool Image_ValidSize( const char *name );
 bool Image_LumpValidSize( const char *name );
 bool Image_DecompressDXTC( rgbdata_t **image );	// compilers version of decompressor

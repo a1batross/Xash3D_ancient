@@ -54,6 +54,8 @@ void InitPlatform ( int argc, char **argv )
 		if(FS_CheckParm("-onlyents")) bspflags |= BSP_ONLYENTS;
 		if(FS_CheckParm("-notjunc")) notjunc = true;
 
+		// initialize ImageLibrary
+		Image_Init( NULL, IL_ALLOW_OVERWRITE|IL_EXPLICIT_PATH );
 		PrepareBSPModel( gamedir, source, bspflags );
 		break;
 	case HOST_QCCLIB:
@@ -75,6 +77,9 @@ void InitPlatform ( int argc, char **argv )
 	case HOST_STUDIO:
 	case HOST_WADLIB:
 		FS_InitRootDir(".");
+
+		// initialize ImageLibrary
+		Image_Init( NULL, IL_PALETTED_ONLY|IL_EXPLICIT_PATH );
 		start = Sys_DoubleTime();
 		break;
 	case HOST_OFFLINE:

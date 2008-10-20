@@ -8,18 +8,17 @@
 #include "filesystem.h"
 #include "mathlib.h"
 
-cvar_t *img_resample_lerp;
-cvar_t *img_oldformats;
+cvar_t *image_profile;
+
+#define LERPBYTE(i)		r = resamplerow1[i];out[i] = (byte)((((resamplerow2[i] - r) * lerp)>>16) + r)
 
 uint d_8toD1table[256];
 uint d_8toQ1table[256];
 uint d_8toQ2table[256];
 uint d_8to24table[256];
-uint *d_currentpal;		// 32 bit palette
 bool d1palette_init = false;
 bool q1palette_init = false;
 bool q2palette_init = false;
-int d_rendermode = LUMP_NORMAL;
 
 static byte palette_d1[768] = 
 {
@@ -100,12 +99,252 @@ static byte palette_q2[768] =
 159,91,83	
 };
 
+/*
+=============================================================================
+
+	XASH3D LOAD IMAGE FORMATS
+
+=============================================================================
+*/
+// stub
+static const loadformat_t load_null[] =
+{
+{ NULL, NULL, NULL, IL_HINT_NO }
+};
+
+// version0 - using only dds images
+static const loadformat_t load_stalker[] =
+{
+{ "%s%s.%s", "dds", Image_LoadDDS, IL_HINT_NO },
+{ NULL, NULL, NULL, IL_HINT_NO }
+};
+
+// version1 - using only Doom1 images
+static const loadformat_t load_doom1[] =
+{
+{ "%s%s.%s", "flt", Image_LoadFLT, IL_HINT_NO },	// flat textures, sprites
+{ NULL, NULL, NULL, IL_HINT_NO }
+};
+
+// version2 - using only Quake1 images
+// wad files not requires path
+static const loadformat_t load_quake1[] =
+{
+{ "%s%s.%s", "mip", Image_LoadMIP, IL_HINT_Q1 },	// q1 textures from wad or buffer
+{ "%s%s.%s", "mdl", Image_LoadMDL, IL_HINT_Q1 },	// q1 alias model skins
+{ "%s%s.%s", "spr", Image_LoadSPR, IL_HINT_Q1 },	// q1 sprite frames
+{ "%s%s.%s", "lmp", Image_LoadLMP, IL_HINT_Q1 },	// q1 menu images
+{ NULL, NULL, NULL, IL_HINT_NO }
+};
+
+// version3 - using only Quake2 images
+static const loadformat_t load_quake2[] =
+{
+{ "textures/%s%s.%s", "wal", Image_LoadWAL, IL_HINT_Q2 },	// map textures
+{ "%s%s.%s", "wal", Image_LoadWAL, IL_HINT_Q2 },	// map textures
+{ "%s%s.%s", "pcx", Image_LoadPCX, IL_HINT_Q2 },	// pics, skins, skies (force to ignore internal pcx-palette)
+{ "%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// skies (indexed TGA's? never see in Q2)
+{ NULL, NULL, NULL, IL_HINT_NO }
+};
+
+// version4 - using only Quake3 images
+// g-cont: probably q3 used only explicit paths
+static const loadformat_t load_quake3[] =
+{
+{ "%s%s.%s", "jpg", Image_LoadJPG, IL_HINT_NO },	// textures or gfx
+{ "%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// textures or gfx
+{ NULL, NULL, NULL, IL_HINT_NO }
+};
+
+// version5 - using only Quake4(Doom3) images
+// g-cont: probably q4 used only explicit paths
+static const loadformat_t load_quake4[] =
+{
+{ "%s%s.%s", "dds", Image_LoadDDS, IL_HINT_NO },	// textures or gfx
+{ "%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// textures or gfx
+{ NULL, NULL, NULL, IL_HINT_NO }
+};
+
+// version6 - using only Half-Life images
+// wad files not requires path
+static const loadformat_t load_hl1[] =
+{
+{ "%s%s.%s", "mip", Image_LoadMIP, IL_HINT_HL },	// hl textures from wad or buffer
+{ "%s%s.%s", "mdl", Image_LoadMDL, IL_HINT_HL },	// hl studio model skins
+{ "%s%s.%s", "spr", Image_LoadSPR, IL_HINT_HL },	// hl sprite frames
+{ "%s%s.%s", "lmp", Image_LoadLMP, IL_HINT_HL },	// hl menu images (cached.wad etc)
+{ "%s%s.%s", "bmp", Image_LoadBMP, IL_HINT_NO },	// hl skyboxes
+{ "%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// hl vgui menus
+{ "%s%s.%s", "pal", Image_LoadPAL, IL_HINT_HL },	// install studio palette
+{ NULL, NULL, NULL, IL_HINT_NO }
+};
+
+// version7 - using only Half-Life 2 images
+static const loadformat_t load_hl2[] =
+{
+// FIXME: implement
+{ NULL, NULL, NULL, IL_HINT_NO }
+};
+
+// version8 - studiomdl profile
+static const loadformat_t load_studiomdl[] =
+{
+{ "%s%s.%s", "bmp", Image_LoadBMP, IL_HINT_NO },	// classic studio textures
+{ "%s%s.%s", "pcx", Image_LoadPCX, IL_HINT_NO },	// q2 skins or somewhat
+{ "%s%s.%s", "wal", Image_LoadWAL, IL_HINT_Q2 },	// q2 textures as skins ???
+{ NULL, NULL, NULL, IL_HINT_NO }
+};
+
+// version9 - spritegen profile
+static const loadformat_t load_spritegen[] =
+{
+{ "%s%s.%s", "bmp", Image_LoadBMP, IL_HINT_NO },	// classic sprite frames
+{ "%s%s.%s", "pcx", Image_LoadPCX, IL_HINT_NO },	// q2 sprite frames
+{ NULL, NULL, NULL, IL_HINT_NO }
+};
+
+// version10 - xwad profile
+static const loadformat_t load_wadlib[] =
+{
+{ "%s%s.%s", "bmp", Image_LoadBMP, IL_HINT_NO },	// there all wad package types
+{ "%s%s.%s", "pcx", Image_LoadPCX, IL_HINT_NO }, 
+{ "%s%s.%s", "wal", Image_LoadWAL, IL_HINT_NO },
+{ "%s%s.%s", "mip", Image_LoadMIP, IL_HINT_NO },	// from another wads
+{ "%s%s.%s", "lmp", Image_LoadLMP, IL_HINT_NO },
+{ "%s%s.%s", "flt", Image_LoadFLT, IL_HINT_NO },
+{ NULL, NULL, NULL, IL_HINT_NO }
+};
+
+// version11 - Xash3D 0.48 profile (not used)
+static const loadformat_t load_xash048[] =
+{
+{ "textures/%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },
+{ "textures/%s%s.%s", "dds", Image_LoadDDS, IL_HINT_NO },
+{ "textures/%s%s.%s", "jpg", Image_LoadJPG, IL_HINT_NO },
+{ "%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// tga it's master type
+{ "%s%s.%s", "dds", Image_LoadDDS, IL_HINT_NO },	// hud, cubemaps
+{ "%s%s.%s", "jpg", Image_LoadJPG, IL_HINT_NO },	// just in case
+{ "%s%s.%s", "mdl", Image_LoadMDL, IL_HINT_HL },	// hl studio model skins
+{ "%s%s.%s", "spr", Image_LoadSPR, IL_HINT_HL },	// hl sprite frames
+{ "%s%s.%s", "pal", Image_LoadPAL, IL_HINT_HL },	// install studio palette
+{ NULL, NULL, NULL, IL_HINT_NO }
+};
+
+// version12 - Xash3D 0.51 profile
+static const loadformat_t load_xash051[] =
+{
+{ "textures/%s%s.%s", "dds", Image_LoadDDS, IL_HINT_NO },	// cubemaps, depthmaps, 2d textures
+{ "textures/%s%s.%s", "png", Image_LoadPNG, IL_HINT_NO },	// levelshot save as .png
+{ "textures/%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// screenshots, etc
+{ "%s%s.%s", "dds", Image_LoadDDS, IL_HINT_NO },	// cubemaps, depthmaps, 2d textures
+{ "%s%s.%s", "png", Image_LoadPNG, IL_HINT_NO },	// levelshot save as .png
+{ "%s%s.%s", "tga", Image_LoadTGA, IL_HINT_NO },	// screenshots, etc
+{ "%s%s.%s", "mip", Image_LoadMIP, IL_HINT_HL },	// hl textures (WorldCraft support)
+{ "%s%s.%s", "mdl", Image_LoadMDL, IL_HINT_HL },	// hl studio model skins
+{ "%s%s.%s", "spr", Image_LoadSPR, IL_HINT_HL },	// hl sprite frames
+{ "%s%s.%s", "pal", Image_LoadPAL, IL_HINT_HL },	// install studio palette
+{ NULL, NULL, NULL, IL_HINT_NO }
+};
+
+/*
+=============================================================================
+
+	XASH3D SAVE IMAGE FORMATS
+
+=============================================================================
+*/
+// stub
+static const saveformat_t save_null[] =
+{
+{ NULL, NULL, NULL }
+};
+
+// version0 - extragen save formats
+static const saveformat_t save_extragen[] =
+{
+{ "%s%s.%s", "bmp", Image_SaveBMP },
+{ "%s%s.%s", "pcx", Image_SavePCX },
+{ "%s%s.%s", "tga", Image_SaveTGA },		// for 32-bit images
+{ NULL, NULL, NULL }
+};
+
+// version1 - other games instance
+static const saveformat_t save_xash048[] =
+{
+{ "%s%s.%s", "tga", Image_SaveTGA },		// tga screenshots
+{ "%s%s.%s", "png", Image_SavePNG },		// png levelshots
+{ NULL, NULL, NULL }
+};
+
+// version2 - Xash3D normal instance
+static const saveformat_t save_xash051[] =
+{
+{ "%s%s.%s", "tga", Image_SaveTGA },		// tga screenshots
+{ "%s%s.%s", "png", Image_SavePNG },		// png levelshots
+{ "%s%s.%s", "dds", Image_SaveDDS },		// dds envshots
+{ NULL, NULL, NULL }
+};
+
 void Image_Init( void )
 {
 	// init pools
 	Sys.imagepool = Mem_AllocPool( "ImageLib Pool" );
-	img_resample_lerp = Cvar_Get( "img_lerping", "1", CVAR_SYSTEMINFO, "lerping images after resample" );
-	img_oldformats =  Cvar_Get( "img_oldformats", "1", CVAR_SYSTEMINFO, "enabels support of old image formats, e.g. doom1 flats, quake1 mips, quake2 wally, etc" );
+	image_profile = Cvar_Get( "image_profile", "Xash3D", CVAR_SYSTEMINFO, "set imagelib profile: e.g. Doom1, Quake1, Xash3D etc" );
+
+	// install image formats (can be re-install later by Image_Setup)
+	switch( Sys.app_name )
+	{
+	case HOST_SPRITE:
+		image.loadformats = load_spritegen;
+		break;
+	case HOST_STUDIO:
+		image.loadformats = load_studiomdl;
+		break;
+	case HOST_WADLIB:
+		image.loadformats = load_wadlib;
+		break;
+	case HOST_NORMAL:
+	case HOST_BSPLIB:
+		Image_Setup( image_profile->string, image.cmd_flags ); // same as image_profile		
+		break;
+	case HOST_RIPPER:
+		image.saveformats = save_extragen;
+		// intentional fallthrough
+	default:	// all other instances not using imagelib or will be reinstalling later
+		image.loadformats = load_null;
+		break;
+	}
+}
+
+void Image_Setup( const char *formats, const uint flags )
+{
+	if( flags != -1 ) image.cmd_flags = flags;
+	if( formats == NULL ) return;
+
+	// reinstall loadformats by magic keyword :)
+	if( !com.stricmp( formats, "Xash3D" ))
+		image.loadformats = load_xash051;
+	else if( !com.stricmp( formats, "stalker" ) || !com.stricmp( formats, "S.T.A.L.K.E.R" ))
+		image.loadformats = load_stalker;
+	else if( !com.stricmp( formats, "Doom1" ) || !com.stricmp( formats, "Doom2" ))
+		image.loadformats = load_doom1;
+	else if( !com.stricmp( formats, "Quake1" ))
+		image.loadformats = load_quake1; 
+	else if( !com.stricmp( formats, "Quake2" ))
+		image.loadformats = load_quake2;
+	else if( !com.stricmp( formats, "Quake3" ))
+		image.loadformats = load_quake3;
+	else if( !com.stricmp( formats, "Quake4" ) || !com.stricmp( formats, "Doom3" ))
+		image.loadformats = load_quake4;
+	else if( !com.stricmp( formats, "hl1" ) || !com.stricmp( formats, "Half-Life" ))
+		image.loadformats = load_hl1;
+	else if( !com.stricmp( formats, "hl2" ) || !com.stricmp( formats, "Half-Life 2" ))
+		image.loadformats = load_hl2;
+	else image.loadformats = load_xash048;	// unrecognized version, use default
+
+	if( !com.stricmp( formats, "Xash3D" ))
+		image.saveformats = save_xash051;
+	else image.saveformats = save_xash048;
 }
 
 void Image_Shutdown( void )
@@ -114,6 +353,14 @@ void Image_Shutdown( void )
 	Mem_FreePool( &Sys.imagepool );
 }
 
+byte *Image_Copy( size_t size )
+{
+	byte	*out;
+
+	out = Mem_Alloc( Sys.imagepool, size );
+	Mem_Copy( out, image.tempbuffer, size );
+	return out; 
+}
 
 void Image_RoundDimensions( int *scaled_width, int *scaled_height )
 {
@@ -128,18 +375,17 @@ void Image_RoundDimensions( int *scaled_width, int *scaled_height )
 
 bool Image_ValidSize( const char *name )
 {
-	if( image_width > IMAGE_MAXWIDTH || image_height > IMAGE_MAXHEIGHT || image_width <= 0 || image_height <= 0 )
+	if( image.width > IMAGE_MAXWIDTH || image.height > IMAGE_MAXHEIGHT || image.width <= 0 || image.height <= 0 )
 		return false;
 	return true;
 }
 
 bool Image_LumpValidSize( const char *name )
 {
-	// WorldCraft limitation
-	if( image_width > 1024 || image_height > 1024 || image_width <= 0 || image_height <= 0 )
+	if( image.width > LUMP_MAXWIDTH || image.height > LUMP_MAXHEIGHT || image.width <= 0 || image.height <= 0 )
 	{
 		if(!com_stristr( name, "#internal" )) // internal errors are silent
-			MsgDev( D_WARN, "Image_LumpValidSize: (%s) dims out of range[%dx%d]\n", name, image_width, image_height );
+			MsgDev(D_WARN, "Image_LumpValidSize: (%s) dims out of range[%dx%d]\n", name, image.width,image.height );
 		return false;
 	}
 	return true;
@@ -151,7 +397,7 @@ void Image_SetPalette( const byte *pal, uint *d_table )
 	byte	rgba[4];
 	
 	// setup palette
-	switch( d_rendermode )
+	switch( image.d_rendermode )
 	{
 	case LUMP_DECAL:
 		for(i = 0; i < 256; i++)
@@ -198,7 +444,7 @@ void Image_SetPalette( const byte *pal, uint *d_table )
 
 void Image_GetPaletteD1( void )
 {
-	d_rendermode = LUMP_NORMAL;
+	image.d_rendermode = LUMP_NORMAL;
 
 	if(!d1palette_init)
 	{
@@ -206,12 +452,12 @@ void Image_GetPaletteD1( void )
 		d_8toD1table[247] = 0; // Image_LoadFLT will be convert transparency from 247 into 255 color
 		d1palette_init = true;
 	}
-	d_currentpal = d_8toD1table;
+	image.d_currentpal = d_8toD1table;
 }
 
 void Image_GetPaletteQ1( void )
 {
-	d_rendermode = LUMP_NORMAL;
+	image.d_rendermode = LUMP_NORMAL;
 
 	if(!q1palette_init)
 	{
@@ -219,12 +465,12 @@ void Image_GetPaletteQ1( void )
 		d_8toQ1table[255] = 0; // 255 is transparent
 		q1palette_init = true;
 	}
-	d_currentpal = d_8toQ1table;
+	image.d_currentpal = d_8toQ1table;
 }
 
 void Image_GetPaletteQ2( void )
 {
-	d_rendermode = LUMP_NORMAL;
+	image.d_rendermode = LUMP_NORMAL;
 
 	if(!q2palette_init)
 	{
@@ -232,38 +478,38 @@ void Image_GetPaletteQ2( void )
 		d_8toQ2table[255] &= LittleLong(0xffffff);
 		q2palette_init = true;
 	}
-	d_currentpal = d_8toQ2table;
+	image.d_currentpal = d_8toQ2table;
 }
 
 void Image_GetPalettePCX( const byte *pal )
 {
-	d_rendermode = LUMP_NORMAL;
+	image.d_rendermode = LUMP_NORMAL;
 
 	if( pal )
 	{
 		Image_SetPalette( pal, d_8to24table );
 		d_8to24table[255] &= LittleLong(0xffffff);
-		d_currentpal = d_8to24table;
+		image.d_currentpal = d_8to24table;
 	}
 	else Image_GetPaletteQ2();          
 }
 
 void Image_GetPaletteLMP( const byte *pal, int rendermode )
 {
-	d_rendermode = rendermode;
+	image.d_rendermode = rendermode;
 
 	if( pal )
 	{
 		Image_SetPalette( pal, d_8to24table );
 		d_8to24table[255] &= LittleLong(0xffffff);
-		d_currentpal = d_8to24table;
+		image.d_currentpal = d_8to24table;
 	}
 	else if( rendermode == LUMP_QFONT )
 	{
 		// quake1 base palette and font palette have some diferences
 		Image_SetPalette( palette_q1, d_8to24table );
 		d_8to24table[0] = 0;
-		d_currentpal = d_8to24table;
+		image.d_currentpal = d_8to24table;
 	}
 	else Image_GetPaletteQ1(); // default quake palette          
 }
@@ -301,9 +547,9 @@ void Image_ConvertPalTo24bit( rgbdata_t *pic )
 
 void Image_CopyPalette32bit( void )
 {
-	if( image_palette ) return; // already created ?
-	image_palette = Mem_Alloc( Sys.imagepool, 1024 );
-	Mem_Copy( image_palette, d_currentpal, 1024 );
+	if( image.palette ) return; // already created ?
+	image.palette = Mem_Alloc( Sys.imagepool, 1024 );
+	Mem_Copy( image.palette, image.d_currentpal, 1024 );
 }
 
 /*
@@ -317,7 +563,7 @@ bool Image_Copy8bitRGBA( const byte *in, byte *out, int pixels )
 {
 	int *iout = (int *)out;
 
-	if( !d_currentpal )
+	if( !image.d_currentpal )
 	{
 		MsgDev(D_ERROR,"Image_Copy8bitRGBA: no palette set\n");
 		return false;
@@ -330,37 +576,38 @@ bool Image_Copy8bitRGBA( const byte *in, byte *out, int pixels )
 
 	while( pixels >= 8 )
 	{
-		iout[0] = d_currentpal[in[0]];
-		iout[1] = d_currentpal[in[1]];
-		iout[2] = d_currentpal[in[2]];
-		iout[3] = d_currentpal[in[3]];
-		iout[4] = d_currentpal[in[4]];
-		iout[5] = d_currentpal[in[5]];
-		iout[6] = d_currentpal[in[6]];
-		iout[7] = d_currentpal[in[7]];
+		iout[0] = image.d_currentpal[in[0]];
+		iout[1] = image.d_currentpal[in[1]];
+		iout[2] = image.d_currentpal[in[2]];
+		iout[3] = image.d_currentpal[in[3]];
+		iout[4] = image.d_currentpal[in[4]];
+		iout[5] = image.d_currentpal[in[5]];
+		iout[6] = image.d_currentpal[in[6]];
+		iout[7] = image.d_currentpal[in[7]];
 		in += 8;
 		iout += 8;
 		pixels -= 8;
 	}
 	if( pixels & 4 )
 	{
-		iout[0] = d_currentpal[in[0]];
-		iout[1] = d_currentpal[in[1]];
-		iout[2] = d_currentpal[in[2]];
-		iout[3] = d_currentpal[in[3]];
+		iout[0] = image.d_currentpal[in[0]];
+		iout[1] = image.d_currentpal[in[1]];
+		iout[2] = image.d_currentpal[in[2]];
+		iout[3] = image.d_currentpal[in[3]];
 		in += 4;
 		iout += 4;
 	}
 	if( pixels & 2 )
 	{
-		iout[0] = d_currentpal[in[0]];
-		iout[1] = d_currentpal[in[1]];
+		iout[0] = image.d_currentpal[in[0]];
+		iout[1] = image.d_currentpal[in[1]];
 		in += 2;
 		iout += 2;
 	}
 	if( pixels & 1 ) // last byte
-		iout[0] = d_currentpal[in[0]];
+		iout[0] = image.d_currentpal[in[0]];
 
+	image.type = PF_RGBA_32;	// update image type;
 	return true;
 }
 
@@ -758,7 +1005,7 @@ Image_Resample
 */
 byte *Image_ResampleInternal( const void *indata, int inwidth, int inheight, int outwidth, int outheight, int type )
 {
-	bool	quality = img_resample_lerp->integer;
+	bool	quality = (image.cmd_flags & IL_USE_LERPING);
 	byte	*outdata;
 
 	// nothing to resample ?
@@ -790,59 +1037,18 @@ byte *Image_ResampleInternal( const void *indata, int inwidth, int inheight, int
 	return (byte *)outdata;
 }
 
-bool Image_Resample( rgbdata_t **image, int width, int height, bool free_baseimage )
-{
-	int		w, h, pixel;
-	rgbdata_t		*pix = *image;
-	byte		*out;
-
-	// check for buffers
-	if(!pix || !pix->buffer) return false;
-
-	w = pix->width;
-	h = pix->height;
-
-	if( width && height )
-	{
-		// custom size
-		w = bound(4, width, IMAGE_MAXWIDTH );	// maxwidth 4096
-		h = bound(4, height, IMAGE_MAXHEIGHT);	// maxheight 4096
-	}
-	else Image_RoundDimensions( &w, &h ); // auto detect new size
-
-	out = Image_ResampleInternal((uint *)pix->buffer, pix->width, pix->height, w, h, pix->type );
-	if( out != pix->buffer )
-	{
-		pixel = PFDesc[pix->type].bpp;
-
-		// if image was resampled
-		MsgDev( D_NOTE, "Resample image from[%d x %d] to [%d x %d]\n", pix->width, pix->height, w, h );
-		// render dump screenshots into static buffer, so we never release it here
-		if( free_baseimage ) Mem_Free( pix->buffer );
-
-		// change image params
-		pix->buffer = out;
-		pix->width = w, pix->height = h;
-		pix->size = w * h * pixel;
-
-		*image = pix;
-		return true;
-	}
-	return false;
-}
-
 /*
 ================
-R_FlipTexture
+Image_Flip
 ================
 */
-byte *Image_FlipInternal( const byte *in, int width, int height, int type, int adjust_flags )
+byte *Image_FlipInternal( const byte *in, int width, int height, int type, int flags )
 {
 	int	i, x, y;
 	int	samples = PFDesc[type].bpp;
-	bool	flip_x = ( adjust_flags & IMAGE_FLIP_X ) ? true : false;
-	bool	flip_y = ( adjust_flags & IMAGE_FLIP_Y ) ? true : false;
-	bool	flip_i = ( adjust_flags & IMAGE_FLIP_I ) ? true : false;
+	bool	flip_x = ( flags & IMAGE_FLIP_X ) ? true : false;
+	bool	flip_y = ( flags & IMAGE_FLIP_Y ) ? true : false;
+	bool	flip_i = ( flags & IMAGE_FLIP_I ) ? true : false;
 	int	row_inc = ( flip_y ? -samples : samples ) * width;
 	int	col_inc = ( flip_x ? -samples : samples );
 	int	row_ofs = ( flip_y ? ( height - 1 ) * width * samples : 0 );
@@ -851,7 +1057,8 @@ byte *Image_FlipInternal( const byte *in, int width, int height, int type, int a
 	byte	*out;
 
 	// nothing to process
-	if( !adjust_flags ) return (byte *)in;
+	if(!(flags & IMAGE_FLIP_X|IMAGE_FLIP_Y|IMAGE_FLIP_I ))
+		return (byte *)in;
 
 	switch( type )
 	{
@@ -859,12 +1066,14 @@ byte *Image_FlipInternal( const byte *in, int width, int height, int type, int a
 	case PF_INDEXED_32:
 	case PF_RGB_24:
 	case PF_RGBA_32:
-		out = Mem_Alloc( Sys.imagepool, width * height * samples );
+		image.tempbuffer = Mem_Realloc( Sys.imagepool, image.tempbuffer, width * height * samples );
 		break;
 	default:
+		// we can flip DXT without expanding to RGBA ? hmmm...
 		MsgDev( D_WARN, "Image_Flip: unsupported format %s\n", PFDesc[type].name );
 		return (byte *)in;	
 	}
+	out = image.tempbuffer;
 
 	if( flip_i )
 	{
@@ -883,21 +1092,61 @@ byte *Image_FlipInternal( const byte *in, int width, int height, int type, int a
 	return out;
 }
 
-bool Image_Process( rgbdata_t **pix, int flags, bool free_baseimage )
+void Image_Process( rgbdata_t **pix, int width, int height, uint flags )
 {
 	rgbdata_t	*pic = *pix;
-	byte	*fout;
+	byte	*out;
 				
 	// check for buffers
-	if( !pic || !pic->buffer ) return false;
+	if( !pic || !pic->buffer )
+	{
+		MsgDev( D_WARN, "Image_Process: NULL image\n" );
+		return;
+	}
 
-	// can flip DXT without expanding to RGBA ? hmmm...
-	fout = Image_FlipInternal( pic->buffer, pic->width, pic->height, pic->type, flags );
+	// NOTE: flip and resample algorythms can't different palette size
+	if( flags & IMAGE_PALTO24 ) Image_ConvertPalTo24bit( pic );
+	out = Image_FlipInternal( pic->buffer, pic->width, pic->height, pic->type, flags );
+	if( pic->buffer != out ) Mem_Copy( pic->buffer, out, pic->size ); // copy flipped image into buffer
 
-	// render dump screenshots into static buffer, so we never release it here
-	if( free_baseimage ) Mem_Free( pic->buffer );
-	pic->buffer = fout;
+	if( flags & IMAGE_RESAMPLE|IMAGE_ROUND )
+	{
+		int	w, h;
+
+		if( flags & IMAGE_ROUND )
+		{
+			w = pic->width;
+			h = pic->height;
+
+			// round to nearest pow
+			Image_RoundDimensions( &w, &h );
+		}
+		else if( width > 0 && height > 0 )
+		{
+			// custom size
+			w = bound( 1, width, IMAGE_MAXWIDTH );	// maxwidth 4096
+			h = bound( 1, height, IMAGE_MAXHEIGHT);	// maxheight 4096
+		}
+		else
+		{
+			*pix = pic;
+			MsgDev( D_WARN, "Image_Resample: invalid parms [%d x %d]\n", width, height );
+			return; // failed to resample
+		}
+		out = Image_ResampleInternal((uint *)pic->buffer, pic->width, pic->height, w, h, pic->type );
+
+		if( out != pic->buffer ) // resampled
+		{
+			int	pixel = PFDesc[pic->type].bpp;
+
+			pic->width = w, pic->height = h;
+			pic->size = w * h * pixel;
+			MsgDev( D_NOTE, "Image_Resample: from[%d x %d] to [%d x %d]\n", pic->width, pic->height, w, h );
+
+			// free original image buffer if allowed
+			if(!( flags & IMAGE_SAVEINPUT )) Mem_Free( pic->buffer );
+			pic->buffer = Image_Copy( pic->size );	// unzone buffer (don't touch image.tempbuffer)
+		}
+	}
 	*pix = pic;
-
-	return true;
 }

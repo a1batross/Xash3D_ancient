@@ -66,7 +66,7 @@ const char *SPR_Ext( void )
 
 void *SPR_ConvertFrame( const char *name, void *pin, int framenum, int groupframenum )
 {
-	rgbdata_t		pix;
+	rgbdata_t		*pix;
 	dspriteframe_t	*pinframe;
 	char		framename[256];
 	byte		*fin, *fout;
@@ -78,7 +78,7 @@ void *SPR_ConvertFrame( const char *name, void *pin, int framenum, int groupfram
 	fin =  (byte *)(pinframe + 1);
 	if( width <= 0 || height <= 0 )
 	{
-		// Note: in Q1 exist sprites with blank frames
+		// Note: in Q1 existing sprites with blank frames
 		spr.totalframes--;
 		return (void *)((byte *)(pinframe + 1));
 	}
@@ -86,20 +86,20 @@ void *SPR_ConvertFrame( const char *name, void *pin, int framenum, int groupfram
 	// extract sprite name from path
 	FS_FileBase( name, framename );
 	com.strcat( framename, va("_%i", framenum ));
-	memset( &pix, 0, sizeof(pix));
+	pix = Mem_Alloc( zonepool, sizeof( pix ));
 
 	if( spr.truecolor )
 	{
 		pixels = width * height * 4;
 		Mem_Copy( fout, fin, pixels );
-		pix.type = PF_RGBA_32;
+		pix->type = PF_RGBA_32;
 	}
 	else
 	{
 		pixels = width * height;
-		pix.palette = (byte *)Mem_Alloc( zonepool, 1024 );
-		Mem_Copy( pix.palette, &spr.palette, 1024 );
-		pix.type = PF_INDEXED_32;
+		pix->palette = (byte *)Mem_Alloc( zonepool, 1024 );
+		Mem_Copy( pix->palette, &spr.palette, 1024 );
+		pix->type = PF_INDEXED_32;
 		Mem_Copy( fout, fin, pixels );
 	}
 
@@ -123,19 +123,17 @@ void *SPR_ConvertFrame( const char *name, void *pin, int framenum, int groupfram
 	}
 
 	// preparing for write
-	pix.width = width;
-	pix.height = height;
-	pix.size = pixels; 
-	pix.numLayers = 1;
-	pix.numMips = 1;
-	pix.buffer = fout;
-	if( spr.texFormat >= SPR_INDEXALPHA )
-		pix.flags |= IMAGE_HAS_ALPHA;
-	if( !spr.truecolor ) Image_ConvertPalette( &pix );
+	pix->width = width;
+	pix->height = height;
+	pix->size = pixels; 
+	pix->numLayers = 1;
+	pix->numMips = 1;
+	pix->buffer = fout;
+	if( spr.texFormat >= SPR_INDEXALPHA ) pix->flags |= IMAGE_HAVE_ALPHA;
+	if( !spr.truecolor ) Image_Process( &pix, 0, 0, IMAGE_PALTO24 );
 		
-	FS_SaveImage( va("%s/sprites/%s.%s", gs_gamedir, framename, SPR_Ext()), &pix );
-	if( pix.palette ) Mem_Free( pix.palette ); // free palette
-	Mem_Free( fout ); // release buffer
+	FS_SaveImage( va("%s/sprites/%s.%s", gs_gamedir, framename, SPR_Ext()), PF_RGBA_32, pix );
+	FS_FreeImage( pix ); // free image
 
 	// jump to next frame
 	return (void *)((byte *)(pinframe + 1) + pixels ); // no mipmap stored

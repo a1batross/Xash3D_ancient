@@ -24,7 +24,7 @@ bool ConvSKN( const char *name, char *buffer, int filesize )
 		FS_StripExtension( savedname );
 		FS_FileBase( savedname, skinname );
 
-		FS_SaveImage( va("%s/sprites/%s.bmp", gs_gamedir, savedname ), pic );
+		FS_SaveImage( va("%s/sprites/%s.bmp", gs_gamedir, savedname ), PF_INDEXED_32, pic );
 		Skin_CreateScript( wad, skinname, pic );
 		FS_FreeImage( pic ); // release buffer
 		Msg("%s/%s.bmp\n", wad, skinname ); // echo to console about current skin
@@ -46,7 +46,7 @@ bool ConvFLT( const char *name, char *buffer, int filesize )
 	if( pic )
 	{
 		com.strncpy( savedname, name, MAX_STRING );
-		if( pic->flags & IMAGE_HAS_ALPHA )
+		if( pic->flags & IMAGE_HAVE_ALPHA )
 		{
 			FS_ExtractFilePath( savedname, path );
 			FS_FileBase( savedname, tempname );
@@ -54,7 +54,7 @@ bool ConvFLT( const char *name, char *buffer, int filesize )
 		}
 		else FS_StripExtension( savedname );
 
-		FS_SaveImage(va("%s/textures/%s.bmp", gs_gamedir, savedname ), pic );
+		FS_SaveImage(va("%s/textures/%s.bmp", gs_gamedir, savedname ), PF_INDEXED_32, pic );
 		Conv_CreateShader( savedname, pic, "flt", NULL, 0, 0 );
 		FS_FreeImage( pic ); // release buffer
 		Msg("%s.bmp\n", savedname ); // echo to console about current texture
@@ -75,7 +75,7 @@ bool ConvFLP( const char *name, char *buffer, int filesize )
 	if( pic )
 	{
 		FS_StripExtension( (char *)name );
-		FS_SaveImage(va("%s/gfx/%s.bmp", gs_gamedir, name ), pic );
+		FS_SaveImage(va("%s/gfx/%s.bmp", gs_gamedir, name ), PF_INDEXED_32, pic );
 		FS_FreeImage( pic ); // release buffer
 		Msg("%s.bmp\n", name ); // echo to console about current pic
 		return true;
@@ -113,7 +113,7 @@ bool ConvMIP( const char *name, char *buffer, int filesize )
 			com.snprintf( path, MAX_STRING, "%s/textures/%s.bmp", gs_gamedir, savedname );
 			Conv_CreateShader( savedname, pic, "mip", NULL, 0, 0 ); // replace * with ! in shader too
 		}
-		FS_SaveImage( path, pic );
+		FS_SaveImage( path, PF_INDEXED_32, pic );
 		FS_FreeImage( pic ); // release buffer
 		Msg("%s.bmp\n", savedname ); // echo to console about current pic
 		return true;
@@ -139,7 +139,7 @@ bool ConvLMP( const char *name, char *buffer, int filesize )
 	if( pic )
 	{
 		FS_StripExtension( (char *)name );
-		FS_SaveImage(va("%s/%s.bmp", gs_gamedir, name ), pic );
+		FS_SaveImage(va("%s/%s.bmp", gs_gamedir, name ), PF_INDEXED_32, pic );
 		FS_FreeImage( pic ); // release buffer
 		Msg("%s.bmp\n", name ); // echo to console about current pic
 		return true;

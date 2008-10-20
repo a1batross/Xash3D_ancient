@@ -6,264 +6,12 @@
 #define BASEMATRIX_H
 
 #include <math.h>
-//#define OPENGL_STYLE		// TODO: enable OpenGL style someday
-#define	RHAND_STYLE		// right hand style euler engles
-
-/*
-	Quake engine tranformation matrix
-		Quake	OpenGL	other changes
-{ 0, 0,-1, 0, },	[ROLL]	[PITCH]	also put Z going up
-{-1, 0, 0, 0, },	[PITCH]	[YAW]	also put Z going up
-{ 0, 1, 0, 0, },	[YAW]	[ROLL]
-{ 0, 0, 0, 1, },	[ORIGIN]	[ORIGIN]
-*/
+//#define OPENGL_STYLE		//TODO: enable OpenGL style someday
 
 #ifndef M_PI
 #define M_PI			(float)3.14159265358979323846
 #endif
 
-/*
-========================================================================
-
-		Matrix3x3 operations
-	 matrix3x3 always keep in opengl style
-========================================================================
-*/
-#define Matrix3x3_LoadIdentity( mat )	Matrix3x3_Copy( mat, matrix3x3_identity )
-
-static const matrix3x3 matrix3x3_identity =
-{
-{ 1, 0, 0 },	// PITCH	[forward]
-{ 0, 1, 0 },	// YAW	[right]
-{ 0, 0, 1 },	// ROLL	[up]
-};
-
-_inline void Matrix3x3_Copy( matrix3x3 out, const matrix3x3 in )
-{
-	// FIXME: replace with Mem_Copy
-	memcpy( out, in, sizeof( matrix3x3 ));
-}
-
-_inline void Matrix3x3_FromNormal( const vec3_t normal, matrix3x3 out )
-{
-	out[0][0] = normal[0];
-	out[0][1] = normal[1];
-	out[0][2] = normal[2];
-
-	if( normal[0] || normal[1] )
-	{
-		double	length;
-
-		out[1][0] = normal[1];
-		out[1][1] = -normal[0];
-		out[1][2] = 0;
-
-		length = out[1][0] * out[1][0] + out[1][1] * out[1][1] + out[1][2] * out[1][2];
-		if( length != 0.0f )
-		{
-			double	ilength;
-			ilength = 1.0f / sqrt( length );
-			out[1][0] *= ilength;
-			out[1][1] *= ilength;
-			out[1][2] *= ilength;
-		}
-
-		out[2][0] = out[0][1] * out[1][2] - out[0][2] * out[1][1];
-		out[2][1] = out[0][2] * out[1][0] - out[0][0] * out[1][2];
-		out[2][2] = out[0][0] * out[1][1] - out[0][1] * out[1][0];
-
-	}
-	else
-	{
-		// set identity
-		out[1][0] = 1.0f;
-		out[1][1] = 0.0f;
-		out[1][2] = 0.0f;
-		out[2][0] = 0.0f;
-		out[2][1] = 1.0f;
-		out[2][2] = 0.0f;
-	}
-}
-
-_inline void Matrix3x3_FromAngles( const vec3_t angles, matrix3x3 out )
-{
-	double	sp, sy, sr, cp, cy, cr;
-	double	angle;
-
-	angle = DEG2RAD(angles[PITCH]);
-	sp = sin(angle);
-	cp = cos(angle);
-	angle = DEG2RAD(angles[YAW]);
-	sy = sin(angle);
-	cy = cos(angle);
-	angle = DEG2RAD(angles[ROLL]);
-	sr = sin(angle);
-	cr = cos(angle);
-
-	out[0][0] = cp*cy;
-	out[0][1] = cp*sy;
-	out[0][2] = -sp;
-	out[1][0] = sr*sp*cy+cr*-sy;
-	out[1][1] = sr*sp*sy+cr*cy;
-	out[1][2] = sr*cp;
-	out[2][0] = cr*sp*cy+-sr*-sy;
-	out[2][1] = cr*sp*sy+-sr*cy;
-	out[2][2] = cr*cp;
-}
-
-_inline void Matrix3x3_ToAngles( const matrix3x3 matrix, vec3_t out )
-{
-	double	pitch, cpitch, yaw, roll;
-
-	pitch = -asin( matrix[0][2] );
-	cpitch = cos( pitch );
-
-	if( fabs( cpitch ) > EQUAL_EPSILON )	// gimball lock?
-	{
-		cpitch = 1.0f / cpitch;
-		pitch = RAD2DEG( pitch );
-#ifdef RHAND_STYLE
-		yaw = RAD2DEG( atan2( matrix[0][1] * cpitch, matrix[0][0] * cpitch ));
-#else
-		yaw = RAD2DEG( atan2((-1)*-matrix[0][1] * cpitch, matrix[0][0] * cpitch ));
-#endif
-		roll = RAD2DEG( atan2( -matrix[1][2] * cpitch, matrix[2][2] * cpitch ));
-	}
-	else
-	{
-		pitch = matrix[0][2] > 0 ? -90.0f : 90.0f;
-		yaw = RAD2DEG( atan2( matrix[1][0], -matrix[1][1] ));
-#ifdef RHAND_STYLE
-		roll = 180;
-#else
-		roll = 0;
-#endif
-	}
-
-	out[PITCH] = pitch;
-	out[YAW] = yaw;
-	out[ROLL] = roll;
-}
-
-_inline bool Matrix3x3_Compare( const matrix3x3 mat1, const matrix3x3 mat2 )
-{
-	if( mat1[0][0] != mat2[0][0] || mat1[0][1] != mat2[0][1] || mat1[0][2] != mat2[0][2] )
-		return false;
-	if( mat1[1][0] != mat2[1][0] || mat1[1][1] != mat2[1][1] || mat1[1][2] != mat2[1][2] )
-		return false;
-	if( mat1[2][0] != mat2[2][0] || mat1[2][1] != mat2[2][1] || mat1[2][2] != mat2[2][2] )
-		return false;
-	return true;
-}
-
-_inline void Matrix3x3_Transpose( matrix3x3 out, const matrix3x3 in )
-{
-	out[0][0] = in[0][0];
-	out[1][0] = in[0][1];
-	out[2][0] = in[0][2];
-	out[0][1] = in[1][0];
-	out[1][1] = in[1][1];
-	out[2][1] = in[1][2];
-	out[0][2] = in[2][0];
-	out[1][2] = in[2][1];
-	out[2][2] = in[2][2];
-}
-
-_inline void Matrix3x3_Transform( matrix3x3 in, const float v[3], float out[3] )
-{
-	out[0] = in[0][0] * v[0] + in[0][1] * v[1] + in[0][2] * v[2];
-	out[1] = in[1][0] * v[0] + in[1][1] * v[1] + in[1][2] * v[2];
-	out[2] = in[2][0] * v[0] + in[2][1] * v[1] + in[2][2] * v[2];
-}
-
-_inline void Matrix3x3_CreateRotate( matrix3x3 out, float angle, float x, float y, float z )
-{
-	double	len, c, s;
-
-	len = x * x + y * y + z * z;
-	if( len != 0.0f ) len = 1.0f / sqrt( len );
-	x *= len;
-	y *= len;
-	z *= len;
-
-	angle = DEG2RAD( angle );
-	c = cos( angle );
-	s = sin( angle );
-	
-	out[0][0] = x * x + c * (1 - x * x);
-	out[0][1] = x * y * (1 - c) + z * s;
-	out[0][2] = x * z * (1 - c) - y * s;
-	out[1][0] = x * y * (1 - c) - z * s;
-	out[1][1] = y * y + c * (1 - y * y);
-	out[1][2] = y * z * (1 - c) + x * s;
-	out[2][0] = x * z * (1 - c) + y * s;
-	out[2][1] = y * z * (1 - c) - x * s;
-	out[2][2] = z * z + c * (1 - z * z);
-}
-
-_inline void Matrix3x3_Concat( matrix3x3 out, const matrix3x3 in1, const matrix3x3 in2 )
-{
-	out[0][0] = in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0] + in1[0][2] * in2[2][0];
-	out[0][1] = in1[0][0] * in2[0][1] + in1[0][1] * in2[1][1] + in1[0][2] * in2[2][1];
-	out[0][2] = in1[0][0] * in2[0][2] + in1[0][1] * in2[1][2] + in1[0][2] * in2[2][2];
-	out[1][0] = in1[1][0] * in2[0][0] + in1[1][1] * in2[1][0] + in1[1][2] * in2[2][0];
-	out[1][1] = in1[1][0] * in2[0][1] + in1[1][1] * in2[1][1] + in1[1][2] * in2[2][1];
-	out[1][2] = in1[1][0] * in2[0][2] + in1[1][1] * in2[1][2] + in1[1][2] * in2[2][2];
-	out[2][0] = in1[2][0] * in2[0][0] + in1[2][1] * in2[1][0] + in1[2][2] * in2[2][0];
-	out[2][1] = in1[2][0] * in2[0][1] + in1[2][1] * in2[1][1] + in1[2][2] * in2[2][1];
-	out[2][2] = in1[2][0] * in2[0][2] + in1[2][1] * in2[1][2] + in1[2][2] * in2[2][2];
-}
-
-_inline void Matrix3x3_FromPoints( const vec3_t v1, const vec3_t v2, const vec3_t v3, matrix3x3 out )
-{
-	float	d;
-
-	out[2][0] = (v1[1] - v2[1]) * (v3[2] - v2[2]) - (v1[2] - v2[2]) * (v3[1] - v2[1]);
-	out[2][1] = (v1[2] - v2[2]) * (v3[0] - v2[0]) - (v1[0] - v2[0]) * (v3[2] - v2[2]);
-	out[2][2] = (v1[0] - v2[0]) * (v3[1] - v2[1]) - (v1[1] - v2[1]) * (v3[0] - v2[0]);
-	d = rsqrt( out[2][0] * out[2][0] + out[2][1] * out[2][1] + out[2][2] * out[2][2]);
-
-	out[2][0] *= d;
-	out[2][1] *= d;
-	out[2][2] *= d;
-
-	// this rotate and negate guarantees a vector not colinear with the original
-	out[1][0] = out[2][2];
-	out[1][1] = -out[2][0];
-	out[1][2] = out[2][1];
-	d = -( out[1][0] * out[2][0] + out[1][1] * out[2][1] + out[1][2] * out[2][2] );
-
-	out[1][0] = out[1][0] + d * out[2][0];
-	out[1][1] = out[1][1] + d * out[2][1];
-	out[1][2] = out[1][2] + d * out[2][2];
-	d = rsqrt( out[1][0] * out[1][0] + out[1][1] * out[1][1] + out[1][2] * out[1][2]);
-
-	out[1][0] *= d;
-	out[1][1] *= d;
-	out[1][2] *= d;
-	out[0][0] = out[1][1] * out[2][2] - out[1][2] * out[2][1];
-	out[0][1] = out[1][2] * out[2][0] - out[1][0] * out[2][2];
-	out[0][2] = out[1][0] * out[2][1] - out[1][1] * out[2][0];
-}
-
-
-// FIXME: optimize
-_inline void Matrix3x3_ConcatRotate( matrix3x3 out, double angle, double x, double y, double z )
-{
-	matrix3x3 base, temp;
-
-	Matrix3x3_Copy( base, out );
-	Matrix3x3_CreateRotate( temp, angle, x, y, z );
-	Matrix3x3_Concat( out, base, temp );
-}
-
-/*
-========================================================================
-
-		Matrix4x4 operations
-
-========================================================================
-*/
 #define Matrix4x4_LoadIdentity( mat )	Matrix4x4_Copy( mat, identitymatrix )
 
 static const matrix4x4 identitymatrix =
@@ -274,80 +22,18 @@ static const matrix4x4 identitymatrix =
 { 0, 0, 0, 1 },	// ORIGIN
 };
 
-static const matrix4x4 matrix4x4_halfidentity =
-{
-{ 0.5, 0.0, 0.0, 0.0 },	// PITCH
-{ 0.0, 0.5, 0.0, 0.0 },	// YAW
-{ 0.0, 0.0, 0.5, 0.0 },	// ROLL
-{ 0.5, 0.5, 0.5, 1.0 },	// ORIGIN
+// quake engine tranformation matrix
+static const matrix4x4 r_base_matrix =
+{		// Quake		OpenGL	other changes
+{ 0, 0,-1, 0, },	// ROLL		[PITCH]	also put Z going up
+{-1, 0, 0, 0, },	// PITCH		[YAW]	also put Z going up
+{ 0, 1, 0, 0, },	// YAW		[ROLL]
+{ 0, 0, 0, 1, },
 };
 
 _inline void Matrix4x4_Copy( matrix4x4 out, const matrix4x4 in )
 {
-	// FIXME: replace with Mem_Copy
 	memcpy( out, in, sizeof(matrix4x4));
-}
-
-_inline void Matrix4x4_TransformPoint( const matrix4x4 in, vec3_t point )
-{
-	float	out1, out2, out3;
-#ifdef OPENGL_STYLE
-	out1 =  in[0][0] * point[0];
-	out2 =  in[0][1] * point[0];
-	out3 =  in[0][2] * point[0];
-	out1 += in[1][0] * point[1];
-	out2 += in[1][1] * point[1];
-	out3 += in[1][2] * point[1];
-	out1 += in[2][0] * point[2];
-	out2 += in[2][1] * point[2];
-	out3 += in[2][2] * point[2];
-	out1 += in[3][0];
-	out2 += in[3][1];
-	out3 += in[3][2];
-#else
-	out1 =  in[0][0] * point[0];
-	out2 =  in[1][0] * point[0];
-	out3 =  in[2][0] * point[0];
-	out1 += in[0][1] * point[1];
-	out2 += in[1][1] * point[1];
-	out3 += in[2][1] * point[1];
-	out1 += in[0][2] * point[2];
-	out2 += in[1][2] * point[2];
-	out3 += in[2][2] * point[2];
-	out1 += in[0][3];
-	out2 += in[1][3];
-	out3 += in[2][3];
-#endif
-	point[0] = out1;
-	point[1] = out2;
-	point[2] = out3;
-}
-
-_inline void Matrix4x4_Transform3x3( const matrix4x4 in, const float v[3], float out[3] )
-{
-#ifdef OPENGL_STYLE
-	out[0] = v[0] * in[0][0] + v[1] * in[1][0] + v[2] * in[2][0];
-	out[1] = v[0] * in[0][1] + v[1] * in[1][1] + v[2] * in[2][1];
-	out[2] = v[0] * in[0][2] + v[1] * in[1][2] + v[2] * in[2][2];
-#else
-	out[0] = v[0] * in[0][0] + v[1] * in[0][1] + v[2] * in[0][2];
-	out[1] = v[0] * in[1][0] + v[1] * in[1][1] + v[2] * in[1][2];
-	out[2] = v[0] * in[2][0] + v[1] * in[2][1] + v[2] * in[2][2];
-#endif
-}
-
-// same as Matrix4x4_Transform3x3 but transpose matrix before
-_inline void Matrix4x4_Rotate3x3( const matrix4x4 in, const float v[3], float out[3] )
-{
-#ifdef OPENGL_STYLE
-	out[0] = v[0] * in[0][0] + v[1] * in[0][1] + v[2] * in[0][2];
-	out[1] = v[0] * in[1][0] + v[1] * in[1][1] + v[2] * in[1][2];
-	out[2] = v[0] * in[2][0] + v[1] * in[2][1] + v[2] * in[2][2];
-#else
-	out[0] = v[0] * in[0][0] + v[1] * in[1][0] + v[2] * in[2][0];
-	out[1] = v[0] * in[0][1] + v[1] * in[1][1] + v[2] * in[2][1];
-	out[2] = v[0] * in[0][2] + v[1] * in[1][2] + v[2] * in[2][2];
-#endif
 }
 
 _inline void Matrix4x4_Transform( const matrix4x4 in, const float v[3], float out[3] )
@@ -360,6 +46,45 @@ _inline void Matrix4x4_Transform( const matrix4x4 in, const float v[3], float ou
 	out[0] = v[0] * in[0][0] + v[1] * in[0][1] + v[2] * in[0][2] + in[0][3];
 	out[1] = v[0] * in[1][0] + v[1] * in[1][1] + v[2] * in[1][2] + in[1][3];
 	out[2] = v[0] * in[2][0] + v[1] * in[2][1] + v[2] * in[2][2] + in[2][3];
+#endif
+}
+
+_inline void Matrix4x4_Rotate( const matrix4x4 in, const float v[3], float out[3] )
+{
+#ifdef OPENGL_STYLE
+	out[0] = v[0] * in[0][0] + v[1] * in[1][0] + v[2] * in[2][0];
+	out[1] = v[0] * in[0][1] + v[1] * in[1][1] + v[2] * in[2][1];
+	out[2] = v[0] * in[0][2] + v[1] * in[1][2] + v[2] * in[2][2];
+#else
+	out[0] = v[0] * in[0][0] + v[1] * in[0][1] + v[2] * in[0][2];
+	out[1] = v[0] * in[1][0] + v[1] * in[1][1] + v[2] * in[1][2];
+	out[2] = v[0] * in[2][0] + v[1] * in[2][1] + v[2] * in[2][2];
+#endif
+}
+
+_inline void Matrix4x4_TransposeRotate( const matrix4x4 in, const float v[3], float out[3] )
+{
+#ifdef OPENGL_STYLE
+	out[0] = v[0] * in[0][0] + v[1] * in[0][1] + v[2] * in[0][2];
+	out[1] = v[0] * in[1][0] + v[1] * in[1][1] + v[2] * in[1][2];
+	out[2] = v[0] * in[2][0] + v[1] * in[2][1] + v[2] * in[2][2];
+#else
+	out[0] = v[0] * in[0][0] + v[1] * in[1][0] + v[2] * in[2][0];
+	out[1] = v[0] * in[0][1] + v[1] * in[1][1] + v[2] * in[2][1];
+	out[2] = v[0] * in[0][2] + v[1] * in[1][2] + v[2] * in[2][2];
+#endif
+}
+
+_inline void Matrix4x4_Transform3x3( const matrix4x4 in, const float v[3], float out[3] )
+{
+#ifdef OPENGL_STYLE
+	out[0] = v[0] * in[0][0] + v[1] * in[1][0] + v[2] * in[2][0];
+	out[1] = v[0] * in[0][1] + v[1] * in[1][1] + v[2] * in[2][1];
+	out[2] = v[0] * in[0][2] + v[1] * in[1][2] + v[2] * in[2][2];
+#else
+	out[0] = v[0] * in[0][0] + v[1] * in[0][1] + v[2] * in[0][2];
+	out[1] = v[0] * in[1][0] + v[1] * in[1][1] + v[2] * in[1][2];
+	out[2] = v[0] * in[2][0] + v[1] * in[2][1] + v[2] * in[2][2];
 #endif
 }
 
@@ -1017,29 +742,6 @@ _inline void Matrix4x4_FromArrayFloatGL( matrix4x4 out, const float in[16] )
 #endif
 }
 
-_inline void Matrix4x4_ToMatrix3x3( matrix3x3 out, const matrix4x4 in )
-{
-	out[0][0] = in[0][0];
-	out[1][1] = in[1][1];
-	out[2][2] = in[2][2];
-
-#ifdef OPENGL_STYLE
-	out[0][1] = in[1][0];
-	out[0][2] = in[1][0];
-	out[1][0] = in[0][1];
-	out[1][2] = in[2][1];
-	out[2][0] = in[0][2];
-	out[2][1] = in[1][2];
-#else
-	out[0][1] = in[0][1];
-	out[0][2] = in[0][2];
-	out[1][0] = in[1][0];
-	out[1][2] = in[1][2];
-	out[2][0] = in[2][0];
-	out[2][1] = in[2][1];
-#endif
-}
-
 _inline bool Matrix4x4_Invert_Full( matrix4x4 out, const matrix4x4 in1 )
 {
 	float	*temp;
@@ -1400,77 +1102,6 @@ _inline void Matrix4x4_OriginFromMatrix( const matrix4x4 in, float *out )
 #endif
 }
 
-_inline void Matrix4x4_Copy2D( matrix4x4 out, const matrix4x4 in )
-{
-	out[0][0] = in[0][0];
-	out[1][1] = in[1][1];
-	out[0][1] = in[0][1];
-	out[1][0] = in[1][0];
-	out[3][0] = in[3][0];
-	out[3][1] = in[3][1];
-}
-
-_inline void Matrix4x4_Concat2D( matrix4x4 out, const matrix4x4 in1, const matrix4x4 in2 )
-{
-#ifdef OPENGL_STYLE
-	out[0][0] = in1[0][0] * in2[0][0] + in1[1][0] * in2[0][1];
-	out[0][1] = in1[0][1] * in2[0][0] + in1[1][1] * in2[0][1];
-	out[1][0] = in1[0][0] * in2[1][0] + in1[1][0] * in2[1][1];
-	out[1][1] = in1[0][1] * in2[1][0] + in1[1][1] * in2[1][1];
-	out[3][0] = in1[0][0] * in2[3][0] + in1[1][0] * in2[3][1] + in1[3][0];
-	out[3][1] = in1[0][1] * in2[3][0] + in1[1][1] * in2[3][1] + in1[3][1];
-#else
-	out[0][0] = in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0];
-	out[1][0] = in1[1][0] * in2[0][0] + in1[1][1] * in2[1][0];
-	out[0][1] = in1[0][0] * in2[0][1] + in1[0][1] * in2[1][1];
-	out[1][1] = in1[1][0] * in2[0][1] + in1[1][1] * in2[1][1];
-	out[0][3] = in1[0][0] * in2[0][3] + in1[0][1] * in2[1][3] + in1[0][3];
-	out[1][3] = in1[1][0] * in2[0][3] + in1[1][1] * in2[1][3] + in1[1][3];
-#endif
-}
-
-_inline void Matrix4x4_Scale2D( matrix4x4 out, vec_t x, vec_t y )
-{
-	out[0][0] *= x;
-	out[1][1] *= y;
-
-#ifdef OPENGL_STYLE
-	out[0][1] *= x;
-	out[1][0] *= y;
-#else
-	out[1][0] *= x;
-	out[0][1] *= y;
-#endif
-}
-
-_inline void Matrix4x4_Translate2D( matrix4x4 out, vec_t x, vec_t y )
-{
-#ifdef OPENGL_STYLE
-	out[3][0] += x;
-	out[3][1] += y;
-#else
-	out[0][3] += x;
-	out[1][3] += y;
-#endif
-}
-
-_inline void Matrix4x4_Stretch2D( matrix4x4 out, vec_t s, vec_t t )
-{
-	out[0][0] *= s;
-	out[1][1] *= s;
-#ifdef OPENGL_STYLE
-	out[0][1] *= s;
-	out[1][0] *= s;
-	out[3][0] = s * out[3][0] + t;
-	out[3][1] = s * out[3][1] + t;
-#else
-	out[1][0] *= s;
-	out[0][1] *= s;
-	out[0][3] = s * out[0][3] + t;
-	out[1][3] = s * out[1][3] + t;
-#endif
-}
-
 _inline void Matrix4x4_ConcatScale( matrix4x4 out, double x )
 {
 	matrix4x4	base, temp;
@@ -1509,22 +1140,5 @@ _inline void Matrix4x4_ConcatScale3( matrix4x4 out, double x, double y, double z
 	Matrix4x4_CreateScale3( temp, x, y, z );
 	Matrix4x4_Concat( out, base, temp );
 }
-
-// FIXME: optimize
-_inline void Matrix4x4_Pivot( matrix4x4 m, const vec3_t org, const vec3_t ang, const vec3_t scale, const vec3_t pivot )
-{
-	vec3_t	temp;
-
-	VectorAdd( pivot, org, temp );
-	Matrix4x4_LoadIdentity( m );
-	Matrix4x4_ConcatTranslate( m, temp[0], temp[1], temp[2] );
-	Matrix4x4_ConcatRotate( m, ang[0], 1, 0, 0 );
-	Matrix4x4_ConcatRotate( m, ang[1], 0, 1, 0 );
-	Matrix4x4_ConcatRotate( m, ang[2], 0, 0, 1 );
-	Matrix4x4_ConcatScale3( m, scale[0], scale[1], scale[2] );
-	VectorNegate( pivot, temp );
-	Matrix4x4_ConcatTranslate( m, temp[0], temp[1], temp[2] );
-}
-
 
 #endif//BASEMATRIX_H

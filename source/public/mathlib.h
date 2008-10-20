@@ -22,9 +22,9 @@
 
 
 #define METERS_PER_INCH	0.0254f
+#define EQUAL_EPSILON	0.001f
 #define STOP_EPSILON	0.1f
 #define ON_EPSILON		0.1f
-#define Z_NEAR		4.0f
 
 #define ANGLE2CHAR(x)	((int)((x)*256/360) & 255)
 #define CHAR2ANGLE(x)	((x)*(360.0/256))
@@ -39,32 +39,29 @@
 #define nanmask		(255<<23)
 
 #define IS_NAN(x)		(((*(int *)&x)&nanmask)==nanmask)
-#define rint(x)		(( x ) < 0 ? ((int)(( x ) - 0.5f )) : ((int)(( x ) + 0.5f )))
 #define RANDOM_LONG(MIN, MAX)	((rand() & 32767) * (((MAX)-(MIN)) * (1.0f / 32767.0f)) + (MIN))
 #define RANDOM_FLOAT(MIN,MAX)	(((float)rand() / RAND_MAX) * ((MAX)-(MIN)) + (MIN))
 
 #define VectorToPhysic(v) { v[0] = INCH2METER(v[0]), v[1] = INCH2METER(v[1]), v[2] = INCH2METER(v[2]); }
 #define VectorToServer(v) { v[0] = METER2INCH(v[0]), v[1] = METER2INCH(v[1]), v[2] = METER2INCH(v[2]); }
 #define DotProduct(x,y) ((x)[0]*(y)[0]+(x)[1]*(y)[1]+(x)[2]*(y)[2])
-#define VectorSubtract(a,b,c) ((c)[0]=(a)[0]-(b)[0],(c)[1]=(a)[1]-(b)[1],(c)[2]=(a)[2]-(b)[2])
+#define VectorSubtract(a,b,c){c[0]=a[0]-b[0];c[1]=a[1]-b[1];c[2]=a[2]-b[2];}
 #define Vector4Subtract(a,b,c){c[0]=a[0]-b[0];c[1]=a[1]-b[1];c[2]=a[2]-b[2];c[3]=a[3]-b[3];}
-#define VectorAdd(a,b,c) ((c)[0]=(a)[0]+(b)[0],(c)[1]=(a)[1]+(b)[1],(c)[2]=(a)[2]+(b)[2])
+#define VectorAdd(a,b,c) {c[0]=a[0]+b[0];c[1]=a[1]+b[1];c[2]=a[2]+b[2];}
 #define VectorCopy(a,b) ((b)[0]=(a)[0],(b)[1]=(a)[1],(b)[2]=(a)[2])
 #define Vector4Copy(a,b) {b[0]=a[0];b[1]=a[1];b[2]=a[2];b[3]=a[3];}
 #define VectorScale(in, scale, out) ((out)[0] = (in)[0] * (scale),(out)[1] = (in)[1] * (scale),(out)[2] = (in)[2] * (scale))
 #define Vector4Scale(in, scale, out) ((out)[0] = (in)[0] * (scale),(out)[1] = (in)[1] * (scale),(out)[2] = (in)[2] * (scale),(out)[3] = (in)[3] * (scale))
 #define VectorMultiply(a,b,c) ((c)[0]=(a)[0]*(b)[0],(c)[1]=(a)[1]*(b)[1],(c)[2]=(a)[2]*(b)[2])
-#define VectorDivide( in, d, out ) VectorScale( in, (1.0f / (d)), out )
 #define VectorLength(a) (sqrt(DotProduct(a, a)))
 #define VectorLength2(a) (DotProduct(a, a))
 #define VectorDistance(a, b) (sqrt(VectorDistance2(a,b)))
 #define VectorDistance2(a, b) (((a)[0] - (b)[0]) * ((a)[0] - (b)[0]) + ((a)[1] - (b)[1]) * ((a)[1] - (b)[1]) + ((a)[2] - (b)[2]) * ((a)[2] - (b)[2]))
 #define VectorAverage(a,b,o)	((o)[0]=((a)[0]+(b)[0])*0.5,(o)[1]=((a)[1]+(b)[1])*0.5,(o)[2]=((a)[2]+(b)[2])*0.5)
-#define Vector2Set(v, x, y) ((v)[0]=(x),(v)[1]=(y))
-#define VectorSet(v, x, y, z) ((v)[0]=(x),(v)[1]=(y),(v)[2]=(z))
+#define VectorSet(v, x, y, z) {v[0] = x; v[1] = y; v[2] = z;}
 #define Vector4Set(v, x, y, z, w) {v[0] = x; v[1] = y; v[2] = z; v[3] = w;}
-#define VectorClear(x) ((x)[0]=(x)[1]=(x)[2]=0)
-#define Vector4Clear(x) ((x)[0]=(x)[1]=(x)[2]=(x)[3]=0)
+#define VectorClear(x) {x[0] = x[1] = x[2] = 0;}
+#define Vector4Clear(x) {x[0] = x[1] = x[2] = x[3] = 0;}
 #define VectorLerp( v1, lerp, v2, c ) ((c)[0] = (v1)[0] + (lerp) * ((v2)[0] - (v1)[0]), (c)[1] = (v1)[1] + (lerp) * ((v2)[1] - (v1)[1]), (c)[2] = (v1)[2] + (lerp) * ((v2)[2] - (v1)[2]))
 #define VectorNormalize( v ) { float ilength = (float)sqrt(DotProduct(v, v));if (ilength) ilength = 1.0f / ilength;v[0] *= ilength;v[1] *= ilength;v[2] *= ilength; }
 #define VectorNormalize2( v, dest ) {float ilength = (float) sqrt(DotProduct(v,v));if (ilength) ilength = 1.0f / ilength;dest[0] = v[0] * ilength;dest[1] = v[1] * ilength;dest[2] = v[2] * ilength; }
@@ -242,7 +239,7 @@ _inline void ClearBounds (vec3_t mins, vec3_t maxs)
 	maxs[0] = maxs[1] = maxs[2] = -99999;
 }
 
-_inline void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs )
+_inline void AddPointToBounds (vec3_t v, vec3_t mins, vec3_t maxs)
 {
 	int	i;
 	vec_t	val;
@@ -545,17 +542,6 @@ _inline float *UnpackRGBA( dword icolor )
 	return color;
 }
 
-_inline byte FloatToByte( float x )
-{
-	union { long l; float f; } dat;
-
-	// shift float to have 8bit fraction at base of number
-	dat.f = x + 32768.0f;
-
-	// then read as integer and kill float bits...
-	return (byte)min( dat.l & 0x7FFFFF, 255 );
-}
-
 _inline vec_t ColorNormalize( const vec3_t in, vec3_t out )
 {
 	float	max, scale;
@@ -586,25 +572,6 @@ _inline void PlaneClassify( cplane_t *p )
 	if (p->normal[0] < 0) p->signbits |= 1;
 	if (p->normal[1] < 0) p->signbits |= 2;
 	if (p->normal[2] < 0) p->signbits |= 4;
-}
-
-/*
-=================
-PlaneFromPoints
-=================
-*/
-_inline void PlaneFromPoints( vec3_t verts[3], cplane_t *plane )
-{
-	vec3_t	v1, v2;
-
-	VectorSubtract( verts[1], verts[0], v1 );
-	VectorSubtract( verts[2], verts[0], v2 );
-	CrossProduct( v2, v1, plane->normal );
-	VectorNormalize( plane->normal );
-	plane->dist = DotProduct( verts[0], plane->normal );
-
-	// FIXME: need to classify ?
-	// PlaneClassify( plane );
 }
 
 /*
@@ -643,7 +610,7 @@ BoxOnPlaneSide (engine fast version)
 Returns SIDE_FRONT, SIDE_BACK, or SIDE_ON
 ==============
 */
-_inline int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
+_inline int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, cplane_t *p )
 {
 	if (p->type < 3) return ((emaxs[p->type] >= p->dist) | ((emins[p->type] < p->dist) << 1));
 	switch(p->signbits)

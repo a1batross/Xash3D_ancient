@@ -211,7 +211,7 @@ void NumberClusters( tree_t *tree )
 	num_visportals = 0;
 	num_solidfaces = 0;
 
-	MsgDev( D_NOTE, "--- NumberClusters ---\n" );
+	MsgDev( D_INFO, "--- NumberClusters ---\n" );
 	
 	// set the cluster field in every leaf and count the total number of portals
 	NumberLeafs_r( tree->headnode );

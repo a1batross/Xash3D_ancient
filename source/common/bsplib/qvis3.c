@@ -20,7 +20,6 @@ int		leaflongs;
 int		portalbytes;
 int		portallongs;
 int		numvisfaces;
-float		farPlaneDist;
 
 bool		fastvis;		// fast calc visibility
 bool		noPassageVis;	// ignore passages
@@ -273,19 +272,9 @@ CalcPVS
 */
 void CalcPVS( void )
 {
-	int		i;
-	const char	*value;
-		
-	Msg ("Building PVS...\n");
+	int	i;
 	
-	farPlaneDist = 0.0f;
-	value = ValueForKey( &entities[0], "MaxRange" );		// Half-Life far plane distance
-	if( value[0] != '\0' )
-	{
-		farPlaneDist = com.atof( value );
-		if( farPlaneDist > 0.0f ) Msg( "MaxRange distance = %.1f\n", farPlaneDist );
-		else farPlaneDist = 0.0f;
-	}
+	Msg ("Building PVS...\n");
 
 	RunThreadsOnIndividual( numportals * 2, true, BasePortalVis );
 	SortPortals ();
@@ -680,7 +669,7 @@ void LoadPortals( void )
 	char		magic[80];
 	char		path[MAX_SYSPATH];
 	int		numpoints;
-	winding_t		*w;
+	winding_t	*w;
 	int		leafnums[2];
 	vplane_t		plane;
 	
@@ -929,10 +918,8 @@ void WvisMain ( bool option )
 
 	if( numnodes == 0 || numsurfaces == 0 ) Sys_Error( "Empty map" );
 	Msg ("---- Visibility ---- [%s]\n", fastvis ? "fast" : "full" );
-
-	LoadPortals();
-	ParseEntities();
-	MergePortals();
+	LoadPortals ();
+	MergePortals ();
 	CountActivePortals ();
 
 	CalcPVS ();

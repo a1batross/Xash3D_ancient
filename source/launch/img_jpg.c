@@ -482,21 +482,21 @@ bool Image_LoadJPG( const char *name, const byte *buffer, size_t filesize )
 	if(!jpeg_readmarkers()) 
 		return false; // it's not a jpg file, just skip it
 
-	image_width = jpg_file.width;
-	image_height = jpg_file.height;
-	image_type = PF_RGBA_32;
+	image.width = jpg_file.width;
+	image.height = jpg_file.height;
+	image.type = PF_RGBA_32;
 	if(!Image_ValidSize( name )) return false;
 
-	image_size = jpg_file.width * jpg_file.height * 4;
-	jpg_file.data = Mem_Alloc( Sys.imagepool, image_size );
+	image.size = jpg_file.width * jpg_file.height * 4;
+	jpg_file.data = Mem_Alloc( Sys.imagepool, image.size );
 
 	jpeg_decompress();
 	if( jpg_file.num_components == 1 ) jpeg_gray2rgba();        
 	if( jpg_file.num_components == 3 ) jpeg_ycbcr2rgba();
 
-	image_num_layers = 1;
-	image_num_mips = 1;
-	image_rgba = jpg_file.data;
+	image.num_layers = 1;
+	image.num_mips = 1;
+	image.rgba = jpg_file.data;
 
 	return true;
 }

@@ -274,13 +274,14 @@ void Cmd_Load( void )
 {
 	char		*framename;
 	static byte	base_pal[256*3];
+	int		flags = 0;
 
 	framename = Com_GetToken( false );
 
 	if( frame ) FS_FreeImage( frame );
 	frame = FS_LoadImage( framename, error_bmp, error_bmp_size );
 	if( !frame ) Sys_Break( "unable to load %s\n", framename ); // no error.bmp, missing frame...
-	Image_ConvertPalette( frame ); // get 24-bit palettes
+	flags |= IMAGE_PALTO24; // get 24-bit palettes
 	if( sprite.numframes == 0 ) Mem_Copy( base_pal, frame->palette, sizeof( base_pal ));
 	else if( memcmp( base_pal, frame->palette, sizeof( base_pal )))
 		MsgDev( D_WARN, "Cmd_Load: %s doesn't share a pallette with the previous frame\n", framename );
@@ -289,9 +290,13 @@ void Cmd_Load( void )
 	Msg( "grabbing %s\n", framename );
 	if(Com_TryToken())
 	{
-		if(Com_MatchToken("flip_x")) Image_Process( &frame, IMAGE_FLIP_X, true );
-		else if(Com_MatchToken("flip_y")) Image_Process( &frame, IMAGE_FLIP_Y, true );
+		if(Com_MatchToken("flip_diagonal")) flags |= IMAGE_FLIP_I;
+		else if(Com_MatchToken( "flip_y" )) flags |= IMAGE_FLIP_Y;
+		else if(Com_MatchToken( "flip_x" )) flags |= IMAGE_FLIP_X;
 	}
+
+	// apply changes
+	Image_Process( &frame, 0, 0, flags ); 
 }
 
 /*
@@ -321,7 +326,11 @@ void Cmd_Frame( void )
 	if((xl & 0x07)||(yl & 0x07)||(w & 0x07)||(h & 0x07))
 	{
 		if( need_resample )
-			resampled = Image_Resample( &frame, resample_w, resample_h, true );
+		{
+			Image_Process( &frame, resample_w, resample_h, IMAGE_RESAMPLE ); 
+			if( resample_w == frame->width && resample_h == frame->height )
+				resampled = true;
+		}
 		MsgDev( D_NOTE, "frame dimensions not multiples of 8\n" );
 	}
 	if((w > MAX_FRAME_DIM) || (h > MAX_FRAME_DIM))

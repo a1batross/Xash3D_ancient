@@ -271,24 +271,7 @@ bool Conv_CreateShader( const char *name, rgbdata_t *pic, const char *ext, const
 
 	if( flags & SURF_LIGHT )
 	{
-		int	i, pixels;
-		float	scale;
-		vec3_t	color;
-
-		Image_ExpandRGBA( pic );
-
-		// create default and average colors
-		pixels = pic->width * pic->height;
-		VectorClear( color );
-
-		for( i = 0; i < pixels; i++ )
-		{
-			color[0] += pic->buffer[i*4+0];
-			color[1] += pic->buffer[i*4+1];
-			color[2] += pic->buffer[i*4+2];
-		}
-                    scale = ColorNormalize( color, radiocity );
-		intencity = pixels * 255.0 / scale;
+		// FIXME: calculate image light color here
 	}
 	return Conv_WriteShader( shaderpath, imagepath, pic, radiocity, intencity, flags, contents );
 }

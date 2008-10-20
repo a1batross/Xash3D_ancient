@@ -191,16 +191,11 @@ void Sys_GetStdAPI( void )
 	com.Com_Milliseconds = Sys_Milliseconds;
 
 	// built-in imagelib functions
-	com.LoadImage = FS_LoadImage;			// return 8, 24 or 32 bit buffer with image info
-	com.SaveImage = FS_SaveImage;			// save image into specified format 
-	com.FreeImage = FS_FreeImage;			// free image buffer
-
-	// image manipulation
-	com.ImageToRGB = Image_ConvertToRGB;		// expand any image to PF_RGB_24
-	com.ImageToRGBA = Image_ConvertToRGBA;		// expand any image to PF_RGBA_32
-	com.ImagePal32to24 = Image_ConvertPalTo24bit;	// convert palette from 32 to 24 bit
-	com.ResampleImage = Image_Resample;		// resample image
-	com.ProcessImage = Image_Process;		// flip, rotate e.t.c
+	com.ImageLoad = FS_LoadImage;			// load image from disk or wad-file
+	com.ImageSave = FS_SaveImage;			// save image into specified format 
+	com.ImageFree = FS_FreeImage;			// release image buffer
+	com.ImglibSetup = Image_Setup;		// set imagelib global features
+	com.ImageConvert = Image_Process;		// flip, rotate, resample etc
 
 	com.Com_RandomLong = Com_RandomLong;
 	com.Com_RandomFloat = Com_RandomFloat;
@@ -577,7 +572,7 @@ void Sys_Print( const char *pMsg )
 	Sys_PrintLog( logbuf );
 
 	// don't flood system console with memory allocation messages or another
-	if( Sys.Con_Print && Sys.printlevel < D_MEMORY )
+	if( Sys.Con_Print && Sys.printlevel < D_LOAD )
 		Sys.Con_Print( buffer );
 	Sys.printlevel = 0; // reset before next message
 }

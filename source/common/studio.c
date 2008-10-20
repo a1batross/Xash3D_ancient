@@ -6,9 +6,6 @@
 #include "mdllib.h"
 #include "matrixlib.h"
 
-#undef ALIGN
-#define ALIGN( a ) a = (byte *)((int)((byte *)a + 3) & ~ 3)
-
 bool		cdset;
 bool		ignore_errors;
 
@@ -82,8 +79,8 @@ string		sourcetexture[64];
 string		mirrored[MAXSTUDIOSRCBONES];
 
 s_mesh_t		*pmesh;
-dstudiohdr_t	*phdr;
-dstudioseqhdr_t	*pseqhdr;
+studiohdr_t	*phdr;
+studioseqhdr_t	*pseqhdr;
 s_sequencegroup_t	sequencegroup;
 s_trianglevert_t	(*triangles)[3];
 s_model_t		*model[MAXSTUDIOMODELS];
@@ -107,13 +104,13 @@ WriteBoneInfo
 void WriteBoneInfo( void )
 {
 	int i, j;
-	dstudiobone_t *pbone;
-	dstudiobonecontroller_t *pbonecontroller;
-	dstudioattachment_t *pattachment;
-	dstudiobbox_t *pbbox;
+	mstudiobone_t *pbone;
+	mstudiobonecontroller_t *pbonecontroller;
+	mstudioattachment_t *pattachment;
+	mstudiobbox_t *pbbox;
 
 	// save bone info
-	pbone = (dstudiobone_t *)pData;
+	pbone = (mstudiobone_t *)pData;
 	phdr->numbones = numbones;
 	phdr->boneindex = (pData - pStart);
 
@@ -136,7 +133,7 @@ void WriteBoneInfo( void )
 		pbone[i].scale[5] = bonetable[i].rotscale[2];
 	}
 
-	pData += numbones * sizeof( dstudiobone_t );
+	pData += numbones * sizeof( mstudiobone_t );
 	ALIGN( pData );
 
 	// map bonecontroller to bones
@@ -176,7 +173,7 @@ void WriteBoneInfo( void )
 	}
 
 	// save bonecontroller info
-	pbonecontroller = (dstudiobonecontroller_t *)pData;
+	pbonecontroller = (mstudiobonecontroller_t *)pData;
 	phdr->numbonecontrollers = numbonecontrollers;
 	phdr->bonecontrollerindex = (pData - pStart);
 
@@ -189,11 +186,11 @@ void WriteBoneInfo( void )
 		pbonecontroller[i].end = bonecontroller[i].end;
 	}
 	
-	pData += numbonecontrollers * sizeof( dstudiobonecontroller_t );
+	pData += numbonecontrollers * sizeof( mstudiobonecontroller_t );
 	ALIGN( pData );
 
 	// save attachment info
-	pattachment = (dstudioattachment_t *)pData;
+	pattachment = (mstudioattachment_t *)pData;
 	phdr->numattachments = numattachments;
 	phdr->attachmentindex = (pData - pStart);
 
@@ -203,11 +200,11 @@ void WriteBoneInfo( void )
 		VectorCopy( attachment[i].org, pattachment[i].org );
 	}
 	
-	pData += numattachments * sizeof( dstudioattachment_t );
+	pData += numattachments * sizeof( mstudioattachment_t );
 	ALIGN( pData );
 
 	// save bbox info
-	pbbox = (dstudiobbox_t *)pData;
+	pbbox = (mstudiobbox_t *)pData;
 	phdr->numhitboxes = numhitboxes;
 	phdr->hitboxindex = (pData - pStart);
 
@@ -219,7 +216,7 @@ void WriteBoneInfo( void )
 		VectorCopy( hitbox[i].bmax, pbbox[i].bbmax );
 	}
 
-	pData += numhitboxes * sizeof( dstudiobbox_t );
+	pData += numhitboxes * sizeof( mstudiobbox_t );
 	ALIGN( pData );
 }
 
@@ -232,20 +229,20 @@ void WriteSequenceInfo( void )
 {
 	int i, j;
 
-	dstudioseqgroup_t	*pseqgroup;
-	dstudioseqdesc_t	*pseqdesc;
-	dstudioseqdesc_t	*pbaseseqdesc;
-	dstudioevent_t	*pevent;
-	dstudiopivot_t	*ppivot;
+	mstudioseqgroup_t	*pseqgroup;
+	mstudioseqdesc_t	*pseqdesc;
+	mstudioseqdesc_t	*pbaseseqdesc;
+	mstudioevent_t	*pevent;
+	mstudiopivot_t	*ppivot;
 	byte		*ptransition;
 
 
 	// save sequence info
-	pseqdesc = (dstudioseqdesc_t *)pData;
+	pseqdesc = (mstudioseqdesc_t *)pData;
 	pbaseseqdesc = pseqdesc;
 	phdr->numseq = numseq;
 	phdr->seqindex = (pData - pStart);
-	pData += numseq * sizeof( dstudioseqdesc_t );
+	pData += numseq * sizeof( mstudioseqdesc_t );
 
 	for (i = 0; i < numseq; i++, pseqdesc++) 
 	{
@@ -282,10 +279,10 @@ void WriteSequenceInfo( void )
 		totalseconds += sequence[i]->numframes / sequence[i]->fps;
 
 		// save events
-		pevent = (dstudioevent_t *)pData;
+		pevent = (mstudioevent_t *)pData;
 		pseqdesc->numevents	= sequence[i]->numevents;
 		pseqdesc->eventindex = (pData - pStart);
-		pData += pseqdesc->numevents * sizeof( dstudioevent_t );
+		pData += pseqdesc->numevents * sizeof( mstudioevent_t );
 
 		for (j = 0; j < sequence[i]->numevents; j++)
 		{
@@ -297,10 +294,10 @@ void WriteSequenceInfo( void )
 		ALIGN( pData );
 
 		// save pivots
-		ppivot = (dstudiopivot_t *)pData;
+		ppivot = (mstudiopivot_t *)pData;
 		pseqdesc->numpivots	= sequence[i]->numpivots;
 		pseqdesc->pivotindex = (pData - pStart);
-		pData += pseqdesc->numpivots * sizeof( dstudiopivot_t );
+		pData += pseqdesc->numpivots * sizeof( mstudiopivot_t );
 
 		for (j = 0; j < sequence[i]->numpivots; j++)
 		{
@@ -313,10 +310,10 @@ void WriteSequenceInfo( void )
 	}
 
 	// save sequence group info
-	pseqgroup = (dstudioseqgroup_t *)pData;
+	pseqgroup = (mstudioseqgroup_t *)pData;
 	phdr->numseqgroups = 1;
 	phdr->seqgroupindex = (pData - pStart);
-	pData += sizeof( dstudioseqgroup_t );
+	pData += sizeof( mstudioseqgroup_t );
 
 	ALIGN( pData );
 
@@ -344,20 +341,20 @@ byte *WriteAnimations( byte *pData, byte *pStart, int group )
 {
 	int i, j, k, q, n;
 
-	dstudioanim_t	*panim;
-	dstudioanimvalue_t	*panimvalue;
+	mstudioanim_t	*panim;
+	mstudioanimvalue_t	*panimvalue;
 
 	for (i = 0; i < numseq; i++) 
 	{
 		if (sequence[i]->seqgroup == group)
 		{
 			// save animations
-			panim = (dstudioanim_t *)pData;
+			panim = (mstudioanim_t *)pData;
 			sequence[i]->animindex = (pData - pStart);
-			pData += sequence[i]->numblends * numbones * sizeof( dstudioanim_t );
+			pData += sequence[i]->numblends * numbones * sizeof( mstudioanim_t );
 			ALIGN( pData );
 			
-			panimvalue = (dstudioanimvalue_t *)pData;
+			panimvalue = (mstudioanimvalue_t *)pData;
 			for (q = 0; q < sequence[i]->numblends; q++)
 			{
 				// save animation value info
@@ -399,15 +396,15 @@ WriteTextures
 */	
 void WriteTextures( void )
 {
-	dstudiotexture_t	*ptexture;
+	mstudiotexture_t	*ptexture;
 	short		*pref;
 	int		i, j;
 
 	// save bone info
-	ptexture = (dstudiotexture_t *)pData;
+	ptexture = (mstudiotexture_t *)pData;
 	phdr->numtextures = numtextures;
 	phdr->textureindex = (pData - pStart);
-	pData += numtextures * sizeof( dstudiotexture_t );
+	pData += numtextures * sizeof( mstudiotexture_t );
 	ALIGN( pData );
 
 	phdr->skinindex = (pData - pStart);
@@ -450,24 +447,24 @@ WriteModel
 */
 void WriteModel( void )
 {
-	dstudiobodyparts_t	*pbodypart;
-	dstudiomodel_t	*pmodel;
+	mstudiobodyparts_t	*pbodypart;
+	mstudiomodel_t	*pmodel;
 	byte		*pbone;
 	vec3_t		*pvert;
 	vec3_t		*pnorm;
-	dstudiomesh_t	*pmesh;
+	mstudiomesh_t	*pmesh;
 	s_trianglevert_t	*psrctri;
 	int		i, j, k, cur;
 	int		total_tris = 0;
 	int		total_strips = 0;
 
-	pbodypart = (dstudiobodyparts_t *)pData;
+	pbodypart = (mstudiobodyparts_t *)pData;
 	phdr->numbodyparts = numbodyparts;
 	phdr->bodypartindex = (pData - pStart);
-	pData += numbodyparts * sizeof( dstudiobodyparts_t );
+	pData += numbodyparts * sizeof( mstudiobodyparts_t );
 
-	pmodel = (dstudiomodel_t *)pData;
-	pData += nummodels * sizeof( dstudiomodel_t );
+	pmodel = (mstudiomodel_t *)pData;
+	pData += nummodels * sizeof( mstudiomodel_t );
 
 	for (i = 0, j = 0; i < numbodyparts; i++)
 	{
@@ -546,10 +543,10 @@ void WriteModel( void )
 		cur = (int)pData;
 
 		// save mesh info
-		pmesh = (dstudiomesh_t *)pData;
+		pmesh = (mstudiomesh_t *)pData;
 		pmodel[i].nummesh = model[i]->nummesh;
 		pmodel[i].meshindex = (pData - pStart);
-		pData += pmodel[i].nummesh * sizeof( dstudiomesh_t );
+		pData += pmodel[i].nummesh * sizeof( mstudiomesh_t );
 
 		ALIGN( pData );
 
@@ -607,11 +604,11 @@ void WriteMDLFile( void )
 		com.snprintf( texname, MAX_STRING, "%sT.mdl", modeloutname );
 		Msg( "writing %s:\n", texname );
 
-		phdr = (dstudiohdr_t *)pStart;
+		phdr = (studiohdr_t *)pStart;
 		phdr->ident = IDSTUDIOHEADER;
 		phdr->version = STUDIO_VERSION;
 
-		pData = (byte *)phdr + sizeof( dstudiohdr_t );
+		pData = (byte *)phdr + sizeof( studiohdr_t );
 
 		WriteTextures( );
 
@@ -630,7 +627,7 @@ void WriteMDLFile( void )
 	Msg ("---------------------\n");
 	Msg ("writing %s:\n", modeloutname);
 
-	phdr = (dstudiohdr_t *)pStart;
+	phdr = (studiohdr_t *)pStart;
 	phdr->ident = IDSTUDIOHEADER;
 	phdr->version = STUDIO_VERSION;
 	com.strncpy( phdr->name, modeloutname, 64 );
@@ -642,7 +639,7 @@ void WriteMDLFile( void )
 	VectorCopy( cbox[1], phdr->bbmax ); 
 
 	phdr->flags = gflags;
-	pData = (byte *)phdr + sizeof( dstudiohdr_t );
+	pData = (byte *)phdr + sizeof( studiohdr_t );
 
 	WriteBoneInfo();
 	Msg("bones     %6d bytes (%d)\n", pData - pStart - total, numbones );
@@ -1151,9 +1148,9 @@ void SimplifyModel( void )
 				{
 					for (k = 0; k < 6; k++)
 					{
-						dstudioanimvalue_t	*pcount, *pvalue;
+						mstudioanimvalue_t	*pcount, *pvalue;
 						short value[MAXSTUDIOANIMATIONS];
-						dstudioanimvalue_t data[MAXSTUDIOANIMATIONS];
+						mstudioanimvalue_t data[MAXSTUDIOANIMATIONS];
 						float v;
 						
 						for (n = 0; n < sequence[i]->numframes; n++)
@@ -1233,8 +1230,8 @@ void SimplifyModel( void )
 						}
 						else
 						{
-							sequence[i]->panim[q]->anim[j][k] = Kalloc( (pvalue - data) * sizeof( dstudioanimvalue_t ));
-							memmove( sequence[i]->panim[q]->anim[j][k], data, (pvalue - data) * sizeof( dstudioanimvalue_t ));
+							sequence[i]->panim[q]->anim[j][k] = Kalloc( (pvalue - data) * sizeof( mstudioanimvalue_t ));
+							memmove( sequence[i]->panim[q]->anim[j][k], data, (pvalue - data) * sizeof( mstudioanimvalue_t ));
 						}
 					}
 				}
@@ -1252,7 +1249,7 @@ void Grab_Skin( s_texture_t *ptexture )
 
 	pic = FS_LoadImage( filename, error_bmp, error_bmp_size );
 	if( !pic ) Sys_Break( "unable to load %s\n", filename ); // no error.bmp, missing texture...
-	Image_ConvertPalette( pic );
+	Image_Process( &pic, 0, 0, IMAGE_PALTO24 );
 
 	ptexture->ppal = Kalloc( 768 );
 	Mem_Copy( ptexture->ppal, pic->palette, sizeof(rgb_t) * 256 );

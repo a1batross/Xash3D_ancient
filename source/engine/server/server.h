@@ -31,6 +31,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_ENT_CLUSTERS		16
 #define DF_NO_FRIENDLY_FIRE		0x00000001		//FIXME: move to server.dat
 
+// content masks
+#define MASK_SOLID			(CONTENTS_SOLID)
+#define MASK_PLAYERSOLID		(CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_BODY)
+#define MASK_MONSTERSOLID		(CONTENTS_SOLID|CONTENTS_MONSTERCLIP|CONTENTS_BODY)
+#define MASK_DEADSOLID		(CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_WINDOW)
+#define MASK_WATER			(CONTENTS_WATER|CONTENTS_LAVA|CONTENTS_SLIME)
+#define MASK_OPAQUE			(CONTENTS_SOLID|CONTENTS_SLIME|CONTENTS_LAVA)
+#define MASK_SHOT			(CONTENTS_SOLID|CONTENTS_BODY|CONTENTS_CORPSE)
+
 // classic quake flags
 #define SPAWNFLAG_NOT_EASY		0x00000100
 #define SPAWNFLAG_NOT_MEDIUM		0x00000200
@@ -373,7 +382,7 @@ float SV_AngleMod( float ideal, float current, float speed );
 //
 cmodel_t *SV_GetModelPtr( edict_t *ent );
 float *SV_GetModelVerts( sv_edict_t *ent, int *numvertices );
-int SV_StudioExtractBbox( dstudiohdr_t *phdr, int sequence, float *mins, float *maxs );
+int SV_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *maxs );
 bool SV_CreateMeshBuffer( edict_t *in, cmodel_t *out );
 
 //

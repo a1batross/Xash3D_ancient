@@ -13,8 +13,6 @@
 #define MAX_STRING		256
 #define MAX_SYSPATH		1024
 #define MAX_MSGLEN		32768	// max length of network message
-#define ALIGN		__declspec( align( 16 ))
-#define EQUAL_EPSILON	0.001f
 
 typedef enum{ false, true }	bool;
 typedef unsigned char 	byte;
@@ -22,12 +20,10 @@ typedef unsigned short	word;
 typedef unsigned long	dword;
 typedef unsigned int	uint;
 typedef signed __int64	int64;
-typedef uint		elem_t;
 typedef int		func_t;
 typedef int		sound_t;
 typedef int		model_t;
 typedef int		video_t;
-typedef int		shader_t;
 typedef int		string_t;
 typedef float		vec_t;
 typedef vec_t		vec2_t[2];

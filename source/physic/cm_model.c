@@ -108,9 +108,6 @@ void BSP_CreateMeshBuffer( int modelnum )
 		flags = cm.shaders[m_surface->shadernum].surfaceflags;
 		k = m_surface->firstvertex;
 
-		// current implementation not supported meshes or patches
-		if( m_surface->surfaceType != MST_PLANAR ) continue;
-
 		// sky is noclip for all physobjects
 		if(flags & SURF_SKY) continue;
 		for( j = 0; j < m_surface->numvertices; j++ ) 
@@ -201,7 +198,7 @@ void BSP_LoadShaders( lump_t *l )
 	{
 		com.strncpy( out->name, in->name, MAX_QPATH );
 		out->contentflags = LittleLong( in->contents );
-		out->surfaceflags = LittleLong( in->surfaceFlags );
+		out->surfaceflags = LittleLong( in->flags );
 	}
 }
 
@@ -268,7 +265,7 @@ void BSP_LoadBrushes( lump_t *l )
 {
 	dbrush_t	*in;
 	cbrush_t	*out;
-	int	i, j, n, count, maxplanes = 0;
+	int	i, j, count, maxplanes = 0;
 	cplanef_t	*planes = NULL;
 	
 	in = (void *)(cm.mod_base + l->fileofs);
@@ -281,10 +278,7 @@ void BSP_LoadBrushes( lump_t *l )
 	{
 		out->firstbrushside = LittleLong(in->firstside);
 		out->numsides = LittleLong(in->numsides);
-		n = LittleLong(in->shadernum);
-		if( n < 0 || n >= cm.numshaders )
-			Host_Error("BSP_LoadBrushes: invalid shader index %i (brush %i)\n", n, i );
-		out->contents = cm.shaders[n].contentflags;
+		out->contents = LittleLong(in->contents);
 		CM_BoundBrush( out );
 
 		// make a list of mplane_t structs to construct a colbrush from
@@ -307,10 +301,10 @@ void BSP_LoadBrushes( lump_t *l )
 
 /*
 =================
-BSP_LoadLeafSurfaces
+BSP_LoadLeafFaces
 =================
 */
-void BSP_LoadLeafSurfaces( lump_t *l )
+void BSP_LoadLeafFaces( lump_t *l )
 {
 	dword	*in, *out;
 	int	i, n, count;
@@ -388,8 +382,8 @@ void BSP_LoadLeafs( lump_t *l )
 			out->mins[j] = LittleLong( in->mins[j] ) - 1;
 			out->maxs[j] = LittleLong( in->maxs[j] ) + 1;
 		}
-		n = LittleLong( in->firstleafsurface );
-		c = LittleLong( in->numleafsurfaces );
+		n = LittleLong( in->firstleafface );
+		c = LittleLong( in->numleaffaces );
 		if( n < 0 || n + c > cm.numleafsurfaces )
 			Host_Error("BSP_LoadLeafs: invalid leafsurface range %i : %i (%i leafsurfaces)\n", n, n + c, cm.numleafsurfaces);
 		out->firstleafsurface = cm.leafsurfaces + n;
@@ -873,7 +867,7 @@ cmodel_t *CM_BeginRegistration( const char *name, bool clientload, uint *checksu
 	BSP_LoadIndexes(&hdr->lumps[LUMP_INDICES]);
 	BSP_LoadSurfaces(&hdr->lumps[LUMP_SURFACES]);		// used only for generate NewtonCollisionTree
 	BSP_LoadLeafBrushes(&hdr->lumps[LUMP_LEAFBRUSHES]);
-	BSP_LoadLeafSurfaces(&hdr->lumps[LUMP_LEAFSURFACES]);
+	BSP_LoadLeafFaces(&hdr->lumps[LUMP_LEAFFACES]);
 	BSP_LoadLeafs(&hdr->lumps[LUMP_LEAFS]);
 	BSP_LoadNodes(&hdr->lumps[LUMP_NODES]);
 	BSP_LoadVisibility(&hdr->lumps[LUMP_VISIBILITY]);
@@ -955,10 +949,10 @@ STUDIO SHARED CMODELS
 
 ===============================================================================
 */
-int CM_StudioExtractBbox( dstudiohdr_t *phdr, int sequence, float *mins, float *maxs )
+int CM_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *maxs )
 {
-	dstudioseqdesc_t	*pseqdesc;
-	pseqdesc = (dstudioseqdesc_t *)((byte *)phdr + phdr->seqindex);
+	mstudioseqdesc_t	*pseqdesc;
+	pseqdesc = (mstudioseqdesc_t *)((byte *)phdr + phdr->seqindex);
 
 	if(sequence == -1) return 0;
 	VectorCopy( pseqdesc[sequence].bbmin, mins );
@@ -971,7 +965,7 @@ void CM_GetBodyCount( void )
 {
 	if(studio.hdr)
 	{
-		studio.bodypart = (dstudiobodyparts_t *)((byte *)studio.hdr + studio.hdr->bodypartindex);
+		studio.bodypart = (mstudiobodyparts_t *)((byte *)studio.hdr + studio.hdr->bodypartindex);
 		studio.bodycount = studio.bodypart->nummodels;
 	}
 	else studio.bodycount = 0; // just reset it
@@ -982,7 +976,7 @@ void CM_GetBodyCount( void )
 CM_StudioCalcBoneQuaterion
 ====================
 */
-void CM_StudioCalcBoneQuaterion( dstudiobone_t *pbone, float *q )
+void CM_StudioCalcBoneQuaterion( mstudiobone_t *pbone, float *q )
 {
 	int	i;
 	vec3_t	angle1;
@@ -996,7 +990,7 @@ void CM_StudioCalcBoneQuaterion( dstudiobone_t *pbone, float *q )
 CM_StudioCalcBonePosition
 ====================
 */
-void CM_StudioCalcBonePosition( dstudiobone_t *pbone, float *pos )
+void CM_StudioCalcBonePosition( mstudiobone_t *pbone, float *pos )
 {
 	int	i;
 	for(i = 0; i < 3; i++) pos[i] = pbone->value[i];
@@ -1028,7 +1022,7 @@ void CM_StudioSetUpTransform ( void )
 
 void CM_StudioCalcRotations ( float pos[][3], vec4_t *q )
 {
-	dstudiobone_t	*pbone = (dstudiobone_t *)((byte *)studio.hdr + studio.hdr->boneindex);
+	mstudiobone_t	*pbone = (mstudiobone_t *)((byte *)studio.hdr + studio.hdr->boneindex);
 	int		i;
 
 	for (i = 0; i < studio.hdr->numbones; i++, pbone++ ) 
@@ -1046,13 +1040,13 @@ CM_StudioSetupBones
 void CM_StudioSetupBones( void )
 {
 	int		i;
-	dstudiobone_t	*pbones;
+	mstudiobone_t	*pbones;
 	static float	pos[MAXSTUDIOBONES][3];
 	static vec4_t	q[MAXSTUDIOBONES];
 	matrix4x4		bonematrix;
 
 	CM_StudioCalcRotations( pos, q );
-	pbones = (dstudiobone_t *)((byte *)studio.hdr + studio.hdr->boneindex);
+	pbones = (mstudiobone_t *)((byte *)studio.hdr + studio.hdr->boneindex);
 
 	for (i = 0; i < studio.hdr->numbones; i++) 
 	{
@@ -1067,16 +1061,16 @@ void CM_StudioSetupModel ( int bodypart, int body )
 	int index;
 
 	if(bodypart > studio.hdr->numbodyparts) bodypart = 0;
-	studio.bodypart = (dstudiobodyparts_t *)((byte *)studio.hdr + studio.hdr->bodypartindex) + bodypart;
+	studio.bodypart = (mstudiobodyparts_t *)((byte *)studio.hdr + studio.hdr->bodypartindex) + bodypart;
 
 	index = body / studio.bodypart->base;
 	index = index % studio.bodypart->nummodels;
-	studio.submodel = (dstudiomodel_t *)((byte *)studio.hdr + studio.bodypart->modelindex) + index;
+	studio.submodel = (mstudiomodel_t *)((byte *)studio.hdr + studio.bodypart->modelindex) + index;
 }
 
 void CM_StudioAddMesh( int mesh )
 {
-	dstudiomesh_t	*pmesh = (dstudiomesh_t *)((byte *)studio.hdr + studio.submodel->meshindex) + mesh;
+	mstudiomesh_t	*pmesh = (mstudiomesh_t *)((byte *)studio.hdr + studio.submodel->meshindex) + mesh;
 	short		*ptricmds = (short *)((byte *)studio.hdr + pmesh->triindex);
 	int		i;
 
@@ -1130,7 +1124,7 @@ void CM_CreateMeshBuffer( byte *buffer )
 	int	i, j;
 
 	// setup global pointers
-	studio.hdr = (dstudiohdr_t *)buffer;
+	studio.hdr = (studiohdr_t *)buffer;
 	studio.m_pVerts = &studio.vertices[0];
 
 	CM_GetBodyCount();
@@ -1163,10 +1157,10 @@ void CM_CreateMeshBuffer( byte *buffer )
 
 bool CM_StudioModel( byte *buffer, uint filesize )
 {
-	dstudiohdr_t	*phdr;
-	dstudioseqdesc_t	*pseqdesc;
+	studiohdr_t	*phdr;
+	mstudioseqdesc_t	*pseqdesc;
 
-	phdr = (dstudiohdr_t *)buffer;
+	phdr = (studiohdr_t *)buffer;
 	if( phdr->version != STUDIO_VERSION )
 	{
 		MsgDev( D_ERROR, "CM_StudioModel: %s has wrong version number (%i should be %i)", phdr->name, phdr->version, STUDIO_VERSION);
@@ -1179,7 +1173,7 @@ bool CM_StudioModel( byte *buffer, uint filesize )
 	Mem_Copy( loadmodel->extradata, buffer, filesize );
 
 	// calcualte bounding box
-	pseqdesc = (dstudioseqdesc_t *)((byte *)phdr + phdr->seqindex);
+	pseqdesc = (mstudioseqdesc_t *)((byte *)phdr + phdr->seqindex);
 	VectorCopy( pseqdesc[0].bbmin, loadmodel->mins );
 	VectorCopy( pseqdesc[0].bbmax, loadmodel->maxs );
 	loadmodel->numframes = pseqdesc[0].numframes;	// FIXME: get numframes from current sequence (not first)

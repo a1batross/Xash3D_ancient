@@ -35,7 +35,7 @@ static net_field_t ent_fields[] =
 { ES_FIELD(model.framerate),		NET_FLOAT, false	},	// custom framerate
 { ES_FIELD(model.sequence),		NET_WORD,	 false	},	// 1024 sequences
 { ES_FIELD(model.gaitsequence),	NET_WORD,	 false	},	// 1024 gaitsequences
-{ ES_FIELD(model.skin),		NET_BYTE,	 false	},	// 255 skins
+{ ES_FIELD(model.skin),		NET_CHAR,	 false	},	// negative skins are contents
 { ES_FIELD(model.body),		NET_BYTE,	 false	},	// 255 bodies
 { ES_FIELD(pmodel.index),		NET_WORD,  false	},	// 4096 models 
 { ES_FIELD(pmodel.colormap),		NET_LONG,  false	},	// 4096 models 
@@ -233,7 +233,7 @@ MSG_WriteBits
 write # of bytes
 =======================
 */
-void _MSG_WriteBits( sizebuf_t *msg, int value, int net_type, const char *filename, const int fileline )
+void _MSG_WriteBits( sizebuf_t *msg, int value, const char *name, int net_type, const char *filename, const int fileline )
 {
 	union { long l; float f; } dat;
 	byte *buf;
@@ -242,7 +242,12 @@ void _MSG_WriteBits( sizebuf_t *msg, int value, int net_type, const char *filena
 	{
 		// check range first
 		if( value < NWDesc[net_type].min_range || value > NWDesc[net_type].max_range )
-			MsgDev( D_WARN, "MSG_Write%s: range error %i should be in range(%i %i)(called at %s:%i)\n", NWDesc[net_type].name, value, NWDesc[net_type].min_range, NWDesc[net_type].max_range, filename, fileline );
+		{
+			MsgDev( D_INFO, "MSG_Write%s: ", NWDesc[net_type].name );
+			if( name ) MsgDev( D_INFO, "variable '%s' ", name );
+			MsgDev( D_INFO, "range error %i should be in range (%i", value, NWDesc[net_type].min_range );
+			MsgDev( D_INFO, " %i)(called at %s:%i)\n", NWDesc[net_type].max_range, filename, fileline );
+          	}
           }
 	// this isn't an exact overflow check, but close enough
 	if( msg->maxsize - msg->cursize < 4 )
@@ -373,7 +378,7 @@ void _MSG_WriteFloat( sizebuf_t *sb, float f, const char *filename, int fileline
 {
 	union { float f; int l; } dat;
 	dat.f = f;
-	MSG_WriteBits( sb, dat.l, NET_FLOAT );
+	_MSG_WriteBits( sb, dat.l, NWDesc[NET_FLOAT].name, NET_FLOAT, filename, fileline );
 }
 
 void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int fileline )
@@ -405,9 +410,9 @@ void _MSG_WriteString( sizebuf_t *sb, const char *s, const char *filename, int f
 
 void _MSG_WritePos( sizebuf_t *sb, vec3_t pos, const char *filename, int fileline )
 {
-	_MSG_WriteBits( sb, pos[0], NET_FLOAT, filename, fileline );
-	_MSG_WriteBits( sb, pos[1], NET_FLOAT, filename, fileline );
-	_MSG_WriteBits( sb, pos[2], NET_FLOAT, filename, fileline );
+	_MSG_WriteBits( sb, pos[0], NWDesc[NET_FLOAT].name, NET_FLOAT, filename, fileline );
+	_MSG_WriteBits( sb, pos[1], NWDesc[NET_FLOAT].name, NET_FLOAT, filename, fileline );
+	_MSG_WriteBits( sb, pos[2], NWDesc[NET_FLOAT].name, NET_FLOAT, filename, fileline );
 }
 
 /*
@@ -524,7 +529,7 @@ void _MSG_WriteDeltaUsercmd( sizebuf_t *msg, usercmd_t *from, usercmd_t *to, con
 	for( i = 0, field = cmd_fields; i < num_fields; i++, field++ )
 	{
 		toF = (int *)((byte *)to + field->offset );
-		if( flags & 1<<i ) MSG_WriteBits( msg, *toF, field->bits );
+		if( flags & 1<<i ) MSG_WriteBits( msg, *toF, field->name, field->bits );
 	}
 }
 
@@ -589,8 +594,8 @@ void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t 
 	{
 		if( from == NULL ) return;
 		// a NULL to is a delta remove message
-		MSG_WriteBits( msg, from->number, NET_WORD );
-		MSG_WriteBits( msg, -99, NET_LONG );
+		MSG_WriteBits( msg, from->number, NWDesc[NET_WORD].name, NET_WORD );
+		MSG_WriteBits( msg, -99, NWDesc[NET_LONG].name, NET_LONG );
 		return;
 	}
 
@@ -601,7 +606,7 @@ void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t 
 	if( to->number < 0 || to->number >= host.max_edicts )
 		Host_Error( "MSG_WriteDeltaEntity: Bad entity number: %i (called at %s:%i)\n", to->number, filename, fileline );
 
-	MSG_WriteBits( msg, to->number, NET_WORD );
+	MSG_WriteBits( msg, to->number, NWDesc[NET_WORD].name, NET_WORD );
 	for( i = j = 0, field = field2 = ent_fields; field->name; i++, j++, field++ )
 	{
 		fromF = (int *)((byte *)from + field->offset );
@@ -614,7 +619,7 @@ void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t 
 			{
 				if( k > 31 ) break; // return to main cycle
 				toF = (int *)((byte *)to + field2->offset );
-				if( flags & 1<<k ) MSG_WriteBits( msg, *toF, field2->bits );
+				if( flags & 1<<k ) MSG_WriteBits( msg, *toF, field2->name, field2->bits );
 			}
 			j = flags = 0;
 		}
@@ -625,7 +630,7 @@ void _MSG_WriteDeltaEntity( entity_state_t *from, entity_state_t *to, sizebuf_t 
 	// plus sizeof(short) (head number). If message equal null_message_size
 	// we will be ignore it 
 	if(!force && (( msg->cursize - buff_size ) == null_msg_size ))
-		msg->cursize = buff_size; // kill empty message
+		msg->cursize = buff_size; // kill message
 }
 
 /*
@@ -759,7 +764,7 @@ void MSG_WriteDeltaPlayerstate( entity_state_t *from, entity_state_t *to, sizebu
 			{
 				if( k > 31 ) break; // return to main cycle
 				toF = (int *)((byte *)ps + field2->offset );
-				if( flags & 1<<k ) MSG_WriteBits( msg, *toF, field2->bits );
+				if( flags & 1<<k ) MSG_WriteBits( msg, *toF, field2->name, field2->bits );
 			}
 			j = flags = 0;
 		}

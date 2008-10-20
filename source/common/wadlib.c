@@ -159,8 +159,7 @@ void Cmd_GrabMip( void )
 {
 	int	i, j, x, y, xl, yl, xh, yh, w, h;
 	byte	*plump, *screen_p, *source, testpixel;
-	bool	resampled = false;
-	int	miplevel,	mipstep;
+	int	miplevel,	mipstep, flags = 0;
 	int	xx, yy, count;
 	int	linedelta;
 	size_t	plump_size;
@@ -178,8 +177,9 @@ void Cmd_GrabMip( void )
 		MsgDev( D_ERROR, "Cmd_LoadMip: unable to loading %s\n", lumpname );
 		return;
 	}
+          
+	flags |= IMAGE_PALTO24;
 
-	Image_ConvertPalette( image );	// turn into 24-bit mode
 	if(Com_TryToken())
 	{
 		xl = com.atoi( com_token );
@@ -195,9 +195,10 @@ void Cmd_GrabMip( void )
 	}
 
 	// just resample image if need
-	if(( w & 15) || (h & 15)) resampled = Image_Resample( &image, 0, 0, true );
+	if(( w & 15) || (h & 15)) flags |= IMAGE_ROUND;
+	Image_Process( &image, 0, 0, flags );
 
-	if( resampled )
+	if( flags & IMAGE_ROUND )
 	{
 		// updates image size
 		w = image->width;
@@ -244,7 +245,7 @@ void Cmd_GrabMip( void )
 	}
 
 	maxdistortion = 0;
-	if(!(image->flags & IMAGE_HAS_ALPHA ))
+	if(!(image->flags & IMAGE_HAVE_ALPHA ))
 	{
 		// figure out what palette entries are actually used
 		colors_used = 0;
@@ -293,7 +294,7 @@ void Cmd_GrabMip( void )
 						
 						// if 255 is not transparent, or this isn't
 						// a transparent pixel add it in to the image filter
-						if(!(image->flags & IMAGE_HAS_ALPHA ) || testpixel != 255)
+						if(!(image->flags & IMAGE_HAVE_ALPHA ) || testpixel != 255)
 						{
 							pixdata[count] = testpixel;
 							count++;
@@ -345,7 +346,7 @@ void Cmd_GrabPic( void )
 		return;
 	}
 
-	Image_ConvertPalette( image );	// turn into 24-bit mode
+	Image_Process( &image, 0, 0, IMAGE_PALTO24 );	// turn into 24-bit mode
 
 	if(Com_TryToken())
 	{

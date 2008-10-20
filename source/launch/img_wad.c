@@ -7,8 +7,6 @@
 #include "byteorder.h"
 #include "filesystem.h"
 
-#define TRANS_THRESHOLD		10
-
 /*
 ============
 Image_LoadPAL
@@ -16,22 +14,123 @@ Image_LoadPAL
 */
 bool Image_LoadPAL( const char *name, const byte *buffer, size_t filesize )
 {
+	int	rendermode = LUMP_NORMAL; 
+
 	if( filesize != 768 )
 	{
 		MsgDev( D_ERROR, "Image_LoadPAL: (%s) have invalid size (%d should be %d)\n", name, filesize, 768 );
 		return false;
 	}
 
-	Image_GetPaletteLMP( buffer, LUMP_NORMAL );
+	if( name[0] == '#' )
+	{
+		// using palette name as rendermode
+		if( com.stristr( name, "normal" ))
+			rendermode = LUMP_NORMAL;
+		else if( com.stristr( name, "transparent" ))
+			rendermode = LUMP_TRANSPARENT;
+		else if( com.stristr( name, "decal" ))
+			rendermode = LUMP_DECAL;
+		else if( com.stristr( name, "qfont" ))
+			rendermode = LUMP_QFONT;
+	}
+
+	// NOTE: image.d_currentpal not cleared with Image_Reset()
+	// and stay valid any time before new call of Image_SetPalette
+	Image_GetPaletteLMP( buffer, rendermode );
 	Image_CopyPalette32bit();
 
-	image_rgba = NULL; // only palette, not real image
-	image_num_mips = image_num_layers = 0;
-	image_flags = IMAGE_ONLY_PALETTE;
-	image_width = image_height = 0;
-	image_size = 1024;
+	image.rgba = NULL;	// only palette, not real image
+	image.size = 1024;	// expanded palette
+	image.num_mips = image.num_layers = 0;
+	image.width = image.height = 0;
 	
 	return true;
+}
+
+/*
+============
+Image_LoadMDL
+============
+*/
+bool Image_LoadMDL( const char *name, const byte *buffer, size_t filesize )
+{
+	byte		*fin;
+	size_t		pixels;
+	mstudiotexture_t	*pin;
+	int		flags;
+
+	// check palette first
+	if( image.hint != IL_HINT_HL ) return false; // unknown mode rejected
+
+	if( !image.d_currentpal )
+	{
+		MsgDev( D_ERROR, "Image_LoadMDL: (%s) palette not installed\n", name );
+		return false;		
+	}
+	
+	pin = (mstudiotexture_t *)buffer;
+	flags = LittleLong( pin->flags );
+
+	// Valve never used endian functions for studiomodels...
+	image.width = LittleLong( pin->width );
+	image.height = LittleLong( pin->height );
+	pixels = image.width * image.height;
+
+	if( filesize < pixels + sizeof( mstudiotexture_t ) + 768 )		
+	{
+		MsgDev( D_ERROR, "Image_LoadMDL: file (%s) have invalid size\n", pin->name );
+		return false;
+	}
+
+	if( flags & STUDIO_NF_TRANSPARENT )
+	{
+		if( image.d_rendermode != LUMP_TRANSPARENT )
+			MsgDev( D_WARN, "Image_LoadMDL: (%s) using normal palette for alpha-skin\n", pin->name );
+		image.flags |= IMAGE_HAVE_ALPHA;
+	}
+	fin = pin->ptrs;	// setup buffer
+
+	if(!Image_LumpValidSize( name )) return false;
+	image.num_layers = 1;
+	image.type = PF_INDEXED_32;	// 32-bit palete
+
+	return FS_AddMipmapToPack( fin, image.width, image.height );
+}
+
+/*
+============
+Image_LoadSPR
+============
+*/
+bool Image_LoadSPR( const char *name, const byte *buffer, size_t filesize )
+{
+	dframe_t	*pin;	// indetical for q1\hl sprites
+	
+	if( image.hint == IL_HINT_HL )
+	{
+		if( !image.d_currentpal )
+		{
+			MsgDev( D_ERROR, "Image_LoadSPR: (%s) palette not installed\n", name );
+			return false;		
+		}
+	}
+	else if( image.hint == IL_HINT_Q1 )
+	{
+		Image_GetPaletteQ1();
+	}
+	else return false; // unknown mode rejected
+
+	pin = (dframe_t *)buffer;
+	image.width = LittleLong( pin->width );
+	image.height = LittleLong( pin->height );
+
+	// sorry, can't validate palette rendermode
+	if(!Image_LumpValidSize( name )) return false;
+	image.num_layers = 1;
+	image.type = PF_INDEXED_32;	// 32-bit palete
+
+	return FS_AddMipmapToPack( (byte *)(pin + 1), image.width, image.height );
 }
 
 /*
@@ -55,12 +154,12 @@ bool Image_LoadWAL( const char *name, const byte *buffer, size_t filesize )
 	flags = LittleLong(wal.flags);
 	value = LittleLong(wal.value);
 	contents = LittleLong(wal.contents);
-	image_width = LittleLong(wal.width);
-	image_height = LittleLong(wal.height);
+	image.width = LittleLong(wal.width);
+	image.height = LittleLong(wal.height);
 	for(i = 0; i < 4; i++) ofs[i] = LittleLong(wal.offsets[i]);
 	if(!Image_LumpValidSize( name )) return false;
 
-	pixels = image_width * image_height;
+	pixels = image.width * image.height;
 	mipsize = (int)sizeof(wal) + ofs[0] + pixels;
 	if( pixels > 256 && filesize < mipsize )
 	{
@@ -69,11 +168,11 @@ bool Image_LoadWAL( const char *name, const byte *buffer, size_t filesize )
 		return false;
 	}
 
-	image_num_layers = 1;
-	image_type = PF_INDEXED_32;	// scaled up to 32-bit
+	image.num_layers = 1;
+	image.type = PF_INDEXED_32;	// 32-bit palete
 
 	Image_GetPaletteQ2(); // hardcoded
-	return FS_AddMipmapToPack( buffer + ofs[0], image_width, image_height, false );
+	return FS_AddMipmapToPack( buffer + ofs[0], image.width, image.height );
 }
 
 /*
@@ -85,9 +184,8 @@ bool Image_LoadFLT( const char *name, const byte *buffer, size_t filesize )
 {
 	flat_t	flat;
 	vfile_t	*f;
-	byte	temp[4];
 	bool	result = false;
-	int	trans_threshold = 0;
+	int	trans_pixels = 0;
 	word	column_loop, row_loop;
 	int	i, column_offset, pointer_position, first_pos;
 	byte	*Data, post, topdelta, length;
@@ -107,16 +205,16 @@ bool Image_LoadFLT( const char *name, const byte *buffer, size_t filesize )
 	first_pos = VFS_Tell( f );
 	VFS_Read(f, &flat, sizeof(flat));
 
-	image_width  = LittleShort( flat.width );
-	image_height = LittleShort( flat.height );
+	image.width  = LittleShort( flat.width );
+	image.height = LittleShort( flat.height );
 	flat.desc[0] = LittleShort( flat.desc[0] );
 	flat.desc[1] = LittleShort( flat.desc[1] );
 	if(!Image_LumpValidSize( name )) return false;
-	Data = (byte *)Mem_Alloc( Sys.imagepool, image_width * image_height );
-	memset( Data, 247, image_width * image_height ); // set default transparency
-	image_num_layers = 1;
+	Data = (byte *)Mem_Alloc( Sys.imagepool, image.width * image.height );
+	memset( Data, 247, image.width * image.height ); // set default transparency
+	image.num_layers = 1;
 
-	for( column_loop = 0; column_loop < image_width; column_loop++ )
+	for( column_loop = 0; column_loop < image.width; column_loop++ )
 	{
 		VFS_Read(f, &column_offset, sizeof(int));
 		pointer_position = VFS_Tell( f );
@@ -129,45 +227,47 @@ bool Image_LoadFLT( const char *name, const byte *buffer, size_t filesize )
 			if(VFS_Read(f, &length, 1) != 1) goto img_trunc;
 			if(VFS_Read(f, &post, 1) != 1) goto img_trunc;
 
-			for (row_loop = 0; row_loop < length; row_loop++)
+			for( row_loop = 0; row_loop < length; row_loop++ )
 			{
 				if(VFS_Read(f, &post, 1) != 1) goto img_trunc;
-				if(row_loop + topdelta < image_height)
-					Data[(row_loop + topdelta) * image_width + column_loop] = post;
+				if(row_loop + topdelta < image.height)
+					Data[(row_loop + topdelta) * image.width + column_loop] = post;
 			}
 			VFS_Read( f, &post, 1 );
 		}
-		VFS_Seek(f, pointer_position, SEEK_SET );
+		VFS_Seek( f, pointer_position, SEEK_SET );
 	}
 	VFS_Close( f );
 
 	// swap colors in image, and check for transparency
-	for( i = 0; i < image_width * image_height; i++ )
+	for( i = 0; i < image.width * image.height; i++ )
 	{
 		if( Data[i] == 247 )
 		{
 			Data[i] = 255;
-			trans_threshold++;
+			trans_pixels++;
 		}
 		else if( Data[i] == 255 ) Data[i] = 247;
 	}
 
 	// yes it's really transparent texture
 	// otherwise transparency it's product of lazy designers (or painters ?)
-	if( trans_threshold > TRANS_THRESHOLD ) image_flags |= IMAGE_HAS_ALPHA;
+	if( trans_pixels > TRANS_THRESHOLD ) image.flags |= IMAGE_HAVE_ALPHA;
 
-	image_type = PF_INDEXED_32; // scaled up to 32-bit
+	image.type = PF_INDEXED_32;	// 32-bit palete
 	Image_GetPaletteD1();
 
 	// move 247 color to 255 position
-	if( d_currentpal )
+	if( image.d_currentpal )
 	{
-		Mem_Copy( temp, &d_currentpal[247], 4 );
-		Mem_Copy( &d_currentpal[247], &d_currentpal[255], 4 );		
-		Mem_Copy( &d_currentpal[247], temp, 4 );
+		byte	temp[4];
+	
+		Mem_Copy( temp, &image.d_currentpal[247], 4 );
+		Mem_Copy( &image.d_currentpal[247], &image.d_currentpal[255], 4 );		
+		Mem_Copy( &image.d_currentpal[247], temp, 4 );
 	}
 
-	result = FS_AddMipmapToPack( Data, image_width, image_height, false );
+	result = FS_AddMipmapToPack( Data, image.width, image.height );
 	if( Data ) Mem_Free( Data );
 	return result;
 img_trunc:
@@ -199,10 +299,10 @@ bool Image_LoadLMP( const char *name, const byte *buffer, size_t filesize )
 	}
 	fin = (byte *)buffer;
 	Mem_Copy(&lmp, fin, sizeof(lmp));
-	image_width = LittleLong(lmp.width);
-	image_height = LittleLong(lmp.height);
+	image.width = LittleLong(lmp.width);
+	image.height = LittleLong(lmp.height);
 	fin += sizeof(lmp);
-	pixels = image_width * image_height;
+	pixels = image.width * image.height;
 
 	if( filesize < (int)sizeof(lmp) + pixels )
 	{
@@ -210,25 +310,27 @@ bool Image_LoadLMP( const char *name, const byte *buffer, size_t filesize )
 		return false;
 	}
 
-	if(!Image_LumpValidSize( name )) return false;         
-	image_num_mips = 1;
-	image_num_layers = 1;
+	if(!Image_ValidSize( name )) return false;         
+	image.num_mips = 1;
+	image.num_layers = 1;
 
 	// half-life 1.0.0.1 lmp version with palette
-	if( filesize > (int)sizeof(lmp) + pixels )
+	if( image.hint != IL_HINT_Q1 && filesize > (int)sizeof(lmp) + pixels )
 	{
-		int numcolors;
+		int	numcolors;
+
 		pal = fin + pixels;
 		numcolors = BuffLittleShort( pal );
 		if( numcolors != 256 ) pal = NULL; // corrupted lump ?
-		else pal += sizeof(short);
+		else pal += sizeof( short );
 	}
-	else pal = NULL;
-	if( fin[0] == 255 ) image_flags |= IMAGE_HAS_ALPHA;
+	else if( image.hint != IL_HINT_HL ) pal = NULL;
+	else return false; // unknown mode rejected
+	if( fin[0] == 255 ) image.flags |= IMAGE_HAVE_ALPHA;
 
 	Image_GetPaletteLMP( pal, LUMP_NORMAL );
-	image_type = PF_INDEXED_32; // scaled up to 32 bit
-	return FS_AddMipmapToPack( fin, image_width, image_height, false );
+	image.type = PF_INDEXED_32;	// 32-bit palete
+	return FS_AddMipmapToPack( fin, image.width, image.height );
 }
 
 /*
@@ -253,27 +355,27 @@ bool Image_LoadMIP( const char *name, const byte *buffer, size_t filesize )
 		return false;
 	}
 
-	Mem_Copy(&mip, buffer, sizeof(mip));
-	image_width = LittleLong(mip.width);
-	image_height = LittleLong(mip.height);
+	Mem_Copy( &mip, buffer, sizeof(mip));
+	image.width = LittleLong(mip.width);
+	image.height = LittleLong(mip.height);
 	for(i = 0; i < 4; i++) ofs[i] = LittleLong(mip.offsets[i]);
-	pixels = image_width * image_height;
-	image_num_layers = 1;
+	pixels = image.width * image.height;
+	image.num_layers = 1;
 
-	if(!com_stricmp( name, "conchars" ))
+	if( image.hint != IL_HINT_HL && !com_stricmp( name, "conchars" ))
 	{
 		// greatest hack from id software
-		image_width = image_height = 128;
-		image_flags |= IMAGE_HAS_ALPHA;
+		image.width = image.height = 128;
+		image.flags |= IMAGE_HAVE_ALPHA;
 		rendermode = LUMP_QFONT;
 		pal = NULL; // clear palette
 		fin = (byte *)buffer;
 	}
-	else if(filesize >= (int)sizeof(mip) + ((pixels * 85)>>6) + sizeof(short) + 768)
+	else if(image.hint != IL_HINT_Q1 && filesize >= (int)sizeof(mip) + ((pixels * 85)>>6) + sizeof(short) + 768)
 	{
 		// half-life 1.0.0.1 mip version with palette
 		fin = (byte *)buffer + mip.offsets[0];
-		pal = (byte *)buffer + mip.offsets[0] + (((image_width * image_height) * 85)>>6);
+		pal = (byte *)buffer + mip.offsets[0] + (((image.width * image.height) * 85)>>6);
 		numcolors = BuffLittleShort( pal );
 		if(numcolors != 256) pal = NULL; // corrupted mip ?
 		else  pal += sizeof(short); // skip colorsize 
@@ -286,13 +388,13 @@ bool Image_LoadMIP( const char *name, const byte *buffer, size_t filesize )
 			else
 			{
 				rendermode = LUMP_DECAL;
-				image_flags |= IMAGE_COLORINDEX;
+				image.flags |= IMAGE_COLORINDEX;
 			}
-			image_flags |= IMAGE_HAS_ALPHA;
+			image.flags |= IMAGE_HAVE_ALPHA;
 		}
 		else rendermode = LUMP_NORMAL;
 	}
-	else if(filesize >= (int)sizeof(mip) + ((pixels * 85)>>6))
+	else if( image.hint != IL_HINT_HL && filesize >= (int)sizeof(mip) + ((pixels * 85)>>6))
 	{
 		// quake1 1.01 mip version without palette
 		fin = (byte *)buffer + mip.offsets[0];
@@ -301,12 +403,13 @@ bool Image_LoadMIP( const char *name, const byte *buffer, size_t filesize )
 	}
 	else
 	{
-		MsgDev( D_ERROR, "Image_LoadMIP: lump (%s) is corrupted\n", name );
-		return false;
+		if( image.hint == IL_HINT_NO )
+			MsgDev( D_ERROR, "Image_LoadMIP: lump (%s) is corrupted\n", name );
+		return false; // unknown or unsupported mode rejected
 	} 
 
-	if(!Image_LumpValidSize( name )) return false;
+	if(!Image_ValidSize( name )) return false;
 	Image_GetPaletteLMP( pal, rendermode );
-	image_type = PF_INDEXED_32; // scaled up to 32 bit
-	return FS_AddMipmapToPack( fin, image_width, image_height, false );
+	image.type = PF_INDEXED_32;	// 32-bit palete
+	return FS_AddMipmapToPack( fin, image.width, image.height );
 }

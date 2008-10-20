@@ -223,8 +223,8 @@ outta:
 
 void _mem_set( void *dest, int set, size_t size, const char *filename, int fileline )
 {
-	if( dest == NULL ) Sys_Error("Mem_Set: dest == NULL (called at %s:%i)\n",  filename, fileline );
-	memset( dest, set, size );
+	// FIXME: implement
+	Sys_Error("_mem_set: not implemented (called at %s:%i)\n",  filename, fileline );
 }
 
 void *_mem_alloc( byte *poolptr, size_t size, const char *filename, int fileline )

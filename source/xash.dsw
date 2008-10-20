@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "baserc"=.\baserc\baserc.dsp - Package Owner=<4>
+Project: "baserc"=".\baserc\baserc.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -15,7 +15,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "common"=.\common\common.dsp - Package Owner=<4>
+Project: "common"=".\common\common.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -27,7 +27,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "engine"=.\engine\engine.dsp - Package Owner=<4>
+Project: "engine"=".\engine\engine.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -39,7 +39,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "launch"=.\launch\launch.dsp - Package Owner=<4>
+Project: "launch"=".\launch\launch.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -51,7 +51,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "physic"=.\physic\physic.dsp - Package Owner=<4>
+Project: "physic"=".\physic\physic.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -63,7 +63,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "render"=.\render\render.dsp - Package Owner=<4>
+Project: "render"=".\render\render.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -75,7 +75,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "ripper"=.\ripper\ripper.dsp - Package Owner=<4>
+Project: "ripper"=".\ripper\ripper.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -87,7 +87,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "viewer"=.\viewer\viewer.dsp - Package Owner=<4>
+Project: "viewer"=".\viewer\viewer.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -99,7 +99,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "vprogs"=.\vprogs\vprogs.dsp - Package Owner=<4>
+Project: "vprogs"=".\vprogs\vprogs.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -111,7 +111,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "vsound"=.\vsound\vsound.dsp - Package Owner=<4>
+Project: "vsound"=".\vsound\vsound.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{

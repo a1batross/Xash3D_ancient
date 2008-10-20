@@ -145,8 +145,8 @@ bool Image_LoadPNG( const char *name, const byte *buffer, size_t filesize )
 	png_set_read_fn( fin, png.ioBuffer, (void *)png_fread );
 	png_read_info( fin, pnginfo );
 	png_get_IHDR( fin, pnginfo, &png.width, &png.height,&png.BitDepth, &png.color, &png.il, &png.cmp, &png.flt );
-	image_width = png.width;
-	image_height = png.height;
+	image.width = png.width;
+	image.height = png.height;
 
 	if(!Image_ValidSize( name ))
 	{
@@ -167,7 +167,7 @@ bool Image_LoadPNG( const char *name, const byte *buffer, size_t filesize )
 		png_set_tRNS_to_alpha( fin ); 
           
           if( png.color & PNG_COLOR_MASK_ALPHA )
-		image_flags |= IMAGE_HAS_ALPHA;
+		image.flags |= IMAGE_HAVE_ALPHA;
 	
 	if( png.BitDepth >= 8 && png.color == PNG_COLOR_TYPE_RGB )	
 		png_set_filler( fin, 255, 1 );
@@ -201,13 +201,13 @@ bool Image_LoadPNG( const char *name, const byte *buffer, size_t filesize )
 	png_read_end( fin, pnginfo );
 	png_destroy_read_struct( &fin, &pnginfo, 0 );
 
-	image_size = png.height * png.width * 4;
-	image_type = PF_RGBA_32;	
-	image_width = png.width;
-	image_height = png.height;
-	image_rgba = png.Data;
-	image_num_layers = 1;
-	image_num_mips = 1;
+	image.size = png.height * png.width * 4;
+	image.type = PF_RGBA_32;	
+	image.width = png.width;
+	image.height = png.height;
+	image.rgba = png.Data;
+	image.num_layers = 1;
+	image.num_mips = 1;
 
 	return true;
 }
@@ -224,7 +224,8 @@ bool Image_SavePNG( const char *name, rgbdata_t *pix, int saveformat )
 	byte	**row;
 	int	i, pixel_size;
 	
-	if(FS_FileExists( name )) return false; // already existed
+	if(FS_FileExists( name ) && !(image.cmd_flags & IL_ALLOW_OVERWRITE ))
+		return false; // already existed
 
 	// get image description
 	switch( pix->type )

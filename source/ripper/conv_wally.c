@@ -44,7 +44,7 @@ bool ConvWAL( const char *name, char *buffer, int filesize )
 	if( pic )
 	{
 		FS_StripExtension((char *)name );
-		FS_SaveImage( va("%s/%s.bmp", gs_gamedir, name ), pic ); // save converted image
+		FS_SaveImage( va("%s/%s.bmp", gs_gamedir, name ), PF_INDEXED_32, pic ); // save converted image
 		FS_FileBase( name, shadername );
 		Conv_CreateShader( name, pic, "wal", wal->animname, flags, contents );
 		FS_FreeImage( pic ); // release buffer
