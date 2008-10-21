@@ -6,6 +6,8 @@
 #include "common.h"
 #include "client.h"
 
+#define SCRSHOT_TYPE	"tga"
+
 /*
 ================
 SCR_Loading_f
@@ -89,7 +91,7 @@ void CL_ScreenshotGetName( int lastnum, char *filename )
 	if(lastnum < 0 || lastnum > 9999)
 	{
 		// bound
-		com.sprintf( filename, "scrshots/%s/shot9999.tga", cl.configstrings[CS_NAME] );
+		com.sprintf( filename, "scrshots/%s/shot9999.%s", cl.configstrings[CS_NAME], SCRSHOT_TYPE );
 		return;
 	}
 
@@ -101,7 +103,7 @@ void CL_ScreenshotGetName( int lastnum, char *filename )
 	lastnum -= c * 10;
 	d = lastnum;
 
-	com.sprintf( filename, "scrshots/%s/shot%i%i%i%i.tga", cl.configstrings[CS_NAME], a, b, c, d );
+	com.sprintf( filename, "scrshots/%s/shot%i%i%i%i.%s", cl.configstrings[CS_NAME], a, b, c, d, SCRSHOT_TYPE );
 }
 
 /* 

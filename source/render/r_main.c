@@ -651,7 +651,7 @@ Calculates sort key and stores info used for sorting and batching.
 All 3D geometry passes this function.
 =================
 */
-void R_AddMeshToList( meshType_t meshType, void *mesh, shader_t *shader, ref_entity_t *entity, int infoKey )
+void R_AddMeshToList( meshType_t meshType, void *mesh, ref_shader_t *shader, ref_entity_t *entity, int infoKey )
 {
 	mesh_t	*m;
 
@@ -1271,7 +1271,7 @@ bool R_UploadImage( const char *unused, int index )
 		texture->flags |= SURF_NOLIGHTMAP;
 
 	// now all pointers are valid
-	texture->shader = R_FindShader( texture->name, SHADER_TEXTURE, texture->flags );
+	texture->shader = r_shaders[R_FindShader( texture->name, SHADER_TEXTURE, texture->flags )];
 	return true;
 }
 

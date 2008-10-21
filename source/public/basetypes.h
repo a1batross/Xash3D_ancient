@@ -25,6 +25,7 @@ typedef int		sound_t;
 typedef int		model_t;
 typedef int		video_t;
 typedef int		string_t;
+typedef int		shader_t;
 typedef float		vec_t;
 typedef vec_t		vec2_t[2];
 typedef vec_t		vec3_t[3];

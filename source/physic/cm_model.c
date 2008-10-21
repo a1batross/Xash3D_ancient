@@ -949,10 +949,10 @@ STUDIO SHARED CMODELS
 
 ===============================================================================
 */
-int CM_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *maxs )
+int CM_StudioExtractBbox( dstudiohdr_t *phdr, int sequence, float *mins, float *maxs )
 {
-	mstudioseqdesc_t	*pseqdesc;
-	pseqdesc = (mstudioseqdesc_t *)((byte *)phdr + phdr->seqindex);
+	dstudioseqdesc_t	*pseqdesc;
+	pseqdesc = (dstudioseqdesc_t *)((byte *)phdr + phdr->seqindex);
 
 	if(sequence == -1) return 0;
 	VectorCopy( pseqdesc[sequence].bbmin, mins );
@@ -965,7 +965,7 @@ void CM_GetBodyCount( void )
 {
 	if(studio.hdr)
 	{
-		studio.bodypart = (mstudiobodyparts_t *)((byte *)studio.hdr + studio.hdr->bodypartindex);
+		studio.bodypart = (dstudiobodyparts_t *)((byte *)studio.hdr + studio.hdr->bodypartindex);
 		studio.bodycount = studio.bodypart->nummodels;
 	}
 	else studio.bodycount = 0; // just reset it
@@ -976,7 +976,7 @@ void CM_GetBodyCount( void )
 CM_StudioCalcBoneQuaterion
 ====================
 */
-void CM_StudioCalcBoneQuaterion( mstudiobone_t *pbone, float *q )
+void CM_StudioCalcBoneQuaterion( dstudiobone_t *pbone, float *q )
 {
 	int	i;
 	vec3_t	angle1;
@@ -990,7 +990,7 @@ void CM_StudioCalcBoneQuaterion( mstudiobone_t *pbone, float *q )
 CM_StudioCalcBonePosition
 ====================
 */
-void CM_StudioCalcBonePosition( mstudiobone_t *pbone, float *pos )
+void CM_StudioCalcBonePosition( dstudiobone_t *pbone, float *pos )
 {
 	int	i;
 	for(i = 0; i < 3; i++) pos[i] = pbone->value[i];
@@ -1022,7 +1022,7 @@ void CM_StudioSetUpTransform ( void )
 
 void CM_StudioCalcRotations ( float pos[][3], vec4_t *q )
 {
-	mstudiobone_t	*pbone = (mstudiobone_t *)((byte *)studio.hdr + studio.hdr->boneindex);
+	dstudiobone_t	*pbone = (dstudiobone_t *)((byte *)studio.hdr + studio.hdr->boneindex);
 	int		i;
 
 	for (i = 0; i < studio.hdr->numbones; i++, pbone++ ) 
@@ -1040,13 +1040,13 @@ CM_StudioSetupBones
 void CM_StudioSetupBones( void )
 {
 	int		i;
-	mstudiobone_t	*pbones;
+	dstudiobone_t	*pbones;
 	static float	pos[MAXSTUDIOBONES][3];
 	static vec4_t	q[MAXSTUDIOBONES];
 	matrix4x4		bonematrix;
 
 	CM_StudioCalcRotations( pos, q );
-	pbones = (mstudiobone_t *)((byte *)studio.hdr + studio.hdr->boneindex);
+	pbones = (dstudiobone_t *)((byte *)studio.hdr + studio.hdr->boneindex);
 
 	for (i = 0; i < studio.hdr->numbones; i++) 
 	{
@@ -1061,16 +1061,16 @@ void CM_StudioSetupModel ( int bodypart, int body )
 	int index;
 
 	if(bodypart > studio.hdr->numbodyparts) bodypart = 0;
-	studio.bodypart = (mstudiobodyparts_t *)((byte *)studio.hdr + studio.hdr->bodypartindex) + bodypart;
+	studio.bodypart = (dstudiobodyparts_t *)((byte *)studio.hdr + studio.hdr->bodypartindex) + bodypart;
 
 	index = body / studio.bodypart->base;
 	index = index % studio.bodypart->nummodels;
-	studio.submodel = (mstudiomodel_t *)((byte *)studio.hdr + studio.bodypart->modelindex) + index;
+	studio.submodel = (dstudiomodel_t *)((byte *)studio.hdr + studio.bodypart->modelindex) + index;
 }
 
 void CM_StudioAddMesh( int mesh )
 {
-	mstudiomesh_t	*pmesh = (mstudiomesh_t *)((byte *)studio.hdr + studio.submodel->meshindex) + mesh;
+	dstudiomesh_t	*pmesh = (dstudiomesh_t *)((byte *)studio.hdr + studio.submodel->meshindex) + mesh;
 	short		*ptricmds = (short *)((byte *)studio.hdr + pmesh->triindex);
 	int		i;
 
@@ -1124,7 +1124,7 @@ void CM_CreateMeshBuffer( byte *buffer )
 	int	i, j;
 
 	// setup global pointers
-	studio.hdr = (studiohdr_t *)buffer;
+	studio.hdr = (dstudiohdr_t *)buffer;
 	studio.m_pVerts = &studio.vertices[0];
 
 	CM_GetBodyCount();
@@ -1157,10 +1157,10 @@ void CM_CreateMeshBuffer( byte *buffer )
 
 bool CM_StudioModel( byte *buffer, uint filesize )
 {
-	studiohdr_t	*phdr;
-	mstudioseqdesc_t	*pseqdesc;
+	dstudiohdr_t	*phdr;
+	dstudioseqdesc_t	*pseqdesc;
 
-	phdr = (studiohdr_t *)buffer;
+	phdr = (dstudiohdr_t *)buffer;
 	if( phdr->version != STUDIO_VERSION )
 	{
 		MsgDev( D_ERROR, "CM_StudioModel: %s has wrong version number (%i should be %i)", phdr->name, phdr->version, STUDIO_VERSION);
@@ -1173,7 +1173,7 @@ bool CM_StudioModel( byte *buffer, uint filesize )
 	Mem_Copy( loadmodel->extradata, buffer, filesize );
 
 	// calcualte bounding box
-	pseqdesc = (mstudioseqdesc_t *)((byte *)phdr + phdr->seqindex);
+	pseqdesc = (dstudioseqdesc_t *)((byte *)phdr + phdr->seqindex);
 	VectorCopy( pseqdesc[0].bbmin, loadmodel->mins );
 	VectorCopy( pseqdesc[0].bbmax, loadmodel->maxs );
 	loadmodel->numframes = pseqdesc[0].numframes;	// FIXME: get numframes from current sequence (not first)

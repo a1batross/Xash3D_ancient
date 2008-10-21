@@ -589,7 +589,7 @@ void R_SetupSky( const char *name, float rotate, const vec3_t axis )
 	int		i, j;
 
 	r_worldModel->sky = sky = Mem_Alloc( r_temppool, sizeof( sky_t ));
-	sky->shader = R_FindShader( name, SHADER_SKY, 0 );
+	sky->shader = r_shaders[R_FindShader( name, SHADER_SKY, 0 )];
 
 	sky->rotate = rotate;
 	if(!VectorIsNull( axis ))

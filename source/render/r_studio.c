@@ -48,10 +48,10 @@ int m_nTopColor;			// palette substition for top and bottom of model
 int m_nBottomColor;
 rmodel_t *m_pRenderModel;
 ref_entity_t *m_pCurrentEntity;
-mstudiomodel_t *m_pSubModel;
-studiohdr_t *m_pStudioHeader;
-studiohdr_t *m_pTextureHeader;
-mstudiobodyparts_t *m_pBodyPart;
+dstudiomodel_t *m_pSubModel;
+dstudiohdr_t *m_pStudioHeader;
+dstudiohdr_t *m_pTextureHeader;
+dstudiobodyparts_t *m_pBodyPart;
 
 int m_nCachedBones;			// number of bones in cache
 char m_nCachedBoneNames[MAXSTUDIOBONES][32];
@@ -99,10 +99,10 @@ char *R_ExtName( rmodel_t *mod )
 	return texname;
 }
 
-int R_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *maxs )
+int R_StudioExtractBbox( dstudiohdr_t *phdr, int sequence, float *mins, float *maxs )
 {
-	mstudioseqdesc_t	*pseqdesc;
-	pseqdesc = (mstudioseqdesc_t *)((byte *)phdr + phdr->seqindex);
+	dstudioseqdesc_t	*pseqdesc;
+	pseqdesc = (dstudioseqdesc_t *)((byte *)phdr + phdr->seqindex);
 
 	if( sequence == -1 ) return 0;
 	
@@ -165,53 +165,53 @@ static void R_StudioBuildNeighbors( int numtris, mstudiotriangle_t *triangles, m
 Studio model loader
 ====================
 */
-texture_t *R_StudioLoadTexture( rmodel_t *mod, mstudiotexture_t *ptexture, byte *pin )
+texture_t *R_StudioLoadTexture( rmodel_t *mod, dstudiotexture_t *tex, byte *pin )
 {
-	rgbdata_t	r_skin;
+	rgbdata_t	*pal, *r_skin;
 	texture_t	*image;
+	size_t	size;
 
 	surfaceParm = 0;
-	r_skin.width = ptexture->width;
-          r_skin.height = ptexture->height;
-	r_skin.flags = (ptexture->flags & STUDIO_NF_TRANSPARENT) ? IMAGE_HAVE_ALPHA : 0;
-	r_skin.type = PF_INDEXED_24;
-	r_skin.numMips = 1;
-	r_skin.palette = pin + ptexture->width * ptexture->height + ptexture->index;
-	r_skin.buffer = pin + ptexture->index; // texdata
-	r_skin.size = ptexture->width * ptexture->height; // for bounds cheking
 
-	// convert studio flags into surfaceFlags
-	if( ptexture->flags & STUDIO_NF_TRANSPARENT )
+	// install palette first
+	if( tex->flags & STUDIO_NF_TRANSPARENT )
+	{
+		pal = FS_LoadImage( "#transparent.pal", pin + tex->width * tex->height + tex->index, 768 );
 		surfaceParm |= SURF_ALPHA;
-	if( ptexture->flags & STUDIO_NF_ADDITIVE )
-		surfaceParm |= SURF_ADDITIVE;			
-	if( ptexture->flags & STUDIO_NF_BLENDED )
+	}
+	else pal = FS_LoadImage( "#normal.pal", pin + tex->width * tex->height + tex->index, 768 );
+
+	if( tex->flags & STUDIO_NF_ADDITIVE )
+		surfaceParm |= SURF_ADDITIVE;
+	else if( tex->flags & STUDIO_NF_BLENDED )
 		surfaceParm |= SURF_BLEND;
 	surfaceParm |= SURF_NOLIGHTMAP;
+	FS_FreeImage( pal );
+
+	// NOTE: replace index with pointer to start of imagebuffer, ImageLib expected it
+	tex->index = (int)pin + tex->index;
+	size = sizeof( dstudiotexture_t ) + tex->width * tex->height + 768;
+
+	FS_FileBase( tex->name, tex->name );
+	r_skin = FS_LoadImage( va( "#%s.mdl", tex->name ), (byte *)tex, size );
 
 	// load studio texture and bind it
-	image = R_LoadTexture( ptexture->name, &r_skin, 0, 0 );
-	if( !image ) 
-	{
-		MsgDev( D_WARN, "%s has null texture %s\n", mod->name, ptexture->name );
-		image = r_defaultTexture;
-	}
-	ptexture->index = mod->numShaders++; // internal texture index, not gl_texturenum
+	image = R_LoadTexture( tex->name, r_skin, 0, 0 );
 
 	return image;
 }
 
-studiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
+dstudiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
 {
 	int		i;
 	byte		*pin;
-	studiohdr_t	*phdr;
-	mstudiotexture_t	*ptexture;
+	dstudiohdr_t	*phdr;
+	dstudiotexture_t	*ptexture;
 	texture_t		*in;
 	mipTex_t		*out;
 	
 	pin = (byte *)buffer;
-	phdr = (studiohdr_t *)pin;
+	phdr = (dstudiohdr_t *)pin;
 
 	if( phdr->version != STUDIO_VERSION )
 	{
@@ -219,7 +219,7 @@ studiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
 		return NULL;
 	}	
 
-	ptexture = (mstudiotexture_t *)(pin + phdr->textureindex);
+	ptexture = (dstudiotexture_t *)(pin + phdr->textureindex);
 	if( phdr->textureindex > 0 && phdr->numtextures <= MAXSTUDIOSKINS )
 	{
 		out = mod->shaders = (mipTex_t *)Mem_Alloc( mod->mempool, phdr->numtextures * sizeof(*out));
@@ -228,21 +228,22 @@ studiohdr_t *R_StudioLoadHeader( rmodel_t *mod, const uint *buffer )
 			in = R_StudioLoadTexture( mod, &ptexture[i], pin );
 			R_SetInternalMap( in );
 			com.strncpy( out->name, ptexture->name, 64 );
-			out->shader = R_FindShader( ptexture->name, SHADER_STUDIO, surfaceParm );
+			ptexture[i].shader = R_FindShader( ptexture->name, SHADER_STUDIO, surfaceParm );
+			out->shader = r_shaders[ptexture[i].shader];
 			out->flags = surfaceParm;
 		}
 	}
-	return (studiohdr_t *)buffer;
+	return (dstudiohdr_t *)buffer;
 }
 
 void R_StudioLoadModel( rmodel_t *mod, const void *buffer )
 {
-	studiohdr_t	*phdr = R_StudioLoadHeader( mod, buffer );
-	studiohdr_t	*thdr;
+	dstudiohdr_t	*phdr = R_StudioLoadHeader( mod, buffer );
+	dstudiohdr_t	*thdr;
 	void		*texbuf;
 	
 	if( !phdr ) return; // there were problems
-	mod->phdr = (studiohdr_t *)Mem_Alloc(mod->mempool, LittleLong(phdr->length));
+	mod->phdr = (dstudiohdr_t *)Mem_Alloc(mod->mempool, LittleLong(phdr->length));
 	Mem_Copy( mod->phdr, buffer, LittleLong( phdr->length ));
 	
 	if( phdr->numtextures == 0 )
@@ -252,7 +253,7 @@ void R_StudioLoadModel( rmodel_t *mod, const void *buffer )
 		else MsgDev( D_WARN, "textures for %s not found!\n", mod->name ); 
 
 		if( !thdr ) return; // there were problems
-		mod->thdr = (studiohdr_t *)Mem_Alloc( mod->mempool, LittleLong( thdr->length ));
+		mod->thdr = (dstudiohdr_t *)Mem_Alloc( mod->mempool, LittleLong( thdr->length ));
           	Mem_Copy( mod->thdr, texbuf, LittleLong( thdr->length ));
 		Mem_Free( texbuf );
 	}
@@ -271,12 +272,12 @@ int R_ExtractBbox( int sequence, float *mins, float *maxs )
 void SetBodygroup( int iGroup, int iValue )
 {
 	int iCurrent;
-	mstudiobodyparts_t *m_pBodyPart;
+	dstudiobodyparts_t *m_pBodyPart;
 
 	if( iGroup > m_pStudioHeader->numbodyparts )
 		return;
 
-	m_pBodyPart = (mstudiobodyparts_t *)((byte *)m_pStudioHeader + m_pStudioHeader->bodypartindex) + iGroup;
+	m_pBodyPart = (dstudiobodyparts_t *)((byte *)m_pStudioHeader + m_pStudioHeader->bodypartindex) + iGroup;
 
 	if (iValue >= m_pBodyPart->nummodels)
 		return;
@@ -287,12 +288,12 @@ void SetBodygroup( int iGroup, int iValue )
 
 int R_StudioGetBodygroup( int iGroup )
 {
-	mstudiobodyparts_t *m_pBodyPart;
+	dstudiobodyparts_t *m_pBodyPart;
 	
 	if (iGroup > m_pStudioHeader->numbodyparts)
 		return 0;
 
-	m_pBodyPart = (mstudiobodyparts_t *)((byte *)m_pStudioHeader + m_pStudioHeader->bodypartindex) + iGroup;
+	m_pBodyPart = (dstudiobodyparts_t *)((byte *)m_pStudioHeader + m_pStudioHeader->bodypartindex) + iGroup;
 
 	if (m_pBodyPart->nummodels <= 1)
 		return 0;
@@ -327,9 +328,9 @@ R_StudioGetSequenceInfo
 used for client animation
 ====================
 */
-void R_StudioGetSequenceInfo( studiohdr_t *hdr, ref_entity_t *ent, float *pflFrameRate, float *pflGroundSpeed )
+void R_StudioGetSequenceInfo( dstudiohdr_t *hdr, ref_entity_t *ent, float *pflFrameRate, float *pflGroundSpeed )
 {
-	mstudioseqdesc_t	*pseqdesc;
+	dstudioseqdesc_t	*pseqdesc;
 
 	if( !hdr ) return;
 
@@ -340,7 +341,7 @@ void R_StudioGetSequenceInfo( studiohdr_t *hdr, ref_entity_t *ent, float *pflFra
 		return;
 	}
 
-	pseqdesc = (mstudioseqdesc_t *)((byte *)hdr + hdr->seqindex) + ent->sequence;
+	pseqdesc = (dstudioseqdesc_t *)((byte *)hdr + hdr->seqindex) + ent->sequence;
 
 	if( pseqdesc->numframes > 1 )
 	{
@@ -355,14 +356,14 @@ void R_StudioGetSequenceInfo( studiohdr_t *hdr, ref_entity_t *ent, float *pflFra
 	}
 }
 
-int R_StudioGetSequenceFlags( studiohdr_t *hdr, ref_entity_t *ent )
+int R_StudioGetSequenceFlags( dstudiohdr_t *hdr, ref_entity_t *ent )
 {
-	mstudioseqdesc_t	*pseqdesc;
+	dstudioseqdesc_t	*pseqdesc;
 
 	if( !hdr || ent->sequence >= hdr->numseq )
 		return 0;
 	
-	pseqdesc = (mstudioseqdesc_t *)((byte *)hdr + hdr->seqindex) + (int)ent->sequence;
+	pseqdesc = (dstudioseqdesc_t *)((byte *)hdr + hdr->seqindex) + (int)ent->sequence;
 	return pseqdesc->flags;
 }
 
@@ -402,9 +403,9 @@ void R_StudioCalcBoneAdj( float dadt, float *adj, const float *pcontroller1, con
 {
 	int	i, j;
 	float	value;
-	mstudiobonecontroller_t *pbonecontroller;
+	dstudiobonecontroller_t *pbonecontroller;
 	
-	pbonecontroller = (mstudiobonecontroller_t *)((byte *)m_pStudioHeader + m_pStudioHeader->bonecontrollerindex);
+	pbonecontroller = (dstudiobonecontroller_t *)((byte *)m_pStudioHeader + m_pStudioHeader->bonecontrollerindex);
 
 	for (j = 0; j < m_pStudioHeader->numbonecontrollers; j++)
 	{
@@ -468,12 +469,12 @@ StudioCalcBoneQuaterion
 
 ====================
 */
-void R_StudioCalcBoneQuaterion( int frame, float s, mstudiobone_t *pbone, mstudioanim_t *panim, float *adj, float *q )
+void R_StudioCalcBoneQuaterion( int frame, float s, dstudiobone_t *pbone, dstudioanim_t *panim, float *adj, float *q )
 {
 	int	j, k;
 	vec4_t	q1, q2;
 	vec3_t	angle1, angle2;
-	mstudioanimvalue_t	*panimvalue;
+	dstudioanimvalue_t	*panimvalue;
 
 	for (j = 0; j < 3; j++)
 	{
@@ -483,7 +484,7 @@ void R_StudioCalcBoneQuaterion( int frame, float s, mstudiobone_t *pbone, mstudi
 		}
 		else
 		{
-			panimvalue = (mstudioanimvalue_t *)((byte *)panim + panim->offset[j+3]);
+			panimvalue = (dstudioanimvalue_t *)((byte *)panim + panim->offset[j+3]);
 			k = frame;
 			
 			// debug
@@ -555,17 +556,17 @@ StudioCalcBonePosition
 
 ====================
 */
-void R_StudioCalcBonePosition( int frame, float s, mstudiobone_t *pbone, mstudioanim_t *panim, float *adj, float *pos )
+void R_StudioCalcBonePosition( int frame, float s, dstudiobone_t *pbone, dstudioanim_t *panim, float *adj, float *pos )
 {
 	int j, k;
-	mstudioanimvalue_t	*panimvalue;
+	dstudioanimvalue_t	*panimvalue;
 
 	for (j = 0; j < 3; j++)
 	{
 		pos[j] = pbone->value[j]; // default;
 		if (panim->offset[j] != 0)
 		{
-			panimvalue = (mstudioanimvalue_t *)((byte *)panim + panim->offset[j]);
+			panimvalue = (dstudioanimvalue_t *)((byte *)panim + panim->offset[j]);
 			
 			//if (j == 0) Msg("%d  %d:%d  %f\n", frame, panimvalue->num.valid, panimvalue->num.total, s );
 			k = frame;
@@ -650,16 +651,16 @@ StudioGetAnim
 
 ====================
 */
-mstudioanim_t *R_StudioGetAnim( rmodel_t *m_pSubModel, mstudioseqdesc_t *pseqdesc )
+dstudioanim_t *R_StudioGetAnim( rmodel_t *m_pSubModel, dstudioseqdesc_t *pseqdesc )
 {
-	mstudioseqgroup_t	*pseqgroup;
+	dstudioseqgroup_t	*pseqgroup;
 	byte		*paSequences;
           size_t		filesize;
           byte		*buf;
 	
-	pseqgroup = (mstudioseqgroup_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqgroupindex) + pseqdesc->seqgroup;
+	pseqgroup = (dstudioseqgroup_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqgroupindex) + pseqdesc->seqgroup;
 	if( pseqdesc->seqgroup == 0 )
-		return (mstudioanim_t *)((byte *)m_pStudioHeader + pseqgroup->data + pseqdesc->animindex);
+		return (dstudioanim_t *)((byte *)m_pStudioHeader + pseqgroup->data + pseqdesc->animindex);
 	paSequences = (void *)m_pSubModel->submodels;
 
 	if( paSequences == NULL )
@@ -675,7 +676,7 @@ mstudioanim_t *R_StudioGetAnim( rmodel_t *m_pSubModel, mstudioseqdesc_t *pseqdes
                     if( IDSEQGRPHEADER == LittleLong(*(uint *)buf))  //it's sequence group
                     {
 			byte		*pin = (byte *)buf;
-			mstudioseqgroup_t	*pseqhdr = (mstudioseqgroup_t *)pin;
+			dstudioseqgroup_t	*pseqhdr = (dstudioseqgroup_t *)pin;
 			
 			paSequences = (byte *)Mem_Alloc( m_pSubModel->mempool, filesize );
           		m_pSubModel->submodels = (submodel_t *)paSequences; // just a container
@@ -683,7 +684,7 @@ mstudioanim_t *R_StudioGetAnim( rmodel_t *m_pSubModel, mstudioseqdesc_t *pseqdes
 			Mem_Free( buf );
 		}		
 	}
-	return (mstudioanim_t *)((byte *)paSequences[pseqdesc->seqgroup] + pseqdesc->animindex );
+	return (dstudioanim_t *)((byte *)paSequences[pseqdesc->seqgroup] + pseqdesc->animindex );
 }
 
 /*
@@ -692,7 +693,7 @@ StudioPlayerBlend
 
 ====================
 */
-void R_StudioPlayerBlend( mstudioseqdesc_t *pseqdesc, float *pBlend, float *pPitch )
+void R_StudioPlayerBlend( dstudioseqdesc_t *pseqdesc, float *pBlend, float *pPitch )
 {
 	// calc up/down pointing
 	*pBlend = (*pPitch * 3);
@@ -803,11 +804,11 @@ StudioCalcRotations
 
 ====================
 */
-void R_StudioCalcRotations( float pos[][3], vec4_t *q, mstudioseqdesc_t *pseqdesc, mstudioanim_t *panim, float f )
+void R_StudioCalcRotations( float pos[][3], vec4_t *q, dstudioseqdesc_t *pseqdesc, dstudioanim_t *panim, float f )
 {
 	int		i;
 	int		frame;
-	mstudiobone_t	*pbone;
+	dstudiobone_t	*pbone;
 
 	float	s;
 	float	adj[MAXSTUDIOCONTROLLERS];
@@ -833,7 +834,7 @@ void R_StudioCalcRotations( float pos[][3], vec4_t *q, mstudioseqdesc_t *pseqdes
 	s = (f - frame);
 
 	// add in programtic controllers
-	pbone = (mstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
+	pbone = (dstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
 
 	R_StudioCalcBoneAdj( dadt, adj, m_pCurrentEntity->controller, m_pCurrentEntity->prev.controller, m_pCurrentEntity->mouth.open );
 
@@ -888,7 +889,7 @@ StudioEstimateFrame
 
 ====================
 */
-float R_StudioEstimateFrame( mstudioseqdesc_t *pseqdesc )
+float R_StudioEstimateFrame( dstudioseqdesc_t *pseqdesc )
 {
 	double dfdt, f;
 	
@@ -928,9 +929,9 @@ void R_StudioSetupBones( void )
 	int		i;
 	double		f;
 
-	mstudiobone_t	*pbones;
-	mstudioseqdesc_t	*pseqdesc;
-	mstudioanim_t	*panim;
+	dstudiobone_t	*pbones;
+	dstudioseqdesc_t	*pseqdesc;
+	dstudioanim_t	*panim;
 
 	static float	pos[MAXSTUDIOBONES][3];
 	static vec4_t	q[MAXSTUDIOBONES];
@@ -944,7 +945,7 @@ void R_StudioSetupBones( void )
 	static vec4_t	q4[MAXSTUDIOBONES];
 
 	if( m_pCurrentEntity->sequence >=  m_pStudioHeader->numseq) m_pCurrentEntity->sequence = 0;
-	pseqdesc = (mstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->sequence;
+	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->sequence;
 
 	f = R_StudioEstimateFrame( pseqdesc );
 
@@ -992,7 +993,7 @@ void R_StudioSetupBones( void )
 		static vec4_t q1b[MAXSTUDIOBONES];
 		float s;
                     
-		pseqdesc = (mstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->prev.sequence;
+		pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->prev.sequence;
 		panim = R_StudioGetAnim( m_pRenderModel, pseqdesc );
 		// clip prevframe
 		R_StudioCalcRotations( pos1b, q1b, pseqdesc, panim, m_pCurrentEntity->prev.frame );
@@ -1030,7 +1031,7 @@ void R_StudioSetupBones( void )
 		m_pCurrentEntity->prev.frame = f;
 	}
 
-	pbones = (mstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
+	pbones = (dstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
 
 	// calc gait animation
 	if( m_pCurrentEntity->gaitsequence != 0 )
@@ -1038,7 +1039,7 @@ void R_StudioSetupBones( void )
 		if( m_pCurrentEntity->gaitsequence >= m_pStudioHeader->numseq ) 
 			m_pCurrentEntity->gaitsequence = 0;
 
-		pseqdesc = (mstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->gaitsequence;
+		pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->gaitsequence;
 
 		panim = R_StudioGetAnim( m_pRenderModel, pseqdesc );
 		R_StudioCalcRotations( pos2, q2, pseqdesc, panim, m_pCurrentEntity->gaitframe );
@@ -1081,7 +1082,7 @@ StudioSaveBones
 void R_StudioSaveBones( void )
 {
 	int i;
-	mstudiobone_t *pbones = (mstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
+	dstudiobone_t *pbones = (dstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
 	m_nCachedBones = m_pStudioHeader->numbones;
 
 	for( i = 0; i < m_pStudioHeader->numbones; i++ ) 
@@ -1104,16 +1105,16 @@ void R_StudioMergeBones ( rmodel_t *m_pSubModel )
 	double	f;
 	int	do_hunt = true;
 
-	mstudiobone_t	*pbones;
-	mstudioseqdesc_t	*pseqdesc;
-	mstudioanim_t	*panim;
+	dstudiobone_t	*pbones;
+	dstudioseqdesc_t	*pseqdesc;
+	dstudioanim_t	*panim;
 	matrix4x4		bonematrix;
 
 	static vec4_t	q[MAXSTUDIOBONES];
 	static float	pos[MAXSTUDIOBONES][3];
 
 	if( m_pCurrentEntity->sequence >=  m_pStudioHeader->numseq ) m_pCurrentEntity->sequence = 0;
-	pseqdesc = (mstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->sequence;
+	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->sequence;
 
 	f = R_StudioEstimateFrame( pseqdesc );
 
@@ -1121,7 +1122,7 @@ void R_StudioMergeBones ( rmodel_t *m_pSubModel )
 
 	panim = R_StudioGetAnim( m_pSubModel, pseqdesc );
 	R_StudioCalcRotations( pos, q, pseqdesc, panim, f );
-	pbones = (mstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
+	pbones = (dstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
 
 	for( i = 0; i < m_pStudioHeader->numbones; i++ ) 
 	{
@@ -1164,7 +1165,7 @@ StudioCalcAttachments
 void R_StudioCalcAttachments( void )
 {
 	int i;
-	mstudioattachment_t *pattachment;
+	dstudioattachment_t *pattachment;
 
 	if ( m_pStudioHeader->numattachments > MAXSTUDIOATTACHMENTS )
 	{
@@ -1173,7 +1174,7 @@ void R_StudioCalcAttachments( void )
 	}
 
 	// calculate attachment points
-	pattachment = (mstudioattachment_t *)((byte *)m_pStudioHeader + m_pStudioHeader->attachmentindex);
+	pattachment = (dstudioattachment_t *)((byte *)m_pStudioHeader + m_pStudioHeader->attachmentindex);
 	for (i = 0; i < m_pStudioHeader->numattachments; i++)
 	{
 		Matrix4x4_Transform( m_plighttransform[pattachment[i].bone], pattachment[i].org,  m_pCurrentEntity->attachment[i] );
@@ -1256,18 +1257,18 @@ void R_StudioSetupModel( int body, int bodypart )
 	int index;
 
 	if (bodypart > m_pStudioHeader->numbodyparts) bodypart = 0;
-	m_pBodyPart = (mstudiobodyparts_t *)((byte *)m_pStudioHeader + m_pStudioHeader->bodypartindex) + bodypart;
+	m_pBodyPart = (dstudiobodyparts_t *)((byte *)m_pStudioHeader + m_pStudioHeader->bodypartindex) + bodypart;
 
 	index = body / m_pBodyPart->base;
 	index = index % m_pBodyPart->nummodels;
 
-	m_pSubModel = (mstudiomodel_t *)((byte *)m_pStudioHeader + m_pBodyPart->modelindex) + index;
+	m_pSubModel = (dstudiomodel_t *)((byte *)m_pStudioHeader + m_pBodyPart->modelindex) + index;
 }
 
 void R_StudioSetupLighting( void )
 {
 	int i;
-          mstudiobone_t *pbone;
+          dstudiobone_t *pbone;
 	
 	// get light from floor or ceil
 	m_plightvec[0] = 0.0f;
@@ -1293,7 +1294,7 @@ void R_StudioSetupLighting( void )
 	// TODO: only do it for bones that actually have textures
 	for (i = 0; i < m_pStudioHeader->numbones; i++)
 	{
-		pbone = (mstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex + i);
+		pbone = (dstudiobone_t *)((byte *)m_pStudioHeader + m_pStudioHeader->boneindex + i);
 		//if(pbone->flags & STUDIO_HAS_CHROME)
 		{
 			Matrix4x4_TransposeRotate( m_pbonestransform[i], m_plightvec, m_blightvec[i] );
@@ -1382,7 +1383,7 @@ bool R_AcceptStudioPass( int flags, int pass )
 	return true;
 }
 
-void R_StudioDrawMeshes( mstudiotexture_t * ptexture, short *pskinref, int pass )
+void R_StudioDrawMeshes( dstudiotexture_t * ptexture, short *pskinref, int pass )
 {
 	int	i, j;
 	float	*av, *lv;
@@ -1391,7 +1392,7 @@ void R_StudioDrawMeshes( mstudiotexture_t * ptexture, short *pskinref, int pass 
 	vec3_t	irgoggles = { 0.95f, 0.0f, 0.0f }; // predefined lightcolor
 	int	flags;
 
-	mstudiomesh_t *pmesh = (mstudiomesh_t *)((byte *)m_pStudioHeader + m_pSubModel->meshindex);
+	dstudiomesh_t *pmesh = (dstudiomesh_t *)((byte *)m_pStudioHeader + m_pSubModel->meshindex);
 	byte *pnormbone = ((byte *)m_pStudioHeader + m_pSubModel->norminfoindex);
 	vec3_t *pstudionorms = (vec3_t *)((byte *)m_pStudioHeader + m_pSubModel->normindex);
 
@@ -1417,7 +1418,7 @@ void R_StudioDrawMeshes( mstudiotexture_t * ptexture, short *pskinref, int pass 
 		float	s, t;
 		short	*ptricmds;
 
-		pmesh = (mstudiomesh_t *)((byte *)m_pStudioHeader + m_pSubModel->meshindex) + j;
+		pmesh = (dstudiomesh_t *)((byte *)m_pStudioHeader + m_pSubModel->meshindex) + j;
 		ptricmds = (short *)((byte *)m_pStudioHeader + pmesh->triindex);
 
 		flags = ptexture[pskinref[pmesh->skinref]].flags;
@@ -1428,7 +1429,7 @@ void R_StudioDrawMeshes( mstudiotexture_t * ptexture, short *pskinref, int pass 
 
 		//GL_BindTexture( m_pRenderModel->textures[ptexture[pskinref[pmesh->skinref]].index].image );
 		// FIXME: test
-		m_pCurrentShader = m_pRenderModel->shaders[ptexture[pskinref[pmesh->skinref]].index].shader;
+		m_pCurrentShader = r_shaders[ptexture[pskinref[pmesh->skinref]].shader];
 
 		while( i = *(ptricmds++))
 		{
@@ -1481,12 +1482,12 @@ void R_StudioDrawPoints ( void )
 	byte		*pnormbone;
 	vec3_t		*pstudioverts;
 	vec3_t		*pstudionorms;
-	mstudiotexture_t	*ptexture;
+	dstudiotexture_t	*ptexture;
 	short		*pskinref;
 
 	pvertbone = ((byte *)m_pStudioHeader + m_pSubModel->vertinfoindex);
 	pnormbone = ((byte *)m_pStudioHeader + m_pSubModel->norminfoindex);
-	ptexture = (mstudiotexture_t *)((byte *)m_pTextureHeader + m_pTextureHeader->textureindex);
+	ptexture = (dstudiotexture_t *)((byte *)m_pTextureHeader + m_pTextureHeader->textureindex);
 
 	pstudioverts = (vec3_t *)((byte *)m_pStudioHeader + m_pSubModel->vertindex);
 	pstudionorms = (vec3_t *)((byte *)m_pStudioHeader + m_pSubModel->normindex);
@@ -1517,7 +1518,7 @@ void R_StudioDrawPoints ( void )
 void R_StudioDrawBones( void )
 {
 
-	mstudiobone_t	*pbones = (mstudiobone_t *) ((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
+	dstudiobone_t	*pbones = (dstudiobone_t *) ((byte *)m_pStudioHeader + m_pStudioHeader->boneindex);
 	vec3_t		point;
 	int		i;
 
@@ -1570,7 +1571,7 @@ void R_StudioDrawHitboxes( void )
 
 	for (i = 0; i < m_pStudioHeader->numhitboxes; i++)
 	{
-		mstudiobbox_t *pbboxes = (mstudiobbox_t *) ((byte *) m_pStudioHeader + m_pStudioHeader->hitboxindex);
+		dstudiobbox_t *pbboxes = (dstudiobbox_t *) ((byte *) m_pStudioHeader + m_pStudioHeader->hitboxindex);
 		vec3_t v[8], v2[8], bbmin, bbmax;
 
 		VectorCopy (pbboxes[i].bbmin, bbmin);
@@ -1645,7 +1646,7 @@ void R_StudioDrawAttachments( void )
 	
 	for (i = 0; i < m_pStudioHeader->numattachments; i++)
 	{
-		mstudioattachment_t *pattachments = (mstudioattachment_t *) ((byte *)m_pStudioHeader + m_pStudioHeader->attachmentindex);
+		dstudioattachment_t *pattachments = (dstudioattachment_t *) ((byte *)m_pStudioHeader + m_pStudioHeader->attachmentindex);
 		vec3_t v[4];
 		
 		Matrix4x4_Transform (m_pbonestransform[pattachments[i].bone], pattachments[i].org, v[0]);
@@ -1828,7 +1829,7 @@ bool R_StudioDrawModel( int pass, int flags )
 		R_StudioCalcAttachments();
 
 		//FIXME:
-		//ri.StudioEvent( mstudioevent_t *event, ent );
+		//ri.StudioEvent( dstudioevent_t *event, ent );
 
 		if( m_pCurrentEntity->index > 0 )
 		{
@@ -1946,14 +1947,14 @@ StudioProcessGait
 */
 void R_StudioProcessGait( entity_state_t *pplayer )
 {
-	mstudioseqdesc_t	*pseqdesc;
+	dstudioseqdesc_t	*pseqdesc;
 	float		dt, flYaw;	// view direction relative to movement
 	float		fBlend;
 
 	if( m_pCurrentEntity->sequence >= m_pStudioHeader->numseq ) 
 		m_pCurrentEntity->sequence = 0;
 
-	pseqdesc = (mstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->sequence;
+	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + m_pCurrentEntity->sequence;
 	R_StudioPlayerBlend( pseqdesc, &fBlend, &m_pCurrentEntity->angles[PITCH] );
 
 	m_pCurrentEntity->prev.angles[PITCH] = m_pCurrentEntity->angles[PITCH];
@@ -2007,7 +2008,7 @@ void R_StudioProcessGait( entity_state_t *pplayer )
 	if( pplayer->model.gaitsequence >= m_pStudioHeader->numseq ) 
 		pplayer->model.gaitsequence = 0;
 
-	pseqdesc = (mstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + pplayer->model.gaitsequence;
+	pseqdesc = (dstudioseqdesc_t *)((byte *)m_pStudioHeader + m_pStudioHeader->seqindex) + pplayer->model.gaitsequence;
 
 	// calc gait frame
 	if( pseqdesc->linearmovement[0] > 0 )
@@ -2099,7 +2100,7 @@ int R_StudioDrawPlayer( int pass, int flags )
 		R_StudioCalcAttachments( );
 
 		//FIXME:
-		//ri.StudioEvent( mstudioevent_t *event, ent );
+		//ri.StudioEvent( dstudioevent_t *event, ent );
 
 		if( m_pCurrentEntity->index > 0 )
 		{

@@ -408,7 +408,7 @@ typedef struct
 	alphaGen_t	alphaGen;
 } shaderStage_t;
 
-typedef struct shader_s
+typedef struct ref_shader_s
 {
 	string		name;
 	int		shaderNum;
@@ -425,18 +425,18 @@ typedef struct shader_s
 	uint		deformVertexesNum;
 	shaderStage_t	*stages[SHADER_MAX_STAGES];
 	uint	   	numStages;
-	struct shader_s	*nextHash;
-} shader_t;
+	struct ref_shader_s	*nextHash;
+} ref_shader_t;
 
-extern shader_t	*r_shaders[MAX_SHADERS];
+extern ref_shader_t	*r_shaders[MAX_SHADERS];
 extern int	r_numShaders;
-extern shader_t	*r_defaultShader;
-extern shader_t	*r_lightmapShader;
-extern shader_t	*r_waterCausticsShader;
-extern shader_t	*r_slimeCausticsShader;
-extern shader_t	*r_lavaCausticsShader;
+extern ref_shader_t	*r_defaultShader;
+extern ref_shader_t	*r_lightmapShader;
+extern ref_shader_t	*r_waterCausticsShader;
+extern ref_shader_t	*r_slimeCausticsShader;
+extern ref_shader_t	*r_lavaCausticsShader;
 
-shader_t	*R_FindShader( const char *name, shaderType_t shaderType, uint surfaceParm );
+shader_t	R_FindShader( const char *name, shaderType_t shaderType, uint surfaceParm );
 void	R_SetInternalMap( texture_t *mipTex );		// internal textures (skins, spriteframes, etc)
 void	R_ShaderList_f( void );
 void	R_InitShaders( void );
@@ -474,7 +474,7 @@ typedef struct lightstyle_s
 
 typedef struct particle_s
 {
-	shader_t		*shader;
+	ref_shader_t		*shader;
 	vec3_t		origin;
 	vec3_t		old_origin;
 	float		radius;
@@ -511,7 +511,7 @@ typedef struct
 
 typedef struct
 {
-	shader_t		*shader;
+	ref_shader_t		*shader;
 	int		numVerts;
 	polyVert_t	*verts;
 } poly_t;
@@ -519,7 +519,7 @@ typedef struct
 typedef struct mipTex_s
 {
 	string		name;		// original miptex name
-	shader_t		*shader;		// texture shader
+	ref_shader_t	*shader;		// texture shader
 	int		contents;
 	int		flags;
 } mipTex_t;
@@ -630,7 +630,7 @@ typedef struct
 
 typedef struct
 {
-	shader_t		*shader;
+	ref_shader_t	*shader;
 	float		rotate;
 	vec3_t		axis;
 	float		mins[2][6];
@@ -657,7 +657,7 @@ typedef struct mspriteframe_s
 	int		height;
 	float		up, down, left, right;
 	float		radius;
-	shader_t		*shader;
+	shader_t		shader;
 	texture_t		*texture;
 } mspriteframe_t;
 
@@ -718,7 +718,7 @@ typedef struct
 	mstudioneighbor_t	*neighbors;
 	mstudiopoint_t	*points;
 	mstudiost_t	*st;
-	shader_t		*shaders;
+	ref_shader_t		*shaders;
 
 	int		numTriangles;
 	int		numVertices;
@@ -785,8 +785,8 @@ typedef struct rmodel_s
 	lightGrid_t	*lightGrid;
 
 	// studio model
-          studiohdr_t	*phdr;
-          studiohdr_t	*thdr;
+	dstudiohdr_t	*phdr;
+          dstudiohdr_t	*thdr;
 	mstudiosurface_t	*studiofaces;
 
 	void		*extradata;	// model buffer
@@ -864,7 +864,7 @@ typedef struct ref_entity_s
 	float		gaityaw;		// local value
 
 	// shader information
-	shader_t		*shader;
+	ref_shader_t		*shader;
 	float		shaderTime;	// subtracted from refdef time to control effect start times
 	float		radius;		// bbox approximate radius
 	vec3_t		axis[3];		// Rotation vectors
@@ -1108,7 +1108,7 @@ extern float	m_fShaderTime;
 extern rmodel_t	*m_pLoadModel;
 extern mesh_t	*m_pRenderMesh;
 extern rmodel_t	*m_pRenderModel;
-extern shader_t	*m_pCurrentShader;
+extern ref_shader_t	*m_pCurrentShader;
 extern ref_entity_t *m_pCurrentEntity;
 extern int	m_iStudioModelCount;
 extern int	registration_sequence;
@@ -1129,7 +1129,7 @@ void		RB_DebugGraphics( void );
 void		RB_CheckMeshOverflow( int numIndices, int numVertices );
 void		RB_RenderMesh( void );
 void		RB_RenderMeshes( mesh_t *meshes, int numMeshes );
-void		RB_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, float sh, float th, shader_t *shader );
+void		RB_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, float sh, float th, ref_shader_t *shader );
 
 void		RB_VBOInfo_f( void );
 uint		RB_AllocStaticBuffer( uint target, int size );
@@ -1219,7 +1219,7 @@ void		R_UpdateSurfaceLightmap( surface_t *surf );
 bool		R_CullBox( const vec3_t mins, const vec3_t maxs, int clipFlags );
 bool		R_CullSphere( const vec3_t origin, float radius, int clipFlags );
 void		R_RotateForEntity( ref_entity_t *entity );
-void		R_AddMeshToList( meshType_t meshType, void *mesh, shader_t *shader, ref_entity_t *entity, int infoKey );
+void		R_AddMeshToList( meshType_t meshType, void *mesh, ref_shader_t *shader, ref_entity_t *entity, int infoKey );
 void		R_DrawSprite( void );
 void		R_DrawBeam( void );
 void		R_DrawParticle( void );
@@ -1248,9 +1248,9 @@ rmodel_t		*R_RegisterModel( const char *name );
 void		R_SetupSky( const char *name, float rotate, const vec3_t axis );
 void		R_EndRegistration( void );
 void		R_ShaderRegisterImages( rmodel_t *mod );	// prolonge registration
-shader_t		*R_RegisterShader( const char *name );
-shader_t		*R_RegisterShaderSkin( const char *name );
-shader_t		*R_RegisterShaderNoMip( const char *name );
+ref_shader_t		*R_RegisterShader( const char *name );
+ref_shader_t		*R_RegisterShaderSkin( const char *name );
+ref_shader_t		*R_RegisterShaderNoMip( const char *name );
 bool		VID_ScreenShot( const char *filename, bool levelshot );
 void		R_DrawFill( float x, float y, float w, float h );
 void		R_DrawStretchRaw( int x, int y, int w, int h, int width, int height, const byte *raw, bool dirty );

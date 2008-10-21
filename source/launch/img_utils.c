@@ -314,6 +314,7 @@ void Image_Init( void )
 		image.loadformats = load_null;
 		break;
 	}
+	image.tempbuffer = NULL;
 }
 
 void Image_Setup( const char *formats, const uint flags )
@@ -609,6 +610,46 @@ bool Image_Copy8bitRGBA( const byte *in, byte *out, int pixels )
 
 	image.type = PF_RGBA_32;	// update image type;
 	return true;
+}
+
+/*
+====================
+Image_ShortToFloat
+====================
+*/
+uint Image_ShortToFloat( word y )
+{
+	int s = (y >> 15) & 0x00000001;
+	int e = (y >> 10) & 0x0000001f;
+	int m =  y & 0x000003ff;
+
+	// float: 1 sign bit, 8 exponent bits, 23 mantissa bits
+	// half: 1 sign bit, 5 exponent bits, 10 mantissa bits
+
+	if( e == 0 )
+	{
+		if( m == 0 ) return s << 31; // Plus or minus zero
+		else // denormalized number -- renormalize it
+		{
+			while(!(m & 0x00000400))
+			{
+				m <<= 1;
+				e -=  1;
+			}
+			e += 1;
+			m &= ~0x00000400;
+		}
+	}
+	else if( e == 31 )
+	{
+		if( m == 0 ) return (s << 31) | 0x7f800000; // positive or negative infinity
+		else return (s << 31) | 0x7f800000 | (m << 13); // NAN - preserve sign and significand bits
+	}
+
+	// normalized number
+	e = e + (127 - 15);
+	m = m << 13;
+	return (s << 31) | (e << 23) | m; // assemble s, e and m.
 }
 
 static void Image_Resample32LerpLine (const byte *in, byte *out, int inwidth, int outwidth)
@@ -1006,7 +1047,6 @@ Image_Resample
 byte *Image_ResampleInternal( const void *indata, int inwidth, int inheight, int outwidth, int outheight, int type )
 {
 	bool	quality = (image.cmd_flags & IL_USE_LERPING);
-	byte	*outdata;
 
 	// nothing to resample ?
 	if( inwidth == outwidth && inheight == outheight )
@@ -1017,24 +1057,24 @@ byte *Image_ResampleInternal( const void *indata, int inwidth, int inheight, int
 	{
 	case PF_INDEXED_24:
 	case PF_INDEXED_32:
-		outdata = (byte *)Mem_Alloc( Sys.imagepool, outwidth * outheight );
-		Image_Resample8Nolerp( indata, inwidth, inheight, outdata, outwidth, outheight );
+		image.tempbuffer = (byte *)Mem_Realloc( Sys.imagepool, image.tempbuffer, outwidth * outheight );
+		Image_Resample8Nolerp( indata, inwidth, inheight, image.tempbuffer, outwidth, outheight );
 		break;		
 	case PF_RGB_24:
-		outdata = (byte *)Mem_Alloc( Sys.imagepool, outwidth * outheight * 3 );
-		if( quality ) Image_Resample24Lerp( indata, inwidth, inheight, outdata, outwidth, outheight );
-		else Image_Resample24Nolerp( indata, inwidth, inheight, outdata, outwidth, outheight );
+		image.tempbuffer = (byte *)Mem_Realloc( Sys.imagepool, image.tempbuffer, outwidth * outheight * 3 );
+		if( quality ) Image_Resample24Lerp( indata, inwidth, inheight, image.tempbuffer, outwidth, outheight );
+		else Image_Resample24Nolerp( indata, inwidth, inheight, image.tempbuffer, outwidth, outheight );
 		break;
 	case PF_RGBA_32:
-		outdata = (byte *)Mem_Alloc( Sys.imagepool, outwidth * outheight * 4 );
-		if( quality ) Image_Resample32Lerp( indata, inwidth, inheight, outdata, outwidth, outheight );
-		else Image_Resample32Nolerp( indata, inwidth, inheight, outdata, outwidth, outheight );
+		image.tempbuffer = (byte *)Mem_Realloc( Sys.imagepool, image.tempbuffer, outwidth * outheight * 4 );
+		if( quality ) Image_Resample32Lerp( indata, inwidth, inheight, image.tempbuffer, outwidth, outheight );
+		else Image_Resample32Nolerp( indata, inwidth, inheight, image.tempbuffer, outwidth, outheight );
 		break;
 	default:
 		MsgDev( D_WARN, "Image_Resample: unsupported format %s\n", PFDesc[type].name );
 		return (byte *)indata;	
 	}
-	return (byte *)outdata;
+	return image.tempbuffer;
 }
 
 /*
@@ -1042,13 +1082,15 @@ byte *Image_ResampleInternal( const void *indata, int inwidth, int inheight, int
 Image_Flip
 ================
 */
-byte *Image_FlipInternal( const byte *in, int width, int height, int type, int flags )
+byte *Image_FlipInternal( const byte *in, int *srcwidth, int *srcheight, int type, int flags )
 {
 	int	i, x, y;
+	int	width = *srcwidth;
+	int	height = *srcheight; 
 	int	samples = PFDesc[type].bpp;
 	bool	flip_x = ( flags & IMAGE_FLIP_X ) ? true : false;
 	bool	flip_y = ( flags & IMAGE_FLIP_Y ) ? true : false;
-	bool	flip_i = ( flags & IMAGE_FLIP_I ) ? true : false;
+	bool	flip_i = ( flags & IMAGE_ROT_90 ) ? true : false;
 	int	row_inc = ( flip_y ? -samples : samples ) * width;
 	int	col_inc = ( flip_x ? -samples : samples );
 	int	row_ofs = ( flip_y ? ( height - 1 ) * width * samples : 0 );
@@ -1057,7 +1099,7 @@ byte *Image_FlipInternal( const byte *in, int width, int height, int type, int f
 	byte	*out;
 
 	// nothing to process
-	if(!(flags & IMAGE_FLIP_X|IMAGE_FLIP_Y|IMAGE_FLIP_I ))
+	if(!(flags & IMAGE_FLIP_X|IMAGE_FLIP_Y|IMAGE_ROT_90 ))
 		return (byte *)in;
 
 	switch( type )
@@ -1089,7 +1131,19 @@ byte *Image_FlipInternal( const byte *in, int width, int height, int type, int f
 				for( i = 0; i < samples; i++ )
 					out[i] = p[i];
 	}
-	return out;
+
+	// update dims
+	if( flags & IMAGE_ROT_90 )
+	{
+		*srcwidth = height;
+		*srcheight = width;		
+	}
+	else
+	{
+		*srcwidth = width;
+		*srcheight = height;	
+	}
+	return image.tempbuffer;
 }
 
 void Image_Process( rgbdata_t **pix, int width, int height, uint flags )
@@ -1106,10 +1160,10 @@ void Image_Process( rgbdata_t **pix, int width, int height, uint flags )
 
 	// NOTE: flip and resample algorythms can't different palette size
 	if( flags & IMAGE_PALTO24 ) Image_ConvertPalTo24bit( pic );
-	out = Image_FlipInternal( pic->buffer, pic->width, pic->height, pic->type, flags );
-	if( pic->buffer != out ) Mem_Copy( pic->buffer, out, pic->size ); // copy flipped image into buffer
+	out = Image_FlipInternal( pic->buffer, &pic->width, &pic->height, pic->type, flags );
+	if( pic->buffer != out ) Mem_Copy( pic->buffer, image.tempbuffer, pic->size );
 
-	if( flags & IMAGE_RESAMPLE|IMAGE_ROUND )
+	if(( flags & IMAGE_RESAMPLE && width > 0 && height > 0 ) || flags & IMAGE_ROUND )
 	{
 		int	w, h;
 
@@ -1121,30 +1175,20 @@ void Image_Process( rgbdata_t **pix, int width, int height, uint flags )
 			// round to nearest pow
 			Image_RoundDimensions( &w, &h );
 		}
-		else if( width > 0 && height > 0 )
+		else
 		{
 			// custom size
 			w = bound( 1, width, IMAGE_MAXWIDTH );	// maxwidth 4096
 			h = bound( 1, height, IMAGE_MAXHEIGHT);	// maxheight 4096
 		}
-		else
-		{
-			*pix = pic;
-			MsgDev( D_WARN, "Image_Resample: invalid parms [%d x %d]\n", width, height );
-			return; // failed to resample
-		}
 		out = Image_ResampleInternal((uint *)pic->buffer, pic->width, pic->height, w, h, pic->type );
 
 		if( out != pic->buffer ) // resampled
 		{
-			int	pixel = PFDesc[pic->type].bpp;
-
 			pic->width = w, pic->height = h;
-			pic->size = w * h * pixel;
+			pic->size = w * h * PFDesc[pic->type].bpp;
 			MsgDev( D_NOTE, "Image_Resample: from[%d x %d] to [%d x %d]\n", pic->width, pic->height, w, h );
-
-			// free original image buffer if allowed
-			if(!( flags & IMAGE_SAVEINPUT )) Mem_Free( pic->buffer );
+			Mem_Free( pic->buffer );		// free original image buffer if allowed
 			pic->buffer = Image_Copy( pic->size );	// unzone buffer (don't touch image.tempbuffer)
 		}
 	}

@@ -766,9 +766,9 @@ void R_BeginRegistration( const char *mapname )
 	r_viewCluster = -1;
 
 	// load some needed shaders
-	r_waterCausticsShader = R_FindShader( "waterCaustics", SHADER_TEXTURE, 0 );
-	r_slimeCausticsShader = R_FindShader( "slimeCaustics", SHADER_TEXTURE, 0 );
-	r_lavaCausticsShader = R_FindShader( "lavaCaustics", SHADER_TEXTURE, 0 );
+	r_waterCausticsShader = r_shaders[R_FindShader( "waterCaustics", SHADER_TEXTURE, 0 )];
+	r_slimeCausticsShader = r_shaders[R_FindShader( "slimeCaustics", SHADER_TEXTURE, 0 )];
+	r_lavaCausticsShader = r_shaders[R_FindShader( "lavaCaustics", SHADER_TEXTURE, 0 )];
 }
 
 

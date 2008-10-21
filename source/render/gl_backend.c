@@ -558,7 +558,7 @@ void GL_InitExtensions( void )
 
 	// initialize gl extensions
 	GL_CheckExtension( "OpenGL 1.1.0", opengl_110funcs, NULL, R_OPENGL_110 );
-	if( !r_framebuffer ) r_framebuffer = Mem_Alloc( r_temppool, r_width->integer * r_height->integer * 4 );
+	if( !r_framebuffer ) r_framebuffer = Mem_Alloc( r_temppool, r_width->integer * r_height->integer * 3 );
 
 	// get our various GL strings
 	gl_config.vendor_string = pglGetString( GL_VENDOR );
@@ -655,7 +655,7 @@ void GL_InitExtensions( void )
 	else gl_config.texRectangle = gl_config.max_2d_rectangle_size = 0; // no rectangle
 
 	if( GL_Support( R_TEXTURE_COMPRESSION_EXT )) flags |= IL_DDS_HARDWARE;
-	flags |= (IL_USE_LERPING|IL_EXPLICIT_PATH); // test
+	flags |= IL_USE_LERPING;
 
 	Image_Init( NULL, flags );
 }

@@ -33,7 +33,7 @@ vbo_t		rb_vbo;
 int		m_iInfoKey;
 float		m_fShaderTime;
 mesh_t		*m_pRenderMesh;
-shader_t		*m_pCurrentShader;
+ref_shader_t		*m_pCurrentShader;
 ref_entity_t	*m_pCurrentEntity;
 
 vec4_t		colorArray[MAX_VERTICES];
@@ -1502,7 +1502,7 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 {
 	int		i;
 	mesh_t		*mesh;
-	shader_t		*shader;
+	ref_shader_t		*shader;
 	ref_entity_t	*entity;
 	int		infoKey;
 	uint		sortKey = 0;
@@ -1605,7 +1605,7 @@ void RB_RenderMeshes( mesh_t *meshes, int numMeshes )
 RB_DrawStretchPic
 =================
 */
-void RB_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, float sh, float th, shader_t *shader )
+void RB_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, float sh, float th, ref_shader_t *shader )
 {
 	int	i;
 

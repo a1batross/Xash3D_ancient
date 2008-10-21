@@ -1791,24 +1791,21 @@ void VID_ImageAdjustGamma( byte *in, uint width, uint height )
 
 bool VID_ScreenShot( const char *filename, bool levelshot )
 {
-	rgbdata_t 	*r_shot;
-	uint		flags = IMAGE_SAVEINPUT|IMAGE_FLIP_Y;	// explicit
-
-	// shared framebuffer not init
-	if( !r_framebuffer ) return false;
-
-	// get screen frame
-	pglReadPixels( 0, 0, r_width->integer, r_height->integer, GL_RGB, GL_UNSIGNED_BYTE, r_framebuffer );
+	rgbdata_t *r_shot;
+	uint	flags = IMAGE_FLIP_Y;
 
 	r_shot = Mem_Alloc( r_imagepool, sizeof( rgbdata_t ));
 	r_shot->width = r_width->integer;
 	r_shot->height = r_height->integer;
 	r_shot->type = PF_RGB_24;
-	r_shot->size = r_shot->width * r_shot->height * 3;
+	r_shot->size = r_shot->width * r_shot->height * PFDesc[r_shot->type].bpp;
 	r_shot->palette = NULL;
 	r_shot->numLayers = 1;
 	r_shot->numMips = 1;
-	r_shot->buffer = r_framebuffer;
+	r_shot->buffer = Mem_Alloc( r_temppool, r_width->integer * r_height->integer * 3 );
+
+	// get screen frame
+	pglReadPixels( 0, 0, r_width->integer, r_height->integer, GL_RGB, GL_UNSIGNED_BYTE, r_shot->buffer );
 
 	if( levelshot ) flags |= IMAGE_RESAMPLE;
 	else VID_ImageAdjustGamma( r_shot->buffer, r_shot->width, r_shot->height ); // adjust brightness
@@ -1816,7 +1813,7 @@ bool VID_ScreenShot( const char *filename, bool levelshot )
 
 	// write image
 	FS_SaveImage( filename, PF_RGB_24, r_shot );
-	Mem_Free( r_shot ); // don't touch framebuffer!
+	FS_FreeImage( r_shot );
 	return true;
 }
 

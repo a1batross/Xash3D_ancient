@@ -382,7 +382,7 @@ float SV_AngleMod( float ideal, float current, float speed );
 //
 cmodel_t *SV_GetModelPtr( edict_t *ent );
 float *SV_GetModelVerts( sv_edict_t *ent, int *numvertices );
-int SV_StudioExtractBbox( studiohdr_t *phdr, int sequence, float *mins, float *maxs );
+int SV_StudioExtractBbox( dstudiohdr_t *phdr, int sequence, float *mins, float *maxs );
 bool SV_CreateMeshBuffer( edict_t *in, cmodel_t *out );
 
 //

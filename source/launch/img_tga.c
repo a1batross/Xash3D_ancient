@@ -424,7 +424,7 @@ bool Image_SaveTGA( const char *name, rgbdata_t *pix, int saveformat )
 		}
 	}	
 
-	MsgDev(D_NOTE, "Writing %s[%d]\n", name, (pix->flags & IMAGE_HAVE_ALPHA) ? 32 : 24 );
+	MsgDev( D_NOTE, "Writing %s[%d]\n", name, (pix->flags & IMAGE_HAVE_ALPHA) ? 32 : 24 );
 	FS_WriteFile( name, buffer, outsize );
 
 	Mem_Free( buffer );

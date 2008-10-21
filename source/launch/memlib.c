@@ -391,7 +391,7 @@ void *_mem_realloc(byte *poolptr, void *memptr, size_t size, const char *filenam
 	memheader_t	*memhdr;
 
 	if( size <= 0 ) return memptr; // no need to reallocate
-	nb = _mem_alloc(poolptr, size, filename, fileline);
+	nb = _mem_alloc( poolptr, size, filename, fileline );
 
 	if( memptr ) // first allocate?
 	{ 

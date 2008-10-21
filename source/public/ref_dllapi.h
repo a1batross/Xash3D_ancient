@@ -14,22 +14,7 @@
 #endif
 
 #include "ref_dfiles.h"
-
-enum host_state
-{	// paltform states
-	HOST_OFFLINE = 0,	// host_init( g_Instance ) same much as:
-	HOST_CREDITS,	// "splash"	"©anyname"	(easter egg)
-	HOST_DEDICATED,	// "normal"	"#gamename"
-	HOST_NORMAL,	// "normal"	"gamename"
-	HOST_BSPLIB,	// "bsplib"	"bsplib"
-	HOST_QCCLIB,	// "qcclib"	"qcc"
-	HOST_SPRITE,	// "sprite"	"spritegen"
-	HOST_STUDIO,	// "studio"	"studiomdl"
-	HOST_WADLIB,	// "wadlib"	"xwad"
-	HOST_RIPPER,	// "ripper"	"extragen"
-	HOST_VIEWER,	// "viewer"	"viewer"
-	HOST_COUNTS,	// terminator
-};
+#include "launch_api.h"
 
 #define STRING_COLOR_TAG	'^'
 #define IsColorString(p)	( p && *(p) == STRING_COLOR_TAG && *((p)+1) && *((p)+1) != STRING_COLOR_TAG )
@@ -320,15 +305,25 @@ enum comp_format
 	PF_INDEXED_32,	// sprite 32-bit palette
 	PF_RGBA_32,	// already prepared ".bmp", ".tga" or ".jpg" image 
 	PF_ARGB_32,	// uncompressed dds image
+	PF_ABGR_64,	// uint image
 	PF_RGB_24,	// uncompressed dds or another 24-bit image 
 	PF_DXT1,		// nvidia DXT1 format
+	PF_DXT2,		// nvidia DXT2 format
 	PF_DXT3,		// nvidia DXT3 format
+	PF_DXT4,		// nvidia DXT5 format
 	PF_DXT5,		// nvidia DXT5 format
+	PF_RXGB,		// doom3 normal maps
+	PF_ATI1N,		// ati 1N texture
+	PF_ATI2N,		// ati 2N texture
 	PF_LUMINANCE,	// b&w dds image
 	PF_LUMINANCE_16,	// b&w hi-res image
 	PF_LUMINANCE_ALPHA, // b&w dds image with alpha channel
-	PF_ABGR_64,	// uint image
-	PF_ABGR_128F,	// float image
+	PF_R_16F,		// red channel half-float image
+	PF_R_32F,		// red channel float image
+	PF_GR_32F,	// Green-Red channels half-float image (dudv maps)
+	PF_GR_64F,	// Green-Red channels float image (dudv maps)
+	PF_ABGR_64F,	// ABGR half-float image
+	PF_ABGR_128F,	// ABGR float image
 	PF_RGBA_GN,	// internal generated texture
 	PF_TOTALCOUNT,	// must be last
 };
@@ -338,7 +333,7 @@ typedef struct bpc_desc_s
 	int	format;	// pixelformat
 	char	name[8];	// used for debug
 	uint	glmask;	// RGBA mask
-	uint	gltype;	// open gl datatype
+	uint	gltype;	// pixel size (byte, short etc)
 	int	bpp;	// channels (e.g. rgb = 3, rgba = 4)
 	int	bpc;	// sizebytes (byte, short, float)
 	int	block;	// blocksize < 0 needs alternate calc
@@ -347,29 +342,40 @@ typedef struct bpc_desc_s
 static const bpc_desc_t PFDesc[] =
 {
 {PF_UNKNOWN,	"raw",	0x1908,	0x1401, 0,  0,  0 },
-{PF_INDEXED_24,	"pal 24",	0x1908,	0x1401, 1,  1,  0 },// expand data to RGBA buffer
+{PF_INDEXED_24,	"pal 24",	0x1908,	0x1401, 1,  1,  0 }, // expand data to RGBA buffer
 {PF_INDEXED_32,	"pal 32",	0x1908,	0x1401, 1,  1,  0 },
 {PF_RGBA_32,	"RGBA 32",0x1908,	0x1401, 4,  1, -4 },
 {PF_ARGB_32,	"ARGB 32",0x1908,	0x1401, 4,  1, -4 },
+{PF_ABGR_64,	"ABGR 64",0x80E1,	0x1401, 4,  2, -8 },
 {PF_RGB_24,	"RGB 24",	0x1908,	0x1401, 3,  1, -3 },
 {PF_DXT1,		"DXT1",	0x1908,	0x1401, 4,  1,  8 },
+{PF_DXT2,		"DXT2",	0x1908,	0x1401, 4,  1, 16 },
 {PF_DXT3,		"DXT3",	0x1908,	0x1401, 4,  1, 16 },
+{PF_DXT4,		"DXT4",	0x1908,	0x1401, 4,  1, 16 },
 {PF_DXT5,		"DXT5",	0x1908,	0x1401, 4,  1, 16 },
+{PF_RXGB,		"RXGB",	0x1908,	0x1401, 3,  1, 16 },
+{PF_ATI1N,	"ATI1N",	0x1908,	0x1401, 1,  1,  8 },
+{PF_ATI2N,	"3DC",	0x1908,	0x1401, 3,  1, 16 },
 {PF_LUMINANCE,	"LUM 8",	0x1909,	0x1401, 1,  1, -1 },
 {PF_LUMINANCE_16,	"LUM 16", 0x1909,	0x1401, 2,  2, -2 },
 {PF_LUMINANCE_ALPHA,"LUM A",	0x190A,	0x1401, 2,  1, -2 },
-{PF_ABGR_64,	"ABGR 64",0x80E1,	0x1401, 4,  2, -8 },
-{PF_ABGR_128F,	"ABGR128",0x1908,	0x1406, 4,  4, -16},
+{PF_R_16F,	"R 16f",	0x8884,	0x1406, 1,  4, -2 }, // FIXME: these NV extension, reinstall for ATI
+{PF_R_32F,	"R 32f",	0x8885,	0x1406, 1,  4, -4 },
+{PF_GR_32F,	"GR 32f",	0x8886,	0x1406, 2,  4, -4 },
+{PF_GR_64F,	"GR 64f",	0x8887,	0x1406, 2,  4, -8 },
+{PF_ABGR_64F,	"ABGR64f",0x888A,	0x1406, 4,  2, -8 },
+{PF_ABGR_128F,	"ABGR128",0x888B,	0x1406, 4,  4, -16},
 {PF_RGBA_GN,	"system",	0x1908,	0x1401, 4,  1, -4 },
 };
 
 typedef enum
 {
-	IL_EXPLICIT_PATH	= BIT(0),		// don't add 'textures/' at begin of search path
-	IL_DDS_HARDWARE	= BIT(1),		// instance have dds hardware support (disable software unpacker)
-	IL_USE_LERPING	= BIT(2),		// lerping images during resample
-	IL_PALETTED_ONLY	= BIT(3),		// ignore all non-paletted images (studio, sprgen requires)
-	IL_ALLOW_OVERWRITE	= BIT(4),		// allow to overwrite stored images
+	IL_DDS_HARDWARE	= BIT(0),		// instance have dds hardware support (disable software unpacker)
+	IL_ATI_FLOAT_EXT	= BIT(1),		// reinstall float images glmask for ati extensions
+	IL_NV_FLOAT_EXT	= BIT(2),		// reinstall float images glmask for nv extensions
+	IL_USE_LERPING	= BIT(3),		// lerping images during resample
+	IL_KEEP_8BIT	= BIT(4),		// don't expand paletted images
+	IL_ALLOW_OVERWRITE	= BIT(5),		// allow to overwrite stored images
 } ilFlags_t;
 
 // rgbdata output flags
@@ -380,23 +386,24 @@ typedef enum
 	IMAGE_HAVE_ALPHA	= BIT(1),		// image contain alpha-channel
 	IMAGE_COLORINDEX	= BIT(2),		// all colors in palette is gradients of last color (decals)
 	IMAGE_PREMULT	= BIT(3),		// need to premultiply alpha (DXT2, DXT4)
-	IMAGE_HAVE_FRAMES	= BIT(4),		// sprite pack: rgbdata->numMips == sprite_numframes
-	IMAGE_S3		= BIT(5),		// s&3 image
+	IMAGE_S3		= BIT(4),		// s&3 image
 
 	// manipulation flags
 	IMAGE_FLIP_X	= BIT(16),	// flip the image by width
 	IMAGE_FLIP_Y	= BIT(17),	// flip the image by height
-	IMAGE_FLIP_I	= BIT(18),	// flip from upper left corner to down right corner
+	IMAGE_ROT_90	= BIT(18),	// flip from upper left corner to down right corner
+	IMAGE_ROT180	= IMAGE_FLIP_X|IMAGE_FLIP_Y,
+	IMAGE_ROT270	= IMAGE_FLIP_X|IMAGE_FLIP_Y|IMAGE_ROT_90,	
 	IMAGE_ROUND	= BIT(19),	// round image to nearest Pow2
 	IMAGE_RESAMPLE	= BIT(20),	// resample image to specified dims
 	IMAGE_PALTO24	= BIT(21),	// turn 32-bit palette into 24-bit mode (only for indexed images)
-	IMAGE_SAVEINPUT	= BIT(22),	// don't release input image buffer
+	IMAGE_DXTTO32	= BIT(22),	// force to use software dds loader (render requires for some reasons)
 } imgFlags_t;
 
 typedef struct rgbdata_s
 {
-	word	width;		// image width
-	word	height;		// image height
+	int	width;		// image width
+	int	height;		// image height
 	byte	numLayers;	// multi-layer volume
 	byte	numMips;		// mipmap count
 	byte	bitsCount;	// RGB bits count
@@ -404,7 +411,7 @@ typedef struct rgbdata_s
 	uint	flags;		// misc image flags
 	byte	*palette;		// palette if present
 	byte	*buffer;		// image buffer
-	uint	size;		// for bounds checking
+	size_t	size;		// for bounds checking
 } rgbdata_t;
 
 enum dev_level
@@ -1250,7 +1257,7 @@ typedef struct render_imp_s
 	size_t	api_size;		// must matched with sizeof(render_imp_t)
 
 	// client fundamental callbacks
-	void	(*StudioEvent)( mstudioevent_t *event, entity_state_t *ent );
+	void	(*StudioEvent)( dstudioevent_t *event, entity_state_t *ent );
 	void	(*ShowCollision)( cmdraw_t callback );	// debug
 	long	(*WndProc)( void *hWnd, uint uMsg, uint wParam, long lParam );
 	entity_state_t *(*GetClientEdict)( int index );

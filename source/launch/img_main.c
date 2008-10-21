@@ -22,10 +22,10 @@ static const suffix_t skybox_3ds[6] =
 {
 { "ft", IMAGE_FLIP_X, IL_HINT_POSX },
 { "bk", IMAGE_FLIP_Y, IL_HINT_NEGX },
-{ "rt", IMAGE_FLIP_I, IL_HINT_POSY },
-{ "lf", IMAGE_FLIP_X|IMAGE_FLIP_Y|IMAGE_FLIP_I, IL_HINT_NEGY },	// rotate at 270°
-{ "up", IMAGE_FLIP_I, IL_HINT_POSZ },
-{ "dn", IMAGE_FLIP_I, IL_HINT_NEGZ },
+{ "rt", IMAGE_ROT_90, IL_HINT_POSY },
+{ "lf", IMAGE_ROT270, IL_HINT_NEGY },
+{ "up", IMAGE_ROT_90, IL_HINT_POSZ },
+{ "dn", IMAGE_ROT_90, IL_HINT_NEGZ },
 };
 
 static const suffix_t cubemap_v1[6] =
@@ -146,7 +146,7 @@ bool FS_AddSideToPack( const char *name, int adjust_flags )
 		return false;
 
 	// flip image if needed
-	flipped = Image_FlipInternal( image.rgba, image.width, image.height, image.source_type, adjust_flags );
+	flipped = Image_FlipInternal( image.rgba, &image.width, &image.height, image.source_type, adjust_flags );
 	if( !flipped ) return false; // try to reasmple dxt?
 	if( flipped != image.rgba ) image.rgba = Image_Copy( image.size );
 
@@ -174,12 +174,12 @@ bool FS_AddMipmapToPack( const byte *in, int width, int height )
 	if( !image.source_type ) image.source_type = image.type;
 	// trying to add 8 bit mimpap into 32-bit mippack or somewhat...
 	if( image.source_type != image.type ) return false;
-	if(!( image.cmd_flags & IL_PALETTED_ONLY )) outsize *= 4;
+	if(!( image.cmd_flags & IL_KEEP_8BIT )) outsize *= 4;
 	else Image_CopyPalette32bit(); 
 
 	// reallocate image buffer
 	image.rgba = Mem_Realloc( Sys.imagepool, image.rgba, image.size + outsize );	
-	if( image.cmd_flags & IL_PALETTED_ONLY ) Mem_Copy( image.rgba + image.ptr, in, outsize );
+	if( image.cmd_flags & IL_KEEP_8BIT ) Mem_Copy( image.rgba + image.ptr, in, outsize );
 	else if( !Image_Copy8bitRGBA( in, image.rgba + image.ptr, mipsize ))
 		return false; // probably pallette not installed
 
@@ -216,10 +216,7 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 	// HACKHACK: skip any checks, load file from buffer
 	if( filename[0] == '#' && buffer && size ) goto load_internal;
 
-	loadname[0] = '\0';
-	if(!( image.cmd_flags & IL_EXPLICIT_PATH ))
-		com.strncat( loadname, "textures/", sizeof( loadname ));
-	com_strncat( loadname, filename, sizeof( loadname ));
+	com.strncpy( loadname, filename, sizeof( loadname ));
 	FS_StripExtension( loadname ); // remove extension if needed
 
 	// developer warning
@@ -261,9 +258,9 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 				// suffixes may have difference length, need fine check
 				if( !com.strnicmp( suffix, cmap->type[i].suf, suflen ))
 				{
-					com.strncpy( path, loadname, com.strlen( loadname ) - suflen );
+					com.strncpy( path, loadname, com.strlen( loadname ) - suflen + 1 );
 					FS_DefaultExtension( path, ".dds" );
-					image.hint = cmap->type[i].hint; // install side hint
+					image.hint = cmap->type[i].hint;	// install side hint
 					f = FS_LoadFile( path, &filesize );
 					if( f && filesize > 0 )
 					{
@@ -271,8 +268,13 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 						FS_FileBase( path, texname );
 						if( Image_LoadDDS( texname, f, filesize ))
 						{         
-							Mem_Free(f); // release buffer
-							return ImagePack(); // loaded
+							Mem_Free(f);	// release buffer
+							return ImagePack();	// loaded
+						}
+						else
+						{
+							Mem_Free(f);	// release buffer
+							goto load_internal;	// cubemap test failed
 						}
 					}
 				}
@@ -372,14 +374,9 @@ void FS_SaveImage( const char *filename, int type, rgbdata_t *pix )
           const char	*ext = FS_FileExtension( filename );
 	bool		anyformat = !com_stricmp(ext, "") ? true : false;
 	string		path, savename;
-	size_t		filesize = 0;
 	const saveformat_t	*format;
-	byte		*data;
 
 	if( !pix || !pix->buffer ) return;
-
-	data = pix->buffer;
-
 	com.strncpy( savename, filename, sizeof( savename ));
 	FS_StripExtension( savename ); // remove extension if needed
 
@@ -412,4 +409,5 @@ void FS_FreeImage( rgbdata_t *pack )
 		if( pack->palette ) Mem_Free( pack->palette );
 		Mem_Free( pack );
 	}
+	else MsgDev( D_WARN, "FS_FreeImage: trying to free NULL image\n" );
 }

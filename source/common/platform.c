@@ -55,7 +55,7 @@ void InitPlatform ( int argc, char **argv )
 		if(FS_CheckParm("-notjunc")) notjunc = true;
 
 		// initialize ImageLibrary
-		Image_Init( NULL, IL_ALLOW_OVERWRITE|IL_EXPLICIT_PATH );
+		Image_Init( NULL, IL_ALLOW_OVERWRITE );
 		PrepareBSPModel( gamedir, source, bspflags );
 		break;
 	case HOST_QCCLIB:
@@ -79,7 +79,7 @@ void InitPlatform ( int argc, char **argv )
 		FS_InitRootDir(".");
 
 		// initialize ImageLibrary
-		Image_Init( NULL, IL_PALETTED_ONLY|IL_EXPLICIT_PATH );
+		Image_Init( NULL, IL_KEEP_8BIT );
 		start = Sys_DoubleTime();
 		break;
 	case HOST_OFFLINE:

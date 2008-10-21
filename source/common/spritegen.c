@@ -288,9 +288,9 @@ void Cmd_Load( void )
 	sprite_pal = (byte *)(&base_pal[0]);
 
 	Msg( "grabbing %s\n", framename );
-	if(Com_TryToken())
+	while(Com_TryToken())
 	{
-		if(Com_MatchToken("flip_diagonal")) flags |= IMAGE_FLIP_I;
+		if(Com_MatchToken("flip_diagonal")) flags |= IMAGE_ROT_90;
 		else if(Com_MatchToken( "flip_y" )) flags |= IMAGE_FLIP_Y;
 		else if(Com_MatchToken( "flip_x" )) flags |= IMAGE_FLIP_X;
 	}

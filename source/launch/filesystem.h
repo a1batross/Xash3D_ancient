@@ -6,17 +6,20 @@
 #ifndef COM_ZLIB_H
 #define COM_ZLIB_H
 
+// skyorder_q2[6] = { 2, 3, 1, 0, 4, 5, }; // Quake, Half-Life skybox ordering
+// skyorder_ms[6] = { 4, 5, 1, 0, 2, 3  }; // Microsoft DDS ordering (reverse)
+
 typedef enum
 {
 	IL_HINT_NO	= 0,
 
-	// cubemap hints
+	// dds cubemap hints ( Microsoft sides order )
 	IL_HINT_POSX,
 	IL_HINT_NEGX,
-	IL_HINT_POSY,
-	IL_HINT_NEGY,
 	IL_HINT_POSZ,
 	IL_HINT_NEGZ,
+	IL_HINT_POSY,
+	IL_HINT_NEGY,
 
 	// palette choosing
 	IL_HINT_Q1,
@@ -69,6 +72,17 @@ typedef struct imglib_s
 	byte		*palette;		// palette pointer
 
 	// global parms
+	int		curwidth;		// cubemap side, layer or mipmap width
+	int		curheight;	// cubemap side, layer or mipmap height
+	int		curdepth;		// current layer number
+	int		bpp;		// PFDesc[type].bpp
+	int		bpc;		// PFDesc[type].bpc
+	int		bps;		// width * bpp * bpc
+	int		SizeOfPlane;	// bps * height
+	int		SizeOfData;	// SizeOfPlane * bps
+	int		SizeOfFile;	// Image_DxtGetSize
+	bool		(*decompress)( uint, int, int, uint, uint, uint, const void* );
+
 	image_hint_t	hint;		// hint for some loaders
 	byte		*tempbuffer;	// for convert operations
 	int		cmd_flags;
@@ -247,8 +261,15 @@ typedef struct jpg_s
 
 // various four-cc types
 #define TYPE_DXT1	(('1'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT1"
+#define TYPE_DXT2	(('2'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT2"
 #define TYPE_DXT3	(('3'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT3"
+#define TYPE_DXT4	(('4'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT4"
 #define TYPE_DXT5	(('5'<<24)+('T'<<16)+('X'<<8)+'D') // little-endian "DXT5"
+
+#define TYPE_ATI1	(('1'<<24)+('I'<<16)+('T'<<8)+'A') // little-endian "ATI1"
+#define TYPE_ATI2	(('2'<<24)+('I'<<16)+('T'<<8)+'A') // little-endian "ATI2"
+
+#define TYPE_RXGB	(('B'<<24)+('G'<<16)+('X'<<8)+'R') // little-endian "RXGB" doom3 normalmaps
 #define TYPE_$	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'$') // little-endian "$"
 #define TYPE_t	(('\0'<<24)+('\0'<<16)+('\0'<<8)+'t') // little-endian "t"
 
@@ -497,19 +518,18 @@ extern byte *fs_mempool;
 
 void Image_RoundDimensions( int *scaled_width, int *scaled_height );
 byte *Image_ResampleInternal( const void *indata, int inwidth, int inheight, int outwidth, int outheight, int intype );
-byte *Image_FlipInternal( const byte *in, int width, int height, int type, int flags );
+byte *Image_FlipInternal( const byte *in, int *srcwidth, int *srcheight, int type, int flags );
 void Image_FreeImage( rgbdata_t *pack );
 void Image_Save( const char *filename, rgbdata_t *pix );
 rgbdata_t *Image_Load(const char *filename, const byte *buffer, size_t buffsize );
 bool Image_Copy8bitRGBA( const byte *in, byte *out, int pixels );
 bool FS_AddMipmapToPack( const byte *in, int width, int height );
 void Image_ConvertPalTo24bit( rgbdata_t *pic );
-bool Image_DecompressDXTC( rgbdata_t **image );
-bool Image_DecompressARGB( rgbdata_t **image );
 void Image_GetPaletteLMP( const byte *pal, int rendermode );
 void Image_GetPalettePCX( const byte *pal );
 void Image_CopyPalette24bit( void );
 void Image_CopyPalette32bit( void );
+uint Image_ShortToFloat( word y );
 void Image_GetPaletteQ2( void );
 void Image_GetPaletteQ1( void );
 void Image_GetPaletteD1( void );	// doom 2 on TNT :)
@@ -547,7 +567,5 @@ bool Image_SavePCX( const char *name, rgbdata_t *pix, int saveformat );
 byte *Image_Copy( size_t size );
 bool Image_ValidSize( const char *name );
 bool Image_LumpValidSize( const char *name );
-bool Image_DecompressDXTC( rgbdata_t **image );	// compilers version of decompressor
-bool Image_DecompressARGB( rgbdata_t **image );
 
 #endif//COM_ZLIB_H

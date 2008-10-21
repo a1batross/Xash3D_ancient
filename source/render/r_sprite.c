@@ -16,8 +16,6 @@
 =============================================================
 */
 string		frame_prefix;
-byte		*spr_palette;
-static byte	pal[256][4];
 uint		surfaceParm;
 mipTex_t		*frames;
 	
@@ -30,69 +28,39 @@ dframetype_t *R_SpriteLoadFrame( rmodel_t *mod, void *pin, mspriteframe_t **ppfr
 {
 	dframe_t		*pinframe;
 	mspriteframe_t	*pspriteframe;
-	int		width, height, size, origin[2];
-	dframetype_t	*spr_frametype;
-	rgbdata_t		*spr_frame;
-	texture_t		*image;
 	string		name;
 	mipTex_t		*out;
+
+	// build uinque frame name
+	FS_FileBase( mod->name, mod->name );
+	com.snprintf( name, MAX_STRING, "#%s_%s_%i%i.spr", mod->name, frame_prefix, framenum/10, framenum%10 );
 	
 	pinframe = (dframe_t *)pin;
+	SwapBlock((int *)pinframe, sizeof( dframe_t ));
 
-	width = LittleLong (pinframe->width);
-	height = LittleLong (pinframe->height);
-	size = width * height;
-          
-	pspriteframe = Mem_Alloc(mod->mempool, sizeof (mspriteframe_t));
-	spr_frame = (rgbdata_t *)Mem_Alloc( mod->mempool, sizeof(rgbdata_t));
-	spr_frame->buffer = (byte *)Mem_Alloc( mod->mempool, size );
-	spr_frame->palette = (byte *)Mem_Alloc( mod->mempool, 1024 );
-	Mem_Copy( spr_frame->buffer, (byte *)(pinframe + 1), size );
-	Mem_Copy( spr_frame->palette, spr_palette, 1024 );
-	spr_frame->flags = IMAGE_HAVE_ALPHA;
-	spr_frame->type = PF_INDEXED_32;
-	spr_frame->size = size; // for bounds checking
-	spr_frame->numMips = 1;
+	// setup frame description
+	pspriteframe = Mem_Alloc( mod->mempool, sizeof( mspriteframe_t ));
+	pspriteframe->width = pinframe->width;
+	pspriteframe->height = pinframe->height;
+	pspriteframe->up = pinframe->origin[1];
+	pspriteframe->left = pinframe->origin[0];
+	pspriteframe->down = pinframe->origin[1] - pinframe->height;
+	pspriteframe->right = pinframe->width + pinframe->origin[0];
+	pspriteframe->radius = sqrt((pinframe->width * pinframe->width) + (pinframe->height * pinframe->height));
+	pspriteframe->texture = R_FindTexture( name, pin, pinframe->width * pinframe->height, 0, 0 );
 	*ppframe = pspriteframe;
 
-	pspriteframe->width = spr_frame->width = width;
-	pspriteframe->height = spr_frame->height = height;
-	origin[0] = LittleLong(pinframe->origin[0]);
-	origin[1] = LittleLong(pinframe->origin[1]);
-	
-	// extract sprite name from path
-	FS_FileBase( mod->name, name );
-	com.strcat(name, va("_%s_%i%i", frame_prefix, framenum/10, framenum%10 ));
-	pspriteframe->up = origin[1];
-	pspriteframe->down = origin[1] - height;
-	pspriteframe->left = origin[0];
-	pspriteframe->right = width + origin[0];
-	pspriteframe->radius = sqrt( (width * width) + (height * height) );
-	
-	image = R_LoadTexture( name, spr_frame, 0, 0 );
-	if( image )
-	{
-		pspriteframe->texture = image;
-	}
-          else
-          {
-		MsgDev( D_WARN, "%s has null frame %d\n", image->name, framenum );
-		pspriteframe->texture = r_defaultTexture;
-	}
-
-	R_SetInternalMap( image );
+	R_SetInternalMap( pspriteframe->texture );
 	pspriteframe->shader = R_FindShader( name, SHADER_SPRITE, surfaceParm );
 
 	frames = Mem_Realloc( mod->mempool, frames, sizeof(*frames) * (mod->numShaders + 1));
 	out = frames + mod->numShaders++;
-	spr_frametype = (dframetype_t *)((byte *)(pinframe + 1) + size );
 
 	com.strncpy( out->name, name, 64 );
-	out->shader = pspriteframe->shader;
+	out->shader = r_shaders[pspriteframe->shader];
 	out->flags = surfaceParm;
 
-	FS_FreeImage( spr_frame );
-	return spr_frametype;
+	return (dframetype_t *)((byte *)(pinframe + 1) + pinframe->width * pinframe->height );
 }
 
 dframetype_t *R_SpriteLoadGroup( rmodel_t *mod, void * pin, mspriteframe_t **ppframe, int framenum )
@@ -107,19 +75,19 @@ dframetype_t *R_SpriteLoadGroup( rmodel_t *mod, void * pin, mspriteframe_t **ppf
 	pingroup = (dspritegroup_t *)pin;
 	numframes = LittleLong(pingroup->numframes);
 
-	groupsize = sizeof(mspritegroup_t) + (numframes - 1) * sizeof(pspritegroup->frames[0]);
+	groupsize = sizeof(mspritegroup_t) + (numframes - 1) * sizeof( pspritegroup->frames[0] );
 	pspritegroup = Mem_Alloc( mod->mempool, groupsize );
 	pspritegroup->numframes = numframes;
 
 	*ppframe = (mspriteframe_t *)pspritegroup;
 	pin_intervals = (dspriteinterval_t *)(pingroup + 1);
-	poutintervals = Mem_Alloc(mod->mempool, numframes * sizeof (float));
+	poutintervals = Mem_Alloc( mod->mempool, numframes * sizeof( float ));
 	pspritegroup->intervals = poutintervals;
 
 	for (i = 0; i < numframes; i++)
 	{
-		*poutintervals = LittleFloat(pin_intervals->interval);
-		if(*poutintervals <= 0.0) *poutintervals = 1.0f; // set error value
+		*poutintervals = LittleFloat( pin_intervals->interval );
+		if( *poutintervals <= 0.0 ) *poutintervals = 1.0f; // set error value
 		poutintervals++;
 		pin_intervals++;
 	}
@@ -141,96 +109,66 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 	int		i, size, numframes;
 	
 	pin = (dsprite_t *)buffer;
-	i = LittleLong(pin->version);
+	i = LittleLong( pin->version );
 		
 	if( i != SPRITE_VERSION )
 	{
-		Msg("Warning: %s has wrong version number (%i should be %i)\n", mod->name, i, SPRITE_VERSION );
+		MsgDev( D_ERROR, "%s has wrong version number (%i should be %i)\n", mod->name, i, SPRITE_VERSION );
 		return;
 	}
 
-	numframes = LittleLong (pin->numframes);
+	numframes = LittleLong( pin->numframes );
 	size = sizeof (msprite_t) + (numframes - 1) * sizeof( psprite->frames );
 
 	psprite = Mem_Alloc( mod->mempool, size );
 	mod->extradata = psprite; // make link to extradata
 	mod->numShaders = surfaceParm = 0; // reset frames
 	
-	psprite->type	= LittleLong(pin->type);
-	psprite->rendermode = LittleLong(pin->texFormat);
-	psprite->numframes	= numframes;
-	mod->mins[0] = mod->mins[1] = -LittleLong(pin->bounds[0]) / 2;
-	mod->maxs[0] = mod->maxs[1] = LittleLong(pin->bounds[0]) / 2;
-	mod->mins[2] = -LittleLong(pin->bounds[1]) / 2;
-	mod->maxs[2] = LittleLong(pin->bounds[1]) / 2;
+	psprite->type = LittleLong( pin->type );
+	psprite->rendermode = LittleLong( pin->texFormat );
+	psprite->numframes = numframes;
+	mod->mins[0] = mod->mins[1] = -LittleLong( pin->bounds[0] ) / 2;
+	mod->maxs[0] = mod->maxs[1] = LittleLong( pin->bounds[0] ) / 2;
+	mod->mins[2] = -LittleLong( pin->bounds[1] ) / 2;
+	mod->maxs[2] = LittleLong( pin->bounds[1] ) / 2;
 	numi = (short *)(pin + 1);
 
 	if( LittleShort( *numi ) == 256 )
 	{	
-		byte *src = (byte *)(numi+1);
-
+		byte	*src = (byte *)(numi+1);
+		rgbdata_t	*pal;
+	
+		// install palette
 		switch( psprite->rendermode )
 		{
-		case SPR_NORMAL:
-			for( i = 0; i < 256; i++ )
-			{
-				pal[i][0] = *src++;
-				pal[i][1] = *src++;
-				pal[i][2] = *src++;
-				pal[i][3] = 0;
-			}
-			break;
 		case SPR_ADDGLOW:
 		case SPR_ADDITIVE:
-			for( i = 0; i < 256; i++ )
-			{
-				pal[i][0] = *src++;
-				pal[i][1] = *src++;
-				pal[i][2] = *src++;
-				pal[i][3] = 255;
-			}
+			pal = FS_LoadImage( "#normal.pal", src, 768 );
 			surfaceParm |= SURF_ADDITIVE;
 			break;
                     case SPR_INDEXALPHA:
-			for( i = 0; i < 256; i++ )
-			{
-				pal[i][0] = *src++;
-				pal[i][1] = *src++;
-				pal[i][2] = *src++;
-				pal[i][3] = i;
-			}
+			pal = FS_LoadImage( "#decal.pal", src, 768 );
 			surfaceParm |= SURF_ALPHA;
 			break;
 		case SPR_ALPHTEST:		
-			for( i = 0; i < 256; i++ )
-			{
-				pal[i][0] = *src++;
-				pal[i][1] = *src++;
-				pal[i][2] = *src++;
-				pal[i][3] = 255;
-			}
-			pal[255][0] = pal[255][1] = pal[255][2] = pal[255][3] = 0;
+			pal = FS_LoadImage( "#transparent.pal", src, 768 );
 			surfaceParm |= SURF_ALPHA;
                               break;
+		case SPR_NORMAL:
 		default:
-			for (i = 0; i < 256; i++)
-			{
-				pal[i][0] = *src++;
-				pal[i][1] = *src++;
-				pal[i][2] = *src++;
-				pal[i][3] = 0;
-			}
-			MsgDev( D_ERROR, "%s has unknown texFormat (%i, should be in range 0-4 )\n", mod->name, psprite->rendermode );
+			pal = FS_LoadImage( "#normal.pal", src, 768 );
 			break;
 		}
-		pframetype = (dframetype_t *)(src);
+		pframetype = (dframetype_t *)(src + 768);
 		surfaceParm |= SURF_NOLIGHTMAP;
+		FS_FreeImage( pal ); // palette installed, no reason to keep this data
 	}
 	else 
 	{
 		MsgDev( D_ERROR, "%s has wrong number of palette colors %i (should be 256)\n", mod->name, numi );
 		return;
-	}		
+	}
+
 	if( numframes < 1 )
 	{
 		MsgDev( D_ERROR, "%s has invalid # of frames: %d\n", mod->name, numframes );
@@ -238,9 +176,7 @@ void R_SpriteLoadModel( rmodel_t *mod, const void *buffer )
 	}
 
 	MsgDev( D_LOAD, "%s, rendermode %d\n", mod->name, psprite->rendermode );
-
 	mod->registration_sequence = registration_sequence;
-	spr_palette = (byte *)(&pal[0][0]);
 
 	for( i = 0; i < numframes; i++ )
 	{
@@ -341,7 +277,7 @@ void R_AddSpriteModelToList( ref_entity_t *entity )
 	// copy frame params
 	entity->radius = frame->radius;
 	entity->rotation = 0;
-	entity->shader = frame->shader;
+	entity->shader = r_shaders[frame->shader];
 
 	// add it
 	R_AddMeshToList( MESH_SPRITE, NULL, entity->shader, entity, 0 );

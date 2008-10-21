@@ -14,7 +14,7 @@ this is needed by some client drawing functions
 */
 void R_GetPicSize( int *w, int *h, const char *pic )
 {
-	shader_t	*shader = R_RegisterShaderNoMip( pic );
+	ref_shader_t	*shader = R_RegisterShaderNoMip( pic );
 	*w = (int)shader->stages[0]->bundles[0]->textures[0]->width;
 	*h = (int)shader->stages[0]->bundles[0]->textures[0]->height;
 }
@@ -30,7 +30,7 @@ Call RB_RenderMesh to flush.
 */
 void R_DrawStretchPic( float x, float y, float w, float h, float sl, float tl, float sh, float th, const char *name )
 {
-	shader_t *shader = R_RegisterShaderNoMip(va( "gfx/%s", name ));
+	ref_shader_t *shader = R_RegisterShaderNoMip(va( "gfx/%s", name ));
 	RB_DrawStretchPic( x, y, w, h, sl, tl, sh, th, shader );
 }
 

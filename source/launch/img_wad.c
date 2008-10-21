@@ -57,7 +57,7 @@ bool Image_LoadMDL( const char *name, const byte *buffer, size_t filesize )
 {
 	byte		*fin;
 	size_t		pixels;
-	mstudiotexture_t	*pin;
+	dstudiotexture_t	*pin;
 	int		flags;
 
 	// check palette first
@@ -69,7 +69,7 @@ bool Image_LoadMDL( const char *name, const byte *buffer, size_t filesize )
 		return false;		
 	}
 	
-	pin = (mstudiotexture_t *)buffer;
+	pin = (dstudiotexture_t *)buffer;
 	flags = LittleLong( pin->flags );
 
 	// Valve never used endian functions for studiomodels...
@@ -77,7 +77,7 @@ bool Image_LoadMDL( const char *name, const byte *buffer, size_t filesize )
 	image.height = LittleLong( pin->height );
 	pixels = image.width * image.height;
 
-	if( filesize < pixels + sizeof( mstudiotexture_t ) + 768 )		
+	if( filesize < pixels + sizeof( dstudiotexture_t ) + 768 )		
 	{
 		MsgDev( D_ERROR, "Image_LoadMDL: file (%s) have invalid size\n", pin->name );
 		return false;
@@ -89,7 +89,7 @@ bool Image_LoadMDL( const char *name, const byte *buffer, size_t filesize )
 			MsgDev( D_WARN, "Image_LoadMDL: (%s) using normal palette for alpha-skin\n", pin->name );
 		image.flags |= IMAGE_HAVE_ALPHA;
 	}
-	fin = pin->ptrs;	// setup buffer
+	fin = (byte *)pin->index;	// setup buffer
 
 	if(!Image_LumpValidSize( name )) return false;
 	image.num_layers = 1;
@@ -125,10 +125,20 @@ bool Image_LoadSPR( const char *name, const byte *buffer, size_t filesize )
 	image.width = LittleLong( pin->width );
 	image.height = LittleLong( pin->height );
 
+	if( filesize < image.width * image.height )
+	{
+		MsgDev( D_ERROR, "Image_LoadSPR: file (%s) have invalid size\n", name );
+		return false;
+	}
+
 	// sorry, can't validate palette rendermode
 	if(!Image_LumpValidSize( name )) return false;
 	image.num_layers = 1;
 	image.type = PF_INDEXED_32;	// 32-bit palete
+
+	// detect alpha-channel by palette type
+	if( image.d_rendermode == LUMP_DECAL || image.d_rendermode == LUMP_TRANSPARENT )
+		image.flags |= IMAGE_HAVE_ALPHA;
 
 	return FS_AddMipmapToPack( (byte *)(pin + 1), image.width, image.height );
 }

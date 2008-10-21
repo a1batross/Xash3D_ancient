@@ -4,6 +4,7 @@
 //=======================================================================
 
 #include "launch.h"
+#include "mathlib.h"
 #include "byteorder.h"
 #include "filesystem.h"
 
@@ -878,6 +879,21 @@ void Image_DXTReadColor( word data, color32* out )
 	out->b = b << 3;
 }
 
+void Image_CorrectPreMult( uint *data, int datasize )
+{
+	int	i;
+
+	for( i = 0; i < datasize; i += 4 )
+	{
+		if( data[i+3] != 0 ) // don't divide by 0.
+		{	
+			data[i+0] = (byte)(((uint)data[i+0]<<8) / data[i+3]);
+			data[i+1] = (byte)(((uint)data[i+1]<<8) / data[i+3]);
+			data[i+2] = (byte)(((uint)data[i+2]<<8) / data[i+3]);
+		}
+	}
+}
+
 /*
 ====================
 Image_GetBitsFromMask
@@ -908,23 +924,6 @@ void Image_GetBitsFromMask( uint Mask, uint *ShiftLeft, uint *ShiftRight )
 	*ShiftLeft = 8 - i;
 }
 
-void Image_ShortToColor888( word Pixel, color24 *Colour )
-{
-	Colour->r = ((Pixel & 0xF800) >> 11) << 3;
-	Colour->g = ((Pixel & 0x07E0) >> 5)  << 2;
-	Colour->b = ((Pixel & 0x001F))       << 3;
-}
-
-word Image_Color565ToShort( color16 *Colour )
-{
-	return (Colour->r << 11) | (Colour->g << 5) | (Colour->b);
-}
-
-word Image_Color888ToShort( color24 *Colour )
-{
-	return ((Colour->r >> 3) << 11) | ((Colour->g >> 2) << 5) | (Colour->b >> 3);
-}
-
 size_t Image_DXTGetLinearSize( int type, int width, int height, int depth, int rgbcount )
 {
 	size_t BlockSize = 0;
@@ -935,9 +934,9 @@ size_t Image_DXTGetLinearSize( int type, int width, int height, int depth, int r
 	bpp = PFDesc[type].bpp;
 
 	if( block == 0 ) BlockSize = width * height * bpp;
-	else if(block > 0) BlockSize = ((width + 3)/4) * ((height + 3)/4) * depth * block;
-	else if(block < 0 && rgbcount > 0) BlockSize = width * height * depth * rgbcount;
-	else BlockSize = width * height * abs(block);
+	else if( block > 0 ) BlockSize = ((width + 3)/4) * ((height + 3)/4) * depth * block;
+	else if( block < 0 && rgbcount > 0 ) BlockSize = width * height * depth * rgbcount;
+	else BlockSize = width * height * abs( block );
 
 	return BlockSize;
 }
@@ -949,11 +948,10 @@ bool Image_DXTWriteHeader( vfile_t *f, rgbdata_t *pix, uint cubemap_flags, uint 
 	uint	dwIdent = DDSHEADER, dwSize = 124, dwSize2 = 32;
 	uint	dwWidth, dwHeight, dwDepth, dwMipCount = 1;
 
-	if(!pix || !pix->buffer )
-		return false;
+	if(!pix || !pix->buffer ) return false;
 
 	// setup flags
-	dwFlags1 |= DDS_LINEARSIZE | DDS_WIDTH | DDS_HEIGHT | DDS_CAPS | DDS_PIXELFORMAT;
+	dwFlags1 |= DDS_LINEARSIZE|DDS_WIDTH|DDS_HEIGHT|DDS_CAPS|DDS_PIXELFORMAT;
 	dwFlags2 |= DDS_FOURCC;
 	if( pix->numLayers > 1) dwFlags1 |= DDS_DEPTH;
 
@@ -962,8 +960,14 @@ bool Image_DXTWriteHeader( vfile_t *f, rgbdata_t *pix, uint cubemap_flags, uint 
 	case PF_DXT1:
 		dwFourCC = TYPE_DXT1;
 		break;
+	case PF_DXT2:
+		dwFourCC = TYPE_DXT2;
+		break;
 	case PF_DXT3:
 		dwFourCC = TYPE_DXT3;
+		break;
+	case PF_DXT4:
+		dwFourCC = TYPE_DXT4;
 		break;
 	case PF_DXT5:
 		dwFourCC = TYPE_DXT5;
@@ -975,516 +979,46 @@ bool Image_DXTWriteHeader( vfile_t *f, rgbdata_t *pix, uint cubemap_flags, uint 
 	dwWidth = pix->width;
 	dwHeight = pix->height;
 
-	VFS_Write(f, &dwIdent, sizeof(uint));
-	VFS_Write(f, &dwSize, sizeof(uint));
-	VFS_Write(f, &dwFlags1, sizeof(uint));
-	VFS_Write(f, &dwHeight, sizeof(uint));
-	VFS_Write(f, &dwWidth, sizeof(uint));
+	VFS_Write( f, &dwIdent, sizeof(uint));
+	VFS_Write( f, &dwSize, sizeof(uint));
+	VFS_Write( f, &dwFlags1, sizeof(uint));
+	VFS_Write( f, &dwHeight, sizeof(uint));
+	VFS_Write( f, &dwWidth, sizeof(uint));
 
 	dwBlockSize = PFDesc[savetype].block;
 	dwLinearSize = Image_DXTGetLinearSize( savetype, pix->width, pix->height, pix->numLayers, pix->bitsCount / 8 );
-	VFS_Write(f, &dwLinearSize, sizeof(uint)); // TODO: use dds_get_linear_size
+	VFS_Write( f, &dwLinearSize, sizeof(uint));
 
 	if( pix->numLayers > 1 )
 	{
 		dwDepth = pix->numLayers;
-		VFS_Write(f, &dwDepth, sizeof(uint));
+		VFS_Write( f, &dwDepth, sizeof( uint ));
 		dwCaps2 |= DDS_VOLUME;
 	}
 	else VFS_Write(f, 0, sizeof(uint));
 
-	VFS_Write(f, &dwMipCount, sizeof(uint));
-	VFS_Write(f, 0, sizeof(uint));
-	VFS_Write(f, 0, sizeof(uint) * 10 ); // reserved fields
+	VFS_Write( f, &dwMipCount, sizeof(uint));
+	VFS_Write( f, 0, sizeof(uint));
+	VFS_Write( f, 0, sizeof(uint) * 10 ); // reserved fields
 
-	VFS_Write(f, &dwSize2, sizeof(uint));
-	VFS_Write(f, &dwFlags2, sizeof(uint));
-	VFS_Write(f, &dwFourCC, sizeof(uint));
-	VFS_Write(f, 0, sizeof(uint) * 5 ); // bit masks
+	VFS_Write( f, &dwSize2, sizeof( uint ));
+	VFS_Write( f, &dwFlags2, sizeof( uint ));
+	VFS_Write( f, &dwFourCC, sizeof( uint ));
+	VFS_Write( f, 0, sizeof(uint) * 5 ); // bit masks
 
 	dwCaps1 |= DDS_TEXTURE;
-	if( pix->numMips > 1 ) dwCaps1 |= DDS_MIPMAP | DDS_COMPLEX;
+	if( pix->numMips > 1 ) dwCaps1 |= DDS_MIPMAP|DDS_COMPLEX;
 	if( cubemap_flags )
 	{
 		dwCaps1 |= DDS_COMPLEX;
 		dwCaps2 |= cubemap_flags;
 	}
 
-	VFS_Write(f, &dwCaps1, sizeof(uint));
-	VFS_Write(f, &dwCaps2, sizeof(uint));
-	VFS_Write(f, 0, sizeof(uint) * 3 ); // other caps and TextureStage
+	VFS_Write( f, &dwCaps1, sizeof( uint ));
+	VFS_Write( f, &dwCaps2, sizeof( uint ));
+	VFS_Write( f, 0, sizeof( uint ) * 3 ); // other caps and TextureStage
 
 	return true;
-}
-
-/*
-===============
-Image_DecompressDXTC
-
-Warning: this version will be kill all mipmaps or cubemap sides
-Not for game rendering
-===============
-*/
-bool Image_DecompressDXTC( rgbdata_t **image )
-{
-	color32	colours[4], *col;
-	uint	bits, bitmask, Offset; 
-	word	sAlpha, sColor0, sColor1;
-	byte	alphas[8], *alpha, *alphamask; 
-	int	w, h, x, y, z, i, j, k, Select; 
-	bool	have_alpha = false;
-	byte	*fin, *fout;
-	int	SizeOfPlane, Bpp, Bps; 
-	rgbdata_t	*pix = *image;
-
-	if( !pix || !pix->buffer )
-		return false;
-
-	fin = (byte *)pix->buffer;
-	w = pix->width;
-	h = pix->height;
-	Bpp = PFDesc[pix->type].bpp;
-	Bps = pix->width * Bpp * PFDesc[pix->type].bpc;
-	SizeOfPlane = Bps * pix->height;
-	fout = Mem_Alloc( Sys.imagepool, pix->width * pix->height * 4 );
-	
-	switch( pix->type )
-	{
-	case PF_DXT1:
-		colours[0].a = 0xFF;
-		colours[1].a = 0xFF;
-		colours[2].a = 0xFF;
-
-		for (z = 0; z < pix->numLayers; z++)
-		{
-			for (y = 0; y < h; y += 4)
-			{
-				for (x = 0; x < w; x += 4)
-				{
-					sColor0 = *((word*)fin);
-					sColor0 = LittleShort(sColor0);
-					sColor1 = *((word*)(fin + 2));
-					sColor1 = LittleShort(sColor1);
-
-					Image_DXTReadColor(sColor0, colours);
-					Image_DXTReadColor(sColor1, colours + 1);
-
-					bitmask = ((uint*)fin)[1];
-					bitmask = LittleLong( bitmask );
-					fin += 8;
-
-					if (sColor0 > sColor1)
-					{
-						// Four-color block: derive the other two colors.
-						// 00 = color_0, 01 = color_1, 10 = color_2, 11 = color_3
-						// These 2-bit codes correspond to the 2-bit fields 
-						// stored in the 64-bit block.
-						colours[2].b = (2 * colours[0].b + colours[1].b + 1) / 3;
-						colours[2].g = (2 * colours[0].g + colours[1].g + 1) / 3;
-						colours[2].r = (2 * colours[0].r + colours[1].r + 1) / 3;
-						colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
-						colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
-						colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
-						colours[3].a = 0xFF;
-					}
-					else
-					{ 
-						// Three-color block: derive the other color.
-						// 00 = color_0,  01 = color_1,  10 = color_2,
-						// 11 = transparent.
-						// These 2-bit codes correspond to the 2-bit fields 
-						// stored in the 64-bit block. 
-						colours[2].b = (colours[0].b + colours[1].b) / 2;
-						colours[2].g = (colours[0].g + colours[1].g) / 2;
-						colours[2].r = (colours[0].r + colours[1].r) / 2;
-						colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
-						colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
-						colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
-						colours[3].a = 0x00;
-					}
-					for (j = 0, k = 0; j < 4; j++)
-					{
-						for (i = 0; i < 4; i++, k++)
-						{
-							Select = (bitmask & (0x03 << k*2)) >> k*2;
-							col = &colours[Select];
-
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								uint ofs = z * SizeOfPlane + (y + j) * Bps + (x + i) * Bpp;
-								fout[ofs + 0] = col->r;
-								fout[ofs + 1] = col->g;
-								fout[ofs + 2] = col->b;
-								fout[ofs + 3] = col->a;
-								if(col->a == 0) have_alpha = true;
-							}
-						}
-					}
-				}
-			}
-		}
-		break;
-	case PF_DXT3:
-		for (z = 0; z < pix->numLayers; z++)
-		{
-			for (y = 0; y < h; y += 4)
-			{
-				for (x = 0; x < w; x += 4)
-				{
-					alpha = fin;
-					fin += 8;
-					Image_DXTReadColors(fin, colours);
-					bitmask = ((uint*)fin)[1];
-					bitmask = LittleLong(bitmask);
-					fin += 8;
-
-					// Four-color block: derive the other two colors.    
-					// 00 = color_0, 01 = color_1, 10 = color_2, 11 = color_3
-					// These 2-bit codes correspond to the 2-bit fields 
-					// stored in the 64-bit block.
-					colours[2].b = (2 * colours[0].b + colours[1].b + 1) / 3;
-					colours[2].g = (2 * colours[0].g + colours[1].g + 1) / 3;
-					colours[2].r = (2 * colours[0].r + colours[1].r + 1) / 3;
-					colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
-					colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
-					colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
-
-					k = 0;
-					for (j = 0; j < 4; j++)
-					{
-						for (i = 0; i < 4; i++, k++)
-						{
-							Select = (bitmask & (0x03 << k*2)) >> k*2;
-							col = &colours[Select];
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * SizeOfPlane + (y + j) * Bps + (x + i) * Bpp;
-								fout[Offset + 0] = col->r;
-								fout[Offset + 1] = col->g;
-								fout[Offset + 2] = col->b;
-							}
-						}
-					}
-					for (j = 0; j < 4; j++)
-					{
-						sAlpha = alpha[2*j] + 256*alpha[2*j+1];
-						for (i = 0; i < 4; i++)
-						{
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * SizeOfPlane + (y + j) * Bps + (x + i) * Bpp + 3;
-								fout[Offset] = sAlpha & 0x0F;
-								fout[Offset] = fout[Offset] | (fout[Offset]<<4);
-								if(sAlpha == 0) have_alpha = true;
-							}
-							sAlpha >>= 4;
-						}
-					}
-				}
-			}
-		}
-		break;
-	case PF_DXT5:
-		for (z = 0; z < pix->numLayers; z++)
-		{
-			for (y = 0; y < h; y += 4)
-			{
-				for (x = 0; x < w; x += 4)
-				{
-					if (y >= h || x >= w) break;
-					alphas[0] = fin[0];
-					alphas[1] = fin[1];
-					alphamask = fin + 2;
-					fin += 8;
-
-					Image_DXTReadColors(fin, colours);
-					bitmask = ((uint*)fin)[1];
-					bitmask = LittleLong(bitmask);
-					fin += 8;
-
-					// Four-color block: derive the other two colors.    
-					// 00 = color_0, 01 = color_1, 10 = color_2, 11 = color_3
-					// These 2-bit codes correspond to the 2-bit fields 
-					// stored in the 64-bit block.
-					colours[2].b = (2 * colours[0].b + colours[1].b + 1) / 3;
-					colours[2].g = (2 * colours[0].g + colours[1].g + 1) / 3;
-					colours[2].r = (2 * colours[0].r + colours[1].r + 1) / 3;
-					colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
-					colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
-					colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
-
-					k = 0;
-					for (j = 0; j < 4; j++)
-					{
-						for (i = 0; i < 4; i++, k++)
-						{
-							Select = (bitmask & (0x03 << k*2)) >> k*2;
-							col = &colours[Select];
-							// only put pixels out < width or height
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * SizeOfPlane + (y + j) * Bps + (x + i) * Bpp;
-								fout[Offset + 0] = col->r;
-								fout[Offset + 1] = col->g;
-								fout[Offset + 2] = col->b;
-							}
-						}
-					}
-					// 8-alpha or 6-alpha block?    
-					if (alphas[0] > alphas[1])
-					{    
-						// 8-alpha block:  derive the other six alphas.    
-						// Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
-						alphas[2] = (6 * alphas[0] + 1 * alphas[1] + 3) / 7; // bit code 010
-						alphas[3] = (5 * alphas[0] + 2 * alphas[1] + 3) / 7; // bit code 011
-						alphas[4] = (4 * alphas[0] + 3 * alphas[1] + 3) / 7; // bit code 100
-						alphas[5] = (3 * alphas[0] + 4 * alphas[1] + 3) / 7; // bit code 101
-						alphas[6] = (2 * alphas[0] + 5 * alphas[1] + 3) / 7; // bit code 110
-						alphas[7] = (1 * alphas[0] + 6 * alphas[1] + 3) / 7; // bit code 111
-					}
-					else
-					{
-						// 6-alpha block.
-						// Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
-						alphas[2] = (4 * alphas[0] + 1 * alphas[1] + 2) / 5; // Bit code 010
-						alphas[3] = (3 * alphas[0] + 2 * alphas[1] + 2) / 5; // Bit code 011
-						alphas[4] = (2 * alphas[0] + 3 * alphas[1] + 2) / 5; // Bit code 100
-						alphas[5] = (1 * alphas[0] + 4 * alphas[1] + 2) / 5; // Bit code 101
-						alphas[6] = 0x00;				// Bit code 110
-						alphas[7] = 0xFF;				// Bit code 111
-					}
-					// Note: Have to separate the next two loops,
-					// it operates on a 6-byte system.
-
-					// First three bytes
-					bits = (alphamask[0]) | (alphamask[1] << 8) | (alphamask[2] << 16);
-					for (j = 0; j < 2; j++)
-					{
-						for (i = 0; i < 4; i++)
-						{
-							// only put pixels out < width or height
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * SizeOfPlane + (y + j) * Bps + (x + i) * Bpp + 3;
-								fout[Offset] = alphas[bits & 0x07];
-							}
-							bits >>= 3;
-						}
-					}
-					// Last three bytes
-					bits = (alphamask[3]) | (alphamask[4] << 8) | (alphamask[5] << 16);
-					for (j = 2; j < 4; j++)
-					{
-						for (i = 0; i < 4; i++)
-						{
-							// only put pixels out < width or height
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * SizeOfPlane + (y + j) * Bps + (x + i) * Bpp + 3;
-								fout[Offset] = alphas[bits & 0x07];
-								if(bits & 0x07) have_alpha = true; 
-							}
-							bits >>= 3;
-						}
-					}
-				}
-			}
-		}
-		break;
-	default:
-		MsgDev(D_WARN, "qrsCompressedTexImage2D: invalid compression type: %s\n", PFDesc[pix->type].name );
-		return false;
-	}
-
-	// update image parms
-	pix->size = pix->width * pix->height * 4;
-	Mem_Free( pix->buffer );
-	pix->buffer = fout;
-	pix->type = PF_RGBA_32;
-
-	*image = pix;
-	return true;
-}
-
-/*
-===============
-Image_DecompressARGB
-
-Warning: this version will be kill all mipmaps or cubemap sides
-Not for game rendering
-===============
-*/
-bool Image_DecompressARGB( rgbdata_t **image )
-{
-	uint	ReadI = 0, TempBpp;
-	uint	RedL, RedR, GreenL, GreenR, BlueL, BlueR, AlphaL, AlphaR;
-	uint	r_bitmask, g_bitmask, b_bitmask, a_bitmask;
-	bool	have_alpha = false;
-	byte	*fin, *fout;
-	int	SizeOfPlane, Bpp, Bps; 
-	rgbdata_t	*pix = *image;
-	int	i, w, h;
-
-	if( !pix || !pix->buffer )
-		return false;
-
-	fin = (byte *)pix->buffer;
-	w = pix->width;
-	h = pix->height;
-	Bpp = PFDesc[pix->type].bpp;
-	Bps = pix->width * Bpp * PFDesc[pix->type].bpc;
-	SizeOfPlane = Bps * pix->height;
-
-	if( pix->palette )
-	{
-		byte *pal = pix->palette; // copy ptr
-		r_bitmask	= BuffLittleLong( pal ); pal += 4;
-		g_bitmask = BuffLittleLong( pal ); pal += 4;
-		b_bitmask = BuffLittleLong( pal ); pal += 4;
-		a_bitmask = BuffLittleLong( pal ); pal += 4;
-	}
-	else
-	{
-		MsgDev(D_ERROR, "Image_DecompressARGB: can't get RGBA bitmask\n" );		
-		return false;
-	}
-
-	fout = Mem_Alloc( Sys.imagepool, pix->width * pix->height * 4 );
-	TempBpp = pix->bitsCount / 8;
-	
-	Image_GetBitsFromMask(r_bitmask, &RedL, &RedR);
-	Image_GetBitsFromMask(g_bitmask, &GreenL, &GreenR);
-	Image_GetBitsFromMask(b_bitmask, &BlueL, &BlueR);
-	Image_GetBitsFromMask(a_bitmask, &AlphaL, &AlphaR);
-
-	for( i = 0; i < SizeOfPlane * pix->numLayers; i += Bpp )
-	{
-		// TODO: This is SLOOOW...
-		// but the old version crashed in release build under
-		// winxp (and xp is right to stop this code - I always
-		// wondered that it worked the old way at all)
-		if( SizeOfPlane * pix->numLayers - i < 4 )
-		{
-			// less than 4 byte to write?
-			if (TempBpp == 1) ReadI = *((byte*)fin);
-			else if (TempBpp == 2) ReadI = BuffLittleShort( fin );
-			else if (TempBpp == 3) ReadI = BuffLittleLong( fin );
-		}
-		else ReadI = BuffLittleLong( fin );
-		fin += TempBpp;
-		fout[i] = ((ReadI & r_bitmask)>> RedR) << RedL;
-
-		if( Bpp >= 3 )
-		{
-			fout[i+1] = ((ReadI & g_bitmask) >> GreenR) << GreenL;
-			fout[i+2] = ((ReadI & b_bitmask) >> BlueR) << BlueL;
-			if( Bpp == 4 )
-			{
-				fout[i+3] = ((ReadI & a_bitmask) >> AlphaR) << AlphaL;
-				if (AlphaL >= 7) fout[i+3] = fout[i+3] ? 0xFF : 0x00;
-				else if (AlphaL >= 4) fout[i+3] = fout[i+3] | (fout[i+3] >> 4);
-			}
-		}
-		else if( Bpp == 2 )
-		{
-			fout[i+1] = ((ReadI & a_bitmask) >> AlphaR) << AlphaL;
-			if (AlphaL >= 7) fout[i+1] = fout[i+1] ? 0xFF : 0x00;
-			else if (AlphaL >= 4) fout[i+1] = fout[i+1] | (fout[i+3] >> 4);
-		}
-	}
-
-	// update image parms
-	pix->size = pix->width * pix->height * 4;
-	Mem_Free( pix->buffer );
-	pix->buffer = fout;
-	pix->type = PF_RGBA_32;
-
-	*image = pix;
-	return true;
-}
-
-word *Image_Compress565( rgbdata_t *pix )
-{
-	word	*Data;
-	uint	i, j;
-	uint	Bps, SizeOfPlane, SizeOfData;
-
-	Data = (word *)Mem_Alloc( Sys.imagepool, pix->width * pix->height * 2 * pix->numLayers );
-
-	Bps = pix->width * PFDesc[pix->type].bpp * PFDesc[pix->type].bpc;
-	SizeOfPlane = Bps * pix->height;
-	SizeOfData = SizeOfPlane * pix->numLayers;
-
-	switch ( pix->type )
-	{
-	case PF_RGB_24:
-		for (i = 0, j = 0; i < SizeOfData; i += 3, j++)
-		{
-			Data[j]  = (pix->buffer[i+0] >> 3) << 11;
-			Data[j] |= (pix->buffer[i+1] >> 2) << 5;
-			Data[j] |=  pix->buffer[i+2] >> 3;
-		}
-		break;
-	case PF_RGBA_32:
-		for( i = 0, j = 0; i < SizeOfData; i += 4, j++ )
-		{
-			Data[j] |= (pix->buffer[i+0]>>3)<<11;
-			Data[j] |= (pix->buffer[i+1]>>2)<<5;
-			Data[j] |= (pix->buffer[i+2]>>3);
-		}
-		break;
-	case PF_LUMINANCE:
-		for (i = 0, j = 0; i < SizeOfData; i++, j++)
-		{
-			Data[j]  = (pix->buffer[i] >> 3) << 11;
-			Data[j] |= (pix->buffer[i] >> 2) << 5;
-			Data[j] |=  pix->buffer[i] >> 3;
-		}
-		break;
-	case PF_LUMINANCE_ALPHA:
-		for (i = 0, j = 0; i < SizeOfData; i += 2, j++)
-		{
-			Data[j]  = (pix->buffer[i] >> 3) << 11;
-			Data[j] |= (pix->buffer[i] >> 2) << 5;
-			Data[j] |=  pix->buffer[i] >> 3;
-		}
-		break;
-	}
-	return Data;
-}
-
-byte *Image_Compress88( rgbdata_t *pix )
-{
-	byte	*Data;
-	uint	i, j;
-
-	Data = (byte *)Mem_Alloc(Sys.imagepool, pix->width * pix->height * 2 * pix->numLayers );
-
-	switch( pix->type )
-	{
-	case PF_RGB_24:
-		for (i = 0, j = 0; i < pix->size; i += 3, j += 2)
-		{
-			Data[j+0] = pix->buffer[i+1];
-			Data[j+1] = pix->buffer[i+0];
-		}
-		break;
-	case PF_RGBA_32:
-		for (i = 0, j = 0; i < pix->size; i += 4, j += 2)
-		{
-			Data[j+0] = pix->buffer[i+1];
-			Data[j+1] = pix->buffer[i+0];
-		}
-		break;
-	case PF_LUMINANCE:
-	case PF_LUMINANCE_ALPHA:
-		for (i = 0, j = 0; i < pix->size; i++, j += 2)
-		{
-			Data[j] = Data[j+1] = 0; //??? Luminance is no normal map format...
-		}
-		break;
-	}
-	return Data;
 }
 
 size_t Image_CompressDXT( vfile_t *f, int saveformat, rgbdata_t *pix )
@@ -1497,7 +1031,7 @@ size_t Image_CompressDXT( vfile_t *f, int saveformat, rgbdata_t *pix )
 	size_t	dst_size;
 	int	srccomps;
 
-	if(!pix || !pix->buffer )
+	if( !pix || !pix->buffer )
 		return 0;
 
 	width = pix->width;
@@ -1592,16 +1126,21 @@ void Image_DXTGetPixelFormat( dds_t *hdr )
 	// also read images without it (TODO: check file size for 3d texture?)
 	if (!(hdr->dsCaps.dwCaps2 & DDS_VOLUME)) hdr->dwDepth = 1;
 
-	if(hdr->dsPixelFormat.dwFlags & DDS_ALPHA)
+	if( hdr->dsPixelFormat.dwFlags & DDS_ALPHA )
 		image.flags |= IMAGE_HAVE_ALPHA;
 
-	if (hdr->dsPixelFormat.dwFlags & DDS_FOURCC)
+	if( hdr->dsPixelFormat.dwFlags & DDS_FOURCC )
 	{
-		switch (hdr->dsPixelFormat.dwFourCC)
+		switch( hdr->dsPixelFormat.dwFourCC )
 		{
 		case TYPE_DXT1: image.type = PF_DXT1; break;
+		case TYPE_DXT2: image.type = PF_DXT2; break;
 		case TYPE_DXT3: image.type = PF_DXT3; break;
+		case TYPE_DXT4: image.type = PF_DXT4; break;
 		case TYPE_DXT5: image.type = PF_DXT5; break;
+		case TYPE_ATI1: image.type = PF_ATI1N; break;
+		case TYPE_ATI2: image.type = PF_ATI2N; break;
+		case TYPE_RXGB: image.type = PF_RXGB; break;
 		case TYPE_$: image.type = PF_ABGR_64; break;
 		case TYPE_t: image.type = PF_ABGR_128F; break;
 		default: image.type = PF_UNKNOWN; break;
@@ -1609,12 +1148,12 @@ void Image_DXTGetPixelFormat( dds_t *hdr )
 	}
 	else
 	{
-		// This dds texture isn't compressed so write out ARGB or luminance format
-		if (hdr->dsPixelFormat.dwFlags & DDS_LUMINANCE)
+		// this dds texture isn't compressed so write out ARGB or luminance format
+		if( hdr->dsPixelFormat.dwFlags & DDS_LUMINANCE )
 		{
-			if (hdr->dsPixelFormat.dwFlags & DDS_ALPHAPIXELS)
+			if( hdr->dsPixelFormat.dwFlags & DDS_ALPHAPIXELS )
 				image.type = PF_LUMINANCE_ALPHA;
-			else if(hdr->dsPixelFormat.dwRGBBitCount == 16 && hdr->dsPixelFormat.dwRBitMask == 0xFFFF) 
+			else if( hdr->dsPixelFormat.dwRGBBitCount == 16 && hdr->dsPixelFormat.dwRBitMask == 0xFFFF ) 
 				image.type = PF_LUMINANCE_16;
 			else image.type = PF_LUMINANCE;
 		}
@@ -1626,28 +1165,24 @@ void Image_DXTGetPixelFormat( dds_t *hdr )
 	}
 
 	// setup additional flags
-	if( hdr->dsCaps.dwCaps1 & DDS_COMPLEX && hdr->dsCaps.dwCaps2 & DDS_CUBEMAP)
-	{
+	if( hdr->dsCaps.dwCaps1 & DDS_COMPLEX && hdr->dsCaps.dwCaps2 & DDS_CUBEMAP )
 		image.flags |= IMAGE_CUBEMAP;
-	}
 
-	if(hdr->dsPixelFormat.dwFlags & DDS_ALPHAPIXELS)
-	{
+	if( hdr->dsPixelFormat.dwFlags & DDS_ALPHAPIXELS )
 		image.flags |= IMAGE_HAVE_ALPHA;
-	}
 
-	if(hdr->dwFlags & DDS_MIPMAPCOUNT)
+	if( hdr->dwFlags & DDS_MIPMAPCOUNT )
 		image.num_mips = hdr->dwMipMapCount;
 	else image.num_mips = 1;
 
-	if(image.type == PF_ARGB_32 || image.type == PF_LUMINANCE || image.type == PF_LUMINANCE_16 || image.type == PF_LUMINANCE_ALPHA)
+	if( image.type == PF_ARGB_32 || image.type == PF_LUMINANCE || image.type == PF_LUMINANCE_16 || image.type == PF_LUMINANCE_ALPHA )
 	{
-		//store RGBA mask into one block, and get palette pointer
+		// store RGBA mask into palette space
 		byte *tmp = image.palette = Mem_Alloc( Sys.imagepool, sizeof(uint) * 4 );
-		Mem_Copy( tmp, &hdr->dsPixelFormat.dwRBitMask, sizeof(uint)); tmp += 4;
-		Mem_Copy( tmp, &hdr->dsPixelFormat.dwGBitMask, sizeof(uint)); tmp += 4;
-		Mem_Copy( tmp, &hdr->dsPixelFormat.dwBBitMask, sizeof(uint)); tmp += 4;
-		Mem_Copy( tmp, &hdr->dsPixelFormat.dwABitMask, sizeof(uint)); tmp += 4;
+		Mem_Copy( tmp, &hdr->dsPixelFormat.dwRBitMask, sizeof( uint )); tmp += 4;
+		Mem_Copy( tmp, &hdr->dsPixelFormat.dwGBitMask, sizeof( uint )); tmp += 4;
+		Mem_Copy( tmp, &hdr->dsPixelFormat.dwBBitMask, sizeof( uint )); tmp += 4;
+		Mem_Copy( tmp, &hdr->dsPixelFormat.dwABitMask, sizeof( uint )); tmp += 4;
 	}
 }
 
@@ -1687,17 +1222,17 @@ uint Image_DXTCalcSize( const char *name, dds_t *hdr, size_t filesize )
 	int d = image.num_layers;
 	int bits = hdr->dsPixelFormat.dwRGBBitCount / 8;
 
-	if(hdr->dsCaps.dwCaps2 & DDS_CUBEMAP) 
+	if( hdr->dsCaps.dwCaps2 & DDS_CUBEMAP ) 
 	{
 		// cubemap w*h always match for all sides
 		buffsize = Image_DXTCalcMipmapSize( hdr ) * 6;
 	}
-	else if(hdr->dwFlags & DDS_MIPMAPCOUNT)
+	else if( hdr->dwFlags & DDS_MIPMAPCOUNT )
 	{
 		// if mipcount > 1
 		buffsize = Image_DXTCalcMipmapSize( hdr );
 	}
-	else if(hdr->dwFlags & (DDS_LINEARSIZE | DDS_PITCH))
+	else if( hdr->dwFlags & (DDS_LINEARSIZE|DDS_PITCH))
 	{
 		// just in case (no need, really)
 		buffsize = hdr->dwLinearSize;
@@ -1708,12 +1243,840 @@ uint Image_DXTCalcSize( const char *name, dds_t *hdr, size_t filesize )
 		buffsize = Image_DXTCalcMipmapSize( hdr );
 	}
 
-	if(filesize != buffsize) // main check
+	if( filesize != buffsize ) // main check
 	{
 		MsgDev( D_WARN, "LoadDDS: (%s) probably corrupted(%i should be %i)\n", name, buffsize, filesize );
 		return false;
 	}
 	return buffsize;
+}
+
+void Image_AddRGBAToPack( uint target, int level, uint imageSize, const void* data )
+{
+	// NOTE: just update bufer without checking for type
+	image.rgba = Mem_Realloc( Sys.imagepool, image.rgba, image.ptr + imageSize );
+	Mem_Copy( image.rgba + image.ptr, data, imageSize ); // add mipmap or cubemapside
+
+	image.size += imageSize;	// update image size
+	image.ptr += imageSize;
+	if( level ) image.num_mips++;
+}
+
+/*
+=============
+Image_SetPixelFormat
+
+update pixel format for miplevel or layer
+=============
+*/
+void Image_SetPixelFormat( int width, int height, int depth )
+{
+	image.bpp = PFDesc[image.type].bpp;
+	image.bpc = PFDesc[image.type].bpc;
+
+	image.curdepth = depth;
+	image.curwidth = width;
+	image.curheight = height;
+
+	image.bps = image.curwidth * image.bpp * image.bpc;
+	image.SizeOfPlane = image.bps * image.curheight;
+	image.SizeOfData = image.SizeOfPlane * image.curdepth;
+
+	// NOTE: size of current miplevel or cubemap side, not total (filesize - sizeof(header))
+	image.SizeOfFile = Image_DXTGetLinearSize( image.type, width, height, depth, image.bits_count / 8 );
+}
+
+bool Image_DecompressFloat( uint target, int level, int intformat, uint width, uint height, uint imageSize, const void* data )
+{
+	uint	floatformat = 0;
+	uint	i, size = 0;
+	uint	pixformat = PFDesc[intformat].format;
+	word	*src = (word *)data;
+	uint	*dest;
+
+	if( !src ) return false;
+
+	switch( pixformat )
+	{
+	case PF_R_16F:
+	case PF_GR_32F:
+	case PF_ABGR_64F:
+		size = width * height * image.curdepth * image.bpp;
+		dest = (uint *)Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+		for( i = 0; i < size; i++, dest++, src++ )
+			*dest = Image_ShortToFloat( *src );
+		break;
+	case PF_R_32F:
+	case PF_GR_64F:
+	case PF_ABGR_128F:
+		size = image.SizeOfData;
+		dest = (uint *)Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+		Mem_Copy( dest, data, image.SizeOfData );
+		break;
+	default: return false;
+	}
+	Image_AddRGBAToPack( target, level, size, dest );
+	return true;
+}
+
+bool Image_DecompressATI( uint target, int level, int intformat, uint width, uint height, uint imageSize, const void* data )
+{
+	int	x, y, z, w, h, i, j, k, t1, t2, size;
+	byte	Colours[8], XColours[8], YColours[8];
+	uint	bitmask, bitmask2, CurrOffset, Offset = 0;
+	byte	*fin, *fin2, *fout;
+
+	if( !data ) return false;
+	fin = (byte *)data;
+
+	w = width;
+	h = height;
+	size = width * height * image.curdepth * 4;
+	fout = Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+
+	switch( PFDesc[intformat].format )
+	{
+	case PF_ATI1N:
+		for( z = 0; z < image.curdepth; z++ )
+		{
+			for( y = 0; y < h; y += 4 )
+			{
+				for( x = 0; x < w; x += 4 )
+				{
+					// read palette
+					t1 = Colours[0] = fin[0];
+					t2 = Colours[1] = fin[1];
+					fin += 2;
+
+					if( t1 > t2 )
+					{
+						for( i = 2; i < 8; ++i )
+							Colours[i] = t1 + ((t2 - t1)*(i - 1)) / 7;
+					}
+					else
+					{
+						for( i = 2; i < 6; ++i )
+							Colours[i] = t1 + ((t2 - t1)*(i - 1)) / 5;
+						Colours[6] = 0;
+						Colours[7] = 0xFF;
+					}
+					// decompress pixel data
+					CurrOffset = Offset;
+					for( k = 0; k < 4; k += 2 )
+					{
+						// first three bytes
+						bitmask = ((uint)(fin[0]) << 0) | ((uint)(fin[1]) << 8) | ((uint)(fin[2]) << 16);
+
+						for( j = 0; j < 2; j++ )
+						{
+							// only put pixels out < height
+							if((y + k + j) < h )
+							{
+								for( i = 0; i < 4; i++ )
+								{
+									// only put pixels out < width
+									if((x + i) < w )
+									{
+										t1 = CurrOffset + (x + i);
+										fout[t1] = Colours[bitmask & 0x07];
+									}
+									bitmask >>= 3;
+								}
+								CurrOffset += image.bps;
+							}
+						}
+						fin += 3;
+					}
+				}
+				Offset += image.bps * 4;
+			}
+		}
+		break;
+	case PF_ATI2N:
+		for( z = 0; z < image.curdepth; z++ )
+		{
+			for( y = 0; y < h; y += 4 )
+			{
+				for( x = 0; x < w; x += 4 )
+				{
+					fin2 = fin + 8;
+
+					// read Y palette
+					t1 = YColours[0] = fin[0];
+					t2 = YColours[1] = fin[1];
+					fin += 2;
+
+					if( t1 > t2 )
+					{
+						for( i = 2; i < 8; ++i )
+							YColours[i] = t1 + ((t2 - t1) * (i - 1)) / 7;
+					}
+					else
+					{
+						for( i = 2; i < 6; ++i )
+							YColours[i] = t1 + ((t2 - t1) * (i - 1)) / 5;
+						YColours[6] = 0;
+						YColours[7] = 0xFF;
+					}
+
+					// read X palette
+					t1 = XColours[0] = fin2[0];
+					t2 = XColours[1] = fin2[1];
+					fin2 += 2;
+
+					if( t1 > t2 )
+					{
+						for( i = 2; i < 8; ++i )
+							XColours[i] = t1 + ((t2 - t1) * (i - 1)) / 7;
+					}
+					else
+					{
+						for( i = 2; i < 6; ++i )
+							XColours[i] = t1 + ((t2 - t1) * (i - 1)) / 5;
+						XColours[6] = 0;
+						XColours[7] = 0xFF;
+					}
+					// decompress pixel data
+					CurrOffset = Offset;
+
+					for( k = 0; k < 4; k += 2 )
+					{
+						// first three bytes
+						bitmask = ((uint)(fin[0]) << 0) | ((uint)(fin[1]) << 8) | ((uint)(fin[2]) << 16);
+						bitmask2 = ((uint)(fin2[0]) << 0) | ((uint)(fin2[1]) << 8) | ((uint)(fin2[2]) << 16);
+
+						for( j = 0; j < 2; j++ )
+						{
+							// only put pixels out < height
+							if((y + k + j) < h)
+							{
+								for( i = 0; i < 4; i++ )
+								{
+									// only put pixels out < width
+									if((x + i) < w )
+									{
+										int t, tx, ty;
+
+										t1 = CurrOffset + (x + i)*3;
+										fout[t1+1] = ty = YColours[bitmask & 0x07];
+										fout[t1+0] = tx = XColours[bitmask2 & 0x07];
+
+										// calculate b (z) component ((r/255)^2 + (g/255)^2 + (b/255)^2 = 1
+										t = 127 * 128 - (tx - 127) * (tx - 128) - (ty - 127) * (ty - 128);
+
+										if( t > 0 ) fout[t1+2] = (byte)(sqrt(t) + 128); // FIXME: use FastSqrt
+										else fout[t1+2] = 0x7F;
+									}
+									bitmask >>= 3;
+									bitmask2 >>= 3;
+								}
+								CurrOffset += image.bps;
+							}
+						}
+						fin += 3;
+						fin2 += 3;
+					}
+					// skip bytes that were read via Temp2
+					fin += 8;
+				}
+				Offset += image.bps * 4;
+			}
+		}
+		break;
+	default: return false;
+	}
+
+	Image_AddRGBAToPack( target, level, size, fout );
+	return true;
+}
+
+bool Image_DecompressDXT( uint target, int level, int intformat, uint width, uint height, uint imageSize, const void* data )
+{
+	color32	colours[4], *col;
+	color16	*color_0, *color_1;
+	word	sAlpha, sColor0, sColor1;
+	uint	bits, bitmask, Offset, size;
+	byte	alphas[8], *alpha, *alphamask; 
+	int	w, h, x, y, z, i, j, k, Select; 
+	bool	has_alpha = false;
+	byte	*fin, *fout;
+
+	if( !data ) return false;
+	fin = (byte *)data;
+
+	w = width;
+	h = height;
+	size = width * height * image.curdepth * 4;
+	fout = Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+	
+	switch( PFDesc[intformat].format )
+	{
+	case PF_DXT1:
+		colours[0].a = 0xFF;
+		colours[1].a = 0xFF;
+		colours[2].a = 0xFF;
+
+		for( z = 0; z < image.curdepth; z++ )
+		{
+			for( y = 0; y < h; y += 4 )
+			{
+				for( x = 0; x < w; x += 4 )
+				{
+					sColor0 = *((word*)fin);
+					sColor0 = LittleShort(sColor0);
+					sColor1 = *((word*)(fin + 2));
+					sColor1 = LittleShort(sColor1);
+
+					Image_DXTReadColor(sColor0, colours);
+					Image_DXTReadColor(sColor1, colours + 1);
+
+					bitmask = ((uint*)fin)[1];
+					bitmask = LittleLong( bitmask );
+					fin += 8;
+
+					if (sColor0 > sColor1)
+					{
+						// four-color block: derive the other two colors.
+						// 00 = color_0, 01 = color_1, 10 = color_2, 11 = color_3
+						// These 2-bit codes correspond to the 2-bit fields 
+						// stored in the 64-bit block.
+						colours[2].b = (2 * colours[0].b + colours[1].b + 1) / 3;
+						colours[2].g = (2 * colours[0].g + colours[1].g + 1) / 3;
+						colours[2].r = (2 * colours[0].r + colours[1].r + 1) / 3;
+						colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
+						colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
+						colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
+						colours[3].a = 0xFF;
+					}
+					else
+					{ 
+						// three-color block: derive the other color.
+						// 00 = color_0,  01 = color_1,  10 = color_2,
+						// 11 = transparent.
+						// These 2-bit codes correspond to the 2-bit fields 
+						// stored in the 64-bit block. 
+						colours[2].b = (colours[0].b + colours[1].b) / 2;
+						colours[2].g = (colours[0].g + colours[1].g) / 2;
+						colours[2].r = (colours[0].r + colours[1].r) / 2;
+						colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
+						colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
+						colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
+						colours[3].a = 0x00;
+					}
+					for( j = 0, k = 0; j < 4; j++ )
+					{
+						for( i = 0; i < 4; i++, k++ )
+						{
+							Select = (bitmask & (0x03 << k*2)) >> k*2;
+							col = &colours[Select];
+
+							if (((x + i) < w) && ((y + j) < h))
+							{
+								uint ofs = z * image.SizeOfPlane + (y + j) * image.bps + (x + i) * image.bpp;
+								fout[ofs+0] = col->r;
+								fout[ofs+1] = col->g;
+								fout[ofs+2] = col->b;
+								fout[ofs+3] = col->a;
+								if( col->a == 0 ) has_alpha = true;
+							}
+						}
+					}
+				}
+			}
+		}
+		break;
+	case PF_DXT2:
+		image.flags |= IMAGE_PREMULT;
+		// intentional fallthrough
+	case PF_DXT3:
+		for( z = 0; z < image.curdepth; z++ )
+		{
+			for( y = 0; y < h; y += 4 )
+			{
+				for( x = 0; x < w; x += 4 )
+				{
+					alpha = fin;
+					fin += 8;
+					Image_DXTReadColors( fin, colours );
+					bitmask = ((uint*)fin)[1];
+					bitmask = LittleLong( bitmask );
+					fin += 8;
+
+					// four-color block: derive the other two colors.    
+					// 00 = color_0, 01 = color_1, 10 = color_2, 11 = color_3
+					// These 2-bit codes correspond to the 2-bit fields 
+					// stored in the 64-bit block.
+					colours[2].b = (2 * colours[0].b + colours[1].b + 1) / 3;
+					colours[2].g = (2 * colours[0].g + colours[1].g + 1) / 3;
+					colours[2].r = (2 * colours[0].r + colours[1].r + 1) / 3;
+					colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
+					colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
+					colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
+
+					k = 0;
+					for( j = 0; j < 4; j++ )
+					{
+						for( i = 0; i < 4; i++, k++ )
+						{
+							Select = (bitmask & (0x03 << k*2)) >> k*2;
+							col = &colours[Select];
+							if(((x + i) < w) && ((y + j) < h))
+							{
+								Offset = z * image.SizeOfPlane + (y + j) * image.bps + (x + i) * image.bpp;
+								fout[Offset + 0] = col->r;
+								fout[Offset + 1] = col->g;
+								fout[Offset + 2] = col->b;
+							}
+						}
+					}
+					for( j = 0; j < 4; j++ )
+					{
+						sAlpha = alpha[2*j] + 256*alpha[2*j+1];
+						for( i = 0; i < 4; i++ )
+						{
+							if(((x + i) < w) && ((y + j) < h))
+							{
+								Offset = z * image.SizeOfPlane + (y + j) * image.bps + (x + i) * image.bpp + 3;
+								fout[Offset] = sAlpha & 0x0F;
+								fout[Offset] = fout[Offset] | (fout[Offset]<<4);
+								if(sAlpha == 0) has_alpha = true;
+							}
+							sAlpha >>= 4;
+						}
+					}
+				}
+			}
+		}
+		break;
+	case PF_DXT4:
+		image.flags |= IMAGE_PREMULT;
+		// intentional fallthrough
+	case PF_DXT5:
+		for( z = 0; z < image.curdepth; z++ )
+		{
+			for( y = 0; y < h; y += 4 )
+			{
+				for( x = 0; x < w; x += 4 )
+				{
+					if( y >= h || x >= w ) break;
+					alphas[0] = fin[0];
+					alphas[1] = fin[1];
+					alphamask = fin + 2;
+					fin += 8;
+
+					Image_DXTReadColors(fin, colours);
+					bitmask = ((uint*)fin)[1];
+					bitmask = LittleLong(bitmask);
+					fin += 8;
+
+					// four-color block: derive the other two colors.    
+					// 00 = color_0, 01 = color_1, 10 = color_2, 11 = color_3
+					// these 2-bit codes correspond to the 2-bit fields 
+					// stored in the 64-bit block.
+					colours[2].b = (2 * colours[0].b + colours[1].b + 1) / 3;
+					colours[2].g = (2 * colours[0].g + colours[1].g + 1) / 3;
+					colours[2].r = (2 * colours[0].r + colours[1].r + 1) / 3;
+					colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
+					colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
+					colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
+
+					k = 0;
+					for( j = 0; j < 4; j++ )
+					{
+						for( i = 0; i < 4; i++, k++ )
+						{
+							Select = (bitmask & (0x03 << k*2)) >> k*2;
+							col = &colours[Select];
+							// only put pixels out < width or height
+							if(((x + i) < w) && ((y + j) < h))
+							{
+								Offset = z * image.SizeOfPlane + (y + j) * image.bps + (x + i) * image.bpp;
+								fout[Offset+0] = col->r;
+								fout[Offset+1] = col->g;
+								fout[Offset+2] = col->b;
+							}
+						}
+					}
+					// 8-alpha or 6-alpha block?    
+					if( alphas[0] > alphas[1] )
+					{    
+						// 8-alpha block:  derive the other six alphas.    
+						// bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
+						alphas[2] = (6 * alphas[0] + 1 * alphas[1] + 3) / 7; // bit code 010
+						alphas[3] = (5 * alphas[0] + 2 * alphas[1] + 3) / 7; // bit code 011
+						alphas[4] = (4 * alphas[0] + 3 * alphas[1] + 3) / 7; // bit code 100
+						alphas[5] = (3 * alphas[0] + 4 * alphas[1] + 3) / 7; // bit code 101
+						alphas[6] = (2 * alphas[0] + 5 * alphas[1] + 3) / 7; // bit code 110
+						alphas[7] = (1 * alphas[0] + 6 * alphas[1] + 3) / 7; // bit code 111
+					}
+					else
+					{
+						// 6-alpha block.
+						// bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
+						alphas[2] = (4 * alphas[0] + 1 * alphas[1] + 2) / 5; // bit code 010
+						alphas[3] = (3 * alphas[0] + 2 * alphas[1] + 2) / 5; // bit code 011
+						alphas[4] = (2 * alphas[0] + 3 * alphas[1] + 2) / 5; // bit code 100
+						alphas[5] = (1 * alphas[0] + 4 * alphas[1] + 2) / 5; // bit code 101
+						alphas[6] = 0x00;				// bit code 110
+						alphas[7] = 0xFF;				// bit code 111
+					}
+					// NOTE: Have to separate the next two loops,
+					// it operates on a 6-byte system.
+
+					// first three bytes
+					bits = (alphamask[0]) | (alphamask[1] << 8) | (alphamask[2] << 16);
+					for( j = 0; j < 2; j++ )
+					{
+						for( i = 0; i < 4; i++ )
+						{
+							// only put pixels out < width or height
+							if(((x + i) < w) && ((y + j) < h))
+							{
+								Offset = z * image.SizeOfPlane + (y + j) * image.bps + (x + i) * image.bpp + 3;
+								fout[Offset] = alphas[bits & 0x07];
+							}
+							bits >>= 3;
+						}
+					}
+					// last three bytes
+					bits = (alphamask[3]) | (alphamask[4] << 8) | (alphamask[5] << 16);
+					for( j = 2; j < 4; j++ )
+					{
+						for( i = 0; i < 4; i++ )
+						{
+							// only put pixels out < width or height
+							if (((x + i) < w) && ((y + j) < h))
+							{
+								Offset = z * image.SizeOfPlane + (y + j) * image.bps + (x + i) * image.bpp + 3;
+								fout[Offset] = alphas[bits & 0x07];
+								if( bits & 0x07 ) has_alpha = true; 
+							}
+							bits >>= 3;
+						}
+					}
+				}
+			}
+		}
+		break;
+	case PF_RXGB:
+		for( z = 0; z < image.curdepth; z++ )
+		{
+			for( y = 0; y < h; y += 4 )
+			{
+				for( x = 0; x < w; x += 4 )
+				{
+					if( y >= h || x >= w ) break;
+					alphas[0] = fin[0];
+					alphas[1] = fin[1];
+					alphamask = fin + 2;
+					fin += 8;
+
+					color_0 = ((color16*)fin);
+					color_1 = ((color16*)(fin+2));
+					bitmask = ((uint*)fin)[1];
+					fin += 8;
+
+					colours[0].r = color_0->r << 3;
+					colours[0].g = color_0->g << 2;
+					colours[0].b = color_0->b << 3;
+					colours[0].a = 0xFF;
+					colours[1].r = color_1->r << 3;
+					colours[1].g = color_1->g << 2;
+					colours[1].b = color_1->b << 3;
+					colours[1].a = 0xFF;
+
+					// four-color block: derive the other two colors.    
+					// 00 = color_0, 01 = color_1, 10 = color_2, 11 = color_3
+					// these 2-bit codes correspond to the 2-bit fields 
+					// stored in the 64-bit block.
+					colours[2].b = (2 * colours[0].b + colours[1].b + 1) / 3;
+					colours[2].g = (2 * colours[0].g + colours[1].g + 1) / 3;
+					colours[2].r = (2 * colours[0].r + colours[1].r + 1) / 3;
+					colours[2].a = 0xFF;
+					colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
+					colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
+					colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
+					colours[3].a = 0xFF;
+
+				k = 0;
+				for( j = 0; j < 4; j++ )
+				{
+					for( i = 0; i < 4; i++, k++ )
+					{
+						Select = (bitmask & (0x03 << k*2)) >> k*2;
+						col = &colours[Select];
+
+						// only put pixels out < width or height
+						if(((x + i) < w) && ((y + j) < h))
+						{
+							Offset = z * image.SizeOfPlane + (y + j) * image.bps + (x + i) * image.bpp;
+							fout[Offset + 0] = col->r;
+							fout[Offset + 1] = col->g;
+							fout[Offset + 2] = col->b;
+						}
+					}
+				}
+
+				// 8-alpha or 6-alpha block?    
+				if (alphas[0] > alphas[1])
+				{    
+					// 8-alpha block:  derive the other six alphas.    
+					// bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
+					alphas[2] = (6 * alphas[0] + 1 * alphas[1] + 3) / 7; // bit code 010
+					alphas[3] = (5 * alphas[0] + 2 * alphas[1] + 3) / 7; // bit code 011
+					alphas[4] = (4 * alphas[0] + 3 * alphas[1] + 3) / 7; // bit code 100
+					alphas[5] = (3 * alphas[0] + 4 * alphas[1] + 3) / 7; // bit code 101
+					alphas[6] = (2 * alphas[0] + 5 * alphas[1] + 3) / 7; // bit code 110
+					alphas[7] = (1 * alphas[0] + 6 * alphas[1] + 3) / 7; // bit code 111
+				}
+				else
+				{
+					// 6-alpha block.
+					// bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
+					alphas[2] = (4 * alphas[0] + 1 * alphas[1] + 2) / 5; // bit code 010
+					alphas[3] = (3 * alphas[0] + 2 * alphas[1] + 2) / 5; // bit code 011
+					alphas[4] = (2 * alphas[0] + 3 * alphas[1] + 2) / 5; // bit code 100
+					alphas[5] = (1 * alphas[0] + 4 * alphas[1] + 2) / 5; // bit code 101
+					alphas[6] = 0x00;				// bit code 110
+					alphas[7] = 0xFF;				// bit code 111
+				}
+
+				// NOTE: Have to separate the next two loops,
+				// it operates on a 6-byte system.
+				// first three bytes
+
+				bits = *((int*)alphamask);
+				for( j = 0; j < 2; j++ )
+				{
+					for( i = 0; i < 4; i++ )
+					{
+						// only put pixels out < width or height
+						if(((x + i) < w) && ((y + j) < h))
+						{
+							Offset = z * image.SizeOfPlane + (y + j) * image.bps + (x + i) * image.bpp;
+							fout[Offset] = alphas[bits & 0x07];
+						}
+						bits >>= 3;
+					}
+				}
+
+				// last three bytes
+				bits = *((int*)&alphamask[3]);
+
+				for( j = 2; j < 4; j++ )
+				{
+					for( i = 0; i < 4; i++ )
+					{
+						// only put pixels out < width or height
+						if(((x + i) < w) && ((y + j) < h))
+						{
+							Offset = z * image.SizeOfPlane + (y + j) * image.bps + (x + i) * image.bpp;
+							fout[Offset] = alphas[bits & 0x07];
+						}
+						bits >>= 3;
+					}
+				}
+			}
+		}
+	}
+	default: return false;
+	}
+
+	// make some post operations
+	if( has_alpha ) image.flags |= IMAGE_HAVE_ALPHA;
+	if( image.flags & IMAGE_PREMULT )
+	{
+		Image_CorrectPreMult((uint *)fout, size );
+		image.flags &= ~IMAGE_PREMULT;
+	}
+
+	Image_AddRGBAToPack( target, level, size, fout );
+	return true;
+}
+
+bool Image_DecompressARGB( uint target, int level, int intformat, uint width, uint height, uint imageSize, const void* data )
+{
+	uint	ReadI = 0, TempBpp;
+	uint	RedL, RedR, GreenL, GreenR, BlueL, BlueR, AlphaL, AlphaR;
+	uint	r_bitmask, g_bitmask, b_bitmask, a_bitmask;
+	int	i, w, h, size;
+	byte	*fin, *fout;
+
+	if( !data ) return false;
+
+	w = width;
+	h = height;
+	fin = (byte *)data;
+	size = width * height * image.curdepth * 4;
+	fout = Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+
+	if( PFDesc[intformat].format == PF_LUMINANCE_16 )
+	{
+		Mem_Copy( fout, data, image.SizeOfData);
+	}
+	else if( image.palette )
+	{
+		byte *pal = image.palette; //copy ptr
+		r_bitmask	= BuffLittleLong( pal ); pal += 4;
+		g_bitmask = BuffLittleLong( pal ); pal += 4;
+		b_bitmask = BuffLittleLong( pal ); pal += 4;
+		a_bitmask = BuffLittleLong( pal ); pal += 4;
+	}
+	else return false; // rgba mask unset
+
+	Image_GetBitsFromMask( r_bitmask, &RedL, &RedR );
+	Image_GetBitsFromMask( g_bitmask, &GreenL, &GreenR );
+	Image_GetBitsFromMask( b_bitmask, &BlueL, &BlueR );
+	Image_GetBitsFromMask( a_bitmask, &AlphaL, &AlphaR );
+          
+	TempBpp = image.bits_count / 8;
+
+	for( i = 0; i < image.SizeOfData; i += image.bpp )
+	{
+		// TODO: This is SLOOOW...
+		// but the old version crashed in release build under
+		// winxp (and xp is right to stop this code - I always
+		// wondered that it worked the old way at all)
+		if( image.SizeOfData - i < 4 )
+		{
+			// less than 4 byte to write?
+			if( TempBpp == 1 ) ReadI = *((byte*) fin );
+			else if( TempBpp == 2 ) ReadI = BuffLittleShort( fin );
+			else if( TempBpp == 3 ) ReadI = BuffLittleLong( fin );
+		}
+		else ReadI = BuffLittleLong( fin );
+		fin += TempBpp;
+		fout[i] = ((ReadI & r_bitmask)>> RedR) << RedL;
+
+		if( image.bpp >= 3 )
+		{
+			fout[i+1] = ((ReadI & g_bitmask) >> GreenR) << GreenL;
+			fout[i+2] = ((ReadI & b_bitmask) >> BlueR) << BlueL;
+			if( image.bpp == 4 )
+			{
+				fout[i+3] = ((ReadI & a_bitmask) >> AlphaR) << AlphaL;
+				if( AlphaL >= 7 ) fout[i+3] = fout[i+3] ? 0xFF : 0x00;
+				else if( AlphaL >= 4 ) fout[i+3] = fout[i+3]|(fout[i+3] >> 4);
+			}
+		}
+		else if( image.bpp == 2 )
+		{
+			fout[i+1] = ((ReadI & a_bitmask) >> AlphaR) << AlphaL;
+			if( AlphaL >= 7 ) fout[i+1] = fout[i+1] ? 0xFF : 0x00;
+			else if( AlphaL >= 4 ) fout[i+1] = fout[i+1]|(fout[i+3] >> 4);
+		}
+	}
+
+	Image_AddRGBAToPack( target, level, size, fout );
+	return true;
+}
+
+bool Image_DecompressRGBA( uint target, int level, int intformat, uint width, uint height, uint imageSize, const void* data )
+{
+	byte	*fin, *fout;
+	int	i, size; 
+
+	if( !data ) return false;
+	fin = (byte *)data;
+
+	size = width * height * image.curdepth * 4;
+	fout = Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
+
+	switch( PFDesc[intformat].format )
+	{
+	case PF_RGB_24:
+		for (i = 0; i < width * height; i++ )
+		{
+			fout[(i<<2)+0] = fin[i+0];
+			fout[(i<<2)+1] = fin[i+1];
+			fout[(i<<2)+2] = fin[i+2];
+			fout[(i<<2)+3] = 255;
+		}
+		break;
+	case PF_RGBA_32:
+		Mem_Copy( fout, fin, size );
+		break;
+	case PF_ABGR_64:
+		for( i = 0; i < width * height; i++ )
+		{
+			fout[i*4+0] = fin[i*4+2];
+			fout[i*4+1] = fin[i*4+1];
+			fout[i*4+2] = fin[i*4+0];
+			fout[i*4+3] = fin[i*4+3];
+		}
+		break;
+	default: return false;
+	}
+
+	Image_AddRGBAToPack( target, level, size, fout );
+	return true;
+}
+
+void Image_DecompressDDS( const byte *buffer, uint target )
+{
+	int i, size = 0;
+	int w = image.curwidth;
+	int h = image.curheight;
+	int d = image.curdepth;
+
+	// filter by cubemap side
+	if( image.hint != IL_HINT_NO && image.hint != target ) return;
+
+	switch( image.type )
+	{
+	case PF_RGB_24:
+	case PF_RGBA_32: 
+	case PF_ABGR_64: image.decompress = Image_DecompressRGBA; break;
+	case PF_LUMINANCE:
+	case PF_LUMINANCE_16:
+	case PF_LUMINANCE_ALPHA:
+	case PF_ARGB_32: image.decompress = Image_DecompressARGB; break;
+	case PF_DXT1:
+	case PF_DXT2:
+	case PF_DXT3:
+	case PF_DXT4:
+	case PF_DXT5:
+	case PF_RXGB: image.decompress = Image_DecompressDXT; break;
+	case PF_ATI1N:
+	case PF_ATI2N: image.decompress = Image_DecompressATI; break;
+	case PF_R_16F:
+	case PF_R_32F:
+	case PF_GR_32F:
+	case PF_GR_64F:
+	case PF_ABGR_64F:
+	case PF_ABGR_128F: image.decompress = Image_DecompressFloat; break;
+	case PF_UNKNOWN: break;
+	}
+
+	for( i = 0; i < image.num_mips; i++, buffer += size )
+	{
+		Image_SetPixelFormat( w, h, d );
+		size = image.SizeOfFile;
+
+		if(!image.decompress( target, i, image.type, w, h, size, buffer ))
+			break; // there were errors
+		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; // calc size of next mip
+	}
+}
+
+bool Image_ForceDecompress( void )
+{
+	int	w, h;
+
+	// GL_ARB_texture_compression missing, force to decompress anyway
+	if(!( image.cmd_flags & IL_DDS_HARDWARE )) return true;
+
+	// non power of two images needs resample
+	// but resample code not supported compressed images
+	w = image.width, h = image.height;
+	Image_RoundDimensions( &w, &h );
+	if( w != image.width || h != image.height )
+		return true;
+
+	// extract cubemap side from complex image
+	if( image.hint != IL_HINT_NO )
+		return true;
+	return false;
 }
 
 /*
@@ -1724,53 +2087,25 @@ Image_LoadDDS
 bool Image_LoadDDS( const char *name, const byte *buffer, size_t filesize )
 {
 	dds_t		header;
-	const byte	*fin;
+	byte		*fin;
 	uint		i;
 
-	fin = buffer;
-
-	// swap header
-	header.dwIdent = BuffLittleLong(fin); fin += 4;
-	header.dwSize = BuffLittleLong(fin); fin += 4;
-	header.dwFlags = BuffLittleLong(fin); fin += 4;
-	header.dwHeight = BuffLittleLong(fin); fin += 4;
-	header.dwWidth = BuffLittleLong(fin); fin += 4;
-	header.dwLinearSize = BuffLittleLong(fin); fin += 4;
-	header.dwDepth = BuffLittleLong(fin); fin += 4;
-	header.dwMipMapCount = BuffLittleLong(fin); fin += 4;
-	header.dwAlphaBitDepth = BuffLittleLong(fin); fin += 4;
-
-	for (i = 0; i < 10; i++) 
+	if( filesize < sizeof( dds_t ))
 	{
-		// skip unused stuff
-		header.dwReserved1[i] = BuffLittleLong(fin);
-		fin += 4;
-	}
-
-	// pixel format
-	header.dsPixelFormat.dwSize = BuffLittleLong(fin); fin += 4;
-	header.dsPixelFormat.dwFlags = BuffLittleLong(fin); fin += 4;
-	header.dsPixelFormat.dwFourCC = BuffLittleLong(fin); fin += 4;
-	header.dsPixelFormat.dwRGBBitCount = BuffLittleLong(fin); fin += 4;
-	header.dsPixelFormat.dwRBitMask = BuffLittleLong(fin); fin += 4;
-	header.dsPixelFormat.dwGBitMask = BuffLittleLong(fin); fin += 4;
-	header.dsPixelFormat.dwBBitMask = BuffLittleLong(fin); fin += 4;
-	header.dsPixelFormat.dwABitMask = BuffLittleLong(fin); fin += 4;
-
-	// caps
-	header.dsCaps.dwCaps1 = BuffLittleLong(fin); fin += 4;
-	header.dsCaps.dwCaps2 = BuffLittleLong(fin); fin += 4;
-	header.dsCaps.dwCaps3 = BuffLittleLong(fin); fin += 4;
-	header.dsCaps.dwCaps4 = BuffLittleLong(fin); fin += 4;
-	header.dwTextureStage = BuffLittleLong(fin); fin += 4;
-
-	if(header.dwIdent != DDSHEADER) return false; // it's not a dds file, just skip it
-	if(header.dwSize != sizeof(dds_t) - 4 ) // size of the structure (minus MagicNum)
-	{
-		MsgDev( D_ERROR, "LoadDDS: (%s) have corrupt header\n", name );
+		MsgDev( D_ERROR, "Image_LoadDDS: file (%s) have invalid size\n", name );
 		return false;
 	}
-	if(header.dsPixelFormat.dwSize != sizeof(dds_pixf_t)) // size of the structure
+
+	Mem_Copy( &header, buffer, sizeof( dds_t ));
+	SwapBlock((int *)&header, sizeof( dds_t ));
+
+	if( header.dwIdent != DDSHEADER ) return false; // it's not a dds file, just skip it
+	if( header.dwSize != sizeof(dds_t) - sizeof( uint )) // size of the structure (minus MagicNum)
+	{
+		MsgDev( D_ERROR, "LoadDDS: (%s) have corrupted header\n", name );
+		return false;
+	}
+	if( header.dsPixelFormat.dwSize != sizeof(dds_pixf_t)) // size of the structure
 	{
 		MsgDev( D_ERROR, "LoadDDS: (%s) have corrupt pixelformat header\n", name );
 		return false;
@@ -1779,53 +2114,75 @@ bool Image_LoadDDS( const char *name, const byte *buffer, size_t filesize )
 	image.width = header.dwWidth;
 	image.height = header.dwHeight;
 	image.bits_count = header.dsPixelFormat.dwRGBBitCount;
-	if(header.dwFlags & DDS_DEPTH) image.num_layers = header.dwDepth;
+	if( header.dwFlags & DDS_DEPTH) image.num_layers = header.dwDepth;
 	if(!Image_ValidSize( name )) return false;
 
-	Image_DXTGetPixelFormat( &header );// and image type too :)
+	Image_DXTGetPixelFormat( &header ); // and image type too :)
 	Image_DXTAdjustVolume( &header );
 
-	if (image.type == PF_UNKNOWN) 
+	if( image.type == PF_UNKNOWN ) 
 	{
 		MsgDev( D_WARN, "LoadDDS: (%s) have unsupported compression type\n", name );
-		return false; //unknown type
+		return false;
 	}
 
 	image.size = Image_DXTCalcSize( name, &header, filesize - 128 ); 
-	if(image.size == 0) return false; // just in case
+	if( image.size == 0 ) return false; // just in case
+	fin = (byte *)(buffer + sizeof( dds_t ));
 
-	// dds files will be uncompressed on a render. requires minimal of info for set this
-	image.rgba = Mem_Alloc( Sys.imagepool, image.size ); 
-	Mem_Copy( image.rgba, fin, image.size );
+	if( Image_ForceDecompress())
+	{
+		int	offset, numsides = 1;
+		uint	target = 1;
+		byte	*buf = fin;
 
+		// if hardware loader is absent or image not power of two
+		// or user want load current side from cubemap we run software decompressing
+		if( image.flags & IMAGE_CUBEMAP ) numsides = 6;
+		Image_SetPixelFormat( image.width, image.height, image.num_layers ); // setup
+		image.size = image.ptr = 0;
+		image.num_mips = 1;
+
+		for( i = 0, offset = 0; i < numsides; i++, buf += offset )
+		{
+			Image_SetPixelFormat( image.curwidth, image.curheight, image.curdepth );
+			offset = image.SizeOfFile; // move pointer
+
+			Image_DecompressDDS( buf, target + i );
+		}
+		// now we can change type to RGBA
+		if( image.hint != IL_HINT_NO ) image.flags &= ~IMAGE_CUBEMAP; // side extracted
+		image.type = PF_RGBA_32;
+	}
+	else
+	{
+		// dds files will be uncompressed on a render. requires minimal of info for set this
+		image.rgba = Mem_Alloc( Sys.imagepool, image.size ); 
+		Mem_Copy( image.rgba, fin, image.size );
+	}
 	return true;
 }
 
 bool Image_SaveDDS( const char *name, rgbdata_t *pix, int saveformat )
 {
-	file_t	*file;	// real file
-	vfile_t	*vhandle;	// virtual file
+	vfile_t	*file;	// virtual file
 
 	if(FS_FileExists( name ) && !(image.cmd_flags & IL_ALLOW_OVERWRITE ))
 		return false; // already existed
 
-	file = FS_Open( name, "wb" );
+	file = VFS_Open( NULL, "w" );
 	if( !file ) return false;
-	vhandle = VFS_Open( file, "w" );
-	if( !vhandle )
-	{
-		FS_Close( file );
-		return false;
-	}	
 
-	Image_DXTWriteHeader( vhandle, pix, 0, saveformat );
-	if(!Image_CompressDXT( vhandle, saveformat, pix ))
+	Image_DXTWriteHeader( file, pix, 0, saveformat );
+	if(!Image_CompressDXT( file, saveformat, pix ))
 	{
-		MsgDev(D_ERROR, "Image_SaveDDS: can't create dds file\n" );
+		MsgDev( D_ERROR, "Image_SaveDDS: can't create dds file\n" );
+		VFS_Close( file );
 		return false;
 	}
-	file = VFS_Close( vhandle );			// write buffer into hdd
-	FS_Close( file );
+	
+	FS_WriteFile( name, VFS_GetBuffer( file ), VFS_Tell( file ));
+	VFS_Close( file );	// release virtual file
 
 	return true;
 }

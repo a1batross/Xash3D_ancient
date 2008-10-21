@@ -112,7 +112,7 @@ R_AddSurfaceToList
 static void R_AddSurfaceToList( surface_t *surf, ref_entity_t *entity )
 {
 	mipTex_t		*tex = surf->texInfo;
-	shader_t		*shader = tex->shader;
+	ref_shader_t	*shader = tex->shader;
 	int		map, lmNum;
 
 	if( tex->flags & SURF_NODRAW )
