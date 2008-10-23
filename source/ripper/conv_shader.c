@@ -23,7 +23,7 @@ void Conv_RoundDimensions( int *scaled_width, int *scaled_height )
 
 bool Conv_WriteShader( const char *shaderpath, const char *imagepath, rgbdata_t *p, float *rad, float scale, int flags, int contents )
 {
-	file_t	*f;
+	file_t	*f = NULL;
 	string	wadname;
 	string	qcname, qcpath;
 	string	temp, lumpname;
@@ -36,22 +36,25 @@ bool Conv_WriteShader( const char *shaderpath, const char *imagepath, rgbdata_t 
 	FS_DefaultExtension( qcname, ".qc" );
 	FS_DefaultExtension( wadname, ".wad" ); // check for wad later
 	com.snprintf( qcpath, MAX_STRING, "%s/%s/%s", gs_gamedir, temp, qcname );
-	
-	if(FS_FileExists( qcpath ))
-	{
-		// already exist, search for current name
-		f = FS_Open( qcpath, "a" );	// append
-	}
-	else
-	{
-		FS_StripExtension( qcname ); // no need anymore
-		f = FS_Open( qcpath, "w" );	// new file
-		// write description
-		FS_Print(f,"//=======================================================================\n");
-		FS_Print(f,"//\t\t\tCopyright XashXT Group 2007 ©\n");
-		FS_Print(f,"//\t\t\twritten by Xash Miptex Decompiler\n");
-		FS_Print(f,"//=======================================================================\n");
-		FS_Printf(f,"$wadname\t%s.wad\n\n", qcname );
+
+	if( write_qscsript )
+	{	
+		if(FS_FileExists( qcpath ))
+		{
+			// already exist, search for current name
+			f = FS_Open( qcpath, "a" );	// append
+		}
+		else
+		{
+			FS_StripExtension( qcname ); // no need anymore
+			f = FS_Open( qcpath, "w" );	// new file
+			// write description
+			FS_Print(f,"//=======================================================================\n");
+			FS_Print(f,"//\t\t\tCopyright XashXT Group 2007 ©\n");
+			FS_Print(f,"//\t\t\twritten by Xash Miptex Decompiler\n");
+			FS_Print(f,"//=======================================================================\n");
+			FS_Printf(f,"$wadname\t%s.wad\n\n", qcname );
+		}
 	}
 
 	if( f && p )

@@ -129,7 +129,7 @@ static void LoadShaderImage( bsp_shader_t *si )
 			Mem_Copy( si->pixels, pic->buffer, pic->size );
 			FS_FreeImage( pic ); // release pic
 		}
-		else  MsgDev( D_WARN, "%s have type %s\n", si->name, PFDesc[pic->type].name );
+		else  MsgDev( D_WARN, "%s have type %s\n", si->name, PFDesc( pic->type )->name );
 	}
 }
 

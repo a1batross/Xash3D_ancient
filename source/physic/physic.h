@@ -18,6 +18,7 @@ typedef struct physragdoll_s	NewtonRagDoll;
 typedef struct physmaterial_s	NewtonMaterial;
 typedef struct physcolision_s	NewtonCollision;
 typedef struct physragbone_s	NewtonRagDollBone;
+typedef void (*cmread_t) (void* handle, void* buffer, size_t size);
 
 extern physic_imp_t pi;
 extern stdlib_api_t com;

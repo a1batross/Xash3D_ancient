@@ -3,9 +3,7 @@
 //			img_utils.c - image common tools
 //=======================================================================
 
-#include "launch.h"
-#include "byteorder.h"
-#include "filesystem.h"
+#include "imagelib.h"
 #include "mathlib.h"
 
 cvar_t *image_profile;
@@ -182,7 +180,8 @@ static const loadformat_t load_hl1[] =
 // version7 - using only Half-Life 2 images
 static const loadformat_t load_hl2[] =
 {
-// FIXME: implement
+{ "materials/%s%s.%s", "vtf", Image_LoadVTF, IL_HINT_NO },	// hl2 dds wrapper
+{ "%s%s.%s", "vtf", Image_LoadVTF, IL_HINT_NO },
 { NULL, NULL, NULL, IL_HINT_NO }
 };
 

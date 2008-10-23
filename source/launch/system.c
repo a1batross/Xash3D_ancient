@@ -195,6 +195,7 @@ void Sys_GetStdAPI( void )
 	com.ImageSave = FS_SaveImage;			// save image into specified format 
 	com.ImageFree = FS_FreeImage;			// release image buffer
 	com.ImglibSetup = Image_Setup;		// set imagelib global features
+	com.ImagePFDesc = Image_GetPixelFormat;		// get some info about current fmt
 	com.ImageConvert = Image_Process;		// flip, rotate, resample etc
 
 	com.Com_RandomLong = Com_RandomLong;

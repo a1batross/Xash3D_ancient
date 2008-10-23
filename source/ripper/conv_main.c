@@ -16,6 +16,7 @@ string gs_searchmask;
 #define	MAX_SEARCHMASK	128
 string	searchmask[MAX_SEARCHMASK];
 int	num_searchmask = 0;
+bool	write_qscsript;
 int	game_family;
 
 typedef struct convformat_s
@@ -38,6 +39,7 @@ convformat_t convert_formats[] =
 	{"%s.%s", "mip", ConvMIP},	// Quake1/Half-Life textures
 	{"%s.%s", "lmp", ConvLMP},	// Quake1/Half-Life gfx
 	{"%s.%s", "wal", ConvWAL},	// Quake2 textures
+	{"%s.%s", "vtf", ConvVTF},	// Half-Life 2 materials
 	{"%s.%s", "skn", ConvSKN},	// doom1 sprite models
 	{"%s.%s", "bsp", ConvBSP},	// Quake1\Half-Life map textures
 	{"%s.%s", "mus", ConvMID},	// Quake1\Half-Life map textures
@@ -51,22 +53,21 @@ bool ConvertResource( const char *filename )
 {
 	convformat_t	*format;
           const char	*ext = FS_FileExtension( filename );
-	char		path[128], convname[128], basename[128];
 	bool		anyformat = !com.stricmp(ext, "") ? true : false;
+	string		path, convname, basename;
 	int		filesize = 0;
 	byte		*buffer = NULL;
 
-	com.strncpy( convname, filename, sizeof(convname)-1);
+	com.strncpy( convname, filename, sizeof( convname ));
 	FS_StripExtension( convname ); // remove extension if needed
 
 	// now try all the formats in the selected list
-	for (format = convert_formats; format->formatstring; format++)
+	for( format = convert_formats; format->formatstring; format++ )
 	{
 		if( anyformat || !com.stricmp( ext, format->ext ))
 		{
 			com.sprintf( path, format->formatstring, convname, format->ext );
 			buffer = FS_LoadFile( path, &filesize );
-			FS_FileBase( path, basename );
 			if( buffer && filesize > 0 )
 			{
 				// this path may contains wadname: wadfile/lumpname
@@ -79,6 +80,7 @@ bool ConvertResource( const char *filename )
 			if( buffer ) Mem_Free( buffer );	// release buffer
 		}
 	}
+	FS_FileBase( convname, basename );
 	MsgDev(D_WARN, "ConvertResource: couldn't load \"%s\"\n", basename );
 	return false;
 }
@@ -160,7 +162,7 @@ void RunConvertor( void )
 {
 	search_t	*search;
 	string	errorstring;
-	int	i, j, numConvertedRes = 0;
+	int	i, j, imageflags, numConvertedRes = 0;
 	cvar_t	*fs_defaultdir = Cvar_Get( "fs_defaultdir", "tmpQuArK", CVAR_SYSTEMINFO, NULL );
 
 	memset( errorstring, 0, MAX_STRING ); 
@@ -168,6 +170,8 @@ void RunConvertor( void )
 	Conv_DetectGameType();
           
 	if( game_family ) Msg("Game: %s family\n", game_names[game_family] );
+	imageflags = IL_USE_LERPING|IL_IGNORE_MIPS;
+	write_qscsript = false;
 
 	switch( game_family )
 	{
@@ -195,6 +199,9 @@ void RunConvertor( void )
 			AddMask( "*.snd" );		// Doom1 sounds
 			AddMask( "*.mus" );		// Doom1 music
 		}
+		imageflags |= IL_KEEP_8BIT;
+		Image_Init( "Doom1", imageflags );
+		write_qscsript = true;
 		break;
 	case GAME_HEXEN2:
 	case GAME_QUAKE1:
@@ -210,6 +217,9 @@ void RunConvertor( void )
 		AddMask( "*.sp32");
 		AddMask( "*.spr" );
 		AddMask( "*.mip" );
+		imageflags |= IL_KEEP_8BIT;
+		write_qscsript = true;
+		Image_Init( "Quake1", imageflags );
 		break;
 	case GAME_QUAKE2:
 		search = FS_Search("textures/*", true );
@@ -226,13 +236,53 @@ void RunConvertor( void )
 		AddMask( "sprites/*.sp2" );	// Quake2 sprites
 		AddMask( "pics/*.pcx");	// Quake2 pics
 		AddMask( "env/*.pcx" );	// Quake2 skyboxes
+		imageflags |= IL_KEEP_8BIT;
+		write_qscsript = true;
+		Image_Init( "Quake2", imageflags );
 		break;
 	case GAME_RTCW:
 	case GAME_QUAKE3:
-	case GAME_QUAKE4:
+		search = FS_Search("textures/*", true );
+		if( search )
+		{
+			// find subdirectories
+			for( i = 0; i < search->numfilenames; i++ )
+				AddMask(va("%s/*.jpg", search->filenames[i]));
+			Mem_Free( search );
+		}
+		else AddMask( "*.jpg" );	// Quake3 textures
+		search = FS_Search("gfx/*", true );
+		if( search )
+		{
+			// find subdirectories
+			for( i = 0; i < search->numfilenames; i++ )
+				AddMask(va("%s/*.jpg", search->filenames[i]));
+			Mem_Free( search );
+		}
+		else  AddMask( "gfx/*.jpg" );	// Quake3 hud pics
+		AddMask( "sprites/*.jpg" );	// Quake3 sprite frames
+		Image_Init( "Quake3", imageflags );
+		break;
 	case GAME_HALFLIFE2:
 	case GAME_HALFLIFE2_BETA:
-		Sys_Break("Sorry, nothing to decompile (not implemeneted yet)\n" );
+		search = FS_Search("materials/*", true );
+
+		// hl2 like using double included sub-dirs
+		for( i = 0; search && i < search->numfilenames; i++ )
+		{
+			search_t *search2 = FS_Search( va("%s/*", search->filenames[i] ), true );
+			for( j = 0; search2 && j < search2->numfilenames; j++ )
+				AddMask(va("%s/*.vtf", search2->filenames[j]));
+			if( search2 ) Mem_Free( search2 );
+		}
+		if( search ) Mem_Free( search );
+		else AddMask( "*.jpg" );	// Quake3 textures
+		Image_Init( "Half-Life 2", imageflags );
+		break;
+	case GAME_QUAKE4:
+		// i'm lazy today and i'm forget textures representation of IdTech4 :)
+		Sys_Break( "Sorry, nothing to decompile (not implemeneted yet)\n" );
+		Image_Init( "Quake4", imageflags );
 		break;
 	case GAME_HALFLIFE:
 		search = FS_Search("*.wad", true );
@@ -254,11 +304,17 @@ void RunConvertor( void )
 		}
 		AddMask( "maps/*.bsp" );	// textures from bsp
 		AddMask( "sprites/*.spr" );	// Half-Life sprites
+		imageflags |= IL_KEEP_8BIT;
+		write_qscsript = true;
+		Image_Init( "Half-Life", imageflags );
 		break;
 	case GAME_XASH3D:
-		Sys_Break("Sorry, but a can't decompile himself\n" );
+		Sys_Break("Sorry, but i'm can't decompile himself\n" );
+		Image_Init( "Xash3D", imageflags );
 		break;
-	default: break;
+	default:
+		Image_Init( "Generic", imageflags );	// everything else
+		break;
 	}
 
 	// using custom mask
@@ -267,14 +323,14 @@ void RunConvertor( void )
 		ClrMask(); // clear all previous masks
 		AddMask( gs_searchmask ); // custom mask
 	}
-	else if(!game_family ) Sys_Break( "Sorry, game family not recognized\n" );
+	else if( !game_family ) Sys_Break( "Sorry, game family not recognized\n" );
 
 	// directory to extract
 	com.strncpy( gs_gamedir, fs_defaultdir->string, sizeof(gs_gamedir));
 	Msg( "Converting ...\n\n" );
 
 	// search by mask		
-	for( i = 0; i < num_searchmask; i++)
+	for( i = 0; i < num_searchmask; i++ )
 	{
 		// skip blank mask
 		if(!com.strlen(searchmask[i])) continue;

@@ -3,9 +3,7 @@
 //			img_load.c - load various image formats
 //=======================================================================
 
-#include "launch.h"
-#include "byteorder.h"
-#include "filesystem.h"
+#include "imagelib.h"
 #include "mathlib.h"
 
 // global image variables
@@ -61,6 +59,45 @@ static const cubepack_t load_cubemap[] =
 { "Tenebrae", cubemap_v1 },		// FIXME: remove this ?
 { NULL, NULL },
 };
+
+// soul of ImageLib - table of image format constants 
+const bpc_desc_t PFDesc[] =
+{
+{PF_UNKNOWN,	"raw",	0x1908,	0x1401, 0,  0,  0 },
+{PF_INDEXED_24,	"pal 24",	0x1908,	0x1401, 1,  1,  0 }, // expand data to RGBA buffer
+{PF_INDEXED_32,	"pal 32",	0x1908,	0x1401, 1,  1,  0 },
+{PF_RGBA_32,	"RGBA 32",0x1908,	0x1401, 4,  1, -4 },
+{PF_BGRA_32,	"BGRA 32",0x80E1,	0x1401, 4,  1, -4 },
+{PF_ARGB_32,	"ARGB 32",0x1908,	0x1401, 4,  1, -4 },
+{PF_ABGR_64,	"ABGR 64",0x80E1,	0x1401, 4,  2, -8 },
+{PF_RGB_24,	"RGB 24",	0x1908,	0x1401, 3,  1, -3 },
+{PF_BGR_24,	"BGR 24",	0x80E0,	0x1401, 3,  1, -3 },
+{PF_RGB_16,	"RGB 16",	0x8054,	0x8364, 3,  2, 16 }, // FIXME: do revision
+{PF_DXT1,		"DXT1",	0x1908,	0x1401, 4,  1,  8 },
+{PF_DXT2,		"DXT2",	0x1908,	0x1401, 4,  1, 16 },
+{PF_DXT3,		"DXT3",	0x1908,	0x1401, 4,  1, 16 },
+{PF_DXT4,		"DXT4",	0x1908,	0x1401, 4,  1, 16 },
+{PF_DXT5,		"DXT5",	0x1908,	0x1401, 4,  1, 16 },
+{PF_RXGB,		"RXGB",	0x1908,	0x1401, 3,  1, 16 },
+{PF_ATI1N,	"ATI1N",	0x1908,	0x1401, 1,  1,  8 },
+{PF_ATI2N,	"3DC",	0x1908,	0x1401, 3,  1, 16 },
+{PF_LUMINANCE,	"LUM 8",	0x1909,	0x1401, 1,  1, -1 },
+{PF_LUMINANCE_16,	"LUM 16", 0x1909,	0x1401, 2,  2, -2 },
+{PF_LUMINANCE_ALPHA,"LUM A",	0x190A,	0x1401, 2,  1, -2 },
+{PF_R_16F,	"R 16f",	0x8884,	0x1406, 1,  4, -2 }, // FIXME: these NV extension, reinstall for ATI
+{PF_R_32F,	"R 32f",	0x8885,	0x1406, 1,  4, -4 },
+{PF_GR_32F,	"GR 32f",	0x8886,	0x1406, 2,  4, -4 },
+{PF_GR_64F,	"GR 64f",	0x8887,	0x1406, 2,  4, -8 },
+{PF_ABGR_64F,	"ABGR64f",0x888A,	0x1406, 4,  2, -8 },
+{PF_ABGR_128F,	"ABGR128",0x888B,	0x1406, 4,  4, -16},
+{PF_RGBA_GN,	"system",	0x1908,	0x1401, 4,  1, -4 },
+};
+
+bpc_desc_t *Image_GetPixelFormat( pixformat_t type )
+{
+	type = bound( PF_UNKNOWN, type, PF_TOTALCOUNT - 1 );
+	return (bpc_desc_t *)&PFDesc[type];
+}
 
 void Image_Reset( void )
 {
@@ -200,7 +237,7 @@ loading and unpack to rgba any known image
 rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 {
           const char	*ext = FS_FileExtension( filename );
-	string		path, loadname, texname, sidename;
+	string		path, loadname, sidename;
 	bool		anyformat = !com_stricmp( ext, "" ) ? true : false;
 	bool		dds_installed = false; // current loadformats list supported dds
 	int		i, filesize = 0;
@@ -212,12 +249,11 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 	if( !buffer || !buffsize ) buffer = (char *)florr1_2_jpg, buffsize = sizeof(florr1_2_jpg);
 #endif
 	Image_Reset(); // clear old image
+	com.strncpy( loadname, filename, sizeof( loadname ));
+	FS_StripExtension( loadname ); // remove extension if needed
 
 	// HACKHACK: skip any checks, load file from buffer
 	if( filename[0] == '#' && buffer && size ) goto load_internal;
-
-	com.strncpy( loadname, filename, sizeof( loadname ));
-	FS_StripExtension( loadname ); // remove extension if needed
 
 	// developer warning
 	if( !anyformat ) MsgDev( D_NOTE, "Note: %s will be loading only with ext .%s\n", loadname, ext );
@@ -231,11 +267,9 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 			com_sprintf( path, format->formatstring, loadname, "", format->ext );
 			image.hint = format->hint;
 			f = FS_LoadFile( path, &filesize );
-			if(f && filesize > 0)
+			if( f && filesize > 0 )
 			{
-				// this name will be used only for tell user about problems 
-				FS_FileBase( path, texname );
-				if( format->loadfunc( texname, f, filesize ))
+				if( format->loadfunc( path, f, filesize ))
 				{
 					Mem_Free(f); // release buffer
 					return ImagePack(); // loaded
@@ -265,8 +299,7 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 					if( f && filesize > 0 )
 					{
 						// this name will be used only for tell user about problems 
-						FS_FileBase( path, texname );
-						if( Image_LoadDDS( texname, f, filesize ))
+						if( Image_LoadDDS( path, f, filesize ))
 						{         
 							Mem_Free(f);	// release buffer
 							return ImagePack();	// loaded
@@ -299,8 +332,7 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 					if( f && filesize > 0 )
 					{
 						// this name will be used only for tell user about problems 
-						FS_FileBase( path, texname );
-						if( format->loadfunc( texname, f, filesize ))
+						if( format->loadfunc( path, f, filesize ))
 						{         
 							com_snprintf( sidename, MAX_STRING, "%s%s.%s", loadname, cmap->type[i].suf, format->ext );
 							if( FS_AddSideToPack( sidename, cmap->type[i].flags )) // process flags to flip some sides
@@ -336,9 +368,6 @@ rgbdata_t *FS_LoadImage( const char *filename, const byte *buffer, size_t size )
 	}
 
 load_internal:
-	// last chanse: try to load image from internal buffer
-	com.strncpy( texname, filename, sizeof( texname ));
-
 	for( format = image.loadformats; format && format->formatstring; format++ )
 	{
 		if( anyformat || !com_stricmp( ext, format->ext ))
@@ -346,9 +375,7 @@ load_internal:
 			image.hint = format->hint;
 			if( buffer && size > 0  )
 			{
-				// this name will be used only for tell user about problems 
-				FS_FileBase( texname, texname );
-				if( format->loadfunc( texname, buffer, size ))
+				if( format->loadfunc( loadname, buffer, size ))
 					return ImagePack(); // loaded
 			}
 		}
@@ -357,7 +384,7 @@ load_internal:
 	if( !image.loadformats || image.loadformats->ext == NULL )
 		MsgDev( D_NOTE, "FS_LoadImage: imagelib offline\n" );
 	else if(!com_stristr( filename, "#internal" ))
-		MsgDev( D_WARN, "FS_LoadImage: couldn't load \"%s\"\n", texname );
+		MsgDev( D_WARN, "FS_LoadImage: couldn't load \"%s\"\n", loadname );
 
 	return NULL;
 }

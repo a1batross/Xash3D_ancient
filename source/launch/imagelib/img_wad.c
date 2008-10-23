@@ -3,9 +3,7 @@
 //			img_mip.c - hl1 q1 image mips
 //=======================================================================
 
-#include "launch.h"
-#include "byteorder.h"
-#include "filesystem.h"
+#include "imagelib.h"
 
 /*
 ============

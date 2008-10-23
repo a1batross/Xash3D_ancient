@@ -3,10 +3,8 @@
 //			img_dds.c - dds format load & save
 //=======================================================================
 
-#include "launch.h"
+#include "imagelib.h"
 #include "mathlib.h"
-#include "byteorder.h"
-#include "filesystem.h"
 
 // TODO: tune this ?
 #define REDWEIGHT		4
@@ -1506,6 +1504,7 @@ bool Image_DecompressDXT( uint target, int level, int intformat, uint width, uin
 
 	w = width;
 	h = height;
+
 	size = width * height * image.curdepth * 4;
 	fout = Mem_Realloc( Sys.imagepool, image.tempbuffer, size );
 	
@@ -1975,6 +1974,7 @@ bool Image_DecompressRGBA( uint target, int level, int intformat, uint width, ui
 {
 	byte	*fin, *fout;
 	int	i, size; 
+	color16	*col;
 
 	if( !data ) return false;
 	fin = (byte *)data;
@@ -1984,6 +1984,15 @@ bool Image_DecompressRGBA( uint target, int level, int intformat, uint width, ui
 
 	switch( PFDesc[intformat].format )
 	{
+	case PF_RGB_16:
+		for( i = 0, col = (color16 *)fin; i < width * height; i++, col += sizeof( color16 ))
+		{
+			fout[(i<<2)+0] = col->r;
+			fout[(i<<2)+1] = col->g;
+			fout[(i<<2)+2] = col->b;
+			fout[(i<<2)+3] = 255;
+		}
+		break;	
 	case PF_RGB_24:
 		for (i = 0; i < width * height; i++ )
 		{
@@ -1993,9 +2002,19 @@ bool Image_DecompressRGBA( uint target, int level, int intformat, uint width, ui
 			fout[(i<<2)+3] = 255;
 		}
 		break;
+	case PF_BGR_24:
+		for (i = 0; i < width * height; i++ )
+		{
+			fout[(i<<2)+0] = fin[i+2];
+			fout[(i<<2)+1] = fin[i+1];
+			fout[(i<<2)+2] = fin[i+0];
+			fout[(i<<2)+3] = 255;
+		}
+		break;
 	case PF_RGBA_32:
 		Mem_Copy( fout, fin, size );
 		break;
+	case PF_BGRA_32:
 	case PF_ABGR_64:
 		for( i = 0; i < width * height; i++ )
 		{
@@ -2026,6 +2045,7 @@ void Image_DecompressDDS( const byte *buffer, uint target )
 	{
 	case PF_RGB_24:
 	case PF_RGBA_32: 
+	case PF_BGRA_32:
 	case PF_ABGR_64: image.decompress = Image_DecompressRGBA; break;
 	case PF_LUMINANCE:
 	case PF_LUMINANCE_16:
@@ -2048,7 +2068,7 @@ void Image_DecompressDDS( const byte *buffer, uint target )
 	case PF_UNKNOWN: break;
 	}
 
-	for( i = 0; i < image.num_mips; i++, buffer += size )
+	for( i = 0; i < image.cur_mips; i++, buffer += size )
 	{
 		Image_SetPixelFormat( w, h, d );
 		size = image.SizeOfFile;
@@ -2076,6 +2096,15 @@ bool Image_ForceDecompress( void )
 	// extract cubemap side from complex image
 	if( image.hint != IL_HINT_NO )
 		return true;
+
+	// FIXME: load it properly with gl loader
+	switch( image.type )
+	{
+	case PF_RXGB: return true;	// g-cont. test it with GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ?
+	case PF_ATI1N: return true;	// hey, how called your OpenGL extension, ATI ?
+	case PF_ATI2N: return true;
+	}
+
 	return false;
 }
 
@@ -2141,6 +2170,9 @@ bool Image_LoadDDS( const char *name, const byte *buffer, size_t filesize )
 		if( image.flags & IMAGE_CUBEMAP ) numsides = 6;
 		Image_SetPixelFormat( image.width, image.height, image.num_layers ); // setup
 		image.size = image.ptr = 0;
+		if( image.cmd_flags & IL_IGNORE_MIPS )
+			image.cur_mips = 1;
+		else image.cur_mips = image.num_mips;
 		image.num_mips = 1;
 
 		for( i = 0, offset = 0; i < numsides; i++, buf += offset )

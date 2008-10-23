@@ -15,6 +15,7 @@ extern string gs_gamedir;
 #define Sys_Error com.error
 extern vprogs_exp_t *PRVM;
 extern uint app_name;
+extern bool write_qscsript;
 extern int game_family;
 
 typedef enum
@@ -65,6 +66,7 @@ bool ConvMIP( const char *name, char *buffer, int filesize );	// Quake1, Half-Li
 bool ConvLMP( const char *name, char *buffer, int filesize );	// Quake1, Half-Life lump images
 bool ConvFNT( const char *name, char *buffer, int filesize );	// Half-Life system fonts
 bool ConvWAL( const char *name, char *buffer, int filesize );	// Quake2 textures
+bool ConvVTF( const char *name, char *buffer, int filesize );	// Quake2 textures
 bool ConvSKN( const char *name, char *buffer, int filesize );	// Doom1 sprite models
 bool ConvBSP( const char *name, char *buffer, int filesize );	// Extract textures from bsp (q1\hl)
 bool ConvSND( const char *name, char *buffer, int filesize );	// not implemented

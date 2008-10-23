@@ -3,9 +3,7 @@
 //			img_jpg.c - jpg format load & save
 //=======================================================================
 
-#include "launch.h"
-#include "byteorder.h"
-#include "filesystem.h"
+#include "imagelib.h"
 
 jpg_t jpg_file;		// jpeg read struct
 

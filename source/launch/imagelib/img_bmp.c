@@ -3,9 +3,7 @@
 //			img_bmp.c - bmp format load & save
 //=======================================================================
 
-#include "launch.h"
-#include "byteorder.h"
-#include "filesystem.h"
+#include "imagelib.h"
 
 /*
 =============

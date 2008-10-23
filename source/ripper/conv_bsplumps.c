@@ -6,6 +6,7 @@
 #include "ripper.h"
 #include "qc_gen.h"
 
+#define VDBSPMODHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'V')	// little-endian "VBSP" hl2 bsp's
 #define IDIWADHEADER	(('D'<<24)+('A'<<16)+('W'<<8)+'I')	// little-endian "IWAD" doom1 game wad
 #define IDPWADHEADER	(('D'<<24)+('A'<<16)+('W'<<8)+'P')	// little-endian "PWAD" doom1 game wad
 #define IDWAD2HEADER	(('2'<<24)+('D'<<16)+('A'<<8)+'W')	// little-endian "WAD2" quake1 gfx.wad
@@ -138,10 +139,6 @@ bool Conv_CheckMap( const char *mapname )
 	case IDBSPMODHEADER: // continue checking
 		switch( hdr.version )
 		{
-		case 18:
-			game_family = GAME_HALFLIFE2_BETA;
-			FS_Close( f );
-			return true;
 		case 38:
 			game_family = GAME_QUAKE2;
 			FS_Close( f );
@@ -156,6 +153,19 @@ bool Conv_CheckMap( const char *mapname )
 			return true;
 		case 47:
 			game_family = GAME_RTCW;
+			FS_Close( f );
+			return true;
+		}
+	case VDBSPMODHEADER: // continue checking
+		switch( hdr.version )
+		{
+		case 18:
+			game_family = GAME_HALFLIFE2_BETA;
+			FS_Close( f );
+			return true;
+		case 19:
+		case 20:
+			game_family = GAME_HALFLIFE2;
 			FS_Close( f );
 			return true;
 		}

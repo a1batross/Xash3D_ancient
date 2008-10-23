@@ -3,9 +3,7 @@
 //			img_tga.c - tga format load & save
 //=======================================================================
 
-#include "launch.h"
-#include "byteorder.h"
-#include "filesystem.h"
+#include "imagelib.h"
 
 /*
 =============

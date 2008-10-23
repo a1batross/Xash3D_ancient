@@ -153,6 +153,10 @@ SOURCE=.\conv_sprite2.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\conv_vtfimage.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\conv_wadlumps.c
 # End Source File
 # Begin Source File

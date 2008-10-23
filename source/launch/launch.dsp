@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LAUNCH_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "./" /I "../public" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "./" /I "./imagelib" /I "../public" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -54,7 +54,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386 /opt:nowin98
-# ADD LINK32 zlib.lib png.lib user32.lib gdi32.lib advapi32.lib winmm.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /opt:nowin98
+# ADD LINK32 zlib.lib png.lib user32.lib gdi32.lib advapi32.lib winmm.lib /nologo /dll /pdb:none /machine:I386 /nodefaultlib:"libc.lib" /libpath:"./imagelib" /opt:nowin98
 # Begin Custom Build
 TargetDir=\Xash3D\src_main\temp\launch\!release
 InputPath=\Xash3D\src_main\temp\launch\!release\launch.dll
@@ -79,7 +79,7 @@ SOURCE="$(InputPath)"
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LAUNCH_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "../public" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /Gi /GX /ZI /Od /I "./" /I "./imagelib" /I "../public" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /FD /GZ /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -90,7 +90,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 zlib.lib png.lib user32.lib gdi32.lib advapi32.lib winmm.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"libc.lib" /pdbtype:sept
+# ADD LINK32 zlib.lib png.lib user32.lib gdi32.lib advapi32.lib winmm.lib /nologo /dll /debug /machine:I386 /nodefaultlib:"libc.lib" /pdbtype:sept /libpath:"./imagelib"
 # Begin Custom Build
 TargetDir=\Xash3D\src_main\temp\launch\!debug
 InputPath=\Xash3D\src_main\temp\launch\!debug\launch.dll
@@ -140,39 +140,43 @@ SOURCE=.\filesystem.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\img_bmp.c
+SOURCE=.\imagelib\img_bmp.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\img_dds.c
+SOURCE=.\imagelib\img_dds.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\img_jpg.c
+SOURCE=.\imagelib\img_jpg.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\img_main.c
+SOURCE=.\imagelib\img_main.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\img_pcx.c
+SOURCE=.\imagelib\img_pcx.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\img_png.c
+SOURCE=.\imagelib\img_png.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\img_tga.c
+SOURCE=.\imagelib\img_tga.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\img_utils.c
+SOURCE=.\imagelib\img_utils.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\img_wad.c
+SOURCE=.\imagelib\img_vtf.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\imagelib\img_wad.c
 # End Source File
 # Begin Source File
 

@@ -4,9 +4,7 @@
 //=======================================================================
 
 #include <setjmp.h>
-#include "launch.h"
-#include "byteorder.h"
-#include "filesystem.h"
+#include "imagelib.h"
 
 #define PNG_LIBPNG_VER_STRING		"1.2.4"
 #define PNG_COLOR_MASK_PALETTE	1

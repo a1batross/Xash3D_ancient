@@ -51,6 +51,9 @@ typedef struct
 	GLuint		glTarget;
 	GLuint		glSamples;
 
+	// image loader
+	bool		(*texImage)( GLuint, GLint, GLint, GLuint, GLuint, GLint, GLuint, const GLvoid* );
+
 	uint		tflags;	// TF_ flags	
 	uint		flags;	// IMAGE_ flags
 	byte		*pal;
@@ -232,7 +235,7 @@ void R_TextureList_f( void )
 		Msg( "%4i: ", i );
 
 		Msg( "%4i %4i ", texture->width, texture->height );
-		Msg("%3s", PFDesc[texture->type].name );
+		Msg("%3s", PFDesc( texture->type )->name );
 
 		switch( texture->target )
 		{
@@ -406,12 +409,12 @@ void R_SetPixelFormat( int width, int height, int depth )
 {
 	int	BlockSize;
 	
-	BlockSize = PFDesc[image_desc.format].block;
-	image_desc.bpp = PFDesc[image_desc.format].bpp;
-	image_desc.bpc = PFDesc[image_desc.format].bpc;
+	BlockSize = PFDesc( image_desc.format )->block;
+	image_desc.bpp = PFDesc( image_desc.format )->bpp;
+	image_desc.bpc = PFDesc( image_desc.format )->bpc;
 
-	image_desc.glMask = PFDesc[image_desc.format].glmask;
-	image_desc.glType = PFDesc[image_desc.format].gltype;
+	image_desc.glMask = PFDesc( image_desc.format )->glmask;
+	image_desc.glType = PFDesc( image_desc.format )->gltype;
 
 	image_desc.numLayers = depth;
 	image_desc.width = width;
@@ -439,69 +442,60 @@ bool R_GetPixelFormat( rgbdata_t *pic, uint tex_flags, float bumpScale )
 
 	if( !pic || !pic->buffer ) return false;
 	Mem_EmptyPool( r_imagepool ); // flush buffers		
-	memset( &image_desc + MAX_STRING, 0, sizeof(image_desc) - MAX_STRING );
-	for(i = 0; i < PF_TOTALCOUNT; i++)
+	memset( &image_desc + MAX_STRING, 0, sizeof(image_desc) - MAX_STRING );	// FIXME
+
+	BlockSize = PFDesc( pic->type )->block;
+	image_desc.bpp = PFDesc( pic->type )->bpp;
+	image_desc.bpc = PFDesc( pic->type )->bpc;
+	image_desc.glMask = PFDesc( pic->type )->glmask;
+	image_desc.glType = PFDesc( pic->type )->gltype;
+	image_desc.format = pic->type;
+
+	image_desc.numLayers = d = pic->numLayers;
+	image_desc.width = w = pic->width;
+	image_desc.height = h = pic->height;
+	image_desc.flags = pic->flags;
+	image_desc.tflags = tex_flags;
+
+	image_desc.bps = image_desc.width * image_desc.bpp * image_desc.bpc;
+	image_desc.SizeOfPlane = image_desc.bps * image_desc.height;
+	image_desc.SizeOfData = image_desc.SizeOfPlane * image_desc.numLayers;
+	image_desc.BitsCount = pic->bitsCount;
+	image_desc.bumpScale = bumpScale;
+
+	// now correct buffer size
+	for( i = 0; i < pic->numMips; i++, totalsize += mipsize )
 	{
-		if(pic->type == PFDesc[i].format)
-		{
-			BlockSize = PFDesc[i].block;
-			image_desc.bpp = PFDesc[i].bpp;
-			image_desc.bpc = PFDesc[i].bpc;
-			image_desc.glMask = PFDesc[i].glmask;
-			image_desc.glType = PFDesc[i].gltype;
-			image_desc.format = pic->type;
-			break;
-		} 
-	} 		
+		mipsize = R_GetImageSize( BlockSize, w, h, d, image_desc.bpp, image_desc.BitsCount / 8 );
+		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1;
+	}
 
-	if( i != PF_TOTALCOUNT ) // make sure what match found
+	if( tex_flags & ( TF_IMAGE2D|TF_SKYSIDE ))
 	{
-		image_desc.numLayers = d = pic->numLayers;
-		image_desc.width = w = pic->width;
-		image_desc.height = h = pic->height;
-		image_desc.flags = pic->flags;
-		image_desc.tflags = tex_flags;
-
-		image_desc.bps = image_desc.width * image_desc.bpp * image_desc.bpc;
-		image_desc.SizeOfPlane = image_desc.bps * image_desc.height;
-		image_desc.SizeOfData = image_desc.SizeOfPlane * image_desc.numLayers;
-		image_desc.BitsCount = pic->bitsCount;
-		image_desc.bumpScale = bumpScale;
-
-		// now correct buffer size
-		for( i = 0; i < pic->numMips; i++, totalsize += mipsize )
-		{
-			mipsize = R_GetImageSize( BlockSize, w, h, d, image_desc.bpp, image_desc.BitsCount / 8 );
-			w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1;
-		}
-
-		if( tex_flags & ( TF_IMAGE2D|TF_SKYSIDE ))
-		{
-			// don't build mips for sky and hud pics
-			image_desc.tflags &= ~TF_GEN_MIPMAPS;
-			image_desc.MipCount = 1; // and ignore it to load
-		} 
-		else if( pic->numMips > 1 )
-		{
-			// .dds, .wal or .mip image
-			image_desc.tflags &= ~TF_GEN_MIPMAPS;
-			image_desc.MipCount = pic->numMips;
-			image_desc.tflags |= TF_MIPMAPS;
-		}
-		else
-		{
-			// so it normal texture without mips
-			image_desc.tflags |= (TF_MIPMAPS|TF_GEN_MIPMAPS);
-			image_desc.MipCount = pic->numMips;
-		}
+		// don't build mips for sky and hud pics
+		image_desc.tflags &= ~TF_GEN_MIPMAPS;
+		image_desc.MipCount = 1; // and ignore it to load
+	} 
+	else if( pic->numMips > 1 )
+	{
+		// .dds, .wal or .mip image
+		image_desc.tflags &= ~TF_GEN_MIPMAPS;
+		image_desc.MipCount = pic->numMips;
+		image_desc.tflags |= TF_MIPMAPS;
+	}
+	else
+	{
+		// so it normal texture without mips
+		image_desc.tflags |= (TF_MIPMAPS|TF_GEN_MIPMAPS);
+		image_desc.MipCount = pic->numMips;
+	}
 		
-		if( image_desc.MipCount < 1 ) image_desc.MipCount = 1;
-		image_desc.pal = pic->palette;
+	if( image_desc.MipCount < 1 ) image_desc.MipCount = 1;
+	image_desc.pal = pic->palette;
 
-		// check for permanent images
-		if( image_desc.format == PF_RGBA_GN ) image_desc.tflags |= TF_STATIC;
-		if( tex_flags & TF_IMAGE2D ) image_desc.tflags |= TF_STATIC;
-	}	
+	// check for permanent images
+	if( image_desc.format == PF_RGBA_GN ) image_desc.tflags |= TF_STATIC;
+	if( tex_flags & TF_IMAGE2D ) image_desc.tflags |= TF_STATIC;
 
 	// restore temp dimensions
 	w = image_desc.width;
@@ -903,7 +897,7 @@ void GL_GenerateMipmaps( int width, int height )
 	{
 		// g-cont. because i'm don't know how to generate miplevels for GL_FLOAT or GL_SHORT_REV_1_bla_bla
 		// ok, please show me videocard which don't supported GL_GENERATE_MIPMAP_SGIS ...
-		MsgDev( D_ERROR, "GL_GenerateMipmaps: software mip generator failed on %s\n", PFDesc[image_desc.format].name );
+		MsgDev( D_ERROR, "GL_GenerateMipmaps: software mip generator failed on %s\n", PFDesc( image_desc.format )->name );
 		return;
 	}
 
@@ -920,349 +914,21 @@ void GL_GenerateMipmaps( int width, int height )
 	}
 }
 
-/*
-===============
-qrsCompressedTexImage2D
-
-cpu version of decompress dds
-===============
-*/
-bool qrsCompressedTexImage2D( uint target, int level, int internalformat, uint width, uint height, int border, uint imageSize, const void* data )
+bool R_LoadImageDXT( GLuint target, GLint level, GLint intformat, GLuint width, GLuint height, GLint border, GLuint imageSize, const GLvoid* data )
 {
-	color32	colours[4], *col;
-	uint	bits, bitmask, Offset; 
-	int	scaled_width, scaled_height;
-	word	sAlpha, sColor0, sColor1;
-	byte	*fin, *fout = image_desc.source;
-	byte	alphas[8], *alpha, *alphamask; 
-	int	w, h, x, y, z, i, j, k, Select; 
-	uint	*scaled = (uint *)image_desc.scaled;
-	bool	has_alpha = false;
+	GLuint dxtformat;
 
-	if (!data) return false;
-	fin = (byte *)data;
-	w = width;
-	h = height;
-	
-	switch( internalformat )
+	switch( intformat )
 	{
-	case PF_DXT1:
-		colours[0].a = 0xFF;
-		colours[1].a = 0xFF;
-		colours[2].a = 0xFF;
-
-		for (z = 0; z < image_desc.numLayers; z++)
-		{
-			for (y = 0; y < h; y += 4)
-			{
-				for (x = 0; x < w; x += 4)
-				{
-					sColor0 = *((word*)fin);
-					sColor0 = LittleShort(sColor0);
-					sColor1 = *((word*)(fin + 2));
-					sColor1 = LittleShort(sColor1);
-
-					R_DXTReadColor(sColor0, colours);
-					R_DXTReadColor(sColor1, colours + 1);
-
-					bitmask = ((uint*)fin)[1];
-					bitmask = LittleLong( bitmask );
-					fin += 8;
-
-					if (sColor0 > sColor1)
-					{
-						// Four-color block: derive the other two colors.
-						// 00 = color_0, 01 = color_1, 10 = color_2, 11 = color_3
-						// These 2-bit codes correspond to the 2-bit fields 
-						// stored in the 64-bit block.
-						colours[2].b = (2 * colours[0].b + colours[1].b + 1) / 3;
-						colours[2].g = (2 * colours[0].g + colours[1].g + 1) / 3;
-						colours[2].r = (2 * colours[0].r + colours[1].r + 1) / 3;
-						colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
-						colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
-						colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
-						colours[3].a = 0xFF;
-					}
-					else
-					{ 
-						// Three-color block: derive the other color.
-						// 00 = color_0,  01 = color_1,  10 = color_2,
-						// 11 = transparent.
-						// These 2-bit codes correspond to the 2-bit fields 
-						// stored in the 64-bit block. 
-						colours[2].b = (colours[0].b + colours[1].b) / 2;
-						colours[2].g = (colours[0].g + colours[1].g) / 2;
-						colours[2].r = (colours[0].r + colours[1].r) / 2;
-						colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
-						colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
-						colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
-						colours[3].a = 0x00;
-					}
-					for (j = 0, k = 0; j < 4; j++)
-					{
-						for (i = 0; i < 4; i++, k++)
-						{
-							Select = (bitmask & (0x03 << k*2)) >> k*2;
-							col = &colours[Select];
-
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								uint ofs = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp;
-								fout[ofs + 0] = col->r;
-								fout[ofs + 1] = col->g;
-								fout[ofs + 2] = col->b;
-								fout[ofs + 3] = col->a;
-								if(col->a == 0) has_alpha = true;
-							}
-						}
-					}
-				}
-			}
-		}
-		break;
-	case PF_DXT3:
-		for (z = 0; z < image_desc.numLayers; z++)
-		{
-			for (y = 0; y < h; y += 4)
-			{
-				for (x = 0; x < w; x += 4)
-				{
-					alpha = fin;
-					fin += 8;
-					R_DXTReadColors(fin, colours);
-					bitmask = ((uint*)fin)[1];
-					bitmask = LittleLong(bitmask);
-					fin += 8;
-
-					// Four-color block: derive the other two colors.    
-					// 00 = color_0, 01 = color_1, 10 = color_2, 11 = color_3
-					// These 2-bit codes correspond to the 2-bit fields 
-					// stored in the 64-bit block.
-					colours[2].b = (2 * colours[0].b + colours[1].b + 1) / 3;
-					colours[2].g = (2 * colours[0].g + colours[1].g + 1) / 3;
-					colours[2].r = (2 * colours[0].r + colours[1].r + 1) / 3;
-					colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
-					colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
-					colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
-
-					k = 0;
-					for (j = 0; j < 4; j++)
-					{
-						for (i = 0; i < 4; i++, k++)
-						{
-							Select = (bitmask & (0x03 << k*2)) >> k*2;
-							col = &colours[Select];
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp;
-								fout[Offset + 0] = col->r;
-								fout[Offset + 1] = col->g;
-								fout[Offset + 2] = col->b;
-							}
-						}
-					}
-					for (j = 0; j < 4; j++)
-					{
-						sAlpha = alpha[2*j] + 256*alpha[2*j+1];
-						for (i = 0; i < 4; i++)
-						{
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 3;
-								fout[Offset] = sAlpha & 0x0F;
-								fout[Offset] = fout[Offset] | (fout[Offset]<<4);
-								if(sAlpha == 0) has_alpha = true;
-							}
-							sAlpha >>= 4;
-						}
-					}
-				}
-			}
-		}
-		break;
-	case PF_DXT5:
-		for (z = 0; z < image_desc.numLayers; z++)
-		{
-			for (y = 0; y < h; y += 4)
-			{
-				for (x = 0; x < w; x += 4)
-				{
-					if (y >= h || x >= w) break;
-					alphas[0] = fin[0];
-					alphas[1] = fin[1];
-					alphamask = fin + 2;
-					fin += 8;
-
-					R_DXTReadColors(fin, colours);
-					bitmask = ((uint*)fin)[1];
-					bitmask = LittleLong(bitmask);
-					fin += 8;
-
-					// Four-color block: derive the other two colors.    
-					// 00 = color_0, 01 = color_1, 10 = color_2, 11 = color_3
-					// These 2-bit codes correspond to the 2-bit fields 
-					// stored in the 64-bit block.
-					colours[2].b = (2 * colours[0].b + colours[1].b + 1) / 3;
-					colours[2].g = (2 * colours[0].g + colours[1].g + 1) / 3;
-					colours[2].r = (2 * colours[0].r + colours[1].r + 1) / 3;
-					colours[3].b = (colours[0].b + 2 * colours[1].b + 1) / 3;
-					colours[3].g = (colours[0].g + 2 * colours[1].g + 1) / 3;
-					colours[3].r = (colours[0].r + 2 * colours[1].r + 1) / 3;
-
-					k = 0;
-					for (j = 0; j < 4; j++)
-					{
-						for (i = 0; i < 4; i++, k++)
-						{
-							Select = (bitmask & (0x03 << k*2)) >> k*2;
-							col = &colours[Select];
-							// only put pixels out < width or height
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp;
-								fout[Offset + 0] = col->r;
-								fout[Offset + 1] = col->g;
-								fout[Offset + 2] = col->b;
-							}
-						}
-					}
-					// 8-alpha or 6-alpha block?    
-					if (alphas[0] > alphas[1])
-					{    
-						// 8-alpha block:  derive the other six alphas.    
-						// Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
-						alphas[2] = (6 * alphas[0] + 1 * alphas[1] + 3) / 7; // bit code 010
-						alphas[3] = (5 * alphas[0] + 2 * alphas[1] + 3) / 7; // bit code 011
-						alphas[4] = (4 * alphas[0] + 3 * alphas[1] + 3) / 7; // bit code 100
-						alphas[5] = (3 * alphas[0] + 4 * alphas[1] + 3) / 7; // bit code 101
-						alphas[6] = (2 * alphas[0] + 5 * alphas[1] + 3) / 7; // bit code 110
-						alphas[7] = (1 * alphas[0] + 6 * alphas[1] + 3) / 7; // bit code 111
-					}
-					else
-					{
-						// 6-alpha block.
-						// Bit code 000 = alpha_0, 001 = alpha_1, others are interpolated.
-						alphas[2] = (4 * alphas[0] + 1 * alphas[1] + 2) / 5; // Bit code 010
-						alphas[3] = (3 * alphas[0] + 2 * alphas[1] + 2) / 5; // Bit code 011
-						alphas[4] = (2 * alphas[0] + 3 * alphas[1] + 2) / 5; // Bit code 100
-						alphas[5] = (1 * alphas[0] + 4 * alphas[1] + 2) / 5; // Bit code 101
-						alphas[6] = 0x00;				// Bit code 110
-						alphas[7] = 0xFF;				// Bit code 111
-					}
-					// Note: Have to separate the next two loops,
-					// it operates on a 6-byte system.
-
-					// First three bytes
-					bits = (alphamask[0]) | (alphamask[1] << 8) | (alphamask[2] << 16);
-					for (j = 0; j < 2; j++)
-					{
-						for (i = 0; i < 4; i++)
-						{
-							// only put pixels out < width or height
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 3;
-								fout[Offset] = alphas[bits & 0x07];
-							}
-							bits >>= 3;
-						}
-					}
-					// Last three bytes
-					bits = (alphamask[3]) | (alphamask[4] << 8) | (alphamask[5] << 16);
-					for (j = 2; j < 4; j++)
-					{
-						for (i = 0; i < 4; i++)
-						{
-							// only put pixels out < width or height
-							if (((x + i) < w) && ((y + j) < h))
-							{
-								Offset = z * image_desc.SizeOfPlane + (y + j) * image_desc.bps + (x + i) * image_desc.bpp + 3;
-								fout[Offset] = alphas[bits & 0x07];
-								if(bits & 0x07) has_alpha = true; 
-							}
-							bits >>= 3;
-						}
-					}
-				}
-			}
-		}
-		break;
-	default:
-		MsgDev(D_WARN, "qrsCompressedTexImage2D: invalid compression type: %s\n", PFDesc[internalformat].name );
-		return false;
+	case PF_DXT1: dxtformat = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT; break;
+	case PF_DXT3: dxtformat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT; break;
+	case PF_DXT5: dxtformat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT; break;
+	default: return false;
 	}
 
-	scaled_width = w;
-	scaled_height = h;
-	R_RoundImageDimensions(&scaled_width, &scaled_height );
-
-	// upload base image or miplevel
-	if( image_desc.tflags & TF_COMPRESS )
-		image_desc.glSamples = (has_alpha) ? GL_COMPRESSED_RGBA_ARB : GL_COMPRESSED_RGB_ARB;
-	else image_desc.glSamples = (has_alpha) ? GL_RGBA : GL_RGB;
-	R_ResampleTexture ((uint *)fout, w, h, scaled, scaled_width, scaled_height);
-	if( !level ) GL_GenerateMipmaps( scaled_width, scaled_height ); // generate mips if needed
-	pglTexImage2D ( target, level, image_desc.glSamples, scaled_width, scaled_height, border, image_desc.glMask, image_desc.glType, (byte *)scaled );
-
-	if(pglGetError()) return false;
-	return true;
-}
-
-bool CompressedTexImage2D( uint target, int level, int intformat, uint width, uint height, int border, uint imageSize, const void* data )
-{
-	uint dxtformat = 0;
-	uint pixformat = PFDesc[intformat].format;
-
-	if(GL_Support( R_TEXTURE_COMPRESSION_EXT ))
-	{
-		switch( pixformat )
-		{
-		case PF_DXT1: dxtformat = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT; break;
-		case PF_DXT3: dxtformat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT; break;
-		case PF_DXT5: dxtformat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT; break;
-		default: use_gl_extension = false; break;
-		}
-	}
-	else use_gl_extension = false;
-
-	if( use_gl_extension )
-	{
-		if( !level ) GL_GenerateMipmaps( width, height ); // generate mips if needed
-		pglCompressedTexImage2DARB( target, level, dxtformat, width, height, border, imageSize, data );
-		if(!pglGetError()) return true;
-		// otherwise try loading with software unpacker
-	}
-	return qrsCompressedTexImage2D( target, level, pixformat, width, height, border, imageSize, data );
-}
-
-/*
-===============
-R_LoadImageDXT
-===============
-*/
-bool R_LoadImageDXT( byte *data, GLuint target )
-{
-	int	i, size = 0;
-	int	w = image_desc.width;
-	int	h = image_desc.height;
-	int	d = image_desc.numLayers;
-	double	time;
-
-	time = Sys_DoubleTime();	
-	for( i = 0; i < image_desc.MipCount; i++, data += size )
-	{
-		R_SetPixelFormat( w, h, d );
-		size = image_desc.SizeOfFile;
-
-		if(!CompressedTexImage2D( target, i, image_desc.format, w, h, 0, size, data ))
-			break; // there were errors
-		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; //calc size of next mip
-	}
-	
-	totalTime += Sys_DoubleTime() - time;
-
-	GL_TexFilter();
-	return true;
+	if( !level ) GL_GenerateMipmaps( width, height ); // generate mips if needed
+	pglCompressedTexImage2DARB( target, level, dxtformat, width, height, border, imageSize, data );
+	return !pglGetError();
 }
 
 /*
@@ -1272,7 +938,7 @@ qrsDecompressedTexImage2D
 cpu version of loading non paletted rgba buffer
 ===============
 */
-bool qrsDecompressedTexImage2D( uint target, int level, int internalformat, uint width, uint height, int border, uint imageSize, const void* data )
+bool R_LoadImageRGBA( uint target, int level, int intformat, uint width, uint height, int border, uint imageSize, const void* data )
 {
 	byte	*fin;
 	int	i, p; 
@@ -1286,7 +952,7 @@ bool qrsDecompressedTexImage2D( uint target, int level, int internalformat, uint
 	scaled_width = width;
 	scaled_height = height;
 
-	switch( PFDesc[internalformat].format )
+	switch( intformat )
 	{
 	case PF_INDEXED_24:
 		if( image_desc.flags & IMAGE_HAVE_ALPHA )
@@ -1342,7 +1008,7 @@ bool qrsDecompressedTexImage2D( uint target, int level, int internalformat, uint
 		fout = fin; // nothing to process
 		break;
 	default:
-		MsgDev(D_WARN, "qrsDecompressedTexImage2D: invalid compression type: %s\n", PFDesc[internalformat].name );
+		MsgDev(D_WARN, "qrsDecompressedTexImage2D: invalid compression type: %s\n", PFDesc( intformat )->name );
 		return false;
 	}
 
@@ -1354,131 +1020,14 @@ bool qrsDecompressedTexImage2D( uint target, int level, int internalformat, uint
 	if( !level ) GL_GenerateMipmaps( scaled_width, scaled_height ); // generate mips if needed
 	pglTexImage2D( target, level, image_desc.glSamples, scaled_width, scaled_height, border, image_desc.glMask, image_desc.glType, (byte *)scaled );
 
-	if(pglGetError()) return false;
-	return true;
+	return !pglGetError();
 }
 
-/*
-===============
-R_LoadImageRGBA
-===============
-*/
-bool R_LoadImageRGBA( byte *data, GLuint target )
+bool R_LoadImageARGB( uint target, int level, int intformat, uint width, uint height, int border, uint imageSize, const void* data )
 {
-	int i, size = 0;
-	int w = image_desc.width;
-	int h = image_desc.height;
-	int d = image_desc.numLayers; // ABGR_64 may using some layers
- 
- 	for( i = 0; i < image_desc.MipCount; i++, data += size )
-	{
-		R_SetPixelFormat( w, h, d );
-		size = image_desc.SizeOfFile;
- 
- 		if(!qrsDecompressedTexImage2D( target, i, image_desc.format, w, h, 0, size, data ))
-			break; // there were errors
-		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; // calc size of next mip
-	}
+	uint argbformat, datatype;
 
-	GL_TexFilter();
-	return true;
-}
-
-bool qrsDecompressImageARGB( uint target, int level, int internalformat, uint width, uint height, int border, uint imageSize, const void* data )
-{
-	uint	ReadI = 0, TempBpp;
-	uint	RedL, RedR, GreenL, GreenR, BlueL, BlueR, AlphaL, AlphaR;
-	uint	r_bitmask, g_bitmask, b_bitmask, a_bitmask;
-	uint	*scaled = (unsigned *)image_desc.scaled;
-	byte	*fin, *fout = image_desc.source;
-	bool	has_alpha = false;
-	int	scaled_width, scaled_height;
-	int	i, w, h;
-
-	if (!data) return false;
-	if(image_desc.pal)
-	{
-		byte *pal = image_desc.pal; // copy ptr
-		r_bitmask	= BuffLittleLong( pal ); pal += 4;
-		g_bitmask = BuffLittleLong( pal ); pal += 4;
-		b_bitmask = BuffLittleLong( pal ); pal += 4;
-		a_bitmask = BuffLittleLong( pal ); pal += 4;
-	}
-	else
-	{
-		MsgDev(D_ERROR, "R_StoreImageARGB: can't get RGBA bitmask\n" );		
-		return false;
-	}
-
-	R_GetBitsFromMask(r_bitmask, &RedL, &RedR);
-	R_GetBitsFromMask(g_bitmask, &GreenL, &GreenR);
-	R_GetBitsFromMask(b_bitmask, &BlueL, &BlueR);
-	R_GetBitsFromMask(a_bitmask, &AlphaL, &AlphaR);
-       
-	fin = (byte *)data;
-	w = width;
-	h = height;
-	TempBpp = image_desc.BitsCount / 8;
-
-	for( i = 0; i < image_desc.SizeOfData; i += image_desc.bpp )
-	{
-		// TODO: This is SLOOOW...
-		// but the old version crashed in release build under
-		// winxp (and xp is right to stop this code - I always
-		// wondered that it worked the old way at all)
-		if( image_desc.SizeOfData - i < 4 )
-		{
-			// less than 4 byte to write?
-			if( TempBpp == 1 ) ReadI = *((byte*)fin);
-			else if( TempBpp == 2 ) ReadI = BuffLittleShort( fin );
-			else if( TempBpp == 3 ) ReadI = BuffLittleLong( fin );
-		}
-		else ReadI = BuffLittleLong( fin );
-		fin += TempBpp;
-		fout[i] = ((ReadI & r_bitmask)>> RedR) << RedL;
-
-		if( image_desc.bpp >= 3 )
-		{
-			fout[i+1] = ((ReadI & g_bitmask) >> GreenR) << GreenL;
-			fout[i+2] = ((ReadI & b_bitmask) >> BlueR) << BlueL;
-			if (image_desc.bpp == 4)
-			{
-				fout[i+3] = ((ReadI & a_bitmask) >> AlphaR) << AlphaL;
-				if (AlphaL >= 7) fout[i+3] = fout[i+3] ? 0xFF : 0x00;
-				else if (AlphaL >= 4) fout[i+3] = fout[i+3] | (fout[i+3] >> 4);
-			}
-		}
-		else if (image_desc.bpp == 2)
-		{
-			fout[i+1] = ((ReadI & a_bitmask) >> AlphaR) << AlphaL;
-			if (AlphaL >= 7) fout[i+1] = fout[i+1] ? 0xFF : 0x00;
-			else if (AlphaL >= 4) fout[i+1] = fout[i+1] | (fout[i+3] >> 4);
-		}
-	}
-
-	scaled_width = w;
-	scaled_height = h;
-	R_RoundImageDimensions( &scaled_width, &scaled_height );
-
-	// upload base image or miplevel
-	if( image_desc.tflags & TF_COMPRESS )
-		image_desc.glSamples = (has_alpha) ? GL_COMPRESSED_RGBA_ARB : GL_COMPRESSED_RGB_ARB;
-	else image_desc.glSamples = (has_alpha) ? GL_RGBA : GL_RGB;
-	R_ResampleTexture ((uint *)fout, w, h, scaled, scaled_width, scaled_height);
-	if( !level ) GL_GenerateMipmaps( scaled_width, scaled_height ); // generate mips if needed
-	pglTexImage2D ( target, level, image_desc.glSamples, scaled_width, scaled_height, border, image_desc.glMask, image_desc.glType, (byte *)scaled );
-
-	if(pglGetError()) return false;
-	return true;
-}
-
-bool DecompressImageARGB( uint target, int level, int intformat, uint width, uint height, int border, uint imageSize, const void* data )
-{
-	uint argbformat = 0;
-	uint datatype = 0;
-	uint pixformat = PFDesc[intformat].format;
-
-	switch( pixformat )
+	switch( intformat )
 	{
 	case PF_ARGB_32:
 	case PF_LUMINANCE:
@@ -1487,92 +1036,36 @@ bool DecompressImageARGB( uint target, int level, int intformat, uint width, uin
 		argbformat = GL_RGB5_A1;
 		datatype = GL_UNSIGNED_SHORT_1_5_5_5_REV;
 		break;
-	default: use_gl_extension = false; break;
+	default: return false;
 	}
 
-	if( use_gl_extension )
-	{
-		if( !level ) GL_GenerateMipmaps( width, height ); // generate mips if needed
-		pglTexImage2D( target, level, argbformat, width, height, border, image_desc.glMask, datatype, data );
-		if(!pglGetError()) return true;
-		// otherwise try loading with software unpacker
-	}
-	return qrsDecompressImageARGB(target, level, pixformat, width, height, border, imageSize, data );
+	if( !level ) GL_GenerateMipmaps( width, height ); // generate mips if needed
+	pglTexImage2D( target, level, argbformat, width, height, border, image_desc.glMask, datatype, data );
+	return !pglGetError();
 }
 
-bool R_LoadImageARGB( byte *data, GLuint target )
+bool R_LoadImageFloat( uint target, int level, int intformat, uint width, uint height, int border, uint imageSize, const void* data )
 {
-	int i, size = 0;
-	int w = image_desc.width;
-	int h = image_desc.height;
-	int d = image_desc.numLayers;
-	
-	for( i = 0; i < image_desc.MipCount; i++, data += size )
+	uint floatformat, datatype;
+
+	switch( intformat )
 	{
-		R_SetPixelFormat( w, h, d );
-		size = image_desc.SizeOfFile;
-
-		if(!DecompressImageARGB( target, i, image_desc.format, w, h, 0, size, data ))
-			break; //there were errors
-		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; // calc size of next mip
-	}
-
-	GL_TexFilter();
-	return true;
-}
-
-bool qrsDecompressImageFloat( uint target, int level, int internalformat, uint width, uint height, int border, uint imageSize, const void* data )
-{
-	// not implemented
-	return false;
-}
-
-bool DecompressImageFloat( uint target, int level, int intformat, uint width, uint height, int border, uint imageSize, const void* data )
-{
-	uint floatformat = 0;
-	uint datatype = 0;
-	uint pixformat = PFDesc[intformat].format;
-
-	switch( pixformat )
-	{
+	case PF_R_16F:
+	case PF_R_32F:
+	case PF_GR_32F:
+	case PF_GR_64F:
+	case PF_ABGR_64F:
 	case PF_ABGR_128F:
 		floatformat = GL_FLOAT;
 		datatype = GL_UNSIGNED_SHORT_1_5_5_5_REV;
 		break;
-	default: use_gl_extension = false; break;
+	default: return false;
 	}
 
-	if( use_gl_extension )
-	{
-		if( !level ) GL_GenerateMipmaps( width, height ); // generate mips if needed // generate mips if needed
-		pglTexImage2D( target, level, floatformat, width, height, border, image_desc.glMask, datatype, data );
-		if(!pglGetError()) return true;
-		// otherwise try loading with software unpacker
-	}
-	return qrsDecompressImageFloat( target, level, pixformat, width, height, border, imageSize, data );
+	if( !level ) GL_GenerateMipmaps( width, height ); // generate mips if needed // generate mips if needed
+	pglTexImage2D( target, level, floatformat, width, height, border, image_desc.glMask, datatype, data );
+	return !pglGetError();
 }
-
-bool R_LoadImageFloat( byte *data, GLuint target )
-{
-	int i, size = 0;
-	int w = image_desc.width;
-	int h = image_desc.height;
-	int d = image_desc.numLayers;
-
-	for( i = 0; i < image_desc.MipCount; i++, data += size )
-	{
-		R_SetPixelFormat( w, h, d );
-		size = image_desc.SizeOfFile;
-
-		if(!DecompressImageFloat( target, i, image_desc.format, w, h, 0, size, data ))
-			break; // there were errors 
-		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; // calc size of next mip
-	}
-
-	GL_TexFilter();
-	return true;
-}
-
 
 /*
 ===============
@@ -1619,28 +1112,45 @@ texture_t *R_FindCubeMapTexture( const char *name, uint flags, float bumpScale )
 
 bool R_UploadTexture( byte *buffer, int type, GLuint target )
 {
-	bool	iResult;
+	int	i, size = 0;
+	int	w = image_desc.width;
+	int	h = image_desc.height;
+	int	d = image_desc.numLayers;
 
 	switch( type )
 	{
 	case PF_RGB_24:
+	case PF_RGBA_32: 
 	case PF_ABGR_64:
-	case PF_RGBA_32:
-	case PF_RGBA_GN:
-	case PF_INDEXED_24:
-	case PF_INDEXED_32: iResult = R_LoadImageRGBA( buffer, target ); break;
+	case PF_RGBA_GN: image_desc.texImage = R_LoadImageRGBA; break;
 	case PF_LUMINANCE:
 	case PF_LUMINANCE_16:
 	case PF_LUMINANCE_ALPHA:
-	case PF_ARGB_32: iResult = R_LoadImageARGB( buffer, target ); break;
+	case PF_ARGB_32: image_desc.texImage = R_LoadImageARGB; break;
 	case PF_DXT1:
 	case PF_DXT3:
-	case PF_DXT5: iResult = R_LoadImageDXT( buffer, target ); break;
-	case PF_ABGR_128F: iResult = R_LoadImageFloat( buffer, target ); break;
-	case PF_UNKNOWN: iResult = false; break;
+	case PF_DXT5: image_desc.texImage = R_LoadImageDXT; break;
+	case PF_R_16F:
+	case PF_R_32F:
+	case PF_GR_32F:
+	case PF_GR_64F:
+	case PF_ABGR_64F:
+	case PF_ABGR_128F: image_desc.texImage = R_LoadImageFloat; break;
+	default: return false;
 	}
 
-	return iResult;
+	for( i = 0; i < image_desc.MipCount; i++, buffer += size )
+	{
+		R_SetPixelFormat( w, h, d );
+		size = image_desc.SizeOfFile;
+
+		if( !image_desc.texImage( target, i, image_desc.format, w, h, 0, size, buffer ))
+			return false; // there were errors 
+		w = (w+1)>>1, h = (h+1)>>1, d = (d+1)>>1; // calc size of next mip
+	}
+
+	GL_TexFilter();
+	return true;
 }
 
 /*
@@ -1724,9 +1234,9 @@ texture_t	*R_LoadTexture( const char *name, rgbdata_t *pic, uint flags, float bu
 		offset = image_desc.SizeOfFile; // move pointer
 
 		if( numsides == 6 )
-			MsgDev( D_LOAD, "%s[%i] [%s] \n", name, i, PFDesc[image_desc.format].name );
-		else MsgDev( D_LOAD, "%s [%s] \n", name, PFDesc[image_desc.format].name );
-		R_UploadTexture( buf, pic->type, target + i );
+			MsgDev( D_LOAD, "%s[%i] [%s] \n", name, i, PFDesc( image_desc.format )->name );
+		else MsgDev( D_LOAD, "%s [%s] \n", name, PFDesc( image_desc.format )->name );
+		iResult = R_UploadTexture( buf, pic->type, target + i );
 	}          
 	// check for errors
 	if( !iResult )
@@ -1798,7 +1308,7 @@ bool VID_ScreenShot( const char *filename, bool levelshot )
 	r_shot->width = r_width->integer;
 	r_shot->height = r_height->integer;
 	r_shot->type = PF_RGB_24;
-	r_shot->size = r_shot->width * r_shot->height * PFDesc[r_shot->type].bpp;
+	r_shot->size = r_shot->width * r_shot->height * PFDesc( r_shot->type )->bpp;
 	r_shot->palette = NULL;
 	r_shot->numLayers = 1;
 	r_shot->numMips = 1;
